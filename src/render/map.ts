@@ -24,11 +24,13 @@ export class MapRenderer {
   private labels: Array<{ id: number; pos: Point }> = [];
   private frontierLabels: Array<{ id:number; pos:Point; troops:number }> = [];
   private armyTotals: number[] = [];
+  private buildingMarkers: Array<{index:number;code:number}> = [];
   // Combat highlights represent actual touching borders, never routes from a capital.
   private combatEdges: Array<{ ax:number; ay:number; bx:number; by:number }> = [];
   private combatLabels: Array<{ pos:Point; troops:number }> = [];
   game: Game;
   onSelect: (point: Point, landing: boolean) => void = () => {};
+  onBuildRequest: (point: Point | null, clientX: number, clientY: number) => void = () => {};
   onHover: (point: Point | null, px: number, py: number, landing: boolean) => void = () => {};
 
   constructor(canvas: HTMLCanvasElement, game: Game) {
@@ -114,6 +116,7 @@ export class MapRenderer {
     const counts = new Uint32Array(this.game.factions.length);
     const stationed = new Float64Array(this.game.factions.length);
     const regional: Array<Array<{index:number; troops:number}>> = this.game.factions.map(()=>[]);
+    this.buildingMarkers=[];
     const c = this.overlay.getContext('2d')!;
     c.clearRect(0,0,WORLD_WIDTH,WORLD_HEIGHT);
     const owners = this.game.owner;
@@ -124,6 +127,8 @@ export class MapRenderer {
       sumX[id] += i % MAP_WIDTH;
       sumY[id] += Math.floor(i / MAP_WIDTH);
       counts[id]++;
+      const building=this.game.buildings[i];
+      if(building)this.buildingMarkers.push({index:i,code:building});
       const front = this.game.frontline[i];
       stationed[id] += front;
       if (front > 0.1) regional[id].push({index:i,troops:front});
@@ -225,15 +230,34 @@ export class MapRenderer {
     return this.availableTargets.has(this.game.owner[y * MAP_WIDTH + x]) && this.game.findAttackFront(0,point)!==null;
   }
   canLand(point: Point): boolean { return this.game.canLand(0,point); }
+  private drawBuildings(c: CanvasRenderingContext2D): void {
+    if(this.zoom<1.25)return;
+    c.save();
+    const glyphs=['','⌂','▣','⚔','⬡','⚓'];
+    c.textAlign='center';
+    c.textBaseline='middle';
+    c.font=this.zoom>=2.3?'11px system-ui':'9px system-ui';
+    for(const {index,code} of this.buildingMarkers){
+      const x=(index%MAP_WIDTH+.5)*CW,y=(Math.floor(index/MAP_WIDTH)+.5)*CH;
+      c.globalAlpha=this.zoom>=2.3?.9:.6;
+      c.fillStyle='#071c23';
+      c.fillRect(x-6,y-6,12,12);
+      c.fillStyle=code===4?'#e8bf8c':'#c6e8d5';
+      c.fillText(glyphs[code],x,y+.4);
+    }
+    c.restore();
+  }
   private drawTroopBadges(c: CanvasRenderingContext2D) {
     c.save();
     const width = this.canvas.clientWidth, height = this.canvas.clientHeight;
     c.textAlign = 'center';
     const boxes: Array<{x:number;y:number}> = [];
+    let shown=0;
     for (const label of this.labels) {
       const faction = this.game.factions[label.id];
       if (!faction?.alive) continue;
-      if(this.zoom < 1.5 && label.id!==0 && faction.territory < 45) continue;
+      if(label.id!==0 && (this.zoom < 2.3 && faction.territory < 180)) continue;
+      if(label.id!==0 && this.zoom < 2.8 && shown>=9) continue;
       const x = this.ox + label.pos.x * this.scale;
       let y = this.oy + label.pos.y * this.scale + 24;
       if (x < 53 || x > width - 53 || y < 37 || y > height - 65) continue;
@@ -241,25 +265,25 @@ export class MapRenderer {
       for (let k=0;k<5 && boxes.some(b=>Math.abs(b.x-x)<98&&Math.abs(b.y-y)<43);k++) y+=40;
       if (y > height - 65) continue;
       boxes.push({x,y});
+      shown++;
       const current = this.game.attackOrders.filter(o=>o.factionId===label.id).reduce((n,o)=>n+o.remaining,0);
       c.shadowColor='#000c';c.shadowBlur=15;
       c.fillStyle=label.id===0?'rgba(44,35,22,.95)':'rgba(8,21,27,.90)';
       c.strokeStyle=faction.color;
       c.lineWidth=label.id===0?2:1.2;
-      c.beginPath();c.roundRect(x-49,y-17,98,40,6);c.fill();c.stroke();c.shadowBlur=0;
-      c.font='800 9px system-ui';c.fillStyle=faction.color;
-      c.fillText(faction.name,x,y-3,90);
-      c.font='900 15px system-ui';c.fillStyle='#f4f0df';
+      c.globalAlpha=label.id===0?.9:this.zoom>=2.8?.82:.58;
+      c.beginPath();c.roundRect(x-39,y-12,78,30,5);c.fill();c.stroke();c.shadowBlur=0;
+      c.font='700 7px system-ui';c.fillStyle=faction.color;
+      c.fillText(faction.name,x,y-2,70);
+      c.font='800 11px system-ui';c.fillStyle='#f4f0df';
       const troops = Math.floor(this.armyTotals[label.id] ?? faction.troops).toLocaleString('de-DE');
-      c.fillText(`⚔ ${troops}`,x,y+15,90);
-      if (current>0) {
-        c.fillStyle='#fff0c3';c.font='700 9px system-ui';
-        c.fillText(Math.floor(current).toLocaleString('de-DE')+' IM KAMPF',x,y+35,110);
-      }
+      c.fillText(`⚔ ${troops}`,x,y+12,70);
+      c.globalAlpha=1;
+      // Active attack strength is shown separately on the actual front.
     }
 
     // Optional high-zoom numbers show how many soldiers defend this exact front.
-    if (this.zoom >= 1.32) for (const label of this.frontierLabels) {
+    if (this.zoom >= 2.2) for (const label of this.frontierLabels) {
       const x=this.ox+label.pos.x*this.scale,y=this.oy+label.pos.y*this.scale;
       if (x<35||x>width-35||y<35||y>height-100)continue;
       c.beginPath();c.roundRect(x-25,y-12,50,24,6);
@@ -353,18 +377,25 @@ export class MapRenderer {
     c.drawImage(this.overlay,0,0);
     this.drawCaptureWave(c, timestamp);
     this.drawLandingPorts(c, timestamp);
+    this.drawBuildings(c);
     for (const city of this.game.cities) {
       const f = city.owner >= 0 ? this.game.factions[city.owner] : null;
       const pos = pointToWorld(city);
       const glow = f?.color ?? '#c8ccd0';
-      c.beginPath(); c.arc(pos.x,pos.y,13+Math.sin(timestamp/480+city.original)*1.5,0,Math.PI*2);
+      c.globalAlpha=city.original===0?.9:.38;
+      c.beginPath(); c.arc(pos.x,pos.y,7+Math.sin(timestamp/480+city.original)*.75,0,Math.PI*2);
       c.strokeStyle=glow+'65'; c.lineWidth=1.2; c.stroke();
-      c.beginPath(); c.arc(pos.x,pos.y,5.1,0,Math.PI*2);
-      c.fillStyle='#101b23'; c.fill(); c.lineWidth=2.5; c.strokeStyle=glow; c.stroke();
-      c.font='600 11px system-ui'; c.textAlign='center';
-      c.shadowColor='#051015';c.shadowBlur=7;
-      if(this.zoom > 1.4 || city.original===0) { c.fillStyle='#f4f0e2'; c.fillText(city.name.toUpperCase(),pos.x,pos.y-17); }
-      c.shadowBlur=0;
+      c.beginPath(); c.arc(pos.x,pos.y,3.4,0,Math.PI*2);
+      c.fillStyle='#101b23'; c.fill(); c.lineWidth=1.7; c.strokeStyle=glow; c.stroke();
+      // Only the player's capital is fully legible at initial zoom.
+      // Other labels fade in when zoomed closer; never overwhelm the map.
+      if(city.original===0 || this.zoom>=2.45){
+        c.globalAlpha=city.original===0?.85:.48;
+        c.font=city.original===0?'700 11px system-ui':'500 8px system-ui';
+        c.textAlign='center';c.shadowColor='#051015';c.shadowBlur=3;
+        c.fillStyle='#e9eee9';c.fillText(city.name.toUpperCase(),pos.x,pos.y-12);
+      }
+      c.shadowBlur=0;c.globalAlpha=1;
     }
     if (this.game.status === 'playing' && this.combatEdges.length) {
       // A pulsing territorial contact edge; no vectors, dots or arrows.
@@ -439,6 +470,7 @@ export class MapRenderer {
   }
   private installControls() {
     this.canvas.addEventListener('pointerdown',e=>{
+      if(e.button!==0)return;
       this.dragging=true;this.moved=false;this.last={x:e.clientX,y:e.clientY};this.press={...this.last};
       this.canvas.setPointerCapture(e.pointerId);
     });
@@ -454,11 +486,18 @@ export class MapRenderer {
       this.onHover(this.hover,e.clientX-box.left,e.clientY-box.top,e.shiftKey);
     });
     this.canvas.addEventListener('pointerup',e=>{
+      if(e.button!==0)return;
       if(!this.moved){const p=this.cellAt(e.clientX,e.clientY,e.shiftKey);if(p)this.onSelect(p,e.shiftKey);}
       this.dragging=false;
     });
     this.canvas.addEventListener('pointercancel',()=>{this.dragging=false;});
     this.canvas.addEventListener('pointerleave',()=>{this.hover=null;this.onHover(null,0,0,false);});
+    this.canvas.addEventListener('contextmenu',e=>{
+      e.preventDefault();
+      const point=this.cellAt(e.clientX,e.clientY,false);
+      const owned=point!==null && this.game.owner[point.y*MAP_WIDTH+point.x]===0;
+      this.onBuildRequest(owned?point:null,e.clientX,e.clientY);
+    });
     this.canvas.addEventListener('wheel',e=>{
       e.preventDefault();
       const b=this.canvas.getBoundingClientRect();

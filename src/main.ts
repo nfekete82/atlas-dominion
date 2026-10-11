@@ -1,5 +1,6 @@
 import { Game, NEUTRAL, WATER, pointToIndex, TICK_SECONDS, type Point } from './engine/game.js';
 import { MapRenderer } from './render/map.js';
+import { BUILDINGS, populationGrowth, type BuildingType } from './engine/economy.js';
 import { COUNTRY_STARTS, countryByCode } from './data/countries.js';
 
 const $ = <T extends HTMLElement>(id: string): T => {
@@ -17,6 +18,7 @@ let audio: AudioContext | null = null;
 let prevStatus = game.status;
 let modalVisible = true;
 let hasStarted = false;
+let buildSpot: Point | null = null;
 let attackRatio = 35;
 let attackMessage = 'Nahe der feindlichen Grenze klicken · SHIFT+Klick für Seelandung.';
 let attackMessageKind: 'neutral'|'success'|'error' = 'neutral';
@@ -51,7 +53,11 @@ function update() {
   document.querySelectorAll<HTMLButtonElement>('[data-ratio]').forEach(b=>b.classList.toggle('active',Number(b.dataset.ratio)===attackRatio));
   $('attackStatus').textContent = attackMessage;
   $('attackStatus').className = 'attack-status ' + (attackMessageKind === 'neutral' ? '' : attackMessageKind);
-  $('incomeCount').textContent = '+' + format(player.income);
+  $('incomeCount').textContent = '+' + player.income.toFixed(1);
+  $('populationCount').textContent = format(player.population);
+  $('populationGrowth').textContent = '+' + populationGrowth(player.territory,player.cityCount,player.settlements,player.builtCities).toFixed(1) + ' EINWOHNER / TICK';
+  $('supplyCount').textContent = format(player.supplies);
+  $('supplyGrowth').textContent = '+' + player.supplyIncome.toFixed(1) + ' PRO TICK';
   $('controlCount').textContent = percent.toFixed(1) + '%';
   $('progressLabel').textContent = percent.toFixed(1) + ' / 65%';
   $('progressFill').style.width = Math.min(100, percent/65*100) + '%';
@@ -89,12 +95,56 @@ function setAttackRatio(value:number) {
 $('attackRatio').addEventListener('input',e=>setAttackRatio(Number((e.target as HTMLInputElement).value)));
 for (const btn of document.querySelectorAll<HTMLButtonElement>('[data-ratio]')) btn.addEventListener('click',()=>setAttackRatio(Number(btn.dataset.ratio)));
 renderer.onSelect = (point:Point, landing:boolean) => {
+  closeBuildMenu();
   const result = landing ? game.launchLanding(0, point, attackRatio) : game.launchAttack(0, point, attackRatio);
   attackMessage = result.ok ? `${format(result.sent)} Truppen · ${landing?'Seelandung (4 Ticks Anfahrt)':'Grenzoffensive'} gestartet.` : result.reason;
   attackMessageKind = result.ok ? 'success' : 'error';
   beep(result.ok ? 620 : 190);
   update();
 };
+function closeBuildMenu(): void {
+  buildSpot=null;
+  $('buildMenu').hidden=true;
+}
+function renderBuildMenu(): void {
+  if(!buildSpot)return;
+  const point=buildSpot;
+  $('buildCoordinates').textContent=`BAUEN · SEKTOR ${point.x}/${point.y}`;
+  $('buildSupplies').textContent=`${format(game.factions[0].supplies)} VORRÄTE VERFÜGBAR`;
+  $('buildOptions').innerHTML=BUILDINGS.map(building=>{
+    const decision=game.canBuild(0,point,building.type);
+    const explanation=decision.ok?building.description:decision.reason;
+    return `<button type="button" class="build-entry" data-build="${building.type}" ${decision.ok?'':'disabled'} title="${explanation}">
+      <span class="build-entry-icon" aria-hidden="true">${building.icon}</span>
+      <span class="build-entry-copy"><strong>${building.name}</strong><small>${explanation}</small></span>
+      <span class="build-entry-cost">${building.cost} ◇</span>
+    </button>`;
+  }).join('');
+}
+renderer.onBuildRequest=(point,clientX,clientY)=>{
+  if(modalVisible||!point){closeBuildMenu();return;}
+  buildSpot=point;
+  const menu=$('buildMenu');
+  menu.hidden=false;
+  renderBuildMenu();
+  const bounds=menu.getBoundingClientRect();
+  menu.style.left=Math.max(8,Math.min(clientX+8,window.innerWidth-bounds.width-8))+'px';
+  menu.style.top=Math.max(8,Math.min(clientY+8,window.innerHeight-bounds.height-8))+'px';
+};
+$('buildClose').addEventListener('click',closeBuildMenu);
+$('buildOptions').addEventListener('click',e=>{
+  const button=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-build]');
+  if(!button||!buildSpot)return;
+  const result=game.build(0,buildSpot,button.dataset.build as BuildingType);
+  attackMessage=result.ok?`${button.dataset.build?.toUpperCase()} gebaut · ${result.cost} Vorräte`:result.reason;
+  attackMessageKind=result.ok?'success':'error';
+  if(result.ok){renderer.updateTerritory();closeBuildMenu();beep(690);} else renderBuildMenu();
+  update();
+});
+window.addEventListener('pointerdown',e=>{
+  const menu=$('buildMenu');
+  if(!menu.hidden&&!menu.contains(e.target as Node))closeBuildMenu();
+});
 renderer.onHover=(point,px,py,landing)=>{
   const tooltip=$('mapInfo');
   if(!point || game.owner[pointToIndex(point)]===WATER){tooltip.hidden=true;return;}
@@ -127,6 +177,7 @@ renderer.onHover=(point,px,py,landing)=>{
 };
 
 function showDialog(title:string,body:string,actionLabel='VERSTANDEN →',onAction:()=>void=closeDialog) {
+  closeBuildMenu();
   modalVisible = true;
   $('dialogTitle').textContent=title;
   $('dialogBody').innerHTML=body;
@@ -152,6 +203,7 @@ function countryOptions(query:string): void {
       <span><strong>${c.name}</strong><small>${c.capital}</small></span></button>`).join('');
 }
 function showCountryPicker(canCancel = false): void {
+  closeBuildMenu();
   closeDialog();
   modalVisible = true;
   $('countryPicker').hidden = false;
@@ -192,7 +244,8 @@ $('helpBtn').addEventListener('click',()=>showDialog('DEIN EINSATZBEFEHL',`
   <div class="briefing-row"><b>03</b><span><strong>ZIEHEN:</strong> Karte verschieben. Mausrad oder +/− zum Zoomen.</span></div>
   <div class="briefing-row"><b>04</b><span><strong>FRONT:</strong> Die Angriffslinie leuchtet an der Grenze. Die kleine Zahl zeigt die eingesetzten Truppen. Es gibt keine Marschroute von der Hauptstadt.</span></div>
   <div class="briefing-row"><b>05</b><span><strong>TRUPPEN:</strong> Prozentregler (5–100 %) bestimmt die pro Klick entsandten Reserven. T/Y ändert den Anteil. Wiederholter Klick verstärkt die Offensive.</span></div>
-  <div class="briefing-row"><b>06</b><span><strong>PAUSE:</strong> Leertaste oder Ⅱ. Mit 1×/2×/4× beschleunigen.</span></div>
+  <div class="briefing-row"><b>06</b><span><strong>BAUEN:</strong> Rechtsklick auf eigenes Land. Siedlung, Stadt, Kaserne, Festung oder Hafen gegen Vorräte bauen. Neue Rekruten werden aus Einwohnern gewonnen.</span></div>
+  <div class="briefing-row"><b>07</b><span><strong>PAUSE:</strong> Leertaste oder Ⅱ. Mit 1×/2×/4× beschleunigen.</span></div>
   <p><strong>Doktrinen:</strong> EXPAND senkt die Kosten neutraler Eroberungen und erhöht deren Geschwindigkeit, BLITZ erhöht die Angriffsfrequenz, DEFENSE stärkt Einkommen und Garnisonen. Mit 1, 2, 3 umschalten.</p>
   <p>Bedrohte Grenzen erhalten stationierte Soldaten aus der mobilen Reserve. Freie Truppen dienen für Angriffe und begrenzte Notfall-Verstärkungen. Nicht mehr bedrohte Grenzabschnitte geben ihre Truppen zurück. Die KI bevorzugt schwache Frontabschnitte, wenn sich der Angriff lohnt. Die 9.000er-Obergrenze wurde entfernt; Einkommen wächst überproportional mit dem Staatsgebiet.</p>`));
 $('dialogClose').addEventListener('click',closeDialog);
@@ -211,6 +264,7 @@ for(const btn of document.querySelectorAll<HTMLButtonElement>('[data-speed]')) b
   document.querySelectorAll('[data-speed]').forEach(e=>e.classList.toggle('active',e===btn));
 });
 window.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&!$('buildMenu').hidden){closeBuildMenu();return;}
   if(!$('countryPicker').hidden)return;
   if(e.key==='Escape'&&modalVisible){closeDialog();return;}
   if(modalVisible)return;

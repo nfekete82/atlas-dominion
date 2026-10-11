@@ -231,9 +231,9 @@ test('A repeat border click reinforces the offensive with a fresh troop commitme
   const spot=cellToPoint(border);
   const first=g.launchAttack(0,spot,25);
   const second=g.launchAttack(0,spot,50);
-  assert.equal(first.sent,100);
-  assert.equal(second.sent,150); // 50% of the 300 troops remaining after the first click
-  assert.equal(g.factions[0].troops,150);
+  assert.equal(first.sent,Math.floor(90*.25));
+  assert.equal(second.sent,Math.floor((90-first.sent)*.50));
+  assert.equal(g.factions[0].troops,90-first.sent-second.sent);
   assert.equal(g.attackOrders.length,2);
 });
 
