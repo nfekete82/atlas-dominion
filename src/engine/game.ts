@@ -31,6 +31,8 @@ export interface Faction {
   defenseSpent: number;
   attackFallen: number;
   enemyFallen: number;
+  /** Finite AI marching capacity; regenerates from economic strength. */
+  campaignEnergy: number;
   intent: 'hold' | 'expand' | 'invade';
 }
 export interface City { name: string; x: number; y: number; index: number; original: number; owner: number; }
@@ -168,7 +170,7 @@ export class Game {
       id, name: start.name, capital: start.capital, color: factionColor(id),
       troops: 90, money: 90, moneyIncome: 0, builtCities:0,
       territory: 0, income: 0, target: geoToCell(start.lon,start.lat),
-      ai:id!==0, alive:true, cityCount:0, captured:0, defenseSpent:0, attackFallen:0, enemyFallen:0, intent:'hold' as const,
+      ai:id!==0, alive:true, cityCount:0, captured:0, defenseSpent:0, attackFallen:0, enemyFallen:0, campaignEnergy:32, intent:'hold' as const,
     }));
     // Reserve EVERY capital before assigning any surrounding territory. Without
     // this, microstates (e.g. Vatican/Rome) can overwrite earlier capitals.
@@ -692,12 +694,14 @@ export class Game {
     return true;
   }
 
-  private attack(faction: Faction, index: number) {
-    if (faction.troops < 7) return false;
-    const defender = this.owner[index];
-    const force = faction.id === 0 && this.doctrine === 'blitz' ? 29 : 21;
-    const spent = Math.min(faction.troops, defender === NEUTRAL ? 8 : force);
-    this.strike(faction,index,spent);
+  private attack(faction: Faction,index:number) {
+    if(faction.troops<7)return false;
+    const defender=this.owner[index];
+    const force=defender===NEUTRAL?8:21;
+    if(faction.ai && faction.campaignEnergy<force)return false;
+    if(faction.ai)faction.campaignEnergy-=force;
+    const engaged=Math.min(faction.troops,force);
+    this.strike(faction,index,engaged);
     faction.troops=Math.max(0,faction.troops-this.lastAttackerLoss);
     return true;
   }
@@ -715,6 +719,8 @@ export class Game {
       // All residents are recruitable troops: a single clear growth figure.
       faction.troops+=faction.income;
       faction.money+=faction.moneyIncome;
+      if(faction.ai)faction.campaignEnergy=Math.min(160,
+        faction.campaignEnergy+Math.max(1.5,faction.income*1.55));
     }
     if(this.tick%100===0)this.developAI();
     this.redistributeFrontline();
