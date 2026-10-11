@@ -20,9 +20,9 @@ test('a deep click into a bordering country resolves at the closest actual land 
 
 test('separate islands, enemy states and water cannot connect a click to our border',()=>{
   const owners=parse([
-    'AABBBWWWBBBBBBBBBBB',
-    'AABBBWWWBBBBBBBBBBB',
-    'AABBBCCCBBBBBBBBBBB',
+    'AABBBWWWBBBBBBBBBBBB',
+    'AABBBWWWBBBBBBBBBBBB',
+    'AABBBCCCBBBBBBBBBBBB',
   ]);
   const width=20;
   assert.equal(findConnectedAttackFront(owners,width,1*width+17,0),-1);
