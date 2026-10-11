@@ -1,5 +1,24 @@
 # ATLAS DOMINION
 
+**v1.3.1 – SICHTBARE KAMPFVERLUSTE UND KLARE EINWOHNERANZEIGE**
+
+## Warum die Einwohner scheinbar nie sanken
+- Das Spiel behandelt Angriffsbefehle als **Mobilisierung**, nicht als sofortigen Tod. Vor dem ersten Gefecht bleiben eingesetzte Soldaten Teil der Gesamtbevölkerung.
+- **Neutrale Eroberung** verursacht keine Kampfverluste.
+- Bei gegnerischen Sektoren war die bisherige Basis-Verlustrate sehr niedrig. Das fortlaufende Einwohnerwachstum konnte die Verluste deshalb stärker überdecken als beabsichtigt.
+
+## Neue Regeln und Anzeige
+- Bei echter feindlicher Gegenwehr verlieren Angreifer nun wesentlich mehr Soldaten. Der Angriff kostet im normalen Gefecht **häufig etwa 1,8 Soldaten pro tatsächlich gefallenem Verteidiger**; die genaue Zahl ist von der lokalen Verteidigung und der relativen Reichsmacht abhängig.
+- Auch ein nur schwach verteidigtes **Feindgebiet** verursacht nun spürbare, aber begrenzte Angriffskosten. Höchstens **85 % der gerade eingesetzten Soldaten pro Gefecht** können dort fallen.
+- Ein bei der Sektoreroberung vollständig besiegter Grenzposten zählt für die Verlustquote dieses Gefechts; zuvor waren diese letzten Verteidiger im Angreifer-Verlustvergleich nicht berücksichtigt.
+- **Neutrale Sektoren bleiben kampfverlustfrei.** Ihre Eroberung verbraucht weiterhin das begrenzte Marschbudget.
+- Im Feld **EINWOHNER / TRUPPEN** stehen jetzt *Gesamt, Mobil, An der Grenze, Im Angriff und Gefallen*. Die Gesamtbevölkerung sinkt nur durch Gefallene und steigt gleichzeitig durch normales Wachstum; die kumulierten Gefallenen bleiben stets sichtbar.
+- Die Kampfrechnung für Spieler und KI ist identisch und bleibt deterministisch.
+
+Zwei neue Regressionstests überprüfen die Mindestverluste im Feindgebiet, den Vorteil der Verteidigung und den Rückgang der tatsächlichen Bevölkerung in einer laufenden feindlichen Offensive.
+
+---
+
 **v1.3 – RELATIVE REICHSMACHT BEIM ANGREIFEN**
 
 Ein großes, gut entwickeltes Land lässt sich schwerer erobern als ein kleiner, schwacher Nachbar. Dabei bleibt die *örtliche Grenzverteidigung* entscheidend und kein Land wird automatisch uneinnehmbar.

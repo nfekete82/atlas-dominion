@@ -58,15 +58,18 @@ export function attackerCasualties(
   neutral: boolean,
   capital: boolean,
   relativePower = 1,
+  fallenDefenders = 0,
 ): number {
   if(neutral || engaged<=0)return 0;
   const pressure=Math.max(0,resisted)/Math.max(1,engaged);
-  const fraction=Math.min(.52,(capital?.10:.035)+Math.min(.39,pressure*.21));
-  // An underpowered attacker must pay a disproportionate price. Strong
-  // opponents increase the casualty fraction but never invent more deaths
-  // than the troops engaged.
+  // Combat always has a visible cost on HOSTILE land. The ordinary sector
+  // garrison represents resistance even when no mobile soldiers were there.
+  const fraction=Math.min(.58,(capital?.15:.085)+Math.min(.36,pressure*.22));
   const powerPenalty=1+Math.max(0,1-relativePower)*1.5;
-  return Math.max(0,Math.min(engaged,engaged*Math.min(.70,fraction*powerPenalty)));
+  // Assaults are harder than defending: typically ~1.8 attacker deaths per
+  // actual defender death. Cap at 85% of the soldiers engaged per strike.
+  const exchangeLoss=Math.max(0,fallenDefenders)*1.8*powerPenalty;
+  return Math.max(0,Math.min(engaged*.85,Math.max(engaged*fraction*powerPenalty,exchangeLoss)));
 }
 
 /** Remaining survivors are soldiers and inhabitants, not expended resources.

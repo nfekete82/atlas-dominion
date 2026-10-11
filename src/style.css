@@ -119,3 +119,12 @@
 
 /* v1.3: clearly state relative attack effectiveness without another HUD box. */
 .map-info #hoverPower{font-size:9px;font-weight:850;letter-spacing:.35px;white-space:normal;line-height:1.4}
+
+/* v1.3.1 – population and army losses readable without cramped values. */
+.stat #mobileTroops,.stat #frontTroops,.stat #offensiveTroops,.stat #fallenTroops{
+  display:block;margin-top:5px;font-size:9px;letter-spacing:.3px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.stat #mobileTroops{color:#b2d7d3}
+.stat #frontTroops,.stat #offensiveTroops{color:#d6c7a6}
+.stat #fallenTroops{color:#f0a094}

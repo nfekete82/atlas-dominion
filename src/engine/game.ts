@@ -677,13 +677,25 @@ export class Game {
       defender.defenseSpent += emergency.used;
       mitigation += emergency.blocked;
     }
-    this.lastAttackerLoss=attackerCasualties(spent,
-      mitigation+Math.min(Math.max(0,garrisonStrength),rawDamage)*.35,
-      originalOwner===NEUTRAL,capital,relativePower);
-    faction.attackFallen+=this.lastAttackerLoss;
-    if(defender)defender.enemyFallen+=this.lastAttackerLoss;
     this.defense[index]-=Math.max(0.01,rawDamage-Math.min(mitigation,rawDamage*.94));
-    if(this.defense[index]>0){if(defender)faction.enemyFallen+=defenderLosses;return false;}
+    const captured=this.defense[index]<=0;
+    // If the position falls, the defenders still stationed on the sector
+    // are lost as well; include these in this exact engagement's exchange.
+    if(captured && defender && this.frontline[index]>0){
+      defenderLosses+=this.frontline[index];
+      defender.defenseSpent+=this.frontline[index];
+      this.frontline[index]=0;
+    }
+    this.lastAttackerLoss=attackerCasualties(
+      spent,
+      mitigation+Math.min(Math.max(0,garrisonStrength),rawDamage)*.35,
+      originalOwner===NEUTRAL,capital,relativePower,defenderLosses);
+    faction.attackFallen+=this.lastAttackerLoss;
+    if(defender){
+      defender.enemyFallen+=this.lastAttackerLoss;
+      faction.enemyFallen+=defenderLosses;
+    }
+    if(!captured)return false;
     this.owner[index] = faction.id;
     // Incrementally update local battlefronts as territory changes.
     for (const [id,set] of this.frontierCandidates.entries()) {
@@ -692,13 +704,6 @@ export class Game {
     }
     const ownFront=this.frontierCandidates[faction.id];
     if(ownFront)for(const n of LAND_NEIGHBORS[index]) if(this.owner[n]!==faction.id && this.owner[n]!==WATER) ownFront.add(n);
-    // The garrison must not vanish as a visual-only effect on conquest:
-    // survivors of the defeated guard are counted as casualties here.
-    if(defender && this.frontline[index]>0){
-      defenderLosses+=this.frontline[index];
-      defender.defenseSpent+=this.frontline[index];
-    }
-    if(defender)faction.enemyFallen+=defenderLosses;
     this.frontline[index] = 0;
     this.defense[index] = faction.id === 0 && this.doctrine === 'fortify' ? 27 : 11;
     faction.captured++;
