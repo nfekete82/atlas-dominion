@@ -1,6 +1,6 @@
 import { GEO_BOUNDS, LAND_ROWS, MAP_HEIGHT, MAP_WIDTH, SEA_CROSSINGS, WORLD_HEIGHT, WORLD_WIDTH } from '../data/europe.js';
 import { assessInvasion, interceptAttack } from './warfare.js';
-import { armyIncome, frontierBudget, frontierTarget, localDefenseStrength } from './frontline.js';
+import { armyIncome, attackFrontWidth, frontierBudget, frontierTarget, localDefenseStrength } from './frontline.js';
 
 export const WATER = -2;
 export const NEUTRAL = -1;
@@ -386,7 +386,7 @@ export class Game {
     const orders = this.attackOrders.filter(o => o.factionId === attacker.id);
     for (const order of orders) {
       if (order.landing && order.conquered === 0 && this.tick - (order.startedTick ?? 0) < 4) continue;
-      const strikes = this.doctrine === 'blitz' && attacker.id === 0 ? 6 : this.doctrine === 'expand' && attacker.id === 0 && order.targetOwner === NEUTRAL ? 5 : 3;
+      const strikes = attackFrontWidth(order.committed, attacker.id === 0 && this.doctrine === 'blitz', order.targetOwner === NEUTRAL);
       let unreachable = false;
       for (let k = 0; k < strikes && order.remaining >= 0.01; k++) {
         const index = this.chooseOrderedFront(order);
@@ -546,7 +546,7 @@ export class Game {
         continue;
       }
       const baseAttempts = 2 + Math.floor(faction.territory / 175);
-      const attempts = Math.max(1, Math.min(10, baseAttempts));
+      const attempts = Math.max(1, Math.min(16, baseAttempts));
       for (let k = 0; k < attempts; k++) {
         const target = this.chooseFront(faction.id);
         if (target === -1 || !this.attack(faction, target)) break;
