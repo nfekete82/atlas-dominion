@@ -15,7 +15,7 @@ let audio: AudioContext | null = null;
 let prevStatus = game.status;
 let modalVisible = false;
 let attackRatio = 35;
-let attackMessage = 'Grenzsektor anklicken · SHIFT+Klick für Seelandung.';
+let attackMessage = 'Nahe der feindlichen Grenze klicken · SHIFT+Klick für Seelandung.';
 let attackMessageKind: 'neutral'|'success'|'error' = 'neutral';
 
 function beep(freq = 440, duration = 0.08) {
@@ -113,9 +113,9 @@ renderer.onHover=(point,px,py,landing)=>{
   const canLand = renderer.canLand(point);
   action.textContent = id===0 ? 'EIGENES TERRITORIUM'
     : landing && canLand ? `SHIFT+KLICK: ${attackRatio} % LANDEANGRIFF`
-    : attackable ? `KLICK: ${attackRatio} % GRENZANGRIFF`
+    : attackable ? `KLICK: ${attackRatio} % ${attackFront && (attackFront.x!==point.x || attackFront.y!==point.y) ? 'AN NÄCHSTER GRENZE' : 'GRENZANGRIFF'}`
     : canLand ? 'SHIFT+KLICK: SEELANDUNG'
-    : 'KEIN DIREKTER GRENZKONTAKT';
+    : 'ZU WEIT VON UNSERER GRENZE';
   action.classList.toggle('blocked',id!==0&&!attackable&&!canLand);
   tooltip.style.left=Math.max(4, Math.min(px+15,renderer.canvas.clientWidth-205))+'px';
   tooltip.style.top=Math.max(4, Math.min(py+13,renderer.canvas.clientHeight-97))+'px';
@@ -133,7 +133,7 @@ function closeDialog() {modalVisible=false;$('dialog').hidden=true;}
 function restart() {
   closeDialog();
   game=new Game((Date.now()+Math.floor(Math.random()*100000))%2147483647);
-  attackMessage='Grenzsektor anklicken · SHIFT+Klick für Seelandung.';attackMessageKind='neutral';
+  attackMessage='Nahe der feindlichen Grenze klicken · SHIFT+Klick für Seelandung.';attackMessageKind='neutral';
   renderer.setGame(game);prevStatus=game.status;
   update();
 }
@@ -142,7 +142,7 @@ $('resetBtn').addEventListener('click',()=>showDialog('NEUE OPERATION STARTEN?',
   'NEUE OPERATION →',restart));
 $('helpBtn').addEventListener('click',()=>showDialog('DEIN EINSATZBEFEHL',`
   <p>ATLAS DOMINION ist ein Echtzeit-Eroberungsspiel. Starte in Berlin, erweitere dein Gebiet und kontrolliere mindestens <strong>65 %</strong> Europas.</p>
-  <div class="briefing-row"><b>01</b><span><strong>KLICKEN:</strong> Nur direkt angrenzende Feindsektoren anklicken. Klicks tief im Feindesland werden abgelehnt – keine Teleportangriffe.</span></div>
+  <div class="briefing-row"><b>01</b><span><strong>KLICKEN:</strong> Klicke auf Feindgebiet in Grenznähe (bis 14 verbundene Landsektoren). Die Offensive startet automatisch am nächstgelegenen gemeinsamen Grenzsektor. Tiefe Klicks bleiben gesperrt.</span></div>
   <div class="briefing-row"><b>02</b><span><strong>SEELANDUNG:</strong> SHIFT gedrückt halten und auf eine markierte Anlegestelle am anderen Ufer klicken. Nur die eingezeichneten Seewege sind erlaubt; die Überfahrt dauert vier Ticks.</span></div>
   <div class="briefing-row"><b>03</b><span><strong>ZIEHEN:</strong> Karte verschieben. Mausrad oder +/− zum Zoomen.</span></div>
   <div class="briefing-row"><b>04</b><span><strong>FRONT:</strong> Die Angriffslinie leuchtet an der Grenze. Die kleine Zahl zeigt die eingesetzten Truppen. Es gibt keine Marschroute von der Hauptstadt.</span></div>

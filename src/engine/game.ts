@@ -290,9 +290,13 @@ export class Game {
     return exposed;
   }
 
-  /** A target is attackable ONLY if that exact cell touches our land.
-   * Clicking a remote part of the same empire no longer teleports the attack.
+  /** Clicking up to 14 contiguous enemy sectors behind the border still issues
+   * an attack at the nearest reachable front; truly deep clicks remain invalid.
+   * Land-connected BFS prevents snapping across sea or disconnected enclaves.
    */
+  static readonly ATTACK_CLICK_DEPTH = 14;
+
+  /** Exact adjacency predicate used by combat; never considers sea corridors. */
   isDirectBorderTarget(id: number, target: Point): boolean {
     if (!Number.isFinite(target.x) || !Number.isFinite(target.y) ||
         target.x < 0 || target.y < 0 || target.x >= MAP_WIDTH || target.y >= MAP_HEIGHT ||
@@ -303,7 +307,31 @@ export class Game {
   }
 
   findAttackFront(id: number, target: Point): Point | null {
-    return this.isDirectBorderTarget(id,target) ? cellToPoint(pointToIndex(target)) : null;
+    if (!Number.isFinite(target.x) || !Number.isFinite(target.y) ||
+        target.x < 0 || target.y < 0 || target.x >= MAP_WIDTH || target.y >= MAP_HEIGHT ||
+        !this.factions[id]?.alive) return null;
+    const start = pointToIndex(target);
+    const targetOwner = this.owner[start];
+    if (targetOwner === WATER || targetOwner === id) return null;
+    // Breadth-first traversal over the clicked territory only. The first border
+    // cell reached is guaranteed to be the closest by land distance. Never
+    // trace through water, a different faction, or a maritime shortcut.
+    const visited = new Set<number>([start]);
+    const queue: number[] = [start];
+    const depth: number[] = [0];
+    for (let cursor = 0; cursor < queue.length; cursor++) {
+      const current = queue[cursor];
+      if (LAND_NEIGHBORS[current].some(n => this.owner[n] === id))
+        return cellToPoint(current);
+      if (depth[cursor] >= Game.ATTACK_CLICK_DEPTH) continue;
+      for (const neighbor of LAND_NEIGHBORS[current]) {
+        if (this.owner[neighbor] !== targetOwner || visited.has(neighbor)) continue;
+        visited.add(neighbor);
+        queue.push(neighbor);
+        depth.push(depth[cursor] + 1);
+      }
+    }
+    return null;
   }
 
   /** True only for a documented sea corridor with our troops on the opposite shore. */
@@ -337,12 +365,12 @@ export class Game {
     const index = pointToIndex(target), owner = this.owner[index];
     if (owner === WATER) return failed('Angriff auf Wasser nicht möglich.');
     if (owner === id) return failed('Das ist dein eigenes Gebiet.');
-    if (landing ? !this.canLand(id,target) : !this.isDirectBorderTarget(id,target))
-      return failed(landing ? 'Keine eigene Küste an diesem Seeübergang.' : 'Kein direkter Grenzkontakt – Grenzsektor anklicken.');
+    const front = landing ? cellToPoint(index) : this.findAttackFront(id, target);
+    if (!front || (landing && !this.canLand(id,target)))
+      return failed(landing ? 'Keine eigene Küste an diesem Seeübergang.' : 'Zu weit von unserer Grenze entfernt – näher an die Front klicken.');
     const sent = Math.floor(attacker.troops * ratio / 100);
     if (sent < 8) return failed('Mindestens 8 mobile Truppen erforderlich.');
     attacker.troops -= sent;
-    const front = cellToPoint(index);
     this.attackOrders.push({
       id:this.nextAttackId++, factionId:id, targetOwner:owner,
       anchor:front, committed:sent, remaining:sent, conquered:0,

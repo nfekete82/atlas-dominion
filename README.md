@@ -1,11 +1,11 @@
 # ATLAS DOMINION
 
-**v0.7 — STRICT BORDERS & BIGGER EUROPE**
+**v0.7 — SMART BORDER CLICKS & BIGGER EUROPE**
 
 ## Neu in v0.7
 
 - **360 × 240 statt 240 × 160 Kartenfelder:** 86.400 Rasterfelder und etwa 2,25-mal so viele eroberbare Landsektoren. Europas geografische Ausdehnung ist unverändert; die Simulation enthält tatsächlich mehr einzelne Gebiete, nicht bloß einen stärkeren Kamera-Zoom. Die Natural-Earth-Landmaske wird feiner abgetastet, nicht mit zusätzlicher Küstengeometrie ergänzt.
-- **Nur direkte Grenzangriffe:** Linksklick wirkt ausschließlich auf einen unmittelbar angrenzenden feindlichen oder neutralen Sektor. Klicks weit im gegnerischen Landesinneren werden abgewiesen.
+- **Intelligente Grenzklicks:** Linksklick bis zu **14 zusammenhängende Landsektoren** innerhalb eines Feind- oder Neutralgebiets sucht automatisch dessen nächstgelegenen Grenzsektor zu dir. Tiefe Klicks werden weiterhin abgewiesen. Die Suche läuft ausschließlich innerhalb derselben Landmasse und derselben Fraktion; keine Teleports über Meerengen oder andere Staaten.
 - **Zusammenhängende Front:** Die Offensive erobert nur Landnachbarn, bleibt um ihre eigene Angriffsfront herum und kann nicht quer durchs Land springen. Je größer das eingesetzte Truppenkontingent, desto breiter und schneller kann die lokale Front vorrücken (mit begrenztem Maximum je Tick).
 - **Seewege explizit:** SHIFT + Klick auf die andere Anlegestelle einer eingezeichneten Passage startet eine Seelandung mit vier Ticks Anfahrtszeit. Reguläre Landgefechte berücksichtigen keine See-Korridore. Die KI unternimmt noch keine eigenen Landungen.
 - **Mehr Bildfläche:** Kompakter Kartenkopf und schmalere Seitenleiste am Desktop. Regionale Truppen, strategische KI und Rekrutierung ohne 9.000er-Cap bleiben erhalten.
@@ -25,7 +25,7 @@ PORT=8095 npm run dev
 
 | Aktion | Steuerung |
 | --- | --- |
-| Regulärer Angriff | Linksklick auf direkt angrenzenden Grenzsektor |
+| Regulärer Angriff | Linksklick auf Feindgebiet in Grenznähe (bis 14 Landsektoren ins Land) |
 | Seelandung | SHIFT + Linksklick auf Anlegestelle am anderen Ende einer See-Passage |
 | Armeeeinsatz | Prozentregler / 10, 25, 50, 100 % |
 | Karte bewegen | Maus ziehen |

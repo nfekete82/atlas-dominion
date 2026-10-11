@@ -132,9 +132,9 @@ test('Attack click rejects own land, open sea, unreachable targets and invalid r
   const g = new Game(20);
   const own = g.cities[0];
   const water = g.owner.findIndex(owner=>owner===WATER);
-  const farNeutral = g.owner.findIndex((owner,i)=>owner===NEUTRAL && !landNeighbors(i).some(n=>g.owner[n]===0));
+  const farNeutral = g.owner.findIndex((owner,i)=>owner===NEUTRAL && g.findAttackFront(0,cellToPoint(i))===null);
   assert.match(g.launchAttack(0,own,35).reason,/eigenes/i);
-  assert.match(g.launchAttack(0,g.cities[1],35).reason,/direkter Grenzkontakt/i);
+  assert.match(g.launchAttack(0,g.cities[1],35).reason,/Zu weit von unserer Grenze/i);
   assert.match(g.launchAttack(0,cellToPoint(water),35).reason,/Wasser/i);
   assert.match(g.launchAttack(0,{x:-1,y:0},35).reason,/Außerhalb/i);
   assert.match(g.launchAttack(0,cellToPoint(farNeutral),2).reason,/Truppenanteil/i);
@@ -190,9 +190,47 @@ test('A repeat border click reinforces the offensive with a fresh troop commitme
   assert.equal(g.attackOrders.length,2);
 });
 
-test('Deep clicks cannot snap to a remote border sector',()=>{
+test('A click several sectors inside a neighboring country snaps to its reachable border',()=>{
+  const g=new Game(2026);
+  const near=g.owner.findIndex((owner,i)=>owner===NEUTRAL
+    && !g.isDirectBorderTarget(0,cellToPoint(i))
+    && landNeighbors(i).some(n=>g.isDirectBorderTarget(0,cellToPoint(n))));
+  assert.ok(near>=0,'expected neutral land slightly behind player frontier');
+  const clicked=cellToPoint(near);
+  const front=g.findAttackFront(0,clicked);
+  assert.ok(front,'nearby territory click should resolve to a front');
+  assert.notDeepEqual(front,clicked);
+  assert.equal(g.isDirectBorderTarget(0,front),true);
+  assert.equal(g.owner[pointToIndex(front)],g.owner[near]);
+  const before=g.factions[0].troops;
+  const result=g.launchAttack(0,clicked,35);
+  assert.equal(result.ok,true);
+  assert.deepEqual(result.front,front);
+  assert.deepEqual(g.attackOrders.at(-1).anchor,front);
+  assert.equal(g.factions[0].troops,before-result.sent);
+});
+
+test('Border tolerance cannot jump across other countries or the sea',()=>{
+  const g=new Game(2026);
+  const enemy=g.owner.findIndex((owner,i)=>owner===1 && landNeighbors(i).some(n=>g.owner[n]===NEUTRAL));
+  assert.ok(enemy>=0);
+  const approach=landNeighbors(enemy).find(i=>g.owner[i]===NEUTRAL);
+  assert.notEqual(approach,undefined);
+  g.owner[approach]=0;
+  // The neighboring enemy is attackable, but a neutral sector farther away
+  // cannot be mistaken for that enemy merely because both are nearby.
+  const front=g.findAttackFront(0,cellToPoint(enemy));
+  assert.ok(front);
+  assert.equal(g.owner[pointToIndex(front)],1);
+  const disconnected= g.owner.findIndex((owner,i)=>owner===NEUTRAL
+    && g.findAttackFront(0,cellToPoint(i))===null);
+  assert.ok(disconnected>=0);
+  assert.equal(g.launchAttack(0,cellToPoint(disconnected),35).ok,false);
+});
+
+test('Truly deep clicks cannot snap to a remote border sector',()=>{
   const g=new Game(42);
-  const distant=g.owner.findIndex((owner,i)=>owner===NEUTRAL&&!landNeighbors(i).some(n=>g.owner[n]===0));
+  const distant=g.owner.findIndex((owner,i)=>owner===NEUTRAL&&g.findAttackFront(0,cellToPoint(i))===null);
   const target=cellToPoint(distant);
   assert.equal(g.findAttackFront(0,target),null);
   assert.equal(g.launchAttack(0,target,35).ok,false);
