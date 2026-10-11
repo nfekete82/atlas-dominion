@@ -32,7 +32,7 @@ test('Prebuilt client serves HTML, CSS, JS and no source secrets',async()=>{
     assert.match(html,/id="buildMenu"/);
     assert.match(html,/id="populationCount"/);
     assert.match(html,/id="supplyCount"/);
-    for(const [path,contentType] of [['/style.css','text/css'],['/src/main.js','text/javascript'],['/src/engine/game.js','text/javascript'],['/src/data/europe.js','text/javascript'],['/src/data/countries.js','text/javascript'],['/src/engine/economy.js','text/javascript']]){
+    for(const [path,contentType] of [['/style.css','text/css'],['/src/main.js','text/javascript'],['/src/engine/game.js','text/javascript'],['/src/data/europe.js','text/javascript'],['/src/data/countries.js','text/javascript'],['/src/engine/economy.js','text/javascript'],['/src/render/building-markers.js','text/javascript']]){
       const response=await fetch(base+path);
       assert.equal(response.status,200,path);
       assert.ok(response.headers.get('content-type').includes(contentType),path);
