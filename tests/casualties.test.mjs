@@ -118,6 +118,6 @@ test('a real player offensive reduces total population during a defended battle'
   assert.ok(g.factions[0].enemyFallen>0,'the defender must also take losses');
   assert.ok(g.populationOf(0)<populationBefore,
     'real combat fatalities should outweigh one tick of natural population growth');
-  assert.equal(g.factions[0].attackFallen,g.attackOrders.reduce((sum,o)=>sum+o.fallen,0),
-    'active order casualties must agree with national deaths');
+  assert.ok(g.factions[0].attackFallen>=g.attackOrders.reduce((sum,o)=>sum+o.fallen,0),
+    'nationwide casualties include finished and still-active offensives');
 });
