@@ -109,7 +109,9 @@ function closeBuildMenu(): void {
 function renderBuildMenu(): void {
   if(!buildSpot)return;
   const point=buildSpot;
-  $('buildCoordinates').textContent=`BAUEN · SEKTOR ${point.x}/${point.y}`;
+  const existing=game.buildingAt(point);
+  const existingName=BUILDINGS.find(b=>b.type===existing)?.name;
+  $('buildCoordinates').textContent=`${existingName?.toUpperCase()??'BAUEN'} · SEKTOR ${point.x}/${point.y}`;
   $('buildSupplies').textContent=`${format(game.factions[0].supplies)} VORRÄTE VERFÜGBAR`;
   $('buildOptions').innerHTML=BUILDINGS.map(building=>{
     const decision=game.canBuild(0,point,building.type);
@@ -154,7 +156,9 @@ renderer.onHover=(point,px,py,landing)=>{
   const owner=$('hoverOwner');
   owner.textContent=f?.name??'UNBESETZTES GEBIET';
   owner.style.color=f?.color??'#bcc5bb';
-  $('hoverCoords').textContent=`SEKTOR ${point.x} / ${point.y} · ${id===NEUTRAL?'NEUTRAL':'KONTROLLIERT'}`;
+  const built=game.buildingAt(point);
+  const buildingName=BUILDINGS.find(b=>b.type===built)?.name;
+  $('hoverCoords').textContent=`SEKTOR ${point.x} / ${point.y} · ${buildingName?.toUpperCase()??(id===NEUTRAL?'NEUTRAL':'KONTROLLIERT')}`;
   const tile = pointToIndex(point);
   const attackFront = id !== 0 ? renderer.previewFront(point) : null;
   const defendedSector = attackFront ? pointToIndex(attackFront) : tile;
