@@ -215,7 +215,7 @@ export class MapRenderer {
   canAttack(point: Point): boolean {
     const x = Math.floor(point.x), y = Math.floor(point.y);
     if (x < 0 || y < 0 || x >= MAP_WIDTH || y >= MAP_HEIGHT) return false;
-    return this.availableTargets.has(this.game.owner[y * MAP_WIDTH + x]) && this.game.isDirectBorderTarget(0,point);
+    return this.availableTargets.has(this.game.owner[y * MAP_WIDTH + x]) && this.game.findAttackFront(0,point)!==null;
   }
   canLand(point: Point): boolean { return this.game.canLand(0,point); }
   private drawTroopBadges(c: CanvasRenderingContext2D) {
@@ -380,6 +380,16 @@ export class MapRenderer {
         c.strokeStyle=canAttack?'#a8ffc1':'#f9e4ad'; c.lineWidth=canAttack?2.5:1.5;
         if(canAttack){c.fillStyle='rgba(136,255,177,.17)';c.fillRect(x,y,CW,CH);}
         c.strokeRect(x,y,CW,CH);
+        // Mark the actual connected border tile selected by a nearby click.
+        // No direction arrow or artificial movement inside enemy territory.
+        const front = this.game.findAttackFront(0,this.hover);
+        if(front && (front.x!==this.hover.x || front.y!==this.hover.y)){
+          const fx=(front.x+.5)*CW, fy=(front.y+.5)*CH;
+          c.beginPath();
+          c.arc(fx,fy,Math.max(CW,CH)*1.1+Math.sin(timestamp/250)*1.2,0,Math.PI*2);
+          c.fillStyle='rgba(138,255,188,.25)';c.fill();
+          c.strokeStyle='#a8ffc1';c.lineWidth=2.2;c.stroke();
+        }
       }
     }
     c.restore();
