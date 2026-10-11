@@ -134,7 +134,7 @@ test('Attack click rejects own land, open sea, unreachable targets and invalid r
   const water = g.owner.findIndex(owner=>owner===WATER);
   const farNeutral = g.owner.findIndex((owner,i)=>owner===NEUTRAL && !landNeighbors(i).some(n=>g.owner[n]===0));
   assert.match(g.launchAttack(0,own,35).reason,/eigenes/i);
-  assert.match(g.launchAttack(0,g.cities[1],35).reason,/gemeinsame Grenze/i);
+  assert.match(g.launchAttack(0,g.cities[1],35).reason,/direkter Grenzkontakt/i);
   assert.match(g.launchAttack(0,cellToPoint(water),35).reason,/Wasser/i);
   assert.match(g.launchAttack(0,{x:-1,y:0},35).reason,/Außerhalb/i);
   assert.match(g.launchAttack(0,cellToPoint(farNeutral),2).reason,/Truppenanteil/i);
