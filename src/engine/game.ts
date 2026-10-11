@@ -170,9 +170,9 @@ export class Game {
       this.defense[city.index]=55;
     }
     for(const city of this.cities)this.seedTerritory(city.original,city,4.8);
-    this.initialTerritory=this.factions[0].territory;
     this.factions[0].target=geoToCell(chosen.lon+1,chosen.lat-1);
     this.recount();
+    this.initialTerritory=this.factions[0].territory;
     this.pickAIGoals();
     this.log(`${starts.length} Länder starten an ihren Hauptstädten.`);
     this.log(`Du spielst als ${chosen.name} – Hauptstadt ${chosen.capital}.`,this.factions[0].color);
