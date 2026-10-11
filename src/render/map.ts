@@ -335,31 +335,24 @@ export class MapRenderer {
     }
     c.restore();
   }
-  private drawCaptureWave(c: CanvasRenderingContext2D, timestamp: number) {
+  private drawCaptureWave(c:CanvasRenderingContext2D, timestamp:number):void {
+    // Simple, quick capture: existing border colors reveal themselves in
+    // chained order. No rings, squares, circles, haloes or swipe markers.
     const captures=this.wave.active(timestamp);
-    if (!captures.length) return;
-    c.save();
-    const fills=this.game.factions.map(f=>mixHexColor(f.color));
-    for (const frame of captures) {
-      if (frame.owner < 0) continue;
+    if(!captures.length)return;
+    c.save();c.imageSmoothingEnabled=false;
+    for(const frame of captures){
+      if(frame.owner<0)continue;
+      const progress=waveProgress(frame,timestamp);
+      if(progress>=1)continue;
       const col=frame.index%MAP_WIDTH,row=Math.floor(frame.index/MAP_WIDTH);
       const x=X_EDGES[col],y=Y_EDGES[row];
-      const w=X_EDGES[col+1]-x,h=Y_EDGES[row+1]-y;
-      const progress=waveProgress(frame,timestamp);
-      const oldFaction=this.game.factions[frame.previous];
-      const newFaction=this.game.factions[frame.owner];
-      // Brief stepped tile reveal with no soft circular blob or overdraw.
-      c.save();
-      c.beginPath();c.rect(x,y,w,h);c.clip();
-      c.fillStyle=oldFaction?fills[frame.previous]:MAP_PALETTE.land;
-      c.globalAlpha=(1-progress)*.91;
-      c.fillRect(x,y,w,h);
-      if(progress>0 && progress<1){
-        c.globalAlpha=.65;
-        c.fillStyle=fills[frame.owner];
-        c.fillRect(x,y,h>0?w*progress:0,h);
-      }
-      c.restore();
+      const width=X_EDGES[col+1]-x,height=Y_EDGES[row+1]-y;
+      c.globalAlpha=1-progress;
+      c.fillStyle=frame.previous>=0
+        ? this.game.factions[frame.previous].color+'be'
+        : '#263c40';
+      c.fillRect(x,y,width,height);
     }
     c.restore();
   }
