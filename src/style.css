@@ -116,3 +116,6 @@
 }
 .power-area{white-space:nowrap;font-size:10px}
 .auto-guard small,.casualty-report{overflow-wrap:normal;word-break:normal}
+
+/* v1.3: clearly state relative attack effectiveness without another HUD box. */
+.map-info #hoverPower{font-size:9px;font-weight:850;letter-spacing:.35px;white-space:normal;line-height:1.4}
