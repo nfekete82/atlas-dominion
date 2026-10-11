@@ -397,9 +397,11 @@ export class MapRenderer {
       // Limit the paint to the real captured sector. Visual softness does
       // not change ownership or spill into water and enemy territories.
       c.save();c.beginPath();c.rect(x,y,w,h);c.clip();
+      c.globalAlpha=1-progress;
       c.fillStyle=frame.previous>=0
         ? this.game.factions[frame.previous].color+'be' : '#263c40';
       c.fillRect(x,y,w,h);
+      c.globalAlpha=1;
       const radius=organicCaptureRadius(progress,Math.max(w,h),frame.index);
       if(radius>.01){
         const newColor=this.game.factions[frame.owner].color;
