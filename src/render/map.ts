@@ -294,8 +294,8 @@ export class MapRenderer {
       const name=(flag?flag+' ':'')+faction.name;
       c.globalAlpha=label.id===0?.95:this.zoom>=2.5?.82:.68;
       c.textAlign='center';c.lineJoin='round';
-      c.strokeStyle='rgba(246,246,225,.84)';
-      c.fillStyle=label.id===0?'#263b46':'#35454a';
+      c.strokeStyle='rgba(5,17,25,.85)';
+      c.fillStyle=label.id===0?'#fff4cf':'#e1eae6';
       c.lineWidth=2.6;
       c.font=label.id===0?'750 13px system-ui':'650 11px system-ui';
       c.strokeText(name,x,y,135);c.fillText(name,x,y,135);
@@ -307,31 +307,21 @@ export class MapRenderer {
 
     c.restore();
   }
-  private drawLandingPorts(c: CanvasRenderingContext2D, timestamp: number) {
-    const seen=new Set<number>();
+  /** Only when holding SHIFT, show reachable maritime landings as an icon.
+   * No permanent round port stamps or pulsing rings on the map.
+   */
+  private drawLandingPorts(c:CanvasRenderingContext2D, _timestamp:number):void {
     c.save();
-    for(const [a,b] of SEA_CROSSINGS) for(const i of [a,b]){
-      if(seen.has(i))continue;
-      seen.add(i);
-      const owner=this.game.owner[i];
-      if(owner===WATER)continue;
-      const spot={x:i%MAP_WIDTH,y:Math.floor(i/MAP_WIDTH)};
-      const pos=pointToWorld(spot);
-      const reachable=this.game.canLand(0,spot);
-      const occupied=owner===0;
-      c.globalAlpha=reachable?.82:.48;
-      c.beginPath();c.arc(pos.x,pos.y,reachable?5:2.8,0,Math.PI*2);
-      c.fillStyle=reachable?'rgba(255,204,119,.25)':'rgba(8,22,29,.78)';
-      c.fill();
-      c.lineWidth=reachable?1.25:.75;
-      c.strokeStyle=reachable?'#ffdd96':occupied?'#e6b65f':'#82a4a4';
-      c.stroke();
-      if(reachable){
-        c.fillStyle='#fff0cf';c.font='750 7px system-ui';c.textAlign='center';
-        c.fillText('⚓',pos.x,pos.y+2.5);
-        c.beginPath();c.arc(pos.x,pos.y,7.5+Math.sin(timestamp/260)*.7,0,Math.PI*2);
-        c.lineWidth=.75;c.strokeStyle='rgba(255,212,150,.34)';c.stroke();
-      }
+    c.textAlign='center';c.textBaseline='middle';
+    c.font='800 13px system-ui';
+    const seen=new Set<number>();
+    for(const [a,b] of SEA_CROSSINGS)for(const index of [a,b]){
+      if(seen.has(index))continue;seen.add(index);
+      const point={x:index%MAP_WIDTH,y:Math.floor(index/MAP_WIDTH)};
+      if(!this.game.canLand(0,point))continue;
+      const pos=pointToWorld(point);
+      c.fillStyle='#ffe3a1';c.shadowColor='#0c2730';c.shadowBlur=3;
+      c.fillText('⚓',pos.x,pos.y);
     }
     c.restore();
   }
