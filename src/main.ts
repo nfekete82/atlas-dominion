@@ -175,6 +175,15 @@ renderer.onHover=(point,px,py,landing)=>{
   $('hoverStats').textContent = f
     ? `⬡ ${format(stationedLocal)} GRENZTRUPPEN · ${format(sectorDefense)} ${attackFront?'ANGRIFFSFRONT':'LOKALE VERTEIDIGUNG'}`
     : '⚔ UNBESETZT';
+  const matchup=$('hoverPower');
+  const power=f&&id!==0 ? game.relativeAttackPower(0,id) : 1;
+  matchup.hidden=id<0||id===0;
+  matchup.textContent=power<.96
+    ? `ANGRIFFSWIRKUNG: ${Math.round(power*100)} % · STARKER GEGNER`
+    : power>1.04
+      ? `ANGRIFFSWIRKUNG: ${Math.round(power*100)} % · MACHTVORTEIL`
+      : `ANGRIFFSWIRKUNG: ${Math.round(power*100)} % · AUSGEGLICHEN`;
+  matchup.style.color=power<.96?'#f1a99b':power>1.04?'#9be3bd':'#d2dce0';
   const action = $('hoverAction');
   const attackable = renderer.canAttack(point);
   const canLand = renderer.canLand(point);
@@ -185,7 +194,7 @@ renderer.onHover=(point,px,py,landing)=>{
     : 'KEINE ERREICHBARE LANDFRONT';
   action.classList.toggle('blocked',id!==0&&!attackable&&!canLand);
   tooltip.style.left=Math.max(4, Math.min(px+15,renderer.canvas.clientWidth-205))+'px';
-  tooltip.style.top=Math.max(4, Math.min(py+13,renderer.canvas.clientHeight-97))+'px';
+  tooltip.style.top=Math.max(4, Math.min(py+13,renderer.canvas.clientHeight-120))+'px';
 };
 
 function showDialog(title:string,body:string,actionLabel='VERSTANDEN →',onAction:()=>void=closeDialog) {
@@ -259,6 +268,7 @@ $('helpBtn').addEventListener('click',()=>showDialog('DEIN EINSATZBEFEHL',`
   <div class="briefing-row"><b>06</b><span><strong>STÄDTE BAUEN:</strong> Rechtsklick auf eigenes Land. Nur Städte sind baubar: Sie kosten Geld und erhöhen das künftige Einwohner- und Truppenwachstum.</span></div>
   <div class="briefing-row"><b>07</b><span><strong>PAUSE:</strong> Leertaste oder Ⅱ. Mit 1×/2×/4× beschleunigen.</span></div>
   <p><strong>Doktrinen:</strong> EXPAND senkt die Kosten neutraler Eroberungen und erhöht deren Geschwindigkeit, BLITZ erhöht die Angriffsfrequenz, DEFENSE stärkt Einkommen und Garnisonen. Mit 1, 2, 3 umschalten.</p>
+  <p><strong>Machtvergleich:</strong> Beim Angriff zählen auch die gesamte Bevölkerung, die Größe und die Städte des Gegners. Ein mächtigeres Reich reduziert deine Angriffswirkung prozentual und erhöht die eigenen Verluste. Kleinere Gegner kannst du effektiver angreifen. Die Wirkung ist auf 70–130 % begrenzt; die konkrete Grenzverteidigung entscheidet weiterhin mit.</p>
   <p><strong>Einwohner = Truppen:</strong> Ein Angriff reserviert Truppen, ohne sie zu töten. Unbesetzte Sektoren werden ohne Kampftote erobert; gegen feindliche Garnisonen entstehen echte Verluste bei beiden Parteien. Nach Abschluss kehren die Überlebenden zurück. Größere Heere ermöglichen schnellere Fronten; gefährliche Kriege verringern Bevölkerung, Wachstum und Steuereinnahmen.</p>`));
 $('dialogClose').addEventListener('click',closeDialog);
 $('dialog').addEventListener('click',e=>{if(e.target===$('dialog'))closeDialog();});

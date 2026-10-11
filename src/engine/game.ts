@@ -1,6 +1,6 @@
 import { GEO_BOUNDS, LAND_ROWS, MAP_HEIGHT, MAP_WIDTH, SEA_CROSSINGS, WORLD_HEIGHT, WORLD_WIDTH } from '../data/europe.js';
 import { COUNTRY_STARTS, countryByCode } from '../data/countries.js';
-import { assessInvasion, interceptAttack, attackerCasualties, campaignEffort } from './warfare.js';
+import { assessInvasion, interceptAttack, attackerCasualties, campaignEffort, empirePower, relativeAttackEffect } from './warfare.js';
 import { attackFrontWidth, frontierBudget, frontierTarget, localDefenseStrength } from './frontline.js';
 import { BUILDINGS, BUILDING_CODES, type BuildingType, troopGrowth, taxRevenue } from './economy.js';
 import { findConnectedAttackFront } from './front-target.js';
@@ -21,6 +21,8 @@ export interface Faction {
   troops: number;
   money: number;
   moneyIncome: number;
+  /** Cached whole-empire strength used consistently by humans and bots. */
+  militaryPower: number;
   builtCities: number;
   territory: number;
   income: number;
@@ -169,7 +171,7 @@ export class Game {
       .slice(0, Math.max(1, Math.min(COUNTRY_STARTS.length, opponentCount + 1)));
     this.factions = starts.map((start, id) => ({
       id, name: start.name, capital: start.capital, color: factionColor(id),
-      troops: 90, money: 90, moneyIncome: 0, builtCities:0,
+      troops: 90, money: 90, moneyIncome: 0, militaryPower: 0, builtCities:0,
       territory: 0, income: 0, target: geoToCell(start.lon,start.lat),
       ai:id!==0, alive:true, cityCount:0, captured:0, defenseSpent:0, attackFallen:0, enemyFallen:0, campaignEnergy:32, intent:'hold' as const,
     }));
@@ -256,6 +258,7 @@ export class Game {
     for(const faction of this.factions){
       faction.alive=faction.territory>0;
       const totalPeople=people[faction.id];
+      faction.militaryPower=empirePower(totalPeople,faction.territory,faction.cityCount+faction.builtCities);
       const growth=troopGrowth(totalPeople,faction.territory,faction.cityCount,faction.builtCities);
       faction.income=faction.id===0?growth*(this.doctrine==='fortify'?1.20:this.doctrine==='blitz'?.90:1):growth;
       faction.moneyIncome=taxRevenue(totalPeople,faction.territory,faction.cityCount,faction.builtCities);
@@ -270,6 +273,17 @@ export class Game {
     for(let i=0;i<CELL_COUNT;i++)if(this.owner[i]===id)all+=this.frontline[i];
     for(const order of this.attackOrders)if(order.factionId===id)all+=order.remaining;
     return all;
+  }
+
+  /** Relative military effectiveness against a foreign nation. A stronger
+   * enemy reduces our attack by at most 30%, without making it impossible.
+   * Empty neutral territory never receives a fictitious empire-power bonus.
+   */
+  relativeAttackPower(attackerId:number,defenderId:number):number {
+    if(defenderId===NEUTRAL || attackerId===defenderId)return 1;
+    const attacker=this.factions[attackerId],defender=this.factions[defenderId];
+    if(!attacker||!defender)return 1;
+    return relativeAttackEffect(attacker.militaryPower,defender.militaryPower);
   }
 
   private log(text: string, color = '#b9c4d0') {
@@ -614,6 +628,7 @@ export class Game {
         defenderTroops:defender?Math.min(defender.troops*.15,40+defender.income*3):0,
         defenderIncome:defender?.income ?? 0,garrison:this.sectorDefense(i),
         capital:!!city,neutral,threatenedBorders:exposed,
+        relativePower:neutral?1:this.relativeAttackPower(id,opponent),
       });
       if(!assessment.worthwhile)continue;
       const x=i%MAP_WIDTH,y=Math.floor(i/MAP_WIDTH);
@@ -637,7 +652,8 @@ export class Game {
     // Only a limited emergency contingent may arrive from the national reserve:
     // a distant empire cannot instantly defend every weak point at full power.
     const originalOwner = this.owner[index];
-    const rawDamage = spent * (0.95 + this.rng() * 0.22);
+    const relativePower=this.relativeAttackPower(faction.id,originalOwner);
+    const rawDamage = spent * (0.95 + this.rng() * 0.22) * relativePower;
     const garrisonStrength=this.defense[index];
     let mitigation = 0;
     let defenderLosses=0;
@@ -663,7 +679,7 @@ export class Game {
     }
     this.lastAttackerLoss=attackerCasualties(spent,
       mitigation+Math.min(Math.max(0,garrisonStrength),rawDamage)*.35,
-      originalOwner===NEUTRAL,capital);
+      originalOwner===NEUTRAL,capital,relativePower);
     faction.attackFallen+=this.lastAttackerLoss;
     if(defender)defender.enemyFallen+=this.lastAttackerLoss;
     this.defense[index]-=Math.max(0.01,rawDamage-Math.min(mitigation,rawDamage*.94));

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { assessInvasion, interceptAttack } from '../dist/src/engine/warfare.js';
+import { assessInvasion, interceptAttack, attackerCasualties, empirePower, relativeAttackEffect } from '../dist/src/engine/warfare.js';
 import { Game } from '../dist/src/engine/game.js';
 
 test('AI refuses disadvantageous assaults and waits with an intact reserve', () => {
@@ -66,4 +66,71 @@ test('AI decisions remain deterministic including reserves and intentions', () =
   a.owner[player] = 1;
   assert.notEqual(a.threatenedBorders(0), b.threatenedBorders(0));
   a.owner[player] = oldOwner;
+});
+
+test('a more powerful defender steadily reduces offensive damage but never makes conquest impossible',()=>{
+  const equal=relativeAttackEffect(1000,1000);
+  const strongerOpponent=relativeAttackEffect(1000,3000);
+  const enormousOpponent=relativeAttackEffect(1000,100000);
+  const weakerOpponent=relativeAttackEffect(3000,1000);
+  assert.equal(equal,1);
+  assert.ok(strongerOpponent<1);
+  assert.ok(enormousOpponent<=strongerOpponent);
+  assert.ok(enormousOpponent>=.70);
+  assert.ok(weakerOpponent>1);
+  assert.ok(weakerOpponent<=1.30);
+  assert.equal(relativeAttackEffect(1,1e40),.70);
+  assert.equal(relativeAttackEffect(1e40,1),1.30);
+});
+
+test('country strength uses total population, controlled land and cities without double-counting reserves',()=>{
+  const normal=empirePower(400,100,1);
+  assert.ok(empirePower(800,100,1)>normal);
+  assert.ok(empirePower(400,300,1)>normal);
+  assert.ok(empirePower(400,100,15)>normal);
+  assert.equal(empirePower(400,100,1),normal);
+  assert.ok(Number.isFinite(empirePower(0,0,0)));
+});
+
+test('fighting a larger nation causes higher attacker losses at equal local defense',()=>{
+  const matched=attackerCasualties(60,25,false,false,1);
+  const stronger=attackerCasualties(60,25,false,false,.70);
+  assert.ok(stronger>matched);
+  assert.ok(stronger<=60);
+  assert.equal(attackerCasualties(60,25,true,true,.70),0);
+  assert.ok(attackerCasualties(60,25,false,true,.70)>stronger);
+});
+
+test('smart AI uses relative opponent power when judging invasion worthwhile',()=>{
+  const factors={attackerTroops:240,attackerIncome:8,defenderTroops:100,
+    defenderIncome:6,garrison:15,capital:false,neutral:false,threatenedBorders:3};
+  const cautious=assessInvasion({...factors,relativePower:.70});
+  const even=assessInvasion({...factors,relativePower:1});
+  const confident=assessInvasion({...factors,relativePower:1.30});
+  assert.ok(cautious.advantage<even.advantage);
+  assert.ok(even.advantage<confident.advantage);
+  assert.ok(Number.isFinite(cautious.advantage));
+});
+
+test('the same 20-troop assault damages a great power less than a similarly defended weak country',()=>{
+  const weak=new Game(432,1);
+  const strong=new Game(432,1);
+  const target=weak.cities[1].index;
+  const alternative=strong.owner.findIndex((o,i)=>o===1 && i!==target);
+  assert.ok(alternative>=0);
+  weak.factions[1].troops=0;
+  strong.factions[1].troops=0;
+  strong.frontline[alternative]=5000; // real distant defenders, not a local garrison
+  weak.recount(); strong.recount();
+  const normal=weak.relativeAttackPower(0,1);
+  const disadvantage=strong.relativeAttackPower(0,1);
+  assert.ok(disadvantage<normal);
+  assert.equal(weak.relativeAttackPower(0,-1),1);
+  const initial=weak.defense[target];
+  assert.equal(strong.defense[target],initial);
+  weak.strike(weak.factions[0],target,20);
+  strong.strike(strong.factions[0],target,20);
+  assert.ok(strong.defense[target]>weak.defense[target],
+    'the strong nation should sustain more residual sector defense');
+  assert.ok(strong.lastAttackerLoss>=weak.lastAttackerLoss);
 });

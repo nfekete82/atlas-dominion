@@ -1,42 +1,24 @@
 # ATLAS DOMINION
 
-**v1.2.2 – TESTKORREKTUREN NACH WIRTSCHAFTS-BALANCING**
+**v1.3 – RELATIVE REICHSMACHT BEIM ANGREIFEN**
 
-- Behebt zwei Regressionstests nach v1.2.1 (Mac: vorher **77/79 Tests grün**).
-- Neutrale Offensive wird mit mindestens einem KI-Gegner getestet: Bei 0 Gegnern gilt die Partie nach dem ersten Tick bereits als gewonnen und stoppt die Simulation, bevor die verbleibende Angriffsausdauer aufgebraucht wird.
-- Wachstumsregression prüft jetzt **monoton steigenden, aber abflachenden** Zuwachs für große Länder und den weiter fehlenden 9.000er-Truppen-Cap. Die früheren exponentiellen Multiplikatoren waren absichtlich entfernt worden.
-- **Keinerlei Änderung an Kampf-, Wirtschafts- oder KI-Spielregeln**, ausschließlich die zwei Regressionstests und Versionsmetadaten.
+Ein großes, gut entwickeltes Land lässt sich schwerer erobern als ein kleiner, schwacher Nachbar. Dabei bleibt die *örtliche Grenzverteidigung* entscheidend und kein Land wird automatisch uneinnehmbar.
 
----
+## Relative militärische Stärke
 
-**v1.2.1 – BALANCIERTES GELD & KOMPAKTE ZAHLEN**
+- Für jedes Land ermittelt die Simulation aus **allen Einwohnern/Truppen** (freie Reserve, Grenzbesatzung, aktuell eingesetzte Armeen), kontrolliertem Territorium und Städten einen gemeinsamen Machtwert. Er wird einmal pro Simulationstick berechnet, um die großen Karten performant zu halten.
+- Beim Angriff auf ein anderes Land wird deine Macht mit der des Gegners verglichen. Die Angriffswirkung verändert sich graduell: **70–130 % des normalen Schadens**. Ein großer Gegner kann also bis zu 30 % deiner Angriffswirkung abschwächen. Ein schwacher Gegner lässt sich bis zu 30 % effizienter bekämpfen.
+- Ein stärkerer Gegner erhöht außerdem die **eigenen Kampfverluste**. Die Aufschläge sind begrenzt, damit auch kleine Staaten gewinnen können. Neutraler Boden bleibt von dieser Machtwertung ausgenommen und verursacht weiterhin keine Kampftoten.
+- Hauptstädte, lokal stationierte Truppen, echte Angriffsstärke, Verteidigungsdoktrin und Frontpositionen bleiben separat wirksam. **Starke Länder sind nicht unangreifbar.**
+- Die KI verwendet denselben Machtfaktor zur Einschätzung riskanter Offensiven und priorisiert weiterhin schwache Grenzabschnitte.
+- Im Hover-Tooltip des gegnerischen Gebiets wird der Faktor transparent gezeigt, etwa **„ANGRIFFSWIRKUNG: 82 % · STARKER GEGNER“** oder **„120 % · MACHTVORTEIL“**. Diese Prozentzahl ist der rechnerische Schadensfaktor, keine Siegwahrscheinlichkeit.
+- Das bestehende Geld-/Städte-System, die dunkle Europa-Karte, der organische Eroberungseffekt und die echte Verlustrechnung bleiben erhalten.
 
-## Wirtschaft und Anzeige repariert
+## Tests
 
-- Die direkte Multiplikation `Anzahl Städte × Einwohnerzahl` wurde aus dem Wachstumsmodell entfernt. Solche multiplikativen Effekte verursachten binnen Minuten astronomische Einwohnerzahlen, Kassenstände und Tick-Einnahmen.
-- Bevölkerung wächst weiterhin mit den vorhandenen Einwohnern, dem kontrollierten Land, Hauptstädten und gebauten Städten. Zusätzliche Städte bringen aber **abnehmende Wachstumsvorteile** (Quadratwurzel statt Exponentialeffekt).
-- Steuereinnahmen sind nun deutlich niedriger, steigen aber weiter nachvollziehbar mit der Bevölkerung; Städte und Territorium bieten kleine Zusatzboni.
-- **Einheitliche Kurzschreibweise** in allen Zahlenanzeigen: `1,5K` (Tausend), `2,5M` (Millionen), `3,2 Mrd.` (Milliarden), `1,2 Bio.` (Billionen). Einwohner, Truppen, Geld, Tick-Wachstum, Angriffe, Verteidigung und Länderliste nutzen dieselbe Formatierung.
-- Extremen Zahlen wird notfalls eine kurze wissenschaftliche Darstellung gegeben. Zweispaltige Statistikfelder brechen Zahlen nicht mehr über viele Zeilen um.
-- Langzeittests prüfen, dass zahlreiche Städte über Tausende Simulationsschritte **kein exponentielles Wachstum** auslösen und neue Partien numerisch stabil bleiben.
+Neue Regressionstests in `tests/warfare.test.mjs` überprüfen: Stärke durch Einwohner/Gebiet/Städte, monotone Wirkung, Wirkungsgrenzen (70–130 %), höhere Angreiferverluste gegen mächtige Staaten, KI-Risikobewertung und tatsächliche geringere Beschädigung derselben lokalen Verteidigung.
 
-**Nach dem Update eine neue Partie beginnen.** Bereits durch die alte Formel im Browser entstandene Fantasiezahlen werden durch die Korrektur nicht rückwirkend reduziert.
-
----
-
-**v1.2 – ECHTE KAMPFVERLUSTE, SCHLAUERE KI & ORGANISCHE FRONTEN**
-
-## Neu in v1.2
-
-- **Einwohner bleiben bei einer Mobilisierung Einwohner.** Die für einen Angriff eingesetzten Einheiten werden nur zwischen Reserve und aktiver Offensive verschoben. Erst gefallene Soldaten verringern tatsächlich den Gesamtbestand.
-- **Neutraler Boden kostet Marschaufwand, aber keine Menschenleben.** Jede Offensive besitzt ein begrenztes Erschöpfungsbudget (`effort`), das auch bei friedlicher Expansion verbraucht wird. Dadurch entstehen keine unendlichen kostenlosen Landnahmen.
-- **Verteidigter Boden kostet beide Seiten Soldaten.** Lokale stationierte Verteidiger und Notfallreserve können sterben, die Angreifer verlieren abhängig von der Gegenwehr und beim Sturm auf Hauptstädte besonders viele Einheiten.
-- **Überlebende kehren zurück**, wenn eine Offensive an Erschöpfung oder einer nicht mehr erreichbaren Front endet. Gefallene bleiben verloren. Im HUD werden eigene Gefallene und zugefügte Gegnerverluste sowie Verluste der laufenden Offensive angezeigt.
-- **KI-Stile und Frontscoring:** Expansion, aggressive Eroberung, defensive Vorsicht und opportunistische Schwächeausnutzung; Städte und Hauptstädte werden strategisch berücksichtigt. KI-Ziele bleiben deterministisch.
-- **Fließender, leicht abbrennender Eroberungseffekt** entlang wirklich eroberter Zellen: organische, begrenzte Verlaufskanten und eine sanft glühende, abgerundete aktuelle Kampfgrenze. Keine ausgedehnten Dauer-Kreise, kein Teleportieren, kein Eingriff in die Sektorsimulation.
-- Einwohnerwachstum, Steuer-Geld, die ausschließlich baubaren Städte und Länder-Klicksteuerung aus v1.1 bleiben erhalten.
-
-## Testen
+## Start
 
 ```bash
 cd ~/Projects/atlas-dominion
@@ -45,54 +27,14 @@ git pull --ff-only origin main
 npm test && PORT=8095 npm run dev
 ```
 
-Neue Tests: `tests/casualties.test.mjs`, `tests/ai-strategy.test.mjs`, `tests/capture-visual.test.mjs`. Existing tests zu neutralen Offensiven berücksichtigen das neue Marschbudget anstelle pauschaler Todesfälle.
+Danach http://localhost:8095 öffnen. Der vollständige TypeScript-Build und Browser-Test müssen mit `npm test` auf dem Mac bestätigt werden.
 
----
+## Historie
 
-**v1.1 – Einwohner = Truppen, Städte und Geld**
+- v1.2.2 – Reparierte Tests für neutrale Offensiven und gedämpftes Wachstum
+- v1.2.1 – Balancierte Wirtschaft und kompakte K/M/Mrd.-Anzeige
+- v1.2 – Echte Gefallene, intelligentere KI und organische Eroberungsfronten
+- v1.1 – Einwohner = Truppen; Städte und Geld
+- v1.0 – Länderbasiertes Klicken und kontrastreiche Karte
 
-Eigenständiges browserbasiertes Eroberungsspiel mit 50 europäischen Startländern, deterministischen Grenzkämpfen und Städtebau per Rechtsklick.
-
-## Einfaches Spielprinzip
-
-- **Einwohner sind gleichzeitig Truppen.** Es gibt nur einen gemeinsamen Bestand. Stationierte Grenztruppen und laufende Angriffsverbände zählen weiterhin dazu; sie werden nicht doppelt gezählt. Verluste im Kampf reduzieren den Bestand.
-- **Automatisches Wachstum:** Einwohner/Truppen wachsen pro Tick. Die Basisrate orientiert sich auch an Gebiet und aktuellen Einwohnern.
-- **Städte bauen:** Rechtsklick auf einen eigenen, unbebauten Sektor und **Stadt bauen (75 €)**. Jede Stadt erhöht dauerhaft die Wachstumsrate. Hauptstädte sind bereits Städte und können nicht überbaut werden.
-- **Geld statt Vorräte:** Steuereinnahmen sind proportional zur Einwohner-/Truppenzahl. Landbesitz, Hauptstädte und gebaute Städte steuern kleinere Zusatzbeträge bei. Größere Länder mit mehr Einwohnern verdienen dadurch automatisch schneller mehr Geld.
-- **Schneller angreifen mit größerem Heer:** Über den Prozentregler werden Einwohner/Truppen an der Grenze in den Kampf geschickt. Je mehr Soldaten der Angriff tatsächlich enthält, desto mehr Grenzsektoren kann die Offensive pro Tick bearbeiten. Bestehende lokale Verteidiger verbrauchen weiterhin Angriffskraft. Kein Fernkampf oder Teleport.
-- **KI baut Städte:** Alle 100 Ticks sucht jeder KI-Gegner bei ausreichendem Geld ein freies Feld für eine Stadt und bezahlt die gleichen Baukosten.
-- **Weniger Anzeigen:** Im HUD gibt es Gebiete, gemeinsame Einwohner/Truppen, Wachstum, Kontrolle, Städtezahl und Geld. Es existieren keine separaten Soldaten- oder Zivilisten-Reserven mehr.
-
-## Steuerung
-
-| Aktion | Steuerung |
-|---|---|
-| Land wählen | Vor Spielbeginn aus 50 Ländern auswählen |
-| Land angreifen | Linksklick irgendwo in einen tatsächlich verbundenen gegnerischen Landteil |
-| Mehr Truppen senden | Prozentregler erhöhen – größerer Angriff kann schneller erobern |
-| Stadt bauen | Rechtsklick auf eigenen freien Sektor |
-| Seelandung | Shift + Linksklick auf eine markierte Seeanlegestelle |
-| Karte | Ziehen / Mausrad zoomen |
-| Pause | Leertaste |
-
-Die 480×260 große Landkarte, der kontrastreiche dunkle Stil und die kleinen sichtbaren Stadtsymbole bleiben erhalten.
-
-## Lokal starten
-
-```bash
-cd ~/Projects/atlas-dominion
-git switch main
-git pull --ff-only origin main
-npm test && PORT=8095 npm run dev
-```
-
-Anschließend http://localhost:8095 öffnen.
-
-## Technische Regeln
-
-- `src/engine/economy.ts` enthält die deterministischen, monoton mit Bevölkerung wachsenden Formeln `troopGrowth` und `taxRevenue`.
-- `src/engine/game.ts` nutzt ein einziges Einwohnervolk (`Faction.troops` + wirklich stationierte/eingesetzte Kräfte). Geld wird als `Faction.money` verwaltet.
-- `src/engine/frontline.ts` begrenzt die maximale Angriffsbreite, lässt größere Kontingente aber deutlich schneller vorrücken als kleine.
-- Geld, Truppen und gebaute Städte sind Spielwerte, **keine realen Bevölkerungs- oder Finanzstatistiken**.
-
-Kartengrundlage: Natural Earth 110m (Public Domain). Alle Renderings und Spielelemente sind eigenständig, ohne kopierte OpenFront-Assets.
+Kartengrundlage: Natural Earth 110m (Public Domain). Das Projekt ist unabhängig von OpenFront.
