@@ -24,9 +24,9 @@ test('frontline budgeting preserves reserves and scales with available income',(
 test('local troop stations are real, distinct from reserves, and redeploy when front disappears',()=>{
   const game=new Game(13,1);
   const g=game.factions[0];
-  const enemy=game.cities[1].index;
+  const enemy=game.owner.findIndex((owner,i)=>owner===1 && neighbors(i).some(n=>game.owner[n]===NEUTRAL));
   const adjacent=neighbors(enemy).find(i=>game.owner[i]===NEUTRAL);
-  assert.notEqual(adjacent,undefined);
+  assert.ok(enemy>=0 && adjacent!==undefined);
   game.owner[adjacent]=0;
   game.factions[0].troops=1500;
   game.redistributeFrontline();
@@ -34,7 +34,8 @@ test('local troop stations are real, distinct from reserves, and redeploy when f
   assert.ok(deployed>0);
   assert.ok(g.troops<1500);
   const after=g.troops+deployed;
-  game.owner[enemy]=NEUTRAL;
+  // Remove the entire opposing frontier; all stationed soldiers return to reserve.
+  for(let i=0;i<game.owner.length;i++)if(game.owner[i]===1)game.owner[i]=NEUTRAL;
   game.redistributeFrontline();
   assert.equal(game.frontline[adjacent],0);
   assert.ok(Math.abs(g.troops-after)<1e-6);
