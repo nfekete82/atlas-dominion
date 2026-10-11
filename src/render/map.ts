@@ -240,19 +240,21 @@ export class MapRenderer {
   }
   canLand(point: Point): boolean { return this.game.canLand(0,point); }
   private drawBuildings(c: CanvasRenderingContext2D): void {
-    if(this.zoom<1.25)return;
+    // Do not let every tiny settlement compete with the capital and front.
+    if(this.zoom < 1.55)return;
     c.save();
     const glyphs=['','⌂','▣','⚔','⬡','⚓'];
     c.textAlign='center';
     c.textBaseline='middle';
-    c.font=this.zoom>=2.3?'11px system-ui':'9px system-ui';
+    c.font=this.zoom>=2.6?'700 7px system-ui':'600 5.5px system-ui';
     for(const {index,code} of this.buildingMarkers){
       const x=(index%MAP_WIDTH+.5)*CW,y=(Math.floor(index/MAP_WIDTH)+.5)*CH;
-      c.globalAlpha=this.zoom>=2.3?.9:.6;
+      const size=this.zoom>=2.6?7:5.5;
+      c.globalAlpha=this.zoom>=2.6?.74:.50;
       c.fillStyle='#071c23';
-      c.fillRect(x-6,y-6,12,12);
+      c.fillRect(x-size/2,y-size/2,size,size);
       c.fillStyle=code===4?'#e8bf8c':'#c6e8d5';
-      c.fillText(glyphs[code],x,y+.4);
+      c.fillText(glyphs[code],x,y+.1);
     }
     c.restore();
   }
@@ -275,18 +277,17 @@ export class MapRenderer {
       if (y > height - 65) continue;
       boxes.push({x,y});
       shown++;
-      const current = this.game.attackOrders.filter(o=>o.factionId===label.id).reduce((n,o)=>n+o.remaining,0);
-      c.shadowColor='#000c';c.shadowBlur=15;
+      c.shadowColor='#000a';c.shadowBlur=4;
       c.fillStyle=label.id===0?'rgba(44,35,22,.95)':'rgba(8,21,27,.90)';
       c.strokeStyle=faction.color;
-      c.lineWidth=label.id===0?2:1.2;
+      c.lineWidth=label.id===0?1.2:.8;
       c.globalAlpha=label.id===0?.9:this.zoom>=2.8?.82:.58;
-      c.beginPath();c.roundRect(x-39,y-12,78,30,5);c.fill();c.stroke();c.shadowBlur=0;
-      c.font='700 7px system-ui';c.fillStyle=faction.color;
-      c.fillText(faction.name,x,y-2,70);
-      c.font='800 11px system-ui';c.fillStyle='#f4f0df';
+      c.beginPath();c.roundRect(x-33,y-10,66,25,4);c.fill();c.stroke();c.shadowBlur=0;
+      c.font='650 6px system-ui';c.fillStyle=faction.color;
+      c.fillText(faction.name,x,y-2,58);
+      c.font='800 9px system-ui';c.fillStyle='#f4f0df';
       const troops = Math.floor(this.armyTotals[label.id] ?? faction.troops).toLocaleString('de-DE');
-      c.fillText(`⚔ ${troops}`,x,y+12,70);
+      c.fillText(`⚔ ${troops}`,x,y+10,60);
       c.globalAlpha=1;
       // Active attack strength is shown separately on the actual front.
     }
@@ -394,18 +395,20 @@ export class MapRenderer {
       const f = city.owner >= 0 ? this.game.factions[city.owner] : null;
       const pos = pointToWorld(city);
       const glow = f?.color ?? '#c8ccd0';
-      c.globalAlpha=city.original===0?.9:.38;
-      c.beginPath(); c.arc(pos.x,pos.y,7+Math.sin(timestamp/480+city.original)*.75,0,Math.PI*2);
-      c.strokeStyle=glow+'65'; c.lineWidth=1.2; c.stroke();
-      c.beginPath(); c.arc(pos.x,pos.y,3.4,0,Math.PI*2);
-      c.fillStyle='#101b23'; c.fill(); c.lineWidth=1.7; c.strokeStyle=glow; c.stroke();
+      c.globalAlpha=city.original===0?.75:.32;
+      if(city.original===0 || this.zoom >= 2.6){
+        c.beginPath();c.arc(pos.x,pos.y,4.5+Math.sin(timestamp/480+city.original)*.4,0,Math.PI*2);
+        c.strokeStyle=glow+'70';c.lineWidth=.8;c.stroke();
+      }
+      c.beginPath();c.arc(pos.x,pos.y,city.original===0?2.7:2.1,0,Math.PI*2);
+      c.fillStyle='#101b23';c.fill();c.lineWidth=1;c.strokeStyle=glow;c.stroke();
       // Only the player's capital is fully legible at initial zoom.
       // Other labels fade in when zoomed closer; never overwhelm the map.
       if(city.original===0 || this.zoom>=2.45){
-        c.globalAlpha=city.original===0?.85:.48;
-        c.font=city.original===0?'700 11px system-ui':'500 8px system-ui';
-        c.textAlign='center';c.shadowColor='#051015';c.shadowBlur=3;
-        c.fillStyle='#e9eee9';c.fillText(city.name.toUpperCase(),pos.x,pos.y-12);
+        c.globalAlpha=city.original===0?.7:.40;
+        c.font=city.original===0?'650 9px system-ui':'500 7px system-ui';
+        c.textAlign='center';c.shadowColor='#051015';c.shadowBlur=1;
+        c.fillStyle='#e9eee9';c.fillText(city.name.toUpperCase(),pos.x,pos.y-10);
       }
       c.shadowBlur=0;c.globalAlpha=1;
     }
