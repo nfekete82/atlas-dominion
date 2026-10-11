@@ -1,6 +1,7 @@
 import { COUNTRIES, MAP_HEIGHT, MAP_WIDTH, SEA_CROSSINGS, WORLD_HEIGHT, WORLD_WIDTH } from '../data/europe.js';
 import { Game, NEUTRAL, WATER, pointToWorld, seededRandom, type Point } from '../engine/game.js';
 import { TerritoryWave, waveProgress } from './wave.js';
+import {organicCaptureRadius,burningFrontAlpha} from './capture-visual.js';
 import { pixelGridEdges } from './pixel-grid.js';
 import { buildingMarkerFor, showBuildingMarker, buildingMarkerFontSize } from './building-markers.js';
 // Keep natural-dark ocean and distinct faction colors; no pale map wash.
@@ -380,24 +381,38 @@ export class MapRenderer {
     }
     c.restore();
   }
-  private drawCaptureWave(c:CanvasRenderingContext2D, timestamp:number):void {
-    // Simple, quick capture: existing border colors reveal themselves in
-    // chained order. No rings, squares, circles, haloes or swipe markers.
+  private drawCaptureWave(c:CanvasRenderingContext2D,timestamp:number):void {
     const captures=this.wave.active(timestamp);
     if(!captures.length)return;
-    c.save();c.imageSmoothingEnabled=false;
+    c.save();
+    c.imageSmoothingEnabled=true;
     for(const frame of captures){
       if(frame.owner<0)continue;
       const progress=waveProgress(frame,timestamp);
       if(progress>=1)continue;
       const col=frame.index%MAP_WIDTH,row=Math.floor(frame.index/MAP_WIDTH);
       const x=X_EDGES[col],y=Y_EDGES[row];
-      const width=X_EDGES[col+1]-x,height=Y_EDGES[row+1]-y;
-      c.globalAlpha=1-progress;
+      const w=X_EDGES[col+1]-x,h=Y_EDGES[row+1]-y;
+      const cx=x+w*.5,cy=y+h*.5;
+      // Limit the paint to the real captured sector. Visual softness does
+      // not change ownership or spill into water and enemy territories.
+      c.save();c.beginPath();c.rect(x,y,w,h);c.clip();
       c.fillStyle=frame.previous>=0
-        ? this.game.factions[frame.previous].color+'be'
-        : '#263c40';
-      c.fillRect(x,y,width,height);
+        ? this.game.factions[frame.previous].color+'be' : '#263c40';
+      c.fillRect(x,y,w,h);
+      const radius=organicCaptureRadius(progress,Math.max(w,h),frame.index);
+      if(radius>.01){
+        const newColor=this.game.factions[frame.owner].color;
+        const glow=burningFrontAlpha(progress);
+        const gradient=c.createRadialGradient(cx,cy,Math.max(0,radius*.24),cx,cy,radius);
+        gradient.addColorStop(0,newColor+'de');
+        gradient.addColorStop(.72,newColor+'d9');
+        gradient.addColorStop(.89,`rgba(248,175,91,${glow.toFixed(3)})`);
+        gradient.addColorStop(1,'rgba(248,175,91,0)');
+        c.fillStyle=gradient;
+        c.beginPath();c.arc(cx,cy,radius,0,Math.PI*2);c.fill();
+      }
+      c.restore();
     }
     c.restore();
   }
