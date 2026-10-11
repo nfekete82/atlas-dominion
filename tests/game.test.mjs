@@ -1,22 +1,57 @@
 import test from 'node:test';
 import { MAP_WIDTH, MAP_HEIGHT, SEA_CROSSINGS } from '../dist/src/data/europe.js';
+import { COUNTRY_STARTS } from '../dist/src/data/countries.js';
 import assert from 'node:assert/strict';
 import { Game, WATER, NEUTRAL, TOTAL_LAND, geoToCell, pointToIndex, isLand, neighbors, landNeighbors, cellToPoint } from '../dist/src/engine/game.js';
 
 const count = (game, factionId) => game.owner.reduce((n, owner) => n + Number(owner === factionId), 0);
 
-test('Europe has a real continental mask with islands and 10 AI factions', () => {
+test('Europe has a continental mask, islands and all 50 capital-start factions', () => {
   const g = new Game(1234);
-  assert.equal(MAP_WIDTH,360);
-  assert.equal(MAP_HEIGHT,240);
-  assert.ok(TOTAL_LAND > 40000 && TOTAL_LAND < 55000);
+  assert.equal(MAP_WIDTH,480);
+  assert.equal(MAP_HEIGHT,260);
+  assert.ok(TOTAL_LAND > 50000 && TOTAL_LAND < 65000);
   assert.equal(g.owner.filter(x => x !== WATER).length, TOTAL_LAND);
-  assert.equal(g.factions.length, 11);
-  assert.equal(g.cities.length, 11);
+  assert.equal(g.factions.length, COUNTRY_STARTS.length);
+  assert.equal(g.cities.length, COUNTRY_STARTS.length);
   assert.equal(g.status, 'playing');
   assert.ok(g.cities.every(c => isLand(c.index)));
   assert.ok(g.cities.every(c => g.owner[c.index] === c.original));
   assert.ok(g.factions.every(f => f.territory > 0 && f.alive));
+});
+
+test('Every selectable country begins in its own distinct capital sector',()=>{
+  const g=new Game(77);
+  assert.equal(COUNTRY_STARTS.length,50);
+  assert.equal(new Set(g.cities.map(c=>c.index)).size,50);
+  assert.equal(g.factions.filter(f=>f.ai).length,49);
+  assert.ok(g.cities.every(c=>isLand(c.index) && g.owner[c.index]===c.original));
+  assert.ok(g.factions.every(f=>f.alive&&f.territory>=1&&f.cityCount===1));
+  assert.equal(g.initialTerritory,g.factions[0].territory);
+});
+
+test('Country selection starts player in Iceland, Malta or Vatican City',()=>{
+  for(const country of ['IS','MT','VA','GE','AZ','XK']){
+    const g=new Game(123,COUNTRY_STARTS.length-1,country);
+    const start=COUNTRY_STARTS.find(c=>c.code===country);
+    assert.equal(g.playerCode,country);
+    assert.equal(g.factions[0].name,start.name);
+    assert.equal(g.cities[0].name,start.capital);
+    assert.equal(g.owner[g.cities[0].index],0);
+    assert.equal(g.factions[0].ai,false);
+    assert.equal(g.factions.slice(1).every(f=>f.ai),true);
+    assert.equal(g.factions.length,COUNTRY_STARTS.length);
+  }
+});
+
+test('Country choice and seed replay deterministically, invalid countries are rejected',()=>{
+  const a=new Game(991,COUNTRY_STARTS.length-1,'PT');
+  const b=new Game(991,COUNTRY_STARTS.length-1,'PT');
+  assert.deepEqual([...a.owner],[...b.owner]);
+  assert.deepEqual(a.cities,b.cities);
+  for(let k=0;k<3;k++){a.step();b.step();}
+  assert.deepEqual(a.factions.map(f=>[f.troops,f.territory,f.income]),b.factions.map(f=>[f.troops,f.territory,f.income]));
+  assert.throws(()=>new Game(991,10,'ZZ'),/Unbekanntes Land/);
 });
 
 test('Map projection positions Berlin inside Germany and handles boundaries', () => {

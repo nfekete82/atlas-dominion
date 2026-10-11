@@ -25,7 +25,11 @@ test('Prebuilt client serves HTML, CSS, JS and no source secrets',async()=>{
     await waitReady(base,server);
     const html=await fetch(base+'/').then(r=>r.text());
     assert.match(html,/ATLAS DOMINION/);
-    for(const [path,contentType] of [['/style.css','text/css'],['/src/main.js','text/javascript'],['/src/engine/game.js','text/javascript'],['/src/data/europe.js','text/javascript']]){
+    assert.match(html,/id="countryPicker"/);
+    assert.match(html,/id="countrySearch"/);
+    assert.match(html,/id="countryGrid"/);
+    assert.match(html,/id="playerName"/);
+    for(const [path,contentType] of [['/style.css','text/css'],['/src/main.js','text/javascript'],['/src/engine/game.js','text/javascript'],['/src/data/europe.js','text/javascript'],['/src/data/countries.js','text/javascript']]){
       const response=await fetch(base+path);
       assert.equal(response.status,200,path);
       assert.ok(response.headers.get('content-type').includes(contentType),path);

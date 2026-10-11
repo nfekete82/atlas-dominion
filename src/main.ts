@@ -1,5 +1,6 @@
 import { Game, NEUTRAL, WATER, pointToIndex, TICK_SECONDS, type Point } from './engine/game.js';
 import { MapRenderer } from './render/map.js';
+import { COUNTRY_STARTS, countryByCode } from './data/countries.js';
 
 const $ = <T extends HTMLElement>(id: string): T => {
   const found = document.getElementById(id);
@@ -8,12 +9,14 @@ const $ = <T extends HTMLElement>(id: string): T => {
 };
 const format = (n:number) => new Intl.NumberFormat('de-DE',{maximumFractionDigits:0}).format(n);
 let game = new Game(Date.now() % 2147483647);
+game.paused = true; // The player must choose a country before the clock starts.
 const renderer = new MapRenderer($<HTMLCanvasElement>('battleCanvas'), game);
 let speed = 1;
 let soundEnabled = false;
 let audio: AudioContext | null = null;
 let prevStatus = game.status;
-let modalVisible = false;
+let modalVisible = true;
+let hasStarted = false;
 let attackRatio = 35;
 let attackMessage = 'Nahe der feindlichen Grenze klicken · SHIFT+Klick für Seelandung.';
 let attackMessageKind: 'neutral'|'success'|'error' = 'neutral';
@@ -33,6 +36,8 @@ function beep(freq = 440, duration = 0.08) {
 
 function update() {
   const player = game.factions[0];
+  $('playerName').textContent = player.name;
+  $('playerFlag').textContent = countryFlag(game.playerCode);
   const percent = player.territory / game.totalLand * 100;
   $('areaCount').textContent = format(player.territory);
   const stationed = game.frontline.reduce((total,value,i)=>total+(game.owner[i]===0?value:0),0);
@@ -71,7 +76,7 @@ function update() {
     beep(game.status==='victory'?880:180,0.3);
     const won=game.status==='victory';
     showDialog(won?'EUROPA IST DEIN.':'DEIN IMPERIUM IST GEFALLEN.',
-      `<p>${won?'Du kontrollierst die strategische Mehrheit Europas.':'Deine letzten Gebiete wurden erobert.'} Starte eine neue Partie und ändere deine Strategie.</p>`,
+      `<p>${won?'Du kontrollierst die strategische Mehrheit Europas.':'Deine letzten Gebiete wurden erobert.'} Wähle für die nächste Partie erneut dein Land.</p>`,
       'NEUE PARTIE STARTEN →', restart);
   }
 }
@@ -130,18 +135,58 @@ function showDialog(title:string,body:string,actionLabel='VERSTANDEN →',onActi
   $('dialog').hidden=false;
 }
 function closeDialog() {modalVisible=false;$('dialog').hidden=true;}
-function restart() {
+function countryFlag(code:string): string {
+  if(code==='XK')return '🇽🇰';
+  return [...code.toUpperCase()].map(ch=>String.fromCodePoint(127397+ch.charCodeAt(0))).join('');
+}
+function countryOptions(query:string): void {
+  const needle=query.toLocaleLowerCase('de-DE').trim();
+  const matched=COUNTRY_STARTS.filter(c=>
+    c.name.toLocaleLowerCase('de-DE').includes(needle) ||
+    c.capital.toLocaleLowerCase('de-DE').includes(needle) ||
+    c.code.toLocaleLowerCase('de-DE').includes(needle));
+  $('countryCount').textContent=`${matched.length} / ${COUNTRY_STARTS.length} Länder`;
+  $('countryGrid').innerHTML=matched.map(c=>
+    `<button type="button" class="country-option" data-country="${c.code}" aria-label="${c.name}, Hauptstadt ${c.capital}">
+      <span class="country-flag" aria-hidden="true">${countryFlag(c.code)}</span>
+      <span><strong>${c.name}</strong><small>${c.capital}</small></span></button>`).join('');
+}
+function showCountryPicker(canCancel = false): void {
   closeDialog();
-  game=new Game((Date.now()+Math.floor(Math.random()*100000))%2147483647);
-  attackMessage='Nahe der feindlichen Grenze klicken · SHIFT+Klick für Seelandung.';attackMessageKind='neutral';
-  renderer.setGame(game);prevStatus=game.status;
+  modalVisible = true;
+  $('countryPicker').hidden = false;
+  $('countryCancel').hidden = !canCancel;
+  ($<HTMLInputElement>('countrySearch')).value='';
+  countryOptions('');
+  ($<HTMLInputElement>('countrySearch')).focus();
+}
+function startCountry(code:string): void {
+  const chosen=countryByCode(code);
+  if(!chosen)return;
+  game=new Game((Date.now()+Math.floor(Math.random()*100000))%2147483647,COUNTRY_STARTS.length-1,chosen.code);
+  hasStarted=true;
+  modalVisible=false;
+  $('countryPicker').hidden=true;
+  attackMessage='Nahe der feindlichen Grenze klicken · SHIFT+Klick für Seelandung.';
+  attackMessageKind='neutral';
+  renderer.setGame(game);
+  renderer.focusOnCapital(game.cities[0]);
+  prevStatus=game.status;
   update();
 }
-$('resetBtn').addEventListener('click',()=>showDialog('NEUE OPERATION STARTEN?',
-  '<p>Die laufende Partie wird verworfen. Dein neues Europa startet mit neu verteilten Entscheidungen der KI.</p>',
-  'NEUE OPERATION →',restart));
+function restart(): void { closeDialog(); showCountryPicker(false); }
+$('countrySearch').addEventListener('input',e=>countryOptions((e.target as HTMLInputElement).value));
+$('countryGrid').addEventListener('click',e=>{
+  const button=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-country]');
+  if(button?.dataset.country)startCountry(button.dataset.country);
+});
+$('countryCancel').addEventListener('click',()=>{
+  if(!hasStarted)return;
+  $('countryPicker').hidden=true;modalVisible=false;update();
+});
+$('resetBtn').addEventListener('click',()=>showCountryPicker(hasStarted));
 $('helpBtn').addEventListener('click',()=>showDialog('DEIN EINSATZBEFEHL',`
-  <p>ATLAS DOMINION ist ein Echtzeit-Eroberungsspiel. Starte in Berlin, erweitere dein Gebiet und kontrolliere mindestens <strong>65 %</strong> Europas.</p>
+  <p>ATLAS DOMINION ist ein Echtzeit-Eroberungsspiel. Starte in der Hauptstadt deines gewählten Landes, erweitere dein Gebiet und kontrolliere mindestens <strong>65 %</strong> Europas.</p>
   <div class="briefing-row"><b>01</b><span><strong>KLICKEN:</strong> Klicke auf Feindgebiet in Grenznähe (bis 14 verbundene Landsektoren). Die Offensive startet automatisch am nächstgelegenen gemeinsamen Grenzsektor. Tiefe Klicks bleiben gesperrt.</span></div>
   <div class="briefing-row"><b>02</b><span><strong>SEELANDUNG:</strong> SHIFT gedrückt halten und auf eine markierte Anlegestelle am anderen Ufer klicken. Nur die eingezeichneten Seewege sind erlaubt; die Überfahrt dauert vier Ticks.</span></div>
   <div class="briefing-row"><b>03</b><span><strong>ZIEHEN:</strong> Karte verschieben. Mausrad oder +/− zum Zoomen.</span></div>
@@ -166,6 +211,7 @@ for(const btn of document.querySelectorAll<HTMLButtonElement>('[data-speed]')) b
   document.querySelectorAll('[data-speed]').forEach(e=>e.classList.toggle('active',e===btn));
 });
 window.addEventListener('keydown',e=>{
+  if(!$('countryPicker').hidden)return;
   if(e.key==='Escape'&&modalVisible){closeDialog();return;}
   if(modalVisible)return;
   if(e.code==='Space') {e.preventDefault();game.paused=!game.paused;update();}
@@ -183,6 +229,7 @@ setInterval(()=>{
   update();
 },250);
 update();
+showCountryPicker(false);
 // Explicit dev-only API for smoke tests, not game simulation source of truth.
 if(new URLSearchParams(location.search).has('debug')) {
   Object.assign(window,{__atlas:{getGame:()=>game, attack:(x:number,y:number,ratio=35)=>game.launchAttack(0,{x,y},ratio), step:()=>{game.step();renderer.updateTerritory();update();}}});
