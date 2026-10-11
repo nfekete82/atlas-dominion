@@ -11,7 +11,7 @@
 <body>
   <div id="app">
     <header class="topbar">
-      <div class="brand"><div class="brand-icon" aria-hidden="true">◈</div><div class="brand-title">ATLAS <b>DOMINION</b><small>EUROPEAN CONQUEST <span class="version">/ v0.4</span></small></div></div>
+      <div class="brand"><div class="brand-icon" aria-hidden="true">◈</div><div class="brand-title">ATLAS <b>DOMINION</b><small>EUROPEAN CONQUEST <span class="version">/ v0.5</span></small></div></div>
       <div class="top-center"><span class="pulse"></span> <span>OPERATION EUROPA</span><span class="separator">/</span><strong>LIVE SIMULATION</strong></div>
       <div class="top-actions"><button id="helpBtn" class="icon-btn" title="Spielanleitung">?</button><button id="soundBtn" class="icon-btn" title="Sound umschalten">♪</button><button id="fullBtn" class="icon-btn" title="Vollbild">⛶</button><button id="resetBtn" class="new-game">↻ <span>NEUES SPIEL</span></button></div>
     </header>
@@ -34,6 +34,7 @@
         <div class="progress-label"><span>TERRITORIALER FORTSCHRITT</span><b id="progressLabel">0 / 65%</b></div><div class="progress"><div id="progressFill"></div></div>
         <div class="doctrine-title">KAMPFDOKTRIN <span>· WÄHLE DEINE TAKTIK</span></div>
         <div class="doctrine-buttons"><button data-doctrine="expand" class="selected" title="Neutralgebiete schneller erobern">↗ <span>EXPAND</span></button><button data-doctrine="blitz" title="Mehr und stärkere Angriffe">⚔ <span>BLITZ</span></button><button data-doctrine="fortify" title="Mehr Einkommen und stärkere Verteidigung">⬡ <span>DEFENSE</span></button></div>
+        <div class="auto-guard"><strong>⬡ AUTOMATISCHE GRENZSICHERUNG</strong><span>Verteidiger ziehen Truppen aus der freien Reserve ab, sobald ein Angriff erfolgt.</span><small id="borderDefense">0 bedrohte Grenzsektoren · 0 Truppen eingesetzt</small></div>
         <div class="attack-control" aria-label="Truppeneinsatz je Angriff">
           <div class="attack-title"><span>⚔ TRUPPEN PRO ANGRIFF</span><strong id="ratioPercent">35 %</strong></div>
           <input id="attackRatio" type="range" min="5" max="100" step="5" value="35" aria-label="Truppenanteil pro Angriff in Prozent" />
