@@ -25,5 +25,5 @@ export function localDefenseStrength(garrison: number, stationed: number): numbe
 /** Large armies press a wider front, without jumping past captured neighbors. */
 export function attackFrontWidth(committed: number, blitz: boolean, neutral: boolean): number {
   const base = blitz ? 6 : neutral ? 5 : 3;
-  return Math.max(base, Math.min(22, base + Math.floor(Math.sqrt(Math.max(0, committed)) / 8)));
+  return Math.min(22, base + Math.floor(Math.sqrt(Math.max(0, committed)) / 3.2));
 }
