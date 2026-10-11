@@ -1,5 +1,16 @@
 # ATLAS DOMINION
 
+**v0.9.1 — SCHARFE SEKTOREN & DEZENTE SYMBOLE**
+
+## Grafik-Politur in v0.9.1
+- Gebäudesymbole, Hauptstadtmarker, Hafenpunkte und Truppen-Badges kleiner und weniger aufdringlich.
+- Eroberte Sektoren liegen auf **exakt gerundeten gemeinsamen Pixelkanten**: kein `+0.45px` Überzeichnen, keine feinen Nähte.
+- Separates, leichtes Raster nur auf kontrolliertem Land erhält die **sichtbaren einzelnen Quadrate**.
+- Das Territoriums-Overlay wird bei Zoom mit **Nearest Neighbor** gezeichnet, der geografische Hintergrund bleibt glatt.
+- Grenzlinien und Kampf-Glow schmaler und dezenter; die Spielsimulation selbst bleibt unverändert.
+
+---
+
 **v0.9 — STÄDTEBAU, EINWOHNER & RUHIGERE EUROPAKARTE**
 
 Browserbasiertes Echtzeit-Strategiespiel mit 50 unabhängigen europäischen Ländern und einer 480 × 260 großen Landmaske aus Natural Earth (Public Domain).
