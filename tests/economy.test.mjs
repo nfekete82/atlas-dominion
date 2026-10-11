@@ -108,3 +108,49 @@ test('stationed and currently attacking forces still count as inhabitants',()=>{
   assert.ok(Math.abs(g.populationOf(0)-totalBefore)<1e-6);
   assert.ok(g.factions[0].troops<totalBefore);
 });
+
+test('diminishing returns prevent exponential city-population runaway',()=>{
+  // More cities still pay off, but doubling them cannot multiply growth.
+  const noCities=troopGrowth(2000,800,1,0);
+  const tenCities=troopGrowth(2000,800,1,10);
+  const hundredCities=troopGrowth(2000,800,1,100);
+  assert.ok(tenCities>noCities);
+  assert.ok(hundredCities>tenCities);
+  assert.ok(hundredCities<tenCities*2);
+  assert.ok(troopGrowth(100000,800,1,1000)<75);
+  // Same land, many cities: still finite and nowhere near 10^30 residents.
+  let people=90,money=90,cities=0;
+  for(let tick=0;tick<3000;tick++){
+    const grow=troopGrowth(people,58,1,cities);
+    const tax=taxRevenue(people,58,1,cities);
+    assert.ok(Number.isFinite(grow)&&Number.isFinite(tax));
+    people+=grow;money+=tax;
+    if(money>=75 && cities<57){money-=75;cities++;}
+  }
+  assert.ok(people<100000,'12.5 game-minutes should not explode population');
+  assert.ok(money<1000000,'cash remains game-scaled even after extended play');
+});
+
+test('money tax progression is modest even at large populations',()=>{
+  const early=taxRevenue(90,58,1,0);
+  const mid=taxRevenue(10000,800,1,60);
+  assert.ok(early>0&&early<2);
+  assert.ok(mid>early);
+  assert.ok(mid<30);
+  assert.ok(taxRevenue(2000,30,1,0)>taxRevenue(90,30,1,0)*2);
+});
+
+test('new games stay numerically stable through sustained real AI turns',()=>{
+  const game=new Game(5123,3,'DE');
+  for(let tick=0;tick<200;tick++)game.step();
+  for(const faction of game.factions){
+    assert.ok(Number.isFinite(faction.troops));
+    assert.ok(Number.isFinite(faction.money));
+    assert.ok(Number.isFinite(faction.income));
+    assert.ok(Number.isFinite(faction.moneyIncome));
+    assert.ok(faction.money>=0);
+    assert.ok(faction.troops>=0);
+    assert.ok(faction.troops<1000000);
+    assert.ok(faction.money<100000);
+  }
+});
