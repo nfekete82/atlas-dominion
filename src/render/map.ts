@@ -2,6 +2,7 @@ import { COUNTRIES, MAP_HEIGHT, MAP_WIDTH, SEA_CROSSINGS, WORLD_HEIGHT, WORLD_WI
 import { Game, NEUTRAL, WATER, pointToWorld, seededRandom, type Point } from '../engine/game.js';
 import { TerritoryWave, waveProgress } from './wave.js';
 import { pixelGridEdges } from './pixel-grid.js';
+import { MAP_PALETTE, mixHexColor } from './map-palette.js';
 
 const CW = WORLD_WIDTH / MAP_WIDTH;
 const CH = WORLD_HEIGHT / MAP_HEIGHT;
@@ -13,6 +14,11 @@ export class MapRenderer {
   private ctx: CanvasRenderingContext2D;
   private base = document.createElement('canvas');
   private overlay = document.createElement('canvas');
+  private administrative = document.createElement('canvas');
+  private highlightedCountry = document.createElement('canvas');
+  private highlightOwner = WATER;
+  private hoverIndex = -1;
+  private hoverFront: Point | null = null;
   private wave: TerritoryWave;
   private scale = 1;
   private zoom = 1;
@@ -43,7 +49,7 @@ export class MapRenderer {
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) throw new Error('Canvas 2D wird nicht unterstützt.');
     this.ctx = ctx;
-    for (const c of [this.base, this.overlay]) { c.width = WORLD_WIDTH; c.height = WORLD_HEIGHT; }
+    for (const c of [this.base, this.overlay, this.administrative, this.highlightedCountry]) { c.width = WORLD_WIDTH; c.height = WORLD_HEIGHT; }
     this.renderBase();
     this.updateTerritory();
     new ResizeObserver(() => this.resize()).observe(canvas);
@@ -52,7 +58,17 @@ export class MapRenderer {
     requestAnimationFrame(t => this.frame(t));
   }
 
-  setGame(game: Game) { this.game = game; this.wave.reset(game.owner); this.updateTerritory(); this.fit(); }
+  setGame(game: Game) {
+    this.game = game;
+    this.hover=null;
+    this.hoverIndex=-1;
+    this.hoverFront=null;
+    this.highlightOwner=WATER;
+    this.highlightedCountry.getContext('2d')!.clearRect(0,0,WORLD_WIDTH,WORLD_HEIGHT);
+    this.wave.reset(game.owner);
+    this.updateTerritory();
+    this.fit();
+  }
   focusOnCapital(point: Point): void {
     this.zoom = 1.8;
     this.scale = Math.min(this.canvas.clientWidth / WORLD_WIDTH, this.canvas.clientHeight / WORLD_HEIGHT) * this.zoom;
@@ -74,23 +90,26 @@ export class MapRenderer {
   }
   private renderBase() {
     const c = this.base.getContext('2d')!;
-    const sea = c.createLinearGradient(0, 0, 1100, 800);
-    sea.addColorStop(0, '#081e2a'); sea.addColorStop(0.56, '#102832'); sea.addColorStop(1, '#0a1b27');
-    c.fillStyle = sea; c.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-    c.strokeStyle = 'rgba(103,159,162,0.055)'; c.lineWidth = 1;
-    for (let x = 0; x <= WORLD_WIDTH; x += 64) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, WORLD_HEIGHT); c.stroke(); }
-    for (let y = 0; y <= WORLD_HEIGHT; y += 64) { c.beginPath(); c.moveTo(0, y); c.lineTo(WORLD_WIDTH, y); c.stroke(); }
+    const sea = c.createLinearGradient(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    sea.addColorStop(0,MAP_PALETTE.oceanTop);
+    sea.addColorStop(1,MAP_PALETTE.oceanBottom);
+    c.fillStyle=sea;c.fillRect(0,0,WORLD_WIDTH,WORLD_HEIGHT);
+    // Permanent, very subtle administrative outlines remain visible after
+    // conquest. Political lines are not the current military front.
+    const admin=this.administrative.getContext('2d')!;
+    admin.clearRect(0,0,WORLD_WIDTH,WORLD_HEIGHT);
     for (const country of COUNTRIES) {
       const path = new Path2D();
       for (const ring of country.rings) {
         ring.forEach(([x, y], j) => j === 0 ? path.moveTo(x, y) : path.lineTo(x, y));
         path.closePath();
       }
-      c.fillStyle = '#263c40'; c.fill(path);
-      c.strokeStyle = 'rgba(141,173,165,0.34)'; c.lineWidth = 1.15; c.stroke(path);
+      c.fillStyle=MAP_PALETTE.land;c.fill(path);
+      c.strokeStyle='rgba(93,111,104,.40)';c.lineWidth=1.05;c.stroke(path);
+      admin.strokeStyle='rgba(98,103,89,.31)';admin.lineWidth=.9;admin.stroke(path);
     }
     // Faint sea corridors represent crossings for islands and separated landmasses.
-    c.save();c.setLineDash([4,7]);c.strokeStyle='rgba(153,205,200,.4)';c.lineWidth=1.5;
+    c.save();c.setLineDash([5,8]);c.strokeStyle='rgba(225,236,217,.34)';c.lineWidth=1;
     for (const [a,b] of SEA_CROSSINGS) {
       const ax=(a % MAP_WIDTH +.5)*CW, ay=(Math.floor(a/MAP_WIDTH)+.5)*CH;
       const bx=(b % MAP_WIDTH +.5)*CW, by=(Math.floor(b/MAP_WIDTH)+.5)*CH;
@@ -98,18 +117,18 @@ export class MapRenderer {
     }
     c.restore();
     const rng = seededRandom(7122);
-    for (let i = 0; i < 4000; i++) {
+    for (let i = 0; i < 1450; i++) {
       const x = rng() * WORLD_WIDTH, y = rng() * WORLD_HEIGHT;
-      c.fillStyle = rng() > 0.55 ? 'rgba(169,201,181,.055)' : 'rgba(12,15,13,.12)';
-      c.fillRect(x, y, rng() * 2.2 + 0.5, rng() * 2.2 + 0.5);
+      c.fillStyle=rng()>.55?'rgba(255,255,241,.045)':'rgba(22,69,93,.04)';
+      c.fillRect(x,y,rng()*1.6+.35,rng()*1.6+.35);
     }
     c.save();
-    c.font = '11px ui-monospace, monospace'; c.fillStyle = 'rgba(150,184,188,.32)';
+    c.font='10px ui-monospace, monospace';c.fillStyle='rgba(233,242,236,.49)';
     c.letterSpacing = '2px';
     for (const [label, x, y] of [['NORTH ATLANTIC',76,257],['MEDITERRANEAN SEA',530,745],['BALTIC SEA',710,230],['BLACK SEA',1070,670],['NORTH SEA',290,255]]) c.fillText(label as string, x as number, y as number);
     c.restore();
-    const vignette = c.createRadialGradient(640,400,50,640,400,780);
-    vignette.addColorStop(0,'rgba(0,0,0,0)'); vignette.addColorStop(1,'rgba(2,12,19,.6)');
+    const vignette=c.createRadialGradient(800,450,150,800,450,1000);
+    vignette.addColorStop(0,'rgba(0,0,0,0)');vignette.addColorStop(1,'rgba(23,55,68,.12)');
     c.fillStyle = vignette; c.fillRect(0,0,WORLD_WIDTH,WORLD_HEIGHT);
   }
   updateTerritory() {
@@ -124,6 +143,7 @@ export class MapRenderer {
     c.imageSmoothingEnabled = false;
     c.clearRect(0,0,WORLD_WIDTH,WORLD_HEIGHT);
     const owners = this.game.owner;
+    const territoryFills=this.game.factions.map(f=>mixHexColor(f.color));
     this.wave.capture(owners, performance.now());
     for (let i = 0; i < owners.length; i++) {
       const id = owners[i];
@@ -140,7 +160,7 @@ export class MapRenderer {
       // fractional alpha bleeding, gaps or overlapping 0.45px overdraw.
       const col=i%MAP_WIDTH,row=Math.floor(i/MAP_WIDTH);
       const left=X_EDGES[col],top=Y_EDGES[row];
-      c.fillStyle=this.game.factions[id].color+'b8';
+      c.fillStyle=territoryFills[id];
       c.fillRect(left,top,X_EDGES[col+1]-left,Y_EDGES[row+1]-top);
     }
     // One-pixel lattice keeps individual conquered sectors legible.
@@ -148,7 +168,7 @@ export class MapRenderer {
     // Draw ~740 batched lines rather than 54,000 tiny stroked rectangles.
     c.save();
     c.globalCompositeOperation='source-atop';
-    c.strokeStyle='rgba(3,17,24,.14)';
+    c.strokeStyle='rgba(57,66,67,.055)';
     c.lineWidth=1;
     c.beginPath();
     for(let x=1;x<MAP_WIDTH;x++){
@@ -178,8 +198,9 @@ export class MapRenderer {
     c.save();c.lineCap='butt';c.lineJoin='miter';
     for (const faction of this.game.factions) {
       if (!counts[faction.id]) continue;
-      c.strokeStyle=faction.color+'24';c.lineWidth=2;c.stroke(contours[faction.id]);
-      c.strokeStyle=faction.color+'dc';c.lineWidth=1;c.stroke(contours[faction.id]);
+      c.strokeStyle='rgba(255,252,239,.58)';c.lineWidth=2.15;c.stroke(contours[faction.id]);
+      c.strokeStyle=mixHexColor(faction.color,'#344b57',.29)+'e4';
+      c.lineWidth=1.1;c.stroke(contours[faction.id]);
     }
     c.restore();
     // Regional fortification markers: stronger fronts are clearer and easier
