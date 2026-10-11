@@ -1,0 +1,67 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { Game,NEUTRAL,landNeighbors,cellToPoint } from '../dist/src/engine/game.js';
+import {attackerCasualties,campaignEffort} from '../dist/src/engine/warfare.js';
+
+const nearNeutral=g=>g.owner.findIndex((owner,i)=>owner===NEUTRAL&&landNeighbors(i).some(n=>g.owner[n]===0));
+
+test('mobilizing an army is not a death; unoccupied land has no combat casualties',()=>{
+  const g=new Game(410,0);
+  const before=g.populationOf(0),front=nearNeutral(g);
+  assert.ok(front>=0);
+  const order=g.launchAttack(0,cellToPoint(front),50);
+  assert.ok(order.ok);
+  assert.ok(Math.abs(g.populationOf(0)-before)<1e-8);
+  assert.equal(g.attackOrders[0].remaining,order.sent);
+  assert.ok(g.attackOrders[0].effort>order.sent);
+  g.step();
+  assert.equal(g.factions[0].attackFallen,0);
+  assert.equal(g.factions[0].enemyFallen,0);
+  assert.ok(g.factions[0].captured>0);
+  assert.ok(campaignEffort(order.sent)>order.sent);
+});
+
+test('neutral offensives eventually return survivors and cannot expand forever',()=>{
+  const g=new Game(128,0);
+  const target=nearNeutral(g),pop=g.populationOf(0);
+  assert.ok(g.launchAttack(0,cellToPoint(target),100).ok);
+  for(let i=0;i<120&&g.attackOrders.length;i++)g.step();
+  assert.equal(g.attackOrders.length,0);
+  assert.equal(g.factions[0].attackFallen,0);
+  assert.ok(g.populationOf(0)>=pop);
+  assert.ok(g.factions[0].troops>0);
+});
+
+test('attacking defended positions reduces both attacking and defending population',()=>{
+  const g=new Game(4321,1);
+  const target=g.cities[1].index;
+  const attacking=g.factions[0],defending=g.factions[1];
+  g.frontline[target]=18;
+  const popAttacker=g.populationOf(0),popDefender=g.populationOf(1);
+  assert.equal(g.attack(attacking,target),true);
+  assert.ok(g.populationOf(0)<popAttacker);
+  assert.ok(g.populationOf(1)<popDefender);
+  assert.ok(attacking.attackFallen>0);
+  assert.ok(attacking.enemyFallen>0);
+  assert.ok(defending.defenseSpent>0);
+  assert.ok(attacking.troops>=0&&defending.troops>=0);
+});
+
+test('better defended capitals impose higher casualty fractions than unopposed land',()=>{
+  assert.equal(attackerCasualties(21,100,true,true),0);
+  assert.ok(attackerCasualties(21,100,false,true)>attackerCasualties(21,5,false,false));
+  assert.ok(attackerCasualties(20,200,false,true)<=20);
+  assert.equal(attackerCasualties(0,200,false,true),0);
+  assert.equal(campaignEffort(0),0);
+});
+
+test('population, offensive casualties and surviving forces replay deterministically',()=>{
+  const a=new Game(902,1),b=new Game(902,1);
+  const border=nearNeutral(a);
+  assert.deepEqual(a.launchAttack(0,cellToPoint(border),75),b.launchAttack(0,cellToPoint(border),75));
+  for(let i=0;i<32;i++){a.step();b.step();}
+  assert.deepEqual([...a.owner],[...b.owner]);
+  assert.deepEqual(a.attackOrders,b.attackOrders);
+  assert.deepEqual(a.factions.map(f=>[f.troops,f.attackFallen,f.defenseSpent,f.enemyFallen]),
+    b.factions.map(f=>[f.troops,f.attackFallen,f.defenseSpent,f.enemyFallen]));
+});
