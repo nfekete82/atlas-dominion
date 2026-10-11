@@ -1,6 +1,6 @@
 # ATLAS DOMINION
 
-**v0.5 — SMART WARFARE & AUTO DEFENSE** · Ein eigenständiges Echtzeit-Strategiespiel im Browser.
+**v0.6 — REGIONAL FRONTLINES & SCALABLE ECONOMY** · Ein eigenständiges Echtzeit-Strategiespiel im Browser.
 
 Steuere DOMINION von Berlin aus: Klicke direkt auf angrenzende Fraktionen und steuere den Truppeneinsatz auf einer echten Europakarte, vergrößere dein Gebiet, erobere Hauptstädte und setze dich gegen zehn autonome Fraktionen durch.
 
@@ -29,6 +29,16 @@ Browser öffnen: **http://localhost:8080** (Standardport). Wenn 8080 und 8081 be
 - **Risikobewusste KI:** Bewertet eigene und gegnerische Reserven, Einkommen, Garnisonen, Hauptstädte und eigene gefährdete Grenzen. Greift starke Gegner nur bei klarer Überlegenheit an. Neutralgebiete bieten eine risikoarme Alternative. Kann auch abwarten.
 - **Grenzsicherungsanzeige:** Der eigene Status zeigt bedrohte Grenzsektoren und kumulativ zur Verteidigung eingesetzte Truppen.
 - **Deterministische Logik:** Verteidigung und Angriffsentscheidung sind Bestandteil derselben Simulation und können reproduziert werden.
+
+### Regionale Grenztruppen und Wachstum in v0.6
+
+- Die feste **9.000er-Truppengrenze** wurde vollständig entfernt, auch bei zurückkehrenden Angriffstruppen.
+- Das Rekruteneinkommen steigt mit mehr Sektoren und Städten sowie einem moderaten Größenvorteil: `(2.5 + 0.12 * Sektoren + 3.8 * Städte) * (1 + 1.35 * sqrt(Sektoren / 19804))`. Die Spielerdoktrinen modifizieren diesen Wert weiterhin.
+- Mobile Reserve und regionale Grenztruppen sind getrennte Bestände: `troops` sind sofort zum Angriff einsetzbare freie Soldaten; `frontline[index]` sind bereits stationierte Verteidiger an diesem Grenzsektor.
+- Nur tatsächlich **bedrohte Grenzsektoren** werden automatisch verstärkt. Nach Rückzug der Bedrohung kehren Überlebende zur Reserve zurück.
+- Grenzstärken unterscheiden sich regional. Garnisonen, stationierte Truppen, Hauptstadtstatus und begrenzte Notfallhilfe entscheiden über Abwehrkraft. Die KI bewertet diese lokale Stärke und das Risiko ihres Angriffs.
+- Auf der Karte zeigen farbige Frontpunkte starke bzw. schwache Positionen; ab höherer Zoomstufe erscheinen lokale Truppenzahlen. Die Truppenanzeige im Haupt-HUD zeigt mobile + stationierte Einheiten; der Angriffsregler verwendet weiterhin nur mobile Truppen.
+- Fronttruppen sind **keine kostenlos generierten Soldaten**. Stationierung zieht die Soldaten von der mobilen Reserve ab; bei Eroberung der Stellung gehen verbleibende Verteidiger verloren.
 
 ### Steuerung
 
