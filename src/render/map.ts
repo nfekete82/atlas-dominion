@@ -345,17 +345,18 @@ export class MapRenderer {
       const pos=pointToWorld(spot);
       const reachable=this.game.canLand(0,spot);
       const occupied=owner===0;
-      c.beginPath();c.arc(pos.x,pos.y,reachable?9:5.5,0,Math.PI*2);
+      c.globalAlpha=reachable?.82:.48;
+      c.beginPath();c.arc(pos.x,pos.y,reachable?5:2.8,0,Math.PI*2);
       c.fillStyle=reachable?'rgba(255,204,119,.25)':'rgba(8,22,29,.78)';
       c.fill();
-      c.lineWidth=reachable?2:1;
+      c.lineWidth=reachable?1.25:.75;
       c.strokeStyle=reachable?'#ffdd96':occupied?'#e6b65f':'#82a4a4';
       c.stroke();
       if(reachable){
-        c.fillStyle='#fff0cf';c.font='900 11px system-ui';c.textAlign='center';
-        c.fillText('⚓',pos.x,pos.y+4);
-        c.beginPath();c.arc(pos.x,pos.y,12.5+Math.sin(timestamp/260)*1.5,0,Math.PI*2);
-        c.lineWidth=1;c.strokeStyle='rgba(255,212,150,.5)';c.stroke();
+        c.fillStyle='#fff0cf';c.font='750 7px system-ui';c.textAlign='center';
+        c.fillText('⚓',pos.x,pos.y+2.5);
+        c.beginPath();c.arc(pos.x,pos.y,7.5+Math.sin(timestamp/260)*.7,0,Math.PI*2);
+        c.lineWidth=.75;c.strokeStyle='rgba(255,212,150,.34)';c.stroke();
       }
     }
     c.restore();
