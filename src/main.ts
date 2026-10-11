@@ -182,7 +182,7 @@ renderer.onHover=(point,px,py,landing)=>{
     ? `ANGRIFFSWIRKUNG: ${Math.round(power*100)} % · STARKER GEGNER`
     : power>1.04
       ? `ANGRIFFSWIRKUNG: ${Math.round(power*100)} % · MACHTVORTEIL`
-      : 'ANGRIFFSWIRKUNG: 100 % · AUSGEGLICHEN';
+      : `ANGRIFFSWIRKUNG: ${Math.round(power*100)} % · AUSGEGLICHEN`;
   matchup.style.color=power<.96?'#f1a99b':power>1.04?'#9be3bd':'#d2dce0';
   const action = $('hoverAction');
   const attackable = renderer.canAttack(point);
