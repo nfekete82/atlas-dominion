@@ -22,7 +22,11 @@ test('mobilizing an army is not a death; unoccupied land has no combat casualtie
 });
 
 test('neutral offensives eventually return survivors and cannot expand forever',()=>{
-  const g=new Game(128,0);
+  // With zero opponents the game wins after its first tick and stops the
+  // simulation, leaving unfinished orders frozen. Keep one AI opponent so
+  // this test actually exercises the full duration of a neutral offensive.
+  const g=new Game(128,1);
+  assert.equal(g.factions.length,2);
   const target=nearNeutral(g),pop=g.populationOf(0);
   assert.ok(g.launchAttack(0,cellToPoint(target),100).ok);
   for(let i=0;i<120&&g.attackOrders.length;i++)g.step();

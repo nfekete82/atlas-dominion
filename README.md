@@ -1,5 +1,14 @@
 # ATLAS DOMINION
 
+**v1.2.2 – TESTKORREKTUREN NACH WIRTSCHAFTS-BALANCING**
+
+- Behebt zwei Regressionstests nach v1.2.1 (Mac: vorher **77/79 Tests grün**).
+- Neutrale Offensive wird mit mindestens einem KI-Gegner getestet: Bei 0 Gegnern gilt die Partie nach dem ersten Tick bereits als gewonnen und stoppt die Simulation, bevor die verbleibende Angriffsausdauer aufgebraucht wird.
+- Wachstumsregression prüft jetzt **monoton steigenden, aber abflachenden** Zuwachs für große Länder und den weiter fehlenden 9.000er-Truppen-Cap. Die früheren exponentiellen Multiplikatoren waren absichtlich entfernt worden.
+- **Keinerlei Änderung an Kampf-, Wirtschafts- oder KI-Spielregeln**, ausschließlich die zwei Regressionstests und Versionsmetadaten.
+
+---
+
 **v1.2.1 – BALANCIERTES GELD & KOMPAKTE ZAHLEN**
 
 ## Wirtschaft und Anzeige repariert
