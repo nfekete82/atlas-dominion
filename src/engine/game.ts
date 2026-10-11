@@ -4,6 +4,7 @@ import { assessInvasion, interceptAttack, attackerCasualties, campaignEffort } f
 import { attackFrontWidth, frontierBudget, frontierTarget, localDefenseStrength } from './frontline.js';
 import { BUILDINGS, BUILDING_CODES, type BuildingType, troopGrowth, taxRevenue } from './economy.js';
 import { findConnectedAttackFront } from './front-target.js';
+import {aiStyle,scoreAIFront} from './ai-strategy.js';
 
 export const WATER = -2;
 export const NEUTRAL = -1;
@@ -548,14 +549,24 @@ export class Game {
     }
   }
 
+  /** Long-lived strategic goals are now weighted by actual weakness rather
+   * than choosing a random one of the three nearest capital cities.
+   * Re-evaluated periodically, so an exposed weak rival attracts pressure.
+   */
   private pickAIGoals() {
-    for (const faction of this.factions) {
-      if (!faction.ai || !faction.alive) continue;
-      const capital = this.cities[faction.id];
-      const enemies = this.cities.filter(c => c.owner !== faction.id && c.owner >= 0);
-      enemies.sort((a, b) => distance2(a, capital) - distance2(b, capital));
-      const target = enemies[Math.floor(this.rng() * Math.min(enemies.length, 3))];
-      if (target) faction.target = { x: target.x, y: target.y };
+    for(const faction of this.factions){
+      if(!faction.ai||!faction.alive)continue;
+      const capital=this.cities[faction.id];
+      const targets=this.cities.filter(c=>c.owner>=0&&c.owner!==faction.id);
+      let best:City|null=null,bestScore=-Infinity;
+      for(const city of targets){
+        const opponent=this.factions[city.owner];
+        const distance=Math.sqrt(distance2(city,capital));
+        const weak=100/(25+opponent.troops+opponent.income*3);
+        const score=weak*22-distance*.34+(opponent.territory<faction.territory?7:0);
+        if(score>bestScore){bestScore=score;best=city;}
+      }
+      if(best)faction.target={x:best.x,y:best.y};
     }
   }
 
@@ -592,6 +603,7 @@ export class Game {
       for(const n of LAND_NEIGHBORS[i])if(this.owner[n]===id)friendly++;
       if(!friendly){candidates.delete(i);continue;}
       const city=this.cities.find(c=>c.index===i);
+      const hasCity=this.buildings[i]===BUILDING_CODES.city;
       const neutral=opponent===NEUTRAL;
       const defender=neutral?null:this.factions[opponent];
       const assessment=assessInvasion({
@@ -603,8 +615,14 @@ export class Game {
       if(!assessment.worthwhile)continue;
       const x=i%MAP_WIDTH,y=Math.floor(i/MAP_WIDTH);
       const d=Math.hypot(x-faction.target.x,y-faction.target.y);
-      const strategic=neutral?19:9+Math.min(28,(assessment.advantage-1)*24);
-      const score=strategic-d*.8+friendly*2.8+(city?11:0)+this.rng()*1.3;
+      const score=scoreAIFront({
+        neutral,advantage:assessment.advantage,friendlySides:friendly,
+        capital:!!city,city:hasCity,distance:d,
+        opponentCommitted:defender?.defenseSpent??0,
+        opponentReserve:defender?.troops??0,
+        threatenedBorders:exposed,
+        focus:d<14,
+      },aiStyle(faction.id)) + this.rng()*.15;
       if(score>bestScore){bestScore=score;best=i;}
     }
     faction.intent=best<0?'hold':this.owner[best]===NEUTRAL?'expand':'invade';
