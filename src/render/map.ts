@@ -6,6 +6,7 @@ import { pixelGridEdges } from './pixel-grid.js';
 import { buildingMarkerFor, showBuildingMarker, buildingMarkerFontSize } from './building-markers.js';
 // Keep natural-dark ocean and distinct faction colors; no pale map wash.
 import { COUNTRY_STARTS } from '../data/countries.js';
+import {formatCompact} from '../format.js';
 
 const CW = WORLD_WIDTH / MAP_WIDTH;
 const CH = WORLD_HEIGHT / MAP_HEIGHT;
@@ -355,7 +356,7 @@ export class MapRenderer {
       c.lineWidth=2.6;
       c.font=label.id===0?'750 13px system-ui':'650 11px system-ui';
       c.strokeText(name,x,y,135);c.fillText(name,x,y,135);
-      const count=Math.floor(this.armyTotals[label.id]??faction.troops).toLocaleString('de-DE');
+      const count=formatCompact(Math.floor(this.armyTotals[label.id]??faction.troops));
       c.font=label.id===0?'700 10px system-ui':'600 9px system-ui';
       c.lineWidth=2;c.strokeText(count,x,y+13,95);c.fillText(count,x,y+13,95);
     }
