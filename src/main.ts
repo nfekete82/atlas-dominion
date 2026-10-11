@@ -1,6 +1,6 @@
 import { Game, NEUTRAL, WATER, pointToIndex, TICK_SECONDS, type Point } from './engine/game.js';
 import { MapRenderer } from './render/map.js';
-import { BUILDINGS, populationGrowth, type BuildingType } from './engine/economy.js';
+import { BUILDINGS, type BuildingType } from './engine/economy.js';
 import { COUNTRY_STARTS, countryByCode } from './data/countries.js';
 
 const $ = <T extends HTMLElement>(id: string): T => {
@@ -20,7 +20,7 @@ let modalVisible = true;
 let hasStarted = false;
 let buildSpot: Point | null = null;
 let attackRatio = 35;
-let attackMessage = 'Nahe der feindlichen Grenze klicken · SHIFT+Klick für Seelandung.';
+let attackMessage = 'Nachbarland anklicken · mehr eingesetzte Truppen = schnellere Front.';
 let attackMessageKind: 'neutral'|'success'|'error' = 'neutral';
 
 function beep(freq = 440, duration = 0.08) {
@@ -42,9 +42,14 @@ function update() {
   $('playerFlag').textContent = countryFlag(game.playerCode);
   const percent = player.territory / game.totalLand * 100;
   $('areaCount').textContent = format(player.territory);
-  const stationed = game.frontline.reduce((total,value,i)=>total+(game.owner[i]===0?value:0),0);
-  const committed = game.attackOrders.filter(o=>o.factionId===0).reduce((n,o)=>n+o.remaining,0);
-  $('troopCount').textContent = format(player.troops + stationed + committed);
+  const stationedByNation=game.factions.map(()=>0);
+  for(let i=0;i<game.owner.length;i++)if(game.owner[i]>=0)
+    stationedByNation[game.owner[i]]+=game.frontline[i];
+  const fightingByNation=game.factions.map(()=>0);
+  for(const order of game.attackOrders)fightingByNation[order.factionId]+=order.remaining;
+  const totalPopulation=game.factions.map(f=>f.troops+stationedByNation[f.id]+fightingByNation[f.id]);
+  const stationed=stationedByNation[0];
+  $('troopCount').textContent = format(totalPopulation[0]);
   $('borderDefense').textContent = `${format(game.threatenedBorders(0))} bedrohte Grenzsektoren · ${format(stationed)} stationiert · ${format(player.troops)} mobil · ${format(player.defenseSpent)} Abwehrverluste`;
   $('ratioPercent').textContent = attackRatio + ' %';
   $('attackPreview').textContent = format(Math.floor(player.troops * attackRatio / 100)) + ' TRUPPEN';
@@ -54,10 +59,9 @@ function update() {
   $('attackStatus').textContent = attackMessage;
   $('attackStatus').className = 'attack-status ' + (attackMessageKind === 'neutral' ? '' : attackMessageKind);
   $('incomeCount').textContent = '+' + player.income.toFixed(1);
-  $('populationCount').textContent = format(player.population);
-  $('populationGrowth').textContent = '+' + populationGrowth(player.territory,player.cityCount,player.settlements,player.builtCities).toFixed(1) + ' EINWOHNER / TICK';
-  $('supplyCount').textContent = format(player.supplies);
-  $('supplyGrowth').textContent = '+' + player.supplyIncome.toFixed(1) + ' PRO TICK';
+  $('cityCount').textContent = format(player.cityCount+player.builtCities);
+  $('moneyCount').textContent = format(player.money);
+  $('moneyGrowth').textContent = '+' + player.moneyIncome.toFixed(1) + ' PRO TICK';
   $('controlCount').textContent = percent.toFixed(1) + '%';
   $('progressLabel').textContent = percent.toFixed(1) + ' / 65%';
   $('progressFill').style.width = Math.min(100, percent/65*100) + '%';
@@ -69,7 +73,7 @@ function update() {
     <div class="power ${f.id===0?'player':''} ${!f.alive?'eliminated':''}">
       <span class="power-num">${String(index+1).padStart(2,'0')}</span>
       <b class="power-name"><i style="background:${f.color}"></i><span>${f.name}</span></b>
-      <span class="power-area" title="${format(f.territory)} Sektoren / ${format(f.troops)} Truppen">${format(f.troops)} ⚔</span>
+      <span class="power-area" title="${format(f.territory)} Sektoren / ${format(totalPopulation[f.id])} Einwohner und Truppen">${format(totalPopulation[f.id])} ⚔</span>
       <div class="power-bar"><div style="width:${(f.territory/max*100).toFixed(1)}%;background:${f.color}"></div></div>
     </div>`).join('');
   $('eventFeed').innerHTML = game.events.map(e=>`<div class="event"><i style="background:${e.color}"></i><div>${e.text}<small>TAG ${String(Math.floor(e.tick/240)+1).padStart(2,'0')} · ${String(Math.floor(e.tick*TICK_SECONDS/60)).padStart(2,'0')}:${String(Math.floor(e.tick*TICK_SECONDS%60)).padStart(2,'0')}</small></div></div>`).join('');
@@ -112,14 +116,14 @@ function renderBuildMenu(): void {
   const existing=game.buildingAt(point);
   const existingName=BUILDINGS.find(b=>b.type===existing)?.name;
   $('buildCoordinates').textContent=`${existingName?.toUpperCase()??'BAUEN'} · SEKTOR ${point.x}/${point.y}`;
-  $('buildSupplies').textContent=`${format(game.factions[0].supplies)} VORRÄTE VERFÜGBAR`;
+  $('buildMoney').textContent=`${format(game.factions[0].money)} GELD VERFÜGBAR`;
   $('buildOptions').innerHTML=BUILDINGS.map(building=>{
     const decision=game.canBuild(0,point,building.type);
     const explanation=decision.ok?building.description:decision.reason;
     return `<button type="button" class="build-entry" data-build="${building.type}" ${decision.ok?'':'disabled'} title="${explanation}">
       <span class="build-entry-icon" aria-hidden="true">${building.icon}</span>
       <span class="build-entry-copy"><strong>${building.name}</strong><small>${explanation}</small></span>
-      <span class="build-entry-cost">${building.cost} ◇</span>
+      <span class="build-entry-cost">${building.cost} €</span>
     </button>`;
   }).join('');
 }
@@ -138,7 +142,7 @@ $('buildOptions').addEventListener('click',e=>{
   const button=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-build]');
   if(!button||!buildSpot)return;
   const result=game.build(0,buildSpot,button.dataset.build as BuildingType);
-  attackMessage=result.ok?`${button.dataset.build?.toUpperCase()} gebaut · ${result.cost} Vorräte`:result.reason;
+  attackMessage=result.ok?`Stadt gebaut · ${result.cost} € · Wachstum steigt`:result.reason;
   attackMessageKind=result.ok?'success':'error';
   if(result.ok){renderer.updateTerritory();closeBuildMenu();beep(690);} else renderBuildMenu();
   update();
@@ -248,10 +252,10 @@ $('helpBtn').addEventListener('click',()=>showDialog('DEIN EINSATZBEFEHL',`
   <div class="briefing-row"><b>03</b><span><strong>ZIEHEN:</strong> Karte verschieben. Mausrad oder +/− zum Zoomen.</span></div>
   <div class="briefing-row"><b>04</b><span><strong>FRONT:</strong> Die Angriffslinie leuchtet an der Grenze. Die kleine Zahl zeigt die eingesetzten Truppen. Es gibt keine Marschroute von der Hauptstadt.</span></div>
   <div class="briefing-row"><b>05</b><span><strong>TRUPPEN:</strong> Prozentregler (5–100 %) bestimmt die pro Klick entsandten Reserven. T/Y ändert den Anteil. Wiederholter Klick verstärkt die Offensive.</span></div>
-  <div class="briefing-row"><b>06</b><span><strong>BAUEN:</strong> Rechtsklick auf eigenes Land. Siedlung, Stadt, Kaserne, Festung oder Hafen gegen Vorräte bauen. Neue Rekruten werden aus Einwohnern gewonnen.</span></div>
+  <div class="briefing-row"><b>06</b><span><strong>STÄDTE BAUEN:</strong> Rechtsklick auf eigenes Land. Nur Städte sind baubar: Sie kosten Geld und erhöhen das künftige Einwohner- und Truppenwachstum.</span></div>
   <div class="briefing-row"><b>07</b><span><strong>PAUSE:</strong> Leertaste oder Ⅱ. Mit 1×/2×/4× beschleunigen.</span></div>
   <p><strong>Doktrinen:</strong> EXPAND senkt die Kosten neutraler Eroberungen und erhöht deren Geschwindigkeit, BLITZ erhöht die Angriffsfrequenz, DEFENSE stärkt Einkommen und Garnisonen. Mit 1, 2, 3 umschalten.</p>
-  <p>Bedrohte Grenzen erhalten stationierte Soldaten aus der mobilen Reserve. Freie Truppen dienen für Angriffe und begrenzte Notfall-Verstärkungen. Nicht mehr bedrohte Grenzabschnitte geben ihre Truppen zurück. Die KI bevorzugt schwache Frontabschnitte, wenn sich der Angriff lohnt. Die 9.000er-Obergrenze wurde entfernt; Einkommen wächst überproportional mit dem Staatsgebiet.</p>`));
+  <p><strong>Einwohner = Truppen:</strong> Es gibt nur eine Bevölkerungszahl. Stationierte und angreifende Soldaten zählen weiterhin dazu. Jede Stadt steigert das Wachstum, Geld wächst durch Einwohnerzahl und Landbesitz. Je mehr Truppen du auf einmal in eine Offensive schickst, desto breiter und schneller kann die Front vorrücken. Gefallene Truppen reduzieren deinen Einwohnerbestand. Bedrohte Grenzen verteidigen sich weiterhin automatisch.</p>`));
 $('dialogClose').addEventListener('click',closeDialog);
 $('dialog').addEventListener('click',e=>{if(e.target===$('dialog'))closeDialog();});
 $('soundBtn').addEventListener('click',()=>{soundEnabled=!soundEnabled;$('soundBtn').textContent=soundEnabled?'♫':'♪';if(soundEnabled)beep(660);});
