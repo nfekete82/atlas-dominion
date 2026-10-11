@@ -65,3 +65,21 @@ test('population, offensive casualties and surviving forces replay deterministic
   assert.deepEqual(a.factions.map(f=>[f.troops,f.attackFallen,f.defenseSpent,f.enemyFallen]),
     b.factions.map(f=>[f.troops,f.attackFallen,f.defenseSpent,f.enemyFallen]));
 });
+
+test('AI neutral land expansion has a finite, regenerating marching budget',()=>{
+  const g=new Game(607,1);
+  const ai=g.factions[1];
+  const frontier=g.owner.findIndex((owner,i)=>owner===NEUTRAL&&landNeighbors(i).some(n=>g.owner[n]===1));
+  assert.ok(frontier>=0);
+  ai.campaignEnergy=0;
+  const before=g.populationOf(1);
+  assert.equal(g.attack(ai,frontier),false);
+  assert.equal(g.populationOf(1),before);
+  ai.campaignEnergy=8;
+  assert.equal(g.attack(ai,frontier),true);
+  assert.equal(ai.campaignEnergy,0);
+  assert.equal(ai.attackFallen,0);
+  g.step();
+  assert.ok(ai.campaignEnergy>0);
+  assert.ok(ai.campaignEnergy<=160);
+});
