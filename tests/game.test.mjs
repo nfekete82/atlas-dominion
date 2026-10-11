@@ -257,6 +257,39 @@ test('A click several sectors inside a neighboring country snaps to its reachabl
   assert.equal(g.factions[0].troops,before-result.sent);
 });
 
+test('Deep clicks across the same occupied land component reach its real border',()=>{
+  const g=new Game(2044,1,'DE');
+  // Manufacture a >14-sector connected enemy region stretching inland.
+  // It must not bypass neutral land or any maritime connection.
+  const starts=[];
+  for(let i=0;i<g.owner.length;i++)
+    if(g.owner[i]===NEUTRAL&&landNeighbors(i).some(n=>g.owner[n]===0))starts.push(i);
+  const seen=new Set(starts),parent=new Map(),depth=new Map(starts.map(i=>[i,0]));
+  const queue=[...starts];
+  let distant=-1;
+  for(let k=0;k<queue.length;k++){
+    const i=queue[k],d=depth.get(i);
+    if(d>=17){distant=i;break;}
+    for(const n of landNeighbors(i)){
+      if(g.owner[n]!==NEUTRAL||seen.has(n))continue;
+      seen.add(n);parent.set(n,i);depth.set(n,d+1);queue.push(n);
+    }
+  }
+  assert.ok(distant>=0,'requires mainland with at least 18 neutral sectors');
+  const chain=[];
+  for(let i=distant;i!==undefined;i=parent.get(i))chain.push(i);
+  for(const i of chain)g.owner[i]=1;
+  const selected=cellToPoint(distant);
+  const front=g.findAttackFront(0,selected);
+  assert.ok(front,'deep enemy-region click must find bordering front');
+  assert.equal(g.isDirectBorderTarget(0,front),true);
+  assert.notDeepEqual(front,selected);
+  const result=g.launchAttack(0,selected,35);
+  assert.equal(result.ok,true);
+  assert.deepEqual(result.front,front);
+  assert.deepEqual(g.attackOrders.at(-1).anchor,front);
+});
+
 test('Border tolerance cannot jump across other countries or the sea',()=>{
   const g=new Game(2026);
   const enemy=g.owner.findIndex((owner,i)=>owner===1 && landNeighbors(i).some(n=>g.owner[n]===NEUTRAL));
