@@ -10,5 +10,22 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install --no-audit --no-fund
-      - run: npm test
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -o pipefail
+          npm install --no-audit --no-fund 2>&1 | tee npm-install.log
+      - name: Build and run tests
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee npm-test.log
+      - name: Keep diagnostic logs on failures
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: atlas-ci-diagnostics
+          path: |
+            npm-install.log
+            npm-test.log
+          retention-days: 3
