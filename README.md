@@ -6,7 +6,7 @@
 
 - **360 × 240 statt 240 × 160 Kartenfelder:** 86.400 Rasterfelder und etwa 2,25-mal so viele eroberbare Landsektoren. Europas geografische Ausdehnung ist unverändert; die Simulation enthält tatsächlich mehr einzelne Gebiete, nicht bloß einen stärkeren Kamera-Zoom. Die Natural-Earth-Landmaske wird feiner abgetastet, nicht mit zusätzlicher Küstengeometrie ergänzt.
 - **Nur direkte Grenzangriffe:** Linksklick wirkt ausschließlich auf einen unmittelbar angrenzenden feindlichen oder neutralen Sektor. Klicks weit im gegnerischen Landesinneren werden abgewiesen.
-- **Zusammenhängende Front:** Die Offensive erobert nur Landnachbarn, bleibt um ihre eigene Angriffsfront herum und kann nicht quer durchs Land springen.
+- **Zusammenhängende Front:** Die Offensive erobert nur Landnachbarn, bleibt um ihre eigene Angriffsfront herum und kann nicht quer durchs Land springen. Je größer das eingesetzte Truppenkontingent, desto breiter und schneller kann die lokale Front vorrücken (mit begrenztem Maximum je Tick).
 - **Seewege explizit:** SHIFT + Klick auf die andere Anlegestelle einer eingezeichneten Passage startet eine Seelandung mit vier Ticks Anfahrtszeit. Reguläre Landgefechte berücksichtigen keine See-Korridore. Die KI unternimmt noch keine eigenen Landungen.
 - **Mehr Bildfläche:** Kompakter Kartenkopf und schmalere Seitenleiste am Desktop. Regionale Truppen, strategische KI und Rekrutierung ohne 9.000er-Cap bleiben erhalten.
 - **Grenzindex:** Die Gegner bewerten erreichbare Sektoren anhand eines effizienteren Frontindex, statt alle 86.400 Felder für jeden Angriff neu zu prüfen.
