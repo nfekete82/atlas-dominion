@@ -1,5 +1,18 @@
 # ATLAS DOMINION
 
+**v1.0.2 — KLEINE SICHTBARE GEBÄUDE**
+
+## Neu in v1.0.2
+- **Errichtete Siedlungen, Städte, Kasernen, Festungen und Häfen sind wieder auf der Karte sichtbar** – als kleine, dezente Einzelzeichen direkt auf ihrem tatsächlich bebauten Sektor.
+- **Keine großen quadratischen Hintergründe, kein Kreis, keine Plaketten** hinter den Gebäudesymbolen.
+- Stabile, ungefähr gleich kleine Bildschirmgröße bei Zoomänderungen; bei weiter Entfernung werden nur eigene Gebäude eingeblendet, bei näherer Ansicht auch fremde.
+- Überlappende Symbole werden im Übersichtszoom ausgedünnt; eigene Gebäude erhalten Vorrang.
+- Beim Darüberfahren nennt der Tooltip den tatsächlichen Gebäudetyp. Das Rechtsklick-Menü zeigt beim Öffnen eines bebauten Sektors ebenfalls seinen Namen.
+- Die Symbolliste wird nur bei Änderungen am Gebiet oder Baufortschritt aktualisiert, nicht bei jedem Animationsbild neu aus den Sektoren erstellt.
+- Keine Änderung an Baukosten, Spielsimulation, Kampflogik oder Speicherung.
+
+---
+
 **v1.0.1 — KLARE FRONTAKTIONEN & KONTRASTREICHE KARTE**
 
 ## Neu in v1.0.1

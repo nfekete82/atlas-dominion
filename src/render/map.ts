@@ -2,6 +2,7 @@ import { COUNTRIES, MAP_HEIGHT, MAP_WIDTH, SEA_CROSSINGS, WORLD_HEIGHT, WORLD_WI
 import { Game, NEUTRAL, WATER, pointToWorld, seededRandom, type Point } from '../engine/game.js';
 import { TerritoryWave, waveProgress } from './wave.js';
 import { pixelGridEdges } from './pixel-grid.js';
+import { buildingMarkerFor, showBuildingMarker, buildingMarkerFontSize } from './building-markers.js';
 // Keep natural-dark ocean and distinct faction colors; no pale map wash.
 import { COUNTRY_STARTS } from '../data/countries.js';
 
@@ -36,6 +37,8 @@ export class MapRenderer {
   private availableTargets = new Set<number>();
   private labels: Array<{ id: number; pos: Point }> = [];
   private armyTotals: number[] = [];
+  /** Cached when territory/buildings change, not rescanned every animation frame. */
+  private buildingMarkers: Array<{index:number;code:number;owner:number}> = [];
   // Combat highlights represent actual touching borders, never routes from a capital.
   private combatEdges: Array<{ ax:number; ay:number; bx:number; by:number }> = [];
   private combatLabels: Array<{ pos:Point; troops:number }> = [];
@@ -141,6 +144,7 @@ export class MapRenderer {
     c.imageSmoothingEnabled = false;
     c.clearRect(0,0,WORLD_WIDTH,WORLD_HEIGHT);
     const owners = this.game.owner;
+    this.buildingMarkers=[];
     this.wave.capture(owners, performance.now());
     for (let i = 0; i < owners.length; i++) {
       const id = owners[i];
@@ -148,6 +152,8 @@ export class MapRenderer {
       sumX[id] += i % MAP_WIDTH;
       sumY[id] += Math.floor(i / MAP_WIDTH);
       counts[id]++;
+      const buildingCode=this.game.buildings[i];
+      if(buildingCode>0)this.buildingMarkers.push({index:i,code:buildingCode,owner:id});
       const front = this.game.frontline[i];
       stationed[id] += front;
       if (front > 0.1) regional[id].push({index:i,troops:front});
@@ -179,6 +185,11 @@ export class MapRenderer {
       c.strokeStyle=faction.color+'df';c.lineWidth=1.15;c.stroke(contours[faction.id]);
     }
     c.restore();
+    // Show the player's structures first; at mid zoom keep only spatially
+    // separated markers so neighboring settlements cannot form giant blobs.
+    this.buildingMarkers.sort((a,b)=>Number(b.owner===0)-Number(a.owner===0)
+      || Number(b.code===2)-Number(a.code===2)
+      || a.index-b.index);
     this.armyTotals=this.game.factions.map(f=>f.troops+stationed[f.id]+this.game.attackOrders.filter(o=>o.factionId===f.id).reduce((n,o)=>n+o.remaining,0));
     // One prominent troop badge per active faction; anchor remains on owned land
     // even when the centroid lies outside a concave or fragmented territory.
@@ -272,6 +283,50 @@ export class MapRenderer {
     return this.availableTargets.has(this.game.owner[y * MAP_WIDTH + x]) && this.previewFront(point)!==null;
   }
   canLand(point: Point): boolean { return this.game.canLand(0,point); }
+  /** Tiny, background-free world-space glyphs for built structures.
+   * Screen-space collision suppression keeps the map clear at overview zoom.
+   * Move/zoom or click to see individual buildings at higher magnification.
+   */
+  private drawBuildings(c:CanvasRenderingContext2D):void {
+    if(this.zoom<1.05 || !this.buildingMarkers.length)return;
+    const screenWidth=this.canvas.clientWidth,screenHeight=this.canvas.clientHeight;
+    const minSpacing=this.zoom>=2.6?10:14;
+    const buckets=new Map<string,Array<{x:number;y:number}>>();
+    const font=buildingMarkerFontSize(this.scale);
+    c.save();
+    c.textAlign='center';c.textBaseline='middle';
+    c.font=`700 ${font}px system-ui`;
+    c.lineJoin='round';
+    c.lineWidth=1.65/this.scale;
+    c.strokeStyle='rgba(4,20,29,.88)';
+    for(const marker of this.buildingMarkers){
+      if(!showBuildingMarker(marker.owner,this.zoom))continue;
+      const style=buildingMarkerFor(marker.code);
+      if(!style)continue;
+      const x=(marker.index%MAP_WIDTH+.5)*CW;
+      const y=(Math.floor(marker.index/MAP_WIDTH)+.5)*CH;
+      const sx=this.ox+x*this.scale,sy=this.oy+y*this.scale;
+      if(sx<-12||sy<-12||sx>screenWidth+12||sy>screenHeight+12)continue;
+      const col=Math.floor(sx/minSpacing),row=Math.floor(sy/minSpacing);
+      let obstructed=false;
+      for(let dx=-1;dx<=1&&!obstructed;dx++)for(let dy=-1;dy<=1&&!obstructed;dy++){
+        const prior=buckets.get(`${col+dx}:${row+dy}`);
+        if(prior?.some(p=>(sx-p.x)**2+(sy-p.y)**2<minSpacing**2))obstructed=true;
+      }
+      if(obstructed)continue;
+      const key=`${col}:${row}`;
+      const occupied=buckets.get(key)??[];
+      occupied.push({x:sx,y:sy});
+      buckets.set(key,occupied);
+      c.globalAlpha=marker.owner===0?.92:.72;
+      // No filled square, circle, badge or permanent highlight behind the icon.
+      c.strokeText(style.symbol,x,y);
+      c.fillStyle=style.color;
+      c.fillText(style.symbol,x,y);
+    }
+    c.restore();
+  }
+
   private drawTroopBadges(c: CanvasRenderingContext2D) {
     c.save();
     const width = this.canvas.clientWidth, height = this.canvas.clientHeight;
@@ -359,6 +414,7 @@ export class MapRenderer {
     c.imageSmoothingEnabled=true;
     c.drawImage(this.highlightedCountry,0,0);
     this.drawCaptureWave(c, timestamp);
+    this.drawBuildings(c);
     if(this.showSeaPassages)this.drawLandingPorts(c, timestamp);
     // Capitals are present in the labels and right-click economy, not giant
     // rings or square icons floating above the map. At close zoom, reveal a
