@@ -26,3 +26,9 @@
 #hoverAction{display:block;margin-top:6px;color:#8ee5ae;font-size:10px;letter-spacing:.3px}
 #hoverAction.blocked{color:#eea79a}
 @media(max-width:1200px){.attack-control{margin-top:15px;padding:12px}.attack-title{font-size:9px}}
+
+/* v0.5: automatic-defense status */
+.auto-guard{margin-top:16px;padding:13px 12px;border:1px solid #477366;background:linear-gradient(120deg,#122b29,#12232b);border-radius:5px;display:flex;flex-direction:column;gap:7px}
+.auto-guard strong{font-size:10px;color:#a9e4c4;letter-spacing:1px}
+.auto-guard span{font-size:10px;color:#b2c8bc;line-height:1.45}
+.auto-guard small{font-size:9px;color:#cde1d0;font-variant-numeric:tabular-nums}
