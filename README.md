@@ -1,6 +1,6 @@
 # ATLAS DOMINION
 
-**v0.4 — FLUID FRONT WAVES** · Ein eigenständiges Echtzeit-Strategiespiel im Browser.
+**v0.5 — SMART WARFARE & AUTO DEFENSE** · Ein eigenständiges Echtzeit-Strategiespiel im Browser.
 
 Steuere DOMINION von Berlin aus: Klicke direkt auf angrenzende Fraktionen und steuere den Truppeneinsatz auf einer echten Europakarte, vergrößere dein Gebiet, erobere Hauptstädte und setze dich gegen zehn autonome Fraktionen durch.
 
@@ -21,6 +21,14 @@ Browser öffnen: **http://localhost:8080** (Standardport). Wenn 8080 und 8081 be
 - Zusammenhängende Eroberungen starten leicht zeitversetzt an der alten Front; kein Richtungspfeil und keine Marschlinie.
 - Farbige Grenzen werden als zusammenhängende Linien mit weichen Abschlüssen gezeichnet; die Simulation bleibt unangetastet.
 - Animation wird beim Neustart vollständig zurückgesetzt.
+
+### Verteidigung und KI in v0.5
+
+- **Automatische Verteidigung:** Angegriffene Sektoren werden durch tatsächlich verfügbare Truppen des Verteidigers verstärkt. Diese Soldaten werden vom Reservekontingent abgezogen. All-in-Offensiven haben dadurch ein höheres Risiko.
+- **DEFENSE-Doktrin:** Verstärkt die Abwehrwirkung pro eingesetztem Verteidiger. Städte behalten stärkere Grundgarnisonen.
+- **Risikobewusste KI:** Bewertet eigene und gegnerische Reserven, Einkommen, Garnisonen, Hauptstädte und eigene gefährdete Grenzen. Greift starke Gegner nur bei klarer Überlegenheit an. Neutralgebiete bieten eine risikoarme Alternative. Kann auch abwarten.
+- **Grenzsicherungsanzeige:** Der eigene Status zeigt bedrohte Grenzsektoren und kumulativ zur Verteidigung eingesetzte Truppen.
+- **Deterministische Logik:** Verteidigung und Angriffsentscheidung sind Bestandteil derselben Simulation und können reproduziert werden.
 
 ### Steuerung
 
