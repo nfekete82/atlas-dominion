@@ -1,6 +1,6 @@
 # ATLAS DOMINION
 
-**v0.3 — ARROWLESS FRONTLINE COMBAT** · Ein eigenständiges Echtzeit-Strategiespiel im Browser.
+**v0.4 — FLUID FRONT WAVES** · Ein eigenständiges Echtzeit-Strategiespiel im Browser.
 
 Steuere DOMINION von Berlin aus: Klicke direkt auf angrenzende Fraktionen und steuere den Truppeneinsatz auf einer echten Europakarte, vergrößere dein Gebiet, erobere Hauptstädte und setze dich gegen zehn autonome Fraktionen durch.
 
@@ -14,6 +14,13 @@ npm run dev
 ```
 
 Browser öffnen: **http://localhost:8080** (Standardport). Wenn 8080 und 8081 bereits von anderen Projekten belegt sind: `PORT=8095 npm run dev` und **http://localhost:8095** öffnen. Im bereitgestellten Komplett-ZIP liegt `dist/` bereits bei: dort reicht auch `node scripts/serve.mjs` **ohne npm install**. Kein Account, API-Schlüssel oder externer Kartendienst erforderlich. Für Docker: `docker compose up --build -d` und dieselbe Adresse öffnen.
+
+### Frontwellen v0.4
+
+- Übergänge eroberter Gebiete werden über rund 420 ms weich animiert.
+- Zusammenhängende Eroberungen starten leicht zeitversetzt an der alten Front; kein Richtungspfeil und keine Marschlinie.
+- Farbige Grenzen werden als zusammenhängende Linien mit weichen Abschlüssen gezeichnet; die Simulation bleibt unangetastet.
+- Animation wird beim Neustart vollständig zurückgesetzt.
 
 ### Steuerung
 

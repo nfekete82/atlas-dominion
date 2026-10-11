@@ -1,5 +1,6 @@
 import { COUNTRIES, MAP_HEIGHT, MAP_WIDTH, SEA_CROSSINGS, WORLD_HEIGHT, WORLD_WIDTH } from '../data/europe.js';
 import { Game, NEUTRAL, WATER, pointToWorld, seededRandom, type Point } from '../engine/game.js';
+import { TerritoryWave, waveProgress } from './wave.js';
 
 const CW = WORLD_WIDTH / MAP_WIDTH;
 const CH = WORLD_HEIGHT / MAP_HEIGHT;
@@ -9,6 +10,7 @@ export class MapRenderer {
   private ctx: CanvasRenderingContext2D;
   private base = document.createElement('canvas');
   private overlay = document.createElement('canvas');
+  private wave: TerritoryWave;
   private scale = 1;
   private zoom = 1;
   private ox = 0;
@@ -30,6 +32,7 @@ export class MapRenderer {
   constructor(canvas: HTMLCanvasElement, game: Game) {
     this.canvas = canvas;
     this.game = game;
+    this.wave = new TerritoryWave(game.owner, MAP_WIDTH);
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) throw new Error('Canvas 2D wird nicht unterstützt.');
     this.ctx = ctx;
@@ -42,7 +45,7 @@ export class MapRenderer {
     requestAnimationFrame(t => this.frame(t));
   }
 
-  setGame(game: Game) { this.game = game; this.updateTerritory(); this.fit(); }
+  setGame(game: Game) { this.game = game; this.wave.reset(game.owner); this.updateTerritory(); this.fit(); }
   fit() {
     this.zoom = 1;
     this.scale = Math.min(this.canvas.clientWidth / WORLD_WIDTH, this.canvas.clientHeight / WORLD_HEIGHT) * this.zoom;
@@ -103,6 +106,7 @@ export class MapRenderer {
     const c = this.overlay.getContext('2d')!;
     c.clearRect(0,0,WORLD_WIDTH,WORLD_HEIGHT);
     const owners = this.game.owner;
+    this.wave.capture(owners, performance.now());
     for (let i = 0; i < owners.length; i++) {
       const id = owners[i];
       if (id < 0) continue;
@@ -112,20 +116,26 @@ export class MapRenderer {
       c.fillStyle = this.game.factions[id].color + '9a';
       c.fillRect((i % MAP_WIDTH) * CW, Math.floor(i / MAP_WIDTH) * CH, CW + 0.45, CH + 0.45);
     }
-    // Continuous, colored frontlines; factions are allowed to meet seamlessly.
-    c.lineWidth = 2.3;
+    // Draw contiguous borders in batched paths. Round joins/caps soften the
+    // raster grid without changing the actual sector ownership.
+    const contours = this.game.factions.map(() => new Path2D());
     for (let i = 0; i < owners.length; i++) {
       const id = owners[i];
       if (id < 0) continue;
-      c.strokeStyle = this.game.factions[id].color;
-      const x = (i % MAP_WIDTH) * CW, y = Math.floor(i / MAP_WIDTH) * CH;
-      c.beginPath();
-      if (i % MAP_WIDTH === 0 || owners[i-1] !== id) { c.moveTo(x,y); c.lineTo(x,y+CH); }
-      if (i % MAP_WIDTH === MAP_WIDTH-1 || owners[i+1] !== id) { c.moveTo(x+CW,y); c.lineTo(x+CW,y+CH); }
-      if (i < MAP_WIDTH || owners[i-MAP_WIDTH] !== id) { c.moveTo(x,y); c.lineTo(x+CW,y); }
-      if (i >= (MAP_HEIGHT-1)*MAP_WIDTH || owners[i+MAP_WIDTH] !== id) { c.moveTo(x,y+CH); c.lineTo(x+CW,y+CH); }
-      c.stroke();
+      const path=contours[id];
+      const x=(i%MAP_WIDTH)*CW, y=Math.floor(i/MAP_WIDTH)*CH;
+      if(i%MAP_WIDTH===0 || owners[i-1]!==id){path.moveTo(x,y);path.lineTo(x,y+CH);}
+      if(i%MAP_WIDTH===MAP_WIDTH-1 || owners[i+1]!==id){path.moveTo(x+CW,y);path.lineTo(x+CW,y+CH);}
+      if(i<MAP_WIDTH || owners[i-MAP_WIDTH]!==id){path.moveTo(x,y);path.lineTo(x+CW,y);}
+      if(i>=(MAP_HEIGHT-1)*MAP_WIDTH || owners[i+MAP_WIDTH]!==id){path.moveTo(x,y+CH);path.lineTo(x+CW,y+CH);}
     }
+    c.save();c.lineCap='round';c.lineJoin='round';
+    for (const faction of this.game.factions) {
+      if (!counts[faction.id]) continue;
+      c.strokeStyle=faction.color+'40';c.lineWidth=4.5;c.stroke(contours[faction.id]);
+      c.strokeStyle=faction.color;c.lineWidth=1.8;c.stroke(contours[faction.id]);
+    }
+    c.restore();
     // One prominent troop badge per active faction; anchor remains on owned land
     // even when the centroid lies outside a concave or fragmented territory.
     const best = new Float64Array(this.game.factions.length).fill(Infinity);
@@ -220,6 +230,41 @@ export class MapRenderer {
     }
     c.restore();
   }
+  private drawCaptureWave(c: CanvasRenderingContext2D, timestamp: number) {
+    const captures=this.wave.active(timestamp);
+    if (!captures.length) return;
+    c.save();
+    for (const frame of captures) {
+      if (frame.owner < 0) continue;
+      const x=(frame.index%MAP_WIDTH)*CW;
+      const y=Math.floor(frame.index/MAP_WIDTH)*CH;
+      const progress=waveProgress(frame,timestamp);
+      const oldFaction=this.game.factions[frame.previous];
+      const newFaction=this.game.factions[frame.owner];
+      // Old territory is a temporary overlay. A rounded, expanding aperture
+      // reveals the new owner from the shared front into the conquered cell.
+      c.save();c.beginPath();c.rect(x,y,CW,CH);c.clip();
+      c.globalAlpha=1-progress;
+      c.fillStyle=oldFaction ? oldFaction.color : '#263c40';
+      c.fillRect(x,y,CW+0.5,CH+0.5);
+      c.globalAlpha=1;
+      if(progress>0 && progress<1) {
+        c.beginPath();
+        c.arc(x+CW/2,y+CH/2,Math.max(CW,CH)*progress*1.05,0,Math.PI*2);
+        c.fillStyle=newFaction.color+'ce';c.fill();
+      }
+      c.restore();
+      // A short-lived contact shimmer reads as movement, not an arrow.
+      if(progress>0.12 && progress<0.88) {
+        c.strokeStyle=newFaction.color;
+        c.globalAlpha=Math.sin(progress*Math.PI)*0.46;
+        c.lineWidth=1.7;
+        c.beginPath();c.arc(x+CW/2,y+CH/2,Math.max(CW,CH)*(0.23+progress*.56),0,Math.PI*2);c.stroke();
+        c.globalAlpha=1;
+      }
+    }
+    c.restore();
+  }
   private frame(timestamp: number) {
     const c = this.ctx;
     const dpr = this.canvas.width / Math.max(1,this.canvas.clientWidth);
@@ -228,6 +273,7 @@ export class MapRenderer {
     c.save(); c.translate(this.ox,this.oy); c.scale(this.scale,this.scale);
     c.drawImage(this.base,0,0);
     c.drawImage(this.overlay,0,0);
+    this.drawCaptureWave(c, timestamp);
     for (const city of this.game.cities) {
       const f = city.owner >= 0 ? this.game.factions[city.owner] : null;
       const pos = pointToWorld(city);
