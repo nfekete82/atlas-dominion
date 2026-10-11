@@ -1,4 +1,5 @@
 import { GEO_BOUNDS, LAND_ROWS, MAP_HEIGHT, MAP_WIDTH, SEA_CROSSINGS, WORLD_HEIGHT, WORLD_WIDTH } from '../data/europe.js';
+import { assessInvasion, interceptAttack } from './warfare.js';
 
 export const WATER = -2;
 export const NEUTRAL = -1;
@@ -18,6 +19,8 @@ export interface Faction {
   alive: boolean;
   cityCount: number;
   captured: number;
+  defenseSpent: number;
+  intent: 'hold' | 'expand' | 'invade';
 }
 export interface City { name: string; x: number; y: number; index: number; original: number; owner: number; }
 export interface GameEvent { tick: number; text: string; color: string; }
@@ -129,7 +132,7 @@ export class Game {
     this.factions = STARTS.slice(0, Math.max(1, Math.min(11, opponentCount + 1))).map((start, id) => ({
       id, name: start.name, capital: start.capital, color: start.color, troops: 400,
       territory: 0, income: 0, target: geoToCell(start.lon, start.lat),
-      ai: id !== 0, alive: true, cityCount: 0, captured: 0,
+      ai: id !== 0, alive: true, cityCount: 0, captured: 0, defenseSpent: 0, intent: 'hold',
     }));
     for (let id = 0; id < this.factions.length; id++) {
       const start = STARTS[id];
@@ -145,7 +148,7 @@ export class Game {
     this.pickAIGoals();
     this.log('10 Großmächte mobilisieren ihre Armeen.');
     this.log('Nachschub aus Sektoren und Städten aktiviert.');
-    this.log('Operation EUROPA gestartet. Ziel auf Karte setzen.', this.factions[0].color);
+    this.log('Automatische Grenzsicherung aktiv. Truppen in Reserve verteidigen bei Angriffen.', this.factions[0].color);
   }
 
   private findNearestLand(point: Point, unclaimed = false): number {
@@ -226,6 +229,16 @@ export class Game {
   /** Snap an attack to the nearest reachable sector on the clicked faction's shared border.
    * Commands are local to the front, never a direction from the capital.
    */
+  /** Count exposed sectors for risk-aware decisions and the defense HUD. */
+  threatenedBorders(id: number): number {
+    let exposed = 0;
+    for (let i = 0; i < CELL_COUNT; i++) {
+      if (this.owner[i] !== id) continue;
+      if (NEIGHBORS[i].some(n => this.owner[n] >= 0 && this.owner[n] !== id)) exposed++;
+    }
+    return exposed;
+  }
+
   findAttackFront(id: number, target: Point): Point | null {
     if (!Number.isFinite(target.x) || !Number.isFinite(target.y) ||
         target.x < 0 || target.y < 0 || target.x >= MAP_WIDTH || target.y >= MAP_HEIGHT ||
@@ -318,30 +331,54 @@ export class Game {
     }
   }
 
-  /** Return one attackable adjacent tile chosen as a compact front advancing towards target. */
+  /** Attack only when likely gains outweigh losses and border exposure. */
   private chooseFront(id: number): number {
     const faction = this.factions[id];
+    const exposed = this.threatenedBorders(id);
     let best = -1;
     let bestScore = -Infinity;
     for (let i = 0; i < CELL_COUNT; i++) {
-      if (this.owner[i] === WATER || this.owner[i] === id) continue;
+      const opponent = this.owner[i];
+      if (opponent === WATER || opponent === id) continue;
       let friendly = 0;
       for (const n of NEIGHBORS[i]) if (this.owner[n] === id) friendly++;
       if (!friendly) continue;
+      const city = this.cities.find(c => c.index === i);
+      const neutral = opponent === NEUTRAL;
+      const defender = neutral ? null : this.factions[opponent];
+      const assessment = assessInvasion({
+        attackerTroops: faction.troops, attackerIncome: faction.income,
+        defenderTroops: defender?.troops ?? 0, defenderIncome: defender?.income ?? 0,
+        garrison: this.defense[i], capital: !!city, neutral,
+        threatenedBorders: exposed,
+      });
+      if (!assessment.worthwhile) continue;
       const x = i % MAP_WIDTH, y = Math.floor(i / MAP_WIDTH);
       const d = Math.hypot(x - faction.target.x, y - faction.target.y);
-      const neutral = this.owner[i] === NEUTRAL;
-      const city = this.cities.find(c => c.index === i);
-      const doctrineBonus = id !== 0 ? 0 : this.doctrine === 'expand' ? (neutral ? 11 : 0) : this.doctrine === 'blitz' ? (neutral ? 0 : 14) : 0;
-      const score = -d + friendly * 3.2 + (neutral ? 5 : -5) + (city ? 6 : 0) + doctrineBonus + this.rng() * 2.5;
+      const strategic = neutral ? 19 : 9 + Math.min(28, (assessment.advantage - 1) * 24);
+      const score = strategic - d * 0.80 + friendly * 2.8 + (city ? (neutral ? 7 : 11) : 0) + this.rng() * 1.3;
       if (score > bestScore) { bestScore = score; best = i; }
     }
+    faction.intent = best < 0 ? 'hold' : this.owner[best] === NEUTRAL ? 'expand' : 'invade';
     return best;
   }
 
   private strike(faction: Faction, index: number, spent: number): boolean {
-    // All attack types share the same defense and capture rules.
-    this.defense[index] -= spent * (0.95 + this.rng() * 0.22);
+    // All attacks face the existing garrison and a real troop reaction.
+    // Depleted reserves cannot defend, making all-in offensives risky.
+    const originalOwner = this.owner[index];
+    const rawDamage = spent * (0.95 + this.rng() * 0.22);
+    let mitigation = 0;
+    if (originalOwner >= 0 && originalOwner !== faction.id) {
+      const defender = this.factions[originalOwner];
+      const capital = this.cities.some(c => c.index === index);
+      const fortified = originalOwner === 0 && this.doctrine === 'fortify';
+      const interception = interceptAttack(defender.troops, rawDamage, fortified, capital);
+      defender.troops -= interception.used;
+      defender.defenseSpent += interception.used;
+      mitigation = interception.blocked;
+    }
+    this.defense[index] -= rawDamage - mitigation;
     if (this.defense[index] > 0) return false;
     this.owner[index] = faction.id;
     this.defense[index] = faction.id === 0 && this.doctrine === 'fortify' ? 27 : 11;
@@ -383,8 +420,7 @@ export class Game {
         continue;
       }
       const baseAttempts = 2 + Math.floor(faction.territory / 175);
-      const extra = 0;
-      const attempts = Math.max(1, Math.min(10, baseAttempts + extra));
+      const attempts = Math.max(1, Math.min(10, baseAttempts));
       for (let k = 0; k < attempts; k++) {
         const target = this.chooseFront(faction.id);
         if (target === -1 || !this.attack(faction, target)) break;
