@@ -36,6 +36,7 @@ function update() {
   const percent = player.territory / game.totalLand * 100;
   $('areaCount').textContent = format(player.territory);
   $('troopCount').textContent = format(player.troops);
+  $('borderDefense').textContent = `${format(game.threatenedBorders(0))} bedrohte Grenzsektoren · ${format(player.defenseSpent)} Truppen bereits zur Verteidigung eingesetzt`;
   $('ratioPercent').textContent = attackRatio + ' %';
   $('attackPreview').textContent = format(Math.floor(player.troops * attackRatio / 100)) + ' TRUPPEN';
   $('attackRatio').setAttribute('aria-valuenow', String(attackRatio));
@@ -133,7 +134,7 @@ $('helpBtn').addEventListener('click',()=>showDialog('DEIN EINSATZBEFEHL',`
   <div class="briefing-row"><b>04</b><span><strong>TRUPPEN:</strong> Prozentregler (5–100 %) bestimmt die pro Klick entsandten Reserven. T/Y ändert den Anteil. Wiederholter Klick verstärkt die Offensive.</span></div>
   <div class="briefing-row"><b>05</b><span><strong>PAUSE:</strong> Leertaste oder Ⅱ. Mit 1×/2×/4× beschleunigen.</span></div>
   <p><strong>Doktrinen:</strong> EXPAND senkt die Kosten neutraler Eroberungen und erhöht deren Geschwindigkeit, BLITZ erhöht die Angriffsfrequenz, DEFENSE stärkt Einkommen und Garnisonen. Mit 1, 2, 3 umschalten.</p>
-  <p>Die KI expandiert ebenfalls und greift Gegner an. Hauptstadtverteidigung ist stärker als gewöhnliches Terrain.</p>`));
+  <p>Grenzen werden automatisch verteidigt: angegriffene Fraktionen setzen freie Reservetruppen ein. Ohne Reserve ist deine Grenze verwundbar. DEFENSE erhöht die Wirkung der Verteidigung. Die KI prüft Chancen und Verluste vor Angriffen, respektiert ihre Reserve und kann auf einen Angriff verzichten.</p>`));
 $('dialogClose').addEventListener('click',closeDialog);
 $('dialog').addEventListener('click',e=>{if(e.target===$('dialog'))closeDialog();});
 $('soundBtn').addEventListener('click',()=>{soundEnabled=!soundEnabled;$('soundBtn').textContent=soundEnabled?'♫':'♪';if(soundEnabled)beep(660);});
