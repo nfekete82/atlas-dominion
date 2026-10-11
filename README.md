@@ -1,17 +1,19 @@
 # ATLAS DOMINION
 
-**v0.7 — SMART BORDER CLICKS & BIGGER EUROPE**
+**v0.8 — EUROPA MIT 50 SPIELBAREN LÄNDERN**
 
-## Neu in v0.7
+## Was ist neu?
 
-- **360 × 240 statt 240 × 160 Kartenfelder:** 86.400 Rasterfelder und etwa 2,25-mal so viele eroberbare Landsektoren. Europas geografische Ausdehnung ist unverändert; die Simulation enthält tatsächlich mehr einzelne Gebiete, nicht bloß einen stärkeren Kamera-Zoom. Die Natural-Earth-Landmaske wird feiner abgetastet, nicht mit zusätzlicher Küstengeometrie ergänzt.
-- **Intelligente Grenzklicks:** Linksklick bis zu **14 zusammenhängende Landsektoren** innerhalb eines Feind- oder Neutralgebiets sucht automatisch dessen nächstgelegenen Grenzsektor zu dir. Tiefe Klicks werden weiterhin abgewiesen. Die Suche läuft ausschließlich innerhalb derselben Landmasse und derselben Fraktion; keine Teleports über Meerengen oder andere Staaten.
-- **Zusammenhängende Front:** Die Offensive erobert nur Landnachbarn, bleibt um ihre eigene Angriffsfront herum und kann nicht quer durchs Land springen. Je größer das eingesetzte Truppenkontingent, desto breiter und schneller kann die lokale Front vorrücken (mit begrenztem Maximum je Tick).
-- **Seewege explizit:** SHIFT + Klick auf die andere Anlegestelle einer eingezeichneten Passage startet eine Seelandung mit vier Ticks Anfahrtszeit. Reguläre Landgefechte berücksichtigen keine See-Korridore. Die KI unternimmt noch keine eigenen Landungen.
-- **Mehr Bildfläche:** Kompakter Kartenkopf und schmalere Seitenleiste am Desktop. Regionale Truppen, strategische KI und Rekrutierung ohne 9.000er-Cap bleiben erhalten.
-- **Grenzindex:** Die Gegner bewerten erreichbare Sektoren anhand eines effizienteren Frontindex, statt alle 86.400 Felder für jeden Angriff neu zu prüfen.
+- **Länderauswahl vor Spielbeginn** mit Suchfeld für Ländernamen oder Hauptstadt. Mit jedem Neustart kann ein anderes Land gewählt werden.
+- **50 eigene Fraktionen:** 50 spielbare Staaten inklusive Island, Andorra, Liechtenstein, Malta, Monaco, San Marino, Vatikanstadt, Zypern, Kosovo, Armenien, Georgien und Aserbaidschan. Jedes Land beginnt bei seiner eigenen Hauptstadt. Die 49 übrigen Fraktionen werden durch KI gesteuert.
+- **Eigene Hauptstädte reserviert:** Kleinstaaten erhalten auch bei dicht beieinanderliegenden Hauptstädten (etwa Rom/Vatikanstadt) einen eigenen Landsektor. Alle starten mit 400 mobilen Truppen und Hauptstadtverteidigung.
+- **Mehr Europa:** 480×260 Kartenraster, Natural-Earth-110m-Geometrie einschließlich Island und der Kaukasusregion. Die ursprünglichen 360×240 Sektoren und Europagrenzen werden dadurch ersetzt; es ist eine echte neue Kartenbasis, kein Kamera-Zoom.
+- **Unveränderte Kampfmechanik:** nahe der Grenze klicken, automatischer Grenz-Snap nur über verbundene Landsektoren, keine Land-Teleports, Seeüberquerungen nur mit Shift+Klick auf sichtbare Anlegestellen, automatische regionale Verteidigung, dynamischer Rekrutennachschub.
+- **Kamerastart an der eigenen Hauptstadt**, dynamischer Ländername im HUD und weniger überlagerte Stadtbezeichnungen in der großen Europaübersicht.
 
-## Start
+Die europäische Abgrenzung ist bewusst weit gefasst: Für die Spielauswahl berücksichtigen wir auch die Türkei sowie Staaten des Südkaukasus. Die 50 Startländer sind **keine formelle diplomatische Anerkennungsliste**. Kasachstan ist nicht auswählbar, weil seine Hauptstadt Astana weit außerhalb des dargestellten Kartenausschnitts liegt. Natural Earth vereinfacht historische und aktuelle Grenzlinien; bei winzigen Staaten ist der eigene Startsektor eine spielerische Approximation.
+
+## Spielstart auf dem Mac
 
 ```bash
 cd ~/Projects/atlas-dominion
@@ -21,25 +23,28 @@ npm test
 PORT=8095 npm run dev
 ```
 
+Im Browser erscheint der Startbildschirm. Suche z. B. nach **Deutschland / Berlin**, **Portugal / Lissabon** oder **Island / Reykjavík** und klicke das Land an. Die Simulation startet erst nach der Auswahl.
+
 ## Steuerung
 
 | Aktion | Steuerung |
-| --- | --- |
-| Regulärer Angriff | Linksklick auf Feindgebiet in Grenznähe (bis 14 Landsektoren ins Land) |
-| Seelandung | SHIFT + Linksklick auf Anlegestelle am anderen Ende einer See-Passage |
-| Armeeeinsatz | Prozentregler / 10, 25, 50, 100 % |
-| Karte bewegen | Maus ziehen |
-| Zoom | Mausrad oder +/− |
-| Pause | Leertaste |
+|---|---|
+| Land wählen | Länderkarte im Startbildschirm anklicken |
+| Angreifen | Auf Feindgebiet nahe der gemeinsamen Grenze klicken (max. 14 verbundene Landsektoren) |
+| Seeüberfahrt | Shift+Klick auf markierten Hafen |
+| Truppenmenge | Prozentregler |
+| Zoom / Verschieben | Mausrad / Ziehen |
+| Spiel neu starten | „NEUES SPIEL“ und anderes Land auswählen |
 
-## Technik und Quellen
+## Technische Grundlagen
 
-Landmaske und Länderpolygone basieren auf Natural Earth (Public Domain). Die ursprüngliche Landmaske wird deterministisch zur Laufzeit auf das 360×240-Raster transformiert. `neighbors()` stellt aus Kompatibilitätsgründen weiterhin geografische Land- und See-Konnektivität bereit. Kämpfe nutzen `landNeighbors()`, sodass es keine ungewollten Wassersprünge gibt. Ein expliziter Landebefehl darf einen dokumentierten Seeübergang überwinden. Gameplay und Assets sind eigenständig, keine OpenFront-Assets.
+Das Datenmodul `src/data/countries.ts` definiert 50 Hauptstädte mit Geo-Koordinaten. `src/data/europe.ts` enthält eine vorberechnete öffentliche Natural-Earth-110m-Landmaske und die geografischen Umrisse. Bei Spielstart reserviert die Engine zuerst alle einzigartigen Hauptstadtzellen und erst danach die benachbarten Startgebiete.
+
+Kartendaten: [Natural Earth](https://www.naturalearthdata.com/), Public Domain / CC0, heruntergeladen aus `nvkelso/natural-earth-vector`. Die aufgezeichneten Hauptstadtkoordinaten sind gerundet. Ein paar Mikroinseln – insbesondere Malta – sind in der 110m-Geometrie zu klein und als separate bespielbare Sektoren ergänzt.
 
 ## Historie
 
-- v0.6: Regionale Verteidigung und unbegrenztes Wachstum
-- v0.5: Strategische KI und automatische Grenzsicherung
-- v0.4: Flüssige Frontwellen
-- v0.3: Angriff ohne Hauptstadtpfeile
-- v0.2: Truppenkontingente je Angriff
+- v0.7: Größere Karte, direkte Angriffe und tolerant erkannte Grenzabschnitte
+- v0.6: Regional stationierte Truppen und kein 9.000er-Limit
+- v0.5: Chancenbasierte KI
+- v0.4: Eroberungswellen
