@@ -50,7 +50,8 @@ function update() {
   const totalPopulation=game.factions.map(f=>f.troops+stationedByNation[f.id]+fightingByNation[f.id]);
   const stationed=stationedByNation[0];
   $('troopCount').textContent = format(totalPopulation[0]);
-  $('borderDefense').textContent = `${format(game.threatenedBorders(0))} bedrohte Grenzsektoren · ${format(stationed)} stationiert · ${format(player.troops)} mobil · ${format(player.defenseSpent)} Abwehrverluste`;
+  $('borderDefense').textContent = `${format(game.threatenedBorders(0))} bedrohte Grenzsektoren · ${format(stationed)} stationiert · ${format(player.troops)} mobil`;
+  $('casualtyReport').textContent = `⚔ ${format(player.attackFallen+player.defenseSpent)} eigene Gefallene · ${format(player.enemyFallen)} Gegnerverluste`;
   $('ratioPercent').textContent = attackRatio + ' %';
   $('attackPreview').textContent = format(Math.floor(player.troops * attackRatio / 100)) + ' TRUPPEN';
   $('attackRatio').setAttribute('aria-valuenow', String(attackRatio));
@@ -78,7 +79,9 @@ function update() {
     </div>`).join('');
   $('eventFeed').innerHTML = game.events.map(e=>`<div class="event"><i style="background:${e.color}"></i><div>${e.text}<small>TAG ${String(Math.floor(e.tick/240)+1).padStart(2,'0')} · ${String(Math.floor(e.tick*TICK_SECONDS/60)).padStart(2,'0')}:${String(Math.floor(e.tick*TICK_SECONDS%60)).padStart(2,'0')}</small></div></div>`).join('');
   const active = game.attackOrders.filter(o => o.factionId === 0);
-  $('ordersLabel').textContent = active.length ? `${active.length} OFFENSIVE(N) AKTIV · ${format(active.reduce((n,o)=>n+o.remaining,0))} TRUPPEN IM EINSATZ` : 'ANGRENZENDES GEBIET ANKLICKEN, UM ANZUGREIFEN';
+  $('ordersLabel').textContent = active.length
+    ? `${active.length} OFFENSIVE(N) · ${format(active.reduce((n,o)=>n+o.remaining,0))} IM KAMPF · ${format(active.reduce((n,o)=>n+o.fallen,0))} GEFALLEN`
+    : 'NACHBARLAND ANKLICKEN, UM ANZUGREIFEN';
   $('pauseBtn').textContent = game.paused ? '▶' : 'Ⅱ';
   document.querySelectorAll<HTMLButtonElement>('[data-doctrine]').forEach(b=>b.classList.toggle('selected', b.dataset.doctrine===game.doctrine));
   if (game.status!==prevStatus) {
@@ -251,11 +254,11 @@ $('helpBtn').addEventListener('click',()=>showDialog('DEIN EINSATZBEFEHL',`
   <div class="briefing-row"><b>02</b><span><strong>SEELANDUNG:</strong> SHIFT gedrückt halten und auf eine markierte Anlegestelle am anderen Ufer klicken. Nur die eingezeichneten Seewege sind erlaubt; die Überfahrt dauert vier Ticks.</span></div>
   <div class="briefing-row"><b>03</b><span><strong>ZIEHEN:</strong> Karte verschieben. Mausrad oder +/− zum Zoomen.</span></div>
   <div class="briefing-row"><b>04</b><span><strong>FRONT:</strong> Die Angriffslinie leuchtet an der Grenze. Die kleine Zahl zeigt die eingesetzten Truppen. Es gibt keine Marschroute von der Hauptstadt.</span></div>
-  <div class="briefing-row"><b>05</b><span><strong>TRUPPEN:</strong> Prozentregler (5–100 %) bestimmt die pro Klick entsandten Reserven. T/Y ändert den Anteil. Wiederholter Klick verstärkt die Offensive.</span></div>
+  <div class="briefing-row"><b>05</b><span><strong>TRUPPEN:</strong> Der Prozentregler legt die Zahl der eingesetzten Einwohner/Soldaten fest. Nur tatsächlich Gefallene werden abgezogen; Überlebende kehren aus der Offensive zurück. Stärkere Armeen kämpfen an einer breiteren Front.</span></div>
   <div class="briefing-row"><b>06</b><span><strong>STÄDTE BAUEN:</strong> Rechtsklick auf eigenes Land. Nur Städte sind baubar: Sie kosten Geld und erhöhen das künftige Einwohner- und Truppenwachstum.</span></div>
   <div class="briefing-row"><b>07</b><span><strong>PAUSE:</strong> Leertaste oder Ⅱ. Mit 1×/2×/4× beschleunigen.</span></div>
   <p><strong>Doktrinen:</strong> EXPAND senkt die Kosten neutraler Eroberungen und erhöht deren Geschwindigkeit, BLITZ erhöht die Angriffsfrequenz, DEFENSE stärkt Einkommen und Garnisonen. Mit 1, 2, 3 umschalten.</p>
-  <p><strong>Einwohner = Truppen:</strong> Es gibt nur eine Bevölkerungszahl. Stationierte und angreifende Soldaten zählen weiterhin dazu. Jede Stadt steigert das Wachstum, Geld wächst durch Einwohnerzahl und Landbesitz. Je mehr Truppen du auf einmal in eine Offensive schickst, desto breiter und schneller kann die Front vorrücken. Gefallene Truppen reduzieren deinen Einwohnerbestand. Bedrohte Grenzen verteidigen sich weiterhin automatisch.</p>`));
+  <p><strong>Einwohner = Truppen:</strong> Ein Angriff reserviert Truppen, ohne sie zu töten. Unbesetzte Sektoren werden ohne Kampftote erobert; gegen feindliche Garnisonen entstehen echte Verluste bei beiden Parteien. Nach Abschluss kehren die Überlebenden zurück. Größere Heere ermöglichen schnellere Fronten; gefährliche Kriege verringern Bevölkerung, Wachstum und Steuereinnahmen.</p>`));
 $('dialogClose').addEventListener('click',closeDialog);
 $('dialog').addEventListener('click',e=>{if(e.target===$('dialog'))closeDialog();});
 $('soundBtn').addEventListener('click',()=>{soundEnabled=!soundEnabled;$('soundBtn').textContent=soundEnabled?'♫':'♪';if(soundEnabled)beep(660);});

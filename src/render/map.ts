@@ -1,6 +1,7 @@
 import { COUNTRIES, MAP_HEIGHT, MAP_WIDTH, SEA_CROSSINGS, WORLD_HEIGHT, WORLD_WIDTH } from '../data/europe.js';
 import { Game, NEUTRAL, WATER, pointToWorld, seededRandom, type Point } from '../engine/game.js';
 import { TerritoryWave, waveProgress } from './wave.js';
+import {organicCaptureRadius,burningFrontAlpha} from './capture-visual.js';
 import { pixelGridEdges } from './pixel-grid.js';
 import { buildingMarkerFor, showBuildingMarker, buildingMarkerFontSize } from './building-markers.js';
 // Keep natural-dark ocean and distinct faction colors; no pale map wash.
@@ -380,24 +381,40 @@ export class MapRenderer {
     }
     c.restore();
   }
-  private drawCaptureWave(c:CanvasRenderingContext2D, timestamp:number):void {
-    // Simple, quick capture: existing border colors reveal themselves in
-    // chained order. No rings, squares, circles, haloes or swipe markers.
+  private drawCaptureWave(c:CanvasRenderingContext2D,timestamp:number):void {
     const captures=this.wave.active(timestamp);
     if(!captures.length)return;
-    c.save();c.imageSmoothingEnabled=false;
+    c.save();
+    c.imageSmoothingEnabled=true;
     for(const frame of captures){
       if(frame.owner<0)continue;
       const progress=waveProgress(frame,timestamp);
       if(progress>=1)continue;
       const col=frame.index%MAP_WIDTH,row=Math.floor(frame.index/MAP_WIDTH);
       const x=X_EDGES[col],y=Y_EDGES[row];
-      const width=X_EDGES[col+1]-x,height=Y_EDGES[row+1]-y;
+      const w=X_EDGES[col+1]-x,h=Y_EDGES[row+1]-y;
+      const cx=x+w*.5,cy=y+h*.5;
+      // Limit the paint to the real captured sector. Visual softness does
+      // not change ownership or spill into water and enemy territories.
+      c.save();c.beginPath();c.rect(x,y,w,h);c.clip();
       c.globalAlpha=1-progress;
       c.fillStyle=frame.previous>=0
-        ? this.game.factions[frame.previous].color+'be'
-        : '#263c40';
-      c.fillRect(x,y,width,height);
+        ? this.game.factions[frame.previous].color+'be' : '#263c40';
+      c.fillRect(x,y,w,h);
+      c.globalAlpha=1;
+      const radius=organicCaptureRadius(progress,Math.max(w,h),frame.index);
+      if(radius>.01){
+        const newColor=this.game.factions[frame.owner].color;
+        const glow=burningFrontAlpha(progress);
+        const gradient=c.createRadialGradient(cx,cy,Math.max(0,radius*.24),cx,cy,radius);
+        gradient.addColorStop(0,newColor+'de');
+        gradient.addColorStop(.72,newColor+'d9');
+        gradient.addColorStop(.89,`rgba(248,175,91,${glow.toFixed(3)})`);
+        gradient.addColorStop(1,'rgba(248,175,91,0)');
+        c.fillStyle=gradient;
+        c.beginPath();c.arc(cx,cy,radius,0,Math.PI*2);c.fill();
+      }
+      c.restore();
     }
     c.restore();
   }
@@ -434,7 +451,11 @@ export class MapRenderer {
       // One clear live combat boundary: no pulse, halo, arrows or markers.
       c.save();c.beginPath();
       for(const edge of this.combatEdges){c.moveTo(edge.ax,edge.ay);c.lineTo(edge.bx,edge.by);}
-      c.lineWidth=1.8;c.strokeStyle='#ffe2a3';c.stroke();
+      // Organic warm contact glow, confined to actual front edges.
+      c.lineCap='round';c.lineJoin='round';
+      c.shadowColor='rgba(255,153,83,.56)';c.shadowBlur=5;
+      c.lineWidth=2;c.strokeStyle='#ffbd80';c.stroke();
+      c.shadowBlur=0;c.lineWidth=.85;c.strokeStyle='#fff0c5';c.stroke();
       c.restore();
     }
     // Mouse feedback is now the subtle whole-target tint cached above.

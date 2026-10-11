@@ -1,9 +1,10 @@
 import { GEO_BOUNDS, LAND_ROWS, MAP_HEIGHT, MAP_WIDTH, SEA_CROSSINGS, WORLD_HEIGHT, WORLD_WIDTH } from '../data/europe.js';
 import { COUNTRY_STARTS, countryByCode } from '../data/countries.js';
-import { assessInvasion, interceptAttack } from './warfare.js';
+import { assessInvasion, interceptAttack, attackerCasualties, campaignEffort } from './warfare.js';
 import { attackFrontWidth, frontierBudget, frontierTarget, localDefenseStrength } from './frontline.js';
 import { BUILDINGS, BUILDING_CODES, type BuildingType, troopGrowth, taxRevenue } from './economy.js';
 import { findConnectedAttackFront } from './front-target.js';
+import {aiStyle,scoreAIFront} from './ai-strategy.js';
 
 export const WATER = -2;
 export const NEUTRAL = -1;
@@ -28,6 +29,10 @@ export interface Faction {
   cityCount: number;
   captured: number;
   defenseSpent: number;
+  attackFallen: number;
+  enemyFallen: number;
+  /** Finite AI marching capacity; regenerates from economic strength. */
+  campaignEnergy: number;
   intent: 'hold' | 'expand' | 'invade';
 }
 export interface City { name: string; x: number; y: number; index: number; original: number; owner: number; }
@@ -39,6 +44,9 @@ export interface AttackOrder {
   anchor: Point;
   committed: number;
   remaining: number;
+  /** Nonfatal marching stamina, consumed even on unoccupied territory. */
+  effort: number;
+  fallen: number;
   conquered: number;
   landing?: boolean;
   startedTick?: number;
@@ -134,6 +142,7 @@ export class Game {
   readonly events: GameEvent[] = [];
   readonly attackOrders: AttackOrder[] = [];
   private nextAttackId = 1;
+  private lastAttackerLoss = 0;
   readonly seed: number;
   readonly playerCode: string;
   readonly totalLand = TOTAL_LAND;
@@ -161,7 +170,7 @@ export class Game {
       id, name: start.name, capital: start.capital, color: factionColor(id),
       troops: 90, money: 90, moneyIncome: 0, builtCities:0,
       territory: 0, income: 0, target: geoToCell(start.lon,start.lat),
-      ai:id!==0, alive:true, cityCount:0, captured:0, defenseSpent:0, intent:'hold' as const,
+      ai:id!==0, alive:true, cityCount:0, captured:0, defenseSpent:0, attackFallen:0, enemyFallen:0, campaignEnergy:32, intent:'hold' as const,
     }));
     // Reserve EVERY capital before assigning any surrounding territory. Without
     // this, microstates (e.g. Vatican/Rome) can overwrite earlier capitals.
@@ -471,7 +480,7 @@ export class Game {
     attacker.troops -= sent;
     this.attackOrders.push({
       id:this.nextAttackId++, factionId:id, targetOwner:owner,
-      anchor:front, committed:sent, remaining:sent, conquered:0,
+      anchor:front, committed:sent, remaining:sent, effort:campaignEffort(sent), fallen:0, conquered:0,
       landing, startedTick:this.tick,
     });
     if (id === 0) this.log(`${landing?'Seelandung':'Grenzoffensive'}: ${sent.toLocaleString('de-DE')} Truppen gegen ${owner===NEUTRAL?'NEUTRALGEBIET':this.factions[owner].name}.`,attacker.color);
@@ -508,37 +517,58 @@ export class Game {
   }
 
   private resolveOrders(attacker: Faction) {
-    // Spends only the committed budget: active battles cannot silently drain reserve troops.
-    const orders = this.attackOrders.filter(o => o.factionId === attacker.id);
-    for (const order of orders) {
-      if (order.landing && order.conquered === 0 && this.tick - (order.startedTick ?? 0) < 4) continue;
-      const strikes = attackFrontWidth(order.committed, attacker.id === 0 && this.doctrine === 'blitz', order.targetOwner === NEUTRAL);
-      let unreachable = false;
-      for (let k = 0; k < strikes && order.remaining >= 0.01; k++) {
-        const index = this.chooseOrderedFront(order);
-        if (index === -1) { unreachable = true; break; }
-        const cost = Math.min(order.remaining, order.targetOwner === NEUTRAL ? (attacker.id === 0 && this.doctrine === 'expand' ? 6 : 8) : 21);
-        order.remaining -= cost;
-        const captured = this.strike(attacker, index, cost);
-        if (captured) { order.conquered++; if (order.landing) order.landing = false; }
+    // `remaining` means surviving soldiers; `effort` means how far the army
+    // can push this sortie. Travelling through neutral land costs stamina,
+    // never inhabitants. Only casualties permanently lower population.
+    const orders=this.attackOrders.filter(o=>o.factionId===attacker.id);
+    for(const order of orders){
+      if(order.landing && order.conquered===0 && this.tick-(order.startedTick??0)<4)continue;
+      const strikes=attackFrontWidth(order.committed,attacker.id===0&&this.doctrine==='blitz',order.targetOwner===NEUTRAL);
+      let unreachable=false;
+      for(let k=0;k<strikes && order.remaining>=1 && order.effort>=1;k++){
+        const index=this.chooseOrderedFront(order);
+        if(index===-1){unreachable=true;break;}
+        const effortCost=Math.min(order.effort,order.targetOwner===NEUTRAL?(attacker.id===0&&this.doctrine==='expand'?6:8):21);
+        if(effortCost<1)break;
+        order.effort-=effortCost;
+        const engaged=Math.min(order.remaining,effortCost);
+        const captured=this.strike(attacker,index,engaged);
+        const lost=Math.min(order.remaining,this.lastAttackerLoss);
+        order.remaining-=lost;
+        order.fallen+=lost;
+        if(captured){order.conquered++;if(order.landing)order.landing=false;}
       }
-      if (unreachable || order.remaining < 0.01) {
-        if (unreachable && order.remaining > 0) attacker.troops += order.remaining;
-        const pos = this.attackOrders.findIndex(o => o.id === order.id);
-        if (pos >= 0) this.attackOrders.splice(pos, 1);
-        if (attacker.id === 0) this.log(`Offensive beendet · ${order.conquered} Sektoren erobert.`, attacker.color);
+      if(unreachable||order.effort<1||order.remaining<1){
+        // Survivors return to the mobile reserve. A reserve transfer is never
+        // treated as a new birth or a death.
+        attacker.troops+=order.remaining;
+        const pos=this.attackOrders.findIndex(o=>o.id===order.id);
+        if(pos>=0)this.attackOrders.splice(pos,1);
+        if(attacker.id===0)this.log(
+          `Offensive beendet · ${order.conquered} Sektoren · ${Math.floor(order.fallen)} Gefallene · ${Math.floor(order.remaining)} zurück.`,
+          attacker.color);
       }
     }
   }
 
+  /** Long-lived strategic goals are now weighted by actual weakness rather
+   * than choosing a random one of the three nearest capital cities.
+   * Re-evaluated periodically, so an exposed weak rival attracts pressure.
+   */
   private pickAIGoals() {
-    for (const faction of this.factions) {
-      if (!faction.ai || !faction.alive) continue;
-      const capital = this.cities[faction.id];
-      const enemies = this.cities.filter(c => c.owner !== faction.id && c.owner >= 0);
-      enemies.sort((a, b) => distance2(a, capital) - distance2(b, capital));
-      const target = enemies[Math.floor(this.rng() * Math.min(enemies.length, 3))];
-      if (target) faction.target = { x: target.x, y: target.y };
+    for(const faction of this.factions){
+      if(!faction.ai||!faction.alive)continue;
+      const capital=this.cities[faction.id];
+      const targets=this.cities.filter(c=>c.owner>=0&&c.owner!==faction.id);
+      let best:City|null=null,bestScore=-Infinity;
+      for(const city of targets){
+        const opponent=this.factions[city.owner];
+        const distance=Math.sqrt(distance2(city,capital));
+        const weak=100/(25+opponent.troops+opponent.income*3);
+        const score=weak*22-distance*.34+(opponent.territory<faction.territory?7:0);
+        if(score>bestScore){bestScore=score;best=city;}
+      }
+      if(best)faction.target={x:best.x,y:best.y};
     }
   }
 
@@ -575,6 +605,7 @@ export class Game {
       for(const n of LAND_NEIGHBORS[i])if(this.owner[n]===id)friendly++;
       if(!friendly){candidates.delete(i);continue;}
       const city=this.cities.find(c=>c.index===i);
+      const hasCity=this.buildings[i]===BUILDING_CODES.city;
       const neutral=opponent===NEUTRAL;
       const defender=neutral?null:this.factions[opponent];
       const assessment=assessInvasion({
@@ -586,8 +617,14 @@ export class Game {
       if(!assessment.worthwhile)continue;
       const x=i%MAP_WIDTH,y=Math.floor(i/MAP_WIDTH);
       const d=Math.hypot(x-faction.target.x,y-faction.target.y);
-      const strategic=neutral?19:9+Math.min(28,(assessment.advantage-1)*24);
-      const score=strategic-d*.8+friendly*2.8+(city?11:0)+this.rng()*1.3;
+      const score=scoreAIFront({
+        neutral,advantage:assessment.advantage,friendlySides:friendly,
+        capital:!!city,city:hasCity,distance:d,
+        opponentCommitted:defender?.defenseSpent??0,
+        opponentReserve:defender?.troops??0,
+        threatenedBorders:exposed,
+        focus:d<14,
+      },aiStyle(faction.id)) + this.rng()*.15;
       if(score>bestScore){bestScore=score;best=i;}
     }
     faction.intent=best<0?'hold':this.owner[best]===NEUTRAL?'expand':'invade';
@@ -600,13 +637,18 @@ export class Game {
     // a distant empire cannot instantly defend every weak point at full power.
     const originalOwner = this.owner[index];
     const rawDamage = spent * (0.95 + this.rng() * 0.22);
+    const garrisonStrength=this.defense[index];
     let mitigation = 0;
+    let defenderLosses=0;
+    let defender: Faction | null = null;
+    let capital = false;
     if (originalOwner >= 0 && originalOwner !== faction.id) {
-      const defender = this.factions[originalOwner];
-      const capital = this.cities.some(c => c.index === index);
+      defender = this.factions[originalOwner];
+      capital = this.cities.some(c => c.index === index);
       const fortified = originalOwner === 0 && this.doctrine === 'fortify';
       const local = interceptAttack(this.frontline[index], rawDamage, fortified, capital);
       this.frontline[index] -= local.used;
+      defenderLosses+=local.used;
       defender.defenseSpent += local.used;
       mitigation += local.blocked;
 
@@ -614,11 +656,17 @@ export class Game {
       const emergencyLimit = Math.min(defender.troops, rawDamage * (capital ? 0.23 : 0.10));
       const emergency = interceptAttack(emergencyLimit, Math.max(0, rawDamage - mitigation), fortified, capital);
       defender.troops -= emergency.used;
+      defenderLosses+=emergency.used;
       defender.defenseSpent += emergency.used;
       mitigation += emergency.blocked;
     }
-    this.defense[index] -= Math.max(0.01, rawDamage - Math.min(mitigation, rawDamage * 0.94));
-    if (this.defense[index] > 0) return false;
+    this.lastAttackerLoss=attackerCasualties(spent,
+      mitigation+Math.min(Math.max(0,garrisonStrength),rawDamage)*.35,
+      originalOwner===NEUTRAL,capital);
+    faction.attackFallen+=this.lastAttackerLoss;
+    if(defender)defender.enemyFallen+=this.lastAttackerLoss;
+    this.defense[index]-=Math.max(0.01,rawDamage-Math.min(mitigation,rawDamage*.94));
+    if(this.defense[index]>0){if(defender)faction.enemyFallen+=defenderLosses;return false;}
     this.owner[index] = faction.id;
     // Incrementally update local battlefronts as territory changes.
     for (const [id,set] of this.frontierCandidates.entries()) {
@@ -627,7 +675,13 @@ export class Game {
     }
     const ownFront=this.frontierCandidates[faction.id];
     if(ownFront)for(const n of LAND_NEIGHBORS[index]) if(this.owner[n]!==faction.id && this.owner[n]!==WATER) ownFront.add(n);
-    // Remaining local defenders are lost when their sector is overrun.
+    // The garrison must not vanish as a visual-only effect on conquest:
+    // survivors of the defeated guard are counted as casualties here.
+    if(defender && this.frontline[index]>0){
+      defenderLosses+=this.frontline[index];
+      defender.defenseSpent+=this.frontline[index];
+    }
+    if(defender)faction.enemyFallen+=defenderLosses;
     this.frontline[index] = 0;
     this.defense[index] = faction.id === 0 && this.doctrine === 'fortify' ? 27 : 11;
     faction.captured++;
@@ -641,13 +695,15 @@ export class Game {
     return true;
   }
 
-  private attack(faction: Faction, index: number) {
-    if (faction.troops < 7) return false;
-    const defender = this.owner[index];
-    const force = faction.id === 0 && this.doctrine === 'blitz' ? 29 : 21;
-    const spent = Math.min(faction.troops, defender === NEUTRAL ? 8 : force);
-    faction.troops -= spent;
-    this.strike(faction, index, spent);
+  private attack(faction: Faction,index:number) {
+    if(faction.troops<7)return false;
+    const defender=this.owner[index];
+    const force=defender===NEUTRAL?8:21;
+    if(faction.ai && faction.campaignEnergy<force)return false;
+    if(faction.ai)faction.campaignEnergy-=force;
+    const engaged=Math.min(faction.troops,force);
+    this.strike(faction,index,engaged);
+    faction.troops=Math.max(0,faction.troops-this.lastAttackerLoss);
     return true;
   }
 
@@ -664,6 +720,8 @@ export class Game {
       // All residents are recruitable troops: a single clear growth figure.
       faction.troops+=faction.income;
       faction.money+=faction.moneyIncome;
+      if(faction.ai)faction.campaignEnergy=Math.min(160,
+        faction.campaignEnergy+Math.max(1.5,faction.income*1.55));
     }
     if(this.tick%100===0)this.developAI();
     this.redistributeFrontline();

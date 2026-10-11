@@ -1,5 +1,30 @@
 # ATLAS DOMINION
 
+**v1.2 – ECHTE KAMPFVERLUSTE, SCHLAUERE KI & ORGANISCHE FRONTEN**
+
+## Neu in v1.2
+
+- **Einwohner bleiben bei einer Mobilisierung Einwohner.** Die für einen Angriff eingesetzten Einheiten werden nur zwischen Reserve und aktiver Offensive verschoben. Erst gefallene Soldaten verringern tatsächlich den Gesamtbestand.
+- **Neutraler Boden kostet Marschaufwand, aber keine Menschenleben.** Jede Offensive besitzt ein begrenztes Erschöpfungsbudget (`effort`), das auch bei friedlicher Expansion verbraucht wird. Dadurch entstehen keine unendlichen kostenlosen Landnahmen.
+- **Verteidigter Boden kostet beide Seiten Soldaten.** Lokale stationierte Verteidiger und Notfallreserve können sterben, die Angreifer verlieren abhängig von der Gegenwehr und beim Sturm auf Hauptstädte besonders viele Einheiten.
+- **Überlebende kehren zurück**, wenn eine Offensive an Erschöpfung oder einer nicht mehr erreichbaren Front endet. Gefallene bleiben verloren. Im HUD werden eigene Gefallene und zugefügte Gegnerverluste sowie Verluste der laufenden Offensive angezeigt.
+- **KI-Stile und Frontscoring:** Expansion, aggressive Eroberung, defensive Vorsicht und opportunistische Schwächeausnutzung; Städte und Hauptstädte werden strategisch berücksichtigt. KI-Ziele bleiben deterministisch.
+- **Fließender, leicht abbrennender Eroberungseffekt** entlang wirklich eroberter Zellen: organische, begrenzte Verlaufskanten und eine sanft glühende, abgerundete aktuelle Kampfgrenze. Keine ausgedehnten Dauer-Kreise, kein Teleportieren, kein Eingriff in die Sektorsimulation.
+- Einwohnerwachstum, Steuer-Geld, die ausschließlich baubaren Städte und Länder-Klicksteuerung aus v1.1 bleiben erhalten.
+
+## Testen
+
+```bash
+cd ~/Projects/atlas-dominion
+git switch main
+git pull --ff-only origin main
+npm test && PORT=8095 npm run dev
+```
+
+Neue Tests: `tests/casualties.test.mjs`, `tests/ai-strategy.test.mjs`, `tests/capture-visual.test.mjs`. Existing tests zu neutralen Offensiven berücksichtigen das neue Marschbudget anstelle pauschaler Todesfälle.
+
+---
+
 **v1.1 – Einwohner = Truppen, Städte und Geld**
 
 Eigenständiges browserbasiertes Eroberungsspiel mit 50 europäischen Startländern, deterministischen Grenzkämpfen und Städtebau per Rechtsklick.

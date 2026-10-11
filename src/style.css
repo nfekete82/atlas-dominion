@@ -100,3 +100,6 @@
 .zoom-controls button{background:#0a202ce9;color:#e1eae8;border:1px solid #456875}
 .zoom-controls button:hover{background:#213949;color:#fff}
 @media(max-width:800px){.map-heading{top:10px;left:10px;max-width:285px}.map-heading h1{font-size:22px}.map-subtitle{font-size:9px}.map-location{display:none}}
+
+/* v1.2: compact, readable combat accounting. */
+.casualty-report{display:block;margin-top:7px;padding-top:7px;border-top:1px solid #45616a70;color:#efb89a;font-size:10px;line-height:1.35;font-weight:700}
