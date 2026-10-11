@@ -87,3 +87,37 @@ test('AI neutral land expansion has a finite, regenerating marching budget',()=>
   assert.ok(ai.campaignEnergy>0);
   assert.ok(ai.campaignEnergy<=160);
 });
+
+test('hostile assaults have meaningful losses and typically cost more lives than defending',()=>{
+  const neutral=attackerCasualties(30,20,true,false,1,6);
+  const hostile=attackerCasualties(30,20,false,false,1,6);
+  const powerfulEnemy=attackerCasualties(30,20,false,false,.70,6);
+  assert.equal(neutral,0,'neutral land remains free of combat fatalities');
+  assert.ok(hostile>=6*1.7,'attacking six defenders must be visibly costly');
+  assert.ok(hostile<=30,'cannot lose more soldiers than were engaged');
+  assert.ok(powerfulEnemy>hostile,'an overwhelming defender increases attacker losses');
+  assert.ok(attackerCasualties(21,0,false,false,1,0)>=1.7,
+    'even lightly guarded hostile territory causes frontline attrition');
+});
+
+test('a real player offensive reduces total population during a defended battle',()=>{
+  const g=new Game(418,1);
+  const border=g.owner.findIndex((owner,i)=>owner===NEUTRAL&&landNeighbors(i).some(n=>g.owner[n]===0));
+  assert.ok(border>=0);
+  // Convert an accessible neutral frontier into a defended enemy sector.
+  g.owner[border]=1;
+  g.frontline[border]=7;
+  g.defense[border]=12;
+  g.recount();
+  const populationBefore=g.populationOf(0);
+  const attack=g.launchAttack(0,cellToPoint(border),80);
+  assert.equal(attack.ok,true);
+  assert.equal(g.populationOf(0),populationBefore,'mobilization only binds citizens');
+  g.step();
+  assert.ok(g.factions[0].attackFallen>0,'actual hostile contact must produce casualties');
+  assert.ok(g.factions[0].enemyFallen>0,'the defender must also take losses');
+  assert.ok(g.populationOf(0)<populationBefore,
+    'real combat fatalities should outweigh one tick of natural population growth');
+  assert.equal(g.factions[0].attackFallen,g.attackOrders.reduce((sum,o)=>sum+o.fallen,0),
+    'active order casualties must agree with national deaths');
+});
