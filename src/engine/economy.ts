@@ -13,15 +13,26 @@ export const BUILDINGS: readonly BuildingDef[] = [
 export const BUILDING_CODES: Readonly<Record<BuildingType,number>> = {city:1};
 export const BUILDING_BY_CODE: Readonly<Record<number,BuildingType>> = {1:'city'};
 
-/** Growing cities help both small countries and advanced empires. */
+/** Cities boost growth but do not multiply the existing population.
+ * Square-root bonuses make additional cities useful with diminishing returns
+ * and prevent exponential feedback between residents, taxes and city building.
+ */
 export function troopGrowth(population:number, territory:number, capitals:number, cities:number):number {
-  if(territory<=0)return 0;
-  return .18 + Math.max(0,population)*.0025 + territory*.0055
-    + capitals*.24 + cities*(.72+Math.max(0,population)*.0009);
+  if(!Number.isFinite(territory)||territory<=0)return 0;
+  const people=Math.max(0,Number.isFinite(population)?population:0);
+  const urban=Math.sqrt(Math.max(0,Number.isFinite(cities)?cities:0));
+  const land=Math.sqrt(Math.max(0,territory));
+  return .25 + Math.sqrt(people)*.10 + land*.08
+    + Math.max(0,capitals)*.18 + urban*.60;
 }
 
-/** Bigger populations pay more tax. Territory and cities add modest revenue. */
-export function taxRevenue(population:number, territory:number, capitals:number, cities:number):number {
-  if(territory<=0)return 0;
-  return .4 + Math.max(0,population)*.016 + territory*.015 + capitals*.35 + cities*.3;
+/** Modest income: more people pay more taxes, but land/cities don't create
+ * runaway compounding revenue. Income remains useful for affordable cities.
+ */
+export function taxRevenue(population:number,territory:number,capitals:number,cities:number):number {
+  if(!Number.isFinite(territory)||territory<=0)return 0;
+  const people=Math.max(0,Number.isFinite(population)?population:0);
+  const urban=Math.sqrt(Math.max(0,Number.isFinite(cities)?cities:0));
+  return .25 + people*.002 + territory*.0025
+    + Math.max(0,capitals)*.16 + urban*.22;
 }
