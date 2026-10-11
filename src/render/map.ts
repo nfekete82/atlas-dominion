@@ -20,6 +20,9 @@ export class MapRenderer {
   private moved = false;
   private availableTargets = new Set<number>();
   private labels: Array<{ id: number; pos: Point }> = [];
+  // Combat highlights represent actual touching borders, never routes from a capital.
+  private combatEdges: Array<{ ax:number; ay:number; bx:number; by:number }> = [];
+  private combatLabels: Array<{ pos:Point; troops:number }> = [];
   game: Game;
   onSelect: (point: Point) => void = () => {};
   onHover: (point: Point | null, px: number, py: number) => void = () => {};
@@ -137,6 +140,34 @@ export class MapRenderer {
     }
     this.labels = [...anchor].flatMap((index,id)=>index < 0 ? [] : [{ id,
       pos: pointToWorld({ x: index % MAP_WIDTH, y: Math.floor(index / MAP_WIDTH) }) }]);
+
+    this.combatEdges = [];
+    this.combatLabels = [];
+    for (const order of this.game.attackOrders) {
+      if (order.factionId !== 0 || order.remaining < 0.01) continue;
+      const radius = Math.min(40, 8 + Math.sqrt(order.conquered) * 2.5);
+      const radius2 = radius * radius;
+      let sumX = 0, sumY = 0, contacts = 0;
+      const minX = Math.max(0, Math.floor(order.anchor.x - radius));
+      const maxX = Math.min(MAP_WIDTH - 1, Math.ceil(order.anchor.x + radius));
+      const minY = Math.max(0, Math.floor(order.anchor.y - radius));
+      const maxY = Math.min(MAP_HEIGHT - 1, Math.ceil(order.anchor.y + radius));
+      for (let y = minY; y <= maxY; y++) for (let x = minX; x <= maxX; x++) {
+        const i = y * MAP_WIDTH + x;
+        if (owners[i] !== order.targetOwner || (x-order.anchor.x)**2+(y-order.anchor.y)**2 > radius2) continue;
+        const left = x > 0 && owners[i-1] === order.factionId;
+        const right = x+1 < MAP_WIDTH && owners[i+1] === order.factionId;
+        const top = y > 0 && owners[i-MAP_WIDTH] === order.factionId;
+        const bottom = y+1 < MAP_HEIGHT && owners[i+MAP_WIDTH] === order.factionId;
+        const px=x*CW, py=y*CH;
+        if (left) this.combatEdges.push({ax:px,ay:py,bx:px,by:py+CH});
+        if (right) this.combatEdges.push({ax:px+CW,ay:py,bx:px+CW,by:py+CH});
+        if (top) this.combatEdges.push({ax:px,ay:py,bx:px+CW,by:py});
+        if (bottom) this.combatEdges.push({ax:px,ay:py+CH,bx:px+CW,by:py+CH});
+        if (left||right||top||bottom) {sumX+=px+CW/2;sumY+=py+CH/2;contacts++;}
+      }
+      if (contacts) this.combatLabels.push({pos:{x:sumX/contacts,y:sumY/contacts},troops:order.remaining});
+    }
   }
   /** Used by the tooltip; same shared-border predicate as launchAttack(). */
   canAttack(point: Point): boolean {
@@ -172,8 +203,20 @@ export class MapRenderer {
       c.fillText(`⚔ ${troops}`,x,y+15,90);
       if (current>0) {
         c.fillStyle='#fff0c3';c.font='700 9px system-ui';
-        c.fillText(`↗ ${Math.floor(current).toLocaleString('de-DE')} IM ANGRIFF`,x,y+35,110);
+        c.fillText(Math.floor(current).toLocaleString('de-DE')+' IM KAMPF',x,y+35,110);
       }
+    }
+
+    // Screen-space combat strength labels sit at contested borders.
+    for (const label of this.combatLabels) {
+      const x=this.ox+label.pos.x*this.scale;
+      const y=this.oy+label.pos.y*this.scale-15;
+      if(x<32||x>width-32||y<25||y>height-90)continue;
+      c.shadowColor='#000c';c.shadowBlur=12;
+      c.fillStyle='rgba(20,30,29,.94)';c.strokeStyle='#ffd384';c.lineWidth=1.3;
+      c.beginPath();c.roundRect(x-35,y-13,70,26,6);c.fill();c.stroke();c.shadowBlur=0;
+      c.fillStyle='#fff0ce';c.font='800 12px system-ui';
+      c.fillText('⚔ '+Math.floor(label.troops).toLocaleString('de-DE'),x,y+4,64);
     }
     c.restore();
   }
@@ -198,17 +241,19 @@ export class MapRenderer {
       c.fillStyle='#f4f0e2'; c.fillText(city.name.toUpperCase(),pos.x,pos.y-17);
       c.shadowBlur=0;
     }
-    if (this.game.status==='playing') {
-      for (const order of this.game.attackOrders) {
-        if (order.factionId !== 0) continue;
-        const from = pointToWorld(this.game.cities[0]);
-        const to = pointToWorld(order.anchor);
-        c.beginPath();c.setLineDash([7,8]);c.lineDashOffset=-timestamp/70;
-        c.moveTo(from.x,from.y);c.lineTo(to.x,to.y);
-        c.strokeStyle='rgba(247,197,108,.62)';c.lineWidth=1.5;c.stroke();c.setLineDash([]);
-        c.beginPath();c.arc(to.x,to.y,11+Math.sin(timestamp/280)*2,0,Math.PI*2);
-        c.strokeStyle='#ffce78';c.lineWidth=2;c.stroke();
-      }
+    if (this.game.status === 'playing' && this.combatEdges.length) {
+      // A pulsing territorial contact edge; no vectors, dots or arrows.
+      const pulse = 0.7 + 0.25 * Math.sin(timestamp / 230);
+      c.save();
+      c.beginPath();
+      for (const edge of this.combatEdges) {c.moveTo(edge.ax,edge.ay);c.lineTo(edge.bx,edge.by);}
+      c.lineWidth=5;
+      c.strokeStyle='rgba(247,182,91,'+(0.17*pulse)+')';
+      c.shadowColor='#ffbd62';c.shadowBlur=12;c.stroke();
+      c.lineWidth=2.5;
+      c.strokeStyle='rgba(255,222,157,'+(0.85*pulse)+')';
+      c.shadowBlur=0;c.stroke();
+      c.restore();
     }
     if(this.hover) {
       const x=this.hover.x*CW, y=this.hover.y*CH;

@@ -184,3 +184,26 @@ test('A repeat border click reinforces the offensive with a fresh troop commitme
   assert.equal(g.factions[0].troops,150);
   assert.equal(g.attackOrders.length,2);
 });
+
+test('Clicks deep in a target faction snap attacks to a reachable border sector',()=>{
+  const g=new Game(42);
+  const distant=g.owner.findIndex((owner,i)=>owner===NEUTRAL&&!neighbors(i).some(n=>g.owner[n]===0));
+  const target=cellToPoint(distant);
+  const front=g.findAttackFront(0,target);
+  assert.ok(front);
+  assert.notDeepEqual(front,target);
+  assert.equal(g.owner[pointToIndex(front)],NEUTRAL);
+  assert.ok(neighbors(pointToIndex(front)).some(i=>g.owner[i]===0));
+  const result=g.launchAttack(0,target,35);
+  assert.equal(result.ok,true);
+  assert.deepEqual(result.front,front);
+  assert.deepEqual(g.attackOrders[0].anchor,front);
+});
+
+test('Front lookup rejects water, own territory and out-of-map clicks',()=>{
+  const g=new Game(3);
+  const water=g.owner.findIndex(o=>o===WATER);
+  assert.equal(g.findAttackFront(0,g.cities[0]),null);
+  assert.equal(g.findAttackFront(0,cellToPoint(water)),null);
+  assert.equal(g.findAttackFront(0,{x:-100,y:2}),null);
+});

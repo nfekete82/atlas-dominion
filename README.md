@@ -1,6 +1,6 @@
 # ATLAS DOMINION
 
-**v0.2 — BORDER ATTACK UPDATE** · Ein eigenständiges Echtzeit-Strategiespiel im Browser.
+**v0.3 — ARROWLESS FRONTLINE COMBAT** · Ein eigenständiges Echtzeit-Strategiespiel im Browser.
 
 Steuere DOMINION von Berlin aus: Klicke direkt auf angrenzende Fraktionen und steuere den Truppeneinsatz auf einer echten Europakarte, vergrößere dein Gebiet, erobere Hauptstädte und setze dich gegen zehn autonome Fraktionen durch.
 
@@ -17,9 +17,10 @@ Browser öffnen: **http://localhost:8080** (Standardport). Wenn 8080 und 8081 be
 
 ### Steuerung
 
-- **Klick auf angrenzendes fremdes oder neutrales Territorium**: Sofort eine Offensive mit dem gewählten Truppenanteil starten (Klick irgendwo auf die angrenzende Fraktion genügt).
+- **Klick auf gegnerische oder neutrale Grenzregion**: Sofort eine lokale Offensive starten. Klickst du weiter im Landesinneren, rastet der Angriff auf den nächstgelegenen erreichbaren Grenzabschnitt ein. Keine Richtungspfeile oder Marschlinien von Berlin.
 - **Truppenregler 5–100 %**: Bestimmt die Truppenmenge für den nächsten Klick; Presets **10 / 25 / 50 / MAX**; Hotkeys **T / Y** für −5 / +5 Prozentpunkte.
 - **Erneuter Klick**: Zusätzliche Truppen entsenden, solange noch Reserven verfügbar sind.
+- **Leuchtende Kampffront**: Nur der tatsächlich umkämpfte Grenzabschnitt pulsiert und zeigt die dort eingesetzte Truppenstärke – keine Pfeile. 
 - **Truppenbadge auf der Karte**: Jede Fraktion zeigt verfügbare Armee und ggf. Truppen im Angriff. Die Ländergrenzen der zugrunde liegenden geografischen Karte sind kein separates Nationen-Wirtschaftssystem.
 - **Kein ungewollter Auto-Angriff**: Die Spielerfraktion bewegt sich nur auf Befehl. KI-Fraktionen kämpfen weiterhin automatisch.
 - **Ziehen**: Karte verschieben.
