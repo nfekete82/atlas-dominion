@@ -35,3 +35,26 @@
 
 /* v0.7: more room for the playable map on widescreens. */
 @media(min-width:1201px){.sidebar{width:274px}.topbar{height:66px}.map-heading{top:14px;left:22px}.map-heading h1{font-size:clamp(24px,2.45vw,38px);margin:5px 0 3px}.map-subtitle{font-size:11px;max-width:440px}}
+
+
+/* v0.8: full-country selection for 50 playable European states. */
+.country-cover{position:fixed;inset:0;z-index:30;background:rgba(3,10,16,.94);display:grid;place-items:center;padding:18px;backdrop-filter:blur(14px)}
+.country-panel{width:min(1050px,100%);max-height:min(92dvh,920px);display:flex;flex-direction:column;min-height:0;border:1px solid #665c42;background:linear-gradient(145deg,#132630,#091720);box-shadow:0 40px 140px #000d;border-radius:10px;overflow:hidden}
+.country-title{padding:28px 32px 14px}
+.country-title h2{margin:11px 0;font-size:clamp(26px,3.5vw,46px);line-height:1;font-weight:950;letter-spacing:2px;color:#f5d18e}
+.country-title p{margin:0;max-width:720px;color:#a7bebd;font-size:13px;line-height:1.65}
+.country-search{padding:8px 32px 17px;display:flex;gap:13px;align-items:center;border-bottom:1px solid #283c42}
+.country-search input{flex:1;min-width:0;height:44px;background:#0c1b24;border:1px solid #3b5960;border-radius:5px;color:#f6e9ce;font-size:14px;padding:0 16px;outline:none}
+.country-search input:focus{border-color:#e7bd74;box-shadow:0 0 0 2px #aa834b44}
+.country-search span{color:#c5aa79;font-size:11px;font-weight:850;white-space:nowrap}
+.country-grid{overflow:auto;min-height:130px;padding:17px 32px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;align-content:start;scrollbar-color:#52666d transparent;scrollbar-width:thin}
+.country-option{display:flex;align-items:center;gap:11px;text-align:left;padding:12px 10px;border:1px solid #304950;background:#142731;border-radius:6px;color:#e3eeee;min-height:73px;min-width:0}
+.country-option:hover,.country-option:focus-visible{border-color:#efc477;background:#304033}
+.country-option .country-flag{font-size:30px;line-height:1}
+.country-option strong{display:block;font-size:12px;line-height:1.25;letter-spacing:.1px}
+.country-option small{display:block;color:#8fa8a9;font-size:10px;line-height:1.4;margin-top:5px}
+.country-footer{padding:16px 32px;border-top:1px solid #283c42;display:flex;align-items:center;justify-content:space-between;gap:15px;color:#9db5b4;font-size:9px;letter-spacing:1px;font-weight:850}
+.country-footer button{border:1px solid #8a754e;background:#3b3426;color:#f3d29a;border-radius:4px;padding:10px 15px;font-size:10px;font-weight:900}
+#playerName{font-size:18px;letter-spacing:.2px;line-height:1.2;overflow-wrap:anywhere}
+@media(max-width:950px){.country-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:640px){.country-panel{max-height:96dvh}.country-grid{grid-template-columns:repeat(2,minmax(0,1fr));padding:12px;gap:6px}.country-title{padding:20px 16px 10px}.country-search{padding:9px 16px 12px}.country-option{min-height:65px;padding:9px 7px;gap:7px}.country-option .country-flag{font-size:23px}.country-option strong{font-size:11px}.country-footer{padding:12px 16px;flex-wrap:wrap}}
