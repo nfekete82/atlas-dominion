@@ -22,6 +22,8 @@ export class MapRenderer {
   private moved = false;
   private availableTargets = new Set<number>();
   private labels: Array<{ id: number; pos: Point }> = [];
+  private frontierLabels: Array<{ id:number; pos:Point; troops:number }> = [];
+  private armyTotals: number[] = [];
   // Combat highlights represent actual touching borders, never routes from a capital.
   private combatEdges: Array<{ ax:number; ay:number; bx:number; by:number }> = [];
   private combatLabels: Array<{ pos:Point; troops:number }> = [];
@@ -103,6 +105,8 @@ export class MapRenderer {
     const sumX = new Float64Array(this.game.factions.length);
     const sumY = new Float64Array(this.game.factions.length);
     const counts = new Uint32Array(this.game.factions.length);
+    const stationed = new Float64Array(this.game.factions.length);
+    const regional: Array<Array<{index:number; troops:number}>> = this.game.factions.map(()=>[]);
     const c = this.overlay.getContext('2d')!;
     c.clearRect(0,0,WORLD_WIDTH,WORLD_HEIGHT);
     const owners = this.game.owner;
@@ -113,6 +117,9 @@ export class MapRenderer {
       sumX[id] += i % MAP_WIDTH;
       sumY[id] += Math.floor(i / MAP_WIDTH);
       counts[id]++;
+      const front = this.game.frontline[i];
+      stationed[id] += front;
+      if (front > 0.1) regional[id].push({index:i,troops:front});
       c.fillStyle = this.game.factions[id].color + '9a';
       c.fillRect((i % MAP_WIDTH) * CW, Math.floor(i / MAP_WIDTH) * CH, CW + 0.45, CH + 0.45);
     }
@@ -136,6 +143,31 @@ export class MapRenderer {
       c.strokeStyle=faction.color;c.lineWidth=1.8;c.stroke(contours[faction.id]);
     }
     c.restore();
+    // Regional fortification markers: stronger fronts are clearer and easier
+    // to identify. Only occupied rival borders receive stationed troops.
+    c.save();
+    for (const region of regional) for (const entry of region) {
+      const x=(entry.index%MAP_WIDTH+.5)*CW;
+      const y=(Math.floor(entry.index/MAP_WIDTH)+.5)*CH;
+      const strength=entry.troops;
+      c.beginPath(); c.arc(x,y,1.2+Math.min(2.1,Math.sqrt(strength)*0.15),0,Math.PI*2);
+      c.fillStyle=strength >= 36 ? '#b8f4d2bb' : strength >= 15 ? '#ffd38aba' : '#f3918ab2';
+      c.fill();
+    }
+    c.restore();
+    this.armyTotals=this.game.factions.map(f=>f.troops+stationed[f.id]+this.game.attackOrders.filter(o=>o.factionId===f.id).reduce((n,o)=>n+o.remaining,0));
+    this.frontierLabels=[];
+    for(let id=0;id<regional.length;id++){
+      regional[id].sort((a,b)=>b.troops-a.troops || a.index-b.index);
+      const selected: number[]=[];
+      for(const entry of regional[id]){
+        if(selected.length>=5)break;
+        const x=entry.index%MAP_WIDTH,y=Math.floor(entry.index/MAP_WIDTH);
+        if(selected.some(i=>(i%MAP_WIDTH-x)**2+(Math.floor(i/MAP_WIDTH)-y)**2 < 150))continue;
+        selected.push(entry.index);
+        this.frontierLabels.push({id,pos:pointToWorld({x,y}),troops:entry.troops});
+      }
+    }
     // One prominent troop badge per active faction; anchor remains on owned land
     // even when the centroid lies outside a concave or fragmented territory.
     const best = new Float64Array(this.game.factions.length).fill(Infinity);
@@ -209,7 +241,7 @@ export class MapRenderer {
       c.font='800 9px system-ui';c.fillStyle=faction.color;
       c.fillText(faction.name,x,y-3,90);
       c.font='900 15px system-ui';c.fillStyle='#f4f0df';
-      const troops = Math.floor(faction.troops).toLocaleString('de-DE');
+      const troops = Math.floor(this.armyTotals[label.id] ?? faction.troops).toLocaleString('de-DE');
       c.fillText(`⚔ ${troops}`,x,y+15,90);
       if (current>0) {
         c.fillStyle='#fff0c3';c.font='700 9px system-ui';
@@ -217,6 +249,16 @@ export class MapRenderer {
       }
     }
 
+    // Optional high-zoom numbers show how many soldiers defend this exact front.
+    if (this.zoom >= 1.32) for (const label of this.frontierLabels) {
+      const x=this.ox+label.pos.x*this.scale,y=this.oy+label.pos.y*this.scale;
+      if (x<35||x>width-35||y<35||y>height-100)continue;
+      c.beginPath();c.roundRect(x-25,y-12,50,24,6);
+      c.fillStyle='rgba(8,32,32,.91)';c.fill();
+      c.strokeStyle=label.id===0?'#e9b85e':'#86bcaf';c.lineWidth=1;c.stroke();
+      c.fillStyle='#ebf5e9';c.font='800 11px system-ui';
+      c.fillText('⬡ '+Math.floor(label.troops).toLocaleString('de-DE'),x,y+4,45);
+    }
     // Screen-space combat strength labels sit at contested borders.
     for (const label of this.combatLabels) {
       const x=this.ox+label.pos.x*this.scale;

@@ -35,8 +35,10 @@ function update() {
   const player = game.factions[0];
   const percent = player.territory / game.totalLand * 100;
   $('areaCount').textContent = format(player.territory);
-  $('troopCount').textContent = format(player.troops);
-  $('borderDefense').textContent = `${format(game.threatenedBorders(0))} bedrohte Grenzsektoren · ${format(player.defenseSpent)} Truppen bereits zur Verteidigung eingesetzt`;
+  const stationed = game.frontline.reduce((total,value,i)=>total+(game.owner[i]===0?value:0),0);
+  const committed = game.attackOrders.filter(o=>o.factionId===0).reduce((n,o)=>n+o.remaining,0);
+  $('troopCount').textContent = format(player.troops + stationed + committed);
+  $('borderDefense').textContent = `${format(game.threatenedBorders(0))} bedrohte Grenzsektoren · ${format(stationed)} stationiert · ${format(player.troops)} mobil · ${format(player.defenseSpent)} Abwehrverluste`;
   $('ratioPercent').textContent = attackRatio + ' %';
   $('attackPreview').textContent = format(Math.floor(player.troops * attackRatio / 100)) + ' TRUPPEN';
   $('attackRatio').setAttribute('aria-valuenow', String(attackRatio));
@@ -98,7 +100,14 @@ renderer.onHover=(point,px,py)=>{
   owner.textContent=f?.name??'UNBESETZTES GEBIET';
   owner.style.color=f?.color??'#bcc5bb';
   $('hoverCoords').textContent=`SEKTOR ${point.x} / ${point.y} · ${id===NEUTRAL?'NEUTRAL':'KONTROLLIERT'}`;
-  $('hoverStats').textContent = f ? `⚔ ${format(f.troops)} VERFÜGBARE TRUPPEN` : '⚔ UNBESETZT';
+  const tile = pointToIndex(point);
+  const attackFront = id !== 0 ? game.findAttackFront(0,point) : null;
+  const defendedSector = attackFront ? pointToIndex(attackFront) : tile;
+  const stationedLocal = game.frontline[defendedSector];
+  const sectorDefense = game.sectorDefense(defendedSector);
+  $('hoverStats').textContent = f
+    ? `⬡ ${format(stationedLocal)} GRENZTRUPPEN · ${format(sectorDefense)} ${attackFront?'ANGRIFFSFRONT':'LOKALE VERTEIDIGUNG'}`
+    : '⚔ UNBESETZT';
   const action = $('hoverAction');
   const attackable = renderer.canAttack(point);
   action.textContent = id===0 ? 'EIGENES TERRITORIUM' : attackable ? `KLICK: ${attackRatio} % AN DIESER FRONT` : 'KEINE GEMEINSAME GRENZE';
@@ -134,7 +143,7 @@ $('helpBtn').addEventListener('click',()=>showDialog('DEIN EINSATZBEFEHL',`
   <div class="briefing-row"><b>04</b><span><strong>TRUPPEN:</strong> Prozentregler (5–100 %) bestimmt die pro Klick entsandten Reserven. T/Y ändert den Anteil. Wiederholter Klick verstärkt die Offensive.</span></div>
   <div class="briefing-row"><b>05</b><span><strong>PAUSE:</strong> Leertaste oder Ⅱ. Mit 1×/2×/4× beschleunigen.</span></div>
   <p><strong>Doktrinen:</strong> EXPAND senkt die Kosten neutraler Eroberungen und erhöht deren Geschwindigkeit, BLITZ erhöht die Angriffsfrequenz, DEFENSE stärkt Einkommen und Garnisonen. Mit 1, 2, 3 umschalten.</p>
-  <p>Grenzen werden automatisch verteidigt: angegriffene Fraktionen setzen freie Reservetruppen ein. Ohne Reserve ist deine Grenze verwundbar. DEFENSE erhöht die Wirkung der Verteidigung. Die KI prüft Chancen und Verluste vor Angriffen, respektiert ihre Reserve und kann auf einen Angriff verzichten.</p>`));
+  <p>Bedrohte Grenzen erhalten stationierte Soldaten aus der mobilen Reserve. Freie Truppen dienen für Angriffe und begrenzte Notfall-Verstärkungen. Nicht mehr bedrohte Grenzabschnitte geben ihre Truppen zurück. Die KI bevorzugt schwache Frontabschnitte, wenn sich der Angriff lohnt. Die 9.000er-Obergrenze wurde entfernt; Einkommen wächst überproportional mit dem Staatsgebiet.</p>`));
 $('dialogClose').addEventListener('click',closeDialog);
 $('dialog').addEventListener('click',e=>{if(e.target===$('dialog'))closeDialog();});
 $('soundBtn').addEventListener('click',()=>{soundEnabled=!soundEnabled;$('soundBtn').textContent=soundEnabled?'♫':'♪';if(soundEnabled)beep(660);});
