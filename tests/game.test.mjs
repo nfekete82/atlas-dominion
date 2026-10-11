@@ -159,7 +159,9 @@ test('Border click commits the selected troop percentage immediately',()=>{
   assert.equal(g.attackOrders[0].remaining,result.sent);
   const ownedBefore=count(g,0);
   g.step();
-  assert.ok(g.attackOrders[0]?.remaining < result.sent || g.attackOrders.length===0);
+  // Marching effort decreases even when nobody dies on neutral land.
+  assert.ok(g.attackOrders[0]?.effort < result.sent*1.65 || g.attackOrders.length===0);
+  assert.equal(g.factions[0].attackFallen,0);
   assert.ok(count(g,0)>ownedBefore);
 });
 
