@@ -36,7 +36,8 @@ function update() {
   const percent = player.territory / game.totalLand * 100;
   $('areaCount').textContent = format(player.territory);
   const stationed = game.frontline.reduce((total,value,i)=>total+(game.owner[i]===0?value:0),0);
-  $('troopCount').textContent = format(player.troops + stationed);
+  const committed = game.attackOrders.filter(o=>o.factionId===0).reduce((n,o)=>n+o.remaining,0);
+  $('troopCount').textContent = format(player.troops + stationed + committed);
   $('borderDefense').textContent = `${format(game.threatenedBorders(0))} bedrohte Grenzsektoren · ${format(stationed)} stationiert · ${format(player.troops)} mobil · ${format(player.defenseSpent)} Abwehrverluste`;
   $('ratioPercent').textContent = attackRatio + ' %';
   $('attackPreview').textContent = format(Math.floor(player.troops * attackRatio / 100)) + ' TRUPPEN';
@@ -100,10 +101,12 @@ renderer.onHover=(point,px,py)=>{
   owner.style.color=f?.color??'#bcc5bb';
   $('hoverCoords').textContent=`SEKTOR ${point.x} / ${point.y} · ${id===NEUTRAL?'NEUTRAL':'KONTROLLIERT'}`;
   const tile = pointToIndex(point);
-  const stationedLocal = game.frontline[tile];
-  const sectorDefense = game.sectorDefense(tile);
+  const attackFront = id !== 0 ? game.findAttackFront(0,point) : null;
+  const defendedSector = attackFront ? pointToIndex(attackFront) : tile;
+  const stationedLocal = game.frontline[defendedSector];
+  const sectorDefense = game.sectorDefense(defendedSector);
   $('hoverStats').textContent = f
-    ? `⬡ ${format(stationedLocal)} GRENZTRUPPEN · ${format(sectorDefense)} LOKALE VERTEIDIGUNG`
+    ? `⬡ ${format(stationedLocal)} GRENZTRUPPEN · ${format(sectorDefense)} ${attackFront?'ANGRIFFSFRONT':'LOKALE VERTEIDIGUNG'}`
     : '⚔ UNBESETZT';
   const action = $('hoverAction');
   const attackable = renderer.canAttack(point);
