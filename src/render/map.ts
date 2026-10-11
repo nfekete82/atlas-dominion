@@ -9,9 +9,9 @@ const CW = WORLD_WIDTH / MAP_WIDTH;
 const CH = WORLD_HEIGHT / MAP_HEIGHT;
 const X_EDGES = pixelGridEdges(MAP_WIDTH, WORLD_WIDTH);
 const Y_EDGES = pixelGridEdges(MAP_HEIGHT, WORLD_HEIGHT);
-const FLAGS=new Map(COUNTRY_STARTS.map(country=>[country.name,
+const FLAGS=new Map<string,string>(COUNTRY_STARTS.map(country=>[country.name,
   country.code==='XK'?'🇽🇰':[...country.code].map(ch=>String.fromCodePoint(127397+ch.charCodeAt(0))).join('')
-]));
+] as const));
 
 export class MapRenderer {
   readonly canvas: HTMLCanvasElement;
