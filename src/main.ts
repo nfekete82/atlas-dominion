@@ -51,6 +51,12 @@ function update() {
   const totalPopulation=game.factions.map(f=>f.troops+stationedByNation[f.id]+fightingByNation[f.id]);
   const stationed=stationedByNation[0];
   $('troopCount').textContent = format(totalPopulation[0]);
+  // Mobilized armies have not died. This breakdown separates temporary
+  // troop commitments from permanent casualties and automatic growth.
+  $('mobileTroops').textContent = 'MOBIL: ' + format(player.troops);
+  $('frontTroops').textContent = 'AN DER GRENZE: ' + format(stationed);
+  $('offensiveTroops').textContent = 'IM ANGRIFF: ' + format(fightingByNation[0]);
+  $('fallenTroops').textContent = 'GEFALLEN: ' + format(player.attackFallen+player.defenseSpent);
   $('borderDefense').textContent = `${format(game.threatenedBorders(0))} bedrohte Grenzsektoren · ${format(stationed)} stationiert · ${format(player.troops)} mobil`;
   $('casualtyReport').textContent = `⚔ ${format(player.attackFallen+player.defenseSpent)} eigene Gefallene · ${format(player.enemyFallen)} Gegnerverluste`;
   $('ratioPercent').textContent = attackRatio + ' %';
@@ -269,6 +275,7 @@ $('helpBtn').addEventListener('click',()=>showDialog('DEIN EINSATZBEFEHL',`
   <div class="briefing-row"><b>07</b><span><strong>PAUSE:</strong> Leertaste oder Ⅱ. Mit 1×/2×/4× beschleunigen.</span></div>
   <p><strong>Doktrinen:</strong> EXPAND senkt die Kosten neutraler Eroberungen und erhöht deren Geschwindigkeit, BLITZ erhöht die Angriffsfrequenz, DEFENSE stärkt Einkommen und Garnisonen. Mit 1, 2, 3 umschalten.</p>
   <p><strong>Machtvergleich:</strong> Beim Angriff zählen auch die gesamte Bevölkerung, die Größe und die Städte des Gegners. Ein mächtigeres Reich reduziert deine Angriffswirkung prozentual und erhöht die eigenen Verluste. Kleinere Gegner kannst du effektiver angreifen. Die Wirkung ist auf 70–130 % begrenzt; die konkrete Grenzverteidigung entscheidet weiterhin mit.</p>
+  <p><strong>Verluste sehen:</strong> Rechts bei „Einwohner / Truppen“ stehen Gesamt, mobile Reserve, Grenztruppen, angreifende Soldaten und Gefallene getrennt. Der Gesamtwert kann trotz Gefallener durch Einwohnerwachstum steigen. Angriffe auf feindliche Länder kosten jetzt deutlich mehr Soldaten (oft etwa 1,8 Angreifer pro gefallenem Verteidiger), neutrale Gebiete bleiben kampfverlustfrei.</p>
   <p><strong>Einwohner = Truppen:</strong> Ein Angriff reserviert Truppen, ohne sie zu töten. Unbesetzte Sektoren werden ohne Kampftote erobert; gegen feindliche Garnisonen entstehen echte Verluste bei beiden Parteien. Nach Abschluss kehren die Überlebenden zurück. Größere Heere ermöglichen schnellere Fronten; gefährliche Kriege verringern Bevölkerung, Wachstum und Steuereinnahmen.</p>`));
 $('dialogClose').addEventListener('click',closeDialog);
 $('dialog').addEventListener('click',e=>{if(e.target===$('dialog'))closeDialog();});
