@@ -1,11 +1,4 @@
 /** Economy and reinforcement rules are deliberately independent of rendering and RNG. */
-export function armyIncome(territory: number, cities: number, totalLand: number): number {
-  if(territory <= 0) return 0;
-  const base = 2.5 + territory * 0.12 + cities * 3.8;
-  // Expanding economies benefit from scale, without an arbitrary troop ceiling.
-  return base * (1 + 1.35 * Math.sqrt(territory / totalLand));
-}
-
 /** Local fortified frontier strength increases with empire size and available reserves. */
 export function frontierTarget(territory: number, reserve: number, capital: boolean, fortified: boolean): number {
   return (11 + 0.42 * Math.sqrt(Math.max(0, territory)) + 2.4 * Math.log1p(Math.max(0, reserve))
