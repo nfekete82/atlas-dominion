@@ -1,0 +1,16 @@
+{
+  "name": "atlas-dominion",
+  "version": "0.1.0",
+  "description": "ATLAS DOMINION — Browser-Echtzeitstrategie auf einer Europakarte",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/build.mjs",
+    "dev": "npm run build && node scripts/serve.mjs",
+    "preview": "node scripts/serve.mjs",
+    "test": "npm run build && node --test tests/*.test.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": { "typescript": "^5.9.2" },
+  "engines": { "node": ">=20" }
+}

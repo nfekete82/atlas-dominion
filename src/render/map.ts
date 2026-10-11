@@ -1,0 +1,213 @@
+import { COUNTRIES, MAP_HEIGHT, MAP_WIDTH, SEA_CROSSINGS, WORLD_HEIGHT, WORLD_WIDTH } from '../data/europe.js';
+import { Game, NEUTRAL, WATER, pointToWorld, seededRandom, type Point } from '../engine/game.js';
+
+const CW = WORLD_WIDTH / MAP_WIDTH;
+const CH = WORLD_HEIGHT / MAP_HEIGHT;
+
+export class MapRenderer {
+  readonly canvas: HTMLCanvasElement;
+  private ctx: CanvasRenderingContext2D;
+  private base = document.createElement('canvas');
+  private overlay = document.createElement('canvas');
+  private scale = 1;
+  private zoom = 1;
+  private ox = 0;
+  private oy = 0;
+  private dragging = false;
+  private last = { x: 0, y: 0 };
+  private press = { x: 0, y: 0 };
+  private hover: Point | null = null;
+  private moved = false;
+  game: Game;
+  onSelect: (point: Point) => void = () => {};
+  onHover: (point: Point | null, px: number, py: number) => void = () => {};
+
+  constructor(canvas: HTMLCanvasElement, game: Game) {
+    this.canvas = canvas;
+    this.game = game;
+    const ctx = canvas.getContext('2d', { alpha: false });
+    if (!ctx) throw new Error('Canvas 2D wird nicht unterstützt.');
+    this.ctx = ctx;
+    for (const c of [this.base, this.overlay]) { c.width = WORLD_WIDTH; c.height = WORLD_HEIGHT; }
+    this.renderBase();
+    this.updateTerritory();
+    new ResizeObserver(() => this.resize()).observe(canvas);
+    this.installControls();
+    this.resize();
+    requestAnimationFrame(t => this.frame(t));
+  }
+
+  setGame(game: Game) { this.game = game; this.updateTerritory(); this.fit(); }
+  fit() {
+    this.zoom = 1;
+    this.scale = Math.min(this.canvas.clientWidth / WORLD_WIDTH, this.canvas.clientHeight / WORLD_HEIGHT) * this.zoom;
+    this.ox = (this.canvas.clientWidth - WORLD_WIDTH * this.scale) / 2;
+    this.oy = (this.canvas.clientHeight - WORLD_HEIGHT * this.scale) / 2;
+  }
+  private resize() {
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    this.canvas.width = Math.round(this.canvas.clientWidth * dpr);
+    this.canvas.height = Math.round(this.canvas.clientHeight * dpr);
+    this.fit();
+  }
+  private renderBase() {
+    const c = this.base.getContext('2d')!;
+    const sea = c.createLinearGradient(0, 0, 1100, 800);
+    sea.addColorStop(0, '#081e2a'); sea.addColorStop(0.56, '#102832'); sea.addColorStop(1, '#0a1b27');
+    c.fillStyle = sea; c.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    c.strokeStyle = 'rgba(103,159,162,0.055)'; c.lineWidth = 1;
+    for (let x = 0; x <= WORLD_WIDTH; x += 64) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, WORLD_HEIGHT); c.stroke(); }
+    for (let y = 0; y <= WORLD_HEIGHT; y += 64) { c.beginPath(); c.moveTo(0, y); c.lineTo(WORLD_WIDTH, y); c.stroke(); }
+    for (const country of COUNTRIES) {
+      const path = new Path2D();
+      for (const ring of country.rings) {
+        ring.forEach(([x, y], j) => j === 0 ? path.moveTo(x, y) : path.lineTo(x, y));
+        path.closePath();
+      }
+      c.fillStyle = '#263c40'; c.fill(path);
+      c.strokeStyle = 'rgba(141,173,165,0.34)'; c.lineWidth = 1.15; c.stroke(path);
+    }
+    // Faint sea corridors represent crossings for islands and separated landmasses.
+    c.save();c.setLineDash([4,7]);c.strokeStyle='rgba(153,205,200,.4)';c.lineWidth=1.5;
+    for (const [a,b] of SEA_CROSSINGS) {
+      const ax=(a % MAP_WIDTH +.5)*CW, ay=(Math.floor(a/MAP_WIDTH)+.5)*CH;
+      const bx=(b % MAP_WIDTH +.5)*CW, by=(Math.floor(b/MAP_WIDTH)+.5)*CH;
+      c.beginPath();c.moveTo(ax,ay);c.lineTo(bx,by);c.stroke();
+    }
+    c.restore();
+    const rng = seededRandom(7122);
+    for (let i = 0; i < 4000; i++) {
+      const x = rng() * WORLD_WIDTH, y = rng() * WORLD_HEIGHT;
+      c.fillStyle = rng() > 0.55 ? 'rgba(169,201,181,.055)' : 'rgba(12,15,13,.12)';
+      c.fillRect(x, y, rng() * 2.2 + 0.5, rng() * 2.2 + 0.5);
+    }
+    c.save();
+    c.font = '11px ui-monospace, monospace'; c.fillStyle = 'rgba(150,184,188,.32)';
+    c.letterSpacing = '2px';
+    for (const [label, x, y] of [['NORTH ATLANTIC',76,257],['MEDITERRANEAN SEA',530,745],['BALTIC SEA',710,230],['BLACK SEA',1070,670],['NORTH SEA',290,255]]) c.fillText(label as string, x as number, y as number);
+    c.restore();
+    const vignette = c.createRadialGradient(640,400,50,640,400,780);
+    vignette.addColorStop(0,'rgba(0,0,0,0)'); vignette.addColorStop(1,'rgba(2,12,19,.6)');
+    c.fillStyle = vignette; c.fillRect(0,0,WORLD_WIDTH,WORLD_HEIGHT);
+  }
+  updateTerritory() {
+    const c = this.overlay.getContext('2d')!;
+    c.clearRect(0,0,WORLD_WIDTH,WORLD_HEIGHT);
+    const owners = this.game.owner;
+    for (let i = 0; i < owners.length; i++) {
+      const id = owners[i];
+      if (id < 0) continue;
+      c.fillStyle = this.game.factions[id].color + '9a';
+      c.fillRect((i % MAP_WIDTH) * CW, Math.floor(i / MAP_WIDTH) * CH, CW + 0.45, CH + 0.45);
+    }
+    // Continuous, colored frontlines; factions are allowed to meet seamlessly.
+    c.lineWidth = 2.3;
+    for (let i = 0; i < owners.length; i++) {
+      const id = owners[i];
+      if (id < 0) continue;
+      c.strokeStyle = this.game.factions[id].color;
+      const x = (i % MAP_WIDTH) * CW, y = Math.floor(i / MAP_WIDTH) * CH;
+      c.beginPath();
+      if (i % MAP_WIDTH === 0 || owners[i-1] !== id) { c.moveTo(x,y); c.lineTo(x,y+CH); }
+      if (i % MAP_WIDTH === MAP_WIDTH-1 || owners[i+1] !== id) { c.moveTo(x+CW,y); c.lineTo(x+CW,y+CH); }
+      if (i < MAP_WIDTH || owners[i-MAP_WIDTH] !== id) { c.moveTo(x,y); c.lineTo(x+CW,y); }
+      if (i >= (MAP_HEIGHT-1)*MAP_WIDTH || owners[i+MAP_WIDTH] !== id) { c.moveTo(x,y+CH); c.lineTo(x+CW,y+CH); }
+      c.stroke();
+    }
+  }
+  private frame(timestamp: number) {
+    const c = this.ctx;
+    const dpr = this.canvas.width / Math.max(1,this.canvas.clientWidth);
+    c.setTransform(dpr,0,0,dpr,0,0);
+    c.fillStyle='#07141e'; c.fillRect(0,0,this.canvas.clientWidth,this.canvas.clientHeight);
+    c.save(); c.translate(this.ox,this.oy); c.scale(this.scale,this.scale);
+    c.drawImage(this.base,0,0);
+    c.drawImage(this.overlay,0,0);
+    for (const city of this.game.cities) {
+      const f = city.owner >= 0 ? this.game.factions[city.owner] : null;
+      const pos = pointToWorld(city);
+      const glow = f?.color ?? '#c8ccd0';
+      c.beginPath(); c.arc(pos.x,pos.y,13+Math.sin(timestamp/480+city.original)*1.5,0,Math.PI*2);
+      c.strokeStyle=glow+'65'; c.lineWidth=1.2; c.stroke();
+      c.beginPath(); c.arc(pos.x,pos.y,5.1,0,Math.PI*2);
+      c.fillStyle='#101b23'; c.fill(); c.lineWidth=2.5; c.strokeStyle=glow; c.stroke();
+      c.font='600 11px system-ui'; c.textAlign='center';
+      c.shadowColor='#051015';c.shadowBlur=7;
+      c.fillStyle='#f4f0e2'; c.fillText(city.name.toUpperCase(),pos.x,pos.y-17);
+      c.shadowBlur=0;
+    }
+    if (this.game.status==='playing') {
+      const capital = this.game.cities[0];
+      const from = pointToWorld(capital);
+      const to = pointToWorld(this.game.factions[0].target);
+      c.beginPath(); c.setLineDash([7,10]); c.lineDashOffset = -timestamp/80;
+      c.moveTo(from.x,from.y);c.lineTo(to.x,to.y);
+      c.strokeStyle='rgba(245,199,112,.54)';c.lineWidth=1.7;c.stroke();c.setLineDash([]);
+      c.beginPath();c.arc(to.x,to.y,12+Math.sin(timestamp/280)*3,0,Math.PI*2);
+      c.strokeStyle='#ffcc72';c.lineWidth=2;c.stroke();
+      c.beginPath();c.arc(to.x,to.y,3,0,Math.PI*2);c.fillStyle='#ffcc72';c.fill();
+    }
+    if(this.hover) {
+      const x=this.hover.x*CW, y=this.hover.y*CH;
+      const i=this.hover.y*MAP_WIDTH+this.hover.x;
+      if (this.game.owner[i]!==WATER) {
+        c.strokeStyle='#f9e4ad'; c.lineWidth=1.5;
+        c.strokeRect(x,y,CW,CH);
+      }
+    }
+    c.restore();
+    requestAnimationFrame(t=>this.frame(t));
+  }
+  zoomBy(factor: number) {
+    const cx=this.canvas.clientWidth/2,cy=this.canvas.clientHeight/2;
+    const old=this.scale;
+    this.zoom=Math.max(0.8,Math.min(4,this.zoom*factor));
+    this.scale=Math.min(this.canvas.clientWidth/WORLD_WIDTH,this.canvas.clientHeight/WORLD_HEIGHT)*this.zoom;
+    const ratio=this.scale/old;
+    this.ox=cx-(cx-this.ox)*ratio;
+    this.oy=cy-(cy-this.oy)*ratio;
+  }
+  private worldAt(clientX:number,clientY:number):Point {
+    const box=this.canvas.getBoundingClientRect();
+    return {x:(clientX-box.left-this.ox)/this.scale,y:(clientY-box.top-this.oy)/this.scale};
+  }
+  private cellAt(clientX:number,clientY:number):Point|null {
+    const p=this.worldAt(clientX,clientY);
+    const x=Math.floor(p.x/CW),y=Math.floor(p.y/CH);
+    if(x<0||y<0||x>=MAP_WIDTH||y>=MAP_HEIGHT)return null;
+    return {x,y};
+  }
+  private installControls() {
+    this.canvas.addEventListener('pointerdown',e=>{
+      this.dragging=true;this.moved=false;this.last={x:e.clientX,y:e.clientY};this.press={...this.last};
+      this.canvas.setPointerCapture(e.pointerId);
+    });
+    this.canvas.addEventListener('pointermove',e=>{
+      if(this.dragging) {
+        const dx=e.clientX-this.last.x,dy=e.clientY-this.last.y;
+        if(Math.hypot(e.clientX-this.press.x,e.clientY-this.press.y)>5)this.moved=true;
+        if(this.moved){this.ox+=dx;this.oy+=dy;}
+        this.last={x:e.clientX,y:e.clientY};
+      }
+      this.hover=this.cellAt(e.clientX,e.clientY);
+      const box=this.canvas.getBoundingClientRect();
+      this.onHover(this.hover,e.clientX-box.left,e.clientY-box.top);
+    });
+    this.canvas.addEventListener('pointerup',e=>{
+      if(!this.moved){const p=this.cellAt(e.clientX,e.clientY);if(p)this.onSelect(p);}
+      this.dragging=false;
+    });
+    this.canvas.addEventListener('pointercancel',()=>{this.dragging=false;});
+    this.canvas.addEventListener('pointerleave',()=>{this.hover=null;this.onHover(null,0,0);});
+    this.canvas.addEventListener('wheel',e=>{
+      e.preventDefault();
+      const b=this.canvas.getBoundingClientRect();
+      const cx=e.clientX-b.left,cy=e.clientY-b.top;
+      const prev=this.scale;
+      this.zoom=Math.max(0.8,Math.min(4,this.zoom*(e.deltaY<0?1.13:1/1.13)));
+      this.scale=Math.min(this.canvas.clientWidth/WORLD_WIDTH,this.canvas.clientHeight/WORLD_HEIGHT)*this.zoom;
+      const ratio=this.scale/prev;
+      this.ox=cx-(cx-this.ox)*ratio;this.oy=cy-(cy-this.oy)*ratio;
+    },{passive:false});
+  }
+}

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#07141e" />
+  <meta name="description" content="ATLAS DOMINION – eigenständiges Browser-Echtzeitstrategiespiel auf einer detaillierten Europakarte." />
+  <title>ATLAS DOMINION — European Conquest</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="brand"><div class="brand-icon" aria-hidden="true">◈</div><div class="brand-title">ATLAS <b>DOMINION</b><small>EUROPEAN CONQUEST <span class="version">/ v0.1</span></small></div></div>
+      <div class="top-center"><span class="pulse"></span> <span>OPERATION EUROPA</span><span class="separator">/</span><strong>LIVE SIMULATION</strong></div>
+      <div class="top-actions"><button id="helpBtn" class="icon-btn" title="Spielanleitung">?</button><button id="soundBtn" class="icon-btn" title="Sound umschalten">♪</button><button id="fullBtn" class="icon-btn" title="Vollbild">⛶</button><button id="resetBtn" class="new-game">↻ <span>NEUES SPIEL</span></button></div>
+    </header>
+    <div class="layout">
+      <main class="battlefield">
+        <canvas id="battleCanvas" aria-label="Interaktive Europakarte; Gebiet anklicken um eine Angriffsrichtung festzulegen"></canvas>
+        <div class="map-wash" aria-hidden="true"></div>
+        <div class="map-heading"><div class="micro-heading">THE EUROPEAN THEATRE <span>·</span> 01</div><h1>EUROPA <em>EROBERN.</em></h1><div class="map-subtitle">Wähle ein Ziel auf der Karte. Deine Truppen rücken in Echtzeit vor.</div></div>
+        <div class="map-location">◉ <span>EUROPA</span> <small>240 × 160 SECTORS</small></div>
+        <div class="map-info" id="mapInfo" hidden><span id="hoverOwner">NEUTRAL</span><small id="hoverCoords">SEKTOR —</small></div>
+        <div class="zoom-controls"><button id="zoomIn" title="Hineinzoomen">+</button><button id="zoomOut" title="Herauszoomen">−</button><button id="zoomFit" title="Karte einpassen">⌗</button></div>
+        <div class="bottom-bar">
+          <div class="time-controls"><button id="pauseBtn" class="pause-btn" title="Pause (Leertaste)">Ⅱ</button><div class="time-copy"><small>SIMULATIONSZEIT</small><strong id="clock">00:00</strong></div><div class="speed-wrap"><button data-speed="1" class="speed active">1×</button><button data-speed="2" class="speed">2×</button><button data-speed="4" class="speed">4×</button></div></div>
+          <div class="bottom-hint"><span class="hint-icon">⌖</span><div><strong>TAKTISCHER BEFEHL</strong><small id="ordersLabel">KLICKE AUF DER KARTE, UM EIN ANGRIFFSZIEL ZU SETZEN.</small></div></div>
+        </div>
+      </main>
+      <aside class="sidebar">
+        <div class="sidebar-section"><div class="section-label">01 <span>DEIN IMPERIUM</span> <i></i></div><div class="faction-hero"><div class="faction-emblem">◈</div><div><small>DU SPIELST ALS</small><strong>DOMINION</strong><span class="hero-status"><i class="pulse"></i> EINSATZBEREIT</span></div></div>
+        <div class="stat-grid"><div class="stat"><small>GEBIETE</small><strong id="areaCount">0</strong><span>SEKTOREN</span></div><div class="stat"><small>TRUPPEN</small><strong id="troopCount">0</strong><span>VERFÜGBAR</span></div><div class="stat"><small>EINKOMMEN</small><strong id="incomeCount">+0</strong><span>PRO TICK</span></div><div class="stat"><small>KONTROLLE</small><strong id="controlCount">0.0%</strong><span>EUROPAS</span></div></div>
+        <div class="progress-label"><span>TERRITORIALER FORTSCHRITT</span><b id="progressLabel">0 / 65%</b></div><div class="progress"><div id="progressFill"></div></div>
+        <div class="doctrine-title">KAMPFDOKTRIN <span>· WÄHLE DEINE TAKTIK</span></div>
+        <div class="doctrine-buttons"><button data-doctrine="expand" class="selected" title="Neutralgebiete schneller erobern">↗ <span>EXPAND</span></button><button data-doctrine="blitz" title="Mehr und stärkere Angriffe">⚔ <span>BLITZ</span></button><button data-doctrine="fortify" title="Mehr Einkommen und stärkere Verteidigung">⬡ <span>DEFENSE</span></button></div></div>
+        <div class="sidebar-section ranking"><div class="section-label">02 <span>GROSSMÄCHTE</span> <i></i></div><div id="leaderboard" class="leaderboard"></div></div>
+        <div class="sidebar-section dispatch"><div class="section-label">03 <span>LAGEBERICHT</span> <i></i></div><div id="eventFeed" class="event-feed"></div></div>
+        <div class="sidebar-footer"><span class="live-dot"></span> LOCAL SOLO MATCH <span>·</span> DETERMINISTIC ENGINE</div>
+      </aside>
+    </div>
+  </div>
+  <div class="dialog-cover" id="dialog" hidden><section class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle"><button id="dialogClose" class="dialog-close" aria-label="Schließen">✕</button><span class="micro-heading">ATLAS DOMINION / BRIEFING</span><h2 id="dialogTitle">WILLKOMMEN, KOMMANDANT.</h2><div id="dialogBody"></div><button id="dialogAction" class="dialog-action">VERSTANDEN →</button></section></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

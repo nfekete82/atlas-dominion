@@ -1,0 +1,94 @@
+# ATLAS DOMINION
+
+**v0.1 — EUROPEAN CONQUEST** · Ein eigenständiges Echtzeit-Strategiespiel im Browser.
+
+Steuere DOMINION von Berlin aus: Setze Angriffspunkte auf einer echten Europakarte, vergrößere dein Gebiet, erobere Hauptstädte und setze dich gegen zehn autonome Fraktionen durch.
+
+## Schnellstart
+
+Benötigt: **Node.js 20+** und TypeScript (durch `npm install` verfügbar).
+
+```bash
+npm install
+npm run dev
+```
+
+Browser öffnen: **http://localhost:8080**. Im bereitgestellten Komplett-ZIP liegt `dist/` bereits bei: dort reicht auch `node scripts/serve.mjs` **ohne npm install**. Kein Account, API-Schlüssel oder externer Kartendienst erforderlich. Für Docker: `docker compose up --build -d` und dieselbe Adresse öffnen.
+
+### Steuerung
+
+- **Klick auf Land**: Angriffsziel setzen. Deine Streitkräfte rücken automatisch in diese Richtung vor.
+- **Ziehen**: Karte verschieben.
+- **Mausrad**, `+` / `−`: Zoom; `⌗`: Gesamtansicht.
+- **Leertaste**: Pause; **1× / 2× / 4×**: Simulationsgeschwindigkeit.
+- **Doktrinen-Tasten 1, 2, 3**: EXPAND (Neutralgebiete), BLITZ (höhere Angriffskraft und -frequenz), DEFENSE (Wirtschaft und Befestigung).
+- **♪**: akustisches Feedback; **⛶**: Vollbild.
+- **↻ Neues Spiel**: neue Partie beginnen.
+
+**Siegbedingung:** 65 % der Landsektoren Europas kontrollieren oder alle anderen Fraktionen ausschalten. **Niederlage:** keine eigenen Sektoren mehr besitzen.
+
+## In v0.1 enthalten
+
+- Echte Europa-Silhouette mit Ländergrenzen, Inseln und 19.804 Landsektoren, komplett lokal eingebunden.
+- 11 Fraktionen mit unterschiedlichen Hauptstädten und Farben; 10 computergesteuerte Gegenspieler.
+- Kontinuierliche frontbasierte Expansion, kurze Seeübergänge zu Inseln und Anatolien, Kampf gegen feindliche Garnisonen, Hauptstadtverteidigung.
+- Wirtschaft aus kontrollierten Sektoren und eroberten Städten.
+- Strategische Klickbefehle, drei Kampfdoktrinen, Leaderboard, Ereignis-Ticker, Sieg/Niederlage, Pause/Zoom/Vollbild.
+- Reproduzierbare Simulation auf Basis eines Seed-RNG; Node-Tests.
+- Anpassungsfähige UI und zero-runtime-dependency Rendering mit Canvas 2D.
+
+## Architektur
+
+```text
+src/
+  data/europe.ts       Lokal generierte Geo-Daten, Raster und Länderpolygone
+  engine/game.ts       Deterministische Simulation; keinerlei Browser-Abhängigkeit
+  render/map.ts        Canvas-Renderer, Kamera, Eingaben, gecachte Terrain-/Front-Layer
+  main.ts              UI-Controller, HUD, Spieltakt und Spielbefehle
+  style.css            UI-Design und responsive Layout
+scripts/
+  generate_map.py      Optional: Karten-Generator aus Natural Earth
+  build.mjs            Statisches Deployment in dist/
+  serve.mjs            Minimaler lokaler HTTP-Server
+  ...
+tests/game.test.mjs   Reproduzierbarkeit, Fraktionen, Topologie, Kampf
+```
+
+Design-Prinzip: **Game State → Simulation → Rendering**. Kein Browser- oder Netzwerkzugriff aus dem Simulationskern. Damit lässt sich in v0.4 eine serverautorisierte Multiplayer-Simulation aufsetzen, ohne Spielregeln neu zu erfinden.
+
+**Rendering-Entscheidung:** Für v0.1 verwenden wir Canvas 2D, um eine vollständig lauffähige, lokal testbare Version ohne externe Abhängigkeiten zu liefern. Die Renderer-Schnittstelle bleibt austauschbar; ein Upgrade auf PixiJS/WebGL ist für v0.2 vorgesehen, sobald wir die Belastung mit großen Schlachten profilieren.
+
+**Limitierungen v0.1:** Solo gegen KI; keine WebSocket-Lobbys, Wirtschaftsbauwerke, Diplomatie oder Persistenz. Kurzüberfahrten erfolgen in v0.1 ohne Flotten. Die Hauptstadt-Markierungen sind Sonderziele, keine umfassenden städtischen Simulationsmodelle. Neutralgebiete, Territorialkämpfe und kompakte KI-Angriffsziele sind bewusst vereinfachte Regeln.
+
+## Entwicklung
+
+```bash
+npm run typecheck
+npm test
+npm run build
+npm run preview
+```
+
+Mit `?debug` in der URL wird ein kleines lokales QA-Interface `window.__atlas` aktiviert. Produktionsmodus ohne `?debug` bietet es nicht an.
+
+## Roadmap
+
+- **0.2** PixiJS-Renderer, GPU-Profiling, Fronteffekte, Soundscape, dynamischer Nebel.
+- **0.3** Eigenständige Armeeverbände, Ressourcen, Städte, Forschung, Diplomatie.
+- **0.4** Serverautorisiertes Multiplayer via WebSocket, Lobbys, Reconnect und Replays.
+
+## Kartendaten / Rechtliches
+
+Europa-Kartendaten basieren auf **Natural Earth** (public domain, [naturalearthdata.com](https://www.naturalearthdata.com/)). Die Geometrie wurde für die Darstellung geklippt und vereinfacht. Keine OpenFront-Assets, kein OpenFront-Code und keine OpenFront-Abhängigkeit wurden übernommen.
+
+Für das eigene Spiel ist noch keine Open-Source-Lizenz festgelegt; das Repository kann daher zunächst privat angelegt werden.
+
+## GitHub: neues privates Repository anlegen
+
+Im entpackten Projektordner mit installiertem GitHub CLI (`gh auth login` falls erforderlich):
+
+```bash
+gh repo create atlas-dominion --private --source . --remote origin --push
+```
+
+Im Archiv liegt bereits ein initialer Git-Commit auf `main`. Nach dem Import ist GitHub Actions CI aktiv.
