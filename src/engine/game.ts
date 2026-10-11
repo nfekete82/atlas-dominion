@@ -1,5 +1,6 @@
 import { GEO_BOUNDS, LAND_ROWS, MAP_HEIGHT, MAP_WIDTH, SEA_CROSSINGS, WORLD_HEIGHT, WORLD_WIDTH } from '../data/europe.js';
 import { assessInvasion, interceptAttack } from './warfare.js';
+import { armyIncome, frontierBudget, frontierTarget, localDefenseStrength } from './frontline.js';
 
 export const WATER = -2;
 export const NEUTRAL = -1;
@@ -109,6 +110,8 @@ export function seededRandom(seed: number): () => number {
 export class Game {
   readonly owner = new Int16Array(CELL_COUNT);
   readonly defense = new Float32Array(CELL_COUNT);
+  /** Real troops committed to individual threatened frontier sectors, separate from mobile reserves. */
+  readonly frontline = new Float64Array(CELL_COUNT);
   readonly factions: Faction[];
   readonly cities: City[] = [];
   readonly events: GameEvent[] = [];
@@ -184,7 +187,7 @@ export class Game {
     }
     for (const f of this.factions) {
       f.alive = f.territory > 0;
-      const baseIncome = f.alive ? 2.5 + f.territory * 0.12 + f.cityCount * 3.8 : 0;
+      const baseIncome = armyIncome(f.territory, f.cityCount, TOTAL_LAND);
       f.income = f.id === 0 ? baseIncome * (this.doctrine === 'fortify' ? 1.4 : this.doctrine === 'blitz' ? 0.9 : 1) : baseIncome;
     }
   }
@@ -225,6 +228,50 @@ export class Game {
     return targets;
   }
 
+
+  /** Station actual units where rival armies touch, and return forces from quiet sectors.
+   * No automatic conquest occurs here; every moved unit is deducted from free reserves.
+   */
+  redistributeFrontline(): void {
+    const exposed: number[][] = Array.from({length: this.factions.length}, () => []);
+    for (let i = 0; i < CELL_COUNT; i++) {
+      const owner = this.owner[i];
+      if (owner < 0) { this.frontline[i] = 0; continue; }
+      const threatened = NEIGHBORS[i].some(n => this.owner[n] >= 0 && this.owner[n] !== owner);
+      if (!threatened) {
+        if (this.frontline[i] > 0) {
+          this.factions[owner].troops += this.frontline[i];
+          this.frontline[i] = 0;
+        }
+      } else {
+        exposed[owner].push(i);
+      }
+    }
+    for (const faction of this.factions) {
+      if (!faction.alive || !exposed[faction.id].length) continue;
+      const budget = frontierBudget(faction.troops, faction.income);
+      if (budget < 0.01) continue;
+      let remaining = budget;
+      // Cover weak points first. Equal-strength sectors break ties by map index.
+      exposed[faction.id].sort((a,b)=>this.frontline[a]-this.frontline[b] || a-b);
+      for (const i of exposed[faction.id]) {
+        if (remaining < 0.01) break;
+        const isCapital = this.cities.some(city => city.index === i);
+        const target = frontierTarget(faction.territory, faction.troops, isCapital, faction.id === 0 && this.doctrine === 'fortify');
+        const sent = Math.max(0, Math.min(target - this.frontline[i], remaining, faction.troops));
+        if (sent <= 0) continue;
+        faction.troops -= sent;
+        this.frontline[i] += sent;
+        remaining -= sent;
+      }
+    }
+  }
+
+  /** Map-visible local defense, excluding strategic mobile reserves. */
+  sectorDefense(index: number): number {
+    if (index < 0 || index >= CELL_COUNT || this.owner[index] === WATER) return 0;
+    return localDefenseStrength(this.defense[index], this.frontline[index]);
+  }
 
   /** Snap an attack to the nearest reachable sector on the clicked faction's shared border.
    * Commands are local to the front, never a direction from the capital.
@@ -312,7 +359,7 @@ export class Game {
         if (captured) order.conquered++;
       }
       if (unreachable || order.remaining < 0.01) {
-        if (unreachable && order.remaining > 0) attacker.troops = Math.min(9000, attacker.troops + order.remaining);
+        if (unreachable && order.remaining > 0) attacker.troops += order.remaining;
         const pos = this.attackOrders.findIndex(o => o.id === order.id);
         if (pos >= 0) this.attackOrders.splice(pos, 1);
         if (attacker.id === 0) this.log(`Offensive beendet · ${order.conquered} Sektoren erobert.`, attacker.color);
@@ -348,8 +395,8 @@ export class Game {
       const defender = neutral ? null : this.factions[opponent];
       const assessment = assessInvasion({
         attackerTroops: faction.troops, attackerIncome: faction.income,
-        defenderTroops: defender?.troops ?? 0, defenderIncome: defender?.income ?? 0,
-        garrison: this.defense[i], capital: !!city, neutral,
+        defenderTroops: defender ? Math.min(defender.troops * 0.15, 40 + defender.income * 3) : 0, defenderIncome: defender?.income ?? 0,
+        garrison: this.sectorDefense(i), capital: !!city, neutral,
         threatenedBorders: exposed,
       });
       if (!assessment.worthwhile) continue;
@@ -364,8 +411,9 @@ export class Game {
   }
 
   private strike(faction: Faction, index: number, spent: number): boolean {
-    // All attacks face the existing garrison and a real troop reaction.
-    // Depleted reserves cannot defend, making all-in offensives risky.
+    // The local garrison and stationed frontline troops fight first.
+    // Only a limited emergency contingent may arrive from the national reserve:
+    // a distant empire cannot instantly defend every weak point at full power.
     const originalOwner = this.owner[index];
     const rawDamage = spent * (0.95 + this.rng() * 0.22);
     let mitigation = 0;
@@ -373,14 +421,23 @@ export class Game {
       const defender = this.factions[originalOwner];
       const capital = this.cities.some(c => c.index === index);
       const fortified = originalOwner === 0 && this.doctrine === 'fortify';
-      const interception = interceptAttack(defender.troops, rawDamage, fortified, capital);
-      defender.troops -= interception.used;
-      defender.defenseSpent += interception.used;
-      mitigation = interception.blocked;
+      const local = interceptAttack(this.frontline[index], rawDamage, fortified, capital);
+      this.frontline[index] -= local.used;
+      defender.defenseSpent += local.used;
+      mitigation += local.blocked;
+
+      // Capital dispatches slightly more mobile emergency defenders.
+      const emergencyLimit = Math.min(defender.troops, rawDamage * (capital ? 0.23 : 0.10));
+      const emergency = interceptAttack(emergencyLimit, Math.max(0, rawDamage - mitigation), fortified, capital);
+      defender.troops -= emergency.used;
+      defender.defenseSpent += emergency.used;
+      mitigation += emergency.blocked;
     }
-    this.defense[index] -= rawDamage - mitigation;
+    this.defense[index] -= Math.max(0.01, rawDamage - Math.min(mitigation, rawDamage * 0.94));
     if (this.defense[index] > 0) return false;
     this.owner[index] = faction.id;
+    // Remaining local defenders are lost when their sector is overrun.
+    this.frontline[index] = 0;
     this.defense[index] = faction.id === 0 && this.doctrine === 'fortify' ? 27 : 11;
     faction.captured++;
     const city = this.cities.find(c => c.index === index);
@@ -412,8 +469,11 @@ export class Game {
     }
     this.recount();
     for (const faction of this.factions) {
+      if (faction.alive) faction.troops += faction.income;
+    }
+    this.redistributeFrontline();
+    for (const faction of this.factions) {
       if (!faction.alive) continue;
-      faction.troops = Math.min(9000, faction.troops + faction.income);
       if (faction.id === 0) {
         // Human troops move only when explicitly ordered by clicking an adjacent faction.
         this.resolveOrders(faction);
