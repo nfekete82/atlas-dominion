@@ -366,7 +366,7 @@ export class Game {
     if (owner === WATER) return failed('Angriff auf Wasser nicht möglich.');
     if (owner === id) return failed('Das ist dein eigenes Gebiet.');
     const front = landing ? cellToPoint(index) : this.findAttackFront(id, target);
-    if (landing ? !this.canLand(id,target) : !front)
+    if (!front || (landing && !this.canLand(id,target)))
       return failed(landing ? 'Keine eigene Küste an diesem Seeübergang.' : 'Zu weit von unserer Grenze entfernt – näher an die Front klicken.');
     const sent = Math.floor(attacker.troops * ratio / 100);
     if (sent < 8) return failed('Mindestens 8 mobile Truppen erforderlich.');
