@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { BUILDING_CODES } from '../dist/src/engine/economy.js';
 import {buildingMarkerFor,showBuildingMarker,buildingMarkerFontSize} from '../dist/src/render/building-markers.js';
 
-test('all five actual constructed building types have legible marker glyphs without background shapes',()=>{
+test('constructed cities have legible marker glyphs without background shapes',()=>{
+  assert.deepEqual(BUILDING_CODES,{city:1});
   for(const [type,code] of Object.entries(BUILDING_CODES)){
     const marker=buildingMarkerFor(code);
     assert.ok(marker,'missing symbol for '+type);
