@@ -12,7 +12,7 @@ const WAVE_STEP_MS = 55;
 const MAX_DELAY_MS = 165;
 
 /**
- * Tracks only changed sectors, not 19k animated tiles per frame.
+ * Tracks only changed sectors, not all map tiles per frame.
  * A multi-source BFS delays chained captures in the same simulation tick:
  * cells touching the old front animate first, deeper cells follow.
  */

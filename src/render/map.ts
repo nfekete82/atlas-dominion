@@ -28,8 +28,8 @@ export class MapRenderer {
   private combatEdges: Array<{ ax:number; ay:number; bx:number; by:number }> = [];
   private combatLabels: Array<{ pos:Point; troops:number }> = [];
   game: Game;
-  onSelect: (point: Point) => void = () => {};
-  onHover: (point: Point | null, px: number, py: number) => void = () => {};
+  onSelect: (point: Point, landing: boolean) => void = () => {};
+  onHover: (point: Point | null, px: number, py: number, landing: boolean) => void = () => {};
 
   constructor(canvas: HTMLCanvasElement, game: Game) {
     this.canvas = canvas;
@@ -215,8 +215,9 @@ export class MapRenderer {
   canAttack(point: Point): boolean {
     const x = Math.floor(point.x), y = Math.floor(point.y);
     if (x < 0 || y < 0 || x >= MAP_WIDTH || y >= MAP_HEIGHT) return false;
-    return this.availableTargets.has(this.game.owner[y * MAP_WIDTH + x]);
+    return this.availableTargets.has(this.game.owner[y * MAP_WIDTH + x]) && this.game.isDirectBorderTarget(0,point);
   }
+  canLand(point: Point): boolean { return this.game.canLand(0,point); }
   private drawTroopBadges(c: CanvasRenderingContext2D) {
     c.save();
     const width = this.canvas.clientWidth, height = this.canvas.clientHeight;
@@ -272,6 +273,33 @@ export class MapRenderer {
     }
     c.restore();
   }
+  private drawLandingPorts(c: CanvasRenderingContext2D, timestamp: number) {
+    const seen=new Set<number>();
+    c.save();
+    for(const [a,b] of SEA_CROSSINGS) for(const i of [a,b]){
+      if(seen.has(i))continue;
+      seen.add(i);
+      const owner=this.game.owner[i];
+      if(owner===WATER)continue;
+      const spot={x:i%MAP_WIDTH,y:Math.floor(i/MAP_WIDTH)};
+      const pos=pointToWorld(spot);
+      const reachable=this.game.canLand(0,spot);
+      const occupied=owner===0;
+      c.beginPath();c.arc(pos.x,pos.y,reachable?9:5.5,0,Math.PI*2);
+      c.fillStyle=reachable?'rgba(255,204,119,.25)':'rgba(8,22,29,.78)';
+      c.fill();
+      c.lineWidth=reachable?2:1;
+      c.strokeStyle=reachable?'#ffdd96':occupied?'#e6b65f':'#82a4a4';
+      c.stroke();
+      if(reachable){
+        c.fillStyle='#fff0cf';c.font='900 11px system-ui';c.textAlign='center';
+        c.fillText('⚓',pos.x,pos.y+4);
+        c.beginPath();c.arc(pos.x,pos.y,12.5+Math.sin(timestamp/260)*1.5,0,Math.PI*2);
+        c.lineWidth=1;c.strokeStyle='rgba(255,212,150,.5)';c.stroke();
+      }
+    }
+    c.restore();
+  }
   private drawCaptureWave(c: CanvasRenderingContext2D, timestamp: number) {
     const captures=this.wave.active(timestamp);
     if (!captures.length) return;
@@ -316,6 +344,7 @@ export class MapRenderer {
     c.drawImage(this.base,0,0);
     c.drawImage(this.overlay,0,0);
     this.drawCaptureWave(c, timestamp);
+    this.drawLandingPorts(c, timestamp);
     for (const city of this.game.cities) {
       const f = city.owner >= 0 ? this.game.factions[city.owner] : null;
       const pos = pointToWorld(city);
@@ -347,7 +376,7 @@ export class MapRenderer {
       const x=this.hover.x*CW, y=this.hover.y*CH;
       const i=this.hover.y*MAP_WIDTH+this.hover.x;
       if (this.game.owner[i]!==WATER) {
-        const canAttack=this.canAttack(this.hover);
+        const canAttack=this.canAttack(this.hover) || this.canLand(this.hover);
         c.strokeStyle=canAttack?'#a8ffc1':'#f9e4ad'; c.lineWidth=canAttack?2.5:1.5;
         if(canAttack){c.fillStyle='rgba(136,255,177,.17)';c.fillRect(x,y,CW,CH);}
         c.strokeRect(x,y,CW,CH);
@@ -370,7 +399,21 @@ export class MapRenderer {
     const box=this.canvas.getBoundingClientRect();
     return {x:(clientX-box.left-this.ox)/this.scale,y:(clientY-box.top-this.oy)/this.scale};
   }
-  private cellAt(clientX:number,clientY:number):Point|null {
+  private cellAt(clientX:number,clientY:number,landing=false):Point|null {
+    if(landing) {
+      const box=this.canvas.getBoundingClientRect();
+      const px=clientX-box.left, py=clientY-box.top;
+      let nearest:Point|null=null, minD=16*16;
+      for(const [a,b] of SEA_CROSSINGS) for(const index of [a,b]) {
+        const point={x:index%MAP_WIDTH,y:Math.floor(index/MAP_WIDTH)};
+        if(!this.game.canLand(0,point))continue;
+        const pos=pointToWorld(point);
+        const dx=this.ox+pos.x*this.scale-px, dy=this.oy+pos.y*this.scale-py;
+        const d=dx*dx+dy*dy;
+        if(d<minD){minD=d;nearest=point;}
+      }
+      if(nearest)return nearest;
+    }
     const p=this.worldAt(clientX,clientY);
     const x=Math.floor(p.x/CW),y=Math.floor(p.y/CH);
     if(x<0||y<0||x>=MAP_WIDTH||y>=MAP_HEIGHT)return null;
@@ -388,16 +431,16 @@ export class MapRenderer {
         if(this.moved){this.ox+=dx;this.oy+=dy;}
         this.last={x:e.clientX,y:e.clientY};
       }
-      this.hover=this.cellAt(e.clientX,e.clientY);
+      this.hover=this.cellAt(e.clientX,e.clientY,e.shiftKey);
       const box=this.canvas.getBoundingClientRect();
-      this.onHover(this.hover,e.clientX-box.left,e.clientY-box.top);
+      this.onHover(this.hover,e.clientX-box.left,e.clientY-box.top,e.shiftKey);
     });
     this.canvas.addEventListener('pointerup',e=>{
-      if(!this.moved){const p=this.cellAt(e.clientX,e.clientY);if(p)this.onSelect(p);}
+      if(!this.moved){const p=this.cellAt(e.clientX,e.clientY,e.shiftKey);if(p)this.onSelect(p,e.shiftKey);}
       this.dragging=false;
     });
     this.canvas.addEventListener('pointercancel',()=>{this.dragging=false;});
-    this.canvas.addEventListener('pointerleave',()=>{this.hover=null;this.onHover(null,0,0);});
+    this.canvas.addEventListener('pointerleave',()=>{this.hover=null;this.onHover(null,0,0,false);});
     this.canvas.addEventListener('wheel',e=>{
       e.preventDefault();
       const b=this.canvas.getBoundingClientRect();

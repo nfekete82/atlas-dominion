@@ -15,7 +15,7 @@ let audio: AudioContext | null = null;
 let prevStatus = game.status;
 let modalVisible = false;
 let attackRatio = 35;
-let attackMessage = 'Klicke direkt auf die feindliche Grenze.';
+let attackMessage = 'Grenzsektor anklicken · SHIFT+Klick für Seelandung.';
 let attackMessageKind: 'neutral'|'success'|'error' = 'neutral';
 
 function beep(freq = 440, duration = 0.08) {
@@ -83,14 +83,14 @@ function setAttackRatio(value:number) {
 }
 $('attackRatio').addEventListener('input',e=>setAttackRatio(Number((e.target as HTMLInputElement).value)));
 for (const btn of document.querySelectorAll<HTMLButtonElement>('[data-ratio]')) btn.addEventListener('click',()=>setAttackRatio(Number(btn.dataset.ratio)));
-renderer.onSelect = (point:Point) => {
-  const result = game.launchAttack(0, point, attackRatio);
-  attackMessage = result.ok ? `${format(result.sent)} Truppen · Angriff direkt an der Front gestartet.` : result.reason;
+renderer.onSelect = (point:Point, landing:boolean) => {
+  const result = landing ? game.launchLanding(0, point, attackRatio) : game.launchAttack(0, point, attackRatio);
+  attackMessage = result.ok ? `${format(result.sent)} Truppen · ${landing?'Seelandung (4 Ticks Anfahrt)':'Grenzoffensive'} gestartet.` : result.reason;
   attackMessageKind = result.ok ? 'success' : 'error';
   beep(result.ok ? 620 : 190);
   update();
 };
-renderer.onHover=(point,px,py)=>{
+renderer.onHover=(point,px,py,landing)=>{
   const tooltip=$('mapInfo');
   if(!point || game.owner[pointToIndex(point)]===WATER){tooltip.hidden=true;return;}
   tooltip.hidden=false;
@@ -110,8 +110,13 @@ renderer.onHover=(point,px,py)=>{
     : '⚔ UNBESETZT';
   const action = $('hoverAction');
   const attackable = renderer.canAttack(point);
-  action.textContent = id===0 ? 'EIGENES TERRITORIUM' : attackable ? `KLICK: ${attackRatio} % AN DIESER FRONT` : 'KEINE GEMEINSAME GRENZE';
-  action.classList.toggle('blocked',id!==0&&!attackable);
+  const canLand = renderer.canLand(point);
+  action.textContent = id===0 ? 'EIGENES TERRITORIUM'
+    : landing && canLand ? `SHIFT+KLICK: ${attackRatio} % LANDEANGRIFF`
+    : attackable ? `KLICK: ${attackRatio} % GRENZANGRIFF`
+    : canLand ? 'SHIFT+KLICK: SEELANDUNG'
+    : 'KEIN DIREKTER GRENZKONTAKT';
+  action.classList.toggle('blocked',id!==0&&!attackable&&!canLand);
   tooltip.style.left=Math.max(4, Math.min(px+15,renderer.canvas.clientWidth-205))+'px';
   tooltip.style.top=Math.max(4, Math.min(py+13,renderer.canvas.clientHeight-97))+'px';
 };
@@ -128,7 +133,7 @@ function closeDialog() {modalVisible=false;$('dialog').hidden=true;}
 function restart() {
   closeDialog();
   game=new Game((Date.now()+Math.floor(Math.random()*100000))%2147483647);
-  attackMessage='Klicke direkt auf die feindliche Grenze.';attackMessageKind='neutral';
+  attackMessage='Grenzsektor anklicken · SHIFT+Klick für Seelandung.';attackMessageKind='neutral';
   renderer.setGame(game);prevStatus=game.status;
   update();
 }
@@ -137,11 +142,12 @@ $('resetBtn').addEventListener('click',()=>showDialog('NEUE OPERATION STARTEN?',
   'NEUE OPERATION →',restart));
 $('helpBtn').addEventListener('click',()=>showDialog('DEIN EINSATZBEFEHL',`
   <p>ATLAS DOMINION ist ein Echtzeit-Eroberungsspiel. Starte in Berlin, erweitere dein Gebiet und kontrolliere mindestens <strong>65 %</strong> Europas.</p>
-  <div class="briefing-row"><b>01</b><span><strong>KLICKEN:</strong> Auf eine gegnerische oder neutrale Grenzregion klicken. Die Truppen kämpfen am nächsten erreichbaren Frontabschnitt – ohne Richtungspfeile.</span></div>
-  <div class="briefing-row"><b>02</b><span><strong>ZIEHEN:</strong> Karte verschieben. Mausrad oder +/− zum Zoomen.</span></div>
-  <div class="briefing-row"><b>03</b><span><strong>FRONT:</strong> Die Angriffslinie leuchtet an der Grenze. Die kleine Zahl zeigt die eingesetzten Truppen. Es gibt keine Marschroute von der Hauptstadt.</span></div>
-  <div class="briefing-row"><b>04</b><span><strong>TRUPPEN:</strong> Prozentregler (5–100 %) bestimmt die pro Klick entsandten Reserven. T/Y ändert den Anteil. Wiederholter Klick verstärkt die Offensive.</span></div>
-  <div class="briefing-row"><b>05</b><span><strong>PAUSE:</strong> Leertaste oder Ⅱ. Mit 1×/2×/4× beschleunigen.</span></div>
+  <div class="briefing-row"><b>01</b><span><strong>KLICKEN:</strong> Nur direkt angrenzende Feindsektoren anklicken. Klicks tief im Feindesland werden abgelehnt – keine Teleportangriffe.</span></div>
+  <div class="briefing-row"><b>02</b><span><strong>SEELANDUNG:</strong> SHIFT gedrückt halten und auf eine markierte Anlegestelle am anderen Ufer klicken. Nur die eingezeichneten Seewege sind erlaubt; die Überfahrt dauert vier Ticks.</span></div>
+  <div class="briefing-row"><b>03</b><span><strong>ZIEHEN:</strong> Karte verschieben. Mausrad oder +/− zum Zoomen.</span></div>
+  <div class="briefing-row"><b>04</b><span><strong>FRONT:</strong> Die Angriffslinie leuchtet an der Grenze. Die kleine Zahl zeigt die eingesetzten Truppen. Es gibt keine Marschroute von der Hauptstadt.</span></div>
+  <div class="briefing-row"><b>05</b><span><strong>TRUPPEN:</strong> Prozentregler (5–100 %) bestimmt die pro Klick entsandten Reserven. T/Y ändert den Anteil. Wiederholter Klick verstärkt die Offensive.</span></div>
+  <div class="briefing-row"><b>06</b><span><strong>PAUSE:</strong> Leertaste oder Ⅱ. Mit 1×/2×/4× beschleunigen.</span></div>
   <p><strong>Doktrinen:</strong> EXPAND senkt die Kosten neutraler Eroberungen und erhöht deren Geschwindigkeit, BLITZ erhöht die Angriffsfrequenz, DEFENSE stärkt Einkommen und Garnisonen. Mit 1, 2, 3 umschalten.</p>
   <p>Bedrohte Grenzen erhalten stationierte Soldaten aus der mobilen Reserve. Freie Truppen dienen für Angriffe und begrenzte Notfall-Verstärkungen. Nicht mehr bedrohte Grenzabschnitte geben ihre Truppen zurück. Die KI bevorzugt schwache Frontabschnitte, wenn sich der Angriff lohnt. Die 9.000er-Obergrenze wurde entfernt; Einkommen wächst überproportional mit dem Staatsgebiet.</p>`));
 $('dialogClose').addEventListener('click',closeDialog);

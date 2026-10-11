@@ -32,3 +32,6 @@
 .auto-guard strong{font-size:10px;color:#a9e4c4;letter-spacing:1px}
 .auto-guard span{font-size:10px;color:#b2c8bc;line-height:1.45}
 .auto-guard small{font-size:9px;color:#cde1d0;font-variant-numeric:tabular-nums}
+
+/* v0.7: more room for the playable map on widescreens. */
+@media(min-width:1201px){.sidebar{width:274px}.topbar{height:66px}.map-heading{top:14px;left:22px}.map-heading h1{font-size:clamp(24px,2.45vw,38px);margin:5px 0 3px}.map-subtitle{font-size:11px;max-width:440px}}
