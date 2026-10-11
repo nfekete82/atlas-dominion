@@ -1,16 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { armyIncome, attackFrontWidth, frontierTarget, frontierBudget, localDefenseStrength } from '../dist/src/engine/frontline.js';
+import { attackFrontWidth, frontierTarget, frontierBudget, localDefenseStrength } from '../dist/src/engine/frontline.js';
 import { Game, NEUTRAL, neighbors, landNeighbors, cellToPoint } from '../dist/src/engine/game.js';
+import {troopGrowth, taxRevenue} from '../dist/src/engine/economy.js';
+
 
 test('bigger empires produce disproportionately more recruits with no 9000 ceiling',()=>{
-  const small=armyIncome(100,1,19804), mid=armyIncome(2500,5,19804), large=armyIncome(9000,8,19804);
+  const small=troopGrowth(100,100,1,0),mid=troopGrowth(2500,2500,1,2),large=troopGrowth(9000,9000,1,8);
   assert.ok(small>0 && mid>small*10 && large>mid*3);
+  assert.ok(taxRevenue(9000,500,1,5)>taxRevenue(100,500,1,5));
   const game=new Game(135,0);
   game.factions[0].troops=12000;
   game.step();
   assert.ok(game.factions[0].troops>12000);
-  assert.equal(armyIncome(0,0,19804),0);
+  assert.equal(troopGrowth(9000,0,0,0),0);
 });
 
 test('frontline budgeting preserves reserves and scales with available income',()=>{
@@ -72,4 +75,6 @@ test('larger armies can attack across a wider local front, without an unlimited 
   assert.ok(large<=22);
   assert.ok(attackFrontWidth(500,true,false)>attackFrontWidth(500,false,false));
   assert.ok(attackFrontWidth(500,false,true)>attackFrontWidth(500,false,false));
+  assert.ok(attackFrontWidth(300,false,false)>attackFrontWidth(30,false,false));
+  assert.ok(attackFrontWidth(2000,false,false)>attackFrontWidth(300,false,false));
 });
