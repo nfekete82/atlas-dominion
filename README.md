@@ -1,5 +1,20 @@
 # ATLAS DOMINION
 
+**v1.2.1 – BALANCIERTES GELD & KOMPAKTE ZAHLEN**
+
+## Wirtschaft und Anzeige repariert
+
+- Die direkte Multiplikation `Anzahl Städte × Einwohnerzahl` wurde aus dem Wachstumsmodell entfernt. Solche multiplikativen Effekte verursachten binnen Minuten astronomische Einwohnerzahlen, Kassenstände und Tick-Einnahmen.
+- Bevölkerung wächst weiterhin mit den vorhandenen Einwohnern, dem kontrollierten Land, Hauptstädten und gebauten Städten. Zusätzliche Städte bringen aber **abnehmende Wachstumsvorteile** (Quadratwurzel statt Exponentialeffekt).
+- Steuereinnahmen sind nun deutlich niedriger, steigen aber weiter nachvollziehbar mit der Bevölkerung; Städte und Territorium bieten kleine Zusatzboni.
+- **Einheitliche Kurzschreibweise** in allen Zahlenanzeigen: `1,5K` (Tausend), `2,5M` (Millionen), `3,2 Mrd.` (Milliarden), `1,2 Bio.` (Billionen). Einwohner, Truppen, Geld, Tick-Wachstum, Angriffe, Verteidigung und Länderliste nutzen dieselbe Formatierung.
+- Extremen Zahlen wird notfalls eine kurze wissenschaftliche Darstellung gegeben. Zweispaltige Statistikfelder brechen Zahlen nicht mehr über viele Zeilen um.
+- Langzeittests prüfen, dass zahlreiche Städte über Tausende Simulationsschritte **kein exponentielles Wachstum** auslösen und neue Partien numerisch stabil bleiben.
+
+**Nach dem Update eine neue Partie beginnen.** Bereits durch die alte Formel im Browser entstandene Fantasiezahlen werden durch die Korrektur nicht rückwirkend reduziert.
+
+---
+
 **v1.2 – ECHTE KAMPFVERLUSTE, SCHLAUERE KI & ORGANISCHE FRONTEN**
 
 ## Neu in v1.2
