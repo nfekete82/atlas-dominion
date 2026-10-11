@@ -142,7 +142,7 @@ test('Attack click rejects own land, open sea, unreachable targets and invalid r
   assert.equal(g.launchAttack(0,cellToPoint(farNeutral),35).ok,false);
 });
 
-test('Clicking a real enemy border cell works, but its distant capital does not',()=>{
+test('Direct border clicks and nearby capital clicks both attack from the connected front',()=>{
   const g = new Game(33);
   const enemyCity = g.cities[1];
   const enemyBorder = g.owner.findIndex((owner,i)=>owner===1 && landNeighbors(i).some(n=>g.owner[n]===NEUTRAL));
@@ -150,11 +150,23 @@ test('Clicking a real enemy border cell works, but its distant capital does not'
   const neighbor = landNeighbors(enemyBorder).find(i=>g.owner[i]===NEUTRAL);
   assert.notEqual(neighbor,undefined);
   g.owner[neighbor] = 0;
-  assert.equal(g.launchAttack(0,enemyCity,25).ok,false);
-  const result=g.launchAttack(0,cellToPoint(enemyBorder),25);
-  assert.equal(result.ok,true);
-  assert.equal(result.targetOwner,1);
-  assert.deepEqual(result.front,cellToPoint(enemyBorder));
+
+  // Directly selected enemy border tiles are always valid attack anchors.
+  const direct = g.launchAttack(0,cellToPoint(enemyBorder),25);
+  assert.equal(direct.ok,true);
+  assert.equal(direct.targetOwner,1);
+  assert.deepEqual(direct.front,cellToPoint(enemyBorder));
+
+  // This seeded capital is close enough for the new 14-cell click tolerance.
+  // The click may target the capital, but the army must start at our border.
+  const capitalFront = g.findAttackFront(0,enemyCity);
+  assert.ok(capitalFront);
+  assert.equal(g.isDirectBorderTarget(0,capitalFront),true);
+  assert.equal(g.owner[pointToIndex(capitalFront)],1);
+  const nearby = g.launchAttack(0,enemyCity,25);
+  assert.equal(nearby.ok,true);
+  assert.deepEqual(nearby.front,capitalFront);
+  assert.deepEqual(g.attackOrders.at(-1).anchor,capitalFront);
 });
 
 test('Running attacks use only the committed army and preserve deterministic replay',()=>{
