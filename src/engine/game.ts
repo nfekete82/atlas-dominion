@@ -664,6 +664,7 @@ export class Game {
       mitigation+Math.min(Math.max(0,garrisonStrength),rawDamage)*.35,
       originalOwner===NEUTRAL,capital);
     faction.attackFallen+=this.lastAttackerLoss;
+    if(defender)defender.enemyFallen+=this.lastAttackerLoss;
     this.defense[index]-=Math.max(0.01,rawDamage-Math.min(mitigation,rawDamage*.94));
     if(this.defense[index]>0){if(defender)faction.enemyFallen+=defenderLosses;return false;}
     this.owner[index] = faction.id;
