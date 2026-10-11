@@ -44,3 +44,27 @@ export function interceptAttack(available: number, incomingDamage: number, forti
   const blocked = Math.min(incomingDamage * 0.88, used * (fortified ? 1.12 : 0.84));
   return { used, blocked };
 }
+
+/** Real combat casualties, distinct from temporary engagement/effort.
+ * Neutral expansion costs campaigning effort but no lives; low-resistance
+ * hostile territory has small losses, defended capitals are expensive.
+ * Numbers are bounded by the actual soldiers engaged.
+ */
+export function attackerCasualties(
+  engaged: number,
+  resisted: number,
+  neutral: boolean,
+  capital: boolean,
+): number {
+  if(neutral || engaged<=0)return 0;
+  const pressure=Math.max(0,resisted)/Math.max(1,engaged);
+  const fraction=Math.min(.52,(capital?.10:.035)+Math.min(.39,pressure*.21));
+  return Math.max(0,Math.min(engaged,engaged*fraction));
+}
+
+/** Remaining survivors are soldiers and inhabitants, not expended resources.
+ * A finite marching budget keeps infinite free neutral captures impossible.
+ */
+export function campaignEffort(people: number): number {
+  return Math.max(0,people)*1.65;
+}
