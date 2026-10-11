@@ -1,5 +1,30 @@
 # ATLAS DOMINION
 
+**v1.4 – AGGRESSIVERE KI, SCHNELLERE EROBERUNG UND BESSERE GRENZVERTEIDIGUNG**
+
+## Was in v1.4 anders ist
+
+- **Deutlich höhere KI-Aktivität:** 6–20 mögliche echte Angriffe je Simulations-Tick (je nach Reichsgröße und Persönlichkeit) statt anfänglich 2. Das ist ein *Maximum*; verfügbare echte Soldaten, Feindstärke und Marschausdauer begrenzen alle Angriffe.
+- **Stärkere KI-Angriffe:** Der einzelne Frontschlag setzt auf neutralem Land bis zu 17, gegen gegnerische Gebiete abhängig vom KI-Stil bis zu 29–34 vorhandene Soldaten ein. Die KI nimmt so feindliche Sektoren entschlossener ins Visier.
+- **Erhöhte Marschausdauer:** KI startet mit 110 statt 32 Ausdauerpunkten, regeneriert wesentlich schneller (mindestens 12 je Tick; begrenzt nach realem Einwohnerwachstum) und kann bis zu 300 ansparen. Ausdauer ist **keine zusätzliche Bevölkerung**.
+- **Mutigere Entscheidungen, aber weiterhin taktisch:** Die vier Persönlichkeiten bekommen jeweils eine eigene **begrenzte Risikotoleranz**. Die KI greift eher einen leicht stärkeren Nachbarn an, meidet jedoch aussichtslose Großmächte. Die tatsächlichen Angriffsverluste, Einwohner und Grenzregeln bleiben unverändert.
+- **Fokussierte Offensiven:** Der letzte echte Frontkontakt erhält einen begrenzten taktischen Fokusbonus. Bots versuchen, einen Durchbruch fortzusetzen, statt ständig das Ziel zu wechseln. Kein Überspringen fremder Gebiete oder Wasser.
+- **Grenzverteidigung schneller:** Gefährdete Grenzen können pro Tick mehr eigene mobile Truppen erhalten; eine feste Mindestreserve verhindert, dass jeder Soldat dauerhaft stationiert wird. Das Militärbudget überträgt echte Truppen und erschafft keine neuen.
+- **Spieler-Regeln unverändert:** Du wählst weiterhin Einsatz-Prozent, Zielgebiete und Militärdoktrin. Die KI bekommt keinen versteckten Schadensbonus und ignoriert keine lokalen Verluste.
+- Die Karte, der Städtebau, Geldwirtschaft, die KI-Persönlichkeiten und die v1.3.1-Kampfverluste bleiben erhalten.
+
+## Neue Tests
+`tests/ai-tactics.test.mjs` testet begrenzte KI-Ausdauer, maximale Angriffe, Truppeneinsatz, real bezahlte Grenzstationierung, Zielrisko und deterministische Multiplayer-Simulation. Bestehende Tests prüfen weiterhin Wirtschafts- und Kampfverluste.
+
+```bash
+cd ~/Projects/atlas-dominion
+git switch main
+git pull --ff-only origin main
+npm test && PORT=8095 npm run dev
+```
+
+---
+
 **v1.3.1 – SICHTBARE KAMPFVERLUSTE UND KLARE EINWOHNERANZEIGE**
 
 ## Warum die Einwohner scheinbar nie sanken
