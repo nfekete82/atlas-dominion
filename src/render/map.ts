@@ -9,8 +9,8 @@ const CW = WORLD_WIDTH / MAP_WIDTH;
 const CH = WORLD_HEIGHT / MAP_HEIGHT;
 const X_EDGES = pixelGridEdges(MAP_WIDTH, WORLD_WIDTH);
 const Y_EDGES = pixelGridEdges(MAP_HEIGHT, WORLD_HEIGHT);
-const FLAGS = new Map(COUNTRY_STARTS.map(country=>[country.name,
-  country.code==='XK'?'🇽🇰':[...country.code].map(c=>String.fromCodePoint(127397+c.charCodeAt(0))).join('')
+const FLAGS=new Map(COUNTRY_STARTS.map(country=>[country.name,
+  country.code==='XK'?'🇽🇰':[...country.code].map(ch=>String.fromCodePoint(127397+ch.charCodeAt(0))).join('')
 ]));
 
 export class MapRenderer {
@@ -232,12 +232,124 @@ export class MapRenderer {
         this.frontierLabels.push({id,pos:pointToWorld({x,y}),troops:entry.troops});
       }
     }
-    // Country names and armies use light cartographic labels instead of
-    // black tactical panels. Near neighbours remain visible; distant tiny
-    // states fade out until the player zooms in.
+    // One prominent troop badge per active faction; anchor remains on owned land
+    // even when the centroid lies outside a concave or fragmented territory.
+    const best = new Float64Array(this.game.factions.length).fill(Infinity);
+    const anchor = new Int32Array(this.game.factions.length).fill(-1);
+    for (let i = 0; i < owners.length; i++) {
+      const id = owners[i];
+      if (id < 0 || !counts[id]) continue;
+      const dx = (i % MAP_WIDTH) - sumX[id] / counts[id];
+      const dy = Math.floor(i / MAP_WIDTH) - sumY[id] / counts[id];
+      const distance = dx * dx + dy * dy;
+      if (distance < best[id]) { best[id] = distance; anchor[id] = i; }
+    }
+    this.labels = [...anchor].flatMap((index,id)=>index < 0 ? [] : [{ id,
+      pos: pointToWorld({ x: index % MAP_WIDTH, y: Math.floor(index / MAP_WIDTH) }) }]);
+
+    this.refreshHoverPreview(this.hover, true);
+    this.combatEdges = [];
+    this.combatLabels = [];
+    for (const order of this.game.attackOrders) {
+      if (order.factionId !== 0 || order.remaining < 0.01) continue;
+      const radius = Math.min(40, 8 + Math.sqrt(order.conquered) * 2.5);
+      const radius2 = radius * radius;
+      let sumX = 0, sumY = 0, contacts = 0;
+      const minX = Math.max(0, Math.floor(order.anchor.x - radius));
+      const maxX = Math.min(MAP_WIDTH - 1, Math.ceil(order.anchor.x + radius));
+      const minY = Math.max(0, Math.floor(order.anchor.y - radius));
+      const maxY = Math.min(MAP_HEIGHT - 1, Math.ceil(order.anchor.y + radius));
+      for (let y = minY; y <= maxY; y++) for (let x = minX; x <= maxX; x++) {
+        const i = y * MAP_WIDTH + x;
+        if (owners[i] !== order.targetOwner || (x-order.anchor.x)**2+(y-order.anchor.y)**2 > radius2) continue;
+        const left = x > 0 && owners[i-1] === order.factionId;
+        const right = x+1 < MAP_WIDTH && owners[i+1] === order.factionId;
+        const top = y > 0 && owners[i-MAP_WIDTH] === order.factionId;
+        const bottom = y+1 < MAP_HEIGHT && owners[i+MAP_WIDTH] === order.factionId;
+        const px=x*CW, py=y*CH;
+        if (left) this.combatEdges.push({ax:px,ay:py,bx:px,by:py+CH});
+        if (right) this.combatEdges.push({ax:px+CW,ay:py,bx:px+CW,by:py+CH});
+        if (top) this.combatEdges.push({ax:px,ay:py,bx:px+CW,by:py});
+        if (bottom) this.combatEdges.push({ax:px,ay:py+CH,bx:px+CW,by:py+CH});
+        if (left||right||top||bottom) {sumX+=px+CW/2;sumY+=py+CH/2;contacts++;}
+      }
+      if (contacts) this.combatLabels.push({pos:{x:sumX/contacts,y:sumY/contacts},troops:order.remaining});
+    }
+  }
+  /** Cache the currently chosen real border; keyboard and tooltip reuse it. */
+  previewFront(point: Point): Point | null {
+    const i=Math.floor(point.y)*MAP_WIDTH+Math.floor(point.x);
+    if(i===this.hoverIndex)return this.hoverFront;
+    return this.game.findAttackFront(0,point);
+  }
+
+  /** Rebuild only when the owner changes or the simulation claims new land.
+   * Full-faction highlight is pre-rendered rather than redrawn every frame.
+   */
+  private refreshHoverPreview(point:Point|null,force=false):void {
+    const index=point?point.y*MAP_WIDTH+point.x:-1;
+    if(!force && index===this.hoverIndex)return;
+    this.hoverIndex=index;
+    const owner=index>=0?this.game.owner[index]:WATER;
+    const front=point && owner!==0 && owner!==WATER
+      ? this.game.findAttackFront(0,point):null;
+    this.hoverFront=front;
+    const highlight=(front && owner>=0)?owner:WATER;
+    if(!force && highlight===this.highlightOwner)return;
+    this.highlightOwner=highlight;
+    const c=this.highlightedCountry.getContext('2d')!;
+    c.clearRect(0,0,WORLD_WIDTH,WORLD_HEIGHT);
+    if(highlight<0)return;
+    const boundary=new Path2D();
+    c.fillStyle='rgba(255,248,213,.17)';
+    const owners=this.game.owner;
+    for(let i=0;i<owners.length;i++){
+      if(owners[i]!==highlight)continue;
+      const col=i%MAP_WIDTH,row=Math.floor(i/MAP_WIDTH);
+      const x=X_EDGES[col],y=Y_EDGES[row],right=X_EDGES[col+1],bottom=Y_EDGES[row+1];
+      c.fillRect(x,y,right-x,bottom-y);
+      if(col===0||owners[i-1]!==highlight){boundary.moveTo(x+.5,y);boundary.lineTo(x+.5,bottom);}
+      if(col===MAP_WIDTH-1||owners[i+1]!==highlight){boundary.moveTo(right-.5,y);boundary.lineTo(right-.5,bottom);}
+      if(row===0||owners[i-MAP_WIDTH]!==highlight){boundary.moveTo(x,y+.5);boundary.lineTo(right,y+.5);}
+      if(row===MAP_HEIGHT-1||owners[i+MAP_WIDTH]!==highlight){boundary.moveTo(x,bottom-.5);boundary.lineTo(right,bottom-.5);}
+    }
+    c.lineJoin='miter';c.lineWidth=2;
+    c.strokeStyle='rgba(255,249,229,.95)';c.stroke(boundary);
+  }
+
+  /** Used by the tooltip; same shared-border predicate as launchAttack(). */
+  canAttack(point: Point): boolean {
+    const x = Math.floor(point.x), y = Math.floor(point.y);
+    if (x < 0 || y < 0 || x >= MAP_WIDTH || y >= MAP_HEIGHT) return false;
+    return this.availableTargets.has(this.game.owner[y * MAP_WIDTH + x]) && this.previewFront(point)!==null;
+  }
+  canLand(point: Point): boolean { return this.game.canLand(0,point); }
+  private drawBuildings(c: CanvasRenderingContext2D): void {
+    // Do not let every tiny settlement compete with the capital and front.
+    if(this.zoom < 1.55)return;
+    c.save();
+    const glyphs=['','⌂','▣','⚔','⬡','⚓'];
+    c.textAlign='center';
+    c.textBaseline='middle';
+    c.font=this.zoom>=2.6?'700 7px system-ui':'600 5.5px system-ui';
+    for(const {index,code} of this.buildingMarkers){
+      const x=(index%MAP_WIDTH+.5)*CW,y=(Math.floor(index/MAP_WIDTH)+.5)*CH;
+      const size=this.zoom>=2.6?7:5.5;
+      c.globalAlpha=this.zoom>=2.6?.74:.50;
+      c.fillStyle='#071c23';
+      c.fillRect(x-size/2,y-size/2,size,size);
+      c.fillStyle=code===4?'#e8bf8c':'#c6e8d5';
+      c.fillText(glyphs[code],x,y+.1);
+    }
+    c.restore();
+  }
+  private drawTroopBadges(c: CanvasRenderingContext2D) {
+    c.save();
+    const width = this.canvas.clientWidth, height = this.canvas.clientHeight;
+    c.textAlign = 'center';
     const boxes: Array<{x:number;y:number}>=[];
     let shown=0;
-    for(const label of this.labels) {
+    for(const label of this.labels){
       const faction=this.game.factions[label.id];
       if(!faction?.alive)continue;
       if(label.id!==0 && this.zoom<1.55 && faction.territory<90)continue;
@@ -246,24 +358,21 @@ export class MapRenderer {
       const x=this.ox+label.pos.x*this.scale;
       let y=this.oy+label.pos.y*this.scale+17;
       if(x<60||x>width-60||y<35||y>height-72)continue;
-      for(let j=0;j<3 && boxes.some(p=>Math.abs(p.x-x)<114&&Math.abs(p.y-y)<31);j++)y+=27;
+      for(let j=0;j<3&&boxes.some(p=>Math.abs(p.x-x)<114&&Math.abs(p.y-y)<31);j++)y+=27;
       if(y>height-72)continue;
       boxes.push({x,y});shown++;
       const flag=FLAGS.get(faction.name)??'';
       const name=(flag?flag+' ':'')+faction.name;
       c.globalAlpha=label.id===0?.95:this.zoom>=2.5?.82:.68;
-      c.textAlign='center';
-      c.lineJoin='round';
+      c.textAlign='center';c.lineJoin='round';
       c.strokeStyle='rgba(246,246,225,.84)';
       c.fillStyle=label.id===0?'#263b46':'#35454a';
       c.lineWidth=2.6;
       c.font=label.id===0?'750 13px system-ui':'650 11px system-ui';
-      c.strokeText(name,x,y,135);
-      c.fillText(name,x,y,135);
+      c.strokeText(name,x,y,135);c.fillText(name,x,y,135);
       const count=Math.floor(this.armyTotals[label.id]??faction.troops).toLocaleString('de-DE');
       c.font=label.id===0?'700 10px system-ui':'600 9px system-ui';
-      c.lineWidth=2;c.strokeText(count,x,y+13,95);
-      c.fillText(count,x,y+13,95);
+      c.lineWidth=2;c.strokeText(count,x,y+13,95);c.fillText(count,x,y+13,95);
     }
     c.globalAlpha=1;
 
