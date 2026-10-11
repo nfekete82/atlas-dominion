@@ -449,7 +449,11 @@ export class MapRenderer {
       // One clear live combat boundary: no pulse, halo, arrows or markers.
       c.save();c.beginPath();
       for(const edge of this.combatEdges){c.moveTo(edge.ax,edge.ay);c.lineTo(edge.bx,edge.by);}
-      c.lineWidth=1.8;c.strokeStyle='#ffe2a3';c.stroke();
+      // Organic warm contact glow, confined to actual front edges.
+      c.lineCap='round';c.lineJoin='round';
+      c.shadowColor='rgba(255,153,83,.56)';c.shadowBlur=5;
+      c.lineWidth=2;c.strokeStyle='#ffbd80';c.stroke();
+      c.shadowBlur=0;c.lineWidth=.85;c.strokeStyle='#fff0c5';c.stroke();
       c.restore();
     }
     // Mouse feedback is now the subtle whole-target tint cached above.
