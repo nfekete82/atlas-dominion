@@ -732,6 +732,14 @@ export class Game {
   private attack(faction:Faction,index:number) {
     if(faction.troops<8)return false;
     const neutral=this.owner[index]===NEUTRAL;
+    // The direct strike helper also serves existing combat regression tests.
+    // Only AI factions use the increased tempo and marching-energy budget.
+    if(!faction.ai){
+      const engaged=Math.min(faction.troops,neutral?8:21);
+      this.strike(faction,index,engaged);
+      faction.troops=Math.max(0,faction.troops-this.lastAttackerLoss);
+      return true;
+    }
     const desired=aiStrikeSize(faction.troops,neutral,aiStyle(faction.id));
     // Only launch with paid-for marching stamina and real living soldiers.
     const engaged=Math.min(desired,Math.floor(faction.campaignEnergy));
