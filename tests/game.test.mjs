@@ -224,7 +224,7 @@ test('Sea corridors do not count as direct land borders',()=>{
 });
 
 test('An explicit landing requires an owned departure shore, and takes time',()=>{
-  const g=new Game(155,0);
+  const g=new Game(155,1);
   const [from,to]=SEA_CROSSINGS[0];
   // Force a known departure sector under the player without adding hidden troops.
   g.owner[from]=0;
