@@ -48,6 +48,13 @@ export class MapRenderer {
   }
 
   setGame(game: Game) { this.game = game; this.wave.reset(game.owner); this.updateTerritory(); this.fit(); }
+  focusOnCapital(point: Point): void {
+    this.zoom = 1.8;
+    this.scale = Math.min(this.canvas.clientWidth / WORLD_WIDTH, this.canvas.clientHeight / WORLD_HEIGHT) * this.zoom;
+    const pos = pointToWorld(point);
+    this.ox = this.canvas.clientWidth / 2 - pos.x * this.scale;
+    this.oy = this.canvas.clientHeight / 2 - pos.y * this.scale;
+  }
   fit() {
     this.zoom = 1;
     this.scale = Math.min(this.canvas.clientWidth / WORLD_WIDTH, this.canvas.clientHeight / WORLD_HEIGHT) * this.zoom;
@@ -226,6 +233,7 @@ export class MapRenderer {
     for (const label of this.labels) {
       const faction = this.game.factions[label.id];
       if (!faction?.alive) continue;
+      if(this.zoom < 1.5 && label.id!==0 && faction.territory < 45) continue;
       const x = this.ox + label.pos.x * this.scale;
       let y = this.oy + label.pos.y * this.scale + 24;
       if (x < 53 || x > width - 53 || y < 37 || y > height - 65) continue;
@@ -355,7 +363,7 @@ export class MapRenderer {
       c.fillStyle='#101b23'; c.fill(); c.lineWidth=2.5; c.strokeStyle=glow; c.stroke();
       c.font='600 11px system-ui'; c.textAlign='center';
       c.shadowColor='#051015';c.shadowBlur=7;
-      c.fillStyle='#f4f0e2'; c.fillText(city.name.toUpperCase(),pos.x,pos.y-17);
+      if(this.zoom > 1.4 || city.original===0) { c.fillStyle='#f4f0e2'; c.fillText(city.name.toUpperCase(),pos.x,pos.y-17); }
       c.shadowBlur=0;
     }
     if (this.game.status === 'playing' && this.combatEdges.length) {
