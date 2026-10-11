@@ -33,6 +33,8 @@ export interface AttackOrder {
   committed: number;
   remaining: number;
   conquered: number;
+  landing?: boolean;
+  startedTick?: number;
 }
 export interface AttackResult { ok: boolean; reason: string; sent: number; targetOwner?: number; front?: Point; }
 export type GameStatus = 'playing' | 'victory' | 'defeat';
@@ -67,6 +69,8 @@ for (let y = 0; y < MAP_HEIGHT; y++) {
     NEIGHBORS[i] = list;
   }
 }
+const LAND_NEIGHBORS = NEIGHBORS.map(list => list.slice());
+// SEA_CROSSINGS are navigation links only; land attacks use LAND_NEIGHBORS.
 // Short sea crossings make islands and Anatolia reachable without a naval system.
 for (const [a, b] of SEA_CROSSINGS) {
   NEIGHBORS[a].push(b);
@@ -94,6 +98,7 @@ export function worldToCell(point: Point): Point {
 }
 export function isLand(index: number): boolean { return IS_LAND[index] === 1; }
 export function neighbors(index: number): readonly number[] { return NEIGHBORS[index]; }
+export function landNeighbors(index: number): readonly number[] { return LAND_LAND_NEIGHBORS[index]; }
 function distance2(a: Point, b: Point) { return (a.x - b.x) ** 2 + (a.y - b.y) ** 2; }
 
 /** Pure seeded RNG for repeatable matches and replay-ready simulation. */
@@ -126,6 +131,8 @@ export class Game {
   doctrine: Doctrine = 'expand';
   private rng: () => number;
   private aiGoalChange = 0;
+  private frontierCandidates: Array<Set<number>> = [];
+  private exposedCounts: number[] = [];
 
   constructor(seed = 2026, opponentCount = 10) {
     this.seed = seed;
@@ -143,7 +150,7 @@ export class Game {
       if (index === -1) throw new Error(`Missing valid capital ${start.capital}`);
       const pos = cellToPoint(index);
       this.cities.push({ name: start.capital, ...pos, index, original: id, owner: id });
-      this.seedTerritory(id, pos, 3.6);
+      this.seedTerritory(id, pos, 5.4);
     }
     this.initialTerritory = this.factions[0].territory;
     this.factions[0].target = geoToCell(9.3, 49.4);
@@ -220,7 +227,7 @@ export class Game {
     if (!this.factions[id]?.alive) return targets;
     for (let i = 0; i < CELL_COUNT; i++) {
       if (this.owner[i] !== id) continue;
-      for (const neighbor of NEIGHBORS[i]) {
+      for (const neighbor of LAND_NEIGHBORS[i]) {
         const owner = this.owner[neighbor];
         if (owner !== id && owner !== WATER) targets.add(owner);
       }
@@ -237,7 +244,7 @@ export class Game {
     for (let i = 0; i < CELL_COUNT; i++) {
       const owner = this.owner[i];
       if (owner < 0) { this.frontline[i] = 0; continue; }
-      const threatened = NEIGHBORS[i].some(n => this.owner[n] >= 0 && this.owner[n] !== owner);
+      const threatened = LAND_NEIGHBORS[i].some(n => this.owner[n] >= 0 && this.owner[n] !== owner);
       if (!threatened) {
         if (this.frontline[i] > 0) {
           this.factions[owner].troops += this.frontline[i];
@@ -273,73 +280,103 @@ export class Game {
     return localDefenseStrength(this.defense[index], this.frontline[index]);
   }
 
-  /** Snap an attack to the nearest reachable sector on the clicked faction's shared border.
-   * Commands are local to the front, never a direction from the capital.
-   */
   /** Count exposed sectors for risk-aware decisions and the defense HUD. */
   threatenedBorders(id: number): number {
     let exposed = 0;
     for (let i = 0; i < CELL_COUNT; i++) {
       if (this.owner[i] !== id) continue;
-      if (NEIGHBORS[i].some(n => this.owner[n] >= 0 && this.owner[n] !== id)) exposed++;
+      if (LAND_NEIGHBORS[i].some(n => this.owner[n] >= 0 && this.owner[n] !== id)) exposed++;
     }
     return exposed;
   }
 
-  findAttackFront(id: number, target: Point): Point | null {
+  /** A target is attackable ONLY if that exact cell touches our land.
+   * Clicking a remote part of the same empire no longer teleports the attack.
+   */
+  isDirectBorderTarget(id: number, target: Point): boolean {
     if (!Number.isFinite(target.x) || !Number.isFinite(target.y) ||
         target.x < 0 || target.y < 0 || target.x >= MAP_WIDTH || target.y >= MAP_HEIGHT ||
-        !this.factions[id]?.alive) return null;
-    const owner = this.owner[pointToIndex(target)];
-    if (owner === WATER || owner === id) return null;
-    let best = -1;
-    let distance = Infinity;
-    for (let i = 0; i < CELL_COUNT; i++) {
-      if (this.owner[i] !== owner || !NEIGHBORS[i].some(n => this.owner[n] === id)) continue;
-      const x = i % MAP_WIDTH, y = Math.floor(i / MAP_WIDTH);
-      const d = (x-target.x)**2 + (y-target.y)**2;
-      if (d < distance) { distance = d; best = i; }
-    }
-    return best < 0 ? null : cellToPoint(best);
+        !this.factions[id]?.alive) return false;
+    const index = pointToIndex(target);
+    return this.owner[index] !== WATER && this.owner[index] !== id &&
+      LAND_NEIGHBORS[index].some(n => this.owner[n] === id);
   }
 
-  /** One click attacks a neighboring faction; ratio is an integer percentage of available troops. */
+  findAttackFront(id: number, target: Point): Point | null {
+    return this.isDirectBorderTarget(id,target) ? cellToPoint(pointToIndex(target)) : null;
+  }
+
+  /** True only for a documented sea corridor with our troops on the opposite shore. */
+  canLand(id: number, target: Point): boolean {
+    if (!Number.isFinite(target.x) || !Number.isFinite(target.y) ||
+        target.x < 0 || target.y < 0 || target.x >= MAP_WIDTH || target.y >= MAP_HEIGHT ||
+        !this.factions[id]?.alive) return false;
+    const index = pointToIndex(target);
+    if (this.owner[index] === id || this.owner[index] === WATER) return false;
+    return SEA_CROSSINGS.some(([a,b]) => (index === a && this.owner[b] === id)
+      || (index === b && this.owner[a] === id));
+  }
+
   launchAttack(id: number, target: Point, ratio: number): AttackResult {
+    return this.issueAttack(id,target,ratio,false);
+  }
+
+  /** Explicit maritime landing: Shift+click the far shore of a known crossing.
+   * No other cross-water movements are allowed, and the landing takes time.
+   */
+  launchLanding(id: number, target: Point, ratio: number): AttackResult {
+    return this.issueAttack(id,target,ratio,true);
+  }
+
+  private issueAttack(id: number, target: Point, ratio: number, landing: boolean): AttackResult {
     const failed = (reason: string): AttackResult => ({ ok: false, reason, sent: 0 });
     const attacker = this.factions[id];
     if (!attacker?.alive || this.status !== 'playing') return failed('Diese Fraktion kann nicht angreifen.');
     if (!Number.isFinite(target.x) || !Number.isFinite(target.y) || target.x < 0 || target.y < 0 || target.x >= MAP_WIDTH || target.y >= MAP_HEIGHT) return failed('Außerhalb der Karte.');
     if (!Number.isFinite(ratio) || ratio < 5 || ratio > 100) return failed('Truppenanteil muss zwischen 5 und 100 % liegen.');
-    const index = pointToIndex(target);
-    const owner = this.owner[index];
+    const index = pointToIndex(target), owner = this.owner[index];
     if (owner === WATER) return failed('Angriff auf Wasser nicht möglich.');
     if (owner === id) return failed('Das ist dein eigenes Gebiet.');
-    const front = this.findAttackFront(id, target);
-    if (!front) return failed('Keine gemeinsame Grenze – zuerst angrenzende Gebiete erobern.');
+    if (landing ? !this.canLand(id,target) : !this.isDirectBorderTarget(id,target))
+      return failed(landing ? 'Keine eigene Küste an diesem Seeübergang.' : 'Kein direkter Grenzkontakt – Grenzsektor anklicken.');
     const sent = Math.floor(attacker.troops * ratio / 100);
-    if (sent < 8) return failed('Mindestens 8 verfügbare Truppen erforderlich.');
+    if (sent < 8) return failed('Mindestens 8 mobile Truppen erforderlich.');
     attacker.troops -= sent;
-    this.attackOrders.push({ id: this.nextAttackId++, factionId: id, targetOwner: owner,
-      anchor: front, committed: sent, remaining: sent, conquered: 0 });
-    if (id === 0) {
-      const targetName = owner === NEUTRAL ? 'NEUTRALGEBIET' : this.factions[owner].name;
-      this.log(`Offensive gegen ${targetName}: ${sent.toLocaleString('de-DE')} Truppen entsandt.`, attacker.color);
-    }
-    return { ok: true, reason: 'Angriff an der Front gestartet.', sent, targetOwner: owner, front };
+    const front = cellToPoint(index);
+    this.attackOrders.push({
+      id:this.nextAttackId++, factionId:id, targetOwner:owner,
+      anchor:front, committed:sent, remaining:sent, conquered:0,
+      landing, startedTick:this.tick,
+    });
+    if (id === 0) this.log(`${landing?'Seelandung':'Grenzoffensive'}: ${sent.toLocaleString('de-DE')} Truppen gegen ${owner===NEUTRAL?'NEUTRALGEBIET':this.factions[owner].name}.`,attacker.color);
+    return {ok:true,reason:landing?'Landung befohlen.':'Grenzangriff gestartet.',sent,targetOwner:owner,front};
   }
 
+  /** Picks only adjacent enemy sectors close to this specific battlefront.
+   * Sea links are excluded; the explicit landing is the sole exception.
+   */
   private chooseOrderedFront(order: AttackOrder): number {
-    let best = -1, score = -Infinity;
-    for (let i = 0; i < CELL_COUNT; i++) {
-      if (this.owner[i] !== order.targetOwner) continue;
-      let friendly = 0;
-      for (const n of NEIGHBORS[i]) if (this.owner[n] === order.factionId) friendly++;
-      if (!friendly) continue;
-      const x = i % MAP_WIDTH, y = Math.floor(i / MAP_WIDTH);
-      const d = Math.hypot(x - order.anchor.x, y - order.anchor.y);
-      const city = this.cities.some(c => c.index === i);
-      const next = friendly * 1.3 - d + (city ? 2 : 0);
-      if (next > score) { score = next; best = i; }
+    const landingIndex = pointToIndex(order.anchor);
+    if (order.landing && order.conquered === 0) {
+      if (this.owner[landingIndex] !== order.targetOwner) return -1;
+      return this.canLand(order.factionId,order.anchor) ? landingIndex : -1;
+    }
+    const candidates = this.frontierCandidates[order.factionId];
+    if (!candidates) return -1;
+    let best=-1, score=-Infinity;
+    const range = 9 + Math.sqrt(order.conquered) * 2.7;
+    const radius2=range*range;
+    for(const i of candidates){
+      if(this.owner[i]!==order.targetOwner)continue;
+      const x=i%MAP_WIDTH, y=Math.floor(i/MAP_WIDTH);
+      const d2=(x-order.anchor.x)**2+(y-order.anchor.y)**2;
+      if(d2>radius2)continue;
+      let friendly=0;
+      for(const n of LAND_NEIGHBORS[i]) if(this.owner[n]===order.factionId)friendly++;
+      if(!friendly)continue;
+      const city=this.cities.some(c=>c.index===i);
+      const next=friendly*1.4-Math.sqrt(d2)+(city?2:0);
+      if(next>score){best=i;score=next;}
     }
     return best;
   }
@@ -348,6 +385,7 @@ export class Game {
     // Spends only the committed budget: active battles cannot silently drain reserve troops.
     const orders = this.attackOrders.filter(o => o.factionId === attacker.id);
     for (const order of orders) {
+      if (order.landing && order.conquered === 0 && this.tick - (order.startedTick ?? 0) < 4) continue;
       const strikes = this.doctrine === 'blitz' && attacker.id === 0 ? 6 : this.doctrine === 'expand' && attacker.id === 0 && order.targetOwner === NEUTRAL ? 5 : 3;
       let unreachable = false;
       for (let k = 0; k < strikes && order.remaining >= 0.01; k++) {
@@ -356,7 +394,7 @@ export class Game {
         const cost = Math.min(order.remaining, order.targetOwner === NEUTRAL ? (attacker.id === 0 && this.doctrine === 'expand' ? 6 : 8) : 21);
         order.remaining -= cost;
         const captured = this.strike(attacker, index, cost);
-        if (captured) order.conquered++;
+        if (captured) { order.conquered++; if (order.landing) order.landing = false; }
       }
       if (unreachable || order.remaining < 0.01) {
         if (unreachable && order.remaining > 0) attacker.troops += order.remaining;
@@ -378,35 +416,55 @@ export class Game {
     }
   }
 
-  /** Attack only when likely gains outweigh losses and border exposure. */
-  private chooseFront(id: number): number {
-    const faction = this.factions[id];
-    const exposed = this.threatenedBorders(id);
-    let best = -1;
-    let bestScore = -Infinity;
-    for (let i = 0; i < CELL_COUNT; i++) {
-      const opponent = this.owner[i];
-      if (opponent === WATER || opponent === id) continue;
-      let friendly = 0;
-      for (const n of NEIGHBORS[i]) if (this.owner[n] === id) friendly++;
-      if (!friendly) continue;
-      const city = this.cities.find(c => c.index === i);
-      const neutral = opponent === NEUTRAL;
-      const defender = neutral ? null : this.factions[opponent];
-      const assessment = assessInvasion({
-        attackerTroops: faction.troops, attackerIncome: faction.income,
-        defenderTroops: defender ? Math.min(defender.troops * 0.15, 40 + defender.income * 3) : 0, defenderIncome: defender?.income ?? 0,
-        garrison: this.sectorDefense(i), capital: !!city, neutral,
-        threatenedBorders: exposed,
-      });
-      if (!assessment.worthwhile) continue;
-      const x = i % MAP_WIDTH, y = Math.floor(i / MAP_WIDTH);
-      const d = Math.hypot(x - faction.target.x, y - faction.target.y);
-      const strategic = neutral ? 19 : 9 + Math.min(28, (assessment.advantage - 1) * 24);
-      const score = strategic - d * 0.80 + friendly * 2.8 + (city ? (neutral ? 7 : 11) : 0) + this.rng() * 1.3;
-      if (score > bestScore) { bestScore = score; best = i; }
+  /** Build compact land-only border sets once per tick. Captures update the sets
+   * incrementally, avoiding repeated full-map scans as the playfield expands.
+   */
+  private rebuildFrontierCandidates(): void {
+    this.frontierCandidates=this.factions.map(()=>new Set<number>());
+    this.exposedCounts=this.factions.map(()=>0);
+    for(let i=0;i<CELL_COUNT;i++){
+      const owner=this.owner[i];
+      if(owner<0)continue;
+      let exposed=false;
+      for(const n of LAND_NEIGHBORS[i]){
+        if(this.owner[n]===owner || this.owner[n]===WATER)continue;
+        this.frontierCandidates[owner].add(n);
+        if(this.owner[n]>=0) exposed=true;
+      }
+      if(exposed)this.exposedCounts[owner]++;
     }
-    faction.intent = best < 0 ? 'hold' : this.owner[best] === NEUTRAL ? 'expand' : 'invade';
+  }
+
+  /** AI attacks worthwhile local borders instead of teleporting toward capitals. */
+  private chooseFront(id: number): number {
+    const faction=this.factions[id];
+    const exposed=this.exposedCounts[id] ?? 0;
+    const candidates=this.frontierCandidates[id];
+    if(!candidates){faction.intent='hold';return -1;}
+    let best=-1, bestScore=-Infinity;
+    for(const i of candidates){
+      const opponent=this.owner[i];
+      if(opponent===WATER || opponent===id){candidates.delete(i);continue;}
+      let friendly=0;
+      for(const n of LAND_NEIGHBORS[i])if(this.owner[n]===id)friendly++;
+      if(!friendly){candidates.delete(i);continue;}
+      const city=this.cities.find(c=>c.index===i);
+      const neutral=opponent===NEUTRAL;
+      const defender=neutral?null:this.factions[opponent];
+      const assessment=assessInvasion({
+        attackerTroops:faction.troops,attackerIncome:faction.income,
+        defenderTroops:defender?Math.min(defender.troops*.15,40+defender.income*3):0,
+        defenderIncome:defender?.income ?? 0,garrison:this.sectorDefense(i),
+        capital:!!city,neutral,threatenedBorders:exposed,
+      });
+      if(!assessment.worthwhile)continue;
+      const x=i%MAP_WIDTH,y=Math.floor(i/MAP_WIDTH);
+      const d=Math.hypot(x-faction.target.x,y-faction.target.y);
+      const strategic=neutral?19:9+Math.min(28,(assessment.advantage-1)*24);
+      const score=strategic-d*.8+friendly*2.8+(city?11:0)+this.rng()*1.3;
+      if(score>bestScore){bestScore=score;best=i;}
+    }
+    faction.intent=best<0?'hold':this.owner[best]===NEUTRAL?'expand':'invade';
     return best;
   }
 
@@ -436,6 +494,13 @@ export class Game {
     this.defense[index] -= Math.max(0.01, rawDamage - Math.min(mitigation, rawDamage * 0.94));
     if (this.defense[index] > 0) return false;
     this.owner[index] = faction.id;
+    // Incrementally update local battlefronts as territory changes.
+    for (const [id,set] of this.frontierCandidates.entries()) {
+      if (id === faction.id) set.delete(index);
+      else if (LAND_NEIGHBORS[index].some(n=>this.owner[n]===id)) set.add(index);
+    }
+    const ownFront=this.frontierCandidates[faction.id];
+    if(ownFront)for(const n of LAND_NEIGHBORS[index]) if(this.owner[n]!==faction.id && this.owner[n]!==WATER) ownFront.add(n);
     // Remaining local defenders are lost when their sector is overrun.
     this.frontline[index] = 0;
     this.defense[index] = faction.id === 0 && this.doctrine === 'fortify' ? 27 : 11;
@@ -472,6 +537,7 @@ export class Game {
       if (faction.alive) faction.troops += faction.income;
     }
     this.redistributeFrontline();
+    this.rebuildFrontierCandidates();
     for (const faction of this.factions) {
       if (!faction.alive) continue;
       if (faction.id === 0) {
