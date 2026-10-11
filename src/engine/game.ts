@@ -253,7 +253,7 @@ export class Game {
     for(const f of this.factions){
       f.alive=f.territory>0;
       const rate=recruitmentRate(f.territory,f.cityCount,f.settlements,f.builtCities,f.barracks);
-      f.income=f.id===0?rate*(this.doctrine==='fortify'?1.20:this.doctrine==='blitz'?.90:1):rate;
+      f.income=f.id===0?rate*(this.doctrine==='fortify'?1.20:this.doctrine==='blitz'?0.90:1):rate;
       f.supplyIncome=supplyRate(f.territory,f.cityCount,f.settlements,f.builtCities,f.harbors);
     }
   }
