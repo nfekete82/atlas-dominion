@@ -11,7 +11,7 @@
 <body>
   <div id="app">
     <header class="topbar">
-      <div class="brand"><div class="brand-icon" aria-hidden="true">◈</div><div class="brand-title">ATLAS <b>DOMINION</b><small>EUROPEAN CONQUEST <span class="version">/ v0.8</span></small></div></div>
+      <div class="brand"><div class="brand-icon" aria-hidden="true">◈</div><div class="brand-title">ATLAS <b>DOMINION</b><small>EUROPEAN CONQUEST <span class="version">/ v0.9</span></small></div></div>
       <div class="top-center"><span class="pulse"></span> <span>OPERATION EUROPA</span><span class="separator">/</span><strong>LIVE SIMULATION</strong></div>
       <div class="top-actions"><button id="helpBtn" class="icon-btn" title="Spielanleitung">?</button><button id="soundBtn" class="icon-btn" title="Sound umschalten">♪</button><button id="fullBtn" class="icon-btn" title="Vollbild">⛶</button><button id="resetBtn" class="new-game">↻ <span>NEUES SPIEL</span></button></div>
     </header>
@@ -30,11 +30,11 @@
       </main>
       <aside class="sidebar">
         <div class="sidebar-section"><div class="section-label">01 <span>DEIN IMPERIUM</span> <i></i></div><div class="faction-hero"><div class="faction-emblem" id="playerFlag">🇩🇪</div><div><small>DU SPIELST ALS</small><strong id="playerName">Deutschland</strong><span class="hero-status"><i class="pulse"></i> EINSATZBEREIT</span></div></div>
-        <div class="stat-grid"><div class="stat"><small>GEBIETE</small><strong id="areaCount">0</strong><span>SEKTOREN</span></div><div class="stat"><small>TRUPPEN</small><strong id="troopCount">0</strong><span>GESAMT (FREIE + FRONT)</span></div><div class="stat"><small>EINKOMMEN</small><strong id="incomeCount">+0</strong><span>PRO TICK</span></div><div class="stat"><small>KONTROLLE</small><strong id="controlCount">0.0%</strong><span>EUROPAS</span></div></div>
+        <div class="stat-grid"><div class="stat"><small>GEBIETE</small><strong id="areaCount">0</strong><span>SEKTOREN</span></div><div class="stat"><small>TRUPPEN</small><strong id="troopCount">0</strong><span>GESAMT (FREIE + FRONT)</span></div><div class="stat"><small>REKRUTEN</small><strong id="incomeCount">+0</strong><span>AUS EINWOHNERN / TICK</span></div><div class="stat"><small>KONTROLLE</small><strong id="controlCount">0.0%</strong><span>EUROPAS</span></div><div class="stat"><small>EINWOHNER</small><strong id="populationCount">0</strong><span id="populationGrowth">+0 PRO TICK</span></div><div class="stat"><small>VORRÄTE</small><strong id="supplyCount">0</strong><span id="supplyGrowth">+0 PRO TICK</span></div></div>
         <div class="progress-label"><span>TERRITORIALER FORTSCHRITT</span><b id="progressLabel">0 / 65%</b></div><div class="progress"><div id="progressFill"></div></div>
         <div class="doctrine-title">KAMPFDOKTRIN <span>· WÄHLE DEINE TAKTIK</span></div>
         <div class="doctrine-buttons"><button data-doctrine="expand" class="selected" title="Neutralgebiete schneller erobern">↗ <span>EXPAND</span></button><button data-doctrine="blitz" title="Mehr und stärkere Angriffe">⚔ <span>BLITZ</span></button><button data-doctrine="fortify" title="Mehr Einkommen und stärkere Verteidigung">⬡ <span>DEFENSE</span></button></div>
-        <div class="auto-guard"><strong>⬡ AUTOMATISCHE GRENZSICHERUNG</strong><span>Verteidiger stationieren eigene Soldaten an bedrohten Grenzen. Schwache Frontabschnitte bleiben leichter angreifbar.</span><small id="borderDefense">0 bedrohte Grenzsektoren · 0 stationiert · 0 mobil</small></div>
+        <div class="build-guide">⌂ RECHTSKLICK AUF EIGENES LAND: BAUMENÜ</div><div class="auto-guard"><strong>⬡ AUTOMATISCHE GRENZSICHERUNG</strong><span>Verteidiger stationieren eigene Soldaten an bedrohten Grenzen. Schwache Frontabschnitte bleiben leichter angreifbar.</span><small id="borderDefense">0 bedrohte Grenzsektoren · 0 stationiert · 0 mobil</small></div>
         <div class="attack-control" aria-label="Truppeneinsatz je Angriff">
           <div class="attack-title"><span>⚔ TRUPPEN PRO ANGRIFF</span><strong id="ratioPercent">35 %</strong></div>
           <input id="attackRatio" type="range" min="5" max="100" step="5" value="35" aria-label="Truppenanteil pro Angriff in Prozent" />
@@ -48,6 +48,7 @@
       </aside>
     </div>
   </div>
+  <div id="buildMenu" class="build-menu" hidden role="dialog" aria-label="Baumenü"><div class="build-menu-heading"><span id="buildCoordinates">BAUEN</span><button type="button" id="buildClose" aria-label="Baumenü schließen">✕</button></div><div id="buildOptions"></div><p class="build-menu-footer" id="buildSupplies"></p></div>
   <section id="countryPicker" class="country-cover" role="dialog" aria-modal="true" aria-labelledby="countryPickerTitle">
     <div class="country-panel">
       <div class="country-title"><span class="micro-heading">ATLAS DOMINION / OPERATION EUROPA</span><h2 id="countryPickerTitle">WÄHLE DEIN LAND.</h2><p>Alle Länder starten als eigenständige Fraktionen an ihrer Hauptstadt. Du übernimmst die Führung eines Landes – die übrigen werden von der KI gespielt.</p></div>
