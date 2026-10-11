@@ -60,7 +60,7 @@ test('Seeded AI and simulation repeat exactly', () => {
 test('Factions expand, never occupy water, and keep nonnegative resources', () => {
   const g = new Game(2026);
   const original = g.factions.map(f=>f.territory);
-  const firstNeutral = g.owner.findIndex((owner,i)=>owner===NEUTRAL && neighbors(i).some(n=>g.owner[n]===0));
+  const firstNeutral = g.owner.findIndex((owner,i)=>owner===NEUTRAL && landNeighbors(i).some(n=>g.owner[n]===0));
   assert.ok(firstNeutral>=0);
   assert.equal(g.launchAttack(0,cellToPoint(firstNeutral),50).ok,true);
   for(let t=0;t<50;t++)g.step();
@@ -85,7 +85,7 @@ test('Every newly captured sector connects to the capturing faction after a tick
     if(owner<0 || owner===prior[i])continue;
     // Attack resolution may chain within a tick; recursive flood-fill from original territory is unnecessary
     // here: a new border tile always has a same-owner orthogonal neighbor.
-    assert.ok(neighbors(i).some(n=>g.owner[n]===owner),`Disconnected new cell ${i}`);
+    assert.ok(landNeighbors(i).some(n=>g.owner[n]===owner),`Disconnected new cell ${i}`);
   }
 });
 
@@ -114,7 +114,7 @@ test('All island sectors connect via documented short sea corridors',()=>{
 
 test('Border click commits the selected troop percentage immediately',()=>{
   const g = new Game(99);
-  const border = g.owner.findIndex((owner,i)=>owner===NEUTRAL && neighbors(i).some(n=>g.owner[n]===0));
+  const border = g.owner.findIndex((owner,i)=>owner===NEUTRAL && landNeighbors(i).some(n=>g.owner[n]===0));
   const reserve = g.factions[0].troops;
   const result = g.launchAttack(0,cellToPoint(border),35);
   assert.equal(result.ok,true);
@@ -132,7 +132,7 @@ test('Attack click rejects own land, open sea, unreachable targets and invalid r
   const g = new Game(20);
   const own = g.cities[0];
   const water = g.owner.findIndex(owner=>owner===WATER);
-  const farNeutral = g.owner.findIndex((owner,i)=>owner===NEUTRAL && !neighbors(i).some(n=>g.owner[n]===0));
+  const farNeutral = g.owner.findIndex((owner,i)=>owner===NEUTRAL && !landNeighbors(i).some(n=>g.owner[n]===0));
   assert.match(g.launchAttack(0,own,35).reason,/eigenes/i);
   assert.match(g.launchAttack(0,g.cities[1],35).reason,/gemeinsame Grenze/i);
   assert.match(g.launchAttack(0,cellToPoint(water),35).reason,/Wasser/i);
@@ -159,7 +159,7 @@ test('Clicking a real enemy border cell works, but its distant capital does not'
 
 test('Running attacks use only the committed army and preserve deterministic replay',()=>{
   const a=new Game(200),b=new Game(200);
-  const border = a.owner.findIndex((owner,i)=>owner===NEUTRAL && neighbors(i).some(n=>a.owner[n]===0));
+  const border = a.owner.findIndex((owner,i)=>owner===NEUTRAL && landNeighbors(i).some(n=>a.owner[n]===0));
   const spot=cellToPoint(border);
   assert.deepEqual(a.launchAttack(0,spot,100),b.launchAttack(0,spot,100));
   for(let t=0;t<30;t++){a.step();b.step();}
@@ -180,7 +180,7 @@ test('Without a player click no autonomous player attack is initiated',()=>{
 
 test('A repeat border click reinforces the offensive with a fresh troop commitment',()=>{
   const g=new Game(66);
-  const border = g.owner.findIndex((owner,i)=>owner===NEUTRAL && neighbors(i).some(n=>g.owner[n]===0));
+  const border = g.owner.findIndex((owner,i)=>owner===NEUTRAL && landNeighbors(i).some(n=>g.owner[n]===0));
   const spot=cellToPoint(border);
   const first=g.launchAttack(0,spot,25);
   const second=g.launchAttack(0,spot,50);
@@ -224,7 +224,7 @@ test('Sea corridors do not count as direct land borders',()=>{
 });
 
 test('An explicit landing requires an owned departure shore, and takes time',()=>{
-  const g=new Game(155);
+  const g=new Game(155,0);
   const [from,to]=SEA_CROSSINGS[0];
   // Force a known departure sector under the player without adding hidden troops.
   g.owner[from]=0;
