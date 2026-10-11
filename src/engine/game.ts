@@ -304,6 +304,7 @@ export class Game {
 
   /** AI develops its home region on a slow cadence; no free buildings. */
   private developAI():void {
+    const capitalCells=new Set(this.cities.map(c=>c.index));
     for(const faction of this.factions){
       if(!faction.ai||!faction.alive)continue;
       const kind:BuildingType=faction.settlements<2?'settlement':faction.builtCities<1?'city':faction.barracks<2?'barracks':'fortress';
@@ -312,7 +313,7 @@ export class Game {
       for(let i=0;i<CELL_COUNT;i++){
         if(this.owner[i]!==faction.id)continue;
         const suitable=kind==='city'?this.buildings[i]===1:this.buildings[i]===0;
-        if(!suitable||this.cities.some(c=>c.index===i))continue;
+        if(!suitable||capitalCells.has(i))continue;
         const x=i%MAP_WIDTH,y=Math.floor(i/MAP_WIDTH);
         const cx=capital%MAP_WIDTH,cy=Math.floor(capital/MAP_WIDTH);
         const d=(x-cx)**2+(y-cy)**2;
