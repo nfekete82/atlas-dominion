@@ -98,7 +98,7 @@ export function worldToCell(point: Point): Point {
 }
 export function isLand(index: number): boolean { return IS_LAND[index] === 1; }
 export function neighbors(index: number): readonly number[] { return NEIGHBORS[index]; }
-export function landNeighbors(index: number): readonly number[] { return LAND_LAND_NEIGHBORS[index]; }
+export function landNeighbors(index: number): readonly number[] { return LAND_NEIGHBORS[index]; }
 function distance2(a: Point, b: Point) { return (a.x - b.x) ** 2 + (a.y - b.y) ** 2; }
 
 /** Pure seeded RNG for repeatable matches and replay-ready simulation. */
