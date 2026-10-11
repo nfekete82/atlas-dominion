@@ -243,6 +243,7 @@ export class MapRenderer {
     this.labels = [...anchor].flatMap((index,id)=>index < 0 ? [] : [{ id,
       pos: pointToWorld({ x: index % MAP_WIDTH, y: Math.floor(index / MAP_WIDTH) }) }]);
 
+    this.refreshHoverPreview(this.hover, true);
     this.combatEdges = [];
     this.combatLabels = [];
     for (const order of this.game.attackOrders) {
@@ -271,11 +272,52 @@ export class MapRenderer {
       if (contacts) this.combatLabels.push({pos:{x:sumX/contacts,y:sumY/contacts},troops:order.remaining});
     }
   }
+  /** Cache the currently chosen real border; keyboard and tooltip reuse it. */
+  previewFront(point: Point): Point | null {
+    const i=Math.floor(point.y)*MAP_WIDTH+Math.floor(point.x);
+    if(i===this.hoverIndex)return this.hoverFront;
+    return this.game.findAttackFront(0,point);
+  }
+
+  /** Rebuild only when the owner changes or the simulation claims new land.
+   * Full-faction highlight is pre-rendered rather than redrawn every frame.
+   */
+  private refreshHoverPreview(point:Point|null,force=false):void {
+    const index=point?point.y*MAP_WIDTH+point.x:-1;
+    if(!force && index===this.hoverIndex)return;
+    this.hoverIndex=index;
+    const owner=index>=0?this.game.owner[index]:WATER;
+    const front=point && owner!==0 && owner!==WATER
+      ? this.game.findAttackFront(0,point):null;
+    this.hoverFront=front;
+    const highlight=(front && owner>=0)?owner:WATER;
+    if(!force && highlight===this.highlightOwner)return;
+    this.highlightOwner=highlight;
+    const c=this.highlightedCountry.getContext('2d')!;
+    c.clearRect(0,0,WORLD_WIDTH,WORLD_HEIGHT);
+    if(highlight<0)return;
+    const boundary=new Path2D();
+    c.fillStyle='rgba(255,248,213,.17)';
+    const owners=this.game.owner;
+    for(let i=0;i<owners.length;i++){
+      if(owners[i]!==highlight)continue;
+      const col=i%MAP_WIDTH,row=Math.floor(i/MAP_WIDTH);
+      const x=X_EDGES[col],y=Y_EDGES[row],right=X_EDGES[col+1],bottom=Y_EDGES[row+1];
+      c.fillRect(x,y,right-x,bottom-y);
+      if(col===0||owners[i-1]!==highlight){boundary.moveTo(x+.5,y);boundary.lineTo(x+.5,bottom);}
+      if(col===MAP_WIDTH-1||owners[i+1]!==highlight){boundary.moveTo(right-.5,y);boundary.lineTo(right-.5,bottom);}
+      if(row===0||owners[i-MAP_WIDTH]!==highlight){boundary.moveTo(x,y+.5);boundary.lineTo(right,y+.5);}
+      if(row===MAP_HEIGHT-1||owners[i+MAP_WIDTH]!==highlight){boundary.moveTo(x,bottom-.5);boundary.lineTo(right,bottom-.5);}
+    }
+    c.lineJoin='miter';c.lineWidth=2;
+    c.strokeStyle='rgba(255,249,229,.95)';c.stroke(boundary);
+  }
+
   /** Used by the tooltip; same shared-border predicate as launchAttack(). */
   canAttack(point: Point): boolean {
     const x = Math.floor(point.x), y = Math.floor(point.y);
     if (x < 0 || y < 0 || x >= MAP_WIDTH || y >= MAP_HEIGHT) return false;
-    return this.availableTargets.has(this.game.owner[y * MAP_WIDTH + x]) && this.game.findAttackFront(0,point)!==null;
+    return this.availableTargets.has(this.game.owner[y * MAP_WIDTH + x]) && this.previewFront(point)!==null;
   }
   canLand(point: Point): boolean { return this.game.canLand(0,point); }
   private drawBuildings(c: CanvasRenderingContext2D): void {
@@ -427,7 +469,11 @@ export class MapRenderer {
     c.drawImage(this.base,0,0);
     c.imageSmoothingEnabled=false; // Nearest-neighbour territorial pixels.
     c.drawImage(this.overlay,0,0);
+    c.drawImage(this.highlightedCountry,0,0);
     c.imageSmoothingEnabled=true;
+    c.globalAlpha=.65;
+    c.drawImage(this.administrative,0,0);
+    c.globalAlpha=1;
     this.drawCaptureWave(c, timestamp);
     this.drawLandingPorts(c, timestamp);
     this.drawBuildings(c);
@@ -471,18 +517,20 @@ export class MapRenderer {
       const i=this.hover.y*MAP_WIDTH+this.hover.x;
       if (this.game.owner[i]!==WATER) {
         const canAttack=this.canAttack(this.hover) || this.canLand(this.hover);
-        c.strokeStyle=canAttack?'#a8ffc1':'#f9e4ad'; c.lineWidth=canAttack?2.5:1.5;
-        if(canAttack){c.fillStyle='rgba(136,255,177,.17)';c.fillRect(x,y,CW,CH);}
+        c.strokeStyle=canAttack?'rgba(255,249,228,.88)':'rgba(67,75,70,.35)';
+        c.lineWidth=canAttack?1.45:.6;
+        if(canAttack){c.fillStyle='rgba(255,255,233,.12)';c.fillRect(x,y,CW,CH);}
         c.strokeRect(x,y,CW,CH);
-        // Mark the actual connected border tile selected by a nearby click.
-        // No direction arrow or artificial movement inside enemy territory.
-        const front = this.game.findAttackFront(0,this.hover);
+        // The marker represents the actual connected attack front, no
+        // directional route and no advance through third-party territory.
+        const front=this.previewFront(this.hover);
         if(front && (front.x!==this.hover.x || front.y!==this.hover.y)){
           const fx=(front.x+.5)*CW, fy=(front.y+.5)*CH;
           c.beginPath();
-          c.arc(fx,fy,Math.max(CW,CH)*1.1+Math.sin(timestamp/250)*1.2,0,Math.PI*2);
-          c.fillStyle='rgba(138,255,188,.25)';c.fill();
-          c.strokeStyle='#a8ffc1';c.lineWidth=2.2;c.stroke();
+          const radius=Math.max(CW,CH)*.83+Math.sin(timestamp/290)*.5;
+          c.arc(fx,fy,radius,0,Math.PI*2);
+          c.fillStyle='rgba(253,240,172,.23)';c.fill();
+          c.strokeStyle='#fff4c1';c.lineWidth=1.4;c.stroke();
         }
       }
     }
@@ -537,6 +585,7 @@ export class MapRenderer {
         this.last={x:e.clientX,y:e.clientY};
       }
       this.hover=this.cellAt(e.clientX,e.clientY,e.shiftKey);
+      this.refreshHoverPreview(this.hover);
       const box=this.canvas.getBoundingClientRect();
       this.onHover(this.hover,e.clientX-box.left,e.clientY-box.top,e.shiftKey);
     });
@@ -546,7 +595,7 @@ export class MapRenderer {
       this.dragging=false;
     });
     this.canvas.addEventListener('pointercancel',()=>{this.dragging=false;});
-    this.canvas.addEventListener('pointerleave',()=>{this.hover=null;this.onHover(null,0,0,false);});
+    this.canvas.addEventListener('pointerleave',()=>{this.hover=null;this.refreshHoverPreview(null);this.onHover(null,0,0,false);});
     this.canvas.addEventListener('contextmenu',e=>{
       e.preventDefault();
       const point=this.cellAt(e.clientX,e.clientY,false);
