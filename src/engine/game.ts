@@ -1,4 +1,5 @@
 import { GEO_BOUNDS, LAND_ROWS, MAP_HEIGHT, MAP_WIDTH, SEA_CROSSINGS, WORLD_HEIGHT, WORLD_WIDTH } from '../data/europe.js';
+import { COUNTRY_STARTS, countryByCode } from '../data/countries.js';
 import { assessInvasion, interceptAttack } from './warfare.js';
 import { armyIncome, attackFrontWidth, frontierBudget, frontierTarget, localDefenseStrength } from './frontline.js';
 
@@ -40,19 +41,21 @@ export interface AttackResult { ok: boolean; reason: string; sent: number; targe
 export type GameStatus = 'playing' | 'victory' | 'defeat';
 export type Doctrine = 'expand' | 'blitz' | 'fortify';
 
-const STARTS = [
-  { name: 'DOMINION', capital: 'Berlin', color: '#e9b85e', lon: 13.405, lat: 52.52 },
-  { name: 'ALBION', capital: 'London', color: '#6bc8de', lon: -0.128, lat: 51.508 },
-  { name: 'GAUL', capital: 'Paris', color: '#ee788c', lon: 2.35, lat: 48.86 },
-  { name: 'IBERIA', capital: 'Madrid', color: '#d994f2', lon: -3.7, lat: 40.42 },
-  { name: 'ITALIA', capital: 'Rom', color: '#7bdda7', lon: 12.49, lat: 41.9 },
-  { name: 'NORD', capital: 'Stockholm', color: '#a8c9f4', lon: 18.06, lat: 59.33 },
-  { name: 'VISTULA', capital: 'Warschau', color: '#ea9877', lon: 21.01, lat: 52.23 },
-  { name: 'RUTHENIA', capital: 'Kyjiw', color: '#f0d58c', lon: 30.52, lat: 50.45 },
-  { name: 'ANATOLIA', capital: 'Istanbul', color: '#9d9cf4', lon: 28.98, lat: 41.01 },
-  { name: 'BALKAN', capital: 'Belgrad', color: '#e89ec6', lon: 20.46, lat: 44.8 },
-  { name: 'DACIA', capital: 'Bukarest', color: '#86d4c8', lon: 26.1, lat: 44.43 },
-] as const;
+/** Colors are stable by country, while the chosen player's color is gold. */
+function factionColor(id: number): string {
+  if (id === 0) return '#e9b85e';
+  const hue=(id*137.508+156)%360,sat=.53,light=.66;
+  const hue2rgb=(p:number,q:number,t:number):number=>{
+    if(t<0)t+=1;if(t>1)t-=1;
+    if(t<1/6)return p+(q-p)*6*t;
+    if(t<1/2)return q;
+    if(t<2/3)return p+(q-p)*(2/3-t)*6;
+    return p;
+  };
+  const h=hue/360, q=light<.5?light*(1+sat):light+sat-light*sat,p=2*light-q;
+  return [hue2rgb(p,q,h+1/3),hue2rgb(p,q,h),hue2rgb(p,q,h-1/3)]
+    .map(x=>Math.round(x*255).toString(16).padStart(2,'0')).reduce((a,b)=>a+b,'#');
+}
 
 const CELL_COUNT = MAP_WIDTH * MAP_HEIGHT;
 const IS_LAND = new Uint8Array(CELL_COUNT);
@@ -123,6 +126,7 @@ export class Game {
   readonly attackOrders: AttackOrder[] = [];
   private nextAttackId = 1;
   readonly seed: number;
+  readonly playerCode: string;
   readonly totalLand = TOTAL_LAND;
   readonly initialTerritory: number;
   tick = 0;
@@ -134,31 +138,56 @@ export class Game {
   private frontierCandidates: Array<Set<number>> = [];
   private exposedCounts: number[] = [];
 
-  constructor(seed = 2026, opponentCount = 10) {
+  constructor(seed = 2026, opponentCount = COUNTRY_STARTS.length-1, playerCountry = 'DE') {
+    const chosen = countryByCode(playerCountry);
+    if (!chosen) throw new Error(`Unbekanntes Land: ${playerCountry}`);
+    this.playerCode = chosen.code;
     this.seed = seed;
     this.rng = seededRandom(seed);
     this.owner.fill(WATER);
     for (let i = 0; i < CELL_COUNT; i++) if (isLand(i)) this.owner[i] = NEUTRAL;
-    this.factions = STARTS.slice(0, Math.max(1, Math.min(11, opponentCount + 1))).map((start, id) => ({
-      id, name: start.name, capital: start.capital, color: start.color, troops: 400,
-      territory: 0, income: 0, target: geoToCell(start.lon, start.lat),
-      ai: id !== 0, alive: true, cityCount: 0, captured: 0, defenseSpent: 0, intent: 'hold',
+    const starts = [chosen,...COUNTRY_STARTS.filter(c=>c.code!==chosen.code)]
+      .slice(0, Math.max(1, Math.min(COUNTRY_STARTS.length, opponentCount + 1)));
+    this.factions = starts.map((start, id) => ({
+      id, name: start.name, capital: start.capital, color: factionColor(id),
+      troops: 400, territory: 0, income: 0, target: geoToCell(start.lon,start.lat),
+      ai:id!==0, alive:true, cityCount:0, captured:0, defenseSpent:0, intent:'hold' as const,
     }));
-    for (let id = 0; id < this.factions.length; id++) {
-      const start = STARTS[id];
-      const index = this.findNearestLand(geoToCell(start.lon, start.lat), true);
-      if (index === -1) throw new Error(`Missing valid capital ${start.capital}`);
-      const pos = cellToPoint(index);
-      this.cities.push({ name: start.capital, ...pos, index, original: id, owner: id });
-      this.seedTerritory(id, pos, 5.4);
+    // Reserve EVERY capital before assigning any surrounding territory. Without
+    // this, microstates (e.g. Vatican/Rome) can overwrite earlier capitals.
+    const occupied = new Set<number>();
+    for(let id=0;id<starts.length;id++){
+      const start=starts[id];
+      const point=geoToCell(start.lon,start.lat);
+      const index=this.findNearestCapitalCell(point,occupied);
+      if(index<0)throw new Error(`Kein Startsektor für ${start.name}`);
+      occupied.add(index);
+      const pos=cellToPoint(index);
+      this.cities.push({name:start.capital,...pos,index,original:id,owner:id});
     }
-    this.initialTerritory = this.factions[0].territory;
-    this.factions[0].target = geoToCell(9.3, 49.4);
+    for(const city of this.cities){
+      this.owner[city.index]=city.original;
+      this.defense[city.index]=55;
+    }
+    for(const city of this.cities)this.seedTerritory(city.original,city,4.8);
+    this.initialTerritory=this.factions[0].territory;
+    this.factions[0].target=geoToCell(chosen.lon+1,chosen.lat-1);
     this.recount();
     this.pickAIGoals();
-    this.log('10 Großmächte mobilisieren ihre Armeen.');
-    this.log('Nachschub aus Sektoren und Städten aktiviert.');
-    this.log('Automatische Grenzsicherung aktiv. Truppen in Reserve verteidigen bei Angriffen.', this.factions[0].color);
+    this.log(`${starts.length} Länder starten an ihren Hauptstädten.`);
+    this.log(`Du spielst als ${chosen.name} – Hauptstadt ${chosen.capital}.`,this.factions[0].color);
+    this.log('Automatische Grenzverteidigung und Nachschub aktiviert.',this.factions[0].color);
+  }
+
+  /** Assign a unique real land cell as close as possible to each capital. */
+  private findNearestCapitalCell(point: Point, occupied: Set<number>): number {
+    let best=-1, distance=Infinity;
+    for(let i=0;i<CELL_COUNT;i++){
+      if(!isLand(i)||occupied.has(i))continue;
+      const d=distance2(cellToPoint(i),point);
+      if(d<distance){best=i;distance=d;}
+    }
+    return best;
   }
 
   private findNearestLand(point: Point, unclaimed = false): number {
@@ -583,7 +612,7 @@ export class Game {
     this.recount();
     if (!this.factions[0].alive) {
       this.status = 'defeat';
-      this.log('DOMINION wurde besiegt.', '#ee788c');
+      this.log(`${this.factions[0].name} wurde besiegt.`, '#ee788c');
     } else if (this.factions[0].territory / TOTAL_LAND >= 0.65 || this.factions.slice(1).every(f => !f.alive)) {
       this.status = 'victory';
       this.log('EUROPA steht unter deiner Kontrolle!', '#e9b85e');
