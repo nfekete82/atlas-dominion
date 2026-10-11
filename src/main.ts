@@ -14,6 +14,9 @@ let soundEnabled = false;
 let audio: AudioContext | null = null;
 let prevStatus = game.status;
 let modalVisible = false;
+let attackRatio = 35;
+let attackMessage = 'Klicke auf ein angrenzendes Land.';
+let attackMessageKind: 'neutral'|'success'|'error' = 'neutral';
 
 function beep(freq = 440, duration = 0.08) {
   if (!soundEnabled) return;
@@ -33,6 +36,13 @@ function update() {
   const percent = player.territory / game.totalLand * 100;
   $('areaCount').textContent = format(player.territory);
   $('troopCount').textContent = format(player.troops);
+  $('ratioPercent').textContent = attackRatio + ' %';
+  $('attackPreview').textContent = format(Math.floor(player.troops * attackRatio / 100)) + ' TRUPPEN';
+  $('attackRatio').setAttribute('aria-valuenow', String(attackRatio));
+  $('attackRatio').style.setProperty('--ratio', attackRatio + '%');
+  document.querySelectorAll<HTMLButtonElement>('[data-ratio]').forEach(b=>b.classList.toggle('active',Number(b.dataset.ratio)===attackRatio));
+  $('attackStatus').textContent = attackMessage;
+  $('attackStatus').className = 'attack-status ' + (attackMessageKind === 'neutral' ? '' : attackMessageKind);
   $('incomeCount').textContent = '+' + format(player.income);
   $('controlCount').textContent = percent.toFixed(1) + '%';
   $('progressLabel').textContent = percent.toFixed(1) + ' / 65%';
@@ -45,12 +55,12 @@ function update() {
     <div class="power ${f.id===0?'player':''} ${!f.alive?'eliminated':''}">
       <span class="power-num">${String(index+1).padStart(2,'0')}</span>
       <b class="power-name"><i style="background:${f.color}"></i><span>${f.name}</span></b>
-      <span class="power-area">${format(f.territory)}</span>
+      <span class="power-area" title="${format(f.territory)} Sektoren / ${format(f.troops)} Truppen">${format(f.troops)} ⚔</span>
       <div class="power-bar"><div style="width:${(f.territory/max*100).toFixed(1)}%;background:${f.color}"></div></div>
     </div>`).join('');
   $('eventFeed').innerHTML = game.events.map(e=>`<div class="event"><i style="background:${e.color}"></i><div>${e.text}<small>TAG ${String(Math.floor(e.tick/240)+1).padStart(2,'0')} · ${String(Math.floor(e.tick*TICK_SECONDS/60)).padStart(2,'0')}:${String(Math.floor(e.tick*TICK_SECONDS%60)).padStart(2,'0')}</small></div></div>`).join('');
-  const target = player.target;
-  $('ordersLabel').textContent = `ANGRIFFSZIEL: SEKTOR ${Math.floor(target.x)} / ${Math.floor(target.y)} · VORMARSCH AKTIV`;
+  const active = game.attackOrders.filter(o => o.factionId === 0);
+  $('ordersLabel').textContent = active.length ? `${active.length} OFFENSIVE(N) AKTIV · ${format(active.reduce((n,o)=>n+o.remaining,0))} TRUPPEN IM EINSATZ` : 'ANGRENZENDES GEBIET ANKLICKEN, UM ANZUGREIFEN';
   $('pauseBtn').textContent = game.paused ? '▶' : 'Ⅱ';
   document.querySelectorAll<HTMLButtonElement>('[data-doctrine]').forEach(b=>b.classList.toggle('selected', b.dataset.doctrine===game.doctrine));
   if (game.status!==prevStatus) {
@@ -63,10 +73,19 @@ function update() {
   }
 }
 
+function setAttackRatio(value:number) {
+  attackRatio = Math.max(5, Math.min(100, Math.round(value / 5) * 5));
+  ($<HTMLInputElement>('attackRatio')).value = String(attackRatio);
+  update();
+}
+$('attackRatio').addEventListener('input',e=>setAttackRatio(Number((e.target as HTMLInputElement).value)));
+for (const btn of document.querySelectorAll<HTMLButtonElement>('[data-ratio]')) btn.addEventListener('click',()=>setAttackRatio(Number(btn.dataset.ratio)));
 renderer.onSelect = (point:Point) => {
-  const i=pointToIndex(point);
-  if(game.owner[i]===WATER){beep(140);return;}
-  if(game.order(0,point)){beep(570);update();}
+  const result = game.launchAttack(0, point, attackRatio);
+  attackMessage = result.ok ? `${format(result.sent)} Truppen entsandt · Offensive gestartet.` : result.reason;
+  attackMessageKind = result.ok ? 'success' : 'error';
+  beep(result.ok ? 620 : 190);
+  update();
 };
 renderer.onHover=(point,px,py)=>{
   const tooltip=$('mapInfo');
@@ -78,8 +97,13 @@ renderer.onHover=(point,px,py)=>{
   owner.textContent=f?.name??'UNBESETZTES GEBIET';
   owner.style.color=f?.color??'#bcc5bb';
   $('hoverCoords').textContent=`SEKTOR ${point.x} / ${point.y} · ${id===NEUTRAL?'NEUTRAL':'KONTROLLIERT'}`;
-  tooltip.style.left=Math.min(px,renderer.canvas.clientWidth-175)+'px';
-  tooltip.style.top=Math.min(py,renderer.canvas.clientHeight-70)+'px';
+  $('hoverStats').textContent = f ? `⚔ ${format(f.troops)} VERFÜGBARE TRUPPEN` : '⚔ UNBESETZT';
+  const action = $('hoverAction');
+  const attackable = renderer.canAttack(point);
+  action.textContent = id===0 ? 'EIGENES TERRITORIUM' : attackable ? `KLICK: ${attackRatio} % TRUPPEN SENDEN` : 'KEINE GEMEINSAME GRENZE';
+  action.classList.toggle('blocked',id!==0&&!attackable);
+  tooltip.style.left=Math.max(4, Math.min(px+15,renderer.canvas.clientWidth-205))+'px';
+  tooltip.style.top=Math.max(4, Math.min(py+13,renderer.canvas.clientHeight-97))+'px';
 };
 
 function showDialog(title:string,body:string,actionLabel='VERSTANDEN →',onAction:()=>void=closeDialog) {
@@ -94,6 +118,7 @@ function closeDialog() {modalVisible=false;$('dialog').hidden=true;}
 function restart() {
   closeDialog();
   game=new Game((Date.now()+Math.floor(Math.random()*100000))%2147483647);
+  attackMessage='Klicke auf ein angrenzendes Land.';attackMessageKind='neutral';
   renderer.setGame(game);prevStatus=game.status;
   update();
 }
@@ -102,11 +127,11 @@ $('resetBtn').addEventListener('click',()=>showDialog('NEUE OPERATION STARTEN?',
   'NEUE OPERATION →',restart));
 $('helpBtn').addEventListener('click',()=>showDialog('DEIN EINSATZBEFEHL',`
   <p>ATLAS DOMINION ist ein Echtzeit-Eroberungsspiel. Starte in Berlin, erweitere dein Gebiet und kontrolliere mindestens <strong>65 %</strong> Europas.</p>
-  <div class="briefing-row"><b>01</b><span><strong>KLICKEN:</strong> Angriffsziel setzen. Deine Front bewegt sich automatisch darauf zu.</span></div>
+  <div class="briefing-row"><b>01</b><span><strong>KLICKEN:</strong> Auf eine angrenzende Fraktion oder ein Neutralgebiet klicken. Sofort eine Offensive mit dem gewählten Truppenanteil starten.</span></div>
   <div class="briefing-row"><b>02</b><span><strong>ZIEHEN:</strong> Karte verschieben. Mausrad oder +/− zum Zoomen.</span></div>
-  <div class="briefing-row"><b>03</b><span><strong>TRUPPEN:</strong> Werden laufend durch Territorium und Städte erzeugt. Angriffe verbrauchen Reserven.</span></div>
+  <div class="briefing-row"><b>03</b><span><strong>TRUPPEN:</strong> Prozentregler (5–100 %) bestimmt die pro Klick entsandten Reserven. T/Y ändert den Anteil. Wiederholter Klick verstärkt die Offensive.</span></div>
   <div class="briefing-row"><b>04</b><span><strong>PAUSE:</strong> Leertaste oder Ⅱ. Mit 1×/2×/4× beschleunigen.</span></div>
-  <p><strong>Doktrinen:</strong> EXPAND beschleunigt neutrale Eroberungen, BLITZ erhöht die Angriffsfrequenz, DEFENSE stärkt Einkommen und Garnisonen. Mit 1, 2, 3 umschalten.</p>
+  <p><strong>Doktrinen:</strong> EXPAND senkt die Kosten neutraler Eroberungen und erhöht deren Geschwindigkeit, BLITZ erhöht die Angriffsfrequenz, DEFENSE stärkt Einkommen und Garnisonen. Mit 1, 2, 3 umschalten.</p>
   <p>Die KI expandiert ebenfalls und greift Gegner an. Hauptstadtverteidigung ist stärker als gewöhnliches Terrain.</p>`));
 $('dialogClose').addEventListener('click',closeDialog);
 $('dialog').addEventListener('click',e=>{if(e.target===$('dialog'))closeDialog();});
@@ -127,6 +152,8 @@ window.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&modalVisible){closeDialog();return;}
   if(modalVisible)return;
   if(e.code==='Space') {e.preventDefault();game.paused=!game.paused;update();}
+  if (e.code === 'KeyT') setAttackRatio(attackRatio-5);
+  if (e.code === 'KeyY') setAttackRatio(attackRatio+5);
   if(['Digit1','Digit2','Digit3'].includes(e.code)){game.setDoctrine(({Digit1:'expand',Digit2:'blitz',Digit3:'fortify'} as const)[e.code as 'Digit1'|'Digit2'|'Digit3']);update();}
   if(e.key==='+'||e.key==='=')renderer.zoomBy(1.2);
   if(e.key==='-')renderer.zoomBy(1/1.2);
@@ -141,5 +168,5 @@ setInterval(()=>{
 update();
 // Explicit dev-only API for smoke tests, not game simulation source of truth.
 if(new URLSearchParams(location.search).has('debug')) {
-  Object.assign(window,{__atlas:{getGame:()=>game, order:(x:number,y:number)=>game.order(0,{x,y}), step:()=>{game.step();renderer.updateTerritory();update();}}});
+  Object.assign(window,{__atlas:{getGame:()=>game, attack:(x:number,y:number,ratio=35)=>game.launchAttack(0,{x,y},ratio), step:()=>{game.step();renderer.updateTerritory();update();}}});
 }

@@ -6,3 +6,23 @@
 @media(prefers-reduced-motion:reduce){.progress div{transition:none}}
 
 .doctrine-title{font-size:9px;font-weight:850;letter-spacing:1.6px;color:#e2c18a;margin:20px 0 9px}.doctrine-title span{color:#71888e;font-weight:650;letter-spacing:.8px}.doctrine-buttons{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.doctrine-buttons button{min-width:0;height:49px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:#12252b;border:1px solid #304047;color:#98a9a8;border-radius:2px;font-size:16px}.doctrine-buttons button span{font-size:8px;font-weight:900;letter-spacing:.7px}.doctrine-buttons button:hover{border-color:#8c805e}.doctrine-buttons button.selected{color:#f7cf83;background:#372f24;border-color:#ad874b}
+
+/* v0.2: direct attack order controls */
+.attack-control{margin-top:22px;padding:15px 14px 14px;border:1px solid #695539;background:linear-gradient(140deg,#30291e,#17252a);border-radius:5px}
+.attack-title{display:flex;justify-content:space-between;align-items:center;gap:8px;color:#efce96;font-size:10px;letter-spacing:1.05px;font-weight:900}
+.attack-title strong{font-size:18px;color:#ffdb92;font-variant-numeric:tabular-nums;white-space:nowrap}
+#attackRatio{width:100%;height:18px;accent-color:#e9b85e;margin:14px 0 10px;cursor:pointer}
+.attack-presets{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+.attack-presets button{min-width:0;border:1px solid #496067;color:#b3c2bf;background:#13262e;border-radius:3px;height:29px;font-size:10px;font-weight:850}
+.attack-presets button.active,.attack-presets button:hover{border-color:#ebc179;background:#59442c;color:#ffe2a4}
+.attack-preview{display:flex;justify-content:space-between;align-items:center;gap:7px;margin-top:14px;color:#91a8a8;font-size:9px;font-weight:800;letter-spacing:.7px}
+.attack-preview b{font-size:12px;color:#faf0d5;font-variant-numeric:tabular-nums;white-space:nowrap}
+.attack-status{min-height:32px;margin-top:11px;border-top:1px solid #5b4c37;padding-top:9px;font-size:10px;line-height:1.4;color:#d0bb92}
+.attack-status.error{color:#f4a49b}
+.attack-status.success{color:#a9ebbd}
+.map-info{pointer-events:none;min-width:174px;z-index:7}
+.map-info small{display:block}
+#hoverStats{color:#e7d2a6;margin-top:4px}
+#hoverAction{display:block;margin-top:6px;color:#8ee5ae;font-size:10px;letter-spacing:.3px}
+#hoverAction.blocked{color:#eea79a}
+@media(max-width:1200px){.attack-control{margin-top:15px;padding:12px}.attack-title{font-size:9px}}

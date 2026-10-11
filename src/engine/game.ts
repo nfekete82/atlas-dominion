@@ -21,6 +21,16 @@ export interface Faction {
 }
 export interface City { name: string; x: number; y: number; index: number; original: number; owner: number; }
 export interface GameEvent { tick: number; text: string; color: string; }
+export interface AttackOrder {
+  id: number;
+  factionId: number;
+  targetOwner: number;
+  anchor: Point;
+  committed: number;
+  remaining: number;
+  conquered: number;
+}
+export interface AttackResult { ok: boolean; reason: string; sent: number; targetOwner?: number; }
 export type GameStatus = 'playing' | 'victory' | 'defeat';
 export type Doctrine = 'expand' | 'blitz' | 'fortify';
 
@@ -99,6 +109,8 @@ export class Game {
   readonly factions: Faction[];
   readonly cities: City[] = [];
   readonly events: GameEvent[] = [];
+  readonly attackOrders: AttackOrder[] = [];
+  private nextAttackId = 1;
   readonly seed: number;
   readonly totalLand = TOTAL_LAND;
   readonly initialTerritory: number;
@@ -196,6 +208,83 @@ export class Game {
     return true;
   }
 
+  /** Returns adjacent owner IDs, including neutral, but never water or the attacker itself. */
+  attackableOwners(id: number): Set<number> {
+    const targets = new Set<number>();
+    if (!this.factions[id]?.alive) return targets;
+    for (let i = 0; i < CELL_COUNT; i++) {
+      if (this.owner[i] !== id) continue;
+      for (const neighbor of NEIGHBORS[i]) {
+        const owner = this.owner[neighbor];
+        if (owner !== id && owner !== WATER) targets.add(owner);
+      }
+    }
+    return targets;
+  }
+
+  /** One click attacks a neighboring faction; ratio is an integer percentage of available troops. */
+  launchAttack(id: number, target: Point, ratio: number): AttackResult {
+    const failed = (reason: string): AttackResult => ({ ok: false, reason, sent: 0 });
+    const attacker = this.factions[id];
+    if (!attacker?.alive || this.status !== 'playing') return failed('Diese Fraktion kann nicht angreifen.');
+    if (!Number.isFinite(target.x) || !Number.isFinite(target.y) || target.x < 0 || target.y < 0 || target.x >= MAP_WIDTH || target.y >= MAP_HEIGHT) return failed('Außerhalb der Karte.');
+    if (!Number.isFinite(ratio) || ratio < 5 || ratio > 100) return failed('Truppenanteil muss zwischen 5 und 100 % liegen.');
+    const index = pointToIndex(target);
+    const owner = this.owner[index];
+    if (owner === WATER) return failed('Angriff auf Wasser nicht möglich.');
+    if (owner === id) return failed('Das ist dein eigenes Gebiet.');
+    if (!this.attackableOwners(id).has(owner)) return failed('Keine gemeinsame Grenze – zuerst angrenzende Gebiete erobern.');
+    const sent = Math.floor(attacker.troops * ratio / 100);
+    if (sent < 8) return failed('Mindestens 8 verfügbare Truppen erforderlich.');
+    attacker.troops -= sent;
+    this.attackOrders.push({ id: this.nextAttackId++, factionId: id, targetOwner: owner,
+      anchor: cellToPoint(index), committed: sent, remaining: sent, conquered: 0 });
+    if (id === 0) {
+      const targetName = owner === NEUTRAL ? 'NEUTRALGEBIET' : this.factions[owner].name;
+      this.log(`Offensive gegen ${targetName}: ${sent.toLocaleString('de-DE')} Truppen entsandt.`, attacker.color);
+    }
+    return { ok: true, reason: 'Angriff gestartet.', sent, targetOwner: owner };
+  }
+
+  private chooseOrderedFront(order: AttackOrder): number {
+    let best = -1, score = -Infinity;
+    for (let i = 0; i < CELL_COUNT; i++) {
+      if (this.owner[i] !== order.targetOwner) continue;
+      let friendly = 0;
+      for (const n of NEIGHBORS[i]) if (this.owner[n] === order.factionId) friendly++;
+      if (!friendly) continue;
+      const x = i % MAP_WIDTH, y = Math.floor(i / MAP_WIDTH);
+      const d = Math.hypot(x - order.anchor.x, y - order.anchor.y);
+      const city = this.cities.some(c => c.index === i);
+      const next = friendly * 1.3 - d + (city ? 2 : 0);
+      if (next > score) { score = next; best = i; }
+    }
+    return best;
+  }
+
+  private resolveOrders(attacker: Faction) {
+    // Spends only the committed budget: active battles cannot silently drain reserve troops.
+    const orders = this.attackOrders.filter(o => o.factionId === attacker.id);
+    for (const order of orders) {
+      const strikes = this.doctrine === 'blitz' && attacker.id === 0 ? 6 : this.doctrine === 'expand' && attacker.id === 0 && order.targetOwner === NEUTRAL ? 5 : 3;
+      let unreachable = false;
+      for (let k = 0; k < strikes && order.remaining >= 0.01; k++) {
+        const index = this.chooseOrderedFront(order);
+        if (index === -1) { unreachable = true; break; }
+        const cost = Math.min(order.remaining, order.targetOwner === NEUTRAL ? (attacker.id === 0 && this.doctrine === 'expand' ? 6 : 8) : 21);
+        order.remaining -= cost;
+        const captured = this.strike(attacker, index, cost);
+        if (captured) order.conquered++;
+      }
+      if (unreachable || order.remaining < 0.01) {
+        if (unreachable && order.remaining > 0) attacker.troops = Math.min(9000, attacker.troops + order.remaining);
+        const pos = this.attackOrders.findIndex(o => o.id === order.id);
+        if (pos >= 0) this.attackOrders.splice(pos, 1);
+        if (attacker.id === 0) this.log(`Offensive beendet · ${order.conquered} Sektoren erobert.`, attacker.color);
+      }
+    }
+  }
+
   private pickAIGoals() {
     for (const faction of this.factions) {
       if (!faction.ai || !faction.alive) continue;
@@ -228,14 +317,10 @@ export class Game {
     return best;
   }
 
-  private attack(faction: Faction, index: number) {
-    if (faction.troops < 7) return false;
-    const defender = this.owner[index];
-    const force = faction.id === 0 && this.doctrine === 'blitz' ? 29 : 21;
-    const spent = Math.min(faction.troops, defender === NEUTRAL ? 8 : force);
-    faction.troops -= spent;
+  private strike(faction: Faction, index: number, spent: number): boolean {
+    // All attack types share the same defense and capture rules.
     this.defense[index] -= spent * (0.95 + this.rng() * 0.22);
-    if (this.defense[index] > 0) return true;
+    if (this.defense[index] > 0) return false;
     this.owner[index] = faction.id;
     this.defense[index] = faction.id === 0 && this.doctrine === 'fortify' ? 27 : 11;
     faction.captured++;
@@ -246,6 +331,16 @@ export class Game {
       this.defense[index] = 32;
       if (oldOwner !== faction.id) this.log(`${faction.name} erobert ${city.name}.`, faction.color);
     }
+    return true;
+  }
+
+  private attack(faction: Faction, index: number) {
+    if (faction.troops < 7) return false;
+    const defender = this.owner[index];
+    const force = faction.id === 0 && this.doctrine === 'blitz' ? 29 : 21;
+    const spent = Math.min(faction.troops, defender === NEUTRAL ? 8 : force);
+    faction.troops -= spent;
+    this.strike(faction, index, spent);
     return true;
   }
 
@@ -260,8 +355,13 @@ export class Game {
     for (const faction of this.factions) {
       if (!faction.alive) continue;
       faction.troops = Math.min(9000, faction.troops + faction.income);
+      if (faction.id === 0) {
+        // Human troops move only when explicitly ordered by clicking an adjacent faction.
+        this.resolveOrders(faction);
+        continue;
+      }
       const baseAttempts = 2 + Math.floor(faction.territory / 175);
-      const extra = faction.id === 0 ? (this.doctrine === 'blitz' ? 3 : this.doctrine === 'expand' ? 1 : -1) : 0;
+      const extra = 0;
       const attempts = Math.max(1, Math.min(10, baseAttempts + extra));
       for (let k = 0; k < attempts; k++) {
         const target = this.chooseFront(faction.id);

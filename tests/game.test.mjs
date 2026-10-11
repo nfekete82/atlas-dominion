@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Game, WATER, NEUTRAL, TOTAL_LAND, geoToCell, pointToIndex, isLand, neighbors } from '../dist/src/engine/game.js';
+import { Game, WATER, NEUTRAL, TOTAL_LAND, geoToCell, pointToIndex, isLand, neighbors, cellToPoint } from '../dist/src/engine/game.js';
 
 const count = (game, factionId) => game.owner.reduce((n, owner) => n + Number(owner === factionId), 0);
 
@@ -57,6 +57,9 @@ test('Seeded AI and simulation repeat exactly', () => {
 test('Factions expand, never occupy water, and keep nonnegative resources', () => {
   const g = new Game(2026);
   const original = g.factions.map(f=>f.territory);
+  const firstNeutral = g.owner.findIndex((owner,i)=>owner===NEUTRAL && neighbors(i).some(n=>g.owner[n]===0));
+  assert.ok(firstNeutral>=0);
+  assert.equal(g.launchAttack(0,cellToPoint(firstNeutral),50).ok,true);
   for(let t=0;t<50;t++)g.step();
   assert.equal(g.tick,50);
   assert.ok(g.factions.some((f,i)=>f.territory>original[i]));
@@ -103,4 +106,81 @@ test('All island sectors connect via documented short sea corridors',()=>{
     for(const n of neighbors(i)) if(isLand(n)&&!seen[n]){seen[n]=1;todo.push(n);}
   }
   assert.equal(count,TOTAL_LAND);
+});
+
+
+test('Border click commits the selected troop percentage immediately',()=>{
+  const g = new Game(99);
+  const border = g.owner.findIndex((owner,i)=>owner===NEUTRAL && neighbors(i).some(n=>g.owner[n]===0));
+  const reserve = g.factions[0].troops;
+  const result = g.launchAttack(0,cellToPoint(border),35);
+  assert.equal(result.ok,true);
+  assert.equal(result.sent,Math.floor(reserve*0.35));
+  assert.equal(g.factions[0].troops,reserve-result.sent);
+  assert.equal(g.attackOrders.length,1);
+  assert.equal(g.attackOrders[0].remaining,result.sent);
+  const ownedBefore=count(g,0);
+  g.step();
+  assert.ok(g.attackOrders[0]?.remaining < result.sent || g.attackOrders.length===0);
+  assert.ok(count(g,0)>ownedBefore);
+});
+
+test('Attack click rejects own land, open sea, unreachable targets and invalid ratio',()=>{
+  const g = new Game(20);
+  const own = g.cities[0];
+  const water = g.owner.findIndex(owner=>owner===WATER);
+  const farNeutral = g.owner.findIndex((owner,i)=>owner===NEUTRAL && !neighbors(i).some(n=>g.owner[n]===0));
+  assert.match(g.launchAttack(0,own,35).reason,/eigenes/i);
+  assert.match(g.launchAttack(0,g.cities[1],35).reason,/gemeinsame Grenze/i);
+  assert.match(g.launchAttack(0,cellToPoint(water),35).reason,/Wasser/i);
+  assert.match(g.launchAttack(0,{x:-1,y:0},35).reason,/Außerhalb/i);
+  assert.match(g.launchAttack(0,cellToPoint(farNeutral),2).reason,/Truppenanteil/i);
+  // Neutral is one connected target faction; attacking deeper into the neutral area
+  // is intentionally permitted when neutral sectors also share a frontier.
+  assert.equal(g.launchAttack(0,cellToPoint(farNeutral),35).ok,true);
+});
+
+test('Clicking anywhere in a bordering enemy faction attacks that faction',()=>{
+  const g = new Game(33);
+  const enemyCity = g.cities[1];
+  const enemyBorder = g.owner.findIndex((owner,i)=>owner===1 && neighbors(i).some(n=>g.owner[n]===NEUTRAL));
+  const neighbor = neighbors(enemyBorder).find(i=>g.owner[i]===NEUTRAL);
+  g.owner[neighbor] = 0;
+  const result=g.launchAttack(0,enemyCity,25);
+  assert.equal(result.ok,true);
+  assert.equal(result.targetOwner,1);
+  assert.equal(g.attackOrders[0].targetOwner,1);
+});
+
+test('Running attacks use only the committed army and preserve deterministic replay',()=>{
+  const a=new Game(200),b=new Game(200);
+  const border = a.owner.findIndex((owner,i)=>owner===NEUTRAL && neighbors(i).some(n=>a.owner[n]===0));
+  const spot=cellToPoint(border);
+  assert.deepEqual(a.launchAttack(0,spot,100),b.launchAttack(0,spot,100));
+  for(let t=0;t<30;t++){a.step();b.step();}
+  assert.deepEqual([...a.owner],[...b.owner]);
+  assert.deepEqual(a.attackOrders,b.attackOrders);
+  assert.equal(a.factions[0].troops,b.factions[0].troops);
+  assert.ok(a.factions[0].troops>=0);
+});
+
+test('Without a player click no autonomous player attack is initiated',()=>{
+  const g=new Game(8);
+  const start=count(g,0);
+  for(let t=0;t<5;t++)g.step();
+  assert.equal(count(g,0),start);
+  assert.equal(g.attackOrders.length,0);
+});
+
+
+test('A repeat border click reinforces the offensive with a fresh troop commitment',()=>{
+  const g=new Game(66);
+  const border = g.owner.findIndex((owner,i)=>owner===NEUTRAL && neighbors(i).some(n=>g.owner[n]===0));
+  const spot=cellToPoint(border);
+  const first=g.launchAttack(0,spot,25);
+  const second=g.launchAttack(0,spot,50);
+  assert.equal(first.sent,100);
+  assert.equal(second.sent,150); // 50% of the 300 troops remaining after the first click
+  assert.equal(g.factions[0].troops,150);
+  assert.equal(g.attackOrders.length,2);
 });

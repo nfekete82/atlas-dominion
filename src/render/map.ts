@@ -18,6 +18,8 @@ export class MapRenderer {
   private press = { x: 0, y: 0 };
   private hover: Point | null = null;
   private moved = false;
+  private availableTargets = new Set<number>();
+  private labels: Array<{ id: number; pos: Point }> = [];
   game: Game;
   onSelect: (point: Point) => void = () => {};
   onHover: (point: Point | null, px: number, py: number) => void = () => {};
@@ -91,12 +93,19 @@ export class MapRenderer {
     c.fillStyle = vignette; c.fillRect(0,0,WORLD_WIDTH,WORLD_HEIGHT);
   }
   updateTerritory() {
+    this.availableTargets = this.game.attackableOwners(0);
+    const sumX = new Float64Array(this.game.factions.length);
+    const sumY = new Float64Array(this.game.factions.length);
+    const counts = new Uint32Array(this.game.factions.length);
     const c = this.overlay.getContext('2d')!;
     c.clearRect(0,0,WORLD_WIDTH,WORLD_HEIGHT);
     const owners = this.game.owner;
     for (let i = 0; i < owners.length; i++) {
       const id = owners[i];
       if (id < 0) continue;
+      sumX[id] += i % MAP_WIDTH;
+      sumY[id] += Math.floor(i / MAP_WIDTH);
+      counts[id]++;
       c.fillStyle = this.game.factions[id].color + '9a';
       c.fillRect((i % MAP_WIDTH) * CW, Math.floor(i / MAP_WIDTH) * CH, CW + 0.45, CH + 0.45);
     }
@@ -114,6 +123,59 @@ export class MapRenderer {
       if (i >= (MAP_HEIGHT-1)*MAP_WIDTH || owners[i+MAP_WIDTH] !== id) { c.moveTo(x,y+CH); c.lineTo(x+CW,y+CH); }
       c.stroke();
     }
+    // One prominent troop badge per active faction; anchor remains on owned land
+    // even when the centroid lies outside a concave or fragmented territory.
+    const best = new Float64Array(this.game.factions.length).fill(Infinity);
+    const anchor = new Int32Array(this.game.factions.length).fill(-1);
+    for (let i = 0; i < owners.length; i++) {
+      const id = owners[i];
+      if (id < 0 || !counts[id]) continue;
+      const dx = (i % MAP_WIDTH) - sumX[id] / counts[id];
+      const dy = Math.floor(i / MAP_WIDTH) - sumY[id] / counts[id];
+      const distance = dx * dx + dy * dy;
+      if (distance < best[id]) { best[id] = distance; anchor[id] = i; }
+    }
+    this.labels = [...anchor].flatMap((index,id)=>index < 0 ? [] : [{ id,
+      pos: pointToWorld({ x: index % MAP_WIDTH, y: Math.floor(index / MAP_WIDTH) }) }]);
+  }
+  /** Used by the tooltip; same shared-border predicate as launchAttack(). */
+  canAttack(point: Point): boolean {
+    const x = Math.floor(point.x), y = Math.floor(point.y);
+    if (x < 0 || y < 0 || x >= MAP_WIDTH || y >= MAP_HEIGHT) return false;
+    return this.availableTargets.has(this.game.owner[y * MAP_WIDTH + x]);
+  }
+  private drawTroopBadges(c: CanvasRenderingContext2D) {
+    c.save();
+    const width = this.canvas.clientWidth, height = this.canvas.clientHeight;
+    c.textAlign = 'center';
+    const boxes: Array<{x:number;y:number}> = [];
+    for (const label of this.labels) {
+      const faction = this.game.factions[label.id];
+      if (!faction?.alive) continue;
+      const x = this.ox + label.pos.x * this.scale;
+      let y = this.oy + label.pos.y * this.scale + 24;
+      if (x < 53 || x > width - 53 || y < 37 || y > height - 65) continue;
+      // Move conflicting badges rather than stacking unreadable troop numbers.
+      for (let k=0;k<5 && boxes.some(b=>Math.abs(b.x-x)<98&&Math.abs(b.y-y)<43);k++) y+=40;
+      if (y > height - 65) continue;
+      boxes.push({x,y});
+      const current = this.game.attackOrders.filter(o=>o.factionId===label.id).reduce((n,o)=>n+o.remaining,0);
+      c.shadowColor='#000c';c.shadowBlur=15;
+      c.fillStyle=label.id===0?'rgba(44,35,22,.95)':'rgba(8,21,27,.90)';
+      c.strokeStyle=faction.color;
+      c.lineWidth=label.id===0?2:1.2;
+      c.beginPath();c.roundRect(x-49,y-17,98,40,6);c.fill();c.stroke();c.shadowBlur=0;
+      c.font='800 9px system-ui';c.fillStyle=faction.color;
+      c.fillText(faction.name,x,y-3,90);
+      c.font='900 15px system-ui';c.fillStyle='#f4f0df';
+      const troops = Math.floor(faction.troops).toLocaleString('de-DE');
+      c.fillText(`⚔ ${troops}`,x,y+15,90);
+      if (current>0) {
+        c.fillStyle='#fff0c3';c.font='700 9px system-ui';
+        c.fillText(`↗ ${Math.floor(current).toLocaleString('de-DE')} IM ANGRIFF`,x,y+35,110);
+      }
+    }
+    c.restore();
   }
   private frame(timestamp: number) {
     const c = this.ctx;
@@ -137,25 +199,29 @@ export class MapRenderer {
       c.shadowBlur=0;
     }
     if (this.game.status==='playing') {
-      const capital = this.game.cities[0];
-      const from = pointToWorld(capital);
-      const to = pointToWorld(this.game.factions[0].target);
-      c.beginPath(); c.setLineDash([7,10]); c.lineDashOffset = -timestamp/80;
-      c.moveTo(from.x,from.y);c.lineTo(to.x,to.y);
-      c.strokeStyle='rgba(245,199,112,.54)';c.lineWidth=1.7;c.stroke();c.setLineDash([]);
-      c.beginPath();c.arc(to.x,to.y,12+Math.sin(timestamp/280)*3,0,Math.PI*2);
-      c.strokeStyle='#ffcc72';c.lineWidth=2;c.stroke();
-      c.beginPath();c.arc(to.x,to.y,3,0,Math.PI*2);c.fillStyle='#ffcc72';c.fill();
+      for (const order of this.game.attackOrders) {
+        if (order.factionId !== 0) continue;
+        const from = pointToWorld(this.game.cities[0]);
+        const to = pointToWorld(order.anchor);
+        c.beginPath();c.setLineDash([7,8]);c.lineDashOffset=-timestamp/70;
+        c.moveTo(from.x,from.y);c.lineTo(to.x,to.y);
+        c.strokeStyle='rgba(247,197,108,.62)';c.lineWidth=1.5;c.stroke();c.setLineDash([]);
+        c.beginPath();c.arc(to.x,to.y,11+Math.sin(timestamp/280)*2,0,Math.PI*2);
+        c.strokeStyle='#ffce78';c.lineWidth=2;c.stroke();
+      }
     }
     if(this.hover) {
       const x=this.hover.x*CW, y=this.hover.y*CH;
       const i=this.hover.y*MAP_WIDTH+this.hover.x;
       if (this.game.owner[i]!==WATER) {
-        c.strokeStyle='#f9e4ad'; c.lineWidth=1.5;
+        const canAttack=this.canAttack(this.hover);
+        c.strokeStyle=canAttack?'#a8ffc1':'#f9e4ad'; c.lineWidth=canAttack?2.5:1.5;
+        if(canAttack){c.fillStyle='rgba(136,255,177,.17)';c.fillRect(x,y,CW,CH);}
         c.strokeRect(x,y,CW,CH);
       }
     }
     c.restore();
+    this.drawTroopBadges(c);
     requestAnimationFrame(t=>this.frame(t));
   }
   zoomBy(factor: number) {
