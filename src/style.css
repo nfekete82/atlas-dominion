@@ -75,3 +75,32 @@
 .build-menu-footer{margin:12px 0 1px;text-align:center;color:#b6c8b9;font-size:10px}
 .stat strong{font-size:clamp(17px,1.4vw,26px);overflow-wrap:anywhere}
 @media(max-width:800px){.build-menu{width:min(300px,calc(100vw - 20px))}}
+
+
+/* v1.0 flat political map: cartographic hierarchy, without the old neon veil. */
+.battlefield{background:#4b8bad}
+.map-wash{background:linear-gradient(180deg,rgba(28,68,88,.15),transparent 15%,transparent 82%,rgba(32,73,92,.10));box-shadow:none}
+.map-heading{
+  top:20px;left:21px;max-width:435px;
+  padding:10px 15px 11px;border-radius:7px;
+  background:rgba(242,240,221,.80);
+  box-shadow:0 3px 18px rgba(29,57,67,.10);
+  text-shadow:none;
+  backdrop-filter:blur(4px)
+}
+.map-heading .micro-heading{color:#5c625b;font-size:8px;letter-spacing:1.6px}
+.map-heading .micro-heading span{color:#818e83}
+.map-heading h1{color:#34444a;font-size:clamp(23px,2.3vw,36px);margin:5px 0 3px;letter-spacing:1px}
+.map-heading h1 em{color:#467a9f}
+.map-subtitle{color:#546568;font-size:10px;line-height:1.4}
+.map-location{top:18px;right:18px;background:rgba(232,239,230,.76);padding:9px 13px;border-radius:6px;color:#3f535b;text-shadow:none;box-shadow:0 2px 10px #2244541a}
+.map-location small{color:#6e817f;font-size:9px}
+.map-info{background:#f8f7e9ed;border:1px solid #b4c0ab;box-shadow:0 6px 20px #213f5040;border-radius:5px;color:#394947;max-width:245px;min-width:190px;pointer-events:none}
+.map-info small{color:#65736c}
+.map-info strong{color:#31795b}
+.map-info strong.blocked{color:#ad6959}
+.battlefield canvas{cursor:crosshair}
+.bottom-bar{height:74px;background:rgba(11,31,41,.94);box-shadow:0 -4px 12px #17364135}
+.zoom-controls button{background:#edf0e4e8;color:#415d68;border:1px solid #a5b9b7}
+.zoom-controls button:hover{background:#fff9e8;color:#264354}
+@media(max-width:800px){.map-heading{top:10px;left:10px;max-width:260px;padding:8px 9px}.map-heading h1{font-size:21px}.map-subtitle{font-size:9px}.map-location{display:none}}

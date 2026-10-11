@@ -3,6 +3,7 @@ import { COUNTRY_STARTS, countryByCode } from '../data/countries.js';
 import { assessInvasion, interceptAttack } from './warfare.js';
 import { attackFrontWidth, frontierBudget, frontierTarget, localDefenseStrength } from './frontline.js';
 import { BUILDINGS, BUILDING_CODES, type BuildingType, populationGrowth, recruitmentRate, supplyRate } from './economy.js';
+import { findConnectedAttackFront } from './front-target.js';
 
 export const WATER = -2;
 export const NEUTRAL = -1;
@@ -409,48 +410,30 @@ export class Game {
     return exposed;
   }
 
-  /** Clicking up to 14 contiguous enemy sectors behind the border still issues
-   * an attack at the nearest reachable front; truly deep clicks remain invalid.
-   * Land-connected BFS prevents snapping across sea or disconnected enclaves.
+  /** Neutral territory is one globally shared owner. Keep its click radius
+   * local to avoid teleporting across unclaimed Europe. Occupied nations,
+   * however, can be targeted anywhere within a connected region that
+   * actually borders our land.
    */
   static readonly ATTACK_CLICK_DEPTH = 14;
 
-  /** Exact adjacency predicate used by combat; never considers sea corridors. */
   isDirectBorderTarget(id: number, target: Point): boolean {
     if (!Number.isFinite(target.x) || !Number.isFinite(target.y) ||
         target.x < 0 || target.y < 0 || target.x >= MAP_WIDTH || target.y >= MAP_HEIGHT ||
         !this.factions[id]?.alive) return false;
-    const index = pointToIndex(target);
-    return this.owner[index] !== WATER && this.owner[index] !== id &&
-      LAND_NEIGHBORS[index].some(n => this.owner[n] === id);
+    const index=pointToIndex(target);
+    return this.owner[index]!==WATER && this.owner[index]!==id &&
+      LAND_NEIGHBORS[index].some(n=>this.owner[n]===id);
   }
 
   findAttackFront(id: number, target: Point): Point | null {
-    if (!Number.isFinite(target.x) || !Number.isFinite(target.y) ||
-        target.x < 0 || target.y < 0 || target.x >= MAP_WIDTH || target.y >= MAP_HEIGHT ||
-        !this.factions[id]?.alive) return null;
-    const start = pointToIndex(target);
-    const targetOwner = this.owner[start];
-    if (targetOwner === WATER || targetOwner === id) return null;
-    // Breadth-first traversal over the clicked territory only. The first border
-    // cell reached is guaranteed to be the closest by land distance. Never
-    // trace through water, a different faction, or a maritime shortcut.
-    const visited = new Set<number>([start]);
-    const queue: number[] = [start];
-    const depth: number[] = [0];
-    for (let cursor = 0; cursor < queue.length; cursor++) {
-      const current = queue[cursor];
-      if (LAND_NEIGHBORS[current].some(n => this.owner[n] === id))
-        return cellToPoint(current);
-      if (depth[cursor] >= Game.ATTACK_CLICK_DEPTH) continue;
-      for (const neighbor of LAND_NEIGHBORS[current]) {
-        if (this.owner[neighbor] !== targetOwner || visited.has(neighbor)) continue;
-        visited.add(neighbor);
-        queue.push(neighbor);
-        depth.push(depth[cursor] + 1);
-      }
-    }
-    return null;
+    if(!Number.isFinite(target.x)||!Number.isFinite(target.y)||
+       target.x<0||target.y<0||target.x>=MAP_WIDTH||target.y>=MAP_HEIGHT||
+       !this.factions[id]?.alive)return null;
+    const index=pointToIndex(target);
+    const maxDistance=this.owner[index]===NEUTRAL?Game.ATTACK_CLICK_DEPTH:Infinity;
+    const front=findConnectedAttackFront(this.owner,MAP_WIDTH,index,id,maxDistance);
+    return front>=0?cellToPoint(front):null;
   }
 
   /** True only for a documented sea corridor with our troops on the opposite shore. */
@@ -486,7 +469,7 @@ export class Game {
     if (owner === id) return failed('Das ist dein eigenes Gebiet.');
     const front = landing ? cellToPoint(index) : this.findAttackFront(id, target);
     if (!front || (landing && !this.canLand(id,target)))
-      return failed(landing ? 'Keine eigene Küste an diesem Seeübergang.' : 'Zu weit von unserer Grenze entfernt – näher an die Front klicken.');
+      return failed(landing ? 'Keine eigene Küste an diesem Seeübergang.' : 'Dieses Gebiet hat keine gemeinsame Landfront mit dir.');
     const sent = Math.floor(attacker.troops * ratio / 100);
     if (sent < 8) return failed('Mindestens 8 mobile Truppen erforderlich.');
     attacker.troops -= sent;

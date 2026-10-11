@@ -2,17 +2,27 @@ import { COUNTRIES, MAP_HEIGHT, MAP_WIDTH, SEA_CROSSINGS, WORLD_HEIGHT, WORLD_WI
 import { Game, NEUTRAL, WATER, pointToWorld, seededRandom, type Point } from '../engine/game.js';
 import { TerritoryWave, waveProgress } from './wave.js';
 import { pixelGridEdges } from './pixel-grid.js';
+import { MAP_PALETTE, mixHexColor } from './map-palette.js';
+import { COUNTRY_STARTS } from '../data/countries.js';
 
 const CW = WORLD_WIDTH / MAP_WIDTH;
 const CH = WORLD_HEIGHT / MAP_HEIGHT;
 const X_EDGES = pixelGridEdges(MAP_WIDTH, WORLD_WIDTH);
 const Y_EDGES = pixelGridEdges(MAP_HEIGHT, WORLD_HEIGHT);
+const FLAGS=new Map<string,string>(COUNTRY_STARTS.map(country=>[country.name,
+  country.code==='XK'?'🇽🇰':[...country.code].map(ch=>String.fromCodePoint(127397+ch.charCodeAt(0))).join('')
+] as const));
 
 export class MapRenderer {
   readonly canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private base = document.createElement('canvas');
   private overlay = document.createElement('canvas');
+  private administrative = document.createElement('canvas');
+  private highlightedCountry = document.createElement('canvas');
+  private highlightOwner = WATER;
+  private hoverIndex = -1;
+  private hoverFront: Point | null = null;
   private wave: TerritoryWave;
   private scale = 1;
   private zoom = 1;
@@ -43,7 +53,7 @@ export class MapRenderer {
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) throw new Error('Canvas 2D wird nicht unterstützt.');
     this.ctx = ctx;
-    for (const c of [this.base, this.overlay]) { c.width = WORLD_WIDTH; c.height = WORLD_HEIGHT; }
+    for (const c of [this.base, this.overlay, this.administrative, this.highlightedCountry]) { c.width = WORLD_WIDTH; c.height = WORLD_HEIGHT; }
     this.renderBase();
     this.updateTerritory();
     new ResizeObserver(() => this.resize()).observe(canvas);
@@ -52,7 +62,17 @@ export class MapRenderer {
     requestAnimationFrame(t => this.frame(t));
   }
 
-  setGame(game: Game) { this.game = game; this.wave.reset(game.owner); this.updateTerritory(); this.fit(); }
+  setGame(game: Game) {
+    this.game = game;
+    this.hover=null;
+    this.hoverIndex=-1;
+    this.hoverFront=null;
+    this.highlightOwner=WATER;
+    this.highlightedCountry.getContext('2d')!.clearRect(0,0,WORLD_WIDTH,WORLD_HEIGHT);
+    this.wave.reset(game.owner);
+    this.updateTerritory();
+    this.fit();
+  }
   focusOnCapital(point: Point): void {
     this.zoom = 1.8;
     this.scale = Math.min(this.canvas.clientWidth / WORLD_WIDTH, this.canvas.clientHeight / WORLD_HEIGHT) * this.zoom;
@@ -74,23 +94,26 @@ export class MapRenderer {
   }
   private renderBase() {
     const c = this.base.getContext('2d')!;
-    const sea = c.createLinearGradient(0, 0, 1100, 800);
-    sea.addColorStop(0, '#081e2a'); sea.addColorStop(0.56, '#102832'); sea.addColorStop(1, '#0a1b27');
-    c.fillStyle = sea; c.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-    c.strokeStyle = 'rgba(103,159,162,0.055)'; c.lineWidth = 1;
-    for (let x = 0; x <= WORLD_WIDTH; x += 64) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, WORLD_HEIGHT); c.stroke(); }
-    for (let y = 0; y <= WORLD_HEIGHT; y += 64) { c.beginPath(); c.moveTo(0, y); c.lineTo(WORLD_WIDTH, y); c.stroke(); }
+    const sea = c.createLinearGradient(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    sea.addColorStop(0,MAP_PALETTE.oceanTop);
+    sea.addColorStop(1,MAP_PALETTE.oceanBottom);
+    c.fillStyle=sea;c.fillRect(0,0,WORLD_WIDTH,WORLD_HEIGHT);
+    // Permanent, very subtle administrative outlines remain visible after
+    // conquest. Political lines are not the current military front.
+    const admin=this.administrative.getContext('2d')!;
+    admin.clearRect(0,0,WORLD_WIDTH,WORLD_HEIGHT);
     for (const country of COUNTRIES) {
       const path = new Path2D();
       for (const ring of country.rings) {
         ring.forEach(([x, y], j) => j === 0 ? path.moveTo(x, y) : path.lineTo(x, y));
         path.closePath();
       }
-      c.fillStyle = '#263c40'; c.fill(path);
-      c.strokeStyle = 'rgba(141,173,165,0.34)'; c.lineWidth = 1.15; c.stroke(path);
+      c.fillStyle=MAP_PALETTE.land;c.fill(path);
+      c.strokeStyle='rgba(93,111,104,.40)';c.lineWidth=1.05;c.stroke(path);
+      admin.strokeStyle='rgba(98,103,89,.31)';admin.lineWidth=.9;admin.stroke(path);
     }
     // Faint sea corridors represent crossings for islands and separated landmasses.
-    c.save();c.setLineDash([4,7]);c.strokeStyle='rgba(153,205,200,.4)';c.lineWidth=1.5;
+    c.save();c.setLineDash([5,8]);c.strokeStyle='rgba(225,236,217,.34)';c.lineWidth=1;
     for (const [a,b] of SEA_CROSSINGS) {
       const ax=(a % MAP_WIDTH +.5)*CW, ay=(Math.floor(a/MAP_WIDTH)+.5)*CH;
       const bx=(b % MAP_WIDTH +.5)*CW, by=(Math.floor(b/MAP_WIDTH)+.5)*CH;
@@ -98,18 +121,18 @@ export class MapRenderer {
     }
     c.restore();
     const rng = seededRandom(7122);
-    for (let i = 0; i < 4000; i++) {
+    for (let i = 0; i < 1450; i++) {
       const x = rng() * WORLD_WIDTH, y = rng() * WORLD_HEIGHT;
-      c.fillStyle = rng() > 0.55 ? 'rgba(169,201,181,.055)' : 'rgba(12,15,13,.12)';
-      c.fillRect(x, y, rng() * 2.2 + 0.5, rng() * 2.2 + 0.5);
+      c.fillStyle=rng()>.55?'rgba(255,255,241,.045)':'rgba(22,69,93,.04)';
+      c.fillRect(x,y,rng()*1.6+.35,rng()*1.6+.35);
     }
     c.save();
-    c.font = '11px ui-monospace, monospace'; c.fillStyle = 'rgba(150,184,188,.32)';
+    c.font='10px ui-monospace, monospace';c.fillStyle='rgba(233,242,236,.49)';
     c.letterSpacing = '2px';
     for (const [label, x, y] of [['NORTH ATLANTIC',76,257],['MEDITERRANEAN SEA',530,745],['BALTIC SEA',710,230],['BLACK SEA',1070,670],['NORTH SEA',290,255]]) c.fillText(label as string, x as number, y as number);
     c.restore();
-    const vignette = c.createRadialGradient(640,400,50,640,400,780);
-    vignette.addColorStop(0,'rgba(0,0,0,0)'); vignette.addColorStop(1,'rgba(2,12,19,.6)');
+    const vignette=c.createRadialGradient(800,450,150,800,450,1000);
+    vignette.addColorStop(0,'rgba(0,0,0,0)');vignette.addColorStop(1,'rgba(23,55,68,.12)');
     c.fillStyle = vignette; c.fillRect(0,0,WORLD_WIDTH,WORLD_HEIGHT);
   }
   updateTerritory() {
@@ -124,6 +147,7 @@ export class MapRenderer {
     c.imageSmoothingEnabled = false;
     c.clearRect(0,0,WORLD_WIDTH,WORLD_HEIGHT);
     const owners = this.game.owner;
+    const territoryFills=this.game.factions.map(f=>mixHexColor(f.color));
     this.wave.capture(owners, performance.now());
     for (let i = 0; i < owners.length; i++) {
       const id = owners[i];
@@ -140,7 +164,7 @@ export class MapRenderer {
       // fractional alpha bleeding, gaps or overlapping 0.45px overdraw.
       const col=i%MAP_WIDTH,row=Math.floor(i/MAP_WIDTH);
       const left=X_EDGES[col],top=Y_EDGES[row];
-      c.fillStyle=this.game.factions[id].color+'b8';
+      c.fillStyle=territoryFills[id];
       c.fillRect(left,top,X_EDGES[col+1]-left,Y_EDGES[row+1]-top);
     }
     // One-pixel lattice keeps individual conquered sectors legible.
@@ -148,7 +172,7 @@ export class MapRenderer {
     // Draw ~740 batched lines rather than 54,000 tiny stroked rectangles.
     c.save();
     c.globalCompositeOperation='source-atop';
-    c.strokeStyle='rgba(3,17,24,.14)';
+    c.strokeStyle='rgba(57,66,67,.055)';
     c.lineWidth=1;
     c.beginPath();
     for(let x=1;x<MAP_WIDTH;x++){
@@ -178,8 +202,9 @@ export class MapRenderer {
     c.save();c.lineCap='butt';c.lineJoin='miter';
     for (const faction of this.game.factions) {
       if (!counts[faction.id]) continue;
-      c.strokeStyle=faction.color+'24';c.lineWidth=2;c.stroke(contours[faction.id]);
-      c.strokeStyle=faction.color+'dc';c.lineWidth=1;c.stroke(contours[faction.id]);
+      c.strokeStyle='rgba(255,252,239,.58)';c.lineWidth=2.15;c.stroke(contours[faction.id]);
+      c.strokeStyle=mixHexColor(faction.color,'#344b57',.29)+'e4';
+      c.lineWidth=1.1;c.stroke(contours[faction.id]);
     }
     c.restore();
     // Regional fortification markers: stronger fronts are clearer and easier
@@ -222,6 +247,7 @@ export class MapRenderer {
     this.labels = [...anchor].flatMap((index,id)=>index < 0 ? [] : [{ id,
       pos: pointToWorld({ x: index % MAP_WIDTH, y: Math.floor(index / MAP_WIDTH) }) }]);
 
+    this.refreshHoverPreview(this.hover, true);
     this.combatEdges = [];
     this.combatLabels = [];
     for (const order of this.game.attackOrders) {
@@ -250,11 +276,52 @@ export class MapRenderer {
       if (contacts) this.combatLabels.push({pos:{x:sumX/contacts,y:sumY/contacts},troops:order.remaining});
     }
   }
+  /** Cache the currently chosen real border; keyboard and tooltip reuse it. */
+  previewFront(point: Point): Point | null {
+    const i=Math.floor(point.y)*MAP_WIDTH+Math.floor(point.x);
+    if(i===this.hoverIndex)return this.hoverFront;
+    return this.game.findAttackFront(0,point);
+  }
+
+  /** Rebuild only when the owner changes or the simulation claims new land.
+   * Full-faction highlight is pre-rendered rather than redrawn every frame.
+   */
+  private refreshHoverPreview(point:Point|null,force=false):void {
+    const index=point?point.y*MAP_WIDTH+point.x:-1;
+    if(!force && index===this.hoverIndex)return;
+    this.hoverIndex=index;
+    const owner=index>=0?this.game.owner[index]:WATER;
+    const front=point && owner!==0 && owner!==WATER
+      ? this.game.findAttackFront(0,point):null;
+    this.hoverFront=front;
+    const highlight=(front && owner>=0)?owner:WATER;
+    if(!force && highlight===this.highlightOwner)return;
+    this.highlightOwner=highlight;
+    const c=this.highlightedCountry.getContext('2d')!;
+    c.clearRect(0,0,WORLD_WIDTH,WORLD_HEIGHT);
+    if(highlight<0)return;
+    const boundary=new Path2D();
+    c.fillStyle='rgba(255,248,213,.17)';
+    const owners=this.game.owner;
+    for(let i=0;i<owners.length;i++){
+      if(owners[i]!==highlight)continue;
+      const col=i%MAP_WIDTH,row=Math.floor(i/MAP_WIDTH);
+      const x=X_EDGES[col],y=Y_EDGES[row],right=X_EDGES[col+1],bottom=Y_EDGES[row+1];
+      c.fillRect(x,y,right-x,bottom-y);
+      if(col===0||owners[i-1]!==highlight){boundary.moveTo(x+.5,y);boundary.lineTo(x+.5,bottom);}
+      if(col===MAP_WIDTH-1||owners[i+1]!==highlight){boundary.moveTo(right-.5,y);boundary.lineTo(right-.5,bottom);}
+      if(row===0||owners[i-MAP_WIDTH]!==highlight){boundary.moveTo(x,y+.5);boundary.lineTo(right,y+.5);}
+      if(row===MAP_HEIGHT-1||owners[i+MAP_WIDTH]!==highlight){boundary.moveTo(x,bottom-.5);boundary.lineTo(right,bottom-.5);}
+    }
+    c.lineJoin='miter';c.lineWidth=2;
+    c.strokeStyle='rgba(255,249,229,.95)';c.stroke(boundary);
+  }
+
   /** Used by the tooltip; same shared-border predicate as launchAttack(). */
   canAttack(point: Point): boolean {
     const x = Math.floor(point.x), y = Math.floor(point.y);
     if (x < 0 || y < 0 || x >= MAP_WIDTH || y >= MAP_HEIGHT) return false;
-    return this.availableTargets.has(this.game.owner[y * MAP_WIDTH + x]) && this.game.findAttackFront(0,point)!==null;
+    return this.availableTargets.has(this.game.owner[y * MAP_WIDTH + x]) && this.previewFront(point)!==null;
   }
   canLand(point: Point): boolean { return this.game.canLand(0,point); }
   private drawBuildings(c: CanvasRenderingContext2D): void {
@@ -280,35 +347,34 @@ export class MapRenderer {
     c.save();
     const width = this.canvas.clientWidth, height = this.canvas.clientHeight;
     c.textAlign = 'center';
-    const boxes: Array<{x:number;y:number}> = [];
+    const boxes: Array<{x:number;y:number}>=[];
     let shown=0;
-    for (const label of this.labels) {
-      const faction = this.game.factions[label.id];
-      if (!faction?.alive) continue;
-      if(label.id!==0 && (this.zoom < 2.3 && faction.territory < 180)) continue;
-      if(label.id!==0 && this.zoom < 2.8 && shown>=9) continue;
-      const x = this.ox + label.pos.x * this.scale;
-      let y = this.oy + label.pos.y * this.scale + 24;
-      if (x < 53 || x > width - 53 || y < 37 || y > height - 65) continue;
-      // Move conflicting badges rather than stacking unreadable troop numbers.
-      for (let k=0;k<5 && boxes.some(b=>Math.abs(b.x-x)<98&&Math.abs(b.y-y)<43);k++) y+=40;
-      if (y > height - 65) continue;
-      boxes.push({x,y});
-      shown++;
-      c.shadowColor='#000a';c.shadowBlur=4;
-      c.fillStyle=label.id===0?'rgba(44,35,22,.95)':'rgba(8,21,27,.90)';
-      c.strokeStyle=faction.color;
-      c.lineWidth=label.id===0?1.2:.8;
-      c.globalAlpha=label.id===0?.9:this.zoom>=2.8?.82:.58;
-      c.beginPath();c.roundRect(x-33,y-10,66,25,4);c.fill();c.stroke();c.shadowBlur=0;
-      c.font='650 6px system-ui';c.fillStyle=faction.color;
-      c.fillText(faction.name,x,y-2,58);
-      c.font='800 9px system-ui';c.fillStyle='#f4f0df';
-      const troops = Math.floor(this.armyTotals[label.id] ?? faction.troops).toLocaleString('de-DE');
-      c.fillText(`⚔ ${troops}`,x,y+10,60);
-      c.globalAlpha=1;
-      // Active attack strength is shown separately on the actual front.
+    for(const label of this.labels){
+      const faction=this.game.factions[label.id];
+      if(!faction?.alive)continue;
+      if(label.id!==0 && this.zoom<1.55 && faction.territory<90)continue;
+      if(label.id!==0 && this.zoom<2.3 && faction.territory<18)continue;
+      if(label.id!==0 && shown>=16 && this.zoom<2.6)continue;
+      const x=this.ox+label.pos.x*this.scale;
+      let y=this.oy+label.pos.y*this.scale+17;
+      if(x<60||x>width-60||y<35||y>height-72)continue;
+      for(let j=0;j<3&&boxes.some(p=>Math.abs(p.x-x)<114&&Math.abs(p.y-y)<31);j++)y+=27;
+      if(y>height-72)continue;
+      boxes.push({x,y});shown++;
+      const flag=FLAGS.get(faction.name)??'';
+      const name=(flag?flag+' ':'')+faction.name;
+      c.globalAlpha=label.id===0?.95:this.zoom>=2.5?.82:.68;
+      c.textAlign='center';c.lineJoin='round';
+      c.strokeStyle='rgba(246,246,225,.84)';
+      c.fillStyle=label.id===0?'#263b46':'#35454a';
+      c.lineWidth=2.6;
+      c.font=label.id===0?'750 13px system-ui':'650 11px system-ui';
+      c.strokeText(name,x,y,135);c.fillText(name,x,y,135);
+      const count=Math.floor(this.armyTotals[label.id]??faction.troops).toLocaleString('de-DE');
+      c.font=label.id===0?'700 10px system-ui':'600 9px system-ui';
+      c.lineWidth=2;c.strokeText(count,x,y+13,95);c.fillText(count,x,y+13,95);
     }
+    c.globalAlpha=1;
 
     // Optional high-zoom numbers show how many soldiers defend this exact front.
     if (this.zoom >= 2.2) for (const label of this.frontierLabels) {
@@ -365,34 +431,27 @@ export class MapRenderer {
     const captures=this.wave.active(timestamp);
     if (!captures.length) return;
     c.save();
+    const fills=this.game.factions.map(f=>mixHexColor(f.color));
     for (const frame of captures) {
       if (frame.owner < 0) continue;
-      const x=(frame.index%MAP_WIDTH)*CW;
-      const y=Math.floor(frame.index/MAP_WIDTH)*CH;
+      const col=frame.index%MAP_WIDTH,row=Math.floor(frame.index/MAP_WIDTH);
+      const x=X_EDGES[col],y=Y_EDGES[row];
+      const w=X_EDGES[col+1]-x,h=Y_EDGES[row+1]-y;
       const progress=waveProgress(frame,timestamp);
       const oldFaction=this.game.factions[frame.previous];
       const newFaction=this.game.factions[frame.owner];
-      // Old territory is a temporary overlay. A rounded, expanding aperture
-      // reveals the new owner from the shared front into the conquered cell.
-      c.save();c.beginPath();c.rect(x,y,CW,CH);c.clip();
-      c.globalAlpha=1-progress;
-      c.fillStyle=oldFaction ? oldFaction.color : '#263c40';
-      c.fillRect(x,y,CW+0.5,CH+0.5);
-      c.globalAlpha=1;
-      if(progress>0 && progress<1) {
-        c.beginPath();
-        c.arc(x+CW/2,y+CH/2,Math.max(CW,CH)*progress*1.05,0,Math.PI*2);
-        c.fillStyle=newFaction.color+'ce';c.fill();
+      // Brief stepped tile reveal with no soft circular blob or overdraw.
+      c.save();
+      c.beginPath();c.rect(x,y,w,h);c.clip();
+      c.fillStyle=oldFaction?fills[frame.previous]:MAP_PALETTE.land;
+      c.globalAlpha=(1-progress)*.91;
+      c.fillRect(x,y,w,h);
+      if(progress>0 && progress<1){
+        c.globalAlpha=.65;
+        c.fillStyle=fills[frame.owner];
+        c.fillRect(x,y,h>0?w*progress:0,h);
       }
       c.restore();
-      // A short-lived contact shimmer reads as movement, not an arrow.
-      if(progress>0.12 && progress<0.88) {
-        c.strokeStyle=newFaction.color;
-        c.globalAlpha=Math.sin(progress*Math.PI)*0.46;
-        c.lineWidth=1.7;
-        c.beginPath();c.arc(x+CW/2,y+CH/2,Math.max(CW,CH)*(0.23+progress*.56),0,Math.PI*2);c.stroke();
-        c.globalAlpha=1;
-      }
     }
     c.restore();
   }
@@ -406,7 +465,11 @@ export class MapRenderer {
     c.drawImage(this.base,0,0);
     c.imageSmoothingEnabled=false; // Nearest-neighbour territorial pixels.
     c.drawImage(this.overlay,0,0);
+    c.drawImage(this.highlightedCountry,0,0);
     c.imageSmoothingEnabled=true;
+    c.globalAlpha=.65;
+    c.drawImage(this.administrative,0,0);
+    c.globalAlpha=1;
     this.drawCaptureWave(c, timestamp);
     this.drawLandingPorts(c, timestamp);
     this.drawBuildings(c);
@@ -450,18 +513,20 @@ export class MapRenderer {
       const i=this.hover.y*MAP_WIDTH+this.hover.x;
       if (this.game.owner[i]!==WATER) {
         const canAttack=this.canAttack(this.hover) || this.canLand(this.hover);
-        c.strokeStyle=canAttack?'#a8ffc1':'#f9e4ad'; c.lineWidth=canAttack?2.5:1.5;
-        if(canAttack){c.fillStyle='rgba(136,255,177,.17)';c.fillRect(x,y,CW,CH);}
+        c.strokeStyle=canAttack?'rgba(255,249,228,.88)':'rgba(67,75,70,.35)';
+        c.lineWidth=canAttack?1.45:.6;
+        if(canAttack){c.fillStyle='rgba(255,255,233,.12)';c.fillRect(x,y,CW,CH);}
         c.strokeRect(x,y,CW,CH);
-        // Mark the actual connected border tile selected by a nearby click.
-        // No direction arrow or artificial movement inside enemy territory.
-        const front = this.game.findAttackFront(0,this.hover);
+        // The marker represents the actual connected attack front, no
+        // directional route and no advance through third-party territory.
+        const front=this.previewFront(this.hover);
         if(front && (front.x!==this.hover.x || front.y!==this.hover.y)){
           const fx=(front.x+.5)*CW, fy=(front.y+.5)*CH;
           c.beginPath();
-          c.arc(fx,fy,Math.max(CW,CH)*1.1+Math.sin(timestamp/250)*1.2,0,Math.PI*2);
-          c.fillStyle='rgba(138,255,188,.25)';c.fill();
-          c.strokeStyle='#a8ffc1';c.lineWidth=2.2;c.stroke();
+          const radius=Math.max(CW,CH)*.83+Math.sin(timestamp/290)*.5;
+          c.arc(fx,fy,radius,0,Math.PI*2);
+          c.fillStyle='rgba(253,240,172,.23)';c.fill();
+          c.strokeStyle='#fff4c1';c.lineWidth=1.4;c.stroke();
         }
       }
     }
@@ -516,6 +581,7 @@ export class MapRenderer {
         this.last={x:e.clientX,y:e.clientY};
       }
       this.hover=this.cellAt(e.clientX,e.clientY,e.shiftKey);
+      this.refreshHoverPreview(this.hover);
       const box=this.canvas.getBoundingClientRect();
       this.onHover(this.hover,e.clientX-box.left,e.clientY-box.top,e.shiftKey);
     });
@@ -525,7 +591,7 @@ export class MapRenderer {
       this.dragging=false;
     });
     this.canvas.addEventListener('pointercancel',()=>{this.dragging=false;});
-    this.canvas.addEventListener('pointerleave',()=>{this.hover=null;this.onHover(null,0,0,false);});
+    this.canvas.addEventListener('pointerleave',()=>{this.hover=null;this.refreshHoverPreview(null);this.onHover(null,0,0,false);});
     this.canvas.addEventListener('contextmenu',e=>{
       e.preventDefault();
       const point=this.cellAt(e.clientX,e.clientY,false);

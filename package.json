@@ -1,6 +1,6 @@
 {
   "name": "atlas-dominion",
-  "version": "0.9.1",
+  "version": "1.0.0",
   "description": "ATLAS DOMINION — Browser-Echtzeitstrategie auf einer Europakarte",
   "type": "module",
   "private": true,
