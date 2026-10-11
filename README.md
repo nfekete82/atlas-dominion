@@ -1,5 +1,22 @@
 # ATLAS DOMINION
 
+**v1.0.1 — KLARE FRONTAKTIONEN & KONTRASTREICHE KARTE**
+
+## Neu in v1.0.1
+- Rückkehr zur kontrastreichen dunkelblauen Karte mit deutlich voneinander unterscheidbaren Fraktionsfarben und präzisen Besitzgrenzen. Der blasse beige Landstil aus v1.0 wurde entfernt.
+- Kein permanentes Sektorraster über Besitzflächen. Keine dekorativen Kreisringe an Hauptstädten, keine Sektorquadrat-Hovermarker oder farbigen Verteidigungs-Punkte.
+- Keine dauerhaft eingeblendeten Gebäudequadrate. Das Rechtsklick-Baumenü und sämtliche Bauwirkungen bleiben erhalten.
+- Seelandungsziele erscheinen nur **während Shift gedrückt ist** als kleine Ankermarkierungen.
+- Länderziel beim Hover bleibt als sehr dezente Fläche hervorgehoben. Im eigentlichen Gefecht zeigt nur eine schmale, ruhige Linie die aktive Front.
+- Die Eroberungswelle zeigt rasch hintereinander die tatsächlich eroberten Sektoren (190 statt 420 ms Animationsdauer, 24 statt 55 ms pro Tiefenstufe), ohne zusätzliche runde Effekte.
+- Die intuitive v1.0-Klicksteuerung bleibt: Klick irgendwo in ein **zusammenhängendes, direkt angrenzendes gegnerisches Land**, Start an der echten Grenze. Neutrale Flächen nur bis 14 Sektoren Klicktiefe. Seeangriffe weiterhin separat.
+- Keine Änderung an echten Ressourcen, Baukosten, Eigentumslogik oder Kampfregeln. Animationen verändern niemals die Simulation.
+
+## Visuelle Designrichtung
+Eigener dunkler, ruhiger Strategiespiel-Look mit scharfen politischen Besitzflächen und minimaler Kampfinteraktion. Nicht die Benutzeroberfläche von OpenFront kopiert.
+
+---
+
 **v1.0 — HELLE EUROPAKARTE & NATÜRLICHES ANGRIFFS-KLICKEN**
 
 Eigenständiges Echtzeit-Strategiespiel für den Browser, inspiriert vom flächigen Strategie-Kartendesign und dem unmittelbaren Spielgefühl von OpenFront. **Keine OpenFront-Grafiken oder sonstigen Assets wurden kopiert.**
