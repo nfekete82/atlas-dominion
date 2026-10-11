@@ -143,6 +143,24 @@ export class MapRenderer {
       c.fillStyle=this.game.factions[id].color+'b8';
       c.fillRect(left,top,X_EDGES[col+1]-left,Y_EDGES[row+1]-top);
     }
+    // One-pixel lattice keeps individual conquered sectors legible.
+    // source-atop clips it to owned sectors without drawing a grid on the sea.
+    // Draw ~740 batched lines rather than 54,000 tiny stroked rectangles.
+    c.save();
+    c.globalCompositeOperation='source-atop';
+    c.strokeStyle='rgba(3,17,24,.14)';
+    c.lineWidth=1;
+    c.beginPath();
+    for(let x=1;x<MAP_WIDTH;x++){
+      const px=X_EDGES[x]+.5;
+      c.moveTo(px,0);c.lineTo(px,WORLD_HEIGHT);
+    }
+    for(let y=1;y<MAP_HEIGHT;y++){
+      const py=Y_EDGES[y]+.5;
+      c.moveTo(0,py);c.lineTo(WORLD_WIDTH,py);
+    }
+    c.stroke();
+    c.restore();
     // Draw territorial contours directly on pixel-aligned cell boundaries.
     // Avoid the thick translucent halo that previously blurred captured squares.
     const contours = this.game.factions.map(() => new Path2D());
