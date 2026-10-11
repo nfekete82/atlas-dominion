@@ -30,7 +30,7 @@ export interface AttackOrder {
   remaining: number;
   conquered: number;
 }
-export interface AttackResult { ok: boolean; reason: string; sent: number; targetOwner?: number; }
+export interface AttackResult { ok: boolean; reason: string; sent: number; targetOwner?: number; front?: Point; }
 export type GameStatus = 'playing' | 'victory' | 'defeat';
 export type Doctrine = 'expand' | 'blitz' | 'fortify';
 
@@ -222,6 +222,27 @@ export class Game {
     return targets;
   }
 
+
+  /** Snap an attack to the nearest reachable sector on the clicked faction's shared border.
+   * Commands are local to the front, never a direction from the capital.
+   */
+  findAttackFront(id: number, target: Point): Point | null {
+    if (!Number.isFinite(target.x) || !Number.isFinite(target.y) ||
+        target.x < 0 || target.y < 0 || target.x >= MAP_WIDTH || target.y >= MAP_HEIGHT ||
+        !this.factions[id]?.alive) return null;
+    const owner = this.owner[pointToIndex(target)];
+    if (owner === WATER || owner === id) return null;
+    let best = -1;
+    let distance = Infinity;
+    for (let i = 0; i < CELL_COUNT; i++) {
+      if (this.owner[i] !== owner || !NEIGHBORS[i].some(n => this.owner[n] === id)) continue;
+      const x = i % MAP_WIDTH, y = Math.floor(i / MAP_WIDTH);
+      const d = (x-target.x)**2 + (y-target.y)**2;
+      if (d < distance) { distance = d; best = i; }
+    }
+    return best < 0 ? null : cellToPoint(best);
+  }
+
   /** One click attacks a neighboring faction; ratio is an integer percentage of available troops. */
   launchAttack(id: number, target: Point, ratio: number): AttackResult {
     const failed = (reason: string): AttackResult => ({ ok: false, reason, sent: 0 });
@@ -233,17 +254,18 @@ export class Game {
     const owner = this.owner[index];
     if (owner === WATER) return failed('Angriff auf Wasser nicht möglich.');
     if (owner === id) return failed('Das ist dein eigenes Gebiet.');
-    if (!this.attackableOwners(id).has(owner)) return failed('Keine gemeinsame Grenze – zuerst angrenzende Gebiete erobern.');
+    const front = this.findAttackFront(id, target);
+    if (!front) return failed('Keine gemeinsame Grenze – zuerst angrenzende Gebiete erobern.');
     const sent = Math.floor(attacker.troops * ratio / 100);
     if (sent < 8) return failed('Mindestens 8 verfügbare Truppen erforderlich.');
     attacker.troops -= sent;
     this.attackOrders.push({ id: this.nextAttackId++, factionId: id, targetOwner: owner,
-      anchor: cellToPoint(index), committed: sent, remaining: sent, conquered: 0 });
+      anchor: front, committed: sent, remaining: sent, conquered: 0 });
     if (id === 0) {
       const targetName = owner === NEUTRAL ? 'NEUTRALGEBIET' : this.factions[owner].name;
       this.log(`Offensive gegen ${targetName}: ${sent.toLocaleString('de-DE')} Truppen entsandt.`, attacker.color);
     }
-    return { ok: true, reason: 'Angriff gestartet.', sent, targetOwner: owner };
+    return { ok: true, reason: 'Angriff an der Front gestartet.', sent, targetOwner: owner, front };
   }
 
   private chooseOrderedFront(order: AttackOrder): number {
