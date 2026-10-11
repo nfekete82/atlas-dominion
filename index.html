@@ -11,16 +11,16 @@
 <body>
   <div id="app">
     <header class="topbar">
-      <div class="brand"><div class="brand-icon" aria-hidden="true">◈</div><div class="brand-title">ATLAS <b>DOMINION</b><small>EUROPEAN CONQUEST <span class="version">/ v0.7</span></small></div></div>
+      <div class="brand"><div class="brand-icon" aria-hidden="true">◈</div><div class="brand-title">ATLAS <b>DOMINION</b><small>EUROPEAN CONQUEST <span class="version">/ v0.8</span></small></div></div>
       <div class="top-center"><span class="pulse"></span> <span>OPERATION EUROPA</span><span class="separator">/</span><strong>LIVE SIMULATION</strong></div>
       <div class="top-actions"><button id="helpBtn" class="icon-btn" title="Spielanleitung">?</button><button id="soundBtn" class="icon-btn" title="Sound umschalten">♪</button><button id="fullBtn" class="icon-btn" title="Vollbild">⛶</button><button id="resetBtn" class="new-game">↻ <span>NEUES SPIEL</span></button></div>
     </header>
     <div class="layout">
       <main class="battlefield">
-        <canvas id="battleCanvas" aria-label="Interaktive Europakarte mit 360 mal 240 Sektoren, in Grenznähe klicken"></canvas>
+        <canvas id="battleCanvas" aria-label="Interaktive Europakarte mit 480 mal 260 Sektoren, in Grenznähe klicken"></canvas>
         <div class="map-wash" aria-hidden="true"></div>
         <div class="map-heading"><div class="micro-heading">THE EUROPEAN THEATRE <span>·</span> 01</div><h1>EUROPA <em>EROBERN.</em></h1><div class="map-subtitle">Feindgebiet nahe der Grenze anklicken · SHIFT+Klick für Seeüberfahrt.</div></div>
-        <div class="map-location">◉ <span>EUROPA</span> <small>360 × 240 SECTORS</small></div>
+        <div class="map-location">◉ <span>EUROPA</span> <small>480 × 260 SECTORS</small></div>
         <div class="map-info" id="mapInfo" hidden><span id="hoverOwner">NEUTRAL</span><small id="hoverCoords">SEKTOR —</small><small id="hoverStats">TRUPPEN —</small><strong id="hoverAction">—</strong></div>
         <div class="zoom-controls"><button id="zoomIn" title="Hineinzoomen">+</button><button id="zoomOut" title="Herauszoomen">−</button><button id="zoomFit" title="Karte einpassen">⌗</button></div>
         <div class="bottom-bar">
@@ -29,7 +29,7 @@
         </div>
       </main>
       <aside class="sidebar">
-        <div class="sidebar-section"><div class="section-label">01 <span>DEIN IMPERIUM</span> <i></i></div><div class="faction-hero"><div class="faction-emblem">◈</div><div><small>DU SPIELST ALS</small><strong>DOMINION</strong><span class="hero-status"><i class="pulse"></i> EINSATZBEREIT</span></div></div>
+        <div class="sidebar-section"><div class="section-label">01 <span>DEIN IMPERIUM</span> <i></i></div><div class="faction-hero"><div class="faction-emblem" id="playerFlag">🇩🇪</div><div><small>DU SPIELST ALS</small><strong id="playerName">Deutschland</strong><span class="hero-status"><i class="pulse"></i> EINSATZBEREIT</span></div></div>
         <div class="stat-grid"><div class="stat"><small>GEBIETE</small><strong id="areaCount">0</strong><span>SEKTOREN</span></div><div class="stat"><small>TRUPPEN</small><strong id="troopCount">0</strong><span>GESAMT (FREIE + FRONT)</span></div><div class="stat"><small>EINKOMMEN</small><strong id="incomeCount">+0</strong><span>PRO TICK</span></div><div class="stat"><small>KONTROLLE</small><strong id="controlCount">0.0%</strong><span>EUROPAS</span></div></div>
         <div class="progress-label"><span>TERRITORIALER FORTSCHRITT</span><b id="progressLabel">0 / 65%</b></div><div class="progress"><div id="progressFill"></div></div>
         <div class="doctrine-title">KAMPFDOKTRIN <span>· WÄHLE DEINE TAKTIK</span></div>
@@ -42,12 +42,20 @@
           <div class="attack-preview"><span>BEIM NÄCHSTEN KLICK</span><b id="attackPreview">— TRUPPEN</b></div>
           <div id="attackStatus" class="attack-status" role="status" aria-live="polite">Klicke in Grenznähe: Die Front wird automatisch gefunden.</div>
         </div></div>
-        <div class="sidebar-section ranking"><div class="section-label">02 <span>GROSSMÄCHTE</span> <i></i></div><div id="leaderboard" class="leaderboard"></div></div>
+        <div class="sidebar-section ranking"><div class="section-label">02 <span>EUROPÄISCHE LÄNDER</span> <i></i></div><div id="leaderboard" class="leaderboard"></div></div>
         <div class="sidebar-section dispatch"><div class="section-label">03 <span>LAGEBERICHT</span> <i></i></div><div id="eventFeed" class="event-feed"></div></div>
         <div class="sidebar-footer"><span class="live-dot"></span> LOCAL SOLO MATCH <span>·</span> DETERMINISTIC ENGINE</div>
       </aside>
     </div>
   </div>
+  <section id="countryPicker" class="country-cover" role="dialog" aria-modal="true" aria-labelledby="countryPickerTitle">
+    <div class="country-panel">
+      <div class="country-title"><span class="micro-heading">ATLAS DOMINION / OPERATION EUROPA</span><h2 id="countryPickerTitle">WÄHLE DEIN LAND.</h2><p>Alle Länder starten als eigenständige Fraktionen an ihrer Hauptstadt. Du übernimmst die Führung eines Landes – die übrigen werden von der KI gespielt.</p></div>
+      <div class="country-search"><input id="countrySearch" type="search" autocomplete="off" placeholder="Land oder Hauptstadt suchen…" aria-label="Land oder Hauptstadt suchen"><span id="countryCount">50 Länder</span></div>
+      <div id="countryGrid" class="country-grid" role="group" aria-label="Spielbares Land auswählen"></div>
+      <div class="country-footer"><span>⚔ JEDES LAND STARTET MIT 400 TRUPPEN · HAUPTSTÄDTE SIND GESCHÜTZT</span><button type="button" id="countryCancel" hidden>ZUR PARTIE ZURÜCK</button></div>
+    </div>
+  </section>
   <div class="dialog-cover" id="dialog" hidden><section class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle"><button id="dialogClose" class="dialog-close" aria-label="Schließen">✕</button><span class="micro-heading">ATLAS DOMINION / BRIEFING</span><h2 id="dialogTitle">WILLKOMMEN, KOMMANDANT.</h2><div id="dialogBody"></div><button id="dialogAction" class="dialog-action">VERSTANDEN →</button></section></div>
   <script type="module" src="/src/main.js"></script>
 </body>
