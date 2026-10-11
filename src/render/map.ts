@@ -155,7 +155,7 @@ export class MapRenderer {
       c.fill();
     }
     c.restore();
-    this.armyTotals=this.game.factions.map(f=>f.troops+stationed[f.id]);
+    this.armyTotals=this.game.factions.map(f=>f.troops+stationed[f.id]+this.game.attackOrders.filter(o=>o.factionId===f.id).reduce((n,o)=>n+o.remaining,0));
     this.frontierLabels=[];
     for(let id=0;id<regional.length;id++){
       regional[id].sort((a,b)=>b.troops-a.troops || a.index-b.index);
