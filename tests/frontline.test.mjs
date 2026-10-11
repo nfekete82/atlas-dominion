@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { armyIncome, frontierTarget, frontierBudget, localDefenseStrength } from '../dist/src/engine/frontline.js';
+import { armyIncome, attackFrontWidth, frontierTarget, frontierBudget, localDefenseStrength } from '../dist/src/engine/frontline.js';
 import { Game, NEUTRAL, neighbors, landNeighbors, cellToPoint } from '../dist/src/engine/game.js';
 
 test('bigger empires produce disproportionately more recruits with no 9000 ceiling',()=>{
@@ -63,4 +63,13 @@ test('territory and reserve deployment are deterministic over equal command sequ
   assert.deepEqual([...a.owner],[...b.owner]);
   assert.deepEqual([...a.frontline],[...b.frontline]);
   assert.deepEqual(a.factions.map(x=>[x.troops,x.income,x.defenseSpent]),b.factions.map(x=>[x.troops,x.income,x.defenseSpent]));
+});
+
+test('larger armies can attack across a wider local front, without an unlimited tick burst',()=>{
+  const small=attackFrontWidth(80,false,false);
+  const large=attackFrontWidth(18000,false,false);
+  assert.ok(large>small);
+  assert.ok(large<=22);
+  assert.ok(attackFrontWidth(500,true,false)>attackFrontWidth(500,false,false));
+  assert.ok(attackFrontWidth(500,false,true)>attackFrontWidth(500,false,false));
 });
