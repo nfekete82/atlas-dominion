@@ -5,9 +5,13 @@ import { Game, NEUTRAL, neighbors, landNeighbors, cellToPoint } from '../dist/sr
 import {troopGrowth, taxRevenue} from '../dist/src/engine/economy.js';
 
 
-test('bigger empires produce disproportionately more recruits with no 9000 ceiling',()=>{
+test('larger empires grow faster with diminishing returns and no 9000 ceiling',()=>{
   const small=troopGrowth(100,100,1,0),mid=troopGrowth(2500,2500,1,2),large=troopGrowth(9000,9000,1,8);
-  assert.ok(small>0 && mid>small*10 && large>mid*3);
+  // The new square-root growth is intentionally slower than the old
+  // exponential city × population model; bigger remains strictly better.
+  assert.ok(small>0 && mid>small*2 && large>mid);
+  assert.ok(mid<small*10 && large<mid*3);
+  assert.ok(troopGrowth(2500,2500,1,20)>mid);
   assert.ok(taxRevenue(9000,500,1,5)>taxRevenue(100,500,1,5));
   const game=new Game(135,0);
   game.factions[0].troops=12000;
