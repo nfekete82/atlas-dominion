@@ -97,7 +97,7 @@ for (const btn of document.querySelectorAll<HTMLButtonElement>('[data-ratio]')) 
 renderer.onSelect = (point:Point, landing:boolean) => {
   closeBuildMenu();
   const result = landing ? game.launchLanding(0, point, attackRatio) : game.launchAttack(0, point, attackRatio);
-  attackMessage = result.ok ? `${format(result.sent)} Truppen · ${landing?'Seelandung (4 Ticks Anfahrt)':'Grenzoffensive'} gestartet.` : result.reason;
+  attackMessage = result.ok ? `${format(result.sent)} Truppen · ${landing?'Seelandung (4 Ticks Anfahrt)':'Offensive an verbundener Front'} gestartet.` : result.reason;
   attackMessageKind = result.ok ? 'success' : 'error';
   beep(result.ok ? 620 : 190);
   update();
@@ -156,7 +156,7 @@ renderer.onHover=(point,px,py,landing)=>{
   owner.style.color=f?.color??'#bcc5bb';
   $('hoverCoords').textContent=`SEKTOR ${point.x} / ${point.y} · ${id===NEUTRAL?'NEUTRAL':'KONTROLLIERT'}`;
   const tile = pointToIndex(point);
-  const attackFront = id !== 0 ? game.findAttackFront(0,point) : null;
+  const attackFront = id !== 0 ? renderer.previewFront(point) : null;
   const defendedSector = attackFront ? pointToIndex(attackFront) : tile;
   const stationedLocal = game.frontline[defendedSector];
   const sectorDefense = game.sectorDefense(defendedSector);
@@ -168,9 +168,9 @@ renderer.onHover=(point,px,py,landing)=>{
   const canLand = renderer.canLand(point);
   action.textContent = id===0 ? 'EIGENES TERRITORIUM'
     : landing && canLand ? `SHIFT+KLICK: ${attackRatio} % LANDEANGRIFF`
-    : attackable ? `KLICK: ${attackRatio} % ${attackFront && (attackFront.x!==point.x || attackFront.y!==point.y) ? 'AN NÄCHSTER GRENZE' : 'GRENZANGRIFF'}`
+    : attackable ? `KLICK: ${attackRatio} % · ANGRIFF AUF ${f?.name ?? 'NEUTRALGEBIET'}`
     : canLand ? 'SHIFT+KLICK: SEELANDUNG'
-    : 'ZU WEIT VON UNSERER GRENZE';
+    : 'KEINE ERREICHBARE LANDFRONT';
   action.classList.toggle('blocked',id!==0&&!attackable&&!canLand);
   tooltip.style.left=Math.max(4, Math.min(px+15,renderer.canvas.clientWidth-205))+'px';
   tooltip.style.top=Math.max(4, Math.min(py+13,renderer.canvas.clientHeight-97))+'px';
@@ -219,7 +219,7 @@ function startCountry(code:string): void {
   hasStarted=true;
   modalVisible=false;
   $('countryPicker').hidden=true;
-  attackMessage='Nahe der feindlichen Grenze klicken · SHIFT+Klick für Seelandung.';
+  attackMessage='Nachbarland anklicken · SHIFT+Klick für Seelandung.';
   attackMessageKind='neutral';
   renderer.setGame(game);
   renderer.focusOnCapital(game.cities[0]);
@@ -239,7 +239,7 @@ $('countryCancel').addEventListener('click',()=>{
 $('resetBtn').addEventListener('click',()=>showCountryPicker(hasStarted));
 $('helpBtn').addEventListener('click',()=>showDialog('DEIN EINSATZBEFEHL',`
   <p>ATLAS DOMINION ist ein Echtzeit-Eroberungsspiel. Starte in der Hauptstadt deines gewählten Landes, erweitere dein Gebiet und kontrolliere mindestens <strong>65 %</strong> Europas.</p>
-  <div class="briefing-row"><b>01</b><span><strong>KLICKEN:</strong> Klicke auf Feindgebiet in Grenznähe (bis 14 verbundene Landsektoren). Die Offensive startet automatisch am nächstgelegenen gemeinsamen Grenzsektor. Tiefe Klicks bleiben gesperrt.</span></div>
+  <div class="briefing-row"><b>01</b><span><strong>ANGREIFEN:</strong> Klicke irgendwo in ein mit dir verbundenes Nachbarland. Das Spiel sucht dessen nächste echte Landfront; ohne gemeinsame Grenze kein Angriff. Neutrales Land bleibt auf 14 Sektoren Klicktoleranz begrenzt.</span></div>
   <div class="briefing-row"><b>02</b><span><strong>SEELANDUNG:</strong> SHIFT gedrückt halten und auf eine markierte Anlegestelle am anderen Ufer klicken. Nur die eingezeichneten Seewege sind erlaubt; die Überfahrt dauert vier Ticks.</span></div>
   <div class="briefing-row"><b>03</b><span><strong>ZIEHEN:</strong> Karte verschieben. Mausrad oder +/− zum Zoomen.</span></div>
   <div class="briefing-row"><b>04</b><span><strong>FRONT:</strong> Die Angriffslinie leuchtet an der Grenze. Die kleine Zahl zeigt die eingesetzten Truppen. Es gibt keine Marschroute von der Hauptstadt.</span></div>
