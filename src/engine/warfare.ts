@@ -10,6 +10,7 @@ export interface InvasionFactors {
   threatenedBorders: number;
   /** Relative national power effect on real damage. 1 means evenly matched. */
   relativePower?: number;
+  riskTolerance?: number;
 }
 export interface InvasionAssessment {
   worthwhile: boolean;
@@ -19,16 +20,16 @@ export interface InvasionAssessment {
 
 /** Keep a strategic home reserve when the AI is exposed to hostile neighbours. */
 export function assessInvasion(f: InvasionFactors): InvasionAssessment {
-  const reserveFloor = Math.max(24, Math.min(f.attackerTroops * (f.threatenedBorders ? 0.30 : 0.15), f.attackerIncome * 4 + 45));
-  const deployable = Math.max(0, f.attackerTroops - reserveFloor);
-  if (f.neutral) return { worthwhile: deployable >= 10, advantage: deployable / Math.max(8, f.garrison), reserveFloor };
-  // Income is forward-looking reinforcement, but present troops dominate.
-  // Capturing a capital is lucrative, yet costs more than taking open terrain.
-  const attackingPower = (deployable + f.attackerIncome * 2) * (f.relativePower ?? 1);
-  const defendingPower = f.defenderTroops * 0.90 + f.defenderIncome * 2 + Math.max(10, f.garrison) * 1.8;
-  const advantage = attackingPower / Math.max(1, defendingPower);
-  const threshold = f.capital ? 1.48 : 1.16;
-  return { worthwhile: deployable >= 32 && advantage >= threshold, advantage, reserveFloor };
+  const risk=Math.max(0,Math.min(.22,f.riskTolerance ?? 0));
+  const reserveFloor=Math.max(24-risk*25,
+    Math.min(f.attackerTroops*(f.threatenedBorders?.30:.15),f.attackerIncome*4+45));
+  const deployable=Math.max(0,f.attackerTroops-reserveFloor);
+  if(f.neutral)return {worthwhile:deployable>=10,advantage:deployable/Math.max(8,f.garrison),reserveFloor};
+  const attackingPower=(deployable+f.attackerIncome*2)*(f.relativePower??1);
+  const defendingPower=f.defenderTroops*.90+f.defenderIncome*2+Math.max(10,f.garrison)*1.8;
+  const advantage=attackingPower/Math.max(1,defendingPower);
+  const threshold=(f.capital?1.48:1.16)-risk;
+  return {worthwhile:deployable>=Math.max(20,32-risk*50)&&advantage>=threshold,advantage,reserveFloor};
 }
 
 export interface Interception {
