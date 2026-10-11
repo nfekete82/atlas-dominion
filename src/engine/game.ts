@@ -145,6 +145,8 @@ export class Game {
   readonly frontline = new Float64Array(CELL_COUNT);
   readonly factions: Faction[];
   readonly cities: City[] = [];
+  /** Fixed capital positions for O(1) checks during busy multi-front AI turns. */
+  private readonly capitalSites=new Set<number>();
   readonly events: GameEvent[] = [];
   readonly attackOrders: AttackOrder[] = [];
   private nextAttackId = 1;
@@ -189,6 +191,7 @@ export class Game {
       occupied.add(index);
       const pos=cellToPoint(index);
       this.cities.push({name:start.capital,...pos,index,original:id,owner:id});
+      this.capitalSites.add(index);
     }
     for(const city of this.cities){
       this.owner[city.index]=city.original;
@@ -309,7 +312,7 @@ export class Game {
     if(!Number.isFinite(point.x)||!Number.isFinite(point.y)||x<0||y<0||x>=MAP_WIDTH||y>=MAP_HEIGHT)return fail('Außerhalb der Karte.');
     const index=y*MAP_WIDTH+x;
     if(this.owner[index]!==id)return fail('Nur auf eigenem Land bauen.');
-    if(this.cities.some(city=>city.index===index))return fail('In der Hauptstadt steht bereits eine Stadt.');
+    if(this.capitalSites.has(index))return fail('In der Hauptstadt steht bereits eine Stadt.');
     if(this.buildings[index])return fail('Hier steht bereits eine Stadt.');
     const def=BUILDINGS[0];
     if(faction.money<def.cost)return fail(`Zu wenig Geld: ${def.cost} benötigt.`);
@@ -329,7 +332,7 @@ export class Game {
 
   /** AI countries may develop cities, paying exactly the same build cost. */
   private developAI():void {
-    const capitals=new Set(this.cities.map(c=>c.index));
+    const capitals=this.capitalSites;
     const locations=new Int32Array(this.factions.length).fill(-1);
     const score=new Float64Array(this.factions.length).fill(Infinity);
     for(let index=0;index<CELL_COUNT;index++){
@@ -409,7 +412,7 @@ export class Game {
       exposed[faction.id].sort((a,b)=>this.frontline[a]-this.frontline[b] || a-b);
       for (const i of exposed[faction.id]) {
         if (remaining < 0.01) break;
-        const isCapital = this.cities.some(city => city.index === i);
+        const isCapital = this.capitalSites.has(i);
         const target = frontierTarget(faction.territory, faction.troops, isCapital, faction.id === 0 && this.doctrine === 'fortify');
         const sent = Math.max(0, Math.min(target - this.frontline[i], remaining, faction.troops));
         if (sent <= 0) continue;
@@ -625,7 +628,7 @@ export class Game {
       let friendly=0;
       for(const n of LAND_NEIGHBORS[i])if(this.owner[n]===id)friendly++;
       if(!friendly){candidates.delete(i);continue;}
-      const city=this.cities.find(c=>c.index===i);
+      const city=this.capitalSites.has(i);
       const hasCity=this.buildings[i]===BUILDING_CODES.city;
       const neutral=opponent===NEUTRAL;
       const defender=neutral?null:this.factions[opponent];
@@ -673,7 +676,7 @@ export class Game {
     let capital = false;
     if (originalOwner >= 0 && originalOwner !== faction.id) {
       defender = this.factions[originalOwner];
-      capital = this.cities.some(c => c.index === index);
+      capital = this.capitalSites.has(index);
       const fortified = originalOwner === 0 && this.doctrine === 'fortify';
       const local = interceptAttack(this.frontline[index], rawDamage, fortified, capital);
       this.frontline[index] -= local.used;
@@ -780,6 +783,7 @@ export class Game {
       }
       const attempts=aiAttacksPerTick(faction.territory,aiStyle(faction.id));
       for (let k = 0; k < attempts; k++) {
+        if(faction.troops<8 || faction.campaignEnergy<8)break;
         const target = this.chooseFront(faction.id);
         if (target === -1 || !this.attack(faction, target)) break;
       }
