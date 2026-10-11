@@ -2,7 +2,7 @@ import { GEO_BOUNDS, LAND_ROWS, MAP_HEIGHT, MAP_WIDTH, SEA_CROSSINGS, WORLD_HEIG
 import { COUNTRY_STARTS, countryByCode } from '../data/countries.js';
 import { assessInvasion, interceptAttack } from './warfare.js';
 import { attackFrontWidth, frontierBudget, frontierTarget, localDefenseStrength } from './frontline.js';
-import { BUILDINGS, BUILDING_CODES, type BuildingType, populationGrowth, recruitmentRate, supplyRate } from './economy.js';
+import { BUILDINGS, BUILDING_CODES, type BuildingType, troopGrowth, taxRevenue } from './economy.js';
 import { findConnectedAttackFront } from './front-target.js';
 
 export const WATER = -2;
@@ -15,15 +15,11 @@ export interface Faction {
   name: string;
   capital: string;
   color: string;
+  /** One shared inhabitant/army pool: includes mobile, stationed and deployed units. */
   troops: number;
-  population: number;
-  supplies: number;
-  supplyIncome: number;
-  settlements: number;
+  money: number;
+  moneyIncome: number;
   builtCities: number;
-  barracks: number;
-  fortresses: number;
-  harbors: number;
   territory: number;
   income: number;
   target: Point;
@@ -129,7 +125,7 @@ export function seededRandom(seed: number): () => number {
 export class Game {
   readonly owner = new Int16Array(CELL_COUNT);
   readonly defense = new Float32Array(CELL_COUNT);
-  /** Building on each individual map sector: 0 empty, 1..5 per economy.ts. */
+  /** Built city at sector: 0 means no city, 1 means city. */
   readonly buildings = new Uint8Array(CELL_COUNT);
   /** Real troops committed to individual threatened frontier sectors, separate from mobile reserves. */
   readonly frontline = new Float64Array(CELL_COUNT);
@@ -163,8 +159,7 @@ export class Game {
       .slice(0, Math.max(1, Math.min(COUNTRY_STARTS.length, opponentCount + 1)));
     this.factions = starts.map((start, id) => ({
       id, name: start.name, capital: start.capital, color: factionColor(id),
-      troops: 90, population: 240, supplies: 90, supplyIncome: 0,
-      settlements:0, builtCities:0, barracks:0, fortresses:0, harbors:0,
+      troops: 90, money: 90, moneyIncome: 0, builtCities:0,
       territory: 0, income: 0, target: geoToCell(start.lon,start.lat),
       ai:id!==0, alive:true, cityCount:0, captured:0, defenseSpent:0, intent:'hold' as const,
     }));
@@ -229,34 +224,42 @@ export class Game {
     if (city) { this.owner[city.index] = id; this.defense[city.index] = 55; }
   }
 
-  private recount() {
-    for (const f of this.factions) {
-      f.territory=0; f.cityCount=0;
-      f.settlements=0; f.builtCities=0; f.barracks=0; f.fortresses=0; f.harbors=0;
-    }
-    for(let i=0;i<CELL_COUNT;i++) {
+  /** Recount real ownership and include every deployed soldier in population.
+   * Reassignment from reserves to frontline never creates money or inhabitants.
+   */
+  private recount():void {
+    const people=this.factions.map(f=>f.troops);
+    for(const f of this.factions){f.territory=0;f.cityCount=0;f.builtCities=0;}
+    for(let i=0;i<CELL_COUNT;i++){
       const id=this.owner[i];
       if(id<0)continue;
-      const f=this.factions[id];
-      f.territory++;
-      switch(this.buildings[i]){
-        case 1:f.settlements++;break;
-        case 2:f.builtCities++;break;
-        case 3:f.barracks++;break;
-        case 4:f.fortresses++;break;
-        case 5:f.harbors++;break;
-      }
+      const faction=this.factions[id];
+      faction.territory++;
+      people[id]+=this.frontline[i];
+      if(this.buildings[i]===BUILDING_CODES.city)faction.builtCities++;
     }
+    for(const order of this.attackOrders)people[order.factionId]+=order.remaining;
     for(const city of this.cities){
       city.owner=this.owner[city.index];
       if(city.owner>=0)this.factions[city.owner].cityCount++;
     }
-    for(const f of this.factions){
-      f.alive=f.territory>0;
-      const rate=recruitmentRate(f.territory,f.cityCount,f.settlements,f.builtCities,f.barracks);
-      f.income=f.id===0?rate*(this.doctrine==='fortify'?1.20:this.doctrine==='blitz'?0.90:1):rate;
-      f.supplyIncome=supplyRate(f.territory,f.cityCount,f.settlements,f.builtCities,f.harbors);
+    for(const faction of this.factions){
+      faction.alive=faction.territory>0;
+      const totalPeople=people[faction.id];
+      const growth=troopGrowth(totalPeople,faction.territory,faction.cityCount,faction.builtCities);
+      faction.income=faction.id===0?growth*(this.doctrine==='fortify'?1.20:this.doctrine==='blitz'?.90:1):growth;
+      faction.moneyIncome=taxRevenue(totalPeople,faction.territory,faction.cityCount,faction.builtCities);
     }
+  }
+
+  /** Residents and troops are the same people, regardless of deployment. */
+  populationOf(id:number):number {
+    const faction=this.factions[id];
+    if(!faction)return 0;
+    let all=faction.troops;
+    for(let i=0;i<CELL_COUNT;i++)if(this.owner[i]===id)all+=this.frontline[i];
+    for(const order of this.attackOrders)if(order.factionId===id)all+=order.remaining;
+    return all;
   }
 
   private log(text: string, color = '#b9c4d0') {
@@ -264,63 +267,56 @@ export class Game {
     if (this.events.length > 8) this.events.length = 8;
   }
 
-  buildingAt(point: Point): BuildingType | null {
+  buildingAt(point:Point):BuildingType|null {
     const x=Math.floor(point.x),y=Math.floor(point.y);
-    if(x<0||y<0||x>=MAP_WIDTH||y>=MAP_HEIGHT)return null;
-    return (['', 'settlement','city','barracks','fortress','harbor'][this.buildings[y*MAP_WIDTH+x]] as BuildingType) || null;
+    if(!Number.isFinite(point.x)||!Number.isFinite(point.y)||x<0||y<0||x>=MAP_WIDTH||y>=MAP_HEIGHT)return null;
+    return this.buildings[y*MAP_WIDTH+x]===BUILDING_CODES.city?'city':null;
   }
 
-  canBuild(id: number, point: Point, type: BuildingType): BuildResult {
-    const failed=(reason:string):BuildResult=>({ok:false,reason,cost:0});
-    const f=this.factions[id];
-    if(!f?.alive||this.status!=='playing')return failed('Das Land kann nicht bauen.');
+  canBuild(id:number,point:Point,type:BuildingType):BuildResult {
+    const fail=(reason:string):BuildResult=>({ok:false,reason,cost:0});
+    const faction=this.factions[id];
+    if(!faction?.alive||this.status!=='playing')return fail('Dieses Land kann nicht bauen.');
+    if(type!=='city')return fail('Es können nur Städte gebaut werden.');
     const x=Math.floor(point.x),y=Math.floor(point.y);
-    if(!Number.isFinite(point.x)||!Number.isFinite(point.y)||x<0||y<0||x>=MAP_WIDTH||y>=MAP_HEIGHT)
-      return failed('Außerhalb der Karte.');
-    const i=y*MAP_WIDTH+x;
-    if(this.owner[i]!==id)return failed('Nur auf eigenem Land bauen.');
-    const def=BUILDINGS.find(b=>b.type===type);
-    if(!def)return failed('Unbekanntes Gebäude.');
-    if(this.cities.some(c=>c.index===i))return failed('Hauptstadt kann nicht überbaut werden.');
-    const current=this.buildings[i];
-    if(type==='city' ? current!==BUILDING_CODES.settlement : current!==0)
-      return failed(type==='city'?'Stadt benötigt zuerst eine Siedlung.':'Dieser Sektor ist bereits bebaut.');
-    if(type==='harbor'&&!LAND_NEIGHBORS[i].some(n=>this.owner[n]===WATER))
-      return failed('Hafen benötigt einen Küstensektor.');
-    if(f.supplies<def.cost)return failed(`Zu wenig Vorräte: ${def.cost} benötigt.`);
-    return {ok:true,reason:'Bau möglich.',cost:def.cost,type};
+    if(!Number.isFinite(point.x)||!Number.isFinite(point.y)||x<0||y<0||x>=MAP_WIDTH||y>=MAP_HEIGHT)return fail('Außerhalb der Karte.');
+    const index=y*MAP_WIDTH+x;
+    if(this.owner[index]!==id)return fail('Nur auf eigenem Land bauen.');
+    if(this.cities.some(city=>city.index===index))return fail('In der Hauptstadt steht bereits eine Stadt.');
+    if(this.buildings[index])return fail('Hier steht bereits eine Stadt.');
+    const def=BUILDINGS[0];
+    if(faction.money<def.cost)return fail(`Zu wenig Geld: ${def.cost} benötigt.`);
+    return {ok:true,reason:'Stadt bauen.',cost:def.cost,type:'city'};
   }
 
   build(id:number,point:Point,type:BuildingType):BuildResult {
-    const allowed=this.canBuild(id,point,type);
-    if(!allowed.ok)return allowed;
-    const i=pointToIndex(point);
-    this.factions[id].supplies-=allowed.cost;
-    this.buildings[i]=BUILDING_CODES[type];
-    if(type==='fortress')this.defense[i]=Math.max(this.defense[i],95);
+    const permission=this.canBuild(id,point,type);
+    if(!permission.ok)return permission;
+    const faction=this.factions[id];
+    faction.money-=permission.cost;
+    this.buildings[pointToIndex(point)]=BUILDING_CODES.city;
     this.recount();
-    if(id===0)this.log(`${BUILDINGS.find(b=>b.type===type)!.name} errichtet: -${allowed.cost} Vorräte.`,this.factions[id].color);
-    return {ok:true,reason:'Gebäude errichtet.',cost:allowed.cost,type};
+    if(id===0)this.log(`Stadt gebaut · -${permission.cost} Geld · schnelleres Wachstum.`,faction.color);
+    return {ok:true,reason:'Stadt gebaut.',cost:permission.cost,type:'city'};
   }
 
-  /** AI develops its home region on a slow cadence; no free buildings. */
+  /** AI countries may develop cities, paying exactly the same build cost. */
   private developAI():void {
-    const capitalCells=new Set(this.cities.map(c=>c.index));
+    const capitals=new Set(this.cities.map(c=>c.index));
+    const locations=new Int32Array(this.factions.length).fill(-1);
+    const score=new Float64Array(this.factions.length).fill(Infinity);
+    for(let index=0;index<CELL_COUNT;index++){
+      const id=this.owner[index];
+      if(id<=0 || !this.factions[id]?.ai || this.buildings[index] || capitals.has(index))continue;
+      const capital=this.cities[id].index;
+      const deltaX=index%MAP_WIDTH-capital%MAP_WIDTH;
+      const deltaY=Math.floor(index/MAP_WIDTH)-Math.floor(capital/MAP_WIDTH);
+      const d=deltaX*deltaX+deltaY*deltaY;
+      if(d<score[id]){score[id]=d;locations[id]=index;}
+    }
     for(const faction of this.factions){
-      if(!faction.ai||!faction.alive)continue;
-      const kind:BuildingType=faction.settlements<2?'settlement':faction.builtCities<1?'city':faction.barracks<2?'barracks':'fortress';
-      const capital=this.cities[faction.id].index;
-      let best=-1,score=Infinity;
-      for(let i=0;i<CELL_COUNT;i++){
-        if(this.owner[i]!==faction.id)continue;
-        const suitable=kind==='city'?this.buildings[i]===1:this.buildings[i]===0;
-        if(!suitable||capitalCells.has(i))continue;
-        const x=i%MAP_WIDTH,y=Math.floor(i/MAP_WIDTH);
-        const cx=capital%MAP_WIDTH,cy=Math.floor(capital/MAP_WIDTH);
-        const d=(x-cx)**2+(y-cy)**2;
-        if(d<score){best=i;score=d;}
-      }
-      if(best>=0)this.build(faction.id,cellToPoint(best),kind);
+      if(!faction.ai||!faction.alive||locations[faction.id]<0)continue;
+      this.build(faction.id,cellToPoint(locations[faction.id]),'city');
     }
   }
 
@@ -608,7 +604,7 @@ export class Game {
     if (originalOwner >= 0 && originalOwner !== faction.id) {
       const defender = this.factions[originalOwner];
       const capital = this.cities.some(c => c.index === index);
-      const fortified = (originalOwner === 0 && this.doctrine === 'fortify') || this.buildings[index] === BUILDING_CODES.fortress;
+      const fortified = originalOwner === 0 && this.doctrine === 'fortify';
       const local = interceptAttack(this.frontline[index], rawDamage, fortified, capital);
       this.frontline[index] -= local.used;
       defender.defenseSpent += local.used;
@@ -663,13 +659,11 @@ export class Game {
       this.aiGoalChange = this.tick + 45;
     }
     this.recount();
-    for (const faction of this.factions) {
+    for(const faction of this.factions){
       if(!faction.alive)continue;
-      faction.population+=populationGrowth(faction.territory,faction.cityCount,faction.settlements,faction.builtCities);
-      const recruits=Math.min(faction.income,Math.max(0,faction.population-25));
-      faction.population-=recruits;
-      faction.troops+=recruits;
-      faction.supplies+=faction.supplyIncome;
+      // All residents are recruitable troops: a single clear growth figure.
+      faction.troops+=faction.income;
+      faction.money+=faction.moneyIncome;
     }
     if(this.tick%100===0)this.developAI();
     this.redistributeFrontline();
