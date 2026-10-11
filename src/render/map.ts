@@ -28,8 +28,8 @@ export class MapRenderer {
   private combatEdges: Array<{ ax:number; ay:number; bx:number; by:number }> = [];
   private combatLabels: Array<{ pos:Point; troops:number }> = [];
   game: Game;
-  onSelect: (point: Point) => void = () => {};
-  onHover: (point: Point | null, px: number, py: number) => void = () => {};
+  onSelect: (point: Point, landing: boolean) => void = () => {};
+  onHover: (point: Point | null, px: number, py: number, landing: boolean) => void = () => {};
 
   constructor(canvas: HTMLCanvasElement, game: Game) {
     this.canvas = canvas;
@@ -215,8 +215,9 @@ export class MapRenderer {
   canAttack(point: Point): boolean {
     const x = Math.floor(point.x), y = Math.floor(point.y);
     if (x < 0 || y < 0 || x >= MAP_WIDTH || y >= MAP_HEIGHT) return false;
-    return this.availableTargets.has(this.game.owner[y * MAP_WIDTH + x]);
+    return this.availableTargets.has(this.game.owner[y * MAP_WIDTH + x]) && this.game.isDirectBorderTarget(0,point);
   }
+  canLand(point: Point): boolean { return this.game.canLand(0,point); }
   private drawTroopBadges(c: CanvasRenderingContext2D) {
     c.save();
     const width = this.canvas.clientWidth, height = this.canvas.clientHeight;
@@ -347,7 +348,7 @@ export class MapRenderer {
       const x=this.hover.x*CW, y=this.hover.y*CH;
       const i=this.hover.y*MAP_WIDTH+this.hover.x;
       if (this.game.owner[i]!==WATER) {
-        const canAttack=this.canAttack(this.hover);
+        const canAttack=this.canAttack(this.hover) || this.canLand(this.hover);
         c.strokeStyle=canAttack?'#a8ffc1':'#f9e4ad'; c.lineWidth=canAttack?2.5:1.5;
         if(canAttack){c.fillStyle='rgba(136,255,177,.17)';c.fillRect(x,y,CW,CH);}
         c.strokeRect(x,y,CW,CH);
@@ -390,14 +391,14 @@ export class MapRenderer {
       }
       this.hover=this.cellAt(e.clientX,e.clientY);
       const box=this.canvas.getBoundingClientRect();
-      this.onHover(this.hover,e.clientX-box.left,e.clientY-box.top);
+      this.onHover(this.hover,e.clientX-box.left,e.clientY-box.top,e.shiftKey);
     });
     this.canvas.addEventListener('pointerup',e=>{
-      if(!this.moved){const p=this.cellAt(e.clientX,e.clientY);if(p)this.onSelect(p);}
+      if(!this.moved){const p=this.cellAt(e.clientX,e.clientY);if(p)this.onSelect(p,e.shiftKey);}
       this.dragging=false;
     });
     this.canvas.addEventListener('pointercancel',()=>{this.dragging=false;});
-    this.canvas.addEventListener('pointerleave',()=>{this.hover=null;this.onHover(null,0,0);});
+    this.canvas.addEventListener('pointerleave',()=>{this.hover=null;this.onHover(null,0,0,false);});
     this.canvas.addEventListener('wheel',e=>{
       e.preventDefault();
       const b=this.canvas.getBoundingClientRect();
