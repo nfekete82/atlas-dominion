@@ -5,6 +5,7 @@ import { attackFrontWidth, frontierBudget, frontierTarget, localDefenseStrength 
 import { BUILDINGS, BUILDING_CODES, type BuildingType, troopGrowth, taxRevenue } from './economy.js';
 import { findConnectedAttackFront } from './front-target.js';
 import {aiStyle,scoreAIFront} from './ai-strategy.js';
+import {formatCompact} from '../format.js';
 
 export const WATER = -2;
 export const NEUTRAL = -1;
@@ -483,7 +484,7 @@ export class Game {
       anchor:front, committed:sent, remaining:sent, effort:campaignEffort(sent), fallen:0, conquered:0,
       landing, startedTick:this.tick,
     });
-    if (id === 0) this.log(`${landing?'Seelandung':'Grenzoffensive'}: ${sent.toLocaleString('de-DE')} Truppen gegen ${owner===NEUTRAL?'NEUTRALGEBIET':this.factions[owner].name}.`,attacker.color);
+    if (id === 0) this.log(`${landing?'Seelandung':'Grenzoffensive'}: ${formatCompact(sent)} Truppen gegen ${owner===NEUTRAL?'NEUTRALGEBIET':this.factions[owner].name}.`,attacker.color);
     return {ok:true,reason:landing?'Landung befohlen.':'Grenzangriff gestartet.',sent,targetOwner:owner,front};
   }
 
@@ -545,7 +546,7 @@ export class Game {
         const pos=this.attackOrders.findIndex(o=>o.id===order.id);
         if(pos>=0)this.attackOrders.splice(pos,1);
         if(attacker.id===0)this.log(
-          `Offensive beendet · ${order.conquered} Sektoren · ${Math.floor(order.fallen)} Gefallene · ${Math.floor(order.remaining)} zurück.`,
+          `Offensive beendet · ${formatCompact(order.conquered)} Sektoren · ${formatCompact(order.fallen)} Gefallene · ${formatCompact(order.remaining)} zurück.`,
           attacker.color);
       }
     }

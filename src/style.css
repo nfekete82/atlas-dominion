@@ -103,3 +103,16 @@
 
 /* v1.2: compact, readable combat accounting. */
 .casualty-report{display:block;margin-top:7px;padding-top:7px;border-top:1px solid #45616a70;color:#efb89a;font-size:10px;line-height:1.35;font-weight:700}
+
+/* v1.2.1: compact values never force the 2-column economy panels taller. */
+.stat{min-width:0}
+.stat strong{
+  font-size:clamp(16px,1.5vw,21px);
+  line-height:1.16;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  letter-spacing:-.35px;
+}
+.power-area{white-space:nowrap;font-size:10px}
+.auto-guard small,.casualty-report{overflow-wrap:normal;word-break:normal}

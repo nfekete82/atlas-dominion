@@ -2,13 +2,14 @@ import { Game, NEUTRAL, WATER, pointToIndex, TICK_SECONDS, type Point } from './
 import { MapRenderer } from './render/map.js';
 import { BUILDINGS, type BuildingType } from './engine/economy.js';
 import { COUNTRY_STARTS, countryByCode } from './data/countries.js';
+import {formatCompact} from './format.js';
 
 const $ = <T extends HTMLElement>(id: string): T => {
   const found = document.getElementById(id);
   if (!found) throw new Error(`Missing #${id}`);
   return found as T;
 };
-const format = (n:number) => new Intl.NumberFormat('de-DE',{maximumFractionDigits:0}).format(n);
+const format = formatCompact;
 let game = new Game(Date.now() % 2147483647);
 game.paused = true; // The player must choose a country before the clock starts.
 const renderer = new MapRenderer($<HTMLCanvasElement>('battleCanvas'), game);
@@ -59,10 +60,10 @@ function update() {
   document.querySelectorAll<HTMLButtonElement>('[data-ratio]').forEach(b=>b.classList.toggle('active',Number(b.dataset.ratio)===attackRatio));
   $('attackStatus').textContent = attackMessage;
   $('attackStatus').className = 'attack-status ' + (attackMessageKind === 'neutral' ? '' : attackMessageKind);
-  $('incomeCount').textContent = '+' + player.income.toFixed(1);
+  $('incomeCount').textContent = '+' + format(player.income,1);
   $('cityCount').textContent = format(player.cityCount+player.builtCities);
   $('moneyCount').textContent = format(player.money);
-  $('moneyGrowth').textContent = '+' + player.moneyIncome.toFixed(1) + ' PRO TICK';
+  $('moneyGrowth').textContent = '+' + format(player.moneyIncome,1) + ' PRO TICK';
   $('controlCount').textContent = percent.toFixed(1) + '%';
   $('progressLabel').textContent = percent.toFixed(1) + ' / 65%';
   $('progressFill').style.width = Math.min(100, percent/65*100) + '%';
