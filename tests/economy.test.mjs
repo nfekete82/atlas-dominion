@@ -81,19 +81,20 @@ test('Barracks increase real recruitment; fortresses protect one tile',()=>{
   assert.equal(b.buildingAt(p),'fortress');
 });
 
-test('Harbors only build on owned coastline and add supply production',()=>{
-  const g=new Game(321,0);
-  const inland=g.owner.findIndex((owner,i)=>owner===0 && !g.cities.some(c=>c.index===i) && landNeighbors(i).every(n=>g.owner[n]!==-2));
+test('Harbors require real owned coastline and increase supplies',()=>{
+  const land=new Game(321,0,'DE');
+  const inland=land.owner.findIndex((owner,i)=>owner===0 && !land.cities.some(c=>c.index===i) && landNeighbors(i).every(n=>land.owner[n]!==-2));
   assert.ok(inland>=0);
-  assert.equal(g.canBuild(0,cellToPoint(inland),'harbor').ok,false);
-  const coast=g.owner.findIndex((owner,i)=>owner===0 && !g.cities.some(c=>c.index===i) && landNeighbors(i).some(n=>g.owner[n]===-2));
-  if(coast>=0){
-    const f=g.factions[0],supplies=f.supplies;
-    assert.ok(g.build(0,cellToPoint(coast),'harbor').ok);
-    assert.equal(f.supplies,supplies-70);
-    assert.ok(f.harbors>0);
-    assert.ok(supplyRate(f.territory,f.cityCount,f.settlements,f.builtCities,f.harbors)>supplyRate(f.territory,f.cityCount,f.settlements,f.builtCities,0));
-  }
+  assert.equal(land.canBuild(0,cellToPoint(inland),'harbor').ok,false);
+
+  const island=new Game(321,0,'MT');
+  const coast=island.owner.findIndex((owner,i)=>owner===0 && !island.cities.some(c=>c.index===i) && landNeighbors(i).some(n=>island.owner[n]===-2));
+  assert.ok(coast>=0,'Malta needs an owned coastline');
+  const f=island.factions[0],supplies=f.supplies;
+  assert.ok(island.build(0,cellToPoint(coast),'harbor').ok);
+  assert.equal(f.supplies,supplies-70);
+  assert.ok(f.harbors>0);
+  assert.ok(supplyRate(f.territory,f.cityCount,f.settlements,f.builtCities,f.harbors)>supplyRate(f.territory,f.cityCount,f.settlements,f.builtCities,0));
 });
 
 test('A conquered building changes economic owner after next recount',()=>{
