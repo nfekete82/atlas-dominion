@@ -17,15 +17,15 @@
     </header>
     <div class="layout">
       <main class="battlefield">
-        <canvas id="battleCanvas" aria-label="Interaktive Europakarte mit 360 mal 240 Sektoren, direkten Grenzsektor anklicken"></canvas>
+        <canvas id="battleCanvas" aria-label="Interaktive Europakarte mit 360 mal 240 Sektoren, in Grenznähe klicken"></canvas>
         <div class="map-wash" aria-hidden="true"></div>
-        <div class="map-heading"><div class="micro-heading">THE EUROPEAN THEATRE <span>·</span> 01</div><h1>EUROPA <em>EROBERN.</em></h1><div class="map-subtitle">Nur angrenzende Grenzsektoren anklicken · SHIFT+Klick für Seeüberfahrt.</div></div>
+        <div class="map-heading"><div class="micro-heading">THE EUROPEAN THEATRE <span>·</span> 01</div><h1>EUROPA <em>EROBERN.</em></h1><div class="map-subtitle">Feindgebiet nahe der Grenze anklicken · SHIFT+Klick für Seeüberfahrt.</div></div>
         <div class="map-location">◉ <span>EUROPA</span> <small>360 × 240 SECTORS</small></div>
         <div class="map-info" id="mapInfo" hidden><span id="hoverOwner">NEUTRAL</span><small id="hoverCoords">SEKTOR —</small><small id="hoverStats">TRUPPEN —</small><strong id="hoverAction">—</strong></div>
         <div class="zoom-controls"><button id="zoomIn" title="Hineinzoomen">+</button><button id="zoomOut" title="Herauszoomen">−</button><button id="zoomFit" title="Karte einpassen">⌗</button></div>
         <div class="bottom-bar">
           <div class="time-controls"><button id="pauseBtn" class="pause-btn" title="Pause (Leertaste)">Ⅱ</button><div class="time-copy"><small>SIMULATIONSZEIT</small><strong id="clock">00:00</strong></div><div class="speed-wrap"><button data-speed="1" class="speed active">1×</button><button data-speed="2" class="speed">2×</button><button data-speed="4" class="speed">4×</button></div></div>
-          <div class="bottom-hint"><span class="hint-icon">⌖</span><div><strong>TAKTISCHER BEFEHL</strong><small id="ordersLabel">DIREKTE GRENZE ANKLICKEN · SHIFT+KLICK = SEELANDUNG.</small></div></div>
+          <div class="bottom-hint"><span class="hint-icon">⌖</span><div><strong>TAKTISCHER BEFEHL</strong><small id="ordersLabel">NAHE DER FEINDLICHEN GRENZE KLICKEN · SHIFT+KLICK = SEELANDUNG.</small></div></div>
         </div>
       </main>
       <aside class="sidebar">
@@ -40,7 +40,7 @@
           <input id="attackRatio" type="range" min="5" max="100" step="5" value="35" aria-label="Truppenanteil pro Angriff in Prozent" />
           <div class="attack-presets"><button type="button" data-ratio="10">10 %</button><button type="button" data-ratio="25">25 %</button><button type="button" data-ratio="50">50 %</button><button type="button" data-ratio="100">MAX</button></div>
           <div class="attack-preview"><span>BEIM NÄCHSTEN KLICK</span><b id="attackPreview">— TRUPPEN</b></div>
-          <div id="attackStatus" class="attack-status" role="status" aria-live="polite">Klicke nur auf einen direkten Grenzsektor.</div>
+          <div id="attackStatus" class="attack-status" role="status" aria-live="polite">Klicke in Grenznähe: Die Front wird automatisch gefunden.</div>
         </div></div>
         <div class="sidebar-section ranking"><div class="section-label">02 <span>GROSSMÄCHTE</span> <i></i></div><div id="leaderboard" class="leaderboard"></div></div>
         <div class="sidebar-section dispatch"><div class="section-label">03 <span>LAGEBERICHT</span> <i></i></div><div id="eventFeed" class="event-feed"></div></div>
