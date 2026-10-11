@@ -5,6 +5,7 @@ import { attackFrontWidth, frontierBudget, frontierTarget, localDefenseStrength 
 import { BUILDINGS, BUILDING_CODES, type BuildingType, troopGrowth, taxRevenue } from './economy.js';
 import { findConnectedAttackFront } from './front-target.js';
 import {aiStyle,scoreAIFront} from './ai-strategy.js';
+import {aiMarchRecovery,aiAttacksPerTick,aiStrikeSize,aiDefenseAllocation,aiRiskTolerance} from './ai-tactics.js';
 import {formatCompact} from '../format.js';
 
 export const WATER = -2;
@@ -36,6 +37,8 @@ export interface Faction {
   enemyFallen: number;
   /** Finite AI marching capacity; regenerates from economic strength. */
   campaignEnergy: number;
+  /** Most recent active battle sector; maintains momentum on one front. */
+  battleFocus: number;
   intent: 'hold' | 'expand' | 'invade';
 }
 export interface City { name: string; x: number; y: number; index: number; original: number; owner: number; }
@@ -173,7 +176,7 @@ export class Game {
       id, name: start.name, capital: start.capital, color: factionColor(id),
       troops: 90, money: 90, moneyIncome: 0, militaryPower: 0, builtCities:0,
       territory: 0, income: 0, target: geoToCell(start.lon,start.lat),
-      ai:id!==0, alive:true, cityCount:0, captured:0, defenseSpent:0, attackFallen:0, enemyFallen:0, campaignEnergy:32, intent:'hold' as const,
+      ai:id!==0, alive:true, cityCount:0, captured:0, defenseSpent:0, attackFallen:0, enemyFallen:0, campaignEnergy:110, battleFocus:-1, intent:'hold' as const,
     }));
     // Reserve EVERY capital before assigning any surrounding territory. Without
     // this, microstates (e.g. Vatican/Rome) can overwrite earlier capitals.
@@ -396,7 +399,10 @@ export class Game {
     }
     for (const faction of this.factions) {
       if (!faction.alive || !exposed[faction.id].length) continue;
-      const budget = frontierBudget(faction.troops, faction.income);
+      const baseBudget=frontierBudget(faction.troops,faction.income);
+      const budget=faction.ai
+        ? aiDefenseAllocation(faction.troops,faction.income,baseBudget)
+        : baseBudget;
       if (budget < 0.01) continue;
       let remaining = budget;
       // Cover weak points first. Equal-strength sectors break ties by map index.
@@ -629,10 +635,16 @@ export class Game {
         defenderIncome:defender?.income ?? 0,garrison:this.sectorDefense(i),
         capital:!!city,neutral,threatenedBorders:exposed,
         relativePower:neutral?1:this.relativeAttackPower(id,opponent),
+        riskTolerance:aiRiskTolerance(aiStyle(id)),
       });
       if(!assessment.worthwhile)continue;
       const x=i%MAP_WIDTH,y=Math.floor(i/MAP_WIDTH);
       const d=Math.hypot(x-faction.target.x,y-faction.target.y);
+      const focusIndex=faction.battleFocus;
+      const focusDistance=focusIndex>=0
+        ? Math.hypot(i%MAP_WIDTH-focusIndex%MAP_WIDTH,
+          Math.floor(i/MAP_WIDTH)-Math.floor(focusIndex/MAP_WIDTH))
+        : Infinity;
       const score=scoreAIFront({
         neutral,advantage:assessment.advantage,friendlySides:friendly,
         capital:!!city,city:hasCity,distance:d,
@@ -640,7 +652,7 @@ export class Game {
         opponentReserve:defender?.troops??0,
         threatenedBorders:exposed,
         focus:d<14,
-      },aiStyle(faction.id)) + this.rng()*.15;
+      },aiStyle(faction.id)) + (focusDistance<10?11-focusDistance*.85:0) + this.rng()*.15;
       if(score>bestScore){bestScore=score;best=i;}
     }
     faction.intent=best<0?'hold':this.owner[best]===NEUTRAL?'expand':'invade';
@@ -717,15 +729,18 @@ export class Game {
     return true;
   }
 
-  private attack(faction: Faction,index:number) {
-    if(faction.troops<7)return false;
-    const defender=this.owner[index];
-    const force=defender===NEUTRAL?8:21;
-    if(faction.ai && faction.campaignEnergy<force)return false;
-    if(faction.ai)faction.campaignEnergy-=force;
-    const engaged=Math.min(faction.troops,force);
-    this.strike(faction,index,engaged);
+  private attack(faction:Faction,index:number) {
+    if(faction.troops<8)return false;
+    const neutral=this.owner[index]===NEUTRAL;
+    const desired=aiStrikeSize(faction.troops,neutral,aiStyle(faction.id));
+    // Only launch with paid-for marching stamina and real living soldiers.
+    const engaged=Math.min(desired,Math.floor(faction.campaignEnergy));
+    if(engaged<8 || (!neutral && engaged<Math.min(18,desired)))return false;
+    faction.campaignEnergy-=engaged;
+    const captured=this.strike(faction,index,engaged);
     faction.troops=Math.max(0,faction.troops-this.lastAttackerLoss);
+    // Continue pushing this actual border, but never skip across water.
+    if(captured || this.lastAttackerLoss>0)faction.battleFocus=index;
     return true;
   }
 
@@ -742,8 +757,8 @@ export class Game {
       // All residents are recruitable troops: a single clear growth figure.
       faction.troops+=faction.income;
       faction.money+=faction.moneyIncome;
-      if(faction.ai)faction.campaignEnergy=Math.min(160,
-        faction.campaignEnergy+Math.max(1.5,faction.income*1.55));
+      if(faction.ai)faction.campaignEnergy=Math.min(300,
+        faction.campaignEnergy+aiMarchRecovery(faction.income,aiStyle(faction.id)));
     }
     if(this.tick%100===0)this.developAI();
     this.redistributeFrontline();
@@ -755,8 +770,7 @@ export class Game {
         this.resolveOrders(faction);
         continue;
       }
-      const baseAttempts = 2 + Math.floor(faction.territory / 175);
-      const attempts = Math.max(1, Math.min(16, baseAttempts));
+      const attempts=aiAttacksPerTick(faction.territory,aiStyle(faction.id));
       for (let k = 0; k < attempts; k++) {
         const target = this.chooseFront(faction.id);
         if (target === -1 || !this.attack(faction, target)) break;
