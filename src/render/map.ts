@@ -428,34 +428,27 @@ export class MapRenderer {
     const captures=this.wave.active(timestamp);
     if (!captures.length) return;
     c.save();
+    const fills=this.game.factions.map(f=>mixHexColor(f.color));
     for (const frame of captures) {
       if (frame.owner < 0) continue;
-      const x=(frame.index%MAP_WIDTH)*CW;
-      const y=Math.floor(frame.index/MAP_WIDTH)*CH;
+      const col=frame.index%MAP_WIDTH,row=Math.floor(frame.index/MAP_WIDTH);
+      const x=X_EDGES[col],y=Y_EDGES[row];
+      const w=X_EDGES[col+1]-x,h=Y_EDGES[row+1]-y;
       const progress=waveProgress(frame,timestamp);
       const oldFaction=this.game.factions[frame.previous];
       const newFaction=this.game.factions[frame.owner];
-      // Old territory is a temporary overlay. A rounded, expanding aperture
-      // reveals the new owner from the shared front into the conquered cell.
-      c.save();c.beginPath();c.rect(x,y,CW,CH);c.clip();
-      c.globalAlpha=1-progress;
-      c.fillStyle=oldFaction ? oldFaction.color : '#263c40';
-      c.fillRect(x,y,CW+0.5,CH+0.5);
-      c.globalAlpha=1;
-      if(progress>0 && progress<1) {
-        c.beginPath();
-        c.arc(x+CW/2,y+CH/2,Math.max(CW,CH)*progress*1.05,0,Math.PI*2);
-        c.fillStyle=newFaction.color+'ce';c.fill();
+      // Brief stepped tile reveal with no soft circular blob or overdraw.
+      c.save();
+      c.beginPath();c.rect(x,y,w,h);c.clip();
+      c.fillStyle=oldFaction?fills[frame.previous]:MAP_PALETTE.land;
+      c.globalAlpha=(1-progress)*.91;
+      c.fillRect(x,y,w,h);
+      if(progress>0 && progress<1){
+        c.globalAlpha=.65;
+        c.fillStyle=fills[frame.owner];
+        c.fillRect(x,y,h>0?w*progress:0,h);
       }
       c.restore();
-      // A short-lived contact shimmer reads as movement, not an arrow.
-      if(progress>0.12 && progress<0.88) {
-        c.strokeStyle=newFaction.color;
-        c.globalAlpha=Math.sin(progress*Math.PI)*0.46;
-        c.lineWidth=1.7;
-        c.beginPath();c.arc(x+CW/2,y+CH/2,Math.max(CW,CH)*(0.23+progress*.56),0,Math.PI*2);c.stroke();
-        c.globalAlpha=1;
-      }
     }
     c.restore();
   }
