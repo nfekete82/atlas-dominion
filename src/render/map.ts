@@ -4,7 +4,7 @@ import { TerritoryWave, waveProgress } from './wave.js';
 import {organicCaptureRadius,burningFrontAlpha} from './capture-visual.js';
 import { pixelGridEdges } from './pixel-grid.js';
 import { territoryContours, contourRings } from './territory-contours.js';
-import { buildingMarkerFor, showBuildingMarker, cityLevelStyle } from './building-markers.js';
+import { buildingMarkerFor, showBuildingMarker, drawCityMarker, cityMarkerBounds, ScreenOccupancy, type ScreenRect } from './building-markers.js';
 // Keep natural-dark ocean and distinct faction colors; no pale map wash.
 import { COUNTRY_STARTS } from '../data/countries.js';
 import {formatCompact} from '../format.js';
@@ -41,6 +41,10 @@ export class MapRenderer {
   private availableTargets = new Set<number>();
   private labels: Array<{ id: number; pos: Point }> = [];
   private armyTotals: number[] = [];
+  private occupancy=new ScreenOccupancy();
+  private cityAnchors=new ScreenOccupancy();
+  private overlayBounds:ScreenRect[]=[];
+  private visibleCityMarkers:Array<{index:number;x:number;y:number;level:number;bounds:ScreenRect}>=[];
   /** Cached when territory/buildings change, not rescanned every animation frame. */
   private buildingMarkers: Array<{index:number;code:number;owner:number}> = [];
   // Combat highlights represent actual touching borders, never routes from a capital.
@@ -68,6 +72,7 @@ export class MapRenderer {
     new ResizeObserver(() => this.resize()).observe(canvas);
     this.installControls();
     this.resize();
+    this.fit();
     requestAnimationFrame(t => this.frame(t));
   }
 
@@ -82,6 +87,7 @@ export class MapRenderer {
     this.frontGroups=[];
     this.frontUpdatedAt=0;
     this.reinforcementWaves=[];
+    this.visibleCityMarkers=[];
     this.updateTerritory();
     this.fit();
   }
@@ -98,11 +104,23 @@ export class MapRenderer {
     this.ox = (this.canvas.clientWidth - WORLD_WIDTH * this.scale) / 2;
     this.oy = (this.canvas.clientHeight - WORLD_HEIGHT * this.scale) / 2;
   }
+  private dpr=1;
   private resize() {
-    const dpr = Math.min(devicePixelRatio || 1, 2);
-    this.canvas.width = Math.round(this.canvas.clientWidth * dpr);
-    this.canvas.height = Math.round(this.canvas.clientHeight * dpr);
-    this.fit();
+    const previousWidth=this.canvas.width/this.dpr;
+    const previousHeight=this.canvas.height/this.dpr;
+    this.dpr=Math.max(1,devicePixelRatio || 1);
+    this.canvas.width = Math.round(this.canvas.clientWidth * this.dpr);
+    this.canvas.height = Math.round(this.canvas.clientHeight * this.dpr);
+    const previousScale=this.scale;
+    this.scale=Math.min(this.canvas.clientWidth/WORLD_WIDTH,this.canvas.clientHeight/WORLD_HEIGHT)*this.zoom;
+    const ratio=this.scale/previousScale;
+    this.ox=this.canvas.clientWidth/2-(previousWidth/2-this.ox)*ratio;
+    this.oy=this.canvas.clientHeight/2-(previousHeight/2-this.oy)*ratio;
+    const box=this.canvas.getBoundingClientRect();
+    this.overlayBounds=Array.from(this.canvas.parentElement?.querySelectorAll<HTMLElement>(
+      '.map-heading, .map-location, .bottom-bar, .zoom-controls, .bottom-hint')??[])
+      .filter(element=>element.getClientRects().length>0)
+      .map(element=>{const r=element.getBoundingClientRect();return {x:r.left-box.left,y:r.top-box.top,width:r.width,height:r.height};});
   }
   private renderBase() {
     const c = this.base.getContext('2d')!;
@@ -211,7 +229,6 @@ export class MapRenderer {
     // Show the player's structures first; at mid zoom keep only spatially
     // separated markers so neighboring settlements cannot form giant blobs.
     this.buildingMarkers.sort((a,b)=>Number(b.owner===0)-Number(a.owner===0)
-      || Number(b.code===2)-Number(a.code===2)
       || a.index-b.index);
     this.armyTotals=this.game.factions.map(f=>f.troops+stationed[f.id]+this.game.attackOrders.filter(o=>o.factionId===f.id).reduce((n,o)=>n+o.remaining,0));
     // One prominent troop badge per active faction; anchor remains on owned land
@@ -312,63 +329,42 @@ export class MapRenderer {
     return (owner===0||this.availableTargets.has(owner)) && this.previewFront(point)!==null;
   }
   canLand(point: Point): boolean { return this.game.canLand(0,point); }
-  /** Tiny, background-free world-space glyphs for built structures.
-   * Screen-space collision suppression keeps the map clear at overview zoom.
-   * Move/zoom or click to see individual buildings at higher magnification.
+  /** Screen-space rendering and hit testing share the same visible bounds.
+   * Labels and actual combat counters have priority. Crowded cities reappear
+   * when zooming in; their world positions and ownership never change.
    */
-  /** Compact skyline icon with a small, exact upgrade level badge. */
-  /** Draw 17px screen-space skyline regardless of camera zoom / DPR.
-   * A small level tag is readable, but level zero remains unnumbered.
-   */
-  private drawCityMarker(c:CanvasRenderingContext2D,x:number,y:number,level:number,owner:number):void {
-    const style=cityLevelStyle(level);
-    const u=1/this.scale;
-    c.save();
-    c.globalAlpha=owner===0?1:.92;
-    c.fillStyle='rgba(9,23,31,.72)';
-    c.beginPath();c.roundRect(x-8*u,y-7*u,16*u,14*u,2*u);c.fill();
-    c.lineWidth=1*u;
-    c.fillStyle=style.fill;c.strokeStyle=style.border;
-    for(const [dx,dy,w,h] of [[-5.5,-1,3.3,5],[-1.5,-5,4.2,9],[3.5,-2,2.6,6]]){
-      c.beginPath();c.roundRect(x+dx*u,y+dy*u,w*u,h*u,.65*u);c.fill();c.stroke();
-    }
-    if(level>0){
-      const bx=x+6*u,by=y+5*u;
-      c.beginPath();c.arc(bx,by,4.6*u,0,Math.PI*2);
-      c.fillStyle='#12212a';c.fill();
-      c.strokeStyle=style.border;c.lineWidth=1.2*u;c.stroke();
-      c.fillStyle=style.border;
-      c.font=`800 ${8*u}px system-ui`;
-      c.textAlign='center';c.textBaseline='middle';
-      c.fillText(String(level),bx,by+.15*u);
-    }
-    c.restore();
+  private drawBuildings(c:CanvasRenderingContext2D):void {
+    this.visibleCityMarkers=[];
+    const width=this.canvas.clientWidth,height=this.canvas.clientHeight;
+    const hovered=this.hover?pointToIndex(this.hover):-1;
+    const markers=this.buildingMarkers;
+    const draw=(marker:typeof markers[number])=>{
+      if(!showBuildingMarker(marker.owner,this.zoom)||!buildingMarkerFor(marker.code))return;
+      const x=this.ox+(marker.index%MAP_WIDTH+.5)*CW*this.scale;
+      const y=this.oy+(Math.floor(marker.index/MAP_WIDTH)+.5)*CH*this.scale;
+      const bounds=cityMarkerBounds(x,y);
+      if(bounds.x<0||bounds.y<0||bounds.x+bounds.width>width||bounds.y+bounds.height>height)return;
+      if(this.occupancy.intersects(bounds))return;
+      const level=this.game.cityUpgrades[marker.index];
+      this.occupancy.reserve(bounds);
+      this.visibleCityMarkers.push({index:marker.index,x,y,level,bounds});
+      drawCityMarker(c,x,y,level,marker.owner);
+    };
+    const selected=markers.find(marker=>marker.index===hovered);
+    if(selected)draw(selected);
+    for(const marker of markers)if(marker!==selected)draw(marker);
   }
 
-  private drawBuildings(c:CanvasRenderingContext2D):void {
-    if(this.zoom<1.05 || !this.buildingMarkers.length)return;
-    const screenWidth=this.canvas.clientWidth,screenHeight=this.canvas.clientHeight;
-    const minSpacing=this.zoom>=2.6?20:24;
-    const buckets=new Map<string,Array<{x:number;y:number}>>();
-    c.save();
-    for(const marker of this.buildingMarkers){
-      if(!showBuildingMarker(marker.owner,this.zoom))continue;
-      if(!buildingMarkerFor(marker.code))continue;
-      const x=(marker.index%MAP_WIDTH+.5)*CW;
-      const y=(Math.floor(marker.index/MAP_WIDTH)+.5)*CH;
-      const sx=this.ox+x*this.scale,sy=this.oy+y*this.scale;
-      if(sx<-12||sy<-12||sx>screenWidth+12||sy>screenHeight+12)continue;
-      const col=Math.floor(sx/minSpacing),row=Math.floor(sy/minSpacing);
-      let obstructed=false;
-      for(let dx=-1;dx<=1&&!obstructed;dx++)for(let dy=-1;dy<=1&&!obstructed;dy++){
-        const prior=buckets.get(`${col+dx}:${row+dy}`);
-        if(prior?.some(p=>(sx-p.x)**2+(sy-p.y)**2<minSpacing**2))obstructed=true;
-      }
-      if(obstructed)continue;
-      const key=`${col}:${row}`;
-      const occupied=buckets.get(key)??[];
-      occupied.push({x:sx,y:sy});buckets.set(key,occupied);
-      this.drawCityMarker(c,x,y,this.game.cityUpgrades[marker.index],marker.owner);
+  private drawCapitalNames(c:CanvasRenderingContext2D):void {
+    if(this.zoom<3)return;
+    c.save();c.textAlign='center';c.font='600 10px system-ui';c.fillStyle='rgba(233,239,236,.8)';
+    for(const city of this.game.cities){
+      const pos=pointToWorld(city),name=city.name.toUpperCase();
+      const x=this.ox+pos.x*this.scale,y=this.oy+pos.y*this.scale-12;
+      const width=Math.min(120,c.measureText(name).width);
+      const bounds={x:x-width/2-2,y:y-10,width:width+4,height:14};
+      if(bounds.x<0||bounds.y<0||bounds.x+bounds.width>this.canvas.clientWidth||bounds.y+14>this.canvas.clientHeight||this.occupancy.intersects(bounds))continue;
+      this.occupancy.reserve(bounds);c.fillText(name,x,y,120);
     }
     c.restore();
   }
@@ -492,6 +488,7 @@ export class MapRenderer {
       const magnitude=group.attacker+group.defender;
       if(!(magnitude>0))continue;
       shown++;
+      this.occupancy.reserve({x:x-24,y:y-24,width:48,height:48});
       const dx=group.dx,dy=group.dy,nx=-dy,ny=dx;
       const crowd=Math.min(22,Math.max(5,Math.floor(3+Math.sqrt(magnitude)*1.1)));
       const isPlayer=group.playerBattle;
@@ -542,6 +539,7 @@ export class MapRenderer {
       labels.push({x:labelX,y:labelY});
       // Small, unobtrusive split counters sit on the actual contested border.
       const bw=78,bh=15;
+      this.occupancy.reserve({x:labelX-bw/2,y:labelY-bh/2,width:bw,height:bh});
       c.globalAlpha=fade*.92;
       c.fillStyle='rgba(5,20,28,.85)';
       c.strokeStyle='rgba(133,160,166,.35)';
@@ -599,6 +597,7 @@ export class MapRenderer {
       // blue = whole surviving offensive, while the battle badge above it
       // shows only the troops in the most recent individual confrontation.
       shown.push({x,y});
+      this.occupancy.reserve({x:x-38,y:y-8,width:76,height:16});
       c.globalAlpha=.86;
       c.fillStyle='rgba(5,20,28,.8)';
       c.strokeStyle='rgba(72,144,173,.6)';
@@ -622,7 +621,6 @@ export class MapRenderer {
     c.save();
     const width = this.canvas.clientWidth, height = this.canvas.clientHeight;
     c.textAlign = 'center';
-    const boxes: Array<{x:number;y:number}>=[];
     let shown=0;
     for(const label of this.labels){
       const faction=this.game.factions[label.id];
@@ -633,11 +631,24 @@ export class MapRenderer {
       const x=this.ox+label.pos.x*this.scale;
       let y=this.oy+label.pos.y*this.scale+17;
       if(x<60||x>width-60||y<35||y>height-72)continue;
-      for(let j=0;j<3&&boxes.some(p=>Math.abs(p.x-x)<114&&Math.abs(p.y-y)<31);j++)y+=27;
-      if(y>height-72)continue;
-      boxes.push({x,y});shown++;
       const flag=FLAGS.get(faction.name)??'';
       const name=(flag?flag+' ':'')+faction.name;
+      c.font=label.id===0?'750 13px system-ui':'650 11px system-ui';
+      const labelWidth=Math.min(135,c.measureText(name).width)+6;
+      const preferredY=y;
+      let fallback:number|undefined;
+      let clear:number|undefined;
+      for(const offset of [0,30,-30,60,-60,90]){
+        const candidate={x:x-labelWidth/2,y:preferredY+offset-14,width:labelWidth,height:30};
+        if(candidate.y<30||candidate.y+30>height-88||this.occupancy.intersects(candidate))continue;
+        fallback??=preferredY+offset;
+        if(this.cityAnchors.intersects(candidate))continue;
+        clear=preferredY+offset;break;
+      }
+      if(clear===undefined&&fallback===undefined)continue;
+      y=clear??fallback!;
+      shown++;
+      this.occupancy.reserve({x:x-labelWidth/2,y:y-14,width:labelWidth,height:30});
       c.globalAlpha=label.id===0?.95:this.zoom>=2.5?.82:.68;
       c.textAlign='center';c.lineJoin='round';
       c.strokeStyle='rgba(5,17,25,.85)';
@@ -740,6 +751,15 @@ export class MapRenderer {
     c.restore();
   }
   private frame(timestamp: number) {
+    if(this.dpr!==Math.max(1,devicePixelRatio||1))this.resize();
+    this.occupancy.clear();
+    this.cityAnchors.clear();
+    for(const marker of this.buildingMarkers){
+      const x=this.ox+(marker.index%MAP_WIDTH+.5)*CW*this.scale;
+      const y=this.oy+(Math.floor(marker.index/MAP_WIDTH)+.5)*CH*this.scale;
+      if(x>=0&&y>=0&&x<=this.canvas.clientWidth&&y<=this.canvas.clientHeight)this.cityAnchors.reserve(cityMarkerBounds(x,y));
+    }
+    for(const bounds of this.overlayBounds)this.occupancy.reserve(bounds);
     const c = this.ctx;
     const dpr = this.canvas.width / Math.max(1,this.canvas.clientWidth);
     c.setTransform(dpr,0,0,dpr,0,0);
@@ -752,22 +772,7 @@ export class MapRenderer {
     c.imageSmoothingEnabled=true;
     c.drawImage(this.highlightedCountry,0,0);
     this.drawCaptureWave(c, timestamp);
-    this.drawBuildings(c);
     if(this.showSeaPassages)this.drawLandingPorts(c, timestamp);
-    // Capitals are present in the labels and right-click economy, not giant
-    // rings or square icons floating above the map. At close zoom, reveal a
-    // subtle capital name (no circle).
-    if(this.zoom>=3.0) {
-      c.save();
-      c.textAlign='center';
-      c.font='600 8px system-ui';
-      c.fillStyle='rgba(233,239,236,.67)';
-      for(const city of this.game.cities){
-        const pos=pointToWorld(city);
-        c.fillText(city.name.toUpperCase(),pos.x,pos.y-7,90);
-      }
-      c.restore();
-    }
     this.drawFrontCapture(c,timestamp);
     this.drawBorderSkirmishes(c,timestamp);
     // Mouse feedback is now the subtle whole-target tint cached above.
@@ -777,6 +782,8 @@ export class MapRenderer {
     this.drawReinforcements(c,timestamp);
     this.drawActiveFrontForces(c);
     this.drawTroopBadges(c);
+    this.drawCapitalNames(c);
+    this.drawBuildings(c);
     requestAnimationFrame(t=>this.frame(t));
   }
   zoomBy(factor: number) {
@@ -806,6 +813,11 @@ export class MapRenderer {
         if(d<minD){minD=d;nearest=point;}
       }
       if(nearest)return nearest;
+    }
+    if(!landing){
+      const box=this.canvas.getBoundingClientRect(),x=clientX-box.left,y=clientY-box.top;
+      const marker=this.visibleCityMarkers.find(m=>x>=m.bounds.x&&x<=m.bounds.x+m.bounds.width&&y>=m.bounds.y&&y<=m.bounds.y+m.bounds.height);
+      if(marker)return {x:marker.index%MAP_WIDTH,y:Math.floor(marker.index/MAP_WIDTH)};
     }
     const p=this.worldAt(clientX,clientY);
     const x=Math.floor(p.x/CW),y=Math.floor(p.y/CH);

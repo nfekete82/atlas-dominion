@@ -155,3 +155,6 @@
 .battle-dot.red{background:#ff7275;color:#ff7275}
 .battle-report .battle-own-loss{color:#76cafa}
 .battle-report .battle-enemy-loss{color:#ff9c98}
+
+/* Keep measured tooltip bounds inside the battlefield and clear of city hit areas. */
+.map-info{transform:none;max-width:min(330px,calc(100% - 8px));overflow-wrap:anywhere}

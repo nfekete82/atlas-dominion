@@ -34,3 +34,23 @@ test('invalid and incompatible saves fail safely',()=>{
   assert.throws(()=>Game.fromSave({...save,owner:[1,2]}));
   assert.throws(()=>Game.fromSave({...save,rngCalls:-1}));
 });
+
+test('version 1 saves preserve every city level and ownership without a migration',()=>{
+  const g=new Game(415,3,'DE','balanced');g.factions[0].money=50000;
+  const sites=[];
+  for(let level=0;level<=5;level++){
+    const index=g.owner.findIndex((owner,i)=>owner===0&&g.canBuild(0,{x:i%480,y:Math.floor(i/480)},'city').ok);
+    const point={x:index%480,y:Math.floor(index/480)};
+    assert.equal(g.build(0,point,'city').ok,true);
+    for(let n=0;n<level;n++)assert.equal(g.upgradeCity(0,point).ok,true);
+    sites.push(point);
+  }
+  const save=g.exportSave();assert.equal(save.version,1);
+  const restored=Game.fromSave(JSON.parse(JSON.stringify(save)));
+  sites.forEach((point,level)=>{
+    assert.equal(restored.buildingAt(point),'city');assert.equal(restored.cityLevelAt(point),level);
+  });
+  const before=restored.exportSave();
+  assert.equal(restored.upgradeCity(0,sites[5]).ok,false);
+  assert.deepEqual(restored.exportSave(),before,'sixth upgrade must not charge money or mutate the save');
+});

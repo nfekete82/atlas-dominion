@@ -279,8 +279,12 @@ renderer.onHover=(point,px,py,landing)=>{
     : canLand ? 'SHIFT+KLICK: SEELANDUNG'
     : 'KEINE ERREICHBARE LANDFRONT';
   action.classList.toggle('blocked',!attackable&&!canLand&&id!==0);
-  tooltip.style.left=Math.max(4, Math.min(px+15,renderer.canvas.clientWidth-205))+'px';
-  tooltip.style.top=Math.max(4, Math.min(py+13,renderer.canvas.clientHeight-120))+'px';
+  const bounds=tooltip.getBoundingClientRect();
+  const width=renderer.canvas.clientWidth,height=renderer.canvas.clientHeight;
+  const left=px+24+bounds.width<=width-4?px+24:px-bounds.width-24;
+  const top=py+24+bounds.height<=height-4?py+24:py-bounds.height-24;
+  tooltip.style.left=Math.max(4,Math.min(left,width-bounds.width-4))+'px';
+  tooltip.style.top=Math.max(4,Math.min(top,height-bounds.height-4))+'px';
 };
 
 function showDialog(title:string,body:string,actionLabel='VERSTANDEN →',onAction:()=>void=closeDialog) {
@@ -416,5 +420,5 @@ update();
 if(!restoreGame())showCountryPicker(false);
 // Explicit dev-only API for smoke tests, not game simulation source of truth.
 if(new URLSearchParams(location.search).has('debug')) {
-  Object.assign(window,{__atlas:{getGame:()=>game, attack:(x:number,y:number,ratio=35)=>game.launchAttack(0,{x,y},ratio), step:()=>{game.step();renderer.updateTerritory();update();}}});
+  Object.assign(window,{__atlas:{getGame:()=>game, renderer, refresh:()=>{renderer.updateTerritory();update();}, save:saveGame, attack:(x:number,y:number,ratio=35)=>game.launchAttack(0,{x,y},ratio), step:()=>{game.step();renderer.updateTerritory();update();}}});
 }

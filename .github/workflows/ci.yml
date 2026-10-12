@@ -30,3 +30,33 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: TypeScript build and full game test suite
         run: npm test
+
+  browser:
+    name: Chromium · City markers and interaction
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - name: Install build and browser dependencies
+        run: |
+          npm install --no-audit --no-fund
+          npm ci --prefix tests/browser --no-audit --no-fund
+          cd tests/browser
+          npx playwright install --with-deps chromium
+      - name: Browser matrix, upgrades and savegame round trip
+        env:
+          ATLAS_BROWSER_CHANNEL: chromium
+        run: npm run test:browser
+      - name: Preserve screenshots, traces and reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: city-marker-browser-evidence
+          path: tests/browser/artifacts/
+          retention-days: 14

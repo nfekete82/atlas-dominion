@@ -9,6 +9,7 @@
     "dev": "npm run build && node scripts/serve.mjs",
     "preview": "node scripts/serve.mjs",
     "test": "npm run build && node --test tests/*.test.mjs",
+    "test:browser": "npm run build && npm --prefix tests/browser test",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": { "typescript": "^5.9.2" },
