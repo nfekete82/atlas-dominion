@@ -1623,8 +1623,9 @@ export class Game {
       // Stagger naval planning and allow it while profitable landfronts exist.
       // At most one fleet and two total offensives, using actual reserves.
       if(active<2&&this.tick>=(faction.warCooldownUntil??0)&&this.tick%32===faction.id%32 && this.tryNavalAttack(faction.id,ratio))continue;
-      if(active>=maxActive || faction.troops<22||
-         this.tick<(faction.warCooldownUntil??0))continue;
+      // Recovery prevents new foreign wars, but peaceful neutral expansion
+      // remains possible through chooseFront's separate hostile-country gate.
+      if(active>=maxActive || faction.troops<22)continue;
       const target=this.chooseFront(faction.id);
       if(target>=0)this.issueAttack(faction.id,cellToPoint(target),ratio,false);
 
