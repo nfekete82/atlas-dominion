@@ -476,7 +476,11 @@ export class MapRenderer {
       const selected=this.selectedSquadIds.includes(squad.id);
       const count=Math.min(8,Math.max(3,Math.ceil(squad.troops/65)));
       const marching=squad.destination!==null;
-      const combat=squad.attackTarget!==null&&squad.attackTarget!==undefined&&squad.destination===null;
+      const combat=(squad.attackTarget!==null&&squad.attackTarget!==undefined&&squad.destination===null)||
+        this.game.battleEvents.some(e=>e.tick===this.game.tick&&
+          (e.attackerId===squad.owner||e.defenderId===squad.owner)&&
+          Math.abs(e.index%MAP_WIDTH-squad.index%MAP_WIDTH)+
+          Math.abs(Math.floor(e.index/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH))<=1);
       const tint=squad.owner===0?'#79d3fa':this.game.factions[squad.owner]?.color??'#d98c8c';
       const phase=time*.009+squad.id*1.37;
       if(selected){
