@@ -18,6 +18,11 @@ export function relativeStrength(total:number,playerTotal:number) {
 export function strengthLabel(total:number):string {
   return `⚔ ${formatCompact(Math.floor(total))}`;
 }
+/** Only uncommitted reserves can be sent on a new offensive.
+ * The cyan map label is deliberately distinct from total military power. */
+export function mobileStrengthLabel(mobile:number):string {
+  return `● ${formatCompact(Math.floor(Math.max(0,mobile)))} mobil`;
+}
 /** Called on the existing territory refresh, using its already accumulated borders
  * and building list. No grid scan or formatting in the animation loop. */
 export function militarySummaries(game:Game,borders:ArrayLike<number>,
@@ -38,6 +43,14 @@ export function militarySummaries(game:Game,borders:ArrayLike<number>,
     summary.total+=order.remaining;summary.deployed+=order.remaining;
     // Returning armies and fleets still at sea count in strength, but are not active fronts.
     if(!order.returning&&(!order.landing||game.tick>=(order.arrivalTick??Infinity)))summary.fronts++;
+  }
+  // Mutual-defense soldiers travelling between allies still belong to the
+  // donor until arrival; they are bound and must never count as mobile reserves.
+  for(const convoy of game.defenseAid??[]){
+    const summary=summaries[convoy.from];
+    if(!summary)continue;
+    summary.total+=convoy.troops;
+    summary.deployed+=convoy.troops;
   }
   for(const summary of summaries)summary.averageCityLevel=summary.cities?summary.averageCityLevel/summary.cities:0;
   return summaries;
