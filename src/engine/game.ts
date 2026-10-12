@@ -165,6 +165,14 @@ export function seededRandom(seed: number): () => number {
   };
 }
 
+export interface GameSave {
+  version:1;seed:number;playerCode:string;difficulty:Difficulty;tick:number;
+  status:GameStatus;paused:boolean;doctrine:Doctrine;rngCalls:number;
+  aiGoalChange:number;nextAttackId:number;
+  owner:number[];defense:number[];buildings:number[];cityUpgrades:number[];frontline:number[];
+  factions:Faction[];cities:City[];attackOrders:AttackOrder[];events:GameEvent[];
+}
+
 export class Game {
   readonly owner = new Int16Array(CELL_COUNT);
   readonly defense = new Float32Array(CELL_COUNT);
@@ -195,6 +203,7 @@ export class Game {
   paused = false;
   doctrine: Doctrine = 'expand';
   private rng: () => number;
+  private rngCalls = 0;
   private aiGoalChange = 0;
   private frontierCandidates: Array<Set<number>> = [];
   private exposedCounts: number[] = [];
@@ -207,7 +216,8 @@ export class Game {
     if (!chosen) throw new Error(`Unbekanntes Land: ${playerCountry}`);
     this.playerCode = chosen.code;
     this.seed = seed;
-    this.rng = seededRandom(seed);
+    const generator=seededRandom(seed);
+    this.rng=()=>{this.rngCalls++;return generator();};
     this.owner.fill(WATER);
     for (let i = 0; i < CELL_COUNT; i++) if (isLand(i)) this.owner[i] = NEUTRAL;
     const starts = [chosen,...COUNTRY_STARTS.filter(c=>c.code!==chosen.code)]
@@ -1097,6 +1107,64 @@ export class Game {
       this.status = 'victory';
       this.log('EUROPA steht unter deiner Kontrolle!', '#e9b85e');
     }
+  }
+
+  /** Versioned exact simulation state. Recomputed frontier caches are excluded. */
+  exportSave():GameSave {
+    return {
+      version:1,seed:this.seed,playerCode:this.playerCode,difficulty:this.difficulty,
+      tick:this.tick,status:this.status,paused:this.paused,doctrine:this.doctrine,
+      rngCalls:this.rngCalls,aiGoalChange:this.aiGoalChange,nextAttackId:this.nextAttackId,
+      owner:Array.from(this.owner),defense:Array.from(this.defense),
+      buildings:Array.from(this.buildings),cityUpgrades:Array.from(this.cityUpgrades),
+      frontline:Array.from(this.frontline),
+      factions:this.factions.map(f=>({...f,target:{...f.target}})),
+      cities:this.cities.map(c=>({...c})),
+      attackOrders:this.attackOrders.map(o=>structuredClone(o)),
+      events:this.events.map(e=>({...e})),
+    };
+  }
+
+  static fromSave(input:unknown):Game {
+    if(!input||typeof input!=='object')throw Error('Ungültiger Spielstand.');
+    const save=input as GameSave;
+    if(save.version!==1||!Number.isSafeInteger(save.seed)||!isDifficulty(save.difficulty)||
+       !countryByCode(save.playerCode)||!Number.isSafeInteger(save.tick)||save.tick<0||
+       !['playing','victory','defeat'].includes(save.status)||
+       !['expand','blitz','fortify'].includes(save.doctrine)||
+       !Number.isSafeInteger(save.rngCalls)||save.rngCalls<0||save.rngCalls>100000000||
+       !Number.isSafeInteger(save.nextAttackId)||save.nextAttackId<1)
+      throw Error('Nicht unterstützter oder beschädigter Spielstand.');
+    const g=new Game(save.seed,Array.isArray(save.factions)?save.factions.length-1:-1,save.playerCode,save.difficulty);
+    const arrays: Array<[number[],Int16Array|Float32Array|Float64Array|Uint8Array,string]>=[
+      [save.owner,g.owner,'owner'],[save.defense,g.defense,'defense'],
+      [save.buildings,g.buildings,'buildings'],[save.cityUpgrades,g.cityUpgrades,'cityUpgrades'],
+      [save.frontline,g.frontline,'frontline'],
+    ];
+    for(const [values,target,name] of arrays){
+      if(!Array.isArray(values)||values.length!==target.length||
+         values.some((v:number)=>!Number.isFinite(v)))throw Error('Ungültige Karte: '+name);
+      target.set(values);
+    }
+    if(!Array.isArray(save.factions)||save.factions.length!==g.factions.length||
+       !Array.isArray(save.attackOrders)||!Array.isArray(save.cities)||
+       save.cities.length!==g.cities.length||!Array.isArray(save.events)||
+       save.factions.some((f,i)=>f.id!==i||!Number.isFinite(f.troops)||f.troops<0||
+         !Number.isFinite(f.money)||!Number.isFinite(f.campaignEnergy))||
+       save.attackOrders.length>10000||save.events.length>20000)
+      throw Error('Ungültige Fraktions- oder Angriffsdaten.');
+    for(let i=0;i<g.factions.length;i++)Object.assign(g.factions[i],structuredClone(save.factions[i]));
+    for(let i=0;i<g.cities.length;i++)Object.assign(g.cities[i],structuredClone(save.cities[i]));
+    g.attackOrders.splice(0,g.attackOrders.length,...structuredClone(save.attackOrders));
+    g.events.splice(0,g.events.length,...structuredClone(save.events));
+    g.tick=save.tick;g.status=save.status;g.paused=!!save.paused;g.doctrine=save.doctrine;
+    g.aiGoalChange=save.aiGoalChange;g.nextAttackId=save.nextAttackId;
+    const generator=seededRandom(save.seed);
+    for(let i=0;i<save.rngCalls;i++)generator();
+    g.rngCalls=save.rngCalls;
+    g.rng=()=>{g.rngCalls++;return generator();};
+    g.recount();g.rebuildFrontierCandidates();
+    return g;
   }
 
   factionAt(point: Point): Faction | null {
