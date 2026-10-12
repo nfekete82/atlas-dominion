@@ -577,6 +577,7 @@ function renderBuildMenu(): void {
   }
   const existing=game.buildingAt(point);
   const existingName=BUILDINGS.find(b=>b.type===existing)?.name;
+  const suggestedCity=existing==='factory'?game.nearbyFactoryCity(point):null;
   const border=game.isThreatenedBorder(0,point);
   const mode=game.getBorderMode(point);
   const borderStrategy=border?
@@ -605,7 +606,8 @@ function renderBuildMenu(): void {
       <span class="build-entry-copy"><strong>Alle Städte automatisch ausbauen</strong><small>${upgradeAll.ok?`${upgradeAll.cities} Städte · ${upgradeAll.upgrades} Ausbaustufen`:upgradeAll.reason} · günstigste Stufen zuerst</small></span>
       <span class="build-entry-cost">${upgradeAll.ok?format(upgradeAll.cost)+' €':'—'}</span>
     </button>`;
-  $('buildOptions').innerHTML=fastSingle+fastAll+(upgrade? `<button type="button" class="build-entry" data-upgrade-city="true" ${upgrade.ok?'':'disabled'} title="${upgrade.reason}">
+  const factoryAction=existing==='factory'?`<button type="button" class="build-entry" data-link-factory="true" ${suggestedCity?'':'disabled'}><span class="build-entry-icon">↗</span><span class="build-entry-copy"><strong>Mit Stadt verbinden</strong><small>${suggestedCity?`Stadt bei ${suggestedCity.x}/${suggestedCity.y} · +50 % Einnahmen`:'Keine eigene Stadt im Umkreis von 12 Sektoren'}</small></span><span class="build-entry-cost">VERBINDEN</span></button>`:'';
+  $('buildOptions').innerHTML=factoryAction+fastSingle+fastAll+(upgrade? `<button type="button" class="build-entry" data-upgrade-city="true" ${upgrade.ok?'':'disabled'} title="${upgrade.reason}">
       <span class="build-entry-icon" aria-hidden="true">⬆</span>
       <span class="build-entry-copy"><strong>Stadt ausbauen ${upgradeLevel}/5</strong><small>${upgrade.ok?'Mehr Einwohner- und Truppenwachstum':upgrade.reason}</small></span>
       <span class="build-entry-cost">${upgrade.ok?upgrade.cost+' €':'MAX'}</span>
@@ -642,6 +644,14 @@ renderer.onBuildRequest=(point,clientX,clientY)=>{
 $('buildClose').addEventListener('click',closeBuildMenu);
 $('buildOptions').addEventListener('click',e=>{
   if(!buildSpot)return;
+  const factoryLink=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-link-factory]');
+  if(factoryLink){
+    const city=game.nearbyFactoryCity(buildSpot);
+    const result=city?game.connectFactory(0,buildSpot,city):{ok:false,reason:'Keine Stadt in Reichweite.'};
+    attackMessage=result.reason;attackMessageKind=result.ok?'success':'error';
+    if(result.ok){saveGame();closeBuildMenu();soundscape.playEffect('build');}else renderBuildMenu();
+    update();return;
+  }
   const borderButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-strategic-mode]');
   if(borderButton){
     const mode=borderButton.dataset.strategicMode as BorderMode;
@@ -692,7 +702,7 @@ $('buildOptions').addEventListener('click',e=>{
   const button=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-build]');
   if(!button)return;
   const result=game.build(0,buildSpot,button.dataset.build as BuildingType);
-  attackMessage=result.ok?`${result.type==='tower'?'Abwehrturm gebaut · Verteidigung aktiv':'Stadt gebaut · Wachstum steigt'} · ${result.cost} €`:result.reason;
+  attackMessage=result.ok?`${result.type==='tower'?'Abwehrturm gebaut · Verteidigung aktiv':result.type==='factory'?'Fabrik gebaut · Einnahmen steigen':'Stadt gebaut · Wachstum steigt'} · ${result.cost} €`:result.reason;
   attackMessageKind=result.ok?'success':'error';
   if(result.ok){renderer.updateTerritory();closeBuildMenu();soundscape.playEffect('build');} else renderBuildMenu();
   update();
