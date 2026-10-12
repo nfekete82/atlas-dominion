@@ -103,6 +103,17 @@ export class MapRenderer {
     this.updateTerritory();
     this.fit();
   }
+  /** Jump from an alert or an army command to its actual map position. */
+  focusOnPoint(point:Point,minZoom=1.8):void {
+    if(!Number.isFinite(point.x)||!Number.isFinite(point.y)||
+       point.x<0||point.x>=MAP_WIDTH||point.y<0||point.y>=MAP_HEIGHT)return;
+    this.zoom=Math.max(this.zoom,Math.min(4,Math.max(.8,minZoom)));
+    this.scale=Math.min(this.canvas.clientWidth/WORLD_WIDTH,
+      this.canvas.clientHeight/WORLD_HEIGHT)*this.zoom;
+    const pos=pointToWorld(point);
+    this.ox=this.canvas.clientWidth/2-pos.x*this.scale;
+    this.oy=this.canvas.clientHeight/2-pos.y*this.scale;
+  }
   focusOnCapital(point: Point): void {
     this.zoom = 1.8;
     this.scale = Math.min(this.canvas.clientWidth / WORLD_WIDTH, this.canvas.clientHeight / WORLD_HEIGHT) * this.zoom;
