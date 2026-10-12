@@ -10,7 +10,7 @@ import { buildingMarkerFor, showBuildingMarker, drawCityMarker, cityMarkerBounds
 // Keep natural-dark ocean and distinct faction colors; no pale map wash.
 import { COUNTRY_STARTS } from '../data/countries.js';
 import {formatCompact} from '../format.js';
-import {militarySummaries,relativeStrength,strengthLabel,type MilitarySummary} from '../military-view.js';
+import {militarySummaries,relativeStrength,strengthLabel,mobileStrengthLabel,type MilitarySummary} from '../military-view.js';
 import {groupBattles,visualNoise,type FrontGroup} from './front-battles.js';
 
 const CW = WORLD_WIDTH / MAP_WIDTH;
@@ -49,8 +49,9 @@ export class MapRenderer {
   private labels: Array<{ id: number; pos: Point }> = [];
   military: MilitarySummary[] = [];
   private strengthLabels: string[] = [];
+  private mobileLabels: string[] = [];
   private strengthRelations: ReturnType<typeof relativeStrength>[] = [];
-  private visibleCountryLabels:Array<{id:number;name:string;strength:string;fontSize:number;bounds:ScreenRect}>=[];
+  private visibleCountryLabels:Array<{id:number;name:string;strength:string;mobile:string;fontSize:number;bounds:ScreenRect}>=[];
   private occupancy=new ScreenOccupancy();
   private cityAnchors=new ScreenOccupancy();
   private overlayBounds:ScreenRect[]=[];
@@ -235,6 +236,7 @@ export class MapRenderer {
       || a.index-b.index);
     this.military=militarySummaries(this.game,stationed,this.buildingMarkers);
     this.strengthLabels=this.military.map(s=>strengthLabel(s.total));
+    this.mobileLabels=this.military.map(s=>mobileStrengthLabel(s.mobile));
     this.strengthRelations=this.military.map(s=>relativeStrength(s.total,this.military[0].total));
     // One prominent troop badge per active faction; anchor remains on owned land
     // even when the centroid lies outside a concave or fragmented territory.
@@ -679,14 +681,20 @@ export class MapRenderer {
       c.font=label.id===0?'750 15px system-ui':'700 13px system-ui';
       const nameWidth=Math.min(160,c.measureText(name).width);
       const count=this.strengthLabels[label.id];
+      const mobile=this.mobileLabels[label.id];
       c.font='800 14px system-ui';
-      const labelWidth=Math.max(nameWidth,c.measureText(count).width)+12;
+      const totalWidth=c.measureText(count).width;
+      c.font='700 12px system-ui';
+      const labelWidth=Math.max(nameWidth,totalWidth,c.measureText(mobile).width)+14;
       const preferredY=y;
       let fallback:number|undefined;
       let clear:number|undefined;
-      for(const offset of [0,40,-40,80,-80]){
-        const candidate={x:x-labelWidth/2,y:preferredY+offset-17,width:labelWidth,height:40};
-        if(candidate.y<30||candidate.y+40>height-88||this.occupancy.intersects(candidate))continue;
+      // Three distinct lines: name, all living soldiers, then FREE mobile
+      // reserves. A taller collision box protects neighboring labels and cities.
+      const badgeHeight=58;
+      for(const offset of [0,58,-58,116,-116]){
+        const candidate={x:x-labelWidth/2,y:preferredY+offset-17,width:labelWidth,height:badgeHeight};
+        if(candidate.y<30||candidate.y+badgeHeight>height-88||this.occupancy.intersects(candidate))continue;
         fallback??=preferredY+offset;
         if(this.cityAnchors.intersects(candidate))continue;
         clear=preferredY+offset;break;
@@ -697,9 +705,9 @@ export class MapRenderer {
       if(clear===undefined&&(fallback===undefined||this.zoom>=1.8))continue;
       y=clear??fallback!;
       shown++;
-      const bounds={x:x-labelWidth/2,y:y-17,width:labelWidth,height:40};
+      const bounds={x:x-labelWidth/2,y:y-17,width:labelWidth,height:badgeHeight};
       this.occupancy.reserve(bounds);
-      this.visibleCountryLabels.push({id:label.id,name,strength:count,fontSize:14,bounds});
+      this.visibleCountryLabels.push({id:label.id,name,strength:count,mobile,fontSize:14,bounds});
       c.globalAlpha=1;
       c.fillStyle='rgba(5,17,25,.78)';
       c.fillRect(bounds.x,bounds.y,bounds.width,bounds.height);
@@ -713,6 +721,11 @@ export class MapRenderer {
       c.font='800 14px system-ui';
       c.fillStyle=this.strengthRelations[label.id].color;
       c.lineWidth=3.5;c.strokeText(count,x,y+18);c.fillText(count,x,y+18);
+      // Cyan indicates available reserves, NOT military superiority.
+      c.font='700 12px system-ui';
+      c.fillStyle='#9cdeed';
+      c.lineWidth=2.8;
+      c.strokeText(mobile,x,y+34);c.fillText(mobile,x,y+34);
     }
     c.globalAlpha=1;
 
