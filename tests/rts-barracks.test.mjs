@@ -4,9 +4,9 @@ import {Game,cellToPoint,LAND_NEIGHBORS} from '../dist/src/engine/game.js';
 
 test('barracks recruit exactly from living mobile troops and survive save reload',()=>{
  const g=new Game(711,1,'DE');
+ g.factions[0].money=1000;
  const site=g.owner.findIndex((v,i)=>v===0&&!g.buildings[i]&&g.canBuild(0,cellToPoint(i),'barracks').ok);
  assert.ok(site>=0);
- g.factions[0].money=1000;
  assert.equal(g.build(0,cellToPoint(site),'barracks').ok,true);
  g.factions[0].troops=200;g.recount();
  assert.equal(g.buildingAt(cellToPoint(site)),'barracks');
@@ -22,7 +22,6 @@ test('barracks recruit exactly from living mobile troops and survive save reload
 test('factory buildingAt stays recognized for the right click menu',()=>{
  const g=new Game(712,1,'DE');
  const site=g.owner.findIndex((v,i)=>v===0&&!g.buildings[i]&&g.canBuild(0,cellToPoint(i),'factory').ok);
- g.factions[0].money=1000;
  assert.equal(g.build(0,cellToPoint(site),'factory').ok,true);
  assert.equal(g.buildingAt(cellToPoint(site)),'factory');
 });
