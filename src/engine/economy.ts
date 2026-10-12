@@ -36,3 +36,14 @@ export function taxRevenue(population:number,territory:number,capitals:number,ci
   return .25 + people*.002 + territory*.0025
     + Math.max(0,capitals)*.16 + urban*.22;
 }
+
+/** Cost of the NEXT improvement, based on the current level (0..4). */
+export function cityUpgradeCost(currentLevel:number):number {
+  if(!Number.isInteger(currentLevel)||currentLevel<0||currentLevel>=5)throw new RangeError('City is fully upgraded');
+  return 100+currentLevel*75;
+}
+/** Diminishing city growth points: level 5 yields +2.2 equivalent cities. */
+export function cityUpgradeGrowth(level:number):number {
+  if(!Number.isFinite(level))return 0;
+  return [0,.7,1.25,1.65,1.95,2.2][Math.max(0,Math.min(5,Math.floor(level)))];
+}
