@@ -1,5 +1,5 @@
 import { COUNTRIES, MAP_HEIGHT, MAP_WIDTH, SEA_CROSSINGS, WORLD_HEIGHT, WORLD_WIDTH } from '../data/europe.js';
-import { Game, NEUTRAL, WATER, pointToWorld, seededRandom, type Point } from '../engine/game.js';
+import { Game, NEUTRAL, WATER, pointToWorld, pointToIndex, seededRandom, type Point } from '../engine/game.js';
 import { TerritoryWave, waveProgress } from './wave.js';
 import {organicCaptureRadius,burningFrontAlpha} from './capture-visual.js';
 import { pixelGridEdges } from './pixel-grid.js';
