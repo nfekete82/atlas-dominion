@@ -3,7 +3,7 @@ import { Game, NEUTRAL, WATER, pointToWorld, pointToIndex, seededRandom, type Po
 import { TerritoryWave, waveProgress } from './wave.js';
 import {organicCaptureRadius,burningFrontAlpha} from './capture-visual.js';
 import { pixelGridEdges } from './pixel-grid.js';
-import { territoryContours } from './territory-contours.js';
+import { territoryContours, contourRings } from './territory-contours.js';
 import { buildingMarkerFor, showBuildingMarker, buildingMarkerFontSize } from './building-markers.js';
 // Keep natural-dark ocean and distinct faction colors; no pale map wash.
 import { COUNTRY_STARTS } from '../data/countries.js';
@@ -178,8 +178,9 @@ export class MapRenderer {
       // fractional alpha bleeding, gaps or overlapping 0.45px overdraw.
       const col=i%MAP_WIDTH,row=Math.floor(i/MAP_WIDTH);
       const left=X_EDGES[col],top=Y_EDGES[row];
-      c.fillStyle=this.game.factions[id].color+'be';
-      c.fillRect(left,top,X_EDGES[col+1]-left,Y_EDGES[row+1]-top);
+      // Exact tiles still drive the simulation; the visible fill is rendered
+      // from stitched organic boundaries below instead of square rectangles.
+      void left;void top;
     }
     // Marching squares creates rounded-looking diagonals and soft corners.
     // This presentation-only pass never changes tile ownership or targeting.
@@ -190,12 +191,18 @@ export class MapRenderer {
       const segments=contours.get(faction.id);
       if(!segments?.length)continue;
       const path=new Path2D();
-      for(const [x1,y1,x2,y2] of segments){
-        path.moveTo(x1*CW,y1*CH);
-        path.lineTo(x2*CW,y2*CH);
+      const rings=contourRings(segments);
+      for(const ring of rings){
+        path.moveTo(ring[0]*CW,ring[1]*CH);
+        for(let j=2;j<ring.length;j+=2)path.lineTo(ring[j]*CW,ring[j+1]*CH);
+        path.closePath();
       }
-      c.strokeStyle=faction.color+'45';c.lineWidth=1.6;c.stroke(path);
-      c.strokeStyle='rgba(226,239,232,.23)';c.lineWidth=.65;c.stroke(path);
+      // Fill and contour share the identical interpolated coastline.
+      // Even-odd holes preserve enclaves without fictitious ownership changes.
+      c.fillStyle=faction.color+'be';
+      c.fill(path,'evenodd');
+      c.strokeStyle=faction.color+'51';c.lineWidth=1.5;c.stroke(path);
+      c.strokeStyle='rgba(226,239,232,.19)';c.lineWidth=.6;c.stroke(path);
     }
     c.restore();
     // Show the player's structures first; at mid zoom keep only spatially
