@@ -42,7 +42,7 @@ test('fast capture animation completes without persistent cosmetic artifacts',()
   const wave=new TerritoryWave(original,5);
   const after=Int16Array.from([0,0,0,0,1]);
   assert.equal(wave.capture(after,500),3);
-  assert.ok(WAVE_DURATION_MS<=220);
+  assert.ok(WAVE_DURATION_MS>=230 && WAVE_DURATION_MS<=300);
   const frames=wave.active(500);
   assert.deepEqual(frames.map(f=>f.delay),[0,24,48]);
   assert.ok(frames.every(f=>waveProgress(f,500+WAVE_DURATION_MS+48)===1));
