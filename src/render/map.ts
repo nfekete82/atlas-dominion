@@ -657,8 +657,8 @@ export class MapRenderer {
       if(x<60||x>width-60||y<35||y>height-72)continue;
       const flag=FLAGS.get(faction.name)??'';
       const name=(flag?flag+' ':'')+faction.name;
-      c.font=label.id===0?'750 13px system-ui':'650 11px system-ui';
-      const labelWidth=Math.min(135,c.measureText(name).width)+6;
+      c.font=label.id===0?'750 15px system-ui':'700 13px system-ui';
+      const labelWidth=Math.min(160,c.measureText(name).width)+8;
       const preferredY=y;
       let fallback:number|undefined;
       let clear:number|undefined;
@@ -678,8 +678,8 @@ export class MapRenderer {
       c.strokeStyle='rgba(5,17,25,.85)';
       c.fillStyle=label.id===0?'#fff4cf':'#e1eae6';
       c.lineWidth=2.6;
-      c.font=label.id===0?'750 13px system-ui':'650 11px system-ui';
-      c.strokeText(name,x,y,135);c.fillText(name,x,y,135);
+      c.font=label.id===0?'750 15px system-ui':'700 13px system-ui';
+      c.strokeText(name,x,y,160);c.fillText(name,x,y,160);
       // The map's central number is the mobile reserve, not all soldiers including attacking armies.
        // Reinforcing a front therefore immediately lowers the displayed count.
        const count=formatCompact(Math.floor(faction.troops));
