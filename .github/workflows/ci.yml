@@ -60,3 +60,28 @@ jobs:
           name: city-marker-browser-evidence
           path: tests/browser/artifacts/
           retention-days: 14
+
+  docker:
+    name: Docker · realtime and Risiko 2.0
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Build production container
+        run: docker build --tag atlas-dominion-risk-ci .
+      - name: Verify both production entrypoints
+        run: |
+          docker run -d --rm --name atlas-dominion-risk-ci -p 18095:8095 atlas-dominion-risk-ci
+          trap 'docker stop atlas-dominion-risk-ci' EXIT
+          for i in $(seq 1 20); do
+            if curl --fail --silent http://127.0.0.1:18095/risk.html -o /tmp/risk.html; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:18095/ -o /tmp/realtime.html
+          curl --fail --silent http://127.0.0.1:18095/src/risk-main.js -o /tmp/risk-main.js
+          curl --fail --silent http://127.0.0.1:18095/risk-style.css -o /tmp/risk-style.css
+          grep -q 'riskCanvas' /tmp/risk.html
+          grep -q 'battleCanvas' /tmp/realtime.html
+          grep -q 'TurnMapRenderer' /tmp/risk-main.js
