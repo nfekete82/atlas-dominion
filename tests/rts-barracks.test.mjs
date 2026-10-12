@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Game,cellToPoint} from '../dist/src/engine/game.js';
+import {Game,cellToPoint,landNeighbors} from '../dist/src/engine/game.js';
 
 test('RTS barracks train paid soldiers without passive human mobile growth',()=>{
  const g=new Game(711,1,'DE','balanced',true);
@@ -52,7 +52,6 @@ test('RTS opening funds an immediate barracks and first squad without free AI gr
 test('foreign target queues a real army march and persists its conquest order',()=>{
  const g=new Game(9102,1,'DE','balanced',true);
  const owner=0;
- const {landNeighbors}=await import('../dist/src/engine/game.js');
  const edge=g.owner.findIndex((v,i)=>v===0&&landNeighbors(i).some(n=>g.owner[n]!==0&&g.owner[n]!==-2));
  assert.ok(edge>=0);
  const target=landNeighbors(edge).find(n=>g.owner[n]!==0&&g.owner[n]!==-2);
