@@ -248,7 +248,7 @@ renderer.onHover=(point,px,py,landing)=>{
   owner.style.color=f?.color??'#bcc5bb';
   const built=game.buildingAt(point);
   const buildingName=BUILDINGS.find(b=>b.type===built)?.name;
-  $('hoverCoords').textContent=`SEKTOR ${point.x} / ${point.y} · ${buildingName?.toUpperCase()??(id===NEUTRAL?'NEUTRAL':'KONTROLLIERT')}`;
+  $('hoverCoords').textContent=`SEKTOR ${point.x} / ${point.y} · ${built==='city'?`STADT STUFE ${game.cityLevelAt(point)}/5`:buildingName?.toUpperCase()??(id===NEUTRAL?'NEUTRAL':'KONTROLLIERT')}`;
   const tile = pointToIndex(point);
   const attackFront=renderer.previewFront(point);
   const counter=id===0 && attackFront!==null;
