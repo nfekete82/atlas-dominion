@@ -138,6 +138,7 @@ renderer.onSelect = (point:Point, landing:boolean) => {
   attackMessage=result.ok
     ? `${format(result.sent)} ⚔ · ${result.reason}`
     : result.reason;
+  if(result.ok && result.front && result.sent>0)renderer.showReinforcement(result.front,result.sent);
   attackMessageKind = result.ok ? 'success' : 'error';
   beep(result.ok ? 620 : 190);
   update();
