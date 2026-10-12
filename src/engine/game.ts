@@ -972,6 +972,48 @@ export class Game {
     }
   }
 
+  /** Actual RTS contact combat: adjacent hostile formations damage each
+   * other at once. Only the participating squads pay casualties.
+   * No remote reserve withdrawals or phantom army creation.
+   */
+  private resolveSquadContacts():void {
+    if(!this.rtsRecruitment)return;
+    const byCell=new Map<number,typeof this.squads>();
+    for(const unit of this.squads){
+      const list=byCell.get(unit.index)??[];
+      list.push(unit);byCell.set(unit.index,list);
+    }
+    const damage=new Map<number,number>();
+    const engaged=new Set<number>();
+    for(const unit of this.squads){
+      for(const neighbor of LAND_NEIGHBORS[unit.index]){
+        const foes=byCell.get(neighbor);
+        if(!foes)continue;
+        for(const enemy of foes){
+          if(enemy.owner===unit.owner||this.isAllied(unit.owner,enemy.owner)||unit.id>=enemy.id)continue;
+          // Resolve each pair exactly once, with simultaneous losses.
+          const a=Math.min(unit.troops,Math.max(.25,enemy.troops*.085));
+          const b=Math.min(enemy.troops,Math.max(.25,unit.troops*.085));
+          damage.set(unit.id,(damage.get(unit.id)??0)+a);
+          damage.set(enemy.id,(damage.get(enemy.id)??0)+b);
+          engaged.add(unit.id);engaged.add(enemy.id);
+          if(this.battleEvents.length<1600)this.battleEvents.push({
+            tick:this.tick,index:enemy.index,attackerId:unit.owner,defenderId:enemy.owner,
+            attacking:unit.troops,defending:enemy.troops,
+            attackerLost:a,defenderLost:b,captured:false,
+          });
+        }
+      }
+    }
+    for(let i=this.squads.length-1;i>=0;i--){
+      const unit=this.squads[i],loss=damage.get(unit.id)??0;
+      if(loss<=0)continue;
+      unit.troops=Math.max(0,unit.troops-loss);
+      this.factions[unit.owner].attackFallen+=loss;
+      if(unit.troops<1)this.squads.splice(i,1);
+    }
+  }
+
   private moveSquads():void {
     for(let i=this.squads.length-1;i>=0;i--){
       const squad=this.squads[i];
@@ -2129,6 +2171,7 @@ export class Game {
     const beforeMobile=this.factions[0].troops;
     this.tick++;
     this.moveSquads();
+    this.resolveSquadContacts();
     this.commandRTSAI();
     this.updateDiplomacy();
     this.deliverDefensiveAid();
