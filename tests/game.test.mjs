@@ -203,7 +203,12 @@ test('Direct border clicks and nearby capital clicks both attack from the connec
   const nearby = g.launchAttack(0,enemyCity,25);
   assert.equal(nearby.ok,true);
   assert.deepEqual(nearby.front,capitalFront);
-  assert.deepEqual(g.attackOrders.at(-1).anchor,capitalFront);
+  // A second nearby click reinforces the already active shared frontline.
+  // The return value still identifies the snapped valid border, while the
+  // army keeps its first real entry point and does not teleport mid-battle.
+  assert.equal(g.attackOrders.length,1);
+  assert.deepEqual(g.attackOrders[0].anchor,direct.front);
+  assert.equal(g.attackOrders[0].committed,direct.sent+nearby.sent);
 });
 
 test('Running attacks use only the committed army and preserve deterministic replay',()=>{
