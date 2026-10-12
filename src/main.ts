@@ -3,6 +3,7 @@ import { MapRenderer } from './render/map.js';
 import { BUILDINGS, type BuildingType } from './engine/economy.js';
 import { COUNTRY_STARTS, countryByCode } from './data/countries.js';
 import {formatCompact} from './format.js';
+import {Soundscape,AUDIO_SETTINGS_KEY,type AudioSettings} from './audio/soundscape.js';
 
 import {DIFFICULTY_SETTINGS,isDifficulty,type Difficulty} from './engine/difficulty.js';
 
@@ -16,8 +17,16 @@ let game = new Game(Date.now() % 2147483647);
 game.paused = true; // The player must choose a country before the clock starts.
 const renderer = new MapRenderer($<HTMLCanvasElement>('battleCanvas'), game);
 let speed = 1;
-let soundEnabled = false;
-let audio: AudioContext | null = null;
+function savedAudioSettings():unknown {
+  try{return JSON.parse(localStorage.getItem(AUDIO_SETTINGS_KEY)??'null');}
+  catch{return null;}
+}
+const soundscape=new Soundscape(savedAudioSettings());
+function saveAudioSettings():void {
+  try{localStorage.setItem(AUDIO_SETTINGS_KEY,JSON.stringify(soundscape.snapshot()));}
+  catch{/* Audio preferences must never prevent a match from running. */}
+}
+
 let prevStatus = game.status;
 let modalVisible = true;
 let hasStarted = false;
@@ -48,7 +57,8 @@ function pushWarAlert(text:string,detail:string,index:number,kind:WarAlert['kind
   if(index<0||index>=game.owner.length)return;
   warAlerts.unshift({id:nextWarAlert++,text,detail,index,kind,until:game.tick+60});
   warAlerts=warAlerts.slice(0,3);
-  if(kind==='attack'||kind==='captured')beep(kind==='captured'?240:390,.12);
+  if(kind==='attack'||kind==='captured')soundscape.playEffect('alert');
+  if(kind==='victory')soundscape.playEffect('conquest');
 }
 function refreshWarAlerts():void {
   // Deduplicate by actual order identity, not by screenshot or render frame.
@@ -205,18 +215,74 @@ function restoreGame():boolean {
 }
 
 
-function beep(freq = 440, duration = 0.08) {
-  if (!soundEnabled) return;
-  try {
-    audio ??= new AudioContext();
-    const osc = audio.createOscillator(); const gain = audio.createGain();
-    osc.type = 'triangle'; osc.frequency.setValueAtTime(freq, audio.currentTime);
-    gain.gain.setValueAtTime(0.035, audio.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + duration);
-    osc.connect(gain); gain.connect(audio.destination);
-    osc.start(); osc.stop(audio.currentTime + duration);
-  } catch { soundEnabled = false; }
+function beep(freq = 440, duration = 0.08):void {
+  soundscape.beep(freq,duration);
 }
+
+/** Existing game saves and deterministic simulation never contain audio state. */
+function updateAudioPanel():void {
+  const settings=soundscape.snapshot();
+  ($<HTMLInputElement>('audioMusicEnabled')).checked=settings.music;
+  ($<HTMLInputElement>('audioEffectsEnabled')).checked=settings.effects;
+  for(const [id,label,value] of [
+    ['audioMusicVolume','audioMusicValue',settings.musicVolume],
+    ['audioEffectsVolume','audioEffectsValue',settings.effectsVolume],
+    ['audioMasterVolume','audioMasterValue',settings.master],
+  ] as const){
+    ($<HTMLInputElement>(id)).value=String(value);
+    $(label).textContent=value+' %';
+  }
+  $('soundBtn').textContent=!settings.music&&!settings.effects?'♪':'♫';
+  $('soundBtn').setAttribute('aria-label',!settings.music&&!settings.effects?
+    'Audio ausgeschaltet – Einstellungen öffnen':'Audioeinstellungen');
+  const running=soundscape.debug().musicPlaying;
+  $('audioStatus').textContent=settings.music?
+    running?'Musik läuft leise':'Musik bereit – durch Klick aktivieren':
+    settings.effects?'Musik aus · Effekte an':'Ton ausgeschaltet';
+}
+function closeAudioPanel():void {
+  $('audioPanel').hidden=true;
+  $('soundBtn').setAttribute('aria-expanded','false');
+}
+function setAudio(patch:Partial<AudioSettings>):void {
+  soundscape.update(patch,true);
+  saveAudioSettings();
+  updateAudioPanel();
+}
+updateAudioPanel();
+$('soundBtn').addEventListener('click',()=>{
+  const opened=$('audioPanel').hidden;
+  $('audioPanel').hidden=!opened;
+  $('soundBtn').setAttribute('aria-expanded',String(opened));
+  if(opened&&soundscape.settings.music)soundscape.update({},true);
+  updateAudioPanel();
+});
+$('audioClose').addEventListener('click',()=>{closeAudioPanel();$('soundBtn').focus();});
+$('audioMusicEnabled').addEventListener('change',e=>
+  setAudio({music:(e.target as HTMLInputElement).checked}));
+$('audioEffectsEnabled').addEventListener('change',e=>
+  setAudio({effects:(e.target as HTMLInputElement).checked}));
+for(const [id,field] of [
+  ['audioMusicVolume','musicVolume'],
+  ['audioEffectsVolume','effectsVolume'],
+  ['audioMasterVolume','master'],
+] as const){
+  $(id).addEventListener('input',e=>{
+    setAudio({[field]:Number((e.target as HTMLInputElement).value)});
+  });
+}
+$('audioPreview').addEventListener('click',()=>{
+  soundscape.unlock();
+  if(soundscape.settings.effects&&soundscape.settings.master>0&&soundscape.settings.effectsVolume>0){
+    soundscape.playEffect('alliance');
+    $('audioStatus').textContent='Klangprobe abgespielt';
+  }else $('audioStatus').textContent='Effekte einschalten und Lautstärke erhöhen';
+});
+window.addEventListener('pointerdown',e=>{
+  const panel=$('audioPanel');
+  if(!panel.hidden&&!panel.contains(e.target as Node)&&
+     !(e.target as HTMLElement).closest('#soundBtn'))closeAudioPanel();
+});
 
 function update() {
   const player = game.factions[0];
@@ -306,7 +372,7 @@ function update() {
   document.querySelectorAll<HTMLButtonElement>('[data-doctrine]').forEach(b=>b.classList.toggle('selected', b.dataset.doctrine===game.doctrine));
   if (game.status!==prevStatus) {
     prevStatus=game.status;
-    beep(game.status==='victory'?880:180,0.3);
+    soundscape.playEffect(game.status==='victory'?'victory':'defeat');
     const won=game.status==='victory';
     showDialog(won?'EUROPA IST DEIN.':'DEIN IMPERIUM IST GEFALLEN.',
       `<p>${won?'Du kontrollierst die strategische Mehrheit Europas.':'Deine letzten Gebiete wurden erobert.'} Wähle für die nächste Partie erneut dein Land.</p>`,
@@ -345,7 +411,7 @@ $('activeArmyList').addEventListener('click',e=>{
     'Flotte kehrt zurück. Die Überlebenden erreichen die mobile Reserve nach der Rückfahrt.':
     format(sent)+' Überlebende sind in die mobile Reserve zurückgekehrt.';
   attackMessageKind='success';
-  renderer.updateTerritory();update();saveGame();beep(460);
+  renderer.updateTerritory();update();saveGame();soundscape.playEffect('retreat');
 });
 $('warAlerts').addEventListener('click',e=>{
   const b=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-war-focus]');
@@ -354,6 +420,7 @@ $('warAlerts').addEventListener('click',e=>{
   if(alert)renderer.focusOnPoint({x:alert.index%480,y:Math.floor(alert.index/480)},2.2);
 });
 renderer.onSelect = (point:Point, landing:boolean) => {
+  soundscape.unlock();
   closeBuildMenu();
   // Left-click on friendly terrain must NEVER issue an attack or mobilize
   // soldiers. Right-click is still available for construction / defense.
@@ -366,7 +433,7 @@ renderer.onSelect = (point:Point, landing:boolean) => {
   if(result.ok && result.front && result.sent>0 && !result.reason.includes('Landung'))renderer.showReinforcement(result.front,result.sent);
   if(result.ok){renderer.updateTerritory();saveGame();}
   attackMessageKind = result.ok ? 'success' : 'error';
-  beep(result.ok ? 620 : 190);
+  if(result.ok)soundscape.playEffect('attack');else beep(190);
   update();
 };
 function closeBuildMenu(): void {
@@ -465,7 +532,7 @@ $('buildOptions').addEventListener('click',e=>{
     attackMessageKind=result.ok?'success':'error';
     $('diplomacyFeedback').textContent=result.reason;
     if(result.ok){renderer.updateTerritory();saveGame();}
-    beep(result.ok?620:190);
+    if(result.ok)soundscape.playEffect('reinforce');else beep(190);
     closeBuildMenu();
     update();
     return;
@@ -631,6 +698,7 @@ function startCountry(code:string): void {
   attackMessageKind='neutral';
   renderer.setGame(game);
   renderer.focusOnCapital(game.cities[0]);
+  soundscape.unlock(); // Starting a new match is an explicit user gesture.
   resetTacticalWarnings();
   populateDiplomacy();
   prevStatus=game.status;
@@ -670,7 +738,7 @@ $('diplomacyOffer').addEventListener('click',()=>{
   const target=Number($<HTMLSelectElement>('diplomacyNation').value);
   const result=game.offerAlliance(0,target);
   $('diplomacyFeedback').textContent=result.reason;
-  if(result.ok){beep(620);saveGame();renderer.updateTerritory();}
+  if(result.ok){soundscape.playEffect('alliance');saveGame();renderer.updateTerritory();}
   update();
 });
 $('diplomacyLeave').addEventListener('click',()=>{
@@ -686,11 +754,11 @@ $('diplomacyInbox').addEventListener('click',e=>{
   const id=Number(button.dataset.allianceAccept??button.dataset.allianceDecline);
   const result=game.respondAlliance(id,button.hasAttribute('data-alliance-accept'));
   $('diplomacyFeedback').textContent=result.reason;
-  if(result.ok){beep(610);saveGame();renderer.updateTerritory();}
+  if(result.ok){soundscape.playEffect('alliance');saveGame();renderer.updateTerritory();}
   update();
 });
 
-$('soundBtn').addEventListener('click',()=>{soundEnabled=!soundEnabled;$('soundBtn').textContent=soundEnabled?'♫':'♪';if(soundEnabled)beep(660);});
+
 $('fullBtn').addEventListener('click',()=>{if(!document.fullscreenElement)void document.documentElement.requestFullscreen();else void document.exitFullscreen();});
 $('pauseBtn').addEventListener('click',()=>{game.paused=!game.paused;update();});
 for(const button of document.querySelectorAll<HTMLButtonElement>('[data-doctrine]'))button.addEventListener('click',()=>{
@@ -704,6 +772,7 @@ for(const btn of document.querySelectorAll<HTMLButtonElement>('[data-speed]')) b
   document.querySelectorAll('[data-speed]').forEach(e=>e.classList.toggle('active',e===btn));
 });
 window.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&!$('audioPanel').hidden){closeAudioPanel();return;}
   if(e.key==='Escape'&&!$('buildMenu').hidden){closeBuildMenu();return;}
   if(!$('countryPicker').hidden)return;
   if(e.key==='Escape'&&modalVisible){closeDialog();return;}
@@ -726,11 +795,11 @@ setInterval(()=>{
   update();
 },250);
 setInterval(saveGame,30000);
-window.addEventListener('pagehide',saveGame);
+window.addEventListener('pagehide',()=>{saveGame();soundscape.dispose();});
 populateDiplomacy();
 update();
 if(!restoreGame())showCountryPicker(false);
 // Explicit dev-only API for smoke tests, not game simulation source of truth.
 if(new URLSearchParams(location.search).has('debug')) {
-  Object.assign(window,{__atlas:{getGame:()=>game, renderer, refresh:()=>{renderer.updateTerritory();update();}, save:saveGame, attack:(x:number,y:number,ratio=35)=>game.launchAttack(0,{x,y},ratio), step:()=>{game.step();renderer.updateTerritory();update();}}});
+  Object.assign(window,{__atlas:{getGame:()=>game, audio: soundscape, renderer, refresh:()=>{renderer.updateTerritory();update();}, save:saveGame, attack:(x:number,y:number,ratio=35)=>game.launchAttack(0,{x,y},ratio), step:()=>{game.step();renderer.updateTerritory();update();}}});
 }
