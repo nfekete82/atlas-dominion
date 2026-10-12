@@ -3,7 +3,7 @@ import { MapRenderer } from './render/map.js';
 import { BUILDINGS, type BuildingType } from './engine/economy.js';
 import { COUNTRY_STARTS, countryByCode } from './data/countries.js';
 import {formatCompact} from './format.js';
-import {relativeStrength} from './military-view.js';
+
 import {DIFFICULTY_SETTINGS,isDifficulty,type Difficulty} from './engine/difficulty.js';
 
 const $ = <T extends HTMLElement>(id: string): T => {
