@@ -160,7 +160,7 @@ test('city can be upgraded five times, each level costs money and boosts growth'
   const g=new Game(711,1,'DE');
   const idx=g.owner.findIndex((owner,i)=>owner===0&&g.buildings[i]===0);
   assert.ok(idx>=0);
-  const point={x:idx%480,y:Math.floor(idx/480)};
+  const point=vacantCitySite(g);
   g.factions[0].money=10000;
   assert.equal(g.build(0,point,'city').ok,true);
   const before=g.factions[0].income;
