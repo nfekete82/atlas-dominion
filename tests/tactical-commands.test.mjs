@@ -76,3 +76,24 @@ test('risk preview responds to real fortifications and is independent of seed/RN
   const saved=g.exportSave();
   assert.deepEqual(Game.fromSave(JSON.parse(JSON.stringify(saved))).assessAttack(0,point,50),fortified);
 });
+
+test('reinforcing a living offensive moves real mobile soldiers without creating a second order',()=>{
+  const {g,point}=fixture(56488);
+  const before=g.populationOf(0);
+  assert.equal(g.launchAttack(0,point,30).ok,true);
+  const order=g.attackOrders.find(o=>o.factionId===0);
+  assert.ok(order);
+  const remaining=order.remaining,mobile=g.factions[0].troops;
+  assert.equal(g.reinforceAttack(1,order.id,50).ok,false);
+  assert.equal(g.reinforceAttack(0,order.id,101).ok,false);
+  const response=g.reinforceAttack(0,order.id,50);
+  assert.equal(response.ok,true);
+  assert.equal(response.sent,Math.floor(mobile*.5));
+  assert.equal(order.remaining,remaining+response.sent);
+  assert.equal(g.factions[0].troops,mobile-response.sent);
+  assert.equal(g.attackOrders.filter(o=>o.factionId===0).length,1);
+  assert.equal(g.populationOf(0),before);
+  assert.equal(g.cancelAttack(order.id,0),true);
+  assert.equal(g.populationOf(0),before);
+  assert.equal(g.reinforceAttack(0,order.id,50).ok,false);
+});
