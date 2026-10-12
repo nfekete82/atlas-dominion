@@ -666,7 +666,7 @@ $('buildOptions').addEventListener('click',e=>{
     const city=game.nearbyFactoryCity(buildSpot);
     const result=city?game.connectFactory(0,buildSpot,city):{ok:false,reason:'Keine Stadt in Reichweite.'};
     attackMessage=result.reason;attackMessageKind=result.ok?'success':'error';
-    if(result.ok){saveGame();closeBuildMenu();soundscape.playEffect('build');}else renderBuildMenu();
+    if(result.ok){renderer.updateTerritory();saveGame();closeBuildMenu();soundscape.playEffect('build');}else renderBuildMenu();
     update();return;
   }
   const borderButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-strategic-mode]');
