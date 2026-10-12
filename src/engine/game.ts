@@ -603,7 +603,8 @@ export class Game {
   buildingAt(point:Point):BuildingType|null {
     const x=Math.floor(point.x),y=Math.floor(point.y);
     if(!Number.isFinite(point.x)||!Number.isFinite(point.y)||x<0||y<0||x>=MAP_WIDTH||y>=MAP_HEIGHT)return null;
-    return this.buildings[y*MAP_WIDTH+x]===BUILDING_CODES.city?'city':null;
+    const code=this.buildings[y*MAP_WIDTH+x];
+    return code===BUILDING_CODES.city?'city':code===BUILDING_CODES.tower?'tower':null;
   }
 
   cityLevelAt(point:Point):number {
@@ -720,20 +721,36 @@ export class Game {
       :`${plan.result.cities} Städte um ${plan.result.upgrades} Stufen ausgebaut.`};
   }
 
+  /** Only towers still owned by the defender offer support. Adjacent and nearby
+   * towers contribute at most two stacks; no map-wide damage aura. */
+  private towerSupport(id:number,index:number):number {
+    if(id<0)return 0;
+    const x=index%MAP_WIDTH,y=Math.floor(index/MAP_WIDTH);
+    let count=0;
+    for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
+      if(dx*dx+dy*dy>4)continue;
+      const xx=x+dx,yy=y+dy;
+      if(xx<0||yy<0||xx>=MAP_WIDTH||yy>=MAP_HEIGHT)continue;
+      const at=yy*MAP_WIDTH+xx;
+      if(this.owner[at]===id&&this.buildings[at]===BUILDING_CODES.tower&&++count>=2)return 2;
+    }
+    return count;
+  }
+
   canBuild(id:number,point:Point,type:BuildingType):BuildResult {
     const fail=(reason:string):BuildResult=>({ok:false,reason,cost:0});
     const faction=this.factions[id];
     if(!faction?.alive||this.status!=='playing')return fail('Dieses Land kann nicht bauen.');
-    if(type!=='city')return fail('Es können nur Städte gebaut werden.');
+    if(type!=='city'&&type!=='tower')return fail('Unbekanntes Gebäude.');
     const x=Math.floor(point.x),y=Math.floor(point.y);
     if(!Number.isFinite(point.x)||!Number.isFinite(point.y)||x<0||y<0||x>=MAP_WIDTH||y>=MAP_HEIGHT)return fail('Außerhalb der Karte.');
     const index=y*MAP_WIDTH+x;
     if(this.owner[index]!==id)return fail('Nur auf eigenem Land bauen.');
-    if(this.capitalSites.has(index))return fail('In der Hauptstadt steht bereits eine Stadt.');
-    if(this.buildings[index])return fail('Hier steht bereits eine Stadt.');
-    const def=BUILDINGS[0];
+    if(this.capitalSites.has(index))return fail('Die Hauptstadt ist bereits bebaut.');
+    if(this.buildings[index])return fail('Hier steht bereits ein Gebäude.');
+    const def=BUILDINGS.find(b=>b.type===type)!;
     if(faction.money<def.cost)return fail(`Zu wenig Geld: ${def.cost} benötigt.`);
-    return {ok:true,reason:'Stadt bauen.',cost:def.cost,type:'city'};
+    return {ok:true,reason:type==='tower'?'Abwehrturm bauen.':'Stadt bauen.',cost:def.cost,type};
   }
 
   build(id:number,point:Point,type:BuildingType):BuildResult {
@@ -741,11 +758,11 @@ export class Game {
     if(!permission.ok)return permission;
     const faction=this.factions[id];
     faction.money-=permission.cost;
-    this.buildings[pointToIndex(point)]=BUILDING_CODES.city;
+    this.buildings[pointToIndex(point)]=BUILDING_CODES[type];
     this.cityUpgrades[pointToIndex(point)]=0;
     this.recount();
-    if(id===0)this.log(`Stadt gebaut · -${permission.cost} Geld · schnelleres Wachstum.`,faction.color);
-    return {ok:true,reason:'Stadt gebaut.',cost:permission.cost,type:'city'};
+    if(id===0)this.log(`${type==='tower'?'Abwehrturm':'Stadt'} gebaut · -${permission.cost} Geld.`,faction.color);
+    return {ok:true,reason:type==='tower'?'Abwehrturm gebaut.':'Stadt gebaut.',cost:permission.cost,type};
   }
 
   /** AI plans actual settlements across owned land, then improves them.
@@ -1174,6 +1191,7 @@ export class Game {
       neutral:opponent===NEUTRAL,capital:this.capitalSites.has(index),
       builtCity:this.buildings[index]===BUILDING_CODES.city,
       cityLevel:this.cityUpgrades[index],
+      towerSupport:this.towerSupport(opponent,index),
       doctrine:opponent===0?this.doctrine:undefined,
     });
     const posted=this.frontline[index];
@@ -1391,6 +1409,7 @@ export class Game {
       capital:this.capitalSites.has(index),
       builtCity:this.buildings[index]===BUILDING_CODES.city,
       cityLevel:this.cityUpgrades[index],
+      towerSupport:this.towerSupport(opponent,index),
       doctrine:owner===0?this.doctrine:undefined,
     });
     if(order.remaining<=tile.attackerLoss)return {time:tile.time,captured:false,loss:0};
@@ -1480,6 +1499,7 @@ export class Game {
           capital:this.capitalSites.has(index),
           builtCity:this.buildings[index]===BUILDING_CODES.city,
           cityLevel:this.cityUpgrades[index],
+      towerSupport:this.towerSupport(opponent,index),
           doctrine:this.owner[index]===0?this.doctrine:undefined,
         });
         // A nearly spent army retreats with its survivors. It must NEVER
