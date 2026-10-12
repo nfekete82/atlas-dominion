@@ -67,6 +67,9 @@ export class MapRenderer {
   private reducedMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches??false;
   game: Game;
   onSelect: (point: Point, landing: boolean) => void = () => {};
+  onSelectSquads:(ids:number[])=>void=()=>{};
+  selectedSquadIds:number[]=[];
+  private selectionBox:{x1:number;y1:number;x2:number;y2:number}|null=null;
   onBuildRequest: (point: Point | null, clientX: number, clientY: number) => void = () => {};
   onHover: (point: Point | null, px: number, py: number, landing: boolean) => void = () => {};
 
@@ -468,6 +471,9 @@ export class MapRenderer {
       const y=this.oy+(Math.floor(squad.index/MAP_WIDTH)+.5)*CH*this.scale;
       if(x<0||y<0||x>this.canvas.clientWidth||y>this.canvas.clientHeight)continue;
       c.fillStyle=squad.owner===0?'#68caff':'#ff8e8e';
+      if(this.selectedSquadIds.includes(squad.id)){
+        c.strokeStyle='#ffe58b';c.lineWidth=2.5;c.beginPath();c.arc(x,y,12,0,Math.PI*2);c.stroke();
+      }
       c.strokeStyle='#122732';c.lineWidth=2;
       c.beginPath();c.arc(x,y,7,0,Math.PI*2);c.fill();c.stroke();
       c.fillStyle='#0b2333';c.font='bold 9px sans-serif';c.fillText('⚔',x,y);
@@ -1018,6 +1024,12 @@ export class MapRenderer {
     this.drawFactoryLinks(c,timestamp);
     this.drawBuildings(c);
     this.drawSquads(c);
+    if(this.selectionBox){
+      const b=this.selectionBox;
+      c.save();c.fillStyle='rgba(90,188,250,.16)';c.strokeStyle='#86d9ff';c.lineWidth=1.5;
+      c.fillRect(Math.min(b.x1,b.x2),Math.min(b.y1,b.y2),Math.abs(b.x2-b.x1),Math.abs(b.y2-b.y1));
+      c.strokeRect(Math.min(b.x1,b.x2),Math.min(b.y1,b.y2),Math.abs(b.x2-b.x1),Math.abs(b.y2-b.y1));c.restore();
+    }
     requestAnimationFrame(t=>this.frame(t));
   }
   zoomBy(factor: number) {
@@ -1064,13 +1076,15 @@ export class MapRenderer {
     this.canvas.addEventListener('pointerdown',e=>{
       if(e.button!==0)return;
       this.dragging=true;this.moved=false;this.last={x:e.clientX,y:e.clientY};this.press={...this.last};
+      const box=this.canvas.getBoundingClientRect();
+      this.selectionBox={x1:e.clientX-box.left,y1:e.clientY-box.top,x2:e.clientX-box.left,y2:e.clientY-box.top};
       this.canvas.setPointerCapture(e.pointerId);
     });
     this.canvas.addEventListener('pointermove',e=>{
       if(this.dragging) {
         const dx=e.clientX-this.last.x,dy=e.clientY-this.last.y;
         if(Math.hypot(e.clientX-this.press.x,e.clientY-this.press.y)>5)this.moved=true;
-        if(this.moved){this.ox+=dx;this.oy+=dy;}
+        if(this.moved&&this.selectionBox){const box=this.canvas.getBoundingClientRect();this.selectionBox.x2=e.clientX-box.left;this.selectionBox.y2=e.clientY-box.top;}
         this.last={x:e.clientX,y:e.clientY};
       }
       this.hover=this.cellAt(e.clientX,e.clientY,e.shiftKey);
@@ -1081,10 +1095,20 @@ export class MapRenderer {
     });
     this.canvas.addEventListener('pointerup',e=>{
       if(e.button!==0)return;
-      if(!this.moved){const p=this.cellAt(e.clientX,e.clientY,e.shiftKey);if(p)this.onSelect(p,e.shiftKey);}
-      this.dragging=false;
+      if(this.moved&&this.selectionBox){
+        const b=this.selectionBox,loX=Math.min(b.x1,b.x2),hiX=Math.max(b.x1,b.x2);
+        const loY=Math.min(b.y1,b.y2),hiY=Math.max(b.y1,b.y2);
+        const ids=this.game.squads.filter(unit=>{
+          if(unit.owner!==0)return false;
+          const x=this.ox+(unit.index%MAP_WIDTH+.5)*CW*this.scale;
+          const y=this.oy+(Math.floor(unit.index/MAP_WIDTH)+.5)*CH*this.scale;
+          return x>=loX&&x<=hiX&&y>=loY&&y<=hiY;
+        }).map(unit=>unit.id);
+        this.selectedSquadIds=ids;this.onSelectSquads(ids);
+      }else{const p=this.cellAt(e.clientX,e.clientY,e.shiftKey);if(p)this.onSelect(p,e.shiftKey);}
+      this.dragging=false;this.selectionBox=null;
     });
-    this.canvas.addEventListener('pointercancel',()=>{this.dragging=false;});
+    this.canvas.addEventListener('pointercancel',()=>{this.dragging=false;this.selectionBox=null;});
     this.canvas.addEventListener('pointerleave',()=>{this.hover=null;this.hoverPointer=null;this.refreshHoverPreview(null);this.onHover(null,0,0,false);});
     // Both mouse secondary click and trackpad context click open the same
     // build menu. A secondary pointerup fallback covers browsers that do not
