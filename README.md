@@ -3,6 +3,25 @@
 [![Build und Simulationstests](https://github.com/nfekete82/atlas-dominion/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/nfekete82/atlas-dominion/actions/workflows/ci.yml)
 
 
+**v1.5 – WÄHLBARER KI-SCHWIERIGKEITSGRAD VOR DEM SPIEL**
+
+OpenFront bietet im Einzelspieler-Setup vier Schwierigkeitsstufen. ATLAS DOMINION übernimmt das Prinzip mit eigenem Balancing. **Wähle im Startfenster zuerst eine KI-Stufe und dann dein Land.** Bei »Neues Spiel« kannst du erneut wählen.
+
+| KI-Stufe | KI-Starttruppen | KI-Wachstum | KI-Aktivität | KI-Verteidigung | Stadtbau |
+|---|---:|---:|---:|---:|---|
+| Entspannt | 65 | 0,85× | 0,65× | 0,75× | alle 180 Ticks |
+| Ausgeglichen (Standard) | 90 | 1× | 1× | 1× | alle 100 Ticks |
+| Intensiv | 120 | 1,14× | 1,2× | 1,2× | alle 75 Ticks |
+| Unmöglich | 165 | 1,28× | 1,4× | 1,4× | alle 55 Ticks |
+
+**Nur die KI-Länder werden verändert.** Der menschliche Spieler hat immer 90 Starttruppen, 90 Startgeld, identische Wirtschaftsformeln und dieselben echten Kampfschäden. Es entstehen keine versteckten Gratisarmeen im Kampf. Die Schwierigkeitsgrade verändern die KI-Startwerte, das reale Wachstum, Marsch- und Angriffsausdauer, die Zahl möglicher Frontaktionen, Risikobereitschaft sowie echte Grenzverstärkungen. »Ausgeglichen« entspricht dem bisherigen v1.4.1-Verhalten.
+
+Die Auswahl ist pro Partie fixiert und erscheint in der Seitenleiste. Bei jedem neuen Spiel kannst du sie ändern. Das System bleibt deterministisch: gleiche Karte, Seed, Schwierigkeit und Befehle führen zu gleichen Ergebnissen.
+
+Neue `tests/difficulty.test.mjs` prüfen alle vier Stufen, identische Spielereinstellungen, voneinander verschiedene KI-Stärken, reale Truppenhaltung und deterministische Simulation. `tests/http.test.mjs` prüft Startbildschirm und Bereitstellung des Difficulty-Moduls.
+
+---
+
 **v1.4.1 – VERTEIDIGUNGSVERLUSTE UND GEGENANGRIFFE**
 
 - **Bei einer feindlichen Eroberung sterben wieder echte Verteidiger:** Auch Sektoren ohne vorher stationierte Grenzgarnison können aus der *tatsächlichen mobilen Bevölkerung* ein begrenztes Aufgebot zur Verteidigung erhalten. Die eingesetzten Milizionäre werden bei einem Gefecht als echte Verluste verbucht – keine künstlich erschaffenen Soldaten. Der nationale Einwohner-/Truppenwert fällt entsprechend, sofern das Wachstum die Verluste nicht ausgleicht.
