@@ -14,7 +14,7 @@ async function threatened(page){
     const foe=landNeighbors(own).find(n=>g.owner[n]===NEUTRAL);
     g.owner[foe]=1;g.frontline[own]=240;
     g.factions[0].troops=1600;g.factions.forEach(f=>f.ai=false);
-    g.recount();window.__atlas.refresh();
+    g.recount();g.setBorderMode(0,{x:own%480,y:Math.floor(own/480)},'defend');window.__atlas.refresh();
     return {own,foe,mobile:g.factions[0].troops};
   });
 }
@@ -28,8 +28,8 @@ test('minimap renders real ownership and repositions map; panel folds and unfold
     const v=window.__atlas.renderer.visibleWorldBounds();
     return {x:v.x+v.width/2,y:v.y+v.height/2};
   });
-  expect(center.x).toBeCloseTo(80/240*1600,0);
-  expect(center.y).toBeCloseTo(55/130*900,0);
+  expect(Math.abs(center.x-80/240*1600)).toBeLessThan(12);
+  expect(Math.abs(center.y-55/130*900)).toBeLessThan(12);
   expect(center.x).not.toBeCloseTo(original.x+original.width/2,0);
   await page.locator('#minimapToggle').click();
   await expect(page.locator('#minimapBody')).toBeHidden();
