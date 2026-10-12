@@ -382,6 +382,30 @@ export class MapRenderer {
       started:performance.now(),sent});
     if(this.reinforcementWaves.length>8)this.reinforcementWaves.shift();
   }
+  /** Screen-space boats represent committed living armies during a sea voyage. */
+  private drawSeaVoyages(c:CanvasRenderingContext2D):void {
+    c.save();c.lineJoin='round';c.lineCap='round';
+    for(const order of this.game.attackOrders){
+      if(!order.landing||!order.departure||order.conquered>0)continue;
+      const started=order.startedTick??this.game.tick;
+      const arrival=order.arrivalTick??started+4;
+      if(arrival<=started||this.game.tick>=arrival)continue;
+      const a=pointToWorld(order.departure),b=pointToWorld(order.anchor);
+      const ax=this.ox+a.x*this.scale,ay=this.oy+a.y*this.scale;
+      const bx=this.ox+b.x*this.scale,by=this.oy+b.y*this.scale;
+      const t=Math.max(0,Math.min(1,(this.game.tick-started)/(arrival-started)));
+      const x=ax+(bx-ax)*t,y=ay+(by-ay)*t;
+      const faction=this.game.factions[order.factionId];
+      c.globalAlpha=.52;c.strokeStyle=faction.color;c.lineWidth=1.3;
+      c.setLineDash([3,7]);c.beginPath();c.moveTo(ax,ay);c.lineTo(bx,by);c.stroke();c.setLineDash([]);
+      c.globalAlpha=.95;c.fillStyle='#112531';c.strokeStyle=faction.color;c.lineWidth=1.5;
+      c.beginPath();c.moveTo(x-7,y-2);c.lineTo(x+7,y-2);c.lineTo(x+4,y+4);c.lineTo(x-4,y+4);c.closePath();c.fill();c.stroke();
+      c.beginPath();c.moveTo(x,y-10);c.lineTo(x,y-2);c.stroke();
+      c.fillStyle=faction.color;c.beginPath();c.moveTo(x+1,y-10);c.lineTo(x+6,y-5);c.lineTo(x+1,y-5);c.closePath();c.fill();
+    }
+    c.restore();
+  }
+
   private drawReinforcements(c:CanvasRenderingContext2D,timestamp:number):void {
     const duration=1050;
     this.reinforcementWaves=this.reinforcementWaves.filter(w=>timestamp-w.started<duration);
@@ -780,6 +804,7 @@ export class MapRenderer {
     c.restore();
     this.drawLiveBattles(c,timestamp);
     this.drawReinforcements(c,timestamp);
+    this.drawSeaVoyages(c);
     this.drawActiveFrontForces(c);
     this.drawTroopBadges(c);
     this.drawCapitalNames(c);
