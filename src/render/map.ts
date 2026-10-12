@@ -903,9 +903,11 @@ export class MapRenderer {
     // dispatch contextmenu on canvas after a pointer gesture.
     let lastSecondary=-Infinity;
     const requestBuild=(clientX:number,clientY:number)=>{
+      // Keep the same right-click handling for land of ANY owner.
+      // The UI chooses build/defense for own land, diplomacy for foreign
+      // land, and closes the context menu over water.
       const point=this.cellAt(clientX,clientY,false);
-      const owned=point!==null && this.game.owner[point.y*MAP_WIDTH+point.x]===0;
-      this.onBuildRequest(owned?point:null,clientX,clientY);
+      this.onBuildRequest(point,clientX,clientY);
     };
     this.canvas.addEventListener('pointerup',e=>{
       if(e.button!==2)return;
