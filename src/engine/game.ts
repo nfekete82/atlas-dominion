@@ -51,6 +51,10 @@ export interface Faction {
 }
 export interface City { name: string; x: number; y: number; index: number; original: number; owner: number; }
 export interface GameEvent { tick: number; text: string; color: string; }
+/** Bilateral non-aggression pact. Factions keep independent territory and armies. */
+export interface Alliance { a:number; b:number; sinceTick:number; }
+export interface AllianceOffer { from:number; to:number; untilTick:number; }
+export interface DiplomacyResult { ok:boolean; reason:string; }
 /** Immutable snapshots of ACTUAL frontline strikes for the renderer.
  * They never move armies or change outcomes: this is combat telemetry.
  */
@@ -182,6 +186,8 @@ export interface GameSave {
   aiGoalChange:number;nextAttackId:number;
   owner:number[];defense:number[];buildings:number[];cityUpgrades:number[];frontline:number[];
   factions:Faction[];cities:City[];attackOrders:AttackOrder[];events:GameEvent[];
+  /** Missing in v1 saves written before the diplomacy feature. */
+  alliances?:Alliance[];offers?:AllianceOffer[];
 }
 
 export class Game {
@@ -197,6 +203,8 @@ export class Game {
   private readonly capitalSites=new Set<number>();
   readonly events: GameEvent[] = [];
   readonly attackOrders: AttackOrder[] = [];
+  readonly alliances:Alliance[]=[];
+  readonly offers:AllianceOffer[]=[];
   /** Upgrade levels for buildable city sites: 0 = basic, 1–5 = improvements. */
   readonly cityUpgrades = new Uint8Array(CELL_COUNT);
   private nextAttackId = 1;
@@ -355,6 +363,103 @@ export class Game {
     const attacker=this.factions[attackerId],defender=this.factions[defenderId];
     if(!attacker||!defender)return 1;
     return relativeAttackEffect(attacker.militaryPower,defender.militaryPower);
+  }
+
+  isAllied(a:number,b:number):boolean {
+    return a!==b && this.alliances.some(v=>v.a===Math.min(a,b)&&v.b===Math.max(a,b));
+  }
+
+  alliesOf(id:number):number[] {
+    return this.alliances.filter(v=>v.a===id||v.b===id)
+      .map(v=>v.a===id?v.b:v.a).sort((a,b)=>a-b);
+  }
+
+  private hasHostilities(a:number,b:number):boolean {
+    return this.attackOrders.some(o=>
+      (o.factionId===a&&o.targetOwner===b)||
+      (o.factionId===b&&o.targetOwner===a));
+  }
+
+  private canAlly(a:number,b:number):DiplomacyResult {
+    if(!Number.isInteger(a)||!Number.isInteger(b)||a===b||
+       !this.factions[a]?.alive||!this.factions[b]?.alive||this.status!=='playing')
+      return {ok:false,reason:'Diese Länder können kein Bündnis schließen.'};
+    if(this.isAllied(a,b))return {ok:false,reason:'Diese Länder sind bereits verbündet.'};
+    if(this.alliesOf(a).length>=2||this.alliesOf(b).length>=2)
+      return {ok:false,reason:'Maximal zwei Bündnispartner je Land.'};
+    if(this.hasHostilities(a,b))return {ok:false,reason:'Während eines aktiven Kriegs ist kein Bündnis möglich.'};
+    return {ok:true,reason:'Bündnis möglich.'};
+  }
+
+  /** One treaty works in BOTH directions and costs neither territory nor troops. */
+  private signAlliance(a:number,b:number):DiplomacyResult {
+    const allowed=this.canAlly(a,b);if(!allowed.ok)return allowed;
+    this.alliances.push({a:Math.min(a,b),b:Math.max(a,b),sinceTick:this.tick});
+    this.alliances.sort((x,y)=>x.a-y.a||x.b-y.b);
+    for(let i=this.offers.length-1;i>=0;i--){
+      const o=this.offers[i];
+      if((o.from===a&&o.to===b)||(o.from===b&&o.to===a))this.offers.splice(i,1);
+    }
+    this.log(`🤝 Bündnis: ${this.factions[a].name} und ${this.factions[b].name}.`,'#8dcdb1');
+    this.redistributeFrontline();
+    return {ok:true,reason:'Bündnis mit '+this.factions[b].name+' geschlossen.'};
+  }
+
+  /** Transparent, deterministic response to player diplomacy proposals.
+   * Large power imbalances and existing alliances reduce enthusiasm, not RNG.
+   */
+  private willingness(a:number,b:number):number {
+    const aa=this.factions[a],bb=this.factions[b];
+    const ratio=Math.abs(Math.log((aa.population+10)/(bb.population+10)));
+    const threatened=this.attackOrders.some(o=>o.targetOwner===b&&o.factionId!==a)?12:0;
+    return 73-Math.min(55,ratio*14)-this.alliesOf(b).length*13+threatened;
+  }
+
+  offerAlliance(from:number,to:number):DiplomacyResult {
+    const allowed=this.canAlly(from,to);if(!allowed.ok)return allowed;
+    if(this.offers.some(o=>o.from===from&&o.to===to))
+      return {ok:false,reason:'Bündnisangebot ist bereits offen.'};
+    if(to===0){
+      if(this.offers.some(o=>o.to===0))return {ok:false,reason:'Du hast bereits ein offenes Bündnisangebot.'};
+      this.offers.push({from,to,untilTick:this.tick+240});
+      this.log(`🤝 Bündnisangebot von ${this.factions[from].name} erhalten.`,'#8dcdb1');
+      return {ok:true,reason:'Bündnisangebot erhalten.'};
+    }
+    if(this.willingness(from,to)<38)return {ok:false,reason:`${this.factions[to].name} lehnt das Bündnisangebot ab.`};
+    return this.signAlliance(from,to);
+  }
+
+  respondAlliance(from:number,accept:boolean):DiplomacyResult {
+    const i=this.offers.findIndex(o=>o.from===from&&o.to===0&&o.untilTick>this.tick);
+    if(i<0)return {ok:false,reason:'Kein gültiges Bündnisangebot vorhanden.'};
+    this.offers.splice(i,1);
+    if(!accept)return {ok:true,reason:'Bündnisangebot abgelehnt.'};
+    return this.signAlliance(0,from);
+  }
+
+  leaveAlliance(a:number,b:number):DiplomacyResult {
+    if(!this.isAllied(a,b))return {ok:false,reason:'Es besteht kein Bündnis.'};
+    const i=this.alliances.findIndex(v=>v.a===Math.min(a,b)&&v.b===Math.max(a,b));
+    this.alliances.splice(i,1);
+    this.log(`Bündnis beendet: ${this.factions[a].name} und ${this.factions[b].name}.`,'#e2bc87');
+    return {ok:true,reason:'Bündnis mit '+this.factions[b].name+' beendet.'};
+  }
+
+  /** Low-frequency AI diplomacy: at most one negotiation per cycle. */
+  private updateDiplomacy():void {
+    for(let i=this.offers.length-1;i>=0;i--)
+      if(this.offers[i].untilTick<=this.tick||!this.factions[this.offers[i].from].alive)
+        this.offers.splice(i,1);
+    this.alliances.splice(0,this.alliances.length,
+      ...this.alliances.filter(a=>this.factions[a.a].alive&&this.factions[a.b].alive));
+    if(this.tick<120||this.tick%120!==0)return;
+    const sender=1+(Math.floor(this.tick/120)%Math.max(1,this.factions.length-1));
+    if(!this.factions[sender]?.alive||this.alliesOf(sender).length>=2)return;
+    const targets=this.factions.filter(f=>f.id!==sender&&f.alive&&!this.isAllied(sender,f.id))
+      .filter(f=>this.canAlly(sender,f.id).ok)
+      .sort((a,b)=>this.willingness(sender,b.id)-this.willingness(sender,a.id)||a.id-b.id);
+    const target=targets[0];
+    if(target&&this.willingness(sender,target.id)>=44)this.offerAlliance(sender,target.id);
   }
 
   private log(text: string, color = '#b9c4d0') {
@@ -603,7 +708,7 @@ export class Game {
     for (let i = 0; i < CELL_COUNT; i++) {
       const owner = this.owner[i];
       if (owner < 0) { this.frontline[i] = 0; continue; }
-      const threatened = LAND_NEIGHBORS[i].some(n => this.owner[n] >= 0 && this.owner[n] !== owner);
+      const threatened = LAND_NEIGHBORS[i].some(n => this.owner[n] >= 0 && this.owner[n] !== owner && !this.isAllied(owner,this.owner[n]));
       if (!threatened) {
         if (this.frontline[i] > 0) {
           this.factions[owner].troops += this.frontline[i];
@@ -648,7 +753,7 @@ export class Game {
     let exposed = 0;
     for (let i = 0; i < CELL_COUNT; i++) {
       if (this.owner[i] !== id) continue;
-      if (LAND_NEIGHBORS[i].some(n => this.owner[n] >= 0 && this.owner[n] !== id)) exposed++;
+      if (LAND_NEIGHBORS[i].some(n => this.owner[n] >= 0 && this.owner[n] !== id && !this.isAllied(id,this.owner[n]))) exposed++;
     }
     return exposed;
   }
@@ -666,6 +771,7 @@ export class Game {
         !this.factions[id]?.alive) return false;
     const index=pointToIndex(target);
     return this.owner[index]!==WATER && this.owner[index]!==id &&
+      !this.isAllied(id,this.owner[index]) &&
       LAND_NEIGHBORS[index].some(n=>this.owner[n]===id);
   }
 
@@ -674,6 +780,7 @@ export class Game {
        target.x<0||target.y<0||target.x>=MAP_WIDTH||target.y>=MAP_HEIGHT||
        !this.factions[id]?.alive)return null;
     const index=pointToIndex(target);
+    if(this.isAllied(id,this.owner[index]))return null;
     const maxDistance=this.owner[index]===NEUTRAL?Game.ATTACK_CLICK_DEPTH:Infinity;
     const front=findConnectedAttackFront(this.owner,MAP_WIDTH,index,id,maxDistance);
     return front>=0?cellToPoint(front):null;
@@ -686,7 +793,7 @@ export class Game {
        point.x<0||point.y<0||point.x>=MAP_WIDTH||point.y>=MAP_HEIGHT)return false;
     const index=pointToIndex(point);
     return this.owner[index]===id &&
-      LAND_NEIGHBORS[index].some(n=>this.owner[n]>=0 && this.owner[n]!==id);
+      LAND_NEIGHBORS[index].some(n=>this.owner[n]>=0 && this.owner[n]!==id && !this.isAllied(id,this.owner[n]));
   }
 
   reinforceBorder(id:number,point:Point,ratio:number):AttackResult {
@@ -706,6 +813,7 @@ export class Game {
   private maritimeRoute(id:number,target:Point):SeaRoute|null {
     if(!this.factions[id]?.alive||!Number.isFinite(target.x)||!Number.isFinite(target.y)||
       target.x<0||target.y<0||target.x>=MAP_WIDTH||target.y>=MAP_HEIGHT)return null;
+    if(this.isAllied(id,this.owner[pointToIndex(target)]))return null;
     return this.navigation.target(this.owner,id,pointToIndex(target));
   }
 
@@ -765,10 +873,12 @@ export class Game {
     const index=pointToIndex(target),clickedOwner=this.owner[index];
     if(clickedOwner===WATER)return failed('Angriff auf Wasser nicht möglich.');
     if(clickedOwner===id)return failed('Eigenes Gebiet – keine Truppen versendet.');
+    if(this.isAllied(id,clickedOwner))return failed('Verbündetes Gebiet – kein Angriff möglich.');
     const front=landing?cellToPoint(index):this.findAttackFront(id,target);
     if(!front || (landing && (!route||!validSeaRoute(route.cells,undefined,index)||this.owner[route.cells[0]]!==id)))
       return failed(landing?'Keine eigene Küste an diesem Seeübergang.':'Dieses Gebiet hat keine gemeinsame Landfront mit dir.');
     const owner=clickedOwner;
+    if(this.isAllied(id,owner))return failed('Verbündetes Gebiet – kein Angriff möglich.');
     if(owner===id || owner===WATER)return failed('Kein feindlicher Grenzsektor gefunden.');
     const sent = Math.floor(attacker.troops * ratio / 100);
     if (sent < 8) return failed('Mindestens 8 mobile Truppen erforderlich.');
@@ -860,7 +970,7 @@ export class Game {
     const owner=this.owner[index];
     const defender=owner>=0?this.factions[owner]:null;
     const friendly=LAND_NEIGHBORS[index].reduce((n,i)=>n+(this.owner[i]===attacker.id?1:0),0);
-    if(owner!==order.targetOwner || (!friendly && !(order.landing&&order.conquered===0)))
+    if(this.isAllied(order.factionId,owner) || owner!==order.targetOwner || (!friendly && !(order.landing&&order.conquered===0)))
       return {time:1,captured:false,loss:0};
     const targetPopulation=defender?defender.population:0;
     const localPosted=defender?this.frontline[index]:0;
@@ -922,6 +1032,10 @@ export class Game {
   private resolveOrders(attacker:Faction):void {
     const orders=this.attackOrders.filter(o=>o.factionId===attacker.id);
     for(const order of orders){
+      if(this.isAllied(attacker.id,order.targetOwner)){
+        this.cancelAttack(order.id);
+        if(!order.returning)continue;
+      }
       if(order.landing&&order.conquered===0){
         const route=order.seaRoute;
         if(!order.returning&&(!route||this.owner[route[0]]!==attacker.id||
@@ -1013,7 +1127,7 @@ export class Game {
     for(const faction of this.factions){
       if(!faction.ai||!faction.alive)continue;
       const capital=this.cities[faction.id];
-      const targets=this.cities.filter(c=>c.owner>=0&&c.owner!==faction.id);
+      const targets=this.cities.filter(c=>c.owner>=0&&c.owner!==faction.id&&!this.isAllied(faction.id,c.owner));
       let best:City|null=null,bestScore=-Infinity;
       for(const city of targets){
         const opponent=this.factions[city.owner];
@@ -1040,7 +1154,7 @@ export class Game {
       for(const n of LAND_NEIGHBORS[i]){
         if(this.owner[n]===owner || this.owner[n]===WATER)continue;
         this.frontierCandidates[owner].add(n);
-        if(this.owner[n]>=0) exposed=true;
+        if(this.owner[n]>=0&&!this.isAllied(owner,this.owner[n])) exposed=true;
       }
       if(exposed)this.exposedCounts[owner]++;
     }
@@ -1055,7 +1169,7 @@ export class Game {
     let best=-1, bestScore=-Infinity;
     for(const i of candidates){
       const opponent=this.owner[i];
-      if(opponent===WATER || opponent===id){candidates.delete(i);continue;}
+      if(opponent===WATER || opponent===id || this.isAllied(id,opponent)){candidates.delete(i);continue;}
       let friendly=0;
       for(const n of LAND_NEIGHBORS[i])if(this.owner[n]===id)friendly++;
       if(!friendly){candidates.delete(i);continue;}
@@ -1108,6 +1222,7 @@ export class Game {
     // Only a limited emergency contingent may arrive from the national reserve:
     // a distant empire cannot instantly defend every weak point at full power.
     const originalOwner = this.owner[index];
+    if(this.isAllied(faction.id,originalOwner))return false;
     const relativePower=this.relativeAttackPower(faction.id,originalOwner);
     const rawDamage = spent * (0.95 + this.rng() * 0.22) * relativePower;
     const garrisonStrength=this.defense[index];
@@ -1194,7 +1309,7 @@ export class Game {
   }
 
   private attack(faction:Faction,index:number) {
-    if(faction.troops<8)return false;
+    if(faction.troops<8||this.isAllied(faction.id,this.owner[index]))return false;
     const neutral=this.owner[index]===NEUTRAL;
     // The direct strike helper also serves existing combat regression tests.
     // Only AI factions use the increased tempo and marching-energy budget.
@@ -1227,7 +1342,7 @@ export class Game {
     const ongoingEnemies=new Set(this.attackOrders.filter(o=>o.factionId===id&&o.targetOwner>=0).map(o=>o.targetOwner));
     const peaceful=this.difficulty!=='impossible' && (this.tick<90 || (this.tick+id*23)%160<72);
     for(const shore of COASTS){
-      const owner=this.owner[shore];if(owner===id||owner===WATER)continue;
+      const owner=this.owner[shore];if(owner===id||owner===WATER||this.isAllied(id,owner))continue;
       if(owner>=0 && (peaceful || ongoingEnemies.size>=2&&!ongoingEnemies.has(owner)))continue;
       if(LAND_NEIGHBORS[shore].some(n=>this.owner[n]===id))continue;
       const water=LAND_NEIGHBORS[shore].filter(n=>field.depth[n]>=0);
@@ -1253,6 +1368,7 @@ export class Game {
   step(): void {
     if (this.paused || this.status !== 'playing') return;
     this.tick++;
+    this.updateDiplomacy();
     this.battleEvents.length=0;
     for(const faction of this.factions)faction.defenseFallenTick=0;
     if (this.tick >= this.aiGoalChange) {
@@ -1319,6 +1435,7 @@ export class Game {
       cities:this.cities.map(c=>({...c})),
       attackOrders:this.attackOrders.map(o=>structuredClone(o)),
       events:this.events.map(e=>({...e})),
+      alliances:this.alliances.map(a=>({...a})),offers:this.offers.map(o=>({...o})),
     };
   }
 
@@ -1385,6 +1502,21 @@ export class Game {
         }
       }
     }
+    const alliances=save.alliances??[],offers=save.offers??[];
+    if(!Array.isArray(alliances)||!Array.isArray(offers)||
+       alliances.length>g.factions.length||offers.length>g.factions.length||
+       alliances.some(a=>!Number.isInteger(a.a)||!Number.isInteger(a.b)||
+         a.a<0||a.a>=a.b||a.b>=g.factions.length||
+         !Number.isSafeInteger(a.sinceTick)||a.sinceTick<0||a.sinceTick>save.tick)||
+       new Set(alliances.map(a=>a.a+':'+a.b)).size!==alliances.length||
+       offers.some(o=>!Number.isInteger(o.from)||!Number.isInteger(o.to)||o.to!==0||
+         o.from<=0||o.from>=g.factions.length||
+         !Number.isSafeInteger(o.untilTick)||o.untilTick<=save.tick||o.untilTick>save.tick+240)||
+       alliances.some(a=>g.attackOrders.some(o=>
+         (o.factionId===a.a&&o.targetOwner===a.b)||(o.factionId===a.b&&o.targetOwner===a.a))))
+      throw Error('Ungültige Bündnisdaten.');
+    g.alliances.push(...structuredClone(alliances));
+    g.offers.push(...structuredClone(offers));
     g.events.splice(0,g.events.length,...structuredClone(save.events));
     g.tick=save.tick;g.status=save.status;g.paused=!!save.paused;g.doctrine=save.doctrine;
     g.aiGoalChange=save.aiGoalChange;g.nextAttackId=save.nextAttackId;
