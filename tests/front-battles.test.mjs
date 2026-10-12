@@ -130,7 +130,7 @@ test('red combat number represents REAL participating border defenders, not mere
   assert.ok(own>=0);
   const target=landNeighbors(own).find(i=>g.owner[i]===NEUTRAL);
   g.owner[target]=1;
-  g.frontline[target]=80;
+  g.frontline[target]=500;
   g.defense[target]=11;
   g.factions[0].troops=1100;
   g.factions.forEach(f=>f.ai=false);
