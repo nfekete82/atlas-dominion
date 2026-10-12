@@ -185,6 +185,7 @@ test('city recruitment scales with controlled territory instead of unlimited isl
   const small=troopGrowth(1000,20,1,100);
   const smallUseful=troopGrowth(1000,20,1,1);
   const large=troopGrowth(1000,400,1,100);
-  assert.equal(small,smallUseful,'extra city spam on tiny land should not grant infinite growth');
+  assert.ok(small>smallUseful,'extra development remains useful');
+  assert.ok(small-smallUseful<0.45,'extreme density has strongly diminishing returns');
   assert.ok(large>small,'larger controlled land supports a stronger economy');
 });
