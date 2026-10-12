@@ -20,7 +20,11 @@ export const BUILDING_BY_CODE: Readonly<Record<number,BuildingType>> = {1:'city'
 export function troopGrowth(population:number, territory:number, capitals:number, cities:number):number {
   if(!Number.isFinite(territory)||territory<=0)return 0;
   const people=Math.max(0,Number.isFinite(population)?population:0);
-  const urban=Math.sqrt(Math.max(0,Number.isFinite(cities)?cities:0));
+  // A dense island cannot indefinitely multiply recruitment through city spam.
+  // Urban capacity scales with controlled land, not the starting country name.
+  const urbanCapacity=Math.max(1,territory/24);
+  const effectiveCities=Math.min(Math.max(0,Number.isFinite(cities)?cities:0),urbanCapacity);
+  const urban=Math.sqrt(effectiveCities);
   const land=Math.sqrt(Math.max(0,territory));
   return .25 + Math.sqrt(people)*.10 + land*.08
     + Math.max(0,capitals)*.18 + urban*.60;
