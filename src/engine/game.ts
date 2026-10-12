@@ -753,7 +753,7 @@ export class Game {
         if(index<0){unreachable=true;break;}
         const borderSize=Math.min(100,1+(order.trail?.length??0)*.09+
           Math.sqrt(Math.max(1,order.committed))*.12);
-        const cost=frontTileOutcome({
+        const forecast=frontTileOutcome({
           attackTroops:order.remaining,defenderReserve:0,
           defenderPopulation:this.owner[index]<0?0:this.factions[this.owner[index]].population,
           defenderTerritory:this.owner[index]<0?0:this.factions[this.owner[index]].territory,
@@ -763,8 +763,11 @@ export class Game {
           neutral:this.owner[index]===NEUTRAL,
           capital:this.capitalSites.has(index),
           doctrine:this.owner[index]===0?this.doctrine:undefined,
-        }).time;
-        if(cost>budget){order.contested=index;break;}
+        });
+        // A nearly spent army retreats with its survivors. It must NEVER
+        // become stuck forever attacking a tile whose cost it cannot pay.
+        if(order.remaining<=forecast.attackerLoss+.001){unreachable=true;break;}
+        if(forecast.time>budget){order.contested=index;break;}
         const result=this.resolveFrontTile(order,index,borderSize);
         if(!result.captured){
           order.contested=index;
