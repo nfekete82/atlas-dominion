@@ -23,14 +23,13 @@ function color(hex:string):[number,number,number]{
 }
 export class StrategicMinimap {
   private readonly ctx:CanvasRenderingContext2D;
-  private lastTick=-1;
   constructor(readonly canvas:HTMLCanvasElement){
     canvas.width=MINIMAP_WIDTH;canvas.height=MINIMAP_HEIGHT;
     const context=canvas.getContext('2d');
     if(!context)throw Error('Minimap: Canvas 2D nicht verfügbar.');
     this.ctx=context;
   }
-  invalidate():void {this.lastTick=-1}
+  invalidate():void {this.ctx.clearRect(0,0,MINIMAP_WIDTH,MINIMAP_HEIGHT); }
   render(game:Game,viewport:{x:number;y:number;width:number;height:number},
     tickPulse=0):void {
     // Real ownership is only rasterized when the simulation advances;
@@ -65,6 +64,5 @@ export class StrategicMinimap {
     c.strokeStyle='#f5ecc8';c.lineWidth=1;
     c.fillRect(Math.max(0,vx),Math.max(0,vy),Math.min(MINIMAP_WIDTH,vw),Math.min(MINIMAP_HEIGHT,vh));
     c.strokeRect(vx+.5,vy+.5,vw,vh);
-    this.lastTick=game.tick;
   }
 }
