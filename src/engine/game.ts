@@ -1,4 +1,5 @@
 import { GEO_BOUNDS, LAND_ROWS, MAP_HEIGHT, MAP_WIDTH, SEA_CROSSINGS, WORLD_HEIGHT, WORLD_WIDTH } from '../data/europe.js';
+import {MaritimeNavigation,COASTS,validSeaRoute,voyageTicks,routeDistance,type SeaRoute} from './navigation.js';
 import { COUNTRY_STARTS, countryByCode } from '../data/countries.js';
 import { assessInvasion, interceptAttack, attackerCasualties, campaignEffort, empirePower, relativeAttackEffect } from './warfare.js';
 import { attackFrontWidth, frontierBudget, frontierTarget, localDefenseStrength } from './frontline.js';
@@ -88,6 +89,12 @@ export interface AttackOrder {
   arrivalTick?:number;
   departure?:Point;
   startedTick?: number;
+  /** Exact cell-by-cell ocean path, including both coastal endpoints. */
+  seaRoute?: number[];
+  seaDistanceKm?: number;
+  returning?: boolean;
+  returnStartedTick?: number;
+  returnArrivalTick?: number;
 }
 export interface AttackResult { ok: boolean; reason: string; sent: number; targetOwner?: number; front?: Point; }
 export interface BuildResult { ok: boolean; reason: string; cost: number; type?: BuildingType; }
@@ -192,6 +199,7 @@ export class Game {
   /** Upgrade levels for buildable city sites: 0 = basic, 1–5 = improvements. */
   readonly cityUpgrades = new Uint8Array(CELL_COUNT);
   private nextAttackId = 1;
+  private readonly navigation=new MaritimeNavigation();
   private lastAttackerLoss = 0;
   /** Combat during the most recent simulation tick (or direct strike). */
   readonly battleEvents:BattleEvent[]=[];
@@ -643,66 +651,55 @@ export class Game {
     return {ok:true,reason:'Grenzverstärkung stationiert.',sent,front:point};
   }
 
-  /** True only for a documented sea corridor with our troops on the opposite shore. */
-  canLand(id: number, target: Point): boolean {
-    if (!Number.isFinite(target.x) || !Number.isFinite(target.y) ||
-        target.x < 0 || target.y < 0 || target.x >= MAP_WIDTH || target.y >= MAP_HEIGHT ||
-        !this.factions[id]?.alive) return false;
-    const index = pointToIndex(target);
-    if (this.owner[index] === id || this.owner[index] === WATER) return false;
-    return SEA_CROSSINGS.some(([a,b]) => (index === a && this.owner[b] === id)
-      || (index === b && this.owner[a] === id));
+  private maritimeRoute(id:number,target:Point):SeaRoute|null {
+    if(!this.factions[id]?.alive||!Number.isFinite(target.x)||!Number.isFinite(target.y)||
+      target.x<0||target.y<0||target.x>=MAP_WIDTH||target.y>=MAP_HEIGHT)return null;
+    return this.navigation.target(this.owner,id,pointToIndex(target));
   }
 
-  launchAttack(id: number, target: Point, ratio: number): AttackResult {
-    // A normal click can launch across documented corridors if no landfront exists.
-    // Landfronts retain priority to avoid unintentionally changing existing orders.
-    const point=this.findAttackFront(id,target);
-    if(!point && this.landingTarget(id,target))return this.launchLanding(id,target,ratio);
+  canLand(id:number,target:Point):boolean {
+    return this.maritimeRoute(id,target)!==null;
+  }
+
+  launchAttack(id:number,target:Point,ratio:number):AttackResult {
+    // Real landfronts and friendly counterattacks retain priority.
+    if(!this.findAttackFront(id,target)&&this.owner[pointToIndex(target)]!==id){
+      const route=this.maritimeRoute(id,target);
+      if(route)return this.issueAttack(id,cellToPoint(route.cells[route.cells.length-1]),ratio,true,route);
+    }
     return this.issueAttack(id,target,ratio,false);
   }
 
-  /** Explicit maritime landing: Shift+click the far shore of a known crossing.
-   * No other cross-water movements are allowed, and the landing takes time.
-   */
-  /** Shift-click anywhere on an island connected to a valid landing beach.
-   * Only same-owner land paths are eligible; no remote teleport across water.
-   */
   landingTarget(id:number,target:Point):Point|null {
-    if(!Number.isFinite(target.x)||!Number.isFinite(target.y)||
-       target.x<0||target.y<0||target.x>=MAP_WIDTH||target.y>=MAP_HEIGHT)return null;
-    const start=pointToIndex(target),owner=this.owner[start];
-    if(owner===WATER||owner===id)return null;
-    if(this.canLand(id,target))return cellToPoint(start);
-    const beaches=new Set<number>();
-    for(const [a,b] of SEA_CROSSINGS){
-      if(this.owner[a]===id && this.owner[b]===owner)beaches.add(b);
-      if(this.owner[b]===id && this.owner[a]===owner)beaches.add(a);
-    }
-    if(!beaches.size)return null;
-    const seen=new Set<number>([start]),queue=[start];
-    for(let head=0;head<queue.length && head<2400;head++){
-      const index=queue[head];
-      if(beaches.has(index))return cellToPoint(index);
-      for(const n of LAND_NEIGHBORS[index]){
-        if(seen.has(n)||this.owner[n]!==owner)continue;
-        // Only nearby same-owner land may connect to a beach.
-        const dx=n%MAP_WIDTH-target.x;
-        const dy=Math.floor(n/MAP_WIDTH)-target.y;
-        if(dx*dx+dy*dy>35*35)continue;
-        seen.add(n);queue.push(n);
-      }
-    }
-    return null;
+    const route=this.maritimeRoute(id,target);
+    return route?cellToPoint(route.cells[route.cells.length-1]):null;
   }
 
-  launchLanding(id: number, target: Point, ratio: number): AttackResult {
-    const shore=this.landingTarget(id,target);
-    if(!shore)return {ok:false,reason:'Keine erreichbare Landungsbucht von deiner Küste.',sent:0};
-    return this.issueAttack(id,shore,ratio,true);
+  launchLanding(id:number,target:Point,ratio:number):AttackResult {
+    const route=this.maritimeRoute(id,target);
+    if(!route)return {ok:false,reason:'Keine erreichbare Landungsbucht von deiner Küste.',sent:0};
+    return this.issueAttack(id,cellToPoint(route.cells[route.cells.length-1]),ratio,true,route);
   }
 
-  private issueAttack(id: number, target: Point, ratio: number, landing: boolean): AttackResult {
+  /** A canceled voyage sails back for the elapsed outward travel time.
+   * If its port is lost, survivors are demobilized into the living nation's
+   * reserve on return; an eliminated nation loses the stranded expedition.
+   */
+  cancelAttack(orderId:number):boolean {
+    const order=this.attackOrders.find(o=>o.id===orderId);
+    if(!order)return false;
+    if(order.landing&&order.seaRoute&&!order.returning){
+      order.returning=true;order.returnStartedTick=this.tick;
+      order.returnArrivalTick=this.tick+Math.max(1,Math.min(
+        (order.arrivalTick??this.tick+1)-(order.startedTick??this.tick),this.tick-(order.startedTick??this.tick)));
+    }else if(!order.returning){
+      this.factions[order.factionId].troops+=order.remaining;
+      this.attackOrders.splice(this.attackOrders.indexOf(order),1);
+    }
+    return true;
+  }
+
+  private issueAttack(id: number, target: Point, ratio: number, landing: boolean, route?:SeaRoute): AttackResult {
     const failed = (reason: string): AttackResult => ({ ok: false, reason, sent: 0 });
     const attacker = this.factions[id];
     if (!attacker?.alive || this.status !== 'playing') return failed('Diese Fraktion kann nicht angreifen.');
@@ -716,7 +713,7 @@ export class Game {
       ? this.findCounterattackFront(id,target):null;
     if(clickedOwner===id && !counter)return failed('Eigenes Gebiet – für einen Gegenangriff näher an die feindliche Grenze klicken.');
     const front=counter ?? (landing?cellToPoint(index):this.findAttackFront(id,target));
-    if(!front || (landing && !this.canLand(id,target)))
+    if(!front || (landing && (!route||!validSeaRoute(route.cells,undefined,index)||this.owner[route.cells[0]]!==id)))
       return failed(landing?'Keine eigene Küste an diesem Seeübergang.':'Dieses Gebiet hat keine gemeinsame Landfront mit dir.');
     const owner=counter?this.owner[pointToIndex(counter)]:clickedOwner;
     if(owner===id || owner===WATER)return failed('Kein feindlicher Grenzsektor gefunden.');
@@ -727,7 +724,7 @@ export class Game {
     // real landfront. Both sides suffer matching fatalities; there is no
     // artificial post-spawn defending army or invisible counterattack.
     let committed=sent;
-    if(owner>=0){
+    if(owner>=0&&!landing){
       const incoming=this.attackOrders.find(o=>o.factionId===owner &&
         o.targetOwner===id && !o.landing &&
         canReinforceFront(owner,pointToIndex(front),pointToIndex(o.anchor),MAP_WIDTH));
@@ -755,9 +752,7 @@ export class Game {
       sent,targetOwner:owner,front};
     // Repeating a click near the same border reinforces the EXISTING army:
     // simple OpenFront-style interaction, no overlapping duplicate campaigns.
-    const departure=landing?SEA_CROSSINGS.map(([a,b])=>
-      pointToIndex(front)===a&&this.owner[b]===id?b:
-      pointToIndex(front)===b&&this.owner[a]===id?a:-1).find(i=>i>=0):undefined;
+    const departure=route?.cells[0];
     const existing=!landing?this.attackOrders.find(o=>
       o.factionId===id&&!o.landing&&o.targetOwner===owner&&
       canReinforceFront(owner,pointToIndex(o.anchor),pointToIndex(front),MAP_WIDTH)
@@ -771,7 +766,7 @@ export class Game {
         id:this.nextAttackId++,factionId:id,targetOwner:owner,
         anchor:front,committed,remaining:committed,effort:campaignEffort(committed),
         fallen:0,conquered:0,trail:[],progress:0,landing,startedTick:this.tick,
-        ...(landing&&departure!==undefined?{departure:cellToPoint(departure),arrivalTick:this.tick+8}:{ }),
+        ...(landing&&departure!==undefined?{departure:cellToPoint(departure),seaRoute:route!.cells.slice(),seaDistanceKm:route!.distanceKm,arrivalTick:this.tick+voyageTicks(route!.distanceKm)}:{ }),
       });
     }
     // Neutral attacks only show a concise order status in the HUD, never
@@ -790,7 +785,7 @@ export class Game {
     const anchorIndex=pointToIndex(order.anchor);
     if(order.landing && order.conquered===0){
       if(this.owner[anchorIndex]!==order.targetOwner)return -1;
-      return this.canLand(order.factionId,order.anchor)?anchorIndex:-1;
+      return order.seaRoute&&this.owner[order.seaRoute[0]]===order.factionId?anchorIndex:-1;
     }
     const candidates=this.frontierCandidates[order.factionId];
     if(!candidates)return -1;
@@ -874,7 +869,19 @@ export class Game {
   private resolveOrders(attacker:Faction):void {
     const orders=this.attackOrders.filter(o=>o.factionId===attacker.id);
     for(const order of orders){
-      if(order.landing&&order.conquered===0&&this.tick<(order.arrivalTick??((order.startedTick??0)+4)))continue;
+      if(order.landing&&order.conquered===0){
+        const route=order.seaRoute;
+        if(!order.returning&&(!route||this.owner[route[0]]!==attacker.id||
+          this.owner[pointToIndex(order.anchor)]!==order.targetOwner))this.cancelAttack(order.id);
+        if(order.returning){
+          if(this.tick>=(order.returnArrivalTick??this.tick)){
+            attacker.troops+=order.remaining;
+            this.attackOrders.splice(this.attackOrders.indexOf(order),1);
+          }
+          continue;
+        }
+        if(this.tick<(order.arrivalTick??Infinity))continue;
+      }
       let budget=1+Math.min(1.5,Math.max(0,order.progress??0));
       let unreachable=false;
       let attempts=0;
@@ -925,7 +932,10 @@ export class Game {
       // March duration is finite even if an army can afford many cheap
       // neutral tiles. Prevent a forgotten order from running indefinitely.
       if(unreachable||order.remaining<.5||order.effort<1||
-        this.tick-(order.startedTick??this.tick)>=120){
+        this.tick-(order.arrivalTick??order.startedTick??this.tick)>=120){
+        if(order.landing&&order.conquered===0&&order.seaRoute){
+          this.cancelAttack(order.id);continue;
+        }
         attacker.troops+=Math.max(0,order.remaining);
         const at=this.attackOrders.findIndex(o=>o.id===order.id);
         if(at>=0)this.attackOrders.splice(at,1);
@@ -1023,6 +1033,9 @@ export class Game {
           Math.floor(i/MAP_WIDTH)-Math.floor(focusIndex/MAP_WIDTH))
         : Infinity;
       const otherInvaders=neutral?0:new Set(this.attackOrders.filter(o=>o.targetOwner===opponent&&o.factionId!==id).map(o=>o.factionId)).size;
+      // Keep the existing graded penalty, but stop a third nation joining
+      // an already contested enemy. Existing campaigns may finish normally.
+      if(!neutral&&otherInvaders>=2&&!ongoingEnemies.has(opponent))continue;
       const score=scoreAIFront({
         neutral,advantage:assessment.advantage,friendlySides:friendly,
         capital:!!city,city:hasCity,distance:d,
@@ -1152,6 +1165,38 @@ export class Game {
     return true;
   }
 
+  private tryNavalAttack(id:number,ratio:number):boolean {
+    const f=this.factions[id];
+    if(f.troops<80||this.attackOrders.some(o=>o.factionId===id&&o.seaRoute))return false;
+    const field=this.navigation.field(this.owner,id);
+    let best=-1,bestScore=-Infinity;
+    const sent=Math.floor(f.troops*ratio/100);
+    const ongoingEnemies=new Set(this.attackOrders.filter(o=>o.factionId===id&&o.targetOwner>=0).map(o=>o.targetOwner));
+    const peaceful=this.difficulty!=='impossible' && (this.tick<90 || (this.tick+id*23)%160<72);
+    for(const shore of COASTS){
+      const owner=this.owner[shore];if(owner===id||owner===WATER)continue;
+      if(owner>=0 && (peaceful || ongoingEnemies.size>=2&&!ongoingEnemies.has(owner)))continue;
+      if(LAND_NEIGHBORS[shore].some(n=>this.owner[n]===id))continue;
+      const water=LAND_NEIGHBORS[shore].filter(n=>field.depth[n]>=0);
+      if(!water.length)continue;
+      const steps=Math.min(...water.map(n=>field.depth[n]));
+      const defender=owner>=0?this.factions[owner]:null;
+      const otherInvaders=owner<0?0:new Set(this.attackOrders.filter(o=>o.targetOwner===owner&&o.factionId!==id).map(o=>o.factionId)).size;
+      if(otherInvaders>=2)continue;
+      const assessment=assessInvasion({attackerTroops:sent,attackerIncome:f.income,
+        defenderTroops:defender?Math.min(defender.troops*.15,40+defender.income*3):0,
+        defenderIncome:defender?.income??0,garrison:this.sectorDefense(shore)+this.frontline[shore],
+        capital:this.capitalSites.has(shore),neutral:owner===NEUTRAL,
+        threatenedBorders:this.exposedCounts[id]??0,
+        relativePower:owner<0?1:this.relativeAttackPower(id,owner),riskTolerance:0});
+      if(!assessment.worthwhile||f.troops-sent<Math.max(35,f.income*5))continue;
+      const score=(owner===NEUTRAL?26:20)+Math.min(20,assessment.advantage*3)-steps*.22
+        +(this.capitalSites.has(shore)?6:0)+(this.buildings[shore]?5+this.cityUpgrades[shore]:0)-otherInvaders*12;
+      if(score>bestScore){bestScore=score;best=shore;}
+    }
+    return best>=0&&bestScore>0&&this.launchLanding(id,cellToPoint(best),ratio).ok;
+  }
+
   step(): void {
     if (this.paused || this.status !== 'playing') return;
     this.tick++;
@@ -1163,7 +1208,14 @@ export class Game {
     }
     this.recount();
     for(const faction of this.factions){
-      if(!faction.alive)continue;
+      if(!faction.alive){
+        // No surviving homeland can receive a stranded expedition.
+        for(let i=this.attackOrders.length-1;i>=0;i--){
+          const order=this.attackOrders[i];if(order.factionId!==faction.id)continue;
+          faction.attackFallen+=order.remaining;this.attackOrders.splice(i,1);
+        }
+        continue;
+      }
       // All residents are recruitable troops: a single clear growth figure.
       faction.troops+=faction.income;
       faction.money+=faction.moneyIncome;
@@ -1181,35 +1233,15 @@ export class Game {
       if(!faction.ai)continue;
       const maxActive=aiStyle(faction.id)==='aggressive'||this.difficulty==='impossible'?2:1;
       const active=this.attackOrders.filter(o=>o.factionId===faction.id).length;
-      if(active>=maxActive || faction.troops<22)continue;
-      const target=this.chooseFront(faction.id);
       const ratio=Math.max(15,Math.min(55,
         Math.round(30*this.difficultySettings.activityMultiplier)));
-      if(target>=0){
-        this.issueAttack(faction.id,cellToPoint(target),ratio,false);
-        continue;
-      }
-      // The same peacetime cadence and limited fronts apply at sea.
-      if(this.difficulty!=='impossible' &&
-        (this.tick<90 || (this.tick+faction.id*23)%160<72))continue;
-      const ongoingEnemies=new Set(this.attackOrders.filter(o=>o.factionId===faction.id&&o.targetOwner>=0).map(o=>o.targetOwner));
-      if(ongoingEnemies.size>=2)continue;
-      // No profitable landfront: AI may use the same documented maritime
-      // crossings as the player, including attacks against occupied islands.
-      const coastTargets:number[]=[];
-      for(const [a,b] of SEA_CROSSINGS){
-        if(this.owner[a]===faction.id && this.owner[b]!==WATER &&
-           this.owner[b]!==faction.id)coastTargets.push(b);
-        if(this.owner[b]===faction.id && this.owner[a]!==WATER &&
-           this.owner[a]!==faction.id)coastTargets.push(a);
-      }
-      if(coastTargets.length){
-        coastTargets.sort((a,b)=>{
-          const aEnemy=this.owner[a]>=0?1:0,bEnemy=this.owner[b]>=0?1:0;
-          return aEnemy-bEnemy||a-b;
-        });
-        this.launchLanding(faction.id,cellToPoint(coastTargets[0]),ratio);
-      }
+      // Stagger naval planning and allow it while profitable landfronts exist.
+      // At most one fleet and two total offensives, using actual reserves.
+      if(active<2&&this.tick%32===faction.id%32 && this.tryNavalAttack(faction.id,ratio))continue;
+      if(active>=maxActive || faction.troops<22)continue;
+      const target=this.chooseFront(faction.id);
+      if(target>=0)this.issueAttack(faction.id,cellToPoint(target),ratio,false);
+
     }
     this.recount();
     if (!this.factions[0].alive) {
@@ -1268,6 +1300,38 @@ export class Game {
     for(let i=0;i<g.factions.length;i++)Object.assign(g.factions[i],structuredClone(save.factions[i]));
     for(let i=0;i<g.cities.length;i++)Object.assign(g.cities[i],structuredClone(save.cities[i]));
     g.attackOrders.splice(0,g.attackOrders.length,...structuredClone(save.attackOrders));
+    for(const order of g.attackOrders){
+      if(!Number.isSafeInteger(order.id)||!g.factions[order.factionId]||
+        !Number.isFinite(order.remaining)||order.remaining<0||!Number.isFinite(order.committed)||
+        !Number.isFinite(order.effort)||!Number.isFinite(order.anchor?.x)||!Number.isFinite(order.anchor?.y)||
+        order.anchor.x<0||order.anchor.y<0||order.anchor.x>=MAP_WIDTH||order.anchor.y>=MAP_HEIGHT)
+        throw Error('Ungültige Armee im Spielstand.');
+      if(order.seaRoute&&(!order.departure||!validSeaRoute(order.seaRoute,pointToIndex(order.departure),pointToIndex(order.anchor))))
+        throw Error('Ungültige Seeroute im Spielstand.');
+      if(order.landing&&order.conquered===0){
+        if(order.seaRoute){
+          if(!Number.isSafeInteger(order.startedTick)||!Number.isSafeInteger(order.arrivalTick)||
+            order.startedTick!>save.tick||(order.arrivalTick! - order.startedTick!)!==voyageTicks(routeDistance(order.seaRoute))||
+            !Number.isFinite(order.seaDistanceKm)||Math.abs(order.seaDistanceKm!-routeDistance(order.seaRoute))>.001||
+            (order.returning&&(!Number.isSafeInteger(order.returnStartedTick)||!Number.isSafeInteger(order.returnArrivalTick)||
+              order.returnStartedTick!>save.tick||order.returnArrivalTick!<=order.returnStartedTick!||
+              order.returnArrivalTick!-order.returnStartedTick!>96)))
+            throw Error('Ungültige Reisezeit im Spielstand.');
+        }else{
+          const route=g.navigation.route(g.owner,order.factionId,pointToIndex(order.anchor));
+          if(route){
+            const elapsed=Math.max(0,Math.min(1,(save.tick-(order.startedTick??save.tick))/Math.max(1,(order.arrivalTick??save.tick+8)-(order.startedTick??save.tick))));
+            const duration=voyageTicks(route.distanceKm);
+            order.seaRoute=route.cells;order.seaDistanceKm=route.distanceKm;
+            order.departure=cellToPoint(route.cells[0]);order.startedTick=save.tick-Math.floor(elapsed*duration);
+            order.arrivalTick=order.startedTick+duration;
+          }else{
+            g.factions[order.factionId].troops+=order.remaining;
+            order.remaining=0;order.effort=0;order.landing=false;
+          }
+        }
+      }
+    }
     g.events.splice(0,g.events.length,...structuredClone(save.events));
     g.tick=save.tick;g.status=save.status;g.paused=!!save.paused;g.doctrine=save.doctrine;
     g.aiGoalChange=save.aiGoalChange;g.nextAttackId=save.nextAttackId;

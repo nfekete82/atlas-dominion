@@ -211,3 +211,10 @@ Danach http://localhost:8095 öffnen. Der vollständige TypeScript-Build und Bro
 - v1.0 – Länderbasiertes Klicken und kontrastreiche Karte
 
 Kartengrundlage: Natural Earth 110m (Public Domain). Das Projekt ist unabhängig von OpenFront.
+
+
+## Naval Warfare 2.0 und echte Topografie
+
+Erreichbare Inseln und Küsten können per normalem Linksklick angegriffen werden; gültige Landfronten haben Vorrang. Flotten fahren über berechnete Wasserzellen, binden echte Soldaten während der Reise und beginnen den Kampf erst bei Ankunft. Entfernung bestimmt die Reisedauer. Laufende Hin- und Rückfahrten sind einschließlich Route deterministisch gespeichert; ältere Version-1-Spielstände werden migriert. Die KI nutzt dieselben bezahlten Seewege, schützt Heimatreserven und respektiert friedliche Anfangsphase sowie eine zusätzliche Begrenzung gegen Angriffe durch mehr als zwei Nationen.
+
+Dezentes reales Natural-Earth-Relief und 988 Seegeometrien liegen transparent über Besitzflächen und unter Städtenamen, Stadtmarkern und Frontanzeigen. Die Ebene ist rein visuell und gecacht. [Geodaten, Lizenz und Reproduktion](docs/GEODATA.md) · [Implementierung, Tests, Performance und echte Vorher/Nachher-Screenshots](docs/qa/naval-topography-20261012/README.md).

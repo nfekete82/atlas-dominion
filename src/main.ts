@@ -125,15 +125,17 @@ function update() {
     </div>`).join('');
   $('eventFeed').innerHTML = game.events.map(e=>`<div class="event"><i style="background:${e.color}"></i><div>${e.text}<small>TAG ${String(Math.floor(e.tick/240)+1).padStart(2,'0')} · ${String(Math.floor(e.tick*TICK_SECONDS/60)).padStart(2,'0')}:${String(Math.floor(e.tick*TICK_SECONDS%60)).padStart(2,'0')}</small></div></div>`).join('');
   const active = game.attackOrders.filter(o => o.factionId === 0);
-  const neutralOrders=active.filter(o=>o.targetOwner<0);
-  const hostileOrders=active.filter(o=>o.targetOwner>=0);
+  const voyages=active.filter(o=>o.landing&&o.conquered===0);
+  const neutralOrders=active.filter(o=>!voyages.includes(o)&&o.targetOwner<0);
+  const hostileOrders=active.filter(o=>!voyages.includes(o)&&o.targetOwner>=0);
   $('ordersLabel').textContent=active.length
     ? [
+        voyages.length?`${voyages.length} FLOTTEN · ${format(voyages.reduce((n,o)=>n+o.remaining,0))} ⚔${voyages.some(o=>o.returning)?' · RÜCKFAHRT':''}`:'',
         neutralOrders.length?`EXPANSION ${format(neutralOrders.reduce((n,o)=>n+o.remaining,0))} ⚔`:'',
         hostileOrders.length?`${hostileOrders.length} KÄMPFE · ${format(hostileOrders.reduce((n,o)=>n+o.remaining,0))} ⚔`:'',
         hostileOrders.some(o=>o.fallen>0)?`−${format(hostileOrders.reduce((n,o)=>n+o.fallen,0))} GEFALLEN`:'',
       ].filter(Boolean).join(' · ')
-    : 'NACHBARGEBIET ANKLICKEN · ERNEUT KLICKEN ZUM VERSTÄRKEN';
+    : 'LAND / INSEL ANKLICKEN · SEELANDUNG AUTOMATISCH';
   $('pauseBtn').textContent = game.paused ? '▶' : 'Ⅱ';
   document.querySelectorAll<HTMLButtonElement>('[data-doctrine]').forEach(b=>b.classList.toggle('selected', b.dataset.doctrine===game.doctrine));
   if (game.status!==prevStatus) {
@@ -159,7 +161,7 @@ renderer.onSelect = (point:Point, landing:boolean) => {
   attackMessage=result.ok
     ? `${format(result.sent)} ⚔ · ${result.reason}`
     : result.reason;
-  if(result.ok && result.front && result.sent>0)renderer.showReinforcement(result.front,result.sent);
+  if(result.ok && result.front && result.sent>0 && !result.reason.includes('Landung'))renderer.showReinforcement(result.front,result.sent);
   attackMessageKind = result.ok ? 'success' : 'error';
   beep(result.ok ? 620 : 190);
   update();
@@ -274,9 +276,9 @@ renderer.onHover=(point,px,py,landing)=>{
   action.textContent = id===0 && counter
     ? `KLICK: ${attackRatio} % GEGENANGRIFF AUF ${game.factions[actualTarget]?.name??'GEGNER'} · RECHTSKLICK: VERTEIDIGEN`
     : id===0 ? 'EIGENES LAND · RECHTSKLICK: STADT / GRENZPOSTEN'
-    : landing && canLand ? `SHIFT+KLICK: ${attackRatio} % LANDEANGRIFF`
+    : canLand && !game.findAttackFront(0,point) ? `KLICK: ${attackRatio} % SEELANDUNG`
     : attackable ? `KLICK: ${attackRatio} % · ANGRIFF AUF ${f?.name ?? 'NEUTRALGEBIET'}`
-    : canLand ? 'SHIFT+KLICK: SEELANDUNG'
+    : canLand ? 'KLICK: SEELANDUNG'
     : 'KEINE ERREICHBARE LANDFRONT';
   action.classList.toggle('blocked',!attackable&&!canLand&&id!==0);
   const bounds=tooltip.getBoundingClientRect();
@@ -348,7 +350,7 @@ function startCountry(code:string): void {
   hasStarted=true;
   modalVisible=false;
   $('countryPicker').hidden=true;
-  attackMessage='Nachbarland anklicken · SHIFT+Klick für Seelandung.';
+  attackMessage='Land oder erreichbare Insel anklicken · Seelandung automatisch.';
   attackMessageKind='neutral';
   renderer.setGame(game);
   renderer.focusOnCapital(game.cities[0]);
@@ -369,7 +371,7 @@ $('resetBtn').addEventListener('click',()=>showCountryPicker(hasStarted));
 $('helpBtn').addEventListener('click',()=>showDialog('DEIN EINSATZBEFEHL',`
   <p>ATLAS DOMINION ist ein Echtzeit-Eroberungsspiel. Starte in der Hauptstadt deines gewählten Landes, erweitere dein Gebiet und kontrolliere mindestens <strong>65 %</strong> Europas. Die KI-Schwierigkeit wählst du vor Spielbeginn zusammen mit deinem Land: Entspannt, Ausgeglichen, Intensiv oder Unmöglich.</p>
   <div class="briefing-row"><b>01</b><span><strong>ANGREIFEN:</strong> Klicke auf ein erreichbares Nachbarland oder auf dein eigenes bedrohtes Grenzgebiet für einen unmittelbaren Gegenangriff. Der Angriff startet immer am tatsächlichen gemeinsamen Grenzsektor. Neutrales Land bleibt auf 14 Sektoren Klicktoleranz begrenzt.</span></div>
-  <div class="briefing-row"><b>02</b><span><strong>SEELANDUNG:</strong> SHIFT gedrückt halten und auf eine markierte Anlegestelle am anderen Ufer klicken. Nur die eingezeichneten Seewege sind erlaubt; die Überfahrt dauert vier Ticks.</span></div>
+  <div class="briefing-row"><b>02</b><span><strong>SEELANDUNG:</strong> Eine erreichbare Insel oder Küste anklicken. Ohne gemeinsame Landfront starten deine Soldaten automatisch über einen echten Wasserweg. Die Reisedauer hängt von der Entfernung ab; der Kampf beginnt erst bei Ankunft.</span></div>
   <div class="briefing-row"><b>03</b><span><strong>ZIEHEN:</strong> Karte verschieben. Mausrad oder +/− zum Zoomen.</span></div>
   <div class="briefing-row"><b>04</b><span><strong>FRONT:</strong> Die Angriffslinie leuchtet an der Grenze. Die kleine Zahl zeigt die eingesetzten Truppen. Es gibt keine Marschroute von der Hauptstadt.</span></div>
   <div class="briefing-row"><b>05</b><span><strong>TRUPPEN:</strong> Der Prozentregler legt die Zahl der eingesetzten Einwohner/Soldaten fest. Nur tatsächlich Gefallene werden abgezogen; Überlebende kehren aus der Offensive zurück. Stärkere Armeen kämpfen an einer breiteren Front.</span></div>

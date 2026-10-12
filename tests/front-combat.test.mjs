@@ -1,4 +1,5 @@
 import {SEA_CROSSINGS} from '../dist/src/data/europe.js';
+import {COASTS} from '../dist/src/engine/navigation.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {frontTileOutcome,opposingArmies} from '../dist/src/engine/front-combat.js';
@@ -96,17 +97,21 @@ test('upgraded cities cost progressively more assault time and attacker casualti
 
 test('island landing can select same-owner coastal destination away from the precise port',()=>{
   const g=new Game(618,3,'DE');
-  // Validate every already accessible documented crossing. A direct landing
-  // remains available and must resolve to its own landing shore.
+  // Legacy endpoints may lie on an artificial political boundary (northern
+  // Cyprus), surrounded by actual land. Only real coastal endpoints qualify.
+  let checked=0;
   for(const [a,b] of SEA_CROSSINGS){
     const start=a, destination=b;
     if(g.owner[start]===-2||g.owner[destination]===-2)continue;
+    if(!COASTS.includes(start)||!COASTS.includes(destination))continue;
     g.owner[start]=0;
     g.owner[destination]=-1;
     const point=cellToPoint(destination);
     assert.deepEqual(g.landingTarget(0,point),point);
     assert.equal(g.canLand(0,point),true);
+    checked++;
     g.owner[start]=-1;
   }
+  assert.ok(checked>5);
   assert.equal(g.landingTarget(0,{x:-1,y:0}),null);
 });

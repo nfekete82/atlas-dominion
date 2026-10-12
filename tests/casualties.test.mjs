@@ -107,6 +107,9 @@ test('a real player offensive reduces total population during a defended battle'
   assert.ok(border>=0);
   // Convert an accessible neutral frontier into a defended enemy sector.
   g.owner[border]=1;
+  // A defended fixture must impose more losses than natural growth. The
+  // peaceful-opening AI no longer supplies a coincidental counterattack.
+  g.factions[1].troops=300;
   g.frontline[border]=7;
   g.defense[border]=12;
   g.recount();

@@ -1,4 +1,6 @@
-import { COUNTRIES, MAP_HEIGHT, MAP_WIDTH, SEA_CROSSINGS, WORLD_HEIGHT, WORLD_WIDTH } from '../data/europe.js';
+import {createTopographyLayer} from './topography.js';
+import {voyageGeometry,voyagePosition,type VoyageGeometry} from './sea-voyages.js';
+import { COUNTRIES, MAP_HEIGHT, MAP_WIDTH, WORLD_HEIGHT, WORLD_WIDTH } from '../data/europe.js';
 import { Game, NEUTRAL, WATER, pointToWorld, pointToIndex, seededRandom, type Point } from '../engine/game.js';
 import { TerritoryWave, waveProgress } from './wave.js';
 import {organicCaptureRadius,burningFrontAlpha} from './capture-visual.js';
@@ -25,6 +27,9 @@ export class MapRenderer {
   private overlay = document.createElement('canvas');
   private highlightedCountry = document.createElement('canvas');
   private showSeaPassages=false;
+  private topography=createTopographyLayer();
+  private showTopography=true;
+  private voyageCache=new WeakMap<number[],{geometry:VoyageGeometry;path:Path2D}>();
   private highlightOwner = WATER;
   private hoverIndex = -1;
   private hoverFront: Point | null = null;
@@ -139,14 +144,6 @@ export class MapRenderer {
       c.fillStyle = '#263c40'; c.fill(path);
       c.strokeStyle = 'rgba(141,173,165,0.28)'; c.lineWidth = 1.15; c.stroke(path);
     }
-    // Faint sea corridors represent crossings for islands and separated landmasses.
-    c.save();c.setLineDash([4,7]);c.strokeStyle='rgba(153,205,200,.4)';c.lineWidth=1.5;
-    for (const [a,b] of SEA_CROSSINGS) {
-      const ax=(a % MAP_WIDTH +.5)*CW, ay=(Math.floor(a/MAP_WIDTH)+.5)*CH;
-      const bx=(b % MAP_WIDTH +.5)*CW, by=(Math.floor(b/MAP_WIDTH)+.5)*CH;
-      c.beginPath();c.moveTo(ax,ay);c.lineTo(bx,by);c.stroke();
-    }
-    c.restore();
     const rng = seededRandom(7122);
     for (let i = 0; i < 1700; i++) {
       const x = rng() * WORLD_WIDTH, y = rng() * WORLD_HEIGHT;
@@ -250,6 +247,7 @@ export class MapRenderer {
     this.combatEdges = [];
     this.combatLabels = [];
     for (const order of this.game.attackOrders) {
+      if(order.returning||order.landing&&this.game.tick<(order.arrivalTick??Infinity))continue;
       // Neutral expansion stays visually quiet: no combat contact segments or labels.
       if (order.factionId !== 0 || order.remaining < 0.01 || order.targetOwner===NEUTRAL) continue;
       const radius = Math.min(40, 8 + Math.sqrt(order.conquered) * 2.5);
@@ -282,7 +280,7 @@ export class MapRenderer {
     if(i===this.hoverIndex)return this.hoverFront;
     return this.game.owner[point.y*MAP_WIDTH+point.x]===0
       ? this.game.findCounterattackFront(0,point)
-      : this.game.findAttackFront(0,point);
+      : (this.game.findAttackFront(0,point)??this.game.landingTarget(0,point));
   }
 
   /** Rebuild only when the owner changes or the simulation claims new land.
@@ -295,7 +293,7 @@ export class MapRenderer {
     const owner=index>=0?this.game.owner[index]:WATER;
     const front=point && owner!==WATER
       ? owner===0?this.game.findCounterattackFront(0,point)
-        :this.game.findAttackFront(0,point)
+        :(this.game.findAttackFront(0,point)??this.game.landingTarget(0,point))
       :null;
     this.hoverFront=front;
     const highlight=front?this.game.owner[pointToIndex(front)]:WATER;
@@ -326,7 +324,7 @@ export class MapRenderer {
     const x = Math.floor(point.x), y = Math.floor(point.y);
     if (x < 0 || y < 0 || x >= MAP_WIDTH || y >= MAP_HEIGHT) return false;
     const owner=this.game.owner[y*MAP_WIDTH+x];
-    return (owner===0||this.availableTargets.has(owner)) && this.previewFront(point)!==null;
+    return owner!==WATER && this.previewFront(point)!==null;
   }
   canLand(point: Point): boolean { return this.game.landingTarget(0,point)!==null; }
   /** Screen-space rendering and hit testing share the same visible bounds.
@@ -385,23 +383,28 @@ export class MapRenderer {
   /** Screen-space boats represent committed living armies during a sea voyage. */
   private drawSeaVoyages(c:CanvasRenderingContext2D):void {
     c.save();c.lineJoin='round';c.lineCap='round';
+    const occupied:Point[]=[];
     for(const order of this.game.attackOrders){
-      if(!order.landing||!order.departure||order.conquered>0)continue;
-      const started=order.startedTick??this.game.tick;
-      const arrival=order.arrivalTick??started+4;
-      if(arrival<=started||this.game.tick>=arrival)continue;
-      const a=pointToWorld(order.departure),b=pointToWorld(order.anchor);
-      const ax=this.ox+a.x*this.scale,ay=this.oy+a.y*this.scale;
-      const bx=this.ox+b.x*this.scale,by=this.oy+b.y*this.scale;
-      const t=Math.max(0,Math.min(1,(this.game.tick-started)/(arrival-started)));
-      const x=ax+(bx-ax)*t,y=ay+(by-ay)*t;
+      if(!order.landing||!order.seaRoute||order.conquered>0||(!order.returning&&this.game.tick>=(order.arrivalTick??0)))continue;
+      let cached=this.voyageCache.get(order.seaRoute);
+      if(!cached){
+        const geometry=voyageGeometry(order.seaRoute),path=new Path2D();
+        geometry.points.forEach((p,i)=>i===0?path.moveTo(p.x,p.y):path.lineTo(p.x,p.y));
+        cached={geometry,path};this.voyageCache.set(order.seaRoute,cached);
+      }
+      const pos=voyagePosition(order,this.game.tick,cached.geometry);
+      let x=this.ox+pos.x*this.scale,y=this.oy+pos.y*this.scale;
+      // Small screen-space separation keeps simultaneous fleets readable.
+      const nearby=occupied.filter(p=>Math.hypot(p.x-x,p.y-y)<14).length;
+      if(nearby){x+=Math.min(3,nearby)*4;y-=Math.min(3,nearby)*3;}occupied.push({x,y});
       const faction=this.game.factions[order.factionId];
-      c.globalAlpha=.52;c.strokeStyle=faction.color;c.lineWidth=1.3;
-      c.setLineDash([3,7]);c.beginPath();c.moveTo(ax,ay);c.lineTo(bx,by);c.stroke();c.setLineDash([]);
-      c.globalAlpha=.95;c.fillStyle='#112531';c.strokeStyle=faction.color;c.lineWidth=1.5;
-      c.beginPath();c.moveTo(x-7,y-2);c.lineTo(x+7,y-2);c.lineTo(x+4,y+4);c.lineTo(x-4,y+4);c.closePath();c.fill();c.stroke();
-      c.beginPath();c.moveTo(x,y-10);c.lineTo(x,y-2);c.stroke();
-      c.fillStyle=faction.color;c.beginPath();c.moveTo(x+1,y-10);c.lineTo(x+6,y-5);c.lineTo(x+1,y-5);c.closePath();c.fill();
+      c.save();c.translate(this.ox,this.oy);c.scale(this.scale,this.scale);
+      c.globalAlpha=.30;c.strokeStyle=faction.color;c.lineWidth=1/this.scale;
+      c.setLineDash([3/this.scale,7/this.scale]);c.stroke(cached.path);c.restore();
+      c.globalAlpha=.96;c.fillStyle='#112531';c.strokeStyle=faction.color;c.lineWidth=1.25;
+      c.beginPath();c.moveTo(x-6,y-1);c.lineTo(x+6,y-1);c.lineTo(x+3,y+3);c.lineTo(x-3,y+3);c.closePath();c.fill();c.stroke();
+      c.beginPath();c.moveTo(x,y-8);c.lineTo(x,y-1);c.stroke();
+      c.fillStyle=faction.color;c.beginPath();c.moveTo(x+1,y-8);c.lineTo(x+5,y-4);c.lineTo(x+1,y-4);c.closePath();c.fill();
     }
     c.restore();
   }
@@ -591,6 +594,7 @@ export class MapRenderer {
     c.save();c.textBaseline='middle';c.textAlign='center';
     for(const order of this.game.attackOrders){
       if(order.factionId!==0||order.remaining<1 || order.targetOwner===NEUTRAL)continue;
+      if(order.returning||order.landing&&this.game.tick<(order.arrivalTick??Infinity))continue;
       const owners=this.game.owner;
       let index=order.contested??order.lastCaptured??pointToIndex(order.anchor);
       if(index<0||index>=owners.length)continue;
@@ -694,19 +698,10 @@ export class MapRenderer {
    * No permanent round port stamps or pulsing rings on the map.
    */
   private drawLandingPorts(c:CanvasRenderingContext2D, _timestamp:number):void {
-    c.save();
-    c.textAlign='center';c.textBaseline='middle';
-    c.font='800 13px system-ui';
-    const seen=new Set<number>();
-    for(const [a,b] of SEA_CROSSINGS)for(const index of [a,b]){
-      if(seen.has(index))continue;seen.add(index);
-      const point={x:index%MAP_WIDTH,y:Math.floor(index/MAP_WIDTH)};
-      if(!this.game.canLand(0,point))continue;
-      const pos=pointToWorld(point);
-      c.fillStyle='#ffe3a1';c.shadowColor='#0c2730';c.shadowBlur=3;
-      c.fillText('⚓',pos.x,pos.y);
-    }
-    c.restore();
+    if(!this.hover)return;
+    const point=this.game.landingTarget(0,this.hover);if(!point)return;
+    const pos=pointToWorld(point);
+    c.save();c.fillStyle='rgba(255,227,161,.7)';c.font='12px system-ui';c.fillText('⚓',pos.x,pos.y);c.restore();
   }
   private drawCaptureWave(c:CanvasRenderingContext2D,timestamp:number):void {
     const captures=this.wave.active(timestamp);
@@ -793,6 +788,7 @@ export class MapRenderer {
     c.drawImage(this.base,0,0);
     c.imageSmoothingEnabled=true; // Antialias territory resampling while preserving exact sector ownership.
     c.drawImage(this.overlay,0,0);
+    if(this.showTopography)c.drawImage(this.topography,0,0,WORLD_WIDTH,WORLD_HEIGHT);
     c.imageSmoothingEnabled=true;
     c.drawImage(this.highlightedCountry,0,0);
     this.drawCaptureWave(c, timestamp);
@@ -825,20 +821,6 @@ export class MapRenderer {
     return {x:(clientX-box.left-this.ox)/this.scale,y:(clientY-box.top-this.oy)/this.scale};
   }
   private cellAt(clientX:number,clientY:number,landing=false):Point|null {
-    if(landing) {
-      const box=this.canvas.getBoundingClientRect();
-      const px=clientX-box.left, py=clientY-box.top;
-      let nearest:Point|null=null, minD=16*16;
-      for(const [a,b] of SEA_CROSSINGS) for(const index of [a,b]) {
-        const point={x:index%MAP_WIDTH,y:Math.floor(index/MAP_WIDTH)};
-        if(!this.game.canLand(0,point))continue;
-        const pos=pointToWorld(point);
-        const dx=this.ox+pos.x*this.scale-px, dy=this.oy+pos.y*this.scale-py;
-        const d=dx*dx+dy*dy;
-        if(d<minD){minD=d;nearest=point;}
-      }
-      if(nearest)return nearest;
-    }
     if(!landing){
       const box=this.canvas.getBoundingClientRect(),x=clientX-box.left,y=clientY-box.top;
       const marker=this.visibleCityMarkers.find(m=>x>=m.bounds.x&&x<=m.bounds.x+m.bounds.width&&y>=m.bounds.y&&y<=m.bounds.y+m.bounds.height);
