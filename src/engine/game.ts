@@ -213,10 +213,12 @@ export interface GameSave {
   factoryLinks?:Array<{factory:number;city:number}>;
   factoryLevels?:Array<{index:number;level:number}>;
   squads?:Array<{id:number;owner:number;index:number;troops:number;destination:number|null}>;
+  rtsRecruitment?:boolean;
 }
 
 export class Game {
   readonly owner = new Int16Array(CELL_COUNT);
+  readonly rtsRecruitment:boolean;
   readonly defense = new Float32Array(CELL_COUNT);
   /** Built city at sector: 0 means no city, 1 means city. */
   readonly buildings = new Uint8Array(CELL_COUNT);
@@ -263,7 +265,8 @@ export class Game {
   private frontierCandidates: Array<Set<number>> = [];
   private exposedCounts: number[] = [];
 
-  constructor(seed = 2026, opponentCount = COUNTRY_STARTS.length-1, playerCountry = 'DE', difficulty:Difficulty='balanced') {
+  constructor(seed = 2026, opponentCount = COUNTRY_STARTS.length-1, playerCountry = 'DE', difficulty:Difficulty='balanced', rtsRecruitment=false) {
+    this.rtsRecruitment=rtsRecruitment;
     if(!isDifficulty(difficulty))throw new Error(`Unbekannter Schwierigkeitsgrad: ${String(difficulty)}`);
     this.difficulty=difficulty;
     this.difficultySettings=DIFFICULTY_SETTINGS[difficulty];
@@ -2038,7 +2041,7 @@ export class Game {
       // All residents are recruitable troops: a single clear growth figure.
       // RTS: the human army does not spawn passively. Soldiers are trained
       // for gold in barracks; AI keeps legacy recruiting until AI RTS exists.
-      if(faction.id!==0)faction.troops+=faction.income;
+      if(faction.id!==0||!this.rtsRecruitment)faction.troops+=faction.income;
       faction.money+=faction.moneyIncome;
       if(faction.ai)faction.campaignEnergy=Math.min(300*this.difficultySettings.marchMultiplier,
         faction.campaignEnergy+aiMarchRecovery(faction.income,aiStyle(faction.id))*this.difficultySettings.marchMultiplier);
@@ -2095,6 +2098,7 @@ export class Game {
       defenseAid:this.defenseAid.map(a=>({...a})),
       diplomacyCooldowns:this.diplomacyCooldowns.map(v=>({...v})),
       warTruces:this.warTruces.map(v=>({...v})),
+      rtsRecruitment:this.rtsRecruitment,
       squads:this.squads.map(s=>({...s})),
       factoryLevels:[...this.factoryLevels].filter(([index])=>this.buildings[index]===BUILDING_CODES.factory)
         .sort((a,b)=>a[0]-b[0]).map(([index,level])=>({index,level})),
@@ -2116,7 +2120,7 @@ export class Game {
        !Number.isSafeInteger(save.rngCalls)||save.rngCalls<0||save.rngCalls>100000000||
        !Number.isSafeInteger(save.nextAttackId)||save.nextAttackId<1)
       throw Error('Nicht unterstützter oder beschädigter Spielstand.');
-    const g=new Game(save.seed,Array.isArray(save.factions)?save.factions.length-1:-1,save.playerCode,save.difficulty);
+    const g=new Game(save.seed,Array.isArray(save.factions)?save.factions.length-1:-1,save.playerCode,save.difficulty,save.rtsRecruitment===true);
     const arrays: Array<[number[],Int16Array|Float32Array|Float64Array|Uint8Array,string]>=[
       [save.owner,g.owner,'owner'],[save.defense,g.defense,'defense'],
       [save.buildings,g.buildings,'buildings'],[save.cityUpgrades,g.cityUpgrades,'cityUpgrades'],
