@@ -653,6 +653,7 @@ $('helpBtn').addEventListener('click',()=>showDialog('DEIN EINSATZBEFEHL',`
   <div class="briefing-row"><b>03</b><span><strong>ZIEHEN:</strong> Karte verschieben. Mausrad oder +/− zum Zoomen.</span></div>
   <div class="briefing-row"><b>04</b><span><strong>FRONT:</strong> Die Angriffslinie leuchtet an der Grenze. Die kleine Zahl zeigt die eingesetzten Truppen. Es gibt keine Marschroute von der Hauptstadt.</span></div>
   <div class="briefing-row"><b>05</b><span><strong>TRUPPEN:</strong> Der Prozentregler legt die Zahl der eingesetzten Einwohner/Soldaten fest. Nur tatsächlich Gefallene werden abgezogen; Überlebende kehren aus der Offensive zurück. Stärkere Armeen kämpfen an einer breiteren Front.</span></div>
+  <p><strong>TAKTISCHE KOMMANDOS:</strong> In „Laufende Offensiven“ kannst du eine bestehende Armee verstärken, zur aktuellen Front springen oder sie zurückziehen. Ein Landangriff gibt seine Überlebenden sofort frei; eine Flotte muss zuerst zurücksegeln. Fahre für eine grobe Risikoabschätzung über fremdes Gebiet – angezeigt wird ausdrücklich nur der nächste Frontsektor. Klickbare Warnungen auf der Karte führen dich zu Angriffen auf dein Land.</p>
   <div class="briefing-row"><b>06</b><span><strong>STÄDTE BAUEN:</strong> Rechtsklick auf eigenes Land. Städte kosten Geld und erhöhen das Wachstum. Auf eigenem bedrohtem Grenzgebiet kannst du im selben Menü gezielt Soldaten zur Verteidigung stationieren.</span></div>
   <div class="briefing-row"><b>07</b><span><strong>PAUSE:</strong> Leertaste oder Ⅱ. Mit 1×/2×/4× beschleunigen.</span></div>
   <p><strong>Doktrinen:</strong> EXPAND senkt die Kosten neutraler Eroberungen und erhöht deren Geschwindigkeit, BLITZ erhöht die Angriffsfrequenz, DEFENSE stärkt Einkommen und Garnisonen. Mit 1, 2, 3 umschalten.</p>
@@ -706,6 +707,9 @@ window.addEventListener('keydown',e=>{
   if(!$('countryPicker').hidden)return;
   if(e.key==='Escape'&&modalVisible){closeDialog();return;}
   if(modalVisible)return;
+  // Native controls must retain keyboard focus, Space activation and typing.
+  const target=e.target as HTMLElement|null;
+  if(target?.closest('button,input,textarea,select,[contenteditable="true"]'))return;
   if(e.code==='Space') {e.preventDefault();game.paused=!game.paused;update();}
   if (e.code === 'KeyT') setAttackRatio(attackRatio-5);
   if (e.code === 'KeyY') setAttackRatio(attackRatio+5);
