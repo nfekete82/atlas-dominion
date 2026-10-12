@@ -22,13 +22,13 @@ export function troopGrowth(population:number, territory:number, capitals:number
   const people=Math.max(0,Number.isFinite(population)?population:0);
   // A dense island cannot indefinitely multiply recruitment through city spam.
   // Urban capacity scales with controlled land, not the starting country name.
-  const urbanCapacity=Math.max(1,territory/24);
+  const urbanCapacity=Math.max(2,territory/10);
   const count=Math.max(0,Number.isFinite(cities)?cities:0);
   const effectiveCities=urbanCapacity*(1-Math.exp(-count/urbanCapacity));
   const urban=Math.sqrt(effectiveCities);
   const land=Math.sqrt(Math.max(0,territory));
   return .25 + Math.sqrt(people)*.10 + land*.08
-    + Math.max(0,capitals)*.18 + urban*.60;
+    + Math.max(0,capitals)*.18 + urban*2.15;
 }
 
 /** Modest income: more people pay more taxes, but land/cities don't create
@@ -47,8 +47,8 @@ export function cityUpgradeCost(currentLevel:number):number {
   if(!Number.isInteger(currentLevel)||currentLevel<0||currentLevel>=5)throw new RangeError('City is fully upgraded');
   return [250,450,750,1150,1700][currentLevel];
 }
-/** Diminishing city growth points: level 5 yields +2.2 equivalent cities. */
+/** Upgrades materially increase recruitment; density is still bounded by land. */
 export function cityUpgradeGrowth(level:number):number {
   if(!Number.isFinite(level))return 0;
-  return [0,.7,1.25,1.65,1.95,2.2][Math.max(0,Math.min(5,Math.floor(level)))];
+  return [0,1.1,2.1,3.0,3.8,4.5][Math.max(0,Math.min(5,Math.floor(level)))];
 }
