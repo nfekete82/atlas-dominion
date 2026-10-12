@@ -79,7 +79,7 @@ test('moving reserves to the border changes only mobile badge, not total country
     g.paused=true;
     return {id,index,strength:badge.strength,mobile:badge.mobile,amount:Math.floor(g.factions[id].troops/2)};
   });
-  const after=await page.evaluate(({id,index,amount})=>{
+  await page.evaluate(({id,index,amount})=>{
     const g=window.__atlas.getGame(),r=window.__atlas.renderer;
     if(g.factions[id].troops<amount)throw Error('Not enough uncommitted troops');
     g.factions[id].troops-=amount;
