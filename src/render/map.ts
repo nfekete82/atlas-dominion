@@ -103,6 +103,12 @@ export class MapRenderer {
     this.updateTerritory();
     this.fit();
   }
+  /** Current camera rectangle in fixed map-world units, for the minimap. */
+  visibleWorldBounds():{x:number;y:number;width:number;height:number}{
+    return {x:-this.ox/this.scale,y:-this.oy/this.scale,
+      width:this.canvas.clientWidth/this.scale,height:this.canvas.clientHeight/this.scale};
+  }
+
   /** Jump from an alert or an army command to its actual map position. */
   focusOnPoint(point:Point,minZoom=1.8):void {
     if(!Number.isFinite(point.x)||!Number.isFinite(point.y)||
