@@ -396,3 +396,39 @@
 .war-alert svg{flex-shrink:0}
 .war-alert:hover{filter:brightness(1.16)}
 @media(max-width:1100px){.war-alerts{right:8px;top:70px;width:220px}}
+
+/* Compact, accessible sound mixer; settings sit behind the existing ♫ button. */
+.audio-panel{
+  position:absolute;z-index:25;top:calc(100% + 8px);right:160px;
+  width:296px;max-width:calc(100vw - 16px);
+  padding:15px 16px 13px;
+  background:linear-gradient(155deg,#172d36 0%,#091b26 100%);
+  color:#e9f0ee;border:1px solid #5b7d81;border-radius:8px;
+  box-shadow:0 15px 48px #030c12e6, inset 0 1px #c3e2cc20;
+  letter-spacing:normal;text-align:left;
+}
+.audio-panel[hidden]{display:none}
+.audio-panel-header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.audio-panel-header>span{color:#eacb8e;font-size:12px;letter-spacing:1.1px;font-weight:850}
+.audio-panel-header button{
+  border:0;background:transparent;color:#b8c8c9;font-size:17px;
+  padding:2px 5px;cursor:pointer
+}
+.audio-note{font-size:11px;line-height:1.45;color:#9eb9bc;margin:9px 0 14px}
+.audio-toggle{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:8px 0;color:#e8f0eb;font-size:12px;font-weight:750;
+}
+.audio-toggle input[type=checkbox]{width:18px;height:18px;accent-color:#8fc9b4;cursor:pointer}
+.audio-slider{display:grid;gap:7px;padding:1px 0 11px}
+.audio-slider label{display:flex;justify-content:space-between;gap:6px;color:#a9c1c3;font-size:10px;font-weight:700}
+.audio-slider output{color:#eacb8e;font-variant-numeric:tabular-nums}
+.audio-slider input[type=range]{width:100%;margin:0;height:18px;accent-color:#86bfc0;cursor:pointer}
+.audio-master{border-top:1px solid #3d5860;margin-top:5px;padding-top:12px}
+.audio-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid #304954;padding-top:11px}
+.audio-footer button{border:1px solid #5c8291;background:#15333d;border-radius:4px;color:#cae9f0;padding:7px 9px;font-size:10px;font-weight:800;cursor:pointer;white-space:nowrap}
+.audio-footer button:hover{background:#285363}
+.audio-footer span{font-size:10px;line-height:1.4;color:#aac3c5;text-align:right}
+#soundBtn[aria-expanded=true]{background:#21424a;color:#f3d49a;border-color:#9eaf91}
+@media(max-width:1100px){.audio-panel{right:8px}}
+@media(max-width:550px){.audio-panel{top:70px;right:8px}}
