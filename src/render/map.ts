@@ -48,6 +48,7 @@ export class MapRenderer {
   private combatLabels: Array<{ pos:Point; troops:number }> = [];
   private frontGroups:FrontGroup[]=[];
   private frontUpdatedAt=0;
+  private reinforcementWaves:Array<{from:Point;to:Point;started:number;sent:number}>=[];
   private reducedMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches??false;
   game: Game;
   onSelect: (point: Point, landing: boolean) => void = () => {};
@@ -80,6 +81,7 @@ export class MapRenderer {
     this.wave.reset(game.owner);
     this.frontGroups=[];
     this.frontUpdatedAt=0;
+    this.reinforcementWaves=[];
     this.updateTerritory();
     this.fit();
   }
@@ -340,6 +342,51 @@ export class MapRenderer {
       c.strokeText(style.symbol,x,y);
       c.fillStyle=style.color;
       c.fillText(style.symbol,x,y);
+    }
+    c.restore();
+  }
+
+  /** Purely visual feedback for a successful, already paid-for deployment.
+   * The originating reserve label is anchored on friendly territory; particles
+   * track the camera in world coordinates. Never mutates combat or troops.
+   */
+  showReinforcement(front:Point,sent:number):void {
+    if(this.reducedMotion||sent<1)return;
+    const source=this.labels.find(label=>label.id===0)?.pos;
+    if(!source)return;
+    const destination=pointToWorld(front);
+    this.reinforcementWaves.push({from:{...source},to:destination,
+      started:performance.now(),sent});
+    if(this.reinforcementWaves.length>8)this.reinforcementWaves.shift();
+  }
+  private drawReinforcements(c:CanvasRenderingContext2D,timestamp:number):void {
+    const duration=1050;
+    this.reinforcementWaves=this.reinforcementWaves.filter(w=>timestamp-w.started<duration);
+    if(!this.reinforcementWaves.length)return;
+    c.save();
+    for(const wave of this.reinforcementWaves){
+      const t=Math.max(0,Math.min(1,(timestamp-wave.started)/duration));
+      const ease=t*t*(3-2*t);
+      const ax=this.ox+wave.from.x*this.scale,ay=this.oy+wave.from.y*this.scale;
+      const bx=this.ox+wave.to.x*this.scale,by=this.oy+wave.to.y*this.scale;
+      const dx=bx-ax,dy=by-ay,length=Math.hypot(dx,dy);
+      if(length<2)continue;
+      const nx=-dy/length,ny=dx/length;
+      const count=Math.min(16,Math.max(5,Math.floor(Math.sqrt(wave.sent)*1.6)));
+      for(let i=0;i<count;i++){
+        const stagger=i/count*.28;
+        const p=Math.max(0,Math.min(1,(ease-stagger)/(1-stagger)));
+        const lane=Math.sin(i*2.39996)*Math.min(12,3+length*.025)*Math.sin(Math.PI*p);
+        const x=ax+dx*p+nx*lane,y=ay+dy*p+ny*lane;
+        c.globalAlpha=Math.min(1,p*8)*(1-Math.max(0,p-.80)*4)*.86;
+        c.fillStyle=i%3===0?'#d6f2ff':'#54c5ff';
+        c.beginPath();c.arc(x,y,i%4===0?2:1.35,0,Math.PI*2);c.fill();
+      }
+      if(t<.65){
+        c.globalAlpha=(1-t/.65)*.58;
+        c.lineWidth=1.1;c.strokeStyle='#65d1fc';c.setLineDash([3,7]);
+        c.beginPath();c.moveTo(ax,ay);c.lineTo(bx,by);c.stroke();c.setLineDash([]);
+      }
     }
     c.restore();
   }
@@ -661,6 +708,7 @@ export class MapRenderer {
     // No hover square or animated point circle.
     c.restore();
     this.drawLiveBattles(c,timestamp);
+    this.drawReinforcements(c,timestamp);
     this.drawActiveFrontForces(c);
     this.drawTroopBadges(c);
     requestAnimationFrame(t=>this.frame(t));
