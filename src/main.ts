@@ -3,6 +3,7 @@ import { MapRenderer } from './render/map.js';
 import { BUILDINGS, type BuildingType } from './engine/economy.js';
 import { COUNTRY_STARTS, countryByCode } from './data/countries.js';
 import {formatCompact} from './format.js';
+import {DIFFICULTY_SETTINGS,isDifficulty,type Difficulty} from './engine/difficulty.js';
 
 const $ = <T extends HTMLElement>(id: string): T => {
   const found = document.getElementById(id);
@@ -19,6 +20,7 @@ let audio: AudioContext | null = null;
 let prevStatus = game.status;
 let modalVisible = true;
 let hasStarted = false;
+let selectedDifficulty:Difficulty='balanced';
 let buildSpot: Point | null = null;
 let attackRatio = 35;
 let attackMessage = 'Nachbarland anklicken · mehr eingesetzte Truppen = schnellere Front.';
@@ -41,6 +43,7 @@ function update() {
   const player = game.factions[0];
   $('playerName').textContent = player.name;
   $('playerFlag').textContent = countryFlag(game.playerCode);
+  $('difficultyBadge').textContent = 'KI: '+game.difficultySettings.label.toLocaleUpperCase('de-DE');
   const percent = player.territory / game.totalLand * 100;
   $('areaCount').textContent = format(player.territory);
   const stationedByNation=game.factions.map(()=>0);
@@ -250,6 +253,22 @@ function countryOptions(query:string): void {
       <span class="country-flag" aria-hidden="true">${countryFlag(c.code)}</span>
       <span><strong>${c.name}</strong><small>${c.capital}</small></span></button>`).join('');
 }
+function updateDifficultySelection():void {
+  document.querySelectorAll<HTMLButtonElement>('[data-difficulty]').forEach(button=>{
+    const isSelected=button.dataset.difficulty===selectedDifficulty;
+    button.classList.toggle('selected',isSelected);
+    button.setAttribute('aria-pressed',String(isSelected));
+  });
+  $('difficultyDescription').textContent=DIFFICULTY_SETTINGS[selectedDifficulty].description
+    +' Die Schwierigkeit gilt nur für KI-Länder.';
+}
+$('countryPicker').addEventListener('click',event=>{
+  const button=(event.target as HTMLElement).closest<HTMLButtonElement>('[data-difficulty]');
+  if(!button || !isDifficulty(button.dataset.difficulty))return;
+  selectedDifficulty=button.dataset.difficulty;
+  updateDifficultySelection();
+  beep(490);
+});
 function showCountryPicker(canCancel = false): void {
   closeBuildMenu();
   closeDialog();
@@ -258,12 +277,13 @@ function showCountryPicker(canCancel = false): void {
   $('countryCancel').hidden = !canCancel;
   ($<HTMLInputElement>('countrySearch')).value='';
   countryOptions('');
+  updateDifficultySelection();
   ($<HTMLInputElement>('countrySearch')).focus();
 }
 function startCountry(code:string): void {
   const chosen=countryByCode(code);
   if(!chosen)return;
-  game=new Game((Date.now()+Math.floor(Math.random()*100000))%2147483647,COUNTRY_STARTS.length-1,chosen.code);
+  game=new Game((Date.now()+Math.floor(Math.random()*100000))%2147483647,COUNTRY_STARTS.length-1,chosen.code,selectedDifficulty);
   hasStarted=true;
   modalVisible=false;
   $('countryPicker').hidden=true;
@@ -286,7 +306,7 @@ $('countryCancel').addEventListener('click',()=>{
 });
 $('resetBtn').addEventListener('click',()=>showCountryPicker(hasStarted));
 $('helpBtn').addEventListener('click',()=>showDialog('DEIN EINSATZBEFEHL',`
-  <p>ATLAS DOMINION ist ein Echtzeit-Eroberungsspiel. Starte in der Hauptstadt deines gewählten Landes, erweitere dein Gebiet und kontrolliere mindestens <strong>65 %</strong> Europas.</p>
+  <p>ATLAS DOMINION ist ein Echtzeit-Eroberungsspiel. Starte in der Hauptstadt deines gewählten Landes, erweitere dein Gebiet und kontrolliere mindestens <strong>65 %</strong> Europas. Die KI-Schwierigkeit wählst du vor Spielbeginn zusammen mit deinem Land: Entspannt, Ausgeglichen, Intensiv oder Unmöglich.</p>
   <div class="briefing-row"><b>01</b><span><strong>ANGREIFEN:</strong> Klicke auf ein erreichbares Nachbarland oder auf dein eigenes bedrohtes Grenzgebiet für einen unmittelbaren Gegenangriff. Der Angriff startet immer am tatsächlichen gemeinsamen Grenzsektor. Neutrales Land bleibt auf 14 Sektoren Klicktoleranz begrenzt.</span></div>
   <div class="briefing-row"><b>02</b><span><strong>SEELANDUNG:</strong> SHIFT gedrückt halten und auf eine markierte Anlegestelle am anderen Ufer klicken. Nur die eingezeichneten Seewege sind erlaubt; die Überfahrt dauert vier Ticks.</span></div>
   <div class="briefing-row"><b>03</b><span><strong>ZIEHEN:</strong> Karte verschieben. Mausrad oder +/− zum Zoomen.</span></div>

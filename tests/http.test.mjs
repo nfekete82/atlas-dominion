@@ -28,13 +28,17 @@ test('Prebuilt client serves HTML, CSS, JS and no source secrets',async()=>{
     assert.match(html,/id="countryPicker"/);
     assert.match(html,/id="countrySearch"/);
     assert.match(html,/id="countryGrid"/);
+    assert.match(html,/id="difficultyDescription"/);
+    assert.match(html,/id="difficultyBadge"/);
+    for(const difficulty of ['relaxed','balanced','intense','impossible'])
+      assert.ok(html.includes(`data-difficulty="${difficulty}"`),difficulty);
     assert.match(html,/id="playerName"/);
     assert.match(html,/id="buildMenu"/);
     assert.match(html,/id="cityCount"/);
     assert.match(html,/id="moneyCount"/);
     assert.match(html,/id="defenseTickLoss"/);
     for(const id of ["mobileTroops","frontTroops","offensiveTroops","fallenTroops"])assert.ok(html.includes(`id="${id}"`),id);
-    for(const [path,contentType] of [['/style.css','text/css'],['/src/main.js','text/javascript'],['/src/engine/game.js','text/javascript'],['/src/data/europe.js','text/javascript'],['/src/data/countries.js','text/javascript'],['/src/engine/economy.js','text/javascript'],['/src/render/building-markers.js','text/javascript']]){
+    for(const [path,contentType] of [['/style.css','text/css'],['/src/main.js','text/javascript'],['/src/engine/game.js','text/javascript'],['/src/data/europe.js','text/javascript'],['/src/data/countries.js','text/javascript'],['/src/engine/economy.js','text/javascript'],['/src/engine/difficulty.js','text/javascript'],['/src/render/building-markers.js','text/javascript']]){
       const response=await fetch(base+path);
       assert.equal(response.status,200,path);
       assert.ok(response.headers.get('content-type').includes(contentType),path);

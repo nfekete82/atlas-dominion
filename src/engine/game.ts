@@ -7,6 +7,7 @@ import { findConnectedAttackFront } from './front-target.js';
 import {aiStyle,scoreAIFront} from './ai-strategy.js';
 import {aiMarchRecovery,aiAttacksPerTick,aiStrikeSize,aiDefenseAllocation,aiRiskTolerance} from './ai-tactics.js';
 import {formatCompact} from '../format.js';
+import {DIFFICULTY_SETTINGS,isDifficulty,difficultyAttempts,difficultyDefenseBudget,difficultyRisk,type Difficulty,type DifficultySettings} from './difficulty.js';
 
 export const WATER = -2;
 export const NEUTRAL = -1;
@@ -155,6 +156,8 @@ export class Game {
   private lastAttackerLoss = 0;
   readonly seed: number;
   readonly playerCode: string;
+  readonly difficulty: Difficulty;
+  readonly difficultySettings: DifficultySettings;
   readonly totalLand = TOTAL_LAND;
   readonly initialTerritory: number;
   tick = 0;
@@ -166,7 +169,10 @@ export class Game {
   private frontierCandidates: Array<Set<number>> = [];
   private exposedCounts: number[] = [];
 
-  constructor(seed = 2026, opponentCount = COUNTRY_STARTS.length-1, playerCountry = 'DE') {
+  constructor(seed = 2026, opponentCount = COUNTRY_STARTS.length-1, playerCountry = 'DE', difficulty:Difficulty='balanced') {
+    if(!isDifficulty(difficulty))throw new Error(`Unbekannter Schwierigkeitsgrad: ${String(difficulty)}`);
+    this.difficulty=difficulty;
+    this.difficultySettings=DIFFICULTY_SETTINGS[difficulty];
     const chosen = countryByCode(playerCountry);
     if (!chosen) throw new Error(`Unbekanntes Land: ${playerCountry}`);
     this.playerCode = chosen.code;
@@ -178,9 +184,9 @@ export class Game {
       .slice(0, Math.max(1, Math.min(COUNTRY_STARTS.length, opponentCount + 1)));
     this.factions = starts.map((start, id) => ({
       id, name: start.name, capital: start.capital, color: factionColor(id),
-      troops: 90, money: 90, moneyIncome: 0, militaryPower: 0, builtCities:0,
+      troops:id===0?90:this.difficultySettings.aiStartingTroops, money:90, moneyIncome: 0, militaryPower: 0, builtCities:0,
       territory: 0, income: 0, target: geoToCell(start.lon,start.lat),
-      ai:id!==0, alive:true, cityCount:0, captured:0, defenseSpent:0, defenseFallenTick:0, attackFallen:0, enemyFallen:0, campaignEnergy:110, battleFocus:-1, intent:'hold' as const,
+      ai:id!==0, alive:true, cityCount:0, captured:0, defenseSpent:0, defenseFallenTick:0, attackFallen:0, enemyFallen:0, campaignEnergy:id===0?110:110*this.difficultySettings.marchMultiplier, battleFocus:-1, intent:'hold' as const,
     }));
     // Reserve EVERY capital before assigning any surrounding territory. Without
     // this, microstates (e.g. Vatican/Rome) can overwrite earlier capitals.
@@ -204,7 +210,7 @@ export class Game {
     this.recount();
     this.initialTerritory=this.factions[0].territory;
     this.pickAIGoals();
-    this.log(`${starts.length} Länder starten an ihren Hauptstädten.`);
+    this.log(`${starts.length} Länder starten an ihren Hauptstädten · KI: ${this.difficultySettings.label}.`);
     this.log(`Du spielst als ${chosen.name} – Hauptstadt ${chosen.capital}.`,this.factions[0].color);
     this.log('Automatische Grenzverteidigung und Nachschub aktiviert.',this.factions[0].color);
   }
@@ -268,7 +274,7 @@ export class Game {
       const totalPeople=people[faction.id];
       faction.militaryPower=empirePower(totalPeople,faction.territory,faction.cityCount+faction.builtCities);
       const growth=troopGrowth(totalPeople,faction.territory,faction.cityCount,faction.builtCities);
-      faction.income=faction.id===0?growth*(this.doctrine==='fortify'?1.20:this.doctrine==='blitz'?.90:1):growth;
+      faction.income=faction.id===0?growth*(this.doctrine==='fortify'?1.20:this.doctrine==='blitz'?.90:1):growth*this.difficultySettings.growthMultiplier;
       faction.moneyIncome=taxRevenue(totalPeople,faction.territory,faction.cityCount,faction.builtCities);
     }
   }
@@ -406,7 +412,8 @@ export class Game {
       if (!faction.alive || !exposed[faction.id].length) continue;
       const baseBudget=frontierBudget(faction.troops,faction.income);
       const budget=faction.ai
-        ? aiDefenseAllocation(faction.troops,faction.income,baseBudget)
+        ? difficultyDefenseBudget(faction.troops,
+            aiDefenseAllocation(faction.troops,faction.income,baseBudget),this.difficulty)
         : baseBudget;
       if (budget < 0.01) continue;
       let remaining = budget;
@@ -698,7 +705,7 @@ export class Game {
         defenderIncome:defender?.income ?? 0,garrison:this.sectorDefense(i),
         capital:!!city,neutral,threatenedBorders:exposed,
         relativePower:neutral?1:this.relativeAttackPower(id,opponent),
-        riskTolerance:aiRiskTolerance(aiStyle(id)),
+        riskTolerance:difficultyRisk(aiRiskTolerance(aiStyle(id)),this.difficulty),
       });
       if(!assessment.worthwhile)continue;
       const x=i%MAP_WIDTH,y=Math.floor(i/MAP_WIDTH);
@@ -811,7 +818,9 @@ export class Game {
       faction.troops=Math.max(0,faction.troops-this.lastAttackerLoss);
       return true;
     }
-    const desired=aiStrikeSize(faction.troops,neutral,aiStyle(faction.id));
+    const basicStrike=aiStrikeSize(faction.troops,neutral,aiStyle(faction.id));
+    const desired=Math.min(faction.troops,
+      Math.max(8,Math.round(basicStrike*Math.max(.70,Math.min(1.25,this.difficultySettings.activityMultiplier)))));
     // Only launch with paid-for marching stamina and real living soldiers.
     const engaged=Math.min(desired,Math.floor(faction.campaignEnergy));
     if(engaged<8 || (!neutral && engaged<Math.min(18,desired)))return false;
@@ -837,10 +846,10 @@ export class Game {
       // All residents are recruitable troops: a single clear growth figure.
       faction.troops+=faction.income;
       faction.money+=faction.moneyIncome;
-      if(faction.ai)faction.campaignEnergy=Math.min(300,
-        faction.campaignEnergy+aiMarchRecovery(faction.income,aiStyle(faction.id)));
+      if(faction.ai)faction.campaignEnergy=Math.min(300*this.difficultySettings.marchMultiplier,
+        faction.campaignEnergy+aiMarchRecovery(faction.income,aiStyle(faction.id))*this.difficultySettings.marchMultiplier);
     }
-    if(this.tick%100===0)this.developAI();
+    if(this.tick%this.difficultySettings.cityInterval===0)this.developAI();
     this.redistributeFrontline();
     this.rebuildFrontierCandidates();
     for (const faction of this.factions) {
@@ -850,7 +859,7 @@ export class Game {
         this.resolveOrders(faction);
         continue;
       }
-      const attempts=aiAttacksPerTick(faction.territory,aiStyle(faction.id));
+      const attempts=difficultyAttempts(aiAttacksPerTick(faction.territory,aiStyle(faction.id)),this.difficulty);
       for (let k = 0; k < attempts; k++) {
         if(faction.troops<8 || faction.campaignEnergy<8)break;
         const target = this.chooseFront(faction.id);
