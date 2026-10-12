@@ -1036,6 +1036,13 @@ export class MapRenderer {
   private cellAt(clientX:number,clientY:number,landing=false):Point|null {
     if(!landing){
       const box=this.canvas.getBoundingClientRect(),x=clientX-box.left,y=clientY-box.top;
+      // On left click, squad markers sit ABOVE building markers and must win hit testing.
+      for(const squad of this.game.squads){
+        if(squad.owner!==0)continue;
+        const sx=this.ox+(squad.index%MAP_WIDTH+.5)*CW*this.scale;
+        const sy=this.oy+(Math.floor(squad.index/MAP_WIDTH)+.5)*CH*this.scale;
+        if(Math.hypot(x-sx,y-sy)<=13)return {x:squad.index%MAP_WIDTH,y:Math.floor(squad.index/MAP_WIDTH)};
+      }
       const hits=this.visibleCityMarkers.filter(m=>
         x>=m.bounds.x&&x<=m.bounds.x+m.bounds.width&&
         y>=m.bounds.y&&y<=m.bounds.y+m.bounds.height);
