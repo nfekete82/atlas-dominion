@@ -6,7 +6,7 @@ import { TerritoryWave, waveProgress } from './wave.js';
 import {organicCaptureRadius,burningFrontAlpha} from './capture-visual.js';
 import { pixelGridEdges } from './pixel-grid.js';
 import { territoryContours, contourRings } from './territory-contours.js';
-import { buildingMarkerFor, showBuildingMarker, drawCityMarker, cityMarkerBounds, ScreenOccupancy, type ScreenRect } from './building-markers.js';
+import { buildingMarkerFor, cityVisibleAtZoom, drawCityMarker, cityMarkerBounds, ScreenOccupancy, type ScreenRect } from './building-markers.js';
 // Keep natural-dark ocean and distinct faction colors; no pale map wash.
 import { COUNTRY_STARTS } from '../data/countries.js';
 import {formatCompact} from '../format.js';
@@ -350,9 +350,15 @@ export class MapRenderer {
     this.visibleCityMarkers=[];
     const width=this.canvas.clientWidth,height=this.canvas.clientHeight;
     const hovered=this.hover?pointToIndex(this.hover):-1;
-    const markers=this.buildingMarkers;
+    // In a wide strategic view show mature / friendly cities first.
+    // At tactical zoom the exact same city markers reappear individually.
+    const markers=this.zoom<1.8
+      ?this.buildingMarkers.slice().sort((a,b)=>
+        this.game.cityUpgrades[b.index]-this.game.cityUpgrades[a.index]||
+        Number(b.owner===0)-Number(a.owner===0)||a.index-b.index)
+      :this.buildingMarkers;
     const draw=(marker:typeof markers[number])=>{
-      if(!showBuildingMarker(marker.owner,this.zoom)||!buildingMarkerFor(marker.code))return;
+      if(!cityVisibleAtZoom(marker.owner,this.game.cityUpgrades[marker.index],this.zoom,marker.index===hovered)||!buildingMarkerFor(marker.code))return;
       const x=this.ox+(marker.index%MAP_WIDTH+.5)*CW*this.scale;
       const y=this.oy+(Math.floor(marker.index/MAP_WIDTH)+.5)*CH*this.scale;
       const bounds=cityMarkerBounds(x,y);
@@ -813,7 +819,10 @@ export class MapRenderer {
     for(const marker of this.buildingMarkers){
       const x=this.ox+(marker.index%MAP_WIDTH+.5)*CW*this.scale;
       const y=this.oy+(Math.floor(marker.index/MAP_WIDTH)+.5)*CH*this.scale;
-      if(x>=0&&y>=0&&x<=this.canvas.clientWidth&&y<=this.canvas.clientHeight)this.cityAnchors.reserve(cityMarkerBounds(x,y));
+      if(x>=0&&y>=0&&x<=this.canvas.clientWidth&&y<=this.canvas.clientHeight &&
+        cityVisibleAtZoom(marker.owner,this.game.cityUpgrades[marker.index],this.zoom,
+          marker.index===(this.hover?pointToIndex(this.hover):-1)))
+        this.cityAnchors.reserve(cityMarkerBounds(x,y));
     }
     for(const bounds of this.overlayBounds)this.occupancy.reserve(bounds);
     const c = this.ctx;
