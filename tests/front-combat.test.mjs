@@ -1,3 +1,4 @@
+import {SEA_CROSSINGS} from '../dist/src/data/europe.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {frontTileOutcome,opposingArmies} from '../dist/src/engine/front-combat.js';
@@ -97,7 +98,6 @@ test('island landing can select same-owner coastal destination away from the pre
   const g=new Game(618,3,'DE');
   // Validate every already accessible documented crossing. A direct landing
   // remains available and must resolve to its own landing shore.
-  const {SEA_CROSSINGS}=await import('../dist/src/data/europe.js');
   for(const [a,b] of SEA_CROSSINGS){
     const start=a, destination=b;
     if(g.owner[start]===-2||g.owner[destination]===-2)continue;
