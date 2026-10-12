@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Game,cellToPoint,LAND_NEIGHBORS} from '../dist/src/engine/game.js';
+import {Game,cellToPoint} from '../dist/src/engine/game.js';
 
 test('barracks recruit exactly from living mobile troops and survive save reload',()=>{
  const g=new Game(711,1,'DE');
