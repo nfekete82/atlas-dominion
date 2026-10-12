@@ -38,3 +38,43 @@ export function territoryContours(owners:Int16Array,width:number):Map<number,Con
   }
   return result;
 }
+
+/** Stitch marching-square segments into closed land rings.
+ * Each grid edge has degree two; ambiguous saddles were resolved in
+ * territoryContours, so diagonally touching islands stay separate.
+ */
+export function contourRings(segments:readonly ContourSegment[]):number[][] {
+  const adjacency=new Map<string,number[]>();
+  const key=(x:number,y:number)=>x+','+y;
+  for(let i=0;i<segments.length;i++){
+    const [ax,ay,bx,by]=segments[i];
+    for(const k of [key(ax,ay),key(bx,by)]){
+      const list=adjacency.get(k)??[];
+      list.push(i);adjacency.set(k,list);
+    }
+  }
+  const visited=new Uint8Array(segments.length);
+  const rings:number[][]=[];
+  for(let start=0;start<segments.length;start++){
+    if(visited[start])continue;
+    const [sx,sy]=segments[start];
+    let cx=sx,cy=sy,edge=start;
+    const ring:number[]=[sx,sy];
+    for(let steps=0;steps<=segments.length;steps++){
+      if(visited[edge])break;
+      visited[edge]=1;
+      const [ax,ay,bx,by]=segments[edge];
+      const nextX=ax===cx&&ay===cy?bx:ax;
+      const nextY=ax===cx&&ay===cy?by:ay;
+      if(nextX===sx&&nextY===sy){
+        if(ring.length>=6)rings.push(ring);
+        break;
+      }
+      ring.push(nextX,nextY);
+      const next=(adjacency.get(key(nextX,nextY))??[]).find(i=>!visited[i]);
+      if(next===undefined)break;
+      cx=nextX;cy=nextY;edge=next;
+    }
+  }
+  return rings;
+}
