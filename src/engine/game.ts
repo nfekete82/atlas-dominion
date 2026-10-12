@@ -419,23 +419,56 @@ export class Game {
     return {ok:true,reason:'Stadt gebaut.',cost:permission.cost,type:'city'};
   }
 
-  /** AI countries may develop cities, paying exactly the same build cost. */
+  /** AI plans actual settlements across owned land, then improves them.
+   * Capitals and player cities count as spacing anchors; no fake settlements.
+   * One paid action per faction per development interval.
+   */
   private developAI():void {
-    const capitals=this.capitalSites;
-    const locations=new Int32Array(this.factions.length).fill(-1);
-    const score=new Float64Array(this.factions.length).fill(Infinity);
-    for(let index=0;index<CELL_COUNT;index++){
-      const id=this.owner[index];
-      if(id<=0 || !this.factions[id]?.ai || this.buildings[index] || capitals.has(index))continue;
-      const capital=this.cities[id].index;
-      const deltaX=index%MAP_WIDTH-capital%MAP_WIDTH;
-      const deltaY=Math.floor(index/MAP_WIDTH)-Math.floor(capital/MAP_WIDTH);
-      const d=deltaX*deltaX+deltaY*deltaY;
-      if(d<score[id]){score[id]=d;locations[id]=index;}
+    const centers:Array<Array<[number,number]>>=this.factions.map(()=>[]);
+    const upgradeSites:number[][]=this.factions.map(()=>[]);
+    for(const city of this.cities){
+      if(city.owner>=0)centers[city.owner].push([city.index%MAP_WIDTH,Math.floor(city.index/MAP_WIDTH)]);
+    }
+    for(let i=0;i<CELL_COUNT;i++){
+      const id=this.owner[i];
+      if(id<0||this.buildings[i]!==BUILDING_CODES.city)continue;
+      centers[id].push([i%MAP_WIDTH,Math.floor(i/MAP_WIDTH)]);
+      if(this.cityUpgrades[i]<5)upgradeSites[id].push(i);
+    }
+    const choice=new Int32Array(this.factions.length).fill(-1);
+    const scores=new Float64Array(this.factions.length).fill(-Infinity);
+    for(let i=0;i<CELL_COUNT;i++){
+      const id=this.owner[i];
+      if(id<=0||!this.factions[id]?.ai||this.buildings[i]||this.capitalSites.has(i))continue;
+      const x=i%MAP_WIDTH,y=Math.floor(i/MAP_WIDTH);
+      let nearest=Infinity;
+      for(const [cx,cy] of centers[id]){
+        const dist=(x-cx)**2+(y-cy)**2;
+        if(dist<nearest)nearest=dist;
+      }
+      if(nearest<100)continue; // At least 10 sectors from any existing city.
+      // Prefer district hubs separated across the nation, never the nearest
+      // unoccupied tile next to its capital.
+      const score=Math.min(nearest,900)-Math.abs(nearest-324)*.07;
+      if(score>scores[id]){scores[id]=score;choice[id]=i;}
     }
     for(const faction of this.factions){
-      if(!faction.ai||!faction.alive||locations[faction.id]<0)continue;
-      this.build(faction.id,cellToPoint(locations[faction.id]),'city');
+      if(!faction.ai||!faction.alive)continue;
+      const sites=upgradeSites[faction.id];
+      sites.sort((a,b)=>this.cityUpgrades[a]-this.cityUpgrades[b]||a-b);
+      const canExpand=choice[faction.id]>=0;
+      // Improve existing towns on most development cycles; expand the network
+      // occasionally if there is space and money. Both actions use real costs.
+      const preferUpgrade=sites.length>0&&((this.tick/this.difficultySettings.cityInterval)%3!==0||!canExpand);
+      if(preferUpgrade){
+        const site=sites[0],point=cellToPoint(site);
+        if(this.canUpgradeCity(faction.id,point).ok){this.upgradeCity(faction.id,point);continue;}
+      }
+      if(canExpand&&this.canBuild(faction.id,cellToPoint(choice[faction.id]),'city').ok){
+        this.build(faction.id,cellToPoint(choice[faction.id]),'city');continue;
+      }
+      if(sites.length&&this.canUpgradeCity(faction.id,cellToPoint(sites[0])).ok)
+        this.upgradeCity(faction.id,cellToPoint(sites[0]));
     }
   }
 
