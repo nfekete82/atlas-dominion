@@ -132,3 +132,19 @@ test('hostile guard tower damages nearby RTS squad while a friendly tower does n
  assert.ok(soldier.troops>0,'tower cannot automatically erase a full squad');
  assert.ok(g.battleEvents.some(e=>e.tick===g.tick&&e.attackerLost>0));
 });
+
+test('RTS tactical AI moves real squads to defend a threatened barracks',()=>{
+ const g=new Game(8201,1,'DE','balanced',true);
+ // A real player group near the AI capital must cause physical defense orders.
+ for(let tick=0;tick<60;tick++)g.step();
+ const ai=g.factions[1], barracks=g.buildings.findIndex((code,i)=>code===4&&g.owner[i]===1);
+ assert.ok(barracks>=0);
+ const defenders=g.squads.filter(u=>u.owner===1);
+ assert.ok(defenders.length>0);
+ const near=landNeighbors(barracks).find(n=>g.owner[n]===0);
+ if(near===undefined)return; // Isolated capitals have no immediately adjacent hostile land.
+ g.squads.push({id:99001,owner:0,index:near,troops:60,destination:null,attackTarget:null});
+ for(let tick=0;tick<30;tick++)g.step();
+ assert.ok(g.squads.filter(u=>u.owner===1).some(u=>u.destination===barracks||u.index===barracks),
+   'AI should guard threatened critical infrastructure using real units');
+});
