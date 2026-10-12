@@ -954,12 +954,42 @@ export class Game {
       if(own.length<Math.min(5,Math.max(2,Math.ceil(faction.territory/150)))&&faction.money>=100){
         this.recruitSquad(faction.id,cellToPoint(barracks),Math.min(100,Math.floor(faction.money/2)));
       }
+      // Protect threatened capitals, cities, towers and barracks before
+      // committing further groups to the offensive. All moves are physical.
+      const enemyUnits=this.squads.filter(u=>u.owner!==faction.id&&
+        !this.isAllied(faction.id,u.owner));
+      let defensiveTarget=-1,defensiveThreat=Infinity;
+      for(const enemy of enemyUnits){
+        for(const tile of [enemy.index,...LAND_NEIGHBORS[enemy.index]]){
+          if(this.owner[tile]!==faction.id)continue;
+          if(!this.capitalSites.has(tile)&&this.buildings[tile]===0)continue;
+          const d=Math.abs(tile%MAP_WIDTH-barracks%MAP_WIDTH)+
+            Math.abs(Math.floor(tile/MAP_WIDTH)-Math.floor(barracks/MAP_WIDTH));
+          if(d<defensiveThreat){defensiveThreat=d;defensiveTarget=tile;}
+        }
+      }
+      const totalReady=own.reduce((sum,u)=>sum+u.troops,0);
+      const strongestThreat=enemyUnits.reduce((max,u)=>{
+        if(!LAND_NEIGHBORS[u.index].some(n=>this.owner[n]===faction.id))return max;
+        return Math.max(max,u.troops);
+      },0);
+      // No single understrength squad should charge into an obvious
+      // superior neighboring formation. Group units around a rally point.
+      const rally=own.length?own.reduce((a,b)=>a.troops>=b.troops?a:b):null;
       // No abstract issueAttack: mobilize units by actual contiguous paths.
       for(const squad of own){
         // Damaged AI forces retreat to their barracks instead of blindly
         // feeding the enemy. The remaining troops stay physical and alive.
         if(squad.troops<20&&squad.index!==barracks){
           this.orderSquad(faction.id,squad.id,cellToPoint(barracks));continue;
+        }
+        if(defensiveTarget>=0&&squad.troops>=20){
+          if(squad.index!==defensiveTarget)this.orderSquad(faction.id,squad.id,cellToPoint(defensiveTarget));
+          continue;
+        }
+        if(strongestThreat>squad.troops*1.4&&totalReady>=strongestThreat&&rally&&
+           squad.id!==rally.id&&squad.index!==rally.index){
+          this.orderSquad(faction.id,squad.id,cellToPoint(rally.index));continue;
         }
         if(squad.destination!==null||squad.attackTarget!==null&&squad.attackTarget!==undefined)continue;
         const targets=LAND_NEIGHBORS[squad.index].filter(n=>
