@@ -935,11 +935,41 @@ export class Game {
         this.factions[squad.owner].troops+=squad.troops;
         this.squads.splice(i,1);continue;
       }
+      // Capture unguarded neutral terrain around a standing or moving squad.
+      // This is territorial control, not battle: no casualties or unit deletion.
+      if(squad.owner===0&&this.rtsRecruitment){
+        let occupied=0;
+        for(const tile of LAND_NEIGHBORS[squad.index]){
+          if(this.owner[tile]===NEUTRAL&&occupied<2){
+            this.captureTile(this.factions[squad.owner],tile);
+            occupied++;
+          }
+        }
+      }
       if(squad.attackTarget!==null&&squad.attackTarget!==undefined&&
          LAND_NEIGHBORS[squad.index].includes(squad.attackTarget)){
-        const target=squad.attackTarget;
-        const result=this.attackWithSquad(squad.owner,squad.id,cellToPoint(target));
-        if(result.ok)continue;
+        const target=squad.attackTarget,enemy=this.owner[target];
+        if(enemy===NEUTRAL){
+          this.captureTile(this.factions[squad.owner],target);
+          squad.index=target;squad.destination=null;squad.attackTarget=null;
+          continue;
+        }
+        if(enemy>=0&&enemy!==squad.owner&&!this.isAllied(squad.owner,enemy)){
+          // The unit remains present. Only genuine defended fighting can kill it.
+          const spent=Math.min(12,Math.max(2,squad.troops*.12));
+          const tower=this.towerSupport(enemy,target);
+          const captured=this.strike(this.factions[squad.owner],target,spent/(1+tower*.30));
+          const losses=Math.min(squad.troops,Math.max(0,this.lastAttackerLoss));
+          squad.troops-=losses;
+          if(squad.troops<1){
+            this.squads.splice(i,1);
+            continue;
+          }
+          if(captured){
+            squad.index=target;squad.destination=null;squad.attackTarget=null;
+          }
+          continue;
+        }
         squad.attackTarget=null;squad.destination=null;
       }
       if(squad.destination===null)continue;
