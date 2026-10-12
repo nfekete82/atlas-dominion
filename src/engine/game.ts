@@ -282,7 +282,7 @@ export class Game {
       .slice(0, Math.max(1, Math.min(COUNTRY_STARTS.length, opponentCount + 1)));
     this.factions = starts.map((start, id) => ({
       id, name: start.name, capital: start.capital, color: factionColor(id),
-      troops:id===0?90:this.difficultySettings.aiStartingTroops, money:90, moneyIncome: 0, population: 0, militaryPower: 0, builtCities:0,
+      troops:id===0?90:this.difficultySettings.aiStartingTroops, money:this.rtsRecruitment?650:90, moneyIncome: 0, population: 0, militaryPower: 0, builtCities:0,
       territory: 0, income: 0, target: geoToCell(start.lon,start.lat),
       ai:id!==0, alive:true, cityCount:0, captured:0, defenseSpent:0, defenseFallenTick:0, attackFallen:0, enemyFallen:0, campaignEnergy:id===0?110:110*this.difficultySettings.marchMultiplier, battleFocus:-1, intent:'hold' as const,
     }));
@@ -2041,7 +2041,14 @@ export class Game {
       // All residents are recruitable troops: a single clear growth figure.
       // RTS: the human army does not spawn passively. Soldiers are trained
       // for gold in barracks; AI keeps legacy recruiting until AI RTS exists.
-      if(faction.id!==0||!this.rtsRecruitment)faction.troops+=faction.income;
+      if(!this.rtsRecruitment)faction.troops+=faction.income;
+      else if(faction.id!==0){
+        // RTS opponents pay the same 2 gold per soldier as the human.
+        // Unlike legacy passive growth, the treasury bounds recruitment.
+        const trained=Math.max(0,Math.min(faction.income,Math.floor(faction.money/2)));
+        faction.troops+=trained;
+        faction.money-=trained*2;
+      }
       faction.money+=faction.moneyIncome;
       if(faction.ai)faction.campaignEnergy=Math.min(300*this.difficultySettings.marchMultiplier,
         faction.campaignEnergy+aiMarchRecovery(faction.income,aiStyle(faction.id))*this.difficultySettings.marchMultiplier);
