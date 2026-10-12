@@ -4,7 +4,7 @@ import { TerritoryWave, waveProgress } from './wave.js';
 import {organicCaptureRadius,burningFrontAlpha} from './capture-visual.js';
 import { pixelGridEdges } from './pixel-grid.js';
 import { territoryContours, contourRings } from './territory-contours.js';
-import { buildingMarkerFor, showBuildingMarker, buildingMarkerFontSize } from './building-markers.js';
+import { buildingMarkerFor, showBuildingMarker, buildingMarkerFontSize, cityLevelStyle } from './building-markers.js';
 // Keep natural-dark ocean and distinct faction colors; no pale map wash.
 import { COUNTRY_STARTS } from '../data/countries.js';
 import {formatCompact} from '../format.js';
@@ -349,11 +349,18 @@ export class MapRenderer {
       const occupied=buckets.get(key)??[];
       occupied.push({x:sx,y:sy});
       buckets.set(key,occupied);
-      c.globalAlpha=marker.owner===0?.92:.72;
-      // No filled square, circle, badge or permanent highlight behind the icon.
-      c.strokeText(style.symbol,x,y);
-      c.fillStyle=style.color;
-      c.fillText(style.symbol,x,y);
+      const level=this.game.cityUpgrades[marker.index];
+      const paint=cityLevelStyle(level);
+      const radius=5.8/this.scale;
+      c.globalAlpha=marker.owner===0?.98:.86;
+      c.beginPath();c.arc(x,y,radius,0,Math.PI*2);
+      c.fillStyle=paint.fill;c.fill();
+      c.lineWidth=(level===5?1.6:1.1)/this.scale;
+      c.strokeStyle=paint.border;c.stroke();
+      c.fillStyle=paint.text;
+      c.font=`800 ${Math.max(6,Math.min(10,8/this.scale))}px system-ui`;
+      c.fillText(String(level),x,y+.2/this.scale);
+      c.font=`700 ${font}px system-ui`;
     }
     c.restore();
   }
