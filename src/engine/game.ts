@@ -747,7 +747,11 @@ export class Game {
       let budget=1+Math.min(1.5,Math.max(0,order.progress??0));
       let unreachable=false;
       let attempts=0;
-      const maxTiles=attacker.id===0&&this.doctrine==='blitz'?26:20;
+      // Neutral marches can sweep empty ground; defended nations must not fall
+      // dozens of sectors in a single 250ms simulation tick.
+      const hostile=order.targetOwner>=0;
+      const maxTiles=hostile ? (attacker.ai?2:(this.doctrine==='blitz'?5:3))
+        : attacker.id===0&&this.doctrine==='blitz'?26:20;
       while(attempts<maxTiles&&order.remaining>=.5){
         const index=this.chooseOrderedFront(order);
         if(index<0){unreachable=true;break;}
