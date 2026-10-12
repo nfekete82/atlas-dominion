@@ -164,3 +164,20 @@
 .military-details>div{display:flex;justify-content:space-between;gap:12px}
 .military-details span{color:#c5d4d0}
 .military-details b{white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* Diplomacy: compact persistent treaty controls, no giant dialogs. */
+.diplomacy{border-top:1px solid #345450;background:linear-gradient(155deg,#101f28,#0a1821)}
+.diplomacy-help{color:#a8beb9;font-size:11px;line-height:1.5;margin:10px 0}
+.diplomacy-allies{font-size:11px;color:#a8dec4;padding:9px 10px;background:#17362e;border:1px solid #356650;border-radius:5px;margin:9px 0 12px;line-height:1.5}
+.diplomacy label{display:block;font-size:9px;font-weight:800;letter-spacing:1.4px;color:#9fb7bb;margin:8px 0 5px}
+.diplomacy select{width:100%;padding:10px 9px;background:#0b1d27;color:#e9f1e9;border:1px solid #476069;border-radius:5px;font-size:12px}
+.diplomacy-detail{font-size:11px;color:#aec4c2;line-height:1.5;padding:9px 0}
+.diplomacy-action{width:100%;background:#264c40;color:#e4f5e9;border:1px solid #488568;border-radius:5px;padding:10px 12px;font-size:12px;font-weight:800;margin:4px 0}
+.diplomacy-action:hover:not(:disabled){background:#346c53}
+.diplomacy-action.warning{background:#43332b;border-color:#826b4e;color:#efd7a7}
+.diplomacy-action:disabled{opacity:.46;cursor:not-allowed}
+.diplomacy-inbox{margin:9px 0}
+.diplomacy-incoming{border:1px solid #698971;background:#163228;padding:10px;border-radius:6px;margin:8px 0;font-size:11px}
+.diplomacy-incoming strong{display:block;color:#d3f2df;margin-bottom:9px;line-height:1.5}
+.diplomacy-incoming button{background:#244a3b;color:#d1ecdc;border:1px solid #568b6f;border-radius:4px;font-size:11px;padding:6px 9px;margin-right:7px}
+.diplomacy-feedback{color:#c3d9c8;font-size:11px;line-height:1.5}
