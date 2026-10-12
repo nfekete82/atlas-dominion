@@ -718,10 +718,17 @@ export class Game {
     if(this.battleEvents.length<1600)this.battleEvents.push({
       tick:this.tick,index,attackerId:attacker.id,defenderId:owner,
       attacking:order.remaining+loss,defending:defenderLoss,
-      attackerLost:loss,defenderLost:defenderLoss,captured:true,
+      attackerLost:loss,defenderLost:defenderLoss,captured:false,
     });
-    this.captureTile(attacker,index);
-    return {time:tile.time,captured:true,loss};
+    // Stationed guards cannot simply vanish when a tile changes color.
+    // Repeated combat wears them down. Capture only when no actual defenders
+    // remain on this particular sector.
+    const captured=!(defender && this.frontline[index]>.01);
+    if(this.battleEvents.length && this.battleEvents[this.battleEvents.length-1].index===index &&
+      this.battleEvents[this.battleEvents.length-1].tick===this.tick)
+      this.battleEvents[this.battleEvents.length-1].captured=captured;
+    if(captured)this.captureTile(attacker,index);
+    return {time:tile.time,captured,loss};
   }
 
   /** Actual tile-by-tile assault. Existing attackers advance together from
@@ -754,7 +761,11 @@ export class Game {
         }).time;
         if(cost>budget){order.contested=index;break;}
         const result=this.resolveFrontTile(order,index,borderSize);
-        if(!result.captured){unreachable=true;break;}
+        if(!result.captured){
+          order.contested=index;
+          budget=Math.max(0,budget-result.time);
+          break; // resume this exact defended border on the next tick
+        }
         budget-=result.time;
         order.effort=Math.max(0,order.effort-result.time);
         order.conquered++;
