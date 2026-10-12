@@ -295,7 +295,7 @@ export class Game {
       people[id]+=this.frontline[i];
       if(this.buildings[i]===BUILDING_CODES.city){
         faction.builtCities++;
-        upgradeBonus[owner]+=cityUpgradeGrowth(this.cityUpgrades[i]);
+        upgradeBonus[id]+=cityUpgradeGrowth(this.cityUpgrades[i]);
       }
     }
     for(const order of this.attackOrders)people[order.factionId]+=order.remaining;
