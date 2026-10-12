@@ -433,7 +433,7 @@ $('warAlerts').addEventListener('click',e=>{
   if(alert)renderer.focusOnPoint({x:alert.index%480,y:Math.floor(alert.index/480)},2.2);
 });
 renderer.onSelect = (point:Point, landing:boolean) => {
-  soundscape.unlock();
+  soundscape.update({},true); // A real map click may resume opted-in audio.
   closeBuildMenu();
   // Left-click on friendly terrain must NEVER issue an attack or mobilize
   // soldiers. Right-click is still available for construction / defense.
@@ -774,7 +774,7 @@ $('diplomacyInbox').addEventListener('click',e=>{
 
 
 $('fullBtn').addEventListener('click',()=>{if(!document.fullscreenElement)void document.documentElement.requestFullscreen();else void document.exitFullscreen();});
-$('pauseBtn').addEventListener('click',()=>{game.paused=!game.paused;update();});
+$('pauseBtn').addEventListener('click',()=>{soundscape.update({},true);game.paused=!game.paused;update();});
 for(const button of document.querySelectorAll<HTMLButtonElement>('[data-doctrine]'))button.addEventListener('click',()=>{
   game.setDoctrine(button.dataset.doctrine as 'expand'|'blitz'|'fortify');beep(490);update();
 });
@@ -794,7 +794,7 @@ window.addEventListener('keydown',e=>{
   // Native controls must retain keyboard focus, Space activation and typing.
   const target=e.target as HTMLElement|null;
   if(target?.closest('button,input,textarea,select,[contenteditable="true"]'))return;
-  if(e.code==='Space') {e.preventDefault();game.paused=!game.paused;update();}
+  if(e.code==='Space') {e.preventDefault();soundscape.update({},true);game.paused=!game.paused;update();}
   if (e.code === 'KeyT') setAttackRatio(attackRatio-5);
   if (e.code === 'KeyY') setAttackRatio(attackRatio+5);
   if(['Digit1','Digit2','Digit3'].includes(e.code)){game.setDoctrine(({Digit1:'expand',Digit2:'blitz',Digit3:'fortify'} as const)[e.code as 'Digit1'|'Digit2'|'Digit3']);update();}
