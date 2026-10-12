@@ -7,7 +7,7 @@ export interface CaptureFrame {
   delay: number;
 }
 
-export const WAVE_DURATION_MS = 190;
+export const WAVE_DURATION_MS = 265;
 const WAVE_STEP_MS = 24;
 const MAX_DELAY_MS = 72;
 

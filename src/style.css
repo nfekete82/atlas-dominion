@@ -144,3 +144,14 @@
 .difficulty-picker p{margin:9px 0 0;color:#abc0bc;font-size:10px;line-height:1.4;min-height:14px}
 .difficulty-current{display:block;margin-top:5px;font-size:9px;letter-spacing:.9px;color:#e9c78e;font-weight:800}
 @media(max-width:640px){.difficulty-picker{padding:10px 16px}.difficulty-options{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.difficulty-options button{padding:8px 5px}.difficulty-picker p{font-size:9px}.difficulty-heading span{font-size:8px}}
+
+/* v1.6: discreet factual battle telemetry; the lively soldiers live on map. */
+.battle-report{display:flex;flex-wrap:wrap;gap:5px 9px;align-items:center;margin-top:7px;border-top:1px solid #44616d80;padding-top:8px;color:#d4e1dd}
+.battle-report-heading{display:flex;flex-wrap:wrap;gap:5px;align-items:center;width:100%;font-size:9px;letter-spacing:.45px;font-weight:800;line-height:1.4}
+.battle-report-heading span{color:#849ea2;padding:0 2px}
+.battle-report small{display:block;width:100%;color:#9cb1b3;font-size:9px;line-height:1.4}
+.battle-dot{display:inline-block;width:7px;height:7px;border-radius:50%;vertical-align:middle;box-shadow:0 0 6px currentColor}
+.battle-dot.blue{background:#54c5ff;color:#54c5ff}
+.battle-dot.red{background:#ff7275;color:#ff7275}
+.battle-report .battle-own-loss{color:#76cafa}
+.battle-report .battle-enemy-loss{color:#ff9c98}

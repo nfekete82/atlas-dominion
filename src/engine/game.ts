@@ -46,6 +46,20 @@ export interface Faction {
 }
 export interface City { name: string; x: number; y: number; index: number; original: number; owner: number; }
 export interface GameEvent { tick: number; text: string; color: string; }
+/** Immutable snapshots of ACTUAL frontline strikes for the renderer.
+ * They never move armies or change outcomes: this is combat telemetry.
+ */
+export interface BattleEvent {
+  tick:number;
+  index:number;
+  attackerId:number;
+  defenderId:number;
+  attacking:number;
+  defending:number;
+  attackerLost:number;
+  defenderLost:number;
+  captured:boolean;
+}
 export interface AttackOrder {
   id: number;
   factionId: number;
@@ -57,6 +71,8 @@ export interface AttackOrder {
   effort: number;
   fallen: number;
   conquered: number;
+  /** Last actually captured sector keeps the capture wave moving locally. */
+  lastCaptured?: number;
   landing?: boolean;
   startedTick?: number;
 }
@@ -154,6 +170,8 @@ export class Game {
   readonly attackOrders: AttackOrder[] = [];
   private nextAttackId = 1;
   private lastAttackerLoss = 0;
+  /** Combat during the most recent simulation tick (or direct strike). */
+  readonly battleEvents:BattleEvent[]=[];
   readonly seed: number;
   readonly playerCode: string;
   readonly difficulty: Difficulty;
@@ -601,7 +619,14 @@ export class Game {
       for(const n of LAND_NEIGHBORS[i]) if(this.owner[n]===order.factionId)friendly++;
       if(!friendly)continue;
       const city=this.cities.some(c=>c.index===i);
-      const next=friendly*1.4-Math.sqrt(d2)+(city?2:0);
+      // Prefer a cohesive outward-moving conquest over disconnected,
+      // arbitrary captures at distant points along the same country's border.
+      // The existing owner check + land neighbours remain authoritative.
+      const recent=order.lastCaptured;
+      const local=recent===undefined?0:Math.hypot(x-recent%MAP_WIDTH,
+        y-Math.floor(recent/MAP_WIDTH));
+      const flow=recent===undefined?0:Math.max(0,5.6-local*1.4);
+      const next=friendly*1.55-Math.sqrt(d2)*.62+flow+(city?2:0);
       if(next>score){best=i;score=next;}
     }
     return best;
@@ -627,7 +652,7 @@ export class Game {
         const lost=Math.min(order.remaining,this.lastAttackerLoss);
         order.remaining-=lost;
         order.fallen+=lost;
-        if(captured){order.conquered++;if(order.landing)order.landing=false;}
+        if(captured){order.conquered++;order.lastCaptured=index;if(order.landing)order.landing=false;}
       }
       if(unreachable||order.effort<1||order.remaining<1){
         // Survivors return to the mobile reserve. A reserve transfer is never
@@ -785,6 +810,13 @@ export class Game {
       defender.enemyFallen+=this.lastAttackerLoss;
       faction.enemyFallen+=defenderLosses;
     }
+    // Record measured troops and fatalities, never estimated fake unit counts.
+    // Capped so an extremely busy high-speed simulation stays renderable.
+    if(this.battleEvents.length<1600)this.battleEvents.push({
+      tick:this.tick,index,attackerId:faction.id,defenderId:originalOwner,
+      attacking:spent,defending:defenderLosses,
+      attackerLost:this.lastAttackerLoss,defenderLost:defenderLosses,captured,
+    });
     if(!captured)return false;
     this.owner[index] = faction.id;
     // Incrementally update local battlefronts as territory changes.
@@ -835,6 +867,7 @@ export class Game {
   step(): void {
     if (this.paused || this.status !== 'playing') return;
     this.tick++;
+    this.battleEvents.length=0;
     for(const faction of this.factions)faction.defenseFallenTick=0;
     if (this.tick >= this.aiGoalChange) {
       this.pickAIGoals();

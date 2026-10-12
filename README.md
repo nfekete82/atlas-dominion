@@ -3,6 +3,31 @@
 [![Build und Simulationstests](https://github.com/nfekete82/atlas-dominion/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/nfekete82/atlas-dominion/actions/workflows/ci.yml)
 
 
+**v1.6 – LEBENDIGE FRONTSCHLACHTEN, TRUPPENANIMATIONEN & ORGANISCHER VORMARSCH**
+
+### OpenFront-inspiriertes Spielgefühl mit eigener Implementierung
+- **Lebendige Fronten statt isolierter Kachelblitze:** Jeder reale Angriff erzeugt ein rein lesbares `BattleEvent` mit Angreiferland, Verteidigerland, Grenzsektor, tatsächlich eingesetzten Soldaten, realen Verteidigern, realen Toten und Eroberungsstatus. Die Daten beeinflussen nie den Kampf selbst.
+- **Blue vs Red:** In Gefechten, an denen der Spieler beteiligt ist, stehen **Blau für die eigenen**, **Rot für feindliche Truppen**, unabhängig davon, wer angreift. Andere KI-Kriege werden dezenter mit neutraler Farbe markiert, um Blau nicht fälschlich als KI zu bezeichnen.
+- **Soldaten-Gewusel und Kontaktfunken:** Kleine deterministic animierte Front-Einheiten bewegen sich von beiden Seiten auf die tatsächliche Landgrenze zu; Funkeneffekte nur bei echtem Verteidigerkontakt. Keine Pixel-Massen oder Fake-Armeen.
+- **Lesbare reale Truppenzahlen:** Nahe aktiven Spielerfronten kleine blau-rote Zahlenanzeigen. Die Zahl ist der *Höchstwert tatsächlich kämpfender Soldaten in einem einzelnen Gefecht dieser Runde* – nicht die Summe mehrfach eingesetzter gleicher Soldaten. Die gesamte im Angriff gebundene Armee wird weiterhin separat im rechten HUD angezeigt.
+- **Front-Clustering:** Gleichzeitige Schlachten zwischen denselben Ländern an benachbarten echten Grenzabschnitten werden gruppiert, nicht als Hunderte einzelner Badges dargestellt. Ein Limit von 34 sichtbaren Gruppen pro Bild und Viewport-Culling halten selbst die 50-Länder-Partie flüssig.
+- **Bessere Angriffsfolge:** Aktive Aufträge bevorzugen neu gewonnene zusammenhängende Frontabschnitte, statt zufällig über entfernte Teile desselben Nachbarlandes zu springen. Eroberungen erfolgen ausschließlich über reale angrenzende Landzellen; Seeangriffe benötigen weiterhin explizite Landungen.
+- **Organische Übernahme:** Die tatsächlich gekaperten Sektoren wechseln über 265 ms weich ihre Farbe und zeigen kurz einen warmen, abgerundeten Frontsaum, ohne Wasser oder unbeteiligte Länder einzufärben. Die finalen Ländergrenzen bleiben scharf.
+- **Barrierefreiheit:** Bei aktivierter Betriebssystem-Einstellung für reduzierte Bewegung wird der Soldatenpartikel-Effekt abgeschaltet. Die Kampfzahlen bleiben lesbar.
+- **UI:** Rechts kleine Blau-/Rot-Legende plus tatsächliche Kämpfe und Gefallene in dieser Runde; ansonsten nur die vertraute Karte.
+
+### Qualität
+`tests/front-battles.test.mjs` überprüft reale Grenzkontakte, korrekte Player/Enemy-Farblogik, keine Diagonal- oder Zeilensprünge, Gruppierung, keine erfundenen Neutral-Verteidiger, keine doppelt gezählten mehrfach kämpfenden Soldaten, reines Rendering ohne Spielmutation sowie deterministische Gefechte. Die Eroberungswellen-Regressionstests prüfen auch die 265-ms-Zeit und sauberes Auslaufen aller Effekte.
+
+```bash
+cd ~/Projects/atlas-dominion
+git switch main
+git pull --ff-only origin main
+npm test && PORT=8095 npm run dev
+```
+
+---
+
 **v1.5 – WÄHLBARER KI-SCHWIERIGKEITSGRAD VOR DEM SPIEL**
 
 OpenFront bietet im Einzelspieler-Setup vier Schwierigkeitsstufen. ATLAS DOMINION übernimmt das Prinzip mit eigenem Balancing. **Wähle im Startfenster zuerst eine KI-Stufe und dann dein Land.** Bei »Neues Spiel« kannst du erneut wählen.
