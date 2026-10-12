@@ -3,6 +3,7 @@ import { Game, NEUTRAL, WATER, pointToWorld, pointToIndex, seededRandom, type Po
 import { TerritoryWave, waveProgress } from './wave.js';
 import {organicCaptureRadius,burningFrontAlpha} from './capture-visual.js';
 import { pixelGridEdges } from './pixel-grid.js';
+import { territoryContours } from './territory-contours.js';
 import { buildingMarkerFor, showBuildingMarker, buildingMarkerFontSize } from './building-markers.js';
 // Keep natural-dark ocean and distinct faction colors; no pale map wash.
 import { COUNTRY_STARTS } from '../data/countries.js';
@@ -178,27 +179,21 @@ export class MapRenderer {
       c.fillStyle=this.game.factions[id].color+'be';
       c.fillRect(left,top,X_EDGES[col+1]-left,Y_EDGES[row+1]-top);
     }
-    // Draw territorial contours directly on pixel-aligned cell boundaries.
-    // Avoid the thick translucent halo that previously blurred captured squares.
-    const contours = this.game.factions.map(() => new Path2D());
-    for (let i = 0; i < owners.length; i++) {
-      const id = owners[i];
-      if (id < 0) continue;
-      const path=contours[id];
-      const col=i%MAP_WIDTH,row=Math.floor(i/MAP_WIDTH);
-      const x=X_EDGES[col],y=Y_EDGES[row],right=X_EDGES[col+1],bottom=Y_EDGES[row+1];
-      if(col===0 || owners[i-1]!==id){path.moveTo(x+.5,y);path.lineTo(x+.5,bottom);}
-      if(col===MAP_WIDTH-1 || owners[i+1]!==id){path.moveTo(right-.5,y);path.lineTo(right-.5,bottom);}
-      if(row===0 || owners[i-MAP_WIDTH]!==id){path.moveTo(x,y+.5);path.lineTo(right,y+.5);}
-      if(row===MAP_HEIGHT-1 || owners[i+MAP_WIDTH]!==id){path.moveTo(x,bottom-.5);path.lineTo(right,bottom-.5);}
-    }
+    // Marching squares creates rounded-looking diagonals and soft corners.
+    // This presentation-only pass never changes tile ownership or targeting.
+    const contours=territoryContours(owners,MAP_WIDTH);
     c.save();c.lineCap='round';c.lineJoin='round';
-    // Subdued anti-aliased contour rather than a bright double neon outline.
-    // Pixel-sector ownership and hit testing are deliberately unchanged.
-    for (const faction of this.game.factions) {
-      if (!counts[faction.id]) continue;
-      c.strokeStyle=faction.color+'36';c.lineWidth=1.7;c.stroke(contours[faction.id]);
-      c.strokeStyle='rgba(230,238,228,.19)';c.lineWidth=.65;c.stroke(contours[faction.id]);
+    for(const faction of this.game.factions){
+      if(!counts[faction.id])continue;
+      const segments=contours.get(faction.id);
+      if(!segments?.length)continue;
+      const path=new Path2D();
+      for(const [x1,y1,x2,y2] of segments){
+        path.moveTo(x1*CW,y1*CH);
+        path.lineTo(x2*CW,y2*CH);
+      }
+      c.strokeStyle=faction.color+'45';c.lineWidth=1.6;c.stroke(path);
+      c.strokeStyle='rgba(226,239,232,.23)';c.lineWidth=.65;c.stroke(path);
     }
     c.restore();
     // Show the player's structures first; at mid zoom keep only spatially
