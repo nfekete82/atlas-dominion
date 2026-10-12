@@ -49,39 +49,56 @@ test('manually reinforcing a threatened owned border transfers soldiers, never c
   assert.equal(game.reinforceBorder(0,cellToPoint(game.cities[1].index),35).ok,false);
 });
 
-test('left-clicking owned land on an invaded border creates a genuine cross-border counterattack',()=>{
+test('left-clicking an owned frontline NEVER deploys troops or creates counterattacks',()=>{
   const {game,own,invaded}=makeInvadedFront();
+  const before=game.populationOf(0);
+  const reserve=game.factions[0].troops;
+  const existing=structuredClone(game.attackOrders);
   const ownPoint=cellToPoint(own);
-  const front=game.findCounterattackFront(0,ownPoint);
-  assert.ok(front);
-  assert.equal(pointToIndex(front),invaded);
-  const population=game.populationOf(0);
-  const counter=game.launchAttack(0,ownPoint,35);
+  const friendly=game.launchAttack(0,ownPoint,35);
+  assert.deepEqual(friendly,{ok:false,reason:'Eigenes Gebiet – keine Truppen versendet.',sent:0});
+  assert.equal(game.populationOf(0),before);
+  assert.equal(game.factions[0].troops,reserve);
+  assert.deepEqual(game.attackOrders,existing);
+  assert.equal(game.battleEvents.length,0);
+
+  // Explicitly clicking the hostile side is still a proper counterattack.
+  const enemyPoint=cellToPoint(invaded);
+  const counter=game.launchAttack(0,enemyPoint,35);
   assert.equal(counter.ok,true);
   assert.equal(counter.targetOwner,1);
-  assert.deepEqual(counter.front,front);
-  assert.match(counter.reason,/Gegenangriff/i);
+  assert.deepEqual(counter.front,enemyPoint);
   assert.equal(game.attackOrders.at(-1).targetOwner,1);
-  assert.equal(game.populationOf(0),population,'committing counterattack troops is not a fatality');
+  assert.equal(game.populationOf(0),before,'mobilizing does not create/kill soldiers');
 });
 
-test('counterattacks cannot jump water or target nonadjacent states or our own cells',()=>{
-  const {game}=makeInvadedFront();
+test('friendly left clicks are inert even with Shift, near enemies or deep in owned land',()=>{
+  const {game,own}=makeInvadedFront();
+  const places=[own,game.cities[0].index,
+    game.owner.findIndex(o=>o===0)];
+  const total=game.populationOf(0);
+  const reserve=game.factions[0].troops;
+  for(const i of places){
+    assert.ok(i>=0);
+    assert.equal(game.launchAttack(0,cellToPoint(i),35).ok,false);
+    assert.equal(game.launchLanding(0,cellToPoint(i),35).ok,false);
+  }
+  assert.equal(game.factions[0].troops,reserve);
+  assert.equal(game.populationOf(0),total);
+  assert.equal(game.attackOrders.length,0);
   const water=game.owner.findIndex(o=>o===WATER);
-  assert.equal(game.findCounterattackFront(0,cellToPoint(water)),null);
-  assert.equal(game.findCounterattackFront(0,game.cities[1]),null);
-  assert.equal(game.findCounterattackFront(0,{x:-1,y:0}),null);
-  assert.equal(game.findCounterattackFront(0,{x:MAP_WIDTH,y:0}),null);
   assert.equal(game.launchAttack(0,cellToPoint(water),35).ok,false);
+  assert.equal(game.launchAttack(0,{x:-1,y:0},35).ok,false);
+  assert.equal(game.launchAttack(0,{x:MAP_WIDTH,y:0},35).ok,false);
 });
 
-test('loss and border-counterattack behavior remains deterministic across ticks',()=>{
+test('loss and explicit hostile-border attacks remain deterministic across ticks',()=>{
   const a=makeInvadedFront(721),b=makeInvadedFront(721);
   const x=a.game,y=b.game;
   assert.deepEqual(x.reinforceBorder(0,cellToPoint(a.own),35),
     y.reinforceBorder(0,cellToPoint(b.own),35));
-  assert.deepEqual(x.launchAttack(0,cellToPoint(a.own),40),
-    y.launchAttack(0,cellToPoint(b.own),40));
+  assert.deepEqual(x.launchAttack(0,cellToPoint(a.invaded),40),
+    y.launchAttack(0,cellToPoint(b.invaded),40));
   for(let i=0;i<12;i++){x.step();y.step();}
   assert.deepEqual([...x.owner],[...y.owner]);
   assert.deepEqual(x.attackOrders,y.attackOrders);
