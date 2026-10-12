@@ -699,7 +699,7 @@ export class Game {
         const dist=(x-cx)**2+(y-cy)**2;
         if(dist<nearest)nearest=dist;
       }
-      if(nearest<49)continue; // Seven-sector spacing, still avoids city spam.
+      if(nearest<100)continue; // Ten-sector minimum from every existing city.
       const score=Math.min(nearest,1000)-Math.abs(nearest-196)*.09;
       const zone=id*zoneColumns*zoneRows+Math.floor(y/12)*zoneColumns+Math.floor(x/12);
       const previous=zoneBest.get(zone);
@@ -729,7 +729,7 @@ export class Game {
       for(const candidate of choices[id]){
         if(builds>=maxBuilds||actions>=maxActions)break;
         const index=candidate.index,x=index%MAP_WIDTH,y=Math.floor(index/MAP_WIDTH);
-        if(newCities.some(([cx,cy])=>(cx-x)**2+(cy-y)**2<49))continue;
+        if(newCities.some(([cx,cy])=>(cx-x)**2+(cy-y)**2<100))continue;
         if(this.owner[index]!==id||this.buildings[index])continue;
         const cost=BUILDINGS[0].cost;
         if(faction.money<cost)break;
