@@ -128,3 +128,19 @@
 .stat #mobileTroops{color:#b2d7d3}
 .stat #frontTroops,.stat #offensiveTroops{color:#d6c7a6}
 .stat #fallenTroops{color:#f0a094}
+
+/* v1.5: Choose the enemy AI difficulty before selecting a country. */
+.difficulty-picker{padding:12px 32px 14px;border-top:1px solid #293e43;background:#11242c}
+.difficulty-heading{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-bottom:9px}
+.difficulty-heading strong{font-size:10px;letter-spacing:1.4px;color:#e6c38c}
+.difficulty-heading span{font-size:9px;letter-spacing:.8px;color:#8ca3a4}
+.difficulty-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.difficulty-options button{min-width:0;border:1px solid #3a5155;background:#172e36;color:#dbe8e3;padding:11px 8px;border-radius:5px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+.difficulty-options button strong{display:block;letter-spacing:.65px;font-size:11px}
+.difficulty-options button small{display:block;color:#9cb3b2;font-size:9px;margin-top:5px}
+.difficulty-options button:hover,.difficulty-options button:focus-visible{border-color:#d6b375;background:#25403f}
+.difficulty-options button.selected{background:#463c2c;color:#fff0c9;border-color:#e9bb69;box-shadow:inset 0 0 0 1px #c89e5650}
+.difficulty-options button.selected small{color:#f1d29e}
+.difficulty-picker p{margin:9px 0 0;color:#abc0bc;font-size:10px;line-height:1.4;min-height:14px}
+.difficulty-current{display:block;margin-top:5px;font-size:9px;letter-spacing:.9px;color:#e9c78e;font-weight:800}
+@media(max-width:640px){.difficulty-picker{padding:10px 16px}.difficulty-options{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.difficulty-options button{padding:8px 5px}.difficulty-picker p{font-size:9px}.difficulty-heading span{font-size:8px}}
