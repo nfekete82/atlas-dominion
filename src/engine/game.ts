@@ -2170,12 +2170,12 @@ export class Game {
     if (this.paused || this.status !== 'playing') return;
     const beforeMobile=this.factions[0].troops;
     this.tick++;
+    this.battleEvents.length=0;
     this.moveSquads();
     this.resolveSquadContacts();
     this.commandRTSAI();
     this.updateDiplomacy();
     this.deliverDefensiveAid();
-    this.battleEvents.length=0;
     for(const faction of this.factions)faction.defenseFallenTick=0;
     if (this.tick >= this.aiGoalChange) {
       this.pickAIGoals();
