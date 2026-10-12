@@ -174,9 +174,12 @@ export class MapRenderer {
       const front = this.game.frontline[i];
       stationed[id] += front;
       if (front > 0.1) regional[id].push({index:i,troops:front});
-      // Native bitmap-aligned cell edges keep every square sharp, with NO
-      // fractional alpha bleeding, gaps or overlapping 0.45px overdraw.
-      // No per-tile fill: organic polygons below own all visual territory color.
+      // Guaranteed coverage for every owned sector. Contour paths below are
+      // decorative and must never determine whether land is visible.
+      const col=i%MAP_WIDTH,row=Math.floor(i/MAP_WIDTH);
+      const left=X_EDGES[col],top=Y_EDGES[row];
+      c.fillStyle=this.game.factions[id].color+'be';
+      c.fillRect(left,top,X_EDGES[col+1]-left,Y_EDGES[row+1]-top);
     }
     // Marching squares creates rounded-looking diagonals and soft corners.
     // This presentation-only pass never changes tile ownership or targeting.
@@ -196,13 +199,8 @@ export class MapRenderer {
       }
       paths.set(faction.id,path);
     }
-    // Paint all territory fills first so borders cannot disappear under neighbors.
-    for(const faction of this.game.factions){
-      const path=paths.get(faction.id);
-      if(!path)continue;
-      c.fillStyle=faction.color+'be';
-      c.fill(path,'evenodd');
-    }
+    // Never refill from possibly incomplete contour rings: they only draw
+    // outlines. Cell ownership is authoritative for map coverage.
     for(const faction of this.game.factions){
       const path=paths.get(faction.id);
       if(!path)continue;
