@@ -136,7 +136,7 @@ renderer.onSelect = (point:Point, landing:boolean) => {
   closeBuildMenu();
   const result = landing ? game.launchLanding(0, point, attackRatio) : game.launchAttack(0, point, attackRatio);
   attackMessage=result.ok
-    ? `${format(result.sent)} ⚔ · ${result.targetOwner===-1?'Expansion':result.reason}`
+    ? `${format(result.sent)} ⚔ · ${result.reason}`
     : result.reason;
   attackMessageKind = result.ok ? 'success' : 'error';
   beep(result.ok ? 620 : 190);
