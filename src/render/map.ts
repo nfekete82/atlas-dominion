@@ -279,7 +279,7 @@ export class MapRenderer {
     const i=Math.floor(point.y)*MAP_WIDTH+Math.floor(point.x);
     if(i===this.hoverIndex)return this.hoverFront;
     return this.game.owner[point.y*MAP_WIDTH+point.x]===0
-      ? this.game.findCounterattackFront(0,point)
+      ? null // Friendly left-clicks are informational, never offensive.
       : (this.game.findAttackFront(0,point)??this.game.landingTarget(0,point));
   }
 
@@ -291,9 +291,8 @@ export class MapRenderer {
     if(!force && index===this.hoverIndex)return;
     this.hoverIndex=index;
     const owner=index>=0?this.game.owner[index]:WATER;
-    const front=point && owner!==WATER
-      ? owner===0?this.game.findCounterattackFront(0,point)
-        :(this.game.findAttackFront(0,point)??this.game.landingTarget(0,point))
+    const front=point && owner!==WATER && owner!==0
+      ? (this.game.findAttackFront(0,point)??this.game.landingTarget(0,point))
       :null;
     this.hoverFront=front;
     const highlight=front?this.game.owner[pointToIndex(front)]:WATER;
@@ -324,9 +323,12 @@ export class MapRenderer {
     const x = Math.floor(point.x), y = Math.floor(point.y);
     if (x < 0 || y < 0 || x >= MAP_WIDTH || y >= MAP_HEIGHT) return false;
     const owner=this.game.owner[y*MAP_WIDTH+x];
-    return owner!==WATER && this.previewFront(point)!==null;
+    return owner!==WATER && owner!==0 && this.previewFront(point)!==null;
   }
-  canLand(point: Point): boolean { return this.game.landingTarget(0,point)!==null; }
+  canLand(point: Point): boolean {
+    const i=point.y*MAP_WIDTH+point.x;
+    return this.game.owner[i]!==0 && this.game.landingTarget(0,point)!==null;
+  }
   /** Screen-space rendering and hit testing share the same visible bounds.
    * Labels and actual combat counters have priority. Crowded cities reappear
    * when zooming in; their world positions and ownership never change.
