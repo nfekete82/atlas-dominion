@@ -359,7 +359,7 @@ $('miniCanvas').addEventListener('click',e=>{
   if(modalVisible)return;
   const r=$('miniCanvas').getBoundingClientRect();
   const point=minimapTarget(e.clientX-r.left,e.clientY-r.top,r.width,r.height);
-  if(point)renderer.focusOnPoint(point,renderer.zoom);
+  if(point)renderer.focusOnPoint(point,0.8);
   renderStrategicMinimap();
 });
 $('miniCanvas').addEventListener('keydown',e=>{
