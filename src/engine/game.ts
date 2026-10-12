@@ -771,8 +771,7 @@ export class Game {
         id:this.nextAttackId++,factionId:id,targetOwner:owner,
         anchor:front,committed,remaining:committed,effort:campaignEffort(committed),
         fallen:0,conquered:0,trail:[],progress:0,landing,startedTick:this.tick,
-        departure:departure===undefined?undefined:cellToPoint(departure),
-        arrivalTick:landing?this.tick+8:undefined,
+        ...(landing&&departure!==undefined?{departure:cellToPoint(departure),arrivalTick:this.tick+8}:{ }),
       });
     }
     // Neutral attacks only show a concise order status in the HUD, never
