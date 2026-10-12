@@ -11,7 +11,7 @@ import { buildingMarkerFor, cityVisibleAtZoom, drawCityMarker, cityMarkerBounds,
 import { COUNTRY_STARTS } from '../data/countries.js';
 import {formatCompact} from '../format.js';
 import {militarySummaries,relativeStrength,strengthLabel,mobileStrengthLabel,type MilitarySummary} from '../military-view.js';
-import {groupBattles,visualNoise,type FrontGroup} from './front-battles.js';
+import {groupBattles,visualNoise,combatVisualDensity,battleMomentum,type FrontGroup} from './front-battles.js';
 
 const CW = WORLD_WIDTH / MAP_WIDTH;
 const CH = WORLD_HEIGHT / MAP_HEIGHT;
@@ -538,35 +538,56 @@ export class MapRenderer {
       shown++;
       this.occupancy.reserve({x:x-24,y:y-24,width:48,height:48});
       const dx=group.dx,dy=group.dy,nx=-dy,ny=dx;
-      const crowd=Math.min(22,Math.max(5,Math.floor(3+Math.sqrt(magnitude)*1.1)));
       const isPlayer=group.playerBattle;
       const side1=isPlayer?'#54c5ff':'#b8d8bc';
       const side2=isPlayer?'#ff7275':'#f3aa75';
-      // Draw a few lightweight moving soldiers per side, rather than
-      // thousands of real sprites. All movement is deterministic by seed.
-      if(!this.reducedMotion){
+      const pressure=battleMomentum(group.attacker,group.defender);
+      const contactX=x+dx*pressure*2.8,contactY=y+dy*pressure*2.8;
+      // A real contact point glows in two colors, like two armies colliding.
+      // The tiny silhouettes are bounded visual symbols, not generated units.
+      c.globalAlpha=fade*.30;
+      c.strokeStyle=side1;c.lineWidth=2.4;c.beginPath();
+      c.moveTo(contactX+nx*12-dx*1.5,contactY+ny*12-dy*1.5);
+      c.lineTo(contactX-nx*12-dx*1.5,contactY-ny*12-dy*1.5);c.stroke();
+      c.strokeStyle=side2;c.beginPath();
+      c.moveTo(contactX+nx*12+dx*1.5,contactY+ny*12+dy*1.5);
+      c.lineTo(contactX-nx*12+dx*1.5,contactY-ny*12+dy*1.5);c.stroke();
+      if(!this.reducedMotion || this.zoom>=1.25){
         for(let side=0;side<2;side++){
-          if(side===1 && (isPlayer?group.red:group.defender)<=0)continue;
-          c.strokeStyle=side===0?side1:side2;
-          c.fillStyle=c.strokeStyle;
-          for(let i=0;i<crowd;i++){
+          const strength=side===0?(isPlayer?group.blue:group.attacker)
+            :(isPlayer?group.red:group.defender);
+          const number=combatVisualDensity(strength,this.zoom);
+          if(!number)continue;
+          const tint=side===0?side1:side2;
+          const sideSign=side===0?-1:1;
+          c.fillStyle=tint;c.strokeStyle=tint;
+          for(let i=0;i<number;i++){
             const seed=group.seed+side*10007+i*43;
-            const phase=(timestamp*(.00075+visualNoise(seed,0)*.00055)
+            const phase=this.reducedMotion?.50:(timestamp*(.00072+visualNoise(seed,0)*.00048)
               +visualNoise(seed,1))%1;
-            const lane=(visualNoise(seed,2)-.5)*Math.min(20,8+group.strikes*1.5);
-            const sideSign=side===0?-1:1;
-            // Come in from the two opposing sides toward the border.
-            const travel=sideSign*(4.3+9.2*(1-phase));
-            const px=x+dx*travel+nx*lane,py=y+dy*travel+ny*lane;
-            const length=1.3+visualNoise(seed,4)*1.4;
-            c.globalAlpha=fade*(.38+phase*.6);
-            c.lineWidth=1.2;
-            c.beginPath();
-            c.moveTo(px-dx*sideSign*length,py-dy*sideSign*length);
-            c.lineTo(px+dx*sideSign*length,py+dy*sideSign*length);
-            c.stroke();
+            const lane=(visualNoise(seed,2)-.5)*Math.min(37,17+group.strikes*2.5);
+            // Troops flow from their OWN side toward the true contact normal.
+            const travel=sideSign*(4.7+13.4*(1-phase));
+            const px=contactX+dx*travel+nx*lane,py=contactY+dy*travel+ny*lane;
+            const foot=1+visualNoise(seed,4)*.5;
+            c.globalAlpha=fade*(.36+phase*.55);
+            c.beginPath();c.arc(px,py,1.2+this.zoom*.1,0,Math.PI*2);c.fill();
+            if(this.zoom>=1.25){
+              // Directional tail/boots distinguish marching squads from confetti.
+              c.lineWidth=1.1;
+              c.beginPath();c.moveTo(px+dx*sideSign*foot,py+dy*sideSign*foot);
+              c.lineTo(px+dx*sideSign*(foot+2.7),py+dy*sideSign*(foot+2.7));
+              c.stroke();
+            }
           }
         }
+      }
+      // Conquest shockwave is emitted ONLY for real captured sectors.
+      if(group.captures>0&&!this.reducedMotion){
+        const phase=Math.min(1,since/460);
+        c.globalAlpha=fade*(1-phase)*.52;
+        c.strokeStyle='#ffe6ac';c.lineWidth=1.5;
+        c.beginPath();c.arc(contactX,contactY,5+phase*22,0,Math.PI*2);c.stroke();
       }
       // Local contact sparks appear only when there really were defenders.
       if((isPlayer?group.red:group.defender)>0){
@@ -586,18 +607,21 @@ export class MapRenderer {
       if(labels.some(p=>Math.abs(p.x-labelX)<79&&Math.abs(p.y-labelY)<20))continue;
       labels.push({x:labelX,y:labelY});
       // Small, unobtrusive split counters sit on the actual contested border.
-      const bw=78,bh=15;
+      const bw=90,bh=18;
       this.occupancy.reserve({x:labelX-bw/2,y:labelY-bh/2,width:bw,height:bh});
-      c.globalAlpha=fade*.92;
-      c.fillStyle='rgba(5,20,28,.85)';
-      c.strokeStyle='rgba(133,160,166,.35)';
-      c.lineWidth=.6;
-      c.beginPath();c.roundRect(labelX-bw/2,labelY-bh/2,bw,bh,3);c.fill();c.stroke();
-      c.textAlign='center';c.font='700 8px system-ui';
-      c.fillStyle=side1;c.fillText('●',labelX-33,labelY);
-      c.fillStyle='#d7f4ff';c.fillText(formatCompact(group.blue),labelX-16,labelY,30);
-      c.fillStyle=side2;c.fillText('●',labelX+9,labelY);
-      c.fillStyle='#ffddd9';c.fillText(formatCompact(group.red),labelX+25,labelY,28);
+      c.globalAlpha=fade*.96;
+      c.fillStyle='rgba(5,20,28,.93)';
+      c.strokeStyle='rgba(175,194,203,.40)';
+      c.lineWidth=.8;
+      c.beginPath();c.roundRect(labelX-bw/2,labelY-bh/2,bw,bh,4);c.fill();c.stroke();
+      // Two status strips make the real opposing army counts readable.
+      c.fillStyle=side1;c.fillRect(labelX-bw/2+3,labelY-bh/2+2,40,2);
+      c.fillStyle=side2;c.fillRect(labelX+2,labelY-bh/2+2,40,2);
+      c.textAlign='center';c.font='750 9px system-ui';
+      c.fillStyle=side1;c.fillText('●',labelX-38,labelY+1);
+      c.fillStyle='#d7f4ff';c.fillText(formatCompact(group.blue),labelX-17,labelY+1,30);
+      c.fillStyle=side2;c.fillText('●',labelX+7,labelY+1);
+      c.fillStyle='#ffddd9';c.fillText(formatCompact(group.red),labelX+27,labelY+1,28);
       c.globalAlpha=1;
     }
     c.restore();
