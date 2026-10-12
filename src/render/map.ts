@@ -471,12 +471,12 @@ export class MapRenderer {
       if(own===undefined)continue;
       const ox=own%MAP_WIDTH,oy=Math.floor(own/MAP_WIDTH);
       const x=this.ox+(ex+ox+1)*.5*CW*this.scale;
-      const y=this.oy+(ey+oy+1)*.5*CH*this.scale-18;
+      const y=this.oy+(ey+oy+1)*.5*CH*this.scale+16;
       if(x<42||y<50||x>w-42||y>h-35)continue;
       if(shown.some(p=>Math.abs(p.x-x)<79&&Math.abs(p.y-y)<22))continue;
-      // Do not duplicate a current fight's own live blue/red counter.
-      if(this.frontGroups.some(g=>g.playerBattle&&
-        Math.hypot(g.x-(ex+.5),g.y-(ey+.5))<5))continue;
+      // Assigned army count sits below the small live-clash counters:
+      // blue = whole surviving offensive, while the battle badge above it
+      // shows only the troops in the most recent individual confrontation.
       shown.push({x,y});
       c.globalAlpha=.86;
       c.fillStyle='rgba(5,20,28,.8)';
