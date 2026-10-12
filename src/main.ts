@@ -353,74 +353,58 @@ window.addEventListener('pointerdown',e=>{
 });
 renderer.onHover=(point,px,py,landing)=>{
   const tooltip=$('mapInfo');
-  if(!point || game.owner[pointToIndex(point)]===WATER){tooltip.hidden=true;return;}
+  if(!point || game.owner[pointToIndex(point)]===WATER){
+    tooltip.hidden=true;
+    return;
+  }
   tooltip.hidden=false;
   const id=game.owner[pointToIndex(point)];
-  const f=id>=0?game.factions[id]:null;
+  const faction=id>=0?game.factions[id]:null;
   const owner=$('hoverOwner');
-  owner.textContent=f?.name??'UNBESETZTES GEBIET';
-  owner.style.color=f?.color??'#bcc5bb';
+  owner.textContent=faction?.name??'Neutrales Gebiet';
+  owner.style.color=faction?.color??'#c6d0cb';
+
+  // Two numbers are sufficient for tactical decisions. Detailed breakdown,
+  // economy, city tiers and combat statistics remain in the main sidebar.
   const details=$('hoverMilitary');
-  const summary=renderer.military[id];
+  const summary=id>=0?renderer.military[id]:undefined;
   details.hidden=!summary;
   if(summary){
-    const relative=relativeStrength(summary.total,renderer.military[0].total);
-    const rows=[
-      ['GESAMTSTÄRKE / BEVÖLKERUNG',format(summary.total)],
-      ['MOBILE TRUPPEN',format(summary.mobile)],
-      ['GRENZTRUPPEN GESAMT',format(summary.border)],
-      ['AKTIVE ANGRIFFSFRONTEN',String(summary.fronts)],
-      ['IM EINSATZ / AUF SEE',format(summary.deployed)],
-      ['STÄDTE',String(summary.cities)],
-      ['Ø STADTLEVEL (INKL. HAUPTSTÄDTE)',`${format(summary.averageCityLevel,1)} / 5`],
-      ['EINKOMMEN / TICK',`+${format(summary.income,1)} Geld`],
-      ['WACHSTUM / TICK',`+${format(summary.growth,1)}`],
-      ['STÄRKE VS. SPIELER',`${relative.text} · ${relative.danger==='weaker'?'SCHWÄCHER':relative.danger==='stronger'?'STÄRKER':'ÄHNLICH'}`],
-    ];
-    // Reuse DOM nodes on pointer movement; never interpolate country data as HTML.
-    if(!details.children.length)for(const _ of rows){
-      const row=document.createElement('div');row.append(document.createElement('span'),document.createElement('b'));details.append(row);
+    if(details.children.length!==2){
+      details.replaceChildren();
+      for(const _ of [0,1]){
+        const row=document.createElement('div');
+        row.append(document.createElement('span'),document.createElement('b'));
+        details.append(row);
+      }
     }
-    rows.forEach(([label,value],i)=>{
-      const row=details.children[i];row.children[0].textContent=label;row.children[1].textContent=value;
+    const values:[string,string][]=[
+      ['⚔ Gesamt',format(summary.total)],
+      ['● Mobil',format(summary.mobile)],
+    ];
+    values.forEach(([label,value],i)=>{
+      const row=details.children[i];
+      row.children[0].textContent=label;
+      row.children[1].textContent=value;
     });
-    (details.lastElementChild as HTMLElement).style.color=relative.color;
   }
-  const built=game.buildingAt(point);
-  const buildingName=BUILDINGS.find(b=>b.type===built)?.name;
-  $('hoverCoords').textContent=`SEKTOR ${point.x} / ${point.y} · ${built==='city'?`STADT STUFE ${game.cityLevelAt(point)}/5`:buildingName?.toUpperCase()??(id===NEUTRAL?'NEUTRAL':'KONTROLLIERT')}`;
-  const tile = pointToIndex(point);
-  const attackFront=renderer.previewFront(point);
-  const actualTarget=attackFront?game.owner[pointToIndex(attackFront)]:id;
-  const defendedSector = attackFront ? pointToIndex(attackFront) : tile;
-  const stationedLocal = game.frontline[defendedSector];
-  const sectorDefense = game.sectorDefense(defendedSector);
-  $('hoverStats').textContent = f
-    ? `⬡ ${format(stationedLocal)} GRENZTRUPPEN · ${format(sectorDefense)} ${attackFront?'ANGRIFFSFRONT':'LOKALE VERTEIDIGUNG'}`
-    : '⚔ UNBESETZT';
-  const matchup=$('hoverPower');
-  const power=actualTarget>=0 && actualTarget!==0 ? game.relativeAttackPower(0,actualTarget):1;
-  matchup.hidden=actualTarget<0||actualTarget===0;
-  matchup.textContent=power<.96
-    ? `ANGRIFFSWIRKUNG: ${Math.round(power*100)} % · STARKER GEGNER`
-    : power>1.04
-      ? `ANGRIFFSWIRKUNG: ${Math.round(power*100)} % · MACHTVORTEIL`
-      : `ANGRIFFSWIRKUNG: ${Math.round(power*100)} % · AUSGEGLICHEN`;
-  matchup.style.color=power<.96?'#f1a99b':power>1.04?'#9be3bd':'#d2dce0';
-  const action = $('hoverAction');
-  const attackable = renderer.canAttack(point);
-  const canLand = renderer.canLand(point);
-  action.textContent = id===0 ? 'EIGENES LAND · LINKSKLICK: KEINE AKTION · RECHTSKLICK: STADT / GRENZPOSTEN'
-    : game.isAllied(0,id) ? '🤝 VERBÜNDET · KEIN ANGRIFF · DIPLOMATIE IM SEITENMENÜ'
-    : canLand && !game.findAttackFront(0,point) ? `KLICK: ${attackRatio} % SEELANDUNG`
-    : attackable ? `KLICK: ${attackRatio} % · ANGRIFF AUF ${f?.name ?? 'NEUTRALGEBIET'}`
-    : canLand ? 'KLICK: SEELANDUNG'
-    : 'KEINE ERREICHBARE LANDFRONT';
-  action.classList.toggle('blocked',!attackable&&!canLand&&id!==0);
+
+  const action=$('hoverAction');
+  const allied=id>=0&&game.isAllied(0,id);
+  const attackable=id!==0&&!allied&&renderer.canAttack(point);
+  const canLand=id!==0&&!allied&&renderer.canLand(point);
+  action.textContent=id===0?'Rechtsklick: Stadt / Verteidigung'
+    : allied?'🤝 Verbündet · Rechtsklick: Beenden'
+    : canLand&&!game.findAttackFront(0,point)?'Links: Seeangriff · Rechts: Koalition'
+    : attackable?`Links: Angriff ${attackRatio} % · Rechts: Koalition`
+    : id>=0?'Rechtsklick: Koalition':'Kein Angriff möglich';
+  action.classList.toggle('blocked',!attackable&&!canLand&&id!==0&&!allied);
+
+  // Reposition using the *reduced* dimensions, also near the screen edges.
   const bounds=tooltip.getBoundingClientRect();
   const width=renderer.canvas.clientWidth,height=renderer.canvas.clientHeight;
-  const left=px+24+bounds.width<=width-4?px+24:px-bounds.width-24;
-  const top=py+24+bounds.height<=height-4?py+24:py-bounds.height-24;
+  const left=px+20+bounds.width<=width-4?px+20:px-bounds.width-20;
+  const top=py+20+bounds.height<=height-4?py+20:py-bounds.height-20;
   tooltip.style.left=Math.max(4,Math.min(left,width-bounds.width-4))+'px';
   tooltip.style.top=Math.max(4,Math.min(top,height-bounds.height-4))+'px';
 };
