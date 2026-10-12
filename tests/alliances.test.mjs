@@ -100,3 +100,51 @@ test('alliance AI produces deterministic diplomacy and cannot attack own treaty 
       'live attack orders must never target an ally');
   }
 });
+
+test('AI refuses a weak coalition proposal when it has little strategic value',()=>{
+  const g=world(214);
+  g.factions[0].troops=1;
+  g.factions[1].troops=2500;
+  g.recount();
+  const judgment=g.evaluateAlliance(0,1);
+  assert.ok(judgment.score<judgment.threshold);
+  assert.equal(judgment.accepted,false);
+  assert.match(judgment.reason,/militärischer Nutzen|strategischer Vorteil/);
+  const money=g.factions.map(f=>f.money);
+  const troops=g.factions.map(f=>f.troops);
+  const result=g.offerAlliance(0,1);
+  assert.equal(result.ok,false);
+  assert.match(result.reason,/lehnt|abgelehnt/);
+  assert.equal(g.alliances.length,0,'rejected offers must not create a pact');
+  assert.deepEqual(g.factions.map(f=>f.money),money);
+  assert.deepEqual(g.factions.map(f=>f.troops),troops);
+});
+
+test('AI can accept the very same offer after the proposer becomes strategically useful',()=>{
+  const g=world(228);
+  g.factions[0].troops=1;
+  g.factions[1].troops=2300;
+  g.recount();
+  const refused=g.evaluateAlliance(0,1);
+  assert.equal(refused.accepted,false);
+  g.factions[0].troops=5200;
+  g.recount();
+  const attractive=g.evaluateAlliance(0,1);
+  assert.equal(attractive.accepted,true);
+  assert.ok(attractive.score>refused.score);
+  assert.equal(g.offerAlliance(0,1).ok,true);
+  assert.equal(g.isAllied(0,1),true);
+  assert.equal(g.isAllied(1,0),true);
+});
+
+test('coalition evaluation is a pure deterministic calculation with no hidden side effects',()=>{
+  const g=world(312);
+  const snapshot=JSON.stringify(g.exportSave());
+  const first=g.evaluateAlliance(0,2);
+  const second=g.evaluateAlliance(0,2);
+  assert.deepEqual(first,second);
+  assert.equal(JSON.stringify(g.exportSave()),snapshot);
+  assert.equal(g.evaluateAlliance(0,0).accepted,false);
+  assert.equal(g.evaluateAlliance(0,999).accepted,false);
+  assert.equal(g.evaluateAlliance(999,1).accepted,false);
+});
