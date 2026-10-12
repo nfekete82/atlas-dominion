@@ -395,7 +395,15 @@ export class MapRenderer {
       const level=this.game.cityUpgrades[marker.index];
       this.occupancy.reserve(bounds);
       this.visibleCityMarkers.push({index:marker.index,x,y,level,bounds});
-      drawCityMarker(c,x,y,level,marker.owner);
+      if(marker.code===1)drawCityMarker(c,x,y,level,marker.owner);
+      else {
+        const glyph=marker.code===3?'⚙':'♜';
+        c.save();c.textAlign='center';c.textBaseline='middle';
+        c.font='bold 21px sans-serif';
+        c.fillStyle=marker.owner===0?'#f5d79b':'#cee0e4';
+        c.strokeStyle='#10252c';c.lineWidth=3;
+        c.strokeText(glyph,x,y);c.fillText(glyph,x,y);c.restore();
+      }
     };
     const selected=markers.find(marker=>marker.index===hovered);
     if(selected)draw(selected);
