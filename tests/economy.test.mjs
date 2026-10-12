@@ -155,3 +155,28 @@ test('new games stay numerically stable through sustained real AI turns',()=>{
     assert.ok(faction.money<100000);
   }
 });
+
+test('city can be upgraded five times, each level costs money and boosts growth',()=>{
+  const g=new Game(711,1,'DE');
+  const idx=g.owner.findIndex((owner,i)=>owner===0&&g.buildings[i]===0);
+  assert.ok(idx>=0);
+  const point={x:idx%480,y:Math.floor(idx/480)};
+  g.factions[0].money=10000;
+  assert.equal(g.build(0,point,'city').ok,true);
+  const before=g.factions[0].income;
+  let previous=before;
+  for(let n=1;n<=5;n++){
+    const allowed=g.canUpgradeCity(0,point);
+    assert.equal(allowed.ok,true);
+    const money=g.factions[0].money;
+    const result=g.upgradeCity(0,point);
+    assert.equal(result.ok,true);
+    assert.equal(g.cityLevelAt(point),n);
+    assert.equal(g.factions[0].money,money-result.cost);
+    assert.ok(g.factions[0].income>previous);
+    previous=g.factions[0].income;
+  }
+  assert.equal(g.canUpgradeCity(0,point).ok,false);
+  assert.equal(g.upgradeCity(0,point).ok,false);
+  assert.ok(g.factions[0].income>before);
+});
