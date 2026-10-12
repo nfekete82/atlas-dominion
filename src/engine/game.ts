@@ -7,6 +7,7 @@ import { findConnectedAttackFront } from './front-target.js';
 import {aiStyle,scoreAIFront} from './ai-strategy.js';
 import {aiMarchRecovery,aiAttacksPerTick,aiStrikeSize,aiDefenseAllocation,aiRiskTolerance} from './ai-tactics.js';
 import {formatCompact} from '../format.js';
+import {chooseAdvancingSector,canReinforceFront} from './offensive-front.js';
 import {DIFFICULTY_SETTINGS,isDifficulty,difficultyAttempts,difficultyDefenseBudget,difficultyRisk,type Difficulty,type DifficultySettings} from './difficulty.js';
 
 export const WATER = -2;
@@ -73,6 +74,10 @@ export interface AttackOrder {
   conquered: number;
   /** Last actually captured sector keeps the capture wave moving locally. */
   lastCaptured?: number;
+  /** Enemy sector currently under sustained pressure. */
+  contested?: number;
+  /** Bounded chronological capture history, extending the live attack wave. */
+  trail?: number[];
   landing?: boolean;
   startedTick?: number;
 }
@@ -586,50 +591,49 @@ export class Game {
     if(owner===id || owner===WATER)return failed('Kein feindlicher Grenzsektor gefunden.');
     const sent = Math.floor(attacker.troops * ratio / 100);
     if (sent < 8) return failed('Mindestens 8 mobile Truppen erforderlich.');
-    attacker.troops -= sent;
-    this.attackOrders.push({
-      id:this.nextAttackId++, factionId:id, targetOwner:owner,
-      anchor:front, committed:sent, remaining:sent, effort:campaignEffort(sent), fallen:0, conquered:0,
-      landing, startedTick:this.tick,
-    });
-    if (id === 0) this.log(`${landing?'Seelandung':counter?'Gegenangriff':'Grenzoffensive'}: ${formatCompact(sent)} Truppen gegen ${owner===NEUTRAL?'NEUTRALGEBIET':this.factions[owner].name}.`,attacker.color);
-    return {ok:true,reason:landing?'Landung befohlen.':counter?'Gegenangriff gestartet.':'Grenzangriff gestartet.',sent,targetOwner:owner,front};
+    attacker.troops-=sent;
+    // Repeating a click near the same border reinforces the EXISTING army:
+    // simple OpenFront-style interaction, no overlapping duplicate campaigns.
+    const existing=!landing?this.attackOrders.find(o=>
+      o.factionId===id&&!o.landing&&o.targetOwner===owner&&
+      canReinforceFront(owner,pointToIndex(o.anchor),pointToIndex(front),MAP_WIDTH)
+    ):undefined;
+    if(existing){
+      existing.remaining+=sent;
+      existing.committed+=sent;
+      existing.effort+=campaignEffort(sent);
+    }else{
+      this.attackOrders.push({
+        id:this.nextAttackId++,factionId:id,targetOwner:owner,
+        anchor:front,committed:sent,remaining:sent,effort:campaignEffort(sent),
+        fallen:0,conquered:0,trail:[],landing,startedTick:this.tick,
+      });
+    }
+    // Neutral attacks only show a concise order status in the HUD, never
+    // pollute the strategic event feed for every small land claim.
+    if(id===0&&owner!==NEUTRAL)this.log(
+      `${existing?'Verstärkt':landing?'Seelandung':counter?'Gegenangriff':'Angriff'}: ${formatCompact(sent)} gegen ${this.factions[owner].name}.`,attacker.color);
+    const reason=existing?'Offensive verstärkt.':landing?'Landung befohlen.':
+      counter?'Gegenangriff gestartet.':owner===NEUTRAL?'Expansion gestartet.':'Grenzangriff gestartet.';
+    return {ok:true,reason,sent,targetOwner:owner,front};
   }
 
-  /** Picks only adjacent enemy sectors close to this specific battlefront.
-   * Sea links are excluded; the explicit landing is the sole exception.
+  /** Only live orthogonal front candidates can be taken. The front trail
+   * expands with real captures instead of stopping at the original click.
    */
-  private chooseOrderedFront(order: AttackOrder): number {
-    const landingIndex = pointToIndex(order.anchor);
-    if (order.landing && order.conquered === 0) {
-      if (this.owner[landingIndex] !== order.targetOwner) return -1;
-      return this.canLand(order.factionId,order.anchor) ? landingIndex : -1;
+  private chooseOrderedFront(order:AttackOrder):number{
+    const anchorIndex=pointToIndex(order.anchor);
+    if(order.landing && order.conquered===0){
+      if(this.owner[anchorIndex]!==order.targetOwner)return -1;
+      return this.canLand(order.factionId,order.anchor)?anchorIndex:-1;
     }
-    const candidates = this.frontierCandidates[order.factionId];
-    if (!candidates) return -1;
-    let best=-1, score=-Infinity;
-    const range = 9 + Math.sqrt(order.conquered) * 2.7;
-    const radius2=range*range;
-    for(const i of candidates){
-      if(this.owner[i]!==order.targetOwner)continue;
-      const x=i%MAP_WIDTH, y=Math.floor(i/MAP_WIDTH);
-      const d2=(x-order.anchor.x)**2+(y-order.anchor.y)**2;
-      if(d2>radius2)continue;
-      let friendly=0;
-      for(const n of LAND_NEIGHBORS[i]) if(this.owner[n]===order.factionId)friendly++;
-      if(!friendly)continue;
-      const city=this.cities.some(c=>c.index===i);
-      // Prefer a cohesive outward-moving conquest over disconnected,
-      // arbitrary captures at distant points along the same country's border.
-      // The existing owner check + land neighbours remain authoritative.
-      const recent=order.lastCaptured;
-      const local=recent===undefined?0:Math.hypot(x-recent%MAP_WIDTH,
-        y-Math.floor(recent/MAP_WIDTH));
-      const flow=recent===undefined?0:Math.max(0,5.6-local*1.4);
-      const next=friendly*1.55-Math.sqrt(d2)*.62+flow+(city?2:0);
-      if(next>score){best=i;score=next;}
-    }
-    return best;
+    const candidates=this.frontierCandidates[order.factionId];
+    if(!candidates)return -1;
+    return chooseAdvancingSector({
+      owners:this.owner,width:MAP_WIDTH,attackerId:order.factionId,
+      targetOwner:order.targetOwner,candidates,anchor:anchorIndex,
+      trail:order.trail??[],contested:order.contested,
+    });
   }
 
   private resolveOrders(attacker: Faction) {
@@ -649,10 +653,16 @@ export class Game {
         order.effort-=effortCost;
         const engaged=Math.min(order.remaining,effortCost);
         const captured=this.strike(attacker,index,engaged);
+        order.contested=captured?undefined:index;
         const lost=Math.min(order.remaining,this.lastAttackerLoss);
         order.remaining-=lost;
         order.fallen+=lost;
-        if(captured){order.conquered++;order.lastCaptured=index;if(order.landing)order.landing=false;}
+        if(captured){
+          order.conquered++;order.lastCaptured=index;
+          (order.trail??=[]).push(index);
+          if(order.trail.length>144)order.trail.shift();
+          if(order.landing)order.landing=false;
+        }
       }
       if(unreachable||order.effort<1||order.remaining<1){
         // Survivors return to the mobile reserve. A reserve transfer is never
@@ -660,9 +670,17 @@ export class Game {
         attacker.troops+=order.remaining;
         const pos=this.attackOrders.findIndex(o=>o.id===order.id);
         if(pos>=0)this.attackOrders.splice(pos,1);
-        if(attacker.id===0)this.log(
-          `Offensive beendet · ${formatCompact(order.conquered)} Sektoren · ${formatCompact(order.fallen)} Gefallene · ${formatCompact(order.remaining)} zurück.`,
-          attacker.color);
+        if(attacker.id===0){
+          if(order.targetOwner===NEUTRAL){
+            // Log only meaningful completed neutral campaigns, not each
+            // click/sector. Orders are visible separately while active.
+            if(order.conquered>=10)this.log(
+              `Expansion +${formatCompact(order.conquered)} Sektoren · ${formatCompact(order.remaining)} Soldaten zurück.`,
+              attacker.color);
+          }else this.log(
+            `Kampf beendet: +${formatCompact(order.conquered)} Sektoren · ${formatCompact(order.fallen)} Gefallene.`,
+            attacker.color);
+        }
       }
     }
   }

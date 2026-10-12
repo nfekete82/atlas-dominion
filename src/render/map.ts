@@ -414,23 +414,85 @@ export class MapRenderer {
       c.globalAlpha=1;
       // Numbers mean actual soldiers fighting this tick, not total country
       // population. Only human-involved contacts get blue/red counterplates.
-      if(!isPlayer||this.zoom<1.15)continue;
-      const labelX=x,labelY=y-25;
-      if(labelX<59||labelX>w-59||labelY<68||labelY>h-42)continue;
-      if(labels.some(p=>Math.abs(p.x-labelX)<112&&Math.abs(p.y-labelY)<31))continue;
+      if(!isPlayer||this.zoom<1.05||group.leftId<0)continue;
+      const labelX=x,labelY=y-15;
+      if(labelX<40||labelX>w-40||labelY<55||labelY>h-32)continue;
+      if(labels.some(p=>Math.abs(p.x-labelX)<79&&Math.abs(p.y-labelY)<20))continue;
       labels.push({x:labelX,y:labelY});
-      const bw=112,bh=23;
-      c.globalAlpha=fade*.96;
-      c.fillStyle='rgba(7,21,31,.9)';
-      c.strokeStyle='rgba(173,195,194,.65)';
-      c.lineWidth=.7;
-      c.beginPath();c.roundRect(labelX-bw/2,labelY-bh/2,bw,bh,5);c.fill();c.stroke();
-      c.textAlign='center';c.font='700 10px system-ui';
-      c.fillStyle=side1;c.fillText('●',labelX-48,labelY);
-      c.fillStyle='#e2f5fe';c.fillText(formatCompact(group.blue),labelX-23,labelY,43);
-      c.fillStyle=side2;c.fillText('●',labelX+6,labelY);
-      c.fillStyle='#ffe5df';c.fillText(formatCompact(group.red),labelX+31,labelY,43);
+      // Small, unobtrusive split counters sit on the actual contested border.
+      const bw=78,bh=15;
+      c.globalAlpha=fade*.92;
+      c.fillStyle='rgba(5,20,28,.85)';
+      c.strokeStyle='rgba(133,160,166,.35)';
+      c.lineWidth=.6;
+      c.beginPath();c.roundRect(labelX-bw/2,labelY-bh/2,bw,bh,3);c.fill();c.stroke();
+      c.textAlign='center';c.font='700 8px system-ui';
+      c.fillStyle=side1;c.fillText('●',labelX-33,labelY);
+      c.fillStyle='#d7f4ff';c.fillText(formatCompact(group.blue),labelX-16,labelY,30);
+      c.fillStyle=side2;c.fillText('●',labelX+9,labelY);
+      c.fillStyle='#ffddd9';c.fillText(formatCompact(group.red),labelX+25,labelY,28);
       c.globalAlpha=1;
+    }
+    c.restore();
+  }
+
+  /** Tiny standing army counters follow active REAL orders between strikes.
+   * Blue is the surviving committed attacking army, while red is only the
+   * enemy's actually posted guard on the adjacent border (not made-up militia).
+   * Live 2-sided contact labels take priority over these standing badges.
+   */
+  private drawActiveFrontForces(c:CanvasRenderingContext2D):void {
+    if(this.game.status!=='playing')return;
+    const w=this.canvas.clientWidth,h=this.canvas.clientHeight;
+    const shown:Array<{x:number;y:number}>=[];
+    c.save();c.textBaseline='middle';c.textAlign='center';
+    for(const order of this.game.attackOrders){
+      if(order.factionId!==0||order.remaining<1)continue;
+      const owners=this.game.owner;
+      let index=order.contested??order.lastCaptured??pointToIndex(order.anchor);
+      if(index<0||index>=owners.length)continue;
+      const cells=[index];
+      // A captured tile is no longer an enemy border; move to its new
+      // neighbouring opponent and keep the label on a true physical contact.
+      if(owners[index]===0){
+        const x=index%MAP_WIDTH,y=Math.floor(index/MAP_WIDTH);
+        cells.length=0;
+        for(const n of [x>0?index-1:-1,x+1<MAP_WIDTH?index+1:-1,
+          y>0?index-MAP_WIDTH:-1,y+1<MAP_HEIGHT?index+MAP_WIDTH:-1]){
+          if(n>=0&&owners[n]===order.targetOwner)cells.push(n);
+        }
+      }
+      const enemy=cells.find(n=>owners[n]===order.targetOwner);
+      if(enemy===undefined)continue;
+      const ex=enemy%MAP_WIDTH,ey=Math.floor(enemy/MAP_WIDTH);
+      const neighbors=[ex>0?enemy-1:-1,ex+1<MAP_WIDTH?enemy+1:-1,
+        ey>0?enemy-MAP_WIDTH:-1,ey+1<MAP_HEIGHT?enemy+MAP_WIDTH:-1];
+      const own=neighbors.find(n=>n>=0&&owners[n]===0);
+      if(own===undefined)continue;
+      const ox=own%MAP_WIDTH,oy=Math.floor(own/MAP_WIDTH);
+      const x=this.ox+(ex+ox+1)*.5*CW*this.scale;
+      const y=this.oy+(ey+oy+1)*.5*CH*this.scale+16;
+      if(x<42||y<50||x>w-42||y>h-35)continue;
+      if(shown.some(p=>Math.abs(p.x-x)<79&&Math.abs(p.y-y)<22))continue;
+      // Assigned army count sits below the small live-clash counters:
+      // blue = whole surviving offensive, while the battle badge above it
+      // shows only the troops in the most recent individual confrontation.
+      shown.push({x,y});
+      c.globalAlpha=.86;
+      c.fillStyle='rgba(5,20,28,.8)';
+      c.strokeStyle='rgba(72,144,173,.6)';
+      c.lineWidth=.7;
+      c.beginPath();c.roundRect(x-37,y-7,74,14,3);c.fill();c.stroke();
+      c.font='700 8px system-ui';
+      c.fillStyle='#5fcbff';c.fillText('●',x-31,y);
+      c.fillStyle='#d7f4ff';c.fillText(formatCompact(order.remaining),x-11,y,36);
+      const actualPosted=this.game.frontline[enemy];
+      if(actualPosted>.5){
+        c.fillStyle='#ff7878';c.fillText('●',x+11,y);
+        c.fillStyle='#ffd0ce';c.fillText(formatCompact(actualPosted),x+27,y,24);
+      }else{
+        c.fillStyle='rgba(181,196,198,.78)';c.fillText('→',x+25,y);
+      }
     }
     c.restore();
   }
@@ -598,6 +660,7 @@ export class MapRenderer {
     // No hover square or animated point circle.
     c.restore();
     this.drawLiveBattles(c,timestamp);
+    this.drawActiveFrontForces(c);
     this.drawTroopBadges(c);
     requestAnimationFrame(t=>this.frame(t));
   }

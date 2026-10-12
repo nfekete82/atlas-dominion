@@ -3,6 +3,34 @@
 [![Build und Simulationstests](https://github.com/nfekete82/atlas-dominion/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/nfekete82/atlas-dominion/actions/workflows/ci.yml)
 
 
+**v1.7 – NATÜRLICHER FRONTVORSCHUB, KLEINE GRENZZAHLEN UND WENIGER MELDUNGEN**
+
+Im Vergleich zum veröffentlichten OpenFront-Kampfsystem fällt auf: Angriffe arbeiten dort mit einer laufend aktualisierten Menge **direkt angrenzender Zielkacheln** und werden beim erneuten Klick auf dieselbe Front verstärkt. ATLAS DOMINION übernimmt dieses Prinzip **eigenständig umgesetzt** und behält die bestehenden echten Einwohner-/Kampfverluste.
+
+### Das wurde überarbeitet
+- **Kein starrer Klickradius mehr:** Der Klick wählt den realen Startsektor an deiner Landesgrenze. Jeder neu eroberte Sektor erweitert die aktuell relevante Front; auch 25+ Sektoren vom ursprünglichen Klick entfernt wird der Angriff an derselben zusammenhängenden Landfront fortgesetzt, solange Truppen und Marschausdauer reichen. Keine Wasser-/Drittstaat-Teleports.
+- **Gegnerland wird zusammenhängend übernommen:** Die Front bewertet tatsächliche orthogonale Kontakte, zuletzt eroberte Sektoren, offenen Widerstand und geglättete zusammenhängende Kanten. Verteidigte Sektoren werden konsequent unter Druck gesetzt. Das Ergebnis bleibt deterministisch.
+- **Erneut auf dieselbe Front klicken = echte Verstärkung:** Nur eine laufende Armee je naher Zielregion. Neue mobile Soldaten werden ihr tatsächlich zugeteilt; Marschbudget und überlebende Truppen wachsen korrekt. Entfernte Fronten desselben Landes können separat bleiben. Neutrales Land ist weltweit derselbe Besitzer: große Abstände **werden absichtlich nicht zusammengeführt**.
+- **Weniger Spam:** Kleine neutrale Angriffe erscheinen nicht mehr im strategischen Ereignisprotokoll. Erst größere abgeschlossene Neutral-Expeditionen (10+ Sektoren) erzeugen **eine kurze Zusammenfassung**. Spielerinformationen stehen währenddessen kompakt im Angriffsstatus.
+- **Kleine Frontzähler wie gewünscht:** Die früheren 112×23-Pixel-Plaketten sind jetzt auf **78×15 Pixel** reduziert. Blau/Rot zeigt die echten Truppen eines kürzlichen Einzelgefechts, direkt neben der gemeinsamen Grenze. Das gesamte **noch gebundene Angriffsheer** erscheint als separate kleine Blau-Zahl an derselben Grenzstelle – nicht als erfundene Summe aller Treffer. Neutralgebiete bekommen kein rotes 0-Heer.
+- **Ruhigere Sidebar:** Keine permanenten „Keine direkte Feindschlacht“-Meldungen; kompakte Übersicht über aktive neutrale Expansion, Kriege und echte Gefallene.
+- Die dunkle Karte, 50 Länder, KI-Schwierigkeitswahl, Städte, Gelderträge, echte Verteidigung und Gewusel-Effekte bleiben erhalten.
+
+### Vergleich mit OpenFront
+Quellen: [OpenFront Combat Wiki](https://openfront.wiki/Combat/) und [OpenFront AttackExecution (Quellcode)](https://github.com/openfrontio/OpenFrontIO/blob/main/src/core/execution/AttackExecution.ts). Wir übernehmen das **Spielprinzip kontinuierlicher gemeinsamer Fronten**, nicht dessen Code oder Assets.
+
+### Tests
+`tests/offensive-front.test.mjs` verifiziert dauerhafte zusammenhängende Expansion, Anti-Teleport-Bedingungen, Fokus auf umkämpfte Sektoren, lokale Angriffsverstärkung, saubere Neutralmeldungen und deterministische Simulation. Bestehende Klick-/Front-/Wellen-/Kampfregressionstests bleiben erhalten.
+
+```bash
+cd ~/Projects/atlas-dominion
+git switch main
+git pull --ff-only origin main
+npm test && PORT=8095 npm run dev
+```
+
+---
+
 **v1.6 – LEBENDIGE FRONTSCHLACHTEN, TRUPPENANIMATIONEN & ORGANISCHER VORMARSCH**
 
 ### OpenFront-inspiriertes Spielgefühl mit eigener Implementierung
