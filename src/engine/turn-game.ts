@@ -8,7 +8,7 @@ export interface Province {
 }
 export interface TurnFaction {id:number;code:string;name:string;gold:number;reserve:number;}
 export type TurnPhase='reinforce'|'develop'|'attack'|'fortify';
-export interface TurnResult {ok:boolean;reason:string;attackerLoss?:number;defenderLoss?:number;captured?:boolean;}
+export interface TurnResult {ok:boolean;reason:string;attackerLoss?:number;defenderLoss?:number;captured?:boolean;attackerDice?:number[];defenderDice?:number[];}
 export interface TurnSnapshot {
   version:1;seed:number;desiredProvinces:number;round:number;active:number;phase:TurnPhase;
   rngState:number; provinces:Province[];factions:TurnFaction[];
@@ -121,6 +121,7 @@ export class TurnGame {
   private controlled(id:number):Province[]{return this.provinces.filter(p=>p.owner===id);}
   private grantIncome(id:number):void {
     const lands=this.controlled(id);
+    if(!lands.length)return; // Eliminated factions cannot farm phantom reserves.
     this.factions[id].gold+=lands.reduce((sum,p)=>sum+1+p.cityLevel,0);
     this.factions[id].reserve+=Math.max(3,Math.floor(lands.length/3))+lands.reduce((sum,p)=>sum+Math.floor(p.cityLevel/2),0);
   }
@@ -163,10 +164,10 @@ export class TurnGame {
     }
     a.troops-=lostA;d.troops-=lostD;
     let captured=false;
-    if(d.troops===0){d.owner=this.active;d.troops=Math.min(a.troops-1,Math.max(1,count-lostA));
+    if(d.troops===0&&a.troops>=2){d.owner=this.active;d.troops=Math.min(a.troops-1,Math.max(1,count-lostA));
       a.troops-=d.troops;captured=true;}
     return {ok:true,reason:captured?'Province conquered':'Battle resolved',
-      attackerLoss:lostA,defenderLoss:lostD,captured};
+      attackerLoss:lostA,defenderLoss:lostD,captured,attackerDice:aa,defenderDice:dd};
   }
   move(from:number,to:number,amount:number):TurnResult {
     const a=this.check(from),b=this.check(to);
