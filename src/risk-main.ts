@@ -98,18 +98,20 @@ $<HTMLButtonElement>('upgrade').addEventListener('click',()=>{
 function attack(quick:boolean):void{
   if(source===null||target===null)return;
   let exchanges=0,attackerLoss=0,defenderLoss=0,captured=false;
+  let lastDice='';
   for(let i=0;i<(quick?80:1);i++){
     const a=game.provinces[source],d=game.provinces[target];
     if(a.owner!==0||d.owner===0||a.troops<3||!a.neighbors.includes(target))break;
     const r=game.attack(source,target,Math.min(3,a.troops-1));
     if(!r.ok){report(r.reason);break;}
     attackerLoss+=r.attackerLoss??0;defenderLoss+=r.defenderLoss??0;
+    lastDice=' · 🎲 '+(r.attackerDice??[]).join(' / ')+' gegen '+(r.defenderDice??[]).join(' / ');
     exchanges++;if(r.captured){captured=true;break;}
     if(a.troops<=d.troops+1)break;
   }
   const message=exchanges?
     ('⚔ '+exchanges+' Würfelrunden · Eigene Verluste: '+attackerLoss+
-      ' · Gegner: '+defenderLoss+(captured?' · Provinz erobert!':'')):
+      ' · Gegner: '+defenderLoss+lastDice+(captured?' · Provinz erobert!':'')):
     'Angriff nicht möglich. Wähle eine eigene Provinz und ein erreichbares Ziel.';
   $('combatResult').textContent=message;
   report(message);
