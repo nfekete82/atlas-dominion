@@ -2,9 +2,9 @@ name: Build and simulation tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, feat/risk-hybrid-v2]
   pull_request:
-    branches: [main]
+    branches: [main, feat/organic-front-map-ui-20261012]
 
 permissions:
   contents: read
