@@ -21,10 +21,15 @@ for(const zoom of [1,1.5,2,4])test(`country names and outlined strength stay leg
   expect(state.labels.length).toBeGreaterThan(0);
   if(zoom===1)expect(state.labels.filter(l=>l.id!==0).length).toBeGreaterThan(3);
   for(const [i,label] of state.labels.entries()){
-    expect(label.strength).toMatch(/^⚔ /);expect(label.fontSize).toBeGreaterThanOrEqual(14);
+    expect(label.strength).toMatch(/^⚔ /);
+    expect(label.mobile).toMatch(/^● [0-9,.KM]+ mobil$/);
+    expect(label.fontSize).toBeGreaterThanOrEqual(14);
     expect(state.text.some(t=>t.text===label.name)).toBe(true);
     expect(state.text.some(t=>t.text===label.strength&&t.font.includes('14px')&&t.alpha===1&&t.shadow>=4)).toBe(true);
     expect(state.outlines.some(t=>t.text===label.strength&&t.width>=3)).toBe(true);
+    expect(state.text.some(t=>t.text===label.mobile&&t.font.includes('12px')&&t.alpha===1)).toBe(true);
+    expect(state.outlines.some(t=>t.text===label.mobile&&t.width>=2.5)).toBe(true);
+    expect(label.bounds.height).toBeGreaterThanOrEqual(56);
     for(const other of state.labels.slice(i+1))expect(overlaps(label.bounds,other.bounds)).toBe(false);
   }
   if(zoom===1){await mkdir(evidence,{recursive:true});await page.screenshot({path:`${evidence}military-labels.png`});}
@@ -58,4 +63,33 @@ test('foreign country hover exposes the actual military ledger and relative stre
   // The tooltip follows live ticks even when the pointer stays still.
   await page.evaluate(()=>{const g=window.__atlas.getGame(),id=g.factions.find(f=>f.name===document.getElementById('hoverOwner').textContent).id;g.factions[id].troops=4300;g.recount();window.__atlas.refresh();});
   await expect(details.locator('b').first()).toHaveText('5K');
+});
+
+test('moving reserves to the border changes only mobile badge, not total country strength',async({page})=>{
+  await start(page);
+  const before=await page.evaluate(()=>{
+    const g=window.__atlas.getGame(),r=window.__atlas.renderer;
+    r.fit();window.__atlas.refresh();
+    const badge=r.visibleCountryLabels.find(l=>l.id===0)??r.visibleCountryLabels[0];
+    if(!badge)throw Error('Expected a visible country badge');
+    const id=badge.id;
+    const index=g.owner.findIndex(owner=>owner===id);
+    if(index<0)throw Error('Expected an owned sector');
+    g.paused=true;
+    return {id,index,strength:badge.strength,mobile:badge.mobile,amount:100};
+  });
+  const after=await page.evaluate(({id,index,amount})=>{
+    const g=window.__atlas.getGame(),r=window.__atlas.renderer;
+    if(g.factions[id].troops<amount)throw Error('Not enough uncommitted troops');
+    g.factions[id].troops-=amount;
+    g.frontline[index]+=amount;
+    g.recount();window.__atlas.refresh();
+    const badge=r.visibleCountryLabels.find(l=>l.id===id);
+    return {badge,summary:r.military[id]};
+  },before);
+  expect(after.summary.mobile).toBeGreaterThanOrEqual(0);
+  expect(after.badge).toBeTruthy();
+  expect(after.badge.strength).toBe(before.strength);
+  expect(after.badge.mobile).not.toBe(before.mobile);
+  expect(after.badge.mobile).toContain('mobil');
 });
