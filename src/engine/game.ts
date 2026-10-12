@@ -785,7 +785,10 @@ export class Game {
         attempts++;
       }
       order.progress=unreachable?0:Math.min(1.5,Math.max(0,budget));
-      if(unreachable||order.remaining<.5){
+      // March duration is finite even if an army can afford many cheap
+      // neutral tiles. Prevent a forgotten order from running indefinitely.
+      if(unreachable||order.remaining<.5||order.effort<1||
+        this.tick-(order.startedTick??this.tick)>=120){
         attacker.troops+=Math.max(0,order.remaining);
         const at=this.attackOrders.findIndex(o=>o.id===order.id);
         if(at>=0)this.attackOrders.splice(at,1);
