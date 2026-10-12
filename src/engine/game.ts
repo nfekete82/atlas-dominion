@@ -3,10 +3,10 @@ import {MaritimeNavigation,COASTS,validSeaRoute,voyageTicks,routeDistance,type S
 import { COUNTRY_STARTS, countryByCode } from '../data/countries.js';
 import { assessInvasion, interceptAttack, attackerCasualties, campaignEffort, empirePower, relativeAttackEffect } from './warfare.js';
 import { attackFrontWidth, frontierBudget, frontierTarget, localDefenseStrength } from './frontline.js';
-import { BUILDINGS, BUILDING_CODES, type BuildingType, troopGrowth, taxRevenue, cityUpgradeCost, cityUpgradeGrowth } from './economy.js';
+import { BUILDINGS, BUILDING_CODES, type BuildingType, troopGrowth, taxRevenue, cityUpgradeCost, cityUpgradeGrowth, upgradedCityRecruitment } from './economy.js';
 import { findConnectedAttackFront } from './front-target.js';
 import {aiStyle,scoreAIFront} from './ai-strategy.js';
-import {aiMarchRecovery,aiAttacksPerTick,aiStrikeSize,aiDefenseAllocation,aiRiskTolerance} from './ai-tactics.js';
+import {aiMarchRecovery,aiAttacksPerTick,aiStrikeSize,aiRiskTolerance} from './ai-tactics.js';
 import {formatCompact} from '../format.js';
 import {chooseAdvancingSector,canReinforceFront} from './offensive-front.js';
 import {frontTileOutcome,opposingArmies} from './front-combat.js';
@@ -48,12 +48,15 @@ export interface Faction {
   /** Most recent active battle sector; maintains momentum on one front. */
   battleFocus: number;
   intent: 'hold' | 'expand' | 'invade';
+  /** AI warfare recovery, absent in pre-balancing saves. */
+  warCooldownUntil?:number;
 }
 export interface City { name: string; x: number; y: number; index: number; original: number; owner: number; }
 export interface GameEvent { tick: number; text: string; color: string; }
 /** Bilateral non-aggression pact. Factions keep independent territory and armies. */
 export interface Alliance { a:number; b:number; sinceTick:number; }
 export interface AllianceOffer { from:number; to:number; untilTick:number; }
+export interface DiplomaticCooldown { a:number; b:number; untilTick:number; }
 export interface DefenseAid { from:number; to:number; troops:number; arrivalTick:number; }
 export interface DiplomacyResult { ok:boolean; reason:string; }
 export interface AllianceEvaluation {
@@ -192,6 +195,7 @@ export interface GameSave {
   factions:Faction[];cities:City[];attackOrders:AttackOrder[];events:GameEvent[];
   /** Missing in v1 saves written before the diplomacy feature. */
   alliances?:Alliance[];offers?:AllianceOffer[];defenseAid?:DefenseAid[];
+  diplomacyCooldowns?:DiplomaticCooldown[];
 }
 
 export class Game {
@@ -209,6 +213,8 @@ export class Game {
   readonly attackOrders: AttackOrder[] = [];
   readonly alliances:Alliance[]=[];
   readonly offers:AllianceOffer[]=[];
+  readonly diplomacyCooldowns:DiplomaticCooldown[]=[];
+  mobileNet=0;
   /** Real soldiers in transit to defend an attacked treaty partner. */
   readonly defenseAid:DefenseAid[]=[];
   /** Upgrade levels for buildable city sites: 0 = basic, 1–5 = improvements. */
@@ -345,7 +351,8 @@ export class Game {
       const totalPeople=people[faction.id];
       faction.population=totalPeople;
       faction.militaryPower=empirePower(totalPeople,faction.territory,faction.cityCount+faction.builtCities);
-      const growth=troopGrowth(totalPeople,faction.territory,faction.cityCount,faction.builtCities+upgradeBonus[faction.id]);
+      const growth=troopGrowth(totalPeople,faction.territory,faction.cityCount,faction.builtCities+upgradeBonus[faction.id])
+      +upgradedCityRecruitment(upgradeBonus[faction.id],faction.territory,faction.builtCities);
       faction.income=faction.id===0?growth*(this.doctrine==='fortify'?1.20:this.doctrine==='blitz'?.90:1):growth*this.difficultySettings.growthMultiplier;
       faction.moneyIncome=taxRevenue(totalPeople,faction.territory,faction.cityCount,faction.builtCities+upgradeBonus[faction.id]);
     }
@@ -389,6 +396,8 @@ export class Game {
   }
 
   private canAlly(a:number,b:number):DiplomacyResult {
+    if(this.diplomacyCooldowns.some(v=>v.a===Math.min(a,b)&&v.b===Math.max(a,b)&&v.untilTick>this.tick))
+      return {ok:false,reason:'Nach der Kündigung ist erst eine diplomatische Abkühlzeit nötig.'};
     if(!Number.isInteger(a)||!Number.isInteger(b)||a===b||
        !this.factions[a]?.alive||!this.factions[b]?.alive||this.status!=='playing')
       return {ok:false,reason:'Diese Länder können kein Bündnis schließen.'};
@@ -482,12 +491,16 @@ export class Game {
     if(!this.isAllied(a,b))return {ok:false,reason:'Es besteht kein Bündnis.'};
     const i=this.alliances.findIndex(v=>v.a===Math.min(a,b)&&v.b===Math.max(a,b));
     this.alliances.splice(i,1);
+    this.diplomacyCooldowns.push({a:Math.min(a,b),b:Math.max(a,b),untilTick:this.tick+120});
     this.log(`Bündnis beendet: ${this.factions[a].name} und ${this.factions[b].name}.`,'#e2bc87');
     return {ok:true,reason:'Bündnis mit '+this.factions[b].name+' beendet.'};
   }
 
   /** Low-frequency AI diplomacy: at most one negotiation per cycle. */
   private updateDiplomacy():void {
+    for(let i=this.diplomacyCooldowns.length-1;i>=0;i--)
+      if(this.diplomacyCooldowns[i].untilTick<=this.tick)
+        this.diplomacyCooldowns.splice(i,1);
     for(let i=this.offers.length-1;i>=0;i--)
       if(this.offers[i].untilTick<=this.tick||!this.factions[this.offers[i].from].alive)
         this.offers.splice(i,1);
@@ -850,10 +863,30 @@ export class Game {
     }
     for (const faction of this.factions) {
       if (!faction.alive || !exposed[faction.id].length) continue;
+      // Balanced AI and human receive the same automatic defense budget.
+      // Guards withdraw from overcrowded exposed fronts when mobile
+      // reserves fall below a target 20% of the total living army.
+      const mobileTarget=Math.min(faction.population,
+        Math.max(45,faction.population*.20,faction.income*3));
+      let shortage=Math.max(0,mobileTarget-faction.troops);
+      if(shortage>.01){
+        const posts=exposed[faction.id].slice()
+          .sort((a,b)=>this.frontline[b]-this.frontline[a]||a-b);
+        for(const i of posts){
+          if(shortage<=.01)break;
+          const localFloor=Math.max(4,frontierTarget(faction.territory,
+            faction.troops,this.capitalSites.has(i),faction.id===0&&this.doctrine==='fortify')*.35);
+          const excess=Math.max(0,this.frontline[i]-localFloor);
+          const released=Math.min(excess,shortage,this.frontline[i]*.45);
+          if(released<=0)continue;
+          this.frontline[i]-=released;
+          faction.troops+=released;
+          shortage-=released;
+        }
+      }
       const baseBudget=frontierBudget(faction.troops,faction.income);
       const budget=faction.ai
-        ? difficultyDefenseBudget(faction.troops,
-            aiDefenseAllocation(faction.troops,faction.income,baseBudget),this.difficulty)
+        ? difficultyDefenseBudget(faction.troops,baseBudget,this.difficulty)
         : baseBudget;
       if (budget < 0.01) continue;
       let remaining = budget;
@@ -1244,6 +1277,10 @@ export class Game {
           this.cancelAttack(order.id);continue;
         }
         attacker.troops+=Math.max(0,order.remaining);
+        if(attacker.ai&&order.targetOwner>=0&&order.conquered>0){
+          const recovery=Math.round(65+Math.min(70,order.fallen*.20));
+          attacker.warCooldownUntil=Math.max(attacker.warCooldownUntil??0,this.tick+recovery);
+        }
         const at=this.attackOrders.findIndex(o=>o.id===order.id);
         if(at>=0)this.attackOrders.splice(at,1);
         if(attacker.id===0){
@@ -1318,8 +1355,9 @@ export class Game {
       const neutral=opponent===NEUTRAL;
       // A real expansion phase: settle neutral territory before starting wars.
       // Thereafter, offset mobilization windows prevent synchronized all-Europe wars.
-      if(!neutral && this.difficulty!=='impossible' &&
-         (this.tick<90 || (this.tick+id*23)%160<72))continue;
+      if(!neutral && (this.tick<(faction.warCooldownUntil??0) ||
+         (this.difficulty!=='impossible' &&
+          (this.tick<90 || (this.tick+id*23)%160<72))))continue;
       const ongoingEnemies=new Set(this.attackOrders.filter(o=>o.factionId===id&&o.targetOwner>=0).map(o=>o.targetOwner));
       if(!neutral && ongoingEnemies.size>=2&&!ongoingEnemies.has(opponent))continue;
       const defender=neutral?null:this.factions[opponent];
@@ -1485,7 +1523,8 @@ export class Game {
     let best=-1,bestScore=-Infinity;
     const sent=Math.floor(f.troops*ratio/100);
     const ongoingEnemies=new Set(this.attackOrders.filter(o=>o.factionId===id&&o.targetOwner>=0).map(o=>o.targetOwner));
-    const peaceful=this.difficulty!=='impossible' && (this.tick<90 || (this.tick+id*23)%160<72);
+    const peaceful=(this.tick<(f.warCooldownUntil??0)) ||
+        (this.difficulty!=='impossible' && (this.tick<90 || (this.tick+id*23)%160<72));
     for(const shore of COASTS){
       const owner=this.owner[shore];if(owner===id||owner===WATER||this.isAllied(id,owner))continue;
       if(owner>=0 && (peaceful || ongoingEnemies.size>=2&&!ongoingEnemies.has(owner)))continue;
@@ -1512,6 +1551,7 @@ export class Game {
 
   step(): void {
     if (this.paused || this.status !== 'playing') return;
+    const beforeMobile=this.factions[0].troops;
     this.tick++;
     this.updateDiplomacy();
     this.deliverDefensiveAid();
@@ -1554,12 +1594,14 @@ export class Game {
       // Stagger naval planning and allow it while profitable landfronts exist.
       // At most one fleet and two total offensives, using actual reserves.
       if(active<2&&this.tick%32===faction.id%32 && this.tryNavalAttack(faction.id,ratio))continue;
-      if(active>=maxActive || faction.troops<22)continue;
+      if(active>=maxActive || faction.troops<22||
+         this.tick<(faction.warCooldownUntil??0))continue;
       const target=this.chooseFront(faction.id);
       if(target>=0)this.issueAttack(faction.id,cellToPoint(target),ratio,false);
 
     }
     this.recount();
+    this.mobileNet=this.factions[0].troops-beforeMobile;
     if (!this.factions[0].alive) {
       this.status = 'defeat';
       this.log(`${this.factions[0].name} wurde besiegt.`, '#ee788c');
@@ -1584,6 +1626,7 @@ export class Game {
       events:this.events.map(e=>({...e})),
       alliances:this.alliances.map(a=>({...a})),offers:this.offers.map(o=>({...o})),
       defenseAid:this.defenseAid.map(a=>({...a})),
+      diplomacyCooldowns:this.diplomacyCooldowns.map(v=>({...v})),
     };
   }
 
@@ -1674,6 +1717,13 @@ export class Game {
     g.alliances.push(...structuredClone(alliances));
     g.offers.push(...structuredClone(offers));
     g.defenseAid.push(...structuredClone(defenseAid));
+    const diplomacyCooldowns=save.diplomacyCooldowns??[];
+    if(!Array.isArray(diplomacyCooldowns)||diplomacyCooldowns.length>g.factions.length*2||
+       diplomacyCooldowns.some(v=>!Number.isInteger(v.a)||!Number.isInteger(v.b)||
+         v.a<0||v.a>=v.b||v.b>=g.factions.length||
+         !Number.isSafeInteger(v.untilTick)||v.untilTick<=save.tick))
+      throw Error('Ungültige diplomatische Abkühlzeit.');
+    g.diplomacyCooldowns.push(...structuredClone(diplomacyCooldowns));
     g.events.splice(0,g.events.length,...structuredClone(save.events));
     g.tick=save.tick;g.status=save.status;g.paused=!!save.paused;g.doctrine=save.doctrine;
     g.aiGoalChange=save.aiGoalChange;g.nextAttackId=save.nextAttackId;
