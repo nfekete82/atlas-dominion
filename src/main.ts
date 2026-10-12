@@ -72,12 +72,11 @@ function update() {
   const blueFallen=clashes.reduce((n,e)=>n+(e.attackerId===0?e.attackerLost:e.defenderLost),0);
   const redFallen=clashes.reduce((n,e)=>n+(e.attackerId===0?e.defenderLost:e.attackerLost),0);
   $('battleReport').innerHTML=clashes.length
-    ? `<div class="battle-report-heading"><i class="battle-dot blue"></i> BLAU: DEINE TRUPPEN <span>GEGEN</span> <i class="battle-dot red"></i> ROT: GEGNER</div>
-       <small>${format(clashes.length)} FRONTKÄMPFE DIESE RUNDE ·
-       <span class="battle-own-loss">−${format(blueFallen)} EIGENE</span> /
-       <span class="battle-enemy-loss">−${format(redFallen)} GEGNER</span> GEFALLEN</small>
-       <small>Truppenzahlen direkt an den aktiven Fronten</small>`
-    : '<div class="battle-report-heading"><i class="battle-dot blue"></i> BLAU: DEINE TRUPPEN <span>GEGEN</span> <i class="battle-dot red"></i> ROT: GEGNER</div><small>Keine direkte Feindschlacht in dieser Runde</small>';
+    ? `<div class="battle-report-heading"><i class="battle-dot blue"></i> EIGENE <span>·</span>
+       <i class="battle-dot red"></i> GEGNER <span>·</span> ${format(clashes.length)} GEFECHTE</div>
+       <small><span class="battle-own-loss">−${format(blueFallen)} eigene</span> /
+       <span class="battle-enemy-loss">−${format(redFallen)} gegnerische</span> Verluste</small>`
+    : '<div class="battle-report-heading"><i class="battle-dot blue"></i> EIGENE <span>·</span> <i class="battle-dot red"></i> GEGNER</div>';
   $('ratioPercent').textContent = attackRatio + ' %';
   $('attackPreview').textContent = format(Math.floor(player.troops * attackRatio / 100)) + ' TRUPPEN';
   $('attackRatio').setAttribute('aria-valuenow', String(attackRatio));
@@ -105,9 +104,15 @@ function update() {
     </div>`).join('');
   $('eventFeed').innerHTML = game.events.map(e=>`<div class="event"><i style="background:${e.color}"></i><div>${e.text}<small>TAG ${String(Math.floor(e.tick/240)+1).padStart(2,'0')} · ${String(Math.floor(e.tick*TICK_SECONDS/60)).padStart(2,'0')}:${String(Math.floor(e.tick*TICK_SECONDS%60)).padStart(2,'0')}</small></div></div>`).join('');
   const active = game.attackOrders.filter(o => o.factionId === 0);
-  $('ordersLabel').textContent = active.length
-    ? `${active.length} OFFENSIVE(N) · ${format(active.reduce((n,o)=>n+o.remaining,0))} IM KAMPF · ${format(active.reduce((n,o)=>n+o.fallen,0))} GEFALLEN`
-    : 'NACHBARLAND ANKLICKEN, UM ANZUGREIFEN';
+  const neutralOrders=active.filter(o=>o.targetOwner<0);
+  const hostileOrders=active.filter(o=>o.targetOwner>=0);
+  $('ordersLabel').textContent=active.length
+    ? [
+        neutralOrders.length?`EXPANSION ${format(neutralOrders.reduce((n,o)=>n+o.remaining,0))} ⚔`:'',
+        hostileOrders.length?`${hostileOrders.length} KÄMPFE · ${format(hostileOrders.reduce((n,o)=>n+o.remaining,0))} ⚔`:'',
+        hostileOrders.some(o=>o.fallen>0)?`−${format(hostileOrders.reduce((n,o)=>n+o.fallen,0))} GEFALLEN`:'',
+      ].filter(Boolean).join(' · ')
+    : 'NACHBARGEBIET ANKLICKEN · ERNEUT KLICKEN ZUM VERSTÄRKEN';
   $('pauseBtn').textContent = game.paused ? '▶' : 'Ⅱ';
   document.querySelectorAll<HTMLButtonElement>('[data-doctrine]').forEach(b=>b.classList.toggle('selected', b.dataset.doctrine===game.doctrine));
   if (game.status!==prevStatus) {
@@ -130,7 +135,9 @@ for (const btn of document.querySelectorAll<HTMLButtonElement>('[data-ratio]')) 
 renderer.onSelect = (point:Point, landing:boolean) => {
   closeBuildMenu();
   const result = landing ? game.launchLanding(0, point, attackRatio) : game.launchAttack(0, point, attackRatio);
-  attackMessage = result.ok ? `${format(result.sent)} Truppen · ${result.reason}` : result.reason;
+  attackMessage=result.ok
+    ? `${format(result.sent)} ⚔ · ${result.targetOwner===-1?'Expansion':result.reason}`
+    : result.reason;
   attackMessageKind = result.ok ? 'success' : 'error';
   beep(result.ok ? 620 : 190);
   update();
