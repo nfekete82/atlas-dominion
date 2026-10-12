@@ -86,6 +86,7 @@ test('broken alliances turn convoys around; v1 saves with no aid still load',()=
  g['dispatchDefensiveAid']();
  const shipment=g.defenseAid[0];
  assert.ok(shipment);
+ g.recount();
  const restored=Game.fromSave(JSON.parse(JSON.stringify(g.exportSave())));
  assert.deepEqual(restored.exportSave(),g.exportSave());
  g.leaveAlliance(0,1);
