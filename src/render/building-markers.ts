@@ -10,6 +10,7 @@ export interface BuildingMarkerStyle {
 export const BUILDING_MARKER_STYLES:Readonly<Record<number,BuildingMarkerStyle>> = {
   [BUILDING_CODES.tower]:{label:'Abwehrturm',symbol:'♜',color:'#b4d9e9'},
   [BUILDING_CODES.factory]:{label:'Fabrik',symbol:'⚙',color:'#ecc792'},
+  [BUILDING_CODES.barracks]:{label:'Kaserne',symbol:'⚑',color:'#a8d3eb'},
   [BUILDING_CODES.city]: {
     label:BUILDINGS[0].name,
     symbol:'▣',
