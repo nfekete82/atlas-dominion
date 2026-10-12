@@ -898,7 +898,8 @@ export class Game {
       }
       // Factories invest surplus funds into recurring revenue. They compete
     // for one development action and require a real nearby owned city.
-    if(actions<maxActions&&faction.money>=400&&this.tick% (this.difficultySettings.cityInterval*2)===0){
+    if(this.tick>0&&actions<maxActions&&faction.money>=400&&
+      this.tick% (this.difficultySettings.cityInterval*2)===0){
       for(const city of this.cities){
         if(city.owner!==id)continue;
         const near=LAND_NEIGHBORS[city.index].find(i=>this.owner[i]===id&&!this.buildings[i]&&!this.capitalSites.has(i));
