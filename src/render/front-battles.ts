@@ -48,7 +48,8 @@ export function locateBattleContact(
   }else return null;
   const norm=Math.hypot(dx,dy);
   if(norm===0)return null;
-  return {x:x+.5,y:y+.5,dx:dx/norm,dy:dy/norm};
+  const direction=owner===event.defenderId?-.46:.46;
+  return {x:x+.5+dx*direction,y:y+.5+dy*direction,dx:dx/norm,dy:dy/norm};
 }
 
 /** Group neighbouring strikes by country pair AND position, so 150 quick
