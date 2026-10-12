@@ -3,6 +3,33 @@
 [![Build und Simulationstests](https://github.com/nfekete82/atlas-dominion/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/nfekete82/atlas-dominion/actions/workflows/ci.yml)
 
 
+**v1.8 – KONTINUIERLICHER FRONTAUFPRALL STATT SEKTORTREFFERN**
+
+Das tatsächliche OpenFront-Kampfsystem beruht auf persistenten Armeen, einer dynamischen orthogonalen Zielfront, einem **Kampfzeitbudget pro Tick** und Soldatenverlusten, die vom Verhältnis der real kämpfenden Truppen zum gegnerischen Bestand abhängen. ATLAS DOMINION implementiert dieses Prinzip **unabhängig mit eigenen Formeln und Skalierung**, keine fremden Programmteile werden übernommen. OpenFront steht unter der GNU AGPL v3; deshalb wird ausdrücklich nichts hineinkopiert.
+
+### Neuer ATLAS-Kampfkern
+- **Alle Ländern, einschließlich der KI**, erstellen wirkliche fortlaufende Angriffsarmeen aus ihren **mobilen echten Einwohnern**. Kein KI-Sofortschlag mehr während der normalen Partie, keine kostenlosen Einheiten. Angriffsarmeen reduzieren die freie Reserve und werden getrennt gehalten.
+- **Jeder eroberte Sektor ist ein ganzer Sieg**: Ein Angriff bezahlt einen Teil der Simulationszeit *und* echte Soldatenverluste pro eroberter Kachel. Es gibt bei aktiven Armeen keine alten zufälligen Teilschäden an Sektor-HP mehr.
+- **Schnellere breite Angriffsfronten**: Angriffszeit sinkt bei vielen angreifenden Soldaten und mehreren gleichzeitig erreichbaren Grenzseiten; bei starker feindlicher Bevölkerung, hohen Einwohnern pro Sektor und befestigten Hauptstädten steigen Zeit und Angreiferverluste.
+- **Verteidigung kostet echte Einwohner**: Verluste an einer Grenze werden zuerst bei stationierten Soldaten, dann in der lebenden mobilen Reserve abgezogen; die Angegriffenen verlieren echte Menschen. Sehr starke Grenzbesatzungen müssen schrittweise geschlagen werden, bevor ihre Stellung fällt. Besatzung darf nicht unsichtbar verschwinden.
+- **Neutralexpansion ist preiswert, aber nicht mehr kostenlos**: Auch Märsche über neutrales Land verursachen geringe reale Verluste, wie beim großen RTS-Vorbild. Die viel höheren feindlichen Kampfverluste unterscheiden sich weiterhin deutlich.
+- **Gegenangriffe haben echte Wirkung**: Zwei laufende Armeeen, die einander an derselben Landfront begegnen, löschen gegenseitig exakt die tatsächlich vorhandenen Soldaten aus (bis zur kleineren Armee). Beide Seiten verzeichnen die daraus resultierenden realen Verluste.
+- **Karten-Animation & kleine blaue/rote Frontzähler** bleiben an echte aufgezeichnete Kampfereignisse und real verbliebene Angriffstruppen gebunden.
+- **Weniger Meldungslärm:** kleine neutrale Vorstöße bleiben bei der kompakten Statusanzeige.
+- **Keine Wasser-, Besitz- oder Teleport-Abkürzungen**. Angriffe können nur in tatsächlich direkt angrenzende Länderkacheln vorrücken.
+
+Diese Umsetzung ist eine **eigenständige Annäherung an OpenFront-Spielregeln**, keine 1:1-Kopie der vollständigen OpenFront-Engine: ATLAS hat andere Kartendaten, Gebäude, Länder-KI, Einwohnergrößen und keinen originalen Fallout-/Terrain- oder Teampakt-Kampf.
+
+### Grundlage
+- [OpenFront v34 Ground Combat](https://openfront.wiki/Combat/)
+- [Aktuelle OpenFront Engine AttackExecution](https://github.com/openfrontio/OpenFrontIO/blob/main/packages/engine/src/execution/AttackExecution.ts)
+- [Aktuelle OpenFront EngineConfig](https://github.com/openfrontio/OpenFrontIO/blob/main/packages/engine/src/configuration/EngineConfig.ts)
+
+### Tests
+`tests/front-combat.test.mjs` überprüft ganztilegen Kampf, echte Verluste, Kaderdichte, Frontgeschwindigkeit, Fortifikationen, Kollisionen entgegengesetzter Armeen, echte KI-Armeen und Determinismus. Außerdem laufen bestehende Klick-, Verteidigungs-, Browser-, Eroberungs- und Wirtschaftstests.
+
+---
+
 **v1.7 – NATÜRLICHER FRONTVORSCHUB, KLEINE GRENZZAHLEN UND WENIGER MELDUNGEN**
 
 Im Vergleich zum veröffentlichten OpenFront-Kampfsystem fällt auf: Angriffe arbeiten dort mit einer laufend aktualisierten Menge **direkt angrenzender Zielkacheln** und werden beim erneuten Klick auf dieselbe Front verstärkt. ATLAS DOMINION übernimmt dieses Prinzip **eigenständig umgesetzt** und behält die bestehenden echten Einwohner-/Kampfverluste.
