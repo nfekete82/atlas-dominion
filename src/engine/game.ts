@@ -84,6 +84,9 @@ export interface AttackOrder {
   /** Unspent fractional attack time carried into the next tick. */
   progress?: number;
   landing?: boolean;
+  /** Paid soldiers remain at sea until this tick. */
+  arrivalTick?:number;
+  departure?:Point;
   startedTick?: number;
 }
 export interface AttackResult { ok: boolean; reason: string; sent: number; targetOwner?: number; front?: Point; }
@@ -752,6 +755,9 @@ export class Game {
       sent,targetOwner:owner,front};
     // Repeating a click near the same border reinforces the EXISTING army:
     // simple OpenFront-style interaction, no overlapping duplicate campaigns.
+    const departure=landing?SEA_CROSSINGS.map(([a,b])=>
+      pointToIndex(front)===a&&this.owner[b]===id?b:
+      pointToIndex(front)===b&&this.owner[a]===id?a:-1).find(i=>i>=0):undefined;
     const existing=!landing?this.attackOrders.find(o=>
       o.factionId===id&&!o.landing&&o.targetOwner===owner&&
       canReinforceFront(owner,pointToIndex(o.anchor),pointToIndex(front),MAP_WIDTH)
@@ -765,6 +771,8 @@ export class Game {
         id:this.nextAttackId++,factionId:id,targetOwner:owner,
         anchor:front,committed,remaining:committed,effort:campaignEffort(committed),
         fallen:0,conquered:0,trail:[],progress:0,landing,startedTick:this.tick,
+        departure:departure===undefined?undefined:cellToPoint(departure),
+        arrivalTick:landing?this.tick+8:undefined,
       });
     }
     // Neutral attacks only show a concise order status in the HUD, never
@@ -867,7 +875,7 @@ export class Game {
   private resolveOrders(attacker:Faction):void {
     const orders=this.attackOrders.filter(o=>o.factionId===attacker.id);
     for(const order of orders){
-      if(order.landing&&order.conquered===0&&this.tick-(order.startedTick??0)<4)continue;
+      if(order.landing&&order.conquered===0&&this.tick<(order.arrivalTick??((order.startedTick??0)+4)))continue;
       let budget=1+Math.min(1.5,Math.max(0,order.progress??0));
       let unreachable=false;
       let attempts=0;
@@ -949,7 +957,8 @@ export class Game {
         const opponent=this.factions[city.owner];
         const distance=Math.sqrt(distance2(city,capital));
         const weak=100/(25+opponent.troops+opponent.income*3);
-        const score=weak*22-distance*.34+(opponent.territory<faction.territory?7:0);
+        const attackers=new Set(this.attackOrders.filter(o=>o.targetOwner===city.owner&&o.factionId!==faction.id).map(o=>o.factionId)).size;
+        const score=weak*22-distance*.34+(opponent.territory<faction.territory?7:0)-Math.min(18,attackers*6);
         if(score>bestScore){bestScore=score;best=city;}
       }
       if(best)faction.target={x:best.x,y:best.y};
@@ -1008,6 +1017,7 @@ export class Game {
         ? Math.hypot(i%MAP_WIDTH-focusIndex%MAP_WIDTH,
           Math.floor(i/MAP_WIDTH)-Math.floor(focusIndex/MAP_WIDTH))
         : Infinity;
+      const otherInvaders=neutral?0:new Set(this.attackOrders.filter(o=>o.targetOwner===opponent&&o.factionId!==id).map(o=>o.factionId)).size;
       const score=scoreAIFront({
         neutral,advantage:assessment.advantage,friendlySides:friendly,
         capital:!!city,city:hasCity,distance:d,
@@ -1015,7 +1025,7 @@ export class Game {
         opponentReserve:defender?.troops??0,
         threatenedBorders:exposed,
         focus:d<14,
-      },aiStyle(faction.id)) + (focusDistance<10?11-focusDistance*.85:0) + this.rng()*.15;
+      },aiStyle(faction.id)) + (focusDistance<10?11-focusDistance*.85:0)-Math.min(24,otherInvaders*9) + this.rng()*.15;
       if(score>bestScore){bestScore=score;best=i;}
     }
     faction.intent=best<0?'hold':this.owner[best]===NEUTRAL?'expand':'invade';
