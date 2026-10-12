@@ -1073,18 +1073,37 @@ export class MapRenderer {
     window.addEventListener('keydown',e=>{if(e.key==='Shift')this.showSeaPassages=true;});
     window.addEventListener('keyup',e=>{if(e.key==='Shift')this.showSeaPassages=false;});
     window.addEventListener('blur',()=>{this.showSeaPassages=false;});
+    // Left drag selects units; right drag pans. Right click without travel
+    // keeps the normal building/diplomacy context menu.
+    let activePointer:number|null=null;
+    let dragButton:number|null=null;
+    let rightGestureMoved=false;
+    let suppressContextUntil=0;
+    const threshold=6;
     this.canvas.addEventListener('pointerdown',e=>{
-      if(e.button!==0)return;
-      this.dragging=true;this.moved=false;this.last={x:e.clientX,y:e.clientY};this.press={...this.last};
-      const box=this.canvas.getBoundingClientRect();
-      this.selectionBox={x1:e.clientX-box.left,y1:e.clientY-box.top,x2:e.clientX-box.left,y2:e.clientY-box.top};
+      if(e.button!==0&&e.button!==2)return;
+      if(activePointer!==null)return;
+      activePointer=e.pointerId;dragButton=e.button;
+      this.dragging=true;this.moved=false;rightGestureMoved=false;
+      this.last={x:e.clientX,y:e.clientY};this.press={...this.last};
+      if(e.button===0){
+        const box=this.canvas.getBoundingClientRect();
+        this.selectionBox={x1:e.clientX-box.left,y1:e.clientY-box.top,x2:e.clientX-box.left,y2:e.clientY-box.top};
+      }else this.selectionBox=null;
       this.canvas.setPointerCapture(e.pointerId);
     });
     this.canvas.addEventListener('pointermove',e=>{
-      if(this.dragging) {
+      if(this.dragging&&e.pointerId===activePointer) {
         const dx=e.clientX-this.last.x,dy=e.clientY-this.last.y;
-        if(Math.hypot(e.clientX-this.press.x,e.clientY-this.press.y)>5)this.moved=true;
-        if(this.moved&&this.selectionBox){const box=this.canvas.getBoundingClientRect();this.selectionBox.x2=e.clientX-box.left;this.selectionBox.y2=e.clientY-box.top;}
+        if(Math.hypot(e.clientX-this.press.x,e.clientY-this.press.y)>threshold)this.moved=true;
+        if(this.moved){
+          if(dragButton===2){
+            this.ox+=dx;this.oy+=dy;rightGestureMoved=true;
+          }else if(this.selectionBox){
+            const box=this.canvas.getBoundingClientRect();
+            this.selectionBox.x2=e.clientX-box.left;this.selectionBox.y2=e.clientY-box.top;
+          }
+        }
         this.last={x:e.clientX,y:e.clientY};
       }
       this.hover=this.cellAt(e.clientX,e.clientY,e.shiftKey);
@@ -1093,43 +1112,50 @@ export class MapRenderer {
       this.hoverPointer={x:e.clientX-box.left,y:e.clientY-box.top,landing:e.shiftKey};
       this.onHover(this.hover,this.hoverPointer.x,this.hoverPointer.y,e.shiftKey);
     });
-    this.canvas.addEventListener('pointerup',e=>{
-      if(e.button!==0)return;
-      if(this.moved&&this.selectionBox){
-        const b=this.selectionBox,loX=Math.min(b.x1,b.x2),hiX=Math.max(b.x1,b.x2);
-        const loY=Math.min(b.y1,b.y2),hiY=Math.max(b.y1,b.y2);
-        const ids=this.game.squads.filter(unit=>{
-          if(unit.owner!==0)return false;
-          const x=this.ox+(unit.index%MAP_WIDTH+.5)*CW*this.scale;
-          const y=this.oy+(Math.floor(unit.index/MAP_WIDTH)+.5)*CH*this.scale;
-          return x>=loX&&x<=hiX&&y>=loY&&y<=hiY;
-        }).map(unit=>unit.id);
-        this.selectedSquadIds=ids;this.onSelectSquads(ids);
-      }else{const p=this.cellAt(e.clientX,e.clientY,e.shiftKey);if(p)this.onSelect(p,e.shiftKey);}
-      this.dragging=false;this.selectionBox=null;
-    });
-    this.canvas.addEventListener('pointercancel',()=>{this.dragging=false;this.selectionBox=null;});
-    this.canvas.addEventListener('pointerleave',()=>{this.hover=null;this.hoverPointer=null;this.refreshHoverPreview(null);this.onHover(null,0,0,false);});
-    // Both mouse secondary click and trackpad context click open the same
-    // build menu. A secondary pointerup fallback covers browsers that do not
-    // dispatch contextmenu on canvas after a pointer gesture.
     let lastSecondary=-Infinity;
     const requestBuild=(clientX:number,clientY:number)=>{
-      // Keep the same right-click handling for land of ANY owner.
-      // The UI chooses build/defense for own land, diplomacy for foreign
-      // land, and closes the context menu over water.
       const point=this.cellAt(clientX,clientY,false);
       this.onBuildRequest(point,clientX,clientY);
     };
     this.canvas.addEventListener('pointerup',e=>{
-      if(e.button!==2)return;
-      lastSecondary=performance.now();
-      requestBuild(e.clientX,e.clientY);
+      if(e.pointerId!==activePointer||e.button!==dragButton)return;
+      const moved=this.moved||Math.hypot(e.clientX-this.press.x,e.clientY-this.press.y)>threshold;
+      if(dragButton===0){
+        if(moved&&this.selectionBox){
+          const b=this.selectionBox,loX=Math.min(b.x1,b.x2),hiX=Math.max(b.x1,b.x2);
+          const loY=Math.min(b.y1,b.y2),hiY=Math.max(b.y1,b.y2);
+          const ids=this.game.squads.filter(unit=>{
+            if(unit.owner!==0)return false;
+            const x=this.ox+(unit.index%MAP_WIDTH+.5)*CW*this.scale;
+            const y=this.oy+(Math.floor(unit.index/MAP_WIDTH)+.5)*CH*this.scale;
+            return x>=loX&&x<=hiX&&y>=loY&&y<=hiY;
+          }).map(unit=>unit.id);
+          this.selectedSquadIds=ids;this.onSelectSquads(ids);
+        }else{
+          const p=this.cellAt(e.clientX,e.clientY,e.shiftKey);
+          if(p)this.onSelect(p,e.shiftKey);
+        }
+      }else if(dragButton===2){
+        lastSecondary=performance.now();
+        if(moved||rightGestureMoved)suppressContextUntil=lastSecondary+500;
+        else requestBuild(e.clientX,e.clientY);
+      }
+      activePointer=null;dragButton=null;this.dragging=false;
+      this.selectionBox=null;rightGestureMoved=false;
+    });
+    this.canvas.addEventListener('pointercancel',e=>{
+      if(e.pointerId!==activePointer)return;
+      if(dragButton===2&&this.moved)suppressContextUntil=performance.now()+500;
+      activePointer=null;dragButton=null;this.dragging=false;this.selectionBox=null;
+    });
+    this.canvas.addEventListener('pointerleave',()=>{
+      this.hover=null;this.hoverPointer=null;this.refreshHoverPreview(null);this.onHover(null,0,0,false);
     });
     this.canvas.addEventListener('contextmenu',e=>{
       e.preventDefault();
-      if(performance.now()-lastSecondary<350)return;
-      requestBuild(e.clientX,e.clientY);
+      const now=performance.now();
+      if(now<suppressContextUntil||now-lastSecondary<500||dragButton===2)return;
+      lastSecondary=now;requestBuild(e.clientX,e.clientY);
     });
     this.canvas.addEventListener('wheel',e=>{
       e.preventDefault();
