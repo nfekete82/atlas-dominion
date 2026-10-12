@@ -230,3 +230,12 @@
 .diplomacy-help[open]{padding-bottom:5px}
 .leaderboard-toggle{display:block;width:100%;background:#172b34;border:1px solid #38535a;color:#a7cfbd;border-radius:5px;margin-top:9px;padding:7px;font:700 10px system-ui;cursor:pointer}
 .leaderboard-toggle:hover{background:#24434a}
+
+/* The mobile reserve is the actionable part of military strength.
+ * Keep that line visible; fold detailed deployments and losses on demand.
+ * Grid cards do not stretch to match the tallest card in the same row. */
+.stat-grid{align-items:start}
+.stat #mobileTroops{display:block;margin-top:3px;font-size:9px;font-weight:850;color:#9cdeed;letter-spacing:.35px}
+.troop-breakdown{margin-top:3px;color:#95adb4}
+.troop-breakdown summary{cursor:pointer;font-size:8px;letter-spacing:.3px;padding:3px 0}
+.troop-breakdown[open] span{display:block;margin-top:4px;overflow-wrap:anywhere;font-size:8px;line-height:1.3}
