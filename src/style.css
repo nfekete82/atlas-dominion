@@ -338,3 +338,61 @@
 @media(prefers-reduced-motion:reduce){
   .map-info,.zoom-controls button,.topbar,.sidebar{transition:none!important}
 }
+
+/* Tactical Warfare: quick decisions without a second full-height panel. */
+.attack-assessment{
+  margin-top:8px;padding:9px 10px;border:1px solid #4a6568;
+  border-left:3px solid #6bd0b3;border-radius:4px;
+  background:#0b222be8;font-size:11px;line-height:1.55;
+}
+.attack-assessment[hidden]{display:none}
+.attack-assessment[data-risk="moderate"]{border-left-color:#e8c17d}
+.attack-assessment[data-risk="high"]{border-left-color:#f08b82}
+.attack-assessment .assessment-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.attack-assessment .assessment-top strong{font-size:11px;color:#edf5ee}
+.attack-assessment .assessment-top b{font-size:10px;color:#b9e8cd}
+.attack-assessment[data-risk="high"] .assessment-top b{color:#fbb0a2}
+.attack-assessment[data-risk="moderate"] .assessment-top b{color:#f4d69c}
+.attack-assessment small{display:block;color:#a9bec1;margin-top:4px}
+.active-armies{margin:14px 0 1px;padding-top:11px;border-top:1px solid #2b4651}
+.armies-title{display:flex;justify-content:space-between;font-size:11px;font-weight:850;letter-spacing:.8px;color:#c6d7d3;margin-bottom:8px}
+.armies-title span{color:#f3d59a}
+.army-list{display:grid;gap:7px}
+.army-list>small{font-size:10px;color:#849ca5}
+.army-row{
+  border:1px solid #38515a;background:#10232d;border-radius:5px;
+  padding:9px 10px;display:grid;gap:5px;
+}
+.army-row .army-header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.army-row .army-header strong{font-size:11px;color:#e9f0ec}
+.army-row .army-header small{font-size:10px;color:#a3bec8;white-space:nowrap}
+.army-row .army-stats{font-size:10px;color:#a9bbbf}
+.army-row .army-actions{display:flex;gap:6px}
+.army-row button{
+  flex:1;padding:6px 7px;border-radius:4px;border:1px solid #4f7181;
+  color:#cfe7ed;background:#162e3a;font-weight:750;font-size:10px;
+}
+.army-row button:hover:not(:disabled){background:#234657;border-color:#8dbcc8}
+.army-row button[data-army-retreat]{border-color:#976862;color:#f6c9be;background:#342627}
+.army-row button[data-army-retreat]:hover:not(:disabled){background:#4b3030}
+.army-row button:disabled{opacity:.48;cursor:default}
+.war-alerts{
+  position:absolute;top:78px;right:20px;z-index:5;
+  display:grid;gap:7px;width:min(280px,calc(100% - 36px));
+  pointer-events:none;
+}
+.war-alerts[hidden]{display:none}
+.war-alert{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  width:100%;pointer-events:auto;padding:9px 11px;border-radius:5px;
+  border:1px solid #bb7770;background:#311f25f2;color:#fbe7e1;
+  box-shadow:0 5px 18px #02090ec4;text-align:left;cursor:pointer;
+}
+.war-alert[data-kind="captured"]{border-color:#ed9b72;background:#453028f4}
+.war-alert[data-kind="victory"]{border-color:#7dab88;background:#16342af2;color:#d7f5de}
+.war-alert span{display:grid;gap:3px;min-width:0}
+.war-alert strong{font-size:11px;line-height:1.3}
+.war-alert small{font-size:10px;opacity:.76}
+.war-alert svg{flex-shrink:0}
+.war-alert:hover{filter:brightness(1.16)}
+@media(max-width:1100px){.war-alerts{right:8px;top:70px;width:220px}}
