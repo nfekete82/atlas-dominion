@@ -840,11 +840,24 @@ export class MapRenderer {
     });
     this.canvas.addEventListener('pointercancel',()=>{this.dragging=false;});
     this.canvas.addEventListener('pointerleave',()=>{this.hover=null;this.refreshHoverPreview(null);this.onHover(null,0,0,false);});
+    // Both mouse secondary click and trackpad context click open the same
+    // build menu. A secondary pointerup fallback covers browsers that do not
+    // dispatch contextmenu on canvas after a pointer gesture.
+    let lastSecondary=-Infinity;
+    const requestBuild=(clientX:number,clientY:number)=>{
+      const point=this.cellAt(clientX,clientY,false);
+      const owned=point!==null && this.game.owner[point.y*MAP_WIDTH+point.x]===0;
+      this.onBuildRequest(owned?point:null,clientX,clientY);
+    };
+    this.canvas.addEventListener('pointerup',e=>{
+      if(e.button!==2)return;
+      lastSecondary=performance.now();
+      requestBuild(e.clientX,e.clientY);
+    });
     this.canvas.addEventListener('contextmenu',e=>{
       e.preventDefault();
-      const point=this.cellAt(e.clientX,e.clientY,false);
-      const owned=point!==null && this.game.owner[point.y*MAP_WIDTH+point.x]===0;
-      this.onBuildRequest(owned?point:null,e.clientX,e.clientY);
+      if(performance.now()-lastSecondary<350)return;
+      requestBuild(e.clientX,e.clientY);
     });
     this.canvas.addEventListener('wheel',e=>{
       e.preventDefault();
