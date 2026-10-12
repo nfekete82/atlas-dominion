@@ -97,15 +97,15 @@ export function drawCityMarker(c:CanvasRenderingContext2D,x:number,y:number,leve
     building(-11,-5,8,14,4);
     building(-1,-9,9,18,5);
     building(8,-3,5,12,3);
-    if(n===4)building(-5,-12,7,8,4);
+    if(n===4)building(-5,-10,7,8,3);
   }else{
     // Level-five skyline is visibly taller and gold without extra labels.
     c.fillStyle=style.border;c.fillRect(-13,4,26,7);
     building(-12,-5,7,14,4);
-    building(-5,-12,9,21,5);
+    building(-5,-10,9,19,4);
     building(5,-8,8,17,4);
-    c.fillStyle=style.border;c.fillRect(-2,-14,2,3);
-    c.fillStyle='#fff6cf';c.fillRect(-1,-15,1,2);
+    c.fillStyle=style.border;c.fillRect(-2,-12,2,3);
+    c.fillStyle='#fff6cf';c.fillRect(-1,-14,1,2);
   }
   if(n>0){
     // Keep the existing 10px tier badge and true 30px painting envelope.
