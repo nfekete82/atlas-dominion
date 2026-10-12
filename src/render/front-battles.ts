@@ -114,3 +114,19 @@ export function visualNoise(seed:number,index:number):number {
   x=Math.imul(x^(x>>>13),0xc2b2ae35);
   return ((x^(x>>>16))>>>0)/4294967296;
 }
+
+/** Level-of-detail for screen-space squads. Symbols visualize the actual
+ * engagement's magnitude; they are NOT one icon per soldier. */
+export function combatVisualDensity(troops:number,zoom:number):number {
+  if(!Number.isFinite(troops)||troops<=0)return 0;
+  const max=zoom>=2?18:zoom>=1.25?12:7;
+  return Math.min(max,Math.max(1,Math.ceil(Math.log2(1+troops)*1.5)));
+}
+
+/** Signed pressure (-1 defender advantage, +1 attacking advantage).
+ * Visual only, never changes losses or movement in the engine. */
+export function battleMomentum(attacker:number,defender:number):number {
+  const a=Math.max(0,Number.isFinite(attacker)?attacker:0);
+  const d=Math.max(0,Number.isFinite(defender)?defender:0);
+  return (a-d)/Math.max(1,a+d);
+}
