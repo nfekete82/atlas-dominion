@@ -37,6 +37,7 @@ test('Risk hybrid can deploy, develop and complete a full 50-country round',asyn
 
 test('Risk mode links back to the existing realtime game',async({page})=>{
   await page.goto('/');
+  await page.locator('[data-country="DE"]').click();
   await expect(page.locator('a[href="/risk.html"]')).toBeVisible();
   await page.locator('a[href="/risk.html"]').click();
   await expect(page).toHaveURL(/risk\.html$/);
