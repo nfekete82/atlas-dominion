@@ -366,6 +366,15 @@ export class Game {
       city.owner=this.owner[city.index];
       if(city.owner>=0)this.factions[city.owner].cityCount++;
     }
+    // Connections permanently break as soon as ownership diverges.
+    // Without pruning, an interrupted link could silently revive after
+    // reconquest in a continuous game, while save/load had omitted it.
+    for(const [factory,city] of this.factoryLinks){
+      if(this.owner[factory]<0||this.owner[factory]!==this.owner[city]||
+         this.buildings[factory]!==BUILDING_CODES.factory||
+         !(this.buildings[city]===BUILDING_CODES.city||this.capitalSites.has(city)))
+        this.factoryLinks.delete(factory);
+    }
     const factoryRevenue=new Float64Array(this.factions.length);
     for(let i=0;i<CELL_COUNT;i++)if(this.buildings[i]===BUILDING_CODES.factory&&this.owner[i]>=0){
       const city=this.factoryLinks.get(i);
