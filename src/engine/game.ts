@@ -665,6 +665,11 @@ export class Game {
    * Capitals and player cities count as spacing anchors; no fake settlements.
    * One paid action per faction per development interval.
    */
+  /** AI economy scales with its realm size. Previously EVERY nation could
+   * buy only ONE building action per 100 ticks on Balanced and always picked
+   * the lowest-level city, leaving mature cities frozen at early tiers.
+   * All construction uses the exact human building and tier prices.
+   */
   private developAI():void {
     const centers:Array<Array<[number,number]>>=this.factions.map(()=>[]);
     const upgradeSites:number[][]=this.factions.map(()=>[]);
@@ -675,10 +680,14 @@ export class Game {
       const id=this.owner[i];
       if(id<0||this.buildings[i]!==BUILDING_CODES.city)continue;
       centers[id].push([i%MAP_WIDTH,Math.floor(i/MAP_WIDTH)]);
-      if(this.cityUpgrades[i]<5)upgradeSites[id].push(i);
+      if(id>0&&this.cityUpgrades[i]<5)upgradeSites[id].push(i);
     }
-    const choice=new Int32Array(this.factions.length).fill(-1);
-    const scores=new Float64Array(this.factions.length).fill(-Infinity);
+
+    // The best candidate in each small map zone keeps large empires from
+    // repeatedly selecting the same location while making multiple builds.
+    const zoneBest=new Map<number,{index:number;score:number}>();
+    const zoneColumns=Math.ceil(MAP_WIDTH/12);
+    const zoneRows=Math.ceil(MAP_HEIGHT/12);
     for(let i=0;i<CELL_COUNT;i++){
       const id=this.owner[i];
       if(id<=0||!this.factions[id]?.ai||this.buildings[i]||this.capitalSites.has(i))continue;
@@ -688,30 +697,63 @@ export class Game {
         const dist=(x-cx)**2+(y-cy)**2;
         if(dist<nearest)nearest=dist;
       }
-      if(nearest<100)continue; // At least 10 sectors from any existing city.
-      // Prefer district hubs separated across the nation, never the nearest
-      // unoccupied tile next to its capital.
-      const score=Math.min(nearest,900)-Math.abs(nearest-324)*.07;
-      if(score>scores[id]){scores[id]=score;choice[id]=i;}
+      if(nearest<49)continue; // Seven-sector spacing, still avoids city spam.
+      const score=Math.min(nearest,1000)-Math.abs(nearest-196)*.09;
+      const zone=id*zoneColumns*zoneRows+Math.floor(y/12)*zoneColumns+Math.floor(x/12);
+      const previous=zoneBest.get(zone);
+      if(!previous||score>previous.score||score===previous.score&&i<previous.index)
+        zoneBest.set(zone,{index:i,score});
     }
+    const choices:Array<Array<{index:number;score:number}>>=this.factions.map(()=>[]);
+    for(const [zone,entry] of zoneBest){
+      const id=Math.floor(zone/(zoneColumns*zoneRows));
+      choices[id].push(entry);
+    }
+    for(const entries of choices)entries.sort((a,b)=>b.score-a.score||a.index-b.index);
+    let changed=false;
     for(const faction of this.factions){
       if(!faction.ai||!faction.alive)continue;
-      const sites=upgradeSites[faction.id];
-      sites.sort((a,b)=>this.cityUpgrades[a]-this.cityUpgrades[b]||a-b);
-      const canExpand=choice[faction.id]>=0;
-      // Improve existing towns on most development cycles; expand the network
-      // occasionally if there is space and money. Both actions use real costs.
-      const preferUpgrade=sites.length>0&&((this.tick/this.difficultySettings.cityInterval)%3!==0||!canExpand);
-      if(preferUpgrade){
-        const site=sites[0],point=cellToPoint(site);
-        if(this.canUpgradeCity(faction.id,point).ok){this.upgradeCity(faction.id,point);continue;}
+      const id=faction.id;
+      const sites=upgradeSites[id];
+      const existing=centers[id].length;
+      const desiredCities=Math.max(2,Math.floor(faction.territory/65));
+      const maxActions=Math.min(10,Math.max(1,1+Math.floor(Math.sqrt(faction.territory)/28)));
+      // Expansion and upgrading compete for a single paid development budget.
+      // New cities are limited to at most two each interval, and only if the
+      // realm is significantly below its sustainable settlement count.
+      const maxBuilds=existing<desiredCities?Math.min(2,maxActions):0;
+      let actions=0,builds=0;
+      const newCities:Array<[number,number]>=[];
+      for(const candidate of choices[id]){
+        if(builds>=maxBuilds||actions>=maxActions)break;
+        const index=candidate.index,x=index%MAP_WIDTH,y=Math.floor(index/MAP_WIDTH);
+        if(newCities.some(([cx,cy])=>(cx-x)**2+(cy-y)**2<49))continue;
+        if(this.owner[index]!==id||this.buildings[index])continue;
+        const cost=BUILDINGS[0].cost;
+        if(faction.money<cost)break;
+        faction.money-=cost;this.buildings[index]=BUILDING_CODES.city;
+        this.cityUpgrades[index]=0;
+        newCities.push([x,y]);sites.push(index);
+        changed=true;builds++;actions++;
       }
-      if(canExpand&&this.canBuild(faction.id,cellToPoint(choice[faction.id]),'city').ok){
-        this.build(faction.id,cellToPoint(choice[faction.id]),'city');continue;
+      // Highest-tier towns finish first, rather than having hundreds of
+      // newly founded towns keep every existing city at level 0 or 1.
+      // When a top tier is too expensive, an affordable lower tier can grow.
+      sites.sort((a,b)=>this.cityUpgrades[b]-this.cityUpgrades[a]||a-b);
+      for(let k=actions;k<maxActions;k++){
+        let picked=-1;
+        for(const index of sites){
+          if(this.cityUpgrades[index]>=5)continue;
+          if(cityUpgradeCost(this.cityUpgrades[index])<=faction.money){picked=index;break;}
+        }
+        if(picked<0)break;
+        const cost=cityUpgradeCost(this.cityUpgrades[picked]);
+        faction.money-=cost;this.cityUpgrades[picked]++;
+        changed=true;
       }
-      if(sites.length&&this.canUpgradeCity(faction.id,cellToPoint(sites[0])).ok)
-        this.upgradeCity(faction.id,cellToPoint(sites[0]));
     }
+    // Recompute growth once, not once per paid building in a large empire.
+    if(changed)this.recount();
   }
 
   setDoctrine(mode: Doctrine): void {
