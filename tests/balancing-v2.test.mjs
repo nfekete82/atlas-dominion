@@ -95,3 +95,23 @@ test('AI war cooldown stops an immediate second national invasion after a costly
   assert.ok(g.attackOrders.filter(o=>o.factionId===1&&o.targetOwner>=0).length===0,
     'neutral expansion is fine, new foreign invasions must wait');
 });
+
+test('AI-AI ceasefire blocks a renewed war for ninety ticks but never suppresses neutral expansion',()=>{
+  const g=new Game(7014,3,'DE','balanced');
+  const actor=g.factions[1];
+  actor.troops=1000;
+  g.attackOrders.push({id:9002,factionId:1,targetOwner:2,anchor:g.cities[2],
+    committed:200,remaining:0,effort:0,fallen:35,conquered:7});
+  g.resolveOrders(actor);
+  assert.equal(g.isWarTruce(1,2),true);
+  assert.equal(g.isWarTruce(2,1),true);
+  assert.equal(g.isWarTruce(0,1),false);
+  const save=g.exportSave();
+  assert.deepEqual(Game.fromSave(JSON.parse(JSON.stringify(save))).exportSave(),save);
+  g.tick+=91;
+  assert.equal(g.isWarTruce(1,2),false);
+  const legacy=structuredClone(save);
+  delete legacy.warTruces;
+  assert.equal(Game.fromSave(legacy).warTruces.length,0);
+  assert.throws(()=>Game.fromSave({...save,warTruces:[{a:-1,b:1,untilTick:500}]}),/Waffenstillstand/);
+});
