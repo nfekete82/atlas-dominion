@@ -46,6 +46,20 @@ export interface Faction {
 }
 export interface City { name: string; x: number; y: number; index: number; original: number; owner: number; }
 export interface GameEvent { tick: number; text: string; color: string; }
+/** Immutable snapshots of ACTUAL frontline strikes for the renderer.
+ * They never move armies or change outcomes: this is combat telemetry.
+ */
+export interface BattleEvent {
+  tick:number;
+  index:number;
+  attackerId:number;
+  defenderId:number;
+  attacking:number;
+  defending:number;
+  attackerLost:number;
+  defenderLost:number;
+  captured:boolean;
+}
 export interface AttackOrder {
   id: number;
   factionId: number;
@@ -154,6 +168,8 @@ export class Game {
   readonly attackOrders: AttackOrder[] = [];
   private nextAttackId = 1;
   private lastAttackerLoss = 0;
+  /** Combat during the most recent simulation tick (or direct strike). */
+  readonly battleEvents:BattleEvent[]=[];
   readonly seed: number;
   readonly playerCode: string;
   readonly difficulty: Difficulty;
@@ -785,6 +801,13 @@ export class Game {
       defender.enemyFallen+=this.lastAttackerLoss;
       faction.enemyFallen+=defenderLosses;
     }
+    // Record measured troops and fatalities, never estimated fake unit counts.
+    // Capped so an extremely busy high-speed simulation stays renderable.
+    if(this.battleEvents.length<1600)this.battleEvents.push({
+      tick:this.tick,index,attackerId:faction.id,defenderId:originalOwner,
+      attacking:spent,defending:defenderLosses,
+      attackerLost:this.lastAttackerLoss,defenderLost:defenderLosses,captured,
+    });
     if(!captured)return false;
     this.owner[index] = faction.id;
     // Incrementally update local battlefronts as territory changes.
@@ -835,6 +858,7 @@ export class Game {
   step(): void {
     if (this.paused || this.status !== 'playing') return;
     this.tick++;
+    this.battleEvents.length=0;
     for(const faction of this.factions)faction.defenseFallenTick=0;
     if (this.tick >= this.aiGoalChange) {
       this.pickAIGoals();
