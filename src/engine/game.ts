@@ -98,6 +98,7 @@ export interface AttackOrder {
 }
 export interface AttackResult { ok: boolean; reason: string; sent: number; targetOwner?: number; front?: Point; }
 export interface BuildResult { ok: boolean; reason: string; cost: number; type?: BuildingType; }
+export interface CityUpgradeBatchResult { ok:boolean; reason:string; cost:number; upgrades:number; cities:number; finalLevel?:number; }
 export type GameStatus = 'playing' | 'victory' | 'defeat';
 export type Doctrine = 'expand' | 'blitz' | 'fortify';
 
@@ -400,6 +401,85 @@ export class Game {
     this.recount();
     if(id===0)this.log('Stadt auf Stufe '+this.cityUpgrades[index]+' ausgebaut · -'+permission.cost+' Geld.',this.factions[id].color);
     return {ok:true,reason:'Stadt Stufe '+this.cityUpgrades[index],cost:permission.cost,type:'city'};
+  }
+
+  /** Plan paid improvements without mutating the world. Cheapest tiers first
+   * across all owned cities, in stable sector order, so a batch buys the most
+   * individual upgrades possible with available gold. Capitals retain their
+   * existing separate rules and are not upgradable buildings.
+   */
+  private planCityUpgrades(id:number,scope:'single'|'all',point?:Point):{
+    steps:Array<{index:number;cost:number}>;result:CityUpgradeBatchResult
+  } {
+    const empty=(reason:string)=>({steps:[],result:{
+      ok:false,reason,cost:0,upgrades:0,cities:0,
+    } as CityUpgradeBatchResult});
+    const faction=this.factions[id];
+    if(!faction?.alive||this.status!=='playing')return empty('Dieses Land kann nicht bauen.');
+    let sites:number[];
+    if(scope==='single'){
+      if(!point||!Number.isInteger(point.x)||!Number.isInteger(point.y)||
+         point.x<0||point.y<0||point.x>=MAP_WIDTH||point.y>=MAP_HEIGHT)
+        return empty('Ungültige Stadtposition.');
+      const index=pointToIndex(point);
+      if(this.owner[index]!==id)return empty('Nur eigene Städte verbessern.');
+      if(this.buildings[index]!==BUILDING_CODES.city)return empty('Hier steht keine ausbaubare Stadt.');
+      if(this.cityUpgrades[index]>=5)return empty('Maximalstufe 5 erreicht.');
+      sites=[index];
+    }else{
+      sites=[];
+      for(let index=0;index<CELL_COUNT;index++){
+        if(this.owner[index]===id&&this.buildings[index]===BUILDING_CODES.city&&this.cityUpgrades[index]<5)
+          sites.push(index);
+      }
+      if(!sites.length)return empty('Keine eigenen ausbaubaren Städte vorhanden.');
+    }
+    let gold=faction.money;
+    const steps:Array<{index:number;cost:number}>=[];
+    // Levels cost [250,450,750,1150,1700]; all cities receive cheaper
+    // improvements before any expensive tier, making results predictable.
+    const planned=new Uint8Array(sites.map(index=>this.cityUpgrades[index]));
+    for(let level=0;level<5;level++){
+      const cost=cityUpgradeCost(level);
+      if(gold<cost)break;
+      for(let i=0;i<sites.length;i++){
+        if(planned[i]!==level||gold<cost)continue;
+        steps.push({index:sites[i],cost});
+        planned[i]++;
+        gold-=cost;
+      }
+    }
+    if(!steps.length)return empty('Nicht genug Geld für die nächste Ausbaustufe.');
+    const spent=faction.money-gold;
+    const cities=new Set(steps.map(step=>step.index)).size;
+    return {steps,result:{
+      ok:true,reason:scope==='single'?'Stadt bis zur bezahlbaren Stufe ausbauen.':
+        'Alle eigenen Städte nach Ausbaustufenkosten verbessern.',
+      cost:spent,upgrades:steps.length,cities,
+      ...(scope==='single'?{finalLevel:planned[0]}:{}),
+    }};
+  }
+
+  /** Exact affordable preview for the context menu; never spends gold. */
+  previewCityUpgrades(id:number,scope:'single'|'all',point?:Point):CityUpgradeBatchResult {
+    return this.planCityUpgrades(id,scope,point).result;
+  }
+
+  /** One transaction, one growth recalculation and one event for any number
+   * of individual upgrades. No free levels and no partial unrecorded costs.
+   */
+  upgradeCities(id:number,scope:'single'|'all',point?:Point):CityUpgradeBatchResult {
+    const plan=this.planCityUpgrades(id,scope,point);
+    if(!plan.result.ok)return plan.result;
+    this.factions[id].money-=plan.result.cost;
+    for(const step of plan.steps)this.cityUpgrades[step.index]++;
+    this.recount();
+    if(id===0)this.log(
+      `${plan.result.cities} Städte · ${plan.result.upgrades} Ausbaustufen · -${plan.result.cost} Geld.`,
+      this.factions[id].color);
+    return {...plan.result,reason:scope==='single'
+      ?`Stadt auf Stufe ${plan.result.finalLevel} ausgebaut.`
+      :`${plan.result.cities} Städte um ${plan.result.upgrades} Stufen ausgebaut.`};
   }
 
   canBuild(id:number,point:Point,type:BuildingType):BuildResult {
