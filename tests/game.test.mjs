@@ -236,7 +236,10 @@ test('A repeat border click reinforces the offensive with a fresh troop commitme
   assert.equal(first.sent,Math.floor(90*.25));
   assert.equal(second.sent,Math.floor((90-first.sent)*.50));
   assert.equal(g.factions[0].troops,90-first.sent-second.sent);
-  assert.equal(g.attackOrders.length,2);
+  assert.equal(g.attackOrders.length,1,'a repeat click strengthens one continuous border attack');
+  assert.equal(g.attackOrders[0].remaining,first.sent+second.sent);
+  assert.equal(g.attackOrders[0].committed,first.sent+second.sent);
+  assert.match(second.reason,/verstärkt/i);
 });
 
 test('A click several sectors inside a neighboring country snaps to its reachable border',()=>{
