@@ -76,11 +76,11 @@ test('a more powerful defender steadily reduces offensive damage but never makes
   assert.equal(equal,1);
   assert.ok(strongerOpponent<1);
   assert.ok(enormousOpponent<=strongerOpponent);
-  assert.ok(enormousOpponent>=.70);
+  assert.ok(enormousOpponent>=.80);
   assert.ok(weakerOpponent>1);
-  assert.ok(weakerOpponent<=1.30);
-  assert.equal(relativeAttackEffect(1,1e40),.70);
-  assert.equal(relativeAttackEffect(1e40,1),1.30);
+  assert.ok(weakerOpponent<=1.20);
+  assert.equal(relativeAttackEffect(1,1e40),.80);
+  assert.equal(relativeAttackEffect(1e40,1),1.20);
 });
 
 test('country strength uses total population, controlled land and cities without double-counting reserves',()=>{
