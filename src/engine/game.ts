@@ -8,6 +8,7 @@ import {aiStyle,scoreAIFront} from './ai-strategy.js';
 import {aiMarchRecovery,aiAttacksPerTick,aiStrikeSize,aiDefenseAllocation,aiRiskTolerance} from './ai-tactics.js';
 import {formatCompact} from '../format.js';
 import {chooseAdvancingSector,canReinforceFront} from './offensive-front.js';
+import {frontTileOutcome,opposingArmies} from './front-combat.js';
 import {DIFFICULTY_SETTINGS,isDifficulty,difficultyAttempts,difficultyDefenseBudget,difficultyRisk,type Difficulty,type DifficultySettings} from './difficulty.js';
 
 export const WATER = -2;
@@ -78,6 +79,8 @@ export interface AttackOrder {
   contested?: number;
   /** Bounded chronological capture history, extending the live attack wave. */
   trail?: number[];
+  /** Unspent fractional attack time carried into the next tick. */
+  progress?: number;
   landing?: boolean;
   startedTick?: number;
 }
@@ -606,7 +609,7 @@ export class Game {
       this.attackOrders.push({
         id:this.nextAttackId++,factionId:id,targetOwner:owner,
         anchor:front,committed:sent,remaining:sent,effort:campaignEffort(sent),
-        fallen:0,conquered:0,trail:[],landing,startedTick:this.tick,
+        fallen:0,conquered:0,trail:[],progress:0,landing,startedTick:this.tick,
       });
     }
     // Neutral attacks only show a concise order status in the HUD, never
@@ -636,46 +639,111 @@ export class Game {
     });
   }
 
-  private resolveOrders(attacker: Faction) {
-    // `remaining` means surviving soldiers; `effort` means how far the army
-    // can push this sortie. Travelling through neutral land costs stamina,
-    // never inhabitants. Only casualties permanently lower population.
+  /** Full-tile combat: a continuous attack has a separate living army.
+   * Every tile spends a fraction of the tick and kills real soldiers on
+   * both sides. No partial-sector HP decay or random cursor jumps.
+   */
+  private resolveFrontTile(order:AttackOrder,index:number,borderSize:number):{
+    time:number;captured:boolean;loss:number;
+  } {
+    const attacker=this.factions[order.factionId];
+    const owner=this.owner[index];
+    const defender=owner>=0?this.factions[owner]:null;
+    const friendly=LAND_NEIGHBORS[index].reduce((n,i)=>n+(this.owner[i]===attacker.id?1:0),0);
+    if(owner!==order.targetOwner || (!friendly && !(order.landing&&order.conquered===0)))
+      return {time:1,captured:false,loss:0};
+    const targetPopulation=defender?this.populationOf(owner):0;
+    const localPosted=defender?this.frontline[index]:0;
+    const tile=frontTileOutcome({
+      attackTroops:order.remaining,
+      defenderReserve:defender?.troops??0,
+      defenderPopulation:targetPopulation,
+      defenderTerritory:defender?.territory??0,
+      postedTroops:localPosted,
+      defenseStrength:this.defense[index],
+      friendlySides:Math.max(1,friendly),
+      borderSize,
+      relativePower:this.relativeAttackPower(attacker.id,owner),
+      neutral:owner===NEUTRAL,
+      capital:this.capitalSites.has(index),
+      doctrine:owner===0?this.doctrine:undefined,
+    });
+    if(order.remaining<=tile.attackerLoss)return {time:tile.time,captured:false,loss:0};
+    let defenderLoss=0;
+    if(defender){
+      const posted=Math.min(localPosted,tile.postedLoss);
+      this.frontline[index]-=posted;
+      const reserveLost=Math.min(defender.troops,Math.max(0,tile.defenderLoss-posted));
+      defender.troops-=reserveLost;
+      defenderLoss=posted+reserveLost;
+      defender.defenseSpent+=defenderLoss;
+      defender.defenseFallenTick+=defenderLoss;
+      defender.enemyFallen+=tile.attackerLoss;
+      attacker.enemyFallen+=defenderLoss;
+    }
+    const loss=Math.min(order.remaining,tile.attackerLoss);
+    order.remaining-=loss;order.fallen+=loss;
+    attacker.attackFallen+=loss;
+    this.lastAttackerLoss=loss;
+    if(this.battleEvents.length<1600)this.battleEvents.push({
+      tick:this.tick,index,attackerId:attacker.id,defenderId:owner,
+      attacking:order.remaining+loss,defending:defenderLoss,
+      attackerLost:loss,defenderLost:defenderLoss,captured:true,
+    });
+    this.captureTile(attacker,index);
+    return {time:tile.time,captured:true,loss};
+  }
+
+  /** Actual tile-by-tile assault. Existing attackers advance together from
+   * the dynamically updated four-neighbor border. The more contact cells
+   * and soldiers involved, the faster the front flows per tick.
+   */
+  private resolveOrders(attacker:Faction):void {
     const orders=this.attackOrders.filter(o=>o.factionId===attacker.id);
     for(const order of orders){
-      if(order.landing && order.conquered===0 && this.tick-(order.startedTick??0)<4)continue;
-      const strikes=attackFrontWidth(order.committed,attacker.id===0&&this.doctrine==='blitz',order.targetOwner===NEUTRAL);
+      if(order.landing&&order.conquered===0&&this.tick-(order.startedTick??0)<4)continue;
+      let budget=1+Math.min(1.5,Math.max(0,order.progress??0));
       let unreachable=false;
-      for(let k=0;k<strikes && order.remaining>=1 && order.effort>=1;k++){
+      let attempts=0;
+      const maxTiles=attacker.id===0&&this.doctrine==='blitz'?26:20;
+      while(attempts<maxTiles&&order.remaining>=.5){
         const index=this.chooseOrderedFront(order);
-        if(index===-1){unreachable=true;break;}
-        const effortCost=Math.min(order.effort,order.targetOwner===NEUTRAL?(attacker.id===0&&this.doctrine==='expand'?6:8):21);
-        if(effortCost<1)break;
-        order.effort-=effortCost;
-        const engaged=Math.min(order.remaining,effortCost);
-        const captured=this.strike(attacker,index,engaged);
-        order.contested=captured?undefined:index;
-        const lost=Math.min(order.remaining,this.lastAttackerLoss);
-        order.remaining-=lost;
-        order.fallen+=lost;
-        if(captured){
-          order.conquered++;order.lastCaptured=index;
-          (order.trail??=[]).push(index);
-          if(order.trail.length>144)order.trail.shift();
-          if(order.landing)order.landing=false;
-        }
+        if(index<0){unreachable=true;break;}
+        const borderSize=Math.min(100,1+(order.trail?.length??0)*.09+
+          Math.sqrt(Math.max(1,order.committed))*.12);
+        const cost=frontTileOutcome({
+          attackTroops:order.remaining,defenderReserve:0,
+          defenderPopulation:this.owner[index]<0?0:this.populationOf(this.owner[index]),
+          defenderTerritory:this.owner[index]<0?0:this.factions[this.owner[index]].territory,
+          postedTroops:this.frontline[index],defenseStrength:this.defense[index],
+          friendlySides:LAND_NEIGHBORS[index].filter(n=>this.owner[n]===attacker.id).length,
+          borderSize,relativePower:this.relativeAttackPower(attacker.id,this.owner[index]),
+          neutral:this.owner[index]===NEUTRAL,
+          capital:this.capitalSites.has(index),
+          doctrine:this.owner[index]===0?this.doctrine:undefined,
+        }).time;
+        if(cost>budget){order.contested=index;break;}
+        const result=this.resolveFrontTile(order,index,borderSize);
+        if(!result.captured){unreachable=true;break;}
+        budget-=result.time;
+        order.effort=Math.max(0,order.effort-result.time);
+        order.conquered++;
+        order.contested=undefined;
+        order.lastCaptured=index;
+        (order.trail??=[]).push(index);
+        if(order.trail.length>144)order.trail.shift();
+        if(order.landing)order.landing=false;
+        attempts++;
       }
-      if(unreachable||order.effort<1||order.remaining<1){
-        // Survivors return to the mobile reserve. A reserve transfer is never
-        // treated as a new birth or a death.
-        attacker.troops+=order.remaining;
-        const pos=this.attackOrders.findIndex(o=>o.id===order.id);
-        if(pos>=0)this.attackOrders.splice(pos,1);
+      order.progress=unreachable?0:Math.min(1.5,Math.max(0,budget));
+      if(unreachable||order.remaining<.5){
+        attacker.troops+=Math.max(0,order.remaining);
+        const at=this.attackOrders.findIndex(o=>o.id===order.id);
+        if(at>=0)this.attackOrders.splice(at,1);
         if(attacker.id===0){
           if(order.targetOwner===NEUTRAL){
-            // Log only meaningful completed neutral campaigns, not each
-            // click/sector. Orders are visible separately while active.
             if(order.conquered>=10)this.log(
-              `Expansion +${formatCompact(order.conquered)} Sektoren · ${formatCompact(order.remaining)} Soldaten zurück.`,
+              `Expansion +${formatCompact(order.conquered)} Sektoren · ${formatCompact(order.fallen)} Verluste.`,
               attacker.color);
           }else this.log(
             `Kampf beendet: +${formatCompact(order.conquered)} Sektoren · ${formatCompact(order.fallen)} Gefallene.`,
@@ -836,6 +904,11 @@ export class Game {
       attackerLost:this.lastAttackerLoss,defenderLost:defenderLosses,captured,
     });
     if(!captured)return false;
+    return this.captureTile(faction,index);
+  }
+
+  /** This is the only ownership handoff, shared by bot/player front clashes. */
+  private captureTile(faction:Faction,index:number):boolean {
     this.owner[index] = faction.id;
     // Incrementally update local battlefronts as territory changes.
     for (const [id,set] of this.frontierCandidates.entries()) {
