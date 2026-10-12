@@ -21,6 +21,7 @@
         <div class="map-wash" aria-hidden="true"></div>
         <div class="map-heading"><div class="micro-heading">THE EUROPEAN THEATRE <span>·</span> 01</div><h1>EUROPA <em>EROBERN.</em></h1><div class="map-subtitle">Linksklick: Angreifen · Rechtsklick: Bauen, Verteidigen oder Koalition · Mausrad: Karte zoomen.</div></div>
         <div class="map-location">◉ <span>EUROPA</span> <small>480 × 260 SECTORS</small></div>
+        <div class="war-alerts" id="warAlerts" aria-live="polite" aria-label="Wichtige Kriegswarnungen" hidden></div>
         <div class="map-info compact-hover" id="mapInfo" hidden><span id="hoverOwner">NEUTRAL</span><div id="hoverMilitary" class="military-details" hidden></div><strong id="hoverAction">—</strong></div>
         <div class="zoom-controls"><button id="zoomIn" title="Hineinzoomen">+</button><button id="zoomOut" title="Herauszoomen">−</button><button id="zoomFit" title="Karte einpassen">⌗</button></div>
         <div class="bottom-bar">
@@ -40,8 +41,13 @@
           <input id="attackRatio" type="range" min="5" max="100" step="5" value="35" aria-label="Truppenanteil pro Angriff in Prozent" />
           <div class="attack-presets"><button type="button" data-ratio="10">10 %</button><button type="button" data-ratio="25">25 %</button><button type="button" data-ratio="50">50 %</button><button type="button" data-ratio="100">MAX</button></div>
           <div class="attack-preview"><span>BEIM NÄCHSTEN KLICK</span><b id="attackPreview">— TRUPPEN</b></div>
+          <div id="attackAssessment" class="attack-assessment" aria-live="off" hidden></div>
           <div id="attackStatus" class="attack-status" role="status" aria-live="polite">Klicke auf ein verbundenes Nachbarland: Die Front wird automatisch gefunden.</div>
-        </div></div>
+        </div>
+        <section class="active-armies" aria-label="Laufende Offensiven">
+          <div class="armies-title">⚔ LAUFENDE OFFENSIVEN <span id="activeArmyCount">0</span></div>
+          <div id="activeArmyList" class="army-list"><small>Keine Truppen im Feld.</small></div>
+        </section></div>
         <div class="sidebar-section ranking"><div class="section-label">02 <span>EUROPÄISCHE LÄNDER</span> <i></i></div><div id="leaderboard" class="leaderboard"></div><button type="button" class="leaderboard-toggle" id="leaderboardToggle">Alle Länder anzeigen ↓</button></div>
         <div class="sidebar-section diplomacy"><div class="section-label">03 <span>🤝 DIPLOMATIE</span> <i></i></div>
           <details class="diplomacy-help"><summary>Wie funktionieren Bündnisse?</summary>Bündnisse schützen beide Seiten und ermöglichen militärische Hilfe mit vorhandenen Soldaten. Maximal zwei Partner pro Land.</details>
