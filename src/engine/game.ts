@@ -862,6 +862,31 @@ export class Game {
     return {ok:true,reason:'Marschbefehl erteilt.'};
   }
 
+  /** Commit exactly a selected squad to the existing deterministic frontline.
+   * Other mobile reserves must never be consumed by this order.
+   */
+  attackWithSquad(owner:number,squadId:number,target:Point):AttackResult {
+    const fail=(reason:string):AttackResult=>({ok:false,reason,sent:0});
+    const squadIndex=this.squads.findIndex(s=>s.id===squadId&&s.owner===owner);
+    if(squadIndex<0||!Number.isInteger(target.x)||!Number.isInteger(target.y)||
+      target.x<0||target.y<0||target.x>=MAP_WIDTH||target.y>=MAP_HEIGHT)
+      return fail('Truppe oder Ziel ungültig.');
+    const squad=this.squads[squadIndex],targetIndex=pointToIndex(target);
+    if(this.owner[squad.index]!==owner||this.owner[targetIndex]===owner||
+       !LAND_NEIGHBORS[squad.index].includes(targetIndex))
+      return fail('Truppengruppe muss direkt an der feindlichen Landgrenze stehen.');
+    const faction=this.factions[owner];
+    const reserve=faction.troops;
+    // The squad is the only available mobile pool during commitment.
+    this.squads.splice(squadIndex,1);
+    faction.troops=squad.troops;
+    const result=this.issueAttack(owner,target,100,false);
+    faction.troops+=reserve;
+    if(!result.ok)this.squads.splice(squadIndex,0,squad);
+    this.recount();
+    return result;
+  }
+
   recallSquad(owner:number,squadId:number):DiplomacyResult {
     const i=this.squads.findIndex(s=>s.id===squadId&&s.owner===owner);
     if(i<0)return {ok:false,reason:'Truppengruppe nicht gefunden.'};
