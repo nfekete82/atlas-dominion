@@ -286,14 +286,17 @@ export class Game {
   private recount():void {
     const people=this.factions.map(f=>f.troops);
     for(const f of this.factions){f.territory=0;f.cityCount=0;f.builtCities=0;}
+    const upgradeBonus=new Float64Array(this.factions.length);
     for(let i=0;i<CELL_COUNT;i++){
       const id=this.owner[i];
       if(id<0)continue;
       const faction=this.factions[id];
       faction.territory++;
       people[id]+=this.frontline[i];
-      if(this.buildings[i]===BUILDING_CODES.city)
-        faction.builtCities+=1+cityUpgradeGrowth(this.cityUpgrades[i]);
+      if(this.buildings[i]===BUILDING_CODES.city){
+        faction.builtCities++;
+        upgradeBonus[owner]+=cityUpgradeGrowth(this.cityUpgrades[i]);
+      }
     }
     for(const order of this.attackOrders)people[order.factionId]+=order.remaining;
     for(const city of this.cities){
@@ -305,9 +308,9 @@ export class Game {
       const totalPeople=people[faction.id];
       faction.population=totalPeople;
       faction.militaryPower=empirePower(totalPeople,faction.territory,faction.cityCount+faction.builtCities);
-      const growth=troopGrowth(totalPeople,faction.territory,faction.cityCount,faction.builtCities);
+      const growth=troopGrowth(totalPeople,faction.territory,faction.cityCount,faction.builtCities+upgradeBonus[faction.id]);
       faction.income=faction.id===0?growth*(this.doctrine==='fortify'?1.20:this.doctrine==='blitz'?.90:1):growth*this.difficultySettings.growthMultiplier;
-      faction.moneyIncome=taxRevenue(totalPeople,faction.territory,faction.cityCount,faction.builtCities);
+      faction.moneyIncome=taxRevenue(totalPeople,faction.territory,faction.cityCount,faction.builtCities+upgradeBonus[faction.id]);
     }
   }
 
