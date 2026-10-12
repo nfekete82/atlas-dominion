@@ -176,16 +176,13 @@ export class MapRenderer {
       if (front > 0.1) regional[id].push({index:i,troops:front});
       // Native bitmap-aligned cell edges keep every square sharp, with NO
       // fractional alpha bleeding, gaps or overlapping 0.45px overdraw.
-      const col=i%MAP_WIDTH,row=Math.floor(i/MAP_WIDTH);
-      const left=X_EDGES[col],top=Y_EDGES[row];
-      // Exact tiles still drive the simulation; the visible fill is rendered
-      // from stitched organic boundaries below instead of square rectangles.
-      void left;void top;
+      // No per-tile fill: organic polygons below own all visual territory color.
     }
     // Marching squares creates rounded-looking diagonals and soft corners.
     // This presentation-only pass never changes tile ownership or targeting.
     const contours=territoryContours(owners,MAP_WIDTH);
     c.save();c.lineCap='round';c.lineJoin='round';
+    const paths=new Map<number,Path2D>();
     for(const faction of this.game.factions){
       if(!counts[faction.id])continue;
       const segments=contours.get(faction.id);
@@ -197,10 +194,18 @@ export class MapRenderer {
         for(let j=2;j<ring.length;j+=2)path.lineTo(ring[j]*CW,ring[j+1]*CH);
         path.closePath();
       }
-      // Fill and contour share the identical interpolated coastline.
-      // Even-odd holes preserve enclaves without fictitious ownership changes.
+      paths.set(faction.id,path);
+    }
+    // Paint all territory fills first so borders cannot disappear under neighbors.
+    for(const faction of this.game.factions){
+      const path=paths.get(faction.id);
+      if(!path)continue;
       c.fillStyle=faction.color+'be';
       c.fill(path,'evenodd');
+    }
+    for(const faction of this.game.factions){
+      const path=paths.get(faction.id);
+      if(!path)continue;
       c.strokeStyle=faction.color+'51';c.lineWidth=1.5;c.stroke(path);
       c.strokeStyle='rgba(226,239,232,.19)';c.lineWidth=.6;c.stroke(path);
     }
