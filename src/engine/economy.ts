@@ -2,7 +2,7 @@
  * Deployed forces remain part of that population, and combat casualties reduce it.
  * New cities permanently accelerate the growth of this shared population.
  */
-export type BuildingType = 'city'|'tower';
+export type BuildingType = 'city'|'tower'|'factory';
 export interface BuildingDef {
   type: BuildingType; name:string; cost:number; icon:string; description:string;
 }
@@ -11,9 +11,11 @@ export const BUILDINGS: readonly BuildingDef[] = [
    description:'Erhöht dauerhaft das Einwohner- und Truppenwachstum'},
   {type:'tower',name:'Abwehrturm',cost:180,icon:'♜',
    description:'Erhöht gegnerische Verluste bei Kämpfen im Umkreis von 2 Sektoren'},
+  {type:'factory',name:'Fabrik',cost:200,icon:'⚙',
+   description:'Produziert Geld; Stadtverbindung erhöht den Ertrag um 50 %'},
 ];
-export const BUILDING_CODES: Readonly<Record<BuildingType,number>> = {city:1,tower:2};
-export const BUILDING_BY_CODE: Readonly<Record<number,BuildingType>> = {1:'city',2:'tower'};
+export const BUILDING_CODES: Readonly<Record<BuildingType,number>> = {city:1,tower:2,factory:3};
+export const BUILDING_BY_CODE: Readonly<Record<number,BuildingType>> = {1:'city',2:'tower',3:'factory'};
 
 /** Cities boost growth but do not multiply the existing population.
  * Square-root bonuses make additional cities useful with diminishing returns
@@ -69,3 +71,9 @@ export function upgradedCityRecruitment(
   return ceiling*(1-Math.exp(-weight*.65/(ceiling*concentration)));
 }
 
+
+/** Factory output per tick. Connections are explicit, require same owner and
+ * stop contributing immediately after either endpoint changes ownership. */
+export const FACTORY_INCOME=0.5;
+export const FACTORY_CONNECTION_MULTIPLIER=1.5;
+export const FACTORY_LINK_MAX_DISTANCE=12;
