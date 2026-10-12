@@ -6,7 +6,7 @@ import { TerritoryWave, waveProgress } from './wave.js';
 import {organicCaptureRadius,burningFrontAlpha} from './capture-visual.js';
 import { pixelGridEdges } from './pixel-grid.js';
 import { territoryContours, contourRings } from './territory-contours.js';
-import { buildingMarkerFor, cityVisibleAtZoom, drawCityMarker, cityMarkerBounds, ScreenOccupancy, type ScreenRect } from './building-markers.js';
+import { buildingMarkerFor, showBuildingMarker, cityVisibleAtZoom, drawCityMarker, cityMarkerBounds, ScreenOccupancy, type ScreenRect } from './building-markers.js';
 // Keep natural-dark ocean and distinct faction colors; no pale map wash.
 import { COUNTRY_STARTS } from '../data/countries.js';
 import {formatCompact} from '../format.js';
@@ -394,36 +394,57 @@ export class MapRenderer {
     this.visibleCityMarkers=[];
     const width=this.canvas.clientWidth,height=this.canvas.clientHeight;
     const hovered=this.hover?pointToIndex(this.hover):-1;
-    // In a wide strategic view show mature / friendly cities first.
-    // At tactical zoom the exact same city markers reappear individually.
-    const markers=this.zoom<1.8
-      ?this.buildingMarkers.slice().sort((a,b)=>
-        this.game.cityUpgrades[b.index]-this.game.cityUpgrades[a.index]||
-        Number(b.owner===0)-Number(a.owner===0)||a.index-b.index)
-      :this.buildingMarkers;
+    // Cities win the visual priority; factories and towers are smaller markers.
+    // No building may hide a nearby city, and every drawn marker is clickable.
+    const markers=this.buildingMarkers.slice().sort((a,b)=>
+      Number(b.code===1)-Number(a.code===1)||
+      Number(b.owner===0)-Number(a.owner===0)||
+      this.game.cityUpgrades[b.index]-this.game.cityUpgrades[a.index]||a.index-b.index);
     const draw=(marker:typeof markers[number])=>{
-      if(!cityVisibleAtZoom(marker.owner,this.game.cityUpgrades[marker.index],this.zoom,marker.index===hovered)||!buildingMarkerFor(marker.code))return;
+      const city=marker.code===1;
+      if(!buildingMarkerFor(marker.code)||!showBuildingMarker(marker.owner,this.zoom))return;
+      if(city&&!cityVisibleAtZoom(marker.owner,this.game.cityUpgrades[marker.index],this.zoom,marker.index===hovered))return;
       const x=this.ox+(marker.index%MAP_WIDTH+.5)*CW*this.scale;
       const y=this.oy+(Math.floor(marker.index/MAP_WIDTH)+.5)*CH*this.scale;
-      const bounds=cityMarkerBounds(x,y);
-      if(bounds.x<0||bounds.y<0||bounds.x+bounds.width>width||bounds.y+bounds.height>height)return;
-      if(this.occupancy.intersects(bounds))return;
+      const size=city?30:18;
+      // Dense towns need an offset industrial badge instead of suppressing
+      // the neighboring factory completely. The click box follows the badge.
+      const offsets=city?[[0,0]]:[[0,0],[22,-12],[-22,-12],[22,12],[-22,12],[0,-25],[0,25]];
+      let bounds:ScreenRect|null=null;
+      for(const [dx,dy] of offsets){
+        const candidate={x:x+dx-size/2,y:y+dy-size/2,width:size,height:size};
+        if(candidate.x<0||candidate.y<0||candidate.x+size>width||candidate.y+size>height)continue;
+        if(this.occupancy.intersects(candidate,city?3:0))continue;
+        bounds=candidate;break;
+      }
+      if(!bounds)return;
       const level=this.game.cityUpgrades[marker.index];
       this.occupancy.reserve(bounds);
       this.visibleCityMarkers.push({index:marker.index,x,y,level,bounds});
-      if(marker.code===1)drawCityMarker(c,x,y,level,marker.owner);
+      if(city)drawCityMarker(c,x,y,level,marker.owner);
       else {
-        const glyph=marker.code===3?'⚙':'♜';
-        c.save();c.textAlign='center';c.textBaseline='middle';
-        c.font='bold 21px sans-serif';
-        c.fillStyle=marker.owner===0?'#f5d79b':'#cee0e4';
-        c.strokeStyle='#10252c';c.lineWidth=3;
-        c.strokeText(glyph,x,y);c.fillText(glyph,x,y);c.restore();
+        c.save();c.translate(bounds.x+size/2,bounds.y+size/2);
+        c.lineJoin='round';c.lineCap='round';c.lineWidth=1.2;
+        c.strokeStyle='#142a31';c.fillStyle=marker.owner===0?'#d7ab70':'#b6c4c9';
+        if(marker.code===3){
+          // Industrial silhouette: roof, sawtooth skylights and chimney.
+          c.beginPath();c.rect(-8,-1,16,10);c.fill();c.stroke();
+          c.beginPath();c.moveTo(-8,-1);c.lineTo(-3,-5);c.lineTo(1,-1);
+          c.lineTo(5,-5);c.lineTo(8,-1);c.closePath();c.fill();c.stroke();
+          c.fillRect(-6,-11,3,8);c.strokeRect(-6,-11,3,8);
+          c.fillStyle='#243943';for(let i=0;i<3;i++)c.fillRect(-5+i*5,2,2,3);
+        }else{
+          // Fortified watchtower with visible crenellations.
+          c.fillRect(-6,-6,12,15);c.strokeRect(-6,-6,12,15);
+          for(const bx of [-7,-2,3]){c.fillRect(bx,-10,4,5);c.strokeRect(bx,-10,4,5);}
+          c.fillStyle='#263b43';c.fillRect(-1,0,2,6);
+        }
+        c.restore();
       }
     };
-    const selected=markers.find(marker=>marker.index===hovered);
-    if(selected)draw(selected);
-    for(const marker of markers)if(marker!==selected)draw(marker);
+    // Never reorder drawing based on hover: the old selected-first code moved
+    // the badge underneath the cursor, breaking right-click hit testing.
+    for(const marker of markers)draw(marker);
   }
 
   private drawCapitalNames(c:CanvasRenderingContext2D):void {
@@ -983,8 +1004,13 @@ export class MapRenderer {
   private cellAt(clientX:number,clientY:number,landing=false):Point|null {
     if(!landing){
       const box=this.canvas.getBoundingClientRect(),x=clientX-box.left,y=clientY-box.top;
-      const marker=this.visibleCityMarkers.find(m=>x>=m.bounds.x&&x<=m.bounds.x+m.bounds.width&&y>=m.bounds.y&&y<=m.bounds.y+m.bounds.height);
-      if(marker)return {x:marker.index%MAP_WIDTH,y:Math.floor(marker.index/MAP_WIDTH)};
+      const hits=this.visibleCityMarkers.filter(m=>
+        x>=m.bounds.x&&x<=m.bounds.x+m.bounds.width&&
+        y>=m.bounds.y&&y<=m.bounds.y+m.bounds.height);
+      // A smaller factory/tower takes precedence over the nearby city badge.
+      hits.sort((a,b)=>a.bounds.width*a.bounds.height-b.bounds.width*b.bounds.height||
+        Math.hypot(x-a.x,y-a.y)-Math.hypot(x-b.x,y-b.y));
+      if(hits[0])return {x:hits[0].index%MAP_WIDTH,y:Math.floor(hits[0].index/MAP_WIDTH)};
     }
     const p=this.worldAt(clientX,clientY);
     const x=Math.floor(p.x/CW),y=Math.floor(p.y/CH);
