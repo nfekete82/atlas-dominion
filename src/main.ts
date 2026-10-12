@@ -615,9 +615,12 @@ function renderBuildMenu(): void {
       <span class="build-entry-copy"><strong>Alle Städte automatisch ausbauen</strong><small>${upgradeAll.ok?`${upgradeAll.cities} Städte · ${upgradeAll.upgrades} Ausbaustufen`:upgradeAll.reason} · günstigste Stufen zuerst</small></span>
       <span class="build-entry-cost">${upgradeAll.ok?format(upgradeAll.cost)+' €':'—'}</span>
     </button>`;
+  const barracksActions=existing==='barracks'?[25,100,500].map(count=>`<button type="button" class="build-entry" data-recruit-squad="${count}" ${game.factions[0].troops<count?'disabled':''}><span class="build-entry-icon">⚔</span><span class="build-entry-copy"><strong>${count} Soldaten abstellen</strong><small>Eigene Truppengruppe aus Mobilreserve bilden</small></span><span class="build-entry-cost">${count} ⚔</span></button>`).join(''):'';
+  const nearbySquads=game.squads.filter(s=>s.owner===0&&Math.hypot(s.index%MAP_WIDTH-point.x,Math.floor(s.index/MAP_WIDTH)-point.y)<3);
+  const squadActions=nearbySquads.map(s=>`<button type="button" class="build-entry" data-recall-squad="${s.id}"><span class="build-entry-icon">↩</span><span class="build-entry-copy"><strong>Truppe #${s.id} zurückrufen</strong><small>${Math.round(s.troops)} Soldaten in Mobilreserve übernehmen</small></span><span class="build-entry-cost">RÜCKRUF</span></button>`).join('');
   const factoryUpgrade=existing==='factory'?`<button type="button" class="build-entry" data-upgrade-factory="true" ${game.factoryLevel(point)>=5||game.factions[0].money<game.factoryLevel(point)*250?'disabled':''}><span class="build-entry-icon">⚙</span><span class="build-entry-copy"><strong>Fabrik Stufe ${game.factoryLevel(point)}/5 ausbauen</strong><small>Steigert die Grundproduktion um 75 %</small></span><span class="build-entry-cost">${game.factoryLevel(point)>=5?'MAX':game.factoryLevel(point)*250+' €'}</span></button>`:'';
   const factoryAction=existing==='factory'?`<button type="button" class="build-entry" data-link-factory="true" ${suggestedCity?'':'disabled'}><span class="build-entry-icon">↗</span><span class="build-entry-copy"><strong>Mit Stadt verbinden</strong><small>${suggestedCity?`Stadt bei ${suggestedCity.x}/${suggestedCity.y} · +50 % Grundbonus, bis zu +25 % durch Stadtausbau`:'Keine eigene Stadt im Umkreis von 12 Sektoren'}</small></span><span class="build-entry-cost">VERBINDEN</span></button>`:'';
-  $('buildOptions').innerHTML=factoryUpgrade+factoryAction+fastSingle+fastAll+(upgrade? `<button type="button" class="build-entry" data-upgrade-city="true" ${upgrade.ok?'':'disabled'} title="${upgrade.reason}">
+  $('buildOptions').innerHTML=barracksActions+squadActions+factoryUpgrade+factoryAction+fastSingle+fastAll+(upgrade? `<button type="button" class="build-entry" data-upgrade-city="true" ${upgrade.ok?'':'disabled'} title="${upgrade.reason}">
       <span class="build-entry-icon" aria-hidden="true">⬆</span>
       <span class="build-entry-copy"><strong>Stadt ausbauen ${upgradeLevel}/5</strong><small>${upgrade.ok?'Mehr Einwohner- und Truppenwachstum':upgrade.reason}</small></span>
       <span class="build-entry-cost">${upgrade.ok?upgrade.cost+' €':'MAX'}</span>
@@ -654,6 +657,20 @@ renderer.onBuildRequest=(point,clientX,clientY)=>{
 $('buildClose').addEventListener('click',closeBuildMenu);
 $('buildOptions').addEventListener('click',e=>{
   if(!buildSpot)return;
+  const recruitButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-recruit-squad]');
+  if(recruitButton){
+    const result=game.recruitSquad(0,buildSpot,Number(recruitButton.dataset.recruitSquad));
+    attackMessage=result.reason;attackMessageKind=result.ok?'success':'error';
+    if(result.ok){renderer.updateTerritory();saveGame();closeBuildMenu();}else renderBuildMenu();
+    update();return;
+  }
+  const recallButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-recall-squad]');
+  if(recallButton){
+    const result=game.recallSquad(0,Number(recallButton.dataset.recallSquad));
+    attackMessage=result.reason;attackMessageKind=result.ok?'success':'error';
+    if(result.ok){saveGame();closeBuildMenu();}else renderBuildMenu();
+    update();return;
+  }
   const factoryUpgradeButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-upgrade-factory]');
   if(factoryUpgradeButton){
     const result=game.upgradeFactory(0,buildSpot);
