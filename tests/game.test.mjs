@@ -371,6 +371,8 @@ test('An explicit landing requires an owned departure shore, and takes time',()=
   const landOrder=g.attackOrders[0];
   assert.equal(landOrder.landing,true);
   assert.equal(landOrder.anchor.x,to%MAP_WIDTH);
+  assert.equal(landOrder.arrivalTick,g.tick+8);
+  assert.deepEqual(landOrder.departure,cellToPoint(from));
   const original=g.owner[to];
   g.step();g.step();g.step();
   assert.equal(g.owner[to],original,'landing cannot resolve before the crossing delay');
