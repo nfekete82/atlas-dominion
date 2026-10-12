@@ -85,3 +85,18 @@ test('RTS squads persist while occupying empty neutral surroundings without casu
  assert.ok(g.squads.some(s=>s.id===unit.id),'capturing must never consume the squad');
  assert.equal(unit.troops,strength,'peaceful occupation cannot cause casualties');
 });
+
+test('RTS AI builds an actual barracks, pays for a persistent squad and never receives passive mobile soldiers',()=>{
+ const g=new Game(8101,1,'DE','balanced',true);
+ const enemy=g.factions[1];
+ const openingMoney=enemy.money;
+ assert.equal(openingMoney,650);
+ for(let i=0;i<56;i++)g.step();
+ const barracks=g.buildings.findIndex((code,i)=>code===4&&g.owner[i]===1);
+ assert.ok(barracks>=0,'AI must build a real owned barracks');
+ assert.ok(g.squads.some(s=>s.owner===1),'AI must recruit actual on-map squads');
+ assert.ok(g.squads.filter(s=>s.owner===1).every(s=>s.troops>=1));
+ assert.ok(enemy.money>=0,'AI cannot train on credit');
+ const saved=g.exportSave();
+ assert.deepEqual(Game.fromSave(saved).exportSave(),saved);
+});
