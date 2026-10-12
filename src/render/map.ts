@@ -523,7 +523,9 @@ export class MapRenderer {
       c.lineWidth=2.6;
       c.font=label.id===0?'750 13px system-ui':'650 11px system-ui';
       c.strokeText(name,x,y,135);c.fillText(name,x,y,135);
-      const count=formatCompact(Math.floor(this.armyTotals[label.id]??faction.troops));
+      // The map's central number is the mobile reserve, not all soldiers including attacking armies.
+       // Reinforcing a front therefore immediately lowers the displayed count.
+       const count=formatCompact(Math.floor(faction.troops));
       c.font=label.id===0?'700 10px system-ui':'600 9px system-ui';
       c.lineWidth=2;c.strokeText(count,x,y+13,95);c.fillText(count,x,y+13,95);
     }
