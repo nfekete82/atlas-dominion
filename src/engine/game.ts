@@ -17,6 +17,11 @@ export const NEUTRAL = -1;
 export const TICK_SECONDS = 0.25;
 
 export interface Point { x: number; y: number }
+export type BorderMode='hold'|'defend'|'withdraw';
+export interface BorderHotspot {
+  index:number;point:Point;mode:BorderMode;guards:number;
+  opponents:number[];attacked:boolean;urgency:number;
+}
 export interface Faction {
   id: number;
   name: string;
@@ -203,6 +208,8 @@ export interface GameSave {
   /** Missing in v1 saves written before the diplomacy feature. */
   alliances?:Alliance[];offers?:AllianceOffer[];defenseAid?:DefenseAid[];
   diplomacyCooldowns?:DiplomaticCooldown[];warTruces?:WarTruce[];
+  /** Optional compact per-sector player-only tactics; absent in old saves. */
+  borderOrders?:Array<{index:number;mode:'defend'|'withdraw'}>;
 }
 
 export class Game {
@@ -222,6 +229,7 @@ export class Game {
   readonly offers:AllianceOffer[]=[];
   readonly diplomacyCooldowns:DiplomaticCooldown[]=[];
   readonly warTruces:WarTruce[]=[];
+  readonly borderOrders=new Map<number,'defend'|'withdraw'>();
   mobileNet=0;
   /** Real soldiers in transit to defend an attacked treaty partner. */
   readonly defenseAid:DefenseAid[]=[];
@@ -870,6 +878,69 @@ export class Game {
   /** Station actual units where rival armies touch, and return forces from quiet sectors.
    * No automatic conquest occurs here; every moved unit is deducted from free reserves.
    */
+  getBorderMode(point:Point):BorderMode {
+    if(!Number.isInteger(point.x)||!Number.isInteger(point.y)||
+       point.x<0||point.y<0||point.x>=MAP_WIDTH||point.y>=MAP_HEIGHT)return 'hold';
+    return this.borderOrders.get(pointToIndex(point))??'hold';
+  }
+
+  /** No money, lives or units created: border commands only redistribute
+   * soldiers already recorded in this exact nation's troop pool. */
+  setBorderMode(id:number,point:Point,mode:BorderMode):DiplomacyResult {
+    if(this.status!=='playing'||id!==0||!this.factions[0]?.alive||
+      !['hold','defend','withdraw'].includes(mode))
+      return {ok:false,reason:'Kein gültiger Grenzbefehl.'};
+    if(!this.isThreatenedBorder(0,point))
+      return {ok:false,reason:'Wähle einen eigenen bedrohten Grenzsektor.'};
+    const i=pointToIndex(point);
+    if(mode==='hold')this.borderOrders.delete(i);
+    else {
+      if(!this.borderOrders.has(i)&&this.borderOrders.size>=512)
+        return {ok:false,reason:'Maximal 512 priorisierte Grenzsektoren.'};
+      this.borderOrders.set(i,mode);
+    }
+    if(mode==='withdraw'){
+      const held=this.frontline[i],keep=Math.min(held,Math.max(3,
+        frontierTarget(this.factions[0].territory,this.factions[0].troops,
+          this.capitalSites.has(i),false)*.25));
+      const freed=Math.max(0,held-keep);
+      this.frontline[i]-=freed;
+      this.factions[0].troops+=freed;
+      // Readjust the cached whole-army numbers after manual redistribution.
+      this.recount();
+    }
+    return {ok:true,reason:mode==='defend'?'Grenze wird bevorzugt verstärkt.':
+      mode==='withdraw'?'Überschüssige Soldaten sind mobil.':'Normale Grenzsicherung aktiviert.'};
+  }
+
+  /** Top actionable LOCAL contacts; urgency is a tactical indicator, not
+   * a prediction of enemy nation-wide manpower or military intent. */
+  borderHotspots(limit=6):BorderHotspot[]{
+    const hits:BorderHotspot[]=[];
+    const enemyAttacks=new Set<number>();
+    for(const order of this.attackOrders)if(order.targetOwner===0&&order.factionId!==0&&!order.returning){
+      const i=order.contested??order.lastCaptured??pointToIndex(order.anchor);
+      enemyAttacks.add(i);
+      for(const n of LAND_NEIGHBORS[i])enemyAttacks.add(n);
+    }
+    for(let i=0;i<CELL_COUNT;i++){
+      if(this.owner[i]!==0)continue;
+      const opponents=LAND_NEIGHBORS[i].map(n=>this.owner[n])
+        .filter(id=>id>=0&&id!==0&&!this.isAllied(0,id));
+      if(!opponents.length)continue;
+      const guards=this.frontline[i];
+      const expected=frontierTarget(this.factions[0].territory,
+        this.factions[0].troops,this.capitalSites.has(i),this.doctrine==='fortify');
+      const attacked=enemyAttacks.has(i);
+      const urgency=(attacked?100:0)+Math.max(0,expected-guards)/
+        Math.max(1,expected)*25+new Set(opponents).size*5;
+      hits.push({index:i,point:cellToPoint(i),mode:this.borderOrders.get(i)??'hold',
+        guards,opponents:[...new Set(opponents)],attacked,urgency});
+    }
+    hits.sort((a,b)=>b.urgency-a.urgency||a.index-b.index);
+    return hits.slice(0,Math.max(0,Math.min(25,Math.floor(limit))));
+  }
+
   redistributeFrontline(): void {
     const exposed: number[][] = Array.from({length: this.factions.length}, () => []);
     for (let i = 0; i < CELL_COUNT; i++) {
@@ -877,6 +948,7 @@ export class Game {
       if (owner < 0) { this.frontline[i] = 0; continue; }
       const threatened = LAND_NEIGHBORS[i].some(n => this.owner[n] >= 0 && this.owner[n] !== owner && !this.isAllied(owner,this.owner[n]));
       if (!threatened) {
+        if(owner===0)this.borderOrders.delete(i);
         if (this.frontline[i] > 0) {
           this.factions[owner].troops += this.frontline[i];
           this.frontline[i] = 0;
@@ -898,6 +970,7 @@ export class Game {
           .sort((a,b)=>this.frontline[b]-this.frontline[a]||a-b);
         for(const i of posts){
           if(shortage<=.01)break;
+          if(faction.id===0&&this.borderOrders.get(i)==='defend')continue;
           const localFloor=Math.max(4,frontierTarget(faction.territory,
             faction.troops,this.capitalSites.has(i),faction.id===0&&this.doctrine==='fortify')*.35);
           const excess=Math.max(0,this.frontline[i]-localFloor);
@@ -910,6 +983,15 @@ export class Game {
       }
       // Never refill a garrison with the reserves just reclaimed from it.
       // The target reserve is the same for bots and humans.
+      // Withdrawn garrisons never get automatically refilled on the next tick.
+      if(faction.id===0)for(const i of exposed[0]){
+        if(this.borderOrders.get(i)!=='withdraw')continue;
+        const minGuard=Math.min(this.frontline[i],Math.max(3,
+          frontierTarget(faction.territory,faction.troops,this.capitalSites.has(i),false)*.25));
+        if(this.frontline[i]>minGuard){
+          faction.troops+=this.frontline[i]-minGuard;this.frontline[i]=minGuard;
+        }
+      }
       const baseBudget=Math.min(frontierBudget(faction.troops,faction.income),
         Math.max(0,faction.troops-mobileTarget));
       const budget=faction.ai
@@ -918,11 +1000,17 @@ export class Game {
       if (budget < 0.01) continue;
       let remaining = budget;
       // Cover weak points first. Equal-strength sectors break ties by map index.
-      exposed[faction.id].sort((a,b)=>this.frontline[a]-this.frontline[b] || a-b);
+      exposed[faction.id].sort((a,b)=>{
+        const pa=faction.id===0&&this.borderOrders.get(a)==='defend'?1:0;
+        const pb=faction.id===0&&this.borderOrders.get(b)==='defend'?1:0;
+        return pb-pa||this.frontline[a]-this.frontline[b]||a-b;
+      });
       for (const i of exposed[faction.id]) {
         if (remaining < 0.01) break;
+        if(faction.id===0&&this.borderOrders.get(i)==='withdraw')continue;
         const isCapital = this.capitalSites.has(i);
-        const target = frontierTarget(faction.territory, faction.troops, isCapital, faction.id === 0 && this.doctrine === 'fortify');
+        const target = frontierTarget(faction.territory, faction.troops, isCapital, faction.id === 0 && this.doctrine === 'fortify')*
+          (faction.id===0&&this.borderOrders.get(i)==='defend'?1.65:1);
         const sent = Math.max(0, Math.min(target - this.frontline[i], remaining, faction.troops));
         if (sent <= 0) continue;
         faction.troops -= sent;
@@ -1595,6 +1683,7 @@ export class Game {
 
   /** This is the only ownership handoff, shared by bot/player front clashes. */
   private captureTile(faction:Faction,index:number):boolean {
+    if(faction.id!==0)this.borderOrders.delete(index);
     this.owner[index] = faction.id;
     // Incrementally update local battlefronts as territory changes.
     for (const [id,set] of this.frontierCandidates.entries()) {
@@ -1755,6 +1844,8 @@ export class Game {
       defenseAid:this.defenseAid.map(a=>({...a})),
       diplomacyCooldowns:this.diplomacyCooldowns.map(v=>({...v})),
       warTruces:this.warTruces.map(v=>({...v})),
+      borderOrders:[...this.borderOrders].filter(([index])=>this.owner[index]===0)
+        .sort((a,b)=>a[0]-b[0]).map(([index,mode])=>({index,mode})),
     };
   }
 
@@ -1859,6 +1950,14 @@ export class Game {
          !Number.isSafeInteger(v.untilTick)||v.untilTick<=save.tick))
       throw Error('Ungültiger Waffenstillstand.');
     g.warTruces.push(...structuredClone(warTruces));
+    const borderOrders=save.borderOrders??[];
+    if(!Array.isArray(borderOrders)||borderOrders.length>512||
+       borderOrders.some(v=>!Number.isInteger(v?.index)||v.index<0||
+         v.index>=CELL_COUNT||g.owner[v.index]!==0||
+         (v.mode!=='defend'&&v.mode!=='withdraw'))||
+       new Set(borderOrders.map(v=>v.index)).size!==borderOrders.length)
+      throw Error('Ungültige Grenzbefehle im Spielstand.');
+    for(const v of borderOrders)g.borderOrders.set(v.index,v.mode);
     g.events.splice(0,g.events.length,...structuredClone(save.events));
     g.tick=save.tick;g.status=save.status;g.paused=!!save.paused;g.doctrine=save.doctrine;
     g.aiGoalChange=save.aiGoalChange;g.nextAttackId=save.nextAttackId;
