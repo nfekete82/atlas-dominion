@@ -1048,8 +1048,8 @@ export class Game {
         const isCapital = this.capitalSites.has(i);
         const target = frontierTarget(faction.territory, faction.troops, isCapital, faction.id === 0 && this.doctrine === 'fortify')*
           (faction.id===0&&this.borderOrders.get(i)==='defend'?1.65:
-            faction.ai?(aiPriorities.get(i)??0)>=100?1.65:
-              (aiPriorities.get(i)??0)>=55?1.35:1);
+            faction.ai?((aiPriorities.get(i)??0)>=100?1.65:
+              (aiPriorities.get(i)??0)>=55?1.35:1):1);
         const sent = Math.max(0, Math.min(target - this.frontline[i], remaining, faction.troops));
         if (sent <= 0) continue;
         faction.troops -= sent;
