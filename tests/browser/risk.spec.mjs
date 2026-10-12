@@ -29,9 +29,10 @@ test('Risk hybrid can deploy, develop and complete a full 50-country round',asyn
   await page.locator('#nextPhase').click();
   await expect(page.locator('#roundLabel')).toHaveText('RUNDE 2');
   await expect(page.locator('#phaseDescription')).toHaveText('Verstärken');
+  const savedGold=await page.locator('#goldCount').textContent();
   await page.reload();
   await expect(page.locator('#roundLabel')).toHaveText('RUNDE 2');
-  await expect(page.locator('#goldCount')).toHaveText('0');
+  await expect(page.locator('#goldCount')).toHaveText(savedGold);
 });
 
 test('Risk mode links back to the existing realtime game',async({page})=>{
