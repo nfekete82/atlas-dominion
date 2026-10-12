@@ -332,6 +332,7 @@ export class Game {
       }
     }
     for(const order of this.attackOrders)people[order.factionId]+=order.remaining;
+    for(const aid of this.defenseAid)people[aid.from]+=aid.troops; // In-transit soldiers are alive.
     for(const city of this.cities){
       city.owner=this.owner[city.index];
       if(city.owner>=0)this.factions[city.owner].cityCount++;
@@ -354,6 +355,7 @@ export class Game {
     let all=faction.troops;
     for(let i=0;i<CELL_COUNT;i++)if(this.owner[i]===id)all+=this.frontline[i];
     for(const order of this.attackOrders)if(order.factionId===id)all+=order.remaining;
+    for(const aid of this.defenseAid)if(aid.from===id)all+=aid.troops;
     return all;
   }
 
