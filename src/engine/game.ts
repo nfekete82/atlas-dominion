@@ -652,6 +652,10 @@ export class Game {
   }
 
   launchAttack(id: number, target: Point, ratio: number): AttackResult {
+    // A normal click can launch across documented corridors if no landfront exists.
+    // Landfronts retain priority to avoid unintentionally changing existing orders.
+    const point=this.findAttackFront(id,target);
+    if(!point && this.landingTarget(id,target))return this.launchLanding(id,target,ratio);
     return this.issueAttack(id,target,ratio,false);
   }
 
@@ -1164,10 +1168,28 @@ export class Game {
       const active=this.attackOrders.filter(o=>o.factionId===faction.id).length;
       if(active>=maxActive || faction.troops<22)continue;
       const target=this.chooseFront(faction.id);
-      if(target<0)continue;
       const ratio=Math.max(15,Math.min(55,
         Math.round(30*this.difficultySettings.activityMultiplier)));
-      this.issueAttack(faction.id,cellToPoint(target),ratio,false);
+      if(target>=0){
+        this.issueAttack(faction.id,cellToPoint(target),ratio,false);
+        continue;
+      }
+      // No profitable landfront: AI may use the same documented maritime
+      // crossings as the player, including attacks against occupied islands.
+      const coastTargets:number[]=[];
+      for(const [a,b] of SEA_CROSSINGS){
+        if(this.owner[a]===faction.id && this.owner[b]!==WATER &&
+           this.owner[b]!==faction.id)coastTargets.push(b);
+        if(this.owner[b]===faction.id && this.owner[a]!==WATER &&
+           this.owner[a]!==faction.id)coastTargets.push(a);
+      }
+      if(coastTargets.length){
+        coastTargets.sort((a,b)=>{
+          const aEnemy=this.owner[a]>=0?1:0,bEnemy=this.owner[b]>=0?1:0;
+          return aEnemy-bEnemy||a-b;
+        });
+        this.launchLanding(faction.id,cellToPoint(coastTargets[0]),ratio);
+      }
     }
     this.recount();
     if (!this.factions[0].alive) {
