@@ -328,7 +328,7 @@ export class MapRenderer {
     const owner=this.game.owner[y*MAP_WIDTH+x];
     return (owner===0||this.availableTargets.has(owner)) && this.previewFront(point)!==null;
   }
-  canLand(point: Point): boolean { return this.game.canLand(0,point); }
+  canLand(point: Point): boolean { return this.game.landingTarget(0,point)!==null; }
   /** Screen-space rendering and hit testing share the same visible bounds.
    * Labels and actual combat counters have priority. Crowded cities reappear
    * when zooming in; their world positions and ownership never change.
