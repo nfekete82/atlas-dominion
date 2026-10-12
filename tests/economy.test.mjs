@@ -180,3 +180,11 @@ test('city can be upgraded five times, each level costs money and boosts growth'
   assert.equal(g.upgradeCity(0,point).ok,false);
   assert.ok(g.factions[0].income>before);
 });
+
+test('city recruitment scales with controlled territory instead of unlimited island density',()=>{
+  const small=troopGrowth(1000,20,1,100);
+  const smallUseful=troopGrowth(1000,20,1,1);
+  const large=troopGrowth(1000,400,1,100);
+  assert.equal(small,smallUseful,'extra city spam on tiny land should not grant infinite growth');
+  assert.ok(large>small,'larger controlled land supports a stronger economy');
+});
