@@ -956,6 +956,11 @@ export class Game {
       }
       // No abstract issueAttack: mobilize units by actual contiguous paths.
       for(const squad of own){
+        // Damaged AI forces retreat to their barracks instead of blindly
+        // feeding the enemy. The remaining troops stay physical and alive.
+        if(squad.troops<20&&squad.index!==barracks){
+          this.orderSquad(faction.id,squad.id,cellToPoint(barracks));continue;
+        }
         if(squad.destination!==null||squad.attackTarget!==null&&squad.attackTarget!==undefined)continue;
         const targets=LAND_NEIGHBORS[squad.index].filter(n=>
           this.owner[n]!==squad.owner&&this.owner[n]!==WATER&&
@@ -1004,6 +1009,24 @@ export class Game {
           });
         }
       }
+    }
+    // Stationary defense towers guard nearby sectors. Their fire damages
+    // approaching ENEMY formations, never friendly/allied troops.
+    // Tower hits remain independent of the squad-vs-squad pairs above.
+    for(const unit of this.squads){
+      let towers=0;
+      for(const cell of [unit.index,...LAND_NEIGHBORS[unit.index]]){
+        const defender=this.owner[cell];
+        if(defender<0||defender===unit.owner||this.isAllied(defender,unit.owner))continue;
+        if(this.buildings[cell]===BUILDING_CODES.tower)towers++;
+      }
+      if(!towers)continue;
+      const loss=Math.min(unit.troops,Math.min(3,towers)*1.25);
+      damage.set(unit.id,(damage.get(unit.id)??0)+loss);
+      if(this.battleEvents.length<1600)this.battleEvents.push({
+        tick:this.tick,index:unit.index,attackerId:unit.owner,defenderId:this.owner[unit.index],
+        attacking:unit.troops,defending:towers,attackerLost:loss,defenderLost:0,captured:false,
+      });
     }
     for(let i=this.squads.length-1;i>=0;i--){
       const unit=this.squads[i],loss=damage.get(unit.id)??0;
