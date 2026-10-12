@@ -33,12 +33,19 @@ test('hover previews actual sector risk and active army can be focused and withd
   await page.mouse.click(position.x,position.y);
   await expect(page.locator('[data-army-retreat]')).toHaveCount(1);
   await expect(page.locator('[data-army-focus]')).toHaveCount(1);
+  await expect(page.locator('[data-army-reinforce]')).toHaveCount(1);
   const sent=await page.evaluate(()=>{
     const g=window.__atlas.getGame();
     return g.attackOrders.find(o=>o.factionId===0)?.remaining;
   });
   expect(sent).toBeGreaterThan(0);
   expect(await page.evaluate(()=>window.__atlas.getGame().factions[0].troops)).toBe(position.mobile-sent);
+  await page.locator('[data-army-reinforce]').click();
+  const reinforced=await page.evaluate(()=>{
+    const g=window.__atlas.getGame();return g.attackOrders.find(o=>o.factionId===0)?.remaining;
+  });
+  expect(reinforced).toBeGreaterThan(sent);
+  expect(await page.evaluate(()=>window.__atlas.getGame().attackOrders.filter(o=>o.factionId===0).length)).toBe(1);
   await page.locator('[data-army-focus]').click();
   const center=await page.evaluate(()=>{
     const r=window.__atlas.renderer;
