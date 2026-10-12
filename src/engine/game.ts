@@ -109,6 +109,12 @@ export interface AttackOrder {
   returnArrivalTick?: number;
 }
 export interface AttackResult { ok: boolean; reason: string; sent: number; targetOwner?: number; front?: Point; }
+/** Only the NEXT contact sector is estimated; never claims guaranteed victory. */
+export interface AttackAssessment {
+  possible:boolean;reason:string;front?:Point;targetOwner?:number;
+  troops:number;posted:number;loss:number;time:number;
+  risk:'low'|'moderate'|'high';
+}
 export interface BuildResult { ok: boolean; reason: string; cost: number; type?: BuildingType; }
 export interface CityUpgradeBatchResult { ok:boolean; reason:string; cost:number; upgrades:number; cities:number; finalLevel?:number; }
 export type GameStatus = 'playing' | 'victory' | 'defeat';
@@ -1005,6 +1011,57 @@ export class Game {
     return this.maritimeRoute(id,target)!==null;
   }
 
+  /** Side-effect-free tactical preview of the first real border contact.
+   * Uses the same frontTileOutcome as resolveOrders, without making an order,
+   * moving a soldier, mutating RNG, or advancing the simulation.
+   */
+  assessAttack(id:number,target:Point,ratio:number):AttackAssessment {
+    const fail=(reason:string):AttackAssessment=>({
+      possible:false,reason,troops:0,posted:0,loss:0,time:0,risk:'high',
+    });
+    const actor=this.factions[id];
+    if(!actor?.alive||this.status!=='playing')return fail('Kein Angriff möglich.');
+    if(!Number.isInteger(target.x)||!Number.isInteger(target.y)||
+       target.x<0||target.y<0||target.x>=MAP_WIDTH||target.y>=MAP_HEIGHT)
+      return fail('Ziel außerhalb der Karte.');
+    if(!Number.isFinite(ratio)||ratio<5||ratio>100)return fail('Ungültiger Truppenanteil.');
+    const owner=this.owner[pointToIndex(target)];
+    if(owner===WATER||owner===id||this.isAllied(id,owner))
+      return fail(owner===id?'Eigenes Gebiet.':'Kein angreifbares Ziel.');
+    const front=this.findAttackFront(id,target);
+    const landing=!front?this.landingTarget(id,target):null;
+    const contact=front??landing;
+    if(!contact)return fail('Keine erreichbare Angriffsfront.');
+    const index=pointToIndex(contact),opponent=this.owner[index];
+    const troops=Math.floor(actor.troops*ratio/100);
+    if(troops<8)return fail('Mindestens 8 mobile Truppen erforderlich.');
+    const defender=opponent>=0?this.factions[opponent]:undefined;
+    const adjacent=LAND_NEIGHBORS[index].filter(n=>this.owner[n]===id).length;
+    const outcome=frontTileOutcome({
+      attackTroops:troops,defenderReserve:defender?.troops??0,
+      defenderPopulation:defender?.population??0,defenderTerritory:defender?.territory??0,
+      postedTroops:this.frontline[index],defenseStrength:this.defense[index],
+      friendlySides:Math.max(1,adjacent),
+      borderSize:Math.min(100,1+Math.sqrt(troops)*.12),
+      relativePower:this.relativeAttackPower(id,opponent),
+      neutral:opponent===NEUTRAL,capital:this.capitalSites.has(index),
+      builtCity:this.buildings[index]===BUILDING_CODES.city,
+      cityLevel:this.cityUpgrades[index],
+      doctrine:opponent===0?this.doctrine:undefined,
+    });
+    const posted=this.frontline[index];
+    // A local estimate, not a probability: duration and losses can change
+    // when countries reinforce, combat unfolds or the front moves.
+    const relativeLoss=outcome.attackerLoss/Math.max(1,troops);
+    const risk:AttackAssessment['risk']=troops<=outcome.attackerLoss+.001||
+      relativeLoss>.12||outcome.time>1.35||posted>troops*.6?'high'
+      :relativeLoss>.035||outcome.time>.7||posted>troops*.22?'moderate':'low';
+    return {possible:true,reason:landing?'Seelandung: Kontakt nach Ankunft.':
+      opponent===NEUTRAL?'Neutrale Expansion.':'Schätzung für den ersten Frontsektor.',
+      front:contact,targetOwner:opponent,troops,posted,loss:outcome.attackerLoss,
+      time:outcome.time,risk};
+  }
+
   launchAttack(id:number,target:Point,ratio:number):AttackResult {
     // Clicking friendly territory must NEVER dispatch soldiers, even on an
     // invaded border. A counterattack requires clicking the hostile sector.
@@ -1034,9 +1091,10 @@ export class Game {
    * If its port is lost, survivors are demobilized into the living nation's
    * reserve on return; an eliminated nation loses the stranded expedition.
    */
-  cancelAttack(orderId:number):boolean {
+  cancelAttack(orderId:number,requesterId?:number):boolean {
     const order=this.attackOrders.find(o=>o.id===orderId);
-    if(!order)return false;
+    if(!order||order.returning||
+       (requesterId!==undefined&&order.factionId!==requesterId))return false;
     if(order.landing&&order.seaRoute&&!order.returning){
       order.returning=true;order.returnStartedTick=this.tick;
       order.returnArrivalTick=this.tick+Math.max(1,Math.min(
