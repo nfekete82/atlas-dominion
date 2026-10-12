@@ -12,9 +12,10 @@ function vacantCitySite(game,id=0){
 
 test('one shared population and army number, cities, towers and factories buildable, money replaces supplies',()=>{
   const game=new Game(114);
-  assert.equal(BUILDINGS.length,3);
+  assert.equal(BUILDINGS.length,4);
+  assert.equal(BUILDINGS[3].type,'barracks');
   assert.equal(BUILDINGS[0].type,'city');
-  assert.deepEqual(BUILDING_CODES,{city:1,tower:2,factory:3});
+  assert.deepEqual(BUILDING_CODES,{city:1,tower:2,factory:3,barracks:4});
   for(const faction of game.factions){
     assert.equal(faction.troops,90);
     assert.equal(faction.money,90);
