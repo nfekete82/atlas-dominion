@@ -18,7 +18,7 @@ test('one shared population and army number, only cities buildable, money replac
   for(const faction of game.factions){
     assert.equal(faction.troops,90);
     assert.equal(faction.money,90);
-    assert.equal(faction.population,undefined);
+    assert.equal(faction.population,game.populationOf(faction.id));
     assert.equal(faction.supplies,undefined);
     assert.ok(faction.moneyIncome>0);
   }
