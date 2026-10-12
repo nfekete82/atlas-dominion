@@ -3,6 +3,19 @@
 [![Build und Simulationstests](https://github.com/nfekete82/atlas-dominion/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/nfekete82/atlas-dominion/actions/workflows/ci.yml)
 
 
+**v1.4.1 – VERTEIDIGUNGSVERLUSTE UND GEGENANGRIFFE**
+
+- **Bei einer feindlichen Eroberung sterben wieder echte Verteidiger:** Auch Sektoren ohne vorher stationierte Grenzgarnison können aus der *tatsächlichen mobilen Bevölkerung* ein begrenztes Aufgebot zur Verteidigung erhalten. Die eingesetzten Milizionäre werden bei einem Gefecht als echte Verluste verbucht – keine künstlich erschaffenen Soldaten. Der nationale Einwohner-/Truppenwert fällt entsprechend, sofern das Wachstum die Verluste nicht ausgleicht.
+- **Letzte defensive Verluste** werden im Bevölkerungsblock ausdrücklich angezeigt (»Verteidigung: −X diese Runde«). Langfristige Gefallene werden weiterhin kumuliert angezeigt.
+- **Linksklick auf eine eigene bedrohte Grenze** löst einen **Gegenangriff** auf den nächsten direkt angrenzenden feindlichen Landsektor aus. Auch ein Klick bis zu 12 zusammenhängende eigene Sektoren hinter der Front wird erkannt. Keine Teleports über Wasser oder durch andere Länder.
+- **Rechtsklick auf einen eigenen bedrohten Grenzsektor** zeigt neben »Stadt bauen« die Option **»Grenze verstärken«**. Sie stationiert den im Prozentregler eingestellten Anteil der **wirklich vorhandenen mobilen Soldaten** direkt an diesem Grenzposten, ohne Einwohner zu erzeugen oder zu töten.
+- Auf einer nicht bedrohten eigenen Fläche wird kein Angriff gestartet; normale Feind- und Neutralgebietsklicks sowie Seeangriffe bleiben erhalten.
+- Fünf neue Szenarioprüfungen in `tests/counterattack-defense.test.mjs` überprüfen reale Defensivverluste, Rückangriffe, Kartenbegrenzungen, echte Truppenübertragung und Determinismus.
+
+**Steuerung:** Linksklick auf ein Feindgebiet **oder** dein eigenes bedrohtes Grenzgebiet = Angriff/Gegenangriff. Rechtsklick auf eigene bedrohte Grenze = gezielt Soldaten zur Verteidigung stationieren.
+
+---
+
 **v1.4 – AGGRESSIVERE KI, SCHNELLERE EROBERUNG UND BESSERE GRENZVERTEIDIGUNG**
 
 **Automatischer Qualitätscheck:** Bei jedem Pull Request und jeder Änderung an `main` baut GitHub Actions das Projekt mit Node.js 22 und führt alle Simulations- und Regressionstests aus. Der Status steht im Abzeichen oben. Nach dem Wechsel des Repositories zu `public` wurde der vorherige fehlgeschlagene Lauf erfolgreich erneut ausgeführt: **93 Tests bestanden, 0 fehlgeschlagen** (12. Oktober 2026).

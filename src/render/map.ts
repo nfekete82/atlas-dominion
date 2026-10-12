@@ -1,5 +1,5 @@
 import { COUNTRIES, MAP_HEIGHT, MAP_WIDTH, SEA_CROSSINGS, WORLD_HEIGHT, WORLD_WIDTH } from '../data/europe.js';
-import { Game, NEUTRAL, WATER, pointToWorld, seededRandom, type Point } from '../engine/game.js';
+import { Game, NEUTRAL, WATER, pointToWorld, pointToIndex, seededRandom, type Point } from '../engine/game.js';
 import { TerritoryWave, waveProgress } from './wave.js';
 import {organicCaptureRadius,burningFrontAlpha} from './capture-visual.js';
 import { pixelGridEdges } from './pixel-grid.js';
@@ -241,7 +241,9 @@ export class MapRenderer {
   previewFront(point: Point): Point | null {
     const i=Math.floor(point.y)*MAP_WIDTH+Math.floor(point.x);
     if(i===this.hoverIndex)return this.hoverFront;
-    return this.game.findAttackFront(0,point);
+    return this.game.owner[point.y*MAP_WIDTH+point.x]===0
+      ? this.game.findCounterattackFront(0,point)
+      : this.game.findAttackFront(0,point);
   }
 
   /** Rebuild only when the owner changes or the simulation claims new land.
@@ -252,10 +254,12 @@ export class MapRenderer {
     if(!force && index===this.hoverIndex)return;
     this.hoverIndex=index;
     const owner=index>=0?this.game.owner[index]:WATER;
-    const front=point && owner!==0 && owner!==WATER
-      ? this.game.findAttackFront(0,point):null;
+    const front=point && owner!==WATER
+      ? owner===0?this.game.findCounterattackFront(0,point)
+        :this.game.findAttackFront(0,point)
+      :null;
     this.hoverFront=front;
-    const highlight=(front && owner>=0)?owner:WATER;
+    const highlight=front?this.game.owner[pointToIndex(front)]:WATER;
     if(!force && highlight===this.highlightOwner)return;
     this.highlightOwner=highlight;
     const c=this.highlightedCountry.getContext('2d')!;
@@ -282,7 +286,8 @@ export class MapRenderer {
   canAttack(point: Point): boolean {
     const x = Math.floor(point.x), y = Math.floor(point.y);
     if (x < 0 || y < 0 || x >= MAP_WIDTH || y >= MAP_HEIGHT) return false;
-    return this.availableTargets.has(this.game.owner[y * MAP_WIDTH + x]) && this.previewFront(point)!==null;
+    const owner=this.game.owner[y*MAP_WIDTH+x];
+    return (owner===0||this.availableTargets.has(owner)) && this.previewFront(point)!==null;
   }
   canLand(point: Point): boolean { return this.game.canLand(0,point); }
   /** Tiny, background-free world-space glyphs for built structures.

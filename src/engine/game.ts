@@ -33,6 +33,8 @@ export interface Faction {
   cityCount: number;
   captured: number;
   defenseSpent: number;
+  /** Real defensive fatalities suffered on the most recent simulation tick. */
+  defenseFallenTick: number;
   attackFallen: number;
   enemyFallen: number;
   /** Finite AI marching capacity; regenerates from economic strength. */
@@ -178,7 +180,7 @@ export class Game {
       id, name: start.name, capital: start.capital, color: factionColor(id),
       troops: 90, money: 90, moneyIncome: 0, militaryPower: 0, builtCities:0,
       territory: 0, income: 0, target: geoToCell(start.lon,start.lat),
-      ai:id!==0, alive:true, cityCount:0, captured:0, defenseSpent:0, attackFallen:0, enemyFallen:0, campaignEnergy:110, battleFocus:-1, intent:'hold' as const,
+      ai:id!==0, alive:true, cityCount:0, captured:0, defenseSpent:0, defenseFallenTick:0, attackFallen:0, enemyFallen:0, campaignEnergy:110, battleFocus:-1, intent:'hold' as const,
     }));
     // Reserve EVERY capital before assigning any surrounding territory. Without
     // this, microstates (e.g. Vatican/Rome) can overwrite earlier capitals.
@@ -465,6 +467,58 @@ export class Game {
     return front>=0?cellToPoint(front):null;
   }
 
+  /** Clicking our own threatened border triggers an actual counterattack
+   * into the nearest directly adjacent invading nation, not a move across
+   * friendly territory or a phantom strike against our own citizens.
+   * Nearby friendly clicks can reach the same frontline within 12 cells.
+   */
+  findCounterattackFront(id:number, point:Point):Point|null {
+    if(!Number.isFinite(point.x)||!Number.isFinite(point.y)||
+       point.x<0||point.y<0||point.x>=MAP_WIDTH||point.y>=MAP_HEIGHT||
+       !this.factions[id]?.alive)return null;
+    const origin=pointToIndex(point);
+    if(this.owner[origin]!==id)return null;
+    const visited=new Set<number>([origin]);
+    const queue:[number,number][]=[[origin,0]];
+    for(let head=0;head<queue.length;head++){
+      const [index,depth]=queue[head];
+      for(const n of LAND_NEIGHBORS[index]){
+        const neighbor=this.owner[n];
+        if(neighbor>=0 && neighbor!==id)return cellToPoint(n);
+      }
+      if(depth>=12)continue;
+      for(const n of LAND_NEIGHBORS[index]){
+        if(this.owner[n]!==id || visited.has(n))continue;
+        visited.add(n);queue.push([n,depth+1]);
+      }
+    }
+    return null;
+  }
+
+  /** Friendly threatened frontier sectors may receive manually assigned
+   * real soldiers; they remain counted as inhabitants while on defense. */
+  isThreatenedBorder(id:number,point:Point):boolean {
+    if(!Number.isFinite(point.x)||!Number.isFinite(point.y)||
+       point.x<0||point.y<0||point.x>=MAP_WIDTH||point.y>=MAP_HEIGHT)return false;
+    const index=pointToIndex(point);
+    return this.owner[index]===id &&
+      LAND_NEIGHBORS[index].some(n=>this.owner[n]>=0 && this.owner[n]!==id);
+  }
+
+  reinforceBorder(id:number,point:Point,ratio:number):AttackResult {
+    const failed=(reason:string):AttackResult=>({ok:false,reason,sent:0});
+    const faction=this.factions[id];
+    if(!faction?.alive || this.status!=='playing')return failed('Dein Land kann nicht verteidigt werden.');
+    if(!Number.isFinite(ratio)||ratio<5||ratio>100)return failed('Truppenanteil muss zwischen 5 und 100 % liegen.');
+    if(!this.isThreatenedBorder(id,point))return failed('Nur eigene Landgrenzen mit einem feindlichen Nachbarn verstärken.');
+    const sent=Math.floor(faction.troops*ratio/100);
+    if(sent<8)return failed('Mindestens 8 mobile Truppen für die Grenzverteidigung nötig.');
+    faction.troops-=sent;
+    this.frontline[pointToIndex(point)]+=sent;
+    if(id===0)this.log(`Grenze verstärkt: ${formatCompact(sent)} Soldaten stationiert.`,faction.color);
+    return {ok:true,reason:'Grenzverstärkung stationiert.',sent,front:point};
+  }
+
   /** True only for a documented sea corridor with our troops on the opposite shore. */
   canLand(id: number, target: Point): boolean {
     if (!Number.isFinite(target.x) || !Number.isFinite(target.y) ||
@@ -493,12 +547,18 @@ export class Game {
     if (!attacker?.alive || this.status !== 'playing') return failed('Diese Fraktion kann nicht angreifen.');
     if (!Number.isFinite(target.x) || !Number.isFinite(target.y) || target.x < 0 || target.y < 0 || target.x >= MAP_WIDTH || target.y >= MAP_HEIGHT) return failed('Außerhalb der Karte.');
     if (!Number.isFinite(ratio) || ratio < 5 || ratio > 100) return failed('Truppenanteil muss zwischen 5 und 100 % liegen.');
-    const index = pointToIndex(target), owner = this.owner[index];
-    if (owner === WATER) return failed('Angriff auf Wasser nicht möglich.');
-    if (owner === id) return failed('Das ist dein eigenes Gebiet.');
-    const front = landing ? cellToPoint(index) : this.findAttackFront(id, target);
-    if (!front || (landing && !this.canLand(id,target)))
-      return failed(landing ? 'Keine eigene Küste an diesem Seeübergang.' : 'Dieses Gebiet hat keine gemeinsame Landfront mit dir.');
+    const index=pointToIndex(target),clickedOwner=this.owner[index];
+    if(clickedOwner===WATER)return failed('Angriff auf Wasser nicht möglich.');
+    // On a friendly sector, a click NEAR a hostile frontier issues a
+    // counterattack across that real border; never target distant nations.
+    const counter=!landing && clickedOwner===id
+      ? this.findCounterattackFront(id,target):null;
+    if(clickedOwner===id && !counter)return failed('Eigenes Gebiet – für einen Gegenangriff näher an die feindliche Grenze klicken.');
+    const front=counter ?? (landing?cellToPoint(index):this.findAttackFront(id,target));
+    if(!front || (landing && !this.canLand(id,target)))
+      return failed(landing?'Keine eigene Küste an diesem Seeübergang.':'Dieses Gebiet hat keine gemeinsame Landfront mit dir.');
+    const owner=counter?this.owner[pointToIndex(counter)]:clickedOwner;
+    if(owner===id || owner===WATER)return failed('Kein feindlicher Grenzsektor gefunden.');
     const sent = Math.floor(attacker.troops * ratio / 100);
     if (sent < 8) return failed('Mindestens 8 mobile Truppen erforderlich.');
     attacker.troops -= sent;
@@ -507,8 +567,8 @@ export class Game {
       anchor:front, committed:sent, remaining:sent, effort:campaignEffort(sent), fallen:0, conquered:0,
       landing, startedTick:this.tick,
     });
-    if (id === 0) this.log(`${landing?'Seelandung':'Grenzoffensive'}: ${formatCompact(sent)} Truppen gegen ${owner===NEUTRAL?'NEUTRALGEBIET':this.factions[owner].name}.`,attacker.color);
-    return {ok:true,reason:landing?'Landung befohlen.':'Grenzangriff gestartet.',sent,targetOwner:owner,front};
+    if (id === 0) this.log(`${landing?'Seelandung':counter?'Gegenangriff':'Grenzoffensive'}: ${formatCompact(sent)} Truppen gegen ${owner===NEUTRAL?'NEUTRALGEBIET':this.factions[owner].name}.`,attacker.color);
+    return {ok:true,reason:landing?'Landung befohlen.':counter?'Gegenangriff gestartet.':'Grenzangriff gestartet.',sent,targetOwner:owner,front};
   }
 
   /** Picks only adjacent enemy sectors close to this specific battlefront.
@@ -682,14 +742,21 @@ export class Game {
       this.frontline[index] -= local.used;
       defenderLosses+=local.used;
       defender.defenseSpent += local.used;
+      defender.defenseFallenTick+=local.used;
       mitigation += local.blocked;
 
       // Capital dispatches slightly more mobile emergency defenders.
-      const emergencyLimit = Math.min(defender.troops, rawDamage * (capital ? 0.23 : 0.10));
+      // An invaded nation's population must actually defend its frontier.
+      // Call up local militia from its REAL mobile population even when no
+      // stationed soldiers were present. Unlike the abstract garrison
+      // defense number, every used militia member is a recorded casualty.
+      const emergencyLimit=Math.min(defender.troops,
+        Math.max(1.5,rawDamage*(capital?.55:.36)));
       const emergency = interceptAttack(emergencyLimit, Math.max(0, rawDamage - mitigation), fortified, capital);
       defender.troops -= emergency.used;
       defenderLosses+=emergency.used;
       defender.defenseSpent += emergency.used;
+      defender.defenseFallenTick+=emergency.used;
       mitigation += emergency.blocked;
     }
     this.defense[index]-=Math.max(0.01,rawDamage-Math.min(mitigation,rawDamage*.94));
@@ -699,6 +766,7 @@ export class Game {
     if(captured && defender && this.frontline[index]>0){
       defenderLosses+=this.frontline[index];
       defender.defenseSpent+=this.frontline[index];
+      defender.defenseFallenTick+=this.frontline[index];
       this.frontline[index]=0;
     }
     this.lastAttackerLoss=attackerCasualties(
@@ -758,6 +826,7 @@ export class Game {
   step(): void {
     if (this.paused || this.status !== 'playing') return;
     this.tick++;
+    for(const faction of this.factions)faction.defenseFallenTick=0;
     if (this.tick >= this.aiGoalChange) {
       this.pickAIGoals();
       this.aiGoalChange = this.tick + 45;

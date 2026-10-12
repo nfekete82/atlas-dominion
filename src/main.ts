@@ -57,6 +57,9 @@ function update() {
   $('frontTroops').textContent = 'AN DER GRENZE: ' + format(stationed);
   $('offensiveTroops').textContent = 'IM ANGRIFF: ' + format(fightingByNation[0]);
   $('fallenTroops').textContent = 'GEFALLEN: ' + format(player.attackFallen+player.defenseSpent);
+  $('defenseTickLoss').textContent = player.defenseFallenTick>0
+    ? 'VERTEIDIGUNG: −'+format(player.defenseFallenTick)+' DIESE RUNDE'
+    : 'VERTEIDIGUNG: KEINE VERLUSTE';
   $('borderDefense').textContent = `${format(game.threatenedBorders(0))} bedrohte Grenzsektoren · ${format(stationed)} stationiert · ${format(player.troops)} mobil`;
   $('casualtyReport').textContent = `⚔ ${format(player.attackFallen+player.defenseSpent)} eigene Gefallene · ${format(player.enemyFallen)} Gegnerverluste`;
   $('ratioPercent').textContent = attackRatio + ' %';
@@ -111,7 +114,7 @@ for (const btn of document.querySelectorAll<HTMLButtonElement>('[data-ratio]')) 
 renderer.onSelect = (point:Point, landing:boolean) => {
   closeBuildMenu();
   const result = landing ? game.launchLanding(0, point, attackRatio) : game.launchAttack(0, point, attackRatio);
-  attackMessage = result.ok ? `${format(result.sent)} Truppen · ${landing?'Seelandung (4 Ticks Anfahrt)':'Offensive an verbundener Front'} gestartet.` : result.reason;
+  attackMessage = result.ok ? `${format(result.sent)} Truppen · ${result.reason}` : result.reason;
   attackMessageKind = result.ok ? 'success' : 'error';
   beep(result.ok ? 620 : 190);
   update();
@@ -125,7 +128,8 @@ function renderBuildMenu(): void {
   const point=buildSpot;
   const existing=game.buildingAt(point);
   const existingName=BUILDINGS.find(b=>b.type===existing)?.name;
-  $('buildCoordinates').textContent=`${existingName?.toUpperCase()??'BAUEN'} · SEKTOR ${point.x}/${point.y}`;
+  const border=game.isThreatenedBorder(0,point);
+  $('buildCoordinates').textContent=`${border?'GRENZPOSTEN':existingName?.toUpperCase()??'BAUEN'} · SEKTOR ${point.x}/${point.y}`;
   $('buildMoney').textContent=`${format(game.factions[0].money)} GELD VERFÜGBAR`;
   $('buildOptions').innerHTML=BUILDINGS.map(building=>{
     const decision=game.canBuild(0,point,building.type);
@@ -135,7 +139,11 @@ function renderBuildMenu(): void {
       <span class="build-entry-copy"><strong>${building.name}</strong><small>${explanation}</small></span>
       <span class="build-entry-cost">${building.cost} €</span>
     </button>`;
-  }).join('');
+  }).join('')+(border?`<button type="button" class="build-entry" data-defend="true" ${game.factions[0].troops*attackRatio/100<8?'disabled':''} title="Echte mobile Truppen an dieser bedrohten Grenze stationieren">
+      <span class="build-entry-icon" aria-hidden="true">⬡</span>
+      <span class="build-entry-copy"><strong>Grenze verstärken</strong><small>${attackRatio} % der mobilen Soldaten hier verteidigen lassen</small></span>
+      <span class="build-entry-cost">${format(Math.floor(game.factions[0].troops*attackRatio/100))} ⚔</span>
+    </button>`:'');
 }
 renderer.onBuildRequest=(point,clientX,clientY)=>{
   if(modalVisible||!point){closeBuildMenu();return;}
@@ -149,8 +157,17 @@ renderer.onBuildRequest=(point,clientX,clientY)=>{
 };
 $('buildClose').addEventListener('click',closeBuildMenu);
 $('buildOptions').addEventListener('click',e=>{
+  if(!buildSpot)return;
+  const defenseButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-defend]');
+  if(defenseButton){
+    const result=game.reinforceBorder(0,buildSpot,attackRatio);
+    attackMessage=result.ok?`${format(result.sent)} Soldaten verteidigen jetzt diese Grenze.`:result.reason;
+    attackMessageKind=result.ok?'success':'error';
+    if(result.ok){renderer.updateTerritory();closeBuildMenu();beep(540);}else renderBuildMenu();
+    update();return;
+  }
   const button=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-build]');
-  if(!button||!buildSpot)return;
+  if(!button)return;
   const result=game.build(0,buildSpot,button.dataset.build as BuildingType);
   attackMessage=result.ok?`Stadt gebaut · ${result.cost} € · Wachstum steigt`:result.reason;
   attackMessageKind=result.ok?'success':'error';
@@ -174,7 +191,9 @@ renderer.onHover=(point,px,py,landing)=>{
   const buildingName=BUILDINGS.find(b=>b.type===built)?.name;
   $('hoverCoords').textContent=`SEKTOR ${point.x} / ${point.y} · ${buildingName?.toUpperCase()??(id===NEUTRAL?'NEUTRAL':'KONTROLLIERT')}`;
   const tile = pointToIndex(point);
-  const attackFront = id !== 0 ? renderer.previewFront(point) : null;
+  const attackFront=renderer.previewFront(point);
+  const counter=id===0 && attackFront!==null;
+  const actualTarget=attackFront?game.owner[pointToIndex(attackFront)]:id;
   const defendedSector = attackFront ? pointToIndex(attackFront) : tile;
   const stationedLocal = game.frontline[defendedSector];
   const sectorDefense = game.sectorDefense(defendedSector);
@@ -182,8 +201,8 @@ renderer.onHover=(point,px,py,landing)=>{
     ? `⬡ ${format(stationedLocal)} GRENZTRUPPEN · ${format(sectorDefense)} ${attackFront?'ANGRIFFSFRONT':'LOKALE VERTEIDIGUNG'}`
     : '⚔ UNBESETZT';
   const matchup=$('hoverPower');
-  const power=f&&id!==0 ? game.relativeAttackPower(0,id) : 1;
-  matchup.hidden=id<0||id===0;
+  const power=actualTarget>=0 && actualTarget!==0 ? game.relativeAttackPower(0,actualTarget):1;
+  matchup.hidden=actualTarget<0||actualTarget===0;
   matchup.textContent=power<.96
     ? `ANGRIFFSWIRKUNG: ${Math.round(power*100)} % · STARKER GEGNER`
     : power>1.04
@@ -193,12 +212,14 @@ renderer.onHover=(point,px,py,landing)=>{
   const action = $('hoverAction');
   const attackable = renderer.canAttack(point);
   const canLand = renderer.canLand(point);
-  action.textContent = id===0 ? 'EIGENES TERRITORIUM'
+  action.textContent = id===0 && counter
+    ? `KLICK: ${attackRatio} % GEGENANGRIFF AUF ${game.factions[actualTarget]?.name??'GEGNER'} · RECHTSKLICK: VERTEIDIGEN`
+    : id===0 ? 'EIGENES LAND · RECHTSKLICK: STADT / GRENZPOSTEN'
     : landing && canLand ? `SHIFT+KLICK: ${attackRatio} % LANDEANGRIFF`
     : attackable ? `KLICK: ${attackRatio} % · ANGRIFF AUF ${f?.name ?? 'NEUTRALGEBIET'}`
     : canLand ? 'SHIFT+KLICK: SEELANDUNG'
     : 'KEINE ERREICHBARE LANDFRONT';
-  action.classList.toggle('blocked',id!==0&&!attackable&&!canLand);
+  action.classList.toggle('blocked',!attackable&&!canLand&&id!==0);
   tooltip.style.left=Math.max(4, Math.min(px+15,renderer.canvas.clientWidth-205))+'px';
   tooltip.style.top=Math.max(4, Math.min(py+13,renderer.canvas.clientHeight-120))+'px';
 };
@@ -266,12 +287,12 @@ $('countryCancel').addEventListener('click',()=>{
 $('resetBtn').addEventListener('click',()=>showCountryPicker(hasStarted));
 $('helpBtn').addEventListener('click',()=>showDialog('DEIN EINSATZBEFEHL',`
   <p>ATLAS DOMINION ist ein Echtzeit-Eroberungsspiel. Starte in der Hauptstadt deines gewählten Landes, erweitere dein Gebiet und kontrolliere mindestens <strong>65 %</strong> Europas.</p>
-  <div class="briefing-row"><b>01</b><span><strong>ANGREIFEN:</strong> Klicke irgendwo in ein mit dir verbundenes Nachbarland. Das Spiel sucht dessen nächste echte Landfront; ohne gemeinsame Grenze kein Angriff. Neutrales Land bleibt auf 14 Sektoren Klicktoleranz begrenzt.</span></div>
+  <div class="briefing-row"><b>01</b><span><strong>ANGREIFEN:</strong> Klicke auf ein erreichbares Nachbarland oder auf dein eigenes bedrohtes Grenzgebiet für einen unmittelbaren Gegenangriff. Der Angriff startet immer am tatsächlichen gemeinsamen Grenzsektor. Neutrales Land bleibt auf 14 Sektoren Klicktoleranz begrenzt.</span></div>
   <div class="briefing-row"><b>02</b><span><strong>SEELANDUNG:</strong> SHIFT gedrückt halten und auf eine markierte Anlegestelle am anderen Ufer klicken. Nur die eingezeichneten Seewege sind erlaubt; die Überfahrt dauert vier Ticks.</span></div>
   <div class="briefing-row"><b>03</b><span><strong>ZIEHEN:</strong> Karte verschieben. Mausrad oder +/− zum Zoomen.</span></div>
   <div class="briefing-row"><b>04</b><span><strong>FRONT:</strong> Die Angriffslinie leuchtet an der Grenze. Die kleine Zahl zeigt die eingesetzten Truppen. Es gibt keine Marschroute von der Hauptstadt.</span></div>
   <div class="briefing-row"><b>05</b><span><strong>TRUPPEN:</strong> Der Prozentregler legt die Zahl der eingesetzten Einwohner/Soldaten fest. Nur tatsächlich Gefallene werden abgezogen; Überlebende kehren aus der Offensive zurück. Stärkere Armeen kämpfen an einer breiteren Front.</span></div>
-  <div class="briefing-row"><b>06</b><span><strong>STÄDTE BAUEN:</strong> Rechtsklick auf eigenes Land. Nur Städte sind baubar: Sie kosten Geld und erhöhen das künftige Einwohner- und Truppenwachstum.</span></div>
+  <div class="briefing-row"><b>06</b><span><strong>STÄDTE BAUEN:</strong> Rechtsklick auf eigenes Land. Städte kosten Geld und erhöhen das Wachstum. Auf eigenem bedrohtem Grenzgebiet kannst du im selben Menü gezielt Soldaten zur Verteidigung stationieren.</span></div>
   <div class="briefing-row"><b>07</b><span><strong>PAUSE:</strong> Leertaste oder Ⅱ. Mit 1×/2×/4× beschleunigen.</span></div>
   <p><strong>Doktrinen:</strong> EXPAND senkt die Kosten neutraler Eroberungen und erhöht deren Geschwindigkeit, BLITZ erhöht die Angriffsfrequenz, DEFENSE stärkt Einkommen und Garnisonen. Mit 1, 2, 3 umschalten.</p>
   <p><strong>Machtvergleich:</strong> Beim Angriff zählen auch die gesamte Bevölkerung, die Größe und die Städte des Gegners. Ein mächtigeres Reich reduziert deine Angriffswirkung prozentual und erhöht die eigenen Verluste. Kleinere Gegner kannst du effektiver angreifen. Die Wirkung ist auf 70–130 % begrenzt; die konkrete Grenzverteidigung entscheidet weiterhin mit.</p>
