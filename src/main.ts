@@ -38,6 +38,7 @@ let hasStarted = false;
 let selectedDifficulty:Difficulty='balanced';
 let buildSpot: Point | null = null;
 let selectedSquadId:number|null=null;
+let selectedSquadIds:number[]=[];
 let attackRatio = 35;
 let showAllNations = false;
 let attackMessage = 'Kaserne bauen, Soldaten ausbilden, mit Linksklick auswählen und bewegen.';
@@ -538,6 +539,12 @@ $('warAlerts').addEventListener('click',e=>{
   const alert=warAlerts.find(a=>a.id===Number(b.dataset.warFocus));
   if(alert)renderer.focusOnPoint({x:alert.index%480,y:Math.floor(alert.index/480)},2.2);
 });
+renderer.onSelectSquads=(ids)=>{
+  selectedSquadIds=ids;selectedSquadId=ids[0]??null;
+  renderer.selectedSquadIds=ids;
+  attackMessage=ids.length?ids.length+' Truppengruppen markiert – Linksklick zum Marschieren oder Erobern.':'Keine Truppen im Auswahlrahmen.';
+  attackMessageKind=ids.length?'success':'neutral';update();
+};
 renderer.onSelect = (point:Point, _landing:boolean) => {
   soundscape.update({},true);
   closeBuildMenu();
@@ -546,7 +553,7 @@ renderer.onSelect = (point:Point, _landing:boolean) => {
   const squad=game.squads.find(unit=>unit.owner===0&&
     Math.hypot(unit.index%480-point.x,Math.floor(unit.index/480)-point.y)<=1);
   if(squad){
-    selectedSquadId=squad.id;
+    selectedSquadId=squad.id;selectedSquadIds=[squad.id];renderer.selectedSquadIds=[squad.id];
     attackMessage='⚔ Truppe #'+squad.id+' ('+Math.round(squad.troops)+' Soldaten) ausgewählt – Linksklick auf Marschziel oder angrenzenden Gegner.';
     attackMessageKind='success';update();return;
   }
@@ -555,11 +562,12 @@ renderer.onSelect = (point:Point, _landing:boolean) => {
     attackMessageKind='neutral';update();return;
   }
   const own=game.owner[clickedIndex]===0;
-  const result=own?game.orderSquad(0,selectedSquadId,point):
-    game.attackWithSquad(0,selectedSquadId,point);
-  attackMessage=result.reason;attackMessageKind=result.ok?'success':'error';
-  if(result.ok){
-    if(!own)selectedSquadId=null;
+  const ids=selectedSquadIds.length?selectedSquadIds:[selectedSquadId];
+  const results=ids.map(id=>own?game.orderSquad(0,id,point):game.orderSquadAttack(0,id,point));
+  const success=results.filter(r=>r.ok).length;
+  attackMessage=success?success+' von '+ids.length+' Gruppen: '+results.find(r=>r.ok)!.reason:results[0]?.reason??'Keine Truppe ausgewählt.';
+  attackMessageKind=success?'success':'error';
+  if(success){
     renderer.updateTerritory();saveGame();
     if(!own)soundscape.playEffect('attack');
   }
