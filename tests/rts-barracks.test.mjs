@@ -67,3 +67,21 @@ test('foreign target queues a real army march and persists its conquest order',(
  assert.ok(g.attackOrders.some(o=>o.factionId===0)||g.owner[target]===0,
    'selected squad should reach a real front and commit an offensive');
 });
+
+test('RTS squads persist while occupying empty neutral surroundings without casualties',()=>{
+ const g=new Game(9103,1,'DE','balanced',true);
+ const edge=g.owner.findIndex((v,i)=>v===0&&landNeighbors(i).some(n=>g.owner[n]===-1));
+ assert.ok(edge>=0);
+ const neutral=landNeighbors(edge).find(n=>g.owner[n]===-1);
+ const place=g.owner.findIndex((v,i)=>v===0&&g.buildings[i]===0);
+ g.factions[0].money=1200;
+ assert.ok(g.build(0,cellToPoint(place),'barracks').ok);
+ assert.ok(g.recruitSquad(0,cellToPoint(place),100).ok);
+ const unit=g.squads[0];
+ unit.index=edge;
+ const strength=unit.troops;
+ g.step();
+ assert.equal(g.owner[neutral],0,'adjacent empty neutral territory should be occupied');
+ assert.ok(g.squads.some(s=>s.id===unit.id),'capturing must never consume the squad');
+ assert.equal(unit.troops,strength,'peaceful occupation cannot cause casualties');
+});
