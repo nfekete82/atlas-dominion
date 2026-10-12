@@ -896,20 +896,6 @@ export class Game {
         newCities.push([x,y]);sites.push(index);
         changed=true;builds++;actions++;
       }
-      // Factories invest surplus funds into recurring revenue. They compete
-    // for one development action and require a real nearby owned city.
-    if(this.tick>0&&actions<maxActions&&faction.money>=400&&
-      this.tick% (this.difficultySettings.cityInterval*2)===0){
-      for(const city of this.cities){
-        if(city.owner!==id)continue;
-        const near=LAND_NEIGHBORS[city.index].find(i=>this.owner[i]===id&&!this.buildings[i]&&!this.capitalSites.has(i));
-        if(near===undefined)continue;
-        const pos=cellToPoint(near);
-        if(this.build(id,pos,'factory').ok){
-          this.factoryLinks.set(near,city.index);changed=true;actions++;break;
-        }
-      }
-    }
     // Highest-tier towns finish first, rather than having hundreds of
       // newly founded towns keep every existing city at level 0 or 1.
       // When a top tier is too expensive, an affordable lower tier can grow.
@@ -924,6 +910,36 @@ export class Game {
         const cost=cityUpgradeCost(this.cityUpgrades[picked]);
         faction.money-=cost;this.cityUpgrades[picked]++;
         changed=true;
+      }
+      // Industry is a separate, capped economic decision, after city upgrades.
+      // Limits one factory action per development cycle and one factory per
+      // ~120 owned sectors to avoid unbounded AI snowballing.
+      if(this.tick>0&&faction.money>=520){
+        const ownedFactories:number[]=[];
+        for(let i=0;i<CELL_COUNT;i++)if(this.owner[i]===id&&this.buildings[i]===BUILDING_CODES.factory)ownedFactories.push(i);
+        const target=Math.max(1,Math.floor(faction.territory/120));
+        if(ownedFactories.length<target){
+          const citySites:number[]=[];
+          for(const city of this.cities)if(city.owner===id)citySites.push(city.index);
+          for(let i=0;i<CELL_COUNT;i++)if(this.owner[i]===id&&this.buildings[i]===BUILDING_CODES.city)citySites.push(i);
+          citySites.sort((a,b)=>a-b);
+          buildLoop:for(const city of citySites){
+            for(const near of LAND_NEIGHBORS[city]){
+              if(this.owner[near]!==id||this.buildings[near]||this.capitalSites.has(near))continue;
+              if(ownedFactories.some(i=>Math.abs(i%MAP_WIDTH-near%MAP_WIDTH)+Math.abs(Math.floor(i/MAP_WIDTH)-Math.floor(near/MAP_WIDTH))<6))continue;
+              if(this.build(id,cellToPoint(near),'factory').ok){
+                this.factoryLinks.set(near,city);changed=true;break buildLoop;
+              }
+            }
+          }
+        }else{
+          for(const index of ownedFactories){
+            const level=1+(this.factoryLevels.get(index)??0);
+            if(level>=5||faction.money<level*250+200)continue;
+            if(this.upgradeFactory(id,cellToPoint(index)).ok)changed=true;
+            break;
+          }
+        }
       }
     }
     // Recompute growth once, not once per paid building in a large empire.
