@@ -95,7 +95,8 @@ test('hover selects the city badge, keeps tooltip in bounds and clear of the bui
  await page.setViewportSize({width:1440,height:900});await start(page);await frame(page);
  const marker=(await layout(page)).markers.find(m=>m.level===5);
  expect(marker).toBeTruthy();await page.mouse.move(marker.x+12,marker.y+66+8);
- await expect(page.locator('#hoverCoords')).toContainText('STADT STUFE 5/5');
+ await expect(page.locator('#hoverOwner')).toBeVisible();
+ await expect(page.locator('#hoverMilitary')).toContainText('Mobil');
  const tip=await page.locator('#mapInfo').boundingBox(),canvas=await page.locator('#battleCanvas').boundingBox();
  expect(tip.x).toBeGreaterThanOrEqual(canvas.x);expect(tip.y).toBeGreaterThanOrEqual(canvas.y);
  expect(tip.x+tip.width).toBeLessThanOrEqual(canvas.x+canvas.width);
