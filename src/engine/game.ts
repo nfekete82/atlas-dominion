@@ -999,6 +999,12 @@ export class Game {
       const city=this.capitalSites.has(i);
       const hasCity=this.buildings[i]===BUILDING_CODES.city;
       const neutral=opponent===NEUTRAL;
+      // A real expansion phase: settle neutral territory before starting wars.
+      // Thereafter, offset mobilization windows prevent synchronized all-Europe wars.
+      if(!neutral && this.difficulty!=='impossible' &&
+         (this.tick<90 || (this.tick+id*23)%160<72))continue;
+      const ongoingEnemies=new Set(this.attackOrders.filter(o=>o.factionId===id&&o.targetOwner>=0).map(o=>o.targetOwner));
+      if(!neutral && ongoingEnemies.size>=2&&!ongoingEnemies.has(opponent))continue;
       const defender=neutral?null:this.factions[opponent];
       const assessment=assessInvasion({
         attackerTroops:faction.troops,attackerIncome:faction.income,
@@ -1024,7 +1030,7 @@ export class Game {
         opponentReserve:defender?.troops??0,
         threatenedBorders:exposed,
         focus:d<14,
-      },aiStyle(faction.id)) + (focusDistance<10?11-focusDistance*.85:0)-Math.min(24,otherInvaders*9) + this.rng()*.15;
+      },aiStyle(faction.id)) + (neutral?24:0) + (focusDistance<10?11-focusDistance*.85:0)-Math.min(24,otherInvaders*9) + this.rng()*.15;
       if(score>bestScore){bestScore=score;best=i;}
     }
     faction.intent=best<0?'hold':this.owner[best]===NEUTRAL?'expand':'invade';
@@ -1183,6 +1189,11 @@ export class Game {
         this.issueAttack(faction.id,cellToPoint(target),ratio,false);
         continue;
       }
+      // The same peacetime cadence and limited fronts apply at sea.
+      if(this.difficulty!=='impossible' &&
+        (this.tick<90 || (this.tick+faction.id*23)%160<72))continue;
+      const ongoingEnemies=new Set(this.attackOrders.filter(o=>o.factionId===faction.id&&o.targetOwner>=0).map(o=>o.targetOwner));
+      if(ongoingEnemies.size>=2)continue;
       // No profitable landfront: AI may use the same documented maritime
       // crossings as the player, including attacks against occupied islands.
       const coastTargets:number[]=[];
