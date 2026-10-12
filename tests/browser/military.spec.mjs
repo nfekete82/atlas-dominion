@@ -35,7 +35,7 @@ for(const zoom of [1,1.5,2,4])test(`country names and outlined strength stay leg
   if(zoom===1){await mkdir(evidence,{recursive:true});await page.screenshot({path:`${evidence}military-labels.png`});}
 });
 
-test('foreign country hover exposes the actual military ledger and relative strength',async({page})=>{
+test('compact country hover shows only total and mobile strength with live values',async({page})=>{
   await start(page);
   const target=await page.evaluate(()=>{
     const {getGame,renderer:r,refresh}=window.__atlas,g=getGame();
@@ -43,27 +43,46 @@ test('foreign country hover exposes the actual military ledger and relative stre
     g.factions[id].troops=2300;g.frontline.fill(0);
     g.frontline[city.index]=700;g.attackOrders=[];g.recount();refresh();
     r.focusOnCapital(city);
-    const b=r.canvas.getBoundingClientRect();
-    return {name:g.factions[id].name,x:b.left+r.ox+(city.x+.5)*1600/480*r.scale,y:b.top+r.oy+(city.y+.5)*900/260*r.scale,
-      summary:r.military[id],ratio:r.military[id].total/r.military[0].total};
+    const box=r.canvas.getBoundingClientRect();
+    return {name:g.factions[id].name,
+      x:box.left+r.ox+(city.x+.5)*1600/480*r.scale,
+      y:box.top+r.oy+(city.y+.5)*900/260*r.scale};
   });
   await page.mouse.move(target.x,target.y);
   await expect(page.locator('#hoverOwner')).toHaveText(target.name);
-  const details=page.locator('#hoverMilitary');await expect(details).toBeVisible();
-  for(const text of ['GESAMTSTÄRKE / BEVÖLKERUNG','MOBILE TRUPPEN','GRENZTRUPPEN GESAMT','AKTIVE ANGRIFFSFRONTEN','STÄDTE','Ø STADTLEVEL','EINKOMMEN / TICK','WACHSTUM / TICK','STÄRKE VS. SPIELER'])await expect(details).toContainText(text);
-  await expect.poll(()=>page.evaluate(()=>{const r=window.__atlas.renderer;return r.visibleCountryLabels.some(l=>l.name.includes(document.getElementById('hoverOwner').textContent)&&l.strength==='⚔ 3K');})).toBe(true);
-  const values=await details.locator('b').allTextContents();
-  expect(values.slice(0,4)).toEqual(['3K','2,3K','700','0']);
-  expect(values[9]).toMatch(/% · STÄRKER$/);expect(values[9].split('%')[0]).not.toContain('K');
-  await expect(details.locator('div').last()).toHaveCSS('color','rgb(255, 170, 164)');
-  const box=await page.locator('#mapInfo').boundingBox(),canvas=await page.locator('#battleCanvas').boundingBox();
-  expect(box.x).toBeGreaterThanOrEqual(canvas.x);expect(box.y).toBeGreaterThanOrEqual(canvas.y);
+  const details=page.locator('#hoverMilitary');
+  await expect(details).toBeVisible();
+  await expect(details.locator('div')).toHaveCount(2);
+  await expect(details).toContainText('⚔ Gesamt');
+  await expect(details).toContainText('● Mobil');
+  await expect(details).not.toContainText('GRENZTRUPPEN');
+  await expect(details).not.toContainText('STÄDTE');
+  await expect(details).not.toContainText('WACHSTUM');
+  expect(await details.locator('b').allTextContents()).toEqual(['3K','2,3K']);
+  await expect(page.locator('#hoverAction')).toContainText('Rechts: Koalition');
+  await expect.poll(()=>page.evaluate(()=>{
+    const r=window.__atlas.renderer;
+    return r.visibleCountryLabels.some(l=>
+      l.name.includes(document.getElementById('hoverOwner').textContent)&&l.strength==='⚔ 3K');
+  })).toBe(true);
+  const box=await page.locator('#mapInfo').boundingBox();
+  const canvas=await page.locator('#battleCanvas').boundingBox();
+  expect(box.width).toBeLessThanOrEqual(265);
+  expect(box.height).toBeLessThan(125);
+  expect(box.x).toBeGreaterThanOrEqual(canvas.x);
+  expect(box.y).toBeGreaterThanOrEqual(canvas.y);
+  expect(box.x+box.width).toBeLessThanOrEqual(canvas.x+canvas.width);
   expect(box.y+box.height).toBeLessThanOrEqual(canvas.y+canvas.height);
-  await mkdir(evidence,{recursive:true});await page.screenshot({path:`${evidence}military-tooltip.png`});
-  // The tooltip follows live ticks even when the pointer stays still.
-  await page.evaluate(()=>{const g=window.__atlas.getGame(),id=g.factions.find(f=>f.name===document.getElementById('hoverOwner').textContent).id;g.factions[id].troops=4300;g.recount();window.__atlas.refresh();});
+  await mkdir(evidence,{recursive:true});
+  await page.screenshot({path:`${evidence}military-tooltip.png`});
+  await page.evaluate(()=>{
+    const g=window.__atlas.getGame();
+    const id=g.factions.find(f=>f.name===document.getElementById('hoverOwner').textContent).id;
+    g.factions[id].troops=4300;g.recount();window.__atlas.refresh();
+  });
   await expect(details.locator('b').first()).toHaveText('5K');
 });
+
 
 test('moving reserves to the border changes only mobile badge, not total country strength',async({page})=>{
   await start(page);
