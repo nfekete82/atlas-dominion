@@ -629,7 +629,7 @@ function renderBuildMenu(): void {
     </button>`;
   const barracksActions=existing==='barracks'?[25,100,500].map(count=>`<button type="button" class="build-entry" data-recruit-squad="${count}" ${game.factions[0].money<count*2?'disabled':''}><span class="build-entry-icon">⚔</span><span class="build-entry-copy"><strong>${count} Soldaten abstellen</strong><small>Neue Soldaten ausbilden · 2 Gold je Soldat</small></span><span class="build-entry-cost">${count*2} €</span></button>`).join(''):'';
   const nearbySquads=game.squads.filter(s=>s.owner===0&&Math.hypot(s.index%MAP_WIDTH-point.x,Math.floor(s.index/MAP_WIDTH)-point.y)<3);
-  const squadActions=nearbySquads.map(s=>`<button type="button" class="build-entry" data-select-squad="${s.id}"><span class="build-entry-icon">➤</span><span class="build-entry-copy"><strong>Truppe #${s.id} auswählen</strong><small>Rechtsklick auf eigenes Gebiet = Marsch, angrenzender Feind = Angriff</small></span><span class="build-entry-cost">WÄHLEN</span></button><button type="button" class="build-entry" data-recall-squad="${s.id}"><span class="build-entry-icon">↩</span><span class="build-entry-copy"><strong>Truppe #${s.id} zurückrufen</strong><small>${Math.round(s.troops)} Soldaten in Mobilreserve übernehmen</small></span><span class="build-entry-cost">RÜCKRUF</span></button>`).join('');
+  const squadActions=nearbySquads.map(s=>`<button type="button" class="build-entry" data-select-squad="${s.id}"><span class="build-entry-icon">➤</span><span class="build-entry-copy"><strong>Truppe #${s.id} auswählen</strong><small>Linksklick auf eigenes Gebiet = Marsch, angrenzender Feind = Angriff</small></span><span class="build-entry-cost">WÄHLEN</span></button><button type="button" class="build-entry" data-recall-squad="${s.id}"><span class="build-entry-icon">↩</span><span class="build-entry-copy"><strong>Truppe #${s.id} zurückrufen</strong><small>${Math.round(s.troops)} Soldaten in Mobilreserve übernehmen</small></span><span class="build-entry-cost">RÜCKRUF</span></button>`).join('');
   const factoryUpgrade=existing==='factory'?`<button type="button" class="build-entry" data-upgrade-factory="true" ${game.factoryLevel(point)>=5||game.factions[0].money<game.factoryLevel(point)*250?'disabled':''}><span class="build-entry-icon">⚙</span><span class="build-entry-copy"><strong>Fabrik Stufe ${game.factoryLevel(point)}/5 ausbauen</strong><small>Steigert die Grundproduktion um 75 %</small></span><span class="build-entry-cost">${game.factoryLevel(point)>=5?'MAX':game.factoryLevel(point)*250+' €'}</span></button>`:'';
   const factoryAction=existing==='factory'?`<button type="button" class="build-entry" data-link-factory="true" ${suggestedCity?'':'disabled'}><span class="build-entry-icon">↗</span><span class="build-entry-copy"><strong>Mit Stadt verbinden</strong><small>${suggestedCity?`Stadt bei ${suggestedCity.x}/${suggestedCity.y} · +50 % Grundbonus, bis zu +25 % durch Stadtausbau`:'Keine eigene Stadt im Umkreis von 12 Sektoren'}</small></span><span class="build-entry-cost">VERBINDEN</span></button>`:'';
   $('buildOptions').innerHTML=barracksActions+squadActions+factoryUpgrade+factoryAction+fastSingle+fastAll+(upgrade? `<button type="button" class="build-entry" data-upgrade-city="true" ${upgrade.ok?'':'disabled'} title="${upgrade.reason}">
@@ -651,14 +651,6 @@ function renderBuildMenu(): void {
     </button>`:'');
 }
 renderer.onBuildRequest=(point,clientX,clientY)=>{
-  if(selectedSquadId!==null&&point){
-    const owned=game.owner[pointToIndex(point)]===0;
-    const result=owned?game.orderSquad(0,selectedSquadId,point):
-      game.attackWithSquad(0,selectedSquadId,point);
-    attackMessage=result.reason;attackMessageKind=result.ok?'success':'error';
-    if(result.ok){selectedSquadId=null;renderer.updateTerritory();saveGame();}
-    closeBuildMenu();update();return;
-  }
   if(modalVisible||!point||game.owner[pointToIndex(point)]<0){closeBuildMenu();return;}
   buildSpot=point;
   const owner=game.owner[pointToIndex(point)];
@@ -680,7 +672,7 @@ $('buildOptions').addEventListener('click',e=>{
   const selectButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-select-squad]');
   if(selectButton){
     selectedSquadId=Number(selectButton.dataset.selectSquad);
-    attackMessage='Truppe #'+selectedSquadId+' ausgewählt – Rechtsklick: eigenes Land zum Marschieren, direkt benachbarte Feindgrenze zum Angreifen.';
+    attackMessage='Truppe #'+selectedSquadId+' ausgewählt – Linksklick: eigenes Land zum Marschieren, direkt benachbarte Feindgrenze zum Angreifen.';
     attackMessageKind='success';closeBuildMenu();update();return;
   }
   const recruitButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-recruit-squad]');
