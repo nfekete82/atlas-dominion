@@ -317,27 +317,30 @@ export class MapRenderer {
    * Move/zoom or click to see individual buildings at higher magnification.
    */
   /** Compact skyline icon with a small, exact upgrade level badge. */
+  /** Draw 17px screen-space skyline regardless of camera zoom / DPR.
+   * A small level tag is readable, but level zero remains unnumbered.
+   */
   private drawCityMarker(c:CanvasRenderingContext2D,x:number,y:number,level:number,owner:number):void {
     const style=cityLevelStyle(level);
-    const unit=1/this.scale;
+    const u=1/this.scale;
     c.save();
-    c.globalAlpha=owner===0?.96:.82;
-    c.fillStyle='rgba(10,24,30,.28)';
-    c.beginPath();c.roundRect(x-5.1*unit,y-4.5*unit,10.2*unit,9*unit,1.7*unit);c.fill();
-    c.lineWidth=.75*unit;
+    c.globalAlpha=owner===0?1:.92;
+    c.fillStyle='rgba(9,23,31,.72)';
+    c.beginPath();c.roundRect(x-8*u,y-7*u,16*u,14*u,2*u);c.fill();
+    c.lineWidth=1*u;
     c.fillStyle=style.fill;c.strokeStyle=style.border;
-    for(const [dx,dy,w,h] of [[-3.8,-.8,2.1,3.7],[-.85,-2.5,2.5,5.4],[2.15,-1,1.9,3.9]]){
-      c.beginPath();c.roundRect(x+dx*unit,y+dy*unit,w*unit,h*unit,.4*unit);c.fill();c.stroke();
+    for(const [dx,dy,w,h] of [[-5.5,-1,3.3,5],[-1.5,-5,4.2,9],[3.5,-2,2.6,6]]){
+      c.beginPath();c.roundRect(x+dx*u,y+dy*u,w*u,h*u,.65*u);c.fill();c.stroke();
     }
     if(level>0){
-      const bx=x+4.3*unit,by=y+3.3*unit;
-      c.beginPath();c.arc(bx,by,2.7*unit,0,Math.PI*2);
-      c.fillStyle=style.fill;c.fill();
-      c.strokeStyle=style.border;c.lineWidth=.8*unit;c.stroke();
-      c.fillStyle=style.text;
-      c.font=`800 ${6*unit}px system-ui`;
+      const bx=x+6*u,by=y+5*u;
+      c.beginPath();c.arc(bx,by,4.6*u,0,Math.PI*2);
+      c.fillStyle='#12212a';c.fill();
+      c.strokeStyle=style.border;c.lineWidth=1.2*u;c.stroke();
+      c.fillStyle=style.border;
+      c.font=`800 ${8*u}px system-ui`;
       c.textAlign='center';c.textBaseline='middle';
-      c.fillText(String(level),bx,by+.15*unit);
+      c.fillText(String(level),bx,by+.15*u);
     }
     c.restore();
   }
@@ -345,7 +348,7 @@ export class MapRenderer {
   private drawBuildings(c:CanvasRenderingContext2D):void {
     if(this.zoom<1.05 || !this.buildingMarkers.length)return;
     const screenWidth=this.canvas.clientWidth,screenHeight=this.canvas.clientHeight;
-    const minSpacing=this.zoom>=2.6?10:14;
+    const minSpacing=this.zoom>=2.6?20:24;
     const buckets=new Map<string,Array<{x:number;y:number}>>();
     c.save();
     for(const marker of this.buildingMarkers){
