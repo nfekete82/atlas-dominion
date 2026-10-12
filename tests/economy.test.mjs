@@ -28,7 +28,7 @@ test('one shared population and army number, cities, towers and factories builda
 });
 
 test('population stays stable without barracks while money keeps growing',()=>{
-  const g=new Game(127,0),f=g.factions[0];
+  const g=new Game(127,0,'DE','balanced',true),f=g.factions[0];
   const start=f.troops,money=f.money,revenue=f.moneyIncome;
   assert.ok(revenue>0);
   g.step();
