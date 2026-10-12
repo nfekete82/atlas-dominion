@@ -1199,6 +1199,11 @@ export class Game {
         ? Math.hypot(i%MAP_WIDTH-focusIndex%MAP_WIDTH,
           Math.floor(i/MAP_WIDTH)-Math.floor(focusIndex/MAP_WIDTH))
         : Infinity;
+      // A defensive pact also informs strategy: prioritize a nation currently
+      // attacking our allies when we share a valid front with that aggressor.
+      // It still requires paid troops, an advantageous battle and a real border.
+      const defendingAlly=opponent>=0&&this.attackOrders.some(o=>
+        o.factionId===opponent&&this.isAllied(id,o.targetOwner));
       const otherInvaders=neutral?0:new Set(this.attackOrders.filter(o=>o.targetOwner===opponent&&o.factionId!==id).map(o=>o.factionId)).size;
       // Keep the existing graded penalty, but stop a third nation joining
       // an already contested enemy. Existing campaigns may finish normally.
@@ -1210,7 +1215,7 @@ export class Game {
         opponentReserve:defender?.troops??0,
         threatenedBorders:exposed,
         focus:d<14,
-      },aiStyle(faction.id)) + (neutral?24:0) + (focusDistance<10?11-focusDistance*.85:0)-Math.min(24,otherInvaders*9) + this.rng()*.15;
+      },aiStyle(faction.id)) + (neutral?24:0) + (defendingAlly?16:0) + (focusDistance<10?11-focusDistance*.85:0)-Math.min(24,otherInvaders*9) + this.rng()*.15;
       if(score>bestScore){bestScore=score;best=i;}
     }
     faction.intent=best<0?'hold':this.owner[best]===NEUTRAL?'expand':'invade';
