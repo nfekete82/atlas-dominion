@@ -67,16 +67,17 @@ test('foreign country hover exposes the actual military ledger and relative stre
 
 test('moving reserves to the border changes only mobile badge, not total country strength',async({page})=>{
   await start(page);
+  await page.evaluate(()=>{window.__atlas.renderer.fit();window.__atlas.refresh();});
+  await page.waitForTimeout(100);
   const before=await page.evaluate(()=>{
     const g=window.__atlas.getGame(),r=window.__atlas.renderer;
-    r.fit();window.__atlas.refresh();
-    const badge=r.visibleCountryLabels.find(l=>l.id===0)??r.visibleCountryLabels[0];
+    const badge=r.visibleCountryLabels.find(l=>g.factions[l.id].troops>=10);
     if(!badge)throw Error('Expected a visible country badge');
     const id=badge.id;
     const index=g.owner.findIndex(owner=>owner===id);
     if(index<0)throw Error('Expected an owned sector');
     g.paused=true;
-    return {id,index,strength:badge.strength,mobile:badge.mobile,amount:100};
+    return {id,index,strength:badge.strength,mobile:badge.mobile,amount:Math.floor(g.factions[id].troops/2)};
   });
   const after=await page.evaluate(({id,index,amount})=>{
     const g=window.__atlas.getGame(),r=window.__atlas.renderer;
@@ -84,9 +85,12 @@ test('moving reserves to the border changes only mobile badge, not total country
     g.factions[id].troops-=amount;
     g.frontline[index]+=amount;
     g.recount();window.__atlas.refresh();
-    const badge=r.visibleCountryLabels.find(l=>l.id===id);
-    return {badge,summary:r.military[id]};
   },before);
+  await page.waitForTimeout(100);
+  const after=await page.evaluate(id=>{
+    const r=window.__atlas.renderer;
+    return {badge:r.visibleCountryLabels.find(l=>l.id===id),summary:r.military[id]};
+  },before.id);
   expect(after.summary.mobile).toBeGreaterThanOrEqual(0);
   expect(after.badge).toBeTruthy();
   expect(after.badge.strength).toBe(before.strength);
