@@ -386,3 +386,10 @@ test('Front lookup rejects water, own territory and out-of-map clicks',()=>{
   assert.equal(g.findAttackFront(0,cellToPoint(water)),null);
   assert.equal(g.findAttackFront(0,{x:-100,y:2}),null);
 });
+
+test('balanced AI spends the opening developing and expanding rather than declaring immediate wars',()=>{
+  const g=new Game(247,12,'DE','balanced');
+  for(let i=0;i<60;i++)g.step();
+  assert.equal(g.attackOrders.filter(o=>o.factionId!==0&&o.targetOwner>=0).length,0,
+    'AI should not open hostile wars during the first 90 ticks');
+});
