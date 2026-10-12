@@ -25,3 +25,11 @@ export function buildingMarkerFontSize(scale:number):number {
   if(!Number.isFinite(scale)||scale<=0)return 8;
   return Math.max(4.5,Math.min(12,10/scale));
 }
+
+/** Readable map encoding: 0–2 bronze, 3–4 silver, 5 gold. */
+export function cityLevelStyle(level:number):{fill:string;border:string;text:string}{
+  const n=Math.max(0,Math.min(5,Math.floor(Number.isFinite(level)?level:0)));
+  return n===5 ? {fill:'#efbd42',border:'#fff2b4',text:'#281a0b'}
+    : n>=3 ? {fill:'#bbc8d4',border:'#f0f6fd',text:'#192b38'}
+    : {fill:'#bf8550',border:'#f3d4a4',text:'#26180f'};
+}
