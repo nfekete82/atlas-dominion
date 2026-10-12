@@ -3,6 +3,9 @@ import { MapRenderer } from './render/map.js';
 import { BUILDINGS, type BuildingType } from './engine/economy.js';
 import { COUNTRY_STARTS, countryByCode } from './data/countries.js';
 import {formatCompact} from './format.js';
+import {StrategicMinimap,minimapTarget} from './render/strategic-minimap.js';
+import {MAP_HEIGHT,MAP_WIDTH} from './data/europe.js';
+import type {BorderMode} from './engine/game.js';
 import {Soundscape,AUDIO_SETTINGS_KEY,type AudioSettings} from './audio/soundscape.js';
 
 import {DIFFICULTY_SETTINGS,isDifficulty,type Difficulty} from './engine/difficulty.js';
@@ -16,6 +19,8 @@ const format = formatCompact;
 let game = new Game(Date.now() % 2147483647);
 game.paused = true; // The player must choose a country before the clock starts.
 const renderer = new MapRenderer($<HTMLCanvasElement>('battleCanvas'), game);
+const minimap=new StrategicMinimap($<HTMLCanvasElement>('miniCanvas'));
+let selectedBorderIndex=-1;
 let speed = 1;
 function savedAudioSettings():unknown {
   try{return JSON.parse(localStorage.getItem(AUDIO_SETTINGS_KEY)??'null');}
@@ -53,7 +58,8 @@ function resetTacticalWarnings():void {
   lastBorderBreachTick.clear();
   lastCombatSoundTick=-1000;lastCaptureSoundTick=-1000;
   $('warAlerts').hidden=true;$('warAlerts').replaceChildren();
-  hoveredAttackPoint=null;
+  hoveredAttackPoint=null;selectedBorderIndex=-1;minimap.invalidate();
+  $('borderHotspots').removeAttribute('data-signature');
   $('attackAssessment').hidden=true;
 }
 function pushWarAlert(text:string,detail:string,index:number,kind:WarAlert['kind']):void {
@@ -297,6 +303,94 @@ window.addEventListener('pointerdown',e=>{
      !(e.target as HTMLElement).closest('#soundBtn'))closeAudioPanel();
 });
 
+/** Reuse command buttons across 4Hz ticks so the pointer never loses
+ * the target between down/up. Only counters are refreshed every frame. */
+function renderBorderCommand():void {
+  const spots=game.borderHotspots(6);
+  $('hotspotCount').textContent=spots.length+' wichtige Kontaktpunkte';
+  const box=$('borderHotspots');
+  const signature=spots.map(p=>p.index+':'+p.mode+':'+(p.attacked?1:0)).join('|');
+  if(box.dataset.signature!==signature){
+    box.dataset.signature=signature;
+    box.innerHTML=spots.length?spots.map(p=>{
+      const enemy=game.factions[p.opponents[0]]?.name??'Nachbarland';
+      const label=p.attacked?'AKUTER ANGRIFF':p.urgency>22?'SCHWACHE GRENZE':'KONTAKT';
+      return `<div class="border-hotspot" data-border-index="${p.index}">
+        <div class="border-hotspot-row"><strong>${enemy} · ${p.point.x}/${p.point.y}</strong><span>${label}</span></div>
+        <div class="border-hotspot-row"><small data-border-guards="${p.index}"></small>
+          <button type="button" data-border-focus="${p.index}" title="Zur Grenze springen">⌖ Karte</button></div>
+        <div class="border-hotspot-actions">
+          ${(['defend','hold','withdraw'] as const).map(mode=>
+            `<button type="button" data-border-mode="${mode}" data-border-cell="${p.index}"
+              aria-pressed="${p.mode===mode}">${mode==='defend'?'⬡ Verteidigen':
+              mode==='hold'?'● Halten':'↩ Abziehen'}</button>`).join('')}
+        </div></div>`;
+    }).join(''):'<small>Aktuell keine feindlichen Landgrenzen.</small>';
+  }
+  for(const p of spots){
+    const label=box.querySelector<HTMLElement>(`[data-border-guards="${p.index}"]`);
+    if(label)label.textContent=format(p.guards)+' stationiert · '+(p.attacked?'im Gefecht':'Bereitschaft');
+    const card=box.querySelector<HTMLElement>(`[data-border-index="${p.index}"]`);
+    if(card)card.setAttribute('aria-current',String(p.index===selectedBorderIndex));
+  }
+}
+function setStrategicBorder(point:Point,mode:BorderMode):void {
+  const r=game.setBorderMode(0,point,mode);
+  attackMessage=r.reason;attackMessageKind=r.ok?'success':'error';
+  if(r.ok){
+    selectedBorderIndex=pointToIndex(point);
+    soundscape.playEffect(mode==='withdraw'?'retreat':'reinforce');
+    renderer.updateTerritory();saveGame();
+    $('borderHotspots').removeAttribute('data-signature');
+  }else beep(190);
+  update();
+}
+function renderStrategicMinimap():void {
+  if(!$('minimapBody').hidden)minimap.render(game,renderer.visibleWorldBounds(),game.tick);
+}
+$('minimapToggle').addEventListener('click',()=>{
+  const body=$('minimapBody'),expanded=body.hidden;
+  body.hidden=!expanded;
+  $('minimapToggle').setAttribute('aria-expanded',String(expanded));
+  $('minimapToggle').textContent=expanded?'−':'+';
+  if(expanded)renderStrategicMinimap();
+});
+$('miniCanvas').addEventListener('click',e=>{
+  if(modalVisible)return;
+  const r=$('miniCanvas').getBoundingClientRect();
+  const point=minimapTarget(e.clientX-r.left,e.clientY-r.top,r.width,r.height);
+  if(point)renderer.focusOnPoint(point,0.8);
+  renderStrategicMinimap();
+});
+$('miniCanvas').addEventListener('keydown',e=>{
+  if(modalVisible||!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Enter',' '].includes(e.key))return;
+  e.preventDefault();
+  const v=renderer.visibleWorldBounds();
+  const center:{x:number;y:number}={x:(v.x+v.width/2)/1600*MAP_WIDTH,
+    y:(v.y+v.height/2)/900*MAP_HEIGHT};
+  if(e.key==='ArrowLeft')center.x-=20;
+  else if(e.key==='ArrowRight')center.x+=20;
+  else if(e.key==='ArrowUp')center.y-=12;
+  else if(e.key==='ArrowDown')center.y+=12;
+  else {const p=game.cities[0];center.x=p.x;center.y=p.y;}
+  renderer.focusOnPoint({x:Math.max(0,Math.min(MAP_WIDTH-1,Math.round(center.x))),
+    y:Math.max(0,Math.min(MAP_HEIGHT-1,Math.round(center.y)))});
+  renderStrategicMinimap();
+});
+$('borderHotspots').addEventListener('click',e=>{
+  const button=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-border-focus],[data-border-cell]');
+  if(!button)return;
+  const index=Number(button.dataset.borderFocus??button.dataset.borderCell);
+  if(!Number.isInteger(index)||index<0||index>=MAP_WIDTH*MAP_HEIGHT)return;
+  const point={x:index%MAP_WIDTH,y:Math.floor(index/MAP_WIDTH)};
+  if(button.dataset.borderFocus!==undefined){
+    selectedBorderIndex=index;renderer.focusOnPoint(point,2.4);
+    renderStrategicMinimap();return;
+  }
+  const mode=button.dataset.borderMode as BorderMode;
+  if(['defend','hold','withdraw'].includes(mode))setStrategicBorder(point,mode);
+});
+
 function update() {
   const player = game.factions[0];
   $('playerName').textContent = player.name;
@@ -324,6 +418,8 @@ function update() {
   $('defenseTickLoss').textContent = player.defenseFallenTick>0
     ? 'VERTEIDIGUNG: −'+format(player.defenseFallenTick)+' DIESE RUNDE'
     : 'VERTEIDIGUNG: KEINE VERLUSTE';
+  renderBorderCommand();
+  renderStrategicMinimap();
   $('borderDefense').textContent = `${format(game.threatenedBorders(0))} bedrohte Grenzsektoren · ${format(stationed)} stationiert · ${format(player.troops)} mobil`;
   $('casualtyReport').textContent = `⚔ ${format(player.attackFallen+player.defenseSpent)} eigene Gefallene · ${format(player.enemyFallen)} Gegnerverluste`;
   // The combat telemetry is factual: one tick's strikes, not estimates of
@@ -482,6 +578,17 @@ function renderBuildMenu(): void {
   const existing=game.buildingAt(point);
   const existingName=BUILDINGS.find(b=>b.type===existing)?.name;
   const border=game.isThreatenedBorder(0,point);
+  const mode=game.getBorderMode(point);
+  const borderStrategy=border?
+    `<div class="border-strategy">${(['defend','hold','withdraw'] as const).map(m=>
+      `<button type="button" class="build-entry" data-strategic-mode="${m}">
+        <span class="build-entry-icon">${m==='defend'?'⬡':m==='hold'?'●':'↩'}</span>
+        <span class="build-entry-copy"><strong>${m==='defend'?'Verteidigen':m==='hold'?'Halten':'Abziehen'}</strong>
+        <small>${m===mode?'Aktueller Befehl':m==='defend'?'Verstärkungen bevorzugen':
+          m==='hold'?'Normale Grenzautomatik':'Überschüssige Garnison freigeben'}</small></span>
+        <span class="build-entry-cost">${m===mode?'AKTIV':'WÄHLEN'}</span>
+      </button>`).join('')}</div>`:'';
+
   $('buildCoordinates').textContent=`${border?'GRENZPOSTEN':existingName?.toUpperCase()??'BAUEN'} · SEKTOR ${point.x}/${point.y}`;
   $('buildMoney').textContent=`${format(game.factions[0].money)} GELD VERFÜGBAR`;
   const upgrade=existing==='city' ? game.canUpgradeCity(0,point) : null;
@@ -510,7 +617,7 @@ function renderBuildMenu(): void {
       <span class="build-entry-copy"><strong>${building.name}</strong><small>${explanation}</small></span>
       <span class="build-entry-cost">${building.cost} €</span>
     </button>`;
-  }).join('')+(border?`<button type="button" class="build-entry" data-defend="true" ${game.factions[0].troops*attackRatio/100<8?'disabled':''} title="Echte mobile Truppen an dieser bedrohten Grenze stationieren">
+  }).join('')+borderStrategy+(border?`<button type="button" class="build-entry" data-defend="true" ${game.factions[0].troops*attackRatio/100<8?'disabled':''} title="Echte mobile Truppen an dieser bedrohten Grenze stationieren">
       <span class="build-entry-icon" aria-hidden="true">⬡</span>
       <span class="build-entry-copy"><strong>Grenze verstärken</strong><small>${attackRatio} % der mobilen Soldaten hier verteidigen lassen</small></span>
       <span class="build-entry-cost">${format(Math.floor(game.factions[0].troops*attackRatio/100))} ⚔</span>
@@ -535,6 +642,13 @@ renderer.onBuildRequest=(point,clientX,clientY)=>{
 $('buildClose').addEventListener('click',closeBuildMenu);
 $('buildOptions').addEventListener('click',e=>{
   if(!buildSpot)return;
+  const borderButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-strategic-mode]');
+  if(borderButton){
+    const mode=borderButton.dataset.strategicMode as BorderMode;
+    setStrategicBorder(buildSpot,mode);
+    if(attackMessageKind==='success')closeBuildMenu();else renderBuildMenu();
+    return;
+  }
   const coalitionButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-coalition-offer],[data-coalition-leave]');
   if(coalitionButton){
     const target=game.owner[pointToIndex(buildSpot)];
@@ -735,6 +849,7 @@ $('helpBtn').addEventListener('click',()=>showDialog('DEIN EINSATZBEFEHL',`
   <div class="briefing-row"><b>03</b><span><strong>ZIEHEN:</strong> Karte verschieben. Mausrad oder +/− zum Zoomen.</span></div>
   <div class="briefing-row"><b>04</b><span><strong>FRONT:</strong> Die Angriffslinie leuchtet an der Grenze. Die kleine Zahl zeigt die eingesetzten Truppen. Es gibt keine Marschroute von der Hauptstadt.</span></div>
   <div class="briefing-row"><b>05</b><span><strong>TRUPPEN:</strong> Der Prozentregler legt die Zahl der eingesetzten Einwohner/Soldaten fest. Nur tatsächlich Gefallene werden abgezogen; Überlebende kehren aus der Offensive zurück. Stärkere Armeen kämpfen an einer breiteren Front.</span></div>
+  <p><strong>STRATEGISCHE KARTE:</strong> Die kleine Europakarte unten links zeigt Länderfarben, echte aktive Angriffe und deinen Kameraausschnitt. Durch Klicken springst du an die gewünschte Stelle, über den Schalter kannst du sie zuklappen. Im Grenzkommando priorisierst du bedrohte eigene Grenzsektoren: Verteidigen = automatische Verstärkung bevorzugen, Halten = Standard, Abziehen = überzählige Garnisonen mobilisieren. Die Befehle sind auch per Rechtsklick an der Grenze verfügbar.</p>
   <p><strong>TAKTISCHE KOMMANDOS:</strong> In „Laufende Offensiven“ kannst du eine bestehende Armee verstärken, zur aktuellen Front springen oder sie zurückziehen. Ein Landangriff gibt seine Überlebenden sofort frei; eine Flotte muss zuerst zurücksegeln. Fahre für eine grobe Risikoabschätzung über fremdes Gebiet – angezeigt wird ausdrücklich nur der nächste Frontsektor. Klickbare Warnungen auf der Karte führen dich zu Angriffen auf dein Land.</p>
   <div class="briefing-row"><b>06</b><span><strong>STÄDTE BAUEN:</strong> Rechtsklick auf eigenes Land. Städte kosten Geld und erhöhen das Wachstum. Auf eigenem bedrohtem Grenzgebiet kannst du im selben Menü gezielt Soldaten zur Verteidigung stationieren.</span></div>
   <div class="briefing-row"><b>07</b><span><strong>PAUSE:</strong> Leertaste oder Ⅱ. Mit 1×/2×/4× beschleunigen.</span></div>

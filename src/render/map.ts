@@ -103,6 +103,12 @@ export class MapRenderer {
     this.updateTerritory();
     this.fit();
   }
+  /** Current camera rectangle in fixed map-world units, for the minimap. */
+  visibleWorldBounds():{x:number;y:number;width:number;height:number}{
+    return {x:-this.ox/this.scale,y:-this.oy/this.scale,
+      width:this.canvas.clientWidth/this.scale,height:this.canvas.clientHeight/this.scale};
+  }
+
   /** Jump from an alert or an army command to its actual map position. */
   focusOnPoint(point:Point,minZoom=1.8):void {
     if(!Number.isFinite(point.x)||!Number.isFinite(point.y)||
@@ -861,6 +867,39 @@ export class MapRenderer {
     }
     c.restore();
   }
+  /** Only real hostile orders and explicit player deployment priorities.
+   * Lightweight enough for every animation frame, at most 512 user pins.
+   */
+  private drawStrategicOrders(c:CanvasRenderingContext2D,time:number):void {
+    if(this.game.status!=='playing')return;
+    c.save();
+    const pulse=.65+.25*Math.sin(time*.006);
+    if(this.zoom>=1.1){
+      for(const [index,mode] of this.game.borderOrders){
+        if(this.game.owner[index]!==0)continue;
+        const x=this.ox+(index%MAP_WIDTH+.5)*CW*this.scale;
+        const y=this.oy+(Math.floor(index/MAP_WIDTH)+.5)*CH*this.scale;
+        if(x<0||x>this.canvas.clientWidth||y<0||y>this.canvas.clientHeight)continue;
+        c.strokeStyle=mode==='defend'?'#65d4b2':'#e5bb7b';c.lineWidth=1.6;
+        c.globalAlpha=pulse;
+        c.beginPath();c.arc(x,y,5.5+this.zoom*.8,0,Math.PI*2);c.stroke();
+        c.fillStyle=c.strokeStyle;c.globalAlpha=.82;
+        c.beginPath();c.arc(x,y,1.7,0,Math.PI*2);c.fill();
+      }
+    }
+    for(const order of this.game.attackOrders){
+      if(order.factionId===0||order.targetOwner!==0||order.returning)continue;
+      const index=order.contested??order.lastCaptured??pointToIndex(order.anchor);
+      if(index<0||index>=this.game.owner.length)continue;
+      const x=this.ox+(index%MAP_WIDTH+.5)*CW*this.scale;
+      const y=this.oy+(Math.floor(index/MAP_WIDTH)+.5)*CH*this.scale;
+      if(x<0||x>this.canvas.clientWidth||y<0||y>this.canvas.clientHeight)continue;
+      c.strokeStyle='#fb7477';c.lineWidth=2;c.globalAlpha=pulse;
+      c.beginPath();c.arc(x,y,6+this.zoom*1.3,0,Math.PI*2);c.stroke();
+    }
+    c.restore();
+  }
+
   private frame(timestamp: number) {
     if(this.dpr!==Math.max(1,devicePixelRatio||1))this.resize();
     this.occupancy.clear();
@@ -893,6 +932,7 @@ export class MapRenderer {
     // Mouse feedback is now the subtle whole-target tint cached above.
     // No hover square or animated point circle.
     c.restore();
+    this.drawStrategicOrders(c,timestamp);
     this.drawLiveBattles(c,timestamp);
     this.drawReinforcements(c,timestamp);
     this.drawSeaVoyages(c);
