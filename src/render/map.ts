@@ -691,7 +691,10 @@ export class MapRenderer {
         if(this.cityAnchors.intersects(candidate))continue;
         clear=preferredY+offset;break;
       }
-      if(clear===undefined&&fallback===undefined)continue;
+      // At readable zoom, never sacrifice a city badge merely to force a
+      // country label into an occupied slot. This also keeps city tiers
+      // directly clickable after enlargement of the military-strength labels.
+      if(clear===undefined&&(fallback===undefined||this.zoom>=1.8))continue;
       y=clear??fallback!;
       shown++;
       const bounds={x:x-labelWidth/2,y:y-17,width:labelWidth,height:40};
