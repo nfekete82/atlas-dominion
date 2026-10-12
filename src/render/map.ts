@@ -1008,7 +1008,7 @@ export class MapRenderer {
         x>=m.bounds.x&&x<=m.bounds.x+m.bounds.width&&
         y>=m.bounds.y&&y<=m.bounds.y+m.bounds.height);
       // A smaller factory/tower takes precedence over the nearby city badge.
-      hits.sort((a,b)=>a.bounds.width*b.bounds.height-b.bounds.width*a.bounds.height||
+      hits.sort((a,b)=>a.bounds.width*a.bounds.height-b.bounds.width*b.bounds.height||
         Math.hypot(x-a.x,y-a.y)-Math.hypot(x-b.x,y-b.y));
       if(hits[0])return {x:hits[0].index%MAP_WIDTH,y:Math.floor(hits[0].index/MAP_WIDTH)};
     }
