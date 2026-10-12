@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { BUILDINGS, BUILDING_CODES, troopGrowth, taxRevenue } from '../dist/src/engine/economy.js';
+import { BUILDINGS, BUILDING_CODES, troopGrowth, taxRevenue, cityUpgradeCost } from '../dist/src/engine/economy.js';
 import { Game, cellToPoint, landNeighbors, NEUTRAL } from '../dist/src/engine/game.js';
 
 function vacantCitySite(game,id=0){
@@ -188,4 +188,9 @@ test('city recruitment scales with controlled territory instead of unlimited isl
   assert.ok(small>smallUseful,'extra development remains useful');
   assert.ok(small-smallUseful<0.45,'extreme density has strongly diminishing returns');
   assert.ok(large>small,'larger controlled land supports a stronger economy');
+});
+
+test('city tiers have steep, strictly increasing and affordable-by-design costs',()=>{
+  assert.deepEqual(Array.from({length:5},(_,i)=>cityUpgradeCost(i)),[250,450,750,1150,1700]);
+  for(const invalid of [-1,5,1.5])assert.throws(()=>cityUpgradeCost(invalid),RangeError);
 });
