@@ -184,7 +184,19 @@ function renderBuildMenu(): void {
   $('buildMoney').textContent=`${format(game.factions[0].money)} GELD VERFÜGBAR`;
   const upgrade=existing==='city' ? game.canUpgradeCity(0,point) : null;
   const upgradeLevel=existing==='city'?game.cityLevelAt(point):0;
-  $('buildOptions').innerHTML=(upgrade? `<button type="button" class="build-entry" data-upgrade-city="true" ${upgrade.ok?'':'disabled'} title="${upgrade.reason}">
+  const maxCity=existing==='city'?game.previewCityUpgrades(0,'single',point):null;
+  const upgradeAll=game.previewCityUpgrades(0,'all');
+  const fastSingle=maxCity?`<button type="button" class="build-entry" data-upgrade-max="true" ${maxCity.ok?'':'disabled'} title="${maxCity.reason}">
+      <span class="build-entry-icon" aria-hidden="true">⬆⬆</span>
+      <span class="build-entry-copy"><strong>Diese Stadt maximal ausbauen</strong><small>${maxCity.ok?`Stufe ${upgradeLevel} → ${maxCity.finalLevel} · ${maxCity.upgrades} Upgrades`:maxCity.reason}</small></span>
+      <span class="build-entry-cost">${maxCity.ok?format(maxCity.cost)+' €':'—'}</span>
+    </button>`:'';
+  const fastAll=`<button type="button" class="build-entry" data-upgrade-all="true" ${upgradeAll.ok?'':'disabled'} title="${upgradeAll.reason}">
+      <span class="build-entry-icon" aria-hidden="true">⇈</span>
+      <span class="build-entry-copy"><strong>Alle Städte automatisch ausbauen</strong><small>${upgradeAll.ok?`${upgradeAll.cities} Städte · ${upgradeAll.upgrades} Ausbaustufen`:upgradeAll.reason} · günstigste Stufen zuerst</small></span>
+      <span class="build-entry-cost">${upgradeAll.ok?format(upgradeAll.cost)+' €':'—'}</span>
+    </button>`;
+  $('buildOptions').innerHTML=fastSingle+fastAll+(upgrade? `<button type="button" class="build-entry" data-upgrade-city="true" ${upgrade.ok?'':'disabled'} title="${upgrade.reason}">
       <span class="build-entry-icon" aria-hidden="true">⬆</span>
       <span class="build-entry-copy"><strong>Stadt ausbauen ${upgradeLevel}/5</strong><small>${upgrade.ok?'Mehr Einwohner- und Truppenwachstum':upgrade.reason}</small></span>
       <span class="build-entry-cost">${upgrade.ok?upgrade.cost+' €':'MAX'}</span>
@@ -221,6 +233,15 @@ $('buildOptions').addEventListener('click',e=>{
     attackMessage=result.ok?`${format(result.sent)} Soldaten verteidigen jetzt diese Grenze.`:result.reason;
     attackMessageKind=result.ok?'success':'error';
     if(result.ok){renderer.updateTerritory();closeBuildMenu();beep(540);}else renderBuildMenu();
+    update();return;
+  }
+  const bulkButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-upgrade-max], [data-upgrade-all]');
+  if(bulkButton){
+    const scope=bulkButton.hasAttribute('data-upgrade-max')?'single':'all';
+    const result=game.upgradeCities(0,scope,buildSpot);
+    attackMessage=result.ok?`${result.reason} · ${format(result.cost)} € · Wachstum steigt`:result.reason;
+    attackMessageKind=result.ok?'success':'error';
+    if(result.ok){renderer.updateTerritory();closeBuildMenu();beep(690);}else renderBuildMenu();
     update();return;
   }
   const upgradeButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-upgrade-city]');
