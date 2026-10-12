@@ -24,6 +24,7 @@ let hasStarted = false;
 let selectedDifficulty:Difficulty='balanced';
 let buildSpot: Point | null = null;
 let attackRatio = 35;
+let showAllNations = false;
 let attackMessage = 'Nachbarland anklicken · mehr eingesetzte Truppen = schnellere Front.';
 let attackMessageKind: 'neutral'|'success'|'error' = 'neutral';
 
@@ -36,9 +37,10 @@ function populateDiplomacy():void {
 }
 function updateDiplomacyUI():void {
   const partners=game.alliesOf(0);
-  $('diplomacyAllies').textContent=partners.length?
+  const inbound=game.defenseAid.filter(a=>a.to===0).reduce((n,a)=>n+a.troops,0);
+  $('diplomacyAllies').textContent=(partners.length?
     partners.map(id=>'🤝 '+game.factions[id].name).join(' · '):
-    'Noch keine Bündnispartner (max. 2)';
+    'Noch keine Bündnispartner (max. 2)')+(inbound>0?' · 🛡 '+format(inbound)+' Verstärkung unterwegs':'');
   const target=Number($<HTMLSelectElement>('diplomacyNation').value);
   const f=game.factions[target];
   const allied=game.isAllied(0,target);
@@ -154,8 +156,9 @@ function update() {
   const elapsed = Math.floor(game.tick * TICK_SECONDS);
   $('clock').textContent = `${String(Math.floor(elapsed/60)).padStart(2,'0')}:${String(elapsed%60).padStart(2,'0')}`;
   const ranked = [...game.factions].sort((a,b)=>b.territory-a.territory);
+  $('leaderboardToggle').textContent=showAllNations?'Nur Top 12 anzeigen ↑':'Alle Länder anzeigen ↓';
   const max = Math.max(1,...ranked.map(f=>f.territory));
-  $('leaderboard').innerHTML = ranked.map((f,index)=>`
+  $('leaderboard').innerHTML = (showAllNations?ranked:ranked.slice(0,12)).map((f,index)=>`
     <div class="power ${f.id===0?'player':''} ${!f.alive?'eliminated':''}">
       <span class="power-num">${String(index+1).padStart(2,'0')}</span>
       <b class="power-name"><i style="background:${f.color}"></i><span>${game.isAllied(0,f.id)?'🤝 ':''}${f.name}</span></b>
@@ -474,6 +477,7 @@ $('helpBtn').addEventListener('click',()=>showDialog('DEIN EINSATZBEFEHL',`
   <p><strong>Einwohner = Truppen:</strong> Ein Angriff reserviert Truppen, ohne sie zu töten. Unbesetzte Sektoren werden ohne Kampftote erobert; gegen feindliche Garnisonen entstehen echte Verluste bei beiden Parteien. Nach Abschluss kehren die Überlebenden zurück. Größere Heere ermöglichen schnellere Fronten; gefährliche Kriege verringern Bevölkerung, Wachstum und Steuereinnahmen.</p>`));
 $('dialogClose').addEventListener('click',closeDialog);
 $('dialog').addEventListener('click',e=>{if(e.target===$('dialog'))closeDialog();});
+$('leaderboardToggle').addEventListener('click',()=>{showAllNations=!showAllNations;update();});
 $('diplomacyNation').addEventListener('change',updateDiplomacyUI);
 $('diplomacyOffer').addEventListener('click',()=>{
   const target=Number($<HTMLSelectElement>('diplomacyNation').value);
