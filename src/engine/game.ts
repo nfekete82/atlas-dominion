@@ -958,6 +958,38 @@ export class Game {
         exposed[owner].push(i);
       }
     }
+    // AI intelligence is recomputed from actual fronts each tick. These are
+    // priorities, not additional units or permanent orders in a savegame.
+    const incoming=new Map<number,number[]>();
+    for(const order of this.attackOrders){
+      if(order.returning||order.remaining<=0||order.targetOwner<=0||
+        order.factionId===order.targetOwner)continue;
+      const index=order.contested??order.lastCaptured??pointToIndex(order.anchor);
+      if(!Number.isInteger(index)||index<0||index>=CELL_COUNT)continue;
+      const spots=incoming.get(order.targetOwner)??[];
+      spots.push(index);
+      incoming.set(order.targetOwner,spots);
+    }
+    const aiPriority=(id:number,i:number):number=>{
+      if(id===0)return 0;
+      let enemy=0,contacts=0;
+      for(const n of LAND_NEIGHBORS[i]){
+        const other=this.owner[n];
+        if(other<0||other===id||this.isAllied(id,other))continue;
+        contacts++;
+        enemy=Math.max(enemy,this.frontline[n]);
+      }
+      const underAttack=(incoming.get(id)??[]).some(index=>
+        index===i||LAND_NEIGHBORS[i].includes(index));
+      const own=this.frontline[i];
+      // Defend capitals and genuine contested borders first. High enemy
+      // concentration is significant but cannot monopolize all reserves.
+      return (underAttack?120:0)+(this.capitalSites.has(i)?55:0)+
+        Math.min(45,enemy/Math.max(8,own+8)*12)+contacts*5;
+    };
+    const aiPriorities=new Map<number,number>();
+    for(let id=1;id<exposed.length;id++)
+      for(const i of exposed[id])aiPriorities.set(i,aiPriority(id,i));
     for (const faction of this.factions) {
       if (!faction.alive || !exposed[faction.id].length) continue;
       // Balanced AI and human receive the same automatic defense budget.
@@ -968,10 +1000,13 @@ export class Game {
       let shortage=Math.max(0,mobileTarget-faction.troops);
       if(shortage>.01){
         const posts=exposed[faction.id].slice()
-          .sort((a,b)=>this.frontline[b]-this.frontline[a]||a-b);
+          .sort((a,b)=>faction.ai
+            ?(aiPriorities.get(a)??0)-(aiPriorities.get(b)??0)||this.frontline[b]-this.frontline[a]||a-b
+            :this.frontline[b]-this.frontline[a]||a-b);
         for(const i of posts){
           if(shortage<=.01)break;
-          if(faction.id===0&&this.borderOrders.get(i)==='defend')continue;
+          if((faction.id===0&&this.borderOrders.get(i)==='defend')||
+            (faction.ai&&(aiPriorities.get(i)??0)>=100))continue;
           const localFloor=Math.max(4,frontierTarget(faction.territory,
             faction.troops,this.capitalSites.has(i),faction.id===0&&this.doctrine==='fortify')*.35);
           const excess=Math.max(0,this.frontline[i]-localFloor);
@@ -1004,14 +1039,17 @@ export class Game {
       exposed[faction.id].sort((a,b)=>{
         const pa=faction.id===0&&this.borderOrders.get(a)==='defend'?1:0;
         const pb=faction.id===0&&this.borderOrders.get(b)==='defend'?1:0;
-        return pb-pa||this.frontline[a]-this.frontline[b]||a-b;
+        return pb-pa||(faction.ai?(aiPriorities.get(b)??0)-(aiPriorities.get(a)??0):0)||
+          this.frontline[a]-this.frontline[b]||a-b;
       });
       for (const i of exposed[faction.id]) {
         if (remaining < 0.01) break;
         if(faction.id===0&&this.borderOrders.get(i)==='withdraw')continue;
         const isCapital = this.capitalSites.has(i);
         const target = frontierTarget(faction.territory, faction.troops, isCapital, faction.id === 0 && this.doctrine === 'fortify')*
-          (faction.id===0&&this.borderOrders.get(i)==='defend'?1.65:1);
+          (faction.id===0&&this.borderOrders.get(i)==='defend'?1.65:
+            faction.ai?((aiPriorities.get(i)??0)>=100?1.65:
+              (aiPriorities.get(i)??0)>=55?1.35:1):1);
         const sent = Math.max(0, Math.min(target - this.frontline[i], remaining, faction.troops));
         if (sent <= 0) continue;
         faction.troops -= sent;
