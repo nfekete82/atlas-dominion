@@ -52,3 +52,18 @@ export function cityUpgradeGrowth(level:number):number {
   if(!Number.isFinite(level))return 0;
   return [0,1.1,2.1,3.0,3.8,4.5][Math.max(0,Math.min(5,Math.floor(level)))];
 }
+/** Separate reward for invested city tiers. Raw city count has density-based
+ * diminishing returns; paid upgrades retain a real recruitment benefit even
+ * in mature empires. A smooth, land-scaled cap prevents exponential snowballing.
+ */
+export function upgradedCityRecruitment(
+  upgradeWeight:number, territory:number, builtCities:number,
+):number {
+  if(!Number.isFinite(territory)||territory<=0)return 0;
+  const weight=Math.max(0,Number.isFinite(upgradeWeight)?upgradeWeight:0);
+  const cities=Math.max(0,Number.isFinite(builtCities)?builtCities:0);
+  const ceiling=Math.max(3,Math.sqrt(territory)*.65);
+  const concentration=1+Math.sqrt(cities)/5;
+  return ceiling*(1-Math.exp(-weight*.65/(ceiling*concentration)));
+}
+
