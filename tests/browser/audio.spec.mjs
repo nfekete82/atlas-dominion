@@ -6,6 +6,10 @@ test('music never autoplay on load; controls are independent and persist after r
   const initial=await page.evaluate(()=>window.__atlas.audio.debug());
   expect(initial.contextCreated).toBe(false);
   expect(initial.musicPlaying).toBe(false);
+  // First choose a country: the initial country picker intentionally covers
+  // the toolbar, so audio settings are accessed during a live match.
+  await page.locator('[data-country="DE"]').click();
+  await page.evaluate(()=>{window.__atlas.getGame().paused=true;window.__atlas.refresh();});
 
   await page.locator('#soundBtn').click();
   await expect(page.locator('#audioPanel')).toBeVisible();
@@ -78,6 +82,8 @@ test('sound mixer does not mutate the match, persists when a country is changed,
 
 test('music and effects can be switched completely off without any audio bus remaining active',async({page})=>{
   await page.goto('/?debug');
+  await page.locator('[data-country="DE"]').click();
+  await page.evaluate(()=>{window.__atlas.getGame().paused=true;window.__atlas.refresh();});
   await page.locator('#soundBtn').click();
   await page.locator('#audioMusicEnabled').check();
   await page.locator('#audioMusicEnabled').uncheck();
