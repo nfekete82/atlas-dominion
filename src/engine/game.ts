@@ -71,6 +71,8 @@ export interface AttackOrder {
   effort: number;
   fallen: number;
   conquered: number;
+  /** Last actually captured sector keeps the capture wave moving locally. */
+  lastCaptured?: number;
   landing?: boolean;
   startedTick?: number;
 }
@@ -617,7 +619,14 @@ export class Game {
       for(const n of LAND_NEIGHBORS[i]) if(this.owner[n]===order.factionId)friendly++;
       if(!friendly)continue;
       const city=this.cities.some(c=>c.index===i);
-      const next=friendly*1.4-Math.sqrt(d2)+(city?2:0);
+      // Prefer a cohesive outward-moving conquest over disconnected,
+      // arbitrary captures at distant points along the same country's border.
+      // The existing owner check + land neighbours remain authoritative.
+      const recent=order.lastCaptured;
+      const local=recent===undefined?0:Math.hypot(x-recent%MAP_WIDTH,
+        y-Math.floor(recent/MAP_WIDTH));
+      const flow=recent===undefined?0:Math.max(0,5.6-local*1.4);
+      const next=friendly*1.55-Math.sqrt(d2)*.62+flow+(city?2:0);
       if(next>score){best=i;score=next;}
     }
     return best;
@@ -643,7 +652,7 @@ export class Game {
         const lost=Math.min(order.remaining,this.lastAttackerLoss);
         order.remaining-=lost;
         order.fallen+=lost;
-        if(captured){order.conquered++;if(order.landing)order.landing=false;}
+        if(captured){order.conquered++;order.lastCaptured=index;if(order.landing)order.landing=false;}
       }
       if(unreachable||order.effort<1||order.remaining<1){
         // Survivors return to the mobile reserve. A reserve transfer is never
