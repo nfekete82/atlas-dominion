@@ -658,8 +658,41 @@ export class Game {
   /** Explicit maritime landing: Shift+click the far shore of a known crossing.
    * No other cross-water movements are allowed, and the landing takes time.
    */
+  /** Shift-click anywhere on an island connected to a valid landing beach.
+   * Only same-owner land paths are eligible; no remote teleport across water.
+   */
+  landingTarget(id:number,target:Point):Point|null {
+    if(!Number.isFinite(target.x)||!Number.isFinite(target.y)||
+       target.x<0||target.y<0||target.x>=MAP_WIDTH||target.y>=MAP_HEIGHT)return null;
+    const start=pointToIndex(target),owner=this.owner[start];
+    if(owner===WATER||owner===id)return null;
+    if(this.canLand(id,target))return cellToPoint(start);
+    const beaches=new Set<number>();
+    for(const [a,b] of SEA_CROSSINGS){
+      if(this.owner[a]===id && this.owner[b]===owner)beaches.add(b);
+      if(this.owner[b]===id && this.owner[a]===owner)beaches.add(a);
+    }
+    if(!beaches.size)return null;
+    const seen=new Set<number>([start]),queue=[start];
+    for(let head=0;head<queue.length && head<2400;head++){
+      const index=queue[head];
+      if(beaches.has(index))return cellToPoint(index);
+      for(const n of LAND_NEIGHBORS[index]){
+        if(seen.has(n)||this.owner[n]!==owner)continue;
+        // Only nearby same-owner land may connect to a beach.
+        const dx=n%MAP_WIDTH-target.x;
+        const dy=Math.floor(n/MAP_WIDTH)-target.y;
+        if(dx*dx+dy*dy>35*35)continue;
+        seen.add(n);queue.push(n);
+      }
+    }
+    return null;
+  }
+
   launchLanding(id: number, target: Point, ratio: number): AttackResult {
-    return this.issueAttack(id,target,ratio,true);
+    const shore=this.landingTarget(id,target);
+    if(!shore)return {ok:false,reason:'Keine erreichbare Landungsbucht von deiner Küste.',sent:0};
+    return this.issueAttack(id,shore,ratio,true);
   }
 
   private issueAttack(id: number, target: Point, ratio: number, landing: boolean): AttackResult {
