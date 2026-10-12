@@ -1168,7 +1168,17 @@ export class Game {
         // A nearly spent army retreats with its survivors. It must NEVER
         // become stuck forever attacking a tile whose cost it cannot pay.
         if(order.remaining<=forecast.attackerLoss+.001){unreachable=true;break;}
-        if(forecast.time>budget){order.contested=index;break;}
+        if(forecast.time>budget){
+          // Expensive fortified sectors can need >2 simulation ticks of
+          // fighting. Previously progress was always reset to the same
+          // budget and strong positions could become literally impossible
+          // to capture: 1 -> 2 -> 2 -> 2 ... while cost was e.g. 2.4.
+          // Bank the next tick of assault time, capped to the existing
+          // 1.5 carry limit (next budget max 2.5 > TileOutcome.maxTime 2.4).
+          order.contested=index;
+          budget=Math.min(1.5,budget+1);
+          break;
+        }
         const result=this.resolveFrontTile(order,index,borderSize);
         if(!result.captured){
           order.contested=index;
