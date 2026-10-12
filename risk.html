@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>ATLAS DOMINION 2.0 – Risiko-Hybrid</title>
+  <meta name="theme-color" content="#07131c"/>
+  <link rel="stylesheet" href="/risk-style.css"/>
+</head>
+<body>
+  <div id="riskApp">
+    <header class="topbar">
+      <a class="brand" href="/" title="Zurück zum Echtzeitmodus"><span class="brand-mark">◈</span><span>ATLAS <b>DOMINION</b><small>RISIKO-HYBRID / VERSION 2.0 – PROTOTYP</small></span></a>
+      <div class="top-round"><span class="dot"></span> <strong id="roundLabel">RUNDE 1</strong> <span class="subtle">·</span> <span id="phaseLabel">VERSTÄRKEN</span></div>
+      <nav><a href="/" class="navlink">↩ Echtzeitmodus</a><button id="reset" class="outline">Neue Partie</button></nav>
+    </header>
+    <div class="layout">
+      <main class="map-panel">
+        <canvas id="riskCanvas" aria-label="Europakarte mit auswählbaren Provinzen" tabindex="0"></canvas>
+        <div class="map-heading"><small>THE EUROPEAN THEATRE · TURN BASED STRATEGY</small><h1>DEIN REICH.<br/><em>DEINE ZÜGE.</em></h1><p>Eigene Provinz wählen, Nachbarprovinz angreifen, Runde abschließen.</p></div>
+        <div class="map-footnote">◈ <span>PROVINZEN / WÜRFEL / STÄDTE / GOLD</span></div>
+        <div class="toast" id="status" role="status" aria-live="polite">Willkommen im Rundenmodus!</div>
+      </main>
+      <aside class="sidebar">
+        <div class="sect"><div class="section-title"><span>01</span> DEIN IMPERIUM</div>
+          <h2 id="country">Deutschland</h2><div class="stats">
+            <div><small>PROVINZEN</small><strong id="provinceCount">1</strong></div>
+            <div><small>TRUPPEN</small><strong id="armyCount">8</strong></div>
+            <div><small>GOLD</small><strong id="goldCount">10</strong></div>
+            <div><small>RESERVE</small><strong id="reserveCount">5</strong></div>
+          </div>
+        </div>
+        <div class="sect"><div class="section-title"><span>02</span> PROVINZAUSWAHL</div>
+          <h3 id="selectedName">Keine Provinz gewählt</h3>
+          <p class="meta" id="selectedDetails">Klicke auf eine Provinz auf der Karte.</p>
+          <div class="selection-row"><span>Ausgangsprovinz</span><strong id="sourceName">—</strong></div>
+          <div class="selection-row"><span>Angriffsziel</span><strong id="targetName">—</strong></div>
+          <p class="hint">Blaue Grenze = ausgewählte eigene Provinz. Orange = Ziel.</p>
+        </div>
+        <div class="sect grow"><div class="section-title"><span>03</span> AKTIONEN</div>
+          <div class="phase-strip"><span id="phaseStep">PHASE 1 / 4</span><strong id="phaseDescription">Truppen verteilen</strong></div>
+          <label for="quantity">Truppenanzahl</label><input id="quantity" type="number" min="1" step="1" value="3"/>
+          <button id="deploy" class="action">+ Truppen platzieren</button>
+          <button id="upgrade" class="action">◆ Stadt ausbauen</button>
+          <button id="attack" class="action danger">⚔ Würfeln (1 Kampf)</button>
+          <button id="quickAttack" class="action danger-light">⚔ Schnellkampf</button>
+          <button id="move" class="action">➜ Truppen verschieben</button>
+          <div class="combat-result" id="combatResult" aria-live="polite">Kämpfe werden mit bis zu 3 Angriffswürfeln gegen 2 Verteidigungswürfel entschieden.</div>
+        </div>
+        <div class="turn-footer"><button id="nextPhase" class="primary">PHASE ABSCHLIESSEN →</button>
+          <p>Die KI handelt erst, wenn du deine Runde beendest. Keine Echtzeitangriffe.</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+  <script type="module" src="/src/risk-main.js"></script>
+</body>
+</html>
