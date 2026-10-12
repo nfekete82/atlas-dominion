@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {groupBattles,locateBattleContact,visualNoise} from '../dist/src/render/front-battles.js';
+import {groupBattles,locateBattleContact,visualNoise,combatVisualDensity,battleMomentum} from '../dist/src/render/front-battles.js';
 import {Game,NEUTRAL,landNeighbors,cellToPoint} from '../dist/src/engine/game.js';
 
 const event=(index,attackerId,defenderId,attacking,defending,tick=8,captured=false)=>({
@@ -108,4 +108,18 @@ test('equal command sequences record identical combat telemetry',()=>{
     a.step();b.step();
     assert.deepEqual(a.battleEvents,b.battleEvents);
   }
+});
+
+test('new squad visuals scale with actual contacts, respect zoom and never alter the simulation',()=>{
+  assert.equal(combatVisualDensity(0,4),0);
+  assert.equal(combatVisualDensity(-1,4),0);
+  assert.equal(combatVisualDensity(NaN,4),0);
+  assert.ok(combatVisualDensity(40,1)>0);
+  assert.ok(combatVisualDensity(40,2)>=combatVisualDensity(40,1));
+  assert.ok(combatVisualDensity(1000000,4)<=18);
+  assert.equal(battleMomentum(20,20),0);
+  assert.ok(battleMomentum(50,2)>0);
+  assert.ok(battleMomentum(2,50)<0);
+  assert.equal(battleMomentum(0,0),0);
+  assert.ok(Math.abs(battleMomentum(4,1))<=1);
 });
