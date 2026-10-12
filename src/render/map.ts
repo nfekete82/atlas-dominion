@@ -414,7 +414,7 @@ export class MapRenderer {
       c.globalAlpha=1;
       // Numbers mean actual soldiers fighting this tick, not total country
       // population. Only human-involved contacts get blue/red counterplates.
-      if(!isPlayer||this.zoom<1.15)continue;
+      if(!isPlayer||this.zoom<1.05||group.leftId<0)continue;
       const labelX=x,labelY=y-15;
       if(labelX<40||labelX>w-40||labelY<55||labelY>h-32)continue;
       if(labels.some(p=>Math.abs(p.x-labelX)<79&&Math.abs(p.y-labelY)<20))continue;
