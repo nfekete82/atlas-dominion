@@ -374,6 +374,22 @@ export class MapRenderer {
    * Labels and actual combat counters have priority. Crowded cities reappear
    * when zooming in; their world positions and ownership never change.
    */
+  /** Canvas-only industry links: inexpensive to draw and no simulation side effects. */
+  private drawFactoryLinks(c:CanvasRenderingContext2D):void {
+    c.save();c.lineWidth=1.6;c.setLineDash([4,4]);
+    for(const [factory,city] of this.game.factoryLinks){
+      if(this.game.buildings[factory]!==3||this.game.owner[factory]<0||
+        this.game.owner[factory]!==this.game.owner[city])continue;
+      const fx=this.ox+(factory%MAP_WIDTH+.5)*CW*this.scale;
+      const fy=this.oy+(Math.floor(factory/MAP_WIDTH)+.5)*CH*this.scale;
+      const cx=this.ox+(city%MAP_WIDTH+.5)*CW*this.scale;
+      const cy=this.oy+(Math.floor(city/MAP_WIDTH)+.5)*CH*this.scale;
+      c.strokeStyle=this.game.owner[factory]===0?'rgba(244,197,111,.8)':'rgba(173,194,204,.45)';
+      c.beginPath();c.moveTo(fx,fy);c.lineTo(cx,cy);c.stroke();
+    }
+    c.restore();
+  }
+
   private drawBuildings(c:CanvasRenderingContext2D):void {
     this.visibleCityMarkers=[];
     const width=this.canvas.clientWidth,height=this.canvas.clientHeight;
@@ -947,6 +963,7 @@ export class MapRenderer {
     this.drawActiveFrontForces(c);
     this.drawTroopBadges(c);
     this.drawCapitalNames(c);
+    this.drawFactoryLinks(c);
     this.drawBuildings(c);
     requestAnimationFrame(t=>this.frame(t));
   }
