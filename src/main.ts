@@ -692,7 +692,7 @@ $('buildOptions').addEventListener('click',e=>{
   const button=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-build]');
   if(!button)return;
   const result=game.build(0,buildSpot,button.dataset.build as BuildingType);
-  attackMessage=result.ok?`Stadt gebaut · ${result.cost} € · Wachstum steigt`:result.reason;
+  attackMessage=result.ok?`${result.type==='tower'?'Abwehrturm gebaut · Verteidigung aktiv':'Stadt gebaut · Wachstum steigt'} · ${result.cost} €`:result.reason;
   attackMessageKind=result.ok?'success':'error';
   if(result.ok){renderer.updateTerritory();closeBuildMenu();soundscape.playEffect('build');} else renderBuildMenu();
   update();
