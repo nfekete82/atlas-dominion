@@ -157,7 +157,8 @@ export class MapRenderer {
     this.wave.capture(owners,now);
     // Build contact clusters from genuine strikes this tick, not estimated
     // or fabricated armies. Grouping is recomputed only at 4Hz, not per frame.
-    this.frontGroups=groupBattles(this.game.battleEvents,owners,MAP_WIDTH);
+    this.frontGroups=groupBattles(this.game.battleEvents,owners,MAP_WIDTH)
+      .filter(group=>group.leftId!==NEUTRAL && group.rightId!==NEUTRAL);
     this.frontUpdatedAt=now;
     for (let i = 0; i < owners.length; i++) {
       const id = owners[i];
@@ -191,11 +192,13 @@ export class MapRenderer {
       if(row===0 || owners[i-MAP_WIDTH]!==id){path.moveTo(x,y+.5);path.lineTo(right,y+.5);}
       if(row===MAP_HEIGHT-1 || owners[i+MAP_WIDTH]!==id){path.moveTo(x,bottom-.5);path.lineTo(right,bottom-.5);}
     }
-    c.save();c.lineCap='butt';c.lineJoin='miter';
+    c.save();c.lineCap='round';c.lineJoin='round';
+    // Subdued anti-aliased contour rather than a bright double neon outline.
+    // Pixel-sector ownership and hit testing are deliberately unchanged.
     for (const faction of this.game.factions) {
       if (!counts[faction.id]) continue;
-      c.strokeStyle=faction.color+'28';c.lineWidth=2.4;c.stroke(contours[faction.id]);
-      c.strokeStyle=faction.color+'df';c.lineWidth=1.15;c.stroke(contours[faction.id]);
+      c.strokeStyle=faction.color+'36';c.lineWidth=1.7;c.stroke(contours[faction.id]);
+      c.strokeStyle='rgba(230,238,228,.19)';c.lineWidth=.65;c.stroke(contours[faction.id]);
     }
     c.restore();
     // Show the player's structures first; at mid zoom keep only spatially
@@ -223,7 +226,8 @@ export class MapRenderer {
     this.combatEdges = [];
     this.combatLabels = [];
     for (const order of this.game.attackOrders) {
-      if (order.factionId !== 0 || order.remaining < 0.01) continue;
+      // Neutral expansion stays visually quiet: no combat contact segments or labels.
+      if (order.factionId !== 0 || order.remaining < 0.01 || order.targetOwner===NEUTRAL) continue;
       const radius = Math.min(40, 8 + Math.sqrt(order.conquered) * 2.5);
       const radius2 = radius * radius;
       let sumX = 0, sumY = 0, contacts = 0;
@@ -289,8 +293,8 @@ export class MapRenderer {
       if(row===0||owners[i-MAP_WIDTH]!==highlight){boundary.moveTo(x,y+.5);boundary.lineTo(right,y+.5);}
       if(row===MAP_HEIGHT-1||owners[i+MAP_WIDTH]!==highlight){boundary.moveTo(x,bottom-.5);boundary.lineTo(right,bottom-.5);}
     }
-    c.lineJoin='miter';c.lineWidth=1.25;
-    c.strokeStyle='rgba(193,238,220,.53)';c.stroke(boundary);
+    c.lineJoin='round';c.lineCap='round';c.lineWidth=.9;
+    c.strokeStyle='rgba(193,238,220,.32)';c.stroke(boundary);
   }
 
   /** Used by the tooltip; same shared-border predicate as launchAttack(). */
@@ -447,7 +451,7 @@ export class MapRenderer {
     const shown:Array<{x:number;y:number}>=[];
     c.save();c.textBaseline='middle';c.textAlign='center';
     for(const order of this.game.attackOrders){
-      if(order.factionId!==0||order.remaining<1)continue;
+      if(order.factionId!==0||order.remaining<1 || order.targetOwner===NEUTRAL)continue;
       const owners=this.game.owner;
       let index=order.contested??order.lastCaptured??pointToIndex(order.anchor);
       if(index<0||index>=owners.length)continue;
@@ -624,7 +628,7 @@ export class MapRenderer {
     c.save(); c.translate(this.ox,this.oy); c.scale(this.scale,this.scale);
     c.imageSmoothingEnabled=true; // Keep the geographical backdrop smooth.
     c.drawImage(this.base,0,0);
-    c.imageSmoothingEnabled=false; // Nearest-neighbour territorial pixels.
+    c.imageSmoothingEnabled=true; // Antialias territory resampling while preserving exact sector ownership.
     c.drawImage(this.overlay,0,0);
     c.imageSmoothingEnabled=true;
     c.drawImage(this.highlightedCountry,0,0);
