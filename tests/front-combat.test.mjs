@@ -80,3 +80,33 @@ test('equal seeds and orders keep population, opposing armies and territory iden
   assert.deepEqual(a.factions.map(f=>[f.troops,f.population,f.defenseSpent,f.attackFallen]),
     b.factions.map(f=>[f.troops,f.population,f.defenseSpent,f.attackFallen]));
 });
+
+test('upgraded cities cost progressively more assault time and attacker casualties',()=>{
+  const ordinary=frontTileOutcome(tile({builtCity:false,cityLevel:0}));
+  const bronze=frontTileOutcome(tile({builtCity:true,cityLevel:0}));
+  const silver=frontTileOutcome(tile({builtCity:true,cityLevel:3}));
+  const gold=frontTileOutcome(tile({builtCity:true,cityLevel:5}));
+  assert.ok(bronze.attackerLoss>ordinary.attackerLoss);
+  assert.ok(silver.attackerLoss>bronze.attackerLoss);
+  assert.ok(gold.attackerLoss>silver.attackerLoss);
+  assert.ok(gold.time>silver.time);
+  assert.ok(gold.attackerLoss<80);
+});
+
+test('island landing can select same-owner coastal destination away from the precise port',()=>{
+  const g=new Game(618,3,'DE');
+  // Validate every already accessible documented crossing. A direct landing
+  // remains available and must resolve to its own landing shore.
+  const {SEA_CROSSINGS}=await import('../dist/src/data/europe.js');
+  for(const [a,b] of SEA_CROSSINGS){
+    const start=a, destination=b;
+    if(g.owner[start]===-2||g.owner[destination]===-2)continue;
+    g.owner[start]=0;
+    g.owner[destination]=-1;
+    const point=cellToPoint(destination);
+    assert.deepEqual(g.landingTarget(0,point),point);
+    assert.equal(g.canLand(0,point),true);
+    g.owner[start]=-1;
+  }
+  assert.equal(g.landingTarget(0,{x:-1,y:0}),null);
+});
