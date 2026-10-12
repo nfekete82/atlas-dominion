@@ -201,3 +201,62 @@ test('actual raster bounds stay within 30 CSS pixels and level zero paints no nu
    expect(r.maxX).toBeLessThan(47*r.dpr);expect(r.maxY).toBeLessThan(47*r.dpr);
  }
 });
+
+test('right-click menu maxes a single city in one paid action',async({page})=>{
+ await page.setViewportSize({width:1440,height:900});await start(page);await frame(page);
+ const setup=await page.evaluate(()=>{
+   const g=window.__atlas.getGame();g.factions[0].money=50000;
+   window.__atlas.refresh();
+   const site=window.__sites[0],index=site.y*480+site.x;
+   return {index,level:g.cityUpgrades[index],gold:g.factions[0].money};
+ });
+ const marker=await page.evaluate(index=>{
+   const r=window.__atlas.renderer;
+   const m=r.visibleCityMarkers.find(m=>m.index===index);
+   if(!m)throw Error('Expected an onscreen player city marker');
+   const b=r.canvas.getBoundingClientRect();
+   return {x:b.left+m.bounds.x+12,y:b.top+m.bounds.y+12};
+ },setup.index);
+ await page.mouse.click(marker.x,marker.y,{button:'right'});
+ await expect(page.locator('[data-upgrade-max]')).toBeEnabled();
+ await expect(page.locator('[data-upgrade-all]')).toBeVisible();
+ const expected=await page.evaluate(index=>window.__atlas.getGame().previewCityUpgrades(
+   0,'single',{x:index%480,y:Math.floor(index/480)}),setup.index);
+ await expect(page.locator('[data-upgrade-max]')).toContainText(String(expected.finalLevel));
+ await page.locator('[data-upgrade-max]').click();
+ await expect(page.locator('#buildMenu')).toBeHidden();
+ const actual=await page.evaluate(index=>{
+   const g=window.__atlas.getGame();
+   return {level:g.cityUpgrades[index],gold:g.factions[0].money};
+ },setup.index);
+ expect(actual.level).toBe(5);
+ expect(actual.gold).toBe(setup.gold-expected.cost);
+});
+
+test('right-click global upgrade spends only affordable gold and maxes all player cities',async({page})=>{
+ await page.setViewportSize({width:1440,height:900});await start(page);await frame(page);
+ const before=await page.evaluate(()=>{
+   const g=window.__atlas.getGame();g.factions[0].money=50000;
+   window.__atlas.refresh();
+   return {gold:g.factions[0].money,preview:g.previewCityUpgrades(0,'all'),
+     levels:window.__sites.map(p=>g.cityLevelAt(p))};
+ });
+ const marker=await page.evaluate(()=>{
+   const r=window.__atlas.renderer,p=window.__sites[0],i=p.y*480+p.x;
+   const m=r.visibleCityMarkers.find(m=>m.index===i);
+   if(!m)throw Error('Expected city marker');
+   const b=r.canvas.getBoundingClientRect();
+   return {x:b.left+m.bounds.x+12,y:b.top+m.bounds.y+12};
+ });
+ await page.mouse.click(marker.x,marker.y,{button:'right'});
+ await expect(page.locator('[data-upgrade-all]')).toBeEnabled();
+ await expect(page.locator('[data-upgrade-all]')).toContainText(String(before.preview.cities));
+ await page.locator('[data-upgrade-all]').click();
+ await expect(page.locator('#buildMenu')).toBeHidden();
+ const after=await page.evaluate(()=>{
+   const g=window.__atlas.getGame();
+   return {gold:g.factions[0].money,levels:window.__sites.map(p=>g.cityLevelAt(p))};
+ });
+ expect(after.gold).toBe(before.gold-before.preview.cost);
+ expect(after.levels).toEqual(before.levels.map(()=>5));
+});
