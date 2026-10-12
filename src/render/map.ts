@@ -523,6 +523,35 @@ export class MapRenderer {
       }
       c.restore();
     }
+    // A shared, briefly glowing wave crest follows only the real OUTER
+    // perimeter of newly claimed land. Preserve crisp final sector edges.
+    const crest=new Path2D();
+    let hot=0;
+    const owners=this.game.owner;
+    for(const frame of captures){
+      const progress=waveProgress(frame,timestamp);
+      if(frame.owner<0||progress<.15||progress>.91)continue;
+      const i=frame.index,col=i%MAP_WIDTH,row=Math.floor(i/MAP_WIDTH);
+      const x=X_EDGES[col],y=Y_EDGES[row],r=X_EDGES[col+1],b=Y_EDGES[row+1];
+      if(col>0 && owners[i-1]!==frame.owner && owners[i-1]!==WATER){
+        crest.moveTo(x,y);crest.lineTo(x,b);hot++;
+      }
+      if(col+1<MAP_WIDTH && owners[i+1]!==frame.owner && owners[i+1]!==WATER){
+        crest.moveTo(r,y);crest.lineTo(r,b);hot++;
+      }
+      if(row>0 && owners[i-MAP_WIDTH]!==frame.owner && owners[i-MAP_WIDTH]!==WATER){
+        crest.moveTo(x,y);crest.lineTo(r,y);hot++;
+      }
+      if(row+1<MAP_HEIGHT && owners[i+MAP_WIDTH]!==frame.owner && owners[i+MAP_WIDTH]!==WATER){
+        crest.moveTo(x,b);crest.lineTo(r,b);hot++;
+      }
+    }
+    if(hot){
+      c.lineJoin='round';c.lineCap='round';
+      c.shadowColor='rgba(255,136,59,.7)';c.shadowBlur=3;
+      c.strokeStyle='rgba(255,190,112,.55)';c.lineWidth=1.2;
+      c.stroke(crest);
+    }
     c.restore();
   }
   private frame(timestamp: number) {
