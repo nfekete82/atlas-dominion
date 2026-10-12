@@ -1,0 +1,19 @@
+{
+  "bounds": {
+    "west": -25.5,
+    "east": 55,
+    "south": 33.2,
+    "north": 73.5
+  },
+  "size": [
+    3200,
+    1800
+  ],
+  "sha256": {
+    "SR_LR": "e3aa47b13aff26e1b4b3792a94100d8667d3147046aeac7840be00a15f839d18",
+    "ne_10m_lakes": "0803a06f9c3cb4671d89b68c48b142aad9366ba40f665245e12a913fbc61722a",
+    "ne_10m_lakes_europe": "c0b1f0da4dce6af3b27c49b3ed11a664d801ff3d140ca5b9814e7e85a35c1de1",
+    "ne_110m_admin_0_countries.geojson": "6866c877d39cba9c357620878839b336d569f8c662d3cfab4cb1dbe2d39c977f"
+  },
+  "lakeCount": 988
+}
