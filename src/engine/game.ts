@@ -928,6 +928,50 @@ export class Game {
     return {ok:true,reason:'Soldaten zur mobilen Reserve zurückgezogen.'};
   }
 
+  /** Same building and recruitment actions as the player. AI only issues
+   * real paid orders. Staggered to keep 50-country turns inexpensive.
+   */
+  private commandRTSAI():void {
+    if(!this.rtsRecruitment)return;
+    for(const faction of this.factions){
+      if(!faction.ai||!faction.alive)continue;
+      if(this.tick%28!==faction.id%28)continue;
+      const own=this.squads.filter(s=>s.owner===faction.id);
+      let barracks=-1;
+      for(let i=0;i<CELL_COUNT;i++)if(this.owner[i]===faction.id&&this.buildings[i]===BUILDING_CODES.barracks){barracks=i;break;}
+      if(barracks<0){
+        if(faction.money<280)continue;
+        const base=pointToIndex(faction.target);
+        // Prefer a sector close to the nation's initial capital.
+        let best=-1,dist=Infinity;
+        for(let i=0;i<CELL_COUNT;i++)if(this.owner[i]===faction.id&&!this.buildings[i]&&!this.capitalSites.has(i)){
+          const d=Math.abs(i%MAP_WIDTH-base%MAP_WIDTH)+Math.abs(Math.floor(i/MAP_WIDTH)-Math.floor(base/MAP_WIDTH));
+          if(d<dist){dist=d;best=i;}
+        }
+        if(best>=0)this.build(faction.id,cellToPoint(best),'barracks');
+        continue;
+      }
+      if(own.length<Math.min(5,Math.max(2,Math.ceil(faction.territory/150)))&&faction.money>=100){
+        this.recruitSquad(faction.id,cellToPoint(barracks),Math.min(100,Math.floor(faction.money/2)));
+      }
+      // No abstract issueAttack: mobilize units by actual contiguous paths.
+      for(const squad of own){
+        if(squad.destination!==null||squad.attackTarget!==null&&squad.attackTarget!==undefined)continue;
+        const targets=LAND_NEIGHBORS[squad.index].filter(n=>
+          this.owner[n]!==squad.owner&&this.owner[n]!==WATER&&
+          !this.isAllied(squad.owner,this.owner[n]));
+        const neutral=targets.find(n=>this.owner[n]===NEUTRAL);
+        const next=neutral??targets[0];
+        if(next!==undefined)this.orderSquadAttack(squad.owner,squad.id,cellToPoint(next));
+        else {
+          // Patrol towards a locally accessible enemy/neutral border.
+          const frontier=this.chooseFront(faction.id);
+          if(frontier>=0)this.orderSquadAttack(faction.id,squad.id,cellToPoint(frontier));
+        }
+      }
+    }
+  }
+
   private moveSquads():void {
     for(let i=this.squads.length-1;i>=0;i--){
       const squad=this.squads[i];
@@ -937,7 +981,7 @@ export class Game {
       }
       // Capture unguarded neutral terrain around a standing or moving squad.
       // This is territorial control, not battle: no casualties or unit deletion.
-      if(squad.owner===0&&this.rtsRecruitment){
+      if(this.rtsRecruitment){
         let occupied=0;
         for(const tile of LAND_NEIGHBORS[squad.index]){
           if(this.owner[tile]===NEUTRAL&&occupied<2){
@@ -2085,6 +2129,7 @@ export class Game {
     const beforeMobile=this.factions[0].troops;
     this.tick++;
     this.moveSquads();
+    this.commandRTSAI();
     this.updateDiplomacy();
     this.deliverDefensiveAid();
     this.battleEvents.length=0;
@@ -2107,18 +2152,12 @@ export class Game {
       // RTS: the human army does not spawn passively. Soldiers are trained
       // for gold in barracks; AI keeps legacy recruiting until AI RTS exists.
       if(!this.rtsRecruitment)faction.troops+=faction.income;
-      else if(faction.id!==0){
-        // RTS opponents pay the same 2 gold per soldier as the human.
-        // Unlike legacy passive growth, the treasury bounds recruitment.
-        const trained=Math.max(0,Math.min(faction.income,Math.floor(faction.money/2)));
-        faction.troops+=trained;
-        faction.money-=trained*2;
-      }
+      // RTS: no free or implicit recruitment, for players or AI.
       faction.money+=faction.moneyIncome;
       if(faction.ai)faction.campaignEnergy=Math.min(300*this.difficultySettings.marchMultiplier,
         faction.campaignEnergy+aiMarchRecovery(faction.income,aiStyle(faction.id))*this.difficultySettings.marchMultiplier);
     }
-    if(this.tick%this.difficultySettings.cityInterval===0)this.developAI();
+    if(!this.rtsRecruitment&&this.tick%this.difficultySettings.cityInterval===0)this.developAI();
     this.redistributeFrontline();
     this.dispatchDefensiveAid();
     this.rebuildFrontierCandidates();
@@ -2127,7 +2166,7 @@ export class Game {
     for(const faction of this.factions){
       if(!faction.alive)continue;
       this.resolveOrders(faction);
-      if(!faction.ai)continue;
+      if(!faction.ai||this.rtsRecruitment)continue;
       const maxActive=aiStyle(faction.id)==='aggressive'||this.difficulty==='impossible'?2:1;
       const active=this.attackOrders.filter(o=>o.factionId===faction.id).length;
       const ratio=Math.max(15,Math.min(55,
