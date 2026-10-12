@@ -842,13 +842,14 @@ export class Game {
     if(this.status!=='playing'||!f?.alive||this.owner[index]!==owner||
        this.buildings[index]!==BUILDING_CODES.barracks)
       return {ok:false,reason:'Hier steht keine eigene Kaserne.'};
-    if(!Number.isInteger(count)||count<10||count>1000||f.troops<count||
-      this.squads.filter(s=>s.owner===owner).length>=12)
-      return {ok:false,reason:'10–1000 Soldaten, ausreichend Mobilreserve und höchstens 12 Gruppen erforderlich.'};
-    f.troops-=count;
+    const cost=count*2;
+    if(!Number.isInteger(count)||count<10||count>1000||
+      f.money<cost||this.squads.filter(s=>s.owner===owner).length>=12)
+      return {ok:false,reason:'Mindestens '+cost+' Geld und höchstens 12 Truppengruppen erforderlich.'};
+    f.money-=cost;
     this.squads.push({id:this.nextSquadId++,owner,index,troops:count,destination:null});
     this.recount();
-    return {ok:true,reason:count+' Soldaten als Truppengruppe bereitgestellt.'};
+    return {ok:true,reason:count+' Soldaten für '+cost+' Geld ausgebildet.'};
   }
 
   orderSquad(owner:number,squadId:number,target:Point):DiplomacyResult {
@@ -2035,7 +2036,9 @@ export class Game {
         continue;
       }
       // All residents are recruitable troops: a single clear growth figure.
-      faction.troops+=faction.income;
+      // RTS: the human army does not spawn passively. Soldiers are trained
+      // for gold in barracks; AI keeps legacy recruiting until AI RTS exists.
+      if(faction.id!==0)faction.troops+=faction.income;
       faction.money+=faction.moneyIncome;
       if(faction.ai)faction.campaignEnergy=Math.min(300*this.difficultySettings.marchMultiplier,
         faction.campaignEnergy+aiMarchRecovery(faction.income,aiStyle(faction.id))*this.difficultySettings.marchMultiplier);
