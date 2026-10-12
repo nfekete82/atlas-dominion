@@ -13,7 +13,23 @@
     <header class="topbar">
       <div class="brand"><div class="brand-icon" aria-hidden="true">◈</div><div class="brand-title">ATLAS <b>DOMINION</b><small>EUROPEAN CONQUEST <span class="version">/ v1.8</span></small></div></div>
       <div class="top-center"><span class="pulse"></span> <span>OPERATION EUROPA</span><span class="separator">/</span><strong>LIVE SIMULATION</strong></div>
-      <div class="top-actions"><button id="helpBtn" class="icon-btn" title="Spielanleitung">?</button><button id="soundBtn" class="icon-btn" title="Sound umschalten">♪</button><button id="fullBtn" class="icon-btn" title="Vollbild">⛶</button><button id="resetBtn" class="new-game">↻ <span>NEUES SPIEL</span></button></div>
+      <div class="top-actions"><button id="helpBtn" class="icon-btn" title="Spielanleitung">?</button><button id="soundBtn" class="icon-btn" title="Audioeinstellungen öffnen" type="button" aria-label="Audioeinstellungen" aria-controls="audioPanel" aria-expanded="false">♫</button><button id="fullBtn" class="icon-btn" title="Vollbild">⛶</button><button id="resetBtn" class="new-game">↻ <span>NEUES SPIEL</span></button></div>
+      <section id="audioPanel" class="audio-panel" hidden aria-label="Audioeinstellungen">
+        <div class="audio-panel-header">
+          <span id="audioHeading">♫ SOUND & MUSIK</span>
+          <button type="button" id="audioClose" title="Schließen" aria-label="Audioeinstellungen schließen">✕</button>
+        </div>
+        <p class="audio-note">Ruhige, eigens erzeugte Hintergrundmusik und dezente Spielgeräusche.</p>
+        <label class="audio-toggle" for="audioMusicEnabled"><span>🎵 Hintergrundmusik</span><input id="audioMusicEnabled" type="checkbox"/></label>
+        <div class="audio-slider"><label for="audioMusicVolume">Musik-Lautstärke <output id="audioMusicValue" for="audioMusicVolume">22 %</output></label>
+          <input id="audioMusicVolume" type="range" min="0" max="100" step="1" value="22" /></div>
+        <label class="audio-toggle" for="audioEffectsEnabled"><span>⚔ Soundeffekte</span><input id="audioEffectsEnabled" type="checkbox" checked/></label>
+        <div class="audio-slider"><label for="audioEffectsVolume">Effekte-Lautstärke <output id="audioEffectsValue" for="audioEffectsVolume">38 %</output></label>
+          <input id="audioEffectsVolume" type="range" min="0" max="100" step="1" value="38" /></div>
+        <div class="audio-slider audio-master"><label for="audioMasterVolume">Gesamtlautstärke <output id="audioMasterValue" for="audioMasterVolume">65 %</output></label>
+          <input id="audioMasterVolume" type="range" min="0" max="100" step="1" value="65" /></div>
+        <div class="audio-footer"><button id="audioPreview" type="button">♫ Klang testen</button><span id="audioStatus" role="status" aria-live="polite">Musik ist ausgeschaltet</span></div>
+      </section>
     </header>
     <div class="layout">
       <main class="battlefield">
