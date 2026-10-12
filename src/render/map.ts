@@ -675,7 +675,7 @@ export class MapRenderer {
       let y=this.oy+label.pos.y*this.scale+17;
       if(x<60||x>width-60||y<35||y>height-72)continue;
       const flag=FLAGS.get(faction.name)??'';
-      const name=(flag?flag+' ':'')+faction.name;
+      const name=(this.game.isAllied(0,label.id)?'🤝 ':'')+(flag?flag+' ':'')+faction.name;
       c.font=label.id===0?'750 15px system-ui':'700 13px system-ui';
       const nameWidth=Math.min(160,c.measureText(name).width);
       const count=this.strengthLabels[label.id];
