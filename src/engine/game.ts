@@ -381,7 +381,10 @@ export class Game {
       const active=city!==undefined&&this.owner[city]===this.owner[i]&&
         (this.buildings[city]===BUILDING_CODES.city||this.capitalSites.has(city))&&
         Math.hypot(i%MAP_WIDTH-city%MAP_WIDTH,Math.floor(i/MAP_WIDTH)-Math.floor(city/MAP_WIDTH))<=FACTORY_LINK_MAX_DISTANCE;
-      factoryRevenue[this.owner[i]]+=FACTORY_INCOME*(1+(this.factoryLevels.get(i)??0)*.75)*(active?FACTORY_CONNECTION_MULTIPLIER:1);
+      // Developed trade hubs improve factory logistics up to +25 %.
+      const hubLevel=active?this.cityUpgrades[city!]:0;
+      const hubBonus=1+Math.min(5,hubLevel)*.05;
+      factoryRevenue[this.owner[i]]+=FACTORY_INCOME*(1+(this.factoryLevels.get(i)??0)*.75)*(active?FACTORY_CONNECTION_MULTIPLIER*hubBonus:1);
     }
     for(const faction of this.factions){
       faction.alive=faction.territory>0;

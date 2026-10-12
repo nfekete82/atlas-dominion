@@ -375,7 +375,7 @@ export class MapRenderer {
    * when zooming in; their world positions and ownership never change.
    */
   /** Canvas-only industry links: inexpensive to draw and no simulation side effects. */
-  private drawFactoryLinks(c:CanvasRenderingContext2D):void {
+  private drawFactoryLinks(c:CanvasRenderingContext2D,time=0):void {
     c.save();c.lineWidth=1.6;c.setLineDash([4,4]);
     for(const [factory,city] of this.game.factoryLinks){
       if(this.game.buildings[factory]!==3||this.game.owner[factory]<0||
@@ -386,6 +386,16 @@ export class MapRenderer {
       const cy=this.oy+(Math.floor(city/MAP_WIDTH)+.5)*CH*this.scale;
       c.strokeStyle=this.game.owner[factory]===0?'rgba(244,197,111,.8)':'rgba(173,194,204,.45)';
       c.beginPath();c.moveTo(fx,fy);c.lineTo(cx,cy);c.stroke();
+      // Animated transport along a factory route (visual only).
+      const distance=Math.hypot(cx-fx,cy-fy);
+      if(distance>5){
+        const phase=(time*.00011+(factory%43)/43)%1;
+        const tx=fx+(cx-fx)*phase,ty=fy+(cy-fy)*phase;
+        c.setLineDash([]);c.fillStyle=this.game.owner[factory]===0?'#ffe5a3':'#e3edef';
+        c.strokeStyle='#162d35';c.lineWidth=1;
+        c.beginPath();c.arc(tx,ty,3.3,0,Math.PI*2);c.fill();c.stroke();
+        c.setLineDash([4,4]);c.lineWidth=1.6;
+      }
     }
     c.restore();
   }
@@ -984,7 +994,7 @@ export class MapRenderer {
     this.drawActiveFrontForces(c);
     this.drawTroopBadges(c);
     this.drawCapitalNames(c);
-    this.drawFactoryLinks(c);
+    this.drawFactoryLinks(c,timestamp);
     this.drawBuildings(c);
     requestAnimationFrame(t=>this.frame(t));
   }
