@@ -117,3 +117,18 @@ test('adjacent RTS formations exchange losses and both survivors remain visible'
  assert.ok(g.factions[0].population>=blue.troops);
  assert.ok(g.factions[1].population>=red.troops);
 });
+
+test('hostile guard tower damages nearby RTS squad while a friendly tower does not',()=>{
+ const g=new Game(8104,1,'DE','balanced',true);
+ const tile=g.owner.findIndex((v,i)=>v===0&&landNeighbors(i).some(n=>g.owner[n]===-1));
+ assert.ok(tile>=0);
+ const next=landNeighbors(tile).find(n=>g.owner[n]===-1);
+ g.owner[next]=1;
+ g.buildings[next]=2;
+ g.squads.push({id:9811,owner:0,index:tile,troops:100,destination:null,attackTarget:null});
+ const soldier=g.squads.find(s=>s.id===9811);
+ g.step();
+ assert.ok(soldier.troops<100,'tower must inflict real damage');
+ assert.ok(soldier.troops>0,'tower cannot automatically erase a full squad');
+ assert.ok(g.battleEvents.some(e=>e.tick===g.tick&&e.attackerLost>0));
+});
