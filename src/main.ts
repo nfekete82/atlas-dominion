@@ -26,6 +26,43 @@ let buildSpot: Point | null = null;
 let attackRatio = 35;
 let attackMessage = 'Nachbarland anklicken · mehr eingesetzte Truppen = schnellere Front.';
 let attackMessageKind: 'neutral'|'success'|'error' = 'neutral';
+
+function populateDiplomacy():void {
+  const selector=$<HTMLSelectElement>('diplomacyNation');
+  const previous=selector.value;
+  selector.innerHTML=game.factions.slice(1).map(f=>
+    `<option value="${f.id}">${f.name}</option>`).join('');
+  if([...selector.options].some(o=>o.value===previous))selector.value=previous;
+}
+function updateDiplomacyUI():void {
+  const partners=game.alliesOf(0);
+  $('diplomacyAllies').textContent=partners.length?
+    partners.map(id=>'🤝 '+game.factions[id].name).join(' · '):
+    'Noch keine Bündnispartner (max. 2)';
+  const target=Number($<HTMLSelectElement>('diplomacyNation').value);
+  const f=game.factions[target];
+  const allied=game.isAllied(0,target);
+  $('diplomacyDetail').textContent=!f?'Land auswählen.':
+    allied?'🤝 Aktiver Bündnispartner · gegenseitiger Angriffsschutz':
+    !f.alive?'Dieses Land wurde besiegt.':
+    `${format(f.population)} Gesamtstärke · ${partners.length}/2 eigene Bündnisse`;
+  const offer=$<HTMLButtonElement>('diplomacyOffer'),leave=$<HTMLButtonElement>('diplomacyLeave');
+  offer.hidden=allied;leave.hidden=!allied;
+  offer.disabled=!f||!f.alive||partners.length>=2||game.status!=='playing';
+  leave.disabled=game.status!=='playing';
+  // Render the inbox once per changed set, so screenreader focus survives ticks.
+  const incoming=game.offers.filter(o=>o.to===0&&o.untilTick>game.tick);
+  const inbox=$('diplomacyInbox');
+  const key=incoming.map(o=>o.from+':'+o.untilTick).join(',');
+  if(inbox.dataset.offers!==key){
+    inbox.dataset.offers=key;
+    inbox.innerHTML=incoming.map(o=>
+      `<div class="diplomacy-incoming"><strong>🤝 ${game.factions[o.from].name} bietet ein Bündnis an</strong>
+      <button type="button" data-alliance-accept="${o.from}">Annehmen</button>
+      <button type="button" data-alliance-decline="${o.from}">Ablehnen</button></div>`).join('');
+  }
+}
+
 const SAVE_KEY='atlas-dominion-save-v1';
 function saveGame():void {
   if(!hasStarted)return;
@@ -42,6 +79,7 @@ function restoreGame():boolean {
     hasStarted=true;modalVisible=false;
     $('countryPicker').hidden=true;
     renderer.setGame(game);renderer.focusOnCapital(game.cities[0]);
+    populateDiplomacy();
     prevStatus=game.status;update();
     return true;
   }catch(error){console.warn('Spielstand konnte nicht geladen werden:',error);return false;}
@@ -120,10 +158,11 @@ function update() {
   $('leaderboard').innerHTML = ranked.map((f,index)=>`
     <div class="power ${f.id===0?'player':''} ${!f.alive?'eliminated':''}">
       <span class="power-num">${String(index+1).padStart(2,'0')}</span>
-      <b class="power-name"><i style="background:${f.color}"></i><span>${f.name}</span></b>
+      <b class="power-name"><i style="background:${f.color}"></i><span>${game.isAllied(0,f.id)?'🤝 ':''}${f.name}</span></b>
       <span class="power-area" title="${format(f.territory)} Sektoren / ${format(totalPopulation[f.id])} Einwohner und Truppen">${format(totalPopulation[f.id])} ⚔</span>
       <div class="power-bar"><div style="width:${(f.territory/max*100).toFixed(1)}%;background:${f.color}"></div></div>
     </div>`).join('');
+  updateDiplomacyUI();
   $('eventFeed').innerHTML = game.events.map(e=>`<div class="event"><i style="background:${e.color}"></i><div>${e.text}<small>TAG ${String(Math.floor(e.tick/240)+1).padStart(2,'0')} · ${String(Math.floor(e.tick*TICK_SECONDS/60)).padStart(2,'0')}:${String(Math.floor(e.tick*TICK_SECONDS%60)).padStart(2,'0')}</small></div></div>`).join('');
   const active = game.attackOrders.filter(o => o.factionId === 0);
   const voyages=active.filter(o=>o.landing&&o.conquered===0);
@@ -161,6 +200,7 @@ renderer.onSelect = (point:Point, landing:boolean) => {
   // Left-click on friendly terrain must NEVER issue an attack or mobilize
   // soldiers. Right-click is still available for construction / defense.
   if(game.owner[pointToIndex(point)]===0)return;
+  if(game.isAllied(0,game.owner[pointToIndex(point)]))return;
   const result = landing ? game.launchLanding(0, point, attackRatio) : game.launchAttack(0, point, attackRatio);
   attackMessage=result.ok
     ? `${format(result.sent)} ⚔ · ${result.reason}`
@@ -324,6 +364,7 @@ renderer.onHover=(point,px,py,landing)=>{
   const attackable = renderer.canAttack(point);
   const canLand = renderer.canLand(point);
   action.textContent = id===0 ? 'EIGENES LAND · LINKSKLICK: KEINE AKTION · RECHTSKLICK: STADT / GRENZPOSTEN'
+    : game.isAllied(0,id) ? '🤝 VERBÜNDET · KEIN ANGRIFF · DIPLOMATIE IM SEITENMENÜ'
     : canLand && !game.findAttackFront(0,point) ? `KLICK: ${attackRatio} % SEELANDUNG`
     : attackable ? `KLICK: ${attackRatio} % · ANGRIFF AUF ${f?.name ?? 'NEUTRALGEBIET'}`
     : canLand ? 'KLICK: SEELANDUNG'
@@ -402,6 +443,7 @@ function startCountry(code:string): void {
   attackMessageKind='neutral';
   renderer.setGame(game);
   renderer.focusOnCapital(game.cities[0]);
+  populateDiplomacy();
   prevStatus=game.status;
   update();saveGame();
 }
@@ -432,6 +474,31 @@ $('helpBtn').addEventListener('click',()=>showDialog('DEIN EINSATZBEFEHL',`
   <p><strong>Einwohner = Truppen:</strong> Ein Angriff reserviert Truppen, ohne sie zu töten. Unbesetzte Sektoren werden ohne Kampftote erobert; gegen feindliche Garnisonen entstehen echte Verluste bei beiden Parteien. Nach Abschluss kehren die Überlebenden zurück. Größere Heere ermöglichen schnellere Fronten; gefährliche Kriege verringern Bevölkerung, Wachstum und Steuereinnahmen.</p>`));
 $('dialogClose').addEventListener('click',closeDialog);
 $('dialog').addEventListener('click',e=>{if(e.target===$('dialog'))closeDialog();});
+$('diplomacyNation').addEventListener('change',updateDiplomacyUI);
+$('diplomacyOffer').addEventListener('click',()=>{
+  const target=Number($<HTMLSelectElement>('diplomacyNation').value);
+  const result=game.offerAlliance(0,target);
+  $('diplomacyFeedback').textContent=result.reason;
+  if(result.ok){beep(620);saveGame();renderer.updateTerritory();}
+  update();
+});
+$('diplomacyLeave').addEventListener('click',()=>{
+  const target=Number($<HTMLSelectElement>('diplomacyNation').value);
+  const result=game.leaveAlliance(0,target);
+  $('diplomacyFeedback').textContent=result.reason;
+  if(result.ok){beep(430);saveGame();}
+  update();
+});
+$('diplomacyInbox').addEventListener('click',e=>{
+  const button=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-alliance-accept],[data-alliance-decline]');
+  if(!button)return;
+  const id=Number(button.dataset.allianceAccept??button.dataset.allianceDecline);
+  const result=game.respondAlliance(id,button.hasAttribute('data-alliance-accept'));
+  $('diplomacyFeedback').textContent=result.reason;
+  if(result.ok){beep(610);saveGame();renderer.updateTerritory();}
+  update();
+});
+
 $('soundBtn').addEventListener('click',()=>{soundEnabled=!soundEnabled;$('soundBtn').textContent=soundEnabled?'♫':'♪';if(soundEnabled)beep(660);});
 $('fullBtn').addEventListener('click',()=>{if(!document.fullscreenElement)void document.documentElement.requestFullscreen();else void document.exitFullscreen();});
 $('pauseBtn').addEventListener('click',()=>{game.paused=!game.paused;update();});
@@ -466,6 +533,7 @@ setInterval(()=>{
 },250);
 setInterval(saveGame,30000);
 window.addEventListener('pagehide',saveGame);
+populateDiplomacy();
 update();
 if(!restoreGame())showCountryPicker(false);
 // Explicit dev-only API for smoke tests, not game simulation source of truth.
