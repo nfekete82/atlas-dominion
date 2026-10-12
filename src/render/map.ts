@@ -443,6 +443,10 @@ export class MapRenderer {
           c.lineTo(5,-5);c.lineTo(8,-1);c.closePath();c.fill();c.stroke();
           c.fillRect(-6,-11,3,8);c.strokeRect(-6,-11,3,8);
           c.fillStyle='#243943';for(let i=0;i<3;i++)c.fillRect(-5+i*5,2,2,3);
+        }else if(marker.code===4){
+          c.fillRect(-8,-3,16,12);c.strokeRect(-8,-3,16,12);
+          c.fillStyle='#263b43';c.fillRect(-2,1,4,8);
+          c.beginPath();c.moveTo(-8,-3);c.lineTo(0,-10);c.lineTo(8,-3);c.closePath();c.fillStyle='#d7ab70';c.fill();c.stroke();
         }else{
           // Fortified watchtower with visible crenellations.
           c.fillRect(-6,-6,12,15);c.strokeRect(-6,-6,12,15);
@@ -455,6 +459,23 @@ export class MapRenderer {
     // Never reorder drawing based on hover: the old selected-first code moved
     // the badge underneath the cursor, breaking right-click hit testing.
     for(const marker of markers)draw(marker);
+  }
+
+  private drawSquads(c:CanvasRenderingContext2D):void {
+    c.save();c.textAlign='center';c.textBaseline='middle';
+    for(const squad of this.game.squads){
+      const x=this.ox+(squad.index%MAP_WIDTH+.5)*CW*this.scale;
+      const y=this.oy+(Math.floor(squad.index/MAP_WIDTH)+.5)*CH*this.scale;
+      if(x<0||y<0||x>this.canvas.clientWidth||y>this.canvas.clientHeight)continue;
+      c.fillStyle=squad.owner===0?'#68caff':'#ff8e8e';
+      c.strokeStyle='#122732';c.lineWidth=2;
+      c.beginPath();c.arc(x,y,7,0,Math.PI*2);c.fill();c.stroke();
+      c.fillStyle='#0b2333';c.font='bold 9px sans-serif';c.fillText('⚔',x,y);
+      c.font='bold 10px sans-serif';c.fillStyle='#ffffff';c.strokeStyle='#112733';
+      const label=Math.round(squad.troops).toString();
+      c.strokeText(label,x,y-13);c.fillText(label,x,y-13);
+    }
+    c.restore();
   }
 
   private drawCapitalNames(c:CanvasRenderingContext2D):void {
@@ -996,6 +1017,7 @@ export class MapRenderer {
     this.drawCapitalNames(c);
     this.drawFactoryLinks(c,timestamp);
     this.drawBuildings(c);
+    this.drawSquads(c);
     requestAnimationFrame(t=>this.frame(t));
   }
   zoomBy(factor: number) {

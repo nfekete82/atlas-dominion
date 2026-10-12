@@ -4,7 +4,7 @@ import { BUILDING_CODES } from '../dist/src/engine/economy.js';
 import {buildingMarkerFor,showBuildingMarker,cityVisibleAtZoom,CITY_MARKER_SIZE,CITY_BADGE_FONT_SIZE,cityMarkerBounds,cityLevelStyle,rectanglesOverlap,ScreenOccupancy} from '../dist/src/render/building-markers.js';
 
 test('constructed cities have named symbols without enclosing backgrounds',()=>{
-  assert.deepEqual(BUILDING_CODES,{city:1,tower:2,factory:3});
+  assert.deepEqual(BUILDING_CODES,{city:1,tower:2,factory:3,barracks:4});
   const marker=buildingMarkerFor(1);
   assert.ok(marker.symbol.length>0);
   assert.match(marker.color,/^#[0-9a-f]{6}$/i);
