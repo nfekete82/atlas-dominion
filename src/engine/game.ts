@@ -212,6 +212,7 @@ export interface GameSave {
   borderOrders?:Array<{index:number;mode:'defend'|'withdraw'}>;
   factoryLinks?:Array<{factory:number;city:number}>;
   factoryLevels?:Array<{index:number;level:number}>;
+  squads?:Array<{id:number;owner:number;index:number;troops:number;destination:number|null}>;
 }
 
 export class Game {
@@ -234,6 +235,8 @@ export class Game {
   readonly borderOrders=new Map<number,'defend'|'withdraw'>();
   readonly factoryLinks=new Map<number,number>();
   readonly factoryLevels=new Map<number,number>();
+  readonly squads:Array<{id:number;owner:number;index:number;troops:number;destination:number|null}>=[];
+  private nextSquadId=1;
   mobileNet=0;
   /** Real soldiers in transit to defend an attacked treaty partner. */
   readonly defenseAid:DefenseAid[]=[];
@@ -361,7 +364,8 @@ export class Game {
       }
     }
     for(const order of this.attackOrders)people[order.factionId]+=order.remaining;
-    for(const aid of this.defenseAid)people[aid.from]+=aid.troops; // In-transit soldiers are alive.
+    for(const aid of this.defenseAid)people[aid.from]+=aid.troops;
+    for(const squad of this.squads)people[squad.owner]+=squad.troops; // In-transit soldiers are alive.
     for(const city of this.cities){
       city.owner=this.owner[city.index];
       if(city.owner>=0)this.factions[city.owner].cityCount++;
@@ -628,7 +632,7 @@ export class Game {
     const x=Math.floor(point.x),y=Math.floor(point.y);
     if(!Number.isFinite(point.x)||!Number.isFinite(point.y)||x<0||y<0||x>=MAP_WIDTH||y>=MAP_HEIGHT)return null;
     const code=this.buildings[y*MAP_WIDTH+x];
-    return code===BUILDING_CODES.city?'city':code===BUILDING_CODES.tower?'tower':null;
+    return code===BUILDING_CODES.city?'city':code===BUILDING_CODES.tower?'tower':code===BUILDING_CODES.factory?'factory':code===BUILDING_CODES.barracks?'barracks':null;
   }
 
   cityLevelAt(point:Point):number {
@@ -809,7 +813,7 @@ export class Game {
     const fail=(reason:string):BuildResult=>({ok:false,reason,cost:0});
     const faction=this.factions[id];
     if(!faction?.alive||this.status!=='playing')return fail('Dieses Land kann nicht bauen.');
-    if(type!=='city'&&type!=='tower'&&type!=='factory')return fail('Unbekanntes Gebäude.');
+    if(type!=='city'&&type!=='tower'&&type!=='factory'&&type!=='barracks')return fail('Unbekanntes Gebäude.');
     const x=Math.floor(point.x),y=Math.floor(point.y);
     if(!Number.isFinite(point.x)||!Number.isFinite(point.y)||x<0||y<0||x>=MAP_WIDTH||y>=MAP_HEIGHT)return fail('Außerhalb der Karte.');
     const index=y*MAP_WIDTH+x;
@@ -818,7 +822,7 @@ export class Game {
     if(this.buildings[index])return fail('Hier steht bereits ein Gebäude.');
     const def=BUILDINGS.find(b=>b.type===type)!;
     if(faction.money<def.cost)return fail(`Zu wenig Geld: ${def.cost} benötigt.`);
-    return {ok:true,reason:type==='tower'?'Abwehrturm bauen.':type==='factory'?'Fabrik bauen.':'Stadt bauen.',cost:def.cost,type};
+    return {ok:true,reason:type==='tower'?'Abwehrturm bauen.':type==='factory'?'Fabrik bauen.':type==='barracks'?'Kaserne bauen.':'Stadt bauen.',cost:def.cost,type};
   }
 
   build(id:number,point:Point,type:BuildingType):BuildResult {
@@ -829,8 +833,69 @@ export class Game {
     this.buildings[pointToIndex(point)]=BUILDING_CODES[type];
     this.cityUpgrades[pointToIndex(point)]=0;
     this.recount();
-    if(id===0)this.log(`${type==='tower'?'Abwehrturm':type==='factory'?'Fabrik':'Stadt'} gebaut · -${permission.cost} Geld.`,faction.color);
-    return {ok:true,reason:type==='tower'?'Abwehrturm gebaut.':type==='factory'?'Fabrik gebaut.':'Stadt gebaut.',cost:permission.cost,type};
+    if(id===0)this.log(`${type==='tower'?'Abwehrturm':type==='factory'?'Fabrik':type==='barracks'?'Kaserne':'Stadt'} gebaut · -${permission.cost} Geld.`,faction.color);
+    return {ok:true,reason:type==='tower'?'Abwehrturm gebaut.':type==='factory'?'Fabrik gebaut.':type==='barracks'?'Kaserne gebaut.':'Stadt gebaut.',cost:permission.cost,type};
+  }
+
+  recruitSquad(owner:number,point:Point,count:number):DiplomacyResult {
+    const index=pointToIndex(point),f=this.factions[owner];
+    if(this.status!=='playing'||!f?.alive||this.owner[index]!==owner||
+       this.buildings[index]!==BUILDING_CODES.barracks)
+      return {ok:false,reason:'Hier steht keine eigene Kaserne.'};
+    if(!Number.isInteger(count)||count<10||count>1000||f.troops<count||
+      this.squads.filter(s=>s.owner===owner).length>=12)
+      return {ok:false,reason:'10–1000 Soldaten, ausreichend Mobilreserve und höchstens 12 Gruppen erforderlich.'};
+    f.troops-=count;
+    this.squads.push({id:this.nextSquadId++,owner,index,troops:count,destination:null});
+    this.recount();
+    return {ok:true,reason:count+' Soldaten als Truppengruppe bereitgestellt.'};
+  }
+
+  orderSquad(owner:number,squadId:number,target:Point):DiplomacyResult {
+    const squad=this.squads.find(s=>s.id===squadId&&s.owner===owner);
+    if(!squad||!Number.isInteger(target.x)||!Number.isInteger(target.y)||
+       target.x<0||target.y<0||target.x>=MAP_WIDTH||target.y>=MAP_HEIGHT)
+      return {ok:false,reason:'Ungültige Truppe oder Zielposition.'};
+    const destination=pointToIndex(target);
+    if(this.owner[destination]!==owner)return {ok:false,reason:'Truppenmarsche sind zunächst nur auf eigenem Gebiet möglich.'};
+    squad.destination=destination;
+    return {ok:true,reason:'Marschbefehl erteilt.'};
+  }
+
+  recallSquad(owner:number,squadId:number):DiplomacyResult {
+    const i=this.squads.findIndex(s=>s.id===squadId&&s.owner===owner);
+    if(i<0)return {ok:false,reason:'Truppengruppe nicht gefunden.'};
+    const squad=this.squads[i];
+    if(this.owner[squad.index]!==owner)return {ok:false,reason:'Truppengruppe befindet sich nicht auf eigenem Gebiet.'};
+    this.factions[owner].troops+=squad.troops;this.squads.splice(i,1);this.recount();
+    return {ok:true,reason:'Soldaten zur mobilen Reserve zurückgezogen.'};
+  }
+
+  private moveSquads():void {
+    for(let i=this.squads.length-1;i>=0;i--){
+      const squad=this.squads[i];
+      if(this.owner[squad.index]!==squad.owner){
+        this.factions[squad.owner].troops+=squad.troops;
+        this.squads.splice(i,1);continue;
+      }
+      if(squad.destination===null)continue;
+      if(squad.index===squad.destination){squad.destination=null;continue;}
+      const parents=new Map<number,number>([[squad.index,-1]]);
+      const queue=[squad.index];
+      let head=0;
+      while(head<queue.length&&head<12000&&!parents.has(squad.destination)){
+        const current=queue[head++];
+        for(const next of LAND_NEIGHBORS[current]){
+          if(this.owner[next]!==squad.owner||parents.has(next))continue;
+          parents.set(next,current);queue.push(next);
+        }
+      }
+      if(!parents.has(squad.destination)){squad.destination=null;continue;}
+      let next=squad.destination;
+      while(parents.get(next)!==squad.index&&parents.get(next)!==-1)next=parents.get(next)!;
+      squad.index=next;
+      if(next===squad.destination)squad.destination=null;
+    }
   }
 
   /** AI plans actual settlements across owned land, then improves them.
@@ -1925,6 +1990,7 @@ export class Game {
     if (this.paused || this.status !== 'playing') return;
     const beforeMobile=this.factions[0].troops;
     this.tick++;
+    this.moveSquads();
     this.updateDiplomacy();
     this.deliverDefensiveAid();
     this.battleEvents.length=0;
@@ -2001,6 +2067,7 @@ export class Game {
       defenseAid:this.defenseAid.map(a=>({...a})),
       diplomacyCooldowns:this.diplomacyCooldowns.map(v=>({...v})),
       warTruces:this.warTruces.map(v=>({...v})),
+      squads:this.squads.map(s=>({...s})),
       factoryLevels:[...this.factoryLevels].filter(([index])=>this.buildings[index]===BUILDING_CODES.factory)
         .sort((a,b)=>a[0]-b[0]).map(([index,level])=>({index,level})),
       factoryLinks:[...this.factoryLinks].filter(([factory,city])=>
@@ -2130,6 +2197,18 @@ export class Game {
       new Set(factoryLinks.map(v=>v.factory)).size!==factoryLinks.length)
       throw Error('Ungültige Fabrikverbindungen.');
     for(const v of factoryLinks)g.factoryLinks.set(v.factory,v.city);
+    const squads=save.squads??[];
+    if(!Array.isArray(squads)||squads.length>g.factions.length*12||
+       squads.some(v=>!Number.isSafeInteger(v.id)||v.id<=0||
+         !Number.isInteger(v.owner)||v.owner<0||v.owner>=g.factions.length||
+         !Number.isInteger(v.index)||v.index<0||v.index>=CELL_COUNT||
+         g.owner[v.index]!==v.owner||!Number.isFinite(v.troops)||v.troops<10||v.troops>1000||
+         (v.destination!==null&&(!Number.isInteger(v.destination)||v.destination<0||
+           v.destination>=CELL_COUNT||g.owner[v.destination]!==v.owner)))||
+       new Set(squads.map(v=>v.id)).size!==squads.length)
+       throw Error('Ungültige Kasernen-Truppen.');
+    g.squads.push(...squads.map(v=>({...v})));
+    g.nextSquadId=Math.max(0,...g.squads.map(v=>v.id))+1;
     const borderOrders=save.borderOrders??[];
     if(!Array.isArray(borderOrders)||borderOrders.length>512||
        borderOrders.some(v=>!Number.isInteger(v?.index)||v.index<0||
