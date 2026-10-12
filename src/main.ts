@@ -28,6 +28,96 @@ let showAllNations = false;
 let attackMessage = 'Nachbarland anklicken · mehr eingesetzte Truppen = schnellere Front.';
 let attackMessageKind: 'neutral'|'success'|'error' = 'neutral';
 
+let hoveredAttackPoint:Point|null=null;
+let hoveredLanding=false;
+type WarAlert={id:number;text:string;detail:string;index:number;kind:'attack'|'captured'|'victory';until:number};
+let warAlerts:WarAlert[]=[];
+let nextWarAlert=1;
+let lastWarningTick=-1;
+const seenHostileOrders=new Set<number>();
+
+function resetTacticalWarnings():void {
+  warAlerts=[];nextWarAlert=1;lastWarningTick=-1;seenHostileOrders.clear();
+  $('warAlerts').hidden=true;$('warAlerts').replaceChildren();
+  hoveredAttackPoint=null;
+  $('attackAssessment').hidden=true;
+}
+function pushWarAlert(text:string,detail:string,index:number,kind:WarAlert['kind']):void {
+  if(index<0||index>=game.owner.length)return;
+  warAlerts.unshift({id:nextWarAlert++,text,detail,index,kind,until:game.tick+60});
+  warAlerts=warAlerts.slice(0,3);
+  if(kind==='attack'||kind==='captured')beep(kind==='captured'?240:390,.12);
+}
+function refreshWarAlerts():void {
+  // Deduplicate by actual order identity, not by screenshot or render frame.
+  if(game.tick<lastWarningTick){seenHostileOrders.clear();warAlerts=[];}
+  if(game.tick!==lastWarningTick){
+    for(const order of game.attackOrders){
+      if(order.factionId===0||order.targetOwner!==0||order.returning)continue;
+      if(seenHostileOrders.has(order.id))continue;
+      seenHostileOrders.add(order.id);
+      const foe=game.factions[order.factionId];
+      const index=order.contested??order.lastCaptured??pointToIndex(order.anchor);
+      pushWarAlert('Angriff auf dein Gebiet',foe.name+' · '+format(order.remaining)+' Angreifer',index,'attack');
+    }
+    for(const battle of game.battleEvents){
+      if(!battle.captured)continue;
+      if(battle.defenderId===0&&battle.attackerId!==0)
+        pushWarAlert('Grenze durchbrochen',game.factions[battle.attackerId].name+' erobert einen Sektor',battle.index,'captured');
+      else if(battle.attackerId===0&&battle.defenderId>=0)
+        pushWarAlert('Sektor erobert','Deine Offensive rückt vor',battle.index,'victory');
+    }
+    lastWarningTick=game.tick;
+  }
+  warAlerts=warAlerts.filter(a=>a.until>game.tick);
+  const panel=$('warAlerts');
+  panel.hidden=!warAlerts.length;
+  panel.innerHTML=warAlerts.map(a=>
+    `<button type="button" class="war-alert" data-war-focus="${a.id}" data-kind="${a.kind}">
+      <span><strong>${a.kind==='attack'?'⚠ ':a.kind==='captured'?'✖ ':'✓ '}${a.text}</strong>
+      <small>${a.detail} · Zur Front springen</small></span><span aria-hidden="true">⌖</span></button>`).join('');
+}
+function renderActiveArmies():void {
+  const orders=game.attackOrders.filter(o=>o.factionId===0);
+  $('activeArmyCount').textContent=String(orders.length);
+  $('activeArmyList').innerHTML=orders.length?orders.slice(0,8).map(o=>{
+    const foe=o.targetOwner<0?'Neutralgebiet':game.factions[o.targetOwner]?.name??'Unbekannt';
+    const state=o.returning?'Rückfahrt':o.landing&&o.conquered===0?'Auf See':'Im Gefecht';
+    return `<div class="army-row" data-army-id="${o.id}">
+      <div class="army-header"><strong>${o.landing?'⚓ ':'⚔ '}${foe}</strong>
+      <small>${state}</small></div>
+      <div class="army-stats">${format(o.remaining)} Truppen · ${format(o.conquered)} Sektoren ·
+      ${format(o.fallen)} Gefallene</div>
+      <div class="army-actions">
+        <button type="button" data-army-focus="${o.id}">⌖ Zur Front</button>
+        <button type="button" data-army-retreat="${o.id}" ${o.returning?'disabled':''}>
+          ${o.returning?'Rückzug läuft':'↩ Rückzug'}</button>
+      </div></div>`;
+  }).join(''):'<small>Keine aktiven Armeen. Angriffe per Linksklick starten.</small>';
+}
+
+function updateAttackAssessment(point:Point|null=hoveredAttackPoint,landing=hoveredLanding):void {
+  hoveredAttackPoint=point;hoveredLanding=landing;
+  const element=$('attackAssessment');
+  if(!point||modalVisible||game.owner[pointToIndex(point)]===0||
+     game.owner[pointToIndex(point)]===WATER||
+     game.isAllied(0,game.owner[pointToIndex(point)])){
+    element.hidden=true;return;
+  }
+  const forecast=game.assessAttack(0,point,attackRatio);
+  if(!forecast.possible){element.hidden=true;return;}
+  const riskText=forecast.risk==='low'?'Günstig':forecast.risk==='moderate'?'Umkämpft':'Riskant';
+  const opponent=forecast.targetOwner===NEUTRAL?'Neutralgebiet':
+    game.factions[forecast.targetOwner!]?.name??'Gegner';
+  element.hidden=false;element.dataset.risk=forecast.risk;
+  element.innerHTML=`<div class="assessment-top"><strong>⌖ ${opponent}</strong>
+    <b>${riskText}</b></div>
+    <small>${format(forecast.troops)} im Angriff · ${format(forecast.posted)} Grenztruppen</small>
+    <small>Erster Sektor: ca. ${format(forecast.loss,1)} Verluste · ${forecast.time.toFixed(2)} Ticks</small>
+    <small>Unverbindliche Momentaufnahme – Fronten verändern sich.</small>`;
+}
+
+
 function populateDiplomacy():void {
   const selector=$<HTMLSelectElement>('diplomacyNation');
   const previous=selector.value;
@@ -81,6 +171,7 @@ function restoreGame():boolean {
     hasStarted=true;modalVisible=false;
     $('countryPicker').hidden=true;
     renderer.setGame(game);renderer.focusOnCapital(game.cities[0]);
+    resetTacticalWarnings();
     populateDiplomacy();
     prevStatus=game.status;update();
     return true;
@@ -170,6 +261,9 @@ function update() {
     </div>`).join('');
   updateDiplomacyUI();
   $('eventFeed').innerHTML = game.events.map(e=>`<div class="event"><i style="background:${e.color}"></i><div>${e.text}<small>TAG ${String(Math.floor(e.tick/240)+1).padStart(2,'0')} · ${String(Math.floor(e.tick*TICK_SECONDS/60)).padStart(2,'0')}:${String(Math.floor(e.tick*TICK_SECONDS%60)).padStart(2,'0')}</small></div></div>`).join('');
+  renderActiveArmies();
+  refreshWarAlerts();
+  if(hoveredAttackPoint)updateAttackAssessment();
   const active = game.attackOrders.filter(o => o.factionId === 0);
   const voyages=active.filter(o=>o.landing&&o.conquered===0);
   const neutralOrders=active.filter(o=>!voyages.includes(o)&&o.targetOwner<0);
@@ -201,6 +295,31 @@ function setAttackRatio(value:number) {
 }
 $('attackRatio').addEventListener('input',e=>setAttackRatio(Number((e.target as HTMLInputElement).value)));
 for (const btn of document.querySelectorAll<HTMLButtonElement>('[data-ratio]')) btn.addEventListener('click',()=>setAttackRatio(Number(btn.dataset.ratio)));
+$('activeArmyList').addEventListener('click',e=>{
+  const button=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-army-focus],[data-army-retreat]');
+  if(!button)return;
+  const id=Number(button.dataset.armyFocus??button.dataset.armyRetreat);
+  const order=game.attackOrders.find(o=>o.id===id&&o.factionId===0);
+  if(!order)return;
+  if(button.dataset.armyFocus!==undefined){
+    const index=order.contested??order.lastCaptured??pointToIndex(order.anchor);
+    renderer.focusOnPoint({x:index%480,y:Math.floor(index/480)});
+    return;
+  }
+  const sent=order.remaining;
+  if(!game.cancelAttack(id,0))return;
+  attackMessage=order.landing&&order.returning?
+    'Flotte kehrt zurück. Die Überlebenden erreichen die mobile Reserve nach der Rückfahrt.':
+    format(sent)+' Überlebende sind in die mobile Reserve zurückgekehrt.';
+  attackMessageKind='success';
+  renderer.updateTerritory();update();saveGame();beep(460);
+});
+$('warAlerts').addEventListener('click',e=>{
+  const b=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-war-focus]');
+  if(!b)return;
+  const alert=warAlerts.find(a=>a.id===Number(b.dataset.warFocus));
+  if(alert)renderer.focusOnPoint({x:alert.index%480,y:Math.floor(alert.index/480)},2.2);
+});
 renderer.onSelect = (point:Point, landing:boolean) => {
   closeBuildMenu();
   // Left-click on friendly terrain must NEVER issue an attack or mobilize
@@ -355,6 +474,7 @@ window.addEventListener('pointerdown',e=>{
   if(!menu.hidden&&!menu.contains(e.target as Node))closeBuildMenu();
 });
 renderer.onHover=(point,px,py,landing)=>{
+  updateAttackAssessment(point,landing);
   const tooltip=$('mapInfo');
   if(!point || game.owner[pointToIndex(point)]===WATER){
     tooltip.hidden=true;
@@ -477,6 +597,7 @@ function startCountry(code:string): void {
   attackMessageKind='neutral';
   renderer.setGame(game);
   renderer.focusOnCapital(game.cities[0]);
+  resetTacticalWarnings();
   populateDiplomacy();
   prevStatus=game.status;
   update();saveGame();
