@@ -59,4 +59,7 @@ test('standalone risk page and assets are emitted alongside the existing realtim
   assert.ok(realtime.includes('battleCanvas'));
   assert.ok(css.includes('.sidebar'));
   assert.ok(js.includes('playComputerRound'));
+  const dockerfile=await readFile('Dockerfile','utf8');
+  assert.match(dockerfile,/COPY\s+package\*\.json\s+tsconfig\.json\s+index\.html\s+risk\.html\s+\.\//,
+    'Docker build must include the separate Risk entrypoint');
 });
