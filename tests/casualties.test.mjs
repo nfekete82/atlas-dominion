@@ -5,7 +5,7 @@ import {attackerCasualties,campaignEffort} from '../dist/src/engine/warfare.js';
 
 const nearNeutral=g=>g.owner.findIndex((owner,i)=>owner===NEUTRAL&&landNeighbors(i).some(n=>g.owner[n]===0));
 
-test('mobilizing an army is not a death; unoccupied land has no combat casualties',()=>{
+test('mobilization keeps total population intact; neutral marching pays a small real cost',()=>{
   const g=new Game(410,0);
   const before=g.populationOf(0),front=nearNeutral(g);
   assert.ok(front>=0);
@@ -15,7 +15,7 @@ test('mobilizing an army is not a death; unoccupied land has no combat casualtie
   assert.equal(g.attackOrders[0].remaining,order.sent);
   assert.ok(g.attackOrders[0].effort>order.sent);
   g.step();
-  assert.equal(g.factions[0].attackFallen,0);
+  assert.ok(g.factions[0].attackFallen>0);
   assert.equal(g.factions[0].enemyFallen,0);
   assert.ok(g.factions[0].captured>0);
   assert.ok(campaignEffort(order.sent)>order.sent);
@@ -29,10 +29,11 @@ test('neutral offensives eventually return survivors and cannot expand forever',
   assert.equal(g.factions.length,2);
   const target=nearNeutral(g),pop=g.populationOf(0);
   assert.ok(g.launchAttack(0,cellToPoint(target),100).ok);
-  for(let i=0;i<120&&g.attackOrders.length;i++)g.step();
-  assert.equal(g.attackOrders.length,0);
-  assert.equal(g.factions[0].attackFallen,0);
-  assert.ok(g.populationOf(0)>=pop);
+  for(let i=0;i<600&&g.attackOrders.some(o=>o.factionId===0);i++)g.step();
+  assert.equal(g.attackOrders.filter(o=>o.factionId===0).length,0,
+    'the player army must eventually die, succeed or return; AI armies are independent');
+  assert.ok(g.factions[0].attackFallen>0,'unclaimed land has finite nonzero attrition');
+  assert.ok(g.populationOf(0)>=0);
   assert.ok(g.factions[0].troops>0);
 });
 
