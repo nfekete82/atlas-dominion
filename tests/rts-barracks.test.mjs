@@ -48,3 +48,23 @@ test('RTS opening funds an immediate barracks and first squad without free AI gr
  assert.ok(ai.money>=0);
  assert.ok(ai.troops-before<=Math.floor((treasury+ai.moneyIncome)/2)+1e-6);
 });
+
+test('foreign target queues a real army march and persists its conquest order',()=>{
+ const g=new Game(9102,1,'DE','balanced',true);
+ const owner=0;
+ const {landNeighbors}=await import('../dist/src/engine/game.js');
+ const edge=g.owner.findIndex((v,i)=>v===0&&landNeighbors(i).some(n=>g.owner[n]!==0&&g.owner[n]!==-2));
+ assert.ok(edge>=0);
+ const target=landNeighbors(edge).find(n=>g.owner[n]!==0&&g.owner[n]!==-2);
+ g.factions[0].money=1200;
+ const site=g.owner.findIndex((v,i)=>v===0&&!g.buildings[i]&&g.canBuild(0,cellToPoint(i),'barracks').ok);
+ assert.ok(site>=0);
+ assert.ok(g.build(0,cellToPoint(site),'barracks').ok);
+ assert.ok(g.recruitSquad(0,cellToPoint(site),100).ok);
+ const id=g.squads[0].id;
+ assert.ok(g.orderSquadAttack(0,id,cellToPoint(target)).ok);
+ assert.deepEqual(Game.fromSave(g.exportSave()).exportSave(),g.exportSave());
+ for(let i=0;i<150&&g.squads.some(s=>s.id===id);i++)g.step();
+ assert.ok(g.attackOrders.some(o=>o.factionId===0)||g.owner[target]===0,
+   'selected squad should reach a real front and commit an offensive');
+});
