@@ -65,6 +65,19 @@ function update() {
     : 'VERTEIDIGUNG: KEINE VERLUSTE';
   $('borderDefense').textContent = `${format(game.threatenedBorders(0))} bedrohte Grenzsektoren · ${format(stationed)} stationiert · ${format(player.troops)} mobil`;
   $('casualtyReport').textContent = `⚔ ${format(player.attackFallen+player.defenseSpent)} eigene Gefallene · ${format(player.enemyFallen)} Gegnerverluste`;
+  // The combat telemetry is factual: one tick's strikes, not estimates of
+  // armies or soldiers magically moving between territories.
+  const battles=game.battleEvents.filter(e=>e.attackerId===0||e.defenderId===0);
+  const clashes=battles.filter(e=>e.defenderId>=0);
+  const blueFallen=clashes.reduce((n,e)=>n+(e.attackerId===0?e.attackerLost:e.defenderLost),0);
+  const redFallen=clashes.reduce((n,e)=>n+(e.attackerId===0?e.defenderLost:e.attackerLost),0);
+  $('battleReport').innerHTML=clashes.length
+    ? `<div class="battle-report-heading"><i class="battle-dot blue"></i> BLAU: DEINE TRUPPEN <span>GEGEN</span> <i class="battle-dot red"></i> ROT: GEGNER</div>
+       <small>${format(clashes.length)} FRONTKÄMPFE DIESE RUNDE ·
+       <span class="battle-own-loss">−${format(blueFallen)} EIGENE</span> /
+       <span class="battle-enemy-loss">−${format(redFallen)} GEGNER</span> GEFALLEN</small>
+       <small>Truppenzahlen direkt an den aktiven Fronten</small>`
+    : '<div class="battle-report-heading"><i class="battle-dot blue"></i> BLAU: DEINE TRUPPEN <span>GEGEN</span> <i class="battle-dot red"></i> ROT: GEGNER</div><small>Keine direkte Feindschlacht in dieser Runde</small>';
   $('ratioPercent').textContent = attackRatio + ' %';
   $('attackPreview').textContent = format(Math.floor(player.troops * attackRatio / 100)) + ' TRUPPEN';
   $('attackRatio').setAttribute('aria-valuenow', String(attackRatio));
@@ -316,6 +329,7 @@ $('helpBtn').addEventListener('click',()=>showDialog('DEIN EINSATZBEFEHL',`
   <div class="briefing-row"><b>07</b><span><strong>PAUSE:</strong> Leertaste oder Ⅱ. Mit 1×/2×/4× beschleunigen.</span></div>
   <p><strong>Doktrinen:</strong> EXPAND senkt die Kosten neutraler Eroberungen und erhöht deren Geschwindigkeit, BLITZ erhöht die Angriffsfrequenz, DEFENSE stärkt Einkommen und Garnisonen. Mit 1, 2, 3 umschalten.</p>
   <p><strong>Machtvergleich:</strong> Beim Angriff zählen auch die gesamte Bevölkerung, die Größe und die Städte des Gegners. Ein mächtigeres Reich reduziert deine Angriffswirkung prozentual und erhöht die eigenen Verluste. Kleinere Gegner kannst du effektiver angreifen. Die Wirkung ist auf 70–130 % begrenzt; die konkrete Grenzverteidigung entscheidet weiterhin mit.</p>
+  <p><strong>LEBENDIGE FRONTEN:</strong> Direkt an echten Kampfgrenzen siehst du kleine blaue (dein Heer) und rote (Gegner) bewegte Truppensymbole. Die Zahlen zeigen die höchste tatsächlich beteiligte Soldatenzahl eines einzelnen Frontgefechts der aktuellen Runde; die gesamte offensive Armee steht weiter unter „Im Angriff“. Kontaktfunken erscheinen nur, wenn echte Verteidiger beteiligt sind. KI gegen KI ist dezenter dargestellt.</p>
   <p><strong>Verluste sehen:</strong> Rechts bei „Einwohner / Truppen“ stehen Gesamt, mobile Reserve, Grenztruppen, angreifende Soldaten und Gefallene getrennt. Der Gesamtwert kann trotz Gefallener durch Einwohnerwachstum steigen. Angriffe auf feindliche Länder kosten jetzt deutlich mehr Soldaten (oft etwa 1,8 Angreifer pro gefallenem Verteidiger), neutrale Gebiete bleiben kampfverlustfrei.</p>
   <p><strong>Einwohner = Truppen:</strong> Ein Angriff reserviert Truppen, ohne sie zu töten. Unbesetzte Sektoren werden ohne Kampftote erobert; gegen feindliche Garnisonen entstehen echte Verluste bei beiden Parteien. Nach Abschluss kehren die Überlebenden zurück. Größere Heere ermöglichen schnellere Fronten; gefährliche Kriege verringern Bevölkerung, Wachstum und Steuereinnahmen.</p>`));
 $('dialogClose').addEventListener('click',closeDialog);
