@@ -2,7 +2,7 @@
  * Deployed forces remain part of that population, and combat casualties reduce it.
  * New cities permanently accelerate the growth of this shared population.
  */
-export type BuildingType = 'city'|'tower'|'factory';
+export type BuildingType = 'city'|'tower'|'factory'|'barracks';
 export interface BuildingDef {
   type: BuildingType; name:string; cost:number; icon:string; description:string;
 }
@@ -13,9 +13,11 @@ export const BUILDINGS: readonly BuildingDef[] = [
    description:'Erhöht gegnerische Verluste bei Kämpfen im Umkreis von 2 Sektoren'},
   {type:'factory',name:'Fabrik',cost:200,icon:'⚙',
    description:'Produziert Geld; Stadtverbindung erhöht den Ertrag um 50 %'},
+  {type:'barracks',name:'Kaserne',cost:280,icon:'⚑',
+   description:'Stellt eigene auswählbare Truppengruppen aus mobilen Soldaten zusammen'},
 ];
-export const BUILDING_CODES: Readonly<Record<BuildingType,number>> = {city:1,tower:2,factory:3};
-export const BUILDING_BY_CODE: Readonly<Record<number,BuildingType>> = {1:'city',2:'tower',3:'factory'};
+export const BUILDING_CODES: Readonly<Record<BuildingType,number>> = {city:1,tower:2,factory:3,barracks:4};
+export const BUILDING_BY_CODE: Readonly<Record<number,BuildingType>> = {1:'city',2:'tower',3:'factory',4:'barracks'};
 
 /** Cities boost growth but do not multiply the existing population.
  * Square-root bonuses make additional cities useful with diminishing returns
