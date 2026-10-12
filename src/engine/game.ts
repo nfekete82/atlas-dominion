@@ -784,6 +784,8 @@ export class Game {
       relativePower:this.relativeAttackPower(attacker.id,owner),
       neutral:owner===NEUTRAL,
       capital:this.capitalSites.has(index),
+      builtCity:this.buildings[index]===BUILDING_CODES.city,
+      cityLevel:this.cityUpgrades[index],
       doctrine:owner===0?this.doctrine:undefined,
     });
     if(order.remaining<=tile.attackerLoss)return {time:tile.time,captured:false,loss:0};
@@ -851,6 +853,8 @@ export class Game {
           borderSize,relativePower:this.relativeAttackPower(attacker.id,this.owner[index]),
           neutral:this.owner[index]===NEUTRAL,
           capital:this.capitalSites.has(index),
+          builtCity:this.buildings[index]===BUILDING_CODES.city,
+          cityLevel:this.cityUpgrades[index],
           doctrine:this.owner[index]===0?this.doctrine:undefined,
         });
         // A nearly spent army retreats with its survivors. It must NEVER
