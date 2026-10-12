@@ -7,6 +7,7 @@ import { buildingMarkerFor, showBuildingMarker, buildingMarkerFontSize } from '.
 // Keep natural-dark ocean and distinct faction colors; no pale map wash.
 import { COUNTRY_STARTS } from '../data/countries.js';
 import {formatCompact} from '../format.js';
+import {groupBattles,visualNoise,type FrontGroup} from './front-battles.js';
 
 const CW = WORLD_WIDTH / MAP_WIDTH;
 const CH = WORLD_HEIGHT / MAP_HEIGHT;
@@ -44,6 +45,9 @@ export class MapRenderer {
   // Combat highlights represent actual touching borders, never routes from a capital.
   private combatEdges: Array<{ ax:number; ay:number; bx:number; by:number }> = [];
   private combatLabels: Array<{ pos:Point; troops:number }> = [];
+  private frontGroups:FrontGroup[]=[];
+  private frontUpdatedAt=0;
+  private reducedMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches??false;
   game: Game;
   onSelect: (point: Point, landing: boolean) => void = () => {};
   onBuildRequest: (point: Point | null, clientX: number, clientY: number) => void = () => {};
@@ -73,6 +77,8 @@ export class MapRenderer {
     this.highlightOwner=WATER;
     this.highlightedCountry.getContext('2d')!.clearRect(0,0,WORLD_WIDTH,WORLD_HEIGHT);
     this.wave.reset(game.owner);
+    this.frontGroups=[];
+    this.frontUpdatedAt=0;
     this.updateTerritory();
     this.fit();
   }
@@ -147,7 +153,12 @@ export class MapRenderer {
     c.clearRect(0,0,WORLD_WIDTH,WORLD_HEIGHT);
     const owners = this.game.owner;
     this.buildingMarkers=[];
-    this.wave.capture(owners, performance.now());
+    const now=performance.now();
+    this.wave.capture(owners,now);
+    // Build contact clusters from genuine strikes this tick, not estimated
+    // or fabricated armies. Grouping is recomputed only at 4Hz, not per frame.
+    this.frontGroups=groupBattles(this.game.battleEvents,owners,MAP_WIDTH);
+    this.frontUpdatedAt=now;
     for (let i = 0; i < owners.length; i++) {
       const id = owners[i];
       if (id < 0) continue;
@@ -334,6 +345,96 @@ export class MapRenderer {
     c.restore();
   }
 
+  /** OpenFront-inspired movement language, independently rendered:
+   * actual blue (us) vs red (enemies) particles stream toward the genuine
+   * contact border. The cached groups are derived exclusively from strikes,
+   * so visual soldiers can NEVER influence simulation RNG or casualties.
+   */
+  private drawLiveBattles(c:CanvasRenderingContext2D,timestamp:number):void {
+    if(this.game.status!=='playing' || !this.frontGroups.length)return;
+    const since=Math.max(0,timestamp-this.frontUpdatedAt);
+    // Four game updates per second; a short tail bridges rendering frames
+    // without leaving permanent fake battles on old territory.
+    const fade=Math.max(0,Math.min(1,(720-since)/350));
+    if(fade<=0)return;
+    const w=this.canvas.clientWidth,h=this.canvas.clientHeight;
+    c.save();
+    c.lineCap='round';c.textBaseline='middle';
+    const labels:Array<{x:number;y:number}>=[];
+    let shown=0;
+    for(const group of this.frontGroups){
+      if(shown>=34)break;
+      if(!group.playerBattle && this.zoom<1.1)continue;
+      const x=this.ox+group.x*CW*this.scale;
+      const y=this.oy+group.y*CH*this.scale;
+      if(x<16||x>w-16||y<55||y>h-32)continue;
+      const magnitude=group.attacker+group.defender;
+      if(!(magnitude>0))continue;
+      shown++;
+      const dx=group.dx,dy=group.dy,nx=-dy,ny=dx;
+      const crowd=Math.min(22,Math.max(5,Math.floor(3+Math.sqrt(magnitude)*1.1)));
+      const isPlayer=group.playerBattle;
+      const side1=isPlayer?'#54c5ff':'#b8d8bc';
+      const side2=isPlayer?'#ff7275':'#f3aa75';
+      // Draw a few lightweight moving soldiers per side, rather than
+      // thousands of real sprites. All movement is deterministic by seed.
+      if(!this.reducedMotion){
+        for(let side=0;side<2;side++){
+          if(side===1 && (isPlayer?group.red:group.defender)<=0)continue;
+          c.strokeStyle=side===0?side1:side2;
+          c.fillStyle=c.strokeStyle;
+          for(let i=0;i<crowd;i++){
+            const seed=group.seed+side*10007+i*43;
+            const phase=(timestamp*(.00075+visualNoise(seed,0)*.00055)
+              +visualNoise(seed,1))%1;
+            const lane=(visualNoise(seed,2)-.5)*Math.min(20,8+group.strikes*1.5);
+            const sideSign=side===0?-1:1;
+            // Come in from the two opposing sides toward the border.
+            const travel=sideSign*(4.3+9.2*(1-phase));
+            const px=x+dx*travel+nx*lane,py=y+dy*travel+ny*lane;
+            const length=1.3+visualNoise(seed,4)*1.4;
+            c.globalAlpha=fade*(.38+phase*.6);
+            c.lineWidth=1.2;
+            c.beginPath();
+            c.moveTo(px-dx*sideSign*length,py-dy*sideSign*length);
+            c.lineTo(px+dx*sideSign*length,py+dy*sideSign*length);
+            c.stroke();
+          }
+        }
+      }
+      // Local contact sparks appear only when there really were defenders.
+      if((isPlayer?group.red:group.defender)>0){
+        const pulse=.45+.55*Math.abs(Math.sin(timestamp*.019+group.seed*.04));
+        c.globalAlpha=fade*pulse*.85;
+        c.fillStyle='#fff1be';
+        c.beginPath();c.arc(x,y,1.4+1.1*pulse,0,Math.PI*2);c.fill();
+        c.strokeStyle='rgba(255,174,94,.75)';c.lineWidth=.85;
+        c.beginPath();c.arc(x,y,4.4+2*pulse,0,Math.PI*2);c.stroke();
+      }
+      c.globalAlpha=1;
+      // Numbers mean actual soldiers fighting this tick, not total country
+      // population. Only human-involved contacts get blue/red counterplates.
+      if(!isPlayer||this.zoom<1.15)continue;
+      const labelX=x,labelY=y-25;
+      if(labelX<59||labelX>w-59||labelY<68||labelY>h-42)continue;
+      if(labels.some(p=>Math.abs(p.x-labelX)<112&&Math.abs(p.y-labelY)<31))continue;
+      labels.push({x:labelX,y:labelY});
+      const bw=112,bh=23;
+      c.globalAlpha=fade*.96;
+      c.fillStyle='rgba(7,21,31,.9)';
+      c.strokeStyle='rgba(173,195,194,.65)';
+      c.lineWidth=.7;
+      c.beginPath();c.roundRect(labelX-bw/2,labelY-bh/2,bw,bh,5);c.fill();c.stroke();
+      c.textAlign='center';c.font='700 10px system-ui';
+      c.fillStyle=side1;c.fillText('●',labelX-48,labelY);
+      c.fillStyle='#e2f5fe';c.fillText(formatCompact(group.blue),labelX-23,labelY,43);
+      c.fillStyle=side2;c.fillText('●',labelX+6,labelY);
+      c.fillStyle='#ffe5df';c.fillText(formatCompact(group.red),labelX+31,labelY,43);
+      c.globalAlpha=1;
+    }
+    c.restore();
+  }
+
   private drawTroopBadges(c: CanvasRenderingContext2D) {
     c.save();
     const width = this.canvas.clientWidth, height = this.canvas.clientHeight;
@@ -467,6 +568,7 @@ export class MapRenderer {
     // Mouse feedback is now the subtle whole-target tint cached above.
     // No hover square or animated point circle.
     c.restore();
+    this.drawLiveBattles(c,timestamp);
     this.drawTroopBadges(c);
     requestAnimationFrame(t=>this.frame(t));
   }
