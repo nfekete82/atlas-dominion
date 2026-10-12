@@ -25,6 +25,8 @@ export interface Faction {
   troops: number;
   money: number;
   moneyIncome: number;
+  /** Precise population cache refreshed every tick and real battle casualty. */
+  population: number;
   /** Cached whole-empire strength used consistently by humans and bots. */
   militaryPower: number;
   builtCities: number;
@@ -210,7 +212,7 @@ export class Game {
       .slice(0, Math.max(1, Math.min(COUNTRY_STARTS.length, opponentCount + 1)));
     this.factions = starts.map((start, id) => ({
       id, name: start.name, capital: start.capital, color: factionColor(id),
-      troops:id===0?90:this.difficultySettings.aiStartingTroops, money:90, moneyIncome: 0, militaryPower: 0, builtCities:0,
+      troops:id===0?90:this.difficultySettings.aiStartingTroops, money:90, moneyIncome: 0, population: 0, militaryPower: 0, builtCities:0,
       territory: 0, income: 0, target: geoToCell(start.lon,start.lat),
       ai:id!==0, alive:true, cityCount:0, captured:0, defenseSpent:0, defenseFallenTick:0, attackFallen:0, enemyFallen:0, campaignEnergy:id===0?110:110*this.difficultySettings.marchMultiplier, battleFocus:-1, intent:'hold' as const,
     }));
@@ -298,6 +300,7 @@ export class Game {
     for(const faction of this.factions){
       faction.alive=faction.territory>0;
       const totalPeople=people[faction.id];
+      faction.population=totalPeople;
       faction.militaryPower=empirePower(totalPeople,faction.territory,faction.cityCount+faction.builtCities);
       const growth=troopGrowth(totalPeople,faction.territory,faction.cityCount,faction.builtCities);
       faction.income=faction.id===0?growth*(this.doctrine==='fortify'?1.20:this.doctrine==='blitz'?.90:1):growth*this.difficultySettings.growthMultiplier;
@@ -682,7 +685,7 @@ export class Game {
     const friendly=LAND_NEIGHBORS[index].reduce((n,i)=>n+(this.owner[i]===attacker.id?1:0),0);
     if(owner!==order.targetOwner || (!friendly && !(order.landing&&order.conquered===0)))
       return {time:1,captured:false,loss:0};
-    const targetPopulation=defender?this.populationOf(owner):0;
+    const targetPopulation=defender?defender.population:0;
     const localPosted=defender?this.frontline[index]:0;
     const tile=frontTileOutcome({
       attackTroops:order.remaining,
@@ -708,12 +711,14 @@ export class Game {
       defenderLoss=posted+reserveLost;
       defender.defenseSpent+=defenderLoss;
       defender.defenseFallenTick+=defenderLoss;
+      defender.population=Math.max(0,defender.population-defenderLoss);
       defender.enemyFallen+=tile.attackerLoss;
       attacker.enemyFallen+=defenderLoss;
     }
     const loss=Math.min(order.remaining,tile.attackerLoss);
     order.remaining-=loss;order.fallen+=loss;
     attacker.attackFallen+=loss;
+    attacker.population=Math.max(0,attacker.population-loss);
     this.lastAttackerLoss=loss;
     if(this.battleEvents.length<1600)this.battleEvents.push({
       tick:this.tick,index,attackerId:attacker.id,defenderId:owner,
@@ -750,7 +755,7 @@ export class Game {
           Math.sqrt(Math.max(1,order.committed))*.12);
         const cost=frontTileOutcome({
           attackTroops:order.remaining,defenderReserve:0,
-          defenderPopulation:this.owner[index]<0?0:this.populationOf(this.owner[index]),
+          defenderPopulation:this.owner[index]<0?0:this.factions[this.owner[index]].population,
           defenderTerritory:this.owner[index]<0?0:this.factions[this.owner[index]].territory,
           postedTroops:this.frontline[index],defenseStrength:this.defense[index],
           friendlySides:LAND_NEIGHBORS[index].filter(n=>this.owner[n]===attacker.id).length,
