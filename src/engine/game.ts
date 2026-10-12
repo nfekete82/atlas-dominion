@@ -1091,6 +1091,35 @@ export class Game {
    * If its port is lost, survivors are demobilized into the living nation's
    * reserve on return; an eliminated nation loses the stranded expedition.
    */
+  /** Add ACTUAL mobile troops to an existing live offensive without
+   * creating another order or bypassing the same connected-front rules.
+   */
+  reinforceAttack(id:number,orderId:number,ratio:number):AttackResult {
+    const fail=(reason:string):AttackResult=>({ok:false,reason,sent:0});
+    const faction=this.factions[id];
+    const order=this.attackOrders.find(o=>o.id===orderId&&o.factionId===id);
+    if(!faction?.alive||this.status!=='playing'||!order||order.returning)
+      return fail('Diese Offensive kann nicht verstärkt werden.');
+    if(!Number.isFinite(ratio)||ratio<5||ratio>100)
+      return fail('Ungültiger Truppenanteil.');
+    if(order.targetOwner>=0&&this.isAllied(id,order.targetOwner))
+      return fail('Verbündetes Land kann nicht angegriffen werden.');
+    if(order.landing&&order.conquered===0&&this.tick<(order.arrivalTick??Infinity))
+      return fail('Flotte unterwegs: Verstärkung erst nach der Landung.');
+    if(this.chooseOrderedFront(order)<0)
+      return fail('Keine erreichbare offene Front für diese Offensive.');
+    const sent=Math.floor(faction.troops*ratio/100);
+    if(sent<8)return fail('Nicht genügend mobile Soldaten.');
+    faction.troops-=sent;
+    order.remaining+=sent;
+    order.committed+=sent;
+    order.effort+=campaignEffort(sent);
+    if(id===0)this.log(`Offensive verstärkt: +${formatCompact(sent)} Truppen.`,faction.color);
+    return {ok:true,reason:'Offensive verstärkt.',sent,
+      targetOwner:order.targetOwner,front:order.contested!==undefined?
+        cellToPoint(order.contested):order.anchor};
+  }
+
   cancelAttack(orderId:number,requesterId?:number):boolean {
     const order=this.attackOrders.find(o=>o.id===orderId);
     if(!order||order.returning||
