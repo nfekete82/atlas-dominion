@@ -1106,7 +1106,10 @@ export class Game {
       return fail('Verbündetes Land kann nicht angegriffen werden.');
     if(order.landing&&order.conquered===0&&this.tick<(order.arrivalTick??Infinity))
       return fail('Flotte unterwegs: Verstärkung erst nach der Landung.');
-    if(this.chooseOrderedFront(order)<0)
+    // Live front candidates are cached each simulation tick. A newly
+    // dispatched order can also be reinforced while paused, before the next
+    // cache rebuild, provided its original enemy sector is still reachable.
+    if(this.chooseOrderedFront(order)<0&&!this.findAttackFront(id,order.anchor))
       return fail('Keine erreichbare offene Front für diese Offensive.');
     const sent=Math.floor(faction.troops*ratio/100);
     if(sent<8)return fail('Nicht genügend mobile Soldaten.');
