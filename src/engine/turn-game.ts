@@ -141,7 +141,7 @@ export class TurnGame {
   }
   upgrade(province:number):TurnResult {
     const p=this.check(province),f=this.factions[this.active];
-    const cost=[0,5,10,20,35][p.cityLevel];
+    const cost=[5,10,20,35,55][p.cityLevel];
     if(this.phase!=='develop'||p.owner!==this.active||p.cityLevel>=5||f.gold<cost)
       return {ok:false,reason:'Upgrade unavailable'};
     f.gold-=cost;p.cityLevel++;return {ok:true,reason:'City upgraded'};
