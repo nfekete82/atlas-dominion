@@ -932,9 +932,10 @@ export class Game {
       const expected=frontierTarget(this.factions[0].territory,
         this.factions[0].troops,this.capitalSites.has(i),this.doctrine==='fortify');
       const attacked=enemyAttacks.has(i);
-      const urgency=(attacked?100:0)+Math.max(0,expected-guards)/
+      const mode=this.borderOrders.get(i)??'hold';
+      const urgency=(mode!=='hold'?75:0)+(attacked?100:0)+Math.max(0,expected-guards)/
         Math.max(1,expected)*25+new Set(opponents).size*5;
-      hits.push({index:i,point:cellToPoint(i),mode:this.borderOrders.get(i)??'hold',
+      hits.push({index:i,point:cellToPoint(i),mode,
         guards,opponents:[...new Set(opponents)],attacked,urgency});
     }
     hits.sort((a,b)=>b.urgency-a.urgency||a.index-b.index);
