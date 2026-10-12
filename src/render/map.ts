@@ -507,6 +507,24 @@ export class MapRenderer {
         const flash=(Math.sin(phase*1.7)+1)/2;
         c.fillStyle='rgba(255,193,76,'+(.25+flash*.7)+')';
         c.beginPath();c.arc(x+24,y-6,2.5+flash*2,0,Math.PI*2);c.fill();
+        // Visible hit sparks and fallen silhouette communicate actual
+        // casualties from this tick; never modify simulation values.
+        const recent=this.game.battleEvents.filter(e=>e.tick===this.game.tick&&
+          (e.attackerId===squad.owner||e.defenderId===squad.owner)&&
+          Math.abs(e.index%MAP_WIDTH-squad.index%MAP_WIDTH)+
+          Math.abs(Math.floor(e.index/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH))<=1);
+        const casualties=recent.reduce((sum,e)=>sum+
+          (e.attackerId===squad.owner?e.attackerLost:0)+
+          (e.defenderId===squad.owner?e.defenderLost:0),0);
+        if(casualties>0){
+          c.fillStyle='rgba(250,107,91,'+(.3+flash*.6)+')';
+          for(let n=0;n<Math.min(4,Math.ceil(casualties/2));n++){
+            const px=x-13+n*9,py=y+8+(n%2)*2;
+            c.beginPath();c.arc(px,py,1.7+flash,0,Math.PI*2);c.fill();
+          }
+          c.strokeStyle='#b9a7a0';c.lineWidth=2;
+          c.beginPath();c.moveTo(x-8,y+13);c.lineTo(x-1,y+15);c.stroke();
+        }
       }
       c.font='bold 10px sans-serif';
       const label=Math.round(squad.troops).toString();
