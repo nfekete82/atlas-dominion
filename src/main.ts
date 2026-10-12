@@ -45,10 +45,13 @@ let nextWarAlert=1;
 let lastWarningTick=-1;
 const seenHostileOrders=new Set<number>();
 const lastBorderBreachTick=new Map<number,number>();
+let lastCombatSoundTick=-1000;
+let lastCaptureSoundTick=-1000;
 
 function resetTacticalWarnings():void {
   warAlerts=[];nextWarAlert=1;lastWarningTick=-1;seenHostileOrders.clear();
   lastBorderBreachTick.clear();
+  lastCombatSoundTick=-1000;lastCaptureSoundTick=-1000;
   $('warAlerts').hidden=true;$('warAlerts').replaceChildren();
   hoveredAttackPoint=null;
   $('attackAssessment').hidden=true;
@@ -72,8 +75,18 @@ function refreshWarAlerts():void {
       const index=order.contested??order.lastCaptured??pointToIndex(order.anchor);
       pushWarAlert('Angriff auf dein Gebiet',foe.name+' · '+format(order.remaining)+' Angreifer',index,'attack');
     }
+    // Real battle telemetry, capped to avoid a cacophony during blitzkrieg.
+    // Neutral expansion remains quiet; audible hits only accompany real wars.
+    if(game.tick-lastCombatSoundTick>=24&&game.battleEvents.some(b=>
+      b.defenderId>=0&&(b.attackerId===0||b.defenderId===0))){
+      soundscape.playEffect('attack');lastCombatSoundTick=game.tick;
+    }
     for(const battle of game.battleEvents){
       if(!battle.captured)continue;
+      if(battle.attackerId===0&&battle.defenderId>=0&&
+         game.tick-lastCaptureSoundTick>=32){
+        soundscape.playEffect('conquest');lastCaptureSoundTick=game.tick;
+      }
       const capital=game.cities.some(city=>city.index===battle.index);
       if(battle.defenderId===0&&battle.attackerId!==0){
         const last=lastBorderBreachTick.get(battle.attackerId)??-1000;
@@ -551,7 +564,7 @@ $('buildOptions').addEventListener('click',e=>{
     const result=game.upgradeCities(0,scope,buildSpot);
     attackMessage=result.ok?`${result.reason} · ${format(result.cost)} € · Wachstum steigt`:result.reason;
     attackMessageKind=result.ok?'success':'error';
-    if(result.ok){renderer.updateTerritory();closeBuildMenu();beep(690);}else renderBuildMenu();
+    if(result.ok){renderer.updateTerritory();closeBuildMenu();soundscape.playEffect('build');}else renderBuildMenu();
     update();return;
   }
   const upgradeButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-upgrade-city]');
@@ -559,7 +572,7 @@ $('buildOptions').addEventListener('click',e=>{
     const result=game.upgradeCity(0,buildSpot);
     attackMessage=result.ok?`${result.reason} · ${result.cost} € · Wachstum steigt`:result.reason;
     attackMessageKind=result.ok?'success':'error';
-    if(result.ok){renderer.updateTerritory();closeBuildMenu();beep(690);}else renderBuildMenu();
+    if(result.ok){renderer.updateTerritory();closeBuildMenu();soundscape.playEffect('build');}else renderBuildMenu();
     update();return;
   }
   const button=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-build]');
@@ -567,7 +580,7 @@ $('buildOptions').addEventListener('click',e=>{
   const result=game.build(0,buildSpot,button.dataset.build as BuildingType);
   attackMessage=result.ok?`Stadt gebaut · ${result.cost} € · Wachstum steigt`:result.reason;
   attackMessageKind=result.ok?'success':'error';
-  if(result.ok){renderer.updateTerritory();closeBuildMenu();beep(690);} else renderBuildMenu();
+  if(result.ok){renderer.updateTerritory();closeBuildMenu();soundscape.playEffect('build');} else renderBuildMenu();
   update();
 });
 window.addEventListener('pointerdown',e=>{
@@ -725,6 +738,7 @@ $('helpBtn').addEventListener('click',()=>showDialog('DEIN EINSATZBEFEHL',`
   <p><strong>TAKTISCHE KOMMANDOS:</strong> In „Laufende Offensiven“ kannst du eine bestehende Armee verstärken, zur aktuellen Front springen oder sie zurückziehen. Ein Landangriff gibt seine Überlebenden sofort frei; eine Flotte muss zuerst zurücksegeln. Fahre für eine grobe Risikoabschätzung über fremdes Gebiet – angezeigt wird ausdrücklich nur der nächste Frontsektor. Klickbare Warnungen auf der Karte führen dich zu Angriffen auf dein Land.</p>
   <div class="briefing-row"><b>06</b><span><strong>STÄDTE BAUEN:</strong> Rechtsklick auf eigenes Land. Städte kosten Geld und erhöhen das Wachstum. Auf eigenem bedrohtem Grenzgebiet kannst du im selben Menü gezielt Soldaten zur Verteidigung stationieren.</span></div>
   <div class="briefing-row"><b>07</b><span><strong>PAUSE:</strong> Leertaste oder Ⅱ. Mit 1×/2×/4× beschleunigen.</span></div>
+  <p><strong>TON UND MUSIK:</strong> Über ♫ oben rechts öffnest du das Soundmenü. Du kannst ruhige Hintergrundmusik und Spielgeräusche unabhängig an- oder ausschalten und ihre Lautstärken sowie die Gesamtlautstärke regeln. Die Einstellungen werden lokal gespeichert. Hintergrundmusik startet im Browser erst nach einer bewussten Interaktion mit dem Spiel beziehungsweise dem Soundmenü.</p>
   <p><strong>Doktrinen:</strong> EXPAND senkt die Kosten neutraler Eroberungen und erhöht deren Geschwindigkeit, BLITZ erhöht die Angriffsfrequenz, DEFENSE stärkt Einkommen und Garnisonen. Mit 1, 2, 3 umschalten.</p>
   <p><strong>Machtvergleich:</strong> Beim Angriff zählen auch die gesamte Bevölkerung, die Größe und die Städte des Gegners. Ein mächtigeres Reich reduziert deine Angriffswirkung prozentual und erhöht die eigenen Verluste. Kleinere Gegner kannst du effektiver angreifen. Die Wirkung ist auf 70–130 % begrenzt; die konkrete Grenzverteidigung entscheidet weiterhin mit.</p>
   <p><strong>LEBENDIGE FRONTEN:</strong> Direkt an echten Kampfgrenzen siehst du kleine blaue (dein Heer) und rote (Gegner) bewegte Truppensymbole. Die Zahlen zeigen die höchste tatsächlich beteiligte Soldatenzahl eines einzelnen Frontgefechts der aktuellen Runde; die gesamte offensive Armee steht weiter unter „Im Angriff“. Kontaktfunken erscheinen nur, wenn echte Verteidiger beteiligt sind. KI gegen KI ist dezenter dargestellt.</p>
