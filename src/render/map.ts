@@ -407,15 +407,23 @@ export class MapRenderer {
       const x=this.ox+(marker.index%MAP_WIDTH+.5)*CW*this.scale;
       const y=this.oy+(Math.floor(marker.index/MAP_WIDTH)+.5)*CH*this.scale;
       const size=city?30:18;
-      const bounds={x:x-size/2,y:y-size/2,width:size,height:size};
-      if(bounds.x<0||bounds.y<0||bounds.x+bounds.width>width||bounds.y+bounds.height>height)return;
-      if(this.occupancy.intersects(bounds,city?3:0))return;
+      // Dense towns need an offset industrial badge instead of suppressing
+      // the neighboring factory completely. The click box follows the badge.
+      const offsets=city?[[0,0]]:[[0,0],[22,-12],[-22,-12],[22,12],[-22,12],[0,-25],[0,25]];
+      let bounds:ScreenRect|null=null;
+      for(const [dx,dy] of offsets){
+        const candidate={x:x+dx-size/2,y:y+dy-size/2,width:size,height:size};
+        if(candidate.x<0||candidate.y<0||candidate.x+size>width||candidate.y+size>height)continue;
+        if(this.occupancy.intersects(candidate,city?3:0))continue;
+        bounds=candidate;break;
+      }
+      if(!bounds)return;
       const level=this.game.cityUpgrades[marker.index];
       this.occupancy.reserve(bounds);
       this.visibleCityMarkers.push({index:marker.index,x,y,level,bounds});
       if(city)drawCityMarker(c,x,y,level,marker.owner);
       else {
-        c.save();c.translate(x,y);
+        c.save();c.translate(bounds.x+size/2,bounds.y+size/2);
         c.lineJoin='round';c.lineCap='round';c.lineWidth=1.2;
         c.strokeStyle='#142a31';c.fillStyle=marker.owner===0?'#d7ab70':'#b6c4c9';
         if(marker.code===3){
