@@ -464,22 +464,50 @@ export class MapRenderer {
     for(const marker of markers)draw(marker);
   }
 
-  private drawSquads(c:CanvasRenderingContext2D):void {
+  /** Lightweight animated infantry, using canvas shapes rather than heavy assets.
+   * Positions and motion are deterministic visual-only effects.
+   */
+  private drawSquads(c:CanvasRenderingContext2D,time=0):void {
     c.save();c.textAlign='center';c.textBaseline='middle';
     for(const squad of this.game.squads){
       const x=this.ox+(squad.index%MAP_WIDTH+.5)*CW*this.scale;
       const y=this.oy+(Math.floor(squad.index/MAP_WIDTH)+.5)*CH*this.scale;
-      if(x<0||y<0||x>this.canvas.clientWidth||y>this.canvas.clientHeight)continue;
-      c.fillStyle=squad.owner===0?'#68caff':'#ff8e8e';
-      if(this.selectedSquadIds.includes(squad.id)){
-        c.strokeStyle='#ffe58b';c.lineWidth=2.5;c.beginPath();c.arc(x,y,12,0,Math.PI*2);c.stroke();
+      if(x< -40||y< -40||x>this.canvas.clientWidth+40||y>this.canvas.clientHeight+40)continue;
+      const selected=this.selectedSquadIds.includes(squad.id);
+      const count=Math.min(8,Math.max(3,Math.ceil(squad.troops/65)));
+      const marching=squad.destination!==null;
+      const combat=squad.attackTarget!==null&&squad.attackTarget!==undefined&&squad.destination===null;
+      const tint=squad.owner===0?'#79d3fa':this.game.factions[squad.owner]?.color??'#d98c8c';
+      const phase=time*.009+squad.id*1.37;
+      if(selected){
+        c.strokeStyle='#ffe58b';c.lineWidth=2;c.setLineDash([3,3]);
+        c.beginPath();c.ellipse(x,y,23,16,0,0,Math.PI*2);c.stroke();c.setLineDash([]);
       }
-      c.strokeStyle='#122732';c.lineWidth=2;
-      c.beginPath();c.arc(x,y,7,0,Math.PI*2);c.fill();c.stroke();
-      c.fillStyle='#0b2333';c.font='bold 9px sans-serif';c.fillText('⚔',x,y);
-      c.font='bold 10px sans-serif';c.fillStyle='#ffffff';c.strokeStyle='#112733';
+      for(let n=0;n<count;n++){
+        const col=n%4,row=Math.floor(n/4);
+        const sway=marching?Math.sin(phase+n*.8)*2:Math.sin(phase*.22+n)*.35;
+        const px=x+(col-1.5)*8+(row%2)*3;
+        const py=y+(row-.35)*11+sway;
+        c.fillStyle='rgba(0,0,0,.30)';c.beginPath();c.ellipse(px,py+5,3.4,1.7,0,0,Math.PI*2);c.fill();
+        c.strokeStyle='#233845';c.lineWidth=1.5;
+        c.beginPath();c.moveTo(px-1,py+2);c.lineTo(px-2+(marching?sway*.4:0),py+6);
+        c.moveTo(px+1,py+2);c.lineTo(px+2-(marching?sway*.4:0),py+6);c.stroke();
+        c.fillStyle=tint;c.fillRect(px-2.8,py-3,5.6,6);
+        c.fillStyle='#eed8b6';c.beginPath();c.arc(px,py-5,2.3,0,Math.PI*2);c.fill();
+        c.fillStyle=squad.owner===0?'#306c91':'#54464c';
+        c.fillRect(px-2.7,py-7.6,5.4,2.4);
+        c.strokeStyle='#d7d9db';c.lineWidth=1;
+        c.beginPath();c.moveTo(px+3,py-2);c.lineTo(px+7,py-(combat?7:4));c.stroke();
+      }
+      if(combat){
+        const flash=(Math.sin(phase*1.7)+1)/2;
+        c.fillStyle='rgba(255,193,76,'+(.25+flash*.7)+')';
+        c.beginPath();c.arc(x+24,y-6,2.5+flash*2,0,Math.PI*2);c.fill();
+      }
+      c.font='bold 10px sans-serif';
       const label=Math.round(squad.troops).toString();
-      c.strokeText(label,x,y-13);c.fillText(label,x,y-13);
+      c.lineWidth=3;c.strokeStyle='#102534';c.strokeText(label,x,y-19);
+      c.fillStyle='#ffffff';c.fillText(label,x,y-19);
     }
     c.restore();
   }
@@ -1023,7 +1051,7 @@ export class MapRenderer {
     this.drawCapitalNames(c);
     this.drawFactoryLinks(c,timestamp);
     this.drawBuildings(c);
-    this.drawSquads(c);
+    this.drawSquads(c,timestamp);
     if(this.selectionBox){
       const b=this.selectionBox;
       c.save();c.fillStyle='rgba(90,188,250,.16)';c.strokeStyle='#86d9ff';c.lineWidth=1.5;
