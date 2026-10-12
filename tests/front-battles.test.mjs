@@ -25,7 +25,7 @@ test('true orthogonal border only: owner, AI and neutral front positions cannot 
   assert.ok(b);
   assert.ok(b.x>2.4);
   // First sector of the next row is NOT adjacent to last sector of prior row.
-  const coastal=Int16Array.from([0,-2,-2,-2,0,1,-2,-2,-2,-2]);
+  const coastal=Int16Array.from([-2,-2,-2,-2,0,1,-2,-2,-2,-2]);
   assert.equal(locateBattleContact(event(5,0,1,21,6),coastal,width),null);
   assert.equal(locateBattleContact(event(2,0,1,21,5),Int16Array.from([0,0,-2,1,1]),width),null);
 });
