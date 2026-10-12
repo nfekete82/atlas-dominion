@@ -1593,7 +1593,7 @@ export class Game {
         Math.round(30*this.difficultySettings.activityMultiplier)));
       // Stagger naval planning and allow it while profitable landfronts exist.
       // At most one fleet and two total offensives, using actual reserves.
-      if(active<2&&this.tick%32===faction.id%32 && this.tryNavalAttack(faction.id,ratio))continue;
+      if(active<2&&this.tick>=(faction.warCooldownUntil??0)&&this.tick%32===faction.id%32 && this.tryNavalAttack(faction.id,ratio))continue;
       if(active>=maxActive || faction.troops<22||
          this.tick<(faction.warCooldownUntil??0))continue;
       const target=this.chooseFront(faction.id);
