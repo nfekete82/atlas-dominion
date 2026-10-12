@@ -56,6 +56,9 @@ export interface Alliance { a:number; b:number; sinceTick:number; }
 export interface AllianceOffer { from:number; to:number; untilTick:number; }
 export interface DefenseAid { from:number; to:number; troops:number; arrivalTick:number; }
 export interface DiplomacyResult { ok:boolean; reason:string; }
+export interface AllianceEvaluation {
+  score:number; threshold:number; accepted:boolean; reason:string;
+}
 /** Immutable snapshots of ACTUAL frontline strikes for the renderer.
  * They never move armies or change outcomes: this is combat telemetry.
  */
@@ -410,14 +413,46 @@ export class Game {
     return {ok:true,reason:'Bündnis mit '+this.factions[b].name+' geschlossen.'};
   }
 
-  /** Transparent, deterministic response to player diplomacy proposals.
-   * Large power imbalances and existing alliances reduce enthusiasm, not RNG.
+  /** Whether a COALITION makes strategic sense TO THE RECIPIENT.
+   * Same deterministic evaluation for player requests and AI initiatives:
+   * useful armed partners, local security, present threats and treaty load.
+   * No random acceptance and no free troops. Pure read-only calculation.
    */
-  private willingness(a:number,b:number):number {
-    const aa=this.factions[a],bb=this.factions[b];
-    const ratio=Math.abs(Math.log((aa.population+10)/(bb.population+10)));
-    const threatened=this.attackOrders.some(o=>o.targetOwner===b&&o.factionId!==a)?12:0;
-    return 73-Math.min(55,ratio*14)-this.alliesOf(b).length*13+threatened;
+  evaluateAlliance(from:number,to:number):AllianceEvaluation {
+    const invalid=this.canAlly(from,to);
+    const threshold=46;
+    if(!invalid.ok)return {score:0,threshold,accepted:false,reason:invalid.reason};
+    const sponsor=this.factions[from],recipient=this.factions[to];
+    const sponsorPower=Math.max(1,sponsor.militaryPower||sponsor.population+32);
+    const recipientPower=Math.max(1,recipient.militaryPower||recipient.population+32);
+    // A weak would-be ally is often a liability to a much stronger country.
+    const strength=Math.max(-39,Math.min(23,Math.log(sponsorPower/recipientPower)*14));
+    const ac=this.cities[from],bc=this.cities[to];
+    const distance=Math.hypot(ac.x-bc.x,ac.y-bc.y);
+    const proximity=Math.max(-13,Math.min(15,14-distance*.22));
+    const incoming=this.attackOrders.filter(o=>o.targetOwner===to&&o.factionId!==from&&
+      o.remaining>0&&!o.returning);
+    const pressure=Math.min(22,incoming.length*9);
+    const sponsorEnemies=new Set(this.attackOrders.filter(o=>o.factionId===from&&
+      o.targetOwner>=0&&o.remaining>0&&!o.returning).map(o=>o.targetOwner));
+    const recipientEnemies=new Set(incoming.map(o=>o.factionId));
+    const sharedRivals=[...sponsorEnemies].filter(enemy=>recipientEnemies.has(enemy)).length;
+    const commonInterests=Math.min(12,sharedRivals*6);
+    // The partner may drag the recipient into ongoing conflicts.
+    const obligations=Math.min(22,sponsorEnemies.size*7);
+    const commitments=this.alliesOf(to).length*9;
+    const score=Math.round(52+strength+proximity+pressure+commonInterests-obligations-commitments);
+    const accepted=score>=threshold;
+    const reason=accepted
+      ? pressure?'Strategisch sinnvoll: Schutz gegen laufende Angriffe.':
+        strength>8?'Strategisch sinnvoll: militärisch wertvoller Partner.':
+        proximity>4?'Strategisch sinnvoll: nahegelegener Partner.':
+        'Bündnis bringt ausreichend strategischen Nutzen.'
+      : strength< -15?'Angebot abgelehnt: zu geringer militärischer Nutzen.'
+        : obligations>=14?'Angebot abgelehnt: zu viele Kriege des möglichen Partners.'
+        : commitments?'Angebot abgelehnt: bereits zu viele Verpflichtungen.'
+        :'Angebot abgelehnt: kein ausreichender strategischer Vorteil.';
+    return {score,threshold,accepted,reason};
   }
 
   offerAlliance(from:number,to:number):DiplomacyResult {
@@ -430,7 +465,8 @@ export class Game {
       this.log(`🤝 Bündnisangebot von ${this.factions[from].name} erhalten.`,'#8dcdb1');
       return {ok:true,reason:'Bündnisangebot erhalten.'};
     }
-    if(this.willingness(from,to)<38)return {ok:false,reason:`${this.factions[to].name} lehnt das Bündnisangebot ab.`};
+    const evaluation=this.evaluateAlliance(from,to);
+    if(!evaluation.accepted)return {ok:false,reason:`${this.factions[to].name}: ${evaluation.reason}`};
     return this.signAlliance(from,to);
   }
 
@@ -462,9 +498,13 @@ export class Game {
     if(!this.factions[sender]?.alive||this.alliesOf(sender).length>=2)return;
     const targets=this.factions.filter(f=>f.id!==sender&&f.alive&&!this.isAllied(sender,f.id))
       .filter(f=>this.canAlly(sender,f.id).ok)
-      .sort((a,b)=>this.willingness(sender,b.id)-this.willingness(sender,a.id)||a.id-b.id);
+      // Evaluate both sides before contacting anyone: do not propose a
+      // coalition the receiving AI regards as strategically useless.
+      .sort((a,b)=>this.evaluateAlliance(sender,b.id).score-this.evaluateAlliance(sender,a.id).score||a.id-b.id);
     const target=targets[0];
-    if(target&&this.willingness(sender,target.id)>=44)this.offerAlliance(sender,target.id);
+    if(target&&this.evaluateAlliance(sender,target.id).accepted&&
+      (target.id===0||this.evaluateAlliance(target.id,sender).accepted))
+      this.offerAlliance(sender,target.id);
   }
 
   /** Dispatch AI-controlled allies' REAL mobile troops when a partner is
