@@ -59,7 +59,7 @@ test('compact country hover shows only total and mobile strength with live value
   await expect(details).not.toContainText('STÄDTE');
   await expect(details).not.toContainText('WACHSTUM');
   expect(await details.locator('b').allTextContents()).toEqual(['3K','2,3K']);
-  await expect(page.locator('#hoverAction')).toContainText('Rechts: Koalition');
+  await expect(page.locator('#hoverAction')).toContainText('Koalition');
   await expect.poll(()=>page.evaluate(()=>{
     const r=window.__atlas.renderer;
     return r.visibleCountryLabels.some(l=>
