@@ -89,8 +89,11 @@ export function groupBattles(
     group.attacker+=event.attacking;
     group.defender+=event.defending;
     if(playerBattle){
-      group.blue+=event.attackerId===0?event.attacking:event.defending;
-      group.red+=event.attackerId===0?event.defending:event.attacking;
+      // One army can strike several times in one tick. Showing the SUM
+      // would count the same soldiers repeatedly. A badge therefore shows
+      // peak real soldiers engaged in a single contact, not fake reinforcements.
+      group.blue=Math.max(group.blue,event.attackerId===0?event.attacking:event.defending);
+      group.red=Math.max(group.red,event.attackerId===0?event.defending:event.attacking);
       group.fallenBlue+=event.attackerId===0?event.attackerLost:event.defenderLost;
       group.fallenRed+=event.attackerId===0?event.defenderLost:event.attackerLost;
     }
