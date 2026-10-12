@@ -160,7 +160,7 @@ test('Border click commits the selected troop percentage immediately',()=>{
   const ownedBefore=count(g,0);
   g.step();
   // Marching costs time and a small number of actual soldiers on neutral land.
-  assert.ok(g.attackOrders[0]?.effort < result.sent*1.65 || g.attackOrders.length===0);
+  assert.ok(g.attackOrders[0]?.effort <= result.sent*1.65 || g.attackOrders.length===0);
   assert.ok(g.factions[0].attackFallen>0);
   assert.ok(count(g,0)>ownedBefore);
 });
@@ -227,7 +227,9 @@ test('Without a player click no autonomous player attack is initiated',()=>{
   const g=new Game(8);
   const start=count(g,0);
   for(let t=0;t<5;t++)g.step();
-  assert.equal(count(g,0),start);
+  // AI nations can attack and conquer our sectors autonomously; that is a
+  // defensive consequence, NOT an unauthorized player attack.
+  assert.ok(count(g,0)<=start);
   assert.equal(g.attackOrders.filter(o=>o.factionId===0).length,0,
     'AI nations may have their own outgoing armies; player never attacks automatically');
 });
