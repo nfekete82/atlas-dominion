@@ -711,7 +711,7 @@ function startCountry(code:string): void {
   attackMessageKind='neutral';
   renderer.setGame(game);
   renderer.focusOnCapital(game.cities[0]);
-  soundscape.unlock(); // Starting a new match is an explicit user gesture.
+  soundscape.update({},true); // Deliberate Start click may resume previously opted-in music.
   resetTacticalWarnings();
   populateDiplomacy();
   prevStatus=game.status;
