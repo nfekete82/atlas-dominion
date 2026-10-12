@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {Game,cellToPoint} from '../dist/src/engine/game.js';
 
 test('RTS barracks train paid soldiers without passive human mobile growth',()=>{
- const g=new Game(711,1,'DE');
+ const g=new Game(711,1,'DE','balanced',true);
  const before=g.factions[0].troops;
  g.step();
  assert.equal(g.factions[0].troops,before,'no free mobile recruits per tick');
