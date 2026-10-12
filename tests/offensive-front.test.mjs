@@ -20,7 +20,7 @@ test('a single invasion advances 25 sectors from one original click without an a
 
 test('does not jump to other borders, wrap rows, cross foreign countries or water',()=>{
   const width=6;
-  const owners=Int16Array.from([0,1,1,2,-2,0, 2,-2,2,1,1,1]);
+  const owners=Int16Array.from([0,1,1,2,-2,2, 2,-2,2,1,1,1]);
   const noJump=chooseAdvancingSector({owners,width,attackerId:0,targetOwner:1,
     candidates:[1,9,10,11],anchor:1,trail:[]});
   assert.equal(noJump,1);
