@@ -1178,12 +1178,16 @@ export class Game {
     });
     if(order.remaining<=tile.attackerLoss)return {time:tile.time,captured:false,loss:0};
     let defenderLoss=0;
+    let defenderEngaged=0;
     if(defender){
       const posted=Math.min(localPosted,tile.postedLoss);
       this.frontline[index]-=posted;
       const reserveLost=Math.min(defender.troops,Math.max(0,tile.defenderLoss-posted));
       defender.troops-=reserveLost;
       defenderLoss=posted+reserveLost;
+      // Existing local guards plus actually called-up reservists; this
+      // describes the fighting strength, never the number of fatalities.
+      defenderEngaged=localPosted+reserveLost;
       defender.defenseSpent+=defenderLoss;
       defender.defenseFallenTick+=defenderLoss;
       defender.population=Math.max(0,defender.population-defenderLoss);
@@ -1197,7 +1201,7 @@ export class Game {
     this.lastAttackerLoss=loss;
     if(this.battleEvents.length<1600)this.battleEvents.push({
       tick:this.tick,index,attackerId:attacker.id,defenderId:owner,
-      attacking:order.remaining+loss,defending:defenderLoss,
+      attacking:order.remaining+loss,defending:defenderEngaged,
       attackerLost:loss,defenderLost:defenderLoss,captured:false,
     });
     // Stationed guards cannot simply vanish when a tile changes color.
@@ -1439,12 +1443,14 @@ export class Game {
     const garrisonStrength=this.defense[index];
     let mitigation = 0;
     let defenderLosses=0;
+    let defenderEngaged=0;
     let defender: Faction | null = null;
     let capital = false;
     if (originalOwner >= 0 && originalOwner !== faction.id) {
       defender = this.factions[originalOwner];
       capital = this.capitalSites.has(index);
       const fortified = originalOwner === 0 && this.doctrine === 'fortify';
+      const localPosted=this.frontline[index];
       const local = interceptAttack(this.frontline[index], rawDamage, fortified, capital);
       this.frontline[index] -= local.used;
       defenderLosses+=local.used;
@@ -1460,6 +1466,7 @@ export class Game {
       const emergencyLimit=Math.min(defender.troops,
         Math.max(1.5,rawDamage*(capital?.55:.36)));
       const emergency = interceptAttack(emergencyLimit, Math.max(0, rawDamage - mitigation), fortified, capital);
+      defenderEngaged=localPosted+emergency.used;
       defender.troops -= emergency.used;
       defenderLosses+=emergency.used;
       defender.defenseSpent += emergency.used;
@@ -1489,7 +1496,7 @@ export class Game {
     // Capped so an extremely busy high-speed simulation stays renderable.
     if(this.battleEvents.length<1600)this.battleEvents.push({
       tick:this.tick,index,attackerId:faction.id,defenderId:originalOwner,
-      attacking:spent,defending:defenderLosses,
+      attacking:spent,defending:defenderEngaged,
       attackerLost:this.lastAttackerLoss,defenderLost:defenderLosses,captured,
     });
     if(!captured)return false;
