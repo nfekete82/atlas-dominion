@@ -30,3 +30,20 @@ test('factory buildingAt stays recognized for the right click menu',()=>{
  assert.equal(g.build(0,cellToPoint(site),'factory').ok,true);
  assert.equal(g.buildingAt(cellToPoint(site)),'factory');
 });
+
+test('RTS opening funds an immediate barracks and first squad without free AI growth',()=>{
+ const g=new Game(713,2,'DE','balanced',true);
+ const site=g.owner.findIndex((v,i)=>v===0&&!g.buildings[i]&&g.canBuild(0,cellToPoint(i),'barracks').ok);
+ assert.ok(site>=0);
+ assert.equal(g.factions[0].money,650);
+ assert.equal(g.build(0,cellToPoint(site),'barracks').ok,true);
+ assert.equal(g.recruitSquad(0,cellToPoint(site),100).ok,true);
+ assert.equal(g.squads[0].troops,100);
+ assert.ok(g.factions[0].money>=0);
+ const ai=g.factions[1];
+ const before=ai.troops,treasury=ai.money;
+ g.step();
+ assert.ok(ai.troops>=before);
+ assert.ok(ai.money>=0);
+ assert.ok(ai.troops-before<=Math.floor((treasury+ai.moneyIncome)/2)+1e-6);
+});
