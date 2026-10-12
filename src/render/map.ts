@@ -442,9 +442,9 @@ export class MapRenderer {
         c.restore();
       }
     };
-    const selected=markers.find(marker=>marker.index===hovered);
-    if(selected)draw(selected);
-    for(const marker of markers)if(marker!==selected)draw(marker);
+    // Never reorder drawing based on hover: the old selected-first code moved
+    // the badge underneath the cursor, breaking right-click hit testing.
+    for(const marker of markers)draw(marker);
   }
 
   private drawCapitalNames(c:CanvasRenderingContext2D):void {
@@ -1004,8 +1004,13 @@ export class MapRenderer {
   private cellAt(clientX:number,clientY:number,landing=false):Point|null {
     if(!landing){
       const box=this.canvas.getBoundingClientRect(),x=clientX-box.left,y=clientY-box.top;
-      const marker=this.visibleCityMarkers.find(m=>x>=m.bounds.x&&x<=m.bounds.x+m.bounds.width&&y>=m.bounds.y&&y<=m.bounds.y+m.bounds.height);
-      if(marker)return {x:marker.index%MAP_WIDTH,y:Math.floor(marker.index/MAP_WIDTH)};
+      const hits=this.visibleCityMarkers.filter(m=>
+        x>=m.bounds.x&&x<=m.bounds.x+m.bounds.width&&
+        y>=m.bounds.y&&y<=m.bounds.y+m.bounds.height);
+      // A smaller factory/tower takes precedence over the nearby city badge.
+      hits.sort((a,b)=>a.bounds.width*b.bounds.height-b.bounds.width*a.bounds.height||
+        Math.hypot(x-a.x,y-a.y)-Math.hypot(x-b.x,y-b.y));
+      if(hits[0])return {x:hits[0].index%MAP_WIDTH,y:Math.floor(hits[0].index/MAP_WIDTH)};
     }
     const p=this.worldAt(clientX,clientY);
     const x=Math.floor(p.x/CW),y=Math.floor(p.y/CH);
