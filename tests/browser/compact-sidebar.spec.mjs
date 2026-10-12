@@ -7,8 +7,13 @@ test('compact empire sidebar keeps primary military stats visible and collapses 
   await page.evaluate(()=>{window.__atlas.getGame().paused=true;window.__atlas.refresh();});
   await expect(page.locator('#troopCount')).toBeVisible();
   await expect(page.locator('#incomeCount')).toBeVisible();
+  await expect(page.locator('#mobileTroops')).toBeVisible();
+  await expect(page.locator('.troop-breakdown')).not.toHaveAttribute('open','');
   const cells=await page.locator('.stat').first().evaluate(e=>e.getBoundingClientRect().height);
   expect(cells).toBeLessThan(125);
+  await page.locator('.troop-breakdown summary').click();
+  await expect(page.locator('.troop-breakdown')).toHaveAttribute('open','');
+  await expect(page.locator('#frontTroops')).toBeVisible();
   await expect(page.locator('.defense-extra')).not.toHaveAttribute('open','');
   await page.locator('.defense-extra summary').click();
   await expect(page.locator('.defense-extra')).toHaveAttribute('open','');
