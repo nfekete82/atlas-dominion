@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { BUILDINGS, BUILDING_CODES, troopGrowth, taxRevenue, cityUpgradeCost } from '../dist/src/engine/economy.js';
+import { BUILDINGS, BUILDING_CODES, troopGrowth, taxRevenue, cityUpgradeCost, cityUpgradeGrowth } from '../dist/src/engine/economy.js';
 import { Game, cellToPoint, landNeighbors, NEUTRAL } from '../dist/src/engine/game.js';
 
 function vacantCitySite(game,id=0){
@@ -186,11 +186,24 @@ test('city recruitment scales with controlled territory instead of unlimited isl
   const smallUseful=troopGrowth(1000,20,1,1);
   const large=troopGrowth(1000,400,1,100);
   assert.ok(small>smallUseful,'extra development remains useful');
-  assert.ok(small-smallUseful<0.45,'extreme density has strongly diminishing returns');
+  assert.ok(small-smallUseful<1.5,'extreme density remains tightly bounded');
   assert.ok(large>small,'larger controlled land supports a stronger economy');
 });
 
 test('city tiers have steep, strictly increasing and affordable-by-design costs',()=>{
   assert.deepEqual(Array.from({length:5},(_,i)=>cityUpgradeCost(i)),[250,450,750,1150,1700]);
   for(const invalid of [-1,5,1.5])assert.throws(()=>cityUpgradeCost(invalid),RangeError);
+});
+
+test('expensive city upgrades meaningfully improve recruitment, but cannot overwhelm tiny territories',()=>{
+  const territory=120,people=2200,base=troopGrowth(people,territory,1,0);
+  const one=troopGrowth(people,territory,1,1);
+  const levelFive=troopGrowth(people,territory,1,1+cityUpgradeGrowth(5));
+  const developed=troopGrowth(people,territory,1,10*(1+cityUpgradeGrowth(5)));
+  assert.ok(one-base>1,'one city should have a meaningful economic reward');
+  assert.ok(levelFive-one>1,'a fully upgraded city must yield tangible extra recruits');
+  assert.ok(developed-levelFive>2,'multiple expensive cities must matter');
+  assert.ok(developed<base+9,'growth must remain bounded even with extreme city density');
+  assert.ok(troopGrowth(people,240,1,100)>troopGrowth(people,24,1,100),
+    'larger realms can support stronger recruitment');
 });
