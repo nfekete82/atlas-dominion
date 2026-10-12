@@ -54,6 +54,7 @@ export interface GameEvent { tick: number; text: string; color: string; }
 /** Bilateral non-aggression pact. Factions keep independent territory and armies. */
 export interface Alliance { a:number; b:number; sinceTick:number; }
 export interface AllianceOffer { from:number; to:number; untilTick:number; }
+export interface DefenseAid { from:number; to:number; troops:number; arrivalTick:number; }
 export interface DiplomacyResult { ok:boolean; reason:string; }
 /** Immutable snapshots of ACTUAL frontline strikes for the renderer.
  * They never move armies or change outcomes: this is combat telemetry.
@@ -187,7 +188,7 @@ export interface GameSave {
   owner:number[];defense:number[];buildings:number[];cityUpgrades:number[];frontline:number[];
   factions:Faction[];cities:City[];attackOrders:AttackOrder[];events:GameEvent[];
   /** Missing in v1 saves written before the diplomacy feature. */
-  alliances?:Alliance[];offers?:AllianceOffer[];
+  alliances?:Alliance[];offers?:AllianceOffer[];defenseAid?:DefenseAid[];
 }
 
 export class Game {
@@ -205,6 +206,8 @@ export class Game {
   readonly attackOrders: AttackOrder[] = [];
   readonly alliances:Alliance[]=[];
   readonly offers:AllianceOffer[]=[];
+  /** Real soldiers in transit to defend an attacked treaty partner. */
+  readonly defenseAid:DefenseAid[]=[];
   /** Upgrade levels for buildable city sites: 0 = basic, 1–5 = improvements. */
   readonly cityUpgrades = new Uint8Array(CELL_COUNT);
   private nextAttackId = 1;
@@ -460,6 +463,49 @@ export class Game {
       .sort((a,b)=>this.willingness(sender,b.id)-this.willingness(sender,a.id)||a.id-b.id);
     const target=targets[0];
     if(target&&this.willingness(sender,target.id)>=44)this.offerAlliance(sender,target.id);
+  }
+
+  /** Dispatch AI-controlled allies' REAL mobile troops when a partner is
+   * actively invaded. Support is deliberately modest and has an eight-tick
+   * travel delay; the player's reserves are NEVER spent automatically.
+   */
+  private dispatchDefensiveAid():void {
+    if(this.tick%24!==0)return;
+    for(const pact of this.alliances){
+      for(const [from,to] of [[pact.a,pact.b],[pact.b,pact.a]]){
+        const donor=this.factions[from],recipient=this.factions[to];
+        if(!donor.ai||!donor.alive||!recipient.alive)continue;
+        const invaded=this.attackOrders.some(o=>o.targetOwner===to&&o.factionId!==to&&
+          !this.isAllied(o.factionId,to)&&o.remaining>0&&!o.returning);
+        if(!invaded||this.defenseAid.some(a=>a.from===from&&a.to===to))continue;
+        // A donor must first protect its own homeland and other obligations.
+        const reserve=Math.max(60,donor.income*7);
+        const available=Math.max(0,donor.troops-reserve);
+        const amount=Math.floor(Math.min(available,donor.troops*.06,
+          Math.max(6,donor.income*1.8),36));
+        if(amount<2)continue;
+        donor.troops-=amount;
+        this.defenseAid.push({from,to,troops:amount,arrivalTick:this.tick+8});
+        if(to===0)this.log(`🤝 ${donor.name} sendet ${formatCompact(amount)} Verteidiger (8 Ticks Reisezeit).`,'#8dcdb1');
+      }
+    }
+  }
+
+  private deliverDefensiveAid():void {
+    for(let i=this.defenseAid.length-1;i>=0;i--){
+      const aid=this.defenseAid[i];
+      if(aid.arrivalTick>this.tick)continue;
+      const recipient=this.factions[aid.to],sender=this.factions[aid.from];
+      // Broken pacts return survivors to their donor; conquered donors
+      // cannot receive back their army, so survivors aid the old recipient.
+      const delivered=recipient.alive&&(this.isAllied(aid.from,aid.to)||!sender.alive);
+      if(delivered){
+        recipient.troops+=aid.troops;
+        if(aid.to===0)this.log(`🤝 ${formatCompact(aid.troops)} alliierte Verteidiger eingetroffen.`,'#8dcdb1');
+      }else if(sender.alive)sender.troops+=aid.troops;
+      else sender.attackFallen+=aid.troops;
+      this.defenseAid.splice(i,1);
+    }
   }
 
   private log(text: string, color = '#b9c4d0') {
@@ -1374,6 +1420,7 @@ export class Game {
     if (this.paused || this.status !== 'playing') return;
     this.tick++;
     this.updateDiplomacy();
+    this.deliverDefensiveAid();
     this.battleEvents.length=0;
     for(const faction of this.factions)faction.defenseFallenTick=0;
     if (this.tick >= this.aiGoalChange) {
@@ -1398,6 +1445,7 @@ export class Game {
     }
     if(this.tick%this.difficultySettings.cityInterval===0)this.developAI();
     this.redistributeFrontline();
+    this.dispatchDefensiveAid();
     this.rebuildFrontierCandidates();
     // The SAME continuous-border military rules now govern humans AND AI.
     // AIs choose targets; orders fight over time using actual paid-for armies.
@@ -1441,6 +1489,7 @@ export class Game {
       attackOrders:this.attackOrders.map(o=>structuredClone(o)),
       events:this.events.map(e=>({...e})),
       alliances:this.alliances.map(a=>({...a})),offers:this.offers.map(o=>({...o})),
+      defenseAid:this.defenseAid.map(a=>({...a})),
     };
   }
 
@@ -1520,8 +1569,17 @@ export class Game {
        alliances.some(a=>g.attackOrders.some(o=>
          (o.factionId===a.a&&o.targetOwner===a.b)||(o.factionId===a.b&&o.targetOwner===a.a))))
       throw Error('Ungültige Bündnisdaten.');
+    const defenseAid=save.defenseAid??[];
+    if(!Array.isArray(defenseAid)||defenseAid.length>g.factions.length*2||
+       defenseAid.some(a=>!Number.isInteger(a.from)||!Number.isInteger(a.to)||
+         a.from<0||a.to<0||a.from===a.to||a.from>=g.factions.length||
+         a.to>=g.factions.length||!Number.isFinite(a.troops)||a.troops<=0||
+         !Number.isSafeInteger(a.arrivalTick)||a.arrivalTick<=save.tick||
+         a.arrivalTick>save.tick+8))
+      throw Error('Ungültige Bündnisverstärkung.');
     g.alliances.push(...structuredClone(alliances));
     g.offers.push(...structuredClone(offers));
+    g.defenseAid.push(...structuredClone(defenseAid));
     g.events.splice(0,g.events.length,...structuredClone(save.events));
     g.tick=save.tick;g.status=save.status;g.paused=!!save.paused;g.doctrine=save.doctrine;
     g.aiGoalChange=save.aiGoalChange;g.nextAttackId=save.nextAttackId;
