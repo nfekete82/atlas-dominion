@@ -40,11 +40,22 @@ test('AI can build multiple affordable spaced settlements when empire is underde
    if(g.owner[i]!==NEUTRAL)continue;g.owner[i]=id;claimed++;
  }
  g.recount();g.factions[id].money=3000;
- const existing=Array.from(g.buildings).filter(x=>x===1).length;
+ const before=new Set();
+ for(let i=0;i<g.buildings.length;i++)if(g.buildings[i]===1)before.add(i);
+ const existing=before.size;
  const gold=g.factions[id].money;
  g['developAI']();
  const built=Array.from(g.buildings).filter(x=>x===1).length-existing;
  assert.ok(built>=1&&built<=2,'spaced AI construction is gradual but can exceed one action');
+ const newSites=[];
+ for(let i=0;i<g.buildings.length;i++)if(g.owner[i]===id&&g.buildings[i]===1&&!before.has(i))newSites.push(i);
+ for(const city of newSites){
+   for(let i=0;i<g.buildings.length;i++){
+     if(city===i||g.buildings[i]!==1||g.owner[i]!==id)continue;
+     const dx=city%480-i%480,dy=Math.floor(city/480)-Math.floor(i/480);
+     assert.ok(dx*dx+dy*dy>=100,'new AI cities must be 10 sectors apart, including same-tick builds');
+   }
+ }
  assert.ok(g.factions[id].money<=gold-built*BUILDINGS[0].cost);
  assert.ok(g.factions[id].money>=0);
 });
