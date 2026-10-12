@@ -158,3 +158,9 @@
 
 /* Keep measured tooltip bounds inside the battlefield and clear of city hit areas. */
 .map-info{transform:none;max-width:min(330px,calc(100% - 8px));overflow-wrap:anywhere}
+
+/* Opaque military details stay legible above topography at every map zoom. */
+.map-info .military-details{margin:8px 0;padding:7px 0;border-block:1px solid #53646a;font-size:10px;line-height:1.55;letter-spacing:0}
+.military-details>div{display:flex;justify-content:space-between;gap:12px}
+.military-details span{color:#c5d4d0}
+.military-details b{white-space:nowrap;font-variant-numeric:tabular-nums}

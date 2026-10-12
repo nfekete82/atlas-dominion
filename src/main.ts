@@ -3,6 +3,7 @@ import { MapRenderer } from './render/map.js';
 import { BUILDINGS, type BuildingType } from './engine/economy.js';
 import { COUNTRY_STARTS, countryByCode } from './data/countries.js';
 import {formatCompact} from './format.js';
+import {relativeStrength} from './military-view.js';
 import {DIFFICULTY_SETTINGS,isDifficulty,type Difficulty} from './engine/difficulty.js';
 
 const $ = <T extends HTMLElement>(id: string): T => {
@@ -251,6 +252,32 @@ renderer.onHover=(point,px,py,landing)=>{
   const owner=$('hoverOwner');
   owner.textContent=f?.name??'UNBESETZTES GEBIET';
   owner.style.color=f?.color??'#bcc5bb';
+  const details=$('hoverMilitary');
+  const summary=renderer.military[id];
+  details.hidden=!summary;
+  if(summary){
+    const relative=relativeStrength(summary.total,renderer.military[0].total);
+    const rows=[
+      ['GESAMTSTÄRKE / BEVÖLKERUNG',format(summary.total)],
+      ['MOBILE TRUPPEN',format(summary.mobile)],
+      ['GRENZTRUPPEN GESAMT',format(summary.border)],
+      ['AKTIVE ANGRIFFSFRONTEN',String(summary.fronts)],
+      ['IM EINSATZ / AUF SEE',format(summary.deployed)],
+      ['STÄDTE',String(summary.cities)],
+      ['Ø STADTLEVEL (INKL. HAUPTSTÄDTE)',`${format(summary.averageCityLevel,1)} / 5`],
+      ['EINKOMMEN / TICK',`+${format(summary.income,1)} Geld`],
+      ['WACHSTUM / TICK',`+${format(summary.growth,1)}`],
+      ['STÄRKE VS. SPIELER',`${relative.text} · ${relative.danger==='weaker'?'SCHWÄCHER':relative.danger==='stronger'?'STÄRKER':'ÄHNLICH'}`],
+    ];
+    // Reuse DOM nodes on pointer movement; never interpolate country data as HTML.
+    if(!details.children.length)for(const _ of rows){
+      const row=document.createElement('div');row.append(document.createElement('span'),document.createElement('b'));details.append(row);
+    }
+    rows.forEach(([label,value],i)=>{
+      const row=details.children[i];row.children[0].textContent=label;row.children[1].textContent=value;
+    });
+    (details.lastElementChild as HTMLElement).style.color=relative.color;
+  }
   const built=game.buildingAt(point);
   const buildingName=BUILDINGS.find(b=>b.type===built)?.name;
   $('hoverCoords').textContent=`SEKTOR ${point.x} / ${point.y} · ${built==='city'?`STADT STUFE ${game.cityLevelAt(point)}/5`:buildingName?.toUpperCase()??(id===NEUTRAL?'NEUTRAL':'KONTROLLIERT')}`;

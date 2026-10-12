@@ -10,6 +10,7 @@ import { buildingMarkerFor, showBuildingMarker, drawCityMarker, cityMarkerBounds
 // Keep natural-dark ocean and distinct faction colors; no pale map wash.
 import { COUNTRY_STARTS } from '../data/countries.js';
 import {formatCompact} from '../format.js';
+import {militarySummaries,relativeStrength,strengthLabel,type MilitarySummary} from '../military-view.js';
 import {groupBattles,visualNoise,type FrontGroup} from './front-battles.js';
 
 const CW = WORLD_WIDTH / MAP_WIDTH;
@@ -42,10 +43,14 @@ export class MapRenderer {
   private last = { x: 0, y: 0 };
   private press = { x: 0, y: 0 };
   private hover: Point | null = null;
+  private hoverPointer:{x:number;y:number;landing:boolean}|null=null;
   private moved = false;
   private availableTargets = new Set<number>();
   private labels: Array<{ id: number; pos: Point }> = [];
-  private armyTotals: number[] = [];
+  military: MilitarySummary[] = [];
+  private strengthLabels: string[] = [];
+  private strengthRelations: ReturnType<typeof relativeStrength>[] = [];
+  private visibleCountryLabels:Array<{id:number;name:string;strength:string;fontSize:number;bounds:ScreenRect}>=[];
   private occupancy=new ScreenOccupancy();
   private cityAnchors=new ScreenOccupancy();
   private overlayBounds:ScreenRect[]=[];
@@ -84,6 +89,7 @@ export class MapRenderer {
   setGame(game: Game) {
     this.game = game;
     this.hover=null;
+    this.hoverPointer=null;
     this.hoverIndex=-1;
     this.hoverFront=null;
     this.highlightOwner=WATER;
@@ -227,7 +233,9 @@ export class MapRenderer {
     // separated markers so neighboring settlements cannot form giant blobs.
     this.buildingMarkers.sort((a,b)=>Number(b.owner===0)-Number(a.owner===0)
       || a.index-b.index);
-    this.armyTotals=this.game.factions.map(f=>f.troops+stationed[f.id]+this.game.attackOrders.filter(o=>o.factionId===f.id).reduce((n,o)=>n+o.remaining,0));
+    this.military=militarySummaries(this.game,stationed,this.buildingMarkers);
+    this.strengthLabels=this.military.map(s=>strengthLabel(s.total));
+    this.strengthRelations=this.military.map(s=>relativeStrength(s.total,this.military[0].total));
     // One prominent troop badge per active faction; anchor remains on owned land
     // even when the centroid lies outside a concave or fragmented territory.
     const best = new Float64Array(this.game.factions.length).fill(Infinity);
@@ -243,7 +251,10 @@ export class MapRenderer {
     this.labels = [...anchor].flatMap((index,id)=>index < 0 ? [] : [{ id,
       pos: pointToWorld({ x: index % MAP_WIDTH, y: Math.floor(index / MAP_WIDTH) }) }]);
 
+    this.labels.sort((a,b)=>Number(b.id===0)-Number(a.id===0)
+      ||this.game.factions[b.id].territory-this.game.factions[a.id].territory);
     this.refreshHoverPreview(this.hover, true);
+    if(this.hoverPointer)this.onHover(this.hover,this.hoverPointer.x,this.hoverPointer.y,this.hoverPointer.landing);
     this.combatEdges = [];
     this.combatLabels = [];
     for (const order of this.game.attackOrders) {
@@ -652,25 +663,30 @@ export class MapRenderer {
     const width = this.canvas.clientWidth, height = this.canvas.clientHeight;
     c.textAlign = 'center';
     let shown=0;
-    for(const label of this.labels){
+    this.visibleCountryLabels=[];
+    // Hovered small countries receive first choice of the available space.
+    const hoveredId=this.hoverIndex>=0?this.game.owner[this.hoverIndex]:WATER;
+    const labels=this.labels.slice().sort((a,b)=>Number(b.id===hoveredId)-Number(a.id===hoveredId));
+    for(const label of labels){
       const faction=this.game.factions[label.id];
       if(!faction?.alive)continue;
-      if(label.id!==0 && this.zoom<1.55 && faction.territory<90)continue;
-      if(label.id!==0 && this.zoom<2.3 && faction.territory<18)continue;
-      if(label.id!==0 && shown>=16 && this.zoom<2.6)continue;
+      if(label.id!==0 && label.id!==hoveredId && shown>=16 && this.zoom<2.6)continue;
       const x=this.ox+label.pos.x*this.scale;
       let y=this.oy+label.pos.y*this.scale+17;
       if(x<60||x>width-60||y<35||y>height-72)continue;
       const flag=FLAGS.get(faction.name)??'';
       const name=(flag?flag+' ':'')+faction.name;
       c.font=label.id===0?'750 15px system-ui':'700 13px system-ui';
-      const labelWidth=Math.min(160,c.measureText(name).width)+8;
+      const nameWidth=Math.min(160,c.measureText(name).width);
+      const count=this.strengthLabels[label.id];
+      c.font='800 14px system-ui';
+      const labelWidth=Math.max(nameWidth,c.measureText(count).width)+12;
       const preferredY=y;
       let fallback:number|undefined;
       let clear:number|undefined;
-      for(const offset of [0,30,-30,60,-60,90]){
-        const candidate={x:x-labelWidth/2,y:preferredY+offset-14,width:labelWidth,height:30};
-        if(candidate.y<30||candidate.y+30>height-88||this.occupancy.intersects(candidate))continue;
+      for(const offset of [0,40,-40,80,-80]){
+        const candidate={x:x-labelWidth/2,y:preferredY+offset-17,width:labelWidth,height:40};
+        if(candidate.y<30||candidate.y+40>height-88||this.occupancy.intersects(candidate))continue;
         fallback??=preferredY+offset;
         if(this.cityAnchors.intersects(candidate))continue;
         clear=preferredY+offset;break;
@@ -678,19 +694,22 @@ export class MapRenderer {
       if(clear===undefined&&fallback===undefined)continue;
       y=clear??fallback!;
       shown++;
-      this.occupancy.reserve({x:x-labelWidth/2,y:y-14,width:labelWidth,height:30});
-      c.globalAlpha=label.id===0?.95:this.zoom>=2.5?.82:.68;
+      const bounds={x:x-labelWidth/2,y:y-17,width:labelWidth,height:40};
+      this.occupancy.reserve(bounds);
+      this.visibleCountryLabels.push({id:label.id,name,strength:count,fontSize:14,bounds});
+      c.globalAlpha=1;
+      c.fillStyle='rgba(5,17,25,.78)';
+      c.fillRect(bounds.x,bounds.y,bounds.width,bounds.height);
+      c.shadowColor='#000';c.shadowBlur=4;c.shadowOffsetY=1;
       c.textAlign='center';c.lineJoin='round';
       c.strokeStyle='rgba(5,17,25,.85)';
       c.fillStyle=label.id===0?'#fff4cf':'#e1eae6';
       c.lineWidth=2.6;
       c.font=label.id===0?'750 15px system-ui':'700 13px system-ui';
       c.strokeText(name,x,y,160);c.fillText(name,x,y,160);
-      // The map's central number is the mobile reserve, not all soldiers including attacking armies.
-       // Reinforcing a front therefore immediately lowers the displayed count.
-       const count=formatCompact(Math.floor(faction.troops));
-      c.font=label.id===0?'700 10px system-ui':'600 9px system-ui';
-      c.lineWidth=2;c.strokeText(count,x,y+13,95);c.fillText(count,x,y+13,95);
+      c.font='800 14px system-ui';
+      c.fillStyle=this.strengthRelations[label.id].color;
+      c.lineWidth=3.5;c.strokeText(count,x,y+18);c.fillText(count,x,y+18);
     }
     c.globalAlpha=1;
 
@@ -853,7 +872,8 @@ export class MapRenderer {
       this.hover=this.cellAt(e.clientX,e.clientY,e.shiftKey);
       this.refreshHoverPreview(this.hover);
       const box=this.canvas.getBoundingClientRect();
-      this.onHover(this.hover,e.clientX-box.left,e.clientY-box.top,e.shiftKey);
+      this.hoverPointer={x:e.clientX-box.left,y:e.clientY-box.top,landing:e.shiftKey};
+      this.onHover(this.hover,this.hoverPointer.x,this.hoverPointer.y,e.shiftKey);
     });
     this.canvas.addEventListener('pointerup',e=>{
       if(e.button!==0)return;
@@ -861,7 +881,7 @@ export class MapRenderer {
       this.dragging=false;
     });
     this.canvas.addEventListener('pointercancel',()=>{this.dragging=false;});
-    this.canvas.addEventListener('pointerleave',()=>{this.hover=null;this.refreshHoverPreview(null);this.onHover(null,0,0,false);});
+    this.canvas.addEventListener('pointerleave',()=>{this.hover=null;this.hoverPointer=null;this.refreshHoverPreview(null);this.onHover(null,0,0,false);});
     // Both mouse secondary click and trackpad context click open the same
     // build menu. A secondary pointerup fallback covers browsers that do not
     // dispatch contextmenu on canvas after a pointer gesture.
