@@ -63,9 +63,9 @@ export function frontTileOutcome(input:TileClash):TileOutcome {
   // Defenders lose a proportional slice of their army per captured tile.
   // Real posted troops die first, otherwise the living mobile reserve pays.
   const expectedLoss=clamp(density*(input.capital?1.25:1)+
-    Math.min(defenses,.6),.12,Math.max(.12,input.defenderPopulation));
-  const postedLoss=Math.min(defenses,expectedLoss);
-  const defenderLoss=Math.min(expectedLoss,
+    Math.min(defenses,army*.10),.12,Math.max(.12,input.defenderPopulation));
+  const postedLoss=Math.min(defenses,Math.max(expectedLoss*.6,army*.10));
+  const defenderLoss=Math.min(Math.max(expectedLoss,postedLoss),
     Math.max(0,input.defenderReserve)+defenses);
   const time=clamp((.16+ratio*.045)*fort/(Math.max(.70,relative)*widthBonus),
     .045,2.4);
