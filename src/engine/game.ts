@@ -212,7 +212,7 @@ export interface GameSave {
   borderOrders?:Array<{index:number;mode:'defend'|'withdraw'}>;
   factoryLinks?:Array<{factory:number;city:number}>;
   factoryLevels?:Array<{index:number;level:number}>;
-  squads?:Array<{id:number;owner:number;index:number;troops:number;destination:number|null}>;
+  squads?:Array<{id:number;owner:number;index:number;troops:number;destination:number|null;attackTarget?:number|null}>;
   rtsRecruitment?:boolean;
 }
 
@@ -237,7 +237,7 @@ export class Game {
   readonly borderOrders=new Map<number,'defend'|'withdraw'>();
   readonly factoryLinks=new Map<number,number>();
   readonly factoryLevels=new Map<number,number>();
-  readonly squads:Array<{id:number;owner:number;index:number;troops:number;destination:number|null}>=[];
+  readonly squads:Array<{id:number;owner:number;index:number;troops:number;destination:number|null;attackTarget?:number|null}>=[];
   private nextSquadId=1;
   mobileNet=0;
   /** Real soldiers in transit to defend an attacked treaty partner. */
@@ -850,7 +850,7 @@ export class Game {
       f.money<cost||this.squads.filter(s=>s.owner===owner).length>=12)
       return {ok:false,reason:'Mindestens '+cost+' Geld und höchstens 12 Truppengruppen erforderlich.'};
     f.money-=cost;
-    this.squads.push({id:this.nextSquadId++,owner,index,troops:count,destination:null});
+    this.squads.push({id:this.nextSquadId++,owner,index,troops:count,destination:null,attackTarget:null});
     this.recount();
     return {ok:true,reason:count+' Soldaten für '+cost+' Geld ausgebildet.'};
   }
@@ -863,7 +863,35 @@ export class Game {
     const destination=pointToIndex(target);
     if(this.owner[destination]!==owner)return {ok:false,reason:'Truppenmarsche sind zunächst nur auf eigenem Gebiet möglich.'};
     squad.destination=destination;
+    squad.attackTarget=null;
     return {ok:true,reason:'Marschbefehl erteilt.'};
+  }
+
+  orderSquadAttack(owner:number,squadId:number,target:Point):DiplomacyResult {
+    const squad=this.squads.find(s=>s.owner===owner&&s.id===squadId);
+    if(!squad||!Number.isInteger(target.x)||!Number.isInteger(target.y)||
+      target.x<0||target.y<0||target.x>=MAP_WIDTH||target.y>=MAP_HEIGHT)
+      return {ok:false,reason:'Truppe oder Ziel ungültig.'};
+    const targetIndex=pointToIndex(target),defender=this.owner[targetIndex];
+    if(defender===WATER||defender===owner||this.isAllied(owner,defender))
+      return {ok:false,reason:'Kein angreifbares Gebiet.'};
+    const distance=new Int32Array(CELL_COUNT);distance.fill(-1);
+    const queue=[squad.index];distance[squad.index]=0;
+    let front=-1,enemy=-1,head=0,best=Infinity;
+    while(head<queue.length){
+      const cell=queue[head++];
+      for(const next of LAND_NEIGHBORS[cell]){
+        if(this.owner[next]===defender){
+          const score=Math.hypot(next%MAP_WIDTH-target.x,Math.floor(next/MAP_WIDTH)-target.y)*2+distance[cell];
+          if(score<best){best=score;front=cell;enemy=next;}
+        }else if(this.owner[next]===owner&&distance[next]<0){
+          distance[next]=distance[cell]+1;queue.push(next);
+        }
+      }
+    }
+    if(front<0)return {ok:false,reason:'Kein erreichbarer Landübergang zu diesem Gegner.'};
+    squad.destination=front;squad.attackTarget=enemy;
+    return {ok:true,reason:'Truppe marschiert zur Front und erobert dann feindliches Gebiet.'};
   }
 
   /** Commit exactly a selected squad to the existing deterministic frontline.
@@ -906,6 +934,13 @@ export class Game {
       if(this.owner[squad.index]!==squad.owner){
         this.factions[squad.owner].troops+=squad.troops;
         this.squads.splice(i,1);continue;
+      }
+      if(squad.attackTarget!==null&&squad.attackTarget!==undefined&&
+         LAND_NEIGHBORS[squad.index].includes(squad.attackTarget)){
+        const target=squad.attackTarget;
+        const result=this.attackWithSquad(squad.owner,squad.id,cellToPoint(target));
+        if(result.ok)continue;
+        squad.attackTarget=null;squad.destination=null;
       }
       if(squad.destination===null)continue;
       if(squad.index===squad.destination){squad.destination=null;continue;}
