@@ -57,6 +57,7 @@ export interface GameEvent { tick: number; text: string; color: string; }
 export interface Alliance { a:number; b:number; sinceTick:number; }
 export interface AllianceOffer { from:number; to:number; untilTick:number; }
 export interface DiplomaticCooldown { a:number; b:number; untilTick:number; }
+export interface WarTruce { a:number; b:number; untilTick:number; }
 export interface DefenseAid { from:number; to:number; troops:number; arrivalTick:number; }
 export interface DiplomacyResult { ok:boolean; reason:string; }
 export interface AllianceEvaluation {
@@ -195,7 +196,7 @@ export interface GameSave {
   factions:Faction[];cities:City[];attackOrders:AttackOrder[];events:GameEvent[];
   /** Missing in v1 saves written before the diplomacy feature. */
   alliances?:Alliance[];offers?:AllianceOffer[];defenseAid?:DefenseAid[];
-  diplomacyCooldowns?:DiplomaticCooldown[];
+  diplomacyCooldowns?:DiplomaticCooldown[];warTruces?:WarTruce[];
 }
 
 export class Game {
@@ -214,6 +215,7 @@ export class Game {
   readonly alliances:Alliance[]=[];
   readonly offers:AllianceOffer[]=[];
   readonly diplomacyCooldowns:DiplomaticCooldown[]=[];
+  readonly warTruces:WarTruce[]=[];
   mobileNet=0;
   /** Real soldiers in transit to defend an attacked treaty partner. */
   readonly defenseAid:DefenseAid[]=[];
@@ -380,6 +382,20 @@ export class Game {
     return relativeAttackEffect(attacker.militaryPower,defender.militaryPower);
   }
 
+  /** Temporary AI-AI ceasefires after a real, finished territorial war. */
+  isWarTruce(a:number,b:number):boolean {
+    return a>0&&b>0&&a!==b&&this.warTruces.some(v=>
+      v.a===Math.min(a,b)&&v.b===Math.max(a,b)&&v.untilTick>this.tick);
+  }
+
+  private establishWarTruce(a:number,b:number):void {
+    if(a<=0||b<=0||a===b)return;
+    const lo=Math.min(a,b),hi=Math.max(a,b),untilTick=this.tick+90;
+    const old=this.warTruces.find(v=>v.a===lo&&v.b===hi);
+    if(old)old.untilTick=Math.max(old.untilTick,untilTick);
+    else this.warTruces.push({a:lo,b:hi,untilTick});
+  }
+
   isAllied(a:number,b:number):boolean {
     return a!==b && this.alliances.some(v=>v.a===Math.min(a,b)&&v.b===Math.max(a,b));
   }
@@ -498,6 +514,8 @@ export class Game {
 
   /** Low-frequency AI diplomacy: at most one negotiation per cycle. */
   private updateDiplomacy():void {
+    for(let i=this.warTruces.length-1;i>=0;i--)
+      if(this.warTruces[i].untilTick<=this.tick)this.warTruces.splice(i,1);
     for(let i=this.diplomacyCooldowns.length-1;i>=0;i--)
       if(this.diplomacyCooldowns[i].untilTick<=this.tick)
         this.diplomacyCooldowns.splice(i,1);
@@ -1037,6 +1055,8 @@ export class Game {
     if(clickedOwner===WATER)return failed('Angriff auf Wasser nicht möglich.');
     if(clickedOwner===id)return failed('Eigenes Gebiet – keine Truppen versendet.');
     if(this.isAllied(id,clickedOwner))return failed('Verbündetes Gebiet – kein Angriff möglich.');
+    if(attacker.ai&&this.isWarTruce(id,clickedOwner))
+      return failed('Waffenstillstand – KI muss den Frieden einhalten.');
     const front=landing?cellToPoint(index):this.findAttackFront(id,target);
     if(!front || (landing && (!route||!validSeaRoute(route.cells,undefined,index)||this.owner[route.cells[0]]!==id)))
       return failed(landing?'Keine eigene Küste an diesem Seeübergang.':'Dieses Gebiet hat keine gemeinsame Landfront mit dir.');
@@ -1280,6 +1300,10 @@ export class Game {
         if(attacker.ai&&order.targetOwner>=0&&order.conquered>0){
           const recovery=Math.round(65+Math.min(70,order.fallen*.20));
           attacker.warCooldownUntil=Math.max(attacker.warCooldownUntil??0,this.tick+recovery);
+          const stillAtWar=this.attackOrders.some(o=>o.id!==order.id&&!o.returning&&
+            ((o.factionId===attacker.id&&o.targetOwner===order.targetOwner)||
+             (o.factionId===order.targetOwner&&o.targetOwner===attacker.id)));
+          if(!stillAtWar)this.establishWarTruce(attacker.id,order.targetOwner);
         }
         const at=this.attackOrders.findIndex(o=>o.id===order.id);
         if(at>=0)this.attackOrders.splice(at,1);
@@ -1346,7 +1370,8 @@ export class Game {
     let best=-1, bestScore=-Infinity;
     for(const i of candidates){
       const opponent=this.owner[i];
-      if(opponent===WATER || opponent===id || this.isAllied(id,opponent)){candidates.delete(i);continue;}
+      if(opponent===WATER || opponent===id || this.isAllied(id,opponent)||
+         this.isWarTruce(id,opponent)){candidates.delete(i);continue;}
       let friendly=0;
       for(const n of LAND_NEIGHBORS[i])if(this.owner[n]===id)friendly++;
       if(!friendly){candidates.delete(i);continue;}
@@ -1526,7 +1551,8 @@ export class Game {
     const peaceful=(this.tick<(f.warCooldownUntil??0)) ||
         (this.difficulty!=='impossible' && (this.tick<90 || (this.tick+id*23)%160<72));
     for(const shore of COASTS){
-      const owner=this.owner[shore];if(owner===id||owner===WATER||this.isAllied(id,owner))continue;
+      const owner=this.owner[shore];if(owner===id||owner===WATER||
+         this.isAllied(id,owner)||this.isWarTruce(id,owner))continue;
       if(owner>=0 && (peaceful || ongoingEnemies.size>=2&&!ongoingEnemies.has(owner)))continue;
       if(LAND_NEIGHBORS[shore].some(n=>this.owner[n]===id))continue;
       const water=LAND_NEIGHBORS[shore].filter(n=>field.depth[n]>=0);
@@ -1627,6 +1653,7 @@ export class Game {
       alliances:this.alliances.map(a=>({...a})),offers:this.offers.map(o=>({...o})),
       defenseAid:this.defenseAid.map(a=>({...a})),
       diplomacyCooldowns:this.diplomacyCooldowns.map(v=>({...v})),
+      warTruces:this.warTruces.map(v=>({...v})),
     };
   }
 
@@ -1724,6 +1751,13 @@ export class Game {
          !Number.isSafeInteger(v.untilTick)||v.untilTick<=save.tick))
       throw Error('Ungültige diplomatische Abkühlzeit.');
     g.diplomacyCooldowns.push(...structuredClone(diplomacyCooldowns));
+    const warTruces=save.warTruces??[];
+    if(!Array.isArray(warTruces)||warTruces.length>g.factions.length*2||
+       warTruces.some(v=>!Number.isInteger(v.a)||!Number.isInteger(v.b)||
+         v.a<=0||v.a>=v.b||v.b>=g.factions.length||
+         !Number.isSafeInteger(v.untilTick)||v.untilTick<=save.tick))
+      throw Error('Ungültiger Waffenstillstand.');
+    g.warTruces.push(...structuredClone(warTruces));
     g.events.splice(0,g.events.length,...structuredClone(save.events));
     g.tick=save.tick;g.status=save.status;g.paused=!!save.paused;g.doctrine=save.doctrine;
     g.aiGoalChange=save.aiGoalChange;g.nextAttackId=save.nextAttackId;
