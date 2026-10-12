@@ -445,6 +445,15 @@ function update() {
   $('cityCount').textContent = format(player.cityCount+player.builtCities);
   $('moneyCount').textContent = format(player.money);
   $('moneyGrowth').textContent = '+' + format(player.moneyIncome,1) + ' PRO TICK';
+  const factories=game.buildings.reduce((n,code,i)=>n+(code===3&&game.owner[i]===0?1:0),0);
+  $('factoryCount').textContent=String(factories);
+  $('factoryIncome').textContent='+'+format([...game.buildings].reduce((n,code,i)=>{
+    if(code!==3||game.owner[i]!==0)return n;
+    const city=game.factoryLinks.get(i);
+    const connected=city!==undefined&&game.owner[city]===0&&
+      (game.buildings[city]===1||game.cities.some(c=>c.index===city));
+    return n+0.5*(1+(game.factoryLevels.get(i)??0)*.75)*(connected?1.5:1);
+  },0),1)+' GOLD / TICK';
   $('controlCount').textContent = percent.toFixed(1) + '%';
   $('progressLabel').textContent = percent.toFixed(1) + ' / 65%';
   $('progressFill').style.width = Math.min(100, percent/65*100) + '%';
@@ -606,8 +615,9 @@ function renderBuildMenu(): void {
       <span class="build-entry-copy"><strong>Alle Städte automatisch ausbauen</strong><small>${upgradeAll.ok?`${upgradeAll.cities} Städte · ${upgradeAll.upgrades} Ausbaustufen`:upgradeAll.reason} · günstigste Stufen zuerst</small></span>
       <span class="build-entry-cost">${upgradeAll.ok?format(upgradeAll.cost)+' €':'—'}</span>
     </button>`;
+  const factoryUpgrade=existing==='factory'?`<button type="button" class="build-entry" data-upgrade-factory="true" ${game.factoryLevel(point)>=5||game.factions[0].money<game.factoryLevel(point)*250?'disabled':''}><span class="build-entry-icon">⚙</span><span class="build-entry-copy"><strong>Fabrik Stufe ${game.factoryLevel(point)}/5 ausbauen</strong><small>Steigert die Grundproduktion um 75 %</small></span><span class="build-entry-cost">${game.factoryLevel(point)>=5?'MAX':game.factoryLevel(point)*250+' €'}</span></button>`:'';
   const factoryAction=existing==='factory'?`<button type="button" class="build-entry" data-link-factory="true" ${suggestedCity?'':'disabled'}><span class="build-entry-icon">↗</span><span class="build-entry-copy"><strong>Mit Stadt verbinden</strong><small>${suggestedCity?`Stadt bei ${suggestedCity.x}/${suggestedCity.y} · +50 % Einnahmen`:'Keine eigene Stadt im Umkreis von 12 Sektoren'}</small></span><span class="build-entry-cost">VERBINDEN</span></button>`:'';
-  $('buildOptions').innerHTML=factoryAction+fastSingle+fastAll+(upgrade? `<button type="button" class="build-entry" data-upgrade-city="true" ${upgrade.ok?'':'disabled'} title="${upgrade.reason}">
+  $('buildOptions').innerHTML=factoryUpgrade+factoryAction+fastSingle+fastAll+(upgrade? `<button type="button" class="build-entry" data-upgrade-city="true" ${upgrade.ok?'':'disabled'} title="${upgrade.reason}">
       <span class="build-entry-icon" aria-hidden="true">⬆</span>
       <span class="build-entry-copy"><strong>Stadt ausbauen ${upgradeLevel}/5</strong><small>${upgrade.ok?'Mehr Einwohner- und Truppenwachstum':upgrade.reason}</small></span>
       <span class="build-entry-cost">${upgrade.ok?upgrade.cost+' €':'MAX'}</span>
@@ -644,6 +654,13 @@ renderer.onBuildRequest=(point,clientX,clientY)=>{
 $('buildClose').addEventListener('click',closeBuildMenu);
 $('buildOptions').addEventListener('click',e=>{
   if(!buildSpot)return;
+  const factoryUpgradeButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-upgrade-factory]');
+  if(factoryUpgradeButton){
+    const result=game.upgradeFactory(0,buildSpot);
+    attackMessage=result.reason;attackMessageKind=result.ok?'success':'error';
+    if(result.ok){saveGame();renderer.updateTerritory();soundscape.playEffect('build');closeBuildMenu();}
+    else renderBuildMenu();update();return;
+  }
   const factoryLink=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-link-factory]');
   if(factoryLink){
     const city=game.nearbyFactoryCity(buildSpot);
