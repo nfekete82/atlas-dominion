@@ -2278,7 +2278,10 @@ export class Game {
          !Number.isInteger(v.index)||v.index<0||v.index>=CELL_COUNT||
          g.owner[v.index]!==v.owner||!Number.isFinite(v.troops)||v.troops<10||v.troops>1000||
          (v.destination!==null&&(!Number.isInteger(v.destination)||v.destination<0||
-           v.destination>=CELL_COUNT||g.owner[v.destination]!==v.owner)))||
+           v.destination>=CELL_COUNT||g.owner[v.destination]!==v.owner))||
+         (v.attackTarget!==undefined&&v.attackTarget!==null&&
+           (!Number.isInteger(v.attackTarget)||v.attackTarget<0||
+            v.attackTarget>=CELL_COUNT||g.owner[v.attackTarget]===v.owner)))||
        new Set(squads.map(v=>v.id)).size!==squads.length)
        throw Error('Ungültige Kasernen-Truppen.');
     g.squads.push(...squads.map(v=>({...v})));
