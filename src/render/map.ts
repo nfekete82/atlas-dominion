@@ -408,6 +408,54 @@ export class MapRenderer {
    * contact border. The cached groups are derived exclusively from strikes,
    * so visual soldiers can NEVER influence simulation RNG or casualties.
    */
+  /** Small opposing squads move along real player/enemy contact edges.
+   * These are visual particles only. Never manufacture fighting units.
+   */
+  private drawBorderSkirmishes(c:CanvasRenderingContext2D,timestamp:number):void {
+    if(this.game.status!=='playing'||!this.combatEdges.length||this.reducedMotion)return;
+    c.save();c.lineCap='round';
+    // Limit work per frame even during large-scale wars.
+    const step=Math.max(1,Math.ceil(this.combatEdges.length/140));
+    for(let edgeIndex=0;edgeIndex<this.combatEdges.length;edgeIndex+=step){
+      const edge=this.combatEdges[edgeIndex];
+      const dx=edge.bx-edge.ax,dy=edge.by-edge.ay;
+      const length=Math.hypot(dx,dy);
+      if(length<.01)continue;
+      const tx=dx/length,ty=dy/length,nx=-ty,ny=tx;
+      for(let unit=0;unit<3;unit++){
+        const seed=edgeIndex*17+unit*37;
+        const phase=(timestamp*.0012+visualNoise(seed,3))%1;
+        const progress=(unit+phase)/3;
+        const px=edge.ax+dx*progress,py=edge.ay+dy*progress;
+        const swing=1.2+Math.sin(timestamp*.012+seed)*.7;
+        for(let side=0;side<2;side++){
+          const sign=side?1:-1;
+          c.globalAlpha=.56+.28*Math.sin(Math.PI*phase);
+          c.fillStyle=side?'#ff777a':'#5acbff';
+          c.beginPath();c.arc(px+nx*sign*swing,py+ny*sign*swing,1.05,0,Math.PI*2);c.fill();
+        }
+        if(unit===1 && Math.sin(timestamp*.018+seed)>0.82){
+          c.globalAlpha=.72;c.fillStyle='#fff1bc';
+          c.fillRect(px-.85,py-.85,1.7,1.7);
+        }
+      }
+    }
+    c.restore();
+  }
+
+  /** Lightweight advance shimmer on the CURRENT physical battle boundary.
+   * No full-screen radial glow and no effect on neutral expansion.
+   */
+  private drawFrontCapture(c:CanvasRenderingContext2D,timestamp:number):void {
+    if(this.game.status!=='playing'||!this.combatEdges.length)return;
+    c.save();c.lineCap='round';c.lineJoin='round';
+    c.beginPath();
+    for(const edge of this.combatEdges){c.moveTo(edge.ax,edge.ay);c.lineTo(edge.bx,edge.by);}
+    const pulse=this.reducedMotion?.55:.42+.13*Math.sin(timestamp*.008);
+    c.globalAlpha=pulse;c.strokeStyle='#ffd69b';c.lineWidth=1.25;c.stroke();
+    c.restore();
+  }
+
   private drawLiveBattles(c:CanvasRenderingContext2D,timestamp:number):void {
     if(this.game.status!=='playing' || !this.frontGroups.length)return;
     const since=Math.max(0,timestamp-this.frontUpdatedAt);
@@ -705,17 +753,8 @@ export class MapRenderer {
       }
       c.restore();
     }
-    if(this.game.status==='playing' && this.combatEdges.length){
-      // One clear live combat boundary: no pulse, halo, arrows or markers.
-      c.save();c.beginPath();
-      for(const edge of this.combatEdges){c.moveTo(edge.ax,edge.ay);c.lineTo(edge.bx,edge.by);}
-      // Organic warm contact glow, confined to actual front edges.
-      c.lineCap='round';c.lineJoin='round';
-      c.shadowColor='rgba(255,153,83,.56)';c.shadowBlur=5;
-      c.lineWidth=2;c.strokeStyle='#ffbd80';c.stroke();
-      c.shadowBlur=0;c.lineWidth=.85;c.strokeStyle='#fff0c5';c.stroke();
-      c.restore();
-    }
+    this.drawFrontCapture(c,timestamp);
+    this.drawBorderSkirmishes(c,timestamp);
     // Mouse feedback is now the subtle whole-target tint cached above.
     // No hover square or animated point circle.
     c.restore();
