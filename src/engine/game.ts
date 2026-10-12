@@ -1409,7 +1409,7 @@ export class Game {
       capital:this.capitalSites.has(index),
       builtCity:this.buildings[index]===BUILDING_CODES.city,
       cityLevel:this.cityUpgrades[index],
-      towerSupport:this.towerSupport(opponent,index),
+      towerSupport:this.towerSupport(owner,index),
       doctrine:owner===0?this.doctrine:undefined,
     });
     if(order.remaining<=tile.attackerLoss)return {time:tile.time,captured:false,loss:0};
@@ -1499,7 +1499,7 @@ export class Game {
           capital:this.capitalSites.has(index),
           builtCity:this.buildings[index]===BUILDING_CODES.city,
           cityLevel:this.cityUpgrades[index],
-      towerSupport:this.towerSupport(opponent,index),
+      towerSupport:this.towerSupport(this.owner[index],index),
           doctrine:this.owner[index]===0?this.doctrine:undefined,
         });
         // A nearly spent army retreats with its survivors. It must NEVER
