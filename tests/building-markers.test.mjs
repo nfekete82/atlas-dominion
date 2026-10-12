@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { BUILDING_CODES } from '../dist/src/engine/economy.js';
-import {buildingMarkerFor,showBuildingMarker,CITY_MARKER_SIZE,CITY_BADGE_FONT_SIZE,cityMarkerBounds,cityLevelStyle,rectanglesOverlap,ScreenOccupancy} from '../dist/src/render/building-markers.js';
+import {buildingMarkerFor,showBuildingMarker,cityVisibleAtZoom,CITY_MARKER_SIZE,CITY_BADGE_FONT_SIZE,cityMarkerBounds,cityLevelStyle,rectanglesOverlap,ScreenOccupancy} from '../dist/src/render/building-markers.js';
 
 test('constructed cities have named symbols without enclosing backgrounds',()=>{
   assert.deepEqual(BUILDING_CODES,{city:1});
@@ -58,4 +58,18 @@ test('diagonally adjacent large badges cannot overlap and disjoint markers fit',
   const occupancy=new ScreenOccupancy();occupancy.reserve(cityMarkerBounds(50,50));
   assert.equal(occupancy.intersects(cityMarkerBounds(72,72)),true);
   assert.equal(occupancy.intersects(cityMarkerBounds(84,50)),false);
+});
+
+test('strategic zoom emphasizes mature towns, tactical zoom restores every city',()=>{
+  assert.equal(cityVisibleAtZoom(1,0,1),false);
+  assert.equal(cityVisibleAtZoom(1,2,1),false);
+  assert.equal(cityVisibleAtZoom(1,3,1),true);
+  assert.equal(cityVisibleAtZoom(1,2,1.5),true);
+  assert.equal(cityVisibleAtZoom(1,0,1.5),false);
+  assert.equal(cityVisibleAtZoom(0,1,1),true);
+  assert.equal(cityVisibleAtZoom(0,0,1),false);
+  assert.equal(cityVisibleAtZoom(0,0,1.8),true);
+  assert.equal(cityVisibleAtZoom(1,0,2),true);
+  assert.equal(cityVisibleAtZoom(1,0,1,true),true);
+  assert.equal(cityVisibleAtZoom(-2,5,4,true),false);
 });
