@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {militarySummaries,relativeStrength,strengthLabel} from '../dist/src/military-view.js';
+import {militarySummaries,relativeStrength,strengthLabel,mobileStrengthLabel} from '../dist/src/military-view.js';
 
 test('strength formatting includes all troops and remains compact',()=>{
   assert.equal(strengthLabel(2300.9),'⚔ 2,3K');
@@ -28,4 +28,34 @@ test('summary conserves mobile, border, attack and naval survivors without count
   assert.equal(result[1].cities,1);assert.equal(result[1].averageCityLevel,0);
   game.attackOrders=[];game.cities=[];
   assert.equal(militarySummaries(game,[0,0],[])[0].averageCityLevel,0);
+});
+
+test('mobile badges count only uncommitted reserves and display compact German numbers',()=>{
+  assert.equal(mobileStrengthLabel(0),'● 0 mobil');
+  assert.equal(mobileStrengthLabel(1400.99),'● 1,4K mobil');
+  assert.equal(mobileStrengthLabel(6200),'● 6,2K mobil');
+  assert.equal(mobileStrengthLabel(-4),'● 0 mobil');
+  assert.equal(strengthLabel(6200),'⚔ 6,2K');
+});
+
+test('redeployment changes the mobile label but keeps the total strength unchanged',()=>{
+  const game={tick:10,factions:[{id:0,troops:800,moneyIncome:4,income:2}],
+    owner:[0],cities:[],cityUpgrades:[0],attackOrders:[],defenseAid:[]};
+  const previous=militarySummaries(game,[200],[])[0];
+  game.factions[0].troops-=300;
+  const next=militarySummaries(game,[500],[])[0];
+  assert.equal(previous.total,1000);
+  assert.equal(next.total,1000);
+  assert.equal(strengthLabel(previous.total),strengthLabel(next.total));
+  assert.equal(mobileStrengthLabel(previous.mobile),'● 800 mobil');
+  assert.equal(mobileStrengthLabel(next.mobile),'● 500 mobil');
+});
+
+test('real allied aid travelling away remains in population but not in mobile reserve',()=>{
+  const game={tick:20,factions:[{id:0,troops:500,moneyIncome:3,income:2},
+    {id:1,troops:600,moneyIncome:3,income:2}],owner:[],cities:[],cityUpgrades:[],
+    attackOrders:[],defenseAid:[{from:0,to:1,troops:80,arrivalTick:28}]};
+  const totals=militarySummaries(game,[20,0],[]);
+  assert.deepEqual([totals[0].total,totals[0].mobile,totals[0].deployed],[600,500,80]);
+  assert.deepEqual([totals[1].total,totals[1].mobile],[600,600]);
 });
