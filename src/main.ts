@@ -35,9 +35,11 @@ let warAlerts:WarAlert[]=[];
 let nextWarAlert=1;
 let lastWarningTick=-1;
 const seenHostileOrders=new Set<number>();
+const lastBorderBreachTick=new Map<number,number>();
 
 function resetTacticalWarnings():void {
   warAlerts=[];nextWarAlert=1;lastWarningTick=-1;seenHostileOrders.clear();
+  lastBorderBreachTick.clear();
   $('warAlerts').hidden=true;$('warAlerts').replaceChildren();
   hoveredAttackPoint=null;
   $('attackAssessment').hidden=true;
@@ -62,16 +64,27 @@ function refreshWarAlerts():void {
     }
     for(const battle of game.battleEvents){
       if(!battle.captured)continue;
-      if(battle.defenderId===0&&battle.attackerId!==0)
-        pushWarAlert('Grenze durchbrochen',game.factions[battle.attackerId].name+' erobert einen Sektor',battle.index,'captured');
-      else if(battle.attackerId===0&&battle.defenderId>=0)
-        pushWarAlert('Sektor erobert','Deine Offensive rückt vor',battle.index,'victory');
+      const capital=game.cities.some(city=>city.index===battle.index);
+      if(battle.defenderId===0&&battle.attackerId!==0){
+        const last=lastBorderBreachTick.get(battle.attackerId)??-1000;
+        if(!capital&&game.tick-last<24)continue;
+        lastBorderBreachTick.set(battle.attackerId,game.tick);
+        pushWarAlert(capital?'Hauptstadt angegriffen!':'Grenze durchbrochen',
+          game.factions[battle.attackerId].name+' erobert '+(capital?'deine Stadt':'einen Sektor'),
+          battle.index,'captured');
+      }else if(capital&&battle.attackerId===0&&battle.defenderId>=0){
+        pushWarAlert('Stadt erobert','Deine Offensive übernimmt eine wichtige Stadt',
+          battle.index,'victory');
+      }
     }
     lastWarningTick=game.tick;
   }
   warAlerts=warAlerts.filter(a=>a.until>game.tick);
   const panel=$('warAlerts');
   panel.hidden=!warAlerts.length;
+  const alertSignature=warAlerts.map(a=>a.id).join(',');
+  if(panel.dataset.alertSignature===alertSignature)return;
+  panel.dataset.alertSignature=alertSignature;
   panel.innerHTML=warAlerts.map(a=>
     `<button type="button" class="war-alert" data-war-focus="${a.id}" data-kind="${a.kind}">
       <span><strong>${a.kind==='attack'?'⚠ ':a.kind==='captured'?'✖ ':'✓ '}${a.text}</strong>
@@ -80,20 +93,32 @@ function refreshWarAlerts():void {
 function renderActiveArmies():void {
   const orders=game.attackOrders.filter(o=>o.factionId===0);
   $('activeArmyCount').textContent=String(orders.length);
-  $('activeArmyList').innerHTML=orders.length?orders.slice(0,8).map(o=>{
-    const foe=o.targetOwner<0?'Neutralgebiet':game.factions[o.targetOwner]?.name??'Unbekannt';
-    const state=o.returning?'Rückfahrt':o.landing&&o.conquered===0?'Auf See':'Im Gefecht';
-    return `<div class="army-row" data-army-id="${o.id}">
-      <div class="army-header"><strong>${o.landing?'⚓ ':'⚔ '}${foe}</strong>
-      <small>${state}</small></div>
-      <div class="army-stats">${format(o.remaining)} Truppen · ${format(o.conquered)} Sektoren ·
-      ${format(o.fallen)} Gefallene</div>
-      <div class="army-actions">
-        <button type="button" data-army-focus="${o.id}">⌖ Zur Front</button>
-        <button type="button" data-army-retreat="${o.id}" ${o.returning?'disabled':''}>
-          ${o.returning?'Rückzug läuft':'↩ Rückzug'}</button>
-      </div></div>`;
-  }).join(''):'<small>Keine aktiven Armeen. Angriffe per Linksklick starten.</small>';
+  const list=$('activeArmyList');
+  const signature=orders.slice(0,8).map(o=>
+    [o.id,o.returning?'returning':o.landing?'landing':'attack'].join(':')).join('|');
+  if(list.dataset.signature!==signature){
+    list.dataset.signature=signature;
+    list.innerHTML=orders.length?orders.slice(0,8).map(o=>{
+      const foe=o.targetOwner<0?'Neutralgebiet':game.factions[o.targetOwner]?.name??'Unbekannt';
+      const state=o.returning?'Rückfahrt':o.landing&&o.conquered===0?'Auf See':'Im Gefecht';
+      return `<div class="army-row" data-army-id="${o.id}">
+        <div class="army-header"><strong>${o.landing?'⚓ ':'⚔ '}${foe}</strong>
+        <small>${state}</small></div>
+        <div class="army-stats" data-army-stats="${o.id}"></div>
+        <div class="army-actions">
+          <button type="button" data-army-focus="${o.id}">⌖ Zur Front</button>
+          <button type="button" data-army-retreat="${o.id}" ${o.returning?'disabled':''}>
+            ${o.returning?'Rückzug läuft':'↩ Rückzug'}</button>
+        </div></div>`;
+    }).join(''):'<small>Keine aktiven Armeen. Angriffe per Linksklick starten.</small>';
+  }
+  // Update statistics in-place so a 4Hz simulation tick never replaces
+  // a button while the player is physically pressing it.
+  for(const o of orders.slice(0,8)){
+    const stat=list.querySelector<HTMLElement>(`[data-army-stats="${o.id}"]`);
+    if(stat)stat.textContent=`${format(o.remaining)} Truppen ·
+      ${format(o.conquered)} Sektoren · ${format(o.fallen)} Gefallene`;
+  }
 }
 
 function updateAttackAssessment(point:Point|null=hoveredAttackPoint,landing=hoveredLanding):void {
