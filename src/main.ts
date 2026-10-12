@@ -220,6 +220,29 @@ function closeBuildMenu(): void {
 function renderBuildMenu(): void {
   if(!buildSpot)return;
   const point=buildSpot;
+  const territory=game.owner[pointToIndex(point)];
+  if(territory>=0&&territory!==0){
+    const country=game.factions[territory];
+    const allied=game.isAllied(0,territory);
+    const evaluation=allied?null:game.evaluateAlliance(0,territory);
+    $('buildCoordinates').textContent=`🤝 DIPLOMATIE · ${country.name.toUpperCase()}`;
+    $('buildMoney').textContent=allied?'BESTEHENDE KOALITION · GEGENSEITIGER ANGRIFFSSCHUTZ':
+      `KI-ENTSCHEIDUNG · ${evaluation!.accepted?'STRATEGISCH ATTRAKTIV':'GERINGER NUTZEN'}`;
+    $('buildOptions').innerHTML=allied
+      ?`<button type="button" class="build-entry diplomatic-choice" data-coalition-leave="true">
+          <span class="build-entry-icon" aria-hidden="true">↩</span>
+          <span class="build-entry-copy"><strong>Koalition beenden</strong>
+          <small>Nichtangriffspakt mit ${country.name} auflösen</small></span>
+          <span class="build-entry-cost">BEENDEN</span></button>`
+      :`<button type="button" class="build-entry diplomatic-choice" data-coalition-offer="true"
+          ${!country.alive||game.status!=='playing'?'disabled':''}>
+          <span class="build-entry-icon" aria-hidden="true">🤝</span>
+          <span class="build-entry-copy"><strong>Koalition anbieten</strong>
+          <small>Die KI entscheidet nach Stärke, Bedrohung und strategischem Nutzen.</small></span>
+          <span class="build-entry-cost">ANFRAGEN</span></button>
+        <p class="coalition-assessment">${evaluation!.reason}</p>`;
+    return;
+  }
   const existing=game.buildingAt(point);
   const existingName=BUILDINGS.find(b=>b.type===existing)?.name;
   const border=game.isThreatenedBorder(0,point);
@@ -258,8 +281,14 @@ function renderBuildMenu(): void {
     </button>`:'');
 }
 renderer.onBuildRequest=(point,clientX,clientY)=>{
-  if(modalVisible||!point){closeBuildMenu();return;}
+  if(modalVisible||!point||game.owner[pointToIndex(point)]<0){closeBuildMenu();return;}
   buildSpot=point;
+  const owner=game.owner[pointToIndex(point)];
+  if(owner>0){
+    const selector=$<HTMLSelectElement>('diplomacyNation');
+    selector.value=String(owner);
+    updateDiplomacyUI();
+  }
   const menu=$('buildMenu');
   menu.hidden=false;
   renderBuildMenu();
@@ -270,6 +299,21 @@ renderer.onBuildRequest=(point,clientX,clientY)=>{
 $('buildClose').addEventListener('click',closeBuildMenu);
 $('buildOptions').addEventListener('click',e=>{
   if(!buildSpot)return;
+  const coalitionButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-coalition-offer],[data-coalition-leave]');
+  if(coalitionButton){
+    const target=game.owner[pointToIndex(buildSpot)];
+    if(target<=0){closeBuildMenu();return;}
+    const result=coalitionButton.hasAttribute('data-coalition-leave')
+      ?game.leaveAlliance(0,target):game.offerAlliance(0,target);
+    attackMessage=result.reason;
+    attackMessageKind=result.ok?'success':'error';
+    $('diplomacyFeedback').textContent=result.reason;
+    if(result.ok){renderer.updateTerritory();saveGame();}
+    beep(result.ok?620:190);
+    closeBuildMenu();
+    update();
+    return;
+  }
   const defenseButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-defend]');
   if(defenseButton){
     const result=game.reinforceBorder(0,buildSpot,attackRatio);
