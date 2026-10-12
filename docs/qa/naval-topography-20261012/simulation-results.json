@@ -1,0 +1,62 @@
+[
+  {
+    "seed": 20261012,
+    "ticks": 500,
+    "navalStarts": 61,
+    "peakFleets": 7,
+    "maxConcurrentInvaders": 2,
+    "medianTickMs": 2.727332999999817,
+    "p95TickMs": 8.909750000000258,
+    "status": "playing"
+  },
+  {
+    "seed": 20261012,
+    "ticks": 1000,
+    "navalStarts": 138,
+    "peakFleets": 7,
+    "maxConcurrentInvaders": 2,
+    "medianTickMs": 2.6971249999987776,
+    "p95TickMs": 7.764458999999988,
+    "status": "playing"
+  },
+  {
+    "seed": 20261013,
+    "ticks": 500,
+    "navalStarts": 52,
+    "peakFleets": 5,
+    "maxConcurrentInvaders": 2,
+    "medianTickMs": 2.4538329999995767,
+    "p95TickMs": 6.628583000001527,
+    "status": "playing"
+  },
+  {
+    "seed": 20261013,
+    "ticks": 1000,
+    "navalStarts": 105,
+    "peakFleets": 5,
+    "maxConcurrentInvaders": 2,
+    "medianTickMs": 2.6114589999997406,
+    "p95TickMs": 7.120833000000857,
+    "status": "playing"
+  },
+  {
+    "seed": 20261014,
+    "ticks": 500,
+    "navalStarts": 69,
+    "peakFleets": 7,
+    "maxConcurrentInvaders": 2,
+    "medianTickMs": 2.3729999999995925,
+    "p95TickMs": 6.747583000000304,
+    "status": "playing"
+  },
+  {
+    "seed": 20261014,
+    "ticks": 1000,
+    "navalStarts": 136,
+    "peakFleets": 7,
+    "maxConcurrentInvaders": 2,
+    "medianTickMs": 2.6636250000010477,
+    "p95TickMs": 7.124291000000085,
+    "status": "playing"
+  }
+]

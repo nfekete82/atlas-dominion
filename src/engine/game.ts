@@ -1,11 +1,12 @@
 import { GEO_BOUNDS, LAND_ROWS, MAP_HEIGHT, MAP_WIDTH, SEA_CROSSINGS, WORLD_HEIGHT, WORLD_WIDTH } from '../data/europe.js';
+import {MaritimeNavigation,COASTS,validSeaRoute,voyageTicks,routeDistance,type SeaRoute} from './navigation.js';
 import { COUNTRY_STARTS, countryByCode } from '../data/countries.js';
 import { assessInvasion, interceptAttack, attackerCasualties, campaignEffort, empirePower, relativeAttackEffect } from './warfare.js';
 import { attackFrontWidth, frontierBudget, frontierTarget, localDefenseStrength } from './frontline.js';
-import { BUILDINGS, BUILDING_CODES, type BuildingType, troopGrowth, taxRevenue } from './economy.js';
+import { BUILDINGS, BUILDING_CODES, type BuildingType, troopGrowth, taxRevenue, cityUpgradeCost, cityUpgradeGrowth, upgradedCityRecruitment } from './economy.js';
 import { findConnectedAttackFront } from './front-target.js';
 import {aiStyle,scoreAIFront} from './ai-strategy.js';
-import {aiMarchRecovery,aiAttacksPerTick,aiStrikeSize,aiDefenseAllocation,aiRiskTolerance} from './ai-tactics.js';
+import {aiMarchRecovery,aiAttacksPerTick,aiStrikeSize,aiRiskTolerance} from './ai-tactics.js';
 import {formatCompact} from '../format.js';
 import {chooseAdvancingSector,canReinforceFront} from './offensive-front.js';
 import {frontTileOutcome,opposingArmies} from './front-combat.js';
@@ -47,9 +48,21 @@ export interface Faction {
   /** Most recent active battle sector; maintains momentum on one front. */
   battleFocus: number;
   intent: 'hold' | 'expand' | 'invade';
+  /** AI warfare recovery, absent in pre-balancing saves. */
+  warCooldownUntil?:number;
 }
 export interface City { name: string; x: number; y: number; index: number; original: number; owner: number; }
 export interface GameEvent { tick: number; text: string; color: string; }
+/** Bilateral non-aggression pact. Factions keep independent territory and armies. */
+export interface Alliance { a:number; b:number; sinceTick:number; }
+export interface AllianceOffer { from:number; to:number; untilTick:number; }
+export interface DiplomaticCooldown { a:number; b:number; untilTick:number; }
+export interface WarTruce { a:number; b:number; untilTick:number; }
+export interface DefenseAid { from:number; to:number; troops:number; arrivalTick:number; }
+export interface DiplomacyResult { ok:boolean; reason:string; }
+export interface AllianceEvaluation {
+  score:number; threshold:number; accepted:boolean; reason:string;
+}
 /** Immutable snapshots of ACTUAL frontline strikes for the renderer.
  * They never move armies or change outcomes: this is combat telemetry.
  */
@@ -84,10 +97,26 @@ export interface AttackOrder {
   /** Unspent fractional attack time carried into the next tick. */
   progress?: number;
   landing?: boolean;
+  /** Paid soldiers remain at sea until this tick. */
+  arrivalTick?:number;
+  departure?:Point;
   startedTick?: number;
+  /** Exact cell-by-cell ocean path, including both coastal endpoints. */
+  seaRoute?: number[];
+  seaDistanceKm?: number;
+  returning?: boolean;
+  returnStartedTick?: number;
+  returnArrivalTick?: number;
 }
 export interface AttackResult { ok: boolean; reason: string; sent: number; targetOwner?: number; front?: Point; }
+/** Only the NEXT contact sector is estimated; never claims guaranteed victory. */
+export interface AttackAssessment {
+  possible:boolean;reason:string;front?:Point;targetOwner?:number;
+  troops:number;posted:number;loss:number;time:number;
+  risk:'low'|'moderate'|'high';
+}
 export interface BuildResult { ok: boolean; reason: string; cost: number; type?: BuildingType; }
+export interface CityUpgradeBatchResult { ok:boolean; reason:string; cost:number; upgrades:number; cities:number; finalLevel?:number; }
 export type GameStatus = 'playing' | 'victory' | 'defeat';
 export type Doctrine = 'expand' | 'blitz' | 'fortify';
 
@@ -165,6 +194,17 @@ export function seededRandom(seed: number): () => number {
   };
 }
 
+export interface GameSave {
+  version:1;seed:number;playerCode:string;difficulty:Difficulty;tick:number;
+  status:GameStatus;paused:boolean;doctrine:Doctrine;rngCalls:number;
+  aiGoalChange:number;nextAttackId:number;
+  owner:number[];defense:number[];buildings:number[];cityUpgrades:number[];frontline:number[];
+  factions:Faction[];cities:City[];attackOrders:AttackOrder[];events:GameEvent[];
+  /** Missing in v1 saves written before the diplomacy feature. */
+  alliances?:Alliance[];offers?:AllianceOffer[];defenseAid?:DefenseAid[];
+  diplomacyCooldowns?:DiplomaticCooldown[];warTruces?:WarTruce[];
+}
+
 export class Game {
   readonly owner = new Int16Array(CELL_COUNT);
   readonly defense = new Float32Array(CELL_COUNT);
@@ -178,7 +218,17 @@ export class Game {
   private readonly capitalSites=new Set<number>();
   readonly events: GameEvent[] = [];
   readonly attackOrders: AttackOrder[] = [];
+  readonly alliances:Alliance[]=[];
+  readonly offers:AllianceOffer[]=[];
+  readonly diplomacyCooldowns:DiplomaticCooldown[]=[];
+  readonly warTruces:WarTruce[]=[];
+  mobileNet=0;
+  /** Real soldiers in transit to defend an attacked treaty partner. */
+  readonly defenseAid:DefenseAid[]=[];
+  /** Upgrade levels for buildable city sites: 0 = basic, 1–5 = improvements. */
+  readonly cityUpgrades = new Uint8Array(CELL_COUNT);
   private nextAttackId = 1;
+  private readonly navigation=new MaritimeNavigation();
   private lastAttackerLoss = 0;
   /** Combat during the most recent simulation tick (or direct strike). */
   readonly battleEvents:BattleEvent[]=[];
@@ -193,6 +243,7 @@ export class Game {
   paused = false;
   doctrine: Doctrine = 'expand';
   private rng: () => number;
+  private rngCalls = 0;
   private aiGoalChange = 0;
   private frontierCandidates: Array<Set<number>> = [];
   private exposedCounts: number[] = [];
@@ -205,7 +256,8 @@ export class Game {
     if (!chosen) throw new Error(`Unbekanntes Land: ${playerCountry}`);
     this.playerCode = chosen.code;
     this.seed = seed;
-    this.rng = seededRandom(seed);
+    const generator=seededRandom(seed);
+    this.rng=()=>{this.rngCalls++;return generator();};
     this.owner.fill(WATER);
     for (let i = 0; i < CELL_COUNT; i++) if (isLand(i)) this.owner[i] = NEUTRAL;
     const starts = [chosen,...COUNTRY_STARTS.filter(c=>c.code!==chosen.code)]
@@ -284,15 +336,20 @@ export class Game {
   private recount():void {
     const people=this.factions.map(f=>f.troops);
     for(const f of this.factions){f.territory=0;f.cityCount=0;f.builtCities=0;}
+    const upgradeBonus=new Float64Array(this.factions.length);
     for(let i=0;i<CELL_COUNT;i++){
       const id=this.owner[i];
       if(id<0)continue;
       const faction=this.factions[id];
       faction.territory++;
       people[id]+=this.frontline[i];
-      if(this.buildings[i]===BUILDING_CODES.city)faction.builtCities++;
+      if(this.buildings[i]===BUILDING_CODES.city){
+        faction.builtCities++;
+        upgradeBonus[id]+=cityUpgradeGrowth(this.cityUpgrades[i]);
+      }
     }
     for(const order of this.attackOrders)people[order.factionId]+=order.remaining;
+    for(const aid of this.defenseAid)people[aid.from]+=aid.troops; // In-transit soldiers are alive.
     for(const city of this.cities){
       city.owner=this.owner[city.index];
       if(city.owner>=0)this.factions[city.owner].cityCount++;
@@ -302,9 +359,10 @@ export class Game {
       const totalPeople=people[faction.id];
       faction.population=totalPeople;
       faction.militaryPower=empirePower(totalPeople,faction.territory,faction.cityCount+faction.builtCities);
-      const growth=troopGrowth(totalPeople,faction.territory,faction.cityCount,faction.builtCities);
+      const growth=troopGrowth(totalPeople,faction.territory,faction.cityCount,faction.builtCities+upgradeBonus[faction.id])
+      +upgradedCityRecruitment(upgradeBonus[faction.id],faction.territory,faction.builtCities);
       faction.income=faction.id===0?growth*(this.doctrine==='fortify'?1.20:this.doctrine==='blitz'?.90:1):growth*this.difficultySettings.growthMultiplier;
-      faction.moneyIncome=taxRevenue(totalPeople,faction.territory,faction.cityCount,faction.builtCities);
+      faction.moneyIncome=taxRevenue(totalPeople,faction.territory,faction.cityCount,faction.builtCities+upgradeBonus[faction.id]);
     }
   }
 
@@ -315,6 +373,7 @@ export class Game {
     let all=faction.troops;
     for(let i=0;i<CELL_COUNT;i++)if(this.owner[i]===id)all+=this.frontline[i];
     for(const order of this.attackOrders)if(order.factionId===id)all+=order.remaining;
+    for(const aid of this.defenseAid)if(aid.from===id)all+=aid.troops;
     return all;
   }
 
@@ -329,6 +388,205 @@ export class Game {
     return relativeAttackEffect(attacker.militaryPower,defender.militaryPower);
   }
 
+  /** Temporary AI-AI ceasefires after a real, finished territorial war. */
+  isWarTruce(a:number,b:number):boolean {
+    return a>0&&b>0&&a!==b&&this.warTruces.some(v=>
+      v.a===Math.min(a,b)&&v.b===Math.max(a,b)&&v.untilTick>this.tick);
+  }
+
+  private establishWarTruce(a:number,b:number):void {
+    if(a<=0||b<=0||a===b)return;
+    const lo=Math.min(a,b),hi=Math.max(a,b),untilTick=this.tick+90;
+    const old=this.warTruces.find(v=>v.a===lo&&v.b===hi);
+    if(old)old.untilTick=Math.max(old.untilTick,untilTick);
+    else this.warTruces.push({a:lo,b:hi,untilTick});
+  }
+
+  isAllied(a:number,b:number):boolean {
+    return a!==b && this.alliances.some(v=>v.a===Math.min(a,b)&&v.b===Math.max(a,b));
+  }
+
+  alliesOf(id:number):number[] {
+    return this.alliances.filter(v=>v.a===id||v.b===id)
+      .map(v=>v.a===id?v.b:v.a).sort((a,b)=>a-b);
+  }
+
+  private hasHostilities(a:number,b:number):boolean {
+    return this.attackOrders.some(o=>
+      (o.factionId===a&&o.targetOwner===b)||
+      (o.factionId===b&&o.targetOwner===a));
+  }
+
+  private canAlly(a:number,b:number):DiplomacyResult {
+    if(this.diplomacyCooldowns.some(v=>v.a===Math.min(a,b)&&v.b===Math.max(a,b)&&v.untilTick>this.tick))
+      return {ok:false,reason:'Nach der Kündigung ist erst eine diplomatische Abkühlzeit nötig.'};
+    if(!Number.isInteger(a)||!Number.isInteger(b)||a===b||
+       !this.factions[a]?.alive||!this.factions[b]?.alive||this.status!=='playing')
+      return {ok:false,reason:'Diese Länder können kein Bündnis schließen.'};
+    if(this.isAllied(a,b))return {ok:false,reason:'Diese Länder sind bereits verbündet.'};
+    if(this.alliesOf(a).length>=2||this.alliesOf(b).length>=2)
+      return {ok:false,reason:'Maximal zwei Bündnispartner je Land.'};
+    if(this.hasHostilities(a,b))return {ok:false,reason:'Während eines aktiven Kriegs ist kein Bündnis möglich.'};
+    return {ok:true,reason:'Bündnis möglich.'};
+  }
+
+  /** One treaty works in BOTH directions and costs neither territory nor troops. */
+  private signAlliance(a:number,b:number):DiplomacyResult {
+    const allowed=this.canAlly(a,b);if(!allowed.ok)return allowed;
+    this.alliances.push({a:Math.min(a,b),b:Math.max(a,b),sinceTick:this.tick});
+    this.alliances.sort((x,y)=>x.a-y.a||x.b-y.b);
+    for(let i=this.offers.length-1;i>=0;i--){
+      const o=this.offers[i];
+      if((o.from===a&&o.to===b)||(o.from===b&&o.to===a))this.offers.splice(i,1);
+    }
+    this.log(`🤝 Bündnis: ${this.factions[a].name} und ${this.factions[b].name}.`,'#8dcdb1');
+    this.redistributeFrontline();
+    return {ok:true,reason:'Bündnis mit '+this.factions[b].name+' geschlossen.'};
+  }
+
+  /** Whether a COALITION makes strategic sense TO THE RECIPIENT.
+   * Same deterministic evaluation for player requests and AI initiatives:
+   * useful armed partners, local security, present threats and treaty load.
+   * No random acceptance and no free troops. Pure read-only calculation.
+   */
+  evaluateAlliance(from:number,to:number):AllianceEvaluation {
+    const invalid=this.canAlly(from,to);
+    const threshold=46;
+    if(!invalid.ok)return {score:0,threshold,accepted:false,reason:invalid.reason};
+    const sponsor=this.factions[from],recipient=this.factions[to];
+    const sponsorPower=Math.max(1,sponsor.militaryPower||sponsor.population+32);
+    const recipientPower=Math.max(1,recipient.militaryPower||recipient.population+32);
+    // A weak would-be ally is often a liability to a much stronger country.
+    const strength=Math.max(-39,Math.min(23,Math.log(sponsorPower/recipientPower)*14));
+    const ac=this.cities[from],bc=this.cities[to];
+    const distance=Math.hypot(ac.x-bc.x,ac.y-bc.y);
+    const proximity=Math.max(-13,Math.min(15,14-distance*.22));
+    const incoming=this.attackOrders.filter(o=>o.targetOwner===to&&o.factionId!==from&&
+      o.remaining>0&&!o.returning);
+    const pressure=Math.min(22,incoming.length*9);
+    const sponsorEnemies=new Set(this.attackOrders.filter(o=>o.factionId===from&&
+      o.targetOwner>=0&&o.remaining>0&&!o.returning).map(o=>o.targetOwner));
+    const recipientEnemies=new Set(incoming.map(o=>o.factionId));
+    const sharedRivals=[...sponsorEnemies].filter(enemy=>recipientEnemies.has(enemy)).length;
+    const commonInterests=Math.min(12,sharedRivals*6);
+    // The partner may drag the recipient into ongoing conflicts.
+    const obligations=Math.min(22,sponsorEnemies.size*7);
+    const commitments=this.alliesOf(to).length*9;
+    const score=Math.round(52+strength+proximity+pressure+commonInterests-obligations-commitments);
+    const accepted=score>=threshold;
+    const reason=accepted
+      ? pressure?'Strategisch sinnvoll: Schutz gegen laufende Angriffe.':
+        strength>8?'Strategisch sinnvoll: militärisch wertvoller Partner.':
+        proximity>4?'Strategisch sinnvoll: nahegelegener Partner.':
+        'Bündnis bringt ausreichend strategischen Nutzen.'
+      : strength< -15?'Angebot abgelehnt: zu geringer militärischer Nutzen.'
+        : obligations>=14?'Angebot abgelehnt: zu viele Kriege des möglichen Partners.'
+        : commitments?'Angebot abgelehnt: bereits zu viele Verpflichtungen.'
+        :'Angebot abgelehnt: kein ausreichender strategischer Vorteil.';
+    return {score,threshold,accepted,reason};
+  }
+
+  offerAlliance(from:number,to:number):DiplomacyResult {
+    const allowed=this.canAlly(from,to);if(!allowed.ok)return allowed;
+    if(this.offers.some(o=>o.from===from&&o.to===to))
+      return {ok:false,reason:'Bündnisangebot ist bereits offen.'};
+    if(to===0){
+      if(this.offers.some(o=>o.to===0))return {ok:false,reason:'Du hast bereits ein offenes Bündnisangebot.'};
+      this.offers.push({from,to,untilTick:this.tick+240});
+      this.log(`🤝 Bündnisangebot von ${this.factions[from].name} erhalten.`,'#8dcdb1');
+      return {ok:true,reason:'Bündnisangebot erhalten.'};
+    }
+    const evaluation=this.evaluateAlliance(from,to);
+    if(!evaluation.accepted)return {ok:false,reason:`${this.factions[to].name}: ${evaluation.reason}`};
+    return this.signAlliance(from,to);
+  }
+
+  respondAlliance(from:number,accept:boolean):DiplomacyResult {
+    const i=this.offers.findIndex(o=>o.from===from&&o.to===0&&o.untilTick>this.tick);
+    if(i<0)return {ok:false,reason:'Kein gültiges Bündnisangebot vorhanden.'};
+    this.offers.splice(i,1);
+    if(!accept)return {ok:true,reason:'Bündnisangebot abgelehnt.'};
+    return this.signAlliance(0,from);
+  }
+
+  leaveAlliance(a:number,b:number):DiplomacyResult {
+    if(!this.isAllied(a,b))return {ok:false,reason:'Es besteht kein Bündnis.'};
+    const i=this.alliances.findIndex(v=>v.a===Math.min(a,b)&&v.b===Math.max(a,b));
+    this.alliances.splice(i,1);
+    this.diplomacyCooldowns.push({a:Math.min(a,b),b:Math.max(a,b),untilTick:this.tick+120});
+    this.log(`Bündnis beendet: ${this.factions[a].name} und ${this.factions[b].name}.`,'#e2bc87');
+    return {ok:true,reason:'Bündnis mit '+this.factions[b].name+' beendet.'};
+  }
+
+  /** Low-frequency AI diplomacy: at most one negotiation per cycle. */
+  private updateDiplomacy():void {
+    for(let i=this.warTruces.length-1;i>=0;i--)
+      if(this.warTruces[i].untilTick<=this.tick)this.warTruces.splice(i,1);
+    for(let i=this.diplomacyCooldowns.length-1;i>=0;i--)
+      if(this.diplomacyCooldowns[i].untilTick<=this.tick)
+        this.diplomacyCooldowns.splice(i,1);
+    for(let i=this.offers.length-1;i>=0;i--)
+      if(this.offers[i].untilTick<=this.tick||!this.factions[this.offers[i].from].alive)
+        this.offers.splice(i,1);
+    this.alliances.splice(0,this.alliances.length,
+      ...this.alliances.filter(a=>this.factions[a.a].alive&&this.factions[a.b].alive));
+    if(this.tick<120||this.tick%120!==0)return;
+    const sender=1+(Math.floor(this.tick/120)%Math.max(1,this.factions.length-1));
+    if(!this.factions[sender]?.alive||this.alliesOf(sender).length>=2)return;
+    const targets=this.factions.filter(f=>f.id!==sender&&f.alive&&!this.isAllied(sender,f.id))
+      .filter(f=>this.canAlly(sender,f.id).ok)
+      // Evaluate both sides before contacting anyone: do not propose a
+      // coalition the receiving AI regards as strategically useless.
+      .sort((a,b)=>this.evaluateAlliance(sender,b.id).score-this.evaluateAlliance(sender,a.id).score||a.id-b.id);
+    const target=targets[0];
+    if(target&&this.evaluateAlliance(sender,target.id).accepted&&
+      (target.id===0||this.evaluateAlliance(target.id,sender).accepted))
+      this.offerAlliance(sender,target.id);
+  }
+
+  /** Dispatch AI-controlled allies' REAL mobile troops when a partner is
+   * actively invaded. Support is deliberately modest and has an eight-tick
+   * travel delay; the player's reserves are NEVER spent automatically.
+   */
+  private dispatchDefensiveAid():void {
+    if(this.tick%24!==0)return;
+    for(const pact of this.alliances){
+      for(const [from,to] of [[pact.a,pact.b],[pact.b,pact.a]]){
+        const donor=this.factions[from],recipient=this.factions[to];
+        if(!donor.ai||!donor.alive||!recipient.alive)continue;
+        const invaded=this.attackOrders.some(o=>o.targetOwner===to&&o.factionId!==to&&
+          !this.isAllied(o.factionId,to)&&o.remaining>0&&!o.returning);
+        if(!invaded||this.defenseAid.some(a=>a.from===from&&a.to===to))continue;
+        // A donor must first protect its own homeland and other obligations.
+        const reserve=Math.max(60,donor.income*7);
+        const available=Math.max(0,donor.troops-reserve);
+        const amount=Math.floor(Math.min(available,donor.troops*.06,
+          Math.max(6,donor.income*1.8),36));
+        if(amount<2)continue;
+        donor.troops-=amount;
+        this.defenseAid.push({from,to,troops:amount,arrivalTick:this.tick+8});
+        if(to===0)this.log(`🤝 ${donor.name} sendet ${formatCompact(amount)} Verteidiger (8 Ticks Reisezeit).`,'#8dcdb1');
+      }
+    }
+  }
+
+  private deliverDefensiveAid():void {
+    for(let i=this.defenseAid.length-1;i>=0;i--){
+      const aid=this.defenseAid[i];
+      if(aid.arrivalTick>this.tick)continue;
+      const recipient=this.factions[aid.to],sender=this.factions[aid.from];
+      // Broken pacts return survivors to their donor; conquered donors
+      // cannot receive back their army, so survivors aid the old recipient.
+      const delivered=recipient.alive&&(this.isAllied(aid.from,aid.to)||!sender.alive);
+      if(delivered){
+        recipient.troops+=aid.troops;
+        if(aid.to===0)this.log(`🤝 ${formatCompact(aid.troops)} alliierte Verteidiger eingetroffen.`,'#8dcdb1');
+      }else if(sender.alive)sender.troops+=aid.troops;
+      else sender.attackFallen+=aid.troops;
+      this.defenseAid.splice(i,1);
+    }
+  }
+
   private log(text: string, color = '#b9c4d0') {
     this.events.unshift({ tick: this.tick, text, color });
     if (this.events.length > 8) this.events.length = 8;
@@ -338,6 +596,120 @@ export class Game {
     const x=Math.floor(point.x),y=Math.floor(point.y);
     if(!Number.isFinite(point.x)||!Number.isFinite(point.y)||x<0||y<0||x>=MAP_WIDTH||y>=MAP_HEIGHT)return null;
     return this.buildings[y*MAP_WIDTH+x]===BUILDING_CODES.city?'city':null;
+  }
+
+  cityLevelAt(point:Point):number {
+    const x=Math.floor(point.x),y=Math.floor(point.y);
+    if(!Number.isFinite(point.x)||!Number.isFinite(point.y)||x<0||y<0||x>=MAP_WIDTH||y>=MAP_HEIGHT)return 0;
+    const index=y*MAP_WIDTH+x;
+    return this.buildings[index]===BUILDING_CODES.city?this.cityUpgrades[index]:0;
+  }
+
+  canUpgradeCity(id:number,point:Point):BuildResult {
+    const fail=(reason:string):BuildResult=>({ok:false,reason,cost:0});
+    const faction=this.factions[id];
+    if(!faction?.alive||this.status!=='playing')return fail('Dieses Land kann nicht bauen.');
+    if(!Number.isFinite(point.x)||!Number.isFinite(point.y))return fail('Ungültige Position.');
+    const x=Math.floor(point.x),y=Math.floor(point.y);
+    if(x<0||y<0||x>=MAP_WIDTH||y>=MAP_HEIGHT)return fail('Außerhalb der Karte.');
+    const index=y*MAP_WIDTH+x;
+    if(this.owner[index]!==id)return fail('Nur eigene Städte verbessern.');
+    if(this.buildings[index]!==BUILDING_CODES.city)return fail('Hier steht keine ausbaubare Stadt.');
+    const level=this.cityUpgrades[index];
+    if(level>=5)return fail('Maximalstufe 5 erreicht.');
+    const cost=cityUpgradeCost(level);
+    if(faction.money<cost)return fail('Zu wenig Geld: '+cost+' benötigt.');
+    return {ok:true,reason:'Stadt auf Stufe '+(level+1)+' ausbauen.',cost,type:'city'};
+  }
+
+  upgradeCity(id:number,point:Point):BuildResult {
+    const permission=this.canUpgradeCity(id,point);
+    if(!permission.ok)return permission;
+    const index=pointToIndex(point);
+    this.factions[id].money-=permission.cost;
+    this.cityUpgrades[index]++;
+    this.recount();
+    if(id===0)this.log('Stadt auf Stufe '+this.cityUpgrades[index]+' ausgebaut · -'+permission.cost+' Geld.',this.factions[id].color);
+    return {ok:true,reason:'Stadt Stufe '+this.cityUpgrades[index],cost:permission.cost,type:'city'};
+  }
+
+  /** Plan paid improvements without mutating the world. Cheapest tiers first
+   * across all owned cities, in stable sector order, so a batch buys the most
+   * individual upgrades possible with available gold. Capitals retain their
+   * existing separate rules and are not upgradable buildings.
+   */
+  private planCityUpgrades(id:number,scope:'single'|'all',point?:Point):{
+    steps:Array<{index:number;cost:number}>;result:CityUpgradeBatchResult
+  } {
+    const empty=(reason:string)=>({steps:[],result:{
+      ok:false,reason,cost:0,upgrades:0,cities:0,
+    } as CityUpgradeBatchResult});
+    const faction=this.factions[id];
+    if(!faction?.alive||this.status!=='playing')return empty('Dieses Land kann nicht bauen.');
+    let sites:number[];
+    if(scope==='single'){
+      if(!point||!Number.isInteger(point.x)||!Number.isInteger(point.y)||
+         point.x<0||point.y<0||point.x>=MAP_WIDTH||point.y>=MAP_HEIGHT)
+        return empty('Ungültige Stadtposition.');
+      const index=pointToIndex(point);
+      if(this.owner[index]!==id)return empty('Nur eigene Städte verbessern.');
+      if(this.buildings[index]!==BUILDING_CODES.city)return empty('Hier steht keine ausbaubare Stadt.');
+      if(this.cityUpgrades[index]>=5)return empty('Maximalstufe 5 erreicht.');
+      sites=[index];
+    }else{
+      sites=[];
+      for(let index=0;index<CELL_COUNT;index++){
+        if(this.owner[index]===id&&this.buildings[index]===BUILDING_CODES.city&&this.cityUpgrades[index]<5)
+          sites.push(index);
+      }
+      if(!sites.length)return empty('Keine eigenen ausbaubaren Städte vorhanden.');
+    }
+    let gold=faction.money;
+    const steps:Array<{index:number;cost:number}>=[];
+    // Levels cost [250,450,750,1150,1700]; all cities receive cheaper
+    // improvements before any expensive tier, making results predictable.
+    const planned=new Uint8Array(sites.map(index=>this.cityUpgrades[index]));
+    for(let level=0;level<5;level++){
+      const cost=cityUpgradeCost(level);
+      if(gold<cost)break;
+      for(let i=0;i<sites.length;i++){
+        if(planned[i]!==level||gold<cost)continue;
+        steps.push({index:sites[i],cost});
+        planned[i]++;
+        gold-=cost;
+      }
+    }
+    if(!steps.length)return empty('Nicht genug Geld für die nächste Ausbaustufe.');
+    const spent=faction.money-gold;
+    const cities=new Set(steps.map(step=>step.index)).size;
+    return {steps,result:{
+      ok:true,reason:scope==='single'?'Stadt bis zur bezahlbaren Stufe ausbauen.':
+        'Alle eigenen Städte nach Ausbaustufenkosten verbessern.',
+      cost:spent,upgrades:steps.length,cities,
+      ...(scope==='single'?{finalLevel:planned[0]}:{}),
+    }};
+  }
+
+  /** Exact affordable preview for the context menu; never spends gold. */
+  previewCityUpgrades(id:number,scope:'single'|'all',point?:Point):CityUpgradeBatchResult {
+    return this.planCityUpgrades(id,scope,point).result;
+  }
+
+  /** One transaction, one growth recalculation and one event for any number
+   * of individual upgrades. No free levels and no partial unrecorded costs.
+   */
+  upgradeCities(id:number,scope:'single'|'all',point?:Point):CityUpgradeBatchResult {
+    const plan=this.planCityUpgrades(id,scope,point);
+    if(!plan.result.ok)return plan.result;
+    this.factions[id].money-=plan.result.cost;
+    for(const step of plan.steps)this.cityUpgrades[step.index]++;
+    this.recount();
+    if(id===0)this.log(
+      `${plan.result.cities} Städte · ${plan.result.upgrades} Ausbaustufen · -${plan.result.cost} Geld.`,
+      this.factions[id].color);
+    return {...plan.result,reason:scope==='single'
+      ?`Stadt auf Stufe ${plan.result.finalLevel} ausgebaut.`
+      :`${plan.result.cities} Städte um ${plan.result.upgrades} Stufen ausgebaut.`};
   }
 
   canBuild(id:number,point:Point,type:BuildingType):BuildResult {
@@ -362,29 +734,105 @@ export class Game {
     const faction=this.factions[id];
     faction.money-=permission.cost;
     this.buildings[pointToIndex(point)]=BUILDING_CODES.city;
+    this.cityUpgrades[pointToIndex(point)]=0;
     this.recount();
     if(id===0)this.log(`Stadt gebaut · -${permission.cost} Geld · schnelleres Wachstum.`,faction.color);
     return {ok:true,reason:'Stadt gebaut.',cost:permission.cost,type:'city'};
   }
 
-  /** AI countries may develop cities, paying exactly the same build cost. */
+  /** AI plans actual settlements across owned land, then improves them.
+   * Capitals and player cities count as spacing anchors; no fake settlements.
+   * One paid action per faction per development interval.
+   */
+  /** AI economy scales with its realm size. Previously EVERY nation could
+   * buy only ONE building action per 100 ticks on Balanced and always picked
+   * the lowest-level city, leaving mature cities frozen at early tiers.
+   * All construction uses the exact human building and tier prices.
+   */
   private developAI():void {
-    const capitals=this.capitalSites;
-    const locations=new Int32Array(this.factions.length).fill(-1);
-    const score=new Float64Array(this.factions.length).fill(Infinity);
-    for(let index=0;index<CELL_COUNT;index++){
-      const id=this.owner[index];
-      if(id<=0 || !this.factions[id]?.ai || this.buildings[index] || capitals.has(index))continue;
-      const capital=this.cities[id].index;
-      const deltaX=index%MAP_WIDTH-capital%MAP_WIDTH;
-      const deltaY=Math.floor(index/MAP_WIDTH)-Math.floor(capital/MAP_WIDTH);
-      const d=deltaX*deltaX+deltaY*deltaY;
-      if(d<score[id]){score[id]=d;locations[id]=index;}
+    const centers:Array<Array<[number,number]>>=this.factions.map(()=>[]);
+    const upgradeSites:number[][]=this.factions.map(()=>[]);
+    for(const city of this.cities){
+      if(city.owner>=0)centers[city.owner].push([city.index%MAP_WIDTH,Math.floor(city.index/MAP_WIDTH)]);
     }
+    for(let i=0;i<CELL_COUNT;i++){
+      const id=this.owner[i];
+      if(id<0||this.buildings[i]!==BUILDING_CODES.city)continue;
+      centers[id].push([i%MAP_WIDTH,Math.floor(i/MAP_WIDTH)]);
+      if(id>0&&this.cityUpgrades[i]<5)upgradeSites[id].push(i);
+    }
+
+    // The best candidate in each small map zone keeps large empires from
+    // repeatedly selecting the same location while making multiple builds.
+    const zoneBest=new Map<number,{index:number;score:number}>();
+    const zoneColumns=Math.ceil(MAP_WIDTH/12);
+    const zoneRows=Math.ceil(MAP_HEIGHT/12);
+    for(let i=0;i<CELL_COUNT;i++){
+      const id=this.owner[i];
+      if(id<=0||!this.factions[id]?.ai||this.buildings[i]||this.capitalSites.has(i))continue;
+      const x=i%MAP_WIDTH,y=Math.floor(i/MAP_WIDTH);
+      let nearest=Infinity;
+      for(const [cx,cy] of centers[id]){
+        const dist=(x-cx)**2+(y-cy)**2;
+        if(dist<nearest)nearest=dist;
+      }
+      if(nearest<100)continue; // Ten-sector minimum from every existing city.
+      const score=Math.min(nearest,1000)-Math.abs(nearest-196)*.09;
+      const zone=id*zoneColumns*zoneRows+Math.floor(y/12)*zoneColumns+Math.floor(x/12);
+      const previous=zoneBest.get(zone);
+      if(!previous||score>previous.score||score===previous.score&&i<previous.index)
+        zoneBest.set(zone,{index:i,score});
+    }
+    const choices:Array<Array<{index:number;score:number}>>=this.factions.map(()=>[]);
+    for(const [zone,entry] of zoneBest){
+      const id=Math.floor(zone/(zoneColumns*zoneRows));
+      choices[id].push(entry);
+    }
+    for(const entries of choices)entries.sort((a,b)=>b.score-a.score||a.index-b.index);
+    let changed=false;
     for(const faction of this.factions){
-      if(!faction.ai||!faction.alive||locations[faction.id]<0)continue;
-      this.build(faction.id,cellToPoint(locations[faction.id]),'city');
+      if(!faction.ai||!faction.alive)continue;
+      const id=faction.id;
+      const sites=upgradeSites[id];
+      const existing=centers[id].length;
+      const desiredCities=Math.max(2,Math.floor(faction.territory/65));
+      const maxActions=Math.min(10,Math.max(1,1+Math.floor(Math.sqrt(faction.territory)/28)));
+      // Expansion and upgrading compete for a single paid development budget.
+      // New cities are limited to at most two each interval, and only if the
+      // realm is significantly below its sustainable settlement count.
+      const maxBuilds=existing<desiredCities?Math.min(2,maxActions):0;
+      let actions=0,builds=0;
+      const newCities:Array<[number,number]>=[];
+      for(const candidate of choices[id]){
+        if(builds>=maxBuilds||actions>=maxActions)break;
+        const index=candidate.index,x=index%MAP_WIDTH,y=Math.floor(index/MAP_WIDTH);
+        if(newCities.some(([cx,cy])=>(cx-x)**2+(cy-y)**2<100))continue;
+        if(this.owner[index]!==id||this.buildings[index])continue;
+        const cost=BUILDINGS[0].cost;
+        if(faction.money<cost)break;
+        faction.money-=cost;this.buildings[index]=BUILDING_CODES.city;
+        this.cityUpgrades[index]=0;
+        newCities.push([x,y]);sites.push(index);
+        changed=true;builds++;actions++;
+      }
+      // Highest-tier towns finish first, rather than having hundreds of
+      // newly founded towns keep every existing city at level 0 or 1.
+      // When a top tier is too expensive, an affordable lower tier can grow.
+      sites.sort((a,b)=>this.cityUpgrades[b]-this.cityUpgrades[a]||a-b);
+      for(let k=actions;k<maxActions;k++){
+        let picked=-1;
+        for(const index of sites){
+          if(this.cityUpgrades[index]>=5)continue;
+          if(cityUpgradeCost(this.cityUpgrades[index])<=faction.money){picked=index;break;}
+        }
+        if(picked<0)break;
+        const cost=cityUpgradeCost(this.cityUpgrades[picked]);
+        faction.money-=cost;this.cityUpgrades[picked]++;
+        changed=true;
+      }
     }
+    // Recompute growth once, not once per paid building in a large empire.
+    if(changed)this.recount();
   }
 
   setDoctrine(mode: Doctrine): void {
@@ -427,7 +875,7 @@ export class Game {
     for (let i = 0; i < CELL_COUNT; i++) {
       const owner = this.owner[i];
       if (owner < 0) { this.frontline[i] = 0; continue; }
-      const threatened = LAND_NEIGHBORS[i].some(n => this.owner[n] >= 0 && this.owner[n] !== owner);
+      const threatened = LAND_NEIGHBORS[i].some(n => this.owner[n] >= 0 && this.owner[n] !== owner && !this.isAllied(owner,this.owner[n]));
       if (!threatened) {
         if (this.frontline[i] > 0) {
           this.factions[owner].troops += this.frontline[i];
@@ -439,10 +887,33 @@ export class Game {
     }
     for (const faction of this.factions) {
       if (!faction.alive || !exposed[faction.id].length) continue;
-      const baseBudget=frontierBudget(faction.troops,faction.income);
+      // Balanced AI and human receive the same automatic defense budget.
+      // Guards withdraw from overcrowded exposed fronts when mobile
+      // reserves fall below a target 20% of the total living army.
+      const mobileTarget=Math.min(faction.population,
+        Math.max(45,faction.population*.20,faction.income*3));
+      let shortage=Math.max(0,mobileTarget-faction.troops);
+      if(shortage>.01){
+        const posts=exposed[faction.id].slice()
+          .sort((a,b)=>this.frontline[b]-this.frontline[a]||a-b);
+        for(const i of posts){
+          if(shortage<=.01)break;
+          const localFloor=Math.max(4,frontierTarget(faction.territory,
+            faction.troops,this.capitalSites.has(i),faction.id===0&&this.doctrine==='fortify')*.35);
+          const excess=Math.max(0,this.frontline[i]-localFloor);
+          const released=Math.min(excess,shortage,this.frontline[i]*.45);
+          if(released<=0)continue;
+          this.frontline[i]-=released;
+          faction.troops+=released;
+          shortage-=released;
+        }
+      }
+      // Never refill a garrison with the reserves just reclaimed from it.
+      // The target reserve is the same for bots and humans.
+      const baseBudget=Math.min(frontierBudget(faction.troops,faction.income),
+        Math.max(0,faction.troops-mobileTarget));
       const budget=faction.ai
-        ? difficultyDefenseBudget(faction.troops,
-            aiDefenseAllocation(faction.troops,faction.income,baseBudget),this.difficulty)
+        ? difficultyDefenseBudget(faction.troops,baseBudget,this.difficulty)
         : baseBudget;
       if (budget < 0.01) continue;
       let remaining = budget;
@@ -472,7 +943,7 @@ export class Game {
     let exposed = 0;
     for (let i = 0; i < CELL_COUNT; i++) {
       if (this.owner[i] !== id) continue;
-      if (LAND_NEIGHBORS[i].some(n => this.owner[n] >= 0 && this.owner[n] !== id)) exposed++;
+      if (LAND_NEIGHBORS[i].some(n => this.owner[n] >= 0 && this.owner[n] !== id && !this.isAllied(id,this.owner[n]))) exposed++;
     }
     return exposed;
   }
@@ -490,6 +961,7 @@ export class Game {
         !this.factions[id]?.alive) return false;
     const index=pointToIndex(target);
     return this.owner[index]!==WATER && this.owner[index]!==id &&
+      !this.isAllied(id,this.owner[index]) &&
       LAND_NEIGHBORS[index].some(n=>this.owner[n]===id);
   }
 
@@ -498,37 +970,10 @@ export class Game {
        target.x<0||target.y<0||target.x>=MAP_WIDTH||target.y>=MAP_HEIGHT||
        !this.factions[id]?.alive)return null;
     const index=pointToIndex(target);
+    if(this.isAllied(id,this.owner[index]))return null;
     const maxDistance=this.owner[index]===NEUTRAL?Game.ATTACK_CLICK_DEPTH:Infinity;
     const front=findConnectedAttackFront(this.owner,MAP_WIDTH,index,id,maxDistance);
     return front>=0?cellToPoint(front):null;
-  }
-
-  /** Clicking our own threatened border triggers an actual counterattack
-   * into the nearest directly adjacent invading nation, not a move across
-   * friendly territory or a phantom strike against our own citizens.
-   * Nearby friendly clicks can reach the same frontline within 12 cells.
-   */
-  findCounterattackFront(id:number, point:Point):Point|null {
-    if(!Number.isFinite(point.x)||!Number.isFinite(point.y)||
-       point.x<0||point.y<0||point.x>=MAP_WIDTH||point.y>=MAP_HEIGHT||
-       !this.factions[id]?.alive)return null;
-    const origin=pointToIndex(point);
-    if(this.owner[origin]!==id)return null;
-    const visited=new Set<number>([origin]);
-    const queue:[number,number][]=[[origin,0]];
-    for(let head=0;head<queue.length;head++){
-      const [index,depth]=queue[head];
-      for(const n of LAND_NEIGHBORS[index]){
-        const neighbor=this.owner[n];
-        if(neighbor>=0 && neighbor!==id)return cellToPoint(n);
-      }
-      if(depth>=12)continue;
-      for(const n of LAND_NEIGHBORS[index]){
-        if(this.owner[n]!==id || visited.has(n))continue;
-        visited.add(n);queue.push([n,depth+1]);
-      }
-    }
-    return null;
   }
 
   /** Friendly threatened frontier sectors may receive manually assigned
@@ -538,7 +983,7 @@ export class Game {
        point.x<0||point.y<0||point.x>=MAP_WIDTH||point.y>=MAP_HEIGHT)return false;
     const index=pointToIndex(point);
     return this.owner[index]===id &&
-      LAND_NEIGHBORS[index].some(n=>this.owner[n]>=0 && this.owner[n]!==id);
+      LAND_NEIGHBORS[index].some(n=>this.owner[n]>=0 && this.owner[n]!==id && !this.isAllied(id,this.owner[n]));
   }
 
   reinforceBorder(id:number,point:Point,ratio:number):AttackResult {
@@ -555,29 +1000,145 @@ export class Game {
     return {ok:true,reason:'Grenzverstärkung stationiert.',sent,front:point};
   }
 
-  /** True only for a documented sea corridor with our troops on the opposite shore. */
-  canLand(id: number, target: Point): boolean {
-    if (!Number.isFinite(target.x) || !Number.isFinite(target.y) ||
-        target.x < 0 || target.y < 0 || target.x >= MAP_WIDTH || target.y >= MAP_HEIGHT ||
-        !this.factions[id]?.alive) return false;
-    const index = pointToIndex(target);
-    if (this.owner[index] === id || this.owner[index] === WATER) return false;
-    return SEA_CROSSINGS.some(([a,b]) => (index === a && this.owner[b] === id)
-      || (index === b && this.owner[a] === id));
+  private maritimeRoute(id:number,target:Point):SeaRoute|null {
+    if(!this.factions[id]?.alive||!Number.isFinite(target.x)||!Number.isFinite(target.y)||
+      target.x<0||target.y<0||target.x>=MAP_WIDTH||target.y>=MAP_HEIGHT)return null;
+    if(this.isAllied(id,this.owner[pointToIndex(target)]))return null;
+    return this.navigation.target(this.owner,id,pointToIndex(target));
   }
 
-  launchAttack(id: number, target: Point, ratio: number): AttackResult {
+  canLand(id:number,target:Point):boolean {
+    return this.maritimeRoute(id,target)!==null;
+  }
+
+  /** Side-effect-free tactical preview of the first real border contact.
+   * Uses the same frontTileOutcome as resolveOrders, without making an order,
+   * moving a soldier, mutating RNG, or advancing the simulation.
+   */
+  assessAttack(id:number,target:Point,ratio:number):AttackAssessment {
+    const fail=(reason:string):AttackAssessment=>({
+      possible:false,reason,troops:0,posted:0,loss:0,time:0,risk:'high',
+    });
+    const actor=this.factions[id];
+    if(!actor?.alive||this.status!=='playing')return fail('Kein Angriff möglich.');
+    if(!Number.isInteger(target.x)||!Number.isInteger(target.y)||
+       target.x<0||target.y<0||target.x>=MAP_WIDTH||target.y>=MAP_HEIGHT)
+      return fail('Ziel außerhalb der Karte.');
+    if(!Number.isFinite(ratio)||ratio<5||ratio>100)return fail('Ungültiger Truppenanteil.');
+    const owner=this.owner[pointToIndex(target)];
+    if(owner===WATER||owner===id||this.isAllied(id,owner))
+      return fail(owner===id?'Eigenes Gebiet.':'Kein angreifbares Ziel.');
+    const front=this.findAttackFront(id,target);
+    const landing=!front?this.landingTarget(id,target):null;
+    const contact=front??landing;
+    if(!contact)return fail('Keine erreichbare Angriffsfront.');
+    const index=pointToIndex(contact),opponent=this.owner[index];
+    const troops=Math.floor(actor.troops*ratio/100);
+    if(troops<8)return fail('Mindestens 8 mobile Truppen erforderlich.');
+    const defender=opponent>=0?this.factions[opponent]:undefined;
+    const adjacent=LAND_NEIGHBORS[index].filter(n=>this.owner[n]===id).length;
+    const outcome=frontTileOutcome({
+      attackTroops:troops,defenderReserve:defender?.troops??0,
+      defenderPopulation:defender?.population??0,defenderTerritory:defender?.territory??0,
+      postedTroops:this.frontline[index],defenseStrength:this.defense[index],
+      friendlySides:Math.max(1,adjacent),
+      borderSize:Math.min(100,1+Math.sqrt(troops)*.12),
+      relativePower:this.relativeAttackPower(id,opponent),
+      neutral:opponent===NEUTRAL,capital:this.capitalSites.has(index),
+      builtCity:this.buildings[index]===BUILDING_CODES.city,
+      cityLevel:this.cityUpgrades[index],
+      doctrine:opponent===0?this.doctrine:undefined,
+    });
+    const posted=this.frontline[index];
+    // A local estimate, not a probability: duration and losses can change
+    // when countries reinforce, combat unfolds or the front moves.
+    const relativeLoss=outcome.attackerLoss/Math.max(1,troops);
+    const risk:AttackAssessment['risk']=troops<=outcome.attackerLoss+.001||
+      relativeLoss>.12||outcome.time>1.35||posted>troops*.6?'high'
+      :relativeLoss>.035||outcome.time>.7||posted>troops*.22?'moderate':'low';
+    return {possible:true,reason:landing?'Seelandung: Kontakt nach Ankunft.':
+      opponent===NEUTRAL?'Neutrale Expansion.':'Schätzung für den ersten Frontsektor.',
+      front:contact,targetOwner:opponent,troops,posted,loss:outcome.attackerLoss,
+      time:outcome.time,risk};
+  }
+
+  launchAttack(id:number,target:Point,ratio:number):AttackResult {
+    // Clicking friendly territory must NEVER dispatch soldiers, even on an
+    // invaded border. A counterattack requires clicking the hostile sector.
+    if(Number.isInteger(target.x)&&Number.isInteger(target.y)&&
+       target.x>=0&&target.y>=0&&target.x<MAP_WIDTH&&target.y<MAP_HEIGHT&&
+       this.owner[pointToIndex(target)]===id)
+      return {ok:false,reason:'Eigenes Gebiet – keine Truppen versendet.',sent:0};
+    if(!this.findAttackFront(id,target)){
+      const route=this.maritimeRoute(id,target);
+      if(route)return this.issueAttack(id,cellToPoint(route.cells[route.cells.length-1]),ratio,true,route);
+    }
     return this.issueAttack(id,target,ratio,false);
   }
 
-  /** Explicit maritime landing: Shift+click the far shore of a known crossing.
-   * No other cross-water movements are allowed, and the landing takes time.
-   */
-  launchLanding(id: number, target: Point, ratio: number): AttackResult {
-    return this.issueAttack(id,target,ratio,true);
+  landingTarget(id:number,target:Point):Point|null {
+    const route=this.maritimeRoute(id,target);
+    return route?cellToPoint(route.cells[route.cells.length-1]):null;
   }
 
-  private issueAttack(id: number, target: Point, ratio: number, landing: boolean): AttackResult {
+  launchLanding(id:number,target:Point,ratio:number):AttackResult {
+    const route=this.maritimeRoute(id,target);
+    if(!route)return {ok:false,reason:'Keine erreichbare Landungsbucht von deiner Küste.',sent:0};
+    return this.issueAttack(id,cellToPoint(route.cells[route.cells.length-1]),ratio,true,route);
+  }
+
+  /** A canceled voyage sails back for the elapsed outward travel time.
+   * If its port is lost, survivors are demobilized into the living nation's
+   * reserve on return; an eliminated nation loses the stranded expedition.
+   */
+  /** Add ACTUAL mobile troops to an existing live offensive without
+   * creating another order or bypassing the same connected-front rules.
+   */
+  reinforceAttack(id:number,orderId:number,ratio:number):AttackResult {
+    const fail=(reason:string):AttackResult=>({ok:false,reason,sent:0});
+    const faction=this.factions[id];
+    const order=this.attackOrders.find(o=>o.id===orderId&&o.factionId===id);
+    if(!faction?.alive||this.status!=='playing'||!order||order.returning)
+      return fail('Diese Offensive kann nicht verstärkt werden.');
+    if(!Number.isFinite(ratio)||ratio<5||ratio>100)
+      return fail('Ungültiger Truppenanteil.');
+    if(order.targetOwner>=0&&this.isAllied(id,order.targetOwner))
+      return fail('Verbündetes Land kann nicht angegriffen werden.');
+    if(order.landing&&order.conquered===0&&this.tick<(order.arrivalTick??Infinity))
+      return fail('Flotte unterwegs: Verstärkung erst nach der Landung.');
+    // Live front candidates are cached each simulation tick. A newly
+    // dispatched order can also be reinforced while paused, before the next
+    // cache rebuild, provided its original enemy sector is still reachable.
+    if(this.chooseOrderedFront(order)<0&&!this.findAttackFront(id,order.anchor))
+      return fail('Keine erreichbare offene Front für diese Offensive.');
+    const sent=Math.floor(faction.troops*ratio/100);
+    if(sent<8)return fail('Nicht genügend mobile Soldaten.');
+    faction.troops-=sent;
+    order.remaining+=sent;
+    order.committed+=sent;
+    order.effort+=campaignEffort(sent);
+    if(id===0)this.log(`Offensive verstärkt: +${formatCompact(sent)} Truppen.`,faction.color);
+    return {ok:true,reason:'Offensive verstärkt.',sent,
+      targetOwner:order.targetOwner,front:order.contested!==undefined?
+        cellToPoint(order.contested):order.anchor};
+  }
+
+  cancelAttack(orderId:number,requesterId?:number):boolean {
+    const order=this.attackOrders.find(o=>o.id===orderId);
+    if(!order||order.returning||
+       (requesterId!==undefined&&order.factionId!==requesterId))return false;
+    if(order.landing&&order.seaRoute&&!order.returning){
+      order.returning=true;order.returnStartedTick=this.tick;
+      order.returnArrivalTick=this.tick+Math.max(1,Math.min(
+        (order.arrivalTick??this.tick+1)-(order.startedTick??this.tick),this.tick-(order.startedTick??this.tick)));
+    }else if(!order.returning){
+      this.factions[order.factionId].troops+=order.remaining;
+      this.attackOrders.splice(this.attackOrders.indexOf(order),1);
+    }
+    return true;
+  }
+
+  private issueAttack(id: number, target: Point, ratio: number, landing: boolean, route?:SeaRoute): AttackResult {
     const failed = (reason: string): AttackResult => ({ ok: false, reason, sent: 0 });
     const attacker = this.factions[id];
     if (!attacker?.alive || this.status !== 'playing') return failed('Diese Fraktion kann nicht angreifen.');
@@ -585,15 +1146,15 @@ export class Game {
     if (!Number.isFinite(ratio) || ratio < 5 || ratio > 100) return failed('Truppenanteil muss zwischen 5 und 100 % liegen.');
     const index=pointToIndex(target),clickedOwner=this.owner[index];
     if(clickedOwner===WATER)return failed('Angriff auf Wasser nicht möglich.');
-    // On a friendly sector, a click NEAR a hostile frontier issues a
-    // counterattack across that real border; never target distant nations.
-    const counter=!landing && clickedOwner===id
-      ? this.findCounterattackFront(id,target):null;
-    if(clickedOwner===id && !counter)return failed('Eigenes Gebiet – für einen Gegenangriff näher an die feindliche Grenze klicken.');
-    const front=counter ?? (landing?cellToPoint(index):this.findAttackFront(id,target));
-    if(!front || (landing && !this.canLand(id,target)))
+    if(clickedOwner===id)return failed('Eigenes Gebiet – keine Truppen versendet.');
+    if(this.isAllied(id,clickedOwner))return failed('Verbündetes Gebiet – kein Angriff möglich.');
+    if(attacker.ai&&this.isWarTruce(id,clickedOwner))
+      return failed('Waffenstillstand – KI muss den Frieden einhalten.');
+    const front=landing?cellToPoint(index):this.findAttackFront(id,target);
+    if(!front || (landing && (!route||!validSeaRoute(route.cells,undefined,index)||this.owner[route.cells[0]]!==id)))
       return failed(landing?'Keine eigene Küste an diesem Seeübergang.':'Dieses Gebiet hat keine gemeinsame Landfront mit dir.');
-    const owner=counter?this.owner[pointToIndex(counter)]:clickedOwner;
+    const owner=clickedOwner;
+    if(this.isAllied(id,owner))return failed('Verbündetes Gebiet – kein Angriff möglich.');
     if(owner===id || owner===WATER)return failed('Kein feindlicher Grenzsektor gefunden.');
     const sent = Math.floor(attacker.troops * ratio / 100);
     if (sent < 8) return failed('Mindestens 8 mobile Truppen erforderlich.');
@@ -602,7 +1163,7 @@ export class Game {
     // real landfront. Both sides suffer matching fatalities; there is no
     // artificial post-spawn defending army or invisible counterattack.
     let committed=sent;
-    if(owner>=0){
+    if(owner>=0&&!landing){
       const incoming=this.attackOrders.find(o=>o.factionId===owner &&
         o.targetOwner===id && !o.landing &&
         canReinforceFront(owner,pointToIndex(front),pointToIndex(o.anchor),MAP_WIDTH));
@@ -626,10 +1187,11 @@ export class Game {
         });
       }
     }
-    if(committed<.5)return {ok:true,reason:'Gegenangriff hat feindliche Armee abgefangen.',
+    if(committed<.5)return {ok:true,reason:'Angriff hat feindliche Armee abgefangen.',
       sent,targetOwner:owner,front};
     // Repeating a click near the same border reinforces the EXISTING army:
     // simple OpenFront-style interaction, no overlapping duplicate campaigns.
+    const departure=route?.cells[0];
     const existing=!landing?this.attackOrders.find(o=>
       o.factionId===id&&!o.landing&&o.targetOwner===owner&&
       canReinforceFront(owner,pointToIndex(o.anchor),pointToIndex(front),MAP_WIDTH)
@@ -643,14 +1205,15 @@ export class Game {
         id:this.nextAttackId++,factionId:id,targetOwner:owner,
         anchor:front,committed,remaining:committed,effort:campaignEffort(committed),
         fallen:0,conquered:0,trail:[],progress:0,landing,startedTick:this.tick,
+        ...(landing&&departure!==undefined?{departure:cellToPoint(departure),seaRoute:route!.cells.slice(),seaDistanceKm:route!.distanceKm,arrivalTick:this.tick+voyageTicks(route!.distanceKm)}:{ }),
       });
     }
     // Neutral attacks only show a concise order status in the HUD, never
     // pollute the strategic event feed for every small land claim.
     if(id===0&&owner!==NEUTRAL)this.log(
-      `${existing?'Verstärkt':landing?'Seelandung':counter?'Gegenangriff':'Angriff'}: ${formatCompact(sent)} gegen ${this.factions[owner].name}.`,attacker.color);
+      `${existing?'Verstärkt':landing?'Seelandung':'Angriff'}: ${formatCompact(sent)} gegen ${this.factions[owner].name}.`,attacker.color);
     const reason=existing?'Offensive verstärkt.':landing?'Landung befohlen.':
-      counter?'Gegenangriff gestartet.':owner===NEUTRAL?'Expansion gestartet.':'Grenzangriff gestartet.';
+      owner===NEUTRAL?'Expansion gestartet.':'Grenzangriff gestartet.';
     return {ok:true,reason,sent,targetOwner:owner,front};
   }
 
@@ -661,7 +1224,7 @@ export class Game {
     const anchorIndex=pointToIndex(order.anchor);
     if(order.landing && order.conquered===0){
       if(this.owner[anchorIndex]!==order.targetOwner)return -1;
-      return this.canLand(order.factionId,order.anchor)?anchorIndex:-1;
+      return order.seaRoute&&this.owner[order.seaRoute[0]]===order.factionId?anchorIndex:-1;
     }
     const candidates=this.frontierCandidates[order.factionId];
     if(!candidates)return -1;
@@ -683,7 +1246,7 @@ export class Game {
     const owner=this.owner[index];
     const defender=owner>=0?this.factions[owner]:null;
     const friendly=LAND_NEIGHBORS[index].reduce((n,i)=>n+(this.owner[i]===attacker.id?1:0),0);
-    if(owner!==order.targetOwner || (!friendly && !(order.landing&&order.conquered===0)))
+    if(this.isAllied(order.factionId,owner) || owner!==order.targetOwner || (!friendly && !(order.landing&&order.conquered===0)))
       return {time:1,captured:false,loss:0};
     const targetPopulation=defender?defender.population:0;
     const localPosted=defender?this.frontline[index]:0;
@@ -699,16 +1262,22 @@ export class Game {
       relativePower:this.relativeAttackPower(attacker.id,owner),
       neutral:owner===NEUTRAL,
       capital:this.capitalSites.has(index),
+      builtCity:this.buildings[index]===BUILDING_CODES.city,
+      cityLevel:this.cityUpgrades[index],
       doctrine:owner===0?this.doctrine:undefined,
     });
     if(order.remaining<=tile.attackerLoss)return {time:tile.time,captured:false,loss:0};
     let defenderLoss=0;
+    let defenderEngaged=0;
     if(defender){
       const posted=Math.min(localPosted,tile.postedLoss);
       this.frontline[index]-=posted;
       const reserveLost=Math.min(defender.troops,Math.max(0,tile.defenderLoss-posted));
       defender.troops-=reserveLost;
       defenderLoss=posted+reserveLost;
+      // Existing local guards plus actually called-up reservists; this
+      // describes the fighting strength, never the number of fatalities.
+      defenderEngaged=localPosted+reserveLost;
       defender.defenseSpent+=defenderLoss;
       defender.defenseFallenTick+=defenderLoss;
       defender.population=Math.max(0,defender.population-defenderLoss);
@@ -722,7 +1291,7 @@ export class Game {
     this.lastAttackerLoss=loss;
     if(this.battleEvents.length<1600)this.battleEvents.push({
       tick:this.tick,index,attackerId:attacker.id,defenderId:owner,
-      attacking:order.remaining+loss,defending:defenderLoss,
+      attacking:order.remaining+loss,defending:defenderEngaged,
       attackerLost:loss,defenderLost:defenderLoss,captured:false,
     });
     // Stationed guards cannot simply vanish when a tile changes color.
@@ -743,11 +1312,31 @@ export class Game {
   private resolveOrders(attacker:Faction):void {
     const orders=this.attackOrders.filter(o=>o.factionId===attacker.id);
     for(const order of orders){
-      if(order.landing&&order.conquered===0&&this.tick-(order.startedTick??0)<4)continue;
+      if(this.isAllied(attacker.id,order.targetOwner)){
+        this.cancelAttack(order.id);
+        if(!order.returning)continue;
+      }
+      if(order.landing&&order.conquered===0){
+        const route=order.seaRoute;
+        if(!order.returning&&(!route||this.owner[route[0]]!==attacker.id||
+          this.owner[pointToIndex(order.anchor)]!==order.targetOwner))this.cancelAttack(order.id);
+        if(order.returning){
+          if(this.tick>=(order.returnArrivalTick??this.tick)){
+            attacker.troops+=order.remaining;
+            this.attackOrders.splice(this.attackOrders.indexOf(order),1);
+          }
+          continue;
+        }
+        if(this.tick<(order.arrivalTick??Infinity))continue;
+      }
       let budget=1+Math.min(1.5,Math.max(0,order.progress??0));
       let unreachable=false;
       let attempts=0;
-      const maxTiles=attacker.id===0&&this.doctrine==='blitz'?26:20;
+      // Neutral marches can sweep empty ground; defended nations must not fall
+      // dozens of sectors in a single 250ms simulation tick.
+      const hostile=order.targetOwner>=0;
+      const maxTiles=hostile ? (attacker.ai?2:(this.doctrine==='blitz'?5:3))
+        : attacker.id===0&&this.doctrine==='blitz'?26:20;
       while(attempts<maxTiles&&order.remaining>=.5){
         const index=this.chooseOrderedFront(order);
         if(index<0){unreachable=true;break;}
@@ -762,12 +1351,24 @@ export class Game {
           borderSize,relativePower:this.relativeAttackPower(attacker.id,this.owner[index]),
           neutral:this.owner[index]===NEUTRAL,
           capital:this.capitalSites.has(index),
+          builtCity:this.buildings[index]===BUILDING_CODES.city,
+          cityLevel:this.cityUpgrades[index],
           doctrine:this.owner[index]===0?this.doctrine:undefined,
         });
         // A nearly spent army retreats with its survivors. It must NEVER
         // become stuck forever attacking a tile whose cost it cannot pay.
         if(order.remaining<=forecast.attackerLoss+.001){unreachable=true;break;}
-        if(forecast.time>budget){order.contested=index;break;}
+        if(forecast.time>budget){
+          // Expensive fortified sectors can need >2 simulation ticks of
+          // fighting. Previously progress was always reset to the same
+          // budget and strong positions could become literally impossible
+          // to capture: 1 -> 2 -> 2 -> 2 ... while cost was e.g. 2.4.
+          // Bank the next tick of assault time, capped to the existing
+          // 1.5 carry limit (next budget max 2.5 > TileOutcome.maxTime 2.4).
+          order.contested=index;
+          budget=Math.min(1.5,budget+1);
+          break;
+        }
         const result=this.resolveFrontTile(order,index,borderSize);
         if(!result.captured){
           order.contested=index;
@@ -788,8 +1389,19 @@ export class Game {
       // March duration is finite even if an army can afford many cheap
       // neutral tiles. Prevent a forgotten order from running indefinitely.
       if(unreachable||order.remaining<.5||order.effort<1||
-        this.tick-(order.startedTick??this.tick)>=120){
+        this.tick-(order.arrivalTick??order.startedTick??this.tick)>=120){
+        if(order.landing&&order.conquered===0&&order.seaRoute){
+          this.cancelAttack(order.id);continue;
+        }
         attacker.troops+=Math.max(0,order.remaining);
+        if(attacker.ai&&order.targetOwner>=0&&order.conquered>0){
+          const recovery=Math.round(65+Math.min(70,order.fallen*.20));
+          attacker.warCooldownUntil=Math.max(attacker.warCooldownUntil??0,this.tick+recovery);
+          const stillAtWar=this.attackOrders.some(o=>o.id!==order.id&&!o.returning&&
+            ((o.factionId===attacker.id&&o.targetOwner===order.targetOwner)||
+             (o.factionId===order.targetOwner&&o.targetOwner===attacker.id)));
+          if(!stillAtWar)this.establishWarTruce(attacker.id,order.targetOwner);
+        }
         const at=this.attackOrders.findIndex(o=>o.id===order.id);
         if(at>=0)this.attackOrders.splice(at,1);
         if(attacker.id===0){
@@ -813,13 +1425,14 @@ export class Game {
     for(const faction of this.factions){
       if(!faction.ai||!faction.alive)continue;
       const capital=this.cities[faction.id];
-      const targets=this.cities.filter(c=>c.owner>=0&&c.owner!==faction.id);
+      const targets=this.cities.filter(c=>c.owner>=0&&c.owner!==faction.id&&!this.isAllied(faction.id,c.owner));
       let best:City|null=null,bestScore=-Infinity;
       for(const city of targets){
         const opponent=this.factions[city.owner];
         const distance=Math.sqrt(distance2(city,capital));
         const weak=100/(25+opponent.troops+opponent.income*3);
-        const score=weak*22-distance*.34+(opponent.territory<faction.territory?7:0);
+        const attackers=new Set(this.attackOrders.filter(o=>o.targetOwner===city.owner&&o.factionId!==faction.id).map(o=>o.factionId)).size;
+        const score=weak*22-distance*.34+(opponent.territory<faction.territory?7:0)-Math.min(18,attackers*6);
         if(score>bestScore){bestScore=score;best=city;}
       }
       if(best)faction.target={x:best.x,y:best.y};
@@ -839,7 +1452,7 @@ export class Game {
       for(const n of LAND_NEIGHBORS[i]){
         if(this.owner[n]===owner || this.owner[n]===WATER)continue;
         this.frontierCandidates[owner].add(n);
-        if(this.owner[n]>=0) exposed=true;
+        if(this.owner[n]>=0&&!this.isAllied(owner,this.owner[n])) exposed=true;
       }
       if(exposed)this.exposedCounts[owner]++;
     }
@@ -854,13 +1467,21 @@ export class Game {
     let best=-1, bestScore=-Infinity;
     for(const i of candidates){
       const opponent=this.owner[i];
-      if(opponent===WATER || opponent===id){candidates.delete(i);continue;}
+      if(opponent===WATER || opponent===id || this.isAllied(id,opponent)||
+         this.isWarTruce(id,opponent)){candidates.delete(i);continue;}
       let friendly=0;
       for(const n of LAND_NEIGHBORS[i])if(this.owner[n]===id)friendly++;
       if(!friendly){candidates.delete(i);continue;}
       const city=this.capitalSites.has(i);
       const hasCity=this.buildings[i]===BUILDING_CODES.city;
       const neutral=opponent===NEUTRAL;
+      // A real expansion phase: settle neutral territory before starting wars.
+      // Thereafter, offset mobilization windows prevent synchronized all-Europe wars.
+      if(!neutral && (this.tick<(faction.warCooldownUntil??0) ||
+         (this.difficulty!=='impossible' &&
+          (this.tick<90 || (this.tick+id*23)%160<72))))continue;
+      const ongoingEnemies=new Set(this.attackOrders.filter(o=>o.factionId===id&&o.targetOwner>=0).map(o=>o.targetOwner));
+      if(!neutral && ongoingEnemies.size>=2&&!ongoingEnemies.has(opponent))continue;
       const defender=neutral?null:this.factions[opponent];
       const assessment=assessInvasion({
         attackerTroops:faction.troops,attackerIncome:faction.income,
@@ -878,6 +1499,15 @@ export class Game {
         ? Math.hypot(i%MAP_WIDTH-focusIndex%MAP_WIDTH,
           Math.floor(i/MAP_WIDTH)-Math.floor(focusIndex/MAP_WIDTH))
         : Infinity;
+      // A defensive pact also informs strategy: prioritize a nation currently
+      // attacking our allies when we share a valid front with that aggressor.
+      // It still requires paid troops, an advantageous battle and a real border.
+      const defendingAlly=opponent>=0&&this.attackOrders.some(o=>
+        o.factionId===opponent&&this.isAllied(id,o.targetOwner));
+      const otherInvaders=neutral?0:new Set(this.attackOrders.filter(o=>o.targetOwner===opponent&&o.factionId!==id).map(o=>o.factionId)).size;
+      // Keep the existing graded penalty, but stop a third nation joining
+      // an already contested enemy. Existing campaigns may finish normally.
+      if(!neutral&&otherInvaders>=2&&!ongoingEnemies.has(opponent))continue;
       const score=scoreAIFront({
         neutral,advantage:assessment.advantage,friendlySides:friendly,
         capital:!!city,city:hasCity,distance:d,
@@ -885,7 +1515,7 @@ export class Game {
         opponentReserve:defender?.troops??0,
         threatenedBorders:exposed,
         focus:d<14,
-      },aiStyle(faction.id)) + (focusDistance<10?11-focusDistance*.85:0) + this.rng()*.15;
+      },aiStyle(faction.id)) + (neutral?24:0) + (defendingAlly?16:0) + (focusDistance<10?11-focusDistance*.85:0)-Math.min(24,otherInvaders*9) + this.rng()*.15;
       if(score>bestScore){bestScore=score;best=i;}
     }
     faction.intent=best<0?'hold':this.owner[best]===NEUTRAL?'expand':'invade';
@@ -897,17 +1527,20 @@ export class Game {
     // Only a limited emergency contingent may arrive from the national reserve:
     // a distant empire cannot instantly defend every weak point at full power.
     const originalOwner = this.owner[index];
+    if(this.isAllied(faction.id,originalOwner))return false;
     const relativePower=this.relativeAttackPower(faction.id,originalOwner);
     const rawDamage = spent * (0.95 + this.rng() * 0.22) * relativePower;
     const garrisonStrength=this.defense[index];
     let mitigation = 0;
     let defenderLosses=0;
+    let defenderEngaged=0;
     let defender: Faction | null = null;
     let capital = false;
     if (originalOwner >= 0 && originalOwner !== faction.id) {
       defender = this.factions[originalOwner];
       capital = this.capitalSites.has(index);
       const fortified = originalOwner === 0 && this.doctrine === 'fortify';
+      const localPosted=this.frontline[index];
       const local = interceptAttack(this.frontline[index], rawDamage, fortified, capital);
       this.frontline[index] -= local.used;
       defenderLosses+=local.used;
@@ -923,6 +1556,7 @@ export class Game {
       const emergencyLimit=Math.min(defender.troops,
         Math.max(1.5,rawDamage*(capital?.55:.36)));
       const emergency = interceptAttack(emergencyLimit, Math.max(0, rawDamage - mitigation), fortified, capital);
+      defenderEngaged=localPosted+emergency.used;
       defender.troops -= emergency.used;
       defenderLosses+=emergency.used;
       defender.defenseSpent += emergency.used;
@@ -952,7 +1586,7 @@ export class Game {
     // Capped so an extremely busy high-speed simulation stays renderable.
     if(this.battleEvents.length<1600)this.battleEvents.push({
       tick:this.tick,index,attackerId:faction.id,defenderId:originalOwner,
-      attacking:spent,defending:defenderLosses,
+      attacking:spent,defending:defenderEngaged,
       attackerLost:this.lastAttackerLoss,defenderLost:defenderLosses,captured,
     });
     if(!captured)return false;
@@ -983,7 +1617,7 @@ export class Game {
   }
 
   private attack(faction:Faction,index:number) {
-    if(faction.troops<8)return false;
+    if(faction.troops<8||this.isAllied(faction.id,this.owner[index]))return false;
     const neutral=this.owner[index]===NEUTRAL;
     // The direct strike helper also serves existing combat regression tests.
     // Only AI factions use the increased tempo and marching-energy budget.
@@ -1007,9 +1641,46 @@ export class Game {
     return true;
   }
 
+  private tryNavalAttack(id:number,ratio:number):boolean {
+    const f=this.factions[id];
+    if(f.troops<80||this.attackOrders.some(o=>o.factionId===id&&o.seaRoute))return false;
+    const field=this.navigation.field(this.owner,id);
+    let best=-1,bestScore=-Infinity;
+    const sent=Math.floor(f.troops*ratio/100);
+    const ongoingEnemies=new Set(this.attackOrders.filter(o=>o.factionId===id&&o.targetOwner>=0).map(o=>o.targetOwner));
+    const peaceful=(this.tick<(f.warCooldownUntil??0)) ||
+        (this.difficulty!=='impossible' && (this.tick<90 || (this.tick+id*23)%160<72));
+    for(const shore of COASTS){
+      const owner=this.owner[shore];if(owner===id||owner===WATER||
+         this.isAllied(id,owner)||this.isWarTruce(id,owner))continue;
+      if(owner>=0 && (peaceful || ongoingEnemies.size>=2&&!ongoingEnemies.has(owner)))continue;
+      if(LAND_NEIGHBORS[shore].some(n=>this.owner[n]===id))continue;
+      const water=LAND_NEIGHBORS[shore].filter(n=>field.depth[n]>=0);
+      if(!water.length)continue;
+      const steps=Math.min(...water.map(n=>field.depth[n]));
+      const defender=owner>=0?this.factions[owner]:null;
+      const otherInvaders=owner<0?0:new Set(this.attackOrders.filter(o=>o.targetOwner===owner&&o.factionId!==id).map(o=>o.factionId)).size;
+      if(otherInvaders>=2)continue;
+      const assessment=assessInvasion({attackerTroops:sent,attackerIncome:f.income,
+        defenderTroops:defender?Math.min(defender.troops*.15,40+defender.income*3):0,
+        defenderIncome:defender?.income??0,garrison:this.sectorDefense(shore)+this.frontline[shore],
+        capital:this.capitalSites.has(shore),neutral:owner===NEUTRAL,
+        threatenedBorders:this.exposedCounts[id]??0,
+        relativePower:owner<0?1:this.relativeAttackPower(id,owner),riskTolerance:0});
+      if(!assessment.worthwhile||f.troops-sent<Math.max(35,f.income*5))continue;
+      const score=(owner===NEUTRAL?26:20)+Math.min(20,assessment.advantage*3)-steps*.22
+        +(this.capitalSites.has(shore)?6:0)+(this.buildings[shore]?5+this.cityUpgrades[shore]:0)-otherInvaders*12;
+      if(score>bestScore){bestScore=score;best=shore;}
+    }
+    return best>=0&&bestScore>0&&this.launchLanding(id,cellToPoint(best),ratio).ok;
+  }
+
   step(): void {
     if (this.paused || this.status !== 'playing') return;
+    const beforeMobile=this.factions[0].troops;
     this.tick++;
+    this.updateDiplomacy();
+    this.deliverDefensiveAid();
     this.battleEvents.length=0;
     for(const faction of this.factions)faction.defenseFallenTick=0;
     if (this.tick >= this.aiGoalChange) {
@@ -1018,7 +1689,14 @@ export class Game {
     }
     this.recount();
     for(const faction of this.factions){
-      if(!faction.alive)continue;
+      if(!faction.alive){
+        // No surviving homeland can receive a stranded expedition.
+        for(let i=this.attackOrders.length-1;i>=0;i--){
+          const order=this.attackOrders[i];if(order.factionId!==faction.id)continue;
+          faction.attackFallen+=order.remaining;this.attackOrders.splice(i,1);
+        }
+        continue;
+      }
       // All residents are recruitable troops: a single clear growth figure.
       faction.troops+=faction.income;
       faction.money+=faction.moneyIncome;
@@ -1027,6 +1705,7 @@ export class Game {
     }
     if(this.tick%this.difficultySettings.cityInterval===0)this.developAI();
     this.redistributeFrontline();
+    this.dispatchDefensiveAid();
     this.rebuildFrontierCandidates();
     // The SAME continuous-border military rules now govern humans AND AI.
     // AIs choose targets; orders fight over time using actual paid-for armies.
@@ -1036,14 +1715,20 @@ export class Game {
       if(!faction.ai)continue;
       const maxActive=aiStyle(faction.id)==='aggressive'||this.difficulty==='impossible'?2:1;
       const active=this.attackOrders.filter(o=>o.factionId===faction.id).length;
-      if(active>=maxActive || faction.troops<22)continue;
-      const target=this.chooseFront(faction.id);
-      if(target<0)continue;
       const ratio=Math.max(15,Math.min(55,
         Math.round(30*this.difficultySettings.activityMultiplier)));
-      this.issueAttack(faction.id,cellToPoint(target),ratio,false);
+      // Stagger naval planning and allow it while profitable landfronts exist.
+      // At most one fleet and two total offensives, using actual reserves.
+      if(active<2&&this.tick>=(faction.warCooldownUntil??0)&&this.tick%32===faction.id%32 && this.tryNavalAttack(faction.id,ratio))continue;
+      // Recovery prevents new foreign wars, but peaceful neutral expansion
+      // remains possible through chooseFront's separate hostile-country gate.
+      if(active>=maxActive || faction.troops<22)continue;
+      const target=this.chooseFront(faction.id);
+      if(target>=0)this.issueAttack(faction.id,cellToPoint(target),ratio,false);
+
     }
     this.recount();
+    this.mobileNet=this.factions[0].troops-beforeMobile;
     if (!this.factions[0].alive) {
       this.status = 'defeat';
       this.log(`${this.factions[0].name} wurde besiegt.`, '#ee788c');
@@ -1051,6 +1736,138 @@ export class Game {
       this.status = 'victory';
       this.log('EUROPA steht unter deiner Kontrolle!', '#e9b85e');
     }
+  }
+
+  /** Versioned exact simulation state. Recomputed frontier caches are excluded. */
+  exportSave():GameSave {
+    return {
+      version:1,seed:this.seed,playerCode:this.playerCode,difficulty:this.difficulty,
+      tick:this.tick,status:this.status,paused:this.paused,doctrine:this.doctrine,
+      rngCalls:this.rngCalls,aiGoalChange:this.aiGoalChange,nextAttackId:this.nextAttackId,
+      owner:Array.from(this.owner),defense:Array.from(this.defense),
+      buildings:Array.from(this.buildings),cityUpgrades:Array.from(this.cityUpgrades),
+      frontline:Array.from(this.frontline),
+      factions:this.factions.map(f=>({...f,target:{...f.target}})),
+      cities:this.cities.map(c=>({...c})),
+      attackOrders:this.attackOrders.map(o=>structuredClone(o)),
+      events:this.events.map(e=>({...e})),
+      alliances:this.alliances.map(a=>({...a})),offers:this.offers.map(o=>({...o})),
+      defenseAid:this.defenseAid.map(a=>({...a})),
+      diplomacyCooldowns:this.diplomacyCooldowns.map(v=>({...v})),
+      warTruces:this.warTruces.map(v=>({...v})),
+    };
+  }
+
+  static fromSave(input:unknown):Game {
+    if(!input||typeof input!=='object')throw Error('Ungültiger Spielstand.');
+    const save=input as GameSave;
+    if(save.version!==1||!Number.isSafeInteger(save.seed)||!isDifficulty(save.difficulty)||
+       !countryByCode(save.playerCode)||!Number.isSafeInteger(save.tick)||save.tick<0||
+       !['playing','victory','defeat'].includes(save.status)||
+       !['expand','blitz','fortify'].includes(save.doctrine)||
+       !Number.isSafeInteger(save.rngCalls)||save.rngCalls<0||save.rngCalls>100000000||
+       !Number.isSafeInteger(save.nextAttackId)||save.nextAttackId<1)
+      throw Error('Nicht unterstützter oder beschädigter Spielstand.');
+    const g=new Game(save.seed,Array.isArray(save.factions)?save.factions.length-1:-1,save.playerCode,save.difficulty);
+    const arrays: Array<[number[],Int16Array|Float32Array|Float64Array|Uint8Array,string]>=[
+      [save.owner,g.owner,'owner'],[save.defense,g.defense,'defense'],
+      [save.buildings,g.buildings,'buildings'],[save.cityUpgrades,g.cityUpgrades,'cityUpgrades'],
+      [save.frontline,g.frontline,'frontline'],
+    ];
+    for(const [values,target,name] of arrays){
+      if(!Array.isArray(values)||values.length!==target.length||
+         values.some((v:number)=>!Number.isFinite(v)))throw Error('Ungültige Karte: '+name);
+      target.set(values);
+    }
+    if(!Array.isArray(save.factions)||save.factions.length!==g.factions.length||
+       !Array.isArray(save.attackOrders)||!Array.isArray(save.cities)||
+       save.cities.length!==g.cities.length||!Array.isArray(save.events)||
+       save.factions.some((f,i)=>f.id!==i||!Number.isFinite(f.troops)||f.troops<0||
+         !Number.isFinite(f.money)||!Number.isFinite(f.campaignEnergy))||
+       save.attackOrders.length>10000||save.events.length>20000)
+      throw Error('Ungültige Fraktions- oder Angriffsdaten.');
+    for(let i=0;i<g.factions.length;i++)Object.assign(g.factions[i],structuredClone(save.factions[i]));
+    for(let i=0;i<g.cities.length;i++)Object.assign(g.cities[i],structuredClone(save.cities[i]));
+    g.attackOrders.splice(0,g.attackOrders.length,...structuredClone(save.attackOrders));
+    for(const order of g.attackOrders){
+      if(!Number.isSafeInteger(order.id)||!g.factions[order.factionId]||
+        !Number.isFinite(order.remaining)||order.remaining<0||!Number.isFinite(order.committed)||
+        !Number.isFinite(order.effort)||!Number.isFinite(order.anchor?.x)||!Number.isFinite(order.anchor?.y)||
+        order.anchor.x<0||order.anchor.y<0||order.anchor.x>=MAP_WIDTH||order.anchor.y>=MAP_HEIGHT)
+        throw Error('Ungültige Armee im Spielstand.');
+      if(order.seaRoute&&(!order.departure||!validSeaRoute(order.seaRoute,pointToIndex(order.departure),pointToIndex(order.anchor))))
+        throw Error('Ungültige Seeroute im Spielstand.');
+      if(order.landing&&order.conquered===0){
+        if(order.seaRoute){
+          if(!Number.isSafeInteger(order.startedTick)||!Number.isSafeInteger(order.arrivalTick)||
+            order.startedTick!>save.tick||(order.arrivalTick! - order.startedTick!)!==voyageTicks(routeDistance(order.seaRoute))||
+            !Number.isFinite(order.seaDistanceKm)||Math.abs(order.seaDistanceKm!-routeDistance(order.seaRoute))>.001||
+            (order.returning&&(!Number.isSafeInteger(order.returnStartedTick)||!Number.isSafeInteger(order.returnArrivalTick)||
+              order.returnStartedTick!>save.tick||order.returnArrivalTick!<=order.returnStartedTick!||
+              order.returnArrivalTick!-order.returnStartedTick!>96)))
+            throw Error('Ungültige Reisezeit im Spielstand.');
+        }else{
+          const route=g.navigation.route(g.owner,order.factionId,pointToIndex(order.anchor));
+          if(route){
+            const elapsed=Math.max(0,Math.min(1,(save.tick-(order.startedTick??save.tick))/Math.max(1,(order.arrivalTick??save.tick+8)-(order.startedTick??save.tick))));
+            const duration=voyageTicks(route.distanceKm);
+            order.seaRoute=route.cells;order.seaDistanceKm=route.distanceKm;
+            order.departure=cellToPoint(route.cells[0]);order.startedTick=save.tick-Math.floor(elapsed*duration);
+            order.arrivalTick=order.startedTick+duration;
+          }else{
+            g.factions[order.factionId].troops+=order.remaining;
+            order.remaining=0;order.effort=0;order.landing=false;
+          }
+        }
+      }
+    }
+    const alliances=save.alliances??[],offers=save.offers??[];
+    if(!Array.isArray(alliances)||!Array.isArray(offers)||
+       alliances.length>g.factions.length||offers.length>g.factions.length||
+       alliances.some(a=>!Number.isInteger(a.a)||!Number.isInteger(a.b)||
+         a.a<0||a.a>=a.b||a.b>=g.factions.length||
+         !Number.isSafeInteger(a.sinceTick)||a.sinceTick<0||a.sinceTick>save.tick)||
+       new Set(alliances.map(a=>a.a+':'+a.b)).size!==alliances.length||
+       offers.some(o=>!Number.isInteger(o.from)||!Number.isInteger(o.to)||o.to!==0||
+         o.from<=0||o.from>=g.factions.length||
+         !Number.isSafeInteger(o.untilTick)||o.untilTick<=save.tick||o.untilTick>save.tick+240)||
+       alliances.some(a=>g.attackOrders.some(o=>
+         (o.factionId===a.a&&o.targetOwner===a.b)||(o.factionId===a.b&&o.targetOwner===a.a))))
+      throw Error('Ungültige Bündnisdaten.');
+    const defenseAid=save.defenseAid??[];
+    if(!Array.isArray(defenseAid)||defenseAid.length>g.factions.length*2||
+       defenseAid.some(a=>!Number.isInteger(a.from)||!Number.isInteger(a.to)||
+         a.from<0||a.to<0||a.from===a.to||a.from>=g.factions.length||
+         a.to>=g.factions.length||!Number.isFinite(a.troops)||a.troops<=0||
+         !Number.isSafeInteger(a.arrivalTick)||a.arrivalTick<=save.tick||
+         a.arrivalTick>save.tick+8))
+      throw Error('Ungültige Bündnisverstärkung.');
+    g.alliances.push(...structuredClone(alliances));
+    g.offers.push(...structuredClone(offers));
+    g.defenseAid.push(...structuredClone(defenseAid));
+    const diplomacyCooldowns=save.diplomacyCooldowns??[];
+    if(!Array.isArray(diplomacyCooldowns)||diplomacyCooldowns.length>g.factions.length*2||
+       diplomacyCooldowns.some(v=>!Number.isInteger(v.a)||!Number.isInteger(v.b)||
+         v.a<0||v.a>=v.b||v.b>=g.factions.length||
+         !Number.isSafeInteger(v.untilTick)||v.untilTick<=save.tick))
+      throw Error('Ungültige diplomatische Abkühlzeit.');
+    g.diplomacyCooldowns.push(...structuredClone(diplomacyCooldowns));
+    const warTruces=save.warTruces??[];
+    if(!Array.isArray(warTruces)||warTruces.length>g.factions.length*2||
+       warTruces.some(v=>!Number.isInteger(v.a)||!Number.isInteger(v.b)||
+         v.a<=0||v.a>=v.b||v.b>=g.factions.length||
+         !Number.isSafeInteger(v.untilTick)||v.untilTick<=save.tick))
+      throw Error('Ungültiger Waffenstillstand.');
+    g.warTruces.push(...structuredClone(warTruces));
+    g.events.splice(0,g.events.length,...structuredClone(save.events));
+    g.tick=save.tick;g.status=save.status;g.paused=!!save.paused;g.doctrine=save.doctrine;
+    g.aiGoalChange=save.aiGoalChange;g.nextAttackId=save.nextAttackId;
+    const generator=seededRandom(save.seed);
+    for(let i=0;i<save.rngCalls;i++)generator();
+    g.rngCalls=save.rngCalls;
+    g.rng=()=>{g.rngCalls++;return generator();};
+    g.recount();g.rebuildFrontierCandidates();
+    return g;
   }
 
   factionAt(point: Point): Faction | null {

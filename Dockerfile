@@ -9,6 +9,6 @@ FROM node:22-alpine
 WORKDIR /app
 COPY --from=build /app/dist ./dist
 COPY scripts/serve.mjs ./scripts/serve.mjs
-EXPOSE 8080
-ENV PORT=8080
+EXPOSE 8095
+ENV PORT=8095
 CMD ["node", "scripts/serve.mjs"]

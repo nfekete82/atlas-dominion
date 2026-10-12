@@ -340,8 +340,11 @@ test('Landfront advances only into directly connected cells without jumping thro
     g.step();
     for(let i=0;i<before.length;i++) {
       if(before[i]!==g.owner[i] && g.owner[i]>=0)
-        assert.ok(landNeighbors(i).some(n=>g.owner[n]===g.owner[i]),
-          'disconnected land capture '+i);
+        assert.ok(landNeighbors(i).some(n=>g.owner[n]===g.owner[i]) ||
+          SEA_CROSSINGS.some(([a,b])=>
+            (i===a && (before[b]===g.owner[i]||g.owner[b]===g.owner[i])) ||
+            (i===b && (before[a]===g.owner[i]||g.owner[a]===g.owner[i]))),
+          'capture must connect by land or a documented sea corridor '+i);
     }
   }
 });
@@ -362,12 +365,14 @@ test('An explicit landing requires an owned departure shore, and takes time',()=
   g.owner[to]=NEUTRAL;
   assert.equal(g.isDirectBorderTarget(0,cellToPoint(to)),false);
   assert.equal(g.canLand(0,cellToPoint(to)),true);
-  assert.equal(g.launchAttack(0,cellToPoint(to),35).ok,false);
-  const result=g.launchLanding(0,cellToPoint(to),35);
+  // Standard clicks now select the sea route automatically, without Shift.
+  const result=g.launchAttack(0,cellToPoint(to),35);
   assert.ok(result.ok);
   const landOrder=g.attackOrders[0];
   assert.equal(landOrder.landing,true);
   assert.equal(landOrder.anchor.x,to%MAP_WIDTH);
+  assert.equal(landOrder.arrivalTick,g.tick+8);
+  assert.deepEqual(landOrder.departure,cellToPoint(from));
   const original=g.owner[to];
   g.step();g.step();g.step();
   assert.equal(g.owner[to],original,'landing cannot resolve before the crossing delay');
@@ -380,4 +385,11 @@ test('Front lookup rejects water, own territory and out-of-map clicks',()=>{
   assert.equal(g.findAttackFront(0,g.cities[0]),null);
   assert.equal(g.findAttackFront(0,cellToPoint(water)),null);
   assert.equal(g.findAttackFront(0,{x:-100,y:2}),null);
+});
+
+test('balanced AI spends the opening developing and expanding rather than declaring immediate wars',()=>{
+  const g=new Game(247,12,'DE','balanced');
+  for(let i=0;i<60;i++)g.step();
+  assert.equal(g.attackOrders.filter(o=>o.factionId!==0&&o.targetOwner>=0).length,0,
+    'AI should not open hostile wars during the first 90 ticks');
 });

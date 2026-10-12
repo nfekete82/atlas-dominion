@@ -3,6 +3,18 @@
 [![Build und Simulationstests](https://github.com/nfekete82/atlas-dominion/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/nfekete82/atlas-dominion/actions/workflows/ci.yml)
 
 
+### Lesbare Stadtmarker
+
+Gebaute Städte erscheinen als 30 CSS-Pixel große Canvas-Skyline mit kleinem Levelbadge (1–5), auch bei 100 % Kartenzoom. Level 0 bleibt ohne Zahl. Bronze kennzeichnet 0–2, Silber 3–4 und Gold 5. Kollisionsprüfung schützt andere Städte, Frontzähler, Hauptstadtnamen und Kartenbedienelemente. Eng stehende Städte werden nach Priorität ausgedünnt; Zoomen macht weitere Städte sichtbar. Die Symbole und ihre Rechtsklick-Trefferflächen verwenden dieselben Bildschirmmaße.
+
+```bash
+npm test
+npm ci --prefix tests/browser
+npm run test:browser
+```
+
+Die Browsertests starten ihren Testserver auf Port 8096 und verwenden lokal Chrome. Alternativ: `ATLAS_BROWSER_CHANNEL=chromium npm run test:browser` nach `cd tests/browser && npx playwright install chromium`. Ein laufender Container lässt sich mit `ATLAS_BASE_URL=http://127.0.0.1:8095 npm run test:browser` prüfen. [QA-Bericht und Vorher-/Nachher-Bilder](docs/qa/city-markers-20261012/README.md).
+
 **v1.8 – KONTINUIERLICHER FRONTAUFPRALL STATT SEKTORTREFFERN**
 
 Das tatsächliche OpenFront-Kampfsystem beruht auf persistenten Armeen, einer dynamischen orthogonalen Zielfront, einem **Kampfzeitbudget pro Tick** und Soldatenverlusten, die vom Verhältnis der real kämpfenden Truppen zum gegnerischen Bestand abhängen. ATLAS DOMINION implementiert dieses Prinzip **unabhängig mit eigenen Formeln und Skalierung**, keine fremden Programmteile werden übernommen. OpenFront steht unter der GNU AGPL v3; deshalb wird ausdrücklich nichts hineinkopiert.
@@ -199,3 +211,10 @@ Danach http://localhost:8095 öffnen. Der vollständige TypeScript-Build und Bro
 - v1.0 – Länderbasiertes Klicken und kontrastreiche Karte
 
 Kartengrundlage: Natural Earth 110m (Public Domain). Das Projekt ist unabhängig von OpenFront.
+
+
+## Naval Warfare 2.0 und echte Topografie
+
+Erreichbare Inseln und Küsten können per normalem Linksklick angegriffen werden; gültige Landfronten haben Vorrang. Flotten fahren über berechnete Wasserzellen, binden echte Soldaten während der Reise und beginnen den Kampf erst bei Ankunft. Entfernung bestimmt die Reisedauer. Laufende Hin- und Rückfahrten sind einschließlich Route deterministisch gespeichert; ältere Version-1-Spielstände werden migriert. Die KI nutzt dieselben bezahlten Seewege, schützt Heimatreserven und respektiert friedliche Anfangsphase sowie eine zusätzliche Begrenzung gegen Angriffe durch mehr als zwei Nationen.
+
+Dezentes reales Natural-Earth-Relief und 988 Seegeometrien liegen transparent über Besitzflächen und unter Städtenamen, Stadtmarkern und Frontanzeigen. Die Ebene ist rein visuell und gecacht. [Geodaten, Lizenz und Reproduktion](docs/GEODATA.md) · [Implementierung, Tests, Performance und echte Vorher/Nachher-Screenshots](docs/qa/naval-topography-20261012/README.md).

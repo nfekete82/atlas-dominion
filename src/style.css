@@ -155,3 +155,280 @@
 .battle-dot.red{background:#ff7275;color:#ff7275}
 .battle-report .battle-own-loss{color:#76cafa}
 .battle-report .battle-enemy-loss{color:#ff9c98}
+
+/* Keep measured tooltip bounds inside the battlefield and clear of city hit areas. */
+.map-info{transform:none;max-width:min(330px,calc(100% - 8px));overflow-wrap:anywhere}
+
+/* Opaque military details stay legible above topography at every map zoom. */
+.map-info .military-details{margin:8px 0;padding:7px 0;border-block:1px solid #53646a;font-size:10px;line-height:1.55;letter-spacing:0}
+.military-details>div{display:flex;justify-content:space-between;gap:12px}
+.military-details span{color:#c5d4d0}
+.military-details b{white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* Diplomacy: compact persistent treaty controls, no giant dialogs. */
+.diplomacy{border-top:1px solid #345450;background:linear-gradient(155deg,#101f28,#0a1821)}
+.diplomacy-help{color:#a8beb9;font-size:11px;line-height:1.5;margin:10px 0}
+.diplomacy-allies{font-size:11px;color:#a8dec4;padding:9px 10px;background:#17362e;border:1px solid #356650;border-radius:5px;margin:9px 0 12px;line-height:1.5}
+.diplomacy label{display:block;font-size:9px;font-weight:800;letter-spacing:1.4px;color:#9fb7bb;margin:8px 0 5px}
+.diplomacy select{width:100%;padding:10px 9px;background:#0b1d27;color:#e9f1e9;border:1px solid #476069;border-radius:5px;font-size:12px}
+.diplomacy-detail{font-size:11px;color:#aec4c2;line-height:1.5;padding:9px 0}
+.diplomacy-action{width:100%;background:#264c40;color:#e4f5e9;border:1px solid #488568;border-radius:5px;padding:10px 12px;font-size:12px;font-weight:800;margin:4px 0}
+.diplomacy-action:hover:not(:disabled){background:#346c53}
+.diplomacy-action.warning{background:#43332b;border-color:#826b4e;color:#efd7a7}
+.diplomacy-action:disabled{opacity:.46;cursor:not-allowed}
+.diplomacy-inbox{margin:9px 0}
+.diplomacy-incoming{border:1px solid #698971;background:#163228;padding:10px;border-radius:6px;margin:8px 0;font-size:11px}
+.diplomacy-incoming strong{display:block;color:#d3f2df;margin-bottom:9px;line-height:1.5}
+.diplomacy-incoming button{background:#244a3b;color:#d1ecdc;border:1px solid #568b6f;border-radius:4px;font-size:11px;padding:6px 9px;margin-right:7px}
+.diplomacy-feedback{color:#c3d9c8;font-size:11px;line-height:1.5}
+
+/* v1.9: denser tactical dashboard. Main numbers remain visible;
+ * explanations, combat telemetry, and the full rankings expand on demand. */
+@media(min-width:801px){
+  .sidebar{width:304px}
+  .sidebar-section{padding:12px 14px 11px}
+  .section-label{font-size:9px;letter-spacing:1.2px;gap:7px}
+  .faction-hero{padding:10px 0 11px;gap:10px}
+  .faction-emblem{width:43px;height:43px;font-size:28px;flex-shrink:0}
+  .faction-hero strong{font-size:16px}
+  .stat-grid{gap:5px}
+  .stat{padding:8px 9px;min-height:64px}
+  .stat small{font-size:8px;letter-spacing:.6px}
+  .stat strong{font-size:19px;line-height:1.1;margin:3px 0}
+  .stat span{font-size:8px;line-height:1.2;letter-spacing:.2px}
+  .progress-label{margin:12px 0 5px;font-size:8px}
+  .doctrine-title{margin-top:14px;font-size:9px}
+  .doctrine-buttons{gap:5px;margin-top:6px}
+  .doctrine-buttons button{padding:8px 3px;font-size:10px}
+  .build-guide{margin-top:10px;padding:7px 8px;font-size:9px}
+  .auto-guard{margin-top:9px;padding:9px;gap:5px}
+  .auto-guard strong{font-size:9px}
+  .auto-guard small{font-size:9px}
+  .attack-control{margin-top:11px;padding:10px}
+  .attack-title{font-size:9px}
+  .attack-title strong{font-size:15px}
+  #attackRatio{margin:7px 0 5px}
+  .attack-presets button{padding:6px 2px;font-size:9px}
+  .attack-preview{padding:8px}
+  .attack-status{font-size:10px}
+  .leaderboard{margin-top:8px;gap:2px}
+  .power{min-height:23px;gap:6px;font-size:10px;grid-template-columns:16px minmax(0,1fr) 56px}
+  .power-num{font-size:9px}
+  .diplomacy-allies{margin:7px 0;padding:7px}
+  .diplomacy select{padding:7px 8px}
+  .diplomacy-detail{padding:6px 0}
+  .diplomacy-action{padding:8px;margin:3px 0}
+  .event-feed{margin-top:8px;gap:8px}
+  .sidebar-footer{padding:9px 14px}
+}
+@media(min-width:1201px){.sidebar{width:274px}}
+.defense-extra{margin:2px 0 0}
+.defense-extra summary,.diplomacy-help summary{cursor:pointer;font-size:10px;color:#b7d4cb;padding:5px 0;user-select:none}
+.defense-extra[open] #casualtyReport{display:block;padding:6px 0}
+.defense-extra[open] #battleReport{margin-top:6px}
+.diplomacy-help{margin:5px 0 8px;color:#a5c4b8;font-size:10px;line-height:1.45}
+.diplomacy-help[open]{padding-bottom:5px}
+.leaderboard-toggle{display:block;width:100%;background:#172b34;border:1px solid #38535a;color:#a7cfbd;border-radius:5px;margin-top:9px;padding:7px;font:700 10px system-ui;cursor:pointer}
+.leaderboard-toggle:hover{background:#24434a}
+
+/* The mobile reserve is the actionable part of military strength.
+ * Keep that line visible; fold detailed deployments and losses on demand.
+ * Grid cards do not stretch to match the tallest card in the same row. */
+.stat-grid{align-items:start}
+.stat #mobileTroops{display:block;margin-top:3px;font-size:9px;font-weight:850;color:#9cdeed;letter-spacing:.35px}
+.troop-breakdown{margin-top:3px;color:#95adb4}
+.troop-breakdown summary{cursor:pointer;font-size:8px;letter-spacing:.3px;padding:3px 0}
+.troop-breakdown[open] span{display:block;margin-top:4px;overflow-wrap:anywhere;font-size:8px;line-height:1.3}
+
+/* Diplomatic actions share the city context menu, but never appear on own land. */
+.build-entry.diplomatic-choice{border-color:#47765f;background:#173830}
+.build-entry.diplomatic-choice:hover:not(:disabled){background:#245342;border-color:#a3cfaf}
+.coalition-assessment{font-size:11px;color:#c2d3c7;line-height:1.5;margin:12px 4px 4px}
+
+/* Tactical hover: deliberately tiny. Full logistics live in the sidebar. */
+.map-info.compact-hover{
+  width:max-content;
+  min-width:0;
+  max-width:min(260px,calc(100% - 8px));
+  padding:8px 10px;
+  background:#0d1b24f4;
+  border:1px solid #546871;
+  border-radius:5px;
+  box-shadow:0 5px 18px #0008;
+}
+.compact-hover #hoverOwner{
+  display:block;
+  font-size:12px;
+  line-height:1.25;
+  font-weight:850;
+  letter-spacing:.1px;
+}
+.map-info.compact-hover .military-details{
+  display:flex;
+  gap:12px;
+  margin:5px 0 0;
+  padding:0;
+  border:0;
+  font-size:11px;
+  line-height:1.3;
+}
+.map-info.compact-hover .military-details[hidden]{display:none}
+.compact-hover .military-details>div{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:1px;
+}
+.compact-hover .military-details span{
+  color:#acbfbe;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:0;
+}
+.compact-hover .military-details b{
+  color:#f4e6c1;
+  font-size:13px;
+  font-weight:850;
+}
+.compact-hover .military-details>div:nth-child(2) b{color:#9cdeed}
+.map-info.compact-hover #hoverAction{
+  display:block;
+  margin-top:5px;
+  padding-top:5px;
+  border-top:1px solid #3a4e53;
+  font-size:9px;
+  line-height:1.3;
+  font-weight:750;
+  letter-spacing:0;
+  color:#9be3bd;
+}
+.map-info.compact-hover #hoverAction.blocked{color:#e6b5a0}
+
+/* Atlas visual overhaul — restrained campaign-room materials. The interface
+ * never competes with frontline color cues or obscures the map. */
+.topbar{
+  background:linear-gradient(180deg,#111f29 0%,#0a1720 100%);
+  border-bottom-color:#405354;
+  box-shadow:0 3px 18px #030b1390;
+}
+.sidebar{
+  background:linear-gradient(135deg,#10212b 0%,#0a161f 52%,#09151d 100%);
+  border-left-color:#425254;
+}
+.bottom-bar{
+  background:linear-gradient(180deg,#101e28f3 0%,#091720f9 100%);
+  border-top-color:#455957;
+  box-shadow:0 -10px 32px #04131aa6;
+}
+.map-heading h1{
+  text-shadow:0 3px 18px #030d17d9;
+}
+.map-info.compact-hover{
+  border-color:#78938f;
+  box-shadow:0 8px 24px #030e19bf, inset 0 1px #a8c3b51c;
+}
+.zoom-controls button{
+  border-color:#627576;
+  box-shadow:0 2px 9px #030f15a8;
+}
+.build-menu{
+  border-color:#718779;
+  box-shadow:0 12px 36px #02101bd9;
+}
+@media(prefers-reduced-motion:reduce){
+  .map-info,.zoom-controls button,.topbar,.sidebar{transition:none!important}
+}
+
+/* Tactical Warfare: quick decisions without a second full-height panel. */
+.attack-assessment{
+  margin-top:8px;padding:9px 10px;border:1px solid #4a6568;
+  border-left:3px solid #6bd0b3;border-radius:4px;
+  background:#0b222be8;font-size:11px;line-height:1.55;
+}
+.attack-assessment[hidden]{display:none}
+.attack-assessment[data-risk="moderate"]{border-left-color:#e8c17d}
+.attack-assessment[data-risk="high"]{border-left-color:#f08b82}
+.attack-assessment .assessment-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.attack-assessment .assessment-top strong{font-size:11px;color:#edf5ee}
+.attack-assessment .assessment-top b{font-size:10px;color:#b9e8cd}
+.attack-assessment[data-risk="high"] .assessment-top b{color:#fbb0a2}
+.attack-assessment[data-risk="moderate"] .assessment-top b{color:#f4d69c}
+.attack-assessment small{display:block;color:#a9bec1;margin-top:4px}
+.active-armies{margin:14px 0 1px;padding-top:11px;border-top:1px solid #2b4651}
+.armies-title{display:flex;justify-content:space-between;font-size:11px;font-weight:850;letter-spacing:.8px;color:#c6d7d3;margin-bottom:8px}
+.armies-title span{color:#f3d59a}
+.army-list{display:grid;gap:7px}
+.army-list>small{font-size:10px;color:#849ca5}
+.army-row{
+  border:1px solid #38515a;background:#10232d;border-radius:5px;
+  padding:9px 10px;display:grid;gap:5px;
+}
+.army-row .army-header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.army-row .army-header strong{font-size:11px;color:#e9f0ec}
+.army-row .army-header small{font-size:10px;color:#a3bec8;white-space:nowrap}
+.army-row .army-stats{font-size:10px;color:#a9bbbf}
+.army-row .army-actions{display:flex;gap:6px}
+.army-row button{
+  flex:1;padding:6px 7px;border-radius:4px;border:1px solid #4f7181;
+  color:#cfe7ed;background:#162e3a;font-weight:750;font-size:10px;
+}
+.army-row button:hover:not(:disabled){background:#234657;border-color:#8dbcc8}
+.army-row button[data-army-retreat]{border-color:#976862;color:#f6c9be;background:#342627}
+.army-row button[data-army-retreat]:hover:not(:disabled){background:#4b3030}
+.army-row button:disabled{opacity:.48;cursor:default}
+.war-alerts{
+  position:absolute;top:78px;right:20px;z-index:5;
+  display:grid;gap:7px;width:min(280px,calc(100% - 36px));
+  pointer-events:none;
+}
+.war-alerts[hidden]{display:none}
+.war-alert{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  width:100%;pointer-events:auto;padding:9px 11px;border-radius:5px;
+  border:1px solid #bb7770;background:#311f25f2;color:#fbe7e1;
+  box-shadow:0 5px 18px #02090ec4;text-align:left;cursor:pointer;
+}
+.war-alert[data-kind="captured"]{border-color:#ed9b72;background:#453028f4}
+.war-alert[data-kind="victory"]{border-color:#7dab88;background:#16342af2;color:#d7f5de}
+.war-alert span{display:grid;gap:3px;min-width:0}
+.war-alert strong{font-size:11px;line-height:1.3}
+.war-alert small{font-size:10px;opacity:.76}
+.war-alert svg{flex-shrink:0}
+.war-alert:hover{filter:brightness(1.16)}
+@media(max-width:1100px){.war-alerts{right:8px;top:70px;width:220px}}
+
+/* Compact, accessible sound mixer; settings sit behind the existing ♫ button. */
+.audio-panel{
+  position:absolute;z-index:25;top:calc(100% + 8px);right:160px;
+  width:296px;max-width:calc(100vw - 16px);
+  padding:15px 16px 13px;
+  background:linear-gradient(155deg,#172d36 0%,#091b26 100%);
+  color:#e9f0ee;border:1px solid #5b7d81;border-radius:8px;
+  box-shadow:0 15px 48px #030c12e6, inset 0 1px #c3e2cc20;
+  letter-spacing:normal;text-align:left;
+}
+.audio-panel[hidden]{display:none}
+.audio-panel-header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.audio-panel-header>span{color:#eacb8e;font-size:12px;letter-spacing:1.1px;font-weight:850}
+.audio-panel-header button{
+  border:0;background:transparent;color:#b8c8c9;font-size:17px;
+  padding:2px 5px;cursor:pointer
+}
+.audio-note{font-size:11px;line-height:1.45;color:#9eb9bc;margin:9px 0 14px}
+.audio-toggle{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:8px 0;color:#e8f0eb;font-size:12px;font-weight:750;
+}
+.audio-toggle input[type=checkbox]{width:18px;height:18px;accent-color:#8fc9b4;cursor:pointer}
+.audio-slider{display:grid;gap:7px;padding:1px 0 11px}
+.audio-slider label{display:flex;justify-content:space-between;gap:6px;color:#a9c1c3;font-size:10px;font-weight:700}
+.audio-slider output{color:#eacb8e;font-variant-numeric:tabular-nums}
+.audio-slider input[type=range]{width:100%;margin:0;height:18px;accent-color:#86bfc0;cursor:pointer}
+.audio-master{border-top:1px solid #3d5860;margin-top:5px;padding-top:12px}
+.audio-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid #304954;padding-top:11px}
+.audio-footer button{border:1px solid #5c8291;background:#15333d;border-radius:4px;color:#cae9f0;padding:7px 9px;font-size:10px;font-weight:800;cursor:pointer;white-space:nowrap}
+.audio-footer button:hover{background:#285363}
+.audio-footer span{font-size:10px;line-height:1.4;color:#aac3c5;text-align:right}
+#soundBtn[aria-expanded=true]{background:#21424a;color:#f3d49a;border-color:#9eaf91}
+@media(max-width:1100px){.audio-panel{right:8px}}
+@media(max-width:550px){.audio-panel{top:70px;right:8px}}

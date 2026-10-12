@@ -93,12 +93,12 @@ export function empirePower(population:number, territory:number, cities:number):
 }
 
 /** Offensive effectiveness based on relative entire-empire power.
- * 1 = even sides; 0.70 = 30% less damage; 1.30 = 30% more.
+ * 1 = even sides; 0.80 = 20% less damage; 1.20 = 20% more.
  * Capped to prevent invincible large empires and hopeless small ones.
  */
 export function relativeAttackEffect(attackerPower:number,defenderPower:number):number {
   const attacker=Math.max(1,Number.isFinite(attackerPower)?attackerPower:1);
   const defender=Math.max(1,Number.isFinite(defenderPower)?defenderPower:1);
   const ratio=attacker/defender;
-  return Math.max(.70,Math.min(1.30,Math.pow(ratio,.18)));
+  return Math.max(.80,Math.min(1.20,Math.pow(ratio,.18)));
 }

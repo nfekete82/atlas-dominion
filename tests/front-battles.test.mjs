@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {groupBattles,locateBattleContact,visualNoise} from '../dist/src/render/front-battles.js';
+import {groupBattles,locateBattleContact,visualNoise,combatVisualDensity,battleMomentum} from '../dist/src/render/front-battles.js';
 import {Game,NEUTRAL,landNeighbors,cellToPoint} from '../dist/src/engine/game.js';
 
 const event=(index,attackerId,defenderId,attacking,defending,tick=8,captured=false)=>({
@@ -108,4 +108,43 @@ test('equal command sequences record identical combat telemetry',()=>{
     a.step();b.step();
     assert.deepEqual(a.battleEvents,b.battleEvents);
   }
+});
+
+test('new squad visuals scale with actual contacts, respect zoom and never alter the simulation',()=>{
+  assert.equal(combatVisualDensity(0,4),0);
+  assert.equal(combatVisualDensity(-1,4),0);
+  assert.equal(combatVisualDensity(NaN,4),0);
+  assert.ok(combatVisualDensity(40,1)>0);
+  assert.ok(combatVisualDensity(40,2)>=combatVisualDensity(40,1));
+  assert.ok(combatVisualDensity(1000000,4)<=18);
+  assert.equal(battleMomentum(20,20),0);
+  assert.ok(battleMomentum(50,2)>0);
+  assert.ok(battleMomentum(2,50)<0);
+  assert.equal(battleMomentum(0,0),0);
+  assert.ok(Math.abs(battleMomentum(4,1))<=1);
+});
+
+test('red combat number represents REAL participating border defenders, not merely casualties',()=>{
+  const g=new Game(654321,1,'DE','balanced');
+  const own=g.owner.findIndex((o,i)=>o===0&&landNeighbors(i).some(n=>g.owner[n]===NEUTRAL));
+  assert.ok(own>=0);
+  const target=landNeighbors(own).find(i=>g.owner[i]===NEUTRAL);
+  g.owner[target]=1;
+  g.frontline[target]=500;
+  g.defense[target]=11;
+  g.factions[0].troops=1100;
+  g.factions.forEach(f=>f.ai=false);
+  g.recount();
+  assert.equal(g.launchAttack(0,cellToPoint(target),85).ok,true);
+  g.step();
+  const event=g.battleEvents.find(e=>e.index===target&&e.attackerId===0);
+  assert.ok(event,'actual border strike was recorded');
+  assert.ok(event.defending>event.defenderLost,
+    'surviving garrison participates but must not be misreported as dead');
+  assert.ok(event.defenderLost>=0);
+  const groups=groupBattles(g.battleEvents,g.owner,480);
+  const contact=groups.find(v=>v.playerBattle);
+  assert.ok(contact);
+  assert.ok(contact.red>0,'player now sees real defending forces in red');
+  assert.deepEqual(g.battleEvents.find(e=>e.index===target&&e.attackerId===0),event);
 });

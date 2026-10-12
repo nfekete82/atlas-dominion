@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { BUILDINGS, BUILDING_CODES, troopGrowth, taxRevenue } from '../dist/src/engine/economy.js';
+import { BUILDINGS, BUILDING_CODES, troopGrowth, taxRevenue, cityUpgradeCost, cityUpgradeGrowth } from '../dist/src/engine/economy.js';
 import { Game, cellToPoint, landNeighbors, NEUTRAL } from '../dist/src/engine/game.js';
 
 function vacantCitySite(game,id=0){
@@ -154,4 +154,56 @@ test('new games stay numerically stable through sustained real AI turns',()=>{
     assert.ok(faction.troops<1000000);
     assert.ok(faction.money<100000);
   }
+});
+
+test('city can be upgraded five times, each level costs money and boosts growth',()=>{
+  const g=new Game(711,1,'DE');
+  const idx=g.owner.findIndex((owner,i)=>owner===0&&g.buildings[i]===0);
+  assert.ok(idx>=0);
+  const point=vacantCitySite(g);
+  g.factions[0].money=10000;
+  assert.equal(g.build(0,point,'city').ok,true);
+  const before=g.factions[0].income;
+  let previous=before;
+  for(let n=1;n<=5;n++){
+    const allowed=g.canUpgradeCity(0,point);
+    assert.equal(allowed.ok,true);
+    const money=g.factions[0].money;
+    const result=g.upgradeCity(0,point);
+    assert.equal(result.ok,true);
+    assert.equal(g.cityLevelAt(point),n);
+    assert.equal(g.factions[0].money,money-result.cost);
+    assert.ok(g.factions[0].income>previous);
+    previous=g.factions[0].income;
+  }
+  assert.equal(g.canUpgradeCity(0,point).ok,false);
+  assert.equal(g.upgradeCity(0,point).ok,false);
+  assert.ok(g.factions[0].income>before);
+});
+
+test('city recruitment scales with controlled territory instead of unlimited island density',()=>{
+  const small=troopGrowth(1000,20,1,100);
+  const smallUseful=troopGrowth(1000,20,1,1);
+  const large=troopGrowth(1000,400,1,100);
+  assert.ok(small>smallUseful,'extra development remains useful');
+  assert.ok(small-smallUseful<1.5,'extreme density remains tightly bounded');
+  assert.ok(large>small,'larger controlled land supports a stronger economy');
+});
+
+test('city tiers have steep, strictly increasing and affordable-by-design costs',()=>{
+  assert.deepEqual(Array.from({length:5},(_,i)=>cityUpgradeCost(i)),[250,450,750,1150,1700]);
+  for(const invalid of [-1,5,1.5])assert.throws(()=>cityUpgradeCost(invalid),RangeError);
+});
+
+test('expensive city upgrades meaningfully improve recruitment, but cannot overwhelm tiny territories',()=>{
+  const territory=120,people=2200,base=troopGrowth(people,territory,1,0);
+  const one=troopGrowth(people,territory,1,1);
+  const levelFive=troopGrowth(people,territory,1,1+cityUpgradeGrowth(5));
+  const developed=troopGrowth(people,territory,1,10*(1+cityUpgradeGrowth(5)));
+  assert.ok(one-base>1,'one city should have a meaningful economic reward');
+  assert.ok(levelFive-one>1,'a fully upgraded city must yield tangible extra recruits');
+  assert.ok(developed-levelFive>2,'multiple expensive cities must matter');
+  assert.ok(developed<base+9,'growth must remain bounded even with extreme city density');
+  assert.ok(troopGrowth(people,240,1,100)>troopGrowth(people,24,1,100),
+    'larger realms can support stronger recruitment');
 });

@@ -13,42 +13,75 @@
     <header class="topbar">
       <div class="brand"><div class="brand-icon" aria-hidden="true">◈</div><div class="brand-title">ATLAS <b>DOMINION</b><small>EUROPEAN CONQUEST <span class="version">/ v1.8</span></small></div></div>
       <div class="top-center"><span class="pulse"></span> <span>OPERATION EUROPA</span><span class="separator">/</span><strong>LIVE SIMULATION</strong></div>
-      <div class="top-actions"><button id="helpBtn" class="icon-btn" title="Spielanleitung">?</button><button id="soundBtn" class="icon-btn" title="Sound umschalten">♪</button><button id="fullBtn" class="icon-btn" title="Vollbild">⛶</button><button id="resetBtn" class="new-game">↻ <span>NEUES SPIEL</span></button></div>
+      <div class="top-actions"><button id="helpBtn" class="icon-btn" title="Spielanleitung">?</button><button id="soundBtn" class="icon-btn" title="Audioeinstellungen öffnen" type="button" aria-label="Audioeinstellungen" aria-controls="audioPanel" aria-expanded="false">♫</button><button id="fullBtn" class="icon-btn" title="Vollbild">⛶</button><button id="resetBtn" class="new-game">↻ <span>NEUES SPIEL</span></button></div>
+      <section id="audioPanel" class="audio-panel" hidden aria-label="Audioeinstellungen">
+        <div class="audio-panel-header">
+          <span id="audioHeading">♫ SOUND & MUSIK</span>
+          <button type="button" id="audioClose" title="Schließen" aria-label="Audioeinstellungen schließen">✕</button>
+        </div>
+        <p class="audio-note">Ruhige, eigens erzeugte Hintergrundmusik und dezente Spielgeräusche.</p>
+        <label class="audio-toggle" for="audioMusicEnabled"><span>🎵 Hintergrundmusik</span><input id="audioMusicEnabled" type="checkbox"/></label>
+        <div class="audio-slider"><label for="audioMusicVolume">Musik-Lautstärke <output id="audioMusicValue" for="audioMusicVolume">22 %</output></label>
+          <input id="audioMusicVolume" type="range" min="0" max="100" step="1" value="22" /></div>
+        <label class="audio-toggle" for="audioEffectsEnabled"><span>⚔ Soundeffekte</span><input id="audioEffectsEnabled" type="checkbox" checked/></label>
+        <div class="audio-slider"><label for="audioEffectsVolume">Effekte-Lautstärke <output id="audioEffectsValue" for="audioEffectsVolume">38 %</output></label>
+          <input id="audioEffectsVolume" type="range" min="0" max="100" step="1" value="38" /></div>
+        <div class="audio-slider audio-master"><label for="audioMasterVolume">Gesamtlautstärke <output id="audioMasterValue" for="audioMasterVolume">65 %</output></label>
+          <input id="audioMasterVolume" type="range" min="0" max="100" step="1" value="65" /></div>
+        <div class="audio-footer"><button id="audioPreview" type="button">♫ Klang testen</button><span id="audioStatus" role="status" aria-live="polite">Musik ist ausgeschaltet</span></div>
+      </section>
     </header>
     <div class="layout">
       <main class="battlefield">
         <canvas id="battleCanvas" aria-label="Interaktive Europakarte mit 480 mal 260 Sektoren, Nachbarland zum Angreifen anklicken"></canvas>
         <div class="map-wash" aria-hidden="true"></div>
-        <div class="map-heading"><div class="micro-heading">THE EUROPEAN THEATRE <span>·</span> 01</div><h1>EUROPA <em>EROBERN.</em></h1><div class="map-subtitle">Feindgebiet oder eigene bedrohte Grenze anklicken · Rechtsklick zum Verteidigen.</div></div>
+        <div class="map-heading"><div class="micro-heading">THE EUROPEAN THEATRE <span>·</span> 01</div><h1>EUROPA <em>EROBERN.</em></h1><div class="map-subtitle">Linksklick: Angreifen · Rechtsklick: Bauen, Verteidigen oder Koalition · Mausrad: Karte zoomen.</div></div>
         <div class="map-location">◉ <span>EUROPA</span> <small>480 × 260 SECTORS</small></div>
-        <div class="map-info" id="mapInfo" hidden><span id="hoverOwner">NEUTRAL</span><small id="hoverCoords">SEKTOR —</small><small id="hoverStats">TRUPPEN —</small><small id="hoverPower" hidden>ANGRIFFSKRAFT —</small><strong id="hoverAction">—</strong></div>
+        <div class="war-alerts" id="warAlerts" aria-live="polite" aria-label="Wichtige Kriegswarnungen" hidden></div>
+        <div class="map-info compact-hover" id="mapInfo" hidden><span id="hoverOwner">NEUTRAL</span><div id="hoverMilitary" class="military-details" hidden></div><strong id="hoverAction">—</strong></div>
         <div class="zoom-controls"><button id="zoomIn" title="Hineinzoomen">+</button><button id="zoomOut" title="Herauszoomen">−</button><button id="zoomFit" title="Karte einpassen">⌗</button></div>
         <div class="bottom-bar">
           <div class="time-controls"><button id="pauseBtn" class="pause-btn" title="Pause (Leertaste)">Ⅱ</button><div class="time-copy"><small>SIMULATIONSZEIT</small><strong id="clock">00:00</strong></div><div class="speed-wrap"><button data-speed="1" class="speed active">1×</button><button data-speed="2" class="speed">2×</button><button data-speed="4" class="speed">4×</button></div></div>
-          <div class="bottom-hint"><span class="hint-icon">⌖</span><div><strong>TAKTISCHER BEFEHL</strong><small id="ordersLabel">NACHBARLAND ANKLICKEN · SHIFT+KLICK = SEELANDUNG.</small></div></div>
+          <div class="bottom-hint"><span class="hint-icon">⌖</span><div><strong>TAKTISCHER BEFEHL</strong><small id="ordersLabel">LAND / INSEL ANKLICKEN · SEELANDUNG AUTOMATISCH.</small></div></div>
         </div>
       </main>
       <aside class="sidebar">
         <div class="sidebar-section"><div class="section-label">01 <span>DEIN IMPERIUM</span> <i></i></div><div class="faction-hero"><div class="faction-emblem" id="playerFlag">🇩🇪</div><div><small>DU SPIELST ALS</small><strong id="playerName">Deutschland</strong><span class="hero-status"><i class="pulse"></i> EINSATZBEREIT</span><span class="difficulty-current" id="difficultyBadge">KI: AUSGEGLICHEN</span></div></div>
-        <div class="stat-grid"><div class="stat"><small>GEBIETE</small><strong id="areaCount">0</strong><span>SEKTOREN</span></div><div class="stat"><small>EINWOHNER / TRUPPEN</small><strong id="troopCount">0</strong><span>GESAMT INKL. FRONT</span><span id="mobileTroops">MOBIL: 0</span><span id="frontTroops">AN DER GRENZE: 0</span><span id="offensiveTroops">IM ANGRIFF: 0</span><span id="fallenTroops" class="troop-loss">GEFALLEN: 0</span><span id="defenseTickLoss" class="troop-loss">VERTEIDIGUNG: KEINE VERLUSTE</span></div><div class="stat"><small>WACHSTUM</small><strong id="incomeCount">+0</strong><span>EINWOHNER PRO TICK</span></div><div class="stat"><small>KONTROLLE</small><strong id="controlCount">0.0%</strong><span>EUROPAS</span></div><div class="stat"><small>STÄDTE</small><strong id="cityCount">0</strong><span>STEIGERN DAS WACHSTUM</span></div><div class="stat"><small>GELD</small><strong id="moneyCount">0</strong><span id="moneyGrowth">+0 PRO TICK</span></div></div>
+        <div class="stat-grid"><div class="stat"><small>GEBIETE</small><strong id="areaCount">0</strong><span>SEKTOREN</span></div><div class="stat"><small>EINWOHNER / TRUPPEN</small><strong id="troopCount">0</strong><span>GESAMT INKL. FRONT</span><span id="mobileTroops">MOBIL: 0</span><details class="troop-breakdown"><summary>Fronten und Verluste</summary><span id="frontTroops">AN DER GRENZE: 0</span><span id="offensiveTroops">IM ANGRIFF: 0</span><span id="fallenTroops" class="troop-loss">GEFALLEN: 0</span><span id="defenseTickLoss" class="troop-loss">VERTEIDIGUNG: KEINE VERLUSTE</span></details></div><div class="stat"><small>WACHSTUM</small><strong id="incomeCount">+0</strong><span>EINWOHNER PRO TICK</span></div><div class="stat"><small>KONTROLLE</small><strong id="controlCount">0.0%</strong><span>EUROPAS</span></div><div class="stat"><small>STÄDTE</small><strong id="cityCount">0</strong><span>STEIGERN DAS WACHSTUM</span></div><div class="stat"><small>GELD</small><strong id="moneyCount">0</strong><span id="moneyGrowth">+0 PRO TICK</span></div></div>
         <div class="progress-label"><span>TERRITORIALER FORTSCHRITT</span><b id="progressLabel">0 / 65%</b></div><div class="progress"><div id="progressFill"></div></div>
         <div class="doctrine-title">KAMPFDOKTRIN <span>· WÄHLE DEINE TAKTIK</span></div>
         <div class="doctrine-buttons"><button data-doctrine="expand" class="selected" title="Neutralgebiete schneller erobern">↗ <span>EXPAND</span></button><button data-doctrine="blitz" title="Mehr und stärkere Angriffe">⚔ <span>BLITZ</span></button><button data-doctrine="fortify" title="Mehr Einkommen und stärkere Verteidigung">⬡ <span>DEFENSE</span></button></div>
-        <div class="build-guide">▣ RECHTSKLICK: STADT BAUEN / GRENZE VERSTÄRKEN</div><div class="auto-guard"><strong>⬡ AUTOMATISCHE GRENZSICHERUNG</strong><span>Verteidiger stationieren eigene Soldaten an bedrohten Grenzen. Schwache Frontabschnitte bleiben leichter angreifbar.</span><small id="borderDefense">0 bedrohte Grenzsektoren · 0 stationiert · 0 mobil</small><small id="casualtyReport" class="casualty-report">⚔ 0 eigene Gefallene · 0 Gegnerverluste</small><div id="battleReport" class="battle-report" aria-live="off"><strong><i class="battle-dot blue"></i> BLAU: DEINE TRUPPEN</strong><strong><i class="battle-dot red"></i> ROT: GEGNER</strong><small>Aktive Fronten erscheinen direkt auf der Karte</small></div></div>
+        <div class="build-guide">▣ RECHTSKLICK: STADT BAUEN / GRENZE VERSTÄRKEN</div><div class="auto-guard"><strong>⬡ GRENZSICHERUNG</strong><small id="borderDefense">0 bedrohte Grenzsektoren · 0 stationiert · 0 mobil</small><details class="defense-extra"><summary>Verluste und Gefechte anzeigen</summary><small id="casualtyReport" class="casualty-report">⚔ 0 eigene Gefallene · 0 Gegnerverluste</small><div id="battleReport" class="battle-report" aria-live="off"><strong><i class="battle-dot blue"></i> BLAU: DEINE TRUPPEN</strong><strong><i class="battle-dot red"></i> ROT: GEGNER</strong><small>Aktive Fronten erscheinen direkt auf der Karte</small></div></details></div>
         <div class="attack-control" aria-label="Truppeneinsatz je Angriff">
           <div class="attack-title"><span>⚔ TRUPPEN PRO ANGRIFF</span><strong id="ratioPercent">35 %</strong></div>
           <input id="attackRatio" type="range" min="5" max="100" step="5" value="35" aria-label="Truppenanteil pro Angriff in Prozent" />
           <div class="attack-presets"><button type="button" data-ratio="10">10 %</button><button type="button" data-ratio="25">25 %</button><button type="button" data-ratio="50">50 %</button><button type="button" data-ratio="100">MAX</button></div>
           <div class="attack-preview"><span>BEIM NÄCHSTEN KLICK</span><b id="attackPreview">— TRUPPEN</b></div>
+          <div id="attackAssessment" class="attack-assessment" aria-live="off" hidden></div>
           <div id="attackStatus" class="attack-status" role="status" aria-live="polite">Klicke auf ein verbundenes Nachbarland: Die Front wird automatisch gefunden.</div>
-        </div></div>
-        <div class="sidebar-section ranking"><div class="section-label">02 <span>EUROPÄISCHE LÄNDER</span> <i></i></div><div id="leaderboard" class="leaderboard"></div></div>
-        <div class="sidebar-section dispatch"><div class="section-label">03 <span>LAGEBERICHT</span> <i></i></div><div id="eventFeed" class="event-feed"></div></div>
+        </div>
+        <section class="active-armies" aria-label="Laufende Offensiven">
+          <div class="armies-title">⚔ LAUFENDE OFFENSIVEN <span id="activeArmyCount">0</span></div>
+          <div id="activeArmyList" class="army-list"><small>Keine Truppen im Feld.</small></div>
+        </section></div>
+        <div class="sidebar-section ranking"><div class="section-label">02 <span>EUROPÄISCHE LÄNDER</span> <i></i></div><div id="leaderboard" class="leaderboard"></div><button type="button" class="leaderboard-toggle" id="leaderboardToggle">Alle Länder anzeigen ↓</button></div>
+        <div class="sidebar-section diplomacy"><div class="section-label">03 <span>🤝 DIPLOMATIE</span> <i></i></div>
+          <details class="diplomacy-help"><summary>Wie funktionieren Bündnisse?</summary>Bündnisse schützen beide Seiten und ermöglichen militärische Hilfe mit vorhandenen Soldaten. Maximal zwei Partner pro Land.</details>
+          <div class="diplomacy-allies" id="diplomacyAllies">Noch keine Bündnispartner</div>
+          <label for="diplomacyNation">LAND AUSWÄHLEN</label>
+          <select id="diplomacyNation" aria-label="Land für Bündnis auswählen"></select>
+          <div class="diplomacy-detail" id="diplomacyDetail">Land auswählen.</div>
+          <button id="diplomacyOffer" type="button" class="diplomacy-action">🤝 Bündnis anbieten</button>
+          <button id="diplomacyLeave" type="button" class="diplomacy-action warning" hidden>Bündnis beenden</button>
+          <div class="diplomacy-inbox" id="diplomacyInbox" aria-live="polite"></div>
+          <div id="diplomacyFeedback" class="diplomacy-feedback" role="status" aria-live="polite"></div>
+        </div>
+        <div class="sidebar-section dispatch"><div class="section-label">04 <span>LAGEBERICHT</span> <i></i></div><div id="eventFeed" class="event-feed"></div></div>
         <div class="sidebar-footer"><span class="live-dot"></span> LOCAL SOLO MATCH <span>·</span> DETERMINISTIC ENGINE</div>
       </aside>
     </div>
   </div>
-  <div id="buildMenu" class="build-menu" hidden role="dialog" aria-label="Baumenü"><div class="build-menu-heading"><span id="buildCoordinates">BAUEN</span><button type="button" id="buildClose" aria-label="Baumenü schließen">✕</button></div><div id="buildOptions"></div><p class="build-menu-footer" id="buildMoney"></p></div>
+  <div id="buildMenu" class="build-menu" hidden role="dialog" aria-label="Kontextmenü für Bauen und Koalitionen"><div class="build-menu-heading"><span id="buildCoordinates">BAUEN</span><button type="button" id="buildClose" aria-label="Kontextmenü schließen">✕</button></div><div id="buildOptions"></div><p class="build-menu-footer" id="buildMoney"></p></div>
   <section id="countryPicker" class="country-cover" role="dialog" aria-modal="true" aria-labelledby="countryPickerTitle">
     <div class="country-panel">
       <div class="country-title"><span class="micro-heading">ATLAS DOMINION / OPERATION EUROPA</span><h2 id="countryPickerTitle">WÄHLE DEIN LAND.</h2><p>Alle Länder starten als eigenständige Fraktionen an ihrer Hauptstadt. Bestimme zuerst die KI-Schwierigkeit und wähle anschließend dein Land. Alle anderen Länder steuert die KI.</p></div>

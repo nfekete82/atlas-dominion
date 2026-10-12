@@ -17,6 +17,9 @@ export interface TileClash {
   relativePower:number;
   neutral:boolean;
   capital:boolean;
+  /** Built city upgrade tier (0-5), zero for ordinary land. */
+  cityLevel?:number;
+  builtCity?:boolean;
   doctrine?:'expand'|'blitz'|'fortify';
 }
 
@@ -52,7 +55,8 @@ export function frontTileOutcome(input:TileClash):TileOutcome {
     Math.max(1,input.defenderTerritory);
   const relative=Math.max(.6,Math.min(1.4,input.relativePower));
   const ratio=clamp(input.defenderPopulation/army,.35,8);
-  const fort=1+Math.max(0,input.defenseStrength-11)*.018+
+  const urbanFort=input.builtCity?(0.42+Math.max(0,Math.min(5,input.cityLevel??0))*.27):0;
+  const fort=1+urbanFort+Math.max(0,input.defenseStrength-11)*.018+
     (input.capital?.35:0)+(input.doctrine==='fortify'?.20:0);
   const defenses=Math.max(0,input.postedTroops);
   // A smaller attacking army pays an increasingly high price for each cell;
