@@ -159,9 +159,9 @@ test('Border click commits the selected troop percentage immediately',()=>{
   assert.equal(g.attackOrders[0].remaining,result.sent);
   const ownedBefore=count(g,0);
   g.step();
-  // Marching effort decreases even when nobody dies on neutral land.
+  // Marching costs time and a small number of actual soldiers on neutral land.
   assert.ok(g.attackOrders[0]?.effort < result.sent*1.65 || g.attackOrders.length===0);
-  assert.equal(g.factions[0].attackFallen,0);
+  assert.ok(g.factions[0].attackFallen>0);
   assert.ok(count(g,0)>ownedBefore);
 });
 
@@ -228,7 +228,8 @@ test('Without a player click no autonomous player attack is initiated',()=>{
   const start=count(g,0);
   for(let t=0;t<5;t++)g.step();
   assert.equal(count(g,0),start);
-  assert.equal(g.attackOrders.length,0);
+  assert.equal(g.attackOrders.filter(o=>o.factionId===0).length,0,
+    'AI nations may have their own outgoing armies; player never attacks automatically');
 });
 
 
