@@ -599,34 +599,6 @@ export class Game {
     return front>=0?cellToPoint(front):null;
   }
 
-  /** Clicking our own threatened border triggers an actual counterattack
-   * into the nearest directly adjacent invading nation, not a move across
-   * friendly territory or a phantom strike against our own citizens.
-   * Nearby friendly clicks can reach the same frontline within 12 cells.
-   */
-  findCounterattackFront(id:number, point:Point):Point|null {
-    if(!Number.isFinite(point.x)||!Number.isFinite(point.y)||
-       point.x<0||point.y<0||point.x>=MAP_WIDTH||point.y>=MAP_HEIGHT||
-       !this.factions[id]?.alive)return null;
-    const origin=pointToIndex(point);
-    if(this.owner[origin]!==id)return null;
-    const visited=new Set<number>([origin]);
-    const queue:[number,number][]=[[origin,0]];
-    for(let head=0;head<queue.length;head++){
-      const [index,depth]=queue[head];
-      for(const n of LAND_NEIGHBORS[index]){
-        const neighbor=this.owner[n];
-        if(neighbor>=0 && neighbor!==id)return cellToPoint(n);
-      }
-      if(depth>=12)continue;
-      for(const n of LAND_NEIGHBORS[index]){
-        if(this.owner[n]!==id || visited.has(n))continue;
-        visited.add(n);queue.push([n,depth+1]);
-      }
-    }
-    return null;
-  }
-
   /** Friendly threatened frontier sectors may receive manually assigned
    * real soldiers; they remain counted as inhabitants while on defense. */
   isThreatenedBorder(id:number,point:Point):boolean {
@@ -662,8 +634,13 @@ export class Game {
   }
 
   launchAttack(id:number,target:Point,ratio:number):AttackResult {
-    // Real landfronts and friendly counterattacks retain priority.
-    if(!this.findAttackFront(id,target)&&this.owner[pointToIndex(target)]!==id){
+    // Clicking friendly territory must NEVER dispatch soldiers, even on an
+    // invaded border. A counterattack requires clicking the hostile sector.
+    if(Number.isInteger(target.x)&&Number.isInteger(target.y)&&
+       target.x>=0&&target.y>=0&&target.x<MAP_WIDTH&&target.y<MAP_HEIGHT&&
+       this.owner[pointToIndex(target)]===id)
+      return {ok:false,reason:'Eigenes Gebiet – keine Truppen versendet.',sent:0};
+    if(!this.findAttackFront(id,target)){
       const route=this.maritimeRoute(id,target);
       if(route)return this.issueAttack(id,cellToPoint(route.cells[route.cells.length-1]),ratio,true,route);
     }
@@ -707,15 +684,11 @@ export class Game {
     if (!Number.isFinite(ratio) || ratio < 5 || ratio > 100) return failed('Truppenanteil muss zwischen 5 und 100 % liegen.');
     const index=pointToIndex(target),clickedOwner=this.owner[index];
     if(clickedOwner===WATER)return failed('Angriff auf Wasser nicht möglich.');
-    // On a friendly sector, a click NEAR a hostile frontier issues a
-    // counterattack across that real border; never target distant nations.
-    const counter=!landing && clickedOwner===id
-      ? this.findCounterattackFront(id,target):null;
-    if(clickedOwner===id && !counter)return failed('Eigenes Gebiet – für einen Gegenangriff näher an die feindliche Grenze klicken.');
-    const front=counter ?? (landing?cellToPoint(index):this.findAttackFront(id,target));
+    if(clickedOwner===id)return failed('Eigenes Gebiet – keine Truppen versendet.');
+    const front=landing?cellToPoint(index):this.findAttackFront(id,target);
     if(!front || (landing && (!route||!validSeaRoute(route.cells,undefined,index)||this.owner[route.cells[0]]!==id)))
       return failed(landing?'Keine eigene Küste an diesem Seeübergang.':'Dieses Gebiet hat keine gemeinsame Landfront mit dir.');
-    const owner=counter?this.owner[pointToIndex(counter)]:clickedOwner;
+    const owner=clickedOwner;
     if(owner===id || owner===WATER)return failed('Kein feindlicher Grenzsektor gefunden.');
     const sent = Math.floor(attacker.troops * ratio / 100);
     if (sent < 8) return failed('Mindestens 8 mobile Truppen erforderlich.');
@@ -748,7 +721,7 @@ export class Game {
         });
       }
     }
-    if(committed<.5)return {ok:true,reason:'Gegenangriff hat feindliche Armee abgefangen.',
+    if(committed<.5)return {ok:true,reason:'Angriff hat feindliche Armee abgefangen.',
       sent,targetOwner:owner,front};
     // Repeating a click near the same border reinforces the EXISTING army:
     // simple OpenFront-style interaction, no overlapping duplicate campaigns.
@@ -772,9 +745,9 @@ export class Game {
     // Neutral attacks only show a concise order status in the HUD, never
     // pollute the strategic event feed for every small land claim.
     if(id===0&&owner!==NEUTRAL)this.log(
-      `${existing?'Verstärkt':landing?'Seelandung':counter?'Gegenangriff':'Angriff'}: ${formatCompact(sent)} gegen ${this.factions[owner].name}.`,attacker.color);
+      `${existing?'Verstärkt':landing?'Seelandung':'Angriff'}: ${formatCompact(sent)} gegen ${this.factions[owner].name}.`,attacker.color);
     const reason=existing?'Offensive verstärkt.':landing?'Landung befohlen.':
-      counter?'Gegenangriff gestartet.':owner===NEUTRAL?'Expansion gestartet.':'Grenzangriff gestartet.';
+      owner===NEUTRAL?'Expansion gestartet.':'Grenzangriff gestartet.';
     return {ok:true,reason,sent,targetOwner:owner,front};
   }
 
