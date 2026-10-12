@@ -4,7 +4,7 @@ import { TerritoryWave, waveProgress } from './wave.js';
 import {organicCaptureRadius,burningFrontAlpha} from './capture-visual.js';
 import { pixelGridEdges } from './pixel-grid.js';
 import { territoryContours, contourRings } from './territory-contours.js';
-import { buildingMarkerFor, showBuildingMarker, buildingMarkerFontSize, cityLevelStyle } from './building-markers.js';
+import { buildingMarkerFor, showBuildingMarker, cityLevelStyle } from './building-markers.js';
 // Keep natural-dark ocean and distinct faction colors; no pale map wash.
 import { COUNTRY_STARTS } from '../data/countries.js';
 import {formatCompact} from '../format.js';
@@ -318,22 +318,41 @@ export class MapRenderer {
    * Screen-space collision suppression keeps the map clear at overview zoom.
    * Move/zoom or click to see individual buildings at higher magnification.
    */
+  /** Compact skyline icon with a small, exact upgrade level badge. */
+  private drawCityMarker(c:CanvasRenderingContext2D,x:number,y:number,level:number,owner:number):void {
+    const style=cityLevelStyle(level);
+    const unit=1/this.scale;
+    c.save();
+    c.globalAlpha=owner===0?.96:.82;
+    c.fillStyle='rgba(10,24,30,.28)';
+    c.beginPath();c.roundRect(x-5.1*unit,y-4.5*unit,10.2*unit,9*unit,1.7*unit);c.fill();
+    c.lineWidth=.75*unit;
+    c.fillStyle=style.fill;c.strokeStyle=style.border;
+    for(const [dx,dy,w,h] of [[-3.8,-.8,2.1,3.7],[-.85,-2.5,2.5,5.4],[2.15,-1,1.9,3.9]]){
+      c.beginPath();c.roundRect(x+dx*unit,y+dy*unit,w*unit,h*unit,.4*unit);c.fill();c.stroke();
+    }
+    if(level>0){
+      const bx=x+4.3*unit,by=y+3.3*unit;
+      c.beginPath();c.arc(bx,by,2.7*unit,0,Math.PI*2);
+      c.fillStyle=style.fill;c.fill();
+      c.strokeStyle=style.border;c.lineWidth=.8*unit;c.stroke();
+      c.fillStyle=style.text;
+      c.font=`800 ${6*unit}px system-ui`;
+      c.textAlign='center';c.textBaseline='middle';
+      c.fillText(String(level),bx,by+.15*unit);
+    }
+    c.restore();
+  }
+
   private drawBuildings(c:CanvasRenderingContext2D):void {
     if(this.zoom<1.05 || !this.buildingMarkers.length)return;
     const screenWidth=this.canvas.clientWidth,screenHeight=this.canvas.clientHeight;
     const minSpacing=this.zoom>=2.6?10:14;
     const buckets=new Map<string,Array<{x:number;y:number}>>();
-    const font=buildingMarkerFontSize(this.scale);
     c.save();
-    c.textAlign='center';c.textBaseline='middle';
-    c.font=`700 ${font}px system-ui`;
-    c.lineJoin='round';
-    c.lineWidth=1.65/this.scale;
-    c.strokeStyle='rgba(4,20,29,.88)';
     for(const marker of this.buildingMarkers){
       if(!showBuildingMarker(marker.owner,this.zoom))continue;
-      const style=buildingMarkerFor(marker.code);
-      if(!style)continue;
+      if(!buildingMarkerFor(marker.code))continue;
       const x=(marker.index%MAP_WIDTH+.5)*CW;
       const y=(Math.floor(marker.index/MAP_WIDTH)+.5)*CH;
       const sx=this.ox+x*this.scale,sy=this.oy+y*this.scale;
@@ -347,20 +366,8 @@ export class MapRenderer {
       if(obstructed)continue;
       const key=`${col}:${row}`;
       const occupied=buckets.get(key)??[];
-      occupied.push({x:sx,y:sy});
-      buckets.set(key,occupied);
-      const level=this.game.cityUpgrades[marker.index];
-      const paint=cityLevelStyle(level);
-      const radius=5.8/this.scale;
-      c.globalAlpha=marker.owner===0?.98:.86;
-      c.beginPath();c.arc(x,y,radius,0,Math.PI*2);
-      c.fillStyle=paint.fill;c.fill();
-      c.lineWidth=(level===5?1.6:1.1)/this.scale;
-      c.strokeStyle=paint.border;c.stroke();
-      c.fillStyle=paint.text;
-      c.font=`800 ${Math.max(6,Math.min(10,8/this.scale))}px system-ui`;
-      c.fillText(String(level),x,y+.2/this.scale);
-      c.font=`700 ${font}px system-ui`;
+      occupied.push({x:sx,y:sy});buckets.set(key,occupied);
+      this.drawCityMarker(c,x,y,this.game.cityUpgrades[marker.index],marker.owner);
     }
     c.restore();
   }
