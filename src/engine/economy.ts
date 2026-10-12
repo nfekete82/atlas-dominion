@@ -23,7 +23,8 @@ export function troopGrowth(population:number, territory:number, capitals:number
   // A dense island cannot indefinitely multiply recruitment through city spam.
   // Urban capacity scales with controlled land, not the starting country name.
   const urbanCapacity=Math.max(1,territory/24);
-  const effectiveCities=Math.min(Math.max(0,Number.isFinite(cities)?cities:0),urbanCapacity);
+  const count=Math.max(0,Number.isFinite(cities)?cities:0);
+  const effectiveCities=urbanCapacity*(1-Math.exp(-count/urbanCapacity));
   const urban=Math.sqrt(effectiveCities);
   const land=Math.sqrt(Math.max(0,territory));
   return .25 + Math.sqrt(people)*.10 + land*.08
