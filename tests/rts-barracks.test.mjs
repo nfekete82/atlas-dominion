@@ -100,3 +100,20 @@ test('RTS AI builds an actual barracks, pays for a persistent squad and never re
  const saved=g.exportSave();
  assert.deepEqual(Game.fromSave(saved).exportSave(),saved);
 });
+
+test('adjacent RTS formations exchange losses and both survivors remain visible',()=>{
+ const g=new Game(8102,1,'DE','balanced',true);
+ const own=g.owner.findIndex((v,i)=>v===0&&landNeighbors(i).some(j=>g.owner[j]===-1));
+ assert.ok(own>=0);
+ const enemy=landNeighbors(own).find(j=>g.owner[j]===-1);
+ g.owner[enemy]=1;
+ g.squads.push({id:9001,owner:0,index:own,troops:100,destination:null,attackTarget:null});
+ g.squads.push({id:9002,owner:1,index:enemy,troops:100,destination:null,attackTarget:null});
+ g.step();
+ const blue=g.squads.find(u=>u.id===9001),red=g.squads.find(u=>u.id===9002);
+ assert.ok(blue&&red,'one engagement must not delete either surviving unit');
+ assert.ok(blue.troops<100&&red.troops<100,'both sides pay actual losses');
+ assert.ok(g.battleEvents.some(e=>e.attackerId===0&&e.defenderId===1),'unit combat is visible to rendering');
+ assert.ok(g.factions[0].population>=blue.troops);
+ assert.ok(g.factions[1].population>=red.troops);
+});
