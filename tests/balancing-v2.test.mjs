@@ -106,6 +106,7 @@ test('AI-AI ceasefire blocks a renewed war for ninety ticks but never suppresses
   assert.equal(g.isWarTruce(1,2),true);
   assert.equal(g.isWarTruce(2,1),true);
   assert.equal(g.isWarTruce(0,1),false);
+  g.recount(); // Simulated manual fixture must refresh derived population caches.
   const save=g.exportSave();
   assert.deepEqual(Game.fromSave(JSON.parse(JSON.stringify(save))).exportSave(),save);
   g.tick+=91;
