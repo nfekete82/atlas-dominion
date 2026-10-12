@@ -118,7 +118,10 @@ function update() {
   $('troopCount').textContent = format(totalPopulation[0]);
   // Mobilized armies have not died. This breakdown separates temporary
   // troop commitments from permanent casualties and automatic growth.
-  $('mobileTroops').textContent = 'MOBIL: ' + format(player.troops);
+  const mobileNet=game.mobileNet;
+  const mobileTrend=mobileNet>=0?'+':'−';
+  $('mobileTroops').textContent = 'MOBIL: ' + format(player.troops)
+    + ' (' + mobileTrend+format(Math.abs(mobileNet)) + '/Tick netto)';
   $('frontTroops').textContent = 'AN DER GRENZE: ' + format(stationed);
   $('offensiveTroops').textContent = 'IM ANGRIFF: ' + format(fightingByNation[0]);
   $('fallenTroops').textContent = 'GEFALLEN: ' + format(player.attackFallen+player.defenseSpent);
