@@ -27,3 +27,22 @@ test('AI factory investment occurs only in subsequent cycles',()=>{
  g['developAI']();
  assert.ok(Array.from(g.buildings).filter(v=>v===BUILDING_CODES.factory).length>=0);
 });
+
+test('captured industry route never resurrects after recapture or save reload',()=>{
+ const g=new Game(915,1,'DE');g.factions[0].money=3000;
+ const city=g.cities.find(c=>c.owner===0);
+ assert.ok(city);
+ const i=landNeighbors(city.index).find(index=>g.owner[index]===0&&!g.buildings[index]);
+ assert.ok(i!==undefined);
+ const p=cellToPoint(i);
+ assert.equal(g.build(0,p,'factory').ok,true);
+ assert.equal(g.connectFactory(0,p,cellToPoint(city.index)).ok,true);
+ assert.equal(g.factoryLinks.has(i),true);
+ g.owner[i]=1;g.recount();
+ assert.equal(g.factoryLinks.has(i),false);
+ const restored=Game.fromSave(g.exportSave());
+ g.owner[i]=0;restored.owner[i]=0;
+ g.recount();restored.recount();
+ assert.equal(g.factoryLinks.has(i),false);
+ assert.deepEqual(restored.exportSave(),g.exportSave());
+});
