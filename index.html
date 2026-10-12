@@ -43,7 +43,18 @@
           <div id="attackStatus" class="attack-status" role="status" aria-live="polite">Klicke auf ein verbundenes Nachbarland: Die Front wird automatisch gefunden.</div>
         </div></div>
         <div class="sidebar-section ranking"><div class="section-label">02 <span>EUROPÄISCHE LÄNDER</span> <i></i></div><div id="leaderboard" class="leaderboard"></div></div>
-        <div class="sidebar-section dispatch"><div class="section-label">03 <span>LAGEBERICHT</span> <i></i></div><div id="eventFeed" class="event-feed"></div></div>
+        <div class="sidebar-section diplomacy"><div class="section-label">03 <span>🤝 DIPLOMATIE</span> <i></i></div>
+          <p class="diplomacy-help">Bündnisse schützen beide Seiten vor Angriffen. Maximal zwei Partner pro Land – keine kostenlosen Soldaten.</p>
+          <div class="diplomacy-allies" id="diplomacyAllies">Noch keine Bündnispartner</div>
+          <label for="diplomacyNation">LAND AUSWÄHLEN</label>
+          <select id="diplomacyNation" aria-label="Land für Bündnis auswählen"></select>
+          <div class="diplomacy-detail" id="diplomacyDetail">Land auswählen.</div>
+          <button id="diplomacyOffer" type="button" class="diplomacy-action">🤝 Bündnis anbieten</button>
+          <button id="diplomacyLeave" type="button" class="diplomacy-action warning" hidden>Bündnis beenden</button>
+          <div class="diplomacy-inbox" id="diplomacyInbox" aria-live="polite"></div>
+          <div id="diplomacyFeedback" class="diplomacy-feedback" role="status" aria-live="polite"></div>
+        </div>
+        <div class="sidebar-section dispatch"><div class="section-label">04 <span>LAGEBERICHT</span> <i></i></div><div id="eventFeed" class="event-feed"></div></div>
         <div class="sidebar-footer"><span class="live-dot"></span> LOCAL SOLO MATCH <span>·</span> DETERMINISTIC ENGINE</div>
       </aside>
     </div>
