@@ -16,7 +16,7 @@ const $ = <T extends HTMLElement>(id: string): T => {
   return found as T;
 };
 const format = formatCompact;
-let game = new Game(Date.now() % 2147483647);
+let game = new Game(Date.now() % 2147483647,COUNTRY_STARTS.length-1,'DE','balanced',true);
 game.paused = true; // The player must choose a country before the clock starts.
 const renderer = new MapRenderer($<HTMLCanvasElement>('battleCanvas'), game);
 const minimap=new StrategicMinimap($<HTMLCanvasElement>('miniCanvas'));
@@ -878,7 +878,7 @@ function showCountryPicker(canCancel = false): void {
 function startCountry(code:string): void {
   const chosen=countryByCode(code);
   if(!chosen)return;
-  game=new Game((Date.now()+Math.floor(Math.random()*100000))%2147483647,COUNTRY_STARTS.length-1,chosen.code,selectedDifficulty);
+  game=new Game((Date.now()+Math.floor(Math.random()*100000))%2147483647,COUNTRY_STARTS.length-1,chosen.code,selectedDifficulty,true);
   localStorage.removeItem(SAVE_KEY);
   hasStarted=true;
   modalVisible=false;
