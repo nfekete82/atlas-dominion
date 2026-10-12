@@ -25,6 +25,27 @@ let buildSpot: Point | null = null;
 let attackRatio = 35;
 let attackMessage = 'Nachbarland anklicken · mehr eingesetzte Truppen = schnellere Front.';
 let attackMessageKind: 'neutral'|'success'|'error' = 'neutral';
+const SAVE_KEY='atlas-dominion-save-v1';
+function saveGame():void {
+  if(!hasStarted)return;
+  try {
+    localStorage.setItem(SAVE_KEY,JSON.stringify(game.exportSave()));
+  } catch(error) { console.warn('Autosave fehlgeschlagen:',error); }
+}
+function restoreGame():boolean {
+  try {
+    const raw=localStorage.getItem(SAVE_KEY);
+    if(!raw)return false;
+    const restored=Game.fromSave(JSON.parse(raw));
+    game=restored;selectedDifficulty=restored.difficulty;
+    hasStarted=true;modalVisible=false;
+    $('countryPicker').hidden=true;
+    renderer.setGame(game);renderer.focusOnCapital(game.cities[0]);
+    prevStatus=game.status;update();
+    return true;
+  }catch(error){console.warn('Spielstand konnte nicht geladen werden:',error);return false;}
+}
+
 
 function beep(freq = 440, duration = 0.08) {
   if (!soundEnabled) return;
@@ -319,6 +340,7 @@ function startCountry(code:string): void {
   const chosen=countryByCode(code);
   if(!chosen)return;
   game=new Game((Date.now()+Math.floor(Math.random()*100000))%2147483647,COUNTRY_STARTS.length-1,chosen.code,selectedDifficulty);
+  localStorage.removeItem(SAVE_KEY);
   hasStarted=true;
   modalVisible=false;
   $('countryPicker').hidden=true;
@@ -327,7 +349,7 @@ function startCountry(code:string): void {
   renderer.setGame(game);
   renderer.focusOnCapital(game.cities[0]);
   prevStatus=game.status;
-  update();
+  update();saveGame();
 }
 function restart(): void { closeDialog(); showCountryPicker(false); }
 $('countrySearch').addEventListener('input',e=>countryOptions((e.target as HTMLInputElement).value));
@@ -388,8 +410,10 @@ setInterval(()=>{
   renderer.updateTerritory();
   update();
 },250);
+setInterval(saveGame,30000);
+window.addEventListener('pagehide',saveGame);
 update();
-showCountryPicker(false);
+if(!restoreGame())showCountryPicker(false);
 // Explicit dev-only API for smoke tests, not game simulation source of truth.
 if(new URLSearchParams(location.search).has('debug')) {
   Object.assign(window,{__atlas:{getGame:()=>game, attack:(x:number,y:number,ratio=35)=>game.launchAttack(0,{x,y},ratio), step:()=>{game.step();renderer.updateTerritory();update();}}});
