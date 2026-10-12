@@ -595,6 +595,36 @@ export class Game {
     const sent = Math.floor(attacker.troops * ratio / 100);
     if (sent < 8) return failed('Mindestens 8 mobile Truppen erforderlich.');
     attacker.troops-=sent;
+    // A direct reverse offensive cancels the two paid-for armies at the same
+    // real landfront. Both sides suffer matching fatalities; there is no
+    // artificial post-spawn defending army or invisible counterattack.
+    let committed=sent;
+    if(owner>=0){
+      const incoming=this.attackOrders.find(o=>o.factionId===owner &&
+        o.targetOwner===id && !o.landing &&
+        canReinforceFront(owner,pointToIndex(front),pointToIndex(o.anchor),MAP_WIDTH));
+      if(incoming){
+        const clash=opposingArmies(committed,incoming.remaining);
+        committed=clash.a;
+        incoming.remaining=clash.b;
+        incoming.fallen+=clash.lossB;
+        attacker.attackFallen+=clash.lossA;
+        this.factions[owner].attackFallen+=clash.lossB;
+        attacker.enemyFallen+=clash.lossB;
+        this.factions[owner].enemyFallen+=clash.lossA;
+        if(incoming.remaining<.5){
+          const ix=this.attackOrders.findIndex(o=>o.id===incoming.id);
+          if(ix>=0)this.attackOrders.splice(ix,1);
+        }
+        if(this.battleEvents.length<1600)this.battleEvents.push({
+          tick:this.tick,index:pointToIndex(front),attackerId:id,defenderId:owner,
+          attacking:sent,defending:incoming.remaining+clash.lossB,
+          attackerLost:clash.lossA,defenderLost:clash.lossB,captured:false,
+        });
+      }
+    }
+    if(committed<.5)return {ok:true,reason:'Gegenangriff hat feindliche Armee abgefangen.',
+      sent,targetOwner:owner,front};
     // Repeating a click near the same border reinforces the EXISTING army:
     // simple OpenFront-style interaction, no overlapping duplicate campaigns.
     const existing=!landing?this.attackOrders.find(o=>
@@ -602,13 +632,13 @@ export class Game {
       canReinforceFront(owner,pointToIndex(o.anchor),pointToIndex(front),MAP_WIDTH)
     ):undefined;
     if(existing){
-      existing.remaining+=sent;
-      existing.committed+=sent;
-      existing.effort+=campaignEffort(sent);
+      existing.remaining+=committed;
+      existing.committed+=committed;
+      existing.effort+=campaignEffort(committed);
     }else{
       this.attackOrders.push({
         id:this.nextAttackId++,factionId:id,targetOwner:owner,
-        anchor:front,committed:sent,remaining:sent,effort:campaignEffort(sent),
+        anchor:front,committed,remaining:committed,effort:campaignEffort(committed),
         fallen:0,conquered:0,trail:[],progress:0,landing,startedTick:this.tick,
       });
     }
@@ -976,19 +1006,20 @@ export class Game {
     if(this.tick%this.difficultySettings.cityInterval===0)this.developAI();
     this.redistributeFrontline();
     this.rebuildFrontierCandidates();
-    for (const faction of this.factions) {
-      if (!faction.alive) continue;
-      if (faction.id === 0) {
-        // Human troops move only when explicitly ordered by clicking an adjacent faction.
-        this.resolveOrders(faction);
-        continue;
-      }
-      const attempts=difficultyAttempts(aiAttacksPerTick(faction.territory,aiStyle(faction.id)),this.difficulty);
-      for (let k = 0; k < attempts; k++) {
-        if(faction.troops<8 || faction.campaignEnergy<8)break;
-        const target = this.chooseFront(faction.id);
-        if (target === -1 || !this.attack(faction, target)) break;
-      }
+    // The SAME continuous-border military rules now govern humans AND AI.
+    // AIs choose targets; orders fight over time using actual paid-for armies.
+    for(const faction of this.factions){
+      if(!faction.alive)continue;
+      this.resolveOrders(faction);
+      if(!faction.ai)continue;
+      const maxActive=aiStyle(faction.id)==='aggressive'||this.difficulty==='impossible'?2:1;
+      const active=this.attackOrders.filter(o=>o.factionId===faction.id).length;
+      if(active>=maxActive || faction.troops<22)continue;
+      const target=this.chooseFront(faction.id);
+      if(target<0)continue;
+      const ratio=Math.max(15,Math.min(55,
+        Math.round(30*this.difficultySettings.activityMultiplier)));
+      this.issueAttack(faction.id,cellToPoint(target),ratio,false);
     }
     this.recount();
     if (!this.factions[0].alive) {
