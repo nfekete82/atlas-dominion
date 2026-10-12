@@ -211,6 +211,7 @@ export interface GameSave {
   /** Optional compact per-sector player-only tactics; absent in old saves. */
   borderOrders?:Array<{index:number;mode:'defend'|'withdraw'}>;
   factoryLinks?:Array<{factory:number;city:number}>;
+  factoryLevels?:Array<{index:number;level:number}>;
 }
 
 export class Game {
@@ -232,6 +233,7 @@ export class Game {
   readonly warTruces:WarTruce[]=[];
   readonly borderOrders=new Map<number,'defend'|'withdraw'>();
   readonly factoryLinks=new Map<number,number>();
+  readonly factoryLevels=new Map<number,number>();
   mobileNet=0;
   /** Real soldiers in transit to defend an attacked treaty partner. */
   readonly defenseAid:DefenseAid[]=[];
@@ -370,7 +372,7 @@ export class Game {
       const active=city!==undefined&&this.owner[city]===this.owner[i]&&
         (this.buildings[city]===BUILDING_CODES.city||this.capitalSites.has(city))&&
         Math.hypot(i%MAP_WIDTH-city%MAP_WIDTH,Math.floor(i/MAP_WIDTH)-Math.floor(city/MAP_WIDTH))<=FACTORY_LINK_MAX_DISTANCE;
-      factoryRevenue[this.owner[i]]+=FACTORY_INCOME*(active?FACTORY_CONNECTION_MULTIPLIER:1);
+      factoryRevenue[this.owner[i]]+=FACTORY_INCOME*(1+(this.factoryLevels.get(i)??0)*.75)*(active?FACTORY_CONNECTION_MULTIPLIER:1);
     }
     for(const faction of this.factions){
       faction.alive=faction.territory>0;
@@ -747,6 +749,20 @@ export class Game {
     return count;
   }
 
+  factoryLevel(point:Point):number {
+    const i=pointToIndex(point);
+    return this.buildings[i]===BUILDING_CODES.factory?1+(this.factoryLevels.get(i)??0):0;
+  }
+  upgradeFactory(id:number,point:Point):BuildResult {
+    const i=pointToIndex(point),level=this.factoryLevel(point);
+    const cost=level*250;
+    if(!Number.isInteger(point.x)||!Number.isInteger(point.y)||point.x<0||point.y<0||point.x>=MAP_WIDTH||point.y>=MAP_HEIGHT||
+      this.status!=='playing'||this.owner[i]!==id||!this.factions[id]?.alive||!level||level>=5)
+      return {ok:false,reason:'Keine ausbaubare eigene Fabrik (maximal Stufe 5).',cost:0};
+    if(this.factions[id].money<cost)return {ok:false,reason:'Zu wenig Gold für Fabrikausbau.',cost};
+    this.factions[id].money-=cost;this.factoryLevels.set(i,level);
+    this.recount();return {ok:true,reason:'Fabrik auf Stufe '+(level+1)+' ausgebaut.',cost,type:'factory'};
+  }
   /** A paid factory links to one actual owned city inside a short radius. */
   connectFactory(id:number,point:Point,cityPoint:Point):DiplomacyResult {
     const factory=pointToIndex(point),city=pointToIndex(cityPoint);
@@ -1956,6 +1972,8 @@ export class Game {
       defenseAid:this.defenseAid.map(a=>({...a})),
       diplomacyCooldowns:this.diplomacyCooldowns.map(v=>({...v})),
       warTruces:this.warTruces.map(v=>({...v})),
+      factoryLevels:[...this.factoryLevels].filter(([index])=>this.buildings[index]===BUILDING_CODES.factory)
+        .sort((a,b)=>a[0]-b[0]).map(([index,level])=>({index,level})),
       factoryLinks:[...this.factoryLinks].filter(([factory,city])=>
         this.buildings[factory]===BUILDING_CODES.factory&&this.owner[factory]===this.owner[city])
         .sort((a,b)=>a[0]-b[0]).map(([factory,city])=>({factory,city})),
@@ -2065,6 +2083,12 @@ export class Game {
          !Number.isSafeInteger(v.untilTick)||v.untilTick<=save.tick))
       throw Error('Ungültiger Waffenstillstand.');
     g.warTruces.push(...structuredClone(warTruces));
+    const levels=save.factoryLevels??[];
+    if(!Array.isArray(levels)||levels.length>20000||levels.some(v=>!Number.isInteger(v?.index)||
+      v.index<0||v.index>=CELL_COUNT||g.buildings[v.index]!==BUILDING_CODES.factory||
+      !Number.isInteger(v.level)||v.level<1||v.level>4)||
+      new Set(levels.map(v=>v.index)).size!==levels.length)throw Error('Ungültige Fabrikstufen.');
+    for(const v of levels)g.factoryLevels.set(v.index,v.level);
     const factoryLinks=save.factoryLinks??[];
     if(!Array.isArray(factoryLinks)||factoryLinks.length>20000||factoryLinks.some(v=>
       !Number.isInteger(v?.factory)||!Number.isInteger(v?.city)||
