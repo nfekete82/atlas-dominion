@@ -3,7 +3,7 @@ import {MaritimeNavigation,COASTS,validSeaRoute,voyageTicks,routeDistance,type S
 import { COUNTRY_STARTS, countryByCode } from '../data/countries.js';
 import { assessInvasion, interceptAttack, attackerCasualties, campaignEffort, empirePower, relativeAttackEffect } from './warfare.js';
 import { attackFrontWidth, frontierBudget, frontierTarget, localDefenseStrength } from './frontline.js';
-import { BUILDINGS, BUILDING_CODES, type BuildingType, troopGrowth, taxRevenue, cityUpgradeCost, cityUpgradeGrowth, upgradedCityRecruitment } from './economy.js';
+import { BUILDINGS, BUILDING_CODES, type BuildingType, FACTORY_INCOME, FACTORY_CONNECTION_MULTIPLIER, FACTORY_LINK_MAX_DISTANCE, troopGrowth, taxRevenue, cityUpgradeCost, cityUpgradeGrowth, upgradedCityRecruitment } from './economy.js';
 import { findConnectedAttackFront } from './front-target.js';
 import {aiStyle,scoreAIFront} from './ai-strategy.js';
 import {aiMarchRecovery,aiAttacksPerTick,aiStrikeSize,aiRiskTolerance} from './ai-tactics.js';
@@ -210,6 +210,7 @@ export interface GameSave {
   diplomacyCooldowns?:DiplomaticCooldown[];warTruces?:WarTruce[];
   /** Optional compact per-sector player-only tactics; absent in old saves. */
   borderOrders?:Array<{index:number;mode:'defend'|'withdraw'}>;
+  factoryLinks?:Array<{factory:number;city:number}>;
 }
 
 export class Game {
@@ -230,6 +231,7 @@ export class Game {
   readonly diplomacyCooldowns:DiplomaticCooldown[]=[];
   readonly warTruces:WarTruce[]=[];
   readonly borderOrders=new Map<number,'defend'|'withdraw'>();
+  readonly factoryLinks=new Map<number,number>();
   mobileNet=0;
   /** Real soldiers in transit to defend an attacked treaty partner. */
   readonly defenseAid:DefenseAid[]=[];
@@ -362,6 +364,14 @@ export class Game {
       city.owner=this.owner[city.index];
       if(city.owner>=0)this.factions[city.owner].cityCount++;
     }
+    const factoryRevenue=new Float64Array(this.factions.length);
+    for(let i=0;i<CELL_COUNT;i++)if(this.buildings[i]===BUILDING_CODES.factory&&this.owner[i]>=0){
+      const city=this.factoryLinks.get(i);
+      const active=city!==undefined&&this.owner[city]===this.owner[i]&&
+        (this.buildings[city]===BUILDING_CODES.city||this.capitalSites.has(city))&&
+        Math.hypot(i%MAP_WIDTH-city%MAP_WIDTH,Math.floor(i/MAP_WIDTH)-Math.floor(city/MAP_WIDTH))<=FACTORY_LINK_MAX_DISTANCE;
+      factoryRevenue[this.owner[i]]+=FACTORY_INCOME*(active?FACTORY_CONNECTION_MULTIPLIER:1);
+    }
     for(const faction of this.factions){
       faction.alive=faction.territory>0;
       const totalPeople=people[faction.id];
@@ -370,7 +380,7 @@ export class Game {
       const growth=troopGrowth(totalPeople,faction.territory,faction.cityCount,faction.builtCities+upgradeBonus[faction.id])
       +upgradedCityRecruitment(upgradeBonus[faction.id],faction.territory,faction.builtCities);
       faction.income=faction.id===0?growth*(this.doctrine==='fortify'?1.20:this.doctrine==='blitz'?.90:1):growth*this.difficultySettings.growthMultiplier;
-      faction.moneyIncome=taxRevenue(totalPeople,faction.territory,faction.cityCount,faction.builtCities+upgradeBonus[faction.id]);
+      faction.moneyIncome=taxRevenue(totalPeople,faction.territory,faction.cityCount,faction.builtCities+upgradeBonus[faction.id])+factoryRevenue[faction.id];
     }
   }
 
@@ -737,11 +747,41 @@ export class Game {
     return count;
   }
 
+  /** A paid factory links to one actual owned city inside a short radius. */
+  connectFactory(id:number,point:Point,cityPoint:Point):DiplomacyResult {
+    const factory=pointToIndex(point),city=pointToIndex(cityPoint);
+    if(![point.x,point.y,cityPoint.x,cityPoint.y].every(Number.isInteger)||
+      point.x<0||point.y<0||cityPoint.x<0||cityPoint.y<0||
+      point.x>=MAP_WIDTH||cityPoint.x>=MAP_WIDTH||point.y>=MAP_HEIGHT||cityPoint.y>=MAP_HEIGHT||
+      this.owner[factory]!==id||this.owner[city]!==id||
+      this.buildings[factory]!==BUILDING_CODES.factory||
+      !(this.buildings[city]===BUILDING_CODES.city||this.capitalSites.has(city))||
+      Math.hypot(point.x-cityPoint.x,point.y-cityPoint.y)>FACTORY_LINK_MAX_DISTANCE)
+      return {ok:false,reason:'Fabrik und eigene Stadt müssen höchstens 12 Sektoren auseinanderliegen.'};
+    this.factoryLinks.set(factory,city);this.recount();
+    return {ok:true,reason:'Fabrik mit Stadt verbunden · +50 % Produktion.'};
+  }
+
+  nearbyFactoryCity(point:Point):Point|null {
+    const id=this.owner[pointToIndex(point)];if(id<0)return null;
+    let best=-1,dist=Infinity;
+    for(const city of this.cities){
+      if(city.owner!==id)continue;
+      const d=Math.hypot(point.x-city.x,point.y-city.y);
+      if(d<=FACTORY_LINK_MAX_DISTANCE&&d<dist){best=city.index;dist=d;}
+    }
+    for(let i=0;i<CELL_COUNT;i++)if(this.owner[i]===id&&this.buildings[i]===BUILDING_CODES.city){
+      const d=Math.hypot(point.x-i%MAP_WIDTH,point.y-Math.floor(i/MAP_WIDTH));
+      if(d<=FACTORY_LINK_MAX_DISTANCE&&d<dist){best=i;dist=d;}
+    }
+    return best<0?null:cellToPoint(best);
+  }
+
   canBuild(id:number,point:Point,type:BuildingType):BuildResult {
     const fail=(reason:string):BuildResult=>({ok:false,reason,cost:0});
     const faction=this.factions[id];
     if(!faction?.alive||this.status!=='playing')return fail('Dieses Land kann nicht bauen.');
-    if(type!=='city'&&type!=='tower')return fail('Unbekanntes Gebäude.');
+    if(type!=='city'&&type!=='tower'&&type!=='factory')return fail('Unbekanntes Gebäude.');
     const x=Math.floor(point.x),y=Math.floor(point.y);
     if(!Number.isFinite(point.x)||!Number.isFinite(point.y)||x<0||y<0||x>=MAP_WIDTH||y>=MAP_HEIGHT)return fail('Außerhalb der Karte.');
     const index=y*MAP_WIDTH+x;
@@ -750,7 +790,7 @@ export class Game {
     if(this.buildings[index])return fail('Hier steht bereits ein Gebäude.');
     const def=BUILDINGS.find(b=>b.type===type)!;
     if(faction.money<def.cost)return fail(`Zu wenig Geld: ${def.cost} benötigt.`);
-    return {ok:true,reason:type==='tower'?'Abwehrturm bauen.':'Stadt bauen.',cost:def.cost,type};
+    return {ok:true,reason:type==='tower'?'Abwehrturm bauen.':type==='factory'?'Fabrik bauen.':'Stadt bauen.',cost:def.cost,type};
   }
 
   build(id:number,point:Point,type:BuildingType):BuildResult {
@@ -761,8 +801,8 @@ export class Game {
     this.buildings[pointToIndex(point)]=BUILDING_CODES[type];
     this.cityUpgrades[pointToIndex(point)]=0;
     this.recount();
-    if(id===0)this.log(`${type==='tower'?'Abwehrturm':'Stadt'} gebaut · -${permission.cost} Geld.`,faction.color);
-    return {ok:true,reason:type==='tower'?'Abwehrturm gebaut.':'Stadt gebaut.',cost:permission.cost,type};
+    if(id===0)this.log(`${type==='tower'?'Abwehrturm':type==='factory'?'Fabrik':'Stadt'} gebaut · -${permission.cost} Geld.`,faction.color);
+    return {ok:true,reason:type==='tower'?'Abwehrturm gebaut.':type==='factory'?'Fabrik gebaut.':'Stadt gebaut.',cost:permission.cost,type};
   }
 
   /** AI plans actual settlements across owned land, then improves them.
@@ -840,7 +880,20 @@ export class Game {
         newCities.push([x,y]);sites.push(index);
         changed=true;builds++;actions++;
       }
-      // Highest-tier towns finish first, rather than having hundreds of
+      // Factories invest surplus funds into recurring revenue. They compete
+    // for one development action and require a real nearby owned city.
+    if(actions<maxActions&&faction.money>=400&&this.tick% (this.difficultySettings.cityInterval*2)===0){
+      for(const city of this.cities){
+        if(city.owner!==id)continue;
+        const near=LAND_NEIGHBORS[city.index].find(i=>this.owner[i]===id&&!this.buildings[i]&&!this.capitalSites.has(i));
+        if(near===undefined)continue;
+        const pos=cellToPoint(near);
+        if(this.build(id,pos,'factory').ok){
+          this.factoryLinks.set(near,city.index);changed=true;actions++;break;
+        }
+      }
+    }
+    // Highest-tier towns finish first, rather than having hundreds of
       // newly founded towns keep every existing city at level 0 or 1.
       // When a top tier is too expensive, an affordable lower tier can grow.
       sites.sort((a,b)=>this.cityUpgrades[b]-this.cityUpgrades[a]||a-b);
@@ -1903,6 +1956,9 @@ export class Game {
       defenseAid:this.defenseAid.map(a=>({...a})),
       diplomacyCooldowns:this.diplomacyCooldowns.map(v=>({...v})),
       warTruces:this.warTruces.map(v=>({...v})),
+      factoryLinks:[...this.factoryLinks].filter(([factory,city])=>
+        this.buildings[factory]===BUILDING_CODES.factory&&this.owner[factory]===this.owner[city])
+        .sort((a,b)=>a[0]-b[0]).map(([factory,city])=>({factory,city})),
       borderOrders:[...this.borderOrders].filter(([index])=>this.owner[index]===0)
         .sort((a,b)=>a[0]-b[0]).map(([index,mode])=>({index,mode})),
     };
@@ -2009,6 +2065,18 @@ export class Game {
          !Number.isSafeInteger(v.untilTick)||v.untilTick<=save.tick))
       throw Error('Ungültiger Waffenstillstand.');
     g.warTruces.push(...structuredClone(warTruces));
+    const factoryLinks=save.factoryLinks??[];
+    if(!Array.isArray(factoryLinks)||factoryLinks.length>20000||factoryLinks.some(v=>
+      !Number.isInteger(v?.factory)||!Number.isInteger(v?.city)||
+      v.factory<0||v.city<0||v.factory>=CELL_COUNT||v.city>=CELL_COUNT||
+      g.buildings[v.factory]!==BUILDING_CODES.factory||
+      g.owner[v.factory]<0||g.owner[v.factory]!==g.owner[v.city]||
+      !(g.buildings[v.city]===BUILDING_CODES.city||g.capitalSites.has(v.city))||
+      Math.hypot(v.factory%MAP_WIDTH-v.city%MAP_WIDTH,
+        Math.floor(v.factory/MAP_WIDTH)-Math.floor(v.city/MAP_WIDTH))>FACTORY_LINK_MAX_DISTANCE)||
+      new Set(factoryLinks.map(v=>v.factory)).size!==factoryLinks.length)
+      throw Error('Ungültige Fabrikverbindungen.');
+    for(const v of factoryLinks)g.factoryLinks.set(v.factory,v.city);
     const borderOrders=save.borderOrders??[];
     if(!Array.isArray(borderOrders)||borderOrders.length>512||
        borderOrders.some(v=>!Number.isInteger(v?.index)||v.index<0||
