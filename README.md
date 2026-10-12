@@ -1,6 +1,11 @@
 # ATLAS DOMINION
 
+[![Build und Simulationstests](https://github.com/nfekete82/atlas-dominion/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/nfekete82/atlas-dominion/actions/workflows/ci.yml)
+
+
 **v1.4 – AGGRESSIVERE KI, SCHNELLERE EROBERUNG UND BESSERE GRENZVERTEIDIGUNG**
+
+**Automatischer Qualitätscheck:** Bei jedem Pull Request und jeder Änderung an `main` baut GitHub Actions das Projekt mit Node.js 22 und führt alle Simulations- und Regressionstests aus. Der Status steht im Abzeichen oben. Nach dem Wechsel des Repositories zu `public` wurde der vorherige fehlgeschlagene Lauf erfolgreich erneut ausgeführt: **93 Tests bestanden, 0 fehlgeschlagen** (12. Oktober 2026).
 
 ## Was in v1.4 anders ist
 
