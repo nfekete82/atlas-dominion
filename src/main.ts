@@ -155,7 +155,13 @@ function renderBuildMenu(): void {
   const border=game.isThreatenedBorder(0,point);
   $('buildCoordinates').textContent=`${border?'GRENZPOSTEN':existingName?.toUpperCase()??'BAUEN'} · SEKTOR ${point.x}/${point.y}`;
   $('buildMoney').textContent=`${format(game.factions[0].money)} GELD VERFÜGBAR`;
-  $('buildOptions').innerHTML=BUILDINGS.map(building=>{
+  const upgrade=existing==='city' ? game.canUpgradeCity(0,point) : null;
+  const upgradeLevel=existing==='city'?game.cityLevelAt(point):0;
+  $('buildOptions').innerHTML=(upgrade? `<button type="button" class="build-entry" data-upgrade-city="true" ${upgrade.ok?'':'disabled'} title="${upgrade.reason}">
+      <span class="build-entry-icon" aria-hidden="true">⬆</span>
+      <span class="build-entry-copy"><strong>Stadt ausbauen ${upgradeLevel}/5</strong><small>${upgrade.ok?'Mehr Einwohner- und Truppenwachstum':upgrade.reason}</small></span>
+      <span class="build-entry-cost">${upgrade.ok?upgrade.cost+' €':'MAX'}</span>
+    </button>`:'')+BUILDINGS.map(building=>{
     const decision=game.canBuild(0,point,building.type);
     const explanation=decision.ok?building.description:decision.reason;
     return `<button type="button" class="build-entry" data-build="${building.type}" ${decision.ok?'':'disabled'} title="${explanation}">
@@ -188,6 +194,14 @@ $('buildOptions').addEventListener('click',e=>{
     attackMessage=result.ok?`${format(result.sent)} Soldaten verteidigen jetzt diese Grenze.`:result.reason;
     attackMessageKind=result.ok?'success':'error';
     if(result.ok){renderer.updateTerritory();closeBuildMenu();beep(540);}else renderBuildMenu();
+    update();return;
+  }
+  const upgradeButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-upgrade-city]');
+  if(upgradeButton){
+    const result=game.upgradeCity(0,buildSpot);
+    attackMessage=result.ok?`${result.reason} · ${result.cost} € · Wachstum steigt`:result.reason;
+    attackMessageKind=result.ok?'success':'error';
+    if(result.ok){renderer.updateTerritory();closeBuildMenu();beep(690);}else renderBuildMenu();
     update();return;
   }
   const button=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-build]');
