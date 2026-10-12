@@ -157,6 +157,9 @@ $('attackRatio').addEventListener('input',e=>setAttackRatio(Number((e.target as 
 for (const btn of document.querySelectorAll<HTMLButtonElement>('[data-ratio]')) btn.addEventListener('click',()=>setAttackRatio(Number(btn.dataset.ratio)));
 renderer.onSelect = (point:Point, landing:boolean) => {
   closeBuildMenu();
+  // Left-click on friendly terrain must NEVER issue an attack or mobilize
+  // soldiers. Right-click is still available for construction / defense.
+  if(game.owner[pointToIndex(point)]===0)return;
   const result = landing ? game.launchLanding(0, point, attackRatio) : game.launchAttack(0, point, attackRatio);
   attackMessage=result.ok
     ? `${format(result.sent)} ⚔ · ${result.reason}`
@@ -253,7 +256,6 @@ renderer.onHover=(point,px,py,landing)=>{
   $('hoverCoords').textContent=`SEKTOR ${point.x} / ${point.y} · ${built==='city'?`STADT STUFE ${game.cityLevelAt(point)}/5`:buildingName?.toUpperCase()??(id===NEUTRAL?'NEUTRAL':'KONTROLLIERT')}`;
   const tile = pointToIndex(point);
   const attackFront=renderer.previewFront(point);
-  const counter=id===0 && attackFront!==null;
   const actualTarget=attackFront?game.owner[pointToIndex(attackFront)]:id;
   const defendedSector = attackFront ? pointToIndex(attackFront) : tile;
   const stationedLocal = game.frontline[defendedSector];
@@ -273,9 +275,7 @@ renderer.onHover=(point,px,py,landing)=>{
   const action = $('hoverAction');
   const attackable = renderer.canAttack(point);
   const canLand = renderer.canLand(point);
-  action.textContent = id===0 && counter
-    ? `KLICK: ${attackRatio} % GEGENANGRIFF AUF ${game.factions[actualTarget]?.name??'GEGNER'} · RECHTSKLICK: VERTEIDIGEN`
-    : id===0 ? 'EIGENES LAND · RECHTSKLICK: STADT / GRENZPOSTEN'
+  action.textContent = id===0 ? 'EIGENES LAND · LINKSKLICK: KEINE AKTION · RECHTSKLICK: STADT / GRENZPOSTEN'
     : canLand && !game.findAttackFront(0,point) ? `KLICK: ${attackRatio} % SEELANDUNG`
     : attackable ? `KLICK: ${attackRatio} % · ANGRIFF AUF ${f?.name ?? 'NEUTRALGEBIET'}`
     : canLand ? 'KLICK: SEELANDUNG'
@@ -370,7 +370,7 @@ $('countryCancel').addEventListener('click',()=>{
 $('resetBtn').addEventListener('click',()=>showCountryPicker(hasStarted));
 $('helpBtn').addEventListener('click',()=>showDialog('DEIN EINSATZBEFEHL',`
   <p>ATLAS DOMINION ist ein Echtzeit-Eroberungsspiel. Starte in der Hauptstadt deines gewählten Landes, erweitere dein Gebiet und kontrolliere mindestens <strong>65 %</strong> Europas. Die KI-Schwierigkeit wählst du vor Spielbeginn zusammen mit deinem Land: Entspannt, Ausgeglichen, Intensiv oder Unmöglich.</p>
-  <div class="briefing-row"><b>01</b><span><strong>ANGREIFEN:</strong> Klicke auf ein erreichbares Nachbarland oder auf dein eigenes bedrohtes Grenzgebiet für einen unmittelbaren Gegenangriff. Der Angriff startet immer am tatsächlichen gemeinsamen Grenzsektor. Neutrales Land bleibt auf 14 Sektoren Klicktoleranz begrenzt.</span></div>
+  <div class="briefing-row"><b>01</b><span><strong>ANGREIFEN:</strong> Linksklick ausschließlich auf ein erreichbares fremdes oder neutrales Gebiet. Ein Klick auf eigenes Gebiet verschickt niemals Truppen – auch nicht direkt an einer umkämpften Grenze. Für einen Gegenangriff auf die gegnerische Seite der Grenze klicken. Neutrales Land bleibt auf 14 Sektoren Klicktoleranz begrenzt.</span></div>
   <div class="briefing-row"><b>02</b><span><strong>SEELANDUNG:</strong> Eine erreichbare Insel oder Küste anklicken. Ohne gemeinsame Landfront starten deine Soldaten automatisch über einen echten Wasserweg. Die Reisedauer hängt von der Entfernung ab; der Kampf beginnt erst bei Ankunft.</span></div>
   <div class="briefing-row"><b>03</b><span><strong>ZIEHEN:</strong> Karte verschieben. Mausrad oder +/− zum Zoomen.</span></div>
   <div class="briefing-row"><b>04</b><span><strong>FRONT:</strong> Die Angriffslinie leuchtet an der Grenze. Die kleine Zahl zeigt die eingesetzten Truppen. Es gibt keine Marschroute von der Hauptstadt.</span></div>
