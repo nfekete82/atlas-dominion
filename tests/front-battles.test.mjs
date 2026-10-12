@@ -123,3 +123,28 @@ test('new squad visuals scale with actual contacts, respect zoom and never alter
   assert.equal(battleMomentum(0,0),0);
   assert.ok(Math.abs(battleMomentum(4,1))<=1);
 });
+
+test('red combat number represents REAL participating border defenders, not merely casualties',()=>{
+  const g=new Game(654321,1,'DE','balanced');
+  const own=g.owner.findIndex((o,i)=>o===0&&landNeighbors(i).some(n=>g.owner[n]===NEUTRAL));
+  assert.ok(own>=0);
+  const target=landNeighbors(own).find(i=>g.owner[i]===NEUTRAL);
+  g.owner[target]=1;
+  g.frontline[target]=80;
+  g.defense[target]=11;
+  g.factions[0].troops=1100;
+  g.factions.forEach(f=>f.ai=false);
+  g.recount();
+  assert.equal(g.launchAttack(0,cellToPoint(target),85).ok,true);
+  g.step();
+  const event=g.battleEvents.find(e=>e.index===target&&e.attackerId===0);
+  assert.ok(event,'actual border strike was recorded');
+  assert.ok(event.defending>event.defenderLost,
+    'surviving garrison participates but must not be misreported as dead');
+  assert.ok(event.defenderLost>=0);
+  const groups=groupBattles(g.battleEvents,g.owner,480);
+  const contact=groups.find(v=>v.playerBattle);
+  assert.ok(contact);
+  assert.ok(contact.red>0,'player now sees real defending forces in red');
+  assert.deepEqual(g.battleEvents.find(e=>e.index===target&&e.attackerId===0),event);
+});
