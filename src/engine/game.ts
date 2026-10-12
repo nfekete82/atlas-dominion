@@ -2,7 +2,7 @@ import { GEO_BOUNDS, LAND_ROWS, MAP_HEIGHT, MAP_WIDTH, SEA_CROSSINGS, WORLD_HEIG
 import { COUNTRY_STARTS, countryByCode } from '../data/countries.js';
 import { assessInvasion, interceptAttack, attackerCasualties, campaignEffort, empirePower, relativeAttackEffect } from './warfare.js';
 import { attackFrontWidth, frontierBudget, frontierTarget, localDefenseStrength } from './frontline.js';
-import { BUILDINGS, BUILDING_CODES, type BuildingType, troopGrowth, taxRevenue } from './economy.js';
+import { BUILDINGS, BUILDING_CODES, type BuildingType, troopGrowth, taxRevenue, cityUpgradeCost, cityUpgradeGrowth } from './economy.js';
 import { findConnectedAttackFront } from './front-target.js';
 import {aiStyle,scoreAIFront} from './ai-strategy.js';
 import {aiMarchRecovery,aiAttacksPerTick,aiStrikeSize,aiDefenseAllocation,aiRiskTolerance} from './ai-tactics.js';
@@ -178,6 +178,8 @@ export class Game {
   private readonly capitalSites=new Set<number>();
   readonly events: GameEvent[] = [];
   readonly attackOrders: AttackOrder[] = [];
+  /** Upgrade levels for buildable city sites: 0 = basic, 1–5 = improvements. */
+  readonly cityUpgrades = new Uint8Array(CELL_COUNT);
   private nextAttackId = 1;
   private lastAttackerLoss = 0;
   /** Combat during the most recent simulation tick (or direct strike). */
@@ -290,7 +292,8 @@ export class Game {
       const faction=this.factions[id];
       faction.territory++;
       people[id]+=this.frontline[i];
-      if(this.buildings[i]===BUILDING_CODES.city)faction.builtCities++;
+      if(this.buildings[i]===BUILDING_CODES.city)
+        faction.builtCities+=1+cityUpgradeGrowth(this.cityUpgrades[i]);
     }
     for(const order of this.attackOrders)people[order.factionId]+=order.remaining;
     for(const city of this.cities){
@@ -340,6 +343,41 @@ export class Game {
     return this.buildings[y*MAP_WIDTH+x]===BUILDING_CODES.city?'city':null;
   }
 
+  cityLevelAt(point:Point):number {
+    const x=Math.floor(point.x),y=Math.floor(point.y);
+    if(!Number.isFinite(point.x)||!Number.isFinite(point.y)||x<0||y<0||x>=MAP_WIDTH||y>=MAP_HEIGHT)return 0;
+    const index=y*MAP_WIDTH+x;
+    return this.buildings[index]===BUILDING_CODES.city?this.cityUpgrades[index]:0;
+  }
+
+  canUpgradeCity(id:number,point:Point):BuildResult {
+    const fail=(reason:string):BuildResult=>({ok:false,reason,cost:0});
+    const faction=this.factions[id];
+    if(!faction?.alive||this.status!=='playing')return fail('Dieses Land kann nicht bauen.');
+    if(!Number.isFinite(point.x)||!Number.isFinite(point.y))return fail('Ungültige Position.');
+    const x=Math.floor(point.x),y=Math.floor(point.y);
+    if(x<0||y<0||x>=MAP_WIDTH||y>=MAP_HEIGHT)return fail('Außerhalb der Karte.');
+    const index=y*MAP_WIDTH+x;
+    if(this.owner[index]!==id)return fail('Nur eigene Städte verbessern.');
+    if(this.buildings[index]!==BUILDING_CODES.city)return fail('Hier steht keine ausbaubare Stadt.');
+    const level=this.cityUpgrades[index];
+    if(level>=5)return fail('Maximalstufe 5 erreicht.');
+    const cost=cityUpgradeCost(level);
+    if(faction.money<cost)return fail('Zu wenig Geld: '+cost+' benötigt.');
+    return {ok:true,reason:'Stadt auf Stufe '+(level+1)+' ausbauen.',cost,type:'city'};
+  }
+
+  upgradeCity(id:number,point:Point):BuildResult {
+    const permission=this.canUpgradeCity(id,point);
+    if(!permission.ok)return permission;
+    const index=pointToIndex(point);
+    this.factions[id].money-=permission.cost;
+    this.cityUpgrades[index]++;
+    this.recount();
+    if(id===0)this.log('Stadt auf Stufe '+this.cityUpgrades[index]+' ausgebaut · -'+permission.cost+' Geld.',this.factions[id].color);
+    return {ok:true,reason:'Stadt Stufe '+this.cityUpgrades[index],cost:permission.cost,type:'city'};
+  }
+
   canBuild(id:number,point:Point,type:BuildingType):BuildResult {
     const fail=(reason:string):BuildResult=>({ok:false,reason,cost:0});
     const faction=this.factions[id];
@@ -362,6 +400,7 @@ export class Game {
     const faction=this.factions[id];
     faction.money-=permission.cost;
     this.buildings[pointToIndex(point)]=BUILDING_CODES.city;
+    this.cityUpgrades[pointToIndex(point)]=0;
     this.recount();
     if(id===0)this.log(`Stadt gebaut · -${permission.cost} Geld · schnelleres Wachstum.`,faction.color);
     return {ok:true,reason:'Stadt gebaut.',cost:permission.cost,type:'city'};
