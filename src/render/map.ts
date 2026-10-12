@@ -137,19 +137,29 @@ export class MapRenderer {
   private renderBase() {
     const c = this.base.getContext('2d')!;
     const sea = c.createLinearGradient(0, 0, 1100, 800);
-    sea.addColorStop(0, '#081e2a'); sea.addColorStop(0.56, '#102832'); sea.addColorStop(1, '#0a1b27');
+    sea.addColorStop(0, '#081b28'); sea.addColorStop(0.56, '#15303b'); sea.addColorStop(1, '#091923');
     c.fillStyle = sea; c.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-    c.strokeStyle = 'rgba(103,159,162,0.055)'; c.lineWidth = 1;
+    c.strokeStyle = 'rgba(103,159,162,0.048)'; c.lineWidth = 1;
     for (let x = 0; x <= WORLD_WIDTH; x += 64) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, WORLD_HEIGHT); c.stroke(); }
     for (let y = 0; y <= WORLD_HEIGHT; y += 64) { c.beginPath(); c.moveTo(0, y); c.lineTo(WORLD_WIDTH, y); c.stroke(); }
+    // Faint survey lines add geographical depth without claiming navigable
+    // routes or placing decorations over the actual territory layer.
+    c.save();c.setLineDash([3,13]);c.lineWidth=.8;
+    c.strokeStyle='rgba(140,196,197,.085)';
+    for(let x=160;x<WORLD_WIDTH;x+=160){c.beginPath();c.moveTo(x,0);c.lineTo(x,WORLD_HEIGHT);c.stroke();}
+    for(let y=120;y<WORLD_HEIGHT;y+=120){c.beginPath();c.moveTo(0,y);c.lineTo(WORLD_WIDTH,y);c.stroke();}
+    c.restore();
     for (const country of COUNTRIES) {
       const path = new Path2D();
       for (const ring of country.rings) {
         ring.forEach(([x, y], j) => j === 0 ? path.moveTo(x, y) : path.lineTo(x, y));
         path.closePath();
       }
-      c.fillStyle = '#263c40'; c.fill(path);
-      c.strokeStyle = 'rgba(141,173,165,0.28)'; c.lineWidth = 1.15; c.stroke(path);
+      c.fillStyle = '#263f3d'; c.fill(path);
+      // Coast shadow then fine parchment-edge highlight: static geometry,
+      // independent of country ownership and combat.
+      c.strokeStyle='rgba(3,14,23,.54)';c.lineWidth=4.2;c.stroke(path);
+      c.strokeStyle='rgba(181,218,198,.38)';c.lineWidth=1.15;c.stroke(path);
     }
     const rng = seededRandom(7122);
     for (let i = 0; i < 1700; i++) {
@@ -200,7 +210,7 @@ export class MapRenderer {
       // decorative and must never determine whether land is visible.
       const col=i%MAP_WIDTH,row=Math.floor(i/MAP_WIDTH);
       const left=X_EDGES[col],top=Y_EDGES[row];
-      c.fillStyle=this.game.factions[id].color+'be';
+      c.fillStyle=this.game.factions[id].color+'9a';
       c.fillRect(left,top,X_EDGES[col+1]-left,Y_EDGES[row+1]-top);
     }
     // Marching squares creates rounded-looking diagonals and soft corners.
@@ -226,8 +236,9 @@ export class MapRenderer {
     for(const faction of this.game.factions){
       const path=paths.get(faction.id);
       if(!path)continue;
-      c.strokeStyle=faction.color+'51';c.lineWidth=1.5;c.stroke(path);
-      c.strokeStyle='rgba(226,239,232,.19)';c.lineWidth=.6;c.stroke(path);
+      c.strokeStyle='rgba(6,19,27,.52)';c.lineWidth=2.2;c.stroke(path);
+      c.strokeStyle=faction.color+'a0';c.lineWidth=1.15;c.stroke(path);
+      c.strokeStyle='rgba(236,246,224,.24)';c.lineWidth=.55;c.stroke(path);
     }
     c.restore();
     // Show the player's structures first; at mid zoom keep only spatially
@@ -511,7 +522,10 @@ export class MapRenderer {
     c.beginPath();
     for(const edge of this.combatEdges){c.moveTo(edge.ax,edge.ay);c.lineTo(edge.bx,edge.by);}
     const pulse=this.reducedMotion?.55:.42+.13*Math.sin(timestamp*.008);
-    c.globalAlpha=pulse;c.strokeStyle='#ffd69b';c.lineWidth=1.25;c.stroke();
+    // Dark cut-line and a warm moving highlight separate armies from the map
+    // at every scale without covering city icons.
+    c.globalAlpha=.56;c.strokeStyle='#0a1a21';c.lineWidth=3.4;c.stroke();
+    c.globalAlpha=pulse;c.strokeStyle='#ffd69b';c.lineWidth=1.4;c.stroke();
     c.restore();
   }
 
