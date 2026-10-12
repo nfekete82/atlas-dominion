@@ -303,3 +303,38 @@
   color:#9be3bd;
 }
 .map-info.compact-hover #hoverAction.blocked{color:#e6b5a0}
+
+/* Atlas visual overhaul — restrained campaign-room materials. The interface
+ * never competes with frontline color cues or obscures the map. */
+.topbar{
+  background:linear-gradient(180deg,#111f29 0%,#0a1720 100%);
+  border-bottom-color:#405354;
+  box-shadow:0 3px 18px #030b1390;
+}
+.sidebar{
+  background:linear-gradient(135deg,#10212b 0%,#0a161f 52%,#09151d 100%);
+  border-left-color:#425254;
+}
+.bottom-bar{
+  background:linear-gradient(180deg,#101e28f3 0%,#091720f9 100%);
+  border-top-color:#455957;
+  box-shadow:0 -10px 32px #04131aa6;
+}
+.map-heading h1{
+  text-shadow:0 3px 18px #030d17d9;
+}
+.map-info.compact-hover{
+  border-color:#78938f;
+  box-shadow:0 8px 24px #030e19bf, inset 0 1px #a8c3b51c;
+}
+.zoom-controls button{
+  border-color:#627576;
+  box-shadow:0 2px 9px #030f15a8;
+}
+.build-menu{
+  border-color:#718779;
+  box-shadow:0 12px 36px #02101bd9;
+}
+@media(prefers-reduced-motion:reduce){
+  .map-info,.zoom-controls button,.topbar,.sidebar{transition:none!important}
+}
