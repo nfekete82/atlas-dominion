@@ -106,7 +106,8 @@ function renderActiveArmies():void {
         <small>${state}</small></div>
         <div class="army-stats" data-army-stats="${o.id}"></div>
         <div class="army-actions">
-          <button type="button" data-army-focus="${o.id}">⌖ Zur Front</button>
+          <button type="button" data-army-reinforce="${o.id}" ${o.returning?'disabled':''}>↗ Verstärken</button>
+          <button type="button" data-army-focus="${o.id}">⌖ Front</button>
           <button type="button" data-army-retreat="${o.id}" ${o.returning?'disabled':''}>
             ${o.returning?'Rückzug läuft':'↩ Rückzug'}</button>
         </div></div>`;
@@ -321,15 +322,22 @@ function setAttackRatio(value:number) {
 $('attackRatio').addEventListener('input',e=>setAttackRatio(Number((e.target as HTMLInputElement).value)));
 for (const btn of document.querySelectorAll<HTMLButtonElement>('[data-ratio]')) btn.addEventListener('click',()=>setAttackRatio(Number(btn.dataset.ratio)));
 $('activeArmyList').addEventListener('click',e=>{
-  const button=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-army-focus],[data-army-retreat]');
+  const button=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-army-focus],[data-army-retreat],[data-army-reinforce]');
   if(!button)return;
-  const id=Number(button.dataset.armyFocus??button.dataset.armyRetreat);
+  const id=Number(button.dataset.armyFocus??button.dataset.armyRetreat??button.dataset.armyReinforce);
   const order=game.attackOrders.find(o=>o.id===id&&o.factionId===0);
   if(!order)return;
   if(button.dataset.armyFocus!==undefined){
     const index=order.contested??order.lastCaptured??pointToIndex(order.anchor);
     renderer.focusOnPoint({x:index%480,y:Math.floor(index/480)});
     return;
+  }
+  if(button.dataset.armyReinforce!==undefined){
+    const result=game.reinforceAttack(0,id,attackRatio);
+    attackMessage=result.ok?`${format(result.sent)} zusätzliche Soldaten · ${result.reason}`:result.reason;
+    attackMessageKind=result.ok?'success':'error';
+    if(result.ok){renderer.updateTerritory();saveGame();beep(630);}else beep(190);
+    update();return;
   }
   const sent=order.remaining;
   if(!game.cancelAttack(id,0))return;
