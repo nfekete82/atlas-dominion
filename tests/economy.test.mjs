@@ -27,13 +27,12 @@ test('one shared population and army number, cities, towers and factories builda
   assert.ok(game.buildings.every(v=>v===0));
 });
 
-test('people and soldiers grow together and generate money each simulation tick',()=>{
-  const g=new Game(127,0),f=g.factions[0];
-  const start=f.troops, money=f.money, growth=f.income, revenue=f.moneyIncome;
-  assert.ok(growth>0);
+test('population stays stable without barracks while money keeps growing',()=>{
+  const g=new Game(127,0,'DE','balanced',true),f=g.factions[0];
+  const start=f.troops,money=f.money,revenue=f.moneyIncome;
   assert.ok(revenue>0);
   g.step();
-  assert.ok(Math.abs(f.troops-start-growth)<1e-5);
+  assert.equal(f.troops,start);
   assert.ok(Math.abs(f.money-money-revenue)<1e-5);
   assert.ok(Math.abs(g.populationOf(0)-f.troops)<1e-5);
 });

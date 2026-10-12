@@ -1,22 +1,25 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Game,cellToPoint} from '../dist/src/engine/game.js';
+import {Game,cellToPoint,landNeighbors} from '../dist/src/engine/game.js';
 
-test('barracks recruit exactly from living mobile troops and survive save reload',()=>{
- const g=new Game(711,1,'DE');
+test('RTS barracks train paid soldiers without passive human mobile growth',()=>{
+ const g=new Game(711,1,'DE','balanced',true);
+ const before=g.factions[0].troops;
+ g.step();
+ assert.equal(g.factions[0].troops,before,'no free mobile recruits per tick');
  g.factions[0].money=1000;
  const site=g.owner.findIndex((v,i)=>v===0&&!g.buildings[i]&&g.canBuild(0,cellToPoint(i),'barracks').ok);
  assert.ok(site>=0);
  assert.equal(g.build(0,cellToPoint(site),'barracks').ok,true);
- g.factions[0].troops=200;g.recount();
+ const treasury=g.factions[0].money;
  assert.equal(g.buildingAt(cellToPoint(site)),'barracks');
- const before=g.factions[0].troops;
  assert.equal(g.recruitSquad(0,cellToPoint(site),25).ok,true);
- assert.equal(g.factions[0].troops,before-25);
+ assert.equal(g.factions[0].money,treasury-50);
+ assert.equal(g.factions[0].troops,before);
  assert.equal(g.squads[0].troops,25);
  assert.deepEqual(Game.fromSave(g.exportSave()).exportSave(),g.exportSave());
  assert.equal(g.recallSquad(0,g.squads[0].id).ok,true);
- assert.equal(g.factions[0].troops,before);
+ assert.equal(g.factions[0].troops,before+25);
 });
 
 test('factory buildingAt stays recognized for the right click menu',()=>{
@@ -26,4 +29,59 @@ test('factory buildingAt stays recognized for the right click menu',()=>{
  assert.ok(site>=0);
  assert.equal(g.build(0,cellToPoint(site),'factory').ok,true);
  assert.equal(g.buildingAt(cellToPoint(site)),'factory');
+});
+
+test('RTS opening funds an immediate barracks and first squad without free AI growth',()=>{
+ const g=new Game(713,2,'DE','balanced',true);
+ const site=g.owner.findIndex((v,i)=>v===0&&!g.buildings[i]&&g.canBuild(0,cellToPoint(i),'barracks').ok);
+ assert.ok(site>=0);
+ assert.equal(g.factions[0].money,650);
+ assert.equal(g.build(0,cellToPoint(site),'barracks').ok,true);
+ assert.equal(g.recruitSquad(0,cellToPoint(site),100).ok,true);
+ assert.equal(g.squads[0].troops,100);
+ assert.ok(g.factions[0].money>=0);
+ const ai=g.factions[1];
+ const before=ai.troops,treasury=ai.money;
+ g.step();
+ // Frontline deployments can lower the *mobile* number while preserving soldiers.
+ assert.ok(ai.troops>=0);
+ assert.ok(ai.money>=0);
+ assert.ok(ai.troops-before<=Math.floor((treasury+ai.moneyIncome)/2)+1e-6);
+});
+
+test('foreign target queues a real army march and persists its conquest order',()=>{
+ const g=new Game(9102,1,'DE','balanced',true);
+ const owner=0;
+ const edge=g.owner.findIndex((v,i)=>v===0&&landNeighbors(i).some(n=>g.owner[n]!==0&&g.owner[n]!==-2));
+ assert.ok(edge>=0);
+ const target=landNeighbors(edge).find(n=>g.owner[n]!==0&&g.owner[n]!==-2);
+ g.factions[0].money=1200;
+ const site=g.owner.findIndex((v,i)=>v===0&&!g.buildings[i]&&g.canBuild(0,cellToPoint(i),'barracks').ok);
+ assert.ok(site>=0);
+ assert.ok(g.build(0,cellToPoint(site),'barracks').ok);
+ assert.ok(g.recruitSquad(0,cellToPoint(site),100).ok);
+ const id=g.squads[0].id;
+ assert.ok(g.orderSquadAttack(0,id,cellToPoint(target)).ok);
+ assert.deepEqual(Game.fromSave(g.exportSave()).exportSave(),g.exportSave());
+ for(let i=0;i<150&&g.squads.some(s=>s.id===id);i++)g.step();
+ assert.ok(g.attackOrders.some(o=>o.factionId===0)||g.owner[target]===0,
+   'selected squad should reach a real front and commit an offensive');
+});
+
+test('RTS squads persist while occupying empty neutral surroundings without casualties',()=>{
+ const g=new Game(9103,1,'DE','balanced',true);
+ const edge=g.owner.findIndex((v,i)=>v===0&&landNeighbors(i).some(n=>g.owner[n]===-1));
+ assert.ok(edge>=0);
+ const neutral=landNeighbors(edge).find(n=>g.owner[n]===-1);
+ const place=g.owner.findIndex((v,i)=>v===0&&g.buildings[i]===0);
+ g.factions[0].money=1200;
+ assert.ok(g.build(0,cellToPoint(place),'barracks').ok);
+ assert.ok(g.recruitSquad(0,cellToPoint(place),100).ok);
+ const unit=g.squads[0];
+ unit.index=edge;
+ const strength=unit.troops;
+ g.step();
+ assert.equal(g.owner[neutral],0,'adjacent empty neutral territory should be occupied');
+ assert.ok(g.squads.some(s=>s.id===unit.id),'capturing must never consume the squad');
+ assert.equal(unit.troops,strength,'peaceful occupation cannot cause casualties');
 });

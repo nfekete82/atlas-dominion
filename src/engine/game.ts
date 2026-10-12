@@ -212,11 +212,13 @@ export interface GameSave {
   borderOrders?:Array<{index:number;mode:'defend'|'withdraw'}>;
   factoryLinks?:Array<{factory:number;city:number}>;
   factoryLevels?:Array<{index:number;level:number}>;
-  squads?:Array<{id:number;owner:number;index:number;troops:number;destination:number|null}>;
+  squads?:Array<{id:number;owner:number;index:number;troops:number;destination:number|null;attackTarget?:number|null}>;
+  rtsRecruitment?:boolean;
 }
 
 export class Game {
   readonly owner = new Int16Array(CELL_COUNT);
+  readonly rtsRecruitment:boolean;
   readonly defense = new Float32Array(CELL_COUNT);
   /** Built city at sector: 0 means no city, 1 means city. */
   readonly buildings = new Uint8Array(CELL_COUNT);
@@ -235,7 +237,7 @@ export class Game {
   readonly borderOrders=new Map<number,'defend'|'withdraw'>();
   readonly factoryLinks=new Map<number,number>();
   readonly factoryLevels=new Map<number,number>();
-  readonly squads:Array<{id:number;owner:number;index:number;troops:number;destination:number|null}>=[];
+  readonly squads:Array<{id:number;owner:number;index:number;troops:number;destination:number|null;attackTarget?:number|null}>=[];
   private nextSquadId=1;
   mobileNet=0;
   /** Real soldiers in transit to defend an attacked treaty partner. */
@@ -263,7 +265,8 @@ export class Game {
   private frontierCandidates: Array<Set<number>> = [];
   private exposedCounts: number[] = [];
 
-  constructor(seed = 2026, opponentCount = COUNTRY_STARTS.length-1, playerCountry = 'DE', difficulty:Difficulty='balanced') {
+  constructor(seed = 2026, opponentCount = COUNTRY_STARTS.length-1, playerCountry = 'DE', difficulty:Difficulty='balanced', rtsRecruitment=false) {
+    this.rtsRecruitment=rtsRecruitment;
     if(!isDifficulty(difficulty))throw new Error(`Unbekannter Schwierigkeitsgrad: ${String(difficulty)}`);
     this.difficulty=difficulty;
     this.difficultySettings=DIFFICULTY_SETTINGS[difficulty];
@@ -279,7 +282,7 @@ export class Game {
       .slice(0, Math.max(1, Math.min(COUNTRY_STARTS.length, opponentCount + 1)));
     this.factions = starts.map((start, id) => ({
       id, name: start.name, capital: start.capital, color: factionColor(id),
-      troops:id===0?90:this.difficultySettings.aiStartingTroops, money:90, moneyIncome: 0, population: 0, militaryPower: 0, builtCities:0,
+      troops:id===0?90:this.difficultySettings.aiStartingTroops, money:this.rtsRecruitment?650:90, moneyIncome: 0, population: 0, militaryPower: 0, builtCities:0,
       territory: 0, income: 0, target: geoToCell(start.lon,start.lat),
       ai:id!==0, alive:true, cityCount:0, captured:0, defenseSpent:0, defenseFallenTick:0, attackFallen:0, enemyFallen:0, campaignEnergy:id===0?110:110*this.difficultySettings.marchMultiplier, battleFocus:-1, intent:'hold' as const,
     }));
@@ -842,13 +845,14 @@ export class Game {
     if(this.status!=='playing'||!f?.alive||this.owner[index]!==owner||
        this.buildings[index]!==BUILDING_CODES.barracks)
       return {ok:false,reason:'Hier steht keine eigene Kaserne.'};
-    if(!Number.isInteger(count)||count<10||count>1000||f.troops<count||
-      this.squads.filter(s=>s.owner===owner).length>=12)
-      return {ok:false,reason:'10–1000 Soldaten, ausreichend Mobilreserve und höchstens 12 Gruppen erforderlich.'};
-    f.troops-=count;
-    this.squads.push({id:this.nextSquadId++,owner,index,troops:count,destination:null});
+    const cost=count*2;
+    if(!Number.isInteger(count)||count<10||count>1000||
+      f.money<cost||this.squads.filter(s=>s.owner===owner).length>=12)
+      return {ok:false,reason:'Mindestens '+cost+' Geld und höchstens 12 Truppengruppen erforderlich.'};
+    f.money-=cost;
+    this.squads.push({id:this.nextSquadId++,owner,index,troops:count,destination:null,attackTarget:null});
     this.recount();
-    return {ok:true,reason:count+' Soldaten als Truppengruppe bereitgestellt.'};
+    return {ok:true,reason:count+' Soldaten für '+cost+' Geld ausgebildet.'};
   }
 
   orderSquad(owner:number,squadId:number,target:Point):DiplomacyResult {
@@ -859,7 +863,35 @@ export class Game {
     const destination=pointToIndex(target);
     if(this.owner[destination]!==owner)return {ok:false,reason:'Truppenmarsche sind zunächst nur auf eigenem Gebiet möglich.'};
     squad.destination=destination;
+    squad.attackTarget=null;
     return {ok:true,reason:'Marschbefehl erteilt.'};
+  }
+
+  orderSquadAttack(owner:number,squadId:number,target:Point):DiplomacyResult {
+    const squad=this.squads.find(s=>s.owner===owner&&s.id===squadId);
+    if(!squad||!Number.isInteger(target.x)||!Number.isInteger(target.y)||
+      target.x<0||target.y<0||target.x>=MAP_WIDTH||target.y>=MAP_HEIGHT)
+      return {ok:false,reason:'Truppe oder Ziel ungültig.'};
+    const targetIndex=pointToIndex(target),defender=this.owner[targetIndex];
+    if(defender===WATER||defender===owner||this.isAllied(owner,defender))
+      return {ok:false,reason:'Kein angreifbares Gebiet.'};
+    const distance=new Int32Array(CELL_COUNT);distance.fill(-1);
+    const queue=[squad.index];distance[squad.index]=0;
+    let front=-1,enemy=-1,head=0,best=Infinity;
+    while(head<queue.length){
+      const cell=queue[head++];
+      for(const next of LAND_NEIGHBORS[cell]){
+        if(this.owner[next]===defender){
+          const score=Math.hypot(next%MAP_WIDTH-target.x,Math.floor(next/MAP_WIDTH)-target.y)*2+distance[cell];
+          if(score<best){best=score;front=cell;enemy=next;}
+        }else if(this.owner[next]===owner&&distance[next]<0){
+          distance[next]=distance[cell]+1;queue.push(next);
+        }
+      }
+    }
+    if(front<0)return {ok:false,reason:'Kein erreichbarer Landübergang zu diesem Gegner.'};
+    squad.destination=front;squad.attackTarget=enemy;
+    return {ok:true,reason:'Truppe marschiert zur Front und erobert dann feindliches Gebiet.'};
   }
 
   /** Commit exactly a selected squad to the existing deterministic frontline.
@@ -902,6 +934,43 @@ export class Game {
       if(this.owner[squad.index]!==squad.owner){
         this.factions[squad.owner].troops+=squad.troops;
         this.squads.splice(i,1);continue;
+      }
+      // Capture unguarded neutral terrain around a standing or moving squad.
+      // This is territorial control, not battle: no casualties or unit deletion.
+      if(squad.owner===0&&this.rtsRecruitment){
+        let occupied=0;
+        for(const tile of LAND_NEIGHBORS[squad.index]){
+          if(this.owner[tile]===NEUTRAL&&occupied<2){
+            this.captureTile(this.factions[squad.owner],tile);
+            occupied++;
+          }
+        }
+      }
+      if(squad.attackTarget!==null&&squad.attackTarget!==undefined&&
+         LAND_NEIGHBORS[squad.index].includes(squad.attackTarget)){
+        const target=squad.attackTarget,enemy=this.owner[target];
+        if(enemy===NEUTRAL){
+          this.captureTile(this.factions[squad.owner],target);
+          squad.index=target;squad.destination=null;squad.attackTarget=null;
+          continue;
+        }
+        if(enemy>=0&&enemy!==squad.owner&&!this.isAllied(squad.owner,enemy)){
+          // The unit remains present. Only genuine defended fighting can kill it.
+          const spent=Math.min(12,Math.max(2,squad.troops*.12));
+          const tower=this.towerSupport(enemy,target);
+          const captured=this.strike(this.factions[squad.owner],target,spent/(1+tower*.30));
+          const losses=Math.min(squad.troops,Math.max(0,this.lastAttackerLoss));
+          squad.troops-=losses;
+          if(squad.troops<1){
+            this.squads.splice(i,1);
+            continue;
+          }
+          if(captured){
+            squad.index=target;squad.destination=null;squad.attackTarget=null;
+          }
+          continue;
+        }
+        squad.attackTarget=null;squad.destination=null;
       }
       if(squad.destination===null)continue;
       if(squad.index===squad.destination){squad.destination=null;continue;}
@@ -2035,7 +2104,16 @@ export class Game {
         continue;
       }
       // All residents are recruitable troops: a single clear growth figure.
-      faction.troops+=faction.income;
+      // RTS: the human army does not spawn passively. Soldiers are trained
+      // for gold in barracks; AI keeps legacy recruiting until AI RTS exists.
+      if(!this.rtsRecruitment)faction.troops+=faction.income;
+      else if(faction.id!==0){
+        // RTS opponents pay the same 2 gold per soldier as the human.
+        // Unlike legacy passive growth, the treasury bounds recruitment.
+        const trained=Math.max(0,Math.min(faction.income,Math.floor(faction.money/2)));
+        faction.troops+=trained;
+        faction.money-=trained*2;
+      }
       faction.money+=faction.moneyIncome;
       if(faction.ai)faction.campaignEnergy=Math.min(300*this.difficultySettings.marchMultiplier,
         faction.campaignEnergy+aiMarchRecovery(faction.income,aiStyle(faction.id))*this.difficultySettings.marchMultiplier);
@@ -2092,6 +2170,7 @@ export class Game {
       defenseAid:this.defenseAid.map(a=>({...a})),
       diplomacyCooldowns:this.diplomacyCooldowns.map(v=>({...v})),
       warTruces:this.warTruces.map(v=>({...v})),
+      rtsRecruitment:this.rtsRecruitment,
       squads:this.squads.map(s=>({...s})),
       factoryLevels:[...this.factoryLevels].filter(([index])=>this.buildings[index]===BUILDING_CODES.factory)
         .sort((a,b)=>a[0]-b[0]).map(([index,level])=>({index,level})),
@@ -2113,7 +2192,7 @@ export class Game {
        !Number.isSafeInteger(save.rngCalls)||save.rngCalls<0||save.rngCalls>100000000||
        !Number.isSafeInteger(save.nextAttackId)||save.nextAttackId<1)
       throw Error('Nicht unterstützter oder beschädigter Spielstand.');
-    const g=new Game(save.seed,Array.isArray(save.factions)?save.factions.length-1:-1,save.playerCode,save.difficulty);
+    const g=new Game(save.seed,Array.isArray(save.factions)?save.factions.length-1:-1,save.playerCode,save.difficulty,save.rtsRecruitment===true);
     const arrays: Array<[number[],Int16Array|Float32Array|Float64Array|Uint8Array,string]>=[
       [save.owner,g.owner,'owner'],[save.defense,g.defense,'defense'],
       [save.buildings,g.buildings,'buildings'],[save.cityUpgrades,g.cityUpgrades,'cityUpgrades'],
@@ -2229,7 +2308,10 @@ export class Game {
          !Number.isInteger(v.index)||v.index<0||v.index>=CELL_COUNT||
          g.owner[v.index]!==v.owner||!Number.isFinite(v.troops)||v.troops<10||v.troops>1000||
          (v.destination!==null&&(!Number.isInteger(v.destination)||v.destination<0||
-           v.destination>=CELL_COUNT||g.owner[v.destination]!==v.owner)))||
+           v.destination>=CELL_COUNT||g.owner[v.destination]!==v.owner))||
+         (v.attackTarget!==undefined&&v.attackTarget!==null&&
+           (!Number.isInteger(v.attackTarget)||v.attackTarget<0||
+            v.attackTarget>=CELL_COUNT||g.owner[v.attackTarget]===v.owner)))||
        new Set(squads.map(v=>v.id)).size!==squads.length)
        throw Error('Ungültige Kasernen-Truppen.');
     g.squads.push(...squads.map(v=>({...v})));

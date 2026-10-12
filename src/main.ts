@@ -16,7 +16,7 @@ const $ = <T extends HTMLElement>(id: string): T => {
   return found as T;
 };
 const format = formatCompact;
-let game = new Game(Date.now() % 2147483647);
+let game = new Game(Date.now() % 2147483647,COUNTRY_STARTS.length-1,'DE','balanced',true);
 game.paused = true; // The player must choose a country before the clock starts.
 const renderer = new MapRenderer($<HTMLCanvasElement>('battleCanvas'), game);
 const minimap=new StrategicMinimap($<HTMLCanvasElement>('miniCanvas'));
@@ -38,9 +38,10 @@ let hasStarted = false;
 let selectedDifficulty:Difficulty='balanced';
 let buildSpot: Point | null = null;
 let selectedSquadId:number|null=null;
+let selectedSquadIds:number[]=[];
 let attackRatio = 35;
 let showAllNations = false;
-let attackMessage = 'Nachbarland anklicken · mehr eingesetzte Truppen = schnellere Front.';
+let attackMessage = 'Kaserne bauen, Soldaten ausbilden, mit Linksklick auswählen und bewegen.';
 let attackMessageKind: 'neutral'|'success'|'error' = 'neutral';
 
 let hoveredAttackPoint:Point|null=null;
@@ -538,23 +539,41 @@ $('warAlerts').addEventListener('click',e=>{
   const alert=warAlerts.find(a=>a.id===Number(b.dataset.warFocus));
   if(alert)renderer.focusOnPoint({x:alert.index%480,y:Math.floor(alert.index/480)},2.2);
 });
-renderer.onSelect = (point:Point, landing:boolean) => {
-  soundscape.update({},true); // A real map click may resume opted-in audio.
+renderer.onSelectSquads=(ids)=>{
+  selectedSquadIds=ids;selectedSquadId=ids[0]??null;
+  renderer.selectedSquadIds=ids;
+  attackMessage=ids.length?ids.length+' Truppengruppen markiert – Linksklick zum Marschieren oder Erobern.':'Keine Truppen im Auswahlrahmen.';
+  attackMessageKind=ids.length?'success':'neutral';update();
+};
+renderer.onSelect = (point:Point, _landing:boolean) => {
+  soundscape.update({},true);
   closeBuildMenu();
-  // Left-click on friendly terrain must NEVER issue an attack or mobilize
-  // soldiers. Right-click is still available for construction / defense.
-  if(game.owner[pointToIndex(point)]===0)return;
-  if(game.isAllied(0,game.owner[pointToIndex(point)]))return;
-  const result = landing ? game.launchLanding(0, point, attackRatio) : game.launchAttack(0, point, attackRatio);
-  attackMessage=result.ok
-    ? `${format(result.sent)} ⚔ · ${result.reason}`
-    : result.reason;
-  if(result.ok && result.front && result.sent>0 && !result.reason.includes('Landung'))renderer.showReinforcement(result.front,result.sent);
-  if(result.ok){renderer.updateTerritory();saveGame();}
-  attackMessageKind = result.ok ? 'success' : 'error';
-  if(result.ok)soundscape.playEffect('attack');else beep(190);
+  const clickedIndex=pointToIndex(point);
+  // Clicking the squad badge selects it. No additional click mode needed.
+  const squad=game.squads.find(unit=>unit.owner===0&&
+    Math.hypot(unit.index%480-point.x,Math.floor(unit.index/480)-point.y)<=1);
+  if(squad){
+    selectedSquadId=squad.id;selectedSquadIds=[squad.id];renderer.selectedSquadIds=[squad.id];
+    attackMessage='⚔ Truppe #'+squad.id+' ('+Math.round(squad.troops)+' Soldaten) ausgewählt – Linksklick auf Marschziel oder angrenzenden Gegner.';
+    attackMessageKind='success';update();return;
+  }
+  if(selectedSquadId===null){
+    attackMessage='Zuerst Kaserne bauen, dort Soldaten ausbilden und die Truppe mit Linksklick auswählen.';
+    attackMessageKind='neutral';update();return;
+  }
+  const own=game.owner[clickedIndex]===0;
+  const ids=selectedSquadIds.length?selectedSquadIds:[selectedSquadId];
+  const results=ids.map(id=>own?game.orderSquad(0,id,point):game.orderSquadAttack(0,id,point));
+  const success=results.filter(r=>r.ok).length;
+  attackMessage=success?success+' von '+ids.length+' Gruppen: '+results.find(r=>r.ok)!.reason:results[0]?.reason??'Keine Truppe ausgewählt.';
+  attackMessageKind=success?'success':'error';
+  if(success){
+    renderer.updateTerritory();saveGame();
+    if(!own)soundscape.playEffect('attack');
+  }
   update();
 };
+
 function closeBuildMenu(): void {
   buildSpot=null;
   $('buildMenu').hidden=true;
@@ -616,9 +635,9 @@ function renderBuildMenu(): void {
       <span class="build-entry-copy"><strong>Alle Städte automatisch ausbauen</strong><small>${upgradeAll.ok?`${upgradeAll.cities} Städte · ${upgradeAll.upgrades} Ausbaustufen`:upgradeAll.reason} · günstigste Stufen zuerst</small></span>
       <span class="build-entry-cost">${upgradeAll.ok?format(upgradeAll.cost)+' €':'—'}</span>
     </button>`;
-  const barracksActions=existing==='barracks'?[25,100,500].map(count=>`<button type="button" class="build-entry" data-recruit-squad="${count}" ${game.factions[0].troops<count?'disabled':''}><span class="build-entry-icon">⚔</span><span class="build-entry-copy"><strong>${count} Soldaten abstellen</strong><small>Eigene Truppengruppe aus Mobilreserve bilden</small></span><span class="build-entry-cost">${count} ⚔</span></button>`).join(''):'';
+  const barracksActions=existing==='barracks'?[25,100,500].map(count=>`<button type="button" class="build-entry" data-recruit-squad="${count}" ${game.factions[0].money<count*2?'disabled':''}><span class="build-entry-icon">⚔</span><span class="build-entry-copy"><strong>${count} Soldaten abstellen</strong><small>Neue Soldaten ausbilden · 2 Gold je Soldat</small></span><span class="build-entry-cost">${count*2} €</span></button>`).join(''):'';
   const nearbySquads=game.squads.filter(s=>s.owner===0&&Math.hypot(s.index%MAP_WIDTH-point.x,Math.floor(s.index/MAP_WIDTH)-point.y)<3);
-  const squadActions=nearbySquads.map(s=>`<button type="button" class="build-entry" data-select-squad="${s.id}"><span class="build-entry-icon">➤</span><span class="build-entry-copy"><strong>Truppe #${s.id} auswählen</strong><small>Rechtsklick auf eigenes Gebiet = Marsch, angrenzender Feind = Angriff</small></span><span class="build-entry-cost">WÄHLEN</span></button><button type="button" class="build-entry" data-recall-squad="${s.id}"><span class="build-entry-icon">↩</span><span class="build-entry-copy"><strong>Truppe #${s.id} zurückrufen</strong><small>${Math.round(s.troops)} Soldaten in Mobilreserve übernehmen</small></span><span class="build-entry-cost">RÜCKRUF</span></button>`).join('');
+  const squadActions=nearbySquads.map(s=>`<button type="button" class="build-entry" data-select-squad="${s.id}"><span class="build-entry-icon">➤</span><span class="build-entry-copy"><strong>Truppe #${s.id} auswählen</strong><small>Linksklick auf eigenes Gebiet = Marsch, angrenzender Feind = Angriff</small></span><span class="build-entry-cost">WÄHLEN</span></button><button type="button" class="build-entry" data-recall-squad="${s.id}"><span class="build-entry-icon">↩</span><span class="build-entry-copy"><strong>Truppe #${s.id} zurückrufen</strong><small>${Math.round(s.troops)} Soldaten in Mobilreserve übernehmen</small></span><span class="build-entry-cost">RÜCKRUF</span></button>`).join('');
   const factoryUpgrade=existing==='factory'?`<button type="button" class="build-entry" data-upgrade-factory="true" ${game.factoryLevel(point)>=5||game.factions[0].money<game.factoryLevel(point)*250?'disabled':''}><span class="build-entry-icon">⚙</span><span class="build-entry-copy"><strong>Fabrik Stufe ${game.factoryLevel(point)}/5 ausbauen</strong><small>Steigert die Grundproduktion um 75 %</small></span><span class="build-entry-cost">${game.factoryLevel(point)>=5?'MAX':game.factoryLevel(point)*250+' €'}</span></button>`:'';
   const factoryAction=existing==='factory'?`<button type="button" class="build-entry" data-link-factory="true" ${suggestedCity?'':'disabled'}><span class="build-entry-icon">↗</span><span class="build-entry-copy"><strong>Mit Stadt verbinden</strong><small>${suggestedCity?`Stadt bei ${suggestedCity.x}/${suggestedCity.y} · +50 % Grundbonus, bis zu +25 % durch Stadtausbau`:'Keine eigene Stadt im Umkreis von 12 Sektoren'}</small></span><span class="build-entry-cost">VERBINDEN</span></button>`:'';
   $('buildOptions').innerHTML=barracksActions+squadActions+factoryUpgrade+factoryAction+fastSingle+fastAll+(upgrade? `<button type="button" class="build-entry" data-upgrade-city="true" ${upgrade.ok?'':'disabled'} title="${upgrade.reason}">
@@ -640,14 +659,6 @@ function renderBuildMenu(): void {
     </button>`:'');
 }
 renderer.onBuildRequest=(point,clientX,clientY)=>{
-  if(selectedSquadId!==null&&point){
-    const owned=game.owner[pointToIndex(point)]===0;
-    const result=owned?game.orderSquad(0,selectedSquadId,point):
-      game.attackWithSquad(0,selectedSquadId,point);
-    attackMessage=result.reason;attackMessageKind=result.ok?'success':'error';
-    if(result.ok){selectedSquadId=null;renderer.updateTerritory();saveGame();}
-    closeBuildMenu();update();return;
-  }
   if(modalVisible||!point||game.owner[pointToIndex(point)]<0){closeBuildMenu();return;}
   buildSpot=point;
   const owner=game.owner[pointToIndex(point)];
@@ -669,7 +680,7 @@ $('buildOptions').addEventListener('click',e=>{
   const selectButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-select-squad]');
   if(selectButton){
     selectedSquadId=Number(selectButton.dataset.selectSquad);
-    attackMessage='Truppe #'+selectedSquadId+' ausgewählt – Rechtsklick: eigenes Land zum Marschieren, direkt benachbarte Feindgrenze zum Angreifen.';
+    attackMessage='Truppe #'+selectedSquadId+' ausgewählt – Linksklick: eigenes Land zum Marschieren, direkt benachbarte Feindgrenze zum Angreifen.';
     attackMessageKind='success';closeBuildMenu();update();return;
   }
   const recruitButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-recruit-squad]');
@@ -875,7 +886,7 @@ function showCountryPicker(canCancel = false): void {
 function startCountry(code:string): void {
   const chosen=countryByCode(code);
   if(!chosen)return;
-  game=new Game((Date.now()+Math.floor(Math.random()*100000))%2147483647,COUNTRY_STARTS.length-1,chosen.code,selectedDifficulty);
+  game=new Game((Date.now()+Math.floor(Math.random()*100000))%2147483647,COUNTRY_STARTS.length-1,chosen.code,selectedDifficulty,true);
   localStorage.removeItem(SAVE_KEY);
   hasStarted=true;
   modalVisible=false;
