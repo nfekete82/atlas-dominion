@@ -1,12 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Game,NEUTRAL,MAP_WIDTH,landNeighbors,cellToPoint,pointToIndex,WATER} from '../dist/src/engine/game.js';
+import {Game,NEUTRAL,landNeighbors,cellToPoint,pointToIndex,WATER} from '../dist/src/engine/game.js';
+import {MAP_WIDTH} from '../dist/src/data/europe.js';
 
 function makeInvadedFront(seed=182){
   const game=new Game(seed,1,'DE');
   // Pick an owned sector with a genuine orthogonal neutral border.
   const own=game.owner.findIndex((owner,i)=>owner===0 &&
-    landNeighbors(i).some(n=>game.owner[n]===NEUTRAL));
+    landNeighbors(i).some(n=>game.owner[n]===NEUTRAL) &&
+    landNeighbors(i).every(n=>game.owner[n]===0||game.owner[n]===NEUTRAL||game.owner[n]===WATER));
   assert.ok(own>=0);
   const invaded=landNeighbors(own).find(n=>game.owner[n]===NEUTRAL);
   assert.ok(invaded>=0);
