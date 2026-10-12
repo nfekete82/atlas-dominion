@@ -10,7 +10,7 @@ export interface TurnFaction {id:number;code:string;name:string;gold:number;rese
 export type TurnPhase='reinforce'|'develop'|'attack'|'fortify';
 export interface TurnResult {ok:boolean;reason:string;attackerLoss?:number;defenderLoss?:number;captured?:boolean;}
 export interface TurnSnapshot {
-  version:1;seed:number;round:number;active:number;phase:TurnPhase;
+  version:1;seed:number;desiredProvinces:number;round:number;active:number;phase:TurnPhase;
   rngState:number; provinces:Province[];factions:TurnFaction[];
 }
 const W=MAP_WIDTH,H=MAP_HEIGHT,SIZE=W*H;
@@ -102,10 +102,11 @@ export class TurnGame {
   readonly cellProvince:Int16Array;
   readonly factions:TurnFaction[];
   readonly seed:number;
+  readonly desiredProvinces:number;
   round=1;active=0;phase:TurnPhase='reinforce';
   private rngState:number;
   constructor(seed=1,desiredProvinces=200){
-    this.seed=seed>>>0;this.rngState=this.seed||1;
+    this.seed=seed>>>0;this.rngState=this.seed||1;this.desiredProvinces=desiredProvinces;
     const map=generateProvinces(desiredProvinces);
     this.provinces=map.provinces;this.cellProvince=map.cellProvince;
     this.factions=COUNTRY_STARTS.map((country,id)=>({id,code:country.code,name:country.name,gold:10,reserve:5}));
@@ -175,13 +176,13 @@ export class TurnGame {
     a.troops-=amount;b.troops+=amount;return {ok:true,reason:'Moved'};
   }
   exportSave():TurnSnapshot {
-    return {version:1,seed:this.seed,round:this.round,active:this.active,phase:this.phase,
+    return {version:1,seed:this.seed,desiredProvinces:this.desiredProvinces,round:this.round,active:this.active,phase:this.phase,
       rngState:this.rngState,provinces:this.provinces.map(p=>({...p,neighbors:[...p.neighbors]})),
       factions:this.factions.map(f=>({...f}))};
   }
   static fromSave(saved:TurnSnapshot):TurnGame {
     if(saved.version!==1)throw new Error('Unknown save version');
-    const game=new TurnGame(saved.seed);
+    const game=new TurnGame(saved.seed,saved.desiredProvinces);
     if(saved.provinces.length!==game.provinces.length||saved.factions.length!==game.factions.length)
       throw new Error('Invalid save geography');
     game.provinces.splice(0,game.provinces.length,...saved.provinces.map(p=>({...p,neighbors:[...p.neighbors]})));
