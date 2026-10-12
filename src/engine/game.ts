@@ -902,7 +902,10 @@ export class Game {
           shortage-=released;
         }
       }
-      const baseBudget=frontierBudget(faction.troops,faction.income);
+      // Never refill a garrison with the reserves just reclaimed from it.
+      // The target reserve is the same for bots and humans.
+      const baseBudget=Math.min(frontierBudget(faction.troops,faction.income),
+        Math.max(0,faction.troops-mobileTarget));
       const budget=faction.ai
         ? difficultyDefenseBudget(faction.troops,baseBudget,this.difficulty)
         : baseBudget;
