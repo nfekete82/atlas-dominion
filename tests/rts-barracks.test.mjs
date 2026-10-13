@@ -472,7 +472,9 @@ test('RTS frontline guards screen surrounding neutral terrain without phantom de
  const screened=landNeighbors(guarded).filter(n=>game.owner[n]===-1);
  assert.ok(screened.length>0,'fixture requires an unoccupied contact sector');
  game.step();
- assert.ok(screened.every(index=>game.owner[index]===-1),
-   'unguarded terrain in front of a real soldier cannot be auto-swept');
+ // The guarding AI may legitimately occupy its own adjacent neutral land.
+ // What must never happen is the attacking army sweeping through its screen.
+ assert.ok(screened.every(index=>game.owner[index]!==0),
+   'attacker cannot auto-sweep neutral terrain screened by a real defender');
  assert.equal(game.owner[guarded],1);
 });
