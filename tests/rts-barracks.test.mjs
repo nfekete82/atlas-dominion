@@ -300,7 +300,8 @@ test('several RTS squads accept a shared real rally order without merging soldie
  const g=new Game(9991,1,'DE','balanced',true);
  g.factions[0].money=2000;
  const site=g.owner.findIndex((owner,i)=>owner===0&&!g.buildings[i]&&
-   g.canBuild(0,cellToPoint(i),'barracks').ok);
+   g.canBuild(0,cellToPoint(i),'barracks').ok&&
+   landNeighbors(i).some(n=>g.owner[n]===0));
  assert.ok(site>=0);
  assert.ok(g.build(0,cellToPoint(site),'barracks').ok);
  for(let i=0;i<3;i++)assert.ok(g.recruitSquad(0,cellToPoint(site),30).ok);
