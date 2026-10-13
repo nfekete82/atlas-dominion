@@ -933,7 +933,7 @@ export class Game {
    * real paid orders. Staggered to keep 50-country turns inexpensive.
    */
   private commandRTSAI():void {
-    if(!this.rtsRecruitment||!this.factions.some(f=>f.ai&&f.alive&&this.tick%20===f.id%20))return;
+    if(!this.rtsRecruitment||!this.factions.some(f=>f.ai&&f.alive&&this.tick%8===f.id%8))return;
     // Build a single spatial index per AI turn rather than scanning every
     // map cell for each of up to 49 countries.
     const barracksSites=new Int32Array(this.factions.length).fill(-1);
@@ -953,7 +953,7 @@ export class Game {
     }
     for(const faction of this.factions){
       if(!faction.ai||!faction.alive)continue;
-      if(this.tick%20!==faction.id%20)continue;
+      if(this.tick%8!==faction.id%8)continue;
       const own=this.squads.filter(s=>s.owner===faction.id);
       const barracks=barracksSites[faction.id];
       if(barracks<0){
@@ -970,7 +970,12 @@ export class Game {
         !this.isAllied(faction.id,u.owner));
       const borderThreats=new Map<number,number>();
       for(const enemy of enemyUnits){
-        for(const tile of LAND_NEIGHBORS[enemy.index]){
+        // Intercept up to two cells ahead: waiting until contact is too late
+        // when undefended territory can be swept by an attacking formation.
+        const threatened=new Set<number>(LAND_NEIGHBORS[enemy.index]);
+        for(const neighbor of LAND_NEIGHBORS[enemy.index])
+          for(const next of LAND_NEIGHBORS[neighbor])threatened.add(next);
+        for(const tile of threatened){
           if(this.owner[tile]!==faction.id)continue;
           const valuable=this.capitalSites.has(tile)||this.buildings[tile]!==0;
           const score=enemy.troops+(valuable?90:0);
@@ -1160,7 +1165,8 @@ export class Game {
             if(holder>=0&&holder!==squad.owner){
               if(this.isAllied(squad.owner,holder)||
                  this.buildings[next]===BUILDING_CODES.tower||
-                 this.squads.some(unit=>unit.owner===holder&&unit.index===next))continue;
+                 this.squads.some(unit=>unit.owner===holder&&
+                   (unit.index===next||LAND_NEIGHBORS[next].includes(unit.index))))continue;
               // Only the active invasion's original opponent may be swept up.
               if(squad.campaignOwner!==holder)continue;
             }

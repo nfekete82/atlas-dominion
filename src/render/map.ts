@@ -1371,10 +1371,11 @@ export class MapRenderer {
     let lastSecondary=-Infinity;
     const requestBuild=(clientX:number,clientY:number,forceMenu=false)=>{
       const point=this.cellAt(clientX,clientY,false);
-      // Ordinary right-click orders currently selected player formations.
-      // Shift+right-click preserves the building/diplomacy context menu.
-      if(point&&!forceMenu&&this.selectedSquadIds.some(id=>
-        this.game.squads.some(unit=>unit.id===id&&unit.owner===0))){
+      // Right-click must always open the build / diplomacy context menu on
+      // owned territory, even if a squad remains selected from an attack.
+      // Shift+right-click on hostile land issues an optional RTS group order.
+      if(point&&forceMenu&&this.game.owner[pointToIndex(point)]!==0&&
+         this.selectedSquadIds.some(id=>this.game.squads.some(unit=>unit.id===id&&unit.owner===0))){
         this.onCommandSquads(point);return;
       }
       this.onBuildRequest(point,clientX,clientY);

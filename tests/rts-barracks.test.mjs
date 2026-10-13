@@ -435,3 +435,22 @@ test('RTS occupation widens across connected unguarded neutral land',()=>{
  assert.equal(g.squads.find(u=>u.id===104130)?.troops,100,
    'unguarded neutral land must not cause soldier losses');
 });
+
+test('wider foreign occupation cannot sweep past an adjacent real defender',()=>{
+ const g=new Game(10813,1,'DE','balanced',true);
+ const start=g.owner.findIndex((owner,i)=>owner===0&&landNeighbors(i).some(n=>
+   g.owner[n]===-1&&landNeighbors(n).some(x=>g.owner[x]===-1)));
+ assert.ok(start>=0);
+ const defended=landNeighbors(start).find(n=>g.owner[n]===-1&&
+   landNeighbors(n).some(x=>g.owner[x]===-1));
+ assert.ok(defended!==undefined);
+ g.owner[defended]=1;
+ g.squads.push({id:108130,owner:0,index:start,troops:100,destination:null,
+   attackTarget:null,campaignTarget:defended,campaignOwner:1});
+ g.squads.push({id:108131,owner:1,index:defended,troops:100,destination:null,
+   attackTarget:null,campaignTarget:null,campaignOwner:null});
+ g.step();
+ assert.equal(g.owner[defended],1,'wide conquest must not overrun real guards');
+ assert.ok(g.squads.some(unit=>unit.id===108131&&unit.troops>0),
+   'defenders remain actual squads');
+});
