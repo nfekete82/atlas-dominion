@@ -1023,6 +1023,54 @@ export class Game {
     return result;
   }
 
+  /** Consolidate physically co-located idle units; no free soldiers. */
+  mergeSquads(owner:number,ids:readonly number[]):DiplomacyResult {
+    const unique=[...new Set(ids)];
+    const units=unique.map(id=>this.squads.find(s=>s.id===id&&s.owner===owner));
+    if(unique.length<2||units.some(s=>!s))return {ok:false,reason:'Mindestens zwei eigene Armeen auswählen.'};
+    const list=units as RTSSquad[];
+    if(list.some(s=>s.index!==list[0].index||s.destination!=null||
+      s.attackTarget!=null||s.campaignTarget!=null||s.seaRoute?.length))
+      return {ok:false,reason:'Armeen müssen ohne laufenden Befehl auf demselben Feld stehen.'};
+    const survivor=list.slice().sort((a,b)=>a.id-b.id)[0];
+    for(const unit of list){
+      if(unit===survivor)continue;
+      survivor.troops+=unit.troops;
+      this.squads.splice(this.squads.indexOf(unit),1);
+    }
+    this.recount();
+    return {ok:true,reason:unique.length+' Armeen zusammengeführt.'};
+  }
+
+  splitSquad(owner:number,id:number,count:number):DiplomacyResult {
+    const unit=this.squads.find(s=>s.id===id&&s.owner===owner);
+    if(!unit||!Number.isInteger(count)||count<10||unit.troops-count<10||
+       this.squads.filter(s=>s.owner===owner).length>=12||
+       unit.destination!=null||unit.attackTarget!=null||
+       unit.campaignTarget!=null||unit.seaRoute?.length)
+      return {ok:false,reason:'Zum Aufteilen muss die Armee stehen und beide Gruppen mindestens 10 Soldaten haben (maximal 12 Gruppen).'};
+    unit.troops-=count;
+    this.nextSquadId=Math.max(this.nextSquadId,...this.squads.map(s=>s.id+1));
+    this.squads.push({...unit,id:this.nextSquadId++,troops:count});
+    this.recount();
+    return {ok:true,reason:count+' Soldaten als neue Gruppe abgeteilt.'};
+  }
+
+  reinforceSquad(owner:number,id:number,point:Point,count:number):DiplomacyResult {
+    const unit=this.squads.find(s=>s.id===id&&s.owner===owner);
+    const index=pointToIndex(point),f=this.factions[owner];
+    if(!unit||unit.index!==index||this.owner[index]!==owner||
+       this.buildings[index]!==BUILDING_CODES.barracks||
+       unit.destination!=null||unit.attackTarget!=null||
+       unit.campaignTarget!=null||unit.seaRoute?.length||
+       !Number.isInteger(count)||count<10||count>1000||f.money<count*2)
+      return {ok:false,reason:'Armee muss in eigener Kaserne ohne Marschbefehl stehen; mindestens 10 Soldaten, maximal 1.000 und 2 Gold pro Soldat.'};
+    f.money-=count*2;
+    unit.troops+=count;
+    this.recount();
+    return {ok:true,reason:count+' Soldaten der Armee #'+id+' hinzugefügt.'};
+  }
+
   recallSquad(owner:number,squadId:number):DiplomacyResult {
     const i=this.squads.findIndex(s=>s.id===squadId&&s.owner===owner);
     if(i<0)return {ok:false,reason:'Truppengruppe nicht gefunden.'};
