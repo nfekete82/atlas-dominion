@@ -27,6 +27,8 @@ export class MapRenderer {
   private base = document.createElement('canvas');
   private overlay = document.createElement('canvas');
   private highlightedCountry = document.createElement('canvas');
+  // Visual interpolation only: squad positions in the simulation are untouched.
+  private squadVisuals=new Map<number,{index:number;from:number;changedAt:number}>();
   private showSeaPassages=false;
   private readonly panKeys=new Set<string>();
   private previousPanFrame=0;
@@ -94,6 +96,7 @@ export class MapRenderer {
 
   setGame(game: Game) {
     this.game = game;
+    this.squadVisuals.clear();
     this.hover=null;
     this.hoverPointer=null;
     this.hoverIndex=-1;
@@ -492,9 +495,27 @@ export class MapRenderer {
 
   private drawSquads(c:CanvasRenderingContext2D,time=0):void {
     c.save();c.textAlign='center';c.textBaseline='middle';
+    const liveIds=new Set(this.game.squads.map(unit=>unit.id));
+    for(const id of this.squadVisuals.keys())if(!liveIds.has(id))this.squadVisuals.delete(id);
     for(const squad of this.game.squads){
-      const x=this.ox+(squad.index%MAP_WIDTH+.5)*CW*this.scale;
-      const y=this.oy+(Math.floor(squad.index/MAP_WIDTH)+.5)*CH*this.scale;
+      let visual=this.squadVisuals.get(squad.id);
+      if(!visual){
+        visual={index:squad.index,from:squad.index,changedAt:time-170};
+        this.squadVisuals.set(squad.id,visual);
+      }else if(visual.index!==squad.index){
+        const previous=visual.index;
+        visual.from=Math.abs(previous%MAP_WIDTH-squad.index%MAP_WIDTH)+
+          Math.abs(Math.floor(previous/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH))===1?
+          previous:squad.index;
+        visual.index=squad.index;visual.changedAt=time;
+      }
+      const progress=Math.max(0,Math.min(1,(time-visual.changedAt)/170));
+      const easing=progress*progress*(3-2*progress);
+      const vx=(visual.from%MAP_WIDTH)*(1-easing)+(squad.index%MAP_WIDTH)*easing;
+      const vy=Math.floor(visual.from/MAP_WIDTH)*(1-easing)+
+        Math.floor(squad.index/MAP_WIDTH)*easing;
+      const x=this.ox+(vx+.5)*CW*this.scale;
+      const y=this.oy+(vy+.5)*CH*this.scale;
       if(x< -40||y< -40||x>this.canvas.clientWidth+40||y>this.canvas.clientHeight+40)continue;
       const selected=this.selectedSquadIds.includes(squad.id);
       const relation=this.squadRelationColor(squad.owner);
