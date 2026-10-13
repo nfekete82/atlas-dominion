@@ -432,7 +432,10 @@ export class MapRenderer {
       for(const [dx,dy] of offsets){
         const candidate={x:x+dx-size/2,y:y+dy-size/2,width:size,height:size};
         if(candidate.x<0||candidate.y<0||candidate.x+size>width||candidate.y+size>height)continue;
-        if(this.occupancy.intersects(candidate,city?3:0))continue;
+        // Player cities must not disappear when a country badge or combat
+        // overlay reserves their only possible location. Other markers can
+        // move aside, but city centers are fixed geographic positions.
+        if(!(city&&marker.owner===0)&&this.occupancy.intersects(candidate,city?3:0))continue;
         bounds=candidate;break;
       }
       if(!bounds)return;
