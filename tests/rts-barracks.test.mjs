@@ -538,11 +538,20 @@ test('AI recruitment keeps a construction reserve for threatened border towers',
 test('RTS troops can order a timed crossing to a disconnected hostile coast',async()=>{
  const {COASTS}=await import('../dist/src/engine/navigation.js');
  const g=new Game(20261013,49,'GB','balanced',true);
- const ownCoast=COASTS.find(i=>g.owner[i]===0);
- assert.ok(ownCoast!==undefined,'player requires a genuine coastal port');
- const landing=COASTS.find(i=>g.owner[i]>=0&&g.owner[i]!==0&&
-   g.canLand(0,cellToPoint(i)));
- assert.ok(landing!==undefined,'opponent requires a legal overseas landing');
+ // Initial capital sectors may be inland: construct a dedicated owned
+ // coastal staging port rather than assuming Britain starts with one.
+ const ownCoast=COASTS.find(i=>g.owner[i]===-1);
+ assert.ok(ownCoast!==undefined,'map requires a genuine unoccupied coast');
+ g.owner[ownCoast]=0;
+ // Reserve a disconnected enemy shore so the route cannot fall back to
+ // the ordinary adjacent-land attack branch.
+ const landing=COASTS.find(i=>g.owner[i]===-1&&
+   Math.abs(i%480-ownCoast%480)+
+   Math.abs(Math.floor(i/480)-Math.floor(ownCoast/480))>30);
+ assert.ok(landing!==undefined,'map requires a distant coastal landing');
+ g.owner[landing]=1;
+ assert.ok(g.canLand(0,cellToPoint(landing)),
+   'a proper owned port must provide a legal overseas route');
  const barracks=g.owner.findIndex((holder,index)=>holder===0&&
    g.canBuild(0,cellToPoint(index),'barracks').ok);
  assert.ok(barracks>=0);
