@@ -2360,6 +2360,19 @@ export class Game {
       if(target>=0)this.issueAttack(faction.id,cellToPoint(target),ratio,false);
 
     }
+    // Territory can change again in resolveOrders *after* moveSquads has
+    // already processed the formations. Reconcile displaced armies in the
+    // same tick so no squad remains on a foreign-owned tile in saved states.
+    if(this.rtsRecruitment){
+      for(let i=this.squads.length-1;i>=0;i--){
+        const squad=this.squads[i];
+        if(this.owner[squad.index]===squad.owner)continue;
+        // Follow the existing displacement rule: living soldiers return to
+        // their nation's mobile pool exactly once; never duplicate squads.
+        this.factions[squad.owner].troops+=squad.troops;
+        this.squads.splice(i,1);
+      }
+    }
     this.recount();
     this.mobileNet=this.factions[0].troops-beforeMobile;
     if (!this.factions[0].alive) {
