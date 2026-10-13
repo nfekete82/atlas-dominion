@@ -996,6 +996,17 @@ export class Game {
         if(dist<constructionDist[id]){constructionDist[id]=dist;constructionSites[id]=i;}
       }
     }
+    // Scan playable coastlines once per planning tick, not once per nation.
+    // Island powers can then evaluate actual sea routes instead of idling
+    // because they have no land frontier.
+    const coastalTargets:number[]=[];
+    if(this.tick%8===1){
+      for(let cell=0;cell<CELL_COUNT;cell++){
+        if(this.owner[cell]===WATER)continue;
+        if(LAND_NEIGHBORS[cell].some(n=>this.owner[n]===WATER))
+          coastalTargets.push(cell);
+      }
+    }
     for(const faction of this.factions){
       if(!faction.ai||!faction.alive)continue;
       if(!alerted.has(faction.id)&&this.tick%8!==faction.id%8)continue;
@@ -1231,7 +1242,31 @@ export class Game {
         else {
           // Patrol towards a locally accessible enemy/neutral border.
           const frontier=this.chooseFront(faction.id);
-          if(frontier>=0)this.orderSquadAttack(faction.id,squad.id,cellToPoint(frontier));
+          if(frontier>=0){
+            const ordered=this.orderSquadAttack(faction.id,squad.id,cellToPoint(frontier));
+            if(ordered.ok)continue;
+          }
+          // No land outlet: periodically search nearby unallied coastlines.
+          // A real validated sea route, real soldiers and an affordable
+          // landing are required. Never invent an ocean shortcut.
+          if(this.tick%8===1&&coastalTargets.length&&squad.troops>=25&&
+             !alerted.has(faction.id)){
+            const coast=coastalTargets.filter(tile=>
+              this.owner[tile]!==faction.id&&
+              !this.isAllied(faction.id,this.owner[tile])&&
+              this.buildings[tile]!==BUILDING_CODES.tower)
+              .sort((a,b)=>{
+                const score=(tile:number)=>
+                  Math.abs(tile%MAP_WIDTH-squad.index%MAP_WIDTH)+
+                  Math.abs(Math.floor(tile/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH))+
+                  (this.owner[tile]===NEUTRAL?0:20);
+                return score(a)-score(b)||a-b;
+              }).slice(0,24);
+            for(const tile of coast){
+              const order=this.orderSquadAttack(faction.id,squad.id,cellToPoint(tile));
+              if(order.ok)break;
+            }
+          }
         }
       }
     }
