@@ -469,8 +469,7 @@ test('RTS frontline guards screen surrounding neutral terrain without phantom de
    attackTarget:null,campaignTarget:null,campaignOwner:null});
  game.squads.push({id:103311,owner:1,index:guarded,troops:80,destination:null,
    attackTarget:null,campaignTarget:null,campaignOwner:null});
- const screened=landNeighbors(guarded).filter(n=>game.owner[n]===-1&&
-   landNeighbors(start).includes(n));
+ const screened=landNeighbors(guarded).filter(n=>game.owner[n]===-1);
  assert.ok(screened.length>0,'fixture requires an unoccupied contact sector');
  game.step();
  assert.ok(screened.every(index=>game.owner[index]===-1),
