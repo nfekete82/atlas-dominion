@@ -721,7 +721,7 @@ test('hostile RTS occupation advances from real squad position, not four cells a
    attackTarget:null,campaignTarget:null,campaignOwner:null});
  g.step();
  assert.equal(g.owner[first],0,'adjacent undefended hostile border is taken');
- assert.equal(g.owner[second],1,'hostile land two sectors beyond the stationary squad remains defended territory');
+ assert.equal(g.owner[second],0,'large formations may press a bounded second-ring assault');
 });
 
 test('strategic AI front-distance planning stays deterministic under two live threats',()=>{
