@@ -59,6 +59,7 @@ export class MapRenderer {
   private occupancy=new ScreenOccupancy();
   private cityAnchors=new ScreenOccupancy();
   private overlayBounds:ScreenRect[]=[];
+  private squadClusterHits:Array<{x:number;y:number;owner:number;ids:number[]}>=[];
   private visibleCityMarkers:Array<{index:number;x:number;y:number;level:number;bounds:ScreenRect}>=[];
   /** Cached when territory/buildings change, not rescanned every animation frame. */
   private buildingMarkers: Array<{index:number;code:number;owner:number}> = [];
@@ -98,6 +99,7 @@ export class MapRenderer {
   setGame(game: Game) {
     this.game = game;
     this.squadVisuals.clear();
+    this.squadClusterHits=[];
     this.hover=null;
     this.hoverPointer=null;
     this.hoverIndex=-1;
@@ -526,7 +528,42 @@ export class MapRenderer {
       const units=squadByTile.get(unit.index)??[];
       units.push(unit);squadByTile.set(unit.index,units);
     }
+    // Density clustering is presentation-only: preserve every real squad.
+    // The compact marker replaces groups of nearby friendly formations.
+    const clusteredIds=new Set<number>();
+    const clusters:Array<{owner:number;x:number;y:number;troops:number;ids:number[]}>= [];
+    const radius=this.zoom>=3.2?28:this.zoom>=2.2?44:58;
     for(const squad of this.game.squads){
+      if(clusteredIds.has(squad.id)||this.selectedSquadIds.includes(squad.id))continue;
+      const sx=this.ox+(squad.index%MAP_WIDTH+.5)*CW*this.scale;
+      const sy=this.oy+(Math.floor(squad.index/MAP_WIDTH)+.5)*CH*this.scale;
+      const nearby=this.game.squads.filter(other=>{
+        if(other.owner!==squad.owner||this.selectedSquadIds.includes(other.id)||clusteredIds.has(other.id))return false;
+        const ox=this.ox+(other.index%MAP_WIDTH+.5)*CW*this.scale;
+        const oy=this.oy+(Math.floor(other.index/MAP_WIDTH)+.5)*CH*this.scale;
+        return Math.hypot(ox-sx,oy-sy)<=radius;
+      });
+      if(nearby.length<2)continue;
+      for(const member of nearby)clusteredIds.add(member.id);
+      clusters.push({owner:squad.owner,
+        x:nearby.reduce((sum,u)=>sum+this.ox+(u.index%MAP_WIDTH+.5)*CW*this.scale,0)/nearby.length,
+        y:nearby.reduce((sum,u)=>sum+this.oy+(Math.floor(u.index/MAP_WIDTH)+.5)*CH*this.scale,0)/nearby.length,
+        troops:nearby.reduce((sum,u)=>sum+u.troops,0),ids:nearby.map(u=>u.id)});
+    }
+    this.squadClusterHits=clusters.map(group=>({x:group.x,y:group.y,owner:group.owner,ids:group.ids}));
+    for(const cluster of clusters){
+      if(cluster.x< -45||cluster.y< -45||cluster.x>this.canvas.clientWidth+45||cluster.y>this.canvas.clientHeight+45)continue;
+      const color=this.squadRelationColor(cluster.owner);
+      c.fillStyle='rgba(9,29,41,.95)';c.strokeStyle=color;c.lineWidth=2;
+      c.beginPath();c.roundRect(cluster.x-24,cluster.y-21,48,46,10);c.fill();c.stroke();
+      c.font='16px sans-serif';c.fillStyle='#fff';
+      c.fillText(this.squadFlag(cluster.owner),cluster.x,cluster.y-10);
+      c.font='bold 12px system-ui';c.fillText(String(Math.round(cluster.troops)),cluster.x,cluster.y+5);
+      c.font='bold 10px system-ui';c.fillStyle='#aed0db';
+      c.fillText(cluster.ids.length+' Gruppen',cluster.x,cluster.y+17);
+    }
+    for(const squad of this.game.squads){
+      if(clusteredIds.has(squad.id))continue;
       const stackKey=`${squad.owner}:${squad.index}`;
       const stackNumber=stackPositions.get(stackKey)??0;
       stackPositions.set(stackKey,stackNumber+1);
@@ -1346,6 +1383,19 @@ export class MapRenderer {
       if(e.pointerId!==activePointer||e.button!==dragButton)return;
       const moved=this.moved||Math.hypot(e.clientX-this.press.x,e.clientY-this.press.y)>threshold;
       if(dragButton===0){
+        if(!moved){
+          const rect=this.canvas.getBoundingClientRect();
+          const x=e.clientX-rect.left,y=e.clientY-rect.top;
+          const hit=this.squadClusterHits.find(cluster=>cluster.owner===0&&
+            Math.abs(x-cluster.x)<=25&&Math.abs(y-cluster.y)<=24);
+          if(hit){
+            this.selectedSquadIds=[...hit.ids];
+            this.onSelectSquads([...hit.ids]);
+            activePointer=null;dragButton=null;this.dragging=false;
+            this.selectionBox=null;rightGestureMoved=false;
+            return;
+          }
+        }
         if(moved&&this.selectionBox){
           const b=this.selectionBox,loX=Math.min(b.x1,b.x2),hiX=Math.max(b.x1,b.x2);
           const loY=Math.min(b.y1,b.y2),hiY=Math.max(b.y1,b.y2);
