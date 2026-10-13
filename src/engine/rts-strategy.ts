@@ -20,3 +20,31 @@ export function scoreRTSTarget(t:RTSTargetIntel):number {
     -Math.min(170,expectedRisk*65)-Math.max(0,t.distance)*.8
     +(t.committedAttackers>0?Math.min(30,t.committedAttackers*.24):0);
 }
+
+/** A theater objective shared by independent physical formations. Units remain
+ * separate, travel legally and can be redirected to immediate defense.
+ */
+export interface RTSOperation {
+  target:number;
+  committed:number;
+  formations:number;
+  distance:number;
+  threat:number;
+}
+export function chooseRTSOperation(operations:readonly RTSOperation[]):RTSOperation|null {
+  if(!operations.length)return null;
+  let best:RTSOperation|null=null;
+  let bestScore=-Infinity;
+  for(const operation of operations){
+    if(!Number.isInteger(operation.target)||operation.target<0||
+       !Number.isFinite(operation.committed)||operation.committed<20||
+       !Number.isFinite(operation.distance)||operation.distance<0||
+       !Number.isFinite(operation.threat)||operation.threat<0)continue;
+    const score=operation.committed*.22+operation.formations*18
+      -operation.distance*.65-operation.threat*.32;
+    if(score>bestScore||(score===bestScore&&best!==null&&operation.target<best.target)){
+      bestScore=score;best=operation;
+    }
+  }
+  return best;
+}
