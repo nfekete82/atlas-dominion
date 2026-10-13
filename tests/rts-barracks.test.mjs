@@ -571,3 +571,39 @@ test('RTS troops can order a timed crossing to a disconnected hostile coast',asy
  assert.ok(unit.seaRoute?.length,'transport must still be sailing after one tick');
  assert.ok(unit.seaTicks>=0,'voyage must track deterministic progress');
 });
+
+test('direct RTS campaign attacks adjacent foreign land without border detour',()=>{
+ const g=new Game(20261013,2,'DE','balanced',true);
+ const start=g.owner.findIndex((owner,i)=>owner===0&&
+   landNeighbors(i).some(n=>g.owner[n]===-1));
+ assert.ok(start>=0);
+ const hostile=landNeighbors(start).find(n=>g.owner[n]===-1);
+ g.owner[hostile]=1;
+ g.squads.push({id:900113,owner:0,index:start,troops:100,destination:null,
+   attackTarget:null,campaignTarget:null,campaignOwner:null});
+ const result=g.orderSquadAttack(0,900113,cellToPoint(hostile));
+ assert.ok(result.ok,result.reason);
+ assert.equal(g.squads.at(-1).destination,null,'no roundabout staging march');
+ g.step();
+ assert.equal(g.owner[hostile],0,'directly adjacent undefended sector is conquered');
+});
+
+test('RTS defense towers fire at real enemy soldiers two tiles away',()=>{
+ const g=new Game(20261013,2,'DE','balanced',true);
+ const center=g.owner.findIndex((owner,i)=>owner===1&&
+   landNeighbors(i).some(n=>g.owner[n]===-1&&
+     landNeighbors(n).some(m=>g.owner[m]===-1)));
+ assert.ok(center>=0);
+ const middle=landNeighbors(center).find(n=>g.owner[n]===-1&&
+   landNeighbors(n).some(m=>g.owner[m]===-1));
+ const far=landNeighbors(middle).find(n=>n!==center&&g.owner[n]===-1);
+ assert.ok(far!==undefined);
+ g.buildings[center]=2;
+ g.owner[middle]=0;g.owner[far]=0;
+ g.squads.push({id:900114,owner:0,index:far,troops:90,destination:null,
+   attackTarget:null,campaignTarget:null,campaignOwner:null});
+ const before=g.squads.at(-1).troops;
+ g.step();
+ const after=g.squads.find(unit=>unit.id===900114)?.troops??0;
+ assert.ok(after<before,'tower must inflict real soldier losses at range two');
+});
