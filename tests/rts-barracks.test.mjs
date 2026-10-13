@@ -362,3 +362,31 @@ test('RTS squad ownership is reconciled after late-tick territory captures',()=>
      'no stranded squads after simulation tick '+game.tick);
  }
 });
+
+test('RTS captures undefended enemy sector with zero attacker casualties',()=>{
+ const g=new Game(10091,1,'DE','balanced',true);
+ const source=g.owner.findIndex((v,i)=>v===0&&landNeighbors(i).some(n=>g.owner[n]===-1));
+ assert.ok(source>=0);
+ const target=landNeighbors(source).find(n=>g.owner[n]===-1);
+ g.owner[target]=1;g.defense[target]=100;
+ g.squads.push({id:100910,owner:0,index:source,troops:60,destination:null,attackTarget:target,
+   campaignTarget:target,campaignOwner:1});
+ g.step();
+ const unit=g.squads.find(u=>u.id===100910);
+ assert.ok(unit);
+ assert.equal(g.owner[target],0);
+ assert.equal(unit.index,target);
+ assert.equal(unit.troops,60,'abstract garrison must not kill an invading RTS unit');
+});
+test('RTS defenders exchange real losses instead of using phantom garrison',()=>{
+ const g=new Game(10092,1,'DE','balanced',true);
+ const source=g.owner.findIndex((v,i)=>v===0&&landNeighbors(i).some(n=>g.owner[n]===-1));
+ const target=landNeighbors(source).find(n=>g.owner[n]===-1);
+ g.owner[target]=1;
+ g.squads.push({id:100920,owner:0,index:source,troops:80,destination:null,attackTarget:target});
+ g.squads.push({id:100921,owner:1,index:target,troops:50,destination:null,attackTarget:null});
+ g.step();
+ assert.ok(g.squads.find(u=>u.id===100920)?.troops<80);
+ assert.ok(g.squads.find(u=>u.id===100921)?.troops<50);
+ assert.equal(g.owner[target],1,'occupied defended target should not fall instantly');
+});
