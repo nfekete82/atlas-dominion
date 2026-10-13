@@ -1254,14 +1254,20 @@ export class Game {
             if(order.ok)continue;
           }
         }
-        if(strongestThreat>squad.troops*1.4&&totalReady>=strongestThreat&&rally&&
-           squad.id!==rally.id&&squad.index!==rally.index){
-          this.orderSquad(faction.id,squad.id,cellToPoint(rally.index));continue;
+        // Rally only for a nearby, *real* contact and only if the combined
+        // ready force can challenge it. A remote enemy must never pin the
+        // entire country's army to a static rally point indefinitely.
+        const localThreat=adjacentEnemies.reduce((sum,u)=>sum+u.troops,0);
+        if(localThreat>squad.troops*1.4&&totalReady>=localThreat&&rally&&
+           squad.id!==rally.id&&squad.index!==rally.index&&
+           squad.destination===null&&squad.campaignTarget===null){
+          const regroup=this.orderSquad(faction.id,squad.id,cellToPoint(rally.index));
+          if(regroup.ok)continue;
         }
         // Preserve multi-sector campaigns: a transient null waypoint does
         // not mean the player/AI's long-distance goal has been abandoned.
         if(squad.destination!==null||squad.attackTarget!=null||squad.campaignTarget!=null)continue;
-        if(reinforceTarget!=null&&offensive&&offensive.id!==squad.id&&squad.troops>=20){
+        if(reinforceTarget!=null&&squad.id!==offensive?.id&&squad.troops>=20){
           const joined=this.orderSquadAttack(faction.id,squad.id,cellToPoint(reinforceTarget));
           if(joined.ok)continue;
         }
@@ -1292,9 +1298,11 @@ export class Game {
           });
         };
         const next=targets.sort((a,b)=>rank(b)-rank(a)||a-b)[0];
-        if(next!==undefined&&rank(next)>-25)
-          this.orderSquadAttack(squad.owner,squad.id,cellToPoint(next));
-        else {
+        if(next!==undefined&&rank(next)>-25){
+          const ordered=this.orderSquadAttack(squad.owner,squad.id,cellToPoint(next));
+          if(ordered.ok)continue;
+        }
+        {
           // Patrol towards a locally accessible enemy/neutral border.
           const frontier=this.chooseFront(faction.id);
           if(frontier>=0){
