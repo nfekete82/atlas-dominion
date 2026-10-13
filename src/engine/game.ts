@@ -1265,6 +1265,10 @@ export class Game {
           // The existing legal own-territory pathfinder advances to the port.
         }
       }
+      // A squad already sailing never occupies, captures or fights from
+      // its last port: it remains embarked until landing resolution.
+      if(squad.seaRoute?.length&&squad.index===squad.seaRoute[0]&&
+         squad.destination===null)continue;
       // Widen the occupied front around a physically present formation.
       // Expansion is a bounded connected flood, never a remote capture:
       // only neutral land and empty undefended hostile sectors are eligible.
