@@ -1456,7 +1456,7 @@ export class Game {
         // Use beginning-of-tick strength so casualties don't mutate the
         // command budget halfway through the same occupation.
         const occupationBudget=Math.min(30,Math.max(3,Math.floor(squad.troops/12)));
-        const hostileDepth=squad.troops>=180?1:0;
+        const hostileDepth=squad.troops>=100?1:0;
         let taken=0;
         for(let head=0;head<queue.length&&taken<occupationBudget;head++){
           const [cell,depth]=queue[head];
