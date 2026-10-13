@@ -568,4 +568,6 @@ test('RTS troops can order a timed crossing to a disconnected hostile coast',asy
  const first=unit.index;
  g.step();
  assert.equal(unit.index,first,'soldiers must not teleport across water in one tick');
+ assert.ok(unit.seaRoute?.length,'transport must still be sailing after one tick');
+ assert.ok(unit.seaTicks>=0,'voyage must track deterministic progress');
 });
