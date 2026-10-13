@@ -744,3 +744,23 @@ test('strategic AI front-distance planning stays deterministic under two live th
  assert.deepEqual(first.exportSave(),second.exportSave(),
    'defender assignments must not depend on incidental ordering');
 });
+
+test('RTS broad assault captures nearby hostile ground but costs genuine soldiers',()=>{
+ const g=new Game(20261013,1,'DE','balanced',true);
+ const start=g.owner.findIndex((holder,index)=>holder===0&&
+   landNeighbors(index).some(next=>g.owner[next]===-1&&
+     landNeighbors(next).some(far=>far!==index&&g.owner[far]===-1)));
+ assert.ok(start>=0);
+ const first=landNeighbors(start).find(next=>g.owner[next]===-1&&
+   landNeighbors(next).some(far=>far!==start&&g.owner[far]===-1));
+ const second=landNeighbors(first).find(next=>next!==start&&g.owner[next]===-1);
+ assert.ok(second!==undefined);
+ g.owner[first]=1;g.owner[second]=1;
+ g.squads.push({id:992100,owner:0,index:start,troops:100,
+   destination:null,attackTarget:null,campaignTarget:null,campaignOwner:null});
+ g.step();
+ assert.equal(g.owner[first],0);
+ assert.equal(g.owner[second],0,'large assault should widen into the second enemy ring');
+ assert.ok(g.squads.find(unit=>unit.id===992100).troops<100,
+   'taking defended national territory has a measurable living-soldier cost');
+});
