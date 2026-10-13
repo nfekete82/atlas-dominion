@@ -512,6 +512,45 @@ export class MapRenderer {
   }
 
   private drawSquads(c:CanvasRenderingContext2D,time=0):void {
+    // A sailing RTS squad remains a real unit in simulation, while its
+    // ship is drawn at interpolated positions along the ocean route.
+    // Rendering has no effect on ownership, timing, or combat.
+    c.save();
+    for(const squad of this.game.squads){
+      const route=squad.seaRoute;
+      if(!route||route.length<3||squad.seaLanding==null||
+        squad.destination!==null||squad.index!==route[0])continue;
+      const duration=Math.max(8,Math.ceil(route.length/3));
+      const progress=Math.min(1,Math.max(0,(squad.seaTicks??0)/duration));
+      const floating=progress*(route.length-1);
+      const first=Math.min(route.length-2,Math.floor(floating));
+      const blend=floating-first;
+      const tile=route[first],next=route[first+1];
+      const x=((tile%MAP_WIDTH+.5)*(1-blend)+(next%MAP_WIDTH+.5)*blend);
+      const y=((Math.floor(tile/MAP_WIDTH)+.5)*(1-blend)+
+        (Math.floor(next/MAP_WIDTH)+.5)*blend);
+      const px=this.ox+x*CW*this.scale,py=this.oy+y*CH*this.scale;
+      if(px< -30||py< -30||px>this.canvas.clientWidth+30||py>this.canvas.clientHeight+30)continue;
+      c.save();c.translate(px,py);
+      const angle=Math.atan2(Math.floor(next/MAP_WIDTH)-Math.floor(tile/MAP_WIDTH),
+        next%MAP_WIDTH-tile%MAP_WIDTH);
+      c.rotate(angle);
+      c.fillStyle='#173749';c.strokeStyle=this.squadRelationColor(squad.owner);
+      c.lineWidth=2;c.beginPath();c.moveTo(15,0);c.lineTo(6,7);
+      c.lineTo(-12,7);c.lineTo(-17,0);c.lineTo(-12,-7);
+      c.lineTo(6,-7);c.closePath();c.fill();c.stroke();
+      c.fillStyle='#dce9e8';c.fillRect(-7,-5,9,10);
+      c.strokeStyle='#f3d794';c.beginPath();c.moveTo(0,-4);
+      c.lineTo(0,-14);c.stroke();
+      c.fillStyle=this.squadRelationColor(squad.owner);
+      c.beginPath();c.moveTo(0,-14);c.lineTo(9,-11);c.lineTo(0,-8);
+      c.closePath();c.fill();
+      c.restore();
+      c.save();c.fillStyle='#fff';c.textAlign='center';
+      c.font='bold 11px system-ui';c.fillText(Math.round(squad.troops).toString(),px,py+20);
+      c.restore();
+    }
+    c.restore();
     // Tactical routes appear only for selected squads, keeping busy maps clean.
     c.save();
     for(const squad of this.game.squads){
