@@ -1177,19 +1177,48 @@ export class Game {
           continue;
         }
         if(enemy>=0&&enemy!==squad.owner&&!this.isAllied(squad.owner,enemy)){
-          // The unit remains present. Only genuine defended fighting can kill it.
-          const spent=Math.min(18,Math.max(2,squad.troops*.16));
-          const tower=this.towerSupport(enemy,target);
-          const captured=this.strike(this.factions[squad.owner],target,spent/(1+tower*.30));
-          const losses=Math.min(squad.troops,Math.max(0,this.lastAttackerLoss));
-          squad.troops-=losses;
-          if(squad.troops<1){
-            this.squads.splice(i,1);
-            continue;
+          // RTS territorial defense belongs to real units, not an abstract
+          // garrison or a magically mobilized national reserve.
+          const guards=this.squads.filter(unit=>unit.owner===enemy&&unit.index===target);
+          const tower=this.buildings[target]===BUILDING_CODES.tower;
+          if(guards.length){
+            const defender=guards[0];
+            const attackers=squad.troops,defenders=defender.troops;
+            const defenderLost=Math.min(defenders,Math.max(1,attackers*.18));
+            const attackerLost=Math.min(attackers,Math.max(.25,defenders*.035));
+            defender.troops=Math.max(0,defenders-defenderLost);
+            squad.troops=Math.max(0,attackers-attackerLost);
+            this.factions[squad.owner].attackFallen+=attackerLost;
+            this.factions[enemy].defenseSpent+=defenderLost;
+            this.factions[enemy].defenseFallenTick+=defenderLost;
+            this.factions[enemy].enemyFallen+=attackerLost;
+            this.factions[squad.owner].enemyFallen+=defenderLost;
+            if(this.battleEvents.length<1600)this.battleEvents.push({
+              tick:this.tick,index:target,attackerId:squad.owner,defenderId:enemy,
+              attacking:attackers,defending:defenders,attackerLost,
+              defenderLost,captured:false,
+            });
+            if(defender.troops<1)this.squads.splice(this.squads.indexOf(defender),1);
+            if(squad.troops<1){
+              this.squads.splice(this.squads.indexOf(squad),1);
+              continue;
+            }
+            if(defender.troops>=1)continue;
           }
-          if(captured){
-            squad.index=target;squad.destination=null;squad.attackTarget=null;
+          // A tower can inflict a small, real cost even without a defending
+          // squad. Ordinary empty sectors are captured with ZERO losses.
+          if(tower){
+            const loss=Math.min(squad.troops,1.25);
+            squad.troops-=loss;this.factions[squad.owner].attackFallen+=loss;
+            if(this.battleEvents.length<1600)this.battleEvents.push({
+              tick:this.tick,index:target,attackerId:squad.owner,defenderId:enemy,
+              attacking:squad.troops+loss,defending:0,attackerLost:loss,
+              defenderLost:0,captured:true,
+            });
+            if(squad.troops<1){this.squads.splice(this.squads.indexOf(squad),1);continue;}
           }
+          this.captureTile(this.factions[squad.owner],target);
+          squad.index=target;squad.destination=null;squad.attackTarget=null;
           continue;
         }
         squad.attackTarget=null;squad.destination=null;
