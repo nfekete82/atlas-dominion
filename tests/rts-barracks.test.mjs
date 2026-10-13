@@ -629,9 +629,10 @@ test('RTS squads passing at range two actually exchange real losses',()=>{
 
 test('RTS cleans surrounded neutral pockets without sweeping past real defenders',()=>{
  const g=new Game(12122,1,'DE','balanced',true);
- const center=g.owner.findIndex((owner,index)=>owner===0&&
-   landNeighbors(index).length===4&&landNeighbors(index).every(n=>g.owner[n]===0));
+ const center=g.owner.findIndex((owner,index)=>owner===0&&landNeighbors(index).length===4&&
+   landNeighbors(index).every(n=>g.owner[n]!==-2));
  assert.ok(center>=0);
+ for(const neighbor of landNeighbors(center))g.owner[neighbor]=0;
  g.owner[center]=-1;
  const position=landNeighbors(center)[0];
  g.squads.push({id:121220,owner:0,index:position,troops:100,destination:null,attackTarget:null,campaignTarget:null,campaignOwner:null});
