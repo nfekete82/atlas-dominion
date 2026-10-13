@@ -328,3 +328,27 @@ test('faster RTS expansion remains deterministic and cannot capture remote land'
  assert.ok(a.factions.every(f=>f.troops>=0&&f.money>=0),
    'increased attack pressure must never create debts or negative reserves');
 });
+
+test('deep invasion re-plans a stale frontline waypoint and keeps advancing',()=>{
+ const g=new Game(10013,1,'DE','balanced',true);
+ const start=g.owner.findIndex((holder,i)=>holder===0&&
+   landNeighbors(i).some(n=>g.owner[n]===-1&&landNeighbors(n)
+     .some(far=>g.owner[far]===-1&&far!==i)));
+ assert.ok(start>=0);
+ const intermediate=landNeighbors(start).find(n=>g.owner[n]===-1&&
+   landNeighbors(n).some(far=>g.owner[far]===-1&&far!==start));
+ const goal=landNeighbors(intermediate).find(n=>g.owner[n]===-1&&n!==start);
+ assert.ok(goal!==undefined);
+ g.factions[0].money=1500;
+ const site=g.owner.findIndex((holder,i)=>holder===0&&
+   g.canBuild(0,cellToPoint(i),'barracks').ok);
+ assert.ok(g.build(0,cellToPoint(site),'barracks').ok);
+ assert.ok(g.recruitSquad(0,cellToPoint(site),100).ok);
+ const unit=g.squads[0];
+ unit.index=start;unit.destination=null;
+ unit.attackTarget=goal; // An old frontier waypoint is no longer adjacent.
+ unit.campaignTarget=goal;unit.campaignOwner=-1;
+ for(let tick=0;tick<16&&unit.index!==goal;tick++)g.step();
+ assert.equal(unit.index,goal,'squad must not stop at stale attack waypoint');
+ assert.equal(g.owner[goal],0,'real marching must capture the target');
+});
