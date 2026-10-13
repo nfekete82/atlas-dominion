@@ -57,8 +57,8 @@ test('theater commander weighs defended capitals, attainable targets and losses'
    strategicValue:0,committed:0};
  const capital={...neutral,tile:11,neutral:false,strategicValue:80};
  const heavilyGuarded={...capital,tile:12,defenderStrength:400};
- assert.equal(chooseRTSTheaterTarget([neutral,capital,heavilyGuarded]),capital);
- assert.equal(chooseRTSTheaterTarget([heavilyGuarded,neutral]),neutral);
+ assert.equal(chooseRTSTheaterTarget([neutral,capital,heavilyGuarded]),capital.tile);
+ assert.equal(chooseRTSTheaterTarget([heavilyGuarded,neutral]),neutral.tile);
  assert.equal(chooseRTSTheaterTarget([neutral,{...neutral,tile:9}]),9,
    'equal candidates use deterministic tile tie-breaks');
  assert.equal(chooseRTSTheaterTarget([]),null);
