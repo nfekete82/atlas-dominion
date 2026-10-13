@@ -28,9 +28,11 @@ export function showBuildingMarker(owner:number,zoom:number):boolean {
  * restores every ordinary town. Never changes city existence or hitboxes. */
 export function cityVisibleAtZoom(owner:number,level:number,zoom:number,hovered=false):boolean {
   if(!showBuildingMarker(owner,zoom))return false;
-  if(hovered||zoom>=1.8)return true;
-  if(zoom>=1.25)return owner===0 || level>=2;
-  return level>=3 || (owner===0 && level>=1);
+  // A newly constructed player city starts at level 0 and must be visible
+  // immediately, including at the default strategic zoom.
+  if(owner===0||hovered||zoom>=1.8)return true;
+  if(zoom>=1.25)return level>=2;
+  return level>=3;
 }
 
 /** CSS pixels, independent of map scale and device pixel ratio. */
