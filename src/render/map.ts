@@ -1,6 +1,7 @@
 import {createTopographyLayer} from './topography.js';
 import {voyageGeometry,voyagePosition,type VoyageGeometry} from './sea-voyages.js';
 import { COUNTRIES, MAP_HEIGHT, MAP_WIDTH, WORLD_HEIGHT, WORLD_WIDTH } from '../data/europe.js';
+import { COUNTRY_STARTS } from '../data/countries.js';
 import { Game, NEUTRAL, WATER, pointToWorld, pointToIndex, seededRandom, type Point } from '../engine/game.js';
 import { TerritoryWave, waveProgress } from './wave.js';
 import {organicCaptureRadius,burningFrontAlpha} from './capture-visual.js';
@@ -467,6 +468,27 @@ export class MapRenderer {
   /** Lightweight animated infantry, using canvas shapes rather than heavy assets.
    * Positions and motion are deterministic visual-only effects.
    */
+  /** Resolve the current faction order without requiring save migration. */
+  private squadFlag(owner:number):string {
+    const faction=this.game.factions[owner];
+    const code=COUNTRY_STARTS.find(c=>c.name===faction?.name)?.code;
+    if(!code||!/^[A-Z]{2}$/.test(code))return '🏳';
+    return String.fromCodePoint(...[...code].map(ch=>0x1f1e6+ch.charCodeAt(0)-65));
+  }
+
+  private squadRelationColor(owner:number):string {
+    if(owner===0)return '#68caff';
+    if(this.game.isAllied(0,owner))return '#65d68a';
+    const hostile=this.game.attackOrders.some(order=>
+      (order.factionId===0&&order.targetOwner===owner)||
+      (order.factionId===owner&&order.targetOwner===0))||
+      this.game.squads.some(s=>s.owner===owner&&s.attackTarget!=null&&
+        this.game.owner[s.attackTarget]===0)||
+      this.game.squads.some(s=>s.owner===0&&s.attackTarget!=null&&
+        this.game.owner[s.attackTarget]===owner);
+    return hostile?'#ff6a70':'#bfc7d0';
+  }
+
   private drawSquads(c:CanvasRenderingContext2D,time=0):void {
     c.save();c.textAlign='center';c.textBaseline='middle';
     for(const squad of this.game.squads){
@@ -474,7 +496,20 @@ export class MapRenderer {
       const y=this.oy+(Math.floor(squad.index/MAP_WIDTH)+.5)*CH*this.scale;
       if(x< -40||y< -40||x>this.canvas.clientWidth+40||y>this.canvas.clientHeight+40)continue;
       const selected=this.selectedSquadIds.includes(squad.id);
+      const relation=this.squadRelationColor(squad.owner);
+      const flag=this.squadFlag(squad.owner);
+      const far=this.zoom<2;
       const count=Math.min(8,Math.max(3,Math.ceil(squad.troops/65)));
+      c.strokeStyle=relation;c.lineWidth=selected?2.8:1.5;
+      c.beginPath();c.ellipse(x,y,far?12:23,far?11:16,0,0,Math.PI*2);c.stroke();
+      if(far){
+        c.fillStyle='#112d3b';c.beginPath();c.arc(x,y,10,0,Math.PI*2);c.fill();
+        c.font='13px sans-serif';c.fillStyle='#fff';c.fillText(flag,x,y);
+        c.font='bold 9px sans-serif';c.strokeStyle='#102534';c.lineWidth=3;
+        c.strokeText(String(Math.round(squad.troops)),x,y-16);
+        c.fillText(String(Math.round(squad.troops)),x,y-16);
+        continue;
+      }
       const marching=squad.destination!==null;
       const combat=(squad.attackTarget!==null&&squad.attackTarget!==undefined&&squad.destination===null)||
         this.game.battleEvents.some(e=>e.tick===this.game.tick&&
@@ -526,6 +561,10 @@ export class MapRenderer {
           c.beginPath();c.moveTo(x-8,y+13);c.lineTo(x-1,y+15);c.stroke();
         }
       }
+      c.fillStyle='rgba(12,31,43,.94)';
+      c.beginPath();c.roundRect(x-13,y-37,26,17,5);c.fill();
+      c.strokeStyle=relation;c.lineWidth=1;c.stroke();
+      c.font='13px sans-serif';c.fillStyle='#fff';c.fillText(flag,x,y-28);
       c.font='bold 10px sans-serif';
       const label=Math.round(squad.troops).toString();
       c.lineWidth=3;c.strokeStyle='#102534';c.strokeText(label,x,y-19);
