@@ -553,7 +553,7 @@ $('warAlerts').addEventListener('click',e=>{
 renderer.onSelectSquads=(ids)=>{
   selectedSquadIds=ids;selectedSquadId=ids[0]??null;
   renderer.selectedSquadIds=ids;
-  attackMessage=ids.length?ids.length+' Truppengruppen markiert – Linksklick zum Marschieren oder Erobern.':'Keine Truppen im Auswahlrahmen.';
+  attackMessage=ids.length?ids.length+' Truppengruppen markiert – Rechtsklick zum Marschieren oder Angreifen.':'Keine Truppen im Auswahlrahmen.';
   attackMessageKind=ids.length?'success':'neutral';update();
 };
 renderer.onCommandSquads=(point:Point)=>{
@@ -585,23 +585,15 @@ renderer.onSelect = (point:Point, _landing:boolean) => {
     Math.hypot(unit.index%480-point.x,Math.floor(unit.index/480)-point.y)<=1);
   if(squad){
     selectedSquadId=squad.id;selectedSquadIds=[squad.id];renderer.selectedSquadIds=[squad.id];
-    attackMessage='⚔ Truppe #'+squad.id+' ('+Math.round(squad.troops)+' Soldaten) ausgewählt – Linksklick auf Marschziel oder angrenzenden Gegner.';
+    attackMessage='⚔ Truppe #'+squad.id+' ('+Math.round(squad.troops)+' Soldaten) ausgewählt – Rechtsklick auf das Ziel zum Marschieren oder Angreifen.';
     attackMessageKind='success';update();return;
   }
-  if(selectedSquadId===null){
-    attackMessage='Zuerst Kaserne bauen, dort Soldaten ausbilden und die Truppe mit Linksklick auswählen.';
-    attackMessageKind='neutral';update();return;
-  }
-  const own=game.owner[clickedIndex]===0;
-  const ids=selectedSquadIds.length?selectedSquadIds:[selectedSquadId];
-  const results=ids.map(id=>own?game.orderSquad(0,id,point):game.orderSquadAttack(0,id,point));
-  const success=results.filter(r=>r.ok).length;
-  attackMessage=success?success+' von '+ids.length+' Gruppen: '+results.find(r=>r.ok)!.reason:results[0]?.reason??'Keine Truppe ausgewählt.';
-  attackMessageKind=success?'success':'error';
-  if(success){
-    renderer.updateTerritory();saveGame();
-    if(!own)soundscape.playEffect('attack');
-  }
+  // Empty left click cancels selection and its tactical highlight.
+  selectedSquadId=null;
+  selectedSquadIds=[];
+  renderer.selectedSquadIds=[];
+  attackMessage='Auswahl aufgehoben – Linksklick auf eine Truppe, Rechtsklick zum Bewegen.';
+  attackMessageKind='neutral';
   update();
 };
 
@@ -690,11 +682,7 @@ function renderBuildMenu(): void {
     </button>`:'');
 }
 renderer.onBuildRequest=(point,clientX,clientY)=>{
-  // A context-menu right-click ends the current RTS selection, including
-  // multi-selected formations and their tactical route highlights.
-  selectedSquadId=null;
-  selectedSquadIds=[];
-  renderer.selectedSquadIds=[];
+  // Context commands do not discard the currently selected formations.
   if(modalVisible||!point||game.owner[pointToIndex(point)]<0){closeBuildMenu();return;}
   buildSpot=point;
   const owner=game.owner[pointToIndex(point)];
@@ -716,7 +704,7 @@ $('buildOptions').addEventListener('click',e=>{
   const selectButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-select-squad]');
   if(selectButton){
     selectedSquadId=Number(selectButton.dataset.selectSquad);
-    attackMessage='Truppe #'+selectedSquadId+' ausgewählt – Linksklick: eigenes Land zum Marschieren, direkt benachbarte Feindgrenze zum Angreifen.';
+    attackMessage='Truppe #'+selectedSquadId+' ausgewählt – Rechtsklick: eigenes Land zum Marschieren, gegnerisches Land zum Angreifen.';
     attackMessageKind='success';closeBuildMenu();update();return;
   }
   const recruitButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-recruit-squad]');
