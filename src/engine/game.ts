@@ -6,6 +6,7 @@ import { attackFrontWidth, frontierBudget, frontierTarget, localDefenseStrength 
 import { BUILDINGS, BUILDING_CODES, type BuildingType, FACTORY_INCOME, FACTORY_CONNECTION_MULTIPLIER, FACTORY_LINK_MAX_DISTANCE, troopGrowth, taxRevenue, cityUpgradeCost, cityUpgradeGrowth, upgradedCityRecruitment } from './economy.js';
 import { findConnectedAttackFront } from './front-target.js';
 import {aiStyle,scoreAIFront} from './ai-strategy.js';
+import {scoreRTSTarget} from './rts-strategy.js';
 import {aiMarchRecovery,aiAttacksPerTick,aiStrikeSize,aiRiskTolerance} from './ai-tactics.js';
 import {formatCompact} from '../format.js';
 import {chooseAdvancingSector,canReinforceFront} from './offensive-front.js';
@@ -1234,9 +1235,32 @@ export class Game {
         const targets=LAND_NEIGHBORS[squad.index].filter(n=>
           this.owner[n]!==squad.owner&&this.owner[n]!==WATER&&
           !this.isAllied(squad.owner,this.owner[n]));
-        const neutral=targets.find(n=>this.owner[n]===NEUTRAL);
-        const next=neutral??targets[0];
-        if(next!==undefined)this.orderSquadAttack(squad.owner,squad.id,cellToPoint(next));
+        // Score every nearby objective instead of accepting the first
+        // neighbor. Prefer weak lines, unguarded expansion and high-value
+        // infrastructure while reinforcing ongoing assaults.
+        const rank=(tile:number)=>{
+          const hostile=this.squads.filter(u=>u.owner!==faction.id&&
+            !this.isAllied(faction.id,u.owner)&&
+            (u.index===tile||LAND_NEIGHBORS[tile].includes(u.index)));
+          const friendly=this.squads.filter(u=>u.owner===faction.id&&
+            (u.index===squad.index||LAND_NEIGHBORS[squad.index].includes(u.index)));
+          return scoreRTSTarget({
+            neutral:this.owner[tile]===NEUTRAL,
+            enemyTroops:hostile.reduce((sum,u)=>sum+u.troops,0),
+            friendlyTroops:friendly.reduce((sum,u)=>sum+u.troops,0),
+            distance:1,
+            capital:this.capitalSites.has(tile),
+            barracks:this.buildings[tile]===BUILDING_CODES.barracks,
+            tower:this.buildings[tile]===BUILDING_CODES.tower,
+            city:this.buildings[tile]===BUILDING_CODES.city,
+            factory:this.buildings[tile]===BUILDING_CODES.factory,
+            committedAttackers:own.filter(u=>u.campaignTarget===tile)
+              .reduce((sum,u)=>sum+u.troops,0)
+          });
+        };
+        const next=targets.sort((a,b)=>rank(b)-rank(a)||a-b)[0];
+        if(next!==undefined&&rank(next)>-25)
+          this.orderSquadAttack(squad.owner,squad.id,cellToPoint(next));
         else {
           // Patrol towards a locally accessible enemy/neutral border.
           const frontier=this.chooseFront(faction.id);
