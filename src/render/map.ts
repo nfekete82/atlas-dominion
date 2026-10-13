@@ -960,9 +960,24 @@ export class MapRenderer {
     // Hovered small countries receive first choice of the available space.
     const hoveredId=this.hoverIndex>=0?this.game.owner[this.hoverIndex]:WATER;
     const labels=this.labels.slice().sort((a,b)=>Number(b.id===hoveredId)-Number(a.id===hoveredId));
+    // Reserve soldiers before laying out labels. Drawing squads last alone
+    // cannot prevent badges from obscuring flags and formations.
+    const squadAreas:ScreenRect[]=this.game.squads.map(unit=>{
+      const sx=this.ox+(unit.index%MAP_WIDTH+.5)*CW*this.scale;
+      const sy=this.oy+(Math.floor(unit.index/MAP_WIDTH)+.5)*CH*this.scale;
+      return {x:sx-34,y:sy-48,width:68,height:80};
+    }).filter(bounds=>bounds.x<width&&bounds.y<height&&
+      bounds.x+bounds.width>0&&bounds.y+bounds.height>0);
+    const overlapsSquad=(bounds:ScreenRect)=>squadAreas.some(area=>
+      bounds.x<area.x+area.width&&bounds.x+bounds.width>area.x&&
+      bounds.y<area.y+area.height&&bounds.y+bounds.height>area.y);
+
     for(const label of labels){
       const faction=this.game.factions[label.id];
       if(!faction?.alive)continue;
+      // In tactical view the actual units take priority over large
+      // country information cards; the player and hovered country remain.
+      if(this.zoom>=2.2&&label.id!==0&&label.id!==hoveredId)continue;
       if(label.id!==0 && label.id!==hoveredId && shown>=16 && this.zoom<2.6)continue;
       const x=this.ox+label.pos.x*this.scale;
       let y=this.oy+label.pos.y*this.scale+17;
@@ -985,7 +1000,7 @@ export class MapRenderer {
       const badgeHeight=58;
       for(const offset of [0,58,-58,116,-116]){
         const candidate={x:x-labelWidth/2,y:preferredY+offset-17,width:labelWidth,height:badgeHeight};
-        if(candidate.y<30||candidate.y+badgeHeight>height-88||this.occupancy.intersects(candidate))continue;
+        if(candidate.y<30||candidate.y+badgeHeight>height-88||this.occupancy.intersects(candidate)||overlapsSquad(candidate))continue;
         fallback??=preferredY+offset;
         if(this.cityAnchors.intersects(candidate))continue;
         clear=preferredY+offset;break;
