@@ -1067,8 +1067,15 @@ export class Game {
           }
         }
       }
-      const plannedFronts=[...borderThreats].sort((a,b)=>b[1]-a[1]||a[0]-b[0])
-        .slice(0,24);
+      // Strategically rank fronts by threat, infrastructure, and the real
+      // travel distance of an available squad, not threat alone.
+      const plannedFronts=[...borderThreats].sort((a,b)=>{
+        const distance=(cell:number)=>own.length?Math.min(...own.map(u=>
+          Math.abs(u.index%MAP_WIDTH-cell%MAP_WIDTH)+
+          Math.abs(Math.floor(u.index/MAP_WIDTH)-Math.floor(cell/MAP_WIDTH)))):50;
+        const value=(entry:[number,number])=>entry[1]-Math.min(80,distance(entry[0])*2);
+        return value(b)-value(a)||a[0]-b[0];
+      }).slice(0,24);
       const frontPositions:number[]=[];
       for(const [tile] of plannedFronts){
         if(frontPositions.length>=3)break;
@@ -1110,7 +1117,12 @@ export class Game {
       for(const target of frontPositions){
         const already=own.some(u=>u.index===target||u.destination===target);
         if(already||deployments>=deployable)continue;
-        const candidate=available.find(u=>!assignedDefenders.has(u.id));
+        const candidate=available.filter(u=>!assignedDefenders.has(u.id))
+          .sort((a,b)=>{
+            const dist=(u:typeof a)=>Math.abs(u.index%MAP_WIDTH-target%MAP_WIDTH)+
+              Math.abs(Math.floor(u.index/MAP_WIDTH)-Math.floor(target/MAP_WIDTH));
+            return dist(a)-dist(b)||b.troops-a.troops||a.id-b.id;
+          })[0];
         if(!candidate)break;
         const order=this.orderSquad(faction.id,candidate.id,cellToPoint(target));
         if(order.ok){assignedDefenders.add(candidate.id);deployments++;}
