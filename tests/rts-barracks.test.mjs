@@ -723,3 +723,24 @@ test('hostile RTS occupation advances from real squad position, not four cells a
  assert.equal(g.owner[first],0,'adjacent undefended hostile border is taken');
  assert.equal(g.owner[second],1,'hostile land two sectors beyond the stationary squad remains defended territory');
 });
+
+test('strategic AI front-distance planning stays deterministic under two live threats',()=>{
+ const first=new Game(20261013,3,'DE','balanced',true);
+ const second=new Game(20261013,3,'DE','balanced',true);
+ const setup=g=>{
+   const borders=g.owner.map((holder,i)=>holder===1&&
+     landNeighbors(i).some(n=>g.owner[n]===-1)?i:-1).filter(i=>i>=0);
+   const positions=[borders[0],borders.at(-1)].filter((i,j,a)=>i!==undefined&&a.indexOf(i)===j);
+   assert.ok(positions.length>=1);
+   positions.forEach((border,j)=>{
+     const opponent=landNeighbors(border).find(n=>g.owner[n]===-1);
+     g.owner[opponent]=0;
+     g.squads.push({id:992000+j,owner:0,index:opponent,troops:85,
+       destination:null,attackTarget:null,campaignTarget:null,campaignOwner:null});
+   });
+ };
+ setup(first);setup(second);
+ for(let i=0;i<15;i++){first.step();second.step();}
+ assert.deepEqual(first.exportSave(),second.exportSave(),
+   'defender assignments must not depend on incidental ordering');
+});
