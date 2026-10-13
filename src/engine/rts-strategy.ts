@@ -97,3 +97,15 @@ export function chooseRTSTheaterTarget(targets:readonly RTSTheaterTarget[]):numb
   }
   return score>=-20?chosen:null;
 }
+
+/** Preference for broad, connected neutral gains rather than narrow spikes. */
+export function scoreRTSNeutralFront(input:{
+  adjacentNeutral:number;secondRingNeutral:number;friendlySides:number;
+  distance:number;otherCommitments:number;
+}):number {
+  const {adjacentNeutral,secondRingNeutral,friendlySides,distance,otherCommitments}=input;
+  if(![adjacentNeutral,secondRingNeutral,friendlySides,distance,otherCommitments]
+      .every(Number.isFinite))return -Infinity;
+  return adjacentNeutral*11+secondRingNeutral*3+
+    friendlySides*17-distance*1.8-otherCommitments*55;
+}
