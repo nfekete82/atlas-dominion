@@ -1264,7 +1264,8 @@ export class Game {
               this.squads.splice(this.squads.indexOf(squad),1);
               continue;
             }
-            if(defender.troops>=1)continue;
+            // A sector remains defended while ANY real stationed squad survives.
+            if(this.squads.some(unit=>unit.owner===enemy&&unit.index===target))continue;
           }
           // A tower can inflict a small, real cost even without a defending
           // squad. Ordinary empty sectors are captured with ZERO losses.
