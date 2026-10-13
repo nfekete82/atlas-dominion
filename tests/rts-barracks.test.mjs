@@ -400,3 +400,15 @@ test('AI border-interception planning remains deterministic with physical soldie
  assert.ok(a.squads.every(u=>u.troops>0&&a.owner[u.index]===u.owner),
    'border defense cannot invent or strand physical squads');
 });
+
+test('layered AI defense stays deterministic and retains only real squads',()=>{
+ const a=new Game(101315,5,'DE','balanced',true);
+ const b=new Game(101315,5,'DE','balanced',true);
+ for(let tick=0;tick<125;tick++){a.step();b.step();}
+ assert.deepEqual(a.exportSave(),b.exportSave(),
+   'front assignment, reserve positioning and retreat must replay identically');
+ assert.ok(a.squads.every(u=>u.troops>0&&a.owner[u.index]===u.owner),
+   'defensive planning must not place squads on foreign land');
+ assert.ok(new Set(a.squads.map(u=>u.id)).size===a.squads.length,
+   'each squad remains a distinct physical formation');
+});

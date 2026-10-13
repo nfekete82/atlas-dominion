@@ -964,28 +964,46 @@ export class Game {
       if(own.length<Math.min(5,Math.max(2,Math.ceil(faction.territory/150)))&&faction.money>=100){
         this.recruitSquad(faction.id,cellToPoint(barracks),Math.min(100,Math.floor(faction.money/2)));
       }
-      // Protect threatened capitals, cities, towers and barracks before
-      // committing further groups to the offensive. All moves are physical.
+      // Build up to three separate threatened fronts. Soldiers are assigned
+      // physically from idle formations; a distant campaign stays committed.
       const enemyUnits=this.squads.filter(u=>u.owner!==faction.id&&
         !this.isAllied(faction.id,u.owner));
-      // Defend actual threatened borders, not just structures. An approaching
-      // hostile squad can conquer empty land for free, so intercept with real units.
-      let defensiveTarget=-1,defensiveThreat=-Infinity;
+      const borderThreats=new Map<number,number>();
       for(const enemy of enemyUnits){
         for(const tile of LAND_NEIGHBORS[enemy.index]){
           if(this.owner[tile]!==faction.id)continue;
           const valuable=this.capitalSites.has(tile)||this.buildings[tile]!==0;
-          const nearbyDefenders=own.filter(unit=>unit.index===tile||
-            unit.destination===tile).reduce((sum,unit)=>sum+unit.troops,0);
-          const distance=Math.abs(tile%MAP_WIDTH-barracks%MAP_WIDTH)+
-            Math.abs(Math.floor(tile/MAP_WIDTH)-Math.floor(barracks/MAP_WIDTH));
-          const score=enemy.troops+(valuable?100:0)-nearbyDefenders*2-distance*.2;
-          if(score>defensiveThreat){defensiveThreat=score;defensiveTarget=tile;}
+          const score=enemy.troops+(valuable?90:0);
+          borderThreats.set(tile,(borderThreats.get(tile)??0)+score);
         }
       }
-      // Only allocate a reserve formation when the frontline lacks enough
-      // soldiers. Never call the abstract instant-defense mechanics.
-      if(defensiveThreat<=0)defensiveTarget=-1;
+      const plannedFronts=[...borderThreats].sort((a,b)=>b[1]-a[1]||a[0]-b[0])
+        .filter(([tile],_,all)=>all.length>0)
+        .slice(0,16);
+      const frontPositions:number[]=[];
+      for(const [tile] of plannedFronts){
+        if(frontPositions.length>=3)break;
+        const x=tile%MAP_WIDTH,y=Math.floor(tile/MAP_WIDTH);
+        if(frontPositions.some(t=>Math.abs(t%MAP_WIDTH-x)+
+          Math.abs(Math.floor(t/MAP_WIDTH)-y)<6))continue;
+        frontPositions.push(tile);
+      }
+      const assignedDefenders=new Set<number>();
+      // Keep one available unit as a rear reserve when there are at least
+      // three formations; only the others receive frontline positions.
+      const available=own.filter(u=>u.troops>=20&&u.destination===null&&
+        u.attackTarget==null&&u.campaignTarget==null)
+        .sort((a,b)=>b.troops-a.troops||a.id-b.id);
+      const deployable=own.length>=3?Math.max(0,available.length-1):available.length;
+      let deployments=0;
+      for(const target of frontPositions){
+        const already=own.some(u=>u.index===target||u.destination===target);
+        if(already||deployments>=deployable)continue;
+        const candidate=available.find(u=>!assignedDefenders.has(u.id));
+        if(!candidate)break;
+        const order=this.orderSquad(faction.id,candidate.id,cellToPoint(target));
+        if(order.ok){assignedDefenders.add(candidate.id);deployments++;}
+      }
       const totalReady=own.reduce((sum,u)=>sum+u.troops,0);
       const strongestThreat=enemyUnits.reduce((max,u)=>{
         if(!LAND_NEIGHBORS[u.index].some(n=>this.owner[n]===faction.id))return max;
@@ -1011,19 +1029,24 @@ export class Game {
             this.orderSquad(faction.id,squad.id,cellToPoint(barracks));
           continue;
         }
-        if(defensiveTarget>=0&&squad.troops>=20){
-          const assigned=own.some(u=>u.troops>=20&&
-            (u.index===defensiveTarget||u.destination===defensiveTarget));
-          // Prefer an idle local reinforcement; preserve distant offensives
-          // unless this is the only usable formation.
-          const idle=own.find(u=>u.troops>=20&&u.destination===null&&
-            u.attackTarget==null&&u.campaignTarget==null);
-          if(!assigned&&(!idle||idle.id===squad.id)&&
-             (squad.campaignTarget==null||own.length===1)){
-            if(squad.index!==defensiveTarget){
-              const sent=this.orderSquad(faction.id,squad.id,cellToPoint(defensiveTarget));
-              if(sent.ok)continue;
-            }else continue;
+        if(assignedDefenders.has(squad.id))continue;
+        // Retreat only from a clearly superior *adjacent* enemy and only
+        // to a safe, owned neighboring sector. This is a real one-cell move.
+        const adjacentEnemies=enemyUnits.filter(enemy=>
+          LAND_NEIGHBORS[squad.index].includes(enemy.index));
+        const enemyStrength=adjacentEnemies.reduce((sum,u)=>sum+u.troops,0);
+        if(enemyStrength>squad.troops*2&&squad.troops>=1){
+          const safe=LAND_NEIGHBORS[squad.index].filter(tile=>
+            this.owner[tile]===faction.id&&
+            !enemyUnits.some(enemy=>LAND_NEIGHBORS[tile].includes(enemy.index)));
+          if(safe.length){
+            const retreat=safe.sort((x,y)=>{
+              const dist=(tile:number)=>Math.abs(tile%MAP_WIDTH-barracks%MAP_WIDTH)+
+                Math.abs(Math.floor(tile/MAP_WIDTH)-Math.floor(barracks/MAP_WIDTH));
+              return dist(x)-dist(y)||x-y;
+            })[0];
+            const order=this.orderSquad(faction.id,squad.id,cellToPoint(retreat));
+            if(order.ok)continue;
           }
         }
         if(strongestThreat>squad.troops*1.4&&totalReady>=strongestThreat&&rally&&
