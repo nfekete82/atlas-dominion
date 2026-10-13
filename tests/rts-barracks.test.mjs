@@ -534,3 +534,29 @@ test('AI recruitment keeps a construction reserve for threatened border towers',
  assert.ok(g.buildings.some((code,index)=>code===2&&g.owner[index]===ai),
    'a threatened AI must afford and construct at least one paid tower');
 });
+
+test('RTS troops can order a timed crossing to a disconnected hostile coast',async()=>{
+ const {COASTS}=await import('../dist/src/engine/navigation.js');
+ const g=new Game(20261013,49,'GB','balanced',true);
+ const ownCoast=COASTS.find(i=>g.owner[i]===0);
+ assert.ok(ownCoast!==undefined,'player requires a genuine coastal port');
+ const landing=COASTS.find(i=>g.owner[i]>=0&&g.owner[i]!==0&&
+   g.canLand(0,cellToPoint(i)));
+ assert.ok(landing!==undefined,'opponent requires a legal overseas landing');
+ const barracks=g.owner.findIndex((holder,index)=>holder===0&&
+   g.canBuild(0,cellToPoint(index),'barracks').ok);
+ assert.ok(barracks>=0);
+ g.factions[0].money=2000;
+ assert.ok(g.build(0,cellToPoint(barracks),'barracks').ok);
+ assert.ok(g.recruitSquad(0,cellToPoint(barracks),100).ok);
+ const unit=g.squads.find(u=>u.owner===0);
+ unit.index=ownCoast;
+ const order=g.orderSquadAttack(0,unit.id,cellToPoint(landing));
+ assert.ok(order.ok,order.reason);
+ assert.ok(unit.seaRoute?.length>=3,'route must include real water cells');
+ const saved=Game.fromSave(g.exportSave());
+ assert.deepEqual(saved.exportSave(),g.exportSave(),'sea orders must survive save/load');
+ const first=unit.index;
+ g.step();
+ assert.equal(unit.index,first,'soldiers must not teleport across water in one tick');
+});
