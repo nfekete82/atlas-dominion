@@ -494,6 +494,25 @@ export class MapRenderer {
   }
 
   private drawSquads(c:CanvasRenderingContext2D,time=0):void {
+    // Tactical routes appear only for selected squads, keeping busy maps clean.
+    c.save();
+    for(const squad of this.game.squads){
+      if(!this.selectedSquadIds.includes(squad.id))continue;
+      const goal=squad.campaignTarget??squad.attackTarget??squad.destination;
+      if(goal==null||goal===squad.index)continue;
+      const sx=this.ox+(squad.index%MAP_WIDTH+.5)*CW*this.scale;
+      const sy=this.oy+(Math.floor(squad.index/MAP_WIDTH)+.5)*CH*this.scale;
+      const tx=this.ox+(goal%MAP_WIDTH+.5)*CW*this.scale;
+      const ty=this.oy+(Math.floor(goal/MAP_WIDTH)+.5)*CH*this.scale;
+      c.save();
+      c.strokeStyle='rgba(130,216,255,.85)';c.lineWidth=2;
+      c.setLineDash([7,6]);c.lineDashOffset=-time*.018;
+      c.beginPath();c.moveTo(sx,sy);c.lineTo(tx,ty);c.stroke();c.setLineDash([]);
+      c.fillStyle='#102b3a';c.strokeStyle='#8bdcff';c.lineWidth=2;
+      c.beginPath();c.arc(tx,ty,6,0,Math.PI*2);c.fill();c.stroke();
+      c.restore();
+    }
+    c.restore();
     c.save();c.textAlign='center';c.textBaseline='middle';
     const liveIds=new Set(this.game.squads.map(unit=>unit.id));
     for(const id of this.squadVisuals.keys())if(!liveIds.has(id))this.squadVisuals.delete(id);
