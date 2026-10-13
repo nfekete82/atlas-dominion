@@ -1000,12 +1000,10 @@ export class Game {
     // Island powers can then evaluate actual sea routes instead of idling
     // because they have no land frontier.
     const coastalTargets:number[]=[];
-    if(this.tick%8===1){
-      for(let cell=0;cell<CELL_COUNT;cell++){
-        if(this.owner[cell]===WATER)continue;
-        if(LAND_NEIGHBORS[cell].some(n=>this.owner[n]===WATER))
-          coastalTargets.push(cell);
-      }
+    for(let cell=0;cell<CELL_COUNT;cell++){
+      if(this.owner[cell]===WATER)continue;
+      if(LAND_NEIGHBORS[cell].some(n=>this.owner[n]===WATER))
+        coastalTargets.push(cell);
     }
     for(const faction of this.factions){
       if(!faction.ai||!faction.alive)continue;
@@ -1249,7 +1247,7 @@ export class Game {
           // No land outlet: periodically search nearby unallied coastlines.
           // A real validated sea route, real soldiers and an affordable
           // landing are required. Never invent an ocean shortcut.
-          if(this.tick%8===1&&coastalTargets.length&&squad.troops>=25&&
+          if(this.tick%8===faction.id%8&&coastalTargets.length&&squad.troops>=25&&
              !alerted.has(faction.id)){
             const coast=coastalTargets.filter(tile=>
               this.owner[tile]!==faction.id&&
