@@ -690,3 +690,36 @@ test('alerted tactical AI keeps deterministic real layered defense without phant
  assert.ok(a.squads.every(u=>u.troops>0&&a.owner[u.index]===u.owner),
    'all defending soldiers must stay actual owned units');
 });
+
+test('a physical RTS squad captures nearby unguarded hostile sectors without a campaign',()=>{
+ const g=new Game(20261013,2,'DE','balanced',true);
+ const start=g.owner.findIndex((holder,index)=>holder===0&&
+   landNeighbors(index).some(n=>g.owner[n]===-1));
+ assert.ok(start>=0);
+ const adjacent=landNeighbors(start).find(n=>g.owner[n]===-1);
+ assert.ok(adjacent!==undefined);
+ g.owner[adjacent]=1;
+ g.squads.push({id:990013,owner:0,index:start,troops:90,destination:null,
+   attackTarget:null,campaignTarget:null,campaignOwner:null});
+ g.step();
+ assert.equal(g.owner[adjacent],0,
+   'unguarded hostile territory directly beside a real squad should be occupied');
+});
+
+test('hostile RTS occupation advances from real squad position, not four cells ahead',()=>{
+ const g=new Game(20261013,1,'DE','balanced',true);
+ const start=g.owner.findIndex((holder,index)=>holder===0&&
+   landNeighbors(index).some(next=>g.owner[next]===-1&&
+     landNeighbors(next).some(far=>far!==index&&g.owner[far]===-1)));
+ assert.ok(start>=0);
+ const first=landNeighbors(start).find(next=>g.owner[next]===-1&&
+   landNeighbors(next).some(far=>far!==start&&g.owner[far]===-1));
+ const second=landNeighbors(first).find(next=>next!==start&&g.owner[next]===-1);
+ assert.ok(second!==undefined);
+ g.owner[first]=1;g.owner[second]=1;
+ g.squads.push({id:990014,owner:0,index:start,troops:100,destination:null,
+   attackTarget:null,campaignTarget:null,campaignOwner:null});
+ g.step();
+ assert.equal(g.owner[first],0,'adjacent undefended hostile border is taken');
+ assert.equal(g.owner[second],1,'hostile land two sectors beyond the stationary squad remains defended territory');
+});
