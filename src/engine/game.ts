@@ -1109,7 +1109,7 @@ export class Game {
       // Compute the next step only after reaching the current waypoint.
       const goal=squad.campaignTarget;
       if(goal!==null&&goal!==undefined&&
-         squad.destination===null&&squad.attackTarget===null){
+         squad.destination===null&&squad.attackTarget==null){
         if(squad.index===goal){
           squad.campaignTarget=null;squad.campaignOwner=null;
         }else{
