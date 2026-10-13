@@ -933,7 +933,7 @@ export class Game {
    * real paid orders. Staggered to keep 50-country turns inexpensive.
    */
   private commandRTSAI():void {
-    if(!this.rtsRecruitment||!this.factions.some(f=>f.ai&&f.alive&&this.tick%28===f.id%28))return;
+    if(!this.rtsRecruitment||!this.factions.some(f=>f.ai&&f.alive&&this.tick%20===f.id%20))return;
     // Build a single spatial index per AI turn rather than scanning every
     // map cell for each of up to 49 countries.
     const barracksSites=new Int32Array(this.factions.length).fill(-1);
@@ -953,7 +953,7 @@ export class Game {
     }
     for(const faction of this.factions){
       if(!faction.ai||!faction.alive)continue;
-      if(this.tick%28!==faction.id%28)continue;
+      if(this.tick%20!==faction.id%20)continue;
       const own=this.squads.filter(s=>s.owner===faction.id);
       const barracks=barracksSites[faction.id];
       if(barracks<0){
@@ -1107,7 +1107,7 @@ export class Game {
         this.factions[squad.owner].troops+=squad.troops;
         this.squads.splice(i,1);continue;
       }
-      // Occupation follows the actual unit. Up to eight neutral sectors in a
+      // Occupation follows the actual unit. Up to twelve neutral sectors in a
       // radius of two are taken per tick, never hostile/towered sectors.
       if(this.rtsRecruitment){
         const candidates=new Set<number>();
@@ -1117,7 +1117,7 @@ export class Game {
         }
         let occupied=0;
         for(const tile of candidates){
-          if(occupied>=8)break;
+          if(occupied>=12)break;
           if(this.owner[tile]!==NEUTRAL)continue;
           // Only spread through contiguous empty terrain that touches our land;
           // not diagonally across a lake or through a hostile border.
@@ -1167,7 +1167,7 @@ export class Game {
         }
         if(enemy>=0&&enemy!==squad.owner&&!this.isAllied(squad.owner,enemy)){
           // The unit remains present. Only genuine defended fighting can kill it.
-          const spent=Math.min(12,Math.max(2,squad.troops*.12));
+          const spent=Math.min(18,Math.max(2,squad.troops*.16));
           const tower=this.towerSupport(enemy,target);
           const captured=this.strike(this.factions[squad.owner],target,spent/(1+tower*.30));
           const losses=Math.min(squad.troops,Math.max(0,this.lastAttackerLoss));

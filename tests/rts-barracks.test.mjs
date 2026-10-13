@@ -316,3 +316,15 @@ test('several RTS squads accept a shared real rally order without merging soldie
  assert.ok(g.squads.every(unit=>unit.index===goal),
    'all three real formations reached the same rally point');
 });
+
+test('faster RTS expansion remains deterministic and cannot capture remote land',()=>{
+ const a=new Game(9997,4,'DE','balanced',true);
+ const b=new Game(9997,4,'DE','balanced',true);
+ for(let n=0;n<100;n++){a.step();b.step();}
+ assert.deepEqual(a.exportSave(),b.exportSave(),
+   'shorter AI orders must replay identically');
+ assert.ok(a.squads.every(u=>u.troops>0&&a.owner[u.index]===u.owner),
+   'faster conquest must preserve real army positions and soldiers');
+ assert.ok(a.factions.every(f=>f.troops>=0&&f.money>=0),
+   'increased attack pressure must never create debts or negative reserves');
+});
