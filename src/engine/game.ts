@@ -6,7 +6,7 @@ import { attackFrontWidth, frontierBudget, frontierTarget, localDefenseStrength 
 import { BUILDINGS, BUILDING_CODES, type BuildingType, FACTORY_INCOME, FACTORY_CONNECTION_MULTIPLIER, FACTORY_LINK_MAX_DISTANCE, troopGrowth, taxRevenue, cityUpgradeCost, cityUpgradeGrowth, upgradedCityRecruitment } from './economy.js';
 import { findConnectedAttackFront } from './front-target.js';
 import {aiStyle,scoreAIFront} from './ai-strategy.js';
-import {scoreRTSTarget,chooseRTSOperation} from './rts-strategy.js';
+import {scoreRTSTarget,chooseRTSOperation,chooseRTSPosture} from './rts-strategy.js';
 import {rtsFrontWidth,rtsContactLoss} from './rts-frontage.js';
 import {aiMarchRecovery,aiAttacksPerTick,aiStrikeSize,aiRiskTolerance} from './ai-tactics.js';
 import {formatCompact} from '../format.js';
@@ -1263,7 +1263,16 @@ export class Game {
         // Preserve multi-sector campaigns: a transient null waypoint does
         // not mean the player/AI's long-distance goal has been abandoned.
         if(squad.destination!==null||squad.attackTarget!=null||squad.campaignTarget!=null)continue;
-        if(reinforceTarget!=null&&squad.id!==offensive?.id&&squad.troops>=20){
+        const posture=chooseRTSPosture({
+          localThreat:enemyStrength,availableTroops:squad.troops,
+          activeCampaigns:reinforceTarget!=null?1:0,
+          neutralFrontier:LAND_NEIGHBORS[squad.index].some(n=>this.owner[n]===NEUTRAL),
+          hostileFrontier:LAND_NEIGHBORS[squad.index].some(n=>
+            this.owner[n]>=0&&this.owner[n]!==faction.id&&
+            !this.isAllied(faction.id,this.owner[n]))
+        });
+        if(posture==='reinforce'&&reinforceTarget!=null&&
+           squad.id!==offensive?.id&&squad.troops>=20){
           const joined=this.orderSquadAttack(faction.id,squad.id,cellToPoint(reinforceTarget));
           if(joined.ok)continue;
         }
