@@ -982,6 +982,28 @@ export class Game {
           borderThreats.set(tile,(borderThreats.get(tile)??0)+score);
         }
       }
+      // AI purchases genuine defensive towers at its most exposed border.
+      // Cap construction per realm, keep towers separated, and retain enough
+      // gold for recruiting actual defenders. No free fortifications.
+      if(borderThreats.size&&this.tick%24===faction.id%24&&faction.money>=260){
+        let towerCount=0;
+        const existingTowers:number[]=[];
+        for(let cell=0;cell<CELL_COUNT;cell++){
+          if(this.owner[cell]===faction.id&&this.buildings[cell]===BUILDING_CODES.tower){
+            towerCount++;existingTowers.push(cell);
+          }
+        }
+        if(towerCount<Math.min(8,Math.max(2,Math.ceil(faction.territory/110)))){
+          const candidates=[...borderThreats].sort((a,b)=>b[1]-a[1]||a[0]-b[0]);
+          for(const [tile] of candidates){
+            if(this.buildings[tile]||this.capitalSites.has(tile))continue;
+            if(existingTowers.some(other=>
+              Math.abs(other%MAP_WIDTH-tile%MAP_WIDTH)+
+              Math.abs(Math.floor(other/MAP_WIDTH)-Math.floor(tile/MAP_WIDTH))<7))continue;
+            if(this.build(faction.id,cellToPoint(tile),'tower').ok)break;
+          }
+        }
+      }
       const plannedFronts=[...borderThreats].sort((a,b)=>b[1]-a[1]||a[0]-b[0])
         .filter(([tile],_,all)=>all.length>0)
         .slice(0,16);
@@ -1000,6 +1022,17 @@ export class Game {
         u.attackTarget==null&&u.campaignTarget==null)
         .sort((a,b)=>b.troops-a.troops||a.id-b.id);
       const deployable=own.length>=3?Math.max(0,available.length-1):available.length;
+      // If every AI squad is on campaign, redirect a real formation from
+      // the least critical offensive when important owned land is threatened.
+      if(frontPositions.length&&available.length===0&&own.length){
+        const emergency=own.filter(u=>u.troops>=20)
+          .sort((a,b)=>{
+            const distance=(u:typeof a)=>Math.abs(u.index%MAP_WIDTH-frontPositions[0]%MAP_WIDTH)+
+              Math.abs(Math.floor(u.index/MAP_WIDTH)-Math.floor(frontPositions[0]/MAP_WIDTH));
+            return distance(a)-distance(b)||a.id-b.id;
+          })[0];
+        if(emergency)this.orderSquad(faction.id,emergency.id,cellToPoint(frontPositions[0]));
+      }
       let deployments=0;
       for(const target of frontPositions){
         const already=own.some(u=>u.index===target||u.destination===target);
