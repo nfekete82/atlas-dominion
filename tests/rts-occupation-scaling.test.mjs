@@ -18,8 +18,10 @@ test('larger real RTS formations occupy more connected neutral territory per tic
     }
     return seen.size-1;
   };
-  const starts=small.owner.flatMap((id,i)=>id===0?[i]:[]);
-  const start=starts.reduce((a,b)=>potential(small,b)>potential(small,a)?b:a);
+  let start=-1;
+  for(let i=0;i<small.owner.length;i++){
+    if(small.owner[i]===0&&potential(small,i)>=15){start=i;break;}
+  }
   assert.ok(potential(small,start)>=15,'test needs accessible neutral territory');
   small.squads.push({id:106410,owner:0,index:start,troops:24,destination:null,attackTarget:null});
   large.squads.push({id:106410,owner:0,index:start,troops:360,destination:null,attackTarget:null});
