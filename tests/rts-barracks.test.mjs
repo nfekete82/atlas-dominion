@@ -172,3 +172,33 @@ test('50-country RTS economy and AI remain deterministic over prolonged turns',(
  assert.ok(a.squads.every(u=>u.troops>0&&u.troops<=1000&&a.owner[u.index]===u.owner));
  assert.ok(a.squads.some(u=>u.owner>0),'at least one AI must field an actual squad');
 });
+
+test('a distant RTS conquest target persists beyond the first captured sector',()=>{
+ const g=new Game(9911,1,'DE','balanced',true);
+ const start=g.owner.findIndex((v,i)=>v===0&&landNeighbors(i).some(n=>g.owner[n]===-1));
+ assert.ok(start>=0);
+ const neighbor=landNeighbors(start).find(n=>g.owner[n]===-1);
+ // Follow neutral land to a genuine target at least several tiles away.
+ const seen=new Set([start,neighbor]),queue=[neighbor];
+ let distant=-1;
+ for(let head=0;head<queue.length&&head<1000;head++){
+   const index=queue[head];
+   if(Math.abs(index%480-start%480)+Math.abs(Math.floor(index/480)-Math.floor(start/480))>=5){
+     distant=index;break;
+   }
+   for(const next of landNeighbors(index))if(g.owner[next]===-1&&!seen.has(next)){seen.add(next);queue.push(next);}
+ }
+ assert.ok(distant>=0,'test seed must provide a contiguous distant neutral target');
+ const site=g.owner.findIndex((v,i)=>v===0&&!g.buildings[i]&&g.canBuild(0,cellToPoint(i),'barracks').ok);
+ assert.ok(site>=0);
+ assert.ok(g.build(0,cellToPoint(site),'barracks').ok);
+ assert.ok(g.recruitSquad(0,cellToPoint(site),100).ok);
+ const unit=g.squads[0];unit.index=start;
+ assert.ok(g.orderSquadAttack(0,unit.id,cellToPoint(distant)).ok);
+ assert.equal(unit.campaignTarget,distant);
+ assert.deepEqual(Game.fromSave(g.exportSave()).exportSave(),g.exportSave());
+ for(let i=0;i<60&&unit.campaignTarget!==null;i++)g.step();
+ assert.equal(unit.index,distant,'unit marches to clicked target, not merely the first border');
+ assert.equal(g.owner[distant],0);
+ assert.ok(g.squads.includes(unit),'campaign soldier group must remain alive');
+});
