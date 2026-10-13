@@ -72,6 +72,7 @@ export class MapRenderer {
   game: Game;
   onSelect: (point: Point, landing: boolean) => void = () => {};
   onSelectSquads:(ids:number[])=>void=()=>{};
+  onCommandSquads:(point:Point)=>void=()=>{};
   selectedSquadIds:number[]=[];
   private selectionBox:{x1:number;y1:number;x2:number;y2:number}|null=null;
   onBuildRequest: (point: Point | null, clientX: number, clientY: number) => void = () => {};
@@ -1331,8 +1332,14 @@ export class MapRenderer {
       this.onHover(this.hover,this.hoverPointer.x,this.hoverPointer.y,e.shiftKey);
     });
     let lastSecondary=-Infinity;
-    const requestBuild=(clientX:number,clientY:number)=>{
+    const requestBuild=(clientX:number,clientY:number,forceMenu=false)=>{
       const point=this.cellAt(clientX,clientY,false);
+      // Ordinary right-click orders currently selected player formations.
+      // Shift+right-click preserves the building/diplomacy context menu.
+      if(point&&!forceMenu&&this.selectedSquadIds.some(id=>
+        this.game.squads.some(unit=>unit.id===id&&unit.owner===0))){
+        this.onCommandSquads(point);return;
+      }
       this.onBuildRequest(point,clientX,clientY);
     };
     this.canvas.addEventListener('pointerup',e=>{
@@ -1356,7 +1363,7 @@ export class MapRenderer {
       }else if(dragButton===2){
         lastSecondary=performance.now();
         if(moved||rightGestureMoved)suppressContextUntil=lastSecondary+500;
-        else requestBuild(e.clientX,e.clientY);
+        else requestBuild(e.clientX,e.clientY,e.shiftKey);
       }
       activePointer=null;dragButton=null;this.dragging=false;
       this.selectionBox=null;rightGestureMoved=false;
@@ -1373,7 +1380,7 @@ export class MapRenderer {
       e.preventDefault();
       const now=performance.now();
       if(now<suppressContextUntil||now-lastSecondary<500||dragButton===2)return;
-      lastSecondary=now;requestBuild(e.clientX,e.clientY);
+      lastSecondary=now;requestBuild(e.clientX,e.clientY,e.shiftKey);
     });
     this.canvas.addEventListener('wheel',e=>{
       e.preventDefault();
