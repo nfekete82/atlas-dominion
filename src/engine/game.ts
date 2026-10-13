@@ -158,6 +158,18 @@ for (let y = 0; y < MAP_HEIGHT; y++) {
   }
 }
 const LAND_NEIGHBORS = NEIGHBORS.map(list => list.slice());
+// Movement may use eight directions. Territory capture and fighting retain
+// four-sided adjacency so diagonal corner contacts do not create fronts.
+const MOVE_NEIGHBORS=LAND_NEIGHBORS.map((orthogonal,index)=>{
+  const x=index%MAP_WIDTH,y=Math.floor(index/MAP_WIDTH);
+  const result=[...orthogonal];
+  for(const dy of [-1,1])for(const dx of [-1,1]){
+    const nx=x+dx,ny=y+dy;
+    if(nx>=0&&nx<MAP_WIDTH&&ny>=0&&ny<MAP_HEIGHT)
+      result.push(ny*MAP_WIDTH+nx);
+  }
+  return result;
+});
 // SEA_CROSSINGS are navigation links only; land attacks use LAND_NEIGHBORS.
 // Short sea crossings make islands and Anatolia reachable without a naval system.
 for (const [a, b] of SEA_CROSSINGS) {
@@ -1476,7 +1488,7 @@ export class Game {
         // Use beginning-of-tick strength so casualties don't mutate the
         // command budget halfway through the same occupation.
         const occupationBudget=Math.min(30,Math.max(3,Math.floor(squad.troops/12)));
-        const hostileDepth=squad.troops>=100?1:0;
+        const hostileDepth=squad.troops>=240?2:squad.troops>=100?1:0;
         let taken=0;
         for(let head=0;head<queue.length&&taken<occupationBudget;head++){
           const [cell,depth]=queue[head];
@@ -1514,7 +1526,7 @@ export class Game {
               // Occupied hostile ground costs real soldiers. Wider sweeps
               // spend more manpower and stop when the unit is exhausted.
               if(holder>=0){
-                const lost=Math.min(squad.troops,Math.max(.6,1.4+taken*.42));
+                const lost=Math.min(squad.troops,Math.max(.6,1.4+taken*.42)*(1+depth*.35));
                 squad.troops-=lost;
                 this.factions[squad.owner].attackFallen+=lost;
                 if(squad.troops<10)break;
@@ -1666,8 +1678,17 @@ export class Game {
       let head=0;
       while(head<queue.length&&head<12000&&!parents.has(squad.destination)){
         const current=queue[head++];
-        for(const next of LAND_NEIGHBORS[current]){
+        for(const next of MOVE_NEIGHBORS[current]){
           if(this.owner[next]!==squad.owner||parents.has(next))continue;
+          const dx=next%MAP_WIDTH-current%MAP_WIDTH;
+          const dy=Math.floor(next/MAP_WIDTH)-Math.floor(current/MAP_WIDTH);
+          if(dx!==0&&dy!==0){
+            // Both side cells must be friendly: never cut a corner across
+            // water, a foreign state or an enemy-controlled defensive line.
+            const sideX=current+dx,sideY=current+dy*MAP_WIDTH;
+            if(this.owner[sideX]!==squad.owner||
+               this.owner[sideY]!==squad.owner)continue;
+          }
           parents.set(next,current);queue.push(next);
         }
       }
