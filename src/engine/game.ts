@@ -932,7 +932,7 @@ export class Game {
    * real paid orders. Staggered to keep 50-country turns inexpensive.
    */
   private commandRTSAI():void {
-    if(!this.rtsRecruitment)return;
+    if(!this.rtsRecruitment||!this.factions.some(f=>f.ai&&f.alive&&this.tick%28===f.id%28))return;
     // Build a single spatial index per AI turn rather than scanning every
     // map cell for each of up to 49 countries.
     const barracksSites=new Int32Array(this.factions.length).fill(-1);
