@@ -1069,6 +1069,16 @@ export class Game {
           Math.abs(Math.floor(t/MAP_WIDTH)-y)<6))continue;
         frontPositions.push(tile);
       }
+      // Second line: hold a genuine reserve one or two cells behind the
+      // most threatened border instead of placing every unit on one tile.
+      const secondLine:number[]=[];
+      for(const front of frontPositions){
+        const rear=LAND_NEIGHBORS[front].filter(tile=>this.owner[tile]===faction.id&&
+          !frontPositions.includes(tile)&&
+          !enemyUnits.some(e=>LAND_NEIGHBORS[tile].includes(e.index)))
+          .sort((x,y)=>x-y)[0];
+        if(rear!==undefined&&!secondLine.includes(rear))secondLine.push(rear);
+      }
       const assignedDefenders=new Set<number>();
       // Keep one available unit as a rear reserve when there are at least
       // three formations; only the others receive frontline positions.
@@ -1096,6 +1106,41 @@ export class Game {
         if(!candidate)break;
         const order=this.orderSquad(faction.id,candidate.id,cellToPoint(target));
         if(order.ok){assignedDefenders.add(candidate.id);deployments++;}
+      }
+      // Protect a second line with actual surplus squads. Only idle units
+      // can be tasked; committed campaign armies are not duplicated.
+      if(alerted.has(faction.id)&&available.length>deployments){
+        for(const rear of secondLine){
+          const covered=own.some(u=>u.index===rear||u.destination===rear);
+          if(covered)continue;
+          const candidate=available.find(u=>!assignedDefenders.has(u.id));
+          if(!candidate)break;
+          if(this.orderSquad(faction.id,candidate.id,cellToPoint(rear)).ok)
+            assignedDefenders.add(candidate.id);
+        }
+      }
+      // Counterattack only when local superiority is overwhelming; weaker
+      // AI defenders hold their positions instead of charging blindly.
+      if(alerted.has(faction.id)){
+        for(const unit of own){
+          if(unit.troops<60||unit.seaRoute?.length||unit.destination!==null||
+             unit.attackTarget!=null||unit.campaignTarget!=null)continue;
+          const targets=LAND_NEIGHBORS[unit.index].filter(tile=>{
+            const holder=this.owner[tile];
+            if(holder<0||holder===faction.id||this.isAllied(faction.id,holder))return false;
+            const defenders=this.squads.filter(enemy=>enemy.owner!==faction.id&&
+              !this.isAllied(faction.id,enemy.owner)&&
+              (enemy.index===tile||LAND_NEIGHBORS[tile].includes(enemy.index)));
+            const power=defenders.reduce((sum,enemy)=>sum+enemy.troops,0);
+            return power>0&&unit.troops>=power*2.25&&
+              this.buildings[tile]!==BUILDING_CODES.tower;
+          });
+          if(targets.length){
+            const target=targets.sort((x,y)=>x-y)[0];
+            if(this.orderSquadAttack(faction.id,unit.id,cellToPoint(target)).ok)
+              assignedDefenders.add(unit.id);
+          }
+        }
       }
       const totalReady=own.reduce((sum,u)=>sum+u.troops,0);
       const strongestThreat=enemyUnits.reduce((max,u)=>{
