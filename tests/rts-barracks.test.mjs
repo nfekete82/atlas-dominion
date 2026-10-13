@@ -454,3 +454,27 @@ test('wider foreign occupation cannot sweep past an adjacent real defender',()=>
  assert.ok(g.squads.some(unit=>unit.id===108131&&unit.troops>0),
    'defenders remain actual squads');
 });
+
+test('RTS frontline guards screen surrounding neutral terrain without phantom defenders',()=>{
+ const game=new Game(10331,1,'DE','balanced',true);
+ const start=game.owner.findIndex((owner,index)=>owner===0&&landNeighbors(index).some(n=>
+   game.owner[n]===-1&&landNeighbors(n).some(other=>game.owner[other]===-1)));
+ assert.ok(start>=0);
+ const guarded=landNeighbors(start).find(n=>game.owner[n]===-1&&
+   landNeighbors(n).some(other=>game.owner[other]===-1));
+ assert.ok(guarded!==undefined);
+ // The defender stands on its own land and protects neighboring unoccupied land.
+ game.owner[guarded]=1;
+ game.squads.push({id:103310,owner:0,index:start,troops:100,destination:null,
+   attackTarget:null,campaignTarget:null,campaignOwner:null});
+ game.squads.push({id:103311,owner:1,index:guarded,troops:80,destination:null,
+   attackTarget:null,campaignTarget:null,campaignOwner:null});
+ const screened=landNeighbors(guarded).filter(n=>game.owner[n]===-1);
+ assert.ok(screened.length>0,'fixture requires an unoccupied contact sector');
+ game.step();
+ // The guarding AI may legitimately occupy its own adjacent neutral land.
+ // What must never happen is the attacking army sweeping through its screen.
+ assert.ok(screened.every(index=>game.owner[index]!==0),
+   'attacker cannot auto-sweep neutral terrain screened by a real defender');
+ assert.equal(game.owner[guarded],1);
+});

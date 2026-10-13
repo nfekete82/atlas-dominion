@@ -1162,6 +1162,12 @@ export class Game {
             reached.add(next);
             const holder=this.owner[next];
             if(holder===WATER||holder===squad.owner&&depth>=3)continue;
+            // A visible hostile army screens adjacent tiles regardless of
+            // whether the terrain underneath is neutral or already occupied.
+            // Sweeping past a real frontline without fighting is not allowed.
+            if(holder!==squad.owner&&this.squads.some(unit=>
+              unit.owner!==squad.owner&&!this.isAllied(squad.owner,unit.owner)&&
+              (unit.index===next||LAND_NEIGHBORS[next].includes(unit.index))))continue;
             if(holder>=0&&holder!==squad.owner){
               if(this.isAllied(squad.owner,holder)||
                  this.buildings[next]===BUILDING_CODES.tower||
@@ -1235,7 +1241,9 @@ export class Game {
           const guards=this.squads.filter(unit=>unit.owner===enemy&&unit.index===target);
           const tower=this.buildings[target]===BUILDING_CODES.tower;
           if(guards.length){
-            const defender=guards[0];
+            // Engage every physical defending unit at this objective.
+            // Do not treat only the first squad as the entire garrison.
+            const defender=guards.reduce((best,unit)=>unit.troops>best.troops?unit:best);
             const attackers=squad.troops,defenders=defender.troops;
             const defenderLost=Math.min(defenders,Math.max(1,attackers*.18));
             const attackerLost=Math.min(attackers,Math.max(.25,defenders*.035));
@@ -1256,7 +1264,8 @@ export class Game {
               this.squads.splice(this.squads.indexOf(squad),1);
               continue;
             }
-            if(defender.troops>=1)continue;
+            // A sector remains defended while ANY real stationed squad survives.
+            if(this.squads.some(unit=>unit.owner===enemy&&unit.index===target))continue;
           }
           // A tower can inflict a small, real cost even without a defending
           // squad. Ordinary empty sectors are captured with ZERO losses.
