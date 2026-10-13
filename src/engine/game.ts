@@ -932,23 +932,32 @@ export class Game {
    * real paid orders. Staggered to keep 50-country turns inexpensive.
    */
   private commandRTSAI():void {
-    if(!this.rtsRecruitment)return;
+    if(!this.rtsRecruitment||!this.factions.some(f=>f.ai&&f.alive&&this.tick%28===f.id%28))return;
+    // Build a single spatial index per AI turn rather than scanning every
+    // map cell for each of up to 49 countries.
+    const barracksSites=new Int32Array(this.factions.length).fill(-1);
+    const constructionSites=new Int32Array(this.factions.length).fill(-1);
+    const constructionDist=new Float64Array(this.factions.length).fill(Infinity);
+    for(let i=0;i<CELL_COUNT;i++){
+      const id=this.owner[i];
+      if(id<=0||!this.factions[id]?.alive)continue;
+      if(this.buildings[i]===BUILDING_CODES.barracks){
+        if(barracksSites[id]<0)barracksSites[id]=i;
+      }else if(!this.buildings[i]&&!this.capitalSites.has(i)){
+        const base=pointToIndex(this.factions[id].target);
+        const dist=Math.abs(i%MAP_WIDTH-base%MAP_WIDTH)+
+          Math.abs(Math.floor(i/MAP_WIDTH)-Math.floor(base/MAP_WIDTH));
+        if(dist<constructionDist[id]){constructionDist[id]=dist;constructionSites[id]=i;}
+      }
+    }
     for(const faction of this.factions){
       if(!faction.ai||!faction.alive)continue;
       if(this.tick%28!==faction.id%28)continue;
       const own=this.squads.filter(s=>s.owner===faction.id);
-      let barracks=-1;
-      for(let i=0;i<CELL_COUNT;i++)if(this.owner[i]===faction.id&&this.buildings[i]===BUILDING_CODES.barracks){barracks=i;break;}
+      const barracks=barracksSites[faction.id];
       if(barracks<0){
-        if(faction.money<280)continue;
-        const base=pointToIndex(faction.target);
-        // Prefer a sector close to the nation's initial capital.
-        let best=-1,dist=Infinity;
-        for(let i=0;i<CELL_COUNT;i++)if(this.owner[i]===faction.id&&!this.buildings[i]&&!this.capitalSites.has(i)){
-          const d=Math.abs(i%MAP_WIDTH-base%MAP_WIDTH)+Math.abs(Math.floor(i/MAP_WIDTH)-Math.floor(base/MAP_WIDTH));
-          if(d<dist){dist=d;best=i;}
-        }
-        if(best>=0)this.build(faction.id,cellToPoint(best),'barracks');
+        if(faction.money>=280&&constructionSites[faction.id]>=0)
+          this.build(faction.id,cellToPoint(constructionSites[faction.id]),'barracks');
         continue;
       }
       if(own.length<Math.min(5,Math.max(2,Math.ceil(faction.territory/150)))&&faction.money>=100){
@@ -980,11 +989,14 @@ export class Game {
       for(const squad of own){
         // Damaged AI forces retreat to their barracks instead of blindly
         // feeding the enemy. The remaining troops stay physical and alive.
-        if(squad.troops<20&&squad.index!==barracks){
-          this.orderSquad(faction.id,squad.id,cellToPoint(barracks));continue;
+        if(squad.troops<20){
+          if(squad.index!==barracks&&squad.destination!==barracks)
+            this.orderSquad(faction.id,squad.id,cellToPoint(barracks));
+          continue;
         }
         if(defensiveTarget>=0&&squad.troops>=20){
-          if(squad.index!==defensiveTarget)this.orderSquad(faction.id,squad.id,cellToPoint(defensiveTarget));
+          if(squad.index!==defensiveTarget&&squad.destination!==defensiveTarget)
+            this.orderSquad(faction.id,squad.id,cellToPoint(defensiveTarget));
           continue;
         }
         if(strongestThreat>squad.troops*1.4&&totalReady>=strongestThreat&&rally&&
@@ -2441,7 +2453,7 @@ export class Game {
        squads.some(v=>!Number.isSafeInteger(v.id)||v.id<=0||
          !Number.isInteger(v.owner)||v.owner<0||v.owner>=g.factions.length||
          !Number.isInteger(v.index)||v.index<0||v.index>=CELL_COUNT||
-         g.owner[v.index]!==v.owner||!Number.isFinite(v.troops)||v.troops<10||v.troops>1000||
+         g.owner[v.index]!==v.owner||!Number.isFinite(v.troops)||v.troops<=0||v.troops>1000||
          (v.destination!==null&&(!Number.isInteger(v.destination)||v.destination<0||
            v.destination>=CELL_COUNT||g.owner[v.destination]!==v.owner))||
          (v.attackTarget!==undefined&&v.attackTarget!==null&&
