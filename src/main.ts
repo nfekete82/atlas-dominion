@@ -679,6 +679,11 @@ function renderBuildMenu(): void {
     </button>`:'');
 }
 renderer.onBuildRequest=(point,clientX,clientY)=>{
+  // A context-menu right-click ends the current RTS selection, including
+  // multi-selected formations and their tactical route highlights.
+  selectedSquadId=null;
+  selectedSquadIds=[];
+  renderer.selectedSquadIds=[];
   if(modalVisible||!point||game.owner[pointToIndex(point)]<0){closeBuildMenu();return;}
   buildSpot=point;
   const owner=game.owner[pointToIndex(point)];
