@@ -497,7 +497,11 @@ export class MapRenderer {
     c.save();c.textAlign='center';c.textBaseline='middle';
     const liveIds=new Set(this.game.squads.map(unit=>unit.id));
     for(const id of this.squadVisuals.keys())if(!liveIds.has(id))this.squadVisuals.delete(id);
+    const stackPositions=new Map<string,number>();
     for(const squad of this.game.squads){
+      const stackKey=`${squad.owner}:${squad.index}`;
+      const stackNumber=stackPositions.get(stackKey)??0;
+      stackPositions.set(stackKey,stackNumber+1);
       let visual=this.squadVisuals.get(squad.id);
       if(!visual){
         visual={index:squad.index,from:squad.index,changedAt:time-170};
@@ -514,8 +518,10 @@ export class MapRenderer {
       const vx=(visual.from%MAP_WIDTH)*(1-easing)+(squad.index%MAP_WIDTH)*easing;
       const vy=Math.floor(visual.from/MAP_WIDTH)*(1-easing)+
         Math.floor(squad.index/MAP_WIDTH)*easing;
-      const x=this.ox+(vx+.5)*CW*this.scale;
-      const y=this.oy+(vy+.5)*CH*this.scale;
+      const offsetX=stackNumber===0?0:Math.cos(stackNumber*2.39996)*Math.min(27,12+stackNumber*4);
+      const offsetY=stackNumber===0?0:Math.sin(stackNumber*2.39996)*Math.min(20,8+stackNumber*3);
+      const x=this.ox+(vx+.5)*CW*this.scale+offsetX;
+      const y=this.oy+(vy+.5)*CH*this.scale+offsetY;
       if(x< -40||y< -40||x>this.canvas.clientWidth+40||y>this.canvas.clientHeight+40)continue;
       const selected=this.selectedSquadIds.includes(squad.id);
       const relation=this.squadRelationColor(squad.owner);
@@ -532,7 +538,18 @@ export class MapRenderer {
         c.fillText(String(Math.round(squad.troops)),x,y-16);
         continue;
       }
-      const marching=squad.destination!==null;
+      const marching=squad.destination!==null||squad.campaignTarget!=null;
+      const goal=squad.destination??squad.attackTarget??squad.campaignTarget;
+      if(goal!=null&&goal!==squad.index){
+        const tx=this.ox+(goal%MAP_WIDTH+.5)*CW*this.scale;
+        const ty=this.oy+(Math.floor(goal/MAP_WIDTH)+.5)*CH*this.scale;
+        const direction=Math.atan2(ty-y,tx-x);
+        // Short chevron points along the actual ordered march direction.
+        c.save();c.translate(x,y);c.rotate(direction);
+        c.fillStyle=relation;c.globalAlpha=.9;
+        c.beginPath();c.moveTo(31,0);c.lineTo(21,-5);c.lineTo(21,5);c.closePath();c.fill();
+        c.restore();
+      }
       const combat=(squad.attackTarget!==null&&squad.attackTarget!==undefined&&squad.destination===null)||
         this.game.battleEvents.some(e=>e.tick===this.game.tick&&
           (e.attackerId===squad.owner||e.defenderId===squad.owner)&&
