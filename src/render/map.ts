@@ -1240,7 +1240,12 @@ export class MapRenderer {
     window.addEventListener('keydown',e=>{
       const key=e.key.toLowerCase();
       if(!directions.has(key)||e.altKey||e.ctrlKey||e.metaKey||typing(e.target))return;
-      if(document.querySelector('[role="dialog"][aria-modal="true"],dialog[open]'))return;
+      // Country picker and dialog overlays stay in the DOM after closing.
+      // Only a visibly open modal may block gameplay keyboard controls.
+      const openModal=Array.from(document.querySelectorAll<HTMLElement>(
+        '[role="dialog"][aria-modal="true"],dialog[open]'
+      )).some(modal=>!modal.closest('[hidden]')&&modal.getClientRects().length>0);
+      if(openModal)return;
       e.preventDefault();this.panKeys.add(key);
     });
     window.addEventListener('keyup',e=>this.panKeys.delete(e.key.toLowerCase()));
