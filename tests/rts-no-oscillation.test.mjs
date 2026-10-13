@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,cellToPoint,landNeighbors} from '../dist/src/engine/game.js';
 
-test('a captured campaign goal is cleared without sending a squad backwards',()=>{
+test('a captured campaign goal remains a physical rendezvous and finishes without oscillation',()=>{
  const game=new Game(2026101313,1,'DE','balanced',true);
  const start=game.owner.findIndex((holder,i)=>holder===0&&
    landNeighbors(i).some(next=>game.owner[next]===-1));
@@ -15,8 +15,10 @@ test('a captured campaign goal is cleared without sending a squad backwards',()=
  // A different formation has already secured this target.
  game.owner[goal]=0;
  game.step();
+ assert.equal(squad.index,goal,
+   'other squads conquering the target cannot cancel the actual march');
+ game.step();
  assert.equal(squad.campaignTarget,null,
-   'completed objective must not keep the squad marching to stale territory');
- assert.equal(squad.index,start,
-   'a captured waypoint cannot cause a backwards march');
+   'the campaign should close once the formation physically arrives');
+ assert.equal(squad.index,goal,'arrival must not trigger a reverse march');
 });
