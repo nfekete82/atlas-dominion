@@ -1322,8 +1322,40 @@ export class Game {
           const joined=this.orderSquadAttack(faction.id,squad.id,cellToPoint(reinforceTarget));
           if(joined.ok)continue;
         }
-        if(theaterTarget!=null&&squad.troops>=30){
-          const launched=this.orderSquadAttack(faction.id,squad.id,cellToPoint(theaterTarget));
+        // During neutral expansion each formation selects its own promising
+        // frontier sector. A single national theater target made every squad
+        // march to the same (often northmost by row-major tie-breaking) cell.
+        // Prefer the widest locally unclaimed space, penalize overcrowding
+        // and travel distance; deterministic ties remain stable.
+        let objective=theaterTarget;
+        if(neutralOpening&&squad.troops>=30){
+          let best=-Infinity;
+          objective=null;
+          for(const tile of theaterCandidates){
+            if(this.owner[tile]!==NEUTRAL)continue;
+            const surroundings=LAND_NEIGHBORS[tile];
+            const available=surroundings.filter(n=>this.owner[n]===NEUTRAL).length;
+            const outer=new Set<number>();
+            for(const n of surroundings)
+              for(const farther of LAND_NEIGHBORS[n])
+                if(this.owner[farther]===NEUTRAL)outer.add(farther);
+            const distance=Math.abs(tile%MAP_WIDTH-squad.index%MAP_WIDTH)+
+              Math.abs(Math.floor(tile/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH));
+            const otherCommitments=own.filter(u=>u.id!==squad.id&&u.troops>=20&&
+              (u.campaignTarget===tile||
+               (u.campaignTarget!=null&&
+                Math.abs(u.campaignTarget%MAP_WIDTH-tile%MAP_WIDTH)+
+                Math.abs(Math.floor(u.campaignTarget/MAP_WIDTH)-Math.floor(tile/MAP_WIDTH))<6)))
+              .length;
+            const score=available*15+outer.size*4-distance*1.8-
+              otherCommitments*55;
+            if(score>best||(score===best&&(objective===null||tile<objective))){
+              best=score;objective=tile;
+            }
+          }
+        }
+        if(objective!=null&&squad.troops>=30){
+          const launched=this.orderSquadAttack(faction.id,squad.id,cellToPoint(objective));
           if(launched.ok)continue;
         }
         const targets=LAND_NEIGHBORS[squad.index].filter(n=>
