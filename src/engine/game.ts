@@ -2727,7 +2727,7 @@ export class Game {
            (!Number.isInteger(v.campaignOwner)||v.campaignOwner<NEUTRAL||v.campaignOwner>=g.factions.length))||
          (v.seaRoute!==undefined&&
            (!validSeaRoute(v.seaRoute)||v.seaLanding!==v.seaRoute.at(-1)||
-            !Number.isInteger(v.seaTicks)||v.seaTicks<0||
+            typeof v.seaTicks!=='number'||!Number.isInteger(v.seaTicks)||v.seaTicks<0||
             v.seaTicks>Math.max(8,Math.ceil(v.seaRoute.length/3)))))||
        new Set(squads.map(v=>v.id)).size!==squads.length)
        throw Error('Ungültige Kasernen-Truppen.');
