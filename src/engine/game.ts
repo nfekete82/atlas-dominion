@@ -968,16 +968,24 @@ export class Game {
       // committing further groups to the offensive. All moves are physical.
       const enemyUnits=this.squads.filter(u=>u.owner!==faction.id&&
         !this.isAllied(faction.id,u.owner));
-      let defensiveTarget=-1,defensiveThreat=Infinity;
+      // Defend actual threatened borders, not just structures. An approaching
+      // hostile squad can conquer empty land for free, so intercept with real units.
+      let defensiveTarget=-1,defensiveThreat=-Infinity;
       for(const enemy of enemyUnits){
-        for(const tile of [enemy.index,...LAND_NEIGHBORS[enemy.index]]){
+        for(const tile of LAND_NEIGHBORS[enemy.index]){
           if(this.owner[tile]!==faction.id)continue;
-          if(!this.capitalSites.has(tile)&&this.buildings[tile]===0)continue;
-          const d=Math.abs(tile%MAP_WIDTH-barracks%MAP_WIDTH)+
+          const valuable=this.capitalSites.has(tile)||this.buildings[tile]!==0;
+          const nearbyDefenders=own.filter(unit=>unit.index===tile||
+            unit.destination===tile).reduce((sum,unit)=>sum+unit.troops,0);
+          const distance=Math.abs(tile%MAP_WIDTH-barracks%MAP_WIDTH)+
             Math.abs(Math.floor(tile/MAP_WIDTH)-Math.floor(barracks/MAP_WIDTH));
-          if(d<defensiveThreat){defensiveThreat=d;defensiveTarget=tile;}
+          const score=enemy.troops+(valuable?100:0)-nearbyDefenders*2-distance*.2;
+          if(score>defensiveThreat){defensiveThreat=score;defensiveTarget=tile;}
         }
       }
+      // Only allocate a reserve formation when the frontline lacks enough
+      // soldiers. Never call the abstract instant-defense mechanics.
+      if(defensiveThreat<=0)defensiveTarget=-1;
       const totalReady=own.reduce((sum,u)=>sum+u.troops,0);
       const strongestThreat=enemyUnits.reduce((max,u)=>{
         if(!LAND_NEIGHBORS[u.index].some(n=>this.owner[n]===faction.id))return max;
@@ -1004,14 +1012,18 @@ export class Game {
           continue;
         }
         if(defensiveTarget>=0&&squad.troops>=20){
-          // Keep a real defense detachment; do not cancel every other
-          // formation's ongoing campaign for one threatened structure.
-          const defender=own.find(u=>u.troops>=20&&
+          const assigned=own.some(u=>u.troops>=20&&
             (u.index===defensiveTarget||u.destination===defensiveTarget));
-          if(!defender||defender.id===squad.id){
-            if(squad.index!==defensiveTarget&&squad.destination!==defensiveTarget)
-              this.orderSquad(faction.id,squad.id,cellToPoint(defensiveTarget));
-            continue;
+          // Prefer an idle local reinforcement; preserve distant offensives
+          // unless this is the only usable formation.
+          const idle=own.find(u=>u.troops>=20&&u.destination===null&&
+            u.attackTarget==null&&u.campaignTarget==null);
+          if(!assigned&&(!idle||idle.id===squad.id)&&
+             (squad.campaignTarget==null||own.length===1)){
+            if(squad.index!==defensiveTarget){
+              const sent=this.orderSquad(faction.id,squad.id,cellToPoint(defensiveTarget));
+              if(sent.ok)continue;
+            }else continue;
           }
         }
         if(strongestThreat>squad.troops*1.4&&totalReady>=strongestThreat&&rally&&
