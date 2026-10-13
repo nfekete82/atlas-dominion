@@ -434,7 +434,6 @@ export class MapRenderer {
       if(marker.code===4&&marker.owner>0&&this.zoom<1.5){
         if(shownAiBarracks.some(b=>b.owner===marker.owner&&
           Math.hypot(b.x-x,b.y-y)<46))return;
-        shownAiBarracks.push({owner:marker.owner,x,y});
       }
       const size=city?30:18;
       // Dense towns need an offset industrial badge instead of suppressing
@@ -451,6 +450,8 @@ export class MapRenderer {
         bounds=candidate;break;
       }
       if(!bounds)return;
+      if(marker.code===4&&marker.owner>0&&this.zoom<1.5)
+        shownAiBarracks.push({owner:marker.owner,x,y});
       const level=this.game.cityUpgrades[marker.index];
       this.occupancy.reserve(bounds);
       this.visibleCityMarkers.push({index:marker.index,x,y,level,bounds});
