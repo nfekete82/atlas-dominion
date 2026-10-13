@@ -2683,9 +2683,11 @@ export class Game {
     const beforeMobile=this.factions[0].troops;
     this.tick++;
     this.battleEvents.length=0;
+    // Defenders react to the approaching army BEFORE the next capture
+    // sweep, so a real paid tower can be placed on the threatened border.
+    this.commandRTSAI();
     this.moveSquads();
     this.resolveSquadContacts();
-    this.commandRTSAI();
     this.updateDiplomacy();
     this.deliverDefensiveAid();
     for(const faction of this.factions)faction.defenseFallenTick=0;
