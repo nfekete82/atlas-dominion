@@ -458,9 +458,21 @@ export class MapRenderer {
           c.fillRect(-6,-11,3,8);c.strokeRect(-6,-11,3,8);
           c.fillStyle='#243943';for(let i=0;i<3;i++)c.fillRect(-5+i*5,2,2,3);
         }else if(marker.code===4){
-          c.fillRect(-8,-3,16,12);c.strokeRect(-8,-3,16,12);
-          c.fillStyle='#263b43';c.fillRect(-2,1,4,8);
-          c.beginPath();c.moveTo(-8,-3);c.lineTo(0,-10);c.lineTo(8,-3);c.closePath();c.fillStyle='#d7ab70';c.fill();c.stroke();
+          // Distinct barracks silhouette inspired by the requested rounded
+          // hangar: domed roof, flagpole, central gate, two windows and vent.
+          c.fillStyle='#c4b18c';c.strokeStyle='#182d36';c.lineWidth=1.5;
+          c.beginPath();c.moveTo(-9,8);c.lineTo(-9,-1);
+          c.bezierCurveTo(-9,-10,-5,-12,0,-12);
+          c.bezierCurveTo(5,-12,9,-10,9,-1);
+          c.lineTo(9,8);c.closePath();c.fill();c.stroke();
+          c.fillStyle='#e5c994';c.fillRect(-11,7,22,3);c.strokeRect(-11,7,22,3);
+          c.fillStyle='#263b43';c.fillRect(-3,0,6,9);
+          c.fillStyle='#8fabb0';c.fillRect(-7,-2,3,4);c.fillRect(4,-2,3,4);
+          c.beginPath();c.arc(0,-7,1.4,0,Math.PI*2);c.fill();
+          c.strokeStyle='#182d36';c.lineWidth=1.4;
+          c.beginPath();c.moveTo(0,-12);c.lineTo(0,-18);c.stroke();
+          c.fillStyle=marker.owner===0?'#e9b85e':'#e0ded6';
+          c.beginPath();c.moveTo(0,-18);c.lineTo(6,-16);c.lineTo(0,-14);c.closePath();c.fill();
         }else{
           // Fortified watchtower with visible crenellations.
           c.fillRect(-6,-6,12,15);c.strokeRect(-6,-6,12,15);
