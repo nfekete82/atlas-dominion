@@ -2724,7 +2724,11 @@ export class Game {
          (v.campaignTarget!==undefined&&v.campaignTarget!==null&&
            (!Number.isInteger(v.campaignTarget)||v.campaignTarget<0||v.campaignTarget>=CELL_COUNT))||
          (v.campaignOwner!==undefined&&v.campaignOwner!==null&&
-           (!Number.isInteger(v.campaignOwner)||v.campaignOwner<NEUTRAL||v.campaignOwner>=g.factions.length)))||
+           (!Number.isInteger(v.campaignOwner)||v.campaignOwner<NEUTRAL||v.campaignOwner>=g.factions.length))||
+         (v.seaRoute!==undefined&&
+           (!validSeaRoute(v.seaRoute)||v.seaLanding!==v.seaRoute.at(-1)||
+            !Number.isInteger(v.seaTicks)||v.seaTicks<0||
+            v.seaTicks>Math.max(8,Math.ceil(v.seaRoute.length/3)))))||
        new Set(squads.map(v=>v.id)).size!==squads.length)
        throw Error('Ungültige Kasernen-Truppen.');
     g.squads.push(...squads.map(v=>({...v})));
