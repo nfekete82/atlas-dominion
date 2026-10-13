@@ -59,6 +59,7 @@ export class MapRenderer {
   private occupancy=new ScreenOccupancy();
   private cityAnchors=new ScreenOccupancy();
   private overlayBounds:ScreenRect[]=[];
+  private squadClusterHits:Array<{x:number;y:number;owner:number;ids:number[]}>=[];
   private visibleCityMarkers:Array<{index:number;x:number;y:number;level:number;bounds:ScreenRect}>=[];
   /** Cached when territory/buildings change, not rescanned every animation frame. */
   private buildingMarkers: Array<{index:number;code:number;owner:number}> = [];
@@ -98,6 +99,7 @@ export class MapRenderer {
   setGame(game: Game) {
     this.game = game;
     this.squadVisuals.clear();
+    this.squadClusterHits=[];
     this.hover=null;
     this.hoverPointer=null;
     this.hoverIndex=-1;
@@ -548,6 +550,7 @@ export class MapRenderer {
         y:nearby.reduce((sum,u)=>sum+this.oy+(Math.floor(u.index/MAP_WIDTH)+.5)*CH*this.scale,0)/nearby.length,
         troops:nearby.reduce((sum,u)=>sum+u.troops,0),ids:nearby.map(u=>u.id)});
     }
+    this.squadClusterHits=clusters.map(group=>({x:group.x,y:group.y,owner:group.owner,ids:group.ids}));
     for(const cluster of clusters){
       if(cluster.x< -45||cluster.y< -45||cluster.x>this.canvas.clientWidth+45||cluster.y>this.canvas.clientHeight+45)continue;
       const color=this.squadRelationColor(cluster.owner);
@@ -1380,6 +1383,19 @@ export class MapRenderer {
       if(e.pointerId!==activePointer||e.button!==dragButton)return;
       const moved=this.moved||Math.hypot(e.clientX-this.press.x,e.clientY-this.press.y)>threshold;
       if(dragButton===0){
+        if(!moved){
+          const rect=this.canvas.getBoundingClientRect();
+          const x=e.clientX-rect.left,y=e.clientY-rect.top;
+          const hit=this.squadClusterHits.find(cluster=>cluster.owner===0&&
+            Math.abs(x-cluster.x)<=25&&Math.abs(y-cluster.y)<=24);
+          if(hit){
+            this.selectedSquadIds=[...hit.ids];
+            this.onSelectSquads([...hit.ids]);
+            activePointer=null;dragButton=null;this.dragging=false;
+            this.selectionBox=null;rightGestureMoved=false;
+            return;
+          }
+        }
         if(moved&&this.selectionBox){
           const b=this.selectionBox,loX=Math.min(b.x1,b.x2),hiX=Math.max(b.x1,b.x2);
           const loY=Math.min(b.y1,b.y2),hiY=Math.max(b.y1,b.y2);
