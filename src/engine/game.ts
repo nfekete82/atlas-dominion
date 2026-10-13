@@ -1282,7 +1282,12 @@ export class Game {
         const adjacentEnemies=enemyUnits.filter(enemy=>
           LAND_NEIGHBORS[squad.index].includes(enemy.index));
         const enemyStrength=adjacentEnemies.reduce((sum,u)=>sum+u.troops,0);
-        if(enemyStrength>squad.troops*2&&squad.troops>=1){
+        // Never cancel an already-valid march/campaign for repeated retreat
+        // orders. Otherwise the same enemy proximity can make a unit alternate
+        // between a safe tile and its previous objective every AI pulse.
+        if(enemyStrength>squad.troops*2&&squad.troops>=1&&
+           squad.destination===null&&squad.attackTarget===null&&
+           squad.campaignTarget===null){
           const safe=LAND_NEIGHBORS[squad.index].filter(tile=>
             this.owner[tile]===faction.id&&
             !enemyUnits.some(enemy=>LAND_NEIGHBORS[tile].includes(enemy.index)));
@@ -1686,7 +1691,10 @@ export class Game {
       const goal=squad.seaRoute?.length?null:squad.campaignTarget;
       if(goal!==null&&goal!==undefined&&
          squad.destination===null&&squad.attackTarget==null){
-        if(squad.index===goal){
+        // Another formation may have occupied this objective while this
+        // squad was marching. Do not walk backwards to land we already own.
+        if(squad.index===goal||this.owner[goal]===squad.owner||
+           (this.owner[goal]>=0&&this.isAllied(squad.owner,this.owner[goal]))){
           squad.campaignTarget=null;squad.campaignOwner=null;
         }else{
           const intended=squad.campaignOwner;
