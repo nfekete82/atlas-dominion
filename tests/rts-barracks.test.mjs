@@ -607,3 +607,34 @@ test('RTS defense towers fire at real enemy soldiers two tiles away',()=>{
  const after=g.squads.find(unit=>unit.id===900114)?.troops??0;
  assert.ok(after<before,'tower must inflict real soldier losses at range two');
 });
+
+test('RTS squads passing at range two actually exchange real losses',()=>{
+ const g=new Game(12121,2,'DE','balanced',true);
+ const start=g.owner.findIndex((owner,index)=>owner===0&&
+   landNeighbors(index).some(n=>g.owner[n]===-1&&
+     landNeighbors(n).some(far=>g.owner[far]===-1&&far!==index)));
+ assert.ok(start>=0);
+ const middle=landNeighbors(start).find(n=>g.owner[n]===-1&&
+   landNeighbors(n).some(far=>g.owner[far]===-1&&far!==start));
+ const far=landNeighbors(middle).find(n=>n!==start&&g.owner[n]===-1);
+ assert.ok(far!==undefined);
+ g.owner[far]=1;
+ g.squads.push({id:121210,owner:0,index:start,troops:100,destination:null,attackTarget:null,campaignTarget:null,campaignOwner:null});
+ g.squads.push({id:121211,owner:1,index:far,troops:100,destination:null,attackTarget:null,campaignTarget:null,campaignOwner:null});
+ const before=g.squads.reduce((sum,u)=>sum+u.troops,0);
+ g.step();
+ const after=g.squads.reduce((sum,u)=>sum+u.troops,0);
+ assert.ok(after<before,'real opposing squads within two sectors must exchange casualties');
+});
+
+test('RTS cleans surrounded neutral pockets without sweeping past real defenders',()=>{
+ const g=new Game(12122,1,'DE','balanced',true);
+ const center=g.owner.findIndex((owner,index)=>owner===0&&
+   landNeighbors(index).length===4&&landNeighbors(index).every(n=>g.owner[n]===0));
+ assert.ok(center>=0);
+ g.owner[center]=-1;
+ const position=landNeighbors(center)[0];
+ g.squads.push({id:121220,owner:0,index:position,troops:100,destination:null,attackTarget:null,campaignTarget:null,campaignOwner:null});
+ g.step();
+ assert.equal(g.owner[center],0,'small fully surrounded neutral pocket should be occupied');
+});
