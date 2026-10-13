@@ -1166,7 +1166,13 @@ export class Game {
     const damage=new Map<number,number>();
     const engaged=new Set<number>();
     for(const unit of this.squads){
-      for(const neighbor of LAND_NEIGHBORS[unit.index]){
+      // Intercept enemies that pass within two sectors of a real squad,
+      // including diagonal near misses. Resolve each pair only once.
+      const contacts=new Set<number>(LAND_NEIGHBORS[unit.index]);
+      for(const neighbor of LAND_NEIGHBORS[unit.index])
+        for(const nearby of LAND_NEIGHBORS[neighbor])contacts.add(nearby);
+      contacts.delete(unit.index);
+      for(const neighbor of contacts){
         const foes=byCell.get(neighbor);
         if(!foes)continue;
         for(const enemy of foes){
@@ -1326,6 +1332,27 @@ export class Game {
             }
             queue.push([next,depth+1]);
           }
+        }
+      }
+      // Clean up tiny holes left behind by a passing formation. A pocket
+      // must share at least three direct land sides with our territory and
+      // stay within two cells of this real squad. Never capture water, allies,
+      // occupied hostile positions, or defensive tower sites.
+      if(this.rtsRecruitment){
+        const around=new Set<number>([squad.index,...LAND_NEIGHBORS[squad.index]]);
+        for(const neighbor of LAND_NEIGHBORS[squad.index])
+          for(const tile of LAND_NEIGHBORS[neighbor])around.add(tile);
+        for(const tile of around){
+          const holder=this.owner[tile];
+          if(holder===WATER||holder===squad.owner||
+            (holder>=0&&(this.isAllied(squad.owner,holder)||
+              holder!==squad.campaignOwner))||
+            this.buildings[tile]===BUILDING_CODES.tower)continue;
+          if(LAND_NEIGHBORS[tile].filter(n=>this.owner[n]===squad.owner).length<3)continue;
+          if(this.squads.some(enemy=>enemy.owner!==squad.owner&&
+            !this.isAllied(squad.owner,enemy.owner)&&
+            (enemy.index===tile||LAND_NEIGHBORS[tile].includes(enemy.index))))continue;
+          this.captureTile(this.factions[squad.owner],tile);
         }
       }
       // A border waypoint can become stale while other armies capture land.
