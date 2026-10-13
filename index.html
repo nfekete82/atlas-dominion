@@ -58,6 +58,13 @@
         <div class="progress-label"><span>TERRITORIALER FORTSCHRITT</span><b id="progressLabel">0 / 65%</b></div><div class="progress"><div id="progressFill"></div></div>
         <div class="doctrine-title">KAMPFDOKTRIN <span>· WÄHLE DEINE TAKTIK</span></div>
         <div class="doctrine-buttons"><button data-doctrine="expand" class="selected" title="Neutralgebiete schneller erobern">↗ <span>EXPAND</span></button><button data-doctrine="blitz" title="Mehr und stärkere Angriffe">⚔ <span>BLITZ</span></button><button data-doctrine="fortify" title="Mehr Einkommen und stärkere Verteidigung">⬡ <span>DEFENSE</span></button></div>
+        <section class="rts-military-panel" aria-label="Militärübersicht">
+          <div class="rts-military-heading"><strong>⬡ MILITÄR</strong><small id="rtsMilitaryStatus">FRIEDEN</small></div>
+          <div class="rts-military-stats"><div><small>MOBIL</small><strong id="rtsMilitaryMobile">0</strong></div><div><small>IM EINSATZ</small><strong id="rtsMilitaryField">0</strong></div><div><small>VERLUSTE</small><strong id="rtsMilitaryLosses">0</strong></div></div>
+          <div class="rts-military-selection"><strong>AUSGEWÄHLTE ARMEE</strong><small id="rtsMilitarySelected">Keine Truppe ausgewählt</small></div>
+          <small class="rts-military-help">Truppengruppe anklicken, dann auf der Karte bewegen oder angreifen. Rechtsklick: Kaserne, Bau und Verteidigung.</small>
+          <details class="rts-military-reports"><summary>Kampfberichte und Grenzdetails</summary><div id="rtsMilitaryReports"></div></details>
+        </section>
         <div class="build-guide">▣ RECHTSKLICK: STADT BAUEN / GRENZE VERSTÄRKEN</div><div class="auto-guard"><strong>⬡ GRENZSICHERUNG</strong><small id="borderDefense">0 bedrohte Grenzsektoren · 0 stationiert · 0 mobil</small><details class="defense-extra"><summary>Verluste und Gefechte anzeigen</summary><small id="casualtyReport" class="casualty-report">⚔ 0 eigene Gefallene · 0 Gegnerverluste</small><div id="battleReport" class="battle-report" aria-live="off"><strong><i class="battle-dot blue"></i> BLAU: DEINE TRUPPEN</strong><strong><i class="battle-dot red"></i> ROT: GEGNER</strong><small>Aktive Fronten erscheinen direkt auf der Karte</small></div></details></div>
         <section class="front-command" aria-label="Strategische Grenzbefehle">
           <div class="front-command-head"><strong>▣ GRENZKOMMANDO</strong><small id="hotspotCount">0 Kontaktpunkte</small></div>
