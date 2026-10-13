@@ -39,6 +39,7 @@ let selectedDifficulty:Difficulty='balanced';
 let buildSpot: Point | null = null;
 let selectedSquadId:number|null=null;
 let selectedSquadIds:number[]=[];
+const armyControlGroups=new Map<number,number[]>();
 let attackRatio = 35;
 let showAllNations = false;
 let attackMessage = 'Kaserne bauen, Soldaten ausbilden, mit Linksklick auswählen und bewegen.';
@@ -1041,6 +1042,26 @@ window.addEventListener('keydown',e=>{
   // Native controls must retain keyboard focus, Space activation and typing.
   const target=e.target as HTMLElement|null;
   if(target?.closest('button,input,textarea,select,[contenteditable="true"]'))return;
+  if(/^Digit[1-9]$/.test(e.code)&&(e.ctrlKey||e.metaKey)){
+    e.preventDefault();
+    const slot=Number(e.code.slice(5));
+    armyControlGroups.set(slot,[...new Set(selectedSquadIds.filter(id=>
+      game.squads.some(unit=>unit.id===id&&unit.owner===0)))]);
+    attackMessage='Armeegruppe '+slot+' gespeichert.';
+    attackMessageKind='success';update();return;
+  }
+  if(/^Digit[1-9]$/.test(e.code)&&!e.altKey&&!e.shiftKey){
+    const slot=Number(e.code.slice(5));
+    if(armyControlGroups.has(slot)){
+      e.preventDefault();
+      const ids=armyControlGroups.get(slot)!.filter(id=>
+        game.squads.some(unit=>unit.id===id&&unit.owner===0));
+      selectedSquadIds=ids;selectedSquadId=ids[0]??null;
+      renderer.selectedSquadIds=ids;
+      attackMessage=ids.length?'Armeegruppe '+slot+' ausgewählt.':'Armeegruppe '+slot+' ist leer.';
+      attackMessageKind=ids.length?'success':'neutral';update();return;
+    }
+  }
   if(e.code==='Space') {e.preventDefault();soundscape.update({},true);game.paused=!game.paused;update();}
   if (e.code === 'KeyT') setAttackRatio(attackRatio-5);
   if (e.code === 'KeyY') setAttackRatio(attackRatio+5);
