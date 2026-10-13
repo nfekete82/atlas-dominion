@@ -764,3 +764,13 @@ test('RTS broad assault captures nearby hostile ground but costs genuine soldier
  assert.ok(g.squads.find(unit=>unit.id===992100).troops<100,
    'taking defended national territory has a measurable living-soldier cost');
 });
+
+test('island-bound RTS AI seeks lawful expansion without fabricating soldiers',()=>{
+ const a=new Game(20261014,5,'DE','balanced',true);
+ const b=new Game(20261014,5,'DE','balanced',true);
+ for(let tick=0;tick<48;tick++){a.step();b.step();}
+ assert.deepEqual(a.exportSave(),b.exportSave(),
+   'coastal expansion decisions and voyages remain deterministic');
+ assert.ok(a.squads.every(unit=>unit.troops>0&&a.owner[unit.index]===unit.owner),
+   'island expansion must keep every soldier physically accounted for');
+});
