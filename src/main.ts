@@ -666,10 +666,17 @@ function renderBuildMenu(): void {
     return `<button type="button" class="build-entry" data-recruit-squad="${count}" ${enabled?'':'disabled'}><span class="build-entry-icon">⚔</span><span class="build-entry-copy"><strong>${isMax?'MAX – '+format(count)+' Soldaten ausbilden':format(count)+' Soldaten ausbilden'}</strong><small>${isMax?'Maximal bezahlbare Anzahl (bis 1.000)': '2 Gold je Soldat'}${recruitmentFull?' · Höchstens 12 Gruppen':''}</small></span><span class="build-entry-cost">${count>=10?format(count*2)+' €':'NICHT GENUG GELD'}</span></button>`;
   }).join(''):'';
   const nearbySquads=game.squads.filter(s=>s.owner===0&&Math.hypot(s.index%MAP_WIDTH-point.x,Math.floor(s.index/MAP_WIDTH)-point.y)<3);
-  const squadActions=nearbySquads.map(s=>`<button type="button" class="build-entry" data-select-squad="${s.id}"><span class="build-entry-icon">➤</span><span class="build-entry-copy"><strong>Truppe #${s.id} auswählen</strong><small>Rechtsklick auf eigenes Gebiet = Marsch, auf Gegner = Angriff</small></span><span class="build-entry-cost">WÄHLEN</span></button><button type="button" class="build-entry" data-recall-squad="${s.id}"><span class="build-entry-icon">↩</span><span class="build-entry-copy"><strong>Truppe #${s.id} zurückrufen</strong><small>${Math.round(s.troops)} Soldaten in Mobilreserve übernehmen</small></span><span class="build-entry-cost">RÜCKRUF</span></button>`).join('');
+  const selectedOwn=selectedSquadIds.filter(id=>game.squads.some(s=>s.id===id&&s.owner===0));
+  const squadManagement=selectedOwn.length>=2?
+    '<button type="button" class="build-entry" data-merge-selected="true"><span class="build-entry-icon">⇉</span><span class="build-entry-copy"><strong>Armeen zusammenführen</strong><small>Ausgewählte Gruppen müssen auf demselben Feld stehen</small></span></button>':'';
+  const barracksReinforce=existing==='barracks'?nearbySquads.filter(s=>s.index===pointToIndex(point)).map(unit=>{
+    const count=Math.min(1000,Math.floor(game.factions[0].money/2));
+    return `<button type="button" class="build-entry" data-reinforce-squad="${unit.id}" data-reinforce-count="${count}" ${count<10?'disabled':''}><span class="build-entry-icon">✚</span><span class="build-entry-copy"><strong>Armee #${unit.id} verstärken: MAX (${format(count)})</strong><small>Bestehende Armee statt neue Gruppe · 2 Gold / Soldat</small></span></button>`;
+  }).join(''):'';
+  const squadActions=nearbySquads.map(s=>`<button type="button" class="build-entry" data-select-squad="${s.id}"><span class="build-entry-icon">➤</span><span class="build-entry-copy"><strong>Truppe #${s.id} auswählen</strong><small>Rechtsklick auf eigenes Gebiet = Marsch, auf Gegner = Angriff</small></span><span class="build-entry-cost">WÄHLEN</span></button><button type="button" class="build-entry" data-recall-squad="${s.id}"><span class="build-entry-icon">↩</span><span class="build-entry-copy"><strong>Truppe #${s.id} zurückrufen</strong><small>${Math.round(s.troops)} Soldaten in Mobilreserve übernehmen</small></span><span class="build-entry-cost">RÜCKRUF</span></button><button type="button" class="build-entry" data-split-squad="${s.id}"><span class="build-entry-icon">✂</span><span class="build-entry-copy"><strong>Truppe #${s.id} halbieren</strong><small>Soldaten auf zwei eigene Gruppen aufteilen</small></span></button>`).join('');
   const factoryUpgrade=existing==='factory'?`<button type="button" class="build-entry" data-upgrade-factory="true" ${game.factoryLevel(point)>=5||game.factions[0].money<game.factoryLevel(point)*250?'disabled':''}><span class="build-entry-icon">⚙</span><span class="build-entry-copy"><strong>Fabrik Stufe ${game.factoryLevel(point)}/5 ausbauen</strong><small>Steigert die Grundproduktion um 75 %</small></span><span class="build-entry-cost">${game.factoryLevel(point)>=5?'MAX':game.factoryLevel(point)*250+' €'}</span></button>`:'';
   const factoryAction=existing==='factory'?`<button type="button" class="build-entry" data-link-factory="true" ${suggestedCity?'':'disabled'}><span class="build-entry-icon">↗</span><span class="build-entry-copy"><strong>Mit Stadt verbinden</strong><small>${suggestedCity?`Stadt bei ${suggestedCity.x}/${suggestedCity.y} · +50 % Grundbonus, bis zu +25 % durch Stadtausbau`:'Keine eigene Stadt im Umkreis von 12 Sektoren'}</small></span><span class="build-entry-cost">VERBINDEN</span></button>`:'';
-  $('buildOptions').innerHTML=barracksActions+squadActions+factoryUpgrade+factoryAction+fastSingle+fastAll+(upgrade? `<button type="button" class="build-entry" data-upgrade-city="true" ${upgrade.ok?'':'disabled'} title="${upgrade.reason}">
+  $('buildOptions').innerHTML=barracksActions+barracksReinforce+squadManagement+squadActions+factoryUpgrade+factoryAction+fastSingle+fastAll+(upgrade? `<button type="button" class="build-entry" data-upgrade-city="true" ${upgrade.ok?'':'disabled'} title="${upgrade.reason}">
       <span class="build-entry-icon" aria-hidden="true">⬆</span>
       <span class="build-entry-copy"><strong>Stadt ausbauen ${upgradeLevel}/5</strong><small>${upgrade.ok?'Mehr Einwohner- und Truppenwachstum':upgrade.reason}</small></span>
       <span class="build-entry-cost">${upgrade.ok?upgrade.cost+' €':'MAX'}</span>
@@ -713,11 +720,36 @@ $('buildOptions').addEventListener('click',e=>{
     attackMessage='Truppe #'+selectedSquadId+' ausgewählt – Rechtsklick: eigenes Land zum Marschieren, gegnerisches Land zum Angreifen.';
     attackMessageKind='success';closeBuildMenu();update();return;
   }
+  const mergeButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-merge-selected]');
+  if(mergeButton){
+    const ids=[...selectedSquadIds];
+    const result=game.mergeSquads(0,ids);
+    attackMessage=result.reason;attackMessageKind=result.ok?'success':'error';
+    if(result.ok){selectedSquadIds=[Math.min(...ids)];selectedSquadId=selectedSquadIds[0];renderer.selectedSquadIds=selectedSquadIds;saveGame();closeBuildMenu();}
+    update();return;
+  }
+  const reinforceButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-reinforce-squad]');
+  if(reinforceButton){
+    const result=game.reinforceSquad(0,Number(reinforceButton.dataset.reinforceSquad),
+      buildSpot,Number(reinforceButton.dataset.reinforceCount));
+    attackMessage=result.reason;attackMessageKind=result.ok?'success':'error';
+    if(result.ok){saveGame();closeBuildMenu();}else renderBuildMenu();
+    update();return;
+  }
   const recruitButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-recruit-squad]');
   if(recruitButton){
     const result=game.recruitSquad(0,buildSpot,Number(recruitButton.dataset.recruitSquad));
     attackMessage=result.reason;attackMessageKind=result.ok?'success':'error';
     if(result.ok){renderer.updateTerritory();saveGame();closeBuildMenu();}else renderBuildMenu();
+    update();return;
+  }
+  const splitButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-split-squad]');
+  if(splitButton){
+    const id=Number(splitButton.dataset.splitSquad);
+    const unit=game.squads.find(s=>s.id===id&&s.owner===0);
+    const result=game.splitSquad(0,id,unit?Math.floor(unit.troops/2):0);
+    attackMessage=result.reason;attackMessageKind=result.ok?'success':'error';
+    if(result.ok){saveGame();closeBuildMenu();}else renderBuildMenu();
     update();return;
   }
   const recallButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-recall-squad]');
