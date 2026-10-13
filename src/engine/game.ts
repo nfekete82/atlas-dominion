@@ -978,8 +978,12 @@ export class Game {
         for(const tile of threatened){
           if(this.owner[tile]!==faction.id)continue;
           const valuable=this.capitalSites.has(tile)||this.buildings[tile]!==0;
-          const score=enemy.troops+(valuable?90:0);
-          borderThreats.set(tile,(borderThreats.get(tile)??0)+score);
+          const guarding=own.filter(unit=>unit.index===tile||unit.destination===tile)
+            .reduce((sum,unit)=>sum+unit.troops,0);
+          // Prioritize exposed strategic infrastructure and genuinely
+          // understaffed sectors, not already well-defended border locations.
+          const score=Math.max(0,enemy.troops+(valuable?90:0)-guarding*1.3);
+          if(score>0)borderThreats.set(tile,(borderThreats.get(tile)??0)+score);
         }
       }
       // AI purchases genuine defensive towers at its most exposed border.
@@ -1005,8 +1009,7 @@ export class Game {
         }
       }
       const plannedFronts=[...borderThreats].sort((a,b)=>b[1]-a[1]||a[0]-b[0])
-        .filter(([tile],_,all)=>all.length>0)
-        .slice(0,16);
+        .slice(0,24);
       const frontPositions:number[]=[];
       for(const [tile] of plannedFronts){
         if(frontPositions.length>=3)break;
