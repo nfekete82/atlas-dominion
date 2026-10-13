@@ -396,6 +396,17 @@ $('borderHotspots').addEventListener('click',e=>{
 function update() {
   const player = game.factions[0];
   $('playerName').textContent = player.name;
+  document.body.classList.toggle('rts-military-mode',game.rtsRecruitment);
+  if(game.rtsRecruitment){
+    const formations=game.squads.filter(u=>u.owner===0);
+    const chosen=formations.find(u=>u.id===selectedSquadId);
+    $('rtsMilitaryMobile').textContent=format(player.troops);
+    $('rtsMilitaryField').textContent=format(formations.reduce((n,u)=>n+u.troops,0));
+    $('rtsMilitaryLosses').textContent=format(player.attackFallen+player.defenseSpent);
+    $('rtsMilitarySelected').textContent=chosen?'Truppe #'+chosen.id+' · '+format(chosen.troops)+' Soldaten':'Keine Truppe ausgewählt';
+    $('rtsMilitaryStatus').textContent=game.threatenedBorders(0)>0?'GRENZE BEDROHT':'FRIEDEN';
+    $('rtsMilitaryReports').textContent=format(game.threatenedBorders(0))+' bedrohte Sektoren · '+format(player.enemyFallen)+' Gegnerverluste';
+  }
   $('playerFlag').textContent = countryFlag(game.playerCode);
   $('difficultyBadge').textContent = 'KI: '+game.difficultySettings.label.toLocaleUpperCase('de-DE');
   const percent = player.territory / game.totalLand * 100;
