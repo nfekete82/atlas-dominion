@@ -421,12 +421,21 @@ export class MapRenderer {
       Number(b.code===1)-Number(a.code===1)||
       Number(b.owner===0)-Number(a.owner===0)||
       this.game.cityUpgrades[b.index]-this.game.cityUpgrades[a.index]||a.index-b.index);
+    const shownAiBarracks:{owner:number;x:number;y:number}[]=[];
     const draw=(marker:typeof markers[number])=>{
       const city=marker.code===1;
       if(!buildingMarkerFor(marker.code)||!showBuildingMarker(marker.owner,this.zoom))return;
       if(city&&!cityVisibleAtZoom(marker.owner,this.game.cityUpgrades[marker.index],this.zoom,marker.index===hovered))return;
       const x=this.ox+(marker.index%MAP_WIDTH+.5)*CW*this.scale;
       const y=this.oy+(Math.floor(marker.index/MAP_WIDTH)+.5)*CH*this.scale;
+      // Captured barracks are retained for gameplay and can always be seen
+      // when zoomed in. In the overview, cluster nearby AI barracks icons
+      // visually instead of covering the map with inherited bases.
+      if(marker.code===4&&marker.owner>0&&this.zoom<1.5){
+        if(shownAiBarracks.some(b=>b.owner===marker.owner&&
+          Math.hypot(b.x-x,b.y-y)<46))return;
+        shownAiBarracks.push({owner:marker.owner,x,y});
+      }
       const size=city?30:18;
       // Dense towns need an offset industrial badge instead of suppressing
       // the neighboring factory completely. The click box follows the badge.
