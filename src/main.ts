@@ -142,7 +142,7 @@ function renderActiveArmies():void {
           <button type="button" data-army-retreat="${o.id}" ${o.returning?'disabled':''}>
             ${o.returning?'Rückzug läuft':'↩ Rückzug'}</button>
         </div></div>`;
-    }).join(''):'<small>Keine aktiven Armeen. Angriffe per Linksklick starten.</small>';
+    }).join(''):'<small>Keine aktiven Armeen. Truppe linksklicken, Ziel rechtsklicken.</small>';
   }
   // Update statistics in-place so a 4Hz simulation tick never replaces
   // a button while the player is physically pressing it.
@@ -660,7 +660,7 @@ function renderBuildMenu(): void {
     </button>`;
   const barracksActions=existing==='barracks'?[25,100,500].map(count=>`<button type="button" class="build-entry" data-recruit-squad="${count}" ${game.factions[0].money<count*2?'disabled':''}><span class="build-entry-icon">⚔</span><span class="build-entry-copy"><strong>${count} Soldaten abstellen</strong><small>Neue Soldaten ausbilden · 2 Gold je Soldat</small></span><span class="build-entry-cost">${count*2} €</span></button>`).join(''):'';
   const nearbySquads=game.squads.filter(s=>s.owner===0&&Math.hypot(s.index%MAP_WIDTH-point.x,Math.floor(s.index/MAP_WIDTH)-point.y)<3);
-  const squadActions=nearbySquads.map(s=>`<button type="button" class="build-entry" data-select-squad="${s.id}"><span class="build-entry-icon">➤</span><span class="build-entry-copy"><strong>Truppe #${s.id} auswählen</strong><small>Linksklick auf eigenes Gebiet = Marsch, angrenzender Feind = Angriff</small></span><span class="build-entry-cost">WÄHLEN</span></button><button type="button" class="build-entry" data-recall-squad="${s.id}"><span class="build-entry-icon">↩</span><span class="build-entry-copy"><strong>Truppe #${s.id} zurückrufen</strong><small>${Math.round(s.troops)} Soldaten in Mobilreserve übernehmen</small></span><span class="build-entry-cost">RÜCKRUF</span></button>`).join('');
+  const squadActions=nearbySquads.map(s=>`<button type="button" class="build-entry" data-select-squad="${s.id}"><span class="build-entry-icon">➤</span><span class="build-entry-copy"><strong>Truppe #${s.id} auswählen</strong><small>Rechtsklick auf eigenes Gebiet = Marsch, auf Gegner = Angriff</small></span><span class="build-entry-cost">WÄHLEN</span></button><button type="button" class="build-entry" data-recall-squad="${s.id}"><span class="build-entry-icon">↩</span><span class="build-entry-copy"><strong>Truppe #${s.id} zurückrufen</strong><small>${Math.round(s.troops)} Soldaten in Mobilreserve übernehmen</small></span><span class="build-entry-cost">RÜCKRUF</span></button>`).join('');
   const factoryUpgrade=existing==='factory'?`<button type="button" class="build-entry" data-upgrade-factory="true" ${game.factoryLevel(point)>=5||game.factions[0].money<game.factoryLevel(point)*250?'disabled':''}><span class="build-entry-icon">⚙</span><span class="build-entry-copy"><strong>Fabrik Stufe ${game.factoryLevel(point)}/5 ausbauen</strong><small>Steigert die Grundproduktion um 75 %</small></span><span class="build-entry-cost">${game.factoryLevel(point)>=5?'MAX':game.factoryLevel(point)*250+' €'}</span></button>`:'';
   const factoryAction=existing==='factory'?`<button type="button" class="build-entry" data-link-factory="true" ${suggestedCity?'':'disabled'}><span class="build-entry-icon">↗</span><span class="build-entry-copy"><strong>Mit Stadt verbinden</strong><small>${suggestedCity?`Stadt bei ${suggestedCity.x}/${suggestedCity.y} · +50 % Grundbonus, bis zu +25 % durch Stadtausbau`:'Keine eigene Stadt im Umkreis von 12 Sektoren'}</small></span><span class="build-entry-cost">VERBINDEN</span></button>`:'';
   $('buildOptions').innerHTML=barracksActions+squadActions+factoryUpgrade+factoryAction+fastSingle+fastAll+(upgrade? `<button type="button" class="build-entry" data-upgrade-city="true" ${upgrade.ok?'':'disabled'} title="${upgrade.reason}">
@@ -838,7 +838,7 @@ renderer.onHover=(point,px,py,landing)=>{
   const allied=id>=0&&game.isAllied(0,id);
   const attackable=id!==0&&!allied&&renderer.canAttack(point);
   const canLand=id!==0&&!allied&&renderer.canLand(point);
-  action.textContent=id===0?'Rechtsklick: Stadt / Verteidigung'
+  action.textContent=game.rtsRecruitment&&selectedSquadIds.length?'Rechtsklick: Marsch / Angriff · Umschalt: Menü':id===0?'Rechtsklick: Stadt / Verteidigung'
     : allied?'🤝 Verbündet · Rechtsklick: Beenden'
     : canLand&&!game.findAttackFront(0,point)?'Links: Seeangriff · Rechts: Koalition'
     : attackable?`Links: Angriff ${attackRatio} % · Rechts: Koalition`
