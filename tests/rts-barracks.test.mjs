@@ -511,3 +511,26 @@ test('AI defense scoring with real posted guards remains deterministic',()=>{
  assert.ok(a.squads.every(u=>u.troops>0&&a.owner[u.index]===u.owner),
    'AI planning must preserve actual soldiers and territory ownership');
 });
+
+test('AI recruitment keeps a construction reserve for threatened border towers',()=>{
+ const g=new Game(10613,1,'DE','balanced',true);
+ const ai=1;
+ const border=g.owner.findIndex((holder,index)=>holder===ai&&
+   landNeighbors(index).some(n=>g.owner[n]===-1));
+ assert.ok(border>=0);
+ const threatened=landNeighbors(border).find(n=>g.owner[n]===-1);
+ const barracks=g.owner.findIndex((holder,index)=>holder===ai&&index!==border&&
+   !g.buildings[index]&&!g.cities.some(city=>city.index===index));
+ assert.ok(barracks>=0);
+ g.buildings[barracks]=4;
+ g.owner[threatened]=0;
+ g.squads.push({id:106130,owner:0,index:threatened,troops:80,destination:null,
+   attackTarget:null,campaignTarget:null,campaignOwner:null});
+ g.factions[ai].money=420;
+ const before=g.factions[ai].money;
+ g.step();
+ assert.ok(g.factions[ai].money<before,'defensive construction or recruitment must spend real gold');
+ assert.ok(g.factions[ai].money>=0,'AI must not incur debt');
+ assert.ok(g.buildings.some((code,index)=>code===2&&g.owner[index]===ai),
+   'a threatened AI must afford and construct at least one paid tower');
+});

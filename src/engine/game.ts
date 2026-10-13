@@ -961,8 +961,14 @@ export class Game {
           this.build(faction.id,cellToPoint(constructionSites[faction.id]),'barracks');
         continue;
       }
-      if(own.length<Math.min(5,Math.max(2,Math.ceil(faction.territory/150)))&&faction.money>=100){
-        this.recruitSquad(faction.id,cellToPoint(barracks),Math.min(100,Math.floor(faction.money/2)));
+      // Keep a real construction reserve instead of spending almost every
+      // coin on recruitment. Otherwise a threatened AI never affords towers.
+      const towerBudget=BUILDINGS.find(building=>building.type==='tower')!.cost;
+      const recruitBudget=Math.max(0,faction.money-towerBudget);
+      const recruitCount=Math.min(100,Math.floor(recruitBudget/2));
+      if(own.length<Math.min(5,Math.max(2,Math.ceil(faction.territory/150)))&&
+         recruitCount>=10){
+        this.recruitSquad(faction.id,cellToPoint(barracks),recruitCount);
       }
       // Build up to three separate threatened fronts. Soldiers are assigned
       // physically from idle formations; a distant campaign stays committed.
@@ -989,7 +995,7 @@ export class Game {
       // AI purchases genuine defensive towers at its most exposed border.
       // Cap construction per realm, keep towers separated, and retain enough
       // gold for recruiting actual defenders. No free fortifications.
-      if(borderThreats.size&&this.tick%24===faction.id%24&&faction.money>=260){
+      if(borderThreats.size&&this.tick%24===faction.id%24&&faction.money>=towerBudget+40){
         let towerCount=0;
         const existingTowers:number[]=[];
         for(let cell=0;cell<CELL_COUNT;cell++){
