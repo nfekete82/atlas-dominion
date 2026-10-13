@@ -6,7 +6,6 @@ const seed=Number(process.argv[3]??20261013);
 if(!Number.isInteger(seed))throw Error('Seed must be an integer');
 const game=new Game(seed,8,'DE','balanced',true);
 const initial=game.factions.map(f=>f.territory);
-const originOwner=Int16Array.from(game.owner);
 const neutralGainsByPhase={opening:0,middle:0,late:0};
 const totals={idleSquadTicks:0,activeSquadTicks:0,aiCaptures:0,aiTerritoryDelta:0};
 let previous=game.factions.map(f=>f.territory);
