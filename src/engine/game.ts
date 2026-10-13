@@ -1122,7 +1122,11 @@ export class Game {
       // Counterattack only when local superiority is overwhelming; weaker
       // AI defenders hold their positions instead of charging blindly.
       if(alerted.has(faction.id)){
+        const criticalUncovered=frontPositions.some(tile=>
+          (this.capitalSites.has(tile)||this.buildings[tile]===BUILDING_CODES.barracks)&&
+          !own.some(unit=>unit.index===tile||unit.destination===tile));
         for(const unit of own){
+          if(criticalUncovered||assignedDefenders.has(unit.id))continue;
           if(unit.troops<60||unit.seaRoute?.length||unit.destination!==null||
              unit.attackTarget!=null||unit.campaignTarget!=null)continue;
           const targets=LAND_NEIGHBORS[unit.index].filter(tile=>{
