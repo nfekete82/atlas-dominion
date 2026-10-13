@@ -978,7 +978,7 @@ export class Game {
       }
     }
     if(!this.factions.some(f=>f.ai&&f.alive&&
-      (alerted.has(f.id)||this.tick%8===f.id%8)))return;
+      (alerted.has(f.id)||this.tick%4===f.id%4)))return;
     // Build a single spatial index per AI turn rather than scanning every
     // map cell for each of up to 49 countries.
     const barracksSites=new Int32Array(this.factions.length).fill(-1);
@@ -1007,7 +1007,7 @@ export class Game {
     }
     for(const faction of this.factions){
       if(!faction.ai||!faction.alive)continue;
-      if(!alerted.has(faction.id)&&this.tick%8!==faction.id%8)continue;
+      if(!alerted.has(faction.id)&&this.tick%4!==faction.id%4)continue;
       const own=this.squads.filter(s=>s.owner===faction.id);
       const barracks=barracksSites[faction.id];
       if(barracks<0){
@@ -1156,7 +1156,7 @@ export class Game {
           !own.some(unit=>unit.index===tile||unit.destination===tile));
         for(const unit of own){
           if(criticalUncovered||assignedDefenders.has(unit.id))continue;
-          if(unit.troops<60||unit.seaRoute?.length||unit.destination!==null||
+          if(unit.troops<45||unit.seaRoute?.length||unit.destination!==null||
              unit.attackTarget!=null||unit.campaignTarget!=null)continue;
           const targets=LAND_NEIGHBORS[unit.index].filter(tile=>{
             const holder=this.owner[tile];
@@ -1165,7 +1165,7 @@ export class Game {
               !this.isAllied(faction.id,enemy.owner)&&
               (enemy.index===tile||LAND_NEIGHBORS[tile].includes(enemy.index)));
             const power=defenders.reduce((sum,enemy)=>sum+enemy.troops,0);
-            return power>0&&unit.troops>=power*2.25&&
+            return power>0&&unit.troops>=power*(this.owner[tile]===faction.id?1.35:1.65)&&
               this.buildings[tile]!==BUILDING_CODES.tower;
           });
           if(targets.length){
@@ -1247,7 +1247,7 @@ export class Game {
           // No land outlet: periodically search nearby unallied coastlines.
           // A real validated sea route, real soldiers and an affordable
           // landing are required. Never invent an ocean shortcut.
-          if(this.tick%8===faction.id%8&&coastalTargets.length&&squad.troops>=25&&
+          if(this.tick%4===faction.id%4&&coastalTargets.length&&squad.troops>=25&&
              !alerted.has(faction.id)){
             const coast=coastalTargets.filter(tile=>
               this.owner[tile]!==faction.id&&
@@ -1259,8 +1259,13 @@ export class Game {
                   Math.abs(Math.floor(tile/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH))+
                   (this.owner[tile]===NEUTRAL?0:20);
                 return score(a)-score(b)||a-b;
-              }).slice(0,24);
+              }).slice(0,96);
+            // Try more than the nearest handful: those may all be
+            // unreachable across blocked or disconnected sea basins.
+            // Bound attempts to avoid expensive pathfinding every turn.
+            let routeAttempts=0;
             for(const tile of coast){
+              if(routeAttempts++>=96)break;
               const order=this.orderSquadAttack(faction.id,squad.id,cellToPoint(tile));
               if(order.ok)break;
             }
