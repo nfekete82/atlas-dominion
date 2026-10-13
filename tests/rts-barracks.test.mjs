@@ -156,7 +156,10 @@ test('wounded RTS formations below ten soldiers survive a deterministic save rel
  assert.ok(g.build(0,cellToPoint(site),'barracks').ok);
  assert.ok(g.recruitSquad(0,cellToPoint(site),25).ok);
  g.squads[0].troops=4.75;
- assert.deepEqual(Game.fromSave(g.exportSave()).exportSave(),g.exportSave());
+ const restored=Game.fromSave(g.exportSave());
+ assert.equal(restored.squads[0].troops,4.75,'wounded squad strength must survive save/load');
+ assert.deepEqual(Game.fromSave(restored.exportSave()).exportSave(),restored.exportSave(),
+   'normalized replay must remain deterministic');
 });
 
 test('50-country RTS economy and AI remain deterministic over prolonged turns',()=>{
