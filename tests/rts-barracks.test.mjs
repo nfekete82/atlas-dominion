@@ -305,15 +305,18 @@ test('several RTS squads accept a shared real rally order without merging soldie
  assert.ok(site>=0);
  assert.ok(g.build(0,cellToPoint(site),'barracks').ok);
  for(let i=0;i<3;i++)assert.ok(g.recruitSquad(0,cellToPoint(site),30).ok);
- const ids=g.squads.map(unit=>unit.id);
+ const ids=g.squads.filter(unit=>unit.owner===0).map(unit=>unit.id);
  const goal=landNeighbors(site).find(i=>g.owner[i]===0);
  assert.ok(goal!==undefined);
  for(const id of ids)assert.ok(g.orderSquad(0,id,cellToPoint(goal)).ok);
  for(let tick=0;tick<8;tick++)g.step();
- assert.equal(new Set(g.squads.map(unit=>unit.id)).size,3);
- assert.deepEqual(g.squads.map(unit=>unit.id),ids);
- assert.ok(g.squads.every(unit=>unit.owner===0&&unit.troops>0));
- assert.ok(g.squads.every(unit=>unit.index===goal),
+ // Opposing countries legitimately train their own squads in the background.
+ // The rally order must preserve only the three PLAYER-owned formations.
+ const playerSquads=g.squads.filter(unit=>unit.owner===0);
+ assert.equal(new Set(playerSquads.map(unit=>unit.id)).size,3);
+ assert.deepEqual(playerSquads.map(unit=>unit.id),ids);
+ assert.ok(playerSquads.every(unit=>unit.troops>0));
+ assert.ok(playerSquads.every(unit=>unit.index===goal),
    'all three real formations reached the same rally point');
 });
 

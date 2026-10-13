@@ -1422,10 +1422,10 @@ export class MapRenderer {
     let lastSecondary=-Infinity;
     const requestBuild=(clientX:number,clientY:number,forceMenu=false)=>{
       const point=this.cellAt(clientX,clientY,false);
-      // Right-click must always open the build / diplomacy context menu on
-      // owned territory, even if a squad remains selected from an attack.
-      // Shift+right-click on hostile land issues an optional RTS group order.
-      if(point&&forceMenu&&this.game.owner[pointToIndex(point)]!==0&&
+      // RTS controls: left-click selects/deselects; right-click commands
+      // selected real units anywhere on the map. Shift+right-click retains
+      // access to the build/diplomacy menu without losing the selection.
+      if(this.game.rtsRecruitment&&point&&!forceMenu&&
          this.selectedSquadIds.some(id=>this.game.squads.some(unit=>unit.id===id&&unit.owner===0))){
         this.onCommandSquads(point);return;
       }

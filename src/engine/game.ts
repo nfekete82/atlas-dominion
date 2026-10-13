@@ -6,6 +6,8 @@ import { attackFrontWidth, frontierBudget, frontierTarget, localDefenseStrength 
 import { BUILDINGS, BUILDING_CODES, type BuildingType, FACTORY_INCOME, FACTORY_CONNECTION_MULTIPLIER, FACTORY_LINK_MAX_DISTANCE, troopGrowth, taxRevenue, cityUpgradeCost, cityUpgradeGrowth, upgradedCityRecruitment } from './economy.js';
 import { findConnectedAttackFront } from './front-target.js';
 import {aiStyle,scoreAIFront} from './ai-strategy.js';
+import {scoreRTSTarget,chooseRTSOperation,chooseRTSPosture,chooseRTSTheaterTarget,scoreRTSNeutralFront} from './rts-strategy.js';
+import {rtsFrontWidth,rtsContactLoss} from './rts-frontage.js';
 import {aiMarchRecovery,aiAttacksPerTick,aiStrikeSize,aiRiskTolerance} from './ai-tactics.js';
 import {formatCompact} from '../format.js';
 import {chooseAdvancingSector,canReinforceFront} from './offensive-front.js';
@@ -157,6 +159,18 @@ for (let y = 0; y < MAP_HEIGHT; y++) {
   }
 }
 const LAND_NEIGHBORS = NEIGHBORS.map(list => list.slice());
+// Movement may use eight directions. Territory capture and fighting retain
+// four-sided adjacency so diagonal corner contacts do not create fronts.
+const MOVE_NEIGHBORS=LAND_NEIGHBORS.map((orthogonal,index)=>{
+  const x=index%MAP_WIDTH,y=Math.floor(index/MAP_WIDTH);
+  const result=[...orthogonal];
+  for(const dy of [-1,1])for(const dx of [-1,1]){
+    const nx=x+dx,ny=y+dy;
+    if(nx>=0&&nx<MAP_WIDTH&&ny>=0&&ny<MAP_HEIGHT)
+      result.push(ny*MAP_WIDTH+nx);
+  }
+  return result;
+});
 // SEA_CROSSINGS are navigation links only; land attacks use LAND_NEIGHBORS.
 // Short sea crossings make islands and Anatolia reachable without a naval system.
 for (const [a, b] of SEA_CROSSINGS) {
@@ -978,7 +992,7 @@ export class Game {
       }
     }
     if(!this.factions.some(f=>f.ai&&f.alive&&
-      (alerted.has(f.id)||this.tick%8===f.id%8)))return;
+      (alerted.has(f.id)||this.tick%4===f.id%4)))return;
     // Build a single spatial index per AI turn rather than scanning every
     // map cell for each of up to 49 countries.
     const barracksSites=new Int32Array(this.factions.length).fill(-1);
@@ -1000,14 +1014,25 @@ export class Game {
     // Island powers can then evaluate actual sea routes instead of idling
     // because they have no land frontier.
     const coastalTargets:number[]=[];
+    const frontierByFaction=new Map<number,Set<number>>();
     for(let cell=0;cell<CELL_COUNT;cell++){
-      if(this.owner[cell]===WATER)continue;
+      const holder=this.owner[cell];
+      if(holder===WATER)continue;
       if(LAND_NEIGHBORS[cell].some(n=>this.owner[n]===WATER))
         coastalTargets.push(cell);
+      if(holder<=0||!this.factions[holder]?.alive)continue;
+      for(const next of LAND_NEIGHBORS[cell]){
+        const other=this.owner[next];
+        if(other!==holder&&other!==WATER&&!this.isAllied(holder,other)){
+          let targets=frontierByFaction.get(holder);
+          if(!targets){targets=new Set<number>();frontierByFaction.set(holder,targets);}
+          targets.add(next);
+        }
+      }
     }
     for(const faction of this.factions){
       if(!faction.ai||!faction.alive)continue;
-      if(!alerted.has(faction.id)&&this.tick%8!==faction.id%8)continue;
+      if(!alerted.has(faction.id)&&this.tick%4!==faction.id%4)continue;
       const own=this.squads.filter(s=>s.owner===faction.id);
       const barracks=barracksSites[faction.id];
       if(barracks<0){
@@ -1156,7 +1181,7 @@ export class Game {
           !own.some(unit=>unit.index===tile||unit.destination===tile));
         for(const unit of own){
           if(criticalUncovered||assignedDefenders.has(unit.id))continue;
-          if(unit.troops<60||unit.seaRoute?.length||unit.destination!==null||
+          if(unit.troops<45||unit.seaRoute?.length||unit.destination!==null||
              unit.attackTarget!=null||unit.campaignTarget!=null)continue;
           const targets=LAND_NEIGHBORS[unit.index].filter(tile=>{
             const holder=this.owner[tile];
@@ -1165,7 +1190,7 @@ export class Game {
               !this.isAllied(faction.id,enemy.owner)&&
               (enemy.index===tile||LAND_NEIGHBORS[tile].includes(enemy.index)));
             const power=defenders.reduce((sum,enemy)=>sum+enemy.troops,0);
-            return power>0&&unit.troops>=power*2.25&&
+            return power>0&&unit.troops>=power*(this.owner[tile]===faction.id?1.35:1.65)&&
               this.buildings[tile]!==BUILDING_CODES.tower;
           });
           if(targets.length){
@@ -1176,10 +1201,6 @@ export class Game {
         }
       }
       const totalReady=own.reduce((sum,u)=>sum+u.troops,0);
-      const strongestThreat=enemyUnits.reduce((max,u)=>{
-        if(!LAND_NEIGHBORS[u.index].some(n=>this.owner[n]===faction.id))return max;
-        return Math.max(max,u.troops);
-      },0);
       // No single understrength squad should charge into an obvious
       // superior neighboring formation. Group units around a rally point.
       const rally=own.length?own.reduce((a,b)=>a.troops>=b.troops?a:b):null;
@@ -1190,7 +1211,62 @@ export class Game {
         this.owner[u.campaignTarget]!==faction.id&&
         (this.owner[u.campaignTarget]===u.campaignOwner||
          this.owner[u.campaignTarget]===NEUTRAL));
-      const reinforceTarget=offensive?.campaignTarget??null;
+      // Coordinate reinforcement around the most viable existing campaign
+      // instead of whichever unit happens to appear first in the array.
+      const operations=new Map<number,{committed:number;formations:number}>();
+      for(const unit of own){
+        const target=unit.campaignTarget;
+        if(target==null||unit.troops<20||this.owner[target]===faction.id||
+           this.owner[target]===WATER||
+           (this.owner[target]>=0&&this.isAllied(faction.id,this.owner[target])))continue;
+        const item=operations.get(target)??{committed:0,formations:0};
+        item.committed+=unit.troops;item.formations++;
+        operations.set(target,item);
+      }
+      const selected=chooseRTSOperation([...operations].map(([target,info])=>({
+        target,committed:info.committed,formations:info.formations,
+        distance:Math.abs(target%MAP_WIDTH-barracks%MAP_WIDTH)+
+          Math.abs(Math.floor(target/MAP_WIDTH)-Math.floor(barracks/MAP_WIDTH)),
+        threat:enemyUnits.filter(enemy=>
+          enemy.index===target||LAND_NEIGHBORS[target].includes(enemy.index))
+          .reduce((sum,enemy)=>sum+enemy.troops,0)
+      })));
+      // A durable campaign already lives on each physical squad and survives
+      // save/load. When there is no campaign, choose a common reachable land
+      // objective from the country's actual border rather than dispatching
+      // every idle army toward a separately chosen random frontier.
+      const frontierCandidates=frontierByFaction.get(faction.id)??new Set<number>();
+      // During the land-grab opening, neutral territory dominates strategy.
+      // No early offensive war while an accessible neutral land frontier exists.
+      // Later the same rule remains a preference, not a permanent pacifist lock.
+      const neutralOpening=this.tick<240&&
+        [...frontierCandidates].some(tile=>this.owner[tile]===NEUTRAL);
+      const theaterCandidates=neutralOpening
+        ?[...frontierCandidates].filter(tile=>this.owner[tile]===NEUTRAL)
+        :[...frontierCandidates];
+      const totalOperational=own.filter(u=>u.troops>=20)
+        .reduce((sum,u)=>sum+u.troops,0);
+      const theaterTarget=chooseRTSTheaterTarget(theaterCandidates.map(tile=>{
+        const defender=this.squads.filter(u=>u.owner!==faction.id&&
+          !this.isAllied(faction.id,u.owner)&&
+          (u.index===tile||LAND_NEIGHBORS[tile].includes(u.index)))
+          .reduce((sum,u)=>sum+u.troops,0);
+        const distance=Math.min(...own.filter(u=>u.troops>=20).map(u=>
+          Math.abs(tile%MAP_WIDTH-u.index%MAP_WIDTH)+
+          Math.abs(Math.floor(tile/MAP_WIDTH)-Math.floor(u.index/MAP_WIDTH))),10000);
+        const code=this.buildings[tile];
+        return {tile,neutral:this.owner[tile]===NEUTRAL,
+          defenderStrength:defender,assaultStrength:totalOperational,
+          distance,strategicValue:
+            (this.capitalSites.has(tile)?80:0)+
+            (code===BUILDING_CODES.barracks?55:0)+
+            (code===BUILDING_CODES.city?35:0)+
+            (code===BUILDING_CODES.factory?25:0)-
+            (code===BUILDING_CODES.tower?45:0),
+          committed:own.filter(u=>u.campaignTarget===tile)
+            .reduce((sum,u)=>sum+u.troops,0)};
+      }));
+      const reinforceTarget=neutralOpening?null:(selected?.target??offensive?.campaignTarget??null);
       // No abstract issueAttack: mobilize units by actual contiguous paths.
       for(const squad of own){
         // Damaged AI forces retreat to their barracks instead of blindly
@@ -1206,7 +1282,12 @@ export class Game {
         const adjacentEnemies=enemyUnits.filter(enemy=>
           LAND_NEIGHBORS[squad.index].includes(enemy.index));
         const enemyStrength=adjacentEnemies.reduce((sum,u)=>sum+u.troops,0);
-        if(enemyStrength>squad.troops*2&&squad.troops>=1){
+        // Never cancel an already-valid march/campaign for repeated retreat
+        // orders. Otherwise the same enemy proximity can make a unit alternate
+        // between a safe tile and its previous objective every AI pulse.
+        if(enemyStrength>squad.troops*2&&squad.troops>=1&&
+           squad.destination===null&&squad.attackTarget===null&&
+           squad.campaignTarget===null){
           const safe=LAND_NEIGHBORS[squad.index].filter(tile=>
             this.owner[tile]===faction.id&&
             !enemyUnits.some(enemy=>LAND_NEIGHBORS[tile].includes(enemy.index)));
@@ -1220,37 +1301,118 @@ export class Game {
             if(order.ok)continue;
           }
         }
-        if(strongestThreat>squad.troops*1.4&&totalReady>=strongestThreat&&rally&&
-           squad.id!==rally.id&&squad.index!==rally.index){
-          this.orderSquad(faction.id,squad.id,cellToPoint(rally.index));continue;
+        // Rally only for a nearby, *real* contact and only if the combined
+        // ready force can challenge it. A remote enemy must never pin the
+        // entire country's army to a static rally point indefinitely.
+        const localThreat=adjacentEnemies.reduce((sum,u)=>sum+u.troops,0);
+        if(localThreat>squad.troops*1.4&&totalReady>=localThreat&&rally&&
+           squad.id!==rally.id&&squad.index!==rally.index&&
+           squad.destination===null&&squad.campaignTarget===null){
+          const regroup=this.orderSquad(faction.id,squad.id,cellToPoint(rally.index));
+          if(regroup.ok)continue;
         }
         // Preserve multi-sector campaigns: a transient null waypoint does
         // not mean the player/AI's long-distance goal has been abandoned.
         if(squad.destination!==null||squad.attackTarget!=null||squad.campaignTarget!=null)continue;
-        if(reinforceTarget!=null&&offensive&&offensive.id!==squad.id&&squad.troops>=20){
+        const posture=chooseRTSPosture({
+          localThreat:enemyStrength,availableTroops:squad.troops,
+          activeCampaigns:reinforceTarget!=null?1:0,
+          neutralFrontier:LAND_NEIGHBORS[squad.index].some(n=>this.owner[n]===NEUTRAL),
+          hostileFrontier:LAND_NEIGHBORS[squad.index].some(n=>
+            this.owner[n]>=0&&this.owner[n]!==faction.id&&
+            !this.isAllied(faction.id,this.owner[n]))
+        });
+        if(posture==='reinforce'&&reinforceTarget!=null&&
+           squad.id!==offensive?.id&&squad.troops>=20){
           const joined=this.orderSquadAttack(faction.id,squad.id,cellToPoint(reinforceTarget));
           if(joined.ok)continue;
         }
+        // During neutral expansion each formation selects its own promising
+        // frontier sector. A single national theater target made every squad
+        // march to the same (often northmost by row-major tie-breaking) cell.
+        // Prefer the widest locally unclaimed space, penalize overcrowding
+        // and travel distance; deterministic ties remain stable.
+        let objective=theaterTarget;
+        if(neutralOpening&&squad.troops>=30){
+          let best=-Infinity;
+          objective=null;
+          for(const tile of theaterCandidates){
+            if(this.owner[tile]!==NEUTRAL)continue;
+            const surroundings=LAND_NEIGHBORS[tile];
+            const available=surroundings.filter(n=>this.owner[n]===NEUTRAL).length;
+            const outer=new Set<number>();
+            for(const n of surroundings)
+              for(const farther of LAND_NEIGHBORS[n])
+                if(this.owner[farther]===NEUTRAL)outer.add(farther);
+            const distance=Math.abs(tile%MAP_WIDTH-squad.index%MAP_WIDTH)+
+              Math.abs(Math.floor(tile/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH));
+            const otherCommitments=own.filter(u=>u.id!==squad.id&&u.troops>=20&&
+              (u.campaignTarget===tile||
+               (u.campaignTarget!=null&&
+                Math.abs(u.campaignTarget%MAP_WIDTH-tile%MAP_WIDTH)+
+                Math.abs(Math.floor(u.campaignTarget/MAP_WIDTH)-Math.floor(tile/MAP_WIDTH))<6)))
+              .length;
+            const friendlySides=surroundings.filter(n=>this.owner[n]===faction.id).length;
+            const score=scoreRTSNeutralFront({
+              adjacentNeutral:available,secondRingNeutral:outer.size,
+              friendlySides,distance,otherCommitments
+            });
+            if(score>best||(score===best&&(objective===null||tile<objective))){
+              best=score;objective=tile;
+            }
+          }
+        }
+        if(objective!=null&&squad.troops>=30){
+          const launched=this.orderSquadAttack(faction.id,squad.id,cellToPoint(objective));
+          if(launched.ok)continue;
+        }
         const targets=LAND_NEIGHBORS[squad.index].filter(n=>
+          (!neutralOpening||this.owner[n]===NEUTRAL)&&
           this.owner[n]!==squad.owner&&this.owner[n]!==WATER&&
           !this.isAllied(squad.owner,this.owner[n]));
-        const neutral=targets.find(n=>this.owner[n]===NEUTRAL);
-        const next=neutral??targets[0];
-        if(next!==undefined)this.orderSquadAttack(squad.owner,squad.id,cellToPoint(next));
-        else {
+        // Score every nearby objective instead of accepting the first
+        // neighbor. Prefer weak lines, unguarded expansion and high-value
+        // infrastructure while reinforcing ongoing assaults.
+        const rank=(tile:number)=>{
+          const hostile=this.squads.filter(u=>u.owner!==faction.id&&
+            !this.isAllied(faction.id,u.owner)&&
+            (u.index===tile||LAND_NEIGHBORS[tile].includes(u.index)));
+          const friendly=this.squads.filter(u=>u.owner===faction.id&&
+            (u.index===squad.index||LAND_NEIGHBORS[squad.index].includes(u.index)));
+          return scoreRTSTarget({
+            neutral:this.owner[tile]===NEUTRAL,
+            enemyTroops:hostile.reduce((sum,u)=>sum+u.troops,0),
+            friendlyTroops:friendly.reduce((sum,u)=>sum+u.troops,0),
+            distance:1,
+            capital:this.capitalSites.has(tile),
+            barracks:this.buildings[tile]===BUILDING_CODES.barracks,
+            tower:this.buildings[tile]===BUILDING_CODES.tower,
+            city:this.buildings[tile]===BUILDING_CODES.city,
+            factory:this.buildings[tile]===BUILDING_CODES.factory,
+            committedAttackers:own.filter(u=>u.campaignTarget===tile)
+              .reduce((sum,u)=>sum+u.troops,0)
+          });
+        };
+        const next=targets.sort((a,b)=>rank(b)-rank(a)||a-b)[0];
+        if(next!==undefined&&rank(next)>-25){
+          const ordered=this.orderSquadAttack(squad.owner,squad.id,cellToPoint(next));
+          if(ordered.ok)continue;
+        }
+        {
           // Patrol towards a locally accessible enemy/neutral border.
           const frontier=this.chooseFront(faction.id);
-          if(frontier>=0){
+          if(frontier>=0&&(!neutralOpening||this.owner[frontier]===NEUTRAL)){
             const ordered=this.orderSquadAttack(faction.id,squad.id,cellToPoint(frontier));
             if(ordered.ok)continue;
           }
           // No land outlet: periodically search nearby unallied coastlines.
           // A real validated sea route, real soldiers and an affordable
           // landing are required. Never invent an ocean shortcut.
-          if(this.tick%8===faction.id%8&&coastalTargets.length&&squad.troops>=25&&
+          if(this.tick%4===faction.id%4&&coastalTargets.length&&squad.troops>=25&&
              !alerted.has(faction.id)){
             const coast=coastalTargets.filter(tile=>
               this.owner[tile]!==faction.id&&
+              (!neutralOpening||this.owner[tile]===NEUTRAL)&&
               !this.isAllied(faction.id,this.owner[tile])&&
               this.buildings[tile]!==BUILDING_CODES.tower)
               .sort((a,b)=>{
@@ -1259,8 +1421,13 @@ export class Game {
                   Math.abs(Math.floor(tile/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH))+
                   (this.owner[tile]===NEUTRAL?0:20);
                 return score(a)-score(b)||a-b;
-              }).slice(0,24);
+              }).slice(0,96);
+            // Try more than the nearest handful: those may all be
+            // unreachable across blocked or disconnected sea basins.
+            // Bound attempts to avoid expensive pathfinding every turn.
+            let routeAttempts=0;
             for(const tile of coast){
+              if(routeAttempts++>=96)break;
               const order=this.orderSquadAttack(faction.id,squad.id,cellToPoint(tile));
               if(order.ok)break;
             }
@@ -1296,8 +1463,10 @@ export class Game {
         for(const enemy of foes){
           if(enemy.owner===unit.owner||this.isAllied(unit.owner,enemy.owner)||unit.id>=enemy.id)continue;
           // Resolve each pair exactly once, with simultaneous losses.
-          const a=Math.min(unit.troops,Math.max(.25,enemy.troops*.085));
-          const b=Math.min(enemy.troops,Math.max(.25,unit.troops*.085));
+          const losses=rtsContactLoss(unit.troops,enemy.troops,
+            this.owner[enemy.index]===enemy.owner,
+            this.owner[unit.index]===unit.owner);
+          const a=losses.attackerLost,b=losses.defenderLost;
           damage.set(unit.id,(damage.get(unit.id)??0)+a);
           damage.set(enemy.id,(damage.get(enemy.id)??0)+b);
           engaged.add(unit.id);engaged.add(enemy.id);
@@ -1421,11 +1590,39 @@ export class Game {
       if(this.rtsRecruitment){
         const reached=new Set<number>([squad.index]);
         const queue:[number,number][]=[[squad.index,0]];
+        // A larger real formation occupies more tiles per tick. This is a
+        // throughput limit, NOT extra reach: every tile must remain connected
+        // to the squad's physical position through lawful neighboring cells.
+        // Use beginning-of-tick strength so casualties don't mutate the
+        // command budget halfway through the same occupation.
+        const occupationBudget=Math.max(3,rtsFrontWidth(squad.troops));
+        const hostileDepth=squad.troops>=240?2:squad.troops>=100?1:0;
         let taken=0;
-        for(let head=0;head<queue.length&&taken<30;head++){
+        for(let head=0;head<queue.length&&taken<occupationBudget;head++){
           const [cell,depth]=queue[head];
           if(depth>=4)continue;
-          for(const next of LAND_NEIGHBORS[cell]){
+          // Never use the map's fixed left/right/up/down order as the
+          // conquest priority. With a small occupation budget, that order
+          // repeatedly biases the first sectors in every BFS ring and can
+          // create long artificial north-south corridors.
+          const neighbors=[...LAND_NEIGHBORS[cell]].sort((a,b)=>{
+            const available=(tile:number)=>LAND_NEIGHBORS[tile]
+              .filter(n=>this.owner[n]===NEUTRAL).length;
+            const da=available(a),db=available(b);
+            if(da!==db)return db-da;
+            // Rotate equivalent directions by physical squad and tick:
+            // distinct armies spread naturally, without RNG or permanent
+            // compass preferences; still fully deterministic on save replay.
+            const direction=(tile:number)=>{
+              const dx=tile%MAP_WIDTH-cell%MAP_WIDTH;
+              const dy=Math.floor(tile/MAP_WIDTH)-Math.floor(cell/MAP_WIDTH);
+              return dx>0?0:dy>0?1:dx<0?2:3;
+            };
+            const phase=(squad.id+Math.floor(this.tick/4))%4;
+            return ((direction(a)-phase+4)%4)-
+              ((direction(b)-phase+4)%4)||a-b;
+          });
+          for(const next of neighbors){
             if(reached.has(next))continue;
             reached.add(next);
             const holder=this.owner[next];
@@ -1443,7 +1640,7 @@ export class Game {
               // defensive planning and tower construction could run.
               // A two-ring assault gives sizeable armies a visible broad
               // front, but only the physical formation's immediate vicinity.
-              if(depth>1||squad.troops<30)continue;
+              if(depth>hostileDepth||squad.troops<30)continue;
               if(this.isAllied(squad.owner,holder)||
                  this.buildings[next]===BUILDING_CODES.tower||
                  this.squads.some(unit=>unit.owner===holder&&
@@ -1454,11 +1651,11 @@ export class Game {
               // Actual defending squads and towers still stop this sweep.
             }
             if(holder!==squad.owner){
-              if(taken>=30)break;
+              if(taken>=occupationBudget)break;
               // Occupied hostile ground costs real soldiers. Wider sweeps
               // spend more manpower and stop when the unit is exhausted.
               if(holder>=0){
-                const lost=Math.min(squad.troops,Math.max(.6,1.4+taken*.42));
+                const lost=Math.min(squad.troops,Math.max(.6,1.4+taken*.42)*(1+depth*.35));
                 squad.troops-=lost;
                 this.factions[squad.owner].attackFallen+=lost;
                 if(squad.troops<10)break;
@@ -1518,6 +1715,11 @@ export class Game {
       const goal=squad.seaRoute?.length?null:squad.campaignTarget;
       if(goal!==null&&goal!==undefined&&
          squad.destination===null&&squad.attackTarget==null){
+        // A completed objective still matters as a rendezvous point:
+        // if another formation has captured it, the marching squad may
+        // continue through friendly land to reach the original destination.
+        // Only finish once it actually arrives, avoiding premature campaign
+        // cancellation and preserving explicit player attack orders.
         if(squad.index===goal){
           squad.campaignTarget=null;squad.campaignOwner=null;
         }else{
@@ -1610,8 +1812,17 @@ export class Game {
       let head=0;
       while(head<queue.length&&head<12000&&!parents.has(squad.destination)){
         const current=queue[head++];
-        for(const next of LAND_NEIGHBORS[current]){
+        for(const next of MOVE_NEIGHBORS[current]){
           if(this.owner[next]!==squad.owner||parents.has(next))continue;
+          const dx=next%MAP_WIDTH-current%MAP_WIDTH;
+          const dy=Math.floor(next/MAP_WIDTH)-Math.floor(current/MAP_WIDTH);
+          if(dx!==0&&dy!==0){
+            // Both side cells must be friendly: never cut a corner across
+            // water, a foreign state or an enemy-controlled defensive line.
+            const sideX=current+dx,sideY=current+dy*MAP_WIDTH;
+            if(this.owner[sideX]!==squad.owner||
+               this.owner[sideY]!==squad.owner)continue;
+          }
           parents.set(next,current);queue.push(next);
         }
       }
