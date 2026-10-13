@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {scoreRTSTarget} from '../dist/src/engine/rts-strategy.js';
+import {scoreRTSTarget,chooseRTSOperation} from '../dist/src/engine/rts-strategy.js';
 
 const base={neutral:false,enemyTroops:20,friendlyTroops:100,distance:2,
   capital:false,barracks:false,tower:false,city:false,factory:false,committedAttackers:0};
@@ -23,4 +23,20 @@ test('RTS target score is deterministic and input remains unchanged',()=>{
   const value=scoreRTSTarget(candidate);
   for(let n=0;n<100;n++)assert.equal(scoreRTSTarget(candidate),value);
   assert.deepEqual(candidate,{...base,city:true});
+});
+
+test('strategic commander concentrates forces against viable operations',()=>{
+  const weak={target:10,committed:40,formations:1,distance:12,threat:180};
+  const strong={target:20,committed:120,formations:2,distance:8,threat:40};
+  assert.deepEqual(chooseRTSOperation([weak,strong]),strong);
+  assert.deepEqual(chooseRTSOperation([strong,weak]),strong,
+    'incidental insertion order cannot influence the selected theater');
+});
+
+test('campaign selection rejects malformed operations and ties resolve by target',()=>{
+  assert.equal(chooseRTSOperation([]),null);
+  assert.equal(chooseRTSOperation([{target:-1,committed:80,formations:1,distance:2,threat:0}]),null);
+  const a={target:7,committed:80,formations:2,distance:4,threat:10};
+  const b={...a,target:8};
+  assert.equal(chooseRTSOperation([b,a]).target,7);
 });
