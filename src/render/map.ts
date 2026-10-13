@@ -28,6 +28,8 @@ export class MapRenderer {
   private overlay = document.createElement('canvas');
   private highlightedCountry = document.createElement('canvas');
   private showSeaPassages=false;
+  private readonly panKeys=new Set<string>();
+  private previousPanFrame=0;
   private topography=createTopographyLayer();
   private showTopography=true;
   private voyageCache=new WeakMap<number[],{geometry:VoyageGeometry;path:Path2D}>();
@@ -1071,6 +1073,19 @@ export class MapRenderer {
   }
 
   private frame(timestamp: number) {
+    // Smooth keyboard camera controls, independent of simulation tick rate.
+    const elapsed=this.previousPanFrame?Math.min(50,timestamp-this.previousPanFrame):0;
+    this.previousPanFrame=timestamp;
+    if(elapsed&&this.panKeys.size){
+      const dx=Number(this.panKeys.has('d')||this.panKeys.has('arrowright'))-
+        Number(this.panKeys.has('a')||this.panKeys.has('arrowleft'));
+      const dy=Number(this.panKeys.has('s')||this.panKeys.has('arrowdown'))-
+        Number(this.panKeys.has('w')||this.panKeys.has('arrowup'));
+      if(dx||dy){
+        const distance=elapsed*.58/(Math.hypot(dx,dy)||1);
+        this.ox-=dx*distance;this.oy-=dy*distance;
+      }
+    }
     if(this.dpr!==Math.max(1,devicePixelRatio||1))this.resize();
     this.occupancy.clear();
     this.cityAnchors.clear();
@@ -1157,6 +1172,21 @@ export class MapRenderer {
     return {x,y};
   }
   private installControls() {
+    // WASD / arrows pan the map only when game controls own the keyboard.
+    // Never steal shortcuts or cursor movement from text fields and dialogs.
+    const directions=new Set(['w','a','s','d','arrowup','arrowleft','arrowdown','arrowright']);
+    const typing=(target:EventTarget|null):boolean=>{
+      const element=target instanceof HTMLElement?target:null;
+      return !!element?.closest('input,textarea,select,[contenteditable="true"],[role="textbox"],[role="dialog"],[aria-modal="true"]');
+    };
+    window.addEventListener('keydown',e=>{
+      const key=e.key.toLowerCase();
+      if(!directions.has(key)||e.altKey||e.ctrlKey||e.metaKey||typing(e.target))return;
+      if(document.querySelector('[role="dialog"][aria-modal="true"],dialog[open]'))return;
+      e.preventDefault();this.panKeys.add(key);
+    });
+    window.addEventListener('keyup',e=>this.panKeys.delete(e.key.toLowerCase()));
+    window.addEventListener('blur',()=>this.panKeys.clear());
     // Maritime markers appear only while Shift is held, not all game long.
     window.addEventListener('keydown',e=>{if(e.key==='Shift')this.showSeaPassages=true;});
     window.addEventListener('keyup',e=>{if(e.key==='Shift')this.showSeaPassages=false;});
