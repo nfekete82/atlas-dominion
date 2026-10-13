@@ -10,8 +10,13 @@
     "preview": "node scripts/serve.mjs",
     "test": "npm run build && node --test tests/*.test.mjs",
     "test:browser": "npm run build && npm --prefix tests/browser test",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:ai-defense": "npm run build && node scripts/benchmark-ai-defense.mjs"
   },
-  "devDependencies": { "typescript": "^5.9.2" },
-  "engines": { "node": ">=20" }
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
 }
