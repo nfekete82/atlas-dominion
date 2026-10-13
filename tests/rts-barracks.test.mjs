@@ -241,3 +241,23 @@ test('formation drawing stays visual-only while RTS marching remains determinist
  for(let i=0;i<12;i++){left.step();right.step();}
  assert.deepEqual(left.exportSave(),right.exportSave());
 });
+
+test('coordinated RTS AI reinforcements preserve deterministic living armies',()=>{
+ const first=new Game(9961,6,'DE','balanced',true);
+ const replay=new Game(9961,6,'DE','balanced',true);
+ for(let i=0;i<112;i++){first.step();replay.step();}
+ assert.deepEqual(first.exportSave(),replay.exportSave(),
+   'AI reinforcement and defense decisions must be deterministic');
+ const seen=new Set();
+ for(const unit of first.squads){
+   assert.ok(!seen.has(unit.id),'AI must not duplicate soldier groups');
+   seen.add(unit.id);
+   assert.ok(unit.troops>0&&Number.isFinite(unit.troops));
+   assert.equal(first.owner[unit.index],unit.owner,
+     'reinforcing squads must occupy real owned terrain');
+   if(unit.campaignTarget!=null){
+     assert.ok(unit.campaignTarget>=0&&unit.campaignTarget<480*260,
+       'reinforcement goal remains inside the map');
+   }
+ }
+});

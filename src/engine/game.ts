@@ -986,6 +986,14 @@ export class Game {
       // No single understrength squad should charge into an obvious
       // superior neighboring formation. Group units around a rally point.
       const rally=own.length?own.reduce((a,b)=>a.troops>=b.troops?a:b):null;
+      // Follow a real ongoing offensive instead of scattering reinforcements.
+      // Every reinforcement must still travel through legal connected terrain.
+      const offensive=own.find(u=>u.troops>=20&&u.campaignTarget!=null&&
+        u.campaignOwner!=null&&u.campaignOwner!==faction.id&&
+        this.owner[u.campaignTarget]!==faction.id&&
+        (this.owner[u.campaignTarget]===u.campaignOwner||
+         this.owner[u.campaignTarget]===NEUTRAL));
+      const reinforceTarget=offensive?.campaignTarget??null;
       // No abstract issueAttack: mobilize units by actual contiguous paths.
       for(const squad of own){
         // Damaged AI forces retreat to their barracks instead of blindly
@@ -996,15 +1004,27 @@ export class Game {
           continue;
         }
         if(defensiveTarget>=0&&squad.troops>=20){
-          if(squad.index!==defensiveTarget&&squad.destination!==defensiveTarget)
-            this.orderSquad(faction.id,squad.id,cellToPoint(defensiveTarget));
-          continue;
+          // Keep a real defense detachment; do not cancel every other
+          // formation's ongoing campaign for one threatened structure.
+          const defender=own.find(u=>u.troops>=20&&
+            (u.index===defensiveTarget||u.destination===defensiveTarget));
+          if(!defender||defender.id===squad.id){
+            if(squad.index!==defensiveTarget&&squad.destination!==defensiveTarget)
+              this.orderSquad(faction.id,squad.id,cellToPoint(defensiveTarget));
+            continue;
+          }
         }
         if(strongestThreat>squad.troops*1.4&&totalReady>=strongestThreat&&rally&&
            squad.id!==rally.id&&squad.index!==rally.index){
           this.orderSquad(faction.id,squad.id,cellToPoint(rally.index));continue;
         }
-        if(squad.destination!==null||squad.attackTarget!==null&&squad.attackTarget!==undefined)continue;
+        // Preserve multi-sector campaigns: a transient null waypoint does
+        // not mean the player/AI's long-distance goal has been abandoned.
+        if(squad.destination!==null||squad.attackTarget!=null||squad.campaignTarget!=null)continue;
+        if(reinforceTarget!=null&&offensive&&offensive.id!==squad.id&&squad.troops>=20){
+          const joined=this.orderSquadAttack(faction.id,squad.id,cellToPoint(reinforceTarget));
+          if(joined.ok)continue;
+        }
         const targets=LAND_NEIGHBORS[squad.index].filter(n=>
           this.owner[n]!==squad.owner&&this.owner[n]!==WATER&&
           !this.isAllied(squad.owner,this.owner[n]));
