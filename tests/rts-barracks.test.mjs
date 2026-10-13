@@ -664,3 +664,29 @@ test('RTS defending AI responds to real invading squad without eight-tick delay'
    (unit.destination!==null||unit.index===defended)),
    'real defending formation should receive an immediate border order');
 });
+
+test('alerted tactical AI keeps deterministic real layered defense without phantom soldiers',()=>{
+ const a=new Game(12198,2,'DE','balanced',true);
+ const b=new Game(12198,2,'DE','balanced',true);
+ const prepare=g=>{
+   const ai=1;
+   const border=g.owner.findIndex((id,index)=>id===ai&&
+     landNeighbors(index).some(n=>g.owner[n]===-1));
+   assert.ok(border>=0);
+   const staging=landNeighbors(border).find(n=>g.owner[n]===-1);
+   g.owner[staging]=0;
+   const posts=[border,...landNeighbors(border).filter(n=>g.owner[n]===ai)].slice(0,3);
+   assert.ok(posts.length>=2);
+   posts.forEach((index,offset)=>g.squads.push({
+     id:121980+offset,owner:ai,index,troops:100,destination:null,
+     attackTarget:null,campaignTarget:null,campaignOwner:null
+   }));
+   g.squads.push({id:121989,owner:0,index:staging,troops:120,destination:null,
+     attackTarget:null,campaignTarget:null,campaignOwner:null});
+ };
+ prepare(a);prepare(b);
+ for(let tick=0;tick<30;tick++){a.step();b.step();}
+ assert.deepEqual(a.exportSave(),b.exportSave(),'layered defense must replay identically');
+ assert.ok(a.squads.every(u=>u.troops>0&&a.owner[u.index]===u.owner),
+   'all defending soldiers must stay actual owned units');
+});
