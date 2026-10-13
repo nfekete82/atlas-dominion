@@ -7,12 +7,13 @@ export function rtsFrontWidth(troops:number):number {
  * not fictitious reserve troops.
  */
 export function rtsContactLoss(attackerTroops:number,defenderTroops:number,
-  defenderHome:boolean):{attackerLost:number;defenderLost:number} {
+  defenderHome:boolean,attackerHome=false):{attackerLost:number;defenderLost:number} {
   const attackers=Math.max(0,attackerTroops),defenders=Math.max(0,defenderTroops);
   if(attackers<=0||defenders<=0)return {attackerLost:0,defenderLost:0};
-  const cover=defenderHome?1.25:1;
+  const defenderCover=defenderHome?1.25:1;
+  const attackerCover=attackerHome?1.25:1;
   return {
-    attackerLost:Math.min(attackers,Math.max(.25,defenders*.085*cover)),
-    defenderLost:Math.min(defenders,Math.max(.25,attackers*.085/cover))
+    attackerLost:Math.min(attackers,Math.max(.25,defenders*.085*defenderCover/attackerCover)),
+    defenderLost:Math.min(defenders,Math.max(.25,attackers*.085*attackerCover/defenderCover))
   };
 }
