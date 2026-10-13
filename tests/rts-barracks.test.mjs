@@ -352,3 +352,13 @@ test('deep invasion re-plans a stale frontline waypoint and keeps advancing',()=
  assert.equal(unit.index,goal,'squad must not stop at stale attack waypoint');
  assert.equal(g.owner[goal],0,'real marching must capture the target');
 });
+
+test('RTS squad ownership is reconciled after late-tick territory captures',()=>{
+ const game=new Game(9313,49,'DE','balanced',true);
+ for(let tick=0;tick<140;tick++){
+   game.step();
+   const displaced=game.squads.filter(unit=>game.owner[unit.index]!==unit.owner);
+   assert.deepEqual(displaced.map(unit=>unit.id),[],
+     'no stranded squads after simulation tick '+game.tick);
+ }
+});
