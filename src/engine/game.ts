@@ -1392,6 +1392,11 @@ export class Game {
               unit.owner!==squad.owner&&!this.isAllied(squad.owner,unit.owner)&&
               (unit.index===next||LAND_NEIGHBORS[next].includes(unit.index))))continue;
             if(holder>=0&&holder!==squad.owner){
+              // Hostile land must be taken at the physical squad's
+              // immediate frontline, one ring per tick. Previously a
+              // four-deep sweep overran the entire AI border before its
+              // defensive planning and tower construction could run.
+              if(depth>0)continue;
               if(this.isAllied(squad.owner,holder)||
                  this.buildings[next]===BUILDING_CODES.tower||
                  this.squads.some(unit=>unit.owner===holder&&
