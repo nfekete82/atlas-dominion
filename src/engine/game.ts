@@ -1598,7 +1598,28 @@ export class Game {
         for(let head=0;head<queue.length&&taken<occupationBudget;head++){
           const [cell,depth]=queue[head];
           if(depth>=4)continue;
-          for(const next of LAND_NEIGHBORS[cell]){
+          // Never use the map's fixed left/right/up/down order as the
+          // conquest priority. With a small occupation budget, that order
+          // repeatedly biases the first sectors in every BFS ring and can
+          // create long artificial north-south corridors.
+          const neighbors=[...LAND_NEIGHBORS[cell]].sort((a,b)=>{
+            const available=(tile:number)=>LAND_NEIGHBORS[tile]
+              .filter(n=>this.owner[n]===NEUTRAL).length;
+            const da=available(a),db=available(b);
+            if(da!==db)return db-da;
+            // Rotate equivalent directions by physical squad and tick:
+            // distinct armies spread naturally, without RNG or permanent
+            // compass preferences; still fully deterministic on save replay.
+            const direction=(tile:number)=>{
+              const dx=tile%MAP_WIDTH-cell%MAP_WIDTH;
+              const dy=Math.floor(tile/MAP_WIDTH)-Math.floor(cell/MAP_WIDTH);
+              return dx>0?0:dy>0?1:dx<0?2:3;
+            };
+            const phase=(squad.id+Math.floor(this.tick/4))%4;
+            return ((direction(a)-phase+4)%4)-
+              ((direction(b)-phase+4)%4)||a-b;
+          });
+          for(const next of neighbors){
             if(reached.has(next))continue;
             reached.add(next);
             const holder=this.owner[next];
