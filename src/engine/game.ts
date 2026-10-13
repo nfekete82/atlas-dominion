@@ -1236,9 +1236,17 @@ export class Game {
       // objective from the country's actual border rather than dispatching
       // every idle army toward a separately chosen random frontier.
       const frontierCandidates=frontierByFaction.get(faction.id)??new Set<number>();
+      // During the land-grab opening, neutral territory dominates strategy.
+      // No early offensive war while an accessible neutral land frontier exists.
+      // Later the same rule remains a preference, not a permanent pacifist lock.
+      const neutralOpening=this.tick<240&&
+        [...frontierCandidates].some(tile=>this.owner[tile]===NEUTRAL);
+      const theaterCandidates=neutralOpening
+        ?[...frontierCandidates].filter(tile=>this.owner[tile]===NEUTRAL)
+        :[...frontierCandidates];
       const totalOperational=own.filter(u=>u.troops>=20)
         .reduce((sum,u)=>sum+u.troops,0);
-      const theaterTarget=chooseRTSTheaterTarget([...frontierCandidates].map(tile=>{
+      const theaterTarget=chooseRTSTheaterTarget(theaterCandidates.map(tile=>{
         const defender=this.squads.filter(u=>u.owner!==faction.id&&
           !this.isAllied(faction.id,u.owner)&&
           (u.index===tile||LAND_NEIGHBORS[tile].includes(u.index)))
@@ -1258,7 +1266,7 @@ export class Game {
           committed:own.filter(u=>u.campaignTarget===tile)
             .reduce((sum,u)=>sum+u.troops,0)};
       }));
-      const reinforceTarget=selected?.target??offensive?.campaignTarget??null;
+      const reinforceTarget=neutralOpening?null:(selected?.target??offensive?.campaignTarget??null);
       // No abstract issueAttack: mobilize units by actual contiguous paths.
       for(const squad of own){
         // Damaged AI forces retreat to their barracks instead of blindly
@@ -1319,6 +1327,7 @@ export class Game {
           if(launched.ok)continue;
         }
         const targets=LAND_NEIGHBORS[squad.index].filter(n=>
+          (!neutralOpening||this.owner[n]===NEUTRAL)&&
           this.owner[n]!==squad.owner&&this.owner[n]!==WATER&&
           !this.isAllied(squad.owner,this.owner[n]));
         // Score every nearby objective instead of accepting the first
@@ -1352,7 +1361,7 @@ export class Game {
         {
           // Patrol towards a locally accessible enemy/neutral border.
           const frontier=this.chooseFront(faction.id);
-          if(frontier>=0){
+          if(frontier>=0&&(!neutralOpening||this.owner[frontier]===NEUTRAL)){
             const ordered=this.orderSquadAttack(faction.id,squad.id,cellToPoint(frontier));
             if(ordered.ok)continue;
           }
@@ -1363,6 +1372,7 @@ export class Game {
              !alerted.has(faction.id)){
             const coast=coastalTargets.filter(tile=>
               this.owner[tile]!==faction.id&&
+              (!neutralOpening||this.owner[tile]===NEUTRAL)&&
               !this.isAllied(faction.id,this.owner[tile])&&
               this.buildings[tile]!==BUILDING_CODES.tower)
               .sort((a,b)=>{
