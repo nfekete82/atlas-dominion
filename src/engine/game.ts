@@ -6,7 +6,7 @@ import { attackFrontWidth, frontierBudget, frontierTarget, localDefenseStrength 
 import { BUILDINGS, BUILDING_CODES, type BuildingType, FACTORY_INCOME, FACTORY_CONNECTION_MULTIPLIER, FACTORY_LINK_MAX_DISTANCE, troopGrowth, taxRevenue, cityUpgradeCost, cityUpgradeGrowth, upgradedCityRecruitment } from './economy.js';
 import { findConnectedAttackFront } from './front-target.js';
 import {aiStyle,scoreAIFront} from './ai-strategy.js';
-import {scoreRTSTarget} from './rts-strategy.js';
+import {scoreRTSTarget,chooseRTSOperation} from './rts-strategy.js';
 import {aiMarchRecovery,aiAttacksPerTick,aiStrikeSize,aiRiskTolerance} from './ai-tactics.js';
 import {formatCompact} from '../format.js';
 import {chooseAdvancingSector,canReinforceFront} from './offensive-front.js';
@@ -1191,7 +1191,27 @@ export class Game {
         this.owner[u.campaignTarget]!==faction.id&&
         (this.owner[u.campaignTarget]===u.campaignOwner||
          this.owner[u.campaignTarget]===NEUTRAL));
-      const reinforceTarget=offensive?.campaignTarget??null;
+      // Coordinate reinforcement around the most viable existing campaign
+      // instead of whichever unit happens to appear first in the array.
+      const operations=new Map<number,{committed:number;formations:number}>();
+      for(const unit of own){
+        const target=unit.campaignTarget;
+        if(target==null||unit.troops<20||this.owner[target]===faction.id||
+           this.owner[target]===WATER||
+           (this.owner[target]>=0&&this.isAllied(faction.id,this.owner[target])))continue;
+        const item=operations.get(target)??{committed:0,formations:0};
+        item.committed+=unit.troops;item.formations++;
+        operations.set(target,item);
+      }
+      const selected=chooseRTSOperation([...operations].map(([target,info])=>({
+        target,committed:info.committed,formations:info.formations,
+        distance:Math.abs(target%MAP_WIDTH-barracks%MAP_WIDTH)+
+          Math.abs(Math.floor(target/MAP_WIDTH)-Math.floor(barracks/MAP_WIDTH)),
+        threat:enemyUnits.filter(enemy=>
+          enemy.index===target||LAND_NEIGHBORS[target].includes(enemy.index))
+          .reduce((sum,enemy)=>sum+enemy.troops,0)
+      })));
+      const reinforceTarget=selected?.target??offensive?.campaignTarget??null;
       // No abstract issueAttack: mobilize units by actual contiguous paths.
       for(const squad of own){
         // Damaged AI forces retreat to their barracks instead of blindly
