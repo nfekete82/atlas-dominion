@@ -21,6 +21,11 @@ function snapshot(g, defender=1) {
     borderSectors:border,guardedBorderSectors:defendedBorder,
     defensiveCoverage:border?+(100*defendedBorder/border).toFixed(1):null,
     defenderCasualties:+g.factions[defender].defenseSpent.toFixed(1),
+    realDefenderSquadLosses:+g.factions[defender].attackFallen.toFixed(1),
+    realAttackerSquadLosses:+g.factions[0].attackFallen.toFixed(1),
+    attackingSquads:g.squads.filter(u=>u.owner===0).length,
+    attackingTroops:+g.squads.filter(u=>u.owner===0).reduce((t,u)=>t+u.troops,0).toFixed(1),
+    attackerCampaigns:g.squads.filter(u=>u.owner===0&&u.campaignTarget!=null).length,
     treasury:Math.round(g.factions[defender].money)};
 }
 function siege(strength) {
@@ -40,13 +45,19 @@ function siege(strength) {
   if(!order.ok)throw Error(order.reason);
   const checkpoints=[0,8,24,48,96];
   const samples=[snapshot(g)];
+  const initialDefenderTerritory=g.factions[1].territory;
+  const initialAttackerTroops=g.squads.find(u=>u.id===950000+strength)?.troops??0;
   for(let t=1;t<=96;t++){
     g.step();
     if(checkpoints.includes(t))samples.push(snapshot(g));
     if(g.squads.some(s=>s.troops<=0||g.owner[s.index]!==s.owner))
       throw Error('Physical troop integrity violation at tick '+t);
   }
-  return {scenario:'siege',attackerStrength:strength,samples};
+  return {scenario:'siege',attackerStrength:strength,
+    initialDefenderTerritory,initialAttackerTroops,
+    finalAttackerPresent:g.squads.some(u=>u.id===950000+strength),
+    finalAttackerTroops:g.squads.find(u=>u.id===950000+strength)?.troops??0,
+    samples};
 }
 function continent() {
   const g=new Game(20261013,49,'DE','balanced',true);
