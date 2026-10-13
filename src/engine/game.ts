@@ -1107,6 +1107,7 @@ export class Game {
         LAND_NEIGHBORS[tile].some(next=>this.owner[next]===faction.id))));
     }
     const barracksSites=new Int32Array(this.factions.length).fill(-1);
+    const ownedBarracks:number[][]=this.factions.map(()=>[]);
     const constructionSites=new Int32Array(this.factions.length).fill(-1);
     const constructionDist=new Float64Array(this.factions.length).fill(Infinity);
     const towersByFaction:number[][]=this.factions.map(()=>[]);
@@ -1118,7 +1119,10 @@ export class Game {
       const building=this.buildings[tile];if(!building)continue;
       const id=this.owner[tile];if(id<0)continue;
       if(building===BUILDING_CODES.tower)towersByFaction[id].push(tile);
-      if(id>0&&building===BUILDING_CODES.barracks&&barracksSites[id]<0)barracksSites[id]=tile;
+      if(id>0&&building===BUILDING_CODES.barracks){
+        ownedBarracks[id].push(tile);
+        if(barracksSites[id]<0)barracksSites[id]=tile;
+      }
     }
     const missing=this.factions.map(faction=>faction.ai&&faction.alive&&barracksSites[faction.id]<0&&
       faction.money>=280&&(alerted.has(faction.id)||this.tick%4===faction.id%4));
@@ -1163,7 +1167,24 @@ export class Game {
       if(!faction.ai||!faction.alive)continue;
       if(!alerted.has(faction.id)&&this.tick%4!==faction.id%4)continue;
       let own=this.squads.filter(s=>s.owner===faction.id);
-      const barracks=barracksSites[faction.id];
+      // Conquered barracks remain buildings, but only a limited number
+      // operate as recruitment hubs. Prefer a nearby existing formation,
+      // then an open frontier; avoid sending every recruit to the first
+      // barracks in map-index order.
+      const barracksOptions=ownedBarracks[faction.id];
+      const activeLimit=Math.min(3,Math.max(1,Math.ceil(faction.territory/450)));
+      const frontier=[...(frontierByFaction.get(faction.id)??[])];
+      const distance=(a:number,b:number)=>Math.abs(a%MAP_WIDTH-b%MAP_WIDTH)+
+        Math.abs(Math.floor(a/MAP_WIDTH)-Math.floor(b/MAP_WIDTH));
+      const rankedBarracks=barracksOptions.map(tile=>({
+        tile,
+        nearestSquad:own.length?Math.min(...own.map(unit=>distance(tile,unit.index))):0,
+        nearestFront:frontier.length?Math.min(...frontier.map(border=>distance(tile,border))):0
+      })).sort((a,b)=>
+        (a.nearestSquad*.65+a.nearestFront*.35)-
+        (b.nearestSquad*.65+b.nearestFront*.35)||a.tile-b.tile);
+      const activeBarracks=rankedBarracks.slice(0,activeLimit).map(site=>site.tile);
+      const barracks=activeBarracks[0]??-1;
       if(barracks<0){
         if(faction.money>=280&&constructionSites[faction.id]>=0)
           this.build(faction.id,cellToPoint(constructionSites[faction.id]),'barracks');
@@ -1190,7 +1211,14 @@ export class Game {
       const recruitCount=Math.min(100,Math.floor(recruitBudget/2));
       if(own.length<Math.min(5,Math.max(2,Math.ceil(faction.territory/150)))&&
          recruitCount>=100){
-        this.recruitSquad(faction.id,cellToPoint(barracks),recruitCount);
+        // Spread new squads across operational hubs; idle captured
+        // barracks stay intact but do not automatically produce units.
+        const deployment=activeBarracks.reduce((best,tile)=>{
+          const local=own.filter(unit=>distance(unit.index,tile)<=12).length;
+          const current=own.filter(unit=>distance(unit.index,best)<=12).length;
+          return local<current||(local===current&&tile<best)?tile:best;
+        },activeBarracks[0]);
+        this.recruitSquad(faction.id,cellToPoint(deployment),recruitCount);
       }
       // Build up to three separate threatened fronts. Soldiers are assigned
       // physically from idle formations; a distant campaign stays committed.
