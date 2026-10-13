@@ -1691,10 +1691,12 @@ export class Game {
       const goal=squad.seaRoute?.length?null:squad.campaignTarget;
       if(goal!==null&&goal!==undefined&&
          squad.destination===null&&squad.attackTarget==null){
-        // Another formation may have occupied this objective while this
-        // squad was marching. Do not walk backwards to land we already own.
-        if(squad.index===goal||this.owner[goal]===squad.owner||
-           (this.owner[goal]>=0&&this.isAllied(squad.owner,this.owner[goal]))){
+        // A completed objective still matters as a rendezvous point:
+        // if another formation has captured it, the marching squad may
+        // continue through friendly land to reach the original destination.
+        // Only finish once it actually arrives, avoiding premature campaign
+        // cancellation and preserving explicit player attack orders.
+        if(squad.index===goal){
           squad.campaignTarget=null;squad.campaignOwner=null;
         }else{
           const intended=squad.campaignOwner;
