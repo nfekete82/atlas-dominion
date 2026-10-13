@@ -478,3 +478,26 @@ test('RTS frontline guards screen surrounding neutral terrain without phantom de
    'attacker cannot auto-sweep neutral terrain screened by a real defender');
  assert.equal(game.owner[guarded],1);
 });
+
+test('threatened AI constructs a paid border tower and keeps real soldiers',()=>{
+ const g=new Game(10492,1,'DE','balanced',true);
+ const ai=1;
+ const border=g.owner.findIndex((holder,i)=>holder===ai&&
+   landNeighbors(i).some(n=>g.owner[n]===-1));
+ assert.ok(border>=0,'AI must have reachable neutral border');
+ const threat=landNeighbors(border).find(n=>g.owner[n]===-1);
+ const barracks=g.owner.findIndex((holder,i)=>holder===ai&&i!==border&&
+   !g.buildings[i]&&!g.cities.some(city=>city.index===i));
+ assert.ok(barracks>=0);
+ g.buildings[barracks]=4;
+ g.owner[threat]=0;
+ g.squads.push({id:104920,owner:0,index:threat,troops:120,destination:null,
+   attackTarget:null,campaignTarget:null,campaignOwner:null});
+ g.factions[ai].money=1200;
+ const moneyBefore=g.factions[ai].money;
+ g.step();
+ const towers=g.buildings.reduce((sum,code,i)=>sum+(code===2&&g.owner[i]===ai?1:0),0);
+ assert.ok(towers>0,'threatened AI should build a real tower');
+ assert.ok(g.factions[ai].money<moneyBefore,'AI tower must spend real treasury');
+ assert.ok(g.squads.every(unit=>unit.troops>0&&g.owner[unit.index]===unit.owner));
+});
