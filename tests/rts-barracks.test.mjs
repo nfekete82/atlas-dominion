@@ -412,3 +412,26 @@ test('layered AI defense stays deterministic and retains only real squads',()=>{
  assert.ok(new Set(a.squads.map(u=>u.id)).size===a.squads.length,
    'each squad remains a distinct physical formation');
 });
+
+test('RTS occupation widens across connected unguarded neutral land',()=>{
+ const g=new Game(10413,1,'DE','balanced',true);
+ const start=g.owner.findIndex((owner,i)=>owner===0&&landNeighbors(i).some(n=>g.owner[n]===-1));
+ assert.ok(start>=0);
+ const nearby=new Set([start]);
+ const frontier=[[start,0]];
+ for(let head=0;head<frontier.length;head++){
+   const [cell,depth]=frontier[head];
+   if(depth===3)continue;
+   for(const next of landNeighbors(cell)){
+     if(nearby.has(next)||g.owner[next]!==-1)continue;
+     nearby.add(next);frontier.push([next,depth+1]);
+   }
+ }
+ g.squads.push({id:104130,owner:0,index:start,troops:100,destination:null,attackTarget:null,
+   campaignTarget:null,campaignOwner:null});
+ g.step();
+ const captured=[...nearby].filter(i=>i!==start&&g.owner[i]===0);
+ assert.ok(captured.length>=4,'a squad should claim an area, not only one narrow tile');
+ assert.equal(g.squads.find(u=>u.id===104130)?.troops,100,
+   'unguarded neutral land must not cause soldier losses');
+});
