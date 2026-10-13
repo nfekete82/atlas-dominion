@@ -1023,9 +1023,17 @@ export class Game {
       for(const enemy of enemyUnits){
         // Intercept up to two cells ahead: waiting until contact is too late
         // when undefended territory can be swept by an attacking formation.
-        const threatened=new Set<number>(LAND_NEIGHBORS[enemy.index]);
-        for(const neighbor of LAND_NEIGHBORS[enemy.index])
-          for(const next of LAND_NEIGHBORS[neighbor])threatened.add(next);
+        // Occupation reaches up to four cells around a physical formation.
+        // Detect danger at the same radius so the border AI does not wait
+        // until soldiers have already swept across its undefended land.
+        const threatened=new Set<number>([enemy.index]);
+        let ring=[enemy.index];
+        for(let radius=0;radius<4;radius++){
+          const following:number[]=[];
+          for(const position of ring)for(const near of LAND_NEIGHBORS[position])
+            if(!threatened.has(near)){threatened.add(near);following.push(near);}
+          ring=following;
+        }
         for(const tile of threatened){
           if(this.owner[tile]!==faction.id)continue;
           const valuable=this.capitalSites.has(tile)?220:this.buildings[tile]===BUILDING_CODES.barracks?180:this.buildings[tile]===BUILDING_CODES.city?120:this.buildings[tile]===BUILDING_CODES.factory?90:this.buildings[tile]===BUILDING_CODES.tower?70:0;
@@ -1388,8 +1396,10 @@ export class Game {
                  this.buildings[next]===BUILDING_CODES.tower||
                  this.squads.some(unit=>unit.owner===holder&&
                    (unit.index===next||LAND_NEIGHBORS[next].includes(unit.index))))continue;
-              // Only the active invasion's original opponent may be swept up.
-              if(squad.campaignOwner!==holder)continue;
+              // Occupy undefended hostile land physically around the squad,
+              // even when its original campaign target belongs to another
+              // faction. Friendly and allied land remain protected.
+              // Actual defending squads and towers still stop this sweep.
             }
             if(holder!==squad.owner){
               if(taken>=30)break;
