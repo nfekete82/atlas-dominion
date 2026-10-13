@@ -545,6 +545,26 @@ renderer.onSelectSquads=(ids)=>{
   attackMessage=ids.length?ids.length+' Truppengruppen markiert – Linksklick zum Marschieren oder Erobern.':'Keine Truppen im Auswahlrahmen.';
   attackMessageKind=ids.length?'success':'neutral';update();
 };
+renderer.onCommandSquads=(point:Point)=>{
+  if(modalVisible)return;
+  closeBuildMenu();
+  const ids=[...new Set(selectedSquadIds.filter(id=>
+    game.squads.some(unit=>unit.id===id&&unit.owner===0)))];
+  if(!ids.length)return;
+  const own=game.owner[pointToIndex(point)]===0;
+  const results=ids.map(id=>own?
+    game.orderSquad(0,id,point):game.orderSquadAttack(0,id,point));
+  const successful=results.filter(result=>result.ok).length;
+  attackMessage=successful?
+    '⚔ '+successful+' von '+ids.length+' Armeen erhalten '+(own?'Sammelpunkt-/Marschbefehl.':'Angriffsbefehl.'):
+    results[0]?.reason??'Ziel nicht erreichbar.';
+  attackMessageKind=successful?'success':'error';
+  if(successful){
+    renderer.updateTerritory();saveGame();
+    if(!own)soundscape.playEffect('attack');
+  }
+  update();
+};
 renderer.onSelect = (point:Point, _landing:boolean) => {
   soundscape.update({},true);
   closeBuildMenu();
