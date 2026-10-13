@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {scoreRTSTarget,chooseRTSOperation} from '../dist/src/engine/rts-strategy.js';
+import {scoreRTSTarget,chooseRTSOperation,chooseRTSPosture} from '../dist/src/engine/rts-strategy.js';
 
 const base={neutral:false,enemyTroops:20,friendlyTroops:100,distance:2,
   capital:false,barracks:false,tower:false,city:false,factory:false,committedAttackers:0};
@@ -39,4 +39,15 @@ test('campaign selection rejects malformed operations and ties resolve by target
   const a={target:7,committed:80,formations:2,distance:4,threat:10};
   const b={...a,target:8};
   assert.equal(chooseRTSOperation([b,a]).target,7);
+});
+
+test('operational postures distinguish defense, reinforcement and expansion',()=>{
+ const base={localThreat:0,availableTroops:100,activeCampaigns:0,
+   neutralFrontier:false,hostileFrontier:false};
+ assert.equal(chooseRTSPosture({...base,localThreat:130}),'defend');
+ assert.equal(chooseRTSPosture({...base,availableTroops:10}),'recover');
+ assert.equal(chooseRTSPosture({...base,activeCampaigns:1}),'reinforce');
+ assert.equal(chooseRTSPosture({...base,neutralFrontier:true}),'expand');
+ assert.equal(chooseRTSPosture({...base,hostileFrontier:true}),'invade');
+ assert.equal(chooseRTSPosture(base),'redeploy');
 });
