@@ -1028,12 +1028,12 @@ export class Game {
           for(const next of LAND_NEIGHBORS[neighbor])threatened.add(next);
         for(const tile of threatened){
           if(this.owner[tile]!==faction.id)continue;
-          const valuable=this.capitalSites.has(tile)||this.buildings[tile]!==0;
+          const valuable=this.capitalSites.has(tile)?220:this.buildings[tile]===BUILDING_CODES.barracks?180:this.buildings[tile]===BUILDING_CODES.city?120:this.buildings[tile]===BUILDING_CODES.factory?90:this.buildings[tile]===BUILDING_CODES.tower?70:0;
           const guarding=own.filter(unit=>unit.index===tile||unit.destination===tile)
             .reduce((sum,unit)=>sum+unit.troops,0);
           // Prioritize exposed strategic infrastructure and genuinely
           // understaffed sectors, not already well-defended border locations.
-          const score=Math.max(0,enemy.troops+(valuable?90:0)-guarding*1.3);
+          const score=Math.max(0,enemy.troops+valuable-guarding*1.3);
           if(score>0)borderThreats.set(tile,(borderThreats.get(tile)??0)+score);
         }
       }
