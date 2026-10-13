@@ -1125,6 +1125,17 @@ export class Game {
           this.captureTile(this.factions[squad.owner],tile);occupied++;
         }
       }
+      // A border waypoint can become stale while other armies capture land.
+      // Re-plan instead of leaving the formation parked permanently at the
+      // old front with a nonadjacent attack target.
+      if(squad.destination===null&&squad.attackTarget!=null){
+        const next=squad.attackTarget;
+        if(!LAND_NEIGHBORS[squad.index].includes(next)||
+           this.owner[next]===squad.owner||
+           (this.owner[next]>=0&&this.isAllied(squad.owner,this.owner[next]))){
+          squad.attackTarget=null;
+        }
+      }
       // A campaign is not finished at the first conquered border cell.
       // Compute the next step only after reaching the current waypoint.
       const goal=squad.campaignTarget;
