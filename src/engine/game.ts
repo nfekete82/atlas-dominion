@@ -1214,13 +1214,44 @@ export class Game {
             squad.seaRoute=undefined;squad.seaLanding=undefined;squad.seaTicks=undefined;
             squad.campaignTarget=null;squad.campaignOwner=null;continue;
           }
-          const defended=this.squads.some(unit=>unit.owner!==squad.owner&&
-            (unit.index===shore||LAND_NEIGHBORS[shore].includes(unit.index)))||
-            this.buildings[shore]===BUILDING_CODES.tower;
-          if(defended){
-            // An occupied coast cannot be silently taken by a boat.
-            squad.seaRoute=undefined;squad.seaLanding=undefined;squad.seaTicks=undefined;
-            squad.campaignTarget=null;squad.campaignOwner=null;continue;
+          const guards=this.squads.filter(unit=>unit.owner!==squad.owner&&
+            !this.isAllied(squad.owner,unit.owner)&&
+            (unit.index===shore||LAND_NEIGHBORS[shore].includes(unit.index)));
+          const towers=this.buildings[shore]===BUILDING_CODES.tower?1:0;
+          if(guards.length||towers){
+            // Amphibious assault uses the actual participating squads:
+            // simultaneous losses, with stronger defenders and coastal towers
+            // making a landing more costly. Survivors remain physical.
+            const defending=guards.reduce((sum,unit)=>sum+unit.troops,0);
+            const attackerBefore=squad.troops;
+            const assaultLoss=Math.min(attackerBefore,Math.max(1,defending*.20+towers*8));
+            const defenseLoss=Math.min(defending,Math.max(0,(attackerBefore*.16-towers*2)));
+            squad.troops=Math.max(0,squad.troops-assaultLoss);
+            this.factions[squad.owner].attackFallen+=assaultLoss;
+            for(const guard of guards){
+              const loss=defending>0?defenseLoss*guard.troops/defending:0;
+              guard.troops=Math.max(0,guard.troops-loss);
+              this.factions[guard.owner].attackFallen+=loss;
+            }
+            for(let k=this.squads.length-1;k>=0;k--)
+              if(this.squads[k]!==squad&&this.squads[k].troops<1)this.squads.splice(k,1);
+            if(this.battleEvents.length<1600)this.battleEvents.push({
+              tick:this.tick,index:shore,attackerId:squad.owner,
+              defenderId:holder>=0?holder:guards[0]?.owner??NEUTRAL,
+              attacking:attackerBefore,defending,
+              attackerLost:assaultLoss,defenderLost:defenseLoss,captured:false,
+            });
+            // If defenders still hold the landing zone, the invasion fails.
+            // No free landing through a surviving enemy squad or tower.
+            if(squad.troops<1||guards.some(unit=>unit.troops>=1)||towers){
+              squad.seaRoute=undefined;squad.seaLanding=undefined;squad.seaTicks=undefined;
+              squad.campaignTarget=null;squad.campaignOwner=null;
+              if(squad.troops<1){
+                const dead=this.squads.indexOf(squad);
+                if(dead>=0)this.squads.splice(dead,1);
+              }
+              continue;
+            }
           }
           if(holder!==squad.owner)this.captureTile(this.factions[squad.owner],shore);
           squad.index=shore;squad.destination=null;squad.attackTarget=null;
