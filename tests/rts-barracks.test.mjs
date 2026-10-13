@@ -202,3 +202,26 @@ test('a distant RTS conquest target persists beyond the first captured sector',(
  assert.equal(g.owner[distant],0);
  assert.ok(g.squads.includes(unit),'campaign soldier group must remain alive');
 });
+
+test('ordered RTS troops walk through adjacent cells and never teleport',()=>{
+ const g=new Game(9945,1,'DE','balanced',true);
+ const site=g.owner.findIndex((owner,i)=>owner===0&&!g.buildings[i]&&
+   g.canBuild(0,cellToPoint(i),'barracks').ok&&
+   landNeighbors(i).some(n=>g.owner[n]===0));
+ assert.ok(site>=0);
+ assert.ok(g.build(0,cellToPoint(site),'barracks').ok);
+ assert.ok(g.recruitSquad(0,cellToPoint(site),50).ok);
+ const squad=g.squads.find(unit=>unit.owner===0);
+ assert.ok(squad);
+ const next=landNeighbors(site).find(n=>g.owner[n]===0);
+ assert.ok(next!==undefined);
+ assert.ok(g.orderSquad(0,squad.id,cellToPoint(next)).ok);
+ const before=squad.index, troops=squad.troops;
+ g.step();
+ const d=Math.abs(before%480-squad.index%480)+
+   Math.abs(Math.floor(before/480)-Math.floor(squad.index/480));
+ assert.ok(d<=1,'squads must never jump over sectors');
+ assert.equal(squad.index,next,'a reachable neighboring target must be reached');
+ assert.equal(squad.troops,troops,'walking on safe land must not cost soldiers');
+ assert.equal(g.squads.filter(u=>u.id===squad.id).length,1);
+});
