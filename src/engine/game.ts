@@ -963,7 +963,22 @@ export class Game {
    * real paid orders. Staggered to keep 50-country turns inexpensive.
    */
   private commandRTSAI():void {
-    if(!this.rtsRecruitment||!this.factions.some(f=>f.ai&&f.alive&&this.tick%8===f.id%8))return;
+    if(!this.rtsRecruitment)return;
+    // Tactical emergency: a real hostile squad close to our land triggers
+    // an immediate defense cycle instead of waiting eight ticks.
+    const alerted=new Set<number>();
+    for(const enemy of this.squads){
+      const contact=new Set<number>([enemy.index,...LAND_NEIGHBORS[enemy.index]]);
+      for(const near of LAND_NEIGHBORS[enemy.index])
+        for(const tile of LAND_NEIGHBORS[near])contact.add(tile);
+      for(const tile of contact){
+        const holder=this.owner[tile];
+        if(holder>0&&holder!==enemy.owner&&!this.isAllied(holder,enemy.owner))
+          alerted.add(holder);
+      }
+    }
+    if(!this.factions.some(f=>f.ai&&f.alive&&
+      (alerted.has(f.id)||this.tick%8===f.id%8)))return;
     // Build a single spatial index per AI turn rather than scanning every
     // map cell for each of up to 49 countries.
     const barracksSites=new Int32Array(this.factions.length).fill(-1);
@@ -983,7 +998,7 @@ export class Game {
     }
     for(const faction of this.factions){
       if(!faction.ai||!faction.alive)continue;
-      if(this.tick%8!==faction.id%8)continue;
+      if(!alerted.has(faction.id)&&this.tick%8!==faction.id%8)continue;
       const own=this.squads.filter(s=>s.owner===faction.id);
       const barracks=barracksSites[faction.id];
       if(barracks<0){
@@ -1025,7 +1040,7 @@ export class Game {
       // AI purchases genuine defensive towers at its most exposed border.
       // Cap construction per realm, keep towers separated, and retain enough
       // gold for recruiting actual defenders. No free fortifications.
-      if(borderThreats.size&&this.tick%24===faction.id%24&&faction.money>=towerBudget+40){
+      if(borderThreats.size&&this.tick%8===faction.id%8&&faction.money>=towerBudget+40){
         let towerCount=0;
         const existingTowers:number[]=[];
         for(let cell=0;cell<CELL_COUNT;cell++){
@@ -1060,10 +1075,11 @@ export class Game {
       const available=own.filter(u=>u.troops>=20&&u.destination===null&&
         u.attackTarget==null&&u.campaignTarget==null)
         .sort((a,b)=>b.troops-a.troops||a.id-b.id);
-      const deployable=own.length>=3?Math.max(0,available.length-1):available.length;
+      const deployable=own.length>=3&&!alerted.has(faction.id)?
+        Math.max(0,available.length-1):available.length;
       // If every AI squad is on campaign, redirect a real formation from
       // the least critical offensive when important owned land is threatened.
-      if(frontPositions.length&&available.length===0&&own.length){
+      if(frontPositions.length&&available.length===0&&own.length&&alerted.has(faction.id)){
         const emergency=own.filter(u=>u.troops>=20)
           .sort((a,b)=>{
             const distance=(u:typeof a)=>Math.abs(u.index%MAP_WIDTH-frontPositions[0]%MAP_WIDTH)+

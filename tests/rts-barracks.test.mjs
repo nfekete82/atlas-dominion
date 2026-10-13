@@ -639,3 +639,28 @@ test('RTS cleans surrounded neutral pockets without sweeping past real defenders
  g.step();
  assert.equal(g.owner[center],0,'small fully surrounded neutral pocket should be occupied');
 });
+
+test('RTS defending AI responds to real invading squad without eight-tick delay',()=>{
+ const g=new Game(12155,1,'DE','balanced',true);
+ const ai=1;
+ const defended=g.owner.findIndex((id,index)=>id===ai&&
+   landNeighbors(index).some(n=>g.owner[n]===-1));
+ assert.ok(defended>=0);
+ const staging=landNeighbors(defended).find(n=>g.owner[n]===-1);
+ g.owner[staging]=0;
+ const barracks=g.owner.findIndex((id,index)=>id===ai&&index!==defended&&
+   !g.buildings[index]&&!g.cities.some(city=>city.index===index));
+ assert.ok(barracks>=0);
+ g.buildings[barracks]=4;
+ g.factions[ai].money=1200;
+ g.squads.push({id:121550,owner:0,index:staging,troops:130,destination:null,
+   attackTarget:null,campaignTarget:null,campaignOwner:null});
+ g.squads.push({id:121551,owner:ai,index:barracks,troops:100,destination:null,
+   attackTarget:null,campaignTarget:null,campaignOwner:null});
+ // AI id 1 would normally only plan on tick 1 mod 8.
+ // The nearby hostile squad must already trigger its defense on this tick.
+ g.step();
+ assert.ok(g.squads.some(unit=>unit.owner===ai&&
+   (unit.destination!==null||unit.index===defended)),
+   'real defending formation should receive an immediate border order');
+});
