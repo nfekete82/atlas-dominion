@@ -9,7 +9,6 @@ import { pixelGridEdges } from './pixel-grid.js';
 import { territoryContours, contourRings } from './territory-contours.js';
 import { buildingMarkerFor, showBuildingMarker, cityVisibleAtZoom, drawCityMarker, cityMarkerBounds, ScreenOccupancy, type ScreenRect } from './building-markers.js';
 // Keep natural-dark ocean and distinct faction colors; no pale map wash.
-import { COUNTRY_STARTS } from '../data/countries.js';
 import {formatCompact} from '../format.js';
 import {militarySummaries,relativeStrength,strengthLabel,mobileStrengthLabel,type MilitarySummary} from '../military-view.js';
 import {groupBattles,visualNoise,combatVisualDensity,battleMomentum,type FrontGroup} from './front-battles.js';
