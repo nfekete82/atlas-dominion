@@ -34,7 +34,7 @@ test('RTS formation cannot cut across an enemy or water corner',()=>{
   const side=pointToIndex({x:p.x+1,y:p.y});
   // Prevent cutting the corner. The planner may still use a longer legal
   // route through the remaining friendly territory.
-  g.owner[side]=-1;
+  g.owner[side]=-2;
   const unit={id:221042,owner:0,index:origin,troops:35,destination:null,attackTarget:null};
   g.squads.push(unit);
   assert.equal(g.orderSquad(0,unit.id,cellToPoint(goal)).ok,true);
