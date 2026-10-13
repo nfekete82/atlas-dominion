@@ -526,7 +526,41 @@ export class MapRenderer {
       const units=squadByTile.get(unit.index)??[];
       units.push(unit);squadByTile.set(unit.index,units);
     }
+    // Density clustering is presentation-only: preserve every real squad.
+    // The compact marker replaces groups of nearby friendly formations.
+    const clusteredIds=new Set<number>();
+    const clusters:Array<{owner:number;x:number;y:number;troops:number;ids:number[]}>= [];
+    const radius=this.zoom>=3.2?28:this.zoom>=2.2?44:58;
     for(const squad of this.game.squads){
+      if(clusteredIds.has(squad.id)||this.selectedSquadIds.includes(squad.id))continue;
+      const sx=this.ox+(squad.index%MAP_WIDTH+.5)*CW*this.scale;
+      const sy=this.oy+(Math.floor(squad.index/MAP_WIDTH)+.5)*CH*this.scale;
+      const nearby=this.game.squads.filter(other=>{
+        if(other.owner!==squad.owner||this.selectedSquadIds.includes(other.id)||clusteredIds.has(other.id))return false;
+        const ox=this.ox+(other.index%MAP_WIDTH+.5)*CW*this.scale;
+        const oy=this.oy+(Math.floor(other.index/MAP_WIDTH)+.5)*CH*this.scale;
+        return Math.hypot(ox-sx,oy-sy)<=radius;
+      });
+      if(nearby.length<2)continue;
+      for(const member of nearby)clusteredIds.add(member.id);
+      clusters.push({owner:squad.owner,
+        x:nearby.reduce((sum,u)=>sum+this.ox+(u.index%MAP_WIDTH+.5)*CW*this.scale,0)/nearby.length,
+        y:nearby.reduce((sum,u)=>sum+this.oy+(Math.floor(u.index/MAP_WIDTH)+.5)*CH*this.scale,0)/nearby.length,
+        troops:nearby.reduce((sum,u)=>sum+u.troops,0),ids:nearby.map(u=>u.id)});
+    }
+    for(const cluster of clusters){
+      if(cluster.x< -45||cluster.y< -45||cluster.x>this.canvas.clientWidth+45||cluster.y>this.canvas.clientHeight+45)continue;
+      const color=this.squadRelationColor(cluster.owner);
+      c.fillStyle='rgba(9,29,41,.95)';c.strokeStyle=color;c.lineWidth=2;
+      c.beginPath();c.roundRect(cluster.x-24,cluster.y-21,48,46,10);c.fill();c.stroke();
+      c.font='16px sans-serif';c.fillStyle='#fff';
+      c.fillText(this.squadFlag(cluster.owner),cluster.x,cluster.y-10);
+      c.font='bold 12px system-ui';c.fillText(String(Math.round(cluster.troops)),cluster.x,cluster.y+5);
+      c.font='bold 10px system-ui';c.fillStyle='#aed0db';
+      c.fillText(cluster.ids.length+' Gruppen',cluster.x,cluster.y+17);
+    }
+    for(const squad of this.game.squads){
+      if(clusteredIds.has(squad.id))continue;
       const stackKey=`${squad.owner}:${squad.index}`;
       const stackNumber=stackPositions.get(stackKey)??0;
       stackPositions.set(stackKey,stackNumber+1);
