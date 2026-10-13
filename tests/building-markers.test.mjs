@@ -67,7 +67,7 @@ test('strategic zoom emphasizes mature towns, tactical zoom restores every city'
   assert.equal(cityVisibleAtZoom(1,2,1.5),true);
   assert.equal(cityVisibleAtZoom(1,0,1.5),false);
   assert.equal(cityVisibleAtZoom(0,1,1),true);
-  assert.equal(cityVisibleAtZoom(0,0,1),false);
+  assert.equal(cityVisibleAtZoom(0,0,1),true); // A freshly built player city is always visible.
   assert.equal(cityVisibleAtZoom(0,0,1.8),true);
   assert.equal(cityVisibleAtZoom(1,0,2),true);
   assert.equal(cityVisibleAtZoom(1,0,1,true),true);
