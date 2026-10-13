@@ -148,3 +148,24 @@ test('RTS tactical AI moves real squads to defend a threatened barracks',()=>{
  assert.ok(g.squads.filter(u=>u.owner===1).some(u=>u.destination===barracks||u.index===barracks),
    'AI should guard threatened critical infrastructure using real units');
 });
+
+test('wounded RTS formations below ten soldiers survive a deterministic save reload',()=>{
+ const g=new Game(9312,2,'DE','balanced',true);
+ const site=g.owner.findIndex((v,i)=>v===0&&!g.buildings[i]&&g.canBuild(0,cellToPoint(i),'barracks').ok);
+ assert.ok(site>=0);
+ assert.ok(g.build(0,cellToPoint(site),'barracks').ok);
+ assert.ok(g.recruitSquad(0,cellToPoint(site),25).ok);
+ g.squads[0].troops=4.75;
+ assert.deepEqual(Game.fromSave(g.exportSave()).exportSave(),g.exportSave());
+});
+
+test('50-country RTS economy and AI remain deterministic over prolonged turns',()=>{
+ const a=new Game(9313,49,'DE','balanced',true);
+ const b=new Game(9313,49,'DE','balanced',true);
+ for(let i=0;i<112;i++){a.step();b.step();}
+ assert.deepEqual(a.exportSave(),b.exportSave(),'AI orders and recruitment must replay exactly');
+ assert.ok(a.factions.every(f=>Number.isFinite(f.money)&&f.money>=0));
+ assert.ok(a.squads.length<=a.factions.length*12);
+ assert.ok(a.squads.every(u=>u.troops>0&&u.troops<=1000&&a.owner[u.index]===u.owner));
+ assert.ok(a.squads.some(u=>u.owner>0),'at least one AI must field an actual squad');
+});
