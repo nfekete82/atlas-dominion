@@ -6,7 +6,7 @@ import { attackFrontWidth, frontierBudget, frontierTarget, localDefenseStrength 
 import { BUILDINGS, BUILDING_CODES, type BuildingType, FACTORY_INCOME, FACTORY_CONNECTION_MULTIPLIER, FACTORY_LINK_MAX_DISTANCE, troopGrowth, taxRevenue, cityUpgradeCost, cityUpgradeGrowth, upgradedCityRecruitment } from './economy.js';
 import { findConnectedAttackFront } from './front-target.js';
 import {aiStyle,scoreAIFront} from './ai-strategy.js';
-import {scoreRTSTarget,chooseRTSOperation,chooseRTSPosture} from './rts-strategy.js';
+import {scoreRTSTarget,chooseRTSOperation,chooseRTSPosture,chooseRTSTheaterTarget} from './rts-strategy.js';
 import {rtsFrontWidth,rtsContactLoss} from './rts-frontage.js';
 import {aiMarchRecovery,aiAttacksPerTick,aiStrikeSize,aiRiskTolerance} from './ai-tactics.js';
 import {formatCompact} from '../format.js';
@@ -1220,6 +1220,41 @@ export class Game {
           enemy.index===target||LAND_NEIGHBORS[target].includes(enemy.index))
           .reduce((sum,enemy)=>sum+enemy.troops,0)
       })));
+      // A durable campaign already lives on each physical squad and survives
+      // save/load. When there is no campaign, choose a common reachable land
+      // objective from the country's actual border rather than dispatching
+      // every idle army toward a separately chosen random frontier.
+      const frontierCandidates=new Set<number>();
+      for(let cell=0;cell<CELL_COUNT;cell++){
+        if(this.owner[cell]!==faction.id)continue;
+        for(const next of LAND_NEIGHBORS[cell]){
+          const holder=this.owner[next];
+          if(holder!==faction.id&&holder!==WATER&&
+             !this.isAllied(faction.id,holder))frontierCandidates.add(next);
+        }
+      }
+      const totalOperational=own.filter(u=>u.troops>=20)
+        .reduce((sum,u)=>sum+u.troops,0);
+      const theaterTarget=chooseRTSTheaterTarget([...frontierCandidates].map(tile=>{
+        const defender=this.squads.filter(u=>u.owner!==faction.id&&
+          !this.isAllied(faction.id,u.owner)&&
+          (u.index===tile||LAND_NEIGHBORS[tile].includes(u.index)))
+          .reduce((sum,u)=>sum+u.troops,0);
+        const distance=Math.min(...own.filter(u=>u.troops>=20).map(u=>
+          Math.abs(tile%MAP_WIDTH-u.index%MAP_WIDTH)+
+          Math.abs(Math.floor(tile/MAP_WIDTH)-Math.floor(u.index/MAP_WIDTH))),10000);
+        const code=this.buildings[tile];
+        return {tile,neutral:this.owner[tile]===NEUTRAL,
+          defenderStrength:defender,assaultStrength:totalOperational,
+          distance,strategicValue:
+            (this.capitalSites.has(tile)?80:0)+
+            (code===BUILDING_CODES.barracks?55:0)+
+            (code===BUILDING_CODES.city?35:0)+
+            (code===BUILDING_CODES.factory?25:0)-
+            (code===BUILDING_CODES.tower?45:0),
+          committed:own.filter(u=>u.campaignTarget===tile)
+            .reduce((sum,u)=>sum+u.troops,0)};
+      }));
       const reinforceTarget=selected?.target??offensive?.campaignTarget??null;
       // No abstract issueAttack: mobilize units by actual contiguous paths.
       for(const squad of own){
@@ -1275,6 +1310,10 @@ export class Game {
            squad.id!==offensive?.id&&squad.troops>=20){
           const joined=this.orderSquadAttack(faction.id,squad.id,cellToPoint(reinforceTarget));
           if(joined.ok)continue;
+        }
+        if(theaterTarget!=null&&squad.troops>=30){
+          const launched=this.orderSquadAttack(faction.id,squad.id,cellToPoint(theaterTarget));
+          if(launched.ok)continue;
         }
         const targets=LAND_NEIGHBORS[squad.index].filter(n=>
           this.owner[n]!==squad.owner&&this.owner[n]!==WATER&&
