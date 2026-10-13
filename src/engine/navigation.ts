@@ -41,21 +41,29 @@ export function validSeaRoute(cells:unknown,departure?:number,destination?:numbe
   return true;
 }
 /** One multi-source BFS serves every destination from the current owned coast.
- * Static geography is shared. At most four ~1 MB fields are retained per game.
+ * Static geography is shared. Retain at most eight current country fields;
+ * replacing a country's coast signature discards its previous field.
  * No route uses diagonals, row wrapping, land interiors or off-map cells.
  */
 export class MaritimeNavigation {
-  private cache=new Map<string,{parent:Int32Array;source:Int32Array;depth:Int32Array}>();
+  private cache=new Map<number,{signature:string;field:{parent:Int32Array;source:Int32Array;depth:Int32Array}}>();
+  private emptyField:{parent:Int32Array;source:Int32Array;depth:Int32Array}|null=null;
   field(owner:Int16Array,id:number){
     const shores=COASTS.filter(i=>owner[i]===id),key=shores.join(',');
-    const cached=this.cache.get(key);if(cached)return cached;
+    if(!shores.length)return this.emptyField??={parent:new Int32Array(N).fill(-1),
+      source:new Int32Array(N).fill(-1),depth:new Int32Array(N).fill(-1)};
+    const cached=this.cache.get(id);
+    if(cached?.signature===key){this.cache.delete(id);this.cache.set(id,cached);return cached.field;}
     const parent=new Int32Array(N).fill(-1),source=new Int32Array(N).fill(-1),depth=new Int32Array(N).fill(-1),q=new Int32Array(N);
     let end=0;
     for(const coast of shores)for(const n of PORTS.get(coast)!)if(depth[n]<0){q[end++]=n;parent[n]=coast;source[n]=coast;depth[n]=1;}
     for(let h=0;h<end;h++){
       const i=q[h];for(const n of LINKS[i])if(OCEAN[n]&&depth[n]<0){parent[n]=i;source[n]=source[i];depth[n]=depth[i]+1;q[end++]=n;}
     }
-    const field={parent,source,depth};if(this.cache.size>=4)this.cache.delete(this.cache.keys().next().value!);this.cache.set(key,field);return field;
+    const field={parent,source,depth};
+    this.cache.delete(id);
+    if(this.cache.size>=8)this.cache.delete(this.cache.keys().next().value!);
+    this.cache.set(id,{signature:key,field});return field;
   }
   route(owner:Int16Array,id:number,destination:number):SeaRoute|null{
     if(!PORTS.has(destination)||owner[destination]===id||owner[destination]===-2)return null;

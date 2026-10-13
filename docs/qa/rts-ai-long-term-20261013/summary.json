@@ -1,0 +1,218 @@
+[
+  {
+    "countries": 9,
+    "ticks": 360,
+    "metrics": {
+      "territory": {
+        "original": 13571,
+        "baseline": 19626,
+        "candidate": 19623,
+        "changeFromBaselinePercent": -0.015285845307244639
+      },
+      "realLosses": {
+        "original": 429.96967515876986,
+        "baseline": 73.45258786555678,
+        "candidate": 0.5500000000001819,
+        "changeFromBaselinePercent": -99.25121766845456
+      },
+      "performance.median": {
+        "original": 5.167750333333515,
+        "baseline": 3.3829723333333277,
+        "candidate": 2.5456389999999374,
+        "changeFromBaselinePercent": -24.751409436102144
+      },
+      "performance.p95": {
+        "original": 8.381069333333471,
+        "baseline": 7.29134699999986,
+        "candidate": 5.0711663333333945,
+        "changeFromBaselinePercent": -30.44952690725744
+      },
+      "performance.p99": {
+        "original": 10.35441633333327,
+        "baseline": 8.966430333333543,
+        "candidate": 6.354500000000068,
+        "changeFromBaselinePercent": -29.130102351025688
+      }
+    }
+  },
+  {
+    "countries": 9,
+    "ticks": 500,
+    "metrics": {
+      "territory": {
+        "original": 15497.333333333334,
+        "baseline": 29386,
+        "candidate": 29138,
+        "changeFromBaselinePercent": -0.8439392908187626
+      },
+      "realLosses": {
+        "original": 476.1033510755303,
+        "baseline": 760.5316021071694,
+        "candidate": 62.149999999999636,
+        "changeFromBaselinePercent": -91.8280844835634
+      },
+      "performance.median": {
+        "original": 5.049235666666694,
+        "baseline": 4.36629166666656,
+        "candidate": 2.9750413333333654,
+        "changeFromBaselinePercent": -31.863431019837087
+      },
+      "performance.p95": {
+        "original": 8.980013666666764,
+        "baseline": 9.947250000000167,
+        "candidate": 7.369500000000092,
+        "changeFromBaselinePercent": -25.914197391239103
+      },
+      "performance.p99": {
+        "original": 11.119903000000098,
+        "baseline": 12.23574966666653,
+        "candidate": 11.39286066666667,
+        "changeFromBaselinePercent": -6.888740150479844
+      }
+    }
+  },
+  {
+    "countries": 9,
+    "ticks": 1000,
+    "metrics": {
+      "territory": {
+        "original": 20018.666666666668,
+        "baseline": 45784,
+        "candidate": 46907,
+        "changeFromBaselinePercent": 2.452821946531536
+      },
+      "realLosses": {
+        "original": 915.2059852146155,
+        "baseline": 4981.122036170419,
+        "candidate": 1038.1009999999992,
+        "changeFromBaselinePercent": -79.15929398111854
+      },
+      "performance.median": {
+        "original": 5.025194333333275,
+        "baseline": 7.489264000000276,
+        "candidate": 5.129874999999932,
+        "changeFromBaselinePercent": -31.503616376726164
+      },
+      "performance.p95": {
+        "original": 8.782360666666742,
+        "baseline": 12.803542000000258,
+        "candidate": 9.731708333333549,
+        "changeFromBaselinePercent": -23.992061467573954
+      },
+      "performance.p99": {
+        "original": 11.115721999999854,
+        "baseline": 16.088458333333318,
+        "candidate": 12.607486666666773,
+        "changeFromBaselinePercent": -21.63645263296855
+      }
+    }
+  },
+  {
+    "countries": 50,
+    "ticks": 360,
+    "metrics": {
+      "territory": {
+        "original": 24246,
+        "baseline": 35724,
+        "candidate": 34660,
+        "changeFromBaselinePercent": -2.9783898779531914
+      },
+      "realLosses": {
+        "original": 5649.300308671757,
+        "baseline": 4154.469059160156,
+        "candidate": 2392.269602153401,
+        "changeFromBaselinePercent": -42.416959469737655
+      },
+      "performance.median": {
+        "original": 12.572986333332969,
+        "baseline": 8.642444333333364,
+        "candidate": 5.248472333333363,
+        "changeFromBaselinePercent": -39.27097322350882
+      },
+      "performance.p95": {
+        "original": 19.07026399999965,
+        "baseline": 15.738888333333003,
+        "candidate": 11.331847333333522,
+        "changeFromBaselinePercent": -28.00096745502615
+      },
+      "performance.p99": {
+        "original": 22.567596999999903,
+        "baseline": 19.81413900000007,
+        "candidate": 14.108541666666497,
+        "changeFromBaselinePercent": -28.795585482334364
+      }
+    }
+  },
+  {
+    "countries": 50,
+    "ticks": 500,
+    "metrics": {
+      "territory": {
+        "original": 26114.666666666668,
+        "baseline": 42654,
+        "candidate": 42797,
+        "changeFromBaselinePercent": 0.33525577905941795
+      },
+      "realLosses": {
+        "original": 6317.51702127093,
+        "baseline": 7272.065404151992,
+        "candidate": 3808.173058605238,
+        "changeFromBaselinePercent": -47.63285467109581
+      },
+      "performance.median": {
+        "original": 12.486805666666138,
+        "baseline": 10.251430666666693,
+        "candidate": 6.223652999999861,
+        "changeFromBaselinePercent": -39.28990789318273
+      },
+      "performance.p95": {
+        "original": 18.650902666666298,
+        "baseline": 21.177694666666564,
+        "candidate": 12.878110999999686,
+        "changeFromBaselinePercent": -39.19021308646178
+      },
+      "performance.p99": {
+        "original": 22.710847333333124,
+        "baseline": 39.26933300000079,
+        "candidate": 16.76027733333346,
+        "changeFromBaselinePercent": -57.319679116186876
+      }
+    }
+  },
+  {
+    "countries": 50,
+    "ticks": 1000,
+    "metrics": {
+      "territory": {
+        "original": 30086,
+        "baseline": 51389,
+        "candidate": 52289,
+        "changeFromBaselinePercent": 1.7513475646539156
+      },
+      "realLosses": {
+        "original": 8341.326703199189,
+        "baseline": 24753.786811620277,
+        "candidate": 19154.522480214884,
+        "changeFromBaselinePercent": -22.61982933769514
+      },
+      "performance.median": {
+        "original": 12.533124999999927,
+        "baseline": 17.154694333333584,
+        "candidate": 11.601083333333614,
+        "changeFromBaselinePercent": -32.373710029963355
+      },
+      "performance.p95": {
+        "original": 17.369181000000026,
+        "baseline": 28.448194666666797,
+        "candidate": 22.149694333333173,
+        "changeFromBaselinePercent": -22.140246181293456
+      },
+      "performance.p99": {
+        "original": 20.342624333334243,
+        "baseline": 39.410388666667735,
+        "candidate": 26.235764333333766,
+        "changeFromBaselinePercent": -33.429318459060816
+      }
+    }
+  }
+]

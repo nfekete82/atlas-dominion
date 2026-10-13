@@ -1,0 +1,19 @@
+original: 9 countries, seed 20261013, 1000 ticks, territory 20336, losses 1274.21
+baseline: 9 countries, seed 20261013, 1000 ticks, territory 45784, losses 4981.12
+candidate: 9 countries, seed 20261013, 1000 ticks, territory 46907, losses 1038.10
+original: 9 countries, seed 20261024, 1000 ticks, territory 20251, losses 760.01
+baseline: 9 countries, seed 20261024, 1000 ticks, territory 45784, losses 4981.12
+candidate: 9 countries, seed 20261024, 1000 ticks, territory 46907, losses 1038.10
+original: 9 countries, seed 221041, 1000 ticks, territory 19469, losses 711.40
+baseline: 9 countries, seed 221041, 1000 ticks, territory 45784, losses 4981.12
+candidate: 9 countries, seed 221041, 1000 ticks, territory 46907, losses 1038.10
+original: 50 countries, seed 20261013, 1000 ticks, territory 30638, losses 8233.24
+baseline: 50 countries, seed 20261013, 1000 ticks, territory 51389, losses 25372.08
+candidate: 50 countries, seed 20261013, 1000 ticks, territory 52289, losses 19154.52
+original: 50 countries, seed 20261024, 1000 ticks, territory 29415, losses 8625.12
+baseline: 50 countries, seed 20261024, 1000 ticks, territory 51389, losses 24444.64
+candidate: 50 countries, seed 20261024, 1000 ticks, territory 52289, losses 19154.52
+original: 50 countries, seed 221041, 1000 ticks, territory 30205, losses 8165.62
+baseline: 50 countries, seed 221041, 1000 ticks, territory 51389, losses 24444.64
+candidate: 50 countries, seed 221041, 1000 ticks, territory 52289, losses 19154.52
+Accepted 18/18 comparisons

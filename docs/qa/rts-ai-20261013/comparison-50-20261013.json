@@ -1,0 +1,118 @@
+{
+  "seed": 20261013,
+  "ticks": 360,
+  "rows": [
+    {
+      "metric": "Neutral opening captures",
+      "previous": 11628,
+      "current": 10766,
+      "delta": -862,
+      "interpretation": "worse"
+    },
+    {
+      "metric": "Neutral mid-game captures",
+      "previous": 10026,
+      "current": 14078,
+      "delta": 4052,
+      "interpretation": "improved"
+    },
+    {
+      "metric": "Neutral late-game captures",
+      "previous": 2549,
+      "current": 10880,
+      "delta": 8331,
+      "interpretation": "improved"
+    },
+    {
+      "metric": "Net AI territory",
+      "previous": 24203,
+      "current": 35724,
+      "delta": 11521,
+      "interpretation": "improved"
+    },
+    {
+      "metric": "Real soldier losses",
+      "previous": 5053.254822596082,
+      "current": 3428.262515736591,
+      "delta": -1624.99231,
+      "interpretation": "improved"
+    },
+    {
+      "metric": "Actual movement ticks",
+      "previous": 11902,
+      "current": 12768,
+      "delta": 866,
+      "interpretation": "context"
+    },
+    {
+      "metric": "Immediate reversals",
+      "previous": 1434,
+      "current": 902,
+      "delta": -532,
+      "interpretation": "improved"
+    },
+    {
+      "metric": "Invalid land moves",
+      "previous": 0,
+      "current": 0,
+      "delta": 0,
+      "interpretation": "same"
+    },
+    {
+      "metric": "Actual sea landings",
+      "previous": 10,
+      "current": 5,
+      "delta": -5,
+      "interpretation": "context"
+    },
+    {
+      "metric": "Median tick duration (ms)",
+      "previous": 12.073624999999993,
+      "current": 8.384750000000167,
+      "delta": -3.68887,
+      "interpretation": "improved"
+    },
+    {
+      "metric": "P95 tick duration (ms)",
+      "previous": 20.055166999999983,
+      "current": 17.930875000000015,
+      "delta": -2.12429,
+      "interpretation": "improved"
+    },
+    {
+      "metric": "Thin-sector share",
+      "previous": 0.083,
+      "current": 0.0769,
+      "delta": -0.0061,
+      "interpretation": "improved"
+    },
+    {
+      "metric": "Perimeter per owned sector",
+      "previous": 0.2879,
+      "current": 0.2577,
+      "delta": -0.0302,
+      "interpretation": "improved"
+    },
+    {
+      "metric": "Stationary without orders",
+      "previous": 32476,
+      "current": 7260,
+      "delta": -25216,
+      "interpretation": "improved"
+    },
+    {
+      "metric": "Long stationary streaks",
+      "previous": 136,
+      "current": 20,
+      "delta": -116,
+      "interpretation": "improved"
+    },
+    {
+      "metric": "Squads with orders",
+      "previous": 0.2314,
+      "current": 0.5594,
+      "delta": 0.328,
+      "interpretation": "context"
+    }
+  ]
+}

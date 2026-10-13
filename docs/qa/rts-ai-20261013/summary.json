@@ -1,0 +1,203 @@
+{
+  "standard": {
+    "aiTerritoryDelta": {
+      "baseline": 13571,
+      "after": 19626,
+      "percent": 44.617198437845396
+    },
+    "losses": {
+      "baseline": 386.0172925029838,
+      "after": 73.45258786555688,
+      "percent": -80.97168461306974
+    },
+    "shape.thinShare": {
+      "baseline": 0.057,
+      "after": 0.0544,
+      "percent": -4.561403508771944
+    },
+    "shape.perimeterPerSector": {
+      "baseline": 0.20216666666666666,
+      "after": 0.1826,
+      "percent": -9.678483099752667
+    },
+    "movement.movedSquadTicks": {
+      "baseline": 5764.333333333333,
+      "after": 4476,
+      "percent": -22.350083848956224
+    },
+    "movement.reversals": {
+      "baseline": 156,
+      "after": 0,
+      "percent": -100.0
+    },
+    "movement.invalidLandMoves": {
+      "baseline": 0,
+      "after": 0,
+      "percent": null
+    },
+    "movement.seaLandings": {
+      "baseline": 0,
+      "after": 0,
+      "percent": null
+    },
+    "inactivity.longIdleEpisodes": {
+      "baseline": 19.666666666666668,
+      "after": 0,
+      "percent": -100.0
+    },
+    "inactivity.maxIdleStreak": {
+      "baseline": 335,
+      "after": 4,
+      "percent": -98.80597014925372
+    },
+    "performance.medianStepMs": {
+      "baseline": 3.886166666666649,
+      "after": 2.8151670000000024,
+      "percent": -27.559282926619666
+    },
+    "performance.p95StepMs": {
+      "baseline": 7.110111333333255,
+      "after": 6.005347333333323,
+      "percent": -15.537928285604119
+    },
+    "performance.totalStepMs": {
+      "baseline": 1557.5962663333323,
+      "after": 1129.0511080000008,
+      "percent": -27.513237389952828
+    }
+  },
+  "50-": {
+    "aiTerritoryDelta": {
+      "baseline": 24246,
+      "after": 35724,
+      "percent": 47.339767384310804
+    },
+    "losses": {
+      "baseline": 5043.741793246943,
+      "after": 3428.262515736591,
+      "percent": -32.029381037572435
+    },
+    "shape.thinShare": {
+      "baseline": 0.0829,
+      "after": 0.0769,
+      "percent": -7.237635705669487
+    },
+    "shape.perimeterPerSector": {
+      "baseline": 0.28656666666666664,
+      "after": 0.2577,
+      "percent": -10.073281377224607
+    },
+    "movement.movedSquadTicks": {
+      "baseline": 12129,
+      "after": 12768,
+      "percent": 5.268365075439041
+    },
+    "movement.reversals": {
+      "baseline": 1656,
+      "after": 902,
+      "percent": -45.531400966183575
+    },
+    "movement.invalidLandMoves": {
+      "baseline": 0,
+      "after": 0,
+      "percent": null
+    },
+    "movement.seaLandings": {
+      "baseline": 9,
+      "after": 5,
+      "percent": -44.44444444444444
+    },
+    "inactivity.longIdleEpisodes": {
+      "baseline": 136.33333333333334,
+      "after": 20,
+      "percent": -85.33007334963325
+    },
+    "inactivity.maxIdleStreak": {
+      "baseline": 335,
+      "after": 305,
+      "percent": -8.955223880597018
+    },
+    "performance.medianStepMs": {
+      "baseline": 12.418722333333486,
+      "after": 8.832291333333425,
+      "percent": -28.879226894167754
+    },
+    "performance.p95StepMs": {
+      "baseline": 20.674666666666706,
+      "after": 16.728000000000026,
+      "percent": -19.089384754288684
+    },
+    "performance.totalStepMs": {
+      "baseline": 4912.721405000003,
+      "after": 3498.196136333332,
+      "percent": -28.79310980726516
+    }
+  },
+  "long-": {
+    "aiTerritoryDelta": {
+      "baseline": 20018.666666666668,
+      "after": 45784,
+      "percent": 128.70654056214198
+    },
+    "losses": {
+      "baseline": 858.3426988364109,
+      "after": 4893.1041332618115,
+      "percent": 470.0641643361114
+    },
+    "shape.thinShare": {
+      "baseline": 0.04806666666666667,
+      "after": 0.0312,
+      "percent": -35.09015256588073
+    },
+    "shape.perimeterPerSector": {
+      "baseline": 0.174,
+      "after": 0.111,
+      "percent": -36.206896551724135
+    },
+    "movement.movedSquadTicks": {
+      "baseline": 12702,
+      "after": 23302,
+      "percent": 83.45142497244528
+    },
+    "movement.reversals": {
+      "baseline": 603.6666666666666,
+      "after": 138,
+      "percent": -77.13970182219768
+    },
+    "movement.invalidLandMoves": {
+      "baseline": 0,
+      "after": 0,
+      "percent": null
+    },
+    "movement.seaLandings": {
+      "baseline": 7.333333333333333,
+      "after": 9,
+      "percent": 22.72727272727273
+    },
+    "inactivity.longIdleEpisodes": {
+      "baseline": 39,
+      "after": 21,
+      "percent": -46.15384615384615
+    },
+    "inactivity.maxIdleStreak": {
+      "baseline": 975,
+      "after": 499,
+      "percent": -48.82051282051282
+    },
+    "performance.medianStepMs": {
+      "baseline": 3.9221393333335377,
+      "after": 5.860541333333155,
+      "percent": 49.42205860779847
+    },
+    "performance.p95StepMs": {
+      "baseline": 7.1940553333333055,
+      "after": 10.23970833333336,
+      "percent": 42.33569049557027
+    },
+    "performance.totalStepMs": {
+      "baseline": 4399.842705000005,
+      "after": 5912.497430333335,
+      "percent": 34.37974552168288
+    }
+  }
+}

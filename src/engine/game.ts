@@ -7,7 +7,8 @@ import { BUILDINGS, BUILDING_CODES, type BuildingType, FACTORY_INCOME, FACTORY_C
 import { findConnectedAttackFront } from './front-target.js';
 import {aiStyle,scoreAIFront} from './ai-strategy.js';
 import {scoreRTSTarget,chooseRTSOperation,chooseRTSPosture,chooseRTSTheaterTarget,scoreRTSNeutralFront} from './rts-strategy.js';
-import {rtsFrontWidth,rtsContactLoss} from './rts-frontage.js';
+import {rtsFrontWidth,rtsContactLoss,rtsActualLoss} from './rts-frontage.js';
+import {nextRTSCampaignStep} from './rts-path.js';
 import {aiMarchRecovery,aiAttacksPerTick,aiStrikeSize,aiRiskTolerance} from './ai-tactics.js';
 import {formatCompact} from '../format.js';
 import {chooseAdvancingSector,canReinforceFront} from './offensive-front.js';
@@ -213,6 +214,15 @@ export function seededRandom(seed: number): () => number {
   };
 }
 
+export interface RTSSquad {
+  id:number;owner:number;index:number;troops:number;destination:number|null;
+  attackTarget?:number|null;campaignTarget?:number|null;campaignOwner?:number|null;
+  seaRoute?:number[];seaTicks?:number;seaLanding?:number;
+  /** Optional v1 replay state; absent in saves predating campaign recovery. */
+  aiRejectedTarget?:number;aiRetryAfter?:number;aiCampaignStrength?:number;aiCampaignTick?:number;
+  aiSeaOffset?:number;aiSeaRetryTick?:number;marchRoute?:number[];
+}
+
 export interface GameSave {
   version:1;seed:number;playerCode:string;difficulty:Difficulty;tick:number;
   status:GameStatus;paused:boolean;doctrine:Doctrine;rngCalls:number;
@@ -226,7 +236,8 @@ export interface GameSave {
   borderOrders?:Array<{index:number;mode:'defend'|'withdraw'}>;
   factoryLinks?:Array<{factory:number;city:number}>;
   factoryLevels?:Array<{index:number;level:number}>;
-  squads?:Array<{id:number;owner:number;index:number;troops:number;destination:number|null;attackTarget?:number|null;campaignTarget?:number|null;campaignOwner?:number|null;seaRoute?:number[];seaTicks?:number;seaLanding?:number}>;
+  nextSquadId?:number;
+  squads?:RTSSquad[];
   rtsRecruitment?:boolean;
 }
 
@@ -251,7 +262,7 @@ export class Game {
   readonly borderOrders=new Map<number,'defend'|'withdraw'>();
   readonly factoryLinks=new Map<number,number>();
   readonly factoryLevels=new Map<number,number>();
-  readonly squads:Array<{id:number;owner:number;index:number;troops:number;destination:number|null;attackTarget?:number|null;campaignTarget?:number|null;campaignOwner?:number|null;seaRoute?:number[];seaTicks?:number;seaLanding?:number}>=[];
+  readonly squads:RTSSquad[]=[];
   private nextSquadId=1;
   mobileNet=0;
   /** Real soldiers in transit to defend an attacked treaty partner. */
@@ -260,6 +271,7 @@ export class Game {
   readonly cityUpgrades = new Uint8Array(CELL_COUNT);
   private nextAttackId = 1;
   private readonly navigation=new MaritimeNavigation();
+  private readonly rtsLandComponents=new Int32Array(CELL_COUNT);
   private lastAttackerLoss = 0;
   /** Combat during the most recent simulation tick (or direct strike). */
   readonly battleEvents:BattleEvent[]=[];
@@ -864,6 +876,7 @@ export class Game {
       f.money<cost||this.squads.filter(s=>s.owner===owner).length>=12)
       return {ok:false,reason:'Mindestens '+cost+' Geld und höchstens 12 Truppengruppen erforderlich.'};
     f.money-=cost;
+    this.nextSquadId=Math.max(this.nextSquadId,...this.squads.map(unit=>unit.id+1));
     this.squads.push({id:this.nextSquadId++,owner,index,troops:count,destination:null,attackTarget:null,campaignTarget:null,campaignOwner:null});
     this.recount();
     return {ok:true,reason:count+' Soldaten für '+cost+' Geld ausgebildet.'};
@@ -876,10 +889,39 @@ export class Game {
       return {ok:false,reason:'Ungültige Truppe oder Zielposition.'};
     const destination=pointToIndex(target);
     if(this.owner[destination]!==owner)return {ok:false,reason:'Truppenmarsche sind zunächst nur auf eigenem Gebiet möglich.'};
-    squad.destination=destination;
+    if(this.rtsRecruitment&&this.factions[owner].ai){
+      if(this.rtsAvoidsTarget(squad,destination))
+        return {ok:false,reason:'Dieser Posten wird nach Verlusten später neu bewertet.'};
+      const valuable=this.capitalSites.has(destination)||
+        [BUILDING_CODES.barracks,BUILDING_CODES.city,BUILDING_CODES.factory].includes(this.buildings[destination]);
+      if(!valuable&&this.rtsExposure(owner,destination)>squad.troops*.04)
+        return {ok:false,reason:'Dieser Posten steht unter unwirtschaftlichem Beschuss.'};
+    }
+    squad.destination=destination;squad.marchRoute=undefined;
     squad.attackTarget=null;squad.campaignTarget=null;squad.campaignOwner=null;
     squad.seaRoute=undefined;squad.seaLanding=undefined;squad.seaTicks=undefined;
     return {ok:true,reason:'Marschbefehl erteilt.'};
+  }
+
+  private rtsAvoidsTarget(squad:RTSSquad,target:number):boolean {
+    return squad.aiRejectedTarget===target&&this.tick<(squad.aiRetryAfter??0);
+  }
+
+  private rtsRejectTarget(squad:RTSSquad,target:number):void {
+    const untilTick=this.tick+64;
+    squad.aiRejectedTarget=target;squad.aiRetryAfter=untilTick;
+  }
+
+  /** Real contact exposure at a proposed position, including turret range. */
+  private rtsExposure(owner:number,tile:number):number {
+    let power=0,towers=0;
+    const area=new Set<number>([tile,...LAND_NEIGHBORS[tile]]);
+    for(const near of LAND_NEIGHBORS[tile])for(const cell of LAND_NEIGHBORS[near])area.add(cell);
+    for(const unit of this.squads)if(unit.owner!==owner&&!this.isAllied(owner,unit.owner)&&
+      area.has(unit.index))power+=unit.troops*.085;
+    for(const cell of area)if(this.buildings[cell]===BUILDING_CODES.tower&&
+      this.owner[cell]>=0&&this.owner[cell]!==owner&&!this.isAllied(owner,this.owner[cell]))towers++;
+    return power+Math.min(3,towers)*3;
   }
 
   orderSquadAttack(owner:number,squadId:number,target:Point):DiplomacyResult {
@@ -890,6 +932,18 @@ export class Game {
     const targetIndex=pointToIndex(target),defender=this.owner[targetIndex];
     if(defender===WATER||defender===owner||this.isAllied(owner,defender))
       return {ok:false,reason:'Kein angreifbares Gebiet.'};
+    if(this.rtsRecruitment&&this.factions[owner].ai){
+      if(this.rtsAvoidsTarget(squad,targetIndex))
+        return {ok:false,reason:'Dieses verlustreiche Ziel wird später neu bewertet.'};
+      const exposure=this.rtsExposure(owner,targetIndex);
+      const valuable=this.capitalSites.has(targetIndex)||
+        [BUILDING_CODES.barracks,BUILDING_CODES.city,BUILDING_CODES.factory].includes(this.buildings[targetIndex]);
+      if(defender===NEUTRAL&&exposure>0||exposure>squad.troops*(valuable ? .1 : .04)){
+        this.rtsRejectTarget(squad,targetIndex);
+        return {ok:false,reason:'Kontaktverluste machen dieses Ziel derzeit unwirtschaftlich.'};
+      }
+      squad.aiCampaignStrength=squad.troops;squad.aiCampaignTick=this.tick;
+    }
     // Prefer a direct land campaign across non-allied territory to circling
     // around borders; real movement and combat resolve one cell at a time.
     const visited=new Uint8Array(CELL_COUNT),landQueue=[squad.index];
@@ -900,6 +954,8 @@ export class Game {
         if(visited[next]||this.owner[next]===WATER||
            (this.owner[next]>=0&&this.owner[next]!==owner&&
             this.isAllied(owner,this.owner[next])))continue;
+        if(this.rtsRecruitment&&this.factions[owner].ai&&defender===NEUTRAL&&
+           this.owner[next]>=0&&this.owner[next]!==owner)continue;
         visited[next]=1;landQueue.push(next);
       }
     }
@@ -925,7 +981,10 @@ export class Game {
     }
     if(front<0){
       const route=this.maritimeRoute(owner,target);
-      if(!route||route.cells.length<3)return {ok:false,reason:'Keine Landfront und keine sichere Seeroute vorhanden.'};
+      if(!route||route.cells.length<3){
+        if(this.rtsRecruitment&&this.factions[owner].ai)this.rtsRejectTarget(squad,targetIndex);
+        return {ok:false,reason:'Keine Landfront und keine sichere Seeroute vorhanden.'};
+      }
       const departure=route.cells[0],landing=route.cells[route.cells.length-1];
       // A squad must first reach its actual own coastal departure tile.
       squad.destination=departure;
@@ -973,6 +1032,48 @@ export class Game {
     return {ok:true,reason:'Soldaten zur mobilen Reserve zurückgezogen.'};
   }
 
+  private recoverRTSSquad(squad:RTSSquad,barracks:number,peacefulOutlet:boolean,
+    exposureAt:(tile:number)=>number):boolean {
+    if(squad.seaRoute?.length)return false;
+    if(squad.troops<30){
+      if(squad.index!==barracks&&squad.destination!==barracks)
+        this.orderSquad(squad.owner,squad.id,cellToPoint(barracks));
+      return true;
+    }
+    const operationalExposure=(tile:number)=>exposureAt(tile)+LAND_NEIGHBORS[tile].filter(next=>
+      this.owner[next]>=0&&this.owner[next]!==squad.owner&&!this.isAllied(squad.owner,this.owner[next])).length*.55;
+    const exposure=operationalExposure(squad.index);
+    const spent=(squad.aiCampaignStrength??squad.troops)-squad.troops;
+    const critical=(tile:number)=>this.capitalSites.has(tile)||
+      [BUILDING_CODES.barracks,BUILDING_CODES.city,BUILDING_CODES.factory].includes(this.buildings[tile]);
+    const budget=squad.campaignTarget!=null&&critical(squad.campaignTarget) ? .4 : .1;
+    const costly=squad.campaignTarget!=null&&
+      (spent>Math.max(8,(squad.aiCampaignStrength??squad.troops)*budget)||
+        squad.campaignOwner===NEUTRAL&&exposureAt(squad.index)>0);
+    if(exposure>0&&(costly||squad.campaignTarget==null&&squad.destination===null&&
+        (exposureAt(squad.index)>0||!peacefulOutlet)&&
+        (!critical(squad.index)||exposure>squad.troops*.12))){
+      // A formation one cell from contact needs two legal steps to
+      // disengage. Requiring immediate exposure reduction trapped it.
+      const queue=[squad.index],depth=new Map<number,number>([[squad.index,0]]);
+      let safe:number|undefined;
+      for(let head=0;head<queue.length;head++){
+        const tile=queue[head],steps=depth.get(tile)!;
+        if(tile!==squad.index&&operationalExposure(tile)===0){safe=tile;break;}
+        if(steps>=4)continue;
+        for(const next of LAND_NEIGHBORS[tile])if(this.owner[next]===squad.owner&&!depth.has(next)){
+          depth.set(next,steps+1);queue.push(next);
+        }
+      }
+      if(safe!==undefined){
+        this.rtsRejectTarget(squad,squad.campaignTarget??squad.index);
+        this.orderSquad(squad.owner,squad.id,cellToPoint(safe));
+        return true;
+      }
+    }
+    return false;
+  }
+
   /** Same building and recruitment actions as the player. AI only issues
    * real paid orders. Staggered to keep 50-country turns inexpensive.
    */
@@ -993,52 +1094,94 @@ export class Game {
     }
     if(!this.factions.some(f=>f.ai&&f.alive&&
       (alerted.has(f.id)||this.tick%4===f.id%4)))return;
-    // Build a single spatial index per AI turn rather than scanning every
-    // map cell for each of up to 49 countries.
+    // Reuse the exact frontier index maintained by captures and the regular
+    // simulation pass. Coastal geography is static; it needs no map flood.
+    if(this.frontierCandidates.length!==this.factions.length)this.rebuildFrontierCandidates();
+    const coastalTargets=COASTS.filter(tile=>this.owner[tile]!==WATER);
+    const frontierByFaction=new Map<number,Set<number>>();
+    for(const faction of this.factions){
+      if(!faction.ai||!faction.alive)continue;
+      frontierByFaction.set(faction.id,new Set([...this.frontierCandidates[faction.id]].filter(tile=>
+        this.owner[tile]!==faction.id&&this.owner[tile]!==WATER&&
+        !this.isAllied(faction.id,this.owner[tile])&&
+        LAND_NEIGHBORS[tile].some(next=>this.owner[next]===faction.id))));
+    }
     const barracksSites=new Int32Array(this.factions.length).fill(-1);
     const constructionSites=new Int32Array(this.factions.length).fill(-1);
     const constructionDist=new Float64Array(this.factions.length).fill(Infinity);
-    for(let i=0;i<CELL_COUNT;i++){
-      const id=this.owner[i];
-      if(id<=0||!this.factions[id]?.alive)continue;
-      if(this.buildings[i]===BUILDING_CODES.barracks){
-        if(barracksSites[id]<0)barracksSites[id]=i;
-      }else if(!this.buildings[i]&&!this.capitalSites.has(i)){
-        const base=pointToIndex(this.factions[id].target);
-        const dist=Math.abs(i%MAP_WIDTH-base%MAP_WIDTH)+
-          Math.abs(Math.floor(i/MAP_WIDTH)-Math.floor(base/MAP_WIDTH));
-        if(dist<constructionDist[id]){constructionDist[id]=dist;constructionSites[id]=i;}
+    const towersByFaction:number[][]=this.factions.map(()=>[]);
+    const landComponents=this.rtsLandComponents;landComponents.fill(0);
+    let nextComponent=1;
+    // Scan the compact building-code array once. Empty sectors only need a
+    // construction search when a scheduled country really lacks a barracks.
+    for(let tile=0;tile<CELL_COUNT;tile++){
+      const building=this.buildings[tile];if(!building)continue;
+      const id=this.owner[tile];if(id<0)continue;
+      if(building===BUILDING_CODES.tower)towersByFaction[id].push(tile);
+      if(id>0&&building===BUILDING_CODES.barracks&&barracksSites[id]<0)barracksSites[id]=tile;
+    }
+    const missing=this.factions.map(faction=>faction.ai&&faction.alive&&barracksSites[faction.id]<0&&
+      faction.money>=280&&(alerted.has(faction.id)||this.tick%4===faction.id%4));
+    if(missing.some(Boolean)){
+      const bases=this.factions.map(faction=>pointToIndex(faction.target));
+      for(let tile=0;tile<CELL_COUNT;tile++){
+        const id=this.owner[tile];
+        if(id<=0||!missing[id]||this.buildings[tile]||this.capitalSites.has(tile))continue;
+        const base=bases[id],distance=Math.abs(tile%MAP_WIDTH-base%MAP_WIDTH)+
+          Math.abs(Math.floor(tile/MAP_WIDTH)-Math.floor(base/MAP_WIDTH));
+        if(distance<constructionDist[id]){constructionDist[id]=distance;constructionSites[id]=tile;}
       }
     }
-    // Scan playable coastlines once per planning tick, not once per nation.
-    // Island powers can then evaluate actual sea routes instead of idling
-    // because they have no land frontier.
-    const coastalTargets:number[]=[];
-    const frontierByFaction=new Map<number,Set<number>>();
-    for(let cell=0;cell<CELL_COUNT;cell++){
-      const holder=this.owner[cell];
-      if(holder===WATER)continue;
-      if(LAND_NEIGHBORS[cell].some(n=>this.owner[n]===WATER))
-        coastalTargets.push(cell);
-      if(holder<=0||!this.factions[holder]?.alive)continue;
-      for(const next of LAND_NEIGHBORS[cell]){
-        const other=this.owner[next];
-        if(other!==holder&&other!==WATER&&!this.isAllied(holder,other)){
-          let targets=frontierByFaction.get(holder);
-          if(!targets){targets=new Set<number>();frontierByFaction.set(holder,targets);}
-          targets.add(next);
-        }
+    const neutralCoastalTargets=coastalTargets.filter(tile=>this.owner[tile]===NEUTRAL);
+    const contactIntel=new Map<number,Map<number,{power:number;towers:number}>>();
+    const addInfluence=(owner:number,tile:number,power:number,towers:number)=>{
+      const area=new Set<number>([tile,...LAND_NEIGHBORS[tile]]);
+      for(const near of LAND_NEIGHBORS[tile])for(const cell of LAND_NEIGHBORS[near])area.add(cell);
+      for(const cell of area){
+        let owners=contactIntel.get(cell);
+        if(!owners){owners=new Map();contactIntel.set(cell,owners);}
+        const info=owners.get(owner)??{power:0,towers:0};
+        info.power+=power;info.towers+=towers;owners.set(owner,info);
       }
-    }
+    };
+    for(const unit of this.squads)addInfluence(unit.owner,unit.index,unit.troops*.085,0);
+    for(let id=0;id<towersByFaction.length;id++)for(const tile of towersByFaction[id])
+      addInfluence(id,tile,0,1);
+    const threatRings=new Map<number,readonly number[]>();
+    const threatRing=(index:number)=>{
+      const cached=threatRings.get(index);if(cached)return cached;
+      const reached=new Set<number>([index]);let ring=[index];
+      for(let radius=0;radius<4;radius++){
+        const following:number[]=[];
+        for(const position of ring)for(const near of LAND_NEIGHBORS[position])
+          if(!reached.has(near)){reached.add(near);following.push(near);}
+        ring=following;
+      }
+      const tiles=[...reached];threatRings.set(index,tiles);return tiles;
+    };
     for(const faction of this.factions){
       if(!faction.ai||!faction.alive)continue;
       if(!alerted.has(faction.id)&&this.tick%4!==faction.id%4)continue;
-      const own=this.squads.filter(s=>s.owner===faction.id);
+      let own=this.squads.filter(s=>s.owner===faction.id);
       const barracks=barracksSites[faction.id];
       if(barracks<0){
         if(faction.money>=280&&constructionSites[faction.id]>=0)
           this.build(faction.id,cellToPoint(constructionSites[faction.id]),'barracks');
         continue;
+      }
+      // Re-form depleted armies only when they have physically returned to
+      // the same barracks. Transfer existing soldiers, never mobile reserves
+      // or remote units; orders and sea transports remain intact.
+      const recovering=own.filter(u=>u.index===barracks&&u.troops<30&&
+        u.destination===null&&u.attackTarget==null&&u.campaignTarget==null&&
+        !u.seaRoute?.length).sort((a,b)=>a.id-b.id);
+      const recipient=recovering[0];
+      if(recipient&&recovering.length>1){
+        for(const donor of recovering.slice(1)){
+          recipient.troops+=donor.troops;
+          this.squads.splice(this.squads.indexOf(donor),1);
+        }
+        own=this.squads.filter(s=>s.owner===faction.id);
       }
       // Keep a real construction reserve instead of spending almost every
       // coin on recruitment. Otherwise a threatened AI never affords towers.
@@ -1046,13 +1189,15 @@ export class Game {
       const recruitBudget=Math.max(0,faction.money-towerBudget);
       const recruitCount=Math.min(100,Math.floor(recruitBudget/2));
       if(own.length<Math.min(5,Math.max(2,Math.ceil(faction.territory/150)))&&
-         recruitCount>=10){
+         recruitCount>=100){
         this.recruitSquad(faction.id,cellToPoint(barracks),recruitCount);
       }
       // Build up to three separate threatened fronts. Soldiers are assigned
       // physically from idle formations; a distant campaign stays committed.
       const enemyUnits=this.squads.filter(u=>u.owner!==faction.id&&
         !this.isAllied(faction.id,u.owner));
+      const peacefulOutlet=[...(frontierByFaction.get(faction.id)??[])].some(tile=>
+        this.owner[tile]===NEUTRAL);
       const borderThreats=new Map<number,number>();
       for(const enemy of enemyUnits){
         // Intercept up to two cells ahead: waiting until contact is too late
@@ -1060,15 +1205,7 @@ export class Game {
         // Occupation reaches up to four cells around a physical formation.
         // Detect danger at the same radius so the border AI does not wait
         // until soldiers have already swept across its undefended land.
-        const threatened=new Set<number>([enemy.index]);
-        let ring=[enemy.index];
-        for(let radius=0;radius<4;radius++){
-          const following:number[]=[];
-          for(const position of ring)for(const near of LAND_NEIGHBORS[position])
-            if(!threatened.has(near)){threatened.add(near);following.push(near);}
-          ring=following;
-        }
-        for(const tile of threatened){
+        for(const tile of threatRing(enemy.index)){
           if(this.owner[tile]!==faction.id)continue;
           const valuable=this.capitalSites.has(tile)?220:this.buildings[tile]===BUILDING_CODES.barracks?180:this.buildings[tile]===BUILDING_CODES.city?120:this.buildings[tile]===BUILDING_CODES.factory?90:this.buildings[tile]===BUILDING_CODES.tower?70:0;
           const guarding=own.filter(unit=>unit.index===tile||unit.destination===tile)
@@ -1083,13 +1220,8 @@ export class Game {
       // Cap construction per realm, keep towers separated, and retain enough
       // gold for recruiting actual defenders. No free fortifications.
       if(borderThreats.size&&this.tick%8===faction.id%8&&faction.money>=towerBudget+40){
-        let towerCount=0;
-        const existingTowers:number[]=[];
-        for(let cell=0;cell<CELL_COUNT;cell++){
-          if(this.owner[cell]===faction.id&&this.buildings[cell]===BUILDING_CODES.tower){
-            towerCount++;existingTowers.push(cell);
-          }
-        }
+        const existingTowers=towersByFaction[faction.id];
+        const towerCount=existingTowers.length;
         if(towerCount<Math.min(8,Math.max(2,Math.ceil(faction.territory/110)))){
           const candidates=[...borderThreats].sort((a,b)=>b[1]-a[1]||a[0]-b[0]);
           for(const [tile] of candidates){
@@ -1103,13 +1235,23 @@ export class Game {
       }
       // Strategically rank fronts by threat, infrastructure, and the real
       // travel distance of an available squad, not threat alone.
-      const plannedFronts=[...borderThreats].sort((a,b)=>{
-        const distance=(cell:number)=>own.length?Math.min(...own.map(u=>
-          Math.abs(u.index%MAP_WIDTH-cell%MAP_WIDTH)+
-          Math.abs(Math.floor(u.index/MAP_WIDTH)-Math.floor(cell/MAP_WIDTH)))):50;
-        const value=(entry:[number,number])=>entry[1]-Math.min(80,distance(entry[0])*2);
-        return value(b)-value(a)||a[0]-b[0];
-      }).slice(0,24);
+      const home=this.cities.find(city=>city.original===faction.id&&
+        city.owner===faction.id)?.index??barracks;
+      const plannedFronts=[...borderThreats].filter(([tile])=>{
+        if(!peacefulOutlet)return true;
+        const homelandDistance=Math.abs(tile%MAP_WIDTH-home%MAP_WIDTH)+
+          Math.abs(Math.floor(tile/MAP_WIDTH)-Math.floor(home/MAP_WIDTH));
+        return homelandDistance<=12||this.capitalSites.has(tile)||
+          this.buildings[tile]===BUILDING_CODES.barracks||
+          this.buildings[tile]===BUILDING_CODES.city||
+          this.buildings[tile]===BUILDING_CODES.factory;
+      }).map(([tile,threat])=>{
+        let nearest=own.length?Infinity:50;
+        for(const unit of own)nearest=Math.min(nearest,
+          Math.abs(unit.index%MAP_WIDTH-tile%MAP_WIDTH)+
+          Math.abs(Math.floor(unit.index/MAP_WIDTH)-Math.floor(tile/MAP_WIDTH)));
+        return [tile,threat-Math.min(80,nearest*2)] as [number,number];
+      }).sort((a,b)=>b[1]-a[1]||a[0]-b[0]).slice(0,24);
       const frontPositions:number[]=[];
       for(const [tile] of plannedFronts){
         if(frontPositions.length>=3)break;
@@ -1139,13 +1281,16 @@ export class Game {
       // If every AI squad is on campaign, redirect a real formation from
       // the least critical offensive when important owned land is threatened.
       if(frontPositions.length&&available.length===0&&own.length&&alerted.has(faction.id)){
-        const emergency=own.filter(u=>u.troops>=20)
+        const emergency=own.filter(u=>u.troops>=20&&u.campaignTarget!=null&&
+          !u.seaRoute?.length&&!own.some(defender=>
+            defender.index===frontPositions[0]||defender.destination===frontPositions[0]))
           .sort((a,b)=>{
             const distance=(u:typeof a)=>Math.abs(u.index%MAP_WIDTH-frontPositions[0]%MAP_WIDTH)+
               Math.abs(Math.floor(u.index/MAP_WIDTH)-Math.floor(frontPositions[0]/MAP_WIDTH));
             return distance(a)-distance(b)||a.id-b.id;
           })[0];
-        if(emergency)this.orderSquad(faction.id,emergency.id,cellToPoint(frontPositions[0]));
+        if(emergency&&this.orderSquad(faction.id,emergency.id,cellToPoint(frontPositions[0])).ok)
+          assignedDefenders.add(emergency.id);
       }
       let deployments=0;
       for(const target of frontPositions){
@@ -1200,6 +1345,46 @@ export class Game {
           }
         }
       }
+      // Tactical defense and loss-triggered recovery stay immediate. Full
+      // theater geometry needs the normal four-tick strategic pulse only.
+      if(this.tick%4!==faction.id%4){
+        const exposureCache=new Map<number,number>();
+        const exposureAt=(tile:number)=>{
+          let value=exposureCache.get(tile);
+          if(value===undefined){value=this.rtsExposure(faction.id,tile);exposureCache.set(tile,value);}
+          return value;
+        };
+        for(const unit of own)this.recoverRTSSquad(unit,barracks,peacefulOutlet,exposureAt);
+        continue;
+      }
+      // Build contact exposure once per country, rather than once per target
+      // and formation. All influence comes from actual soldiers and towers.
+      const exposureCache=new Map<number,number>();
+      const exposureAt=(tile:number)=>{
+        const cached=exposureCache.get(tile);if(cached!==undefined)return cached;
+        let power=0,towers=0;
+        for(const [id,info] of contactIntel.get(tile)??[]){
+          if(id===faction.id||this.isAllied(faction.id,id))continue;
+          power+=info.power;towers+=info.towers;
+        }
+        const exposure=power+Math.min(3,towers)*3;exposureCache.set(tile,exposure);
+        return exposure;
+      };
+      const recoveringNow=new Set<number>();
+      for(const unit of own)if(this.recoverRTSSquad(unit,barracks,peacefulOutlet,exposureAt))
+        recoveringNow.add(unit.id);
+      if(own.every(u=>recoveringNow.has(u.id)||assignedDefenders.has(u.id)||
+        u.destination!==null||u.attackTarget!=null||u.campaignTarget!=null))continue;
+      // Label only friendly components occupied by real formations. Across
+      // every country a tile is visited at most once during this planning tick.
+      for(const unit of own){
+        if(landComponents[unit.index])continue;
+        const component=nextComponent++,queue=[unit.index];landComponents[unit.index]=component;
+        for(let head=0;head<queue.length;head++)for(const next of LAND_NEIGHBORS[queue[head]]){
+          if(this.owner[next]!==faction.id||landComponents[next]||exposureAt(next)>0)continue;
+          landComponents[next]=component;queue.push(next);
+        }
+      }
       const totalReady=own.reduce((sum,u)=>sum+u.troops,0);
       // No single understrength squad should charge into an obvious
       // superior neighboring formation. Group units around a rally point.
@@ -1235,47 +1420,74 @@ export class Game {
       // save/load. When there is no campaign, choose a common reachable land
       // objective from the country's actual border rather than dispatching
       // every idle army toward a separately chosen random frontier.
-      const frontierCandidates=frontierByFaction.get(faction.id)??new Set<number>();
-      // During the land-grab opening, neutral territory dominates strategy.
-      // No early offensive war while an accessible neutral land frontier exists.
-      // Later the same rule remains a preference, not a permanent pacifist lock.
-      const neutralOpening=this.tick<240&&
-        [...frontierCandidates].some(tile=>this.owner[tile]===NEUTRAL);
+      const frontierCandidates=new Set([...(frontierByFaction.get(faction.id)??[])].filter(tile=>
+        LAND_NEIGHBORS[tile].some(next=>this.owner[next]===faction.id&&landComponents[next]>0)));
+      // Prefer safe peaceful gains reachable from a real formation's owned
+      // component. Enclosed armies investigate neutral sea outlets next.
+      const neutralOpening=[...frontierCandidates].some(tile=>
+        this.owner[tile]===NEUTRAL&&exposureAt(tile)===0);
       const theaterCandidates=neutralOpening
         ?[...frontierCandidates].filter(tile=>this.owner[tile]===NEUTRAL)
         :[...frontierCandidates];
       const totalOperational=own.filter(u=>u.troops>=20)
         .reduce((sum,u)=>sum+u.troops,0);
-      const theaterTarget=chooseRTSTheaterTarget(theaterCandidates.map(tile=>{
-        const defender=this.squads.filter(u=>u.owner!==faction.id&&
-          !this.isAllied(faction.id,u.owner)&&
-          (u.index===tile||LAND_NEIGHBORS[tile].includes(u.index)))
-          .reduce((sum,u)=>sum+u.troops,0);
-        const distance=Math.min(...own.filter(u=>u.troops>=20).map(u=>
-          Math.abs(tile%MAP_WIDTH-u.index%MAP_WIDTH)+
-          Math.abs(Math.floor(tile/MAP_WIDTH)-Math.floor(u.index/MAP_WIDTH))),10000);
-        const code=this.buildings[tile];
-        return {tile,neutral:this.owner[tile]===NEUTRAL,
-          defenderStrength:defender,assaultStrength:totalOperational,
-          distance,strategicValue:
-            (this.capitalSites.has(tile)?80:0)+
-            (code===BUILDING_CODES.barracks?55:0)+
-            (code===BUILDING_CODES.city?35:0)+
-            (code===BUILDING_CODES.factory?25:0)-
-            (code===BUILDING_CODES.tower?45:0),
-          committed:own.filter(u=>u.campaignTarget===tile)
-            .reduce((sum,u)=>sum+u.troops,0)};
-      }));
+      const theaterTargets=new Map<number,number|null>();
+      let defenderIntel:Map<number,number>|undefined;
+      const getTheaterTarget=(component:number)=>{
+        if(theaterTargets.has(component))return theaterTargets.get(component)!;
+        if(!defenderIntel){
+          defenderIntel=new Map();
+          for(const enemy of enemyUnits)for(const tile of [enemy.index,...LAND_NEIGHBORS[enemy.index]])
+            defenderIntel.set(tile,(defenderIntel.get(tile)??0)+enemy.troops);
+        }
+        const intel=defenderIntel;
+        const target=chooseRTSTheaterTarget(theaterCandidates.filter(tile=>
+          LAND_NEIGHBORS[tile].some(next=>landComponents[next]===component)).map(tile=>{
+          const defender=intel.get(tile)??0;
+          const distance=Math.min(...own.filter(u=>u.troops>=20).map(u=>
+            Math.abs(tile%MAP_WIDTH-u.index%MAP_WIDTH)+
+            Math.abs(Math.floor(tile/MAP_WIDTH)-Math.floor(u.index/MAP_WIDTH))),10000);
+          const code=this.buildings[tile];
+          return {tile,neutral:this.owner[tile]===NEUTRAL,
+            defenderStrength:defender,assaultStrength:totalOperational,
+            distance,strategicValue:
+              (this.capitalSites.has(tile)?80:0)+
+              (code===BUILDING_CODES.barracks?55:0)+
+              (code===BUILDING_CODES.city?35:0)+
+              (code===BUILDING_CODES.factory?25:0)-
+              (code===BUILDING_CODES.tower?45:0),
+            committed:own.filter(u=>u.campaignTarget===tile)
+              .reduce((sum,u)=>sum+u.troops,0)};
+        }));
+        theaterTargets.set(component,target);return target;
+      };
+      const neutralFronts=neutralOpening?theaterCandidates.map(tile=>{
+        const surroundings=LAND_NEIGHBORS[tile];
+        return {tile,exposure:exposureAt(tile),
+          adjacentNeutral:surroundings.filter(n=>this.owner[n]===NEUTRAL).length,
+          friendlySides:surroundings.filter(n=>this.owner[n]===faction.id).length};
+      }):[];
+      const outerCache=new Map<number,number>();
+      const secondRingNeutral=(tile:number)=>{
+        let count=outerCache.get(tile);
+        if(count===undefined){
+          const outer=new Set<number>();
+          for(const near of LAND_NEIGHBORS[tile])for(const cell of LAND_NEIGHBORS[near])
+            if(this.owner[cell]===NEUTRAL)outer.add(cell);
+          count=outer.size;outerCache.set(tile,count);
+        }
+        return count;
+      };
+      let peacefulCoasts:number[]|null=null;
+      const getPeacefulCoasts=()=>peacefulCoasts??=(neutralCoastalTargets.filter(tile=>
+        exposureAt(tile)===0).map(tile=>({tile,
+          distance:Math.abs(tile%MAP_WIDTH-barracks%MAP_WIDTH)+
+            Math.abs(Math.floor(tile/MAP_WIDTH)-Math.floor(barracks/MAP_WIDTH))}))
+        .sort((a,b)=>a.distance-b.distance||a.tile-b.tile).slice(0,96).map(item=>item.tile));
       const reinforceTarget=neutralOpening?null:(selected?.target??offensive?.campaignTarget??null);
       // No abstract issueAttack: mobilize units by actual contiguous paths.
       for(const squad of own){
-        // Damaged AI forces retreat to their barracks instead of blindly
-        // feeding the enemy. The remaining troops stay physical and alive.
-        if(squad.troops<20){
-          if(squad.index!==barracks&&squad.destination!==barracks)
-            this.orderSquad(faction.id,squad.id,cellToPoint(barracks));
-          continue;
-        }
+        if(recoveringNow.has(squad.id))continue;
         if(assignedDefenders.has(squad.id))continue;
         // Retreat only from a clearly superior *adjacent* enemy and only
         // to a safe, owned neighboring sector. This is a real one-cell move.
@@ -1332,37 +1544,67 @@ export class Game {
         // march to the same (often northmost by row-major tie-breaking) cell.
         // Prefer the widest locally unclaimed space, penalize overcrowding
         // and travel distance; deterministic ties remain stable.
-        let objective=theaterTarget;
-        if(neutralOpening&&squad.troops>=30){
-          let best=-Infinity;
-          objective=null;
-          for(const tile of theaterCandidates){
-            if(this.owner[tile]!==NEUTRAL)continue;
-            const surroundings=LAND_NEIGHBORS[tile];
-            const available=surroundings.filter(n=>this.owner[n]===NEUTRAL).length;
-            const outer=new Set<number>();
-            for(const n of surroundings)
-              for(const farther of LAND_NEIGHBORS[n])
-                if(this.owner[farther]===NEUTRAL)outer.add(farther);
-            const distance=Math.abs(tile%MAP_WIDTH-squad.index%MAP_WIDTH)+
-              Math.abs(Math.floor(tile/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH));
-            const otherCommitments=own.filter(u=>u.id!==squad.id&&u.troops>=20&&
-              (u.campaignTarget===tile||
-               (u.campaignTarget!=null&&
-                Math.abs(u.campaignTarget%MAP_WIDTH-tile%MAP_WIDTH)+
-                Math.abs(Math.floor(u.campaignTarget/MAP_WIDTH)-Math.floor(tile/MAP_WIDTH))<6)))
-              .length;
-            const friendlySides=surroundings.filter(n=>this.owner[n]===faction.id).length;
-            const score=scoreRTSNeutralFront({
-              adjacentNeutral:available,secondRingNeutral:outer.size,
-              friendlySides,distance,otherCommitments
-            });
-            if(score>best||(score===best&&(objective===null||tile<objective))){
-              best=score;objective=tile;
+        // Exhaust economical neutral sea outlets before repeatedly feeding
+        // armies into an enclosed hostile land border. Search is bounded and
+        // resumes on the next planning pulse instead of repeating a prefix.
+        const localNeutralOutlet=neutralFronts.some(front=>front.exposure===0&&
+          LAND_NEIGHBORS[front.tile].some(next=>landComponents[next]===landComponents[squad.index]));
+        if(!localNeutralOutlet&&squad.troops>=30){
+          if(this.tick<(squad.aiSeaRetryTick??0)){
+            if((squad.aiSeaOffset??0)>0)continue;
+          }else{
+            const coast=getPeacefulCoasts();
+            if(coast.length){
+              const offset=squad.aiSeaOffset??0;
+              let launched=false,examined=offset;
+              for(;examined<Math.min(coast.length,offset+4);examined++){
+                const tile=coast[examined];
+                const route=this.maritimeRoute(faction.id,cellToPoint(tile));
+                if(!route||route.cells.length<3||
+                  landComponents[route.cells[0]]!==landComponents[squad.index])continue;
+                squad.destination=route.cells[0];squad.attackTarget=null;
+                squad.campaignTarget=tile;squad.campaignOwner=NEUTRAL;
+                squad.seaRoute=[...route.cells];squad.seaLanding=route.cells.at(-1);squad.seaTicks=0;
+                squad.aiCampaignStrength=squad.troops;squad.aiCampaignTick=this.tick;
+                squad.aiSeaOffset=0;launched=true;break;
+              }
+              if(launched)continue;
+              squad.aiSeaOffset=examined>=coast.length?0:examined;
+              squad.aiSeaRetryTick=this.tick+(examined>=coast.length?32:4);
+              if(examined<coast.length)continue;
             }
           }
         }
-        if(objective!=null&&squad.troops>=30){
+        let objective=neutralOpening?null:getTheaterTarget(landComponents[squad.index]);
+        if(neutralOpening&&squad.troops>=30){
+          let best=-Infinity;
+          objective=null;
+          // A second cardinal ring contains at most nine distinct cells.
+          // Rank cheap upper bounds, then evaluate exact geometry only while
+          // it can still beat the winner. This preserves score and tie rules.
+          const ranked=neutralFronts.flatMap(front=>{
+            const {tile,exposure}=front;
+            if(!LAND_NEIGHBORS[tile].some(next=>landComponents[next]===landComponents[squad.index])||
+              exposure>0||this.rtsAvoidsTarget(squad,tile))return [];
+            const distance=Math.abs(tile%MAP_WIDTH-squad.index%MAP_WIDTH)+
+              Math.abs(Math.floor(tile/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH));
+            const otherCommitments=own.filter(u=>u.id!==squad.id&&u.troops>=20&&
+              u.campaignTarget!=null&&Math.abs(u.campaignTarget%MAP_WIDTH-tile%MAP_WIDTH)+
+              Math.abs(Math.floor(u.campaignTarget/MAP_WIDTH)-Math.floor(tile/MAP_WIDTH))<6).length;
+            const upper=scoreRTSNeutralFront({...front,secondRingNeutral:9,distance,otherCommitments});
+            return [{front,distance,otherCommitments,upper}];
+          }).sort((a,b)=>b.upper-a.upper||a.front.tile-b.front.tile);
+          for(const {front,distance,otherCommitments,upper} of ranked){
+            if(upper<best)break;
+            const score=scoreRTSNeutralFront({...front,
+              secondRingNeutral:secondRingNeutral(front.tile),distance,otherCommitments});
+            if(score>best||(score===best&&(objective===null||front.tile<objective))){
+              best=score;objective=front.tile;
+            }
+          }
+        }
+        if(objective!=null&&squad.troops>=30&&
+          !(this.rtsAvoidsTarget(squad,objective))){
           const launched=this.orderSquadAttack(faction.id,squad.id,cellToPoint(objective));
           if(launched.ok)continue;
         }
@@ -1394,45 +1636,12 @@ export class Game {
           });
         };
         const next=targets.sort((a,b)=>rank(b)-rank(a)||a-b)[0];
-        if(next!==undefined&&rank(next)>-25){
+        if(next!==undefined&&rank(next)>-25&&
+          !(this.rtsAvoidsTarget(squad,next))){
           const ordered=this.orderSquadAttack(squad.owner,squad.id,cellToPoint(next));
           if(ordered.ok)continue;
         }
-        {
-          // Patrol towards a locally accessible enemy/neutral border.
-          const frontier=this.chooseFront(faction.id);
-          if(frontier>=0&&(!neutralOpening||this.owner[frontier]===NEUTRAL)){
-            const ordered=this.orderSquadAttack(faction.id,squad.id,cellToPoint(frontier));
-            if(ordered.ok)continue;
-          }
-          // No land outlet: periodically search nearby unallied coastlines.
-          // A real validated sea route, real soldiers and an affordable
-          // landing are required. Never invent an ocean shortcut.
-          if(this.tick%4===faction.id%4&&coastalTargets.length&&squad.troops>=25&&
-             !alerted.has(faction.id)){
-            const coast=coastalTargets.filter(tile=>
-              this.owner[tile]!==faction.id&&
-              (!neutralOpening||this.owner[tile]===NEUTRAL)&&
-              !this.isAllied(faction.id,this.owner[tile])&&
-              this.buildings[tile]!==BUILDING_CODES.tower)
-              .sort((a,b)=>{
-                const score=(tile:number)=>
-                  Math.abs(tile%MAP_WIDTH-squad.index%MAP_WIDTH)+
-                  Math.abs(Math.floor(tile/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH))+
-                  (this.owner[tile]===NEUTRAL?0:20);
-                return score(a)-score(b)||a-b;
-              }).slice(0,96);
-            // Try more than the nearest handful: those may all be
-            // unreachable across blocked or disconnected sea basins.
-            // Bound attempts to avoid expensive pathfinding every turn.
-            let routeAttempts=0;
-            for(const tile of coast){
-              if(routeAttempts++>=96)break;
-              const order=this.orderSquadAttack(faction.id,squad.id,cellToPoint(tile));
-              if(order.ok)break;
-            }
-          }
-        }
+
       }
     }
   }
@@ -1443,14 +1652,17 @@ export class Game {
    */
   private resolveSquadContacts():void {
     if(!this.rtsRecruitment)return;
+    const sailing=(unit:RTSSquad)=>Boolean(unit.seaRoute?.length&&
+      unit.index===unit.seaRoute[0]&&unit.destination===null);
     const byCell=new Map<number,typeof this.squads>();
     for(const unit of this.squads){
+      if(sailing(unit))continue;
       const list=byCell.get(unit.index)??[];
       list.push(unit);byCell.set(unit.index,list);
     }
     const damage=new Map<number,number>();
-    const engaged=new Set<number>();
     for(const unit of this.squads){
+      if(sailing(unit))continue;
       // Intercept enemies that pass within two sectors of a real squad,
       // including diagonal near misses. Resolve each pair only once.
       const contacts=new Set<number>(LAND_NEIGHBORS[unit.index]);
@@ -1469,7 +1681,6 @@ export class Game {
           const a=losses.attackerLost,b=losses.defenderLost;
           damage.set(unit.id,(damage.get(unit.id)??0)+a);
           damage.set(enemy.id,(damage.get(enemy.id)??0)+b);
-          engaged.add(unit.id);engaged.add(enemy.id);
           if(this.battleEvents.length<1600)this.battleEvents.push({
             tick:this.tick,index:enemy.index,attackerId:unit.owner,defenderId:enemy.owner,
             attacking:unit.troops,defending:enemy.troops,
@@ -1482,6 +1693,7 @@ export class Game {
     // approaching ENEMY formations, never friendly/allied troops.
     // Tower hits remain independent of the squad-vs-squad pairs above.
     for(const unit of this.squads){
+      if(sailing(unit))continue;
       let towers=0;
       const nearby=new Set<number>([unit.index,...LAND_NEIGHBORS[unit.index]]);
       for(const neighbor of LAND_NEIGHBORS[unit.index])
@@ -1500,7 +1712,7 @@ export class Game {
       });
     }
     for(let i=this.squads.length-1;i>=0;i--){
-      const unit=this.squads[i],loss=damage.get(unit.id)??0;
+      const unit=this.squads[i],loss=rtsActualLoss(unit.troops,damage.get(unit.id)??0);
       if(loss<=0)continue;
       unit.troops=Math.max(0,unit.troops-loss);
       this.factions[unit.owner].attackFallen+=loss;
@@ -1509,8 +1721,26 @@ export class Game {
   }
 
   private moveSquads():void {
-    for(let i=this.squads.length-1;i>=0;i--){
-      const squad=this.squads[i];
+    // Sparse, shared contact screens for peaceful routing. A safe objective
+    // is not sufficient when the approach crosses tower fire or real armies.
+    const screens=new Map<number,Set<number>>();
+    const screen=(owner:number,index:number)=>{
+      const area=new Set<number>([index,...LAND_NEIGHBORS[index]]);
+      for(const near of LAND_NEIGHBORS[index])for(const tile of LAND_NEIGHBORS[near])area.add(tile);
+      for(const tile of area){
+        let owners=screens.get(tile);if(!owners){owners=new Set();screens.set(tile,owners);}
+        owners.add(owner);
+      }
+    };
+    if(this.rtsRecruitment){
+      for(const unit of this.squads)screen(unit.owner,unit.index);
+      for(let tile=0;tile<CELL_COUNT;tile++)if(this.buildings[tile]===BUILDING_CODES.tower&&this.owner[tile]>=0)
+        screen(this.owner[tile],tile);
+    }
+    // Combat can remove earlier entries. Iterate the original formations
+    // exactly once so index shifts never grant another move or occupation.
+    for(const squad of [...this.squads].reverse()){
+      const i=this.squads.indexOf(squad);if(i<0)continue;
       if(this.owner[squad.index]!==squad.owner){
         this.factions[squad.owner].troops+=squad.troops;
         this.squads.splice(i,1);continue;
@@ -1521,6 +1751,11 @@ export class Game {
       if(squad.seaRoute?.length&&squad.seaLanding!=null){
         const departure=squad.seaRoute[0];
         if(squad.index===departure&&squad.destination===null){
+          if(this.factions[squad.owner].ai&&this.rtsExposure(squad.owner,squad.seaLanding)>squad.troops*.04){
+            this.rtsRejectTarget(squad,squad.seaLanding);
+            squad.seaRoute=undefined;squad.seaLanding=undefined;squad.seaTicks=undefined;
+            squad.campaignTarget=null;squad.campaignOwner=null;continue;
+          }
           squad.seaTicks=(squad.seaTicks??0)+1;
           const duration=Math.max(8,Math.ceil(squad.seaRoute.length/3));
           if(squad.seaTicks<duration)continue;
@@ -1539,12 +1774,14 @@ export class Game {
             // making a landing more costly. Survivors remain physical.
             const defending=guards.reduce((sum,unit)=>sum+unit.troops,0);
             const attackerBefore=squad.troops;
-            const assaultLoss=Math.min(attackerBefore,Math.max(1,defending*.20+towers*8));
+            const assaultLoss=rtsActualLoss(attackerBefore,Math.max(1,defending*.20+towers*8));
             const defenseLoss=Math.min(defending,Math.max(0,(attackerBefore*.16-towers*2)));
             squad.troops=Math.max(0,squad.troops-assaultLoss);
             this.factions[squad.owner].attackFallen+=assaultLoss;
+            let actualDefenseLoss=0;
             for(const guard of guards){
-              const loss=defending>0?defenseLoss*guard.troops/defending:0;
+              const loss=rtsActualLoss(guard.troops,defending>0?defenseLoss*guard.troops/defending:0);
+              actualDefenseLoss+=loss;
               guard.troops=Math.max(0,guard.troops-loss);
               this.factions[guard.owner].attackFallen+=loss;
             }
@@ -1554,7 +1791,7 @@ export class Game {
               tick:this.tick,index:shore,attackerId:squad.owner,
               defenderId:holder>=0?holder:guards[0]?.owner??NEUTRAL,
               attacking:attackerBefore,defending,
-              attackerLost:assaultLoss,defenderLost:defenseLoss,captured:false,
+              attackerLost:assaultLoss,defenderLost:actualDefenseLoss,captured:false,
             });
             // If defenders still hold the landing zone, the invasion fails.
             // No free landing through a surviving enemy squad or tower.
@@ -1641,6 +1878,10 @@ export class Game {
               // A two-ring assault gives sizeable armies a visible broad
               // front, but only the physical formation's immediate vicinity.
               if(depth>hostileDepth||squad.troops<30)continue;
+              // A peaceful AI campaign must not bleed soldiers sweeping an
+              // unrelated hostile border on the way to neutral territory.
+              if(this.factions[squad.owner].ai&&squad.campaignOwner!==holder&&
+                squad.attackTarget!==next)continue;
               if(this.isAllied(squad.owner,holder)||
                  this.buildings[next]===BUILDING_CODES.tower||
                  this.squads.some(unit=>unit.owner===holder&&
@@ -1673,7 +1914,7 @@ export class Game {
           this.owner[tile]>=0&&this.owner[tile]!==squad.owner&&
           !this.isAllied(squad.owner,this.owner[tile])).length;
         if(pressure>0){
-          const loss=Math.min(squad.troops,Math.min(3,pressure)*.55);
+          const loss=rtsActualLoss(squad.troops,Math.min(3,pressure)*.55);
           squad.troops-=loss;this.factions[squad.owner].attackFallen+=loss;
           if(squad.troops<1){this.squads.splice(this.squads.indexOf(squad),1);continue;}
         }
@@ -1724,27 +1965,21 @@ export class Game {
           squad.campaignTarget=null;squad.campaignOwner=null;
         }else{
           const intended=squad.campaignOwner;
-          const parent=new Int32Array(CELL_COUNT);parent.fill(-2);
-          const queue=[squad.index];parent[squad.index]=-1;
-          let head=0;
-          while(head<queue.length&&parent[goal]===-2){
-            const cell=queue[head++];
-            for(const next of LAND_NEIGHBORS[cell]){
-              if(parent[next]!==-2)continue;
-              const holder=this.owner[next];
-              if(holder===WATER)continue;
-              if(holder>=0&&holder!==squad.owner&&this.isAllied(squad.owner,holder))continue;
-              parent[next]=cell;queue.push(next);
-            }
-          }
-          if(parent[goal]===-2){
+          const peaceful=this.rtsRecruitment&&this.factions[squad.owner].ai&&intended===NEUTRAL;
+          const next=nextRTSCampaignStep(squad.index,goal,MAP_WIDTH,LAND_NEIGHBORS,tile=>{
+            const holder=this.owner[tile];
+            if(peaceful&&[...(screens.get(tile)??[])].some(owner=>
+              owner!==squad.owner&&!this.isAllied(squad.owner,owner)))return false;
+            return holder!==WATER&&
+              !(holder>=0&&holder!==squad.owner&&this.isAllied(squad.owner,holder))&&
+              !(this.rtsRecruitment&&this.factions[squad.owner].ai&&intended===NEUTRAL&&
+                holder>=0&&holder!==squad.owner);
+          },{maxVisits:this.factions[squad.owner].ai?4000:Infinity});
+          if(next===null){
+            if(this.factions[squad.owner].ai){this.rtsRejectTarget(squad,goal);}
             squad.campaignTarget=null;squad.campaignOwner=null;
-          }else{
-            let next=goal;
-            while(parent[next]!==squad.index&&parent[next]!==-1)next=parent[next];
-            if(this.owner[next]===squad.owner)squad.destination=next;
-            else squad.attackTarget=next;
-          }
+          }else if(this.owner[next]===squad.owner)squad.destination=next;
+          else squad.attackTarget=next;
         }
       }
       if(squad.attackTarget!==null&&squad.attackTarget!==undefined&&
@@ -1765,8 +2000,8 @@ export class Game {
             // Do not treat only the first squad as the entire garrison.
             const defender=guards.reduce((best,unit)=>unit.troops>best.troops?unit:best);
             const attackers=squad.troops,defenders=defender.troops;
-            const defenderLost=Math.min(defenders,Math.max(1,attackers*.18));
-            const attackerLost=Math.min(attackers,Math.max(.25,defenders*.035));
+            const defenderLost=rtsActualLoss(defenders,Math.max(1,attackers*.18));
+            const attackerLost=rtsActualLoss(attackers,Math.max(.25,defenders*.035));
             defender.troops=Math.max(0,defenders-defenderLost);
             squad.troops=Math.max(0,attackers-attackerLost);
             this.factions[squad.owner].attackFallen+=attackerLost;
@@ -1790,7 +2025,7 @@ export class Game {
           // A tower can inflict a small, real cost even without a defending
           // squad. Ordinary empty sectors are captured with ZERO losses.
           if(tower){
-            const loss=Math.min(squad.troops,6);
+            const loss=rtsActualLoss(squad.troops,6);
             squad.troops-=loss;this.factions[squad.owner].attackFallen+=loss;
             if(this.battleEvents.length<1600)this.battleEvents.push({
               tick:this.tick,index:target,attackerId:squad.owner,defenderId:enemy,
@@ -1806,29 +2041,25 @@ export class Game {
         squad.attackTarget=null;squad.destination=null;
       }
       if(squad.destination===null)continue;
-      if(squad.index===squad.destination){squad.destination=null;continue;}
-      const parents=new Map<number,number>([[squad.index,-1]]);
-      const queue=[squad.index];
-      let head=0;
-      while(head<queue.length&&head<12000&&!parents.has(squad.destination)){
-        const current=queue[head++];
-        for(const next of MOVE_NEIGHBORS[current]){
-          if(this.owner[next]!==squad.owner||parents.has(next))continue;
-          const dx=next%MAP_WIDTH-current%MAP_WIDTH;
-          const dy=Math.floor(next/MAP_WIDTH)-Math.floor(current/MAP_WIDTH);
-          if(dx!==0&&dy!==0){
-            // Both side cells must be friendly: never cut a corner across
-            // water, a foreign state or an enemy-controlled defensive line.
-            const sideX=current+dx,sideY=current+dy*MAP_WIDTH;
-            if(this.owner[sideX]!==squad.owner||
-               this.owner[sideY]!==squad.owner)continue;
-          }
-          parents.set(next,current);queue.push(next);
-        }
+      if(this.owner[squad.destination]!==squad.owner){
+        squad.destination=null;squad.marchRoute=undefined;continue;
       }
-      if(!parents.has(squad.destination)){squad.destination=null;continue;}
-      let next=squad.destination;
-      while(parents.get(next)!==squad.index&&parents.get(next)!==-1)next=parents.get(next)!;
+      if(squad.index===squad.destination){squad.destination=null;continue;}
+      const canCross=(from:number,to:number)=>{
+        const dx=to%MAP_WIDTH-from%MAP_WIDTH,dy=Math.floor(to/MAP_WIDTH)-Math.floor(from/MAP_WIDTH);
+        return dx===0||dy===0||this.owner[from+dx]===squad.owner&&this.owner[from+dy*MAP_WIDTH]===squad.owner;
+      };
+      let next=squad.marchRoute?.[0]??null;
+      if(squad.marchRoute?.at(-1)!==squad.destination||next===null||
+        !MOVE_NEIGHBORS[squad.index].includes(next)||this.owner[next]!==squad.owner||!canCross(squad.index,next)){
+        squad.marchRoute=undefined;
+        next=nextRTSCampaignStep(squad.index,squad.destination,MAP_WIDTH,MOVE_NEIGHBORS,
+          tile=>this.owner[tile]===squad.owner,{diagonal:true,maxVisits:12000,canCross,
+            onPath:path=>{squad.marchRoute=path;}});
+      }
+      if(next===null){squad.destination=null;continue;}
+      squad.marchRoute?.shift();
+      if(!squad.marchRoute?.length)squad.marchRoute=undefined;
       squad.index=next;
       if(next===squad.destination)squad.destination=null;
     }
@@ -2841,6 +3072,15 @@ export class Game {
 
   /** This is the only ownership handoff, shared by bot/player front clashes. */
   private captureTile(faction:Faction,index:number):boolean {
+    // RTS occupation can bypass the classic strike helper. Posted soldiers
+    // still belong to the real population and must be recorded exactly once
+    // when the sector falls. Classic strikes already cleared this remainder.
+    const previousOwner=this.owner[index],posted=this.frontline[index];
+    if(previousOwner>=0&&previousOwner!==faction.id&&posted>0){
+      this.factions[previousOwner].defenseSpent+=posted;
+      this.factions[previousOwner].defenseFallenTick+=posted;
+      faction.enemyFallen+=posted;
+    }
     if(faction.id!==0)this.borderOrders.delete(index);
     this.owner[index] = faction.id;
     // Incrementally update local battlefronts as territory changes.
@@ -3024,7 +3264,14 @@ export class Game {
       diplomacyCooldowns:this.diplomacyCooldowns.map(v=>({...v})),
       warTruces:this.warTruces.map(v=>({...v})),
       rtsRecruitment:this.rtsRecruitment,
-      squads:this.squads.map(s=>({...s})),
+      nextSquadId:Math.max(this.nextSquadId,...this.squads.map(unit=>unit.id+1)),
+      squads:this.squads.map(s=>{
+        const copy={...s,...(s.marchRoute?{marchRoute:[...s.marchRoute]}:{}),
+          ...(s.seaRoute?{seaRoute:[...s.seaRoute]}:{})};
+        for(const key of Object.keys(copy))if(copy[key as keyof RTSSquad]===undefined)
+          Reflect.deleteProperty(copy,key);
+        return copy;
+      }),
       factoryLevels:[...this.factoryLevels].filter(([index])=>this.buildings[index]===BUILDING_CODES.factory)
         .sort((a,b)=>a[0]-b[0]).map(([index,level])=>({index,level})),
       factoryLinks:[...this.factoryLinks].filter(([factory,city])=>
@@ -3169,14 +3416,29 @@ export class Game {
            (!Number.isInteger(v.campaignTarget)||v.campaignTarget<0||v.campaignTarget>=CELL_COUNT))||
          (v.campaignOwner!==undefined&&v.campaignOwner!==null&&
            (!Number.isInteger(v.campaignOwner)||v.campaignOwner<NEUTRAL||v.campaignOwner>=g.factions.length))||
+         (v.aiRejectedTarget!==undefined&&(!Number.isInteger(v.aiRejectedTarget)||
+           v.aiRejectedTarget<0||v.aiRejectedTarget>=CELL_COUNT))||
+         (v.aiRetryAfter!==undefined&&(!Number.isSafeInteger(v.aiRetryAfter)||v.aiRetryAfter<0))||
+         (v.marchRoute!==undefined&&(!Array.isArray(v.marchRoute)||v.marchRoute.length>CELL_COUNT||
+           v.marchRoute.some((tile,j)=>!Number.isInteger(tile)||tile<0||tile>=CELL_COUNT||
+             !MOVE_NEIGHBORS[j?v.marchRoute![j-1]:v.index].includes(tile))))||
+         (v.aiSeaOffset!==undefined&&(!Number.isSafeInteger(v.aiSeaOffset)||v.aiSeaOffset<0||v.aiSeaOffset>96))||
+         (v.aiSeaRetryTick!==undefined&&(!Number.isSafeInteger(v.aiSeaRetryTick)||v.aiSeaRetryTick<0))||
+         (v.aiCampaignTick!==undefined&&(!Number.isSafeInteger(v.aiCampaignTick)||v.aiCampaignTick<0||v.aiCampaignTick>save.tick))||
+         (v.aiCampaignStrength!==undefined&&(!Number.isFinite(v.aiCampaignStrength)||v.aiCampaignStrength<=0||v.aiCampaignStrength>1000))||
          (v.seaRoute!==undefined&&
            (!validSeaRoute(v.seaRoute)||v.seaLanding!==v.seaRoute.at(-1)||
             typeof v.seaTicks!=='number'||!Number.isInteger(v.seaTicks)||v.seaTicks<0||
             v.seaTicks>Math.max(8,Math.ceil(v.seaRoute.length/3)))))||
        new Set(squads.map(v=>v.id)).size!==squads.length)
        throw Error('Ungültige Kasernen-Truppen.');
-    g.squads.push(...squads.map(v=>({...v})));
-    g.nextSquadId=Math.max(0,...g.squads.map(v=>v.id))+1;
+    g.squads.push(...squads.map(v=>({...v,
+      ...(v.marchRoute?{marchRoute:[...v.marchRoute]}:{}),
+      ...(v.seaRoute?{seaRoute:[...v.seaRoute]}:{})})));
+    const minimumSquadId=Math.max(0,...g.squads.map(v=>v.id))+1;
+    if(save.nextSquadId!==undefined&&(!Number.isSafeInteger(save.nextSquadId)||save.nextSquadId<minimumSquadId))
+      throw Error('Ungültige nächste Truppenkennung.');
+    g.nextSquadId=save.nextSquadId??minimumSquadId;
     const borderOrders=save.borderOrders??[];
     if(!Array.isArray(borderOrders)||borderOrders.length>512||
        borderOrders.some(v=>!Number.isInteger(v?.index)||v.index<0||

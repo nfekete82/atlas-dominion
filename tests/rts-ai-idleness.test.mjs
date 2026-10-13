@@ -20,4 +20,10 @@ test('AI activity diagnostic records actual stationary units and multi-tick idle
  assert.equal(stats.inactivity.stationaryTicks,
    stats.inactivity.stationaryNeutralFrontTicks+
    stats.inactivity.stationaryNearEnemyTicks+stats.inactivity.stationaryDeepHomeTicks);
+ assert.ok(Number.isFinite(stats.losses)&&stats.losses>=0);
+ assert.equal(stats.movement.movedSquadTicks,
+   stats.movement.landMoves+stats.movement.seaLandings);
+ assert.equal(stats.movement.invalidLandMoves,0);
+ assert.ok(stats.performance.p95StepMs>=stats.performance.medianStepMs);
+ assert.match(stats.stateHash,/^[a-f0-9]{64}$/);
 });

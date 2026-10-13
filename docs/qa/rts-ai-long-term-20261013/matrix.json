@@ -1,0 +1,982 @@
+{
+  "thresholds": {
+    "earlyTerritoryRetention": 0.95,
+    "lateTerritoryRetention": 1,
+    "maximumLossRatio": 1,
+    "maximumTimingRatio": 1.15
+  },
+  "rows": [
+    {
+      "countries": 9,
+      "seed": 20261013,
+      "ticks": 360,
+      "original": {
+        "ticks": 360,
+        "territory": 13574,
+        "losses": 404.17344124809904,
+        "realLosses": 410.27795148385894,
+        "performance": {
+          "median": 5.560334000000239,
+          "p95": 8.693333000000166,
+          "p99": 12.22933299999977
+        },
+        "invalidMoves": 0,
+        "stateHash": "e173455806a854df4dfb0f2e335a5f4aeae4970f6dc9a38ccfdbe66d4107baed"
+      },
+      "baseline": {
+        "ticks": 360,
+        "territory": 19626,
+        "losses": 73.45258786555688,
+        "realLosses": 73.45258786555678,
+        "performance": {
+          "median": 3.7498340000001917,
+          "p95": 7.812124999999924,
+          "p99": 10.432625000000371
+        },
+        "invalidMoves": 0,
+        "stateHash": "1eab042c64078889092c18767a100e542605022fa74ac309c849ba8e10011c5e"
+      },
+      "candidate": {
+        "ticks": 360,
+        "territory": 19623,
+        "losses": 0.55,
+        "realLosses": 0.5500000000001819,
+        "performance": {
+          "median": 2.879457999999886,
+          "p95": 6.0376249999999345,
+          "p99": 7.832667000000129
+        },
+        "invalidMoves": 0,
+        "stateHash": "e2b022efea73fe327b8dca489e3d41d123c4475159cd5981424d66f1eff499a2"
+      },
+      "checks": {
+        "territory": true,
+        "losses": true,
+        "median": true,
+        "p95": true,
+        "p99": true,
+        "movement": true,
+        "conservation": true
+      },
+      "accepted": true
+    },
+    {
+      "countries": 9,
+      "seed": 20261013,
+      "ticks": 500,
+      "original": {
+        "ticks": 500,
+        "territory": 15750,
+        "losses": 452.6592900021181,
+        "realLosses": 458.76380023787806,
+        "performance": {
+          "median": 5.441915999999765,
+          "p95": 9.53283300000021,
+          "p99": 13.021999999999935
+        },
+        "invalidMoves": 0,
+        "stateHash": "260894cb45e3759bc4afafb9a03f1588843d103430e53ca76e082cca2af003b3"
+      },
+      "baseline": {
+        "ticks": 500,
+        "territory": 29386,
+        "losses": 731.2527408681641,
+        "realLosses": 760.5316021071694,
+        "performance": {
+          "median": 4.981374999999844,
+          "p95": 11.697000000000116,
+          "p99": 14.7153330000001
+        },
+        "invalidMoves": 0,
+        "stateHash": "b6f3f2f063244e461d9e600d40e71b6825eec6c00cc9d03cc2da20f573d61dd0"
+      },
+      "candidate": {
+        "ticks": 500,
+        "territory": 29138,
+        "losses": 62.150000000000034,
+        "realLosses": 62.149999999999636,
+        "performance": {
+          "median": 3.4173749999999927,
+          "p95": 8.493917000000238,
+          "p99": 13.552290999999968
+        },
+        "invalidMoves": 0,
+        "stateHash": "7e6c77594340969914303197cff9c501e9034edf98159c524fe9a57afd54c6e7"
+      },
+      "checks": {
+        "territory": true,
+        "losses": true,
+        "median": true,
+        "p95": true,
+        "p99": true,
+        "movement": true,
+        "conservation": true
+      },
+      "accepted": true
+    },
+    {
+      "countries": 9,
+      "seed": 20261013,
+      "ticks": 1000,
+      "original": {
+        "ticks": 1000,
+        "territory": 20336,
+        "losses": 1231.0534812521182,
+        "realLosses": 1274.2107026551337,
+        "performance": {
+          "median": 5.6565419999997175,
+          "p95": 10.101165999999921,
+          "p99": 13.69287499999973
+        },
+        "invalidMoves": 0,
+        "stateHash": "81ac29467624ee707422982fd174221c1e1700a06fd128e6abc5ccf1bdf00fd0"
+      },
+      "baseline": {
+        "ticks": 1000,
+        "territory": 45784,
+        "losses": 4893.1041332618115,
+        "realLosses": 4981.122036170419,
+        "performance": {
+          "median": 8.453833000000031,
+          "p95": 14.854041999999936,
+          "p99": 18.710416999999325
+        },
+        "invalidMoves": 0,
+        "stateHash": "44c789367259aecd12cc43bb8204fdb0cb9e2fe413f9de4abca04cbfacea458f"
+      },
+      "candidate": {
+        "ticks": 1000,
+        "territory": 46907,
+        "losses": 1038.1009999999999,
+        "realLosses": 1038.1009999999992,
+        "performance": {
+          "median": 5.845707999999831,
+          "p95": 11.328459000000294,
+          "p99": 14.226916999999958
+        },
+        "invalidMoves": 0,
+        "stateHash": "19f7d5416f9ebf5d0476bb0d6abc2e4a77fd124effbf5f8a9e9f53a37572c877"
+      },
+      "checks": {
+        "territory": true,
+        "losses": true,
+        "median": true,
+        "p95": true,
+        "p99": true,
+        "movement": true,
+        "conservation": true
+      },
+      "accepted": true
+    },
+    {
+      "countries": 9,
+      "seed": 20261024,
+      "ticks": 360,
+      "original": {
+        "ticks": 360,
+        "territory": 13753,
+        "losses": 385.2522034474541,
+        "realLosses": 449.103127389224,
+        "performance": {
+          "median": 5.597334000000046,
+          "p95": 8.959458000000268,
+          "p99": 9.80758300000025
+        },
+        "invalidMoves": 0,
+        "stateHash": "80a58ed429562f2a8cd0983ba3468c7581e5ab37761ebd29c1eeec8831770897"
+      },
+      "baseline": {
+        "ticks": 360,
+        "territory": 19626,
+        "losses": 73.45258786555688,
+        "realLosses": 73.45258786555678,
+        "performance": {
+          "median": 3.744416999999885,
+          "p95": 8.458624999999756,
+          "p99": 9.87808300000006
+        },
+        "invalidMoves": 0,
+        "stateHash": "aa8d284e3b4a9f0067158ce736cfd55f29e98aa23e0353b69d93dfad04320c85"
+      },
+      "candidate": {
+        "ticks": 360,
+        "territory": 19623,
+        "losses": 0.55,
+        "realLosses": 0.5500000000001819,
+        "performance": {
+          "median": 2.7525419999999485,
+          "p95": 5.350791000000072,
+          "p99": 6.476458000000093
+        },
+        "invalidMoves": 0,
+        "stateHash": "239ae33789f03c24b0c1e34e98973911b397851cef54f4000470d210a31a7202"
+      },
+      "checks": {
+        "territory": true,
+        "losses": true,
+        "median": true,
+        "p95": true,
+        "p99": true,
+        "movement": true,
+        "conservation": true
+      },
+      "accepted": true
+    },
+    {
+      "countries": 9,
+      "seed": 20261024,
+      "ticks": 500,
+      "original": {
+        "ticks": 500,
+        "territory": 15510,
+        "losses": 453.46738244371613,
+        "realLosses": 517.3183063854863,
+        "performance": {
+          "median": 5.481958000000304,
+          "p95": 9.606291000000056,
+          "p99": 11.228000000000065
+        },
+        "invalidMoves": 0,
+        "stateHash": "b02e5583e932c6cdd1be64b7488b6bf9ede25c8babb47363237047bf4928a021"
+      },
+      "baseline": {
+        "ticks": 500,
+        "territory": 29386,
+        "losses": 731.2527408681641,
+        "realLosses": 760.5316021071694,
+        "performance": {
+          "median": 4.732666999999765,
+          "p95": 10.200000000000273,
+          "p99": 12.787290999999641
+        },
+        "invalidMoves": 0,
+        "stateHash": "ba06e4126f0d41fbf1fd4b8997ca7a203a7f227da731f2a6cd29c665b81f8264"
+      },
+      "candidate": {
+        "ticks": 500,
+        "territory": 29138,
+        "losses": 62.150000000000034,
+        "realLosses": 62.149999999999636,
+        "performance": {
+          "median": 3.244041000000152,
+          "p95": 8.23745800000006,
+          "p99": 11.737250000000131
+        },
+        "invalidMoves": 0,
+        "stateHash": "df75700d64e78967051c62f8c3f757aa056d41e64e8e0a9e7d410c4f185157f3"
+      },
+      "checks": {
+        "territory": true,
+        "losses": true,
+        "median": true,
+        "p95": true,
+        "p99": true,
+        "movement": true,
+        "conservation": true
+      },
+      "accepted": true
+    },
+    {
+      "countries": 9,
+      "seed": 20261024,
+      "ticks": 1000,
+      "original": {
+        "ticks": 1000,
+        "territory": 20251,
+        "losses": 696.1583824437162,
+        "realLosses": 760.0093063854861,
+        "performance": {
+          "median": 5.27862499999992,
+          "p95": 8.895250000000033,
+          "p99": 10.875041000000238
+        },
+        "invalidMoves": 0,
+        "stateHash": "aaf4c1adbcd9728d4ea7183a991a0104b6db07535cc0b993aaa24bb1cfd8d8ac"
+      },
+      "baseline": {
+        "ticks": 1000,
+        "territory": 45784,
+        "losses": 4893.1041332618115,
+        "realLosses": 4981.122036170419,
+        "performance": {
+          "median": 7.9354590000002645,
+          "p95": 13.66387500000019,
+          "p99": 17.736582999999882
+        },
+        "invalidMoves": 0,
+        "stateHash": "e512ee65b6358623e5bf0194e669bd9aa806fea8b38842a73ecba4e2e636adac"
+      },
+      "candidate": {
+        "ticks": 1000,
+        "territory": 46907,
+        "losses": 1038.1009999999999,
+        "realLosses": 1038.1009999999992,
+        "performance": {
+          "median": 5.465208999999959,
+          "p95": 10.353041000000303,
+          "p99": 14.138334000000214
+        },
+        "invalidMoves": 0,
+        "stateHash": "f8feeb3bf7189c667d814ffdfe247e6d5a2c1a15f7706ed4fdc4c6101e365c00"
+      },
+      "checks": {
+        "territory": true,
+        "losses": true,
+        "median": true,
+        "p95": true,
+        "p99": true,
+        "movement": true,
+        "conservation": true
+      },
+      "accepted": true
+    },
+    {
+      "countries": 9,
+      "seed": 221041,
+      "ticks": 360,
+      "original": {
+        "ticks": 360,
+        "territory": 13386,
+        "losses": 368.62623281339825,
+        "realLosses": 430.5279466032266,
+        "performance": {
+          "median": 4.345583000000261,
+          "p95": 7.4904169999999795,
+          "p99": 9.026332999999795
+        },
+        "invalidMoves": 0,
+        "stateHash": "8173f68640666ce5acabc43e955949d2fa5b56a54a9dd0910d43e858783716ab"
+      },
+      "baseline": {
+        "ticks": 360,
+        "territory": 19626,
+        "losses": 73.45258786555688,
+        "realLosses": 73.45258786555678,
+        "performance": {
+          "median": 2.6546659999999065,
+          "p95": 5.603290999999899,
+          "p99": 6.588583000000199
+        },
+        "invalidMoves": 0,
+        "stateHash": "aaa61b8b572575ed19e5289aa759f6c9127378972951cc1a85631e2740fd0444"
+      },
+      "candidate": {
+        "ticks": 360,
+        "territory": 19623,
+        "losses": 0.55,
+        "realLosses": 0.5500000000001819,
+        "performance": {
+          "median": 2.0049169999999776,
+          "p95": 3.825083000000177,
+          "p99": 4.754374999999982
+        },
+        "invalidMoves": 0,
+        "stateHash": "b56ea5cf32d46245ecb0b912b1be0ca22d2cb3fc72f6f559f6757054640b5bf4"
+      },
+      "checks": {
+        "territory": true,
+        "losses": true,
+        "median": true,
+        "p95": true,
+        "p99": true,
+        "movement": true,
+        "conservation": true
+      },
+      "accepted": true
+    },
+    {
+      "countries": 9,
+      "seed": 221041,
+      "ticks": 500,
+      "original": {
+        "ticks": 500,
+        "territory": 15232,
+        "losses": 390.32623281339824,
+        "realLosses": 452.22794660322666,
+        "performance": {
+          "median": 4.223833000000013,
+          "p95": 7.800917000000027,
+          "p99": 9.109709000000294
+        },
+        "invalidMoves": 0,
+        "stateHash": "87ceb107e224c24ccc24018d14b82cc588e08005e468ba103681ce1d169081e1"
+      },
+      "baseline": {
+        "ticks": 500,
+        "territory": 29386,
+        "losses": 731.2527408681641,
+        "realLosses": 760.5316021071694,
+        "performance": {
+          "median": 3.3848330000000715,
+          "p95": 7.944750000000113,
+          "p99": 9.20462499999985
+        },
+        "invalidMoves": 0,
+        "stateHash": "85ee789478babd738b9040eee385475ed029beab2d25411a3ef23e14344f5eb4"
+      },
+      "candidate": {
+        "ticks": 500,
+        "territory": 29138,
+        "losses": 62.150000000000034,
+        "realLosses": 62.149999999999636,
+        "performance": {
+          "median": 2.2637079999999514,
+          "p95": 5.377124999999978,
+          "p99": 8.889040999999906
+        },
+        "invalidMoves": 0,
+        "stateHash": "1e0e486a739da4f86aace05a863f49b96657aba575924cc1fd778c4396051f30"
+      },
+      "checks": {
+        "territory": true,
+        "losses": true,
+        "median": true,
+        "p95": true,
+        "p99": true,
+        "movement": true,
+        "conservation": true
+      },
+      "accepted": true
+    },
+    {
+      "countries": 9,
+      "seed": 221041,
+      "ticks": 1000,
+      "original": {
+        "ticks": 1000,
+        "territory": 19469,
+        "losses": 647.8162328133984,
+        "realLosses": 711.3979466032265,
+        "performance": {
+          "median": 4.140416000000187,
+          "p95": 7.350666000000274,
+          "p99": 8.779249999999593
+        },
+        "invalidMoves": 0,
+        "stateHash": "98ac5b4501b6e9f334183ee77ef7f95f493c93fec90f7536ccf3af57d196d10e"
+      },
+      "baseline": {
+        "ticks": 1000,
+        "territory": 45784,
+        "losses": 4893.1041332618115,
+        "realLosses": 4981.122036170419,
+        "performance": {
+          "median": 6.078500000000531,
+          "p95": 9.89270900000065,
+          "p99": 11.818375000000742
+        },
+        "invalidMoves": 0,
+        "stateHash": "b7323eab49d02560e71041683e41bef18ef6e01a7bc39e1fd87186c75a5640f2"
+      },
+      "candidate": {
+        "ticks": 1000,
+        "territory": 46907,
+        "losses": 1038.1009999999999,
+        "realLosses": 1038.1009999999992,
+        "performance": {
+          "median": 4.078708000000006,
+          "p95": 7.513625000000047,
+          "p99": 9.457209000000148
+        },
+        "invalidMoves": 0,
+        "stateHash": "29bdaa060850fdcd5a66b08de04075a2684ca58a28795589f3d762f79af979ce"
+      },
+      "checks": {
+        "territory": true,
+        "losses": true,
+        "median": true,
+        "p95": true,
+        "p99": true,
+        "movement": true,
+        "conservation": true
+      },
+      "accepted": true
+    },
+    {
+      "countries": 50,
+      "seed": 20261013,
+      "ticks": 360,
+      "original": {
+        "ticks": 360,
+        "territory": 24203,
+        "losses": 5053.254822596082,
+        "realLosses": 5643.129034625278,
+        "performance": {
+          "median": 11.634333999999399,
+          "p95": 16.909749999999804,
+          "p99": 19.9915830000009
+        },
+        "invalidMoves": 0,
+        "stateHash": "19b20a4149d914beb24af46104454a62fdca8743c9bae01af3788eb7115d12c7"
+      },
+      "baseline": {
+        "ticks": 360,
+        "territory": 35724,
+        "losses": 3428.262515736591,
+        "realLosses": 4154.469059160156,
+        "performance": {
+          "median": 7.909250000000156,
+          "p95": 14.093041000000085,
+          "p99": 16.347125000000233
+        },
+        "invalidMoves": 0,
+        "stateHash": "75e7b7dee2619d0dc02cd1b686f3fdefa2be2f2d5bdd7423c3c871653b23e91a"
+      },
+      "candidate": {
+        "ticks": 360,
+        "territory": 34660,
+        "losses": 2392.2696021534052,
+        "realLosses": 2392.269602153401,
+        "performance": {
+          "median": 4.525209000000359,
+          "p95": 9.59558300000026,
+          "p99": 11.857250000000022
+        },
+        "invalidMoves": 0,
+        "stateHash": "d7d5e9f04f651e87d354962a7f89381a446daceea609dad0341ba7608df67140"
+      },
+      "checks": {
+        "territory": true,
+        "losses": true,
+        "median": true,
+        "p95": true,
+        "p99": true,
+        "movement": true,
+        "conservation": true
+      },
+      "accepted": true
+    },
+    {
+      "countries": 50,
+      "seed": 20261013,
+      "ticks": 500,
+      "original": {
+        "ticks": 500,
+        "territory": 25969,
+        "losses": 5790.828945937505,
+        "realLosses": 6406.08500771889,
+        "performance": {
+          "median": 11.787500000000364,
+          "p95": 16.74408399999993,
+          "p99": 20.76379199999974
+        },
+        "invalidMoves": 0,
+        "stateHash": "69f1c83306235778db40d027bc98cd6a2342125c4f8d20121cd3572cc07a4a93"
+      },
+      "baseline": {
+        "ticks": 500,
+        "territory": 42654,
+        "losses": 6453.72446663408,
+        "realLosses": 7272.065404151992,
+        "performance": {
+          "median": 9.207582999999886,
+          "p95": 17.75841700000001,
+          "p99": 34.40662500000144
+        },
+        "invalidMoves": 0,
+        "stateHash": "827b510cf8e2ffb91d037a3ebf4218c45e6221a26345dab753250cdf06d7326e"
+      },
+      "candidate": {
+        "ticks": 500,
+        "territory": 42797,
+        "losses": 3808.173058605239,
+        "realLosses": 3808.173058605238,
+        "performance": {
+          "median": 5.347707999999784,
+          "p95": 10.457666000000245,
+          "p99": 13.286333000000013
+        },
+        "invalidMoves": 0,
+        "stateHash": "d8cb703e98b56ead5f22b2c301db08c1fe656d333ff588040c0fb670517aca9e"
+      },
+      "checks": {
+        "territory": true,
+        "losses": true,
+        "median": true,
+        "p95": true,
+        "p99": true,
+        "movement": true,
+        "conservation": true
+      },
+      "accepted": true
+    },
+    {
+      "countries": 50,
+      "seed": 20261013,
+      "ticks": 1000,
+      "original": {
+        "ticks": 1000,
+        "territory": 30638,
+        "losses": 7506.957883207277,
+        "realLosses": 8233.24131502218,
+        "performance": {
+          "median": 11.603041000000303,
+          "p95": 15.493916999999783,
+          "p99": 17.840041000001293
+        },
+        "invalidMoves": 0,
+        "stateHash": "869744ed7c3ea36002d38efb3f38b1e23de10e5559ad3bc6dc9bc0cdfc9283bb"
+      },
+      "baseline": {
+        "ticks": 1000,
+        "territory": 51389,
+        "losses": 24338.73451883756,
+        "realLosses": 25372.07845025384,
+        "performance": {
+          "median": 15.466457999998966,
+          "p95": 23.73358400000143,
+          "p99": 34.40662500000144
+        },
+        "invalidMoves": 1,
+        "stateHash": "72dfcbbf9bc3ac5c391b4e172e5fd69fefc2277b845a22b333949719bc2f9044"
+      },
+      "candidate": {
+        "ticks": 1000,
+        "territory": 52289,
+        "losses": 19154.522480214906,
+        "realLosses": 19154.522480214884,
+        "performance": {
+          "median": 10.138291000000208,
+          "p95": 18.752832999998645,
+          "p99": 21.42683399999987
+        },
+        "invalidMoves": 0,
+        "stateHash": "8a1266f20d8f242ba6c6e84ed469f7606eeb6bb3b48b320bd7915db934d4a4fa"
+      },
+      "checks": {
+        "territory": true,
+        "losses": true,
+        "median": true,
+        "p95": true,
+        "p99": true,
+        "movement": true,
+        "conservation": true
+      },
+      "accepted": true
+    },
+    {
+      "countries": 50,
+      "seed": 20261024,
+      "ticks": 360,
+      "original": {
+        "ticks": 360,
+        "territory": 23979,
+        "losses": 4966.649107382629,
+        "realLosses": 5557.3805332610855,
+        "performance": {
+          "median": 11.798082999999679,
+          "p95": 18.172209000000294,
+          "p99": 22.32170799999949
+        },
+        "invalidMoves": 0,
+        "stateHash": "864e178ef73199ba55b330bec1a941737adc9cf0fd0bdb8184e11e75178900ab"
+      },
+      "baseline": {
+        "ticks": 360,
+        "territory": 35724,
+        "losses": 3428.262515736591,
+        "realLosses": 4154.469059160156,
+        "performance": {
+          "median": 8.508249999999862,
+          "p95": 15.905665999999655,
+          "p99": 20.12354200000027
+        },
+        "invalidMoves": 0,
+        "stateHash": "4739a7789c6ec64d770ebc00ba82d7d3ad5b96c7a487677b1352acf780114aad"
+      },
+      "candidate": {
+        "ticks": 360,
+        "territory": 34660,
+        "losses": 2392.2696021534052,
+        "realLosses": 2392.269602153401,
+        "performance": {
+          "median": 5.191499999999905,
+          "p95": 11.731958999999733,
+          "p99": 14.403207999999722
+        },
+        "invalidMoves": 0,
+        "stateHash": "d22e2261a32cdbb7f39bc7b516169d926100c2c3e9477d69d640bf962751e52b"
+      },
+      "checks": {
+        "territory": true,
+        "losses": true,
+        "median": true,
+        "p95": true,
+        "p99": true,
+        "movement": true,
+        "conservation": true
+      },
+      "accepted": true
+    },
+    {
+      "countries": 50,
+      "seed": 20261024,
+      "ticks": 500,
+      "original": {
+        "ticks": 500,
+        "territory": 25800,
+        "losses": 5595.95482612008,
+        "realLosses": 6217.78858558828,
+        "performance": {
+          "median": 11.838458999998693,
+          "p95": 17.67541600000004,
+          "p99": 21.989916999999878
+        },
+        "invalidMoves": 0,
+        "stateHash": "d64503d70842af95b0dc260ece239c5152821bb146b025738bd167844b5b90fe"
+      },
+      "baseline": {
+        "ticks": 500,
+        "territory": 42654,
+        "losses": 6453.72446663408,
+        "realLosses": 7272.065404151992,
+        "performance": {
+          "median": 10.320542000000387,
+          "p95": 21.24341699999968,
+          "p99": 41.84266600000046
+        },
+        "invalidMoves": 0,
+        "stateHash": "eaff7e949e2bec0a1db0a4e6feae932255a1a7180516bcc408e32caca96f209e"
+      },
+      "candidate": {
+        "ticks": 500,
+        "territory": 42797,
+        "losses": 3808.173058605239,
+        "realLosses": 3808.173058605238,
+        "performance": {
+          "median": 6.144041999999899,
+          "p95": 13.324541999999383,
+          "p99": 17.783583000000363
+        },
+        "invalidMoves": 0,
+        "stateHash": "c443b32881aea8109bf033636247b2143cbdbb5438ee4c8cb3820c90c1e8e329"
+      },
+      "checks": {
+        "territory": true,
+        "losses": true,
+        "median": true,
+        "p95": true,
+        "p99": true,
+        "movement": true,
+        "conservation": true
+      },
+      "accepted": true
+    },
+    {
+      "countries": 50,
+      "seed": 20261024,
+      "ticks": 1000,
+      "original": {
+        "ticks": 1000,
+        "territory": 29415,
+        "losses": 7832.630852622686,
+        "realLosses": 8625.122475424912,
+        "performance": {
+          "median": 12.264124999999694,
+          "p95": 17.086833999999726,
+          "p99": 19.6332910000001
+        },
+        "invalidMoves": 0,
+        "stateHash": "b95462224563dff8e41691d0f99500850ef2989352c639e52769277336529242"
+      },
+      "baseline": {
+        "ticks": 1000,
+        "territory": 51389,
+        "losses": 23418.05051681991,
+        "realLosses": 24444.640992303495,
+        "performance": {
+          "median": 17.20258400000057,
+          "p95": 28.246124999999665,
+          "p99": 42.22899999999936
+        },
+        "invalidMoves": 1,
+        "stateHash": "b7c6605443c532ed75eb5c2483e3a11b9a99afa807a10280a8877b0e37dfd4de"
+      },
+      "candidate": {
+        "ticks": 1000,
+        "territory": 52289,
+        "losses": 19154.522480214906,
+        "realLosses": 19154.522480214884,
+        "performance": {
+          "median": 11.872917000000598,
+          "p95": 23.278166000000056,
+          "p99": 27.762167000000773
+        },
+        "invalidMoves": 0,
+        "stateHash": "85cba17fcab026546cc16f3c04aba6bb85584556f4b9b532461621664878d05a"
+      },
+      "checks": {
+        "territory": true,
+        "losses": true,
+        "median": true,
+        "p95": true,
+        "p99": true,
+        "movement": true,
+        "conservation": true
+      },
+      "accepted": true
+    },
+    {
+      "countries": 50,
+      "seed": 221041,
+      "ticks": 360,
+      "original": {
+        "ticks": 360,
+        "territory": 24556,
+        "losses": 5111.321449762118,
+        "realLosses": 5747.391358128908,
+        "performance": {
+          "median": 14.286541999999827,
+          "p95": 22.12883299999885,
+          "p99": 25.389499999999316
+        },
+        "invalidMoves": 0,
+        "stateHash": "11f44fad45dcd2336a746131c3d65f1a8f35c545a35ce13f3a14baab5cec8187"
+      },
+      "baseline": {
+        "ticks": 360,
+        "territory": 35724,
+        "losses": 3428.262515736591,
+        "realLosses": 4154.469059160156,
+        "performance": {
+          "median": 9.509833000000071,
+          "p95": 17.21795799999927,
+          "p99": 22.9717499999997
+        },
+        "invalidMoves": 0,
+        "stateHash": "4c20d07234f364bcc2e8d54af5c8626558d83d2cffefa602e8130d55d5600bff"
+      },
+      "candidate": {
+        "ticks": 360,
+        "territory": 34660,
+        "losses": 2392.2696021534052,
+        "realLosses": 2392.269602153401,
+        "performance": {
+          "median": 6.028707999999824,
+          "p95": 12.668000000000575,
+          "p99": 16.065166999999747
+        },
+        "invalidMoves": 0,
+        "stateHash": "9c3b8791216d1202f0d3e273bf8cd40b0138304d6ac533ff53f35bd722da3edc"
+      },
+      "checks": {
+        "territory": true,
+        "losses": true,
+        "median": true,
+        "p95": true,
+        "p99": true,
+        "movement": true,
+        "conservation": true
+      },
+      "accepted": true
+    },
+    {
+      "countries": 50,
+      "seed": 221041,
+      "ticks": 500,
+      "original": {
+        "ticks": 500,
+        "territory": 26575,
+        "losses": 5684.844285799057,
+        "realLosses": 6328.677470505621,
+        "performance": {
+          "median": 13.834457999999358,
+          "p95": 21.533207999998922,
+          "p99": 25.37883299999976
+        },
+        "invalidMoves": 0,
+        "stateHash": "c78733f002fd08b69af59f98b8af352f69152975f90e596dc10b307eaf2caf77"
+      },
+      "baseline": {
+        "ticks": 500,
+        "territory": 42654,
+        "losses": 6453.72446663408,
+        "realLosses": 7272.065404151992,
+        "performance": {
+          "median": 11.226166999999805,
+          "p95": 24.53125,
+          "p99": 41.55870800000048
+        },
+        "invalidMoves": 0,
+        "stateHash": "31c81c342cfcc0124238943a9e1a98e1c7dcf2c95bd42723b28236bdee8cadbf"
+      },
+      "candidate": {
+        "ticks": 500,
+        "territory": 42797,
+        "losses": 3808.173058605239,
+        "realLosses": 3808.173058605238,
+        "performance": {
+          "median": 7.179208999999901,
+          "p95": 14.852124999999432,
+          "p99": 19.210915999999997
+        },
+        "invalidMoves": 0,
+        "stateHash": "1c1ea9aaca613a094a8eb093960b49f690076505b54c68a2635090ebc6aa3dee"
+      },
+      "checks": {
+        "territory": true,
+        "losses": true,
+        "median": true,
+        "p95": true,
+        "p99": true,
+        "movement": true,
+        "conservation": true
+      },
+      "accepted": true
+    },
+    {
+      "countries": 50,
+      "seed": 221041,
+      "ticks": 1000,
+      "original": {
+        "ticks": 1000,
+        "territory": 30205,
+        "losses": 7419.862746555807,
+        "realLosses": 8165.616319150474,
+        "performance": {
+          "median": 13.732208999999784,
+          "p95": 19.52679200000057,
+          "p99": 23.554541000001336
+        },
+        "invalidMoves": 0,
+        "stateHash": "b2d672ba50be58dd66c60801b42873dae54c3b4be923d3ed0aba62d5dca6305f"
+      },
+      "baseline": {
+        "ticks": 1000,
+        "territory": 51389,
+        "losses": 23418.05051681991,
+        "realLosses": 24444.640992303495,
+        "performance": {
+          "median": 18.79504100000122,
+          "p95": 33.3648749999993,
+          "p99": 41.59554100000241
+        },
+        "invalidMoves": 1,
+        "stateHash": "c266b3681b93c0b87eea424dc33f00606e1d30c675e244c76d6760370092d9e8"
+      },
+      "candidate": {
+        "ticks": 1000,
+        "territory": 52289,
+        "losses": 19154.522480214906,
+        "realLosses": 19154.522480214884,
+        "performance": {
+          "median": 12.792042000000038,
+          "p95": 24.418084000000817,
+          "p99": 29.518292000000656
+        },
+        "invalidMoves": 0,
+        "stateHash": "6ec2ec6f200f880ad651d6cf5f7f2b62c410611778ba8c66472aab65c692eb44"
+      },
+      "checks": {
+        "territory": true,
+        "losses": true,
+        "median": true,
+        "p95": true,
+        "p99": true,
+        "movement": true,
+        "conservation": true
+      },
+      "accepted": true
+    }
+  ]
+}

@@ -17,3 +17,10 @@ export function rtsContactLoss(attackerTroops:number,defenderTroops:number,
     defenderLost:Math.min(defenders,Math.max(.25,attackers*.085*attackerCover/defenderCover))
   };
 }
+
+/** A defeated fractional remainder is a real casualty as well. */
+export function rtsActualLoss(troops:number,requested:number):number {
+  if(requested<=0)return 0;
+  const loss=Math.min(troops,requested);
+  return troops-loss<1?troops:loss;
+}

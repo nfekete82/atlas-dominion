@@ -22,5 +22,9 @@ test('AI revision comparator uses matched seed and tick count',()=>{
   assert.equal(report.rows.find(r=>r.metric==='Thin-sector share').interpretation,'improved');
   writeFileSync(b,JSON.stringify({seed:8,ticks:100}));
   assert.equal(cmd().status,2);
+  writeFileSync(b,JSON.stringify({seed:7,ticks:100,opponents:49}));
+  assert.equal(cmd().status,2,'different country counts cannot be compared');
+  writeFileSync(b,JSON.stringify({seed:7,ticks:100,playerCode:'GB'}));
+  assert.equal(cmd().status,2,'different starting countries cannot be compared');
  }finally{rmSync(dir,{recursive:true,force:true});}
 });
