@@ -876,6 +876,25 @@ export class Game {
     const targetIndex=pointToIndex(target),defender=this.owner[targetIndex];
     if(defender===WATER||defender===owner||this.isAllied(owner,defender))
       return {ok:false,reason:'Kein angreifbares Gebiet.'};
+    // Prefer a direct land campaign across non-allied territory to circling
+    // around borders; real movement and combat resolve one cell at a time.
+    const visited=new Uint8Array(CELL_COUNT),landQueue=[squad.index];
+    visited[squad.index]=1;let scan=0;
+    while(scan<landQueue.length&&!visited[targetIndex]){
+      const current=landQueue[scan++];
+      for(const next of LAND_NEIGHBORS[current]){
+        if(visited[next]||this.owner[next]===WATER||
+           (this.owner[next]>=0&&this.owner[next]!==owner&&
+            this.isAllied(owner,this.owner[next])))continue;
+        visited[next]=1;landQueue.push(next);
+      }
+    }
+    if(visited[targetIndex]){
+      squad.destination=null;squad.attackTarget=null;
+      squad.campaignTarget=targetIndex;squad.campaignOwner=defender;
+      squad.seaRoute=undefined;squad.seaLanding=undefined;squad.seaTicks=undefined;
+      return {ok:true,reason:'Direkter Eroberungsbefehl zum angeklickten Ziel.'};
+    }
     const distance=new Int32Array(CELL_COUNT);distance.fill(-1);
     const queue=[squad.index];distance[squad.index]=0;
     let front=-1,enemy=-1,head=0,best=Infinity;
@@ -1171,13 +1190,16 @@ export class Game {
     // Tower hits remain independent of the squad-vs-squad pairs above.
     for(const unit of this.squads){
       let towers=0;
-      for(const cell of [unit.index,...LAND_NEIGHBORS[unit.index]]){
+      const nearby=new Set<number>([unit.index,...LAND_NEIGHBORS[unit.index]]);
+      for(const neighbor of LAND_NEIGHBORS[unit.index])
+        for(const second of LAND_NEIGHBORS[neighbor])nearby.add(second);
+      for(const cell of nearby){
         const defender=this.owner[cell];
         if(defender<0||defender===unit.owner||this.isAllied(defender,unit.owner))continue;
         if(this.buildings[cell]===BUILDING_CODES.tower)towers++;
       }
       if(!towers)continue;
-      const loss=Math.min(unit.troops,Math.min(3,towers)*1.25);
+      const loss=Math.min(unit.troops,Math.min(3,towers)*3);
       damage.set(unit.id,(damage.get(unit.id)??0)+loss);
       if(this.battleEvents.length<1600)this.battleEvents.push({
         tick:this.tick,index:unit.index,attackerId:unit.owner,defenderId:this.owner[unit.index],
@@ -1334,7 +1356,7 @@ export class Game {
             for(const next of LAND_NEIGHBORS[cell]){
               if(parent[next]!==-2)continue;
               const holder=this.owner[next];
-              if(holder!==squad.owner&&holder!==NEUTRAL&&holder!==intended)continue;
+              if(holder===WATER)continue;
               if(holder>=0&&holder!==squad.owner&&this.isAllied(squad.owner,holder))continue;
               parent[next]=cell;queue.push(next);
             }
@@ -1392,7 +1414,7 @@ export class Game {
           // A tower can inflict a small, real cost even without a defending
           // squad. Ordinary empty sectors are captured with ZERO losses.
           if(tower){
-            const loss=Math.min(squad.troops,1.25);
+            const loss=Math.min(squad.troops,6);
             squad.troops-=loss;this.factions[squad.owner].attackFallen+=loss;
             if(this.battleEvents.length<1600)this.battleEvents.push({
               tick:this.tick,index:target,attackerId:squad.owner,defenderId:enemy,
