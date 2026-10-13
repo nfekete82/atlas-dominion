@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {scoreRTSTarget,chooseRTSOperation,chooseRTSPosture} from '../dist/src/engine/rts-strategy.js';
+import {scoreRTSTarget,chooseRTSOperation,chooseRTSPosture,chooseRTSTheaterTarget} from '../dist/src/engine/rts-strategy.js';
 
 const base={neutral:false,enemyTroops:20,friendlyTroops:100,distance:2,
   capital:false,barracks:false,tower:false,city:false,factory:false,committedAttackers:0};
@@ -50,4 +50,16 @@ test('operational postures distinguish defense, reinforcement and expansion',()=
  assert.equal(chooseRTSPosture({...base,neutralFrontier:true}),'expand');
  assert.equal(chooseRTSPosture({...base,hostileFrontier:true}),'invade');
  assert.equal(chooseRTSPosture(base),'redeploy');
+});
+
+test('theater commander weighs defended capitals, attainable targets and losses',()=>{
+ const neutral={tile:10,neutral:true,defenderStrength:0,assaultStrength:100,distance:3,
+   strategicValue:0,committed:0};
+ const capital={...neutral,tile:11,neutral:false,strategicValue:80};
+ const heavilyGuarded={...capital,tile:12,defenderStrength:400};
+ assert.equal(chooseRTSTheaterTarget([neutral,capital,heavilyGuarded]),capital);
+ assert.equal(chooseRTSTheaterTarget([heavilyGuarded,neutral]),neutral);
+ assert.equal(chooseRTSTheaterTarget([neutral,{...neutral,tile:9}]),9,
+   'equal candidates use deterministic tile tie-breaks');
+ assert.equal(chooseRTSTheaterTarget([]),null);
 });
