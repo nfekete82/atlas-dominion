@@ -7,6 +7,7 @@ import { BUILDINGS, BUILDING_CODES, type BuildingType, FACTORY_INCOME, FACTORY_C
 import { findConnectedAttackFront } from './front-target.js';
 import {aiStyle,scoreAIFront} from './ai-strategy.js';
 import {scoreRTSTarget,chooseRTSOperation} from './rts-strategy.js';
+import {rtsFrontWidth,rtsContactLoss} from './rts-frontage.js';
 import {aiMarchRecovery,aiAttacksPerTick,aiStrikeSize,aiRiskTolerance} from './ai-tactics.js';
 import {formatCompact} from '../format.js';
 import {chooseAdvancingSector,canReinforceFront} from './offensive-front.js';
@@ -1357,8 +1358,9 @@ export class Game {
         for(const enemy of foes){
           if(enemy.owner===unit.owner||this.isAllied(unit.owner,enemy.owner)||unit.id>=enemy.id)continue;
           // Resolve each pair exactly once, with simultaneous losses.
-          const a=Math.min(unit.troops,Math.max(.25,enemy.troops*.085));
-          const b=Math.min(enemy.troops,Math.max(.25,unit.troops*.085));
+          const losses=rtsContactLoss(unit.troops,enemy.troops,
+            this.owner[enemy.index]===enemy.owner);
+          const a=losses.attackerLost,b=losses.defenderLost;
           damage.set(unit.id,(damage.get(unit.id)??0)+a);
           damage.set(enemy.id,(damage.get(enemy.id)??0)+b);
           engaged.add(unit.id);engaged.add(enemy.id);
@@ -1487,7 +1489,7 @@ export class Game {
         // to the squad's physical position through lawful neighboring cells.
         // Use beginning-of-tick strength so casualties don't mutate the
         // command budget halfway through the same occupation.
-        const occupationBudget=Math.min(30,Math.max(3,Math.floor(squad.troops/12)));
+        const occupationBudget=Math.max(3,rtsFrontWidth(squad.troops));
         const hostileDepth=squad.troops>=240?2:squad.troops>=100?1:0;
         let taken=0;
         for(let head=0;head<queue.length&&taken<occupationBudget;head++){
