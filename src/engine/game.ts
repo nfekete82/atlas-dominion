@@ -1040,7 +1040,7 @@ export class Game {
       // AI purchases genuine defensive towers at its most exposed border.
       // Cap construction per realm, keep towers separated, and retain enough
       // gold for recruiting actual defenders. No free fortifications.
-      if(borderThreats.size&&faction.money>=towerBudget+40){
+      if(borderThreats.size&&this.tick%8===faction.id%8&&faction.money>=towerBudget+40){
         let towerCount=0;
         const existingTowers:number[]=[];
         for(let cell=0;cell<CELL_COUNT;cell++){
