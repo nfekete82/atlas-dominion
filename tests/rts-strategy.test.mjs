@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {scoreRTSTarget,chooseRTSOperation,chooseRTSPosture,chooseRTSTheaterTarget} from '../dist/src/engine/rts-strategy.js';
+import {scoreRTSTarget,chooseRTSOperation,chooseRTSPosture,chooseRTSTheaterTarget,scoreRTSNeutralFront} from '../dist/src/engine/rts-strategy.js';
 
 const base={neutral:false,enemyTroops:20,friendlyTroops:100,distance:2,
   capital:false,barracks:false,tower:false,city:false,factory:false,committedAttackers:0};
@@ -62,4 +62,13 @@ test('theater commander weighs defended capitals, attainable targets and losses'
  assert.equal(chooseRTSTheaterTarget([neutral,{...neutral,tile:9}]),9,
    'equal candidates use deterministic tile tie-breaks');
  assert.equal(chooseRTSTheaterTarget([]),null);
+});
+
+test('wide connected neutral gains beat equally distant thin corridors',()=>{
+ const base={adjacentNeutral:2,secondRingNeutral:5,friendlySides:1,distance:8,otherCommitments:0};
+ assert.ok(scoreRTSNeutralFront({...base,friendlySides:3})>
+   scoreRTSNeutralFront(base));
+ assert.ok(scoreRTSNeutralFront({...base,otherCommitments:2})<
+   scoreRTSNeutralFront(base));
+ assert.equal(scoreRTSNeutralFront(base),scoreRTSNeutralFront({...base}));
 });
