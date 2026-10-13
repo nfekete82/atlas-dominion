@@ -390,3 +390,13 @@ test('RTS defenders exchange real losses instead of using phantom garrison',()=>
  assert.ok(g.squads.find(u=>u.id===100921)?.troops<50);
  assert.equal(g.owner[target],1,'occupied defended target should not fall instantly');
 });
+
+test('AI border-interception planning remains deterministic with physical soldiers',()=>{
+ const a=new Game(10130,5,'DE','balanced',true);
+ const b=new Game(10130,5,'DE','balanced',true);
+ for(let tick=0;tick<105;tick++){a.step();b.step();}
+ assert.deepEqual(a.exportSave(),b.exportSave(),
+   'real border intercept orders must be replayable');
+ assert.ok(a.squads.every(u=>u.troops>0&&a.owner[u.index]===u.owner),
+   'border defense cannot invent or strand physical squads');
+});
