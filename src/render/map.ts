@@ -498,6 +498,11 @@ export class MapRenderer {
     const liveIds=new Set(this.game.squads.map(unit=>unit.id));
     for(const id of this.squadVisuals.keys())if(!liveIds.has(id))this.squadVisuals.delete(id);
     const stackPositions=new Map<string,number>();
+    const squadByTile=new Map<number,typeof this.game.squads>();
+    for(const unit of this.game.squads){
+      const units=squadByTile.get(unit.index)??[];
+      units.push(unit);squadByTile.set(unit.index,units);
+    }
     for(const squad of this.game.squads){
       const stackKey=`${squad.owner}:${squad.index}`;
       const stackNumber=stackPositions.get(stackKey)??0;
@@ -527,10 +532,25 @@ export class MapRenderer {
       const relation=this.squadRelationColor(squad.owner);
       const flag=this.squadFlag(squad.owner);
       const far=this.zoom<2;
+      const neighbors=[squad.index-1,squad.index+1,squad.index-MAP_WIDTH,squad.index+MAP_WIDTH]
+        .filter(index=>index>=0&&index<MAP_WIDTH*MAP_HEIGHT&&
+          Math.abs(index%MAP_WIDTH-squad.index%MAP_WIDTH)+
+          Math.abs(Math.floor(index/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH))===1);
+      const opponent=neighbors.flatMap(index=>squadByTile.get(index)??[])
+        .find(unit=>unit.owner!==squad.owner&&!this.game.isAllied(unit.owner,squad.owner));
+      const hit=this.game.battleEvents.some(event=>event.tick===this.game.tick&&
+        (event.attackerId===squad.owner||event.defenderId===squad.owner)&&
+        Math.abs(event.index%MAP_WIDTH-squad.index%MAP_WIDTH)+
+        Math.abs(Math.floor(event.index/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH))<=1);
+      const clash=!!opponent&&hit;
+      const pulse=Math.max(0,Math.sin(time*.014+squad.id*.43));
+      const lungeX=opponent?(opponent.index%MAP_WIDTH-squad.index%MAP_WIDTH)*4*pulse:0;
+      const lungeY=opponent?(Math.floor(opponent.index/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH))*4*pulse:0;
       const count=Math.min(8,Math.max(3,Math.ceil(squad.troops/65)));
       c.strokeStyle=relation;c.lineWidth=selected?2.8:1.5;
       c.beginPath();c.ellipse(x,y,far?12:23,far?11:16,0,0,Math.PI*2);c.stroke();
       if(far){
+        if(clash){c.fillStyle='rgba(255,178,75,.8)';c.beginPath();c.arc(x+lungeX,y+lungeY,4+pulse*3,0,Math.PI*2);c.fill();}
         c.fillStyle='#112d3b';c.beginPath();c.arc(x,y,10,0,Math.PI*2);c.fill();
         c.font='13px sans-serif';c.fillStyle='#fff';c.fillText(flag,x,y);
         c.font='bold 9px sans-serif';c.strokeStyle='#102534';c.lineWidth=3;
@@ -550,7 +570,7 @@ export class MapRenderer {
         c.beginPath();c.moveTo(31,0);c.lineTo(21,-5);c.lineTo(21,5);c.closePath();c.fill();
         c.restore();
       }
-      const combat=(squad.attackTarget!==null&&squad.attackTarget!==undefined&&squad.destination===null)||
+      const combat=clash||(squad.attackTarget!==null&&squad.attackTarget!==undefined&&squad.destination===null)||
         this.game.battleEvents.some(e=>e.tick===this.game.tick&&
           (e.attackerId===squad.owner||e.defenderId===squad.owner)&&
           Math.abs(e.index%MAP_WIDTH-squad.index%MAP_WIDTH)+
@@ -564,8 +584,8 @@ export class MapRenderer {
       for(let n=0;n<count;n++){
         const col=n%4,row=Math.floor(n/4);
         const sway=marching?Math.sin(phase+n*.8)*2:Math.sin(phase*.22+n)*.35;
-        const px=x+(col-1.5)*8+(row%2)*3;
-        const py=y+(row-.35)*11+sway;
+        const px=x+(col-1.5)*8+(row%2)*3+(clash?lungeX:0);
+        const py=y+(row-.35)*11+sway+(clash?lungeY:0);
         c.fillStyle='rgba(0,0,0,.30)';c.beginPath();c.ellipse(px,py+5,3.4,1.7,0,0,Math.PI*2);c.fill();
         c.strokeStyle='#233845';c.lineWidth=1.5;
         c.beginPath();c.moveTo(px-1,py+2);c.lineTo(px-2+(marching?sway*.4:0),py+6);

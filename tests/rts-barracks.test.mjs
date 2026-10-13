@@ -261,3 +261,19 @@ test('coordinated RTS AI reinforcements preserve deterministic living armies',()
    }
  }
 });
+
+test('contact combat produces real casualty events for two adjacent hostile squads',()=>{
+ const g=new Game(9972,1,'DE','balanced',true);
+ const tile=g.owner.findIndex((v,i)=>v===0&&landNeighbors(i).some(n=>g.owner[n]===-1));
+ assert.ok(tile>=0);
+ const neighbor=landNeighbors(tile).find(n=>g.owner[n]===-1);
+ assert.ok(neighbor!==undefined);
+ g.owner[neighbor]=1;
+ g.squads.push({id:997201,owner:0,index:tile,troops:90,destination:null,attackTarget:null});
+ g.squads.push({id:997202,owner:1,index:neighbor,troops:90,destination:null,attackTarget:null});
+ g.step();
+ assert.ok(g.battleEvents.some(e=>e.tick===g.tick&&e.attackerLost>0&&e.defenderLost>0),
+   'animated squad contact must correspond to actual simultaneous losses');
+ assert.ok(g.squads.some(u=>u.id===997201&&u.troops<90));
+ assert.ok(g.squads.some(u=>u.id===997202&&u.troops<90));
+});
