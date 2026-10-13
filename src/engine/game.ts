@@ -1359,7 +1359,8 @@ export class Game {
           if(enemy.owner===unit.owner||this.isAllied(unit.owner,enemy.owner)||unit.id>=enemy.id)continue;
           // Resolve each pair exactly once, with simultaneous losses.
           const losses=rtsContactLoss(unit.troops,enemy.troops,
-            this.owner[enemy.index]===enemy.owner);
+            this.owner[enemy.index]===enemy.owner,
+            this.owner[unit.index]===unit.owner);
           const a=losses.attackerLost,b=losses.defenderLost;
           damage.set(unit.id,(damage.get(unit.id)??0)+a);
           damage.set(enemy.id,(damage.get(enemy.id)??0)+b);
