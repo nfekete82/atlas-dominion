@@ -1408,7 +1408,9 @@ export class Game {
               // immediate frontline, one ring per tick. Previously a
               // four-deep sweep overran the entire AI border before its
               // defensive planning and tower construction could run.
-              if(depth>0)continue;
+              // A two-ring assault gives sizeable armies a visible broad
+              // front, but only the physical formation's immediate vicinity.
+              if(depth>1||squad.troops<30)continue;
               if(this.isAllied(squad.owner,holder)||
                  this.buildings[next]===BUILDING_CODES.tower||
                  this.squads.some(unit=>unit.owner===holder&&
@@ -1420,10 +1422,30 @@ export class Game {
             }
             if(holder!==squad.owner){
               if(taken>=30)break;
+              // Occupied hostile ground costs real soldiers. Wider sweeps
+              // spend more manpower and stop when the unit is exhausted.
+              if(holder>=0){
+                const lost=Math.min(squad.troops,Math.max(.6,1.4+taken*.42));
+                squad.troops-=lost;
+                this.factions[squad.owner].attackFallen+=lost;
+                if(squad.troops<10)break;
+              }
               this.captureTile(this.factions[squad.owner],next);taken++;
             }
             queue.push([next,depth+1]);
           }
+        }
+      }
+      // Supply attrition applies only when a formation stands physically in
+      // contested enemy proximity. This is independent of tower/squad fire.
+      if(squad.troops>0&&!squad.seaRoute?.length){
+        const pressure=LAND_NEIGHBORS[squad.index].filter(tile=>
+          this.owner[tile]>=0&&this.owner[tile]!==squad.owner&&
+          !this.isAllied(squad.owner,this.owner[tile])).length;
+        if(pressure>0){
+          const loss=Math.min(squad.troops,Math.min(3,pressure)*.55);
+          squad.troops-=loss;this.factions[squad.owner].attackFallen+=loss;
+          if(squad.troops<1){this.squads.splice(this.squads.indexOf(squad),1);continue;}
         }
       }
       // Clean up tiny holes left behind by a passing formation. A pocket
