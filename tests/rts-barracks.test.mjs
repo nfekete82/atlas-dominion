@@ -225,3 +225,19 @@ test('ordered RTS troops walk through adjacent cells and never teleport',()=>{
  assert.equal(squad.troops,troops,'walking on safe land must not cost soldiers');
  assert.equal(g.squads.filter(u=>u.id===squad.id).length,1);
 });
+
+test('formation drawing stays visual-only while RTS marching remains deterministic',()=>{
+ const left=new Game(9956,1,'DE','balanced',true);
+ const right=new Game(9956,1,'DE','balanced',true);
+ const site=left.owner.findIndex((v,i)=>v===0&&!left.buildings[i]&&
+   left.canBuild(0,cellToPoint(i),'barracks').ok);
+ assert.ok(site>=0);
+ for(const g of [left,right]){
+   assert.ok(g.build(0,cellToPoint(site),'barracks').ok);
+   assert.ok(g.recruitSquad(0,cellToPoint(site),20).ok);
+   assert.ok(g.recruitSquad(0,cellToPoint(site),20).ok);
+   assert.equal(g.squads[0].index,g.squads[1].index);
+ }
+ for(let i=0;i<12;i++){left.step();right.step();}
+ assert.deepEqual(left.exportSave(),right.exportSave());
+});
