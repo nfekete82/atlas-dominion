@@ -277,3 +277,21 @@ test('contact combat produces real casualty events for two adjacent hostile squa
  assert.ok(g.squads.some(u=>u.id===997201&&u.troops<90));
  assert.ok(g.squads.some(u=>u.id===997202&&u.troops<90));
 });
+
+test('newly built player cities are visible immediately even at overview zoom',async()=>{
+ const {cityVisibleAtZoom}=await import('../dist/src/render/building-markers.js');
+ for(const zoom of [0.8,1,1.25,1.79,2,4]){
+   assert.equal(cityVisibleAtZoom(0,0,zoom),true,
+     'level-zero player city hidden at zoom '+zoom);
+ }
+ assert.equal(cityVisibleAtZoom(1,0,1),false,
+   'ordinary AI towns may still be simplified in strategic overview');
+ const game=new Game(9987,1,'DE','balanced',true);
+ const index=game.owner.findIndex((owner,i)=>owner===0&&
+   game.canBuild(0,cellToPoint(i),'city').ok);
+ assert.ok(index>=0);
+ const built=game.build(0,cellToPoint(index),'city');
+ assert.equal(built.ok,true);
+ assert.equal(game.cityUpgrades[index],0);
+ assert.equal(cityVisibleAtZoom(game.owner[index],game.cityUpgrades[index],1),true);
+});
