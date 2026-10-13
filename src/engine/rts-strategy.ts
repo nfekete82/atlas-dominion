@@ -48,3 +48,21 @@ export function chooseRTSOperation(operations:readonly RTSOperation[]):RTSOperat
   }
   return best;
 }
+
+/** Select the next operational posture from observable local facts. */
+export type RTSPosture='defend'|'recover'|'reinforce'|'expand'|'invade'|'redeploy';
+export interface RTSPostureIntel {
+  localThreat:number;
+  availableTroops:number;
+  activeCampaigns:number;
+  neutralFrontier:boolean;
+  hostileFrontier:boolean;
+}
+export function chooseRTSPosture(s:RTSPostureIntel):RTSPosture {
+  if(s.localThreat>0&&s.availableTroops<s.localThreat*1.4)return 'defend';
+  if(s.availableTroops<20)return 'recover';
+  if(s.activeCampaigns>0)return 'reinforce';
+  if(s.neutralFrontier)return 'expand';
+  if(s.hostileFrontier)return 'invade';
+  return 'redeploy';
+}
