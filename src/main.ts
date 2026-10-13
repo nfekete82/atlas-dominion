@@ -3,6 +3,9 @@ import { MapRenderer } from './render/map.js';
 import { BUILDINGS, type BuildingType } from './engine/economy.js';
 import { COUNTRY_STARTS, countryByCode } from './data/countries.js';
 import {formatCompact} from './format.js';
+import {StrategicMinimap,minimapTarget} from './render/strategic-minimap.js';
+import {MAP_HEIGHT,MAP_WIDTH} from './data/europe.js';
+import type {BorderMode} from './engine/game.js';
 import {Soundscape,AUDIO_SETTINGS_KEY,type AudioSettings} from './audio/soundscape.js';
 
 import {DIFFICULTY_SETTINGS,isDifficulty,type Difficulty} from './engine/difficulty.js';
@@ -13,9 +16,11 @@ const $ = <T extends HTMLElement>(id: string): T => {
   return found as T;
 };
 const format = formatCompact;
-let game = new Game(Date.now() % 2147483647);
+let game = new Game(Date.now() % 2147483647,COUNTRY_STARTS.length-1,'DE','balanced',true);
 game.paused = true; // The player must choose a country before the clock starts.
 const renderer = new MapRenderer($<HTMLCanvasElement>('battleCanvas'), game);
+const minimap=new StrategicMinimap($<HTMLCanvasElement>('miniCanvas'));
+let selectedBorderIndex=-1;
 let speed = 1;
 function savedAudioSettings():unknown {
   try{return JSON.parse(localStorage.getItem(AUDIO_SETTINGS_KEY)??'null');}
@@ -32,9 +37,12 @@ let modalVisible = true;
 let hasStarted = false;
 let selectedDifficulty:Difficulty='balanced';
 let buildSpot: Point | null = null;
+let selectedSquadId:number|null=null;
+let selectedSquadIds:number[]=[];
+const armyControlGroups=new Map<number,number[]>();
 let attackRatio = 35;
 let showAllNations = false;
-let attackMessage = 'Nachbarland anklicken · mehr eingesetzte Truppen = schnellere Front.';
+let attackMessage = 'Kaserne bauen, Soldaten ausbilden, mit Linksklick auswählen und bewegen.';
 let attackMessageKind: 'neutral'|'success'|'error' = 'neutral';
 
 let hoveredAttackPoint:Point|null=null;
@@ -53,7 +61,8 @@ function resetTacticalWarnings():void {
   lastBorderBreachTick.clear();
   lastCombatSoundTick=-1000;lastCaptureSoundTick=-1000;
   $('warAlerts').hidden=true;$('warAlerts').replaceChildren();
-  hoveredAttackPoint=null;
+  hoveredAttackPoint=null;selectedBorderIndex=-1;minimap.invalidate();
+  $('borderHotspots').removeAttribute('data-signature');
   $('attackAssessment').hidden=true;
 }
 function pushWarAlert(text:string,detail:string,index:number,kind:WarAlert['kind']):void {
@@ -134,7 +143,7 @@ function renderActiveArmies():void {
           <button type="button" data-army-retreat="${o.id}" ${o.returning?'disabled':''}>
             ${o.returning?'Rückzug läuft':'↩ Rückzug'}</button>
         </div></div>`;
-    }).join(''):'<small>Keine aktiven Armeen. Angriffe per Linksklick starten.</small>';
+    }).join(''):'<small>Keine aktiven Armeen. Truppe linksklicken, Ziel rechtsklicken.</small>';
   }
   // Update statistics in-place so a 4Hz simulation tick never replaces
   // a button while the player is physically pressing it.
@@ -297,9 +306,108 @@ window.addEventListener('pointerdown',e=>{
      !(e.target as HTMLElement).closest('#soundBtn'))closeAudioPanel();
 });
 
+/** Reuse command buttons across 4Hz ticks so the pointer never loses
+ * the target between down/up. Only counters are refreshed every frame. */
+function renderBorderCommand():void {
+  const spots=game.borderHotspots(6);
+  $('hotspotCount').textContent=spots.length+' wichtige Kontaktpunkte';
+  const box=$('borderHotspots');
+  const signature=spots.map(p=>p.index+':'+p.mode+':'+(p.attacked?1:0)).join('|');
+  if(box.dataset.signature!==signature){
+    box.dataset.signature=signature;
+    box.innerHTML=spots.length?spots.map(p=>{
+      const enemy=game.factions[p.opponents[0]]?.name??'Nachbarland';
+      const label=p.attacked?'AKUTER ANGRIFF':p.urgency>22?'SCHWACHE GRENZE':'KONTAKT';
+      return `<div class="border-hotspot" data-border-index="${p.index}">
+        <div class="border-hotspot-row"><strong>${enemy} · ${p.point.x}/${p.point.y}</strong><span>${label}</span></div>
+        <div class="border-hotspot-row"><small data-border-guards="${p.index}"></small>
+          <button type="button" data-border-focus="${p.index}" title="Zur Grenze springen">⌖ Karte</button></div>
+        <div class="border-hotspot-actions">
+          ${(['defend','hold','withdraw'] as const).map(mode=>
+            `<button type="button" data-border-mode="${mode}" data-border-cell="${p.index}"
+              aria-pressed="${p.mode===mode}">${mode==='defend'?'⬡ Verteidigen':
+              mode==='hold'?'● Halten':'↩ Abziehen'}</button>`).join('')}
+        </div></div>`;
+    }).join(''):'<small>Aktuell keine feindlichen Landgrenzen.</small>';
+  }
+  for(const p of spots){
+    const label=box.querySelector<HTMLElement>(`[data-border-guards="${p.index}"]`);
+    if(label)label.textContent=format(p.guards)+' stationiert · '+(p.attacked?'im Gefecht':'Bereitschaft');
+    const card=box.querySelector<HTMLElement>(`[data-border-index="${p.index}"]`);
+    if(card)card.setAttribute('aria-current',String(p.index===selectedBorderIndex));
+  }
+}
+function setStrategicBorder(point:Point,mode:BorderMode):void {
+  const r=game.setBorderMode(0,point,mode);
+  attackMessage=r.reason;attackMessageKind=r.ok?'success':'error';
+  if(r.ok){
+    selectedBorderIndex=pointToIndex(point);
+    soundscape.playEffect(mode==='withdraw'?'retreat':'reinforce');
+    renderer.updateTerritory();saveGame();
+    $('borderHotspots').removeAttribute('data-signature');
+  }else beep(190);
+  update();
+}
+function renderStrategicMinimap():void {
+  if(!$('minimapBody').hidden)minimap.render(game,renderer.visibleWorldBounds(),game.tick);
+}
+$('minimapToggle').addEventListener('click',()=>{
+  const body=$('minimapBody'),expanded=body.hidden;
+  body.hidden=!expanded;
+  $('minimapToggle').setAttribute('aria-expanded',String(expanded));
+  $('minimapToggle').textContent=expanded?'−':'+';
+  if(expanded)renderStrategicMinimap();
+});
+$('miniCanvas').addEventListener('click',e=>{
+  if(modalVisible)return;
+  const r=$('miniCanvas').getBoundingClientRect();
+  const point=minimapTarget(e.clientX-r.left,e.clientY-r.top,r.width,r.height);
+  if(point)renderer.focusOnPoint(point,0.8);
+  renderStrategicMinimap();
+});
+$('miniCanvas').addEventListener('keydown',e=>{
+  if(modalVisible||!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Enter',' '].includes(e.key))return;
+  e.preventDefault();
+  const v=renderer.visibleWorldBounds();
+  const center:{x:number;y:number}={x:(v.x+v.width/2)/1600*MAP_WIDTH,
+    y:(v.y+v.height/2)/900*MAP_HEIGHT};
+  if(e.key==='ArrowLeft')center.x-=20;
+  else if(e.key==='ArrowRight')center.x+=20;
+  else if(e.key==='ArrowUp')center.y-=12;
+  else if(e.key==='ArrowDown')center.y+=12;
+  else {const p=game.cities[0];center.x=p.x;center.y=p.y;}
+  renderer.focusOnPoint({x:Math.max(0,Math.min(MAP_WIDTH-1,Math.round(center.x))),
+    y:Math.max(0,Math.min(MAP_HEIGHT-1,Math.round(center.y)))});
+  renderStrategicMinimap();
+});
+$('borderHotspots').addEventListener('click',e=>{
+  const button=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-border-focus],[data-border-cell]');
+  if(!button)return;
+  const index=Number(button.dataset.borderFocus??button.dataset.borderCell);
+  if(!Number.isInteger(index)||index<0||index>=MAP_WIDTH*MAP_HEIGHT)return;
+  const point={x:index%MAP_WIDTH,y:Math.floor(index/MAP_WIDTH)};
+  if(button.dataset.borderFocus!==undefined){
+    selectedBorderIndex=index;renderer.focusOnPoint(point,2.4);
+    renderStrategicMinimap();return;
+  }
+  const mode=button.dataset.borderMode as BorderMode;
+  if(['defend','hold','withdraw'].includes(mode))setStrategicBorder(point,mode);
+});
+
 function update() {
   const player = game.factions[0];
   $('playerName').textContent = player.name;
+  document.body.classList.toggle('rts-military-mode',game.rtsRecruitment);
+  if(game.rtsRecruitment){
+    const formations=game.squads.filter(u=>u.owner===0);
+    const chosen=formations.find(u=>u.id===selectedSquadId);
+    $('rtsMilitaryMobile').textContent=format(player.troops);
+    $('rtsMilitaryField').textContent=format(formations.reduce((n,u)=>n+u.troops,0));
+    $('rtsMilitaryLosses').textContent=format(player.attackFallen+player.defenseSpent);
+    $('rtsMilitarySelected').textContent=chosen?'Truppe #'+chosen.id+' · '+format(chosen.troops)+' Soldaten':'Keine Truppe ausgewählt';
+    $('rtsMilitaryStatus').textContent=game.threatenedBorders(0)>0?'GRENZE BEDROHT':'FRIEDEN';
+    $('rtsMilitaryReports').textContent=format(game.threatenedBorders(0))+' bedrohte Sektoren · '+format(player.enemyFallen)+' Gegnerverluste';
+  }
   $('playerFlag').textContent = countryFlag(game.playerCode);
   $('difficultyBadge').textContent = 'KI: '+game.difficultySettings.label.toLocaleUpperCase('de-DE');
   const percent = player.territory / game.totalLand * 100;
@@ -324,6 +432,8 @@ function update() {
   $('defenseTickLoss').textContent = player.defenseFallenTick>0
     ? 'VERTEIDIGUNG: −'+format(player.defenseFallenTick)+' DIESE RUNDE'
     : 'VERTEIDIGUNG: KEINE VERLUSTE';
+  renderBorderCommand();
+  renderStrategicMinimap();
   $('borderDefense').textContent = `${format(game.threatenedBorders(0))} bedrohte Grenzsektoren · ${format(stationed)} stationiert · ${format(player.troops)} mobil`;
   $('casualtyReport').textContent = `⚔ ${format(player.attackFallen+player.defenseSpent)} eigene Gefallene · ${format(player.enemyFallen)} Gegnerverluste`;
   // The combat telemetry is factual: one tick's strikes, not estimates of
@@ -349,6 +459,15 @@ function update() {
   $('cityCount').textContent = format(player.cityCount+player.builtCities);
   $('moneyCount').textContent = format(player.money);
   $('moneyGrowth').textContent = '+' + format(player.moneyIncome,1) + ' PRO TICK';
+  const factories=game.buildings.reduce((n,code,i)=>n+(code===3&&game.owner[i]===0?1:0),0);
+  $('factoryCount').textContent=String(factories);
+  $('factoryIncome').textContent='+'+format([...game.buildings].reduce((n,code,i)=>{
+    if(code!==3||game.owner[i]!==0)return n;
+    const city=game.factoryLinks.get(i);
+    const connected=city!==undefined&&game.owner[city]===0&&
+      (game.buildings[city]===1||game.cities.some(c=>c.index===city));
+    return n+0.5*(1+(game.factoryLevels.get(i)??0)*.75)*(connected?1.5:1);
+  },0),1)+' GOLD / TICK';
   $('controlCount').textContent = percent.toFixed(1) + '%';
   $('progressLabel').textContent = percent.toFixed(1) + ' / 65%';
   $('progressFill').style.width = Math.min(100, percent/65*100) + '%';
@@ -432,23 +551,53 @@ $('warAlerts').addEventListener('click',e=>{
   const alert=warAlerts.find(a=>a.id===Number(b.dataset.warFocus));
   if(alert)renderer.focusOnPoint({x:alert.index%480,y:Math.floor(alert.index/480)},2.2);
 });
-renderer.onSelect = (point:Point, landing:boolean) => {
-  soundscape.update({},true); // A real map click may resume opted-in audio.
+renderer.onSelectSquads=(ids)=>{
+  selectedSquadIds=ids;selectedSquadId=ids[0]??null;
+  renderer.selectedSquadIds=ids;
+  attackMessage=ids.length?ids.length+' Truppengruppen markiert – Rechtsklick zum Marschieren oder Angreifen.':'Keine Truppen im Auswahlrahmen.';
+  attackMessageKind=ids.length?'success':'neutral';update();
+};
+renderer.onCommandSquads=(point:Point)=>{
+  if(modalVisible)return;
   closeBuildMenu();
-  // Left-click on friendly terrain must NEVER issue an attack or mobilize
-  // soldiers. Right-click is still available for construction / defense.
-  if(game.owner[pointToIndex(point)]===0)return;
-  if(game.isAllied(0,game.owner[pointToIndex(point)]))return;
-  const result = landing ? game.launchLanding(0, point, attackRatio) : game.launchAttack(0, point, attackRatio);
-  attackMessage=result.ok
-    ? `${format(result.sent)} ⚔ · ${result.reason}`
-    : result.reason;
-  if(result.ok && result.front && result.sent>0 && !result.reason.includes('Landung'))renderer.showReinforcement(result.front,result.sent);
-  if(result.ok){renderer.updateTerritory();saveGame();}
-  attackMessageKind = result.ok ? 'success' : 'error';
-  if(result.ok)soundscape.playEffect('attack');else beep(190);
+  const ids=[...new Set(selectedSquadIds.filter(id=>
+    game.squads.some(unit=>unit.id===id&&unit.owner===0)))];
+  if(!ids.length)return;
+  const own=game.owner[pointToIndex(point)]===0;
+  const results=ids.map(id=>own?
+    game.orderSquad(0,id,point):game.orderSquadAttack(0,id,point));
+  const successful=results.filter(result=>result.ok).length;
+  attackMessage=successful?
+    '⚔ '+successful+' von '+ids.length+' Armeen erhalten '+(own?'Sammelpunkt-/Marschbefehl.':'Angriffsbefehl.'):
+    results[0]?.reason??'Ziel nicht erreichbar.';
+  attackMessageKind=successful?'success':'error';
+  if(successful){
+    renderer.updateTerritory();saveGame();
+    if(!own)soundscape.playEffect('attack');
+  }
   update();
 };
+renderer.onSelect = (point:Point, _landing:boolean) => {
+  soundscape.update({},true);
+  closeBuildMenu();
+  const clickedIndex=pointToIndex(point);
+  // Clicking the squad badge selects it. No additional click mode needed.
+  const squad=game.squads.find(unit=>unit.owner===0&&
+    Math.hypot(unit.index%480-point.x,Math.floor(unit.index/480)-point.y)<=1);
+  if(squad){
+    selectedSquadId=squad.id;selectedSquadIds=[squad.id];renderer.selectedSquadIds=[squad.id];
+    attackMessage='⚔ Truppe #'+squad.id+' ('+Math.round(squad.troops)+' Soldaten) ausgewählt – Rechtsklick auf das Ziel zum Marschieren oder Angreifen.';
+    attackMessageKind='success';update();return;
+  }
+  // Empty left click cancels selection and its tactical highlight.
+  selectedSquadId=null;
+  selectedSquadIds=[];
+  renderer.selectedSquadIds=[];
+  attackMessage='Auswahl aufgehoben – Linksklick auf eine Truppe, Rechtsklick zum Bewegen.';
+  attackMessageKind='neutral';
+  update();
+};
+
 function closeBuildMenu(): void {
   buildSpot=null;
   $('buildMenu').hidden=true;
@@ -481,7 +630,19 @@ function renderBuildMenu(): void {
   }
   const existing=game.buildingAt(point);
   const existingName=BUILDINGS.find(b=>b.type===existing)?.name;
+  const suggestedCity=existing==='factory'?game.nearbyFactoryCity(point):null;
   const border=game.isThreatenedBorder(0,point);
+  const mode=game.getBorderMode(point);
+  const borderStrategy=border?
+    `<div class="border-strategy">${(['defend','hold','withdraw'] as const).map(m=>
+      `<button type="button" class="build-entry" data-strategic-mode="${m}">
+        <span class="build-entry-icon">${m==='defend'?'⬡':m==='hold'?'●':'↩'}</span>
+        <span class="build-entry-copy"><strong>${m==='defend'?'Verteidigen':m==='hold'?'Halten':'Abziehen'}</strong>
+        <small>${m===mode?'Aktueller Befehl':m==='defend'?'Verstärkungen bevorzugen':
+          m==='hold'?'Normale Grenzautomatik':'Überschüssige Garnison freigeben'}</small></span>
+        <span class="build-entry-cost">${m===mode?'AKTIV':'WÄHLEN'}</span>
+      </button>`).join('')}</div>`:'';
+
   $('buildCoordinates').textContent=`${border?'GRENZPOSTEN':existingName?.toUpperCase()??'BAUEN'} · SEKTOR ${point.x}/${point.y}`;
   $('buildMoney').textContent=`${format(game.factions[0].money)} GELD VERFÜGBAR`;
   const upgrade=existing==='city' ? game.canUpgradeCity(0,point) : null;
@@ -498,7 +659,25 @@ function renderBuildMenu(): void {
       <span class="build-entry-copy"><strong>Alle Städte automatisch ausbauen</strong><small>${upgradeAll.ok?`${upgradeAll.cities} Städte · ${upgradeAll.upgrades} Ausbaustufen`:upgradeAll.reason} · günstigste Stufen zuerst</small></span>
       <span class="build-entry-cost">${upgradeAll.ok?format(upgradeAll.cost)+' €':'—'}</span>
     </button>`;
-  $('buildOptions').innerHTML=fastSingle+fastAll+(upgrade? `<button type="button" class="build-entry" data-upgrade-city="true" ${upgrade.ok?'':'disabled'} title="${upgrade.reason}">
+  const maxRecruit=Math.min(1000,Math.floor(game.factions[0].money/2));
+  const recruitmentFull=game.squads.filter(unit=>unit.owner===0).length>=12;
+  const barracksActions=existing==='barracks'?[maxRecruit,10,50,100,500].map((count,i)=>{
+    const isMax=i===0;
+    const enabled=count>=10&&!recruitmentFull&&game.factions[0].money>=count*2;
+    return `<button type="button" class="build-entry" data-recruit-squad="${count}" ${enabled?'':'disabled'}><span class="build-entry-icon">⚔</span><span class="build-entry-copy"><strong>${isMax?'MAX – '+format(count)+' Soldaten ausbilden':format(count)+' Soldaten ausbilden'}</strong><small>${isMax?'Maximal bezahlbare Anzahl (bis 1.000)': '2 Gold je Soldat'}${recruitmentFull?' · Höchstens 12 Gruppen':''}</small></span><span class="build-entry-cost">${count>=10?format(count*2)+' €':'NICHT GENUG GELD'}</span></button>`;
+  }).join(''):'';
+  const nearbySquads=game.squads.filter(s=>s.owner===0&&Math.hypot(s.index%MAP_WIDTH-point.x,Math.floor(s.index/MAP_WIDTH)-point.y)<3);
+  const selectedOwn=selectedSquadIds.filter(id=>game.squads.some(s=>s.id===id&&s.owner===0));
+  const squadManagement=selectedOwn.length>=2?
+    '<button type="button" class="build-entry" data-merge-selected="true"><span class="build-entry-icon">⇉</span><span class="build-entry-copy"><strong>Armeen zusammenführen</strong><small>Ausgewählte Gruppen müssen auf demselben Feld stehen</small></span></button>':'';
+  const barracksReinforce=existing==='barracks'?nearbySquads.filter(s=>s.index===pointToIndex(point)).map(unit=>{
+    const count=Math.min(1000,Math.floor(game.factions[0].money/2));
+    return `<button type="button" class="build-entry" data-reinforce-squad="${unit.id}" data-reinforce-count="${count}" ${count<10?'disabled':''}><span class="build-entry-icon">✚</span><span class="build-entry-copy"><strong>Armee #${unit.id} verstärken: MAX (${format(count)})</strong><small>Bestehende Armee statt neue Gruppe · 2 Gold / Soldat</small></span></button>`;
+  }).join(''):'';
+  const squadActions=nearbySquads.map(s=>`<button type="button" class="build-entry" data-select-squad="${s.id}"><span class="build-entry-icon">➤</span><span class="build-entry-copy"><strong>Truppe #${s.id} auswählen</strong><small>Rechtsklick auf eigenes Gebiet = Marsch, auf Gegner = Angriff</small></span><span class="build-entry-cost">WÄHLEN</span></button><button type="button" class="build-entry" data-recall-squad="${s.id}"><span class="build-entry-icon">↩</span><span class="build-entry-copy"><strong>Truppe #${s.id} zurückrufen</strong><small>${Math.round(s.troops)} Soldaten in Mobilreserve übernehmen</small></span><span class="build-entry-cost">RÜCKRUF</span></button><button type="button" class="build-entry" data-split-squad="${s.id}"><span class="build-entry-icon">✂</span><span class="build-entry-copy"><strong>Truppe #${s.id} halbieren</strong><small>Soldaten auf zwei eigene Gruppen aufteilen</small></span></button>`).join('');
+  const factoryUpgrade=existing==='factory'?`<button type="button" class="build-entry" data-upgrade-factory="true" ${game.factoryLevel(point)>=5||game.factions[0].money<game.factoryLevel(point)*250?'disabled':''}><span class="build-entry-icon">⚙</span><span class="build-entry-copy"><strong>Fabrik Stufe ${game.factoryLevel(point)}/5 ausbauen</strong><small>Steigert die Grundproduktion um 75 %</small></span><span class="build-entry-cost">${game.factoryLevel(point)>=5?'MAX':game.factoryLevel(point)*250+' €'}</span></button>`:'';
+  const factoryAction=existing==='factory'?`<button type="button" class="build-entry" data-link-factory="true" ${suggestedCity?'':'disabled'}><span class="build-entry-icon">↗</span><span class="build-entry-copy"><strong>Mit Stadt verbinden</strong><small>${suggestedCity?`Stadt bei ${suggestedCity.x}/${suggestedCity.y} · +50 % Grundbonus, bis zu +25 % durch Stadtausbau`:'Keine eigene Stadt im Umkreis von 12 Sektoren'}</small></span><span class="build-entry-cost">VERBINDEN</span></button>`:'';
+  $('buildOptions').innerHTML=barracksActions+barracksReinforce+squadManagement+squadActions+factoryUpgrade+factoryAction+fastSingle+fastAll+(upgrade? `<button type="button" class="build-entry" data-upgrade-city="true" ${upgrade.ok?'':'disabled'} title="${upgrade.reason}">
       <span class="build-entry-icon" aria-hidden="true">⬆</span>
       <span class="build-entry-copy"><strong>Stadt ausbauen ${upgradeLevel}/5</strong><small>${upgrade.ok?'Mehr Einwohner- und Truppenwachstum':upgrade.reason}</small></span>
       <span class="build-entry-cost">${upgrade.ok?upgrade.cost+' €':'MAX'}</span>
@@ -510,13 +689,14 @@ function renderBuildMenu(): void {
       <span class="build-entry-copy"><strong>${building.name}</strong><small>${explanation}</small></span>
       <span class="build-entry-cost">${building.cost} €</span>
     </button>`;
-  }).join('')+(border?`<button type="button" class="build-entry" data-defend="true" ${game.factions[0].troops*attackRatio/100<8?'disabled':''} title="Echte mobile Truppen an dieser bedrohten Grenze stationieren">
+  }).join('')+borderStrategy+(border?`<button type="button" class="build-entry" data-defend="true" ${game.factions[0].troops*attackRatio/100<8?'disabled':''} title="Echte mobile Truppen an dieser bedrohten Grenze stationieren">
       <span class="build-entry-icon" aria-hidden="true">⬡</span>
       <span class="build-entry-copy"><strong>Grenze verstärken</strong><small>${attackRatio} % der mobilen Soldaten hier verteidigen lassen</small></span>
       <span class="build-entry-cost">${format(Math.floor(game.factions[0].troops*attackRatio/100))} ⚔</span>
     </button>`:'');
 }
 renderer.onBuildRequest=(point,clientX,clientY)=>{
+  // Context commands do not discard the currently selected formations.
   if(modalVisible||!point||game.owner[pointToIndex(point)]<0){closeBuildMenu();return;}
   buildSpot=point;
   const owner=game.owner[pointToIndex(point)];
@@ -535,6 +715,73 @@ renderer.onBuildRequest=(point,clientX,clientY)=>{
 $('buildClose').addEventListener('click',closeBuildMenu);
 $('buildOptions').addEventListener('click',e=>{
   if(!buildSpot)return;
+  const selectButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-select-squad]');
+  if(selectButton){
+    selectedSquadId=Number(selectButton.dataset.selectSquad);
+    attackMessage='Truppe #'+selectedSquadId+' ausgewählt – Rechtsklick: eigenes Land zum Marschieren, gegnerisches Land zum Angreifen.';
+    attackMessageKind='success';closeBuildMenu();update();return;
+  }
+  const mergeButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-merge-selected]');
+  if(mergeButton){
+    const ids=[...selectedSquadIds];
+    const result=game.mergeSquads(0,ids);
+    attackMessage=result.reason;attackMessageKind=result.ok?'success':'error';
+    if(result.ok){selectedSquadIds=[Math.min(...ids)];selectedSquadId=selectedSquadIds[0];renderer.selectedSquadIds=selectedSquadIds;saveGame();closeBuildMenu();}
+    update();return;
+  }
+  const reinforceButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-reinforce-squad]');
+  if(reinforceButton){
+    const result=game.reinforceSquad(0,Number(reinforceButton.dataset.reinforceSquad),
+      buildSpot,Number(reinforceButton.dataset.reinforceCount));
+    attackMessage=result.reason;attackMessageKind=result.ok?'success':'error';
+    if(result.ok){saveGame();closeBuildMenu();}else renderBuildMenu();
+    update();return;
+  }
+  const recruitButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-recruit-squad]');
+  if(recruitButton){
+    const result=game.recruitSquad(0,buildSpot,Number(recruitButton.dataset.recruitSquad));
+    attackMessage=result.reason;attackMessageKind=result.ok?'success':'error';
+    if(result.ok){renderer.updateTerritory();saveGame();closeBuildMenu();}else renderBuildMenu();
+    update();return;
+  }
+  const splitButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-split-squad]');
+  if(splitButton){
+    const id=Number(splitButton.dataset.splitSquad);
+    const unit=game.squads.find(s=>s.id===id&&s.owner===0);
+    const result=game.splitSquad(0,id,unit?Math.floor(unit.troops/2):0);
+    attackMessage=result.reason;attackMessageKind=result.ok?'success':'error';
+    if(result.ok){saveGame();closeBuildMenu();}else renderBuildMenu();
+    update();return;
+  }
+  const recallButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-recall-squad]');
+  if(recallButton){
+    const result=game.recallSquad(0,Number(recallButton.dataset.recallSquad));
+    attackMessage=result.reason;attackMessageKind=result.ok?'success':'error';
+    if(result.ok){saveGame();closeBuildMenu();}else renderBuildMenu();
+    update();return;
+  }
+  const factoryUpgradeButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-upgrade-factory]');
+  if(factoryUpgradeButton){
+    const result=game.upgradeFactory(0,buildSpot);
+    attackMessage=result.reason;attackMessageKind=result.ok?'success':'error';
+    if(result.ok){saveGame();renderer.updateTerritory();soundscape.playEffect('build');closeBuildMenu();}
+    else renderBuildMenu();update();return;
+  }
+  const factoryLink=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-link-factory]');
+  if(factoryLink){
+    const city=game.nearbyFactoryCity(buildSpot);
+    const result=city?game.connectFactory(0,buildSpot,city):{ok:false,reason:'Keine Stadt in Reichweite.'};
+    attackMessage=result.reason;attackMessageKind=result.ok?'success':'error';
+    if(result.ok){renderer.updateTerritory();saveGame();closeBuildMenu();soundscape.playEffect('build');}else renderBuildMenu();
+    update();return;
+  }
+  const borderButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-strategic-mode]');
+  if(borderButton){
+    const mode=borderButton.dataset.strategicMode as BorderMode;
+    setStrategicBorder(buildSpot,mode);
+    if(attackMessageKind==='success')closeBuildMenu();else renderBuildMenu();
+    return;
+  }
   const coalitionButton=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-coalition-offer],[data-coalition-leave]');
   if(coalitionButton){
     const target=game.owner[pointToIndex(buildSpot)];
@@ -578,7 +825,7 @@ $('buildOptions').addEventListener('click',e=>{
   const button=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-build]');
   if(!button)return;
   const result=game.build(0,buildSpot,button.dataset.build as BuildingType);
-  attackMessage=result.ok?`Stadt gebaut · ${result.cost} € · Wachstum steigt`:result.reason;
+  attackMessage=result.ok?`${result.type==='tower'?'Abwehrturm gebaut · Verteidigung aktiv':result.type==='factory'?'Fabrik gebaut · Einnahmen steigen':'Stadt gebaut · Wachstum steigt'} · ${result.cost} €`:result.reason;
   attackMessageKind=result.ok?'success':'error';
   if(result.ok){renderer.updateTerritory();closeBuildMenu();soundscape.playEffect('build');} else renderBuildMenu();
   update();
@@ -630,7 +877,7 @@ renderer.onHover=(point,px,py,landing)=>{
   const allied=id>=0&&game.isAllied(0,id);
   const attackable=id!==0&&!allied&&renderer.canAttack(point);
   const canLand=id!==0&&!allied&&renderer.canLand(point);
-  action.textContent=id===0?'Rechtsklick: Stadt / Verteidigung'
+  action.textContent=game.rtsRecruitment&&selectedSquadIds.length?'Rechtsklick: Marsch / Angriff · Umschalt: Menü':id===0?'Rechtsklick: Stadt / Verteidigung'
     : allied?'🤝 Verbündet · Rechtsklick: Beenden'
     : canLand&&!game.findAttackFront(0,point)?'Links: Seeangriff · Rechts: Koalition'
     : attackable?`Links: Angriff ${attackRatio} % · Rechts: Koalition`
@@ -702,7 +949,7 @@ function showCountryPicker(canCancel = false): void {
 function startCountry(code:string): void {
   const chosen=countryByCode(code);
   if(!chosen)return;
-  game=new Game((Date.now()+Math.floor(Math.random()*100000))%2147483647,COUNTRY_STARTS.length-1,chosen.code,selectedDifficulty);
+  game=new Game((Date.now()+Math.floor(Math.random()*100000))%2147483647,COUNTRY_STARTS.length-1,chosen.code,selectedDifficulty,true);
   localStorage.removeItem(SAVE_KEY);
   hasStarted=true;
   modalVisible=false;
@@ -735,6 +982,7 @@ $('helpBtn').addEventListener('click',()=>showDialog('DEIN EINSATZBEFEHL',`
   <div class="briefing-row"><b>03</b><span><strong>ZIEHEN:</strong> Karte verschieben. Mausrad oder +/− zum Zoomen.</span></div>
   <div class="briefing-row"><b>04</b><span><strong>FRONT:</strong> Die Angriffslinie leuchtet an der Grenze. Die kleine Zahl zeigt die eingesetzten Truppen. Es gibt keine Marschroute von der Hauptstadt.</span></div>
   <div class="briefing-row"><b>05</b><span><strong>TRUPPEN:</strong> Der Prozentregler legt die Zahl der eingesetzten Einwohner/Soldaten fest. Nur tatsächlich Gefallene werden abgezogen; Überlebende kehren aus der Offensive zurück. Stärkere Armeen kämpfen an einer breiteren Front.</span></div>
+  <p><strong>STRATEGISCHE KARTE:</strong> Die kleine Europakarte unten links zeigt Länderfarben, echte aktive Angriffe und deinen Kameraausschnitt. Durch Klicken springst du an die gewünschte Stelle, über den Schalter kannst du sie zuklappen. Im Grenzkommando priorisierst du bedrohte eigene Grenzsektoren: Verteidigen = automatische Verstärkung bevorzugen, Halten = Standard, Abziehen = überzählige Garnisonen mobilisieren. Die Befehle sind auch per Rechtsklick an der Grenze verfügbar.</p>
   <p><strong>TAKTISCHE KOMMANDOS:</strong> In „Laufende Offensiven“ kannst du eine bestehende Armee verstärken, zur aktuellen Front springen oder sie zurückziehen. Ein Landangriff gibt seine Überlebenden sofort frei; eine Flotte muss zuerst zurücksegeln. Fahre für eine grobe Risikoabschätzung über fremdes Gebiet – angezeigt wird ausdrücklich nur der nächste Frontsektor. Klickbare Warnungen auf der Karte führen dich zu Angriffen auf dein Land.</p>
   <div class="briefing-row"><b>06</b><span><strong>STÄDTE BAUEN:</strong> Rechtsklick auf eigenes Land. Städte kosten Geld und erhöhen das Wachstum. Auf eigenem bedrohtem Grenzgebiet kannst du im selben Menü gezielt Soldaten zur Verteidigung stationieren.</span></div>
   <div class="briefing-row"><b>07</b><span><strong>PAUSE:</strong> Leertaste oder Ⅱ. Mit 1×/2×/4× beschleunigen.</span></div>
@@ -794,6 +1042,26 @@ window.addEventListener('keydown',e=>{
   // Native controls must retain keyboard focus, Space activation and typing.
   const target=e.target as HTMLElement|null;
   if(target?.closest('button,input,textarea,select,[contenteditable="true"]'))return;
+  if(/^Digit[1-9]$/.test(e.code)&&(e.ctrlKey||e.metaKey)){
+    e.preventDefault();
+    const slot=Number(e.code.slice(5));
+    armyControlGroups.set(slot,[...new Set(selectedSquadIds.filter(id=>
+      game.squads.some(unit=>unit.id===id&&unit.owner===0)))]);
+    attackMessage='Armeegruppe '+slot+' gespeichert.';
+    attackMessageKind='success';update();return;
+  }
+  if(/^Digit[1-9]$/.test(e.code)&&!e.altKey&&!e.shiftKey){
+    const slot=Number(e.code.slice(5));
+    if(armyControlGroups.has(slot)){
+      e.preventDefault();
+      const ids=armyControlGroups.get(slot)!.filter(id=>
+        game.squads.some(unit=>unit.id===id&&unit.owner===0));
+      selectedSquadIds=ids;selectedSquadId=ids[0]??null;
+      renderer.selectedSquadIds=ids;
+      attackMessage=ids.length?'Armeegruppe '+slot+' ausgewählt.':'Armeegruppe '+slot+' ist leer.';
+      attackMessageKind=ids.length?'success':'neutral';update();return;
+    }
+  }
   if(e.code==='Space') {e.preventDefault();soundscape.update({},true);game.paused=!game.paused;update();}
   if (e.code === 'KeyT') setAttackRatio(attackRatio-5);
   if (e.code === 'KeyY') setAttackRatio(attackRatio+5);

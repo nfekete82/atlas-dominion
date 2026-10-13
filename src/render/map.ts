@@ -1,14 +1,14 @@
 import {createTopographyLayer} from './topography.js';
 import {voyageGeometry,voyagePosition,type VoyageGeometry} from './sea-voyages.js';
 import { COUNTRIES, MAP_HEIGHT, MAP_WIDTH, WORLD_HEIGHT, WORLD_WIDTH } from '../data/europe.js';
+import { COUNTRY_STARTS } from '../data/countries.js';
 import { Game, NEUTRAL, WATER, pointToWorld, pointToIndex, seededRandom, type Point } from '../engine/game.js';
 import { TerritoryWave, waveProgress } from './wave.js';
 import {organicCaptureRadius,burningFrontAlpha} from './capture-visual.js';
 import { pixelGridEdges } from './pixel-grid.js';
 import { territoryContours, contourRings } from './territory-contours.js';
-import { buildingMarkerFor, cityVisibleAtZoom, drawCityMarker, cityMarkerBounds, ScreenOccupancy, type ScreenRect } from './building-markers.js';
+import { buildingMarkerFor, showBuildingMarker, cityVisibleAtZoom, drawCityMarker, cityMarkerBounds, ScreenOccupancy, type ScreenRect } from './building-markers.js';
 // Keep natural-dark ocean and distinct faction colors; no pale map wash.
-import { COUNTRY_STARTS } from '../data/countries.js';
 import {formatCompact} from '../format.js';
 import {militarySummaries,relativeStrength,strengthLabel,mobileStrengthLabel,type MilitarySummary} from '../military-view.js';
 import {groupBattles,visualNoise,combatVisualDensity,battleMomentum,type FrontGroup} from './front-battles.js';
@@ -27,7 +27,11 @@ export class MapRenderer {
   private base = document.createElement('canvas');
   private overlay = document.createElement('canvas');
   private highlightedCountry = document.createElement('canvas');
+  // Visual interpolation only: squad positions in the simulation are untouched.
+  private squadVisuals=new Map<number,{index:number;from:number;changedAt:number}>();
   private showSeaPassages=false;
+  private readonly panKeys=new Set<string>();
+  private previousPanFrame=0;
   private topography=createTopographyLayer();
   private showTopography=true;
   private voyageCache=new WeakMap<number[],{geometry:VoyageGeometry;path:Path2D}>();
@@ -55,6 +59,7 @@ export class MapRenderer {
   private occupancy=new ScreenOccupancy();
   private cityAnchors=new ScreenOccupancy();
   private overlayBounds:ScreenRect[]=[];
+  private squadClusterHits:Array<{x:number;y:number;owner:number;ids:number[]}>=[];
   private visibleCityMarkers:Array<{index:number;x:number;y:number;level:number;bounds:ScreenRect}>=[];
   /** Cached when territory/buildings change, not rescanned every animation frame. */
   private buildingMarkers: Array<{index:number;code:number;owner:number}> = [];
@@ -67,6 +72,10 @@ export class MapRenderer {
   private reducedMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches??false;
   game: Game;
   onSelect: (point: Point, landing: boolean) => void = () => {};
+  onSelectSquads:(ids:number[])=>void=()=>{};
+  onCommandSquads:(point:Point)=>void=()=>{};
+  selectedSquadIds:number[]=[];
+  private selectionBox:{x1:number;y1:number;x2:number;y2:number}|null=null;
   onBuildRequest: (point: Point | null, clientX: number, clientY: number) => void = () => {};
   onHover: (point: Point | null, px: number, py: number, landing: boolean) => void = () => {};
 
@@ -89,6 +98,8 @@ export class MapRenderer {
 
   setGame(game: Game) {
     this.game = game;
+    this.squadVisuals.clear();
+    this.squadClusterHits=[];
     this.hover=null;
     this.hoverPointer=null;
     this.hoverIndex=-1;
@@ -103,6 +114,12 @@ export class MapRenderer {
     this.updateTerritory();
     this.fit();
   }
+  /** Current camera rectangle in fixed map-world units, for the minimap. */
+  visibleWorldBounds():{x:number;y:number;width:number;height:number}{
+    return {x:-this.ox/this.scale,y:-this.oy/this.scale,
+      width:this.canvas.clientWidth/this.scale,height:this.canvas.clientHeight/this.scale};
+  }
+
   /** Jump from an alert or an army command to its actual map position. */
   focusOnPoint(point:Point,minZoom=1.8):void {
     if(!Number.isFinite(point.x)||!Number.isFinite(point.y)||
@@ -368,32 +385,372 @@ export class MapRenderer {
    * Labels and actual combat counters have priority. Crowded cities reappear
    * when zooming in; their world positions and ownership never change.
    */
+  /** Canvas-only industry links: inexpensive to draw and no simulation side effects. */
+  private drawFactoryLinks(c:CanvasRenderingContext2D,time=0):void {
+    c.save();c.lineWidth=1.6;c.setLineDash([4,4]);
+    for(const [factory,city] of this.game.factoryLinks){
+      if(this.game.buildings[factory]!==3||this.game.owner[factory]<0||
+        this.game.owner[factory]!==this.game.owner[city])continue;
+      const fx=this.ox+(factory%MAP_WIDTH+.5)*CW*this.scale;
+      const fy=this.oy+(Math.floor(factory/MAP_WIDTH)+.5)*CH*this.scale;
+      const cx=this.ox+(city%MAP_WIDTH+.5)*CW*this.scale;
+      const cy=this.oy+(Math.floor(city/MAP_WIDTH)+.5)*CH*this.scale;
+      c.strokeStyle=this.game.owner[factory]===0?'rgba(244,197,111,.8)':'rgba(173,194,204,.45)';
+      c.beginPath();c.moveTo(fx,fy);c.lineTo(cx,cy);c.stroke();
+      // Animated transport along a factory route (visual only).
+      const distance=Math.hypot(cx-fx,cy-fy);
+      if(distance>5){
+        const phase=(time*.00011+(factory%43)/43)%1;
+        const tx=fx+(cx-fx)*phase,ty=fy+(cy-fy)*phase;
+        c.setLineDash([]);c.fillStyle=this.game.owner[factory]===0?'#ffe5a3':'#e3edef';
+        c.strokeStyle='#162d35';c.lineWidth=1;
+        c.beginPath();c.arc(tx,ty,3.3,0,Math.PI*2);c.fill();c.stroke();
+        c.setLineDash([4,4]);c.lineWidth=1.6;
+      }
+    }
+    c.restore();
+  }
+
   private drawBuildings(c:CanvasRenderingContext2D):void {
     this.visibleCityMarkers=[];
     const width=this.canvas.clientWidth,height=this.canvas.clientHeight;
     const hovered=this.hover?pointToIndex(this.hover):-1;
-    // In a wide strategic view show mature / friendly cities first.
-    // At tactical zoom the exact same city markers reappear individually.
-    const markers=this.zoom<1.8
-      ?this.buildingMarkers.slice().sort((a,b)=>
-        this.game.cityUpgrades[b.index]-this.game.cityUpgrades[a.index]||
-        Number(b.owner===0)-Number(a.owner===0)||a.index-b.index)
-      :this.buildingMarkers;
+    // Cities win the visual priority; factories and towers are smaller markers.
+    // No building may hide a nearby city, and every drawn marker is clickable.
+    const markers=this.buildingMarkers.slice().sort((a,b)=>
+      Number(b.code===1)-Number(a.code===1)||
+      Number(b.owner===0)-Number(a.owner===0)||
+      this.game.cityUpgrades[b.index]-this.game.cityUpgrades[a.index]||a.index-b.index);
+    const shownAiBarracks:{owner:number;x:number;y:number}[]=[];
     const draw=(marker:typeof markers[number])=>{
-      if(!cityVisibleAtZoom(marker.owner,this.game.cityUpgrades[marker.index],this.zoom,marker.index===hovered)||!buildingMarkerFor(marker.code))return;
+      const city=marker.code===1;
+      if(!buildingMarkerFor(marker.code)||!showBuildingMarker(marker.owner,this.zoom))return;
+      if(city&&!cityVisibleAtZoom(marker.owner,this.game.cityUpgrades[marker.index],this.zoom,marker.index===hovered))return;
       const x=this.ox+(marker.index%MAP_WIDTH+.5)*CW*this.scale;
       const y=this.oy+(Math.floor(marker.index/MAP_WIDTH)+.5)*CH*this.scale;
-      const bounds=cityMarkerBounds(x,y);
-      if(bounds.x<0||bounds.y<0||bounds.x+bounds.width>width||bounds.y+bounds.height>height)return;
-      if(this.occupancy.intersects(bounds))return;
+      // Captured barracks are retained for gameplay and can always be seen
+      // when zoomed in. In the overview, cluster nearby AI barracks icons
+      // visually instead of covering the map with inherited bases.
+      if(marker.code===4&&marker.owner>0&&this.zoom<1.5){
+        if(shownAiBarracks.some(b=>b.owner===marker.owner&&
+          Math.hypot(b.x-x,b.y-y)<46))return;
+      }
+      const size=city?30:18;
+      // Dense towns need an offset industrial badge instead of suppressing
+      // the neighboring factory completely. The click box follows the badge.
+      const offsets=city?[[0,0]]:[[0,0],[22,-12],[-22,-12],[22,12],[-22,12],[0,-25],[0,25]];
+      let bounds:ScreenRect|null=null;
+      for(const [dx,dy] of offsets){
+        const candidate={x:x+dx-size/2,y:y+dy-size/2,width:size,height:size};
+        if(candidate.x<0||candidate.y<0||candidate.x+size>width||candidate.y+size>height)continue;
+        // Player cities must not disappear when a country badge or combat
+        // overlay reserves their only possible location. Other markers can
+        // move aside, but city centers are fixed geographic positions.
+        if(!(city&&marker.owner===0)&&this.occupancy.intersects(candidate,city?3:0))continue;
+        bounds=candidate;break;
+      }
+      if(!bounds)return;
+      if(marker.code===4&&marker.owner>0&&this.zoom<1.5)
+        shownAiBarracks.push({owner:marker.owner,x,y});
       const level=this.game.cityUpgrades[marker.index];
       this.occupancy.reserve(bounds);
       this.visibleCityMarkers.push({index:marker.index,x,y,level,bounds});
-      drawCityMarker(c,x,y,level,marker.owner);
+      if(city)drawCityMarker(c,x,y,level,marker.owner);
+      else {
+        c.save();c.translate(bounds.x+size/2,bounds.y+size/2);
+        c.lineJoin='round';c.lineCap='round';c.lineWidth=1.2;
+        c.strokeStyle='#142a31';c.fillStyle=marker.owner===0?'#d7ab70':'#b6c4c9';
+        if(marker.code===3){
+          // Industrial silhouette: roof, sawtooth skylights and chimney.
+          c.beginPath();c.rect(-8,-1,16,10);c.fill();c.stroke();
+          c.beginPath();c.moveTo(-8,-1);c.lineTo(-3,-5);c.lineTo(1,-1);
+          c.lineTo(5,-5);c.lineTo(8,-1);c.closePath();c.fill();c.stroke();
+          c.fillRect(-6,-11,3,8);c.strokeRect(-6,-11,3,8);
+          c.fillStyle='#243943';for(let i=0;i<3;i++)c.fillRect(-5+i*5,2,2,3);
+        }else if(marker.code===4){
+          // Distinct barracks silhouette inspired by the requested rounded
+          // hangar: domed roof, flagpole, central gate, two windows and vent.
+          c.fillStyle='#c4b18c';c.strokeStyle='#182d36';c.lineWidth=1.5;
+          c.beginPath();c.moveTo(-9,8);c.lineTo(-9,-1);
+          c.bezierCurveTo(-9,-10,-5,-12,0,-12);
+          c.bezierCurveTo(5,-12,9,-10,9,-1);
+          c.lineTo(9,8);c.closePath();c.fill();c.stroke();
+          c.fillStyle='#e5c994';c.fillRect(-11,7,22,3);c.strokeRect(-11,7,22,3);
+          c.fillStyle='#263b43';c.fillRect(-3,0,6,9);
+          c.fillStyle='#8fabb0';c.fillRect(-7,-2,3,4);c.fillRect(4,-2,3,4);
+          c.beginPath();c.arc(0,-7,1.4,0,Math.PI*2);c.fill();
+          c.strokeStyle='#182d36';c.lineWidth=1.4;
+          c.beginPath();c.moveTo(0,-12);c.lineTo(0,-18);c.stroke();
+          c.fillStyle=marker.owner===0?'#e9b85e':'#e0ded6';
+          c.beginPath();c.moveTo(0,-18);c.lineTo(6,-16);c.lineTo(0,-14);c.closePath();c.fill();
+        }else{
+          // Fortified watchtower with visible crenellations.
+          c.fillRect(-6,-6,12,15);c.strokeRect(-6,-6,12,15);
+          for(const bx of [-7,-2,3]){c.fillRect(bx,-10,4,5);c.strokeRect(bx,-10,4,5);}
+          c.fillStyle='#263b43';c.fillRect(-1,0,2,6);
+        }
+        c.restore();
+      }
     };
-    const selected=markers.find(marker=>marker.index===hovered);
-    if(selected)draw(selected);
-    for(const marker of markers)if(marker!==selected)draw(marker);
+    // Never reorder drawing based on hover: the old selected-first code moved
+    // the badge underneath the cursor, breaking right-click hit testing.
+    for(const marker of markers)draw(marker);
+  }
+
+  /** Lightweight animated infantry, using canvas shapes rather than heavy assets.
+   * Positions and motion are deterministic visual-only effects.
+   */
+  /** Resolve the current faction order without requiring save migration. */
+  private squadFlag(owner:number):string {
+    const faction=this.game.factions[owner];
+    const code=COUNTRY_STARTS.find(c=>c.name===faction?.name)?.code;
+    if(!code||!/^[A-Z]{2}$/.test(code))return '🏳';
+    return String.fromCodePoint(...[...code].map(ch=>0x1f1e6+ch.charCodeAt(0)-65));
+  }
+
+  private squadRelationColor(owner:number):string {
+    if(owner===0)return '#68caff';
+    if(this.game.isAllied(0,owner))return '#65d68a';
+    const hostile=this.game.attackOrders.some(order=>
+      (order.factionId===0&&order.targetOwner===owner)||
+      (order.factionId===owner&&order.targetOwner===0))||
+      this.game.squads.some(s=>s.owner===owner&&s.attackTarget!=null&&
+        this.game.owner[s.attackTarget]===0)||
+      this.game.squads.some(s=>s.owner===0&&s.attackTarget!=null&&
+        this.game.owner[s.attackTarget]===owner);
+    return hostile?'#ff6a70':'#bfc7d0';
+  }
+
+  private drawSquads(c:CanvasRenderingContext2D,time=0):void {
+    // A sailing RTS squad remains a real unit in simulation, while its
+    // ship is drawn at interpolated positions along the ocean route.
+    // Rendering has no effect on ownership, timing, or combat.
+    c.save();
+    for(const squad of this.game.squads){
+      const route=squad.seaRoute;
+      if(!route||route.length<3||squad.seaLanding==null||
+        squad.destination!==null||squad.index!==route[0])continue;
+      const duration=Math.max(8,Math.ceil(route.length/3));
+      const progress=Math.min(1,Math.max(0,(squad.seaTicks??0)/duration));
+      const floating=progress*(route.length-1);
+      const first=Math.min(route.length-2,Math.floor(floating));
+      const blend=floating-first;
+      const tile=route[first],next=route[first+1];
+      const x=((tile%MAP_WIDTH+.5)*(1-blend)+(next%MAP_WIDTH+.5)*blend);
+      const y=((Math.floor(tile/MAP_WIDTH)+.5)*(1-blend)+
+        (Math.floor(next/MAP_WIDTH)+.5)*blend);
+      const px=this.ox+x*CW*this.scale,py=this.oy+y*CH*this.scale;
+      if(px< -30||py< -30||px>this.canvas.clientWidth+30||py>this.canvas.clientHeight+30)continue;
+      c.save();c.translate(px,py);
+      const angle=Math.atan2(Math.floor(next/MAP_WIDTH)-Math.floor(tile/MAP_WIDTH),
+        next%MAP_WIDTH-tile%MAP_WIDTH);
+      c.rotate(angle);
+      c.fillStyle='#173749';c.strokeStyle=this.squadRelationColor(squad.owner);
+      c.lineWidth=2;c.beginPath();c.moveTo(15,0);c.lineTo(6,7);
+      c.lineTo(-12,7);c.lineTo(-17,0);c.lineTo(-12,-7);
+      c.lineTo(6,-7);c.closePath();c.fill();c.stroke();
+      c.fillStyle='#dce9e8';c.fillRect(-7,-5,9,10);
+      c.strokeStyle='#f3d794';c.beginPath();c.moveTo(0,-4);
+      c.lineTo(0,-14);c.stroke();
+      c.fillStyle=this.squadRelationColor(squad.owner);
+      c.beginPath();c.moveTo(0,-14);c.lineTo(9,-11);c.lineTo(0,-8);
+      c.closePath();c.fill();
+      c.restore();
+      c.save();c.fillStyle='#fff';c.textAlign='center';
+      c.font='bold 11px system-ui';c.fillText(Math.round(squad.troops).toString(),px,py+20);
+      c.restore();
+    }
+    c.restore();
+    // Tactical routes appear only for selected squads, keeping busy maps clean.
+    c.save();
+    for(const squad of this.game.squads){
+      if(!this.selectedSquadIds.includes(squad.id))continue;
+      const goal=squad.campaignTarget??squad.attackTarget??squad.destination;
+      if(goal==null||goal===squad.index)continue;
+      const sx=this.ox+(squad.index%MAP_WIDTH+.5)*CW*this.scale;
+      const sy=this.oy+(Math.floor(squad.index/MAP_WIDTH)+.5)*CH*this.scale;
+      const tx=this.ox+(goal%MAP_WIDTH+.5)*CW*this.scale;
+      const ty=this.oy+(Math.floor(goal/MAP_WIDTH)+.5)*CH*this.scale;
+      c.save();
+      c.strokeStyle='rgba(130,216,255,.85)';c.lineWidth=2;
+      c.setLineDash([7,6]);c.lineDashOffset=-time*.018;
+      c.beginPath();c.moveTo(sx,sy);c.lineTo(tx,ty);c.stroke();c.setLineDash([]);
+      c.fillStyle='#102b3a';c.strokeStyle='#8bdcff';c.lineWidth=2;
+      c.beginPath();c.arc(tx,ty,6,0,Math.PI*2);c.fill();c.stroke();
+      c.restore();
+    }
+    c.restore();
+    c.save();c.textAlign='center';c.textBaseline='middle';
+    const liveIds=new Set(this.game.squads.map(unit=>unit.id));
+    for(const id of this.squadVisuals.keys())if(!liveIds.has(id))this.squadVisuals.delete(id);
+    const stackPositions=new Map<string,number>();
+    const squadByTile=new Map<number,typeof this.game.squads>();
+    for(const unit of this.game.squads){
+      const units=squadByTile.get(unit.index)??[];
+      units.push(unit);squadByTile.set(unit.index,units);
+    }
+    // Density clustering is presentation-only: preserve every real squad.
+    // The compact marker replaces groups of nearby friendly formations.
+    const clusteredIds=new Set<number>();
+    const clusters:Array<{owner:number;x:number;y:number;troops:number;ids:number[]}>= [];
+    const radius=this.zoom>=3.2?28:this.zoom>=2.2?44:58;
+    for(const squad of this.game.squads){
+      if(clusteredIds.has(squad.id)||this.selectedSquadIds.includes(squad.id))continue;
+      const sx=this.ox+(squad.index%MAP_WIDTH+.5)*CW*this.scale;
+      const sy=this.oy+(Math.floor(squad.index/MAP_WIDTH)+.5)*CH*this.scale;
+      const nearby=this.game.squads.filter(other=>{
+        if(other.owner!==squad.owner||this.selectedSquadIds.includes(other.id)||clusteredIds.has(other.id))return false;
+        const ox=this.ox+(other.index%MAP_WIDTH+.5)*CW*this.scale;
+        const oy=this.oy+(Math.floor(other.index/MAP_WIDTH)+.5)*CH*this.scale;
+        return Math.hypot(ox-sx,oy-sy)<=radius;
+      });
+      if(nearby.length<2)continue;
+      for(const member of nearby)clusteredIds.add(member.id);
+      clusters.push({owner:squad.owner,
+        x:nearby.reduce((sum,u)=>sum+this.ox+(u.index%MAP_WIDTH+.5)*CW*this.scale,0)/nearby.length,
+        y:nearby.reduce((sum,u)=>sum+this.oy+(Math.floor(u.index/MAP_WIDTH)+.5)*CH*this.scale,0)/nearby.length,
+        troops:nearby.reduce((sum,u)=>sum+u.troops,0),ids:nearby.map(u=>u.id)});
+    }
+    this.squadClusterHits=clusters.map(group=>({x:group.x,y:group.y,owner:group.owner,ids:group.ids}));
+    for(const cluster of clusters){
+      if(cluster.x< -45||cluster.y< -45||cluster.x>this.canvas.clientWidth+45||cluster.y>this.canvas.clientHeight+45)continue;
+      const color=this.squadRelationColor(cluster.owner);
+      c.fillStyle='rgba(9,29,41,.95)';c.strokeStyle=color;c.lineWidth=2;
+      c.beginPath();c.roundRect(cluster.x-24,cluster.y-21,48,46,10);c.fill();c.stroke();
+      c.font='16px sans-serif';c.fillStyle='#fff';
+      c.fillText(this.squadFlag(cluster.owner),cluster.x,cluster.y-10);
+      c.font='bold 12px system-ui';c.fillText(String(Math.round(cluster.troops)),cluster.x,cluster.y+5);
+      c.font='bold 10px system-ui';c.fillStyle='#aed0db';
+      c.fillText(cluster.ids.length+' Gruppen',cluster.x,cluster.y+17);
+    }
+    for(const squad of this.game.squads){
+      if(clusteredIds.has(squad.id))continue;
+      const stackKey=`${squad.owner}:${squad.index}`;
+      const stackNumber=stackPositions.get(stackKey)??0;
+      stackPositions.set(stackKey,stackNumber+1);
+      let visual=this.squadVisuals.get(squad.id);
+      if(!visual){
+        visual={index:squad.index,from:squad.index,changedAt:time-170};
+        this.squadVisuals.set(squad.id,visual);
+      }else if(visual.index!==squad.index){
+        const previous=visual.index;
+        visual.from=Math.abs(previous%MAP_WIDTH-squad.index%MAP_WIDTH)+
+          Math.abs(Math.floor(previous/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH))===1?
+          previous:squad.index;
+        visual.index=squad.index;visual.changedAt=time;
+      }
+      const progress=Math.max(0,Math.min(1,(time-visual.changedAt)/170));
+      const easing=progress*progress*(3-2*progress);
+      const vx=(visual.from%MAP_WIDTH)*(1-easing)+(squad.index%MAP_WIDTH)*easing;
+      const vy=Math.floor(visual.from/MAP_WIDTH)*(1-easing)+
+        Math.floor(squad.index/MAP_WIDTH)*easing;
+      const offsetX=stackNumber===0?0:Math.cos(stackNumber*2.39996)*Math.min(27,12+stackNumber*4);
+      const offsetY=stackNumber===0?0:Math.sin(stackNumber*2.39996)*Math.min(20,8+stackNumber*3);
+      const x=this.ox+(vx+.5)*CW*this.scale+offsetX;
+      const y=this.oy+(vy+.5)*CH*this.scale+offsetY;
+      if(x< -40||y< -40||x>this.canvas.clientWidth+40||y>this.canvas.clientHeight+40)continue;
+      const selected=this.selectedSquadIds.includes(squad.id);
+      const relation=this.squadRelationColor(squad.owner);
+      const flag=this.squadFlag(squad.owner);
+      const far=this.zoom<2;
+      const neighbors=[squad.index-1,squad.index+1,squad.index-MAP_WIDTH,squad.index+MAP_WIDTH]
+        .filter(index=>index>=0&&index<MAP_WIDTH*MAP_HEIGHT&&
+          Math.abs(index%MAP_WIDTH-squad.index%MAP_WIDTH)+
+          Math.abs(Math.floor(index/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH))===1);
+      const opponent=neighbors.flatMap(index=>squadByTile.get(index)??[])
+        .find(unit=>unit.owner!==squad.owner&&!this.game.isAllied(unit.owner,squad.owner));
+      const hit=this.game.battleEvents.some(event=>event.tick===this.game.tick&&
+        (event.attackerId===squad.owner||event.defenderId===squad.owner)&&
+        Math.abs(event.index%MAP_WIDTH-squad.index%MAP_WIDTH)+
+        Math.abs(Math.floor(event.index/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH))<=1);
+      const clash=!!opponent&&hit;
+      const pulse=Math.max(0,Math.sin(time*.014+squad.id*.43));
+      const lungeX=opponent?(opponent.index%MAP_WIDTH-squad.index%MAP_WIDTH)*4*pulse:0;
+      const lungeY=opponent?(Math.floor(opponent.index/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH))*4*pulse:0;
+      const count=Math.min(8,Math.max(3,Math.ceil(squad.troops/65)));
+      c.strokeStyle=relation;c.lineWidth=selected?2.8:1.5;
+      c.beginPath();c.ellipse(x,y,far?12:23,far?11:16,0,0,Math.PI*2);c.stroke();
+      if(far){
+        if(clash){c.fillStyle='rgba(255,178,75,.8)';c.beginPath();c.arc(x+lungeX,y+lungeY,4+pulse*3,0,Math.PI*2);c.fill();}
+        c.fillStyle='#112d3b';c.beginPath();c.arc(x,y,10,0,Math.PI*2);c.fill();
+        c.font='13px sans-serif';c.fillStyle='#fff';c.fillText(flag,x,y);
+        c.font='bold 9px sans-serif';c.strokeStyle='#102534';c.lineWidth=3;
+        c.strokeText(String(Math.round(squad.troops)),x,y-16);
+        c.fillText(String(Math.round(squad.troops)),x,y-16);
+        continue;
+      }
+      const marching=squad.destination!==null||squad.campaignTarget!=null;
+      const goal=squad.destination??squad.attackTarget??squad.campaignTarget;
+      if(goal!=null&&goal!==squad.index){
+        const tx=this.ox+(goal%MAP_WIDTH+.5)*CW*this.scale;
+        const ty=this.oy+(Math.floor(goal/MAP_WIDTH)+.5)*CH*this.scale;
+        const direction=Math.atan2(ty-y,tx-x);
+        // Short chevron points along the actual ordered march direction.
+        c.save();c.translate(x,y);c.rotate(direction);
+        c.fillStyle=relation;c.globalAlpha=.9;
+        c.beginPath();c.moveTo(31,0);c.lineTo(21,-5);c.lineTo(21,5);c.closePath();c.fill();
+        c.restore();
+      }
+      const combat=clash||(squad.attackTarget!==null&&squad.attackTarget!==undefined&&squad.destination===null)||
+        this.game.battleEvents.some(e=>e.tick===this.game.tick&&
+          (e.attackerId===squad.owner||e.defenderId===squad.owner)&&
+          Math.abs(e.index%MAP_WIDTH-squad.index%MAP_WIDTH)+
+          Math.abs(Math.floor(e.index/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH))<=1);
+      const tint=squad.owner===0?'#79d3fa':this.game.factions[squad.owner]?.color??'#d98c8c';
+      const phase=time*.009+squad.id*1.37;
+      if(selected){
+        c.strokeStyle='#ffe58b';c.lineWidth=2;c.setLineDash([3,3]);
+        c.beginPath();c.ellipse(x,y,23,16,0,0,Math.PI*2);c.stroke();c.setLineDash([]);
+      }
+      for(let n=0;n<count;n++){
+        const col=n%4,row=Math.floor(n/4);
+        const sway=marching?Math.sin(phase+n*.8)*2:Math.sin(phase*.22+n)*.35;
+        const px=x+(col-1.5)*8+(row%2)*3+(clash?lungeX:0);
+        const py=y+(row-.35)*11+sway+(clash?lungeY:0);
+        c.fillStyle='rgba(0,0,0,.30)';c.beginPath();c.ellipse(px,py+5,3.4,1.7,0,0,Math.PI*2);c.fill();
+        c.strokeStyle='#233845';c.lineWidth=1.5;
+        c.beginPath();c.moveTo(px-1,py+2);c.lineTo(px-2+(marching?sway*.4:0),py+6);
+        c.moveTo(px+1,py+2);c.lineTo(px+2-(marching?sway*.4:0),py+6);c.stroke();
+        c.fillStyle=tint;c.fillRect(px-2.8,py-3,5.6,6);
+        c.fillStyle='#eed8b6';c.beginPath();c.arc(px,py-5,2.3,0,Math.PI*2);c.fill();
+        c.fillStyle=squad.owner===0?'#306c91':'#54464c';
+        c.fillRect(px-2.7,py-7.6,5.4,2.4);
+        c.strokeStyle='#d7d9db';c.lineWidth=1;
+        c.beginPath();c.moveTo(px+3,py-2);c.lineTo(px+7,py-(combat?7:4));c.stroke();
+      }
+      if(combat){
+        const flash=(Math.sin(phase*1.7)+1)/2;
+        c.fillStyle='rgba(255,193,76,'+(.25+flash*.7)+')';
+        c.beginPath();c.arc(x+24,y-6,2.5+flash*2,0,Math.PI*2);c.fill();
+        // Visible hit sparks and fallen silhouette communicate actual
+        // casualties from this tick; never modify simulation values.
+        const recent=this.game.battleEvents.filter(e=>e.tick===this.game.tick&&
+          (e.attackerId===squad.owner||e.defenderId===squad.owner)&&
+          Math.abs(e.index%MAP_WIDTH-squad.index%MAP_WIDTH)+
+          Math.abs(Math.floor(e.index/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH))<=1);
+        const casualties=recent.reduce((sum,e)=>sum+
+          (e.attackerId===squad.owner?e.attackerLost:0)+
+          (e.defenderId===squad.owner?e.defenderLost:0),0);
+        if(casualties>0){
+          c.fillStyle='rgba(250,107,91,'+(.3+flash*.6)+')';
+          for(let n=0;n<Math.min(4,Math.ceil(casualties/2));n++){
+            const px=x-13+n*9,py=y+8+(n%2)*2;
+            c.beginPath();c.arc(px,py,1.7+flash,0,Math.PI*2);c.fill();
+          }
+          c.strokeStyle='#b9a7a0';c.lineWidth=2;
+          c.beginPath();c.moveTo(x-8,y+13);c.lineTo(x-1,y+15);c.stroke();
+        }
+      }
+      c.fillStyle='rgba(12,31,43,.94)';
+      c.beginPath();c.roundRect(x-13,y-37,26,17,5);c.fill();
+      c.strokeStyle=relation;c.lineWidth=1;c.stroke();
+      c.font='13px sans-serif';c.fillStyle='#fff';c.fillText(flag,x,y-28);
+      c.font='bold 10px sans-serif';
+      const label=Math.round(squad.troops).toString();
+      c.lineWidth=3;c.strokeStyle='#102534';c.strokeText(label,x,y-19);
+      c.fillStyle='#ffffff';c.fillText(label,x,y-19);
+    }
+    c.restore();
   }
 
   private drawCapitalNames(c:CanvasRenderingContext2D):void {
@@ -724,9 +1081,24 @@ export class MapRenderer {
     // Hovered small countries receive first choice of the available space.
     const hoveredId=this.hoverIndex>=0?this.game.owner[this.hoverIndex]:WATER;
     const labels=this.labels.slice().sort((a,b)=>Number(b.id===hoveredId)-Number(a.id===hoveredId));
+    // Reserve soldiers before laying out labels. Drawing squads last alone
+    // cannot prevent badges from obscuring flags and formations.
+    const squadAreas:ScreenRect[]=this.game.squads.map(unit=>{
+      const sx=this.ox+(unit.index%MAP_WIDTH+.5)*CW*this.scale;
+      const sy=this.oy+(Math.floor(unit.index/MAP_WIDTH)+.5)*CH*this.scale;
+      return {x:sx-34,y:sy-48,width:68,height:80};
+    }).filter(bounds=>bounds.x<width&&bounds.y<height&&
+      bounds.x+bounds.width>0&&bounds.y+bounds.height>0);
+    const overlapsSquad=(bounds:ScreenRect)=>squadAreas.some(area=>
+      bounds.x<area.x+area.width&&bounds.x+bounds.width>area.x&&
+      bounds.y<area.y+area.height&&bounds.y+bounds.height>area.y);
+
     for(const label of labels){
       const faction=this.game.factions[label.id];
       if(!faction?.alive)continue;
+      // In tactical view the actual units take priority over large
+      // country information cards; the player and hovered country remain.
+      if(this.zoom>=2.2&&label.id!==0&&label.id!==hoveredId)continue;
       if(label.id!==0 && label.id!==hoveredId && shown>=16 && this.zoom<2.6)continue;
       const x=this.ox+label.pos.x*this.scale;
       let y=this.oy+label.pos.y*this.scale+17;
@@ -749,7 +1121,7 @@ export class MapRenderer {
       const badgeHeight=58;
       for(const offset of [0,58,-58,116,-116]){
         const candidate={x:x-labelWidth/2,y:preferredY+offset-17,width:labelWidth,height:badgeHeight};
-        if(candidate.y<30||candidate.y+badgeHeight>height-88||this.occupancy.intersects(candidate))continue;
+        if(candidate.y<30||candidate.y+badgeHeight>height-88||this.occupancy.intersects(candidate)||overlapsSquad(candidate))continue;
         fallback??=preferredY+offset;
         if(this.cityAnchors.intersects(candidate))continue;
         clear=preferredY+offset;break;
@@ -861,7 +1233,53 @@ export class MapRenderer {
     }
     c.restore();
   }
+  /** Only real hostile orders and explicit player deployment priorities.
+   * Lightweight enough for every animation frame, at most 512 user pins.
+   */
+  private drawStrategicOrders(c:CanvasRenderingContext2D,time:number):void {
+    if(this.game.status!=='playing')return;
+    c.save();
+    const pulse=.65+.25*Math.sin(time*.006);
+    if(this.zoom>=1.1){
+      for(const [index,mode] of this.game.borderOrders){
+        if(this.game.owner[index]!==0)continue;
+        const x=this.ox+(index%MAP_WIDTH+.5)*CW*this.scale;
+        const y=this.oy+(Math.floor(index/MAP_WIDTH)+.5)*CH*this.scale;
+        if(x<0||x>this.canvas.clientWidth||y<0||y>this.canvas.clientHeight)continue;
+        c.strokeStyle=mode==='defend'?'#65d4b2':'#e5bb7b';c.lineWidth=1.6;
+        c.globalAlpha=pulse;
+        c.beginPath();c.arc(x,y,5.5+this.zoom*.8,0,Math.PI*2);c.stroke();
+        c.fillStyle=c.strokeStyle;c.globalAlpha=.82;
+        c.beginPath();c.arc(x,y,1.7,0,Math.PI*2);c.fill();
+      }
+    }
+    for(const order of this.game.attackOrders){
+      if(order.factionId===0||order.targetOwner!==0||order.returning)continue;
+      const index=order.contested??order.lastCaptured??pointToIndex(order.anchor);
+      if(index<0||index>=this.game.owner.length)continue;
+      const x=this.ox+(index%MAP_WIDTH+.5)*CW*this.scale;
+      const y=this.oy+(Math.floor(index/MAP_WIDTH)+.5)*CH*this.scale;
+      if(x<0||x>this.canvas.clientWidth||y<0||y>this.canvas.clientHeight)continue;
+      c.strokeStyle='#fb7477';c.lineWidth=2;c.globalAlpha=pulse;
+      c.beginPath();c.arc(x,y,6+this.zoom*1.3,0,Math.PI*2);c.stroke();
+    }
+    c.restore();
+  }
+
   private frame(timestamp: number) {
+    // Smooth keyboard camera controls, independent of simulation tick rate.
+    const elapsed=this.previousPanFrame?Math.min(50,timestamp-this.previousPanFrame):0;
+    this.previousPanFrame=timestamp;
+    if(elapsed&&this.panKeys.size){
+      const dx=Number(this.panKeys.has('d')||this.panKeys.has('arrowright'))-
+        Number(this.panKeys.has('a')||this.panKeys.has('arrowleft'));
+      const dy=Number(this.panKeys.has('s')||this.panKeys.has('arrowdown'))-
+        Number(this.panKeys.has('w')||this.panKeys.has('arrowup'));
+      if(dx||dy){
+        const distance=elapsed*.58/(Math.hypot(dx,dy)||1);
+        this.ox-=dx*distance;this.oy-=dy*distance;
+      }
+    }
     if(this.dpr!==Math.max(1,devicePixelRatio||1))this.resize();
     this.occupancy.clear();
     this.cityAnchors.clear();
@@ -893,13 +1311,22 @@ export class MapRenderer {
     // Mouse feedback is now the subtle whole-target tint cached above.
     // No hover square or animated point circle.
     c.restore();
+    this.drawStrategicOrders(c,timestamp);
     this.drawLiveBattles(c,timestamp);
     this.drawReinforcements(c,timestamp);
     this.drawSeaVoyages(c);
     this.drawActiveFrontForces(c);
     this.drawTroopBadges(c);
     this.drawCapitalNames(c);
+    this.drawFactoryLinks(c,timestamp);
     this.drawBuildings(c);
+    this.drawSquads(c,timestamp);
+    if(this.selectionBox){
+      const b=this.selectionBox;
+      c.save();c.fillStyle='rgba(90,188,250,.16)';c.strokeStyle='#86d9ff';c.lineWidth=1.5;
+      c.fillRect(Math.min(b.x1,b.x2),Math.min(b.y1,b.y2),Math.abs(b.x2-b.x1),Math.abs(b.y2-b.y1));
+      c.strokeRect(Math.min(b.x1,b.x2),Math.min(b.y1,b.y2),Math.abs(b.x2-b.x1),Math.abs(b.y2-b.y1));c.restore();
+    }
     requestAnimationFrame(t=>this.frame(t));
   }
   zoomBy(factor: number) {
@@ -918,8 +1345,20 @@ export class MapRenderer {
   private cellAt(clientX:number,clientY:number,landing=false):Point|null {
     if(!landing){
       const box=this.canvas.getBoundingClientRect(),x=clientX-box.left,y=clientY-box.top;
-      const marker=this.visibleCityMarkers.find(m=>x>=m.bounds.x&&x<=m.bounds.x+m.bounds.width&&y>=m.bounds.y&&y<=m.bounds.y+m.bounds.height);
-      if(marker)return {x:marker.index%MAP_WIDTH,y:Math.floor(marker.index/MAP_WIDTH)};
+      // On left click, squad markers sit ABOVE building markers and must win hit testing.
+      for(const squad of this.game.squads){
+        if(squad.owner!==0)continue;
+        const sx=this.ox+(squad.index%MAP_WIDTH+.5)*CW*this.scale;
+        const sy=this.oy+(Math.floor(squad.index/MAP_WIDTH)+.5)*CH*this.scale;
+        if(Math.hypot(x-sx,y-sy)<=13)return {x:squad.index%MAP_WIDTH,y:Math.floor(squad.index/MAP_WIDTH)};
+      }
+      const hits=this.visibleCityMarkers.filter(m=>
+        x>=m.bounds.x&&x<=m.bounds.x+m.bounds.width&&
+        y>=m.bounds.y&&y<=m.bounds.y+m.bounds.height);
+      // A smaller factory/tower takes precedence over the nearby city badge.
+      hits.sort((a,b)=>a.bounds.width*a.bounds.height-b.bounds.width*b.bounds.height||
+        Math.hypot(x-a.x,y-a.y)-Math.hypot(x-b.x,y-b.y));
+      if(hits[0])return {x:hits[0].index%MAP_WIDTH,y:Math.floor(hits[0].index/MAP_WIDTH)};
     }
     const p=this.worldAt(clientX,clientY);
     const x=Math.floor(p.x/CW),y=Math.floor(p.y/CH);
@@ -927,20 +1366,61 @@ export class MapRenderer {
     return {x,y};
   }
   private installControls() {
+    // WASD / arrows pan the map only when game controls own the keyboard.
+    // Never steal shortcuts or cursor movement from text fields and dialogs.
+    const directions=new Set(['w','a','s','d','arrowup','arrowleft','arrowdown','arrowright']);
+    const typing=(target:EventTarget|null):boolean=>{
+      const element=target instanceof HTMLElement?target:null;
+      return !!element?.closest('input,textarea,select,[contenteditable="true"],[role="textbox"],[role="dialog"],[aria-modal="true"]');
+    };
+    window.addEventListener('keydown',e=>{
+      const key=e.key.toLowerCase();
+      if(!directions.has(key)||e.altKey||e.ctrlKey||e.metaKey||typing(e.target))return;
+      // Country picker and dialog overlays stay in the DOM after closing.
+      // Only a visibly open modal may block gameplay keyboard controls.
+      const openModal=Array.from(document.querySelectorAll<HTMLElement>(
+        '[role="dialog"][aria-modal="true"],dialog[open]'
+      )).some(modal=>!modal.closest('[hidden]')&&modal.getClientRects().length>0);
+      if(openModal)return;
+      e.preventDefault();this.panKeys.add(key);
+    });
+    window.addEventListener('keyup',e=>this.panKeys.delete(e.key.toLowerCase()));
+    window.addEventListener('blur',()=>this.panKeys.clear());
     // Maritime markers appear only while Shift is held, not all game long.
     window.addEventListener('keydown',e=>{if(e.key==='Shift')this.showSeaPassages=true;});
     window.addEventListener('keyup',e=>{if(e.key==='Shift')this.showSeaPassages=false;});
     window.addEventListener('blur',()=>{this.showSeaPassages=false;});
+    // Left drag selects units; right drag pans. Right click without travel
+    // keeps the normal building/diplomacy context menu.
+    let activePointer:number|null=null;
+    let dragButton:number|null=null;
+    let rightGestureMoved=false;
+    let suppressContextUntil=0;
+    const threshold=6;
     this.canvas.addEventListener('pointerdown',e=>{
-      if(e.button!==0)return;
-      this.dragging=true;this.moved=false;this.last={x:e.clientX,y:e.clientY};this.press={...this.last};
+      if(e.button!==0&&e.button!==2)return;
+      if(activePointer!==null)return;
+      activePointer=e.pointerId;dragButton=e.button;
+      this.dragging=true;this.moved=false;rightGestureMoved=false;
+      this.last={x:e.clientX,y:e.clientY};this.press={...this.last};
+      if(e.button===0){
+        const box=this.canvas.getBoundingClientRect();
+        this.selectionBox={x1:e.clientX-box.left,y1:e.clientY-box.top,x2:e.clientX-box.left,y2:e.clientY-box.top};
+      }else this.selectionBox=null;
       this.canvas.setPointerCapture(e.pointerId);
     });
     this.canvas.addEventListener('pointermove',e=>{
-      if(this.dragging) {
+      if(this.dragging&&e.pointerId===activePointer) {
         const dx=e.clientX-this.last.x,dy=e.clientY-this.last.y;
-        if(Math.hypot(e.clientX-this.press.x,e.clientY-this.press.y)>5)this.moved=true;
-        if(this.moved){this.ox+=dx;this.oy+=dy;}
+        if(Math.hypot(e.clientX-this.press.x,e.clientY-this.press.y)>threshold)this.moved=true;
+        if(this.moved){
+          if(dragButton===2){
+            this.ox+=dx;this.oy+=dy;rightGestureMoved=true;
+          }else if(this.selectionBox){
+            const box=this.canvas.getBoundingClientRect();
+            this.selectionBox.x2=e.clientX-box.left;this.selectionBox.y2=e.clientY-box.top;
+          }
+        }
         this.last={x:e.clientX,y:e.clientY};
       }
       this.hover=this.cellAt(e.clientX,e.clientY,e.shiftKey);
@@ -949,33 +1429,70 @@ export class MapRenderer {
       this.hoverPointer={x:e.clientX-box.left,y:e.clientY-box.top,landing:e.shiftKey};
       this.onHover(this.hover,this.hoverPointer.x,this.hoverPointer.y,e.shiftKey);
     });
-    this.canvas.addEventListener('pointerup',e=>{
-      if(e.button!==0)return;
-      if(!this.moved){const p=this.cellAt(e.clientX,e.clientY,e.shiftKey);if(p)this.onSelect(p,e.shiftKey);}
-      this.dragging=false;
-    });
-    this.canvas.addEventListener('pointercancel',()=>{this.dragging=false;});
-    this.canvas.addEventListener('pointerleave',()=>{this.hover=null;this.hoverPointer=null;this.refreshHoverPreview(null);this.onHover(null,0,0,false);});
-    // Both mouse secondary click and trackpad context click open the same
-    // build menu. A secondary pointerup fallback covers browsers that do not
-    // dispatch contextmenu on canvas after a pointer gesture.
     let lastSecondary=-Infinity;
-    const requestBuild=(clientX:number,clientY:number)=>{
-      // Keep the same right-click handling for land of ANY owner.
-      // The UI chooses build/defense for own land, diplomacy for foreign
-      // land, and closes the context menu over water.
+    const requestBuild=(clientX:number,clientY:number,forceMenu=false)=>{
       const point=this.cellAt(clientX,clientY,false);
+      // RTS controls: left-click selects/deselects; right-click commands
+      // selected real units anywhere on the map. Shift+right-click retains
+      // access to the build/diplomacy menu without losing the selection.
+      if(this.game.rtsRecruitment&&point&&!forceMenu&&
+         this.selectedSquadIds.some(id=>this.game.squads.some(unit=>unit.id===id&&unit.owner===0))){
+        this.onCommandSquads(point);return;
+      }
       this.onBuildRequest(point,clientX,clientY);
     };
     this.canvas.addEventListener('pointerup',e=>{
-      if(e.button!==2)return;
-      lastSecondary=performance.now();
-      requestBuild(e.clientX,e.clientY);
+      if(e.pointerId!==activePointer||e.button!==dragButton)return;
+      const moved=this.moved||Math.hypot(e.clientX-this.press.x,e.clientY-this.press.y)>threshold;
+      if(dragButton===0){
+        if(!moved){
+          const rect=this.canvas.getBoundingClientRect();
+          const x=e.clientX-rect.left,y=e.clientY-rect.top;
+          const hit=this.squadClusterHits.find(cluster=>cluster.owner===0&&
+            Math.abs(x-cluster.x)<=25&&Math.abs(y-cluster.y)<=24);
+          if(hit){
+            this.selectedSquadIds=[...hit.ids];
+            this.onSelectSquads([...hit.ids]);
+            activePointer=null;dragButton=null;this.dragging=false;
+            this.selectionBox=null;rightGestureMoved=false;
+            return;
+          }
+        }
+        if(moved&&this.selectionBox){
+          const b=this.selectionBox,loX=Math.min(b.x1,b.x2),hiX=Math.max(b.x1,b.x2);
+          const loY=Math.min(b.y1,b.y2),hiY=Math.max(b.y1,b.y2);
+          const ids=this.game.squads.filter(unit=>{
+            if(unit.owner!==0)return false;
+            const x=this.ox+(unit.index%MAP_WIDTH+.5)*CW*this.scale;
+            const y=this.oy+(Math.floor(unit.index/MAP_WIDTH)+.5)*CH*this.scale;
+            return x>=loX&&x<=hiX&&y>=loY&&y<=hiY;
+          }).map(unit=>unit.id);
+          this.selectedSquadIds=ids;this.onSelectSquads(ids);
+        }else{
+          const p=this.cellAt(e.clientX,e.clientY,e.shiftKey);
+          if(p)this.onSelect(p,e.shiftKey);
+        }
+      }else if(dragButton===2){
+        lastSecondary=performance.now();
+        if(moved||rightGestureMoved)suppressContextUntil=lastSecondary+500;
+        else requestBuild(e.clientX,e.clientY,e.shiftKey);
+      }
+      activePointer=null;dragButton=null;this.dragging=false;
+      this.selectionBox=null;rightGestureMoved=false;
+    });
+    this.canvas.addEventListener('pointercancel',e=>{
+      if(e.pointerId!==activePointer)return;
+      if(dragButton===2&&this.moved)suppressContextUntil=performance.now()+500;
+      activePointer=null;dragButton=null;this.dragging=false;this.selectionBox=null;
+    });
+    this.canvas.addEventListener('pointerleave',()=>{
+      this.hover=null;this.hoverPointer=null;this.refreshHoverPreview(null);this.onHover(null,0,0,false);
     });
     this.canvas.addEventListener('contextmenu',e=>{
       e.preventDefault();
-      if(performance.now()-lastSecondary<350)return;
-      requestBuild(e.clientX,e.clientY);
+      const now=performance.now();
+      if(now<suppressContextUntil||now-lastSecondary<500||dragButton===2)return;
+      lastSecondary=now;requestBuild(e.clientX,e.clientY,e.shiftKey);
     });
     this.canvas.addEventListener('wheel',e=>{
       e.preventDefault();

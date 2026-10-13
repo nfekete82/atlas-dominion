@@ -1,0 +1,47 @@
+{
+  "node": "v25.9.0",
+  "platform": "darwin",
+  "arch": "arm64",
+  "cpu": "Apple M5 Max",
+  "seeds": [
+    20261013,
+    20261024,
+    221041
+  ],
+  "thresholds": {
+    "earlyTerritoryRetention": 0.95,
+    "lateTerritoryRetention": 1,
+    "maximumLossRatio": 1,
+    "maximumTimingRatio": 1.15
+  },
+  "warmupTicks": 360,
+  "observer": true,
+  "variants": {
+    "original": {
+      "module": "/tmp/atlas-ai-baseline/dist/src/engine/game.js",
+      "hashes": {
+        "game.js": "76b0f00ab8d87866df5ab2e8f6ac1009f652051a573da26544527d5eb002a137",
+        "rts-frontage.js": "55e6bb329fdac49deb1f12f754168c1f1a2d40528de3268b758c1ec0010fb80b",
+        "navigation.js": "d1ac8584b14dfbf514eaa78c51531dcb2c998d1b61444e7daf4f28cfb3b0a52b"
+      }
+    },
+    "baseline": {
+      "module": "/tmp/atlas-ai-first-opt/dist/src/engine/game.js",
+      "hashes": {
+        "game.js": "ed42f19b89dd8269e099fea26e9009c7c7b56bbdbf10fa5083a1c14698444e06",
+        "rts-path.js": "54aeb519a2f81213a23bed355526401e72e262d1e627f665f97fe451e32c8cde",
+        "rts-frontage.js": "55e6bb329fdac49deb1f12f754168c1f1a2d40528de3268b758c1ec0010fb80b",
+        "navigation.js": "d1ac8584b14dfbf514eaa78c51531dcb2c998d1b61444e7daf4f28cfb3b0a52b"
+      }
+    },
+    "candidate": {
+      "module": "/Users/norbertfekete/Projects/atlas-dominion/dist/src/engine/game.js",
+      "hashes": {
+        "game.js": "c5a8e6d2da699ea0629adef904fdec2c5843c388be6d76f3c6d31f4d2206ba7d",
+        "rts-path.js": "1faa05d8ece5cfeaf15aa06d58bb3e9bfad53da92296701c1120bc3e61e405a6",
+        "rts-frontage.js": "af1a8dae40011677c5a628822b055c9448f7492dfd86916864cf4f6f12d26c6a",
+        "navigation.js": "bda9cb2c6be3ac36995fb4ba1803806bd0de28180b63f8983fbbca0446f42891"
+      }
+    }
+  }
+}

@@ -1,0 +1,677 @@
+{
+  "seed": 20261013,
+  "opponents": 49,
+  "modulePath": "/Users/norbertfekete/Projects/atlas-dominion/dist/src/engine/game.js",
+  "observer": true,
+  "warmupTicks": 360,
+  "firstTerminal": null,
+  "conservation": {
+    "initialPeople": 4500,
+    "recruited": 27400,
+    "maxDrift": 4.3655745685100555e-11,
+    "violatingTicks": 0
+  },
+  "checkpoints": [
+    {
+      "ticks": 360,
+      "territory": 34660,
+      "losses": 2392.2696021534052,
+      "realLosses": 2392.269602153401,
+      "performance": {
+        "median": 4.525209000000359,
+        "p95": 9.59558300000026,
+        "p99": 11.857250000000022
+      },
+      "invalidMoves": 0,
+      "stateHash": "d7d5e9f04f651e87d354962a7f89381a446daceea609dad0341ba7608df67140"
+    },
+    {
+      "ticks": 500,
+      "territory": 42797,
+      "losses": 3808.173058605239,
+      "realLosses": 3808.173058605238,
+      "performance": {
+        "median": 5.347707999999784,
+        "p95": 10.457666000000245,
+        "p99": 13.286333000000013
+      },
+      "invalidMoves": 0,
+      "stateHash": "d8cb703e98b56ead5f22b2c301db08c1fe656d333ff588040c0fb670517aca9e"
+    },
+    {
+      "ticks": 1000,
+      "territory": 52289,
+      "losses": 19154.522480214906,
+      "realLosses": 19154.522480214884,
+      "performance": {
+        "median": 10.138291000000208,
+        "p95": 18.752832999998645,
+        "p99": 21.42683399999987
+      },
+      "invalidMoves": 0,
+      "stateHash": "8a1266f20d8f242ba6c6e84ed469f7606eeb6bb3b48b320bd7915db934d4a4fa"
+    }
+  ],
+  "intervals": [
+    {
+      "from": 1,
+      "to": 100,
+      "performance": {
+        "median": 3.595166000000063,
+        "p95": 7.788250000000062,
+        "p99": 19.204999999999927
+      },
+      "cumulativeLosses": 960.6262361333949,
+      "realLosses": 960.6262361333938,
+      "losses": 960.6262361333949,
+      "territory": 10195,
+      "territoryGain": 10195,
+      "meanFielded": 3583.828665763603,
+      "meanFormations": 39.4,
+      "contacts": 40,
+      "attackAttempts": 309,
+      "repeatedAttackAttempts": 2,
+      "failedAttackAttempts": 0,
+      "stages": {
+        "commandRTSAI": {
+          "ms": 171.15195200000153,
+          "calls": 100,
+          "losses": 0
+        },
+        "moveSquads": {
+          "ms": 103.98000399999955,
+          "calls": 100,
+          "losses": 387.06257448328086
+        },
+        "resolveSquadContacts": {
+          "ms": 6.794496000000436,
+          "calls": 100,
+          "losses": 573.563661650114
+        },
+        "recount": {
+          "ms": 80.44191099999989,
+          "calls": 329,
+          "losses": 0
+        },
+        "rebuildFrontierCandidates": {
+          "ms": 28.980254999999488,
+          "calls": 101,
+          "losses": 0
+        },
+        "orderSquadAttack": {
+          "ms": 3.045500000004722,
+          "calls": 309,
+          "losses": 0
+        },
+        "chooseFront": {
+          "ms": 0,
+          "calls": 0,
+          "losses": 0
+        },
+        "maritimeRoute": {
+          "ms": 15.934707000000344,
+          "calls": 8,
+          "losses": 0
+        }
+      }
+    },
+    {
+      "from": 101,
+      "to": 200,
+      "performance": {
+        "median": 3.9198750000000473,
+        "p95": 6.2560419999999795,
+        "p99": 8.770332999999937
+      },
+      "cumulativeLosses": 1429.0690961411838,
+      "realLosses": 1429.0690961411801,
+      "losses": 468.4428600077889,
+      "territory": 20245,
+      "territoryGain": 10050,
+      "meanFielded": 3922.340598030658,
+      "meanFormations": 48.27,
+      "contacts": 9,
+      "attackAttempts": 384,
+      "repeatedAttackAttempts": 3,
+      "failedAttackAttempts": 0,
+      "stages": {
+        "commandRTSAI": {
+          "ms": 142.4025019999999,
+          "calls": 100,
+          "losses": 0
+        },
+        "moveSquads": {
+          "ms": 97.67262999999957,
+          "calls": 100,
+          "losses": 269.91590959973075
+        },
+        "resolveSquadContacts": {
+          "ms": 5.601372000001447,
+          "calls": 100,
+          "losses": 198.52695040805816
+        },
+        "recount": {
+          "ms": 60.22349600000052,
+          "calls": 234,
+          "losses": 0
+        },
+        "rebuildFrontierCandidates": {
+          "ms": 43.10925199999883,
+          "calls": 100,
+          "losses": 0
+        },
+        "orderSquadAttack": {
+          "ms": 3.351919000001999,
+          "calls": 384,
+          "losses": 0
+        },
+        "chooseFront": {
+          "ms": 0,
+          "calls": 0,
+          "losses": 0
+        },
+        "maritimeRoute": {
+          "ms": 14.76429300000018,
+          "calls": 29,
+          "losses": 0
+        }
+      }
+    },
+    {
+      "from": 201,
+      "to": 300,
+      "performance": {
+        "median": 5.015833999999813,
+        "p95": 8.453208999999788,
+        "p99": 10.028332999999748
+      },
+      "cumulativeLosses": 1905.251733467469,
+      "realLosses": 1905.2517334674649,
+      "losses": 476.1826373262852,
+      "territory": 30311,
+      "territoryGain": 10066,
+      "meanFielded": 4763.836857267567,
+      "meanFormations": 58.96,
+      "contacts": 13,
+      "attackAttempts": 469,
+      "repeatedAttackAttempts": 13,
+      "failedAttackAttempts": 1,
+      "stages": {
+        "commandRTSAI": {
+          "ms": 213.90658500000063,
+          "calls": 100,
+          "losses": 0
+        },
+        "moveSquads": {
+          "ms": 124.2877469999994,
+          "calls": 100,
+          "losses": 274.88999999999896
+        },
+        "resolveSquadContacts": {
+          "ms": 6.6852870000011535,
+          "calls": 100,
+          "losses": 201.29263732628624
+        },
+        "recount": {
+          "ms": 72.95320299999912,
+          "calls": 257,
+          "losses": 0
+        },
+        "rebuildFrontierCandidates": {
+          "ms": 56.088914999998906,
+          "calls": 100,
+          "losses": 0
+        },
+        "orderSquadAttack": {
+          "ms": 4.899621000002753,
+          "calls": 469,
+          "losses": 0
+        },
+        "chooseFront": {
+          "ms": 0,
+          "calls": 0,
+          "losses": 0
+        },
+        "maritimeRoute": {
+          "ms": 38.46413300000131,
+          "calls": 166,
+          "losses": 0
+        }
+      }
+    },
+    {
+      "from": 301,
+      "to": 400,
+      "performance": {
+        "median": 7.281749999999647,
+        "p95": 11.857250000000022,
+        "p99": 13.171875
+      },
+      "cumulativeLosses": 2629.8696021534042,
+      "realLosses": 2629.8696021534033,
+      "losses": 724.6178686859353,
+      "territory": 37300,
+      "territoryGain": 6989,
+      "meanFielded": 5718.778209060621,
+      "meanFormations": 74.53,
+      "contacts": 8,
+      "attackAttempts": 401,
+      "repeatedAttackAttempts": 16,
+      "failedAttackAttempts": 7,
+      "stages": {
+        "commandRTSAI": {
+          "ms": 335.2697030000031,
+          "calls": 100,
+          "losses": 0
+        },
+        "moveSquads": {
+          "ms": 209.33720599999924,
+          "calls": 100,
+          "losses": 530.3058208006414
+        },
+        "resolveSquadContacts": {
+          "ms": 8.707040999998753,
+          "calls": 100,
+          "losses": 194.31204788529385
+        },
+        "recount": {
+          "ms": 79.16212800000176,
+          "calls": 258,
+          "losses": 0
+        },
+        "rebuildFrontierCandidates": {
+          "ms": 66.19054400000277,
+          "calls": 100,
+          "losses": 0
+        },
+        "orderSquadAttack": {
+          "ms": 13.183834000002207,
+          "calls": 401,
+          "losses": 0
+        },
+        "chooseFront": {
+          "ms": 0,
+          "calls": 0,
+          "losses": 0
+        },
+        "maritimeRoute": {
+          "ms": 100.58017100001325,
+          "calls": 460,
+          "losses": 0
+        }
+      }
+    },
+    {
+      "from": 401,
+      "to": 500,
+      "performance": {
+        "median": 8.10674999999992,
+        "p95": 12.986750000000029,
+        "p99": 15.408541000000696
+      },
+      "cumulativeLosses": 3808.173058605239,
+      "realLosses": 3808.173058605238,
+      "losses": 1178.3034564518348,
+      "territory": 42797,
+      "territoryGain": 5497,
+      "meanFielded": 6474.612587868523,
+      "meanFormations": 86.36,
+      "contacts": 10,
+      "attackAttempts": 322,
+      "repeatedAttackAttempts": 14,
+      "failedAttackAttempts": 19,
+      "stages": {
+        "commandRTSAI": {
+          "ms": 375.65791600000193,
+          "calls": 100,
+          "losses": 0
+        },
+        "moveSquads": {
+          "ms": 225.72125199999846,
+          "calls": 100,
+          "losses": 592.7417348800336
+        },
+        "resolveSquadContacts": {
+          "ms": 9.300579000000653,
+          "calls": 100,
+          "losses": 585.5617215718012
+        },
+        "recount": {
+          "ms": 87.31145200000083,
+          "calls": 269,
+          "losses": 0
+        },
+        "rebuildFrontierCandidates": {
+          "ms": 71.79083599999831,
+          "calls": 100,
+          "losses": 0
+        },
+        "orderSquadAttack": {
+          "ms": 14.738751999995657,
+          "calls": 322,
+          "losses": 0
+        },
+        "chooseFront": {
+          "ms": 0,
+          "calls": 0,
+          "losses": 0
+        },
+        "maritimeRoute": {
+          "ms": 112.61437599998135,
+          "calls": 720,
+          "losses": 0
+        }
+      }
+    },
+    {
+      "from": 501,
+      "to": 600,
+      "performance": {
+        "median": 12.301542000000154,
+        "p95": 19.785874999999578,
+        "p99": 22.744042000000263
+      },
+      "cumulativeLosses": 5279.930592718252,
+      "realLosses": 5279.930592718249,
+      "losses": 1471.7575341130132,
+      "territory": 46115,
+      "territoryGain": 3318,
+      "meanFielded": 7272.8075090736,
+      "meanFormations": 101,
+      "contacts": 18,
+      "attackAttempts": 330,
+      "repeatedAttackAttempts": 82,
+      "failedAttackAttempts": 93,
+      "stages": {
+        "commandRTSAI": {
+          "ms": 543.6617890000052,
+          "calls": 100,
+          "losses": 0
+        },
+        "moveSquads": {
+          "ms": 417.3033750000068,
+          "calls": 100,
+          "losses": 914.3037482835989
+        },
+        "resolveSquadContacts": {
+          "ms": 11.739039999991292,
+          "calls": 100,
+          "losses": 557.4537858294143
+        },
+        "recount": {
+          "ms": 88.93988099999842,
+          "calls": 259,
+          "losses": 0
+        },
+        "rebuildFrontierCandidates": {
+          "ms": 79.64804200000526,
+          "calls": 100,
+          "losses": 0
+        },
+        "orderSquadAttack": {
+          "ms": 17.26038100000096,
+          "calls": 330,
+          "losses": 0
+        },
+        "chooseFront": {
+          "ms": 0,
+          "calls": 0,
+          "losses": 0
+        },
+        "maritimeRoute": {
+          "ms": 152.5201610000231,
+          "calls": 1295,
+          "losses": 0
+        }
+      }
+    },
+    {
+      "from": 601,
+      "to": 700,
+      "performance": {
+        "median": 14.532250000000204,
+        "p95": 20.57758300000023,
+        "p99": 22.559416999999485
+      },
+      "cumulativeLosses": 7859.912440594148,
+      "realLosses": 7859.91244059414,
+      "losses": 2579.981847875896,
+      "territory": 47951,
+      "territoryGain": 1836,
+      "meanFielded": 7754.1427859434225,
+      "meanFormations": 116.39,
+      "contacts": 54,
+      "attackAttempts": 198,
+      "repeatedAttackAttempts": 26,
+      "failedAttackAttempts": 41,
+      "stages": {
+        "commandRTSAI": {
+          "ms": 577.3148349999983,
+          "calls": 100,
+          "losses": 0
+        },
+        "moveSquads": {
+          "ms": 525.2727499999964,
+          "calls": 100,
+          "losses": 1410.4090420186449
+        },
+        "resolveSquadContacts": {
+          "ms": 13.803587000005791,
+          "calls": 100,
+          "losses": 1169.5728058572513
+        },
+        "recount": {
+          "ms": 86.68669899999804,
+          "calls": 247,
+          "losses": 0
+        },
+        "rebuildFrontierCandidates": {
+          "ms": 83.42367400000512,
+          "calls": 100,
+          "losses": 0
+        },
+        "orderSquadAttack": {
+          "ms": 24.66587200000049,
+          "calls": 198,
+          "losses": 0
+        },
+        "chooseFront": {
+          "ms": 0,
+          "calls": 0,
+          "losses": 0
+        },
+        "maritimeRoute": {
+          "ms": 183.05022400000144,
+          "calls": 1393,
+          "losses": 0
+        }
+      }
+    },
+    {
+      "from": 701,
+      "to": 800,
+      "performance": {
+        "median": 12.534374999999272,
+        "p95": 18.725124999999025,
+        "p99": 23.144209000000046
+      },
+      "cumulativeLosses": 10932.777714616876,
+      "realLosses": 10932.777714616865,
+      "losses": 3072.865274022727,
+      "territory": 49894,
+      "territoryGain": 1943,
+      "meanFielded": 8694.076689271562,
+      "meanFormations": 136.25,
+      "contacts": 87,
+      "attackAttempts": 204,
+      "repeatedAttackAttempts": 45,
+      "failedAttackAttempts": 46,
+      "stages": {
+        "commandRTSAI": {
+          "ms": 582.4487479999952,
+          "calls": 100,
+          "losses": 0
+        },
+        "moveSquads": {
+          "ms": 389.93225200001507,
+          "calls": 100,
+          "losses": 1605.5890341615668
+        },
+        "resolveSquadContacts": {
+          "ms": 15.16516099999626,
+          "calls": 100,
+          "losses": 1467.2762398611603
+        },
+        "recount": {
+          "ms": 89.15824799999973,
+          "calls": 255,
+          "losses": 0
+        },
+        "rebuildFrontierCandidates": {
+          "ms": 84.30849899998884,
+          "calls": 100,
+          "losses": 0
+        },
+        "orderSquadAttack": {
+          "ms": 16.527368999993996,
+          "calls": 204,
+          "losses": 0
+        },
+        "chooseFront": {
+          "ms": 0,
+          "calls": 0,
+          "losses": 0
+        },
+        "maritimeRoute": {
+          "ms": 168.25276199995642,
+          "calls": 1417,
+          "losses": 0
+        }
+      }
+    },
+    {
+      "from": 801,
+      "to": 900,
+      "performance": {
+        "median": 15.876541999999972,
+        "p95": 21.402000000000044,
+        "p99": 27.3684170000015
+      },
+      "cumulativeLosses": 14582.491601882788,
+      "realLosses": 14582.49160188275,
+      "losses": 3649.7138872659125,
+      "territory": 51550,
+      "territoryGain": 1656,
+      "meanFielded": 8846.77188921575,
+      "meanFormations": 149.97,
+      "contacts": 112,
+      "attackAttempts": 190,
+      "repeatedAttackAttempts": 34,
+      "failedAttackAttempts": 56,
+      "stages": {
+        "commandRTSAI": {
+          "ms": 720.9143789999889,
+          "calls": 100,
+          "losses": 0
+        },
+        "moveSquads": {
+          "ms": 500.89487200000076,
+          "calls": 100,
+          "losses": 1798.6843470423883
+        },
+        "resolveSquadContacts": {
+          "ms": 16.694499999999607,
+          "calls": 100,
+          "losses": 1851.0295402235242
+        },
+        "recount": {
+          "ms": 84.5561259999813,
+          "calls": 237,
+          "losses": 0
+        },
+        "rebuildFrontierCandidates": {
+          "ms": 85.65275800000018,
+          "calls": 100,
+          "losses": 0
+        },
+        "orderSquadAttack": {
+          "ms": 32.95071400001507,
+          "calls": 190,
+          "losses": 0
+        },
+        "chooseFront": {
+          "ms": 0,
+          "calls": 0,
+          "losses": 0
+        },
+        "maritimeRoute": {
+          "ms": 246.99867500001528,
+          "calls": 966,
+          "losses": 0
+        }
+      }
+    },
+    {
+      "from": 901,
+      "to": 1000,
+      "performance": {
+        "median": 14.497874999999112,
+        "p95": 19.048790999999255,
+        "p99": 23.211999999999534
+      },
+      "cumulativeLosses": 19154.522480214906,
+      "realLosses": 19154.522480214884,
+      "losses": 4572.030878332118,
+      "territory": 52289,
+      "territoryGain": 739,
+      "meanFielded": 8473.77385207527,
+      "meanFormations": 155.92,
+      "contacts": 129,
+      "attackAttempts": 244,
+      "repeatedAttackAttempts": 16,
+      "failedAttackAttempts": 41,
+      "stages": {
+        "commandRTSAI": {
+          "ms": 481.4874139999956,
+          "calls": 100,
+          "losses": 0
+        },
+        "moveSquads": {
+          "ms": 637.1135380000051,
+          "calls": 100,
+          "losses": 2504.4005303344693
+        },
+        "resolveSquadContacts": {
+          "ms": 18.497169999989637,
+          "calls": 100,
+          "losses": 2067.6303479976486
+        },
+        "recount": {
+          "ms": 90.61583500000597,
+          "calls": 253,
+          "losses": 0
+        },
+        "rebuildFrontierCandidates": {
+          "ms": 86.23966300001666,
+          "calls": 100,
+          "losses": 0
+        },
+        "orderSquadAttack": {
+          "ms": 25.710076000003028,
+          "calls": 244,
+          "losses": 0
+        },
+        "chooseFront": {
+          "ms": 0,
+          "calls": 0,
+          "losses": 0
+        },
+        "maritimeRoute": {
+          "ms": 23.720547999997507,
+          "calls": 33,
+          "losses": 0
+        }
+      }
+    }
+  ]
+}

@@ -20,6 +20,8 @@ export interface TileClash {
   /** Built city upgrade tier (0-5), zero for ordinary land. */
   cityLevel?:number;
   builtCity?:boolean;
+  /** Nearby defended towers, capped so overlapping towers cannot instant-kill armies. */
+  towerSupport?:number;
   doctrine?:'expand'|'blitz'|'fortify';
 }
 
@@ -55,14 +57,15 @@ export function frontTileOutcome(input:TileClash):TileOutcome {
     Math.max(1,input.defenderTerritory);
   const relative=Math.max(.6,Math.min(1.4,input.relativePower));
   const ratio=clamp(input.defenderPopulation/army,.35,8);
-  const urbanFort=input.builtCity?(0.42+Math.max(0,Math.min(5,input.cityLevel??0))*.27):0;
-  const fort=1+urbanFort+Math.max(0,input.defenseStrength-11)*.018+
+  const urbanFort=input.builtCity?(0.65+Math.max(0,Math.min(5,input.cityLevel??0))*.39):0;
+  const fort=1+urbanFort+Math.min(2,Math.max(0,input.towerSupport??0))*.24+Math.max(0,input.defenseStrength-11)*.018+
     (input.capital?.35:0)+(input.doctrine==='fortify'?.20:0);
   const defenses=Math.max(0,input.postedTroops);
   // A smaller attacking army pays an increasingly high price for each cell;
   // extra soldiers reduce casualties but not to zero.
   const attrition=clamp(ratio,.52,2.6);
-  const attackerLoss=clamp((.45+density*.24)*attrition*fort/relative,.18,
+  const attackerLoss=clamp(((.45+density*.24)*attrition*fort/relative)+
+    Math.min(2,Math.max(0,input.towerSupport??0))*.85,.18,
     army*.75);
   // Defenders lose a proportional slice of their army per captured tile.
   // Real posted troops die first, otherwise the living mobile reserve pays.

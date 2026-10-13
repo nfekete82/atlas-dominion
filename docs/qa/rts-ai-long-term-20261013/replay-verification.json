@@ -1,0 +1,56 @@
+[
+  {
+    "countries": 9,
+    "seed": 20261013,
+    "ticks": 1000,
+    "jsonReloadTick": 500,
+    "maxDrift": 1.8189894035458565e-12,
+    "canonicalStateHash": "2239f07ee0a105c88ffe174eee038b4e8a1ed4792009d56ff0663b411206362d",
+    "passed": true
+  },
+  {
+    "countries": 9,
+    "seed": 20261024,
+    "ticks": 1000,
+    "jsonReloadTick": 500,
+    "maxDrift": 1.8189894035458565e-12,
+    "canonicalStateHash": "60f389df9eb66a4ef43bedaa2f92a82293ff6b14ca7399cd47cb7e92ebd59056",
+    "passed": true
+  },
+  {
+    "countries": 9,
+    "seed": 221041,
+    "ticks": 1000,
+    "jsonReloadTick": 500,
+    "maxDrift": 1.8189894035458565e-12,
+    "canonicalStateHash": "6e7f1530d8ed13de62361878b2b605fe7cc72bd8a6859de0877f0a9cf377e959",
+    "passed": true
+  },
+  {
+    "countries": 50,
+    "seed": 20261013,
+    "ticks": 1000,
+    "jsonReloadTick": 500,
+    "maxDrift": 4.3655745685100555e-11,
+    "canonicalStateHash": "4df660187908a07f1795b15aa40aafb1d8853a7e42179bc2798ca99a336fef56",
+    "passed": true
+  },
+  {
+    "countries": 50,
+    "seed": 20261024,
+    "ticks": 1000,
+    "jsonReloadTick": 500,
+    "maxDrift": 4.3655745685100555e-11,
+    "canonicalStateHash": "9335616155d38b911a85e8ea3894900a28f71908ba3637feff47f42dc44a9124",
+    "passed": true
+  },
+  {
+    "countries": 50,
+    "seed": 221041,
+    "ticks": 1000,
+    "jsonReloadTick": 500,
+    "maxDrift": 4.3655745685100555e-11,
+    "canonicalStateHash": "78209abbb4f7ecc1fc90af6029ac639125c1ce3e2581440e2b8ca4f0c4704fd7",
+    "passed": true
+  }
+]

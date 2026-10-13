@@ -35,10 +35,17 @@
       <main class="battlefield">
         <canvas id="battleCanvas" aria-label="Interaktive Europakarte mit 480 mal 260 Sektoren, Nachbarland zum Angreifen anklicken"></canvas>
         <div class="map-wash" aria-hidden="true"></div>
-        <div class="map-heading"><div class="micro-heading">THE EUROPEAN THEATRE <span>·</span> 01</div><h1>EUROPA <em>EROBERN.</em></h1><div class="map-subtitle">Linksklick: Angreifen · Rechtsklick: Bauen, Verteidigen oder Koalition · Mausrad: Karte zoomen.</div></div>
+        <div class="map-heading"><div class="micro-heading">THE EUROPEAN THEATRE <span>·</span> 01</div><h1>EUROPA <em>EROBERN.</em></h1><div class="map-subtitle">Linksklick: Truppen wählen / abwählen · Rechtsklick: Bewegen / Angreifen · Umschalt + Rechtsklick: Bauen / Diplomatie · Mausrad: Zoomen.</div></div>
         <div class="map-location">◉ <span>EUROPA</span> <small>480 × 260 SECTORS</small></div>
         <div class="war-alerts" id="warAlerts" aria-live="polite" aria-label="Wichtige Kriegswarnungen" hidden></div>
         <div class="map-info compact-hover" id="mapInfo" hidden><span id="hoverOwner">NEUTRAL</span><div id="hoverMilitary" class="military-details" hidden></div><strong id="hoverAction">—</strong></div>
+        <section class="strategic-minimap" id="minimapPanel" aria-label="Strategische Europakarte">
+          <div class="mini-header"><strong>⌖ STRATEGISCHE KARTE</strong><button id="minimapToggle" type="button" aria-expanded="true" aria-controls="minimapBody" title="Minimap ein- oder ausklappen">−</button></div>
+          <div class="mini-body" id="minimapBody">
+            <canvas id="miniCanvas" width="240" height="130" tabindex="0" role="button" aria-label="Minimap: klicken, um die Hauptkarte zu verschieben"></canvas>
+            <div class="mini-legend"><span>● Eigene Offensive</span><span>● Feindangriff</span></div>
+          </div>
+        </section>
         <div class="zoom-controls"><button id="zoomIn" title="Hineinzoomen">+</button><button id="zoomOut" title="Herauszoomen">−</button><button id="zoomFit" title="Karte einpassen">⌗</button></div>
         <div class="bottom-bar">
           <div class="time-controls"><button id="pauseBtn" class="pause-btn" title="Pause (Leertaste)">Ⅱ</button><div class="time-copy"><small>SIMULATIONSZEIT</small><strong id="clock">00:00</strong></div><div class="speed-wrap"><button data-speed="1" class="speed active">1×</button><button data-speed="2" class="speed">2×</button><button data-speed="4" class="speed">4×</button></div></div>
@@ -47,11 +54,24 @@
       </main>
       <aside class="sidebar">
         <div class="sidebar-section"><div class="section-label">01 <span>DEIN IMPERIUM</span> <i></i></div><div class="faction-hero"><div class="faction-emblem" id="playerFlag">🇩🇪</div><div><small>DU SPIELST ALS</small><strong id="playerName">Deutschland</strong><span class="hero-status"><i class="pulse"></i> EINSATZBEREIT</span><span class="difficulty-current" id="difficultyBadge">KI: AUSGEGLICHEN</span></div></div>
-        <div class="stat-grid"><div class="stat"><small>GEBIETE</small><strong id="areaCount">0</strong><span>SEKTOREN</span></div><div class="stat"><small>EINWOHNER / TRUPPEN</small><strong id="troopCount">0</strong><span>GESAMT INKL. FRONT</span><span id="mobileTroops">MOBIL: 0</span><details class="troop-breakdown"><summary>Fronten und Verluste</summary><span id="frontTroops">AN DER GRENZE: 0</span><span id="offensiveTroops">IM ANGRIFF: 0</span><span id="fallenTroops" class="troop-loss">GEFALLEN: 0</span><span id="defenseTickLoss" class="troop-loss">VERTEIDIGUNG: KEINE VERLUSTE</span></details></div><div class="stat"><small>WACHSTUM</small><strong id="incomeCount">+0</strong><span>EINWOHNER PRO TICK</span></div><div class="stat"><small>KONTROLLE</small><strong id="controlCount">0.0%</strong><span>EUROPAS</span></div><div class="stat"><small>STÄDTE</small><strong id="cityCount">0</strong><span>STEIGERN DAS WACHSTUM</span></div><div class="stat"><small>GELD</small><strong id="moneyCount">0</strong><span id="moneyGrowth">+0 PRO TICK</span></div></div>
+        <div class="stat-grid"><div class="stat"><small>GEBIETE</small><strong id="areaCount">0</strong><span>SEKTOREN</span></div><div class="stat"><small>EINWOHNER / TRUPPEN</small><strong id="troopCount">0</strong><span>GESAMT INKL. FRONT</span><span id="mobileTroops">MOBIL: 0</span><details class="troop-breakdown"><summary>Fronten und Verluste</summary><span id="frontTroops">AN DER GRENZE: 0</span><span id="offensiveTroops">IM ANGRIFF: 0</span><span id="fallenTroops" class="troop-loss">GEFALLEN: 0</span><span id="defenseTickLoss" class="troop-loss">VERTEIDIGUNG: KEINE VERLUSTE</span></details></div><div class="stat"><small>WACHSTUM</small><strong id="incomeCount">+0</strong><span>EINWOHNER PRO TICK</span></div><div class="stat"><small>KONTROLLE</small><strong id="controlCount">0.0%</strong><span>EUROPAS</span></div><div class="stat"><small>STÄDTE</small><strong id="cityCount">0</strong><span>STEIGERN DAS WACHSTUM</span></div><div class="stat"><small>FABRIKEN</small><strong id="factoryCount">0</strong><span id="factoryIncome">+0 GOLD / TICK</span></div><div class="stat"><small>GELD</small><strong id="moneyCount">0</strong><span id="moneyGrowth">+0 PRO TICK</span></div></div>
         <div class="progress-label"><span>TERRITORIALER FORTSCHRITT</span><b id="progressLabel">0 / 65%</b></div><div class="progress"><div id="progressFill"></div></div>
         <div class="doctrine-title">KAMPFDOKTRIN <span>· WÄHLE DEINE TAKTIK</span></div>
         <div class="doctrine-buttons"><button data-doctrine="expand" class="selected" title="Neutralgebiete schneller erobern">↗ <span>EXPAND</span></button><button data-doctrine="blitz" title="Mehr und stärkere Angriffe">⚔ <span>BLITZ</span></button><button data-doctrine="fortify" title="Mehr Einkommen und stärkere Verteidigung">⬡ <span>DEFENSE</span></button></div>
+        <section class="rts-military-panel" aria-label="Militärübersicht">
+          <div class="rts-military-heading"><strong>⬡ MILITÄR</strong><small id="rtsMilitaryStatus">FRIEDEN</small></div>
+          <div class="rts-military-stats"><div><small>MOBIL</small><strong id="rtsMilitaryMobile">0</strong></div><div><small>IM EINSATZ</small><strong id="rtsMilitaryField">0</strong></div><div><small>VERLUSTE</small><strong id="rtsMilitaryLosses">0</strong></div></div>
+          <div class="rts-military-selection"><strong>AUSGEWÄHLTE ARMEE</strong><small id="rtsMilitarySelected">Keine Truppe ausgewählt</small></div>
+          <small class="rts-military-help">Truppe linksklicken, Ziel rechtsklicken. Freie Fläche linksklicken: Abwählen. Umschalt + Rechtsklick: Bauen und Diplomatie.</small>
+          <details class="rts-military-reports"><summary>Kampfberichte und Grenzdetails</summary><div id="rtsMilitaryReports"></div></details>
+        </section>
         <div class="build-guide">▣ RECHTSKLICK: STADT BAUEN / GRENZE VERSTÄRKEN</div><div class="auto-guard"><strong>⬡ GRENZSICHERUNG</strong><small id="borderDefense">0 bedrohte Grenzsektoren · 0 stationiert · 0 mobil</small><details class="defense-extra"><summary>Verluste und Gefechte anzeigen</summary><small id="casualtyReport" class="casualty-report">⚔ 0 eigene Gefallene · 0 Gegnerverluste</small><div id="battleReport" class="battle-report" aria-live="off"><strong><i class="battle-dot blue"></i> BLAU: DEINE TRUPPEN</strong><strong><i class="battle-dot red"></i> ROT: GEGNER</strong><small>Aktive Fronten erscheinen direkt auf der Karte</small></div></details></div>
+        <section class="front-command" aria-label="Strategische Grenzbefehle">
+          <div class="front-command-head"><strong>▣ GRENZKOMMANDO</strong><small id="hotspotCount">0 Kontaktpunkte</small></div>
+          <p>Bedrohte Grenzabschnitte auswählen und priorisieren. Alle Soldaten bleiben real.</p>
+          <div id="borderHotspots" class="border-hotspots"><small>Keine gefährdeten Grenzen.</small></div>
+          <div class="border-command-help">Rechtsklick auf deine Grenze: Verteidigen · Halten · Abziehen</div>
+        </section>
         <div class="attack-control" aria-label="Truppeneinsatz je Angriff">
           <div class="attack-title"><span>⚔ TRUPPEN PRO ANGRIFF</span><strong id="ratioPercent">35 %</strong></div>
           <input id="attackRatio" type="range" min="5" max="100" step="5" value="35" aria-label="Truppenanteil pro Angriff in Prozent" />

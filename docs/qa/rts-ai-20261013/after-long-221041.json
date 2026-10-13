@@ -1,0 +1,48 @@
+{
+  "ticks": 1000,
+  "seed": 221041,
+  "opponents": 8,
+  "playerCode": "DE",
+  "losses": 4893.1041332618115,
+  "movement": {
+    "movedSquadTicks": 23302,
+    "landMoves": 23293,
+    "seaLandings": 9,
+    "invalidLandMoves": 0,
+    "reversals": 138
+  },
+  "performance": {
+    "totalStepMs": 6158.4900070000085,
+    "medianStepMs": 6.030791000000136,
+    "p95StepMs": 10.467499999999745
+  },
+  "stateHash": "b7323eab49d02560e71041683e41bef18ef6e01a7bc39e1fd87186c75a5640f2",
+  "neutralGainsByPhase": {
+    "opening": 2629,
+    "middle": 6510,
+    "late": 36645
+  },
+  "inactivity": {
+    "stationaryTicks": 8375,
+    "stationaryOrderedTicks": 531,
+    "stationaryUnorderedTicks": 7844,
+    "stationaryNearEnemyTicks": 140,
+    "stationaryNeutralFrontTicks": 0,
+    "stationaryDeepHomeTicks": 8235,
+    "longIdleEpisodes": 21,
+    "maxIdleStreak": 499
+  },
+  "shape": {
+    "owned": 46062,
+    "perimeter": 5114,
+    "thinSectors": 1435,
+    "thinShare": 0.0312,
+    "perimeterPerSector": 0.111
+  },
+  "idleSquadTicks": 8306,
+  "activeSquadTicks": 23445,
+  "aiCaptures": 46709,
+  "aiTerritoryDelta": 45784,
+  "activeSquadShare": 0.7384,
+  "formations": 40
+}

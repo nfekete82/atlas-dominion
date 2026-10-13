@@ -1,0 +1,6 @@
+Verified 9 countries, seed 20261013: 1000 ticks and JSON reload at 500
+Verified 9 countries, seed 20261024: 1000 ticks and JSON reload at 500
+Verified 9 countries, seed 221041: 1000 ticks and JSON reload at 500
+Verified 50 countries, seed 20261013: 1000 ticks and JSON reload at 500
+Verified 50 countries, seed 20261024: 1000 ticks and JSON reload at 500
+Verified 50 countries, seed 221041: 1000 ticks and JSON reload at 500

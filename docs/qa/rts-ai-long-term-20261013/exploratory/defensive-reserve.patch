@@ -1,0 +1,50 @@
+--- a/src/engine/game.ts
++++ b/src/engine/game.ts
+@@ -1253,12 +1253,30 @@
+         return [tile,threat-Math.min(80,nearest*2)] as [number,number];
+       }).sort((a,b)=>b[1]-a[1]||a[0]-b[0]).slice(0,24);
+       const frontPositions:number[]=[];
+-      for(const [tile] of plannedFronts){
++      const protectedPosts=new Set<number>();
++      const defensiveExposure=new Map<number,number>();
++      const postExposure=(tile:number)=>{
++        let value=defensiveExposure.get(tile);
++        if(value===undefined){value=this.rtsExposure(faction.id,tile);defensiveExposure.set(tile,value);}
++        return value;
++      };
++      for(const [front] of plannedFronts){
+         if(frontPositions.length>=3)break;
++        let tile=front;
++        // Cover the asset from an adjacent owned rear cell when the enemy
++        // is not yet assaulting it. Range-two fire still intercepts a real
++        // approach, without an endless duel between stationary home armies.
++        if(postExposure(front)>0&&!enemyUnits.some(enemy=>LAND_NEIGHBORS[front].includes(enemy.index))){
++          const rear=LAND_NEIGHBORS[front].filter(next=>this.owner[next]===faction.id&&
++            postExposure(next)===0&&!frontPositions.includes(next)).sort((a,b)=>a-b)[0];
++          if(rear!==undefined)tile=rear;
++        }
+         const x=tile%MAP_WIDTH,y=Math.floor(tile/MAP_WIDTH);
+         if(frontPositions.some(t=>Math.abs(t%MAP_WIDTH-x)+
+           Math.abs(Math.floor(t/MAP_WIDTH)-y)<6))continue;
+         frontPositions.push(tile);
++        if(this.capitalSites.has(front)||[BUILDING_CODES.barracks,BUILDING_CODES.city,BUILDING_CODES.factory].includes(this.buildings[front]))
++          protectedPosts.add(tile);
+       }
+       // Second line: hold a genuine reserve one or two cells behind the
+       // most threatened border instead of placing every unit on one tile.
+@@ -1294,8 +1312,13 @@
+       }
+       let deployments=0;
+       for(const target of frontPositions){
+-        const already=own.some(u=>u.index===target||u.destination===target);
+-        if(already||deployments>=deployable)continue;
++        const already=own.find(u=>u.index===target||u.destination===target);
++        if(already){
++          if(own.length>=3&&assignedDefenders.size===0&&protectedPosts.has(target)&&
++            already.campaignTarget==null&&!already.seaRoute?.length)assignedDefenders.add(already.id);
++          continue;
++        }
++        if(deployments>=deployable)continue;
+         const candidate=available.filter(u=>!assignedDefenders.has(u.id))
+           .sort((a,b)=>{
+             const dist=(u:typeof a)=>Math.abs(u.index%MAP_WIDTH-target%MAP_WIDTH)+
