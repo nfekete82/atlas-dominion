@@ -1142,22 +1142,34 @@ export class Game {
         this.factions[squad.owner].troops+=squad.troops;
         this.squads.splice(i,1);continue;
       }
-      // Occupation follows the actual unit. Up to twelve neutral sectors in a
-      // radius of two are taken per tick, never hostile/towered sectors.
+      // Widen the occupied front around a physically present formation.
+      // Expansion is a bounded connected flood, never a remote capture:
+      // only neutral land and empty undefended hostile sectors are eligible.
       if(this.rtsRecruitment){
-        const candidates=new Set<number>();
-        for(const adjacent of LAND_NEIGHBORS[squad.index]){
-          candidates.add(adjacent);
-          for(const nearby of LAND_NEIGHBORS[adjacent])candidates.add(nearby);
-        }
-        let occupied=0;
-        for(const tile of candidates){
-          if(occupied>=12)break;
-          if(this.owner[tile]!==NEUTRAL)continue;
-          // Only spread through contiguous empty terrain that touches our land;
-          // not diagonally across a lake or through a hostile border.
-          if(!LAND_NEIGHBORS[tile].some(n=>this.owner[n]===squad.owner))continue;
-          this.captureTile(this.factions[squad.owner],tile);occupied++;
+        const reached=new Set<number>([squad.index]);
+        const queue:[number,number][]=[[squad.index,0]];
+        let taken=0;
+        for(let head=0;head<queue.length&&taken<30;head++){
+          const [cell,depth]=queue[head];
+          if(depth>=4)continue;
+          for(const next of LAND_NEIGHBORS[cell]){
+            if(reached.has(next))continue;
+            reached.add(next);
+            const holder=this.owner[next];
+            if(holder===WATER||holder===squad.owner&&depth>=3)continue;
+            if(holder>=0&&holder!==squad.owner){
+              if(this.isAllied(squad.owner,holder)||
+                 this.buildings[next]===BUILDING_CODES.tower||
+                 this.squads.some(unit=>unit.owner===holder&&unit.index===next))continue;
+              // Only the active invasion's original opponent may be swept up.
+              if(squad.campaignOwner!==holder)continue;
+            }
+            if(holder!==squad.owner){
+              if(taken>=30)break;
+              this.captureTile(this.factions[squad.owner],next);taken++;
+            }
+            queue.push([next,depth+1]);
+          }
         }
       }
       // A border waypoint can become stale while other armies capture land.
