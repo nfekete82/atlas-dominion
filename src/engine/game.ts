@@ -1190,10 +1190,6 @@ export class Game {
         }
       }
       const totalReady=own.reduce((sum,u)=>sum+u.troops,0);
-      const strongestThreat=enemyUnits.reduce((max,u)=>{
-        if(!LAND_NEIGHBORS[u.index].some(n=>this.owner[n]===faction.id))return max;
-        return Math.max(max,u.troops);
-      },0);
       // No single understrength squad should charge into an obvious
       // superior neighboring formation. Group units around a rally point.
       const rally=own.length?own.reduce((a,b)=>a.troops>=b.troops?a:b):null;
