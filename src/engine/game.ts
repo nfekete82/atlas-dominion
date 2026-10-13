@@ -1014,10 +1014,21 @@ export class Game {
     // Island powers can then evaluate actual sea routes instead of idling
     // because they have no land frontier.
     const coastalTargets:number[]=[];
+    const frontierByFaction=new Map<number,Set<number>>();
     for(let cell=0;cell<CELL_COUNT;cell++){
-      if(this.owner[cell]===WATER)continue;
+      const holder=this.owner[cell];
+      if(holder===WATER)continue;
       if(LAND_NEIGHBORS[cell].some(n=>this.owner[n]===WATER))
         coastalTargets.push(cell);
+      if(holder<=0||!this.factions[holder]?.alive)continue;
+      for(const next of LAND_NEIGHBORS[cell]){
+        const other=this.owner[next];
+        if(other!==holder&&other!==WATER&&!this.isAllied(holder,other)){
+          let targets=frontierByFaction.get(holder);
+          if(!targets){targets=new Set<number>();frontierByFaction.set(holder,targets);}
+          targets.add(next);
+        }
+      }
     }
     for(const faction of this.factions){
       if(!faction.ai||!faction.alive)continue;
@@ -1224,15 +1235,7 @@ export class Game {
       // save/load. When there is no campaign, choose a common reachable land
       // objective from the country's actual border rather than dispatching
       // every idle army toward a separately chosen random frontier.
-      const frontierCandidates=new Set<number>();
-      for(let cell=0;cell<CELL_COUNT;cell++){
-        if(this.owner[cell]!==faction.id)continue;
-        for(const next of LAND_NEIGHBORS[cell]){
-          const holder=this.owner[next];
-          if(holder!==faction.id&&holder!==WATER&&
-             !this.isAllied(faction.id,holder))frontierCandidates.add(next);
-        }
-      }
+      const frontierCandidates=frontierByFaction.get(faction.id)??new Set<number>();
       const totalOperational=own.filter(u=>u.troops>=20)
         .reduce((sum,u)=>sum+u.troops,0);
       const theaterTarget=chooseRTSTheaterTarget([...frontierCandidates].map(tile=>{
