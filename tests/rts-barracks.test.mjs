@@ -728,7 +728,7 @@ test('strategic AI front-distance planning stays deterministic under two live th
  const first=new Game(20261013,3,'DE','balanced',true);
  const second=new Game(20261013,3,'DE','balanced',true);
  const setup=g=>{
-   const borders=g.owner.map((holder,i)=>holder===1&&
+   const borders=Array.from(g.owner,(holder,i)=>holder===1&&
      landNeighbors(i).some(n=>g.owner[n]===-1)?i:-1).filter(i=>i>=0);
    const positions=[borders[0],borders.at(-1)].filter((i,j,a)=>i!==undefined&&a.indexOf(i)===j);
    assert.ok(positions.length>=1);
