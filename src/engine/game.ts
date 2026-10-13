@@ -6,7 +6,7 @@ import { attackFrontWidth, frontierBudget, frontierTarget, localDefenseStrength 
 import { BUILDINGS, BUILDING_CODES, type BuildingType, FACTORY_INCOME, FACTORY_CONNECTION_MULTIPLIER, FACTORY_LINK_MAX_DISTANCE, troopGrowth, taxRevenue, cityUpgradeCost, cityUpgradeGrowth, upgradedCityRecruitment } from './economy.js';
 import { findConnectedAttackFront } from './front-target.js';
 import {aiStyle,scoreAIFront} from './ai-strategy.js';
-import {scoreRTSTarget,chooseRTSOperation,chooseRTSPosture,chooseRTSTheaterTarget} from './rts-strategy.js';
+import {scoreRTSTarget,chooseRTSOperation,chooseRTSPosture,chooseRTSTheaterTarget,scoreRTSNeutralFront} from './rts-strategy.js';
 import {rtsFrontWidth,rtsContactLoss} from './rts-frontage.js';
 import {aiMarchRecovery,aiAttacksPerTick,aiStrikeSize,aiRiskTolerance} from './ai-tactics.js';
 import {formatCompact} from '../format.js';
@@ -1352,8 +1352,11 @@ export class Game {
                 Math.abs(u.campaignTarget%MAP_WIDTH-tile%MAP_WIDTH)+
                 Math.abs(Math.floor(u.campaignTarget/MAP_WIDTH)-Math.floor(tile/MAP_WIDTH))<6)))
               .length;
-            const score=available*15+outer.size*4-distance*1.8-
-              otherCommitments*55;
+            const friendlySides=surroundings.filter(n=>this.owner[n]===faction.id).length;
+            const score=scoreRTSNeutralFront({
+              adjacentNeutral:available,secondRingNeutral:outer.size,
+              friendlySides,distance,otherCommitments
+            });
             if(score>best||(score===best&&(objective===null||tile<objective))){
               best=score;objective=tile;
             }
