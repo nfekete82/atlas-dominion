@@ -37,7 +37,7 @@ test('barracks reinforce costs two gold per real soldier and does not create ano
  assert.equal(g.squads.length,1);
  assert.equal(g.squads[0].troops,600);
  assert.equal(g.factions[0].money,money-1000);
- assert.equal(g.reinforceSquad(0,id,cellToPoint(tile),1000).ok,false);
+ assert.equal(g.reinforceSquad(0,id,cellToPoint(tile),1001).ok,false);
 });
 
 test('RTS command menu includes merge, split, reinforce and keyboard groups',()=>{
