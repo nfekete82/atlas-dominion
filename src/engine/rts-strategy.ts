@@ -66,3 +66,34 @@ export function chooseRTSPosture(s:RTSPostureIntel):RTSPosture {
   if(s.hostileFrontier)return 'invade';
   return 'redeploy';
 }
+
+/** Persistent campaigns live in squad.campaignTarget (already save-compatible).
+ * This chooses the next joint objective only when no valid campaign exists.
+ * Defensive infrastructure increases value; physical enemy soldiers increase risk.
+ */
+export interface RTSTheaterTarget {
+  tile:number;
+  neutral:boolean;
+  defenderStrength:number;
+  assaultStrength:number;
+  distance:number;
+  strategicValue:number;
+  committed:number;
+}
+export function chooseRTSTheaterTarget(targets:readonly RTSTheaterTarget[]):number|null {
+  let chosen:number|null=null,score=-Infinity;
+  for(const target of targets){
+    if(!Number.isInteger(target.tile)||target.tile<0||
+      !Number.isFinite(target.assaultStrength)||target.assaultStrength<20||
+      !Number.isFinite(target.defenderStrength)||target.defenderStrength<0||
+      !Number.isFinite(target.distance)||target.distance<0)continue;
+    const threat=target.defenderStrength/Math.max(20,target.assaultStrength+target.committed*.5);
+    const value=(target.neutral?55:35)+target.strategicValue+
+      Math.min(35,target.committed*.15)-Math.min(240,threat*95)-
+      target.distance*.9;
+    if(value>score||(value===score&&(chosen===null||target.tile<chosen))){
+      chosen=target.tile;score=value;
+    }
+  }
+  return score>=-20?chosen:null;
+}
