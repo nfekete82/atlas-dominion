@@ -212,7 +212,7 @@ export interface GameSave {
   borderOrders?:Array<{index:number;mode:'defend'|'withdraw'}>;
   factoryLinks?:Array<{factory:number;city:number}>;
   factoryLevels?:Array<{index:number;level:number}>;
-  squads?:Array<{id:number;owner:number;index:number;troops:number;destination:number|null;attackTarget?:number|null}>;
+  squads?:Array<{id:number;owner:number;index:number;troops:number;destination:number|null;attackTarget?:number|null;campaignTarget?:number|null;campaignOwner?:number|null}>;
   rtsRecruitment?:boolean;
 }
 
@@ -237,7 +237,7 @@ export class Game {
   readonly borderOrders=new Map<number,'defend'|'withdraw'>();
   readonly factoryLinks=new Map<number,number>();
   readonly factoryLevels=new Map<number,number>();
-  readonly squads:Array<{id:number;owner:number;index:number;troops:number;destination:number|null;attackTarget?:number|null}>=[];
+  readonly squads:Array<{id:number;owner:number;index:number;troops:number;destination:number|null;attackTarget?:number|null;campaignTarget?:number|null;campaignOwner?:number|null}>=[];
   private nextSquadId=1;
   mobileNet=0;
   /** Real soldiers in transit to defend an attacked treaty partner. */
@@ -850,7 +850,7 @@ export class Game {
       f.money<cost||this.squads.filter(s=>s.owner===owner).length>=12)
       return {ok:false,reason:'Mindestens '+cost+' Geld und höchstens 12 Truppengruppen erforderlich.'};
     f.money-=cost;
-    this.squads.push({id:this.nextSquadId++,owner,index,troops:count,destination:null,attackTarget:null});
+    this.squads.push({id:this.nextSquadId++,owner,index,troops:count,destination:null,attackTarget:null,campaignTarget:null,campaignOwner:null});
     this.recount();
     return {ok:true,reason:count+' Soldaten für '+cost+' Geld ausgebildet.'};
   }
@@ -863,7 +863,7 @@ export class Game {
     const destination=pointToIndex(target);
     if(this.owner[destination]!==owner)return {ok:false,reason:'Truppenmarsche sind zunächst nur auf eigenem Gebiet möglich.'};
     squad.destination=destination;
-    squad.attackTarget=null;
+    squad.attackTarget=null;squad.campaignTarget=null;squad.campaignOwner=null;
     return {ok:true,reason:'Marschbefehl erteilt.'};
   }
 
@@ -891,6 +891,7 @@ export class Game {
     }
     if(front<0)return {ok:false,reason:'Kein erreichbarer Landübergang zu diesem Gegner.'};
     squad.destination=front;squad.attackTarget=enemy;
+    squad.campaignTarget=targetIndex;squad.campaignOwner=defender;
     return {ok:true,reason:'Truppe marschiert zur Front und erobert dann feindliches Gebiet.'};
   }
 
@@ -1086,14 +1087,53 @@ export class Game {
         this.factions[squad.owner].troops+=squad.troops;
         this.squads.splice(i,1);continue;
       }
-      // Capture unguarded neutral terrain around a standing or moving squad.
-      // This is territorial control, not battle: no casualties or unit deletion.
+      // Occupation follows the actual unit. Up to eight neutral sectors in a
+      // radius of two are taken per tick, never hostile/towered sectors.
       if(this.rtsRecruitment){
+        const candidates=new Set<number>();
+        for(const adjacent of LAND_NEIGHBORS[squad.index]){
+          candidates.add(adjacent);
+          for(const nearby of LAND_NEIGHBORS[adjacent])candidates.add(nearby);
+        }
         let occupied=0;
-        for(const tile of LAND_NEIGHBORS[squad.index]){
-          if(this.owner[tile]===NEUTRAL&&occupied<2){
-            this.captureTile(this.factions[squad.owner],tile);
-            occupied++;
+        for(const tile of candidates){
+          if(occupied>=8)break;
+          if(this.owner[tile]!==NEUTRAL)continue;
+          // Only spread through contiguous empty terrain that touches our land;
+          // not diagonally across a lake or through a hostile border.
+          if(!LAND_NEIGHBORS[tile].some(n=>this.owner[n]===squad.owner))continue;
+          this.captureTile(this.factions[squad.owner],tile);occupied++;
+        }
+      }
+      // A campaign is not finished at the first conquered border cell.
+      // Compute the next step only after reaching the current waypoint.
+      const goal=squad.campaignTarget;
+      if(goal!==null&&goal!==undefined&&
+         squad.destination===null&&squad.attackTarget==null){
+        if(squad.index===goal){
+          squad.campaignTarget=null;squad.campaignOwner=null;
+        }else{
+          const intended=squad.campaignOwner;
+          const parent=new Int32Array(CELL_COUNT);parent.fill(-2);
+          const queue=[squad.index];parent[squad.index]=-1;
+          let head=0;
+          while(head<queue.length&&parent[goal]===-2){
+            const cell=queue[head++];
+            for(const next of LAND_NEIGHBORS[cell]){
+              if(parent[next]!==-2)continue;
+              const holder=this.owner[next];
+              if(holder!==squad.owner&&holder!==NEUTRAL&&holder!==intended)continue;
+              if(holder>=0&&holder!==squad.owner&&this.isAllied(squad.owner,holder))continue;
+              parent[next]=cell;queue.push(next);
+            }
+          }
+          if(parent[goal]===-2){
+            squad.campaignTarget=null;squad.campaignOwner=null;
+          }else{
+            let next=goal;
+            while(parent[next]!==squad.index&&parent[next]!==-1)next=parent[next];
+            if(this.owner[next]===squad.owner)squad.destination=next;
+            else squad.attackTarget=next;
           }
         }
       }
@@ -2458,7 +2498,11 @@ export class Game {
            v.destination>=CELL_COUNT||g.owner[v.destination]!==v.owner))||
          (v.attackTarget!==undefined&&v.attackTarget!==null&&
            (!Number.isInteger(v.attackTarget)||v.attackTarget<0||
-            v.attackTarget>=CELL_COUNT||g.owner[v.attackTarget]===v.owner)))||
+            v.attackTarget>=CELL_COUNT||g.owner[v.attackTarget]===v.owner))||
+         (v.campaignTarget!==undefined&&v.campaignTarget!==null&&
+           (!Number.isInteger(v.campaignTarget)||v.campaignTarget<0||v.campaignTarget>=CELL_COUNT))||
+         (v.campaignOwner!==undefined&&v.campaignOwner!==null&&
+           (!Number.isInteger(v.campaignOwner)||v.campaignOwner<NEUTRAL||v.campaignOwner>=g.factions.length)))||
        new Set(squads.map(v=>v.id)).size!==squads.length)
        throw Error('Ungültige Kasernen-Truppen.');
     g.squads.push(...squads.map(v=>({...v})));
