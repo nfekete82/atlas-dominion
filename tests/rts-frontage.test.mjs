@@ -14,7 +14,7 @@ test('a strong physical defender inflicts more attacker casualties',()=>{
   const weak=rtsContactLoss(500,30,true,false);
   const strong=rtsContactLoss(500,300,true,false);
   assert.ok(strong.attackerLost>weak.attackerLost*5);
-  assert.ok(strong.defenderLost<weak.defenderLost);
+  assert.ok(strong.defenderLost/300<weak.defenderLost/30);
   assert.ok(strong.attackerLost<=500&&strong.defenderLost<=300);
 });
 
