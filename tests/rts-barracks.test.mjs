@@ -501,3 +501,13 @@ test('threatened AI constructs a paid border tower and keeps real soldiers',()=>
  assert.ok(g.factions[ai].money<moneyBefore,'AI tower must spend real treasury');
  assert.ok(g.squads.every(unit=>unit.troops>0&&g.owner[unit.index]===unit.owner));
 });
+
+test('AI defense scoring with real posted guards remains deterministic',()=>{
+ const a=new Game(10314,5,'DE','balanced',true);
+ const b=new Game(10314,5,'DE','balanced',true);
+ for(let tick=0;tick<95;tick++){a.step();b.step();}
+ assert.deepEqual(a.exportSave(),b.exportSave(),
+   'under-defended border prioritization must be fully replayable');
+ assert.ok(a.squads.every(u=>u.troops>0&&a.owner[u.index]===u.owner),
+   'AI planning must preserve actual soldiers and territory ownership');
+});
