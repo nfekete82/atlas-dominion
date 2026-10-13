@@ -1450,8 +1450,15 @@ export class Game {
       if(this.rtsRecruitment){
         const reached=new Set<number>([squad.index]);
         const queue:[number,number][]=[[squad.index,0]];
+        // A larger real formation occupies more tiles per tick. This is a
+        // throughput limit, NOT extra reach: every tile must remain connected
+        // to the squad's physical position through lawful neighboring cells.
+        // Use beginning-of-tick strength so casualties don't mutate the
+        // command budget halfway through the same occupation.
+        const occupationBudget=Math.min(30,Math.max(3,Math.floor(squad.troops/12)));
+        const hostileDepth=squad.troops>=180?1:0;
         let taken=0;
-        for(let head=0;head<queue.length&&taken<30;head++){
+        for(let head=0;head<queue.length&&taken<occupationBudget;head++){
           const [cell,depth]=queue[head];
           if(depth>=4)continue;
           for(const next of LAND_NEIGHBORS[cell]){
@@ -1472,7 +1479,7 @@ export class Game {
               // defensive planning and tower construction could run.
               // A two-ring assault gives sizeable armies a visible broad
               // front, but only the physical formation's immediate vicinity.
-              if(depth>1||squad.troops<30)continue;
+              if(depth>hostileDepth||squad.troops<30)continue;
               if(this.isAllied(squad.owner,holder)||
                  this.buildings[next]===BUILDING_CODES.tower||
                  this.squads.some(unit=>unit.owner===holder&&
@@ -1483,7 +1490,7 @@ export class Game {
               // Actual defending squads and towers still stop this sweep.
             }
             if(holder!==squad.owner){
-              if(taken>=30)break;
+              if(taken>=occupationBudget)break;
               // Occupied hostile ground costs real soldiers. Wider sweeps
               // spend more manpower and stop when the unit is exhausted.
               if(holder>=0){
