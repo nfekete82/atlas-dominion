@@ -212,7 +212,7 @@ export interface GameSave {
   borderOrders?:Array<{index:number;mode:'defend'|'withdraw'}>;
   factoryLinks?:Array<{factory:number;city:number}>;
   factoryLevels?:Array<{index:number;level:number}>;
-  squads?:Array<{id:number;owner:number;index:number;troops:number;destination:number|null;attackTarget?:number|null;campaignTarget?:number|null;campaignOwner?:number|null}>;
+  squads?:Array<{id:number;owner:number;index:number;troops:number;destination:number|null;attackTarget?:number|null;campaignTarget?:number|null;campaignOwner?:number|null;seaRoute?:number[];seaTicks?:number;seaLanding?:number}>;
   rtsRecruitment?:boolean;
 }
 
@@ -237,7 +237,7 @@ export class Game {
   readonly borderOrders=new Map<number,'defend'|'withdraw'>();
   readonly factoryLinks=new Map<number,number>();
   readonly factoryLevels=new Map<number,number>();
-  readonly squads:Array<{id:number;owner:number;index:number;troops:number;destination:number|null;attackTarget?:number|null;campaignTarget?:number|null;campaignOwner?:number|null}>=[];
+  readonly squads:Array<{id:number;owner:number;index:number;troops:number;destination:number|null;attackTarget?:number|null;campaignTarget?:number|null;campaignOwner?:number|null;seaRoute?:number[];seaTicks?:number;seaLanding?:number}>=[];
   private nextSquadId=1;
   mobileNet=0;
   /** Real soldiers in transit to defend an attacked treaty partner. */
@@ -864,6 +864,7 @@ export class Game {
     if(this.owner[destination]!==owner)return {ok:false,reason:'Truppenmarsche sind zunächst nur auf eigenem Gebiet möglich.'};
     squad.destination=destination;
     squad.attackTarget=null;squad.campaignTarget=null;squad.campaignOwner=null;
+    squad.seaRoute=undefined;squad.seaLanding=undefined;squad.seaTicks=undefined;
     return {ok:true,reason:'Marschbefehl erteilt.'};
   }
 
@@ -889,7 +890,17 @@ export class Game {
         }
       }
     }
-    if(front<0)return {ok:false,reason:'Kein erreichbarer Landübergang zu diesem Gegner.'};
+    if(front<0){
+      const route=this.maritimeRoute(owner,target);
+      if(!route||route.cells.length<3)return {ok:false,reason:'Keine Landfront und keine sichere Seeroute vorhanden.'};
+      const departure=route.cells[0],landing=route.cells[route.cells.length-1];
+      // A squad must first reach its actual own coastal departure tile.
+      squad.destination=departure;
+      squad.attackTarget=null;
+      squad.campaignTarget=targetIndex;squad.campaignOwner=defender;
+      squad.seaRoute=[...route.cells];squad.seaLanding=landing;squad.seaTicks=0;
+      return {ok:true,reason:'Seetransport befohlen: Truppe marschiert zum Hafen und setzt anschließend über.'};
+    }
     squad.destination=front;squad.attackTarget=enemy;
     squad.campaignTarget=targetIndex;squad.campaignOwner=defender;
     return {ok:true,reason:'Truppe marschiert zur Front und erobert dann feindliches Gebiet.'};
@@ -1189,6 +1200,40 @@ export class Game {
         this.factions[squad.owner].troops+=squad.troops;
         this.squads.splice(i,1);continue;
       }
+      // Travel along a validated ocean corridor over several simulation
+      // ticks. Keep the soldiers at the embarked coast until the crossing
+      // completes; do not capture land or take part in inland movement at sea.
+      if(squad.seaRoute?.length&&squad.seaLanding!=null){
+        const departure=squad.seaRoute[0];
+        if(squad.index===departure&&squad.destination===null){
+          squad.seaTicks=(squad.seaTicks??0)+1;
+          const duration=Math.max(8,Math.ceil(squad.seaRoute.length/3));
+          if(squad.seaTicks<duration)continue;
+          const shore=squad.seaLanding,holder=this.owner[shore];
+          if(holder===WATER||this.isAllied(squad.owner,holder)){
+            squad.seaRoute=undefined;squad.seaLanding=undefined;squad.seaTicks=undefined;
+            squad.campaignTarget=null;squad.campaignOwner=null;continue;
+          }
+          const defended=this.squads.some(unit=>unit.owner!==squad.owner&&
+            (unit.index===shore||LAND_NEIGHBORS[shore].includes(unit.index)))||
+            this.buildings[shore]===BUILDING_CODES.tower;
+          if(defended){
+            // An occupied coast cannot be silently taken by a boat.
+            squad.seaRoute=undefined;squad.seaLanding=undefined;squad.seaTicks=undefined;
+            squad.campaignTarget=null;squad.campaignOwner=null;continue;
+          }
+          if(holder!==squad.owner)this.captureTile(this.factions[squad.owner],shore);
+          squad.index=shore;squad.destination=null;squad.attackTarget=null;
+          squad.seaRoute=undefined;squad.seaLanding=undefined;squad.seaTicks=undefined;
+          continue;
+        }
+        if(squad.destination===null&&squad.index!==departure){
+          squad.seaRoute=undefined;squad.seaLanding=undefined;squad.seaTicks=undefined;
+        }else if(squad.destination!==null){
+          // Do not let a pending sea campaign plan another land attack.
+          // The existing legal own-territory pathfinder advances to the port.
+        }
+      }
       // Widen the occupied front around a physically present formation.
       // Expansion is a bounded connected flood, never a remote capture:
       // only neutral land and empty undefended hostile sectors are eligible.
@@ -1239,7 +1284,7 @@ export class Game {
       }
       // A campaign is not finished at the first conquered border cell.
       // Compute the next step only after reaching the current waypoint.
-      const goal=squad.campaignTarget;
+      const goal=squad.seaRoute?.length?null:squad.campaignTarget;
       if(goal!==null&&goal!==undefined&&
          squad.destination===null&&squad.attackTarget==null){
         if(squad.index===goal){
@@ -2679,7 +2724,11 @@ export class Game {
          (v.campaignTarget!==undefined&&v.campaignTarget!==null&&
            (!Number.isInteger(v.campaignTarget)||v.campaignTarget<0||v.campaignTarget>=CELL_COUNT))||
          (v.campaignOwner!==undefined&&v.campaignOwner!==null&&
-           (!Number.isInteger(v.campaignOwner)||v.campaignOwner<NEUTRAL||v.campaignOwner>=g.factions.length)))||
+           (!Number.isInteger(v.campaignOwner)||v.campaignOwner<NEUTRAL||v.campaignOwner>=g.factions.length))||
+         (v.seaRoute!==undefined&&
+           (!validSeaRoute(v.seaRoute)||v.seaLanding!==v.seaRoute.at(-1)||
+            typeof v.seaTicks!=='number'||!Number.isInteger(v.seaTicks)||v.seaTicks<0||
+            v.seaTicks>Math.max(8,Math.ceil(v.seaRoute.length/3)))))||
        new Set(squads.map(v=>v.id)).size!==squads.length)
        throw Error('Ungültige Kasernen-Truppen.');
     g.squads.push(...squads.map(v=>({...v})));
