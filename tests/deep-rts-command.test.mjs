@@ -4,8 +4,8 @@ import {Game,cellToPoint,landNeighbors,isSquadEmbarked} from '../dist/src/engine
 import {BUILDING_CODES} from '../dist/src/engine/economy.js';
 import {chooseRTSTheaterTarget} from '../dist/src/engine/rts-strategy.js';
 const unit=(id,owner,index,troops=100)=>({id,owner,index,troops,destination:null,attackTarget:null,campaignTarget:null,campaignOwner:null});
-function fixture(){
- const g=new Game(20261022,1,'DE','balanced',true);
+function fixture(opponents=1){
+ const g=new Game(20261022,opponents,'DE','balanced',true);
  const site=g.owner.findIndex((owner,tile)=>owner===1&&g.canBuild(1,cellToPoint(tile),'barracks').ok);
  g.buildings[site]=BUILDING_CODES.barracks;g.factions[1].money=0;g.tick=1;
  const border=g.owner.findIndex((owner,tile)=>owner===1&&landNeighbors(tile).some(n=>g.owner[n]===-1));
@@ -174,4 +174,66 @@ test('remnant selection has a stable tile tie-break across rebuilt and reversed 
  g.commandRTSAI();restored.commandRTSAI();
  assert.equal(army.campaignTarget,Math.min(target,other));
  assert.equal(restored.squads.find(u=>u.id===army.id).campaignTarget,army.campaignTarget);
+});
+
+test('an exposed AI army silences a lone tower by a real paid-strength assault',()=>{
+ const {g,border,target}=fixture();g.owner[target]=0;g.buildings[target]=BUILDING_CODES.tower;
+ const army=unit(501,1,border);g.squads.push(army);g.recount();
+ const troops=army.troops,money=g.factions[1].money;
+ g.commandRTSAI();
+ assert.equal(army.campaignTarget,target);assert.equal(army.campaignOwner,0);
+ assert.equal(g.owner[target],0,'planning cannot capture the tower');
+ assert.equal(army.troops,troops);assert.equal(g.factions[1].money,money);
+ g.moveSquads();
+ assert.equal(g.owner[target],1);assert.equal(army.index,target);
+ assert.ok(army.troops<troops&&army.troops>troops-10);
+ assert.ok(Math.abs(troops-army.troops-g.factions[1].attackFallen)<1e-9);
+});
+
+test('tower suppression respects real guards, allied land, truces and depleted armies',()=>{
+ for(const condition of ['guard','ally','truce','depleted']){
+  const {g,border,target}=fixture(condition==='truce'?2:1),holder=condition==='truce'?2:0;
+  g.owner[target]=holder;g.buildings[target]=BUILDING_CODES.tower;
+  const army=unit(501,1,border,condition==='depleted'?30:100);g.squads.push(army);
+  if(condition==='guard')g.squads.push(unit(502,0,target));
+  if(condition==='ally')g.alliances.push({a:0,b:1,sinceTick:0});
+  if(condition==='truce'){g.factions[2].ai=false;g.warTruces.push({a:1,b:2,untilTick:g.tick+100});}
+  g.recount();g.commandRTSAI();
+  assert.notEqual(army.campaignTarget,target,condition);
+  assert.equal(g.owner[target],holder);assert.equal(g.buildings[target],BUILDING_CODES.tower);
+ }
+});
+
+test('a two-sector tower assault survives an emergency alert and a JSON reload',()=>{
+ const {g,border,target}=fixture();
+ const start=landNeighbors(border).find(tile=>g.owner[tile]===1&&tile!==target&&
+  !landNeighbors(tile).includes(target));assert.ok(start!==undefined);
+ g.owner[target]=0;g.buildings[target]=BUILDING_CODES.tower;
+ const invader=g.owner.findIndex((holder,tile)=>holder===-1&&landNeighbors(tile).some(n=>g.owner[n]===1)&&
+  Math.abs(tile%480-target%480)+Math.abs(Math.floor(tile/480)-Math.floor(target/480))>8);
+ assert.ok(invader>=0);g.owner[invader]=0;g.squads.push(unit(502,0,invader,30));
+ const army=unit(501,1,start);g.squads.push(army);g.recount();g.commandRTSAI();
+ assert.equal(army.campaignTarget,target);
+ const restored=Game.fromSave(JSON.parse(JSON.stringify(g.exportSave())));
+ for(let tick=0;tick<2;tick++){
+  for(const game of [g,restored]){game.tick++;game.commandRTSAI();game.moveSquads();game.resolveSquadContacts();}
+ }
+ assert.equal(g.owner[target],1);assert.equal(army.index,target);
+ assert.deepEqual(restored.exportSave(),g.exportSave());
+});
+
+test('a late friendly capture clears a marching attack waypoint before saving the tick',()=>{
+ const {g,border,target}=fixture();g.factions.forEach(f=>f.ai=false);
+ const remote=g.owner.findIndex((holder,tile)=>holder===1&&
+  Math.abs(tile%480-border%480)+Math.abs(Math.floor(tile/480)-Math.floor(border/480))>3);
+ assert.ok(remote>=0);g.owner[target]=0;g.buildings[target]=BUILDING_CODES.tower;
+ const attacker=unit(501,1,border),marcher=unit(502,1,remote);
+ Object.assign(attacker,{attackTarget:target,campaignTarget:target,campaignOwner:0});
+ Object.assign(marcher,{destination:border,attackTarget:target,campaignTarget:target,campaignOwner:0});
+ // Reverse movement order: the distant army marches first; the local army
+ // captures its future waypoint afterwards in the same simulation tick.
+ g.squads.push(attacker,marcher);g.recount();g.step();
+ assert.equal(g.owner[target],1);assert.notEqual(marcher.destination,null);
+ assert.equal(marcher.attackTarget,null);assert.equal(marcher.campaignTarget,target);
+ const save=g.exportSave();assert.deepEqual(Game.fromSave(JSON.parse(JSON.stringify(save))).exportSave(),save);
 });

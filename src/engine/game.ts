@@ -1360,6 +1360,27 @@ export class Game {
       // physically from idle formations; a distant campaign stays committed.
       const peacefulOutlet=[...(frontierByFaction.get(faction.id)??[])].some(tile=>
         this.owner[tile]===NEUTRAL);
+      // Stop paying repeated tower fire while shuffling between defensive
+      // posts. An exposed operational formation can silence a nearby lone
+      // tower through a normal, short physical assault. Guarded towers still
+      // require the regular coordinated theater plan; no combat bonus.
+      const suppressing=new Set<number>();
+      for(const unit of own){
+        if(unit.troops<75||unit.seaRoute?.length)continue;
+        const targets=rtsArea(unit.index,2).filter(tile=>{
+          const holder=this.owner[tile];
+          return holder>=0&&holder!==faction.id&&!this.isAllied(faction.id,holder)&&
+            !this.isWarTruce(faction.id,holder)&&this.buildings[tile]===BUILDING_CODES.tower&&
+            !enemyUnits.some(enemy=>rtsArea(tile,2).includes(enemy.index))&&
+            (LAND_NEIGHBORS[unit.index].includes(tile)||LAND_NEIGHBORS[unit.index].some(next=>
+              LAND_NEIGHBORS[next].includes(tile)&&this.owner[next]!==WATER&&
+              !(this.owner[next]>=0&&this.owner[next]!==faction.id&&this.isAllied(faction.id,this.owner[next]))));
+        }).sort((a,b)=>distance(unit.index,a)-distance(unit.index,b)||a-b);
+        const target=targets[0];
+        if(target===undefined)continue;
+        if(unit.campaignTarget===target||this.orderSquadAttack(faction.id,unit.id,cellToPoint(target)).ok)
+          suppressing.add(unit.id);
+      }
       const borderThreats=new Map<number,number>();
       for(const enemy of enemyUnits){
         // Intercept up to two cells ahead: waiting until contact is too late
@@ -1432,7 +1453,7 @@ export class Game {
           .sort((x,y)=>x-y)[0];
         if(rear!==undefined&&!secondLine.includes(rear))secondLine.push(rear);
       }
-      const assignedDefenders=new Set<number>();
+      const assignedDefenders=new Set<number>(suppressing);
       // Keep one available unit as a rear reserve when there are at least
       // three formations; only the others receive frontline positions.
       const available=own.filter(u=>u.troops>=20&&u.destination===null&&
@@ -1443,7 +1464,7 @@ export class Game {
       // If every AI squad is on campaign, redirect a real formation from
       // the least critical offensive when important owned land is threatened.
       if(frontPositions.length&&available.length===0&&own.length&&alerted.has(faction.id)){
-        const emergency=own.filter(u=>u.troops>=20&&u.campaignTarget!=null&&
+        const emergency=own.filter(u=>u.troops>=20&&u.campaignTarget!=null&&!suppressing.has(u.id)&&
           !u.seaRoute?.length&&!own.some(defender=>
             defender.index===frontPositions[0]||defender.destination===frontPositions[0]))
           .sort((a,b)=>{
@@ -3422,6 +3443,14 @@ export class Game {
     if(this.rtsRecruitment){
       for(let i=this.squads.length-1;i>=0;i--){
         const squad=this.squads[i];
+        // Another formation can capture a planned attack waypoint after this
+        // squad has already marched. Keep the campaign, but drop the now
+        // friendly waypoint so the completed tick remains save-compatible.
+        if(squad.attackTarget!=null&&this.owner[squad.attackTarget]===squad.owner)
+          squad.attackTarget=null;
+        if(squad.destination!==null&&this.owner[squad.destination]!==squad.owner){
+          squad.destination=null;squad.marchRoute=undefined;
+        }
         if(this.owner[squad.index]===squad.owner)continue;
         // Follow the existing displacement rule: living soldiers return to
         // their nation's mobile pool exactly once; never duplicate squads.

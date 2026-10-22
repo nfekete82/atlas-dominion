@@ -3,7 +3,7 @@ import {readFileSync,writeFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {Game} from '../dist/src/engine/game.js';
 import {validSeaRoute} from '../dist/src/engine/navigation.js';
-const directory='docs/qa/deep-game-20261022';
+const directory=process.env.ATLAS_QA_DIR??'docs/qa/deep-game-20261022';
 const cases=JSON.parse(readFileSync(directory+'/after-simulation.json','utf8')).results;
 const hash=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const verified=[];
@@ -41,6 +41,8 @@ for(const config of cases){
   const people=game.factions.reduce((n,f)=>n+f.population,0),losses=game.factions.reduce((n,f)=>n+f.attackFallen+f.defenseSpent,0);
   maxDrift=Math.max(maxDrift,Math.abs(initial+paid-losses-people));assert.ok(maxDrift<1e-6,'soldier conservation');
   assert.ok(game.squads.every(unit=>unit.troops>0&&game.owner[unit.index]===unit.owner));
+  assert.ok(game.squads.every(unit=>unit.destination===null||game.owner[unit.destination]===unit.owner),'owned march destinations');
+  assert.ok(game.squads.every(unit=>unit.attackTarget==null||game.owner[unit.attackTarget]!==unit.owner),'hostile attack waypoints');
   assert.ok(game.factions.every(f=>Number.isFinite(f.money)&&f.money>=0));
   if(reference&&tick%100===0)assert.deepEqual(game.exportSave(),reference.exportSave(),`replay ${country}/${difficulty}/${tick}`);
   if(tick===500){
@@ -50,7 +52,9 @@ for(const config of cases){
   }
  }
  assert.equal(hash(reference.exportSave()),config.hash,'independent uninterrupted simulation hash');
- verified.push({seed,opponents,country,difficulty,ticks:game.tick,jsonReloadTick:500,maxDrift,movementWrites,passed:true});
+ const finalSave=game.exportSave();
+ assert.deepEqual(Game.fromSave(JSON.parse(JSON.stringify(finalSave))).exportSave(),finalSave,'final JSON save');
+ verified.push({seed,opponents,country,difficulty,ticks:game.tick,jsonReloadTick:500,finalJsonReloadTick:1000,maxDrift,movementWrites,passed:true});
  writeFileSync(directory+'/replay-verification.json',JSON.stringify(verified,null,2));
  console.log(`Verified ${opponents+1} countries, ${country}, ${difficulty}, seed ${seed}: 1000 ticks, ${movementWrites} lawful moves, exact JSON continuation`);
 }

@@ -7,7 +7,7 @@ const phase=process.argv[2]??'after';
 const modulePath=resolve(process.argv[3]??'dist/src/engine/game.js');
 const extended=process.argv.includes('--extended');
 const {Game}=await import(pathToFileURL(modulePath));
-const root='docs/qa/deep-game-20261022';mkdirSync(root,{recursive:true});
+const root=process.env.ATLAS_QA_DIR??'docs/qa/deep-game-20261022';mkdirSync(root,{recursive:true});
 const scenarios=[{opponents:49,country:'DE',difficulty:'balanced'},
  {opponents:8,country:'DE',difficulty:'balanced'},
  ...(extended?[{opponents:49,country:'ES',difficulty:'relaxed'},
