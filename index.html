@@ -12,7 +12,7 @@
   <main id="app">
     <canvas id="world" tabindex="0" aria-label="RTS-Schlachtfeld. Linksklick wählt Einheiten, Rechtsklick erteilt Befehle. Hilfe mit F1."></canvas>
     <header class="hud top">
-      <a class="wordmark" href="/" aria-label="Atlas Dominion Reborn"><span class="emblem" aria-hidden="true">A<span></span></span><span>ATLAS <b>DOMINION</b><small>R E B O R N <i>01 / DÜNENKRIEG</i></small></span></a>
+      <a class="wordmark" href="/" aria-label="Atlas Dominion Reborn"><span class="emblem" aria-hidden="true">A<span></span></span><span>ATLAS <b>DOMINION</b><small>REBORN <i>// ARIDIS 07</i></small></span></a>
       <div class="resources" aria-label="Ressourcen">
         <div><small>CREDITS</small><strong id="credits">500</strong></div>
         <div><small>EINKOMMEN <span>/ 10 S</span></small><strong class="sand" id="income">+0</strong></div>
@@ -36,20 +36,20 @@
       <button id="audio-test">FUNKVERBINDUNG TESTEN</button>
     </section>
     <section class="radar hud" aria-label="Taktische Minikarte">
-      <div class="panel-heading"><span class="live-dot"></span> TAKTISCHES RADAR <span id="clock">00:00</span></div>
+      <div class="panel-heading"><span class="live-dot"></span> RADAR / 07 <span id="clock">00:00</span></div>
       <canvas id="minimap" width="224" height="224" aria-label="Minikarte: klicken und ziehen, um die Kamera zu bewegen"></canvas>
       <div class="radar-caption"><span><i></i> BLAUE LEGION</span><span id="exploration">0 % ERKUNDET</span></div>
       <div class="radar-buttons"><button id="home" title="Zum Hauptquartier (H)">⌖ <span>BASIS</span></button><button id="overlay" title="Territorien anzeigen (T)" aria-pressed="false">▱ <span>GEBIETE</span></button></div>
     </section>
-    <div class="theatre"><span>SEKTOR 07 — ARIDIS</span><span>OPERATION SANDKRONE</span></div>
+    <div class="theatre"><span>ARIDIS / SEKTOR 07</span><span>AUFKLÄREN. SICHERN. VORRÜCKEN.</span></div>
     <div id="notices" role="status" aria-live="polite"></div>
-    <div id="pause-label" hidden>SIMULATION PAUSIERT <small>LEERTASTE ZUM FORTSETZEN</small></div>
+    <div id="pause-label" hidden><span class="pause-symbol" aria-hidden="true">Ⅱ</span><span>TAKTISCHE PAUSE <small><kbd>SPACE</kbd> FORTSETZEN</small></span></div>
     <section class="command hud" aria-label="Kontextbezogene Befehle">
       <div class="portrait" id="portrait"><img src="/src/assets/reborn/headquarters.png" alt="" /></div>
-      <div class="selection-copy"><small id="selection-tag">BLAUE LEGION / KOMMANDO</small><strong id="selection-title">Die Wüste gehört niemandem.</strong><p id="selection-detail">Wähle deinen Soldaten. Erkunde die Wüste und sichere angrenzende Kontrollpunkte.</p><div id="selection-health"></div></div>
+      <div class="selection-copy"><small id="selection-tag">BLAUE LEGION / KOMMANDO</small><strong id="selection-title">Feldkommando</strong><p id="selection-detail">Infanterie wählen, Gelände aufklären und Kontrollpunkte sichern.</p><div id="selection-health"></div></div>
       <div class="commands" id="unit-commands" hidden>
-        <button id="attack"><b>↗</b><span>ANGRIFFSBEWEGUNG</span><kbd>A</kbd></button>
-        <button id="stop"><b>Ⅱ</b><span>POSITION HALTEN</span><kbd>S</kbd></button>
+        <button id="attack" title="Angriffsbewegung: vorrücken und Gegner bekämpfen"><b aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M6 26 25 7M14 7h11v11M6 11V6h5M21 26h5v-5"/></svg></b><span>ANGREIFEN</span><kbd>A</kbd></button>
+        <button id="stop"><b aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M10 7v18M22 7v18"/></svg></b><span>HALTEN</span><kbd>S</kbd></button>
       </div>
       <div class="production" id="production" hidden>
         <button id="recruit"><span class="recruit-image"><img src="/src/assets/reborn/infantry.png" alt="" /></span><span><b>INFANTERIE</b><small>100 CR <i>·</i> 5 SEK.</small></span><span class="recruit-plus">+</span></button>
@@ -59,7 +59,7 @@
     </section>
     <footer class="bottom-status"><div><button id="pause" aria-label="Pause" title="Pause (Leertaste)">Ⅱ</button><span class="live-dot"></span><span id="simulation-status">LIVE SIMULATION</span></div><span id="hint">ZIEHEN: AUSWAHL <i>·</i> RECHTSKLICK: BEWEGEN <i>·</i> SHIFT: BEFEHLSKETTE</span><span>WASD / PFEILE <i>·</i> MAUSRAD ZOOM</span></footer>
     <div id="loading"><span class="emblem">A</span><strong>ATLAS DOMINION</strong><p>Wüstensektor wird vorbereitet …</p></div>
-    <dialog id="help-dialog"><form method="dialog"><button class="dialog-close" aria-label="Schließen">×</button><small>FELDHANDBUCH / 01</small><h1>Dein Befehl. Dein Territorium.</h1><p>Erkunde Aridis. Sichere alle drei roten Startgebiete und erobere das feindliche Hauptquartier, um zu gewinnen. Zerstöre es zuerst mit deiner Infanterie; sichere anschließend seinen Kontrollpunkt.</p><div class="help-grid"><div><h2>BEFEHLE</h2><p><b>Linksklick</b> Einheit oder Hauptquartier wählen<br><b>Ziehen</b> Mehrere Soldaten markieren<br><b>Doppelklick</b> Sichtbare Infanterie wählen<br><b>Rechtsklick</b> Bewegen oder Gegner angreifen<br><b>Shift + Rechtsklick</b> Befehle aneinanderreihen<br><b>A, dann Linksklick</b> Angriffsbewegung<br><b>S</b> Ausgewählte Soldaten stoppen</p></div><div><h2>WELT & WIRTSCHAFT</h2><p><b>WASD / Pfeile / Bildschirmrand</b> Kamera<br><b>Mausrad</b> Zoom am Mauszeiger<br><b>Minikarte</b> Klicken oder ziehen<br><b>H</b> Zur Basis · <b>T</b> Gebietsgrenzen<br><b>Leertaste</b> Pause · <b>F5 / F9</b> Speichern / Laden</p></div></div><p class="help-note">Kontrollpunkte 8 Sekunden lang mit Infanterie halten. Nur Gebiete neben eigenem Territorium können erobert werden. Feinde im Radius unterbrechen die Einnahme. Einkommen kommt alle 10 Sekunden. Im Hauptquartier kostet ein Soldat 100 Credits. Rechtsklick setzt seinen Sammelpunkt. Nach Verlust aller Soldaten und des Hauptquartiers ist die Kampagne verloren.</p><button class="primary">VERSTANDEN — INS FELD</button></form></dialog>
+    <dialog id="help-dialog"><form method="dialog"><button class="dialog-close" aria-label="Schließen">×</button><small>ATLAS / FELDHANDBUCH 01</small><h1>Auftrag: Sandkrone</h1><p>Erkunde Aridis. Sichere alle drei roten Startgebiete und erobere das feindliche Hauptquartier, um zu gewinnen. Zerstöre es zuerst mit deiner Infanterie; sichere anschließend seinen Kontrollpunkt.</p><div class="help-grid"><div><h2>01 / BEFEHLE</h2><p><b>Linksklick</b> Einheit oder Hauptquartier wählen<br><b>Ziehen</b> Mehrere Soldaten markieren<br><b>Doppelklick</b> Sichtbare Infanterie wählen<br><b>Rechtsklick</b> Bewegen oder Gegner angreifen<br><b>Shift + Rechtsklick</b> Befehle aneinanderreihen<br><b>A, dann Linksklick</b> Angriffsbewegung<br><b>S</b> Ausgewählte Soldaten stoppen</p></div><div><h2>02 / NAVIGATION</h2><p><b>WASD / Pfeile / Bildschirmrand</b> Kamera<br><b>Mausrad</b> Zoom am Mauszeiger<br><b>Minikarte</b> Klicken oder ziehen<br><b>H</b> Zur Basis · <b>T</b> Gebietsgrenzen<br><b>Leertaste</b> Pause · <b>F5 / F9</b> Speichern / Laden</p></div></div><p class="help-note">Kontrollpunkte 8 Sekunden lang mit Infanterie halten. Nur Gebiete neben eigenem Territorium können erobert werden. Feinde im Radius unterbrechen die Einnahme. Eigene Bastionen geben dauerhaft Sicht auf ihre Umgebung. Soldaten schießen selbstständig auf sichtbare Gegner in Waffenreichweite und setzen danach ihren Marsch fort. Einkommen kommt alle 10 Sekunden. Im Hauptquartier kostet ein Soldat 100 Credits. Rechtsklick setzt seinen Sammelpunkt. Nach Verlust aller Soldaten und des Hauptquartiers ist die Kampagne verloren.</p><button class="primary">VERSTANDEN — INS FELD</button></form></dialog>
     <dialog id="new-dialog"><form method="dialog"><small>NEUE KAMPAGNE</small><h1>Zurück in die Wüste?</h1><p>Der aktuelle Fortschritt wird zurückgesetzt. Ein manuell gespeicherter Spielstand bleibt erhalten.</p><div class="dialog-actions"><button value="cancel">WEITERSPIELEN</button><button class="primary" value="new">NEUES SPIEL</button></div></form></dialog>
     <dialog id="result-dialog"><small>KAMPAGNE BEENDET</small><h1 id="result-title"></h1><p id="result-copy"></p><button id="result-new" class="primary">NEUE KAMPAGNE</button><button id="result-close">SCHLACHTFELD ANSEHEN</button></dialog>
   </main>

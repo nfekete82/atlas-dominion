@@ -89,15 +89,15 @@ export class Simulation {
   updateVision():void {
     for(const owner of [0,1] as const){
       const visible=this.visible[owner];visible.fill(0);
-      const sources=[...this.units.filter(u=>u.owner===owner&&u.hp>0).map(u=>({...u,sight:RULES.infantry.sight})),
-        ...this.bases.filter(b=>b.owner===owner&&b.hp>0).map(b=>({...b,sight:RULES.headquarters.sight}))];
+      const sources=[...this.units.filter(u=>u.owner===owner&&u.hp>0).map(u=>({x:u.x,y:u.y,sight:RULES.infantry.sight,close:RULES.infantry.radius+this.world.cell*2})),
+        ...this.bases.filter(b=>b.owner===owner&&b.hp>0).map(b=>({x:b.x,y:b.y,sight:RULES.headquarters.sight,close:RULES.headquarters.radius+this.world.cell*2})),
+        ...this.territories.filter(t=>t.owner===owner).map(t=>({...t.point,sight:RULES.bastion.sight,close:RULES.bastion.radius+this.world.cell*2}))];
       for(const s of sources){
         const gx=Math.floor(s.x/this.world.cell),gy=Math.floor(s.y/this.world.cell),r=Math.ceil(s.sight/this.world.cell);
-        const close='queue' in s ? RULES.headquarters.radius+this.world.cell*2 : this.world.cell*2+RULES.infantry.radius;
         for(let y=Math.max(0,gy-r);y<=Math.min(RULES.grid-1,gy+r);y++)for(let x=Math.max(0,gx-r);x<=Math.min(RULES.grid-1,gx+r);x++){
           const i=y*RULES.grid+x,p=this.world.center(i);
           const d=distance(s,p);
-          if(!visible[i]&&d<=s.sight&&(d<=close||this.world.sightLine(s,p)))visible[i]=1;
+          if(!visible[i]&&d<=s.sight&&(d<=s.close||this.world.sightLine(s,p)))visible[i]=1;
         }
         // A source always reveals its exact tile, including after save migration.
         const ownCell=this.world.index(s);if(ownCell>=0)visible[ownCell]=1;
@@ -123,7 +123,8 @@ export class Simulation {
       const attacker=this.units.find(e=>e.id===u.lastAttacker&&e.owner!==u.owner&&e.hp>0);
       if(attacker&&distance(u,attacker)<=RULES.infantry.range&&this.canSee(u.owner,attacker)&&this.world.line(u,attacker))return attacker;
     }
-    if(order?.kind==='move')return undefined;
+    // All soldiers engage visible threats in weapon range, including during a
+    // normal march. Orders remain queued and resume when the threat is gone.
     if(order?.kind==='attack'&&order.target!==undefined){
       const manual=[...this.units,...this.bases].find(e=>e.id===order.target&&e.owner!==u.owner&&e.hp>0&&this.canSee(u.owner,e));
       if(manual)return manual;
@@ -186,6 +187,7 @@ export class Simulation {
       }
     }
     this.spatial.rebuild(this.units);
+    let ownershipChanged=false;
     for(const t of this.territories){
       const nearby=this.spatial.query(t.point,RULES.captureRadius).filter(u=>u.hp>0);
       const blue=nearby.some(u=>u.owner===0),red=nearby.some(u=>u.owner===1);
@@ -198,7 +200,7 @@ export class Simulation {
       if(t.capturing!==owner){t.capturing=owner;t.progress=0;}
       t.progress+=dt;
       if(t.progress+1e-8>=RULES.captureTime){
-        t.owner=owner;t.progress=0;t.capturing=-1;
+        t.owner=owner;t.progress=0;t.capturing=-1;ownershipChanged=true;
         for(const b of this.bases)if(b.territory===t.id&&b.hp<=0){b.owner=owner as Faction;b.hp=RULES.headquarters.hp*.5;b.queue=[];b.production=0;}
         if(owner===0)this.notices.push(`${t.name} gesichert · +${t.income} Credits / 10 s`);
         else if(this.canSee(0,t.point))this.notices.push(`${t.name} unter feindlicher Kontrolle.`);
@@ -207,7 +209,7 @@ export class Simulation {
     }
     this.aiClock+=dt;
     if(this.time>=RULES.aiOpeningDelay&&this.aiClock>=RULES.aiInterval){this.aiClock=0;this.think();}
-    if(this.fogClock>=.2){this.fogClock=0;this.updateVision();}
+    if(this.fogClock>=.2||ownershipChanged){this.fogClock=0;this.updateVision();}
     if(this.bases.every(b=>b.owner===0&&b.hp>0)&&[4,5,11].every(i=>this.territories[i].owner===0))this.status='victory';
     if(!this.bases.some(b=>b.owner===0&&b.hp>0)&&this.count(0)===0)this.status='defeat';
   }

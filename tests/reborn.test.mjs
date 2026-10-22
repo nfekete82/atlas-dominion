@@ -11,7 +11,7 @@ test('reborn: exact start, deterministic map, real fog and configurable economy'
  assert.equal(g.territories.length,30);assert.equal(g.territories.filter(t=>t.owner===0).length,3);
  assert.equal(g.bases.length,2);assert.equal(g.income(0),35);
  // Nearby cliffs are identified as complete landforms; most of the map stays unknown.
- assert.ok(g.explored[0].reduce((n,v)=>n+v,0)<RULES.grid**2*.12);
+ assert.ok(g.explored[0].reduce((n,v)=>n+v,0)<RULES.grid**2*.25);
  assert.deepEqual(g.save(),new Simulation().save());
  assert.ok(g.world.walkable(g.units[0],g.obstacles()));
 });
@@ -33,7 +33,7 @@ test('reborn: physical movement explores and captures an adjacent territory afte
  advance(g,8);assert.equal(t.owner,0);assert.equal(g.income(0),40);
  assert.ok(g.explored[0].reduce((a,b)=>a+b,0)>before);assert.equal(g.canSee(0,t.point),true);
  g.command([u.id],{...g.territories[13].point,kind:'move'});advance(g,12);
- assert.equal(g.hasExplored(0,t.point),true);assert.equal(g.canSee(0,t.point),false);
+ assert.equal(g.hasExplored(0,t.point),true);assert.equal(g.canSee(0,t.point),true);
 });
 
 test('reborn: disconnected captures fail; enemies contest and interrupt capture',()=>{
@@ -162,4 +162,30 @@ test('reborn: orders into deep impassable mountains resolve to a reachable edge 
  assert.equal(g.command([u.id],{...target,kind:'move'}),1);const goal=u.orders[0];
  assert.ok(g.world.walkable(goal,g.obstacles()));assert.equal(g.world.components[g.world.index(goal)],g.world.components[g.world.index(u)]);
  assert.ok(g.world.path(u,goal,g.obstacles()).length>0);assert.ok(distance(target,goal)>22*g.world.cell);
+});
+
+test('reborn: captured bastions retain local sight without infantry and transfer it immediately on recapture',()=>{
+ const g=peaceful(),u=g.units[0],t=g.territories[20];
+ assert.equal(g.canSee(0,t.point),false);
+ g.command([u.id],{...t.point,kind:'move'});advance(g,14);assert.equal(t.owner,0);
+ g.command([u.id],{x:g.bases[0].x+125,y:g.bases[0].y+100,kind:'move'});advance(g,14);
+ assert.ok(distance(u,t.point)>RULES.infantry.sight);assert.equal(g.canSee(0,t.point),true);
+ const nearby={x:t.point.x+160,y:t.point.y};assert.ok(g.world.sightLine(t.point,nearby));assert.equal(g.canSee(0,nearby),true);
+ const restored=Simulation.load(g.save());assert.equal(restored.canSee(0,nearby),true);
+ // A legal adjacent red foothold permits an actual eight-second recapture.
+ g.units=[];g.territories[14].owner=1;g.spawn(1,{...t.point});g.updateVision();
+ for(let i=0;i<161&&t.owner!==1;i++)g.step();
+ assert.equal(t.owner,1);assert.equal(g.canSee(1,nearby),true);assert.equal(g.canSee(0,nearby),false);assert.equal(g.hasExplored(0,nearby),true);
+ const lost=Simulation.load(g.save());assert.equal(lost.canSee(0,nearby),false);assert.equal(lost.canSee(1,nearby),true);
+});
+
+test('reborn: both teams proactively fire during ordinary movement before taking any damage and keep queued orders',()=>{
+ for(const owner of [0,1]){
+  const g=peaceful();g.units=[];const sentry=g.spawn(owner,{x:1900,y:2100}),target=g.spawn(1-owner,{x:2050,y:2100});
+  target.cooldown=100;
+  g.command([sentry.id],{x:2350,y:2100,kind:'move'});g.command([sentry.id],{x:2400,y:2250,kind:'move'},true);g.updateVision();
+  g.step();assert.equal(sentry.hp,100);assert.equal(target.hp,83);assert.equal(sentry.lastAttacker,null);assert.equal(sentry.moving,false);assert.equal(sentry.orders.length,2);
+  assert.ok(g.shots.some(shot=>shot.owner===owner));
+  g.units=g.units.filter(u=>u.id!==target.id);advance(g,1);assert.ok(sentry.x>1930);assert.equal(sentry.orders.length,2);
+ }
 });

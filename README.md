@@ -19,7 +19,8 @@ Die frühere Europaversion bleibt unter **http://127.0.0.1:8095/legacy/index.htm
 - Rechtsklick bewegt oder greift einen sichtbaren Gegner an. Shift hängt Befehle an.
 - **A**, dann Linksklick: Angriffsbewegung. **S**: Stoppen. Halten von A/S scrollt nach kurzem Antippen; WASD und Pfeile bewegen die Kamera.
 - Mausrad zoomt am Zeiger. Minikarte klicken/ziehen verschiebt den Ausschnitt. **H**: Basis, **T**: Gebietsgrenzen.
-- Einen angrenzenden Kontrollpunkt acht Sekunden halten. Feinde im Radius unterbrechen die Einnahme. Durchmarsch allein erobert nichts.
+- Einen angrenzenden Kontrollpunkt acht Sekunden halten. Feinde im Radius unterbrechen die Einnahme. Eigene Bastionen halten ihre Umgebung mit 320 Metern Sicht dauerhaft aufgeklärt; bei Verlust endet ihre Sicht sofort.
+- Soldaten bekämpfen sichtbare Gegner innerhalb ihrer 175 Meter Waffenreichweite automatisch, auch während eines Marsches. Ihre Befehlsfolge bleibt erhalten und wird nach dem Gefecht fortgesetzt.
 - Einkommen wird alle zehn Simulationssekunden gutgeschrieben. Hauptquartier: +10; Gebiete: +5, +15 oder +25 Credits. Das Hauptquartier produziert einen Soldaten für 100 Credits in fünf Sekunden. Rechtsklick setzt seinen Sammelpunkt.
 - **Leertaste** pausiert. **F5 / F9** oder die Symbole oben speichern/laden in IndexedDB. Nach einem Browser-Neustart „Laden“ wählen. Das Wechseln in einen anderen Tab pausiert die Simulation.
 - Sieg: feindliches Hauptquartier zerstören, seinen Kontrollpunkt sichern und alle drei roten Startgebiete kontrollieren. Niederlage: kein funktionsfähiges Hauptquartier und keine eigene Infanterie mehr.
@@ -30,9 +31,9 @@ Die frühere Europaversion bleibt unter **http://127.0.0.1:8095/legacy/index.htm
 
 ```sh
 npm run typecheck
-npm run test:reborn    # 20 gezielte Simulationstests
+npm run test:reborn    # 22 gezielte Simulationstests
 npm test              # Gesamte Suite, einschließlich Archiv und HTTP
-npm run test:browser   # Acht Chrome-Tests für Gameplay, Sicht, Grafik und Audio
+npm run test:browser   # Elf Chrome-Tests für Gameplay, Sicht, Grafik und Audio
 ```
 
 Für Browser-Tests einmalig `npm ci --prefix tests/browser` ausführen. Chrome ist lokal voreingestellt; `ATLAS_BROWSER_CHANNEL=chromium` verwendet Playwright Chromium. Ein bereits laufender Server kann über `ATLAS_BASE_URL` angegeben werden.
@@ -43,11 +44,11 @@ Für Browser-Tests einmalig `npm ci --prefix tests/browser` ausführen. Chrome i
 
 TypeScript, Canvas 2D, feste 20 Simulationsschritte pro Sekunde, A*, räumliche Buckets, getrennte Simulation/Darstellung/Eingabe/Speicherung. Die neue Architektur liegt vollständig in `src/reborn/`. Sie benötigt keine zusätzlichen Laufzeitbibliotheken. Spielwerte und Asset-Pfade stehen in `src/reborn/config.ts`.
 
-Die Original-PNGs bleiben unverändert in `src/assets/reborn/`: `desert.png`, `infantry.png`, `headquarters.png`. Die feinere Terrainfassung liegt in `desert-fine.png`, der transparente Laufatlas in `infantry-walk.png`. Die Bastion wird aus `src/assets/reborn/bastion.png` geladen und je Besitzer blau, rot oder unbeleuchtet dargestellt. Der Laufatlas kombiniert 32 Posen mit kontinuierlicher Beinbewegung; die Füße sind am Boden verankert. Künstliche Bodenschatten werden nicht gezeichnet.
+Die Original-PNGs bleiben unverändert in `src/assets/reborn/`: `desert.png`, `infantry.png`, `headquarters.png`. Die feinere Terrainfassung liegt in `desert-fine.png`, der neue transparente Laufatlas in `infantry-walk-v2.png`. Die Bastion wird aus `src/assets/reborn/bastion.png` geladen: neutral weiß leuchtend, für die Teams blau oder rot. Der Laufatlas enthält vier Schrittphasen in vier Richtungen, ergänzt durch Spiegelung. Ganze Posen ersetzen die bisher verdrehten Sprite-Hälften; Helmposition und Bodenhöhe werden beim Laden ausgerichtet. Künstliche Bodenschatten werden nicht gezeichnet.
 
 Der Boden trennt großräumiges Relief und feine Sandstruktur. Hügel und Felsen bleiben an ihren Kartenpositionen und blockieren das feinere Navigationsraster. Angegriffene Infanterie erwidert das Feuer auch während eines Marschbefehls und setzt danach ihren ursprünglichen Weg fort. Der Soundregler oben bietet Schüsse, Schritte, Funkbestätigungen und Wüstenwind; Ton startet mit der ersten Interaktion.
 
-Die Sicht unterscheidet hohe Felsen von niedrigen Geröllhindernissen. Eigene Einheiten und Gebäude decken ihre unmittelbare Umgebung immer auf. Beim Entdecken einer Felsformation wird ihre unbetretbare Oberfläche als Gelände bekannt; Gegner dahinter bleiben verborgen. Ein Bewegungsziel tief im Berg wird auf einen erreichbaren Randpunkt gelegt. Die Felsdetails werden von der Glättung des Sandbodens ausgespart. Bestehende Spielstände bleiben ladbar.
+Die Sicht unterscheidet hohe Felsen von niedrigen Geröllhindernissen. Eigene Einheiten und Gebäude decken ihre unmittelbare Umgebung immer auf. Beim Entdecken einer Felsformation wird ihre unbetretbare Oberfläche als Gelände bekannt; Gegner dahinter bleiben verborgen. Ein Bewegungsziel tief im Berg wird auf einen erreichbaren Randpunkt gelegt. Fels- und Schattenkanten erhalten einen begrenzten Schärfepass; eine eigene Sandsteinstruktur ergänzt feinere Felsdetails. Die zugrunde liegende Landschaft bleibt eine vergrößerte 1254-Pixel-Vorlage. Bestehende Spielstände bleiben ladbar.
 
 [Bildquellen und Generierungsprompts](docs/reborn/ART_ASSETS.md)
 

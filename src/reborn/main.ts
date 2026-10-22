@@ -32,8 +32,8 @@ function refresh():void{
   el('portrait').classList.toggle('soldier',selected.length>0);
   const img=el('portrait').querySelector('img')!;const desired=selected.length?'/src/assets/reborn/infantry.png':'/src/assets/reborn/headquarters.png';if(img.getAttribute('src')!==desired)img.src=desired;
   el('selection-tag').textContent=selected.length?'BLAUE LEGION / INFANTERIE':base?'BLAUE LEGION / PRODUKTION':'BLAUE LEGION / KOMMANDO';
-  el('selection-title').textContent=selected.length?`${selected.length===1?'Infanteriesoldat':`${selected.length} Infanteriesoldaten`}`:base?'Hauptquartier':'Die Wüste gehört niemandem.';
-  el('selection-detail').textContent=selected.length?(renderer.attackMode?'Angriffsziel mit Linksklick wählen.':`${selected.filter(u=>u.orders.length>0).length?'Befehl wird ausgeführt.':'Bereit für deinen Befehl.'} Rechtsklick: Bewegen / Angreifen.`):base?'Infanterie ausbilden. Rechtsklick auf die Karte setzt den Sammelpunkt.':'Wähle deinen Soldaten. Erkunde die Wüste und sichere angrenzende Kontrollpunkte.';
+  el('selection-title').textContent=selected.length?`${selected.length===1?'Infanteriesoldat':`${selected.length} Infanteriesoldaten`}`:base?'Hauptquartier':'Feldkommando';
+  el('selection-detail').textContent=selected.length?(renderer.attackMode?'Angriffsziel mit Linksklick wählen.':`${selected.filter(u=>u.orders.length>0).length?'Unterwegs.':'Einsatzbereit.'} Rechtsklick: Bewegen / Angreifen.`):base?'Infanterie ausbilden. Rechtsklick setzt den Sammelpunkt.':'Infanterie wählen, Gelände aufklären und Kontrollpunkte sichern.';
   el('selection-health').textContent=selected.length?`${Math.round(selected.reduce((n,u)=>n+u.hp,0))} / ${selected.length*100} TP · SICHT 310 M`:base?`${Math.round(base.hp)} / 1200 TP`:'';
   if(base){
     const recruit=el<HTMLButtonElement>('recruit');recruit.disabled=game.credits[0]<RULES.infantry.cost||base.queue.length>=8||game.count(0)+game.queued(0)>=RULES.capacity||game.status!=='playing';

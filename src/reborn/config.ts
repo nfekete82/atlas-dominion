@@ -6,11 +6,13 @@ export const RULES = {
   infantry: { cost: 100, buildTime: 5, hp: 100, speed: 112, sight: 310,
     range: 175, damage: 17, cooldown: .85, radius: 10 },
   headquarters: { hp: 1200, sight: 390, radius: 83 },
+  bastion: { sight: 320, radius: 24 },
   aiInterval: 3, aiOpeningDelay: 25,
 } as const;
 export const ASSETS = {
   terrain: '/src/assets/reborn/desert-fine.png', infantry: '/src/assets/reborn/infantry.png',
-  infantryWalk: '/src/assets/reborn/infantry-walk.png', bastion: '/src/assets/reborn/bastion.png',
+  rockDetail: '/src/assets/reborn/sandstone-detail.png',
+  infantryWalk: '/src/assets/reborn/infantry-walk-v2.png', bastion: '/src/assets/reborn/bastion.png',
   headquarters: '/src/assets/reborn/headquarters.png',
 };
 export type Faction = 0 | 1;

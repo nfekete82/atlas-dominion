@@ -93,7 +93,7 @@ test('reborn: hidden enemies leave no main-map or minimap pixels, and terrain st
  });
  expect(hidden.canSee).toBe(false);expect(hidden.explored).toBe(false);expect(hidden.pixel.slice(0,3).every(v=>v<12)).toBe(true);expect(hidden.m.slice(0,3).every(v=>v<12)).toBe(true);
  await page.locator('#home').click();await page.locator('#select-unit').click();await order(page,{x:1567.5,y:2633.4});await advance(page,14);await order(page,{x:940.5,y:1881});await advance(page,13);
- const known=await page.evaluate(()=>({known:window.__reborn.game.hasExplored(0,window.__reborn.game.territories[20].point),visible:window.__reborn.game.canSee(0,window.__reborn.game.territories[20].point)}));expect(known).toEqual({known:true,visible:false});
+ const known=await page.evaluate(()=>{const g=window.__reborn.game;return {known:g.hasExplored(0,g.territories[20].point),visible:g.canSee(0,g.territories[20].point),memory:g.explored[0].some((v,i)=>v&&!g.visible[0][i]&&!g.world.blocked[i])};});expect(known).toEqual({known:true,visible:true,memory:true});
 });
 
 test('reborn: compact viewport, instructions, pause and new campaign preserve a usable playfield',async({page})=>{
@@ -122,7 +122,7 @@ test('reborn: sound unlocks on interaction, produces an audio signal and preserv
 test('reborn: finer terrain, directional animation, grounded drawing and automatic retaliation render in the browser',async({page})=>{
  await start(page);const result=await page.evaluate(async()=>{
   const {game:g,renderer:r}=window.__reborn;
-  const atlas=new Image();atlas.src='/src/assets/reborn/infantry-walk.png';await atlas.decode();const temp=document.createElement('canvas');temp.width=atlas.width;temp.height=atlas.height;const tc=temp.getContext('2d');tc.drawImage(atlas,0,0);
+  const atlas=new Image();atlas.src='/src/assets/reborn/infantry-walk-v2.png';await atlas.decode();const temp=document.createElement('canvas');temp.width=atlas.width;temp.height=atlas.height;const tc=temp.getContext('2d');tc.drawImage(atlas,0,0);
   const pixels=tc.getImageData(0,0,temp.width,temp.height).data;let clear=0,opaque=0;for(let i=3;i<pixels.length;i+=4){if(pixels[i]===0)clear++;if(pixels[i]>250)opaque++;}
   g.units=[];const blue=g.spawn(0,{x:1900,y:2100}),red=g.spawn(1,{x:2050,y:2100});g.command([blue.id],{x:2350,y:2100,kind:'move'});g.updateVision();g.paused=false;g.step();g.step();g.paused=true;
   r.camera.x=blue.x;r.camera.y=blue.y;r.boundCamera();r.selected=new Set([blue.id]);r.render(0);
@@ -155,7 +155,7 @@ test('reborn: the headquarters black spot and the ground beneath infantry remain
  await page.screenshot({path:evidence+'visibility-fix.png'});
 });
 
-test('reborn: rock faces and the nearby relief keep their source detail instead of the sand blur',async({page})=>{
+test('reborn: rock relief gains bounded edge contrast without flattening its cast shadows',async({page})=>{
  await start(page);
  const result=await page.evaluate(()=>{
   const {game:g,renderer:r}=window.__reborn,w=g.world,grid=240;
@@ -168,8 +168,92 @@ test('reborn: rock faces and the nearby relief keep their source detail instead 
   const p=w.center(at),x=Math.floor(p.x)-24,y=Math.floor(p.y)-24,raw=document.createElement('canvas');raw.width=raw.height=48;
   const c=raw.getContext('2d');c.imageSmoothingQuality='high';c.drawImage(r.terrain,-x,-y,3762,3762);
   const expected=c.getImageData(0,0,48,48).data,actual=r.terrainSurface.getContext('2d').getImageData(x,y,48,48).data;
-  let total=0,max=0;for(let i=0;i<actual.length;i++)if(i%4!==3){const d=Math.abs(actual[i]-expected[i]);total+=d;max=Math.max(max,d);}
-  return {average:total/(48*48*3),max};
+  let total=0,max=0,sourceEdges=0,renderedEdges=0;
+  for(let i=0;i<actual.length;i++)if(i%4!==3){const d=Math.abs(actual[i]-expected[i]);total+=d;max=Math.max(max,d);}
+  for(let yy=1;yy<47;yy++)for(let xx=1;xx<47;xx++){
+    const i=(yy*48+xx)*4;
+    sourceEdges+=Math.abs(expected[i]-expected[i+4])+Math.abs(expected[i]-expected[i+48*4]);
+    renderedEdges+=Math.abs(actual[i]-actual[i+4])+Math.abs(actual[i]-actual[i+48*4]);
+  }
+  return {average:total/(48*48*3),max,sourceEdges,renderedEdges};
  });
- expect(result.average).toBeLessThan(2);expect(result.max).toBeLessThan(6);
+ expect(result.average).toBeLessThan(16);expect(result.max).toBeLessThan(50);
+ expect(result.renderedEdges).toBeGreaterThan(result.sourceEdges*1.08);
+});
+
+test('reborn: capture beacons emit white when neutral and saturated team colors after ownership changes',async({page})=>{
+ await start(page);
+ const result=await page.evaluate(()=>{
+   const r=window.__reborn.renderer,variants=r.bastions;
+   const pixels=s=>{const c=document.createElement('canvas');c.width=s.image.width;c.height=s.image.height;const ctx=c.getContext('2d');ctx.drawImage(s.image,0,0);return ctx.getImageData(0,0,c.width,c.height).data;};
+   const blue=pixels(variants.blue),red=pixels(variants.red),neutral=pixels(variants.neutral);let count=0,white=0,redLight=0,unchangedMetal=0;
+   for(let i=0;i<blue.length;i+=4)if(blue[i+3]>240){
+     if(blue[i+2]>210&&blue[i+2]-blue[i]>80&&blue[i+2]>blue[i+1]*.9){
+       count++;if(neutral[i]>200&&Math.abs(neutral[i]-neutral[i+1])<2&&Math.abs(neutral[i]-neutral[i+2])<2)white++;
+       if(red[i]>210&&red[i]>red[i+1]*2&&red[i]>red[i+2]*2)redLight++;
+     }else if(blue[i]>blue[i+2]*1.2&&blue[i]>100&&red[i]===blue[i]&&neutral[i]===blue[i])unchangedMetal++;
+   }
+   // Exercise the real owner lookup at the same world point, not just detached images.
+   const t=window.__reborn.game.territories[19],owner=t.owner;
+   const sample=[];for(const next of [-1,1,0]){t.owner=next;r.render(0);const p=r.screen(t.point),d=Math.min(2,devicePixelRatio||1);sample.push(Array.from(r.context.getImageData(Math.floor((p.x-40)*d),Math.floor((p.y-100)*d),Math.floor(80*d),Math.floor(116*d)).data));}
+   t.owner=owner;const changed=(a,b)=>a.reduce((n,v,i)=>n+Number(v!==b[i]),0);
+   return {count,white,redLight,unchangedMetal,neutralToRed:changed(sample[0],sample[1]),redToBlue:changed(sample[1],sample[2])};
+ });
+ expect(result.count).toBeGreaterThan(1000);expect(result.white/result.count).toBeGreaterThan(.99);expect(result.redLight/result.count).toBeGreaterThan(.99);
+ expect(result.unchangedMetal).toBeGreaterThan(10000);expect(result.neutralToRed).toBeGreaterThan(150);expect(result.redToBlue).toBeGreaterThan(150);
+});
+
+test('reborn: infantry poses stay grounded without detached neighboring weapon fragments',async({page})=>{
+ await start(page);
+ const result=await page.evaluate(()=>{
+   const {renderer:r,game:g}=window.__reborn,c=document.createElement('canvas');c.width=180;c.height=120;
+   const ctx=c.getContext('2d'),old=r.context,selection=r.selected;r.context=ctx;r.selected=new Set();r.interpolation=1;
+   let maxDetachedDistance=0,minHeight=Infinity,maxHeight=0;
+   try{
+     for(const angle of [0,Math.PI/4,Math.PI/2,Math.PI*1.5])for(let frame=0;frame<4;frame++){
+       ctx.clearRect(0,0,c.width,c.height);ctx.save();ctx.translate(90,105);ctx.scale(1.8,1.8);
+       r.drawUnit({...g.units[0],x:0,y:0,previousX:0,previousY:0,angle,walkDistance:frame*18,moving:true,fire:0,hit:0,hp:100});ctx.restore();
+       const pixels=ctx.getImageData(0,0,c.width,c.height).data,seen=new Uint8Array(c.width*c.height),groups=[];
+       for(let start=0;start<seen.length;start++){
+         if(seen[start]||pixels[start*4+3]<100)continue;const queue=[start];seen[start]=1;let left=c.width,right=0,top=c.height,bottom=0;
+         for(let at=0;at<queue.length;at++){
+           const index=queue[at],x=index%c.width,y=Math.floor(index/c.width);left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y);
+           for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+             const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=c.width||ny>=c.height)continue;
+             const next=ny*c.width+nx;if(!seen[next]&&pixels[next*4+3]>=100){seen[next]=1;queue.push(next);}
+           }
+         }
+         groups.push({size:queue.length,left,right,top,bottom});
+       }
+       groups.sort((a,b)=>b.size-a.size);const body=groups[0];minHeight=Math.min(minHeight,body.bottom-body.top+1);maxHeight=Math.max(maxHeight,body.bottom-body.top+1);
+       for(const part of groups.slice(1))if(part.size>=2)maxDetachedDistance=Math.max(maxDetachedDistance,body.left-part.right,part.left-body.right,body.top-part.bottom,part.top-body.bottom);
+     }
+   }finally{r.context=old;r.selected=selection;}
+   return {maxDetachedDistance,minHeight,maxHeight};
+ });
+ expect(result.maxDetachedDistance).toBeLessThanOrEqual(3);expect(result.minHeight).toBeGreaterThan(80);expect(result.maxHeight).toBeLessThan(89);
+});
+
+test('reborn: captured bastion keeps both maps lit after infantry leaves and marching guards initiate combat',async({page})=>{
+ await start(page);await page.locator('#select-unit').click();
+ const target=await page.evaluate(()=>window.__reborn.game.territories[20].point);await order(page,target);await advance(page,14);
+ const home=await page.evaluate(()=>({x:window.__reborn.game.bases[0].x+125,y:window.__reborn.game.bases[0].y+100}));await order(page,home);await advance(page,14);await focus(page,target);
+ const result=await page.evaluate(()=>{
+   const {game:g,renderer:r}=window.__reborn,t=g.territories[20],p={x:t.point.x+140,y:t.point.y};r.render(0);
+   const s=r.screen(p),d=Math.min(2,devicePixelRatio||1);
+   const main=Array.from(r.context.getImageData(Math.floor(s.x*d),Math.floor(s.y*d),1,1).data).slice(0,3);
+   const mini=Array.from(r.mini.getImageData(Math.floor(p.x/3762*224),Math.floor(p.y/3762*224),1,1).data).slice(0,3);
+   return {owner:t.owner,visible:g.canSee(0,p),soldierDistance:Math.hypot(g.units[0].x-t.point.x,g.units[0].y-t.point.y),main,mini};
+ });
+ expect(result.owner).toBe(0);expect(result.visible).toBe(true);expect(result.soldierDistance).toBeGreaterThan(310);
+ expect(result.main.reduce((a,b)=>a+b,0)).toBeGreaterThan(240);expect(result.mini.reduce((a,b)=>a+b,0)).toBeGreaterThan(180);
+ await page.screenshot({path:evidence+'bastion-sight.png'});
+ const combat=await page.evaluate(()=>{
+   const {game:g,renderer:r}=window.__reborn;g.units=[];
+   const blue=g.spawn(0,{x:1900,y:2100}),red=g.spawn(1,{x:2050,y:2100});red.cooldown=100;
+   g.command([blue.id],{x:2350,y:2100,kind:'move'});g.command([blue.id],{x:2400,y:2250,kind:'move'},true);g.updateVision();
+   g.paused=false;g.step();g.paused=true;r.camera.x=blue.x;r.camera.y=blue.y;r.boundCamera();r.render(0);
+   return {blueHp:blue.hp,redHp:red.hp,firstAttacker:blue.lastAttacker,orders:blue.orders.length,shots:g.shots.filter(s=>s.owner===0).length};
+ });
+ expect(combat).toEqual({blueHp:100,redHp:83,firstAttacker:null,orders:2,shots:1});
 });
