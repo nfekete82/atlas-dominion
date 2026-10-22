@@ -59,3 +59,14 @@ test('real allied aid travelling away remains in population but not in mobile re
   assert.deepEqual([totals[0].total,totals[0].mobile,totals[0].deployed],[600,500,80]);
   assert.deepEqual([totals[1].total,totals[1].mobile],[600,600]);
 });
+
+test('RTS map and hover totals include field formations and embarked survivors exactly once',()=>{
+ const game={tick:20,rtsRecruitment:true,factions:[{id:0,troops:45,moneyIncome:3,income:2}],
+  owner:[0],cities:[],cityUpgrades:[0],attackOrders:[],defenseAid:[],
+  squads:[{id:1,owner:0,index:0,troops:100,destination:null},
+   {id:2,owner:0,index:0,troops:82.5,destination:null,seaRoute:[0,1,2],seaLanding:2}]};
+ const summary=militarySummaries(game,[45],[])[0];
+ assert.deepEqual([summary.total,summary.mobile,summary.border,summary.deployed,summary.growth],
+  [272.5,45,45,182.5,0]);
+ assert.equal(strengthLabel(summary.total),'⚔ 272');
+});

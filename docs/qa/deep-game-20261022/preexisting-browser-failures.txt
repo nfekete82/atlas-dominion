@@ -1,0 +1,134 @@
+
+> test
+> playwright test compact-sidebar.spec.mjs naval.spec.mjs --grep compact empire|1440x900 DPR 1|reduced-motion --reporter=list
+
+
+Running 3 tests using 1 worker
+
+(node:59284) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 compact-sidebar.spec.mjs:3:1 › compact empire sidebar keeps primary military stats visible and collapses optional details (45.5s)
+(node:59562) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 naval.spec.mjs:16:74 › naval left click, pause, reload and terrain at 1440x900 DPR 1 (1.0s)
+(node:59585) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 naval.spec.mjs:37:1 › reduced-motion still displays stationary paused fleets and renders actual route positions (1.1s)
+
+
+  1) compact-sidebar.spec.mjs:3:1 › compact empire sidebar keeps primary military stats visible and collapses optional details
+
+    Test timeout of 45000ms exceeded.
+
+    Error: locator.click: Test timeout of 45000ms exceeded.
+    Browser logs:
+
+    <launching> /Applications/Google Chrome.app/Contents/MacOS/Google Chrome --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,NetworkTimeServiceQuerying,AimEnabled,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/33/0q5pt4f53vsb1cxdgl0q__gc0000gn/T/playwright_chromiumdev_profile-Vhudds --remote-debugging-pipe --no-startup-window
+    <launched> pid=59285
+    [pid=59285][err] Trying to load the allocator multiple times. This is *not* supported.
+    [pid=59285][err] [59291:1316021:1022/124047.078818:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=59285][err] [59291:1316093:1022/124047.078981:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=59285][err] [59291:1316021:1022/124047.079280:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=59285][err] [59291:1316093:1022/124047.079320:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=59285][err] [59291:1316021:1022/124047.079807:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=59285][err] [59291:1316093:1022/124047.079841:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=59285][err] [59291:1316021:1022/124047.080136:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=59285][err] [59291:1316093:1022/124047.080169:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=59285][err] [59291:1316021:1022/124047.080247:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=59285][err] [59291:1316093:1022/124047.080276:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=59285][err] [59298:1316204:1022/124047.512422:ERROR:sandbox/mac/system_services.cc:31] SetApplicationIsDaemon: Error Domain=NSOSStatusErrorDomain Code=-50 "paramErr: error in user parameter list" (-50)
+    [pid=59285][err] [59285:1316004:1022/124049.302469:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: PHONE_REGISTRATION_ERROR
+    [pid=59285][err] [59285:1316004:1022/124049.302555:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: PHONE_REGISTRATION_ERROR
+    [pid=59285][err] [59285:1316004:1022/124049.352133:ERROR:google_apis/gcm/engine/mcs_client.cc:702]   Error code: 401  Error message: Authentication Failed: wrong_secret
+    [pid=59285][err] [59285:1316004:1022/124049.352140:ERROR:google_apis/gcm/engine/mcs_client.cc:704] Failed to log in to GCM, resetting connection.
+    [pid=59285][err] [59285:1316004:1022/124112.177903:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+    [pid=59285] <gracefully close start>
+    [pid=59285][err] [59285:1316019:1022/124132.527786:ERROR:base/process/process_mac.cc:45] task_policy_set TASK_CATEGORY_POLICY: (os/kern) invalid argument (4)
+    [pid=59285][err] [59285:1316019:1022/124132.527806:ERROR:base/process/process_mac.cc:90] task_policy_set TASK_SUPPRESSION_POLICY: (os/kern) invalid argument (4)
+    Call log:
+      - waiting for locator('.defense-extra summary')
+        - locator resolved to <summary>Verluste und Gefechte anzeigen</summary>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is not visible
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is not visible
+        - retrying click action
+          - waiting 100ms
+        84 × waiting for element to be visible, enabled and stable
+           - element is not visible
+         - retrying click action
+           - waiting 500ms
+        - waiting for element to be visible, enabled and stable
+
+
+      16 |   await expect(page.locator('#frontTroops')).toBeVisible();
+      17 |   await expect(page.locator('.defense-extra')).not.toHaveAttribute('open','');
+    > 18 |   await page.locator('.defense-extra summary').click();
+         |                                                ^
+      19 |   await expect(page.locator('.defense-extra')).toHaveAttribute('open','');
+      20 |   await expect(page.locator('#casualtyReport')).toBeVisible();
+      21 |   await expect(page.locator('.diplomacy-help')).not.toHaveAttribute('open','');
+        at /Users/norbertfekete/Projects/atlas-dominion/tests/browser/compact-sidebar.spec.mjs:18:48
+
+    Error Context: artifacts/runs/compact-sidebar-compact-em-b25c3--collapses-optional-details/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    artifacts/runs/compact-sidebar-compact-em-b25c3--collapses-optional-details/trace.zip
+    Usage:
+
+        npx playwright show-trace artifacts/runs/compact-sidebar-compact-em-b25c3--collapses-optional-details/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) naval.spec.mjs:16:74 › naval left click, pause, reload and terrain at 1440x900 DPR 1 ──────────
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: undefined
+
+      18 |  const spot=await fleetFixture(page);await page.mouse.click(spot.x,spot.y);await page.mouse.move(1,1);
+      19 |  const departure=await page.evaluate(()=>{const g=__atlas.getGame(),o=g.attackOrders.find(o=>o.factionId===0);return {landing:o?.landing,route:o?.seaRoute,sent:o?.remaining,tick:g.tick};});
+    > 20 |  expect(departure.landing).toBe(true);expect(departure.route.length).toBeGreaterThan(2);expect(departure.sent).toBe(350);
+         |                            ^
+      21 |  await page.evaluate(()=>{const g=__atlas.getGame(),o=g.attackOrders.find(o=>o.factionId===0&&o.seaRoute);g.paused=false;for(let i=0;i<Math.floor((o.arrivalTick-o.startedTick)/2);i++)g.step();g.paused=true;__atlas.refresh();});await frames(page);
+      22 |  await page.screenshot({path:`${evidence}fleet-${width}-dpr${dpr}.jpg`,type:'jpeg',quality:92});
+      23 |  const mid=await page.evaluate(()=>__atlas.getGame().exportSave());await page.waitForTimeout(350);expect(await page.evaluate(()=>__atlas.getGame().exportSave())).toEqual(mid);
+        at /Users/norbertfekete/Projects/atlas-dominion/tests/browser/naval.spec.mjs:20:28
+
+    Error Context: artifacts/runs/naval-naval-left-click-pau-050d3-d-terrain-at-1440x900-DPR-1/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    artifacts/runs/naval-naval-left-click-pau-050d3-d-terrain-at-1440x900-DPR-1/trace.zip
+    Usage:
+
+        npx playwright show-trace artifacts/runs/naval-naval-left-click-pau-050d3-d-terrain-at-1440x900-DPR-1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) naval.spec.mjs:37:1 › reduced-motion still displays stationary paused fleets and renders actual route positions
+
+    Error: page.evaluate: TypeError: Cannot read properties of undefined (reading 'seaRoute')
+        at eval (eval at evaluate (:370:30), <anonymous>:8:31)
+        at async <anonymous>:396:30
+        at eval (eval at evaluate (:370:30), <anonymous>:8:31)
+        at async <anonymous>:396:30
+        at /Users/norbertfekete/Projects/atlas-dominion/tests/browser/naval.spec.mjs:39:29
+
+    Error Context: artifacts/runs/naval-reduced-motion-still-59851-ders-actual-route-positions/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    artifacts/runs/naval-reduced-motion-still-59851-ders-actual-route-positions/trace.zip
+    Usage:
+
+        npx playwright show-trace artifacts/runs/naval-reduced-motion-still-59851-ders-actual-route-positions/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    compact-sidebar.spec.mjs:3:1 › compact empire sidebar keeps primary military stats visible and collapses optional details
+    naval.spec.mjs:16:74 › naval left click, pause, reload and terrain at 1440x900 DPR 1 ───────────
+    naval.spec.mjs:37:1 › reduced-motion still displays stationary paused fleets and renders actual route positions

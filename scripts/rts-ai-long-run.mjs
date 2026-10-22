@@ -20,12 +20,14 @@ const game=new Game(seed,opponents,'DE','balanced',true);
 const initialPeople=game.factions.reduce((n,f)=>n+f.population,0);
 const initialAIPeople=game.factions.slice(1).reduce((n,f)=>n+f.population,0);
 let recruited=0,aiRecruited=0,maxConservationDrift=0,conservationViolations=0;
-const originalRecruit=game.recruitSquad.bind(game);
-game.recruitSquad=(...args)=>{
-  const result=originalRecruit(...args);
-  if(result.ok){recruited+=args[2];if(args[0]>0)aiRecruited+=args[2];}
-  return result;
-};
+for(const name of ['recruitSquad','reinforceSquad']){
+  const original=game[name].bind(game);
+  game[name]=(...args)=>{
+    const result=original(...args);
+    if(result.ok){recruited+=args.at(-1);if(args[0]>0)aiRecruited+=args.at(-1);}
+    return result;
+  };
+}
 const initial=game.factions.slice(1).reduce((n,f)=>n+f.territory,0);
 const loss=()=>game.factions.slice(1).reduce((n,f)=>n+f.attackFallen+f.defenseSpent,0);
 const stages=['commandRTSAI','moveSquads','resolveSquadContacts','recount',

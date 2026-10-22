@@ -1,0 +1,36 @@
+
+> test
+> playwright test deep-rts.spec.mjs compact-sidebar.spec.mjs naval.spec.mjs diplomacy.spec.mjs military.spec.mjs --reporter=list
+
+
+Running 24 tests using 1 worker
+
+(node:66648) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 compact-sidebar.spec.mjs:3:1 › compact empire sidebar keeps primary military stats visible and collapses optional details (865ms)
+  ✓   2 compact-sidebar.spec.mjs:27:1 › ranking defaults to 12 nations and can expand to all without losing selection (588ms)
+  ✓   3 deep-rts.spec.mjs:25:1 › RTS selection, right-click movement, shift context and deselection work through real pointer events (617ms)
+  ✓   4 deep-rts.spec.mjs:44:1 › batched territory has pixel-identical ownership coverage, contours and holes (2.7s)
+  ✓   5 deep-rts.spec.mjs:80:1 › diagonal formations interpolate smoothly and reduced motion uses the actual position (551ms)
+  ✓   6 deep-rts.spec.mjs:102:1 › sailing formations have one ship, no land cluster and no ghost port selection (596ms)
+  ✓   7 deep-rts.spec.mjs:124:1 › real contact battles remain individually visible and rendering leaves all game state unchanged (1.2s)
+  ✓   8 diplomacy.spec.mjs:3:1 › diplomacy sidebar creates a real treaty, blocks attacks and survives reload (896ms)
+  ✓   9 diplomacy.spec.mjs:32:1 › AI alliance proposal requires explicit accept or decline (564ms)
+  ✓  10 diplomacy.spec.mjs:69:1 › right click on foreign territory offers or ends a coalition without dispatching troops (656ms)
+  ✓  11 diplomacy.spec.mjs:99:1 › right clicked coalition request can be rejected by the AI for bad strategic value (575ms)
+  ✓  12 military.spec.mjs:10:31 › country names and outlined strength stay legible at zoom 1 (776ms)
+  ✓  13 military.spec.mjs:10:31 › country names and outlined strength stay legible at zoom 1.5 (647ms)
+  ✓  14 military.spec.mjs:10:31 › country names and outlined strength stay legible at zoom 2 (619ms)
+  ✓  15 military.spec.mjs:10:31 › country names and outlined strength stay legible at zoom 4 (588ms)
+  ✓  16 military.spec.mjs:38:1 › compact country hover shows only total and mobile strength with live values (787ms)
+  ✓  17 military.spec.mjs:87:1 › moving reserves to the border changes only mobile badge, not total country strength (736ms)
+  ✓  18 naval.spec.mjs:18:74 › explicit legacy naval order, pause, reload and terrain at 1440x900 DPR 1 (4.6s)
+  ✓  19 naval.spec.mjs:18:74 › explicit legacy naval order, pause, reload and terrain at 1440x900 DPR 2 (4.6s)
+  ✓  20 naval.spec.mjs:18:74 › explicit legacy naval order, pause, reload and terrain at 1920x1080 DPR 1 (4.5s)
+  ✓  21 naval.spec.mjs:18:74 › explicit legacy naval order, pause, reload and terrain at 1920x1080 DPR 2 (4.6s)
+  ✓  22 naval.spec.mjs:30:1 › paired overview, Alps/Constance and Scandinavian screenshots at several zooms preserve gameplay (2.9s)
+  ✓  23 naval.spec.mjs:39:1 › reduced-motion still displays stationary paused fleets and renders actual route positions (1.0s)
+Naval performance {"fleets":100,"baseline":{"medianMs":16.699999999999932,"p95Ms":16.700000000000045},"terrain":{"medianMs":16.699999999999818,"p95Ms":16.700000000000045},"fleetDrawMedianMs":0.10000000894069672,"fleetDrawP95Ms":0.20000000298023224}
+  ✓  24 naval.spec.mjs:44:1 › terrain and 100 parallel fleets have bounded render cost and recorded frame timings (2.1s)
+
+  24 passed (38.9s)

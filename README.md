@@ -3,6 +3,10 @@
 [![Build und Simulationstests](https://github.com/nfekete82/atlas-dominion/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/nfekete82/atlas-dominion/actions/workflows/ci.yml)
 
 
+**RTS-Verbesserungen vom 22.10.2026:** Die KI berücksichtigt echte lokale Unterstützung, verstärkt zurückgekehrte Formationen gegen Gold, investiert in sichere Industrie und sichert nahe unverteidigte Restgebiete. Truppenanzeigen zählen Feldarmeen und Seetransporte vollständig; Kampfmarker bleiben bei dichtem Kontakt lesbar. Kartenflächen werden zeilenweise gezeichnet und feste Kontaktradien wiederverwendet.
+
+Die RTS-Steuerung bleibt erhalten: **Linksklick auswählen, Rechtsklick bewegen/angreifen, Umschalt-Rechtsklick Kontextmenü.** [Messwerte, Grenzen, Tests und vergleichbare Screenshots](docs/qa/deep-game-20261022/README.md).
+
 ### Lesbare Stadtmarker
 
 Gebaute Städte erscheinen als 30 CSS-Pixel große Canvas-Skyline mit kleinem Levelbadge (1–5), auch bei 100 % Kartenzoom. Level 0 bleibt ohne Zahl. Bronze kennzeichnet 0–2, Silber 3–4 und Gold 5. Kollisionsprüfung schützt andere Städte, Frontzähler, Hauptstadtnamen und Kartenbedienelemente. Eng stehende Städte werden nach Priorität ausgedünnt; Zoomen macht weitere Städte sichtbar. Die Symbole und ihre Rechtsklick-Trefferflächen verwenden dieselben Bildschirmmaße.

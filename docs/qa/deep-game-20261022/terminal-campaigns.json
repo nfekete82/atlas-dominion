@@ -1,0 +1,53 @@
+[
+  {
+    "country": "VA",
+    "difficulty": "impossible",
+    "opponents": 49,
+    "playerPolicy": "passive",
+    "seed": 221041,
+    "ticks": 982,
+    "status": "defeat",
+    "maxDrift": 6.184563972055912e-11,
+    "checkpoints": [
+      {
+        "tick": 982,
+        "status": "defeat",
+        "playerTerritory": 0,
+        "living": 49,
+        "squads": 143,
+        "heapMB": 93.77444458007812,
+        "losses": 23405.754430593217
+      }
+    ]
+  },
+  {
+    "country": "SM",
+    "difficulty": "intense",
+    "opponents": 49,
+    "playerPolicy": "passive",
+    "seed": 221041,
+    "ticks": 1705,
+    "status": "defeat",
+    "maxDrift": 1.837179297581315e-10,
+    "checkpoints": [
+      {
+        "tick": 1000,
+        "status": "playing",
+        "playerTerritory": 31,
+        "living": 50,
+        "squads": 140,
+        "heapMB": 93.94013214111328,
+        "losses": 19886.790548678477
+      },
+      {
+        "tick": 1705,
+        "status": "defeat",
+        "playerTerritory": 0,
+        "living": 48,
+        "squads": 117,
+        "heapMB": 93.927734375,
+        "losses": 62073.9473707167
+      }
+    ]
+  }
+]

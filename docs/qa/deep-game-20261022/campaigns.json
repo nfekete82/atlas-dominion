@@ -1,0 +1,173 @@
+[
+  {
+    "country": "DE",
+    "difficulty": "balanced",
+    "opponents": 49,
+    "playerPolicy": "public-paid-orders",
+    "seed": 221041,
+    "ticks": 5000,
+    "status": "playing",
+    "maxDrift": 6.726622814312577e-9,
+    "checkpoints": [
+      {
+        "tick": 1000,
+        "status": "playing",
+        "playerTerritory": 980,
+        "living": 50,
+        "squads": 135,
+        "heapMB": 93.87950134277344,
+        "losses": 21048.52901390754
+      },
+      {
+        "tick": 2000,
+        "status": "playing",
+        "playerTerritory": 1660,
+        "living": 50,
+        "squads": 118,
+        "heapMB": 94.06472778320312,
+        "losses": 78499.24832767167
+      },
+      {
+        "tick": 3000,
+        "status": "playing",
+        "playerTerritory": 2196,
+        "living": 50,
+        "squads": 108,
+        "heapMB": 94.08097839355469,
+        "losses": 142841.85843803262
+      },
+      {
+        "tick": 4000,
+        "status": "playing",
+        "playerTerritory": 2993,
+        "living": 50,
+        "squads": 109,
+        "heapMB": 94.07292938232422,
+        "losses": 207727.87783364265
+      },
+      {
+        "tick": 5000,
+        "status": "playing",
+        "playerTerritory": 3830,
+        "living": 48,
+        "squads": 106,
+        "heapMB": 94.08573913574219,
+        "losses": 275618.4481948886
+      }
+    ]
+  },
+  {
+    "country": "GB",
+    "difficulty": "relaxed",
+    "opponents": 8,
+    "playerPolicy": "public-paid-orders",
+    "seed": 221041,
+    "ticks": 5000,
+    "status": "playing",
+    "maxDrift": 7.912603905424476e-11,
+    "checkpoints": [
+      {
+        "tick": 1000,
+        "status": "playing",
+        "playerTerritory": 1261,
+        "living": 9,
+        "squads": 44,
+        "heapMB": 93.8958511352539,
+        "losses": 1439.3732909485652
+      },
+      {
+        "tick": 2000,
+        "status": "playing",
+        "playerTerritory": 1261,
+        "living": 9,
+        "squads": 44,
+        "heapMB": 93.91407012939453,
+        "losses": 3268.8461434501396
+      },
+      {
+        "tick": 3000,
+        "status": "playing",
+        "playerTerritory": 1261,
+        "living": 9,
+        "squads": 44,
+        "heapMB": 93.91392517089844,
+        "losses": 4610.509622537356
+      },
+      {
+        "tick": 4000,
+        "status": "playing",
+        "playerTerritory": 1261,
+        "living": 9,
+        "squads": 44,
+        "heapMB": 93.92198181152344,
+        "losses": 5279.199622537364
+      },
+      {
+        "tick": 5000,
+        "status": "playing",
+        "playerTerritory": 1261,
+        "living": 9,
+        "squads": 44,
+        "heapMB": 93.92604064941406,
+        "losses": 6045.639622537407
+      }
+    ]
+  },
+  {
+    "country": "FR",
+    "difficulty": "impossible",
+    "opponents": 49,
+    "playerPolicy": "public-paid-orders",
+    "seed": 221041,
+    "ticks": 5000,
+    "status": "playing",
+    "maxDrift": 3.459717845544219e-9,
+    "checkpoints": [
+      {
+        "tick": 1000,
+        "status": "playing",
+        "playerTerritory": 1311,
+        "living": 49,
+        "squads": 143,
+        "heapMB": 94.22478485107422,
+        "losses": 26872.83327882457
+      },
+      {
+        "tick": 2000,
+        "status": "playing",
+        "playerTerritory": 1772,
+        "living": 48,
+        "squads": 122,
+        "heapMB": 94.19224548339844,
+        "losses": 87778.11437587795
+      },
+      {
+        "tick": 3000,
+        "status": "playing",
+        "playerTerritory": 1790,
+        "living": 47,
+        "squads": 124,
+        "heapMB": 94.21507263183594,
+        "losses": 171967.67749666818
+      },
+      {
+        "tick": 4000,
+        "status": "playing",
+        "playerTerritory": 1984,
+        "living": 47,
+        "squads": 119,
+        "heapMB": 94.17632293701172,
+        "losses": 252731.58831451478
+      },
+      {
+        "tick": 5000,
+        "status": "playing",
+        "playerTerritory": 1856,
+        "living": 47,
+        "squads": 124,
+        "heapMB": 94.2081069946289,
+        "losses": 332969.5404885085
+      }
+    ]
+  }
+]

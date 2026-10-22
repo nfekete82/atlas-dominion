@@ -1,0 +1,16 @@
+
+> test
+> playwright test deep-rts.spec.mjs --reporter=list
+
+
+Running 5 tests using 1 worker
+
+(node:67787) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 deep-rts.spec.mjs:25:1 › RTS selection, right-click movement, shift context and deselection work through real pointer events (772ms)
+  ✓  2 deep-rts.spec.mjs:44:1 › batched territory has pixel-identical ownership coverage, contours and holes (2.6s)
+  ✓  3 deep-rts.spec.mjs:80:1 › diagonal formations interpolate smoothly and reduced motion uses the actual position (525ms)
+  ✓  4 deep-rts.spec.mjs:102:1 › sailing formations have one ship, no land cluster and no ghost port selection (577ms)
+  ✓  5 deep-rts.spec.mjs:124:1 › real contact battles remain individually visible and rendering leaves all game state unchanged (1.2s)
+
+  5 passed (6.2s)

@@ -1,0 +1,79 @@
+[
+  {
+    "seed": 20261022,
+    "opponents": 49,
+    "country": "DE",
+    "difficulty": "balanced",
+    "ticks": 1000,
+    "jsonReloadTick": 500,
+    "maxDrift": 2.1827872842550278e-11,
+    "movementWrites": 50780,
+    "passed": true
+  },
+  {
+    "seed": 20261022,
+    "opponents": 8,
+    "country": "DE",
+    "difficulty": "balanced",
+    "ticks": 1000,
+    "jsonReloadTick": 500,
+    "maxDrift": 3.637978807091713e-12,
+    "movementWrites": 20003,
+    "passed": true
+  },
+  {
+    "seed": 20261022,
+    "opponents": 49,
+    "country": "ES",
+    "difficulty": "relaxed",
+    "ticks": 1000,
+    "jsonReloadTick": 500,
+    "maxDrift": 2.9103830456733704e-11,
+    "movementWrites": 45588,
+    "passed": true
+  },
+  {
+    "seed": 20261022,
+    "opponents": 49,
+    "country": "GB",
+    "difficulty": "intense",
+    "ticks": 1000,
+    "jsonReloadTick": 500,
+    "maxDrift": 6.002665031701326e-11,
+    "movementWrites": 50327,
+    "passed": true
+  },
+  {
+    "seed": 20261022,
+    "opponents": 49,
+    "country": "FR",
+    "difficulty": "impossible",
+    "ticks": 1000,
+    "jsonReloadTick": 500,
+    "maxDrift": 5.093170329928398e-11,
+    "movementWrites": 52161,
+    "passed": true
+  },
+  {
+    "seed": 20261013,
+    "opponents": 8,
+    "country": "IT",
+    "difficulty": "balanced",
+    "ticks": 1000,
+    "jsonReloadTick": 500,
+    "maxDrift": 1.0913936421275139e-11,
+    "movementWrites": 20265,
+    "passed": true
+  },
+  {
+    "seed": 221041,
+    "opponents": 49,
+    "country": "PL",
+    "difficulty": "balanced",
+    "ticks": 1000,
+    "jsonReloadTick": 500,
+    "maxDrift": 4.001776687800884e-11,
+    "movementWrites": 49646,
+    "passed": true
+  }
+]

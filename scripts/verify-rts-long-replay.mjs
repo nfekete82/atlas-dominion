@@ -17,10 +17,13 @@ for(const {countries,seed} of cases){
   let game=new Game(seed,countries-1,'DE','balanced',true),reference=null,recruited=0,maxDrift=0;
   const initial=game.factions.reduce((n,f)=>n+f.population,0);
   const instrument=()=>{
-    const subject=game,recruit=subject.recruitSquad.bind(subject);
-    subject.recruitSquad=(...args)=>{
-      const result=recruit(...args);if(result.ok&&subject===game)recruited+=args[2];return result;
-    };
+    const subject=game;
+    for(const name of ['recruitSquad','reinforceSquad']){
+      const recruit=subject[name].bind(subject);
+      subject[name]=(...args)=>{
+        const result=recruit(...args);if(result.ok&&subject===game)recruited+=args.at(-1);return result;
+      };
+    }
   };
   instrument();
   const watched=new WeakSet();let moves=new Map();

@@ -1,3 +1,4 @@
+import type {AIStyle} from './ai-strategy.js';
 /** Pure, deterministic RTS target evaluation. Strategic value never creates units. */
 export interface RTSTargetIntel {
   neutral:boolean;
@@ -80,7 +81,7 @@ export interface RTSTheaterTarget {
   strategicValue:number;
   committed:number;
 }
-export function chooseRTSTheaterTarget(targets:readonly RTSTheaterTarget[]):number|null {
+export function chooseRTSTheaterTarget(targets:readonly RTSTheaterTarget[],style?:AIStyle):number|null {
   let chosen:number|null=null,score=-Infinity;
   for(const target of targets){
     if(!Number.isInteger(target.tile)||target.tile<0||
@@ -88,7 +89,11 @@ export function chooseRTSTheaterTarget(targets:readonly RTSTheaterTarget[]):numb
       !Number.isFinite(target.defenderStrength)||target.defenderStrength<0||
       !Number.isFinite(target.distance)||target.distance<0)continue;
     const threat=target.defenderStrength/Math.max(20,target.assaultStrength+target.committed*.5);
-    const value=(target.neutral?55:35)+target.strategicValue+
+    const preference=style==='expansion'?(target.neutral?15:-8):
+      style==='aggressive'?(!target.neutral?14:0):
+      style==='defensive'?-Math.min(40,threat*30):
+      style==='opportunist'&&!target.neutral?Math.max(-20,18-threat*30):0;
+    const value=(target.neutral?55:35)+target.strategicValue+preference+
       Math.min(35,target.committed*.15)-Math.min(240,threat*95)-
       target.distance*.9;
     if(value>score||(value===score&&(chosen===null||target.tile<chosen))){

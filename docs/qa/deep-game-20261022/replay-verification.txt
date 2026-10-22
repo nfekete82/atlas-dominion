@@ -1,0 +1,7 @@
+Verified 50 countries, DE, balanced, seed 20261022: 1000 ticks, 50780 lawful moves, exact JSON continuation
+Verified 9 countries, DE, balanced, seed 20261022: 1000 ticks, 20003 lawful moves, exact JSON continuation
+Verified 50 countries, ES, relaxed, seed 20261022: 1000 ticks, 45588 lawful moves, exact JSON continuation
+Verified 50 countries, GB, intense, seed 20261022: 1000 ticks, 50272 lawful moves, exact JSON continuation
+Verified 50 countries, FR, impossible, seed 20261022: 1000 ticks, 52161 lawful moves, exact JSON continuation
+Verified 9 countries, IT, balanced, seed 20261013: 1000 ticks, 20265 lawful moves, exact JSON continuation
+Verified 50 countries, PL, balanced, seed 221041: 1000 ticks, 49640 lawful moves, exact JSON continuation

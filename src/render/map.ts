@@ -2,7 +2,7 @@ import {createTopographyLayer} from './topography.js';
 import {voyageGeometry,voyagePosition,type VoyageGeometry} from './sea-voyages.js';
 import { COUNTRIES, MAP_HEIGHT, MAP_WIDTH, WORLD_HEIGHT, WORLD_WIDTH } from '../data/europe.js';
 import { COUNTRY_STARTS } from '../data/countries.js';
-import { Game, NEUTRAL, WATER, pointToWorld, pointToIndex, seededRandom, type Point } from '../engine/game.js';
+import { Game, NEUTRAL, WATER, pointToWorld, pointToIndex, seededRandom, isSquadEmbarked, type RTSSquad, type Point } from '../engine/game.js';
 import { TerritoryWave, waveProgress } from './wave.js';
 import {organicCaptureRadius,burningFrontAlpha} from './capture-visual.js';
 import { pixelGridEdges } from './pixel-grid.js';
@@ -28,7 +28,12 @@ export class MapRenderer {
   private overlay = document.createElement('canvas');
   private highlightedCountry = document.createElement('canvas');
   // Visual interpolation only: squad positions in the simulation are untouched.
-  private squadVisuals=new Map<number,{index:number;from:number;changedAt:number}>();
+  private squadVisuals=new Map<number,{index:number;from:number;changedAt:number;strength:number}>();
+  private squadBattles=new Map<number,{hit:boolean;casualties:number}>();
+  private squadMotionTime=0;
+  private squadTick=-1;
+  private squadTickAt=0;
+  private drawBuildingMarkers:MapRenderer['buildingMarkers']=[];
   private showSeaPassages=false;
   private readonly panKeys=new Set<string>();
   private previousPanFrame=0;
@@ -59,6 +64,7 @@ export class MapRenderer {
   private occupancy=new ScreenOccupancy();
   private cityAnchors=new ScreenOccupancy();
   private overlayBounds:ScreenRect[]=[];
+  private squadHits:Array<{id:number;owner:number;index:number;x:number;y:number}>=[];
   private squadClusterHits:Array<{x:number;y:number;owner:number;ids:number[]}>=[];
   private visibleCityMarkers:Array<{index:number;x:number;y:number;level:number;bounds:ScreenRect}>=[];
   /** Cached when territory/buildings change, not rescanned every animation frame. */
@@ -99,7 +105,8 @@ export class MapRenderer {
   setGame(game: Game) {
     this.game = game;
     this.squadVisuals.clear();
-    this.squadClusterHits=[];
+    this.squadBattles.clear();
+    this.squadClusterHits=[];this.squadHits=[];
     this.hover=null;
     this.hoverPointer=null;
     this.hoverIndex=-1;
@@ -109,6 +116,7 @@ export class MapRenderer {
     this.wave.reset(game.owner);
     this.frontGroups=[];
     this.frontUpdatedAt=0;
+    this.squadTick=-1;this.squadTickAt=0;
     this.reinforcementWaves=[];
     this.visibleCityMarkers=[];
     this.updateTerritory();
@@ -223,6 +231,7 @@ export class MapRenderer {
     this.frontGroups=groupBattles(this.game.battleEvents,owners,MAP_WIDTH)
       .filter(group=>group.leftId!==NEUTRAL && group.rightId!==NEUTRAL);
     this.frontUpdatedAt=now;
+    if(this.squadTick!==this.game.tick){this.squadTick=this.game.tick;this.squadTickAt=now;}
     for (let i = 0; i < owners.length; i++) {
       const id = owners[i];
       if (id < 0) continue;
@@ -234,12 +243,18 @@ export class MapRenderer {
       const front = this.game.frontline[i];
       stationed[id] += front;
       if (front > 0.1) regional[id].push({index:i,troops:front});
-      // Guaranteed coverage for every owned sector. Contour paths below are
-      // decorative and must never determine whether land is visible.
-      const col=i%MAP_WIDTH,row=Math.floor(i/MAP_WIDTH);
-      const left=X_EDGES[col],top=Y_EDGES[row];
-      c.fillStyle=this.game.factions[id].color+'9a';
-      c.fillRect(left,top,X_EDGES[col+1]-left,Y_EDGES[row+1]-top);
+    }
+    // Exact pixel edges are preserved. A contiguous row span needs one draw
+    // call instead of a fillStyle change and fillRect for every owned sector.
+    for(let row=0;row<MAP_HEIGHT;row++){
+      let col=0;
+      while(col<MAP_WIDTH){
+        const start=col,id=owners[row*MAP_WIDTH+col++];
+        while(col<MAP_WIDTH&&owners[row*MAP_WIDTH+col]===id)col++;
+        if(id<0)continue;
+        c.fillStyle=this.game.factions[id].color+'9a';
+        c.fillRect(X_EDGES[start],Y_EDGES[row],X_EDGES[col]-X_EDGES[start],Y_EDGES[row+1]-Y_EDGES[row]);
+      }
     }
     // Marching squares creates rounded-looking diagonals and soft corners.
     // This presentation-only pass never changes tile ownership or targeting.
@@ -273,6 +288,23 @@ export class MapRenderer {
     // separated markers so neighboring settlements cannot form giant blobs.
     this.buildingMarkers.sort((a,b)=>Number(b.owner===0)-Number(a.owner===0)
       || a.index-b.index);
+    this.drawBuildingMarkers=this.buildingMarkers.slice().sort((a,b)=>
+      Number(b.code===1)-Number(a.code===1)||Number(b.owner===0)-Number(a.owner===0)||
+      this.game.cityUpgrades[b.index]-this.game.cityUpgrades[a.index]||a.index-b.index);
+    this.squadBattles.clear();
+    for(const squad of this.game.squads){
+      if(isSquadEmbarked(squad))continue;
+      let hit=false,casualties=0;
+      for(const event of this.game.battleEvents){
+        if(event.tick!==this.game.tick||
+           event.attackerId!==squad.owner&&event.defenderId!==squad.owner||
+           Math.abs(event.index%MAP_WIDTH-squad.index%MAP_WIDTH)+
+           Math.abs(Math.floor(event.index/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH))>1)continue;
+        hit=true;casualties+=(event.attackerId===squad.owner?event.attackerLost:0)+
+          (event.defenderId===squad.owner?event.defenderLost:0);
+      }
+      this.squadBattles.set(squad.id,{hit,casualties});
+    }
     this.military=militarySummaries(this.game,stationed,this.buildingMarkers);
     this.strengthLabels=this.military.map(s=>strengthLabel(s.total));
     this.mobileLabels=this.military.map(s=>mobileStrengthLabel(s.mobile));
@@ -417,10 +449,7 @@ export class MapRenderer {
     const hovered=this.hover?pointToIndex(this.hover):-1;
     // Cities win the visual priority; factories and towers are smaller markers.
     // No building may hide a nearby city, and every drawn marker is clickable.
-    const markers=this.buildingMarkers.slice().sort((a,b)=>
-      Number(b.code===1)-Number(a.code===1)||
-      Number(b.owner===0)-Number(a.owner===0)||
-      this.game.cityUpgrades[b.index]-this.game.cityUpgrades[a.index]||a.index-b.index);
+    const markers=this.drawBuildingMarkers;
     const shownAiBarracks:{owner:number;x:number;y:number}[]=[];
     const draw=(marker:typeof markers[number])=>{
       const city=marker.code===1;
@@ -502,10 +531,7 @@ export class MapRenderer {
    */
   /** Resolve the current faction order without requiring save migration. */
   private squadFlag(owner:number):string {
-    const faction=this.game.factions[owner];
-    const code=COUNTRY_STARTS.find(c=>c.name===faction?.name)?.code;
-    if(!code||!/^[A-Z]{2}$/.test(code))return '🏳';
-    return String.fromCodePoint(...[...code].map(ch=>0x1f1e6+ch.charCodeAt(0)-65));
+    return FLAGS.get(this.game.factions[owner]?.name)??'🏳';
   }
 
   private squadRelationColor(owner:number):string {
@@ -531,7 +557,8 @@ export class MapRenderer {
       if(!route||route.length<3||squad.seaLanding==null||
         squad.destination!==null||squad.index!==route[0])continue;
       const duration=Math.max(8,Math.ceil(route.length/3));
-      const progress=Math.min(1,Math.max(0,(squad.seaTicks??0)/duration));
+      const blendTick=this.game.paused||this.reducedMotion?1:Math.max(0,Math.min(1,(time-this.squadTickAt)/170));
+      const progress=Math.min(1,Math.max(0,((squad.seaTicks??0)-1+blendTick)/duration));
       const floating=progress*(route.length-1);
       const first=Math.min(route.length-2,Math.floor(floating));
       const blend=floating-first;
@@ -561,10 +588,17 @@ export class MapRenderer {
       c.restore();
     }
     c.restore();
+    const landSquads=this.game.squads.filter(unit=>!isSquadEmbarked(unit));
+    if(!this.game.paused&&!this.reducedMotion)this.squadMotionTime=time;
+    const motionTime=this.squadMotionTime;
+    const selectedIds=new Set(this.selectedSquadIds);
+    const relationColors=new Map<number,string>();
+    for(const unit of landSquads)if(!relationColors.has(unit.owner))
+      relationColors.set(unit.owner,this.squadRelationColor(unit.owner));
     // Tactical routes appear only for selected squads, keeping busy maps clean.
     c.save();
-    for(const squad of this.game.squads){
-      if(!this.selectedSquadIds.includes(squad.id))continue;
+    for(const squad of landSquads){
+      if(!selectedIds.has(squad.id))continue;
       const goal=squad.campaignTarget??squad.attackTarget??squad.destination;
       if(goal==null||goal===squad.index)continue;
       const sx=this.ox+(squad.index%MAP_WIDTH+.5)*CW*this.scale;
@@ -573,19 +607,45 @@ export class MapRenderer {
       const ty=this.oy+(Math.floor(goal/MAP_WIDTH)+.5)*CH*this.scale;
       c.save();
       c.strokeStyle='rgba(130,216,255,.85)';c.lineWidth=2;
-      c.setLineDash([7,6]);c.lineDashOffset=-time*.018;
-      c.beginPath();c.moveTo(sx,sy);c.lineTo(tx,ty);c.stroke();c.setLineDash([]);
+      c.setLineDash([7,6]);c.lineDashOffset=-motionTime*.018;
+      const route=squad.marchRoute??(squad.attackTarget!=null&&
+        Math.abs(squad.attackTarget%MAP_WIDTH-squad.index%MAP_WIDTH)+
+        Math.abs(Math.floor(squad.attackTarget/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH))===1?[squad.attackTarget]:[]);
+      if(route.length){
+        c.beginPath();c.moveTo(sx,sy);
+        for(const tile of route)c.lineTo(this.ox+(tile%MAP_WIDTH+.5)*CW*this.scale,
+          this.oy+(Math.floor(tile/MAP_WIDTH)+.5)*CH*this.scale);
+        c.stroke();
+      }
+      c.setLineDash([]);
       c.fillStyle='#102b3a';c.strokeStyle='#8bdcff';c.lineWidth=2;
       c.beginPath();c.arc(tx,ty,6,0,Math.PI*2);c.fill();c.stroke();
       c.restore();
     }
     c.restore();
     c.save();c.textAlign='center';c.textBaseline='middle';
-    const liveIds=new Set(this.game.squads.map(unit=>unit.id));
+    const liveIds=new Set(landSquads.map(unit=>unit.id));
     for(const id of this.squadVisuals.keys())if(!liveIds.has(id))this.squadVisuals.delete(id);
+    const positions=new Map<number,{x:number;y:number}>();
+    for(const squad of landSquads){
+      let visual=this.squadVisuals.get(squad.id);
+      if(!visual){visual={index:squad.index,from:squad.index,changedAt:time-170,strength:squad.troops};this.squadVisuals.set(squad.id,visual);}
+      else if(visual.index!==squad.index){
+        const previous=visual.index;
+        visual.from=Math.abs(previous%MAP_WIDTH-squad.index%MAP_WIDTH)<=1&&
+          Math.abs(Math.floor(previous/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH))<=1?previous:squad.index;
+        visual.index=squad.index;visual.changedAt=time;
+      }
+      visual.strength=Math.max(visual.strength,squad.troops);
+      const progress=this.reducedMotion||this.game.paused?1:Math.max(0,Math.min(1,(time-visual.changedAt)/170));
+      const easing=progress*progress*(3-2*progress);
+      positions.set(squad.id,{
+        x:this.ox+(visual.from%MAP_WIDTH*(1-easing)+squad.index%MAP_WIDTH*easing+.5)*CW*this.scale,
+        y:this.oy+(Math.floor(visual.from/MAP_WIDTH)*(1-easing)+Math.floor(squad.index/MAP_WIDTH)*easing+.5)*CH*this.scale});
+    }
     const stackPositions=new Map<string,number>();
-    const squadByTile=new Map<number,typeof this.game.squads>();
-    for(const unit of this.game.squads){
+    const squadByTile=new Map<number,typeof landSquads>();
+    for(const unit of landSquads){
       const units=squadByTile.get(unit.index)??[];
       units.push(unit);squadByTile.set(unit.index,units);
     }
@@ -594,27 +654,39 @@ export class MapRenderer {
     const clusteredIds=new Set<number>();
     const clusters:Array<{owner:number;x:number;y:number;troops:number;ids:number[]}>= [];
     const radius=this.zoom>=3.2?28:this.zoom>=2.2?44:58;
-    for(const squad of this.game.squads){
-      if(clusteredIds.has(squad.id)||this.selectedSquadIds.includes(squad.id))continue;
-      const sx=this.ox+(squad.index%MAP_WIDTH+.5)*CW*this.scale;
-      const sy=this.oy+(Math.floor(squad.index/MAP_WIDTH)+.5)*CH*this.scale;
-      const nearby=this.game.squads.filter(other=>{
-        if(other.owner!==squad.owner||this.selectedSquadIds.includes(other.id)||clusteredIds.has(other.id))return false;
-        const ox=this.ox+(other.index%MAP_WIDTH+.5)*CW*this.scale;
-        const oy=this.oy+(Math.floor(other.index/MAP_WIDTH)+.5)*CH*this.scale;
-        return Math.hypot(ox-sx,oy-sy)<=radius;
-      });
+    const buckets=new Map<string,Array<{unit:RTSSquad;order:number}>>();
+    const engaged=new Set(landSquads.filter(unit=>this.squadBattles.get(unit.id)?.hit||unit.attackTarget!=null).map(unit=>unit.id));
+    const eligible=(unit:RTSSquad)=>!selectedIds.has(unit.id)&&!engaged.has(unit.id);
+    landSquads.forEach((unit,order)=>{
+      if(!eligible(unit))return;
+      const {x,y}=positions.get(unit.id)!;
+      const key=`${unit.owner}:${Math.floor(x/radius)}:${Math.floor(y/radius)}`;
+      const bucket=buckets.get(key)??[];bucket.push({unit,order});buckets.set(key,bucket);
+    });
+    for(const squad of landSquads){
+      if(clusteredIds.has(squad.id)||!eligible(squad))continue;
+      const {x:sx,y:sy}=positions.get(squad.id)!;
+      if(sx< -radius-50||sy< -radius-50||sx>this.canvas.clientWidth+radius+50||sy>this.canvas.clientHeight+radius+50)continue;
+      const bx=Math.floor(sx/radius),by=Math.floor(sy/radius),candidates=[];
+      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)
+        for(const item of buckets.get(`${squad.owner}:${bx+dx}:${by+dy}`)??[]){
+          const {x,y}=positions.get(item.unit.id)!;
+          if(!clusteredIds.has(item.unit.id)&&Math.hypot(x-sx,y-sy)<=radius)candidates.push(item);
+        }
+      const nearby=candidates.sort((a,b)=>a.order-b.order).map(item=>item.unit);
       if(nearby.length<2)continue;
       for(const member of nearby)clusteredIds.add(member.id);
       clusters.push({owner:squad.owner,
-        x:nearby.reduce((sum,u)=>sum+this.ox+(u.index%MAP_WIDTH+.5)*CW*this.scale,0)/nearby.length,
-        y:nearby.reduce((sum,u)=>sum+this.oy+(Math.floor(u.index/MAP_WIDTH)+.5)*CH*this.scale,0)/nearby.length,
+        x:nearby.reduce((sum,u)=>sum+positions.get(u.id)!.x,0)/nearby.length,
+        y:nearby.reduce((sum,u)=>sum+positions.get(u.id)!.y,0)/nearby.length,
         troops:nearby.reduce((sum,u)=>sum+u.troops,0),ids:nearby.map(u=>u.id)});
     }
     this.squadClusterHits=clusters.map(group=>({x:group.x,y:group.y,owner:group.owner,ids:group.ids}));
+    this.squadHits=[];
+    const placedUnits:ScreenRect[]=[];
     for(const cluster of clusters){
       if(cluster.x< -45||cluster.y< -45||cluster.x>this.canvas.clientWidth+45||cluster.y>this.canvas.clientHeight+45)continue;
-      const color=this.squadRelationColor(cluster.owner);
+      const color=relationColors.get(cluster.owner)!;
       c.fillStyle='rgba(9,29,41,.95)';c.strokeStyle=color;c.lineWidth=2;
       c.beginPath();c.roundRect(cluster.x-24,cluster.y-21,48,46,10);c.fill();c.stroke();
       c.font='16px sans-serif';c.fillStyle='#fff';
@@ -623,34 +695,38 @@ export class MapRenderer {
       c.font='bold 10px system-ui';c.fillStyle='#aed0db';
       c.fillText(cluster.ids.length+' Gruppen',cluster.x,cluster.y+17);
     }
-    for(const squad of this.game.squads){
+    const displaySquads=landSquads.slice().sort((a,b)=>Number(selectedIds.has(b.id))-Number(selectedIds.has(a.id))||a.id-b.id);
+    for(const squad of displaySquads){
       if(clusteredIds.has(squad.id))continue;
       const stackKey=`${squad.owner}:${squad.index}`;
       const stackNumber=stackPositions.get(stackKey)??0;
       stackPositions.set(stackKey,stackNumber+1);
-      let visual=this.squadVisuals.get(squad.id);
-      if(!visual){
-        visual={index:squad.index,from:squad.index,changedAt:time-170};
-        this.squadVisuals.set(squad.id,visual);
-      }else if(visual.index!==squad.index){
-        const previous=visual.index;
-        visual.from=Math.abs(previous%MAP_WIDTH-squad.index%MAP_WIDTH)+
-          Math.abs(Math.floor(previous/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH))===1?
-          previous:squad.index;
-        visual.index=squad.index;visual.changedAt=time;
-      }
-      const progress=Math.max(0,Math.min(1,(time-visual.changedAt)/170));
-      const easing=progress*progress*(3-2*progress);
-      const vx=(visual.from%MAP_WIDTH)*(1-easing)+(squad.index%MAP_WIDTH)*easing;
-      const vy=Math.floor(visual.from/MAP_WIDTH)*(1-easing)+
-        Math.floor(squad.index/MAP_WIDTH)*easing;
       const offsetX=stackNumber===0?0:Math.cos(stackNumber*2.39996)*Math.min(27,12+stackNumber*4);
       const offsetY=stackNumber===0?0:Math.sin(stackNumber*2.39996)*Math.min(20,8+stackNumber*3);
-      const x=this.ox+(vx+.5)*CW*this.scale+offsetX;
-      const y=this.oy+(vy+.5)*CH*this.scale+offsetY;
+      const anchor=positions.get(squad.id)!;
+      let x=anchor.x+offsetX,y=anchor.y+offsetY;
+      // Separate dense real combat formations with short geographic leader
+      // lines. Their counters must remain readable even on the same sector.
+      if(engaged.has(squad.id)||stackNumber>0){
+        const markerWidth=this.zoom<2?34:52,markerHeight=this.zoom<2?43:77;
+        const offsets=[[0,0],[54,0],[-54,0],[0,72],[0,-72],[54,72],[-54,72],[54,-72],[-54,-72],[108,0],[-108,0],[0,144],[0,-144]];
+        for(const [dx,dy] of offsets){
+          const bounds={x:anchor.x+dx-markerWidth/2,y:anchor.y+dy-39,width:markerWidth,height:markerHeight};
+          if(bounds.x<0||bounds.y<45||bounds.x+markerWidth>this.canvas.clientWidth||bounds.y+markerHeight>this.canvas.clientHeight-50)continue;
+          if(this.occupancy.intersects(bounds)||placedUnits.some(p=>bounds.x<p.x+p.width&&bounds.x+bounds.width>p.x&&bounds.y<p.y+p.height&&bounds.y+bounds.height>p.y))continue;
+          x=anchor.x+dx;y=anchor.y+dy;break;
+        }
+      }
       if(x< -40||y< -40||x>this.canvas.clientWidth+40||y>this.canvas.clientHeight+40)continue;
-      const selected=this.selectedSquadIds.includes(squad.id);
-      const relation=this.squadRelationColor(squad.owner);
+      this.squadHits.push({id:squad.id,owner:squad.owner,index:squad.index,x,y});
+      placedUnits.push({x:x-26,y:y-39,width:52,height:77});
+      if(Math.hypot(x-anchor.x,y-anchor.y)>8){
+        c.save();c.strokeStyle=relationColors.get(squad.owner)!;c.globalAlpha=.42;c.lineWidth=1;
+        c.beginPath();c.moveTo(anchor.x,anchor.y);c.lineTo(x,y);c.stroke();
+        c.fillStyle=relationColors.get(squad.owner)!;c.beginPath();c.arc(anchor.x,anchor.y,2.4,0,Math.PI*2);c.fill();c.restore();
+      }
+      const selected=selectedIds.has(squad.id);
+      const relation=relationColors.get(squad.owner)!;
       const flag=this.squadFlag(squad.owner);
       const far=this.zoom<2;
       const neighbors=[squad.index-1,squad.index+1,squad.index-MAP_WIDTH,squad.index+MAP_WIDTH]
@@ -659,12 +735,9 @@ export class MapRenderer {
           Math.abs(Math.floor(index/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH))===1);
       const opponent=neighbors.flatMap(index=>squadByTile.get(index)??[])
         .find(unit=>unit.owner!==squad.owner&&!this.game.isAllied(unit.owner,squad.owner));
-      const hit=this.game.battleEvents.some(event=>event.tick===this.game.tick&&
-        (event.attackerId===squad.owner||event.defenderId===squad.owner)&&
-        Math.abs(event.index%MAP_WIDTH-squad.index%MAP_WIDTH)+
-        Math.abs(Math.floor(event.index/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH))<=1);
+      const hit=this.squadBattles.get(squad.id)?.hit??false;
       const clash=!!opponent&&hit;
-      const pulse=Math.max(0,Math.sin(time*.014+squad.id*.43));
+      const pulse=Math.max(0,Math.sin(motionTime*.014+squad.id*.43));
       const lungeX=opponent?(opponent.index%MAP_WIDTH-squad.index%MAP_WIDTH)*4*pulse:0;
       const lungeY=opponent?(Math.floor(opponent.index/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH))*4*pulse:0;
       const count=Math.min(8,Math.max(3,Math.ceil(squad.troops/65)));
@@ -691,13 +764,9 @@ export class MapRenderer {
         c.beginPath();c.moveTo(31,0);c.lineTo(21,-5);c.lineTo(21,5);c.closePath();c.fill();
         c.restore();
       }
-      const combat=clash||(squad.attackTarget!==null&&squad.attackTarget!==undefined&&squad.destination===null)||
-        this.game.battleEvents.some(e=>e.tick===this.game.tick&&
-          (e.attackerId===squad.owner||e.defenderId===squad.owner)&&
-          Math.abs(e.index%MAP_WIDTH-squad.index%MAP_WIDTH)+
-          Math.abs(Math.floor(e.index/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH))<=1);
+      const combat=hit;
       const tint=squad.owner===0?'#79d3fa':this.game.factions[squad.owner]?.color??'#d98c8c';
-      const phase=time*.009+squad.id*1.37;
+      const phase=motionTime*.009+squad.id*1.37;
       if(selected){
         c.strokeStyle='#ffe58b';c.lineWidth=2;c.setLineDash([3,3]);
         c.beginPath();c.ellipse(x,y,23,16,0,0,Math.PI*2);c.stroke();c.setLineDash([]);
@@ -724,13 +793,7 @@ export class MapRenderer {
         c.beginPath();c.arc(x+24,y-6,2.5+flash*2,0,Math.PI*2);c.fill();
         // Visible hit sparks and fallen silhouette communicate actual
         // casualties from this tick; never modify simulation values.
-        const recent=this.game.battleEvents.filter(e=>e.tick===this.game.tick&&
-          (e.attackerId===squad.owner||e.defenderId===squad.owner)&&
-          Math.abs(e.index%MAP_WIDTH-squad.index%MAP_WIDTH)+
-          Math.abs(Math.floor(e.index/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH))<=1);
-        const casualties=recent.reduce((sum,e)=>sum+
-          (e.attackerId===squad.owner?e.attackerLost:0)+
-          (e.defenderId===squad.owner?e.defenderLost:0),0);
+        const casualties=this.squadBattles.get(squad.id)?.casualties??0;
         if(casualties>0){
           c.fillStyle='rgba(250,107,91,'+(.3+flash*.6)+')';
           for(let n=0;n<Math.min(4,Math.ceil(casualties/2));n++){
@@ -740,6 +803,14 @@ export class MapRenderer {
           c.strokeStyle='#b9a7a0';c.lineWidth=2;
           c.beginPath();c.moveTo(x-8,y+13);c.lineTo(x-1,y+15);c.stroke();
         }
+      }
+      const strength=Math.max(0,Math.min(1,squad.troops/Math.max(1,this.squadVisuals.get(squad.id)!.strength)));
+      c.fillStyle='rgba(5,18,25,.9)';c.fillRect(x-18,y+21,36,3);
+      c.fillStyle=relation;c.fillRect(x-18,y+21,36*strength,3);
+      if(selected){
+        const status=hit?'IM GEFECHT':marching?'AUF MARSCH':'HÄLT STELLUNG';
+        c.font='600 8px system-ui';c.fillStyle=hit?'#ffbb91':'#d7e8eb';
+        c.fillText(status,x,y+33);
       }
       c.fillStyle='rgba(12,31,43,.94)';
       c.beginPath();c.roundRect(x-13,y-37,26,17,5);c.fill();
@@ -1345,9 +1416,11 @@ export class MapRenderer {
   private cellAt(clientX:number,clientY:number,landing=false):Point|null {
     if(!landing){
       const box=this.canvas.getBoundingClientRect(),x=clientX-box.left,y=clientY-box.top;
+      const visible=this.squadHits.find(hit=>hit.owner===0&&Math.abs(hit.x-x)<=25&&Math.abs(hit.y-y)<=30);
+      if(visible)return {x:visible.index%MAP_WIDTH,y:Math.floor(visible.index/MAP_WIDTH)};
       // On left click, squad markers sit ABOVE building markers and must win hit testing.
       for(const squad of this.game.squads){
-        if(squad.owner!==0)continue;
+        if(squad.owner!==0||isSquadEmbarked(squad))continue;
         const sx=this.ox+(squad.index%MAP_WIDTH+.5)*CW*this.scale;
         const sy=this.oy+(Math.floor(squad.index/MAP_WIDTH)+.5)*CH*this.scale;
         if(Math.hypot(x-sx,y-sy)<=13)return {x:squad.index%MAP_WIDTH,y:Math.floor(squad.index/MAP_WIDTH)};
@@ -1448,6 +1521,11 @@ export class MapRenderer {
         if(!moved){
           const rect=this.canvas.getBoundingClientRect();
           const x=e.clientX-rect.left,y=e.clientY-rect.top;
+          const individual=this.squadHits.find(hit=>hit.owner===0&&Math.abs(x-hit.x)<=25&&Math.abs(y-hit.y)<=30);
+          if(individual){
+            this.selectedSquadIds=[individual.id];this.onSelectSquads([individual.id]);
+            activePointer=null;dragButton=null;this.dragging=false;this.selectionBox=null;rightGestureMoved=false;return;
+          }
           const hit=this.squadClusterHits.find(cluster=>cluster.owner===0&&
             Math.abs(x-cluster.x)<=25&&Math.abs(y-cluster.y)<=24);
           if(hit){
@@ -1462,7 +1540,7 @@ export class MapRenderer {
           const b=this.selectionBox,loX=Math.min(b.x1,b.x2),hiX=Math.max(b.x1,b.x2);
           const loY=Math.min(b.y1,b.y2),hiY=Math.max(b.y1,b.y2);
           const ids=this.game.squads.filter(unit=>{
-            if(unit.owner!==0)return false;
+            if(unit.owner!==0||isSquadEmbarked(unit))return false;
             const x=this.ox+(unit.index%MAP_WIDTH+.5)*CW*this.scale;
             const y=this.oy+(Math.floor(unit.index/MAP_WIDTH)+.5)*CH*this.scale;
             return x>=loX&&x<=hiX&&y>=loY&&y<=hiY;

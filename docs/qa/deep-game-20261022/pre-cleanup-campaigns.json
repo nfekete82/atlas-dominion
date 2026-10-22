@@ -1,0 +1,170 @@
+[
+  {
+    "country": "DE",
+    "difficulty": "balanced",
+    "opponents": 49,
+    "seed": 221041,
+    "ticks": 5000,
+    "status": "playing",
+    "maxDrift": 8.436472853645682e-9,
+    "checkpoints": [
+      {
+        "tick": 1000,
+        "status": "playing",
+        "playerTerritory": 980,
+        "living": 50,
+        "squads": 135,
+        "heapMB": 93.84980773925781,
+        "losses": 21048.52901390754
+      },
+      {
+        "tick": 2000,
+        "status": "playing",
+        "playerTerritory": 1844,
+        "living": 50,
+        "squads": 121,
+        "heapMB": 93.94259643554688,
+        "losses": 80067.59869211569
+      },
+      {
+        "tick": 3000,
+        "status": "playing",
+        "playerTerritory": 2652,
+        "living": 50,
+        "squads": 116,
+        "heapMB": 93.99317932128906,
+        "losses": 148417.8854229542
+      },
+      {
+        "tick": 4000,
+        "status": "playing",
+        "playerTerritory": 3497,
+        "living": 48,
+        "squads": 108,
+        "heapMB": 93.97638702392578,
+        "losses": 218600.222012687
+      },
+      {
+        "tick": 5000,
+        "status": "playing",
+        "playerTerritory": 4024,
+        "living": 48,
+        "squads": 100,
+        "heapMB": 93.99652862548828,
+        "losses": 316047.0594387779
+      }
+    ]
+  },
+  {
+    "country": "GB",
+    "difficulty": "relaxed",
+    "opponents": 8,
+    "seed": 221041,
+    "ticks": 5000,
+    "status": "playing",
+    "maxDrift": 7.912603905424476e-11,
+    "checkpoints": [
+      {
+        "tick": 1000,
+        "status": "playing",
+        "playerTerritory": 1261,
+        "living": 9,
+        "squads": 44,
+        "heapMB": 93.85693359375,
+        "losses": 1439.3732909485652
+      },
+      {
+        "tick": 2000,
+        "status": "playing",
+        "playerTerritory": 1261,
+        "living": 9,
+        "squads": 44,
+        "heapMB": 93.8720703125,
+        "losses": 3268.8461434501396
+      },
+      {
+        "tick": 3000,
+        "status": "playing",
+        "playerTerritory": 1261,
+        "living": 9,
+        "squads": 44,
+        "heapMB": 93.87476348876953,
+        "losses": 4610.509622537356
+      },
+      {
+        "tick": 4000,
+        "status": "playing",
+        "playerTerritory": 1261,
+        "living": 9,
+        "squads": 44,
+        "heapMB": 93.88780212402344,
+        "losses": 5279.199622537364
+      },
+      {
+        "tick": 5000,
+        "status": "playing",
+        "playerTerritory": 1261,
+        "living": 9,
+        "squads": 44,
+        "heapMB": 93.89186096191406,
+        "losses": 6045.639622537407
+      }
+    ]
+  },
+  {
+    "country": "FR",
+    "difficulty": "impossible",
+    "opponents": 49,
+    "seed": 221041,
+    "ticks": 5000,
+    "status": "playing",
+    "maxDrift": 3.1359377317130566e-9,
+    "checkpoints": [
+      {
+        "tick": 1000,
+        "status": "playing",
+        "playerTerritory": 1253,
+        "living": 49,
+        "squads": 144,
+        "heapMB": 94.18433380126953,
+        "losses": 27039.112494634548
+      },
+      {
+        "tick": 2000,
+        "status": "playing",
+        "playerTerritory": 1983,
+        "living": 48,
+        "squads": 130,
+        "heapMB": 94.17469024658203,
+        "losses": 87255.25380889978
+      },
+      {
+        "tick": 3000,
+        "status": "playing",
+        "playerTerritory": 2709,
+        "living": 47,
+        "squads": 114,
+        "heapMB": 94.16999816894531,
+        "losses": 148384.44494746882
+      },
+      {
+        "tick": 4000,
+        "status": "playing",
+        "playerTerritory": 3542,
+        "living": 47,
+        "squads": 113,
+        "heapMB": 94.16947937011719,
+        "losses": 210148.0687091907
+      },
+      {
+        "tick": 5000,
+        "status": "playing",
+        "playerTerritory": 3540,
+        "living": 45,
+        "squads": 118,
+        "heapMB": 94.15531921386719,
+        "losses": 277484.59455768194
+      }
+    ]
+  }
+]

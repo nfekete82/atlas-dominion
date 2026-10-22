@@ -14,10 +14,11 @@ test('compact empire sidebar keeps primary military stats visible and collapses 
   await page.locator('.troop-breakdown summary').click();
   await expect(page.locator('.troop-breakdown')).toHaveAttribute('open','');
   await expect(page.locator('#frontTroops')).toBeVisible();
-  await expect(page.locator('.defense-extra')).not.toHaveAttribute('open','');
-  await page.locator('.defense-extra summary').click();
-  await expect(page.locator('.defense-extra')).toHaveAttribute('open','');
-  await expect(page.locator('#casualtyReport')).toBeVisible();
+  await expect(page.locator('.auto-guard')).toBeHidden();
+  await expect(page.locator('.rts-military-reports')).not.toHaveAttribute('open','');
+  await page.locator('.rts-military-reports summary').click();
+  await expect(page.locator('.rts-military-reports')).toHaveAttribute('open','');
+  await expect(page.locator('#rtsMilitaryReports')).toBeVisible();
   await expect(page.locator('.diplomacy-help')).not.toHaveAttribute('open','');
   await page.locator('.diplomacy-help summary').click();
   await expect(page.locator('.diplomacy-help')).toHaveAttribute('open','');

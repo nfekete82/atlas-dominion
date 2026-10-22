@@ -198,10 +198,12 @@ test('a 1000-tick campaign replays identically after a real JSON save/load at ti
   const original=new Game(20261024,8,'DE','balanced',true);
   const initialPeople=original.factions.reduce((n,f)=>n+f.population,0);
   let recruits=0;
-  const recruit=original.recruitSquad.bind(original);
-  original.recruitSquad=(...args)=>{
-    const result=recruit(...args);if(result.ok)recruits+=args[2];return result;
-  };
+  for(const name of ['recruitSquad','reinforceSquad']){
+    const recruit=original[name].bind(original);
+    original[name]=(...args)=>{
+      const result=recruit(...args);if(result.ok)recruits+=args.at(-1);return result;
+    };
+  }
   const balanced=()=>{
     const people=original.factions.reduce((n,f)=>n+f.population,0);
     const losses=original.factions.reduce((n,f)=>n+f.attackFallen+f.defenseSpent,0);

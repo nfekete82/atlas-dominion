@@ -1,4 +1,4 @@
-import { Game, NEUTRAL, WATER, pointToIndex, TICK_SECONDS, type Point } from './engine/game.js';
+import { Game, isSquadEmbarked, NEUTRAL, WATER, pointToIndex, TICK_SECONDS, type Point } from './engine/game.js';
 import { MapRenderer } from './render/map.js';
 import { BUILDINGS, type BuildingType } from './engine/economy.js';
 import { COUNTRY_STARTS, countryByCode } from './data/countries.js';
@@ -396,6 +396,7 @@ $('borderHotspots').addEventListener('click',e=>{
 
 function update() {
   const player = game.factions[0];
+  const threatened=game.threatenedBorders(0);
   $('playerName').textContent = player.name;
   document.body.classList.toggle('rts-military-mode',game.rtsRecruitment);
   if(game.rtsRecruitment){
@@ -405,8 +406,8 @@ function update() {
     $('rtsMilitaryField').textContent=format(formations.reduce((n,u)=>n+u.troops,0));
     $('rtsMilitaryLosses').textContent=format(player.attackFallen+player.defenseSpent);
     $('rtsMilitarySelected').textContent=chosen?'Truppe #'+chosen.id+' · '+format(chosen.troops)+' Soldaten':'Keine Truppe ausgewählt';
-    $('rtsMilitaryStatus').textContent=game.threatenedBorders(0)>0?'GRENZE BEDROHT':'FRIEDEN';
-    $('rtsMilitaryReports').textContent=format(game.threatenedBorders(0))+' bedrohte Sektoren · '+format(player.enemyFallen)+' Gegnerverluste';
+    $('rtsMilitaryStatus').textContent=threatened>0?'GRENZE BEDROHT':'FRIEDEN';
+    $('rtsMilitaryReports').textContent=format(threatened)+' bedrohte Sektoren · '+format(player.enemyFallen)+' Gegnerverluste';
   }
   $('playerFlag').textContent = countryFlag(game.playerCode);
   $('difficultyBadge').textContent = 'KI: '+game.difficultySettings.label.toLocaleUpperCase('de-DE');
@@ -417,7 +418,9 @@ function update() {
     stationedByNation[game.owner[i]]+=game.frontline[i];
   const fightingByNation=game.factions.map(()=>0);
   for(const order of game.attackOrders)fightingByNation[order.factionId]+=order.remaining;
-  const totalPopulation=game.factions.map(f=>f.troops+stationedByNation[f.id]+fightingByNation[f.id]);
+  // The authoritative total includes field formations and transports as well
+  // as reserves, posted guards, offensive armies and allied aid in transit.
+  const totalPopulation=game.factions.map(f=>f.population);
   const stationed=stationedByNation[0];
   $('troopCount').textContent = format(totalPopulation[0]);
   // Mobilized armies have not died. This breakdown separates temporary
@@ -434,7 +437,7 @@ function update() {
     : 'VERTEIDIGUNG: KEINE VERLUSTE';
   renderBorderCommand();
   renderStrategicMinimap();
-  $('borderDefense').textContent = `${format(game.threatenedBorders(0))} bedrohte Grenzsektoren · ${format(stationed)} stationiert · ${format(player.troops)} mobil`;
+  $('borderDefense').textContent = `${format(threatened)} bedrohte Grenzsektoren · ${format(stationed)} stationiert · ${format(player.troops)} mobil`;
   $('casualtyReport').textContent = `⚔ ${format(player.attackFallen+player.defenseSpent)} eigene Gefallene · ${format(player.enemyFallen)} Gegnerverluste`;
   // The combat telemetry is factual: one tick's strikes, not estimates of
   // armies or soldiers magically moving between territories.
@@ -455,7 +458,9 @@ function update() {
   document.querySelectorAll<HTMLButtonElement>('[data-ratio]').forEach(b=>b.classList.toggle('active',Number(b.dataset.ratio)===attackRatio));
   $('attackStatus').textContent = attackMessage;
   $('attackStatus').className = 'attack-status ' + (attackMessageKind === 'neutral' ? '' : attackMessageKind);
-  $('incomeCount').textContent = '+' + format(player.income,1);
+  $('incomeCount').textContent = game.rtsRecruitment?'+0':'+' + format(player.income,1);
+  $('incomeCount').nextElementSibling!.textContent=game.rtsRecruitment?'AUSBILDUNG IN KASERNEN':'EINWOHNER PRO TICK';
+  $('cityCount').nextElementSibling!.textContent=game.rtsRecruitment?'STEUERN UND INDUSTRIE':'STEIGERN DAS WACHSTUM';
   $('cityCount').textContent = format(player.cityCount+player.builtCities);
   $('moneyCount').textContent = format(player.money);
   $('moneyGrowth').textContent = '+' + format(player.moneyIncome,1) + ' PRO TICK';
@@ -499,7 +504,7 @@ function update() {
         hostileOrders.length?`${hostileOrders.length} KÄMPFE · ${format(hostileOrders.reduce((n,o)=>n+o.remaining,0))} ⚔`:'',
         hostileOrders.some(o=>o.fallen>0)?`−${format(hostileOrders.reduce((n,o)=>n+o.fallen,0))} GEFALLEN`:'',
       ].filter(Boolean).join(' · ')
-    : 'LAND / INSEL ANKLICKEN · SEELANDUNG AUTOMATISCH';
+    : game.rtsRecruitment?'TRUPPE LINKSKLICKEN · ZIEL RECHTSKLICKEN':'LAND / INSEL ANKLICKEN · SEELANDUNG AUTOMATISCH';
   $('pauseBtn').textContent = game.paused ? '▶' : 'Ⅱ';
   document.querySelectorAll<HTMLButtonElement>('[data-doctrine]').forEach(b=>b.classList.toggle('selected', b.dataset.doctrine===game.doctrine));
   if (game.status!==prevStatus) {
@@ -582,7 +587,7 @@ renderer.onSelect = (point:Point, _landing:boolean) => {
   closeBuildMenu();
   const clickedIndex=pointToIndex(point);
   // Clicking the squad badge selects it. No additional click mode needed.
-  const squad=game.squads.find(unit=>unit.owner===0&&
+  const squad=game.squads.find(unit=>unit.owner===0&&!isSquadEmbarked(unit)&&
     Math.hypot(unit.index%480-point.x,Math.floor(unit.index/480)-point.y)<=1);
   if(squad){
     selectedSquadId=squad.id;selectedSquadIds=[squad.id];renderer.selectedSquadIds=[squad.id];
@@ -683,7 +688,11 @@ function renderBuildMenu(): void {
       <span class="build-entry-cost">${upgrade.ok?upgrade.cost+' €':'MAX'}</span>
     </button>`:'')+BUILDINGS.map(building=>{
     const decision=game.canBuild(0,point,building.type);
-    const explanation=decision.ok?building.description:decision.reason;
+    const description=game.rtsRecruitment&&building.type==='city'
+      ? 'Steigert Steuereinnahmen und dient als Anschluss für Fabriken.'
+      :game.rtsRecruitment&&building.type==='barracks'
+        ? 'Bildet auswählbare Formationen aus: 2 Gold pro Soldat.' :building.description;
+    const explanation=decision.ok?description:decision.reason;
     return `<button type="button" class="build-entry" data-build="${building.type}" ${decision.ok?'':'disabled'} title="${explanation}">
       <span class="build-entry-icon" aria-hidden="true">${building.icon}</span>
       <span class="build-entry-copy"><strong>${building.name}</strong><small>${explanation}</small></span>

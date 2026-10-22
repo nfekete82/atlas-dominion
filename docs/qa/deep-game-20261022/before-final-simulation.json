@@ -1,0 +1,134 @@
+{
+  "phase": "before-final",
+  "node": "v25.9.0",
+  "platform": "darwin",
+  "arch": "arm64",
+  "results": [
+    {
+      "opponents": 49,
+      "country": "DE",
+      "difficulty": "balanced",
+      "seed": 20261022,
+      "ticks": 1000,
+      "firstTerminal": null,
+      "maxConservationDrift": 4.3655745685100555e-11,
+      "invalidMoves": 0,
+      "phases": {
+        "commandRTSAI": 3769.439556000003,
+        "moveSquads": 3258.4948359999894,
+        "resolveSquadContacts": 114.06098900000632,
+        "recount": 813.8978490000093,
+        "redistributeFrontline": 1348.2859139999978,
+        "rebuildFrontierCandidates": 672.3593709999949
+      },
+      "checkpoints": [
+        {
+          "tick": 500,
+          "territoryGain": 42797,
+          "losses": 3810.3730586052393,
+          "people": 11389.626941394761,
+          "recruited": 10700,
+          "squads": 93,
+          "living": 50,
+          "buildings": {
+            "0": 124560,
+            "2": 191,
+            "4": 49
+          },
+          "meanMoney": 275.6330701563019,
+          "heapMB": 100.64453887939453,
+          "performance": {
+            "median": 5.9385409999999865,
+            "p95": 10.71691699999974,
+            "p99": 14.12920800000029
+          }
+        },
+        {
+          "tick": 1000,
+          "territoryGain": 52296,
+          "losses": 19558.06147367831,
+          "people": 13141.938526321723,
+          "recruited": 28200,
+          "squads": 156,
+          "living": 50,
+          "buildings": {
+            "0": 124479,
+            "2": 268,
+            "4": 53
+          },
+          "meanMoney": 996.2221632209663,
+          "heapMB": 100.23889923095703,
+          "performance": {
+            "median": 9.762583000000177,
+            "p95": 16.92004100000031,
+            "p99": 20.08220799999981
+          }
+        }
+      ],
+      "hash": "d936f67edc49ad101ce260f213d0827b2a0a5aa1138c282769b958807807195a"
+    },
+    {
+      "opponents": 8,
+      "country": "DE",
+      "difficulty": "balanced",
+      "seed": 20261022,
+      "ticks": 1000,
+      "firstTerminal": null,
+      "maxConservationDrift": 1.8189894035458565e-12,
+      "invalidMoves": 0,
+      "phases": {
+        "commandRTSAI": 1059.8748310000356,
+        "moveSquads": 774.8045960000181,
+        "resolveSquadContacts": 34.49678700002369,
+        "recount": 578.476701999989,
+        "redistributeFrontline": 634.2903089999672,
+        "rebuildFrontierCandidates": 385.8900579999736
+      },
+      "checkpoints": [
+        {
+          "tick": 500,
+          "territoryGain": 29138,
+          "losses": 62.150000000000034,
+          "people": 4747.85,
+          "recruited": 4000,
+          "squads": 40,
+          "living": 9,
+          "buildings": {
+            "0": 124756,
+            "2": 36,
+            "4": 8
+          },
+          "meanMoney": 1104.6753875,
+          "heapMB": 99.9956283569336,
+          "performance": {
+            "median": 2.1841669999994338,
+            "p95": 4.291167000001224,
+            "p99": 6.345583000000261
+          }
+        },
+        {
+          "tick": 1000,
+          "territoryGain": 46907,
+          "losses": 1038.1009999999999,
+          "people": 4171.899000000001,
+          "recruited": 4400,
+          "squads": 40,
+          "living": 9,
+          "buildings": {
+            "0": 124739,
+            "2": 53,
+            "4": 8
+          },
+          "meanMoney": 7555.464233749998,
+          "heapMB": 100.0457992553711,
+          "performance": {
+            "median": 3.4788750000006985,
+            "p95": 6.385209000000032,
+            "p99": 7.80212500000016
+          }
+        }
+      ],
+      "hash": "15144d40c4ff80d3345b89106f76e9036955cb9a1cd51072628564b870b59658"
+    }
+  ]
+}
