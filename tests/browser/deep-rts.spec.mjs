@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 import {mkdir} from 'node:fs/promises';
-const evidence=new URL('../../docs/qa/deep-game-20261022/',import.meta.url).pathname;
+const evidence=new URL('./artifacts/deep-rts/',import.meta.url).pathname;
 async function start(page){
  await page.setViewportSize({width:1440,height:1000});await page.goto('/?debug');
  await page.locator('[data-country="DE"]').click();

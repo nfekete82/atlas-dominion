@@ -11,8 +11,13 @@ export function territoryContours(owners:Int16Array,width:number):Map<number,Con
   // Vertices correspond to tile centres. A 1-cell outside margin closes coastlines.
   for(let y=-1;y<height;y++)for(let x=-1;x<width;x++){
     const a=sample(x,y),b=sample(x+1,y),d=sample(x+1,y+1),e=sample(x,y+1);
-    const ids=new Set([a,b,d,e]);
-    for(const id of ids){
+    // Most squares lie inside a solid territory or sea. They have no
+    // isoline and need neither a Set nor any corner/segment allocations.
+    if(a===b&&a===d&&a===e)continue;
+    const ids=[a,b,d,e];
+    for(let corner=0;corner<4;corner++){
+      const id=ids[corner];
+      if(ids.indexOf(id)!==corner)continue;
       if(id<0)continue;
       const mask=(a===id?1:0)|(b===id?2:0)|(d===id?4:0)|(e===id?8:0);
       if(mask===0||mask===15)continue;
@@ -44,8 +49,13 @@ export function territoryContours(owners:Int16Array,width:number):Map<number,Con
  * territoryContours, so diagonally touching islands stay separate.
  */
 export function contourRings(segments:readonly ContourSegment[]):number[][] {
-  const adjacency=new Map<string,number[]>();
-  const key=(x:number,y:number)=>x+','+y;
+  // Contour vertices lie on the half-cell lattice. Numeric vertex keys
+  // preserve the same traversal order without allocating coordinate strings
+  // for every segment endpoint and every step of every closed ring.
+  let stride=1;
+  for(const [ax,,bx] of segments)stride=Math.max(stride,ax*2+1,bx*2+1);
+  const adjacency=new Map<number,number[]>();
+  const key=(x:number,y:number)=>y*2*stride+x*2;
   for(let i=0;i<segments.length;i++){
     const [ax,ay,bx,by]=segments[i];
     for(const k of [key(ax,ay),key(bx,by)]){

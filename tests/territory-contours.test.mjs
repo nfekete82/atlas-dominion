@@ -35,3 +35,17 @@ test('smooth territory fills use closed rings and preserve holes',()=>{
   assert.ok(rings.every(r=>r.length>=6&&r.length%2===0));
   assert.equal(contourRings(territoryContours(new Int16Array([0]),1).get(0)??[]).length,1);
 });
+
+test('wide non-square grids keep far coastline vertices and factions separate',()=>{
+  const owners=new Int16Array(480*3).fill(-2);
+  owners[479]=0;owners[480]=0;owners[1439]=1;
+  const contours=territoryContours(owners,480);
+  const islands=contourRings(contours.get(0));
+  assert.equal(islands.length,2);
+  assert.equal(contourRings(contours.get(1)).length,1);
+  for(const ring of islands){
+    const xs=ring.filter((_,i)=>i%2===0),ys=ring.filter((_,i)=>i%2===1);
+    assert.equal(Math.max(...xs)-Math.min(...xs),1);
+    assert.equal(Math.max(...ys)-Math.min(...ys),1);
+  }
+});
