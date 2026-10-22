@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 
 const ui=readFileSync(new URL('../src/main.ts',import.meta.url),'utf8');
 const map=readFileSync(new URL('../src/render/map.ts',import.meta.url),'utf8');
-const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+const html=readFileSync(new URL('../legacy/index.html',import.meta.url),'utf8');
 
 test('selected RTS squads take right-click commands and shift-right-click opens contextual menu',()=>{
  assert.match(map,/this\.game\.rtsRecruitment&&point&&!forceMenu/);

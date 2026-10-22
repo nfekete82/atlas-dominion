@@ -23,7 +23,11 @@ test('Prebuilt client serves HTML, CSS, JS and no source secrets',async()=>{
   try{
     const base=`http://127.0.0.1:${port}`;
     await waitReady(base,server);
-    const html=await fetch(base+'/').then(r=>r.text());
+    const reborn=await fetch(base+'/').then(r=>r.text());
+    for(const id of ['world','minimap','credits','income','production','recruit','save','load'])
+      assert.ok(reborn.includes(`id="${id}"`),id);
+    assert.match(reborn,/src\/reborn\/main.js/);
+    const html=await fetch(base+'/legacy/index.html').then(r=>r.text());
     assert.match(html,/ATLAS DOMINION/);
     assert.match(html,/id="countryPicker"/);
     assert.match(html,/id="countrySearch"/);
@@ -39,7 +43,7 @@ test('Prebuilt client serves HTML, CSS, JS and no source secrets',async()=>{
     assert.match(html,/id="defenseTickLoss"/);
     assert.match(html,/id="battleReport"/);
     for(const id of ["mobileTroops","frontTroops","offensiveTroops","fallenTroops"])assert.ok(html.includes(`id="${id}"`),id);
-    for(const [path,contentType] of [['/style.css','text/css'],['/src/main.js','text/javascript'],['/src/engine/game.js','text/javascript'],['/src/data/europe.js','text/javascript'],['/src/data/countries.js','text/javascript'],['/src/engine/economy.js','text/javascript'],['/src/engine/difficulty.js','text/javascript'],['/src/render/building-markers.js','text/javascript'],['/src/render/front-battles.js','text/javascript']]){
+    for(const [path,contentType] of [['/src/reborn/main.js','text/javascript'],['/src/reborn/simulation.js','text/javascript'],['/src/assets/reborn/desert.png','image/png'],['/legacy/style.css','text/css'],['/style.css','text/css'],['/src/main.js','text/javascript'],['/src/engine/game.js','text/javascript'],['/src/data/europe.js','text/javascript'],['/src/data/countries.js','text/javascript'],['/src/engine/economy.js','text/javascript'],['/src/engine/difficulty.js','text/javascript'],['/src/render/building-markers.js','text/javascript'],['/src/render/front-battles.js','text/javascript']]){
       const response=await fetch(base+path);
       assert.equal(response.status,200,path);
       assert.ok(response.headers.get('content-type').includes(contentType),path);

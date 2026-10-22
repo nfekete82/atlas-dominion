@@ -1,7 +1,7 @@
 {
   "name": "atlas-dominion",
   "version": "1.8.0",
-  "description": "ATLAS DOMINION — Browser-Echtzeitstrategie auf einer Europakarte",
+  "description": "ATLAS DOMINION REBORN — Wüsten-RTS mit territorialer Expansion",
   "type": "module",
   "private": true,
   "scripts": {
@@ -10,6 +10,7 @@
     "preview": "node scripts/serve.mjs",
     "test": "npm run build && node --test tests/*.test.mjs",
     "test:browser": "npm run build && npm --prefix tests/browser test",
+    "test:reborn": "npm run build && node --test tests/reborn.test.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:ai-defense": "npm run build && node scripts/benchmark-ai-defense.mjs"
   },

@@ -32,7 +32,7 @@ jobs:
         run: npm test
 
   browser:
-    name: Chromium · City markers and interaction
+    name: Chromium · Reborn RTS gameplay
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -49,7 +49,7 @@ jobs:
           npm ci --prefix tests/browser --no-audit --no-fund
           cd tests/browser
           npx playwright install --with-deps chromium
-      - name: Browser matrix, upgrades and savegame round trip
+      - name: RTS gameplay, controls, fog and persistent savegame
         env:
           ATLAS_BROWSER_CHANNEL: chromium
         run: npm run test:browser
@@ -57,6 +57,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: city-marker-browser-evidence
+          name: reborn-browser-evidence
           path: tests/browser/artifacts/
           retention-days: 14

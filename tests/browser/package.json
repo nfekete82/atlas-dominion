@@ -2,6 +2,6 @@
   "name": "atlas-dominion-browser-tests",
   "private": true,
   "type": "module",
-  "scripts": { "test": "playwright test" },
+  "scripts": { "test": "playwright test --config=reborn.config.mjs" },
   "devDependencies": { "@playwright/test": "1.64.0" }
 }

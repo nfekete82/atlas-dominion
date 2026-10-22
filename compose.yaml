@@ -3,4 +3,4 @@ services:
     build: .
     restart: unless-stopped
     ports:
-      - "8095:8095"
+      - "127.0.0.1:8095:8095"
