@@ -5,6 +5,8 @@ export interface Order extends Point { kind:'move'|'attackMove'|'attack'; target
 export interface Unit extends Point {
   id:number; owner:Faction; hp:number; orders:Order[]; path:Point[];
   cooldown:number; facing:number; moving:boolean; hit:number; repath:number;
+  angle:number; walkDistance:number; fire:number; previousX:number; previousY:number;
+  lastAttacker:number|null; defendUntil:number;
 }
 export interface Base extends Point {
   id:number; owner:Faction; hp:number; territory:number; queue:number[]; production:number;
@@ -40,7 +42,7 @@ export class Simulation {
   constructor(seed=2026) {
     this.seed=seed;this.territories=this.world.territories(seed);
     for(const [owner,territory] of [[0,19],[1,5]] as const){
-      const t=this.territories[territory], p=this.world.nearest(t.point)!;
+      const t=this.territories[territory], p=this.world.clearSite(t.point,RULES.headquarters.radius)!;
       this.bases.push({id:1000+owner,owner,...p,hp:RULES.headquarters.hp,territory,queue:[],production:0,rally:null,radius:RULES.headquarters.radius});
       t.point=this.world.nearest({x:p.x+165,y:p.y-45},this.obstacles())!;
       this.spawn(owner,this.world.nearest({x:p.x+140,y:p.y+100},this.obstacles())!);
@@ -49,7 +51,8 @@ export class Simulation {
   }
   obstacles():Base[]{return this.bases.filter(b=>b.hp>0);}
   spawn(owner:Faction,p:Point):Unit {
-    const u:Unit={id:this.nextId++,owner,...p,hp:RULES.infantry.hp,orders:[],path:[],cooldown:0,facing:1,moving:false,hit:0,repath:0};
+    const u:Unit={id:this.nextId++,owner,...p,hp:RULES.infantry.hp,orders:[],path:[],cooldown:0,facing:1,moving:false,hit:0,repath:0,
+      angle:Math.PI/4,walkDistance:0,fire:0,previousX:p.x,previousY:p.y,lastAttacker:null,defendUntil:0};
     this.units.push(u);return u;
   }
   income(owner:Faction):number {
@@ -107,6 +110,12 @@ export class Simulation {
   }
   private acquire(u:Unit):Unit|Base|undefined {
     const order=u.orders[0];
+    // Even during a movement order, return fire at the actual visible attacker.
+    // Keep the movement queue and path so it resumes when the threat is gone.
+    if(u.lastAttacker!==null&&u.defendUntil>this.time){
+      const attacker=this.units.find(e=>e.id===u.lastAttacker&&e.owner!==u.owner&&e.hp>0);
+      if(attacker&&distance(u,attacker)<=RULES.infantry.range&&this.canSee(u.owner,attacker)&&this.world.line(u,attacker))return attacker;
+    }
     if(order?.kind==='move')return undefined;
     if(order?.kind==='attack'&&order.target!==undefined){
       const manual=[...this.units,...this.bases].find(e=>e.id===order.target&&e.owner!==u.owner&&e.hp>0&&this.canSee(u.owner,e));
@@ -125,7 +134,7 @@ export class Simulation {
     let d=distance(u,next);if(d<5){u.path.shift();next=u.path[0];if(!next)return;d=distance(u,next);}
     const speed=RULES.infantry.speed*dt,step=Math.min(speed,d),dx=(next.x-u.x)/d,dy=(next.y-u.y)/d;
     const p={x:u.x+dx*step,y:u.y+dy*step};
-    if(this.world.walkable(p,this.obstacles())){u.x=p.x;u.y=p.y;u.facing=dx<-.05?-1:dx>.05?1:u.facing;u.moving=true;}
+    if(this.world.walkable(p,this.obstacles())){u.x=p.x;u.y=p.y;u.walkDistance+=step;u.angle=Math.atan2(dy,dx);u.facing=dx<-.05?-1:dx>.05?1:u.facing;u.moving=true;}
     else {u.path=[];u.repath=0;}
   }
   step(dt=RULES.tick):void {
@@ -136,11 +145,12 @@ export class Simulation {
     this.shots=this.shots.filter(s=>(s.life-=dt)>0);
     this.spatial.rebuild(this.units);
     for(const u of this.units){
-      if(u.hp<=0)continue;u.cooldown-=dt;u.repath-=dt;u.hit=Math.max(0,u.hit-dt);u.moving=false;
+      if(u.hp<=0)continue;u.previousX=u.x;u.previousY=u.y;u.cooldown-=dt;u.repath-=dt;u.hit=Math.max(0,u.hit-dt);u.fire=Math.max(0,u.fire-dt);u.moving=false;
       const enemy=this.acquire(u),order=u.orders[0];
       if(enemy&&distance(u,enemy)<=RULES.infantry.range&&this.world.line(u,enemy)){
-        u.facing=enemy.x<u.x?-1:1;
-        if(u.cooldown<=0){u.cooldown=RULES.infantry.cooldown;enemy.hp-=RULES.infantry.damage;if('hit' in enemy)enemy.hit=.18;
+        u.facing=enemy.x<u.x?-1:1;u.angle=Math.atan2(enemy.y-u.y,enemy.x-u.x);
+        if(u.cooldown<=0){u.cooldown=RULES.infantry.cooldown;u.fire=.18;enemy.hp-=RULES.infantry.damage;
+          if('hit' in enemy){enemy.hit=.18;enemy.lastAttacker=u.id;enemy.defendUntil=this.time+5;}
           this.shots.push({from:{x:u.x,y:u.y-18},to:{x:enemy.x,y:enemy.y-15},owner:u.owner,life:.14,hit:true});
           if(enemy.hp<=0&&'queue' in enemy){enemy.hp=0;enemy.queue=[];enemy.production=0;this.notices.push(enemy.owner===0?'Dein Hauptquartier wurde zerstört!':'Feindliches Hauptquartier ausgeschaltet. Kontrollpunkt sichern!');}
         }
@@ -223,17 +233,26 @@ export class Simulation {
     if(!s||s.version!==2||!finite(s.seed)||!finite(s.time)||s.time<0||!finite(s.incomeClock)||s.incomeClock<0||s.incomeClock>=10||
       !Array.isArray(s.units)||s.units.length>96||!Array.isArray(s.bases)||s.bases.length!==2||
       !Array.isArray(s.territories)||s.territories.length!==30||!Array.isArray(s.explored)||s.explored.length!==2||
-      s.explored.some(a=>!Array.isArray(a)||a.length!==RULES.grid**2||a.some(v=>v!==0&&v!==1))||
+      s.explored.some(a=>!Array.isArray(a)||![120**2,RULES.grid**2].includes(a.length)||a.some(v=>v!==0&&v!==1))||
       !Array.isArray(s.credits)||s.credits.length!==2||s.credits.some(v=>!finite(v)||v<0)||
       s.units.some(u=>!point(u)||![0,1].includes(u.owner)||!finite(u.hp)||u.hp<=0||u.hp>100||!Array.isArray(u.orders)||u.orders.length>32||u.orders.some(o=>!point(o)||!['move','attackMove','attack'].includes(o.kind)))||
       s.bases.some(b=>!point(b)||![0,1].includes(b.owner)||!finite(b.hp)||b.hp<0||b.hp>1200||!Array.isArray(b.queue)||b.queue.length>8||b.queue.some(v=>v!==5)||!finite(b.production)||b.production<0||b.production>5)||
       s.territories.some((t,i)=>t.id!==i||![-1,0,1].includes(t.owner)||!finite(t.progress)||t.progress<0||t.progress>8))throw new Error('Dieser Spielstand ist beschädigt oder gehört zu einer anderen Version.');
     const game=new Simulation(s.seed);
     game.time=s.time;game.nextId=Math.max(...s.units.map(u=>u.id),0)+1;game.credits=[...s.credits];game.incomeClock=s.incomeClock;
-    game.units=structuredClone(s.units).map(u=>({...u,path:[],repath:0,hit:0}));game.bases=structuredClone(s.bases);
+    game.bases=structuredClone(s.bases).map(b=>({...b,...game.world.clearSite(b,b.radius)}));
+    game.units=structuredClone(s.units).map(u=>{
+      const p=game.world.nearest(u,game.obstacles())??u;
+      return {...u,...p,path:[],repath:0,hit:0,fire:0,previousX:p.x,previousY:p.y,
+        angle:u.angle??(u.facing<0?Math.PI:0),walkDistance:u.walkDistance??0,lastAttacker:u.lastAttacker??null,defendUntil:u.defendUntil??0};
+    });
     // Geometry, income and neighbors are regenerated from the seed, never trusted from storage.
     game.territories.forEach((t,i)=>{t.owner=s.territories[i].owner;t.capturing=s.territories[i].capturing;t.progress=s.territories[i].progress;});
-    game.explored=s.explored.map(a=>Uint8Array.from(a));game.memories=structuredClone(s.memories??[[],[]]);game.aiClock=clamp(s.aiClock||0,0,RULES.aiInterval);
+    game.explored=s.explored.map(a=>{
+      if(a.length===RULES.grid**2)return Uint8Array.from(a);
+      const oldGrid=Math.sqrt(a.length);
+      return Uint8Array.from({length:RULES.grid**2},(_,i)=>a[Math.floor(Math.floor(i/RULES.grid)*oldGrid/RULES.grid)*oldGrid+Math.floor((i%RULES.grid)*oldGrid/RULES.grid)]);
+    });game.memories=structuredClone(s.memories??[[],[]]);game.aiClock=clamp(s.aiClock||0,0,RULES.aiInterval);
     game.status=['playing','victory','defeat'].includes(s.status)?s.status:'playing';game.spatial.rebuild(game.units);game.updateVision();return game;
   }
 }

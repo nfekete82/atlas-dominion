@@ -111,3 +111,26 @@ test('reborn: AI decisions do not depend on player infantry hidden by its fog',(
  assert.deepEqual(a.units.filter(u=>u.owner===1),b.units.filter(u=>u.owner===1));
  assert.deepEqual(a.explored[1],b.explored[1]);assert.equal(a.credits[1],b.credits[1]);
 });
+
+test('reborn: moving infantry returns fire automatically and resumes its original queued march',()=>{
+ const g=peaceful();g.units=[];const blue=g.spawn(0,{x:1900,y:2100}),red=g.spawn(1,{x:2050,y:2100});
+ g.command([blue.id],{x:2350,y:2100,kind:'move'});g.command([blue.id],{x:2400,y:2250,kind:'move'},true);g.updateVision();
+ advance(g,.1);assert.ok(blue.hp<100);assert.ok(red.hp<100);assert.equal(blue.lastAttacker,red.id);assert.equal(blue.orders.length,2);
+ const x=blue.x;red.hp=17;advance(g,2);assert.equal(g.units.some(u=>u.id===red.id),false);assert.ok(blue.x>x+30);assert.equal(blue.orders.length,2);
+});
+
+test('reborn: finer navigation blocks complete hill edges and places the headquarters footprint on flat ground',()=>{
+ const g=peaceful(),w=g.world;assert.equal(RULES.grid,240);
+ for(const b of g.bases)for(let i=0;i<16;i++)assert.ok(w.walkable({x:b.x+Math.cos(i*Math.PI/8)*b.radius,y:b.y+Math.sin(i*Math.PI/8)*b.radius}));
+ for(const rock of w.rocks){const middle={x:rock.reduce((n,p)=>n+p.x,0)/rock.length,y:rock.reduce((n,p)=>n+p.y,0)/rock.length};assert.equal(w.walkable(middle),false);}
+ assert.ok(w.blocked.reduce((n,v)=>n+v,0)>2000);
+});
+
+test('reborn: existing saves migrate explored fog to the finer grid without losing economy or orders',()=>{
+ const g=peaceful();g.command([1],{...g.territories[20].point,kind:'move'});advance(g,3);
+ const old=g.save();old.explored=old.explored.map(a=>Array.from({length:120**2},(_,i)=>a[Math.floor(i/120)*2*240+(i%120)*2]));
+ for(const u of old.units)for(const key of ['angle','walkDistance','fire','previousX','previousY','lastAttacker','defendUntil'])delete u[key];
+ const loaded=Simulation.load(old);assert.equal(loaded.explored[0].length,240**2);assert.deepEqual(loaded.credits,g.credits);assert.equal(loaded.incomeClock,g.incomeClock);
+ assert.deepEqual(loaded.units[0].orders,g.units[0].orders);assert.ok(Number.isFinite(loaded.units[0].angle));assert.ok(loaded.world.walkable(loaded.units[0],loaded.obstacles()));
+ assert.ok(loaded.explored[0].reduce((n,v)=>n+v,0)>=old.explored[0].reduce((n,v)=>n+v,0)*4);
+});

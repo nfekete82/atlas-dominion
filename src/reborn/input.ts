@@ -6,6 +6,7 @@ export class Input {
   private commandHeld=new Map<string,number>();
   private down:Point|null=null;private miniDragging=false;private dragging=false;
   onSelection=()=>{};onPause=()=>{};onHelp=()=>{};onSave=()=>{};onLoad=()=>{};
+  onOrder=(_attack:boolean)=>{};
   notify=(_message:string)=>{};
   constructor(readonly renderer:Renderer){
     const canvas=renderer.canvas,mini=renderer.miniCanvas;
@@ -62,7 +63,7 @@ export class Input {
     const unit=g.units.filter(u=>u.owner===0&&distance({x:u.x,y:u.y-18},p)<32/r.camera.zoom).sort((a,b)=>distance(a,p)-distance(b,p))[0];
     if(!append)r.selected.clear();r.selectedBase=null;
     if(unit){if(append&&r.selected.has(unit.id))r.selected.delete(unit.id);else r.selected.add(unit.id);}
-    else {const b=g.bases.find(b=>b.owner===0&&b.hp>0&&p.x>b.x-108&&p.x<b.x+108&&p.y>b.y-202&&p.y<b.y+20);if(b)r.selectedBase=b.id;}
+    else {const b=g.bases.find(b=>b.owner===0&&b.hp>0&&p.x>b.x-112&&p.x<b.x+112&&p.y>b.y-186&&p.y<b.y+40);if(b)r.selectedBase=b.id;}
   }
   order(p:Point,append=false):void {
     const r=this.renderer,g=r.game;
@@ -71,7 +72,7 @@ export class Input {
     const enemy=[...g.units,...g.bases].find(e=>e.owner!==0&&e.hp>0&&g.canSee(0,e)&&distance(e,p)<('queue' in e?100:40)/r.camera.zoom);
     const kind=enemy?'attack':r.attackMode?'attackMove':'move';
     const count=g.command([...r.selected],{...p,kind,target:enemy?.id},append);
-    if(count)r.marker={point:p,life:.8,attack:kind!=='move'};
+    if(count){r.marker={point:p,life:.8,attack:kind!=='move'};this.onOrder(kind!=='move');}
     else this.notify('Dieses Ziel ist nicht erreichbar.');
     r.attackMode=false;r.canvas.classList.remove('attack');this.onSelection();
   }

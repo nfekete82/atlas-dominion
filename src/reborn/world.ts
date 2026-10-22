@@ -11,11 +11,19 @@ const ROCKS = [
   [[1141,89],[1254,96],[1254,402],[1169,371],[1113,322],[1077,281],[1090,210]],
   [[0,337],[118,346],[175,416],[190,467],[126,490],[0,464]],
   [[0,602],[60,636],[72,692],[0,733]],
-  [[0,864],[123,889],[202,952],[182,1010],[103,1084],[0,1084]],
-  [[185,1046],[294,1026],[375,1090],[393,1153],[465,1154],[585,1254],[142,1254],[210,1173]],
+  [[0,859],[123,882],[202,936],[226,971],[199,1005],[162,1033],[100,1082],[0,1090]],
+  [[205,1050],[265,1007],[323,1014],[376,1068],[399,1145],[465,1154],[585,1254],[142,1254],[210,1173]],
   [[1194,487],[1254,494],[1254,673],[1212,650],[1181,598]],
   [[1136,1054],[1254,1072],[1254,1254],[1020,1254],[1008,1200],[1060,1120]],
+  // Raised interior outcrops and their feet, not merely the large edge mesas.
+  [[403,619],[424,609],[449,620],[457,637],[435,651],[409,645]],
+  [[612,948],[643,941],[674,963],[692,990],[661,1007],[627,992]],
+  [[304,849],[322,844],[342,861],[338,884],[315,890],[299,872]],
+  [[826,994],[845,983],[864,998],[863,1021],[840,1025],[825,1012]],
+  [[651,802],[669,798],[682,812],[680,829],[659,834],[647,821]],
+  [[814,510],[839,503],[852,516],[847,535],[827,539],[813,528]],
 ];
+let navigationCache:Uint8Array|undefined;
 export function inside(p: Point, polygon: Point[]): boolean {
   let result = false;
   for (let i=0,j=polygon.length-1;i<polygon.length;j=i++) {
@@ -30,12 +38,16 @@ export class World {
   readonly rocks: Point[][] = ROCKS.map(poly=>poly.map(([x,y])=>({x:x*3,y:y*3})));
   readonly blocked = new Uint8Array(RULES.grid ** 2);
   constructor() {
+    if(navigationCache){this.blocked.set(navigationCache);return;}
     for(let i=0;i<this.blocked.length;i++) {
       const p=this.center(i);
-      // A little clearance around cliffs prevents sprite feet clipping into rocks.
-      if(this.rocks.some(poly=>[p,{x:p.x-12,y:p.y},{x:p.x+12,y:p.y},
-        {x:p.x,y:p.y-12},{x:p.x,y:p.y+12}].some(q=>inside(q,poly)))) this.blocked[i]=1;
+      // Include the entire navigation cell plus the soldier's body clearance.
+      // Testing only its center allowed feet to enter a cliff's sloping edge.
+      const r=this.cell*.5+RULES.infantry.radius;
+      const samples=[p,...[-r,0,r].flatMap(dx=>[-r,0,r].map(dy=>({x:p.x+dx,y:p.y+dy})))];
+      if(this.rocks.some(poly=>samples.some(q=>inside(q,poly))))this.blocked[i]=1;
     }
+    navigationCache=this.blocked.slice();
   }
   index(p: Point): number {
     const x=Math.floor(p.x/this.cell), y=Math.floor(p.y/this.cell);
@@ -44,7 +56,7 @@ export class World {
   center(i: number): Point { return {x:(i%RULES.grid+.5)*this.cell,y:(Math.floor(i/RULES.grid)+.5)*this.cell}; }
   walkable(p: Point, obstacles: {x:number;y:number;radius:number}[]=[]): boolean {
     const i=this.index(p);
-    return i>=0&&!this.blocked[i]&&!obstacles.some(o=>Math.hypot(p.x-o.x,p.y-o.y)<o.radius+12);
+    return i>=0&&!this.blocked[i]&&!obstacles.some(o=>Math.hypot(p.x-o.x,p.y-o.y)<o.radius+RULES.infantry.radius);
   }
   nearest(p: Point, obstacles: {x:number;y:number;radius:number}[]=[], occupied: Point[]=[]): Point | null {
     if(this.walkable(p,obstacles)&&occupied.every(u=>Math.hypot(u.x-p.x,u.y-p.y)>23)) return {...p};
@@ -55,6 +67,21 @@ export class World {
       if(cx<0||cy<0||cx>=RULES.grid||cy>=RULES.grid)continue;
       const q=this.center(cy*RULES.grid+cx);
       if(this.walkable(q,obstacles)&&occupied.every(u=>Math.hypot(u.x-q.x,u.y-q.y)>23))return q;
+    }
+    return null;
+  }
+  /** Place the complete building footprint on flat ground, away from a cliff. */
+  clearSite(p:Point,radius:number):Point|null{
+    const clear=(q:Point)=>this.walkable(q)&&Array.from({length:16},(_,i)=>({x:q.x+Math.cos(i*Math.PI/8)*radius,y:q.y+Math.sin(i*Math.PI/8)*radius})).every(a=>this.walkable(a));
+    if(clear(p))return {...p};
+    const cx=Math.floor(p.x/this.cell),cy=Math.floor(p.y/this.cell);
+    for(let r=1;r<40;r++){
+      const candidates:Point[]=[];
+      for(let y=-r;y<=r;y++)for(let x=-r;x<=r;x++)if(Math.abs(x)===r||Math.abs(y)===r){
+        if(cx+x<0||cy+y<0||cx+x>=RULES.grid||cy+y>=RULES.grid)continue;
+        const q=this.center((cy+y)*RULES.grid+cx+x);if(clear(q))candidates.push(q);
+      }
+      if(candidates.length)return candidates.sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y))[0];
     }
     return null;
   }

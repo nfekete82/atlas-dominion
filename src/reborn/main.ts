@@ -3,14 +3,15 @@ import { Simulation } from './simulation.js';
 import { Renderer } from './renderer.js';
 import { Input } from './input.js';
 import { saveCampaign, loadCampaign } from './storage.js';
+import { Soundscape } from './audio.js';
 
 const el=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
 let game=new Simulation();
 const renderer=new Renderer(el<HTMLCanvasElement>('world'),el<HTMLCanvasElement>('minimap'),game);
 const input=new Input(renderer);
 let accumulator=0,last=performance.now(),uiClock=0,resultShown=false,busy=false;
-let soundEnabled=true,audio:AudioContext|null=null;
-const played=new WeakSet<object>();
+const audio=new Soundscape();let selectionSound='';
+try{const settings=JSON.parse(localStorage.getItem('atlas-reborn-sound')??'null');if(settings){audio.setEnabled(settings.enabled!==false);audio.setVolume(Number.isFinite(settings.volume)?settings.volume:.6);audio.ambience=settings.ambience!==false;}}catch{/* Browser-local preferences are optional. */}
 function notify(message:string):void {
   const item=document.createElement('div');item.className='notice';item.textContent=message;el('notices').append(item);
   while(el('notices').children.length>3)el('notices').firstElementChild?.remove();setTimeout(()=>item.remove(),6000);
@@ -49,7 +50,9 @@ function refresh():void{
 async function save():Promise<void>{if(busy)return;busy=true;try{await saveCampaign(game);notify('Kampagne lokal gespeichert.');}catch(e){notify((e as Error).message);}finally{busy=false;}}
 async function load():Promise<void>{if(busy)return;busy=true;try{const loaded=await loadCampaign();game=loaded;renderer.game=game;renderer.invalidate();renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;renderer.canvas.classList.remove('attack');renderer.home();resultShown=false;accumulator=0;setPause(false);refresh();notify('Kampagne geladen.');}catch(e){notify((e as Error).message);}finally{busy=false;}}
 function modal(id:string):void{const d=el<HTMLDialogElement>(id),wasPaused=game.paused;setPause(true);d.returnValue='';d.showModal();d.addEventListener('close',()=>{if(d.returnValue!=='new')setPause(wasPaused);},{once:true});}
-input.onPause=()=>setPause(!game.paused);input.onHelp=()=>modal('help-dialog');input.onSave=()=>void save();input.onLoad=()=>void load();input.onSelection=refresh;
+input.onPause=()=>setPause(!game.paused);input.onHelp=()=>modal('help-dialog');input.onSave=()=>void save();input.onLoad=()=>void load();
+input.onSelection=()=>{const next=[...renderer.selected].join(',')+':'+renderer.selectedBase;if(next!==selectionSound){selectionSound=next;audio.select();}refresh();};
+input.onOrder=attack=>audio.command(attack);
 el('save').onclick=()=>void save();el('load').onclick=()=>void load();el('pause').onclick=input.onPause;el('help').onclick=input.onHelp;
 el('new').onclick=()=>modal('new-dialog');el<HTMLDialogElement>('new-dialog').addEventListener('close',()=>{if(el<HTMLDialogElement>('new-dialog').returnValue==='new')reset();});
 el('result-new').onclick=()=>{el<HTMLDialogElement>('result-dialog').close();reset();};el('result-close').onclick=()=>el<HTMLDialogElement>('result-dialog').close();
@@ -58,23 +61,22 @@ el('select-unit').onclick=()=>{renderer.selectedBase=null;const u=game.units.fin
 el('select-base').onclick=()=>{renderer.selected.clear();renderer.selectedBase=game.bases.find(b=>b.owner===0&&b.hp>0)?.id??null;renderer.home();refresh();};
 el('stop').onclick=()=>{game.stop([...renderer.selected]);refresh();};el('attack').onclick=()=>{renderer.attackMode=!renderer.attackMode;renderer.canvas.classList.toggle('attack',renderer.attackMode);refresh();};
 el('recruit').onclick=()=>{if(renderer.selectedBase!==null&&game.recruit(renderer.selectedBase))refresh();};el('cancel').onclick=()=>{if(renderer.selectedBase!==null){game.cancel(renderer.selectedBase);refresh();}};
-el('sound').onclick=()=>{soundEnabled=!soundEnabled;el('sound').setAttribute('aria-pressed',String(soundEnabled));};
-window.addEventListener('pointerdown',()=>{try{audio??=new AudioContext();if(audio.state==='suspended')void audio.resume();}catch{/* Audio is optional. */}},{once:true});
+const soundPreferences=()=>{audio.setEnabled(el<HTMLInputElement>('audio-enabled').checked);audio.setVolume(Number(el<HTMLInputElement>('audio-volume').value)/100);audio.ambience=el<HTMLInputElement>('audio-ambience').checked;el('audio-level').textContent=`${Math.round(audio.volume*100)} %`;try{localStorage.setItem('atlas-reborn-sound',JSON.stringify({enabled:audio.enabled,volume:audio.volume,ambience:audio.ambience}));}catch{/* Local storage may be unavailable. */}};
+el<HTMLInputElement>('audio-enabled').checked=audio.enabled;el<HTMLInputElement>('audio-volume').value=String(Math.round(audio.volume*100));el<HTMLInputElement>('audio-ambience').checked=audio.ambience;el('audio-level').textContent=`${Math.round(audio.volume*100)} %`;
+for(const id of ['audio-enabled','audio-volume','audio-ambience'])el(id).addEventListener('input',soundPreferences);
+el('sound').onclick=()=>{el('audio-panel').hidden=!el('audio-panel').hidden;el('sound').setAttribute('aria-expanded',String(!el('audio-panel').hidden));};
+el('audio-close').onclick=()=>{el('audio-panel').hidden=true;el('sound').setAttribute('aria-expanded','false');};
+el('audio-test').onclick=()=>{void audio.unlock().then(()=>audio.command());};
+window.addEventListener('pointerdown',()=>{void audio.unlock().catch(()=>{});},{capture:true});
+window.addEventListener('keydown',()=>{void audio.unlock().catch(()=>{});},{capture:true});
 window.addEventListener('resize',()=>renderer.resize());document.addEventListener('visibilitychange',()=>{last=performance.now();accumulator=0;if(document.hidden)setPause(true);});
-function effects():void{
-  if(!audio||audio.state!=='running'||!soundEnabled)return;
-  for(const s of game.shots)if(!played.has(s)&&(game.canSee(0,s.from)||game.canSee(0,s.to))){played.add(s);
-    const oscillator=audio.createOscillator(),gain=audio.createGain();oscillator.type='sawtooth';oscillator.frequency.setValueAtTime(160+game.time%1*70,audio.currentTime);oscillator.frequency.exponentialRampToValueAtTime(40,audio.currentTime+.055);
-    gain.gain.setValueAtTime(.012,audio.currentTime);gain.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+.065);oscillator.connect(gain);gain.connect(audio.destination);oscillator.start();oscillator.stop(audio.currentTime+.07);
-  }
-}
 function frame(now:number):void{
   const dt=Math.min(.1,(now-last)/1000);last=now;input.update(dt);
   if(!game.paused){accumulator+=dt;let steps=0;while(accumulator>=RULES.tick&&steps++<5){game.step();accumulator-=RULES.tick;}}else accumulator=0;
-  effects();renderer.render(dt);uiClock+=dt;if(uiClock>.1){refresh();uiClock=0;}requestAnimationFrame(frame);
+  audio.update(game,renderer);renderer.render(dt,accumulator/RULES.tick);uiClock+=dt;if(uiClock>.1){refresh();uiClock=0;}requestAnimationFrame(frame);
 }
 try{await renderer.load();el('loading').remove();refresh();requestAnimationFrame(frame);}catch(e){el('loading').innerHTML='<strong>Der Wüstensektor konnte nicht geladen werden.</strong><p>Bitte neu laden und die lokalen Asset-Dateien prüfen.</p>';console.error(e);}
 if(new URLSearchParams(location.search).has('debug')){
-  Object.assign(window,{__reborn:{get game(){return game;},renderer,input,refresh,
+  Object.assign(window,{__reborn:{get game(){return game;},renderer,input,refresh,audio,
     advance(seconds:number){for(let i=0;i<Math.round(seconds/RULES.tick);i++)game.step();refresh();renderer.render(0);},save,load}});
 }

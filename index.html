@@ -22,11 +22,19 @@
       <nav class="tools" aria-label="Spielmenü">
         <button id="save" title="Spiel speichern (F5)" aria-label="Speichern"><svg viewBox="0 0 24 24"><path d="M5 3h12l4 4v14H3V3h2zm2 0v6h10V3M7 21v-8h10v8"/></svg></button>
         <button id="load" title="Spiel laden (F9)" aria-label="Laden"><svg viewBox="0 0 24 24"><path d="M3 7h7l2 3h9l-2 11H3V7zm0 0V4h7l2 3h7v3"/></svg></button>
-        <button id="sound" title="Kampfgeräusche umschalten" aria-label="Kampfgeräusche" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M3 9h4l5-5v16l-5-5H3V9zm13-2c4 2 4 8 0 10m3-13c7 5 7 11 0 16"/></svg></button>
+        <button id="sound" title="Sound und Lautstärke" aria-label="Sound und Lautstärke" aria-controls="audio-panel" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M3 9h4l5-5v16l-5-5H3V9zm13-2c4 2 4 8 0 10m3-13c7 5 7 11 0 16"/></svg></button>
         <button id="help" title="Steuerung (F1)" aria-label="Hilfe">?</button>
         <button id="new" title="Neue Kampagne" aria-label="Neue Kampagne">↻</button>
       </nav>
     </header>
+    <section id="audio-panel" class="audio-panel hud" aria-label="Soundeinstellungen" hidden>
+      <div class="panel-heading">FUNK & KLÄNGE <button id="audio-close" aria-label="Soundeinstellungen schließen">×</button></div>
+      <label><span>Sound aktiv</span><input id="audio-enabled" type="checkbox" checked /></label>
+      <label for="audio-volume"><span>Lautstärke</span><output id="audio-level">60 %</output></label>
+      <input id="audio-volume" aria-label="Lautstärke" type="range" min="0" max="100" value="60" />
+      <label><span>Wüstenatmosphäre</span><input id="audio-ambience" type="checkbox" checked /></label>
+      <button id="audio-test">FUNKVERBINDUNG TESTEN</button>
+    </section>
     <section class="radar hud" aria-label="Taktische Minikarte">
       <div class="panel-heading"><span class="live-dot"></span> TAKTISCHES RADAR <span id="clock">00:00</span></div>
       <canvas id="minimap" width="224" height="224" aria-label="Minikarte: klicken und ziehen, um die Kamera zu bewegen"></canvas>

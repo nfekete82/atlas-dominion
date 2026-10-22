@@ -104,3 +104,38 @@ test('reborn: compact viewport, instructions, pause and new campaign preserve a 
  await expect(page.locator('#credits')).toHaveText('500');expect(await page.evaluate(()=>window.__reborn.game.count(0))).toBe(1);
  await advance(page,10);const credits=await page.locator('#credits').textContent();await page.locator('#new').click();await page.keyboard.press('Escape');await expect(page.locator('#credits')).toHaveText(credits);
 });
+
+test('reborn: sound unlocks on interaction, produces an audio signal and preserves volume/mute settings',async({page})=>{
+ await start(page);await page.locator('#sound').click();await expect(page.locator('#audio-panel')).toBeVisible();
+ await page.locator('#audio-ambience').uncheck();await page.locator('#audio-test').click();
+ await expect.poll(()=>page.evaluate(()=>window.__reborn.audio.context?.state)).toBe('running');
+ const peak=await page.evaluate(async()=>{const analyser=window.__reborn.audio.analyser;let peak=0;const data=new Float32Array(analyser.fftSize);
+  for(let i=0;i<8;i++){analyser.getFloatTimeDomainData(data);peak=Math.max(peak,...data.map(Math.abs));await new Promise(r=>setTimeout(r,8));}return peak;});
+ expect(peak).toBeGreaterThan(.003);
+ await page.locator('#audio-volume').fill('35');await expect(page.locator('#audio-level')).toHaveText('35 %');
+ await page.locator('#audio-enabled').uncheck();await page.waitForTimeout(250);
+ const muted=await page.evaluate(()=>{const a=window.__reborn.audio,values=new Float32Array(a.analyser.fftSize);a.analyser.getFloatTimeDomainData(values);return Math.max(...values.map(Math.abs));});
+ expect(muted).toBeLessThan(.001);await page.reload();await page.locator('#loading').waitFor({state:'detached'});await page.locator('#sound').click();
+ await expect(page.locator('#audio-volume')).toHaveValue('35');await expect(page.locator('#audio-enabled')).not.toBeChecked();
+});
+
+test('reborn: finer terrain, directional animation, grounded drawing and automatic retaliation render in the browser',async({page})=>{
+ await start(page);const result=await page.evaluate(async()=>{
+  const {game:g,renderer:r}=window.__reborn;
+  const atlas=new Image();atlas.src='/src/assets/reborn/infantry-walk.png';await atlas.decode();const temp=document.createElement('canvas');temp.width=atlas.width;temp.height=atlas.height;const tc=temp.getContext('2d');tc.drawImage(atlas,0,0);
+  const pixels=tc.getImageData(0,0,temp.width,temp.height).data;let clear=0,opaque=0;for(let i=3;i<pixels.length;i+=4){if(pixels[i]===0)clear++;if(pixels[i]>250)opaque++;}
+  g.units=[];const blue=g.spawn(0,{x:1900,y:2100}),red=g.spawn(1,{x:2050,y:2100});g.command([blue.id],{x:2350,y:2100,kind:'move'});g.updateVision();g.paused=false;g.step();g.step();g.paused=true;
+  r.camera.x=blue.x;r.camera.y=blue.y;r.boundCamera();r.selected=new Set([blue.id]);r.render(0);
+  const sample=()=>{const p=r.screen(blue),d=Math.min(2,devicePixelRatio||1);return Array.from(r.context.getImageData(Math.floor((p.x-40)*d),Math.floor((p.y-66)*d),Math.ceil(80*d),Math.ceil(70*d)).data);};
+  blue.fire=0;blue.hit=0;blue.moving=true;blue.walkDistance=0;r.render(0);const first=sample();blue.walkDistance=36;r.render(0);const second=sample();
+  let changed=0;for(let i=0;i<first.length;i++)if(first[i]!==second[i])changed++;
+  let groundFills=0,groundShadows=0;const fill=r.context.fill,ellipse=r.context.ellipse,begin=r.context.beginPath;
+  let oval=false;r.context.beginPath=function(){oval=false;return begin.call(this);};r.context.ellipse=function(...args){oval=true;return ellipse.apply(this,args);};r.context.fill=function(...args){if(oval)groundFills++;if(this.shadowBlur>0)groundShadows++;return fill.apply(this,args);};
+  r.render(0);r.context.fill=fill;r.context.ellipse=ellipse;r.context.beginPath=begin;
+  return {blueHp:blue.hp,redHp:red.hp,orders:blue.orders.length,angle:blue.angle,changed,groundFills,groundShadows,clear,opaque,pixels:atlas.width*atlas.height,terrain:r.terrain.src,grid:g.world.blocked.length};
+ });
+ expect(result.blueHp).toBeLessThan(100);expect(result.redHp).toBeLessThan(100);expect(result.orders).toBe(1);
+ expect(result.changed).toBeGreaterThan(100);expect(result.groundFills).toBe(0);expect(result.groundShadows).toBe(0);
+ expect(result.clear/result.pixels).toBeGreaterThan(.4);expect(result.opaque/result.pixels).toBeGreaterThan(.15);expect(result.terrain).toContain('desert-fine.png');expect(result.grid).toBe(240*240);
+ await page.screenshot({path:evidence+'polish-combat.png'});
+});

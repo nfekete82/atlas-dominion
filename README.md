@@ -30,9 +30,9 @@ Die frühere Europaversion bleibt unter **http://127.0.0.1:8095/legacy/index.htm
 
 ```sh
 npm run typecheck
-npm run test:reborn    # 13 gezielte Simulationstests
+npm run test:reborn    # 16 gezielte Simulationstests
 npm test              # Gesamte Suite, einschließlich Archiv und HTTP
-npm run test:browser   # Vier Chrome-Tests des RTS-Spielablaufs
+npm run test:browser   # Sechs Chrome-Tests für Gameplay, Grafik und Audio
 ```
 
 Für Browser-Tests einmalig `npm ci --prefix tests/browser` ausführen. Chrome ist lokal voreingestellt; `ATLAS_BROWSER_CHANNEL=chromium` verwendet Playwright Chromium. Ein bereits laufender Server kann über `ATLAS_BASE_URL` angegeben werden.
@@ -43,6 +43,12 @@ Für Browser-Tests einmalig `npm ci --prefix tests/browser` ausführen. Chrome i
 
 TypeScript, Canvas 2D, feste 20 Simulationsschritte pro Sekunde, A*, räumliche Buckets, getrennte Simulation/Darstellung/Eingabe/Speicherung. Die neue Architektur liegt vollständig in `src/reborn/`. Sie benötigt keine zusätzlichen Laufzeitbibliotheken. Spielwerte und Asset-Pfade stehen in `src/reborn/config.ts`.
 
-Die Original-PNGs liegen unverändert in `src/assets/reborn/`: `desert.png`, `infantry.png`, `headquarters.png`. Die roten Fraktionsakzente werden beim Laden aus den blauen Sprite-Pixeln abgeleitet. Das Terrain wird einmal über die Welt gelegt; es wird nicht gekachelt.
+Die Original-PNGs bleiben unverändert in `src/assets/reborn/`: `desert.png`, `infantry.png`, `headquarters.png`. Die feinere Terrainfassung liegt in `desert-fine.png`, der transparente Laufatlas in `infantry-walk.png`. Die Bastion wird aus `src/assets/reborn/bastion.png` geladen und je Besitzer blau, rot oder unbeleuchtet dargestellt. Der Laufatlas kombiniert 32 Posen mit kontinuierlicher Beinbewegung; die Füße sind am Boden verankert. Künstliche Bodenschatten werden nicht gezeichnet.
+
+Der Boden trennt großräumiges Relief und feine Sandstruktur. Hügel und Felsen bleiben an ihren Kartenpositionen und blockieren das feinere Navigationsraster. Angegriffene Infanterie erwidert das Feuer auch während eines Marschbefehls und setzt danach ihren ursprünglichen Weg fort. Der Soundregler oben bietet Schüsse, Schritte, Funkbestätigungen und Wüstenwind; Ton startet mit der ersten Interaktion.
+
+[Bildquellen und Generierungsprompts](docs/reborn/ART_ASSETS.md)
+
+Die Bastion ist derzeit eine erzeugte Nachbildung im passenden Stil, da macOS die Originaldatei im Downloads-Ordner nicht freigibt. Zum Einsetzen des Originals genügt das Ersetzen von `src/assets/reborn/bastion.png` und ein erneuter Build.
 
 Docker bleibt verfügbar: `docker compose up --build`. Der veröffentlichte Port ist lokal auf `127.0.0.1:8095` begrenzt.
