@@ -1,0 +1,21 @@
+{
+  "commit": "95bec88c16d248a3a58ffc2aa7bd9930a4643cc1",
+  "allPriorSourceHashesMatch": true,
+  "files": {
+    "src/engine/game.ts": "5afb57a59b3d4da62bb591792c80e5c91af5643fca535ce30b73f7f7959fec31",
+    "src/engine/rts-strategy.ts": "6f752306c79911dfe3e51020fa4b5f92c94773f6d9a14412904b290afdf2715c",
+    "src/engine/rts-path.ts": "769c4ab23cb3d2e9ce4f24ea95313599b712b06692c0467a9e69b5acd866e0e3",
+    "src/engine/difficulty.ts": "f81845f1053e4d969ba32d8b5515efc8a5b54784f2b82660e12a1c93e094e69e",
+    "src/engine/economy.ts": "5e6b3876178d938aa75d0cef969651aa27652e62994fac872ed9205b1584e2c5",
+    "src/engine/navigation.ts": "9a9d68c826a1162c31e8e81ae079fbaa1afe96daf3d3902563d491550e747b95",
+    "src/render/map.ts": "dd3d5498d5028cac524f1862c807be38f91d35e0cca1ae445894f533072ea28a",
+    "src/main.ts": "7094571ae2d2e17dff552467022aaafc16f2751d00216a203735dec16d7e8c31",
+    "src/military-view.ts": "42fdae9882405afcd95fc23e1c49844b8c163184755769ccdaab34fdedb1aaec",
+    "scripts/benchmark-deep-game.mjs": "6536a25f0f6c086eb62c98a18d1f4ebbc398dbf222b44e0f18d8a96b466937c1",
+    "scripts/verify-deep-game.mjs": "c7ffce135a3b1f34fe5abf655e2c31adc609b04e7a6b058218dc6521150b24bb",
+    "scripts/simulate-rts-campaigns.mjs": "9905347ff388fbed55974af5ae5efdbd62e7c6da8a2e593dc9db1493eeab9330",
+    "tests/browser/deep-game-audit.mjs": "2fd7de90b49e94a9812a862bb2a2bd8f1ec4f434f8e33b9c82852db785bbbce8",
+    "tests/browser/deep-rts.spec.mjs": "dda99f6a2e67b4ff0da580c2ccbce5f58a40ddf92618707a7cff380578c84377",
+    "tests/deep-rts-command.test.mjs": "2ebfbeb84f9ad0322335192c6a9789c417be80c9cd281371dfaa7c77b7e383cc"
+  }
+}

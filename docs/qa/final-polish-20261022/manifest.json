@@ -1,0 +1,62 @@
+{
+  "taskDate": "2026-10-22",
+  "timezone": "Europe/Berlin",
+  "commits": {
+    "preservedBaseline": "95bec88c16d248a3a58ffc2aa7bd9930a4643cc1",
+    "balancing": "950973317402898e8f119b9ba211a8a6fe350920",
+    "renderer": "424efc6d8117fe942cc2c9afde1ecd191dba7095"
+  },
+  "node": "v25.9.0",
+  "cpu": "Apple M5 Max",
+  "cores": 18,
+  "memoryGB": 48,
+  "playwright": "1.64.0",
+  "sources": {
+    "src/engine/game.ts": "911b286042725a54ef9577fdb7022d9ad86ed6b377805fd233d26fc429004937",
+    "src/engine/rts-strategy.ts": "6f752306c79911dfe3e51020fa4b5f92c94773f6d9a14412904b290afdf2715c",
+    "src/engine/rts-path.ts": "769c4ab23cb3d2e9ce4f24ea95313599b712b06692c0467a9e69b5acd866e0e3",
+    "src/engine/difficulty.ts": "f81845f1053e4d969ba32d8b5515efc8a5b54784f2b82660e12a1c93e094e69e",
+    "src/engine/economy.ts": "5e6b3876178d938aa75d0cef969651aa27652e62994fac872ed9205b1584e2c5",
+    "src/engine/navigation.ts": "9a9d68c826a1162c31e8e81ae079fbaa1afe96daf3d3902563d491550e747b95",
+    "src/render/map.ts": "dd3d5498d5028cac524f1862c807be38f91d35e0cca1ae445894f533072ea28a",
+    "src/main.ts": "7094571ae2d2e17dff552467022aaafc16f2751d00216a203735dec16d7e8c31",
+    "src/military-view.ts": "42fdae9882405afcd95fc23e1c49844b8c163184755769ccdaab34fdedb1aaec",
+    "scripts/benchmark-deep-game.mjs": "49a008f8c74094f6b7deb214731e129778fe3ae60cf955abc4ef16b5ac1e530f",
+    "scripts/verify-deep-game.mjs": "fee9d0dd735d487ba3310537225ed6c28d705402690275f60b93ab6baabcd712",
+    "scripts/simulate-rts-campaigns.mjs": "9905347ff388fbed55974af5ae5efdbd62e7c6da8a2e593dc9db1493eeab9330",
+    "tests/browser/deep-game-audit.mjs": "2fd7de90b49e94a9812a862bb2a2bd8f1ec4f434f8e33b9c82852db785bbbce8",
+    "tests/browser/deep-rts.spec.mjs": "112a6fa01533ef480706a407d385ad2c9e7c22361b4711df5ba1c7b27e80634c",
+    "tests/deep-rts-command.test.mjs": "5760ef3e75e5cae8adf367fba6aec047a7a6b2da3e4feac2f98707a2004d2ec9",
+    "src/render/territory-contours.ts": "dd48d5c10119778bd33785a9290c19a2a0a245a1e1da05a3923ac1375e2522a0",
+    "tests/territory-contours.test.mjs": "dd6392f14b552b0f24c032a66a3fb5c0a2a2cb2cdcbe7e14b76f39794c6b4bc8",
+    "scripts/diagnose-rts-polish.mjs": "93d062318d6df77a566d77dc2f4f36a62f47383f3325a46a7584b5f24126ae46",
+    "scripts/verify-polish-contours.mjs": "78edb77ccd15a997e44c493861efedb5234aa5086cb147d547188b94288fee73",
+    "tests/browser/final-polish-profile.mjs": "02d9d23182f5fec798b67555fdd48d9039a6f157ab0b9c6650f9a0fe51c79edc"
+  },
+  "compiledBaseline": {
+    "game": "347f11df0e70fbafad654776868c9623b066d370a34574cf76ef2c59986e1fbc",
+    "contours": "97833bc67840b984d0946e9054562ff53d007ccb3e00d134d0c95a2a5fda3f0b"
+  },
+  "compiledFinal": {
+    "game": "02a24581c03180ee1d81ca9afb5897cba123c1b0d4a9ed01aace6edfc2407c3f",
+    "contours": "ad26d1b7e6624528c3c6c508b5b497e0d7f23fa9ec9f9b3ec28bead147654c7f"
+  },
+  "verification": {
+    "unitTests": 368,
+    "browserIntegrationTests": 24,
+    "finalPostWaypointRTSTests": 5,
+    "replays": 7,
+    "physicalMovementWrites": 277129,
+    "maxConservationDrift": 5.275069270282984e-11,
+    "jsonReloadTicks": [
+      500,
+      1000
+    ],
+    "baselineSourceHashesVerified": 15,
+    "exactContourGrids": 161,
+    "ownerOverlayPixelHash": "8e6155f4ec959b381a5e2c777e3bc994024d932131d1429ec41cec00301ad765",
+    "fullDiffReviewed": true,
+    "pushed": false,
+    "merged": false
+  }
+}

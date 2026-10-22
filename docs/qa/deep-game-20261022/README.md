@@ -1,5 +1,7 @@
 # ATLAS DOMINION: RTS-Weiterentwicklung, 22.10.2026
 
+Archivierter Zwischenstand vor dem abschließenden Polishing. Die folgenden Ergebnisse und der damalige uncommittete Status beschreiben diesen Zwischenstand. Den weiterentwickelten und lokal committeten Abschluss dokumentiert der [Folgebericht](../final-polish-20261022/README.md).
+
 Lokale Änderungen auf `feat/rts-final-integration`, Ausgangsrevision `d58832638fd8cbf056887c904a58bf62531f23a5`. Kein Commit, Push, Merge oder Deployment. Der Ausgangs-Workspace war sauber. Keine neuen Abhängigkeiten und keine Änderung der Grafik-Engine.
 
 ## Fünf priorisierte Probleme und umgesetzte Verbesserungen

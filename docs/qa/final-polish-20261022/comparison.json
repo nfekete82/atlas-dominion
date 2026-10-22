@@ -1,0 +1,265 @@
+{
+  "allBaselineHashesMatchPreviousReport": true,
+  "cases": [
+    {
+      "seed": 20261022,
+      "country": "DE",
+      "difficulty": "balanced",
+      "countries": 50,
+      "territoryBefore": 51210,
+      "territoryAfter": 52196,
+      "lossBefore": 21172.990442142866,
+      "lossAfter": 17954.435184704602,
+      "territoryPercent": 1.92540519429798,
+      "lossPercent": -15.20123133401141,
+      "recruits": [
+        32099,
+        28038
+      ],
+      "money": [
+        824.2562323825225,
+        812.158435936212
+      ],
+      "factories": [
+        22,
+        26
+      ],
+      "time": [
+        {
+          "median": 10.290874999999687,
+          "p95": 20.762792000001355,
+          "p99": 24.64641699999993
+        },
+        {
+          "median": 10.823416999999608,
+          "p95": 19.598541000000296,
+          "p99": 25.447791000000507
+        }
+      ]
+    },
+    {
+      "seed": 20261022,
+      "country": "DE",
+      "difficulty": "balanced",
+      "countries": 9,
+      "territoryBefore": 46923,
+      "territoryAfter": 46798,
+      "lossBefore": 1272.0210000000018,
+      "lossAfter": 1369.31275,
+      "territoryPercent": -0.26639387933422576,
+      "lossPercent": 7.648596210282554,
+      "recruits": [
+        4700,
+        4600
+      ],
+      "money": [
+        7210.1286787499985,
+        7059.310642624998
+      ],
+      "factories": [
+        29,
+        29
+      ],
+      "time": [
+        {
+          "median": 3.3816249999999854,
+          "p95": 7.612041999998837,
+          "p99": 9.275916000000507
+        },
+        {
+          "median": 3.56395799999882,
+          "p95": 6.982458000000406,
+          "p99": 9.015583000000333
+        }
+      ]
+    },
+    {
+      "seed": 20261022,
+      "country": "ES",
+      "difficulty": "relaxed",
+      "countries": 50,
+      "territoryBefore": 50746,
+      "territoryAfter": 50832,
+      "lossBefore": 20387.19833784959,
+      "lossAfter": 18590.845751087967,
+      "territoryPercent": 0.16947148543726698,
+      "lossPercent": -8.811179236072997,
+      "recruits": [
+        30399,
+        29512
+      ],
+      "money": [
+        757.3743154076956,
+        713.167262838288
+      ],
+      "factories": [
+        18,
+        18
+      ],
+      "time": [
+        {
+          "median": 10.092709000000468,
+          "p95": 21.53070899999875,
+          "p99": 29.206042000001617
+        },
+        {
+          "median": 8.179041999999754,
+          "p95": 21.12749999999869,
+          "p99": 27.09729100000186
+        }
+      ]
+    },
+    {
+      "seed": 20261022,
+      "country": "GB",
+      "difficulty": "intense",
+      "countries": 50,
+      "territoryBefore": 51058,
+      "territoryAfter": 51303,
+      "lossBefore": 19326.754857459713,
+      "lossAfter": 18374.504025019993,
+      "territoryPercent": 0.4798464491362786,
+      "lossPercent": -4.9271118688204,
+      "recruits": [
+        29371,
+        27457
+      ],
+      "money": [
+        855.8012004791749,
+        806.7757828579237
+      ],
+      "factories": [
+        27,
+        25
+      ],
+      "time": [
+        {
+          "median": 8.935750000000553,
+          "p95": 16.566875000000437,
+          "p99": 20.459917000000132
+        },
+        {
+          "median": 9.97883400000137,
+          "p95": 20.436374999997497,
+          "p99": 24.65137500000128
+        }
+      ]
+    },
+    {
+      "seed": 20261022,
+      "country": "FR",
+      "difficulty": "impossible",
+      "countries": 50,
+      "territoryBefore": 52178,
+      "territoryAfter": 51268,
+      "lossBefore": 20760.721599726858,
+      "lossAfter": 19509.509774151284,
+      "territoryPercent": -1.7440300509793394,
+      "lossPercent": -6.026822427945067,
+      "recruits": [
+        31718,
+        28268
+      ],
+      "money": [
+        812.022072386146,
+        765.7381107954579
+      ],
+      "factories": [
+        33,
+        36
+      ],
+      "time": [
+        {
+          "median": 10.552834000001894,
+          "p95": 21.959624999995867,
+          "p99": 27.79462500000227
+        },
+        {
+          "median": 9.987208000005921,
+          "p95": 20.628959000001487,
+          "p99": 26.420500000000175
+        }
+      ]
+    },
+    {
+      "seed": 20261013,
+      "country": "IT",
+      "difficulty": "balanced",
+      "countries": 9,
+      "territoryBefore": 46964,
+      "territoryAfter": 47006,
+      "lossBefore": 1933.4030000000084,
+      "lossAfter": 1934.20300000001,
+      "territoryPercent": 0.08943020185674389,
+      "lossPercent": 0.04137781931659035,
+      "recruits": [
+        5492,
+        5742
+      ],
+      "money": [
+        7155.367003633271,
+        7075.673972301396
+      ],
+      "factories": [
+        29,
+        29
+      ],
+      "time": [
+        {
+          "median": 3.644000000000233,
+          "p95": 15.685542000006535,
+          "p99": 19.70087500000227
+        },
+        {
+          "median": 3.6986249999972642,
+          "p95": 13.035792000002402,
+          "p99": 17.414583000005223
+        }
+      ]
+    },
+    {
+      "seed": 221041,
+      "country": "PL",
+      "difficulty": "balanced",
+      "countries": 50,
+      "territoryBefore": 51797,
+      "territoryAfter": 52234,
+      "lossBefore": 19557.2832841622,
+      "lossAfter": 18864.26620345074,
+      "territoryPercent": 0.843678205301468,
+      "lossPercent": -3.543524275034027,
+      "recruits": [
+        29928,
+        29317
+      ],
+      "money": [
+        894.0101557482137,
+        856.48273969232
+      ],
+      "factories": [
+        28,
+        30
+      ],
+      "time": [
+        {
+          "median": 9.853917000000365,
+          "p95": 21.79645900000469,
+          "p99": 30.758542000003217
+        },
+        {
+          "median": 10.706333000001905,
+          "p95": 19.88354199999594,
+          "p99": 23.186374999997497
+        }
+      ]
+    }
+  ],
+  "sums": {
+    "territoryBefore": 350876,
+    "territoryAfter": 351637,
+    "lossBefore": 104410.37252134124,
+    "lossAfter": 96597.0766884146,
+    "territoryPercent": 0.21688573741149852,
+    "lossPercent": -7.48325635111552
+  }
+}

@@ -1,0 +1,86 @@
+[
+  {
+    "seed": 20261022,
+    "opponents": 49,
+    "country": "DE",
+    "difficulty": "balanced",
+    "ticks": 1000,
+    "jsonReloadTick": 500,
+    "finalJsonReloadTick": 1000,
+    "maxDrift": 2.546585164964199e-11,
+    "movementWrites": 47604,
+    "passed": true
+  },
+  {
+    "seed": 20261022,
+    "opponents": 8,
+    "country": "DE",
+    "difficulty": "balanced",
+    "ticks": 1000,
+    "jsonReloadTick": 500,
+    "finalJsonReloadTick": 1000,
+    "maxDrift": 1.8189894035458565e-12,
+    "movementWrites": 20029,
+    "passed": true
+  },
+  {
+    "seed": 20261022,
+    "opponents": 49,
+    "country": "ES",
+    "difficulty": "relaxed",
+    "ticks": 1000,
+    "jsonReloadTick": 500,
+    "finalJsonReloadTick": 1000,
+    "maxDrift": 5.275069270282984e-11,
+    "movementWrites": 44487,
+    "passed": true
+  },
+  {
+    "seed": 20261022,
+    "opponents": 49,
+    "country": "GB",
+    "difficulty": "intense",
+    "ticks": 1000,
+    "jsonReloadTick": 500,
+    "finalJsonReloadTick": 1000,
+    "maxDrift": 4.729372449219227e-11,
+    "movementWrites": 46792,
+    "passed": true
+  },
+  {
+    "seed": 20261022,
+    "opponents": 49,
+    "country": "FR",
+    "difficulty": "impossible",
+    "ticks": 1000,
+    "jsonReloadTick": 500,
+    "finalJsonReloadTick": 1000,
+    "maxDrift": 4.001776687800884e-11,
+    "movementWrites": 47514,
+    "passed": true
+  },
+  {
+    "seed": 20261013,
+    "opponents": 8,
+    "country": "IT",
+    "difficulty": "balanced",
+    "ticks": 1000,
+    "jsonReloadTick": 500,
+    "finalJsonReloadTick": 1000,
+    "maxDrift": 1.2732925824820995e-11,
+    "movementWrites": 20266,
+    "passed": true
+  },
+  {
+    "seed": 221041,
+    "opponents": 49,
+    "country": "PL",
+    "difficulty": "balanced",
+    "ticks": 1000,
+    "jsonReloadTick": 500,
+    "finalJsonReloadTick": 1000,
+    "maxDrift": 3.2741809263825417e-11,
+    "movementWrites": 50437,
+    "passed": true
+  }
+]

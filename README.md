@@ -7,6 +7,8 @@
 
 Die RTS-Steuerung bleibt erhalten: **Linksklick auswählen, Rechtsklick bewegen/angreifen, Umschalt-Rechtsklick Kontextmenü.** [Messwerte, Grenzen, Tests und vergleichbare Screenshots](docs/qa/deep-game-20261022/README.md).
 
+**Finales Balancing und Performance-Polish:** Beschossene KI-Armeen nehmen nahe unbewachte Türme gezielt ein. Der identische 50-Länder-Vergleich zeigt 15,2 % weniger Verluste und 1,9 % mehr Gebietsgewinn gegenüber dem vorherigen Entwicklungsstand. Optimierte Konturen halbieren ungefähr die Kartenaufbauzeit bei identischen Pixeln. [Abschlussvergleich über alle vier Schwierigkeitsgrade, Browserprofil und Regression](docs/qa/final-polish-20261022/README.md).
+
 ### Lesbare Stadtmarker
 
 Gebaute Städte erscheinen als 30 CSS-Pixel große Canvas-Skyline mit kleinem Levelbadge (1–5), auch bei 100 % Kartenzoom. Level 0 bleibt ohne Zahl. Bronze kennzeichnet 0–2, Silber 3–4 und Gold 5. Kollisionsprüfung schützt andere Städte, Frontzähler, Hauptstadtnamen und Kartenbedienelemente. Eng stehende Städte werden nach Priorität ausgedünnt; Zoomen macht weitere Städte sichtbar. Die Symbole und ihre Rechtsklick-Trefferflächen verwenden dieselben Bildschirmmaße.
