@@ -1,57 +1,57 @@
 # ATLAS DOMINION — REBORN
 
-Ein spielbares 2D-Wüsten-RTS mit den drei bereitgestellten Originalgrafiken. Eine zusammenhängende Karte, 30 Territorien, blaue und rote Fraktion, echte Erkundung, Einkommen, Infanterieproduktion und Echtzeitkampf.
+Ein lokales Wüsten-RTS mit Basisbau, neun Einheitentypen, 30 eroberbaren Territorien und einer aktiven gegnerischen KI. Die Oberfläche folgt der Bildvorlage: Ressourcen oben links, Radar und Baukatalog rechts, Auswahl und Produktion unten sowie ein zentrales Pausenmenü mit Metallrahmen.
 
-## Lokal starten
+## Starten
 
 ```sh
 npm install
 npm run dev
 ```
 
-Öffnen: **http://127.0.0.1:8095**. Ein neues Spiel startet sofort mit Hauptquartier, genau einem Soldaten, drei kontrollierten Gebieten und 500 Credits. Kein Account, keine externen Dienste und keine Downloads zur Laufzeit.
+**http://127.0.0.1:8095** — oder `docker compose up --build -d`. Der Docker-Port ist auf `127.0.0.1` begrenzt. Keine Accounts, Cloud-Dienste oder Downloads zur Spielzeit. Start: 500 Credits, ein Soldat, Hauptquartier und drei eigene Sektoren. Bestehende Spielstände bleiben ladbar.
 
-Die frühere Europaversion bleibt unter **http://127.0.0.1:8095/legacy/index.html** erreichbar. Ihre Quellen und bisherigen Änderungen bleiben erhalten; die bisherige Dokumentation liegt in [legacy/README.md](legacy/README.md).
+## Spielen und bauen
 
-## Spielen
+- Linksklick: Einheit oder Gebäude wählen. Ziehen: Gruppe markieren. Doppelklick: sichtbare eigene Truppen markieren.
+- Rechtsklick: bewegen oder ein sichtbares Ziel angreifen. Shift: Befehle anhängen. **A**: Angriffsbewegung, **S**: halten. Soldaten und Fahrzeuge eröffnen in Waffenreichweite selbstständig das Feuer und setzen danach ihren Auftrag fort.
+- WASD/Pfeile und Bildschirmrand bewegen die Kamera; Mausrad zoomt am Zeiger. Radar klicken/ziehen bewegt den Ausschnitt. **H**: Hauptquartier, **T**: Sektorgrenzen.
+- Rechter Katalog **Gebäude** oder **B**: Bauwerk wählen und mit Linksklick platzieren. Die vollständige Grundfläche muss frei, sichtbar und im eigenen Gebiet liegen. Gebäude, Bastionen, Felsen und Bodenfahrzeuge blockieren den Bauplatz. Rechtsklick oder Esc bricht die Vorschau kostenlos ab.
+- Gebäude werden in Simulationszeit gebaut. Erst danach produzieren sie Einheiten beziehungsweise Einkommen. Abbrechen einer Baustelle erstattet 75 %; ein stornierter Produktionsauftrag seinen vollständigen Preis. Die fünf Produktionsplätze unten zeigen echte Aufträge und lassen sich einzeln stornieren.
+- **Einheiten** im rechten Katalog beauftragen die passende eigene Produktionsstätte. Die Icons zeigen Kosten; der Tooltip nennt Voraussetzungen und Bauzeit. Das Hauptquartier und die Kaserne bilden Infanterie/Pioniere aus, schwere Infanterie benötigt die Kaserne, Fahrzeuge die Fabrik, Fluggeräte das Flugfeld.
+- Angrenzende Bastion acht Sekunden mit Bodentruppen halten. Feinde im Radius unterbrechen die Einnahme. Eigene Bastionen geben dauerhaft 320 Meter Sicht; bei Verlust endet ihre Sicht. Felsen begrenzen Bodensicht und Schusslinien. Fluggeräte überfliegen Felsen, können aber keine Bastionen sichern.
+- Einkommen kommt alle zehn Simulationssekunden. **Leertaste**: taktische Pause. Zahnrad oder Esc ohne Auswahl: Spielmenü. **F5/F9** speichern/laden lokal in IndexedDB. Vor einem Seiten-Neuladen speichern und anschließend laden.
+- Sieg: gegnerisches Hauptquartier zerstören, seinen Kontrollpunkt sichern und alle drei roten Startgebiete kontrollieren. Niederlage: keine Produktionsstätte und keine eigene Truppe mehr.
 
-- Linksklick wählt Soldaten oder das Hauptquartier. Ziehen markiert mehrere Soldaten; Doppelklick wählt sichtbare Infanterie.
-- Rechtsklick bewegt oder greift einen sichtbaren Gegner an. Shift hängt Befehle an.
-- **A**, dann Linksklick: Angriffsbewegung. **S**: Stoppen. Halten von A/S scrollt nach kurzem Antippen; WASD und Pfeile bewegen die Kamera.
-- Mausrad zoomt am Zeiger. Minikarte klicken/ziehen verschiebt den Ausschnitt. **H**: Basis, **T**: Gebietsgrenzen.
-- Einen angrenzenden Kontrollpunkt acht Sekunden halten. Feinde im Radius unterbrechen die Einnahme. Eigene Bastionen halten ihre Umgebung mit 320 Metern Sicht dauerhaft aufgeklärt; bei Verlust endet ihre Sicht sofort.
-- Soldaten bekämpfen sichtbare Gegner innerhalb ihrer 175 Meter Waffenreichweite automatisch, auch während eines Marsches. Ihre Befehlsfolge bleibt erhalten und wird nach dem Gefecht fortgesetzt.
-- Einkommen wird alle zehn Simulationssekunden gutgeschrieben. Hauptquartier: +10; Gebiete: +5, +15 oder +25 Credits. Das Hauptquartier produziert einen Soldaten für 100 Credits in fünf Sekunden. Rechtsklick setzt seinen Sammelpunkt.
-- **Leertaste** pausiert. **F5 / F9** oder die Symbole oben speichern/laden in IndexedDB. Nach einem Browser-Neustart „Laden“ wählen. Das Wechseln in einen anderen Tab pausiert die Simulation.
-- Sieg: feindliches Hauptquartier zerstören, seinen Kontrollpunkt sichern und alle drei roten Startgebiete kontrollieren. Niederlage: kein funktionsfähiges Hauptquartier und keine eigene Infanterie mehr.
+| Gebäude | Credits | Bauzeit | Wirkung |
+| --- | ---: | ---: | --- |
+| Kaserne | 200 | 12 s | Infanterie, Pioniere und schwere Infanterie |
+| Fahrzeugfabrik | 350 | 18 s | Spähwagen, Kampfpanzer, Artillerie |
+| Flugfeld | 450 | 22 s | Spähheli, Kampfheli, Bomber |
+| Energiekern | 150 | 9 s | +10 Credits / 10 s nach Fertigstellung |
+| Geschützturm | 175 | 10 s | Selbstständige Verteidigung auf 300 m |
 
-**F1** öffnet das Feldhandbuch. Maus und Tastatur sind die vorgesehenen Eingabegeräte.
+Die neun Truppen kosten 100/150/250 Credits für Infanterie, Pionier und schweren Schützen; 300/450/600 für Spähwagen, Panzer und Artillerie; 600/750/1000 für Spähheli, Kampfheli und Bomber. Pioniere reparieren nahe eigene Gebäude. Fahrzeuggrößen und Wege berücksichtigen ihre unterschiedliche Bodenfreiheit.
 
 ## Prüfen
 
 ```sh
 npm run typecheck
-npm run test:reborn    # 22 gezielte Simulationstests
-npm test              # Gesamte Suite, einschließlich Archiv und HTTP
-npm run test:browser   # Elf Chrome-Tests für Gameplay, Sicht, Grafik und Audio
+npm run test:reborn    # 28 gezielte Simulationstests
+npm test              # 400 Tests einschließlich Archiv und HTTP
+npm run test:browser   # 13 Chrome-Fälle: Spielablauf, Bau, Produktion, Menüs, Sicht, Audio
 ```
 
-Für Browser-Tests einmalig `npm ci --prefix tests/browser` ausführen. Chrome ist lokal voreingestellt; `ATLAS_BROWSER_CHANNEL=chromium` verwendet Playwright Chromium. Ein bereits laufender Server kann über `ATLAS_BASE_URL` angegeben werden.
+Browser-Abhängigkeiten: `npm ci --prefix tests/browser`. Chrome ist voreingestellt; `ATLAS_BROWSER_CHANNEL=chromium` verwendet Playwright Chromium. `ATLAS_BASE_URL` prüft einen bestehenden Server.
 
-[Architektur und Grenzen](docs/reborn/ARCHITECTURE.md) · [Prüfprotokoll](docs/reborn/QA.md)
+[Prüfprotokoll und Bilder](docs/reborn/QA.md) · [Architektur und Grenzen](docs/reborn/ARCHITECTURE.md) · [Bildquellen und Imagegen-Prompts](docs/reborn/ART_ASSETS.md)
 
-## Technik und Assets
+## Technik und Grafik
 
-TypeScript, Canvas 2D, feste 20 Simulationsschritte pro Sekunde, A*, räumliche Buckets, getrennte Simulation/Darstellung/Eingabe/Speicherung. Die neue Architektur liegt vollständig in `src/reborn/`. Sie benötigt keine zusätzlichen Laufzeitbibliotheken. Spielwerte und Asset-Pfade stehen in `src/reborn/config.ts`.
+TypeScript, Canvas 2D, feste 20 Simulationsschritte pro Sekunde, A*, räumliche Buckets und IndexedDB. Spielwerte stehen in `src/reborn/config.ts`, Einheiten und Gebäude in `src/reborn/catalog.ts`. Keine zusätzliche Laufzeitbibliothek.
 
-Die Original-PNGs bleiben unverändert in `src/assets/reborn/`: `desert.png`, `infantry.png`, `headquarters.png`. Die feinere Terrainfassung liegt in `desert-fine.png`, der neue transparente Laufatlas in `infantry-walk-v2.png`. Die Bastion wird aus `src/assets/reborn/bastion.png` geladen: neutral weiß leuchtend, für die Teams blau oder rot. Der Laufatlas enthält vier Schrittphasen in vier Richtungen, ergänzt durch Spiegelung. Ganze Posen ersetzen die bisher verdrehten Sprite-Hälften; Helmposition und Bodenhöhe werden beim Laden ausgerichtet. Künstliche Bodenschatten werden nicht gezeichnet.
+Neue hochauflösende Einzelgrafiken ersetzen die vergrößerten Felsflächen. Ihre Alpha-Konturen bestimmen Bewegung und Sicht; `node scripts/compile-terrain-art.mjs` erzeugt daraus die deterministischen Masken. Feiner Boden wird separat aufgebaut. Gebäude werfen gerichtete, am Fundament anliegende Silhouettenschatten; es gibt keine schwebenden Schattenellipsen. Bastionen leuchten neutral weiß, blau oder rot.
 
-Der Boden trennt großräumiges Relief und feine Sandstruktur. Hügel und Felsen bleiben an ihren Kartenpositionen und blockieren das feinere Navigationsraster. Angegriffene Infanterie erwidert das Feuer auch während eines Marschbefehls und setzt danach ihren ursprünglichen Weg fort. Der Soundregler oben bietet Schüsse, Schritte, Funkbestätigungen und Wüstenwind; Ton startet mit der ersten Interaktion.
+Die Originalgrafiken bleiben erhalten. Die Bastion ist weiterhin eine erzeugte Nachbildung, da die benannte Originaldatei im Downloads-Ordner nicht zugänglich war. Die Infanterie teilt einen Richtungsatlas; Fahrzeuge nutzen gespiegelte Ansichten. Die KI expandiert und kämpft weiterhin mit Infanterie. Maus und Tastatur bilden die vollständige Steuerung; kein dediziertes Touch- oder Mehrspielersystem.
 
-Die Sicht unterscheidet hohe Felsen von niedrigen Geröllhindernissen. Eigene Einheiten und Gebäude decken ihre unmittelbare Umgebung immer auf. Beim Entdecken einer Felsformation wird ihre unbetretbare Oberfläche als Gelände bekannt; Gegner dahinter bleiben verborgen. Ein Bewegungsziel tief im Berg wird auf einen erreichbaren Randpunkt gelegt. Fels- und Schattenkanten erhalten einen begrenzten Schärfepass; eine eigene Sandsteinstruktur ergänzt feinere Felsdetails. Die zugrunde liegende Landschaft bleibt eine vergrößerte 1254-Pixel-Vorlage. Bestehende Spielstände bleiben ladbar.
-
-[Bildquellen und Generierungsprompts](docs/reborn/ART_ASSETS.md)
-
-Die Bastion ist derzeit eine erzeugte Nachbildung im passenden Stil, da macOS die Originaldatei im Downloads-Ordner nicht freigibt. Zum Einsetzen des Originals genügt das Ersetzen von `src/assets/reborn/bastion.png` und ein erneuter Build.
-
-Docker bleibt verfügbar: `docker compose up --build`. Der veröffentlichte Port ist lokal auf `127.0.0.1:8095` begrenzt.
+Die frühere Europaversion bleibt unter **http://127.0.0.1:8095/legacy/index.html** erreichbar. Ihre Quellen und vorhandenen Änderungen bleiben erhalten; ihre Dokumentation liegt in [legacy/README.md](legacy/README.md).

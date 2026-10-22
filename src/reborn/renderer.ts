@@ -1,6 +1,8 @@
 import { ASSETS, RULES, clamp, distance, type Point } from './config.js';
 import { Simulation, type Base, type Unit } from './simulation.js';
 import { type Territory } from './world.js';
+import { BUILDINGS, UNITS, buildingSpec, unitSpec, type BuildingKind, type UnitKind } from './catalog.js';
+import { TERRAIN_FRAMES, TERRAIN_PLACEMENTS } from './terrain-art.js';
 
 interface Sprite { image:HTMLImageElement; x:number; y:number; w:number; h:number }
 interface Pose extends Sprite { foot:number; bodyHeight:number; center:number }
@@ -9,12 +11,15 @@ export class Renderer {
   readonly mini:CanvasRenderingContext2D;
   camera={x:1200,y:2500,zoom:1};
   selected=new Set<number>(); selectedBase:number|null=null; overlay=false; attackMode=false;
+  placement:BuildingKind|null=null;pointer:Point|null=null;
   box:{from:Point;to:Point}|null=null; marker:{point:Point;life:number;attack:boolean}|null=null;
   width=0;height=0;terrain!:HTMLImageElement; infantry!:Sprite; headquarters!:Sprite;
-  private rockDetail!:HTMLImageElement;
   private redInfantry!:Sprite;private redBase!:Sprite;
   private bastions!:Record<'blue'|'red'|'neutral',Sprite>;
   private walks:Pose[][]=[];private redWalks:Pose[][]=[];
+  private buildings={} as Record<BuildingKind,Sprite>;private redBuildings={} as Record<BuildingKind,Sprite>;
+  private vehicles={} as Partial<Record<UnitKind,Sprite>>;private redVehicles={} as Partial<Record<UnitKind,Sprite>>;
+  private cliffs:Sprite[]=[];private shadows=new Map<Sprite,Sprite>();private icons=new Map<string,string>();
   private terrainSurface=document.createElement('canvas');private interpolation=1;
   private fog=document.createElement('canvas');private fogRevision=-1;
   private miniTerrain=document.createElement('canvas');
@@ -46,26 +51,37 @@ export class Renderer {
   }
   async load():Promise<void>{
     this.terrain=new Image();this.terrain.src=ASSETS.terrain;
-    this.rockDetail=new Image();this.rockDetail.src=ASSETS.rockDetail;
-    const [infantry,base,bastion,walk]=await Promise.all([this.sprite(ASSETS.infantry),this.sprite(ASSETS.headquarters),this.sprite(ASSETS.bastion),this.sprite(ASSETS.infantryWalk),this.terrain.decode(),this.rockDetail.decode()]);
+    const [infantry,base,bastion,walk,structures,vehicles,cliffs]=await Promise.all([this.sprite(ASSETS.infantry),this.sprite(ASSETS.headquarters),this.sprite(ASSETS.bastion),this.sprite(ASSETS.infantryWalk),this.sprite(ASSETS.structures),this.sprite(ASSETS.vehicles),this.sprite(ASSETS.cliffs),this.terrain.decode()]);
     this.infantry=infantry;this.headquarters=base;
     [this.redInfantry,this.redBase]=await Promise.all([this.recolor(infantry),this.recolor(base)]);
     const [redBastion,neutralBastion,redWalk]=await Promise.all([this.recolor(bastion),this.recolor(bastion,true),this.recolor(walk)]);
     this.bastions={blue:bastion,red:redBastion,neutral:neutralBastion};
     this.walks=this.atlas(walk.image);this.redWalks=this.atlas(redWalk.image);
+    this.buildings.headquarters=base;this.redBuildings.headquarters=this.redBase;
+    const redStructures=await this.recolor(structures),redVehicles=await this.recolor(vehicles);
+    const buildingSprites=this.atlas(structures.image,3,2).flat(),redBuildingSprites=this.atlas(redStructures.image,3,2).flat();
+    const vehicleSprites=this.atlas(vehicles.image,3,2).flat(),redVehicleSprites=this.atlas(redVehicles.image,3,2).flat();
+    (['barracks','factory','airfield','generator','turret'] as BuildingKind[]).forEach((kind,i)=>{this.buildings[kind]=buildingSprites[i];this.redBuildings[kind]=redBuildingSprites[i];});
+    (['rover','tank','artillery','scout','gunship','bomber'] as UnitKind[]).forEach((kind,i)=>{this.vehicles[kind]=vehicleSprites[i];this.redVehicles[kind]=redVehicleSprites[i];});
+    this.cliffs=TERRAIN_FRAMES.map(frame=>({...frame,image:cliffs.image}));
+    await Promise.all([...Object.values(this.buildings),...Object.values(this.vehicles),...this.cliffs].map(async sprite=>{
+      const c=document.createElement('canvas');c.width=sprite.w;c.height=sprite.h;const ctx=c.getContext('2d')!;
+      ctx.drawImage(sprite.image,sprite.x,sprite.y,sprite.w,sprite.h,0,0,c.width,c.height);ctx.globalCompositeOperation='source-in';ctx.fillStyle='#191713';ctx.fillRect(0,0,c.width,c.height);
+      const image=new Image();image.src=c.toDataURL();await image.decode();this.shadows.set(sprite,{image,x:0,y:0,w:c.width,h:c.height});
+    }));
     this.prepareTerrain();
-    this.miniTerrain.getContext('2d')!.drawImage(this.terrain,0,0,224,224);
+    const mini=this.miniTerrain.getContext('2d')!;mini.drawImage(this.terrainSurface,0,0,224,224);mini.save();mini.scale(224/RULES.worldSize,224/RULES.worldSize);this.paintCliffs(mini);mini.restore();
     this.home();
   }
-  private atlas(image:HTMLImageElement):Pose[][]{
+  private atlas(image:HTMLImageElement,columns=4,rowCount=4):Pose[][]{
     const c=document.createElement('canvas');c.width=image.width;c.height=image.height;
     const ctx=c.getContext('2d')!;ctx.drawImage(image,0,0);const rgba=ctx.getImageData(0,0,c.width,c.height).data;
     const rows:Pose[][]=[];
-    for(let row=0;row<4;row++){
+    for(let row=0;row<rowCount;row++){
       const poses:Pose[]=[];
-      for(let col=0;col<4;col++){
-        const cellX=Math.floor(col*image.width/4),cellY=Math.floor(row*image.height/4);
-        const cellW=Math.floor((col+1)*image.width/4)-cellX,cellH=Math.floor((row+1)*image.height/4)-cellY;
+      for(let col=0;col<columns;col++){
+        const cellX=Math.floor(col*image.width/columns),cellY=Math.floor(row*image.height/rowCount);
+        const cellW=Math.floor((col+1)*image.width/columns)-cellX,cellH=Math.floor((row+1)*image.height/rowCount)-cellY;
         // Generated atlases have approximate gutters: a barrel may cross the
         // nominal cell edge. Find the complete connected figure in an expanded
         // cell, excluding isolated fragments from its neighbor.
@@ -103,59 +119,44 @@ export class Renderer {
   }
   private prepareTerrain():void{
     const surface=this.terrainSurface;surface.width=surface.height=RULES.worldSize;
-    const c=surface.getContext('2d')!;c.imageSmoothingQuality='high';c.drawImage(this.terrain,0,0,surface.width,surface.height);
-    // Relief keeps its map coordinates. Soil uses a separate, native-scale material:
-    // soften magnified gravel, then recover fine grain from the supplied sand art.
-    const soft=document.createElement('canvas');soft.width=soft.height=surface.width;
-    const sc=soft.getContext('2d')!;sc.filter='blur(9px)';sc.drawImage(surface,0,0);
-    const pixels=c.getImageData(0,0,surface.width,surface.height),macro=sc.getImageData(0,0,soft.width,soft.height).data;
-    // A short-radius, bounded unsharp pass restores rock edges and cast-shadow
-    // boundaries after enlargement. Unlike the soil blur it never softens relief.
-    sc.clearRect(0,0,surface.width,surface.height);sc.filter='blur(3px)';sc.drawImage(surface,0,0);
-    const edgeLow=sc.getImageData(0,0,surface.width,surface.height).data;
-    const tile=document.createElement('canvas');tile.width=tile.height=190;const tc=tile.getContext('2d')!;
-    tc.drawImage(this.terrain,445/1254*this.terrain.width,675/1254*this.terrain.height,190/1254*this.terrain.width,190/1254*this.terrain.height,0,0,190,190);
-    const detail=tc.getImageData(0,0,190,190).data;
-    tc.filter='blur(4px)';tc.drawImage(tile,0,0);const detailLow=tc.getImageData(0,0,190,190).data;
-    const rock=document.createElement('canvas');rock.width=rock.height=512;const rc=rock.getContext('2d')!;
-    rc.drawImage(this.rockDetail,0,0,512,512);const rockPixels=rc.getImageData(0,0,512,512).data;
-    rc.filter='blur(6px)';rc.drawImage(rock,0,0);const rockLow=rc.getImageData(0,0,512,512).data;
-    const grid=RULES.grid,dist=Float32Array.from(this.game.world.opaque,v=>v?0:1e5);
-    for(let y=0;y<grid;y++)for(let x=0;x<grid;x++){const i=y*grid+x;if(x)dist[i]=Math.min(dist[i],dist[i-1]+1);if(y)dist[i]=Math.min(dist[i],dist[i-grid]+1);}
-    for(let y=grid-1;y>=0;y--)for(let x=grid-1;x>=0;x--){const i=y*grid+x;if(x<grid-1)dist[i]=Math.min(dist[i],dist[i+1]+1);if(y<grid-1)dist[i]=Math.min(dist[i],dist[i+grid]+1);}
-    const size=surface.width;let seed=92531;
-    for(let y=0;y<size;y++){
-      const gy=Math.min(grid-1,y/size*grid),iy=Math.floor(gy),fy=gy-iy,ny=Math.min(iy+1,grid-1);
-      for(let x=0;x<size;x++){
-        const gx=Math.min(grid-1,x/size*grid),ix=Math.floor(gx),fx=gx-ix,nx=Math.min(ix+1,grid-1);
-        const d=(dist[iy*grid+ix]*(1-fx)+dist[iy*grid+nx]*fx)*(1-fy)+(dist[ny*grid+ix]*(1-fx)+dist[ny*grid+nx]*fx)*fy;
-        // Preserve the complete rock face and its cast relief, including outside
-        // the collision contour. The old narrow mask blurred mountain edges.
-        const blend=clamp((d-8)/6,0,1),i=(y*size+x)*4;
-        const ri=((y%512)*512+x%512)*4;
-        const rockGrain=clamp((rockPixels[ri]+rockPixels[ri+1]+rockPixels[ri+2]-rockLow[ri]-rockLow[ri+1]-rockLow[ri+2])/3,-32,32);
-        const relief=this.game.world.blocked[iy*grid+ix]===1?1:0;
-        const tx=(x+Math.floor(y/128)*73)%190,ty=(y+Math.floor(x/128)*59)%190,ti=(ty*190+tx)*4;
-        const material=((detail[ti]+detail[ti+1]+detail[ti+2]-detailLow[ti]-detailLow[ti+1]-detailLow[ti+2])/3)*.8;
-        seed=(Math.imul(seed,1664525)+1013904223)>>>0;const grain=(seed>>>29)*.45-1.5;
-        for(let channel=0;channel<3;channel++){
-          const original=pixels.data[i+channel];
-          const edge=clamp((original-edgeLow[i+channel])*1.5,-30,30);
-          // Detail modulates existing illumination; shadowed rock stays shadowed.
-          // This adds native-resolution fissures without moving any collision edge.
-          const stone=rockGrain*.5*relief*(original/255);
-          pixels.data[i+channel]=(original+edge+stone)*(1-blend)+(macro[i+channel]+material)*blend+grain;
-        }
-      }
+    const ctx=surface.getContext('2d')!,tile=document.createElement('canvas');tile.width=tile.height=190;
+    const tc=tile.getContext('2d')!;tc.drawImage(this.terrain,445/1254*this.terrain.width,675/1254*this.terrain.height,190/1254*this.terrain.width,190/1254*this.terrain.height,0,0,190,190);
+    const detail=tc.getImageData(0,0,190,190).data;tc.filter='blur(6px)';tc.drawImage(tile,0,0);const low=tc.getImageData(0,0,190,190).data;
+    const pixels=ctx.createImageData(surface.width,surface.height);let seed=92531;
+    const noise=new Float32Array(32*32);for(let i=0;i<noise.length;i++){seed=(Math.imul(seed,1664525)+1013904223)>>>0;noise[i]=(seed/4294967296-.5)*18;}
+    for(let y=0;y<surface.height;y++)for(let x=0;x<surface.width;x++){
+      const gx=x/128,gy=y/128,ix=Math.floor(gx),iy=Math.floor(gy),fx=gx-ix,fy=gy-iy;
+      const n=(noise[iy*32+ix]*(1-fx)+noise[iy*32+ix+1]*fx)*(1-fy)+(noise[(iy+1)*32+ix]*(1-fx)+noise[(iy+1)*32+ix+1]*fx)*fy;
+      const tx=(x+Math.floor(y/128)*73)%190,ty=(y+Math.floor(x/128)*59)%190,ti=(ty*190+tx)*4,i=(y*surface.width+x)*4;
+      const grain=(detail[ti]+detail[ti+1]+detail[ti+2]-low[ti]-low[ti+1]-low[ti+2])/3*.95;
+      pixels.data[i]=208+n+grain;pixels.data[i+1]=151+n*.86+grain;pixels.data[i+2]=88+n*.65+grain;pixels.data[i+3]=255;
     }
-    c.putImageData(pixels,0,0);
+    ctx.putImageData(pixels,0,0);
+  }
+  private paintCliffs(ctx:CanvasRenderingContext2D):void{
+    for(const p of TERRAIN_PLACEMENTS){const sprite=this.cliffs[p.frame],shadow=this.shadows.get(sprite);
+      if(shadow){ctx.save();ctx.globalAlpha=.25;ctx.translate(p.x+p.w/2,p.y+p.h-2);ctx.transform(1,0,-.42,-.14,0,0);ctx.drawImage(shadow.image,shadow.x,shadow.y,shadow.w,shadow.h,-p.w/2,-p.h,p.w,p.h);ctx.restore();}
+      ctx.drawImage(sprite.image,sprite.x,sprite.y,sprite.w,sprite.h,p.x,p.y,p.w,p.h);
+    }
+  }
+  icon(type:'unit'|'building',kind:UnitKind|BuildingKind):string{
+    const key=type+kind,cached=this.icons.get(key);if(cached)return cached;
+    const sprite=type==='building'?this.buildings[kind as BuildingKind]:this.vehicles[kind as UnitKind]??this.infantry;
+    const c=document.createElement('canvas');c.width=c.height=160;const ctx=c.getContext('2d')!,scale=Math.min(148/sprite.w,148/sprite.h);
+    ctx.drawImage(sprite.image,sprite.x,sprite.y,sprite.w,sprite.h,(160-sprite.w*scale)/2,156-sprite.h*scale,sprite.w*scale,sprite.h*scale);
+    if(kind==='engineer'||kind==='heavy'){ctx.fillStyle=kind==='engineer'?'#edbd61':'#86d4f6';ctx.fillRect(117,112,28,28);ctx.fillStyle='#10202a';ctx.font='bold 24px sans-serif';ctx.textAlign='center';ctx.fillText(kind==='engineer'?'+':'Ⅱ',131,135);}
+    const result=c.toDataURL();this.icons.set(key,result);return result;
+  }
+  private castShadow(sprite:Sprite,p:Point,width:number,opacity=.3):void{
+    const shadow=this.shadows.get(sprite);if(!shadow)return;const c=this.context,height=width*sprite.h/sprite.w;
+    c.save();c.globalAlpha=opacity;c.translate(p.x,p.y-2);c.transform(1,0,-.45,-.18,0,0);c.drawImage(shadow.image,0,0,shadow.w,shadow.h,-width/2,-height,width,height);c.restore();
   }
   resize():void {
     const dpr=Math.min(2,window.devicePixelRatio||1);this.width=this.canvas.clientWidth;this.height=this.canvas.clientHeight;
     this.canvas.width=Math.round(this.width*dpr);this.canvas.height=Math.round(this.height*dpr);
     this.context.setTransform(dpr,0,0,dpr,0,0);this.boundCamera();
   }
-  home():void {const b=this.game.bases.find(b=>b.owner===0);if(b){this.camera.x=b.x+160;this.camera.y=b.y-90;this.camera.zoom=1;this.boundCamera();}}
+  home():void {const b=this.game.bases.find(b=>b.owner===0&&b.kind==='headquarters'&&b.hp>0);if(b){const side=document.getElementById('sidebar')?.getBoundingClientRect().width??0;this.camera.x=b.x+this.width/2-(this.width-side-24)*.33;this.camera.y=b.y-Math.min(this.height*.63,this.height-300)+this.height/2;this.camera.zoom=1;this.boundCamera();}}
   invalidate():void{this.fogRevision=-1;}
   boundCamera():void {
     const w=this.width/this.camera.zoom/2,h=this.height/this.camera.zoom/2,s=RULES.worldSize;
@@ -177,35 +178,54 @@ export class Renderer {
     c.fillStyle=color;c.fillRect(p.x-width/2,p.y,width*clamp(ratio,0,1),3);
   }
   private drawUnit(u:Unit):void {
-    const c=this.context,selected=this.selected.has(u.id),blue=u.owner===0;
+    const c=this.context,selected=this.selected.has(u.id),blue=u.owner===0,spec=unitSpec(u);
     const p={x:u.previousX+(u.x-u.previousX)*this.interpolation,y:u.previousY+(u.y-u.previousY)*this.interpolation};
     if(selected){c.strokeStyle='#88cffa';c.lineWidth=1/this.camera.zoom;c.beginPath();c.ellipse(p.x,p.y,15,6,0,0,Math.PI*2);c.stroke();}
+    const vehicle=(blue?this.vehicles:this.redVehicles)[u.kind];
+    if(vehicle){
+      this.castShadow(this.vehicles[u.kind]!,p,spec.width,spec.flying?.21:.26);
+      const height=spec.width*vehicle.h/vehicle.w,air=spec.flying?35+Math.sin(this.game.time*3+u.id)*1.3:0;
+      const vibration=u.moving&&!spec.flying?Math.sin(u.walkDistance*.5)*.3:0;
+      this.spriteDraw(vehicle,{x:p.x,y:p.y+8-air+vibration},spec.width,Math.cos(u.angle)<0);
+      if(u.kind==='scout'||u.kind==='gunship'){
+        c.save();c.translate(p.x+spec.width*.03,p.y+8-air-height*.65);c.scale(1,.36);c.rotate(this.game.time*24+u.id);c.strokeStyle='#b7c4c64a';c.lineWidth=2;c.beginPath();c.moveTo(-spec.width*.43,0);c.lineTo(spec.width*.43,0);c.moveTo(0,-spec.width*.43);c.lineTo(0,spec.width*.43);c.stroke();c.restore();
+      }
+      if(selected||u.hp<spec.hp)this.bar({x:p.x,y:p.y-height-air-2},spec.width*.55,u.hp/spec.hp,blue?'#75c5e8':'#ed7866');
+      if(u.fire>.1){c.strokeStyle='#ffdf9c';c.lineWidth=u.kind==='tank'||u.kind==='artillery'?3:1.5;c.beginPath();c.moveTo(p.x+Math.cos(u.angle)*spec.width*.4,p.y-height*.42-air);c.lineTo(p.x+Math.cos(u.angle)*(spec.width*.4+9),p.y-height*.42-air+Math.sin(u.angle)*7);c.stroke();}
+      return;
+    }
     let angle=((u.angle%(Math.PI*2))+Math.PI*2)%(Math.PI*2),row:number,flip=false;
     if(angle>Math.PI*1.15&&angle<Math.PI*1.85){row=3;flip=angle<Math.PI*1.5;}
     else if(angle>Math.PI*.35&&angle<Math.PI*.65)row=2;
     else if(angle>Math.PI*.1&&angle<Math.PI*.9){row=1;flip=angle>Math.PI*.5;}
     else {row=0;flip=angle>Math.PI*.5&&angle<Math.PI*1.5;}
     const stride=u.walkDistance-distance({x:u.x,y:u.y},{x:u.previousX,y:u.previousY})*(1-this.interpolation);
-    const frame=u.moving?Math.max(0,Math.floor(stride/18))%4:0,pose=(blue?this.walks:this.redWalks)[row][frame],scale=48/pose.bodyHeight;
+    const frame=u.moving?Math.max(0,Math.floor(stride/18))%4:0,pose=(blue?this.walks:this.redWalks)[row][frame],scale=(u.kind==='heavy'?53:48)/pose.bodyHeight;
     const recoil=u.fire>0?Math.sin(u.fire/.18*Math.PI)*1.4:0;
     c.save();c.translate(p.x,p.y);if(flip)c.scale(-1,1);
     // Draw a complete authored pose. Slicing a rifleman into rotating rectangles
     // bent the armor and separated the legs from the torso in the previous cycle.
     c.translate(-Math.cos(u.angle)*recoil,-Math.sin(u.angle)*recoil*.35);
     c.drawImage(pose.image,pose.x,pose.y,pose.w,pose.h,-pose.center*scale,-pose.foot*scale,pose.w*scale,pose.h*scale);c.restore();
-    if(selected||u.hp<100)this.bar({x:p.x,y:p.y-56},27,u.hp/100,blue?'#75c5e8':'#ed7866');
+    if(u.kind==='engineer'){c.strokeStyle='#eec879';c.lineWidth=1;c.beginPath();c.moveTo(p.x-7,p.y-32);c.lineTo(p.x-9,p.y-48);c.stroke();}
+    if(selected||u.hp<spec.hp)this.bar({x:p.x,y:p.y-56},27,u.hp/spec.hp,blue?'#75c5e8':'#ed7866');
     if(u.fire>.1){const muzzle={x:p.x+Math.cos(u.angle)*21,y:p.y-25+Math.sin(u.angle)*9};
       c.save();c.translate(muzzle.x,muzzle.y);c.rotate(u.angle);c.fillStyle='#fff1bd';c.beginPath();c.moveTo(-2,-2);c.lineTo(9,0);c.lineTo(-2,2);c.fill();c.restore();}
     if(u.hit>0){c.strokeStyle='#ffdf9b';c.lineWidth=1;c.beginPath();c.arc(p.x,p.y-21,11,0,Math.PI*2);c.stroke();}
   }
   private drawBase(b:Base,alpha=1):void {
-    const c=this.context,selected=this.selectedBase===b.id;
-    const anchor={x:b.x,y:b.y+38};
-    if(b.hp<=0){this.spriteDraw(b.owner===0?this.headquarters:this.redBase,anchor,225,false,.28);return;}
-    if(selected){c.strokeStyle='#78c8f1';c.lineWidth=1.5;c.setLineDash([9,5]);c.beginPath();c.ellipse(b.x,b.y-8,113,51,0,0,Math.PI*2);c.stroke();c.setLineDash([]);}
-    this.spriteDraw(b.owner===0?this.headquarters:this.redBase,anchor,225,false,alpha);
-    if(selected||b.hp<RULES.headquarters.hp)this.bar({x:b.x,y:b.y-214},86,b.hp/RULES.headquarters.hp,b.owner===0?'#75c5e8':'#ed7866');
-    if(b.queue.length&&b.owner===0)this.bar({x:b.x,y:b.y+24},75,b.production/RULES.infantry.buildTime,'#dfb278');
+    const c=this.context,selected=this.selectedBase===b.id,spec=buildingSpec(b),sprite=(b.owner===0?this.buildings:this.redBuildings)[b.kind];
+    const anchor={x:b.x,y:b.y+spec.radius*.46},height=spec.width*sprite.h/sprite.w;
+    if(b.hp<=0){this.spriteDraw(sprite,anchor,spec.width,false,.18);return;}
+    if(selected){c.strokeStyle='#78c8f1';c.lineWidth=1.1;c.setLineDash([8,5]);c.beginPath();c.ellipse(b.x,b.y-8,spec.radius+17,(spec.radius+17)*.47,0,0,Math.PI*2);c.stroke();c.setLineDash([]);}
+    this.castShadow(this.buildings[b.kind],{x:b.x,y:b.y},spec.width,.26*alpha);
+    this.spriteDraw(sprite,anchor,spec.width,false,alpha*(b.buildRemaining>0?.5:1));
+    if(b.buildRemaining>0){
+      const progress=1-b.buildRemaining/spec.buildTime;c.save();c.beginPath();c.rect(b.x-spec.width/2,anchor.y-height*progress,spec.width,height*progress);c.clip();this.spriteDraw(sprite,anchor,spec.width);c.restore();
+      this.bar({x:b.x,y:b.y+spec.radius*.46+6},spec.width*.6,progress,'#e9bb61');c.fillStyle='#f1d48e';c.font='10px monospace';c.textAlign='center';c.fillText(`BAU ${Math.ceil(b.buildRemaining)} S`,b.x,b.y+spec.radius*.46+24);
+    }
+    if(selected||b.hp<spec.hp)this.bar({x:b.x,y:anchor.y-height-8},86,b.hp/spec.hp,b.owner===0?'#75c5e8':'#ed7866');
+    if(b.queue.length&&b.owner===0)this.bar({x:b.x,y:b.y+24},75,b.production/b.queue[0],'#dfb278');
     if(selected&&b.rally){c.strokeStyle='#94d9f399';c.setLineDash([5,6]);c.beginPath();c.moveTo(b.x,b.y);c.lineTo(b.rally.x,b.rally.y);c.stroke();c.setLineDash([]);
       c.fillStyle='#9dddff';c.fillRect(b.rally.x-1,b.rally.y-30,2,30);c.beginPath();c.moveTo(b.rally.x,b.rally.y-30);c.lineTo(b.rally.x+17,b.rally.y-24);c.lineTo(b.rally.x,b.rally.y-18);c.fill();}
   }
@@ -233,6 +253,7 @@ export class Renderer {
     c.fillStyle='#030507';c.fillRect(0,0,this.width,this.height);c.save();
     c.translate(this.width/2,this.height/2);c.scale(this.camera.zoom,this.camera.zoom);c.translate(-this.camera.x,-this.camera.y);
     c.drawImage(this.terrainSurface,0,0);
+    this.paintCliffs(c);
     for(const t of g.territories){
       if(t.owner>=0){this.polygon(t.polygon);c.fillStyle=t.owner===0?'#53b4ee0b':'#e257490b';c.fill();}
       if(this.overlay){this.polygon(t.polygon);c.strokeStyle=t.owner===0?'#83d3ff8c':t.owner===1?'#e2766c8c':'#ead2ac55';c.lineWidth=1.2/this.camera.zoom;c.stroke();}
@@ -244,10 +265,16 @@ export class Renderer {
     for(const t of g.territories)if(g.canSee(0,t.point))entities.push({y:t.point.y,territory:t});else if(g.hasExplored(0,t.point))this.drawBastion(t,true);
     for(const b of g.bases)if(b.owner===0||g.canSee(0,b))entities.push({y:b.y,base:b});
     for(const m of g.memories[0])if(m.owner!==0&&!g.canSee(0,m)){
-      this.spriteDraw(this.redBase,{x:m.x,y:m.y+38},225,false,m.hp>0?.22:.07);
+      const kind=m.kind??'headquarters';this.spriteDraw(this.redBuildings[kind],{x:m.x,y:m.y+BUILDINGS[kind].radius*.46},BUILDINGS[kind].width,false,m.hp>0?.22:.07);
     }
     for(const u of g.units)if(u.owner===0||g.canSee(0,u))entities.push({y:u.y,unit:u});
     entities.sort((a,b)=>a.y-b.y);for(const e of entities)if('unit' in e)this.drawUnit(e.unit);else if('base' in e)this.drawBase(e.base);else this.drawBastion(e.territory);
+    if(this.placement&&this.pointer){
+      const spec=BUILDINGS[this.placement],p=this.pointer,valid=!g.buildError(0,this.placement,p);
+      c.save();c.strokeStyle=valid?'#96e0b8':'#f27e67';c.fillStyle=valid?'#6bcda52a':'#e66a552a';c.lineWidth=1.5;
+      c.beginPath();c.moveTo(p.x-spec.radius,p.y);c.lineTo(p.x,p.y-spec.radius*.5);c.lineTo(p.x+spec.radius,p.y);c.lineTo(p.x,p.y+spec.radius*.5);c.closePath();c.fill();c.stroke();
+      this.spriteDraw(this.buildings[this.placement],{x:p.x,y:p.y+spec.radius*.46},spec.width,false,.65);c.restore();
+    }
     for(const shot of g.shots)if(g.canSee(0,shot.from)||g.canSee(0,shot.to)){
       c.strokeStyle=shot.owner===0?'#b3e5ff':'#ffb48e';c.lineWidth=1.5;c.globalAlpha=shot.life/.14;c.beginPath();c.moveTo(shot.from.x,shot.from.y);c.lineTo(shot.to.x,shot.to.y);c.stroke();c.globalAlpha=1;}
     if(this.marker){this.marker.life-=dt;if(this.marker.life<=0)this.marker=null;else{

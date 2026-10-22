@@ -1,4 +1,5 @@
 import { RULES, type Point, type Owner } from './config.js';
+import { TERRAIN_BLOCKED, TERRAIN_CLIFFS } from './terrain-art.js';
 
 export interface Territory {
   id: number; name: string; polygon: Point[]; point: Point; neighbors: number[];
@@ -48,14 +49,10 @@ export class World {
       this.blocked.set(navigationCache.blocked);this.opaque.set(navigationCache.opaque);this.cliffIds.set(navigationCache.cliffs);this.components.set(navigationCache.components);
       this.cliffIds.forEach((id,i)=>{if(id>=0)this.cliffCells[id].push(i);});return;
     }
+    this.blocked.set(Uint8Array.from(atob(TERRAIN_BLOCKED),c=>c.charCodeAt(0)));
+    const cliffData=Uint8Array.from(atob(TERRAIN_CLIFFS),c=>c.charCodeAt(0));
     for(let i=0;i<this.blocked.length;i++) {
-      const p=this.center(i);
-      // Include the entire navigation cell plus the soldier's body clearance.
-      // Testing only its center allowed feet to enter a cliff's sloping edge.
-      const r=this.cell*.5+RULES.infantry.radius;
-      const samples=[p,...[-r,0,r].flatMap(dx=>[-r,0,r].map(dy=>({x:p.x+dx,y:p.y+dy})))];
-      if(this.rocks.some(poly=>samples.some(q=>inside(q,poly))))this.blocked[i]=1;
-      const cliff=this.rocks.slice(0,9).findIndex(poly=>inside(p,poly));
+      const cliff=cliffData[i]-1;
       if(cliff>=0){this.opaque[i]=1;this.cliffIds[i]=cliff;this.cliffCells[cliff].push(i);}
     }
     // Static connectivity keeps move destinations out of isolated terrain pockets.
@@ -77,13 +74,14 @@ export class World {
     return x<0||y<0||x>=RULES.grid||y>=RULES.grid ? -1 : y*RULES.grid+x;
   }
   center(i: number): Point { return {x:(i%RULES.grid+.5)*this.cell,y:(Math.floor(i/RULES.grid)+.5)*this.cell}; }
-  walkable(p: Point, obstacles: {x:number;y:number;radius:number}[]=[]): boolean {
+  walkable(p: Point, obstacles: {x:number;y:number;radius:number}[]=[],clearance=0): boolean {
     const i=this.index(p);
-    return i>=0&&!this.blocked[i]&&!obstacles.some(o=>Math.hypot(p.x-o.x,p.y-o.y)<o.radius+RULES.infantry.radius);
+    return i>=0&&p.x>=10&&p.y>=10&&p.x<=this.size-10&&p.y<=this.size-10&&!this.blocked[i]&&!obstacles.some(o=>Math.hypot(p.x-o.x,p.y-o.y)<o.radius+RULES.infantry.radius+clearance)&&
+      (clearance<=0||Array.from({length:8},(_,n)=>this.index({x:p.x+Math.cos(n*Math.PI/4)*clearance,y:p.y+Math.sin(n*Math.PI/4)*clearance})).every(j=>j>=0&&!this.blocked[j]));
   }
-  nearest(p: Point, obstacles: {x:number;y:number;radius:number}[]=[], occupied: Point[]=[], from?:Point): Point | null {
+  nearest(p: Point, obstacles: {x:number;y:number;radius:number}[]=[], occupied: Point[]=[], from?:Point,clearance=0): Point | null {
     const start=from?this.index(from):-1,component=start>=0?this.components[start]:-1;
-    const valid=(q:Point)=>this.walkable(q,obstacles)&&(component<0||this.components[this.index(q)]===component)&&occupied.every(u=>Math.hypot(u.x-q.x,u.y-q.y)>23);
+    const valid=(q:Point)=>this.walkable(q,obstacles,clearance)&&(component<0||this.components[this.index(q)]===component)&&occupied.every(u=>Math.hypot(u.x-q.x,u.y-q.y)>23+clearance);
     if(valid(p))return {...p};
     const origin=this.index({x:Math.max(0,Math.min(this.size-1,p.x)),y:Math.max(0,Math.min(this.size-1,p.y))});
     const search=from?RULES.grid:Math.ceil(700/this.cell);
@@ -111,9 +109,9 @@ export class World {
     }
     return null;
   }
-  line(a: Point,b: Point,obstacles: {x:number;y:number;radius:number}[]=[]): boolean {
+  line(a: Point,b: Point,obstacles: {x:number;y:number;radius:number}[]=[],clearance=0): boolean {
     const steps=Math.max(1,Math.ceil(Math.hypot(a.x-b.x,a.y-b.y)/(this.cell*.45)));
-    for(let i=1;i<=steps;i++) if(!this.walkable({x:a.x+(b.x-a.x)*i/steps,y:a.y+(b.y-a.y)*i/steps},obstacles))return false;
+    for(let i=1;i<=steps;i++) if(!this.walkable({x:a.x+(b.x-a.x)*i/steps,y:a.y+(b.y-a.y)*i/steps},obstacles,clearance))return false;
     return true;
   }
   /** The first opaque face is visible; only terrain beyond that face is hidden. */
@@ -126,10 +124,10 @@ export class World {
     }
     return true;
   }
-  path(start: Point, target: Point, obstacles: {x:number;y:number;radius:number}[]=[]): Point[] {
-    const end=this.nearest(target,obstacles,[],start);
+  path(start: Point, target: Point, obstacles: {x:number;y:number;radius:number}[]=[],clearance=0): Point[] {
+    const end=this.nearest(target,obstacles,[],start,clearance);
     if(!end)return [];
-    if(this.line(start,end,obstacles))return [end];
+    if(this.line(start,end,obstacles,clearance))return [end];
     const s=this.index(start), goal=this.index(end), n=this.blocked.length;
     if(s<0||goal<0)return [];
     const costs=new Float64Array(n).fill(Infinity), prev=new Int32Array(n).fill(-1), closed=new Uint8Array(n);
@@ -141,13 +139,13 @@ export class World {
     while(heap.length) {
       const i=pop();if(closed[i])continue;closed[i]=1;
       if(i===goal){const route:Point[]=[end];let at=goal;while(at!==s&&at>=0){route.push(this.center(at));at=prev[at];}route.reverse();
-        const smooth:Point[]=[];let anchor=start;for(let k=0;k<route.length;){let next=k;while(next+1<route.length&&this.line(anchor,route[next+1],obstacles))next++;smooth.push(route[next]);anchor=route[next];k=next+1;}return smooth;}
+        const smooth:Point[]=[];let anchor=start;for(let k=0;k<route.length;){let next=k;while(next+1<route.length&&this.line(anchor,route[next+1],obstacles,clearance))next++;smooth.push(route[next]);anchor=route[next];k=next+1;}return smooth;}
       const ix=i%RULES.grid,iy=Math.floor(i/RULES.grid);
       for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
         if(!dx&&!dy)continue;const x=ix+dx,y=iy+dy;
         if(x<0||y<0||x>=RULES.grid||y>=RULES.grid)continue;
-        const j=y*RULES.grid+x;if(closed[j]||!this.walkable(this.center(j),obstacles))continue;
-        if(dx&&dy&&(!this.walkable(this.center(iy*RULES.grid+x),obstacles)||!this.walkable(this.center(y*RULES.grid+ix),obstacles)))continue;
+        const j=y*RULES.grid+x;if(closed[j]||!this.walkable(this.center(j),obstacles,clearance))continue;
+        if(dx&&dy&&(!this.walkable(this.center(iy*RULES.grid+x),obstacles,clearance)||!this.walkable(this.center(y*RULES.grid+ix),obstacles,clearance)))continue;
         const g=costs[i]+(dx&&dy?Math.SQRT2:1);if(g<costs[j]){costs[j]=g;prev[j]=i;push({i:j,f:g+h(j)});}
       }
     }

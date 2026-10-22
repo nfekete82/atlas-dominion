@@ -1,5 +1,7 @@
 # Reborn / Art-Überarbeitung
 
+Die aktive Umsetzung nach der letzten Bildreferenz ist am Ende unter „Aktive Fassung nach der Menü- und Grafikreferenz“ dokumentiert. Die folgenden älteren Abschnitte beschreiben die erhaltenen Vorstufen.
+
 Erzeugt mit dem eingebauten Imagegen-Werkzeug; kein CLI/API-Fallback. Die ursprünglichen Grafiken bleiben erhalten. Die Bastion unter `src/assets/reborn/bastion.png` ist eine erzeugte Nachbildung im passenden Stil. Die Original-PNG `7bd9cd32-256a-45dd-bd71-a69bfce73178.png` des Nutzers war wegen der macOS-Downloadsperre nicht lesbar. Sie kann später direkt die Nachbildung unter demselben Projektpfad ersetzen.
 
 ## Bastion
@@ -48,3 +50,42 @@ Ergebnis: `src/assets/reborn/sandstone-detail.png`, 1254 × 1254, RGB. Eingebaut
 Finaler Prompt:
 
 > Use case: stylized-concept. Asset type: seamless sandstone rock surface detail texture for a top-down desert RTS, a material map rather than an environment picture. Fill the entire square image edge to edge with crisp fine weathered golden tan sandstone. Flat orthographic close-up of vertical rock face surface, no perspective recession. Intricate thin angular fissures, tiny chipped mineral facets, very fine horizontal sediment layers, subtle natural warm ochre color variation. Small scale detailed hard-edged stone texture, not large boulders and not gravel. Lighting neutral and even so game renderer can apply its own lighting. Seamless repeating edges, similar overall color and detail density across the whole image. Game-ready painted-realistic 3D material, sharp and dry, matching beige bronze sci-fi desert strategy art. No ground, no landscape, no mountains, no objects, no cast shadows, no vignette, no depth of field, no text, no watermark.
+
+
+## Aktive Fassung nach der Menü- und Grafikreferenz
+
+Erzeugt mit dem eingebauten Imagegen-Werkzeug, kein CLI/API-Fallback. Die zuletzt vom Nutzer gezeigte RTS-Oberfläche diente bei Gebäuden, Fahrzeugen und Felsen als Stilreferenz. Texte, Rahmen, Icons und echte Menüs sind im Projekt in HTML/CSS/SVG umgesetzt; die Referenz wurde nicht als funktionslose Vollbildgrafik eingebaut.
+
+| Projektdatei | Verwendung |
+| --- | --- |
+| `src/assets/reborn/vehicles.png` | 1536 × 1024, RGBA, sechs Fahrzeug-/Flugsprites in drei Spalten und zwei Reihen |
+| `src/assets/reborn/structures.png` | 1536 × 1024, RGBA, sechs Motive; fünf werden für Kaserne, Fabrik, Flugfeld, Energiekern und Turm verwendet |
+| `src/assets/reborn/cliffs.png` | 1426 × 1103, RGBA; vier Felsmotive mit individuellen Ausschnitten |
+| `src/assets/reborn/steel.png` | 1254 × 1254, dunkles Metallmaterial für Menüs und HUD |
+| `src/assets/reborn/menu-desert.png` | 2172 × 724, Landschaftsvignette im Fuß des Pausenmenüs |
+
+Die Felsen werden direkt aus ihren nativen Ausschnitten gezeichnet. Ihr Alpha wird vom Compiler gelesen und in `src/reborn/terrain-art.ts` als Platzierungen, Navigationsmaske und Höhenregionen gespeichert. Das ist keine zusätzliche Bildbearbeitung; die PNG-Dateien bleiben unverändert. Die Sprite-Zellaufteilung der generierten Felsen ist ungleichmäßig und wird deshalb durch tatsächliche Ausschnittkoordinaten beschrieben. Bodenmaterial, gerichtete Silhouettenschatten und Kartennebel werden zur Laufzeit gezeichnet. Der frühere Schärfepass der vollständigen 1254-Pixel-Landschaft wird nicht mehr verwendet.
+
+Die Infanterie verwendet weiterhin den registrierten Laufatlas. Pionier und schwerer Schütze teilen diese Grundfigur; ihre Katalogporträts enthalten eine kleine Kennzeichnung. Fahrzeuge besitzen eigene Modelle, aber keinen vollständigen Richtungsatlas; die Laufzeit ergänzt Spiegelung, Rückstoß und Flug-/Rotorbewegung.
+
+Finale Prompts:
+
+### vehicles
+
+> Use case: stylized-concept. Asset type: production transparent sprite atlas for the desert RTS in the reference screenshot. Use reference only for exact art direction, not UI. Create a landscape atlas with exactly 3 columns and 2 rows, SIX separate full vehicles, all facing northeast/up-right, identical orthographic isometric 35-degree camera, sun from upper left. Row1: small four-wheel armored reconnaissance buggy; heavy treaded battle tank with long cannon; treaded artillery vehicle with elevated large cannon. Row2: light reconnaissance helicopter with blue cockpit; armored attack gunship helicopter with stub missile wings; futuristic swept-wing bomber aircraft. Materials: worn pale sandstone armor, dark bronze mechanical parts, cobalt blue team panels and cyan blue lights. Premium classic RTS prerendered art, realistic sharp mechanical detail, readable solid silhouette at small game size, matching beige blue headquarters. Each occupies only central 75 percent of its equal cell with generous transparent margin, no overlap between cells. All objects completely inside cells. True alpha background, no ground, no shadows, no labels, no UI, no text. Distinct designs, intricate tracks/wheels and convincing panel joints. Exactly six sprites arranged 3 by 2.
+
+### buildings
+
+> Use case: stylized-concept. Asset type: transparent production building sprite atlas for the desert RTS shown in reference. Match the reference's premium isometric game buildings. Landscape atlas with exactly 3 columns and 2 rows, equal cells. Row1: infantry barracks with fortified tan walls and blue entrance; heavy vehicle factory with broad hangar doors and industrial machinery; military airfield with angular landing pad and compact control tower. Row2: compact fusion generator with enclosed blue energy core; twin-barrel defensive turret on squat mechanical foundation; small supply depot with tan metal containers. Entire models in each cell, no overlaps, generous transparent margins. Isometric orthographic 35-degree camera, building front faces lower left and lower right, upper left sunlight. Worn pale sandstone and bronze armored panels, dark joints, cobalt blue trims and bright cyan emissive strips. Foundations firmly grounded with low stone metal plinth, extremely crisp realistic rendered RTS art, plausible detailed machinery. Buildings only, no people or flying vehicles, no lettering on pads, no writing, no text, no UI, no scenery, no cast shadows, true transparent background. Six complete distinct objects in 3x2 grid.
+
+### cliffs
+
+> Use case: stylized-concept. Asset type: transparent high-detail desert cliff sprite atlas for the isometric RTS in the reference image. Exactly 2 columns and 2 rows, FOUR isolated rocky mesa clusters, all fully in their cells. Row1: broad irregular weathered sandstone plateau with many jagged vertical rock columns on front and right face; smaller steep flat-topped rock island with broken pillars. Row2: long low rugged escarpment with angular strata and fallen boulders at its foot; tall compact multi-tier sandstone mesa with columnar ledges. Orthographic elevated 35-degree game camera, warm directional upper-left sun, dark fissures, sharp chiseled surfaces, natural orange ochre and dark brown stone, very fine native-resolution chips and sediment layers. Match reference screenshot's crisp detailed cliffs and realistic scale. Entire cluster visible, clean intricate silhouette, each in central 85 percent of its equal square cell with transparent gaps. True alpha around rocks and between separated boulders, no ground plane, no cast shadows outside rocks, no landscape backdrop, no blur, no text, no grid, no buildings. Premium prerendered classic RTS terrain props.
+
+### metal
+
+> Use case: stylized-concept. Asset type: seamless material texture for dark military RTS interface panels. Square flat top-down close-up texture, edge-to-edge dark blue-black gunmetal plate with fine subtle etched diagonal scratches and slight worn brushwork. Nearly black charcoal navy base, low contrast, fine realistic wear concentrated lightly across all areas. No objects, no lettering, no icons, no seams, no borders or frames, no gradients or vignettes, no rivets, no logos, no text. Designed to tile on small UI panels while keeping white text highly legible. Premium restrained industrial steel surface, not grunge wallpaper, not a photograph with perspective.
+
+### Menüvignette
+
+> Use case: stylized-concept. Asset type: very wide cinematic painted background vignette for the bottom of a military strategy game's pause menu. A tiny deserted communications outpost with a tall angular dish antenna in the center of a rocky ochre desert valley, distant layered mesas and a thin hazy horizon. View from ground level, panoramic 3:1 landscape framing. Dark charcoal foreground silhouettes along bottom, muted desaturated bronze brown dust, dusk blue-gray sky. Premium classical RTS campaign-menu matte painting, subtle restrained lighting, realistic sharp landscape forms. Keep the top half quiet smoky dark sky that fades smoothly into nearly black, suitable for placing at the bottom of a black steel panel. No letters, no logos, no text, no menu, no interface, no borders, no people.

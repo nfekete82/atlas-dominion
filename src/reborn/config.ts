@@ -14,6 +14,7 @@ export const ASSETS = {
   rockDetail: '/src/assets/reborn/sandstone-detail.png',
   infantryWalk: '/src/assets/reborn/infantry-walk-v2.png', bastion: '/src/assets/reborn/bastion.png',
   headquarters: '/src/assets/reborn/headquarters.png',
+  vehicles: '/src/assets/reborn/vehicles.png',structures:'/src/assets/reborn/structures.png',cliffs:'/src/assets/reborn/cliffs.png',
 };
 export type Faction = 0 | 1;
 export type Owner = Faction | -1;

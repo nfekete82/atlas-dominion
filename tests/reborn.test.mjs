@@ -189,3 +189,44 @@ test('reborn: both teams proactively fire during ordinary movement before taking
   g.units=g.units.filter(u=>u.id!==target.id);advance(g,1);assert.ok(sentry.x>1930);assert.equal(sentry.orders.length,2);
  }
 });
+
+const buildSite=(g,kind)=>{
+ for(let y=2100;y<3450;y+=28)for(let x=220;x<1750;x+=28)if(!g.buildError(0,kind,{x,y}))return {x,y};
+ throw Error('No construction site for '+kind);
+};
+test('reborn: construction respects ownership, terrain, occupied footprints, credits, pause and completion',()=>{
+ const g=peaceful(),site=buildSite(g,'barracks'),before=g.credits[0];
+ assert.ok(g.buildError(0,'barracks',{x:2200,y:900}));assert.ok(g.buildError(0,'barracks',g.bases[0]));
+ const b=g.build(0,'barracks',site);assert.ok(b);assert.equal(g.credits[0],before-200);assert.equal(b.buildRemaining,12);assert.equal(g.recruit(b.id,'heavy'),false);
+ assert.equal(g.build(0,'barracks',site),null);assert.equal(g.credits[0],before-200);g.paused=true;advance(g,10);assert.equal(b.buildRemaining,12);g.paused=false;
+ advance(g,13);assert.equal(b.buildRemaining,0);assert.ok(b.hp>799);assert.equal(g.recruit(b.id,'heavy'),true);assert.equal(g.credits[0],85);advance(g,9);assert.ok(g.units.some(u=>u.kind==='heavy'&&u.hp===190));
+});
+test('reborn: typed production enforces the producer, refunds each type and preserves later queue timing',()=>{
+ const g=peaceful();g.credits[0]=3000;const factory=g.build(0,'factory',buildSite(g,'factory'));advance(g,19);
+ assert.equal(g.recruit(g.bases[0].id,'tank'),false);assert.equal(g.recruit(factory.id,'tank'),true);assert.equal(g.recruit(factory.id,'rover'),true);
+ advance(g,2);const progress=factory.production,credits=g.credits[0];g.cancel(factory.id,1);assert.equal(g.credits[0],credits+300);assert.equal(factory.production,progress);
+ assert.equal(g.recruit(factory.id,'artillery'),true);g.cancel(factory.id,0);assert.equal(factory.production,0);assert.deepEqual(factory.queueTypes,['artillery']);advance(g,19);
+ const artillery=g.units.find(u=>u.kind==='artillery');assert.ok(artillery);assert.equal(artillery.hp,340);assert.ok(g.world.walkable(artillery,g.obstacles(),10));
+});
+test('reborn: old saves migrate types and new saves preserve construction and heterogeneous production',()=>{
+ const g=new Simulation();g.recruit(1000);const old=g.save();for(const u of old.units)delete u.kind;for(const b of old.bases)for(const key of ['kind','queueTypes','buildRemaining','cooldown'])delete b[key];
+ const migrated=Simulation.load(old);assert.equal(migrated.units[0].kind,'infantry');assert.deepEqual(migrated.bases[0].queueTypes,['infantry']);
+ g.credits[0]=3000;const barracks=g.build(0,'barracks',buildSite(g,'barracks'));advance(g,13);g.recruit(barracks.id,'heavy');g.recruit(barracks.id,'engineer');advance(g,3);const airfield=g.build(0,'airfield',buildSite(g,'airfield'));
+ const restored=Simulation.load(g.save());assert.deepEqual(restored.bases,g.bases);advance(g,25);advance(restored,25);
+ assert.deepEqual(restored.units.map(u=>({kind:u.kind,hp:u.hp})),g.units.map(u=>({kind:u.kind,hp:u.hp})));assert.deepEqual(restored.credits,g.credits);assert.equal(restored.bases.find(b=>b.id===airfield.id).buildRemaining,0);
+});
+test('reborn: generators earn only after construction; cancelling a site refunds once and frees it',()=>{
+ const g=peaceful(),income=g.income(0),site=buildSite(g,'generator'),b=g.build(0,'generator',site);assert.equal(g.income(0),income);advance(g,9.1);assert.equal(g.income(0),income+10);
+ const otherSite=buildSite(g,'barracks'),credits=g.credits[0],other=g.build(0,'barracks',otherSite);assert.equal(g.cancelConstruction(other.id),true);assert.equal(g.credits[0],credits-50);assert.equal(g.cancelConstruction(other.id),false);assert.equal(g.buildError(0,'barracks',otherSite),null);
+});
+test('reborn: air units cross rock, scout over it and cannot capture bastions; vehicles retain terrain clearance',()=>{
+ const g=peaceful();g.units=[];const air=g.spawn(0,{x:1900,y:2100},'scout'),destination={x:2100,y:60};assert.equal(g.world.walkable(destination),false);
+ g.command([air.id],{...destination,kind:'move'});advance(g,10);assert.ok(distance(air,destination)<20);assert.equal(g.canSee(0,air),true);
+ const t=g.territories[20];g.units=[];const plane=g.spawn(0,t.point,'bomber');advance(g,9);assert.equal(t.owner,-1);assert.equal(t.progress,0);
+ g.units=[];const tank=g.spawn(0,{x:1900,y:2100},'tank');g.command([tank.id],{x:2350,y:2250,kind:'move'});for(let i=0;i<100;i++){g.step();assert.ok(g.world.walkable(tank,g.obstacles(),12));}
+});
+test('reborn: engineers repair nearby buildings and a completed turret independently defends its perimeter',()=>{
+ const g=peaceful();g.credits[0]=3000;const tower=g.build(0,'turret',buildSite(g,'turret'));advance(g,11);tower.hp=400;
+ const repair=g.spawn(0,g.world.nearest({x:tower.x+55,y:tower.y},g.obstacles()),'engineer');advance(g,2);assert.ok(tower.hp>410);
+ const enemyPoint=g.world.nearest({x:tower.x+150,y:tower.y},g.obstacles());g.units=g.units.filter(u=>u.id!==repair.id);const enemy=g.spawn(1,enemyPoint);enemy.cooldown=100;g.updateVision();advance(g,.9);assert.ok(enemy.hp<100);assert.ok(tower.hp>=400);
+});

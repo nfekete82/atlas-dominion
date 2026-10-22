@@ -10,6 +10,8 @@ async function advance(page,seconds){return page.evaluate(seconds=>{
  for(let i=0;i<Math.round(seconds/.05);i++){g.step();if(g.shots.some(s=>g.canSee(0,s.from)||g.canSee(0,s.to)))fought=true;}
  g.paused=true;api.refresh();api.renderer.render(0);return {fought,status:g.status,blue:g.count(0),red:g.count(1)};
 },seconds);}
+async function openMenu(page){if(!await page.locator('#pause-dialog').isVisible())await page.locator('#menu').click();}
+async function newCampaign(page){await openMenu(page);await page.locator('#to-main').click();await page.locator('#new').click();}
 async function screen(page,p){return page.evaluate(p=>window.__reborn.renderer.screen(p),p);}
 async function focus(page,p){
  const box=await page.locator('#minimap').boundingBox();await page.mouse.click(box.x+p.x/3762*box.width,box.y+p.y/3762*box.height);
@@ -37,10 +39,10 @@ test('reborn: complete browser loop from one soldier through capture, production
  await order(page,{x:initial.base.x+140,y:initial.base.y+100});await advance(page,7);
  await page.locator('#home').click();const b=await screen(page,{x:initial.base.x,y:initial.base.y-90});await page.mouse.click(b.x,b.y);
  await expect(page.locator('#production')).toBeVisible();
- for(let i=0;i<4;i++)await page.locator('#recruit').click();await expect(page.locator('#queue')).toContainText('4 IM AUFTRAG');
- await advance(page,20);expect(await page.evaluate(()=>window.__reborn.game.count(0))).toBe(5);
+ for(let i=0;i<5;i++)await page.locator('#recruit').click();await expect(page.locator('#queue')).toContainText('5 IM AUFTRAG');
+ await advance(page,25);expect(await page.evaluate(()=>window.__reborn.game.count(0))).toBe(6);
  await page.screenshot({path:evidence+'production.png'});
- await selectArmy(page);expect(await page.evaluate(()=>window.__reborn.renderer.selected.size)).toBe(5);
+ await selectArmy(page);expect(await page.evaluate(()=>window.__reborn.renderer.selected.size)).toBe(6);
  let fought=false,enemyCapture=false;
  for(const id of [14,8,9,10,4]){
    const target=await page.evaluate(id=>({point:window.__reborn.game.territories[id].point,owner:window.__reborn.game.territories[id].owner}),id);
@@ -51,9 +53,9 @@ test('reborn: complete browser loop from one soldier through capture, production
  }
  expect(fought).toBe(true);expect(enemyCapture).toBe(true);
  await page.screenshot({path:evidence+'campaign.png'});
- await page.locator('#save').click();await expect(page.locator('#notices')).toContainText('Kampagne lokal gespeichert');
+ await openMenu(page);await page.locator('#save').click();await expect(page.locator('#notices')).toContainText('Kampagne lokal gespeichert');
  const snapshot=await page.evaluate(()=>{const s=window.__reborn.game.save();return {credits:s.credits,owners:s.territories.map(t=>t.owner),units:s.units.map(u=>({id:u.id,hp:u.hp,x:u.x,y:u.y})),explored:s.explored,time:s.time};});
- await page.reload();await page.locator('#loading').waitFor({state:'detached'});await page.locator('#load').click();await expect(page.locator('#notices')).toContainText('Kampagne geladen');
+ await page.reload();await page.locator('#loading').waitFor({state:'detached'});await openMenu(page);await page.locator('#load').click();await expect(page.locator('#notices')).toContainText('Kampagne geladen');
  await page.evaluate(()=>{window.__reborn.game.paused=true;});
  const restored=await page.evaluate(()=>{const s=window.__reborn.game.save();return {credits:s.credits,owners:s.territories.map(t=>t.owner),ids:s.units.map(u=>u.id),explored:s.explored,time:s.time};});
  expect(restored.credits).toEqual(snapshot.credits);expect(restored.owners).toEqual(snapshot.owners);expect(restored.ids).toEqual(snapshot.units.map(u=>u.id));
@@ -98,11 +100,11 @@ test('reborn: hidden enemies leave no main-map or minimap pixels, and terrain st
 
 test('reborn: compact viewport, instructions, pause and new campaign preserve a usable playfield',async({page})=>{
  await start(page,800,650);expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(800);
- await page.locator('#help').click();await expect(page.locator('#help-dialog')).toBeVisible();await expect(page.locator('#pause-label')).toBeVisible();await page.getByRole('button',{name:'VERSTANDEN — INS FELD'}).click();
+ await openMenu(page);await page.locator('#help').click();await expect(page.locator('#help-dialog')).toBeVisible();expect(await page.evaluate(()=>window.__reborn.game.paused)).toBe(true);await page.getByRole('button',{name:'VERSTANDEN — INS FELD'}).click();await page.locator('#resume').click();await page.evaluate(()=>{window.__reborn.game.paused=true;});
  await page.locator('#select-unit').click();await expect(page.locator('#unit-commands')).toBeVisible();await page.screenshot({path:evidence+'compact.png'});
- await page.keyboard.press('Escape');await page.locator('#new').click();await page.locator('#new-dialog [value="new"]').click();
+ await page.keyboard.press('Escape');await newCampaign(page);await page.locator('#new-dialog [value="new"]').click();
  await expect(page.locator('#credits')).toHaveText('500');expect(await page.evaluate(()=>window.__reborn.game.count(0))).toBe(1);
- await advance(page,10);const credits=await page.locator('#credits').textContent();await page.locator('#new').click();await page.keyboard.press('Escape');await expect(page.locator('#credits')).toHaveText(credits);
+ await advance(page,10);const credits=await page.locator('#credits').textContent();await newCampaign(page);await page.keyboard.press('Escape');await expect(page.locator('#credits')).toHaveText(credits);
 });
 
 test('reborn: sound unlocks on interaction, produces an audio signal and preserves volume/mute settings',async({page})=>{
@@ -155,30 +157,13 @@ test('reborn: the headquarters black spot and the ground beneath infantry remain
  await page.screenshot({path:evidence+'visibility-fix.png'});
 });
 
-test('reborn: rock relief gains bounded edge contrast without flattening its cast shadows',async({page})=>{
- await start(page);
- const result=await page.evaluate(()=>{
-  const {game:g,renderer:r}=window.__reborn,w=g.world,grid=240;
-  let at=-1;
-  for(let i=0;i<w.opaque.length&&at<0;i++)if(w.opaque[i])for(const delta of [-3,3,-3*grid,3*grid]){
-   const j=i+delta;if(j<0||j>=w.opaque.length||w.blocked[j])continue;const p=w.center(j);
-   if(p.x>64&&p.y>64&&p.x<3762-64&&p.y<3762-64){at=j;break;}
-  }
-  if(at<0)throw Error('No exposed cliff edge found');
-  const p=w.center(at),x=Math.floor(p.x)-24,y=Math.floor(p.y)-24,raw=document.createElement('canvas');raw.width=raw.height=48;
-  const c=raw.getContext('2d');c.imageSmoothingQuality='high';c.drawImage(r.terrain,-x,-y,3762,3762);
-  const expected=c.getImageData(0,0,48,48).data,actual=r.terrainSurface.getContext('2d').getImageData(x,y,48,48).data;
-  let total=0,max=0,sourceEdges=0,renderedEdges=0;
-  for(let i=0;i<actual.length;i++)if(i%4!==3){const d=Math.abs(actual[i]-expected[i]);total+=d;max=Math.max(max,d);}
-  for(let yy=1;yy<47;yy++)for(let xx=1;xx<47;xx++){
-    const i=(yy*48+xx)*4;
-    sourceEdges+=Math.abs(expected[i]-expected[i+4])+Math.abs(expected[i]-expected[i+48*4]);
-    renderedEdges+=Math.abs(actual[i]-actual[i+4])+Math.abs(actual[i]-actual[i+48*4]);
-  }
-  return {average:total/(48*48*3),max,sourceEdges,renderedEdges};
+test('reborn: detailed cliff artwork and navigation occupy the same terrain',async({page})=>{
+ await start(page);const result=await page.evaluate(()=>{
+  const {game:g,renderer:r}=window.__reborn,c=document.createElement('canvas');c.width=c.height=3762;const ctx=c.getContext('2d');r.paintCliffs(ctx);const rgba=ctx.getImageData(0,0,c.width,c.height).data;
+  let solid=0,blocked=0;for(let i=0;i<g.world.blocked.length;i++){const p=g.world.center(i),alpha=rgba[(Math.floor(p.y)*c.width+Math.floor(p.x))*4+3];if(alpha>180){solid++;if(g.world.blocked[i])blocked++;}}
+  return {solid,blocked,sourceWidths:r.cliffs.map(s=>s.w)};
  });
- expect(result.average).toBeLessThan(16);expect(result.max).toBeLessThan(50);
- expect(result.renderedEdges).toBeGreaterThan(result.sourceEdges*1.08);
+ expect(result.solid).toBeGreaterThan(3000);expect(result.blocked/result.solid).toBeGreaterThan(.99);expect(Math.min(...result.sourceWidths)).toBeGreaterThan(400);
 });
 
 test('reborn: capture beacons emit white when neutral and saturated team colors after ownership changes',async({page})=>{
@@ -256,4 +241,35 @@ test('reborn: captured bastion keeps both maps lit after infantry leaves and mar
    return {blueHp:blue.hp,redHp:red.hp,firstAttacker:blue.lastAttacker,orders:blue.orders.length,shots:g.shots.filter(s=>s.owner===0).length};
  });
  expect(combat).toEqual({blueHp:100,redHp:83,firstAttacker:null,orders:2,shots:1});
+});
+
+test('reborn: reference HUD builds a barracks, unlocks heavy infantry, produces it and restores construction through the pause menu',async({page})=>{
+ await start(page,1450,1090);
+ await expect(page.locator('[data-unit]')).toHaveCount(9);await page.locator('#tab-buildings').click();await expect(page.locator('[data-building]')).toHaveCount(5);
+ await page.locator('[data-building="barracks"]').click();expect(await page.evaluate(()=>window.__reborn.renderer.placement)).toBe('barracks');await page.keyboard.press('Escape');await expect(page.locator('#credits')).toHaveText('500');
+ const site=await page.evaluate(()=>{const {game:g,renderer:r}=window.__reborn;for(let y=2050;y<3150;y+=24)for(let x=400;x<1700;x+=24){const p={x,y},s=r.screen(p);if(s.x>90&&s.x<r.width-340&&s.y>135&&s.y<r.height-240&&!g.buildError(0,'barracks',p))return p;}throw Error('No visible construction site');});
+ await page.locator('[data-building="barracks"]').click();const base=await page.evaluate(()=>window.__reborn.renderer.screen(window.__reborn.game.bases[0]));await page.mouse.click(base.x,base.y);expect(await page.evaluate(()=>window.__reborn.game.bases.length)).toBe(2);
+ const p=await screen(page,site);await page.mouse.move(p.x,p.y);await page.screenshot({path:evidence+'construction-preview.png'});await page.mouse.click(p.x,p.y);await expect(page.locator('#credits')).toHaveText('300');
+ expect(await page.evaluate(()=>window.__reborn.game.bases.some(b=>b.kind==='barracks'&&b.buildRemaining>0))).toBe(true);
+ await page.locator('#tab-units').click();await expect(page.locator('[data-unit="heavy"]')).toBeDisabled();await advance(page,13);await expect(page.locator('[data-unit="heavy"]')).toBeEnabled();await page.locator('[data-unit="heavy"]').click();
+ await expect(page.locator('#queue')).toContainText('1 IM AUFTRAG');await page.screenshot({path:evidence+'reference-production.png'});await advance(page,9);expect(await page.evaluate(()=>window.__reborn.game.units.some(u=>u.kind==='heavy'&&u.hp===190))).toBe(true);
+ await openMenu(page);await expect(page.locator('#pause-dialog .menu-button')).toHaveCount(6);await page.screenshot({path:evidence+'reference-menu.png'});
+ await page.locator('#options').click();await expect(page.locator('#audio-panel')).toBeVisible();await page.locator('#audio-close').click();await expect(page.locator('#pause-dialog')).toBeVisible();expect(await page.evaluate(()=>window.__reborn.game.paused)).toBe(true);
+ await page.locator('#save').click();await expect(page.locator('#notices')).toContainText('Kampagne lokal gespeichert');await page.reload();await page.locator('#loading').waitFor({state:'detached'});await openMenu(page);await page.locator('#load').click();await expect(page.locator('#notices')).toContainText('Kampagne geladen');await page.evaluate(()=>{window.__reborn.game.paused=true;});
+ expect(await page.evaluate(()=>window.__reborn.game.bases.some(b=>b.kind==='barracks'&&b.buildRemaining===0))).toBe(true);expect(await page.evaluate(()=>window.__reborn.game.units.some(u=>u.kind==='heavy'))).toBe(true);
+});
+
+test('reborn: factory and airfield catalog produce all six vehicles with distinct sprites and working movement',async({page})=>{
+ test.setTimeout(60000);await start(page,1450,1090);
+ // A funded scenario isolates all six new production paths; the campaign test uses the real starting economy.
+ await page.evaluate(()=>{const g=window.__reborn.game;g.credits[0]=5000;g.aiClock=-1e8;window.__reborn.refresh();});
+ for(const [kind,time] of [['barracks',13],['factory',19],['airfield',23]]){
+  await page.locator('#tab-buildings').click();const site=await page.evaluate(kind=>{const {game:g,renderer:r}=window.__reborn;for(let y=2080;y<3100;y+=24)for(let x=400;x<1700;x+=24){const p={x,y},s=r.screen(p);if(s.x>100&&s.x<r.width-340&&s.y>140&&s.y<r.height-250&&!g.buildError(0,kind,p))return p;}throw Error('No visible site for '+kind);},kind);
+  await page.locator(`[data-building="${kind}"]`).click();const p=await screen(page,site);await page.mouse.click(p.x,p.y);await advance(page,time);
+ }
+ await page.locator('#tab-units').click();for(const kind of ['rover','tank','artillery','scout','gunship','bomber']){await page.locator(`[data-unit="${kind}"]`).scrollIntoViewIfNeeded();await expect(page.locator(`[data-unit="${kind}"]`)).toBeEnabled();await page.locator(`[data-unit="${kind}"]`).click();}
+ await advance(page,57);const roster=await page.evaluate(()=>window.__reborn.game.units.filter(u=>u.owner===0).map(u=>u.kind));for(const kind of ['rover','tank','artillery','scout','gunship','bomber'])expect(roster).toContain(kind);
+ const moved=await page.evaluate(()=>{const {game:g}=window.__reborn,army=g.units.filter(u=>u.owner===0&&['rover','tank','artillery'].includes(u.kind));const before=army.map(u=>({id:u.id,x:u.x,y:u.y}));g.command(army.map(u=>u.id),{...g.territories[20].point,kind:'move'});return before;});await advance(page,14);
+ for(const original of moved){const distance=await page.evaluate(original=>{const u=window.__reborn.game.units.find(u=>u.id===original.id);return Math.hypot(u.x-original.x,u.y-original.y);},original);expect(distance).toBeGreaterThan(45);}
+ await page.locator('#home').click();await page.screenshot({path:evidence+'reference-roster.png'});
 });
