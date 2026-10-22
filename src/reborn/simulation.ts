@@ -76,7 +76,7 @@ export class Simulation {
     const width=Math.ceil(Math.sqrt(members.length));let accepted=0;
     members.forEach((u,i)=>{
       const offset=members.length>1?{x:((i%width)-(width-1)/2)*27,y:(Math.floor(i/width)-(width-1)/2)*27}:{x:0,y:0};
-      const target=this.world.nearest({x:order.x+offset.x,y:order.y+offset.y},this.obstacles());if(!target)return;
+      const target=this.world.nearest({x:order.x+offset.x,y:order.y+offset.y},this.obstacles(),[],u);if(!target)return;
       const next:Order={...order,...target};
       if(append){if(u.orders.length<32)u.orders.push(next);else return;}
       else {u.orders=[next];u.path=[];u.repath=0;}
@@ -93,14 +93,21 @@ export class Simulation {
         ...this.bases.filter(b=>b.owner===owner&&b.hp>0).map(b=>({...b,sight:RULES.headquarters.sight}))];
       for(const s of sources){
         const gx=Math.floor(s.x/this.world.cell),gy=Math.floor(s.y/this.world.cell),r=Math.ceil(s.sight/this.world.cell);
+        const close='queue' in s ? RULES.headquarters.radius+this.world.cell*2 : this.world.cell*2+RULES.infantry.radius;
         for(let y=Math.max(0,gy-r);y<=Math.min(RULES.grid-1,gy+r);y++)for(let x=Math.max(0,gx-r);x<=Math.min(RULES.grid-1,gx+r);x++){
           const i=y*RULES.grid+x,p=this.world.center(i);
-          // Reveal the cliff face itself, but never terrain behind it.
-          if(!visible[i]&&distance(s,p)<=s.sight){const d=distance(s,p),q=d>this.world.cell?{x:p.x+(s.x-p.x)*this.world.cell/d,y:p.y+(s.y-p.y)*this.world.cell/d}:s;
-            if(this.world.line(s,q))visible[i]=1;}
+          const d=distance(s,p);
+          if(!visible[i]&&d<=s.sight&&(d<=close||this.world.sightLine(s,p)))visible[i]=1;
         }
+        // A source always reveals its exact tile, including after save migration.
+        const ownCell=this.world.index(s);if(ownCell>=0)visible[ownCell]=1;
       }
-      for(let i=0;i<visible.length;i++)if(visible[i])this.explored[owner][i]=1;
+      const discovered=new Set<number>();
+      for(let i=0;i<visible.length;i++)if(visible[i]){this.explored[owner][i]=1;const cliff=this.world.cliffIds[i];if(cliff>=0)discovered.add(cliff);}
+      // Seeing a cliff identifies its complete terrain surface. Its inaccessible
+      // interior stays remembered terrain, rather than an impossible black hole.
+      // This never grants current visibility to enemies behind the cliff.
+      for(const id of discovered)for(const cell of this.world.cliffCells[id])this.explored[owner][cell]=1;
       for(const b of this.bases)if(this.canSee(owner,b)){
         const memory={id:b.id,owner:b.owner,x:b.x,y:b.y,hp:b.hp,territory:b.territory};
         const i=this.memories[owner].findIndex(m=>m.id===b.id);if(i<0)this.memories[owner].push(memory);else this.memories[owner][i]=memory;

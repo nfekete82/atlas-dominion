@@ -23,7 +23,8 @@ const ROCKS = [
   [[651,802],[669,798],[682,812],[680,829],[659,834],[647,821]],
   [[814,510],[839,503],[852,516],[847,535],[827,539],[813,528]],
 ];
-let navigationCache:Uint8Array|undefined;
+interface TerrainCache { blocked:Uint8Array; opaque:Uint8Array; cliffs:Int16Array; components:Int16Array }
+let navigationCache:TerrainCache|undefined;
 export function inside(p: Point, polygon: Point[]): boolean {
   let result = false;
   for (let i=0,j=polygon.length-1;i<polygon.length;j=i++) {
@@ -37,8 +38,16 @@ export class World {
   readonly cell = this.size / RULES.grid;
   readonly rocks: Point[][] = ROCKS.map(poly=>poly.map(([x,y])=>({x:x*3,y:y*3})));
   readonly blocked = new Uint8Array(RULES.grid ** 2);
+  /** Physical tall relief, without navigation clearance or low rubble. */
+  readonly opaque = new Uint8Array(RULES.grid ** 2);
+  readonly cliffIds = new Int16Array(RULES.grid ** 2).fill(-1);
+  readonly components = new Int16Array(RULES.grid ** 2).fill(-1);
+  readonly cliffCells:number[][]=Array.from({length:9},()=>[]);
   constructor() {
-    if(navigationCache){this.blocked.set(navigationCache);return;}
+    if(navigationCache){
+      this.blocked.set(navigationCache.blocked);this.opaque.set(navigationCache.opaque);this.cliffIds.set(navigationCache.cliffs);this.components.set(navigationCache.components);
+      this.cliffIds.forEach((id,i)=>{if(id>=0)this.cliffCells[id].push(i);});return;
+    }
     for(let i=0;i<this.blocked.length;i++) {
       const p=this.center(i);
       // Include the entire navigation cell plus the soldier's body clearance.
@@ -46,8 +55,22 @@ export class World {
       const r=this.cell*.5+RULES.infantry.radius;
       const samples=[p,...[-r,0,r].flatMap(dx=>[-r,0,r].map(dy=>({x:p.x+dx,y:p.y+dy})))];
       if(this.rocks.some(poly=>samples.some(q=>inside(q,poly))))this.blocked[i]=1;
+      const cliff=this.rocks.slice(0,9).findIndex(poly=>inside(p,poly));
+      if(cliff>=0){this.opaque[i]=1;this.cliffIds[i]=cliff;this.cliffCells[cliff].push(i);}
     }
-    navigationCache=this.blocked.slice();
+    // Static connectivity keeps move destinations out of isolated terrain pockets.
+    let component=0;
+    for(let i=0;i<this.blocked.length;i++)if(!this.blocked[i]&&this.components[i]<0){
+      const queue=[i];this.components[i]=component;
+      for(let head=0;head<queue.length;head++){
+        const at=queue[head],x=at%RULES.grid,y=Math.floor(at/RULES.grid);
+        for(const [dx,dy] of [[-1,0],[1,0],[0,-1],[0,1]]){
+          const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=RULES.grid||ny>=RULES.grid)continue;
+          const next=ny*RULES.grid+nx;if(!this.blocked[next]&&this.components[next]<0){this.components[next]=component;queue.push(next);}
+        }
+      }component++;
+    }
+    navigationCache={blocked:this.blocked.slice(),opaque:this.opaque.slice(),cliffs:this.cliffIds.slice(),components:this.components.slice()};
   }
   index(p: Point): number {
     const x=Math.floor(p.x/this.cell), y=Math.floor(p.y/this.cell);
@@ -58,15 +81,18 @@ export class World {
     const i=this.index(p);
     return i>=0&&!this.blocked[i]&&!obstacles.some(o=>Math.hypot(p.x-o.x,p.y-o.y)<o.radius+RULES.infantry.radius);
   }
-  nearest(p: Point, obstacles: {x:number;y:number;radius:number}[]=[], occupied: Point[]=[]): Point | null {
-    if(this.walkable(p,obstacles)&&occupied.every(u=>Math.hypot(u.x-p.x,u.y-p.y)>23)) return {...p};
+  nearest(p: Point, obstacles: {x:number;y:number;radius:number}[]=[], occupied: Point[]=[], from?:Point): Point | null {
+    const start=from?this.index(from):-1,component=start>=0?this.components[start]:-1;
+    const valid=(q:Point)=>this.walkable(q,obstacles)&&(component<0||this.components[this.index(q)]===component)&&occupied.every(u=>Math.hypot(u.x-q.x,u.y-q.y)>23);
+    if(valid(p))return {...p};
     const origin=this.index({x:Math.max(0,Math.min(this.size-1,p.x)),y:Math.max(0,Math.min(this.size-1,p.y))});
-    for(let r=1;r<22;r++) for(let y=-r;y<=r;y++) for(let x=-r;x<=r;x++) {
+    const search=from?RULES.grid:Math.ceil(700/this.cell);
+    for(let r=1;r<search;r++) for(let y=-r;y<=r;y++) for(let x=-r;x<=r;x++) {
       if(Math.abs(x)!==r&&Math.abs(y)!==r)continue;
       const cx=origin%RULES.grid+x,cy=Math.floor(origin/RULES.grid)+y;
       if(cx<0||cy<0||cx>=RULES.grid||cy>=RULES.grid)continue;
       const q=this.center(cy*RULES.grid+cx);
-      if(this.walkable(q,obstacles)&&occupied.every(u=>Math.hypot(u.x-q.x,u.y-q.y)>23))return q;
+      if(valid(q))return q;
     }
     return null;
   }
@@ -90,8 +116,18 @@ export class World {
     for(let i=1;i<=steps;i++) if(!this.walkable({x:a.x+(b.x-a.x)*i/steps,y:a.y+(b.y-a.y)*i/steps},obstacles))return false;
     return true;
   }
+  /** The first opaque face is visible; only terrain beyond that face is hidden. */
+  sightLine(a:Point,b:Point):boolean{
+    const end=this.index(b);if(end<0)return false;
+    const steps=Math.max(1,Math.ceil(Math.hypot(a.x-b.x,a.y-b.y)/(this.cell*.4)));
+    for(let i=1;i<=steps;i++){
+      const index=this.index({x:a.x+(b.x-a.x)*i/steps,y:a.y+(b.y-a.y)*i/steps});
+      if(index<0)return false;if(index===end)return true;if(this.opaque[index])return false;
+    }
+    return true;
+  }
   path(start: Point, target: Point, obstacles: {x:number;y:number;radius:number}[]=[]): Point[] {
-    const end=this.nearest(target,obstacles);
+    const end=this.nearest(target,obstacles,[],start);
     if(!end)return [];
     if(this.line(start,end,obstacles))return [end];
     const s=this.index(start), goal=this.index(end), n=this.blocked.length;

@@ -30,9 +30,9 @@ Die frühere Europaversion bleibt unter **http://127.0.0.1:8095/legacy/index.htm
 
 ```sh
 npm run typecheck
-npm run test:reborn    # 16 gezielte Simulationstests
+npm run test:reborn    # 20 gezielte Simulationstests
 npm test              # Gesamte Suite, einschließlich Archiv und HTTP
-npm run test:browser   # Sechs Chrome-Tests für Gameplay, Grafik und Audio
+npm run test:browser   # Acht Chrome-Tests für Gameplay, Sicht, Grafik und Audio
 ```
 
 Für Browser-Tests einmalig `npm ci --prefix tests/browser` ausführen. Chrome ist lokal voreingestellt; `ATLAS_BROWSER_CHANNEL=chromium` verwendet Playwright Chromium. Ein bereits laufender Server kann über `ATLAS_BASE_URL` angegeben werden.
@@ -46,6 +46,8 @@ TypeScript, Canvas 2D, feste 20 Simulationsschritte pro Sekunde, A*, räumliche 
 Die Original-PNGs bleiben unverändert in `src/assets/reborn/`: `desert.png`, `infantry.png`, `headquarters.png`. Die feinere Terrainfassung liegt in `desert-fine.png`, der transparente Laufatlas in `infantry-walk.png`. Die Bastion wird aus `src/assets/reborn/bastion.png` geladen und je Besitzer blau, rot oder unbeleuchtet dargestellt. Der Laufatlas kombiniert 32 Posen mit kontinuierlicher Beinbewegung; die Füße sind am Boden verankert. Künstliche Bodenschatten werden nicht gezeichnet.
 
 Der Boden trennt großräumiges Relief und feine Sandstruktur. Hügel und Felsen bleiben an ihren Kartenpositionen und blockieren das feinere Navigationsraster. Angegriffene Infanterie erwidert das Feuer auch während eines Marschbefehls und setzt danach ihren ursprünglichen Weg fort. Der Soundregler oben bietet Schüsse, Schritte, Funkbestätigungen und Wüstenwind; Ton startet mit der ersten Interaktion.
+
+Die Sicht unterscheidet hohe Felsen von niedrigen Geröllhindernissen. Eigene Einheiten und Gebäude decken ihre unmittelbare Umgebung immer auf. Beim Entdecken einer Felsformation wird ihre unbetretbare Oberfläche als Gelände bekannt; Gegner dahinter bleiben verborgen. Ein Bewegungsziel tief im Berg wird auf einen erreichbaren Randpunkt gelegt. Die Felsdetails werden von der Glättung des Sandbodens ausgespart. Bestehende Spielstände bleiben ladbar.
 
 [Bildquellen und Generierungsprompts](docs/reborn/ART_ASSETS.md)
 

@@ -10,7 +10,8 @@ test('reborn: exact start, deterministic map, real fog and configurable economy'
  const g=new Simulation();assert.equal(g.credits[0],500);assert.equal(g.count(0),1);
  assert.equal(g.territories.length,30);assert.equal(g.territories.filter(t=>t.owner===0).length,3);
  assert.equal(g.bases.length,2);assert.equal(g.income(0),35);
- assert.ok(g.explored[0].reduce((n,v)=>n+v,0)<RULES.grid**2*.05);
+ // Nearby cliffs are identified as complete landforms; most of the map stays unknown.
+ assert.ok(g.explored[0].reduce((n,v)=>n+v,0)<RULES.grid**2*.12);
  assert.deepEqual(g.save(),new Simulation().save());
  assert.ok(g.world.walkable(g.units[0],g.obstacles()));
 });
@@ -68,7 +69,7 @@ test('reborn: shift queues, stop, combat damage/death and attack-move continuati
 
 test('reborn: line of sight blocks both reconnaissance and weapon fire through rock',()=>{
  const g=peaceful();g.units=[];const a=g.spawn(0,{x:1900,y:2100}),b=g.spawn(1,{x:2050,y:2100});
- const wall=g.world.index({x:1980,y:2100});g.world.blocked[wall]=1;g.updateVision();
+ const wall=g.world.index({x:1980,y:2100});g.world.blocked[wall]=1;g.world.opaque[wall]=1;g.updateVision();
  assert.equal(g.world.line(a,b),false);assert.equal(g.canSee(0,b),false);advance(g,3);assert.equal(a.hp,100);assert.equal(b.hp,100);
 });
 
@@ -133,4 +134,32 @@ test('reborn: existing saves migrate explored fog to the finer grid without losi
  const loaded=Simulation.load(old);assert.equal(loaded.explored[0].length,240**2);assert.deepEqual(loaded.credits,g.credits);assert.equal(loaded.incomeClock,g.incomeClock);
  assert.deepEqual(loaded.units[0].orders,g.units[0].orders);assert.ok(Number.isFinite(loaded.units[0].angle));assert.ok(loaded.world.walkable(loaded.units[0],loaded.obstacles()));
  assert.ok(loaded.explored[0].reduce((n,v)=>n+v,0)>=old.explored[0].reduce((n,v)=>n+v,0)*4);
+});
+
+test('reborn: low rubble beside the headquarters casts no permanent black visibility hole',()=>{
+ const g=peaceful(),p={x:960,y:2610},i=g.world.index(p);
+ assert.equal(g.world.blocked[i],1);assert.equal(g.world.opaque[i],0);assert.equal(g.canSee(0,p),true);
+ const loaded=Simulation.load(g.save());assert.equal(loaded.canSee(0,p),true);
+});
+
+test('reborn: units and headquarters always reveal their own tile and close surroundings',()=>{
+ const g=peaceful();g.units=[];const u=g.spawn(0,{x:960,y:2610});g.updateVision();
+ for(const source of [u,g.bases[0]])for(const [dx,dy] of [[0,0],[20,0],[-20,0],[0,20],[0,-20]])assert.ok(g.canSee(0,{x:source.x+dx,y:source.y+dy}));
+ const hidden=g.units.find(u=>u.owner===1);assert.equal(hidden,undefined);
+});
+
+test('reborn: approaching a cliff explores its inaccessible interior without revealing enemies behind it',()=>{
+ const g=peaceful(),discovered=g.world.cliffCells.filter(cells=>cells.some(i=>g.visible[0][i]));
+ assert.ok(discovered.length>0);
+ for(const cells of discovered)assert.ok(cells.every(i=>g.explored[0][i]===1));
+ assert.ok(discovered.some(cells=>cells.some(i=>!g.visible[0][i])));
+ assert.equal(g.canSee(0,g.bases[1]),false);
+ assert.ok(g.explored[0].some((v,i)=>!v&&g.world.cliffIds[i]>=0));
+});
+
+test('reborn: orders into deep impassable mountains resolve to a reachable edge beyond the old search limit',()=>{
+ const g=peaceful(),u=g.units[0],target={x:2100,y:60};assert.equal(g.world.walkable(target),false);
+ assert.equal(g.command([u.id],{...target,kind:'move'}),1);const goal=u.orders[0];
+ assert.ok(g.world.walkable(goal,g.obstacles()));assert.equal(g.world.components[g.world.index(goal)],g.world.components[g.world.index(u)]);
+ assert.ok(g.world.path(u,goal,g.obstacles()).length>0);assert.ok(distance(target,goal)>22*g.world.cell);
 });

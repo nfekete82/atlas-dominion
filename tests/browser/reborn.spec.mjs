@@ -139,3 +139,37 @@ test('reborn: finer terrain, directional animation, grounded drawing and automat
  expect(result.clear/result.pixels).toBeGreaterThan(.4);expect(result.opaque/result.pixels).toBeGreaterThan(.15);expect(result.terrain).toContain('desert-fine.png');expect(result.grid).toBe(240*240);
  await page.screenshot({path:evidence+'polish-combat.png'});
 });
+
+test('reborn: the headquarters black spot and the ground beneath infantry remain visible on both maps',async({page})=>{
+ await start(page);
+ const result=await page.evaluate(()=>{
+  const {game:g,renderer:r}=window.__reborn,p={x:960,y:2610};r.home();r.render(0);
+  const sample=point=>{const at=r.screen(point),d=Math.min(2,devicePixelRatio||1);return Array.from(r.context.getImageData(Math.floor(at.x*d),Math.floor(at.y*d),1,1).data).slice(0,3);};
+  const before=sample(p),mini=Array.from(r.mini.getImageData(Math.floor(p.x/3762*224),Math.floor(p.y/3762*224),1,1).data).slice(0,3);
+  const u=g.units.find(u=>u.owner===0);Object.assign(u,{...p,previousX:p.x,previousY:p.y});g.updateVision();r.render(0);
+  const ownVisible=g.canSee(0,u),underfoot=sample({x:p.x,y:p.y+14});
+  return {before,mini,ownVisible,underfoot,cliffs:g.world.cliffCells.filter(cells=>cells.some(i=>g.visible[0][i])).map(cells=>cells.every(i=>g.explored[0][i]===1))};
+ });
+ expect(result.before.reduce((a,b)=>a+b,0)).toBeGreaterThan(90);expect(result.mini.reduce((a,b)=>a+b,0)).toBeGreaterThan(60);
+ expect(result.ownVisible).toBe(true);expect(result.underfoot.reduce((a,b)=>a+b,0)).toBeGreaterThan(90);expect(result.cliffs.length).toBeGreaterThan(0);expect(result.cliffs.every(Boolean)).toBe(true);
+ await page.screenshot({path:evidence+'visibility-fix.png'});
+});
+
+test('reborn: rock faces and the nearby relief keep their source detail instead of the sand blur',async({page})=>{
+ await start(page);
+ const result=await page.evaluate(()=>{
+  const {game:g,renderer:r}=window.__reborn,w=g.world,grid=240;
+  let at=-1;
+  for(let i=0;i<w.opaque.length&&at<0;i++)if(w.opaque[i])for(const delta of [-3,3,-3*grid,3*grid]){
+   const j=i+delta;if(j<0||j>=w.opaque.length||w.blocked[j])continue;const p=w.center(j);
+   if(p.x>64&&p.y>64&&p.x<3762-64&&p.y<3762-64){at=j;break;}
+  }
+  if(at<0)throw Error('No exposed cliff edge found');
+  const p=w.center(at),x=Math.floor(p.x)-24,y=Math.floor(p.y)-24,raw=document.createElement('canvas');raw.width=raw.height=48;
+  const c=raw.getContext('2d');c.imageSmoothingQuality='high';c.drawImage(r.terrain,-x,-y,3762,3762);
+  const expected=c.getImageData(0,0,48,48).data,actual=r.terrainSurface.getContext('2d').getImageData(x,y,48,48).data;
+  let total=0,max=0;for(let i=0;i<actual.length;i++)if(i%4!==3){const d=Math.abs(actual[i]-expected[i]);total+=d;max=Math.max(max,d);}
+  return {average:total/(48*48*3),max};
+ });
+ expect(result.average).toBeLessThan(2);expect(result.max).toBeLessThan(6);
+});

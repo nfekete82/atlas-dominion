@@ -79,7 +79,7 @@ export class Renderer {
     tc.drawImage(this.terrain,445/1254*this.terrain.width,675/1254*this.terrain.height,190/1254*this.terrain.width,190/1254*this.terrain.height,0,0,190,190);
     const detail=tc.getImageData(0,0,190,190).data;
     tc.filter='blur(4px)';tc.drawImage(tile,0,0);const detailLow=tc.getImageData(0,0,190,190).data;
-    const grid=RULES.grid,dist=Float32Array.from(this.game.world.blocked,v=>v?0:1e5);
+    const grid=RULES.grid,dist=Float32Array.from(this.game.world.opaque,v=>v?0:1e5);
     for(let y=0;y<grid;y++)for(let x=0;x<grid;x++){const i=y*grid+x;if(x)dist[i]=Math.min(dist[i],dist[i-1]+1);if(y)dist[i]=Math.min(dist[i],dist[i-grid]+1);}
     for(let y=grid-1;y>=0;y--)for(let x=grid-1;x>=0;x--){const i=y*grid+x;if(x<grid-1)dist[i]=Math.min(dist[i],dist[i+1]+1);if(y<grid-1)dist[i]=Math.min(dist[i],dist[i+grid]+1);}
     const size=surface.width;let seed=92531;
@@ -88,7 +88,9 @@ export class Renderer {
       for(let x=0;x<size;x++){
         const gx=Math.min(grid-1,x/size*grid),ix=Math.floor(gx),fx=gx-ix,nx=Math.min(ix+1,grid-1);
         const d=(dist[iy*grid+ix]*(1-fx)+dist[iy*grid+nx]*fx)*(1-fy)+(dist[ny*grid+ix]*(1-fx)+dist[ny*grid+nx]*fx)*fy;
-        const blend=clamp((d-1)/4,0,1),i=(y*size+x)*4;
+        // Preserve the complete rock face and its cast relief, including outside
+        // the collision contour. The old narrow mask blurred mountain edges.
+        const blend=clamp((d-8)/6,0,1),i=(y*size+x)*4;
         const tx=(x+Math.floor(y/128)*73)%190,ty=(y+Math.floor(x/128)*59)%190,ti=(ty*190+tx)*4;
         const material=((detail[ti]+detail[ti+1]+detail[ti+2]-detailLow[ti]-detailLow[ti+1]-detailLow[ti+2])/3)*.8;
         seed=(Math.imul(seed,1664525)+1013904223)>>>0;const grain=(seed>>>29)*.45-1.5;
