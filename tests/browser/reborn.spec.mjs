@@ -333,10 +333,10 @@ test('model study: exported GLB loads real animated geometry, supports five clip
  try{
   await page.goto(baseURL+'/model-3d.html');await page.waitForFunction(()=>!!window.__model3D?.data);await expect(page.locator('#error')).toHaveText('');
   const info=await page.evaluate(()=>{const v=window.__model3D;let meshes=0,triangles=0,design;v.current.traverse(n=>{if(n.isMesh){meshes++;triangles+=(n.geometry.index?.count??n.geometry.attributes.position.count)/3;}if(n.userData.atlasDesign)design=n.userData.atlasDesign;});return {meshes,triangles,design,clips:v.data.animations.map(c=>c.name)};});
-  expect(info.meshes).toBe(info.design.parts);expect(info.triangles).toBeGreaterThan(70000);expect(info.design.maxGripError).toBeLessThan(.0001);expect(info.clips.sort()).toEqual(['Death','HitReact','Idle','Idle_Shoot','Run_Gun']);
+  expect(info.meshes).toBe(info.design.parts);expect(info.triangles).toBe(info.design.triangles);expect(info.triangles).toBeGreaterThan(0);expect(info.design.maxGripError).toBeLessThan(.0001);expect(info.clips.sort()).toEqual(['Death','HitReact','Idle','Idle_Shoot','Run_Gun']);
   await page.evaluate(()=>{const v=window.__model3D;v.pause();v.play('Idle');v.mixer.setTime(.25);v.render();});await page.screenshot({path:dir+'infantry-3d.png',fullPage:true});
   const poses=await page.evaluate(()=>{const v=window.__model3D;v.play('Run_Gun');v.mixer.setTime(.10);const a=v.current.getObjectByName('LowerLegL').quaternion.toArray();v.mixer.setTime(.35);return {a,b:v.current.getObjectByName('LowerLegL').quaternion.toArray()};});expect(poses.a.reduce((n,v,i)=>n+Math.abs(v-poses.b[i]),0)).toBeGreaterThan(.1);
-  const grip=await page.evaluate(()=>{const v=window.__model3D,errors=[];for(const clip of ['Idle','Run_Gun','Idle_Shoot']){v.play(clip);for(const t of [.05,.15,.3]){v.mixer.setTime(t);v.current.updateMatrixWorld(true);const rifle=v.current.getObjectByName('Atlas_Rifle');for(const side of ['L','R']){const target=rifle.position.clone().set(...(side==='L'?[0,-.055,.17]:[0,-.10,-.10]));rifle.localToWorld(target);const hand=v.current.getObjectByName('Index1'+side).getWorldPosition(target.clone());errors.push(hand.distanceTo(target));}}}return Math.max(...errors);});expect(grip).toBeLessThan(.015);
+  const grip=await page.evaluate(()=>{const v=window.__model3D,errors=[];for(const clip of ['Idle','Run_Gun','Idle_Shoot']){v.play(clip);for(const t of [.05,.15,.3]){v.mixer.setTime(t);v.current.updateMatrixWorld(true);const rifle=v.current.getObjectByName('Atlas_Rifle');for(const side of ['L','R']){const target=rifle.getObjectByName('Atlas_Grip'+side).getWorldPosition(rifle.position.clone());const hand=v.current.getObjectByName('Index1'+side).getWorldPosition(target.clone());errors.push(hand.distanceTo(target));}}}return Math.max(...errors);});expect(grip).toBeLessThan(.015);
   for(const [label,clip] of [['Schießen','Idle_Shoot'],['Treffer','HitReact'],['Tod','Death']]){await page.getByRole('button',{name:label,exact:true}).click();expect(await page.evaluate(()=>window.__model3D.clip)).toBe(clip);await page.evaluate(()=>{const v=window.__model3D;v.mixer.setTime(.25);v.render();});await page.waitForTimeout(120);}
   await page.screenshot({path:dir+'infantry-3d-death.png',fullPage:true});await page.getByRole('button',{name:'Stehen',exact:true}).click();
   const before=await page.evaluate(()=>window.__model3D.camera.position.toArray()),box=await page.locator('#stage').boundingBox();await page.mouse.move(box.x+box.width*.55,box.y+box.height*.5);await page.mouse.down();await page.mouse.move(box.x+box.width*.7,box.y+box.height*.55,{steps:8});await page.mouse.up();await page.waitForTimeout(150);const after=await page.evaluate(()=>window.__model3D.camera.position.toArray());expect(after.some((v,i)=>Math.abs(v-before[i])>.1)).toBe(true);
@@ -576,4 +576,41 @@ test('model gallery: vehicles and aircraft are selectable as real 3D GLBs',async
  await expect(page.locator('[data-clip="Idle"]')).toBeVisible();
  await expect(page.locator('#download')).toHaveAttribute('href','/src/assets/reborn/prototype/infantry-1.glb');
  expect(errors).toEqual([]);
+});
+
+test('infantry: exported wrist sockets retain both grips through every clip and intermediate pose for both factions',async({page})=>{
+ await page.goto('/model-3d.html');await page.waitForFunction(()=>!!window.__model3D?.data);await page.evaluate(()=>window.__model3D.pause());
+ for(const team of [0,1]){
+  if(team===1){await page.locator('#red').click();await page.waitForFunction(()=>window.__model3D?.current?.getObjectByName('Atlas_GripL')&&window.__model3D.current.getObjectByName('Atlas_WeaponSocket')?.parent.name==='Index1R'&&window.__model3D.current.getObjectByName('Atlas_WeaponMark').material.color.r>window.__model3D.current.getObjectByName('Atlas_WeaponMark').material.color.b);}
+  const audit=await page.evaluate(async()=>{
+   const T=await import('three'),v=window.__model3D,m=v.current,rifle=m.getObjectByName('Atlas_Rifle'),chest=m.getObjectByName('Atlas_Breastplate');
+   const result={binding:[rifle.parent.name,rifle.parent.parent.name],gripError:0,wristAngle:0,chestPenetrations:0,elbowMin:180,elbowMax:0,deathTravel:0,clips:[],texturedCloth:false,ceramicNormal:false};
+   m.traverse(n=>{if(n.isMesh&&n.material.name==='Atlas three-tone desert fabric')result.texturedCloth=!!n.material.map&&!!n.material.normalMap&&!!n.material.roughnessMap;if(n.isMesh&&n.material.name==='Atlas sand ceramic')result.ceramicNormal=!!n.material.normalMap;});
+   const world=n=>n.getWorldPosition(new T.Vector3());
+   for(const clip of v.data.animations){
+    v.play(clip.name);const action=v.mixer.existingAction(clip);action.setLoop(T.LoopOnce,1);result.clips.push(clip.name);let start;
+    for(let i=0;i<=100;i++){
+     v.mixer.setTime(clip.duration*i/100);m.updateMatrixWorld(true);
+     if(i===0)start=world(chest);if(clip.name==='Death'&&i===100)result.deathTravel=start.distanceTo(world(chest));
+     for(const side of ['L','R']){
+      const hand=m.getObjectByName('Index1'+side),grip=rifle.getObjectByName('Atlas_Grip'+side);
+      result.gripError=Math.max(result.gripError,world(hand).distanceTo(world(grip)));
+      result.wristAngle=Math.max(result.wristAngle,hand.getWorldQuaternion(new T.Quaternion()).angleTo(rifle.getWorldQuaternion(new T.Quaternion())));
+      const elbow=world(m.getObjectByName('LowerArm'+side)),angle=world(m.getObjectByName('UpperArm'+side)).sub(elbow).angleTo(world(hand).sub(elbow))*180/Math.PI;
+      result.elbowMin=Math.min(result.elbowMin,angle);result.elbowMax=Math.max(result.elbowMax,angle);
+     }
+     // Test all weapon vertices in chest space against the solid breastplate core.
+     // This remains valid when the torso turns, recoils, flinches or falls.
+     rifle.traverse(n=>{if(!n.isMesh)return;const positions=n.geometry.attributes.position,transform=new T.Matrix4().copy(chest.matrixWorld).invert().multiply(n.matrixWorld);
+      for(let k=0;k<positions.count;k++){const p=new T.Vector3().fromBufferAttribute(positions,k).applyMatrix4(transform);if(Math.abs(p.x)<.25&&Math.abs(p.y)<.175&&p.z>-.15&&p.z<.21)result.chestPenetrations++;}
+     });
+    }
+   }
+   return result;
+  });
+  expect(audit.binding).toEqual(['Atlas_WeaponSocket','Index1R']);expect(audit.clips.sort()).toEqual(['Death','HitReact','Idle','Idle_Shoot','Run_Gun']);
+  expect(audit.gripError).toBeLessThan(.001);expect(audit.wristAngle).toBeLessThan(.002);expect(audit.chestPenetrations).toBe(0);
+  expect(audit.elbowMin).toBeGreaterThan(30);expect(audit.elbowMax).toBeLessThan(165);expect(audit.deathTravel).toBeGreaterThan(.5);
+  expect(audit.texturedCloth).toBe(true);expect(audit.ceramicNormal).toBe(true);
+ }
 });

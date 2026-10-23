@@ -1,0 +1,106 @@
+[
+  {
+    "team": 0,
+    "design": {
+      "name": "Atlas Legion Infantry / desert ceramic armour",
+      "version": 2,
+      "team": 0,
+      "parts": 246,
+      "triangles": 61088,
+      "materials": "Seeded 256px desert fabric, ceramic PBR and phosphate steel",
+      "weaponBinding": "Right wrist socket / two-hand grip frames",
+      "geometry": "Original procedural hard-surface armour and rifle",
+      "rig": "Quaternius Toon Shooter Game Kit / CC0-1.0",
+      "maxGripError": 2.689175158835587e-7,
+      "gripAudit": {
+        "Idle": {
+          "samples": 101,
+          "right": 1.2865167297623865e-7,
+          "left": 1.6376728002827787e-7
+        },
+        "Run_Gun": {
+          "samples": 46,
+          "right": 1.2684528835711074e-7,
+          "left": 2.689175158835587e-7
+        },
+        "Idle_Shoot": {
+          "samples": 24,
+          "right": 2.15102736044323e-7,
+          "left": 2.3897542450664673e-7
+        },
+        "HitReact": {
+          "samples": 28,
+          "right": 1.3964693350629221e-7,
+          "left": 2.365175440738842e-7
+        },
+        "Death": {
+          "samples": 47,
+          "right": 2.3117516538437603e-7,
+          "left": 1.5338169633980593e-7
+        }
+      }
+    },
+    "byClip": {
+      "Idle": 2.302184928150183e-7,
+      "Run_Gun": 3.469164752955081e-7,
+      "Idle_Shoot": 0.000036151675788228796,
+      "HitReact": 0.000002069771480195972,
+      "Death": 2.5850213972080537e-7
+    },
+    "maxGripError": 0.000036151675788228796,
+    "maxWristAngle": 0.0002027120364017538,
+    "minChestZ": 0.2000595580512399
+  },
+  {
+    "team": 1,
+    "design": {
+      "name": "Atlas Legion Infantry / desert ceramic armour",
+      "version": 2,
+      "team": 1,
+      "parts": 246,
+      "triangles": 61088,
+      "materials": "Seeded 256px desert fabric, ceramic PBR and phosphate steel",
+      "weaponBinding": "Right wrist socket / two-hand grip frames",
+      "geometry": "Original procedural hard-surface armour and rifle",
+      "rig": "Quaternius Toon Shooter Game Kit / CC0-1.0",
+      "maxGripError": 2.689175158835587e-7,
+      "gripAudit": {
+        "Idle": {
+          "samples": 101,
+          "right": 1.2865167297623865e-7,
+          "left": 1.6376728002827787e-7
+        },
+        "Run_Gun": {
+          "samples": 46,
+          "right": 1.2684528835711074e-7,
+          "left": 2.689175158835587e-7
+        },
+        "Idle_Shoot": {
+          "samples": 24,
+          "right": 2.15102736044323e-7,
+          "left": 2.3897542450664673e-7
+        },
+        "HitReact": {
+          "samples": 28,
+          "right": 1.3964693350629221e-7,
+          "left": 2.365175440738842e-7
+        },
+        "Death": {
+          "samples": 47,
+          "right": 2.3117516538437603e-7,
+          "left": 1.5338169633980593e-7
+        }
+      }
+    },
+    "byClip": {
+      "Idle": 2.302184928150183e-7,
+      "Run_Gun": 3.469164752955081e-7,
+      "Idle_Shoot": 0.000036151675788228796,
+      "HitReact": 0.000002069771480195972,
+      "Death": 2.5850213972080537e-7
+    },
+    "maxGripError": 0.000036151675788228796,
+    "maxWristAngle": 0.0002027120364017538,
+    "minChestZ": 0.2000595580512399
+  }
+]
