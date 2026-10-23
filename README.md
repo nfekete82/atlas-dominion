@@ -1,6 +1,6 @@
 # ATLAS DOMINION — REBORN
 
-Ein lokales Wüsten-RTS mit neun Einheitentypen, 30 eroberbaren Territorien und einer aktiven gegnerischen KI. Die Oberfläche folgt der Bildvorlage: Ressourcen oben links, Radar, Einheitenkatalog und Produktion rechts, kompakte Auswahl direkt links unten sowie ein zentrales Pausenmenü mit Metallrahmen.
+Ein lokales Wüsten-RTS mit neun Einheitentypen, 30 eroberbaren Territorien und einer aktiven gegnerischen KI. Die Oberfläche folgt der vereinfachten Bildvorlage mit ruhigen dunklen Flächen und dezenten Akzenten: Ressourcen oben links, Radar, Einheitenkatalog und Produktion rechts, kompakte Auswahl direkt links unten sowie ein zentrales Pausenmenü mit Metallrahmen.
 
 ## Starten
 
@@ -30,7 +30,7 @@ Die neun Truppen kosten 100/150/250 Credits für Infanterie, Pionier und schwere
 ```sh
 npm run typecheck
 npm run test:reborn    # 34 gezielte Simulationstests, einschließlich 100 Zufallskarten
-npm run test:animation # 10 gezielte Animations-/Bewegungs-/Gebäudemodelltests
+npm run test:animation # 11 gezielte Animations-/Bewegungs-/Gebäudemodelltests
 npm test              # einschließlich Archiv und HTTP
 npm run test:browser   # Chrome: Spielablauf, Oberfläche, Produktion, Menüs, Sicht, Audio, Animationslabor
 ```
@@ -43,7 +43,7 @@ Browser-Abhängigkeiten: `npm ci --prefix tests/browser`. Chrome ist voreingeste
 
 TypeScript, Canvas 2D, feste 20 Simulationsschritte pro Sekunde, A*, räumliche Buckets und IndexedDB. Spielwerte stehen in `src/reborn/config.ts`, Einheiten und Gebäude in `src/reborn/catalog.ts`. Keine zusätzliche Laufzeitbibliothek.
 
-Neue Kampagnen verwenden native facettierte Mesas, ruhigen Sandboden und dekorative blaue Kristalle nach der neuen Landschaftsvorlage. Gelände und Navigation werden gemeinsam aus dem Kartenseed erzeugt. Alte Spielstände behalten die frühere Landschaft samt Alpha-Konturen. [Zufallskarten, Zielbindung, Fahrzeugmodelle und Prüfung](docs/reborn/RANDOM_CAMPAIGNS.md). Die freigegebene Legionär-Figur und sieben eigene Gebäudetypen werden aus zusammengehörigen 3D-Modellen mit fest integrierten Schatten gerendert. Basis und Bastion blinken dezent und drehen ihre Schüsseln in 48 Sekunden. Leichte Sandverwehungen ziehen über sichtbaren freien Boden; alle Effekte stehen bei Pause still. Bastionen besitzen eigene neutral weiße, blaue und rote Modellfassungen.
+Neue Kampagnen verwenden native facettierte Mesas, fein texturierten Sand mit Windrippen, kleinen Steinen und dekorativen blauen Kristallen nach der neuen Landschaftsvorlage. Gelände und Navigation werden gemeinsam aus dem Kartenseed erzeugt. Alte Spielstände behalten die frühere Landschaft samt Alpha-Konturen. [Zufallskarten, Zielbindung, Fahrzeugmodelle und Prüfung](docs/reborn/RANDOM_CAMPAIGNS.md). Die freigegebene Legionär-Figur und sieben eigene Gebäudetypen werden aus zusammengehörigen 3D-Modellen mit fest integrierten Schatten gerendert. Basis und Bastion blinken dezent und drehen ihre Schüsseln in 48 Sekunden. Leichte Sandverwehungen ziehen über sichtbaren freien Boden; alle Effekte stehen bei Pause still. Bastionen besitzen eigene neutral weiße, blaue und rote Modellfassungen.
 
 Die freigegebene Infanterie verwendet echte Idle-/Walk-/Attack-/Hit-/Death-Clips: acht Ansichten mit acht unterschiedlichen Laufphasen je Richtung. Sechs eigene Fahrzeugmodelle übernehmen Keramik, Bronze, dunklen Stahl und Teamfarben der Modellfamilie. Sie besitzen 16 gerenderte Ansichten, echte Rad-/Ketten-/Rotorphasen und begrenzte Lenkgeschwindigkeit. Panzer und Artillerie besitzen getrennte Rümpfe, Türme und Rohre. Der Canvas-Renderer deformiert oder dreht keine vollständigen Einheitensprites. Partikel sind unter Optionen abschaltbar. Three.js wird zum Offline-Export und im separaten 3D-Modellinspektor verwendet; das Hauptspiel bleibt Canvas 2D.
 
@@ -52,3 +52,5 @@ Das [Animationslabor](http://127.0.0.1:8095/animation-lab.html) zeigt sechs Prü
 Der freigegebene Legionär ist im Spiel aktiv und bildet die gemeinsame Grundrüstung von Infanterie, Pionier und schwerem Schützen. Die [3D-Modellgalerie](http://127.0.0.1:8095/model-3d.html?model=headquarters) enthält ihn und alle sieben Gebäudetypen mit echten Animationen, Teamfarben und GLB-Downloads. [Sprite-Vergleich](http://127.0.0.1:8095/model-preview.html), [Übernahme und Gebäudemodelle](docs/buildings-3d/README.md). Die fünf zusätzlich erhaltenen Gebäudetypen bleiben für alte Spielstände verfügbar; der Gebäudebau wird nicht wieder in die Oberfläche aufgenommen.
 
 Die frühere Europaversion bleibt unter **http://127.0.0.1:8095/legacy/index.html** erreichbar. Ihre Quellen und vorhandenen Änderungen bleiben erhalten; ihre Dokumentation liegt in [legacy/README.md](legacy/README.md).
+
+[Sandtextur, vereinfachtes HUD und Gegenwehr unter Beschuss](docs/reborn/SAND_HUD_V2.md).

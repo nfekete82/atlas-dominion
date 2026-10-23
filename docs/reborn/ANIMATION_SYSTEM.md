@@ -33,7 +33,7 @@ Quellen, Downloads und Hashes: [manifest.json](../../tools/animation-sources/man
 
 ## Laufzeit
 
-`SpriteAnimator` wählt Zustand, Richtung und Frame aus Metadaten. Treffer unterbrechen Schüsse, Todesfolgen sind terminal, einmalige Treffer-/Schussfolgen laufen vor der Rückkehr zu Idle/Walk aus. Laufphasen verwenden tatsächlich zurückgelegte Strecke statt Bildrate. Die acht Richtungen werden ausgewählt, nicht durch flache Rotation oder Spiegelung hergestellt. Pivot und Maßstab ändern sich nicht je Pose. Die Originalclips enthalten echte Arm-, Bein- und Waffenbewegung.
+`SpriteAnimator` wählt Zustand, Richtung und Frame aus Metadaten. Schüsse haben Vorrang vor Trefferreaktionen und können eine Trefferpose sofort ablösen. Eingehende Treffer unterbrechen oder starten einen laufenden Schuss nicht neu; wiederholte Treffer starten auch eine laufende Trefferpose nicht neu. Todesfolgen bleiben terminal. Einmalige Treffer-/Schussfolgen laufen vor der Rückkehr zu Idle/Walk aus. Laufphasen verwenden tatsächlich zurückgelegte Strecke statt Bildrate. Die acht Richtungen werden ausgewählt, nicht durch flache Rotation oder Spiegelung hergestellt. Pivot und Maßstab ändern sich nicht je Pose. Die Originalclips enthalten echte Arm-, Bein- und Waffenbewegung.
 
 Fahrzeuge haben begrenzte Rumpfdrehgeschwindigkeit und sanftes Anfahren/Bremsen bei Marschbefehlen. Türme folgen unabhängig dem Ziel; nur das separate Rohr erhält kurzen Rücklauf. Kettenbewegung beim Lenken nutzt die vorhandenen Links-/Rechtsclips. Staub beim Anfahren und Lenken, Mündungsfeuer, Einschläge und Explosionen verwenden einen auf 240 Partikel begrenzten Pool. Die gespeicherte Option „Partikel“ schaltet diese Effekte ab, ohne die Spriteanimationen abzuschalten.
 

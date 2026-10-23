@@ -439,6 +439,12 @@
       "sha256": "afda74db36659519f376634257a94acbcdcfe1e2cdd123487e607c1d510619ef"
     },
     {
+      "file": "src/assets/reborn/sand-ripples-v2.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "6d0b08f59e6eb4f319017dae5de2e64b515f446bc965ca126877d0aa0aa06bfa"
+    },
+    {
       "file": "src/assets/reborn/sandstone-detail.png",
       "width": 1254,
       "height": 1254,

@@ -19,10 +19,21 @@ test('animation: walk uses distance and state clocks give identical results at 2
  assert.deepEqual(a.frame(),b.frame());const frame=a.frame();for(let i=0;i<30;i++)a.update(.05,intent({moving:true,distance:40}));assert.deepEqual(a.frame(),frame);
  assert.equal(directionIndex(-Math.PI/2,8),6);assert.equal(directionIndex(Math.PI*2,8),0);
 });
-test('animation: attack and hit finish before locomotion resumes; death cannot be interrupted and holds its final frame',()=>{
+test('animation: shots finish through incoming hits; flinches yield to fire and death remains terminal',()=>{
  const a=new SpriteAnimator(read('infantry'));a.update(0,intent({attack:true}));assert.equal(a.state,'attack');a.update(.1,intent({moving:true}));assert.equal(a.state,'attack');
- a.update(.01,intent({hit:true}));assert.equal(a.state,'hit');a.update(.6,intent());a.update(.01,intent({moving:true,distance:8}));assert.equal(a.state,'walk');
+ const age=a.age;a.update(.01,intent({hit:true}));assert.equal(a.state,'attack');assert.ok(a.age>age);
+ a.update(.6,intent());a.update(.01,intent({hit:true}));assert.equal(a.state,'hit');
+ a.update(.01,intent({attack:true,hit:true}));assert.equal(a.state,'attack');
+ a.update(.6,intent());a.update(.01,intent({moving:true,distance:8}));assert.equal(a.state,'walk');
  a.update(0,intent({dead:true}));a.update(2,intent({moving:true,attack:true}));assert.equal(a.state,'death');assert.equal(a.finished,true);const frame=a.frame();a.update(5,intent());assert.deepEqual(a.frame(),frame);
+});
+test('animation: sustained hits cannot lock a soldier in a flinch or hide simultaneous return fire',()=>{
+ const a=new SpriteAnimator(read('infantry'));a.update(0,intent({attack:true,hit:true}));assert.equal(a.state,'attack');
+ for(let i=0;i<20;i++){a.update(.02,intent({hit:i%2===0}));if(i<17)assert.equal(a.state,'attack');}
+ a.update(.01,intent());a.update(.01,intent({hit:true}));assert.equal(a.state,'hit');
+ for(let i=0;i<24;i++)a.update(.02,intent({hit:i%2===0}));
+ assert.notEqual(a.state,'hit');
+ a.update(0,intent({attack:true,hit:true,dead:true}));assert.equal(a.state,'death');
 });
 test('animation: vehicles use real chassis views and separated turret/barrel frames where the source provides them',()=>{
  for(const k of ['rover','tank','artillery','scout','gunship','bomber']){const a=read(k);assert.equal(a.directions,16);assert.equal(a.clips.idle.frames.length,16);if(['tank','artillery'].includes(k)){assert.equal(a.clips.turret.frames.length,16);assert.equal(a.clips.barrel.frames.length,16);assert.ok(a.clips.walk.uniquePhases.every(n=>n>1));}if(k==='bomber')assert.ok(a.clips.walk.frames.every(r=>r.length===1));if(k==='scout'||k==='gunship')assert.equal(a.rotor,true);}

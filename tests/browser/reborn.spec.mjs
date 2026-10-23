@@ -428,3 +428,35 @@ test('vehicle art: the full roster has real faction materials, baked shadows, an
  });
  for(const row of result){expect(row.parts).toBeGreaterThan(20);expect(row.source).toBe('Atlas original vehicle geometry');expect(row.model).toBe(true);expect(row.base.solid).toBeGreaterThan(60);expect(row.base.shadow).toBeGreaterThan(10);if(row.kind!=='bomber')expect(row.phases.every(n=>n>=4)).toBe(true);if(row.turret){expect(row.turret.solid).toBeGreaterThan(15);expect(row.barrel.solid).toBeGreaterThan(3);expect(row.barrel.groundShadow).toBe(0);}}
 });
+
+test('visual polish: fine sand relief and a quiet HUD preserve usable production and compact selection',async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.setViewportSize({width:1500,height:1000});await page.goto('/?debug&seed=2026');await page.locator('#loading').waitFor({state:'detached'});
+ const art=await page.evaluate(()=>{
+  const {game:g,renderer:r}=window.__reborn;g.paused=true;r.home();r.render(0);const p=g.territories[19].point,ctx=r.terrainSurface.getContext('2d',{willReadFrequently:true}),data=ctx.getImageData(p.x-100,p.y-100,200,200).data;let sum=0,squares=0;
+  for(let i=0;i<data.length;i+=4){const l=data[i]*.299+data[i+1]*.587+data[i+2]*.114;sum+=l;squares+=l*l;}
+  const n=data.length/4,panels=Array.from(document.querySelectorAll('.hud')).map(e=>getComputedStyle(e).backgroundImage);
+  const bar=document.querySelector('.production-track').getBoundingClientRect(),clock=document.querySelector('#production-time').getBoundingClientRect();
+  return {texture:r.sand.complete&&r.sand.naturalWidth>=1024,deviation:Math.sqrt(squares/n-(sum/n)**2),noSteel:panels.every(s=>!s.includes('steel.png')),separateClock:clock.left>=bar.right};
+ });
+ expect(art.texture).toBe(true);expect(art.deviation).toBeGreaterThan(7);expect(art.noSteel).toBe(true);expect(art.separateClock).toBe(true);
+ await page.screenshot({path:evidence+'sand-hud-v2.png'});await openMenu(page);await page.screenshot({path:evidence+'simple-menu-v2.png'});await page.locator('#resume').click();
+ await page.setViewportSize({width:800,height:650});await page.locator('#select-unit').click();await expect(page.locator('#attack')).toBeInViewport();await expect(page.locator('#recruit')).toBeInViewport();expect(errors).toEqual([]);
+});
+
+test('combat presentation: simultaneous hits never hide return-fire poses or delay the real weapon cadence',async({page})=>{
+ await page.setViewportSize({width:1500,height:1000});await page.goto('/?debug&seed=2026');await page.locator('#loading').waitFor({state:'detached'});
+ const result=await page.evaluate(()=>{
+  const {game:g,renderer:r}=window.__reborn;g.units=[];g.aiClock=-1e8;g.paused=false;const site=g.territories[19].point,p={x:site.x+50,y:site.y+95},blue=g.spawn(0,p,'heavy');
+  g.spawn(1,{x:p.x+120,y:p.y});g.spawn(1,{x:p.x+155,y:p.y});g.updateVision();r.units.clear();r.selected.add(blue.id);r.camera.x=p.x+80;r.camera.y=p.y-45;r.camera.zoom=1.65;
+  const shots=[];let previous=0;
+  for(let i=0;i<82;i++){
+   g.step();r.render(.05);const view=r.units.inspect(blue.id);
+   if(blue.fire>previous+.01)shots.push({time:g.time,state:view.anim.state,hit:blue.hit});
+   previous=blue.fire;
+  }
+  g.paused=true;window.__reborn.refresh();r.render(0);return {shots,hp:blue.hp};
+ });
+ expect(result.shots.length).toBe(4);expect(result.shots.every(s=>s.state==='attack')).toBe(true);expect(result.shots[0].hit).toBeGreaterThan(0);expect(result.hp).toBeGreaterThan(0);
+ for(let i=1;i<result.shots.length;i++)expect(result.shots[i].time-result.shots[i-1].time).toBeCloseTo(1.3,4);
+ await page.screenshot({path:evidence+'return-fire-v2.png'});
+});

@@ -51,8 +51,23 @@ export function paintMesas(c:CanvasRenderingContext2D,mesas:Mesa[],seed:number):
     if(mesa.crystals)crystals(c,mesa.crystals);
   }
 }
-/** Native-resolution facets and quiet sand; no upscaled landscape bitmap. */
-export function paintGeneratedTerrain(canvas:HTMLCanvasElement,world:World):void {
+/** Blend only tile edges with wrapped interior samples. The source stays at fine
+ * ground scale, and neither brightness seams nor mirrored lighting are repeated. */
+function sandPattern(c:CanvasRenderingContext2D,image:HTMLImageElement):CanvasPattern {
+  const size=1024,tile=document.createElement('canvas');tile.width=tile.height=size;
+  const tc=tile.getContext('2d',{willReadFrequently:true})!;tc.drawImage(image,0,0,size,size);
+  const source=tc.getImageData(0,0,size,size),result=tc.createImageData(size,size);
+  const weight=Float32Array.from({length:size},(_,x)=>Math.sin(Math.min(1,Math.min(x,size-x)/96)*Math.PI/2)**2);
+  for(let y=0;y<size;y++)for(let x=0;x<size;x++){
+    const wx=weight[x],wy=weight[y],sx=(x+size/2)%size,sy=(y+size/2)%size;
+    const a=(y*size+x)*4,b=(y*size+sx)*4,d=(sy*size+x)*4,e=(sy*size+sx)*4;
+    for(let k=0;k<3;k++)result.data[a+k]=(source.data[a+k]*wx+source.data[b+k]*(1-wx))*wy+(source.data[d+k]*wx+source.data[e+k]*(1-wx))*(1-wy);
+    result.data[a+3]=255;
+  }
+  tc.putImageData(result,0,0);return c.createPattern(tile,'repeat')!;
+}
+/** Native-resolution relief with granular sand and shallow, traversable dunes. */
+export function paintGeneratedTerrain(canvas:HTMLCanvasElement,world:World,sand:HTMLImageElement):void {
   canvas.width=canvas.height=world.size;const c=canvas.getContext('2d',{willReadFrequently:true})!,random=seededRandom(world.seed^0x12bda3),pixels=c.createImageData(world.size,world.size);
   const broad=new Float32Array(33*33);for(let i=0;i<broad.length;i++)broad[i]=(random()-.5)*17;
   for(let y=0;y<world.size;y++)for(let x=0;x<world.size;x++){
@@ -62,16 +77,7 @@ export function paintGeneratedTerrain(canvas:HTMLCanvasElement,world:World):void
     pixels.data[i]=222+n+grain;pixels.data[i+1]=180+n*.85+grain;pixels.data[i+2]=113+n*.65+grain;pixels.data[i+3]=255;
   }
   c.putImageData(pixels,0,0);
-  // Sparse angular crust patches and wind ripples retain the reference's broad,
-  // readable sand plains instead of magnifying gravel to unit-sized stones.
-  for(let n=0;n<160;n++){
-    const x=random()*world.size,y=random()*world.size,r=35+random()*125;
-    c.strokeStyle='#9d774817';c.lineWidth=.7;
-    for(let j=0;j<5;j++){
-      c.beginPath();c.moveTo(x-r*.5+j*r*.12,y-r*.3);c.lineTo(x-r*.25+j*r*.12,y);c.lineTo(x+j*r*.12,y+r*.18);c.lineTo(x+j*r*.10,y+r*.35);c.stroke();
-    }
-    c.strokeStyle='#fff1bc12';c.lineWidth=1;
-    for(let j=0;j<4;j++){c.beginPath();c.ellipse(x,y+j*5,r,r*.13,-.18,0,Math.PI);c.stroke();}
-  }
+  const pattern=sandPattern(c,sand);pattern.setTransform(new DOMMatrix().translate(Math.floor(random()*1024),Math.floor(random()*1024)));
+  c.save();c.globalAlpha=.78;c.fillStyle=pattern;c.fillRect(0,0,world.size,world.size);c.restore();
   paintMesas(c,world.generated!.mesas,world.seed);
 }

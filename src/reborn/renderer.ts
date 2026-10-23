@@ -24,6 +24,7 @@ export class Renderer {
   private buildings={} as Record<BuildingKind,Sprite>;private redBuildings={} as Record<BuildingKind,Sprite>;
   private cliffs:Sprite[]=[];private shadows=new Map<Sprite,Sprite>();private icons=new Map<string,string>();
   private terrainSurface=document.createElement('canvas');private interpolation=1;
+  private sand=new Image();
   private fog=document.createElement('canvas');private fogRevision=-1;
   private miniTerrain=document.createElement('canvas');
   constructor(readonly canvas:HTMLCanvasElement,readonly miniCanvas:HTMLCanvasElement,public game:Simulation){
@@ -51,7 +52,8 @@ export class Renderer {
   }
   async load():Promise<void>{
     this.terrain=new Image();this.terrain.src=ASSETS.terrain;
-    const [cliffs]=await Promise.all([this.sprite(ASSETS.cliffs),this.terrain.decode(),this.units.load(),this.structures.load()]);
+    this.sand.src='/src/assets/reborn/sand-ripples-v2.png';
+    const [cliffs]=await Promise.all([this.sprite(ASSETS.cliffs),this.terrain.decode(),this.units.load(),this.structures.load(),this.sand.decode()]);
     const infantry=this.units.asset('infantry'),frame=infantry.data.frames[0];
     this.infantry={image:infantry.image,x:frame.x,y:frame.y,w:frame.w,h:frame.h};
     for(const kind of Object.keys(BUILDINGS) as BuildingKind[]){this.buildings[kind]=this.structures.sprite(kind,0);this.redBuildings[kind]=this.structures.sprite(kind,1);}
@@ -70,7 +72,7 @@ export class Renderer {
     const mini=this.miniTerrain.getContext('2d',{willReadFrequently:true})!;mini.drawImage(this.terrainSurface,0,0,224,224);mini.save();mini.scale(224/RULES.worldSize,224/RULES.worldSize);this.paintCliffs(mini);mini.restore();
   }
   private prepareTerrain():void{
-    if(this.game.world.generated){paintGeneratedTerrain(this.terrainSurface,this.game.world);return;}
+    if(this.game.world.generated){paintGeneratedTerrain(this.terrainSurface,this.game.world,this.sand);return;}
     const surface=this.terrainSurface;surface.width=surface.height=RULES.worldSize;
     const ctx=surface.getContext('2d',{willReadFrequently:true})!,tile=document.createElement('canvas');tile.width=tile.height=190;
     const tc=tile.getContext('2d')!;tc.drawImage(this.terrain,445/1254*this.terrain.width,675/1254*this.terrain.height,190/1254*this.terrain.width,190/1254*this.terrain.height,0,0,190,190);

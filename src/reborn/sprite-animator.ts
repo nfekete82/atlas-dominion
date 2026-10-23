@@ -16,10 +16,14 @@ export class SpriteAnimator {
   if(this.lastDistance===null)this.walkDistance=input.distance;else if(input.moving)this.walkDistance+=Math.max(0,input.distance-this.lastDistance);this.lastDistance=input.distance;
   let next=this.state;
   if(input.dead||this.state==='death')next='death';
-  else if(hit)next='hit';else if(attack)next='attack';
-  else if((this.state==='hit'||this.state==='attack')&&this.age<this.atlas.clips[this.state]?.duration)next=this.state;
+  // Firing always wins over a flinch, including when both events arrive in the
+  // same tick. Incoming hits cannot restart or interrupt an active shot.
+  else if(attack)next='attack';
+  else if(this.state==='attack'&&this.age<this.atlas.clips.attack?.duration)next='attack';
+  else if(hit&&this.state!=='hit')next='hit';
+  else if(this.state==='hit'&&this.age<this.atlas.clips.hit?.duration)next='hit';
   else next=input.moving?'walk':'idle';
-  if(next!==this.state||attack&&next==='attack'||hit&&next==='hit'){this.state=next;this.age=0;}else this.age+=dt;
+  if(next!==this.state||attack&&next==='attack'){this.state=next;this.age=0;}else this.age+=dt;
   return this.frame();
  }
  frame(tag:string=this.state,angle?:number):AnimationFrame {
