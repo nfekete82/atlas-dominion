@@ -31,7 +31,7 @@ Die neun Truppen kosten 100/150/250 Credits für Infanterie, Pionier und schwere
 npm run typecheck
 npm run test:reborn    # 29 gezielte Simulationstests
 npm test              # 401 Tests einschließlich Archiv und HTTP
-npm run test:browser   # 13 Chrome-Fälle: Spielablauf, kompakte Oberfläche, Produktion, Menüs, Sicht, Audio
+npm run test:browser   # 14 Chrome-Fälle: Spielablauf, kompakte Oberfläche, Produktion, Menüs, Sicht, Audio
 ```
 
 Browser-Abhängigkeiten: `npm ci --prefix tests/browser`. Chrome ist voreingestellt; `ATLAS_BROWSER_CHANNEL=chromium` verwendet Playwright Chromium. `ATLAS_BASE_URL` prüft einen bestehenden Server.
@@ -42,8 +42,8 @@ Browser-Abhängigkeiten: `npm ci --prefix tests/browser`. Chrome ist voreingeste
 
 TypeScript, Canvas 2D, feste 20 Simulationsschritte pro Sekunde, A*, räumliche Buckets und IndexedDB. Spielwerte stehen in `src/reborn/config.ts`, Einheiten und Gebäude in `src/reborn/catalog.ts`. Keine zusätzliche Laufzeitbibliothek.
 
-Neue hochauflösende Einzelgrafiken ersetzen die vergrößerten Felsflächen. Ihre Alpha-Konturen bestimmen Bewegung und Sicht; `node scripts/compile-terrain-art.mjs` erzeugt daraus die deterministischen Masken. Feiner Boden wird separat aufgebaut. Gebäude werfen gerichtete, am Fundament anliegende Silhouettenschatten; es gibt keine schwebenden Schattenellipsen. Bastionen leuchten neutral weiß, blau oder rot.
+Neue hochauflösende Einzelgrafiken ersetzen die vergrößerten Felsflächen. Ihre Alpha-Konturen bestimmen Bewegung und Sicht; `node scripts/compile-terrain-art.mjs` erzeugt daraus die deterministischen Masken. Feiner Boden wird separat aufgebaut. Hauptquartier, Bastion und sämtliche Soldatenposen besitzen fest in die Grafik integrierte Schatten. Die Basis blinkt dezent und dreht ihre Satellitenschüssel in 48 Sekunden. Leichte Sandverwehungen ziehen über sichtbaren freien Boden; alle Effekte stehen bei Pause still. Bastionen leuchten neutral weiß, blau oder rot.
 
-Die Originalgrafiken bleiben erhalten. Die Bastion ist weiterhin eine erzeugte Nachbildung, da die benannte Originaldatei im Downloads-Ordner nicht zugänglich war. Die Infanterie teilt einen Richtungsatlas; Fahrzeuge nutzen gespiegelte Ansichten. Die KI expandiert und kämpft weiterhin mit Infanterie. Maus und Tastatur bilden die vollständige Steuerung; kein dediziertes Touch- oder Mehrspielersystem.
+Die Originalgrafiken bleiben erhalten. Die Bastion ist weiterhin eine erzeugte Nachbildung, da die benannte Originaldatei im Downloads-Ordner nicht zugänglich war. Die Infanterie teilt einen Atlas mit 64 Posen und acht Schrittphasen; Fahrzeuge nutzen gespiegelte Ansichten. Die KI expandiert und kämpft weiterhin mit Infanterie. Maus und Tastatur bilden die vollständige Steuerung; kein dediziertes Touch- oder Mehrspielersystem.
 
 Die frühere Europaversion bleibt unter **http://127.0.0.1:8095/legacy/index.html** erreichbar. Ihre Quellen und vorhandenen Änderungen bleiben erhalten; ihre Dokumentation liegt in [legacy/README.md](legacy/README.md).

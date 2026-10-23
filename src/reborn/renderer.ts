@@ -4,7 +4,7 @@ import { type Territory } from './world.js';
 import { BUILDINGS, UNITS, buildingSpec, unitSpec, type BuildingKind, type UnitKind } from './catalog.js';
 import { TERRAIN_FRAMES, TERRAIN_PLACEMENTS } from './terrain-art.js';
 
-interface Sprite { image:HTMLImageElement; x:number; y:number; w:number; h:number }
+interface Sprite { image:HTMLImageElement; x:number; y:number; w:number; h:number; center?:number; foot?:number; bodyWidth?:number; bodyHeight?:number }
 interface Pose extends Sprite { foot:number; bodyHeight:number; center:number }
 export class Renderer {
   readonly context:CanvasRenderingContext2D;
@@ -16,6 +16,9 @@ export class Renderer {
   width=0;height=0;terrain!:HTMLImageElement; infantry!:Sprite; headquarters!:Sprite;
   private redInfantry!:Sprite;private redBase!:Sprite;
   private bastions!:Record<'blue'|'red'|'neutral',Sprite>;
+  private dishes:Pose[]=[];private redDishes:Pose[]=[];
+  private dishBlend=document.createElement('canvas');
+  private readonly reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   private walks:Pose[][]=[];private redWalks:Pose[][]=[];
   private buildings={} as Record<BuildingKind,Sprite>;private redBuildings={} as Record<BuildingKind,Sprite>;
   private vehicles={} as Partial<Record<UnitKind,Sprite>>;private redVehicles={} as Partial<Record<UnitKind,Sprite>>;
@@ -26,15 +29,26 @@ export class Renderer {
   constructor(readonly canvas:HTMLCanvasElement,readonly miniCanvas:HTMLCanvasElement,public game:Simulation){
     this.context=canvas.getContext('2d',{alpha:false})!;this.mini=miniCanvas.getContext('2d',{alpha:false})!;
     this.fog.width=this.fog.height=RULES.grid;this.miniTerrain.width=this.miniTerrain.height=224;
+    this.dishBlend.width=this.dishBlend.height=256;
     this.resize();
   }
-  private async sprite(url:string):Promise<Sprite>{
+  private async sprite(url:string,grounded=false):Promise<Sprite>{
     const image=new Image();image.src=url;await image.decode();
     const c=document.createElement('canvas');c.width=image.width;c.height=image.height;const ctx=c.getContext('2d')!;ctx.drawImage(image,0,0);
     const pixels=ctx.getImageData(0,0,c.width,c.height).data;
     let x=c.width,y=c.height,r=0,b=0;
     for(let j=0;j<c.height;j++)for(let i=0;i<c.width;i++)if(pixels[(j*c.width+i)*4+3]>32){x=Math.min(x,i);y=Math.min(y,j);r=Math.max(r,i);b=Math.max(b,j);}
-    return {image,x,y,w:r-x+1,h:b-y+1};
+    const result:Sprite={image,x,y,w:r-x+1,h:b-y+1};
+    if(grounded){
+      let left=image.width,top=image.height,right=0,bottom=0;
+      // Register solid armor, excluding the authored translucent ground shadow.
+      for(let j=0;j<c.height;j++)for(let i=0;i<c.width;i++){
+        const at=(j*c.width+i)*4;
+        if(pixels[at+3]>200&&Math.max(pixels[at],pixels[at+1],pixels[at+2])>75){left=Math.min(left,i);top=Math.min(top,j);right=Math.max(right,i);bottom=Math.max(bottom,j);}
+      }
+      result.center=(left+right)/2-x;result.foot=bottom-y+1;result.bodyWidth=right-left+1;result.bodyHeight=bottom-top+1;
+    }
+    return result;
   }
   private async recolor(sprite:Sprite,neutral=false):Promise<Sprite>{
     const c=document.createElement('canvas');c.width=sprite.image.width;c.height=sprite.image.height;
@@ -51,12 +65,21 @@ export class Renderer {
   }
   async load():Promise<void>{
     this.terrain=new Image();this.terrain.src=ASSETS.terrain;
-    const [infantry,base,bastion,walk,structures,vehicles,cliffs]=await Promise.all([this.sprite(ASSETS.infantry),this.sprite(ASSETS.headquarters),this.sprite(ASSETS.bastion),this.sprite(ASSETS.infantryWalk),this.sprite(ASSETS.structures),this.sprite(ASSETS.vehicles),this.sprite(ASSETS.cliffs),this.terrain.decode()]);
+    const [infantry,base,bastion,walk,structures,vehicles,cliffs,dish]=await Promise.all([this.sprite(ASSETS.infantry),this.sprite(ASSETS.headquarters,true),this.sprite(ASSETS.bastion,true),this.sprite(ASSETS.infantryWalk),this.sprite(ASSETS.structures),this.sprite(ASSETS.vehicles),this.sprite(ASSETS.cliffs),this.sprite(ASSETS.radarDish),this.terrain.decode()]);
     this.infantry=infantry;this.headquarters=base;
     [this.redInfantry,this.redBase]=await Promise.all([this.recolor(infantry),this.recolor(base)]);
     const [redBastion,neutralBastion,redWalk]=await Promise.all([this.recolor(bastion),this.recolor(bastion,true),this.recolor(walk)]);
     this.bastions={blue:bastion,red:redBastion,neutral:neutralBastion};
-    this.walks=this.atlas(walk.image);this.redWalks=this.atlas(redWalk.image);
+    this.walks=this.atlas(walk.image,8,8,true);this.redWalks=this.atlas(redWalk.image,8,8,true);
+    const redDish=await this.recolor(dish);this.dishes=this.atlas(dish.image).flat();
+    const dc=document.createElement('canvas');dc.width=dish.image.width;dc.height=dish.image.height;const dctx=dc.getContext('2d')!;dctx.drawImage(dish.image,0,0);
+    const dp=dctx.getImageData(0,0,dc.width,dc.height).data;
+    for(const frame of this.dishes){
+      let sum=0,count=0;
+      for(let y=Math.floor(frame.h*.91);y<frame.h;y++)for(let x=0;x<frame.w;x++)if(dp[((frame.y+y)*dc.width+frame.x+x)*4+3]>180){sum+=x;count++;}
+      frame.center=sum/Math.max(1,count);
+    }
+    this.redDishes=this.dishes.map(frame=>({...frame,image:redDish.image}));
     this.buildings.headquarters=base;this.redBuildings.headquarters=this.redBase;
     const redStructures=await this.recolor(structures),redVehicles=await this.recolor(vehicles);
     const buildingSprites=this.atlas(structures.image,3,2).flat(),redBuildingSprites=this.atlas(redStructures.image,3,2).flat();
@@ -64,7 +87,7 @@ export class Renderer {
     (['barracks','factory','airfield','generator','turret'] as BuildingKind[]).forEach((kind,i)=>{this.buildings[kind]=buildingSprites[i];this.redBuildings[kind]=redBuildingSprites[i];});
     (['rover','tank','artillery','scout','gunship','bomber'] as UnitKind[]).forEach((kind,i)=>{this.vehicles[kind]=vehicleSprites[i];this.redVehicles[kind]=redVehicleSprites[i];});
     this.cliffs=TERRAIN_FRAMES.map(frame=>({...frame,image:cliffs.image}));
-    await Promise.all([...Object.values(this.buildings),...Object.values(this.vehicles),...this.cliffs].map(async sprite=>{
+    await Promise.all([...Object.values(this.vehicles),...this.cliffs].map(async sprite=>{
       const c=document.createElement('canvas');c.width=sprite.w;c.height=sprite.h;const ctx=c.getContext('2d')!;
       ctx.drawImage(sprite.image,sprite.x,sprite.y,sprite.w,sprite.h,0,0,c.width,c.height);ctx.globalCompositeOperation='source-in';ctx.fillStyle='#191713';ctx.fillRect(0,0,c.width,c.height);
       const image=new Image();image.src=c.toDataURL();await image.decode();this.shadows.set(sprite,{image,x:0,y:0,w:c.width,h:c.height});
@@ -73,7 +96,7 @@ export class Renderer {
     const mini=this.miniTerrain.getContext('2d')!;mini.drawImage(this.terrainSurface,0,0,224,224);mini.save();mini.scale(224/RULES.worldSize,224/RULES.worldSize);this.paintCliffs(mini);mini.restore();
     this.home();
   }
-  private atlas(image:HTMLImageElement,columns=4,rowCount=4):Pose[][]{
+  private atlas(image:HTMLImageElement,columns=4,rowCount=4,grounded=false):Pose[][]{
     const c=document.createElement('canvas');c.width=image.width;c.height=image.height;
     const ctx=c.getContext('2d')!;ctx.drawImage(image,0,0);const rgba=ctx.getImageData(0,0,c.width,c.height).data;
     const rows:Pose[][]=[];
@@ -85,8 +108,8 @@ export class Renderer {
         // Generated atlases have approximate gutters: a barrel may cross the
         // nominal cell edge. Find the complete connected figure in an expanded
         // cell, excluding isolated fragments from its neighbor.
-        const x0=Math.max(0,cellX-32),y0=Math.max(0,cellY-12);
-        const width=Math.min(image.width,cellX+cellW+32)-x0,height=Math.min(image.height,cellY+cellH+12)-y0;
+        const margin=32,vertical=grounded?24:12,x0=Math.max(0,cellX-margin),y0=Math.max(0,cellY-vertical);
+        const width=Math.min(image.width,cellX+cellW+margin)-x0,height=Math.min(image.height,cellY+cellH+vertical)-y0;
         const seen=new Uint8Array(width*height),queue=new Int32Array(width*height);
         let largest=0,bounds={left:0,top:0,right:width-1,bottom:height-1};
         for(let start=0;start<seen.length;start++){
@@ -112,7 +135,16 @@ export class Renderer {
           const alpha=rgba[((sy+y)*c.width+sx+x)*4+3];
           if(alpha>128){bodyX+=x;bodyWeight++;}
         }
-        poses.push({image,x:sx,y:sy,w,h,foot:h,bodyHeight:h,center:bodyX/Math.max(1,bodyWeight)});
+        let foot=h,bodyHeight=h;
+        if(grounded){
+          let top=h,bottom=0;
+          for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+            const at=((sy+y)*c.width+sx+x)*4;
+            if(rgba[at+3]>200&&Math.max(rgba[at],rgba[at+1],rgba[at+2])>75){top=Math.min(top,y);bottom=Math.max(bottom,y);}
+          }
+          foot=bottom+1;bodyHeight=bottom-top+1;
+        }
+        poses.push({image,x:sx,y:sy,w,h,foot,bodyHeight,center:bodyX/Math.max(1,bodyWeight)});
       }rows.push(poses);
     }
     return rows;
@@ -170,8 +202,9 @@ export class Renderer {
   }
   private polygon(points:Point[]):void {const c=this.context;c.beginPath();points.forEach((p,i)=>i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y));c.closePath();}
   private spriteDraw(s:Sprite,p:Point,width:number,flip=false,alpha=1):void{
-    const c=this.context,height=width*s.h/s.w;c.save();c.globalAlpha=alpha;c.translate(p.x,p.y);if(flip)c.scale(-1,1);
-    c.drawImage(s.image,s.x,s.y,s.w,s.h,-width/2,-height,width,height);c.restore();
+    const c=this.context,scale=width/(s.bodyWidth??s.w);c.save();c.globalAlpha=alpha;c.translate(p.x,p.y);if(flip)c.scale(-1,1);
+    const center=s.bodyWidth===undefined?s.w/2:s.center??s.w/2;
+    c.drawImage(s.image,s.x,s.y,s.w,s.h,-center*scale,-(s.foot??s.h)*scale,s.w*scale,s.h*scale);c.restore();
   }
   private bar(p:Point,width:number,ratio:number,color:string):void{
     const c=this.context;c.fillStyle='#0a0d10d9';c.fillRect(p.x-width/2-1,p.y-1,width+2,5);
@@ -194,18 +227,14 @@ export class Renderer {
       if(u.fire>.1){c.strokeStyle='#ffdf9c';c.lineWidth=u.kind==='tank'||u.kind==='artillery'?3:1.5;c.beginPath();c.moveTo(p.x+Math.cos(u.angle)*spec.width*.4,p.y-height*.42-air);c.lineTo(p.x+Math.cos(u.angle)*(spec.width*.4+9),p.y-height*.42-air+Math.sin(u.angle)*7);c.stroke();}
       return;
     }
-    let angle=((u.angle%(Math.PI*2))+Math.PI*2)%(Math.PI*2),row:number,flip=false;
-    if(angle>Math.PI*1.15&&angle<Math.PI*1.85){row=3;flip=angle<Math.PI*1.5;}
-    else if(angle>Math.PI*.35&&angle<Math.PI*.65)row=2;
-    else if(angle>Math.PI*.1&&angle<Math.PI*.9){row=1;flip=angle>Math.PI*.5;}
-    else {row=0;flip=angle>Math.PI*.5&&angle<Math.PI*1.5;}
+    const angle=((u.angle%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
+    // Eight authored directions keep lighting and shadows facing the same sun.
+    const row=[0,0,1,1,2,2,3,3,4,4,4,5,5,6,6,7][Math.round(angle/(Math.PI/8))%16];
     const stride=u.walkDistance-distance({x:u.x,y:u.y},{x:u.previousX,y:u.previousY})*(1-this.interpolation);
-    const frame=u.moving?Math.max(0,Math.floor(stride/18))%4:0,pose=(blue?this.walks:this.redWalks)[row][frame],scale=(u.kind==='heavy'?53:48)/pose.bodyHeight;
-    const recoil=u.fire>0?Math.sin(u.fire/.18*Math.PI)*1.4:0;
-    c.save();c.translate(p.x,p.y);if(flip)c.scale(-1,1);
+    const frame=u.moving?Math.max(0,Math.floor(stride/9))%8:0,pose=(blue?this.walks:this.redWalks)[row][frame],scale=(u.kind==='heavy'?53:48)/pose.bodyHeight;
+    c.save();c.translate(p.x,p.y);
     // Draw a complete authored pose. Slicing a rifleman into rotating rectangles
     // bent the armor and separated the legs from the torso in the previous cycle.
-    c.translate(-Math.cos(u.angle)*recoil,-Math.sin(u.angle)*recoil*.35);
     c.drawImage(pose.image,pose.x,pose.y,pose.w,pose.h,-pose.center*scale,-pose.foot*scale,pose.w*scale,pose.h*scale);c.restore();
     if(u.kind==='engineer'){c.strokeStyle='#eec879';c.lineWidth=1;c.beginPath();c.moveTo(p.x-7,p.y-32);c.lineTo(p.x-9,p.y-48);c.stroke();}
     if(selected||u.hp<spec.hp)this.bar({x:p.x,y:p.y-56},27,u.hp/spec.hp,blue?'#75c5e8':'#ed7866');
@@ -215,11 +244,11 @@ export class Renderer {
   }
   private drawBase(b:Base,alpha=1):void {
     const c=this.context,selected=this.selectedBase===b.id,spec=buildingSpec(b),sprite=(b.owner===0?this.buildings:this.redBuildings)[b.kind];
-    const anchor={x:b.x,y:b.y+spec.radius*.46},height=spec.width*sprite.h/sprite.w;
+    const anchor={x:b.x,y:b.y+spec.radius*.46},height=spec.width*(sprite.bodyHeight??sprite.h)/(sprite.bodyWidth??sprite.w);
     if(b.hp<=0){this.spriteDraw(sprite,anchor,spec.width,false,.18);return;}
     if(selected){c.strokeStyle='#78c8f1';c.lineWidth=1.1;c.setLineDash([8,5]);c.beginPath();c.ellipse(b.x,b.y-8,spec.radius+17,(spec.radius+17)*.47,0,0,Math.PI*2);c.stroke();c.setLineDash([]);}
-    this.castShadow(this.buildings[b.kind],{x:b.x,y:b.y},spec.width,.26*alpha);
     this.spriteDraw(sprite,anchor,spec.width,false,alpha*(b.buildRemaining>0?.5:1));
+    if(b.kind==='headquarters'&&b.buildRemaining<=0)this.drawBaseActivity(b,anchor,height,alpha);
     if(b.buildRemaining>0){
       const progress=1-b.buildRemaining/spec.buildTime;c.save();c.beginPath();c.rect(b.x-spec.width/2,anchor.y-height*progress,spec.width,height*progress);c.clip();this.spriteDraw(sprite,anchor,spec.width);c.restore();
       this.bar({x:b.x,y:b.y+spec.radius*.46+6},spec.width*.6,progress,'#e9bb61');c.fillStyle='#f1d48e';c.font='10px monospace';c.textAlign='center';c.fillText(`BAU ${Math.ceil(b.buildRemaining)} S`,b.x,b.y+spec.radius*.46+24);
@@ -228,6 +257,50 @@ export class Renderer {
     if(b.queue.length&&b.owner===0)this.bar({x:b.x,y:b.y+24},75,b.production/b.queue[0],'#dfb278');
     if(selected&&b.rally){c.strokeStyle='#94d9f399';c.setLineDash([5,6]);c.beginPath();c.moveTo(b.x,b.y);c.lineTo(b.rally.x,b.rally.y);c.stroke();c.setLineDash([]);
       c.fillStyle='#9dddff';c.fillRect(b.rally.x-1,b.rally.y-30,2,30);c.beginPath();c.moveTo(b.rally.x,b.rally.y-30);c.lineTo(b.rally.x+17,b.rally.y-24);c.lineTo(b.rally.x,b.rally.y-18);c.fill();}
+  }
+  private drawBaseActivity(b:Base,anchor:Point,height:number,alpha:number):void {
+    const c=this.context,width=buildingSpec(b).width,time=this.reducedMotion?0:this.game.time;
+    const frames=b.owner===0?this.dishes:this.redDishes,turn=time/48*frames.length;
+    const index=Math.floor(turn)%frames.length,blend=turn-Math.floor(turn);
+    const pivot={x:b.x+width*.137,y:anchor.y-height*.895};
+    // A fixed stem pivot and scale prevent the antenna from swelling as it turns.
+    const scale=4*width*.115/Math.max(...frames.map(f=>f.h)),surface=this.dishBlend,dc=surface.getContext('2d')!;
+    dc.clearRect(0,0,256,256);dc.globalCompositeOperation='source-over';
+    const draw=(frame:Pose,opacity:number)=>{
+      dc.globalAlpha=opacity;
+      dc.drawImage(frame.image,frame.x,frame.y,frame.w,frame.h,128-frame.center*scale,248-frame.h*scale,frame.w*scale,frame.h*scale);
+    };
+    // Add premultiplied colors on an isolated surface: overlapping frames stay
+    // opaque rather than making the dish fade halfway through every turn.
+    draw(frames[index],1-blend);dc.globalCompositeOperation='lighter';if(blend>0)draw(frames[(index+1)%frames.length],blend);
+    c.save();c.globalAlpha=alpha;c.drawImage(surface,pivot.x-32,pivot.y-62,64,64);c.restore();
+    const pulse=Math.pow(Math.max(0,Math.cos(time*Math.PI*2/3.8)),18);
+    c.save();c.globalAlpha=alpha*(.15+pulse*.8);c.fillStyle=b.owner===0?'#b7edff':'#ffd1c2';
+    c.beginPath();c.arc(b.x+width*.113,anchor.y-height*.995,.8+pulse*.35,0,Math.PI*2);c.fill();
+    c.globalAlpha=alpha*(.12+pulse*.35);c.fillRect(b.x-width*.04,anchor.y-height*.19,width*.035,1);c.restore();
+  }
+  private paintSandWind(time:number):void {
+    if(this.reducedMotion)return;
+    const c=this.context,step=155,size=RULES.worldSize,halfW=this.width/this.camera.zoom/2,halfH=this.height/this.camera.zoom/2;
+    const left=Math.max(0,Math.floor((this.camera.x-halfW-140)/step)),right=Math.min(Math.ceil(size/step),Math.ceil((this.camera.x+halfW+140)/step));
+    const top=Math.max(0,Math.floor((this.camera.y-halfH-60)/step)),bottom=Math.min(Math.ceil(size/step),Math.ceil((this.camera.y+halfH+60)/step));
+    c.save();c.lineCap='round';
+    for(let gy=top;gy<=bottom;gy++)for(let gx=left;gx<=right;gx++){
+      const seed=((Math.imul(gx+1,73856093)^Math.imul(gy+1,19349663))>>>0)/4294967296;
+      const phase=(time*.085+seed*7)%1,envelope=Math.sin(phase*Math.PI)**2;
+      const x=gx*step+seed*90+phase*65,y=gy*step+seed*125+Math.sin(time*.3+seed*20)*2;
+      if(x<0||y<0||x>=size||y>=size||!this.game.canSee(0,{x,y}))continue;
+      const cell=Math.floor(y/this.game.world.cell)*RULES.grid+Math.floor(x/this.game.world.cell);
+      if(this.game.world.blocked[cell])continue;
+      const length=34+seed*75,gradient=c.createLinearGradient(x,y,x+length,y+12);
+      gradient.addColorStop(0,'#efd5a800');gradient.addColorStop(.45,`rgba(255,227,174,${.07*envelope})`);gradient.addColorStop(1,'#efd5a800');
+      c.strokeStyle=gradient;
+      for(let strand=0;strand<3;strand++){
+        const offset=strand*2.4;c.lineWidth=strand===1?2.2:.6;
+        c.beginPath();c.moveTo(x,y+offset);c.bezierCurveTo(x+length*.35,y-4+offset,x+length*.72,y+14+offset,x+length,y+10+offset);c.stroke();
+      }
+    }
+    c.restore();
   }
   private updateFog():void {
     if(this.fogRevision===this.game.revision)return;this.fogRevision=this.game.revision;
@@ -253,6 +326,7 @@ export class Renderer {
     c.fillStyle='#030507';c.fillRect(0,0,this.width,this.height);c.save();
     c.translate(this.width/2,this.height/2);c.scale(this.camera.zoom,this.camera.zoom);c.translate(-this.camera.x,-this.camera.y);
     c.drawImage(this.terrainSurface,0,0);
+    this.paintSandWind(g.time);
     this.paintCliffs(c);
     for(const t of g.territories){
       if(t.owner>=0){this.polygon(t.polygon);c.fillStyle=t.owner===0?'#53b4ee0b':'#e257490b';c.fill();}

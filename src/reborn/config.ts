@@ -12,8 +12,9 @@ export const RULES = {
 export const ASSETS = {
   terrain: '/src/assets/reborn/desert-fine.png', infantry: '/src/assets/reborn/infantry.png',
   rockDetail: '/src/assets/reborn/sandstone-detail.png',
-  infantryWalk: '/src/assets/reborn/infantry-walk-v2.png', bastion: '/src/assets/reborn/bastion.png',
-  headquarters: '/src/assets/reborn/headquarters.png',
+  infantryWalk: '/src/assets/reborn/infantry-grounded-v3.png', bastion: '/src/assets/reborn/bastion-grounded-v2.png',
+  headquarters: '/src/assets/reborn/headquarters-grounded-v2.png',
+  radarDish: '/src/assets/reborn/radar-dish-turn-v1.png',
   vehicles: '/src/assets/reborn/vehicles.png',structures:'/src/assets/reborn/structures.png',cliffs:'/src/assets/reborn/cliffs.png',
 };
 export type Faction = 0 | 1;

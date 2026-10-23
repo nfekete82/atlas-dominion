@@ -3,7 +3,7 @@
 Geprüft mit TypeScript und lokalem Chrome auf macOS. Die neue Bildvorlage ist als echte Oberfläche umgesetzt: Ressourcenleiste links oben, Radar und Katalog rechts, kompakte Auswahl-/Kommandoleiste direkt links unten und Produktionswarteschlange im rechten Katalog, zentrales Pausenmenü mit Fortsetzen, Speichern, Laden, Optionen, Steuerung und Hauptmenü. CSS-/SVG-Rahmen und lokale Metall- und Landschaftsgrafiken bilden die Gestaltung.
 
 - **401 Node-Tests bestanden**, einschließlich der erhaltenen Simulation, HTTP-Auslieferung und **29 gezielten Reborn-Fällen**.
-- **13 Browserfälle bestanden**. Gameplayeingaben erfolgen über Maus/Tastatur. Lange Abschnitte werden durch echte feste Simulationsschritte beschleunigt.
+- **14 Browserfälle bestanden**. Gameplayeingaben erfolgen über Maus/Tastatur. Lange Abschnitte werden durch echte feste Simulationsschritte beschleunigt.
 - Die komplette Browser-Suite wurde auch gegen die abschließend neu gebaute Docker-Version auf `127.0.0.1:8095` ausgeführt. Der zusätzliche Vorschauprozess auf Port 8097 wurde danach beendet.
 
 Der Kampagnentest startet mit einem Soldaten und 500 Credits, erobert Nomadenpfad, kehrt zum Hauptquartier zurück, bezahlt und produziert fünf weitere Soldaten und markiert die Sechsergruppe per Auswahlrahmen. Er expandiert durch Zentralpass und Alte Trasse, kämpft gegen die aktive KI, nimmt deren Kiesebene ein und speichert anschließend über das echte Pausenmenü. Nach vollständigem Neuladen werden Besitzer, Credits, Truppen-IDs, Erkundung und Spielzeit beim Laden verglichen. Die geänderten Felsformen verändern Wege und Gefechte; der Test verwendet entsprechend eine zusätzliche regulär bezahlte Einheit. Kein künstliches Versetzen, Heilen oder Setzen der Besitzer in diesem Kampagnenablauf.
@@ -12,13 +12,15 @@ Der Einheitenfokus-Test startet mit echten 500 Credits und nur den beiden Start-
 
 Ein separater finanzierter Produktionsfall deaktiviert die KI und bildet alle sechs Fahrzeug-/Lufttypen direkt im Hauptquartier aus. Die Preise werden regulär abgebucht; alle sechs benötigen zusammen 99 Sekunden Produktionszeit. Ein später Auftrag wird über seinen Warteschlangenplatz storniert und zu genau seinem Preis erstattet. Die drei Bodenfahrzeuge müssen nach Marschbefehlen ihre Position verändern. Es werden keine zusätzlichen Gebäude benötigt. Diese Testkonfiguration prüft die Produktionswege, keine mit Startmitteln durchgespielte Kampagne.
 
+Der neue Effekt-Test prüft 64 geladene Soldatenposen, 16 Schüsselansichten und tatsächlich halbtransparente dunkle Schattenpixel im Atlas. Das Hauptquartier darf keinen Laufzeitschatten projizieren. Echte Bildpixel müssen sich bei fortgeschrittener Schüssel-/Lichtzeit und bei Wind verändern; bei gleicher pausierter Zeit bleiben die Pixel gleich. Reines Zeichnen darf den gespeicherten Spielzustand nicht verändern. Die neuen Gebäudegrafiken und alle Posen wurden zusätzlich auf sandfarbenem Untergrund visuell geprüft.
+
 Weitere Browserfälle prüfen:
 
 - Radar ziehen, Kamera, Zoom am Mauszeiger, Shift-Aufträge, Stop, Angriffsbewegung, Sektorgrenzen und schnelle Pause.
 - Keine sichtbaren Pixel verborgener Gegner auf Hauptkarte und Radar; erinnerte, aber aktuell unsichtbare Gebiete.
 - Bedienbare 800 × 650 Ansicht, echte Steuerungshilfe sowie bestätigter/abgebrochener Neustart über das Hauptmenü.
 - Tatsächlichen Audiosignalpegel, Stummschaltung und gespeicherte Lautstärke.
-- Transparente Schrittposen, sichtbare Gangänderung, automatische Gegenwehr und erhaltene Befehlsfolge. Alle 16 Posen werden außerdem auf abgetrennte Nachbarfragmente und gleichmäßige Bodenhöhe geprüft.
+- Transparente Schrittposen, sichtbare Gangänderung, automatische Gegenwehr und erhaltene Befehlsfolge. Alle 64 Posen werden außerdem auf abgetrennte Nachbarfragmente und gleichmäßige Bodenhöhe oberhalb der registrierten Fußlinie geprüft; der integrierte Schatten darf darunter liegen.
 - Sichtbaren Boden am früheren schwarzen Fleck, unter eigenen Einheiten und auf dem Radar sowie die vollständige Erkundung entdeckter Felsformationen.
 - Übereinstimmung gezeichneter Felsflächen mit der Navigationsmaske: über 99 % der deutlich deckenden Gelände-Pixelproben liegen in blockierten Zellen. Die tatsächlichen Felsmotive besitzen jeweils mehr als 400 native Pixel Breite.
 - Weiße, rote und blaue Bastion-Emission bei erhaltenem warmem Gehäusematerial, einschließlich tatsächlicher Besitzerwechsel im Renderer.
@@ -28,6 +30,6 @@ Ein zusätzlicher Simulationstest produziert jeden der neun Typen im unveränder
 
 Die neue Geometrie kann alte Gebäude oder Bodentruppen beim Laden auf nahe freie Flächen versetzen. Die Infanterietypen teilen einen Grundatlas; Fahrzeuge verwenden gespiegelte Ansichten. Die KI bleibt eine Infanterie-KI. Es gab keinen vollständigen manuellen Durchlauf bis zum Sieg und keinen Touch-Test. Ein tatsächlich ausgekämpfter Hauptquartierangriff mit anschließender Siegeinnahme ist separat in der Simulation geprüft.
 
-Bilder: [Kompakte Auswahl links unten auf großem Bildschirm](unit-focus-wide.png), [Einheitenfokus bei 800 × 650](unit-focus-compact.png), [Einheiten ohne Gebäudebau](unit-roster.png), [Pausenmenü nach Vorlage](reference-menu.png), [Start](initial.png), [Kampagne](campaign.png), [Kompakte Ansicht](compact.png), [Bastionssicht](bastion-sight.png). Die älteren separaten Farb-/Schrittphasentafeln dokumentieren Zeichenproben, keine vollständige Kampagne. Maschinenlesbare Ergebnisse und Traces liegen im ignorierten `tests/browser/artifacts/`.
+Bilder: [Integrierte Schatten und Basisanimation](grounded-animation.png), [Kompakte Auswahl links unten auf großem Bildschirm](unit-focus-wide.png), [Einheitenfokus bei 800 × 650](unit-focus-compact.png), [Einheiten ohne Gebäudebau](unit-roster.png), [Pausenmenü nach Vorlage](reference-menu.png), [Start](initial.png), [Kampagne](campaign.png), [Kompakte Ansicht](compact.png), [Bastionssicht](bastion-sight.png). Die älteren separaten Farb-/Schrittphasentafeln dokumentieren Zeichenproben, keine vollständige Kampagne. Maschinenlesbare Ergebnisse und Traces liegen im ignorierten `tests/browser/artifacts/`.
 
 Bildherkunft und vollständige Prompts: [ART_ASSETS.md](ART_ASSETS.md). Die Bastion ist weiterhin eine offen dokumentierte Nachbildung der nicht zugänglichen Originaldatei.

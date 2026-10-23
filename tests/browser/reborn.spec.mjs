@@ -124,7 +124,7 @@ test('reborn: sound unlocks on interaction, produces an audio signal and preserv
 test('reborn: finer terrain, directional animation, grounded drawing and automatic retaliation render in the browser',async({page})=>{
  await start(page);const result=await page.evaluate(async()=>{
   const {game:g,renderer:r}=window.__reborn;
-  const atlas=new Image();atlas.src='/src/assets/reborn/infantry-walk-v2.png';await atlas.decode();const temp=document.createElement('canvas');temp.width=atlas.width;temp.height=atlas.height;const tc=temp.getContext('2d');tc.drawImage(atlas,0,0);
+  const atlas=new Image();atlas.src='/src/assets/reborn/infantry-grounded-v3.png';await atlas.decode();const temp=document.createElement('canvas');temp.width=atlas.width;temp.height=atlas.height;const tc=temp.getContext('2d');tc.drawImage(atlas,0,0);
   const pixels=tc.getImageData(0,0,temp.width,temp.height).data;let clear=0,opaque=0;for(let i=3;i<pixels.length;i+=4){if(pixels[i]===0)clear++;if(pixels[i]>250)opaque++;}
   g.units=[];const blue=g.spawn(0,{x:1900,y:2100}),red=g.spawn(1,{x:2050,y:2100});g.command([blue.id],{x:2350,y:2100,kind:'move'});g.updateVision();g.paused=false;g.step();g.step();g.paused=true;
   r.camera.x=blue.x;r.camera.y=blue.y;r.boundCamera();r.selected=new Set([blue.id]);r.render(0);
@@ -138,7 +138,7 @@ test('reborn: finer terrain, directional animation, grounded drawing and automat
  });
  expect(result.blueHp).toBeLessThan(100);expect(result.redHp).toBeLessThan(100);expect(result.orders).toBe(1);
  expect(result.changed).toBeGreaterThan(100);expect(result.groundFills).toBe(0);expect(result.groundShadows).toBe(0);
- expect(result.clear/result.pixels).toBeGreaterThan(.4);expect(result.opaque/result.pixels).toBeGreaterThan(.15);expect(result.terrain).toContain('desert-fine.png');expect(result.grid).toBe(240*240);
+ expect(result.clear/result.pixels).toBeGreaterThan(.35);expect(result.opaque/result.pixels).toBeGreaterThan(.15);expect(result.terrain).toContain('desert-fine.png');expect(result.grid).toBe(240*240);
  await page.screenshot({path:evidence+'polish-combat.png'});
 });
 
@@ -195,10 +195,12 @@ test('reborn: infantry poses stay grounded without detached neighboring weapon f
    const ctx=c.getContext('2d'),old=r.context,selection=r.selected;r.context=ctx;r.selected=new Set();r.interpolation=1;
    let maxDetachedDistance=0,minHeight=Infinity,maxHeight=0;
    try{
-     for(const angle of [0,Math.PI/4,Math.PI/2,Math.PI*1.5])for(let frame=0;frame<4;frame++){
+     for(const angle of [0,.25*Math.PI,.5*Math.PI,.75*Math.PI,Math.PI,1.5*Math.PI,1.75*Math.PI,1.9*Math.PI])for(let frame=0;frame<8;frame++){
        ctx.clearRect(0,0,c.width,c.height);ctx.save();ctx.translate(90,105);ctx.scale(1.8,1.8);
-       r.drawUnit({...g.units[0],x:0,y:0,previousX:0,previousY:0,angle,walkDistance:frame*18,moving:true,fire:0,hit:0,hp:100});ctx.restore();
-       const pixels=ctx.getImageData(0,0,c.width,c.height).data,seen=new Uint8Array(c.width*c.height),groups=[];
+       r.drawUnit({...g.units[0],x:0,y:0,previousX:0,previousY:0,angle,walkDistance:frame*9,moving:true,fire:0,hit:0,hp:100});ctx.restore();
+       const pixels=ctx.getImageData(0,0,c.width,c.height).data;
+       for(let i=0;i<pixels.length;i+=4)if(pixels[i+3]<200||Math.floor(i/4/c.width)>105)pixels[i+3]=0;
+       const seen=new Uint8Array(c.width*c.height),groups=[];
        for(let start=0;start<seen.length;start++){
          if(seen[start]||pixels[start*4+3]<100)continue;const queue=[start];seen[start]=1;let left=c.width,right=0,top=c.height,bottom=0;
          for(let at=0;at<queue.length;at++){
@@ -210,7 +212,7 @@ test('reborn: infantry poses stay grounded without detached neighboring weapon f
          }
          groups.push({size:queue.length,left,right,top,bottom});
        }
-       groups.sort((a,b)=>b.size-a.size);const body=groups[0];minHeight=Math.min(minHeight,body.bottom-body.top+1);maxHeight=Math.max(maxHeight,body.bottom-body.top+1);
+       groups.sort((a,b)=>b.size-a.size);const body=groups[0];if(!body)throw Error(`Missing solid pose: angle ${angle}, frame ${frame}`);minHeight=Math.min(minHeight,body.bottom-body.top+1);maxHeight=Math.max(maxHeight,body.bottom-body.top+1);
        for(const part of groups.slice(1))if(part.size>=2)maxDetachedDistance=Math.max(maxDetachedDistance,body.left-part.right,part.left-body.right,body.top-part.bottom,part.top-body.bottom);
      }
    }finally{r.context=old;r.selected=selection;}
@@ -277,4 +279,33 @@ test('reborn: headquarters catalog produces all six vehicles and aircraft with d
  const moved=await page.evaluate(()=>{const {game:g}=window.__reborn,army=g.units.filter(u=>u.owner===0&&['rover','tank','artillery'].includes(u.kind));const before=army.map(u=>({id:u.id,x:u.x,y:u.y}));g.command(army.map(u=>u.id),{...g.territories[20].point,kind:'move'});return before;});await advance(page,14);
  for(const original of moved){const distance=await page.evaluate(original=>{const u=window.__reborn.game.units.find(u=>u.id===original.id);return Math.hypot(u.x-original.x,u.y-original.y);},original);expect(distance).toBeGreaterThan(45);}
  await page.locator('#home').click();await page.screenshot({path:evidence+'unit-roster.png'});
+});
+
+
+test('reborn: authored shadows, slow base activity and subtle sand drift stay grounded and pause with simulation time',async({page})=>{
+ await start(page);await page.locator('#home').click();
+ const result=await page.evaluate(()=>{
+  const {renderer:r,game:g}=window.__reborn,original=r.context,selected=r.selectedBase,oldTime=g.time;
+  const canvas=document.createElement('canvas');canvas.width=640;canvas.height=540;const c=canvas.getContext('2d');r.context=c;r.selectedBase=null;
+  const changes=(a,b)=>{let n=0;for(let i=0;i<a.length;i+=4)if(a[i]!==b[i]||a[i+1]!==b[i+1]||a[i+2]!==b[i+2]||a[i+3]!==b[i+3])n++;return n;};
+  const snap=()=>Array.from(c.getImageData(0,0,640,540).data);
+  const base={...g.bases[0],x:260,y:390,queue:[],hp:1200,buildRemaining:0};
+  const cast=r.castShadow;let projected=0;r.castShadow=()=>projected++;
+  let baseChanged=0,pausedChanged=0,windChanged=0,shadowPixels=0;
+  try{
+   g.time=0;r.drawBase(base);const first=snap();c.clearRect(0,0,640,540);g.time=12;r.drawBase(base);baseChanged=changes(first,snap());
+   c.clearRect(0,0,640,540);r.drawBase(base);const frozen=snap();c.clearRect(0,0,640,540);r.drawBase(base);pausedChanged=changes(frozen,snap());
+   for(const rows of r.walks)for(const frame of rows){
+    const tile=document.createElement('canvas');tile.width=frame.w;tile.height=frame.h;const tc=tile.getContext('2d');tc.drawImage(frame.image,frame.x,frame.y,frame.w,frame.h,0,0,frame.w,frame.h);
+    const d=tc.getImageData(0,0,frame.w,frame.h).data;for(let i=0;i<d.length;i+=4)if(d[i+3]>5&&d[i+3]<200&&Math.max(d[i],d[i+1],d[i+2])<85)shadowPixels++;
+   }
+   c.clearRect(0,0,640,540);const hq=g.bases[0];c.save();c.translate(320-hq.x,270-hq.y);r.paintSandWind(0);c.restore();const wind=snap();
+   c.clearRect(0,0,640,540);c.save();c.translate(320-hq.x,270-hq.y);r.paintSandWind(3);c.restore();windChanged=changes(wind,snap());
+  }finally{r.context=original;r.selectedBase=selected;r.castShadow=cast;g.time=oldTime;}
+  const before=JSON.stringify(g.save());r.render(.016);r.render(.016);const renderPreservesSave=JSON.stringify(g.save())===before;
+  return {baseChanged,pausedChanged,windChanged,projected,shadowPixels,frames:r.walks.flat().length,dishes:r.dishes.length,renderPreservesSave};
+ });
+ expect(result.frames).toBe(64);expect(result.dishes).toBe(16);expect(result.shadowPixels).toBeGreaterThan(500);
+ expect(result.projected).toBe(0);expect(result.baseChanged).toBeGreaterThan(40);expect(result.pausedChanged).toBe(0);expect(result.windChanged).toBeGreaterThan(50);expect(result.renderPreservesSave).toBe(true);
+ await page.screenshot({path:evidence+'grounded-animation.png'});
 });
