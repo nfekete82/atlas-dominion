@@ -81,3 +81,96 @@ dialog{position:fixed;color:#e1e5df;max-width:730px;width:calc(100% - 36px);padd
 .menu-button{border-color:#3a5360;font-size:15px;letter-spacing:.65px}
 .menu-brand .brand-copy{letter-spacing:1.5px}
 .pause-scene{height:80px;opacity:.55}
+/* Readable tactical HUD: keep the dark metal treatment, with restrained transparency.
+   Desktop layout grows with viewport width; narrow layouts retain their own geometry. */
+:root{--metal:linear-gradient(155deg,rgba(10,27,38,.9),rgba(6,17,25,.92))}
+.hud{color:#e4edf1}
+@media(min-width:801px){
+ .radar-caption{font:600 10px/1.2 var(--display);color:#c8d8de;opacity:1;text-shadow:0 1px 2px #000}
+ .compass{font-size:11px;color:#d4e0df}
+ .catalog-tabs button{font-size:13px}
+ .catalog-tabs button span{font-size:inherit;line-height:1.1}
+ .catalog h2{font-size:14px;letter-spacing:.6px}
+ .catalog-card .card-cost{font-size:14px;line-height:25px;color:#f3f4e9}
+ .catalog-card .card-cost i{font-size:16px}
+ #catalog-detail{min-height:41px;font-size:12px;line-height:1.4;color:#c6d5d9;padding-top:8px}
+ .territory-row{font-size:14px;min-height:43px}
+ .territory-row small{font-size:11px}
+ #production .section-label{font-size:12px;color:#e3edf0}
+ #production .queue-info{height:20px;font:600 11px/1.2 var(--display);color:#d4e2e5}
+ #production #queue-slots button{height:38px}
+ #production #queue-slots .empty{font-size:21px}
+ #production-time{font-size:12px;color:#f0f4f5}
+ #production #recruit{width:35px;height:27px}
+ #production #recruit svg{width:17px;height:17px}
+ .audio-panel label{font-size:14px}
+ .audio-panel output{font-size:13px}
+ #message-history p{font-size:14px}
+ #message-history time{font-size:11px}
+}
+@media(min-width:1001px){
+ :root{--side:clamp(310px,26vw,352px)}
+ #sidebar{top:74px;gap:11px;bottom:12px}
+ .radar{padding:16px 16px 23px}
+ .radar-caption{left:17px;right:17px;bottom:7px}
+ .radar #home{width:30px;height:30px}
+ .radar #home svg{width:18px;height:18px}
+ .catalog{padding:0 11px 13px}
+ .catalog-tabs{margin:0 -10px}
+ .catalog-tabs button{height:65px}
+ .catalog-scroll{padding:2px 2px 12px}
+ .catalog-grid{gap:8px}
+ .catalog-card{height:113px}
+ .catalog-card img{height:87px;padding:5px}
+ #production{padding-top:10px}
+ #production #quick-production{top:6px}
+ .top{width:460px;height:64px}
+ .wordmark{width:185px}
+ .brand-copy{font-size:13px}
+ .brand-copy b{font-size:22px}
+ .resources strong{font-size:22px}
+ .resources small{font-size:12px}
+ .resources em{font-size:16px}
+ .tools{height:44px}
+ .tools button{width:42px;height:39px}
+ .tools #clock{font-size:18px}
+ .command{width:min(548px,calc(100% - var(--side) - 35px));height:168px;min-height:0;padding:13px;grid-template-columns:minmax(0,1fr) 126px}
+ .command .selection{gap:12px;padding-right:12px}
+ .command .portrait{width:92px;min-width:92px}
+ .command .selection-copy{padding:0 0 26px}
+ .command .selection-copy>small{font-size:11px;letter-spacing:.5px;margin:2px 0 5px}
+ .command .selection-copy>strong{font-size:22px;line-height:1.12}
+ .command #selection-health{font-size:12px}
+ .command #selection-detail{font-size:13px;line-height:1.35;-webkit-line-clamp:3;color:#c4d0d0;margin-top:8px}
+ .command .section-label{font-size:11px}
+ .command .command-group{padding-left:12px}
+ .command .commands button,.command #unit-commands button,.command:has(#unit-commands:not([hidden])) .common-commands button{height:34px}
+ .command .commands svg,.command:has(#unit-commands:not([hidden])) .common-commands svg{width:20px;height:20px}
+ .command #quick-select button{width:30px;height:24px}
+}
+@media(min-width:801px) and (max-width:1000px){
+ :root{--side:250px}
+ .catalog-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .catalog-card{height:108px}
+ .catalog-card img{height:82px}
+ .catalog-tabs button{height:58px}
+ .radar{padding-bottom:23px}
+ #sidebar{bottom:173px}
+ .command .selection-copy>small{font-size:10px}
+ .command #selection-detail{font-size:11px}
+}
+@media(max-width:800px){
+ .radar-caption{font-size:8px;opacity:.92;color:#c9d8df}
+ .catalog h2{font-size:12px}
+ .catalog-tabs button span{font-size:10px}
+ .catalog-card .card-cost{color:#f2f1e5}
+ .command .selection-copy>small{font-size:9px}
+ .command .section-label{font-size:9px}
+ .command #selection-detail{font-size:10px}
+}
+@media(max-width:620px){
+ .catalog-tabs button span{font-size:9px}
+ .catalog h2{font-size:11px}
+ .command .selection-copy>small{font-size:8px}
+ .command #selection-detail{font-size:10px}
+}
