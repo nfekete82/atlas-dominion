@@ -1,6 +1,7 @@
 import { RULES, clamp, distance, type Faction, type Owner, type Point } from './config.js';
 import { World, inside, type Territory } from './world.js';
 import { UNITS, BUILDINGS, unitSpec, buildingSpec, type UnitKind, type BuildingKind } from './catalog.js';
+import { MAP_VERSION, randomMapSeed } from './world-generation.js';
 
 export interface Order extends Point { kind:'move'|'attackMove'|'attack'; target?:number }
 export interface Unit extends Point {
@@ -9,7 +10,7 @@ export interface Unit extends Point {
   angle:number; walkDistance:number; fire:number; previousX:number; previousY:number;
   lastAttacker:number|null; defendUntil:number;
   /** Optional motor state keeps version-2 saves compatible. */
-  driveSpeed?:number; hullAngle?:number;
+  driveSpeed?:number; hullAngle?:number; combatTarget?:number|null;
 }
 export interface Base extends Point {
   id:number; owner:Faction; kind:BuildingKind; hp:number; territory:number; queue:number[]; queueTypes:UnitKind[]; production:number;
@@ -19,7 +20,7 @@ export interface Base extends Point {
 export interface Shot { from:Point; to:Point; owner:Faction; life:number; hit:boolean }
 export interface Memory extends Point { id:number; owner:Faction; hp:number; territory:number; kind?:BuildingKind }
 export interface Save {
-  version:2; seed:number; time:number; nextId:number; credits:number[]; incomeClock:number;
+  version:2; seed:number; mapVersion?:0|1; time:number; nextId:number; credits:number[]; incomeClock:number;
   units:Unit[]; bases:Base[]; territories:Territory[]; explored:number[][];
   memories:Memory[][]; aiClock:number; status:'playing'|'victory'|'defeat';
 }
@@ -35,7 +36,7 @@ class SpatialIndex {
 }
 
 export class Simulation {
-  readonly world=new World();
+  readonly world:World;
   seed:number; time=0; nextId=1; credits=[RULES.initialCredits as number,RULES.initialCredits as number];
   incomeClock=0; aiClock=0; status:'playing'|'victory'|'defeat'='playing';
   units:Unit[]=[]; bases:Base[]=[]; territories:Territory[];
@@ -43,16 +44,18 @@ export class Simulation {
   explored=[new Uint8Array(RULES.grid**2),new Uint8Array(RULES.grid**2)];
   memories:Memory[][]=[[],[]]; shots:Shot[]=[]; notices:string[]=[];
   paused=false; revision=0; private fogClock=0; private spatial=new SpatialIndex();
-  constructor(seed=2026) {
-    this.seed=seed;this.territories=this.world.territories(seed);
+  /** The original constructor remains a deterministic legacy fixture/save reader. */
+  constructor(seed=2026,mapVersion:0|1=0) {
+    this.seed=seed;this.world=new World(seed,mapVersion);this.territories=this.world.territories(seed);
     for(const [owner,territory] of [[0,19],[1,5]] as const){
-      const t=this.territories[territory], p=this.world.clearSite(t.point,RULES.headquarters.radius)!;
+      const t=this.territories[territory],site=mapVersion===1?{x:t.point.x-165,y:t.point.y+45}:t.point,p=this.world.clearSite(site,RULES.headquarters.radius)!;
       this.bases.push({id:1000+owner,owner,kind:'headquarters',...p,hp:RULES.headquarters.hp,territory,queue:[],queueTypes:[],production:0,buildRemaining:0,cooldown:0,rally:null,radius:RULES.headquarters.radius});
-      t.point=this.world.nearest({x:p.x+165,y:p.y-45},this.obstacles())!;
+      if(mapVersion===0)t.point=this.world.nearest({x:p.x+165,y:p.y-45},this.obstacles())!;
       this.spawn(owner,this.world.nearest({x:p.x+140,y:p.y+100},this.obstacles())!);
     }
     this.spatial.rebuild(this.units);this.updateVision();
   }
+  static campaign(seed=randomMapSeed()):Simulation {return new Simulation(seed,MAP_VERSION);}
   obstacles():Base[]{return this.bases.filter(b=>b.hp>0);}
   spawn(owner:Faction,p:Point,kind:UnitKind='infantry'):Unit {
     while(this.bases.some(b=>b.id===this.nextId))this.nextId++;
@@ -118,7 +121,7 @@ export class Simulation {
       const target=spec.flying?{x:clamp(p.x,8,RULES.worldSize-8),y:clamp(p.y,8,RULES.worldSize-8)}:this.world.nearest(p,this.obstacles(),[],u,Math.max(0,spec.radius-10));if(!target)return;
       const next:Order={...order,...target};
       if(append){if(u.orders.length<32)u.orders.push(next);else return;}
-      else {u.orders=[next];u.path=[];u.repath=0;}
+      else {u.orders=[next];u.path=[];u.repath=0;u.combatTarget=null;}
       accepted++;
     });return accepted;
   }
@@ -156,24 +159,30 @@ export class Simulation {
     this.revision++;
   }
   private acquire(u:Unit):Unit|Base|undefined {
-    const order=u.orders[0];
-    // Even during a movement order, return fire at the actual visible attacker.
-    // Keep the movement queue and path so it resumes when the threat is gone.
-    if(u.lastAttacker!==null&&u.defendUntil>this.time){
-      const attacker=this.units.find(e=>e.id===u.lastAttacker&&e.owner!==u.owner&&e.hp>0);
-      if(attacker&&distance(u,attacker)<=unitSpec(u).range&&this.canSee(u.owner,attacker)&&(unitSpec(u).flying||unitSpec(attacker).flying||this.world.line(u,attacker)))return attacker;
-    }
-    // All soldiers engage visible threats in weapon range, including during a
-    // normal march. Orders remain queued and resume when the threat is gone.
+    const order=u.orders[0],spec=unitSpec(u),entities=[...this.units,...this.bases];
+    const visible=(e:Unit|Base)=>this.canSee(u.owner,e)||(distance(u,e)<=spec.sight&&(spec.flying||this.world.sightLine(u,e)));
+    const eligible=(e:Unit|Base)=>e.hp>0&&e.owner!==u.owner&&distance(u,e)<=spec.range&&visible(e)&&
+      (spec.flying||('orders' in e&&unitSpec(e).flying)||this.world.line(u,e));
+    // Explicit orders take priority; otherwise finish a valid opponent before
+    // switching, even if another attacker deals the most recent hit.
     if(order?.kind==='attack'&&order.target!==undefined){
-      const manual=[...this.units,...this.bases].find(e=>e.id===order.target&&e.owner!==u.owner&&e.hp>0&&this.canSee(u.owner,e));
-      if(manual)return manual;
+      const manual=entities.find(e=>e.id===order.target&&e.owner!==u.owner&&e.hp>0&&visible(e));
+      if(manual){u.combatTarget=manual.id;return manual;}
     }
-    let best:Unit|Base|undefined,range=unitSpec(u).range+1;
+    const locked=entities.find(e=>e.id===u.combatTarget);
+    if(locked&&eligible(locked))return locked;
+    u.combatTarget=null;
+    if(u.lastAttacker!==null&&u.defendUntil>this.time){
+      const attacker=entities.find(e=>e.id===u.lastAttacker);
+      if(attacker&&eligible(attacker)){u.combatTarget=attacker.id;return attacker;}
+    }
+    // Direct sight is checked every fixed tick, independently of the fog raster.
+    let best:Unit|Base|undefined,range=spec.range+1;
     for(const e of [...this.spatial.query(u,range),...this.bases]){
       const d=distance(u,e);
-      if(e.hp>0&&e.owner!==u.owner&&d<range&&this.canSee(u.owner,e)&&(unitSpec(u).flying||('orders' in e&&unitSpec(e).flying)||this.world.line(u,e))) {best=e;range=d;}
+      if(d<range&&eligible(e)) {best=e;range=d;}
     }
+    u.combatTarget=best?.id??null;
     return best;
   }
   private move(u:Unit,target:Point,dt:number):void {
@@ -295,14 +304,14 @@ export class Simulation {
     }
   }
   save():Save {
-    return structuredClone({version:2,seed:this.seed,time:this.time,nextId:this.nextId,credits:this.credits,incomeClock:this.incomeClock,
+    return structuredClone({version:2,seed:this.seed,mapVersion:this.world.mapVersion,time:this.time,nextId:this.nextId,credits:this.credits,incomeClock:this.incomeClock,
       units:this.units,bases:this.bases,territories:this.territories,explored:this.explored.map(a=>Array.from(a)),memories:this.memories,aiClock:this.aiClock,status:this.status});
   }
   static load(raw:unknown):Simulation {
     const s=raw as Save;
     const finite=(n:unknown)=>typeof n==='number'&&Number.isFinite(n);
     const point=(p:Point)=>p&&finite(p.x)&&finite(p.y)&&p.x>=0&&p.y>=0&&p.x<=RULES.worldSize&&p.y<=RULES.worldSize;
-    if(!s||s.version!==2||!finite(s.seed)||!finite(s.time)||s.time<0||!finite(s.incomeClock)||s.incomeClock<0||s.incomeClock>=10||
+    if(!s||s.version!==2||(s.mapVersion!==undefined&&s.mapVersion!==0&&s.mapVersion!==1)||!finite(s.seed)||!finite(s.time)||s.time<0||!finite(s.incomeClock)||s.incomeClock<0||s.incomeClock>=10||
       !Array.isArray(s.units)||s.units.length>96||!Array.isArray(s.bases)||s.bases.length<2||s.bases.length>64||
       !Array.isArray(s.territories)||s.territories.length!==30||!Array.isArray(s.explored)||s.explored.length!==2||
       s.explored.some(a=>!Array.isArray(a)||![120**2,RULES.grid**2].includes(a.length)||a.some(v=>v!==0&&v!==1))||
@@ -312,13 +321,14 @@ export class Simulation {
         (b.queueTypes!==undefined&&(!Array.isArray(b.queueTypes)||b.queueTypes.length!==b.queue.length||b.queueTypes.some(k=>!Object.hasOwn(UNITS,k))))||
         (b.buildRemaining!==undefined&&(!finite(b.buildRemaining)||b.buildRemaining<0||b.buildRemaining>(BUILDINGS[b.kind??'headquarters']?.buildTime??0)))||!finite(b.production)||b.production<0||b.production>(b.queue[0]??0))||
       s.territories.some((t,i)=>t.id!==i||![-1,0,1].includes(t.owner)||!finite(t.progress)||t.progress<0||t.progress>8))throw new Error('Dieser Spielstand ist beschädigt oder gehört zu einer anderen Version.');
-    const game=new Simulation(s.seed);
+    const game=new Simulation(s.seed,s.mapVersion??0);
     game.time=s.time;game.nextId=Math.max(...s.units.map(u=>u.id),0)+1;game.credits=[...s.credits];game.incomeClock=s.incomeClock;
     game.bases=structuredClone(s.bases).map(b=>({...b,kind:b.kind??'headquarters',...game.world.clearSite(b,buildingSpec(b).radius),radius:buildingSpec(b).radius,queueTypes:b.queueTypes??b.queue.map(()=>'infantry'),buildRemaining:b.buildRemaining??0,cooldown:b.cooldown??0}));
     game.units=structuredClone(s.units).map(u=>{
       const p=unitSpec(u).flying?u:game.world.nearest(u,game.obstacles(),[],undefined,Math.max(0,unitSpec(u).radius-10))??u;
       return {...u,kind:u.kind??'infantry',...p,path:[],repath:0,hit:0,fire:0,previousX:p.x,previousY:p.y,
-        angle:u.angle??(u.facing<0?Math.PI:0),walkDistance:u.walkDistance??0,lastAttacker:u.lastAttacker??null,defendUntil:u.defendUntil??0};
+        angle:u.angle??(u.facing<0?Math.PI:0),walkDistance:u.walkDistance??0,lastAttacker:u.lastAttacker??null,defendUntil:u.defendUntil??0,
+        combatTarget:Number.isInteger(u.combatTarget)?u.combatTarget:null};
     });
     // Geometry, income and neighbors are regenerated from the seed, never trusted from storage.
     game.territories.forEach((t,i)=>{t.owner=s.territories[i].owner;t.capturing=s.territories[i].capturing;t.progress=s.territories[i].progress;});

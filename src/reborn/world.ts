@@ -1,5 +1,6 @@
 import { RULES, type Point, type Owner } from './config.js';
 import { TERRAIN_BLOCKED, TERRAIN_CLIFFS } from './terrain-art.js';
+import { generateMap, polygonContains, segmentDistance, type GeneratedMap } from './world-generation.js';
 
 export interface Territory {
   id: number; name: string; polygon: Point[]; point: Point; neighbors: number[];
@@ -43,17 +44,33 @@ export class World {
   readonly opaque = new Uint8Array(RULES.grid ** 2);
   readonly cliffIds = new Int16Array(RULES.grid ** 2).fill(-1);
   readonly components = new Int16Array(RULES.grid ** 2).fill(-1);
-  readonly cliffCells:number[][]=Array.from({length:9},()=>[]);
-  constructor() {
-    if(navigationCache){
+  readonly cliffCells:number[][]=[];
+  readonly generated?:GeneratedMap;
+  constructor(readonly seed=2026,readonly mapVersion:0|1=0) {
+    if(mapVersion===0&&navigationCache){
       this.blocked.set(navigationCache.blocked);this.opaque.set(navigationCache.opaque);this.cliffIds.set(navigationCache.cliffs);this.components.set(navigationCache.components);
-      this.cliffIds.forEach((id,i)=>{if(id>=0)this.cliffCells[id].push(i);});return;
+      this.cliffIds.forEach((id,i)=>{if(id>=0)(this.cliffCells[id]??=[]).push(i);});return;
     }
-    this.blocked.set(Uint8Array.from(atob(TERRAIN_BLOCKED),c=>c.charCodeAt(0)));
-    const cliffData=Uint8Array.from(atob(TERRAIN_CLIFFS),c=>c.charCodeAt(0));
-    for(let i=0;i<this.blocked.length;i++) {
-      const cliff=cliffData[i]-1;
-      if(cliff>=0){this.opaque[i]=1;this.cliffIds[i]=cliff;this.cliffCells[cliff].push(i);}
+    if(mapVersion===1){
+      this.generated=generateMap(seed);
+      this.rocks=this.generated.mesas.map(m=>m.outline);
+      for(const [id,mesa] of this.generated.mesas.entries()){
+        this.cliffCells[id]=[];
+        const minX=Math.max(0,Math.floor(Math.min(...mesa.outline.map(p=>p.x))/this.cell)-1),maxX=Math.min(RULES.grid-1,Math.ceil(Math.max(...mesa.outline.map(p=>p.x))/this.cell)+1);
+        const minY=Math.max(0,Math.floor(Math.min(...mesa.outline.map(p=>p.y))/this.cell)-1),maxY=Math.min(RULES.grid-1,Math.ceil(Math.max(...mesa.outline.map(p=>p.y))/this.cell)+1);
+        for(let y=minY;y<=maxY;y++)for(let x=minX;x<=maxX;x++){
+          const i=y*RULES.grid+x,p=this.center(i),solid=polygonContains(p,mesa.outline);
+          if(solid||mesa.outline.some((a,n)=>segmentDistance(p,a,mesa.outline[(n+1)%mesa.outline.length])<this.cell)){this.blocked[i]=1;}
+          if(solid){this.opaque[i]=1;this.cliffIds[i]=id;this.cliffCells[id].push(i);}
+        }
+      }
+    }else{
+      this.blocked.set(Uint8Array.from(atob(TERRAIN_BLOCKED),c=>c.charCodeAt(0)));
+      const cliffData=Uint8Array.from(atob(TERRAIN_CLIFFS),c=>c.charCodeAt(0));
+      for(let i=0;i<this.blocked.length;i++) {
+        const cliff=cliffData[i]-1;
+        if(cliff>=0){this.opaque[i]=1;this.cliffIds[i]=cliff;(this.cliffCells[cliff]??=[]).push(i);}
+      }
     }
     // Static connectivity keeps move destinations out of isolated terrain pockets.
     let component=0;
@@ -67,7 +84,7 @@ export class World {
         }
       }component++;
     }
-    navigationCache={blocked:this.blocked.slice(),opaque:this.opaque.slice(),cliffs:this.cliffIds.slice(),components:this.components.slice()};
+    if(mapVersion===0)navigationCache={blocked:this.blocked.slice(),opaque:this.opaque.slice(),cliffs:this.cliffIds.slice(),components:this.components.slice()};
   }
   index(p: Point): number {
     const x=Math.floor(p.x/this.cell), y=Math.floor(p.y/this.cell);
@@ -162,7 +179,7 @@ export class World {
       'Südwacht','Blaue Bastion','Nomadenpfad','Quarzsenke','Sichelgrat','Fernposten',
       'Klippenrand','Heimische Dünen','Südpass','Goldene Senke','Wandergrund','Letzte Wacht'];
     return Array.from({length:cols*rows},(_,id)=>{
-      const x=id%cols,y=Math.floor(id/cols),point=this.nearest({x:(x+.5)*w,y:(y+.5)*h})!;
+      const x=id%cols,y=Math.floor(id/cols),point=this.generated?{...this.generated.sites[id]}:this.nearest({x:(x+.5)*w,y:(y+.5)*h})!;
       const value=id%7===0?2:id%3===0?1:0;
       return {id,name:names[id],polygon:[vertices[y][x],vertices[y][x+1],vertices[y+1][x+1],vertices[y+1][x]],
         point,neighbors:[x>0?id-1:-1,x<cols-1?id+1:-1,y>0?id-cols:-1,y<rows-1?id+cols:-1].filter(i=>i>=0),

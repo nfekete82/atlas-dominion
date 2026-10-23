@@ -11,5 +11,6 @@ try{
  const page=await browser.newPage();page.on('pageerror',e=>console.error(e));page.on('console',m=>{if(m.type()==='error')console.error(m.text());});
  await page.goto(`http://127.0.0.1:${server.address().port}/scripts/animation/render.html`);await page.waitForFunction(()=>!!window.compileAtlases);
  await page.exposeFunction('saveAtlas',async(name,png,metadata)=>{await writeFile(path.join(out,name+'.png'),Buffer.from(png.split(',')[1],'base64'));await writeFile(path.join(out,name+'.json'),JSON.stringify(metadata,null,2)+'\n');console.log(name,metadata.frames.length,'frames');});
+ await page.exposeFunction('saveVehicleModel',async(name,data)=>{await writeFile(path.join(out,name),Buffer.from(data));});
  await page.evaluate(kinds=>window.compileAtlases(kinds),process.argv.slice(2));
 }finally{await browser.close();await new Promise(r=>server.close(r));}

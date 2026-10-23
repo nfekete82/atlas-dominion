@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test';
 import {mkdir} from 'node:fs/promises';
 const evidence=new URL('../../docs/reborn/',import.meta.url).pathname;
 async function start(page,width=1440,height=1000){
- await page.setViewportSize({width,height});await page.goto('/?debug');await page.locator('#loading').waitFor({state:'detached'});
+ await page.setViewportSize({width,height});await page.goto('/?debug&legacy');await page.locator('#loading').waitFor({state:'detached'});
  await page.evaluate(()=>{window.__reborn.game.paused=true;});
 }
 async function advance(page,seconds){return page.evaluate(seconds=>{
@@ -381,4 +381,50 @@ test('atlas models: all seven building models load in the gallery and radar moti
   }
  }
  expect(errors).toEqual([]);
+});
+
+test('campaign: real new-game input generates a different reachable map and save/load restores the previous terrain and minimap',async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.setViewportSize({width:1500,height:1000});await page.goto('/?debug');await page.locator('#loading').waitFor({state:'detached'});
+ const snapshot=()=>page.evaluate(()=>{
+  const {game:g,renderer:r}=window.__reborn;g.paused=true;r.render(0);
+  const digest=c=>{const d=c.getContext('2d',{willReadFrequently:true}).getImageData(0,0,c.width,c.height).data;let n=2166136261;for(let i=0;i<d.length;i+=113)n=Math.imul(n^d[i],16777619)>>>0;return n;};
+  return {seed:g.seed,map:g.world.mapVersion,sites:g.territories.map(t=>t.point),terrain:digest(r.terrainSurface),mini:digest(r.miniTerrain),mesas:g.world.generated.mesas.length,reachable:g.territories.every(t=>g.world.path(g.units[0],t.point,g.obstacles()).length>0),spaced:g.territories.every(t=>g.territories.every(o=>o.id===t.id||Math.hypot(t.point.x-o.point.x,t.point.y-o.point.y)>=440))};
+ });
+ const before=await snapshot();expect(before.map).toBe(1);expect(before.mesas).toBeGreaterThanOrEqual(20);expect(before.reachable).toBe(true);expect(before.spaced).toBe(true);
+ await openMenu(page);await page.locator('#save').click();await expect(page.locator('#notices')).toContainText('Kampagne lokal gespeichert');
+ await newCampaign(page);await page.locator('#new-dialog [value="new"]').click();await expect.poll(()=>page.evaluate(()=>window.__reborn.game.seed)).not.toBe(before.seed);const after=await snapshot();
+ expect(after.seed).not.toBe(before.seed);expect(after.sites).not.toEqual(before.sites);expect(after.terrain).not.toBe(before.terrain);expect(after.mini).not.toBe(before.mini);expect(after.reachable).toBe(true);expect(after.spaced).toBe(true);
+ await openMenu(page);await page.locator('#load').click();await expect(page.locator('#notices')).toContainText('Kampagne geladen');const restored=await snapshot();expect(restored).toEqual(before);
+ await page.screenshot({path:evidence+'random-campaign.png'});expect(errors).toEqual([]);
+});
+
+test('combat: approaching enemies receive immediate fire and a second attacker does not steal the first target',async({page})=>{
+ await page.setViewportSize({width:1500,height:1000});await page.goto('/?debug&seed=2026');await page.locator('#loading').waitFor({state:'detached'});
+ const first=await page.evaluate(()=>{
+  const {game:g,renderer:r}=window.__reborn;g.paused=false;g.aiClock=-1e8;g.units=[];
+  const p=g.territories[19].point,blue=g.spawn(0,p,'heavy'),a=g.spawn(1,{x:p.x+120,y:p.y}),b=g.spawn(1,{x:p.x+155,y:p.y});
+  g.command([blue.id],{x:p.x+300,y:p.y,kind:'move'});g.command([blue.id],{x:p.x+400,y:p.y+50,kind:'move'},true);
+  g.visible[0].fill(0);g.step();g.paused=true;r.selected.add(blue.id);r.camera.x=p.x+100;r.camera.y=p.y-60;r.camera.zoom=1.5;g.updateVision();r.render(.05);
+  return {blue:blue.id,first:a.id,second:b.id,target:blue.combatTarget,attacker:blue.lastAttacker,hp:[a.hp,b.hp]};
+ });
+ expect(first.target).toBe(first.first);expect(first.attacker).toBe(first.second);expect(first.hp).toEqual([66,100]);
+ await advance(page,2.65);
+ const next=await page.evaluate(()=>{const g=window.__reborn.game;return {survivors:g.units.filter(u=>u.owner===1).map(u=>u.id),hp:g.units.find(u=>u.owner===1).hp,blue:g.units.find(u=>u.owner===0).hp,orders:g.units.find(u=>u.owner===0).orders.length};});
+ expect(next.survivors).toEqual([first.second]);expect(next.hp).toBe(100);expect(next.blue).toBeGreaterThan(0);expect(next.orders).toBe(2);
+ await advance(page,1.4);expect(await page.evaluate(()=>window.__reborn.game.units.find(u=>u.owner===1).hp)).toBeLessThan(100);
+ await page.screenshot({path:evidence+'target-focus.png'});
+});
+
+test('vehicle art: the full roster has real faction materials, baked shadows, animated running gear and visible turret/barrel layers',async({page})=>{
+ await start(page);const result=await page.evaluate(async()=>{
+  const r=window.__reborn.renderer,c=document.createElement('canvas');c.width=c.height=96;const ctx=c.getContext('2d',{willReadFrequently:true}),rows=[];
+  for(const kind of ['rover','tank','artillery','scout','gunship','bomber']){
+   const asset=r.units.asset(kind),data=asset.data;
+   const count=frame=>{ctx.clearRect(0,0,96,96);ctx.drawImage(asset.image,frame.x,frame.y,96,96,0,0,96,96);const p=ctx.getImageData(0,0,96,96).data;let solid=0,shadow=0,groundShadow=0;for(let i=0;i<p.length;i+=4){if(p[i+3]>200)solid++;if(p[i+3]>5&&p[i+3]<150&&Math.max(p[i],p[i+1],p[i+2])<85){shadow++;if(Math.floor(i/4/96)>=70)groundShadow++;}}return {solid,shadow,groundShadow};};
+   const base=count(data.frames[data.clips.idle.frames[0][0]]),turret=data.clips.turret?count(data.frames[data.clips.turret.frames[0][0]]):null,barrel=data.clips.barrel?count(data.frames[data.clips.barrel.frames[0][0]]):null;
+   rows.push({kind,parts:data.design.parts,source:data.source,base,turret,barrel,phases:data.clips.walk.uniquePhases,model:(await fetch('/src/assets/reborn/animation/'+kind+'-0.glb')).ok});
+  }
+  return rows;
+ });
+ for(const row of result){expect(row.parts).toBeGreaterThan(20);expect(row.source).toBe('Atlas original vehicle geometry');expect(row.model).toBe(true);expect(row.base.solid).toBeGreaterThan(60);expect(row.base.shadow).toBeGreaterThan(10);if(row.kind!=='bomber')expect(row.phases.every(n=>n>=4)).toBe(true);if(row.turret){expect(row.turret.solid).toBeGreaterThan(15);expect(row.barrel.solid).toBeGreaterThan(3);expect(row.barrel.groundShadow).toBe(0);}}
 });

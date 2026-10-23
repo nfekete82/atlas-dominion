@@ -10,7 +10,17 @@
   "nativeScale": 0.9166666666666666,
   "directions": 16,
   "stride": 34,
-  "source": "rover.gltf",
+  "source": "Atlas original vehicle geometry",
+  "design": {
+    "kind": "rover",
+    "team": 0,
+    "parts": 147,
+    "triangles": 38456,
+    "geometry": "Atlas original ceramic / bronze vehicle geometry",
+    "source": "Atlas Dominion / original procedural models"
+  },
+  "palette": "Legion ceramic / bronze / dark steel / faction enamel",
+  "lighting": "ACES 1.13 / warm sun / cool fill",
   "timeBasedLocomotion": false,
   "rotor": false,
   "clips": {
@@ -1090,5 +1100,6 @@
       ],
       "duration": 0.25
     }
-  ]
+  ],
+  "model": "rover-0.glb"
 }

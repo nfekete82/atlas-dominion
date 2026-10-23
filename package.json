@@ -10,7 +10,7 @@
     "preview": "node scripts/serve.mjs",
     "test": "npm run build && node --test tests/*.test.mjs",
     "test:browser": "npm run build && npm --prefix tests/browser test",
-    "test:reborn": "npm run build && node --test tests/reborn.test.mjs",
+    "test:reborn": "npm run build && node --test tests/reborn.test.mjs tests/reborn-campaign.test.mjs",
     "test:animation": "npm run build && node --test tests/reborn-animation.test.mjs tests/reborn-buildings.test.mjs",
     "assets:animations": "node scripts/render-unit-atlases.mjs",
     "assets:animation-audit": "npm run build && node scripts/audit-animation-assets.mjs",

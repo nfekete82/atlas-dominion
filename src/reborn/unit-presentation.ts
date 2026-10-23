@@ -63,7 +63,7 @@ export class UnitPresentation {
  }
  drawCorpses(c:CanvasRenderingContext2D,visible:(p:Point)=>boolean):void{for(const v of this.corpses)if(v.unit.owner===0||visible(v.unit)){c.save();c.globalAlpha=Math.min(1,(5-v.deathAge)/.7);this.drawView(c,v,v.unit);c.restore();}}
  muzzle(v:View,u:Unit):Point{
-  const scale=v.asset.data.nativeScale*(u.kind==='heavy'?1.08:1),frame=v.frame,muzzle=frame.muzzle,spec=unitSpec(u);
+  const scale=v.asset.data.nativeScale*(u.kind==='heavy'?1.08:1),frame=v.asset.data.clips.barrel?v.anim.frame('barrel',v.turretAngle):v.frame,muzzle=frame.muzzle,spec=unitSpec(u);
   return muzzle?{x:u.x+(muzzle[0]-frame.pivot[0])*scale,y:u.y+(muzzle[1]-frame.pivot[1])*scale}:{x:u.x+Math.cos(v.turretAngle)*spec.width*.42,y:u.y-16-(spec.flying?32:0)+Math.sin(v.turretAngle)*spec.width*.18};
  }
  muzzleFor(u:Unit):Point{return this.muzzle(this.view(u),u);}

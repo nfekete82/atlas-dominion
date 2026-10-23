@@ -10,7 +10,17 @@
   "nativeScale": 1.1111111111111112,
   "directions": 16,
   "stride": 34,
-  "source": "helicopter.glb",
+  "source": "Atlas original vehicle geometry",
+  "design": {
+    "kind": "scout",
+    "team": 1,
+    "parts": 35,
+    "triangles": 9620,
+    "geometry": "Atlas original ceramic / bronze vehicle geometry",
+    "source": "Atlas Dominion / original procedural models"
+  },
+  "palette": "Legion ceramic / bronze / dark steel / faction enamel",
+  "lighting": "ACES 1.13 / warm sun / cool fill",
   "timeBasedLocomotion": true,
   "rotor": true,
   "clips": {
@@ -1666,5 +1676,6 @@
       ],
       "duration": 0.08
     }
-  ]
+  ],
+  "model": "scout-1.glb"
 }

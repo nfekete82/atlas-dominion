@@ -5,6 +5,7 @@ import { BUILDINGS, UNITS, buildingSpec, unitSpec, type BuildingKind, type UnitK
 import { UnitPresentation } from './unit-presentation.js';
 import { BuildingPresentation } from './building-presentation.js';
 import { TERRAIN_FRAMES, TERRAIN_PLACEMENTS } from './terrain-art.js';
+import { paintGeneratedTerrain } from './terrain-presentation.js';
 
 interface Sprite { image:HTMLImageElement; x:number; y:number; w:number; h:number; center?:number; foot?:number; bodyWidth?:number; bodyHeight?:number }
 export class Renderer {
@@ -62,12 +63,16 @@ export class Renderer {
       ctx.drawImage(sprite.image,sprite.x,sprite.y,sprite.w,sprite.h,0,0,c.width,c.height);ctx.globalCompositeOperation='source-in';ctx.fillStyle='#191713';ctx.fillRect(0,0,c.width,c.height);
       const image=new Image();image.src=c.toDataURL();await image.decode();this.shadows.set(sprite,{image,x:0,y:0,w:c.width,h:c.height});
     }));
+    this.prepareMap();this.home();
+  }
+  private prepareMap():void {
     this.prepareTerrain();
-    const mini=this.miniTerrain.getContext('2d')!;mini.drawImage(this.terrainSurface,0,0,224,224);mini.save();mini.scale(224/RULES.worldSize,224/RULES.worldSize);this.paintCliffs(mini);mini.restore();this.home();
+    const mini=this.miniTerrain.getContext('2d',{willReadFrequently:true})!;mini.drawImage(this.terrainSurface,0,0,224,224);mini.save();mini.scale(224/RULES.worldSize,224/RULES.worldSize);this.paintCliffs(mini);mini.restore();
   }
   private prepareTerrain():void{
+    if(this.game.world.generated){paintGeneratedTerrain(this.terrainSurface,this.game.world);return;}
     const surface=this.terrainSurface;surface.width=surface.height=RULES.worldSize;
-    const ctx=surface.getContext('2d')!,tile=document.createElement('canvas');tile.width=tile.height=190;
+    const ctx=surface.getContext('2d',{willReadFrequently:true})!,tile=document.createElement('canvas');tile.width=tile.height=190;
     const tc=tile.getContext('2d')!;tc.drawImage(this.terrain,445/1254*this.terrain.width,675/1254*this.terrain.height,190/1254*this.terrain.width,190/1254*this.terrain.height,0,0,190,190);
     const detail=tc.getImageData(0,0,190,190).data;tc.filter='blur(6px)';tc.drawImage(tile,0,0);const low=tc.getImageData(0,0,190,190).data;
     const pixels=ctx.createImageData(surface.width,surface.height);let seed=92531;
@@ -82,6 +87,7 @@ export class Renderer {
     ctx.putImageData(pixels,0,0);
   }
   private paintCliffs(ctx:CanvasRenderingContext2D):void{
+    if(this.game.world.generated)return;
     for(const p of TERRAIN_PLACEMENTS){const sprite=this.cliffs[p.frame],shadow=this.shadows.get(sprite);
       if(shadow){ctx.save();ctx.globalAlpha=.25;ctx.translate(p.x+p.w/2,p.y+p.h-2);ctx.transform(1,0,-.42,-.14,0,0);ctx.drawImage(shadow.image,shadow.x,shadow.y,shadow.w,shadow.h,-p.w/2,-p.h,p.w,p.h);ctx.restore();}
       ctx.drawImage(sprite.image,sprite.x,sprite.y,sprite.w,sprite.h,p.x,p.y,p.w,p.h);
@@ -93,6 +99,7 @@ export class Renderer {
     const c=document.createElement('canvas');c.width=c.height=160;const ctx=c.getContext('2d')!;
     {
       const {data,image}=this.units.asset(kind as UnitKind),frame=data.frames[data.clips.idle.frames[1][0]],tile=document.createElement('canvas');tile.width=frame.w;tile.height=frame.h;const tc=tile.getContext('2d')!;tc.drawImage(image,frame.x,frame.y,frame.w,frame.h,0,0,frame.w,frame.h);
+      for(const tag of ['turret','barrel'])if(data.clips[tag]){const layer=data.frames[data.clips[tag].frames[1][0]];tc.drawImage(image,layer.x,layer.y,layer.w,layer.h,frame.pivot[0]-layer.pivot[0],frame.pivot[1]-layer.pivot[1],layer.w,layer.h);}
       const pixels=tc.getImageData(0,0,frame.w,frame.h).data;let left=frame.w,top=frame.h,right=0,bottom=0;
       for(let y=0;y<frame.h;y++)for(let x=0;x<frame.w;x++)if(pixels[(y*frame.w+x)*4+3]>180){left=Math.min(left,x);top=Math.min(top,y);right=Math.max(right,x);bottom=Math.max(bottom,y);}
       const width=right-left+1,height=bottom-top+1,scale=Math.min(148/width,148/height);ctx.imageSmoothingEnabled=false;ctx.drawImage(tile,left,top,width,height,(160-width*scale)/2,156-height*scale,width*scale,height*scale);
@@ -106,7 +113,7 @@ export class Renderer {
     this.context.setTransform(dpr,0,0,dpr,0,0);this.boundCamera();
   }
   home():void {const b=this.game.bases.find(b=>b.owner===0&&b.kind==='headquarters'&&b.hp>0);if(b){const side=document.getElementById('sidebar')?.getBoundingClientRect().width??0;this.camera.x=b.x+this.width/2-(this.width-side-24)*.33;this.camera.y=b.y-Math.min(this.height*.63,this.height-300)+this.height/2;this.camera.zoom=1;this.boundCamera();}}
-  invalidate():void{this.fogRevision=-1;this.units.clear();this.seenImpacts=new WeakSet();}
+  invalidate():void{if(this.infantry)this.prepareMap();this.fogRevision=-1;this.units.clear();this.seenImpacts=new WeakSet();}
   boundCamera():void {
     const w=this.width/this.camera.zoom/2,h=this.height/this.camera.zoom/2,s=RULES.worldSize;
     this.camera.x=w>=s/2?s/2:clamp(this.camera.x,w,s-w);this.camera.y=h>=s/2?s/2:clamp(this.camera.y,h,s-h);

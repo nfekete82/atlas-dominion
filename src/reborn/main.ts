@@ -9,7 +9,10 @@ import { icon } from './icons.js';
 
 const el=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
 for(const span of document.querySelectorAll<HTMLElement>('[data-icon]'))span.innerHTML=icon(span.dataset.icon!);
-let game=new Simulation();
+const query=new URLSearchParams(location.search);
+// Explicit legacy fixture for regression checks; normal launches always roll a new seed.
+const createCampaign=()=>query.has('debug')&&query.has('legacy')?new Simulation():Simulation.campaign(query.has('debug')&&query.has('seed')?Number(query.get('seed'))>>>0:undefined);
+let game=createCampaign();
 const renderer=new Renderer(el<HTMLCanvasElement>('world'),el<HTMLCanvasElement>('minimap'),game),input=new Input(renderer),audio=new Soundscape();
 let accumulator=0,last=performance.now(),uiClock=0,resultShown=false,busy=false,ready=false,selectionSound='',catalogTab='units';
 const messages:{time:string;message:string}[]=[];
@@ -45,7 +48,7 @@ function prepareCatalog():void{
  for(const t of game.territories){const button=document.createElement('button');button.className='territory-row';button.dataset.territory=String(t.id);button.innerHTML='<i></i><strong></strong><small></small>';button.onclick=()=>{renderer.camera.x=game.territories[t.id].point.x;renderer.camera.y=game.territories[t.id].point.y;renderer.boundCamera();};el('catalog-territories').append(button);}
  for(let i=0;i<8;i++){const button=document.createElement('button');button.onclick=()=>{const b=contextBase();if(b&&i<b.queue.length){game.cancel(b.id,i);refresh();}else tab('units');};el('queue-slots').append(button);}
 }
-function reset():void{closeDialogs();game=new Simulation();renderer.game=game;renderer.invalidate();renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;renderer.placement=null;renderer.canvas.classList.remove('attack','building');renderer.home();accumulator=0;resultShown=false;messages.length=0;setPause(false);tab('units');refresh();notify('Neue Kampagne. Truppen ausbilden und Bastionen sichern.');}
+function reset():void{closeDialogs();game=createCampaign();renderer.game=game;renderer.invalidate();renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;renderer.placement=null;renderer.canvas.classList.remove('attack','building');renderer.home();accumulator=0;resultShown=false;messages.length=0;setPause(false);tab('units');refresh();notify('Neue Kampagne. Truppen ausbilden und Bastionen sichern.');}
 function refresh():void{
  if(!ready)return;
  const selected=game.units.filter(u=>renderer.selected.has(u.id)&&u.owner===0);renderer.selected=new Set(selected.map(u=>u.id));

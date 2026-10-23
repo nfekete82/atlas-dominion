@@ -9,12 +9,12 @@ npm install
 npm run dev
 ```
 
-**http://127.0.0.1:8095** — oder `docker compose up --build -d`. Der Docker-Port ist auf `127.0.0.1` begrenzt. Keine Accounts, Cloud-Dienste oder Downloads zur Spielzeit. Start: 500 Credits, ein Soldat, Hauptquartier und drei eigene Sektoren. Bestehende Spielstände bleiben ladbar.
+**http://127.0.0.1:8095** — oder `docker compose up --build -d`. Der Docker-Port ist auf `127.0.0.1` begrenzt. Keine Accounts, Cloud-Dienste oder Downloads zur Spielzeit. Start: 500 Credits, ein Soldat, Hauptquartier und drei eigene Sektoren. Jeder neue Spielstart erzeugt zufälliges Gelände und verteilt die Bastionen mit mindestens 440 Welteinheiten Abstand. Alle Bastionen sind zu Fuß erreichbar. Laden stellt die gespeicherte Karte wieder her; bestehende Spielstände bleiben ladbar.
 
 ## Spielen
 
 - Linksklick: Einheit oder Gebäude wählen. Ziehen: Gruppe markieren. Doppelklick: sichtbare eigene Truppen markieren.
-- Rechtsklick: bewegen oder ein sichtbares Ziel angreifen. Shift: Befehle anhängen. **A**: Angriffsbewegung, **S**: halten. Soldaten und Fahrzeuge eröffnen in Waffenreichweite selbstständig das Feuer und setzen danach ihren Auftrag fort.
+- Rechtsklick: bewegen oder ein sichtbares Ziel angreifen. Shift: Befehle anhängen. **A**: Angriffsbewegung, **S**: halten. Soldaten und Fahrzeuge erfassen sichtbare Gegner im nächsten Simulationstakt, halten ihren Gegner im Gefecht und wechseln erst danach zum nächsten gültigen Ziel. Anschließend setzen sie ihren Auftrag fort.
 - WASD/Pfeile und Bildschirmrand bewegen die Kamera; Mausrad zoomt am Zeiger. Radar klicken/ziehen bewegt den Ausschnitt. **H**: Hauptquartier, **T**: Sektorgrenzen.
 - Der Gebäudebau ist vorerst aus der Oberfläche entfernt. Hauptquartier und eroberbare Bastionen bleiben als Ausgangspunkt und Spielziele erhalten. Bestehende Spielstände mit weiteren Anlagen bleiben kompatibel.
 - Die acht Produktionsplätze rechts unter dem Einheitenkatalog zeigen echte Aufträge. Ein Klick auf einen belegten Platz storniert genau diesen Auftrag mit voller Kostenerstattung. Der Fortschritt eines anderen laufenden Auftrags bleibt erhalten.
@@ -29,7 +29,7 @@ Die neun Truppen kosten 100/150/250 Credits für Infanterie, Pionier und schwere
 
 ```sh
 npm run typecheck
-npm run test:reborn    # 29 gezielte Simulationstests
+npm run test:reborn    # 34 gezielte Simulationstests, einschließlich 100 Zufallskarten
 npm run test:animation # 10 gezielte Animations-/Bewegungs-/Gebäudemodelltests
 npm test              # einschließlich Archiv und HTTP
 npm run test:browser   # Chrome: Spielablauf, Oberfläche, Produktion, Menüs, Sicht, Audio, Animationslabor
@@ -43,9 +43,9 @@ Browser-Abhängigkeiten: `npm ci --prefix tests/browser`. Chrome ist voreingeste
 
 TypeScript, Canvas 2D, feste 20 Simulationsschritte pro Sekunde, A*, räumliche Buckets und IndexedDB. Spielwerte stehen in `src/reborn/config.ts`, Einheiten und Gebäude in `src/reborn/catalog.ts`. Keine zusätzliche Laufzeitbibliothek.
 
-Neue hochauflösende Einzelgrafiken ersetzen die vergrößerten Felsflächen. Ihre Alpha-Konturen bestimmen Bewegung und Sicht; `node scripts/compile-terrain-art.mjs` erzeugt daraus die deterministischen Masken. Feiner Boden wird separat aufgebaut. Die freigegebene Legionär-Figur und sieben eigene Gebäudetypen werden aus zusammengehörigen 3D-Modellen mit fest integrierten Schatten gerendert. Basis und Bastion blinken dezent und drehen ihre Schüsseln in 48 Sekunden. Leichte Sandverwehungen ziehen über sichtbaren freien Boden; alle Effekte stehen bei Pause still. Bastionen besitzen eigene neutral weiße, blaue und rote Modellfassungen.
+Neue Kampagnen verwenden native facettierte Mesas, ruhigen Sandboden und dekorative blaue Kristalle nach der neuen Landschaftsvorlage. Gelände und Navigation werden gemeinsam aus dem Kartenseed erzeugt. Alte Spielstände behalten die frühere Landschaft samt Alpha-Konturen. [Zufallskarten, Zielbindung, Fahrzeugmodelle und Prüfung](docs/reborn/RANDOM_CAMPAIGNS.md). Die freigegebene Legionär-Figur und sieben eigene Gebäudetypen werden aus zusammengehörigen 3D-Modellen mit fest integrierten Schatten gerendert. Basis und Bastion blinken dezent und drehen ihre Schüsseln in 48 Sekunden. Leichte Sandverwehungen ziehen über sichtbaren freien Boden; alle Effekte stehen bei Pause still. Bastionen besitzen eigene neutral weiße, blaue und rote Modellfassungen.
 
-Infanterie verwendet jetzt echte Idle-/Walk-/Attack-/Hit-/Death-Clips aus lizenzierten CC0-Modellen: acht Ansichten mit acht unterschiedlichen Laufphasen je Richtung. Fahrzeuge besitzen 16 gerenderte Ansichten, Rad-/Kettenbewegung und begrenzte Lenkgeschwindigkeit. Panzer und Artillerie besitzen getrennte Rümpfe, Türme und Rohre. Der Canvas-Renderer deformiert oder dreht keine vollständigen Einheitensprites. Partikel sind unter Optionen abschaltbar. Three.js wird zum Offline-Export und im separaten 3D-Modellinspektor verwendet; das Hauptspiel bleibt Canvas 2D.
+Die freigegebene Infanterie verwendet echte Idle-/Walk-/Attack-/Hit-/Death-Clips: acht Ansichten mit acht unterschiedlichen Laufphasen je Richtung. Sechs eigene Fahrzeugmodelle übernehmen Keramik, Bronze, dunklen Stahl und Teamfarben der Modellfamilie. Sie besitzen 16 gerenderte Ansichten, echte Rad-/Ketten-/Rotorphasen und begrenzte Lenkgeschwindigkeit. Panzer und Artillerie besitzen getrennte Rümpfe, Türme und Rohre. Der Canvas-Renderer deformiert oder dreht keine vollständigen Einheitensprites. Partikel sind unter Optionen abschaltbar. Three.js wird zum Offline-Export und im separaten 3D-Modellinspektor verwendet; das Hauptspiel bleibt Canvas 2D.
 
 Das [Animationslabor](http://127.0.0.1:8095/animation-lab.html) zeigt sechs Prüfabläufe gleichzeitig mit der aktuell aktiven Infanterie. [Animationssystem, Quellen und konkrete Asset-Grenzen](docs/reborn/ANIMATION_SYSTEM.md) dokumentieren die Entwicklung; alte generierte Bilder und die ersten einfachen Figuren bleiben archiviert. Die KI expandiert und kämpft weiterhin mit Infanterie. Maus und Tastatur bilden die vollständige Steuerung; kein dediziertes Touch- oder Mehrspielersystem.
 

@@ -10,7 +10,17 @@
   "nativeScale": 1.2777777777777777,
   "directions": 16,
   "stride": 34,
-  "source": "helicopter.glb",
+  "source": "Atlas original vehicle geometry",
+  "design": {
+    "kind": "gunship",
+    "team": 0,
+    "parts": 39,
+    "triangles": 9940,
+    "geometry": "Atlas original ceramic / bronze vehicle geometry",
+    "source": "Atlas Dominion / original procedural models"
+  },
+  "palette": "Legion ceramic / bronze / dark steel / faction enamel",
+  "lighting": "ACES 1.13 / warm sun / cool fill",
   "timeBasedLocomotion": true,
   "rotor": true,
   "clips": {
@@ -1666,5 +1676,6 @@
       ],
       "duration": 0.08
     }
-  ]
+  ],
+  "model": "gunship-0.glb"
 }

@@ -10,7 +10,17 @@
   "nativeScale": 1.4722222222222223,
   "directions": 16,
   "stride": 34,
-  "source": "bomber.gltf",
+  "source": "Atlas original vehicle geometry",
+  "design": {
+    "kind": "bomber",
+    "team": 0,
+    "parts": 26,
+    "triangles": 6480,
+    "geometry": "Atlas original ceramic / bronze vehicle geometry",
+    "source": "Atlas Dominion / original procedural models"
+  },
+  "palette": "Legion ceramic / bronze / dark steel / faction enamel",
+  "lighting": "ACES 1.13 / warm sun / cool fill",
   "timeBasedLocomotion": false,
   "rotor": false,
   "clips": {
@@ -514,5 +524,6 @@
       ],
       "duration": 1
     }
-  ]
+  ],
+  "model": "bomber-0.glb"
 }

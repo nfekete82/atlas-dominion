@@ -34,25 +34,25 @@
       "file": "src/assets/reborn/animation/artillery-0.png",
       "width": 1536,
       "height": 1440,
-      "sha256": "03278228c34c30b420d668c741643d3e3169256d3f96fdfbc1728b4ef9c5bbf0"
+      "sha256": "0d15bf4c1504cd004f8096b7e5f71c314c8738beb7cf3d9c81fb412d31fe0dfd"
     },
     {
       "file": "src/assets/reborn/animation/artillery-1.png",
       "width": 1536,
       "height": 1440,
-      "sha256": "ead81cff36745e52ae8507ab2a46e926840d3d56ab099750745c876b88e2cfde"
+      "sha256": "62caeb6c3f751a22f9a5f6be2443b12dc9f27a38e4073c045166e26e0773e096"
     },
     {
       "file": "src/assets/reborn/animation/bomber-0.png",
       "width": 1536,
       "height": 192,
-      "sha256": "8b540cfb898ffbb9dcfe8913958c901dfa50634f51249042ef72d6bd64f67b83"
+      "sha256": "7e986da7363413c7c6a13751c6e40b7dad940cbe49b1225436db1efbcf82e5f3"
     },
     {
       "file": "src/assets/reborn/animation/bomber-1.png",
       "width": 1536,
       "height": 192,
-      "sha256": "6ce8989044aa98d89069be80c27859dca1c7eb80f8ec25eadc287fb423339ad8"
+      "sha256": "d4ffc7e1a5a9d57afca6eea0656038c16e5d591233a1330f47930d0bdb45b33c"
     },
     {
       "file": "src/assets/reborn/animation/engineer-0.png",
@@ -70,13 +70,13 @@
       "file": "src/assets/reborn/animation/gunship-0.png",
       "width": 1536,
       "height": 768,
-      "sha256": "64b0398efce553d3b2b69be8c9fcf27b84087f53c81fa7c9d1fc059a7c36698a"
+      "sha256": "4a28f83d8d40c7ef67daa00b9b898415f9af5f66ac3edcc70c17fdf139e4fe13"
     },
     {
       "file": "src/assets/reborn/animation/gunship-1.png",
       "width": 1536,
       "height": 768,
-      "sha256": "ae84d7893cd73f505bea38ef57b1a7b102f3b52d6d257dbdb6b1215192e748df"
+      "sha256": "5f613bb0fcf2f8ceaccfdb77625d1c0d3d60179c8f0ce84c31270c4ff7307203"
     },
     {
       "file": "src/assets/reborn/animation/heavy-0.png",
@@ -106,37 +106,37 @@
       "file": "src/assets/reborn/animation/rover-0.png",
       "width": 1536,
       "height": 480,
-      "sha256": "db80f38537da0f770ea7e767e26bc9842a61e5cb4253c41183935c465106728c"
+      "sha256": "e0740568ab9f90b0bb0d720ffee2752f174160b8a7464048eef77198bc7e3099"
     },
     {
       "file": "src/assets/reborn/animation/rover-1.png",
       "width": 1536,
       "height": 480,
-      "sha256": "109fae0861805b65c5162287afc1375b7dc936c43423be66974217ff5cad765f"
+      "sha256": "3e4072417f62eb7d874f5affd61e72cca66a8d168168530417f13f2db6eddbe6"
     },
     {
       "file": "src/assets/reborn/animation/scout-0.png",
       "width": 1536,
       "height": 768,
-      "sha256": "64b0398efce553d3b2b69be8c9fcf27b84087f53c81fa7c9d1fc059a7c36698a"
+      "sha256": "f7d4b4a844b7b8e177648901974d35643d737bb7bb6acbe282a9525be803eb76"
     },
     {
       "file": "src/assets/reborn/animation/scout-1.png",
       "width": 1536,
       "height": 768,
-      "sha256": "ae84d7893cd73f505bea38ef57b1a7b102f3b52d6d257dbdb6b1215192e748df"
+      "sha256": "a368526e072958a635c75bb2095464c2af89c1f113dd88521b25c4b390267c3b"
     },
     {
       "file": "src/assets/reborn/animation/tank-0.png",
       "width": 1536,
       "height": 1440,
-      "sha256": "1a28bf919e5162de04f2729e4a528406bcd6cf7a9d91085b9a2d1fb3ab534775"
+      "sha256": "053eba55903bb011045cf4352deec996a4698b0914ecc594359409eefc798060"
     },
     {
       "file": "src/assets/reborn/animation/tank-1.png",
       "width": 1536,
       "height": 1440,
-      "sha256": "a372cd743b6378b7df9de7e83b7dfccb340c3efcbac07270e7752ed9887870e8"
+      "sha256": "6dd1c837913cd4b309bc8d5a0cea59db6476d6362ccafbcfb288d442a893a8f4"
     },
     {
       "file": "src/assets/reborn/bastion-grounded-v2.png",
@@ -541,6 +541,17 @@
       "team": 0,
       "directions": 8,
       "frameCount": 296,
+      "source": "Atlas original hard-surface armour on Quaternius CC0 rig",
+      "design": {
+        "name": "Atlas Legion Infantry / detailed armour prototype",
+        "version": 1,
+        "team": 0,
+        "parts": 151,
+        "triangles": 78780,
+        "geometry": "Original procedural hard-surface armour and rifle",
+        "rig": "Quaternius Toon Shooter Game Kit / CC0-1.0",
+        "maxGripError": 1.8860355453214907e-7
+      },
       "clips": {
         "idle": {
           "phases": 6,
@@ -625,6 +636,17 @@
       "team": 1,
       "directions": 8,
       "frameCount": 296,
+      "source": "Atlas original hard-surface armour on Quaternius CC0 rig",
+      "design": {
+        "name": "Atlas Legion Infantry / detailed armour prototype",
+        "version": 1,
+        "team": 1,
+        "parts": 151,
+        "triangles": 78780,
+        "geometry": "Original procedural hard-surface armour and rifle",
+        "rig": "Quaternius Toon Shooter Game Kit / CC0-1.0",
+        "maxGripError": 1.8860355453214907e-7
+      },
       "clips": {
         "idle": {
           "phases": 6,
@@ -707,6 +729,17 @@
       "team": 0,
       "directions": 16,
       "frameCount": 80,
+      "source": "Atlas original vehicle geometry",
+      "model": "rover-0.glb",
+      "modelSha256": "b86932ea4954417832709c30aa92027dbba6a5d29126c7f0b06452576bee0935",
+      "design": {
+        "kind": "rover",
+        "team": 0,
+        "parts": 147,
+        "triangles": 38456,
+        "geometry": "Atlas original ceramic / bronze vehicle geometry",
+        "source": "Atlas Dominion / original procedural models"
+      },
       "clips": {
         "idle": {
           "phases": 1,
@@ -763,6 +796,17 @@
       "team": 1,
       "directions": 16,
       "frameCount": 80,
+      "source": "Atlas original vehicle geometry",
+      "model": "rover-1.glb",
+      "modelSha256": "65c75914a6fe86be7f3a8f538b59740b09465ebd5231dc90500e0fc8ef991fb0",
+      "design": {
+        "kind": "rover",
+        "team": 1,
+        "parts": 147,
+        "triangles": 38456,
+        "geometry": "Atlas original ceramic / bronze vehicle geometry",
+        "source": "Atlas Dominion / original procedural models"
+      },
       "clips": {
         "idle": {
           "phases": 1,
@@ -819,6 +863,17 @@
       "team": 0,
       "directions": 16,
       "frameCount": 240,
+      "source": "Atlas original vehicle geometry",
+      "model": "tank-0.glb",
+      "modelSha256": "865791136ec8d2820671d0c22ff5f5254b6fb6bf95fbe62a526cfb372955ec8e",
+      "design": {
+        "kind": "tank",
+        "team": 0,
+        "parts": 376,
+        "triangles": 99092,
+        "geometry": "Atlas original ceramic / bronze vehicle geometry",
+        "source": "Atlas Dominion / original procedural models"
+      },
       "clips": {
         "idle": {
           "phases": 1,
@@ -862,7 +917,7 @@
             4,
             4
           ],
-          "source": "TankArmature|Tank_Forward"
+          "source": "authored rigid track geometry"
         },
         "turnLeft": {
           "phases": 4,
@@ -884,7 +939,7 @@
             4,
             4
           ],
-          "source": "TankArmature|Tank_TurningLeft"
+          "source": "authored rigid track geometry"
         },
         "turnRight": {
           "phases": 4,
@@ -906,7 +961,7 @@
             4,
             4
           ],
-          "source": "TankArmature|Tank_TurningRight"
+          "source": "authored rigid track geometry"
         },
         "turret": {
           "phases": 1,
@@ -933,6 +988,17 @@
       "team": 1,
       "directions": 16,
       "frameCount": 240,
+      "source": "Atlas original vehicle geometry",
+      "model": "tank-1.glb",
+      "modelSha256": "d52a5c3ffbea36d10102009c482787cfc0d00dc230ceb4e3b0582a9eaedb5a9d",
+      "design": {
+        "kind": "tank",
+        "team": 1,
+        "parts": 376,
+        "triangles": 99092,
+        "geometry": "Atlas original ceramic / bronze vehicle geometry",
+        "source": "Atlas Dominion / original procedural models"
+      },
       "clips": {
         "idle": {
           "phases": 1,
@@ -976,7 +1042,7 @@
             4,
             4
           ],
-          "source": "TankArmature|Tank_Forward"
+          "source": "authored rigid track geometry"
         },
         "turnLeft": {
           "phases": 4,
@@ -998,7 +1064,7 @@
             4,
             4
           ],
-          "source": "TankArmature|Tank_TurningLeft"
+          "source": "authored rigid track geometry"
         },
         "turnRight": {
           "phases": 4,
@@ -1020,7 +1086,7 @@
             4,
             4
           ],
-          "source": "TankArmature|Tank_TurningRight"
+          "source": "authored rigid track geometry"
         },
         "turret": {
           "phases": 1,
@@ -1047,6 +1113,17 @@
       "team": 0,
       "directions": 16,
       "frameCount": 240,
+      "source": "Atlas original vehicle geometry",
+      "model": "artillery-0.glb",
+      "modelSha256": "82c883fd0f246a5e7a659de33c5ff5a2eb5373425d49709e833b36e186582769",
+      "design": {
+        "kind": "artillery",
+        "team": 0,
+        "parts": 376,
+        "triangles": 99092,
+        "geometry": "Atlas original ceramic / bronze vehicle geometry",
+        "source": "Atlas Dominion / original procedural models"
+      },
       "clips": {
         "idle": {
           "phases": 1,
@@ -1090,7 +1167,7 @@
             4,
             4
           ],
-          "source": "TankArmature|Tank_Forward"
+          "source": "authored rigid track geometry"
         },
         "turnLeft": {
           "phases": 4,
@@ -1112,7 +1189,7 @@
             4,
             4
           ],
-          "source": "TankArmature|Tank_TurningLeft"
+          "source": "authored rigid track geometry"
         },
         "turnRight": {
           "phases": 4,
@@ -1134,7 +1211,7 @@
             4,
             4
           ],
-          "source": "TankArmature|Tank_TurningRight"
+          "source": "authored rigid track geometry"
         },
         "turret": {
           "phases": 1,
@@ -1161,6 +1238,17 @@
       "team": 1,
       "directions": 16,
       "frameCount": 240,
+      "source": "Atlas original vehicle geometry",
+      "model": "artillery-1.glb",
+      "modelSha256": "423503e9906d78e727c3a43c3ddeed9826cd068576abfe29f642f6471ad88576",
+      "design": {
+        "kind": "artillery",
+        "team": 1,
+        "parts": 376,
+        "triangles": 99092,
+        "geometry": "Atlas original ceramic / bronze vehicle geometry",
+        "source": "Atlas Dominion / original procedural models"
+      },
       "clips": {
         "idle": {
           "phases": 1,
@@ -1204,7 +1292,7 @@
             4,
             4
           ],
-          "source": "TankArmature|Tank_Forward"
+          "source": "authored rigid track geometry"
         },
         "turnLeft": {
           "phases": 4,
@@ -1226,7 +1314,7 @@
             4,
             4
           ],
-          "source": "TankArmature|Tank_TurningLeft"
+          "source": "authored rigid track geometry"
         },
         "turnRight": {
           "phases": 4,
@@ -1248,7 +1336,7 @@
             4,
             4
           ],
-          "source": "TankArmature|Tank_TurningRight"
+          "source": "authored rigid track geometry"
         },
         "turret": {
           "phases": 1,
@@ -1275,6 +1363,17 @@
       "team": 0,
       "directions": 16,
       "frameCount": 128,
+      "source": "Atlas original vehicle geometry",
+      "model": "scout-0.glb",
+      "modelSha256": "051027404749ac7d69a60d9938e2e21ef6e17d5b0aebbd4eb393cf9fe28779bb",
+      "design": {
+        "kind": "scout",
+        "team": 0,
+        "parts": 35,
+        "triangles": 9620,
+        "geometry": "Atlas original ceramic / bronze vehicle geometry",
+        "source": "Atlas Dominion / original procedural models"
+      },
       "clips": {
         "idle": {
           "phases": 4,
@@ -1331,6 +1430,17 @@
       "team": 1,
       "directions": 16,
       "frameCount": 128,
+      "source": "Atlas original vehicle geometry",
+      "model": "scout-1.glb",
+      "modelSha256": "cca50a565dab9bd67b2d0e4cb7338829d7823797bfb30229fb226b99faf8abcf",
+      "design": {
+        "kind": "scout",
+        "team": 1,
+        "parts": 35,
+        "triangles": 9620,
+        "geometry": "Atlas original ceramic / bronze vehicle geometry",
+        "source": "Atlas Dominion / original procedural models"
+      },
       "clips": {
         "idle": {
           "phases": 4,
@@ -1387,6 +1497,17 @@
       "team": 0,
       "directions": 16,
       "frameCount": 128,
+      "source": "Atlas original vehicle geometry",
+      "model": "gunship-0.glb",
+      "modelSha256": "9164c6ad91868b5c4ef5acf03e16036e7be772c2764e7d9578cceec789f4a1db",
+      "design": {
+        "kind": "gunship",
+        "team": 0,
+        "parts": 39,
+        "triangles": 9940,
+        "geometry": "Atlas original ceramic / bronze vehicle geometry",
+        "source": "Atlas Dominion / original procedural models"
+      },
       "clips": {
         "idle": {
           "phases": 4,
@@ -1443,6 +1564,17 @@
       "team": 1,
       "directions": 16,
       "frameCount": 128,
+      "source": "Atlas original vehicle geometry",
+      "model": "gunship-1.glb",
+      "modelSha256": "89472e6cbf2ba0b51b608e2505423648fe1d8128a2eba0e38cd3da492940128a",
+      "design": {
+        "kind": "gunship",
+        "team": 1,
+        "parts": 39,
+        "triangles": 9940,
+        "geometry": "Atlas original ceramic / bronze vehicle geometry",
+        "source": "Atlas Dominion / original procedural models"
+      },
       "clips": {
         "idle": {
           "phases": 4,
@@ -1499,6 +1631,17 @@
       "team": 0,
       "directions": 16,
       "frameCount": 32,
+      "source": "Atlas original vehicle geometry",
+      "model": "bomber-0.glb",
+      "modelSha256": "3dd2bfd29f6a41e969533bbc12269f5d649c3c2c7292e1321dc42aec4159f44c",
+      "design": {
+        "kind": "bomber",
+        "team": 0,
+        "parts": 26,
+        "triangles": 6480,
+        "geometry": "Atlas original ceramic / bronze vehicle geometry",
+        "source": "Atlas Dominion / original procedural models"
+      },
       "clips": {
         "idle": {
           "phases": 1,
@@ -1555,6 +1698,17 @@
       "team": 1,
       "directions": 16,
       "frameCount": 32,
+      "source": "Atlas original vehicle geometry",
+      "model": "bomber-1.glb",
+      "modelSha256": "f6907be1a2083b8769f53a7028dab6475180d9eaf6900451502bbad4a044f2f9",
+      "design": {
+        "kind": "bomber",
+        "team": 1,
+        "parts": 26,
+        "triangles": 6480,
+        "geometry": "Atlas original ceramic / bronze vehicle geometry",
+        "source": "Atlas Dominion / original procedural models"
+      },
       "clips": {
         "idle": {
           "phases": 1,
