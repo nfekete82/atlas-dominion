@@ -174,3 +174,126 @@ dialog{position:fixed;color:#e1e5df;max-width:730px;width:calc(100% - 36px);padd
  .command .selection-copy>small{font-size:8px}
  .command #selection-detail{font-size:10px}
 }
+
+/* HUD readability v3: translucent command and catalog panels */
+/* Game terrain remains visible through the two main panels (not via CSS opacity,
+   which would also fade their text and buttons). */
+.command.hud,.catalog.hud{
+ background-color:transparent;
+ background-image:linear-gradient(155deg,rgba(7,25,37,.69),rgba(4,16,26,.66));
+ -webkit-backdrop-filter:blur(1.5px);
+ backdrop-filter:blur(1.5px);
+ border-color:#6f91a39c;
+ box-shadow:0 8px 24px #0007,inset 0 1px #ffffff12;
+}
+.top.hud,.tools.hud,.radar.hud{
+ background-color:transparent;
+ background-image:linear-gradient(145deg,rgba(10,28,40,.77),rgba(4,16,25,.73));
+ -webkit-backdrop-filter:blur(1px);
+ backdrop-filter:blur(1px);
+}
+.catalog-card{
+ background:linear-gradient(145deg,rgba(27,58,76,.52),rgba(6,20,32,.63));
+ border-color:#58788b;
+}
+.catalog-card:hover,.catalog-card:focus-visible{
+ background:linear-gradient(145deg,rgba(41,89,112,.67),rgba(12,37,54,.72));
+}
+.catalog-card .card-name{
+ display:block;flex:0 0 25px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+ padding:3px 7px 1px;text-align:left;
+ color:#f4f7f8;font:700 13px/19px var(--display);
+ text-shadow:0 1px 2px #000d;background:#0719234d;
+}
+.catalog-card .card-cost{flex:0 0 26px;line-height:25px;background:#06121dba;color:#fff5dc}
+.catalog-tabs button[aria-pressed=true]{background:linear-gradient(150deg,#275670ac,#102b3eb8)}
+#catalog-detail,.territory-row,.selection-copy,#selection-detail{text-shadow:0 1px 2px #000b}
+#catalog-detail{color:#e4edf0}
+.catalog h2,.section-label{color:#eff5f5}
+.territory-row{background:#0b202e70}
+.territory-row:hover{background:#21506d8c}
+.command .selection-copy>p,.command #selection-detail{
+ font-family:system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+ font-weight:450;color:#e1e9e9;
+}
+.command .portrait{background:radial-gradient(ellipse at 50% 82%,#ac946048,#06172248 83%)}
+.command .commands button{background:#10384bba;border-color:#73a8bb}
+.command .commands button:hover{background:#235b78d9}
+#production #queue-slots button,#quick-select button{background:#081c2aaa}
+
+@media(min-width:1001px){
+ :root{--side:clamp(335px,27vw,405px)}
+ #sidebar{top:70px}
+ .catalog{padding-left:13px;padding-right:13px}
+ .catalog-tabs{margin-left:-12px;margin-right:-12px}
+ .catalog-tabs button{height:70px;font-size:15px;gap:5px}
+ .catalog-tabs svg{width:25px;height:25px}
+ .catalog h2{font-size:16px;margin:15px 2px 10px}
+ .catalog-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .catalog-card{height:146px}
+ .catalog-card img{height:95px;padding:6px}
+ .catalog-card .card-name{font-size:14px}
+ .catalog-card .card-cost{font-size:15px}
+ .catalog-scroll{padding-bottom:15px}
+ #catalog-detail{font-size:13px;min-height:49px;line-height:1.45}
+ #production .section-label{font-size:13px}
+ #production .queue-info{font-size:12px}
+ .command{
+  width:min(700px,calc(100% - var(--side) - 48px));
+  height:216px;min-height:0;padding:17px;
+  grid-template-columns:minmax(0,1fr) 158px;
+ }
+ .command .selection{gap:17px;padding-right:16px}
+ .command .portrait{width:120px;min-width:120px}
+ .command .selection-copy{padding-bottom:31px}
+ .command .selection-copy>small{font-size:13px;margin:3px 0 8px}
+ .command .selection-copy>strong{font-size:26px;line-height:1.15}
+ .command .health-track{height:6px;margin-top:11px}
+ .command #selection-health{font-size:14px;margin-top:5px}
+ .command #selection-detail{font-size:15px;line-height:1.4;-webkit-line-clamp:3;margin-top:9px}
+ .command .section-label{font-size:13px;margin-bottom:9px}
+ .command .command-group{padding-left:16px}
+ .command .commands{gap:7px}
+ .command .commands button,.command #unit-commands button,
+ .command:has(#unit-commands:not([hidden])) .common-commands button{height:44px}
+ .command .commands svg,.command:has(#unit-commands:not([hidden])) .common-commands svg{width:25px;height:25px}
+ .command .common-commands{margin-top:7px}
+ .command #quick-select{gap:8px}
+ .command #quick-select button{width:38px;height:30px}
+ .command #quick-select svg{width:18px;height:18px}
+}
+@media(min-width:621px) and (max-width:1000px){
+ :root{--side:clamp(190px,28vw,270px)}
+ .catalog-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+ .catalog-card{height:123px}
+ .catalog-card img{height:72px}
+ .catalog-card .card-name{font-size:12px}
+ .catalog-card .card-cost{font-size:13px}
+ .catalog h2{font-size:13px}
+ .catalog-tabs button span{font-size:12px}
+ .catalog-scroll{padding-bottom:11px}
+ .command{
+  width:min(610px,calc(100% - var(--side) - 48px));
+  height:186px;min-height:0;grid-template-columns:minmax(0,1fr) 122px;
+ }
+ .command .portrait{display:block;width:94px;min-width:94px}
+ .command .selection-copy>small{font-size:11px}
+ .command .selection-copy>strong{font-size:21px}
+ .command #selection-detail{font-size:13px;line-height:1.35;-webkit-line-clamp:3}
+ .command #selection-health{font-size:12px}
+ .command .commands button,.command #unit-commands button{height:37px}
+ .command .section-label{font-size:11px}
+ .command .commands svg{width:21px;height:21px}
+}
+@media(max-width:620px){
+ .catalog-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .catalog-card{height:91px}
+ .catalog-card img{height:47px}
+ .catalog-card .card-name{height:21px;flex-basis:21px;font-size:10px;line-height:17px;padding:2px 3px}
+ .catalog-card .card-cost{height:22px;flex-basis:22px;font-size:11px;line-height:21px}
+ .command{width:calc(100% - var(--side) - 38px);height:149px}
+ .command .selection-copy>small{font-size:9px}
+ .command .selection-copy>strong{font-size:17px}
+ .command #selection-detail{font-size:11px;line-height:1.25}
+ .command #selection-health{font-size:10px}
+}
