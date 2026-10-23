@@ -1,0 +1,18 @@
+import fs from 'node:fs';import path from 'node:path';import {createHash} from 'node:crypto';
+const hash=p=>createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+const walk=dir=>fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(path.join(dir,e.name)):[path.join(dir,e.name)]);
+const png=walk('src/assets').filter(p=>p.endsWith('.png')).map(file=>{const b=fs.readFileSync(file);return {file,width:b.readUInt32BE(16),height:b.readUInt32BE(20),sha256:hash(file)};});
+const sourceRows=[
+ ['soldier.gltf','18UU-iuYMQyrQ3OAMFoRA8DkZ2Uo_2cai','https://quaternius.com/packs/toonshootergamekit.html'],
+ ['engineer.gltf','1SRow6CgGJs6mnFihBww3GhfPUYDGnGBz','https://quaternius.com/packs/toonshootergamekit.html'],
+ ['heavy.gltf','1CUd25oFj06octIbmyMCwUwCTiHj4mLI3','https://quaternius.com/packs/toonshootergamekit.html'],
+ ['tank.fbx','13lbAEkwen5bXY2fSiyo4rVt5q_gxy0Fm','https://quaternius.com/packs/animatedtanks.html'],
+ ['artillery.fbx','1VT0Sto8hXARIcanbdv9oJmMAH31a9hGf','https://quaternius.com/packs/animatedtanks.html'],
+ ['rover.gltf','1oQqZiRr61zqPOKzKNBvIx4huQ5_xby_o','https://quaternius.com/packs/ultimatespacekit.html'],
+ ['bomber.gltf','1YKAanEXyE_9ukxozfoXEUNr2T8ZDX6ZE','https://quaternius.com/packs/ultimatespacekit.html'],
+ ['helicopter.glb',null,'https://poly.pizza/m/EQJ2MECUbx'],
+];
+const sources=sourceRows.map(([file,id,page])=>({file:'tools/animation-sources/'+file,author:file==='helicopter.glb'?'kazuma':'Quaternius',license:'CC0-1.0',page,download:id?'https://drive.usercontent.google.com/download?id='+id+'&export=download&confirm=t':'https://static.poly.pizza/e3dfeb10-5525-4a39-83d8-13a709aaca4b.glb',sha256:hash('tools/animation-sources/'+file)}));
+fs.writeFileSync('tools/animation-sources/manifest.json',JSON.stringify({license:'CC0-1.0',sources},null,2)+'\n');
+const atlases=walk('src/assets/reborn/animation').filter(p=>p.endsWith('.json')).map(file=>{const a=JSON.parse(fs.readFileSync(file));return {file,kind:a.kind,team:a.team,directions:a.directions,frameCount:a.frames.length,clips:Object.fromEntries(Object.entries(a.clips).map(([tag,c])=>[tag,{phases:c.frames[0].length,uniquePhases:c.uniquePhases??[1],source:c.sourceClip}]))};});
+fs.writeFileSync('docs/reborn/ANIMATION_ASSETS.json',JSON.stringify({png,sources,atlases},null,2)+'\n');console.log('Audited',png.length,'PNGs,',sources.length,'licensed models,',atlases.length,'active atlases');

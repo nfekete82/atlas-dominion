@@ -8,6 +8,8 @@ export interface Unit extends Point {
   cooldown:number; facing:number; moving:boolean; hit:number; repath:number;
   angle:number; walkDistance:number; fire:number; previousX:number; previousY:number;
   lastAttacker:number|null; defendUntil:number;
+  /** Optional motor state keeps version-2 saves compatible. */
+  driveSpeed?:number; hullAngle?:number;
 }
 export interface Base extends Point {
   id:number; owner:Faction; kind:BuildingKind; hp:number; territory:number; queue:number[]; queueTypes:UnitKind[]; production:number;
@@ -178,10 +180,20 @@ export class Simulation {
     const spec=unitSpec(u),clearance=Math.max(0,spec.radius-10);
     if(!u.path.length&&u.repath<=0){u.path=spec.flying?[target]:this.world.path(u,target,this.obstacles(),clearance);u.repath=.7;}
     let next=u.path[0];if(!next)return;
-    let d=distance(u,next);if(d<5){u.path.shift();next=u.path[0];if(!next)return;d=distance(u,next);}
-    const speed=spec.speed*dt,step=Math.min(speed,d),dx=(next.x-u.x)/d,dy=(next.y-u.y)/d;
+    let d=distance(u,next);if(d<(spec.group==='Infanterie'?5:.4)){u.path.shift();next=u.path[0];if(!next)return;d=distance(u,next);}
+    const dx=(next.x-u.x)/d,dy=(next.y-u.y)/d;
+    let velocity=spec.speed;
+    if(spec.group!=='Infanterie'){
+      const desired=Math.atan2(dy,dx),current=u.hullAngle??u.angle,error=Math.atan2(Math.sin(desired-current),Math.cos(desired-current));
+      u.hullAngle=current+clamp(error,-(spec.flying?1.8:2.5)*dt,(spec.flying?1.8:2.5)*dt);
+      const remaining=Math.max(0,distance(u,target)-14),braking=spec.speed*2.8;
+      const targetSpeed=Math.min(spec.speed,Math.sqrt(2*braking*remaining))*Math.max(0,Math.cos(error));
+      u.driveSpeed=(u.driveSpeed??0)+clamp(targetSpeed-(u.driveSpeed??0),-braking*dt,spec.speed*1.9*dt);
+      velocity=u.driveSpeed;
+    }
+    const speed=velocity*dt,step=Math.min(speed,d);
     const p={x:u.x+dx*step,y:u.y+dy*step};
-    if(spec.flying||this.world.walkable(p,this.obstacles(),clearance)){u.x=p.x;u.y=p.y;u.walkDistance+=step;u.angle=Math.atan2(dy,dx);u.facing=dx<-.05?-1:dx>.05?1:u.facing;u.moving=true;}
+    if(spec.flying||this.world.walkable(p,this.obstacles(),clearance)){u.x=p.x;u.y=p.y;u.walkDistance+=step;u.angle=Math.atan2(dy,dx);u.facing=dx<-.05?-1:dx>.05?1:u.facing;u.moving=step>.001;}
     else {u.path=[];u.repath=0;}
   }
   step(dt=RULES.tick):void {
@@ -211,6 +223,7 @@ export class Simulation {
         else this.move(u,order,dt);
       }
     }
+    for(const u of this.units)if(!u.moving&&u.driveSpeed!==undefined)u.driveSpeed=Math.max(0,u.driveSpeed-unitSpec(u).speed*2.8*dt);
     // Symmetric separation: units can pass one another without permanent deadlocks.
     for(const u of this.units)if(u.hp>0)for(const v of this.spatial.query(u,unitSpec(u).radius+26)){
       if(v.id<=u.id||v.hp<=0||unitSpec(u).flying!==unitSpec(v).flying)continue;const gap=unitSpec(u).radius+unitSpec(v).radius+1;let d=distance(u,v);if(d>=gap)continue;
@@ -294,7 +307,7 @@ export class Simulation {
       !Array.isArray(s.territories)||s.territories.length!==30||!Array.isArray(s.explored)||s.explored.length!==2||
       s.explored.some(a=>!Array.isArray(a)||![120**2,RULES.grid**2].includes(a.length)||a.some(v=>v!==0&&v!==1))||
       !Array.isArray(s.credits)||s.credits.length!==2||s.credits.some(v=>!finite(v)||v<0)||
-      s.units.some(u=>!point(u)||![0,1].includes(u.owner)||(u.kind!==undefined&&!Object.hasOwn(UNITS,u.kind))||!finite(u.hp)||u.hp<=0||u.hp>(UNITS[u.kind??'infantry']?.hp??0)||!Array.isArray(u.orders)||u.orders.length>32||u.orders.some(o=>!point(o)||!['move','attackMove','attack'].includes(o.kind)))||
+      s.units.some(u=>!point(u)||![0,1].includes(u.owner)||(u.kind!==undefined&&!Object.hasOwn(UNITS,u.kind))||(u.driveSpeed!==undefined&&(!finite(u.driveSpeed)||u.driveSpeed<0||u.driveSpeed>unitSpec(u).speed))||(u.hullAngle!==undefined&&!finite(u.hullAngle))||!finite(u.hp)||u.hp<=0||u.hp>(UNITS[u.kind??'infantry']?.hp??0)||!Array.isArray(u.orders)||u.orders.length>32||u.orders.some(o=>!point(o)||!['move','attackMove','attack'].includes(o.kind)))||
       s.bases.some(b=>!point(b)||![0,1].includes(b.owner)||(b.kind!==undefined&&!Object.hasOwn(BUILDINGS,b.kind))||!finite(b.hp)||b.hp<0||b.hp>(BUILDINGS[b.kind??'headquarters']?.hp??0)||!Array.isArray(b.queue)||b.queue.length>8||b.queue.some((v,i)=>!finite(v)||v!==UNITS[b.queueTypes?.[i]??'infantry']?.buildTime)||
         (b.queueTypes!==undefined&&(!Array.isArray(b.queueTypes)||b.queueTypes.length!==b.queue.length||b.queueTypes.some(k=>!Object.hasOwn(UNITS,k))))||
         (b.buildRemaining!==undefined&&(!finite(b.buildRemaining)||b.buildRemaining<0||b.buildRemaining>(BUILDINGS[b.kind??'headquarters']?.buildTime??0)))||!finite(b.production)||b.production<0||b.production>(b.queue[0]??0))||

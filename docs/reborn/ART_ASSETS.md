@@ -1,6 +1,6 @@
 # Reborn / Art-Überarbeitung
 
-Die aktive Umsetzung nach der letzten Bildreferenz ist am Ende unter „Aktive Fassung nach der Menü- und Grafikreferenz“ dokumentiert. Die folgenden älteren Abschnitte beschreiben die erhaltenen Vorstufen.
+**Aktueller Stand:** Sämtliche Einheitensprites wurden durch reproduzierbar aus CC0-Modellen gerenderte Atlanten unter `src/assets/reborn/animation/` ersetzt. Quellen, echte Clips und fehlende Ressourcen stehen in [ANIMATION_SYSTEM.md](ANIMATION_SYSTEM.md) und [dem Quellenmanifest](../../tools/animation-sources/manifest.json). Die unten beschriebenen generierten Soldaten-/Fahrzeugatlanten sind erhaltene Vorstufen und werden nicht mehr geladen. Gebäude, Felsen, Menümaterial und Basisaktivität bleiben wie unten dokumentiert.
 
 Erzeugt mit dem eingebauten Imagegen-Werkzeug; kein CLI/API-Fallback. Die ursprünglichen Grafiken bleiben erhalten. Die Bastion unter `src/assets/reborn/bastion.png` ist eine erzeugte Nachbildung im passenden Stil. Die Original-PNG `7bd9cd32-256a-45dd-bd71-a69bfce73178.png` des Nutzers war wegen der macOS-Downloadsperre nicht lesbar. Sie kann später direkt die Nachbildung unter demselben Projektpfad ersetzen.
 

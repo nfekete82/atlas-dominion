@@ -30,8 +30,9 @@ Die neun Truppen kosten 100/150/250 Credits für Infanterie, Pionier und schwere
 ```sh
 npm run typecheck
 npm run test:reborn    # 29 gezielte Simulationstests
-npm test              # 401 Tests einschließlich Archiv und HTTP
-npm run test:browser   # 14 Chrome-Fälle: Spielablauf, kompakte Oberfläche, Produktion, Menüs, Sicht, Audio
+npm run test:animation # 8 gezielte Animations-/Bewegungstests
+npm test              # einschließlich Archiv und HTTP
+npm run test:browser   # Chrome: Spielablauf, Oberfläche, Produktion, Menüs, Sicht, Audio, Animationslabor
 ```
 
 Browser-Abhängigkeiten: `npm ci --prefix tests/browser`. Chrome ist voreingestellt; `ATLAS_BROWSER_CHANNEL=chromium` verwendet Playwright Chromium. `ATLAS_BASE_URL` prüft einen bestehenden Server.
@@ -44,6 +45,8 @@ TypeScript, Canvas 2D, feste 20 Simulationsschritte pro Sekunde, A*, räumliche 
 
 Neue hochauflösende Einzelgrafiken ersetzen die vergrößerten Felsflächen. Ihre Alpha-Konturen bestimmen Bewegung und Sicht; `node scripts/compile-terrain-art.mjs` erzeugt daraus die deterministischen Masken. Feiner Boden wird separat aufgebaut. Hauptquartier, Bastion und sämtliche Soldatenposen besitzen fest in die Grafik integrierte Schatten. Die Basis blinkt dezent und dreht ihre Satellitenschüssel in 48 Sekunden. Leichte Sandverwehungen ziehen über sichtbaren freien Boden; alle Effekte stehen bei Pause still. Bastionen leuchten neutral weiß, blau oder rot.
 
-Die Originalgrafiken bleiben erhalten. Die Bastion ist weiterhin eine erzeugte Nachbildung, da die benannte Originaldatei im Downloads-Ordner nicht zugänglich war. Die Infanterie teilt einen Atlas mit 64 Posen und acht Schrittphasen; Fahrzeuge nutzen gespiegelte Ansichten. Die KI expandiert und kämpft weiterhin mit Infanterie. Maus und Tastatur bilden die vollständige Steuerung; kein dediziertes Touch- oder Mehrspielersystem.
+Infanterie verwendet jetzt echte Idle-/Walk-/Attack-/Hit-/Death-Clips aus lizenzierten CC0-Modellen: acht Ansichten mit acht unterschiedlichen Laufphasen je Richtung. Fahrzeuge besitzen 16 gerenderte Ansichten, Rad-/Kettenbewegung und begrenzte Lenkgeschwindigkeit. Panzer und Artillerie besitzen getrennte Rümpfe, Türme und Rohre. Der Canvas-Renderer deformiert oder dreht keine vollständigen Einheitensprites. Partikel sind unter Optionen abschaltbar. Three.js wird ausschließlich zum Offline-Export verwendet.
+
+Das [Animationslabor](http://127.0.0.1:8095/animation-lab.html) zeigt sechs Prüfabläufe gleichzeitig. [Animationssystem, Quellen und konkrete Asset-Grenzen](docs/reborn/ANIMATION_SYSTEM.md) dokumentieren auch die einfachere Low-Poly-Gestaltung der neuen Einheiten. Die alten generierten Einheitenbilder bleiben archiviert; die Bastion bleibt eine erzeugte Nachbildung. Die KI expandiert und kämpft weiterhin mit Infanterie. Maus und Tastatur bilden die vollständige Steuerung; kein dediziertes Touch- oder Mehrspielersystem.
 
 Die frühere Europaversion bleibt unter **http://127.0.0.1:8095/legacy/index.html** erreichbar. Ihre Quellen und vorhandenen Änderungen bleiben erhalten; ihre Dokumentation liegt in [legacy/README.md](legacy/README.md).

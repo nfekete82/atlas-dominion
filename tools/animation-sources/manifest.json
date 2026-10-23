@@ -1,0 +1,69 @@
+{
+  "license": "CC0-1.0",
+  "sources": [
+    {
+      "file": "tools/animation-sources/soldier.gltf",
+      "author": "Quaternius",
+      "license": "CC0-1.0",
+      "page": "https://quaternius.com/packs/toonshootergamekit.html",
+      "download": "https://drive.usercontent.google.com/download?id=18UU-iuYMQyrQ3OAMFoRA8DkZ2Uo_2cai&export=download&confirm=t",
+      "sha256": "d1395255f7cfa8f766369e37e724fa44e2895a46a719d17f720c9c78b014a901"
+    },
+    {
+      "file": "tools/animation-sources/engineer.gltf",
+      "author": "Quaternius",
+      "license": "CC0-1.0",
+      "page": "https://quaternius.com/packs/toonshootergamekit.html",
+      "download": "https://drive.usercontent.google.com/download?id=1SRow6CgGJs6mnFihBww3GhfPUYDGnGBz&export=download&confirm=t",
+      "sha256": "43d8c6d6e7e95647f24da08d10570a2a29cd7f1e924546bb085b09c62deddc6e"
+    },
+    {
+      "file": "tools/animation-sources/heavy.gltf",
+      "author": "Quaternius",
+      "license": "CC0-1.0",
+      "page": "https://quaternius.com/packs/toonshootergamekit.html",
+      "download": "https://drive.usercontent.google.com/download?id=1CUd25oFj06octIbmyMCwUwCTiHj4mLI3&export=download&confirm=t",
+      "sha256": "60c77a900ddd76086bb0d8c8e4cc87685dcc889f871c17b9d5bfefe94fa8894a"
+    },
+    {
+      "file": "tools/animation-sources/tank.fbx",
+      "author": "Quaternius",
+      "license": "CC0-1.0",
+      "page": "https://quaternius.com/packs/animatedtanks.html",
+      "download": "https://drive.usercontent.google.com/download?id=13lbAEkwen5bXY2fSiyo4rVt5q_gxy0Fm&export=download&confirm=t",
+      "sha256": "9fcbeaca34d1bcc586a815d92bb3b29b0affbdd66658f264dd13f0c19156134b"
+    },
+    {
+      "file": "tools/animation-sources/artillery.fbx",
+      "author": "Quaternius",
+      "license": "CC0-1.0",
+      "page": "https://quaternius.com/packs/animatedtanks.html",
+      "download": "https://drive.usercontent.google.com/download?id=1VT0Sto8hXARIcanbdv9oJmMAH31a9hGf&export=download&confirm=t",
+      "sha256": "79db2e3a79fa5b4d2e42749ff4f38a2921c8f85c5d63c9c284c480e27d0ee629"
+    },
+    {
+      "file": "tools/animation-sources/rover.gltf",
+      "author": "Quaternius",
+      "license": "CC0-1.0",
+      "page": "https://quaternius.com/packs/ultimatespacekit.html",
+      "download": "https://drive.usercontent.google.com/download?id=1oQqZiRr61zqPOKzKNBvIx4huQ5_xby_o&export=download&confirm=t",
+      "sha256": "45851ac7cb29e01f68b6d70b1bb14767ba6ea0920c2eae6b4a19fcea57d1f805"
+    },
+    {
+      "file": "tools/animation-sources/bomber.gltf",
+      "author": "Quaternius",
+      "license": "CC0-1.0",
+      "page": "https://quaternius.com/packs/ultimatespacekit.html",
+      "download": "https://drive.usercontent.google.com/download?id=1YKAanEXyE_9ukxozfoXEUNr2T8ZDX6ZE&export=download&confirm=t",
+      "sha256": "1d34827551a230e009a9c0b1746159d9299cd1de334b516992de8710008a6956"
+    },
+    {
+      "file": "tools/animation-sources/helicopter.glb",
+      "author": "kazuma",
+      "license": "CC0-1.0",
+      "page": "https://poly.pizza/m/EQJ2MECUbx",
+      "download": "https://static.poly.pizza/e3dfeb10-5525-4a39-83d8-13a709aaca4b.glb",
+      "sha256": "1eff0579e18e5a8585b4f2cdc4d234772a4285b2f93a435da545a41f42a76819"
+    }
+  ]
+}

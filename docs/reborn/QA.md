@@ -1,5 +1,13 @@
 # Reborn / Prüfung am 23. Oktober 2026
 
+## Aktueller Animationsauftrag
+
+**37 gezielte Node-Prüfungen und sieben ausgewählte Chrome-Prüfungen bestanden.** Enthalten sind die 29 erhaltenen Reborn-Simulationstests, acht neue Animations-/Bewegungsfälle sowie Kampagne, Sicht, native Einheitendarstellung, Produktion aller Fahrzeuge, bestehende Gebäudeeffekte und das neue Animationslabor. Alle sieben Browserfälle bestanden zusätzlich gegen die abschließend neu gebaute und gestartete Docker-Fassung auf `127.0.0.1:8095`. [Aktuelles Animationsprotokoll mit Quellen und Grenzen](ANIMATION_SYSTEM.md), [Laufphasen](animation-lab-walk.png), [Treffer](animation-lab-hit.png), [Tod](animation-lab-death.png), [Video](animation-lab.webm).
+
+Die folgenden Zahlen und Beschreibungen dokumentieren die **vorherige Fassung**. Deren komplette Archiv-/Browser-Suite wurde für den fokussierten Animationsauftrag nicht erneut ausgeführt; insbesondere sind die früheren 64 generierten Posen und Fahrzeugspiegelungen inzwischen ersetzt.
+
+## Vorheriger Oberflächen- und Schattenauftrag
+
 Geprüft mit TypeScript und lokalem Chrome auf macOS. Die neue Bildvorlage ist als echte Oberfläche umgesetzt: Ressourcenleiste links oben, Radar und Katalog rechts, kompakte Auswahl-/Kommandoleiste direkt links unten und Produktionswarteschlange im rechten Katalog, zentrales Pausenmenü mit Fortsetzen, Speichern, Laden, Optionen, Steuerung und Hauptmenü. CSS-/SVG-Rahmen und lokale Metall- und Landschaftsgrafiken bilden die Gestaltung.
 
 - **401 Node-Tests bestanden**, einschließlich der erhaltenen Simulation, HTTP-Auslieferung und **29 gezielten Reborn-Fällen**.

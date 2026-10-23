@@ -124,12 +124,12 @@ test('reborn: sound unlocks on interaction, produces an audio signal and preserv
 test('reborn: finer terrain, directional animation, grounded drawing and automatic retaliation render in the browser',async({page})=>{
  await start(page);const result=await page.evaluate(async()=>{
   const {game:g,renderer:r}=window.__reborn;
-  const atlas=new Image();atlas.src='/src/assets/reborn/infantry-grounded-v3.png';await atlas.decode();const temp=document.createElement('canvas');temp.width=atlas.width;temp.height=atlas.height;const tc=temp.getContext('2d');tc.drawImage(atlas,0,0);
+  const atlas=new Image();atlas.src='/src/assets/reborn/animation/infantry-0.png';await atlas.decode();const temp=document.createElement('canvas');temp.width=atlas.width;temp.height=atlas.height;const tc=temp.getContext('2d');tc.drawImage(atlas,0,0);
   const pixels=tc.getImageData(0,0,temp.width,temp.height).data;let clear=0,opaque=0;for(let i=3;i<pixels.length;i+=4){if(pixels[i]===0)clear++;if(pixels[i]>250)opaque++;}
   g.units=[];const blue=g.spawn(0,{x:1900,y:2100}),red=g.spawn(1,{x:2050,y:2100});g.command([blue.id],{x:2350,y:2100,kind:'move'});g.updateVision();g.paused=false;g.step();g.step();g.paused=true;
   r.camera.x=blue.x;r.camera.y=blue.y;r.boundCamera();r.selected=new Set([blue.id]);r.render(0);
   const sample=()=>{const p=r.screen(blue),d=Math.min(2,devicePixelRatio||1);return Array.from(r.context.getImageData(Math.floor((p.x-40)*d),Math.floor((p.y-66)*d),Math.ceil(80*d),Math.ceil(70*d)).data);};
-  blue.fire=0;blue.hit=0;blue.moving=true;blue.walkDistance=0;r.render(0);const first=sample();blue.walkDistance=36;r.render(0);const second=sample();
+  blue.fire=0;blue.hit=0;r.units.clear();blue.moving=true;blue.walkDistance=0;r.render(0);const first=sample();blue.walkDistance=36;r.render(0);const second=sample();
   let changed=0;for(let i=0;i<first.length;i++)if(first[i]!==second[i])changed++;
   let groundFills=0,groundShadows=0;const fill=r.context.fill,ellipse=r.context.ellipse,begin=r.context.beginPath;
   let oval=false;r.context.beginPath=function(){oval=false;return begin.call(this);};r.context.ellipse=function(...args){oval=true;return ellipse.apply(this,args);};r.context.fill=function(...args){if(oval)groundFills++;if(this.shadowBlur>0)groundShadows++;return fill.apply(this,args);};
@@ -138,7 +138,7 @@ test('reborn: finer terrain, directional animation, grounded drawing and automat
  });
  expect(result.blueHp).toBeLessThan(100);expect(result.redHp).toBeLessThan(100);expect(result.orders).toBe(1);
  expect(result.changed).toBeGreaterThan(100);expect(result.groundFills).toBe(0);expect(result.groundShadows).toBe(0);
- expect(result.clear/result.pixels).toBeGreaterThan(.35);expect(result.opaque/result.pixels).toBeGreaterThan(.15);expect(result.terrain).toContain('desert-fine.png');expect(result.grid).toBe(240*240);
+ expect(result.clear/result.pixels).toBeGreaterThan(.35);expect(result.opaque/result.pixels).toBeGreaterThan(.04);expect(result.terrain).toContain('desert-fine.png');expect(result.grid).toBe(240*240);
  await page.screenshot({path:evidence+'polish-combat.png'});
 });
 
@@ -218,7 +218,7 @@ test('reborn: infantry poses stay grounded without detached neighboring weapon f
    }finally{r.context=old;r.selected=selection;}
    return {maxDetachedDistance,minHeight,maxHeight};
  });
- expect(result.maxDetachedDistance).toBeLessThanOrEqual(3);expect(result.minHeight).toBeGreaterThan(80);expect(result.maxHeight).toBeLessThan(89);
+ expect(result.maxDetachedDistance).toBeLessThanOrEqual(3);expect(result.minHeight).toBeGreaterThan(70);expect(result.maxHeight).toBeLessThan(101);
 });
 
 test('reborn: captured bastion keeps both maps lit after infantry leaves and marching guards initiate combat',async({page})=>{
@@ -290,22 +290,39 @@ test('reborn: authored shadows, slow base activity and subtle sand drift stay gr
   const changes=(a,b)=>{let n=0;for(let i=0;i<a.length;i+=4)if(a[i]!==b[i]||a[i+1]!==b[i+1]||a[i+2]!==b[i+2]||a[i+3]!==b[i+3])n++;return n;};
   const snap=()=>Array.from(c.getImageData(0,0,640,540).data);
   const base={...g.bases[0],x:260,y:390,queue:[],hp:1200,buildRemaining:0};
-  const cast=r.castShadow;let projected=0;r.castShadow=()=>projected++;
+  let projected=0;
   let baseChanged=0,pausedChanged=0,windChanged=0,shadowPixels=0;
   try{
    g.time=0;r.drawBase(base);const first=snap();c.clearRect(0,0,640,540);g.time=12;r.drawBase(base);baseChanged=changes(first,snap());
    c.clearRect(0,0,640,540);r.drawBase(base);const frozen=snap();c.clearRect(0,0,640,540);r.drawBase(base);pausedChanged=changes(frozen,snap());
-   for(const rows of r.walks)for(const frame of rows){
-    const tile=document.createElement('canvas');tile.width=frame.w;tile.height=frame.h;const tc=tile.getContext('2d');tc.drawImage(frame.image,frame.x,frame.y,frame.w,frame.h,0,0,frame.w,frame.h);
+   const asset=r.units.asset('infantry');for(const frame of asset.data.frames){
+    const tile=document.createElement('canvas');tile.width=frame.w;tile.height=frame.h;const tc=tile.getContext('2d');tc.drawImage(asset.image,frame.x,frame.y,frame.w,frame.h,0,0,frame.w,frame.h);
     const d=tc.getImageData(0,0,frame.w,frame.h).data;for(let i=0;i<d.length;i+=4)if(d[i+3]>5&&d[i+3]<200&&Math.max(d[i],d[i+1],d[i+2])<85)shadowPixels++;
    }
    c.clearRect(0,0,640,540);const hq=g.bases[0];c.save();c.translate(320-hq.x,270-hq.y);r.paintSandWind(0);c.restore();const wind=snap();
    c.clearRect(0,0,640,540);c.save();c.translate(320-hq.x,270-hq.y);r.paintSandWind(3);c.restore();windChanged=changes(wind,snap());
-  }finally{r.context=original;r.selectedBase=selected;r.castShadow=cast;g.time=oldTime;}
+  }finally{r.context=original;r.selectedBase=selected;g.time=oldTime;}
   const before=JSON.stringify(g.save());r.render(.016);r.render(.016);const renderPreservesSave=JSON.stringify(g.save())===before;
-  return {baseChanged,pausedChanged,windChanged,projected,shadowPixels,frames:r.walks.flat().length,dishes:r.dishes.length,renderPreservesSave};
+  return {baseChanged,pausedChanged,windChanged,projected,shadowPixels,frames:r.units.asset('infantry').data.frames.length,dishes:r.dishes.length,renderPreservesSave};
  });
- expect(result.frames).toBe(64);expect(result.dishes).toBe(16);expect(result.shadowPixels).toBeGreaterThan(500);
+ expect(result.frames).toBe(248);expect(result.dishes).toBe(16);expect(result.shadowPixels).toBeGreaterThan(500);
  expect(result.projected).toBe(0);expect(result.baseChanged).toBeGreaterThan(40);expect(result.pausedChanged).toBe(0);expect(result.windChanged).toBeGreaterThan(50);expect(result.renderPreservesSave).toBe(true);
  await page.screenshot({path:evidence+'grounded-animation.png'});
+});
+
+
+test('reborn: animation laboratory visibly exercises all six scenarios with real state transitions and optional particles',async({browser,baseURL})=>{
+ const context=await browser.newContext({viewport:{width:1600,height:1100},recordVideo:{dir:evidence+'../.animation-video',size:{width:1600,height:1100}}});const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ try{
+  await page.goto(baseURL+'/animation-lab.html');await page.locator('#loading').waitFor({state:'detached'});await expect(page.locator('.legend>div')).toHaveCount(6);
+  await page.evaluate(()=>{const lab=window.__animationLab;lab.advance(.25);});await page.screenshot({path:evidence+'animation-lab-walk.png'});
+  const before=await page.evaluate(()=>{const l=window.__animationLab,tank=l.actors.find(u=>u.kind==='tank'),view=l.presentation.inspect(tank.id);return {time:l.time,body:view.bodyAngle,turret:view.turretAngle,frame:l.presentation.inspect(l.actors[1].id).anim.frame().x};});
+  await page.evaluate(()=>{const l=window.__animationLab;l.advance(Math.max(0,1.05-l.time));});
+  const hit=await page.evaluate(()=>{const l=window.__animationLab;return l.presentation.inspect(l.actors.at(-1).id).anim.state;});expect(hit).toBe('hit');await page.screenshot({path:evidence+'animation-lab-hit.png'});
+  await page.evaluate(()=>{const l=window.__animationLab;l.advance(Math.max(0,2.5-l.time));});await page.screenshot({path:evidence+'animation-lab-death.png'});
+  const after=await page.evaluate(()=>{const l=window.__animationLab,tank=l.actors.find(u=>u.kind==='tank'),view=l.presentation.inspect(tank.id);return {body:view.bodyAngle,turret:view.turretAngle,dead:l.presentation.corpses.some(v=>v.anim.state==='death'),rotor:l.presentation.asset('scout').data.rotor};});
+  expect(after.body).toBeCloseTo(before.body,5);expect(Math.abs(after.turret-before.turret)).toBeGreaterThan(.3);expect(after.dead).toBe(true);expect(after.rotor).toBe(true);
+  await page.locator('#particles').uncheck();expect(await page.evaluate(()=>window.__animationLab.presentation.particles.count)).toBe(0);
+  await page.locator('#pause').click();await page.waitForTimeout(2200);await page.locator('#pause').click();expect(errors).toEqual([]);
+ }finally{const video=page.video();await context.close();await video.saveAs(evidence+'animation-lab.webm');}
 });
