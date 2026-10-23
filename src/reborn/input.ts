@@ -73,8 +73,9 @@ export class Input {
     if(!r.selected.size)return;
     const enemy=[...g.units,...g.bases].find(e=>e.owner!==0&&e.hp>0&&g.canSee(0,e)&&distance(e,p)<('queue' in e?100:40)/r.camera.zoom);
     const kind=enemy?'attack':r.attackMode?'attackMove':'move';
-    const count=g.command([...r.selected],{...p,kind,target:enemy?.id},append);
-    if(count){r.marker={point:p,life:.8,attack:kind!=='move'};this.onOrder(kind!=='move');}
+    const destination=enemy?p:r.bastionAt(p)?.point??p;
+    const count=g.command([...r.selected],{...destination,kind,target:enemy?.id},append);
+    if(count){r.marker={point:destination,life:.8,attack:kind!=='move'};this.onOrder(kind!=='move');}
     else this.notify('Dieses Ziel ist nicht erreichbar.');
     r.attackMode=false;r.canvas.classList.remove('attack');this.onSelection();
   }

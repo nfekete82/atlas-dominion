@@ -114,9 +114,13 @@ export class Simulation {
   command(ids:number[],order:Order,append=false):number {
     if(!Number.isFinite(order.x)||!Number.isFinite(order.y))return 0;
     const members=this.units.filter(u=>ids.includes(u.id)&&u.hp>0);
-    const width=Math.ceil(Math.sqrt(members.length));let accepted=0;
+    const width=Math.ceil(Math.sqrt(members.length)),slots=members.map((_,i)=>({x:i%width*27,y:Math.floor(i/width)*27}));
+    // Centre the actual occupied slots, including a short last row. Using the
+    // column count for both axes shifted a two-unit group north of its target.
+    const center={x:slots.reduce((n,p)=>n+p.x,0)/Math.max(1,members.length),y:slots.reduce((n,p)=>n+p.y,0)/Math.max(1,members.length)};
+    let accepted=0;
     members.forEach((u,i)=>{
-      const offset=members.length>1?{x:((i%width)-(width-1)/2)*27,y:(Math.floor(i/width)-(width-1)/2)*27}:{x:0,y:0};
+      const offset={x:slots[i].x-center.x,y:slots[i].y-center.y};
       const spec=unitSpec(u),p={x:order.x+offset.x,y:order.y+offset.y};
       const target=spec.flying?{x:clamp(p.x,8,RULES.worldSize-8),y:clamp(p.y,8,RULES.worldSize-8)}:this.world.nearest(p,this.obstacles(),[],u,Math.max(0,spec.radius-10));if(!target)return;
       const next:Order={...order,...target};

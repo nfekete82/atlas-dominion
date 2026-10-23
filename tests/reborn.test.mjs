@@ -242,3 +242,27 @@ test('reborn: every roster type trains at the starting headquarters without buil
   assert.ok(restored.units.some(u=>u.owner===0&&u.kind===kind&&u.id!==g.units[0].id));assert.equal(restored.bases.length,2);
  }
 });
+
+test('reborn: two soldiers capture together after a high tower click instead of stopping north of its radius',()=>{
+ const g=Simulation.campaign(2026);g.aiClock=-1e8;g.units=[];const t=g.territories[20];
+ for(let i=0;i<2;i++)g.spawn(0,g.world.nearest({x:t.point.x,y:t.point.y+240},g.obstacles(),g.units));
+ assert.equal(g.command(g.units.map(u=>u.id),{x:t.point.x,y:t.point.y-100,kind:'move'}),2);
+ advance(g,20);assert.equal(t.owner,0);assert.ok(g.units.every(u=>distance(u,t.point)<=RULES.captureRadius));
+});
+
+test('reborn: incomplete group formations remain centred on their requested destination',()=>{
+ for(const count of [2,3,5,7,10]){
+  const g=peaceful();g.units=[];for(let i=0;i<count;i++)g.spawn(0,{x:1900+i*22,y:2100});
+  const target={x:2100,y:2200};assert.equal(g.command(g.units.map(u=>u.id),{...target,kind:'move'}),count);
+  const destinations=g.units.map(u=>u.orders[0]);assert.ok(Math.abs(destinations.reduce((n,p)=>n+p.x,0)/count-target.x)<1e-8);
+  assert.ok(Math.abs(destinations.reduce((n,p)=>n+p.y,0)/count-target.y)<1e-8);
+ }
+});
+
+test('reborn: friendly groups can capture three adjacent bastions simultaneously without multiplying the capture clock',()=>{
+ const g=Simulation.campaign(2026);g.aiClock=-1e8;g.units=[];const targets=[13,20,24].map(i=>g.territories[i]);
+ for(const t of targets)for(const dx of [-16,16])g.spawn(0,{x:t.point.x+dx,y:t.point.y});
+ advance(g,3);for(const t of targets){assert.equal(t.owner,-1);assert.ok(Math.abs(t.progress-3)<1e-8);}
+ const restored=Simulation.load(g.save());restored.aiClock=-1e8;advance(restored,5);
+ for(const t of targets){assert.equal(restored.territories[t.id].owner,0);assert.equal(restored.territories[t.id].progress,0);}
+});

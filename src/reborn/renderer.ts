@@ -122,6 +122,16 @@ export class Renderer {
   }
   screen(p:Point):Point{return {x:(p.x-this.camera.x)*this.camera.zoom+this.width/2,y:(p.y-this.camera.y)*this.camera.zoom+this.height/2};}
   world(p:Point):Point{return {x:(p.x-this.width/2)/this.camera.zoom+this.camera.x,y:(p.y-this.height/2)/this.camera.zoom+this.camera.y};}
+  /** Resolve a visible/remembered tower or its label to its ground capture point. */
+  bastionAt(p:Point):Territory|undefined {
+    return this.game.territories.find(t=>{
+      if(!this.game.hasExplored(0,t.point))return false;
+      const b=this.structures.asset('bastion',t.owner).data.body,s=67/b.solidBounds.w;
+      const tower=Math.abs(p.x-t.point.x)<=33.5&&p.y>=t.point.y+(b.top-b.pivot[1])*s&&p.y<=t.point.y+(b.solidBounds.y+b.solidBounds.h-b.pivot[1])*s;
+      const label=Math.abs(p.x-t.point.x)<=53&&p.y>=t.point.y+19&&p.y<=t.point.y+49;
+      return tower||label;
+    });
+  }
   zoom(delta:number,screen:Point={x:this.width/2,y:this.height/2}):void {
     const before=this.world(screen);this.camera.zoom=clamp(this.camera.zoom*Math.exp(-delta*.001),.38,1.9);
     const after=this.world(screen);this.camera.x+=before.x-after.x;this.camera.y+=before.y-after.y;this.boundCamera();

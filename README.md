@@ -29,7 +29,7 @@ Die neun Truppen kosten 100/150/250 Credits für Infanterie, Pionier und schwere
 
 ```sh
 npm run typecheck
-npm run test:reborn    # 34 gezielte Simulationstests, einschließlich 100 Zufallskarten
+npm run test:reborn    # 37 gezielte Simulationstests, einschließlich 100 Zufallskarten
 npm run test:animation # 11 gezielte Animations-/Bewegungs-/Gebäudemodelltests
 npm test              # einschließlich Archiv und HTTP
 npm run test:browser   # Chrome: Spielablauf, Oberfläche, Produktion, Menüs, Sicht, Audio, Animationslabor
@@ -54,3 +54,5 @@ Der freigegebene Legionär ist im Spiel aktiv und bildet die gemeinsame Grundrü
 Die frühere Europaversion bleibt unter **http://127.0.0.1:8095/legacy/index.html** erreichbar. Ihre Quellen und vorhandenen Änderungen bleiben erhalten; ihre Dokumentation liegt in [legacy/README.md](legacy/README.md).
 
 [Sandtextur, vereinfachtes HUD und Gegenwehr unter Beschuss](docs/reborn/SAND_HUD_V2.md).
+
+Gruppenformationen sind auf dem tatsächlichen Ziel zentriert. Ein Rechtsklick auf Bastionsturm, Sockel oder Beschriftung führt die Truppen zum Einnahmepunkt; mehrere eigene Bodeneinheiten können gemeinsam eine Bastion sichern. Getrennte Gruppen können mehrere angrenzende Bastionen parallel einnehmen.

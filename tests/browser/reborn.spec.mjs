@@ -460,3 +460,25 @@ test('combat presentation: simultaneous hits never hide return-fire poses or del
  for(let i=1;i<result.shots.length;i++)expect(result.shots[i].time-result.shots[i-1].time).toBeCloseTo(1.3,4);
  await page.screenshot({path:evidence+'return-fire-v2.png'});
 });
+
+test('capture: a real two-unit drag selection captures after clicking the mast, body or label at different zoom levels',async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.setViewportSize({width:1500,height:1000});await page.goto('/?debug&seed=2026');await page.locator('#loading').waitFor({state:'detached'});
+ for(const [zoom,dy] of [[1,-100],[1.65,-65],[.7,35]]){
+  const setup=await page.evaluate(({zoom,dy})=>{
+   const {game:g,renderer:r}=window.__reborn;g.paused=true;g.aiClock=-1e8;g.units=[];const t=g.territories[20];t.owner=-1;t.capturing=-1;t.progress=0;
+   for(let i=0;i<2;i++)g.spawn(0,g.world.nearest({x:t.point.x,y:t.point.y+240},g.obstacles(),g.units));
+   g.updateVision();r.selected.clear();r.selectedBase=null;r.camera={x:t.point.x+180,y:t.point.y+100,zoom};r.boundCamera();r.render(0);
+   return {units:g.units.map(u=>r.screen(u)),click:r.screen({x:t.point.x,y:t.point.y+dy}),visible:g.canSee(0,t.point)};
+  },{zoom,dy});
+  expect(setup.visible).toBe(true);const xs=setup.units.map(p=>p.x),ys=setup.units.map(p=>p.y);
+  await page.mouse.move(Math.min(...xs)-25,Math.min(...ys)-60*zoom);await page.mouse.down();await page.mouse.move(Math.max(...xs)+25,Math.max(...ys)+15,{steps:8});await page.mouse.up();
+  expect(await page.evaluate(()=>window.__reborn.renderer.selected.size)).toBe(2);
+  await page.mouse.click(setup.click.x,setup.click.y,{button:'right'});
+  const order=await page.evaluate(()=>{const {game:g,renderer:r}=window.__reborn,t=g.territories[20];return {targets:g.units.map(u=>u.orders[0]),point:t.point,marker:r.marker.point};});
+  expect(order.targets).toHaveLength(2);expect(order.targets.every(p=>Math.hypot(p.x-order.point.x,p.y-order.point.y)<25)).toBe(true);expect(order.marker).toEqual(order.point);
+  await advance(page,3);const progress=await page.evaluate(()=>window.__reborn.game.territories[20].progress);expect(progress).toBeGreaterThan(1);expect(progress).toBeLessThan(4);
+  await advance(page,9);expect(await page.evaluate(()=>window.__reborn.game.territories[20].owner)).toBe(0);
+ }
+ expect(errors).toEqual([]);
+ await page.screenshot({path:evidence+'group-capture.png'});
+});
