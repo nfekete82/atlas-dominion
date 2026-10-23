@@ -17,6 +17,7 @@ test('buildings: the user-refined headquarters retains its geometry, textures an
   const a=load('headquarters',team),g=read('src/assets/reborn/buildings-3d/'+a.model);
   assert.equal(triangles(g),triangles(source),'splitting the new details must preserve every triangle');assert.ok(g.images.length>0,'retain the embedded ceramic texture (identical images may be deduplicated)');
   assert.equal(a.design.source,'tools/building-sources/headquarters-refined.glb');assert.deepEqual(a.design.attachedDetails,{radar:8,beacon:1});
+  assert.equal(g.nodes.filter(n=>n.extras?.atlasDesign).length,1,'replace the stale pre-edit part count with one authoritative design description');
   for(const material of source.materials){
    if(team===1&&['Atlas faction enamel','Atlas faction emission','Atlas armoured glass'].includes(material.name))continue;
    const exported=g.materials.find(m=>m.name===material.name&&!!m.doubleSided===!!material.doubleSided);assert.ok(exported,material.name);if(material.pbrMetallicRoughness?.baseColorTexture)assert.ok(exported.pbrMetallicRoughness?.baseColorTexture);

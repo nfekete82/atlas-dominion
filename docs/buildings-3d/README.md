@@ -1,6 +1,6 @@
 # Übernommene Modellfamilie / 23. Oktober 2026
 
-Der vom Nutzer freigegebene Legionär ist jetzt die aktive Grundfigur aller drei Infanterierollen. Dazu sind sieben zusammengehörige Gebäudetypen als echte 3D-Modelle und als daraus gerenderte Spielgrafiken eingebaut.
+Der vom Nutzer freigegebene Legionär ist jetzt die aktive Grundfigur aller drei Infanterierollen. Dazu sind sieben zusammengehörige Gebäudetypen als echte 3D-Modelle und als daraus gerenderte Spielgrafiken eingebaut. Das Feldkommando verwendet inzwischen die bearbeitete Nutzerversion `headquarters-refined.glb`, einschließlich der ergänzten Geometrie, Materialien und Texturen. Aktuelle Aufnahmen: [Blau](headquarters-refined-0.png), [Rot](headquarters-refined-1.png), [im Spiel](headquarters-refined-game.png). [Quelldatei und Übernahme](../../tools/building-sources/ORIGIN.md).
 
 - [Spiel](http://127.0.0.1:8095/)
 - [Feldkommando als drehbares 3D-Modell](http://127.0.0.1:8095/model-3d.html?model=headquarters)
@@ -8,9 +8,11 @@ Der vom Nutzer freigegebene Legionär ist jetzt die aktive Grundfigur aller drei
 - [Soldat und archivierte Ausgangsfigur bei Spielgröße](http://127.0.0.1:8095/model-preview.html)
 - Browseraufnahmen: [im Spiel](in-game.png), [Feldkommando](headquarters.png), [neutrale Bastion](bastion.png)
 
+Aktuelle Prüfung der bearbeiteten Hauptquartierfassung: **53 gezielte Node-Tests und 26 Chrome-Tests bestanden**. Die Browserprüfung lief gegen die aktualisierte Docker-Auslieferung auf Port 8095 und kontrolliert zusätzlich die neuen Details unter der Schüsselanimation, beide Teamfarben und die tatsächliche Spielansicht. Die importierte Quelle bleibt unverändert im Projekt erhalten.
+
 ## Umfang
 
-Feldkommando, Bastion, Kaserne, Fahrzeugfabrik, Flugfeld, Energiekern und Geschützturm verwenden dieselbe sandfarbene Keramik-/Bronze-Palette, dunkle technische Einsätze und Fraktionsfarben wie der Legionär. Alle Gebäudemodelle sind eigene Projektgeometrie in `scripts/animation/atlas-buildings.js`. Es gibt 15 GLB-Dateien: jeden Typ in Blau und Rot sowie die Bastion zusätzlich neutral weiß. Die Modellgalerie bietet Auswahl, Drehung, Zoom, Teamwechsel, tatsächliche Betriebsanimationen und GLB-Downloads.
+Feldkommando, Bastion, Kaserne, Fahrzeugfabrik, Flugfeld, Energiekern und Geschützturm verwenden dieselbe sandfarbene Keramik-/Bronze-Palette, dunkle technische Einsätze und Fraktionsfarben wie der Legionär. Die ursprüngliche Projektgeometrie steht in `scripts/animation/atlas-buildings.js`; das aktive Feldkommando wird aus der bearbeiteten Nutzerversion importiert. Es gibt 15 GLB-Dateien: jeden Typ in Blau und Rot sowie die Bastion zusätzlich neutral weiß. Die Modellgalerie bietet Auswahl, Drehung, Zoom, Teamwechsel, tatsächliche Betriebsanimationen und GLB-Downloads.
 
 Infanterie, Pionier und schwerer Schütze teilen die vom Nutzer freigegebene 151-teilige Grundrüstung und die dazugehörigen 296 Frames je Team. Der schwere Schütze bleibt größer; Rollenbezeichnungen, Katalogkennzeichnungen, Kosten und Kampfwerte bleiben erhalten. Das sind keine drei neu erfundenen unterschiedlichen Figurenmodelle. Fahrzeuge behalten ihre bisherige Darstellung.
 
@@ -20,7 +22,7 @@ Das Hauptspiel bleibt Canvas 2D. Neue Einheiten- und Gebäudegrafiken werden rep
 
 Der Gebäudegrundkörper enthält den gerenderten Bodenschatten. Die Kartenposition bezeichnet seinen festen projizierten Weltursprung; weder Schatten noch Fußpunkt werden aus wechselnden sichtbaren Bildgrenzen geschätzt. Feldkommando und Bastion besitzen 64 echte Schüsselansichten mit 48 Sekunden Umlaufdauer. Die kleinen Layer sind eng zugeschnitten und tragen ihren ursprünglichen Pivot relativ zum Grundkörper. Leuchtpunkte besitzen ebenfalls feste Registrierung und 3,8 Sekunden Periode. Während sich die Schüssel dreht, bleibt der Grundkörper einschließlich Bodenschatten pixelgleich. Pausierte Simulationszeit friert die Aktivität ein; reduzierte Bewegung hält die Darstellung statisch.
 
-Die GLB-Dateien enthalten `RadarSpin` und `BeaconPulse` als echte Transformationsclips. Das Hauptquartier hat 104 geometrische Teile, die Bastion 31. Die neutrale Bastion nutzt eine tatsächlich weiße Emission; Teamwechsel tauschen die vollständige passende gerenderte Fassung. Warmes Gehäusematerial bleibt erhalten.
+Die GLB-Dateien enthalten `RadarSpin` und `BeaconPulse` als echte Transformationsclips. Das bearbeitete Hauptquartier hat 115 Mesh-Instanzen und 60.652 Dreiecke, die Bastion 31 Teile. Die Nutzerversion enthielt keine Animationsclips; die erhaltenen beweglichen Gruppen und ihre neuen Details wurden wieder angebunden. Die neutrale Bastion nutzt eine tatsächlich weiße Emission; Teamwechsel tauschen die vollständige passende gerenderte Fassung. Warmes Gehäusematerial bleibt erhalten.
 
 ## Erhaltenes Spielprinzip
 
@@ -37,6 +39,6 @@ npm --prefix tests/browser test
 docker compose up --build -d
 ```
 
-Gezielt geprüft: **39 Node-Fälle und 19 Chrome-Fälle bestanden**, einschließlich der kompletten Reborn-Browserprüfung gegen die abschließend neu gebaute Docker-Auslieferung auf `127.0.0.1:8095`. Die Node-Fälle umfassen 29 Reborn-Simulationen, acht Animation/Bewegung und zwei Gebäudemodell-/Registrierungsfälle. Der Browser prüft auch die wirklichen GLB-Dateien aller sieben Gebäudetypen, Schüsselbewegung bei festem Fundament, echte Modellfarben, feste Bodenschatten, gemeinsam geladene Infanterieatlanten, Waffenmündungen, vollständige Kampagne, Produktion, Speicherstände, Nebel, Audio, kompakte Oberfläche und die beiden Animationsansichten. Die umfangreiche Testsuite des Europa-Archivs gehört nicht zu dieser Änderung.
+Bei der ursprünglichen Modellübernahme geprüft: **39 Node-Fälle und 19 Chrome-Fälle bestanden**, einschließlich der kompletten Reborn-Browserprüfung gegen die abschließend neu gebaute Docker-Auslieferung auf `127.0.0.1:8095`. Die Node-Fälle umfassen 29 Reborn-Simulationen, acht Animation/Bewegung und zwei Gebäudemodell-/Registrierungsfälle. Der Browser prüft auch die wirklichen GLB-Dateien aller sieben Gebäudetypen, Schüsselbewegung bei festem Fundament, echte Modellfarben, feste Bodenschatten, gemeinsam geladene Infanterieatlanten, Waffenmündungen, vollständige Kampagne, Produktion, Speicherstände, Nebel, Audio, kompakte Oberfläche und die beiden Animationsansichten. Die umfangreiche Testsuite des Europa-Archivs gehört nicht zu dieser Änderung.
 
 Quellen und Hashes: [ANIMATION_ASSETS.json](../reborn/ANIMATION_ASSETS.json). Gebäudemodelle: [ORIGIN.md](../../src/assets/reborn/buildings-3d/ORIGIN.md). Soldatenrig und Körperbewegungen: Quaternius, CC0, mit eigener Rüstung und offline gebackener beidhändiger Waffenhaltung; [Herkunft](../../src/assets/reborn/prototype/ORIGIN.md). Die fertigen Dateien liegen im Projekt und benötigen zur Spielzeit keine externen Dienste.

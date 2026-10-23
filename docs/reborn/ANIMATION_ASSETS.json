@@ -303,38 +303,38 @@
     {
       "file": "src/assets/reborn/buildings-3d/headquarters-0-beacon.png",
       "width": 11,
-      "height": 15,
-      "sha256": "a8ff7fda5dcdfaa5d42bd199fba13a06953250e1ea450dcea8a560237b9d0edb"
+      "height": 17,
+      "sha256": "59dfc8bc67b05ab97578875b363323a1283069af7ef81d893b9beb5bca050c10"
     },
     {
       "file": "src/assets/reborn/buildings-3d/headquarters-0-radar.png",
-      "width": 544,
-      "height": 544,
-      "sha256": "bc48b08e9afeb191b248d898f380db6f7e3af26f9cca5a0dacfea8f12d089257"
+      "width": 568,
+      "height": 568,
+      "sha256": "71d0330d665b6d48780c4a090a869b9c683cb92abeefad6a9094812de4b0977c"
     },
     {
       "file": "src/assets/reborn/buildings-3d/headquarters-0.png",
       "width": 512,
       "height": 512,
-      "sha256": "24106701ee311f15a5af3cf345e0f03fe549088fbea13373fd8808776ceb6821"
+      "sha256": "30653570a8df95d19f8172ea71ae51a4451afa91b15690600d1287e36133d52f"
     },
     {
       "file": "src/assets/reborn/buildings-3d/headquarters-1-beacon.png",
       "width": 11,
-      "height": 15,
-      "sha256": "265f4decff2c8caf783e6824c045795597dd59348ffe398b2887f23f76f1485c"
+      "height": 17,
+      "sha256": "d84dbbe621c342ca52f60d42086a2a0a7db523d5d214fce229264ff04213a412"
     },
     {
       "file": "src/assets/reborn/buildings-3d/headquarters-1-radar.png",
-      "width": 544,
-      "height": 544,
-      "sha256": "d95b32509bf07eb9ecf38df34316854a2ec1a5a62f0832f24975099ef0ad4ce0"
+      "width": 568,
+      "height": 568,
+      "sha256": "df6571e69624b223b4fbea31e72c402ee413f09fa3bae64e1255ae37eee36b67"
     },
     {
       "file": "src/assets/reborn/buildings-3d/headquarters-1.png",
       "width": 512,
       "height": 512,
-      "sha256": "fac46908bd7ab19b305df60b182051787f4564d3c048abbc09f30dd3d53cca1f"
+      "sha256": "22dcd713f17ac5de8bf38517a214a5973752543f65751fd23031dd11585e36af"
     },
     {
       "file": "src/assets/reborn/buildings-3d/turret-0-beacon.png",
@@ -2012,9 +2012,9 @@
       "kind": "headquarters",
       "team": 0,
       "model": "headquarters-0.glb",
-      "sha256": "03dbd24cd75f634ffe6c9b800eddcfc7e17bc791d3a01b04d6e92e87e868feda",
-      "parts": 104,
-      "triangles": 52180,
+      "sha256": "f8234404c72fc16a4f893c66a5700da97635d9d1c0d45949573983f109c37218",
+      "parts": 115,
+      "triangles": 60652,
       "pivot": [
         256,
         382
@@ -2037,9 +2037,9 @@
       "kind": "headquarters",
       "team": 1,
       "model": "headquarters-1.glb",
-      "sha256": "9d9afe07677831ab51721cc287b420b92593bf21cb4bf685698147d3fadcd976",
-      "parts": 104,
-      "triangles": 52180,
+      "sha256": "37748f6cfff1c3a095a94c8d783a8fa3d0e39ade0dffef396000a59756a71aca",
+      "parts": 115,
+      "triangles": 60652,
       "pivot": [
         256,
         382

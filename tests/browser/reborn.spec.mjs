@@ -369,6 +369,21 @@ test('atlas models: approved infantry and real building renders are active with 
  await page.evaluate(()=>{const {game:g,renderer:r}=window.__reborn,b=g.bases[0];r.camera.zoom=1.5;r.camera.x=b.x+165;r.camera.y=b.y-115;r.render(0);});await page.screenshot({path:new URL('../../docs/buildings-3d/in-game.png',import.meta.url).pathname,fullPage:true});
 });
 
+test('atlas models: refined headquarters preserves the edited surfaces and moves its added radar details in both factions',async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.setViewportSize({width:1440,height:1000});await page.goto('/model-3d.html?model=headquarters');await page.waitForFunction(()=>window.__model3D?.current?.getObjectByName('AtlasRefined_trim_radar'));
+ for(const team of [0,1]){
+  if(team===1){await page.locator('#red').click();await page.waitForFunction(()=>window.__model3D?.team===1&&window.__model3D.current.getObjectByName('Atlas_refined_headquarters')?.userData.atlasDesign.team===1);}
+  const result=await page.evaluate(()=>{
+   const v=window.__model3D;v.pause();v.play('Operation');v.mixer.setTime(0);v.current.updateMatrixWorld(true);
+   const detail=v.current.getObjectByName('AtlasRefined_trim_radar'),panel=v.current.getObjectByName('AtlasRefined_panel_radar'),fixed=v.current.getObjectByName('AtlasRefined_caution'),light=v.current.getObjectByName('AtlasRefined_blue_beacon'),before=detail.matrixWorld.toArray(),ground=fixed.matrixWorld.toArray(),local=detail.matrix.toArray();
+   v.mixer.setTime(12);v.current.updateMatrixWorld(true);v.render();return {before,after:detail.matrixWorld.toArray(),local,localAfter:detail.matrix.toArray(),ground,groundAfter:fixed.matrixWorld.toArray(),radar:detail.parent.name,panel:panel.parent.name,light:light.parent.name};
+  });expect(result.after).not.toEqual(result.before);expect(result.localAfter).toEqual(result.local);expect(result.groundAfter).toEqual(result.ground);expect(result.radar).toBe('RadarDish');expect(result.panel).toBe('RadarDish');expect(result.light).toBe('Beacon');
+  await expect(page.locator('#status')).toContainText('115 Bauteile');await page.screenshot({path:new URL('../../docs/buildings-3d/headquarters-refined-'+team+'.png',import.meta.url).pathname,fullPage:true});
+ }
+ await start(page,1440,1000);await page.evaluate(()=>{const {game:g,renderer:r}=window.__reborn,b=g.bases[0];r.camera.zoom=1.7;r.camera.x=b.x+165;r.camera.y=b.y-115;r.render(0);});
+ await page.screenshot({path:new URL('../../docs/buildings-3d/headquarters-refined-game.png',import.meta.url).pathname,fullPage:true});expect(errors).toEqual([]);
+});
+
 test('atlas models: all seven building models load in the gallery and radar motion keeps the foundation fixed',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.setViewportSize({width:1600,height:1080});await page.goto('/model-3d.html?model=headquarters');await page.waitForFunction(()=>window.__model3D?.current?.getObjectByName('Atlas_headquarters'));
  for(const kind of ['headquarters','bastion','barracks','factory','airfield','generator','turret']){

@@ -58,6 +58,9 @@ function attachDetails(model,dish,beacon){
 
 export async function loadRefinedHeadquarters(team){
  const source=await new GLTFLoader().loadAsync('/tools/building-sources/headquarters-refined.glb'),model=new T.Group();model.name='Atlas_refined_headquarters';model.add(source.scene);
+ // The edited file still carries the old procedural model's 104-part label.
+ // Publish one authoritative description for the complete imported assembly.
+ source.scene.traverse(n=>{delete n.userData.atlasDesign;});
  const dish=model.getObjectByName('RadarDish'),beacon=model.getObjectByName('Beacon');
  if(!dish||!beacon)throw Error('Refined headquarters is missing the retained radar/beacon groups');
  const attached=attachDetails(model,dish,beacon),materials=new Set();let parts=0,triangles=0;
