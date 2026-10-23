@@ -41,7 +41,7 @@ function prepareCatalog():void{
   const heading=document.createElement('h2');heading.textContent=group.toLocaleUpperCase('de-DE');el('catalog-units').append(heading);const grid=document.createElement('div');grid.className='catalog-grid';el('catalog-units').append(grid);
   for(const kind of unitKinds.filter(k=>UNITS[k].group===group)){
    const spec=UNITS[kind],button=document.createElement('button');button.className='catalog-card';button.dataset.unit=kind;button.setAttribute('aria-label',`${spec.name} ausbilden · ${spec.cost} Credits`);
-   button.innerHTML=`<img src="${renderer.icon('unit',kind)}" alt=""/><span class="card-cost"><i>◆</i>${spec.cost.toLocaleString('de-DE')}</span>`;
+   button.innerHTML=`<img src="${renderer.icon('unit',kind)}" alt=""/><span class="card-name" aria-hidden="true"></span><span class="card-cost"><i>◆</i>${spec.cost.toLocaleString('de-DE')}</span>`;button.querySelector<HTMLElement>('.card-name')!.textContent=spec.name;button.title=spec.name;
    button.onclick=()=>train(kind);button.onpointerenter=()=>{el('catalog-detail').textContent=`${spec.name} · ${spec.buildTime} S — ${spec.description}`;};grid.append(button);
   }
  }
