@@ -1,0 +1,21 @@
+import * as T from 'three';import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+const stage=document.getElementById('stage'),renderer=new T.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.18;stage.append(renderer.domElement);
+const scene=new T.Scene();scene.background=new T.Color('#9e7448');scene.fog=new T.Fog('#9e7448',12,28);
+const camera=new T.PerspectiveCamera(32,1,.01,100);camera.position.set(2.4,2.1,3.7);const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,1,.1);controls.enableDamping=true;controls.minDistance=1.7;controls.maxDistance=8;controls.maxPolarAngle=Math.PI*.51;
+scene.add(new T.HemisphereLight('#dfecff','#6c482b',1.7));const sun=new T.DirectionalLight('#ffe8cd',3.4);sun.position.set(-3,7,5);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=sun.shadow.camera.bottom=-3;sun.shadow.camera.right=sun.shadow.camera.top=3;sun.shadow.normalBias=.005;sun.shadow.radius=2;scene.add(sun);
+const fill=new T.DirectionalLight('#b5d9fa',1.1);fill.position.set(4,3,-4);scene.add(fill);
+const ground=new T.Mesh(new T.PlaneGeometry(200,200),new T.MeshStandardMaterial({color:'#b8915a',roughness:1}));ground.rotation.x=-Math.PI/2;ground.position.y=-.03;ground.receiveShadow=true;scene.add(ground);
+const grid=new T.GridHelper(8,40,'#a67f52','#b08a57');grid.position.y=-.025;scene.add(grid);
+const loader=new GLTFLoader(),cache=new Map();let team=0,current=null,currentData=null,mixer=null,action=null,clip='Idle',paused=false;
+async function faction(value){team=value;const requested=value;document.getElementById('status').textContent='Modell wird geladen …';let data=cache.get(value);if(!data){data=await loader.loadAsync('/src/assets/reborn/prototype/infantry-'+value+'.glb');cache.set(value,data);}if(requested!==team)return;
+ if(current)scene.remove(current);current=data.scene;currentData=data;scene.add(current);let design;current.traverse(n=>{if(n.isMesh)n.castShadow=n.receiveShadow=true;if(n.userData.atlasDesign)design=n.userData.atlasDesign;});mixer=new T.AnimationMixer(current);action=null;play(clip);
+ for(const [id,t] of [['blue',0],['red',1]])document.getElementById(id).setAttribute('aria-pressed',String(t===team));document.getElementById('download').href='/src/assets/reborn/prototype/infantry-'+team+'.glb';document.getElementById('status').textContent=`${design.parts} Bauteile · ${design.triangles.toLocaleString('de-DE')} Dreiecke · 5 echte Clips · Modell mit der Maus drehen`;
+}
+function play(name){clip=name;if(!mixer)return;action?.stop();action=mixer.clipAction(currentData.animations.find(c=>c.name===name));action.reset();action.setLoop(['Death','HitReact','Idle_Shoot'].includes(name)?T.LoopOnce:T.LoopRepeat,Infinity);action.clampWhenFinished=true;action.play();mixer.update(0);for(const b of document.querySelectorAll('[data-clip]'))b.setAttribute('aria-pressed',String(b.dataset.clip===name));}
+for(const b of document.querySelectorAll('[data-clip]'))b.onclick=()=>play(b.dataset.clip);for(const [id,t] of [['blue',0],['red',1]])document.getElementById(id).onclick=()=>faction(t).catch(fail);
+document.getElementById('pause').onclick=()=>{paused=!paused;document.getElementById('pause').textContent=paused?'Fortsetzen':'Pause';};
+function fail(error){document.getElementById('error').textContent=String(error);}
+new ResizeObserver(()=>{renderer.setSize(stage.clientWidth,stage.clientHeight,false);camera.aspect=stage.clientWidth/stage.clientHeight;camera.updateProjectionMatrix();}).observe(stage);
+let last=performance.now();renderer.setAnimationLoop(now=>{const dt=Math.min(.05,(now-last)/1000);last=now;if(!paused)mixer?.update(dt);controls.update();renderer.render(scene,camera);});
+window.__model3D={get current(){return current;},get mixer(){return mixer;},get clip(){return clip;},get team(){return team;},get data(){return currentData;},camera,controls,renderer,render(){renderer.render(scene,camera);},pause(){paused=true;},play};
+faction(0).catch(fail);

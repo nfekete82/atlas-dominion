@@ -326,3 +326,31 @@ test('reborn: animation laboratory visibly exercises all six scenarios with real
   await page.locator('#pause').click();await page.waitForTimeout(2200);await page.locator('#pause').click();expect(errors).toEqual([]);
  }finally{const video=page.video();await context.close();await video.saveAs(evidence+'animation-lab.webm');}
 });
+
+test('model study: exported GLB loads real animated geometry, supports five clips, orbit controls and faction selection',async({browser,baseURL})=>{
+ const dir=new URL('../../docs/detailed-models/',import.meta.url).pathname;await mkdir(dir,{recursive:true});
+ const context=await browser.newContext({viewport:{width:1450,height:1100},recordVideo:{dir:dir+'.video',size:{width:1450,height:1100}}}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ try{
+  await page.goto(baseURL+'/model-3d.html');await page.waitForFunction(()=>!!window.__model3D?.data);await expect(page.locator('#error')).toHaveText('');
+  const info=await page.evaluate(()=>{const v=window.__model3D;let meshes=0,triangles=0,design;v.current.traverse(n=>{if(n.isMesh){meshes++;triangles+=(n.geometry.index?.count??n.geometry.attributes.position.count)/3;}if(n.userData.atlasDesign)design=n.userData.atlasDesign;});return {meshes,triangles,design,clips:v.data.animations.map(c=>c.name)};});
+  expect(info.meshes).toBe(info.design.parts);expect(info.triangles).toBeGreaterThan(70000);expect(info.design.maxGripError).toBeLessThan(.0001);expect(info.clips.sort()).toEqual(['Death','HitReact','Idle','Idle_Shoot','Run_Gun']);
+  await page.evaluate(()=>{const v=window.__model3D;v.pause();v.play('Idle');v.mixer.setTime(.25);v.render();});await page.screenshot({path:dir+'infantry-3d.png',fullPage:true});
+  const poses=await page.evaluate(()=>{const v=window.__model3D;v.play('Run_Gun');v.mixer.setTime(.10);const a=v.current.getObjectByName('LowerLegL').quaternion.toArray();v.mixer.setTime(.35);return {a,b:v.current.getObjectByName('LowerLegL').quaternion.toArray()};});expect(poses.a.reduce((n,v,i)=>n+Math.abs(v-poses.b[i]),0)).toBeGreaterThan(.1);
+  const grip=await page.evaluate(()=>{const v=window.__model3D,errors=[];for(const clip of ['Idle','Run_Gun','Idle_Shoot']){v.play(clip);for(const t of [.05,.15,.3]){v.mixer.setTime(t);v.current.updateMatrixWorld(true);const rifle=v.current.getObjectByName('Atlas_Rifle');for(const side of ['L','R']){const target=rifle.position.clone().set(...(side==='L'?[0,-.055,.17]:[0,-.10,-.10]));rifle.localToWorld(target);const hand=v.current.getObjectByName('Index1'+side).getWorldPosition(target.clone());errors.push(hand.distanceTo(target));}}}return Math.max(...errors);});expect(grip).toBeLessThan(.015);
+  for(const [label,clip] of [['Schießen','Idle_Shoot'],['Treffer','HitReact'],['Tod','Death']]){await page.getByRole('button',{name:label,exact:true}).click();expect(await page.evaluate(()=>window.__model3D.clip)).toBe(clip);await page.evaluate(()=>{const v=window.__model3D;v.mixer.setTime(.25);v.render();});await page.waitForTimeout(120);}
+  await page.screenshot({path:dir+'infantry-3d-death.png',fullPage:true});await page.getByRole('button',{name:'Stehen',exact:true}).click();
+  const before=await page.evaluate(()=>window.__model3D.camera.position.toArray()),box=await page.locator('#stage').boundingBox();await page.mouse.move(box.x+box.width*.55,box.y+box.height*.5);await page.mouse.down();await page.mouse.move(box.x+box.width*.7,box.y+box.height*.55,{steps:8});await page.mouse.up();await page.waitForTimeout(150);const after=await page.evaluate(()=>window.__model3D.camera.position.toArray());expect(after.some((v,i)=>Math.abs(v-before[i])>.1)).toBe(true);
+  await page.getByRole('button',{name:'Rot',exact:true}).click();await expect(page.locator('#red')).toHaveAttribute('aria-pressed','true');await page.screenshot({path:dir+'infantry-3d-red.png',fullPage:true});
+  const response=await page.request.get(baseURL+'/src/assets/reborn/prototype/infantry-1.glb');expect(response.ok()).toBe(true);expect((await response.body()).subarray(0,4).toString()).toBe('glTF');
+  await page.getByRole('button',{name:'Laufen',exact:true}).click();await page.getByRole('button',{name:'Pause',exact:true}).click();await page.waitForTimeout(1600);expect(errors).toEqual([]);
+ }finally{const video=page.video();await context.close();await video.saveAs(dir+'infantry-3d.webm');}
+});
+
+test('model study: sprite comparison shows eight real directions and all five states without replacing gameplay assets',async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.setViewportSize({width:1390,height:1180});await page.goto('/model-preview.html');await page.waitForFunction(()=>!!window.__modelPreview);
+ const info=await page.evaluate(()=>window.__modelPreview.assets.map(a=>({directions:a.data.directions,cell:a.data.cell,frames:a.data.frames.length,walk:a.data.clips.walk.uniquePhases})));for(const a of info){expect(a.directions).toBe(8);expect(a.frames).toBe(296);expect(a.walk.every(n=>n===8)).toBe(true);}
+ await page.evaluate(()=>{const p=window.__modelPreview;p.paused=true;p.time=.15;p.render();});await page.screenshot({path:new URL('../../docs/detailed-models/infantry-study.png',import.meta.url).pathname,fullPage:true});
+ for(const label of ['Laufen','Schießen','Treffer','Tod','Stehen']){await page.getByRole('button',{name:label,exact:true}).click();await expect(page.getByRole('button',{name:label,exact:true})).toHaveAttribute('aria-pressed','true');}
+ await page.getByRole('button',{name:'Laufen',exact:true}).click();await page.evaluate(()=>{window.__modelPreview.time=.22;window.__modelPreview.render();});await page.screenshot({path:new URL('../../docs/detailed-models/infantry-walk.png',import.meta.url).pathname,fullPage:true});
+ await page.getByRole('button',{name:'Rotes Team',exact:true}).click();await expect(page.locator('#download')).toHaveAttribute('href','/src/assets/reborn/prototype/infantry-1.glb');await page.getByRole('button',{name:'Blickrichtung drehen',exact:true}).click();expect(errors).toEqual([]);
+});

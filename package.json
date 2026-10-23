@@ -14,6 +14,7 @@
     "test:animation": "npm run build && node --test tests/reborn-animation.test.mjs",
     "assets:animations": "node scripts/render-unit-atlases.mjs",
     "assets:animation-audit": "node scripts/audit-animation-assets.mjs",
+    "assets:detailed-infantry": "node scripts/export-detailed-infantry.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:ai-defense": "npm run build && node scripts/benchmark-ai-defense.mjs"
   },
