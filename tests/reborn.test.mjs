@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Simulation} from '../dist/src/reborn/simulation.js';
+import {UNITS,unitKinds} from '../dist/src/reborn/catalog.js';
 import {World} from '../dist/src/reborn/world.js';
 import {RULES,distance} from '../dist/src/reborn/config.js';
 const advance=(g,seconds)=>{for(let i=0;i<Math.round(seconds/RULES.tick);i++)g.step();};
@@ -203,7 +204,7 @@ test('reborn: construction respects ownership, terrain, occupied footprints, cre
 });
 test('reborn: typed production enforces the producer, refunds each type and preserves later queue timing',()=>{
  const g=peaceful();g.credits[0]=3000;const factory=g.build(0,'factory',buildSite(g,'factory'));advance(g,19);
- assert.equal(g.recruit(g.bases[0].id,'tank'),false);assert.equal(g.recruit(factory.id,'tank'),true);assert.equal(g.recruit(factory.id,'rover'),true);
+ assert.equal(g.recruit(factory.id,'gunship'),false);assert.equal(g.recruit(factory.id,'tank'),true);assert.equal(g.recruit(factory.id,'rover'),true);
  advance(g,2);const progress=factory.production,credits=g.credits[0];g.cancel(factory.id,1);assert.equal(g.credits[0],credits+300);assert.equal(factory.production,progress);
  assert.equal(g.recruit(factory.id,'artillery'),true);g.cancel(factory.id,0);assert.equal(factory.production,0);assert.deepEqual(factory.queueTypes,['artillery']);advance(g,19);
  const artillery=g.units.find(u=>u.kind==='artillery');assert.ok(artillery);assert.equal(artillery.hp,340);assert.ok(g.world.walkable(artillery,g.obstacles(),10));
@@ -229,4 +230,15 @@ test('reborn: engineers repair nearby buildings and a completed turret independe
  const g=peaceful();g.credits[0]=3000;const tower=g.build(0,'turret',buildSite(g,'turret'));advance(g,11);tower.hp=400;
  const repair=g.spawn(0,g.world.nearest({x:tower.x+55,y:tower.y},g.obstacles()),'engineer');advance(g,2);assert.ok(tower.hp>410);
  const enemyPoint=g.world.nearest({x:tower.x+150,y:tower.y},g.obstacles());g.units=g.units.filter(u=>u.id!==repair.id);const enemy=g.spawn(1,enemyPoint);enemy.cooldown=100;g.updateVision();advance(g,.9);assert.ok(enemy.hp<100);assert.ok(tower.hp>=400);
+});
+
+test('reborn: every roster type trains at the starting headquarters without building prerequisites',()=>{
+ for(const kind of unitKinds){
+  const g=peaceful(),hq=g.bases[0],spec=UNITS[kind];g.credits[0]=2000;
+  assert.equal(g.producer(0,kind)?.id,hq.id);assert.equal(g.recruit(hq.id,kind),true);
+  assert.equal(g.credits[0],2000-spec.cost);assert.deepEqual(hq.queueTypes,[kind]);
+  const restored=Simulation.load(g.save());assert.deepEqual(restored.bases[0].queueTypes,[kind]);
+  assert.equal(restored.credits[0],g.credits[0]);advance(restored,spec.buildTime+.1);
+  assert.ok(restored.units.some(u=>u.owner===0&&u.kind===kind&&u.id!==g.units[0].id));assert.equal(restored.bases.length,2);
+ }
 });

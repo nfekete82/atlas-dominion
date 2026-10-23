@@ -15,7 +15,9 @@ Die archivierte Europasimulation unter `legacy/` wird vom neuen Einstiegspunkt n
 | `main.ts`, `icons.ts`, `style.css` | Katalog-Tabs, echte Auftragsplätze, Kontextanzeige, Menüs, lokale SVG-Icons und Metallrahmen |
 | `storage.ts`, `audio.ts` | Transaktionale IndexedDB-Speicherung und lokale Web-Audio-Sounds mit gespeicherten Einstellungen |
 
-## Gebäude und Produktion
+## Einheitenproduktion und erhaltene Baukompatibilität
+
+Der Gebäudebau ist vorerst aus der Oberfläche entfernt: kein Gebäudereiter, kein B-Kürzel und keine Bauplatzierung per Eingabe. Alle neun Einheitentypen führen das Hauptquartier als Produzenten. Auswahl und Befehle belegen maximal 460 × 132 Pixel direkt links unten; Produktion und alle acht stornierbaren Aufträge liegen im rechten Katalog. Hauptquartiere und Kontrollpunkte bleiben Teil des Spiels. Die Bau-Simulation und vorhandene Anlagen bleiben für alte Spielstände und spätere Weiterentwicklung erhalten.
 
 Die bisherige `Base`-Struktur beschreibt jetzt Hauptquartiere und zusätzliche Gebäude mit `kind`, `buildRemaining`, typisiertem `queueTypes` und einer parallelen Zeitliste `queue`. Dadurch bleiben frühere Spielstände mit fünfsekündigen Infanterieaufträgen kompatibel. Aufträge bezahlen ihren konkreten Einheitentyp; Produzenten, Budget, Kapazität und Warteschlangenlänge werden in der Simulation geprüft. Stornieren des aktiven Auftrags verwirft dessen Fortschritt, späterer Aufträge lässt den aktuellen Fortschritt bestehen.
 
@@ -39,7 +41,7 @@ Ganz gezeichnete, registrierte Infanterieposen vermeiden verdrehte Sprite-Hälft
 
 Gebäudesilhouetten werden am Fundament auf die Bodenebene projiziert. Fluggeräte schweben sichtbar über ihrem gerichteten Schatten; unter Bodentruppen werden keine gefüllten Schattenellipsen ergänzt. Das Terrain wird vor dem Nebel gezeichnet, sichtbare Gebäude und Truppen anschließend nach Bodenhöhe sortiert. Bastionfarben verändern ihre blauen Lichtpixel zu Weiß oder Rot, während warmes Gehäusematerial erhalten bleibt.
 
-Das Menü besitzt funktionsfähiges Fortsetzen, Speichern, Laden, Audiooptionen, Steuerung und Hauptmenü. Ein geöffneter Dialog pausiert die Simulation; verschachtelte Optionen führen zum Pausenmenü zurück. Die Leertaste bietet weiterhin schnelle taktische Pause. Die drei Katalog-Tabs zeigen echte Produktionsaufträge, platzierbare Gebäude und bereits erkundete Sektoren. Unbekannte Sektorzeilen verraten weder Besitzer noch Einkommen. Metallstruktur und Menülandschaft liegen als lokale Rastergrafiken vor, Rahmen und Icons als CSS/SVG.
+Das Menü besitzt funktionsfähiges Fortsetzen, Speichern, Laden, Audiooptionen, Steuerung und Hauptmenü. Ein geöffneter Dialog pausiert die Simulation; verschachtelte Optionen führen zum Pausenmenü zurück. Die Leertaste bietet weiterhin schnelle taktische Pause. Die zwei Katalog-Tabs zeigen den Einheitenkatalog und bereits erkundete Sektoren; die Produktionswarteschlange bleibt darunter sichtbar. Unbekannte Sektorzeilen verraten weder Besitzer noch Einkommen. Metallstruktur und Menülandschaft liegen als lokale Rastergrafiken vor, Rahmen und Icons als CSS/SVG.
 
 ## Speicherstände und Grenzen
 

@@ -7,7 +7,7 @@ export class Input {
   private commandHeld=new Map<string,number>();
   private down:Point|null=null;private miniDragging=false;private dragging=false;
   onSelection=()=>{};onPause=()=>{};onHelp=()=>{};onSave=()=>{};onLoad=()=>{};
-  onMenu=()=>{};onBuild=()=>{};
+  onMenu=()=>{};
   onOrder=(_attack:boolean)=>{};
   notify=(_message:string)=>{};
   constructor(readonly renderer:Renderer){
@@ -16,7 +16,6 @@ export class Input {
     canvas.addEventListener('contextmenu',e=>e.preventDefault());
     canvas.addEventListener('pointerdown',e=>{
       canvas.focus();this.pointer=local(e);
-      if(e.button===2&&renderer.placement){renderer.placement=null;this.onSelection();return;}
       if(e.button===2){this.order(renderer.world(this.pointer),e.shiftKey);return;}
       if(e.button===0){this.down=local(e);this.dragging=false;canvas.setPointerCapture(e.pointerId);}
     });
@@ -26,10 +25,7 @@ export class Input {
     });
     canvas.addEventListener('pointerup',e=>{
       if(e.button!==0||!this.down)return;const p=local(e);
-      if(renderer.placement){
-        const at=renderer.world(p),kind=renderer.placement,error=renderer.game.buildError(0,kind,at);
-        if(error)this.notify(error);else{const building=renderer.game.build(0,kind,at)!;renderer.selected.clear();renderer.selectedBase=building.id;renderer.placement=null;this.onOrder(false);this.notify(`${buildingSpec(building).name}: Bau begonnen.`);}
-      }else if(this.dragging){
+      if(this.dragging){
         const a=renderer.world(this.down),b=renderer.world(p);if(!e.shiftKey)renderer.selected.clear();renderer.selectedBase=null;
         for(const u of renderer.game.units)if(u.owner===0&&u.x>=Math.min(a.x,b.x)&&u.x<=Math.max(a.x,b.x)&&u.y>=Math.min(a.y,b.y)&&u.y<=Math.max(a.y,b.y))renderer.selected.add(u.id);
       }else if(renderer.attackMode){this.order(renderer.world(p),e.shiftKey);renderer.attackMode=false;canvas.classList.remove('attack');}
@@ -54,8 +50,7 @@ export class Input {
       if(key===' '){this.onPause();return;}
       if(key==='s'&&renderer.selected.size){renderer.game.stop([...renderer.selected]);this.notify('Einheiten halten die Position.');this.keys.add(key);this.commandHeld.set(key,performance.now());return;}
       if(key==='a'&&renderer.selected.size){renderer.attackMode=true;canvas.classList.add('attack');this.onSelection();this.keys.add(key);this.commandHeld.set(key,performance.now());return;}
-      if(key==='escape'){if(renderer.placement){renderer.placement=null;this.onSelection();return;}if(!renderer.selected.size&&renderer.selectedBase===null&&!renderer.attackMode){this.onMenu();return;}renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;canvas.classList.remove('attack');this.onSelection();}
-      if(key==='b'){this.onBuild();return;}
+      if(key==='escape'){if(!renderer.selected.size&&renderer.selectedBase===null&&!renderer.attackMode){this.onMenu();return;}renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;canvas.classList.remove('attack');this.onSelection();}
       if(key==='h'||key==='home')renderer.home();
       if(key==='t'){renderer.overlay=!renderer.overlay;this.onSelection();}
       if(key==='?'||key==='f1'){e.preventDefault();this.onHelp();}

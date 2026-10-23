@@ -18,3 +18,49 @@ dialog{position:fixed;color:#e1e5df;max-width:730px;width:calc(100% - 36px);padd
 
 .catalog-card:disabled{opacity:.78;filter:none}.catalog-card:disabled img{opacity:.8;filter:saturate(.8)}
 .pause-scene{background:linear-gradient(#0b1519 0%,#0c151b00 38%,#0a11192a 100%),url('/src/assets/reborn/menu-desert.png') 50% 65%/cover;filter:none;opacity:.85}
+
+/* Unit-focused layout: construction is parked; production lives with the roster. */
+.catalog-tabs{grid-template-columns:repeat(2,1fr)}
+#sidebar{bottom:12px}
+#production{position:relative;flex-shrink:0;border:0;border-top:1px solid #5362637a;padding:8px 3px 0}
+#production .section-label{margin:0 34px 7px 0;border:0}
+#production #queue-slots{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+#production #queue-slots button{height:30px}
+#production #queue-slots .empty{font-size:18px}
+#production .production-track{margin-top:5px;height:12px}
+#production #quick-production{position:absolute;right:3px;top:4px;margin:0}
+#production #recruit{width:28px;height:20px}
+#production #recruit svg{width:14px;height:14px}
+#catalog-detail{min-height:27px;margin-top:3px;font-size:8px}
+.command{left:10px;right:auto;bottom:10px;width:min(460px,calc(100% - var(--side) - 36px));height:132px;min-height:0;padding:10px;grid-template-columns:minmax(0,1fr) 104px}
+.command .selection{gap:9px;padding:0 10px 0 0}
+.command .portrait{display:block;width:72px;min-width:72px}
+.command .selection-copy{padding:0 0 20px}
+.command .selection-copy>small{font-size:7px;margin:3px 0 5px;letter-spacing:.4px}
+.command .selection-copy>strong{font-size:17px;line-height:1.05}
+.command .health-track{height:4px;margin-top:7px;max-width:180px}
+.command #selection-health{font-size:9px;margin-top:3px}
+.command #selection-detail{font-size:10px;line-height:1.2;margin:5px 0 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.command .command-group{padding-left:9px;border-left:1px solid #5362637a}
+.command .section-label{font-size:8px;margin-bottom:5px;padding-bottom:3px}
+.command .commands{gap:4px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.command #unit-commands{margin-bottom:4px}
+.command .commands button,.command #unit-commands button,.command:has(#unit-commands:not([hidden])) .common-commands button{height:26px}
+.command .commands svg,.command:has(#unit-commands:not([hidden])) .common-commands svg{width:17px;height:17px}
+.command .common-commands{margin-top:4px}
+.command #quick-select{gap:4px}
+.command #quick-select button{width:24px;height:18px}
+@media(max-width:1000px){
+ .catalog-tabs button{height:45px}
+ #production #queue-slots button{height:26px}
+ #catalog-detail{min-height:22px;font-size:7px}
+}
+@media(max-width:620px){
+ .command{left:9px;bottom:9px;height:128px;padding:9px;grid-template-columns:minmax(0,1fr) 82px;width:calc(100% - var(--side) - 28px)}
+ .command .portrait{display:none}
+ .command .selection{padding-right:7px}
+ .command .selection-copy>strong{font-size:16px}
+ .command .selection-copy>small{font-size:6px}
+ .command #selection-detail{font-size:9px}
+ .command .command-group{padding-left:7px}
+}

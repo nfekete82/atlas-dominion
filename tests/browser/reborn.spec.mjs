@@ -243,33 +243,38 @@ test('reborn: captured bastion keeps both maps lit after infantry leaves and mar
  expect(combat).toEqual({blueHp:100,redHp:83,firstAttacker:null,orders:2,shots:1});
 });
 
-test('reborn: reference HUD builds a barracks, unlocks heavy infantry, produces it and restores construction through the pause menu',async({page})=>{
- await start(page,1450,1090);
- await expect(page.locator('[data-unit]')).toHaveCount(9);await page.locator('#tab-buildings').click();await expect(page.locator('[data-building]')).toHaveCount(5);
- await page.locator('[data-building="barracks"]').click();expect(await page.evaluate(()=>window.__reborn.renderer.placement)).toBe('barracks');await page.keyboard.press('Escape');await expect(page.locator('#credits')).toHaveText('500');
- const site=await page.evaluate(()=>{const {game:g,renderer:r}=window.__reborn;for(let y=2050;y<3150;y+=24)for(let x=400;x<1700;x+=24){const p={x,y},s=r.screen(p);if(s.x>90&&s.x<r.width-340&&s.y>135&&s.y<r.height-240&&!g.buildError(0,'barracks',p))return p;}throw Error('No visible construction site');});
- await page.locator('[data-building="barracks"]').click();const base=await page.evaluate(()=>window.__reborn.renderer.screen(window.__reborn.game.bases[0]));await page.mouse.click(base.x,base.y);expect(await page.evaluate(()=>window.__reborn.game.bases.length)).toBe(2);
- const p=await screen(page,site);await page.mouse.move(p.x,p.y);await page.screenshot({path:evidence+'construction-preview.png'});await page.mouse.click(p.x,p.y);await expect(page.locator('#credits')).toHaveText('300');
- expect(await page.evaluate(()=>window.__reborn.game.bases.some(b=>b.kind==='barracks'&&b.buildRemaining>0))).toBe(true);
- await page.locator('#tab-units').click();await expect(page.locator('[data-unit="heavy"]')).toBeDisabled();await advance(page,13);await expect(page.locator('[data-unit="heavy"]')).toBeEnabled();await page.locator('[data-unit="heavy"]').click();
- await expect(page.locator('#queue')).toContainText('1 IM AUFTRAG');await page.screenshot({path:evidence+'reference-production.png'});await advance(page,9);expect(await page.evaluate(()=>window.__reborn.game.units.some(u=>u.kind==='heavy'&&u.hp===190))).toBe(true);
- await openMenu(page);await expect(page.locator('#pause-dialog .menu-button')).toHaveCount(6);await page.screenshot({path:evidence+'reference-menu.png'});
+
+test('reborn: unit-focused HUD stays compact at bottom left and trains heavy infantry without construction',async({page})=>{
+ await start(page,3434,1790);await page.locator('#select-unit').click();
+ await expect(page.locator('[data-unit]')).toHaveCount(9);await expect(page.locator('.catalog-tabs button')).toHaveCount(2);
+ await expect(page.locator('#tab-buildings, [data-building], #build-shortcut')).toHaveCount(0);
+ await page.keyboard.press('b');expect(await page.evaluate(()=>window.__reborn.renderer.placement)).toBe(null);
+ const panel=await page.locator('.command').boundingBox();expect(panel.x).toBeLessThanOrEqual(12);expect(panel.width).toBeLessThanOrEqual(460);expect(panel.height).toBeLessThanOrEqual(132);expect(1790-panel.y-panel.height).toBeLessThanOrEqual(12);
+ await expect(page.locator('.command #production')).toHaveCount(0);await expect(page.locator('#sidebar #production')).toBeVisible();
+ await expect(page.locator('[data-unit="heavy"]')).toBeEnabled();await page.locator('[data-unit="heavy"]').click();
+ await expect(page.locator('#credits')).toHaveText('250');await expect(page.locator('#queue')).toContainText('1 IM AUFTRAG');
+ await page.screenshot({path:evidence+'unit-focus-wide.png'});await advance(page,9);
+ expect(await page.evaluate(()=>window.__reborn.game.units.some(u=>u.kind==='heavy'&&u.hp===190))).toBe(true);
+ await page.setViewportSize({width:800,height:650});await page.locator('#select-unit').click();await expect(page.locator('#select-unit')).toBeInViewport();await expect(page.locator('#attack')).toBeInViewport();await expect(page.locator('#recruit')).toBeInViewport();
+ const compact=await page.locator('.command').boundingBox(),sidebar=await page.locator('#sidebar').boundingBox();expect(compact.x+compact.width).toBeLessThan(sidebar.x);expect(compact.x).toBeLessThanOrEqual(10);expect(compact.height).toBeLessThanOrEqual(132);
+ await page.screenshot({path:evidence+'unit-focus-compact.png'});
+ await openMenu(page);await expect(page.locator('#pause-dialog .menu-button')).toHaveCount(6);
  await page.locator('#options').click();await expect(page.locator('#audio-panel')).toBeVisible();await page.locator('#audio-close').click();await expect(page.locator('#pause-dialog')).toBeVisible();expect(await page.evaluate(()=>window.__reborn.game.paused)).toBe(true);
  await page.locator('#save').click();await expect(page.locator('#notices')).toContainText('Kampagne lokal gespeichert');await page.reload();await page.locator('#loading').waitFor({state:'detached'});await openMenu(page);await page.locator('#load').click();await expect(page.locator('#notices')).toContainText('Kampagne geladen');await page.evaluate(()=>{window.__reborn.game.paused=true;});
- expect(await page.evaluate(()=>window.__reborn.game.bases.some(b=>b.kind==='barracks'&&b.buildRemaining===0))).toBe(true);expect(await page.evaluate(()=>window.__reborn.game.units.some(u=>u.kind==='heavy'))).toBe(true);
+ expect(await page.evaluate(()=>window.__reborn.game.bases.length)).toBe(2);expect(await page.evaluate(()=>window.__reborn.game.units.some(u=>u.kind==='heavy'))).toBe(true);
 });
 
-test('reborn: factory and airfield catalog produce all six vehicles with distinct sprites and working movement',async({page})=>{
+test('reborn: headquarters catalog produces all six vehicles and aircraft with distinct sprites and working movement',async({page})=>{
  test.setTimeout(60000);await start(page,1450,1090);
- // A funded scenario isolates all six new production paths; the campaign test uses the real starting economy.
+ // Fund the six production paths; the campaign test separately uses the real starting economy.
  await page.evaluate(()=>{const g=window.__reborn.game;g.credits[0]=5000;g.aiClock=-1e8;window.__reborn.refresh();});
- for(const [kind,time] of [['barracks',13],['factory',19],['airfield',23]]){
-  await page.locator('#tab-buildings').click();const site=await page.evaluate(kind=>{const {game:g,renderer:r}=window.__reborn;for(let y=2080;y<3100;y+=24)for(let x=400;x<1700;x+=24){const p={x,y},s=r.screen(p);if(s.x>100&&s.x<r.width-340&&s.y>140&&s.y<r.height-250&&!g.buildError(0,kind,p))return p;}throw Error('No visible site for '+kind);},kind);
-  await page.locator(`[data-building="${kind}"]`).click();const p=await screen(page,site);await page.mouse.click(p.x,p.y);await advance(page,time);
- }
- await page.locator('#tab-units').click();for(const kind of ['rover','tank','artillery','scout','gunship','bomber']){await page.locator(`[data-unit="${kind}"]`).scrollIntoViewIfNeeded();await expect(page.locator(`[data-unit="${kind}"]`)).toBeEnabled();await page.locator(`[data-unit="${kind}"]`).click();}
- await advance(page,57);const roster=await page.evaluate(()=>window.__reborn.game.units.filter(u=>u.owner===0).map(u=>u.kind));for(const kind of ['rover','tank','artillery','scout','gunship','bomber'])expect(roster).toContain(kind);
+ for(const kind of ['rover','tank','artillery','scout','gunship','bomber']){await page.locator('[data-unit="'+kind+'"]').scrollIntoViewIfNeeded();await expect(page.locator('[data-unit="'+kind+'"]')).toBeEnabled();await page.locator('[data-unit="'+kind+'"]').click();}
+ await expect(page.locator('#queue')).toContainText('6 IM AUFTRAG');await expect(page.locator('#queue-slots button')).toHaveCount(8);
+ await advance(page,2);const credits=await page.evaluate(()=>window.__reborn.game.credits[0]);await page.locator('#queue-slots button').nth(5).click();
+ expect(await page.evaluate(()=>window.__reborn.game.credits[0])).toBe(credits+1000);await page.locator('[data-unit="bomber"]').click();
+ await advance(page,98);const roster=await page.evaluate(()=>window.__reborn.game.units.filter(u=>u.owner===0).map(u=>u.kind));for(const kind of ['rover','tank','artillery','scout','gunship','bomber'])expect(roster).toContain(kind);
+ expect(await page.evaluate(()=>window.__reborn.game.bases.length)).toBe(2);
  const moved=await page.evaluate(()=>{const {game:g}=window.__reborn,army=g.units.filter(u=>u.owner===0&&['rover','tank','artillery'].includes(u.kind));const before=army.map(u=>({id:u.id,x:u.x,y:u.y}));g.command(army.map(u=>u.id),{...g.territories[20].point,kind:'move'});return before;});await advance(page,14);
  for(const original of moved){const distance=await page.evaluate(original=>{const u=window.__reborn.game.units.find(u=>u.id===original.id);return Math.hypot(u.x-original.x,u.y-original.y);},original);expect(distance).toBeGreaterThan(45);}
- await page.locator('#home').click();await page.screenshot({path:evidence+'reference-roster.png'});
+ await page.locator('#home').click();await page.screenshot({path:evidence+'unit-roster.png'});
 });
