@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Simulation} from '../dist/src/reborn/simulation.js';
+import {UNITS} from '../dist/src/reborn/catalog.js';
 import {RULES,distance} from '../dist/src/reborn/config.js';
 import {BASTION_SPACING,seededRandom} from '../dist/src/reborn/world-generation.js';
 
@@ -62,4 +63,55 @@ test('combat: locks survive save/load but explicit attack commands override them
  g.command([blue.id],{...b,kind:'attack',target:b.id});blue.cooldown=0;g.step();assert.equal(blue.combatTarget,b.id);assert.equal(b.hp,83);
  const wall=g.world.index({x:1980,y:2100});g.world.blocked[wall]=1;g.world.opaque[wall]=1;g.updateVision();blue.cooldown=0;
  const hp=b.hp;g.step();assert.equal(b.hp,hp);assert.notEqual(blue.combatTarget,b.id);
+});
+
+const advanceCombat=(g,seconds)=>{for(let i=0;i<Math.round(seconds/RULES.tick);i++)g.step();};
+
+test('combat: guards approach enemies within sight before weapon range and open fire promptly',()=>{
+ for(const owner of [0,1]){
+  const g=new Simulation();g.aiClock=-1e8;g.units=[];
+  const guard=g.spawn(owner,{x:1900,y:2100}),enemy=g.spawn(1-owner,{x:2110,y:2100},'engineer');
+  enemy.cooldown=100;g.updateVision();
+  assert.ok(g.world.sightLine(guard,enemy));assert.ok(distance(guard,enemy)>UNITS.infantry.range);
+  g.step();assert.ok(guard.x>1900,'guard should move toward visible contact in the first tick');
+  assert.equal(enemy.hp,UNITS.engineer.hp);assert.deepEqual(guard.pursuitOrigin,{x:1900,y:2100});
+  advanceCombat(g,.9);assert.ok(enemy.hp<UNITS.engineer.hp,'guard should advance and fire without being hit first');
+ }
+});
+
+test('combat: plain move orders outrank auto-chase, but attack-move engages and keeps its order',()=>{
+ for(const kind of ['move','attackMove']){
+  const g=new Simulation();g.aiClock=-1e8;g.units=[];
+  const blue=g.spawn(0,{x:1900,y:2100}),red=g.spawn(1,{x:2110,y:2100},'engineer');
+  red.cooldown=100;g.command([blue.id],{x:1650,y:2100,kind});g.updateVision();
+  g.step();
+  assert.equal(blue.orders.length,1);
+  if(kind==='move'){assert.ok(blue.x<1900);assert.equal(blue.pursuitOrigin,null);}
+  else {assert.ok(blue.x>1900);assert.deepEqual(blue.pursuitOrigin,{x:1900,y:2100});}
+  g.units=g.units.filter(u=>u.id!==red.id);
+  advanceCombat(g,2);
+  assert.ok(blue.x<1900,'original destination is resumed after the enemy disappears');
+  assert.equal(blue.orders[0].kind,kind);
+ }
+});
+
+test('combat: idle guards abandon pursuit and return to their initial position',()=>{
+ const g=new Simulation();g.aiClock=-1e8;g.units=[];
+ const blue=g.spawn(0,{x:1900,y:2100}),red=g.spawn(1,{x:2110,y:2100},'engineer');
+ red.cooldown=100;g.updateVision();advanceCombat(g,.2);
+ assert.ok(blue.x>1910);assert.deepEqual(blue.pursuitOrigin,{x:1900,y:2100});
+ const saved=Simulation.load(g.save());
+ assert.deepEqual(saved.units.find(u=>u.id===blue.id).pursuitOrigin,blue.pursuitOrigin);
+ g.units=g.units.filter(u=>u.id!==red.id);advanceCombat(g,3);
+ assert.ok(distance(blue,{x:1900,y:2100})<18,'guard should return instead of leaving its post');
+ assert.equal(blue.pursuitOrigin,null);
+});
+
+test('combat: cliffs prevent auto-pursuit of opponents outside weapon range',()=>{
+ const g=new Simulation();g.aiClock=-1e8;g.units=[];
+ const guard=g.spawn(0,{x:1900,y:2100}),enemy=g.spawn(1,{x:2110,y:2100},'engineer');
+ const wall=g.world.index({x:1980,y:2100});g.world.blocked[wall]=1;g.world.opaque[wall]=1;g.updateVision();
+ assert.equal(g.world.sightLine(guard,enemy),false);
+ advanceCombat(g,1);assert.equal(guard.x,1900);assert.equal(enemy.hp,UNITS.engineer.hp);
+ assert.equal(guard.pursuitOrigin,undefined);
 });
