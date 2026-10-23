@@ -11,6 +11,8 @@ export interface Unit extends Point {
   lastAttacker:number|null; defendUntil:number;
   /** Optional motor state keeps version-2 saves compatible. */
   driveSpeed?:number; hullAngle?:number; combatTarget?:number|null;
+  /** Where an autonomous pursuit began; persisted so guards do not chase indefinitely. */
+  pursuitOrigin?:Point|null;
 }
 export interface Base extends Point {
   id:number; owner:Faction; kind:BuildingKind; hp:number; territory:number; queue:number[]; queueTypes:UnitKind[]; production:number;
@@ -125,11 +127,11 @@ export class Simulation {
       const target=spec.flying?{x:clamp(p.x,8,RULES.worldSize-8),y:clamp(p.y,8,RULES.worldSize-8)}:this.world.nearest(p,this.obstacles(),[],u,Math.max(0,spec.radius-10));if(!target)return;
       const next:Order={...order,...target};
       if(append){if(u.orders.length<32)u.orders.push(next);else return;}
-      else {u.orders=[next];u.path=[];u.repath=0;u.combatTarget=null;}
+      else {u.orders=[next];u.path=[];u.repath=0;u.combatTarget=null;u.pursuitOrigin=null;}
       accepted++;
     });return accepted;
   }
-  stop(ids:number[]):void {for(const u of this.units)if(ids.includes(u.id)){u.orders=[];u.path=[];u.moving=false;}}
+  stop(ids:number[]):void {for(const u of this.units)if(ids.includes(u.id)){u.orders=[];u.path=[];u.moving=false;u.pursuitOrigin=null;u.combatTarget=null;}}
   canSee(owner:Faction,p:Point):boolean {const i=this.world.index(p);return i>=0&&this.visible[owner][i]===1;}
   hasExplored(owner:Faction,p:Point):boolean {const i=this.world.index(p);return i>=0&&this.explored[owner][i]===1;}
   updateVision():void {
@@ -164,11 +166,20 @@ export class Simulation {
   }
   private acquire(u:Unit):Unit|Base|undefined {
     const order=u.orders[0],spec=unitSpec(u),entities=[...this.units,...this.bases];
+    // A plain move is a strict order. Idle combat units and attack-move squads
+    // can respond within sight, starting their approach before weapon range.
+    // Engineers on guard duty stay near their work instead of abandoning repairs.
+    const proactive=order?.kind!=='move'&&(u.kind!=='engineer'||order?.kind==='attackMove');
+    const engageRadius=proactive?Math.max(spec.range,Math.min(spec.sight,spec.range+120)):spec.range;
     const visible=(e:Unit|Base)=>this.canSee(u.owner,e)||(distance(u,e)<=spec.sight&&(spec.flying||this.world.sightLine(u,e)));
-    const eligible=(e:Unit|Base)=>e.hp>0&&e.owner!==u.owner&&distance(u,e)<=spec.range&&visible(e)&&
-      (spec.flying||('orders' in e&&unitSpec(e).flying)||this.world.line(u,e));
-    // Explicit orders take priority; otherwise finish a valid opponent before
-    // switching, even if another attacker deals the most recent hit.
+    const eligible=(e:Unit|Base)=>{
+      if(e.hp<=0||e.owner===u.owner)return false;
+      const d=distance(u,e);
+      if(d>engageRadius||!visible(e))return false;
+      return spec.flying||('orders' in e&&unitSpec(e).flying)||
+        (d<=spec.range?this.world.line(u,e):this.world.sightLine(u,e));
+    };
+    // Keep explicit attack targets and current combat locks stable.
     if(order?.kind==='attack'&&order.target!==undefined){
       const manual=entities.find(e=>e.id===order.target&&e.owner!==u.owner&&e.hp>0&&visible(e));
       if(manual){u.combatTarget=manual.id;return manual;}
@@ -180,11 +191,11 @@ export class Simulation {
       const attacker=entities.find(e=>e.id===u.lastAttacker);
       if(attacker&&eligible(attacker)){u.combatTarget=attacker.id;return attacker;}
     }
-    // Direct sight is checked every fixed tick, independently of the fog raster.
-    let best:Unit|Base|undefined,range=spec.range+1;
-    for(const e of [...this.spatial.query(u,range),...this.bases]){
+    // Direct sight runs every fixed tick rather than waiting for fog updates.
+    let best:Unit|Base|undefined,range=engageRadius+1;
+    for(const e of [...this.spatial.query(u,engageRadius),...this.bases]){
       const d=distance(u,e);
-      if(d<range&&eligible(e)) {best=e;range=d;}
+      if(d<range&&eligible(e)){best=e;range=d;}
     }
     u.combatTarget=best?.id??null;
     return best;
@@ -228,12 +239,32 @@ export class Simulation {
           if(enemy.hp<=0&&'queue' in enemy){enemy.hp=0;enemy.queue=[];enemy.queueTypes=[];enemy.production=0;this.notices.push(`${buildingSpec(enemy).name} ${enemy.owner===0?'verloren':'ausgeschaltet'}!`);}
         }
       } else if(enemy&&order?.kind==='attack'){
-        // Visible manual targets are pursued; hidden ones leave a last-known-position order.
-        if(!u.path.length||u.repath<=0){u.path=[];u.repath=0;this.move(u,enemy,dt);}else this.move(u,enemy,dt);
-      } else if(order){
-        if(order.kind==='attack'&&!enemy){order.kind='attackMove';delete order.target;}
-        if(distance(u,order)<18){u.orders.shift();u.path=[];u.repath=0;}
-        else this.move(u,order,dt);
+        // A direct attack command is authoritative and can pursue beyond the guard leash.
+        if(!u.path.length||u.repath<=0){u.path=[];u.repath=0;}
+        this.move(u,enemy,dt);
+      } else if(enemy&&order?.kind!=='move'){
+        // Idle guards and attack-move squads close the gap, but never chase
+        // farther than a short distance from where contact began.
+        if(!u.pursuitOrigin){u.pursuitOrigin={x:u.x,y:u.y};u.path=[];u.repath=0;}
+        if(distance(u,u.pursuitOrigin)<160){
+          if(!u.path.length||u.repath<=0){u.path=[];u.repath=0;}
+          this.move(u,enemy,dt);
+        } else {u.path=[];u.repath=0;}
+      } else {
+        if(u.pursuitOrigin){
+          const home=u.pursuitOrigin;
+          if(order||distance(u,home)<18){u.pursuitOrigin=null;u.path=[];u.repath=0;}
+          else {
+            if(!u.path.length||u.repath<=0){u.path=[];u.repath=0;}
+            this.move(u,home,dt);
+            continue;
+          }
+        }
+        if(order){
+          if(order.kind==='attack'&&!enemy){order.kind='attackMove';delete order.target;}
+          if(distance(u,order)<18){u.orders.shift();u.path=[];u.repath=0;}
+          else this.move(u,order,dt);
+        }
       }
     }
     for(const u of this.units)if(!u.moving&&u.driveSpeed!==undefined)u.driveSpeed=Math.max(0,u.driveSpeed-unitSpec(u).speed*2.8*dt);
@@ -320,7 +351,7 @@ export class Simulation {
       !Array.isArray(s.territories)||s.territories.length!==30||!Array.isArray(s.explored)||s.explored.length!==2||
       s.explored.some(a=>!Array.isArray(a)||![120**2,RULES.grid**2].includes(a.length)||a.some(v=>v!==0&&v!==1))||
       !Array.isArray(s.credits)||s.credits.length!==2||s.credits.some(v=>!finite(v)||v<0)||
-      s.units.some(u=>!point(u)||![0,1].includes(u.owner)||(u.kind!==undefined&&!Object.hasOwn(UNITS,u.kind))||(u.driveSpeed!==undefined&&(!finite(u.driveSpeed)||u.driveSpeed<0||u.driveSpeed>unitSpec(u).speed))||(u.hullAngle!==undefined&&!finite(u.hullAngle))||!finite(u.hp)||u.hp<=0||u.hp>(UNITS[u.kind??'infantry']?.hp??0)||!Array.isArray(u.orders)||u.orders.length>32||u.orders.some(o=>!point(o)||!['move','attackMove','attack'].includes(o.kind)))||
+      s.units.some(u=>!point(u)||![0,1].includes(u.owner)||(u.kind!==undefined&&!Object.hasOwn(UNITS,u.kind))||(u.driveSpeed!==undefined&&(!finite(u.driveSpeed)||u.driveSpeed<0||u.driveSpeed>unitSpec(u).speed))||(u.hullAngle!==undefined&&!finite(u.hullAngle))||(u.pursuitOrigin!==undefined&&u.pursuitOrigin!==null&&!point(u.pursuitOrigin))||!finite(u.hp)||u.hp<=0||u.hp>(UNITS[u.kind??'infantry']?.hp??0)||!Array.isArray(u.orders)||u.orders.length>32||u.orders.some(o=>!point(o)||!['move','attackMove','attack'].includes(o.kind)))||
       s.bases.some(b=>!point(b)||![0,1].includes(b.owner)||(b.kind!==undefined&&!Object.hasOwn(BUILDINGS,b.kind))||!finite(b.hp)||b.hp<0||b.hp>(BUILDINGS[b.kind??'headquarters']?.hp??0)||!Array.isArray(b.queue)||b.queue.length>8||b.queue.some((v,i)=>!finite(v)||v!==UNITS[b.queueTypes?.[i]??'infantry']?.buildTime)||
         (b.queueTypes!==undefined&&(!Array.isArray(b.queueTypes)||b.queueTypes.length!==b.queue.length||b.queueTypes.some(k=>!Object.hasOwn(UNITS,k))))||
         (b.buildRemaining!==undefined&&(!finite(b.buildRemaining)||b.buildRemaining<0||b.buildRemaining>(BUILDINGS[b.kind??'headquarters']?.buildTime??0)))||!finite(b.production)||b.production<0||b.production>(b.queue[0]??0))||
@@ -332,7 +363,8 @@ export class Simulation {
       const p=unitSpec(u).flying?u:game.world.nearest(u,game.obstacles(),[],undefined,Math.max(0,unitSpec(u).radius-10))??u;
       return {...u,kind:u.kind??'infantry',...p,path:[],repath:0,hit:0,fire:0,previousX:p.x,previousY:p.y,
         angle:u.angle??(u.facing<0?Math.PI:0),walkDistance:u.walkDistance??0,lastAttacker:u.lastAttacker??null,defendUntil:u.defendUntil??0,
-        combatTarget:Number.isInteger(u.combatTarget)?u.combatTarget:null};
+        combatTarget:Number.isInteger(u.combatTarget)?u.combatTarget:null,
+        pursuitOrigin:u.pursuitOrigin??null};
     });
     // Geometry, income and neighbors are regenerated from the seed, never trusted from storage.
     game.territories.forEach((t,i)=>{t.owner=s.territories[i].owner;t.capturing=s.territories[i].capturing;t.progress=s.territories[i].progress;});
