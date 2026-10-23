@@ -151,6 +151,216 @@
       "sha256": "4fde5af21fbfb65eae46bb97a3264fbaaf00dcc2419f12ae9da15315987fe4a3"
     },
     {
+      "file": "src/assets/reborn/buildings-3d/airfield-0-beacon.png",
+      "width": 12,
+      "height": 16,
+      "sha256": "1aeb4658645544f77a9462e1d4e01de551c19b6c7283723c8ce8cd9cf1002840"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/airfield-0.png",
+      "width": 512,
+      "height": 512,
+      "sha256": "b4776ec1c2e0c1c4221f311cb038d9c68535982b6d76b7614aa09a22e272738d"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/airfield-1-beacon.png",
+      "width": 12,
+      "height": 16,
+      "sha256": "21093df295733108ec4e4d19c0c9bf0b7f5bee5af3e475879965953e99659500"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/airfield-1.png",
+      "width": 512,
+      "height": 512,
+      "sha256": "87352162311d6e25e2245c8eb91138d486336b3292b19389549bd4199560b9c5"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/barracks-0-beacon.png",
+      "width": 12,
+      "height": 15,
+      "sha256": "82c9a627665c4262a94b356d496e2b276ae6afe33187c5494a35ed937a3f47dd"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/barracks-0.png",
+      "width": 512,
+      "height": 512,
+      "sha256": "68679d0e955751c24a02362c7ae92356c3062f8507d286017a0ae5dbdb224a74"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/barracks-1-beacon.png",
+      "width": 12,
+      "height": 15,
+      "sha256": "054599813e7bdd37b1abe50865e18228c3a236f2a27ff802c64ef11cf09b5a8f"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/barracks-1.png",
+      "width": 512,
+      "height": 512,
+      "sha256": "997d87ae0c34ffe5ef9751ab645b9d8896242413de9d23ef2704e93f0ac7ed5a"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/bastion--1-beacon.png",
+      "width": 11,
+      "height": 15,
+      "sha256": "0a47ec229319fa9cad399324b625c59fc79d5a47be40f1808a96cb1e6b549fdf"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/bastion--1-radar.png",
+      "width": 472,
+      "height": 472,
+      "sha256": "e538ebadb31ffabe3582f3f272287345c17ee33c4cc51f38fae06ac9c02e8dae"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/bastion--1.png",
+      "width": 512,
+      "height": 512,
+      "sha256": "20cd410d8508e2a20aaaa7e48af09977a34cb96694feea22f047f80fd67b5b73"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/bastion-0-beacon.png",
+      "width": 11,
+      "height": 15,
+      "sha256": "818a6d605cdc827265fd429e39fe9f9af674e5341a315adaa3e76153d081d1b7"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/bastion-0-radar.png",
+      "width": 472,
+      "height": 472,
+      "sha256": "6673efbf17ab5e6314e5ca125f472dad576ae9757a9089f47a0907bfe8837913"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/bastion-0.png",
+      "width": 512,
+      "height": 512,
+      "sha256": "ded448fe800739c4581e2a658422ba33fc734abcc24f061fd4d4f1a7699a311e"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/bastion-1-beacon.png",
+      "width": 11,
+      "height": 15,
+      "sha256": "4360e441c16a067a91f3eb2db3a415aa69c03c76948d92da55fa8225d98da39f"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/bastion-1-radar.png",
+      "width": 472,
+      "height": 472,
+      "sha256": "f6d982c1adffc5cf4333c8ec98c6e44891e3266a4e0455be4f4c9f0e337d98c7"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/bastion-1.png",
+      "width": 512,
+      "height": 512,
+      "sha256": "86d27265708abbab066183e323d7e84d61befb7e6b99d71a920689c1c3bf7eb6"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/factory-0-beacon.png",
+      "width": 12,
+      "height": 15,
+      "sha256": "beb65933c5dddd687238257826d14cf25577ff83edd4bd1773b4f4fa1a374681"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/factory-0.png",
+      "width": 512,
+      "height": 512,
+      "sha256": "0df4a3da440b639ec71ae1409ac27bb3bedc0d6f8c10228f1174cc7e123adf03"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/factory-1-beacon.png",
+      "width": 12,
+      "height": 15,
+      "sha256": "452405ec4edba8a098259e0ff952dd6d3f9ffb419d6039a53c86d630b32d2718"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/factory-1.png",
+      "width": 512,
+      "height": 512,
+      "sha256": "26704af00d101fcff97539551ef30d00d4447497a1ae34d649e59e347d4cde7c"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/generator-0-beacon.png",
+      "width": 11,
+      "height": 15,
+      "sha256": "c5c996a1b105f2fe2fd8b65a79f6473419c54406191d1ce0828349d41d1e3ca1"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/generator-0.png",
+      "width": 512,
+      "height": 512,
+      "sha256": "96625346ceaff2540fae2eb540e682724dbbb8b57eeff34a8678c7b2ca4df1fe"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/generator-1-beacon.png",
+      "width": 11,
+      "height": 15,
+      "sha256": "1e977012e03b6ec9d5b9fc9bd19f97cb52d29f39b503f18e0df92145fcf9c810"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/generator-1.png",
+      "width": 512,
+      "height": 512,
+      "sha256": "96591d83da9c4767dcd6646c820487a1c2efbb7a114210c74ae549934ae66b60"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/headquarters-0-beacon.png",
+      "width": 11,
+      "height": 15,
+      "sha256": "a8ff7fda5dcdfaa5d42bd199fba13a06953250e1ea450dcea8a560237b9d0edb"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/headquarters-0-radar.png",
+      "width": 544,
+      "height": 544,
+      "sha256": "bc48b08e9afeb191b248d898f380db6f7e3af26f9cca5a0dacfea8f12d089257"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/headquarters-0.png",
+      "width": 512,
+      "height": 512,
+      "sha256": "24106701ee311f15a5af3cf345e0f03fe549088fbea13373fd8808776ceb6821"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/headquarters-1-beacon.png",
+      "width": 11,
+      "height": 15,
+      "sha256": "265f4decff2c8caf783e6824c045795597dd59348ffe398b2887f23f76f1485c"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/headquarters-1-radar.png",
+      "width": 544,
+      "height": 544,
+      "sha256": "d95b32509bf07eb9ecf38df34316854a2ec1a5a62f0832f24975099ef0ad4ce0"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/headquarters-1.png",
+      "width": 512,
+      "height": 512,
+      "sha256": "fac46908bd7ab19b305df60b182051787f4564d3c048abbc09f30dd3d53cca1f"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/turret-0-beacon.png",
+      "width": 12,
+      "height": 15,
+      "sha256": "7562b1df94c1cbe71380a13a994f06667e7b0b8a622ab37777729097472633b4"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/turret-0.png",
+      "width": 512,
+      "height": 512,
+      "sha256": "ba4d193baea494cc1d9c121d74d8191f8b2ace1cd041a6d1bdb3900caf0824a3"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/turret-1-beacon.png",
+      "width": 12,
+      "height": 15,
+      "sha256": "d56611b238ff5f18e98aaeb0621895702aae6e2840e70c4143d9048d3f72125e"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/turret-1.png",
+      "width": 512,
+      "height": 512,
+      "sha256": "99dea309d6e0f8ed045509c46cd262bd68ad46ca5b6bc235009685e25be3e367"
+    },
+    {
       "file": "src/assets/reborn/cliffs.png",
       "width": 1426,
       "height": 1103,
@@ -209,6 +419,18 @@
       "width": 2172,
       "height": 724,
       "sha256": "2e1d90e37e7762401c1cc81d603fa2227247267a77181f9daafee5029b657d73"
+    },
+    {
+      "file": "src/assets/reborn/prototype/infantry-0.png",
+      "width": 3072,
+      "height": 3648,
+      "sha256": "fdbb052c20df21b52836b889ece6899d463e7eb35aaa65a015eaf8793cd2af59"
+    },
+    {
+      "file": "src/assets/reborn/prototype/infantry-1.png",
+      "width": 3072,
+      "height": 3648,
+      "sha256": "5c0f446a7f4d85eb06991646878aee5e4edc1f71115e29f53514b7eab189d403"
     },
     {
       "file": "src/assets/reborn/radar-dish-turn-v1.png",
@@ -309,775 +531,30 @@
   ],
   "atlases": [
     {
-      "file": "src/assets/reborn/animation/artillery-0.json",
-      "kind": "artillery",
-      "team": 0,
-      "directions": 16,
-      "frameCount": 240,
-      "clips": {
-        "idle": {
-          "phases": 1,
-          "uniquePhases": [
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1
-          ],
-          "source": "static model"
-        },
-        "walk": {
-          "phases": 4,
-          "uniquePhases": [
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4
-          ],
-          "source": "TankArmature|Tank_Forward"
-        },
-        "turnLeft": {
-          "phases": 4,
-          "uniquePhases": [
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4
-          ],
-          "source": "TankArmature|Tank_TurningLeft"
-        },
-        "turnRight": {
-          "phases": 4,
-          "uniquePhases": [
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4
-          ],
-          "source": "TankArmature|Tank_TurningRight"
-        },
-        "turret": {
-          "phases": 1,
-          "uniquePhases": [
-            1
-          ],
-          "source": "separate rigid turret geometry"
-        },
-        "barrel": {
-          "phases": 1,
-          "uniquePhases": [
-            1
-          ],
-          "source": "separate rigid barrel geometry"
-        }
-      }
-    },
-    {
-      "file": "src/assets/reborn/animation/artillery-1.json",
-      "kind": "artillery",
-      "team": 1,
-      "directions": 16,
-      "frameCount": 240,
-      "clips": {
-        "idle": {
-          "phases": 1,
-          "uniquePhases": [
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1
-          ],
-          "source": "static model"
-        },
-        "walk": {
-          "phases": 4,
-          "uniquePhases": [
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4
-          ],
-          "source": "TankArmature|Tank_Forward"
-        },
-        "turnLeft": {
-          "phases": 4,
-          "uniquePhases": [
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4
-          ],
-          "source": "TankArmature|Tank_TurningLeft"
-        },
-        "turnRight": {
-          "phases": 4,
-          "uniquePhases": [
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4
-          ],
-          "source": "TankArmature|Tank_TurningRight"
-        },
-        "turret": {
-          "phases": 1,
-          "uniquePhases": [
-            1
-          ],
-          "source": "separate rigid turret geometry"
-        },
-        "barrel": {
-          "phases": 1,
-          "uniquePhases": [
-            1
-          ],
-          "source": "separate rigid barrel geometry"
-        }
-      }
-    },
-    {
-      "file": "src/assets/reborn/animation/bomber-0.json",
-      "kind": "bomber",
-      "team": 0,
-      "directions": 16,
-      "frameCount": 32,
-      "clips": {
-        "idle": {
-          "phases": 1,
-          "uniquePhases": [
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1
-          ],
-          "source": "static model"
-        },
-        "walk": {
-          "phases": 1,
-          "uniquePhases": [
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1
-          ],
-          "source": "static model"
-        }
-      }
-    },
-    {
-      "file": "src/assets/reborn/animation/bomber-1.json",
-      "kind": "bomber",
-      "team": 1,
-      "directions": 16,
-      "frameCount": 32,
-      "clips": {
-        "idle": {
-          "phases": 1,
-          "uniquePhases": [
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1
-          ],
-          "source": "static model"
-        },
-        "walk": {
-          "phases": 1,
-          "uniquePhases": [
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1
-          ],
-          "source": "static model"
-        }
-      }
-    },
-    {
-      "file": "src/assets/reborn/animation/engineer-0.json",
-      "kind": "engineer",
-      "team": 0,
-      "directions": 8,
-      "frameCount": 248,
-      "clips": {
-        "idle": {
-          "phases": 4,
-          "uniquePhases": [
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            4,
-            3
-          ],
-          "source": "Idle"
-        },
-        "walk": {
-          "phases": 8,
-          "uniquePhases": [
-            8,
-            8,
-            8,
-            8,
-            8,
-            8,
-            8,
-            8
-          ],
-          "source": "Run_Gun"
-        },
-        "attack": {
-          "phases": 5,
-          "uniquePhases": [
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4
-          ],
-          "source": "Idle_Shoot"
-        },
-        "hit": {
-          "phases": 4,
-          "uniquePhases": [
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3
-          ],
-          "source": "HitReact"
-        },
-        "death": {
-          "phases": 10,
-          "uniquePhases": [
-            10,
-            10,
-            10,
-            10,
-            10,
-            10,
-            10,
-            10
-          ],
-          "source": "Death"
-        }
-      }
-    },
-    {
-      "file": "src/assets/reborn/animation/engineer-1.json",
-      "kind": "engineer",
-      "team": 1,
-      "directions": 8,
-      "frameCount": 248,
-      "clips": {
-        "idle": {
-          "phases": 4,
-          "uniquePhases": [
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            4,
-            3
-          ],
-          "source": "Idle"
-        },
-        "walk": {
-          "phases": 8,
-          "uniquePhases": [
-            8,
-            8,
-            8,
-            8,
-            8,
-            8,
-            8,
-            8
-          ],
-          "source": "Run_Gun"
-        },
-        "attack": {
-          "phases": 5,
-          "uniquePhases": [
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4
-          ],
-          "source": "Idle_Shoot"
-        },
-        "hit": {
-          "phases": 4,
-          "uniquePhases": [
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3
-          ],
-          "source": "HitReact"
-        },
-        "death": {
-          "phases": 10,
-          "uniquePhases": [
-            10,
-            10,
-            10,
-            10,
-            10,
-            10,
-            10,
-            10
-          ],
-          "source": "Death"
-        }
-      }
-    },
-    {
-      "file": "src/assets/reborn/animation/gunship-0.json",
-      "kind": "gunship",
-      "team": 0,
-      "directions": 16,
-      "frameCount": 128,
-      "clips": {
-        "idle": {
-          "phases": 4,
-          "uniquePhases": [
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4
-          ],
-          "source": "authored rigid rotor geometry"
-        },
-        "walk": {
-          "phases": 4,
-          "uniquePhases": [
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4
-          ],
-          "source": "authored rigid rotor geometry"
-        }
-      }
-    },
-    {
-      "file": "src/assets/reborn/animation/gunship-1.json",
-      "kind": "gunship",
-      "team": 1,
-      "directions": 16,
-      "frameCount": 128,
-      "clips": {
-        "idle": {
-          "phases": 4,
-          "uniquePhases": [
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4
-          ],
-          "source": "authored rigid rotor geometry"
-        },
-        "walk": {
-          "phases": 4,
-          "uniquePhases": [
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4
-          ],
-          "source": "authored rigid rotor geometry"
-        }
-      }
-    },
-    {
-      "file": "src/assets/reborn/animation/heavy-0.json",
-      "kind": "heavy",
-      "team": 0,
-      "directions": 8,
-      "frameCount": 248,
-      "clips": {
-        "idle": {
-          "phases": 4,
-          "uniquePhases": [
-            3,
-            3,
-            3,
-            3,
-            4,
-            3,
-            3,
-            3
-          ],
-          "source": "Idle"
-        },
-        "walk": {
-          "phases": 8,
-          "uniquePhases": [
-            8,
-            8,
-            8,
-            8,
-            8,
-            8,
-            8,
-            8
-          ],
-          "source": "Run_Gun"
-        },
-        "attack": {
-          "phases": 5,
-          "uniquePhases": [
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4
-          ],
-          "source": "Idle_Shoot"
-        },
-        "hit": {
-          "phases": 4,
-          "uniquePhases": [
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3
-          ],
-          "source": "HitReact"
-        },
-        "death": {
-          "phases": 10,
-          "uniquePhases": [
-            10,
-            10,
-            10,
-            10,
-            10,
-            10,
-            10,
-            10
-          ],
-          "source": "Death"
-        }
-      }
-    },
-    {
-      "file": "src/assets/reborn/animation/heavy-1.json",
-      "kind": "heavy",
-      "team": 1,
-      "directions": 8,
-      "frameCount": 248,
-      "clips": {
-        "idle": {
-          "phases": 4,
-          "uniquePhases": [
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3
-          ],
-          "source": "Idle"
-        },
-        "walk": {
-          "phases": 8,
-          "uniquePhases": [
-            8,
-            8,
-            8,
-            8,
-            8,
-            8,
-            8,
-            8
-          ],
-          "source": "Run_Gun"
-        },
-        "attack": {
-          "phases": 5,
-          "uniquePhases": [
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4
-          ],
-          "source": "Idle_Shoot"
-        },
-        "hit": {
-          "phases": 4,
-          "uniquePhases": [
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3
-          ],
-          "source": "HitReact"
-        },
-        "death": {
-          "phases": 10,
-          "uniquePhases": [
-            10,
-            10,
-            10,
-            10,
-            10,
-            10,
-            10,
-            10
-          ],
-          "source": "Death"
-        }
-      }
-    },
-    {
-      "file": "src/assets/reborn/animation/infantry-0.json",
+      "file": "src/assets/reborn/prototype/infantry-0.json",
+      "roles": [
+        "infantry",
+        "engineer",
+        "heavy"
+      ],
       "kind": "infantry",
       "team": 0,
       "directions": 8,
-      "frameCount": 248,
+      "frameCount": 296,
       "clips": {
         "idle": {
-          "phases": 4,
+          "phases": 6,
           "uniquePhases": [
             4,
-            3,
             4,
-            3,
-            3,
-            3,
-            3,
-            3
+            4,
+            4,
+            4,
+            4,
+            4,
+            4
           ],
-          "source": "Idle"
+          "source": "Idle / Atlas supporting-arm IK"
         },
         "walk": {
           "phases": 8,
@@ -1091,9 +568,23 @@
             8,
             8
           ],
-          "source": "Run_Gun"
+          "source": "Run_Gun / Atlas supporting-arm IK"
         },
         "attack": {
+          "phases": 6,
+          "uniquePhases": [
+            5,
+            5,
+            5,
+            5,
+            5,
+            5,
+            5,
+            5
+          ],
+          "source": "Idle_Shoot / Atlas supporting-arm IK"
+        },
+        "hit": {
           "phases": 5,
           "uniquePhases": [
             4,
@@ -1105,58 +596,49 @@
             4,
             4
           ],
-          "source": "Idle_Shoot"
-        },
-        "hit": {
-          "phases": 4,
-          "uniquePhases": [
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3
-          ],
-          "source": "HitReact"
+          "source": "HitReact / Atlas supporting-arm IK"
         },
         "death": {
-          "phases": 10,
+          "phases": 12,
           "uniquePhases": [
-            10,
-            10,
-            10,
-            10,
-            10,
-            10,
-            10,
-            10
+            12,
+            12,
+            12,
+            12,
+            12,
+            12,
+            12,
+            12
           ],
-          "source": "Death"
+          "source": "Death / Atlas supporting-arm IK"
         }
       }
     },
     {
-      "file": "src/assets/reborn/animation/infantry-1.json",
+      "file": "src/assets/reborn/prototype/infantry-1.json",
+      "roles": [
+        "infantry",
+        "engineer",
+        "heavy"
+      ],
       "kind": "infantry",
       "team": 1,
       "directions": 8,
-      "frameCount": 248,
+      "frameCount": 296,
       "clips": {
         "idle": {
-          "phases": 4,
+          "phases": 6,
           "uniquePhases": [
             4,
-            3,
             4,
-            3,
-            3,
-            3,
-            3,
-            3
+            4,
+            4,
+            4,
+            4,
+            4,
+            4
           ],
-          "source": "Idle"
+          "source": "Idle / Atlas supporting-arm IK"
         },
         "walk": {
           "phases": 8,
@@ -1170,9 +652,23 @@
             8,
             8
           ],
-          "source": "Run_Gun"
+          "source": "Run_Gun / Atlas supporting-arm IK"
         },
         "attack": {
+          "phases": 6,
+          "uniquePhases": [
+            5,
+            5,
+            5,
+            5,
+            5,
+            5,
+            5,
+            5
+          ],
+          "source": "Idle_Shoot / Atlas supporting-arm IK"
+        },
+        "hit": {
           "phases": 5,
           "uniquePhases": [
             4,
@@ -1184,40 +680,29 @@
             4,
             4
           ],
-          "source": "Idle_Shoot"
-        },
-        "hit": {
-          "phases": 4,
-          "uniquePhases": [
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3
-          ],
-          "source": "HitReact"
+          "source": "HitReact / Atlas supporting-arm IK"
         },
         "death": {
-          "phases": 10,
+          "phases": 12,
           "uniquePhases": [
-            10,
-            10,
-            10,
-            10,
-            10,
-            10,
-            10,
-            10
+            12,
+            12,
+            12,
+            12,
+            12,
+            12,
+            12,
+            12
           ],
-          "source": "Death"
+          "source": "Death / Atlas supporting-arm IK"
         }
       }
     },
     {
       "file": "src/assets/reborn/animation/rover-0.json",
+      "roles": [
+        "rover"
+      ],
       "kind": "rover",
       "team": 0,
       "directions": 16,
@@ -1271,6 +756,9 @@
     },
     {
       "file": "src/assets/reborn/animation/rover-1.json",
+      "roles": [
+        "rover"
+      ],
       "kind": "rover",
       "team": 1,
       "directions": 16,
@@ -1323,113 +811,10 @@
       }
     },
     {
-      "file": "src/assets/reborn/animation/scout-0.json",
-      "kind": "scout",
-      "team": 0,
-      "directions": 16,
-      "frameCount": 128,
-      "clips": {
-        "idle": {
-          "phases": 4,
-          "uniquePhases": [
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4
-          ],
-          "source": "authored rigid rotor geometry"
-        },
-        "walk": {
-          "phases": 4,
-          "uniquePhases": [
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4
-          ],
-          "source": "authored rigid rotor geometry"
-        }
-      }
-    },
-    {
-      "file": "src/assets/reborn/animation/scout-1.json",
-      "kind": "scout",
-      "team": 1,
-      "directions": 16,
-      "frameCount": 128,
-      "clips": {
-        "idle": {
-          "phases": 4,
-          "uniquePhases": [
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4
-          ],
-          "source": "authored rigid rotor geometry"
-        },
-        "walk": {
-          "phases": 4,
-          "uniquePhases": [
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4
-          ],
-          "source": "authored rigid rotor geometry"
-        }
-      }
-    },
-    {
       "file": "src/assets/reborn/animation/tank-0.json",
+      "roles": [
+        "tank"
+      ],
       "kind": "tank",
       "team": 0,
       "directions": 16,
@@ -1541,6 +926,9 @@
     },
     {
       "file": "src/assets/reborn/animation/tank-1.json",
+      "roles": [
+        "tank"
+      ],
       "kind": "tank",
       "team": 1,
       "directions": 16,
@@ -1649,6 +1037,907 @@
           "source": "separate rigid barrel geometry"
         }
       }
+    },
+    {
+      "file": "src/assets/reborn/animation/artillery-0.json",
+      "roles": [
+        "artillery"
+      ],
+      "kind": "artillery",
+      "team": 0,
+      "directions": 16,
+      "frameCount": 240,
+      "clips": {
+        "idle": {
+          "phases": 1,
+          "uniquePhases": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "static model"
+        },
+        "walk": {
+          "phases": 4,
+          "uniquePhases": [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4
+          ],
+          "source": "TankArmature|Tank_Forward"
+        },
+        "turnLeft": {
+          "phases": 4,
+          "uniquePhases": [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4
+          ],
+          "source": "TankArmature|Tank_TurningLeft"
+        },
+        "turnRight": {
+          "phases": 4,
+          "uniquePhases": [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4
+          ],
+          "source": "TankArmature|Tank_TurningRight"
+        },
+        "turret": {
+          "phases": 1,
+          "uniquePhases": [
+            1
+          ],
+          "source": "separate rigid turret geometry"
+        },
+        "barrel": {
+          "phases": 1,
+          "uniquePhases": [
+            1
+          ],
+          "source": "separate rigid barrel geometry"
+        }
+      }
+    },
+    {
+      "file": "src/assets/reborn/animation/artillery-1.json",
+      "roles": [
+        "artillery"
+      ],
+      "kind": "artillery",
+      "team": 1,
+      "directions": 16,
+      "frameCount": 240,
+      "clips": {
+        "idle": {
+          "phases": 1,
+          "uniquePhases": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "static model"
+        },
+        "walk": {
+          "phases": 4,
+          "uniquePhases": [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4
+          ],
+          "source": "TankArmature|Tank_Forward"
+        },
+        "turnLeft": {
+          "phases": 4,
+          "uniquePhases": [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4
+          ],
+          "source": "TankArmature|Tank_TurningLeft"
+        },
+        "turnRight": {
+          "phases": 4,
+          "uniquePhases": [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4
+          ],
+          "source": "TankArmature|Tank_TurningRight"
+        },
+        "turret": {
+          "phases": 1,
+          "uniquePhases": [
+            1
+          ],
+          "source": "separate rigid turret geometry"
+        },
+        "barrel": {
+          "phases": 1,
+          "uniquePhases": [
+            1
+          ],
+          "source": "separate rigid barrel geometry"
+        }
+      }
+    },
+    {
+      "file": "src/assets/reborn/animation/scout-0.json",
+      "roles": [
+        "scout"
+      ],
+      "kind": "scout",
+      "team": 0,
+      "directions": 16,
+      "frameCount": 128,
+      "clips": {
+        "idle": {
+          "phases": 4,
+          "uniquePhases": [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4
+          ],
+          "source": "authored rigid rotor geometry"
+        },
+        "walk": {
+          "phases": 4,
+          "uniquePhases": [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4
+          ],
+          "source": "authored rigid rotor geometry"
+        }
+      }
+    },
+    {
+      "file": "src/assets/reborn/animation/scout-1.json",
+      "roles": [
+        "scout"
+      ],
+      "kind": "scout",
+      "team": 1,
+      "directions": 16,
+      "frameCount": 128,
+      "clips": {
+        "idle": {
+          "phases": 4,
+          "uniquePhases": [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4
+          ],
+          "source": "authored rigid rotor geometry"
+        },
+        "walk": {
+          "phases": 4,
+          "uniquePhases": [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4
+          ],
+          "source": "authored rigid rotor geometry"
+        }
+      }
+    },
+    {
+      "file": "src/assets/reborn/animation/gunship-0.json",
+      "roles": [
+        "gunship"
+      ],
+      "kind": "gunship",
+      "team": 0,
+      "directions": 16,
+      "frameCount": 128,
+      "clips": {
+        "idle": {
+          "phases": 4,
+          "uniquePhases": [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4
+          ],
+          "source": "authored rigid rotor geometry"
+        },
+        "walk": {
+          "phases": 4,
+          "uniquePhases": [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4
+          ],
+          "source": "authored rigid rotor geometry"
+        }
+      }
+    },
+    {
+      "file": "src/assets/reborn/animation/gunship-1.json",
+      "roles": [
+        "gunship"
+      ],
+      "kind": "gunship",
+      "team": 1,
+      "directions": 16,
+      "frameCount": 128,
+      "clips": {
+        "idle": {
+          "phases": 4,
+          "uniquePhases": [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4
+          ],
+          "source": "authored rigid rotor geometry"
+        },
+        "walk": {
+          "phases": 4,
+          "uniquePhases": [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4
+          ],
+          "source": "authored rigid rotor geometry"
+        }
+      }
+    },
+    {
+      "file": "src/assets/reborn/animation/bomber-0.json",
+      "roles": [
+        "bomber"
+      ],
+      "kind": "bomber",
+      "team": 0,
+      "directions": 16,
+      "frameCount": 32,
+      "clips": {
+        "idle": {
+          "phases": 1,
+          "uniquePhases": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "static model"
+        },
+        "walk": {
+          "phases": 1,
+          "uniquePhases": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "static model"
+        }
+      }
+    },
+    {
+      "file": "src/assets/reborn/animation/bomber-1.json",
+      "roles": [
+        "bomber"
+      ],
+      "kind": "bomber",
+      "team": 1,
+      "directions": 16,
+      "frameCount": 32,
+      "clips": {
+        "idle": {
+          "phases": 1,
+          "uniquePhases": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "static model"
+        },
+        "walk": {
+          "phases": 1,
+          "uniquePhases": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "static model"
+        }
+      }
+    }
+  ],
+  "buildings": [
+    {
+      "file": "src/assets/reborn/buildings-3d/airfield-0.json",
+      "kind": "airfield",
+      "team": 0,
+      "model": "airfield-0.glb",
+      "sha256": "13c7a13e4a55e8492fdd46f05b466b1e3a801940c2d000f9fe5379f2e74a487b",
+      "parts": 24,
+      "triangles": 13596,
+      "pivot": [
+        256,
+        382
+      ],
+      "bakedShadow": true,
+      "radarFrames": 0,
+      "clips": [
+        {
+          "name": "BeaconPulse",
+          "duration": 3.8
+        }
+      ]
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/airfield-1.json",
+      "kind": "airfield",
+      "team": 1,
+      "model": "airfield-1.glb",
+      "sha256": "b0dc40b658957c68b5eb4dc356be3e3f77b9a316848c77a6bcac9114caa4259b",
+      "parts": 24,
+      "triangles": 13596,
+      "pivot": [
+        256,
+        382
+      ],
+      "bakedShadow": true,
+      "radarFrames": 0,
+      "clips": [
+        {
+          "name": "BeaconPulse",
+          "duration": 3.8
+        }
+      ]
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/barracks-0.json",
+      "kind": "barracks",
+      "team": 0,
+      "model": "barracks-0.glb",
+      "sha256": "6f345e9a492adbf634b30dece9fcd1a31e1730d793ae7c8dc5e0065e5f127b24",
+      "parts": 36,
+      "triangles": 15896,
+      "pivot": [
+        256,
+        382
+      ],
+      "bakedShadow": true,
+      "radarFrames": 0,
+      "clips": [
+        {
+          "name": "BeaconPulse",
+          "duration": 3.8
+        }
+      ]
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/barracks-1.json",
+      "kind": "barracks",
+      "team": 1,
+      "model": "barracks-1.glb",
+      "sha256": "2d23839a90135152d8588514dfa1708f6b9796431d315d28434683f37d59e849",
+      "parts": 36,
+      "triangles": 15896,
+      "pivot": [
+        256,
+        382
+      ],
+      "bakedShadow": true,
+      "radarFrames": 0,
+      "clips": [
+        {
+          "name": "BeaconPulse",
+          "duration": 3.8
+        }
+      ]
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/bastion--1.json",
+      "kind": "bastion",
+      "team": -1,
+      "model": "bastion--1.glb",
+      "sha256": "616db7955d3f1f2c8c5a43f1b3d0ff049d67cab2e933e41b0bca7e8e37873783",
+      "parts": 31,
+      "triangles": 15192,
+      "pivot": [
+        256,
+        382
+      ],
+      "bakedShadow": true,
+      "radarFrames": 64,
+      "clips": [
+        {
+          "name": "RadarSpin",
+          "duration": 48
+        },
+        {
+          "name": "BeaconPulse",
+          "duration": 3.8
+        }
+      ]
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/bastion-0.json",
+      "kind": "bastion",
+      "team": 0,
+      "model": "bastion-0.glb",
+      "sha256": "a254c23b518685d0b1c0f609d46c27e7775edb8bac6564d7dbfbd78b6e982f0f",
+      "parts": 31,
+      "triangles": 15192,
+      "pivot": [
+        256,
+        382
+      ],
+      "bakedShadow": true,
+      "radarFrames": 64,
+      "clips": [
+        {
+          "name": "RadarSpin",
+          "duration": 48
+        },
+        {
+          "name": "BeaconPulse",
+          "duration": 3.8
+        }
+      ]
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/bastion-1.json",
+      "kind": "bastion",
+      "team": 1,
+      "model": "bastion-1.glb",
+      "sha256": "040e0ac89a46ac3189a9eb001fe2aee5faa92cf89d176942a93055420bd1c9be",
+      "parts": 31,
+      "triangles": 15192,
+      "pivot": [
+        256,
+        382
+      ],
+      "bakedShadow": true,
+      "radarFrames": 64,
+      "clips": [
+        {
+          "name": "RadarSpin",
+          "duration": 48
+        },
+        {
+          "name": "BeaconPulse",
+          "duration": 3.8
+        }
+      ]
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/factory-0.json",
+      "kind": "factory",
+      "team": 0,
+      "model": "factory-0.glb",
+      "sha256": "f1721f9cae077918286c4c66b6608bb849256a6d66cf067b60bc6a1f6c91f613",
+      "parts": 47,
+      "triangles": 20524,
+      "pivot": [
+        256,
+        382
+      ],
+      "bakedShadow": true,
+      "radarFrames": 0,
+      "clips": [
+        {
+          "name": "BeaconPulse",
+          "duration": 3.8
+        }
+      ]
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/factory-1.json",
+      "kind": "factory",
+      "team": 1,
+      "model": "factory-1.glb",
+      "sha256": "ce6f048e8dcd6394257a35b33e5254fa49eb2c54f63219f4d766972b18d07ec7",
+      "parts": 47,
+      "triangles": 20524,
+      "pivot": [
+        256,
+        382
+      ],
+      "bakedShadow": true,
+      "radarFrames": 0,
+      "clips": [
+        {
+          "name": "BeaconPulse",
+          "duration": 3.8
+        }
+      ]
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/generator-0.json",
+      "kind": "generator",
+      "team": 0,
+      "model": "generator-0.glb",
+      "sha256": "55807cbf8705e86ce2df2b9f18051f6163324814f14d812928062c2299ba1c52",
+      "parts": 21,
+      "triangles": 10712,
+      "pivot": [
+        256,
+        382
+      ],
+      "bakedShadow": true,
+      "radarFrames": 0,
+      "clips": [
+        {
+          "name": "BeaconPulse",
+          "duration": 3.8
+        }
+      ]
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/generator-1.json",
+      "kind": "generator",
+      "team": 1,
+      "model": "generator-1.glb",
+      "sha256": "0373f5f6fe3bc4ceadfcb45da9a43402c57e303c6ce340c65c56ea63b20e77cf",
+      "parts": 21,
+      "triangles": 10712,
+      "pivot": [
+        256,
+        382
+      ],
+      "bakedShadow": true,
+      "radarFrames": 0,
+      "clips": [
+        {
+          "name": "BeaconPulse",
+          "duration": 3.8
+        }
+      ]
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/headquarters-0.json",
+      "kind": "headquarters",
+      "team": 0,
+      "model": "headquarters-0.glb",
+      "sha256": "03dbd24cd75f634ffe6c9b800eddcfc7e17bc791d3a01b04d6e92e87e868feda",
+      "parts": 104,
+      "triangles": 52180,
+      "pivot": [
+        256,
+        382
+      ],
+      "bakedShadow": true,
+      "radarFrames": 64,
+      "clips": [
+        {
+          "name": "RadarSpin",
+          "duration": 48
+        },
+        {
+          "name": "BeaconPulse",
+          "duration": 3.8
+        }
+      ]
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/headquarters-1.json",
+      "kind": "headquarters",
+      "team": 1,
+      "model": "headquarters-1.glb",
+      "sha256": "9d9afe07677831ab51721cc287b420b92593bf21cb4bf685698147d3fadcd976",
+      "parts": 104,
+      "triangles": 52180,
+      "pivot": [
+        256,
+        382
+      ],
+      "bakedShadow": true,
+      "radarFrames": 64,
+      "clips": [
+        {
+          "name": "RadarSpin",
+          "duration": 48
+        },
+        {
+          "name": "BeaconPulse",
+          "duration": 3.8
+        }
+      ]
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/turret-0.json",
+      "kind": "turret",
+      "team": 0,
+      "model": "turret-0.glb",
+      "sha256": "ed9b504972c9f3ba2ce71828b1c991b55f54a60c77acd2dc7800207116bd1012",
+      "parts": 14,
+      "triangles": 4440,
+      "pivot": [
+        256,
+        382
+      ],
+      "bakedShadow": true,
+      "radarFrames": 0,
+      "clips": [
+        {
+          "name": "BeaconPulse",
+          "duration": 3.8
+        }
+      ]
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/turret-1.json",
+      "kind": "turret",
+      "team": 1,
+      "model": "turret-1.glb",
+      "sha256": "e4203833632f739fdadc508e29d32506960a10d300ab901b6766f3be3d65beab",
+      "parts": 14,
+      "triangles": 4440,
+      "pivot": [
+        256,
+        382
+      ],
+      "bakedShadow": true,
+      "radarFrames": 0,
+      "clips": [
+        {
+          "name": "BeaconPulse",
+          "duration": 3.8
+        }
+      ]
     }
   ]
 }

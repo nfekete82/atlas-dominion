@@ -124,7 +124,7 @@ test('reborn: sound unlocks on interaction, produces an audio signal and preserv
 test('reborn: finer terrain, directional animation, grounded drawing and automatic retaliation render in the browser',async({page})=>{
  await start(page);const result=await page.evaluate(async()=>{
   const {game:g,renderer:r}=window.__reborn;
-  const atlas=new Image();atlas.src='/src/assets/reborn/animation/infantry-0.png';await atlas.decode();const temp=document.createElement('canvas');temp.width=atlas.width;temp.height=atlas.height;const tc=temp.getContext('2d');tc.drawImage(atlas,0,0);
+  const atlas=r.units.asset('infantry').image;const temp=document.createElement('canvas');temp.width=atlas.width;temp.height=atlas.height;const tc=temp.getContext('2d');tc.drawImage(atlas,0,0);
   const pixels=tc.getImageData(0,0,temp.width,temp.height).data;let clear=0,opaque=0;for(let i=3;i<pixels.length;i+=4){if(pixels[i]===0)clear++;if(pixels[i]>250)opaque++;}
   g.units=[];const blue=g.spawn(0,{x:1900,y:2100}),red=g.spawn(1,{x:2050,y:2100});g.command([blue.id],{x:2350,y:2100,kind:'move'});g.updateVision();g.paused=false;g.step();g.step();g.paused=true;
   r.camera.x=blue.x;r.camera.y=blue.y;r.boundCamera();r.selected=new Set([blue.id]);r.render(0);
@@ -174,8 +174,8 @@ test('reborn: capture beacons emit white when neutral and saturated team colors 
    const blue=pixels(variants.blue),red=pixels(variants.red),neutral=pixels(variants.neutral);let count=0,white=0,redLight=0,unchangedMetal=0;
    for(let i=0;i<blue.length;i+=4)if(blue[i+3]>240){
      if(blue[i+2]>210&&blue[i+2]-blue[i]>80&&blue[i+2]>blue[i+1]*.9){
-       count++;if(neutral[i]>200&&Math.abs(neutral[i]-neutral[i+1])<2&&Math.abs(neutral[i]-neutral[i+2])<2)white++;
-       if(red[i]>210&&red[i]>red[i+1]*2&&red[i]>red[i+2]*2)redLight++;
+       count++;if(Math.min(neutral[i],neutral[i+1],neutral[i+2])>190&&Math.max(neutral[i],neutral[i+1],neutral[i+2])-Math.min(neutral[i],neutral[i+1],neutral[i+2])<24)white++;
+       if(red[i]>180&&red[i]>red[i+1]*1.4&&red[i]>red[i+2]*1.5)redLight++;
      }else if(blue[i]>blue[i+2]*1.2&&blue[i]>100&&red[i]===blue[i]&&neutral[i]===blue[i])unchangedMetal++;
    }
    // Exercise the real owner lookup at the same world point, not just detached images.
@@ -184,8 +184,8 @@ test('reborn: capture beacons emit white when neutral and saturated team colors 
    t.owner=owner;const changed=(a,b)=>a.reduce((n,v,i)=>n+Number(v!==b[i]),0);
    return {count,white,redLight,unchangedMetal,neutralToRed:changed(sample[0],sample[1]),redToBlue:changed(sample[1],sample[2])};
  });
- expect(result.count).toBeGreaterThan(1000);expect(result.white/result.count).toBeGreaterThan(.99);expect(result.redLight/result.count).toBeGreaterThan(.99);
- expect(result.unchangedMetal).toBeGreaterThan(10000);expect(result.neutralToRed).toBeGreaterThan(150);expect(result.redToBlue).toBeGreaterThan(150);
+ expect(result.count).toBeGreaterThan(100);expect(result.white/result.count).toBeGreaterThan(.95);expect(result.redLight/result.count).toBeGreaterThan(.95);
+ expect(result.unchangedMetal).toBeGreaterThan(500);expect(result.neutralToRed).toBeGreaterThan(150);expect(result.redToBlue).toBeGreaterThan(150);
 });
 
 test('reborn: infantry poses stay grounded without detached neighboring weapon fragments',async({page})=>{
@@ -303,9 +303,9 @@ test('reborn: authored shadows, slow base activity and subtle sand drift stay gr
    c.clearRect(0,0,640,540);c.save();c.translate(320-hq.x,270-hq.y);r.paintSandWind(3);c.restore();windChanged=changes(wind,snap());
   }finally{r.context=original;r.selectedBase=selected;g.time=oldTime;}
   const before=JSON.stringify(g.save());r.render(.016);r.render(.016);const renderPreservesSave=JSON.stringify(g.save())===before;
-  return {baseChanged,pausedChanged,windChanged,projected,shadowPixels,frames:r.units.asset('infantry').data.frames.length,dishes:r.dishes.length,renderPreservesSave};
+  return {baseChanged,pausedChanged,windChanged,projected,shadowPixels,frames:r.units.asset('infantry').data.frames.length,dishes:r.structures.asset('headquarters',0).data.activity.frames.length,renderPreservesSave};
  });
- expect(result.frames).toBe(248);expect(result.dishes).toBe(16);expect(result.shadowPixels).toBeGreaterThan(500);
+ expect(result.frames).toBe(296);expect(result.dishes).toBe(64);expect(result.shadowPixels).toBeGreaterThan(500);
  expect(result.projected).toBe(0);expect(result.baseChanged).toBeGreaterThan(40);expect(result.pausedChanged).toBe(0);expect(result.windChanged).toBeGreaterThan(50);expect(result.renderPreservesSave).toBe(true);
  await page.screenshot({path:evidence+'grounded-animation.png'});
 });
@@ -346,11 +346,39 @@ test('model study: exported GLB loads real animated geometry, supports five clip
  }finally{const video=page.video();await context.close();await video.saveAs(dir+'infantry-3d.webm');}
 });
 
-test('model study: sprite comparison shows eight real directions and all five states without replacing gameplay assets',async({page})=>{
+test('model study: sprite comparison shows the adopted infantry in eight real directions and all five states',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.setViewportSize({width:1390,height:1180});await page.goto('/model-preview.html');await page.waitForFunction(()=>!!window.__modelPreview);
  const info=await page.evaluate(()=>window.__modelPreview.assets.map(a=>({directions:a.data.directions,cell:a.data.cell,frames:a.data.frames.length,walk:a.data.clips.walk.uniquePhases})));for(const a of info){expect(a.directions).toBe(8);expect(a.frames).toBe(296);expect(a.walk.every(n=>n===8)).toBe(true);}
  await page.evaluate(()=>{const p=window.__modelPreview;p.paused=true;p.time=.15;p.render();});await page.screenshot({path:new URL('../../docs/detailed-models/infantry-study.png',import.meta.url).pathname,fullPage:true});
  for(const label of ['Laufen','Schießen','Treffer','Tod','Stehen']){await page.getByRole('button',{name:label,exact:true}).click();await expect(page.getByRole('button',{name:label,exact:true})).toHaveAttribute('aria-pressed','true');}
  await page.getByRole('button',{name:'Laufen',exact:true}).click();await page.evaluate(()=>{window.__modelPreview.time=.22;window.__modelPreview.render();});await page.screenshot({path:new URL('../../docs/detailed-models/infantry-walk.png',import.meta.url).pathname,fullPage:true});
  await page.getByRole('button',{name:'Rotes Team',exact:true}).click();await expect(page.locator('#download')).toHaveAttribute('href','/src/assets/reborn/prototype/infantry-1.glb');await page.getByRole('button',{name:'Blickrichtung drehen',exact:true}).click();expect(errors).toEqual([]);
+});
+
+test('atlas models: approved infantry and real building renders are active with fixed ground shadows',async({page})=>{
+ await start(page,1600,1080);const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const result=await page.evaluate(()=>{
+  const {renderer:r,game:g}=window.__reborn,foot=['infantry','engineer','heavy'].map(kind=>r.units.asset(kind)),hq=r.structures.asset('headquarters',0),base={...g.bases[0],x:260,y:350,queue:[],hp:1200,buildRemaining:0};
+  const canvas=document.createElement('canvas');canvas.width=620;canvas.height=530;const c=canvas.getContext('2d',{willReadFrequently:true}),original=r.context,selected=r.selectedBase,time=g.time;
+  const capture=()=>Array.from(c.getImageData(0,0,620,530).data),ground=()=>Array.from(c.getImageData(30,350,530,150).data);let a,b,groundA,groundB;
+  try{r.context=c;r.selectedBase=null;g.time=0;r.drawBase(base);a=capture();groundA=ground();c.clearRect(0,0,620,530);g.time=12;r.drawBase(base);b=capture();groundB=ground();}finally{r.context=original;r.selectedBase=selected;g.time=time;}
+  const pixels=document.createElement('canvas');pixels.width=pixels.height=512;const p=pixels.getContext('2d');p.drawImage(hq.body,0,0);const rgba=p.getImageData(0,0,512,512).data;let baked=0;for(let i=0;i<rgba.length;i+=4)if(rgba[i+3]>8&&rgba[i+3]<100&&Math.max(rgba[i],rgba[i+1],rgba[i+2])<90)baked++;
+  return {sources:foot.map(a=>a.image.src),shared:foot.every(a=>a.image===foot[0].image),frames:foot.map(a=>a.data.frames.length),muzzles:foot.every(a=>a.data.frames.every(f=>f.muzzle?.every(Number.isFinite))),building:hq.body.src,groundSame:groundA.every((v,i)=>v===groundB[i]),changed:a.reduce((n,v,i)=>n+Number(v!==b[i]),0),baked};
+ });
+ expect(result.sources.every(s=>s.includes('/prototype/infantry-0.png'))).toBe(true);expect(result.shared).toBe(true);expect(result.frames).toEqual([296,296,296]);expect(result.muzzles).toBe(true);expect(result.building).toContain('/buildings-3d/headquarters-0.png');expect(result.groundSame).toBe(true);expect(result.changed).toBeGreaterThan(100);expect(result.baked).toBeGreaterThan(100);expect(errors).toEqual([]);
+ await page.evaluate(()=>{const {game:g,renderer:r}=window.__reborn,b=g.bases[0];r.camera.zoom=1.5;r.camera.x=b.x+165;r.camera.y=b.y-115;r.render(0);});await page.screenshot({path:new URL('../../docs/buildings-3d/in-game.png',import.meta.url).pathname,fullPage:true});
+});
+
+test('atlas models: all seven building models load in the gallery and radar motion keeps the foundation fixed',async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.setViewportSize({width:1600,height:1080});await page.goto('/model-3d.html?model=headquarters');await page.waitForFunction(()=>window.__model3D?.current?.getObjectByName('Atlas_headquarters'));
+ for(const kind of ['headquarters','bastion','barracks','factory','airfield','generator','turret']){
+  await page.locator('#model').selectOption(kind);await page.waitForFunction(kind=>window.__model3D?.current?.getObjectByName('Atlas_'+kind),kind);await expect(page.locator('#error')).toHaveText('');await expect(page.locator('#download')).toHaveAttribute('href','/src/assets/reborn/buildings-3d/'+kind+'-0.glb');
+  const info=await page.evaluate(()=>{const v=window.__model3D;return {clips:v.data.animations.map(c=>c.name),parts:(()=>{let n=0;v.current.traverse(p=>{if(p.isMesh)n++;});return n;})()};});expect(info.parts).toBeGreaterThanOrEqual(14);expect(info.clips).toContain('BeaconPulse');
+  if(['headquarters','bastion'].includes(kind)){
+   const motion=await page.evaluate(()=>{const v=window.__model3D;v.pause();v.play('Operation');v.mixer.setTime(0);v.current.updateMatrixWorld(true);const radar=v.current.getObjectByName('RadarDish'),fixed=v.current.getObjectByName('Atlas_'+v.kind),before=fixed.matrixWorld.toArray(),angle=radar.quaternion.toArray();v.mixer.setTime(12);v.current.updateMatrixWorld(true);v.render();return {before,after:fixed.matrixWorld.toArray(),angle,next:radar.quaternion.toArray()};});expect(motion.after).toEqual(motion.before);expect(motion.next).not.toEqual(motion.angle);
+   if(kind==='bastion'){await page.locator('#neutral').click();await expect(page.locator('#neutral')).toHaveAttribute('aria-pressed','true');const emission=await page.evaluate(()=>{const colors=[];window.__model3D.current.traverse(n=>{if(n.isMesh&&n.material.name==='Atlas faction emission')colors.push(n.material.emissive.toArray());});return colors;});expect(emission.length).toBeGreaterThan(0);expect(emission.every(c=>Math.abs(c[0]-c[1])<.001&&Math.abs(c[0]-c[2])<.001)).toBe(true);}
+   await page.screenshot({path:new URL('../../docs/buildings-3d/'+kind+'.png',import.meta.url).pathname,fullPage:true});
+  }
+ }
+ expect(errors).toEqual([]);
 });

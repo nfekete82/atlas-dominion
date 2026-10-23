@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "kind": "airfield",
+  "team": 0,
+  "design": {
+    "name": "Flugfeld",
+    "kind": "airfield",
+    "team": 0,
+    "parts": 24,
+    "triangles": 13596,
+    "geometry": "Atlas original ceramic / bronze building geometry",
+    "source": "Atlas Dominion / original procedural models"
+  },
+  "model": "airfield-0.glb",
+  "body": {
+    "image": "airfield-0.png",
+    "width": 512,
+    "height": 512,
+    "pivot": [
+      256,
+      382
+    ],
+    "solidBounds": {
+      "x": 96,
+      "y": 253,
+      "w": 320,
+      "h": 217
+    },
+    "top": 244
+  },
+  "activity": null,
+  "beacon": {
+    "image": "airfield-0-beacon.png",
+    "pivot": [
+      95,
+      138
+    ],
+    "frames": [
+      {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 16
+      }
+    ],
+    "period": 3.8,
+    "originalBounds": {
+      "x": 161,
+      "y": 244,
+      "w": 12,
+      "h": 16
+    }
+  },
+  "clips": [
+    {
+      "name": "BeaconPulse",
+      "duration": 3.8
+    }
+  ],
+  "bakedShadow": true
+}

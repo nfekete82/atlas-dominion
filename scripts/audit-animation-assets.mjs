@@ -1,4 +1,6 @@
 import fs from 'node:fs';import path from 'node:path';import {createHash} from 'node:crypto';
+import {unitKinds} from '../dist/src/reborn/catalog.js';
+import {unitAtlasPath} from '../dist/src/reborn/asset-paths.js';
 const hash=p=>createHash('sha256').update(fs.readFileSync(p)).digest('hex');
 const walk=dir=>fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(path.join(dir,e.name)):[path.join(dir,e.name)]);
 const png=walk('src/assets').filter(p=>p.endsWith('.png')).map(file=>{const b=fs.readFileSync(file);return {file,width:b.readUInt32BE(16),height:b.readUInt32BE(20),sha256:hash(file)};});
@@ -14,5 +16,7 @@ const sourceRows=[
 ];
 const sources=sourceRows.map(([file,id,page])=>({file:'tools/animation-sources/'+file,author:file==='helicopter.glb'?'kazuma':'Quaternius',license:'CC0-1.0',page,download:id?'https://drive.usercontent.google.com/download?id='+id+'&export=download&confirm=t':'https://static.poly.pizza/e3dfeb10-5525-4a39-83d8-13a709aaca4b.glb',sha256:hash('tools/animation-sources/'+file)}));
 fs.writeFileSync('tools/animation-sources/manifest.json',JSON.stringify({license:'CC0-1.0',sources},null,2)+'\n');
-const atlases=walk('src/assets/reborn/animation').filter(p=>p.endsWith('.json')).map(file=>{const a=JSON.parse(fs.readFileSync(file));return {file,kind:a.kind,team:a.team,directions:a.directions,frameCount:a.frames.length,clips:Object.fromEntries(Object.entries(a.clips).map(([tag,c])=>[tag,{phases:c.frames[0].length,uniquePhases:c.uniquePhases??[1],source:c.sourceClip}]))};});
-fs.writeFileSync('docs/reborn/ANIMATION_ASSETS.json',JSON.stringify({png,sources,atlases},null,2)+'\n');console.log('Audited',png.length,'PNGs,',sources.length,'licensed models,',atlases.length,'active atlases');
+const active=new Map();for(const kind of unitKinds)for(const team of [0,1]){const file=unitAtlasPath(kind,team).slice(1)+'.json';if(!active.has(file))active.set(file,[]);active.get(file).push(kind);}
+const atlases=[...active].map(([file,roles])=>{const a=JSON.parse(fs.readFileSync(file));return {file,roles,kind:a.kind,team:a.team,directions:a.directions,frameCount:a.frames.length,clips:Object.fromEntries(Object.entries(a.clips).map(([tag,c])=>[tag,{phases:c.frames[0].length,uniquePhases:c.uniquePhases??[1],source:c.sourceClip}]))};});
+const buildings=walk('src/assets/reborn/buildings-3d').filter(p=>p.endsWith('.json')).map(file=>{const a=JSON.parse(fs.readFileSync(file));return {file,kind:a.kind,team:a.team,model:a.model,sha256:hash(path.join(path.dirname(file),a.model)),parts:a.design.parts,triangles:a.design.triangles,pivot:a.body.pivot,bakedShadow:a.bakedShadow,radarFrames:a.activity?.frames.length??0,clips:a.clips};});
+fs.writeFileSync('docs/reborn/ANIMATION_ASSETS.json',JSON.stringify({png,sources,atlases,buildings},null,2)+'\n');console.log('Audited',png.length,'PNGs,',sources.length,'licensed source models,',atlases.length,'active unit atlases,',buildings.length,'original building models');

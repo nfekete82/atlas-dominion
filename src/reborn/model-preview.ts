@@ -14,7 +14,7 @@ function render():void{
  for(let dir=0;dir<8;dir++){const x=79+dir*157;draw(assets[team],'walk',dir,x,607,.82);text(['E','SE','S','SW','W','NW','N','NE'][dir],x-10,632,13);}
  ctx.fillStyle='#19272c';ctx.fillRect(0,655,1260,135);text('VERGLEICH BEI SPIELGRÖSSE',22,680,13,'#d8c5a2');
  ctx.fillStyle='#bf935e';ctx.fillRect(260,665,150,112);ctx.fillRect(550,665,150,112);draw(old[team],'walk',1,334,757,1);draw(assets[team],'walk',1,624,757,.5);
- text('BISHER',430,724,13,'#e3ddcf');text('NEUE MODELLSTUDIE',720,724,13,'#e3ddcf');
+ text('ARCHIV',430,724,13,'#e3ddcf');text('IM SPIEL AKTIV',720,724,13,'#e3ddcf');
 }
 for(const button of document.querySelectorAll<HTMLButtonElement>('[data-state]'))button.onclick=()=>{state=button.dataset.state!;time=0;for(const b of document.querySelectorAll('[data-state]'))b.setAttribute('aria-pressed',String(b===button));render();};
 function faction(value:number):void{team=value;for(const [id,v] of [['blue',0],['red',1]] as const)document.getElementById(id)!.setAttribute('aria-pressed',String(team===v));(document.getElementById('download') as HTMLAnchorElement).href='/src/assets/reborn/prototype/infantry-'+team+'.glb';render();}

@@ -30,7 +30,7 @@ Die neun Truppen kosten 100/150/250 Credits für Infanterie, Pionier und schwere
 ```sh
 npm run typecheck
 npm run test:reborn    # 29 gezielte Simulationstests
-npm run test:animation # 8 gezielte Animations-/Bewegungstests
+npm run test:animation # 10 gezielte Animations-/Bewegungs-/Gebäudemodelltests
 npm test              # einschließlich Archiv und HTTP
 npm run test:browser   # Chrome: Spielablauf, Oberfläche, Produktion, Menüs, Sicht, Audio, Animationslabor
 ```
@@ -43,12 +43,12 @@ Browser-Abhängigkeiten: `npm ci --prefix tests/browser`. Chrome ist voreingeste
 
 TypeScript, Canvas 2D, feste 20 Simulationsschritte pro Sekunde, A*, räumliche Buckets und IndexedDB. Spielwerte stehen in `src/reborn/config.ts`, Einheiten und Gebäude in `src/reborn/catalog.ts`. Keine zusätzliche Laufzeitbibliothek.
 
-Neue hochauflösende Einzelgrafiken ersetzen die vergrößerten Felsflächen. Ihre Alpha-Konturen bestimmen Bewegung und Sicht; `node scripts/compile-terrain-art.mjs` erzeugt daraus die deterministischen Masken. Feiner Boden wird separat aufgebaut. Hauptquartier, Bastion und sämtliche Soldatenposen besitzen fest in die Grafik integrierte Schatten. Die Basis blinkt dezent und dreht ihre Satellitenschüssel in 48 Sekunden. Leichte Sandverwehungen ziehen über sichtbaren freien Boden; alle Effekte stehen bei Pause still. Bastionen leuchten neutral weiß, blau oder rot.
+Neue hochauflösende Einzelgrafiken ersetzen die vergrößerten Felsflächen. Ihre Alpha-Konturen bestimmen Bewegung und Sicht; `node scripts/compile-terrain-art.mjs` erzeugt daraus die deterministischen Masken. Feiner Boden wird separat aufgebaut. Die freigegebene Legionär-Figur und sieben eigene Gebäudetypen werden aus zusammengehörigen 3D-Modellen mit fest integrierten Schatten gerendert. Basis und Bastion blinken dezent und drehen ihre Schüsseln in 48 Sekunden. Leichte Sandverwehungen ziehen über sichtbaren freien Boden; alle Effekte stehen bei Pause still. Bastionen besitzen eigene neutral weiße, blaue und rote Modellfassungen.
 
 Infanterie verwendet jetzt echte Idle-/Walk-/Attack-/Hit-/Death-Clips aus lizenzierten CC0-Modellen: acht Ansichten mit acht unterschiedlichen Laufphasen je Richtung. Fahrzeuge besitzen 16 gerenderte Ansichten, Rad-/Kettenbewegung und begrenzte Lenkgeschwindigkeit. Panzer und Artillerie besitzen getrennte Rümpfe, Türme und Rohre. Der Canvas-Renderer deformiert oder dreht keine vollständigen Einheitensprites. Partikel sind unter Optionen abschaltbar. Three.js wird zum Offline-Export und im separaten 3D-Modellinspektor verwendet; das Hauptspiel bleibt Canvas 2D.
 
-Das [Animationslabor](http://127.0.0.1:8095/animation-lab.html) zeigt sechs Prüfabläufe gleichzeitig. [Animationssystem, Quellen und konkrete Asset-Grenzen](docs/reborn/ANIMATION_SYSTEM.md) dokumentieren auch die einfachere Low-Poly-Gestaltung der neuen Einheiten. Die alten generierten Einheitenbilder bleiben archiviert; die Bastion bleibt eine erzeugte Nachbildung. Die KI expandiert und kämpft weiterhin mit Infanterie. Maus und Tastatur bilden die vollständige Steuerung; kein dediziertes Touch- oder Mehrspielersystem.
+Das [Animationslabor](http://127.0.0.1:8095/animation-lab.html) zeigt sechs Prüfabläufe gleichzeitig mit der aktuell aktiven Infanterie. [Animationssystem, Quellen und konkrete Asset-Grenzen](docs/reborn/ANIMATION_SYSTEM.md) dokumentieren die Entwicklung; alte generierte Bilder und die ersten einfachen Figuren bleiben archiviert. Die KI expandiert und kämpft weiterhin mit Infanterie. Maus und Tastatur bilden die vollständige Steuerung; kein dediziertes Touch- oder Mehrspielersystem.
 
-Eine separate [detailliertere Modellstudie](http://127.0.0.1:8095/model-3d.html) zeigt einen selbst aufgebauten gepanzerten Infanteristen auf dem vorhandenen CC0-Rig mit fünf animierten Zuständen. [Sprite-Vergleich](http://127.0.0.1:8095/model-preview.html), [Umfang und gestalterische Grenzen](docs/detailed-models/README.md). Die Arbeitsprobe ersetzt die aktive Einheitenfamilie noch nicht.
+Der freigegebene Legionär ist im Spiel aktiv und bildet die gemeinsame Grundrüstung von Infanterie, Pionier und schwerem Schützen. Die [3D-Modellgalerie](http://127.0.0.1:8095/model-3d.html?model=headquarters) enthält ihn und alle sieben Gebäudetypen mit echten Animationen, Teamfarben und GLB-Downloads. [Sprite-Vergleich](http://127.0.0.1:8095/model-preview.html), [Übernahme und Gebäudemodelle](docs/buildings-3d/README.md). Die fünf zusätzlich erhaltenen Gebäudetypen bleiben für alte Spielstände verfügbar; der Gebäudebau wird nicht wieder in die Oberfläche aufgenommen.
 
 Die frühere Europaversion bleibt unter **http://127.0.0.1:8095/legacy/index.html** erreichbar. Ihre Quellen und vorhandenen Änderungen bleiben erhalten; ihre Dokumentation liegt in [legacy/README.md](legacy/README.md).

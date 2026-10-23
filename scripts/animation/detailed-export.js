@@ -28,7 +28,7 @@ window.exportDetailed=async()=>{
    for(let direction=0;direction<8;direction++){const row=[],hashes=new Set();for(let phase=0;phase<phases;phase++){
     mixer.stopAllAction();action.reset().setLoop(loop?T.LoopRepeat:T.LoopOnce,loop?Infinity:1);action.clampWhenFinished=true;action.play();mixer.setTime(clip.duration*(loop?phase/phases:phase/(phases-1)));
     pivot.rotation.y=Math.PI/2-direction*Math.PI/4;pivot.updateMatrixWorld(true);renderer.render(scene,camera);
-    const index=meta.frames.length,x=index%columns*cell,y=Math.floor(index/columns)*cell;ctx.drawImage(renderer.domElement,x,y);row.push(index);meta.frames.push({x,y,w:cell,h:cell,pivot:[96,156],duration:clip.duration/phases});
+    const index=meta.frames.length,x=index%columns*cell,y=Math.floor(index/columns)*cell;ctx.drawImage(renderer.domElement,x,y);row.push(index);const muzzle=sample(model.getObjectByName('Atlas_MuzzleBore').getWorldPosition(new T.Vector3()));meta.frames.push({x,y,w:cell,h:cell,pivot:[96,156],duration:clip.duration/phases,muzzle:[muzzle.x,muzzle.y]});
     const pixels=ctx.getImageData(x,y,cell,cell).data;let hash=2166136261;for(const v of pixels)hash=Math.imul(hash^v,16777619)>>>0;hashes.add(hash);
    }meta.clips[tag].frames.push(row);meta.clips[tag].uniquePhases.push(hashes.size);}
   }

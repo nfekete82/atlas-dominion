@@ -3,14 +3,15 @@ import {unitSpec,unitKinds,type UnitKind} from './catalog.js';
 import type {Point} from './config.js';
 import {SpriteAnimator,turnTowards,angleDifference,type AnimationAtlas,type AnimationFrame} from './sprite-animator.js';
 import {Particles} from './particles.js';
+import {unitAtlasPath} from './asset-paths.js';
 interface Loaded {data:AnimationAtlas;image:HTMLImageElement}
 interface View {unit:Unit;anim:SpriteAnimator;asset:Loaded;bodyAngle:number;turretAngle:number;lastX:number;lastY:number;lastFire:number;hp:number;dust:number;dead:boolean;deathAge:number;frame:AnimationFrame;turnTag:string|null}
 export class UnitPresentation {
  readonly particles=new Particles();private assets=new Map<string,Loaded>();private views=new Map<number,View>();private corpses:View[]=[];
- async load():Promise<void>{await Promise.all(unitKinds.flatMap(kind=>[0,1].map(async owner=>{
-  const prefix='/src/assets/reborn/animation/'+kind+'-'+owner,data=await(await fetch(prefix+'.json')).json() as AnimationAtlas,image=new Image();image.src=prefix+'.png';await image.decode();
-  if(!data.clips.idle||!data.clips.walk||data.frames.length===0)throw Error('Incomplete animation atlas: '+kind);
-  this.assets.set(kind+owner,{data,image});
+ async load():Promise<void>{const cache=new Map<string,Promise<Loaded>>();await Promise.all(unitKinds.flatMap(kind=>[0,1].map(async owner=>{
+  const prefix=unitAtlasPath(kind,owner);let pending=cache.get(prefix);if(!pending){pending=(async()=>{const response=await fetch(prefix+'.json');if(!response.ok)throw Error('Animation atlas unavailable: '+prefix);const data=await response.json() as AnimationAtlas,image=new Image();image.src=prefix+'.png';await image.decode();return {data,image};})();cache.set(prefix,pending);}
+  const {data,image}=await pending;if(!data.clips.idle||!data.clips.walk||data.frames.length===0)throw Error('Incomplete animation atlas: '+kind);
+  this.assets.set(kind+owner,{data:{...data,kind},image});
  })));}
  clear():void{this.views.clear();this.corpses=[];this.particles.clear();}
  asset(kind:UnitKind,owner=0):Loaded{return this.assets.get(kind+owner)!;}
@@ -62,7 +63,7 @@ export class UnitPresentation {
  }
  drawCorpses(c:CanvasRenderingContext2D,visible:(p:Point)=>boolean):void{for(const v of this.corpses)if(v.unit.owner===0||visible(v.unit)){c.save();c.globalAlpha=Math.min(1,(5-v.deathAge)/.7);this.drawView(c,v,v.unit);c.restore();}}
  muzzle(v:View,u:Unit):Point{
-  const scale=v.asset.data.nativeScale,frame=v.frame,muzzle=frame.muzzle,spec=unitSpec(u);
+  const scale=v.asset.data.nativeScale*(u.kind==='heavy'?1.08:1),frame=v.frame,muzzle=frame.muzzle,spec=unitSpec(u);
   return muzzle?{x:u.x+(muzzle[0]-frame.pivot[0])*scale,y:u.y+(muzzle[1]-frame.pivot[1])*scale}:{x:u.x+Math.cos(v.turretAngle)*spec.width*.42,y:u.y-16-(spec.flying?32:0)+Math.sin(v.turretAngle)*spec.width*.18};
  }
  muzzleFor(u:Unit):Point{return this.muzzle(this.view(u),u);}

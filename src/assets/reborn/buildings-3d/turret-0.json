@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "kind": "turret",
+  "team": 0,
+  "design": {
+    "name": "Geschützturm",
+    "kind": "turret",
+    "team": 0,
+    "parts": 14,
+    "triangles": 4440,
+    "geometry": "Atlas original ceramic / bronze building geometry",
+    "source": "Atlas Dominion / original procedural models"
+  },
+  "model": "turret-0.glb",
+  "body": {
+    "image": "turret-0.png",
+    "width": 512,
+    "height": 512,
+    "pivot": [
+      256,
+      382
+    ],
+    "solidBounds": {
+      "x": 198,
+      "y": 269,
+      "w": 129,
+      "h": 144
+    },
+    "top": 260
+  },
+  "activity": null,
+  "beacon": {
+    "image": "turret-0-beacon.png",
+    "pivot": [
+      -1,
+      122
+    ],
+    "frames": [
+      {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 15
+      }
+    ],
+    "period": 3.8,
+    "originalBounds": {
+      "x": 257,
+      "y": 260,
+      "w": 12,
+      "h": 15
+    }
+  },
+  "clips": [
+    {
+      "name": "BeaconPulse",
+      "duration": 3.8
+    }
+  ],
+  "bakedShadow": true
+}

@@ -1,5 +1,7 @@
 # Einheitensystem / Abschluss am 23. Oktober 2026
 
+**Aktuelle Übernahme nach Nutzerfreigabe:** Die detailliertere Legionär-Figur ist als gemeinsame Grundfigur von Infanterie, Pionier und schwerem Schützen im Spiel aktiv. Sie besitzt 192-Pixel-Zellen, Pivot (96,156), Maßstab 0,5 und 296 Frames je Team. Mündungen sind aus der wirklichen 3D-Waffe registriert. Sieben neue eigene Gebäudetypen ersetzen die bisherigen generierten Gebäudebilder; Basis und Bastion verwenden 64 registrierte Schüsselansichten. [Aktueller Umfang, Quellen und Prüfung](../buildings-3d/README.md). Das Inventar enthält 14 unterschiedliche aktive Einheitenatlanten für 18 Rollen-/Teamkombinationen sowie 15 Gebäudemodelle. Die folgenden Abschnitte dokumentieren den vorherigen Stand mit den einfachen CC0-Figuren; diese Figuren sind archiviert.
+
 Die bisherigen generierten Einzelansichten und Laufatlanten waren kein vollständiges Animationsset: Idle, Treffer, Tod und getrennte Fahrzeugteile fehlten. Der aktive Renderer lud zudem gespiegelte Fahrzeugansichten und ergänzte Bewegungen durch Darstellungsänderungen. Diese Pfade sind durch echte, offline gerenderte Spritefolgen ersetzt. Die alten Dateien bleiben als Archiv erhalten.
 
 ## Tatsächlich vorhandene Ressourcen

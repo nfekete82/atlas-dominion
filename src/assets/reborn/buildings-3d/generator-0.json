@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "kind": "generator",
+  "team": 0,
+  "design": {
+    "name": "Energiekern",
+    "kind": "generator",
+    "team": 0,
+    "parts": 21,
+    "triangles": 10712,
+    "geometry": "Atlas original ceramic / bronze building geometry",
+    "source": "Atlas Dominion / original procedural models"
+  },
+  "model": "generator-0.glb",
+  "body": {
+    "image": "generator-0.png",
+    "width": 512,
+    "height": 512,
+    "pivot": [
+      256,
+      382
+    ],
+    "solidBounds": {
+      "x": 183,
+      "y": 260,
+      "w": 147,
+      "h": 162
+    },
+    "top": 260
+  },
+  "activity": null,
+  "beacon": {
+    "image": "generator-0-beacon.png",
+    "pivot": [
+      4,
+      91
+    ],
+    "frames": [
+      {
+        "x": 0,
+        "y": 0,
+        "w": 11,
+        "h": 15
+      }
+    ],
+    "period": 3.8,
+    "originalBounds": {
+      "x": 252,
+      "y": 291,
+      "w": 11,
+      "h": 15
+    }
+  },
+  "clips": [
+    {
+      "name": "BeaconPulse",
+      "duration": 3.8
+    }
+  ],
+  "bakedShadow": true
+}

@@ -1,5 +1,11 @@
 # Reborn / Prüfung am 23. Oktober 2026
 
+## Übernommene Legionär-Figur und 3D-Gebäudefamilie
+
+**39 gezielte Node-Prüfungen und 19 Chrome-Fälle der Reborn-Suite bestanden.** Die freigegebene Figur ist bei allen drei Infanterierollen aktiv; die Bildressourcen werden geteilt. Sieben eigene Gebäudetypen besitzen reale GLB-Dateien, feste Schatten und registrierte Aktivitätslayer. Die Modellgalerie zeigt alle Typen, tatsächliche Schüsseldrehung und neutrale weiße Emission. Im Spiel sind Grundkörper und Bodenbereich bei wechselnder Schüsselzeit pixelgleich. Häufige Pixelabfragen der Prüffläche verwenden `willReadFrequently`, damit Chrome während des Vergleichs nicht zwischen GPU- und CPU-Rasterung wechselt. [Aktueller Umfang, Quellen und Browserbilder](../buildings-3d/README.md).
+
+Die älteren Abschnitte dokumentieren die vorherigen Aufträge und deren damalige Assetstände.
+
 ## Aktueller Animationsauftrag
 
 **37 gezielte Node-Prüfungen und sieben ausgewählte Chrome-Prüfungen bestanden.** Enthalten sind die 29 erhaltenen Reborn-Simulationstests, acht neue Animations-/Bewegungsfälle sowie Kampagne, Sicht, native Einheitendarstellung, Produktion aller Fahrzeuge, bestehende Gebäudeeffekte und das neue Animationslabor. Alle sieben Browserfälle bestanden zusätzlich gegen die abschließend neu gebaute und gestartete Docker-Fassung auf `127.0.0.1:8095`. [Aktuelles Animationsprotokoll mit Quellen und Grenzen](ANIMATION_SYSTEM.md), [Laufphasen](animation-lab-walk.png), [Treffer](animation-lab-hit.png), [Tod](animation-lab-death.png), [Video](animation-lab.webm).

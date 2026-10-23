@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "kind": "factory",
+  "team": 0,
+  "design": {
+    "name": "Fahrzeugfabrik",
+    "kind": "factory",
+    "team": 0,
+    "parts": 47,
+    "triangles": 20524,
+    "geometry": "Atlas original ceramic / bronze building geometry",
+    "source": "Atlas Dominion / original procedural models"
+  },
+  "model": "factory-0.glb",
+  "body": {
+    "image": "factory-0.png",
+    "width": 512,
+    "height": 512,
+    "pivot": [
+      256,
+      382
+    ],
+    "solidBounds": {
+      "x": 107,
+      "y": 194,
+      "w": 298,
+      "h": 270
+    },
+    "top": 194
+  },
+  "activity": null,
+  "beacon": {
+    "image": "factory-0-beacon.png",
+    "pivot": [
+      40,
+      90
+    ],
+    "frames": [
+      {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 15
+      }
+    ],
+    "period": 3.8,
+    "originalBounds": {
+      "x": 216,
+      "y": 292,
+      "w": 12,
+      "h": 15
+    }
+  },
+  "clips": [
+    {
+      "name": "BeaconPulse",
+      "duration": 3.8
+    }
+  ],
+  "bakedShadow": true
+}

@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "kind": "barracks",
+  "team": 1,
+  "design": {
+    "name": "Kaserne",
+    "kind": "barracks",
+    "team": 1,
+    "parts": 36,
+    "triangles": 15896,
+    "geometry": "Atlas original ceramic / bronze building geometry",
+    "source": "Atlas Dominion / original procedural models"
+  },
+  "model": "barracks-1.glb",
+  "body": {
+    "image": "barracks-1.png",
+    "width": 512,
+    "height": 512,
+    "pivot": [
+      256,
+      382
+    ],
+    "solidBounds": {
+      "x": 135,
+      "y": 228,
+      "w": 242,
+      "h": 220
+    },
+    "top": 220
+  },
+  "activity": null,
+  "beacon": {
+    "image": "barracks-1-beacon.png",
+    "pivot": [
+      -9,
+      162
+    ],
+    "frames": [
+      {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 15
+      }
+    ],
+    "period": 3.8,
+    "originalBounds": {
+      "x": 265,
+      "y": 220,
+      "w": 12,
+      "h": 15
+    }
+  },
+  "clips": [
+    {
+      "name": "BeaconPulse",
+      "duration": 3.8
+    }
+  ],
+  "bakedShadow": true
+}

@@ -1,16 +1,17 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
 import {SpriteAnimator,directionIndex,turnTowards} from '../dist/src/reborn/sprite-animator.js';
 import {Particles} from '../dist/src/reborn/particles.js';import {Simulation} from '../dist/src/reborn/simulation.js';
-const read=(kind,team=0)=>JSON.parse(fs.readFileSync(new URL('../src/assets/reborn/animation/'+kind+'-'+team+'.json',import.meta.url)));
+import {unitAtlasPath} from '../dist/src/reborn/asset-paths.js';
+const read=(kind,team=0)=>JSON.parse(fs.readFileSync(new URL('..'+unitAtlasPath(kind,team)+'.json',import.meta.url)));
 const intent=(extra={})=>({moving:false,distance:0,angle:0,attack:false,hit:false,dead:false,...extra});
 test('animation: every unit atlas has distinct blue and red faction pixels',()=>{
  for(const kind of ['infantry','engineer','heavy','rover','tank','artillery','scout','gunship','bomber']){
-  const png=team=>fs.readFileSync(new URL('../src/assets/reborn/animation/'+kind+'-'+team+'.png',import.meta.url));
+  const png=team=>fs.readFileSync(new URL('..'+unitAtlasPath(kind,team)+'.png',import.meta.url));
   assert.equal(png(0).equals(png(1)),false,kind+' reused the first faction shader');
  }
 });
 test('animation: each soldier has real licensed clips, eight views and eight distinct locomotion phases',()=>{
- for(const kind of ['infantry','engineer','heavy'])for(const team of [0,1]){const a=read(kind,team);assert.equal(a.directions,8);for(const tag of ['idle','walk','attack','hit','death']){const clip=a.clips[tag];assert.ok(clip.sourceClip);assert.equal(clip.frames.length,8);assert.ok(clip.uniquePhases.every(n=>n>1),kind+' '+tag);for(const row of clip.frames)for(const index of row){const frame=a.frames[index];assert.deepEqual(frame.pivot,[48,78]);assert.ok(frame.x+frame.w<=1536);}}assert.ok(a.clips.walk.frames.every(row=>row.length===8));}
+ for(const kind of ['infantry','engineer','heavy'])for(const team of [0,1]){const a=read(kind,team);assert.equal(a.directions,8);assert.equal(a.design.parts,151);for(const tag of ['idle','walk','attack','hit','death']){const clip=a.clips[tag];assert.ok(clip.sourceClip);assert.equal(clip.frames.length,8);assert.ok(clip.uniquePhases.every(n=>n>1),kind+' '+tag);for(const row of clip.frames)for(const index of row){const frame=a.frames[index];assert.deepEqual(frame.pivot,[96,156]);assert.ok(frame.x+frame.w<=3072);assert.ok(frame.muzzle.every(Number.isFinite));}}assert.ok(a.clips.walk.frames.every(row=>row.length===8));}
 });
 test('animation: walk uses distance and state clocks give identical results at 20 and 60 FPS',()=>{
  const data=read('infantry'),a=new SpriteAnimator(data),b=new SpriteAnimator(data);a.update(0,intent());b.update(0,intent());

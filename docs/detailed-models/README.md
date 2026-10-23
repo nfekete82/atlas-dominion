@@ -1,5 +1,7 @@
 # Modellstudie 01 / animierter Legionär
 
+**Inzwischen vom Nutzer freigegeben und übernommen:** Diese Figur bildet jetzt die aktive Grundrüstung der drei Infanterierollen. Sieben eigene Gebäudemodelle ergänzen den Stil. [Aktueller Spieleinsatz und Gebäudemodelle](../buildings-3d/README.md). Die folgenden Abschnitte beschreiben die ursprüngliche einzelne Arbeitsprobe; ihre geometrischen und animatorischen Grenzen gelten weiterhin.
+
 Ein konkret nutzbarer erster Modellprototyp zur Frage, ob detailliertere zusammenhängende Modelle mit Animationen erstellt werden können. Das ist **eine Figur in zwei Teamfarben**, keine bereits fertige neue Einheitenfamilie.
 
 - [Echtes 3D-Modell drehen und animieren](http://127.0.0.1:8095/model-3d.html)
