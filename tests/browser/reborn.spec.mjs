@@ -251,14 +251,14 @@ test('reborn: unit-focused HUD stays compact at bottom left and trains heavy inf
  await expect(page.locator('[data-unit]')).toHaveCount(9);await expect(page.locator('.catalog-tabs button')).toHaveCount(2);
  await expect(page.locator('#tab-buildings, [data-building], #build-shortcut')).toHaveCount(0);
  await page.keyboard.press('b');expect(await page.evaluate(()=>window.__reborn.renderer.placement)).toBe(null);
- const panel=await page.locator('.command').boundingBox();expect(panel.x).toBeLessThanOrEqual(12);expect(panel.width).toBeLessThanOrEqual(548);expect(panel.height).toBeLessThanOrEqual(168);expect(1790-panel.y-panel.height).toBeLessThanOrEqual(12);
+ const panel=await page.locator('.command').boundingBox();expect(panel.x).toBeLessThanOrEqual(12);expect(panel.width).toBeLessThanOrEqual(700);expect(panel.height).toBeLessThanOrEqual(216);expect(1790-panel.y-panel.height).toBeLessThanOrEqual(12);
  await expect(page.locator('.command #production')).toHaveCount(0);await expect(page.locator('#sidebar #production')).toBeVisible();
  await expect(page.locator('[data-unit="heavy"]')).toBeEnabled();await page.locator('[data-unit="heavy"]').click();
  await expect(page.locator('#credits')).toHaveText('250');await expect(page.locator('#queue')).toContainText('1 IM AUFTRAG');
  await page.screenshot({path:evidence+'unit-focus-wide.png'});await advance(page,9);
  expect(await page.evaluate(()=>window.__reborn.game.units.some(u=>u.kind==='heavy'&&u.hp===190))).toBe(true);
  await page.setViewportSize({width:800,height:650});await page.locator('#select-unit').click();await expect(page.locator('#select-unit')).toBeInViewport();await expect(page.locator('#attack')).toBeInViewport();await expect(page.locator('#recruit')).toBeInViewport();
- const compact=await page.locator('.command').boundingBox(),sidebar=await page.locator('#sidebar').boundingBox();expect(compact.x+compact.width).toBeLessThan(sidebar.x);expect(compact.x).toBeLessThanOrEqual(10);expect(compact.height).toBeLessThanOrEqual(132);
+ const compact=await page.locator('.command').boundingBox(),sidebar=await page.locator('#sidebar').boundingBox();expect(compact.x+compact.width).toBeLessThan(sidebar.x);expect(compact.x).toBeLessThanOrEqual(10);expect(compact.height).toBeLessThanOrEqual(186);
  await page.screenshot({path:evidence+'unit-focus-compact.png'});
  await openMenu(page);await expect(page.locator('#pause-dialog .menu-button')).toHaveCount(6);
  await page.locator('#options').click();await expect(page.locator('#audio-panel')).toBeVisible();await page.locator('#audio-close').click();await expect(page.locator('#pause-dialog')).toBeVisible();expect(await page.evaluate(()=>window.__reborn.game.paused)).toBe(true);
@@ -510,20 +510,38 @@ test('reborn: readable translucent HUD at the standard desktop viewport',async({
    queue:size('#queue'),radar:size('.radar-caption'),background:getComputedStyle(document.querySelector('.catalog')).backgroundImage
   };
  });
- expect(values.sidebar.width).toBeGreaterThanOrEqual(310);
- expect(values.command.width).toBeGreaterThanOrEqual(500);
- expect(values.command.height).toBeGreaterThanOrEqual(160);
+ expect(values.sidebar.width).toBeGreaterThanOrEqual(335);
+ expect(values.command.width).toBeGreaterThanOrEqual(690);
+ expect(values.command.height).toBeGreaterThanOrEqual(210);
  expect(values.command.right).toBeLessThan(values.sidebar.x);
  expect(values.command.bottom).toBeLessThanOrEqual(900);
- expect(values.tabs).toBeGreaterThanOrEqual(13);
- expect(values.heading).toBeGreaterThanOrEqual(14);
+ expect(values.tabs).toBeGreaterThanOrEqual(15);
+ expect(values.heading).toBeGreaterThanOrEqual(16);
  expect(values.cost).toBeGreaterThanOrEqual(14);
  expect(values.description).toBeGreaterThanOrEqual(12);
- expect(values.selection).toBeGreaterThanOrEqual(22);
- expect(values.selectionDetail).toBeGreaterThanOrEqual(13);
+ expect(values.selection).toBeGreaterThanOrEqual(26);
+ expect(values.selectionDetail).toBeGreaterThanOrEqual(15);
  expect(values.queue).toBeGreaterThanOrEqual(11);
  expect(values.radar).toBeGreaterThanOrEqual(10);
  expect(values.background).toContain('rgba(');
+ expect(values.background).toContain('0.69');
+ const visuals=await page.evaluate(()=>{
+  const css=selector=>getComputedStyle(document.querySelector(selector));
+  const cards=[...document.querySelectorAll('#catalog-units .catalog-card')];
+  const grid=css('#catalog-units .catalog-grid');
+  return {commandBackground:css('.command').backgroundImage,
+   catalogBackground:css('.catalog').backgroundImage,
+   cardBackground:css('.catalog-card').backgroundImage,
+   gridColumns:grid.gridTemplateColumns.split(' ').length,
+   labels:cards.map(card=>({kind:card.dataset.unit,name:card.querySelector('.card-name')?.textContent?.trim()}))};
+ });
+ expect(visuals.commandBackground).toContain('0.69');
+ expect(visuals.catalogBackground).toContain('0.66');
+ expect(visuals.cardBackground).toContain('rgba(');
+ expect(visuals.gridColumns).toBe(2);
+ expect(visuals.labels).toHaveLength(9);
+ expect(visuals.labels.every(({name})=>Boolean(name))).toBe(true);
+ expect(visuals.labels.find(({kind})=>kind==='rover')?.name).toBeTruthy();
  await expect(page.locator('#tab-units')).toBeVisible();
  await expect(page.locator('#recruit')).toBeVisible();
  await expect(page.locator('#menu')).toBeVisible();
