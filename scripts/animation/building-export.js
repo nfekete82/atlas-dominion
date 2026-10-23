@@ -1,4 +1,5 @@
 import * as T from 'three';import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';import {buildAtlasBuilding,buildingNames} from './atlas-buildings.js';
+import {loadRefinedHeadquarters} from './refined-headquarters.js';
 const size=512,pivot=[256,382],renderer=new T.WebGLRenderer({alpha:true,antialias:true,preserveDrawingBuffer:true});renderer.setSize(size,size);renderer.setClearColor(0,0);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.13;
 const scene=new T.Scene(),camera=new T.OrthographicCamera(-3.4,3.4,3.4,-3.4,.01,100);camera.position.set(0,8,12);camera.lookAt(0,0,0);camera.updateMatrixWorld();
 const shift=(pivot[1]-256)*6.8/size,offset=shift/Math.cos(Math.atan2(8,12));camera.position.y+=offset;camera.lookAt(0,offset,0);camera.updateMatrixWorld();
@@ -9,13 +10,13 @@ function bounds(canvas,threshold=200){const data=canvas.getContext('2d').getImag
 async function layer(prefix,label,canvases,period){const boxes=canvases.map(c=>bounds(c,16)),left=Math.max(0,Math.min(...boxes.map(b=>b.x))-2),top=Math.max(0,Math.min(...boxes.map(b=>b.y))-2),right=Math.min(size,Math.max(...boxes.map(b=>b.x+b.w))+2),bottom=Math.min(size,Math.max(...boxes.map(b=>b.y+b.h))+2),w=right-left,h=bottom-top,columns=Math.min(8,canvases.length),out=document.createElement('canvas');out.width=w*columns;out.height=h*Math.ceil(canvases.length/columns);const c=out.getContext('2d'),frames=[];canvases.forEach((frame,i)=>{const x=i%columns*w,y=Math.floor(i/columns)*h;c.drawImage(frame,left,top,w,h,x,y,w,h);frames.push({x,y,w,h});});await window.saveBuilding(prefix+'-'+label+'.png',out.toDataURL('image/png'));return {image:prefix.split('/').at(-1)+'-'+label+'.png',pivot:[pivot[0]-left,pivot[1]-top],frames,period,originalBounds:{x:left,y:top,w,h}};}
 window.exportBuildings=async(requested)=>{
  for(const kind of Object.keys(buildingNames).filter(k=>!requested.length||requested.includes(k)))for(const team of kind==='bastion'?[0,1,-1]:[0,1]){
-  const {model,clips,dish,beacon}=buildAtlasBuilding(kind,team),prefix=kind+'-'+team;
+  const {model,clips,dish,beacon}=kind==='headquarters'?await loadRefinedHeadquarters(team):buildAtlasBuilding(kind,team),prefix=kind+'-'+team;
   const glb=await new GLTFExporter().parseAsync(model,{binary:true,animations:clips,onlyVisible:true,maxTextureSize:256});await window.saveBuilding(prefix+'.glb',Array.from(new Uint8Array(glb)));
   const turn=new T.Group();turn.rotation.y=Math.PI/4;turn.add(model);scene.add(turn);if(dish)dish.visible=false;if(beacon)beacon.visible=false;floor.visible=true;
   const body=snapshot(),solidBounds=bounds(body);await window.saveBuilding(prefix+'.png',body.toDataURL('image/png'));
   const dynamic=new Set();for(const node of [dish,beacon])node?.traverse(n=>{if(n.isMesh)dynamic.add(n);});const staticMeshes=[];model.traverse(n=>{if(n.isMesh&&!dynamic.has(n))staticMeshes.push(n);});for(const n of staticMeshes)n.visible=false;floor.visible=false;
   let activity=null,light=null;
-  if(dish){dish.visible=true;const frames=[];for(let i=0;i<64;i++){dish.rotation.y=i/64*Math.PI*2;frames.push(snapshot());}activity=await layer(prefix,'radar',frames,48);dish.visible=false;}
+  if(dish){dish.visible=true;const frames=[],rest=dish.quaternion.clone();for(let i=0;i<64;i++){dish.quaternion.copy(rest).multiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),i/64*Math.PI*2));frames.push(snapshot());}activity=await layer(prefix,'radar',frames,48);dish.visible=false;}
   if(beacon){beacon.visible=true;light=await layer(prefix,'beacon',[snapshot()],3.8);}
   const top=Math.min(solidBounds.y,activity?.originalBounds.y??size,light?.originalBounds.y??size);
   const metadata={version:1,kind,team,design:model.userData.atlasDesign,model:prefix+'.glb',body:{image:prefix+'.png',width:size,height:size,pivot,solidBounds,top},activity,beacon:light,clips:clips.map(c=>({name:c.name,duration:c.duration})),bakedShadow:true};

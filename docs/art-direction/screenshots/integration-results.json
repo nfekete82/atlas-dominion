@@ -1,0 +1,102 @@
+[
+  {
+    "dpr": 1,
+    "lod": [
+      {
+        "zoom": 1,
+        "markers": 6,
+        "matches": 30,
+        "overlaps": []
+      },
+      {
+        "zoom": 1.25,
+        "markers": 8,
+        "matches": 40,
+        "overlaps": []
+      },
+      {
+        "zoom": 1.8,
+        "markers": 6,
+        "matches": 30,
+        "overlaps": []
+      },
+      {
+        "zoom": 4,
+        "markers": 10,
+        "matches": 50,
+        "overlaps": []
+      }
+    ],
+    "combat": {
+      "own": 50152,
+      "enemy": 50151,
+      "events": 1,
+      "losses": [
+        15.13221
+      ]
+    },
+    "march": {
+      "before": 50152,
+      "after": 50153
+    },
+    "soldierStates": [
+      "fire",
+      "idle",
+      "move"
+    ],
+    "atlasRequests": 4,
+    "stateUnchanged": true,
+    "coastalLandMarkers": true,
+    "errors": []
+  },
+  {
+    "dpr": 2,
+    "lod": [
+      {
+        "zoom": 1,
+        "markers": 6,
+        "matches": 30,
+        "overlaps": []
+      },
+      {
+        "zoom": 1.25,
+        "markers": 8,
+        "matches": 40,
+        "overlaps": []
+      },
+      {
+        "zoom": 1.8,
+        "markers": 6,
+        "matches": 30,
+        "overlaps": []
+      },
+      {
+        "zoom": 4,
+        "markers": 10,
+        "matches": 50,
+        "overlaps": []
+      }
+    ],
+    "combat": {
+      "own": 50152,
+      "enemy": 50151,
+      "events": 1,
+      "losses": [
+        15.13221
+      ]
+    },
+    "march": {
+      "before": 50152,
+      "after": 50153
+    },
+    "soldierStates": [
+      "fire",
+      "idle",
+      "move"
+    ],
+    "atlasRequests": 4,
+    "stateUnchanged": true,
+    "coastalLandMarkers": true,
+    "errors": []
+  }
+]

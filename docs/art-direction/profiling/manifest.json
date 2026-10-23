@@ -1,0 +1,111 @@
+{
+  "date": "2026-10-22",
+  "baselineRevision": "28246455501ac602adbb991c0bb32ebfe48b501e",
+  "initialUntracked": [
+    "CODEX_PROMPT.md",
+    "docs/art-direction/"
+  ],
+  "unchangedEngineAndGeodata": true,
+  "hardware": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "node": "v25.9.0",
+    "cpu": "Apple M5 Max"
+  },
+  "files": {
+    "CODEX_PROMPT.md": {
+      "bytes": 5969,
+      "sha256": "49927a1d05d25f79884ca5770edd0a81a31c54f1e143c060d3f7b859f35b4081"
+    },
+    "docs/art-direction/ART_BIBLE.md": {
+      "bytes": 15981,
+      "sha256": "d78b59d9e78b968ce4633009ac22effad3f589285fa1f3730cb5c8e27dbae101"
+    },
+    "docs/art-direction/reference.png": {
+      "bytes": 4696032,
+      "sha256": "c8892788f1f8c6832b35c02ef3af09994ccc1d76dd1d452a87f656c7d8f8c0b6"
+    },
+    "docs/qa/deep-game-20261022/render-fixture.json": {
+      "bytes": 1490428,
+      "sha256": "33802faad5d913eea13aefc7c434347aa8f6a8fd7a94e663fe19438b86f20ed5"
+    },
+    "src/render/map.ts": {
+      "bytes": 84547,
+      "sha256": "8d1401540467976a5fe0eb2b1dff02f3aa7c68ec4b4070e3af15272eaa284bd2"
+    },
+    "src/render/topography.ts": {
+      "bytes": 1930,
+      "sha256": "59a6409bd2ec00a646ed0c650fcb9f2e9d86a050334016b22c098c5028032a85"
+    },
+    "src/render/building-markers.ts": {
+      "bytes": 7252,
+      "sha256": "e22c93ad8791234d4d86939267a35ad852802303a0ddbae84ef962fbe3698e76"
+    },
+    "src/render/terrain-decoration.ts": {
+      "bytes": 4858,
+      "sha256": "1c756e96406676024d1cf7e0dac284d43f869bac8c5f45bbb51631f52e8db9fd"
+    },
+    "src/render/sprite-atlas.ts": {
+      "bytes": 2882,
+      "sha256": "433d95219e10de90020870a6ffebb8cc245d698eb223c834f1b041256f9da67f"
+    },
+    "src/render/pixel-art-style.ts": {
+      "bytes": 1389,
+      "sha256": "fa9cf9168ddd382a661c739bde5a9bb83f56810b79a409c92a15b4648a2f672d"
+    },
+    "src/render/pixel-art-manifest.ts": {
+      "bytes": 11130,
+      "sha256": "6076e8b6f32415ef90b463c35c871a3dd3bec6806fb5d8525110cc4e9cca728d"
+    },
+    "scripts/generate_pixel_art_assets.py": {
+      "bytes": 11798,
+      "sha256": "70104eaccaa2b3a889f5951eb81d37936733cee7eb68dbd3c84e3581a02a9bba"
+    },
+    "src/assets/pixel-art/buildings.png": {
+      "bytes": 4229,
+      "sha256": "130b171286f44e3b405b38addb37b676fc5ea43fe4e613b13f0af2b6638196b6"
+    },
+    "src/assets/pixel-art/buildings.json": {
+      "bytes": 4792,
+      "sha256": "1d56d1dcaa5c1e07177669e08a5dcf1ed0a887dab19125b5e03341a189e28680"
+    },
+    "src/assets/pixel-art/terrain.png": {
+      "bytes": 3808,
+      "sha256": "b1404fbbb91253f6cb14785033c75e22f0b79fe361050f5cd0d64191eb0cd00d"
+    },
+    "src/assets/pixel-art/terrain.json": {
+      "bytes": 3965,
+      "sha256": "6e880ad0384afe0adc0c5c97d5782627d355e5b793869566e64bfe9896b49882"
+    },
+    "src/assets/pixel-art/soldiers.png": {
+      "bytes": 3775,
+      "sha256": "503556b5a806cb1e93ce33537cdf0cc5a823ddc45e8d08ef65e7a34b2122728c"
+    },
+    "src/assets/pixel-art/soldiers.json": {
+      "bytes": 10756,
+      "sha256": "37affddb9589fae6d14129bf82270ca1b09cddc2c7da372890525a7641c47ae6"
+    },
+    "src/assets/pixel-art/effects.png": {
+      "bytes": 488,
+      "sha256": "94b7ee1b2082f627b0143abf0cc3274b7b03c26aab3a9e543bb38ff2b209968e"
+    },
+    "src/assets/pixel-art/effects.json": {
+      "bytes": 1749,
+      "sha256": "5b63c7ff9a51914385bdd804cc0f6f75d815b2c0ae152543cab71b329bd9069b"
+    }
+  },
+  "simulationReplayHashes": [
+    {
+      "countries": 50,
+      "before": "4fb62460f19e7b89919f59e817bf7d542d477ab7fe972bc5e39e4ae82cd307f3",
+      "after": "4fb62460f19e7b89919f59e817bf7d542d477ab7fe972bc5e39e4ae82cd307f3",
+      "equal": true
+    },
+    {
+      "countries": 9,
+      "before": "4908e474e5eda50c04dfb972019f86f7619694328c7c701bc8c5f0f182988f31",
+      "after": "4908e474e5eda50c04dfb972019f86f7619694328c7c701bc8c5f0f182988f31",
+      "equal": true
+    }
+  ]
+}

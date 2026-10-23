@@ -20,14 +20,14 @@ test('own and AI cities are visible at every supported map zoom including overvi
   for(const zoom of [NaN,Infinity,0,-1])assert.equal(showBuildingMarker(0,zoom),false);
 });
 
-test('city bounds stay 30 CSS pixels at every scale and have a readable small badge',()=>{
+test('overview city hit bounds use the painted sprite footprint at every world scale and DPR',()=>{
   assert.ok(CITY_MARKER_SIZE>=26&&CITY_MARKER_SIZE<=30);
   assert.equal(CITY_BADGE_FONT_SIZE,10);
   for(const scale of [.25,.8,1,1.5,2,4])for(const dpr of [1,2,3]){
     const bounds=cityMarkerBounds(123*scale,54*scale);
-    assert.equal(bounds.width,30);assert.equal(bounds.height,30);
-    assert.equal(bounds.width*dpr,30*dpr);
-    assert.equal(bounds.x+bounds.width/2,123*scale);
+    assert.ok(bounds.width>20&&bounds.width<=30);assert.ok(bounds.height>10&&bounds.height<=30);
+    assert.equal(bounds.width*dpr,cityMarkerBounds(0,0).width*dpr);
+    assert.equal(bounds.x-cityMarkerBounds(0,0).x,Math.round(123*scale));
   }
 });
 
@@ -55,9 +55,9 @@ test('spatial collision lookup matches a brute-force oracle across bucket edges 
 });
 
 test('diagonally adjacent large badges cannot overlap and disjoint markers fit',()=>{
-  const occupancy=new ScreenOccupancy();occupancy.reserve(cityMarkerBounds(50,50));
-  assert.equal(occupancy.intersects(cityMarkerBounds(72,72)),true);
-  assert.equal(occupancy.intersects(cityMarkerBounds(84,50)),false);
+  const occupancy=new ScreenOccupancy();occupancy.reserve(cityMarkerBounds(50,50,5,1.8));
+  assert.equal(occupancy.intersects(cityMarkerBounds(72,72,5,1.8)),true);
+  assert.equal(occupancy.intersects(cityMarkerBounds(130,50,5,1.8)),false);
 });
 
 test('strategic zoom emphasizes mature towns, tactical zoom restores every city',()=>{

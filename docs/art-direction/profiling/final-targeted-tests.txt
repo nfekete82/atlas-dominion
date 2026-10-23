@@ -1,0 +1,29 @@
+✔ constructed cities have named symbols without enclosing backgrounds (1.059166ms)
+✔ own and AI cities are visible at every supported map zoom including overview (0.070167ms)
+✔ overview city hit bounds use the painted sprite footprint at every world scale and DPR (0.151333ms)
+✔ all six levels use the required bronze, silver and gold tiers; invalid levels clamp (0.090875ms)
+✔ spatial collision lookup matches a brute-force oracle across bucket edges and large HUD blocks (3.616959ms)
+✔ diagonally adjacent large badges cannot overlap and disjoint markers fit (0.077625ms)
+✔ strategic zoom emphasizes mature towns, tactical zoom restores every city (0.057042ms)
+✔ true orthogonal border only: owner, AI and neutral front positions cannot teleport or wrap rows (0.657167ms)
+✔ front clustering groups nearby real strikes, separating distant wars and country pairs (0.170375ms)
+✔ blue is ALWAYS player and red is ALWAYS enemy regardless of which nation attacks (0.087167ms)
+✔ neutral land has no imaginary red soldiers and repeated strikes are not double counted (0.059625ms)
+✔ front particle placements and exact battle snapshots are independent of simulation RNG (27.170125ms)
+✔ equal command sequences record identical combat telemetry (63.106917ms)
+✔ new squad visuals scale with actual contacts, respect zoom and never alter the simulation (0.11325ms)
+✔ red combat number represents REAL participating border defenders, not merely casualties (5.194541ms)
+✔ all shipped PNG frames match both manifests, include real transparent pixel art, and have exact ink bounds (16.224833ms)
+✔ six city levels, paired silhouettes, real building classes and animated infantry have distinct pixels (3.730792ms)
+✔ LOD bounds cover precisely the nontransparent pixel envelope with the shared foot pivot, including both variants (0.388ms)
+✔ visual terrain variation is stable and independent from the simulation random stream (0.111708ms)
+✔ RTS military overview exposes stable actual-force counters (0.617792ms)
+✔ classic command DOM remains available while hidden only in RTS mode (0.101833ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 215.444959

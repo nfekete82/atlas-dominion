@@ -2,12 +2,15 @@ import {createTopographyLayer} from './topography.js';
 import {voyageGeometry,voyagePosition,type VoyageGeometry} from './sea-voyages.js';
 import { COUNTRIES, MAP_HEIGHT, MAP_WIDTH, WORLD_HEIGHT, WORLD_WIDTH } from '../data/europe.js';
 import { COUNTRY_STARTS } from '../data/countries.js';
-import { Game, NEUTRAL, WATER, pointToWorld, pointToIndex, seededRandom, isSquadEmbarked, type RTSSquad, type Point } from '../engine/game.js';
+import { Game, NEUTRAL, WATER, pointToWorld, pointToIndex, isSquadEmbarked, type RTSSquad, type Point } from '../engine/game.js';
 import { TerritoryWave, waveProgress } from './wave.js';
 import {organicCaptureRadius,burningFrontAlpha} from './capture-visual.js';
 import { pixelGridEdges } from './pixel-grid.js';
 import { territoryContours, contourRings } from './territory-contours.js';
-import { buildingMarkerFor, showBuildingMarker, cityVisibleAtZoom, drawCityMarker, cityMarkerBounds, ScreenOccupancy, type ScreenRect } from './building-markers.js';
+import { buildingMarkerFor, showBuildingMarker, cityVisibleAtZoom, drawBuildingMarker, ScreenOccupancy, type ScreenRect } from './building-markers.js';
+import {buildingSpriteBounds} from './pixel-art-style.js';
+import {createTerrainDecoration} from './terrain-decoration.js';
+import {loadPixelArt,drawSoldier,drawSprite,type SoldierTeam} from './sprite-atlas.js';
 // Keep natural-dark ocean and distinct faction colors; no pale map wash.
 import {formatCompact} from '../format.js';
 import {militarySummaries,relativeStrength,strengthLabel,mobileStrengthLabel,type MilitarySummary} from '../military-view.js';
@@ -38,6 +41,7 @@ export class MapRenderer {
   private readonly panKeys=new Set<string>();
   private previousPanFrame=0;
   private topography=createTopographyLayer();
+  private terrain=createTerrainDecoration();
   private showTopography=true;
   private voyageCache=new WeakMap<number[],{geometry:VoyageGeometry;path:Path2D}>();
   private highlightOwner = WATER;
@@ -92,6 +96,7 @@ export class MapRenderer {
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) throw new Error('Canvas 2D wird nicht unterstützt.');
     this.ctx = ctx;
+    void loadPixelArt();
     for (const c of [this.base, this.overlay, this.highlightedCountry]) { c.width = WORLD_WIDTH; c.height = WORLD_HEIGHT; }
     this.renderBase();
     this.updateTerritory();
@@ -173,7 +178,7 @@ export class MapRenderer {
   private renderBase() {
     const c = this.base.getContext('2d')!;
     const sea = c.createLinearGradient(0, 0, 1100, 800);
-    sea.addColorStop(0, '#081b28'); sea.addColorStop(0.56, '#15303b'); sea.addColorStop(1, '#091923');
+    sea.addColorStop(0, '#315a74'); sea.addColorStop(0.56, '#426c80'); sea.addColorStop(1, '#294f68');
     c.fillStyle = sea; c.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
     c.strokeStyle = 'rgba(103,159,162,0.048)'; c.lineWidth = 1;
     for (let x = 0; x <= WORLD_WIDTH; x += 64) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, WORLD_HEIGHT); c.stroke(); }
@@ -191,17 +196,11 @@ export class MapRenderer {
         ring.forEach(([x, y], j) => j === 0 ? path.moveTo(x, y) : path.lineTo(x, y));
         path.closePath();
       }
-      c.fillStyle = '#263f3d'; c.fill(path);
+      c.fillStyle = '#86a57b'; c.fill(path);
       // Coast shadow then fine parchment-edge highlight: static geometry,
       // independent of country ownership and combat.
-      c.strokeStyle='rgba(3,14,23,.54)';c.lineWidth=4.2;c.stroke(path);
-      c.strokeStyle='rgba(181,218,198,.38)';c.lineWidth=1.15;c.stroke(path);
-    }
-    const rng = seededRandom(7122);
-    for (let i = 0; i < 1700; i++) {
-      const x = rng() * WORLD_WIDTH, y = rng() * WORLD_HEIGHT;
-      c.fillStyle = rng() > 0.55 ? 'rgba(169,201,181,.055)' : 'rgba(12,15,13,.12)';
-      c.fillRect(x, y, rng() * 2.2 + 0.5, rng() * 2.2 + 0.5);
+      c.strokeStyle='rgba(31,65,69,.58)';c.lineWidth=3.2;c.stroke(path);
+      c.strokeStyle='rgba(218,222,184,.65)';c.lineWidth=.9;c.stroke(path);
     }
     c.save();
     c.font = '11px ui-monospace, monospace'; c.fillStyle = 'rgba(150,184,188,.32)';
@@ -209,7 +208,7 @@ export class MapRenderer {
     for (const [label, x, y] of [['NORTH ATLANTIC',76,257],['MEDITERRANEAN SEA',530,745],['BALTIC SEA',710,230],['BLACK SEA',1070,670],['NORTH SEA',290,255]]) c.fillText(label as string, x as number, y as number);
     c.restore();
     const vignette = c.createRadialGradient(640,400,50,640,400,780);
-    vignette.addColorStop(0,'rgba(0,0,0,0)'); vignette.addColorStop(1,'rgba(2,12,19,.6)');
+    vignette.addColorStop(0,'rgba(0,0,0,0)'); vignette.addColorStop(1,'rgba(18,45,53,.2)');
     c.fillStyle = vignette; c.fillRect(0,0,WORLD_WIDTH,WORLD_HEIGHT);
   }
   updateTerritory() {
@@ -288,7 +287,12 @@ export class MapRenderer {
     // separated markers so neighboring settlements cannot form giant blobs.
     this.buildingMarkers.sort((a,b)=>Number(b.owner===0)-Number(a.owner===0)
       || a.index-b.index);
-    this.drawBuildingMarkers=this.buildingMarkers.slice().sort((a,b)=>
+    // Starting capitals are real cities even though their special economic
+    // rules do not store a build code. Include them only in the drawing list;
+    // military/economic summaries continue to count the original data once.
+    const capitals=this.game.cities.filter(city=>!this.game.buildings[city.index]&&owners[city.index]>=0)
+      .map(city=>({index:city.index,code:1,owner:owners[city.index]}));
+    this.drawBuildingMarkers=[...this.buildingMarkers,...capitals].sort((a,b)=>
       Number(b.code===1)-Number(a.code===1)||Number(b.owner===0)-Number(a.owner===0)||
       this.game.cityUpgrades[b.index]-this.game.cityUpgrades[a.index]||a.index-b.index);
     this.squadBattles.clear();
@@ -447,7 +451,7 @@ export class MapRenderer {
     this.visibleCityMarkers=[];
     const width=this.canvas.clientWidth,height=this.canvas.clientHeight;
     const hovered=this.hover?pointToIndex(this.hover):-1;
-    // Cities win the visual priority; factories and towers are smaller markers.
+    // Cities win visual priority. Every real building has its own atlas sprite.
     // No building may hide a nearby city, and every drawn marker is clickable.
     const markers=this.drawBuildingMarkers;
     const shownAiBarracks:{owner:number;x:number;y:number}[]=[];
@@ -464,59 +468,42 @@ export class MapRenderer {
         if(shownAiBarracks.some(b=>b.owner===marker.owner&&
           Math.hypot(b.x-x,b.y-y)<46))return;
       }
-      const size=city?30:18;
-      // Dense towns need an offset industrial badge instead of suppressing
-      // the neighboring factory completely. The click box follows the badge.
-      const offsets=city?[[0,0]]:[[0,0],[22,-12],[-22,-12],[22,12],[-22,12],[0,-25],[0,25]];
+      const level=this.game.cityUpgrades[marker.index];
+      const footprint=buildingSpriteBounds(x,y,marker.code,level,this.zoom,marker.index);
+      const size=footprint.width;
+      // Dense towns and industrial sites use deterministic display offsets.
+      // The click box always follows the complete, visibly painted silhouette.
+      const offsets=city?[[0,0],[0,-size],[size,0],[-size,0],[0,size],
+        [size,-size],[-size,-size],[size,size],[-size,size],[0,-size*2],[size*2,0],[-size*2,0],[0,size*2]]
+        :[[0,0],[size,-size/2],[-size,-size/2],[size,size/2],[-size,size/2],[0,-size],[0,size]];
       let bounds:ScreenRect|null=null;
       for(const [dx,dy] of offsets){
-        const candidate={x:x+dx-size/2,y:y+dy-size/2,width:size,height:size};
-        if(candidate.x<0||candidate.y<0||candidate.x+size>width||candidate.y+size>height)continue;
-        // Player cities must not disappear when a country badge or combat
-        // overlay reserves their only possible location. Other markers can
-        // move aside, but city centers are fixed geographic positions.
-        if(!(city&&marker.owner===0)&&this.occupancy.intersects(candidate,city?3:0))continue;
+        const candidate={...footprint,x:footprint.x+Math.round(dx),y:footprint.y+Math.round(dy)};
+        if(candidate.x<0||candidate.y<0||candidate.x+candidate.width>width||candidate.y+candidate.height>height)continue;
+        // Dense cities move visually with a short geographic leader. The
+        // entire sprite rectangle participates in collision and hit testing.
+        if(this.occupancy.intersects(candidate,city?3:0))continue;
         bounds=candidate;break;
       }
       if(!bounds)return;
       if(marker.code===4&&marker.owner>0&&this.zoom<1.5)
         shownAiBarracks.push({owner:marker.owner,x,y});
-      const level=this.game.cityUpgrades[marker.index];
       this.occupancy.reserve(bounds);
       this.visibleCityMarkers.push({index:marker.index,x,y,level,bounds});
-      if(city)drawCityMarker(c,x,y,level,marker.owner);
-      else {
-        c.save();c.translate(bounds.x+size/2,bounds.y+size/2);
-        c.lineJoin='round';c.lineCap='round';c.lineWidth=1.2;
-        c.strokeStyle='#142a31';c.fillStyle=marker.owner===0?'#d7ab70':'#b6c4c9';
-        if(marker.code===3){
-          // Industrial silhouette: roof, sawtooth skylights and chimney.
-          c.beginPath();c.rect(-8,-1,16,10);c.fill();c.stroke();
-          c.beginPath();c.moveTo(-8,-1);c.lineTo(-3,-5);c.lineTo(1,-1);
-          c.lineTo(5,-5);c.lineTo(8,-1);c.closePath();c.fill();c.stroke();
-          c.fillRect(-6,-11,3,8);c.strokeRect(-6,-11,3,8);
-          c.fillStyle='#243943';for(let i=0;i<3;i++)c.fillRect(-5+i*5,2,2,3);
-        }else if(marker.code===4){
-          // Distinct barracks silhouette inspired by the requested rounded
-          // hangar: domed roof, flagpole, central gate, two windows and vent.
-          c.fillStyle='#c4b18c';c.strokeStyle='#182d36';c.lineWidth=1.5;
-          c.beginPath();c.moveTo(-9,8);c.lineTo(-9,-1);
-          c.bezierCurveTo(-9,-10,-5,-12,0,-12);
-          c.bezierCurveTo(5,-12,9,-10,9,-1);
-          c.lineTo(9,8);c.closePath();c.fill();c.stroke();
-          c.fillStyle='#e5c994';c.fillRect(-11,7,22,3);c.strokeRect(-11,7,22,3);
-          c.fillStyle='#263b43';c.fillRect(-3,0,6,9);
-          c.fillStyle='#8fabb0';c.fillRect(-7,-2,3,4);c.fillRect(4,-2,3,4);
-          c.beginPath();c.arc(0,-7,1.4,0,Math.PI*2);c.fill();
-          c.strokeStyle='#182d36';c.lineWidth=1.4;
-          c.beginPath();c.moveTo(0,-12);c.lineTo(0,-18);c.stroke();
-          c.fillStyle=marker.owner===0?'#e9b85e':'#e0ded6';
-          c.beginPath();c.moveTo(0,-18);c.lineTo(6,-16);c.lineTo(0,-14);c.closePath();c.fill();
-        }else{
-          // Fortified watchtower with visible crenellations.
-          c.fillRect(-6,-6,12,15);c.strokeRect(-6,-6,12,15);
-          for(const bx of [-7,-2,3]){c.fillRect(bx,-10,4,5);c.strokeRect(bx,-10,4,5);}
-          c.fillStyle='#263b43';c.fillRect(-1,0,2,6);
+      const offsetX=bounds.x-footprint.x,offsetY=bounds.y-footprint.y;
+      if(offsetX||offsetY){
+        c.save();c.strokeStyle='rgba(45,68,60,.65)';c.lineWidth=1;
+        c.beginPath();c.moveTo(x,y);c.lineTo(x+offsetX,y+offsetY);c.stroke();c.restore();
+      }
+      drawBuildingMarker(c,x+offsetX,y+offsetY,marker.code,level,marker.owner,this.zoom,
+        marker.index,this.game.factions[marker.owner]?.color);
+      if(marker.index===hovered){
+        c.save();c.strokeStyle='#fff2bb';c.lineWidth=1.5;
+        // Selection corners stay inside the same painted / clickable rectangle.
+        for(const [sx,sy] of [[0,0],[1,0],[0,1],[1,1]]){
+          const bx=bounds.x+(sx?bounds.width-1:1),by=bounds.y+(sy?bounds.height-1:1);
+          c.beginPath();c.moveTo(bx,by+(sy?-5:5));c.lineTo(bx,by);
+          c.lineTo(bx+(sx?-5:5),by);c.stroke();
         }
         c.restore();
       }
@@ -526,9 +513,6 @@ export class MapRenderer {
     for(const marker of markers)draw(marker);
   }
 
-  /** Lightweight animated infantry, using canvas shapes rather than heavy assets.
-   * Positions and motion are deterministic visual-only effects.
-   */
   /** Resolve the current faction order without requiring save migration. */
   private squadFlag(owner:number):string {
     return FLAGS.get(this.game.factions[owner]?.name)??'🏳';
@@ -545,6 +529,12 @@ export class MapRenderer {
       this.game.squads.some(s=>s.owner===0&&s.attackTarget!=null&&
         this.game.owner[s.attackTarget]===owner);
     return hostile?'#ff6a70':'#bfc7d0';
+  }
+
+  /** Display offsets must never make real land infantry appear embarked. */
+  private landAtScreen(x:number,y:number):boolean {
+    const col=Math.floor((x-this.ox)/this.scale/CW),row=Math.floor((y-this.oy)/this.scale/CH);
+    return col>=0&&col<MAP_WIDTH&&row>=0&&row<MAP_HEIGHT&&this.game.owner[row*MAP_WIDTH+col]!==WATER;
   }
 
   private drawSquads(c:CanvasRenderingContext2D,time=0):void {
@@ -588,7 +578,7 @@ export class MapRenderer {
       c.restore();
     }
     c.restore();
-    const landSquads=this.game.squads.filter(unit=>!isSquadEmbarked(unit));
+    const landSquads=this.game.squads.filter(unit=>unit.troops>0&&!isSquadEmbarked(unit));
     if(!this.game.paused&&!this.reducedMotion)this.squadMotionTime=time;
     const motionTime=this.squadMotionTime;
     const selectedIds=new Set(this.selectedSquadIds);
@@ -681,6 +671,9 @@ export class MapRenderer {
         y:nearby.reduce((sum,u)=>sum+positions.get(u.id)!.y,0)/nearby.length,
         troops:nearby.reduce((sum,u)=>sum+u.troops,0),ids:nearby.map(u=>u.id)});
     }
+    for(const cluster of clusters)if(!this.landAtScreen(cluster.x,cluster.y)){
+      const position=positions.get(cluster.ids[0])!;cluster.x=position.x;cluster.y=position.y;
+    }
     this.squadClusterHits=clusters.map(group=>({x:group.x,y:group.y,owner:group.owner,ids:group.ids}));
     this.squadHits=[];
     const placedUnits:ScreenRect[]=[];
@@ -705,6 +698,7 @@ export class MapRenderer {
       const offsetY=stackNumber===0?0:Math.sin(stackNumber*2.39996)*Math.min(20,8+stackNumber*3);
       const anchor=positions.get(squad.id)!;
       let x=anchor.x+offsetX,y=anchor.y+offsetY;
+      if(!this.landAtScreen(x,y)){x=anchor.x;y=anchor.y;}
       // Separate dense real combat formations with short geographic leader
       // lines. Their counters must remain readable even on the same sector.
       if(engaged.has(squad.id)||stackNumber>0){
@@ -712,6 +706,7 @@ export class MapRenderer {
         const offsets=[[0,0],[54,0],[-54,0],[0,72],[0,-72],[54,72],[-54,72],[54,-72],[-54,-72],[108,0],[-108,0],[0,144],[0,-144]];
         for(const [dx,dy] of offsets){
           const bounds={x:anchor.x+dx-markerWidth/2,y:anchor.y+dy-39,width:markerWidth,height:markerHeight};
+          if(!this.landAtScreen(anchor.x+dx,anchor.y+dy))continue;
           if(bounds.x<0||bounds.y<45||bounds.x+markerWidth>this.canvas.clientWidth||bounds.y+markerHeight>this.canvas.clientHeight-50)continue;
           if(this.occupancy.intersects(bounds)||placedUnits.some(p=>bounds.x<p.x+p.width&&bounds.x+bounds.width>p.x&&bounds.y<p.y+p.height&&bounds.y+bounds.height>p.y))continue;
           x=anchor.x+dx;y=anchor.y+dy;break;
@@ -728,7 +723,7 @@ export class MapRenderer {
       const selected=selectedIds.has(squad.id);
       const relation=relationColors.get(squad.owner)!;
       const flag=this.squadFlag(squad.owner);
-      const far=this.zoom<2;
+      const far=this.zoom<1.25;
       const neighbors=[squad.index-1,squad.index+1,squad.index-MAP_WIDTH,squad.index+MAP_WIDTH]
         .filter(index=>index>=0&&index<MAP_WIDTH*MAP_HEIGHT&&
           Math.abs(index%MAP_WIDTH-squad.index%MAP_WIDTH)+
@@ -740,7 +735,7 @@ export class MapRenderer {
       const pulse=Math.max(0,Math.sin(motionTime*.014+squad.id*.43));
       const lungeX=opponent?(opponent.index%MAP_WIDTH-squad.index%MAP_WIDTH)*4*pulse:0;
       const lungeY=opponent?(Math.floor(opponent.index/MAP_WIDTH)-Math.floor(squad.index/MAP_WIDTH))*4*pulse:0;
-      const count=Math.min(8,Math.max(3,Math.ceil(squad.troops/65)));
+      const count=Math.min(6,Math.max(1,Math.ceil(squad.troops/65)));
       c.strokeStyle=relation;c.lineWidth=selected?2.8:1.5;
       c.beginPath();c.ellipse(x,y,far?12:23,far?11:16,0,0,Math.PI*2);c.stroke();
       if(far){
@@ -764,44 +759,35 @@ export class MapRenderer {
         c.beginPath();c.moveTo(31,0);c.lineTo(21,-5);c.lineTo(21,5);c.closePath();c.fill();
         c.restore();
       }
-      const combat=hit;
-      const tint=squad.owner===0?'#79d3fa':this.game.factions[squad.owner]?.color??'#d98c8c';
-      const phase=motionTime*.009+squad.id*1.37;
+      const team:SoldierTeam=squad.owner===0?'blue':this.game.isAllied(0,squad.owner)?'green':'red';
+      const directionIndex=opponent?.index??goal;
+      const mirror=directionIndex!=null?directionIndex%MAP_WIDTH<squad.index%MAP_WIDTH:squad.owner!==0;
+      const visual=this.squadVisuals.get(squad.id)!;
+      const moved=visual.from!==visual.index&&time-visual.changedAt<250;
+      const state=hit?'fire':moved?'move':'idle';
+      const spriteScale=this.zoom>=1.8?1:.75;
       if(selected){
         c.strokeStyle='#ffe58b';c.lineWidth=2;c.setLineDash([3,3]);
         c.beginPath();c.ellipse(x,y,23,16,0,0,Math.PI*2);c.stroke();c.setLineDash([]);
       }
+      let drawnSoldiers=0;
       for(let n=0;n<count;n++){
-        const col=n%4,row=Math.floor(n/4);
-        const sway=marching?Math.sin(phase+n*.8)*2:Math.sin(phase*.22+n)*.35;
-        const px=x+(col-1.5)*8+(row%2)*3+(clash?lungeX:0);
-        const py=y+(row-.35)*11+sway+(clash?lungeY:0);
-        c.fillStyle='rgba(0,0,0,.30)';c.beginPath();c.ellipse(px,py+5,3.4,1.7,0,0,Math.PI*2);c.fill();
-        c.strokeStyle='#233845';c.lineWidth=1.5;
-        c.beginPath();c.moveTo(px-1,py+2);c.lineTo(px-2+(marching?sway*.4:0),py+6);
-        c.moveTo(px+1,py+2);c.lineTo(px+2-(marching?sway*.4:0),py+6);c.stroke();
-        c.fillStyle=tint;c.fillRect(px-2.8,py-3,5.6,6);
-        c.fillStyle='#eed8b6';c.beginPath();c.arc(px,py-5,2.3,0,Math.PI*2);c.fill();
-        c.fillStyle=squad.owner===0?'#306c91':'#54464c';
-        c.fillRect(px-2.7,py-7.6,5.4,2.4);
-        c.strokeStyle='#d7d9db';c.lineWidth=1;
-        c.beginPath();c.moveTo(px+3,py-2);c.lineTo(px+7,py-(combat?7:4));c.stroke();
+        const col=n%3,row=Math.floor(n/3);
+        const px=x+(col-(Math.min(3,count)-1)/2)*13+(row%2)*2;
+        const py=y+row*12;
+        // A narrow island/coastal sector may fit fewer visual figures. Their
+        // real troop count remains unchanged and fully visible on the badge.
+        if(this.landAtScreen(px,py)){
+          drawSoldier(c,px,py,team,state,motionTime,squad.id+n,spriteScale,mirror);drawnSoldiers++;
+        }
       }
-      if(combat){
-        const flash=(Math.sin(phase*1.7)+1)/2;
-        c.fillStyle='rgba(255,193,76,'+(.25+flash*.7)+')';
-        c.beginPath();c.arc(x+24,y-6,2.5+flash*2,0,Math.PI*2);c.fill();
-        // Visible hit sparks and fallen silhouette communicate actual
-        // casualties from this tick; never modify simulation values.
+      if(!drawnSoldiers)drawSoldier(c,x,y,team,state,motionTime,squad.id,spriteScale,mirror);
+      // Impacts and casualties are derived solely from this tick's real events.
+      if(hit){
         const casualties=this.squadBattles.get(squad.id)?.casualties??0;
         if(casualties>0){
-          c.fillStyle='rgba(250,107,91,'+(.3+flash*.6)+')';
-          for(let n=0;n<Math.min(4,Math.ceil(casualties/2));n++){
-            const px=x-13+n*9,py=y+8+(n%2)*2;
-            c.beginPath();c.arc(px,py,1.7+flash,0,Math.PI*2);c.fill();
-          }
-          c.strokeStyle='#b9a7a0';c.lineWidth=2;
-          c.beginPath();c.moveTo(x-8,y+13);c.lineTo(x-1,y+15);c.stroke();
+          const effectFrame=this.reducedMotion||this.game.paused?2:Math.floor(motionTime/75)%4;
+          drawSprite(c,'effects',`impact-${effectFrame}`,x+(mirror?-22:22),y+3,.8);
         }
       }
       const strength=Math.max(0,Math.min(1,squad.troops/Math.max(1,this.squadVisuals.get(squad.id)!.strength)));
@@ -829,7 +815,7 @@ export class MapRenderer {
     c.save();c.textAlign='center';c.font='600 10px system-ui';c.fillStyle='rgba(233,239,236,.8)';
     for(const city of this.game.cities){
       const pos=pointToWorld(city),name=city.name.toUpperCase();
-      const x=this.ox+pos.x*this.scale,y=this.oy+pos.y*this.scale-12;
+      const x=this.ox+pos.x*this.scale,y=this.oy+pos.y*this.scale+15;
       const width=Math.min(120,c.measureText(name).width);
       const bounds={x:x-width/2-2,y:y-10,width:width+4,height:14};
       if(bounds.x<0||bounds.y<0||bounds.x+bounds.width>this.canvas.clientWidth||bounds.y+14>this.canvas.clientHeight||this.occupancy.intersects(bounds))continue;
@@ -1009,7 +995,7 @@ export class MapRenderer {
         for(let side=0;side<2;side++){
           const strength=side===0?(isPlayer?group.blue:group.attacker)
             :(isPlayer?group.red:group.defender);
-          const number=combatVisualDensity(strength,this.zoom);
+          const number=Math.min(this.zoom>=1.8?4:this.zoom>=1.25?2:7,combatVisualDensity(strength,this.zoom));
           if(!number)continue;
           const tint=side===0?side1:side2;
           const sideSign=side===0?-1:1;
@@ -1022,15 +1008,15 @@ export class MapRenderer {
             // Troops flow from their OWN side toward the true contact normal.
             const travel=sideSign*(4.7+13.4*(1-phase));
             const px=contactX+dx*travel+nx*lane,py=contactY+dy*travel+ny*lane;
-            const foot=1+visualNoise(seed,4)*.5;
-            c.globalAlpha=fade*(.36+phase*.55);
-            c.beginPath();c.arc(px,py,1.2+this.zoom*.1,0,Math.PI*2);c.fill();
+            if(this.zoom>=1.25&&!this.landAtScreen(px,py))continue;
+            c.globalAlpha=fade*(this.zoom>=1.25?.95:(.36+phase*.55));
             if(this.zoom>=1.25){
-              // Directional tail/boots distinguish marching squads from confetti.
-              c.lineWidth=1.1;
-              c.beginPath();c.moveTo(px+dx*sideSign*foot,py+dy*sideSign*foot);
-              c.lineTo(px+dx*sideSign*(foot+2.7),py+dy*sideSign*(foot+2.7));
-              c.stroke();
+              const team:SoldierTeam=isPlayer?(side===0?'blue':'red'):(side===0?'green':'neutral');
+              const mirror=side===0?dx<0:dx>=0;
+              drawSoldier(c,px,py,team,'fire',this.reducedMotion||this.game.paused?110:timestamp,
+                i+side*3,this.zoom>=1.8?.8:.6,mirror);
+            }else{
+              c.beginPath();c.arc(px,py,1.2,0,Math.PI*2);c.fill();
             }
           }
         }
@@ -1354,13 +1340,13 @@ export class MapRenderer {
     if(this.dpr!==Math.max(1,devicePixelRatio||1))this.resize();
     this.occupancy.clear();
     this.cityAnchors.clear();
-    for(const marker of this.buildingMarkers){
+    for(const marker of this.drawBuildingMarkers){
       const x=this.ox+(marker.index%MAP_WIDTH+.5)*CW*this.scale;
       const y=this.oy+(Math.floor(marker.index/MAP_WIDTH)+.5)*CH*this.scale;
       if(x>=0&&y>=0&&x<=this.canvas.clientWidth&&y<=this.canvas.clientHeight &&
-        cityVisibleAtZoom(marker.owner,this.game.cityUpgrades[marker.index],this.zoom,
-          marker.index===(this.hover?pointToIndex(this.hover):-1)))
-        this.cityAnchors.reserve(cityMarkerBounds(x,y));
+        (marker.code===1?cityVisibleAtZoom(marker.owner,this.game.cityUpgrades[marker.index],this.zoom,
+          marker.index===(this.hover?pointToIndex(this.hover):-1)):showBuildingMarker(marker.owner,this.zoom)))
+        this.cityAnchors.reserve(buildingSpriteBounds(x,y,marker.code,this.game.cityUpgrades[marker.index],this.zoom,marker.index));
     }
     for(const bounds of this.overlayBounds)this.occupancy.reserve(bounds);
     const c = this.ctx;
@@ -1372,7 +1358,15 @@ export class MapRenderer {
     c.drawImage(this.base,0,0);
     c.imageSmoothingEnabled=true; // Antialias territory resampling while preserving exact sector ownership.
     c.drawImage(this.overlay,0,0);
-    if(this.showTopography)c.drawImage(this.topography,0,0,WORLD_WIDTH,WORLD_HEIGHT);
+    if(this.showTopography){
+      c.drawImage(this.topography,0,0,WORLD_WIDTH,WORLD_HEIGHT);
+      c.imageSmoothingEnabled=false;
+      c.drawImage(this.terrain.broad,0,0);
+      if(this.zoom>=1.25){
+        c.globalAlpha=this.zoom>=1.8?.88:.46;
+        c.drawImage(this.terrain.detail,0,0);c.globalAlpha=1;
+      }
+    }
     c.imageSmoothingEnabled=true;
     c.drawImage(this.highlightedCountry,0,0);
     this.drawCaptureWave(c, timestamp);

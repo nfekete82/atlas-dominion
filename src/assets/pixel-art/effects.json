@@ -1,0 +1,92 @@
+{
+  "image": "effects.png",
+  "size": [
+    512,
+    56
+  ],
+  "palette": {
+    "outline": "#625A55",
+    "wall": "#AA927E",
+    "light": "#E1CFAD",
+    "edge": "#F4E6C8",
+    "roof": "#A15F50",
+    "rooflight": "#D18C6B",
+    "roofdark": "#704C49",
+    "window": "#414E54",
+    "grass": "#86B476",
+    "leaf": "#467857",
+    "leafdark": "#2D5546",
+    "leaflight": "#739D70",
+    "rock": "#9C8B74",
+    "rocklight": "#D1BE9F",
+    "rockdark": "#62594F",
+    "metal": "#7B7775",
+    "metallight": "#B8A28C",
+    "metaldark": "#464E56",
+    "concrete": "#777C71",
+    "concretelight": "#A4A697",
+    "concretedark": "#454F4A"
+  },
+  "sprites": {
+    "impact-0": {
+      "x": 2,
+      "y": 2,
+      "width": 16,
+      "height": 16,
+      "pivotX": 8,
+      "pivotY": 13,
+      "inkX": 2,
+      "inkY": 2,
+      "inkWidth": 13,
+      "inkHeight": 12,
+      "state": "impact",
+      "frame": 0,
+      "duration": 75
+    },
+    "impact-1": {
+      "x": 66,
+      "y": 2,
+      "width": 16,
+      "height": 16,
+      "pivotX": 8,
+      "pivotY": 13,
+      "inkX": 2,
+      "inkY": 3,
+      "inkWidth": 12,
+      "inkHeight": 10,
+      "state": "impact",
+      "frame": 1,
+      "duration": 75
+    },
+    "impact-2": {
+      "x": 130,
+      "y": 2,
+      "width": 16,
+      "height": 16,
+      "pivotX": 8,
+      "pivotY": 13,
+      "inkX": 3,
+      "inkY": 4,
+      "inkWidth": 11,
+      "inkHeight": 9,
+      "state": "impact",
+      "frame": 2,
+      "duration": 75
+    },
+    "impact-3": {
+      "x": 194,
+      "y": 2,
+      "width": 16,
+      "height": 16,
+      "pivotX": 8,
+      "pivotY": 13,
+      "inkX": 3,
+      "inkY": 4,
+      "inkWidth": 11,
+      "inkHeight": 9,
+      "state": "impact",
+      "frame": 3,
+      "duration": 75
+    }
+  }
+}

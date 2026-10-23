@@ -1,4 +1,6 @@
 import { BUILDINGS, BUILDING_CODES } from '../engine/economy.js';
+import {drawSprite,spriteFrame} from './sprite-atlas.js';
+import {buildingSpriteName,buildingSpriteScale,buildingSpriteBounds} from './pixel-art-style.js';
 
 export interface BuildingMarkerStyle {
   readonly label:string;
@@ -6,7 +8,7 @@ export interface BuildingMarkerStyle {
   readonly color:string;
 }
 
-/** Only cities can be built. Capital labels already mark starting cities. */
+/** Every locally existing building class has its own pixel silhouette. */
 export const BUILDING_MARKER_STYLES:Readonly<Record<number,BuildingMarkerStyle>> = {
   [BUILDING_CODES.tower]:{label:'Abwehrturm',symbol:'♜',color:'#b4d9e9'},
   [BUILDING_CODES.factory]:{label:'Fabrik',symbol:'⚙',color:'#ecc792'},
@@ -39,8 +41,8 @@ export function cityVisibleAtZoom(owner:number,level:number,zoom:number,hovered=
 export const CITY_MARKER_SIZE=30;
 export const CITY_BADGE_FONT_SIZE=10;
 export interface ScreenRect {x:number;y:number;width:number;height:number}
-export function cityMarkerBounds(x:number,y:number):ScreenRect {
-  return {x:x-15,y:y-15,width:CITY_MARKER_SIZE,height:CITY_MARKER_SIZE};
+export function cityMarkerBounds(x:number,y:number,level=0,zoom=1):ScreenRect {
+  return buildingSpriteBounds(x,y,1,level,zoom);
 }
 export function rectanglesOverlap(a:ScreenRect,b:ScreenRect,gap=0):boolean {
   return a.x<b.x+b.width+gap && a.x+a.width+gap>b.x &&
@@ -67,11 +69,8 @@ export class ScreenOccupancy {
   }
 }
 
-/** Tiered vector architecture in a fixed 30×30 CSS-pixel footprint:
- * village (0–2), walled town (3–4), fortified metropolis (5).
- * Existing 30px click targets, badges and saved city levels are unchanged.
- */
-export function drawCityMarker(c:CanvasRenderingContext2D,x:number,y:number,level:number,owner:number):void {
+/** Retained small fallback for an unavailable atlas; normal play uses PNGs. */
+function drawCityFallback(c:CanvasRenderingContext2D,x:number,y:number,level:number,owner:number):void {
   const n=Math.max(0,Math.min(5,Math.floor(Number.isFinite(level)?level:0)));
   const style=cityLevelStyle(n);
   c.save();
@@ -120,6 +119,36 @@ export function drawCityMarker(c:CanvasRenderingContext2D,x:number,y:number,leve
     c.textAlign='center';c.textBaseline='middle';c.fillText(String(n),7.5,7.8);
   }
   c.restore();
+}
+
+/** PNG atlas drawing and hit testing use the same native frame and foot pivot. */
+export function drawBuildingMarker(c:CanvasRenderingContext2D,x:number,y:number,code:number,
+  level:number,owner:number,zoom=1,index=0,color=owner===0?'#e6b653':'#b9ced0'):void {
+  const name=buildingSpriteName(code,level,index),scale=buildingSpriteScale(code,level,zoom);
+  if(!drawSprite(c,'buildings',name,x,y,scale)){
+    const bounds=buildingSpriteBounds(x,y,code,level,zoom,index);
+    if(code===1){
+      c.save();c.beginPath();c.rect(bounds.x,bounds.y,bounds.width,bounds.height);c.clip();
+      c.translate(bounds.x+bounds.width/2,bounds.y+bounds.height/2);
+      c.scale(bounds.width/30,bounds.height/30);drawCityFallback(c,0,0,level,owner);c.restore();
+    }
+    else {c.save();c.fillStyle='#a4a697';c.fillRect(bounds.x+4,bounds.y+8,bounds.width-8,bounds.height-10);c.restore();}
+    return;
+  }
+  // Only a small pennant changes faction color; all materials keep their palette.
+  const frame=spriteFrame('buildings',name)!;
+  const origin={x:Math.round(x)-frame.pivotX*scale,y:Math.round(y)-frame.pivotY*scale};
+  const n=Math.max(0,Math.min(5,Math.floor(level)));
+  const [fx,fy]=code===1?(n===0?[23,12]:n===1?[24,8]:n===2?[25,8]:n<5?[28,3]:[32,3])
+    :code===3?[29,8]:code===4?[28,3]:[27,2];
+  c.save();c.fillStyle=color;
+  c.fillRect(origin.x+(fx+1)*scale,origin.y+fy*scale,5*scale,3*scale);
+  c.fillStyle='#f4e6c8';c.fillRect(origin.x+(fx+1)*scale,origin.y+fy*scale,scale,scale);
+  c.restore();
+}
+
+export function drawCityMarker(c:CanvasRenderingContext2D,x:number,y:number,level:number,owner:number):void {
+  drawBuildingMarker(c,x,y,1,level,owner);
 }
 
 /** Readable map encoding: 0–2 bronze, 3–4 silver, 5 gold. */
