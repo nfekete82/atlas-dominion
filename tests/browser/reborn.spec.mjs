@@ -251,7 +251,7 @@ test('reborn: unit-focused HUD stays compact at bottom left and trains heavy inf
  await expect(page.locator('[data-unit]')).toHaveCount(9);await expect(page.locator('.catalog-tabs button')).toHaveCount(2);
  await expect(page.locator('#tab-buildings, [data-building], #build-shortcut')).toHaveCount(0);
  await page.keyboard.press('b');expect(await page.evaluate(()=>window.__reborn.renderer.placement)).toBe(null);
- const panel=await page.locator('.command').boundingBox();expect(panel.x).toBeLessThanOrEqual(12);expect(panel.width).toBeLessThanOrEqual(460);expect(panel.height).toBeLessThanOrEqual(132);expect(1790-panel.y-panel.height).toBeLessThanOrEqual(12);
+ const panel=await page.locator('.command').boundingBox();expect(panel.x).toBeLessThanOrEqual(12);expect(panel.width).toBeLessThanOrEqual(548);expect(panel.height).toBeLessThanOrEqual(168);expect(1790-panel.y-panel.height).toBeLessThanOrEqual(12);
  await expect(page.locator('.command #production')).toHaveCount(0);await expect(page.locator('#sidebar #production')).toBeVisible();
  await expect(page.locator('[data-unit="heavy"]')).toBeEnabled();await page.locator('[data-unit="heavy"]').click();
  await expect(page.locator('#credits')).toHaveText('250');await expect(page.locator('#queue')).toContainText('1 IM AUFTRAG');
@@ -496,4 +496,35 @@ test('capture: a real two-unit drag selection captures after clicking the mast, 
  }
  expect(errors).toEqual([]);
  await page.screenshot({path:evidence+'group-capture.png'});
+});
+
+test('reborn: readable translucent HUD at the standard desktop viewport',async({page})=>{
+ await start(page,1200,900);
+ const values=await page.evaluate(()=>{
+  const size=selector=>parseFloat(getComputedStyle(document.querySelector(selector)).fontSize);
+  const rect=selector=>{const r=document.querySelector(selector).getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom};};
+  return {
+   sidebar:rect('#sidebar'),command:rect('.command'),catalog:rect('.catalog'),
+   tabs:size('.catalog-tabs button'),heading:size('.catalog h2'),cost:size('.card-cost'),
+   description:size('#catalog-detail'),selection:size('#selection-title'),selectionDetail:size('#selection-detail'),
+   queue:size('#queue'),radar:size('.radar-caption'),background:getComputedStyle(document.querySelector('.catalog')).backgroundImage
+  };
+ });
+ expect(values.sidebar.width).toBeGreaterThanOrEqual(310);
+ expect(values.command.width).toBeGreaterThanOrEqual(500);
+ expect(values.command.height).toBeGreaterThanOrEqual(160);
+ expect(values.command.right).toBeLessThan(values.sidebar.x);
+ expect(values.command.bottom).toBeLessThanOrEqual(900);
+ expect(values.tabs).toBeGreaterThanOrEqual(13);
+ expect(values.heading).toBeGreaterThanOrEqual(14);
+ expect(values.cost).toBeGreaterThanOrEqual(14);
+ expect(values.description).toBeGreaterThanOrEqual(12);
+ expect(values.selection).toBeGreaterThanOrEqual(22);
+ expect(values.selectionDetail).toBeGreaterThanOrEqual(13);
+ expect(values.queue).toBeGreaterThanOrEqual(11);
+ expect(values.radar).toBeGreaterThanOrEqual(10);
+ expect(values.background).toContain('rgba(');
+ await expect(page.locator('#tab-units')).toBeVisible();
+ await expect(page.locator('#recruit')).toBeVisible();
+ await expect(page.locator('#menu')).toBeVisible();
 });
