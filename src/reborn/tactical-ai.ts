@@ -279,13 +279,14 @@ export class TacticalAI {
    const towers=s.knownTurrets.filter(b=>distance(b,t.point)<b.range+85||route.some((p,i)=>segmentDistance(b,i?route[i-1]:s.rally!,p)<b.range+40));
    const defenders=g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)&&distance(u,t.point)<420).reduce((n,u)=>n+combatStrength(u),0);
    const knownHQ=g.memories[1].find(m=>m.owner===0&&m.kind==='headquarters'&&m.territory===t.id&&m.hp>0);
+   const knownIndustry=g.memories[1].find(m=>m.owner===0&&['factory','airfield','barracks'].includes(m.kind??'')&&m.territory===t.id&&m.hp>0);
    // Sector ownership is already part of strategic target selection. Press
    // toward the opposing front instead of clearing every remote neutral first;
    // hidden units/buildings still contribute no strength or threat information.
    const owned=g.territories.filter(t=>t.owner===1).length;
    const pressure=owned>=(g.world.mapVersion>=3?Math.max(1,Math.floor(g.territories.length/4)):4)?(t.owner===0?2000:t.neighbors.some(i=>g.territories[i].owner===0)?1200:0):0;
    const siegeRoute=siegeAvailable&&towers.length>0;
-   return {t,route,...travel,towers,knownHQ,defenders,score:travel.length+travel.risk*(siegeRoute?40:75)+towers.length*(siegeRoute?260:700)+defenders*130+(loss&&loss.until>g.time?900+loss.losses*180:0)-t.income*16-t.neighbors.filter(i=>g.territories[i].owner!==1).length*45-pressure};
+   return {t,route,...travel,towers,knownHQ,knownIndustry,defenders,score:travel.length+travel.risk*(siegeRoute?40:75)+towers.length*(siegeRoute?260:700)+defenders*130+(loss&&loss.until>g.time?900+loss.losses*180:0)-t.income*16-t.neighbors.filter(i=>g.territories[i].owner!==1).length*45-pressure-(knownIndustry?300:0)};
   }).filter(c=>c.route.length).sort((a,b)=>a.score-b.score||a.t.id-b.t.id);
   if(!candidates.length){this.strategyOptions=[];this.setPhase('regroup');this.issue([...selected,...medics],s.rally,'safe');return;}
   this.strategyOptions=candidates.slice(0,4).map(c=>({sectorId:c.t.id,owner:c.t.owner===0?'enemy':'neutral',
@@ -293,7 +294,7 @@ export class TacticalAI {
   const advised=this.sectorPreference&&this.sectorPreference.until>=g.time
    ?candidates.slice(0,4).find(c=>c.t.id===this.sectorPreference!.sectorId&&c.score-candidates[0].score<=700):undefined;
   const c=advised??candidates[0];s.target=c.t.id;s.route=c.route.slice(0,64);
-  const defended=c.towers.length>0||c.defenders>2||c.knownHQ!==undefined||c.risk>12;
+  const defended=c.towers.length>0||c.defenders>2||c.knownHQ!==undefined||c.knownIndustry!==undefined||c.risk>12;
   // A late reserve may be taking a long route out of newly built facilities.
   // Three ready fighters can take an unguarded sector after a bounded wait;
   // defended objectives retain their full assault-strength requirements.
@@ -313,7 +314,7 @@ export class TacticalAI {
   }
   const frontline=g.world.mapVersion>=3?ready.slice().sort((a,b)=>(b.kind==='tank'?5:b.kind==='artillery'?4:b.kind==='heavy'?3:b.kind==='gunship'?2:1)-(a.kind==='tank'?5:a.kind==='artillery'?4:a.kind==='heavy'?3:a.kind==='gunship'?2:1)||a.id-b.id):ready;
   const group=[...frontline.slice(0,defended?10:6),...medics.filter(u=>distance(u,s.rally!)<240)];s.group=group.map(u=>u.id);s.groupId++;s.launchSize=group.filter(combat).length;s.launchedAt=g.time;s.lastProgress=distance(s.rally,c.t.point);s.progressAt=g.time;this.setPhase('attack');
-  const obstacle=defended?c.towers.slice().sort((a,b)=>distance(s.rally!,a)-distance(s.rally!,b))[0]??c.knownHQ:undefined;
+  const obstacle=defended?c.towers.slice().sort((a,b)=>distance(s.rally!,a)-distance(s.rally!,b))[0]??c.knownHQ??c.knownIndustry:undefined;
   s.objective=obstacle?.id??null;
   if(obstacle){this.issue(group,obstacle,'assault',obstacle.id);if(c.towers.some(t=>t.id===obstacle.id)&&this.siege(group,obstacle))return;this.airSupport(group,obstacle,obstacle.id);}
   else {this.issue(group,c.t.point,'safe');this.airSupport(group,c.t.point,null);}
