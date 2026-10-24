@@ -6,7 +6,7 @@ const cell=96,columns=16;
 const weapons=['AK','GrenadeLauncher','Knife_1','Knife_2','Pistol','Revolver','Revolver_Small','RocketLauncher','ShortCannon','Shotgun','Shovel','SMG','Sniper','Sniper_2'];
 const clips=[['idle','Idle',4,true],['walk','Run_Gun',8,true],['attack','Idle_Shoot',5,false],['hit','HitReact',4,false],['death','Death',10,false]];
 const models={infantry:['soldier.gltf','AK'],engineer:['engineer.gltf','SMG'],heavy:['heavy.gltf','GrenadeLauncher'],rover:['rover.gltf'],tank:['tank.fbx'],artillery:['artillery.fbx'],scout:['helicopter.glb'],gunship:['helicopter.glb'],bomber:['bomber.gltf']};
-const nativeWidths={rover:66,tank:88,artillery:92,scout:80,gunship:92,bomber:106};
+const nativeWidths={rover:66,tank:88,artillery:92,scout:106,gunship:92,bomber:106};
 const renderer=new T.WebGLRenderer({alpha:true,antialias:true,preserveDrawingBuffer:true});renderer.setSize(cell,cell);renderer.setClearColor(0,0);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.13;
 const scene=new T.Scene(),camera=new T.OrthographicCamera(-1.8,1.8,1.8,-1.8,.01,100);camera.position.set(0,8,12);camera.lookAt(0,0,0);
 scene.add(new T.HemisphereLight('#c8dfff','#65482b',1.55));const sun=new T.DirectionalLight('#ffe4be',3.2);sun.position.set(-6,10,6);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-4;sun.shadow.camera.right=4;sun.shadow.camera.top=4;sun.shadow.camera.bottom=-4;sun.shadow.normalBias=.015;scene.add(sun);scene.add(sun.target);const fill=new T.DirectionalLight('#8ab9df',.65);fill.position.set(5,4,-5);scene.add(fill);
@@ -60,6 +60,7 @@ window.compileAtlases=async(requested)=>{
        gunNode.traverse(n=>{if(!n.isMesh)return;const pos=n.geometry.attributes.position;for(let i=0;i<pos.count;i++){const v=new T.Vector3().fromBufferAttribute(pos,i).applyMatrix4(n.matrixWorld);vertices.push(v);front=Math.max(front,v.dot(forward));}});
        const tip=new T.Vector3();let count=0;for(const v of vertices)if(v.dot(forward)>front-.025){tip.add(v);count++;}tip.divideScalar(Math.max(1,count));const p=sample(tip);frame.muzzle=[p.x,p.y];
       }}
+      if(!character&&rig?.muzzle){const tip=sample(rig.muzzle.getWorldPosition(new T.Vector3()));frame.muzzle=[tip.x,tip.y];}
       metadata.frames.push(frame);row.push(index);
       const pixels=ctx.getImageData(x,y,cell,cell).data;let hash=2166136261;for(const value of pixels)hash=Math.imul(hash^value,16777619)>>>0;hashes.add(hash);
      }metadata.clips[tag].frames.push(row);metadata.clips[tag].uniquePhases.push(hashes.size);

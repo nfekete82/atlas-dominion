@@ -19,7 +19,7 @@ dialog{position:fixed;color:#e1e5df;max-width:730px;width:calc(100% - 36px);padd
 .catalog-card:disabled{opacity:.78;filter:none}.catalog-card:disabled img{opacity:.8;filter:saturate(.8)}
 .pause-scene{background:linear-gradient(#0b1519 0%,#0c151b00 38%,#0a11192a 100%),url('/src/assets/reborn/menu-desert.png') 50% 65%/cover;filter:none;opacity:.85}
 
-/* Unit-focused layout: construction is parked; production lives with the roster. */
+/* Production lives with the roster; selection commands remain contextual. */
 .catalog-tabs{grid-template-columns:repeat(2,1fr)}
 #sidebar{bottom:12px}
 #production{position:relative;flex-shrink:0;border:0;border-top:1px solid #5362637a;padding:8px 3px 0}
@@ -297,3 +297,85 @@ dialog{position:fixed;color:#e1e5df;max-width:730px;width:calc(100% - 36px);padd
  .command #selection-detail{font-size:11px;line-height:1.25}
  .command #selection-health{font-size:10px}
 }
+
+/* Context actions inherit the existing transparent HUD surfaces. */
+#quick-select{position:absolute;left:18px;bottom:14px;z-index:3;display:flex;gap:7px}
+#quick-select button{width:32px;height:27px;background:#081c2aaa}
+#build-menu{position:absolute;bottom:12px;right:12px;z-index:4;width:190px;max-width:calc(100% - 24px);display:grid;gap:5px;padding:8px;background:#081c2acc;border:1px solid #527c9177}
+#build-menu button{padding:9px;text-align:left;font-size:12px;background:#102a39aa}
+#building-commands{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;max-height:190px;overflow:auto}
+#building-commands button{display:flex;align-items:center;gap:4px;padding:3px;font-size:10px;background:#081c2aaa}
+#building-commands img{width:23px;height:23px;flex-shrink:0;object-fit:contain}
+#building-commands #context-cancel{grid-column:1/-1;min-height:25px;color:#f4b39d}
+#support-commands{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:4px}
+#selection-panel:has(#building-commands:not([hidden])){min-width:390px}
+#selection-panel .common-commands{grid-template-columns:repeat(2,minmax(0,1fr))}
+#selection-panel .command-group{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-content:start;gap:5px;min-height:0}
+#selection-panel .command-group>.section-label{grid-column:1/-1;margin:0 0 2px}
+#selection-panel #unit-commands:not([hidden]),#selection-panel #support-commands:not([hidden]),#selection-panel .common-commands{display:contents}
+#selection-panel #building-commands{grid-column:1/-1;max-height:90px}
+#selection-panel:has(#building-commands:not([hidden])) #move-mode{display:none}
+@media(min-width:1001px){#selection-panel #building-commands{max-height:125px}}
+body:has(#selection-panel:not([hidden])) #quick-select{bottom:238px}
+@media(max-width:1400px){body:has(#selection-panel:not([hidden])) #quick-select{bottom:190px}}
+@media(max-width:800px){body:has(#selection-panel:not([hidden])) #quick-select{bottom:162px}}
+
+#building-commands button span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+#production-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* The map and the HUD own separate layout columns; all world coordinates are
+   local to the actual left viewport. Panel surfaces and responsive sizes stay. */
+:root{--rail-pad:12px}
+#app{
+ display:grid;grid-template-columns:minmax(0,1fr) calc(var(--side) + 2 * var(--rail-pad));
+ grid-template-rows:minmax(0,1fr);min-height:0;
+}
+#game-viewport{
+ position:relative;grid-column:1;grid-row:1;min-width:0;min-height:0;height:100%;
+ overflow:hidden;isolation:isolate;container:game-view / inline-size;
+}
+#world{display:block}
+#sidebar{
+ position:relative;inset:auto;grid-column:2;grid-row:1;width:auto;height:100%;
+ min-width:0;min-height:0;padding:10px var(--rail-pad) 12px;gap:11px;
+ overflow:auto;overscroll-behavior:contain;background:#071117;
+ scrollbar-width:thin;scrollbar-color:#657074 #071117;
+}
+#sidebar .tools{position:relative;inset:auto;align-self:flex-end;flex-shrink:0;max-width:100%}
+#sidebar .catalog{flex:1 0 0;min-height:clamp(300px,42dvh,480px)}
+#game-viewport .top{max-width:calc(100% - 20px)}
+#game-viewport .command{width:min(700px,calc(100% - 24px));max-width:calc(100% - 24px)}
+#selection-panel:has(#building-commands:not([hidden])){min-width:0}
+@media(max-width:1000px){
+ :root{--rail-pad:9px}
+ #sidebar{padding-bottom:9px;gap:9px}
+ #game-viewport .command{width:min(610px,calc(100% - 30px))}
+}
+@media(max-width:620px){
+ #game-viewport .command{width:calc(100% - 20px);max-width:calc(100% - 20px)}
+}
+@container game-view (max-width:360px){
+ .top .wordmark{display:none}
+ .top{width:calc(100% - 20px)}
+ #notices{max-width:calc(100% - 24px)}
+}
+
+/* Tactical pause is a screen-centred overlay; only its background is blurred. */
+body.tactical-paused #app{filter:blur(7px);pointer-events:none;user-select:none}
+#pause-label{
+ position:fixed;inset:0;left:0;top:0;z-index:2000;transform:none;
+ display:grid;place-items:center;width:100%;height:100dvh;
+ padding:24px;background:radial-gradient(ellipse at center,#07131b48,#030b12b8);
+ text-align:center;color:#fff4db;pointer-events:auto;letter-spacing:normal;
+}
+#pause-label .tactical-pause-copy{width:min(760px,100%);text-shadow:0 3px 24px #000b}
+#pause-label .pause-kicker{display:block;margin-bottom:16px;font:600 clamp(10px,1.2vw,14px) var(--mono);letter-spacing:.32em;color:#c8af7e}
+#pause-label strong{display:block;font:700 clamp(34px,6vw,82px)/1.05 var(--display);letter-spacing:.035em}
+#pause-label small{display:block;margin-top:26px;font:500 clamp(10px,1.15vw,14px)/1.8 var(--mono);letter-spacing:.16em;color:#d8e0e1}
+#pause-label kbd{display:inline-block;margin-right:8px;padding:4px 12px;border:1px solid #c6ae785c;border-radius:4px;background:#182b3270;color:#fff3ce;font:inherit}
+#resume-tactical{margin:32px auto 0;padding:14px 24px;border:1px solid #d8b87486;background:#122532b8;font:600 14px var(--display);letter-spacing:.08em;color:#f9e9c5}
+#resume-tactical span{margin-left:16px;color:#cdb07a}
+#resume-tactical:hover,#resume-tactical:focus-visible{background:#284556;border-color:#f1d69a}
+@media(max-width:620px){#pause-label{padding:18px}#pause-label strong{font-size:clamp(30px,7vw,44px)}#pause-label small{letter-spacing:.07em}#resume-tactical{font-size:12px}}
+
+#production #recruit img{width:100%;height:100%;min-height:0;object-fit:contain;pointer-events:none}

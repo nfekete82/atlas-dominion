@@ -3,6 +3,7 @@
   "kind": "factory",
   "team": 1,
   "design": {
+    "revision": 2,
     "name": "Fahrzeugfabrik",
     "kind": "factory",
     "team": 1,

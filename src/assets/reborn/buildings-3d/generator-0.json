@@ -3,6 +3,7 @@
   "kind": "generator",
   "team": 0,
   "design": {
+    "revision": 2,
     "name": "Energiekern",
     "kind": "generator",
     "team": 0,

@@ -1,0 +1,70 @@
+[
+  {
+    "ids": [
+      "soldier-move-01",
+      "soldier-move-02",
+      "soldier-move-03",
+      "soldier-move-04",
+      "soldier-move-05",
+      "soldier-move-06",
+      "soldier-move-07",
+      "soldier-move-08",
+      "soldier-attack-01",
+      "soldier-attack-02",
+      "soldier-attack-03",
+      "soldier-attack-04",
+      "soldier-attack-05",
+      "soldier-attack-06",
+      "crew-attack-01",
+      "crew-attack-02"
+    ],
+    "expected": "Verstanden! Bin unterwegs! Aye, aye, Sir! Wird ausgeführt! Auf dem Weg! Jawohl! Position wird angefahren! Bestätigt! Ziel erfasst! Angriff bestätigt! Wir rücken vor! Feuer frei! Feind wird bekämpft! Jawohl, Kommandant! Ziel erfasst! Angriff bestätigt!",
+    "transcript": " Verstanden. Bin unterwegs. Aye, aye, Sir. Wird ausgeführt. Auf dem Weg. Jawohl. Position wird angefahren. Bestätigt. Ziel erfasst. Angriff bestätigt. Wir rücken vor. Feuer frei. Feind wird bekämpft. Jawohl, Kommandant. Ziel erfasst. Angriff bestätigt.",
+    "wordsMatchIgnoringCaseAndPunctuation": true
+  },
+  {
+    "ids": [
+      "crew-attack-03",
+      "crew-attack-04",
+      "crew-attack-05",
+      "crew-attack-06",
+      "support-medic-01",
+      "support-medic-02",
+      "support-medic-03",
+      "support-medic-04",
+      "support-engineer-01",
+      "support-engineer-02",
+      "support-repair-01",
+      "support-build-01",
+      "crew-move-01",
+      "crew-move-02",
+      "crew-move-03"
+    ],
+    "expected": "Wir rücken vor! Feuer frei! Feind wird bekämpft! Jawohl, Kommandant! Sanitäter unterwegs! Ich kümmere mich darum! Medizinische Unterstützung! Bin zur Stelle! Auftrag erhalten! Wird erledigt! Reparatur wird durchgeführt! Baustelle wird angefahren! Besatzung bereit! Rücken vor! Zielkoordinaten bestätigt!",
+    "transcript": " Wir rücken vor. Feuer frei. Feind wird bekämpft. Jawohl, Kommandant. Sanitäter unterwegs. Ich kümmere mich darum. Medizinische Unterstützung. Bin zur Stelle. Auftrag erhalten. Wird erledigt. Reparatur wird durchgeführt. Baustelle wird angefahren. Besatzung bereit. Rücken vor. Zielkoordinaten bestätigt.",
+    "wordsMatchIgnoringCaseAndPunctuation": true
+  },
+  {
+    "ids": [
+      "crew-move-04",
+      "soldier-air-01",
+      "soldier-air-02",
+      "soldier-air-03",
+      "soldier-air-04",
+      "soldier-load-01",
+      "soldier-load-02",
+      "soldier-unload-01",
+      "support-move-01",
+      "support-move-02",
+      "soldier-stop-01",
+      "soldier-stop-02",
+      "crew-stop-01",
+      "crew-stop-02",
+      "support-stop-01",
+      "support-stop-02"
+    ],
+    "expected": "Verstanden, Kommandant! Roger! Kurs bestätigt! Wir heben ab! Flugroute bestätigt! Landezone bestätigt! Bereit zur Aufnahme! Truppen werden abgesetzt! Verstanden! Wird ausgeführt! Position halten! Bestätigt! Position halten! Bestätigt! Position halten! Bestätigt!",
+    "transcript": " Verstanden. Kommandant. Roger. Kurs bestätigt. Wir heben ab. Flugroute bestätigt. Landezone bestätigt. Bereit zur Aufnahme. Truppen werden abgesetzt. Verstanden. Wird ausgeführt. Position halten. Bestätigt. Position halten. Bestätigt. Position halten. Bestätigt.",
+    "wordsMatchIgnoringCaseAndPunctuation": true
+  }
+]

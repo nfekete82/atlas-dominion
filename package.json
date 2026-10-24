@@ -17,6 +17,7 @@
     "assets:detailed-infantry": "node scripts/export-detailed-infantry.mjs",
     "assets:buildings": "node scripts/export-atlas-buildings.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:performance": "npm run build && node scripts/benchmark-reborn-performance.mjs after",
     "test:ai-defense": "npm run build && node scripts/benchmark-ai-defense.mjs"
   },
   "devDependencies": {

@@ -1,0 +1,173 @@
+
+> test
+> playwright test --config=reborn.config.mjs --grep combined arms:|layout:|radio:|polish:|defense map:|support HUD:|overhaul:|tactical AI:|campaign:|combat:|vehicle art:|combat presentation:|capture:
+
+[WebServer] (node:88381) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 29 tests using 1 worker
+
+(node:88382) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 reborn-combined-arms.spec.mjs:7:1 › combined arms: transport has real loading commands, lands for ten soldiers, saves during descent, unloads safely and takes off (2.0s)
+  ✓   2 reborn-combined-arms.spec.mjs:20:1 › combined arms: real rocket vehicle launches a visible travelling rocket from beyond turret range (1.1s)
+  ✓   3 reborn-defense-map.spec.mjs:9:1 › defense map: new campaign has 16 sectors and both old map versions load through the real save store with correct HUD and catalog (2.4s)
+  ✓   4 reborn-defense-map.spec.mjs:31:1 › defense map: selected turret draws exactly 600 range and fights a unit beside a bastion at 500 while tracking through reload (1.0s)
+  ✓   5 reborn-defense-map.spec.mjs:50:1 › defense map: new campaign capture updates income, minimap ownership and the 16-sector counter (1.3s)
+  ✓   6 reborn-layout.spec.mjs:12:1 › layout: canvas and sidebar own disjoint columns at desktop, tablet and phone sizes, including fractional widths and layout-only resizing (1.5s)
+  ✓   7 reborn-layout.spec.mjs:23:1 › layout: real selection, right click, rectangle selection and captured gestures work at the visible right edge without HUD click-through (1.2s)
+  ✓   8 reborn-layout.spec.mjs:37:1 › layout: building placement, building selection and rally targets use the rightmost visible map area, and releases over the sidebar cannot build (1.1s)
+  ✓   9 reborn-layout.spec.mjs:50:1 › layout: right edge scroll reaches the full world boundary, stops in the sidebar, minimap still pans, and mouse-anchored zoom remains exact (1.5s)
+  ✓  10 reborn-layout.spec.mjs:60:1 › layout: Retina backing pixels match fractional viewport dimensions without changing CSS-coordinate input (1.6s)
+  ✓  11 reborn-overhaul.spec.mjs:10:1 › overhaul: compact real turret heads track and fire from their registered muzzles in both factions; all faction/role atlases load (1.3s)
+  ✓  12 reborn-overhaul.spec.mjs:44:1 › overhaul: a worker places in explored neutral fog, walks there and completes the barracks without taking the territory (1.4s)
+  ✘  13 reborn-overhaul.spec.mjs:64:1 › overhaul: real group input keeps medics behind the front, heals during attack-move, and persists formation state (6.9s)
+(node:88602) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  14 reborn-polish.spec.mjs:8:1 › polish: live rifle bursts use warm muzzle sockets and short travelling tracers, actual shot audio, pause and settings (1.4s)
+  ✓  15 reborn-polish.spec.mjs:38:1 › polish: real dual turret barrels, distinct synthesized weapon signals and capped audio voices (1.2s)
+  ✓  16 reborn-polish.spec.mjs:63:1 › polish: real healing crosses, self care, one repair wrench and construction activity stop on interruption and load (1.3s)
+  ✓  17 reborn-radio.spec.mjs:9:1 › radio: local speech decodes, real mouse commands speak immediately, groups speak once and attack priority replaces movement (4.0s)
+  ✓  18 reborn-radio.spec.mjs:26:1 › radio: actual specialist, attack, healing, repair, build and transport commands choose fitting speech; invalid and autonomous commands stay silent (1.0s)
+  ✓  19 reborn-radio.spec.mjs:42:1 › radio: voice/master controls persist, pause stops playback, muted commands never replay, and a real new campaign reuses the decoded bank (2.5s)
+  ✓  20 reborn-support.spec.mjs:11:1 › support HUD: empty click hides all context, targeted buildings and groups have correct actions, global production stays usable (1.1s)
+  ✓  21 reborn-support.spec.mjs:23:1 › support HUD: medic right-click heals infantry, exposes heal/move/hold/stop and renders distinct animated equipment (1.1s)
+  ✓  22 reborn-support.spec.mjs:36:1 › support HUD: real worker placement, cancellation, two completed buildings, barracks training/rally, repair and durable orders (3.6s)
+  ✓  23 reborn-tactical-ai.spec.mjs:3:1 › tactical AI: a genuinely built blue turret kills two red infantry; the 16-sector AI gathers paid reinforcements, attacks together and saves its lessons (2.6s)
+  ✓  24 reborn.spec.mjs:401:1 › campaign: real new-game input generates a different reachable map and save/load restores the previous terrain and minimap (1.9s)
+  ✘  25 reborn.spec.mjs:416:1 › combat: approaching enemies receive immediate fire and a second attacker does not steal the first target (1.9s)
+(node:88851) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  26 reborn.spec.mjs:433:1 › vehicle art: the full roster has real faction materials, baked shadows, animated running gear and visible turret/barrel layers (1.0s)
+  ✓  27 reborn.spec.mjs:447:1 › visual polish: fine sand relief and a quiet HUD preserve usable production and compact selection (1.5s)
+  ✘  28 reborn.spec.mjs:461:1 › combat presentation: simultaneous hits never hide return-fire poses or delay the real weapon cadence (1.9s)
+(node:88927) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  29 reborn.spec.mjs:479:1 › capture: a real two-unit drag selection captures after clicking the mast, body or label at different zoom levels (2.2s)
+
+
+  1) reborn-overhaul.spec.mjs:64:1 › overhaul: real group input keeps medics behind the front, heals during attack-move, and persists formation state
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator:  locator('#selection-title')
+    Expected: "4 Einheiten"
+    Received: ""
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveText" locator('#selection-title') with timeout 5000ms
+      - waiting for locator('#selection-title')
+        14 × locator resolved to <strong id="selection-title"></strong>
+           - unexpected value ""
+
+
+      69 |  });
+      70 |  await page.mouse.move(Math.min(...points.map(p=>p.x))-30,Math.min(...points.map(p=>p.y))-35);await page.mouse.down();await page.mouse.move(Math.max(...points.map(p=>p.x))+30,Math.max(...points.map(p=>p.y))+45,{steps:6});await page.mouse.up();
+    > 71 |  await expect(page.locator('#selection-title')).toHaveText('4 Einheiten');await page.keyboard.press('a');await clickWorld(page,{x:2350,y:2120});await advance(page,3);
+         |                                                 ^
+      72 |  const result=await page.evaluate(()=>{const {game:g}=window.__reborn,front=g.units.filter(u=>u.owner===0&&u.kind!=='medic'),medics=g.units.filter(u=>u.kind==='medic');return {hp:front.find(u=>u.kind==='heavy').hp,front:Math.min(...front.map(u=>u.x)),medics:medics.map(u=>({x:u.x,formation:!!u.orders[0]?.formation,cooldown:u.cooldown}))};});
+      73 |  expect(result.hp).toBeGreaterThan(35);for(const m of result.medics){expect(m.x).toBeLessThan(result.front-25);expect(m.formation).toBe(true);expect(m.cooldown).toBeLessThanOrEqual(0);}
+      74 |  await page.evaluate(async()=>{const a=window.__reborn;await a.save();await a.load();a.game.paused=true;a.refresh();});expect(await page.evaluate(()=>window.__reborn.game.units.filter(u=>u.kind==='medic').every(u=>!!u.orders[0]?.formation))).toBe(true);
+        at <PROJECT>/tests/browser/reborn-overhaul.spec.mjs:71:49
+
+    Error Context: artifacts/reborn/reborn-overhaul-overhaul-r-464a6-nd-persists-formation-state/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    artifacts/reborn/reborn-overhaul-overhaul-r-464a6-nd-persists-formation-state/trace.zip
+    Usage:
+
+        npx playwright show-trace artifacts/reborn/reborn-overhaul-overhaul-r-464a6-nd-persists-formation-state/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) reborn.spec.mjs:416:1 › combat: approaching enemies receive immediate fire and a second attacker does not steal the first target
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Array [
+    -   66,
+    +   60,
+        100,
+      ]
+
+      423 |   return {blue:blue.id,first:a.id,second:b.id,target:blue.combatTarget,attacker:blue.lastAttacker,hp:[a.hp,b.hp]};
+      424 |  });
+    > 425 |  expect(first.target).toBe(first.first);expect(first.attacker).toBe(first.second);expect(first.hp).toEqual([66,100]);
+          |                                                                                                    ^
+      426 |  await advance(page,2.65);
+      427 |  const next=await page.evaluate(()=>{const g=window.__reborn.game;return {survivors:g.units.filter(u=>u.owner===1).map(u=>u.id),hp:g.units.find(u=>u.owner===1).hp,blue:g.units.find(u=>u.owner===0).hp,orders:g.units.find(u=>u.owner===0).orders.length};});
+      428 |  expect(next.survivors).toEqual([first.second]);expect(next.hp).toBe(100);expect(next.blue).toBeGreaterThan(0);expect(next.orders).toBe(2);
+        at <PROJECT>/tests/browser/reborn.spec.mjs:425:100
+
+    Error Context: artifacts/reborn/reborn-combat-approaching--0be78--not-steal-the-first-target/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    artifacts/reborn/reborn-combat-approaching--0be78--not-steal-the-first-target/trace.zip
+    Usage:
+
+        npx playwright show-trace artifacts/reborn/reborn-combat-approaching--0be78--not-steal-the-first-target/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) reborn.spec.mjs:461:1 › combat presentation: simultaneous hits never hide return-fire poses or delay the real weapon cadence
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 4
+    Received: 6
+
+      472 |   g.paused=true;window.__reborn.refresh();r.render(0);return {shots,hp:blue.hp};
+      473 |  });
+    > 474 |  expect(result.shots.length).toBe(4);expect(result.shots.every(s=>s.state==='attack')).toBe(true);expect(result.shots[0].hit).toBeGreaterThan(0);expect(result.hp).toBeGreaterThan(0);
+          |                              ^
+      475 |  for(let i=1;i<result.shots.length;i++)expect(result.shots[i].time-result.shots[i-1].time).toBeCloseTo(1.3,4);
+      476 |  await page.screenshot({path:evidence+'return-fire-v2.png'});
+      477 | });
+        at <PROJECT>/tests/browser/reborn.spec.mjs:474:30
+
+    Error Context: artifacts/reborn/reborn-combat-presentation-577a4-lay-the-real-weapon-cadence/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    artifacts/reborn/reborn-combat-presentation-577a4-lay-the-real-weapon-cadence/trace.zip
+    Usage:
+
+        npx playwright show-trace artifacts/reborn/reborn-combat-presentation-577a4-lay-the-real-weapon-cadence/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) reborn.spec.mjs:479:1 › capture: a real two-unit drag selection captures after clicking the mast, body or label at different zoom levels
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      491 |   await page.mouse.click(setup.click.x,setup.click.y,{button:'right'});
+      492 |   const order=await page.evaluate(()=>{const {game:g,renderer:r}=window.__reborn,t=g.territories[8];return {targets:g.units.map(u=>u.orders[0]),point:t.point,marker:r.marker.point};});
+    > 493 |   expect(order.targets).toHaveLength(2);expect(order.targets.every(p=>Math.hypot(p.x-order.point.x,p.y-order.point.y)<25)).toBe(true);expect(order.marker).toEqual(order.point);
+          |                                                                                                                            ^
+      494 |   await advance(page,3);const progress=await page.evaluate(()=>window.__reborn.game.territories[8].progress);expect(progress).toBeGreaterThan(1);expect(progress).toBeLessThan(4);
+      495 |   await advance(page,9);expect(await page.evaluate(()=>window.__reborn.game.territories[8].owner)).toBe(0);
+      496 |  }
+        at <PROJECT>/tests/browser/reborn.spec.mjs:493:124
+
+    Error Context: artifacts/reborn/reborn-capture-a-real-two--805dc-el-at-different-zoom-levels/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    artifacts/reborn/reborn-capture-a-real-two--805dc-el-at-different-zoom-levels/trace.zip
+    Usage:
+
+        npx playwright show-trace artifacts/reborn/reborn-capture-a-real-two--805dc-el-at-different-zoom-levels/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4 failed
+    reborn-overhaul.spec.mjs:64:1 › overhaul: real group input keeps medics behind the front, heals during attack-move, and persists formation state
+    reborn.spec.mjs:416:1 › combat: approaching enemies receive immediate fire and a second attacker does not steal the first target
+    reborn.spec.mjs:461:1 › combat presentation: simultaneous hits never hide return-fire poses or delay the real weapon cadence
+    reborn.spec.mjs:479:1 › capture: a real two-unit drag selection captures after clicking the mast, body or label at different zoom levels
+  25 passed (1.0m)

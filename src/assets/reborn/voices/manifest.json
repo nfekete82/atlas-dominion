@@ -1,0 +1,517 @@
+{
+  "version": 1,
+  "language": "de-DE",
+  "format": "PCM signed 16-bit, mono, 24000 Hz",
+  "engine": "Qwen3-TTS VoiceDesign + Base / MLX Audio",
+  "modelSnapshot": "34ff5318365b59cba9c03ff729f2eee0814caf72",
+  "profiles": {
+    "soldier": {
+      "name": "Atlas DE A – Infanterie",
+      "seed": 240101,
+      "description": "Ein muttersprachlicher Sprecher aus Deutschland mit akzentfreiem, natürlichem Hochdeutsch. Deutsche Vokale, klare deutsche Konsonanten und deutsche Satzmelodie. Kein englischer oder anderer fremdsprachiger Akzent. Knapp, bestimmt und glaubwürdig wie eine professionelle militärische Funkbestätigung. Kein Schreien, kein übertriebenes Schauspiel, keine künstliche Ansagerstimme. Ein erwachsener Mann Mitte dreißig, mittlere Stimmlage, leicht rauer Charakter, präzise und energisch."
+    },
+    "crew": {
+      "name": "Atlas DE B – Besatzung",
+      "seed": 240202,
+      "description": "Ein muttersprachlicher Sprecher aus Deutschland mit akzentfreiem, natürlichem Hochdeutsch. Deutsche Vokale, klare deutsche Konsonanten und deutsche Satzmelodie. Kein englischer oder anderer fremdsprachiger Akzent. Knapp, bestimmt und glaubwürdig wie eine professionelle militärische Funkbestätigung. Kein Schreien, kein übertriebenes Schauspiel, keine künstliche Ansagerstimme. Ein erwachsener Mann Mitte vierzig, natürlich tiefe kräftige Baritonstimme, ruhig autoritär. Keine übertrieben tiefe Monsterstimme."
+    },
+    "support": {
+      "name": "Atlas DE C – Unterstützung",
+      "seed": 240303,
+      "description": "Ein muttersprachlicher Sprecher aus Deutschland mit akzentfreiem, natürlichem Hochdeutsch. Deutsche Vokale, klare deutsche Konsonanten und deutsche Satzmelodie. Kein englischer oder anderer fremdsprachiger Akzent. Knapp, bestimmt und glaubwürdig wie eine professionelle militärische Funkbestätigung. Kein Schreien, kein übertriebenes Schauspiel, keine künstliche Ansagerstimme. Eine erwachsene Frau Mitte dreißig, ruhige freundliche und professionelle Stimme. Sehr gut verständlich, gelassen und zugewandt."
+    }
+  },
+  "clips": [
+    {
+      "id": "soldier-move-01",
+      "profile": "soldier",
+      "group": "move",
+      "text": "Verstanden!",
+      "file": "soldier-move-01.wav",
+      "duration": 0.785,
+      "speaker": "Atlas DE A – Infanterie",
+      "sha256": "fe10baac1dc68b0b46be4e96aac14d69c713c5505e4edf212c1e2ec5d878b606"
+    },
+    {
+      "id": "soldier-move-02",
+      "profile": "soldier",
+      "group": "move",
+      "text": "Bin unterwegs!",
+      "file": "soldier-move-02.wav",
+      "duration": 1.04,
+      "speaker": "Atlas DE A – Infanterie",
+      "sha256": "187bb6dcf498314f03d4c7cdb2de785569c9a797beda1ca94a66aeb517c776a3"
+    },
+    {
+      "id": "soldier-move-03",
+      "profile": "soldier",
+      "group": "move",
+      "text": "Aye, aye, Sir!",
+      "file": "soldier-move-03.wav",
+      "duration": 1.15,
+      "speaker": "Atlas DE A – Infanterie",
+      "sha256": "a436f8fb74f42edf71bb5b40eee369b6936bd8052c48c2e4e2e85103978a792a"
+    },
+    {
+      "id": "soldier-move-04",
+      "profile": "soldier",
+      "group": "move",
+      "text": "Wird ausgeführt!",
+      "file": "soldier-move-04.wav",
+      "duration": 2.135,
+      "speaker": "Atlas DE A – Infanterie",
+      "sha256": "8987ac136d81581b8a1250b8e12436bd4c7b08fb4fa6ca2b300c7af0361df980"
+    },
+    {
+      "id": "soldier-move-05",
+      "profile": "soldier",
+      "group": "move",
+      "text": "Auf dem Weg!",
+      "file": "soldier-move-05.wav",
+      "duration": 1.72,
+      "speaker": "Atlas DE A – Infanterie",
+      "sha256": "c88feef7383f88305802875f497f18a0c820ceaedb55db3f0ab7127b392b0782"
+    },
+    {
+      "id": "soldier-move-06",
+      "profile": "soldier",
+      "group": "move",
+      "text": "Jawohl!",
+      "file": "soldier-move-06.wav",
+      "duration": 0.605,
+      "speaker": "Atlas DE A – Infanterie",
+      "sha256": "ef5b2dacca82327de8e56e6962700d9abf822ff3ebd252d534aeb20396e8946c"
+    },
+    {
+      "id": "soldier-move-07",
+      "profile": "soldier",
+      "group": "move",
+      "text": "Position wird angefahren!",
+      "file": "soldier-move-07.wav",
+      "duration": 1.79,
+      "speaker": "Atlas DE A – Infanterie",
+      "sha256": "44ff4188edfb1500a2a2ea7055ace5c9091ecc1c7ea90050a58e09599c75b976"
+    },
+    {
+      "id": "soldier-move-08",
+      "profile": "soldier",
+      "group": "move",
+      "text": "Bestätigt!",
+      "file": "soldier-move-08.wav",
+      "duration": 0.815,
+      "speaker": "Atlas DE A – Infanterie",
+      "sha256": "ddb1d4dbd22b853862c5a4f3f6018f20fd2c149abb2850c37f37384d7f0c1e75"
+    },
+    {
+      "id": "soldier-attack-01",
+      "profile": "soldier",
+      "group": "attack",
+      "text": "Ziel erfasst!",
+      "file": "soldier-attack-01.wav",
+      "duration": 1.06,
+      "speaker": "Atlas DE A – Infanterie",
+      "sha256": "3539155bf8e25d0087a68eff436ee19fd9f03ad0c7456fe9bd9c4b9aa3dcfcf8"
+    },
+    {
+      "id": "soldier-attack-02",
+      "profile": "soldier",
+      "group": "attack",
+      "text": "Angriff bestätigt!",
+      "file": "soldier-attack-02.wav",
+      "duration": 1.54,
+      "speaker": "Atlas DE A – Infanterie",
+      "sha256": "d8a73c4f5ad00ca15bd423f83b1b55f30c0afa1e68dd48920625ac3046ad6958"
+    },
+    {
+      "id": "soldier-attack-03",
+      "profile": "soldier",
+      "group": "attack",
+      "text": "Wir rücken vor!",
+      "file": "soldier-attack-03.wav",
+      "duration": 0.99,
+      "speaker": "Atlas DE A – Infanterie",
+      "sha256": "9acb26d5b324eff7e37c858f7df0bc8275860d4c5f0d038055d89e996ce6baa4"
+    },
+    {
+      "id": "soldier-attack-04",
+      "profile": "soldier",
+      "group": "attack",
+      "text": "Feuer frei!",
+      "file": "soldier-attack-04.wav",
+      "duration": 1.03,
+      "speaker": "Atlas DE A – Infanterie",
+      "sha256": "c294468aa506c3959657f501297a679b71f96fa3501b0d3f0dd4b98ca83b38da"
+    },
+    {
+      "id": "soldier-attack-05",
+      "profile": "soldier",
+      "group": "attack",
+      "text": "Feind wird bekämpft!",
+      "file": "soldier-attack-05.wav",
+      "duration": 1.42,
+      "speaker": "Atlas DE A – Infanterie",
+      "sha256": "10c18cc302437fd4ddd7f6b7e69cf18ec8a468258e28d31b3cc071987b22cd89"
+    },
+    {
+      "id": "soldier-attack-06",
+      "profile": "soldier",
+      "group": "attack",
+      "text": "Jawohl, Kommandant!",
+      "file": "soldier-attack-06.wav",
+      "duration": 1.35,
+      "speaker": "Atlas DE A – Infanterie",
+      "sha256": "18c50a2791ae823c96c885ce5e3372ea7c31520b4f9dd8ef262e94a925de1eb2"
+    },
+    {
+      "id": "crew-attack-01",
+      "profile": "crew",
+      "group": "attack",
+      "text": "Ziel erfasst!",
+      "file": "crew-attack-01.wav",
+      "duration": 0.915,
+      "speaker": "Atlas DE B – Besatzung",
+      "sha256": "a7b7de5e0f798f38bdef28200dd774e4ed74c0f330e4d952145ee64aa7b286da"
+    },
+    {
+      "id": "crew-attack-02",
+      "profile": "crew",
+      "group": "attack",
+      "text": "Angriff bestätigt!",
+      "file": "crew-attack-02.wav",
+      "duration": 1.245,
+      "speaker": "Atlas DE B – Besatzung",
+      "sha256": "7c827184378317368c105412f3e4072bd1af84fed0e09fd8158d2bfc0ef1db49"
+    },
+    {
+      "id": "crew-attack-03",
+      "profile": "crew",
+      "group": "attack",
+      "text": "Wir rücken vor!",
+      "file": "crew-attack-03.wav",
+      "duration": 0.92,
+      "speaker": "Atlas DE B – Besatzung",
+      "sha256": "c99d0ed3c783917584aef239a59f01911cda724ea03d8d61fb141cdb68dc383e"
+    },
+    {
+      "id": "crew-attack-04",
+      "profile": "crew",
+      "group": "attack",
+      "text": "Feuer frei!",
+      "file": "crew-attack-04.wav",
+      "duration": 0.755,
+      "speaker": "Atlas DE B – Besatzung",
+      "sha256": "ac91807be099cf7a3be67af6928e6361ab204c40bbb35b008ec973177c001d12"
+    },
+    {
+      "id": "crew-attack-05",
+      "profile": "crew",
+      "group": "attack",
+      "text": "Feind wird bekämpft!",
+      "file": "crew-attack-05.wav",
+      "duration": 1.12,
+      "speaker": "Atlas DE B – Besatzung",
+      "sha256": "2a22d20e09750ffb5f06e2978c07525cfdf63b9fd1a4d2913c4dd953dcf133f6"
+    },
+    {
+      "id": "crew-attack-06",
+      "profile": "crew",
+      "group": "attack",
+      "text": "Jawohl, Kommandant!",
+      "file": "crew-attack-06.wav",
+      "duration": 1.52,
+      "speaker": "Atlas DE B – Besatzung",
+      "sha256": "71abdb3479af9fc946fcdf4272e3cf8904fdcfbef03bc8466af415b1ca8667dc"
+    },
+    {
+      "id": "support-medic-01",
+      "profile": "support",
+      "group": "medic",
+      "text": "Sanitäter unterwegs!",
+      "file": "support-medic-01.wav",
+      "duration": 1.43,
+      "speaker": "Atlas DE C – Unterstützung",
+      "sha256": "3e721f976794e2bed295a46ee4043fdc166f7c9e0b97af852e98e47507ca0353"
+    },
+    {
+      "id": "support-medic-02",
+      "profile": "support",
+      "group": "medic",
+      "text": "Ich kümmere mich darum!",
+      "file": "support-medic-02.wav",
+      "duration": 1.35,
+      "speaker": "Atlas DE C – Unterstützung",
+      "sha256": "178a0527a53d9750f391009f4053c6efe4866e61b814e4ef49d3377c4fff01d2"
+    },
+    {
+      "id": "support-medic-03",
+      "profile": "support",
+      "group": "medic",
+      "text": "Medizinische Unterstützung!",
+      "file": "support-medic-03.wav",
+      "duration": 1.685,
+      "speaker": "Atlas DE C – Unterstützung",
+      "sha256": "961fafebaf41b398666274382c8dd8e2d3093e7ceaddc71c263e2ebe1fd60f34"
+    },
+    {
+      "id": "support-medic-04",
+      "profile": "support",
+      "group": "medic",
+      "text": "Bin zur Stelle!",
+      "file": "support-medic-04.wav",
+      "duration": 0.94,
+      "speaker": "Atlas DE C – Unterstützung",
+      "sha256": "428f31ff34b8636803075773ef6173d1e7adfb6278db77b817395a9fc8a3c58d"
+    },
+    {
+      "id": "support-engineer-01",
+      "profile": "support",
+      "group": "engineer",
+      "text": "Auftrag erhalten!",
+      "file": "support-engineer-01.wav",
+      "duration": 1.29,
+      "speaker": "Atlas DE C – Unterstützung",
+      "sha256": "b4bb5a9e7a93c38fbde3702bbbfbf5562717ec8e2d00ade5ae3506cf0701f901"
+    },
+    {
+      "id": "support-engineer-02",
+      "profile": "support",
+      "group": "engineer",
+      "text": "Wird erledigt!",
+      "file": "support-engineer-02.wav",
+      "duration": 1.48,
+      "speaker": "Atlas DE C – Unterstützung",
+      "sha256": "ffe695019937dfab5e5d9ad70c8923e5dfbc0911e5117aeed7695811e27350be"
+    },
+    {
+      "id": "support-repair-01",
+      "profile": "support",
+      "group": "repair",
+      "text": "Reparatur wird durchgeführt!",
+      "file": "support-repair-01.wav",
+      "duration": 2.12,
+      "speaker": "Atlas DE C – Unterstützung",
+      "sha256": "27e7dfea8e453ea084c893317c9daad8439820863d1cf796791e4ee7272f510d"
+    },
+    {
+      "id": "support-build-01",
+      "profile": "support",
+      "group": "build",
+      "text": "Baustelle wird angefahren!",
+      "file": "support-build-01.wav",
+      "duration": 1.96,
+      "speaker": "Atlas DE C – Unterstützung",
+      "sha256": "368df7e1f4821d5c151302ae4ac2fcbab5439a14ae4232652491957899f47a38"
+    },
+    {
+      "id": "crew-move-01",
+      "profile": "crew",
+      "group": "move",
+      "text": "Besatzung bereit!",
+      "file": "crew-move-01.wav",
+      "duration": 0.985,
+      "speaker": "Atlas DE B – Besatzung",
+      "sha256": "b7728b30b4286a59970762656691c02ce32885cec69b89ddcdf97657e0f4ad9a"
+    },
+    {
+      "id": "crew-move-02",
+      "profile": "crew",
+      "group": "move",
+      "text": "Rücken vor!",
+      "file": "crew-move-02.wav",
+      "duration": 0.8,
+      "speaker": "Atlas DE B – Besatzung",
+      "sha256": "2d0efeb70378292379a79fbb4ea2cafefd30864894d6f66830c43d569dff272a"
+    },
+    {
+      "id": "crew-move-03",
+      "profile": "crew",
+      "group": "move",
+      "text": "Zielkoordinaten bestätigt!",
+      "file": "crew-move-03.wav",
+      "duration": 1.6,
+      "speaker": "Atlas DE B – Besatzung",
+      "sha256": "d1115c87566fd81ab85be4f6ddc1ca1225e7e470812e2ce4d896a8f6bc0fec51"
+    },
+    {
+      "id": "crew-move-04",
+      "profile": "crew",
+      "group": "move",
+      "text": "Verstanden, Kommandant!",
+      "file": "crew-move-04.wav",
+      "duration": 1.565,
+      "speaker": "Atlas DE B – Besatzung",
+      "sha256": "d1fa5c5574fe03911bbee9111723acfc0a6225c5e5dff302ddd68baee93ef619"
+    },
+    {
+      "id": "soldier-air-01",
+      "profile": "soldier",
+      "group": "air",
+      "text": "Roger!",
+      "file": "soldier-air-01.wav",
+      "duration": 0.65,
+      "speaker": "Atlas DE A – Infanterie",
+      "sha256": "30bafb029479ff4e724f8228b2c65656b5e20a37b35a83d2db72bd994dba43c5"
+    },
+    {
+      "id": "soldier-air-02",
+      "profile": "soldier",
+      "group": "air",
+      "text": "Kurs bestätigt!",
+      "file": "soldier-air-02.wav",
+      "duration": 1.23,
+      "speaker": "Atlas DE A – Infanterie",
+      "sha256": "df6087cc952117e44979b24855f5f385eb88274ac76edbafbea44acc2ba5f8a2"
+    },
+    {
+      "id": "soldier-air-03",
+      "profile": "soldier",
+      "group": "air",
+      "text": "Wir heben ab!",
+      "file": "soldier-air-03.wav",
+      "duration": 0.825,
+      "speaker": "Atlas DE A – Infanterie",
+      "sha256": "314b220bd73e5be665e0f5e3b6d8ebbd3ccab1dafd1f7b970b3ee8050a446ef3"
+    },
+    {
+      "id": "soldier-air-04",
+      "profile": "soldier",
+      "group": "air",
+      "text": "Flugroute bestätigt!",
+      "file": "soldier-air-04.wav",
+      "duration": 1.54,
+      "speaker": "Atlas DE A – Infanterie",
+      "sha256": "5f0168204dbeba2fe92f33ef63273a3eda3fc9e315668a823a133703c26160cc"
+    },
+    {
+      "id": "soldier-load-01",
+      "profile": "soldier",
+      "group": "load",
+      "text": "Landezone bestätigt!",
+      "file": "soldier-load-01.wav",
+      "duration": 1.68,
+      "speaker": "Atlas DE A – Infanterie",
+      "sha256": "bc555665f3b06b7c0ade87d16fdfffa5d852c9b00e7895a064cc618a4d927c78"
+    },
+    {
+      "id": "soldier-load-02",
+      "profile": "soldier",
+      "group": "load",
+      "text": "Bereit zur Aufnahme!",
+      "file": "soldier-load-02.wav",
+      "duration": 1.35,
+      "speaker": "Atlas DE A – Infanterie",
+      "sha256": "66a7fa02f6f6daeb0d86a18093ed421798039feb6efb409cbd01e104a9ef5613"
+    },
+    {
+      "id": "soldier-unload-01",
+      "profile": "soldier",
+      "group": "unload",
+      "text": "Truppen werden abgesetzt!",
+      "file": "soldier-unload-01.wav",
+      "duration": 1.55,
+      "speaker": "Atlas DE A – Infanterie",
+      "sha256": "10b1e030f214265c3364302f9456554fa9a0e77af39f0c74e8d73c5a3c2c5d3e"
+    },
+    {
+      "id": "support-move-01",
+      "profile": "support",
+      "group": "move",
+      "text": "Verstanden!",
+      "file": "support-move-01.wav",
+      "duration": 1.16,
+      "speaker": "Atlas DE C – Unterstützung",
+      "sha256": "552da3eda2b87fc7e5de7199f8ea3eef7d1007131bc43e02394b1304de510443"
+    },
+    {
+      "id": "support-move-02",
+      "profile": "support",
+      "group": "move",
+      "text": "Wird ausgeführt!",
+      "file": "support-move-02.wav",
+      "duration": 1.085,
+      "speaker": "Atlas DE C – Unterstützung",
+      "sha256": "0bf552d34d2e1049d1e8b0bc3dc461b72319dd3f8aff54d97baaa5b2b68a09c2"
+    },
+    {
+      "id": "soldier-stop-01",
+      "profile": "soldier",
+      "group": "stop",
+      "text": "Position halten!",
+      "file": "soldier-stop-01.wav",
+      "duration": 1.185,
+      "speaker": "Atlas DE A – Infanterie",
+      "sha256": "bdbb14590fe68263b505cd9146d601741df264bfeb881668ddaf93f8aed7f7f6"
+    },
+    {
+      "id": "soldier-stop-02",
+      "profile": "soldier",
+      "group": "stop",
+      "text": "Bestätigt!",
+      "file": "soldier-stop-02.wav",
+      "duration": 1.045,
+      "speaker": "Atlas DE A – Infanterie",
+      "sha256": "739e2087dce3d755f03b1db13b44831fa6246046f7118493c7c4f0648b07e7d8"
+    },
+    {
+      "id": "crew-stop-01",
+      "profile": "crew",
+      "group": "stop",
+      "text": "Position halten!",
+      "file": "crew-stop-01.wav",
+      "duration": 1.14,
+      "speaker": "Atlas DE B – Besatzung",
+      "sha256": "efc0597a5d16ed1391faa67f90734a8fbf8e9aaba26092354e8abcf29ee765ef"
+    },
+    {
+      "id": "crew-stop-02",
+      "profile": "crew",
+      "group": "stop",
+      "text": "Bestätigt!",
+      "file": "crew-stop-02.wav",
+      "duration": 0.85,
+      "speaker": "Atlas DE B – Besatzung",
+      "sha256": "22fdb0539ed74b9fc5425f6522c58155c88c1f906876ce82f9c3a8ace6072f65"
+    },
+    {
+      "id": "support-stop-01",
+      "profile": "support",
+      "group": "stop",
+      "text": "Position halten!",
+      "file": "support-stop-01.wav",
+      "duration": 1.3,
+      "speaker": "Atlas DE C – Unterstützung",
+      "sha256": "8a8bd7dcc848009b4adedbb0f29cae7097e45dfc208f28ba353ef815cbd8b5ed"
+    },
+    {
+      "id": "support-stop-02",
+      "profile": "support",
+      "group": "stop",
+      "text": "Bestätigt!",
+      "file": "support-stop-02.wav",
+      "duration": 1.135,
+      "speaker": "Atlas DE C – Unterstützung",
+      "sha256": "baf92564a445208ad9a71d82a7cc9b997c6a31fd129ccdcf6f4f65b331f284c1"
+    }
+  ],
+  "reviewStatus": "approved",
+  "designModel": {
+    "repo": "mlx-community/Qwen3-TTS-12Hz-1.7B-VoiceDesign-6bit",
+    "revision": "ffc6545dc9cb086950aa46c6cd3db490e6ece3e1"
+  },
+  "baseModel": {
+    "repo": "mlx-community/Qwen3-TTS-12Hz-1.7B-Base-6bit",
+    "revision": "34ff5318365b59cba9c03ff729f2eee0814caf72"
+  },
+  "listeningReview": {
+    "date": "2026-10-24",
+    "by": "project-owner",
+    "method": "human-listening-review",
+    "decision": "A, B und C überzeugen",
+    "profiles": [
+      "soldier",
+      "crew",
+      "support"
+    ],
+    "scope": "voice-identities-based-on-comparison-phrases"
+  }
+}

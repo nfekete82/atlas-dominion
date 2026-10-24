@@ -1,0 +1,19 @@
+{
+  "python": "3.13.13",
+  "packages": {
+    "mlx-audio": "0.5.1",
+    "mlx": "0.32.2",
+    "numpy": "2.5.2",
+    "soundfile": "0.13.1",
+    "transformers": "5.16.1"
+  },
+  "ffmpeg": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+  "generatorSha256": "fc0a6834988de674ab369f089ac002bdec7e6f0be14c3dc1471ee4dfbe0c2599",
+  "syntheticReferences": {
+    "support.wav": "c8d63c1e4fc46c4729cbee508f936c3cca5e28b2de77a97c2ee6c7f83dc5ed8c",
+    "crew.wav": "5ce94fa785609122292159e2fc49436bf0ca2d2f0efa9cab47c1b4a5787656d6",
+    "soldier.wav": "df6040410f84c5a4e5acd0ce60b28f64e1a747d945739fb5f49eb8f0d3e6722b"
+  },
+  "generatorMetadataOnlyUpdateSha256": "eea7f6e8c0b0cc95410b7ec8adcf897e22a76b51140c9e2c67e2d10db7c685ca",
+  "generatorMetadataOnlyUpdateNote": "After original generation: fresh manifests discard inherited listening approval and record actual design/base revisions; audio synthesis unchanged."
+}

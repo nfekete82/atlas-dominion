@@ -1,3 +1,4 @@
+import {addProducer} from './fixtures/reborn-production.mjs';
 import {test} from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
 import {SpriteAnimator,directionIndex,turnTowards} from '../dist/src/reborn/sprite-animator.js';
 import {Particles} from '../dist/src/reborn/particles.js';import {Simulation} from '../dist/src/reborn/simulation.js';
@@ -5,13 +6,13 @@ import {unitAtlasPath} from '../dist/src/reborn/asset-paths.js';
 const read=(kind,team=0)=>JSON.parse(fs.readFileSync(new URL('..'+unitAtlasPath(kind,team)+'.json',import.meta.url)));
 const intent=(extra={})=>({moving:false,distance:0,angle:0,attack:false,hit:false,dead:false,...extra});
 test('animation: every unit atlas has distinct blue and red faction pixels',()=>{
- for(const kind of ['infantry','engineer','heavy','rover','tank','artillery','scout','gunship','bomber']){
+ for(const kind of ['infantry','medic','engineer','heavy','rover','tank','artillery','scout','gunship','bomber']){
   const png=team=>fs.readFileSync(new URL('..'+unitAtlasPath(kind,team)+'.png',import.meta.url));
   assert.equal(png(0).equals(png(1)),false,kind+' reused the first faction shader');
  }
 });
 test('animation: each soldier has real licensed clips, eight views and eight distinct locomotion phases',()=>{
- for(const kind of ['infantry','engineer','heavy'])for(const team of [0,1]){const a=read(kind,team);assert.equal(a.directions,8);assert.equal(a.design.version,2);assert.ok(Number.isInteger(a.design.parts)&&a.design.parts>0);assert.ok(a.design.maxGripError<.002);for(const tag of ['idle','walk','attack','hit','death']){const clip=a.clips[tag];assert.ok(clip.sourceClip);assert.equal(clip.frames.length,8);assert.ok(clip.uniquePhases.every(n=>n>1),kind+' '+tag);for(const row of clip.frames)for(const index of row){const frame=a.frames[index];assert.deepEqual(frame.pivot,[96,156]);assert.ok(frame.x+frame.w<=3072);assert.ok(frame.muzzle.every(Number.isFinite));}}assert.ok(a.clips.walk.frames.every(row=>row.length===8));}
+ for(const kind of ['infantry','medic','engineer','heavy'])for(const team of [0,1]){const a=read(kind,team);assert.equal(a.directions,8);assert.equal(a.design.version,2);assert.ok(Number.isInteger(a.design.parts)&&a.design.parts>0);assert.ok(a.design.maxGripError<.002);for(const tag of ['idle','walk','attack','hit','death']){const clip=a.clips[tag];assert.ok(clip.sourceClip);assert.equal(clip.frames.length,8);assert.ok(clip.uniquePhases.every(n=>n>1),kind+' '+tag);for(const row of clip.frames)for(const index of row){const frame=a.frames[index];assert.deepEqual(frame.pivot,[96,156]);assert.ok(frame.x+frame.w<=3072);assert.ok(frame.muzzle.every(Number.isFinite));}}assert.ok(a.clips.walk.frames.every(row=>row.length===8));}
 });
 test('animation: walk uses distance and state clocks give identical results at 20 and 60 FPS',()=>{
  const data=read('infantry'),a=new SpriteAnimator(data),b=new SpriteAnimator(data);a.update(0,intent());b.update(0,intent());
@@ -52,7 +53,8 @@ test('animation: vehicle acceleration, braking and hull turn rate are bounded an
 
 test('animation: slow-start vehicles still pass the narrow headquarters exit without cutting a blocked corner',()=>{
  const g=new Simulation();g.aiClock=-1e8;g.credits[0]=5000;
- for(const kind of ['rover','tank','artillery','scout','gunship','bomber'])assert.equal(g.recruit(g.bases[0].id,kind),true);
+ const factory=addProducer(g,'factory'),airfield=addProducer(g,'airfield');
+ for(const kind of ['rover','tank','artillery','scout','gunship','bomber'])assert.equal(g.recruit(['rover','tank','artillery'].includes(kind)?factory.id:airfield.id,kind),true);
  for(let i=0;i<2000;i++)g.step();const army=g.units.filter(u=>['rover','tank','artillery'].includes(u.kind)),before=army.map(u=>({...u}));
  g.command(army.map(u=>u.id),{...g.territories[20].point,kind:'move'});for(let i=0;i<280;i++)g.step();
  army.forEach((u,i)=>{assert.ok(Math.hypot(u.x-before[i].x,u.y-before[i].y)>100,u.kind+' stalled at exit');assert.ok(g.world.walkable(u,g.obstacles(),u.kind==='tank'?12:u.kind==='artillery'?10:6));});

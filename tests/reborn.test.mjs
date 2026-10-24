@@ -8,7 +8,7 @@ const advance=(g,seconds)=>{for(let i=0;i<Math.round(seconds/RULES.tick);i++)g.s
 const peaceful=()=>{const g=new Simulation();g.aiClock=-1e8;return g;};
 
 test('reborn: exact start, deterministic map, real fog and configurable economy',()=>{
- const g=new Simulation();assert.equal(g.credits[0],500);assert.equal(g.count(0),1);
+ const g=new Simulation();assert.equal(g.credits[0],500);assert.equal(g.count(0),2);
  assert.equal(g.territories.length,30);assert.equal(g.territories.filter(t=>t.owner===0).length,3);
  assert.equal(g.bases.length,2);assert.equal(g.income(0),35);
  // Nearby cliffs are identified as complete landforms; most of the map stays unknown.
@@ -53,11 +53,11 @@ test('reborn: economy never duplicates across pause, save/load or territory loss
 });
 
 test('reborn: production charges once, maintains queue and spawns clear of obstacles with rally orders',()=>{
- const g=peaceful(),b=g.bases[0];b.rally={...g.territories[20].point};
- assert.equal(g.recruit(b.id),true);assert.equal(g.recruit(b.id),true);assert.equal(g.credits[0],300);
- advance(g,4.9);assert.equal(g.count(0),1);advance(g,.1);assert.equal(g.count(0),2);assert.equal(b.queue.length,1);
- const u=g.units.find(u=>u.owner===0&&u.id!==1);assert.ok(g.world.walkable(u,g.obstacles()));assert.equal(u.orders[0].kind,'attackMove');
- g.cancel(b.id);assert.equal(b.queue.length,0);assert.equal(g.credits[0],400);g.cancel(b.id);assert.equal(g.credits[0],400);
+ const g=peaceful(),b=g.bases[0],initialIds=new Set(g.units.map(u=>u.id));b.rally={...g.territories[20].point};
+ assert.equal(g.recruit(b.id),true);assert.equal(g.recruit(b.id),true);assert.equal(g.credits[0],100);
+ advance(g,6.9);assert.equal(g.count(0),2);advance(g,.1);assert.equal(g.count(0),3);assert.equal(b.queue.length,1);
+ const u=g.units.find(u=>u.owner===0&&!initialIds.has(u.id));assert.ok(g.world.walkable(u,g.obstacles()));assert.equal(u.orders[0].kind,'attackMove');
+ g.cancel(b.id);assert.equal(b.queue.length,0);assert.equal(g.credits[0],300);g.cancel(b.id);assert.equal(g.credits[0],300);
  const snapshot=Simulation.load(g.save());assert.deepEqual(snapshot.bases,g.bases);
 });
 
@@ -185,7 +185,7 @@ test('reborn: both teams proactively fire during ordinary movement before taking
   const g=peaceful();g.units=[];const sentry=g.spawn(owner,{x:1900,y:2100}),target=g.spawn(1-owner,{x:2050,y:2100});
   target.cooldown=100;
   g.command([sentry.id],{x:2350,y:2100,kind:'move'});g.command([sentry.id],{x:2400,y:2250,kind:'move'},true);g.updateVision();
-  g.step();assert.equal(sentry.hp,100);assert.equal(target.hp,83);assert.equal(sentry.lastAttacker,null);assert.equal(sentry.moving,false);assert.equal(sentry.orders.length,2);
+  g.step();assert.equal(sentry.hp,100);assert.equal(target.hp,100-17/3);assert.equal(sentry.lastAttacker,null);assert.equal(sentry.moving,false);assert.equal(sentry.orders.length,2);
   assert.ok(g.shots.some(shot=>shot.owner===owner));
   g.units=g.units.filter(u=>u.id!==target.id);advance(g,1);assert.ok(sentry.x>1930);assert.equal(sentry.orders.length,2);
  }
@@ -195,56 +195,101 @@ const buildSite=(g,kind)=>{
  for(let y=2100;y<3450;y+=28)for(let x=220;x<1750;x+=28)if(!g.buildError(0,kind,{x,y}))return {x,y};
  throw Error('No construction site for '+kind);
 };
+const buildWithWorker=(g,owner,kind,site)=>{
+ if(!g.buildError(owner,kind,site)){
+  let worker=g.units.find(u=>u.owner===owner&&u.kind==='engineer');
+  const point=g.world.nearest({x:site.x+({barracks:53,factory:70,airfield:74,generator:38,turret:30}[kind])+32,y:site.y},g.obstacles());
+  if(worker)Object.assign(worker,point);else worker=g.spawn(owner,point,'engineer');
+ }
+ return g.build(owner,kind,site);
+};
 test('reborn: construction respects ownership, terrain, occupied footprints, credits, pause and completion',()=>{
  const g=peaceful(),site=buildSite(g,'barracks'),before=g.credits[0];
  assert.ok(g.buildError(0,'barracks',{x:2200,y:900}));assert.ok(g.buildError(0,'barracks',g.bases[0]));
- const b=g.build(0,'barracks',site);assert.ok(b);assert.equal(g.credits[0],before-200);assert.equal(b.buildRemaining,12);assert.equal(g.recruit(b.id,'heavy'),false);
- assert.equal(g.build(0,'barracks',site),null);assert.equal(g.credits[0],before-200);g.paused=true;advance(g,10);assert.equal(b.buildRemaining,12);g.paused=false;
- advance(g,13);assert.equal(b.buildRemaining,0);assert.ok(b.hp>799);assert.equal(g.recruit(b.id,'heavy'),true);assert.equal(g.credits[0],85);advance(g,9);assert.ok(g.units.some(u=>u.kind==='heavy'&&u.hp===190));
+ const b=buildWithWorker(g,0,'barracks',site);assert.ok(b);assert.equal(g.credits[0],before-200);assert.equal(b.buildRemaining,12);assert.equal(g.recruit(b.id,'heavy'),false);
+ assert.equal(buildWithWorker(g,0,'barracks',site),null);assert.equal(g.credits[0],before-200);g.paused=true;advance(g,10);assert.equal(b.buildRemaining,12);g.paused=false;
+ advance(g,13);assert.equal(b.buildRemaining,0);assert.ok(b.hp>799);assert.equal(g.recruit(b.id,'heavy'),true);assert.equal(g.credits[0],85);advance(g,9);assert.ok(g.units.some(u=>u.kind==='heavy'&&u.hp===UNITS.heavy.hp));
 });
 test('reborn: typed production enforces the producer, refunds each type and preserves later queue timing',()=>{
- const g=peaceful();g.credits[0]=3000;const factory=g.build(0,'factory',buildSite(g,'factory'));advance(g,19);
+ const g=peaceful();g.credits[0]=3000;const factory=buildWithWorker(g,0,'factory',buildSite(g,'factory'));advance(g,19);
  assert.equal(g.recruit(factory.id,'gunship'),false);assert.equal(g.recruit(factory.id,'tank'),true);assert.equal(g.recruit(factory.id,'rover'),true);
  advance(g,2);const progress=factory.production,credits=g.credits[0];g.cancel(factory.id,1);assert.equal(g.credits[0],credits+300);assert.equal(factory.production,progress);
  assert.equal(g.recruit(factory.id,'artillery'),true);g.cancel(factory.id,0);assert.equal(factory.production,0);assert.deepEqual(factory.queueTypes,['artillery']);advance(g,19);
  const artillery=g.units.find(u=>u.kind==='artillery');assert.ok(artillery);assert.equal(artillery.hp,340);assert.ok(g.world.walkable(artillery,g.obstacles(),10));
 });
 test('reborn: old saves migrate types and new saves preserve construction and heterogeneous production',()=>{
- const g=new Simulation();g.recruit(1000);const old=g.save();for(const u of old.units)delete u.kind;for(const b of old.bases)for(const key of ['kind','queueTypes','buildRemaining','cooldown'])delete b[key];
- const migrated=Simulation.load(old);assert.equal(migrated.units[0].kind,'infantry');assert.deepEqual(migrated.bases[0].queueTypes,['infantry']);
- g.credits[0]=3000;const barracks=g.build(0,'barracks',buildSite(g,'barracks'));advance(g,13);g.recruit(barracks.id,'heavy');g.recruit(barracks.id,'engineer');advance(g,3);const airfield=g.build(0,'airfield',buildSite(g,'airfield'));
+ const g=new Simulation();g.recruit(1000);const old=g.save();delete old.productionVersion;old.units=old.units.filter(u=>u.kind==='infantry');old.credits[0]=400;old.bases[0].queue=[5];old.bases[0].queueCosts=[100];for(const u of old.units)delete u.kind;for(const b of old.bases)for(const key of ['kind','queueTypes','buildRemaining','cooldown'])delete b[key];
+ const migrated=Simulation.load(old);assert.equal(migrated.units[0].kind,'infantry');assert.deepEqual(migrated.bases[0].queueTypes,[]);assert.equal(migrated.credits[0],500);
+ g.credits[0]=3000;const barracks=buildWithWorker(g,0,'barracks',buildSite(g,'barracks'));advance(g,13);g.recruit(barracks.id,'heavy');g.recruit(barracks.id,'medic');advance(g,3);const airfield=buildWithWorker(g,0,'airfield',buildSite(g,'airfield'));
  const restored=Simulation.load(g.save());assert.deepEqual(restored.bases,g.bases);advance(g,25);advance(restored,25);
  assert.deepEqual(restored.units.map(u=>({kind:u.kind,hp:u.hp})),g.units.map(u=>({kind:u.kind,hp:u.hp})));assert.deepEqual(restored.credits,g.credits);assert.equal(restored.bases.find(b=>b.id===airfield.id).buildRemaining,0);
 });
 test('reborn: generators earn only after construction; cancelling a site refunds once and frees it',()=>{
- const g=peaceful(),income=g.income(0),site=buildSite(g,'generator'),b=g.build(0,'generator',site);assert.equal(g.income(0),income);advance(g,9.1);assert.equal(g.income(0),income+10);
- const otherSite=buildSite(g,'barracks'),credits=g.credits[0],other=g.build(0,'barracks',otherSite);assert.equal(g.cancelConstruction(other.id),true);assert.equal(g.credits[0],credits-50);assert.equal(g.cancelConstruction(other.id),false);assert.equal(g.buildError(0,'barracks',otherSite),null);
+ const g=peaceful(),income=g.income(0),site=buildSite(g,'generator'),b=buildWithWorker(g,0,'generator',site);assert.equal(g.income(0),income);advance(g,9.1);assert.equal(g.income(0),income+10);
+ const otherSite=buildSite(g,'barracks'),credits=g.credits[0],other=buildWithWorker(g,0,'barracks',otherSite);assert.equal(g.cancelConstruction(other.id),true);assert.equal(g.credits[0],credits-50);assert.equal(g.cancelConstruction(other.id),false);assert.equal(g.buildError(0,'barracks',otherSite),null);
 });
-test('reborn: air units cross rock, scout over it and cannot capture bastions; vehicles retain terrain clearance',()=>{
+test('reborn: air units cross rock and scout over it; vehicles retain terrain clearance',()=>{
  const g=peaceful();g.units=[];const air=g.spawn(0,{x:1900,y:2100},'scout'),destination={x:2100,y:60};assert.equal(g.world.walkable(destination),false);
- g.command([air.id],{...destination,kind:'move'});advance(g,10);assert.ok(distance(air,destination)<20);assert.equal(g.canSee(0,air),true);
- const t=g.territories[20];g.units=[];const plane=g.spawn(0,t.point,'bomber');advance(g,9);assert.equal(t.owner,-1);assert.equal(t.progress,0);
+ g.command([air.id],{...destination,kind:'move'});advance(g,distance(air,destination)/UNITS.scout.speed+2);assert.ok(distance(air,destination)<20);assert.equal(g.canSee(0,air),true);
  g.units=[];const tank=g.spawn(0,{x:1900,y:2100},'tank');g.command([tank.id],{x:2350,y:2250,kind:'move'});for(let i=0;i<100;i++){g.step();assert.ok(g.world.walkable(tank,g.obstacles(),12));}
 });
+
+for(const kind of ['scout','gunship','bomber'])for(const owner of [0,1])test(`reborn: ${kind} captures for faction ${owner} through movement, save/load, sight and income`,()=>{
+ const g=peaceful();g.units=[];
+ const t=g.territories.find(t=>t.owner===-1&&t.neighbors.some(i=>g.territories[i].owner===owner)),income=g.income(owner);
+ const air=g.spawn(owner,{x:t.point.x,y:t.point.y+240},kind);
+ assert.equal(g.command([air.id],{...t.point,kind:'move'}),1);advance(g,3);
+ assert.ok(distance(air,t.point)<RULES.captureRadius);assert.equal(t.owner,-1);assert.equal(t.capturing,owner);assert.ok(t.progress>0&&t.progress<RULES.captureTime);
+ const restored=Simulation.load(g.save());restored.aiClock=-1e8;advance(restored,RULES.captureTime-t.progress-RULES.tick);
+ const captured=restored.territories[t.id];assert.equal(captured.owner,-1);
+ restored.step();assert.equal(captured.owner,owner);assert.equal(captured.progress,0);assert.equal(captured.capturing,-1);
+ assert.equal(restored.income(owner),income+t.income);assert.equal(restored.canSee(owner,t.point),true);
+ const credits=restored.credits[owner];restored.incomeClock=10-RULES.tick;restored.step();assert.equal(restored.credits[owner],credits+income+t.income);
+ if(owner===0)assert.ok(restored.notices.some(n=>n.includes(t.name)));
+});
+
+test('reborn: air and ground units contest each other and air recapture transfers ownership and income',()=>{
+ for(const [blueKind,redKind] of [['scout','infantry'],['infantry','gunship']]){
+  const g=peaceful();g.units=[];const t=g.territories[20],blue=g.spawn(0,{x:t.point.x-20,y:t.point.y},blueKind);blue.cooldown=1e6;
+  advance(g,3);const progress=t.progress;assert.ok(progress>0);
+  const red=g.spawn(1,{x:t.point.x+20,y:t.point.y},redKind);red.cooldown=1e6;
+  advance(g,3);assert.equal(t.progress,progress);assert.equal(t.owner,-1);
+  g.units=[blue];advance(g,5);assert.equal(t.owner,0);
+ }
+ const g=peaceful();g.units=[];const t=g.territories[20];t.owner=0;
+ g.territories[t.neighbors.find(i=>g.territories[i].owner===-1)].owner=1;
+ const incomes=[g.income(0),g.income(1)],red=g.spawn(1,t.point,'bomber');red.cooldown=1e6;
+ advance(g,RULES.captureTime);assert.equal(t.owner,1);assert.equal(g.income(0),incomes[0]-t.income);assert.equal(g.income(1),incomes[1]+t.income);
+});
+
+test('reborn: air capture still requires ground proximity, a connected sector and an undefended headquarters',()=>{
+ const g=peaceful();g.units=[];const adjacent=g.territories[20],disconnected=g.territories[16];
+ const air=g.spawn(0,{x:adjacent.point.x+RULES.captureRadius+10,y:adjacent.point.y},'bomber');air.cooldown=1e6;
+ advance(g,9);assert.equal(adjacent.owner,-1);assert.equal(adjacent.progress,0);
+ Object.assign(air,disconnected.point);advance(g,9);assert.equal(disconnected.owner,-1);assert.equal(disconnected.progress,0);
+ const hq=g.bases[1],target=g.territories[hq.territory];g.territories[4].owner=0;g.territories[11].owner=0;
+ Object.assign(air,target.point);advance(g,9);assert.equal(target.owner,1);assert.equal(target.progress,0);
+ hq.hp=0;advance(g,RULES.captureTime);assert.equal(target.owner,0);assert.equal(hq.owner,0);assert.equal(hq.hp,RULES.headquarters.hp*.5);
+});
 test('reborn: engineers repair nearby buildings and a completed turret independently defends its perimeter',()=>{
- const g=peaceful();g.credits[0]=3000;const tower=g.build(0,'turret',buildSite(g,'turret'));advance(g,11);tower.hp=400;
+ const g=peaceful();g.credits[0]=3000;const tower=buildWithWorker(g,0,'turret',buildSite(g,'turret'));advance(g,11);tower.hp=400;
  const repair=g.spawn(0,g.world.nearest({x:tower.x+55,y:tower.y},g.obstacles()),'engineer');advance(g,2);assert.ok(tower.hp>410);
  const enemyPoint=g.world.nearest({x:tower.x+150,y:tower.y},g.obstacles());g.units=g.units.filter(u=>u.id!==repair.id);const enemy=g.spawn(1,enemyPoint);enemy.cooldown=100;g.updateVision();advance(g,.9);assert.ok(enemy.hp<100);assert.ok(tower.hp>=400);
 });
 
-test('reborn: every roster type trains at the starting headquarters without building prerequisites',()=>{
+test('reborn: every roster type trains through its matching finished producer',()=>{
  for(const kind of unitKinds){
-  const g=peaceful(),hq=g.bases[0],spec=UNITS[kind];g.credits[0]=2000;
+  const g=peaceful(),hq=g.bases[0],spec=UNITS[kind],initialIds=new Set(g.units.map(u=>u.id));g.credits[0]=2000;Object.assign(hq,{kind:spec.producers[0],hp:spec.producers[0]==='headquarters'?1200:spec.producers[0]==='barracks'?800:spec.producers[0]==='factory'?1100:900});
   assert.equal(g.producer(0,kind)?.id,hq.id);assert.equal(g.recruit(hq.id,kind),true);
   assert.equal(g.credits[0],2000-spec.cost);assert.deepEqual(hq.queueTypes,[kind]);
   const restored=Simulation.load(g.save());assert.deepEqual(restored.bases[0].queueTypes,[kind]);
   assert.equal(restored.credits[0],g.credits[0]);advance(restored,spec.buildTime+.1);
-  assert.ok(restored.units.some(u=>u.owner===0&&u.kind===kind&&u.id!==g.units[0].id));assert.equal(restored.bases.length,2);
+  assert.ok(restored.units.some(u=>u.owner===0&&u.kind===kind&&!initialIds.has(u.id)));assert.equal(restored.bases.length,2);
  }
 });
 
 test('reborn: two soldiers capture together after a high tower click instead of stopping north of its radius',()=>{
- const g=Simulation.campaign(2026);g.aiClock=-1e8;g.units=[];const t=g.territories[20];
+ const g=new Simulation(2026,1);g.aiClock=-1e8;g.units=[];const t=g.territories[20];
  for(let i=0;i<2;i++)g.spawn(0,g.world.nearest({x:t.point.x,y:t.point.y+240},g.obstacles(),g.units));
  assert.equal(g.command(g.units.map(u=>u.id),{x:t.point.x,y:t.point.y-100,kind:'move'}),2);
  advance(g,20);assert.equal(t.owner,0);assert.ok(g.units.every(u=>distance(u,t.point)<=RULES.captureRadius));
@@ -260,7 +305,7 @@ test('reborn: incomplete group formations remain centred on their requested dest
 });
 
 test('reborn: friendly groups can capture three adjacent bastions simultaneously without multiplying the capture clock',()=>{
- const g=Simulation.campaign(2026);g.aiClock=-1e8;g.units=[];const targets=[13,20,24].map(i=>g.territories[i]);
+ const g=new Simulation(2026,1);g.aiClock=-1e8;g.units=[];const targets=[13,20,24].map(i=>g.territories[i]);
  for(const t of targets)for(const dx of [-16,16])g.spawn(0,{x:t.point.x+dx,y:t.point.y});
  advance(g,3);for(const t of targets){assert.equal(t.owner,-1);assert.ok(Math.abs(t.progress-3)<1e-8);}
  const restored=Simulation.load(g.save());restored.aiClock=-1e8;advance(restored,5);

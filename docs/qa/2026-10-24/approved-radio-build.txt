@@ -1,0 +1,5 @@
+
+> atlas-dominion@1.8.0 build
+> tsc -p tsconfig.json && node scripts/build.mjs
+
+Built ATLAS DOMINION in dist/

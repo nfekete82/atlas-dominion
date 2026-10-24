@@ -1,0 +1,20 @@
+✔ polish: infantry authoritative rounds, total damage, cadence, pause and reload (63.482416ms)
+✔ polish: heavy authoritative rounds, total damage, cadence, pause and reload (46.285917ms)
+✔ polish: medic authoritative rounds, total damage, cadence, pause and reload (51.766792ms)
+✔ polish: engineer authoritative rounds, total damage, cadence, pause and reload (41.875459ms)
+✔ polish: pending burst survives save without replay, and a new wall interrupts its remaining damage (42.440292ms)
+✔ polish: medic shares twelve HP/s across nearby infantry only, prioritizes urgent others over self, then self heals at three (114.015875ms)
+✔ polish: real repair is deduplicated per recipient; work interruption stops gains and effects expire (187.782208ms)
+✔ polish: bounded recycled particles, short ballistic trail, actual arrival impacts, pause, disable and reduced motion (0.714459ms)
+✔ radio assets: all 47 authored German lines are real, short, non-silent mono PCM files with matching integrity (12.1ms)
+✔ radio catalog: requested movement and attack variants are present; every roster role has an appropriate response (0.264708ms)
+✔ radio policy: one busy global channel suppresses rapid groups; only a higher priority can replace a message (0.112083ms)
+✔ radio policy: random variation never immediately repeats a clip or text, including shared crew/infantry wording (0.166042ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 611.006291

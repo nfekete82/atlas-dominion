@@ -5,50 +5,66 @@ import { seededRandom, type Mesa, type MesaColumn } from './world-generation.js'
 function polygon(c:CanvasRenderingContext2D,points:Point[],color:string):void {
   c.beginPath();points.forEach((p,i)=>i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y));c.closePath();c.fillStyle=color;c.fill();
 }
-function rockColumn(c:CanvasRenderingContext2D,column:MesaColumn):void {
+function facePath(c:CanvasRenderingContext2D,points:Point[]):void{
+  c.beginPath();for(let i=0;i<points.length;i++)i?c.lineTo(points[i].x,points[i].y):c.moveTo(points[i].x,points[i].y);c.closePath();
+}
+function mineralGrain(c:CanvasRenderingContext2D,pattern:CanvasPattern,points:Point[],alpha:number):void{
+  c.save();facePath(c,points);c.clip();c.globalCompositeOperation='multiply';c.globalAlpha=alpha;c.fillStyle=pattern;const xs=points.map(p=>p.x),ys=points.map(p=>p.y),x=Math.min(...xs),y=Math.min(...ys);c.fillRect(x,y,Math.max(...xs)-x,Math.max(...ys)-y);c.restore();
+}
+function rockColumn(c:CanvasRenderingContext2D,column:MesaColumn,grain:CanvasPattern):void {
   const {base,top,height,shade}=column,cx=base.reduce((s,p)=>s+p.x,0)/base.length,cy=base.reduce((s,p)=>s+p.y,0)/base.length;
-  const faces=base.map((a,i)=>({a,b:base[(i+1)%base.length],ta:top[i],tb:top[(i+1)%top.length],i})).filter(f=>(f.a.y+f.b.y)/2>cy-4).sort((a,b)=>(a.a.y+a.b.y)-(b.a.y+b.b.y));
-  for(const {a,b,ta,tb,i} of faces){
-    const nx=(a.x+b.x)/2-cx,light=nx<0?1:.58;
-    const value=light+shade*.12;
-    polygon(c,[a,b,tb,ta],`rgb(${Math.round(140*value)},${Math.round(96*value)},${Math.round(50*value)})`);
-    const u=.25+(i%3)*.17,mid={x:ta.x+(tb.x-ta.x)*u,y:ta.y+(tb.y-ta.y)*u};
-    polygon(c,[mid,{x:mid.x+height*.12,y:mid.y+height*.78},{x:a.x+(b.x-a.x)*(u+.12),y:a.y+(b.y-a.y)*(u+.12)},b,tb],`rgba(38,27,18,${.05+(i%3)*.035})`);
-    // Narrow structural fractures, with a sunlit edge on their left.
-    c.strokeStyle='#432d2070';c.lineWidth=1.2;c.beginPath();c.moveTo(mid.x,mid.y+3);c.lineTo(mid.x+height*.045,mid.y+height*.34);c.lineTo(a.x+(b.x-a.x)*u,a.y+(b.y-a.y)*u-5);c.stroke();
-    c.strokeStyle='#e4b56a55';c.lineWidth=1;c.beginPath();c.moveTo(ta.x+1,ta.y+3);c.lineTo(a.x+1,a.y-2);c.stroke();
+  const random=seededRandom((Math.round(cx*71)^Math.round(cy*113)^Math.round(height*997))>>>0);
+  const faces=base.map((a,i)=>({a,b:base[(i+1)%base.length],ta:top[i],tb:top[(i+1)%top.length]})).filter(f=>(f.a.y+f.b.y)/2>cy-4).sort((a,b)=>(a.a.y+a.b.y)-(b.a.y+b.b.y));
+  for(const {a,b,ta,tb} of faces){
+    const sun=(a.x+b.x)/2<cx,points=[a,b,tb,ta],gradient=c.createLinearGradient(ta.x,Math.min(ta.y,tb.y),a.x,Math.max(a.y,b.y));
+    gradient.addColorStop(0,sun?'#f4e1bf':'#b9a282');gradient.addColorStop(.38,sun?'#e1caa8':'#ad9476');gradient.addColorStop(.82,sun?'#d1b68f':'#a58d6e');gradient.addColorStop(1,sun?'#e5cba1':'#cab18a');
+    facePath(c,points);c.fillStyle=gradient;c.fill();
+    c.save();facePath(c,points);c.clip();
+    for(let n=0;n<2;n++){
+      const u=.1+random()*.8,begin={x:ta.x+(tb.x-ta.x)*u,y:ta.y+(tb.y-ta.y)*u},depth=.35+random()*.6;
+      c.strokeStyle='#58462f45';c.lineWidth=.5+random()*.5;c.beginPath();c.moveTo(begin.x,begin.y+2);c.lineTo(begin.x+(random()-.5)*8,begin.y+height*.25);c.lineTo(begin.x+(a.x-ta.x)*depth+(random()-.5)*8,begin.y+height*depth);c.stroke();
+    }
+    c.restore();
+    const width=Math.hypot(tb.x-ta.x,tb.y-ta.y)||1,depth=Math.hypot(a.x-ta.x,a.y-ta.y)||1;
+    // Project the material along each face; horizontal strata must turn with
+    // the rock instead of continuing like one flat photograph over the outcrop.
+    grain.setTransform(new DOMMatrix([(tb.x-ta.x)/width*.25,(tb.y-ta.y)/width*.25,(a.x-ta.x)/depth*.25,(a.y-ta.y)/depth*.25,ta.x-random()*80,ta.y-random()*80]));
+    mineralGrain(c,grain,points,.96);
+    c.strokeStyle=sun?'#e4c99b65':'#c5ad8650';c.lineWidth=.8;c.beginPath();c.moveTo(ta.x,ta.y+1);c.lineTo(tb.x,tb.y+1);c.stroke();
   }
-  polygon(c,top,'#c69a53');
   const center={x:top.reduce((s,p)=>s+p.x,0)/top.length,y:top.reduce((s,p)=>s+p.y,0)/top.length};
-  const inner=top.map(p=>({x:center.x+(p.x-center.x)*.91,y:center.y+(p.y-center.y)*.88-2}));
-  polygon(c,inner,shade>.5?'#e1b976':'#d9ad67');
-  for(let i=0;i<top.length;i++)if(i%3===0)polygon(c,[top[i],inner[i],inner[(i+1)%top.length],top[(i+1)%top.length]],'#f4d28b');
-  c.strokeStyle='#8b652f4d';c.lineWidth=.8;c.beginPath();c.moveTo(inner[0].x,inner[0].y);c.lineTo(center.x+3,center.y-2);c.lineTo(inner[3].x,inner[3].y);c.stroke();
-}
-function crystals(c:CanvasRenderingContext2D,p:Point):void {
-  for(const [dx,dy,h,w] of [[-13,0,24,8],[0,3,38,11],[12,5,22,7],[-3,11,15,6]]){
-    const x=p.x+dx,y=p.y+dy;
-    polygon(c,[{x:x-w,y},{x,y:y-h},{x:x+w,y:y-h*.76},{x:x+w,y:y-3},{x,y:y+3}],'#4296ae');
-    polygon(c,[{x:x-w,y},{x:x-w,y:y-h*.77},{x,y:y-h},{x,y:y+3}],'#7cc8d7');
-    polygon(c,[{x,y:y-h},{x:x+w,y:y-h*.76},{x,y:y-h*.60},{x:x-w,y:y-h*.77}],'#a7e0e6');
+  const gradient=c.createLinearGradient(center.x-30,center.y-30,center.x+35,center.y+30);gradient.addColorStop(0,'#fae5bf');gradient.addColorStop(.6,shade>.5?'#e5cfaa':'#efdbb9');gradient.addColorStop(1,'#cdb38d');
+  facePath(c,top);c.fillStyle=gradient;c.fill();grain.setTransform(new DOMMatrix([.25,0,.08,.12,center.x-random()*80,center.y-random()*50]));mineralGrain(c,grain,top,.64);
+  // Weathered caprock, with uneven inset terraces rather than a clean polygon bevel.
+  for(const scale of [.95]){
+    const rim=top.map(p=>({x:center.x+(p.x-center.x)*scale,y:center.y+(p.y-center.y)*scale+(random()-.5)*3}));
+    c.strokeStyle='#f0d5a752';c.lineWidth=.8;facePath(c,rim);c.stroke();
+  }
+  for(let n=0;n<2;n++){
+    const a=top[Math.floor(random()*top.length)],bend={x:center.x+(random()-.5)*20,y:center.y+(random()-.5)*12};
+    c.strokeStyle='#75634749';c.lineWidth=.8;c.beginPath();c.moveTo(a.x,a.y);c.lineTo(bend.x,bend.y);c.lineTo(bend.x+10+random()*12,bend.y+random()*10);c.stroke();
   }
 }
-export function paintMesas(c:CanvasRenderingContext2D,mesas:Mesa[],seed:number):void {
-  const random=seededRandom(seed^0x96a1f7);
-  // Terrain and its contact shadows are baked together once per generated map.
+export function paintMesas(c:CanvasRenderingContext2D,mesas:Mesa[],seed:number,stone:HTMLImageElement):void {
+  const random=seededRandom(seed^0x96a1f7),grain=sandPattern(c,stone);grain.setTransform(new DOMMatrix().scale(.28,.24));
+  // Soft contact, dust and scree blend the same impassable footprint into the sand.
   for(const mesa of mesas){
-    const shadow=mesa.outline.map(p=>({x:p.x+29,y:p.y+19}));
-    polygon(c,shadow,'#523e2f36');
+    const left=Math.min(...mesa.outline.map(p=>p.x)),right=Math.max(...mesa.outline.map(p=>p.x)),bottom=Math.max(...mesa.outline.map(p=>p.y));
+    const cx=(left+right)/2,r=(right-left)*.65;
+    c.save();c.translate(cx,bottom-8);c.scale(1,.35);
+    const contact=c.createRadialGradient(0,0,6,0,0,r);contact.addColorStop(0,'#4c41335c');contact.addColorStop(.55,'#7862462e');contact.addColorStop(1,'#a58b6200');c.fillStyle=contact;c.fillRect(-r,-r,r*2,r*2);c.restore();
   }
   for(const mesa of [...mesas].sort((a,b)=>Math.max(...a.outline.map(p=>p.y))-Math.max(...b.outline.map(p=>p.y)))){
-    for(const column of mesa.columns)rockColumn(c,column);
+    for(const column of mesa.columns)rockColumn(c,column,grain);
     const bottom=Math.max(...mesa.outline.map(p=>p.y)),left=Math.min(...mesa.outline.map(p=>p.x)),right=Math.max(...mesa.outline.map(p=>p.x));
-    for(let n=0;n<24;n++){
-      const x=left+random()*(right-left),y=bottom-10+random()*26,r=1.4+random()*4.5;
-      polygon(c,[{x:x-r,y},{x:x-r*.4,y:y-r*.85},{x:x+r*.55,y:y-r*.7},{x:x+r,y:y+1},{x,y:y+r*.3}],'#9b764648');
-      polygon(c,[{x:x-r*.4,y:y-r*.85},{x:x+r*.55,y:y-r*.7},{x:x+r*.4,y:y-r*.15},{x:x-r*.5,y:y-r*.05}],'#ebca8c');
+    for(let n=0;n<44;n++){
+      const x=left+random()*(right-left),y=bottom-9+random()*25,r=.8+random()*3.8;
+      polygon(c,[{x:x-r-1,y:y+1},{x:x+r+2,y:y+1},{x:x+r,y:y+3},{x:x-r,y:y+2}],'#5f50342c');
+      polygon(c,[{x:x-r,y},{x:x-r*.4,y:y-r*.85},{x:x+r*.55,y:y-r*.7},{x:x+r,y:y+1},{x,y:y+r*.3}],'#9c856462');
+      polygon(c,[{x:x-r*.4,y:y-r*.85},{x:x+r*.55,y:y-r*.7},{x:x+r*.4,y:y-r*.15},{x:x-r*.5,y:y-r*.05}],'#d7bb8d');
     }
-    if(mesa.crystals)crystals(c,mesa.crystals);
+    // Crystals remain in versioned map data for save/seed compatibility, but
+    // are no longer painted: these are natural, non-resource sandstone outcrops.
   }
 }
 /** Blend only tile edges with wrapped interior samples. The source stays at fine
@@ -67,7 +83,7 @@ function sandPattern(c:CanvasRenderingContext2D,image:HTMLImageElement):CanvasPa
   tc.putImageData(result,0,0);return c.createPattern(tile,'repeat')!;
 }
 /** Native-resolution relief with granular sand and shallow, traversable dunes. */
-export function paintGeneratedTerrain(canvas:HTMLCanvasElement,world:World,sand:HTMLImageElement):void {
+export function paintGeneratedTerrain(canvas:HTMLCanvasElement,world:World,sand:HTMLImageElement,stone:HTMLImageElement):void {
   canvas.width=canvas.height=world.size;const c=canvas.getContext('2d',{willReadFrequently:true})!,random=seededRandom(world.seed^0x12bda3),pixels=c.createImageData(world.size,world.size);
   const broad=new Float32Array(33*33);for(let i=0;i<broad.length;i++)broad[i]=(random()-.5)*17;
   for(let y=0;y<world.size;y++)for(let x=0;x<world.size;x++){
@@ -79,5 +95,5 @@ export function paintGeneratedTerrain(canvas:HTMLCanvasElement,world:World,sand:
   c.putImageData(pixels,0,0);
   const pattern=sandPattern(c,sand);pattern.setTransform(new DOMMatrix().translate(Math.floor(random()*1024),Math.floor(random()*1024)));
   c.save();c.globalAlpha=.78;c.fillStyle=pattern;c.fillRect(0,0,world.size,world.size);c.restore();
-  paintMesas(c,world.generated!.mesas,world.seed);
+  paintMesas(c,world.generated!.mesas,world.seed,stone);
 }

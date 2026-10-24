@@ -1,5 +1,6 @@
 import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+import {refineTurret} from './turret-finish.js';
 
 export const buildingNames={headquarters:'Feldkommando',bastion:'Bastion',barracks:'Kaserne',factory:'Fahrzeugfabrik',airfield:'Flugfeld',generator:'Energiekern',turret:'Geschützturm'};
 
@@ -24,10 +25,10 @@ export function buildAtlasBuilding(kind,team=0){
  const pedestal=(width,depth)=>{box('GroundPlinth',[width,.12,depth],m.edge,[0,.06,0],model,.05);box('CeramicFoundation',[width-.08,.16,depth-.08],m.sand,[0,.17,0],model,.055);};
  const facade=(width,depth,height)=>{
   pedestal(width+.25,depth+.25);box('ArmouredHull',[width,height,depth],m.edge,[0,.25+height/2,0],model,.10);box('CeramicHull',[width-.08,height-.08,depth+.025],m.sand,[0,.30+height/2,0],model,.10);
-  box('Roof',[width+.08,.14,depth+.10],m.edge,[0,height+.31,0],model,.045);box('RoofCeramic',[width-.08,.12,depth-.08],m.sand,[0,height+.39,0],model,.04);
+  box('Roof',[width+.08,.14,depth+.10],m.edge,[0,height+.31,0],model,.045);box('RoofCeramic',[width-.08,.12,depth-.08],kind==='barracks'?m.sand:m.team,[0,height+.39,0],model,.04);
   for(const x of [-width*.36,width*.36]){box('FactionPillar',[.17,height*.80,.055],m.team,[x,.36+height*.48,depth/2+.045]);bolts(x,.37+height*.48,depth/2+.079,.10,height*.65);}
  };
- let dish=null,beacon=null;
+ let dish=null,beacon=null,turret=null;
  function radar(x,y,z,size=1){
   const shaft=cylinder('RadarGimbal',.075*size,.095*size,.20*size,m.edge,[x,y,z]);
   dish=new T.Group();dish.name='RadarDish';dish.position.set(x,y+.09*size,z);model.add(dish);
@@ -72,10 +73,27 @@ export function buildAtlasBuilding(kind,team=0){
   for(let i=0;i<3;i++){cylinder('RelayCollar',.20,.20,.12,m.sand,[0,.69+i*.50,0]);box('RelayCore',[.13,.31,.06],m.light,[0,.92+i*.49,.145],model,.018);}
   radar(.10,2.10,0,.80);antenna(-.31,.45,-.10,1.83);
  }else if(kind==='barracks'){
-  facade(2.45,1.65,.81);box('BarracksUpper',[1.35,.30,1.34],m.sand,[-.24,1.31,-.04],model,.09);
-  box('EntryFrame',[.65,.70,.14],m.edge,[.58,.64,.87]);box('EntryDoor',[.49,.59,.06],m.dark,[.58,.60,.96]);strip(.58,1.02,.98,.45);
-  for(const x of [-.85,-.35]){box('Window',[.29,.18,.045],m.glass,[x,.85,.85],model,.025);strip(x,.70,.89,.20);}
-  vent(-.73,1.29,.67,.43,.21);antenna(.78,1.18,-.50,.66);
+  facade(2.65,1.95,.98);
+  // An armoured troop airlock, service wing and layered roof identify production at game scale.
+  for(const x of [-1.19,1.19])for(const z of [-.82,.82]){
+   cylinder('ReinforcedCorner',.18,.24,1.05,m.edge,[x,.74,z],model,8);
+   box('CornerCeramic',[.27,.88,.29],m.sand,[x,.76,z]);box('CornerEnamel',[.28,.24,.30],m.team,[x,1.02,z]);
+  }
+  box('AirlockHousing',[1.08,.91,.46],m.edge,[.42,.76,1.02],model,.09);
+  box('AirlockArmour',[.96,.82,.47],m.team,[.42,.78,1.04],model,.07);
+  box('EntryRecess',[.75,.68,.08],m.rubber,[.42,.72,1.30]);
+  for(const x of [.23,.61]){box('AirlockDoor',[.34,.61,.06],m.dark,[x,.73,1.35]);box('DoorCeramic',[.25,.30,.025],m.sand,[x,.81,1.395]);}
+  strip(.42,1.20,1.34,.79);box('EntryCanopy',[1.18,.10,.68],m.edge,[.42,1.30,1.13]);
+  box('EntryRamp',[1.10,.12,.51],m.dark,[.42,.13,1.42]);for(let i=0;i<5;i++)box('RampGrating',[.96,.024,.035],m.edge,[.42,.20,1.24+i*.08]);
+  box('PersonnelLoft',[1.68,.40,1.37],m.edge,[-.30,1.54,-.12],model,.08);
+  for(const x of [-.86,-.30,.26]){box('RoofArmour',[.51,.13,1.40],m.sand,[x,1.80,-.12]);box('RoofFactionPanel',[.40,.025,.66],m.team,[x,1.88,-.10]);}
+  for(const x of [-1.00,-.66]){box('WindowFrame',[.30,.31,.07],m.edge,[x,.86,1.01]);box('WindowGlass',[.23,.21,.035],m.glass,[x,.88,1.06]);strip(x,.66,1.07,.19);}
+  for(const x of [-.83,-.28,.27]){box('LoftWindow',[.38,.19,.035],m.glass,[x,1.54,.59]);bolts(x,1.54,.62,.43,.25);}
+  for(const x of [-1.36,1.36])for(let i=0;i<4;i++){box('SideArmour',[.08,.52,.38],i===1||i===2?m.team:m.sand,[x,.81,-.70+i*.46]);box('PanelFastener',[.09,.035,.045],m.edge,[x,.99,-.70+i*.46]);}
+  for(const z of [-.52,.28]){box('RoofHVAC',[.46,.34,.55],m.edge,[.89,1.50,z]);for(let i=0;i<6;i++)box('CoolingLouvre',[.38,.024,.057],m.dark,[.89,1.69,z-.21+i*.083]);}
+  vent(-.30,1.54,.60,.52,.22);vent(-.78,.63,-1.01,.43,.33);
+  for(const x of [-.9,.2,.9]){box('SupplyCell',[.34,.48,.19],m.dark,[x,.57,-1.06]);box('SupplyArmour',[.28,.30,.06],m.sand,[x,.60,-1.17]);}
+  antenna(.89,1.70,-.65,.67);
  }else if(kind==='factory'){
   facade(3.0,2.15,.96);box('FactoryDoorFrame',[1.60,.94,.15],m.edge,[.19,.73,1.14]);box('FactoryDoor',[1.40,.76,.07],m.dark,[.19,.65,1.25]);
   for(let i=0;i<7;i++)box('ShutterSlat',[1.32,.065,.045],m.sand,[.19,.34+i*.098,1.29],model,.008);strip(.19,1.12,1.32,1.16);
@@ -93,14 +111,42 @@ export function buildAtlasBuilding(kind,team=0){
   for(let i=0;i<6;i++){const a=i*Math.PI/3,g=new T.Group();g.position.set(Math.sin(a)*.36,.95,Math.cos(a)*.36);g.rotation.y=a;model.add(g);box('ReactorArmour',[.24,.85,.12],m.sand,[0,0,0],g);box('CoreWindow',[.095,.54,.035],m.light,[0,0,.075],g,.014);}
   cylinder('CoreCap',.40,.45,.15,m.sand,[0,1.51,0],model,24);ring('CoreRing',.33,.025,m.light,[0,1.60,0]);dome('CoreDome',.29,m.edge,[0,1.61,0]);antenna(.45,.30,-.42,.60);
  }else if(kind==='turret'){
-  pedestal(1.13,1.10);cylinder('TurretSupport',.35,.46,.56,m.sand,[0,.53,0],model,12);cylinder('TurretBearing',.40,.40,.10,m.edge,[0,.86,0]);
-  box('TurretHousing',[.81,.38,.69],m.sand,[0,1.10,0],model,.09);box('TurretStripe',[.10,.035,.51],m.team,[0,1.31,0],model,.007);
-  for(const x of [-.20,.20]){const barrel=cylinder('DefenceBarrel',.05,.065,.84,m.dark,[x,1.09,.60]);barrel.rotation.x=Math.PI/2;const muzzle=cylinder('Muzzle',.075,.075,.10,m.edge,[x,1.09,1.02]);muzzle.rotation.x=Math.PI/2;}
-  strip(0,1.12,.36,.19);antenna(.31,1.26,-.18,.31);
+  // The plinth and rotary bearing stay fixed; every weapon and optic belongs to TurretHead.
+  pedestal(1.32,1.27);cylinder('SupportCore',.36,.47,.48,m.dark,[0,.51,0],model,24);
+  for(let i=0;i<8;i++){const a=i*Math.PI/4,g=new T.Group();g.position.set(Math.sin(a)*.39,.52,Math.cos(a)*.39);g.rotation.y=a;model.add(g);box('PedestalPlate',[.25,.44,.14],m.sand,[0,0,0],g);box('PedestalBolt',[.035,.035,.018],m.edge,[.075,.14,.08],g,.003);}
+  cylinder('BearingBase',.48,.49,.13,m.edge,[0,.82,0],model,48);ring('BearingRace',.44,.026,m.dark,[0,.90,0]);
+  for(let i=0;i<24;i++){const a=i*Math.PI/12;box('BearingTooth',[.045,.06,.065],m.dark,[Math.sin(a)*.445,.91,Math.cos(a)*.445]).rotation.y=a;}
+  turret=new T.Group();turret.name='TurretHead';turret.position.set(0,1.08,0);model.add(turret);
+  box('HeadChassis',[1.03,.36,.86],m.edge,[0,.05,0],turret,.085);
+  box('HeadArmour',[.92,.32,.81],m.sand,[0,.09,0],turret,.075);
+  for(const x of [-.36,.36]){
+   const cheek=box('FactionWeaponArmour',[.24,.31,.66],m.team,[x,.16,.02],turret,.04);cheek.rotation.z=x>0?-.13:.13;
+   box('ArmourWear',[.13,.013,.035],m.edge,[x,.326,.10],turret,.002);
+   bolts(x,.12,.445,.13,.18,turret);vent(x,.06,-.44,.23,.19,turret);
+  }
+  box('CrownPlate',[.38,.075,.72],m.sand,[0,.31,-.015],turret);
+  box('CrownStripe',[.15,.024,.43],m.team,[0,.36,-.03],turret,.006);
+  for(const x of [-.22,.22]){
+   cylinder('GunTrunnion',.13,.13,.19,m.edge,[x,.06,.42],turret,24).rotation.x=Math.PI/2;
+   cylinder('GunSleeve',.08,.09,.37,m.sand,[x,.06,.60],turret,24).rotation.x=Math.PI/2;
+   cylinder('DefenceBarrel',.045,.06,.60,m.dark,[x,.06,.82],turret,24).rotation.x=Math.PI/2;
+   for(let i=0;i<5;i++)cylinder('BarrelCoolingRing',.069,.069,.025,m.edge,[x,.06,.68+i*.065],turret,20).rotation.x=Math.PI/2;
+   box('MuzzleBrake',[.13,.12,.18],m.edge,[x,.06,1.13],turret,.012);
+   box('MuzzleBore',[.075,.065,.012],m.rubber,[x,.06,1.226],turret,.004);
+   for(const side of [-1,1])for(let i=0;i<3;i++)box('MuzzlePort',[.008,.042,.023],m.rubber,[x+side*.068,.06,1.075+i*.048],turret,.001);
+   const muzzle=new T.Object3D();muzzle.name=x<0?'TurretMuzzleL':'TurretMuzzleR';muzzle.position.set(x,.06,1.24);turret.add(muzzle);
+  }
+  box('SensorHousing',[.25,.15,.20],m.dark,[0,.10,.49],turret,.025);strip(0,.12,.60,.13,turret);
+  cylinder('OpticGimbal',.085,.085,.10,m.edge,[-.15,.38,-.17],turret,24);
+  box('TargetOptic',[.19,.13,.19],m.dark,[-.15,.47,-.17],turret,.02);box('OpticGlass',[.13,.06,.015],m.glass,[-.15,.48,-.064],turret,.008);
+  for(let i=0;i<5;i++)box('CrownVent',[.025,.024,.22],m.dark,[.06+i*.045,.36,-.18],turret,.003);
+  cylinder('CommsWhip',.009,.016,.36,m.edge,[.34,.53,-.31],turret,12);box('StatusLamp',[.045,.045,.035],m.light,[.34,.74,-.31],turret,.006);
  }else throw Error('Unknown building '+kind);
+ if(kind==='turret'){const refined=refineTurret(model,m,team);parts+=refined.parts;triangles+=refined.triangles;}
  const clips=[];
+ if(turret){const times=[],values=[];for(let i=0;i<=64;i++){times.push(i/64*2);values.push(...new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),i/64*Math.PI*2).toArray());}clips.push(new T.AnimationClip('TurretTraverse',2,[new T.QuaternionKeyframeTrack('TurretHead.quaternion',times,values)]));}
  if(dish){const times=[],values=[];for(let i=0;i<=64;i++){times.push(i/64*48);values.push(...new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),i/64*Math.PI*2).toArray());}clips.push(new T.AnimationClip('RadarSpin',48,[new T.QuaternionKeyframeTrack('RadarDish.quaternion',times,values)]));}
  if(beacon)clips.push(new T.AnimationClip('BeaconPulse',3.8,[new T.VectorKeyframeTrack('Beacon.scale',[0,.16,.35,.70,3.8],[1,1,1,1.12,1.12,1.12,.45,.45,.45,.45,.45,.45,1,1,1])]));
- model.userData.atlasDesign={name:buildingNames[kind],kind,team,parts,triangles:Math.round(triangles),geometry:'Atlas original ceramic / bronze building geometry',source:'Atlas Dominion / original procedural models'};
- return {model,clips,dish,beacon};
+ model.userData.atlasDesign={revision:kind==='turret'?3:2,name:buildingNames[kind],kind,team,parts,triangles:Math.round(triangles),geometry:kind==='turret'?'Refined ceramic armour, brushed champagne trim, weathered enamel and machined graphite; original registered weapon rig':'Atlas original ceramic / bronze building geometry',source:'Atlas Dominion / original procedural models'};
+ return {model,clips,dish,beacon,turret};
 }

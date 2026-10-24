@@ -12,20 +12,21 @@ const floor=new T.Mesh(new T.PlaneGeometry(30,30),new T.ShadowMaterial({color:'#
 const sample=point=>point.clone().project(camera).multiply(new T.Vector3(cell/2,-cell/2,1)).add(new T.Vector3(cell/2,cell/2,0));
 const visibleBox=model=>{const box=new T.Box3();model.traverse(n=>{if(!n.isMesh)return;for(let p=n;p;p=p.parent)if(!p.visible)return;box.expandByObject(n,true);});return box;};
 window.exportDetailed=async()=>{
- for(const team of [0,1]){
+ const roles=(new URLSearchParams(location.search).get('roles')??'infantry,heavy,medic,engineer').split(',');
+ for(const role of roles)for(const team of [0,1]){
   const data=await new GLTFLoader().loadAsync('/tools/animation-sources/soldier.gltf'),model=data.scene,mixer=new T.AnimationMixer(model);
   mixer.clipAction(data.animations.find(a=>a.name==='Idle')).play();mixer.setTime(0);model.updateMatrixWorld(true);
-  const design=buildDetailedInfantry(model,team);
+  const design=buildDetailedInfantry(model,team,role);
   mixer.stopAllAction();model.updateMatrixWorld(true);
   const authored=bakeDetailedClips(model,mixer,clips.map(([,name])=>data.animations.find(a=>a.name===name))),selected=authored.clips;design.maxGripError=authored.maxGripError;design.gripAudit=authored.gripAudit;design.parts=model.userData.atlasDesign.parts;console.log('Two-hand grip error',authored.maxGripError);
   // Export and frame the same neutral pose, never the last sampled death pose.
   const idle=mixer.clipAction(selected.find(a=>a.name==='Idle'));idle.play();mixer.setTime(0);model.updateMatrixWorld(true);
   const glb=await new GLTFExporter().parseAsync(model,{binary:true,animations:selected,onlyVisible:true,maxTextureSize:512});
-  await window.saveDetailed('infantry-'+team+'.glb',Array.from(new Uint8Array(glb)),null);
+  await window.saveDetailed(role+'-'+team+'.glb',Array.from(new Uint8Array(glb)),null);
   const pivot=new T.Group();pivot.add(model);scene.add(pivot);pivot.updateMatrixWorld(true);const b=visibleBox(model),height=b.getSize(new T.Vector3()).y,scale=2.1/height;model.scale.setScalar(scale);pivot.updateMatrixWorld(true);model.position.y-=visibleBox(model).min.y;pivot.updateMatrixWorld(true);
   camera.position.set(0,8,12);camera.lookAt(0,0,0);camera.updateMatrixWorld();const shift=(156-sample(new T.Vector3()).y)*3.6/cell;camera.position.y+=shift/Math.cos(Math.atan2(8,12));camera.lookAt(0,shift/Math.cos(Math.atan2(8,12)),0);camera.updateMatrixWorld();
   const count=clips.reduce((n,c)=>n+c[2]*8,0),canvas=document.createElement('canvas');canvas.width=columns*cell;canvas.height=Math.ceil(count/columns)*cell;const ctx=canvas.getContext('2d');
-  const meta={version:1,model:'infantry-'+team+'.glb',image:'infantry-'+team+'.png',kind:'infantry',team,cell:[cell,cell],nativeScale:.5,directions:8,stride:64,source:'Atlas original hard-surface armour on Quaternius CC0 rig',design,clips:{},frames:[]};
+  const meta={version:1,model:role+'-'+team+'.glb',image:role+'-'+team+'.png',kind:role,team,cell:[cell,cell],nativeScale:.5,directions:8,stride:64,source:'Atlas original hard-surface armour on Quaternius CC0 rig',design,clips:{},frames:[]};
   for(const [tag,name,phases,loop] of clips){const clip=selected.find(a=>a.name===name),action=mixer.clipAction(clip);meta.clips[tag]={frames:[],duration:clip.duration,loop,sourceClip:name+' / Atlas wrist socket / two-hand IK',uniquePhases:[]};
    for(let direction=0;direction<8;direction++){const row=[],hashes=new Set();for(let phase=0;phase<phases;phase++){
     mixer.stopAllAction();action.reset().setLoop(loop?T.LoopRepeat:T.LoopOnce,loop?Infinity:1);action.clampWhenFinished=true;action.play();mixer.setTime(clip.duration*(loop?phase/phases:phase/(phases-1)));
@@ -34,7 +35,7 @@ window.exportDetailed=async()=>{
     const pixels=ctx.getImageData(x,y,cell,cell).data;let hash=2166136261;for(const v of pixels)hash=Math.imul(hash^v,16777619)>>>0;hashes.add(hash);
    }meta.clips[tag].frames.push(row);meta.clips[tag].uniquePhases.push(hashes.size);}
   }
-  await window.saveDetailed('infantry-'+team+'.png',canvas.toDataURL('image/png'),meta);
+  await window.saveDetailed(role+'-'+team+'.png',canvas.toDataURL('image/png'),meta);
   mixer.stopAllAction();scene.remove(pivot);const geometries=new Set(),materials=new Set(),textures=new Set();model.traverse(n=>{if(n.isMesh){geometries.add(n.geometry);for(const mat of [].concat(n.material)){materials.add(mat);for(const value of Object.values(mat))if(value?.isTexture)textures.add(value);}}});geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());textures.forEach(t=>t.dispose());
  }
 };

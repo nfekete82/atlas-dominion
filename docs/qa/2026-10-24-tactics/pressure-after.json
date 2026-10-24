@@ -1,0 +1,413 @@
+[
+  {
+    "seed": 2026,
+    "firstShot": 274.899999999994,
+    "firstPlayerSector": 156.79999999999538,
+    "endTime": 290.2999999999975,
+    "status": "defeat",
+    "attacks": 7,
+    "shots": 176,
+    "snapshots": [
+      {
+        "time": 30.000000000000156,
+        "phase": "attack",
+        "group": [
+          2
+        ],
+        "units": 2,
+        "playerSectorsTaken": 0,
+        "redSectors": 2,
+        "production": {
+          "infantry": 4,
+          "engineer": 2,
+          "medic": 1,
+          "heavy": 1,
+          "tank": 1,
+          "rover": 1
+        },
+        "built": {
+          "barracks": 1,
+          "factory": 1,
+          "airfield": 1
+        }
+      },
+      {
+        "time": 60.00000000000058,
+        "phase": "attack",
+        "group": [
+          2,
+          3,
+          4,
+          6
+        ],
+        "units": 5,
+        "playerSectorsTaken": 0,
+        "redSectors": 3,
+        "production": {
+          "infantry": 4,
+          "engineer": 2,
+          "medic": 1,
+          "heavy": 1,
+          "tank": 1,
+          "rover": 1
+        },
+        "built": {
+          "barracks": 1,
+          "factory": 1,
+          "airfield": 1
+        }
+      },
+      {
+        "time": 89.99999999999916,
+        "phase": "attack",
+        "group": [
+          3,
+          2,
+          6,
+          4
+        ],
+        "units": 5,
+        "playerSectorsTaken": 0,
+        "redSectors": 4,
+        "production": {
+          "infantry": 4,
+          "engineer": 2,
+          "medic": 1,
+          "heavy": 1,
+          "tank": 1,
+          "rover": 1
+        },
+        "built": {
+          "barracks": 1,
+          "factory": 1,
+          "airfield": 1
+        }
+      },
+      {
+        "time": 119.99999999999746,
+        "phase": "attack",
+        "group": [
+          2,
+          3,
+          4,
+          6
+        ],
+        "units": 6,
+        "playerSectorsTaken": 0,
+        "redSectors": 5,
+        "production": {
+          "infantry": 4,
+          "engineer": 2,
+          "medic": 1,
+          "heavy": 1,
+          "tank": 1,
+          "rover": 1
+        },
+        "built": {
+          "barracks": 1,
+          "factory": 1,
+          "airfield": 1
+        }
+      },
+      {
+        "time": 149.99999999999577,
+        "phase": "attack",
+        "group": [
+          3,
+          2,
+          6,
+          4
+        ],
+        "units": 6,
+        "playerSectorsTaken": 0,
+        "redSectors": 6,
+        "production": {
+          "infantry": 4,
+          "engineer": 2,
+          "medic": 1,
+          "heavy": 1,
+          "tank": 1,
+          "rover": 1
+        },
+        "built": {
+          "barracks": 1,
+          "factory": 1,
+          "airfield": 1
+        }
+      },
+      {
+        "time": 179.99999999999406,
+        "phase": "regroup",
+        "group": [],
+        "units": 7,
+        "playerSectorsTaken": 1,
+        "redSectors": 7,
+        "production": {
+          "infantry": 4,
+          "engineer": 2,
+          "medic": 1,
+          "heavy": 1,
+          "tank": 1,
+          "rover": 1
+        },
+        "built": {
+          "barracks": 1,
+          "factory": 1,
+          "airfield": 1
+        }
+      },
+      {
+        "time": 209.99999999999235,
+        "phase": "attack",
+        "group": [
+          6,
+          3,
+          4,
+          2,
+          8
+        ],
+        "units": 8,
+        "playerSectorsTaken": 1,
+        "redSectors": 8,
+        "production": {
+          "infantry": 4,
+          "engineer": 2,
+          "medic": 1,
+          "heavy": 1,
+          "tank": 1,
+          "rover": 1
+        },
+        "built": {
+          "barracks": 1,
+          "factory": 1,
+          "airfield": 1
+        }
+      },
+      {
+        "time": 239.99999999999065,
+        "phase": "attack",
+        "group": [
+          2,
+          4,
+          3,
+          6,
+          8
+        ],
+        "units": 9,
+        "playerSectorsTaken": 1,
+        "redSectors": 8,
+        "production": {
+          "infantry": 4,
+          "engineer": 2,
+          "medic": 1,
+          "heavy": 1,
+          "tank": 1,
+          "rover": 1
+        },
+        "built": {
+          "barracks": 1,
+          "factory": 1,
+          "airfield": 1
+        }
+      },
+      {
+        "time": 269.9999999999929,
+        "phase": "attack",
+        "group": [
+          2,
+          4,
+          3,
+          6,
+          8
+        ],
+        "units": 10,
+        "playerSectorsTaken": 1,
+        "redSectors": 8,
+        "production": {
+          "infantry": 4,
+          "engineer": 2,
+          "medic": 1,
+          "heavy": 1,
+          "tank": 1,
+          "rover": 1
+        },
+        "built": {
+          "barracks": 1,
+          "factory": 1,
+          "airfield": 1
+        }
+      }
+    ]
+  },
+  {
+    "seed": 42,
+    "firstShot": 217.7999999999919,
+    "firstPlayerSector": 189.5999999999935,
+    "endTime": 237.4999999999908,
+    "status": "defeat",
+    "attacks": 6,
+    "shots": 230,
+    "snapshots": [
+      {
+        "time": 30.000000000000156,
+        "phase": "attack",
+        "group": [
+          2
+        ],
+        "units": 2,
+        "playerSectorsTaken": 0,
+        "redSectors": 2,
+        "production": {
+          "infantry": 4,
+          "engineer": 2,
+          "medic": 1,
+          "heavy": 1
+        },
+        "built": {
+          "barracks": 1,
+          "factory": 1,
+          "airfield": 1
+        }
+      },
+      {
+        "time": 60.00000000000058,
+        "phase": "attack",
+        "group": [
+          3,
+          2,
+          4,
+          6
+        ],
+        "units": 5,
+        "playerSectorsTaken": 0,
+        "redSectors": 3,
+        "production": {
+          "infantry": 4,
+          "engineer": 2,
+          "medic": 1,
+          "heavy": 1
+        },
+        "built": {
+          "barracks": 1,
+          "factory": 1,
+          "airfield": 1
+        }
+      },
+      {
+        "time": 89.99999999999916,
+        "phase": "attack",
+        "group": [
+          3,
+          2,
+          6,
+          4
+        ],
+        "units": 5,
+        "playerSectorsTaken": 0,
+        "redSectors": 4,
+        "production": {
+          "infantry": 4,
+          "engineer": 2,
+          "medic": 1,
+          "heavy": 1
+        },
+        "built": {
+          "barracks": 1,
+          "factory": 1,
+          "airfield": 1
+        }
+      },
+      {
+        "time": 119.99999999999746,
+        "phase": "attack",
+        "group": [
+          2,
+          3,
+          4,
+          6
+        ],
+        "units": 6,
+        "playerSectorsTaken": 0,
+        "redSectors": 5,
+        "production": {
+          "infantry": 4,
+          "engineer": 2,
+          "medic": 1,
+          "heavy": 1
+        },
+        "built": {
+          "barracks": 1,
+          "factory": 1,
+          "airfield": 1
+        }
+      },
+      {
+        "time": 149.99999999999577,
+        "phase": "regroup",
+        "group": [],
+        "units": 6,
+        "playerSectorsTaken": 0,
+        "redSectors": 6,
+        "production": {
+          "infantry": 4,
+          "engineer": 2,
+          "medic": 1,
+          "heavy": 1
+        },
+        "built": {
+          "barracks": 1,
+          "factory": 1,
+          "airfield": 1
+        }
+      },
+      {
+        "time": 179.99999999999406,
+        "phase": "attack",
+        "group": [
+          6,
+          3,
+          4,
+          2
+        ],
+        "units": 7,
+        "playerSectorsTaken": 0,
+        "redSectors": 6,
+        "production": {
+          "infantry": 4,
+          "engineer": 2,
+          "medic": 1,
+          "heavy": 1
+        },
+        "built": {
+          "barracks": 1,
+          "factory": 1,
+          "airfield": 1
+        }
+      },
+      {
+        "time": 209.99999999999235,
+        "phase": "attack",
+        "group": [
+          3,
+          2,
+          6,
+          4
+        ],
+        "units": 8,
+        "playerSectorsTaken": 1,
+        "redSectors": 7,
+        "production": {
+          "infantry": 4,
+          "engineer": 2,
+          "medic": 1,
+          "heavy": 1
+        },
+        "built": {
+          "barracks": 1,
+          "factory": 1,
+          "airfield": 1
+        }
+      }
+    ]
+  }
+]

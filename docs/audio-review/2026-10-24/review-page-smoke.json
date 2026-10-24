@@ -1,0 +1,30 @@
+{
+  "passed": true,
+  "offlineFileUrl": true,
+  "buttons": 143,
+  "allReferencedFilesExist": true,
+  "sharedAudioPlayers": 1,
+  "playbackChecks": [
+    {
+      "file": "soldier-01.wav",
+      "duration": 0.745,
+      "playing": true
+    },
+    {
+      "file": "crew-01.wav",
+      "duration": 0.77,
+      "playing": true
+    },
+    {
+      "file": "support-01.wav",
+      "duration": 1.12,
+      "playing": true
+    },
+    {
+      "file": "support-stop-02.wav",
+      "duration": 1.135,
+      "playing": true
+    }
+  ],
+  "pageErrors": []
+}

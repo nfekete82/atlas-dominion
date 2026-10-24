@@ -35,3 +35,24 @@ test('buildings: moving radar layers retain the exact ground registration and ca
   assert.ok(layer.frames[0].w*layer.frames[0].h<512*512/4,'runtime radar layers should be cropped rather than duplicate whole building frames');
  }
 });
+
+test('buildings: the refined bastion retains all surfaces, geometry and three authored animation groups in every faction',()=>{
+ const read=path=>{const bytes=fs.readFileSync(new URL('../'+path,import.meta.url));return JSON.parse(bytes.subarray(20,20+bytes.readUInt32LE(12)).toString());};
+ const source=read('tools/building-sources/bastion-refined.glb'),usedMaterials=new Set(source.meshes.flatMap(m=>m.primitives.map(p=>p.material)));
+ const below=(g,name)=>{const nodes=[];const visit=i=>{nodes.push(g.nodes[i].name);for(const child of g.nodes[i].children??[])visit(child);};visit(g.nodes.findIndex(n=>n.name===name));return nodes;};
+ for(const team of [0,1,-1]){
+  const a=load('bastion',team),g=read('src/assets/reborn/buildings-3d/'+a.model);
+  assert.equal(a.design.source,'tools/building-sources/bastion-refined.glb');assert.equal(a.design.parts,47);assert.equal(a.design.triangles,34380);
+  assert.equal(g.nodes.filter(n=>n.extras?.atlasDesign).length,1);assert.ok(g.images.length>0);
+  for(const material of source.materials.filter((_,i)=>usedMaterials.has(i))){
+   if(team!==0&&material.name==='Atlas faction emission')continue;
+   const exported=g.materials.find(m=>m.name===material.name&&!!m.doubleSided===!!material.doubleSided);assert.ok(exported,material.name);
+   assert.deepEqual(exported.pbrMetallicRoughness,material.pbrMetallicRoughness,material.name+' retains its texture and surface');
+  }
+  assert.deepEqual(g.animations.map(c=>c.name).sort(),source.animations.map(c=>c.name).sort());
+  for(const name of ['RadarDish','Beacon','CaptureSweep_Rotator'])assert.deepEqual(below(g,name),below(source,name),name+' keeps its attached details');
+  assert.equal(a.sweep.period,12);assert.equal(a.sweep.frames.length,64);
+  assert.deepEqual(a.sweep.pivot,[a.body.pivot[0]-a.sweep.originalBounds.x,a.body.pivot[1]-a.sweep.originalBounds.y]);
+  assert.ok(fs.existsSync(new URL('../src/assets/reborn/buildings-3d/'+a.sweep.image,import.meta.url)));
+ }
+});

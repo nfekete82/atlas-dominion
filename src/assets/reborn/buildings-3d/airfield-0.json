@@ -3,6 +3,7 @@
   "kind": "airfield",
   "team": 0,
   "design": {
+    "revision": 2,
     "name": "Flugfeld",
     "kind": "airfield",
     "team": 0,

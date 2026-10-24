@@ -1,58 +1,80 @@
 # ATLAS DOMINION — REBORN
 
-Ein lokales Wüsten-RTS mit neun Einheitentypen, 30 eroberbaren Territorien und einer aktiven gegnerischen KI. Die Oberfläche folgt der vereinfachten Bildvorlage mit ruhigen dunklen Flächen und dezenten Akzenten: Ressourcen oben links, Radar, Einheitenkatalog und Produktion rechts, kompakte Auswahl direkt links unten sowie ein zentrales Pausenmenü mit Metallrahmen.
+Lokales Wüsten-RTS mit zehn Einheitentypen, eroberbaren Bastionen und einer gegnerischen Armee aus Infanterie, Fahrzeugen und Luftunterstützung. Neue Kampagnen haben 16 Bastionen und je zwei blaue und rote Startsektoren. Alte Spielstände mit 30 Bastionen und ihren ursprünglichen Startgebieten bleiben ladbar.
+
+Der lokale Entwicklungsstand trägt weiterhin **1.8.0**; als nächste Version ist **1.9.0** vorgeschlagen. [Release-Entwurf](docs/releases/v1.9.0-de.md), [Prüfbericht](docs/qa/release-2026-10-24.md) und [sichere Veröffentlichungsschritte](docs/releases/RELEASE.md). Die deutschen Stimmen A, B und C wurden anhand der Hörproben vom Eigentümer freigegeben und für alle 47 Meldungen aktiviert.
 
 ## Starten
 
 ```sh
-npm install
+npm ci
 npm run dev
 ```
 
-**http://127.0.0.1:8095** — oder `docker compose up --build -d`. Der Docker-Port ist auf `127.0.0.1` begrenzt. Keine Accounts, Cloud-Dienste oder Downloads zur Spielzeit. Start: 500 Credits, ein Soldat, Hauptquartier und drei eigene Sektoren. Jeder neue Spielstart erzeugt zufälliges Gelände und verteilt die Bastionen mit mindestens 440 Welteinheiten Abstand. Alle Bastionen sind zu Fuß erreichbar. Laden stellt die gespeicherte Karte wieder her; bestehende Spielstände bleiben ladbar.
+**http://127.0.0.1:8095** — alternativ `docker compose up --build -d`. Der Server bindet standardmäßig nur an Loopback. Keine Accounts oder TTS-Anfragen während des Spielens. Start: 500 Credits, ein Soldat, Hauptquartier und zwei eigene Sektoren. Neue Kampagnen erzeugen Gelände und erreichbare Bastionen aus einem neuen Seed; Laden stellt die gespeicherte Karte wieder her.
 
 ## Spielen
 
-- Linksklick: Einheit oder Gebäude wählen. Ziehen: Gruppe markieren. Doppelklick: sichtbare eigene Truppen markieren.
-- Rechtsklick: bewegen oder ein sichtbares Ziel angreifen. Shift: Befehle anhängen. **A**: Angriffsbewegung, **S**: halten. Soldaten und Fahrzeuge erfassen sichtbare Gegner im nächsten Simulationstakt, halten ihren Gegner im Gefecht und wechseln erst danach zum nächsten gültigen Ziel. Anschließend setzen sie ihren Auftrag fort.
-- WASD/Pfeile und Bildschirmrand bewegen die Kamera; Mausrad zoomt am Zeiger. Radar klicken/ziehen bewegt den Ausschnitt. **H**: Hauptquartier, **T**: Sektorgrenzen.
-- Der Gebäudebau ist vorerst aus der Oberfläche entfernt. Hauptquartier und eroberbare Bastionen bleiben als Ausgangspunkt und Spielziele erhalten. Bestehende Spielstände mit weiteren Anlagen bleiben kompatibel.
-- Die acht Produktionsplätze rechts unter dem Einheitenkatalog zeigen echte Aufträge. Ein Klick auf einen belegten Platz storniert genau diesen Auftrag mit voller Kostenerstattung. Der Fortschritt eines anderen laufenden Auftrags bleibt erhalten.
-- **Einheiten** im rechten Katalog beauftragen das Hauptquartier. Alle neun Typen stehen ohne zusätzliche Gebäude zur Verfügung; Kosten, Produktionszeit, Kapazität und verfügbare Credits gelten weiterhin.
-- Angrenzende Bastion acht Sekunden mit Bodentruppen halten. Feinde im Radius unterbrechen die Einnahme. Eigene Bastionen geben dauerhaft 320 Meter Sicht; bei Verlust endet ihre Sicht. Felsen begrenzen Bodensicht und Schusslinien. Fluggeräte überfliegen Felsen, können aber keine Bastionen sichern.
-- Einkommen kommt alle zehn Simulationssekunden. **Leertaste**: taktische Pause. Zahnrad oder Esc ohne Auswahl: Spielmenü. **F5/F9** speichern/laden lokal in IndexedDB. Vor einem Seiten-Neuladen speichern und anschließend laden.
-- Sieg: gegnerisches Hauptquartier zerstören, seinen Kontrollpunkt sichern und alle drei roten Startgebiete kontrollieren. Niederlage: keine Produktionsstätte und keine eigene Truppe mehr.
+- Linksklick wählt Einheiten oder Gebäude, Ziehen markiert eine Gruppe. Doppelklick markiert sichtbare eigene Truppen.
+- Rechtsklick bewegt oder greift sichtbare Gegner an. Shift hängt Befehle an. **A** aktiviert Angriffsbewegung, **S** hält die Position. Nach einem Gefecht setzen Einheiten ihren Auftrag fort.
+- WASD/Pfeile und der Spielfeldrand bewegen die Kamera. Mausrad zoomt am Zeiger; Radar klicken/ziehen verschiebt den Ausschnitt. **H** zeigt das Hauptquartier, **T** die Sektorgrenzen.
+- Das Spielfeld liegt links, die Sidebar in einer eigenen CSS-Grid-Spalte rechts. Der gesamte sichtbare Kartenrand bleibt für Auswahl, Befehle und Bau erreichbar, auch nach Resize und auf Retina-Displays.
+- Jede Fraktion startet mit einem Bauarbeiter und einem Infanteriesoldaten. Das Hauptquartier bildet ausschließlich Bauarbeiter aus. Erst eine fertiggestellte Kaserne schaltet Infanteriesoldaten, Sanitäter und schwere Infanterie frei; Fahrzeugfabrik und Flugfeld schalten Fahrzeuge beziehungsweise Luftunterstützung frei. Der rechte Einheitenkatalog zeigt nur die durch vorhandene fertige Gebäude verfügbaren Typen. Kosten, Produktionszeit, Warteschlange und Kapazität gelten weiterhin. Ein Klick auf einen belegten Produktionsplatz storniert genau diesen Auftrag mit Kostenerstattung. Details zu Freischaltung und alten Spielständen: [Produktionsgebäude](docs/reborn-production.md).
+- Bauarbeiter auswählen und im Baukatalog eine Anlage platzieren. Sie muss in erkundetem, freiem und erreichbarem Gebiet liegen; der Arbeiter muss sie tatsächlich erreichen und errichten. Rechtsklick auf eine eigene beschädigte Anlage repariert sie.
+- Sanitäter heilen verletzte eigene Infanterie in 70 M Umkreis mit insgesamt 12 LP/s, auf mehrere Patienten verteilt. Ohne Beschuss regenerieren sie sich nach einer Wartezeit langsam selbst. Gruppenbefehle halten sie hinter der Front.
+- Soldaten auswählen und den Transportheli rechtsklicken, oder den Heli auswählen und eine eigene Infanteriegruppe rechtsklicken. Er landet zur Aufnahme von höchstens zehn Infanteristen und startet anschließend. **Ausladen** wählt einen sicheren Landeplatz; danach hebt er wieder ab. Passagiere und laufende Transportphasen werden gespeichert.
+- Angrenzende Bastionen acht Sekunden im Einnahmeradius halten. Feinde unterbrechen die Einnahme. Eigene Bastionen geben 320 M Sicht; nach Verlust endet diese Sicht. Ein Rechtsklick auf Mast, Sockel oder Beschriftung führt zum Einnahmepunkt. Fluggeräte können im aktuellen Spiel ebenfalls sichern; transportierte Passagiere zählen während des Transports nicht separat.
+- Felsen begrenzen Bodensicht und Schusslinien. Geschütztürme haben 600 M Reichweite und 750 M Sicht. Der Raketenwerfer reicht mit 680 M und 830 M Sicht darüber hinaus.
+- Einkommen kommt alle zehn Simulationssekunden. **Leertaste** pausiert taktisch; Zahnrad oder Esc ohne Auswahl öffnet das Menü. **F5/F9** speichern/laden lokal in IndexedDB. Vor einem Neuladen speichern; bestehende Spielstände werden nicht gelöscht.
+- Sieg: das gegnerische Hauptquartier zerstören und seinen Kontrollpunkt sowie alle roten Startsektoren sichern. Niederlage: keine eigene Produktionsstätte und keine eigene Truppe mehr.
 
-Die neun Truppen kosten 100/150/250 Credits für Infanterie, Pionier und schweren Schützen; 300/450/600 für Spähwagen, Panzer und Artillerie; 600/750/1000 für Spähheli, Kampfheli und Bomber. Pioniere reparieren nahe eigene Gebäude. Fahrzeuggrößen und Wege berücksichtigen ihre unterschiedliche Bodenfreiheit.
+| Einheit | Credits | Aufgabe |
+| --- | ---: | --- |
+| Infanteriesoldat | 100 | Beweglicher Schütze mit Dreiersalven |
+| Sanitäter | 175 | Flächenheilung und Versorgung hinter der Front |
+| Bauarbeiter | 200 | Gebäude bauen und reparieren |
+| Schwere Infanterie | 250 | 420 LP, stark gegen Infanterie; weniger Schaden gegen Panzerung |
+| Spähwagen | 300 | Schnelle Aufklärung und Flanken |
+| Kampfpanzer | 450 | Gepanzerte Frontunterstützung |
+| Raketenwerfer | 600 | Bodenbeschuss mit fliegenden Raketen und Flächenschaden |
+| Transportheli | 600 | Aufklärung, zehn Passagiere und defensive Maschinengewehre |
+| Kampfheli | 750 | Bewegliche Boden- und Luftabwehr |
+| Bomber | 1000 | Schwere Feuerkraft gegen Bodenziele |
+
+Die KI bezahlt ihre Einheiten und Gebäude, sammelt gemischte Angriffsgruppen, reagiert auf gesichtete Verteidigungen, nutzt Belagerung und Flanken und zieht verletzte Truppen zur Versorgung zurück. Automatische Infanterie-Lufttransporte der KI sind bisher nicht implementiert.
+
+## Funk und Audio
+
+47 lokale WAV-Meldungen bestätigen gültige Spielerbefehle. Gruppen antworten einmal; autonome KI-Befehle lösen keine Sprache aus. Master-, Effekt- und Sprachlautstärke sowie Stummschaltung stehen in den Optionen. Die Sprachwiedergabe blockiert die Simulation nicht.
+
+Die drei fiktiven deutschen Stimmen A, B und C aus Qwen3-TTS VoiceDesign und Base sind nach Hörfreigabe für alle 47 Meldungen aktiv. Die früheren Ryan/Aiden/Serena-Aufnahmen sind gesichert. [Hörvergleich mit sieben Sätzen je Stimme und allen 47 Kandidaten](docs/audio-review/2026-10-24/index.html), [Herstellung und Lizenzprüfung](docs/audio-review/2026-10-24/README.md). ASR bestätigt die Textvollständigkeit; das Hörurteil zu den Stimmtypen stammt vom Eigentümer.
 
 ## Prüfen
 
 ```sh
-npm run typecheck
-npm run test:reborn    # 37 gezielte Simulationstests, einschließlich 100 Zufallskarten
-npm run test:animation # 11 gezielte Animations-/Bewegungs-/Gebäudemodelltests
-npm test              # einschließlich Archiv und HTTP
-npm run test:browser   # Chrome: Spielablauf, Oberfläche, Produktion, Menüs, Sicht, Audio, Animationslabor
+npm run build
+npm test                    # vollständige Node-Suite, einschließlich Archiv und HTTP
+npm ci --prefix tests/browser
+npm run test:browser         # 52 Browserfälle: Spiel, HUD, Audio und Modellwerkzeuge
+python3 scripts/audit-radio-bank.py src/assets/reborn/voices
 ```
 
-Browser-Abhängigkeiten: `npm ci --prefix tests/browser`. Chrome ist voreingestellt; `ATLAS_BROWSER_CHANNEL=chromium` verwendet Playwright Chromium. `ATLAS_BASE_URL` prüft einen bestehenden Server.
+Chrome ist voreingestellt; `ATLAS_BROWSER_CHANNEL=chromium` verwendet Playwright Chromium. `ATLAS_BASE_URL` prüft einen bereits laufenden Server. Zusätzlich verfügbar: `npm run typecheck`, `npm run test:reborn`, `npm run test:animation`, `npm run assets:animation-audit` und `npm run test:ai-defense`.
 
-[Prüfprotokoll und Bilder](docs/reborn/QA.md) · [Architektur und Grenzen](docs/reborn/ARCHITECTURE.md) · [Bildquellen und Imagegen-Prompts](docs/reborn/ART_ASSETS.md)
+[Aktueller Release-Prüfbericht](docs/qa/release-2026-10-24.md) · [Ältere Prüfungen und Bilder](docs/reborn/QA.md) · [Änderungsprotokoll](CHANGELOG.md)
 
-## Technik und Grafik
+## Technik, Grafik und Quellen
 
-TypeScript, Canvas 2D, feste 20 Simulationsschritte pro Sekunde, A*, räumliche Buckets und IndexedDB. Spielwerte stehen in `src/reborn/config.ts`, Einheiten und Gebäude in `src/reborn/catalog.ts`. Keine zusätzliche Laufzeitbibliothek.
+TypeScript, Canvas 2D, 20 Simulationsschritte pro Sekunde, A*, räumliche Buckets und IndexedDB. Spielwerte stehen in `src/reborn/config.ts` und `src/reborn/catalog.ts`. Das Hauptspiel benötigt keine zusätzliche Laufzeitbibliothek. Three.js dient dem Offline-Export und der separaten 3D-Galerie.
 
-Neue Kampagnen verwenden native facettierte Mesas, fein texturierten Sand mit Windrippen, kleinen Steinen und dekorativen blauen Kristallen nach der neuen Landschaftsvorlage. Gelände und Navigation werden gemeinsam aus dem Kartenseed erzeugt. Alte Spielstände behalten die frühere Landschaft samt Alpha-Konturen. [Zufallskarten, Zielbindung, Fahrzeugmodelle und Prüfung](docs/reborn/RANDOM_CAMPAIGNS.md). Die freigegebene Legionär-Figur und sieben eigene Gebäudetypen werden aus zusammengehörigen 3D-Modellen mit fest integrierten Schatten gerendert. Basis und Bastion blinken dezent und drehen ihre Schüsseln in 48 Sekunden. Leichte Sandverwehungen ziehen über sichtbaren freien Boden; alle Effekte stehen bei Pause still. Bastionen besitzen eigene neutral weiße, blaue und rote Modellfassungen.
+Die vier Infanterierollen teilen die freigegebene Legionär-Grundrüstung mit eigenen Details und echten Idle-/Walk-/Attack-/Hit-/Death-Clips. Sechs Fahrzeugmodelle besitzen Fraktionsmaterialien, Schatten und Rad-/Ketten-/Rotorphasen. Geschütztürme verwenden eine feste Basis und einen unabhängig drehbaren Kopf mit zwei Mündungen. Die überarbeiteten HQ- und Bastion-Quelldateien sind unter `tools/building-sources/` mit Prüfsummen dokumentiert.
 
-Die freigegebene Infanterie verwendet echte Idle-/Walk-/Attack-/Hit-/Death-Clips: acht Ansichten mit acht unterschiedlichen Laufphasen je Richtung. Sechs eigene Fahrzeugmodelle übernehmen Keramik, Bronze, dunklen Stahl und Teamfarben der Modellfamilie. Sie besitzen 16 gerenderte Ansichten, echte Rad-/Ketten-/Rotorphasen und begrenzte Lenkgeschwindigkeit. Panzer und Artillerie besitzen getrennte Rümpfe, Türme und Rohre. Der Canvas-Renderer deformiert oder dreht keine vollständigen Einheitensprites. Partikel sind unter Optionen abschaltbar. Three.js wird zum Offline-Export und im separaten 3D-Modellinspektor verwendet; das Hauptspiel bleibt Canvas 2D.
+[Animationslabor](http://127.0.0.1:8095/animation-lab.html) · [3D-Galerie und GLB-Downloads](http://127.0.0.1:8095/model-3d.html?model=headquarters) · [Sprite-Vergleich](http://127.0.0.1:8095/model-preview.html). Maus und Tastatur bilden die vollständige Steuerung; es gibt kein eigenes Touch- oder Mehrspielersystem.
 
-Das [Animationslabor](http://127.0.0.1:8095/animation-lab.html) zeigt sechs Prüfabläufe gleichzeitig mit der aktuell aktiven Infanterie. [Animationssystem, Quellen und konkrete Asset-Grenzen](docs/reborn/ANIMATION_SYSTEM.md) dokumentieren die Entwicklung; alte generierte Bilder und die ersten einfachen Figuren bleiben archiviert. Die KI expandiert und kämpft weiterhin mit Infanterie. Maus und Tastatur bilden die vollständige Steuerung; kein dediziertes Touch- oder Mehrspielersystem.
+[Asset-Änderungen des Releases](docs/releases/ASSETS-v1.9.0.md) · [Drittanbieter und Rechte](THIRD_PARTY_NOTICES.md) · [Historische Grafikquellen](docs/reborn/ART_ASSETS.md) · [Animationsquellen](tools/animation-sources/manifest.json) · [Architektur](docs/reborn/ARCHITECTURE.md). Ältere Dokumente beschreiben teilweise frühere Entwicklungsstände; maßgeblich für dieses Release sind die aktuellen Release-Unterlagen.
 
-Der freigegebene Legionär ist im Spiel aktiv und bildet die gemeinsame Grundrüstung von Infanterie, Pionier und schwerem Schützen. Die [3D-Modellgalerie](http://127.0.0.1:8095/model-3d.html?model=headquarters) enthält ihn und alle sieben Gebäudetypen mit echten Animationen, Teamfarben und GLB-Downloads. [Sprite-Vergleich](http://127.0.0.1:8095/model-preview.html), [Übernahme und Gebäudemodelle](docs/buildings-3d/README.md). Die fünf zusätzlich erhaltenen Gebäudetypen bleiben für alte Spielstände verfügbar; der Gebäudebau wird nicht wieder in die Oberfläche aufgenommen.
+Die frühere Europaversion bleibt unter **http://127.0.0.1:8095/legacy/index.html** erreichbar; ihre Quellen und Dokumentation unter [legacy/README.md](legacy/README.md) bleiben erhalten.
 
-Die frühere Europaversion bleibt unter **http://127.0.0.1:8095/legacy/index.html** erreichbar. Ihre Quellen und vorhandenen Änderungen bleiben erhalten; ihre Dokumentation liegt in [legacy/README.md](legacy/README.md).
+### Performance-Debugging
 
-[Sandtextur, vereinfachtes HUD und Gegenwehr unter Beschuss](docs/reborn/SAND_HUD_V2.md).
-
-Gruppenformationen sind auf dem tatsächlichen Ziel zentriert. Ein Rechtsklick auf Bastionsturm, Sockel oder Beschriftung führt die Truppen zum Einnahmepunkt; mehrere eigene Bodeneinheiten können gemeinsam eine Bastion sichern. Getrennte Gruppen können mehrere angrenzende Bastionen parallel einnehmen.
+Mit `/?debug&perf` lassen sich Frame-Spitzen, 1%-Low-FPS und die Kosten von Simulation, KI, Wegfindung, Rendering, Minikarte und HUD messen und als JSON exportieren. `npm run test:performance` wiederholt acht feste Lastszenarien. Messwerte, Regressionen und verbleibende Engpässe: [Performance-Bericht](docs/performance/README.md).

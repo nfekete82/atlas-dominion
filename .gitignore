@@ -4,3 +4,15 @@ dist/
 .DS_Store
 coverage/
 screenshot.png
+
+# Local authoring caches, rollback archives and release packages
+backups/audio/
+release-artifacts/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+__pycache__/
+docs/.animation-video/
+docs/detailed-models/.video/

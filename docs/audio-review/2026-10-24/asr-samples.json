@@ -1,0 +1,37 @@
+[
+  {
+    "ids": [
+      "soldier-0",
+      "soldier-1",
+      "soldier-2",
+      "soldier-3",
+      "soldier-4",
+      "soldier-5",
+      "soldier-6",
+      "crew-7",
+      "crew-8",
+      "crew-9",
+      "crew-10",
+      "crew-11",
+      "crew-12",
+      "crew-13"
+    ],
+    "expected": "Verstanden! Bin unterwegs! Jawohl, Kommandant! Angriff bestätigt! Sanitäter unterwegs! Reparatur wird durchgeführt! Truppen werden abgesetzt! Verstanden! Bin unterwegs! Jawohl, Kommandant! Angriff bestätigt! Sanitäter unterwegs! Reparatur wird durchgeführt! Truppen werden abgesetzt!",
+    "transcript": " Verstanden. Bin unterwegs. Jawohl, Kommandant. Angriff bestätigt. Sanitäter unterwegs. Reparatur wird durchgeführt. Truppen werden abgesetzt. Verstanden. Bin unterwegs. Jawohl, Kommandant. Angriff bestätigt. Sanitäter unterwegs. Reparatur wird durchgeführt. Truppen werden abgesetzt.",
+    "wordsMatchIgnoringCaseAndPunctuation": true
+  },
+  {
+    "ids": [
+      "support-14",
+      "support-15",
+      "support-16",
+      "support-17",
+      "support-18",
+      "support-19",
+      "support-20"
+    ],
+    "expected": "Verstanden! Bin unterwegs! Jawohl, Kommandant! Angriff bestätigt! Sanitäter unterwegs! Reparatur wird durchgeführt! Truppen werden abgesetzt!",
+    "transcript": " Verstanden. Bin unterwegs. Jawohl, Kommandant. Angriff bestätigt. Sanitäter unterwegs. Reparatur wird durchgeführt. Truppen werden abgesetzt.",
+    "wordsMatchIgnoringCaseAndPunctuation": true
+  }
+]
