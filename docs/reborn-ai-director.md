@@ -44,7 +44,7 @@ die unveränderte Legacy-Taktik.
 
 ```sh
 npm run test:ai-director
-npm run benchmark:ai -- --map 4 --seeds 2026,2027,2028 --seconds 240
+npm run benchmark:ai -- --map 4 --seeds 2026,2027,2028 --seconds 240 --opponent guarded
 ```
 
 Der Bericht vergleicht mindestens:
@@ -55,6 +55,35 @@ Der Bericht vergleicht mindestens:
 - aktive Angriffssekunden und Produktionszeit je Gebäudetyp
 - Verluste des Spielers, Credits und aktive KI-Einheiten
 - Rechenzeit für die gesamte Simulation
+
+Das Benchmark-Szenario nutzt standardmäßig einen **geskripteten blauen
+Verteidiger** (`--opponent guarded`). Dieser baut über `Simulation.build`
+seine Kaserne und später einen Turm, bildet eigene Verteidiger über
+`Simulation.recruit` aus und bezahlt alles aus seinen **unveränderten
+950 Startcredits plus normalem Gebietseinkommen**. Es werden keine
+Gratis-Einheiten erschaffen. Dieser Gegner ist bewusst kein menschlicher
+Profi, verhindert aber hoffentlich ein allzu triviales schnelles Spielende.
+Mit `--opponent idle` lässt sich der vorherige untätige Spieler
+nachstellen.
+
+Außerdem werden jetzt `elapsedSeconds` und `terminalStatus` ausgegeben.
+Eine 180-Sekunden-Anforderung bedeutet **nicht**, dass ein Spiel 180
+Sekunden gespielt hat: Es kann durch Sieg/Niederlage früher enden.
+`peakVehicles` zählt gleichzeitig existente Fahrzeuge;
+`vehiclesOrdered` zählt real bezahlte Produktionsaufträge und ist
+nicht mit tatsächlich fertig produzierten Fahrzeugen zu verwechseln.
+
+Die erste Messung (Seeds 2026/2027, Karte Mittel, untätiger Gegner,
+je maximal 180 Spielsekunden) ergab 3 Eroberungen und 0 Fahrzeuge
+für beide Varianten. Sie zeigt **keinen** Director-Vorteil. Die
+zerstörten blauen Hauptquartiere machen diesen alten Test ungeeignet,
+um zuverlässige Schlüsse über die spätere Fabrikproduktion zu ziehen.
+
+Behobener Budget-Konflikt: Ein geplanter 450-Credit-Flugfeldbau
+reservierte Geld, während die erste fertiggestellte Fabrik noch
+keine Fahrzeuge produziert hatte. Das neue Makro-Ziel verlangt zuerst
+mindestens **zwei in Bau befindliche oder existierende Bodenfahrzeuge**,
+bevor ein Flugfeldprojekt Reserven beansprucht.
 
 Es wird **kein automatischer Sieg** behauptet, wenn lediglich mehr
 Einheiten produziert wurden. Bei weniger Eroberungen muss die Doktrin
