@@ -38,8 +38,8 @@ export function inside(p: Point, polygon: Point[]): boolean {
   return result;
 }
 export class World {
-  readonly size = mapWorldSize(this.mapVersion);
-  readonly cell = this.size / RULES.grid;
+  readonly size:number;
+  readonly cell:number;
   readonly rocks: Point[][] = ROCKS.map(poly=>poly.map(([x,y])=>({x:x*3,y:y*3})));
   readonly blocked = new Uint8Array(RULES.grid ** 2);
   /** Physical tall relief, without navigation clearance or low rubble. */
@@ -49,6 +49,7 @@ export class World {
   readonly cliffCells:number[][]=[];
   readonly generated?:GeneratedMap;
   constructor(readonly seed=2026,readonly mapVersion:MapVersion=0) {
+    this.size=mapWorldSize(mapVersion);this.cell=this.size/RULES.grid;
     if(mapVersion===0&&navigationCache){
       this.blocked.set(navigationCache.blocked);this.opaque.set(navigationCache.opaque);this.cliffIds.set(navigationCache.cliffs);this.components.set(navigationCache.components);
       this.cliffIds.forEach((id,i)=>{if(id>=0)(this.cliffCells[id]??=[]).push(i);});return;
