@@ -29,7 +29,9 @@ test('control: selected helicopter escapes active combat via M and Alt-right-cli
   const clickWorld=async(p,button='left',modifiers=[])=>{
     const s=await page.evaluate(p=>window.__reborn.renderer.screen(p),p);
     expect(await page.evaluate(p=>document.elementFromPoint(p.x,p.y)?.id,s)).toBe('world');
-    await page.mouse.click(s.x,s.y,{button,modifiers});
+    for(const key of modifiers)await page.keyboard.down(key);
+    try{await page.mouse.click(s.x,s.y,{button});}
+    finally{for(const key of modifiers.toReversed())await page.keyboard.up(key);}
   };
   const helicopter=await page.evaluate(async id=>{
     const {unitSelectionPoint}=await import('/src/reborn/unit-presentation.js');
