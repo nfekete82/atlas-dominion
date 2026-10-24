@@ -57,7 +57,7 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
  // Macro manager: all completed producers can run independently. In the old
  // algorithm just ONE facility queued an item per AI pulse, leaving expensive
  // factories/airfields idle while barracks bought cheap infantry.
- if(g.world.mapVersion>=3){
+ if(g.world.mapVersion>=3&&g.tactical.mode==='director'){
   const priority:Record<string,number>={factory:0,airfield:1,barracks:2,headquarters:3};
   const ordered=[...own].filter(b=>b.buildRemaining<=0&&b.queue.length<2)
    .sort((a,b)=>(priority[a.kind]??4)-(priority[b.kind]??4)||a.id-b.id);
