@@ -1,4 +1,5 @@
 import { profiler } from './performance.js';
+import type { SectorChoice, StrategicBrief } from './qwen-plan.js';
 import {RULES,distance,clamp,type Point} from './config.js';
 import {UNITS,unitSpec,buildingSpec,canAttack,type UnitKind} from './catalog.js';
 import {developArmy,validEconomy,type EconomyState} from './army-economy.js';
@@ -21,9 +22,23 @@ const fresh=():TacticalState=>({version:1,phase:'gather',phaseAt:0,lastPlan:-3,t
 /** Knowledge, plans and production use simulated time and the red faction's own observations. */
 export class TacticalAI {
  state=fresh();private risk:Float32Array|undefined;private riskAt=-1;private routeCache=new Map<string,Point[]>();private routeSignature='';
+ private strategyOptions: SectorChoice[]=[];
+ private sectorPreference: {sectorId:number;until:number}|null=null;
  constructor(private readonly g:Simulation){}
+ /** Only known front-line choices are shown to the optional language model. */
+ strategicBrief():StrategicBrief|null{
+  if(!this.strategyOptions.length)return null;
+  const army=this.g.units.filter(u=>u.owner===1&&u.hp>0&&!u.carrier);
+  return {time:this.g.time,credits:this.g.credits[1],fighters:army.filter(combat).length,artillery:army.filter(u=>u.kind==='artillery').length,
+   medics:army.filter(u=>u.kind==='medic').length,phase:this.state.phase,options:this.strategyOptions.map(o=>({...o}))};
+ }
+ /** Advice influences at most a safe top-four target selection; TacticalAI makes the final decision. */
+ preferSector(sectorId:number):boolean{
+  if(!Number.isSafeInteger(sectorId)||!this.strategyOptions.some(o=>o.sectorId===sectorId))return false;
+  this.sectorPreference={sectorId,until:this.g.time+35};return true;
+ }
  restore(state:TacticalState|undefined):void{
-  this.state=state?structuredClone(state):fresh();this.risk=undefined;this.riskAt=-1;this.routeCache.clear();
+  this.state=state?structuredClone(state):fresh();this.risk=undefined;this.riskAt=-1;this.routeCache.clear();this.strategyOptions=[];this.sectorPreference=null;
   // Legacy memories contain only previously seen buildings; no live hidden bases are consulted.
   if(!state)for(const m of this.g.memories[1])if(m.owner===0&&m.kind==='turret'&&m.hp>0)this.remember(m,Math.max(0,this.g.time-45));
  }
@@ -220,8 +235,12 @@ export class TacticalAI {
    const pressure=g.territories.filter(t=>t.owner===1).length>=4?(t.owner===0?2000:t.neighbors.some(i=>g.territories[i].owner===0)?1200:0):0;
    return {t,route,...travel,towers,knownHQ,defenders,score:travel.length+travel.risk*75+towers.length*700+defenders*130+(loss&&loss.until>g.time?900+loss.losses*180:0)-t.income*16-t.neighbors.filter(i=>g.territories[i].owner!==1).length*45-pressure};
   }).filter(c=>c.route.length).sort((a,b)=>a.score-b.score||a.t.id-b.t.id);
-  if(!candidates.length){this.setPhase('regroup');this.issue([...selected,...medics],s.rally,'safe');return;}
-  const c=candidates[0];s.target=c.t.id;s.route=c.route.slice(0,64);
+  if(!candidates.length){this.strategyOptions=[];this.setPhase('regroup');this.issue([...selected,...medics],s.rally,'safe');return;}
+  this.strategyOptions=candidates.slice(0,4).map(c=>({sectorId:c.t.id,owner:c.t.owner===0?'enemy':'neutral',
+   score:c.score,travel:c.length,routeRisk:c.risk,defenders:c.defenders,turrets:c.towers.length,income:c.t.income}));
+  const advised=this.sectorPreference&&this.sectorPreference.until>=g.time
+   ?candidates.slice(0,4).find(c=>c.t.id===this.sectorPreference!.sectorId&&c.score-candidates[0].score<=700):undefined;
+  const c=advised??candidates[0];s.target=c.t.id;s.route=c.route.slice(0,64);
   const defended=c.towers.length>0||c.defenders>2||c.knownHQ!==undefined||c.risk>12;
   // A late reserve may be taking a long route out of newly built facilities.
   // Three ready fighters can take an unguarded sector after a bounded wait;
