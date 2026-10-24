@@ -193,7 +193,10 @@ export class TacticalAI {
   for(const w of army.filter(u=>u.kind==='engineer'&&!u.orders.length)){const b=g.bases.filter(b=>b.owner===1&&b.hp>0&&b.hp<buildingSpec(b).hp&&b.buildRemaining<=0).sort((a,b)=>distance(w,a)-distance(w,b))[0];if(b)g.command([w.id],{...b,kind:'repair',target:b.id});}
   const intruders=g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)&&g.bases.some(b=>b.owner===1&&b.hp>0&&distance(u,b)<(b.kind==='headquarters'?560:420)));
   if(intruders.length){
-   const entering=s.phase!=='defend';this.setPhase('defend');const nearest=intruders.sort((a,b)=>distance(a,home)-distance(b,home)||a.id-b.id)[0];
+   // Anti-siege defence: a rocket launcher or aircraft threatening the HQ is
+   // more urgent than a slightly closer infantryman. Never use unseen threats.
+   const urgency=(u:Unit)=>distance(u,home)-(u.kind==='artillery'?260:u.kind==='bomber'?220:u.kind==='gunship'?150:0);
+   const entering=s.phase!=='defend';this.setPhase('defend');const nearest=intruders.sort((a,b)=>urgency(a)-urgency(b)||a.id-b.id)[0];
    if(entering||s.objective!==nearest.id)s.groupId++;s.group=fighters.map(u=>u.id);s.objective=nearest.id;this.issue([...fighters,...medics],nearest,'defend',nearest.id);return;
   }
   if(s.phase==='defend'){g.stop(s.group);this.setPhase('regroup');s.group=[];s.objective=null;s.rally=null;}
@@ -224,6 +227,10 @@ export class TacticalAI {
   const available=fighters.slice().sort((a,b)=>distance(b,home)-distance(a,home)||a.id-b.id).slice(0,fighters.length-reserve);
   const selected=available.sort((a,b)=>distance(a,s.rally!)-distance(b,s.rally!)||a.id-b.id).slice(0,10);
   const targets=g.territories.filter(t=>t.owner!==1&&t.neighbors.some(i=>g.territories[i].owner===1));
+  // Once real paid long-range siege weapons are available, towers should be
+  // objectives rather than near-absolute forbidden zones. The risk field still
+  // applies, but the score reflects the weapon's standoff advantage.
+  const siegeAvailable=selected.some(u=>u.kind==='artillery'&&u.hp>0);
   const candidates=targets.map(t=>{
    const loss=s.attempts.find(a=>a.sector===t.id),route=this.route(s.rally!,t.point),travel=this.sampleRoute(route,s.rally!);
    const towers=s.knownTurrets.filter(b=>distance(b,t.point)<b.range+85||route.some((p,i)=>segmentDistance(b,i?route[i-1]:s.rally!,p)<b.range+40));
@@ -233,7 +240,8 @@ export class TacticalAI {
    // toward the opposing front instead of clearing every remote neutral first;
    // hidden units/buildings still contribute no strength or threat information.
    const pressure=g.territories.filter(t=>t.owner===1).length>=4?(t.owner===0?2000:t.neighbors.some(i=>g.territories[i].owner===0)?1200:0):0;
-   return {t,route,...travel,towers,knownHQ,defenders,score:travel.length+travel.risk*75+towers.length*700+defenders*130+(loss&&loss.until>g.time?900+loss.losses*180:0)-t.income*16-t.neighbors.filter(i=>g.territories[i].owner!==1).length*45-pressure};
+   const siegeRoute=siegeAvailable&&towers.length>0;
+   return {t,route,...travel,towers,knownHQ,defenders,score:travel.length+travel.risk*(siegeRoute?40:75)+towers.length*(siegeRoute?260:700)+defenders*130+(loss&&loss.until>g.time?900+loss.losses*180:0)-t.income*16-t.neighbors.filter(i=>g.territories[i].owner!==1).length*45-pressure};
   }).filter(c=>c.route.length).sort((a,b)=>a.score-b.score||a.t.id-b.t.id);
   if(!candidates.length){this.strategyOptions=[];this.setPhase('regroup');this.issue([...selected,...medics],s.rally,'safe');return;}
   this.strategyOptions=candidates.slice(0,4).map(c=>({sectorId:c.t.id,owner:c.t.owner===0?'enemy':'neutral',
