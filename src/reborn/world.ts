@@ -1,5 +1,5 @@
 import { profiler } from './performance.js';
-import { RULES, type Point, type Owner, type MapVersion, mapLayout } from './config.js';
+import { RULES, type Point, type Owner, type MapVersion, mapLayout, mapWorldSize } from './config.js';
 import { TERRAIN_BLOCKED, TERRAIN_CLIFFS } from './terrain-art.js';
 import { generateMap, polygonContains, segmentDistance, type GeneratedMap } from './world-generation.js';
 
@@ -38,8 +38,8 @@ export function inside(p: Point, polygon: Point[]): boolean {
   return result;
 }
 export class World {
-  readonly size = RULES.worldSize;
-  readonly cell = this.size / RULES.grid;
+  readonly size:number;
+  readonly cell:number;
   readonly rocks: Point[][] = ROCKS.map(poly=>poly.map(([x,y])=>({x:x*3,y:y*3})));
   readonly blocked = new Uint8Array(RULES.grid ** 2);
   /** Physical tall relief, without navigation clearance or low rubble. */
@@ -49,6 +49,7 @@ export class World {
   readonly cliffCells:number[][]=[];
   readonly generated?:GeneratedMap;
   constructor(readonly seed=2026,readonly mapVersion:MapVersion=0) {
+    this.size=mapWorldSize(mapVersion);this.cell=this.size/RULES.grid;
     if(mapVersion===0&&navigationCache){
       this.blocked.set(navigationCache.blocked);this.opaque.set(navigationCache.opaque);this.cliffIds.set(navigationCache.cliffs);this.components.set(navigationCache.components);
       this.cliffIds.forEach((id,i)=>{if(id>=0)(this.cliffCells[id]??=[]).push(i);});return;
@@ -194,7 +195,7 @@ export class World {
     const layout=mapLayout(this.mapVersion),cols=layout.columns,rows=layout.rows,w=this.size/cols,h=this.size/rows;
     const vertices:Point[][]=Array.from({length:rows+1},(_,y)=>Array.from({length:cols+1},(_,x)=>({
       x:x*w+(x===0||x===cols?0:(rand()-.5)*w*.24),y:y*h+(y===0||y===rows?0:(rand()-.5)*h*.24)})));
-    if(this.mapVersion===2)for(let y=0;y<=rows;y++)for(let x=0;x<=cols;x++){
+    if(this.mapVersion>=2)for(let y=0;y<=rows;y++)for(let x=0;x<=cols;x++){
       if(y*(cols+1)+x>=(rows+1)*(cols+1)/2)continue;
       vertices[rows-y][cols-x]=y===rows-y&&x===cols-x?{x:this.size/2,y:this.size/2}:{x:this.size-vertices[y][x].x,y:this.size-vertices[y][x].y};
     }
@@ -206,8 +207,8 @@ export class World {
     const campaignNames=['Westgrat','Staubpfad','Roter Kamm','Rote Zitadelle','Dünenwacht','Steinbogen','Zentralpass','Ascheposten','Sandmeer','Prospektor-Tal','Trockensee','Splittergrat','Blaue Bastion','Heimische Dünen','Südpass','Letzte Wacht'];
     return Array.from({length:cols*rows},(_,id)=>{
       const x=id%cols,y=Math.floor(id/cols),point=this.generated?{...this.generated.sites[id]}:this.nearest({x:(x+.5)*w,y:(y+.5)*h})!;
-      const mirrored=this.mapVersion===2?Math.min(id,cols*rows-1-id):id,value=mirrored%7===0?2:mirrored%3===0?1:0;
-      return {id,name:this.mapVersion===2?campaignNames[id]:names[id],polygon:[vertices[y][x],vertices[y][x+1],vertices[y+1][x+1],vertices[y+1][x]],
+      const mirrored=this.mapVersion>=2?Math.min(id,cols*rows-1-id):id,value=mirrored%7===0?2:mirrored%3===0?1:0;
+      return {id,name:this.mapVersion===2?campaignNames[id]:this.mapVersion>=3?`Sektor ${id+1}`:names[id],polygon:[vertices[y][x],vertices[y][x+1],vertices[y+1][x+1],vertices[y+1][x]],
         point,neighbors:[x>0?id-1:-1,x<cols-1?id+1:-1,y>0?id-cols:-1,y<rows-1?id+cols:-1].filter(i=>i>=0),
         owner:layout.starts[0].some(i=>i===id)?0:layout.starts[1].some(i=>i===id)?1:-1,capturing:-1,progress:0,income:layout.incomes[value],value};
     });

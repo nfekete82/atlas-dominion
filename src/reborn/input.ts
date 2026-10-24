@@ -61,7 +61,7 @@ export class Input {
       renderer.selectedBase=null;for(const u of renderer.game.units){const s=renderer.screen(unitSpec(u).flying?unitSelectionPoint(u):u);if(u.owner===0&&!u.carrier&&s.x>0&&s.y>0&&s.x<renderer.width&&s.y<renderer.height)renderer.selected.add(u.id);}this.onSelection();
     });
     canvas.addEventListener('wheel',e=>{e.preventDefault();renderer.zoom(e.deltaY,local(e));},{passive:false});
-    const miniMove=(e:PointerEvent)=>{const r=mini.getBoundingClientRect();renderer.camera.x=(e.clientX-r.left)/r.width*RULES.worldSize;renderer.camera.y=(e.clientY-r.top)/r.height*RULES.worldSize;renderer.boundCamera();};
+    const miniMove=(e:PointerEvent)=>{const r=mini.getBoundingClientRect();renderer.camera.x=(e.clientX-r.left)/r.width*renderer.game.world.size;renderer.camera.y=(e.clientY-r.top)/r.height*renderer.game.world.size;renderer.boundCamera();};
     mini.addEventListener('pointerdown',e=>{if(e.button!==0)return;this.miniDragging=true;mini.setPointerCapture(e.pointerId);miniMove(e);});
     mini.addEventListener('pointermove',e=>{if(this.miniDragging)miniMove(e);});
     mini.addEventListener('pointerup',()=>{this.miniDragging=false;});mini.addEventListener('pointercancel',()=>{this.miniDragging=false;});

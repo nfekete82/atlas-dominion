@@ -74,24 +74,25 @@ export class Simulation {
   /** The original constructor remains a deterministic legacy fixture/save reader. */
   constructor(seed=2026,mapVersion:MapVersion=0) {
     this.seed=seed;this.world=new World(seed,mapVersion);this.territories=this.world.territories(seed);
+    if(mapVersion>=3)this.credits=[950,950];
     const layout=mapLayout(mapVersion);
     for(const owner of [0,1] as const){
       const territory=layout.headquarters[owner];
-      const t=this.territories[territory],site=mapVersion===2?{x:t.point.x+(owner===0?-260:260),y:t.point.y+(owner===0?165:-165)}:mapVersion===1?{x:t.point.x-165,y:t.point.y+45}:t.point,p=this.world.clearSite(site,RULES.headquarters.radius)!;
+      const t=this.territories[territory],site=mapVersion>=2?{x:t.point.x+(owner===0?-260:260),y:t.point.y+(owner===0?165:-165)}:mapVersion===1?{x:t.point.x-165,y:t.point.y+45}:t.point,p=this.world.clearSite(site,RULES.headquarters.radius)!;
       this.bases.push({id:1000+owner,owner,kind:'headquarters',...p,hp:RULES.headquarters.hp,territory,queue:[],queueTypes:[],production:0,buildRemaining:0,cooldown:0,rally:null,radius:RULES.headquarters.radius});
       if(mapVersion===0)t.point=this.world.nearest({x:p.x+165,y:p.y-45},this.obstacles())!;
-      const sign=mapVersion===2&&owner===1?-1:1;
+      const sign=mapVersion>=2&&owner===1?-1:1;
       this.spawn(owner,this.world.nearest({x:p.x+140*sign,y:p.y+100*sign},this.obstacles())!);
     }
     // Keep the two original soldiers/IDs, then give each faction one builder.
     for(const owner of [0,1] as const){
-      const soldier=this.units.find(u=>u.owner===owner)!,sign=mapVersion===2&&owner===1?-1:1;
+      const soldier=this.units.find(u=>u.owner===owner)!,sign=mapVersion>=2&&owner===1?-1:1;
       const p=this.world.nearest({x:soldier.x+45*sign,y:soldier.y},this.obstacles(),this.units,soldier)!;
       this.spawn(owner,p,'engineer');
     }
     this.spatial.rebuild(this.units);this.updateVision();
   }
-  static campaign(seed=randomMapSeed()):Simulation {return new Simulation(seed,MAP_VERSION);}
+  static campaign(seed=randomMapSeed(),version:MapVersion=MAP_VERSION):Simulation {return new Simulation(seed,version);}
   obstacles():Base[]{return this.bases.filter(b=>b.hp>0);}
   spawn(owner:Faction,p:Point,kind:UnitKind='infantry'):Unit {
     while(this.bases.some(b=>b.id===this.nextId))this.nextId++;
@@ -124,6 +125,7 @@ export class Simulation {
     if(!Number.isFinite(p.x)||!Number.isFinite(p.y))return 'Ungültiger Kartenbereich.';
     if(!spec||kind==='headquarters'||this.status!=='playing')return 'Dieses Gebäude kann hier nicht errichtet werden.';
     if(this.bases.filter(b=>b.hp>0).length>=40)return 'Gebäudelimit erreicht.';
+    if(['barracks','factory','airfield'].includes(kind)&&this.bases.some(b=>b.owner===owner&&b.kind===kind&&b.hp>0))return 'Dieses Produktionsgebäude existiert bereits.';
     if(!this.bases.some(b=>b.owner===owner&&b.kind==='headquarters'&&b.hp>0))return 'Ein Hauptquartier ist erforderlich.';
     if(this.credits[owner]<spec.cost)return 'Zu wenig Credits.';
     if(!this.hasExplored(owner,p))return 'Dieser Bauplatz ist noch nicht erforscht.';
@@ -194,7 +196,7 @@ export class Simulation {
         }else{const index=members.filter(v=>v.kind!=='medic').indexOf(u),columns=Math.ceil(Math.sqrt(members.length-medics.length)),lane=(index%columns-(columns-1)/2)*29,depth=-Math.floor(index/columns)*29;offset={x:heading.x*depth-heading.y*lane,y:heading.y*depth+heading.x*lane};}
       }
       const spec=unitSpec(u),p={x:order.x+offset.x,y:order.y+offset.y};
-      const target=spec.flying?{x:clamp(p.x,8,RULES.worldSize-8),y:clamp(p.y,8,RULES.worldSize-8)}:this.world.nearest(p,this.obstacles(),[],u,Math.max(0,spec.radius-10));if(!target)return;
+      const target=spec.flying?{x:clamp(p.x,8,this.world.size-8),y:clamp(p.y,8,this.world.size-8)}:this.world.nearest(p,this.obstacles(),[],u,Math.max(0,spec.radius-10));if(!target)return;
       const next:Order={...order,...target,...(mixed&&u.kind!=='medic'?{march:front.map(v=>v.id)}:{}),...(formation?{formation,kind:order.kind==='attack'?'attackMove':order.kind,target:undefined}:{})};u.hold=false;u.supportPaused=false;u.workingTarget=null;
       if(append){if(u.orders.length<32)u.orders.push(next);else return;}
       else {this.transports.cancel(u);delete u.burst;u.orders=formation&&u.orders[0]?.kind==='heal'?[u.orders[0],next]:[next];u.path=[];u.repath=0;u.combatTarget=null;u.pursuitOrigin=null;}
@@ -454,7 +456,7 @@ export class Simulation {
       // defensive reaction fire or an old attack lock stall the movement.
       // Boarding/takeoff animations finish before movement resumes.
       if(transportBusy){delete u.burst;continue;}
-      if(order?.kind==='move'){
+      if(order?.kind==='move'&&!(u.owner===1&&this.tactical.state.phase==='attack')){
         delete u.burst;u.combatTarget=null;u.pursuitOrigin=null;
         if(distance(u,order)<18){u.orders.shift();u.path=[];u.repath=0;}
         else this.move(u,order,dt);
@@ -551,7 +553,7 @@ export class Simulation {
       if(!b.queue.length)continue;
       b.production=Math.min(b.queue[0],b.production+dt);
       if(b.production+1e-8>=b.queue[0]){
-        const kind=b.queueTypes[0]??'infantry',spec=UNITS[kind],sign=this.world.mapVersion===2&&b.kind==='headquarters'&&b.owner===1?-1:1,exit={x:b.x+(b.radius+42)*sign,y:b.y+(b.radius+12)*sign};
+        const kind=b.queueTypes[0]??'infantry',spec=UNITS[kind],sign=this.world.mapVersion>=2&&b.kind==='headquarters'&&b.owner===1?-1:1,exit={x:b.x+(b.radius+42)*sign,y:b.y+(b.radius+12)*sign};
         const spawn=spec.flying?exit:this.world.nearest(exit,this.obstacles(),this.units,undefined,Math.max(0,spec.radius-10));
         if(spawn&&this.count(b.owner)<RULES.capacity){const u=this.spawn(b.owner,spawn,kind);b.queue.shift();b.queueTypes.shift();b.queueCosts?.shift();b.production=0;if(b.rally)this.command([u.id],{...b.rally,kind:'attackMove'});}
       }
@@ -594,7 +596,7 @@ export class Simulation {
     const finite=(n:unknown)=>typeof n==='number'&&Number.isFinite(n);
     const point=(p:Point)=>p&&finite(p.x)&&finite(p.y)&&p.x>=0&&p.y>=0&&p.x<=RULES.worldSize&&p.y<=RULES.worldSize;
     const burst=(b:Burst|undefined,rounds:number)=>b===undefined||(b!==null&&Number.isInteger(b.target)&&Number.isInteger(b.remaining)&&b.remaining>0&&b.remaining<=rounds&&b.remaining+b.index===rounds&&Number.isInteger(b.index)&&b.index>=0&&b.index<4&&finite(b.at)&&b.at>=s.time-.11&&b.at<=s.time+.11);
-    if(!s||s.version!==2||(s.productionVersion!==undefined&&s.productionVersion!==1)||(s.mapVersion!==undefined&&![0,1,2].includes(s.mapVersion))||!TacticalAI.valid(s.ai,s.time,point,mapLayout(s.mapVersion??0).columns*mapLayout(s.mapVersion??0).rows)||!finite(s.seed)||!finite(s.time)||s.time<0||!finite(s.incomeClock)||s.incomeClock<0||s.incomeClock>=10||
+    if(!s||s.version!==2||(s.productionVersion!==undefined&&s.productionVersion!==1)||(s.mapVersion!==undefined&&![0,1,2,3,4,5].includes(s.mapVersion))||!TacticalAI.valid(s.ai,s.time,point,mapLayout(s.mapVersion??0).columns*mapLayout(s.mapVersion??0).rows)||!finite(s.seed)||!finite(s.time)||s.time<0||!finite(s.incomeClock)||s.incomeClock<0||s.incomeClock>=10||
       !Array.isArray(s.units)||s.units.length>96||!Array.isArray(s.bases)||s.bases.length<2||s.bases.length>64||
       !Array.isArray(s.territories)||s.territories.length!==mapLayout(s.mapVersion??0).columns*mapLayout(s.mapVersion??0).rows||!Array.isArray(s.explored)||s.explored.length!==2||
       s.explored.some(a=>!Array.isArray(a)||![120**2,RULES.grid**2].includes(a.length)||a.some(v=>v!==0&&v!==1))||

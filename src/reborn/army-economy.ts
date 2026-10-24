@@ -19,8 +19,8 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
  let goal:BuildingKind|null=null;
  if(!unfinished&&workers.length&&(!underAttack||!has('barracks'))){
   if(!has('barracks'))goal='barracks';
-  else if(!has('factory')&&fighters.length>=4&&(income>=35||known>0))goal='factory';
-  else if(!has('airfield')&&has('factory')&&fighters.length>=5&&(income>=55||(g.time>=240&&income>=35)||seen.some(u=>unitSpec(u).flying)))goal='airfield';
+  else if(!has('factory')&&fighters.length>=3&&(income>=20||known>0||g.time>=55))goal='factory';
+  else if(!has('airfield')&&has('factory')&&fighters.length>=4&&(income>=35||g.time>=110||seen.some(u=>unitSpec(u).flying)))goal='airfield';
   else if(!has('barracks')&&fighters.length>=3)goal='barracks';
  }
  if(e.goal!==goal){e.goal=goal;e.since=g.time;}
@@ -40,15 +40,15 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
  const armor=seen.filter(u=>!unitSpec(u).flying&&unitSpec(u).group==='Fahrzeuge').length,air=seen.filter(u=>unitSpec(u).flying).length;
  const military=g.memories[1].filter(b=>b.owner===0&&b.hp>0&&['headquarters','factory','airfield','turret'].includes(b.kind??''));
  const scores:Record<UnitKind,number>={
-  infantry:Math.max(1,26-count('infantry')*4)+(fighters.length<3?8:0),
-  heavy:7+(known?20+known*10:0)+armor*5+(fighters.length>=3?7:0)-count('heavy')*9,
+  infantry:Math.max(1,22-count('infantry')*5)+(fighters.length<4?18:0),
+  heavy:14+(known?20+known*10:0)+armor*5+(fighters.length>=3?9:0)-count('heavy')*11,
   medic:(wounded>=2?30:Math.max(0,fighters.length-2)*4)-count('medic')*20,
   engineer:count('engineer')===0?(!complete('barracks')?80:fighters.length>=2?38:0):own.length>=4&&count('engineer')<2?15:0,
-  rover:complete('factory')?13+(g.explored[1].reduce((n,v)=>n+v,0)/g.explored[1].length<.4?6:0)-count('rover')*14:0,
-  tank:complete('factory')?14+known*4+armor*6-count('tank')*11:0,
-  artillery:complete('factory')&&known?32+known*6-count('artillery')*29:0,
-  scout:complete('airfield')&&fighters.length>=4?19-count('scout')*20:0,
-  gunship:complete('airfield')?15+air*10+armor*3-count('gunship')*17:0,
+  rover:complete('factory')?35+(g.explored[1].reduce((n,v)=>n+v,0)/g.explored[1].length<.4?6:0)-count('rover')*17:0,
+  tank:complete('factory')?44+known*4+armor*6-count('tank')*16:0,
+  artillery:complete('factory')&&(known||fighters.length>=5)?32+known*14-count('artillery')*32:0,
+  scout:complete('airfield')&&fighters.length>=4?25-count('scout')*35:0,
+  gunship:complete('airfield')?38+air*10+armor*3-count('gunship')*19:0,
   bomber:complete('airfield')&&(count('scout')+count('gunship')>0)&&income>=65&&fighters.length>=6&&military.length?22+military.filter(b=>b.kind==='factory'||b.kind==='airfield').length*3-count('bomber')*25:0,
  };
  if(underAttack&&fighters.length<4){scores.infantry+=20;scores.heavy+=15;}

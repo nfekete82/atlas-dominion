@@ -73,11 +73,11 @@ export class Renderer {
   }
   private prepareMap():void {
     this.prepareTerrain();
-    const mini=this.miniTerrain.getContext('2d',{willReadFrequently:true})!;mini.drawImage(this.terrainSurface,0,0,224,224);mini.save();mini.scale(224/RULES.worldSize,224/RULES.worldSize);this.paintCliffs(mini);mini.restore();
+    const mini=this.miniTerrain.getContext('2d',{willReadFrequently:true})!;mini.drawImage(this.terrainSurface,0,0,224,224);mini.save();mini.scale(224/this.game.world.size,224/this.game.world.size);this.paintCliffs(mini);mini.restore();
   }
   private prepareTerrain():void{
     if(this.game.world.generated){paintGeneratedTerrain(this.terrainSurface,this.game.world,this.sand,this.sandstone);return;}
-    const surface=this.terrainSurface;surface.width=surface.height=RULES.worldSize;
+    const surface=this.terrainSurface;surface.width=surface.height=this.game.world.size;
     const ctx=surface.getContext('2d',{willReadFrequently:true})!,tile=document.createElement('canvas');tile.width=tile.height=190;
     const tc=tile.getContext('2d')!;tc.drawImage(this.terrain,445/1254*this.terrain.width,675/1254*this.terrain.height,190/1254*this.terrain.width,190/1254*this.terrain.height,0,0,190,190);
     const detail=tc.getImageData(0,0,190,190).data;tc.filter='blur(6px)';tc.drawImage(tile,0,0);const low=tc.getImageData(0,0,190,190).data;
@@ -124,7 +124,7 @@ export class Renderer {
   home():void {const b=this.game.bases.find(b=>b.owner===0&&b.kind==='headquarters'&&b.hp>0);if(b){this.camera.zoom=1;this.camera.x=b.x+this.width*(.5-.33);this.camera.y=b.y-Math.max(this.height*.35,Math.min(this.height*.63,this.height-300))+this.height/2;this.boundCamera();}}
   invalidate():void{if(this.infantry)this.prepareMap();this.fogRevision=-1;this.units.clear();this.seenImpacts=new WeakSet();}
   boundCamera():void {
-    const w=this.width/this.camera.zoom/2,h=this.height/this.camera.zoom/2,s=RULES.worldSize;
+    const w=this.width/this.camera.zoom/2,h=this.height/this.camera.zoom/2,s=this.game.world.size;
     this.camera.x=w>=s/2?s/2:clamp(this.camera.x,w,s-w);this.camera.y=h>=s/2?s/2:clamp(this.camera.y,h,s-h);
   }
   screen(p:Point):Point{return {x:(p.x-this.camera.x)*this.camera.zoom+this.width/2,y:(p.y-this.camera.y)*this.camera.zoom+this.height/2};}
@@ -187,7 +187,7 @@ export class Renderer {
   }
   private paintSandWind(time:number):void {
     if(this.reducedMotion||!this.units.particles.enabled)return;
-    const c=this.context,step=155,size=RULES.worldSize,halfW=this.width/this.camera.zoom/2,halfH=this.height/this.camera.zoom/2;
+    const c=this.context,step=155,size=this.game.world.size,halfW=this.width/this.camera.zoom/2,halfH=this.height/this.camera.zoom/2;
     const left=Math.max(0,Math.floor((this.camera.x-halfW-140)/step)),right=Math.min(Math.ceil(size/step),Math.ceil((this.camera.x+halfW+140)/step));
     const top=Math.max(0,Math.floor((this.camera.y-halfH-60)/step)),bottom=Math.min(Math.ceil(size/step),Math.ceil((this.camera.y+halfH+60)/step));
     c.save();c.lineCap='round';
@@ -234,7 +234,7 @@ export class Renderer {
   }
   private renderMeasured(dt:number,interpolation=1):void {
     if(!this.terrain?.complete||!this.infantry)return;
-    const c=this.context,g=this.game,s=RULES.worldSize;this.updateFog();
+    const c=this.context,g=this.game,s=this.game.world.size;this.updateFog();
     if(this.animationGame!==g){this.units.clear();this.seenImpacts=new WeakSet();this.animationGame=g;this.effectTime=g.time;this.workEmitted.clear();this.rocketTrails.clear();}
     this.units.update(g.units,g.paused?0:dt,p=>g.canSee(0,p));
     const effectDt=g.paused?0:Math.max(0,g.time-this.effectTime);this.effectTime=g.time;
@@ -336,7 +336,7 @@ export class Renderer {
     if(!profiler)return this.renderMiniMeasured();const at=performance.now();try{this.renderMiniMeasured();}finally{profiler.record('minimap',performance.now()-at);}
   }
   private renderMiniMeasured():void {
-    const c=this.mini,g=this.game,n=this.miniCanvas.width,k=n/RULES.worldSize;
+    const c=this.mini,g=this.game,n=this.miniCanvas.width,k=n/g.world.size;
     c.drawImage(this.miniTerrain,0,0,n,n);
     for(const t of g.territories)if(t.owner>=0){c.beginPath();t.polygon.forEach((p,i)=>i?c.lineTo(p.x*k,p.y*k):c.moveTo(p.x*k,p.y*k));c.closePath();c.fillStyle=t.owner===0?'#429fe33d':'#d84b493d';c.fill();}
     c.imageSmoothingEnabled=false;c.drawImage(this.fog,0,0,n,n);c.imageSmoothingEnabled=true;
