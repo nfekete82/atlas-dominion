@@ -1,4 +1,4 @@
-import { RULES, mapLayout, type MapVersion, type Point } from './config.js';
+import { RULES, mapLayout, mapWorldSize, type MapVersion, type Point } from './config.js';
 
 /** Versioned, deterministic geometry. Old saves continue to use the original map. */
 export const MAP_VERSION = 2;
@@ -28,14 +28,14 @@ function hull(points:Point[]):Point[] {
 }
 export function generateMap(seed:number,version:Exclude<MapVersion,0>=MAP_VERSION):GeneratedMap {
   const layout=mapLayout(version),cols=layout.columns,rows=layout.rows,count=cols*rows;
-  const rand=seededRandom(seed),size=RULES.worldSize,grid=RULES.grid,cell=size/grid,w=size/cols,h=size/rows;
+  const rand=seededRandom(seed),size=mapWorldSize(version),grid=RULES.grid,cell=size/grid,w=size/cols,h=size/rows;
   // Stratified rejection sampling avoids clumps and preserves adjacent capture sectors.
   // Reserve all sector centres first so a later sector always has a legal fallback.
   const sites=Array.from({length:count},(_,i)=>({x:(i%cols+.5)*w,y:(Math.floor(i/cols)+.5)*h}));
-  for(let i=0;i<(version===2?count/2:count);i++)for(let attempt=0;attempt<80;attempt++){
-    const p={x:(i%cols+.5+(rand()-.5)*(version===2?.46:.56))*w,y:(Math.floor(i/cols)+.5+(rand()-.5)*(version===2?.46:.54))*h};
+  for(let i=0;i<(version>=2?count/2:count);i++)for(let attempt=0;attempt<80;attempt++){
+    const p={x:(i%cols+.5+(rand()-.5)*(version>=2?.46:.56))*w,y:(Math.floor(i/cols)+.5+(rand()-.5)*(version>=2?.46:.54))*h};
     if(p.x<270||p.x>size-270||p.y<270||p.y>size-270)continue;
-    if(version===2){
+    if(version>=2){
       const partner=count-1-i,mirror={x:size-p.x,y:size-p.y};
       if(layout.headquarters.some(id=>id===i||id===partner)&&(p.x<460||p.x>size-460||p.y<460||p.y>size-460))continue;
       if(Math.hypot(p.x-mirror.x,p.y-mirror.y)<layout.spacing)continue;
@@ -47,10 +47,10 @@ export function generateMap(seed:number,version:Exclude<MapVersion,0>=MAP_VERSIO
   const reserved=new Uint8Array(grid*grid),occupied=new Uint8Array(grid*grid);
   for(let i=0;i<reserved.length;i++){
     const p={x:(i%grid+.5)*cell,y:(Math.floor(i/grid)+.5)*cell};
-    if(sites.some((s,j)=>Math.hypot(p.x-s.x,p.y-s.y)<(layout.headquarters.some(id=>id===j)?version===2?520:335:version===2?230:155))||corridors.some(([a,b])=>segmentDistance(p,a,b)<CORRIDOR_RADIUS+cell))reserved[i]=1;
+    if(sites.some((s,j)=>Math.hypot(p.x-s.x,p.y-s.y)<(layout.headquarters.some(id=>id===j)?version>=2?Math.min(520,w*.7):335:version>=2?Math.min(230,w*.38):155))||corridors.some(([a,b])=>segmentDistance(p,a,b)<CORRIDOR_RADIUS+cell))reserved[i]=1;
   }
   const mesas:Mesa[]=[];
-  for(let attempt=0;attempt<900&&mesas.length<44;attempt++){
+  for(let attempt=0;attempt<900&&mesas.length<Math.max(12,Math.round(44*(size/RULES.worldSize)**2));attempt++){
     const x=100+rand()*(size-200),y=160+rand()*(size-270),radius=50+rand()*75,columns:MesaColumn[]=[];
     const count=3+Math.floor(rand()*5),rotation=rand()*Math.PI*2;
     for(let n=0;n<count;n++){
