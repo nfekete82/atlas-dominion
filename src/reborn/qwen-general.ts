@@ -10,7 +10,7 @@ type WorkerReply =
   | { type: 'error'; message: string }
   | { type: 'plan'; id: number; answer: unknown; durationMs: number }
   | { type: 'plan-error'; id: number; message: string };
-interface PendingPlan { id: number; game: Simulation; brief: StrategicBrief }
+interface PendingPlan { id: number; game: Simulation; brief: StrategicBrief; epoch: number }
 
 /**
  * Experimental browser-only adviser. The simulation never waits for the model.
@@ -28,6 +28,7 @@ export class QwenGeneral {
   private worker: Worker | null = null;
   private pending: PendingPlan | null = null;
   private serial = 0;
+  private epoch = 0;
   private lastRequestAt = -Infinity;
 
   private update(status: QwenStatus): void { this.status = status; this.onChange(); }
@@ -62,6 +63,7 @@ export class QwenGeneral {
     this.update('off');
   }
   resetCampaign(): void {
+    this.epoch++;
     this.lastRequestAt = -Infinity;
     this.lastDecision = null;
     // Any pending plan still refers to the old Simulation object and is ignored on reply.
@@ -72,7 +74,7 @@ export class QwenGeneral {
     const brief = game.tactical.strategicBrief();
     if (!brief || brief.options.length < 2 || brief.phase === 'attack' || brief.phase === 'defend') return;
     const id = ++this.serial;
-    this.pending = { id, game, brief };
+    this.pending = { id, game, brief, epoch: this.epoch };
     this.lastRequestAt = game.time;
     this.update('planning');
     this.worker?.postMessage({ type: 'plan', id, messages: strategicMessages(brief) });
@@ -98,7 +100,7 @@ export class QwenGeneral {
     this.lastDurationMs = message.durationMs;
     const choice = parseStrategicDecision(message.answer, pending.brief);
     const game = pending.game;
-    const stillCurrent = game.status === 'playing' && !game.paused
+    const stillCurrent = pending.epoch === this.epoch && game.status === 'playing' && !game.paused
       && game.time >= pending.brief.time && game.time - pending.brief.time <= 35
       && game.tactical.strategicBrief()?.time !== undefined;
     if (stillCurrent && choice && game.tactical.preferSector(choice.sectorId)) {
