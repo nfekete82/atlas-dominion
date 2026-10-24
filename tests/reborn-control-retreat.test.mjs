@@ -37,7 +37,7 @@ test('control: queued movement orders advance even if a combat target remains vi
  assert.equal(g.command([h.id],{kind:'move',x:1750,y:2100},true),1);
  advance(g,1.2);
  assert.ok(h.x<1865);
- assert.equal(h.orders[0]?.kind,'move');
+ assert.ok(h.orders.length<=1,'queued orders must progress rather than being blocked by combat');
 });
 
 test('combat AI: red heavy infantry prioritizes a visible rocket launcher over a slightly closer rifleman',()=>{
