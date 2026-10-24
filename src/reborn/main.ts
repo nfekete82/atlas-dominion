@@ -1,4 +1,5 @@
 import { profiler, PerformanceRecorder, setProfiler, mountPerformancePanel } from './performance.js';
+import { QwenGeneral } from './qwen-general.js';
 import { RULES, mapLayout } from './config.js';
 import { Simulation, type Base } from './simulation.js';
 import { Renderer } from './renderer.js';
@@ -19,6 +20,7 @@ if(query.has('debug')&&query.has('perf')){const recorder=new PerformanceRecorder
 // Explicit legacy fixture for regression checks; normal launches always roll a new seed.
 const createCampaign=()=>query.has('debug')&&query.has('legacy')?new Simulation():Simulation.campaign(query.has('debug')&&query.has('seed')?Number(query.get('seed'))>>>0:undefined);
 let game=createCampaign();
+const qwenGeneral=new QwenGeneral();
 if(query.has('debug')&&query.has('perfTest'))game.paused=true;
 const renderer=new Renderer(el<HTMLCanvasElement>('world'),el<HTMLCanvasElement>('minimap'),game),input=new Input(renderer),audio=new Soundscape();
 let accumulator=0,last=performance.now(),uiClock=0,resultShown=false,busy=false,ready=false,selectionSound='',catalogTab='units';
@@ -62,7 +64,7 @@ function prepareCatalog():void{
 function prepareTerritories():void{el('catalog-territories').replaceChildren();
  for(const t of game.territories){const button=document.createElement('button');button.className='territory-row';button.dataset.territory=String(t.id);button.innerHTML='<i></i><strong></strong><small></small>';button.onclick=()=>{renderer.camera.x=game.territories[t.id].point.x;renderer.camera.y=game.territories[t.id].point.y;renderer.boundCamera();};el('catalog-territories').append(button);}
 }
-function reset():void{closeDialogs();game=createCampaign();audio.bindGame(game);renderer.game=game;renderer.invalidate();renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;renderer.placement=null;renderer.commandMode=null;renderer.canvas.classList.remove('attack','building');renderer.home();prepareTerritories();accumulator=0;resultShown=false;messages.length=0;setPause(false);tab('units');refresh();notify('Neue Kampagne. Wähle deinen Bauarbeiter und errichte zuerst eine Kaserne.');}
+function reset():void{closeDialogs();game=createCampaign();qwenGeneral.resetCampaign();audio.bindGame(game);renderer.game=game;renderer.invalidate();renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;renderer.placement=null;renderer.commandMode=null;renderer.canvas.classList.remove('attack','building');renderer.home();prepareTerritories();accumulator=0;resultShown=false;messages.length=0;setPause(false);tab('units');refresh();notify('Neue Kampagne. Wähle deinen Bauarbeiter und errichte zuerst eine Kaserne.');}
 function refresh():void{
  if(!profiler)return refreshMeasured();const at=performance.now();try{refreshMeasured();}finally{profiler.record('hud',performance.now()-at);}
 }
@@ -127,7 +129,7 @@ function refreshMeasured():void{
  if(game.status!=='playing'&&!resultShown){resultShown=true;closeDialogs();setPause(true);setText('result-title',game.status==='victory'?'Aridis gesichert.':'Die Legion ist gefallen.');setText('result-copy',game.status==='victory'?`Das feindliche Hauptquartier und seine ${mapLayout(game.world.mapVersion).starts[1].length} Startgebiete sind unter deiner Kontrolle.`:'Deine Produktionsstätten und Truppen wurden vernichtet.');el<HTMLDialogElement>('result-dialog').showModal();}
 }
 async function save():Promise<void>{if(busy)return;busy=true;try{await saveCampaign(game);notify('Kampagne lokal gespeichert.');}catch(e){notify((e as Error).message);}finally{busy=false;}}
-async function load():Promise<void>{if(busy)return;busy=true;try{const loaded=await loadCampaign();closeDialogs();game=loaded;audio.bindGame(game);renderer.game=game;renderer.invalidate();renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;renderer.placement=null;renderer.commandMode=null;renderer.canvas.classList.remove('attack','building');renderer.home();prepareTerritories();resultShown=false;accumulator=0;setPause(false);refresh();notify('Kampagne geladen.');}catch(e){notify((e as Error).message);}finally{busy=false;}}
+async function load():Promise<void>{if(busy)return;busy=true;try{const loaded=await loadCampaign();closeDialogs();game=loaded;qwenGeneral.resetCampaign();audio.bindGame(game);renderer.game=game;renderer.invalidate();renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;renderer.placement=null;renderer.commandMode=null;renderer.canvas.classList.remove('attack','building');renderer.home();prepareTerritories();resultShown=false;accumulator=0;setPause(false);refresh();notify('Kampagne geladen.');}catch(e){notify((e as Error).message);}finally{busy=false;}}
 el('resume-tactical').onclick=()=>setPause(false);
 input.onPause=()=>setPause(!game.paused);input.onMenu=openMenu;input.onHelp=()=>modal('help-dialog');input.onSave=()=>void save();input.onLoad=()=>void load();
 input.onSelection=()=>{const next=[...renderer.selected].join(',')+':'+renderer.selectedBase;if(next!==selectionSound){selectionSound=next;audio.select();}refresh();};input.onOrder=order=>audio.acknowledge(order,game);
@@ -159,9 +161,13 @@ el<HTMLInputElement>('audio-enabled').checked=audio.enabled;el<HTMLInputElement>
 el<HTMLInputElement>('audio-speech').checked=audio.radio.enabled;el<HTMLInputElement>('speech-volume').value=String(Math.round(audio.radio.volume*100));setText('speech-level',`${Math.round(audio.radio.volume*100)} %`);
 for(const id of ['audio-enabled','audio-volume','audio-ambience','audio-speech','speech-volume'])el(id).addEventListener('input',soundPreferences);
 const openAudio=()=>{modal('audio-panel');el('sound').setAttribute('aria-expanded','true');};el('sound').onclick=openAudio;el('options').onclick=openAudio;el<HTMLDialogElement>('audio-panel').addEventListener('close',()=>{audio.radio.stop();el('sound').setAttribute('aria-expanded','false');});el('audio-test').onclick=()=>{void audio.unlock().then(()=>audio.radio.ready).then(()=>audio.radio.request('move','infantry',true)).catch(()=>{});};
+const qwenToggle=el<HTMLInputElement>('qwen-enabled');
+qwenGeneral.onChange=()=>{qwenToggle.checked=qwenGeneral.enabled;setText('qwen-status',qwenGeneral.description());};
+qwenToggle.onchange=()=>{if(qwenToggle.checked)qwenGeneral.enable();else qwenGeneral.disable();};
+qwenGeneral.onChange();
 el('messages').onclick=()=>{const history=el('message-history');history.replaceChildren();if(!messages.length){const p=document.createElement('p');p.textContent='Keine neuen Funkmeldungen.';history.append(p);}for(const item of messages){const p=document.createElement('p'),time=document.createElement('time');time.textContent=item.time;p.append(time,document.createTextNode(item.message));history.append(p);}el('unread').hidden=true;modal('message-dialog');};
 window.addEventListener('pointerdown',()=>{void audio.unlock().catch(()=>{});},{capture:true});window.addEventListener('keydown',()=>{void audio.unlock().catch(()=>{});},{capture:true});window.addEventListener('resize',()=>renderer.resize());document.addEventListener('visibilitychange',()=>{last=performance.now();accumulator=0;if(document.hidden){audio.silenceScene();setPause(true);}});
-function frame(now:number):void{profiler?.beginFrame(now);const dt=Math.min(.1,(now-last)/1000);last=now;const inputAt=profiler?performance.now():0;input.update(dt);if(profiler)profiler.record('input',performance.now()-inputAt);if(!game.paused){accumulator+=dt;let steps=0;while(accumulator>=RULES.tick&&steps++<5){game.step();accumulator-=RULES.tick;}}else accumulator=0;const audioAt=profiler?performance.now():0;audio.update(game,renderer);if(profiler)profiler.record('audio',performance.now()-audioAt);renderer.render(dt,accumulator/RULES.tick);uiClock+=dt;if(uiClock>.1){refresh();uiClock=0;}profiler?.endFrame(now);requestAnimationFrame(frame);}
+function frame(now:number):void{profiler?.beginFrame(now);const dt=Math.min(.1,(now-last)/1000);last=now;const inputAt=profiler?performance.now():0;input.update(dt);if(profiler)profiler.record('input',performance.now()-inputAt);if(!game.paused){accumulator+=dt;let steps=0;while(accumulator>=RULES.tick&&steps++<5){game.step();accumulator-=RULES.tick;}}else accumulator=0;const audioAt=profiler?performance.now():0;audio.update(game,renderer);if(profiler)profiler.record('audio',performance.now()-audioAt);renderer.render(dt,accumulator/RULES.tick);uiClock+=dt;if(uiClock>.1){qwenGeneral.maybePlan(game);refresh();uiClock=0;}profiler?.endFrame(now);requestAnimationFrame(frame);}
 void audio.radio.preload();
 try{await renderer.load();prepareCatalog();ready=true;el('loading').remove();refresh();last=performance.now();requestAnimationFrame(frame);}catch(e){setHtml('loading','<strong>Der Wüstensektor konnte nicht geladen werden.</strong><p>Bitte neu laden und die lokalen Grafiken prüfen.</p>');console.error(e);}
-if(new URLSearchParams(location.search).has('debug'))Object.assign(window,{__reborn:{get game(){return game;},renderer,input,refresh,audio,profiler,advance(seconds:number){for(let i=0;i<Math.round(seconds/RULES.tick);i++)game.step();refresh();renderer.render(0);},save,load}});
+if(new URLSearchParams(location.search).has('debug'))Object.assign(window,{__reborn:{get game(){return game;},renderer,input,refresh,audio,profiler,qwenGeneral,advance(seconds:number){for(let i=0;i<Math.round(seconds/RULES.tick);i++)game.step();refresh();renderer.render(0);},save,load}});
