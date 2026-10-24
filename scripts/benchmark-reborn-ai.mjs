@@ -8,24 +8,26 @@
  */
 import {Simulation} from '../dist/src/reborn/simulation.js';
 import {performance} from 'node:perf_hooks';
+import {blueDefense} from './benchmark-ai-opponent.mjs';
 
 const options=Object.fromEntries(process.argv.slice(2).flatMap((value,i,all)=>value.startsWith('--')
   ?[[value.slice(2),all[i+1]]]:[]));
 const version=Number(options.map??4);
 const seconds=Number(options.seconds??240);
 const seeds=String(options.seeds??'2026,2027,2028').split(',').map(Number);
-if(![3,4,5].includes(version)||!Number.isInteger(seconds)||seconds<30||seconds>900
+const opponent=String(options.opponent??'guarded');
+if(![3,4,5].includes(version)||!['guarded','idle'].includes(opponent)||!Number.isInteger(seconds)||seconds<30||seconds>900
   ||seeds.length<1||seeds.length>24||seeds.some(v=>!Number.isSafeInteger(v)||v<0||v>4294967295)){
- console.error('Usage: node scripts/benchmark-reborn-ai.mjs --map 3|4|5 --seeds 2026,2027 --seconds 240');
+ console.error('Usage: node scripts/benchmark-reborn-ai.mjs --map 3|4|5 --seeds 2026,2027 --seconds 240 --opponent guarded|idle');
  process.exitCode=2;
 }else{
  const run=(seed,mode)=>{
   const g=new Simulation(seed,version);g.tactical.mode=mode;
   const starting={blue:g.units.filter(u=>u.owner===0).length,
    redSectors:g.territories.filter(t=>t.owner===1).length,credits:g.credits[1]};
-  const metrics={seed,mode,seconds,initialCredits:starting.credits,
+  const metrics={seed,mode,opponent,requestedSeconds:seconds,elapsedSeconds:0,terminalStatus:'playing',initialCredits:starting.credits,
    firstAssault:null,firstVehicle:null,firstFactory:null,firstFrontContact:null,
-   finishedBuildings:0,vehicles:0,redSectors:starting.redSectors,captures:0,
+   finishedBuildings:0,vehicles:0,peakVehicles:0,vehiclesOrdered:0,redSectors:starting.redSectors,captures:0,
    blueUnitsLost:0,blueHeadquartersHp:null,redUnits:0,redCredits:0,
    attackingSeconds:0,productiveFactorySeconds:0,productiveBarracksSeconds:0,
    productiveAirfieldSeconds:0,phaseTransitions:0,score:0,wallMs:0};
@@ -34,10 +36,13 @@ if(![3,4,5].includes(version)||!Number.isInteger(seconds)||seconds<30||seconds>9
   const begin=performance.now();
   const steps=Math.round(seconds/.05);
   for(let step=0;step<steps&&g.status==='playing';step++){
+   if(opponent==='guarded'&&step%60===0)blueDefense(g);
    g.step(.05);
+   metrics.elapsedSeconds=Number(g.time.toFixed(2));
    if(step%20!==0)continue;
    const time=Math.round(g.time),red=g.units.filter(u=>u.owner===1&&u.hp>0&&!u.carrier);
    const available=red.filter(u=>types.has(u.kind));
+   metrics.peakVehicles=Math.max(metrics.peakVehicles,available.length);
    const own=g.bases.filter(b=>b.owner===1&&b.hp>0);
    const factory=own.find(b=>b.kind==='factory'&&b.buildRemaining===0);
    const otherBuildings=own.filter(b=>['barracks','factory','airfield'].includes(b.kind)&&b.buildRemaining===0);
@@ -56,6 +61,9 @@ if(![3,4,5].includes(version)||!Number.isInteger(seconds)||seconds<30||seconds>9
    if(metrics.firstFrontContact===null&&activeFront)metrics.firstFrontContact=time;
   }
   metrics.wallMs=Math.round(performance.now()-begin);
+  metrics.terminalStatus=g.status;
+  metrics.vehiclesOrdered=Object.entries(g.tactical.state.economy?.produced??{})
+   .filter(([kind])=>types.has(kind)).reduce((n,[,count])=>n+count,0);
   metrics.redSectors=g.territories.filter(t=>t.owner===1).length;
   metrics.captures=Math.max(0,metrics.redSectors-starting.redSectors);
   metrics.blueUnitsLost=Math.max(0,starting.blue-g.units.filter(u=>u.owner===0&&u.hp>0).length);
@@ -73,18 +81,24 @@ if(![3,4,5].includes(version)||!Number.isInteger(seconds)||seconds<30||seconds>9
   const result=run(seed,mode);details.push(result);
   console.log(mode.padEnd(8),'seed='+seed,
    'sectors='+result.redSectors,'captures='+result.captures,
-   'vehicles='+result.vehicles,'firstFront='+String(result.firstFrontContact??'none'),
+   'peakVehicles='+result.peakVehicles,'orderedVehicles='+result.vehiclesOrdered,
+   'playedSeconds='+result.elapsedSeconds,'status='+result.terminalStatus,
+   'firstFront='+String(result.firstFrontContact??'none'),
    'factory='+String(result.firstFactory??'none'),'assaultSeconds='+result.attackingSeconds,
    'score='+result.score,'wallMs='+result.wallMs);
  }
  const avg=(mode,key)=>Number((details.filter(r=>r.mode===mode).reduce((n,r)=>n+r[key],0)/seeds.length).toFixed(2));
- const summary={mapVersion:version,simulatedSeconds:seconds,seeds,
-  baseline:{meanCaptures:avg('baseline','captures'),meanVehicles:avg('baseline','vehicles'),
+ const summary={mapVersion:version,requestedSeconds:seconds,opponent,seeds,
+  baseline:{meanCaptures:avg('baseline','captures'),meanPeakVehicles:avg('baseline','peakVehicles'),meanVehiclesOrdered:avg('baseline','vehiclesOrdered'),meanPlayedSeconds:avg('baseline','elapsedSeconds'),meanVehicles:avg('baseline','vehicles'),
    meanScore:avg('baseline','score'),meanAttackingSeconds:avg('baseline','attackingSeconds')},
-  director:{meanCaptures:avg('director','captures'),meanVehicles:avg('director','vehicles'),
+  director:{meanCaptures:avg('director','captures'),meanPeakVehicles:avg('director','peakVehicles'),meanVehiclesOrdered:avg('director','vehiclesOrdered'),meanPlayedSeconds:avg('director','elapsedSeconds'),meanVehicles:avg('director','vehicles'),
    meanScore:avg('director','score'),meanAttackingSeconds:avg('director','attackingSeconds')},
   details};
  console.log('\nAI BENCHMARK JSON\n'+JSON.stringify(summary,null,2));
  if(summary.director.meanCaptures<=summary.baseline.meanCaptures)
   console.log('\nNOTE: The director has not improved captured territory on these seeds. Investigate before declaring victory.');
+ if(details.some(r=>r.elapsedSeconds<seconds-.1))
+  console.log('\nWARNING: A game ended early. Mean scores may hide early victory/defeat; compare elapsedSeconds and terminalStatus.');
+ if(summary.director.meanPeakVehicles<=summary.baseline.meanPeakVehicles)
+  console.log('\nNOTE: The director has not improved deployed vehicle count; do not infer better vehicle tactics from unit tests.');
 }
