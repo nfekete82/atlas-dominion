@@ -355,7 +355,7 @@ export class Simulation {
     // can respond within sight, starting their approach before weapon range.
     // Engineers on guard duty stay near their work instead of abandoning repairs.
     const support=u.kind==='engineer'||u.kind==='medic'||u.kind==='scout';
-    const proactive=!u.hold&&!support;
+    const proactive=!u.hold&&order?.kind!=='move'&&!support;
     const engageRadius=proactive?Math.max(spec.range,Math.min(spec.sight,spec.range+120)):spec.range;
     const visible=(e:Unit|Base)=>this.canSee(u.owner,e)||(distance(u,e)<=spec.sight&&(spec.flying||this.world.sightLine(u,e)));
     const eligible=(e:Unit|Base)=>{
@@ -472,7 +472,7 @@ export class Simulation {
         // A direct attack command is authoritative and can pursue beyond the guard leash.
         if(!u.path.length||u.repath<=0){u.path=[];u.repath=0;}
         this.move(u,enemy,dt);
-      } else if(enemy&&!u.hold&&u.kind!=='medic'&&u.kind!=='engineer'&&u.kind!=='scout'&&order?.kind!=='move'){
+      } else if(enemy&&!u.hold&&u.kind!=='medic'&&u.kind!=='engineer'&&u.kind!=='scout'){
         delete u.burst;
         // Idle guards and attack-move squads close the gap, but never chase
         // farther than a short distance from where contact began.
