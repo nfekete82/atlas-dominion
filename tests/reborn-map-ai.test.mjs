@@ -76,4 +76,13 @@ test('supply: a transport helicopter accepts real infantry for a forward airlift
  g.tactical.plan();
  assert.equal(g.tactical.state.airlift?.phase,'delivery');
  assert.ok(h.transport?.pickup.length>=2,'airlift must board existing paid-sized infantry units');
+ step(g,9);
+ assert.ok(h.transport?.cargo.length>=2,'troops must actually enter the helicopter');
+ g.tactical.plan();
+ assert.equal(h.transport?.task,'unload','helicopter must start flying to the forward sector');
+ step(g,28);
+ assert.equal(h.transport?.cargo.length,0,'the transport must unload its actual passengers');
+ assert.ok(g.units.some(u=>u.owner===1&&u.kind==='infantry'&&!u.carrier
+  &&Math.hypot(u.x-g.territories[7].point.x,u.y-g.territories[7].point.y)<420),
+ 'at least one passenger must arrive at the captured forward sector');
 });
