@@ -21,6 +21,7 @@ if(query.has('debug')&&query.has('perf')){const recorder=new PerformanceRecorder
 let selectedMapVersion:MapVersion=query.has('debug')?2:4;
 const requestedSize=query.get('map');
 if(requestedSize&&Object.hasOwn(CAMPAIGN_SIZES,requestedSize))selectedMapVersion=CAMPAIGN_SIZES[requestedSize as CampaignSize];
+el<HTMLSelectElement>('map-size').value=selectedMapVersion===3?'small':selectedMapVersion===5?'large':'medium';
 const createCampaign=()=>query.has('debug')&&query.has('legacy')?new Simulation():Simulation.campaign(query.has('debug')&&query.has('seed')?Number(query.get('seed'))>>>0:undefined,selectedMapVersion);
 let game=createCampaign();
 const qwenGeneral=new QwenGeneral();
