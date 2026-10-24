@@ -18,7 +18,9 @@
     "assets:buildings": "node scripts/export-atlas-buildings.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:performance": "npm run build && node scripts/benchmark-reborn-performance.mjs after",
-    "test:ai-defense": "npm run build && node scripts/benchmark-ai-defense.mjs"
+    "test:ai-defense": "npm run build && node scripts/benchmark-ai-defense.mjs",
+    "test:ai-director": "npm run build && node --test tests/reborn-ai-director.test.mjs tests/reborn-map-ai.test.mjs tests/reborn-control-retreat.test.mjs",
+    "benchmark:ai": "npm run build && node scripts/benchmark-reborn-ai.mjs"
   },
   "devDependencies": {
     "three": "0.180.0",
