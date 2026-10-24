@@ -74,6 +74,7 @@ export class Simulation {
   /** The original constructor remains a deterministic legacy fixture/save reader. */
   constructor(seed=2026,mapVersion:MapVersion=0) {
     this.seed=seed;this.world=new World(seed,mapVersion);this.territories=this.world.territories(seed);
+    if(mapVersion>=3)this.credits=[950,950];
     const layout=mapLayout(mapVersion);
     for(const owner of [0,1] as const){
       const territory=layout.headquarters[owner];
@@ -455,7 +456,7 @@ export class Simulation {
       // defensive reaction fire or an old attack lock stall the movement.
       // Boarding/takeoff animations finish before movement resumes.
       if(transportBusy){delete u.burst;continue;}
-      if(order?.kind==='move'){
+      if(order?.kind==='move'&&!(u.owner===1&&this.tactical.state.phase==='attack')){
         delete u.burst;u.combatTarget=null;u.pursuitOrigin=null;
         if(distance(u,order)<18){u.orders.shift();u.path=[];u.repath=0;}
         else this.move(u,order,dt);
