@@ -412,7 +412,13 @@ export class Simulation {
       const desired=Math.atan2(dy,dx),current=u.hullAngle??u.angle,error=Math.atan2(Math.sin(desired-current),Math.cos(desired-current));
       u.hullAngle=current+clamp(error,-(spec.flying?1.8:2.5)*dt,(spec.flying?1.8:2.5)*dt);
       const remaining=Math.max(0,distance(u,target)-14),braking=spec.speed*2.8;
-      const targetSpeed=Math.min(spec.speed,Math.sqrt(2*braking*remaining))*Math.max(0,Math.cos(error));
+      // Aircraft can translate while banking/turning during a direct move.
+      // Otherwise a helicopter ordered to retreat in the opposite direction
+      // stays virtually motionless until its hull has turned ~90 degrees.
+      // Preserve the existing turning/braking model for ground vehicles.
+      const traction=spec.flying&&u.orders[0]?.kind==='move'
+        ?Math.max(.45,Math.cos(error)):Math.max(0,Math.cos(error));
+      const targetSpeed=Math.min(spec.speed,Math.sqrt(2*braking*remaining))*traction;
       u.driveSpeed=(u.driveSpeed??0)+clamp(targetSpeed-(u.driveSpeed??0),-braking*dt,spec.speed*1.9*dt);
       velocity=Math.min(u.driveSpeed,speedLimit);
     }
