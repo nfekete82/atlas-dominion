@@ -21,7 +21,7 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
  if(!unfinished&&workers.length&&(!underAttack||!has('barracks'))){
   if(!has('barracks'))goal='barracks';
   else if(!has('factory')&&fighters.length>=3&&(income>=20||known>0||g.time>=55))goal='factory';
-  else if(!has('airfield')&&complete('factory')&&(count('tank')+count('rover')+count('artillery')>=2)&&fighters.length>=4&&(income>=35||g.time>=110||seen.some(u=>unitSpec(u).flying)))goal='airfield';
+  else if(!has('airfield')&&has('factory')&&fighters.length>=4&&(income>=35||g.time>=110||seen.some(u=>unitSpec(u).flying))&&(g.world.mapVersion<3||g.tactical.mode==='baseline'||(complete('factory')&&count('tank')+count('rover')+count('artillery')>=2)))goal='airfield';
   else if(!has('barracks')&&fighters.length>=3)goal='barracks';
  }
  if(e.goal!==goal){e.goal=goal;e.since=g.time;}
