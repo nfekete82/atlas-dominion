@@ -261,7 +261,7 @@ export class TacticalAI {
    if(entering||s.objective!==nearest.id)s.groupId++;s.group=fighters.map(u=>u.id);s.objective=nearest.id;this.issue([...fighters,...medics],nearest,'defend',nearest.id);return;
   }
   if(s.phase==='defend'){g.stop(s.group);this.setPhase('regroup');s.group=[];s.objective=null;s.rally=null;}
-  if(s.phase==='attack'){this.reinforce(fighters,home);this.raid(fighters);}
+  if(s.phase==='attack'){this.raid(fighters);this.reinforce(fighters,home);}
   const members=army.filter(u=>s.group.includes(u.id)&&!recovering.has(u.id)),survivors=members.filter(combat);
   const recentLosses=s.losses.filter(l=>g.time-l.at<24&&s.group.includes(l.id));
   const cluster=s.losses.some(l=>g.time-l.at<90&&s.losses.filter(v=>g.time-v.at<90&&distance(l,v)<320).length>=2);
