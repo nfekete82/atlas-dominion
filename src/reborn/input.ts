@@ -19,7 +19,16 @@ export class Input {
     canvas.addEventListener('contextmenu',e=>e.preventDefault());
     canvas.addEventListener('pointerdown',e=>{
       canvas.focus();this.pointer=local(e);
-      if(e.button===2){if(renderer.placement||renderer.commandMode){renderer.placement=null;renderer.commandMode=null;renderer.canvas.classList.remove('building');this.onSelection();return;}this.order(renderer.world(this.pointer),e.shiftKey);return;}
+      if(e.button===2){
+        // Alt/Option + right-click forces a retreat even directly over an enemy.
+        if(e.altKey&&renderer.selected.size){
+          renderer.placement=null;renderer.commandMode=null;renderer.attackMode=false;
+          canvas.classList.remove('building','attack');
+          this.order(renderer.world(this.pointer),e.shiftKey,true);return;
+        }
+        if(renderer.placement||renderer.commandMode){renderer.placement=null;renderer.commandMode=null;renderer.canvas.classList.remove('building');this.onSelection();return;}
+        this.order(renderer.world(this.pointer),e.shiftKey);return;
+      }
       if(e.button===0){this.down=local(e);this.dragging=false;canvas.setPointerCapture(e.pointerId);}
     });
     canvas.addEventListener('pointermove',e=>{
@@ -62,7 +71,12 @@ export class Input {
       if(e.repeat)return;
       if(key===' '){this.onPause();return;}
       if(key==='s'&&renderer.selected.size){this.stop();this.notify('Einheiten halten die Position.');this.keys.add(key);this.commandHeld.set(key,performance.now());return;}
-      if(key==='a'&&renderer.selected.size){renderer.attackMode=true;canvas.classList.add('attack');this.onSelection();this.keys.add(key);this.commandHeld.set(key,performance.now());return;}
+      if(key==='a'&&renderer.selected.size){renderer.attackMode=true;renderer.commandMode=null;canvas.classList.add('attack');this.onSelection();this.keys.add(key);this.commandHeld.set(key,performance.now());return;}
+      if(key==='m'&&renderer.selected.size){
+        renderer.attackMode=false;renderer.commandMode='move';canvas.classList.remove('attack');
+        this.notify('Rückzug / Bewegen: Ziel mit Linksklick wählen (ignoriert Angriffsziele).');
+        this.onSelection();return;
+      }
       if(key==='escape'){e.preventDefault();if(renderer.placement||renderer.commandMode){renderer.placement=null;renderer.commandMode=null;canvas.classList.remove('building');this.onSelection();return;}if(!renderer.selected.size&&renderer.selectedBase===null&&!renderer.attackMode){this.onMenu();return;}renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;canvas.classList.remove('attack');this.onSelection();}
       if(key==='h'||key==='home')renderer.home();
       if(key==='t'){renderer.overlay=!renderer.overlay;this.onSelection();}
@@ -87,7 +101,7 @@ export class Input {
     const ids=[...this.renderer.selected].filter(id=>this.renderer.game.units.some(u=>u.id===id&&u.owner===0&&u.hp>0&&!u.carrier));
     this.renderer.game.stop(ids,hold);if(ids.length)this.acknowledge(hold?'hold':'stop',ids);
   }
-  order(p:Point,append=false):void {
+  order(p:Point,append=false,forceMove=false):void {
     const r=this.renderer,g=r.game;
     if(r.selectedBase!==null){const b=g.bases.find(b=>b.id===r.selectedBase&&b.owner===0&&b.hp>0);if(b){b.rally=g.world.nearest(p,g.obstacles());this.notify('Sammelpunkt gesetzt.');}return;}
     if(!r.selected.size)return;
@@ -97,14 +111,14 @@ export class Input {
     if(r.commandMode==='unload'){
       const accepted:number[]=[];for(const u of helicopters)if(g.transports.unload(u.id,p))accepted.push(u.id);if(accepted.length){this.acknowledge('unload',accepted);this.notify('Transportheli landet am Ausladeort.');}else this.notify('Kein sicherer Landeplatz oder keine Passagiere.');this.onSelection();return;
     }
-    if(!r.attackMode&&r.commandMode!=='move'&&(friendlyUnit?.kind==='scout'||(friendlyUnit&&helicopters.length))){
+    if(!forceMove&&!r.attackMode&&r.commandMode!=='move'&&(friendlyUnit?.kind==='scout'||(friendlyUnit&&helicopters.length))){
       let count=0;const accepted:number[]=[];
       if(friendlyUnit.kind==='scout'){count=g.transports.board(friendlyUnit.id,[...r.selected]);if(count)accepted.push(friendlyUnit.id);}
       else for(const h of helicopters){const ids=g.units.filter(u=>u.owner===0&&!u.carrier&&unitSpec(u).group==='Infanterie'&&distance(u,friendlyUnit)<100).map(u=>u.id),n=g.transports.board(h.id,ids);count+=n;if(n)accepted.push(h.id);}
       if(count){this.notify(`${count} Infanteristen steigen beim gelandeten Heli ein.`);this.acknowledge('load',accepted);this.onSelection();return;}
     }
     if(r.commandMode==='load'){this.notify('Eigene Infanterie als Abholgruppe wählen.');this.onSelection();return;}
-    if(r.commandMode!=='move'&&!r.attackMode){
+    if(!forceMove&&r.commandMode!=='move'&&!r.attackMode){
       let count=0;const accepted:{id:number;kind:RadioAction}[]=[];
       for(const id of r.selected){const u=g.units.find(u=>u.id===id);if(!u)continue;
         if(u.kind==='medic'&&friendlyUnit){const n=g.command([id],{x:friendlyUnit.x,y:friendlyUnit.y,kind:'heal',target:friendlyUnit.id},append);count+=n;if(n)accepted.push({id,kind:'heal'});}
@@ -113,8 +127,9 @@ export class Input {
       if(count){this.acknowledge(accepted[0].kind,[accepted[0].id]);this.onSelection();return;}
       if(r.commandMode==='heal'||r.commandMode==='repair'){this.notify('Passendes verletztes eigenes Ziel wählen.');this.onSelection();return;}
     }
-    const enemy=[...g.units,...g.bases].find(e=>!('carrier' in e&&e.carrier)&&e.owner!==0&&e.hp>0&&g.canSee(0,e)&&distance('orders' in e&&unitSpec(e).flying?unitSelectionPoint(e):e,p)<('queue' in e?100:40)/r.camera.zoom);
-    const kind=enemy?'attack':r.attackMode?'attackMove':'move';
+    const strictMove=forceMove||r.commandMode==='move';
+    const enemy=strictMove?undefined:[...g.units,...g.bases].find(e=>!('carrier' in e&&e.carrier)&&e.owner!==0&&e.hp>0&&g.canSee(0,e)&&distance('orders' in e&&unitSpec(e).flying?unitSelectionPoint(e):e,p)<('queue' in e?100:40)/r.camera.zoom);
+    const kind=strictMove?'move':enemy?'attack':r.attackMode?'attackMove':'move';
     const destination=enemy?p:r.bastionAt(p)?.point??p;
     const before=new Map(g.units.filter(u=>r.selected.has(u.id)).map(u=>[u.id,u.orders.at(-1)]));
     const count=g.command([...r.selected],{...destination,kind,target:enemy?.id},append);
