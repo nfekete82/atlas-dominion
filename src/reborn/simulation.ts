@@ -379,10 +379,17 @@ export class Simulation {
     }
     if(support)return undefined;
     // Direct sight runs every fixed tick rather than waiting for fog updates.
-    let best:Unit|Base|undefined,range=engageRadius+1;
+    let best:Unit|Base|undefined,bestScore=Infinity;
     for(const e of [...this.spatial.query(u,engageRadius),...this.bases]){
       const d=distance(u,e);
-      if(d<range&&eligible(e)){best=e;range=d;}
+      if(!eligible(e))continue;
+      // Red AI prioritizes exposed enemy rocket artillery and medics over
+      // slightly closer riflemen, but never over a previously locked target.
+      // Player units retain the original closest-target behavior.
+      const priority=u.owner===1&&'orders' in e
+        ?(e.kind==='artillery'?-95:e.kind==='medic'?-65:e.kind==='bomber'?-45:0):0;
+      const score=d+priority;
+      if(score<bestScore){best=e;bestScore=score;}
     }
     u.combatTarget=best?.id??null;
     return best;
@@ -436,7 +443,18 @@ export class Simulation {
       const transportBusy=this.transports.step(u,dt);
       if(this.transports.boarding(u,dt))continue;
       if(this.escort(u,dt)||this.support(u,dt)){delete u.burst;continue;}
-      const enemy=this.acquire(u),order=u.orders[0];
+      const order=u.orders[0];
+      // A player retreat / tactical reposition is authoritative. Do not let
+      // defensive reaction fire or an old attack lock stall the movement.
+      // Boarding/takeoff animations finish before movement resumes.
+      if(transportBusy){delete u.burst;continue;}
+      if(order?.kind==='move'){
+        delete u.burst;u.combatTarget=null;u.pursuitOrigin=null;
+        if(distance(u,order)<18){u.orders.shift();u.path=[];u.repath=0;}
+        else this.move(u,order,dt);
+        continue;
+      }
+      const enemy=this.acquire(u);
       const spec=unitSpec(u);
       if(enemy&&distance(u,enemy)<=spec.range&&(spec.flying||('orders' in enemy&&unitSpec(enemy).flying)||this.world.line(u,enemy,this.obstacles().filter(b=>b.id!==enemy.id)))){
         u.facing=enemy.x<u.x?-1:1;u.angle=Math.atan2(enemy.y-u.y,enemy.x-u.x);
@@ -449,7 +467,6 @@ export class Simulation {
           u.burst.remaining--;u.burst.index++;u.burst.at+=u.kind==='heavy'?.1:.075;
           if(!u.burst.remaining)delete u.burst;
         }
-      } else if(transportBusy){delete u.burst;continue;
       } else if(enemy&&order?.kind==='attack'){
         delete u.burst;
         // A direct attack command is authoritative and can pursue beyond the guard leash.
