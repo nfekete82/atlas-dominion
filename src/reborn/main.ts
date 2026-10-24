@@ -1,6 +1,6 @@
 import { profiler, PerformanceRecorder, setProfiler, mountPerformancePanel } from './performance.js';
 import { QwenGeneral } from './qwen-general.js';
-import { RULES, mapLayout } from './config.js';
+import { RULES, mapLayout, CAMPAIGN_SIZES, type MapVersion, type CampaignSize } from './config.js';
 import { Simulation, type Base } from './simulation.js';
 import { Renderer } from './renderer.js';
 import { Input } from './input.js';
@@ -18,7 +18,10 @@ for(const span of document.querySelectorAll<HTMLElement>('[data-icon]'))span.inn
 const query=new URLSearchParams(location.search);
 if(query.has('debug')&&query.has('perf')){const recorder=new PerformanceRecorder();setProfiler(recorder);if(!query.has('perfTest'))mountPerformancePanel(recorder);}
 // Explicit legacy fixture for regression checks; normal launches always roll a new seed.
-const createCampaign=()=>query.has('debug')&&query.has('legacy')?new Simulation():Simulation.campaign(query.has('debug')&&query.has('seed')?Number(query.get('seed'))>>>0:undefined);
+let selectedMapVersion:MapVersion=query.has('debug')?2:4;
+const requestedSize=query.get('map');
+if(requestedSize&&Object.hasOwn(CAMPAIGN_SIZES,requestedSize))selectedMapVersion=CAMPAIGN_SIZES[requestedSize as CampaignSize];
+const createCampaign=()=>query.has('debug')&&query.has('legacy')?new Simulation():Simulation.campaign(query.has('debug')&&query.has('seed')?Number(query.get('seed'))>>>0:undefined,selectedMapVersion);
 let game=createCampaign();
 const qwenGeneral=new QwenGeneral();
 if(query.has('debug')&&query.has('perfTest'))game.paused=true;
@@ -121,6 +124,11 @@ function refreshMeasured():void{
   quick.title=`${quickSpec.name} ausbilden · ${quickSpec.cost} Credits`;quick.setAttribute('aria-label',`${quickSpec.name} ausbilden`);
   if(quick.dataset.kind!==quickKind){quick.dataset.kind=quickKind;quick.innerHTML=`<img src="${renderer.icon('unit',quickKind)}" alt=""/>`;}
  }
+ for(const button of document.querySelectorAll<HTMLButtonElement>('[data-build]')){
+  const kind=button.dataset.build as BuildingKind;
+  const existing=['barracks','factory','airfield'].includes(kind)&&game.bases.some(b=>b.owner===0&&b.hp>0&&b.kind===kind);
+  button.disabled=existing;button.title=existing?'Bereits vorhanden: maximal ein Gebäude dieses Typs.':'';
+ }
  for(const button of document.querySelectorAll<HTMLButtonElement>('[data-unit]')){
   const kind=button.dataset.unit as UnitKind,producer=game.producer(0,kind);button.hidden=!UNITS[kind].producers.some(k=>facilities.has(k));button.disabled=!producer||game.credits[0]<UNITS[kind].cost||game.count(0)+game.queued(0)>=RULES.capacity||game.status!=='playing';button.classList.toggle('locked',!producer);button.title=`${UNITS[kind].name} · ${UNITS[kind].cost} Credits · ${UNITS[kind].buildTime} S${producer?'':' · '+UNITS[kind].producers.map(k=>BUILDINGS[k].name).join(' / ')+' erforderlich'}`;
  }
@@ -134,8 +142,13 @@ el('resume-tactical').onclick=()=>setPause(false);
 input.onPause=()=>setPause(!game.paused);input.onMenu=openMenu;input.onHelp=()=>modal('help-dialog');input.onSave=()=>void save();input.onLoad=()=>void load();
 input.onSelection=()=>{const next=[...renderer.selected].join(',')+':'+renderer.selectedBase;if(next!==selectionSound){selectionSound=next;audio.select();}refresh();};input.onOrder=order=>audio.acknowledge(order,game);
 el('save').onclick=()=>void save();el('load').onclick=()=>void load();el('main-load').onclick=()=>void load();el('pause').onclick=input.onPause;el('menu').onclick=openMenu;el('help').onclick=input.onHelp;
-el('to-main').onclick=()=>{closeDialogs();modal('main-dialog');};el('main-continue').onclick=()=>{closeDialogs();setPause(false);};el('new').onclick=()=>modal('new-dialog');el<HTMLDialogElement>('new-dialog').addEventListener('close',()=>{if(el<HTMLDialogElement>('new-dialog').returnValue==='new')reset();});
-el('result-new').onclick=()=>{closeDialogs();reset();};el('result-close').onclick=()=>el<HTMLDialogElement>('result-dialog').close();
+el('to-main').onclick=()=>{closeDialogs();modal('main-dialog');};el('main-continue').onclick=()=>{closeDialogs();setPause(false);};el('new').onclick=()=>modal('new-dialog');el<HTMLDialogElement>('new-dialog').addEventListener('close',()=>{
+ if(el<HTMLDialogElement>('new-dialog').returnValue==='new'){
+  const size=el<HTMLSelectElement>('map-size').value as CampaignSize;
+  selectedMapVersion=CAMPAIGN_SIZES[size]??4;reset();
+ }
+});
+el('result-new').onclick=()=>{closeDialogs();modal('new-dialog');};el('result-close').onclick=()=>el<HTMLDialogElement>('result-dialog').close();
 el('home').onclick=()=>renderer.home();el('command-home').onclick=()=>renderer.home();el('overlay').onclick=()=>{renderer.overlay=!renderer.overlay;refresh();};
 el('select-unit').onclick=()=>{renderer.selectedBase=null;const u=game.units.find(u=>u.owner===0&&!u.carrier);renderer.selected=new Set(u?[u.id]:[]);if(u){renderer.camera.x=u.x;renderer.camera.y=u.y;renderer.boundCamera();}refresh();};
 el('select-base').onclick=()=>{renderer.selected.clear();renderer.selectedBase=game.bases.find(b=>b.owner===0&&b.kind==='headquarters'&&b.hp>0)?.id??null;renderer.home();refresh();};
@@ -169,5 +182,5 @@ el('messages').onclick=()=>{const history=el('message-history');history.replaceC
 window.addEventListener('pointerdown',()=>{void audio.unlock().catch(()=>{});},{capture:true});window.addEventListener('keydown',()=>{void audio.unlock().catch(()=>{});},{capture:true});window.addEventListener('resize',()=>renderer.resize());document.addEventListener('visibilitychange',()=>{last=performance.now();accumulator=0;if(document.hidden){audio.silenceScene();setPause(true);}});
 function frame(now:number):void{profiler?.beginFrame(now);const dt=Math.min(.1,(now-last)/1000);last=now;const inputAt=profiler?performance.now():0;input.update(dt);if(profiler)profiler.record('input',performance.now()-inputAt);if(!game.paused){accumulator+=dt;let steps=0;while(accumulator>=RULES.tick&&steps++<5){game.step();accumulator-=RULES.tick;}}else accumulator=0;const audioAt=profiler?performance.now():0;audio.update(game,renderer);if(profiler)profiler.record('audio',performance.now()-audioAt);renderer.render(dt,accumulator/RULES.tick);uiClock+=dt;if(uiClock>.1){qwenGeneral.maybePlan(game);refresh();uiClock=0;}profiler?.endFrame(now);requestAnimationFrame(frame);}
 void audio.radio.preload();
-try{await renderer.load();prepareCatalog();ready=true;el('loading').remove();refresh();last=performance.now();requestAnimationFrame(frame);}catch(e){setHtml('loading','<strong>Der Wüstensektor konnte nicht geladen werden.</strong><p>Bitte neu laden und die lokalen Grafiken prüfen.</p>');console.error(e);}
+try{await renderer.load();prepareCatalog();ready=true;el('loading').remove();refresh();last=performance.now();requestAnimationFrame(frame);if(!query.has('debug'))modal('new-dialog');}catch(e){setHtml('loading','<strong>Der Wüstensektor konnte nicht geladen werden.</strong><p>Bitte neu laden und die lokalen Grafiken prüfen.</p>');console.error(e);}
 if(new URLSearchParams(location.search).has('debug'))Object.assign(window,{__reborn:{get game(){return game;},renderer,input,refresh,audio,profiler,qwenGeneral,advance(seconds:number){for(let i=0;i<Math.round(seconds/RULES.tick);i++)game.step();refresh();renderer.render(0);},save,load}});
