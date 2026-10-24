@@ -10,10 +10,13 @@ export const RULES = {
   turret: { range:600, sight:750, turnSpeed:Math.PI, damage:24, cooldown:.8 },
   aiInterval: 3, aiOpeningDelay: 25,
 } as const;
-export type MapVersion=0|1|2;
+export type MapVersion=0|1|2|3|4|5;
+export type CampaignSize='small'|'medium'|'large';
+export const CAMPAIGN_SIZES:Record<CampaignSize,MapVersion>={small:3,medium:4,large:5};
+export const mapWorldSize=(version:MapVersion):number=>version===3?2200:version===4?3000:RULES.worldSize;
 const legacyLayout={columns:6,rows:5,headquarters:[19,5],starts:[[18,19,25],[4,5,11]],spacing:440,incomes:RULES.territoryIncome} as const;
 /** Geometry and starting rules are versioned independently of the save envelope. */
-export const MAP_LAYOUTS={0:legacyLayout,1:legacyLayout,2:{columns:4,rows:4,headquarters:[12,3],starts:[[12,13],[2,3]],spacing:650,incomes:[10,15,30]}} as const;
+export const MAP_LAYOUTS={0:legacyLayout,1:legacyLayout,2:{columns:4,rows:4,headquarters:[12,3],starts:[[12,13],[2,3]],spacing:650,incomes:[10,15,30]},3:{columns:2,rows:2,headquarters:[2,1],starts:[[2],[1]],spacing:570,incomes:[15,25,35]},4:{columns:4,rows:2,headquarters:[4,3],starts:[[4],[3]],spacing:550,incomes:[10,20,30]},5:{columns:4,rows:3,headquarters:[8,3],starts:[[8],[3]],spacing:590,incomes:[10,15,30]}} as const;
 export const mapLayout=(version:MapVersion)=>MAP_LAYOUTS[version];
 export const ASSETS = {
   terrain: '/src/assets/reborn/desert-fine.png', infantry: '/src/assets/reborn/infantry.png',
