@@ -66,3 +66,27 @@ test('director: baseline can still be benchmarked without mutating campaign stat
  developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1&&u.hp>0),()=>0);
  assert.equal(bases.filter(b=>b.queue.length>0).length,1);
 });
+
+
+test('director: operational factory buys a real rover before reserving credits for the airfield',()=>{
+ const g=new Simulation(2026,4),hq=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
+ for(let i=0;i<5;i++)g.spawn(1,{x:hq.x+100+i*12,y:hq.y-120},'infantry');
+ addProducer(g,'barracks',1);
+ const factory=addProducer(g,'factory',1);
+ g.credits[1]=400;
+ const before=g.credits[1];
+ developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1&&u.hp>0),()=>0);
+ assert.equal(factory.queueTypes[0],'rover','first affordable vehicle must be purchased immediately');
+ assert.equal(g.credits[1],before-300,'the normal 300 credit rover cost is paid');
+ assert.equal(g.tactical.state.economy?.goal,null,'no premature 450-credit airfield reservation');
+});
+
+test('director: first aircraft factory waits for actual ground force production',()=>{
+ const g=new Simulation(2026,4),hq=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
+ for(let i=0;i<5;i++)g.spawn(1,{x:hq.x+100+i*12,y:hq.y-120},'infantry');
+ addProducer(g,'barracks',1);const factory=addProducer(g,'factory',1);
+ g.credits[1]=1000;
+ developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1&&u.hp>0),()=>0);
+ assert.ok(factory.queueTypes.some(k=>k==='tank'||k==='rover'));
+ assert.ok(!g.bases.some(b=>b.owner===1&&b.kind==='airfield'));
+});
