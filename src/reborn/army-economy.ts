@@ -21,7 +21,7 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
  if(!unfinished&&workers.length&&(!underAttack||!has('barracks'))){
   if(!has('barracks'))goal='barracks';
   else if(!has('factory')&&fighters.length>=3&&(income>=20||known>0||g.time>=55))goal='factory';
-  else if(!has('airfield')&&has('factory')&&fighters.length>=4&&(income>=35||g.time>=110||seen.some(u=>unitSpec(u).flying)))goal='airfield';
+  else if(!has('airfield')&&complete('factory')&&(count('tank')+count('rover')+count('artillery')>=2)&&fighters.length>=4&&(income>=35||g.time>=110||seen.some(u=>unitSpec(u).flying)))goal='airfield';
   else if(!has('barracks')&&fighters.length>=3)goal='barracks';
  }
  if(e.goal!==goal){e.goal=goal;e.since=g.time;}
@@ -35,6 +35,8 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
    for(const p of candidates.slice(0,8)){const b=g.build(1,goal,p,[worker.id]);if(b){e.built[goal]=(e.built[goal]??0)+1;e.goal=null;break;}}
   }
  }
+ // Never reserve the airfield budget ahead of a working vehicle factory.
+ // Early-game macro first pays for at least two actual ground vehicles.
  const reserve=e.goal&&(e.goal==='barracks'||!underAttack&&fighters.length>=3)&&g.time-e.since<85?BUILDINGS[e.goal].cost:0;
  const maxArmy=Math.min(30,Math.max(14,Math.floor(income/4)+8));if(g.count(1)+g.queued(1)>=maxArmy)return;
  const wounded=army.filter(u=>!u.carrier&&unitSpec(u).group==='Infanterie'&&u.kind!=='engineer'&&u.hp<unitSpec(u).hp*.7).length;
