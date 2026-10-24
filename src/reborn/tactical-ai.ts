@@ -127,12 +127,16 @@ export class TacticalAI {
    if(distance(u,anchor)>280){approaching.push(u);continue;}
    s.group.push(u.id);s.launchSize++;this.issue([u],objective??target.point,objective?'assault':'safe',objective?.id);
   }
-  if(approaching.length)this.issue(approaching,anchor,'safe',undefined,false,false);
+  // Keep moving reinforcements on a stable route. Rewriting the waypoint every
+  // three seconds used to reset their path before they reached the frontline.
+  const dispatched=approaching.filter(u=>!u.orders.length||u.orders[0].tactical?.mode!=='safe'||distance(u.orders[0],anchor)>180);
+  if(dispatched.length)this.issue(dispatched,anchor,'safe',undefined,false,false);
  }
  private recon(army:Unit[],home:Point):Set<number>{
   const g=this.g,s=this.state,frontiers=g.territories.filter(t=>t.owner!==1&&t.neighbors.some(i=>g.territories[i].owner===1));
   const defending=g.units.some(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)&&g.bases.some(b=>b.owner===1&&b.hp>0&&distance(u,b)<560));
-  const rover=!defending&&army.filter(combat).length>=6?army.find(u=>u.kind==='rover'&&!s.group.includes(u.id)):undefined,explorers=army.filter(u=>u.kind==='scout'||u===rover);
+  // On the new maps, rovers are combat vehicles first, not perpetual scouts.
+  const rover=g.world.mapVersion<=2&&!defending&&army.filter(combat).length>=6?army.find(u=>u.kind==='rover'&&!s.group.includes(u.id)):undefined,explorers=army.filter(u=>u.kind==='scout'||u===rover);
   for(const [index,u] of explorers.entries()){
    if(u.transport&&u.transport.phase!=='cruise')continue;
    const threat=s.knownTurrets.slice().sort((a,b)=>a.seenAt-b.seenAt||a.id-b.id)[index%s.knownTurrets.length];
@@ -211,7 +215,7 @@ export class TacticalAI {
    const objectiveGone=s.objective!==null&&(!s.knownTurrets.some(t=>t.id===s.objective)&&!g.memories[1].some(m=>m.id===s.objective&&m.hp>0));
    if(objectiveGone&&target){s.objective=null;this.issue(members,target.point,'assault');s.progressAt=g.time;return;}
    const safeBroken=members.some(u=>u.orders[0]?.tactical?.mode==='safe'&&(this.danger(u.orders[0])>5||this.sampleRoute(u.path,u).risk>8));
-   if(!target||target.owner===1||survivors.length===0||recentLosses.length>=2||survivors.length<s.launchSize*.6||g.time-s.progressAt>38||safeBroken){
+   if(!target||target.owner===1||survivors.length===0||recentLosses.length>=2||survivors.length<s.launchSize*.6||g.time-s.progressAt>(g.world.mapVersion>=3?85:38)||safeBroken){
     g.stop(members.map(u=>u.id));this.setPhase('regroup');s.group=[];s.objective=null;s.rally=null;
    }else{
     // A revealed tower along a previously safe approach triggers reevaluation before further marching.
@@ -239,7 +243,8 @@ export class TacticalAI {
    // Sector ownership is already part of strategic target selection. Press
    // toward the opposing front instead of clearing every remote neutral first;
    // hidden units/buildings still contribute no strength or threat information.
-   const pressure=g.territories.filter(t=>t.owner===1).length>=4?(t.owner===0?2000:t.neighbors.some(i=>g.territories[i].owner===0)?1200:0):0;
+   const owned=g.territories.filter(t=>t.owner===1).length;
+   const pressure=owned>=(g.world.mapVersion>=3?Math.max(1,Math.floor(g.territories.length/4)):4)?(t.owner===0?2000:t.neighbors.some(i=>g.territories[i].owner===0)?1200:0):0;
    const siegeRoute=siegeAvailable&&towers.length>0;
    return {t,route,...travel,towers,knownHQ,defenders,score:travel.length+travel.risk*(siegeRoute?40:75)+towers.length*(siegeRoute?260:700)+defenders*130+(loss&&loss.until>g.time?900+loss.losses*180:0)-t.income*16-t.neighbors.filter(i=>g.territories[i].owner!==1).length*45-pressure};
   }).filter(c=>c.route.length).sort((a,b)=>a.score-b.score||a.t.id-b.t.id);
@@ -267,7 +272,8 @@ export class TacticalAI {
    }
    return;
   }
-  const group=[...ready.slice(0,defended?10:6),...medics.filter(u=>distance(u,s.rally!)<240)];s.group=group.map(u=>u.id);s.groupId++;s.launchSize=group.filter(combat).length;s.launchedAt=g.time;s.lastProgress=distance(s.rally,c.t.point);s.progressAt=g.time;this.setPhase('attack');
+  const frontline=g.world.mapVersion>=3?ready.slice().sort((a,b)=>(b.kind==='tank'?5:b.kind==='artillery'?4:b.kind==='heavy'?3:b.kind==='gunship'?2:1)-(a.kind==='tank'?5:a.kind==='artillery'?4:a.kind==='heavy'?3:a.kind==='gunship'?2:1)||a.id-b.id):ready;
+  const group=[...frontline.slice(0,defended?10:6),...medics.filter(u=>distance(u,s.rally!)<240)];s.group=group.map(u=>u.id);s.groupId++;s.launchSize=group.filter(combat).length;s.launchedAt=g.time;s.lastProgress=distance(s.rally,c.t.point);s.progressAt=g.time;this.setPhase('attack');
   const obstacle=defended?c.towers.slice().sort((a,b)=>distance(s.rally!,a)-distance(s.rally!,b))[0]??c.knownHQ:undefined;
   s.objective=obstacle?.id??null;
   if(obstacle){this.issue(group,obstacle,'assault',obstacle.id);if(c.towers.some(t=>t.id===obstacle.id)&&this.siege(group,obstacle))return;this.airSupport(group,obstacle,obstacle.id);}
