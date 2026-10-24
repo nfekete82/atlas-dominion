@@ -302,7 +302,7 @@ export class TacticalAI {
     const next=members.find(u=>u.orders[0]?.tactical?.mode==='safe')?.orders[0];
     if(next&&s.knownTurrets.some(t=>distance(t,next)<t.range+65)){g.stop(members.map(u=>u.id));this.setPhase('regroup');s.group=[];s.rally=null;}
     else if(objective?.kind==='turret'&&this.siege(members,objective))return;
-    else if(members.some(u=>!u.orders.length)){this.issue(members,target.point,g.world.mapVersion>=3&&this.mode==='director'?'assault':s.knownTurrets.some(t=>distance(t,target.point)<t.range+80)?'assault':'safe',objective?.id);return;}
+    else if(target&&members.some(u=>!u.orders.length)){this.issue(members,target.point,g.world.mapVersion>=3&&this.mode==='director'?'assault':s.knownTurrets.some(t=>distance(t,target.point)<t.range+80)?'assault':'safe',objective?.id);return;}
     else return;
    }
   }
