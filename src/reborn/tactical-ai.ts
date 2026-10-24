@@ -223,6 +223,24 @@ export class TacticalAI {
    for(const o of u.orders){o.tactical={group:s.groupId,mode:'assault'};if(front.length)o.march=front.map(v=>v.id);}
   }
  }
+ /** A cheap second axis of pressure: mobile reserves capture an unguarded adjacent
+  * bastion while the main army fights. No unknown enemies are inspected. */
+ private raid(fighters:Unit[]):void{
+  const g=this.g,s=this.state;
+  if(g.world.mapVersion<3||s.phase!=='attack'||fighters.length<10||s.target===null)return;
+  const raiders=fighters.filter(u=>!s.group.includes(u.id)&&['rover','gunship','tank'].includes(u.kind)
+   &&(!u.orders.length||u.orders[0].tactical?.mode==='assault')).slice(0,2);
+  if(raiders.length<2)return;
+  const frontiers=g.territories.filter(t=>t.owner!==1&&t.id!==s.target&&t.neighbors.some(i=>g.territories[i].owner===1));
+  const viable=frontiers.filter(t=>!s.knownTurrets.some(turret=>distance(turret,t.point)<turret.range+80)
+   &&!g.memories[1].some(m=>m.owner===0&&m.hp>0&&m.territory===t.id&&['headquarters','turret'].includes(m.kind??''))
+   &&!g.units.some(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)&&distance(u,t.point)<300));
+  if(!viable.length)return;
+  const centroid=raiders.reduce((p,u)=>({x:p.x+u.x/raiders.length,y:p.y+u.y/raiders.length}),{x:0,y:0});
+  viable.sort((a,b)=>distance(centroid,a.point)-distance(centroid,b.point)||a.id-b.id);
+  const target=viable[0],need=raiders.filter(u=>!u.orders[0]||distance(u.orders[0],target.point)>120);
+  if(need.length)this.issue(need,target.point,'assault',undefined,false,false);
+ }
  plan():void{
   if(!profiler)return this.planMeasured();const at=performance.now();try{this.planMeasured();}finally{profiler.record('ai',performance.now()-at);}
  }
@@ -243,7 +261,7 @@ export class TacticalAI {
    if(entering||s.objective!==nearest.id)s.groupId++;s.group=fighters.map(u=>u.id);s.objective=nearest.id;this.issue([...fighters,...medics],nearest,'defend',nearest.id);return;
   }
   if(s.phase==='defend'){g.stop(s.group);this.setPhase('regroup');s.group=[];s.objective=null;s.rally=null;}
-  if(s.phase==='attack')this.reinforce(fighters,home);
+  if(s.phase==='attack'){this.reinforce(fighters,home);this.raid(fighters);}
   const members=army.filter(u=>s.group.includes(u.id)&&!recovering.has(u.id)),survivors=members.filter(combat);
   const recentLosses=s.losses.filter(l=>g.time-l.at<24&&s.group.includes(l.id));
   const cluster=s.losses.some(l=>g.time-l.at<90&&s.losses.filter(v=>g.time-v.at<90&&distance(l,v)<320).length>=2);
