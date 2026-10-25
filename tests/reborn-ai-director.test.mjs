@@ -81,8 +81,9 @@ test('director: operational factory buys a real rover before reserving credits f
  assert.equal(factory.queueCosts[0],300,'the real 300-credit rover cost is recorded');
  const paid=g.bases.filter(b=>b.owner===1).reduce((total,b)=>total+(b.queueCosts??[]).reduce((sum,cost)=>sum+cost,0),0);
  assert.equal(before-g.credits[1],paid,'all concurrent production is paid, with no phantom credits');
- assert.equal(paid,400,'the 300-credit rover and an additional 100-credit infantry order were both funded');
+ assert.equal(paid,300,'the first rover is funded while 100 credits remain banked for sustained armor');
  assert.equal(g.tactical.state.economy?.goal,null,'no premature 450-credit airfield reservation');
+ assert.equal(g.credits[1],100,'the barracks must preserve vehicle savings rather than draining the treasury');
 });
 
 test('director: first aircraft factory waits for actual ground force production',()=>{
@@ -224,4 +225,32 @@ test('director: serviced vehicle receives actual HP and returns to the reserve a
  assert.ok(tank.hp>=558,'repair must restore at least 90 percent of the tank maximum');
  g.tactical.plan();
  assert.ok(!g.tactical.state.recovering?.includes(tank.id),'repaired tank must rejoin field roster');
+});
+
+
+test('director: armored reserve survives a funded barracks purchase and never mints credits',()=>{
+ const g=new Simulation(2026,4),hq=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
+ for(let i=0;i<5;i++)g.spawn(1,{x:hq.x+100+i*12,y:hq.y-120},'infantry');
+ const barracks=addProducer(g,'barracks',1),factory=addProducer(g,'factory',1);
+ g.credits[1]=900;
+ const start=g.credits[1];
+ developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1&&u.hp>0),()=>0);
+ assert.equal(factory.queueTypes[0],'tank');
+ assert.equal(g.credits[1],450,'tank costs exactly 450 credits and 300 are protected for another vehicle');
+ assert.equal(barracks.queue.length,0,'barracks must not spend the reserved 300 vehicle credits');
+ assert.equal(start-g.credits[1],factory.queueCosts[0]);
+});
+
+test('director: a threatened base may recruit infantry instead of preserving the vehicle reserve',()=>{
+ const g=new Simulation(2026,4),hq=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
+ for(let i=0;i<5;i++)g.spawn(1,{x:hq.x+100+i*12,y:hq.y-120},'infantry');
+ const barracks=addProducer(g,'barracks',1),factory=addProducer(g,'factory',1);
+ g.credits[1]=400;
+ const foe=g.spawn(0,{x:hq.x+130,y:hq.y+25},'infantry');
+ g.updateVision();
+ assert.ok(g.canSee(1,foe),'the budget override requires an actually visible threat');
+ developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1&&u.hp>0),()=>0);
+ assert.equal(factory.queueTypes[0],'rover');
+ assert.ok(barracks.queue.length>0,'emergency infantry remains allowed when the base is under attack');
+ assert.equal(g.credits[1],0,'both urgent orders must be fully paid');
 });
