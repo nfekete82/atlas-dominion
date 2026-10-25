@@ -1,3 +1,5 @@
+> Folgestand: [Petra-Konzepte, Beschussreaktion und bezahlte Turm-Rush-Vergleiche](petra-threat-response-20261026.md).
+
 # Campaign Commander — 25.10.2026
 
 Ausgangspunkt: `17614f4` auf `feat/reborn-ai-director-20261025`. Umsetzung auf
