@@ -74,19 +74,23 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
   for(const producer of ordered){
    if(g.count(1)+g.queued(1)>=maxArmy||g.credits[1]<=reserve)break;
    const counts=Object.fromEntries((Object.keys(UNITS) as UnitKind[]).map(k=>[k,count(k)])) as Record<string,number>;
-   const ranks=preferredRole(producer.kind,counts,known+(knownEnemyHQ?1:0),air);
-   // Persistent armor reserve: the old code protected only the FIRST
-   // purchase, then allowed cheap infantry to drain every later vehicle budget.
-   // Reserve a 300-credit rover while the armored force has fewer than 3
-   // living or queued ground vehicles. The factory gets first spending priority.
-   // Under immediate base attack, however, keep the barracks responsive.
    const groundVehicles=count('tank')+count('rover')+count('artillery');
-   const needSiege=knownEnemyHQ&&count('artillery')===0&&!underAttack;
+   // Stage the composition deliberately rather than constantly substituting
+   // affordable rovers for the more expensive unit at the top of the wish list.
+   // A scout plus real armor are required before entering the siege phase.
+   // An actually known enemy HQ or tower moves artillery to the front of the plan.
+   const needSiege=!underAttack&&count('artillery')===0
+     &&(knownEnemyHQ||known>0||(count('rover')>=1&&count('tank')>=1&&income>=35&&fighters.length>=5));
+   const nextArmor:UnitKind|null=!underAttack&&complete('factory')
+     ?needSiege?'artillery':count('rover')>=1&&count('tank')===0?'tank':null:null;
    const armorReserve=complete('factory')&&!underAttack&&fighters.length>=5
-    ?needSiege?UNITS.artillery.cost:groundVehicles<3?UNITS.rover.cost:0:0;
-   // A lone affordable rover cannot defeat an HQ or turret on its own.
-   // Save for the first artillery once its location is actually known.
-   if(producer.kind==='factory'&&needSiege&&g.credits[1]-reserve<UNITS.artillery.cost)continue;
+    ?nextArmor?UNITS[nextArmor].cost:groundVehicles<3?UNITS.rover.cost:0:0;
+   const defaultRanks=preferredRole(producer.kind,counts,known+(knownEnemyHQ?1:0),air);
+   const ranks=producer.kind==='factory'&&nextArmor
+    ?[nextArmor,...defaultRanks.filter(k=>k!==nextArmor)]:defaultRanks;
+   // Do not downgrade a tank or rocket purchase into another cheap rover.
+   // Other producers also respect that saved budget, except during base defense.
+   if(producer.kind==='factory'&&nextArmor&&g.credits[1]-reserve<UNITS[nextArmor].cost)continue;
    if(producer.kind==='barracks'&&g.credits[1]-reserve<armorReserve)continue;
    const kind=ranks.find(k=>Object.hasOwn(UNITS,k)&&UNITS[k as UnitKind].producers.includes(producer.kind)
     &&scores[k as UnitKind]>0&&(!air||canAttack({kind:k as UnitKind},seen.find(u=>unitSpec(u).flying)!)||['medic','engineer','scout'].includes(k))
