@@ -167,3 +167,55 @@ npm run build
 node --test tests/reborn-ai-director.test.mjs tests/reborn-map-ai.test.mjs
 node scripts/benchmark-reborn-ai.mjs --map 4 --seeds 2026,2027 --seconds 300 --opponent guarded
 ```
+
+
+## Dritter A/B-Lauf: echter Gegnerkontakt (25.10.2026)
+
+Der Projektinhaber bestätigte lokalen Build und **25/25 Tests**
+sowie 300 vollständige Simulationssekunden für beide Seeds
+(2026/2027, `mapVersion=4`, `--opponent guarded`).
+
+| Kennzahl (Ø über zwei Seeds) | Baseline | Director |
+|---|---:|---:|
+| Eroberte Bastionen | 4 | **6** |
+| Tatsächlich gefallene blaue Einheiten (ID-Messung) | 2 | **7** |
+| Von Fahrzeugen abgegebene Schüsse | 1 | **4** |
+| Angriffssekunden | 130,5 | **156,5** |
+| Bezahlte Fahrzeugbestellungen | 2 | 2,5 |
+| Maximal gleichzeitig vorhandene Fahrzeuge | **2** | 1 |
+| Blaue HQ-Lebenspunkte am Ende | 1200 | 1200 |
+
+**Ergebnis:** Der Director zeigt nun sowohl einen besseren
+Expansionswert als auch mehr tatsächliche Gegnerverluste. Die
+Fahrzeugerhaltung bleibt aber schlechter als bei Baseline und das
+HQ wurde in diesen Spielen nicht beschädigt. Die zwei Seeds beweisen
+keine allgemeine KI-Überlegenheit.
+
+### Nachgeschaltete Fahrzeug-Instandsetzung (neu, noch ungetestet)
+
+- Ein Bauarbeiter kann beschädigte eigene Bodenfahrzeuge
+  (Panzer, Spähwagen, Raketenwerfer) mit **18 LP/s** reparieren.
+  Voraussetzung: echter Arbeiter, reale Reichweite, freie Sichtlinie,
+  gültiger Reparaturbefehl. Keine kostenlosen HP aus dem Nichts ohne
+  Supporteinheit.
+- Der Director zieht solche Fahrzeuge bei **unter 38 % HP** aus der
+  Kampfgruppe zu einer Position **hinter dem eigenen HQ** zurück.
+  Bereits abkommandierte Fahrzeuge werden in der laufenden
+  Offensivgruppe und beim Nachschub ausgeschlossen. Die
+  vorhandenen aktiven Bauaufträge der Ingenieure werden nicht
+  überschrieben. Wiederfreigabe ab **80 % HP**.
+- Infanterie bleibt bei ihren Sanitätern: keine falschen
+  Heilbefehle für beschädigte Panzer.
+- Der Benchmark zählt jetzt `vehicleDeaths` und
+  `vehicleRepairHp`, um nicht nur Eroberungen, sondern auch
+  die tatsächlich erreichte Reparaturwirkung zu messen.
+
+**Noch ausstehend:** erneuter TypeScript-Build, gezielte
+Regressionstests und A/B-Läufe. Kein bestätigter Qualitätsgewinn
+durch die neue Reparaturfunktion.
+
+```sh
+npm run build
+node --test tests/reborn-ai-director.test.mjs tests/reborn-map-ai.test.mjs tests/reborn-control-retreat.test.mjs
+node scripts/benchmark-reborn-ai.mjs --map 4 --seeds 2026,2027 --seconds 300 --opponent guarded
+```
