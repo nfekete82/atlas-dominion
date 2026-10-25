@@ -47,6 +47,9 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
  const wounded=army.filter(u=>!u.carrier&&unitSpec(u).group==='Infanterie'&&u.kind!=='engineer'&&u.hp<unitSpec(u).hp*.7).length;
  const armor=seen.filter(u=>!unitSpec(u).flying&&unitSpec(u).group==='Fahrzeuge').length,air=seen.filter(u=>unitSpec(u).flying).length;
  const military=g.memories[1].filter(b=>b.owner===0&&b.hp>0&&['headquarters','factory','airfield','turret'].includes(b.kind??''));
+ // Once scouts have actually identified the enemy HQ, a paid siege weapon is
+ // worth waiting for. Fogged, unknown bases must not count as revealed.
+ const knownEnemyHQ=military.some(b=>b.kind==='headquarters');
  const scores:Record<UnitKind,number>={
   infantry:Math.max(1,22-count('infantry')*5)+(fighters.length<4?18:0),
   heavy:14+(known?20+known*10:0)+armor*5+(fighters.length>=3?9:0)-count('heavy')*11,
@@ -71,15 +74,19 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
   for(const producer of ordered){
    if(g.count(1)+g.queued(1)>=maxArmy||g.credits[1]<=reserve)break;
    const counts=Object.fromEntries((Object.keys(UNITS) as UnitKind[]).map(k=>[k,count(k)])) as Record<string,number>;
-   const ranks=preferredRole(producer.kind,counts,known,air);
+   const ranks=preferredRole(producer.kind,counts,known+(knownEnemyHQ?1:0),air);
    // Persistent armor reserve: the old code protected only the FIRST
    // purchase, then allowed cheap infantry to drain every later vehicle budget.
    // Reserve a 300-credit rover while the armored force has fewer than 3
    // living or queued ground vehicles. The factory gets first spending priority.
    // Under immediate base attack, however, keep the barracks responsive.
    const groundVehicles=count('tank')+count('rover')+count('artillery');
-   const armorReserve=complete('factory')&&groundVehicles<3&&!underAttack
-    &&fighters.length>=5?UNITS.rover.cost:0;
+   const needSiege=knownEnemyHQ&&count('artillery')===0&&!underAttack;
+   const armorReserve=complete('factory')&&!underAttack&&fighters.length>=5
+    ?needSiege?UNITS.artillery.cost:groundVehicles<3?UNITS.rover.cost:0:0;
+   // A lone affordable rover cannot defeat an HQ or turret on its own.
+   // Save for the first artillery once its location is actually known.
+   if(producer.kind==='factory'&&needSiege&&g.credits[1]-reserve<UNITS.artillery.cost)continue;
    if(producer.kind==='barracks'&&g.credits[1]-reserve<armorReserve)continue;
    const kind=ranks.find(k=>Object.hasOwn(UNITS,k)&&UNITS[k as UnitKind].producers.includes(producer.kind)
     &&scores[k as UnitKind]>0&&(!air||canAttack({kind:k as UnitKind},seen.find(u=>unitSpec(u).flying)!)||['medic','engineer','scout'].includes(k))
