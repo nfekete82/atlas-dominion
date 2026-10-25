@@ -4,6 +4,7 @@ import {assaultDecision,abortAssault,preferredRole} from '../dist/src/reborn/ai-
 import {Simulation} from '../dist/src/reborn/simulation.js';
 import {developArmy} from '../dist/src/reborn/army-economy.js';
 import {addProducer} from './fixtures/reborn-production.mjs';
+import {blueDefense} from '../scripts/benchmark-ai-opponent.mjs';
 
 test('director: attacks undefended land with paid small groups instead of waiting forever',()=>{
  const input={defended:false,observedTowers:0,hasArtillery:false,visibleDefenderStrength:0,
@@ -133,4 +134,18 @@ test('director: retreat orders remain authoritative even while the main army att
  g.step(.05);
  assert.ok(red.x<beforeX-2,'wounded unit must retreat instead of stopping to fight');
  assert.equal(blue.hp,beforeHp,'safe retreat order must not fire on nearby enemies');
+});
+
+test('benchmark: paid blue defenders protect their own bastion without map cheats',()=>{
+ const g=new Simulation(2026,4);
+ const blue=g.units.find(u=>u.owner===0&&u.kind==='infantry');
+ const own=g.territories.find(t=>t.owner===0);
+ assert.ok(blue&&own);
+ const money=g.credits[0],units=g.units.length;
+ blueDefense(g);
+ assert.equal(g.units.length,units,'the scripted defender must not spawn free units');
+ assert.ok(g.credits[0]<=money,'the defender must spend only its existing credits');
+ assert.equal(blue.orders[0]?.kind,'attackMove');
+ assert.ok(Math.hypot(blue.orders[0].x-own.point.x,blue.orders[0].y-own.point.y)<135,
+  'defenders should guard their owned capture site rather than remaining at HQ');
 });
