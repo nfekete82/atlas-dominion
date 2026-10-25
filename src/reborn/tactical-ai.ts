@@ -205,11 +205,36 @@ export class TacticalAI {
  /** Wounded infantry recover at a safe rally instead of being sent straight into the next assault. */
  private recovery(army:Unit[],home:Point):Set<number>{
   const g=this.g,s=this.state,ids=new Set(s.recovering??[]);
-  for(const u of army)if(['infantry','heavy'].includes(u.kind)&&u.hp<unitSpec(u).hp*.3)ids.add(u.id);
+  for(const u of army){
+   if(['infantry','heavy'].includes(u.kind)&&u.hp<unitSpec(u).hp*.3)ids.add(u.id);
+   // Vehicles survive sustained campaigns when they can break contact,
+   // travel back to a real engineer, then return above 80% health.
+   if(g.world.mapVersion>=3&&this.mode==='director'
+     &&['tank','rover','artillery'].includes(u.kind)&&u.hp<unitSpec(u).hp*.38)ids.add(u.id);
+  }
   s.recovering=army.filter(u=>ids.has(u.id)&&u.hp<unitSpec(u).hp*.8).map(u=>u.id);
   const resting=army.filter(u=>s.recovering!.includes(u.id)),reserved=new Set(s.recovering);
+  const vehiclePatients=resting.filter(u=>['tank','rover','artillery'].includes(u.kind));
+  if(vehiclePatients.length){
+   const dock=g.world.nearest({x:home.x-155,y:home.y+155},this.obstacles())??home;
+   for(const v of vehiclePatients){
+    if(distance(v,dock)>85){
+     if(v.orders[0]?.tactical?.mode!=='safe'||distance(v.orders[0],dock)>60)
+      this.issue([v],dock,'safe',undefined,false,false);
+    }else if(v.orders.length)g.stop([v.id]);
+   }
+   const waiting=vehiclePatients.filter(v=>distance(v,dock)<105)
+    .sort((a,b)=>a.hp/unitSpec(a).hp-b.hp/unitSpec(b).hp||a.id-b.id);
+   const engineer=army.find(u=>u.kind==='engineer'&&!u.orders.some(o=>o.kind==='build')
+      &&u.defendUntil<=g.time);
+   if(waiting.length&&engineer){
+    const damaged=waiting[0];
+    if(engineer.orders[0]?.kind!=='repair'||engineer.orders[0]?.target!==damaged.id)
+      g.command([engineer.id],{x:damaged.x,y:damaged.y,kind:'repair',target:damaged.id});
+   }
+  }
   const goal=s.rally&&this.danger(s.rally)<2?s.rally:g.world.nearest({x:home.x-140,y:home.y+140},this.obstacles())??home;
-  for(const u of resting)if(distance(u,goal)>45)this.issue([u],goal,'safe');else if(u.orders[0]?.tactical?.mode!=='safe')g.stop([u.id]);
+  for(const u of resting.filter(u=>!vehiclePatients.includes(u)))if(distance(u,goal)>45)this.issue([u],goal,'safe');else if(u.orders[0]?.tactical?.mode!=='safe')g.stop([u.id]);
   const medic=resting.length?army.filter(u=>u.kind==='medic').sort((a,b)=>distance(a,goal)-distance(b,goal)||a.id-b.id)[0]:undefined;
   if(medic){reserved.add(medic.id);const patient=resting.filter(u=>distance(u,goal)<120).sort((a,b)=>a.hp/unitSpec(a).hp-b.hp/unitSpec(b).hp)[0];
    if(patient){if(medic.orders[0]?.kind!=='heal'||medic.orders[0].target!==patient.id)g.command([medic.id],{x:patient.x,y:patient.y,kind:'heal',target:patient.id});}
