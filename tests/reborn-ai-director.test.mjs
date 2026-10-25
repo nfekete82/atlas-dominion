@@ -290,3 +290,41 @@ test('director: barracks stays idle exactly at the minimum reserve threshold',()
  assert.equal(barracks.queue.length,0,'barracks must not spend the 300-credit minimum reserve');
  assert.equal(g.credits[1],300,'exact armor reserve stays banked for the next vehicle');
 });
+
+
+test('director: once a rover exists it saves for a real tank rather than buying another rover',()=>{
+ const g=new Simulation(2026,4),hq=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
+ for(let i=0;i<5;i++)g.spawn(1,{x:hq.x+110+i*10,y:hq.y-120},'infantry');
+ g.spawn(1,{x:hq.x+110,y:hq.y+135},'rover');
+ const factory=addProducer(g,'factory',1),barracks=addProducer(g,'barracks',1);
+ g.credits[1]=400;
+ developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1&&u.hp>0),()=>0);
+ assert.equal(factory.queue.length,0,'400 credits must be saved for tank rather than a second rover');
+ assert.equal(barracks.queue.length,0,'barracks must protect the entire 450-credit tank budget');
+ assert.equal(g.credits[1],400);
+ g.credits[1]=500;
+ developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1&&u.hp>0),()=>0);
+ assert.equal(factory.queueTypes[0],'tank');
+ assert.equal(factory.queueCosts[0],450);
+ assert.equal(g.credits[1],50);
+});
+
+test('director: after rover and tank it finances a real artillery unit at mature income',()=>{
+ const g=new Simulation(2026,4),hq=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
+ for(let i=0;i<5;i++)g.spawn(1,{x:hq.x+110+i*10,y:hq.y-120},'infantry');
+ g.spawn(1,{x:hq.x+115,y:hq.y+110},'rover');
+ g.spawn(1,{x:hq.x+155,y:hq.y+135},'tank');
+ for(const territory of g.territories.filter(t=>t.owner===-1))territory.owner=1;
+ assert.ok(g.income(1)>=35,'mature-economy test must have enough legitimate sector income');
+ const factory=addProducer(g,'factory',1),barracks=addProducer(g,'barracks',1);
+ g.credits[1]=500;
+ developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1&&u.hp>0),()=>0);
+ assert.equal(factory.queue.length,0,'do not substitute a tank or rover for the planned rocket launcher');
+ assert.equal(barracks.queue.length,0,'hold the artillery reserve');
+ assert.equal(g.credits[1],500);
+ g.credits[1]=650;
+ developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1&&u.hp>0),()=>0);
+ assert.equal(factory.queueTypes[0],'artillery');
+ assert.equal(factory.queueCosts[0],600);
+ assert.equal(g.credits[1],50);
+});
