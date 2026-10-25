@@ -1,5 +1,6 @@
 import {UNITS,BUILDINGS,unitSpec,canAttack,type UnitKind,type BuildingKind} from './catalog.js';
 import {distance,type Point} from './config.js';
+import {preferredRole} from './ai-director.js';
 import type {Simulation,Unit,Base} from './simulation.js';
 import type {TacticalState} from './tactical-ai.js';
 export interface EconomyState {goal:BuildingKind|null;since:number;attemptAt:number;produced:Partial<Record<UnitKind,number>>;built:Partial<Record<BuildingKind,number>>}
@@ -20,12 +21,17 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
  if(!unfinished&&workers.length&&(!underAttack||!has('barracks'))){
   if(!has('barracks'))goal='barracks';
   else if(!has('factory')&&fighters.length>=3&&(income>=20||known>0||g.time>=55))goal='factory';
-  else if(!has('airfield')&&has('factory')&&fighters.length>=4&&(income>=35||g.time>=110||seen.some(u=>unitSpec(u).flying)))goal='airfield';
+  else if(!has('airfield')&&has('factory')&&fighters.length>=4&&(income>=35||g.time>=110||seen.some(u=>unitSpec(u).flying))&&(g.world.mapVersion<3||g.tactical.mode==='baseline'||(complete('factory')&&count('tank')+count('rover')+count('artillery')>=3&&income>=55)))goal='airfield';
   else if(!has('barracks')&&fighters.length>=3)goal='barracks';
  }
  if(e.goal!==goal){e.goal=goal;e.since=g.time;}
  if(goal&&g.credits[1]>=BUILDINGS[goal].cost&&g.time-e.attemptAt>=9){
-  e.attemptAt=g.time;const worker=workers.find(w=>w.defendUntil<=g.time&&!w.orders.some(o=>o.kind==='build'));
+  e.attemptAt=g.time;
+   // Don't cancel a field engineer's emergency vehicle repair with a fresh
+   // factory/airfield construction order. A second idle worker may build.
+   const worker=workers.find(w=>w.defendUntil<=g.time&&!w.orders.some(o=>o.kind==='build'||
+    (g.world.mapVersion>=3&&g.tactical.mode==='director'&&o.kind==='repair'&&
+     army.some(v=>v.id===o.target&&s.recovering?.includes(v.id)))));
   if(worker){
    const candidates:Point[]=[];for(const center of [home,...g.territories.filter(t=>t.owner===1).map(t=>t.point)])for(const radius of [180,250,330,410])for(let i=0;i<16;i++){
     const p={x:center.x+Math.cos(i*Math.PI/8)*radius,y:center.y+Math.sin(i*Math.PI/8)*radius};if(dangerAt(p)<2&&!g.buildError(1,goal,p))candidates.push(p);
@@ -34,11 +40,16 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
    for(const p of candidates.slice(0,8)){const b=g.build(1,goal,p,[worker.id]);if(b){e.built[goal]=(e.built[goal]??0)+1;e.goal=null;break;}}
   }
  }
+ // Never reserve the airfield budget ahead of a working vehicle factory.
+ // Early-game macro first pays for at least two actual ground vehicles.
  const reserve=e.goal&&(e.goal==='barracks'||!underAttack&&fighters.length>=3)&&g.time-e.since<85?BUILDINGS[e.goal].cost:0;
  const maxArmy=Math.min(30,Math.max(14,Math.floor(income/4)+8));if(g.count(1)+g.queued(1)>=maxArmy)return;
  const wounded=army.filter(u=>!u.carrier&&unitSpec(u).group==='Infanterie'&&u.kind!=='engineer'&&u.hp<unitSpec(u).hp*.7).length;
  const armor=seen.filter(u=>!unitSpec(u).flying&&unitSpec(u).group==='Fahrzeuge').length,air=seen.filter(u=>unitSpec(u).flying).length;
  const military=g.memories[1].filter(b=>b.owner===0&&b.hp>0&&['headquarters','factory','airfield','turret'].includes(b.kind??''));
+ // Once scouts have actually identified the enemy HQ, a paid siege weapon is
+ // worth waiting for. Fogged, unknown bases must not count as revealed.
+ const knownEnemyHQ=military.some(b=>b.kind==='headquarters');
  const scores:Record<UnitKind,number>={
   infantry:Math.max(1,22-count('infantry')*5)+(fighters.length<4?18:0),
   heavy:14+(known?20+known*10:0)+armor*5+(fighters.length>=3?9:0)-count('heavy')*11,
@@ -53,6 +64,45 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
  };
  if(underAttack&&fighters.length<4){scores.infantry+=20;scores.heavy+=15;}
  if(air){scores.artillery=0;scores.bomber=0;}
+ // Macro manager: all completed producers can run independently. In the old
+ // algorithm just ONE facility queued an item per AI pulse, leaving expensive
+ // factories/airfields idle while barracks bought cheap infantry.
+ if(g.world.mapVersion>=3&&g.tactical.mode==='director'){
+  const priority:Record<string,number>={factory:0,airfield:1,barracks:2,headquarters:3};
+  const ordered=[...own].filter(b=>b.buildRemaining<=0&&b.queue.length<2)
+   .sort((a,b)=>(priority[a.kind]??4)-(priority[b.kind]??4)||a.id-b.id);
+  for(const producer of ordered){
+   if(g.count(1)+g.queued(1)>=maxArmy||g.credits[1]<=reserve)break;
+   const counts=Object.fromEntries((Object.keys(UNITS) as UnitKind[]).map(k=>[k,count(k)])) as Record<string,number>;
+   const groundVehicles=count('tank')+count('rover')+count('artillery');
+   // Stage the composition deliberately rather than constantly substituting
+   // affordable rovers for the more expensive unit at the top of the wish list.
+   // A scout plus real armor are required before entering the siege phase.
+   // An actually known enemy HQ or tower moves artillery to the front of the plan.
+   const needSiege=!underAttack&&count('artillery')===0
+     &&(knownEnemyHQ||known>0||(count('rover')>=1&&count('tank')>=1&&income>=35&&fighters.length>=5));
+   const nextArmor:UnitKind|null=!underAttack&&complete('factory')
+     ?needSiege?'artillery':count('rover')>=1&&count('tank')===0?'tank':null:null;
+   const armorReserve=complete('factory')&&!underAttack&&fighters.length>=5
+    ?nextArmor?UNITS[nextArmor].cost:groundVehicles<3?UNITS.rover.cost:0:0;
+   const defaultRanks=preferredRole(producer.kind,counts,known+(knownEnemyHQ?1:0),air);
+   const ranks=producer.kind==='factory'&&nextArmor
+    ?[nextArmor,...defaultRanks.filter(k=>k!==nextArmor)]:defaultRanks;
+   // Do not downgrade a tank or rocket purchase into another cheap rover.
+   // Other producers also respect that saved budget, except during base defense.
+   if(producer.kind==='factory'&&nextArmor&&g.credits[1]-reserve<UNITS[nextArmor].cost)continue;
+   if(producer.kind==='barracks'&&g.credits[1]-reserve<armorReserve)continue;
+   const kind=ranks.find(k=>Object.hasOwn(UNITS,k)&&UNITS[k as UnitKind].producers.includes(producer.kind)
+    &&scores[k as UnitKind]>0&&(!air||canAttack({kind:k as UnitKind},seen.find(u=>unitSpec(u).flying)!)||['medic','engineer','scout'].includes(k))
+    &&UNITS[k as UnitKind].cost<=g.credits[1]-reserve-(producer.kind==='barracks'?armorReserve:0)) as UnitKind|undefined;
+   if(!kind)continue;
+   if(g.recruit(producer.id,kind)){
+    e.produced[kind]=(e.produced[kind]??0)+1;
+    s.productionSerial++;s.savingFor=null;s.savingSince=null;
+   }
+  }
+  return;
+ }
  const choices=(Object.keys(scores) as UnitKind[]).filter(k=>scores[k]>0&&own.some(b=>b.buildRemaining<=0&&b.queue.length<2&&UNITS[k].producers.includes(b.kind))&&(!air||canAttack({kind:k},seen.find(u=>unitSpec(u).flying)!)||['medic','engineer','scout'].includes(k))).sort((a,b)=>scores[b]-scores[a]||Object.keys(scores).indexOf(a)-Object.keys(scores).indexOf(b));
  const budget=Math.max(0,g.credits[1]-reserve);let kind=choices[0];if(!kind)return;
  if(UNITS[kind].cost>budget){

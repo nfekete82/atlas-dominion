@@ -178,7 +178,7 @@ export class Simulation {
     let accepted=0;
     members.forEach((u,i)=>{
       if(['heal','repair','build'].includes(order.kind)){
-        const entity=order.kind==='heal'?this.units.find(t=>t.id===order.target):this.bases.find(t=>t.id===order.target);
+        const entity=order.kind==='heal'?this.units.find(t=>t.id===order.target):order.kind==='repair'?this.bases.find(t=>t.id===order.target)??this.units.find(t=>t.id===order.target):this.bases.find(t=>t.id===order.target);
         if(!entity||!this.supportEligible(u,entity,order.kind))return;
         const approach=this.supportApproach(u,entity);if(!approach)return;
         if('queue' in entity){const path=this.world.path(u,approach,this.obstacles());if(distance(u,entity)>entity.radius+55&&(!path.length||distance(path[path.length-1],entity)>entity.radius+55))return;}
@@ -208,6 +208,8 @@ export class Simulation {
   private supportEligible(u:Unit,target:Unit|Base,kind:string):boolean {
     if(target.hp<=0||('orders' in target&&target.carrier)||target.owner!==u.owner)return false;
     if(kind==='heal')return u.kind==='medic'&&'orders' in target&&unitSpec(target).group==='Infanterie'&&target.hp<unitSpec(target).hp;
+    if(kind==='repair'&&u.kind==='engineer'&&'orders' in target)
+      return target.id!==u.id&&!unitSpec(target).flying&&unitSpec(target).group==='Fahrzeuge'&&target.hp<unitSpec(target).hp;
     return u.kind==='engineer'&&'queue' in target&&(kind==='build'?target.buildRemaining>0:target.buildRemaining<=0&&target.hp<buildingSpec(target).hp);
   }
   private supportApproach(u:Unit,target:Unit|Base):Point|null {
@@ -255,14 +257,17 @@ export class Simulation {
     if(order&&!explicit)return false;
     let target:Unit|Base|undefined;
     if(explicit){
-      target=order.kind==='heal'?this.units.find(t=>t.id===order.target):this.bases.find(t=>t.id===order.target);
+      target=order.kind==='heal'?this.units.find(t=>t.id===order.target):order.kind==='repair'?this.bases.find(t=>t.id===order.target)??this.units.find(t=>t.id===order.target):this.bases.find(t=>t.id===order.target);
       if(!target||!this.supportEligible(u,target,order.kind)){u.orders.shift();u.path=[];u.repath=0;return true;}
       if(order.kind==='heal'){order.healOrigin??={x:order.x,y:order.y};if(distance(target,order.healOrigin)>160&&distance(u,target)>HEAL_RADIUS){u.path=[];u.supportPaused=true;return false;}}
       order.x=target.x;order.y=target.y;
     }else if(u.kind==='medic'){
       target=this.spatial.query(u,HEAL_RADIUS).filter(t=>this.supportEligible(u,t,'heal')&&(t.id!==u.id||u.defendUntil<=this.time)).sort((a,b)=>a.hp/unitSpec(a).hp-b.hp/unitSpec(b).hp||a.id-b.id)[0];
     }else{
-      target=this.bases.filter(b=>this.supportEligible(u,b,'repair')&&distance(u,b)<=b.radius+55).sort((a,b)=>a.hp/buildingSpec(a).hp-b.hp/buildingSpec(b).hp||a.id-b.id)[0];
+      const damagedVehicles=this.spatial.query(u,80).filter(v=>this.supportEligible(u,v,'repair')&&distance(u,v)<=80);
+      const damagedBuildings=this.bases.filter(b=>this.supportEligible(u,b,'repair')&&distance(u,b)<=b.radius+55);
+      target=[...damagedVehicles,...damagedBuildings].sort((a,b)=>
+        a.hp/('orders' in a?unitSpec(a).hp:buildingSpec(a).hp)-b.hp/('orders' in b?unitSpec(b).hp:buildingSpec(b).hp)||a.id-b.id)[0];
     }
     if(!target)return false;
     // A recently attacked worker pauses construction/repair to defend itself.
@@ -274,7 +279,10 @@ export class Simulation {
     }
     u.path=[];u.combatTarget=null;u.pursuitOrigin=null;u.workingTarget=target.id;
     u.angle=Math.atan2(target.y-u.y,target.x-u.x);u.facing=target.x<u.x?-1:1;
-    if('orders' in target){if(!this.healNearby(u,dt)){u.workingTarget=null;return false;}}
+    if('orders' in target){
+      if(u.kind==='medic'){if(!this.healNearby(u,dt)){u.workingTarget=null;return false;}}
+      else {const before=target.hp;target.hp=Math.min(unitSpec(target).hp,target.hp+18*dt);this.work('repair',u.id,target.id,target.hp-before);}
+    }
     else if(target.buildRemaining<=0){const before=target.hp;target.hp=Math.min(buildingSpec(target).hp,target.hp+12*dt);this.work('repair',u.id,target.id,target.hp-before);}
     return true;
   }
@@ -308,6 +316,9 @@ export class Simulation {
   private strike(source:number,target:Unit|Base,amount:number):void{
     const alive=target.hp>0;target.hp-=amount;
     if(alive&&target.hp<=0&&'orders' in target)this.tactical.loss(target);
+    // Fast damage-driven retreat: the tactical planner runs only every 3 s,
+    // longer than the time a low-HP rover can survive under enemy fire.
+    if(alive&&target.hp>0&&'orders' in target)this.tactical.evacuateVehicle(target);
     if('hit' in target){target.hit=.18;target.lastAttacker=source;target.defendUntil=this.time+5;}
     if(target.hp<=0&&'queue' in target){target.hp=0;target.queue=[];target.queueTypes=[];target.queueCosts=[];target.production=0;this.notices.push(`${buildingSpec(target).name} ${target.owner===0?'verloren':'ausgeschaltet'}!`);}
   }
@@ -456,7 +467,7 @@ export class Simulation {
       // defensive reaction fire or an old attack lock stall the movement.
       // Boarding/takeoff animations finish before movement resumes.
       if(transportBusy){delete u.burst;continue;}
-      if(order?.kind==='move'&&!(u.owner===1&&this.tactical.state.phase==='attack')){
+      if(order?.kind==='move'&&(u.owner===0||this.world.mapVersion>=3&&this.tactical.mode==='director'||this.tactical.state.phase!=='attack')){
         delete u.burst;u.combatTarget=null;u.pursuitOrigin=null;
         if(distance(u,order)<18){u.orders.shift();u.path=[];u.repath=0;}
         else this.move(u,order,dt);
