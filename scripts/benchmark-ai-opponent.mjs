@@ -29,6 +29,15 @@ export function blueDefense(g){
   }
  }
  const barracks=own.find(b=>b.kind==='barracks'&&b.buildRemaining<=0&&b.queue.length<2);
+ // Defend the actual owned bastion instead of hiding around the HQ,
+ // which is deliberately offset from the capture point. No enemy positions
+ // or hidden information are consulted for this simple defensive doctrine.
+ const hold=g.territories.find(t=>t.id===home.territory&&t.owner===owner)?.point;
+ if(hold)for(const u of g.units.filter(u=>u.owner===owner&&u.hp>0&&!u.carrier&&
+  (u.kind==='infantry'||u.kind==='heavy'))){
+  if(!u.orders.length&&Math.hypot(u.x-hold.x,u.y-hold.y)>95)
+   g.command([u.id],{x:hold.x,y:hold.y,kind:'attackMove'});
+ }
  if(!barracks)return;
  const roster=g.units.filter(u=>u.owner===owner&&u.hp>0),
   count=k=>roster.filter(u=>u.kind===k).length+own.reduce((n,b)=>n+b.queueTypes.filter(v=>v===k).length,0);
