@@ -313,3 +313,58 @@ Sparen/Bestellen des Raketenwerfers bei zuvor erkanntem HQ.
 **Pflicht vor Erfolgsaussage:** Build + gezielte Tests und
 neuer, paarweiser End-to-End-Benchmark; keine Aktualisierung
 von `main` oder des laufenden Docker-Containers.
+
+
+## Fünfter A/B-Lauf: Drei Fahrzeuge, aber noch nur Spähwagen
+
+Vom Entwickler lokal bestätigt (25.10.2026): **33/33 Tests und
+TypeScript-Build erfolgreich**. `--map 4 --seeds 2026,2027
+--seconds 300 --opponent guarded`, beide Varianten vollständig gespielt:
+
+| Durchschnitt | Baseline | Director |
+|---|---:|---:|
+| Eroberungen | 4 | **6** |
+| Getötete Verteidiger | 2 | **7,5** |
+| Gleichzeitig vorhandene Fahrzeuge | 2 | **3** |
+| Bezahlte Fahrzeugbestellungen | 2 | **4** |
+| Abgefeuerte Fahrzeugschüsse | 1 | **16** |
+| Reparierte LP an Fahrzeugen | 0 | **231,83** |
+| Verlust eigener Fahrzeuge | 0 | 1 |
+| Rückkehr aus Reparatur | 0 | **1,5** |
+| Tatsächliche Fahrzeugtypen | Rover | **Nur Rover** |
+| End-HP des blauen HQ | 1200 | 1200 |
+
+Die zusätzliche 300-Credit-Fahrzeugreserve verbessert den reinen
+Fahrzeugbestand, behebt aber noch nicht die **Zusammensetzung**:
+`preferredRole` bevorzugte einen teureren Panzer, die Kaufregel
+weichte bei weniger als 450 Credits jedoch direkt auf den billigeren
+Spähwagen aus. So wurde die Ersparnis für echte Panzer nie aufgebaut.
+
+### Neue Kompositionsregel (noch nicht lokal geprüft)
+
+- **Erste Bestellung:** Ist noch kein Rover vorhanden, darf
+  ein günstiger Rover als Aufklärungseinheit gebaut werden,
+  während ein sofort finanzierbarer Kampfpanzer weiterhin Vorrang hat.
+- **Mindestens ein Rover, kein Tank:** Die Fabrik wartet auf
+  **450 bezahlbare Credits für einen echten Kampfpanzer**, statt
+  das Geld durch weitere Rover-Bestellungen zu verbrauchen.
+  Die Kaserne schützt dieses Sparziel ebenfalls.
+- **Rover plus Panzer, kein Raketenwerfer, ausgereifte
+  Wirtschaft:** Sie wartet auf **600 Credits für einen
+  Raketenwerfer**. Wenn das HQ oder ein Turm bereits durch
+  tatsächliche Aufklärung bekannt ist, erfolgt diese Umstellung
+  früher; versteckte Positionen bleiben unbekannt.
+- Bei unmittelbar sichtbarem Angriff auf die eigene Basis
+  werden diese Sparziele zugunsten von Notfalltruppen gelockert.
+- Einheiten werden nur über das übliche bezahlte
+  `Simulation.recruit` gebaut; keine Cheat-Einheiten.
+
+Neue Regressionen sichern Sparen/Bestellen über beide Schwellen
+ab. Der A/B-Benchmark protokolliert zusätzlich
+`firstTank`, `firstArtillery` und `firstEnemyHQSeen`
+(erstmalige Sichtung des feindlichen HQ durch regulären Fog of War).
+
+**Noch keine neue Erfolgsbehauptung**: Build, Node-Tests und A/B
+mit dieser Regel müssen erneut auf dem Mac durchgeführt werden.
+Insbesondere darf die neue Sparpolitik die bisher sechs
+Eroberungen nicht für eine ungenutzte Raketenwerfer-Bestellung opfern.
