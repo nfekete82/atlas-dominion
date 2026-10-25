@@ -266,3 +266,50 @@ npm run build
 node --test tests/reborn-ai-director.test.mjs tests/reborn-map-ai.test.mjs tests/reborn-control-retreat.test.mjs
 node scripts/benchmark-reborn-ai.mjs --map 4 --seeds 2026,2027 --seconds 300 --opponent guarded
 ```
+
+
+## Nächster Entwicklungsstand: Fahrzeugreserve und HQ-Belagerung
+
+Vom Projektinhaber bestätigte lokale Tests: **29/29 bestanden**.
+Im anschließenden gleichen A/B-Szenario mit Seeds 2026/2027 (Mittel,
+je 300 Spielsekunden, bezahlter `guarded`-Verteidiger):
+
+| KPI (Durchschnitt) | Baseline | Director |
+|---|---:|---:|
+| Eroberte Bastionen | 4 | 6 |
+| Getötete blaue Einheiten | 2 | **9** |
+| Reparierte Fahrzeug-LP | 0 | **154,83** |
+| Fahrzeug-Evakuierungen | 0 | **2** |
+| Fahrzeuge wieder im Einsatz | 0 | **1** |
+| Verlorene Fahrzeuge | 0 | 0,5 |
+| Gleichzeitig vorhandene Fahrzeuge (Maximum) | 2 | 1 |
+| Blaue HQ-LP (Ende) | 1200 | 1200 |
+
+**Bestätigt:** Die reale Instandsetzung funktioniert inzwischen in
+beiden Simulationen und es kommt zu echten Rückkehrbewegungen.
+**Nicht bestätigt:** Eine ausreichend große Fahrzeuggruppe und
+erfolgreiche Belagerung. Das bleibt die nächste Engstelle.
+
+Die jetzt zusätzliche, **noch ungetestete** Makro-Änderung bewahrt
+bei einem fertiggestellten Fahrzeugwerk und weniger als drei
+Bodenfahrzeugen bis zu **300 Credits als wiederkehrendes
+Fahrzeugbudget**, anstatt nur auf den ersten Panzer zu sparen.
+Einheiten in Fabrikwarteschlangen zählen dazu. Bei einer
+sichtbaren akuten Basisbedrohung kann die Kaserne davon abweichen.
+
+Hat die KI das gegnerische Hauptquartier tatsächlich aufgedeckt
+und noch keinen eigenen Raketenwerfer, reserviert sie stattdessen
+**600 Credits** für den ersten Raketenwerfer. Keine versteckten
+Informationen: Ausschließlich bereits entdeckte, noch vorhandene
+Gegnergebäude in `memories[1]` lösen die Spezialplanung aus.
+Das eigentliche Ziel bleibt ein real gebauter, bezahlter
+Belagerungsverband, nicht eine erfundene oder teleportierte Waffe.
+
+Neue gezielte Regressionstests prüfen die gesperrte
+Kaserne bei knapper Fahrzeugkasse, die mögliche Reaktion
+auf einen sichtbaren Einbruch in die Basis und das gezielte
+Sparen/Bestellen des Raketenwerfers bei zuvor erkanntem HQ.
+
+**Pflicht vor Erfolgsaussage:** Build + gezielte Tests und
+neuer, paarweiser End-to-End-Benchmark; keine Aktualisierung
+von `main` oder des laufenden Docker-Containers.
