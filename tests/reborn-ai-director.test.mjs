@@ -254,3 +254,23 @@ test('director: a threatened base may recruit infantry instead of preserving the
  assert.ok(barracks.queue.length>0,'emergency infantry remains allowed when the base is under attack');
  assert.equal(g.credits[1],0,'both urgent orders must be fully paid');
 });
+
+
+test('director: a sighted enemy HQ triggers a fully paid rocket siege rather than random rovers',()=>{
+ const g=new Simulation(2026,4),hq=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
+ for(let i=0;i<5;i++)g.spawn(1,{x:hq.x+105+i*9,y:hq.y-110},'infantry');
+ const factory=addProducer(g,'factory',1),barracks=addProducer(g,'barracks',1);
+ const blueHQ=g.bases.find(b=>b.owner===0&&b.kind==='headquarters');
+ g.memories[1].push({id:blueHQ.id,owner:0,x:blueHQ.x,y:blueHQ.y,hp:blueHQ.hp,
+  territory:blueHQ.territory,kind:'headquarters'});
+ g.credits[1]=500;
+ developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1&&u.hp>0),()=>0);
+ assert.equal(factory.queue.length,0,'HQ siege must save for artillery, not spend on cheap rovers');
+ assert.equal(barracks.queue.length,0,'barracks cannot drain the 600-credit artillery budget');
+ assert.equal(g.credits[1],500);
+ g.credits[1]=650;
+ developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1&&u.hp>0),()=>0);
+ assert.equal(factory.queueTypes[0],'artillery','sighted HQ requires a real siege weapon');
+ assert.equal(factory.queueCosts[0],600);
+ assert.equal(g.credits[1],50);
+});
