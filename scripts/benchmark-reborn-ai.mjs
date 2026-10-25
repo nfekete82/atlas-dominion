@@ -28,19 +28,37 @@ if(![3,4,5].includes(version)||!['guarded','idle'].includes(opponent)||!Number.i
   const metrics={seed,mode,opponent,requestedSeconds:seconds,elapsedSeconds:0,terminalStatus:'playing',initialCredits:starting.credits,
    firstAssault:null,firstVehicle:null,firstFactory:null,firstFrontContact:null,
    finishedBuildings:0,vehicles:0,peakVehicles:0,vehiclesOrdered:0,redSectors:starting.redSectors,captures:0,
-   blueUnitsLost:0,blueHeadquartersHp:null,redUnits:0,redCredits:0,
+   blueUnitsLost:0,blueUnitDamage:0,blueHeadquartersHp:null,redUnits:0,redCredits:0,
+   firstVehicleShot:null,vehicleShots:0,firstEnemyContact:null,
    attackingSeconds:0,productiveFactorySeconds:0,productiveBarracksSeconds:0,
    productiveAirfieldSeconds:0,phaseTransitions:0,score:0,wallMs:0};
   const types=new Set(['tank','rover','artillery','gunship','bomber','scout']);
   let phase=g.tactical.state.phase;
+  let previousBlue=new Map(g.units.filter(u=>u.owner===0&&u.hp>0).map(u=>[u.id,u.hp]));
   const begin=performance.now();
   const steps=Math.round(seconds/.05);
   for(let step=0;step<steps&&g.status==='playing';step++){
    if(opponent==='guarded'&&step%60===0)blueDefense(g);
    g.step(.05);
    metrics.elapsedSeconds=Number(g.time.toFixed(2));
+   // Track deaths by persistent ID, not starting count minus the current
+   // count: the defender produces replacement units during the benchmark.
+   const currentBlue=new Map(g.units.filter(u=>u.owner===0&&u.hp>0).map(u=>[u.id,u.hp]));
+   for(const [id,hp] of previousBlue){
+    const remaining=currentBlue.get(id);
+    if(remaining===undefined){metrics.blueUnitsLost++;metrics.blueUnitDamage+=hp;}
+    else metrics.blueUnitDamage+=Math.max(0,hp-remaining);
+   }
+   previousBlue=currentBlue;
+   for(const shot of g.shots)if(shot.owner===1&&Math.abs(shot.at-g.time)<1e-8&&types.has(shot.kind)){
+    metrics.vehicleShots++;
+    if(metrics.firstVehicleShot===null)metrics.firstVehicleShot=Number(g.time.toFixed(1));
+   }
    if(step%20!==0)continue;
    const time=Math.round(g.time),red=g.units.filter(u=>u.owner===1&&u.hp>0&&!u.carrier);
+   if(metrics.firstEnemyContact===null&&red.some(u=>g.units.some(v=>v.owner===0&&v.hp>0&&!v.carrier
+     &&g.canSee(1,v)&&Math.hypot(v.x-u.x,v.y-u.y)<=Math.max(400,Math.min(690,u.kind==='artillery'?690:400)))))
+    metrics.firstEnemyContact=time;
    const available=red.filter(u=>types.has(u.kind));
    metrics.peakVehicles=Math.max(metrics.peakVehicles,available.length);
    const own=g.bases.filter(b=>b.owner===1&&b.hp>0);
@@ -66,7 +84,6 @@ if(![3,4,5].includes(version)||!['guarded','idle'].includes(opponent)||!Number.i
    .filter(([kind])=>types.has(kind)).reduce((n,[,count])=>n+count,0);
   metrics.redSectors=g.territories.filter(t=>t.owner===1).length;
   metrics.captures=Math.max(0,metrics.redSectors-starting.redSectors);
-  metrics.blueUnitsLost=Math.max(0,starting.blue-g.units.filter(u=>u.owner===0&&u.hp>0).length);
   metrics.blueHeadquartersHp=g.bases.find(b=>b.kind==='headquarters'&&b.territory===g.world.territories(seed).find(t=>t.owner===0)?.id)?.hp??0;
   metrics.redUnits=g.count(1);
   metrics.redCredits=Math.round(g.credits[1]);
@@ -83,15 +100,16 @@ if(![3,4,5].includes(version)||!['guarded','idle'].includes(opponent)||!Number.i
    'sectors='+result.redSectors,'captures='+result.captures,
    'peakVehicles='+result.peakVehicles,'orderedVehicles='+result.vehiclesOrdered,
    'playedSeconds='+result.elapsedSeconds,'status='+result.terminalStatus,
+   'blueDeaths='+result.blueUnitsLost,'vehicleShots='+result.vehicleShots,
    'firstFront='+String(result.firstFrontContact??'none'),
    'factory='+String(result.firstFactory??'none'),'assaultSeconds='+result.attackingSeconds,
    'score='+result.score,'wallMs='+result.wallMs);
  }
  const avg=(mode,key)=>Number((details.filter(r=>r.mode===mode).reduce((n,r)=>n+r[key],0)/seeds.length).toFixed(2));
  const summary={mapVersion:version,requestedSeconds:seconds,opponent,seeds,
-  baseline:{meanCaptures:avg('baseline','captures'),meanPeakVehicles:avg('baseline','peakVehicles'),meanVehiclesOrdered:avg('baseline','vehiclesOrdered'),meanPlayedSeconds:avg('baseline','elapsedSeconds'),meanVehicles:avg('baseline','vehicles'),
+  baseline:{meanCaptures:avg('baseline','captures'),meanBlueDeaths:avg('baseline','blueUnitsLost'),meanVehicleShots:avg('baseline','vehicleShots'),meanPeakVehicles:avg('baseline','peakVehicles'),meanVehiclesOrdered:avg('baseline','vehiclesOrdered'),meanPlayedSeconds:avg('baseline','elapsedSeconds'),meanVehicles:avg('baseline','vehicles'),
    meanScore:avg('baseline','score'),meanAttackingSeconds:avg('baseline','attackingSeconds')},
-  director:{meanCaptures:avg('director','captures'),meanPeakVehicles:avg('director','peakVehicles'),meanVehiclesOrdered:avg('director','vehiclesOrdered'),meanPlayedSeconds:avg('director','elapsedSeconds'),meanVehicles:avg('director','vehicles'),
+  director:{meanCaptures:avg('director','captures'),meanBlueDeaths:avg('director','blueUnitsLost'),meanVehicleShots:avg('director','vehicleShots'),meanPeakVehicles:avg('director','peakVehicles'),meanVehiclesOrdered:avg('director','vehiclesOrdered'),meanPlayedSeconds:avg('director','elapsedSeconds'),meanVehicles:avg('director','vehicles'),
    meanScore:avg('director','score'),meanAttackingSeconds:avg('director','attackingSeconds')},
   details};
  console.log('\nAI BENCHMARK JSON\n'+JSON.stringify(summary,null,2));
