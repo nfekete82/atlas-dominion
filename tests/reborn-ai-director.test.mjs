@@ -182,3 +182,46 @@ test('director: damaged armored unit withdraws and is excluded from the active a
  assert.equal(tank.orders[0]?.kind,'move','vehicle must retreat under strict move orders');
  assert.equal(tank.orders[0]?.tactical?.mode,'safe');
 });
+
+
+test('director: enemy damage triggers emergency armored extraction without waiting for next AI tick',()=>{
+ const g=new Simulation(2026,4);
+ g.aiClock=-1e8;
+ g.world.blocked.fill(0);g.world.opaque.fill(0);g.world.components.fill(0);
+ g.units=[];
+ const rover=g.spawn(1,{x:1890,y:2050},'rover'),enemy=g.spawn(0,{x:1980,y:2050},'heavy');
+ rover.hp=150;
+ enemy.cooldown=0;
+ g.updateVision();
+ for(let i=0;i<12&&!g.tactical.state.recovering?.includes(rover.id);i++)g.step(.05);
+ assert.ok(rover.hp<150,'enemy must actually wound the rover');
+ assert.ok(rover.hp>0,'retreat order must be issued before the rover dies');
+ assert.ok(g.tactical.state.recovering?.includes(rover.id),'damage event starts extraction immediately');
+ assert.equal(rover.orders[0]?.kind,'move','rover must disengage without stopping to return fire');
+ assert.equal(rover.orders[0]?.tactical?.mode,'safe');
+});
+
+test('director: serviced vehicle receives actual HP and returns to the reserve above 90 percent',()=>{
+ const g=new Simulation(2026,4);
+ g.aiClock=-1e8;
+ g.world.blocked.fill(0);g.world.opaque.fill(0);g.world.components.fill(0);
+ g.credits[1]=0;
+ const hq=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
+ const engineer=g.units.find(u=>u.owner===1&&u.kind==='engineer');
+ const edge={x:Math.max(85,Math.min(g.world.size-85,hq.x+(hq.x>=g.world.size/2?165:-165))),
+  y:Math.max(85,Math.min(g.world.size-85,hq.y+(hq.y>=g.world.size/2?135:-135)))};
+ const dock=g.world.nearest(edge,g.obstacles());
+ assert.ok(dock,'service point must be a valid map position');
+ const tank=g.spawn(1,dock,'tank');
+ tank.hp=220;
+ engineer.x=dock.x+45;engineer.y=dock.y+5;
+ g.updateVision();
+ g.tactical.plan();
+ assert.ok(g.tactical.state.recovering?.includes(tank.id));
+ assert.equal(engineer.orders[0]?.kind,'repair','director must dispatch a real engineer');
+ assert.equal(engineer.orders[0]?.target,tank.id);
+ for(let i=0;i<240;i++)g.step(.05);
+ assert.ok(tank.hp>=558,'repair must restore at least 90 percent of the tank maximum');
+ g.tactical.plan();
+ assert.ok(!g.tactical.state.recovering?.includes(tank.id),'repaired tank must rejoin field roster');
+});
