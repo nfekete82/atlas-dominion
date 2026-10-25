@@ -9,6 +9,7 @@
 import {Simulation} from '../dist/src/reborn/simulation.js';
 import {performance} from 'node:perf_hooks';
 import {blueDefense} from './benchmark-ai-opponent.mjs';
+import {UNITS} from '../dist/src/reborn/catalog.js';
 
 const options=Object.fromEntries(process.argv.slice(2).flatMap((value,i,all)=>value.startsWith('--')
   ?[[value.slice(2),all[i+1]]]:[]));
@@ -61,7 +62,7 @@ if(![3,4,5].includes(version)||!['guarded','idle'].includes(opponent)||!Number.i
    for(const id of recovery)if(!previousVehicleRecovery.has(id))metrics.vehicleEvacuations++;
    for(const id of previousVehicleRecovery)if(!recovery.has(id)){
     const vehicle=g.units.find(u=>u.id===id&&u.owner===1&&u.hp>0);
-    if(vehicle&&vehicle.hp>=.9*({tank:620,rover:220,artillery:340}[vehicle.kind]??Infinity))
+    if(vehicle&&vehicle.hp>=.9*(UNITS[vehicle.kind]?.hp??Infinity))
      metrics.vehicleReturned++;
    }
    previousVehicleRecovery=recovery;
