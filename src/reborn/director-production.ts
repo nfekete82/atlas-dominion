@@ -23,6 +23,8 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
  const planned=():UnitKind|null=>{
   if(count('engineer')===0&&available('engineer'))return 'engineer';
   if(c.underAttack)return null;
+  const siegeNeed=s.battle?.assessment?.neededSiege??0;
+  if(!enemyAir&&available('artillery')&&count('artillery')<siegeNeed&&ground()>=2)return 'artillery';
   if(!enemyAir&&available('artillery')&&count('artillery')===0&&(c.knownEnemyHQ||c.knownTurrets>0))return 'artillery';
   if(available('tank')){
    if(ground()===0)return g.credits[1]-c.reserve>=UNITS.tank.cost?'tank':'rover';

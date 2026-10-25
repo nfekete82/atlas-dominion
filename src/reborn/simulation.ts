@@ -1,3 +1,4 @@
+import {VisionCache} from './vision-cache.js';
 import { profiler } from './performance.js';
 import { RULES, clamp, distance, type Faction, type Owner, type Point, type MapVersion, mapLayout } from './config.js';
 import { World, inside, type Territory } from './world.js';
@@ -70,7 +71,7 @@ export class Simulation {
   explored=[new Uint8Array(RULES.grid**2),new Uint8Array(RULES.grid**2)];
   memories:Memory[][]=[[],[]]; shots:Shot[]=[]; notices:string[]=[];
   workEffects:WorkEffect[]=[];
-  paused=false; revision=0; private fogClock=0; private spatial=new SpatialIndex();
+  paused=false; revision=0; private fogClock=0; private visionCache=new VisionCache(); private spatial=new SpatialIndex();
   /** The original constructor remains a deterministic legacy fixture/save reader. */
   constructor(seed=2026,mapVersion:MapVersion=0) {
     this.seed=seed;this.world=new World(seed,mapVersion);this.territories=this.world.territories(seed);
@@ -311,6 +312,7 @@ export class Simulation {
   }
   private damage(source:Unit|Base,target:Unit|Base,damage:number,weapon:Weapon,from:Point,barrel?:number):void {
     this.strike(source.id,target,damage);
+    if(weapon==='turret'&&'orders' in target&&target.hp>0)this.tactical.underTowerFire(target);
     const flying='orders' in target&&unitSpec(target).flying;
     this.shots.push({from,to:{x:target.x,y:target.y-(flying?(target.kind==='scout'?34+77*((target as Unit).flightHeight??1):111):23)},owner:source.owner,life:.65,hit:true,projected:'queue' in source,source:source.id,weapon,barrel,at:this.time,
       ...('orders' in source?{kind:source.kind,angle:source.angle,flightHeight:source.flightHeight}:{}),groundFrom:{x:source.x,y:source.y},groundTo:{x:target.x,y:target.y},armored:'queue' in target||unitSpec(target as Unit).group!=='Infanterie'});
@@ -337,19 +339,10 @@ export class Simulation {
   private updateVisionMeasured():void {
     for(const owner of [0,1] as const){
       const visible=this.visible[owner];visible.fill(0);
-      const sources=[...this.units.filter(u=>u.owner===owner&&u.hp>0&&!u.carrier).map(u=>({x:u.x,y:u.y,sight:unitSpec(u).sight,close:unitSpec(u).radius+this.world.cell*2,air:unitSpec(u).flying})),
-        ...this.bases.filter(b=>b.owner===owner&&b.hp>0).map(b=>({x:b.x,y:b.y,sight:b.buildRemaining>0?110:buildingSpec(b).sight,close:b.radius+this.world.cell*2,air:false})),
-        ...this.territories.filter(t=>t.owner===owner).map(t=>({...t.point,sight:RULES.bastion.sight,close:RULES.bastion.radius+this.world.cell*2,air:false}))];
-      for(const s of sources){
-        const gx=Math.floor(s.x/this.world.cell),gy=Math.floor(s.y/this.world.cell),r=Math.ceil(s.sight/this.world.cell);
-        for(let y=Math.max(0,gy-r);y<=Math.min(RULES.grid-1,gy+r);y++)for(let x=Math.max(0,gx-r);x<=Math.min(RULES.grid-1,gx+r);x++){
-          const i=y*RULES.grid+x;if(visible[i])continue;
-          const p=this.world.center(i),d=distance(s,p);
-          if(d<=s.sight&&(s.air||d<=s.close||this.world.sightLine(s,p)))visible[i]=1;
-        }
-        // A source always reveals its exact tile, including after save migration.
-        const ownCell=this.world.index(s);if(ownCell>=0)visible[ownCell]=1;
-      }
+      const sources=[...this.units.filter(u=>u.owner===owner&&u.hp>0&&!u.carrier).map(u=>({key:`u${u.id}`,x:u.x,y:u.y,sight:unitSpec(u).sight,close:unitSpec(u).radius+this.world.cell*2,air:unitSpec(u).flying})),
+        ...this.bases.filter(b=>b.owner===owner&&b.hp>0).map(b=>({key:`b${b.id}`,x:b.x,y:b.y,sight:b.buildRemaining>0?110:buildingSpec(b).sight,close:b.radius+this.world.cell*2,air:false})),
+        ...this.territories.filter(t=>t.owner===owner).map(t=>({key:`t${t.id}`,...t.point,sight:RULES.bastion.sight,close:RULES.bastion.radius+this.world.cell*2,air:false}))];
+      this.visionCache.update(this.world,owner,sources,visible);
       const discovered=new Set<number>();
       for(let i=0;i<visible.length;i++)if(visible[i]){this.explored[owner][i]=1;const cliff=this.world.cliffIds[i];if(cliff>=0)discovered.add(cliff);}
       // Seeing a cliff identifies its complete terrain surface. Its inaccessible

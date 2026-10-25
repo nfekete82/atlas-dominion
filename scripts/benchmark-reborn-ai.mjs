@@ -137,8 +137,8 @@ export function runMatch({Simulation,UNITS,performanceModule},options,seed,mode,
  const begin=performance.now(),dt=.05,steps=Math.round(options.seconds/dt);
  try{
   for(let step=0;step<steps&&g.status==='playing';step++){
-   if(options.opponent==='guarded'&&step%60===0)blueDefense(g);
-   const at=performance.now();g.step(dt);stepTimes.push(performance.now()-at);
+   if(options.opponent==='guarded'&&step%60===0)(options.defender??blueDefense)(g);
+   const at=performance.now();g.step(dt);stepTimes.push(performance.now()-at);options.observe?.(g);
    const s=g.tactical.state,now=time();metrics.elapsedSeconds=now;
    for(const u of g.units){
     unitsKnown.set(u.id,{owner:u.owner,kind:u.kind});
