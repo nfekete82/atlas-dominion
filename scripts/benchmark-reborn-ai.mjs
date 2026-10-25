@@ -27,7 +27,7 @@ if(![3,4,5].includes(version)||!['guarded','idle'].includes(opponent)||!Number.i
   const starting={blue:g.units.filter(u=>u.owner===0).length,
    redSectors:g.territories.filter(t=>t.owner===1).length,credits:g.credits[1]};
   const metrics={seed,mode,opponent,requestedSeconds:seconds,elapsedSeconds:0,terminalStatus:'playing',initialCredits:starting.credits,
-   firstAssault:null,firstVehicle:null,firstFactory:null,firstFrontContact:null,
+   firstAssault:null,firstVehicle:null,firstTank:null,firstArtillery:null,firstEnemyHQSeen:null,firstFactory:null,firstFrontContact:null,
    finishedBuildings:0,vehicles:0,peakVehicles:0,vehiclesOrdered:0,vehicleOrdersByKind:{},redSectors:starting.redSectors,captures:0,
    blueUnitsLost:0,blueUnitDamage:0,blueHeadquartersHp:null,redUnits:0,redCredits:0,
    firstVehicleShot:null,vehicleShots:0,firstEnemyContact:null,
@@ -75,6 +75,10 @@ if(![3,4,5].includes(version)||!['guarded','idle'].includes(opponent)||!Number.i
    }
    if(step%20!==0)continue;
    const time=Math.round(g.time),red=g.units.filter(u=>u.owner===1&&u.hp>0&&!u.carrier);
+   if(metrics.firstEnemyHQSeen===null&&g.memories[1].some(b=>b.owner===0&&b.kind==='headquarters'&&b.hp>0))
+    metrics.firstEnemyHQSeen=time;
+   if(metrics.firstTank===null&&red.some(u=>u.kind==='tank'))metrics.firstTank=time;
+   if(metrics.firstArtillery===null&&red.some(u=>u.kind==='artillery'))metrics.firstArtillery=time;
    if(metrics.firstEnemyContact===null&&red.some(u=>g.units.some(v=>v.owner===0&&v.hp>0&&!v.carrier
      &&g.canSee(1,v)&&Math.hypot(v.x-u.x,v.y-u.y)<=Math.max(400,Math.min(690,u.kind==='artillery'?690:400)))))
     metrics.firstEnemyContact=time;
@@ -120,6 +124,8 @@ if(![3,4,5].includes(version)||!['guarded','idle'].includes(opponent)||!Number.i
    'sectors='+result.redSectors,'captures='+result.captures,
    'peakVehicles='+result.peakVehicles,'orderedVehicles='+result.vehiclesOrdered,
    'ordersByKind='+JSON.stringify(result.vehicleOrdersByKind),
+   'firstTank='+String(result.firstTank??'none'),'firstRocket='+String(result.firstArtillery??'none'),
+   'enemyHQSeen='+String(result.firstEnemyHQSeen??'none'),
    'playedSeconds='+result.elapsedSeconds,'status='+result.terminalStatus,
    'blueDeaths='+result.blueUnitsLost,'vehicleShots='+result.vehicleShots,
    'vehicleDeaths='+result.vehicleDeaths,'vehicleRepairHp='+Math.round(result.vehicleRepairHp),
