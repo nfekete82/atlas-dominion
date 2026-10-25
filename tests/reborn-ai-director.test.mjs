@@ -154,6 +154,7 @@ test('benchmark: paid blue defenders protect their own bastion without map cheat
 test('repair: an engineer can restore damaged paid ground vehicles through the real repair command',()=>{
  const g=new Simulation(2026,4);
  g.aiClock=-1e8;
+ g.world.blocked.fill(0);g.world.opaque.fill(0);g.world.components.fill(0);
  const home=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
  const engineer=g.units.find(u=>u.owner===1&&u.kind==='engineer');
  const tank=g.spawn(1,{x:home.x-260,y:home.y+130},'tank');
