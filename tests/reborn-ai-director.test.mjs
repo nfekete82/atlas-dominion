@@ -114,3 +114,23 @@ test('director: a late reinforcement fights en route instead of accepting a sile
  assert.equal(newcomer.orders[0]?.kind,'attackMove','reinforcement must attack while advancing');
  assert.equal(newcomer.orders[0]?.tactical?.mode,'assault');
 });
+
+
+test('director: retreat orders remain authoritative even while the main army attacks',()=>{
+ const g=new Simulation(2026,4);
+ g.aiClock=-1e8;
+ g.world.blocked.fill(0);g.world.opaque.fill(0);
+ g.units=[];
+ const red=g.spawn(1,{x:1550,y:1650},'infantry');
+ const blue=g.spawn(0,{x:1670,y:1650},'infantry');
+ g.stop([blue.id],true);
+ blue.cooldown=100;
+ g.tactical.state.phase='attack';
+ g.updateVision();
+ const beforeX=red.x,beforeHp=blue.hp;
+ g.command([red.id],{x:1200,y:1650,kind:'move'});
+ red.orders[0].tactical={group:3,mode:'safe'};
+ g.step(.05);
+ assert.ok(red.x<beforeX-2,'wounded unit must retreat instead of stopping to fight');
+ assert.equal(blue.hp,beforeHp,'safe retreat order must not fire on nearby enemies');
+});
