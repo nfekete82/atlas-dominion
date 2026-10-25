@@ -77,7 +77,10 @@ test('director: operational factory buys a real rover before reserving credits f
  const before=g.credits[1];
  developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1&&u.hp>0),()=>0);
  assert.equal(factory.queueTypes[0],'rover','first affordable vehicle must be purchased immediately');
- assert.equal(g.credits[1],before-300,'the normal 300 credit rover cost is paid');
+ assert.equal(factory.queueCosts[0],300,'the real 300-credit rover cost is recorded');
+ const paid=g.bases.filter(b=>b.owner===1).reduce((total,b)=>total+(b.queueCosts??[]).reduce((sum,cost)=>sum+cost,0),0);
+ assert.equal(before-g.credits[1],paid,'all concurrent production is paid, with no phantom credits');
+ assert.equal(paid,400,'the 300-credit rover and an additional 100-credit infantry order were both funded');
  assert.equal(g.tactical.state.economy?.goal,null,'no premature 450-credit airfield reservation');
 });
 
