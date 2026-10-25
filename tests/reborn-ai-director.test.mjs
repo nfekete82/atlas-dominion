@@ -93,3 +93,24 @@ test('director: first aircraft factory waits for actual ground force production'
  assert.ok(factory.queueTypes.some(k=>k==='tank'||k==='rover'));
  assert.ok(!g.bases.some(b=>b.owner===1&&b.kind==='airfield'));
 });
+
+
+test('director: a late reinforcement fights en route instead of accepting a silent move',()=>{
+ const g=new Simulation(2026,4);
+ g.aiClock=-1e8;
+ g.time=35;
+ const red=g.units.find(u=>u.owner===1&&u.kind==='infantry');
+ const newcomer=g.spawn(1,{x:red.x+42,y:red.y+19},'infantry');
+ const target=g.territories.find(t=>t.owner!==1&&t.neighbors.some(i=>g.territories[i].owner===1));
+ assert.ok(target);
+ const state=g.tactical.state;
+ state.phase='attack';state.phaseAt=27;state.launchedAt=27;state.progressAt=30;
+ state.groupId=4;state.group=[red.id];state.launchSize=1;
+ state.target=target.id;state.rally={x:red.x,y:red.y};
+ state.lastProgress=Math.hypot(red.x-target.point.x,red.y-target.point.y);
+ g.updateVision();
+ g.tactical.plan();
+ assert.ok(state.group.includes(newcomer.id),'nearby reinforcement joins active squad');
+ assert.equal(newcomer.orders[0]?.kind,'attackMove','reinforcement must attack while advancing');
+ assert.equal(newcomer.orders[0]?.tactical?.mode,'assault');
+});
