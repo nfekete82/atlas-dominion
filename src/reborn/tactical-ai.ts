@@ -216,7 +216,10 @@ export class TacticalAI {
   const resting=army.filter(u=>s.recovering!.includes(u.id)),reserved=new Set(s.recovering);
   const vehiclePatients=resting.filter(u=>['tank','rover','artillery'].includes(u.kind));
   if(vehiclePatients.length){
-   const dock=g.world.nearest({x:home.x-155,y:home.y+155},this.obstacles())??home;
+   // Park behind the HQ, away from the middle of the battlefield.
+   const edge={x:clamp(home.x+(home.x>=g.world.size/2?165:-165),85,g.world.size-85),
+    y:clamp(home.y+(home.y>=g.world.size/2?135:-135),85,g.world.size-85)};
+   const dock=g.world.nearest(edge,this.obstacles())??home;
    for(const v of vehiclePatients){
     if(distance(v,dock)>85){
      if(v.orders[0]?.tactical?.mode!=='safe'||distance(v.orders[0],dock)>60)
