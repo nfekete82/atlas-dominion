@@ -143,7 +143,7 @@ export class TacticalAI {
   const approaching:Unit[]=[];
   for(const u of next){
    if(distance(u,anchor)>280){approaching.push(u);continue;}
-   s.group.push(u.id);s.launchSize++;this.issue([u],objective??target.point,objective?'assault':'safe',objective?.id);
+   s.group.push(u.id);s.launchSize++;this.issue([u],objective??target.point,objective||g.world.mapVersion>=3&&this.mode==='director'?'assault':'safe',objective?.id);
   }
   // Keep moving reinforcements on a stable route. Rewriting the waypoint every
   // three seconds used to reset their path before they reached the frontline.
