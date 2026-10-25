@@ -83,7 +83,7 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
    if(producer.kind==='barracks'&&g.credits[1]-reserve<armorReserve)continue;
    const kind=ranks.find(k=>Object.hasOwn(UNITS,k)&&UNITS[k as UnitKind].producers.includes(producer.kind)
     &&scores[k as UnitKind]>0&&(!air||canAttack({kind:k as UnitKind},seen.find(u=>unitSpec(u).flying)!)||['medic','engineer','scout'].includes(k))
-    &&UNITS[k as UnitKind].cost<=g.credits[1]-reserve) as UnitKind|undefined;
+    &&UNITS[k as UnitKind].cost<=g.credits[1]-reserve-(producer.kind==='barracks'?armorReserve:0)) as UnitKind|undefined;
    if(!kind)continue;
    if(g.recruit(producer.id,kind)){
     e.produced[kind]=(e.produced[kind]??0)+1;
