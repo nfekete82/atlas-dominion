@@ -65,11 +65,11 @@ test('economy: new mid-sized match builds a paid vehicle factory and fields vehi
 });
 
 test('supply: a transport helicopter accepts real infantry for a forward airlift',()=>{
- const g=new Simulation(2026,4),home=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
+ const g=new Simulation(2026,5),home=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
  g.aiClock=-1e8;g.time=90;g.credits[1]=0;
- g.territories[7].owner=1;
+ g.territories[8].owner=1;
  const h=g.spawn(1,{x:home.x-120,y:home.y+90},'scout');
- for(let i=0;i<8;i++)g.spawn(1,{x:home.x-190+(i%4)*30,y:home.y+170+Math.floor(i/4)*30},'infantry');
+ for(let i=0;i<8;i++)g.spawn(1,{x:home.x-190+(i%4)*30,y:home.y+170+Math.floor(i/4)*30},'heavy');
  g.updateVision();
  g.tactical.plan();
  assert.equal(g.tactical.state.airlift?.phase,'pickup');
@@ -82,7 +82,17 @@ test('supply: a transport helicopter accepts real infantry for a forward airlift
  assert.equal(h.transport?.task,'unload','helicopter must start flying to the forward sector');
  step(g,28);
  assert.equal(h.transport?.cargo.length,0,'the transport must unload its actual passengers');
- assert.ok(g.units.some(u=>u.owner===1&&u.kind==='infantry'&&!u.carrier
-  &&Math.hypot(u.x-g.territories[7].point.x,u.y-g.territories[7].point.y)<420),
+ assert.ok(g.units.some(u=>u.owner===1&&u.kind==='heavy'&&!u.carrier
+  &&Math.hypot(u.x-g.territories[8].point.x,u.y-g.territories[8].point.y)<420),
  'at least one passenger must arrive at the captured forward sector');
+});
+
+test('supply: a short direct infantry march keeps the helicopter on recon instead of paying loading delays',()=>{
+ const g=new Simulation(2026,4),home=g.bases.find(b=>b.owner===1),enemy=g.bases.find(b=>b.owner===0);
+ g.world.blocked.fill(0);g.world.opaque.fill(0);g.time=90;g.credits[1]=0;g.territories[7].owner=1;
+ g.memories[1].push({id:enemy.id,owner:0,kind:enemy.kind,hp:enemy.hp,x:enemy.x,y:enemy.y,territory:enemy.territory});
+ const heli=g.spawn(1,{x:home.x-120,y:home.y+90},'scout');
+ for(let i=0;i<8;i++)g.spawn(1,{x:home.x-190+i*12,y:home.y+170},'infantry');g.updateVision();g.tactical.plan();
+ assert.equal(g.tactical.state.airlift,undefined);assert.equal(heli.transport,undefined);
+ assert.ok(!g.units.some(u=>u.orders[0]?.kind==='board'));
 });

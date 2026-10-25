@@ -4,18 +4,20 @@ import {RULES,distance,clamp,type Point} from './config.js';
 import {UNITS,unitSpec,buildingSpec,canAttack,type UnitKind} from './catalog.js';
 import {developArmy,validEconomy,type EconomyState} from './army-economy.js';
 import {assaultDecision,abortAssault} from './ai-director.js';
+import {newCampaign,campaignPhase,refreshIntelligence,chooseMission,reconGoal,validCampaign,knownBuildings,type CampaignState} from './campaign-commander.js';
 import {segmentDistance} from './world-generation.js';
 import type {Simulation,Unit,Memory} from './simulation.js';
 export type TacticalPhase='gather'|'attack'|'regroup'|'defend';
 export interface KnownTurret extends Point {id:number;hp:number;seenAt:number;range:number}
 export interface Loss extends Point {id:number;at:number;strength:number}
 export interface Attempt {sector:number;losses:number;until:number}
-export interface TacticalOrder {group:number;mode:'safe'|'assault'|'defend'}
+export interface TacticalOrder {group:number;mode:'safe'|'assault'|'defend';goal?:Point}
 export interface TacticalState {
+ commander?:CampaignState;
  economy?:EconomyState;recovering?:number[];version:1;phase:TacticalPhase;phaseAt:number;lastPlan:number;target:number|null;rally:Point|null;route:Point[];
  savingSince:number|null;savingFor:UnitKind|null;group:number[];groupId:number;launchSize:number;launchedAt:number;objective:number|null;
  knownTurrets:KnownTurret[];losses:Loss[];attempts:Attempt[];productionSerial:number;lastProgress:number;progressAt:number;
- airliftAt?:number;airlift?:{heli:number;target:Point;phase:'pickup'|'delivery';since:number};
+ airliftAt?:number;airlift?:{heli:number;target:Point;phase:'pickup'|'delivery';since:number;passengers?:number[]};
 }
 const combat=(u:Unit)=>u.hp>0&&!u.carrier&&!['medic','engineer','scout'].includes(u.kind);
 const frontRole=(u:Unit)=>combat(u)&&u.kind!=='artillery'&&!unitSpec(u).flying;
@@ -118,10 +120,11 @@ export class TacticalAI {
  }
  private issue(units:Unit[],point:Point,mode:TacticalOrder['mode'],target?:number,append=false,coordinated=mode!=='safe'||this.state.phase==='attack'):void{
   if(!units.length)return;const g=this.g,s=this.state,ids=units.map(u=>u.id),front=units.filter(frontRole).sort((a,b)=>(b.kind==='tank'?5:b.kind==='heavy'?3:1)-(a.kind==='tank'?5:a.kind==='heavy'?3:1)||a.id-b.id);
-  const same=!append&&units.every(u=>{const o=u.orders[0];return o?.tactical?.group===s.groupId&&o.tactical.mode===mode&&o.target===target&&distance(o,point)<45&&(coordinated||!o.march);});if(same)return;
+  const campaign=g.world.mapVersion>=3&&this.mode==='director';
+  const same=!append&&units.every(u=>{const o=u.orders[0];return o?.tactical?.group===s.groupId&&o.tactical.mode===mode&&o.target===target&&(campaign?(target!==undefined||distance(o.tactical.goal??o,point)<45):distance(o,point)<45)&&(coordinated||!o.march);});if(same)return;
   g.command(ids,{x:point.x,y:point.y,kind:target!==undefined?'attack':mode==='safe'?'move':'attackMove',...(target===undefined?{}:{target})},append);
   const origin=front.length?front.reduce((p,u)=>({x:p.x+u.x/front.length,y:p.y+u.y/front.length}),{x:0,y:0}):point,dist=distance(origin,point)||1,h={x:(point.x-origin.x)/dist,y:(point.y-origin.y)/dist};
-  for(const u of units){const o=append?u.orders.at(-1):u.orders[0];if(!o)continue;o.tactical={group:s.groupId,mode};if(combat(u)){
+  for(const u of units){const o=append?u.orders.at(-1):u.orders[0];if(!o)continue;o.tactical={group:s.groupId,mode,...(campaign?{goal:{x:point.x,y:point.y}}:{})};if(combat(u)){
     if(coordinated&&front.length&&(g.world.mapVersion<=2||this.mode==='baseline'||mode!=='assault'))o.march=front.map(v=>v.id);else delete o.march;if(u.kind==='artillery')o.rear=150;
     if(target===undefined&&front.includes(u)&&front.length>1){const i=front.indexOf(u),lane=(i%2-.5)*30,depth=-Math.floor(i/2)*30,p={x:point.x+h.x*depth-h.y*lane,y:point.y+h.y*depth+h.x*lane};
      const at=unitSpec(u).flying?p:g.world.nearest(p,this.obstacles(),[],u,Math.max(0,unitSpec(u).radius-10));if(at){o.x=at.x;o.y=at.y;}
@@ -159,17 +162,25 @@ export class TacticalAI {
    if(!heli){s.airlift=undefined;return;}
    const transport=heli.transport;
    if(op.phase==='pickup'){
-    if(g.time-op.since>45){s.airlift=undefined;s.airliftAt=g.time;return;}
+    if(g.time-op.since>45){g.stop([heli.id]);if(transport?.cargo.length){op.phase='delivery';op.target={x:home.x,y:home.y};op.since=g.time;}else{s.airlift=undefined;s.airliftAt=g.time;}return;}
     if(distance(heli,home)>230){
      if(!heli.orders.length||distance(heli.orders[0],home)>140)this.issue([heli],home,'safe',undefined,false,false);
      return;
     }
-    const riders=army.filter(u=>['infantry','heavy','medic'].includes(u.kind)&&!s.group.includes(u.id)
+    const riders=army.filter(u=>['infantry','heavy','medic'].includes(u.kind)&&(op.passengers?op.passengers.includes(u.id):!s.group.includes(u.id))
      &&distance(u,heli)<550&&!u.carrier&&!(s.recovering??[]).includes(u.id)).slice(0,5);
-    if(riders.length>=2&&g.transports.board(heli.id,riders.map(u=>u.id))>=2)op.phase='delivery';
+    if(riders.length>=2&&g.transports.board(heli.id,riders.map(u=>u.id))>0)op.phase='delivery';
     return;
    }
-   if(transport?.phase==='cruise'&&transport.cargo.length)g.transports.unload(heli.id,op.target);
+   if(g.time-op.since>110&&transport?.cargo.length){g.stop([heli.id]);op.target={x:home.x,y:home.y};op.since=g.time;return;}
+   if(transport?.phase==='cruise'&&transport.cargo.length){
+    if(!g.transports.unload(heli.id,op.target)){
+     // Failed forward landing must never reserve passengers forever. Return
+     // to reachable own ground through the same public transport command.
+     op.target={x:home.x,y:home.y};op.since=g.time;
+     for(const site of [home,...g.territories.filter(t=>t.owner===1).map(t=>t.point)])if(g.transports.unload(heli.id,site)){op.target={x:site.x,y:site.y};break;}
+    }
+   }
    else if(transport?.phase==='cruise'&&!transport.cargo.length){s.airlift=undefined;s.airliftAt=g.time;}
    else if(g.time-op.since>110&&!transport?.cargo.length){s.airlift=undefined;s.airliftAt=g.time;}
    return;
@@ -181,14 +192,21 @@ export class TacticalAI {
    .sort((a,b)=>distance(home,b.point)-distance(home,a.point))[0];
   if(!forward)return;
   const waiting=army.filter(u=>['infantry','heavy','medic'].includes(u.kind)&&!s.group.includes(u.id)
-   &&distance(u,home)<600&&!u.carrier).length;
-  if(waiting<2)return;
+   &&distance(u,home)<600&&!u.carrier);
+  if(waiting.length<2)return;
   const length=distance(home,forward.point)||1;
   const target={x:clamp(forward.point.x+(home.x-forward.point.x)/length*140,80,g.world.size-80),
    y:clamp(forward.point.y+(home.y-forward.point.y)/length*140,80,g.world.size-80)};
-  s.airlift={heli:heli.id,target,phase:'pickup',since:g.time};
+  if(this.mode==='director'){
+   if(!g.memories[1].some(m=>m.owner===0&&m.kind==='headquarters'&&m.hp>0))return;
+   const ground=waiting.slice(0,5).map(u=>{const route=this.route(u,target),travel=this.sampleRoute(route,u);return route.length?travel.length/unitSpec(u).speed:Infinity;});
+   const air=distance(heli,home)/unitSpec(heli).speed+length/unitSpec(heli).speed+10;
+   if(!ground.some(eta=>eta>air+4))return;
+  }
+  s.airlift={heli:heli.id,target,phase:'pickup',since:g.time,...(this.mode==='director'?{passengers:waiting.slice(0,5).map(u=>u.id)}:{})};
  }
  private recon(army:Unit[],home:Point):Set<number>{
+  if(this.mode==='director'&&this.g.world.mapVersion>=3)return this.campaignRecon(army,home);
   const g=this.g,s=this.state,frontiers=g.territories.filter(t=>t.owner!==1&&t.neighbors.some(i=>g.territories[i].owner===1));
   const defending=g.units.some(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)&&g.bases.some(b=>b.owner===1&&b.hp>0&&distance(u,b)<560));
   // On the new maps, rovers are combat vehicles first, not perpetual scouts.
@@ -201,6 +219,21 @@ export class TacticalAI {
    if(u.hp<unitSpec(u).hp*.55&&u.defendUntil>g.time)goal=s.rally??home;
    if(!u.orders.length||distance(u.orders.at(-1)!,goal)>120)this.issue([u],goal,'safe');
   }return new Set(explorers.map(u=>u.id));
+ }
+ private campaignRecon(army:Unit[],home:Point):Set<number>{
+  const g=this.g,s=this.state,c=s.commander??=newCampaign();refreshIntelligence(g,c);
+  c.recon=c.recon.filter(t=>army.some(u=>u.id===t.unit));
+  const recovering=new Set(s.recovering??[]),explorers=army.filter(u=>u.kind==='scout'&&u.id!==s.airlift?.heli);
+  if(!explorers.length&&army.filter(combat).length>=4){
+   const rover=army.find(u=>u.kind==='rover'&&!s.group.includes(u.id)&&!recovering.has(u.id));if(rover)explorers.push(rover);
+  }
+  for(const u of explorers){
+   if(recovering.has(u.id)||u.transport&&u.transport.phase!=='cruise')continue;
+   if(u.hp<unitSpec(u).hp*.6&&u.defendUntil>g.time){this.issue([u],home,'safe');continue;}
+   const goal=reconGoal(g,c,u,p=>this.danger(p));
+   if(goal&&(!u.orders.length||distance(u.orders.at(-1)!,goal)>60))this.issue([u],goal,'safe',undefined,false,false);
+  }
+  return new Set(explorers.map(u=>u.id));
  }
  /** Wounded infantry recover at a safe rally instead of being sent straight into the next assault. */
  /** Fire-and-forget combat extraction at the instant of an actual enemy hit.
@@ -252,6 +285,10 @@ export class TacticalAI {
     if(engineer.orders[0]?.kind!=='repair'||engineer.orders[0]?.target!==damaged.id)
       g.command([engineer.id],{x:damaged.x,y:damaged.y,kind:'repair',target:damaged.id});
    }
+   for(const w of army.filter(u=>u.kind==='engineer'&&g.world.mapVersion>=3&&this.mode==='director')){
+    const order=w.orders[0],vehicle=order?.kind==='repair'?army.find(u=>u.id===order.target&&['tank','rover','artillery'].includes(u.kind)):undefined;
+    if(vehicle&&!ids.has(vehicle.id))g.stop([w.id]);
+   }
   }
   const goal=s.rally&&this.danger(s.rally)<2?s.rally:g.world.nearest({x:home.x-140,y:home.y+140},this.obstacles())??home;
   for(const u of resting.filter(u=>!vehiclePatients.includes(u)))if(distance(u,goal)>45)this.issue([u],goal,'safe');else if(u.orders[0]?.tactical?.mode!=='safe')g.stop([u.id]);
@@ -269,8 +306,14 @@ export class TacticalAI {
   const anchor=s.rally??members[0],d=distance(anchor,target)||1,h={x:(anchor.x-target.x)/d,y:(anchor.y-target.y)/d},cover={x:target.x+h.x*(RULES.turret.range+30),y:target.y+h.y*(RULES.turret.range+30)};
   const at=g.world.nearest(cover,this.obstacles(),[],undefined,12);if(!at)return false;
   const screen=members.filter(frontRole),waiting=screen.filter(u=>distance(u,at)>55||u.orders[0]?.target!==undefined);
-  if(waiting.length){this.issue(waiting,at,'assault');for(const u of waiting)if(u.orders[0])u.orders[0].kind='move';}
+  const campaign=g.world.mapVersion>=3&&this.mode==='director';
+  if(waiting.length){if(campaign)this.issue(waiting,at,'safe',undefined,false,false);else{this.issue(waiting,at,'assault');for(const u of waiting)if(u.orders[0])u.orders[0].kind='move';}}
+  // A holding screen fires locally without pursuing through the artillery's
+  // standoff line. Marching there remains an authoritative retreat/move.
+  if(campaign)for(const u of screen)if(distance(u,at)<65){g.stop([u.id]);u.hold=true;}
   for(const u of artillery)this.issue([u],target,'assault',target.id);
+  const medics=campaign?members.filter(u=>u.kind==='medic'):[];
+  if(medics.length){this.issue(medics,at,'assault');for(const u of medics)if(u.orders[0]?.formation)u.orders[0].formation.front=screen.map(v=>v.id);}
   for(const u of members.filter(u=>unitSpec(u).flying))if(!u.orders.length||u.orders[0]?.target!==undefined)this.issue([u],s.rally??at,'safe');
   return true;
  }
@@ -304,6 +347,75 @@ export class TacticalAI {
   const target=viable[0],need=raiders.filter(u=>!u.orders[0]||distance(u.orders[0],target.point)>120);
   if(need.length)this.issue(need,target.point,'assault',undefined,false,false);
  }
+ /** Strategic missions own the operational group. Capture orders, reconnaissance
+  * and repair have separate rosters, so a macro pulse cannot erase their work. */
+ private campaign(army:Unit[],fighters:Unit[],medics:Unit[],home:Point):void{
+  const g=this.g,s=this.state,c=s.commander??=newCampaign();
+  // Keep saved roster IDs limited to actual surviving members.
+  s.group=s.group.filter(id=>army.some(u=>u.id===id));
+  const centroid=(units:Unit[])=>units.length?units.reduce((p,u)=>({x:p.x+u.x/units.length,y:p.y+u.y/units.length}),{x:0,y:0}):home;
+  const previous=c.mission,aborted=c.aborted,origin=centroid(fighters.filter(u=>s.group.includes(u.id)));
+  const mission=chooseMission(g,c,origin);
+  if(!mission){
+   campaignPhase(c,'endgame',g.time);this.setPhase('regroup');s.group=[];s.objective=null;s.target=null;
+   // Once the map is captured, ground patrols also search fog for survivors.
+   for(const u of fighters.slice(0,2)){const goal=reconGoal(g,c,u,p=>this.danger(p));if(goal)this.issue([u],goal,'assault',undefined,false,false);}
+   return;
+  }
+  const changed=previous!==mission;
+  if(c.aborted>aborted){g.stop(s.group.filter(id=>fighters.some(u=>u.id===id)));s.group=[];this.setPhase('regroup');}
+  if(changed){s.target=mission.sector;s.objective=mission.objective;s.route=[];s.rally=null;}
+  const intel=mission.objective===null?undefined:knownBuildings(g).find(b=>b.id===mission.objective);
+  const towers=s.knownTurrets.filter(t=>distance(t,mission)<t.range+200);
+  const visible=g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)&&distance(u,mission)<450);
+  const defended=mission.kind!=='capture'||g.territories[mission.sector].owner===0||towers.length>0||visible.reduce((n,u)=>n+combatStrength(u),0)>3;
+  if(!s.rally){
+   const rear=g.territories.filter(t=>t.owner===1).sort((a,b)=>distance(a.point,mission)-distance(b.point,mission)||a.id-b.id)[0]?.point??home;
+   s.rally=g.world.nearest({x:rear.x+(home.x-rear.x)*.08,y:rear.y+(home.y-rear.y)*.08},this.obstacles(),[],undefined,12)??rear;
+   // Stand outside an observed gun's reach; never infer an unseen gun.
+   if(towers.some(t=>distance(t,s.rally!)<t.range+50))s.rally=this.rally(fighters,home);
+  }
+  const reserve=fighters.length>=7?1:0;
+  const guards=new Set(fighters.filter(u=>!s.group.includes(u.id)).sort((a,b)=>distance(a,home)-distance(b,home)||a.id-b.id).slice(0,reserve).map(u=>u.id));
+  const selected=fighters.filter(u=>!guards.has(u.id)).sort((a,b)=>Number(s.group.includes(b.id))-Number(s.group.includes(a.id))||distance(a,s.rally!)-distance(b,s.rally!)||a.id-b.id).slice(0,18);
+  let members=selected.filter(u=>s.group.includes(u.id));
+  if(s.phase==='attack'&&members.length<Math.max(1,Math.ceil(s.launchSize*.4))){g.stop(s.group.filter(id=>fighters.some(u=>u.id===id)));s.group=[];members=[];s.launchSize=0;this.setPhase('regroup');c.aborted++;}
+  const continuing=s.phase==='attack'&&members.length>0;
+  if(!continuing){
+   const ready=selected.filter(u=>distance(u,s.rally!)<330),power=ready.reduce((n,u)=>n+combatStrength(u),0);
+   const armed=ready.some(u=>u.kind==='artillery'||u.kind==='tank');
+   const enough=defended?ready.length>=3&&power>=5&&(armed||!towers.length&&ready.length>=5):ready.length>=(g.time<40?1:2);
+   if(!enough){
+    campaignPhase(c,g.time<40?'opening':defended?'buildup':'expansion',g.time);this.setPhase('gather');
+    this.issue([...selected,...medics],s.rally,'safe');return;
+   }
+   s.groupId++;s.group=ready.map(u=>u.id);s.launchSize=ready.length;s.launchedAt=g.time;members=ready;this.setPhase('attack');
+  }
+  const anchor=centroid(members),joining=selected.filter(u=>!s.group.includes(u.id));
+  for(const u of joining){
+   if(distance(u,anchor)<330){s.group.push(u.id);s.launchSize++;members.push(u);}
+   else if(!u.orders.length||u.orders[0].tactical?.mode!=='assault'||distance(u.orders[0],anchor)>220)this.issue([u],anchor,'assault',undefined,false,false);
+  }
+  const escorts=medics.filter(u=>distance(u,anchor)<360);
+  for(const u of medics.filter(u=>!escorts.includes(u)))if(!u.orders.length||distance(u.orders[0],anchor)>160)this.issue([u],anchor,'safe',undefined,false,false);
+  for(const u of escorts)if(!s.group.includes(u.id))s.group.push(u.id);
+  const progress=Math.min(...members.map(u=>distance(u,mission)));
+  if(progress<mission.distance-45){mission.distance=progress;mission.progressAt=g.time;}
+  s.lastProgress=Math.max(0,progress);s.progressAt=mission.progressAt;
+  campaignPhase(c,intel?.kind==='headquarters'?'endgame':intel?'siege':defended?'offensive':g.territories.filter(t=>t.owner===1).length<3?'expansion':'offensive',g.time);
+  const group=[...members,...escorts];
+  if(intel?.kind==='turret'&&this.siege(group,intel))return;
+  // Without artillery, close together rather than feeding isolated vehicles
+  // into an observed long-range tower.
+  if(intel?.kind==='turret'&&!members.some(u=>u.kind==='artillery')&&members.length<7){
+   campaignPhase(c,'buildup',g.time);this.issue(group,s.rally,'safe');return;
+  }
+  const ground=group.filter(u=>!unitSpec(u).flying);for(const u of ground)u.hold=false;
+  this.issue(ground,mission,'assault',mission.objective??undefined);
+  this.airSupport(members,mission,mission.objective);
+  // Aircraft that have finished their flank route can keep the same mission.
+  for(const u of members.filter(u=>unitSpec(u).flying&&!u.orders.length))this.issue([u],mission,'assault',mission.objective??undefined);
+ }
  plan():void{
   if(!profiler)return this.planMeasured();const at=performance.now();try{this.planMeasured();}finally{profiler.record('ai',performance.now()-at);}
  }
@@ -312,7 +424,7 @@ export class TacticalAI {
   if(signature!==this.routeSignature||this.routeCache.size>128){this.routeCache.clear();this.routeSignature=signature;}this.field();
   const army=g.units.filter(u=>u.owner===1&&u.hp>0&&!u.carrier),home=g.bases.filter(b=>b.owner===1&&b.hp>0).sort((a,b)=>(a.kind==='headquarters'?0:1)-(b.kind==='headquarters'?0:1)||a.id-b.id)[0]??g.territories.find(t=>t.owner===1)?.point??army[0];
   if(!home)return;
-  const recovering=this.recovery(army,home);this.airlift(army,home);const explorers=this.recon(army,home),boarding=new Set(army.filter(u=>u.orders[0]?.kind==='board').map(u=>u.id)),fighters=army.filter(u=>combat(u)&&!recovering.has(u.id)&&!explorers.has(u.id)&&!boarding.has(u.id)),medics=army.filter(u=>u.kind==='medic'&&!recovering.has(u.id)&&!boarding.has(u.id)).slice(0,2);
+  const recovering=this.recovery(army,home);this.airlift(army,home);const explorers=this.recon(army,home),boarding=new Set([...army.filter(u=>u.orders[0]?.kind==='board').map(u=>u.id),...(s.airlift?.phase==='pickup'?s.airlift.passengers??[]:[])]),fighters=army.filter(u=>combat(u)&&!recovering.has(u.id)&&!explorers.has(u.id)&&!boarding.has(u.id)),medics=army.filter(u=>u.kind==='medic'&&!recovering.has(u.id)&&!boarding.has(u.id)).slice(0,2);
   developArmy(g,s,army,p=>this.danger(p));
   for(const w of army.filter(u=>u.kind==='engineer'&&!u.orders.length)){const b=g.bases.filter(b=>b.owner===1&&b.hp>0&&b.hp<buildingSpec(b).hp&&b.buildRemaining<=0).sort((a,b)=>distance(w,a)-distance(w,b))[0];if(b)g.command([w.id],{...b,kind:'repair',target:b.id});}
   const intruders=g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)&&g.bases.some(b=>b.owner===1&&b.hp>0&&distance(u,b)<(b.kind==='headquarters'?560:420)));
@@ -320,10 +432,12 @@ export class TacticalAI {
    // Anti-siege defence: a rocket launcher or aircraft threatening the HQ is
    // more urgent than a slightly closer infantryman. Never use unseen threats.
    const urgency=(u:Unit)=>distance(u,home)-(u.kind==='artillery'?260:u.kind==='bomber'?220:u.kind==='gunship'?150:0);
+   if(g.world.mapVersion>=3&&this.mode==='director')campaignPhase(s.commander??=newCampaign(),'emergencyDefense',g.time);
    const entering=s.phase!=='defend';this.setPhase('defend');const nearest=intruders.sort((a,b)=>urgency(a)-urgency(b)||a.id-b.id)[0];
    if(entering||s.objective!==nearest.id)s.groupId++;s.group=fighters.map(u=>u.id);s.objective=nearest.id;this.issue([...fighters,...medics],nearest,'defend',nearest.id);return;
   }
-  if(s.phase==='defend'){g.stop(s.group);this.setPhase('regroup');s.group=[];s.objective=null;s.rally=null;}
+  if(s.phase==='defend'){g.stop(s.group.filter(id=>!recovering.has(id)));this.setPhase('regroup');s.group=[];s.objective=null;s.rally=null;}
+  if(g.world.mapVersion>=3&&this.mode==='director'){this.campaign(army,fighters,medics,home);return;}
   if(s.phase==='attack'){this.raid(fighters);this.reinforce(fighters,home);}
   const members=army.filter(u=>s.group.includes(u.id)&&!recovering.has(u.id)),survivors=members.filter(combat);
   const recentLosses=s.losses.filter(l=>g.time-l.at<24&&s.group.includes(l.id));
@@ -413,6 +527,7 @@ export class TacticalAI {
  }
  static valid(raw:unknown,time:number,point:(p:Point)=>boolean,sectors:number):raw is TacticalState{
   if(raw===undefined)return true;const s=raw as TacticalState,finite=(v:unknown)=>typeof v==='number'&&Number.isFinite(v),ids=(v:unknown)=>Array.isArray(v)&&v.length<=96&&v.every(Number.isInteger);
-  return !!s&&(s.airliftAt===undefined||(finite(s.airliftAt)&&s.airliftAt>=0&&s.airliftAt<=time+.001))&&(s.airlift===undefined||(!!s.airlift&&Number.isInteger(s.airlift.heli)&&s.airlift.heli>=0&&point(s.airlift.target)&&['pickup','delivery'].includes(s.airlift.phase)&&finite(s.airlift.since)&&s.airlift.since>=0&&s.airlift.since<=time+.001))&&(s.recovering===undefined||ids(s.recovering))&&validEconomy(s.economy,time)&&s.version===1&&['gather','attack','regroup','defend'].includes(s.phase)&&[s.phaseAt,s.launchedAt,s.progressAt].every(v=>finite(v)&&v>=0&&v<=time+.001)&&finite(s.lastPlan)&&s.lastPlan>=-3&&s.lastPlan<=time+.001&&finite(s.lastProgress)&&s.lastProgress>=0&&[s.groupId,s.launchSize,s.productionSerial].every(v=>Number.isInteger(v)&&v>=0)&&ids(s.group)&&(s.savingSince===null||(finite(s.savingSince)&&s.savingSince>=0&&s.savingSince<=time+.001))&&(s.savingFor===null||Object.hasOwn(UNITS,s.savingFor))&&(s.target===null||(Number.isInteger(s.target)&&s.target>=0&&s.target<sectors))&&(s.objective===null||Number.isInteger(s.objective))&&(s.rally===null||point(s.rally))&&Array.isArray(s.route)&&s.route.length<=64&&s.route.every(point)&&Array.isArray(s.knownTurrets)&&s.knownTurrets.length<=64&&s.knownTurrets.every(t=>point(t)&&Number.isInteger(t.id)&&finite(t.hp)&&t.hp>0&&finite(t.range)&&t.range===RULES.turret.range&&finite(t.seenAt)&&t.seenAt>=0&&t.seenAt<=time+.001)&&Array.isArray(s.losses)&&s.losses.length<=96&&s.losses.every(l=>point(l)&&Number.isInteger(l.id)&&finite(l.at)&&l.at>=0&&l.at<=time+.001&&finite(l.strength)&&l.strength>=0)&&Array.isArray(s.attempts)&&s.attempts.length<=sectors&&s.attempts.every(a=>Number.isInteger(a.sector)&&a.sector>=0&&a.sector<sectors&&Number.isInteger(a.losses)&&a.losses>=0&&finite(a.until)&&a.until>=0);
+  if(!validCampaign(s?.commander,time,point,sectors))return false;
+  return !!s&&(s.airliftAt===undefined||(finite(s.airliftAt)&&s.airliftAt>=0&&s.airliftAt<=time+.001))&&(s.airlift===undefined||(!!s.airlift&&(s.airlift.passengers===undefined||(ids(s.airlift.passengers)&&s.airlift.passengers.length<=5))&&Number.isInteger(s.airlift.heli)&&s.airlift.heli>=0&&point(s.airlift.target)&&['pickup','delivery'].includes(s.airlift.phase)&&finite(s.airlift.since)&&s.airlift.since>=0&&s.airlift.since<=time+.001))&&(s.recovering===undefined||ids(s.recovering))&&validEconomy(s.economy,time)&&s.version===1&&['gather','attack','regroup','defend'].includes(s.phase)&&[s.phaseAt,s.launchedAt,s.progressAt].every(v=>finite(v)&&v>=0&&v<=time+.001)&&finite(s.lastPlan)&&s.lastPlan>=-3&&s.lastPlan<=time+.001&&finite(s.lastProgress)&&s.lastProgress>=0&&[s.groupId,s.launchSize,s.productionSerial].every(v=>Number.isInteger(v)&&v>=0)&&ids(s.group)&&(s.savingSince===null||(finite(s.savingSince)&&s.savingSince>=0&&s.savingSince<=time+.001))&&(s.savingFor===null||Object.hasOwn(UNITS,s.savingFor))&&(s.target===null||(Number.isInteger(s.target)&&s.target>=0&&s.target<sectors))&&(s.objective===null||Number.isInteger(s.objective))&&(s.rally===null||point(s.rally))&&Array.isArray(s.route)&&s.route.length<=64&&s.route.every(point)&&Array.isArray(s.knownTurrets)&&s.knownTurrets.length<=64&&s.knownTurrets.every(t=>point(t)&&Number.isInteger(t.id)&&finite(t.hp)&&t.hp>0&&finite(t.range)&&t.range===RULES.turret.range&&finite(t.seenAt)&&t.seenAt>=0&&t.seenAt<=time+.001)&&Array.isArray(s.losses)&&s.losses.length<=96&&s.losses.every(l=>point(l)&&Number.isInteger(l.id)&&finite(l.at)&&l.at>=0&&l.at<=time+.001&&finite(l.strength)&&l.strength>=0)&&Array.isArray(s.attempts)&&s.attempts.length<=sectors&&s.attempts.every(a=>Number.isInteger(a.sector)&&a.sector>=0&&a.sector<sectors&&Number.isInteger(a.losses)&&a.losses>=0&&finite(a.until)&&a.until>=0);
  }
 }

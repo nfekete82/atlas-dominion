@@ -114,9 +114,9 @@ test('reborn: AI decisions do not depend on player infantry hidden by its fog',(
  assert.deepEqual(a.explored[1],b.explored[1]);assert.equal(a.credits[1],b.credits[1]);
 });
 
-test('reborn: moving infantry returns fire automatically and resumes its original queued march',()=>{
+test('reborn: attack-moving infantry returns fire automatically and resumes its original queued march',()=>{
  const g=peaceful();g.units=[];const blue=g.spawn(0,{x:1900,y:2100}),red=g.spawn(1,{x:2050,y:2100});
- g.command([blue.id],{x:2350,y:2100,kind:'move'});g.command([blue.id],{x:2400,y:2250,kind:'move'},true);g.updateVision();
+ g.command([blue.id],{x:2350,y:2100,kind:'attackMove'});g.command([blue.id],{x:2400,y:2250,kind:'attackMove'},true);g.updateVision();
  advance(g,.1);assert.ok(blue.hp<100);assert.ok(red.hp<100);assert.equal(blue.lastAttacker,red.id);assert.equal(blue.orders.length,2);
  const x=blue.x;red.hp=17;advance(g,2);assert.equal(g.units.some(u=>u.id===red.id),false);assert.ok(blue.x>x+30);assert.equal(blue.orders.length,2);
 });
@@ -180,11 +180,11 @@ test('reborn: captured bastions retain local sight without infantry and transfer
  const lost=Simulation.load(g.save());assert.equal(lost.canSee(0,nearby),false);assert.equal(lost.canSee(1,nearby),true);
 });
 
-test('reborn: both teams proactively fire during ordinary movement before taking any damage and keep queued orders',()=>{
+test('reborn: both teams proactively fire during attack-move before taking any damage and keep queued orders',()=>{
  for(const owner of [0,1]){
   const g=peaceful();g.units=[];const sentry=g.spawn(owner,{x:1900,y:2100}),target=g.spawn(1-owner,{x:2050,y:2100});
   target.cooldown=100;
-  g.command([sentry.id],{x:2350,y:2100,kind:'move'});g.command([sentry.id],{x:2400,y:2250,kind:'move'},true);g.updateVision();
+  g.command([sentry.id],{x:2350,y:2100,kind:'attackMove'});g.command([sentry.id],{x:2400,y:2250,kind:'attackMove'},true);g.updateVision();
   g.step();assert.equal(sentry.hp,100);assert.equal(target.hp,100-17/3);assert.equal(sentry.lastAttacker,null);assert.equal(sentry.moving,false);assert.equal(sentry.orders.length,2);
   assert.ok(g.shots.some(shot=>shot.owner===owner));
   g.units=g.units.filter(u=>u.id!==target.id);advance(g,1);assert.ok(sentry.x>1930);assert.equal(sentry.orders.length,2);

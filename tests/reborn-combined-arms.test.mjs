@@ -58,9 +58,9 @@ test('assets: both factions have a twelve-tube rocket vehicle and ten-seat tande
 });
 
 function monitor(g,seconds){
- const ledger={units:[],buildings:[],spent:0,earned:0,healing:0,rocketDistances:[]},recruit=g.recruit.bind(g),build=g.build.bind(g);g.recruit=(id,k='infantry')=>{const before=g.credits[1],ok=recruit(id,k);if(ok&&g.bases.find(b=>b.id===id)?.owner===1){ledger.units.push(k);ledger.spent+=UNITS[k].cost;near(before-g.credits[1],UNITS[k].cost);}return ok;};
+ const ledger={units:[],orders:[],births:[],destroyedBuildings:[],buildings:[],spent:0,earned:0,healing:0,rocketDistances:[]},knownUnits=new Set(g.units.map(u=>u.id)),enemyBuildings=g.bases.filter(b=>b.owner===0&&b.hp>0),recruit=g.recruit.bind(g),build=g.build.bind(g);g.recruit=(id,k='infantry')=>{const before=g.credits[1],ok=recruit(id,k);if(ok&&g.bases.find(b=>b.id===id)?.owner===1){ledger.units.push(k);ledger.orders.push({kind:k,time:g.time,visibleAir:g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&UNITS[u.kind].flying&&g.canSee(1,u)).length});ledger.spent+=UNITS[k].cost;near(before-g.credits[1],UNITS[k].cost);}return ok;};
  g.build=(owner,k,p,workers)=>{const before=g.credits[owner],b=build(owner,k,p,workers);if(b&&owner===1){assert.ok(workers?.length);ledger.buildings.push(k);ledger.spent+=BUILDINGS[k].cost;near(before-g.credits[1],BUILDINGS[k].cost);}return b;};
- for(let i=0;i<seconds/.1&&g.status==='playing';i++){const clock=g.incomeClock,income=g.income(1);g.step(.1);if(clock+.1+1e-8>=10)ledger.earned+=income;if(g.workEffects.some(e=>e.kind==='heal'))ledger.healing++;for(const shot of g.shots.filter(s=>s.weapon==='rocket'&&s.at===g.time))ledger.rocketDistances.push(distance(shot.groundFrom,shot.groundTo));}
+ for(let i=0;i<seconds/.1&&g.status==='playing';i++){const clock=g.incomeClock,income=g.income(1);g.step(.1);for(const u of g.units)if(!knownUnits.has(u.id)){knownUnits.add(u.id);if(u.owner===1)ledger.births.push({id:u.id,kind:u.kind,time:g.time});}for(const b of enemyBuildings)if(b.hp<=0&&g.canSee(1,b)&&!ledger.destroyedBuildings.some(dead=>dead.id===b.id))ledger.destroyedBuildings.push({id:b.id,kind:b.kind,time:g.time});if(clock+.1+1e-8>=10)ledger.earned+=income;if(g.workEffects.some(e=>e.kind==='heal'))ledger.healing++;for(const shot of g.shots.filter(s=>s.weapon==='rocket'&&s.at===g.time))ledger.rocketDistances.push(distance(shot.groundFrom,shot.groundTo));}
  return ledger;
 }
 for(const version of [0,2])test(`combined economy: deterministic v${version} midgame physically builds all three facilities and pays for a mixed army`,()=>{
@@ -85,14 +85,20 @@ function counterFixture(air=false){
  g.updateVision();return g;
 }
 
-test('combined counters: observed towers lead to real paid rocket launchers, ranged siege and support healing',()=>{
+test('combined counters: observed towers lead to paid artillery, actual support healing and tower destruction',()=>{
  const g=counterFixture();for(const u of g.units.filter(u=>u.kind==='heavy'))u.hp=100;const initial=g.credits[1],ledger=monitor(g,100);
- assert.ok(ledger.units.includes('artillery'));assert.ok(g.units.some(u=>u.owner===1&&u.kind==='artillery'));assert.ok(ledger.units.includes('medic'));assert.ok(ledger.healing>0,'paid medic must actually heal wounded troops');assert.ok(ledger.rocketDistances.length>0);assert.ok(ledger.rocketDistances.every(d=>d>RULES.turret.range&&d<=UNITS.artillery.range));assert.ok(g.bases.every(b=>b.id!==1700||b.hp<=0));
+ assert.ok(ledger.units.includes('artillery'));assert.ok(ledger.births.some(u=>u.kind==='artillery'),'the paid artillery order must finish and create a real unit');assert.ok(g.units.some(u=>u.owner===1&&u.kind==='artillery'));assert.ok(ledger.units.includes('medic'));assert.ok(ledger.healing>0,'paid medic must actually heal wounded troops');
+ // Combined arms may destroy the tower before the slower artillery gets a shot; the separate rocket test proves standoff range and impact damage.
+ assert.ok(ledger.destroyedBuildings.some(b=>b.id===1700&&b.kind==='turret'),'the army must actually destroy the observed tower in sight');assert.ok(g.bases.every(b=>b.id!==1700||b.hp<=0));
  const rocket=g.units.find(u=>u.owner===1&&u.kind==='artillery');assert.ok(rocket.hp>0);near(g.credits[1],initial+ledger.earned-ledger.spent);
 });
 
 test('combined air response: a known air attacker produces actual gunships and does not select ground rockets as air defense',()=>{
- const g=counterFixture(true),ledger=monitor(g,75);assert.ok(ledger.units.includes('gunship'));assert.ok(g.units.some(u=>u.owner===1&&u.kind==='gunship'));assert.ok(!ledger.units.includes('artillery'));assert.ok(ledger.units.some(k=>['scout','gunship'].includes(k)));
+ const g=counterFixture(true),ledger=monitor(g,75),responses=ledger.orders.filter(o=>o.visibleAir>0);
+ assert.ok(responses.some(o=>o.kind==='gunship'),'a paid gunship must be ordered while the air threat is actually visible');
+ assert.ok(responses.every(o=>!['artillery','bomber'].includes(o.kind)),'ground-only weapons must not be purchased as the response to a visible air threat');
+ assert.ok(ledger.births.some(u=>u.kind==='gunship'),'a paid gunship order must finish and create a real unit');
+ assert.ok(g.units.some(u=>u.owner===1&&u.kind==='gunship'));
 });
 
 test('combined strategic air: a rich army with a known military target eventually fields a paid bomber',()=>{

@@ -6,7 +6,7 @@ async function start(page){
 async function advance(page,s){await page.evaluate(s=>{const a=window.__reborn;a.game.paused=false;for(let i=0;i<Math.round(s/.05);i++)a.game.step();a.game.paused=true;a.refresh();a.renderer.render(0);},s);}
 async function clickWorld(page,p){const at=await page.evaluate(p=>window.__reborn.renderer.screen(p),p);expect(await page.evaluate(p=>document.elementFromPoint(p.x,p.y)?.id,at)).toBe('world');await page.mouse.click(at.x,at.y);}
 
-test('defense map: new campaign has 16 sectors and both old map versions load through the real save store with correct HUD and catalog',async({page})=>{
+test('defense map: legacy maps load through the real save store and a new campaign uses the current medium map',async({page})=>{
  const errors=await start(page);await expect(page.locator('#territories')).toHaveText('2 / 16');await expect(page.locator('#catalog-territories button')).toHaveCount(16);await expect(page.locator('#campaign-goal')).toContainText('2 roten Startgebiete');
  const original=await page.evaluate(()=>window.__reborn.game.save());await page.keyboard.press('F5');await expect(page.locator('#notices')).toContainText('Kampagne lokal gespeichert');
  for(const version of [0,1]){
@@ -24,8 +24,8 @@ test('defense map: new campaign has 16 sectors and both old map versions load th
  }
  await page.evaluate(async raw=>{await new Promise((resolve,reject)=>{const req=indexedDB.open('atlas-dominion-reborn',1);req.onsuccess=()=>{const db=req.result,tx=db.transaction('campaigns','readwrite');tx.objectStore('campaigns').put(raw,'campaign');tx.oncomplete=()=>{db.close();resolve();};tx.onerror=()=>reject(tx.error);};});await window.__reborn.load();window.__reborn.game.paused=true;window.__reborn.refresh();},original);
  await expect(page.locator('#territories')).toHaveText('2 / 16');await expect(page.locator('#catalog-territories button')).toHaveCount(16);expect(await page.evaluate(()=>window.__reborn.game.seed)).toBe(original.seed);
- await page.locator('#menu').click();await page.locator('#to-main').click();await page.locator('#new').click();await page.locator('#new-dialog [value="new"]').click();await expect.poll(()=>page.evaluate(()=>window.__reborn.game.seed)).not.toBe(original.seed);await expect(page.locator('#territories')).toHaveText('2 / 16');
- await page.locator('#tab-territories').click();await expect(page.locator('[data-territory]')).toHaveCount(16);await expect(page.locator('[data-territory="0"] strong')).not.toBeEmpty();await page.screenshot({path:'artifacts/reborn/defense-map-16.png'});expect(errors).toEqual([]);
+ await page.locator('#menu').click();await page.locator('#to-main').click();await page.locator('#new').click();await page.locator('#new-dialog [value="new"]').click();await expect.poll(()=>page.evaluate(()=>window.__reborn.game.seed)).not.toBe(original.seed);await expect(page.locator('#territories')).toHaveText('1 / 8');
+ await page.locator('#tab-territories').click();await expect(page.locator('[data-territory]')).toHaveCount(8);await expect(page.locator('[data-territory="0"] strong')).not.toBeEmpty();await page.screenshot({path:'artifacts/reborn/defense-map-16.png'});expect(errors).toEqual([]);
 });
 
 test('defense map: selected turret draws exactly 600 range and fights a unit beside a bastion at 500 while tracking through reload',async({page})=>{

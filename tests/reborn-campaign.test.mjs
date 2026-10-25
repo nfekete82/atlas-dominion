@@ -48,7 +48,7 @@ test('combat: a newly approaching enemy is fired on in one tick without waiting 
 test('combat: two attackers cannot steal focus; the survivor is acquired immediately after the first target dies',()=>{
  const g=new Simulation();g.aiClock=-1e8;g.units=[];
  const blue=g.spawn(0,{x:1900,y:2100},'heavy'),first=g.spawn(1,{x:2020,y:2100}),second=g.spawn(1,{x:2055,y:2100});
- g.command([blue.id],{x:2350,y:2100,kind:'move'});g.command([blue.id],{x:2400,y:2250,kind:'move'},true);
+ g.command([blue.id],{x:2350,y:2100,kind:'attackMove'});g.command([blue.id],{x:2400,y:2250,kind:'attackMove'},true);
  g.step();assert.equal(blue.combatTarget,first.id);assert.equal(blue.lastAttacker,second.id);assert.equal(first.hp,100-UNITS.heavy.damage/3);assert.equal(second.hp,100);
  for(let i=0;i<65&&g.units.some(u=>u.id===first.id);i++)g.step();
  assert.equal(g.units.some(u=>u.id===first.id),false);assert.equal(second.hp,100);assert.ok(blue.hp>0);
