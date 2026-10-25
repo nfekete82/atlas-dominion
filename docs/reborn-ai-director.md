@@ -219,3 +219,50 @@ npm run build
 node --test tests/reborn-ai-director.test.mjs tests/reborn-map-ai.test.mjs tests/reborn-control-retreat.test.mjs
 node scripts/benchmark-reborn-ai.mjs --map 4 --seeds 2026,2027 --seconds 300 --opponent guarded
 ```
+
+
+## Vierter Prüfstand: Sofortrückzug bei direktem Fahrzeugschaden
+
+Am 25.10.2026 meldete der Projektinhaber nach der ersten
+Fahrzeugreparatur-KI **27/27 bestandene Tests** und folgende A/B-Resultate
+für zwei Seeds à 300 Sekunden gegen `guarded`:
+
+- **Director**: 6 Eroberungen, 7 gefallene blaue Soldaten, 4 Fahrzeugschüsse,
+  durchschnittlich 1,5 verlorene Fahrzeuge, **0 reparierte Fahrzeug-HP**
+- **Baseline**: 4 Eroberungen, 2 gefallene Soldaten, 1 Fahrzeugschuss,
+  0 verlorene Fahrzeuge
+
+Damit ist die Reparaturmechanik in Isolation korrekt, aber der
+tatsächliche automatisierte Rückzug **noch nicht erfolgreich
+nachgewiesen**.
+
+### Neue Maßnahmen, noch nicht lokal bestätigt
+
+- **Schadenstrigger in der Simulation** statt reiner Drei-Sekunden-Planung:
+  Wenn ein rotes, noch lebendes Bodenfahrzeug unter **67 % HP** fällt,
+  wird sofort und höchstens einmal pro Genesungszyklus ein
+  autoritativer `move`-Rückzug zu einem rückwärtigen Werkstattpunkt
+  hinter dem HQ angeordnet. Blaue/spielerische Einheiten und die
+  alte Benchmark-KI bleiben unverändert.
+- **Genesungsziel 90 % HP**, bevor das Fahrzeug wieder zur aktiven
+  Truppenreserve gezählt wird.
+- Die Wirtschafts-KI darf einen Bauarbeiter, der gerade ein als
+  reparaturbedürftig registriertes Fahrzeug repariert, nicht
+  für eine neue Baustelle abziehen.
+- Neue Tests erzwingen (a) einen echten Schadenshit mit sofortigem
+  Rückzug und (b) eine reguläre Reparatur durch Ingenieur bis über
+  die Genesungsschwelle samt Wiederfreigabe.
+- Benchmark-Metriken `vehicleEvacuations` und `vehicleReturned`
+  unterscheiden ab jetzt Schadensreaktion, tatsächlich erreichte
+  Instandsetzung (`vehicleRepairHp`) und Rückkehr zur Reserve.
+
+Die neuen Tests und Benchmarkwerte **stehen noch aus**.
+Insbesondere beweist eine steigende Zahl von Evakuierungen
+allein noch keinen Nutzen: Der Director muss sein bisheriges
+Kampfergebnis halten und dabei mehr Fahrzeuge zurückbringen.
+
+```sh
+npm run build
+node --test tests/reborn-ai-director.test.mjs tests/reborn-map-ai.test.mjs tests/reborn-control-retreat.test.mjs
+node scripts/benchmark-reborn-ai.mjs --map 4 --seeds 2026,2027 --seconds 300 --opponent guarded
+```
