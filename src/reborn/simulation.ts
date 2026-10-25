@@ -316,6 +316,9 @@ export class Simulation {
   private strike(source:number,target:Unit|Base,amount:number):void{
     const alive=target.hp>0;target.hp-=amount;
     if(alive&&target.hp<=0&&'orders' in target)this.tactical.loss(target);
+    // Fast damage-driven retreat: the tactical planner runs only every 3 s,
+    // longer than the time a low-HP rover can survive under enemy fire.
+    if(alive&&target.hp>0&&'orders' in target)this.tactical.evacuateVehicle(target);
     if('hit' in target){target.hit=.18;target.lastAttacker=source;target.defendUntil=this.time+5;}
     if(target.hp<=0&&'queue' in target){target.hp=0;target.queue=[];target.queueTypes=[];target.queueCosts=[];target.production=0;this.notices.push(`${buildingSpec(target).name} ${target.owner===0?'verloren':'ausgeschaltet'}!`);}
   }
