@@ -149,3 +149,35 @@ test('benchmark: paid blue defenders protect their own bastion without map cheat
  assert.ok(Math.hypot(blue.orders[0].x-own.point.x,blue.orders[0].y-own.point.y)<135,
   'defenders should guard their owned capture site rather than remaining at HQ');
 });
+
+
+test('repair: an engineer can restore damaged paid ground vehicles through the real repair command',()=>{
+ const g=new Simulation(2026,4);
+ g.aiClock=-1e8;
+ const home=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
+ const engineer=g.units.find(u=>u.owner===1&&u.kind==='engineer');
+ const tank=g.spawn(1,{x:home.x-260,y:home.y+130},'tank');
+ engineer.x=tank.x+45;engineer.y=tank.y+5;
+ tank.hp=200;
+ assert.equal(g.command([engineer.id],{x:tank.x,y:tank.y,kind:'repair',target:tank.id}),1);
+ const before=tank.hp;
+ for(let i=0;i<20;i++)g.step(.05);
+ assert.ok(tank.hp>before,'engineer repair must restore real HP');
+ assert.ok(tank.hp<=620,'repair may never exceed the unit maximum');
+ assert.ok(g.workEffects.some(e=>e.kind==='repair'&&e.target===tank.id),'visible repair work effect must target actual vehicle');
+});
+
+test('director: damaged armored unit withdraws and is excluded from the active assault',()=>{
+ const g=new Simulation(2026,4);
+ g.aiClock=-1e8;g.time=90;
+ const home=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
+ const tank=g.spawn(1,{x:home.x-270,y:home.y+150},'tank');
+ tank.hp=185;
+ g.tactical.state.phase='attack';
+ g.tactical.state.group=[tank.id];g.tactical.state.launchSize=1;
+ g.tactical.state.target=g.territories.find(t=>t.owner!==1&&t.neighbors.some(i=>g.territories[i].owner===1)).id;
+ g.tactical.plan();
+ assert.ok(g.tactical.state.recovering.includes(tank.id),'low health vehicle must enter the recovery roster');
+ assert.equal(tank.orders[0]?.kind,'move','vehicle must retreat under strict move orders');
+ assert.equal(tank.orders[0]?.tactical?.mode,'safe');
+});
