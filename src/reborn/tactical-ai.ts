@@ -203,6 +203,23 @@ export class TacticalAI {
   }return new Set(explorers.map(u=>u.id));
  }
  /** Wounded infantry recover at a safe rally instead of being sent straight into the next assault. */
+ /** Fire-and-forget combat extraction at the instant of an actual enemy hit.
+  * The 3-second macro tick alone is too slow to save a 220-HP rover.
+  * Never affects blue/player units or the legacy strategy. */
+ evacuateVehicle(u:Unit):void{
+  const g=this.g,s=this.state;
+  if(this.mode!=='director'||g.world.mapVersion<3||u.owner!==1||u.hp<=0
+    ||!['tank','rover','artillery'].includes(u.kind)||u.hp>=unitSpec(u).hp*.67
+    ||s.recovering?.includes(u.id))return;
+  const hq=g.bases.find(b=>b.owner===1&&b.kind==='headquarters'&&b.hp>0);
+  if(!hq)return;
+  const edge={x:clamp(hq.x+(hq.x>=g.world.size/2?165:-165),85,g.world.size-85),
+    y:clamp(hq.y+(hq.y>=g.world.size/2?135:-135),85,g.world.size-85)};
+  const dock=g.world.nearest(edge,this.obstacles(),[],u,Math.max(0,unitSpec(u).radius-10));
+  if(!dock||!g.command([u.id],{...dock,kind:'move'}))return;
+  u.orders[0].tactical={group:s.groupId,mode:'safe'};
+  s.recovering??=[];s.recovering.push(u.id);
+ }
  private recovery(army:Unit[],home:Point):Set<number>{
   const g=this.g,s=this.state,ids=new Set(s.recovering??[]);
   for(const u of army){
@@ -210,9 +227,9 @@ export class TacticalAI {
    // Vehicles survive sustained campaigns when they can break contact,
    // travel back to a real engineer, then return above 80% health.
    if(g.world.mapVersion>=3&&this.mode==='director'
-     &&['tank','rover','artillery'].includes(u.kind)&&u.hp<unitSpec(u).hp*.38)ids.add(u.id);
+     &&['tank','rover','artillery'].includes(u.kind)&&u.hp<unitSpec(u).hp*.67)ids.add(u.id);
   }
-  s.recovering=army.filter(u=>ids.has(u.id)&&u.hp<unitSpec(u).hp*.8).map(u=>u.id);
+  s.recovering=army.filter(u=>ids.has(u.id)&&u.hp<unitSpec(u).hp*(['tank','rover','artillery'].includes(u.kind)?.9:.8)).map(u=>u.id);
   const resting=army.filter(u=>s.recovering!.includes(u.id)),reserved=new Set(s.recovering);
   const vehiclePatients=resting.filter(u=>['tank','rover','artillery'].includes(u.kind));
   if(vehiclePatients.length){
