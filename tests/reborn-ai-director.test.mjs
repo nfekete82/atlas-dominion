@@ -236,9 +236,13 @@ test('director: armored reserve survives a funded barracks purchase and never mi
  const start=g.credits[1];
  developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1&&u.hp>0),()=>0);
  assert.equal(factory.queueTypes[0],'tank');
- assert.equal(g.credits[1],450,'tank costs exactly 450 credits and 300 are protected for another vehicle');
- assert.equal(barracks.queue.length,0,'barracks must not spend the reserved 300 vehicle credits');
- assert.equal(start-g.credits[1],factory.queueCosts[0]);
+ assert.equal(factory.queueCosts[0],450,'tank must cost its actual catalog price');
+ assert.equal(barracks.queueTypes[0],'infantry','barracks may produce while the next vehicle budget stays protected');
+ assert.equal(g.credits[1],350,'remaining credits must stay above the 300-credit armor reserve');
+ assert.ok(g.credits[1]>=300,'a funded barracks order must not drain the next vehicle reserve');
+ const paid=g.bases.filter(b=>b.owner===1).reduce((total,b)=>total+
+  (b.queueCosts??[]).reduce((sum,cost)=>sum+cost,0),0);
+ assert.equal(start-g.credits[1],paid,'both simultaneous orders are fully funded without minted credits');
 });
 
 test('director: a threatened base may recruit infantry instead of preserving the vehicle reserve',()=>{
@@ -273,4 +277,16 @@ test('director: a sighted enemy HQ triggers a fully paid rocket siege rather tha
  assert.equal(factory.queueTypes[0],'artillery','sighted HQ requires a real siege weapon');
  assert.equal(factory.queueCosts[0],600);
  assert.equal(g.credits[1],50);
+});
+
+
+test('director: barracks stays idle exactly at the minimum reserve threshold',()=>{
+ const g=new Simulation(2026,4),hq=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
+ for(let i=0;i<5;i++)g.spawn(1,{x:hq.x+100+i*12,y:hq.y-120},'infantry');
+ const barracks=addProducer(g,'barracks',1),factory=addProducer(g,'factory',1);
+ g.credits[1]=750;
+ developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1&&u.hp>0),()=>0);
+ assert.equal(factory.queueTypes[0],'tank','factory must pay for the tank before barracks');
+ assert.equal(barracks.queue.length,0,'barracks must not spend the 300-credit minimum reserve');
+ assert.equal(g.credits[1],300,'exact armor reserve stays banked for the next vehicle');
 });
