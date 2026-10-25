@@ -110,3 +110,60 @@ zusätzlich in echten Partien geprüft werden.
 Node-Tests, Langzeitbenchmark und Browsertest wurden hier noch
 nicht ausgeführt. Ein messbarer Qualitätsgewinn muss zuerst
 durch die Messung nachgewiesen werden.
+
+
+## Zweiter A/B-Lauf: erste belegbare Verbesserung (25.10.2026)
+
+Lokale Resultate des Projektinhabers, mittlere Karte (`mapVersion=4`),
+Seeds 2026/2027, jeweils 240 tatsächliche Simulationssekunden,
+`--opponent guarded`:
+
+| Kennzahl | Baseline | Director |
+|---|---:|---:|
+| Eroberte Bastionen im Mittel | 4 | **6** |
+| Mittlere Angriffsdauer | 92,5 s | **139,5 s** |
+| Bezahlte Fahrzeugaufträge | 1 | **2** |
+| Gleichzeitig existierende Fahrzeuge (Peak) | 1 | 1 |
+| Erste fertiggestellte Fabrik | 68 s | 68 s |
+| Erste Fahrzeugerscheinung | 139–191 s | 121 s |
+
+`npm run build` und **15 von 15 gezielte Tests** bestanden.
+Diese Messung belegt einen Fortschritt bei Expansion, **noch keinen
+belastbaren Kampfvorteil gegen aktive Einheiten**. Insbesondere blieb
+die blaue HQ-Lebensenergie bei 1200. Der alte `blueUnitsLost`-Wert
+war außerdem falsch: Er verglich nur Anfangs- und Endbestand, obwohl
+Blau im Verlauf neue Einheiten nachproduziert. Diese Zahl darf **nicht**
+als Nachweis für null getötete blaue Soldaten interpretiert werden.
+
+### Korrekturen nach diesem Ergebnis (erneute Prüfung ausstehend)
+
+- Die Airfield-Reserve beginnt beim Director erst nach
+  **drei** echten oder bereits bezahlten Bodenfahrzeugen und ab
+  mindestens 55 Credits Einkommen je Einnahmeintervall.
+  Das verhindert, dass Flugfeld-Ersparnisse bereits nach zwei
+  Bestellungen die weitere Fabrikproduktion blockieren.
+- Angriffsverstärkung bekommt auch ohne explizites Gebäudeziel
+  `attackMove` statt `move`. Versetzungen und Rückzüge der
+  Director-KI bleiben dagegen ausdrücklich `move` und unterdrücken
+  automatische Kampfabläufe, selbst wenn zeitgleich ein Angriff läuft.
+- Der Benchmark zählt blaue Verluste anhand **verschwundener,
+  zuvor lebender Einheiten-IDs**, misst HP-Schäden und zählt echte
+  abgefeuerte Fahrzeugschüsse.
+- Der geskriptete, regulär bezahlende blaue Verteidiger schickt
+  Infanterie und schwere Infanterie zu **seinem eigenen Bastionpunkt**,
+  damit rote Eroberungsversuche auf echte Abwehr treffen.
+
+Der Benchmark enthält ausschließlich erlaubte Spielerbefehle für den
+Verteidiger; kein Qwen, keine extra Ressourcen und keine verdeckten
+Gegnerdaten. **Die Resultate vor und nach dieser Änderung der
+Verteidiger-Strategie sind nicht direkt miteinander vergleichbar.**
+Zum Nachweis einer tatsächlichen Verbesserung `baseline` und
+`director` erneut unter *demselben neuen Szenario* testen.
+
+Empfohlener gezielter Lauf:
+
+```sh
+npm run build
+node --test tests/reborn-ai-director.test.mjs tests/reborn-map-ai.test.mjs
+node scripts/benchmark-reborn-ai.mjs --map 4 --seeds 2026,2027 --seconds 300 --opponent guarded
+```
