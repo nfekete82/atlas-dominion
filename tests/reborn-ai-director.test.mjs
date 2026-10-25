@@ -213,7 +213,7 @@ test('director: serviced vehicle receives actual HP and returns to the reserve a
  const dock=g.world.nearest(edge,g.obstacles());
  assert.ok(dock,'service point must be a valid map position');
  const tank=g.spawn(1,dock,'tank');
- tank.hp=220;
+ tank.hp=400;
  engineer.x=dock.x+45;engineer.y=dock.y+5;
  g.updateVision();
  g.tactical.plan();
