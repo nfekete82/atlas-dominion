@@ -72,10 +72,15 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
    if(g.count(1)+g.queued(1)>=maxArmy||g.credits[1]<=reserve)break;
    const counts=Object.fromEntries((Object.keys(UNITS) as UnitKind[]).map(k=>[k,count(k)])) as Record<string,number>;
    const ranks=preferredRole(producer.kind,counts,known,air);
-   // Save enough for the first tank instead of buying infantry forever.
-   const savingFirstTank=complete('factory')&&count('tank')===0&&count('rover')===0&&count('artillery')===0
-    &&!underAttack&&g.credits[1]-reserve<UNITS.tank.cost;
-   if(producer.kind==='barracks'&&savingFirstTank)continue;
+   // Persistent armor reserve: the old code protected only the FIRST
+   // purchase, then allowed cheap infantry to drain every later vehicle budget.
+   // Reserve a 300-credit rover while the armored force has fewer than 3
+   // living or queued ground vehicles. The factory gets first spending priority.
+   // Under immediate base attack, however, keep the barracks responsive.
+   const groundVehicles=count('tank')+count('rover')+count('artillery');
+   const armorReserve=complete('factory')&&groundVehicles<3&&!underAttack
+    &&fighters.length>=5?UNITS.rover.cost:0;
+   if(producer.kind==='barracks'&&g.credits[1]-reserve<armorReserve)continue;
    const kind=ranks.find(k=>Object.hasOwn(UNITS,k)&&UNITS[k as UnitKind].producers.includes(producer.kind)
     &&scores[k as UnitKind]>0&&(!air||canAttack({kind:k as UnitKind},seen.find(u=>unitSpec(u).flying)!)||['medic','engineer','scout'].includes(k))
     &&UNITS[k as UnitKind].cost<=g.credits[1]-reserve) as UnitKind|undefined;
