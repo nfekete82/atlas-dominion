@@ -456,7 +456,7 @@ export class Simulation {
       // defensive reaction fire or an old attack lock stall the movement.
       // Boarding/takeoff animations finish before movement resumes.
       if(transportBusy){delete u.burst;continue;}
-      if(order?.kind==='move'&&!(u.owner===1&&this.tactical.state.phase==='attack')){
+      if(order?.kind==='move'&&(u.owner===0||this.world.mapVersion>=3&&this.tactical.mode==='director'||this.tactical.state.phase!=='attack')){
         delete u.burst;u.combatTarget=null;u.pursuitOrigin=null;
         if(distance(u,order)<18){u.orders.shift();u.path=[];u.repath=0;}
         else this.move(u,order,dt);
