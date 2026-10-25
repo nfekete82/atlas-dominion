@@ -26,7 +26,12 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
  }
  if(e.goal!==goal){e.goal=goal;e.since=g.time;}
  if(goal&&g.credits[1]>=BUILDINGS[goal].cost&&g.time-e.attemptAt>=9){
-  e.attemptAt=g.time;const worker=workers.find(w=>w.defendUntil<=g.time&&!w.orders.some(o=>o.kind==='build'));
+  e.attemptAt=g.time;
+   // Don't cancel a field engineer's emergency vehicle repair with a fresh
+   // factory/airfield construction order. A second idle worker may build.
+   const worker=workers.find(w=>w.defendUntil<=g.time&&!w.orders.some(o=>o.kind==='build'||
+    (g.world.mapVersion>=3&&g.tactical.mode==='director'&&o.kind==='repair'&&
+     army.some(v=>v.id===o.target&&s.recovering?.includes(v.id)))));
   if(worker){
    const candidates:Point[]=[];for(const center of [home,...g.territories.filter(t=>t.owner===1).map(t=>t.point)])for(const radius of [180,250,330,410])for(let i=0;i<16;i++){
     const p={x:center.x+Math.cos(i*Math.PI/8)*radius,y:center.y+Math.sin(i*Math.PI/8)*radius};if(dangerAt(p)<2&&!g.buildError(1,goal,p))candidates.push(p);
