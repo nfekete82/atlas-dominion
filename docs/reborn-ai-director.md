@@ -1,3 +1,5 @@
+> Neuer vollständiger Feldzugvergleich und Commander-Architektur: [Campaign Commander](reborn-campaign-commander.md). Die alten 300-Sekunden-Läufe waren zu kurz für eine Aussage über vollständige Siege.
+
 # Reborn AI Director – erste Petra-inspirierte Ausbaustufe
 
 ## Problem statt KI-Mythos
