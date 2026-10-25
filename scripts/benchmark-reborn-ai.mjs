@@ -28,7 +28,7 @@ if(![3,4,5].includes(version)||!['guarded','idle'].includes(opponent)||!Number.i
    redSectors:g.territories.filter(t=>t.owner===1).length,credits:g.credits[1]};
   const metrics={seed,mode,opponent,requestedSeconds:seconds,elapsedSeconds:0,terminalStatus:'playing',initialCredits:starting.credits,
    firstAssault:null,firstVehicle:null,firstFactory:null,firstFrontContact:null,
-   finishedBuildings:0,vehicles:0,peakVehicles:0,vehiclesOrdered:0,redSectors:starting.redSectors,captures:0,
+   finishedBuildings:0,vehicles:0,peakVehicles:0,vehiclesOrdered:0,vehicleOrdersByKind:{},redSectors:starting.redSectors,captures:0,
    blueUnitsLost:0,blueUnitDamage:0,blueHeadquartersHp:null,redUnits:0,redCredits:0,
    firstVehicleShot:null,vehicleShots:0,firstEnemyContact:null,
    vehicleDeaths:0,vehicleRepairHp:0,vehicleEvacuations:0,vehicleReturned:0,
@@ -99,8 +99,9 @@ if(![3,4,5].includes(version)||!['guarded','idle'].includes(opponent)||!Number.i
   }
   metrics.wallMs=Math.round(performance.now()-begin);
   metrics.terminalStatus=g.status;
-  metrics.vehiclesOrdered=Object.entries(g.tactical.state.economy?.produced??{})
-   .filter(([kind])=>types.has(kind)).reduce((n,[,count])=>n+count,0);
+  metrics.vehicleOrdersByKind=Object.fromEntries(Object.entries(g.tactical.state.economy?.produced??{})
+   .filter(([kind])=>types.has(kind)));
+  metrics.vehiclesOrdered=Object.values(metrics.vehicleOrdersByKind).reduce((n,count)=>n+count,0);
   metrics.redSectors=g.territories.filter(t=>t.owner===1).length;
   metrics.captures=Math.max(0,metrics.redSectors-starting.redSectors);
   metrics.blueHeadquartersHp=g.bases.find(b=>b.kind==='headquarters'&&b.territory===g.world.territories(seed).find(t=>t.owner===0)?.id)?.hp??0;
@@ -118,6 +119,7 @@ if(![3,4,5].includes(version)||!['guarded','idle'].includes(opponent)||!Number.i
   console.log(mode.padEnd(8),'seed='+seed,
    'sectors='+result.redSectors,'captures='+result.captures,
    'peakVehicles='+result.peakVehicles,'orderedVehicles='+result.vehiclesOrdered,
+   'ordersByKind='+JSON.stringify(result.vehicleOrdersByKind),
    'playedSeconds='+result.elapsedSeconds,'status='+result.terminalStatus,
    'blueDeaths='+result.blueUnitsLost,'vehicleShots='+result.vehicleShots,
    'vehicleDeaths='+result.vehicleDeaths,'vehicleRepairHp='+Math.round(result.vehicleRepairHp),
