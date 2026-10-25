@@ -279,8 +279,10 @@ export class Simulation {
     }
     u.path=[];u.combatTarget=null;u.pursuitOrigin=null;u.workingTarget=target.id;
     u.angle=Math.atan2(target.y-u.y,target.x-u.x);u.facing=target.x<u.x?-1:1;
-    if('orders' in target){if(!this.healNearby(u,dt)){u.workingTarget=null;return false;}}
-    else if('orders' in target){const before=target.hp;target.hp=Math.min(unitSpec(target).hp,target.hp+18*dt);this.work('repair',u.id,target.id,target.hp-before);}
+    if('orders' in target){
+      if(u.kind==='medic'){if(!this.healNearby(u,dt)){u.workingTarget=null;return false;}}
+      else {const before=target.hp;target.hp=Math.min(unitSpec(target).hp,target.hp+18*dt);this.work('repair',u.id,target.id,target.hp-before);}
+    }
     else if(target.buildRemaining<=0){const before=target.hp;target.hp=Math.min(buildingSpec(target).hp,target.hp+12*dt);this.work('repair',u.id,target.id,target.hp-before);}
     return true;
   }
