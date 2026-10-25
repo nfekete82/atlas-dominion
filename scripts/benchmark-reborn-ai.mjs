@@ -30,11 +30,13 @@ if(![3,4,5].includes(version)||!['guarded','idle'].includes(opponent)||!Number.i
    finishedBuildings:0,vehicles:0,peakVehicles:0,vehiclesOrdered:0,redSectors:starting.redSectors,captures:0,
    blueUnitsLost:0,blueUnitDamage:0,blueHeadquartersHp:null,redUnits:0,redCredits:0,
    firstVehicleShot:null,vehicleShots:0,firstEnemyContact:null,
+   vehicleDeaths:0,vehicleRepairHp:0,
    attackingSeconds:0,productiveFactorySeconds:0,productiveBarracksSeconds:0,
    productiveAirfieldSeconds:0,phaseTransitions:0,score:0,wallMs:0};
   const types=new Set(['tank','rover','artillery','gunship','bomber','scout']);
   let phase=g.tactical.state.phase;
   let previousBlue=new Map(g.units.filter(u=>u.owner===0&&u.hp>0).map(u=>[u.id,u.hp]));
+  let previousVehicles=new Set(g.units.filter(u=>u.owner===1&&u.hp>0&&types.has(u.kind)).map(u=>u.id));
   const begin=performance.now();
   const steps=Math.round(seconds/.05);
   for(let step=0;step<steps&&g.status==='playing';step++){
@@ -50,6 +52,12 @@ if(![3,4,5].includes(version)||!['guarded','idle'].includes(opponent)||!Number.i
     else metrics.blueUnitDamage+=Math.max(0,hp-remaining);
    }
    previousBlue=currentBlue;
+   const aliveVehicles=new Set(g.units.filter(u=>u.owner===1&&u.hp>0&&types.has(u.kind)).map(u=>u.id));
+   for(const id of previousVehicles)if(!aliveVehicles.has(id))metrics.vehicleDeaths++;
+   previousVehicles=aliveVehicles;
+   for(const effect of g.workEffects)if(effect.kind==='repair'&&Math.abs(effect.at-g.time)<1e-8
+    &&g.units.some(u=>u.id===effect.target&&u.owner===1&&['tank','rover','artillery'].includes(u.kind)))
+    metrics.vehicleRepairHp+=effect.amount;
    for(const shot of g.shots)if(shot.owner===1&&Math.abs(shot.at-g.time)<1e-8&&types.has(shot.kind)){
     metrics.vehicleShots++;
     if(metrics.firstVehicleShot===null)metrics.firstVehicleShot=Number(g.time.toFixed(1));
@@ -101,15 +109,16 @@ if(![3,4,5].includes(version)||!['guarded','idle'].includes(opponent)||!Number.i
    'peakVehicles='+result.peakVehicles,'orderedVehicles='+result.vehiclesOrdered,
    'playedSeconds='+result.elapsedSeconds,'status='+result.terminalStatus,
    'blueDeaths='+result.blueUnitsLost,'vehicleShots='+result.vehicleShots,
+   'vehicleDeaths='+result.vehicleDeaths,'vehicleRepairHp='+Math.round(result.vehicleRepairHp),
    'firstFront='+String(result.firstFrontContact??'none'),
    'factory='+String(result.firstFactory??'none'),'assaultSeconds='+result.attackingSeconds,
    'score='+result.score,'wallMs='+result.wallMs);
  }
  const avg=(mode,key)=>Number((details.filter(r=>r.mode===mode).reduce((n,r)=>n+r[key],0)/seeds.length).toFixed(2));
  const summary={mapVersion:version,requestedSeconds:seconds,opponent,seeds,
-  baseline:{meanCaptures:avg('baseline','captures'),meanBlueDeaths:avg('baseline','blueUnitsLost'),meanVehicleShots:avg('baseline','vehicleShots'),meanPeakVehicles:avg('baseline','peakVehicles'),meanVehiclesOrdered:avg('baseline','vehiclesOrdered'),meanPlayedSeconds:avg('baseline','elapsedSeconds'),meanVehicles:avg('baseline','vehicles'),
+  baseline:{meanCaptures:avg('baseline','captures'),meanBlueDeaths:avg('baseline','blueUnitsLost'),meanVehicleShots:avg('baseline','vehicleShots'),meanVehicleDeaths:avg('baseline','vehicleDeaths'),meanVehicleRepairHp:avg('baseline','vehicleRepairHp'),meanPeakVehicles:avg('baseline','peakVehicles'),meanVehiclesOrdered:avg('baseline','vehiclesOrdered'),meanPlayedSeconds:avg('baseline','elapsedSeconds'),meanVehicles:avg('baseline','vehicles'),
    meanScore:avg('baseline','score'),meanAttackingSeconds:avg('baseline','attackingSeconds')},
-  director:{meanCaptures:avg('director','captures'),meanBlueDeaths:avg('director','blueUnitsLost'),meanVehicleShots:avg('director','vehicleShots'),meanPeakVehicles:avg('director','peakVehicles'),meanVehiclesOrdered:avg('director','vehiclesOrdered'),meanPlayedSeconds:avg('director','elapsedSeconds'),meanVehicles:avg('director','vehicles'),
+  director:{meanCaptures:avg('director','captures'),meanBlueDeaths:avg('director','blueUnitsLost'),meanVehicleShots:avg('director','vehicleShots'),meanVehicleDeaths:avg('director','vehicleDeaths'),meanVehicleRepairHp:avg('director','vehicleRepairHp'),meanPeakVehicles:avg('director','peakVehicles'),meanVehiclesOrdered:avg('director','vehiclesOrdered'),meanPlayedSeconds:avg('director','elapsedSeconds'),meanVehicles:avg('director','vehicles'),
    meanScore:avg('director','score'),meanAttackingSeconds:avg('director','attackingSeconds')},
   details};
  console.log('\nAI BENCHMARK JSON\n'+JSON.stringify(summary,null,2));
