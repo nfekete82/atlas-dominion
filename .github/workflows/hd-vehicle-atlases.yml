@@ -1,0 +1,63 @@
+name: Render HD vehicle atlases
+
+on:
+  push:
+    branches: [feat/retro-desert-hud-hd-units-20261026]
+    paths:
+      - .github/workflows/hd-vehicle-atlases.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hd-unit-render-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  bake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install offline atlas builder and headless Chromium
+        run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix tests/browser --no-audit --no-fund
+          cd tests/browser
+          npx playwright install --with-deps chromium
+      - name: Render six units in both factions, 192 pixels per animation frame
+        env:
+          ATLAS_BROWSER_CHANNEL: chromium
+        run: npm run assets:animations:hd
+      - name: Verify 12 HD atlases and unchanged GLB links
+        run: |
+          node scripts/check-hd-atlases.mjs
+          npm run build
+      - name: Upload HD asset backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: atlas-dominion-hd-vehicle-sprites
+          path: |
+            src/assets/reborn/animation/*.png
+            src/assets/reborn/animation/*.json
+          retention-days: 14
+          compression-level: 3
+      - name: Commit verified sprites to the same development feature branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/assets/reborn/animation/*.png src/assets/reborn/animation/*.json
+          if git diff --cached --quiet; then
+            echo "No changes to atlases."
+            exit 0
+          fi
+          git commit -m "assets(reborn): 192px vehicle and aircraft atlases from 3D sources"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
