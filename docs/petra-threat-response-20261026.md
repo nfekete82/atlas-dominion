@@ -1,3 +1,5 @@
+> Folgestand: [PROJECT TITAN – adaptive Gegnerstrategien und echte Commit-A/B-Validierung](project-titan-20261026.md).
+
 # Threat Response — Petra-Konzepte für Atlas Dominion
 
 Stand: 26.10.2026. Basis: `240f665`, Branch

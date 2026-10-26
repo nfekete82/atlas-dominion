@@ -1,0 +1,1722 @@
+{
+  "complete": true,
+  "scope": "Chromium animation frames: rendered paid modern campaigns, including paid BLUE controller; excludes accelerated warmup",
+  "reference": "/tmp/atlas-titan-baseline",
+  "environment": {
+    "seed": 2026,
+    "seconds": 8,
+    "warmup": 240,
+    "cpuThrottle": 4,
+    "viewport": "1440x1000",
+    "dpr": 1,
+    "browser": "155.0.8059.85"
+  },
+  "results": [
+    {
+      "label": "before",
+      "map": "small",
+      "towers": 1,
+      "initialStateHash": "7264e5dca7aa194a82ea815db05129de1bdbc02ac95f920a18de29fd3fa6296b",
+      "catalogHash": "bcb238d270a988ceedd447c92ab51568c41b793bc5a83ff4f6599426d1d61e64",
+      "stats": {
+        "frames": 440,
+        "windowSeconds": 7.999700000000001,
+        "fps": 55.00206257734664,
+        "low1Fps": 29.94011976047774,
+        "frameMs": {
+          "p50": 16.69999999999891,
+          "p95": 33.30000000000109,
+          "p99": 33.400000000001455,
+          "max": 33.400000000001455
+        },
+        "over33": 40,
+        "over50": 0,
+        "over100": 0,
+        "phases": {
+          "simulation": {
+            "calls": 160,
+            "totalMs": 1630.7999999523163,
+            "meanMs": 10.192499999701976,
+            "maxMs": 43.19999998807907
+          },
+          "ai": {
+            "calls": 3,
+            "totalMs": 7.899999976158142,
+            "meanMs": 2.6333333253860474,
+            "maxMs": 2.899999976158142
+          },
+          "pathfinding": {
+            "calls": 7,
+            "totalMs": 33.80000001192093,
+            "meanMs": 4.828571430274418,
+            "maxMs": 8.400000035762787
+          },
+          "vision": {
+            "calls": 40,
+            "totalMs": 1554.4000000357628,
+            "meanMs": 38.86000000089407,
+            "maxMs": 42.80000001192093
+          },
+          "render": {
+            "calls": 441,
+            "totalMs": 334.1000003814697,
+            "meanMs": 0.7575963727470969,
+            "maxMs": 2.5
+          },
+          "minimap": {
+            "calls": 441,
+            "totalMs": 16.699999809265137,
+            "meanMs": 0.03786848029311823,
+            "maxMs": 0.800000011920929
+          },
+          "hud": {
+            "calls": 68,
+            "totalMs": 90.69999980926514,
+            "meanMs": 1.3338235266068403,
+            "maxMs": 1.9000000357627869
+          },
+          "audio": {
+            "calls": 441,
+            "totalMs": 4.400000035762787,
+            "meanMs": 0.009977324344133304,
+            "maxMs": 0.800000011920929
+          },
+          "input": {
+            "calls": 441,
+            "totalMs": 6.499999940395355,
+            "meanMs": 0.014739228889785386,
+            "maxMs": 0.7000000476837158
+          },
+          "fog": {
+            "calls": 441,
+            "totalMs": 23.80000001192093,
+            "meanMs": 0.053968253995285556,
+            "maxMs": 1.5
+          },
+          "sprites": {
+            "calls": 441,
+            "totalMs": 138.30000013113022,
+            "meanMs": 0.3136054424742182,
+            "maxMs": 1.0999999642372131
+          },
+          "corpses": {
+            "calls": 441,
+            "totalMs": 28.50000023841858,
+            "meanMs": 0.06462585088076775,
+            "maxMs": 0.800000011920929
+          },
+          "particles": {
+            "calls": 441,
+            "totalMs": 3.9000000953674316,
+            "meanMs": 0.008843537631218666,
+            "maxMs": 0.9000000357627869
+          }
+        },
+        "pathfinding": {
+          "calls": 7,
+          "nodes": 18030
+        },
+        "longTasks": {
+          "count": 0,
+          "maxMs": 0
+        },
+        "spikes": [
+          {
+            "frameMs": 33.400000000001455,
+            "workMs": 0.8999999761581421,
+            "previousWorkMs": 38.39999997615814,
+            "phases": {
+              "simulation": 0,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 0,
+              "render": 0.8999999761581421,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0,
+              "sprites": 0.10000002384185791,
+              "corpses": 0.09999996423721313,
+              "particles": 0
+            },
+            "previousPhases": {
+              "simulation": 36.80000001192093,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 36.10000002384186,
+              "render": 1.5999999642372131,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0.699999988079071,
+              "sprites": 0.09999996423721313,
+              "corpses": 0.7000000476837158,
+              "particles": 0
+            },
+            "paths": 0,
+            "nodes": 0
+          },
+          {
+            "frameMs": 33.400000000001455,
+            "workMs": 0.7999999523162842,
+            "previousWorkMs": 39,
+            "phases": {
+              "simulation": 0,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 0,
+              "render": 0.7999999523162842,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0,
+              "sprites": 0.2999999523162842,
+              "corpses": 0.5,
+              "particles": 0
+            },
+            "previousPhases": {
+              "simulation": 37.60000002384186,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 37.60000002384186,
+              "render": 1.399999976158142,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0.19999998807907104,
+              "sprites": 0.5999999642372131,
+              "corpses": 0,
+              "particles": 0
+            },
+            "paths": 0,
+            "nodes": 0
+          },
+          {
+            "frameMs": 33.400000000001455,
+            "workMs": 2.099999964237213,
+            "previousWorkMs": 41.10000002384186,
+            "phases": {
+              "simulation": 0,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 0,
+              "render": 1,
+              "minimap": 0,
+              "hud": 1,
+              "audio": 0,
+              "input": 0.09999996423721313,
+              "fog": 0,
+              "sprites": 0.5,
+              "corpses": 0,
+              "particles": 0
+            },
+            "previousPhases": {
+              "simulation": 39.30000001192093,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 38.89999997615814,
+              "render": 1.800000011920929,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0.6000000238418579,
+              "sprites": 0.10000002384185791,
+              "corpses": 0,
+              "particles": 0
+            },
+            "paths": 0,
+            "nodes": 0
+          },
+          {
+            "frameMs": 33.400000000001455,
+            "workMs": 1,
+            "previousWorkMs": 41.5,
+            "phases": {
+              "simulation": 0,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 0,
+              "render": 0.9000000357627869,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0.09999996423721313,
+              "input": 0,
+              "fog": 0,
+              "sprites": 0.9000000357627869,
+              "corpses": 0,
+              "particles": 0
+            },
+            "previousPhases": {
+              "simulation": 39.30000001192093,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 38.89999997615814,
+              "render": 2.199999988079071,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 1.5,
+              "sprites": 0.5999999642372131,
+              "corpses": 0,
+              "particles": 0
+            },
+            "paths": 0,
+            "nodes": 0
+          },
+          {
+            "frameMs": 33.400000000001455,
+            "workMs": 0.3999999761581421,
+            "previousWorkMs": 41.90000003576279,
+            "phases": {
+              "simulation": 0,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 0,
+              "render": 0.3999999761581421,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0,
+              "sprites": 0.10000002384185791,
+              "corpses": 0,
+              "particles": 0
+            },
+            "previousPhases": {
+              "simulation": 39.700000047683716,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 39.5,
+              "render": 1.0999999642372131,
+              "minimap": 0,
+              "hud": 1.100000023841858,
+              "audio": 0,
+              "input": 0,
+              "fog": 0.3999999761581421,
+              "sprites": 0.09999996423721313,
+              "corpses": 0.5,
+              "particles": 0
+            },
+            "paths": 0,
+            "nodes": 0
+          },
+          {
+            "frameMs": 33.400000000001455,
+            "workMs": 2.199999988079071,
+            "previousWorkMs": 41.10000002384186,
+            "phases": {
+              "simulation": 0,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 0,
+              "render": 0.699999988079071,
+              "minimap": 0,
+              "hud": 1.5,
+              "audio": 0,
+              "input": 0,
+              "fog": 0,
+              "sprites": 0.09999996423721313,
+              "corpses": 0,
+              "particles": 0
+            },
+            "previousPhases": {
+              "simulation": 39.80000001192093,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 39.39999997615814,
+              "render": 1.300000011920929,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0.19999998807907104,
+              "sprites": 0.40000003576278687,
+              "corpses": 0,
+              "particles": 0
+            },
+            "paths": 0,
+            "nodes": 0
+          },
+          {
+            "frameMs": 33.400000000001455,
+            "workMs": 0.800000011920929,
+            "previousWorkMs": 40.39999997615814,
+            "phases": {
+              "simulation": 0,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 0,
+              "render": 0.7000000476837158,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0.09999996423721313,
+              "fog": 0,
+              "sprites": 0.7000000476837158,
+              "corpses": 0,
+              "particles": 0
+            },
+            "previousPhases": {
+              "simulation": 38.69999998807907,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 38.5,
+              "render": 1.699999988079071,
+              "minimap": 0.699999988079071,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0.800000011920929,
+              "sprites": 0.10000002384185791,
+              "corpses": 0,
+              "particles": 0
+            },
+            "paths": 0,
+            "nodes": 0
+          },
+          {
+            "frameMs": 33.400000000001455,
+            "workMs": 2,
+            "previousWorkMs": 40.89999997615814,
+            "phases": {
+              "simulation": 0,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 0,
+              "render": 0.7999999523162842,
+              "minimap": 0,
+              "hud": 1.2000000476837158,
+              "audio": 0,
+              "input": 0,
+              "fog": 0,
+              "sprites": 0.09999996423721313,
+              "corpses": 0.699999988079071,
+              "particles": 0
+            },
+            "previousPhases": {
+              "simulation": 39.5,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 39.09999996423721,
+              "render": 1.300000011920929,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0.09999996423721313,
+              "fog": 0.10000002384185791,
+              "sprites": 0.30000001192092896,
+              "corpses": 0.09999996423721313,
+              "particles": 0
+            },
+            "paths": 0,
+            "nodes": 0
+          },
+          {
+            "frameMs": 33.400000000001455,
+            "workMs": 0.800000011920929,
+            "previousWorkMs": 41.19999998807907,
+            "phases": {
+              "simulation": 0,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 0,
+              "render": 0.800000011920929,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0,
+              "sprites": 0.699999988079071,
+              "corpses": 0,
+              "particles": 0
+            },
+            "previousPhases": {
+              "simulation": 38.69999998807907,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 38.5,
+              "render": 2.5,
+              "minimap": 0.6000000238418579,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0.19999998807907104,
+              "sprites": 0.09999996423721313,
+              "corpses": 0,
+              "particles": 0
+            },
+            "paths": 0,
+            "nodes": 0
+          },
+          {
+            "frameMs": 33.400000000001455,
+            "workMs": 0.800000011920929,
+            "previousWorkMs": 42.69999998807907,
+            "phases": {
+              "simulation": 0,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 0,
+              "render": 0.800000011920929,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0,
+              "sprites": 0,
+              "corpses": 0,
+              "particles": 0
+            },
+            "previousPhases": {
+              "simulation": 41.19999998807907,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 40.5,
+              "render": 1.5,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0.6000000238418579,
+              "sprites": 0.800000011920929,
+              "corpses": 0,
+              "particles": 0
+            },
+            "paths": 0,
+            "nodes": 0
+          },
+          {
+            "frameMs": 33.399999999999636,
+            "workMs": 0.800000011920929,
+            "previousWorkMs": 43.90000003576279,
+            "phases": {
+              "simulation": 0.10000002384185791,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 0,
+              "render": 0.699999988079071,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0,
+              "sprites": 0,
+              "corpses": 0,
+              "particles": 0
+            },
+            "previousPhases": {
+              "simulation": 42.39999997615814,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 42.30000001192093,
+              "render": 1.4000000357627869,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0.6000000238418579,
+              "sprites": 0.6000000238418579,
+              "corpses": 0.10000002384185791,
+              "particles": 0
+            },
+            "paths": 0,
+            "nodes": 0
+          },
+          {
+            "frameMs": 33.399999999999636,
+            "workMs": 1.300000011920929,
+            "previousWorkMs": 46,
+            "phases": {
+              "simulation": 0.09999996423721313,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 0,
+              "render": 0.800000011920929,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0.40000003576278687,
+              "input": 0,
+              "fog": 0,
+              "sprites": 0.5,
+              "corpses": 0,
+              "particles": 0
+            },
+            "previousPhases": {
+              "simulation": 42.69999998807907,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 42.30000001192093,
+              "render": 1.800000011920929,
+              "minimap": 0,
+              "hud": 1.5,
+              "audio": 0,
+              "input": 0,
+              "fog": 1,
+              "sprites": 0.800000011920929,
+              "corpses": 0,
+              "particles": 0
+            },
+            "paths": 0,
+            "nodes": 0
+          }
+        ]
+      },
+      "time": 248.00000000002214,
+      "status": "playing",
+      "units": 15,
+      "rush": {
+        "towersOrdered": 1,
+        "blueTowerCredits": 175,
+        "peakTowers": 1,
+        "allTowersReadyAt": 15,
+        "turretHits": 66,
+        "turretDamage": 394,
+        "immediateResponses": 3,
+        "responseLatency": [
+          0,
+          0,
+          0
+        ],
+        "initialized": true
+      }
+    },
+    {
+      "label": "before",
+      "map": "medium",
+      "towers": 1,
+      "initialStateHash": "8beefe27e2f513c2fce289afd11169d075f72751a81e72b404d5fdf3d7f8fa62",
+      "catalogHash": "bcb238d270a988ceedd447c92ab51568c41b793bc5a83ff4f6599426d1d61e64",
+      "stats": {
+        "frames": 480,
+        "windowSeconds": 7.999800000000001,
+        "fps": 60.00150003750093,
+        "low1Fps": 59.52380952380823,
+        "frameMs": {
+          "p50": 16.69999999999891,
+          "p95": 16.700000000000728,
+          "p99": 16.799999999999272,
+          "max": 16.80000000000291
+        },
+        "over33": 0,
+        "over50": 0,
+        "over100": 0,
+        "phases": {
+          "simulation": {
+            "calls": 160,
+            "totalMs": 1158.1999999284744,
+            "meanMs": 7.238749999552965,
+            "maxMs": 21.5
+          },
+          "ai": {
+            "calls": 3,
+            "totalMs": 9.199999928474426,
+            "meanMs": 3.0666666428248086,
+            "maxMs": 3.799999952316284
+          },
+          "pathfinding": {
+            "calls": 265,
+            "totalMs": 492.99999982118607,
+            "meanMs": 1.8603773578157965,
+            "maxMs": 3.800000011920929
+          },
+          "vision": {
+            "calls": 40,
+            "totalMs": 624.0999999046326,
+            "meanMs": 15.602499997615814,
+            "maxMs": 17.69999998807907
+          },
+          "render": {
+            "calls": 481,
+            "totalMs": 339.70000100135803,
+            "meanMs": 0.7062370083188316,
+            "maxMs": 2.199999988079071
+          },
+          "minimap": {
+            "calls": 481,
+            "totalMs": 12.900000274181366,
+            "meanMs": 0.02681912738915045,
+            "maxMs": 0.7000000476837158
+          },
+          "hud": {
+            "calls": 70,
+            "totalMs": 92.39999985694885,
+            "meanMs": 1.319999997956412,
+            "maxMs": 1.800000011920929
+          },
+          "audio": {
+            "calls": 481,
+            "totalMs": 4.599999904632568,
+            "meanMs": 0.009563409365140475,
+            "maxMs": 0.9000000357627869
+          },
+          "input": {
+            "calls": 481,
+            "totalMs": 5.100000023841858,
+            "meanMs": 0.010602910652477876,
+            "maxMs": 0.7000000476837158
+          },
+          "fog": {
+            "calls": 481,
+            "totalMs": 22.000000059604645,
+            "meanMs": 0.04573804586196392,
+            "maxMs": 1.100000023841858
+          },
+          "sprites": {
+            "calls": 481,
+            "totalMs": 161.00000023841858,
+            "meanMs": 0.33471933521500746,
+            "maxMs": 1.100000023841858
+          },
+          "corpses": {
+            "calls": 481,
+            "totalMs": 1.100000023841858,
+            "meanMs": 0.002286902336469559,
+            "maxMs": 0.7999999523162842
+          },
+          "particles": {
+            "calls": 481,
+            "totalMs": 1.2999999523162842,
+            "meanMs": 0.0027027026035681585,
+            "maxMs": 0.5
+          }
+        },
+        "pathfinding": {
+          "calls": 265,
+          "nodes": 286265
+        },
+        "longTasks": {
+          "count": 0,
+          "maxMs": 0
+        },
+        "spikes": []
+      },
+      "time": 248.00000000002214,
+      "status": "playing",
+      "units": 15,
+      "rush": {
+        "towersOrdered": 1,
+        "blueTowerCredits": 175,
+        "peakTowers": 1,
+        "allTowersReadyAt": 15,
+        "turretHits": 25,
+        "turretDamage": 150,
+        "immediateResponses": 2,
+        "responseLatency": [
+          0,
+          0.8999999999999488
+        ],
+        "initialized": true
+      }
+    },
+    {
+      "label": "before",
+      "map": "large",
+      "towers": 6,
+      "initialStateHash": "b09492e89cea1c35c1bfd16c9186792d60abbd13779fbcc2f0584a13d3054474",
+      "catalogHash": "bcb238d270a988ceedd447c92ab51568c41b793bc5a83ff4f6599426d1d61e64",
+      "stats": {
+        "frames": 481,
+        "windowSeconds": 8.0164,
+        "fps": 60.0019959083878,
+        "low1Fps": 59.523809523806946,
+        "frameMs": {
+          "p50": 16.69999999999891,
+          "p95": 16.700000000000728,
+          "p99": 16.799999999999272,
+          "max": 16.80000000000109
+        },
+        "over33": 0,
+        "over50": 0,
+        "over100": 0,
+        "phases": {
+          "simulation": {
+            "calls": 160,
+            "totalMs": 163.8999997973442,
+            "meanMs": 1.0243749987334012,
+            "maxMs": 11.399999976158142
+          },
+          "ai": {
+            "calls": 3,
+            "totalMs": 6.199999988079071,
+            "meanMs": 2.0666666626930237,
+            "maxMs": 2.5
+          },
+          "pathfinding": {
+            "calls": 167,
+            "totalMs": 18.70000010728836,
+            "meanMs": 0.11197604854663688,
+            "maxMs": 9.199999988079071
+          },
+          "vision": {
+            "calls": 41,
+            "totalMs": 112.50000005960464,
+            "meanMs": 2.7439024404781622,
+            "maxMs": 7.199999988079071
+          },
+          "render": {
+            "calls": 482,
+            "totalMs": 426.5000004172325,
+            "meanMs": 0.88485477264986,
+            "maxMs": 2.400000035762787
+          },
+          "minimap": {
+            "calls": 482,
+            "totalMs": 17.199999749660492,
+            "meanMs": 0.03568464678352799,
+            "maxMs": 0.800000011920929
+          },
+          "hud": {
+            "calls": 70,
+            "totalMs": 97.70000034570694,
+            "meanMs": 1.3957142906529563,
+            "maxMs": 2.400000035762787
+          },
+          "audio": {
+            "calls": 482,
+            "totalMs": 4.799999952316284,
+            "meanMs": 0.009958506125137519,
+            "maxMs": 0.8999999761581421
+          },
+          "input": {
+            "calls": 482,
+            "totalMs": 4.6999998688697815,
+            "meanMs": 0.009751037072343946,
+            "maxMs": 0.3999999761581421
+          },
+          "fog": {
+            "calls": 482,
+            "totalMs": 20.80000013113022,
+            "meanMs": 0.04315352724300875,
+            "maxMs": 1.2000000476837158
+          },
+          "sprites": {
+            "calls": 482,
+            "totalMs": 158.5,
+            "meanMs": 0.3288381742738589,
+            "maxMs": 1.199999988079071
+          },
+          "corpses": {
+            "calls": 482,
+            "totalMs": 74.30000054836273,
+            "meanMs": 0.154149378731043,
+            "maxMs": 1.100000023841858
+          },
+          "particles": {
+            "calls": 482,
+            "totalMs": 0.3999999165534973,
+            "meanMs": 0.0008298753455466749,
+            "maxMs": 0.10000002384185791
+          }
+        },
+        "pathfinding": {
+          "calls": 167,
+          "nodes": 5241
+        },
+        "longTasks": {
+          "count": 0,
+          "maxMs": 0
+        },
+        "spikes": []
+      },
+      "time": 248.00000000002214,
+      "status": "playing",
+      "units": 12,
+      "rush": {
+        "towersOrdered": 6,
+        "blueTowerCredits": 1050,
+        "peakTowers": 6,
+        "allTowersReadyAt": 78,
+        "turretHits": 98,
+        "turretDamage": 582,
+        "immediateResponses": 6,
+        "responseLatency": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "initialized": true
+      }
+    },
+    {
+      "label": "after",
+      "map": "small",
+      "towers": 1,
+      "initialStateHash": "7264e5dca7aa194a82ea815db05129de1bdbc02ac95f920a18de29fd3fa6296b",
+      "catalogHash": "bcb238d270a988ceedd447c92ab51568c41b793bc5a83ff4f6599426d1d61e64",
+      "stats": {
+        "frames": 403,
+        "windowSeconds": 7.999699999999997,
+        "fps": 50.376889133342516,
+        "low1Fps": 18.719580681391562,
+        "frameMs": {
+          "p50": 16.69999999999709,
+          "p95": 50,
+          "p99": 50.099999999998545,
+          "max": 66.70000000000437
+        },
+        "over33": 40,
+        "over50": 6,
+        "over100": 0,
+        "phases": {
+          "simulation": {
+            "calls": 160,
+            "totalMs": 2246.0999997854233,
+            "meanMs": 14.038124998658896,
+            "maxMs": 67.40000003576279
+          },
+          "ai": {
+            "calls": 3,
+            "totalMs": 10.200000047683716,
+            "meanMs": 3.400000015894572,
+            "maxMs": 3.800000011920929
+          },
+          "pathfinding": {
+            "calls": 10,
+            "totalMs": 7.499999940395355,
+            "meanMs": 0.7499999940395355,
+            "maxMs": 6.799999952316284
+          },
+          "vision": {
+            "calls": 40,
+            "totalMs": 2192.6999999284744,
+            "meanMs": 54.81749999821186,
+            "maxMs": 67.30000001192093
+          },
+          "render": {
+            "calls": 404,
+            "totalMs": 292.59999918937683,
+            "meanMs": 0.7242574237360813,
+            "maxMs": 3
+          },
+          "minimap": {
+            "calls": 404,
+            "totalMs": 9.79999989271164,
+            "meanMs": 0.024257425477009008,
+            "maxMs": 1
+          },
+          "hud": {
+            "calls": 67,
+            "totalMs": 88.50000017881393,
+            "meanMs": 1.3208955250569243,
+            "maxMs": 1.9000000357627869
+          },
+          "audio": {
+            "calls": 404,
+            "totalMs": 2.6000001430511475,
+            "meanMs": 0.006435643918443435,
+            "maxMs": 0.5
+          },
+          "input": {
+            "calls": 404,
+            "totalMs": 2.0999999046325684,
+            "meanMs": 0.005198019565922199,
+            "maxMs": 0.19999998807907104
+          },
+          "fog": {
+            "calls": 404,
+            "totalMs": 24.90000009536743,
+            "meanMs": 0.06163366360239463,
+            "maxMs": 1.5
+          },
+          "sprites": {
+            "calls": 404,
+            "totalMs": 144.7999992966652,
+            "meanMs": 0.35841583984323067,
+            "maxMs": 1.300000011920929
+          },
+          "corpses": {
+            "calls": 404,
+            "totalMs": 6.300000071525574,
+            "meanMs": 0.015594059582984094,
+            "maxMs": 0.7000000476837158
+          },
+          "particles": {
+            "calls": 404,
+            "totalMs": 1.4000000357627869,
+            "meanMs": 0.003465346623175215,
+            "maxMs": 0.800000011920929
+          }
+        },
+        "pathfinding": {
+          "calls": 10,
+          "nodes": 1314
+        },
+        "longTasks": {
+          "count": 36,
+          "maxMs": 68
+        },
+        "spikes": [
+          {
+            "frameMs": 66.70000000000437,
+            "workMs": 1.100000023841858,
+            "previousWorkMs": 68.40000003576279,
+            "phases": {
+              "simulation": 1,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 0,
+              "render": 0.10000002384185791,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0,
+              "sprites": 0.10000002384185791,
+              "corpses": 0,
+              "particles": 0
+            },
+            "previousPhases": {
+              "simulation": 67.40000003576279,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 67.30000001192093,
+              "render": 1,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0.09999996423721313,
+              "sprites": 0.19999998807907104,
+              "corpses": 0,
+              "particles": 0
+            },
+            "paths": 0,
+            "nodes": 0
+          },
+          {
+            "frameMs": 50.10000000000582,
+            "workMs": 2.099999964237213,
+            "previousWorkMs": 56,
+            "phases": {
+              "simulation": 0.09999996423721313,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 0,
+              "render": 0.800000011920929,
+              "minimap": 0.09999996423721313,
+              "hud": 1.199999988079071,
+              "audio": 0,
+              "input": 0,
+              "fog": 0,
+              "sprites": 0,
+              "corpses": 0,
+              "particles": 0
+            },
+            "previousPhases": {
+              "simulation": 54.30000001192093,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 54.10000002384186,
+              "render": 1.699999988079071,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0.800000011920929,
+              "sprites": 0.800000011920929,
+              "corpses": 0,
+              "particles": 0
+            },
+            "paths": 0,
+            "nodes": 0
+          },
+          {
+            "frameMs": 50.10000000000582,
+            "workMs": 0.8999999761581421,
+            "previousWorkMs": 56.19999998807907,
+            "phases": {
+              "simulation": 0.10000002384185791,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 0,
+              "render": 0.7999999523162842,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0,
+              "sprites": 0,
+              "corpses": 0,
+              "particles": 0
+            },
+            "previousPhases": {
+              "simulation": 53.39999997615814,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 53.39999997615814,
+              "render": 2.800000011920929,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 1.2000000476837158,
+              "sprites": 0.19999998807907104,
+              "corpses": 0,
+              "particles": 0
+            },
+            "paths": 0,
+            "nodes": 0
+          },
+          {
+            "frameMs": 50.10000000000218,
+            "workMs": 0.8999999761581421,
+            "previousWorkMs": 60.5,
+            "phases": {
+              "simulation": 0.699999988079071,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 0,
+              "render": 0.19999998807907104,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0,
+              "sprites": 0.09999996423721313,
+              "corpses": 0,
+              "particles": 0
+            },
+            "previousPhases": {
+              "simulation": 58.90000003576279,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 58.69999998807907,
+              "render": 1.5999999642372131,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0.19999998807907104,
+              "sprites": 0.5,
+              "corpses": 0.09999996423721313,
+              "particles": 0
+            },
+            "paths": 0,
+            "nodes": 0
+          },
+          {
+            "frameMs": 50.099999999998545,
+            "workMs": 0.7000000476837158,
+            "previousWorkMs": 55.30000001192093,
+            "phases": {
+              "simulation": 0.40000003576278687,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 0,
+              "render": 0.20000004768371582,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0.09999996423721313,
+              "input": 0,
+              "fog": 0,
+              "sprites": 0.20000004768371582,
+              "corpses": 0,
+              "particles": 0
+            },
+            "previousPhases": {
+              "simulation": 53.80000001192093,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 53.60000002384186,
+              "render": 1.5,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0.5999999642372131,
+              "sprites": 0.6000000238418579,
+              "corpses": 0,
+              "particles": 0
+            },
+            "paths": 0,
+            "nodes": 0
+          },
+          {
+            "frameMs": 50.099999999998545,
+            "workMs": 0.5999999642372131,
+            "previousWorkMs": 59.80000001192093,
+            "phases": {
+              "simulation": 0,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 0,
+              "render": 0.5999999642372131,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0,
+              "sprites": 0.09999996423721313,
+              "corpses": 0,
+              "particles": 0
+            },
+            "previousPhases": {
+              "simulation": 58.89999997615814,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 57.80000001192093,
+              "render": 0.9000000357627869,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0.10000002384185791,
+              "sprites": 0,
+              "corpses": 0,
+              "particles": 0
+            },
+            "paths": 0,
+            "nodes": 0
+          },
+          {
+            "frameMs": 50,
+            "workMs": 3.100000023841858,
+            "previousWorkMs": 57.89999997615814,
+            "phases": {
+              "simulation": 0.10000002384185791,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 0,
+              "render": 1.199999988079071,
+              "minimap": 0,
+              "hud": 1.800000011920929,
+              "audio": 0,
+              "input": 0,
+              "fog": 0,
+              "sprites": 1.100000023841858,
+              "corpses": 0,
+              "particles": 0
+            },
+            "previousPhases": {
+              "simulation": 54.89999997615814,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 54.69999998807907,
+              "render": 3,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 1.5,
+              "sprites": 0.5999999642372131,
+              "corpses": 0,
+              "particles": 0
+            },
+            "paths": 0,
+            "nodes": 0
+          },
+          {
+            "frameMs": 50,
+            "workMs": 1.5999999642372131,
+            "previousWorkMs": 56.60000002384186,
+            "phases": {
+              "simulation": 0.699999988079071,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 0,
+              "render": 0.8999999761581421,
+              "minimap": 0.5999999642372131,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0,
+              "sprites": 0.19999998807907104,
+              "corpses": 0,
+              "particles": 0
+            },
+            "previousPhases": {
+              "simulation": 55.10000002384186,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 55,
+              "render": 1.5,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0.09999996423721313,
+              "sprites": 0.5,
+              "corpses": 0,
+              "particles": 0
+            },
+            "paths": 0,
+            "nodes": 0
+          },
+          {
+            "frameMs": 50,
+            "workMs": 1.199999988079071,
+            "previousWorkMs": 57.59999996423721,
+            "phases": {
+              "simulation": 0.30000001192092896,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 0,
+              "render": 0.699999988079071,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0.19999998807907104,
+              "fog": 0,
+              "sprites": 0.699999988079071,
+              "corpses": 0,
+              "particles": 0
+            },
+            "previousPhases": {
+              "simulation": 54.5,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 54.5,
+              "render": 1.699999988079071,
+              "minimap": 0,
+              "hud": 1.399999976158142,
+              "audio": 0,
+              "input": 0,
+              "fog": 0.7999999523162842,
+              "sprites": 0.800000011920929,
+              "corpses": 0,
+              "particles": 0
+            },
+            "paths": 0,
+            "nodes": 0
+          },
+          {
+            "frameMs": 50,
+            "workMs": 0.9000000357627869,
+            "previousWorkMs": 55.19999998807907,
+            "phases": {
+              "simulation": 0.10000002384185791,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 0,
+              "render": 0.800000011920929,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0,
+              "sprites": 0.7000000476837158,
+              "corpses": 0,
+              "particles": 0
+            },
+            "previousPhases": {
+              "simulation": 53.39999997615814,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 53.299999952316284,
+              "render": 1.800000011920929,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0.800000011920929,
+              "sprites": 1,
+              "corpses": 0,
+              "particles": 0
+            },
+            "paths": 0,
+            "nodes": 0
+          },
+          {
+            "frameMs": 50,
+            "workMs": 2.600000023841858,
+            "previousWorkMs": 55.40000003576279,
+            "phases": {
+              "simulation": 0.10000002384185791,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 0,
+              "render": 0.2999999523162842,
+              "minimap": 0,
+              "hud": 1.7000000476837158,
+              "audio": 0.5,
+              "input": 0,
+              "fog": 0,
+              "sprites": 0.19999998807907104,
+              "corpses": 0,
+              "particles": 0
+            },
+            "previousPhases": {
+              "simulation": 53.700000047683716,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 53.39999997615814,
+              "render": 1.699999988079071,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0.5,
+              "sprites": 1,
+              "corpses": 0,
+              "particles": 0
+            },
+            "paths": 0,
+            "nodes": 0
+          },
+          {
+            "frameMs": 50,
+            "workMs": 1.0999999642372131,
+            "previousWorkMs": 56.59999996423721,
+            "phases": {
+              "simulation": 0.09999996423721313,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 0,
+              "render": 1,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0,
+              "sprites": 0.09999996423721313,
+              "corpses": 0,
+              "particles": 0
+            },
+            "previousPhases": {
+              "simulation": 53.89999997615814,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 53.59999996423721,
+              "render": 1.699999988079071,
+              "minimap": 0.09999996423721313,
+              "hud": 1,
+              "audio": 0,
+              "input": 0,
+              "fog": 0.19999998807907104,
+              "sprites": 0.5,
+              "corpses": 0,
+              "particles": 0
+            },
+            "paths": 0,
+            "nodes": 0
+          }
+        ]
+      },
+      "time": 248.00000000002214,
+      "status": "playing",
+      "units": 15,
+      "rush": {
+        "towersOrdered": 1,
+        "blueTowerCredits": 175,
+        "peakTowers": 1,
+        "allTowersReadyAt": 15,
+        "turretHits": 58,
+        "turretDamage": 344,
+        "immediateResponses": 4,
+        "responseLatency": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "initialized": true
+      }
+    },
+    {
+      "label": "after",
+      "map": "medium",
+      "towers": 1,
+      "initialStateHash": "8beefe27e2f513c2fce289afd11169d075f72751a81e72b404d5fdf3d7f8fa62",
+      "catalogHash": "bcb238d270a988ceedd447c92ab51568c41b793bc5a83ff4f6599426d1d61e64",
+      "stats": {
+        "frames": 480,
+        "windowSeconds": 7.999700000000001,
+        "fps": 60.00225008437816,
+        "low1Fps": 59.52380952380308,
+        "frameMs": {
+          "p50": 16.69999999999891,
+          "p95": 16.700000000000728,
+          "p99": 16.80000000000109,
+          "max": 16.80000000000291
+        },
+        "over33": 0,
+        "over50": 0,
+        "over100": 0,
+        "phases": {
+          "simulation": {
+            "calls": 160,
+            "totalMs": 1139.1999994516373,
+            "meanMs": 7.119999996572733,
+            "maxMs": 24.099999964237213
+          },
+          "ai": {
+            "calls": 3,
+            "totalMs": 9.600000083446503,
+            "meanMs": 3.2000000278155007,
+            "maxMs": 3.400000035762787
+          },
+          "pathfinding": {
+            "calls": 265,
+            "totalMs": 469.39999973773956,
+            "meanMs": 1.771320753727319,
+            "maxMs": 4
+          },
+          "vision": {
+            "calls": 40,
+            "totalMs": 618.8000000715256,
+            "meanMs": 15.47000000178814,
+            "maxMs": 18.5
+          },
+          "render": {
+            "calls": 481,
+            "totalMs": 341.3999999165535,
+            "meanMs": 0.7097713095978243,
+            "maxMs": 2.5
+          },
+          "minimap": {
+            "calls": 481,
+            "totalMs": 9.00000011920929,
+            "meanMs": 0.01871101895885507,
+            "maxMs": 0.800000011920929
+          },
+          "hud": {
+            "calls": 70,
+            "totalMs": 91.59999984502792,
+            "meanMs": 1.3085714263575419,
+            "maxMs": 2.199999988079071
+          },
+          "audio": {
+            "calls": 481,
+            "totalMs": 3.299999952316284,
+            "meanMs": 0.006860706761572317,
+            "maxMs": 0.9000000357627869
+          },
+          "input": {
+            "calls": 481,
+            "totalMs": 5.000000238418579,
+            "meanMs": 0.010395010890683117,
+            "maxMs": 0.800000011920929
+          },
+          "fog": {
+            "calls": 481,
+            "totalMs": 21.900000035762787,
+            "meanMs": 0.04553014560449644,
+            "maxMs": 1.300000011920929
+          },
+          "sprites": {
+            "calls": 481,
+            "totalMs": 157.79999947547913,
+            "meanMs": 0.3280665269760481,
+            "maxMs": 1.4000000357627869
+          },
+          "corpses": {
+            "calls": 481,
+            "totalMs": 1.100000023841858,
+            "meanMs": 0.002286902336469559,
+            "maxMs": 0.5999999642372131
+          },
+          "particles": {
+            "calls": 481,
+            "totalMs": 1.399999976158142,
+            "meanMs": 0.0029106028610356386,
+            "maxMs": 0.5999999642372131
+          }
+        },
+        "pathfinding": {
+          "calls": 265,
+          "nodes": 286265
+        },
+        "longTasks": {
+          "count": 0,
+          "maxMs": 0
+        },
+        "spikes": []
+      },
+      "time": 248.00000000002214,
+      "status": "playing",
+      "units": 15,
+      "rush": {
+        "towersOrdered": 1,
+        "blueTowerCredits": 175,
+        "peakTowers": 1,
+        "allTowersReadyAt": 15,
+        "turretHits": 25,
+        "turretDamage": 150,
+        "immediateResponses": 2,
+        "responseLatency": [
+          0,
+          0.8999999999999488
+        ],
+        "initialized": true
+      }
+    },
+    {
+      "label": "after",
+      "map": "large",
+      "towers": 6,
+      "initialStateHash": "b09492e89cea1c35c1bfd16c9186792d60abbd13779fbcc2f0584a13d3054474",
+      "catalogHash": "bcb238d270a988ceedd447c92ab51568c41b793bc5a83ff4f6599426d1d61e64",
+      "stats": {
+        "frames": 479,
+        "windowSeconds": 7.999599999999998,
+        "fps": 59.87799389969499,
+        "low1Fps": 49.701789264411545,
+        "frameMs": {
+          "p50": 16.69999999999891,
+          "p95": 16.799999999999272,
+          "p99": 16.80000000000109,
+          "max": 33.399999999999636
+        },
+        "over33": 1,
+        "over50": 0,
+        "over100": 0,
+        "phases": {
+          "simulation": {
+            "calls": 160,
+            "totalMs": 943.2000004053116,
+            "meanMs": 5.895000002533197,
+            "maxMs": 41.89999997615814
+          },
+          "ai": {
+            "calls": 3,
+            "totalMs": 5.399999976158142,
+            "meanMs": 1.799999992052714,
+            "maxMs": 2
+          },
+          "pathfinding": {
+            "calls": 11,
+            "totalMs": 42.799999952316284,
+            "meanMs": 3.8909090865742075,
+            "maxMs": 13.299999952316284
+          },
+          "vision": {
+            "calls": 40,
+            "totalMs": 868.9999999403954,
+            "meanMs": 21.724999998509883,
+            "maxMs": 23.399999976158142
+          },
+          "render": {
+            "calls": 480,
+            "totalMs": 421.19999957084656,
+            "meanMs": 0.8774999991059304,
+            "maxMs": 2.899999976158142
+          },
+          "minimap": {
+            "calls": 480,
+            "totalMs": 18.09999990463257,
+            "meanMs": 0.03770833313465118,
+            "maxMs": 1
+          },
+          "hud": {
+            "calls": 70,
+            "totalMs": 105.60000002384186,
+            "meanMs": 1.5085714289120264,
+            "maxMs": 2.600000023841858
+          },
+          "audio": {
+            "calls": 480,
+            "totalMs": 4.9999998807907104,
+            "meanMs": 0.01041666641831398,
+            "maxMs": 0.800000011920929
+          },
+          "input": {
+            "calls": 480,
+            "totalMs": 6.0000001192092896,
+            "meanMs": 0.012500000248352686,
+            "maxMs": 1
+          },
+          "fog": {
+            "calls": 480,
+            "totalMs": 25.499999940395355,
+            "meanMs": 0.053124999875823656,
+            "maxMs": 1.7999999523162842
+          },
+          "sprites": {
+            "calls": 480,
+            "totalMs": 160.10000038146973,
+            "meanMs": 0.33354166746139524,
+            "maxMs": 1.2000000476837158
+          },
+          "corpses": {
+            "calls": 480,
+            "totalMs": 73.00000023841858,
+            "meanMs": 0.15208333383003872,
+            "maxMs": 1.100000023841858
+          },
+          "particles": {
+            "calls": 480,
+            "totalMs": 0.09999996423721313,
+            "meanMs": 0.00020833325882752736,
+            "maxMs": 0.09999996423721313
+          }
+        },
+        "pathfinding": {
+          "calls": 11,
+          "nodes": 28277
+        },
+        "longTasks": {
+          "count": 0,
+          "maxMs": 0
+        },
+        "spikes": [
+          {
+            "frameMs": 33.399999999999636,
+            "workMs": 2.100000023841858,
+            "previousWorkMs": 44,
+            "phases": {
+              "simulation": 0,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 0,
+              "render": 0.8999999761581421,
+              "minimap": 0,
+              "hud": 0.6000000238418579,
+              "audio": 0.6000000238418579,
+              "input": 0,
+              "fog": 0,
+              "sprites": 0.5999999642372131,
+              "corpses": 0.10000002384185791,
+              "particles": 0
+            },
+            "previousPhases": {
+              "simulation": 41.89999997615814,
+              "ai": 0,
+              "pathfinding": 19.899999976158142,
+              "vision": 22,
+              "render": 2.100000023841858,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0.5,
+              "sprites": 0.10000002384185791,
+              "corpses": 0.5999999642372131,
+              "particles": 0
+            },
+            "paths": 0,
+            "nodes": 0
+          }
+        ]
+      },
+      "time": 248.00000000002214,
+      "status": "playing",
+      "units": 13,
+      "rush": {
+        "towersOrdered": 6,
+        "blueTowerCredits": 1050,
+        "peakTowers": 6,
+        "allTowersReadyAt": 78,
+        "turretHits": 79,
+        "turretDamage": 470,
+        "immediateResponses": 4,
+        "responseLatency": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "initialized": true
+      }
+    }
+  ],
+  "errors": []
+}

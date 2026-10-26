@@ -1,0 +1,384 @@
+{
+  "baseCommit": "c9b87e2",
+  "aiCommit": "e54248b",
+  "complete": true,
+  "allInitialWorldsEqual": true,
+  "blindSeeds": [
+    74077,
+    98251
+  ],
+  "summary": {
+    "before": {
+      "wins": 14,
+      "losses": 2,
+      "timeouts": 2,
+      "ownLosses": 100,
+      "enemyLosses": 203,
+      "captures": 99,
+      "hqSeen": 17,
+      "hqDestroyed": 14
+    },
+    "after": {
+      "wins": 16,
+      "losses": 1,
+      "timeouts": 1,
+      "ownLosses": 90,
+      "enemyLosses": 248,
+      "captures": 103,
+      "hqSeen": 17,
+      "hqDestroyed": 16
+    }
+  },
+  "byProfile": {
+    "tower1": {
+      "before": [
+        {
+          "map": 3,
+          "seed": 74077,
+          "outcome": "win",
+          "seconds": 262.9,
+          "ownLosses": 3,
+          "strategyRealized": true
+        },
+        {
+          "map": 5,
+          "seed": 98251,
+          "outcome": "win",
+          "seconds": 323.05,
+          "ownLosses": 0,
+          "strategyRealized": true
+        }
+      ],
+      "after": [
+        {
+          "map": 3,
+          "seed": 74077,
+          "outcome": "win",
+          "seconds": 288.8,
+          "ownLosses": 4,
+          "strategyRealized": true
+        },
+        {
+          "map": 5,
+          "seed": 98251,
+          "outcome": "win",
+          "seconds": 335.5,
+          "ownLosses": 2,
+          "strategyRealized": true
+        }
+      ]
+    },
+    "tower3": {
+      "before": [
+        {
+          "map": 3,
+          "seed": 74077,
+          "outcome": "win",
+          "seconds": 559.7,
+          "ownLosses": 9,
+          "strategyRealized": true
+        },
+        {
+          "map": 5,
+          "seed": 98251,
+          "outcome": "win",
+          "seconds": 554.05,
+          "ownLosses": 11,
+          "strategyRealized": true
+        }
+      ],
+      "after": [
+        {
+          "map": 3,
+          "seed": 74077,
+          "outcome": "win",
+          "seconds": 554.2,
+          "ownLosses": 5,
+          "strategyRealized": true
+        },
+        {
+          "map": 5,
+          "seed": 98251,
+          "outcome": "win",
+          "seconds": 495.4,
+          "ownLosses": 1,
+          "strategyRealized": true
+        }
+      ]
+    },
+    "tower6": {
+      "before": [
+        {
+          "map": 3,
+          "seed": 74077,
+          "outcome": "timeout",
+          "seconds": 900,
+          "ownLosses": 3,
+          "strategyRealized": true
+        },
+        {
+          "map": 5,
+          "seed": 98251,
+          "outcome": "win",
+          "seconds": 422.55,
+          "ownLosses": 4,
+          "strategyRealized": true
+        }
+      ],
+      "after": [
+        {
+          "map": 3,
+          "seed": 74077,
+          "outcome": "win",
+          "seconds": 570.3,
+          "ownLosses": 3,
+          "strategyRealized": true
+        },
+        {
+          "map": 5,
+          "seed": 98251,
+          "outcome": "win",
+          "seconds": 394.45,
+          "ownLosses": 1,
+          "strategyRealized": true
+        }
+      ]
+    },
+    "infantry": {
+      "before": [
+        {
+          "map": 3,
+          "seed": 74077,
+          "outcome": "loss",
+          "seconds": 154.25,
+          "ownLosses": 8,
+          "strategyRealized": true
+        },
+        {
+          "map": 5,
+          "seed": 98251,
+          "outcome": "loss",
+          "seconds": 458.65,
+          "ownLosses": 19,
+          "strategyRealized": true
+        }
+      ],
+      "after": [
+        {
+          "map": 3,
+          "seed": 74077,
+          "outcome": "loss",
+          "seconds": 220.5,
+          "ownLosses": 7,
+          "strategyRealized": true
+        },
+        {
+          "map": 5,
+          "seed": 98251,
+          "outcome": "win",
+          "seconds": 454.25,
+          "ownLosses": 8,
+          "strategyRealized": true
+        }
+      ]
+    },
+    "armor": {
+      "before": [
+        {
+          "map": 3,
+          "seed": 74077,
+          "outcome": "win",
+          "seconds": 289.4,
+          "ownLosses": 0,
+          "strategyRealized": false
+        },
+        {
+          "map": 5,
+          "seed": 98251,
+          "outcome": "win",
+          "seconds": 418.5,
+          "ownLosses": 7,
+          "strategyRealized": true
+        }
+      ],
+      "after": [
+        {
+          "map": 3,
+          "seed": 74077,
+          "outcome": "win",
+          "seconds": 212.95,
+          "ownLosses": 0,
+          "strategyRealized": false
+        },
+        {
+          "map": 5,
+          "seed": 98251,
+          "outcome": "win",
+          "seconds": 421.5,
+          "ownLosses": 7,
+          "strategyRealized": true
+        }
+      ]
+    },
+    "expansion": {
+      "before": [
+        {
+          "map": 3,
+          "seed": 74077,
+          "outcome": "win",
+          "seconds": 592.8,
+          "ownLosses": 10,
+          "strategyRealized": true
+        },
+        {
+          "map": 5,
+          "seed": 98251,
+          "outcome": "win",
+          "seconds": 294.95,
+          "ownLosses": 2,
+          "strategyRealized": true
+        }
+      ],
+      "after": [
+        {
+          "map": 3,
+          "seed": 74077,
+          "outcome": "win",
+          "seconds": 408.4,
+          "ownLosses": 5,
+          "strategyRealized": true
+        },
+        {
+          "map": 5,
+          "seed": 98251,
+          "outcome": "win",
+          "seconds": 303.8,
+          "ownLosses": 1,
+          "strategyRealized": true
+        }
+      ]
+    },
+    "fortress": {
+      "before": [
+        {
+          "map": 3,
+          "seed": 74077,
+          "outcome": "win",
+          "seconds": 578.2,
+          "ownLosses": 5,
+          "strategyRealized": true
+        },
+        {
+          "map": 5,
+          "seed": 98251,
+          "outcome": "win",
+          "seconds": 552.85,
+          "ownLosses": 3,
+          "strategyRealized": true
+        }
+      ],
+      "after": [
+        {
+          "map": 3,
+          "seed": 74077,
+          "outcome": "win",
+          "seconds": 561.05,
+          "ownLosses": 4,
+          "strategyRealized": true
+        },
+        {
+          "map": 5,
+          "seed": 98251,
+          "outcome": "timeout",
+          "seconds": 900,
+          "ownLosses": 28,
+          "strategyRealized": true
+        }
+      ]
+    },
+    "combined": {
+      "before": [
+        {
+          "map": 3,
+          "seed": 74077,
+          "outcome": "win",
+          "seconds": 102.85,
+          "ownLosses": 0,
+          "strategyRealized": false
+        },
+        {
+          "map": 5,
+          "seed": 98251,
+          "outcome": "win",
+          "seconds": 299.15,
+          "ownLosses": 3,
+          "strategyRealized": true
+        }
+      ],
+      "after": [
+        {
+          "map": 3,
+          "seed": 74077,
+          "outcome": "win",
+          "seconds": 102.95,
+          "ownLosses": 0,
+          "strategyRealized": false
+        },
+        {
+          "map": 5,
+          "seed": 98251,
+          "outcome": "win",
+          "seconds": 299.15,
+          "ownLosses": 3,
+          "strategyRealized": true
+        }
+      ]
+    },
+    "attrition": {
+      "before": [
+        {
+          "map": 3,
+          "seed": 74077,
+          "outcome": "win",
+          "seconds": 381.8,
+          "ownLosses": 6,
+          "strategyRealized": true
+        },
+        {
+          "map": 5,
+          "seed": 98251,
+          "outcome": "timeout",
+          "seconds": 900,
+          "ownLosses": 7,
+          "strategyRealized": true
+        }
+      ],
+      "after": [
+        {
+          "map": 3,
+          "seed": 74077,
+          "outcome": "win",
+          "seconds": 323.8,
+          "ownLosses": 5,
+          "strategyRealized": true
+        },
+        {
+          "map": 5,
+          "seed": 98251,
+          "outcome": "win",
+          "seconds": 875.65,
+          "ownLosses": 6,
+          "strategyRealized": true
+        }
+      ]
+    }
+  },
+  "visionPerformanceCommit": "ccabb82",
+  "note": "Gameplay A/B frozen at e54248b before pure visibility optimization. Exact original-ray and save parity verified; final Chromium results include ccabb82.",
+  "finalTests": {
+    "nodePassed": 643,
+    "nodeFailed": 0,
+    "browserPassed": 13,
+    "browserFailed": 0
+  }
+}
