@@ -56,13 +56,13 @@ export function paintCrater(c:CanvasRenderingContext2D,p:Point,radius:number,rot
 /** Static decoration is baked into the existing native-resolution terrain canvas once per map. */
 export function paintGroundDetails(c:CanvasRenderingContext2D,details:readonly GroundDetail[],sprites:GroundSprites):void {
   for(const d of details){
-    if(d.kind==='crater'){paintCrater(c,d,d.radius,d.rotation,.89,sprites.crater);continue;}
+    if(d.kind==='crater'){paintCrater(c,d,d.radius,d.rotation,1,sprites.crater);continue;}
     if(d.kind==='palm'){
       const w=d.radius*3.55,h=d.radius*3.5;
       c.save();c.translate(d.x,d.y);c.rotate(Math.sin(d.rotation)*.07);
       c.globalAlpha=.96;
       // Sprite trunk-foot (83% of image height) is anchored to the ground point.
-      c.drawImage(sprites.palm,-w*.5,-h*.83,w,h);
+      c.drawImage(sprites.palm,-w*.5,-h*.58,w,h);
       c.restore();
       continue;
     }
@@ -136,7 +136,7 @@ export class BattlefieldEffects {
   drawMarks(c:CanvasRenderingContext2D,game:Simulation):void {
     if(!this.craterSprite)return;
     for(const m of this.marks)if(game.hasExplored(0,m))
-      paintCrater(c,m,m.radius,m.rotation,.94,this.craterSprite);
+      paintCrater(c,m,m.radius,m.rotation,1,this.craterSprite);
   }
 
   drawSmoke(c:CanvasRenderingContext2D,game:Simulation,reducedMotion:boolean):void {

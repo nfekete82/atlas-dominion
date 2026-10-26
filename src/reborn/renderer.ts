@@ -61,7 +61,7 @@ export class Renderer {
   async load():Promise<void>{
     this.terrain=new Image();this.terrain.src=ASSETS.terrain;
     this.sand.src='/src/assets/reborn/sand-ripples-v2.png';this.sandstone.src='/src/assets/reborn/sandstone-strata-v1.png';
-    for(const [kind,image] of Object.entries(this.groundSprites))image.src='/src/assets/reborn/battlefield/'+kind+'.svg';
+    for(const [kind,image] of Object.entries(this.groundSprites))image.src='/src/assets/reborn/battlefield/'+kind+'.png';
     const [cliffs]=await Promise.all([this.sprite(ASSETS.cliffs),this.terrain.decode(),this.units.load(),this.structures.load(),this.sand.decode(),this.sandstone.decode(),...Object.values(this.groundSprites).map(image=>image.decode())]);
     const infantry=this.units.asset('infantry'),frame=infantry.data.frames[0];
     this.infantry={image:infantry.image,x:frame.x,y:frame.y,w:frame.w,h:frame.h};
@@ -76,7 +76,7 @@ export class Renderer {
     }));
     const rasterize=(image:HTMLImageElement):HTMLCanvasElement=>{
       const sprite=document.createElement('canvas');
-      sprite.width=(image.naturalWidth||420)*2;sprite.height=(image.naturalHeight||320)*2;
+      sprite.width=Math.min(image.naturalWidth||420,768);sprite.height=Math.round(sprite.width*(image.naturalHeight||320)/(image.naturalWidth||420));
       sprite.getContext('2d')!.drawImage(image,0,0,sprite.width,sprite.height);
       return sprite;
     };
