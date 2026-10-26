@@ -8,7 +8,6 @@ export function applyFieldFinish(model,kind){
  const ctx=canvas.getContext('2d'),image=ctx.createImageData(size,size);
  let seed=kind==='headquarters'?0x71ab2c13:0x5a3d791b;
  const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
- const flecks=[];
  for(let y=0;y<size;y++)for(let x=0;x<size;x++){
   const i=(y*size+x)*4;
   // Fine-grain sandblasted finish, occasional long directional wear.
