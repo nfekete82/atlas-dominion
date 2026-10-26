@@ -230,3 +230,18 @@ dialog>small,dialog form>small,.panel-heading,.help-grid h2 {color:#d8b983;}
 @media(prefers-reduced-motion:reduce){
   button {transition:none;}
 }
+
+/* Context menus and tactical pause also belong to the same field equipment. */
+#sidebar {background:#1e201b;scrollbar-color:#806c49 #1e201b;}
+#build-menu {background:#282920f5;border:1px solid #b59661;box-shadow:0 7px 16px #0008;}
+#build-menu button {background:#3b382d;border:1px solid #796747;color:#e9d9b9;border-radius:0;}
+#build-menu button:hover:not(:disabled) {background:#6b5332;border-color:#d1af73;}
+#building-commands button {background:#302e25;border:1px solid #7d6a47;color:#e8d3ad;border-radius:0;}
+#building-commands #context-cancel {color:#d69d7e;}
+#map-size {background:#292a22;border-color:#ae9060;color:#f2debb;border-radius:0;}
+#pause-label {background:radial-gradient(ellipse at center,#373023a6,#16160fed);color:#f7dfb5;}
+#pause-label .pause-kicker {color:#d7b57a;}
+#pause-label small {color:#e5d3b6;}
+#pause-label kbd {border:1px solid #aa8851;border-radius:0;background:#3a3527;color:#f6dfb6;}
+#resume-tactical {background:#77603b;border:1px solid #d7b375;color:#ffebc5;border-radius:0;}
+#resume-tactical:hover {background:#947647;border-color:#efc786;}
