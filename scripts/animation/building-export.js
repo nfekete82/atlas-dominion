@@ -13,6 +13,7 @@ async function layer(prefix,label,canvases,period){const boxes=canvases.map(c=>b
 window.exportBuildings=async(requested)=>{
  for(const kind of Object.keys(buildingNames).filter(k=>!requested.length||requested.includes(k)))for(const team of kind==='bastion'?[0,1,-1]:[0,1]){
   const {model,clips,dish,beacon,sweep,turret}=kind==='headquarters'?await loadRefinedHeadquarters(team):kind==='bastion'?await loadRefinedBastion(team):buildAtlasBuilding(kind,team),prefix=kind+'-'+team;
+  applyFieldFinish(model,kind);
   const glb=await new GLTFExporter().parseAsync(model,{binary:true,animations:clips,onlyVisible:true,maxTextureSize:kind==='turret'?512:256});await window.saveBuilding(prefix+'.glb',Array.from(new Uint8Array(glb)));
   const turn=new T.Group();turn.rotation.y=Math.PI/4;turn.add(model);scene.add(turn);if(dish)dish.visible=false;if(beacon)beacon.visible=false;if(sweep)sweep.visible=false;if(turret)turret.visible=false;floor.visible=true;
   const body=snapshot();let solidBounds=bounds(body);await window.saveBuilding(prefix+'.png',body.toDataURL('image/png'));
