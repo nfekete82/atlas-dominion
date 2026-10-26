@@ -16,7 +16,8 @@ export function createDesertInfrastructure(world:World,sites:readonly Point[]):D
   const props:RoadsideProp[]=[];
   const clear=(p:Point)=>{const id=world.index(p);return id>=0&&!world.blocked[id];};
   for(const [a,b] of links){
-    if(random()>.59)continue;
+    // Sparse campaigns have only a handful of links: keep enough roads to read as a network.
+    if(links.length>8&&random()>.59)continue;
     const length=Math.hypot(b.x-a.x,b.y-a.y);
     if(length<120||length>world.size*.36)continue;
     const bend=(random()-.5)*Math.min(42,length*.10);
