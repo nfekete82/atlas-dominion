@@ -3,6 +3,7 @@ import type { Simulation } from './simulation.js';
 import { unitSpec } from './catalog.js';
 import type { World } from './world.js';
 import { seededRandom } from './world-generation.js';
+import { terrainVariantIndex } from './terrain-variants.js';
 
 export type GroundDetailKind = 'stones' | 'rock' | 'palm' | 'crater';
 export interface GroundDetail extends Point {
@@ -36,10 +37,16 @@ export function createGroundDetails(world: World, importantSites: readonly Point
 }
 
 /** Art-directed vector sprites: detailed surfaces are rendered by the browser, not approximated with primitive polygons. */
+export type GroundSpriteVariant=CanvasImageSource|readonly CanvasImageSource[];
 export interface GroundSprites {
-  crater: CanvasImageSource;
-  palm: CanvasImageSource;
-  rocks: CanvasImageSource;
+  crater: GroundSpriteVariant;
+  palm: GroundSpriteVariant;
+  rocks: GroundSpriteVariant;
+}
+/** Selection is stable for each terrain seed; works with both old and variant atlases. */
+export function groundSprite(source:GroundSpriteVariant,variant:number):CanvasImageSource {
+  if(!Array.isArray(source))return source as CanvasImageSource;
+  return source[terrainVariantIndex(variant)]??source[0];
 }
 
 /** Rims and cavities have separately lit textures; irregular sprite edge merges with the sand. */
@@ -56,20 +63,20 @@ export function paintCrater(c:CanvasRenderingContext2D,p:Point,radius:number,rot
 /** Static decoration is baked into the existing native-resolution terrain canvas once per map. */
 export function paintGroundDetails(c:CanvasRenderingContext2D,details:readonly GroundDetail[],sprites:GroundSprites):void {
   for(const d of details){
-    if(d.kind==='crater'){paintCrater(c,d,d.radius,d.rotation,1,sprites.crater);continue;}
+    if(d.kind==='crater'){paintCrater(c,d,d.radius,d.rotation,1,groundSprite(sprites.crater,d.variant));continue;}
     if(d.kind==='palm'){
       const w=d.radius*3.55,h=d.radius*3.5;
       c.save();c.translate(d.x,d.y);c.rotate(Math.sin(d.rotation)*.07);
       c.globalAlpha=.96;
       // Sprite trunk-foot (83% of image height) is anchored to the ground point.
-      c.drawImage(sprites.palm,-w*.5,-h*.58,w,h);
+      c.drawImage(groundSprite(sprites.palm,d.variant),-w*.5,-h*.58,w,h);
       c.restore();
       continue;
     }
     const w=d.radius*(d.kind==='rock'?3.7:2.3),h=d.radius*(d.kind==='rock'?2.4:1.55);
     c.save();c.translate(d.x,d.y);c.rotate(Math.sin(d.rotation)*.11);
     c.globalAlpha=d.kind==='rock'?.94:.75;
-    c.drawImage(sprites.rocks,-w*.5,-h*.6,w,h);
+    c.drawImage(groundSprite(sprites.rocks,d.variant),-w*.5,-h*.6,w,h);
     c.restore();
   }
 }
@@ -86,8 +93,8 @@ export class BattlefieldEffects {
   private units=new Map<number,PreviousUnit>();
   private bases=new Map<number,PreviousBase>();
   private hits=0;
-  private craterSprite:CanvasImageSource|null=null;
-  setCraterSprite(image:CanvasImageSource):void{this.craterSprite=image;}
+  private craterSprite:GroundSpriteVariant|null=null;
+  setCraterSprite(image:GroundSpriteVariant):void{this.craterSprite=image;}
   get markCount():number{return this.marks.length;}
   get smokeCount():number{return this.clouds.length;}
 
@@ -136,7 +143,7 @@ export class BattlefieldEffects {
   drawMarks(c:CanvasRenderingContext2D,game:Simulation):void {
     if(!this.craterSprite)return;
     for(const m of this.marks)if(game.hasExplored(0,m))
-      paintCrater(c,m,m.radius,m.rotation,1,this.craterSprite);
+      paintCrater(c,m,m.radius,m.rotation,1,groundSprite(this.craterSprite,m.rotation/(Math.PI*2)));
   }
 
   drawSmoke(c:CanvasRenderingContext2D,game:Simulation,reducedMotion:boolean):void {
