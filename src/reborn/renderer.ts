@@ -10,6 +10,7 @@ import { TERRAIN_FRAMES, TERRAIN_PLACEMENTS } from './terrain-art.js';
 import { paintGeneratedTerrain } from './terrain-presentation.js';
 import { BattlefieldEffects, createGroundDetails, paintGroundDetails } from './battlefield-atmosphere.js';
 import { buildTerrainVariants, type TerrainVariantAtlases } from './terrain-variants.js';
+import {createDesertInfrastructure,paintDesertInfrastructure} from './desert-infrastructure.js';
 
 interface Sprite { image:HTMLImageElement|HTMLCanvasElement; x:number; y:number; w:number; h:number; center?:number; foot?:number; bodyWidth?:number; bodyHeight?:number }
 export class Renderer {
@@ -82,6 +83,7 @@ export class Renderer {
   private prepareMap():void {
     this.prepareTerrain();
     const sites=[...this.game.territories.map(t=>t.point),...this.game.bases.filter(b=>b.kind==='headquarters')];
+    paintDesertInfrastructure(this.terrainSurface.getContext('2d')!,createDesertInfrastructure(this.game.world,sites));
     paintGroundDetails(this.terrainSurface.getContext('2d')!,createGroundDetails(this.game.world,sites),this.groundTextures);
     const mini=this.miniTerrain.getContext('2d',{willReadFrequently:true})!;mini.drawImage(this.terrainSurface,0,0,224,224);mini.save();mini.scale(224/this.game.world.size,224/this.game.world.size);this.paintCliffs(mini);mini.restore();
   }
@@ -277,6 +279,7 @@ export class Renderer {
     c.drawImage(this.terrainSurface,0,0);
     this.paintSandWind(g.time);
     this.paintCliffs(c);
+    this.battlefield.drawTracks(c,g);
     this.battlefield.drawMarks(c,g);
     for(const t of g.territories){
       if(t.owner>=0){this.polygon(t.polygon);c.fillStyle=t.owner===0?'#53b4ee0b':'#e257490b';c.fill();}
@@ -305,7 +308,7 @@ export class Renderer {
     }
     this.drawRockets();
     this.drawWork();
-    const particlesAt=profiler?performance.now():0;this.units.particles.draw(c,p=>g.canSee(0,p));this.battlefield.drawSmoke(c,g,this.reducedMotion);if(profiler)profiler.record('particles',performance.now()-particlesAt);
+    const particlesAt=profiler?performance.now():0;this.units.particles.draw(c,p=>g.canSee(0,p));this.battlefield.drawExplosions(c,g,this.reducedMotion);this.battlefield.drawSmoke(c,g,this.reducedMotion);if(profiler)profiler.record('particles',performance.now()-particlesAt);
     if(this.marker){this.marker.life-=dt;if(this.marker.life<=0)this.marker=null;else{
       const p=this.marker.point,r=12+(1-this.marker.life)*13;c.strokeStyle=this.marker.attack?'#ed8a78':'#9ad9f5';c.lineWidth=1.5/this.camera.zoom;c.globalAlpha=Math.min(1,this.marker.life*2);
       c.beginPath();c.ellipse(p.x,p.y,r,r*.55,0,0,Math.PI*2);c.stroke();c.beginPath();c.moveTo(p.x-6,p.y);c.lineTo(p.x+6,p.y);c.moveTo(p.x,p.y-4);c.lineTo(p.x,p.y+4);c.stroke();c.globalAlpha=1;}}
