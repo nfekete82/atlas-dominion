@@ -16,6 +16,7 @@ export class Renderer {
   readonly structures=new BuildingPresentation();
   readonly battlefield=new BattlefieldEffects();
   private readonly groundSprites={crater:new Image(),palm:new Image(),rocks:new Image()};
+  private groundTextures!: {crater:HTMLCanvasElement;palm:HTMLCanvasElement;rocks:HTMLCanvasElement};
   private animationGame:Simulation|null=null;private seenImpacts=new WeakSet<object>();private effectTime=0;private workEmitted=new Map<string,number>();private rocketTrails=new Map<number,number>();
   readonly context:CanvasRenderingContext2D;
   readonly mini:CanvasRenderingContext2D;
@@ -73,13 +74,20 @@ export class Renderer {
       ctx.drawImage(sprite.image,sprite.x,sprite.y,sprite.w,sprite.h,0,0,c.width,c.height);ctx.globalCompositeOperation='source-in';ctx.fillStyle='#191713';ctx.fillRect(0,0,c.width,c.height);
       const image=new Image();image.src=c.toDataURL();await image.decode();this.shadows.set(sprite,{image,x:0,y:0,w:c.width,h:c.height});
     }));
-    this.battlefield.setCraterSprite(this.groundSprites.crater);
+    const rasterize=(image:HTMLImageElement):HTMLCanvasElement=>{
+      const sprite=document.createElement('canvas');
+      sprite.width=(image.naturalWidth||420)*2;sprite.height=(image.naturalHeight||320)*2;
+      sprite.getContext('2d')!.drawImage(image,0,0,sprite.width,sprite.height);
+      return sprite;
+    };
+    this.groundTextures={crater:rasterize(this.groundSprites.crater),palm:rasterize(this.groundSprites.palm),rocks:rasterize(this.groundSprites.rocks)};
+    this.battlefield.setCraterSprite(this.groundTextures.crater);
     this.prepareMap();this.battlefield.reset(this.game);this.home();
   }
   private prepareMap():void {
     this.prepareTerrain();
     const sites=[...this.game.territories.map(t=>t.point),...this.game.bases.filter(b=>b.kind==='headquarters')];
-    paintGroundDetails(this.terrainSurface.getContext('2d')!,createGroundDetails(this.game.world,sites),this.groundSprites);
+    paintGroundDetails(this.terrainSurface.getContext('2d')!,createGroundDetails(this.game.world,sites),this.groundTextures);
     const mini=this.miniTerrain.getContext('2d',{willReadFrequently:true})!;mini.drawImage(this.terrainSurface,0,0,224,224);mini.save();mini.scale(224/this.game.world.size,224/this.game.world.size);this.paintCliffs(mini);mini.restore();
   }
   private prepareTerrain():void{
