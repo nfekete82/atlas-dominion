@@ -60,4 +60,6 @@ jobs:
             exit 0
           fi
           git commit -m "assets(reborn): 192px vehicle and aircraft atlases from 3D sources"
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
