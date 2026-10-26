@@ -58,7 +58,7 @@ function prepareCatalog():void{
   const grid=document.createElement('div');grid.className='catalog-grid';category.append(grid);el('catalog-units').append(category);
   for(const kind of unitKinds.filter(k=>UNITS[k].producers.includes(building))){
    const spec=UNITS[kind],button=document.createElement('button');button.className='catalog-card';button.dataset.unit=kind;button.setAttribute('aria-label',`${spec.name} ausbilden · ${spec.cost} Credits`);
-   button.innerHTML=`<img src="${renderer.icon('unit',kind)}" alt=""/><span class="card-name" aria-hidden="true"></span><span class="card-cost"><i>◆</i>${spec.cost.toLocaleString('de-DE')}</span>`;button.querySelector<HTMLElement>('.card-name')!.textContent=spec.name;button.title=spec.name;
+   button.innerHTML=`<img src="${renderer.icon('unit',kind)}" alt=""/><span class="card-meta" aria-hidden="true"><span class="card-name"></span><span class="card-cost">${spec.cost.toLocaleString('de-DE')}</span></span>`;button.querySelector<HTMLElement>('.card-name')!.textContent=spec.name;button.title=spec.name;
    button.onclick=()=>train(kind);button.onpointerenter=()=>{setText('catalog-detail',`${spec.name} · ${spec.buildTime} S — ${spec.description}`);};grid.append(button);
   }
  }
