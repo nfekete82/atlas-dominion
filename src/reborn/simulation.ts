@@ -44,6 +44,7 @@ export interface Base extends Point {
 export interface Shot { from:Point; to:Point; owner:Faction; life:number; hit:boolean; projected?:boolean; source?:number; weapon?:Weapon; barrel?:number; at?:number; groundFrom?:Point; groundTo?:Point; armored?:boolean; kind?:UnitKind; angle?:number;flightHeight?:number }
 export interface Missile {id:number;source:number;owner:Faction;from:Point;to:Point;angle:number;at:number;impactAt:number;damage:number}
 export interface Blast extends Point {at:number;id:number}
+export type CaptureReadiness='owned'|'no-unit'|'out-of-range'|'contested'|'enemy-hq'|'disconnected'|'capturing';
 export interface Memory extends Point { id:number; owner:Faction; hp:number; territory:number; kind?:BuildingKind }
 export interface Save {
   version:2; productionVersion?:1; supportVersion?:1;rosterVersion?:2;missiles?:Missile[]; seed:number; mapVersion?:MapVersion; time:number; nextId:number; credits:number[]; incomeClock:number;
@@ -198,6 +199,11 @@ export class Simulation {
           offset={x:-heading.x*rear-heading.y*lane,y:-heading.y*rear+heading.x*lane};
         }else{const index=members.filter(v=>v.kind!=='medic').indexOf(u),columns=Math.ceil(Math.sqrt(members.length-medics.length)),lane=(index%columns-(columns-1)/2)*29,depth=-Math.floor(index/columns)*29;offset={x:heading.x*depth-heading.y*lane,y:heading.y*depth+heading.x*lane};}
       }
+      // Bastion right-clicks are capture orders: even a 48-unit formation must
+      // stop INSIDE the capture circle, not in decorative slots beyond it.
+      const captureSite=this.territories.some(t=>distance(t.point,order)<1);
+      if(captureSite){const length=Math.hypot(offset.x,offset.y),limit=RULES.captureRadius-30;
+        if(length>limit){offset={x:offset.x*limit/length,y:offset.y*limit/length};}}
       const spec=unitSpec(u),p={x:order.x+offset.x,y:order.y+offset.y};
       const target=spec.flying?{x:clamp(p.x,8,this.world.size-8),y:clamp(p.y,8,this.world.size-8)}:this.world.nearest(p,this.obstacles(),[],u,Math.max(0,spec.radius-10));if(!target)return;
       const next:Order={...order,...target,...(mixed&&u.kind!=='medic'?{march:front.map(v=>v.id)}:{}),...(formation?{formation,kind:order.kind==='attack'?'attackMove':order.kind,target:undefined}:{})};u.hold=false;u.supportPaused=false;u.workingTarget=null;
@@ -206,6 +212,19 @@ export class Simulation {
       if(u.transport&&u.transport.phase!=='cruise'){u.transport.resume=structuredClone(u.orders);u.orders=[];}
       accepted++;
     });return accepted;
+  }
+  /** Explain capture gating without altering the fixed-tick capture rules. The
+   * same centre, radius, adjacency and enemy-HQ conditions govern ownership. */
+  captureReadiness(t:Territory,owner:Faction=0):CaptureReadiness {
+    if(t.owner===owner)return 'owned';
+    const friendly=this.units.filter(u=>u.owner===owner&&u.hp>0&&!u.carrier);
+    if(!friendly.length)return 'no-unit';
+    const inside=friendly.some(u=>distance(u,t.point)<=RULES.captureRadius);
+    if(!inside)return friendly.some(u=>distance(u,t.point)<=RULES.captureRadius+120)?'out-of-range':'no-unit';
+    if(this.units.some(u=>u.owner!==owner&&u.hp>0&&!u.carrier&&distance(u,t.point)<=RULES.captureRadius))return 'contested';
+    if(this.bases.some(b=>b.kind==='headquarters'&&b.territory===t.id&&b.owner!==owner&&b.hp>0))return 'enemy-hq';
+    if(!t.neighbors.some(i=>this.territories[i].owner===owner))return 'disconnected';
+    return 'capturing';
   }
   stop(ids:number[],hold=false):void {for(const u of this.units)if(ids.includes(u.id)){this.transports.cancel(u);u.orders=[];u.path=[];u.repath=0;u.moving=false;u.pursuitOrigin=null;u.combatTarget=null;u.hold=hold;u.supportPaused=false;u.workingTarget=null;delete u.burst;}}
   private supportEligible(u:Unit,target:Unit|Base,kind:string):boolean {
