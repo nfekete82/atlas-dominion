@@ -14,6 +14,47 @@ const renderer=new T.WebGLRenderer({alpha:true,antialias:true,preserveDrawingBuf
 const scene=new T.Scene(),camera=new T.OrthographicCamera(-1.8,1.8,1.8,-1.8,.01,100);camera.position.set(0,8,12);camera.lookAt(0,0,0);
 scene.add(new T.HemisphereLight('#c8dfff','#65482b',1.55));const sun=new T.DirectionalLight('#ffe4be',3.2);sun.position.set(-6,10,6);sun.castShadow=true;sun.shadow.mapSize.set(cell>=192?2048:1024,cell>=192?2048:1024);sun.shadow.camera.left=-4;sun.shadow.camera.right=4;sun.shadow.camera.top=4;sun.shadow.camera.bottom=-4;sun.shadow.normalBias=.015;scene.add(sun);scene.add(sun.target);const fill=new T.DirectionalLight('#8ab9df',.65);fill.position.set(5,4,-5);scene.add(fill);
 const floor=new T.Mesh(new T.PlaneGeometry(30,30),new T.ShadowMaterial({color:'#292017',opacity:.25}));floor.rotation.x=-Math.PI/2;floor.position.y=-.02;floor.receiveShadow=true;scene.add(floor);
+
+/* Subtle deterministic sandblasted metal texture applied only to offline HD
+   vehicle rendering. Keep team enamel, optics and emissive markers untouched. */
+function makeMicroRelief(){
+ const canvas=document.createElement('canvas');canvas.width=canvas.height=128;
+ const c=canvas.getContext('2d'),image=c.createImageData(128,128);
+ let seed=0x5ad31f29;
+ const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+ for(let y=0;y<128;y++)for(let x=0;x<128;x++){
+  const i=(y*128+x)*4,grain=(random()-.5)*78,band=Math.sin((x+y)*.19)*8;
+  const v=Math.max(15,Math.min(240,154+grain+band));
+  image.data[i]=image.data[i+1]=image.data[i+2]=v;
+  image.data[i+3]=255;
+ }
+ c.putImageData(image,0,0);
+ const texture=new T.CanvasTexture(canvas);
+ texture.wrapS=texture.wrapT=T.RepeatWrapping;
+ texture.repeat.set(2,2);
+ texture.colorSpace=T.NoColorSpace;
+ texture.anisotropy=4;
+ return texture;
+}
+const microRelief=cell>=192?makeMicroRelief():null;
+function weatherVehicleMaterials(model){
+ if(!microRelief)return;
+ const seen=new Set();
+ model.traverse(node=>{
+  if(!node.isMesh)return;
+  const materials=Array.isArray(node.material)?node.material:[node.material];
+  for(const m of materials){
+   if(!m?.isMeshStandardMaterial||seen.has(m))continue;
+   seen.add(m);
+   if(/glass|emission|light|black seals|rubber/i.test(m.name??''))continue;
+   m.bumpMap=microRelief;
+   m.bumpScale=/ceramic|sand/i.test(m.name??'')?.018:.012;
+   m.roughness=Math.max(.49,m.roughness??.65);
+   m.needsUpdate=true;
+  }
+ });
+}
+
 const loader=new GLTFLoader();
 function colorize(model,team){model.traverse(n=>{if(!n.isMesh)return;n.castShadow=n.receiveShadow=true;const mats=Array.isArray(n.material)?n.material:[n.material];n.material=mats.map(m=>{const copy=m.clone();copy.roughness=.85;copy.metalness=.12;if(/Character_Main|Hazmat_Main|Enemy_Red/.test(m.name??''))copy.color.set('#c6ae7d');else if(/Pants|Red$|DarkGrey/.test(m.name??''))copy.color.set(team?'#a93429':'#245e95');return copy;});if(mats.length===1)n.material=n.material[0];});}
 function sample(point){return point.clone().project(camera).multiply(new T.Vector3(cell/2,-cell/2,1)).add(new T.Vector3(cell/2,cell/2,0));}
@@ -26,6 +67,7 @@ window.compileAtlases=async(requested)=>{
    const data=rig?{scene:rig.model,animations:[]}:await loader.loadAsync('/tools/animation-sources/'+file),model=data.scene??data;
    if(character)for(const name of weapons){const n=model.getObjectByName(name);if(n)n.visible=name===weapon;}
    const rotor=rig?.rotor??null;
+   if(rig&&cell>=192)weatherVehicleMaterials(model);
    if(!rig)colorize(model,team,character);const pivot=new T.Group(),normalization=new T.Group();normalization.add(model);pivot.add(normalization);scene.add(pivot);
    const mixer=new T.AnimationMixer(model),actions=new Map((data.animations??[]).map(c=>[c.name,mixer.clipAction(c)]));
    const initial=character?'Idle':null;
