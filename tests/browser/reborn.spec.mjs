@@ -538,6 +538,8 @@ test('reborn: readable retro desert field HUD at the standard desktop viewport',
  expect(values.radar).toBeGreaterThanOrEqual(10);
  expect(values.background).toContain('linear-gradient(');
  expect(values.background).toContain('repeating-linear-gradient(');
+ const positions=await page.evaluate(()=>['.top','.tools','.command','#pause-dialog'].map(selector=>getComputedStyle(document.querySelector(selector)).position));
+ expect(positions).toEqual(['absolute','absolute','absolute','fixed']);
  const visuals=await page.evaluate(()=>{
   const css=selector=>getComputedStyle(document.querySelector(selector));
   const cards=[...document.querySelectorAll('#catalog-units .catalog-card')];
