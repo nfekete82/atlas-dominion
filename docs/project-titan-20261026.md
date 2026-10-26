@@ -1,5 +1,9 @@
 # PROJECT TITAN – Adaptive RTS AI
 
+Fortsetzung: [gezielte Kollisionskorrektur und neue Commit-A/B-Validierung](titan-siege-coordination-20261026.md).
+Sie gewinnt insbesondere den hier noch als Timeout dokumentierten großen
+Festungsfall 98251. Die folgenden Messungen bleiben der unveränderte erste Stand.
+
 Basis ist der unveränderte Threat-Response-Abschluss `c9b87e2`.
 Entwicklungsbranch: `feat/project-titan-adaptive-ai-20261026`.
 KI und Prüfstand: `e54248b`; danach separat die bitgenaue Sichtoptimierung `ccabb82`.
