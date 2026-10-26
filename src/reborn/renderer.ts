@@ -233,9 +233,21 @@ export class Renderer {
     this.spriteDraw(this.bastions[t.owner===0?'blue':t.owner===1?'red':'neutral'],p,67,false,dim?.32:1);
     this.structures.drawActivity(c,'bastion',t.owner,p,67,g.time,this.reducedMotion,dim?.32:1);
     c.font='500 10px system-ui';c.textAlign='center';c.fillStyle='#100e0b99';c.fillRect(p.x-53,p.y+19,106,30);
-    c.fillStyle='#e1d2b7';c.fillText(t.name.toLocaleUpperCase('de-DE'),p.x,p.y+31);c.fillStyle=color;c.font='10px monospace';c.fillText(`+${t.income} / 10 s`,p.x,p.y+43);
-    if(!dim&&t.progress>0){const contested=g.units.some(u=>!u.carrier&&u.owner!==t.capturing&&distance(u,p)<RULES.captureRadius);
-      this.bar({x:p.x,y:p.y-99},65,t.progress/RULES.captureTime,contested?'#e6b475':t.capturing===0?'#71c5f4':'#ed7f6d');
+    c.fillStyle='#e1d2b7';c.fillText(t.name.toLocaleUpperCase('de-DE'),p.x,p.y+31);c.fillStyle=color;c.font='10px monospace';c.fillText(`${t.owner===0?'BLAU':t.owner===1?'ROT':'NEUTRAL'} · +${t.income} / 10 s`,p.x,p.y+43);
+    const hovered=!dim&&this.pointer&&this.bastionAt(this.pointer)?.id===t.id;
+    const nearbyBlue=!dim&&g.units.some(u=>u.owner===0&&u.hp>0&&!u.carrier&&distance(u,p)<RULES.captureRadius+120);
+    const state=!dim&&t.owner!==0&&(hovered||nearbyBlue)?g.captureReadiness(t,0):null;
+    if(state){
+      // The circle is measured from the tower FOOT, not its tall visible mast.
+      c.save();c.strokeStyle=state==='capturing'?'#a6d2aa':state==='contested'?'#e6ad77':'#d0b379';
+      c.lineWidth=1.7;c.setLineDash([10,6]);c.beginPath();c.arc(p.x,p.y,RULES.captureRadius,0,Math.PI*2);c.stroke();c.setLineDash([]);
+      const hint=state==='no-unit'?'EINHEIT ZUM KONTROLLPUNKT':state==='out-of-range'?'NOCH ZU WEIT':state==='contested'?'UMKÄMPFT':state==='enemy-hq'?'ERST FEIND-HQ ZERSTÖREN':state==='disconnected'?'ERST NACHBARSEKTOR SICHERN':'EROBERUNG LÄUFT';
+      c.font='bold 10px monospace';const width=Math.max(144,c.measureText(hint).width+16);
+      c.fillStyle='#28251fe8';c.fillRect(p.x-width/2,p.y+53,width,20);c.strokeStyle='#a9946a';c.lineWidth=.8;c.strokeRect(p.x-width/2,p.y+53,width,20);c.fillStyle=state==='capturing'?'#d0e8bb':'#f0d8ad';c.fillText(hint,p.x,p.y+67);c.restore();
+    }
+    if(!dim&&(t.progress>0||state==='contested')){
+      const contested=state==='contested'||g.units.some(u=>u.hp>0&&!u.carrier&&u.owner!==t.capturing&&distance(u,p)<=RULES.captureRadius);
+      if(t.progress>0)this.bar({x:p.x,y:p.y-99},65,t.progress/RULES.captureTime,contested?'#e6b475':t.capturing===0?'#71c5f4':'#ed7f6d');
       c.fillStyle='#f0dfbe';c.font='10px monospace';c.fillText(contested?'UMKÄMPFT':`SICHERN ${Math.round(t.progress/RULES.captureTime*100)} %`,p.x,p.y-106);}
     c.restore();
   }
