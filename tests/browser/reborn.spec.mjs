@@ -562,6 +562,29 @@ test('reborn: readable retro desert field HUD at the standard desktop viewport',
  await expect(page.locator('#menu')).toBeVisible();
 });
 
+test('reborn: unit portraits use subtle desert texture, aligned single-line name and cost; minimap compass stays uncluttered',async({page})=>{
+ for(const [width,height] of [[1200,900],[760,770]]){
+  await start(page,width,height);
+  await expect(page.locator('#catalog-units .catalog-card')).toHaveCount(10);
+  await expect(page.locator('.compass.north,.compass.south')).toHaveCount(0);
+  const report=await page.locator('#catalog-units .catalog-card').evaluateAll(cards=>cards.map(card=>{
+   const name=card.querySelector('.card-name'),cost=card.querySelector('.card-cost'),meta=card.querySelector('.card-meta');
+   const nr=name.getBoundingClientRect(),cr=cost.getBoundingClientRect(),mr=meta.getBoundingClientRect();
+   const css=getComputedStyle(card),decal=getComputedStyle(card,'::before');
+   return {
+    name:name.textContent.trim(),cost:cost.textContent.trim(),sameRow:Math.abs(nr.top-cr.top)<3,
+    fits:nr.width>0&&cr.width>0&&cr.right<=mr.right+1,aligned:Math.abs(cr.right-mr.right)<9,
+    footerFlex:getComputedStyle(meta).display,background:css.backgroundImage,texture:decal.backgroundImage,
+    portraitFits:card.querySelector('img').getBoundingClientRect().bottom<=mr.top+2
+   };
+  }));
+  expect(report.every(r=>r.name&&/^\d/.test(r.cost))).toBe(true);
+  expect(report.every(r=>r.sameRow&&r.fits&&r.aligned&&r.portraitFits&&r.footerFlex==='flex')).toBe(true);
+  expect(report.every(r=>r.texture.includes('sand-ripples-v2.png'))).toBe(true);
+  expect(report.find(r=>r.name==='Bauarbeiter')?.cost).toBe('200');
+ }
+});
+
 test('model gallery: vehicles and aircraft are selectable as real 3D GLBs',async({page})=>{
  test.setTimeout(90000);
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
