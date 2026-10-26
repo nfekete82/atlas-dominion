@@ -6,11 +6,13 @@ import { UnitPresentation } from './unit-presentation.js';
 import { BuildingPresentation } from './building-presentation.js';
 import { TERRAIN_FRAMES, TERRAIN_PLACEMENTS } from './terrain-art.js';
 import { paintGeneratedTerrain } from './terrain-presentation.js';
+import { BattlefieldEffects, createGroundDetails, paintGroundDetails } from './battlefield-atmosphere.js';
 
 interface Sprite { image:HTMLImageElement; x:number; y:number; w:number; h:number; center?:number; foot?:number; bodyWidth?:number; bodyHeight?:number }
 export class Renderer {
   readonly units=new UnitPresentation();
   readonly structures=new BuildingPresentation();
+  readonly battlefield=new BattlefieldEffects();
   private animationGame:Simulation|null=null;private seenImpacts=new WeakSet<object>();
   readonly context:CanvasRenderingContext2D;
   readonly mini:CanvasRenderingContext2D;
@@ -65,10 +67,12 @@ export class Renderer {
       ctx.drawImage(sprite.image,sprite.x,sprite.y,sprite.w,sprite.h,0,0,c.width,c.height);ctx.globalCompositeOperation='source-in';ctx.fillStyle='#191713';ctx.fillRect(0,0,c.width,c.height);
       const image=new Image();image.src=c.toDataURL();await image.decode();this.shadows.set(sprite,{image,x:0,y:0,w:c.width,h:c.height});
     }));
-    this.prepareMap();this.home();
+    this.prepareMap();this.battlefield.reset(this.game);this.home();
   }
   private prepareMap():void {
     this.prepareTerrain();
+    const sites=[...this.game.territories.map(t=>t.point),...this.game.bases.filter(b=>b.kind==='headquarters')];
+    paintGroundDetails(this.terrainSurface.getContext('2d')!,createGroundDetails(this.game.world,sites));
     const mini=this.miniTerrain.getContext('2d',{willReadFrequently:true})!;mini.drawImage(this.terrainSurface,0,0,224,224);mini.save();mini.scale(224/RULES.worldSize,224/RULES.worldSize);this.paintCliffs(mini);mini.restore();
   }
   private prepareTerrain():void{
@@ -115,7 +119,7 @@ export class Renderer {
     this.context.setTransform(dpr,0,0,dpr,0,0);this.boundCamera();
   }
   home():void {const b=this.game.bases.find(b=>b.owner===0&&b.kind==='headquarters'&&b.hp>0);if(b){const side=document.getElementById('sidebar')?.getBoundingClientRect().width??0;this.camera.x=b.x+this.width/2-(this.width-side-24)*.33;this.camera.y=b.y-Math.min(this.height*.63,this.height-300)+this.height/2;this.camera.zoom=1;this.boundCamera();}}
-  invalidate():void{if(this.infantry)this.prepareMap();this.fogRevision=-1;this.units.clear();this.seenImpacts=new WeakSet();}
+  invalidate():void{if(this.infantry)this.prepareMap();this.fogRevision=-1;this.units.clear();this.seenImpacts=new WeakSet();this.battlefield.reset(this.game);}
   boundCamera():void {
     const w=this.width/this.camera.zoom/2,h=this.height/this.camera.zoom/2,s=RULES.worldSize;
     this.camera.x=w>=s/2?s/2:clamp(this.camera.x,w,s-w);this.camera.y=h>=s/2?s/2:clamp(this.camera.y,h,s-h);
@@ -214,15 +218,17 @@ export class Renderer {
   render(dt:number,interpolation=1):void {
     if(!this.terrain?.complete||!this.infantry)return;
     const c=this.context,g=this.game,s=RULES.worldSize;this.updateFog();
-    if(this.animationGame!==g){this.units.clear();this.seenImpacts=new WeakSet();this.animationGame=g;}
+    if(this.animationGame!==g){this.units.clear();this.seenImpacts=new WeakSet();this.battlefield.reset(g);this.animationGame=g;}
     this.units.update(g.units,g.paused?0:dt,p=>g.canSee(0,p));
-    for(const shot of g.shots)if(!this.seenImpacts.has(shot)){this.seenImpacts.add(shot);if(g.canSee(0,shot.to))this.units.particles.emit('impact',shot.to);}
+    this.battlefield.update(g,p=>g.canSee(0,p));
+    for(const shot of g.shots)if(!this.seenImpacts.has(shot)){this.seenImpacts.add(shot);if(g.canSee(0,shot.to)){this.units.particles.emit('impact',shot.to);this.battlefield.impact(shot.to,g.time);}}
     this.interpolation=g.paused?1:clamp(interpolation,0,1);
     c.fillStyle='#030507';c.fillRect(0,0,this.width,this.height);c.save();
     c.translate(this.width/2,this.height/2);c.scale(this.camera.zoom,this.camera.zoom);c.translate(-this.camera.x,-this.camera.y);
     c.drawImage(this.terrainSurface,0,0);
     this.paintSandWind(g.time);
     this.paintCliffs(c);
+    this.battlefield.drawMarks(c,g);
     for(const t of g.territories){
       if(t.owner>=0){this.polygon(t.polygon);c.fillStyle=t.owner===0?'#53b4ee0b':'#e257490b';c.fill();}
       if(this.overlay){this.polygon(t.polygon);c.strokeStyle=t.owner===0?'#83d3ff8c':t.owner===1?'#e2766c8c':'#ead2ac55';c.lineWidth=1.2/this.camera.zoom;c.stroke();}
@@ -249,6 +255,7 @@ export class Renderer {
       const shooter=g.units.find(u=>u.owner===shot.owner&&Math.hypot(u.x-shot.from.x,u.y-18-shot.from.y)<5),from=shooter?this.units.muzzleFor(shooter):shot.from;
       c.strokeStyle=shot.owner===0?'#b3e5ff':'#ffb48e';c.lineWidth=1.5;c.globalAlpha=shot.life/.14;c.beginPath();c.moveTo(from.x,from.y);c.lineTo(shot.to.x,shot.to.y-8);c.stroke();c.globalAlpha=1;}
     this.units.particles.draw(c,p=>g.canSee(0,p));
+    this.battlefield.drawSmoke(c,g,this.reducedMotion);
     if(this.marker){this.marker.life-=dt;if(this.marker.life<=0)this.marker=null;else{
       const p=this.marker.point,r=12+(1-this.marker.life)*13;c.strokeStyle=this.marker.attack?'#ed8a78':'#9ad9f5';c.lineWidth=1.5/this.camera.zoom;c.globalAlpha=Math.min(1,this.marker.life*2);
       c.beginPath();c.ellipse(p.x,p.y,r,r*.55,0,0,Math.PI*2);c.stroke();c.beginPath();c.moveTo(p.x-6,p.y);c.lineTo(p.x+6,p.y);c.moveTo(p.x,p.y-4);c.lineTo(p.x,p.y+4);c.stroke();c.globalAlpha=1;}}
