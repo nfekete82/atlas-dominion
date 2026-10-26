@@ -32,7 +32,6 @@ export function createDesertInfrastructure(world:World,sites:readonly Point[]):D
     if(!safe)continue;
     const width=38+random()*15;
     roads.push({from:a,to:b,bend,width});
-
   }
   return {roads,props:[]};
 }
@@ -51,7 +50,6 @@ export function paintDesertInfrastructure(c:CanvasRenderingContext2D,plan:Desert
     roadPath(c,road);c.lineWidth=road.width+16;c.strokeStyle='rgba(98,65,35,.09)';c.stroke();
     roadPath(c,road);c.lineWidth=road.width;c.strokeStyle='rgba(131,91,48,.14)';c.stroke();
     roadPath(c,road);c.lineWidth=road.width*.66;c.strokeStyle='rgba(224,185,122,.12)';c.stroke();
-
   }
   c.restore();
 }
