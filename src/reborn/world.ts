@@ -150,16 +150,16 @@ export class World {
     }
     return true;
   }
-  path(start: Point, target: Point, obstacles: {x:number;y:number;radius:number}[]=[],clearance=0,risk?:Float32Array,air=false): Point[] {
-    if(!profiler)return this.findPath(start,target,obstacles,clearance,risk,air);
-    const at=performance.now();this.pathNodes=0;try{return this.findPath(start,target,obstacles,clearance,risk,air);}finally{profiler.record('pathfinding',performance.now()-at,this.pathNodes);}
+  path(start: Point, target: Point, obstacles: {x:number;y:number;radius:number}[]=[],clearance=0,risk?:Float32Array,air=false,exact=false): Point[] {
+    if(!profiler)return this.findPath(start,target,obstacles,clearance,risk,air,exact);
+    const at=performance.now();this.pathNodes=0;try{return this.findPath(start,target,obstacles,clearance,risk,air,exact);}finally{profiler.record('pathfinding',performance.now()-at,this.pathNodes);}
   }
   private pathNodes=0;
   // Searches are synchronous; reuse workspace, resetting traversal for every search.
   // Never cache across calls: construction, fog knowledge and test maps can change.
   private pathWorkspace?:{costs:Float64Array;prev:Int32Array;closed:Uint8Array;walkable:Int8Array};
-  private findPath(start: Point, target: Point, obstacles: {x:number;y:number;radius:number}[]=[],clearance=0,risk?:Float32Array,air=false): Point[] {
-    const precise=this.mapVersion>=3&&!air&&clearance>0;
+  private findPath(start: Point, target: Point, obstacles: {x:number;y:number;radius:number}[]=[],clearance=0,risk?:Float32Array,air=false,exact=false): Point[] {
+    const precise=exact&&this.mapVersion>=3&&!air&&clearance>0;
     const walk=(p:Point)=>air?(p.x>=10&&p.y>=10&&p.x<=this.size-10&&p.y<=this.size-10):this.walkable(p,obstacles,clearance);
     const line=(a:Point,b:Point)=>air?walk(a)&&walk(b):precise
       ?walk(a)&&walk(b)&&navigationLine(a,b,this.cell,RULES.grid,this.blocked,obstacles,RULES.infantry.radius,clearance)
@@ -189,10 +189,13 @@ export class World {
         if(x<0||y<0||x>=RULES.grid||y>=RULES.grid)continue;
         const j=y*RULES.grid+x;if(closed[j]||!cellWalkable(j))continue;
         if(dx&&dy&&(!cellWalkable(iy*RULES.grid+x)||!cellWalkable(y*RULES.grid+ix)))continue;
-        // Endpoint clearance alone cannot prove that the edge between two
-        // cells is traversable, especially at round building footprints.
-        if(precise&&!line(i===s?start:this.center(i),j===goal?end:this.center(j)))continue;
-        const g=costs[i]+(dx&&dy?Math.SQRT2:1)*(1+Math.max(0,risk?.[j]??0));if(g<costs[j]){costs[j]=g;prev[j]=i;push({i:j,f:g+h(j)});}
+        const g=costs[i]+(dx&&dy?Math.SQRT2:1)*(1+Math.max(0,risk?.[j]??0));if(g<costs[j]){
+          // Endpoint clearance alone cannot prove that an edge is traversable.
+          // Only a cheaper candidate can change the route, so avoid repeating
+          // the pure geometric check for candidates already ruled out by cost.
+          if(precise&&!line(i===s?start:this.center(i),j===goal?end:this.center(j)))continue;
+          costs[j]=g;prev[j]=i;push({i:j,f:g+h(j)});
+        }
       }
     }
     return [];

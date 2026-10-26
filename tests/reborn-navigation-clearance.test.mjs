@@ -26,7 +26,7 @@ test('navigation: clearance probes and circular footprints prevent corner cuttin
 
 test('navigation: returned vehicle routes remain walkable between every waypoint',()=>{
  const w=new World(98251,5),start={x:3095.0501807567116,y:1556.7869575694258},target={x:2281.0535877435677,y:3180.01625560605};
- const route=w.path(start,target,[],10);assert.ok(route.length);
+ const route=w.path(start,target,[],10,undefined,false,true);assert.ok(route.length);
  let previous=start;
  for(const p of route){
   assert.ok(navigationLine(previous,p,w.cell,RULES.grid,w.blocked,[],RULES.infantry.radius,10));
@@ -42,6 +42,7 @@ test('navigation: artillery escapes the observed cliff edge and resumes identica
  const start={x:3095.0501807567116,y:1556.7869575694258},u=g.spawn(0,start,'artillery');
  g.command([u.id],{kind:'move',x:2281.0535877435677,y:3180.01625560605});
  for(let i=0;i<60;i++)g.step(.05);
+ assert.equal(u.exactPath,true,'only an actual blocked movement enables the repair path');
  assert.ok(distance(u,start)>100,'a healthy paid vehicle must not endlessly replan at the cliff');
  const loaded=Simulation.load(structuredClone(g.save()));
  for(let i=0;i<60;i++){g.step(.05);loaded.step(.05);}
@@ -50,4 +51,12 @@ test('navigation: artillery escapes the observed cliff edge and resumes identica
  // paths, resources and all persisted gameplay state must still agree.
  for(const saved of [original,restored])for(const unit of saved.units)unit.repath=0;
  assert.deepEqual(restored,original);
+ const invalid=g.save();invalid.units[0].exactPath='yes';assert.throws(()=>Simulation.load(invalid));
+});
+test('navigation: unobstructed modern travel and old saves need no exact-path state',()=>{
+ const g=new Simulation(2026,4);g.units=[];g.world.blocked.fill(0);g.world.components.fill(0);g.credits=[0,0];
+ const u=g.spawn(0,{x:1500,y:1500},'artillery');g.command([u.id],{kind:'move',x:1700,y:1500});
+ for(let i=0;i<20;i++)g.step(.05);
+ assert.ok(u.x>1500);assert.equal(u.exactPath,undefined);
+ const raw=g.save();delete raw.units[0].exactPath;assert.ok(Simulation.load(raw));
 });

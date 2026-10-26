@@ -22,6 +22,8 @@ export interface Unit extends Point {
   lastAttacker:number|null; defendUntil:number;
   /** Optional motor state keeps version-2 saves compatible. */
   driveSpeed?:number; hullAngle?:number; combatTarget?:number|null;
+  /** A real collision enabled complete clearance checks for future routes. */
+  exactPath?:boolean;
   /** Where an autonomous pursuit began; persisted so guards do not chase indefinitely. */
   pursuitOrigin?:Point|null;
   hold?:boolean;
@@ -404,7 +406,7 @@ export class Simulation {
   }
   private move(u:Unit,target:Point,dt:number,speedLimit=Infinity):void {
     const spec=unitSpec(u),clearance=Math.max(0,spec.radius-10);
-    if(!u.path.length&&u.repath<=0){u.path=spec.flying&&!this.tactical.costs(u)?[target]:this.world.path(u,target,u.owner===1&&u.orders[0]?.tactical?this.tactical.navigationObstacles():this.obstacles(),clearance,this.tactical.costs(u),spec.flying);u.repath=.7;}
+    if(!u.path.length&&u.repath<=0){u.path=spec.flying&&!this.tactical.costs(u)?[target]:this.world.path(u,target,u.owner===1&&u.orders[0]?.tactical?this.tactical.navigationObstacles():this.obstacles(),clearance,this.tactical.costs(u),spec.flying,u.exactPath);u.repath=.7;}
     let next=u.path[0];if(!next)return;
     let d=distance(u,next);if(d<(spec.group==='Infanterie'?5:.4)){u.path.shift();next=u.path[0];if(!next)return;d=distance(u,next);}
     const dx=(next.x-u.x)/d,dy=(next.y-u.y)/d;
@@ -433,7 +435,7 @@ export class Simulation {
     const speed=velocity*dt,step=Math.min(speed,d);
     const p={x:u.x+dx*step,y:u.y+dy*step};
     if(spec.flying||this.world.walkable(p,this.obstacles(),clearance)){u.x=p.x;u.y=p.y;u.walkDistance+=step;u.angle=Math.atan2(dy,dx);u.facing=dx<-.05?-1:dx>.05?1:u.facing;u.moving=step>.001;}
-    else {u.path=[];u.repath=0;}
+    else {u.path=[];u.repath=0;if(this.world.mapVersion>=3&&clearance>0)u.exactPath=true;}
   }
   step(dt=RULES.tick):void {
     if(!profiler)return this.stepMeasured(dt);const at=performance.now();try{this.stepMeasured(dt);}finally{profiler.record('simulation',performance.now()-at);}
@@ -619,6 +621,7 @@ export class Simulation {
     const burst=(b:Burst|undefined,rounds:number)=>b===undefined||(b!==null&&Number.isInteger(b.target)&&Number.isInteger(b.remaining)&&b.remaining>0&&b.remaining<=rounds&&b.remaining+b.index===rounds&&Number.isInteger(b.index)&&b.index>=0&&b.index<4&&finite(b.at)&&b.at>=s.time-.11&&b.at<=s.time+.11);
     if(!s||s.version!==2||(s.productionVersion!==undefined&&s.productionVersion!==1)||(s.mapVersion!==undefined&&![0,1,2,3,4,5].includes(s.mapVersion))||!TacticalAI.valid(s.ai,s.time,point,mapLayout(s.mapVersion??0).columns*mapLayout(s.mapVersion??0).rows)||!finite(s.seed)||!finite(s.time)||s.time<0||!finite(s.incomeClock)||s.incomeClock<0||s.incomeClock>=10||
       !Array.isArray(s.units)||s.units.length>96||!Array.isArray(s.bases)||s.bases.length<2||s.bases.length>64||
+      s.units.some(u=>u.exactPath!==undefined&&typeof u.exactPath!=='boolean')||
       !Array.isArray(s.territories)||s.territories.length!==mapLayout(s.mapVersion??0).columns*mapLayout(s.mapVersion??0).rows||!Array.isArray(s.explored)||s.explored.length!==2||
       s.explored.some(a=>!Array.isArray(a)||![120**2,RULES.grid**2].includes(a.length)||a.some(v=>v!==0&&v!==1))||
       !Array.isArray(s.credits)||s.credits.length!==2||s.credits.some(v=>!finite(v)||v<0)||
