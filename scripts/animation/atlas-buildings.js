@@ -92,6 +92,23 @@ export function buildAtlasBuilding(kind,team=0){
   for(const x of [-1.36,1.36])for(let i=0;i<4;i++){box('SideArmour',[.08,.52,.38],i===1||i===2?m.team:m.sand,[x,.81,-.70+i*.46]);box('PanelFastener',[.09,.035,.045],m.edge,[x,.99,-.70+i*.46]);}
   for(const z of [-.52,.28]){box('RoofHVAC',[.46,.34,.55],m.edge,[.89,1.50,z]);for(let i=0;i<6;i++)box('CoolingLouvre',[.38,.024,.057],m.dark,[.89,1.69,z-.21+i*.083]);}
   vent(-.30,1.54,.60,.52,.22);vent(-.78,.63,-1.01,.43,.33);
+  // Thin machined roof edges, service seams and maintenance details: they
+  // break up broad plastic-looking surfaces without changing the footprint.
+  for(const x of [-.86,-.30,.26]){
+   box('RoofServiceSeam',[.018,.017,1.27],m.edge,[x+.245,1.883,-.12],model,.004);
+   for(const z of [-.59,.35]){
+    box('RoofBoltSeat',[.085,.024,.074],m.edge,[x,1.898,z],model,.005);
+    box('RoofBoltCore',[.031,.027,.030],m.dark,[x,1.916,z],model,.004);
+   }
+  }
+  for(const x of [-1.06,-.72,.68,1.00]){
+   box('FacadeArmourJoint',[.025,.75,.029],m.dark,[x,.77,1.035],model,.004);
+   for(const y of [.48,.94])
+    box('FacadeFastener',[.050,.041,.028],m.edge,[x,y,1.057],model,.006);
+  }
+  for(let i=0;i<5;i++){
+   box('CoolingSlit',[.34,.013,.035],m.dark,[.87,1.70,-.77+i*.085],model,.003);
+  }
   for(const x of [-.9,.2,.9]){box('SupplyCell',[.34,.48,.19],m.dark,[x,.57,-1.06]);box('SupplyArmour',[.28,.30,.06],m.sand,[x,.60,-1.17]);}
   antenna(.89,1.70,-.65,.67);
  }else if(kind==='factory'){
