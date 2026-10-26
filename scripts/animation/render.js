@@ -9,7 +9,7 @@ const pixelFactor=cell/96;
 const weapons=['AK','GrenadeLauncher','Knife_1','Knife_2','Pistol','Revolver','Revolver_Small','RocketLauncher','ShortCannon','Shotgun','Shovel','SMG','Sniper','Sniper_2'];
 const clips=[['idle','Idle',4,true],['walk','Run_Gun',8,true],['attack','Idle_Shoot',5,false],['hit','HitReact',4,false],['death','Death',10,false]];
 const models={infantry:['soldier.gltf','AK'],engineer:['engineer.gltf','SMG'],heavy:['heavy.gltf','GrenadeLauncher'],rover:['rover.gltf'],tank:['tank.fbx'],artillery:['artillery.fbx'],scout:['helicopter.glb'],gunship:['helicopter.glb'],bomber:['bomber.gltf']};
-const nativeWidths={rover:66,tank:88,artillery:92,scout:106,gunship:92,bomber:106};
+const nativeWidths={rover:65,tank:90,artillery:94,scout:106,gunship:92,bomber:107}; // Keep rendered footprint equal to catalog specs.
 const renderer=new T.WebGLRenderer({alpha:true,antialias:true,preserveDrawingBuffer:true});renderer.setPixelRatio(1);renderer.setSize(cell,cell);renderer.setClearColor(0,0);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.13;
 const scene=new T.Scene(),camera=new T.OrthographicCamera(-1.8,1.8,1.8,-1.8,.01,100);camera.position.set(0,8,12);camera.lookAt(0,0,0);
 scene.add(new T.HemisphereLight('#c8dfff','#65482b',1.55));const sun=new T.DirectionalLight('#ffe4be',3.2);sun.position.set(-6,10,6);sun.castShadow=true;sun.shadow.mapSize.set(cell>=192?2048:1024,cell>=192?2048:1024);sun.shadow.camera.left=-4;sun.shadow.camera.right=4;sun.shadow.camera.top=4;sun.shadow.camera.bottom=-4;sun.shadow.normalBias=.015;scene.add(sun);scene.add(sun.target);const fill=new T.DirectionalLight('#8ab9df',.65);fill.position.set(5,4,-5);scene.add(fill);
@@ -37,24 +37,44 @@ function makeMicroRelief(){
  return texture;
 }
 const microRelief=cell>=192?makeMicroRelief():null;
+function makeRoughnessGrain(){
+ const tile=document.createElement('canvas');tile.width=tile.height=128;
+ const c=tile.getContext('2d'),pixels=c.createImageData(128,128);
+ let state=0x251a9c17;
+ const random=()=>{state=(Math.imul(state,1664525)+1013904223)>>>0;return state/4294967296;};
+ for(let y=0;y<128;y++)for(let x=0;x<128;x++){
+  const i=(y*128+x)*4;
+  const scratch=Math.sin(x*.87+y*.045)*7;
+  const v=Math.max(182,Math.min(250,225+(random()-.5)*33+scratch));
+  pixels.data[i]=pixels.data[i+1]=pixels.data[i+2]=v;
+  pixels.data[i+3]=255;
+ }
+ c.putImageData(pixels,0,0);
+ const texture=new T.CanvasTexture(tile);
+ texture.wrapS=texture.wrapT=T.RepeatWrapping;
+ texture.repeat.set(2,2);texture.colorSpace=T.NoColorSpace;
+ return texture;
+}
+const weatherRoughness=cell>=192?makeRoughnessGrain():null;
 function weatherVehicleMaterials(model){
  if(!microRelief)return;
  const seen=new Set();
  model.traverse(node=>{
-  if(!node.isMesh)return;
-  const materials=Array.isArray(node.material)?node.material:[node.material];
-  for(const m of materials){
+  if(!node.isMesh||!node.geometry?.attributes?.uv)return;
+  for(const m of Array.isArray(node.material)?node.material:[node.material]){
    if(!m?.isMeshStandardMaterial||seen.has(m))continue;
    seen.add(m);
-   if(/glass|emission|light|black seals|rubber/i.test(m.name??''))continue;
-   m.bumpMap=microRelief;
-   m.bumpScale=/ceramic|sand/i.test(m.name??'')?.018:.012;
-   m.roughness=Math.max(.49,m.roughness??.65);
+   const name=(m.name??'').toLowerCase();
+   // Glass, exhaust glow, rotors' rubber and team LEDs should stay clean.
+   if(/glass|emission|light|black seals|rubber|lens|optic/.test(name))continue;
+   if(!m.bumpMap){m.bumpMap=microRelief;m.bumpScale=/ceramic|sand|armour/.test(name)?.021:.012;}
+   if(!m.roughnessMap&&weatherRoughness)m.roughnessMap=weatherRoughness;
+   m.roughness=Math.max(/enamel|faction/.test(name)?.58:.72,Math.min(.9,m.roughness??.75));
+   m.metalness=Math.min(.65,m.metalness??.3);
    m.needsUpdate=true;
   }
  });
 }
-
 const loader=new GLTFLoader();
 function colorize(model,team){model.traverse(n=>{if(!n.isMesh)return;n.castShadow=n.receiveShadow=true;const mats=Array.isArray(n.material)?n.material:[n.material];n.material=mats.map(m=>{const copy=m.clone();copy.roughness=.85;copy.metalness=.12;if(/Character_Main|Hazmat_Main|Enemy_Red/.test(m.name??''))copy.color.set('#c6ae7d');else if(/Pants|Red$|DarkGrey/.test(m.name??''))copy.color.set(team?'#a93429':'#245e95');return copy;});if(mats.length===1)n.material=n.material[0];});}
 function sample(point){return point.clone().project(camera).multiply(new T.Vector3(cell/2,-cell/2,1)).add(new T.Vector3(cell/2,cell/2,0));}
