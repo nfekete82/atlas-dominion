@@ -34,5 +34,15 @@ test('vision cache: stationary sources stop repeating terrain rays after warmup'
 
 test('vision cache: paid autonomous simulation and saves match a deliberately uncached control',async()=>{
  const {Simulation}=await import('../dist/src/reborn/simulation.js');const a=new Simulation(2033,4),b=new Simulation(2033,4);a.time=b.time=25;a.aiClock=b.aiClock=3;
+ // The control performs original rays: neither stationary reuse nor the new rectangle proof.
+ b.visionCache.clearRectangle=()=>false;
  for(let i=0;i<240;i++){a.step(.1);b.visionCache.invalidate();b.step(.1);if(i%40===0){assert.deepEqual(a.visible,b.visible);assert.deepEqual(a.save(),b.save());}}
+});
+
+test('vision cache: clear-rectangle shortcut avoids empty-ground rays and still hides targets behind a changed wall',()=>{
+ const w=new World(2026,4);w.opaque.fill(0);const cache=new VisionCache(),visible=new Uint8Array(RULES.grid**2),sources=[{key:'moving',x:1000,y:1000,sight:390,close:40,air:false}];
+ const line=w.sightLine.bind(w);let rays=0;w.sightLine=(...a)=>{rays++;return line(...a);};
+ const expected=reference(w,sources);rays=0;cache.update(w,0,sources,visible);assert.equal(rays,0);assert.deepEqual(visible,expected);
+ const x=Math.floor(1100/w.cell);for(let y=0;y<RULES.grid;y++)w.opaque[y*RULES.grid+x]=1;
+ cache.update(w,0,sources,visible);assert.ok(rays>0);assert.deepEqual(visible,reference(w,sources));assert.equal(visible[w.index({x:1250,y:1000})],0);
 });

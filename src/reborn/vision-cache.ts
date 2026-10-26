@@ -6,12 +6,17 @@ interface Entry {source:VisionSource;cells?:Uint16Array}
  * exploration, memory or visibility from a previous tick is reused. */
 export class VisionCache {
  private terrain:Uint8Array|undefined;
+ private opaquePrefix=new Uint32Array((RULES.grid+1)**2);
  private sources=[new Map<string,Entry>(),new Map<string,Entry>()];
  invalidate():void{this.sources[0].clear();this.sources[1].clear();this.terrain=undefined;}
  update(world:World,owner:0|1,sources:VisionSource[],visible:Uint8Array):void{
   let changed=!this.terrain;
   if(this.terrain)for(let i=0;i<world.opaque.length;i++)if(this.terrain[i]!==world.opaque[i]){changed=true;break;}
-  if(changed){this.sources[0].clear();this.sources[1].clear();this.terrain=world.opaque.slice();}
+  if(changed){
+   this.sources[0].clear();this.sources[1].clear();this.terrain=world.opaque.slice();
+   const width=RULES.grid+1;this.opaquePrefix.fill(0);
+   for(let y=0;y<RULES.grid;y++){let row=0;for(let x=0;x<RULES.grid;x++){row+=world.opaque[y*RULES.grid+x];this.opaquePrefix[(y+1)*width+x+1]=this.opaquePrefix[y*width+x+1]+row;}}
+  }
   const cache=this.sources[owner],active=new Set(sources.map(s=>s.key));
   for(const key of cache.keys())if(!active.has(key))cache.delete(key);
   visible.fill(0);
@@ -25,10 +30,18 @@ export class VisionCache {
    for(let y=Math.max(0,gy-r);y<=Math.min(RULES.grid-1,gy+r);y++)for(let x=Math.max(0,gx-r);x<=Math.min(RULES.grid-1,gx+r);x++){
     const i=y*RULES.grid+x;if(!cells&&visible[i])continue;
     const p=world.center(i),d=distance(s,p);
-    if(d<=s.sight&&(s.air||d<=s.close||world.sightLine(s,p))){visible[i]=1;cells?.push(i);}
+    if(d<=s.sight&&(s.air||d<=s.close||this.clearRectangle(gx,gy,x,y)||world.sightLine(s,p))){visible[i]=1;cells?.push(i);}
    }
    const own=world.index(s);if(own>=0){visible[own]=1;cells?.push(own);}
    cache.set(s.key,{source:{...s},...(cells?{cells:Uint16Array.from(cells)}:{})});
   }
+ }
+ /** Every uniformly sampled ray cell lies inside this rectangle. Zero opaque
+  * cells proves visibility; a nonzero sum proves nothing and uses the original
+  * raycast. No angular approximation, quantisation or stale mask is involved. */
+ private clearRectangle(ax:number,ay:number,bx:number,by:number):boolean{
+  if(ax<0||ay<0||ax>=RULES.grid||ay>=RULES.grid)return false;
+  const x0=Math.min(ax,bx),y0=Math.min(ay,by),x1=Math.max(ax,bx)+1,y1=Math.max(ay,by)+1,w=RULES.grid+1,p=this.opaquePrefix;
+  return p[y1*w+x1]-p[y0*w+x1]-p[y1*w+x0]+p[y0*w+x0]===0;
  }
 }

@@ -15,7 +15,8 @@ if(seconds<2||seconds>120||cpu<1||warmup<0||warmup>900)throw Error('Invalid meas
 const port=args.port??'8104',base=process.env.ATLAS_BASE_URL??`http://127.0.0.1:${port}`;
 const output=resolve(args.output??'docs/benchmarks/titan-browser.json'),reference=resolve(args.before);
 const policySource=(await readFile('scripts/tower-rush-opponent.mjs','utf8')).replace('export function rushPolicy','function rushPolicy');
-const scenarios=[{map:'small',towers:1},{map:'medium',towers:1},{map:'large',towers:6}];
+const scenarios=[{map:'small',towers:1},{map:'medium',towers:1},{map:'large',towers:6}].filter(s=>!args.maps||args.maps.split(',').includes(s.map));
+if(args.maps&&args.maps.split(',').some(m=>!['small','medium','large'].includes(m)))throw Error('Unknown browser map');
 const report={complete:false,scope:'Chromium animation frames: rendered paid modern campaigns, including paid BLUE controller; excludes accelerated warmup',reference,environment:{seed,seconds,warmup,cpuThrottle:cpu,viewport:'1440x1000',dpr:1},results:[],errors:[]};
 const persist=async()=>{await mkdir(dirname(output),{recursive:true});await writeFile(output,JSON.stringify(report,null,2)+'\n');};
 const server=process.env.ATLAS_BASE_URL?null:spawn(process.execPath,['scripts/serve.mjs'],{env:{...process.env,PORT:port},stdio:'ignore'});
