@@ -71,7 +71,7 @@ export class UnitPresentation {
   // drawFrame only changes pixels. Restore the two properties we change rather
   // than pushing/popping the complete Canvas state for every layered sprite.
   const smoothing=c.imageSmoothingEnabled,filter=c.filter;
-  c.imageSmoothingEnabled=false;const at={x:p.x,y:p.y-unitVisualLift(v.unit)};
+  c.imageSmoothingEnabled=v.asset.data.cell[0]>=144;const at={x:p.x,y:p.y-unitVisualLift(v.unit)};
   if(v.asset.shadow)this.drawFrame(c,v,v.frame,p,{x:0,y:0},v.asset.shadow);
   if(v.dead&&!v.asset.data.clips.death)c.filter='grayscale(1) brightness(.5)';
   this.drawFrame(c,v,v.frame,at);

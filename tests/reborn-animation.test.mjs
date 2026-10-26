@@ -39,6 +39,23 @@ test('animation: sustained hits cannot lock a soldier in a flinch or hide simult
 test('animation: vehicles use real chassis views and separated turret/barrel frames where the source provides them',()=>{
  for(const k of ['rover','tank','artillery','scout','gunship','bomber']){const a=read(k);assert.equal(a.directions,16);assert.equal(a.clips.idle.frames.length,16);if(['tank','artillery'].includes(k)){assert.equal(a.clips.turret.frames.length,16);assert.equal(a.clips.barrel.frames.length,16);assert.ok(a.clips.walk.uniquePhases.every(n=>n>1));}if(k==='bomber')assert.ok(a.clips.walk.frames.every(r=>r.length===1));if(k==='scout'||k==='gunship')assert.equal(a.rotor,true);}
 });
+test('animation: all vehicle and aircraft faction atlases have real 2x source detail',()=>{
+ for(const kind of ['rover','tank','artillery','scout','gunship','bomber'])for(const team of [0,1]){
+  const asset=read(kind,team);
+  assert.deepEqual(asset.cell,[192,192],kind+' '+team);
+  assert.equal(asset.renderResolution,192);
+  assert.ok(asset.nativeScale>0&&asset.nativeScale<1);
+  assert.equal(asset.model,kind+'-'+team+'.glb');
+  for(const frame of asset.frames){
+   assert.equal(frame.w,192);assert.equal(frame.h,192);
+   assert.deepEqual(frame.pivot,[96,156]);
+  }
+  const png=fs.readFileSync(new URL('..'+unitAtlasPath(kind,team)+'.png',import.meta.url));
+  assert.equal(png.readUInt32BE(16),3072,'packed atlas must have real 192px columns');
+  assert.ok(png.readUInt32BE(20)>=384);
+ }
+});
+
 test('animation: bounded particles clear when disabled and turning always takes the shortest bounded angular step',()=>{
  const p=new Particles();for(let i=0;i<100;i++)p.emit('explosion',{x:0,y:0});assert.equal(p.count,240);p.update(3);assert.equal(p.count,0);p.enabled=false;p.emit('dust',{x:0,y:0});assert.equal(p.count,0);
  assert.ok(Math.abs(turnTowards(0,Math.PI,2,.05))<=.1);assert.ok(turnTowards(Math.PI-.05,-Math.PI+.05,2,.1)>Math.PI-.05);

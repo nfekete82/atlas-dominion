@@ -13,6 +13,7 @@
     "test:reborn": "npm run build && node --test tests/reborn.test.mjs tests/reborn-campaign.test.mjs",
     "test:animation": "npm run build && node --test tests/reborn-animation.test.mjs tests/reborn-buildings.test.mjs",
     "assets:animations": "node scripts/render-unit-atlases.mjs",
+    "assets:animations:hd": "node scripts/render-unit-atlases.mjs --hd",
     "assets:animation-audit": "npm run build && node scripts/audit-animation-assets.mjs",
     "assets:detailed-infantry": "node scripts/export-detailed-infantry.mjs",
     "assets:buildings": "node scripts/export-atlas-buildings.mjs",

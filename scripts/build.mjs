@@ -11,6 +11,7 @@ for(const file of ['build/three.module.js','build/three.core.js','examples/jsm/l
 }
 cpSync('node_modules/three/LICENSE','dist/vendor/three/LICENSE');
 cpSync('src/reborn/style.css', 'dist/style.css');
+cpSync('src/reborn/retro-desert.css', 'dist/retro-desert.css');
 cpSync('src/reborn/qwen-general.worker.js', 'dist/src/reborn/qwen-general.worker.js');
 cpSync('legacy', 'dist/legacy', {recursive:true});
 cpSync('src/assets', 'dist/src/assets', {recursive:true});

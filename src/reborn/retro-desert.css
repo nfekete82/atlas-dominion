@@ -1,0 +1,247 @@
+/* ATLAS DOMINION — Desert Field Command, 1990s RTS-inspired interface.
+   Sandblasted iron, field parchment, numbered hardware panels. No glass UI,
+   rounded cards, neon outlines, or moving background effects. */
+:root {
+  --gold:#c7a169;
+  --blue:#cbb07c;
+  --muted:#ada08a;
+  --line:#78684b;
+  --metal:linear-gradient(180deg,rgba(38,35,28,.98),rgba(21,23,21,.98));
+  --display:"Arial Narrow","DIN Condensed","Avenir Next Condensed",Impact,sans-serif;
+  color:#e7dcc6;
+  background:#15150f;
+}
+button {
+  color:#e1d5bd;
+  background:#302d25;
+  border:1px solid #817153;
+  border-bottom-color:#342f27;
+  border-right-color:#423b2e;
+  border-radius:0;
+  box-shadow:inset 0 1px rgba(244,217,160,.14),inset 0 -2px rgba(0,0,0,.32);
+  transition:background-color .12s,border-color .12s;
+}
+button:hover:not(:disabled) {background:#524635;border-color:#be9961;color:#fff1d3;}
+button:active {background:#211f1b;box-shadow:inset 1px 2px 4px #0008;}
+button[aria-pressed="true"] {
+  color:#ffdf9c;
+  background:#59472d;
+  border-color:#d8b374;
+  box-shadow:inset 0 2px 5px #16130d96;
+}
+button:focus-visible,a:focus-visible,canvas:focus-visible {
+  outline:2px solid #d6b477;
+  outline-offset:2px;
+}
+.hud,dialog {
+  color:#e7dcc6;
+  background-color:#25251f;
+  background-image:
+    repeating-linear-gradient(0deg,rgba(247,214,154,.017) 0px,rgba(247,214,154,.017) 1px,transparent 1px,transparent 4px),
+    linear-gradient(145deg,#3b392d 0%,#27271f 47%,#191d1a 100%);
+  border:2px solid #68583c;
+  outline:1px solid #171912;
+  box-shadow:inset 0 1px #aa92675c,inset 0 -2px #0708087a,0 4px 12px #0008;
+}
+.frame {clip-path:none;border-radius:0;}
+.frame::before {
+  inset:4px;
+  border:1px solid rgba(202,174,116,.15);
+  z-index:0;
+  pointer-events:none;
+}
+.frame::after {
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    linear-gradient(90deg,#a28750 0 15px,transparent 15px calc(100% - 15px),#a28750 calc(100% - 15px)) center top/100% 2px no-repeat,
+    linear-gradient(90deg,#615238 0 15px,transparent 15px calc(100% - 15px),#615238 calc(100% - 15px)) center bottom/100% 2px no-repeat;
+  z-index:2;
+}
+.hud button,.hud canvas,.hud nav,.hud section,.hud div {position:relative;}
+.top {background:#302f27;clip-path:none;padding:0 11px 0 0;border-left:4px solid #a78b58;}
+.top::after,.tools::after,.radar::after,.catalog::after,.command::after {pointer-events:none;}
+.wordmark {border-right-color:#76674d;padding-left:5px;color:#e8d7b2;}
+.emblem {
+  color:#291f13;
+  background:linear-gradient(145deg,#d9bd82,#9e7b43);
+  text-shadow:0 1px #f8e2a5a3;
+  border:1px solid #b89a61;
+  border-bottom:3px solid #685232;
+  clip-path:none;
+}
+.brand-copy {font-weight:700;letter-spacing:.9px;color:#c5b597;}
+.brand-copy b {color:#f5e2bd;letter-spacing:.25px;}
+.resources>div {border-right-color:#77654b75;}
+.resources strong {color:#f5e6c7;}
+.resources small,.resources em {color:#b9a684;}
+.credit-cube {color:#d6b06b;text-shadow:none;}
+.capacity-resource [data-icon] {color:#b9ad92;}
+#sidebar {gap:10px;}
+.tools {padding:3px 5px;gap:2px;height:42px;}
+.tools button {
+  color:#d3c5a7;
+  width:38px;
+  height:32px;
+  background:rgba(22,24,20,.45);
+  border:1px solid #65573f;
+  box-shadow:inset 0 1px #d6be8e20;
+}
+.tools button:hover {color:#ffe6b0;background:#574730;}
+.tools #overlay,.tools #pause {color:#d5b577;}
+.tools #clock {color:#f0dbb2;border-left:1px solid #796949;font-family:var(--mono);}
+#unread {background:#e3bb6e;}
+.radar {padding:15px 14px 18px;}
+.radar #minimap {border:2px solid #b39660;outline:1px solid #15160f;background:#b18c52;}
+.compass {color:#d4ba86;text-shadow:0 1px #000;}
+.radar-caption {color:#cfbd9e;opacity:.9;letter-spacing:.2px;}
+.radar #home {background:#333126e8;border:1px solid #9e8658;color:#ecd4a0;}
+.catalog {padding:0 9px 11px;}
+.catalog-tabs {border-bottom:2px solid #756244;margin:1px -8px 0;}
+.catalog-tabs button {
+  border:0;
+  border-right:1px solid #695b43;
+  background:#292a23;
+  color:#bcab89;
+  font-family:var(--display);
+  letter-spacing:.45px;
+  box-shadow:inset 0 -2px #171a16;
+}
+.catalog-tabs button:hover {background:#463c2d;}
+.catalog-tabs button[aria-pressed=true] {color:#f5dfb5;background:#57452b;box-shadow:inset 0 -3px #c6a267;}
+.catalog-tabs button[aria-pressed=true]::before {background:#c6a267;height:2px;}
+.catalog-scroll {scrollbar-color:#8e7750 #21231c;}
+.catalog h2,.section-label {
+  color:#e3cb9d;
+  border-bottom:1px solid #887250;
+  letter-spacing:.7px;
+  font-weight:700;
+}
+.catalog-card {
+  background:linear-gradient(#38352b,#20231f);
+  border:1px solid #79694d;
+  border-radius:0;
+  box-shadow:inset 0 1px #b6a17a18;
+}
+.catalog-card:hover:not(:disabled) {border-color:#c9aa72;background:#51442f;}
+.catalog-card .card-cost {border-top-color:#726146;background:#1e211c;color:#eddfbf;}
+.catalog-card .card-cost i {color:#cdb07a;}
+.catalog-card.locked::after {color:#ada18b;}
+#catalog-detail {color:#b8aa8d;border-top-color:#8e7955;}
+.territory-row {color:#dccdb0;background:#302f25;border-color:#695b43;}
+.territory-row:hover {background:#4a3d2c;}
+.territory-row.blue i {background:#7ca6b4;}
+.territory-row.red i {background:#af6852;}
+.territory-row small {color:#cfbd9a;}
+.theatre {color:#ede0c4;text-shadow:0 2px 3px #000b;letter-spacing:1.1px;}
+.notice {background:#2d2b24ed;border:1px solid #7f6744;border-left:3px solid #c6a267;color:#e8d8b9;box-shadow:0 3px 6px #0008;}
+.command {background-color:#2a2b25;min-height:176px;padding:12px 13px;}
+.portrait {background:radial-gradient(ellipse at 50% 80%,#8a795131,#191c18 72%);border:2px solid #88714e;}
+.selection-copy>small {color:#cbb083;}
+.selection-copy>strong {color:#fae5bd;letter-spacing:.3px;}
+.selection-copy>p {color:#b9b09a;}
+.selection-copy #selection-health {color:#f0dfc4;}
+.health-track {background:#171a15;border-color:#867450;height:6px;}
+.health-track i {background:#8a9d64;}
+.production {border-left-color:#77674c;border-right-color:#77674c;}
+.production-track {background:#141713;border:1px solid #836d49;}
+.production-track>i {background:linear-gradient(180deg,#dec083,#987442);}
+.queue-info {color:#c7b596;}
+#queue-slots button,#quick-production button,#quick-select button {
+  background:#282a23;border-color:#7e6d4e;color:#f0dcb6;
+  border-radius:0;
+}
+#queue-slots .current {background:#625034;border-color:#d2b576;}
+#queue-slots .empty {color:#857559;}
+.commands button {
+  background:#38372c;color:#dec595;border:1px solid #82704e;
+  border-bottom-color:#4f412c;box-shadow:inset 0 1px #d8be7c25;border-radius:0;
+}
+.commands button:hover {background:#675134;color:#ffe9bd;}
+.commands button[aria-pressed=true] {background:#79603a;color:#ffdf9f;}
+.commands .danger {color:#df9b79;border-color:#a16d51;background:#3c2825;}
+.commands kbd {color:#d7c4a1;font-size:8px;}
+.bottom-status {color:#dfd0ae;}
+#simulation-status {color:#c4ae7f;}
+#pause-label,.pause-kicker {color:#f1d5a3;}
+#placement-tip {background:#313027f5;border-color:#b08c55;}
+#placement-tip strong {color:#f6dc9b;}
+dialog {
+  color:#eadcbf;
+  background-image:
+    repeating-linear-gradient(0deg,#f8e0ab08 0 1px,transparent 1px 5px),
+    linear-gradient(155deg,#3e392e,#272921 65%,#20231e);
+  border:3px double #b59a65;
+  border-radius:0;
+}
+dialog::backdrop {background:#110f0ccc;backdrop-filter:none;}
+dialog h1 {color:#f3dab0;font-weight:700;}
+dialog p {color:#c8baa0;}
+dialog>small,dialog form>small,.panel-heading,.help-grid h2 {color:#d8b983;}
+.primary,.menu-button.primary {
+  background:#75603e;
+  color:#ffedc9;
+  border:1px solid #d0ab69;
+  box-shadow:inset 0 1px #ffe3a35c,inset 0 -3px #4a3822;
+}
+.primary:hover,.menu-button.primary:hover {background:#997747;border-color:#f0cc86;color:#fff7df;}
+.pause-menu {width:342px;padding:25px 26px 0;box-shadow:0 15px 45px #000b;}
+.pause-menu::backdrop {background:#15120f86;}
+.menu-brand {color:#d5be91;}
+.menu-brand .emblem {color:#e8ca8c;opacity:1;}
+.menu-brand .brand-copy,.menu-brand .brand-copy b {color:#e8d1a6;}
+.menu-buttons {gap:7px;}
+.menu-button {
+  height:45px;
+  font-size:15px;
+  font-weight:700;
+  letter-spacing:.65px;
+  padding:0 15px;
+  gap:15px;
+  border:1px solid #7a6a50;
+  background:#34342b;
+  border-radius:0;
+}
+.menu-button svg {color:#c8b38a;filter:none;width:21px;height:21px;}
+.menu-button.primary svg {color:#fbe0a9;}
+.pause-scene {
+  margin:17px -25px 0;height:84px;
+  background:linear-gradient(0deg,#1c1c18e8,#33291f80),url('/src/assets/reborn/desert.png') center 65%/cover;
+  filter:sepia(.35) saturate(.65);
+  opacity:.92;
+}
+.pause-scene span {color:#f4dfb4;}
+.pause-scene small {color:#c2ad8b;}
+#main-dialog h1 {font-size:36px;line-height:1.05;letter-spacing:.1px;}
+#main-dialog .menu-brand {border-bottom:1px solid #836b43;padding-bottom:15px;}
+.audio-panel input[type=checkbox],.audio-panel input[type=range] {accent-color:#c5a36a;}
+.audio-panel label,.help-grid p {color:#d1c2a8;}
+#message-history p {border-bottom-color:#786647;}
+#message-history time {color:#d2b47c;}
+#loading {background:#1e201b;}
+#loading p {color:#cbb388;}
+@media(max-width:800px) {
+  .pause-menu {width:min(342px,calc(100% - 20px));}
+  .tools button {width:29px;}
+  .command {padding:10px;}
+}
+@media(prefers-reduced-motion:reduce){
+  button {transition:none;}
+}
+
+/* Context menus and tactical pause also belong to the same field equipment. */
+#sidebar {background:#1e201b;scrollbar-color:#806c49 #1e201b;}
+#build-menu {background:#282920f5;border:1px solid #b59661;box-shadow:0 7px 16px #0008;}
+#build-menu button {background:#3b382d;border:1px solid #796747;color:#e9d9b9;border-radius:0;}
+#build-menu button:hover:not(:disabled) {background:#6b5332;border-color:#d1af73;}
+#building-commands button {background:#302e25;border:1px solid #7d6a47;color:#e8d3ad;border-radius:0;}
+#building-commands #context-cancel {color:#d69d7e;}
+#map-size {background:#292a22;border-color:#ae9060;color:#f2debb;border-radius:0;}
+#pause-label {background:radial-gradient(ellipse at center,#373023a6,#16160fed);color:#f7dfb5;}
+#pause-label .pause-kicker {color:#d7b57a;}
+#pause-label small {color:#e5d3b6;}
+#pause-label kbd {border:1px solid #aa8851;border-radius:0;background:#3a3527;color:#f6dfb6;}
+#resume-tactical {background:#77603b;border:1px solid #d7b375;color:#ffebc5;border-radius:0;}
+#resume-tactical:hover {background:#947647;border-color:#efc786;}

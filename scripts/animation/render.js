@@ -2,15 +2,59 @@ import * as T from 'three';
 import {buildAtlasVehicle} from './atlas-vehicles.js';
 import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
-const cell=96,columns=16;
+const params=new URLSearchParams(location.search);
+const cell=Number(params.get('cell'))===192?192:96,columns=16;
+const atlasOnly=params.has('atlasOnly');
+const pixelFactor=cell/96;
 const weapons=['AK','GrenadeLauncher','Knife_1','Knife_2','Pistol','Revolver','Revolver_Small','RocketLauncher','ShortCannon','Shotgun','Shovel','SMG','Sniper','Sniper_2'];
 const clips=[['idle','Idle',4,true],['walk','Run_Gun',8,true],['attack','Idle_Shoot',5,false],['hit','HitReact',4,false],['death','Death',10,false]];
 const models={infantry:['soldier.gltf','AK'],engineer:['engineer.gltf','SMG'],heavy:['heavy.gltf','GrenadeLauncher'],rover:['rover.gltf'],tank:['tank.fbx'],artillery:['artillery.fbx'],scout:['helicopter.glb'],gunship:['helicopter.glb'],bomber:['bomber.gltf']};
 const nativeWidths={rover:66,tank:88,artillery:92,scout:106,gunship:92,bomber:106};
-const renderer=new T.WebGLRenderer({alpha:true,antialias:true,preserveDrawingBuffer:true});renderer.setSize(cell,cell);renderer.setClearColor(0,0);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.13;
+const renderer=new T.WebGLRenderer({alpha:true,antialias:true,preserveDrawingBuffer:true});renderer.setPixelRatio(1);renderer.setSize(cell,cell);renderer.setClearColor(0,0);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.13;
 const scene=new T.Scene(),camera=new T.OrthographicCamera(-1.8,1.8,1.8,-1.8,.01,100);camera.position.set(0,8,12);camera.lookAt(0,0,0);
-scene.add(new T.HemisphereLight('#c8dfff','#65482b',1.55));const sun=new T.DirectionalLight('#ffe4be',3.2);sun.position.set(-6,10,6);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-4;sun.shadow.camera.right=4;sun.shadow.camera.top=4;sun.shadow.camera.bottom=-4;sun.shadow.normalBias=.015;scene.add(sun);scene.add(sun.target);const fill=new T.DirectionalLight('#8ab9df',.65);fill.position.set(5,4,-5);scene.add(fill);
+scene.add(new T.HemisphereLight('#c8dfff','#65482b',1.55));const sun=new T.DirectionalLight('#ffe4be',3.2);sun.position.set(-6,10,6);sun.castShadow=true;sun.shadow.mapSize.set(cell>=192?2048:1024,cell>=192?2048:1024);sun.shadow.camera.left=-4;sun.shadow.camera.right=4;sun.shadow.camera.top=4;sun.shadow.camera.bottom=-4;sun.shadow.normalBias=.015;scene.add(sun);scene.add(sun.target);const fill=new T.DirectionalLight('#8ab9df',.65);fill.position.set(5,4,-5);scene.add(fill);
 const floor=new T.Mesh(new T.PlaneGeometry(30,30),new T.ShadowMaterial({color:'#292017',opacity:.25}));floor.rotation.x=-Math.PI/2;floor.position.y=-.02;floor.receiveShadow=true;scene.add(floor);
+
+/* Subtle deterministic sandblasted metal texture applied only to offline HD
+   vehicle rendering. Keep team enamel, optics and emissive markers untouched. */
+function makeMicroRelief(){
+ const canvas=document.createElement('canvas');canvas.width=canvas.height=128;
+ const c=canvas.getContext('2d'),image=c.createImageData(128,128);
+ let seed=0x5ad31f29;
+ const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+ for(let y=0;y<128;y++)for(let x=0;x<128;x++){
+  const i=(y*128+x)*4,grain=(random()-.5)*78,band=Math.sin((x+y)*.19)*8;
+  const v=Math.max(15,Math.min(240,154+grain+band));
+  image.data[i]=image.data[i+1]=image.data[i+2]=v;
+  image.data[i+3]=255;
+ }
+ c.putImageData(image,0,0);
+ const texture=new T.CanvasTexture(canvas);
+ texture.wrapS=texture.wrapT=T.RepeatWrapping;
+ texture.repeat.set(2,2);
+ texture.colorSpace=T.NoColorSpace;
+ texture.anisotropy=4;
+ return texture;
+}
+const microRelief=cell>=192?makeMicroRelief():null;
+function weatherVehicleMaterials(model){
+ if(!microRelief)return;
+ const seen=new Set();
+ model.traverse(node=>{
+  if(!node.isMesh)return;
+  const materials=Array.isArray(node.material)?node.material:[node.material];
+  for(const m of materials){
+   if(!m?.isMeshStandardMaterial||seen.has(m))continue;
+   seen.add(m);
+   if(/glass|emission|light|black seals|rubber/i.test(m.name??''))continue;
+   m.bumpMap=microRelief;
+   m.bumpScale=/ceramic|sand/i.test(m.name??'')?.018:.012;
+   m.roughness=Math.max(.49,m.roughness??.65);
+   m.needsUpdate=true;
+  }
+ });
+}
+
 const loader=new GLTFLoader();
 function colorize(model,team){model.traverse(n=>{if(!n.isMesh)return;n.castShadow=n.receiveShadow=true;const mats=Array.isArray(n.material)?n.material:[n.material];n.material=mats.map(m=>{const copy=m.clone();copy.roughness=.85;copy.metalness=.12;if(/Character_Main|Hazmat_Main|Enemy_Red/.test(m.name??''))copy.color.set('#c6ae7d');else if(/Pants|Red$|DarkGrey/.test(m.name??''))copy.color.set(team?'#a93429':'#245e95');return copy;});if(mats.length===1)n.material=n.material[0];});}
 function sample(point){return point.clone().project(camera).multiply(new T.Vector3(cell/2,-cell/2,1)).add(new T.Vector3(cell/2,cell/2,0));}
@@ -23,6 +67,7 @@ window.compileAtlases=async(requested)=>{
    const data=rig?{scene:rig.model,animations:[]}:await loader.loadAsync('/tools/animation-sources/'+file),model=data.scene??data;
    if(character)for(const name of weapons){const n=model.getObjectByName(name);if(n)n.visible=name===weapon;}
    const rotor=rig?.rotor??null;
+   if(rig&&cell>=192)weatherVehicleMaterials(model);
    if(!rig)colorize(model,team,character);const pivot=new T.Group(),normalization=new T.Group();normalization.add(model);pivot.add(normalization);scene.add(pivot);
    const mixer=new T.AnimationMixer(model),actions=new Map((data.animations??[]).map(c=>[c.name,mixer.clipAction(c)]));
    const initial=character?'Idle':null;
@@ -36,10 +81,11 @@ window.compileAtlases=async(requested)=>{
    const directionCount=character?8:16,config=character?clips:[['idle',null,rotor?4:1,true],['walk',null,kind==='bomber'?1:4,true],...(['tank','artillery'].includes(kind)?[['turnLeft',null,4,true],['turnRight',null,4,true]]:[])];
    const turret=model.getObjectByName('Tank_Turret'),gun=model.getObjectByName('Tank_Gun');
    const total=config.reduce((n,c)=>n+c[2]*directionCount,0)+(turret?32:0),canvas=document.createElement('canvas');canvas.width=columns*cell;canvas.height=Math.ceil(total/columns)*cell;const ctx=canvas.getContext('2d');
-   const metadata={version:1,image:kind+'-'+team+'.png',kind,team,cell:[cell,cell],nativeScale:character?1:(nativeWidths[kind]/72),directions:directionCount,stride:character?(kind==='heavy'?58:64):34,source:rig?'Atlas original vehicle geometry':file,design:rig?model.userData.atlasDesign:undefined,palette:'Legion ceramic / bronze / dark steel / faction enamel',lighting:'ACES 1.13 / warm sun / cool fill',timeBasedLocomotion:!!rotor,rotor:!!rotor,clips:{},frames:[]};
+   const metadata={version:1,image:kind+'-'+team+'.png',kind,team,cell:[cell,cell],nativeScale:(character?1:(nativeWidths[kind]/72))/pixelFactor,directions:directionCount,stride:character?(kind==='heavy'?58:64):34,source:rig?'Atlas original vehicle geometry':file,design:rig?model.userData.atlasDesign:undefined,palette:'Legion ceramic / bronze / dark steel / faction enamel',lighting:'ACES 1.13 / warm sun / cool fill',renderResolution:cell,renderQuality:cell>=192?'HD native 3D raster / 2x':'standard',timeBasedLocomotion:!!rotor,rotor:!!rotor,clips:{},frames:[]};
+   if(rig)metadata.model=kind+'-'+team+'.glb';
    // Project a world-fixed ground point to y=78 without changing scale per pose.
    const size=character?3.6:4.2;camera.left=-size/2;camera.right=size/2;camera.top=size/2;camera.bottom=-size/2;camera.updateProjectionMatrix();
-   camera.position.set(0,8,12);camera.lookAt(0,0,0);camera.updateMatrixWorld();const origin=sample(new T.Vector3());const shift=(78-origin.y)*size/cell;
+   camera.position.set(0,8,12);camera.lookAt(0,0,0);camera.updateMatrixWorld();const origin=sample(new T.Vector3());const shift=(78*pixelFactor-origin.y)*size/cell;
    camera.position.y+=shift/Math.cos(Math.atan2(8,12));camera.lookAt(0,shift/Math.cos(Math.atan2(8,12)),0);camera.updateMatrixWorld();
    const baseRotations=new Map();model.traverse(n=>{if(/Wheel_/.test(n.name))baseRotations.set(n,n.quaternion.clone());});
    for(const [tag,clipName,count,loop] of config){
@@ -54,7 +100,7 @@ window.compileAtlases=async(requested)=>{
       pivot.rotation.y=Math.PI/2-direction*Math.PI*2/directionCount;pivot.updateMatrixWorld(true);
       if(turret)turret.visible=false;if(gun)gun.visible=false;renderer.render(scene,camera);
       const index=metadata.frames.length,x=(index%columns)*cell,y=Math.floor(index/columns)*cell;ctx.drawImage(renderer.domElement,x,y);
-      const frame={x,y,w:cell,h:cell,pivot:[48,78],duration:(action?.getClip().duration??(rotor?.32:1))/count};
+      const frame={x,y,w:cell,h:cell,pivot:[48*pixelFactor,78*pixelFactor],duration:(action?.getClip().duration??(rotor?.32:1))/count};
       if(character){const gunNode=model.getObjectByName(weapon);if(gunNode){
        const forward=new T.Vector3(Math.sin(pivot.rotation.y),0,Math.cos(pivot.rotation.y)),vertices=[];let front=-Infinity;
        gunNode.traverse(n=>{if(!n.isMesh)return;const pos=n.geometry.attributes.position;for(let i=0;i<pos.count;i++){const v=new T.Vector3().fromBufferAttribute(pos,i).applyMatrix4(n.matrixWorld);vertices.push(v);front=Math.max(front,v.dot(forward));}});
@@ -73,10 +119,10 @@ window.compileAtlases=async(requested)=>{
     for(const [tag,part] of [['turret',turret],['barrel',gun]]){
      if(!part)continue;for(const n of all)n.visible=belongs(n,part);
      metadata.clips[tag]={frames:[],duration:1,loop:true,sourceClip:'separate rigid '+tag+' geometry'};
-     for(let direction=0;direction<16;direction++){pivot.rotation.y=Math.PI/2-direction*Math.PI/8;pivot.updateMatrixWorld(true);renderer.render(scene,camera);const index=metadata.frames.length,x=index%columns*cell,y=Math.floor(index/columns)*cell;ctx.drawImage(renderer.domElement,x,y);const muzzleNode=tag==='barrel'?part.children.find(n=>n.name.startsWith('MuzzleOpening')):null,muzzle=muzzleNode?sample(muzzleNode.getWorldPosition(new T.Vector3())):null;metadata.frames.push({x,y,w:cell,h:cell,pivot:[48,78],duration:1,...(muzzle?{muzzle:[muzzle.x,muzzle.y]}:{})});metadata.clips[tag].frames.push([index]);}
+     for(let direction=0;direction<16;direction++){pivot.rotation.y=Math.PI/2-direction*Math.PI/8;pivot.updateMatrixWorld(true);renderer.render(scene,camera);const index=metadata.frames.length,x=index%columns*cell,y=Math.floor(index/columns)*cell;ctx.drawImage(renderer.domElement,x,y);const muzzleNode=tag==='barrel'?part.children.find(n=>n.name.startsWith('MuzzleOpening')):null,muzzle=muzzleNode?sample(muzzleNode.getWorldPosition(new T.Vector3())):null;metadata.frames.push({x,y,w:cell,h:cell,pivot:[48*pixelFactor,78*pixelFactor],duration:1,...(muzzle?{muzzle:[muzzle.x,muzzle.y]}:{})});metadata.clips[tag].frames.push([index]);}
     }
    }
-   if(rig){model.traverse(n=>{if(n.isMesh)n.visible=true;});if(turret)turret.visible=true;if(gun)gun.visible=true;rig.animate('idle',0);const glb=await new GLTFExporter().parseAsync(model,{binary:true});metadata.model=kind+'-'+team+'.glb';await window.saveVehicleModel(metadata.model,Array.from(new Uint8Array(glb)));}
+   if(rig&&!atlasOnly){model.traverse(n=>{if(n.isMesh)n.visible=true;});if(turret)turret.visible=true;if(gun)gun.visible=true;rig.animate('idle',0);const glb=await new GLTFExporter().parseAsync(model,{binary:true});metadata.model=kind+'-'+team+'.glb';await window.saveVehicleModel(metadata.model,Array.from(new Uint8Array(glb)));}
    floor.visible=true;scene.remove(pivot);await window.saveAtlas(kind+'-'+team,canvas.toDataURL('image/png'),metadata);
   }
  }

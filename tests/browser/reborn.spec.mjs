@@ -511,7 +511,7 @@ test('capture: a real two-unit drag selection captures after clicking the mast, 
  await page.screenshot({path:evidence+'group-capture.png'});
 });
 
-test('reborn: readable translucent HUD at the standard desktop viewport',async({page})=>{
+test('reborn: readable retro desert field HUD at the standard desktop viewport',async({page})=>{
  await start(page,1200,900);await expect(page.locator('#selection-panel')).toBeHidden();await page.locator('#select-unit').click();
  const values=await page.evaluate(()=>{
   const size=selector=>parseFloat(getComputedStyle(document.querySelector(selector)).fontSize);
@@ -536,8 +536,10 @@ test('reborn: readable translucent HUD at the standard desktop viewport',async({
  expect(values.selectionDetail).toBeGreaterThanOrEqual(15);
  expect(values.queue).toBeGreaterThanOrEqual(11);
  expect(values.radar).toBeGreaterThanOrEqual(10);
- expect(values.background).toContain('rgba(');
- expect(values.background).toContain('0.69');
+ expect(values.background).toContain('linear-gradient(');
+ expect(values.background).toContain('repeating-linear-gradient(');
+ const positions=await page.evaluate(()=>['.top','.tools','.command','#pause-dialog'].map(selector=>getComputedStyle(document.querySelector(selector)).position));
+ expect(positions).toEqual(['absolute','relative','absolute','fixed']);
  const visuals=await page.evaluate(()=>{
   const css=selector=>getComputedStyle(document.querySelector(selector));
   const cards=[...document.querySelectorAll('#catalog-units .catalog-card')];
@@ -548,9 +550,9 @@ test('reborn: readable translucent HUD at the standard desktop viewport',async({
    gridColumns:grid.gridTemplateColumns.split(' ').length,
    labels:cards.map(card=>({kind:card.dataset.unit,name:card.querySelector('.card-name')?.textContent?.trim()}))};
  });
- expect(visuals.commandBackground).toContain('0.69');
- expect(visuals.catalogBackground).toContain('0.66');
- expect(visuals.cardBackground).toContain('rgba(');
+ expect(visuals.commandBackground).toContain('linear-gradient(');
+ expect(visuals.catalogBackground).toContain('repeating-linear-gradient(');
+ expect(visuals.cardBackground).toContain('linear-gradient(');
  expect(visuals.gridColumns).toBe(2);
  expect(visuals.labels).toHaveLength(10);
  expect(visuals.labels.every(({name})=>Boolean(name))).toBe(true);
