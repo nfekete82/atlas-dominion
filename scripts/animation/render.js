@@ -1,5 +1,6 @@
 import * as T from 'three';
 import {buildAtlasVehicle} from './atlas-vehicles.js';
+import {referenceTankAvailable,buildReferenceTiger} from './reference-tank.js';
 import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 const cell=96,columns=16;
@@ -19,7 +20,7 @@ window.compileAtlases=async(requested)=>{
  for(const kind of Object.keys(models).filter(k=>!requested.length||requested.includes(k))){
   const character=kind in {infantry:1,engineer:1,heavy:1},[file,weapon]=models[kind];
   for(const team of [0,1]){
-   const rig=character?null:buildAtlasVehicle(kind,team);
+   const rig=character?null:(kind==='tank'&&await referenceTankAvailable()?await buildReferenceTiger(loader,team):buildAtlasVehicle(kind,team));
    const data=rig?{scene:rig.model,animations:[]}:await loader.loadAsync('/tools/animation-sources/'+file),model=data.scene??data;
    if(character)for(const name of weapons){const n=model.getObjectByName(name);if(n)n.visible=name===weapon;}
    const rotor=rig?.rotor??null;
@@ -28,7 +29,9 @@ window.compileAtlases=async(requested)=>{
    const initial=character?'Idle':null;
    if(initial){actions.get(initial).play();mixer.setTime(0);}
    pivot.updateMatrixWorld(true);const bounds=boxVisible(model),extent=bounds.getSize(new T.Vector3());
-   const scale=character?2.1/extent.y:2.8/Math.max(extent.x,extent.z);normalization.scale.setScalar(scale);
+   const referenceTank=kind==='tank'&&model.name==='Atlas_tank_reference_127';
+   const scale=character?2.1/extent.y:referenceTank?3.05/Math.max(extent.x,extent.z*.72):2.8/Math.max(extent.x,extent.z);normalization.scale.setScalar(scale);
+   if(referenceTank)normalization.position.z=-.50;
    pivot.updateMatrixWorld(true);const grounded=boxVisible(model);normalization.position.y-=grounded.min.y;
    if(file.endsWith('fbx')&&!rig)normalization.rotation.y=Math.PI/2;
    if(['scout','gunship','bomber'].includes(kind))normalization.position.y+=.75;
@@ -38,7 +41,7 @@ window.compileAtlases=async(requested)=>{
    const total=config.reduce((n,c)=>n+c[2]*directionCount,0)+(turret?32:0),canvas=document.createElement('canvas');canvas.width=columns*cell;canvas.height=Math.ceil(total/columns)*cell;const ctx=canvas.getContext('2d');
    const metadata={version:1,image:kind+'-'+team+'.png',kind,team,cell:[cell,cell],nativeScale:character?1:(nativeWidths[kind]/72),directions:directionCount,stride:character?(kind==='heavy'?58:64):34,source:rig?'Atlas original vehicle geometry':file,design:rig?model.userData.atlasDesign:undefined,palette:'Legion ceramic / bronze / dark steel / faction enamel',lighting:'ACES 1.13 / warm sun / cool fill',timeBasedLocomotion:!!rotor,rotor:!!rotor,clips:{},frames:[]};
    // Project a world-fixed ground point to y=78 without changing scale per pose.
-   const size=character?3.6:4.2;camera.left=-size/2;camera.right=size/2;camera.top=size/2;camera.bottom=-size/2;camera.updateProjectionMatrix();
+   const size=character?3.6:referenceTank?5.30:4.2;camera.left=-size/2;camera.right=size/2;camera.top=size/2;camera.bottom=-size/2;camera.updateProjectionMatrix();
    camera.position.set(0,8,12);camera.lookAt(0,0,0);camera.updateMatrixWorld();const origin=sample(new T.Vector3());const shift=(78-origin.y)*size/cell;
    camera.position.y+=shift/Math.cos(Math.atan2(8,12));camera.lookAt(0,shift/Math.cos(Math.atan2(8,12)),0);camera.updateMatrixWorld();
    const baseRotations=new Map();model.traverse(n=>{if(/Wheel_/.test(n.name))baseRotations.set(n,n.quaternion.clone());});
