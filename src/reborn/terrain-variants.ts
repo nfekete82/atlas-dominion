@@ -55,11 +55,11 @@ function palmVariant(source:HTMLImageElement,size:number,t:Treatment,index:numbe
   cc.filter=treatmentFilter(t);
   cc.drawImage(source,-size*.48,-size*.33,size,size);
   cc.filter='none';
+  cc.setTransform(1,0,0,1,0,0);
   const fade=cc.createLinearGradient(0,0,0,size*.68);
   fade.addColorStop(0,'#000');
   fade.addColorStop(.76,'#000');
   fade.addColorStop(1,'#0000');
-  cc.setTransform(1,0,0,1,0,0);
   cc.globalCompositeOperation='destination-in';
   cc.fillStyle=fade;cc.fillRect(0,0,size,size);
   cc.globalCompositeOperation='source-over';
