@@ -9,6 +9,7 @@ import { BuildingPresentation } from './building-presentation.js';
 import { TERRAIN_FRAMES, TERRAIN_PLACEMENTS } from './terrain-art.js';
 import { paintGeneratedTerrain } from './terrain-presentation.js';
 import { BattlefieldEffects, createGroundDetails, paintGroundDetails } from './battlefield-atmosphere.js';
+import { buildTerrainVariants, type TerrainVariantAtlases } from './terrain-variants.js';
 
 interface Sprite { image:HTMLImageElement|HTMLCanvasElement; x:number; y:number; w:number; h:number; center?:number; foot?:number; bodyWidth?:number; bodyHeight?:number }
 export class Renderer {
@@ -16,7 +17,7 @@ export class Renderer {
   readonly structures=new BuildingPresentation();
   readonly battlefield=new BattlefieldEffects();
   private readonly groundSprites={crater:new Image(),palm:new Image(),rocks:new Image()};
-  private groundTextures!: {crater:HTMLCanvasElement;palm:HTMLCanvasElement;rocks:HTMLCanvasElement};
+  private groundTextures!:TerrainVariantAtlases;
   private animationGame:Simulation|null=null;private seenImpacts=new WeakSet<object>();private effectTime=0;private workEmitted=new Map<string,number>();private rocketTrails=new Map<number,number>();
   readonly context:CanvasRenderingContext2D;
   readonly mini:CanvasRenderingContext2D;
@@ -74,13 +75,7 @@ export class Renderer {
       ctx.drawImage(sprite.image,sprite.x,sprite.y,sprite.w,sprite.h,0,0,c.width,c.height);ctx.globalCompositeOperation='source-in';ctx.fillStyle='#191713';ctx.fillRect(0,0,c.width,c.height);
       const image=new Image();image.src=c.toDataURL();await image.decode();this.shadows.set(sprite,{image,x:0,y:0,w:c.width,h:c.height});
     }));
-    const rasterize=(image:HTMLImageElement):HTMLCanvasElement=>{
-      const sprite=document.createElement('canvas');
-      sprite.width=Math.min(image.naturalWidth||420,768);sprite.height=Math.round(sprite.width*(image.naturalHeight||320)/(image.naturalWidth||420));
-      sprite.getContext('2d')!.drawImage(image,0,0,sprite.width,sprite.height);
-      return sprite;
-    };
-    this.groundTextures={crater:rasterize(this.groundSprites.crater),palm:rasterize(this.groundSprites.palm),rocks:rasterize(this.groundSprites.rocks)};
+    this.groundTextures=buildTerrainVariants(this.groundSprites);
     this.battlefield.setCraterSprite(this.groundTextures.crater);
     this.prepareMap();this.battlefield.reset(this.game);this.home();
   }
