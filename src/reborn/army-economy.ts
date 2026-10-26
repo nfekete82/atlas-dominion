@@ -3,7 +3,9 @@ import {distance,type Point} from './config.js';
 import {produceCombinedArmy} from './director-production.js';
 import type {Simulation,Unit,Base} from './simulation.js';
 import type {TacticalState} from './tactical-ai.js';
-export interface EconomyState {goal:BuildingKind|null;since:number;attemptAt:number;produced:Partial<Record<UnitKind,number>>;built:Partial<Record<BuildingKind,number>>}
+export type ProductionReason='produced'|'saving-unit'|'saving-building'|'insufficient-credits'|'queue-blocked'|'army-cap'|'composition-complete'|'no-producer';
+export interface ProductionDecision {reason:ProductionReason;goal:UnitKind|BuildingKind|null;missing:number}
+export interface EconomyState {goal:BuildingKind|null;since:number;attemptAt:number;produced:Partial<Record<UnitKind,number>>;built:Partial<Record<BuildingKind,number>>;production? :ProductionDecision&{at:number;facilities:Record<number,ProductionDecision>}}
 const fighter=(u:Unit)=>!u.carrier&&!['medic','engineer','scout'].includes(u.kind);
 /** A production/building policy inside the existing tactical controller, using only paid game APIs. */
 export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p:Point)=>number):void{
@@ -47,7 +49,10 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
  // Never reserve the airfield budget ahead of a working vehicle factory.
  // Early-game macro first pays for at least two actual ground vehicles.
  const reserve=e.goal&&(e.goal==='barracks'||!underAttack&&fighters.length>=3)&&g.time-e.since<85?BUILDINGS[e.goal].cost:0;
- const maxArmy=director?Math.min(36,Math.max(18,Math.floor(income/3)+10)):Math.min(30,Math.max(14,Math.floor(income/4)+8));if(g.count(1)+g.queued(1)>=maxArmy&&(!director||count('engineer')>0))return;
+ const maxArmy=director?Math.min(36,Math.max(18,Math.floor(income/3)+10)):Math.min(30,Math.max(14,Math.floor(income/4)+8));if(g.count(1)+g.queued(1)>=maxArmy&&(!director||count('engineer')>0)){
+  if(director)e.production={at:g.time,reason:'army-cap',goal:null,missing:0,facilities:Object.fromEntries(own.filter(b=>b.buildRemaining<=0).map(b=>[b.id,{reason:b.queue.length>=2?'queue-blocked':'army-cap',goal:null,missing:0}]))};
+  return;
+ }
  const wounded=army.filter(u=>!u.carrier&&unitSpec(u).group==='Infanterie'&&u.kind!=='engineer'&&u.hp<unitSpec(u).hp*.7).length;
  const armor=seen.filter(u=>!unitSpec(u).flying&&unitSpec(u).group==='Fahrzeuge').length,air=seen.filter(u=>unitSpec(u).flying).length;
  const military=g.memories[1].filter(b=>b.owner===0&&b.hp>0&&['headquarters','factory','airfield','turret'].includes(b.kind??''));
@@ -88,5 +93,7 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
 }
 const clampWait=(missing:number,income:number,secure:boolean)=>Math.min(secure?100:15,Math.max(6,missing/Math.max(1,income)*10+3));
 export function validEconomy(e:EconomyState|undefined,time:number):boolean{
- if(e===undefined)return true;return !!e&&(e.goal===null||Object.hasOwn(BUILDINGS,e.goal))&&Number.isFinite(e.since)&&e.since>=0&&e.since<=time+.001&&Number.isFinite(e.attemptAt)&&e.attemptAt>=-9&&e.attemptAt<=time+.001&&!!e.produced&&!!e.built&&Object.entries(e.produced).every(([k,v])=>Object.hasOwn(UNITS,k)&&Number.isSafeInteger(v)&&v>=0)&&Object.entries(e.built).every(([k,v])=>Object.hasOwn(BUILDINGS,k)&&Number.isSafeInteger(v)&&v>=0);
+ if(e===undefined)return true;return !!e&&(e.goal===null||Object.hasOwn(BUILDINGS,e.goal))&&Number.isFinite(e.since)&&e.since>=0&&e.since<=time+.001&&Number.isFinite(e.attemptAt)&&e.attemptAt>=-9&&e.attemptAt<=time+.001&&!!e.produced&&!!e.built&&Object.entries(e.produced).every(([k,v])=>Object.hasOwn(UNITS,k)&&Number.isSafeInteger(v)&&v>=0)&&Object.entries(e.built).every(([k,v])=>Object.hasOwn(BUILDINGS,k)&&Number.isSafeInteger(v)&&v>=0)&&
+  (e.production===undefined||(Number.isFinite(e.production.at)&&e.production.at>=0&&e.production.at<=time+.001&&validDecision(e.production)&&!!e.production.facilities&&Object.entries(e.production.facilities).length<=40&&Object.entries(e.production.facilities).every(([id,d])=>Number.isSafeInteger(Number(id))&&Number(id)>=0&&validDecision(d))));
 }
+const validDecision=(d:ProductionDecision)=>!!d&&['produced','saving-unit','saving-building','insufficient-credits','queue-blocked','army-cap','composition-complete','no-producer'].includes(d.reason)&&(d.goal===null||Object.hasOwn(UNITS,d.goal)||Object.hasOwn(BUILDINGS,d.goal))&&Number.isFinite(d.missing)&&d.missing>=0;

@@ -484,7 +484,9 @@ export class Simulation {
       } else if(enemy&&order?.kind==='attack'){
         delete u.burst;
         // A direct attack command is authoritative and can pursue beyond the guard leash.
-        if(!u.path.length||u.repath<=0){u.path=[];u.repath=0;}
+        // Empty failed paths retain move()'s existing retry timer. Clearing it
+        // here used to repeat an unreachable search on every fixed tick.
+        if(u.repath<=0)u.path=[];
         this.move(u,enemy,dt);
       } else if(enemy&&!u.hold&&u.kind!=='medic'&&u.kind!=='engineer'&&u.kind!=='scout'){
         delete u.burst;
@@ -492,7 +494,7 @@ export class Simulation {
         // farther than a short distance from where contact began.
         if(!u.pursuitOrigin){u.pursuitOrigin={x:u.x,y:u.y};u.path=[];u.repath=0;}
         if(distance(u,u.pursuitOrigin)<160){
-          if(!u.path.length||u.repath<=0){u.path=[];u.repath=0;}
+          if(u.repath<=0)u.path=[];
           this.move(u,enemy,dt);
         } else if(order?.kind==='attackMove'&&u.owner===1&&this.world.mapVersion>=3&&this.tactical.mode==='director'){
           // The leash limits a diversion, not progress towards the mission.
@@ -508,7 +510,7 @@ export class Simulation {
           const home=u.pursuitOrigin;
           if(order||distance(u,home)<18){u.pursuitOrigin=null;u.path=[];u.repath=0;}
           else {
-            if(!u.path.length||u.repath<=0){u.path=[];u.repath=0;}
+            if(u.repath<=0)u.path=[];
             this.move(u,home,dt);
             continue;
           }

@@ -57,6 +57,7 @@ test('commander: unchanged structure orders survive macro pulses without resetti
  const tank=g.spawn(1,{x:home.x-200,y:home.y+160},'tank'),heavy=g.spawn(1,{x:home.x-250,y:home.y+160},'heavy'),arty=g.spawn(1,{x:home.x-300,y:home.y+160},'artillery');
  g.memories[1].push({id:hq.id,kind:hq.kind,owner:0,x:hq.x,y:hq.y,hp:hq.hp,territory:hq.territory});
  const s=g.tactical.state;s.phase='attack';s.group=[tank.id,heavy.id,arty.id];s.launchSize=3;g.time=50;
+ s.commander=newCampaign();s.commander.mission={kind:'structure',x:hq.x,y:hq.y,sector:hq.territory,objective:hq.id,hp:hq.hp,since:50,progressAt:50,distance:3000};
  g.tactical.plan();const orders=tank.orders;assert.equal(orders[0].target,hq.id);
  tank.path=[{x:tank.x-50,y:tank.y+50}];g.time+=3;g.tactical.plan();
  assert.equal(tank.orders,orders);assert.equal(tank.path.length,1);

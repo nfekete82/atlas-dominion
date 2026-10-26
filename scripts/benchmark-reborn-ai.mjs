@@ -39,6 +39,21 @@ export function parseOptions(argv){
  return result;
 }
 
+/** Idle inference is deliberately conservative for old commits without telemetry.
+ * It describes producer-seconds, not hypothetical units that could be afforded. */
+export function productionIdleReason(g,b,UNITS){
+ const s=g.tactical.state,d=s.economy?.production,facility=d?.facilities?.[b.id];
+ if(facility)return {reason:facility.reason==='produced'&&!b.queue.length?'awaiting-next-plan':facility.reason,source:'controller'};
+ if(b.queue.length>=2)return {reason:'queue-blocked',source:'inferred'};
+ if(b.queue.length)return {reason:'queue-running',source:'inferred'};
+ if(g.count(1)+(g.queued?.(1)??0)>=48)return {reason:'army-cap',source:'inferred'};
+ if(s.savingFor){const cost=UNITS[s.savingFor]?.cost;if(cost>g.credits[1])return {reason:'saving-unit',source:'inferred'};}
+ if(s.economy?.goal)return {reason:'saving-building',source:'inferred'};
+ const legal=Object.values(UNITS).filter(u=>u.producers?.includes(b.kind));
+ if(legal.length&&legal.every(u=>u.cost>g.credits[1]))return {reason:'insufficient-credits',source:'inferred'};
+ return {reason:'unexplained-idle',source:'inferred'};
+}
+
 /** Kept separate from CLI so observer accounting can be checked without running/building matches. */
 export function runMatch({Simulation,UNITS,performanceModule},options,seed,mode,version){
  const g=new Simulation(seed,version);g.tactical.mode=mode;
@@ -53,7 +68,7 @@ export function runMatch({Simulation,UNITS,performanceModule},options,seed,mode,
  const startingRedSectors=g.territories.filter(t=>t.owner===1).length;
  const metrics={seed,mode,mapVersion:version,label:options.label,opponent:options.opponent,initialStateHash,initialStateHashScope:'playable-world-v1',
   requestedSeconds:options.seconds,elapsedSeconds:0,terminalStatus:'playing',outcome:'timeout',win:false,loss:false,
-  initialCredits:g.credits[1],firstAssault:null,firstOrganizedAttack:null,firstVehicle:null,firstTank:null,
+  initialCredits:g.credits[1],initialComposition:{red:Object.fromEntries(Object.keys(UNITS).map(k=>[k,g.units.filter(u=>u.owner===1&&u.kind===k).length])),blue:Object.fromEntries(Object.keys(UNITS).map(k=>[k,g.units.filter(u=>u.owner===0&&u.kind===k).length]))},firstAssault:null,firstOrganizedAttack:null,firstVehicle:null,firstTank:null,
   firstArtillery:null,firstAircraft:null,firstEnemyHQSeen:null,firstEnemyHQDamage:null,firstEnemyHQDestroyed:null,
   enemyHQSeen:false,enemyHQDamaged:false,enemyHQDestroyed:false,enemyHQCaptured:false,enemyHQDamage:0,
   blueHeadquartersHp:initialHQHp,enemyBuildingsSeen:0,enemyBuildingsDamaged:0,enemyBuildingsDestroyed:0,
@@ -61,7 +76,7 @@ export function runMatch({Simulation,UNITS,performanceModule},options,seed,mode,
   finishedBuildings:0,vehicles:0,peakVehicles:0,peakArmy:0,peakAircraft:0,vehiclesOrdered:0,vehicleOrdersByKind:{},
   redOrdersByKind:{},redProducedByKind:{},blueProducedByKind:{},redLossesByKind:{},blueLossesByKind:{},
   paidRecruitCredits:0,refundedRecruitCredits:0,vehiclesProduced:0,aircraftProduced:0,
-  redSectors:startingRedSectors,captures:0,netCaptures:0,territoriesLost:0,
+  redSectors:startingRedSectors,captures:0,netCaptures:0,territoriesLost:0,blueCaptures:0,blueTerritoriesLost:0,
   blueUnitsLost:0,redUnitsLost:0,blueUnitDamage:0,redUnitDamage:0,redUnits:0,redCredits:0,
   firstVehicleShot:null,vehicleShots:0,shotsByKind:{},damageByRedKind:{},
   vehicleDeaths:0,vehicleRepairHp:0,vehicleEvacuations:0,vehicleReturned:0,repairedVehiclesReused:0,
@@ -69,7 +84,10 @@ export function runMatch({Simulation,UNITS,performanceModule},options,seed,mode,
   parallelProductionSeconds:0,tripleProductionSeconds:0,maxParallelProducers:0,
   productionSeconds:{barracks:{available:0,busy:0,idle:0},factory:{available:0,busy:0,idle:0},airfield:{available:0,busy:0,idle:0}},
   phaseTransitions:0,commanderTransitions:0,commanderSeconds:{},missionCount:0,abortedMissions:0,unfinishedMissions:0,stalledMissions:0,
-  commands:0,unitCommands:0,attackCommands:0,buildingAttackCommands:0,missionEvents:[],timeline:[],score:0,wallMs:0,cpu:null};
+  commands:0,unitCommands:0,attackCommands:0,buildingAttackCommands:0,repeatedUnitCommands:0,rapidUnitOrderChanges:0,
+  productionIdleReasons:{},productionIdleReasonSources:{},productionDecisionReasons:{},bluePaidOrdersByKind:{},bluePaidRecruitCredits:0,
+  paidBuildCredits:0,bluePaidBuildCredits:0,paidBuildingsByKind:{},bluePaidBuildingsByKind:{},
+  battleReactions:0,battleRetreats:0,reinforcements:0,counterattacks:0,enemyBuildingKillsByKind:{},missionEvents:[],timeline:[],score:0,wallMs:0,cpu:null};
  const initialUnits=new Set(g.units.map(u=>u.id)),bornUnits=new Set(initialUnits);
  const unitsKnown=new Map(g.units.map(u=>[u.id,{owner:u.owner,kind:u.kind}]));
  const buildingsKnown=new Map(g.bases.map(b=>[b.id,{owner:b.owner,kind:b.kind}]));
@@ -78,22 +96,28 @@ export function runMatch({Simulation,UNITS,performanceModule},options,seed,mode,
  let previousBases=new Map(g.bases.filter(b=>b.hp>0).map(b=>[b.id,{owner:b.owner,kind:b.kind,hp:b.hp}]));
  let previousOwnership=new Map(g.territories.map(t=>[t.id,t.owner])),previousRecovery=new Set();
  let phase=g.tactical.state.phase,commanderPhase=null,mission=null,nextTimeline=0;
- const stepTimes=[];
+ const exactKilledBuildings=new WeakSet();
+ const stepTimes=[],phaseTimes={};
+ if(recorder){const record=recorder.record.bind(recorder);recorder.record=(phase,ms,...rest)=>{(phaseTimes[phase]??=[]).push(ms);return record(phase,ms,...rest);};}
  const time=()=>round(g.time);
  // Transparent observers on successful public APIs count accepted paid orders,
  // rather than assuming an economy intention counter means a unit was built.
  const recruit=g.recruit.bind(g);
  g.recruit=(id,kind)=>{
-  const building=g.bases.find(b=>b.id===id),before=g.credits[1],ok=recruit(id,kind);
+  const building=g.bases.find(b=>b.id===id),before=g.credits[1],beforeBlue=g.credits[0],ok=recruit(id,kind);
   if(ok&&building?.owner===1){increment(metrics.redOrdersByKind,building.queueTypes.at(-1));metrics.paidRecruitCredits+=before-g.credits[1];}
+  if(ok&&building?.owner===0){increment(metrics.bluePaidOrdersByKind,building.queueTypes.at(-1));metrics.bluePaidRecruitCredits+=beforeBlue-g.credits[0];}
   return ok;
  };
  const cancel=g.cancel.bind(g);
  g.cancel=(...args)=>{const before=g.credits[1],result=cancel(...args);metrics.refundedRecruitCredits+=Math.max(0,g.credits[1]-before);return result;};
- const command=g.command.bind(g);
+ if(typeof g.build==='function'){const build=g.build.bind(g);g.build=(owner,kind,...args)=>{const before=g.credits[owner],result=build(owner,kind,...args);if(result){metrics[owner===1?'paidBuildCredits':'bluePaidBuildCredits']+=before-g.credits[owner];increment(metrics[owner===1?'paidBuildingsByKind':'bluePaidBuildingsByKind'],kind);}return result;};}
+ const lastOrders=new Map(),command=g.command.bind(g);
  g.command=(ids,order,...rest)=>{
   const redIds=ids.filter(id=>g.units.some(u=>u.id===id&&u.owner===1&&u.hp>0));
   if(redIds.length){metrics.commands++;metrics.unitCommands+=redIds.length;
+   const signature=JSON.stringify({kind:order.kind,target:order.target,x:Math.round(order.x??0),y:Math.round(order.y??0)});
+   for(const id of redIds){const old=lastOrders.get(id);if(old?.signature===signature)metrics.repeatedUnitCommands++;else if(old&&g.time-old.at<3)metrics.rapidUnitOrderChanges++;lastOrders.set(id,{signature,at:g.time});}
    if(order.kind==='attack'){metrics.attackCommands++;if(g.bases.some(b=>b.id===order.target&&b.owner===0))metrics.buildingAttackCommands++;}}
   return command(ids,order,...rest);
  };
@@ -108,7 +132,7 @@ export function runMatch({Simulation,UNITS,performanceModule},options,seed,mode,
    if(owner===0&&damage>0){
     if(building){metrics.enemyBuildingDamage+=damage;damagedBuildings.add(target.id);
      if(target.id===initialHQId){metrics.enemyHQDamage+=damage;metrics.firstEnemyHQDamage??=time();}
-     if(target.hp<=0){destroyedBuildings.add(target.id);if(target.id===initialHQId)metrics.firstEnemyHQDestroyed??=time();}
+     if(target.hp<=0){if(!exactKilledBuildings.has(target)){exactKilledBuildings.add(target);increment(metrics.enemyBuildingKillsByKind,target.kind??'unknown');}destroyedBuildings.add(target.id);if(target.id===initialHQId)metrics.firstEnemyHQDestroyed??=time();}
     }else metrics.blueUnitDamage+=damage;
     const sourceKind=unitsKnown.get(source)?.kind??g.units.find(u=>u.id===source)?.kind??buildingsKnown.get(source)?.kind??g.bases.find(b=>b.id===source)?.kind??'unknown';
     metrics.damageByRedKind[sourceKind]=(metrics.damageByRedKind[sourceKind]??0)+damage;
@@ -163,6 +187,7 @@ export function runMatch({Simulation,UNITS,performanceModule},options,seed,mode,
    for(const t of g.territories){const previous=previousOwnership.get(t.id);
     if(previous!==1&&t.owner===1)metrics.captures++;
     if(previous===1&&t.owner!==1)metrics.territoriesLost++;
+    if(previous!==0&&t.owner===0)metrics.blueCaptures++;if(previous===0&&t.owner!==0)metrics.blueTerritoriesLost++;
    }
    previousOwnership=new Map(g.territories.map(t=>[t.id,t.owner]));
    for(const b of g.memories[1])if(b.owner===0&&b.hp>0){seenBuildings.add(b.id);if(b.id===initialHQId)metrics.firstEnemyHQSeen??=now;}
@@ -192,15 +217,17 @@ export function runMatch({Simulation,UNITS,performanceModule},options,seed,mode,
    if(phase!==s.phase){metrics.phaseTransitions++;phase=s.phase;}
    const strategic=s.commander?.phase??s.strategy?.phase??'unavailable';
    metrics.commanderSeconds[strategic]=(metrics.commanderSeconds[strategic]??0)+dt;
-   if(commanderPhase!==null&&commanderPhase!==strategic)metrics.commanderTransitions++;
+   if(commanderPhase!==null&&commanderPhase!==strategic){metrics.commanderTransitions++;if(commanderPhase==='emergencyDefense'&&['offensive','siege','endgame'].includes(strategic))metrics.counterattacks++;}
    commanderPhase=strategic;
    if(mission&&(s.phase!=='attack'||s.groupId!==mission.groupId||s.target!==mission.target||s.objective!==mission.objective))endMission('aborted');
    if(s.phase==='attack'&&!mission){metrics.missionCount++;mission={groupId:s.groupId,target:s.target,objective:s.objective,started:now,units:[...s.group],stalled:false};}
-   if(mission){for(const id of s.group)if(!mission.units.includes(id))mission.units.push(id);
+   if(mission){for(const id of s.group)if(!mission.units.includes(id)){mission.units.push(id);metrics.reinforcements++;}
     if(!mission.stalled&&g.time-s.progressAt>95){mission.stalled=true;metrics.stalledMissions++;}}
    let busyProducers=0;
    for(const b of g.bases)if(b.owner===1&&b.hp>0&&b.buildRemaining===0&&producers.includes(b.kind)){
-    const p=metrics.productionSeconds[b.kind];p.available+=dt;p[b.queue.length?'busy':'idle']+=dt;
+    const p=metrics.productionSeconds[b.kind];p.available+=dt;
+    const decision=productionIdleReason(g,b,UNITS);metrics.productionDecisionReasons[decision.reason]=(metrics.productionDecisionReasons[decision.reason]??0)+dt;
+    if(!b.queue.length){const idle=decision;metrics.productionIdleReasons[idle.reason]=(metrics.productionIdleReasons[idle.reason]??0)+dt;metrics.productionIdleReasonSources[idle.source]=(metrics.productionIdleReasonSources[idle.source]??0)+dt;}p[b.queue.length?'busy':'idle']+=dt;
     if(b.queue.length){busyProducers++;metrics['productive'+b.kind[0].toUpperCase()+b.kind.slice(1)+'Seconds']+=dt;}
     if(b.kind==='factory')metrics.firstFactory??=now;
    }
@@ -214,7 +241,7 @@ export function runMatch({Simulation,UNITS,performanceModule},options,seed,mode,
    }
    if(g.time>=nextTimeline){
     const hq=g.bases.find(b=>b.id===initialHQId);
-    metrics.timeline.push({at:now,credits:round(g.credits[1]),income:g.income(1),phase:s.phase,commander:strategic,
+    metrics.timeline.push({at:now,credits:round(g.credits[1]),income:g.income(1),phase:s.phase,commander:strategic,adaptive:s.adaptive?.strategy??null,battle:s.battle?.assessment??null,
      mission:s.commander?.mission?.kind??null,target:s.target,objective:s.objective,group:s.group.length,
      redUnits:red.length,blueUnits:g.count(0),blueBuildings:g.bases.filter(b=>b.owner===0&&b.hp>0).map(b=>({id:b.id,kind:b.kind,hp:round(b.hp)})),
      sectors:g.territories.filter(t=>t.owner===1).length,produced:{...metrics.redProducedByKind},
@@ -230,22 +257,27 @@ export function runMatch({Simulation,UNITS,performanceModule},options,seed,mode,
   metrics.enemyHQSeen=metrics.firstEnemyHQSeen!==null;metrics.enemyHQDamaged=metrics.enemyHQDamage>0;
   metrics.enemyHQDestroyed=destroyedBuildings.has(initialHQId);metrics.enemyHQCaptured=hq?.owner===1;
   metrics.enemyBuildingsSeen=seenBuildings.size;metrics.enemyBuildingsDamaged=damagedBuildings.size;metrics.enemyBuildingsDestroyed=destroyedBuildings.size;
-  metrics.enemyTowersDestroyed=[...destroyedBuildings].filter(id=>buildingsKnown.get(id)?.kind==='turret').length;
+  metrics.enemyTowersDestroyed=exactDamage?(metrics.enemyBuildingKillsByKind.turret??0):[...destroyedBuildings].filter(id=>buildingsKnown.get(id)?.kind==='turret').length;
+  if(exactDamage)metrics.enemyBuildingsDestroyed=sum(metrics.enemyBuildingKillsByKind);
   metrics.vehicleOrdersByKind=Object.fromEntries(Object.entries(metrics.redOrdersByKind).filter(([kind])=>vehicles.has(kind)));
   metrics.vehiclesOrdered=sum(metrics.vehicleOrdersByKind);
   metrics.vehiclesProduced=sum(Object.fromEntries(Object.entries(metrics.redProducedByKind).filter(([kind])=>vehicles.has(kind))));
   metrics.aircraftProduced=sum(Object.fromEntries(Object.entries(metrics.redProducedByKind).filter(([kind])=>aircraft.has(kind))));
   metrics.redSectors=g.territories.filter(t=>t.owner===1).length;metrics.netCaptures=metrics.redSectors-startingRedSectors;
+  metrics.battleReactions=g.tactical.state.battle?.reactions??0;metrics.battleRetreats=g.tactical.state.battle?.retreats??0;
+  metrics.counterattackDefinition='emergencyDefense to offensive/siege/endgame commander transitions';
+  metrics.finalComposition={red:Object.fromEntries(Object.keys(UNITS).map(k=>[k,g.units.filter(u=>u.owner===1&&u.kind===k&&u.hp>0).length])),blue:Object.fromEntries(Object.keys(UNITS).map(k=>[k,g.units.filter(u=>u.owner===0&&u.kind===k&&u.hp>0).length]))};
   metrics.redUnits=g.count(1);metrics.redCredits=Math.round(g.credits[1]);metrics.repairedVehiclesReused=reusedVehicles.size;
   metrics.vehicles=g.units.filter(u=>u.owner===1&&vehicles.has(u.kind)&&u.hp>0).length;
   metrics.finishedBuildings=g.bases.filter(b=>b.owner===1&&b.hp>0&&b.buildRemaining===0&&producers.includes(b.kind)).length;
   metrics.score=Number(metrics.win)*10000+Number(metrics.enemyHQDestroyed)*2000+metrics.captures*100+metrics.blueUnitsLost*20+(metrics.firstFrontContact!==null?10:0)+Math.min(6,metrics.vehicles)*4;
   stepTimes.sort((a,b)=>a-b);
   const percentile=p=>stepTimes[Math.max(0,Math.ceil(stepTimes.length*p)-1)]??0;
-  metrics.cpu={scope:'Node simulation ticks; excludes rendering and benchmark observation between ticks',steps:stepTimes.length,
+  metrics.cpu={scope:'Node simulation ticks including transparent API telemetry; excludes rendering, opponent actor and benchmark observation between ticks',steps:stepTimes.length,
    stepMs:{mean:stepTimes.reduce((n,v)=>n+v,0)/Math.max(1,stepTimes.length),p95:percentile(.95),p99:percentile(.99),max:stepTimes.at(-1)??0},
-   phases:recorder?.snapshot().phases??null,pathfinding:recorder?.snapshot().pathfinding??null};
+   phases:recorder?Object.fromEntries(Object.entries(recorder.snapshot().phases).map(([phase,value])=>{const samples=(phaseTimes[phase]??[]).sort((a,b)=>a-b);return [phase,{...value,p95Ms:samples[Math.max(0,Math.ceil(samples.length*.95)-1)]??0,p99Ms:samples[Math.max(0,Math.ceil(samples.length*.99)-1)]??0}];})):null,pathfinding:recorder?.snapshot().pathfinding??null};
   metrics.attackingSeconds=round(metrics.attackingSeconds);
+  for(const o of [metrics.productionIdleReasons,metrics.productionIdleReasonSources,metrics.productionDecisionReasons])for(const k of Object.keys(o))o[k]=round(o[k]);
   for(const p of Object.values(metrics.productionSeconds))for(const key of Object.keys(p))p[key]=round(p[key]);
   for(const key of Object.keys(metrics.commanderSeconds))metrics.commanderSeconds[key]=round(metrics.commanderSeconds[key]);
   for(const key of ['vehicleRepairHp','enemyHQDamage','enemyBuildingDamage','blueUnitDamage','redUnitDamage','productiveFactorySeconds','productiveBarracksSeconds','productiveAirfieldSeconds','parallelProductionSeconds','tripleProductionSeconds'])metrics[key]=round(metrics[key]);

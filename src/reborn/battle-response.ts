@@ -1,5 +1,5 @@
 import {RULES,distance,type Point} from './config.js';
-import {unitSpec,weaponDamage} from './catalog.js';
+import {unitSpec,weaponDamage,canAttack} from './catalog.js';
 import type {Unit} from './simulation.js';
 
 /** Original Atlas doctrine: estimates use HP, real damage/cooldown and range.
@@ -18,13 +18,26 @@ export function fightingPower(units:readonly Unit[],armored=false):number{
   return n+Math.sqrt(u.hp*damage/s.cooldown)*(s.range>=RULES.turret.range?1.15:1);
  },0);
 }
+/** Match weapon damage to the observed opposing roster. HP weights prevent a
+ * token infantry screen from making an otherwise airborne army look hittable.
+ * No target lookup is permitted here: callers supply visible units/memories. */
+export function fightingPowerAgainst(units:readonly Unit[],targets:readonly Unit[],towers:readonly ObservedTower[]=[]):number{
+ const enemies=targets.filter(fighting),hp=enemies.reduce((n,u)=>n+u.hp,0)+towers.reduce((n,t)=>n+t.hp,0);
+ if(hp<=0)return fightingPower(units);
+ return units.filter(fighting).reduce((n,u)=>{
+  const spec=unitSpec(u);
+  const mobile=enemies.reduce((d,t)=>d+(canAttack(u,t)?weaponDamage(u,t)*t.hp:0),0);
+  const fort=towers.reduce((d,t)=>d+weaponDamage(u,{kind:'turret',queue:[]})*t.hp,0);
+  return n+Math.sqrt(u.hp*(mobile+fort)/hp/spec.cooldown)*(spec.range>=RULES.turret.range?1.15:1);
+ },0);
+}
 export function assessBattle(units:readonly Unit[],enemies:readonly Unit[],towers:readonly ObservedTower[],at:number,engaged=false):BattleAssessment{
- const own=fightingPower(units,towers.length>0),mobile=fightingPower(enemies),siege=units.filter(u=>fighting(u)&&u.kind==='artillery').length;
+ const own=fightingPowerAgainst(units,enemies,towers),mobile=fightingPowerAgainst(enemies,units),siege=units.filter(u=>fighting(u)&&u.kind==='artillery').length;
  const fort=towers.reduce((n,t)=>n+Math.sqrt(t.hp*RULES.turret.damage/RULES.turret.cooldown)*1.35,0),enemy=mobile+fort;
  const neededSiege=towers.length?Math.min(3,Math.ceil(towers.length/2)):0;
  // Artillery's genuine range advantage changes the engagement: screens need
  // to contain mobile defenders, rather than absorb every tower simultaneously.
- const screens=fightingPower(units.filter(u=>u.kind!=='artillery'));
+ const screens=fightingPowerAgainst(units.filter(u=>u.kind!=='artillery'),enemies);
  const canSiege=siege>0&&screens>=mobile*.9&&units.filter(fighting).length>=2;
  const required=enemy*1.15,deficit=Math.max(0,required-own);
  const stance=towers.length&&canSiege?'siege':own>=required&&own>0?'attack':engaged&&own<enemy*.8?'withdraw':'reinforce';
