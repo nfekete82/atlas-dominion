@@ -37,13 +37,13 @@ export function createGroundDetails(world: World, importantSites: readonly Point
 
 /** Art-directed vector sprites: detailed surfaces are rendered by the browser, not approximated with primitive polygons. */
 export interface GroundSprites {
-  crater: HTMLImageElement;
-  palm: HTMLImageElement;
-  rocks: HTMLImageElement;
+  crater: CanvasImageSource;
+  palm: CanvasImageSource;
+  rocks: CanvasImageSource;
 }
 
 /** Rims and cavities have separately lit textures; irregular sprite edge merges with the sand. */
-export function paintCrater(c:CanvasRenderingContext2D,p:Point,radius:number,rotation:number,alpha:number,sprite:HTMLImageElement):void {
+export function paintCrater(c:CanvasRenderingContext2D,p:Point,radius:number,rotation:number,alpha:number,sprite:CanvasImageSource):void {
   const w=radius*3.4,h=radius*2.5;
   c.save();c.translate(p.x,p.y);
   // Keep light coming from the same direction on all terrain objects.
@@ -86,8 +86,8 @@ export class BattlefieldEffects {
   private units=new Map<number,PreviousUnit>();
   private bases=new Map<number,PreviousBase>();
   private hits=0;
-  private craterSprite:HTMLImageElement|null=null;
-  setCraterSprite(image:HTMLImageElement):void{this.craterSprite=image;}
+  private craterSprite:CanvasImageSource|null=null;
+  setCraterSprite(image:CanvasImageSource):void{this.craterSprite=image;}
   get markCount():number{return this.marks.length;}
   get smokeCount():number{return this.clouds.length;}
 
