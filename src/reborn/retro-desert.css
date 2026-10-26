@@ -34,7 +34,6 @@ button:focus-visible,a:focus-visible,canvas:focus-visible {
   outline-offset:2px;
 }
 .hud,dialog {
-  position:relative;
   color:#e7dcc6;
   background-color:#25251f;
   background-image:
