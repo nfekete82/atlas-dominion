@@ -7,8 +7,8 @@
     "name": "Kaserne",
     "kind": "barracks",
     "team": 1,
-    "parts": 126,
-    "triangles": 60112,
+    "parts": 158,
+    "triangles": 78928,
     "geometry": "Atlas original ceramic / bronze building geometry",
     "source": "Atlas Dominion / original procedural models"
   },

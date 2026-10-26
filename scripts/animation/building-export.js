@@ -1,6 +1,7 @@
 import * as T from 'three';import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';import {buildAtlasBuilding,buildingNames} from './atlas-buildings.js';
 import {loadRefinedHeadquarters} from './refined-headquarters.js';
 import {loadRefinedBastion} from './refined-bastion.js';
+import {applyFieldFinish} from './field-weathering.js';
 const size=512,pivot=[256,382],renderer=new T.WebGLRenderer({alpha:true,antialias:true,preserveDrawingBuffer:true});renderer.setSize(size,size);renderer.setClearColor(0,0);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.13;
 const scene=new T.Scene(),camera=new T.OrthographicCamera(-3.4,3.4,3.4,-3.4,.01,100);camera.position.set(0,8,12);camera.lookAt(0,0,0);camera.updateMatrixWorld();
 const shift=(pivot[1]-256)*6.8/size,offset=shift/Math.cos(Math.atan2(8,12));camera.position.y+=offset;camera.lookAt(0,offset,0);camera.updateMatrixWorld();
@@ -12,6 +13,7 @@ async function layer(prefix,label,canvases,period){const boxes=canvases.map(c=>b
 window.exportBuildings=async(requested)=>{
  for(const kind of Object.keys(buildingNames).filter(k=>!requested.length||requested.includes(k)))for(const team of kind==='bastion'?[0,1,-1]:[0,1]){
   const {model,clips,dish,beacon,sweep,turret}=kind==='headquarters'?await loadRefinedHeadquarters(team):kind==='bastion'?await loadRefinedBastion(team):buildAtlasBuilding(kind,team),prefix=kind+'-'+team;
+  applyFieldFinish(model,kind);
   const glb=await new GLTFExporter().parseAsync(model,{binary:true,animations:clips,onlyVisible:true,maxTextureSize:kind==='turret'?512:256});await window.saveBuilding(prefix+'.glb',Array.from(new Uint8Array(glb)));
   const turn=new T.Group();turn.rotation.y=Math.PI/4;turn.add(model);scene.add(turn);if(dish)dish.visible=false;if(beacon)beacon.visible=false;if(sweep)sweep.visible=false;if(turret)turret.visible=false;floor.visible=true;
   const body=snapshot();let solidBounds=bounds(body);await window.saveBuilding(prefix+'.png',body.toDataURL('image/png'));
