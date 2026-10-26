@@ -1,0 +1,32 @@
+name: Desert battlefield regression
+
+on:
+  push:
+    branches: [feat/cinematic-desert-battlefield-20261026]
+  pull_request:
+    branches: [main]
+    paths:
+      - src/reborn/battlefield-atmosphere.ts
+      - src/reborn/desert-infrastructure.ts
+      - src/reborn/renderer.ts
+      - tests/reborn-desert-cinematics.test.mjs
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - name: Compile complete game
+        run: npm run build
+      - name: Test cinematic FX and deterministic environment
+        run: node --test tests/reborn-desert-cinematics.test.mjs tests/reborn-battlefield-atmosphere.test.mjs
