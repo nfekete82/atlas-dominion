@@ -1,0 +1,27 @@
+name: Capture mechanics regression
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/reborn/simulation.ts'
+      - 'src/reborn/renderer.ts'
+      - 'tests/reborn-capture-feedback.test.mjs'
+      - '.github/workflows/capture-regression.yml'
+permissions:
+  contents: read
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Build and test capture blockers, group formation and historic RTS captures
+        run: |
+          npm run build
+          node --test tests/reborn-capture-feedback.test.mjs tests/reborn.test.mjs
