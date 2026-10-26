@@ -14,7 +14,7 @@ const query=new URLSearchParams(location.search);
 const createCampaign=()=>query.has('debug')&&query.has('legacy')?new Simulation():Simulation.campaign(query.has('debug')&&query.has('seed')?Number(query.get('seed'))>>>0:undefined);
 let game=createCampaign();
 const renderer=new Renderer(el<HTMLCanvasElement>('world'),el<HTMLCanvasElement>('minimap'),game),input=new Input(renderer),audio=new Soundscape();
-let accumulator=0,last=performance.now(),uiClock=0,resultShown=false,busy=false,ready=false,hasEnteredCampaign=false,selectionSound='',catalogTab='units';
+let accumulator=0,last=performance.now(),uiClock=0,resultShown=false,busy=false,ready=false,hasEnteredCampaign=query.has('debug'),selectionSound='',catalogTab='units';
 const messages:{time:string;message:string}[]=[];
 try{const s=JSON.parse(localStorage.getItem('atlas-reborn-sound')??'null');if(s){audio.setEnabled(s.enabled!==false);audio.setVolume(Number.isFinite(s.volume)?s.volume:.6);audio.ambience=s.ambience!==false;}}catch{/* Optional local preferences. */}
 const timestamp=()=>`${Math.floor(game.time/60).toString().padStart(2,'0')}:${Math.floor(game.time%60).toString().padStart(2,'0')}`;
