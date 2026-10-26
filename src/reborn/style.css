@@ -310,9 +310,10 @@ dialog{position:fixed;color:#e1e5df;max-width:730px;width:calc(100% - 36px);padd
   linear-gradient(90deg,rgba(10,17,19,.89) 0%,rgba(17,21,23,.77) 27%,rgba(21,24,24,.44) 49%,rgba(11,15,18,.12) 78%),
   linear-gradient(0deg,rgba(7,11,15,.35),transparent 30%,rgba(7,11,15,.12) 100%),
   url('/src/assets/reborn/start-screen.png'),
+  url('/src/assets/reborn/start-screen.avif'),
   url('/src/assets/reborn/menu-desert.png');
- background-position:center,center,59% center,center;
- background-size:cover,cover,cover,cover;
+ background-position:center,center,59% center,59% center,center;
+ background-size:cover,cover,cover,cover,cover;
  background-repeat:no-repeat;
 }
 #main-dialog[open]{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:0}
@@ -340,8 +341,8 @@ dialog{position:fixed;color:#e1e5df;max-width:730px;width:calc(100% - 36px);padd
 #main-dialog .menu-button:focus-visible{outline:3px solid #e9c27b;outline-offset:3px}
 @media(max-width:720px){
  #main-dialog{padding:30px 22px;
-  background-image:linear-gradient(90deg,#0b151be8 0%,#152026d5 50%,#182024a6 100%),url('/src/assets/reborn/start-screen.png'),url('/src/assets/reborn/menu-desert.png');
-  background-position:center,65% center,center;background-size:cover}
+  background-image:linear-gradient(90deg,#0b151be8 0%,#152026d5 50%,#182024a6 100%),url('/src/assets/reborn/start-screen.png'),url('/src/assets/reborn/start-screen.avif'),url('/src/assets/reborn/menu-desert.png');
+  background-position:center,65% center,65% center,center;background-size:cover}
  #main-dialog[open]{justify-content:center}
  #main-dialog .menu-brand .emblem{height:47px;width:40px;font-size:42px}
  #main-dialog .menu-brand .brand-copy b{font-size:25px}
