@@ -325,7 +325,7 @@ dialog>small,dialog form>small,.panel-heading,.help-grid h2 {color:#d8b983;}
   border:0;
   background:transparent;
   color:#e5c38a;
-  font:700 13px/1.15 var(--display);
+  font:700 14px/1.15 var(--display);
   text-align:right;
   white-space:nowrap;
 }
