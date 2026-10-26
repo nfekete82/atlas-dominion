@@ -297,3 +297,55 @@ dialog{position:fixed;color:#e1e5df;max-width:730px;width:calc(100% - 36px);padd
  .command #selection-detail{font-size:11px;line-height:1.25}
  .command #selection-health{font-size:10px}
 }
+/* Fullscreen RTS title screen. Keep the live battle and its HUD behind the modal.
+   The shipped menu-desert is a fallback until the splash artwork is installed. */
+#main-dialog{
+ box-sizing:border-box;inset:0;margin:0;
+ width:100vw;max-width:none;height:100dvh;max-height:none;
+ padding:clamp(28px,5vw,90px) clamp(24px,6vw,112px);
+ border:0;border-radius:0;clip-path:none;overflow-x:hidden;overflow-y:auto;
+ color:#f6eee0;box-shadow:none;
+ background-color:#6a472e;
+ background-image:
+  linear-gradient(90deg,rgba(10,17,19,.89) 0%,rgba(17,21,23,.77) 27%,rgba(21,24,24,.44) 49%,rgba(11,15,18,.12) 78%),
+  linear-gradient(0deg,rgba(7,11,15,.35),transparent 30%,rgba(7,11,15,.12) 100%),
+  url('/src/assets/reborn/start-screen.png'),
+  url('/src/assets/reborn/menu-desert.png');
+ background-position:center,center,59% center,center;
+ background-size:cover,cover,cover,cover;
+ background-repeat:no-repeat;
+}
+#main-dialog[open]{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:0}
+#main-dialog::backdrop{background:#070c10}
+#main-dialog .menu-brand{justify-content:flex-start;margin:0 0 clamp(18px,4vh,38px);position:relative;z-index:1}
+#main-dialog .menu-brand .emblem{color:#e5c27e;opacity:1;font-size:52px;height:60px;width:55px}
+#main-dialog .menu-brand .brand-copy{font-size:16px;letter-spacing:2.2px;color:#f0dfbc}
+#main-dialog .menu-brand .brand-copy b{font-size:clamp(25px,3vw,39px);color:#f7eee1;letter-spacing:1px}
+#main-dialog>small{font:600 11px var(--mono);letter-spacing:2px;color:#e6ba75;text-shadow:0 2px 4px #000;position:relative;z-index:1}
+#main-dialog h1{max-width:510px;font-size:clamp(38px,4.2vw,63px);letter-spacing:1.1px;line-height:1.04;margin:18px 0 12px;color:#fff4df;text-shadow:0 3px 14px #000}
+#main-dialog p{max-width:410px;font-size:clamp(13px,1.1vw,16px);line-height:1.65;color:#e5dcca;text-shadow:0 2px 5px #000;margin:0}
+#main-dialog .menu-buttons{width:min(395px,100%);margin-top:clamp(20px,4vh,36px);gap:11px;position:relative;z-index:1}
+#main-dialog .menu-button{
+ height:56px;border:1px solid #b8a17a99;border-left:3px solid #b8a17a;
+ background:linear-gradient(115deg,#111d24e8,#18252edb);
+ color:#f5ead8;text-align:left;font-size:16px;letter-spacing:.8px;
+ box-shadow:0 5px 16px #0006,inset 0 1px #ffffff18;
+ transition:background .16s ease,border-color .16s ease,transform .16s ease;
+}
+#main-dialog .menu-button svg{color:#e7c991}
+#main-dialog .menu-button.primary{background:linear-gradient(105deg,#6d4930ef,#45301fee);border-color:#e3bf78;border-left-color:#f2c474}
+#main-dialog .menu-button.primary svg{color:#f5d08a}
+#main-dialog .menu-button:hover{background:linear-gradient(105deg,#3c4f58f2,#1e323def);border-color:#f1d09a;transform:translateX(3px)}
+#main-dialog .menu-button.primary:hover{background:linear-gradient(105deg,#9a673eef,#603e28f1)}
+#main-dialog .menu-button:focus-visible{outline:3px solid #e9c27b;outline-offset:3px}
+@media(max-width:720px){
+ #main-dialog{padding:30px 22px;
+  background-image:linear-gradient(90deg,#0b151be8 0%,#152026d5 50%,#182024a6 100%),url('/src/assets/reborn/start-screen.png'),url('/src/assets/reborn/menu-desert.png');
+  background-position:center,65% center,center;background-size:cover}
+ #main-dialog[open]{justify-content:center}
+ #main-dialog .menu-brand .emblem{height:47px;width:40px;font-size:42px}
+ #main-dialog .menu-brand .brand-copy b{font-size:25px}
+ #main-dialog h1{font-size:38px}
+ #main-dialog .menu-button{height:52px;font-size:14px}
+}
+@media(prefers-reduced-motion:reduce){#main-dialog .menu-button{transition:none}}
