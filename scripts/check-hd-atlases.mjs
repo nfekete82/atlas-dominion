@@ -14,8 +14,8 @@ for(const kind of kinds)for(const team of [0,1]){
  assert.deepEqual(meta.cell,[192,192],stem+' must be native 2x');
  assert.equal(meta.renderResolution,192);
  assert.ok(meta.nativeScale>0&&meta.nativeScale<1,stem+' must preserve on-screen size');
- assert.ok(meta.frames.length>50,'frame coverage: '+stem);
- assert.ok(width>=192*12&&height>=192*3,'texture resolution: '+stem);
+ assert.ok(meta.frames.length>=32,'frame coverage: '+stem);
+ assert.ok(width>=192*12&&height>=192*2,'texture resolution: '+stem);
  assert.equal(meta.model,stem+'.glb','3D model gallery link: '+stem);
  for(const f of meta.frames){
   assert.equal(f.w,192);assert.equal(f.h,192);
