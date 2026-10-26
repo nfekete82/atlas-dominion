@@ -8,11 +8,13 @@ import {angleDifference} from './sprite-animator.js';
 import { BuildingPresentation } from './building-presentation.js';
 import { TERRAIN_FRAMES, TERRAIN_PLACEMENTS } from './terrain-art.js';
 import { paintGeneratedTerrain } from './terrain-presentation.js';
+import { BattlefieldEffects, createGroundDetails, paintGroundDetails } from './battlefield-atmosphere.js';
 
 interface Sprite { image:HTMLImageElement|HTMLCanvasElement; x:number; y:number; w:number; h:number; center?:number; foot?:number; bodyWidth?:number; bodyHeight?:number }
 export class Renderer {
   readonly units=new UnitPresentation();
   readonly structures=new BuildingPresentation();
+  readonly battlefield=new BattlefieldEffects();
   private animationGame:Simulation|null=null;private seenImpacts=new WeakSet<object>();private effectTime=0;private workEmitted=new Map<string,number>();private rocketTrails=new Map<number,number>();
   readonly context:CanvasRenderingContext2D;
   readonly mini:CanvasRenderingContext2D;
@@ -69,10 +71,12 @@ export class Renderer {
       ctx.drawImage(sprite.image,sprite.x,sprite.y,sprite.w,sprite.h,0,0,c.width,c.height);ctx.globalCompositeOperation='source-in';ctx.fillStyle='#191713';ctx.fillRect(0,0,c.width,c.height);
       const image=new Image();image.src=c.toDataURL();await image.decode();this.shadows.set(sprite,{image,x:0,y:0,w:c.width,h:c.height});
     }));
-    this.prepareMap();this.home();
+    this.prepareMap();this.battlefield.reset(this.game);this.home();
   }
   private prepareMap():void {
     this.prepareTerrain();
+    const sites=[...this.game.territories.map(t=>t.point),...this.game.bases.filter(b=>b.kind==='headquarters')];
+    paintGroundDetails(this.terrainSurface.getContext('2d')!,createGroundDetails(this.game.world,sites));
     const mini=this.miniTerrain.getContext('2d',{willReadFrequently:true})!;mini.drawImage(this.terrainSurface,0,0,224,224);mini.save();mini.scale(224/this.game.world.size,224/this.game.world.size);this.paintCliffs(mini);mini.restore();
   }
   private prepareTerrain():void{
@@ -122,7 +126,7 @@ export class Renderer {
     this.context.setTransform(pixelsX/width,0,0,pixelsY/height,0,0);this.boundCamera();
   }
   home():void {const b=this.game.bases.find(b=>b.owner===0&&b.kind==='headquarters'&&b.hp>0);if(b){this.camera.zoom=1;this.camera.x=b.x+this.width*(.5-.33);this.camera.y=b.y-Math.max(this.height*.35,Math.min(this.height*.63,this.height-300))+this.height/2;this.boundCamera();}}
-  invalidate():void{if(this.infantry)this.prepareMap();this.fogRevision=-1;this.units.clear();this.seenImpacts=new WeakSet();}
+  invalidate():void{if(this.infantry)this.prepareMap();this.fogRevision=-1;this.units.clear();this.seenImpacts=new WeakSet();this.battlefield.reset(this.game);}
   boundCamera():void {
     const w=this.width/this.camera.zoom/2,h=this.height/this.camera.zoom/2,s=this.game.world.size;
     this.camera.x=w>=s/2?s/2:clamp(this.camera.x,w,s-w);this.camera.y=h>=s/2?s/2:clamp(this.camera.y,h,s-h);
@@ -235,8 +239,9 @@ export class Renderer {
   private renderMeasured(dt:number,interpolation=1):void {
     if(!this.terrain?.complete||!this.infantry)return;
     const c=this.context,g=this.game,s=this.game.world.size;this.updateFog();
-    if(this.animationGame!==g){this.units.clear();this.seenImpacts=new WeakSet();this.animationGame=g;this.effectTime=g.time;this.workEmitted.clear();this.rocketTrails.clear();}
+    if(this.animationGame!==g){this.units.clear();this.seenImpacts=new WeakSet();this.battlefield.reset(g);this.animationGame=g;this.effectTime=g.time;this.workEmitted.clear();this.rocketTrails.clear();}
     this.units.update(g.units,g.paused?0:dt,p=>g.canSee(0,p));
+    this.battlefield.update(g,p=>g.canSee(0,p));
     const effectDt=g.paused?0:Math.max(0,g.time-this.effectTime);this.effectTime=g.time;
     const particles=this.units.particles;particles.reducedMotion=this.reducedMotion;particles.update(effectDt);
     for(const shot of g.shots)if(!this.seenImpacts.has(shot)){
@@ -245,14 +250,16 @@ export class Renderer {
       const from=shot.projected?shot.from:this.units.muzzleForShot(shot);
       if(shot.weapon==='rocket'){particles.emit('muzzle',from,shot.angle);particles.emit('smoke',from);continue;}
       particles.shot(from,shot.to,shot.weapon==='heavy'||shot.weapon==='turret'||shot.weapon==='cannon',shot.armored);
+      this.battlefield.impact(shot.groundTo??shot.to,g.time);
     }
-    for(const blast of g.blasts)if(!this.seenImpacts.has(blast)){this.seenImpacts.add(blast);if(g.canSee(0,blast)&&g.time-blast.at<.15)particles.emit('explosion',{x:blast.x,y:blast.y-8});}
+    for(const blast of g.blasts)if(!this.seenImpacts.has(blast)){this.seenImpacts.add(blast);if(g.canSee(0,blast)&&g.time-blast.at<.15){particles.emit('explosion',{x:blast.x,y:blast.y-8});this.battlefield.blast(blast,g.time);}}
     this.interpolation=g.paused?1:clamp(interpolation,0,1);
     c.fillStyle='#030507';c.fillRect(0,0,this.width,this.height);c.save();
     c.translate(this.width/2,this.height/2);c.scale(this.camera.zoom,this.camera.zoom);c.translate(-this.camera.x,-this.camera.y);
     c.drawImage(this.terrainSurface,0,0);
     this.paintSandWind(g.time);
     this.paintCliffs(c);
+    this.battlefield.drawMarks(c,g);
     for(const t of g.territories){
       if(t.owner>=0){this.polygon(t.polygon);c.fillStyle=t.owner===0?'#53b4ee0b':'#e257490b';c.fill();}
       if(this.overlay){this.polygon(t.polygon);c.strokeStyle=t.owner===0?'#83d3ff8c':t.owner===1?'#e2766c8c':'#ead2ac55';c.lineWidth=1.2/this.camera.zoom;c.stroke();}
@@ -280,7 +287,7 @@ export class Renderer {
     }
     this.drawRockets();
     this.drawWork();
-    const particlesAt=profiler?performance.now():0;this.units.particles.draw(c,p=>g.canSee(0,p));if(profiler)profiler.record('particles',performance.now()-particlesAt);
+    const particlesAt=profiler?performance.now():0;this.units.particles.draw(c,p=>g.canSee(0,p));this.battlefield.drawSmoke(c,g,this.reducedMotion);if(profiler)profiler.record('particles',performance.now()-particlesAt);
     if(this.marker){this.marker.life-=dt;if(this.marker.life<=0)this.marker=null;else{
       const p=this.marker.point,r=12+(1-this.marker.life)*13;c.strokeStyle=this.marker.attack?'#ed8a78':'#9ad9f5';c.lineWidth=1.5/this.camera.zoom;c.globalAlpha=Math.min(1,this.marker.life*2);
       c.beginPath();c.ellipse(p.x,p.y,r,r*.55,0,0,Math.PI*2);c.stroke();c.beginPath();c.moveTo(p.x-6,p.y);c.lineTo(p.x+6,p.y);c.moveTo(p.x,p.y-4);c.lineTo(p.x,p.y+4);c.stroke();c.globalAlpha=1;}}
