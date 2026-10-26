@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Simulation} from '../dist/src/reborn/simulation.js';
-import {createDesertInfrastructure} from '../dist/src/reborn/desert-infrastructure.js';
+import {createDesertInfrastructure,paintDesertInfrastructure} from '../dist/src/reborn/desert-infrastructure.js';
 import {BattlefieldEffects} from '../dist/src/reborn/battlefield-atmosphere.js';
 
 test('wilderness routes and roadside props are deterministic and never block map geometry',()=>{
@@ -12,7 +12,7 @@ test('wilderness routes and roadside props are deterministic and never block map
   const b=createDesertInfrastructure(sim.world,sites);
   assert.deepEqual(a,b,'same seed must produce same routes and props');
   assert.ok(a.roads.length>=2,'expected meaningful sandy routes on map '+version);
-  assert.ok(a.props.length<=38,'roadside object budget');
+  assert.deepEqual(a.props,[],'no poles, signs, street lamps or bent roadside fixtures');
   for(const prop of a.props){
    const idx=sim.world.index(prop);
    assert.ok(idx>=0&&!sim.world.blocked[idx],'blocked prop on map '+version);
@@ -20,6 +20,22 @@ test('wilderness routes and roadside props are deterministic and never block map
   }
   for(const road of a.roads)assert.ok(road.width>=38&&road.width<=53);
  }
+});
+
+test('sandy roads render only three soft bands, without painted tire-line pairs or props',()=>{
+ const road={from:{x:40,y:80},to:{x:260,y:230},bend:17,width:45};
+ let strokes=0;
+ const widths=[],colors=[];
+ const c={
+  lineWidth:0,strokeStyle:'',save(){},restore(){},beginPath(){},moveTo(){},quadraticCurveTo(){},
+  stroke(){strokes++;widths.push(this.lineWidth);colors.push(this.strokeStyle);},
+  setLineDash(){throw new Error('hard dashed or tire-marked road lines are no longer allowed');},
+  translate(){throw new Error('roadside props / offset wheel lanes must not be painted');}
+ };
+ paintDesertInfrastructure(c,{roads:[road],props:[]});
+ assert.equal(strokes,3,'only the broad, soft sand bands should remain');
+ assert.deepEqual(widths,[road.width+16,road.width,road.width*.66]);
+ assert.ok(colors.every(v=>/^rgba\(.+,\.\d+\)$/.test(v)),'only translucent soft sand colors');
 });
 
 test('moving wheeled and tracked vehicles make finite marks; idle and aircraft do not',()=>{
