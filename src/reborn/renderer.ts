@@ -15,6 +15,8 @@ export class Renderer {
   readonly units=new UnitPresentation();
   readonly structures=new BuildingPresentation();
   readonly battlefield=new BattlefieldEffects();
+  private readonly groundSprites={crater:new Image(),palm:new Image(),rocks:new Image()};
+  private groundTextures!: {crater:HTMLCanvasElement;palm:HTMLCanvasElement;rocks:HTMLCanvasElement};
   private animationGame:Simulation|null=null;private seenImpacts=new WeakSet<object>();private effectTime=0;private workEmitted=new Map<string,number>();private rocketTrails=new Map<number,number>();
   readonly context:CanvasRenderingContext2D;
   readonly mini:CanvasRenderingContext2D;
@@ -59,7 +61,8 @@ export class Renderer {
   async load():Promise<void>{
     this.terrain=new Image();this.terrain.src=ASSETS.terrain;
     this.sand.src='/src/assets/reborn/sand-ripples-v2.png';this.sandstone.src='/src/assets/reborn/sandstone-strata-v1.png';
-    const [cliffs]=await Promise.all([this.sprite(ASSETS.cliffs),this.terrain.decode(),this.units.load(),this.structures.load(),this.sand.decode(),this.sandstone.decode()]);
+    for(const [kind,image] of Object.entries(this.groundSprites))image.src='/src/assets/reborn/battlefield/'+kind+'.svg';
+    const [cliffs]=await Promise.all([this.sprite(ASSETS.cliffs),this.terrain.decode(),this.units.load(),this.structures.load(),this.sand.decode(),this.sandstone.decode(),...Object.values(this.groundSprites).map(image=>image.decode())]);
     const infantry=this.units.asset('infantry'),frame=infantry.data.frames[0];
     this.infantry={image:infantry.image,x:frame.x,y:frame.y,w:frame.w,h:frame.h};
     for(const kind of Object.keys(BUILDINGS) as BuildingKind[]){this.buildings[kind]=this.structures.sprite(kind,0);this.redBuildings[kind]=this.structures.sprite(kind,1);}
@@ -71,12 +74,20 @@ export class Renderer {
       ctx.drawImage(sprite.image,sprite.x,sprite.y,sprite.w,sprite.h,0,0,c.width,c.height);ctx.globalCompositeOperation='source-in';ctx.fillStyle='#191713';ctx.fillRect(0,0,c.width,c.height);
       const image=new Image();image.src=c.toDataURL();await image.decode();this.shadows.set(sprite,{image,x:0,y:0,w:c.width,h:c.height});
     }));
+    const rasterize=(image:HTMLImageElement):HTMLCanvasElement=>{
+      const sprite=document.createElement('canvas');
+      sprite.width=(image.naturalWidth||420)*2;sprite.height=(image.naturalHeight||320)*2;
+      sprite.getContext('2d')!.drawImage(image,0,0,sprite.width,sprite.height);
+      return sprite;
+    };
+    this.groundTextures={crater:rasterize(this.groundSprites.crater),palm:rasterize(this.groundSprites.palm),rocks:rasterize(this.groundSprites.rocks)};
+    this.battlefield.setCraterSprite(this.groundTextures.crater);
     this.prepareMap();this.battlefield.reset(this.game);this.home();
   }
   private prepareMap():void {
     this.prepareTerrain();
     const sites=[...this.game.territories.map(t=>t.point),...this.game.bases.filter(b=>b.kind==='headquarters')];
-    paintGroundDetails(this.terrainSurface.getContext('2d')!,createGroundDetails(this.game.world,sites));
+    paintGroundDetails(this.terrainSurface.getContext('2d')!,createGroundDetails(this.game.world,sites),this.groundTextures);
     const mini=this.miniTerrain.getContext('2d',{willReadFrequently:true})!;mini.drawImage(this.terrainSurface,0,0,224,224);mini.save();mini.scale(224/this.game.world.size,224/this.game.world.size);this.paintCliffs(mini);mini.restore();
   }
   private prepareTerrain():void{
