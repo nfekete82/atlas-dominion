@@ -2,6 +2,7 @@ import { profiler } from './performance.js';
 import { RULES, type Point, type Owner, type MapVersion, mapLayout, mapWorldSize } from './config.js';
 import { TERRAIN_BLOCKED, TERRAIN_CLIFFS } from './terrain-art.js';
 import { generateMap, polygonContains, segmentDistance, type GeneratedMap } from './world-generation.js';
+import { navigationLine } from './navigation-line.js';
 
 export interface Territory {
   id: number; name: string; polygon: Point[]; point: Point; neighbors: number[];
@@ -158,8 +159,11 @@ export class World {
   // Never cache across calls: construction, fog knowledge and test maps can change.
   private pathWorkspace?:{costs:Float64Array;prev:Int32Array;closed:Uint8Array;walkable:Int8Array};
   private findPath(start: Point, target: Point, obstacles: {x:number;y:number;radius:number}[]=[],clearance=0,risk?:Float32Array,air=false): Point[] {
+    const precise=this.mapVersion>=3&&!air&&clearance>0;
     const walk=(p:Point)=>air?(p.x>=10&&p.y>=10&&p.x<=this.size-10&&p.y<=this.size-10):this.walkable(p,obstacles,clearance);
-    const line=(a:Point,b:Point)=>air?walk(a)&&walk(b):this.line(a,b,obstacles,clearance);
+    const line=(a:Point,b:Point)=>air?walk(a)&&walk(b):precise
+      ?walk(a)&&walk(b)&&navigationLine(a,b,this.cell,RULES.grid,this.blocked,obstacles,RULES.infantry.radius,clearance)
+      :this.line(a,b,obstacles,clearance);
     const end=air?{x:Math.max(10,Math.min(this.size-10,target.x)),y:Math.max(10,Math.min(this.size-10,target.y))}:this.nearest(target,obstacles,[],start,clearance);
     if(!end)return [];
     const cost=(a:Point,b:Point)=>{const d=Math.hypot(b.x-a.x,b.y-a.y),steps=Math.max(1,Math.ceil(d/(this.cell*.6)));let sum=0;for(let i=0;i<=steps;i++)sum+=risk?.[this.index({x:a.x+(b.x-a.x)*i/steps,y:a.y+(b.y-a.y)*i/steps})]??0;return d/this.cell*(1+sum/(steps+1));};
@@ -176,15 +180,18 @@ export class World {
     costs[s]=0;push({i:s,f:h(s)});
     while(heap.length) {
       const i=pop();if(closed[i])continue;closed[i]=1;if(profiler)this.pathNodes++;
-      if(i===goal){const route:Point[]=[end];let at=goal;while(at!==s&&at>=0){route.push(this.center(at));at=prev[at];}route.reverse();
+      if(i===goal){const route:Point[]=[end];let at=goal;while(at!==s&&at>=0){route.push(precise&&at===goal?end:this.center(at));at=prev[at];}route.reverse();
         const prefix=[0];for(let j=0;j<route.length;j++)prefix.push(prefix[j]+(risk?cost(j?route[j-1]:start,route[j]):0));
-        const smooth:Point[]=[];let anchor=start;for(let k=0;k<route.length;){let next=k;while(next+1<route.length&&line(anchor,route[next+1])&&(!risk||cost(anchor,route[next+1])<=(prefix[next+2]-prefix[k])*1.04))next++;smooth.push(route[next]);anchor=route[next];k=next+1;}return smooth;}
+        const smooth:Point[]=[];let anchor=start;for(let k=0;k<route.length;){let next=k;while(next+1<route.length&&line(anchor,route[next+1])&&(!risk||cost(anchor,route[next+1])<=(prefix[next+2]-prefix[k])*1.04))next++;if(precise&&!line(anchor,route[next]))return [];smooth.push(route[next]);anchor=route[next];k=next+1;}return smooth;}
       const ix=i%RULES.grid,iy=Math.floor(i/RULES.grid);
       for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
         if(!dx&&!dy)continue;const x=ix+dx,y=iy+dy;
         if(x<0||y<0||x>=RULES.grid||y>=RULES.grid)continue;
         const j=y*RULES.grid+x;if(closed[j]||!cellWalkable(j))continue;
         if(dx&&dy&&(!cellWalkable(iy*RULES.grid+x)||!cellWalkable(y*RULES.grid+ix)))continue;
+        // Endpoint clearance alone cannot prove that the edge between two
+        // cells is traversable, especially at round building footprints.
+        if(precise&&!line(i===s?start:this.center(i),j===goal?end:this.center(j)))continue;
         const g=costs[i]+(dx&&dy?Math.SQRT2:1)*(1+Math.max(0,risk?.[j]??0));if(g<costs[j]){costs[j]=g;prev[j]=i;push({i:j,f:g+h(j)});}
       }
     }

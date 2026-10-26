@@ -64,6 +64,20 @@ test('standoff siege: rockets use a reachable firing point outside every known g
  assert.ok(distance(g.bases.find(b=>b.id===orders[1].target),orders[0])<=680);
  g.tactical.siege([rocket,heavy],tower);assert.equal(rocket.orders,orders,'keep the live route and firing command');
 });
+test('siege: visible builders and counter-battery targets are engaged only from safe current range',()=>{
+ const {g,tower}=scene();g.units=[];
+ const rocket=g.spawn(1,{x:2140,y:1500},'artillery'),heavy=g.spawn(1,{x:2250,y:1500},'heavy');
+ const worker=g.spawn(0,{x:1640,y:1500},'engineer');
+ g.tactical.state.knownTurrets=[{id:tower.id,x:tower.x,y:tower.y,hp:tower.hp,seenAt:0,range:600}];
+ g.tactical.state.rally={x:2300,y:1500};g.updateVision();assert.ok(g.canSee(1,worker));
+ assert.equal(g.tactical.siegeThreat(rocket),worker);
+ g.tactical.siege([rocket,heavy],tower);assert.equal(rocket.orders[0].target,worker.id);
+ const gun=g.spawn(0,{x:1660,y:1530},'artillery');g.updateVision();assert.equal(g.tactical.siegeThreat(rocket),gun);
+ const visible=g.canSee.bind(g);g.canSee=(owner,p)=>p.id===worker.id||p.id===gun.id?false:visible(owner,p);
+ assert.equal(g.tactical.siegeThreat(rocket),undefined,'fogged units supply no target');
+ g.canSee=visible;rocket.x=2500;assert.equal(g.tactical.siegeThreat(rocket),undefined,'do not chase a builder beyond firing range');
+ rocket.x=2050;assert.equal(g.tactical.siegeThreat(rocket),undefined,'withdrawal from a gun retains priority');
+});
 test('defense squads: bounded local force handles a visible intruder without reassigning the whole assault',()=>{
  const {g}=scene();g.units=[];const home=g.bases.find(b=>b.owner===1);
  const near=g.spawn(1,{x:home.x-120,y:home.y+70},'heavy'),far=g.spawn(1,{x:home.x-800,y:home.y+400},'tank');

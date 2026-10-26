@@ -405,11 +405,22 @@ export class TacticalAI {
   // A holding screen fires locally without pursuing through the artillery's
   // standoff line. Marching there remains an authoritative retreat/move.
   if(campaign)for(const u of screen)if(distance(u,at)<65){g.stop([u.id]);u.hold=true;}
-  for(const u of artillery)this.issue([u],target,'assault',target.id);
+  for(const u of artillery){const shot=campaign?this.siegeThreat(u):undefined;this.issue([u],shot??target,'assault',shot?.id??target.id);}
   const medics=campaign?members.filter(u=>u.kind==='medic'):[];
   if(medics.length){this.issue(medics,at,'assault');for(const u of medics)if(u.orders[0]?.formation)u.orders[0].formation.front=screen.map(v=>v.id);}
   for(const u of members.filter(u=>unitSpec(u).flying))if(!u.orders.length||u.orders[0]?.target!==undefined)this.issue([u],s.rally??at,'safe');
   return true;
+ }
+ /** Break an observed rebuild cycle without driving the battery into a gun.
+  * Only shots already in range and clear LOS may interrupt the siege; enemy
+  * orders, unseen units and their production queues are never inspected. */
+ private siegeThreat(rocket:Unit):Unit|undefined{
+  const g=this.g,s=this.state;
+  if(s.knownTurrets.some(t=>distance(t,rocket)<t.range+15))return;
+  return g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)
+   &&(u.kind==='artillery'||u.kind==='engineer'&&s.knownTurrets.some(t=>distance(t,u)<160))
+   &&distance(rocket,u)<=unitSpec(rocket).range&&g.world.line(rocket,u,this.obstacles()))
+   .sort((a,b)=>Number(b.kind==='artillery')-Number(a.kind==='artillery')||distance(rocket,a)-distance(rocket,b)||a.id-b.id)[0];
  }
  /** Explicit building attacks must not make the screen ignore a visible heavy
   * infantryman shooting the artillery. Only intercept from reachable range on
@@ -454,6 +465,8 @@ export class TacticalAI {
   const cover=g.world.nearest({x:at.x+h.x*100,y:at.y+h.y*100},obstacles,[],undefined,12)??at;
   const interceptors=this.screenThreats(members,selected);
   for(const u of artillery){
+   const shot=this.siegeThreat(u);
+   if(shot){this.issue([u],shot,'assault',shot.id,false,false);continue;}
    if(u.orders.some(o=>o.kind==='attack'&&o.target===selected!.id)&&u.orders.every(o=>o.kind!=='move'||known.every(t=>distance(t,o)>t.range+30)))continue;
    g.command([u.id],{...at,kind:'move'});g.command([u.id],{x:selected.x,y:selected.y,kind:'attack',target:selected.id},true);
    if(u.orders[0])u.orders[0].tactical={group:s.groupId,mode:'safe',goal:{...at}};
