@@ -577,3 +577,24 @@ test('model gallery: vehicles and aircraft are selectable as real 3D GLBs',async
  await expect(page.locator('#download')).toHaveAttribute('href','/src/assets/reborn/prototype/infantry-1.glb');
  expect(errors).toEqual([]);
 });
+
+
+test('start screen: shows original desert artwork and keeps new/resume/reset workflow intact',async({page})=>{
+ await page.setViewportSize({width:1440,height:900});
+ await page.goto('/');
+ await page.locator('#loading').waitFor({state:'detached'});
+ await expect(page.locator('#main-dialog')).toBeVisible();
+ await expect(page.locator('#new')).toHaveText(/NEUES SPIEL/);
+ const artwork=await page.request.get('/src/assets/reborn/start-screen.png');
+ expect(artwork.status()).toBe(200);
+ expect(artwork.headers()['content-type']).toContain('image/png');
+ await page.locator('#new').click();
+ await expect(page.locator('#main-dialog')).toBeHidden();
+ await expect(page.locator('#new-dialog')).toBeHidden();
+ await page.locator('#menu').click();
+ await expect(page.locator('#pause-dialog')).toBeVisible();
+ await page.locator('#to-main').click();
+ await expect(page.locator('#main-dialog')).toBeVisible();
+ await page.locator('#new').click();
+ await expect(page.locator('#new-dialog')).toBeVisible();
+});
