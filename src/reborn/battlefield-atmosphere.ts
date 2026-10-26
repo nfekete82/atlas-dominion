@@ -110,6 +110,8 @@ export class BattlefieldEffects {
   private units=new Map<number,PreviousUnit>();
   private bases=new Map<number,PreviousBase>();
   private hits=0;
+  get markCount():number{return this.marks.length;}
+  get smokeCount():number{return this.clouds.length;}
 
   reset(game:Simulation):void {
     this.marks=[];this.clouds=[];this.hits=0;
