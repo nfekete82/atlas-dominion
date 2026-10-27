@@ -4,7 +4,7 @@ import { RULES, mapLayout, CAMPAIGN_SIZES, type MapVersion, type CampaignSize } 
 import { Simulation, type Base } from './simulation.js';
 import { Renderer } from './renderer.js';
 import { Input } from './input.js';
-import { saveCampaign, loadCampaign } from './storage.js';
+import { saveCampaign, loadCampaign, hasSavedCampaign } from './storage.js';
 import { Soundscape } from './audio.js';
 import { BUILDINGS, UNITS, unitKinds, buildingSpec, unitSpec, type UnitKind, type BuildingKind } from './catalog.js';
 import { icon } from './icons.js';
@@ -27,7 +27,7 @@ let game=createCampaign();
 const qwenGeneral=new QwenGeneral();
 if(query.has('debug')&&query.has('perfTest'))game.paused=true;
 const renderer=new Renderer(el<HTMLCanvasElement>('world'),el<HTMLCanvasElement>('minimap'),game),input=new Input(renderer),audio=new Soundscape();
-let accumulator=0,last=performance.now(),uiClock=0,resultShown=false,busy=false,ready=false,selectionSound='',catalogTab='units';
+let accumulator=0,last=performance.now(),uiClock=0,resultShown=false,busy=false,ready=false,sessionStarted=false,selectionSound='',catalogTab='units';
 const messages:{time:string;message:string}[]=[];
 try{const s=JSON.parse(localStorage.getItem('atlas-reborn-sound')??'null');if(s){audio.setEnabled(s.enabled!==false);audio.setVolume(Number.isFinite(s.volume)?s.volume:.6);audio.ambience=s.ambience!==false;audio.radio.setEnabled(s.speech!==false);audio.radio.setVolume(Number.isFinite(s.speechVolume)?s.speechVolume:.85);}}catch{/* Optional local preferences. */}
 const timestamp=()=>`${Math.floor(game.time/60).toString().padStart(2,'0')}:${Math.floor(game.time%60).toString().padStart(2,'0')}`;
@@ -43,6 +43,17 @@ function modal(id:string):void{
  const d=el<HTMLDialogElement>(id);if(d.open)return;const wasPaused=game.paused;setPause(true);d.returnValue='';d.showModal();
  showTacticalPause(false);d.addEventListener('close',()=>{if(d.returnValue==='resume')setPause(false);else if(!['switch','new'].includes(d.returnValue))setPause(wasPaused);},{once:true});
 }
+async function showMainMenu():Promise<void>{
+ // Pause before checking metadata: no unseen battle advances behind this title.
+ setPause(true);
+ const saved=await hasSavedCampaign().catch(()=>false);
+ el<HTMLButtonElement>('main-continue').disabled=!sessionStarted&&!saved;
+ el<HTMLButtonElement>('main-load').disabled=!saved;
+ setText('main-save-hint',sessionStarted?'Aktuelle Partie kann fortgesetzt werden.':saved
+  ?'Gespeicherte Kampagne verfügbar.':'Noch kein Spielstand vorhanden.');
+ modal('main-dialog');
+}
+el<HTMLDialogElement>('main-dialog').addEventListener('cancel',event=>event.preventDefault());
 function openMenu():void{modal('pause-dialog');}
 function contextBase():Base|undefined{return game.bases.find(b=>b.id===renderer.selectedBase&&b.owner===0&&b.hp>0);}
 function productionBase():Base|undefined{const selected=contextBase();return selected&&selected.buildRemaining<=0&&unitKinds.some(k=>UNITS[k].producers.includes(selected.kind))?selected:game.bases.find(b=>b.owner===0&&b.hp>0&&b.buildRemaining<=0&&b.queue.length>0)??game.bases.find(b=>b.owner===0&&b.kind==='headquarters'&&b.hp>0)??game.bases.find(b=>b.owner===0&&b.hp>0&&b.buildRemaining<=0&&unitKinds.some(k=>UNITS[k].producers.includes(b.kind)));}
@@ -68,7 +79,7 @@ function prepareCatalog():void{
 function prepareTerritories():void{el('catalog-territories').replaceChildren();
  for(const t of game.territories){const button=document.createElement('button');button.className='territory-row';button.dataset.territory=String(t.id);button.innerHTML='<i></i><strong></strong><small></small>';button.onclick=()=>{renderer.camera.x=game.territories[t.id].point.x;renderer.camera.y=game.territories[t.id].point.y;renderer.boundCamera();};el('catalog-territories').append(button);}
 }
-function reset():void{closeDialogs();game=createCampaign();qwenGeneral.resetCampaign();audio.bindGame(game);renderer.game=game;renderer.invalidate();renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;renderer.placement=null;renderer.commandMode=null;renderer.canvas.classList.remove('attack','building');renderer.home();prepareTerritories();accumulator=0;resultShown=false;messages.length=0;setPause(false);tab('units');refresh();notify('Neue Kampagne. Wähle deinen Bauarbeiter und errichte zuerst eine Kaserne.');}
+function reset():void{closeDialogs();sessionStarted=true;game=createCampaign();qwenGeneral.resetCampaign();audio.bindGame(game);renderer.game=game;renderer.invalidate();renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;renderer.placement=null;renderer.commandMode=null;renderer.canvas.classList.remove('attack','building');renderer.home();prepareTerritories();accumulator=0;resultShown=false;messages.length=0;setPause(false);tab('units');refresh();notify('Neue Kampagne. Wähle deinen Bauarbeiter und errichte zuerst eine Kaserne.');}
 function refresh():void{
  if(!profiler)return refreshMeasured();const at=performance.now();try{refreshMeasured();}finally{profiler.record('hud',performance.now()-at);}
 }
@@ -138,16 +149,18 @@ function refreshMeasured():void{
  if(game.status!=='playing'&&!resultShown){resultShown=true;closeDialogs();setPause(true);setText('result-title',game.status==='victory'?'Aridis gesichert.':'Die Legion ist gefallen.');setText('result-copy',game.status==='victory'?`Das feindliche Hauptquartier und seine ${mapLayout(game.world.mapVersion).starts[1].length} Startgebiete sind unter deiner Kontrolle.`:'Deine Produktionsstätten und Truppen wurden vernichtet.');el<HTMLDialogElement>('result-dialog').showModal();}
 }
 async function save():Promise<void>{if(busy)return;busy=true;try{await saveCampaign(game);notify('Kampagne lokal gespeichert.');}catch(e){notify((e as Error).message);}finally{busy=false;}}
-async function load():Promise<void>{if(busy)return;busy=true;try{const loaded=await loadCampaign();closeDialogs();game=loaded;qwenGeneral.resetCampaign();audio.bindGame(game);renderer.game=game;renderer.invalidate();renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;renderer.placement=null;renderer.commandMode=null;renderer.canvas.classList.remove('attack','building');renderer.home();prepareTerritories();resultShown=false;accumulator=0;setPause(false);refresh();notify('Kampagne geladen.');}catch(e){notify((e as Error).message);}finally{busy=false;}}
+async function load():Promise<void>{if(busy)return;busy=true;try{const loaded=await loadCampaign();closeDialogs();sessionStarted=true;game=loaded;qwenGeneral.resetCampaign();audio.bindGame(game);renderer.game=game;renderer.invalidate();renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;renderer.placement=null;renderer.commandMode=null;renderer.canvas.classList.remove('attack','building');renderer.home();prepareTerritories();resultShown=false;accumulator=0;setPause(false);refresh();notify('Kampagne geladen.');}catch(e){notify((e as Error).message);}finally{busy=false;}}
 el('resume-tactical').onclick=()=>setPause(false);
 input.onPause=()=>setPause(!game.paused);input.onMenu=openMenu;input.onHelp=()=>modal('help-dialog');input.onSave=()=>void save();input.onLoad=()=>void load();
 input.onSelection=()=>{const next=[...renderer.selected].join(',')+':'+renderer.selectedBase;if(next!==selectionSound){selectionSound=next;audio.select();}refresh();};input.onOrder=order=>audio.acknowledge(order,game);
 el('save').onclick=()=>void save();el('load').onclick=()=>void load();el('main-load').onclick=()=>void load();el('pause').onclick=input.onPause;el('menu').onclick=openMenu;el('help').onclick=input.onHelp;
-el('to-main').onclick=()=>{closeDialogs();modal('main-dialog');};el('main-continue').onclick=()=>{closeDialogs();setPause(false);};el('new').onclick=()=>modal('new-dialog');el<HTMLDialogElement>('new-dialog').addEventListener('close',()=>{
+el('to-main').onclick=()=>{closeDialogs();void showMainMenu();};
+el('main-continue').onclick=()=>{if(sessionStarted){closeDialogs();setPause(false);}else void load();};
+el('new').onclick=()=>{closeDialogs();modal('new-dialog');};el<HTMLDialogElement>('new-dialog').addEventListener('close',()=>{
  if(el<HTMLDialogElement>('new-dialog').returnValue==='new'){
   const size=el<HTMLSelectElement>('map-size').value as CampaignSize;
   selectedMapVersion=CAMPAIGN_SIZES[size]??4;reset();
- }
+ }else void showMainMenu();
 });
 el('result-new').onclick=()=>{closeDialogs();modal('new-dialog');};el('result-close').onclick=()=>el<HTMLDialogElement>('result-dialog').close();
 el('home').onclick=()=>renderer.home();el('command-home').onclick=()=>renderer.home();el('overlay').onclick=()=>{renderer.overlay=!renderer.overlay;refresh();};
@@ -183,5 +196,5 @@ el('messages').onclick=()=>{const history=el('message-history');history.replaceC
 window.addEventListener('pointerdown',()=>{void audio.unlock().catch(()=>{});},{capture:true});window.addEventListener('keydown',()=>{void audio.unlock().catch(()=>{});},{capture:true});window.addEventListener('resize',()=>renderer.resize());document.addEventListener('visibilitychange',()=>{last=performance.now();accumulator=0;if(document.hidden){audio.silenceScene();setPause(true);}});
 function frame(now:number):void{profiler?.beginFrame(now);const dt=Math.min(.1,(now-last)/1000);last=now;const inputAt=profiler?performance.now():0;input.update(dt);if(profiler)profiler.record('input',performance.now()-inputAt);if(!game.paused){accumulator+=dt;let steps=0;while(accumulator>=RULES.tick&&steps++<5){game.step();accumulator-=RULES.tick;}}else accumulator=0;const audioAt=profiler?performance.now():0;audio.update(game,renderer);if(profiler)profiler.record('audio',performance.now()-audioAt);renderer.render(dt,accumulator/RULES.tick);uiClock+=dt;if(uiClock>.1){qwenGeneral.maybePlan(game);refresh();uiClock=0;}profiler?.endFrame(now);requestAnimationFrame(frame);}
 void audio.radio.preload();
-try{await renderer.load();prepareCatalog();ready=true;el('loading').remove();refresh();last=performance.now();requestAnimationFrame(frame);if(!query.has('debug'))modal('new-dialog');}catch(e){setHtml('loading','<strong>Der Wüstensektor konnte nicht geladen werden.</strong><p>Bitte neu laden und die lokalen Grafiken prüfen.</p>');console.error(e);}
+try{await renderer.load();prepareCatalog();ready=true;refresh();if(!query.has('debug'))await showMainMenu();el('loading').remove();last=performance.now();requestAnimationFrame(frame);}catch(e){setHtml('loading','<strong>Der Wüstensektor konnte nicht geladen werden.</strong><p>Bitte neu laden und die lokalen Grafiken prüfen.</p>');console.error(e);}
 if(new URLSearchParams(location.search).has('debug'))Object.assign(window,{__reborn:{get game(){return game;},renderer,input,refresh,audio,profiler,qwenGeneral,advance(seconds:number){for(let i=0;i<Math.round(seconds/RULES.tick);i++)game.step();refresh();renderer.render(0);},save,load}});
