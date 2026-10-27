@@ -25,6 +25,37 @@ test('campaign: 100 different maps space every bastion and connect all of them b
  assert.equal(layouts.size,100);
 });
 
+test('campaign: the one starting bastion beside each headquarters pays 50 credits per 10 seconds',()=>{
+ const g=Simulation.campaign(184902);
+ const blue=g.territories[13],red=g.territories[2];
+ assert.equal(blue.owner,0);assert.equal(red.owner,1);
+ assert.equal(blue.income,RULES.startingBastionIncome);
+ assert.equal(red.income,RULES.startingBastionIncome);
+ assert.equal(g.income(0),75);assert.equal(g.income(1),75);
+ assert.ok(g.territories.every(t=>[blue.id,red.id].includes(t.id)||t.income<50),
+  'only the two starting bastions have the special income');
+ // Actual payout is handled by the existing fixed, pause-safe economy timer.
+ g.aiClock=-1e8;
+ for(let i=0;i<199;i++)g.step();
+ assert.deepEqual(g.credits,[500,500],'no income before the first 10-second tick');
+ g.step();
+ assert.deepEqual(g.credits,[575,575],'each side receives its normal HQ and sector income plus 50 from the bastion');
+ const loaded=Simulation.load(g.save());
+ assert.equal(loaded.territories[13].income,50);
+ assert.deepEqual(loaded.credits,g.credits);
+ loaded.paused=true;for(let i=0;i<200;i++)loaded.step();
+ assert.deepEqual(loaded.credits,g.credits,'pausing must not duplicate any payout');
+ loaded.paused=false;
+ loaded.territories[13].owner=1;
+ assert.equal(loaded.income(0),25,'lost bastions stop paying their previous owners');
+ assert.equal(loaded.income(1),125,'capturing a starting bastion grants its full 50 to the new owner');
+ for(let i=0;i<200;i++)loaded.step();
+ assert.deepEqual(loaded.credits,[600,700]);
+ assert.equal(new Simulation().income(0),35,'older maps retain the old economic balance');
+ for(const size of [3,4,5])assert.ok(Simulation.campaign(184902,size).territories.every(t=>t.income<50),
+  'smaller campaigns without a separate initial bastion receive no special income');
+});
+
 test('campaign: new campaigns roll fresh seeds; seeds reproduce terrain and save/load restores its exact geometry',()=>{
  const a=Simulation.campaign(),b=Simulation.campaign();assert.notEqual(a.seed,b.seed);assert.notDeepEqual(a.world.blocked,b.world.blocked);
  const g=Simulation.campaign(184902),copy=Simulation.campaign(184902);assert.deepEqual(g.save(),copy.save());
