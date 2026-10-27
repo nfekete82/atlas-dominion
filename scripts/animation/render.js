@@ -1,5 +1,6 @@
 import * as T from 'three';
 import {buildAtlasVehicle} from './atlas-vehicles.js';
+import {buildHumvee} from './humvee.js';
 import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 const params=new URLSearchParams(location.search);
@@ -9,7 +10,7 @@ const pixelFactor=cell/96;
 const weapons=['AK','GrenadeLauncher','Knife_1','Knife_2','Pistol','Revolver','Revolver_Small','RocketLauncher','ShortCannon','Shotgun','Shovel','SMG','Sniper','Sniper_2'];
 const clips=[['idle','Idle',4,true],['walk','Run_Gun',8,true],['attack','Idle_Shoot',5,false],['hit','HitReact',4,false],['death','Death',10,false]];
 const models={infantry:['soldier.gltf','AK'],engineer:['engineer.gltf','SMG'],heavy:['heavy.gltf','GrenadeLauncher'],rover:['rover.gltf'],tank:['tank.fbx'],artillery:['artillery.fbx'],scout:['helicopter.glb'],gunship:['helicopter.glb'],bomber:['bomber.gltf']};
-const nativeWidths={rover:65,tank:90,artillery:94,scout:106,gunship:92,bomber:107}; // Keep rendered footprint equal to catalog specs.
+const nativeWidths={rover:76,tank:90,artillery:94,scout:106,gunship:92,bomber:107}; // Keep rendered footprint equal to catalog specs.
 const renderer=new T.WebGLRenderer({alpha:true,antialias:true,preserveDrawingBuffer:true});renderer.setPixelRatio(1);renderer.setSize(cell,cell);renderer.setClearColor(0,0);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.13;
 const scene=new T.Scene(),camera=new T.OrthographicCamera(-1.8,1.8,1.8,-1.8,.01,100);camera.position.set(0,8,12);camera.lookAt(0,0,0);
 scene.add(new T.HemisphereLight('#c8dfff','#65482b',1.55));const sun=new T.DirectionalLight('#ffe4be',3.2);sun.position.set(-6,10,6);sun.castShadow=true;sun.shadow.mapSize.set(cell>=192?2048:1024,cell>=192?2048:1024);sun.shadow.camera.left=-4;sun.shadow.camera.right=4;sun.shadow.camera.top=4;sun.shadow.camera.bottom=-4;sun.shadow.normalBias=.015;scene.add(sun);scene.add(sun.target);const fill=new T.DirectionalLight('#8ab9df',.65);fill.position.set(5,4,-5);scene.add(fill);
@@ -69,7 +70,7 @@ function weatherVehicleMaterials(model){
    if(/glass|emission|light|black seals|rubber|lens|optic/.test(name))continue;
    // Preserve physically based textures baked into the authored Leopard GLB.
    // Generic procedural noise is only a fallback for older vehicle materials.
-   if(m.normalMap && m.roughnessMap && m.metalnessMap)continue;
+   if(m.normalMap && m.roughnessMap && (m.metalnessMap || m.map))continue;
    if(!m.bumpMap && !m.normalMap){m.bumpMap=microRelief;m.bumpScale=/ceramic|sand|armour/.test(name)?.021:.012;}
    if(!m.roughnessMap&&weatherRoughness)m.roughnessMap=weatherRoughness;
    m.roughness=Math.max(/enamel|faction/.test(name)?.58:.72,Math.min(.9,m.roughness??.75));
@@ -120,7 +121,7 @@ window.compileAtlases=async(requested)=>{
  for(const kind of Object.keys(models).filter(k=>!requested.length||requested.includes(k))){
   const character=kind in {infantry:1,engineer:1,heavy:1},[file,weapon]=models[kind];
   for(const team of [0,1]){
-   const rig=character?null:kind==='tank'?await loadFactionLeopard(team):buildAtlasVehicle(kind,team);
+   const rig=character?null:kind==='tank'?await loadFactionLeopard(team):kind==='rover'?buildHumvee(team):buildAtlasVehicle(kind,team);
    const data=rig?{scene:rig.model,animations:[]}:await loader.loadAsync('/tools/animation-sources/'+file),model=data.scene??data;
    if(character)for(const name of weapons){const n=model.getObjectByName(name);if(n)n.visible=name===weapon;}
    const rotor=rig?.rotor??null;
