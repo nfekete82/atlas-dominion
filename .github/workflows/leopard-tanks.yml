@@ -46,7 +46,7 @@ jobs:
       - name: Generate both complete faction GLB files
         shell: bash
         run: |
-          python -m pip install --disable-pip-version-check --quiet numpy trimesh pillow
+          python -m pip install --disable-pip-version-check --quiet numpy scipy trimesh pillow
           PYTHONPATH=scripts python -m unittest discover -s tests -p 'test_tank_pbr.py'
           ATLAS_TANK_OUT=src/assets/reborn/animation python scripts/create_atlas_leopard.py
           python - <<'PY'
