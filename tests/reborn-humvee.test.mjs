@@ -16,6 +16,7 @@ function fixture(){
  return {game,rover,infantry};
 }
 test('Humvee recon carrier is faster than ordinary units, armed and restricted to four seats',()=>{
+ assert.equal(UNITS.rover.name,'Humvee');
  assert.equal(ROVER_CAPACITY,4);
  assert.equal(TRANSPORT_CAPACITY,10);
  assert.equal(transportCapacity('rover'),4);
@@ -94,6 +95,13 @@ test('both factions have a real 3D rover with 4-seat metadata, MG muzzle, 16 hea
   assert.equal(metadata.directions,16);
   assert.deepEqual(metadata.cell,[192,192]);
   assert.ok(metadata.frames.every(f=>Array.isArray(f.muzzle)&&f.muzzle.every(Number.isFinite)));
-  assert.ok(metadata.clips.walk.uniquePhases.every(n=>n>1),'wheels really spin');
+  assert.equal(metadata.clips.walk.frames.length,16);
+  assert.ok(metadata.clips.walk.frames.every(row=>row.length===11),'11 wheel rotation frames per view');
+  assert.ok(metadata.clips.walk.uniquePhases.every(n=>n>=5),'wheels have multiple visibly different rotations');
+  assert.equal(metadata.stride,52,'wheel spin advances with actual distance traveled');
+  const len=glb.readUInt32LE(12),json=JSON.parse(glb.subarray(20,20+len));
+  const spin=json.animations?.find(c=>c.name==='Humvee_Wheels');
+  assert.ok(spin,'GLB includes real 3D wheel animation, not only tactical sprites');
+  assert.equal(spin.channels.length,4,'all four wheels spin independently');
  }
 });
