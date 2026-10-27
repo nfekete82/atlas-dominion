@@ -52,8 +52,34 @@ test('campaign: the one starting bastion beside each headquarters pays 50 credit
  for(let i=0;i<200;i++)loaded.step();
  assert.deepEqual(loaded.credits,[600,700]);
  assert.equal(new Simulation().income(0),35,'older maps retain the old economic balance');
- for(const size of [3,4,5])assert.ok(Simulation.campaign(184902,size).territories.every(t=>t.income<50),
-  'smaller campaigns without a separate initial bastion receive no special income');
+ // The new menu offers 4, 8 and 12 bastions; all of them must actually receive
+ // the promised 50-credit starting bastion bonus (not just the 16-sector fixture).
+ for(const [version,count] of [[3,4],[4,8],[5,12]]){
+  const campaign=Simulation.campaign(184902,version),blueStart=campaign.bases.find(b=>b.owner===0&&b.kind==='headquarters').territory,
+   redStart=campaign.bases.find(b=>b.owner===1&&b.kind==='headquarters').territory;
+  assert.equal(campaign.territories.length,count);
+  for(const [owner,id] of [[0,blueStart],[1,redStart]]){
+   assert.equal(campaign.territories[id].owner,owner);
+   assert.equal(campaign.territories[id].income,50,`map ${count}: starting bastion`);
+   assert.equal(campaign.income(owner),60,`map ${count}: HQ + 50-credit bastion`);
+  }
+  assert.ok(campaign.territories.every(t=>[blueStart,redStart].includes(t.id)||t.income<50),
+   `map ${count}: only starting bastions may receive the bonus`);
+  const initial=[...campaign.credits];
+  campaign.aiClock=-1e8;for(let i=0;i<199;i++)campaign.step();
+  assert.deepEqual(campaign.credits,initial,`map ${count}: nothing before 10 seconds`);
+  campaign.step();
+  assert.deepEqual(campaign.credits,initial.map(credits=>credits+60),`map ${count}: exact 10-second payout`);
+  // Loading an older save must pick up the new income from regenerated terrain.
+  const oldSave=campaign.save();
+  oldSave.territories[blueStart].income=15;oldSave.territories[redStart].income=15;
+  const loaded=Simulation.load(oldSave);
+  assert.equal(loaded.territories[blueStart].income,50,`map ${count}: migrated save income`);
+  assert.equal(loaded.territories[redStart].income,50,`map ${count}: enemy save income`);
+  loaded.territories[blueStart].owner=1;
+  assert.equal(loaded.income(0),10,`map ${count}: losing bastion ends bonus`);
+  assert.equal(loaded.income(1),110,`map ${count}: capturing bastion transfers bonus`);
+ }
 });
 
 test('campaign: new campaigns roll fresh seeds; seeds reproduce terrain and save/load restores its exact geometry',()=>{

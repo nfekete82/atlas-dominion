@@ -203,11 +203,13 @@ export class World {
   territories(seed=2026): Territory[] {
     let random=seed>>>0;const rand=()=>{random=(Math.imul(random,1664525)+1013904223)>>>0;return random/4294967296;};
     const layout=mapLayout(this.mapVersion),cols=layout.columns,rows=layout.rows,w=this.size/cols,h=this.size/rows;
-    // Only the 16-sector campaign begins with a separate bastion beside each HQ.
-    // Boost that one starting bastion for each faction, not the HQ territory or
-    // newly captured sectors. Its value transfers normally if recaptured.
-    const startingBastions=this.mapVersion===2
-      ? [layout.starts[0].find(id=>id!==layout.headquarters[0]),layout.starts[1].find(id=>id!==layout.headquarters[1])]
+    // Campaigns have exactly one income-boosted starting bastion per faction.
+    // In the original 16-sector campaign it is next to the HQ territory;
+    // in 4/8/12-sector maps the starting bastion shares the HQ sector.
+    // Ownership is not hardcoded: a captured starting bastion pays its new owner.
+    const startingBastions=this.mapVersion>=2
+      ? [layout.starts[0].find(id=>id!==layout.headquarters[0])??layout.starts[0][0],
+         layout.starts[1].find(id=>id!==layout.headquarters[1])??layout.starts[1][0]]
       : [];
     const vertices:Point[][]=Array.from({length:rows+1},(_,y)=>Array.from({length:cols+1},(_,x)=>({
       x:x*w+(x===0||x===cols?0:(rand()-.5)*w*.24),y:y*h+(y===0||y===rows?0:(rand()-.5)*h*.24)})));
