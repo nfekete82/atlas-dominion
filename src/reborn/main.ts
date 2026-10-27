@@ -8,6 +8,7 @@ import { saveCampaign, loadCampaign } from './storage.js';
 import { Soundscape } from './audio.js';
 import { BUILDINGS, UNITS, unitKinds, buildingSpec, unitSpec, type UnitKind, type BuildingKind } from './catalog.js';
 import { icon } from './icons.js';
+import {transportCapacity} from './transports.js';
 
 const elements=new Map<string,HTMLElement>();
 const el=<T extends HTMLElement=HTMLElement>(id:string):T=>{let node=elements.get(id);if(!node){node=document.getElementById(id)!;if(node)elements.set(id,node);}return node as T;};
@@ -92,8 +93,8 @@ function refreshMeasured():void{
  const medics=selected.some(u=>u.kind==='medic'),workers=selected.some(u=>u.kind==='engineer');
  el('support-commands').hidden=!selected.length;el('heal-mode').hidden=!medics;el('repair-mode').hidden=!workers;el('build-mode').hidden=!workers;
  if(!workers){renderer.placement=null;el('build-menu').hidden=true;renderer.canvas.classList.remove('building');}
- el('load-mode').hidden=!selected.some(u=>u.kind==='scout');el('unload-mode').hidden=!selected.some(u=>u.kind==='scout');el<HTMLButtonElement>('unload-mode').disabled=!selected.some(u=>u.kind==='scout'&&u.transport?.cargo.length);
- if(selected.length===1&&first?.kind==='scout')detail=`${first.transport?.cargo.length??0} / 10 Passagiere · ${spec!.description}`;
+ el('load-mode').hidden=!selected.some(u=>transportCapacity(u.kind)>0);el('unload-mode').hidden=!selected.some(u=>u.kind==='scout');el<HTMLButtonElement>('unload-mode').disabled=!selected.some(u=>transportCapacity(u.kind)>0&&u.transport?.cargo.length);
+ if(selected.length===1&&first&&transportCapacity(first.kind)>0)detail=`${first.transport?.cargo.length??0} / ${transportCapacity(first.kind)} Passagiere · ${spec!.description}`;
  el('move-mode').hidden=!selected.length;el('rally-mode').hidden=!base||base.buildRemaining>0||!unitKinds.some(k=>UNITS[k].producers.includes(base.kind));
  const context=el('building-commands'),contextKey=base?`${base.id}:${base.buildRemaining>0}`:'';
  if(context.dataset.key!==contextKey){context.dataset.key=contextKey;context.replaceChildren();
@@ -156,7 +157,7 @@ el('select-base').onclick=()=>{renderer.selected.clear();renderer.selectedBase=g
 el('hold').onclick=()=>{input.stop(true);refresh();};
 el('heal-mode').onclick=()=>{renderer.commandMode='heal';renderer.attackMode=false;renderer.canvas.classList.remove('attack');notify('Verletzte eigene Infanterie mit Linksklick wählen.');};
 el('load-mode').onclick=()=>{renderer.commandMode='load';renderer.attackMode=false;notify('Eigene Infanterie mit Linksklick als Abholgruppe wählen.');};
-el('unload-mode').onclick=()=>{renderer.commandMode='unload';renderer.attackMode=false;notify('Linksklick auf den gewünschten Landeort.');};
+el('unload-mode').onclick=()=>{renderer.commandMode='unload';renderer.attackMode=false;notify('Linksklick auf den gewünschten Ausladeort.');};
 el('repair-mode').onclick=()=>{renderer.commandMode='repair';renderer.attackMode=false;renderer.canvas.classList.remove('attack');notify('Eigenes beschädigtes Gebäude oder Baustelle mit Linksklick wählen.');};
 el('close-build-menu').onclick=()=>{el('build-menu').hidden=true;};
 el('build-mode').onclick=()=>{el('build-menu').hidden=!el('build-menu').hidden;};
