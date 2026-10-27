@@ -18,7 +18,7 @@ const near=(actual,expected)=>assert.ok(Math.abs(actual-expected)<1e-6,`${actual
 test('support: exact catalog values and medic production price/time at the barracks',()=>{
  const g=peaceful(),hq=addProducer(g,'barracks'),before=g.credits[0];
  assert.equal(UNITS.medic.hp,100);assert.equal(UNITS.medic.cost,175);assert.equal(UNITS.medic.buildTime,8);
- assert.equal(UNITS.engineer.name,'Bauarbeiter');assert.equal(UNITS.engineer.cost,200);assert.equal(UNITS.engineer.hp,110);
+ assert.equal(UNITS.engineer.name,'Ingenieur');assert.equal(UNITS.engineer.cost,200);assert.equal(UNITS.engineer.hp,110);
  assert.ok(g.recruit(hq.id,'medic'));assert.equal(g.credits[0],before-175);advance(g,7.95);assert.ok(!g.units.some(u=>u.kind==='medic'));
  advance(g,.05);assert.equal(g.units.filter(u=>u.kind==='medic').length,1);assert.equal(g.credits[0],before-175);
 });
@@ -103,4 +103,31 @@ test('support: healing takes priority over pistol defence, and equal simulated t
 for(const kind of ['medic','engineer'])test(`support: ${kind} also identifies and returns direct turret fire`,()=>{
  const g=peaceful(),u=g.spawn(0,{x:1900,y:2100},kind),tower={...g.bases[1],id:1020,x:1980,y:2100,kind:'turret',radius:30,hp:650,queue:[],queueTypes:[],cooldown:0};
  g.bases.push(tower);g.updateVision();for(let i=0;i<25&&u.lastAttacker!==tower.id;i++)g.step();assert.equal(u.lastAttacker,tower.id);near(u.hp,UNITS[kind].hp-6);g.step();near(tower.hp,646);
+});
+
+test('support: engineers share an 18 HP/s area budget between wounded ground vehicles and aircraft',()=>{
+ const g=peaceful();g.units=[];const e=g.spawn(0,{x:1900,y:2100},'engineer');
+ const tank=g.spawn(0,{x:1940,y:2100},'tank'),heli=g.spawn(0,{x:1870,y:2120},'gunship');
+ const farther=g.spawn(0,{x:2150,y:2100},'rover'),enemy=g.spawn(1,{x:1930,y:2110},'tank');
+ for(const u of [tank,heli,farther,enemy]){u.hp=100;u.cooldown=1e8;}
+ e.cooldown=1e8;advance(g,1);
+ near(tank.hp+heli.hp,218);
+ near(farther.hp,100);near(enemy.hp,100);
+ assert.ok(g.workEffects.some(effect=>effect.kind==='repair'&&effect.target===tank.id));
+ assert.ok(g.workEffects.some(effect=>effect.kind==='repair'&&effect.target===heli.id));
+ assert.deepEqual(e.orders,[],'idle engineer stays put instead of chasing');
+ near(e.x,1900);
+ const saved=Simulation.load(g.save());assert.equal(saved.units.find(u=>u.id===tank.id).hp,tank.hp);
+ const closeFlight=saved.units.find(u=>u.id===heli.id);closeFlight.hp=30;
+ const engineer=saved.units.find(u=>u.id===e.id);saved.aiClock=-1e8;
+ assert.equal(saved.command([engineer.id],point(closeFlight,'repair')),1,'explicit aircraft repair order accepted');
+ advance(saved,1);
+ assert.ok(closeFlight.hp>30,'aircraft receives repairs');
+});
+test('support: engineers reject hostile aircraft, infantry and full-health vehicles',()=>{
+ const g=peaceful(),e=g.units.find(u=>u.owner===0&&u.kind==='engineer');
+ const enemy=g.spawn(1,{x:1980,y:2100},'gunship'),full=g.spawn(0,{x:2010,y:2100},'tank'),soldier=g.spawn(0,{x:2050,y:2100},'infantry');
+ assert.equal(g.command([e.id],point(enemy,'repair')),0);
+ assert.equal(g.command([e.id],point(full,'repair')),0);
+ soldier.hp-=20;assert.equal(g.command([e.id],point(soldier,'repair')),0);
 });
