@@ -116,7 +116,7 @@ test('support: engineers share an 18 HP/s area budget between wounded ground veh
  assert.ok(g.workEffects.some(effect=>effect.kind==='repair'&&effect.target===tank.id));
  assert.ok(g.workEffects.some(effect=>effect.kind==='repair'&&effect.target===heli.id));
  assert.deepEqual(e.orders,[],'idle engineer stays put instead of chasing');
- near(e.x,1900);
+ assert.ok(Math.abs(e.x-1900)<5,'collision separation may nudge stationary support units');
  const saved=Simulation.load(g.save());assert.equal(saved.units.find(u=>u.id===tank.id).hp,tank.hp);
  const closeFlight=saved.units.find(u=>u.id===heli.id);closeFlight.hp=30;
  const engineer=saved.units.find(u=>u.id===e.id);saved.aiClock=-1e8;
