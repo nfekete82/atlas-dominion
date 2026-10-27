@@ -93,7 +93,7 @@ function refreshMeasured():void{
  const medics=selected.some(u=>u.kind==='medic'),workers=selected.some(u=>u.kind==='engineer');
  el('support-commands').hidden=!selected.length;el('heal-mode').hidden=!medics;el('repair-mode').hidden=!workers;el('build-mode').hidden=!workers;
  if(!workers){renderer.placement=null;el('build-menu').hidden=true;renderer.canvas.classList.remove('building');}
- el('load-mode').hidden=!selected.some(u=>transportCapacity(u.kind)>0);el('unload-mode').hidden=!selected.some(u=>u.kind==='scout');el<HTMLButtonElement>('unload-mode').disabled=!selected.some(u=>transportCapacity(u.kind)>0&&u.transport?.cargo.length);
+ el('load-mode').hidden=!selected.some(u=>transportCapacity(u.kind)>0);el('unload-mode').hidden=!selected.some(u=>transportCapacity(u.kind)>0);el<HTMLButtonElement>('unload-mode').disabled=!selected.some(u=>transportCapacity(u.kind)>0&&u.transport?.cargo.length);
  if(selected.length===1&&first&&transportCapacity(first.kind)>0)detail=`${first.transport?.cargo.length??0} / ${transportCapacity(first.kind)} Passagiere · ${spec!.description}`;
  el('move-mode').hidden=!selected.length;el('rally-mode').hidden=!base||base.buildRemaining>0||!unitKinds.some(k=>UNITS[k].producers.includes(base.kind));
  const context=el('building-commands'),contextKey=base?`${base.id}:${base.buildRemaining>0}`:'';
