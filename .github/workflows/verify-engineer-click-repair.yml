@@ -1,0 +1,32 @@
+name: Verify engineer repair targeting and assembly regression
+on:
+  push:
+    branches: [feat/rover-realistic-tires-flag-20261027]
+    paths:
+      - .github/workflows/verify-engineer-click-repair.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Compile and check staged construction plus repair
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+          node --test tests/reborn-support.test.mjs tests/reborn-construction-assembly.test.mjs tests/reborn-humvee.test.mjs
+      - name: Browser test engineer right-click, buildings and repairs
+        env:
+          CI: true
+          ATLAS_BROWSER_CHANNEL: chromium
+        run: |
+          npm ci --prefix tests/browser --no-audit --no-fund
+          (cd tests/browser && npx playwright install --with-deps chromium)
+          (cd tests/browser && npx playwright test --config playwright.config.mjs reborn-support.spec.mjs --reporter=line)
