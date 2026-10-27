@@ -67,7 +67,10 @@ function weatherVehicleMaterials(model){
    const name=(m.name??'').toLowerCase();
    // Glass, exhaust glow, rotors' rubber and team LEDs should stay clean.
    if(/glass|emission|light|black seals|rubber|lens|optic/.test(name))continue;
-   if(!m.bumpMap){m.bumpMap=microRelief;m.bumpScale=/ceramic|sand|armour/.test(name)?.021:.012;}
+   // Preserve physically based textures baked into the authored Leopard GLB.
+   // Generic procedural noise is only a fallback for older vehicle materials.
+   if(m.normalMap && m.roughnessMap && m.metalnessMap)continue;
+   if(!m.bumpMap && !m.normalMap){m.bumpMap=microRelief;m.bumpScale=/ceramic|sand|armour/.test(name)?.021:.012;}
    if(!m.roughnessMap&&weatherRoughness)m.roughnessMap=weatherRoughness;
    m.roughness=Math.max(/enamel|faction/.test(name)?.58:.72,Math.min(.9,m.roughness??.75));
    m.metalness=Math.min(.65,m.metalness??.3);
