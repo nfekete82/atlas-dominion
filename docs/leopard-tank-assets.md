@@ -15,7 +15,7 @@ sprite atlases; replacing GLB alone does not replace the in-game visuals.
 ## Build
 
 ```bash
-python -m pip install numpy trimesh pillow
+python -m pip install numpy scipy trimesh pillow
 ATLAS_TANK_OUT=src/assets/reborn/animation python scripts/create_atlas_leopard.py
 PYTHONPATH=scripts python -m unittest discover -s tests -p test_tank_pbr.py
 npm ci
@@ -50,7 +50,7 @@ holds the Python generator, restored as editable Python source by CI.
 ### Local rebuild
 
 ```bash
-python3 -m pip install numpy trimesh pillow
+python3 -m pip install numpy scipy trimesh pillow
 ATLAS_TANK_OUT=src/assets/reborn/animation python3 scripts/create_atlas_leopard.py
 PYTHONPATH=scripts python3 -m unittest discover -s tests -p 'test_tank_pbr.py'
 ATLAS_BROWSER_CHANNEL=chromium node scripts/render-unit-atlases.mjs --hd tank
