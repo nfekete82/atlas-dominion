@@ -9,7 +9,7 @@ await mkdir(out,{recursive:true});
 const saveBuilding=async(name,data)=>{
  const target=path.join(out,name);await mkdir(path.dirname(target),{recursive:true});
  await writeFile(target,Array.isArray(data)?Buffer.from(data):name.endsWith('.png')?Buffer.from(data.split(',')[1],'base64'):data);
- if(name.endsWith('.json')){const meta=JSON.parse(data);console.log(meta.kind,meta.team,meta.design.parts+' parts',meta.baker,meta.turret?'64 registered weapon views':meta.activity?'64 registered radar views':'static body');}
+ if(name.endsWith('.json')){const meta=JSON.parse(data);console.log(meta.kind,meta.team,(meta.design?.parts??meta.parts)+' parts',meta.baker??'staged 3D assembly',meta.turret?'64 registered weapon views':meta.activity?'64 registered radar views':meta.stages?meta.stages+' assembly stages':'static body');}
 };
 const saveTurretRig=async data=>{
  const target=path.join(root,'src/reborn/turret-rig.ts'),previous=await readFile(target,'utf8').catch(()=>null);
