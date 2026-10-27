@@ -1,3 +1,13 @@
+// The new infantry GLB is a user-supplied high-detail static mesh. Do not silently
+// overwrite it with the legacy hard-surface/Quaternius exporter.
+if(!process.argv.includes('--support')&&!process.argv.includes('--overwrite-premium')){
+ const {existsSync,readFileSync}=await import('node:fs');
+ const manifest='src/assets/reborn/prototype/infantry-0.json';
+ if(existsSync(manifest)){
+  const asset=JSON.parse(readFileSync(manifest,'utf8'));
+  if(asset.design?.version===3)throw Error('Premium Legionnaire installed: refusing to overwrite its GLBs/sprites. Use --support for medic/engineer or --overwrite-premium for an intentional legacy replacement.');
+ }
+}
 import {createServer} from 'node:http';import {readFile,writeFile,mkdir} from 'node:fs/promises';import path from 'node:path';import {chromium} from '../tests/browser/node_modules/@playwright/test/index.mjs';
 const root=path.resolve(new URL('..',import.meta.url).pathname),out=path.join(root,'src/assets/reborn/prototype');await mkdir(out,{recursive:true});
 const server=createServer(async(req,res)=>{try{const file=path.resolve(root,'.'+new URL(req.url,'http://localhost').pathname);if(!file.startsWith(root+path.sep))throw Error();res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript':file.endsWith('.html')?'text/html':'application/octet-stream');res.end(await readFile(file));}catch{res.writeHead(404).end();}});await new Promise(r=>server.listen(0,'127.0.0.1',r));
