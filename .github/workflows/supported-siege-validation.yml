@@ -1,0 +1,37 @@
+name: Supported siege regressions and paired opponents
+on:
+  push:
+    branches: [fix/siege-commitment-under-fire-20261027]
+permissions:
+  contents: read
+jobs:
+  siege:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund && npm run build
+      - name: Test real unit damage, withdrawal and sieges
+        run: |
+          node --test tests/reborn-ai-director.test.mjs tests/reborn-ai-pressure.test.mjs tests/reborn-commander.test.mjs tests/reborn-tactical-ai.test.mjs
+      - name: Prepare unchanged current Titan baseline
+        run: |
+          git worktree add --detach /tmp/atlas-before c430deece1714865bbfbc36b42bf2157ff12d064
+          cd /tmp/atlas-before
+          npm ci --no-audit --no-fund && npm run build
+      - name: Paired full-game opponents
+        run: |
+          node scripts/benchmark-titan.mjs --before /tmp/atlas-before/dist/src/reborn/simulation.js --profiles tower6,armor,combined --maps 4 --seeds 2026 --seconds 700 --output /tmp/siege.json > /tmp/siege.log
+          grep -E '^(before|after) (tower6|armor|combined)' /tmp/siege.log
+          node --input-type=module <<'JS'
+          import {readFileSync} from 'node:fs';
+          const r=JSON.parse(readFileSync('/tmp/siege.json','utf8'));
+          for(const p of r.options.profiles)for(const x of r.details.filter(x=>x.profile===p))console.log('RESULT',p,x.label,x.outcome,'time='+x.elapsedSeconds,'losses='+x.redUnitsLost,'aborts='+x.abortedMissions,'captured='+x.captures);
+          JS
