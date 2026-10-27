@@ -2,6 +2,7 @@
 export const RULES = {
   worldSize: 3762, grid: 240, columns: 6, rows: 5, tick: 1 / 20,
   initialCredits: 500, capacity: 48, incomeInterval: 10, baseIncome: 10,
+  startingBastionIncome: 50, // per income tick for the initial non-HQ bastion in the 16-sector campaign
   territoryIncome: [5, 15, 25] as readonly number[], captureTime: 8, captureRadius: 95,
   infantry: { cost: 100, buildTime: 5, hp: 100, speed: 112, sight: 310,
     range: 175, damage: 17, cooldown: .85, radius: 10 },
