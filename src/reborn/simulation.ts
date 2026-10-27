@@ -15,6 +15,8 @@ export type Weapon='rifle'|'heavy'|'pistol'|'turret'|'cannon'|'rocket';
 export interface Burst {target:number;remaining:number;at:number;index:number}
 export interface WorkEffect {kind:'heal'|'repair'|'build'|'board';target:number;source:number;sources:number[];at:number;amount:number}
 export const HEAL_RADIUS=70;
+export const REPAIR_RADIUS=90;
+export const REPAIR_RATE=18;
 export interface Unit extends Point {
   id:number; owner:Faction; kind:UnitKind; hp:number; orders:Order[]; path:Point[];
   cooldown:number; facing:number; moving:boolean; hit:number; repath:number;
@@ -231,11 +233,11 @@ export class Simulation {
     if(target.hp<=0||('orders' in target&&target.carrier)||target.owner!==u.owner)return false;
     if(kind==='heal')return u.kind==='medic'&&'orders' in target&&unitSpec(target).group==='Infanterie'&&target.hp<unitSpec(target).hp;
     if(kind==='repair'&&u.kind==='engineer'&&'orders' in target)
-      return target.id!==u.id&&!unitSpec(target).flying&&unitSpec(target).group==='Fahrzeuge'&&target.hp<unitSpec(target).hp;
+      return target.id!==u.id&&(unitSpec(target).group==='Fahrzeuge'||unitSpec(target).flying)&&target.hp<unitSpec(target).hp;
     return u.kind==='engineer'&&'queue' in target&&(kind==='build'?target.buildRemaining>0:target.buildRemaining<=0&&target.hp<buildingSpec(target).hp);
   }
   private supportApproach(u:Unit,target:Unit|Base):Point|null {
-    const radius='queue' in target?target.radius+32:35,angle=Math.atan2(u.y-target.y,u.x-target.x),range='queue' in target?target.radius+55:HEAL_RADIUS;
+    const radius='queue' in target?target.radius+32:35,angle=Math.atan2(u.y-target.y,u.x-target.x),range='queue' in target?target.radius+55:u.kind==='engineer'?REPAIR_RADIUS:HEAL_RADIUS;
     for(let i=0;i<16;i++){
       const turn=angle+(i%2?1:-1)*Math.ceil(i/2)*Math.PI/8;
       const p=this.world.nearest({x:target.x+Math.cos(turn)*radius,y:target.y+Math.sin(turn)*radius},this.obstacles(),[],u);
@@ -288,7 +290,7 @@ export class Simulation {
     }else if(u.kind==='medic'){
       target=this.spatial.query(u,HEAL_RADIUS).filter(t=>this.supportEligible(u,t,'heal')&&(t.id!==u.id||u.defendUntil<=this.time)).sort((a,b)=>a.hp/unitSpec(a).hp-b.hp/unitSpec(b).hp||a.id-b.id)[0];
     }else{
-      const damagedVehicles=this.spatial.query(u,80).filter(v=>this.supportEligible(u,v,'repair')&&distance(u,v)<=80);
+      const damagedVehicles=this.spatial.query(u,REPAIR_RADIUS).filter(v=>this.supportEligible(u,v,'repair')&&distance(u,v)<=REPAIR_RADIUS&&this.world.line(u,v));
       const damagedBuildings=this.bases.filter(b=>this.supportEligible(u,b,'repair')&&distance(u,b)<=b.radius+55);
       target=[...damagedVehicles,...damagedBuildings].sort((a,b)=>
         a.hp/('orders' in a?unitSpec(a).hp:buildingSpec(a).hp)-b.hp/('orders' in b?unitSpec(b).hp:buildingSpec(b).hp)||a.id-b.id)[0];
@@ -296,7 +298,7 @@ export class Simulation {
     if(!target)return false;
     // A recently attacked worker pauses construction/repair to defend itself.
     if(u.kind==='engineer'&&u.defendUntil>this.time)return false;
-    const range='queue' in target?target.radius+55:HEAL_RADIUS;
+    const range='queue' in target?target.radius+55:u.kind==='engineer'?REPAIR_RADIUS:HEAL_RADIUS;
     if(distance(u,target)>range||!this.world.line(u,target)){
       if(explicit&&!u.hold){if(u.repath<=0)u.path=[];const p=order?.approach&&this.world.walkable(order.approach,this.obstacles())?order.approach:this.supportApproach(u,target);if(p)this.move(u,p,dt);}
       return true;
@@ -305,10 +307,30 @@ export class Simulation {
     u.angle=Math.atan2(target.y-u.y,target.x-u.x);u.facing=target.x<u.x?-1:1;
     if('orders' in target){
       if(u.kind==='medic'){if(!this.healNearby(u,dt)){u.workingTarget=null;return false;}}
-      else {const before=target.hp;target.hp=Math.min(unitSpec(target).hp,target.hp+18*dt);this.work('repair',u.id,target.id,target.hp-before);}
+      else if(!this.repairNearby(u,dt)){u.workingTarget=null;return false;}
     }
     else if(target.buildRemaining<=0){const before=target.hp;target.hp=Math.min(buildingSpec(target).hp,target.hp+12*dt);this.work('repair',u.id,target.id,target.hp-before);}
     return true;
+  }
+  /** Shared 18 HP/s maintenance across all damaged friendly vehicles and aircraft within 90 M.
+   * Never moves the engineer, ignores transports' embarked units, and respects obstacles. */
+  private repairNearby(u:Unit,dt:number):boolean {
+    const vehicles=this.spatial.query(u,REPAIR_RADIUS).filter(v=>
+      this.supportEligible(u,v,'repair')&&distance(u,v)<=REPAIR_RADIUS&&this.world.line(u,v));
+    if(!vehicles.length)return false;
+    const total=vehicles.reduce((sum,v)=>sum+(v.hp/unitSpec(v).hp<.5?2:1),0);
+    let repaired=false;
+    for(const vehicle of vehicles){
+      const share=(vehicle.hp/unitSpec(vehicle).hp<.5?2:1)/total;
+      const before=vehicle.hp;
+      vehicle.hp=Math.min(unitSpec(vehicle).hp,before+REPAIR_RATE*share*dt);
+      if(vehicle.hp>before){
+        this.work('repair',u.id,vehicle.id,vehicle.hp-before);
+        u.workingTarget??=vehicle.id;
+        repaired=true;
+      }
+    }
+    return repaired;
   }
   /** A shared 12 HP/s budget; self care is capped at 3 HP/s and waits after damage. */
   private healNearby(u:Unit,dt:number):boolean {
