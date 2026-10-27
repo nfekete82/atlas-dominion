@@ -7,16 +7,18 @@
     "name": "Geschützturm",
     "kind": "turret",
     "team": 1,
-    "parts": 173,
-    "triangles": 72010,
+    "parts": 175,
+    "triangles": 72334,
     "geometry": "Refined ceramic armour, brushed champagne trim, weathered enamel and machined graphite; original registered weapon rig",
     "source": "Atlas Dominion / original procedural models",
     "sourceGeometry": {
       "parts": 170,
       "triangles": 71724
     },
-    "serviceDetails": 6,
+    "serviceDetails": 9,
     "serviceFeatures": [
+      "TurretBaseArmor",
+      "TurretBaseArmourLip",
       "IdentificationFrame",
       "FactionIdentification",
       "HydraulicFeed",
@@ -667,7 +669,7 @@
       ],
       [
         [
-          208.0202576384876,
+          208.02025763848764,
           355.9486232482224
         ],
         [
@@ -1068,11 +1070,11 @@
       [
         [
           349.4763595598179,
-          301.7484698550291
+          301.74846985502904
         ],
         [
           338.29359690267614,
-          284.45014852046944
+          284.4501485204694
         ]
       ],
       [

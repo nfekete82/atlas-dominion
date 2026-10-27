@@ -7,16 +7,19 @@
     "name": "Energiekern",
     "kind": "generator",
     "team": 0,
-    "parts": 26,
-    "triangles": 15642,
+    "parts": 27,
+    "triangles": 15966,
     "geometry": "Atlas original ceramic / bronze building geometry",
     "source": "Atlas Dominion / original procedural models",
     "sourceGeometry": {
       "parts": 21,
       "triangles": 10712
     },
-    "serviceDetails": 56,
+    "serviceDetails": 59,
     "serviceFeatures": [
+      "GeneratorCorePanel",
+      "GeneratorServiceDoor",
+      "GeneratorWarningBand",
       "CoolantRadiator",
       "RadiatorCoolingFin",
       "CoolantSupply",

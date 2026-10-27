@@ -8,15 +8,21 @@
     "kind": "factory",
     "team": 0,
     "parts": 53,
-    "triangles": 29382,
+    "triangles": 31002,
     "geometry": "Atlas original ceramic / bronze building geometry",
     "source": "Atlas Dominion / original procedural models",
     "sourceGeometry": {
       "parts": 47,
       "triangles": 20524
     },
-    "serviceDetails": 104,
+    "serviceDetails": 119,
     "serviceFeatures": [
+      "FactoryBlastShutter",
+      "FactoryShutterPlate",
+      "HeavyGateColumn",
+      "GateHazardStripe",
+      "FactoryLoadingCanopy",
+      "FactoryRoofArmor",
       "ReplaceableArmour",
       "HexFastener",
       "SafetyChevrons",
@@ -57,7 +63,7 @@
     "solidBounds": {
       "x": 107,
       "y": 194,
-      "w": 298,
+      "w": 310,
       "h": 270
     },
     "top": 194

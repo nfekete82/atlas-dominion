@@ -8,15 +8,18 @@
     "kind": "airfield",
     "team": 1,
     "parts": 30,
-    "triangles": 23010,
+    "triangles": 23442,
     "geometry": "Atlas original ceramic / bronze building geometry",
     "source": "Atlas Dominion / original procedural models",
     "sourceGeometry": {
       "parts": 24,
       "triangles": 13596
     },
-    "serviceDetails": 99,
+    "serviceDetails": 103,
     "serviceFeatures": [
+      "HangarSideArmor",
+      "HangarOverheadSafetyBeam",
+      "HangarGateGuide",
       "HangarShell",
       "HangarRoofLeft",
       "HangarRoofRight",

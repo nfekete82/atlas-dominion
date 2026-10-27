@@ -6,16 +6,19 @@
     "name": "Bastion",
     "kind": "bastion",
     "team": -1,
-    "parts": 51,
-    "triangles": 35430,
+    "parts": 53,
+    "triangles": 35862,
     "geometry": "User-refined bastion with preserved surfaces and authored animation groups",
     "source": "tools/building-sources/bastion-refined.glb",
     "sourceGeometry": {
       "parts": 47,
       "triangles": 34380
     },
-    "serviceDetails": 16,
+    "serviceDetails": 20,
     "serviceFeatures": [
+      "BastionFrontBlastShield",
+      "BastionArmourTopCap",
+      "BastionIdentityStripe",
       "BlastReinforcement",
       "AnchorBolt",
       "IdentificationFrame",
@@ -38,7 +41,7 @@
     "solidBounds": {
       "x": 198,
       "y": 236,
-      "w": 116,
+      "w": 128,
       "h": 176
     },
     "top": 214
