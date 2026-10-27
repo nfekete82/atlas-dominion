@@ -1,8 +1,8 @@
-name: Build PBR Humvee rover for Atlas Dominion
+name: Build PBR Sandforge rover and faction flags
 
 on:
   push:
-    branches: [feat/leopard-tank-flags-20261027]
+    branches: [feat/leopard-tank-flags-20261027, feat/rover-realistic-tires-flag-20261027]
     paths:
       - scripts/animation/humvee.js
       - scripts/animation/render.js
@@ -20,7 +20,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: humvee-rover-
+  group: humvee-rover-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
