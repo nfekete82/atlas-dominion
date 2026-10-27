@@ -6,6 +6,7 @@ import { BUILDINGS, UNITS, buildingSpec, unitSpec, type BuildingKind, type UnitK
 import { UnitPresentation, unitVisualLift } from './unit-presentation.js';
 import {angleDifference} from './sprite-animator.js';
 import { BuildingPresentation } from './building-presentation.js';
+import {buildingArtWidth,unitArtScale} from './visual-scale.js';
 import { TERRAIN_FRAMES, TERRAIN_PLACEMENTS } from './terrain-art.js';
 import { paintGeneratedTerrain } from './terrain-presentation.js';
 import { BattlefieldEffects, createGroundDetails, paintGroundDetails } from './battlefield-atmosphere.js';
@@ -171,7 +172,7 @@ export class Renderer {
     if(selected){c.strokeStyle='#88cffa';c.lineWidth=1/this.camera.zoom;c.beginPath();c.ellipse(p.x,p.y-unitVisualLift(u),15,6,0,0,Math.PI*2);c.stroke();}
     this.units.draw(c,u,p);
     if(u.kind==='scout'&&u.transport){c.font='9px monospace';c.textAlign='left';c.fillStyle=u.owner===0?'#b9e3f2':'#f0b29f';const label=u.transport.phase==='cruise'?`${u.transport.cargo.length}/10`:({approach:'LANDEANFLUG',landing:'LANDET',loading:'EINSTEIGEN',unloading:'AUSSTEIGEN',takeoff:'STARTET'} as Record<string,string>)[u.transport.phase];c.fillText(label,p.x+unitSpec(u).width*.35,p.y-20-unitVisualLift(u));}
-    if(selected||u.hp<spec.hp){const height=spec.group==='Infanterie'?56:spec.width*.68+(spec.flying?32:0)+unitVisualLift(u);this.bar({x:p.x,y:p.y-height},spec.group==='Infanterie'?27:spec.width*.55,u.hp/spec.hp,blue?'#75c5e8':'#ed7866');}
+    if(selected||u.hp<spec.hp){const height=spec.group==='Infanterie'?56*unitArtScale(u.kind):spec.width*.68+(spec.flying?32:0)+unitVisualLift(u);this.bar({x:p.x,y:p.y-height},spec.group==='Infanterie'?27*unitArtScale(u.kind):spec.width*.55,u.hp/spec.hp,blue?'#75c5e8':'#ed7866');}
   }
 
   private drawRange(b:Base):void {
@@ -181,15 +182,15 @@ export class Renderer {
   }
   private drawBase(b:Base,alpha=1):void {
     const c=this.context,selected=this.selectedBase===b.id,spec=buildingSpec(b),sprite=(b.owner===0?this.buildings:this.redBuildings)[b.kind];
-    const anchor={x:b.x,y:b.y},height=spec.width*(sprite.bodyHeight??sprite.h)/(sprite.bodyWidth??sprite.w);
+    const anchor={x:b.x,y:b.y},artWidth=buildingArtWidth(b.kind,spec.width),height=artWidth*(sprite.bodyHeight??sprite.h)/(sprite.bodyWidth??sprite.w);
     const angle=this.game.paused||this.game.shots.some(s=>s.source===b.id)?b.turretAngle??0:(b.previousTurretAngle??b.turretAngle??0)+angleDifference(b.previousTurretAngle??b.turretAngle??0,b.turretAngle??0)*this.interpolation;
-    const draw=(opacity=1)=>{this.spriteDraw(sprite,anchor,spec.width,false,opacity);if(b.kind==='turret'){const firing=this.units.particles.enabled&&!this.reducedMotion?this.game.shots.find(s=>s.source===b.id&&this.game.time-(s.at??0)<.07):undefined;const recoil=firing?Math.sin(Math.min(1,(this.game.time-(firing.at??0))/.07)*Math.PI)*1.1:0;this.structures.drawTurret(c,b.owner,{x:anchor.x-Math.cos(angle)*recoil,y:anchor.y-Math.sin(angle)*recoil*.65},spec.width,angle,opacity);}};
+    const draw=(opacity=1)=>{this.spriteDraw(sprite,anchor,artWidth,false,opacity);if(b.kind==='turret'){const firing=this.units.particles.enabled&&!this.reducedMotion?this.game.shots.find(s=>s.source===b.id&&this.game.time-(s.at??0)<.07):undefined;const recoil=firing?Math.sin(Math.min(1,(this.game.time-(firing.at??0))/.07)*Math.PI)*1.1:0;this.structures.drawTurret(c,b.owner,{x:anchor.x-Math.cos(angle)*recoil,y:anchor.y-Math.sin(angle)*recoil*.65},artWidth,angle,opacity);}};
     if(b.hp<=0){draw(.18);return;}
     if(selected){c.strokeStyle='#78c8f1';c.lineWidth=1.1;c.setLineDash([8,5]);c.beginPath();c.ellipse(b.x,b.y-8,spec.radius+17,(spec.radius+17)*.47,0,0,Math.PI*2);c.stroke();c.setLineDash([]);}
     draw(alpha*(b.buildRemaining>0?.3:1));
-    if(b.buildRemaining<=0)this.structures.drawActivity(c,b.kind,b.owner,anchor,spec.width,this.game.time,this.reducedMotion,alpha);
+    if(b.buildRemaining<=0)this.structures.drawActivity(c,b.kind,b.owner,anchor,artWidth,this.game.time,this.reducedMotion,alpha);
     if(b.buildRemaining>0){
-      const progress=1-b.buildRemaining/spec.buildTime;c.save();c.beginPath();c.rect(b.x-spec.width/2,anchor.y-height*progress,spec.width,height*progress);c.clip();draw();c.restore();
+      const progress=1-b.buildRemaining/spec.buildTime;c.save();c.beginPath();c.rect(b.x-artWidth/2,anchor.y-height*progress,artWidth,height*progress);c.clip();draw();c.restore();
       this.bar({x:b.x,y:b.y+spec.radius*.46+6},Math.min(85,spec.width*.6),progress,'#e9bb61');c.fillStyle='#f1d48e';c.font='10px monospace';c.textAlign='center';c.fillText(`${b.constructionActive?'BAU':'PAUSIERT'} ${Math.ceil(b.buildRemaining)} S`,b.x,b.y+spec.radius*.46+24);
     }
     if(selected||b.hp<spec.hp)this.bar({x:b.x,y:anchor.y-height-8},86,b.hp/spec.hp,b.owner===0?'#75c5e8':'#ed7866');
@@ -295,7 +296,7 @@ export class Renderer {
     for(const t of g.territories)if(g.canSee(0,t.point))entities.push({y:t.point.y,territory:t});else if(g.hasExplored(0,t.point))this.drawBastion(t,true);
     for(const b of g.bases)if(b.owner===0||g.canSee(0,b))entities.push({y:b.y,base:b});
     for(const m of g.memories[0])if(m.owner!==0&&!g.canSee(0,m)){
-      const kind=m.kind??'headquarters';this.spriteDraw(this.redBuildings[kind],{x:m.x,y:m.y},BUILDINGS[kind].width,false,m.hp>0?.22:.07);if(kind==='turret')this.structures.drawTurret(c,m.owner,{x:m.x,y:m.y},BUILDINGS[kind].width,0,m.hp>0?.22:.07);
+      const kind=m.kind??'headquarters';this.spriteDraw(this.redBuildings[kind],{x:m.x,y:m.y},buildingArtWidth(kind,BUILDINGS[kind].width),false,m.hp>0?.22:.07);if(kind==='turret')this.structures.drawTurret(c,m.owner,{x:m.x,y:m.y},buildingArtWidth(kind,BUILDINGS[kind].width),0,m.hp>0?.22:.07);
     }
     for(const u of g.units)if(!u.carrier&&(u.owner===0||g.canSee(0,u)))entities.push({y:u.y,unit:u});
     entities.sort((a,b)=>a.y-b.y);for(const e of entities)if('unit' in e)this.drawUnit(e.unit);else if('base' in e)this.drawBase(e.base);else this.drawBastion(e.territory);
@@ -304,7 +305,7 @@ export class Renderer {
       const spec=BUILDINGS[this.placement],p=this.pointer,valid=g.units.some(u=>this.selected.has(u.id)&&u.kind==='engineer'&&u.owner===0&&u.hp>0)&&!g.buildError(0,this.placement,p);
       c.save();c.strokeStyle=valid?'#96e0b8':'#f27e67';c.fillStyle=valid?'#6bcda52a':'#e66a552a';c.lineWidth=1.5;
       c.beginPath();c.moveTo(p.x-spec.radius,p.y);c.lineTo(p.x,p.y-spec.radius*.5);c.lineTo(p.x+spec.radius,p.y);c.lineTo(p.x,p.y+spec.radius*.5);c.closePath();c.fill();c.stroke();
-      this.spriteDraw(this.buildings[this.placement],p,spec.width,false,.65);if(this.placement==='turret')this.structures.drawTurret(c,0,p,spec.width,0,.65);c.restore();
+      this.spriteDraw(this.buildings[this.placement],p,buildingArtWidth(this.placement,spec.width),false,.65);if(this.placement==='turret')this.structures.drawTurret(c,0,p,buildingArtWidth(this.placement,spec.width),0,.65);c.restore();
     }
     this.drawRockets();
     this.drawWork();
@@ -346,7 +347,7 @@ export class Renderer {
         this.workEmitted.set(key,g.time);particles.emit(e.kind==='heal'?'heal':e.kind==='repair'?'repair':'build',{x:target.x+(base?base.radius*.3:0),y:target.y-(unit?31:12)});
         if(e.kind==='build')particles.emit('dust',{x:target.x,y:target.y+12});
       }
-      const height=base?buildingSpec(base).width*(this.buildings[base.kind].bodyHeight??100)/(this.buildings[base.kind].bodyWidth??100):41;
+      const height=base?buildingArtWidth(base.kind,buildingSpec(base).width)*(this.buildings[base.kind].bodyHeight??100)/(this.buildings[base.kind].bodyWidth??100):41;
       const x=target.x+(base?buildingSpec(base).width*.28:0),y=target.y-height-(this.reducedMotion?0:Math.min(age,.3)*6);
       c.save();c.translate(x,y);c.scale(clamp(1/this.camera.zoom,.8,1.35),clamp(1/this.camera.zoom,.8,1.35));c.globalAlpha=fade*pulse;
       c.fillStyle=e.kind==='heal'?'#8ee5a5':e.kind==='repair'?'#f0d47f':'#eeb15f';
