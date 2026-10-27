@@ -1,0 +1,80 @@
+name: Restore original Legionnaire game assets
+
+on:
+  push:
+    branches: [feat/precision-legionnaire-20261027]
+    paths:
+      - .github/workflows/restore-original-legionnaire.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout complete history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Verify reference commit is an ancestor
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor b5c1ae6 HEAD
+      - name: Restore exactly the original two legionnaire 3D models, sprite sheets and metadata
+        run: |
+          set -euo pipefail
+          git restore --source=b5c1ae6 -- \
+            src/assets/reborn/prototype/infantry-0.glb \
+            src/assets/reborn/prototype/infantry-0.json \
+            src/assets/reborn/prototype/infantry-0.png \
+            src/assets/reborn/prototype/infantry-1.glb \
+            src/assets/reborn/prototype/infantry-1.json \
+            src/assets/reborn/prototype/infantry-1.png
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          for (const team of [0,1]) {
+            const pre='src/assets/reborn/prototype/infantry-'+team;
+            const data=JSON.parse(fs.readFileSync(pre+'.json','utf8'));
+            assert.equal(data.design.version,2);
+            assert.equal(data.directions,8);
+            assert.ok(data.design.maxGripError<.002);
+            assert.equal(fs.readFileSync(pre+'.glb').toString('ascii',0,4),'glTF');
+            assert.ok(fs.statSync(pre+'.png').size>0);
+          }
+          JS
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install and build
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Regression tests
+        run: node --test tests/reborn-animation.test.mjs tests/reborn-premium-legionnaire.test.mjs
+      - name: Commit exact six-file rollback and push
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- \
+            src/assets/reborn/prototype/infantry-0.glb \
+            src/assets/reborn/prototype/infantry-0.json \
+            src/assets/reborn/prototype/infantry-0.png \
+            src/assets/reborn/prototype/infantry-1.glb \
+            src/assets/reborn/prototype/infantry-1.json \
+            src/assets/reborn/prototype/infantry-1.png
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo "Original infantry files are already restored."
+            exit 0
+          fi
+          git commit -m "revert(assets): restore original animated legionnaires for art consistency"
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
