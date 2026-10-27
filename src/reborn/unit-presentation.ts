@@ -4,6 +4,7 @@ import type {Point} from './config.js';
 import {SpriteAnimator,turnTowards,angleDifference,directionIndex,type AnimationAtlas,type AnimationFrame} from './sprite-animator.js';
 import {Particles} from './particles.js';
 import {unitAtlasPath} from './asset-paths.js';
+import {unitArtScale} from './visual-scale.js';
 interface Loaded {data:AnimationAtlas;image:HTMLImageElement|HTMLCanvasElement;shadow?:HTMLCanvasElement}
 /** Additional screen-space height above the ground pivot baked into air atlases. */
 export const unitVisualLift=(u:{kind?:UnitKind;flightHeight?:number}):number=>u.kind==='scout'?56-77*(1-(u.flightHeight??1)):unitSpec(u).flying?56:0;
@@ -62,7 +63,7 @@ export class UnitPresentation {
   v.unit=u;v.lastX=u.x;v.lastY=u.y;v.lastFire=u.fire;v.hp=u.hp;
  }
  private drawFrame(c:CanvasRenderingContext2D,v:View,frame:AnimationFrame,p:Point,offset:Point={x:0,y:0},image:CanvasImageSource=v.asset.image):void{
-  const scale=v.asset.data.nativeScale*(v.unit.kind==='heavy'?1.08:1);c.drawImage(image,frame.x,frame.y,frame.w,frame.h,p.x-frame.pivot[0]*scale+offset.x,p.y-frame.pivot[1]*scale+offset.y,frame.w*scale,frame.h*scale);
+  const scale=v.asset.data.nativeScale*unitArtScale(v.unit.kind);c.drawImage(image,frame.x,frame.y,frame.w,frame.h,p.x-frame.pivot[0]*scale+offset.x,p.y-frame.pivot[1]*scale+offset.y,frame.w*scale,frame.h*scale);
  }
  draw(c:CanvasRenderingContext2D,u:Unit,p:Point):void{
   const v=this.view(u);this.advance(v,u,0);this.drawView(c,v,p);
@@ -83,7 +84,7 @@ export class UnitPresentation {
  }
  drawCorpses(c:CanvasRenderingContext2D,visible:(p:Point)=>boolean):void{for(const v of this.corpses)if(v.unit.owner===0||visible(v.unit)){c.save();c.globalAlpha=Math.min(1,(5-v.deathAge)/.7);this.drawView(c,v,v.unit);c.restore();}}
  muzzle(v:View,u:Unit):Point{
-  const scale=v.asset.data.nativeScale*(u.kind==='heavy'?1.08:1),frame=v.asset.data.clips.barrel?v.anim.frame('barrel',v.turretAngle):v.frame,muzzle=frame.muzzle,spec=unitSpec(u);
+  const scale=v.asset.data.nativeScale*unitArtScale(u.kind),frame=v.asset.data.clips.barrel?v.anim.frame('barrel',v.turretAngle):v.frame,muzzle=frame.muzzle,spec=unitSpec(u);
   return muzzle?{x:u.x+(muzzle[0]-frame.pivot[0])*scale,y:u.y+(muzzle[1]-frame.pivot[1])*scale-unitVisualLift(u)}:{x:u.x+Math.cos(v.turretAngle)*spec.width*.42,y:u.y-16-(spec.flying?32:0)-unitVisualLift(u)+Math.sin(v.turretAngle)*spec.width*.18};
  }
  muzzleForShot(shot:Shot):Point{
@@ -92,7 +93,7 @@ export class UnitPresentation {
   const tag=asset.data.clips.barrel?'barrel':view?.anim.state??'attack';
   const clip=asset.data.clips[tag]??asset.data.clips.idle;
   const frame=view?view.anim.frame(tag,angle):asset.data.frames[clip.frames[directionIndex(angle,asset.data.directions)][0]];
-  const scale=asset.data.nativeScale*(shot.kind==='heavy'?1.08:1),m=frame.muzzle,p=shot.groundFrom;
+  const scale=asset.data.nativeScale*unitArtScale(shot.kind),m=frame.muzzle,p=shot.groundFrom;
   return m?{x:p.x+(m[0]-frame.pivot[0])*scale,y:p.y+(m[1]-frame.pivot[1])*scale-unitVisualLift({kind:shot.kind,flightHeight:shot.flightHeight})}:shot.from;
  }
  muzzleFor(u:Unit):Point{const v=this.view(u);this.advance(v,u,0);return this.muzzle(v,u);}
