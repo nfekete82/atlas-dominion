@@ -6,6 +6,7 @@ on:
     paths:
       - .github/workflows/engineer-building-assembly.yml
       - tests/reborn-support.test.mjs
+      - scripts/export-atlas-buildings.mjs
   workflow_dispatch:
 
 permissions:
