@@ -341,3 +341,28 @@ dialog>small,dialog form>small,.panel-heading,.help-grid h2 {color:#d8b983;}
   #catalog-units .catalog-card .card-meta .card-name,
   #catalog-units .catalog-card .card-meta .card-cost{font-size:9px;}
 }
+
+
+/* Production portraits are landscape images cropped to the visible silhouette.
+   Occupy the entire artwork region, stay centred, and never cover the price bar. */
+#catalog-units .catalog-card {
+  justify-content:stretch;
+}
+#catalog-units .catalog-card > img {
+  display:block;
+  width:100%;
+  height:calc(100% - 28px);
+  flex:1 1 auto;
+  min-height:0;
+  max-height:none;
+  padding:0;
+  margin:0;
+  object-fit:cover;
+  object-position:center center;
+}
+@media(max-width:620px) {
+  #catalog-units .catalog-card > img {
+    height:calc(100% - 24px);
+    object-fit:contain;
+  }
+}
