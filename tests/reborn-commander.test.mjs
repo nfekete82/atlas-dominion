@@ -74,3 +74,24 @@ test('logistics: a failed forward landing returns real passengers to own ground'
  g.tactical.airlift(g.units.filter(u=>u.owner===1),home);assert.equal(rejected,true);assert.notDeepEqual(s.airlift.target,target);
  for(let i=0;i<500;i++)g.step(.05);assert.equal(h.transport.cargo.length,0);assert.equal(rider.carrier,undefined);
 });
+
+test('commander: a safer fourth approach beats three short but hazardous attack routes',()=>{
+ const g=new Simulation(2026,4),state=newCampaign(),home=g.bases.find(b=>b.owner===1);
+ // At least four different frontier objectives; no hidden enemy knowledge.
+ g.territories.forEach((sector,index)=>{sector.owner=index%2===0?1:-1;});
+ g.memories[1]=[];
+ const queried=[];
+ const context={strategy:'unknown',force:[],losses:[],fronts:[],route:point=>{
+  queried.push({...point});
+  return {length:120,risk:queried.length<=3?10000:0};
+ }};
+ const mission=chooseMission(g,state,home,context);
+ assert.ok(queried.length>=4,'consider at least one alternative after three risky routes');
+ assert.ok(queried.length<=8,'cap expensive real-world pathfinding each macro pulse');
+ assert.ok(mission,'a reachable campaign objective exists');
+ assert.ok(queried.slice(3).some(p=>p.x===mission.x&&p.y===mission.y),
+  'choose a safely reachable target rather than a tempting but dangerous first-three candidate');
+ g.time+=3;
+ const again=chooseMission(g,state,home,{...context,route:()=>{throw Error('stable mission must not replan every pulse');}});
+ assert.equal(again,mission,'keep the same mission until meaningful progress or new tactical evidence');
+});
