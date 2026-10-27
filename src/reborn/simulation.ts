@@ -580,7 +580,13 @@ export class Simulation {
     this.runOver(dt);
     // Symmetric separation: units can pass one another without permanent deadlocks.
     for(const u of this.units)if(u.hp>0&&!u.carrier)for(const v of this.spatial.query(u,unitSpec(u).radius+26)){
-      if(v.id<=u.id||v.hp<=0||unitSpec(u).flying!==unitSpec(v).flying)continue;const gap=unitSpec(u).radius+unitSpec(v).radius+1;let d=distance(u,v);if(d>=gap)continue;
+      if(v.id<=u.id||v.hp<=0||unitSpec(u).flying!==unitSpec(v).flying)continue;
+      // An active vehicle must pass *through* hostile infantry after a run-over,
+      // not push its victim forward each frame and retrigger the same collision.
+      const movingVehicle=(u.moving&&unitSpec(u).group==='Fahrzeuge'&&unitSpec(v).group==='Infanterie')||
+        (v.moving&&unitSpec(v).group==='Fahrzeuge'&&unitSpec(u).group==='Infanterie');
+      if(u.owner!==v.owner&&movingVehicle)continue;
+      const gap=unitSpec(u).radius+unitSpec(v).radius+1;let d=distance(u,v);if(d>=gap)continue;
       const dx=d>.01?(u.x-v.x)/d:(u.id%2?1:-1),dy=d>.01?(u.y-v.y)/d:.25,push=Math.min(3,(gap-d)*.5);
       for(const [a,sign] of [[u,1],[v,-1]] as const){const p={x:a.x+dx*push*sign,y:a.y+dy*push*sign};if(unitSpec(a).flying||this.world.walkable(p,this.obstacles(),Math.max(0,unitSpec(a).radius-10))){a.x=p.x;a.y=p.y;}}
     }
