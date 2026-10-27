@@ -4,7 +4,10 @@ on:
     branches: [feat/vehicle-trample-tank-armor-20261027]
     paths:
       - src/reborn/catalog.ts
+      - src/reborn/config.ts
+      - src/reborn/world.ts
       - src/reborn/simulation.ts
+      - tests/reborn-campaign.test.mjs
       - tests/reborn-vehicle-ram-armor.test.mjs
       - .github/workflows/vehicle-ram-armor.yml
   workflow_dispatch:
