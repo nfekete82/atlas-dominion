@@ -54,6 +54,9 @@ test('director: tank, infantry and heavy form a shared local assault pace while 
  assert.ok([tank,heavy,foot].every((u,i)=>distance(u,starting[i])>15),'coordinated troops do advance');
  assert.ok(distance(tank,starting[0])<=78+12,'tank does not outrun its heavy-infantry screen');
  assert.ok(distance(far,goal)<distance({x:880,y:1700},goal),'distant vehicle is free to catch up');
+ g.tactical.issue([tank,heavy,foot,artillery],goal,'assault',1000);
+ assert.ok([tank,heavy,foot,artillery].every(u=>u.orders[0].march===undefined),
+  'explicit building or enemy attacks must preserve independent weapon ranges');
 });
 
 test('AI pressure: a rock detour does not freeze the leader; open-ground cohesion remains bounded',()=>{
