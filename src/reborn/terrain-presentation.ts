@@ -17,7 +17,7 @@ function rockColumn(c:CanvasRenderingContext2D,column:MesaColumn,grain:CanvasPat
   const faces=base.map((a,i)=>({a,b:base[(i+1)%base.length],ta:top[i],tb:top[(i+1)%top.length]})).filter(f=>(f.a.y+f.b.y)/2>cy-4).sort((a,b)=>(a.a.y+a.b.y)-(b.a.y+b.b.y));
   for(const {a,b,ta,tb} of faces){
     const sun=(a.x+b.x)/2<cx,points=[a,b,tb,ta],gradient=c.createLinearGradient(ta.x,Math.min(ta.y,tb.y),a.x,Math.max(a.y,b.y));
-    gradient.addColorStop(0,sun?'#f4e1bf':'#b9a282');gradient.addColorStop(.38,sun?'#e1caa8':'#ad9476');gradient.addColorStop(.82,sun?'#d1b68f':'#a58d6e');gradient.addColorStop(1,sun?'#e5cba1':'#cab18a');
+    gradient.addColorStop(0,sun?'#f4e1bf':'#d2b995');gradient.addColorStop(.38,sun?'#e1caa8':'#c5aa85');gradient.addColorStop(.82,sun?'#d1b68f':'#b89c76');gradient.addColorStop(1,sun?'#e5cba1':'#dac096');
     facePath(c,points);c.fillStyle=gradient;c.fill();
     c.save();facePath(c,points);c.clip();
     for(let n=0;n<2;n++){
@@ -29,12 +29,12 @@ function rockColumn(c:CanvasRenderingContext2D,column:MesaColumn,grain:CanvasPat
     // Project the material along each face; horizontal strata must turn with
     // the rock instead of continuing like one flat photograph over the outcrop.
     grain.setTransform(new DOMMatrix([(tb.x-ta.x)/width*.25,(tb.y-ta.y)/width*.25,(a.x-ta.x)/depth*.25,(a.y-ta.y)/depth*.25,ta.x-random()*80,ta.y-random()*80]));
-    mineralGrain(c,grain,points,.96);
+    mineralGrain(c,grain,points,.72);
     c.strokeStyle=sun?'#e4c99b65':'#c5ad8650';c.lineWidth=.8;c.beginPath();c.moveTo(ta.x,ta.y+1);c.lineTo(tb.x,tb.y+1);c.stroke();
   }
   const center={x:top.reduce((s,p)=>s+p.x,0)/top.length,y:top.reduce((s,p)=>s+p.y,0)/top.length};
   const gradient=c.createLinearGradient(center.x-30,center.y-30,center.x+35,center.y+30);gradient.addColorStop(0,'#fae5bf');gradient.addColorStop(.6,shade>.5?'#e5cfaa':'#efdbb9');gradient.addColorStop(1,'#cdb38d');
-  facePath(c,top);c.fillStyle=gradient;c.fill();grain.setTransform(new DOMMatrix([.25,0,.08,.12,center.x-random()*80,center.y-random()*50]));mineralGrain(c,grain,top,.64);
+  facePath(c,top);c.fillStyle=gradient;c.fill();grain.setTransform(new DOMMatrix([.25,0,.08,.12,center.x-random()*80,center.y-random()*50]));mineralGrain(c,grain,top,.56);
   // Weathered caprock, with uneven inset terraces rather than a clean polygon bevel.
   for(const scale of [.95]){
     const rim=top.map(p=>({x:center.x+(p.x-center.x)*scale,y:center.y+(p.y-center.y)*scale+(random()-.5)*3}));
