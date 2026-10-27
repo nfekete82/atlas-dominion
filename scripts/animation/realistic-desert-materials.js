@@ -85,6 +85,7 @@ export function realisticDesertMaterials(team) {
     light:mat('Atlas tactical smoke lenses','#464b44',.25,.12),
     rubber:mat('Atlas dirty rubber soles','#2f3029',.98,0),
     medic:mat('Atlas red medical marker','#ae322e',.9,0),
+    skin:mat('Atlas naturally tanned exposed face and ears','#bd9373',.82,0),
     sand:mat('Atlas sand canvas accessories','#bfa984',.98,0,{...nylon}),
   };
 }
