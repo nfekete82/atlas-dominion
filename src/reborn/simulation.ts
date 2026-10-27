@@ -493,8 +493,8 @@ export class Simulation {
       const spec=unitSpec(u);
       if(enemy&&distance(u,enemy)<=spec.range&&(spec.flying||('orders' in enemy&&unitSpec(enemy).flying)||this.world.line(u,enemy,this.obstacles().filter(b=>b.id!==enemy.id)))){
         u.facing=enemy.x<u.x?-1:1;u.angle=Math.atan2(enemy.y-u.y,enemy.x-u.x);
-        const rounds=u.kind==='infantry'||u.kind==='heavy'||u.kind==='scout'?3:1;
-        const weapon:Weapon=u.kind==='infantry'||u.kind==='scout'?'rifle':u.kind==='heavy'?'heavy':u.kind==='medic'||u.kind==='engineer'?'pistol':'cannon';
+        const rounds=u.kind==='infantry'||u.kind==='heavy'||u.kind==='scout'||u.kind==='rover'?3:1;
+        const weapon:Weapon=u.kind==='infantry'||u.kind==='scout'||u.kind==='rover'?'rifle':u.kind==='heavy'?'heavy':u.kind==='medic'||u.kind==='engineer'?'pistol':'cannon';
         if(u.burst?.target!==enemy.id)delete u.burst;
         if(!u.burst&&u.cooldown<=1e-8){u.cooldown=spec.cooldown;u.burst={target:enemy.id,remaining:rounds,at:this.time,index:0};}
         while(u.burst&&u.burst.at<=this.time+1e-8&&enemy.hp>0){
