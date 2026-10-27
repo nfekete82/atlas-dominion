@@ -4,7 +4,7 @@ import {loadRefinedBastion} from './refined-bastion.js';
 import {applyBuildingPBR,buildingSurfaces} from './building-pbr.js';
 import {upgradeBuildingDetails} from './building-details.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
-export function createBuildingExporter({renderer,saveBuilding,saveTurretRig,loadHeadquarters=loadRefinedHeadquarters,loadBastion=loadRefinedBastion}){
+export function createBuildingExporter({renderer,saveBuilding,saveTurretRig,loadHeadquarters=loadRefinedHeadquarters,loadBastion=loadRefinedBastion,constructionOnly=false}){
 const size=512,pivot=[256,382];renderer.setSize(size,size);renderer.setClearColor(0,0);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.13;
 const scene=new T.Scene(),camera=new T.OrthographicCamera(-3.4,3.4,3.4,-3.4,.01,100);camera.position.set(0,8,12);camera.lookAt(0,0,0);camera.updateMatrixWorld();
 if(renderer.isWebGLRenderer){const pmrem=new T.PMREMGenerator(renderer),environment=new RoomEnvironment();scene.environment=pmrem.fromScene(environment,.04).texture;scene.environmentIntensity=.35;environment.dispose();pmrem.dispose();}
@@ -15,15 +15,45 @@ const snapshot=()=>{renderer.render(scene,camera);const c=document.createElement
 function bounds(canvas,threshold=200){const data=canvas.getContext('2d').getImageData(0,0,size,size).data;let x=size,y=size,r=0,b=0;for(let j=0;j<size;j++)for(let i=0;i<size;i++)if(data[(j*size+i)*4+3]>threshold){x=Math.min(x,i);y=Math.min(y,j);r=Math.max(r,i);b=Math.max(b,j);}return {x,y,w:r-x+1,h:b-y+1};}
 async function layer(prefix,label,canvases,period){const boxes=canvases.map(c=>bounds(c,16)),left=Math.max(0,Math.min(...boxes.map(b=>b.x))-2),top=Math.max(0,Math.min(...boxes.map(b=>b.y))-2),right=Math.min(size,Math.max(...boxes.map(b=>b.x+b.w))+2),bottom=Math.min(size,Math.max(...boxes.map(b=>b.y+b.h))+2),w=right-left,h=bottom-top,columns=Math.min(8,canvases.length),out=document.createElement('canvas');out.width=w*columns;out.height=h*Math.ceil(canvases.length/columns);const c=out.getContext('2d'),frames=[];canvases.forEach((frame,i)=>{const x=i%columns*w,y=Math.floor(i/columns)*h;c.drawImage(frame,left,top,w,h,x,y,w,h);frames.push({x,y,w,h});});await saveBuilding(prefix+'-'+label+'.png',out.toDataURL('image/png'));return {image:prefix.split('/').at(-1)+'-'+label+'.png',pivot:[pivot[0]-left,pivot[1]-top],frames,period,originalBounds:{x:left,y:top,w,h}};}
 return async(requested=[])=>{
- for(const [label,texture] of Object.entries(buildingSurfaces()))await saveBuilding('textures/desert-'+({map:'basecolor',normalMap:'normal',orm:'orm'}[label])+'.png',texture.image.toDataURL('image/png'));
+ if(!constructionOnly)for(const [label,texture] of Object.entries(buildingSurfaces()))await saveBuilding('textures/desert-'+({map:'basecolor',normalMap:'normal',orm:'orm'}[label])+'.png',texture.image.toDataURL('image/png'));
  for(const kind of Object.keys(buildingNames).filter(k=>!requested.length||requested.includes(k)))for(const team of kind==='bastion'?[0,1,-1]:[0,1]){
   const {model,clips,dish,beacon,sweep,turret}=kind==='headquarters'?await loadHeadquarters(team):kind==='bastion'?await loadBastion(team):buildAtlasBuilding(kind,team),prefix=kind+'-'+team;
   upgradeBuildingDetails(model,kind,team);
   applyBuildingPBR(model,kind,team);
   // Export the exact surfaces used to bake the sprites, at their authored size.
   // Downsampling to 256px here previously discarded most of the surface detail.
-  const glb=await new GLTFExporter().parseAsync(model,{binary:true,animations:clips,onlyVisible:true,maxTextureSize:2048});await saveBuilding(prefix+'.glb',Array.from(new Uint8Array(glb)));
+  if(!constructionOnly){const glb=await new GLTFExporter().parseAsync(model,{binary:true,animations:clips,onlyVisible:true,maxTextureSize:2048});await saveBuilding(prefix+'.glb',Array.from(new Uint8Array(glb)));}
   const turn=new T.Group();turn.rotation.y=Math.PI/4;turn.add(model);scene.add(turn);if(dish)dish.visible=false;if(beacon)beacon.visible=false;if(sweep)sweep.visible=false;if(turret)turret.visible=false;floor.visible=true;
+  // Progressive assembly is baked from subsets of the actual textured 3D model.
+  // Every frame uses exactly the same camera, scale and registered ground pivot
+  // as the final building; the Canvas game only selects the stage by buildRemaining.
+  if(kind!=='headquarters'&&kind!=='bastion'){
+   const excluded=new Set();
+   for(const part of [dish,beacon,sweep,turret])part?.traverse(n=>{if(n.isMesh)excluded.add(n);});
+   const structural=[];
+   model.traverse(n=>{if(n.isMesh&&!excluded.has(n)&&n.visible){
+    const box=new T.Box3().setFromObject(n,true);
+    const name=n.name.toLowerCase();
+    const priority=/foundation|footing|slab|floor|plinth|platform|undercarriage/.test(name)?-2:
+      /roof|upper|canopy|antenna|mast|vent|solar|sign|fan|light|radio|grille|trim/.test(name)?2:
+      /door|gate|wall|column|pillar|frame|beam|armor|support/.test(name)?-.4:0;
+    structural.push({mesh:n,score:box.min.y+box.max.y*.12+priority});
+   }});
+   structural.sort((a,b)=>a.score-b.score||a.mesh.name.localeCompare(b.mesh.name));
+   if(structural.length<6)throw Error('Not enough structural parts for staged building: '+kind);
+   const original=structural.map(part=>part.mesh.visible),stages=[];
+   for(let stage=0;stage<6;stage++){
+    const count=Math.max(1,Math.ceil((stage+1)/6*structural.length));
+    for(let i=0;i<structural.length;i++)structural[i].mesh.visible=i<count;
+    stages.push(snapshot());
+   }
+   structural.forEach((part,i)=>{part.mesh.visible=original[i];});
+   const construction=await layer(prefix,'construction',stages,1);
+   await saveBuilding(prefix+'-construction.json',JSON.stringify({
+    version:1,kind,team,model:prefix+'.glb',parts:structural.length,stages:construction.frames.length,layer:construction
+   },null,2)+'\n');
+  }
+  if(constructionOnly){scene.remove(turn);continue;}
   const body=snapshot();let solidBounds=bounds(body);await saveBuilding(prefix+'.png',body.toDataURL('image/png'));
   const dynamic=new Set();for(const node of [dish,beacon,sweep,turret])node?.traverse(n=>{if(n.isMesh)dynamic.add(n);});const staticMeshes=[];model.traverse(n=>{if(n.isMesh&&!dynamic.has(n))staticMeshes.push(n);});for(const n of staticMeshes)n.visible=false;floor.visible=false;
   let activity=null,light=null,captureSweep=null,traverse=null;
@@ -53,4 +83,4 @@ return async(requested=[])=>{
  }
 };
 }
-if(typeof window!=='undefined')window.exportBuildings=createBuildingExporter({renderer:new T.WebGLRenderer({alpha:true,antialias:true,preserveDrawingBuffer:true}),saveBuilding:(...args)=>window.saveBuilding(...args),saveTurretRig:data=>window.saveTurretRig(data)});
+if(typeof window!=='undefined')window.exportBuildings=createBuildingExporter({renderer:new T.WebGLRenderer({alpha:true,antialias:true,preserveDrawingBuffer:true}),saveBuilding:(...args)=>window.saveBuilding(...args),saveTurretRig:data=>window.saveTurretRig(data),constructionOnly:new URLSearchParams(location.search).has('constructionOnly')});
