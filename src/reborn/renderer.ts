@@ -7,6 +7,7 @@ import { UnitPresentation, unitVisualLift } from './unit-presentation.js';
 import {angleDifference} from './sprite-animator.js';
 import { BuildingPresentation } from './building-presentation.js';
 import {buildingArtWidth,unitArtScale} from './visual-scale.js';
+import {rosterImageRect,ROSTER_IMAGE_WIDTH,ROSTER_IMAGE_HEIGHT} from './portrait-layout.js';
 import { TERRAIN_FRAMES, TERRAIN_PLACEMENTS } from './terrain-art.js';
 import { paintGeneratedTerrain } from './terrain-presentation.js';
 import { BattlefieldEffects, createGroundDetails, paintGroundDetails } from './battlefield-atmosphere.js';
@@ -115,15 +116,15 @@ export class Renderer {
   icon(type:'unit'|'building',kind:UnitKind|BuildingKind):string{
     const key=type+kind,cached=this.icons.get(key);if(cached)return cached;
     if(type==='building'){const result=this.structures.icon(kind as BuildingKind);this.icons.set(key,result);return result;}
-    const c=document.createElement('canvas');c.width=c.height=160;const ctx=c.getContext('2d')!;
+    const c=document.createElement('canvas');c.width=ROSTER_IMAGE_WIDTH;c.height=ROSTER_IMAGE_HEIGHT;const ctx=c.getContext('2d')!;
     {
       const {data,image}=this.units.asset(kind as UnitKind),frame=data.frames[data.clips.idle.frames[1][0]],tile=document.createElement('canvas');tile.width=frame.w;tile.height=frame.h;const tc=tile.getContext('2d')!;tc.drawImage(image,frame.x,frame.y,frame.w,frame.h,0,0,frame.w,frame.h);
       for(const tag of ['turret','barrel'])if(data.clips[tag]){const layer=data.frames[data.clips[tag].frames[1][0]];tc.drawImage(image,layer.x,layer.y,layer.w,layer.h,frame.pivot[0]-layer.pivot[0],frame.pivot[1]-layer.pivot[1],layer.w,layer.h);}
       const pixels=tc.getImageData(0,0,frame.w,frame.h).data;let left=frame.w,top=frame.h,right=0,bottom=0;
       for(let y=0;y<frame.h;y++)for(let x=0;x<frame.w;x++)if(pixels[(y*frame.w+x)*4+3]>180){left=Math.min(left,x);top=Math.min(top,y);right=Math.max(right,x);bottom=Math.max(bottom,y);}
-      const width=right-left+1,height=bottom-top+1,scale=Math.min(148/width,148/height);ctx.imageSmoothingEnabled=false;ctx.drawImage(tile,left,top,width,height,(160-width*scale)/2,156-height*scale,width*scale,height*scale);
+      const width=right-left+1,height=bottom-top+1,frameRect=rosterImageRect(width,height);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(tile,left,top,width,height,frameRect.x,frameRect.y,frameRect.w,frameRect.h);
     }
-    if(kind==='engineer'||kind==='medic'||kind==='heavy'){ctx.fillStyle=kind==='medic'?'#89e4b0':kind==='engineer'?'#edbd61':'#86d4f6';ctx.fillRect(117,112,28,28);ctx.fillStyle='#10202a';ctx.font='bold 24px sans-serif';ctx.textAlign='center';ctx.fillText(kind==='medic'?'+':kind==='engineer'?'⚒':'Ⅱ',131,135);}
+    if(kind==='engineer'||kind==='medic'||kind==='heavy'){ctx.fillStyle=kind==='medic'?'#89e4b0':kind==='engineer'?'#edbd61':'#86d4f6';ctx.fillRect(164,90,24,24);ctx.fillStyle='#10202a';ctx.font='bold 20px sans-serif';ctx.textAlign='center';ctx.fillText(kind==='medic'?'+':kind==='engineer'?'⚒':'Ⅱ',176,109);}
     const result=c.toDataURL();this.icons.set(key,result);return result;
   }
   resize():void {
