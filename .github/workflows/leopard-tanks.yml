@@ -51,8 +51,9 @@ jobs:
           ATLAS_TANK_OUT=src/assets/reborn/animation python scripts/create_atlas_leopard.py
           python - <<'PY'
           import trimesh
+          from pathlib import Path
           for team in (0,1):
-              p=f'src/assets/reborn/animation/tank-{team}.glb'
+              p=Path(f'src/assets/reborn/animation/tank-{team}.glb')
               s=trimesh.load(p,force='scene')
               assert len(s.geometry)>=350, (p,len(s.geometry))
               assert 'Tank_Turret' in s.graph.nodes
