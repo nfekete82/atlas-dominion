@@ -50,6 +50,21 @@ export function upgradeBuildingDetails(model,kind,team){
  function hazard(x,y,z,w=.12,h=.69){box('SafetyChevrons',[w,h,.023],'hazard',[x,y,z]);}
 
  if(kind==='headquarters'){
+  // Large new silhouette/readability details: visible at the actual RTS sprite size.
+  // Unlike the fine bolts, these features survive the 512px bake and game downscale.
+  box('CommandGateRecess',[1.54,.93,.115],'rubber',[0,.78,1.635]);
+  box('ArmouredBlastDoorLeft',[.70,.83,.13],'steel',[-.365,.77,1.723]);
+  box('ArmouredBlastDoorRight',[.70,.83,.13],'steel',[.365,.77,1.723]);
+  for(const yy of [.51,.73,.95,1.14])
+   box('CommandDoorRibs',[1.41,.041,.145],'sand',[0,yy,1.793]);
+  for(const xx of [-.74,.74]){
+   box('CommandDoorJamb',[.115,1.12,.16],'camo',[xx,.77,1.72]);
+   box('WarningSideBand',[.075,.72,.17],'hazard',[xx*1.13,.73,1.77]);
+  }
+  box('HeadquartersRoofArmourA',[.68,.10,.83],'camo',[-.87,1.51,-.49]);
+  box('HeadquartersRoofArmourB',[.68,.10,.83],'camo',[.87,1.51,-.49]);
+  box('CommandCanopy',[1.72,.145,.47],'steel',[0,1.315,1.77]);
+  sign(0,1.39,2.023,.83,.20);
   fan(.82,1.48,.52,.17);fan(1.25,1.48,.52,.13);
   box('HVACDuct',[.48,.17,.15],'steel',[.72,1.45,.12]);
   rod('RoofConduit',[1.28,1.45,-.12],[1.28,1.45,.82],.024,'rubber');
@@ -63,6 +78,17 @@ export function upgradeBuildingDetails(model,kind,team){
    box('SideReplaceableArmour',[.035,.53,.51],'sand',[side*1.633,.72,z+.28]);
   }
  }else if(kind==='factory'){
+  // The industrial opening must read as a full-size armored vehicle gate.
+  box('FactoryBlastShutter',[1.62,1.04,.09],'rubber',[.18,.78,1.435]);
+  for(let i=0;i<8;i++){
+   box('FactoryShutterPlate',[1.48,.104,.105],i%2?'camo':'steel',[.18,.36+i*.115,1.51]);
+  }
+  for(const xx of [-.66,1.01]){
+   box('HeavyGateColumn',[.16,1.35,.16],'steel',[xx,.78,1.54]);
+   box('GateHazardStripe',[.086,1.10,.17],'hazard',[xx,.74,1.638]);
+  }
+  box('FactoryLoadingCanopy',[2.10,.14,.41],'camo',[.18,1.42,1.61]);
+  box('FactoryRoofArmor',[1.24,.10,.71],'camo',[.12,1.65,-.45]);
   // Replace broad team-painted roof with a field-painted industrial shell.
   for(const x of [-1.32,1.32]){
    panel(x,.74,1.125,.22,.67);hazard(x,.73,1.155,.075,.61);
@@ -84,6 +110,14 @@ export function upgradeBuildingDetails(model,kind,team){
   box('ServiceHoist',[.38,.17,.48],'sand',[-1.12,.48,1.10]);
   for(const x of [-.46,.85])box('DoorTrack',[.035,.025,.31],'steel',[x,.27,1.16]);
  }else if(kind==='barracks'){
+  box('BarracksEntryRecess',[.86,1.04,.08],'rubber',[-.18,.79,1.43]);
+  box('BarracksBlastDoor',[.74,.93,.11],'steel',[-.18,.77,1.501]);
+  for(const yy of [.48,.71,.94])
+   box('BarracksDoorStiffener',[.76,.048,.14],'sand',[-.18,yy,1.563]);
+  for(const xx of [-1.04,.72])
+   box('BarracksFrontArmor',[.30,.81,.09],'camo',[xx,.79,1.47]);
+  box('BarracksDoorOverhang',[1.25,.12,.36],'steel',[-.18,1.34,1.57]);
+  box('BarracksRoofCamo',[1.23,.08,.75],'camo',[0,1.80,-.38]);
   sign(.42,1.08,1.399,.48,.12);
   fan(.88,1.72,-.50,.15);
   ladder(-1.13,.26,1.81,-1.04);
@@ -93,6 +127,12 @@ export function upgradeBuildingDetails(model,kind,team){
   box('FieldRadio',[.29,.18,.22],'sand',[-.85,1.96,-.16]);
   rod('RadioWhip',[-.85,2.03,-.16],[-.85,2.36,-.16],.009);
  }else if(kind==='airfield'){
+  // Large contrasting hangar panels and landing-direction bars.
+  box('HangarSideArmor',[.07,.81,1.39],'camo',[1.395,.83,-.29]);
+  box('HangarOverheadSafetyBeam',[1.87,.145,.11],'hazard',[.41,1.42,.72]);
+  for(const x of [-.35,1.19]){
+   box('HangarGateGuide',[.105,1.10,.115],'steel',[x,.85,.69]);
+  }
   // Retain the landing deck and tower. A steel hangar fills the back of the
   // same foundation, leaving a marked apron in front of its closed doors.
   const x=.41,z=-.28;
@@ -124,6 +164,9 @@ export function upgradeBuildingDetails(model,kind,team){
    if(n.name.includes('GuideBar')){n.scale.z=.35;n.position.x=.41;n.position.z=1.10;}
   });
  }else if(kind==='generator'){
+  box('GeneratorCorePanel',[.53,.82,.17],'camo',[0,.83,.56]);
+  box('GeneratorServiceDoor',[.36,.62,.19],'steel',[0,.82,.68]);
+  box('GeneratorWarningBand',[.37,.11,.21],'hazard',[0,.52,.81]);
   for(const x of [-.58,.58]){
    box('CoolantRadiator',[.19,.67,.55],'steel',[x,.68,0]);
    for(let i=0;i<10;i++)box('RadiatorCoolingFin',[.23,.018,.58],'steel',[x,.40+i*.058,0]);
@@ -137,6 +180,9 @@ export function upgradeBuildingDetails(model,kind,team){
   cyl('PressureValve',.075,.028,'steel',[.32,.65,.48],[Math.PI/2,0,0]);
   fan(0,.32,-.48,.14);
  }else if(kind==='turret'){
+  box('TurretBaseArmor',[.67,.38,.69],'camo',[0,.34,0]);
+  for(const xx of [-.30,.30])
+   box('TurretBaseArmourLip',[.12,.28,.78],'steel',[xx,.43,.0]);
   const head=model.getObjectByName('TurretHead');
   sign(0,.17,-.482,.28,.12,head,[0,Math.PI,0]);
   for(const x of [-.38,.38]){
@@ -144,6 +190,10 @@ export function upgradeBuildingDetails(model,kind,team){
    cyl('SmokeDischarger',.027,.15,'steel',[x,.22,-.33],[.5,0,0],head,12);
   }
  }else if(kind==='bastion'){
+  box('BastionFrontBlastShield',[.98,.43,.11],'camo',[0,.39,.69]);
+  box('BastionArmourTopCap',[1.02,.06,.17],'steel',[0,.64,.69]);
+  for(const xx of [-.47,.47])
+   box('BastionIdentityStripe',[.075,.40,.13],'hazard',[xx,.39,.76]);
   // Keep the complete imported radar and CaptureSweep hierarchy untouched.
   for(let i=0;i<6;i++){
    const a=i*Math.PI/3,x=Math.sin(a)*.58,z=Math.cos(a)*.58;
