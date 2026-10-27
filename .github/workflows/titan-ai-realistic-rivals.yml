@@ -1,0 +1,42 @@
+name: Titan AI realistic rivals
+on:
+  push:
+    branches: [fix/campaign-route-aware-target-selection-20261027]
+    paths: [.github/workflows/titan-ai-realistic-rivals.yml]
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund && npm run build
+      - run: |
+          git worktree add --detach /tmp/atlas-before 2aaf66a4d2bda15b3b001117e5360b5cfc91b923
+          cd /tmp/atlas-before
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Fight six equal-cost matches against armored, tower and combined enemies
+        run: |
+          node scripts/benchmark-titan.mjs --before /tmp/atlas-before/dist/src/reborn/simulation.js --profiles tower6,armor,combined --maps 4 --seeds 2026 --seconds 700 --output /tmp/atlas-titan.json
+          node --input-type=module <<'JS'
+          import {readFileSync} from 'node:fs';
+          const r=JSON.parse(readFileSync('/tmp/atlas-titan.json','utf8'));
+          for(const p of r.options.profiles){
+            for(const d of r.details.filter(x=>x.profile===p)){
+              console.log('TITAN',p,d.label,'result='+d.outcome,'win='+d.win,
+                'HQdamage='+d.enemyHQDamage,'redLosses='+d.redUnitsLost,
+                'captures='+d.captures,'attacks='+d.attackCommands,
+                'aborts='+d.abortedMissions,
+                'aiMeanMs='+d.cpu?.meanAIPlanningCpuMs);
+            }
+          }
+          JS
