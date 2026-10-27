@@ -1,0 +1,105 @@
+name: Build Leopard-style Atlas Dominion tanks
+
+on:
+  push:
+    branches: [feat/leopard-tank-flags-20261027]
+    paths:
+      - scripts/animation/render.js
+      - scripts/create_atlas_leopard.py.gz.b64
+      - scripts/create_atlas_leopard.py
+      - .github/workflows/leopard-tanks.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: leopard-tanks-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Prepare editable procedural asset source
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f scripts/create_atlas_leopard.py ]; then
+            base64 --decode scripts/create_atlas_leopard.py.gz.b64 | gzip --decompress > scripts/create_atlas_leopard.py
+          fi
+          python -m py_compile scripts/create_atlas_leopard.py
+      - name: Generate both complete faction GLB files
+        shell: bash
+        run: |
+          python -m pip install --disable-pip-version-check --quiet numpy trimesh
+          ATLAS_TANK_OUT=src/assets/reborn/animation python scripts/create_atlas_leopard.py
+          python - <<'PY'
+          import trimesh
+          for team in (0,1):
+              p=f'src/assets/reborn/animation/tank-{team}.glb'
+              s=trimesh.load(p,force='scene')
+              assert len(s.geometry)>=350, (p,len(s.geometry))
+              assert 'Tank_Turret' in s.graph.nodes
+              assert 'Tank_Gun' in s.graph.nodes
+              assert any(n.startswith('FactionFlagCloth') for n in s.graph.nodes)
+              print(p,'verified',len(s.geometry),'meshes')
+          PY
+      - name: Install project dependencies and headless Chromium
+        shell: bash
+        run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix tests/browser --no-audit --no-fund
+          cd tests/browser
+          npx playwright install --with-deps chromium
+      - name: Bake new tank sprites for gameplay in 16 headings and 4 motion phases
+        env:
+          ATLAS_BROWSER_CHANNEL: chromium
+        run: node scripts/render-unit-atlases.mjs --hd tank
+      - name: Validate game and atlas structure
+        shell: bash
+        run: |
+          npm run build
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          for(const team of [0,1]){
+            const base='src/assets/reborn/animation/tank-'+team;
+            const d=JSON.parse(fs.readFileSync(base+'.json','utf8'));
+            if(d.model!=='tank-'+team+'.glb'||d.directions!==16||
+               !d.clips.turret||!d.clips.barrel||
+               !d.clips.walk.uniquePhases.every(n=>n>1))throw Error('Invalid tank atlas '+team);
+            if(fs.statSync(base+'.png').size<10000)throw Error('Atlas too small '+team);
+            console.log('Faction',team,'verified:',d.frames.length,'frames');
+          }
+          JS
+      - name: Publish generated GLBs and real gameplay sprites on this feature branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add scripts/create_atlas_leopard.py
+          git add src/assets/reborn/animation/tank-0.glb src/assets/reborn/animation/tank-1.glb
+          git add src/assets/reborn/animation/tank-0.png src/assets/reborn/animation/tank-1.png
+          git add src/assets/reborn/animation/tank-0.json src/assets/reborn/animation/tank-1.json
+          git rm -f --ignore-unmatch scripts/create_atlas_leopard.py.gz.b64
+          if git diff --cached --quiet; then
+            echo 'Assets already current'
+            exit 0
+          fi
+          git commit -m 'assets(tank): bake Leopard-inspired tank GLBs, sprites and faction flags'
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
