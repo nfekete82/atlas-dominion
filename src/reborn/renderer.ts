@@ -11,6 +11,7 @@ import { paintGeneratedTerrain } from './terrain-presentation.js';
 import { BattlefieldEffects, createGroundDetails, paintGroundDetails } from './battlefield-atmosphere.js';
 import { buildTerrainVariants, type TerrainVariantAtlases } from './terrain-variants.js';
 import {createDesertInfrastructure,paintDesertInfrastructure} from './desert-infrastructure.js';
+import {revealVisibleRockSurface} from './cliff-fog.js';
 
 interface Sprite { image:HTMLImageElement|HTMLCanvasElement; x:number; y:number; w:number; h:number; center?:number; foot?:number; bodyWidth?:number; bodyHeight?:number }
 export class Renderer {
@@ -227,6 +228,10 @@ export class Renderer {
     if(this.fogRevision===this.game.revision)return;this.fogRevision=this.game.revision;
     const c=this.fog.getContext('2d')!,data=c.createImageData(RULES.grid,RULES.grid),v=this.game.visible[0],e=this.game.explored[0];
     for(let i=0;i<v.length;i++){data.data[i*4]=3;data.data[i*4+1]=5;data.data[i*4+2]=7;data.data[i*4+3]=v[i]?0:e[i]?177:255;}
+    // Lighting is visual only: the exposed wall and cap are one rock.
+    // The opaque footprint is the ONLY area lightened; enemies behind the
+    // cliff still use the unchanged simulation visibility / Fog of War.
+    revealVisibleRockSurface(data.data,v,e,this.game.world.cliffIds,this.game.world.cliffCells);
     c.putImageData(data,0,0);
   }
   private drawBastion(t:Territory,dim=false):void{
