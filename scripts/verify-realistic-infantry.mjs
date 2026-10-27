@@ -30,6 +30,13 @@ for (const role of roles) for (const team of [0,1]) {
     assert.ok(m.normalTexture,tag+' missing baked normal channel '+name);
     assert.ok(m.pbrMetallicRoughness?.metallicRoughnessTexture,tag+' missing roughness '+name);
   }
+  // The updated GLB must be anatomically modeled, not only recolored armour.
+  const names=(model.nodes??[]).map(node=>node.name??'');
+  for(const part of ['Atlas_HumanFace','Atlas_Nose','Atlas_TacticalHelmetShell',
+    'Atlas_UpperArmLCloth','Atlas_ThighRCloth','Atlas_FactionArmband']){
+    assert.ok(names.includes(part),tag+' lost humanized geometry '+part);
+  }
+  assert.ok(!names.includes('Atlas_HelmetSeal'),tag+' still contains the robot helmet');
   assert.ok((model.animations??[]).length>=5,tag+' lost skeletal animations');
   assert.ok((model.images??[]).length>=6,tag+' has too few embedded texture maps');
   const atlas=JSON.parse(fs.readFileSync(path.join(folder,tag+'.json'),'utf8'));
@@ -37,6 +44,8 @@ for (const role of roles) for (const team of [0,1]) {
   assert.deepEqual(atlas.cell,[192,192]);
   assert.equal(atlas.directions,8);
   assert.equal(atlas.design.team,team);
+  assert.equal(atlas.design.humanFace,true,tag+' has no visible human face');
+  assert.equal(atlas.design.organicLimbGeometry,true,tag+' has blocky original limbs');
   assert.ok(atlas.design.materials.includes('512px multicam'),tag+' has stale sprite atlas');
   assert.ok(atlas.design.parts>0 && atlas.design.maxGripError<.002,tag+' invalid rig');
   for(const action of ['idle','walk','attack','hit','death'])assert.equal(atlas.clips[action].frames.length,8);
