@@ -218,7 +218,7 @@ export class TacticalAI {
   // nearby ground-screen cluster together; leave remote reinforcements and
   // artillery independent so a delayed recruit cannot freeze the whole attack.
   // Cohort snapshots are written into existing orders, not persistent AI state.
-  const closeFront=campaign&&mode==='assault'&&coordinated&&front.length>=2
+  const closeFront=campaign&&mode==='assault'&&target===undefined&&coordinated&&front.length>=2
    ? front.map(pivot=>front.filter(v=>distance(v,pivot)<=200))
      .sort((a,b)=>b.length-a.length||Math.min(...a.map(u=>u.id))-Math.min(...b.map(u=>u.id)))[0]
    : [];
