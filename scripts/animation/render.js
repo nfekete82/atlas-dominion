@@ -136,10 +136,10 @@ window.compileAtlases=async(requested)=>{
    if(file.endsWith('fbx')&&!rig)normalization.rotation.y=Math.PI/2;
    if(['scout','gunship','bomber'].includes(kind))normalization.position.y+=.75;
    pivot.updateMatrixWorld(true);
-   const directionCount=character?8:16,config=character?clips:[['idle',null,rotor?4:1,true],['walk',null,kind==='bomber'?1:4,true],...(['tank','artillery'].includes(kind)?[['turnLeft',null,4,true],['turnRight',null,4,true]]:[])];
+   const directionCount=character?8:16,config=character?clips:[['idle',null,rotor?4:1,true],['walk',null,kind==='bomber'?1:kind==='rover'?11:4,true],...(['tank','artillery'].includes(kind)?[['turnLeft',null,4,true],['turnRight',null,4,true]]:[])];
    const turret=model.getObjectByName('Tank_Turret'),gun=model.getObjectByName('Tank_Gun');
    const total=config.reduce((n,c)=>n+c[2]*directionCount,0)+(turret?32:0),canvas=document.createElement('canvas');canvas.width=columns*cell;canvas.height=Math.ceil(total/columns)*cell;const ctx=canvas.getContext('2d');
-   const metadata={version:1,image:kind+'-'+team+'.png',kind,team,cell:[cell,cell],nativeScale:(character?1:(nativeWidths[kind]/72))/pixelFactor,directions:directionCount,stride:character?(kind==='heavy'?58:64):34,source:rig?'Atlas original vehicle geometry':file,design:rig?model.userData.atlasDesign:undefined,palette:'Legion ceramic / bronze / dark steel / faction enamel',lighting:'ACES 1.13 / warm sun / cool fill',renderResolution:cell,renderQuality:cell>=192?'HD native 3D raster / 2x':'standard',timeBasedLocomotion:!!rotor,rotor:!!rotor,clips:{},frames:[]};
+   const metadata={version:1,image:kind+'-'+team+'.png',kind,team,cell:[cell,cell],nativeScale:(character?1:(nativeWidths[kind]/72))/pixelFactor,directions:directionCount,stride:character?(kind==='heavy'?58:64):kind==='rover'?52:34,source:rig?'Atlas original vehicle geometry':file,design:rig?model.userData.atlasDesign:undefined,palette:'Legion ceramic / bronze / dark steel / faction enamel',lighting:'ACES 1.13 / warm sun / cool fill',renderResolution:cell,renderQuality:cell>=192?'HD native 3D raster / 2x':'standard',timeBasedLocomotion:!!rotor,rotor:!!rotor,clips:{},frames:[]};
    if(rig)metadata.model=kind+'-'+team+'.glb';
    // Project a world-fixed ground point to y=78 without changing scale per pose.
    const size=character?3.6:kind==='tank'?4.7:4.2;camera.left=-size/2;camera.right=size/2;camera.top=size/2;camera.bottom=-size/2;camera.updateProjectionMatrix();
@@ -180,7 +180,18 @@ window.compileAtlases=async(requested)=>{
      for(let direction=0;direction<16;direction++){pivot.rotation.y=Math.PI/2-direction*Math.PI/8;pivot.updateMatrixWorld(true);renderer.render(scene,camera);const index=metadata.frames.length,x=index%columns*cell,y=Math.floor(index/columns)*cell;ctx.drawImage(renderer.domElement,x,y);const muzzleNode=tag==='barrel'?rig?.muzzle??part.children.find(n=>n.name.startsWith('MuzzleOpening')):null,muzzle=muzzleNode?sample(muzzleNode.getWorldPosition(new T.Vector3())):null;metadata.frames.push({x,y,w:cell,h:cell,pivot:[48*pixelFactor,78*pixelFactor],duration:1,...(muzzle?{muzzle:[muzzle.x,muzzle.y]}:{})});metadata.clips[tag].frames.push([index]);}
     }
    }
-   if(rig&&!atlasOnly){model.traverse(n=>{if(n.isMesh)n.visible=true;});if(turret)turret.visible=true;if(gun)gun.visible=true;rig.animate('idle',0);const glb=await new GLTFExporter().parseAsync(model,{binary:true});metadata.model=kind+'-'+team+'.glb';const bytes=new Uint8Array(glb);let binary='';for(let i=0;i<bytes.length;i+=32768)binary+=String.fromCharCode(...bytes.subarray(i,i+32768));await window.saveVehicleModel(metadata.model,btoa(binary));}
+   if(rig&&!atlasOnly){model.traverse(n=>{if(n.isMesh)n.visible=true;});if(turret)turret.visible=true;if(gun)gun.visible=true;rig.animate('idle',0);
+    // Embed actual quaternion animation for four wheel pivots in the 3D GLB.
+    const wheelTracks=kind==='rover'?(rig.wheels??[]).map(wheel=>{
+     const times=Array.from({length:25},(_,i)=>i/24),values=[];
+     for(const time of times){
+      const q=new T.Quaternion().setFromAxisAngle(new T.Vector3(1,0,0),time*Math.PI*2);
+      values.push(q.x,q.y,q.z,q.w);
+     }
+     return new T.QuaternionKeyframeTrack(wheel.name+'.quaternion',times,values);
+    }):[];
+    const animations=wheelTracks.length?[new T.AnimationClip('Humvee_Wheels',1,wheelTracks)]:[];
+    const glb=await new GLTFExporter().parseAsync(model,{binary:true,animations});metadata.model=kind+'-'+team+'.glb';const bytes=new Uint8Array(glb);let binary='';for(let i=0;i<bytes.length;i+=32768)binary+=String.fromCharCode(...bytes.subarray(i,i+32768));await window.saveVehicleModel(metadata.model,btoa(binary));}
    floor.visible=true;scene.remove(pivot);await window.saveAtlas(kind+'-'+team,canvas.toDataURL('image/png'),metadata);
   }
  }
