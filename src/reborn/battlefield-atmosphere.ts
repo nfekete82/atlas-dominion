@@ -100,6 +100,7 @@ export class BattlefieldEffects {
   private footprints:Footprint[]=[];
   private lastTrack=new Map<number,{x:number;y:number;at:number}>();
   private lastFootstep=new Map<number,FootstepCursor>();
+  private nextFootprintSweep=0;
   private units=new Map<number,PreviousUnit>();
   private bases=new Map<number,PreviousBase>();
   private hits=0;
@@ -112,7 +113,7 @@ export class BattlefieldEffects {
   get burstCount():number{return this.bursts.length;}
 
   reset(game:Simulation):void {
-    this.marks=[];this.clouds=[];this.tracks=[];this.footprints=[];this.bursts=[];this.lastTrack.clear();this.lastFootstep.clear();this.hits=0;
+    this.marks=[];this.clouds=[];this.tracks=[];this.footprints=[];this.bursts=[];this.lastTrack.clear();this.lastFootstep.clear();this.nextFootprintSweep=game.time;this.hits=0;
     this.units=new Map(game.units.filter(u=>u.hp>0).map(u=>[u.id,{x:u.x,y:u.y,hp:u.hp,vehicle:!unitSpec(u).flying&&unitSpec(u).group==='Fahrzeuge',kind:u.kind,owner:u.owner}]));
     for(const u of game.units)if(u.hp>0&&!u.carrier){
       const spec=unitSpec(u);
@@ -187,7 +188,6 @@ export class BattlefieldEffects {
             }
             previous.distance=(previous.distance+moved)%spacing;
             previous.side=side;
-            if(this.footprints.length>1200)this.footprints.splice(0,this.footprints.length-1200);
           }else if(moved>70||!u.moving||!visible(u)){
             previous.distance=0;
           }
@@ -206,6 +206,8 @@ export class BattlefieldEffects {
       if(this.tracks.length>660)this.tracks.splice(0,this.tracks.length-660);
       this.lastTrack.set(u.id,{x:u.x,y:u.y,at:game.time});
     }
+    // Batch pruning once per update instead of shifting the array for each soldier.
+    if(this.footprints.length>1200)this.footprints.splice(0,this.footprints.length-1200);
     for(const [id,old] of this.units)if(!current.has(id)){
       this.lastTrack.delete(id);
       this.lastFootstep.delete(id);
@@ -226,7 +228,12 @@ export class BattlefieldEffects {
     this.bursts=this.bursts.filter(v=>game.time-v.created<1.55);
     // Long enough to leave a battlefield history, bounded to avoid runaway memory.
     if(this.tracks.length)this.tracks=this.tracks.filter(v=>game.time-v.at<180);
-    if(this.footprints.length)this.footprints=this.footprints.filter(v=>game.time-v.at<v.life);
+    // Rendering runs at up to 60+ FPS; expiring old impressions once per simulated
+    // second avoids allocating and filtering 1200 objects on every animation frame.
+    if(game.time>=this.nextFootprintSweep){
+      if(this.footprints.length)this.footprints=this.footprints.filter(v=>game.time-v.at<v.life);
+      this.nextFootprintSweep=game.time+1;
+    }
   }
 
   /** Tracks are laid under units and underneath fog, so unexplored activity cannot leak. */
