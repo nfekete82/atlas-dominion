@@ -19,8 +19,8 @@ npm run dev
 - Rechtsklick bewegt oder greift sichtbare Gegner an. Shift hängt Befehle an. **A** aktiviert Angriffsbewegung, **S** hält die Position. Nach einem Gefecht setzen Einheiten ihren Auftrag fort.
 - WASD/Pfeile und der Spielfeldrand bewegen die Kamera. Mausrad zoomt am Zeiger; Radar klicken/ziehen verschiebt den Ausschnitt. **H** zeigt das Hauptquartier, **T** die Sektorgrenzen.
 - Das Spielfeld liegt links, die Sidebar in einer eigenen CSS-Grid-Spalte rechts. Der gesamte sichtbare Kartenrand bleibt für Auswahl, Befehle und Bau erreichbar, auch nach Resize und auf Retina-Displays.
-- Jede Fraktion startet mit einem Bauarbeiter und einem Infanteriesoldaten. Das Hauptquartier bildet ausschließlich Bauarbeiter aus. Erst eine fertiggestellte Kaserne schaltet Infanteriesoldaten, Sanitäter und schwere Infanterie frei; Fahrzeugfabrik und Flugfeld schalten Fahrzeuge beziehungsweise Luftunterstützung frei. Der rechte Einheitenkatalog zeigt nur die durch vorhandene fertige Gebäude verfügbaren Typen. Kosten, Produktionszeit, Warteschlange und Kapazität gelten weiterhin. Ein Klick auf einen belegten Produktionsplatz storniert genau diesen Auftrag mit Kostenerstattung. Details zu Freischaltung und alten Spielständen: [Produktionsgebäude](docs/reborn-production.md).
-- Bauarbeiter auswählen und im Baukatalog eine Anlage platzieren. Sie muss in erkundetem, freiem und erreichbarem Gebiet liegen; der Arbeiter muss sie tatsächlich erreichen und errichten. Rechtsklick auf eine eigene beschädigte Anlage repariert sie.
+- Jede Fraktion startet mit einem Ingenieur und einem Infanteriesoldaten. Das Hauptquartier bildet ausschließlich Ingenieur aus. Erst eine fertiggestellte Kaserne schaltet Infanteriesoldaten, Sanitäter und schwere Infanterie frei; Fahrzeugfabrik und Flugfeld schalten Fahrzeuge beziehungsweise Luftunterstützung frei. Der rechte Einheitenkatalog zeigt nur die durch vorhandene fertige Gebäude verfügbaren Typen. Kosten, Produktionszeit, Warteschlange und Kapazität gelten weiterhin. Ein Klick auf einen belegten Produktionsplatz storniert genau diesen Auftrag mit Kostenerstattung. Details zu Freischaltung und alten Spielständen: [Produktionsgebäude](docs/reborn-production.md).
+- Ingenieur auswählen und im Baukatalog eine Anlage platzieren. Sie muss in erkundetem, freiem und erreichbarem Gebiet liegen; der Arbeiter muss sie tatsächlich erreichen und errichten. Rechtsklick auf eine eigene beschädigte Anlage repariert sie.
 - Sanitäter heilen verletzte eigene Infanterie in 70 M Umkreis mit insgesamt 12 LP/s, auf mehrere Patienten verteilt. Ohne Beschuss regenerieren sie sich nach einer Wartezeit langsam selbst. Gruppenbefehle halten sie hinter der Front.
 - Soldaten auswählen und den Transportheli rechtsklicken, oder den Heli auswählen und eine eigene Infanteriegruppe rechtsklicken. Er landet zur Aufnahme von höchstens zehn Infanteristen und startet anschließend. **Ausladen** wählt einen sicheren Landeplatz; danach hebt er wieder ab. Passagiere und laufende Transportphasen werden gespeichert.
 - Angrenzende Bastionen acht Sekunden im Einnahmeradius halten. Feinde unterbrechen die Einnahme. Eigene Bastionen geben 320 M Sicht; nach Verlust endet diese Sicht. Ein Rechtsklick auf Mast, Sockel oder Beschriftung führt zum Einnahmepunkt. Fluggeräte können im aktuellen Spiel ebenfalls sichern; transportierte Passagiere zählen während des Transports nicht separat.
@@ -32,9 +32,9 @@ npm run dev
 | --- | ---: | --- |
 | Infanteriesoldat | 100 | Beweglicher Schütze mit Dreiersalven |
 | Sanitäter | 175 | Flächenheilung und Versorgung hinter der Front |
-| Bauarbeiter | 200 | Gebäude bauen und reparieren |
+| Ingenieur | 200 | Gebäude bauen und reparieren |
 | Schwere Infanterie | 250 | 420 LP, stark gegen Infanterie; weniger Schaden gegen Panzerung |
-| Spähwagen | 300 | Schnelle Aufklärung und Flanken |
+| Humvee | 350 | Schnelle Aufklärung und Flanken |
 | Kampfpanzer | 450 | Gepanzerte Frontunterstützung |
 | Raketenwerfer | 600 | Bodenbeschuss mit fliegenden Raketen und Flächenschaden |
 | Transportheli | 600 | Aufklärung, zehn Passagiere und defensive Maschinengewehre |
