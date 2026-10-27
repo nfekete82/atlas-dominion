@@ -1,5 +1,6 @@
 import type {BuildingKind} from './catalog.js';
 import {directionIndex} from './sprite-animator.js';
+import {rosterImageRect,ROSTER_IMAGE_WIDTH,ROSTER_IMAGE_HEIGHT} from './portrait-layout.js';
 import type {Owner,Point} from './config.js';
 import {buildingAtlasPath} from './asset-paths.js';
 export type StructureKind=BuildingKind|'bastion';
@@ -31,6 +32,6 @@ export class BuildingPresentation {
  }
  icon(kind:BuildingKind):string{
   const a=this.asset(kind,0),source=document.createElement('canvas');source.width=source.height=512;const sc=source.getContext('2d')!;sc.drawImage(a.body,0,0);if(kind==='turret')this.drawTurret(sc,0,{x:a.data.body.pivot[0],y:a.data.body.pivot[1]},a.data.body.solidBounds.w);this.drawActivity(sc,kind,0,{x:a.data.body.pivot[0],y:a.data.body.pivot[1]},a.data.body.solidBounds.w,0);
-  const c=document.createElement('canvas');c.width=c.height=160;const ctx=c.getContext('2d')!,b=a.data.body.solidBounds,top=a.data.body.top,h=b.y+b.h-top,s=Math.min(148/b.w,148/h);ctx.drawImage(source,b.x,top,b.w,h,(160-b.w*s)/2,156-h*s,b.w*s,h*s);return c.toDataURL();
+  const c=document.createElement('canvas');c.width=ROSTER_IMAGE_WIDTH;c.height=ROSTER_IMAGE_HEIGHT;const ctx=c.getContext('2d')!,b=a.data.body.solidBounds,top=a.data.body.top,h=b.y+b.h-top,frame=rosterImageRect(b.w,h);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(source,b.x,top,b.w,h,frame.x,frame.y,frame.w,frame.h);return c.toDataURL();
  }
 }
