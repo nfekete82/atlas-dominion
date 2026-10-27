@@ -152,189 +152,225 @@
     },
     {
       "file": "src/assets/reborn/buildings-3d/airfield-0-beacon.png",
-      "width": 12,
-      "height": 16,
-      "sha256": "1aeb4658645544f77a9462e1d4e01de551c19b6c7283723c8ce8cd9cf1002840"
+      "width": 11,
+      "height": 14,
+      "sha256": "06a9d00d2cefb97837f1cc9ac7c9dd2e3af4e9dc1807a9b52dffc6ce72f1c3d4"
     },
     {
       "file": "src/assets/reborn/buildings-3d/airfield-0.png",
       "width": 512,
       "height": 512,
-      "sha256": "b4776ec1c2e0c1c4221f311cb038d9c68535982b6d76b7614aa09a22e272738d"
+      "sha256": "c0c48c464d2ae396b695914084f222d067905dddb17660d4705afeecc51c0fa5"
     },
     {
       "file": "src/assets/reborn/buildings-3d/airfield-1-beacon.png",
-      "width": 12,
-      "height": 16,
-      "sha256": "21093df295733108ec4e4d19c0c9bf0b7f5bee5af3e475879965953e99659500"
+      "width": 11,
+      "height": 14,
+      "sha256": "e50220ec8411e36b465fb9910ee76508cad116e33a1a6f96dfdd7db7d8ce849e"
     },
     {
       "file": "src/assets/reborn/buildings-3d/airfield-1.png",
       "width": 512,
       "height": 512,
-      "sha256": "87352162311d6e25e2245c8eb91138d486336b3292b19389549bd4199560b9c5"
+      "sha256": "fff014f1ee89dfd223af1c37ef0aaf2c392d2239c72ea3dd1b8c41df2424622b"
     },
     {
       "file": "src/assets/reborn/buildings-3d/barracks-0-beacon.png",
-      "width": 12,
+      "width": 11,
       "height": 15,
-      "sha256": "82c9a627665c4262a94b356d496e2b276ae6afe33187c5494a35ed937a3f47dd"
+      "sha256": "3e814e5666e3fc666be8039b2d9c6b7001ebff28509292ee424e62b89b77ff88"
     },
     {
       "file": "src/assets/reborn/buildings-3d/barracks-0.png",
       "width": 512,
       "height": 512,
-      "sha256": "68679d0e955751c24a02362c7ae92356c3062f8507d286017a0ae5dbdb224a74"
+      "sha256": "8dd19916bceab6e76685988975971bebb98adf6aebf282800ff352f1eb4f911d"
     },
     {
       "file": "src/assets/reborn/buildings-3d/barracks-1-beacon.png",
-      "width": 12,
+      "width": 11,
       "height": 15,
-      "sha256": "054599813e7bdd37b1abe50865e18228c3a236f2a27ff802c64ef11cf09b5a8f"
+      "sha256": "5726797b515cde9bc4f434e24e6c402d611070a9a125d699b2b8088ff2c1a509"
     },
     {
       "file": "src/assets/reborn/buildings-3d/barracks-1.png",
       "width": 512,
       "height": 512,
-      "sha256": "997d87ae0c34ffe5ef9751ab645b9d8896242413de9d23ef2704e93f0ac7ed5a"
+      "sha256": "c11c3e56493edada870d813395970ef6b9640a5026cddebaea6aeab3f612a790"
     },
     {
       "file": "src/assets/reborn/buildings-3d/bastion--1-beacon.png",
-      "width": 11,
-      "height": 15,
-      "sha256": "0a47ec229319fa9cad399324b625c59fc79d5a47be40f1808a96cb1e6b549fdf"
+      "width": 14,
+      "height": 19,
+      "sha256": "154a0097ced81cbe0a30f56e7dfdb4234f2897a201b720cf8fb1707569e6a508"
     },
     {
       "file": "src/assets/reborn/buildings-3d/bastion--1-radar.png",
       "width": 472,
-      "height": 472,
-      "sha256": "e538ebadb31ffabe3582f3f272287345c17ee33c4cc51f38fae06ac9c02e8dae"
+      "height": 464,
+      "sha256": "0d72934984173b0f677e8252d542fde60fc324d884b0429fb6ffaba023f5c6e5"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/bastion--1-sweep.png",
+      "width": 624,
+      "height": 368,
+      "sha256": "b3422814c06e5b3cd88c364bb6b563fe967ef1e54ddb5eeff863f6377fa29000"
     },
     {
       "file": "src/assets/reborn/buildings-3d/bastion--1.png",
       "width": 512,
       "height": 512,
-      "sha256": "20cd410d8508e2a20aaaa7e48af09977a34cb96694feea22f047f80fd67b5b73"
+      "sha256": "209f26ccca601910c7c35e14ee8c4c3179dec2e3630fb32a9e86b62551b07c5b"
     },
     {
       "file": "src/assets/reborn/buildings-3d/bastion-0-beacon.png",
-      "width": 11,
-      "height": 15,
-      "sha256": "818a6d605cdc827265fd429e39fe9f9af674e5341a315adaa3e76153d081d1b7"
+      "width": 14,
+      "height": 19,
+      "sha256": "1ee38631f23bd76ef61490e2e4093f4b6d9c089bf602848e9b680f46b4635b7d"
     },
     {
       "file": "src/assets/reborn/buildings-3d/bastion-0-radar.png",
       "width": 472,
-      "height": 472,
-      "sha256": "6673efbf17ab5e6314e5ca125f472dad576ae9757a9089f47a0907bfe8837913"
+      "height": 464,
+      "sha256": "9e81d7d9b82cb0556e3f07d8c42b11e1c187e5a138d84aacef702a3723478f16"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/bastion-0-sweep.png",
+      "width": 624,
+      "height": 368,
+      "sha256": "df094937fba4538eaf99ce8bf633babbc1b630c4c16356946d2f7d596da3b84a"
     },
     {
       "file": "src/assets/reborn/buildings-3d/bastion-0.png",
       "width": 512,
       "height": 512,
-      "sha256": "ded448fe800739c4581e2a658422ba33fc734abcc24f061fd4d4f1a7699a311e"
+      "sha256": "b5200b4b3a76604014b8cae68da915e7921f2c40bf4fd4e50d8f359d5d0e2160"
     },
     {
       "file": "src/assets/reborn/buildings-3d/bastion-1-beacon.png",
-      "width": 11,
-      "height": 15,
-      "sha256": "4360e441c16a067a91f3eb2db3a415aa69c03c76948d92da55fa8225d98da39f"
+      "width": 14,
+      "height": 19,
+      "sha256": "7ae5a6e688a3eee2e75add7e1768849b7e8fa35210762f901554afe92d83470f"
     },
     {
       "file": "src/assets/reborn/buildings-3d/bastion-1-radar.png",
       "width": 472,
-      "height": 472,
-      "sha256": "f6d982c1adffc5cf4333c8ec98c6e44891e3266a4e0455be4f4c9f0e337d98c7"
+      "height": 464,
+      "sha256": "14b8d36cad14b414e6f994cf8e33cda742d5d6f703e582a82616b1a24158ba30"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/bastion-1-sweep.png",
+      "width": 624,
+      "height": 368,
+      "sha256": "97d99a18c8cc19047372487c29ddb90331593aa325fbaedfd2776cb0b0170c4d"
     },
     {
       "file": "src/assets/reborn/buildings-3d/bastion-1.png",
       "width": 512,
       "height": 512,
-      "sha256": "86d27265708abbab066183e323d7e84d61befb7e6b99d71a920689c1c3bf7eb6"
+      "sha256": "c9e5a26a34a26a4d1236efd2b77c2e4caed17e450cb0a2dedf96009803dee9ef"
     },
     {
       "file": "src/assets/reborn/buildings-3d/factory-0-beacon.png",
-      "width": 12,
+      "width": 11,
       "height": 15,
-      "sha256": "beb65933c5dddd687238257826d14cf25577ff83edd4bd1773b4f4fa1a374681"
+      "sha256": "98a1b7e9a1978be7390a5b5d2f5f1ebc1a720cacbe78340fdd2cd91973f8eaf3"
     },
     {
       "file": "src/assets/reborn/buildings-3d/factory-0.png",
       "width": 512,
       "height": 512,
-      "sha256": "0df4a3da440b639ec71ae1409ac27bb3bedc0d6f8c10228f1174cc7e123adf03"
+      "sha256": "2fb9a28f891687d63f503d36569a644ea3dd3748295bbce31106f8703eba8916"
     },
     {
       "file": "src/assets/reborn/buildings-3d/factory-1-beacon.png",
-      "width": 12,
+      "width": 11,
       "height": 15,
-      "sha256": "452405ec4edba8a098259e0ff952dd6d3f9ffb419d6039a53c86d630b32d2718"
+      "sha256": "b82225ca253d67998a5be757b2407d2447f4c94edeffe897fd68199064328343"
     },
     {
       "file": "src/assets/reborn/buildings-3d/factory-1.png",
       "width": 512,
       "height": 512,
-      "sha256": "26704af00d101fcff97539551ef30d00d4447497a1ae34d649e59e347d4cde7c"
+      "sha256": "0aa52f66a609a4739af64614ae6378c92e0160417955504dfa603d9e618cc0c9"
     },
     {
       "file": "src/assets/reborn/buildings-3d/generator-0-beacon.png",
       "width": 11,
       "height": 15,
-      "sha256": "c5c996a1b105f2fe2fd8b65a79f6473419c54406191d1ce0828349d41d1e3ca1"
+      "sha256": "8cb4646776fcb2bf8c23ba10a3253c75bc054d93a77c1857a8f7df04521d18e6"
     },
     {
       "file": "src/assets/reborn/buildings-3d/generator-0.png",
       "width": 512,
       "height": 512,
-      "sha256": "96625346ceaff2540fae2eb540e682724dbbb8b57eeff34a8678c7b2ca4df1fe"
+      "sha256": "1ad1843adf9687d6fce183d4767a497b52a024690d7603b54fb3e5f963ded2bb"
     },
     {
       "file": "src/assets/reborn/buildings-3d/generator-1-beacon.png",
       "width": 11,
       "height": 15,
-      "sha256": "1e977012e03b6ec9d5b9fc9bd19f97cb52d29f39b503f18e0df92145fcf9c810"
+      "sha256": "fe44d16c2e953b15f250dabe40d155817a1a93baf3940cf1e3ea5cbda3931b56"
     },
     {
       "file": "src/assets/reborn/buildings-3d/generator-1.png",
       "width": 512,
       "height": 512,
-      "sha256": "96591d83da9c4767dcd6646c820487a1c2efbb7a114210c74ae549934ae66b60"
+      "sha256": "5710b266174ade68dbbcd18933b917e8fcf1e11c7a4cbd2609490bdce5f5ad26"
     },
     {
       "file": "src/assets/reborn/buildings-3d/headquarters-0-beacon.png",
       "width": 11,
       "height": 17,
-      "sha256": "59dfc8bc67b05ab97578875b363323a1283069af7ef81d893b9beb5bca050c10"
+      "sha256": "9516de0c5a450bb664bd11cb6d63d251519552ea04840cb93650da5a7b7dbda4"
     },
     {
       "file": "src/assets/reborn/buildings-3d/headquarters-0-radar.png",
-      "width": 568,
+      "width": 560,
       "height": 568,
-      "sha256": "71d0330d665b6d48780c4a090a869b9c683cb92abeefad6a9094812de4b0977c"
+      "sha256": "c99e1ab3c57bdc0c95d9c90f09f53bdd81083c0c517780992da35c356b1d8cdf"
     },
     {
       "file": "src/assets/reborn/buildings-3d/headquarters-0.png",
       "width": 512,
       "height": 512,
-      "sha256": "30653570a8df95d19f8172ea71ae51a4451afa91b15690600d1287e36133d52f"
+      "sha256": "6ac187c1eb8a91df045c013dd2e0c244b8db6f860d822f504cffe90282e2f022"
     },
     {
       "file": "src/assets/reborn/buildings-3d/headquarters-1-beacon.png",
       "width": 11,
       "height": 17,
-      "sha256": "d84dbbe621c342ca52f60d42086a2a0a7db523d5d214fce229264ff04213a412"
+      "sha256": "3ca97b163db3fdb06f197f778705ab3af64edaa29eef1196a6bab173a1d82e1b"
     },
     {
       "file": "src/assets/reborn/buildings-3d/headquarters-1-radar.png",
-      "width": 568,
+      "width": 560,
       "height": 568,
-      "sha256": "df6571e69624b223b4fbea31e72c402ee413f09fa3bae64e1255ae37eee36b67"
+      "sha256": "ad38e60366d05545893191df3e67573683c17e29c8ceb1e5484df7da84659507"
     },
     {
       "file": "src/assets/reborn/buildings-3d/headquarters-1.png",
       "width": 512,
       "height": 512,
-      "sha256": "22dcd713f17ac5de8bf38517a214a5973752543f65751fd23031dd11585e36af"
+      "sha256": "6059f6c2e12c83ae6e9d54cd181da5dca0ad4344e836ddf8d21ee0b997866d4a"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/textures/desert-basecolor.png",
+      "width": 2048,
+      "height": 2048,
+      "sha256": "7d220ad12987d7de41e3f06fa39c3445c0f6d68225ee46b8a6c0accba88e8a9f"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/textures/desert-normal.png",
+      "width": 2048,
+      "height": 2048,
+      "sha256": "773e8c14103929040d8a1011bae06f301dedd195cf5572b82fcfcab259b7ea9e"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/textures/desert-orm.png",
+      "width": 2048,
+      "height": 2048,
+      "sha256": "e28a58f1426e5e18f992887ab67aaf8633486f1f03681bb305a3c7ccba414446"
     },
     {
       "file": "src/assets/reborn/buildings-3d/turret-0-beacon.png",
@@ -343,10 +379,16 @@
       "sha256": "7562b1df94c1cbe71380a13a994f06667e7b0b8a622ab37777729097472633b4"
     },
     {
+      "file": "src/assets/reborn/buildings-3d/turret-0-turret.png",
+      "width": 1552,
+      "height": 992,
+      "sha256": "8bb5086a60cf32ff20aa1474e1118e61782da86cec0426d5e8179c9d1d963b9d"
+    },
+    {
       "file": "src/assets/reborn/buildings-3d/turret-0.png",
       "width": 512,
       "height": 512,
-      "sha256": "ba4d193baea494cc1d9c121d74d8191f8b2ace1cd041a6d1bdb3900caf0824a3"
+      "sha256": "fa7c668eb7a22497017014579ac408c285fa370c8f5c79880082e58a8a2b0b9c"
     },
     {
       "file": "src/assets/reborn/buildings-3d/turret-1-beacon.png",
@@ -355,10 +397,16 @@
       "sha256": "d56611b238ff5f18e98aaeb0621895702aae6e2840e70c4143d9048d3f72125e"
     },
     {
+      "file": "src/assets/reborn/buildings-3d/turret-1-turret.png",
+      "width": 1552,
+      "height": 992,
+      "sha256": "4ee0d870a131946fbcc28b08085ec34d769092217d07e87b80a9e2320659269d"
+    },
+    {
       "file": "src/assets/reborn/buildings-3d/turret-1.png",
       "width": 512,
       "height": 512,
-      "sha256": "99dea309d6e0f8ed045509c46cd262bd68ad46ca5b6bc235009685e25be3e367"
+      "sha256": "fa7c668eb7a22497017014579ac408c285fa370c8f5c79880082e58a8a2b0b9c"
     },
     {
       "file": "src/assets/reborn/cliffs.png",
@@ -558,32 +606,32 @@
         "weaponBinding": "Right wrist socket / two-hand grip frames",
         "geometry": "Original procedural hard-surface armour and rifle",
         "rig": "Quaternius Toon Shooter Game Kit / CC0-1.0",
-        "maxGripError": 2.689175158835587e-07,
+        "maxGripError": 2.689175158835587e-7,
         "gripAudit": {
           "Idle": {
             "samples": 101,
-            "right": 1.2865167297623865e-07,
-            "left": 1.6376728002827787e-07
+            "right": 1.2865167297623865e-7,
+            "left": 1.6376728002827787e-7
           },
           "Run_Gun": {
             "samples": 46,
-            "right": 1.2684528835711074e-07,
-            "left": 2.689175158835587e-07
+            "right": 1.2684528835711074e-7,
+            "left": 2.689175158835587e-7
           },
           "Idle_Shoot": {
             "samples": 24,
-            "right": 2.15102736044323e-07,
-            "left": 2.3897542450664673e-07
+            "right": 2.15102736044323e-7,
+            "left": 2.3897542450664673e-7
           },
           "HitReact": {
             "samples": 28,
-            "right": 1.3964693350629221e-07,
-            "left": 2.365175440738842e-07
+            "right": 1.3964693350629221e-7,
+            "left": 2.365175440738842e-7
           },
           "Death": {
             "samples": 47,
-            "right": 2.3117516538437603e-07,
-            "left": 1.5338169633980593e-07
+            "right": 2.3117516538437603e-7,
+            "left": 1.5338169633980593e-7
           }
         }
       },
@@ -684,32 +732,32 @@
         "weaponBinding": "Right wrist socket / two-hand grip frames",
         "geometry": "Original procedural hard-surface armour and rifle",
         "rig": "Quaternius Toon Shooter Game Kit / CC0-1.0",
-        "maxGripError": 2.689175158835587e-07,
+        "maxGripError": 2.689175158835587e-7,
         "gripAudit": {
           "Idle": {
             "samples": 101,
-            "right": 1.2865167297623865e-07,
-            "left": 1.6376728002827787e-07
+            "right": 1.2865167297623865e-7,
+            "left": 1.6376728002827787e-7
           },
           "Run_Gun": {
             "samples": 46,
-            "right": 1.2684528835711074e-07,
-            "left": 2.689175158835587e-07
+            "right": 1.2684528835711074e-7,
+            "left": 2.689175158835587e-7
           },
           "Idle_Shoot": {
             "samples": 24,
-            "right": 2.15102736044323e-07,
-            "left": 2.3897542450664673e-07
+            "right": 2.15102736044323e-7,
+            "left": 2.3897542450664673e-7
           },
           "HitReact": {
             "samples": 28,
-            "right": 1.3964693350629221e-07,
-            "left": 2.365175440738842e-07
+            "right": 1.3964693350629221e-7,
+            "left": 2.365175440738842e-7
           },
           "Death": {
             "samples": 47,
-            "right": 2.3117516538437603e-07,
-            "left": 1.5338169633980593e-07
+            "right": 2.3117516538437603e-7,
+            "left": 1.5338169633980593e-7
           }
         }
       },
@@ -1831,9 +1879,9 @@
       "kind": "airfield",
       "team": 0,
       "model": "airfield-0.glb",
-      "sha256": "13c7a13e4a55e8492fdd46f05b466b1e3a801940c2d000f9fe5379f2e74a487b",
-      "parts": 24,
-      "triangles": 13596,
+      "sha256": "da0abb3bfde4305fad766f38c2790c61a80f9d162f49aea093ba91cb22209f46",
+      "parts": 30,
+      "triangles": 23010,
       "pivot": [
         256,
         382
@@ -1852,9 +1900,9 @@
       "kind": "airfield",
       "team": 1,
       "model": "airfield-1.glb",
-      "sha256": "b0dc40b658957c68b5eb4dc356be3e3f77b9a316848c77a6bcac9114caa4259b",
-      "parts": 24,
-      "triangles": 13596,
+      "sha256": "248f81e355323dfa78d056fb9b8c797f9fecae4912305cee556f510b1b08db10",
+      "parts": 30,
+      "triangles": 23010,
       "pivot": [
         256,
         382
@@ -1873,9 +1921,9 @@
       "kind": "barracks",
       "team": 0,
       "model": "barracks-0.glb",
-      "sha256": "6f345e9a492adbf634b30dece9fcd1a31e1730d793ae7c8dc5e0065e5f127b24",
-      "parts": 36,
-      "triangles": 15896,
+      "sha256": "810b75ac306b1b9a7bb1c47d873b150cd8e5f6dafa8c6453c4a687b8053e4289",
+      "parts": 163,
+      "triangles": 83022,
       "pivot": [
         256,
         382
@@ -1894,9 +1942,9 @@
       "kind": "barracks",
       "team": 1,
       "model": "barracks-1.glb",
-      "sha256": "2d23839a90135152d8588514dfa1708f6b9796431d315d28434683f37d59e849",
-      "parts": 36,
-      "triangles": 15896,
+      "sha256": "d730df15a37ad7b47a5a231a2c98362d271890ed8aeee7ea35832ce2412a6f07",
+      "parts": 163,
+      "triangles": 83022,
       "pivot": [
         256,
         382
@@ -1915,9 +1963,9 @@
       "kind": "bastion",
       "team": -1,
       "model": "bastion--1.glb",
-      "sha256": "616db7955d3f1f2c8c5a43f1b3d0ff049d67cab2e933e41b0bca7e8e37873783",
-      "parts": 31,
-      "triangles": 15192,
+      "sha256": "23b0da8b12401cab8ff008c450fe2abb4989d68e3891984413089a57a4919cec",
+      "parts": 51,
+      "triangles": 35430,
       "pivot": [
         256,
         382
@@ -1931,7 +1979,11 @@
         },
         {
           "name": "BeaconPulse",
-          "duration": 3.8
+          "duration": 3.799999952316284
+        },
+        {
+          "name": "CaptureSweep",
+          "duration": 12
         }
       ]
     },
@@ -1940,9 +1992,9 @@
       "kind": "bastion",
       "team": 0,
       "model": "bastion-0.glb",
-      "sha256": "a254c23b518685d0b1c0f609d46c27e7775edb8bac6564d7dbfbd78b6e982f0f",
-      "parts": 31,
-      "triangles": 15192,
+      "sha256": "c1b04c6485c29f1129712a10251f766ee47788352fbf61bec7536d36c0542b4a",
+      "parts": 51,
+      "triangles": 35430,
       "pivot": [
         256,
         382
@@ -1956,7 +2008,11 @@
         },
         {
           "name": "BeaconPulse",
-          "duration": 3.8
+          "duration": 3.799999952316284
+        },
+        {
+          "name": "CaptureSweep",
+          "duration": 12
         }
       ]
     },
@@ -1965,9 +2021,9 @@
       "kind": "bastion",
       "team": 1,
       "model": "bastion-1.glb",
-      "sha256": "040e0ac89a46ac3189a9eb001fe2aee5faa92cf89d176942a93055420bd1c9be",
-      "parts": 31,
-      "triangles": 15192,
+      "sha256": "5512f3096aed9fa7e2a91a44778f06d81177042d95e3ea0680afab87b5953ace",
+      "parts": 51,
+      "triangles": 35430,
       "pivot": [
         256,
         382
@@ -1981,7 +2037,11 @@
         },
         {
           "name": "BeaconPulse",
-          "duration": 3.8
+          "duration": 3.799999952316284
+        },
+        {
+          "name": "CaptureSweep",
+          "duration": 12
         }
       ]
     },
@@ -1990,9 +2050,9 @@
       "kind": "factory",
       "team": 0,
       "model": "factory-0.glb",
-      "sha256": "f1721f9cae077918286c4c66b6608bb849256a6d66cf067b60bc6a1f6c91f613",
-      "parts": 47,
-      "triangles": 20524,
+      "sha256": "e777e8aebdba0c64b3ae8b334612eddbb0cb6f0f644e89109df3447721337f00",
+      "parts": 53,
+      "triangles": 29382,
       "pivot": [
         256,
         382
@@ -2011,9 +2071,9 @@
       "kind": "factory",
       "team": 1,
       "model": "factory-1.glb",
-      "sha256": "ce6f048e8dcd6394257a35b33e5254fa49eb2c54f63219f4d766972b18d07ec7",
-      "parts": 47,
-      "triangles": 20524,
+      "sha256": "b5bb57f24606da915b786b7245597eccaadb166932b5f4c3f046c1f806cc5b81",
+      "parts": 53,
+      "triangles": 29382,
       "pivot": [
         256,
         382
@@ -2032,9 +2092,9 @@
       "kind": "generator",
       "team": 0,
       "model": "generator-0.glb",
-      "sha256": "55807cbf8705e86ce2df2b9f18051f6163324814f14d812928062c2299ba1c52",
-      "parts": 21,
-      "triangles": 10712,
+      "sha256": "0d890e6444b2ebc94f28eb996388e5b8c9f62b49fb20b1879d076c889dcd85bb",
+      "parts": 26,
+      "triangles": 15642,
       "pivot": [
         256,
         382
@@ -2053,9 +2113,9 @@
       "kind": "generator",
       "team": 1,
       "model": "generator-1.glb",
-      "sha256": "0373f5f6fe3bc4ceadfcb45da9a43402c57e303c6ce340c65c56ea63b20e77cf",
-      "parts": 21,
-      "triangles": 10712,
+      "sha256": "31edadf581bfc3653309b0bf5cdb75703c2efcd105ff8933f0472bfa1b6d38a2",
+      "parts": 26,
+      "triangles": 15642,
       "pivot": [
         256,
         382
@@ -2074,9 +2134,9 @@
       "kind": "headquarters",
       "team": 0,
       "model": "headquarters-0.glb",
-      "sha256": "f8234404c72fc16a4f893c66a5700da97635d9d1c0d45949573983f109c37218",
-      "parts": 115,
-      "triangles": 60652,
+      "sha256": "5e1a8d4c0df2174d743860b602686e62cb5ebce9d35f241c4141bf7366e6f3d1",
+      "parts": 119,
+      "triangles": 67526,
       "pivot": [
         256,
         382
@@ -2099,9 +2159,9 @@
       "kind": "headquarters",
       "team": 1,
       "model": "headquarters-1.glb",
-      "sha256": "37748f6cfff1c3a095a94c8d783a8fa3d0e39ade0dffef396000a59756a71aca",
-      "parts": 115,
-      "triangles": 60652,
+      "sha256": "b54c142882ed078d359dcb156ed902fbb147ee96431a1f37883ecaf853a9425f",
+      "parts": 119,
+      "triangles": 67526,
       "pivot": [
         256,
         382
@@ -2124,9 +2184,9 @@
       "kind": "turret",
       "team": 0,
       "model": "turret-0.glb",
-      "sha256": "ed9b504972c9f3ba2ce71828b1c991b55f54a60c77acd2dc7800207116bd1012",
-      "parts": 14,
-      "triangles": 4440,
+      "sha256": "3a8a72ade020ac3fb8240e4e9aedd9619027d3f21af3e0897f589c6309a7bf9a",
+      "parts": 173,
+      "triangles": 72010,
       "pivot": [
         256,
         382
@@ -2135,8 +2195,8 @@
       "radarFrames": 0,
       "clips": [
         {
-          "name": "BeaconPulse",
-          "duration": 3.8
+          "name": "TurretTraverse",
+          "duration": 2
         }
       ]
     },
@@ -2145,9 +2205,9 @@
       "kind": "turret",
       "team": 1,
       "model": "turret-1.glb",
-      "sha256": "e4203833632f739fdadc508e29d32506960a10d300ab901b6766f3be3d65beab",
-      "parts": 14,
-      "triangles": 4440,
+      "sha256": "47eaaadf0cc00082e9fbe95cb893698342e88d12de61faa5f3c3e4eb8eb945b7",
+      "parts": 173,
+      "triangles": 72010,
       "pivot": [
         256,
         382
@@ -2156,8 +2216,8 @@
       "radarFrames": 0,
       "clips": [
         {
-          "name": "BeaconPulse",
-          "duration": 3.8
+          "name": "TurretTraverse",
+          "duration": 2
         }
       ]
     }

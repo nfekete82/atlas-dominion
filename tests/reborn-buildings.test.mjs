@@ -9,19 +9,20 @@ test('buildings: every existing building has real geometry in both factions and 
  }
 });
 
-test('buildings: the user-refined headquarters retains its geometry, textures and palette with details attached to the restored rig',()=>{
+test('buildings: the user-refined headquarters retains its geometry and restored rig under the desert PBR finish',()=>{
  const read=path=>{const bytes=fs.readFileSync(new URL('../'+path,import.meta.url));return JSON.parse(bytes.subarray(20,20+bytes.readUInt32LE(12)).toString());};
  const source=read('tools/building-sources/headquarters-refined.glb'),triangles=g=>g.nodes.filter(n=>n.mesh!==undefined).flatMap(n=>g.meshes[n.mesh].primitives).reduce((sum,p)=>sum+g.accessors[p.indices??p.attributes.POSITION].count/3,0);
  assert.equal(source.animations?.length??0,0,'the supplied file has no authored animation clips');
  for(const team of [0,1]){
   const a=load('headquarters',team),g=read('src/assets/reborn/buildings-3d/'+a.model);
-  assert.equal(triangles(g),triangles(source),'splitting the new details must preserve every triangle');assert.ok(g.images.length>0,'retain the embedded ceramic texture (identical images may be deduplicated)');
+  const original={...g,nodes:g.nodes.filter(n=>!n.name?.startsWith('AtlasUpgrade_'))};
+  assert.equal(triangles(original),triangles(source),'retexturing and adding hardware must preserve every original triangle');assert.equal(g.images.length,3,'embed shared albedo, normal and ORM maps');
   assert.equal(a.design.source,'tools/building-sources/headquarters-refined.glb');assert.deepEqual(a.design.attachedDetails,{radar:8,beacon:1});
   assert.equal(g.nodes.filter(n=>n.extras?.atlasDesign).length,1,'replace the stale pre-edit part count with one authoritative design description');
   for(const material of source.materials){
    if(team===1&&['Atlas faction enamel','Atlas faction emission','Atlas armoured glass'].includes(material.name))continue;
-   const exported=g.materials.find(m=>m.name===material.name&&!!m.doubleSided===!!material.doubleSided);assert.ok(exported,material.name);if(material.pbrMetallicRoughness?.baseColorTexture)assert.ok(exported.pbrMetallicRoughness?.baseColorTexture);
-   const original=material.pbrMetallicRoughness?.baseColorFactor??[1,1,1,1],color=exported.pbrMetallicRoughness?.baseColorFactor??[1,1,1,1];assert.ok(color.every((v,i)=>Math.abs(v-original[i])<1e-6),material.name+' keeps the edited color');
+   const exported=g.materials.find(m=>m.name===material.name&&!!m.doubleSided===!!material.doubleSided);assert.ok(exported,material.name);
+   if(material.name!=='Atlas faction emission'){assert.ok(exported.pbrMetallicRoughness.baseColorTexture);assert.ok(exported.normalTexture);assert.ok(exported.occlusionTexture);}
   }
   const below=name=>{const out=[];const visit=i=>{out.push(g.nodes[i]);for(const child of g.nodes[i].children??[])visit(child);};visit(g.nodes.findIndex(n=>n.name===name));return out;};
   assert.ok(below('RadarDish').some(n=>n.name==='AtlasRefined_trim_radar'));assert.ok(below('RadarDish').some(n=>n.name==='AtlasRefined_panel_radar'));assert.ok(below('Beacon').some(n=>n.name==='AtlasRefined_blue_beacon'));
@@ -42,12 +43,12 @@ test('buildings: the refined bastion retains all surfaces, geometry and three au
  const below=(g,name)=>{const nodes=[];const visit=i=>{nodes.push(g.nodes[i].name);for(const child of g.nodes[i].children??[])visit(child);};visit(g.nodes.findIndex(n=>n.name===name));return nodes;};
  for(const team of [0,1,-1]){
   const a=load('bastion',team),g=read('src/assets/reborn/buildings-3d/'+a.model);
-  assert.equal(a.design.source,'tools/building-sources/bastion-refined.glb');assert.equal(a.design.parts,47);assert.equal(a.design.triangles,34380);
+  assert.equal(a.design.source,'tools/building-sources/bastion-refined.glb');assert.deepEqual(a.design.sourceGeometry,{parts:47,triangles:34380});assert.ok(a.design.parts>47);assert.ok(a.design.triangles>34380);
   assert.equal(g.nodes.filter(n=>n.extras?.atlasDesign).length,1);assert.ok(g.images.length>0);
   for(const material of source.materials.filter((_,i)=>usedMaterials.has(i))){
    if(team!==0&&material.name==='Atlas faction emission')continue;
    const exported=g.materials.find(m=>m.name===material.name&&!!m.doubleSided===!!material.doubleSided);assert.ok(exported,material.name);
-   assert.deepEqual(exported.pbrMetallicRoughness,material.pbrMetallicRoughness,material.name+' retains its texture and surface');
+   if(material.name!=='Atlas faction emission'){assert.ok(exported.pbrMetallicRoughness.baseColorTexture);assert.ok(exported.pbrMetallicRoughness.metallicRoughnessTexture);assert.ok(exported.normalTexture);}
   }
   assert.deepEqual(g.animations.map(c=>c.name).sort(),source.animations.map(c=>c.name).sort());
   for(const name of ['RadarDish','Beacon','CaptureSweep_Rotator'])assert.deepEqual(below(g,name),below(source,name),name+' keeps its attached details');

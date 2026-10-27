@@ -7,10 +7,36 @@
     "name": "Energiekern",
     "kind": "generator",
     "team": 0,
-    "parts": 21,
-    "triangles": 10712,
+    "parts": 26,
+    "triangles": 15642,
     "geometry": "Atlas original ceramic / bronze building geometry",
-    "source": "Atlas Dominion / original procedural models"
+    "source": "Atlas Dominion / original procedural models",
+    "sourceGeometry": {
+      "parts": 21,
+      "triangles": 10712
+    },
+    "serviceDetails": 56,
+    "serviceFeatures": [
+      "CoolantRadiator",
+      "RadiatorCoolingFin",
+      "CoolantSupply",
+      "CoolantReturn",
+      "CoreFeed",
+      "ServiceSwitchgear",
+      "IdentificationFrame",
+      "FactionIdentification",
+      "SafetyChevrons",
+      "ArmouredCable",
+      "PressureValve",
+      "FanHousing",
+      "FanRecess",
+      "FanHub",
+      "FanBlade",
+      "FanSafetyGrille",
+      "GrilleBolt"
+    ],
+    "surfaceRevision": 4,
+    "finish": "Desert CARC camouflage / sand paint / worn steel / packed ORM / tangent normals"
   },
   "model": "generator-0.glb",
   "body": {
@@ -24,7 +50,7 @@
     "solidBounds": {
       "x": 183,
       "y": 260,
-      "w": 147,
+      "w": 146,
       "h": 162
     },
     "top": 260
@@ -58,5 +84,6 @@
       "duration": 3.8
     }
   ],
-  "bakedShadow": true
+  "bakedShadow": true,
+  "baker": "cpu-pbr"
 }

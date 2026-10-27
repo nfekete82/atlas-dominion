@@ -7,10 +7,36 @@
     "name": "Kaserne",
     "kind": "barracks",
     "team": 1,
-    "parts": 158,
-    "triangles": 78928,
+    "parts": 163,
+    "triangles": 83022,
     "geometry": "Atlas original ceramic / bronze building geometry",
-    "source": "Atlas Dominion / original procedural models"
+    "source": "Atlas Dominion / original procedural models",
+    "sourceGeometry": {
+      "parts": 158,
+      "triangles": 78928
+    },
+    "serviceDetails": 51,
+    "serviceFeatures": [
+      "IdentificationFrame",
+      "FactionIdentification",
+      "FanHousing",
+      "FanRecess",
+      "FanHub",
+      "FanBlade",
+      "FanSafetyGrille",
+      "GrilleBolt",
+      "LadderRail",
+      "LadderRung",
+      "SideWindow",
+      "SealedEquipmentCase",
+      "EquipmentLid",
+      "CaseStrap",
+      "RoofLiftingEye",
+      "FieldRadio",
+      "RadioWhip"
+    ],
+    "surfaceRevision": 4,
+    "finish": "Desert CARC camouflage / sand paint / worn steel / packed ORM / tangent normals"
   },
   "model": "barracks-1.glb",
   "body": {
@@ -58,5 +84,6 @@
       "duration": 3.8
     }
   ],
-  "bakedShadow": true
+  "bakedShadow": true,
+  "baker": "cpu-pbr"
 }

@@ -1,0 +1,239 @@
+{
+  "models": [
+    {
+      "kind": "headquarters",
+      "team": 0,
+      "bytes": 15960672,
+      "parts": 119,
+      "triangles": 67526,
+      "embeddedMaps": 3,
+      "textureSize": 2048,
+      "opaqueBodyPixels": 60947,
+      "whiteBodyPixels": 0,
+      "layers": {
+        "activity": 64,
+        "beacon": 1
+      },
+      "baker": "cpu-pbr"
+    },
+    {
+      "kind": "headquarters",
+      "team": 1,
+      "bytes": 15960676,
+      "parts": 119,
+      "triangles": 67526,
+      "embeddedMaps": 3,
+      "textureSize": 2048,
+      "opaqueBodyPixels": 60947,
+      "whiteBodyPixels": 0,
+      "layers": {
+        "activity": 64,
+        "beacon": 1
+      },
+      "baker": "cpu-pbr"
+    },
+    {
+      "kind": "factory",
+      "team": 0,
+      "bytes": 12864420,
+      "parts": 53,
+      "triangles": 29382,
+      "embeddedMaps": 3,
+      "textureSize": 2048,
+      "opaqueBodyPixels": 46776,
+      "whiteBodyPixels": 0,
+      "layers": {
+        "beacon": 1
+      },
+      "baker": "cpu-pbr"
+    },
+    {
+      "kind": "factory",
+      "team": 1,
+      "bytes": 12864428,
+      "parts": 53,
+      "triangles": 29382,
+      "embeddedMaps": 3,
+      "textureSize": 2048,
+      "opaqueBodyPixels": 46776,
+      "whiteBodyPixels": 0,
+      "layers": {
+        "beacon": 1
+      },
+      "baker": "cpu-pbr"
+    },
+    {
+      "kind": "barracks",
+      "team": 0,
+      "bytes": 18104848,
+      "parts": 163,
+      "triangles": 83022,
+      "embeddedMaps": 3,
+      "textureSize": 2048,
+      "opaqueBodyPixels": 44006,
+      "whiteBodyPixels": 0,
+      "layers": {
+        "beacon": 1
+      },
+      "baker": "cpu-pbr"
+    },
+    {
+      "kind": "barracks",
+      "team": 1,
+      "bytes": 18104856,
+      "parts": 163,
+      "triangles": 83022,
+      "embeddedMaps": 3,
+      "textureSize": 2048,
+      "opaqueBodyPixels": 44006,
+      "whiteBodyPixels": 0,
+      "layers": {
+        "beacon": 1
+      },
+      "baker": "cpu-pbr"
+    },
+    {
+      "kind": "airfield",
+      "team": 0,
+      "bytes": 12193408,
+      "parts": 30,
+      "triangles": 23010,
+      "embeddedMaps": 3,
+      "textureSize": 2048,
+      "opaqueBodyPixels": 47426,
+      "whiteBodyPixels": 0,
+      "layers": {
+        "beacon": 1
+      },
+      "baker": "cpu-pbr"
+    },
+    {
+      "kind": "airfield",
+      "team": 1,
+      "bytes": 12193416,
+      "parts": 30,
+      "triangles": 23010,
+      "embeddedMaps": 3,
+      "textureSize": 2048,
+      "opaqueBodyPixels": 47426,
+      "whiteBodyPixels": 0,
+      "layers": {
+        "beacon": 1
+      },
+      "baker": "cpu-pbr"
+    },
+    {
+      "kind": "generator",
+      "team": 0,
+      "bytes": 11400644,
+      "parts": 26,
+      "triangles": 15642,
+      "embeddedMaps": 3,
+      "textureSize": 2048,
+      "opaqueBodyPixels": 13677,
+      "whiteBodyPixels": 0,
+      "layers": {
+        "beacon": 1
+      },
+      "baker": "cpu-pbr"
+    },
+    {
+      "kind": "generator",
+      "team": 1,
+      "bytes": 11400652,
+      "parts": 26,
+      "triangles": 15642,
+      "embeddedMaps": 3,
+      "textureSize": 2048,
+      "opaqueBodyPixels": 13677,
+      "whiteBodyPixels": 0,
+      "layers": {
+        "beacon": 1
+      },
+      "baker": "cpu-pbr"
+    },
+    {
+      "kind": "turret",
+      "team": 0,
+      "bytes": 16951488,
+      "parts": 173,
+      "triangles": 72010,
+      "embeddedMaps": 3,
+      "textureSize": 2048,
+      "opaqueBodyPixels": 9025,
+      "whiteBodyPixels": 0,
+      "layers": {
+        "turret": 64
+      },
+      "baker": "cpu-pbr"
+    },
+    {
+      "kind": "turret",
+      "team": 1,
+      "bytes": 16951496,
+      "parts": 173,
+      "triangles": 72010,
+      "embeddedMaps": 3,
+      "textureSize": 2048,
+      "opaqueBodyPixels": 9025,
+      "whiteBodyPixels": 0,
+      "layers": {
+        "turret": 64
+      },
+      "baker": "cpu-pbr"
+    },
+    {
+      "kind": "bastion",
+      "team": 0,
+      "bytes": 13145820,
+      "parts": 51,
+      "triangles": 35430,
+      "embeddedMaps": 3,
+      "textureSize": 2048,
+      "opaqueBodyPixels": 11234,
+      "whiteBodyPixels": 0,
+      "layers": {
+        "activity": 64,
+        "beacon": 1,
+        "sweep": 64
+      },
+      "baker": "cpu-pbr"
+    },
+    {
+      "kind": "bastion",
+      "team": 1,
+      "bytes": 13145828,
+      "parts": 51,
+      "triangles": 35430,
+      "embeddedMaps": 3,
+      "textureSize": 2048,
+      "opaqueBodyPixels": 11234,
+      "whiteBodyPixels": 0,
+      "layers": {
+        "activity": 64,
+        "beacon": 1,
+        "sweep": 64
+      },
+      "baker": "cpu-pbr"
+    },
+    {
+      "kind": "bastion",
+      "team": -1,
+      "bytes": 13145728,
+      "parts": 51,
+      "triangles": 35430,
+      "embeddedMaps": 3,
+      "textureSize": 2048,
+      "opaqueBodyPixels": 11234,
+      "whiteBodyPixels": 0,
+      "layers": {
+        "activity": 64,
+        "beacon": 1,
+        "sweep": 64
+      },
+      "baker": "cpu-pbr"
+    }
+  ],
+  "modelsValidated": 15,
+  "result": "passed"
+}

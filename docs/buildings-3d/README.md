@@ -1,44 +1,75 @@
-# Übernommene Modellfamilie / 23. Oktober 2026
+# Militärische Wüstengebäude / 27. Oktober 2026
 
-Der vom Nutzer freigegebene Legionär ist jetzt die aktive Grundfigur aller drei Infanterierollen. Dazu sind sieben zusammengehörige Gebäudetypen als echte 3D-Modelle und als daraus gerenderte Spielgrafiken eingebaut. Das Feldkommando verwendet inzwischen die bearbeitete Nutzerversion `headquarters-refined.glb`, einschließlich der ergänzten Geometrie, Materialien und Texturen. Aktuelle Aufnahmen: [Blau](headquarters-refined-0.png), [Rot](headquarters-refined-1.png), [im Spiel](headquarters-refined-game.png). [Quelldatei und Übernahme](../../tools/building-sources/ORIGIN.md).
+Alle sieben Gebäudetypen verwenden aktualisierte echte GLBs und daraus gerenderte Spiel-Sprites: Feldkommando, Fahrzeugfabrik, Kaserne, Flugfeld, Energiekern, Geschützturm und Bastion. Blau und Rot besitzen vollständige Fassungen; die Bastion zusätzlich eine neutrale Fassung mit weißer Beleuchtung und eigener `NEUTRAL / N / 00`-Kennzeichnung.
 
-- [Spiel](http://127.0.0.1:8095/)
-- [Feldkommando als drehbares 3D-Modell](http://127.0.0.1:8095/model-3d.html?model=headquarters)
-- [Bastion als drehbares 3D-Modell](http://127.0.0.1:8095/model-3d.html?model=bastion)
-- [Soldat und archivierte Ausgangsfigur bei Spielgröße](http://127.0.0.1:8095/model-preview.html)
-- Browseraufnahmen: [im Spiel](in-game.png), [Feldkommando](headquarters.png), [neutrale Bastion](bastion.png)
+[Visuell geprüfte Sprite-Übersicht aller 15 Varianten](pbr-sprite-overview.png) · [Automatischer Asset-Prüfbericht](pbr-validation.json) · [QA-Status einschließlich Umgebungsgrenzen](pbr-qa.json)
 
-Aktuelle Prüfung der bearbeiteten Hauptquartierfassung: **53 gezielte Node-Tests und 26 Chrome-Tests bestanden**. Die Browserprüfung lief gegen die aktualisierte Docker-Auslieferung auf Port 8095 und kontrolliert zusätzlich die neuen Details unter der Schüsselanimation, beide Teamfarben und die tatsächliche Spielansicht. Die importierte Quelle bleibt unverändert im Projekt erhalten.
+Die Übersicht ist eine Offline-Montage der ausgelieferten Sprites einschließlich Radar, Sweep, Leuchten und Geschütz. Sie zeigt die bestehenden relativen Spielgrößen. Sie ist **kein Playwright-Screenshot**.
 
-## Umfang
+## Geometrie und Materialien
 
-Feldkommando, Bastion, Kaserne, Fahrzeugfabrik, Flugfeld, Energiekern und Geschützturm verwenden dieselbe sandfarbene Keramik-/Bronze-Palette, dunkle technische Einsätze und Fraktionsfarben wie der Legionär. Die ursprüngliche Projektgeometrie steht in `scripts/animation/atlas-buildings.js`; das aktive Feldkommando wird aus der bearbeiteten Nutzerversion importiert. Es gibt 15 GLB-Dateien: jeden Typ in Blau und Rot sowie die Bastion zusätzlich neutral weiß. Die Modellgalerie bietet Auswahl, Drehung, Zoom, Teamwechsel, tatsächliche Betriebsanimationen und GLB-Downloads.
+Die bearbeiteten Originalmodelle von HQ und Bastion unter `tools/building-sources/` bleiben unverändert. Ihre gesamten ursprünglichen Dreiecke, benannten Baugruppen, lokalen Transformationen und Animationsgruppen werden weiterverwendet. Die anderen fünf Gebäudetypen bauen auf `scripts/animation/atlas-buildings.js` auf.
 
-Infanterie, Pionier und schwerer Schütze teilen die vom Nutzer freigegebene 151-teilige Grundrüstung und die dazugehörigen 296 Frames je Team. Der schwere Schütze bleibt größer; Rollenbezeichnungen, Katalogkennzeichnungen, Kosten und Kampfwerte bleiben erhalten. Das sind keine drei neu erfundenen unterschiedlichen Figurenmodelle. Fahrzeuge behalten ihre bisherige Darstellung.
+`scripts/animation/building-details.js` ergänzt tatsächliche Geometrie:
 
-## Registrierung und Animation
+- HQ: geschützte Lüfter, Luftkanäle, Leiter, austauschbare Seitenpanzerung, Versorgungsgehäuse und Beschriftung.
+- Fabrik: beidseitige Panzerkassetten, Torführungen, Sicherheitsmarkierungen, Dachlüfter, Absaugung, Wartungsreling, Leiter und Ausrüstung.
+- Kaserne: Fenster, Feldfunk, Lüfter, Leiter, Ausrüstungskisten und Teamtafel.
+- Flugfeld: gerippter Hangar mit geneigtem Dach, segmentierten Stahltoren, Torführung, Wartungstür, Lüfter und markiertem Vorfeld; ursprünglicher Kontrollturm und Fundament bleiben erhalten.
+- Energiekern: Kühlkörper mit einzelnen Lamellen, Kühlleitungen, Ventil, armierten Kabeln und Schaltkasten.
+- Geschützturm: vorhandene detaillierte Lafette und Zwillingswaffe, zusätzliche Hydraulik, Nebelwerfer und Kennzeichnung an der beweglichen Baugruppe.
+- Bastion: Verstärkungen, Ankerbolzen, Wartungsgehäuse, Kabel und eigene Team-/Neutraltafel.
 
-Das Hauptspiel bleibt Canvas 2D. Neue Einheiten- und Gebäudegrafiken werden reproduzierbar aus den 3D-Modellen gerendert. Schüsse und Mündungsfeuer verwenden bei Soldaten die tatsächliche projizierte Waffenmündung jedes Frames, einschließlich des Größenfaktors schwerer Infanterie.
+Neue statische Kleinteile werden je Oberfläche zusammengefasst; pro Modell kommen höchstens sechs Meshes hinzu. Die Originalhierarchie bleibt erhalten.
 
-Der Gebäudegrundkörper enthält den gerenderten Bodenschatten. Die Kartenposition bezeichnet seinen festen projizierten Weltursprung; weder Schatten noch Fußpunkt werden aus wechselnden sichtbaren Bildgrenzen geschätzt. Feldkommando und Bastion besitzen 64 echte Schüsselansichten mit 48 Sekunden Umlaufdauer. Die kleinen Layer sind eng zugeschnitten und tragen ihren ursprünglichen Pivot relativ zum Grundkörper. Leuchtpunkte besitzen ebenfalls feste Registrierung und 3,8 Sekunden Periode. Während sich die Schüssel dreht, bleibt der Grundkörper einschließlich Bodenschatten pixelgleich. Pausierte Simulationszeit friert die Aktivität ein; reduzierte Bewegung hält die Darstellung statisch.
+`scripts/animation/building-pbr.js` erzeugt einen deterministischen **2048 × 2048**-Atlas mit sandfarbenem CARC-Lack, Wüstentarnung, abgenutztem Stahl, Gummi, Glas, Sicherheitsstreifen und drei Kennzeichnungen. Oberflächendetails umfassen Staub, unregelmäßigen Schmutz, Lackabplatzer, Kratzer, vertiefte Fugen und erhöhte Schweißnähte. Der Atlas enthält 1024px-Flächen für Sandlack und Tarnlack und 512px-Flächen für die übrigen Werkstoffe.
 
-Die GLB-Dateien enthalten `RadarSpin` und `BeaconPulse` als echte Transformationsclips. Das bearbeitete Hauptquartier hat 115 Mesh-Instanzen und 60.652 Dreiecke, die Bastion 31 Teile. Die Nutzerversion enthielt keine Animationsclips; die erhaltenen beweglichen Gruppen und ihre neuen Details wurden wieder angebunden. Die neutrale Bastion nutzt eine tatsächlich weiße Emission; Teamwechsel tauschen die vollständige passende gerenderte Fassung. Warmes Gehäusematerial bleibt erhalten.
+Drei gemeinsam verwendete Texturen werden vollständig in **jedes GLB eingebettet**:
 
-## Erhaltenes Spielprinzip
+- `textures/desert-basecolor.png`: sRGB-Albedo.
+- `textures/desert-normal.png`: aus den Oberflächenhöhen abgeleitete Tangent-Normalen.
+- `textures/desert-orm.png`: lineare Occlusion in R, Roughness in G und Metallic in B.
 
-Navigation, Gebäudefußabdrücke, Sichtquellen, automatische Angriffe, Wirtschaft und Save-Version 2 sind unverändert. Der Gebäudebau bleibt wie zuletzt gewünscht aus der Oberfläche entfernt. Hauptquartiere und Bastionen sind weiterhin Spielobjekte. Die übrigen fünf Gebäudetypen erscheinen in der Modellgalerie und für vorhandene Gebäude älterer Spielstände im gleichen Stil.
+Die separaten PNGs liegen zusätzlich neben den Modellen als Authoring-Ressourcen. Die GLBs benötigen sie nicht als externe Dateien. Untexturierte Metallteile der importierten Quellen erhalten UV-Projektionen und fehlende Normalen. Alle PBR-Kanäle teilen `TEXCOORD_0`; ein zweiter UV-Puffer entfällt. Echte Fraktionsleuchten bleiben emissiv. Die Galerie besitzt eine lokal erzeugte PMREM-Umgebung für Metallreflexionen und verwendet identische eingebettete Texturen über die Modell-/Teamwechsel hinweg gemeinsam, statt je Variante drei weitere 2K-GPU-Texturen zu behalten.
 
-## Reproduzieren und prüfen
+## Registrierung und Laufzeit
+
+Der RTS bleibt Canvas 2D und lädt ausschließlich die PNG/JSON-Spielgrafiken, keine 2K-Materialatlanten oder GLBs. Alle Gebäude-Spiel-PNGs zusammen belegen rund 4,60 MB gegenüber zuvor 4,35 MB. Grundkörper bleiben 512px groß, mit festem Pivot `[256, 382]` und gebackenem Bodenschatten. Radar und CaptureSweep behalten 64 eng zugeschnittene Ansichten; die Geschütztürme behalten 64 registrierte Waffenansichten samt beiden Mündungspositionen.
+
+`RadarSpin` dauert weiterhin 48 Sekunden, `BeaconPulse` 3,8 Sekunden, `CaptureSweep` 12 Sekunden und `TurretTraverse` 2 Sekunden. Die Animationshierarchien der bearbeiteten Quellen sind erhalten. Die bestehenden Definitionen für Gebäude-/Einheitenskalierung, Kollision, Bauflächen, Simulation, Spielstände, KI und Kampfwerte wurden nicht geändert. Der generierte Geschütz-Mündungsrig bleibt gegenüber dem vorherigen Stand unverändert.
+
+## Reproduzieren
 
 ```sh
-npm run assets:detailed-infantry
+# Gewohnter Three.js-/Playwright-WebGL-Export:
 npm run assets:buildings
-npm run assets:animation-audit
-node --test tests/reborn-animation.test.mjs tests/reborn-buildings.test.mjs tests/reborn.test.mjs
-npm --prefix tests/browser test
-docker compose up --build -d
+# Optional nur einzelne Gebäudetypen:
+npm run assets:buildings -- headquarters factory
+
+# Vollständiger Offline-Export ohne Browser, Server oder zusätzliche Pakete:
+npm run assets:buildings -- --cpu
+
+npm run typecheck
+npm run build
+npm run assets:buildings:validate -- --report
+npm run test:animation
+node scripts/audit-animation-assets.mjs --buildings
+node scripts/preview-building-assets.mjs
+ATLAS_BROWSER_CHANNEL=chromium npm --prefix tests/browser test -- --grep 'buildings PBR'
 ```
 
-Bei der ursprünglichen Modellübernahme geprüft: **39 Node-Fälle und 19 Chrome-Fälle bestanden**, einschließlich der kompletten Reborn-Browserprüfung gegen die abschließend neu gebaute Docker-Auslieferung auf `127.0.0.1:8095`. Die Node-Fälle umfassen 29 Reborn-Simulationen, acht Animation/Bewegung und zwei Gebäudemodell-/Registrierungsfälle. Der Browser prüft auch die wirklichen GLB-Dateien aller sieben Gebäudetypen, Schüsselbewegung bei festem Fundament, echte Modellfarben, feste Bodenschatten, gemeinsam geladene Infanterieatlanten, Waffenmündungen, vollständige Kampagne, Produktion, Speicherstände, Nebel, Audio, kompakte Oberfläche und die beiden Animationsansichten. Die umfangreiche Testsuite des Europa-Archivs gehört nicht zu dieser Änderung.
+Der optionale CPU-PBR-Baker rendert dieselben echten Meshes, UVs, Animationsclips und registrierten Layer über den gemeinsamen Exporter. Er verwendet Tangent-Normalen, ORM, GGX-Beleuchtung, Schatten und zweifaches Supersampling. Seine Umgebungsreflexion ist eine analytische Näherung; die Galerie verwendet Three.js PMREM. Die aktuell gespeicherten Sprites wurden mit `--cpu` erzeugt; ihre Metadaten weisen `baker: cpu-pbr` aus.
 
-Quellen und Hashes: [ANIMATION_ASSETS.json](../reborn/ANIMATION_ASSETS.json). Gebäudemodelle: [ORIGIN.md](../../src/assets/reborn/buildings-3d/ORIGIN.md). Soldatenrig und Körperbewegungen: Quaternius, CC0, mit eigener Rüstung und offline gebackener beidhändiger Waffenhaltung; [Herkunft](../../src/assets/reborn/prototype/ORIGIN.md). Die fertigen Dateien liegen im Projekt und benötigen zur Spielzeit keine externen Dienste.
+## Technische und visuelle Prüfung
+
+- TypeScript und vollständiger Build: erfolgreich.
+- Vollständige Node-Suite: **668 bestanden von 669**. Der einzige nicht ausführbare Test ist `tests/http.test.mjs`: Die Umgebung verweigert lokale Server mit `listen EPERM`.
+- Animation/Gebäude/PBR: **16 Tests bestanden**, einschließlich tatsächlichem glTF-Roundtrip und `AnimationMixer`-Ausführung aller exportierten Clips bei festen Fundamenten und Drehpunktpositionen.
+- Asset-Audit: **15 GLBs bestanden**, einschließlich Buffer/Indices, aller UVs und Normalen, tatsächlicher eingebetteter Albedo-/Normal-/ORM-Pixel, Materialkontraste, Clip-Zeiten, Drehpunkte, Mündungen und jedes Sprite-Frames. Kein Gebäudekörper enthält weiße oder leere Ersatzflächen.
+- Die Sprite-Übersicht und einzelne Modelle wurden als gerenderte Bilder geöffnet und visuell geprüft. Seitliche Panzerung an HQ und Fabrik wurde nach dieser Kontrolle nachgebessert.
+- Playwright-Galerie- und Laufzeittests sind implementiert und in der regulären Browser-Suite registriert. Ihre Ausführung wurde versucht, scheitert hier am gesperrten lokalen Server (`127.0.0.1:8097`, `EPERM`). Auch ein separater Chromium-Start wird von der Umgebung beendet. **Browserdarstellung und Browser-Screenshots konnten hier deshalb nicht abschließend verifiziert werden.**
+- Vier bereits vorhandene Regressionserwartungen verwendeten noch den früheren Roverpreis von 300 statt des unveränderten Katalogpreises von 350. Diese Tests referenzieren jetzt den Katalog; das Notfall-Budgetfixture finanziert den Rover vor dem separaten Infanterieauftrag. Spielbalance und Produktionscode bleiben unverändert.
+
+## Git
+
+Es wurde ausschließlich auf `feat/pbr-buildings-overhaul-20261027-144413` gearbeitet. **Kein neuer Commit**: Schreibzugriffe auf `.git/index.lock` sind in dieser Umgebung verboten; außerdem sind HTTP-/Browser-QA noch nicht vollständig ausführbar. Kein Push, Reset, Rebase oder Überschreiben vorhandener Commits.

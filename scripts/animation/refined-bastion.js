@@ -2,8 +2,8 @@ import * as T from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 
 /** Keep the edited geometry, materials and authored animation hierarchy intact. */
-export async function loadRefinedBastion(team){
- const source=await new GLTFLoader().loadAsync('/tools/building-sources/bastion-refined.glb'),model=new T.Group();model.name='Atlas_refined_bastion';model.add(source.scene);
+export async function loadRefinedBastion(team,source=undefined){
+ source??=await new GLTFLoader().loadAsync('/tools/building-sources/bastion-refined.glb');const model=new T.Group();model.name='Atlas_refined_bastion';model.add(source.scene);
  const dish=model.getObjectByName('RadarDish'),beacon=model.getObjectByName('Beacon'),sweep=model.getObjectByName('CaptureSweep_Rotator');
  if(!dish||!beacon||!sweep)throw Error('Refined bastion is missing its radar, beacon or sweep group');
  const materials=new Set();let parts=0,triangles=0;

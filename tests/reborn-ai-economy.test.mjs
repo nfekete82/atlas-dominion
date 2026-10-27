@@ -79,7 +79,7 @@ test('economy: hidden enemy aircraft and HQ do not create production intelligenc
  assert.equal(g.memories[1].some(m=>m.id===enemy.id),false);
  g.credits[1]=400;pulse(g);
  assert.deepEqual(factory.queueTypes,['rover'],'unknown air and HQ cannot force anti-air or siege policy');
- assert.equal(g.credits[1],100);
+ assert.equal(g.credits[1],400-UNITS.rover.cost);
 });
 
 test('economy: established armor saves for heavy support rather than replacing every loss with cheap infantry',()=>{

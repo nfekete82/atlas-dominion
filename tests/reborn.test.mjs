@@ -213,7 +213,7 @@ test('reborn: construction respects ownership, terrain, occupied footprints, cre
 test('reborn: typed production enforces the producer, refunds each type and preserves later queue timing',()=>{
  const g=peaceful();g.credits[0]=3000;const factory=buildWithWorker(g,0,'factory',buildSite(g,'factory'));advance(g,19);
  assert.equal(g.recruit(factory.id,'gunship'),false);assert.equal(g.recruit(factory.id,'tank'),true);assert.equal(g.recruit(factory.id,'rover'),true);
- advance(g,2);const progress=factory.production,credits=g.credits[0];g.cancel(factory.id,1);assert.equal(g.credits[0],credits+300);assert.equal(factory.production,progress);
+ advance(g,2);const progress=factory.production,credits=g.credits[0];g.cancel(factory.id,1);assert.equal(g.credits[0],credits+UNITS.rover.cost);assert.equal(factory.production,progress);
  assert.equal(g.recruit(factory.id,'artillery'),true);g.cancel(factory.id,0);assert.equal(factory.production,0);assert.deepEqual(factory.queueTypes,['artillery']);advance(g,19);
  const artillery=g.units.find(u=>u.kind==='artillery');assert.ok(artillery);assert.equal(artillery.hp,340);assert.ok(g.world.walkable(artillery,g.obstacles(),10));
 });

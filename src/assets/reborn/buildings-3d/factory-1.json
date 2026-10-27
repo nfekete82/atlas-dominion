@@ -7,10 +7,43 @@
     "name": "Fahrzeugfabrik",
     "kind": "factory",
     "team": 1,
-    "parts": 47,
-    "triangles": 20524,
+    "parts": 53,
+    "triangles": 29382,
     "geometry": "Atlas original ceramic / bronze building geometry",
-    "source": "Atlas Dominion / original procedural models"
+    "source": "Atlas Dominion / original procedural models",
+    "sourceGeometry": {
+      "parts": 47,
+      "triangles": 20524
+    },
+    "serviceDetails": 104,
+    "serviceFeatures": [
+      "ReplaceableArmour",
+      "HexFastener",
+      "SafetyChevrons",
+      "DoorRail",
+      "IdentificationFrame",
+      "FactionIdentification",
+      "ServiceWallCassette",
+      "CassetteSeam",
+      "FanHousing",
+      "FanRecess",
+      "FanHub",
+      "FanBlade",
+      "FanSafetyGrille",
+      "GrilleBolt",
+      "ExtractionDuct",
+      "LadderRail",
+      "LadderRung",
+      "RoofServiceRail",
+      "RailStanchion",
+      "SealedEquipmentCase",
+      "EquipmentLid",
+      "CaseStrap",
+      "ServiceHoist",
+      "DoorTrack"
+    ],
+    "surfaceRevision": 4,
+    "finish": "Desert CARC camouflage / sand paint / worn steel / packed ORM / tangent normals"
   },
   "model": "factory-1.glb",
   "body": {
@@ -40,7 +73,7 @@
       {
         "x": 0,
         "y": 0,
-        "w": 12,
+        "w": 11,
         "h": 15
       }
     ],
@@ -48,7 +81,7 @@
     "originalBounds": {
       "x": 216,
       "y": 292,
-      "w": 12,
+      "w": 11,
       "h": 15
     }
   },
@@ -58,5 +91,6 @@
       "duration": 3.8
     }
   ],
-  "bakedShadow": true
+  "bakedShadow": true,
+  "baker": "cpu-pbr"
 }

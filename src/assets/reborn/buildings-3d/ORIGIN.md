@@ -1,11 +1,13 @@
-# Atlas-Gebäudemodelle
+# Atlas-Gebäudemodelle / Desert PBR Revision 4
 
-Originale Projektgeometrie unter `scripts/animation/atlas-buildings.js`: Feldkommando, Bastion, Kaserne, Fahrzeugfabrik, Flugfeld, Energiekern und Geschützturm. Keramiklack, Bronze, dunkle Mechanik, Fraktionslack und Emission verwenden die Materialpalette des vom Nutzer freigegebenen Legionärs. Keine externen Gebäudemodelle oder Bildgenerator-Frames.
+Eigene Projektgeometrie: `scripts/animation/atlas-buildings.js`. Das aktive Feldkommando und die aktive Bastion übernehmen die bearbeiteten Originaldateien unter `tools/building-sources/`; diese Quellen sind unverändert erhalten. Import und Anbindung der bestehenden Animationshierarchie: `refined-headquarters.js` und `refined-bastion.js` im Verzeichnis `scripts/animation/`.
 
-Das aktive Feldkommando wurde durch die vom Nutzer bearbeitete Datei `tools/building-sources/headquarters-refined.glb` ersetzt. Details zu unveränderter Quelle, Hash, erhaltenen Materialien und wiederhergestellter Schüssel-/Blinkanimation: [Herkunft des bearbeiteten Modells](../../../../tools/building-sources/ORIGIN.md). Der Export verwendet dafür `scripts/animation/refined-headquarters.js`; alle anderen Gebäudetypen behalten die bisherige Quelle.
+Das grafische Upgrade vom 27. Oktober 2026 ergänzt militärische Servicehardware über `scripts/animation/building-details.js` und ersetzt die flachen Oberflächen durch die deterministischen Wüsten-PBR-Atlanten aus `scripts/animation/building-pbr.js`. Kein externer Modell- oder Texturdownload, keine generierten 2D-Ersatzgebäude. Alle drei 2048px-Texturen (BaseColor, Tangent-Normal und gepackte Occlusion/Roughness/Metallic) sind in jeder GLB-Datei eingebettet; die zusätzlichen PNG-Quellen stehen unter `textures/`.
 
-15 vollständige GLB-Dateien: sieben Typen in Blau und Rot, dazu eine neutral weiß leuchtende Bastion. Die GLB-Dateien enthalten reale `BeaconPulse`-Animationen; Feldkommando und Bastion zusätzlich `RadarSpin` mit 48 Sekunden Umlaufdauer. Modell und Animationen lassen sich in der lokalen Modellgalerie ansehen und herunterladen.
+15 GLBs: sieben Typen in Blau und Rot, Bastion zusätzlich neutral. Echte `RadarSpin`-, `BeaconPulse`-, `CaptureSweep`- und `TurretTraverse`-Clips bleiben je nach Modell erhalten. Die sichtbare Teamkennzeichnung ist separat vom sandfarbenen Lack und der Tarnung angelegt.
 
-Spielgrafik: fest gerenderter transparenter Grundkörper mit integriertem Bodenschatten. Bewegliche Schüsseln sind als 64 tatsächlich gerenderte Ansichten mit fester Registrierung separat gespeichert. Diese zugeschnittenen Layer besitzen denselben projizierten Weltursprung wie der Grundkörper. Der Bodenschatten bleibt während der Schüsseldrehung unverändert. Leuchtpunkte verwenden ebenfalls registrierte Ausschnitte.
+Spielgrafik: Grundkörper mit festem Weltursprung und Bodenschatten, 64 registrierte Radar-/Sweep-/Waffenansichten und zugeschnittene Leuchtlayer. Das Spiel benötigt keine hochauflösenden PBR-Texturen oder externen Textur-URLs zur Laufzeit.
 
-Reproduzierbarer Export: `npm run assets:buildings`, optional `-- headquarters bastion`. Three.js und dessen GLTFExporter sind Entwicklungswerkzeuge unter MIT; der Lizenztext für den separaten lokalen 3D-Inspektor liegt unter `/vendor/three/LICENSE`.
+Export: `npm run assets:buildings`; CPU-Alternative ohne Browser: `npm run assets:buildings -- --cpu`. Die gespeicherten Dateien verwenden den CPU-PBR-Baker. Galerie und regulärer Export verwenden Three.js; der Lizenztext der lokalen Galerie liegt unter `/vendor/three/LICENSE`.
+
+[Umfang, Reproduktion, Prüfergebnisse und bekannte Umgebungsgrenzen](../../../../docs/buildings-3d/README.md) · [Herkunft der bearbeiteten Quellen](../../../../tools/building-sources/ORIGIN.md).

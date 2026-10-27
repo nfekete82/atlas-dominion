@@ -56,8 +56,8 @@ function attachDetails(model,dish,beacon){
  return attached;
 }
 
-export async function loadRefinedHeadquarters(team){
- const source=await new GLTFLoader().loadAsync('/tools/building-sources/headquarters-refined.glb'),model=new T.Group();model.name='Atlas_refined_headquarters';model.add(source.scene);
+export async function loadRefinedHeadquarters(team,source=undefined){
+ source??=await new GLTFLoader().loadAsync('/tools/building-sources/headquarters-refined.glb');const model=new T.Group();model.name='Atlas_refined_headquarters';model.add(source.scene);
  // The edited file still carries the old procedural model's 104-part label.
  // Publish one authoritative description for the complete imported assembly.
  source.scene.traverse(n=>{delete n.userData.atlasDesign;});

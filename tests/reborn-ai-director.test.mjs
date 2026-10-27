@@ -5,6 +5,7 @@ import {Simulation} from '../dist/src/reborn/simulation.js';
 import {developArmy} from '../dist/src/reborn/army-economy.js';
 import {addProducer} from './fixtures/reborn-production.mjs';
 import {blueDefense} from '../scripts/benchmark-ai-opponent.mjs';
+import {UNITS} from '../dist/src/reborn/catalog.js';
 
 test('director: attacks undefended land with paid small groups instead of waiting forever',()=>{
  const input={defended:false,observedTowers:0,hasArtillery:false,visibleDefenderStrength:0,
@@ -78,12 +79,12 @@ test('director: operational factory buys a real rover before reserving credits f
  const before=g.credits[1];
  developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1&&u.hp>0),()=>0);
  assert.equal(factory.queueTypes[0],'rover','first affordable vehicle must be purchased immediately');
- assert.equal(factory.queueCosts[0],300,'the real 300-credit rover cost is recorded');
+ assert.equal(factory.queueCosts[0],UNITS.rover.cost,'the current catalog rover cost is recorded');
  const paid=g.bases.filter(b=>b.owner===1).reduce((total,b)=>total+(b.queueCosts??[]).reduce((sum,cost)=>sum+cost,0),0);
  assert.equal(before-g.credits[1],paid,'all concurrent production is paid, with no phantom credits');
- assert.equal(paid,300,'the first rover is funded while 100 credits remain banked for sustained armor');
+ assert.equal(paid,UNITS.rover.cost,'the first rover is funded while the remaining credits stay banked');
  assert.equal(g.tactical.state.economy?.goal,null,'no premature 450-credit airfield reservation');
- assert.equal(g.credits[1],100,'the barracks must preserve vehicle savings rather than draining the treasury');
+ assert.equal(g.credits[1],before-UNITS.rover.cost,'the barracks must preserve vehicle savings rather than draining the treasury');
 });
 
 test('director: first aircraft factory waits for actual ground force production',()=>{
@@ -249,7 +250,8 @@ test('director: a threatened base may recruit infantry instead of preserving the
  const g=new Simulation(2026,4),hq=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
  for(let i=0;i<5;i++)g.spawn(1,{x:hq.x+100+i*12,y:hq.y-120},'infantry');
  const barracks=addProducer(g,'barracks',1),factory=addProducer(g,'factory',1);
- g.credits[1]=400;
+ g.credits[1]=UNITS.rover.cost+UNITS.infantry.cost;
+ assert.ok(g.recruit(factory.id,'rover'),'fund the rover first so the emergency tests the remaining infantry budget');
  const foe=g.spawn(0,{x:hq.x+130,y:hq.y+25},'infantry');
  g.updateVision();
  assert.ok(g.canSee(1,foe),'the budget override requires an actually visible threat');
