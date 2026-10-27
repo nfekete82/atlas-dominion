@@ -7,6 +7,13 @@ on:
       - src/reborn/config.ts
       - src/reborn/world.ts
       - src/reborn/simulation.ts
+      - src/reborn/main.ts
+      - src/reborn/retro-desert.css
+      - src/assets/reborn/start-screen.png
+      - index.html
+      - tests/reborn-title-screen.test.mjs
+      - tests/browser/reborn-title-menu.spec.mjs
+      - tests/browser/reborn.config.mjs
       - tests/reborn-campaign.test.mjs
       - tests/reborn-vehicle-ram-armor.test.mjs
       - .github/workflows/vehicle-ram-armor.yml
@@ -31,4 +38,4 @@ jobs:
       - name: Build, TypeScript checks, trampling and combat regressions
         run: |
           npm run build
-          node --test tests/reborn-vehicle-ram-armor.test.mjs tests/reborn-campaign.test.mjs tests/reborn-humvee.test.mjs
+          node --test tests/reborn-vehicle-ram-armor.test.mjs tests/reborn-campaign.test.mjs tests/reborn-humvee.test.mjs tests/reborn-title-screen.test.mjs
