@@ -3,7 +3,7 @@ import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
-const root=fileURLToPath(new URL('..',import.meta.url)),out=path.join(root,'src/assets/reborn/buildings-3d');
+const root=path.resolve(fileURLToPath(new URL('..',import.meta.url))),out=path.join(root,'src/assets/reborn/buildings-3d');
 const args=process.argv.slice(2),kinds=args.filter(arg=>!arg.startsWith('--'));
 await mkdir(out,{recursive:true});
 const saveBuilding=async(name,data)=>{
