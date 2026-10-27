@@ -1,4 +1,4 @@
-# ATLAS DOMINION — REBORN
+# Sandforge: Bastion Wars
 
 Lokales Wüsten-RTS mit zehn Einheitentypen, eroberbaren Bastionen und einer gegnerischen Armee aus Infanterie, Fahrzeugen und Luftunterstützung. Neue Kampagnen haben 16 Bastionen und je zwei blaue und rote Startsektoren. Alte Spielstände mit 30 Bastionen und ihren ursprünglichen Startgebieten bleiben ladbar.
 
@@ -78,3 +78,7 @@ Die frühere Europaversion bleibt unter **http://127.0.0.1:8095/legacy/index.htm
 ### Performance-Debugging
 
 Mit `/?debug&perf` lassen sich Frame-Spitzen, 1%-Low-FPS und die Kosten von Simulation, KI, Wegfindung, Rendering, Minikarte und HUD messen und als JSON exportieren. `npm run test:performance` wiederholt acht feste Lastszenarien. Messwerte, Regressionen und verbleibende Engpässe: [Performance-Bericht](docs/performance/README.md).
+
+## Branding
+
+Das Spiel heißt **Sandforge: Bastion Wars**. Originalname des GitHub-Repos, Docker-Service, Port 8095 und bestehende Spielstand-Schlüssel bleiben unverändert. Das Logo liegt unter `src/assets/reborn/sandforge-logo.webp`.

@@ -366,3 +366,33 @@ dialog>small,dialog form>small,.panel-heading,.help-grid h2 {color:#d8b983;}
     object-fit:contain;
   }
 }
+
+/* SANDFORGE BRAND V2: appended CSS overrides */
+.wordmark .sandforge-hud-emblem{font-size:24px;letter-spacing:-2px;color:#e8c685;text-shadow:0 2px 3px #02070a}
+.wordmark .sandforge-hud-copy{font-size:11px;letter-spacing:.5px;line-height:.93;color:#d5bd89}
+.wordmark .sandforge-hud-copy b{font-size:22px;letter-spacing:.15px;color:#ffe1a5}
+.wordmark .sandforge-hud-copy small{display:block;font-size:7px;letter-spacing:1.15px;margin-top:4px;color:#b9d2da;white-space:nowrap}
+.sandforge-logo{display:block;max-width:100%;height:auto;object-fit:contain;mix-blend-mode:screen;filter:drop-shadow(0 8px 20px #0007)}
+#main-dialog .menu-brand{display:block;width:min(630px,56vw);max-width:100%;margin:0 0 8px;position:relative;z-index:1}
+#main-dialog .sandforge-splash-logo{width:100%;max-height:min(37vh,320px);object-position:left center}
+#main-dialog>small{margin-top:0}
+#main-dialog h1{font-size:clamp(28px,3.2vw,48px);margin:10px 0 8px}
+#main-dialog .menu-buttons{margin-top:clamp(13px,2vh,25px)}
+#loading{flex-direction:column;gap:0;padding:18px;text-align:center}
+#loading .sandforge-loading-logo{width:min(560px,85vw);max-height:52vh}
+#loading p{position:static;margin:4px 0 0;letter-spacing:.12em;color:#e2c797}
+.pause-menu .menu-brand{justify-content:center;margin:0 auto 15px}
+.pause-menu .sandforge-pause-logo{width:265px;max-height:155px}
+@media(max-width:800px){
+ .wordmark .sandforge-hud-emblem{font-size:19px;letter-spacing:-1px}
+ .wordmark .sandforge-hud-copy b{font-size:18px}
+ .wordmark .sandforge-hud-copy small{font-size:6px;letter-spacing:.25px}
+}
+@media(max-width:720px){
+ #main-dialog .menu-brand{width:min(440px,96%);margin-bottom:5px}
+ #main-dialog .sandforge-splash-logo{max-height:29vh}
+ #main-dialog h1{font-size:clamp(26px,6vw,36px);margin:8px 0}
+ #main-dialog .menu-buttons{margin-top:14px}
+ #loading .sandforge-loading-logo{max-height:45vh}
+}
+
