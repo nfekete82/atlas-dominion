@@ -1,4 +1,5 @@
-import { cpSync, mkdirSync } from 'node:fs';
+import { cpSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {createHash} from 'node:crypto';
 mkdirSync('dist', { recursive: true });
 cpSync('index.html', 'dist/index.html');
 cpSync('animation-lab.html','dist/animation-lab.html');
@@ -15,4 +16,11 @@ cpSync('src/reborn/retro-desert.css', 'dist/retro-desert.css');
 cpSync('src/reborn/qwen-general.worker.js', 'dist/src/reborn/qwen-general.worker.js');
 cpSync('legacy', 'dist/legacy', {recursive:true});
 cpSync('src/assets', 'dist/src/assets', {recursive:true});
+// A verifiable fingerprint of the *shipped* gameplay pixels, not the source GLB.
+const art={revision:'pbr-strong-20261027',files:{}};
+for(const kind of ['headquarters','factory','barracks','airfield','generator','turret','bastion']){
+ const path='dist/src/assets/reborn/buildings-3d/'+kind+'-0.png';
+ const bytes=readFileSync(path);art.files[kind]=createHash('sha256').update(bytes).digest('hex');
+}
+writeFileSync('dist/building-art-version.json',JSON.stringify(art,null,2)+'\n');
 console.log('Built ATLAS DOMINION in dist/');
