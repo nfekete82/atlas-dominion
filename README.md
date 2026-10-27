@@ -1,10 +1,10 @@
-# ATLAS DOMINION — REBORN
+# SANDFORGE: BASTION WARS
 
 Lokales Wüsten-RTS mit zehn Einheitentypen, eroberbaren Bastionen und einer gegnerischen Armee aus Infanterie, Fahrzeugen und Luftunterstützung. Neue Kampagnen haben 16 Bastionen und je zwei blaue und rote Startsektoren. Alte Spielstände mit 30 Bastionen und ihren ursprünglichen Startgebieten bleiben ladbar.
 
 Der lokale Entwicklungsstand trägt weiterhin **1.8.0**; als nächste Version ist **1.9.0** vorgeschlagen. [Release-Entwurf](docs/releases/v1.9.0-de.md), [Prüfbericht](docs/qa/release-2026-10-24.md) und [sichere Veröffentlichungsschritte](docs/releases/RELEASE.md). Die deutschen Stimmen A, B und C wurden anhand der Hörproben vom Eigentümer freigegeben und für alle 47 Meldungen aktiviert.
 
-## Starten
+Sandforge ist der aktuelle Spielname. Das GitHub-Repository ist aus historischen Gründen noch unter `nfekete82/atlas-dominion` erreichbar; interne Kennungen des Spielstands bleiben aus Kompatibilitätsgründen erhalten.\n\n## Starten
 
 ```sh
 npm ci

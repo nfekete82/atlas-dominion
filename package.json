@@ -1,7 +1,7 @@
 {
-  "name": "atlas-dominion",
+  "name": "sandforge-bastion-wars",
   "version": "1.8.0",
-  "description": "ATLAS DOMINION REBORN — Wüsten-RTS mit territorialer Expansion",
+  "description": "SANDFORGE: BASTION WARS — Taktisches Wüsten-RTS mit territorialer Expansion",
   "type": "module",
   "private": true,
   "scripts": {

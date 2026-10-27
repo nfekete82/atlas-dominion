@@ -23,4 +23,4 @@ for(const kind of ['headquarters','factory','barracks','airfield','generator','t
  const bytes=readFileSync(path);art.files[kind]=createHash('sha256').update(bytes).digest('hex');
 }
 writeFileSync('dist/building-art-version.json',JSON.stringify(art,null,2)+'\n');
-console.log('Built ATLAS DOMINION in dist/');
+console.log('Built SANDFORGE: BASTION WARS in dist/');
