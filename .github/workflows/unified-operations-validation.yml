@@ -1,0 +1,34 @@
+name: Unified operations AI validation
+on:
+  push:
+    branches: [feat/operations-ai-unified-command-20261027]
+permissions:
+  contents: read
+jobs:
+  operations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Build and run operations, director and recovery regressions
+        run: |
+          npm run build
+          node --test tests/reborn-operations.test.mjs tests/reborn-ai-director.test.mjs tests/reborn-ai-recovery.test.mjs tests/reborn-commander.test.mjs tests/reborn-ai-pressure.test.mjs tests/reborn-tactical-ai.test.mjs
+      - name: Build paired unmodified Titan opponent
+        run: |
+          git worktree add --detach /tmp/atlas-baseline d11733a8c3526b5891619dffd2582fd33926d15b
+          cd /tmp/atlas-baseline
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Compare full-length matches on three hard opponent profiles
+        run: |
+          node scripts/benchmark-titan.mjs --before /tmp/atlas-baseline/dist/src/reborn/simulation.js --profiles tower6,armor,combined --maps 4 --seeds 2026 --seconds 700 --output /tmp/operations-paired.json > /tmp/operations.log
+          grep -E '^(before|after) (tower6|armor|combined)' /tmp/operations.log
