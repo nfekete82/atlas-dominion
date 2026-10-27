@@ -1,0 +1,25 @@
+name: Commander route-choice regression
+on:
+  push:
+    branches: [fix/campaign-route-aware-target-selection-20261027]
+permissions:
+  contents: read
+jobs:
+  commander:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Build the current RTS and test planning/regressions
+        run: |
+          npm run build
+          node --test tests/reborn-commander.test.mjs tests/reborn-ai-pressure.test.mjs tests/reborn-ai-director.test.mjs tests/reborn-adaptive-strategy.test.mjs
+      - name: Smoke-test an actual 180-second director game
+        run: node scripts/benchmark-reborn-ai.mjs --maps 4 --seeds 2026 --seconds 180 --modes director --label route-fix --output /tmp/route-fix.json
