@@ -1,0 +1,32 @@
+name: Start screen and saved campaign UX
+on:
+  push:
+    branches: [fix/start-screen-on-refresh-20261027]
+permissions:
+  contents: read
+jobs:
+  start-screen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install game, tests and Chromium
+        run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix tests/browser --no-audit --no-fund
+          cd tests/browser
+          npx playwright install --with-deps chromium
+      - name: TypeScript and game assets
+        run: npm run build
+      - name: Browser test start / back / save / reload / resume
+        env:
+          ATLAS_BROWSER_CHANNEL: chromium
+        run: |
+          cd tests/browser
+          npx playwright test --config=reborn.config.mjs reborn-start-screen.spec.mjs
