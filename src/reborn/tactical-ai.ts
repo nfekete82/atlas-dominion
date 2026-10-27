@@ -389,7 +389,7 @@ export class TacticalAI {
   for(const u of resting.filter(u=>!vehiclePatients.includes(u)))if(distance(u,goal)>45)this.issue([u],goal,'safe');else if(u.orders[0]?.tactical?.mode!=='safe')g.stop([u.id]);
   const infantryPatients=resting.filter(u=>['infantry','heavy'].includes(u.kind));
   const medic=infantryPatients.length?army.filter(u=>u.kind==='medic').sort((a,b)=>distance(a,goal)-distance(b,goal)||a.id-b.id)[0]:undefined;
-  if(medic){reserved.add(medic.id);const patient=infantryPatients.filter(u=>distance(u,goal)<120).sort((a,b)=>a.hp/unitSpec(a).hp-b.hp/unitSpec(b).hp)[0];
+  if(medic){reserved.add(medic.id);const patient=infantryPatients.filter(u=>distance(u,goal)<150).sort((a,b)=>a.hp/unitSpec(a).hp-b.hp/unitSpec(b).hp)[0];
    if(patient){if(medic.orders[0]?.kind!=='heal'||medic.orders[0].target!==patient.id)g.command([medic.id],{x:patient.x,y:patient.y,kind:'heal',target:patient.id});}
    else this.issue([medic],goal,'safe');
   }
