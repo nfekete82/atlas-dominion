@@ -4,7 +4,7 @@ Coordinates: +Y up, +Z vehicle nose; independent named turret and gun pivots.
 """
 from pathlib import Path
 import math, random, os, numpy as np, trimesh
-from trimesh.visual.material import PBRMaterial
+from tank_pbr_textures import make_materials, textured_geometry
 
 OUT = Path(os.environ.get('ATLAS_TANK_OUT', '/mnt/data'))
 PALETTE = {
@@ -22,13 +22,13 @@ def rgba(hex, a=255):
 class Tank:
  def __init__(self, team):
   self.scene=trimesh.Scene(); self.team=team; self.n=0
-  self.materials={k:PBRMaterial(name=k,baseColorFactor=rgba(v), metallicFactor=.12 if k not in ('track','metal','steel') else .45, roughnessFactor=.84, doubleSided=(k in ('blue','red','flag_edge'))) for k,v in PALETTE.items()}
+  self.materials=make_materials(PALETTE, rgba)
   self.scene.graph.update(frame_from='world',frame_to='Hull',matrix=np.eye(4))
   self.scene.graph.update(frame_from='world',frame_to='Tank_Turret',matrix=np.eye(4))
   self.scene.graph.update(frame_from='world',frame_to='Tank_Gun',matrix=np.eye(4))
   self.rng=random.Random(22)
  def add(self, mesh, name, mat, parent='Hull'):
-  mesh.visual=trimesh.visual.TextureVisuals(material=self.materials[mat]);self.n+=1
+  mesh=textured_geometry(mesh,self.materials[mat]);self.n+=1
   self.scene.add_geometry(mesh,geom_name=f'{name}_{self.n}',node_name=f'{name}_{self.n}',parent_node_name=parent)
  def cube(self,name,xyz,size,mat,parent='Hull',rz=0):
   m=trimesh.creation.box(extents=size)
