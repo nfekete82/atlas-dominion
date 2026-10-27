@@ -73,9 +73,23 @@ export function chooseMission(g:Simulation,s:CampaignState,origin:Point,context?
   s.alternatives=alternatives.sort((a,b)=>a.score-b.score||a.sector-b.sector).slice(0,8);
  }
  choices.sort((a,b)=>a.score-b.score||a.sector-b.sector||(a.objective??0)-(b.objective??0));
+ // A raw target score does not describe its real approach. A nearby HQ or
+ // high-value sector can still have a suicidal route through observed guns.
+ // Check more than three reachable alternatives before committing, but cap
+ // path queries per macro pulse to protect simulation frame time.
  const routed:{c:typeof choices[number];route:{length:number;risk:number}}[]=[];
- if(context)for(const c of choices){const route=context.route(c.p);if(route)routed.push({c,route});if(routed.length===3)break;}
- routed.sort((a,b)=>a.c.score+a.route.length*.15+a.route.risk*12-b.c.score-b.route.length*.15-b.route.risk*12);
+ if(context){
+  let probes=0;
+  for(const c of choices){
+   if(probes>=8||routed.length>=6)break;
+   probes++;
+   const route=context.route(c.p);
+   if(route&&Number.isFinite(route.length)&&Number.isFinite(route.risk)&&route.length>=0&&route.risk>=0)routed.push({c,route});
+  }
+ }
+ routed.sort((a,b)=>(a.c.score+a.route.length*.15+a.route.risk*12)
+  -(b.c.score+b.route.length*.15+b.route.risk*12)
+  ||a.c.sector-b.c.sector||(a.c.objective??-1)-(b.c.objective??-1));
  const next=context?routed[0]?.c:choices[0];
  return s.mission=next?{kind:next.kind,x:next.p.x,y:next.p.y,sector:next.sector,objective:next.objective,hp:next.hp,since:g.time,progressAt:g.time,distance:distance(origin,next.p)}:undefined;
 }
