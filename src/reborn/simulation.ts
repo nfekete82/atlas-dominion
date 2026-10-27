@@ -344,7 +344,22 @@ export class Simulation {
     // Fast damage-driven retreat: the tactical planner runs only every 3 s,
     // longer than the time a low-HP rover can survive under enemy fire.
     if(alive&&target.hp>0&&'orders' in target)this.tactical.evacuateVehicle(target);
-    if('hit' in target){target.hit=.18;target.lastAttacker=source;target.defendUntil=this.time+5;}
+    if('hit' in target){
+      target.hit=.18;target.lastAttacker=source;target.defendUntil=this.time+5;
+      // Player infantry under fire stop for a defensive stand. Plain moves,
+      // attack-moves and moving explicit attacks lose their entire queued route.
+      // Hold still permits return fire in weapon range, but suppresses pursuit.
+      // Only a new player command clears hold and resumes movement.
+      const marching=target.orders[0]&&(
+        target.orders[0].kind==='move'||target.orders[0].kind==='attackMove'||
+        (target.orders[0].kind==='attack'&&target.moving));
+      if(target.hp>0&&target.owner===0&&!target.carrier&&
+        (target.kind==='infantry'||target.kind==='heavy')&&marching){
+        target.orders=[];target.path=[];target.repath=0;target.moving=false;
+        target.pursuitOrigin=null;target.combatTarget=null;target.hold=true;
+        delete target.burst;
+      }
+    }
     if(target.hp<=0&&'queue' in target){target.hp=0;target.queue=[];target.queueTypes=[];target.queueCosts=[];target.production=0;this.notices.push(`${buildingSpec(target).name} ${target.owner===0?'verloren':'ausgeschaltet'}!`);}
   }
   private launch(u:Unit,target:Unit|Base):void{
