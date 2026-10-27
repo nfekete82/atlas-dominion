@@ -20,4 +20,4 @@ jobs:
       - name: Compile terrain rendering and run visibility and terrain tests
         run: |
           npm run build
-          node --test tests/reborn-cliff-fog.test.mjs tests/reborn-world.test.mjs tests/reborn-vision-cache.test.mjs
+          node --test tests/reborn-cliff-fog.test.mjs tests/reborn-map-ai.test.mjs tests/reborn-vision-cache.test.mjs
