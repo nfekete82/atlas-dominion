@@ -188,11 +188,16 @@ export class Renderer {
     const draw=(opacity=1)=>{this.spriteDraw(sprite,anchor,artWidth,false,opacity);if(b.kind==='turret'){const firing=this.units.particles.enabled&&!this.reducedMotion?this.game.shots.find(s=>s.source===b.id&&this.game.time-(s.at??0)<.07):undefined;const recoil=firing?Math.sin(Math.min(1,(this.game.time-(firing.at??0))/.07)*Math.PI)*1.1:0;this.structures.drawTurret(c,b.owner,{x:anchor.x-Math.cos(angle)*recoil,y:anchor.y-Math.sin(angle)*recoil*.65},artWidth,angle,opacity);}};
     if(b.hp<=0){draw(.18);return;}
     if(selected){c.strokeStyle='#78c8f1';c.lineWidth=1.1;c.setLineDash([8,5]);c.beginPath();c.ellipse(b.x,b.y-8,spec.radius+17,(spec.radius+17)*.47,0,0,Math.PI*2);c.stroke();c.setLineDash([]);}
-    draw(alpha*(b.buildRemaining>0?.3:1));
-    if(b.buildRemaining<=0)this.structures.drawActivity(c,b.kind,b.owner,anchor,artWidth,this.game.time,this.reducedMotion,alpha);
     if(b.buildRemaining>0){
-      const progress=1-b.buildRemaining/spec.buildTime;c.save();c.beginPath();c.rect(b.x-artWidth/2,anchor.y-height*progress,artWidth,height*progress);c.clip();draw();c.restore();
+      const progress=1-b.buildRemaining/spec.buildTime;
+      if(!this.structures.drawConstruction(c,b.kind,b.owner,anchor,artWidth,progress,alpha)){
+        // Keep the previous clipped preview for builds using legacy art.
+        draw(alpha*.3);c.save();c.beginPath();c.rect(b.x-artWidth/2,anchor.y-height*progress,artWidth,height*progress);c.clip();draw(alpha);c.restore();
+      }
       this.bar({x:b.x,y:b.y+spec.radius*.46+6},Math.min(85,spec.width*.6),progress,'#e9bb61');c.fillStyle='#f1d48e';c.font='10px monospace';c.textAlign='center';c.fillText(`${b.constructionActive?'BAU':'PAUSIERT'} ${Math.ceil(b.buildRemaining)} S`,b.x,b.y+spec.radius*.46+24);
+    }else{
+      draw(alpha);
+      this.structures.drawActivity(c,b.kind,b.owner,anchor,artWidth,this.game.time,this.reducedMotion,alpha);
     }
     if(selected||b.hp<spec.hp)this.bar({x:b.x,y:anchor.y-height-8},86,b.hp/spec.hp,b.owner===0?'#75c5e8':'#ed7866');
     if(b.queue.length&&b.owner===0)this.bar({x:b.x,y:b.y+24},75,b.production/b.queue[0],'#dfb278');
