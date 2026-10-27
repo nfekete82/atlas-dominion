@@ -79,11 +79,45 @@ const loader=new GLTFLoader();
 function colorize(model,team){model.traverse(n=>{if(!n.isMesh)return;n.castShadow=n.receiveShadow=true;const mats=Array.isArray(n.material)?n.material:[n.material];n.material=mats.map(m=>{const copy=m.clone();copy.roughness=.85;copy.metalness=.12;if(/Character_Main|Hazmat_Main|Enemy_Red/.test(m.name??''))copy.color.set('#c6ae7d');else if(/Pants|Red$|DarkGrey/.test(m.name??''))copy.color.set(team?'#a93429':'#245e95');return copy;});if(mats.length===1)n.material=n.material[0];});}
 function sample(point){return point.clone().project(camera).multiply(new T.Vector3(cell/2,-cell/2,1)).add(new T.Vector3(cell/2,cell/2,0));}
 function boxVisible(model){const box=new T.Box3();model.traverse(n=>{if(n.isMesh&&n.visible&&n.parentsVisible!==false){let visible=true;for(let p=n.parent;p;p=p.parent)if(!p.visible)visible=false;if(visible)box.expandByObject(n,true);}});return box;}
+/** High-detail faction tank loaded from the authored GLBs.
+ * The gameplay still consumes the generated PNG/JSON atlases, not GLB at runtime.
+ * Explicit track motion keeps the four directional walk/turn phases non-identical.
+ */
+async function loadFactionLeopard(team){
+ const {scene:model}=await loader.loadAsync('/src/assets/reborn/animation/tank-'+team+'.glb');
+ const tracks=[];
+ model.traverse(node=>{
+  if(!node.isMesh||!node.name.startsWith('TrackTread'))return;
+  node.geometry.computeBoundingBox();
+  const center=node.geometry.boundingBox.getCenter(new T.Vector3());
+  tracks.push({node,center,initial:node.position.clone()});
+ });
+ const gun=model.getObjectByName('Tank_Gun');
+ if(!gun||!model.getObjectByName('Tank_Turret'))throw Error('Leopard model must expose Tank_Turret and Tank_Gun');
+ const muzzle=new T.Object3D();muzzle.name='AtlasMuzzleTip';
+ muzzle.position.set(0,1.76,4.48);gun.add(muzzle);
+ model.userData.atlasDesign={kind:'tank',team,parts:tracks.length,
+   geometry:'Original Leopard-inspired woodland camo geometry with faction roof flag',
+   source:'Atlas Dominion / procedural authored GLB'};
+ function animate(tag,phase){
+  const moving=tag!=='idle';
+  for(const {node,center,initial} of tracks){
+   node.position.copy(initial);
+   if(!moving)continue;
+   // Upper and lower treads travel in opposite directions, curving around drive wheels.
+   const distance=phase*.23;
+   if(center.y>.65)node.position.z-=distance;
+   else if(center.y<.34)node.position.z+=distance;
+   else node.position.y+=Math.sin(phase*Math.PI*2+(center.z>0?0:Math.PI))*.045;
+  }
+ }
+ return {model,rotor:null,muzzle,animate};
+}
 window.compileAtlases=async(requested)=>{
  for(const kind of Object.keys(models).filter(k=>!requested.length||requested.includes(k))){
   const character=kind in {infantry:1,engineer:1,heavy:1},[file,weapon]=models[kind];
   for(const team of [0,1]){
-   const rig=character?null:buildAtlasVehicle(kind,team);
+   const rig=character?null:kind==='tank'?await loadFactionLeopard(team):buildAtlasVehicle(kind,team);
    const data=rig?{scene:rig.model,animations:[]}:await loader.loadAsync('/tools/animation-sources/'+file),model=data.scene??data;
    if(character)for(const name of weapons){const n=model.getObjectByName(name);if(n)n.visible=name===weapon;}
    const rotor=rig?.rotor??null;
@@ -139,7 +173,7 @@ window.compileAtlases=async(requested)=>{
     for(const [tag,part] of [['turret',turret],['barrel',gun]]){
      if(!part)continue;for(const n of all)n.visible=belongs(n,part);
      metadata.clips[tag]={frames:[],duration:1,loop:true,sourceClip:'separate rigid '+tag+' geometry'};
-     for(let direction=0;direction<16;direction++){pivot.rotation.y=Math.PI/2-direction*Math.PI/8;pivot.updateMatrixWorld(true);renderer.render(scene,camera);const index=metadata.frames.length,x=index%columns*cell,y=Math.floor(index/columns)*cell;ctx.drawImage(renderer.domElement,x,y);const muzzleNode=tag==='barrel'?part.children.find(n=>n.name.startsWith('MuzzleOpening')):null,muzzle=muzzleNode?sample(muzzleNode.getWorldPosition(new T.Vector3())):null;metadata.frames.push({x,y,w:cell,h:cell,pivot:[48*pixelFactor,78*pixelFactor],duration:1,...(muzzle?{muzzle:[muzzle.x,muzzle.y]}:{})});metadata.clips[tag].frames.push([index]);}
+     for(let direction=0;direction<16;direction++){pivot.rotation.y=Math.PI/2-direction*Math.PI/8;pivot.updateMatrixWorld(true);renderer.render(scene,camera);const index=metadata.frames.length,x=index%columns*cell,y=Math.floor(index/columns)*cell;ctx.drawImage(renderer.domElement,x,y);const muzzleNode=tag==='barrel'?rig?.muzzle??part.children.find(n=>n.name.startsWith('MuzzleOpening')):null,muzzle=muzzleNode?sample(muzzleNode.getWorldPosition(new T.Vector3())):null;metadata.frames.push({x,y,w:cell,h:cell,pivot:[48*pixelFactor,78*pixelFactor],duration:1,...(muzzle?{muzzle:[muzzle.x,muzzle.y]}:{})});metadata.clips[tag].frames.push([index]);}
     }
    }
    if(rig&&!atlasOnly){model.traverse(n=>{if(n.isMesh)n.visible=true;});if(turret)turret.visible=true;if(gun)gun.visible=true;rig.animate('idle',0);const glb=await new GLTFExporter().parseAsync(model,{binary:true});metadata.model=kind+'-'+team+'.glb';await window.saveVehicleModel(metadata.model,Array.from(new Uint8Array(glb)));}
