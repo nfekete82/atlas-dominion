@@ -85,6 +85,9 @@ interface Mark extends Point {radius:number;rotation:number;created:number}
 interface Smoke extends Point {created:number;duration:number;power:number;variant:number;kind:'impact'|'blast'|'wreck'}
 interface Explosion extends Point {created:number;size:number;variant:number;kind:'blast'|'wreck'}
 interface VehicleTrail extends Point {at:number;owner:number;kind:'wheel'|'tread';heading:number;width:number;length:number}
+interface Footprint extends Point {at:number;heading:number;side:-1|1;life:number}
+interface FootstepCursor extends Point {at:number;distance:number;side:-1|1}
+interface EffectsViewport {left:number;right:number;top:number;bottom:number}
 interface PreviousUnit extends Point { vehicle:boolean; hp:number; kind:string; owner:number }
 interface PreviousBase extends Point { hp:number }
 
@@ -94,7 +97,9 @@ export class BattlefieldEffects {
   private clouds:Smoke[]=[];
   private bursts:Explosion[]=[];
   private tracks:VehicleTrail[]=[];
+  private footprints:Footprint[]=[];
   private lastTrack=new Map<number,{x:number;y:number;at:number}>();
+  private lastFootstep=new Map<number,FootstepCursor>();
   private units=new Map<number,PreviousUnit>();
   private bases=new Map<number,PreviousBase>();
   private hits=0;
@@ -103,12 +108,18 @@ export class BattlefieldEffects {
   get markCount():number{return this.marks.length;}
   get smokeCount():number{return this.clouds.length;}
   get trackCount():number{return this.tracks.length;}
+  get footprintCount():number{return this.footprints.length;}
   get burstCount():number{return this.bursts.length;}
 
   reset(game:Simulation):void {
-    this.marks=[];this.clouds=[];this.tracks=[];this.bursts=[];this.lastTrack.clear();this.hits=0;
+    this.marks=[];this.clouds=[];this.tracks=[];this.footprints=[];this.bursts=[];this.lastTrack.clear();this.lastFootstep.clear();this.hits=0;
     this.units=new Map(game.units.filter(u=>u.hp>0).map(u=>[u.id,{x:u.x,y:u.y,hp:u.hp,vehicle:!unitSpec(u).flying&&unitSpec(u).group==='Fahrzeuge',kind:u.kind,owner:u.owner}]));
-    for(const u of game.units)if(u.hp>0&&!unitSpec(u).flying&&unitSpec(u).group==='Fahrzeuge')this.lastTrack.set(u.id,{x:u.x,y:u.y,at:game.time});
+    for(const u of game.units)if(u.hp>0&&!u.carrier){
+      const spec=unitSpec(u);
+      if(spec.flying)continue;
+      if(spec.group==='Fahrzeuge')this.lastTrack.set(u.id,{x:u.x,y:u.y,at:game.time});
+      else if(spec.group==='Infanterie')this.lastFootstep.set(u.id,{x:u.x,y:u.y,at:game.time,distance:0,side:1});
+    }
     this.bases=new Map(game.bases.map(b=>[b.id,{x:b.x,y:b.y,hp:b.hp}]));
   }
 
@@ -146,7 +157,44 @@ export class BattlefieldEffects {
     for(const u of game.units)if(u.hp>0){
       const spec=unitSpec(u),vehicle=!spec.flying&&spec.group==='Fahrzeuge';
       current.set(u.id,{x:u.x,y:u.y,hp:u.hp,vehicle,kind:u.kind,owner:u.owner});
-      if(!vehicle||u.carrier)continue;
+      if(u.carrier){this.lastFootstep.delete(u.id);this.lastTrack.delete(u.id);continue;}
+      if(!vehicle&&!spec.flying&&spec.group==='Infanterie'){
+        let previous=this.lastFootstep.get(u.id);
+        if(!previous){
+          previous={x:u.x,y:u.y,at:game.time,distance:0,side:1};
+          this.lastFootstep.set(u.id,previous);
+        }else{
+          const dx=u.x-previous.x,dy=u.y-previous.y,moved=Math.hypot(dx,dy);
+          // Sample real ground displacement, not render frames or walking animation.
+          // Ignore teleports, transported soldiers, idle jitter and unseen enemies.
+          if(game.time>previous.at&&u.moving&&moved>.1&&moved<=70&&visible(previous)&&visible(u)){
+            const spacing=u.kind==='heavy'?19:17;
+            const heading=Math.atan2(dy,dx),sx=-Math.sin(heading),sy=Math.cos(heading);
+            let side=previous.side;
+            for(let distance=spacing-previous.distance;distance<=moved;distance+=spacing){
+              const fraction=distance/moved;
+              const x=previous.x+dx*fraction+sx*side*3.25;
+              const y=previous.y+dy*fraction+sy*side*3.25;
+              const position={x,y},cell=game.world.index(position);
+              // Do not imprint rocks, unexplored positions or invisible ground.
+              if(cell>=0&&!game.world.blocked[cell]&&visible(position)){
+                const noise=Math.sin(x*.031+y*.019+u.id*1.31);
+                const gust=Math.sin(game.time*.13+x*.004+y*.003);
+                this.footprints.push({x,y,at:game.time,heading,side,
+                  life:55+noise*10-gust*7+(u.kind==='heavy'?7:0)});
+              }
+              side=side===1?-1:1;
+            }
+            previous.distance=(previous.distance+moved)%spacing;
+            previous.side=side;
+            if(this.footprints.length>1200)this.footprints.splice(0,this.footprints.length-1200);
+          }else if(moved>70||!u.moving||!visible(u)){
+            previous.distance=0;
+          }
+          previous.x=u.x;previous.y=u.y;previous.at=game.time;
+        }
+      }
+      if(!vehicle)continue;
       const last=this.lastTrack.get(u.id);
       if(!last){this.lastTrack.set(u.id,{x:u.x,y:u.y,at:game.time});continue;}
       const dx=u.x-last.x,dy=u.y-last.y,moved=Math.hypot(dx,dy);
@@ -160,6 +208,7 @@ export class BattlefieldEffects {
     }
     for(const [id,old] of this.units)if(!current.has(id)){
       this.lastTrack.delete(id);
+      this.lastFootstep.delete(id);
       if(old.vehicle&&visible(old)){
         this.addSmoke(old,game.time,43,1.7,'wreck');
         this.addBurst(old,game.time,1.85,'wreck');
@@ -177,13 +226,15 @@ export class BattlefieldEffects {
     this.bursts=this.bursts.filter(v=>game.time-v.created<1.55);
     // Long enough to leave a battlefield history, bounded to avoid runaway memory.
     if(this.tracks.length)this.tracks=this.tracks.filter(v=>game.time-v.at<180);
+    if(this.footprints.length)this.footprints=this.footprints.filter(v=>game.time-v.at<v.life);
   }
 
   /** Tracks are laid under units and underneath fog, so unexplored activity cannot leak. */
-  drawTracks(c:CanvasRenderingContext2D,game:Simulation):void {
+  drawTracks(c:CanvasRenderingContext2D,game:Simulation,viewport?:EffectsViewport):void {
     c.save();c.lineCap='butt';
+    const inView=(p:Point)=>!viewport||p.x>=viewport.left&&p.x<=viewport.right&&p.y>=viewport.top&&p.y<=viewport.bottom;
     for(const t of this.tracks){
-      if(!game.hasExplored(0,t))continue;
+      if(!inView(t)||!game.hasExplored(0,t))continue;
       const fade=Math.max(0,1-(game.time-t.at)/180);
       c.save();c.translate(t.x,t.y);c.rotate(t.heading);
       for(const side of [-1,1]){
@@ -199,6 +250,25 @@ export class BattlefieldEffects {
           }
         }
       }
+      c.restore();
+    }
+    // Alternating left/right boot prints: heel, toe and the sunlit raised rim.
+    // Wind-scoured sand gradually fills each depression, with no simulation changes.
+    for(const p of this.footprints){
+      if(!inView(p)||!game.hasExplored(0,p))continue;
+      const age=game.time-p.at;
+      if(age<0||age>=p.life)continue;
+      const fade=Math.pow(1-age/p.life,1.65);
+      if(fade<.014)continue;
+      c.save();c.translate(p.x,p.y);c.rotate(p.heading);
+      c.globalAlpha=.28*fade;c.fillStyle='#4b3422';
+      c.beginPath();c.ellipse(-2,0,2.3,1.55,0,0,Math.PI*2);
+      c.ellipse(2,0,3,2.05,0,0,Math.PI*2);c.fill();
+      c.globalAlpha=.18*fade;c.strokeStyle='#f2d5a4';c.lineWidth=.95;
+      c.beginPath();c.ellipse(0,.45,5.25,2.65,0,.16,Math.PI-.16);c.stroke();
+      // A faint sand wash follows the prevailing wind as the print erodes.
+      c.globalAlpha=.08*fade*(age/p.life);c.fillStyle='#e7c68e';
+      c.fillRect(-4,-.6,7.8,1.4);
       c.restore();
     }
     c.restore();

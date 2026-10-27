@@ -279,7 +279,9 @@ export class Renderer {
     c.drawImage(this.terrainSurface,0,0);
     this.paintSandWind(g.time);
     this.paintCliffs(c);
-    this.battlefield.drawTracks(c,g);
+    const halfWidth=this.width/(2*this.camera.zoom),halfHeight=this.height/(2*this.camera.zoom);
+    this.battlefield.drawTracks(c,g,{left:this.camera.x-halfWidth-24,right:this.camera.x+halfWidth+24,
+      top:this.camera.y-halfHeight-24,bottom:this.camera.y+halfHeight+24});
     this.battlefield.drawMarks(c,g);
     for(const t of g.territories){
       if(t.owner>=0){this.polygon(t.polygon);c.fillStyle=t.owner===0?'#53b4ee0b':'#e257490b';c.fill();}
