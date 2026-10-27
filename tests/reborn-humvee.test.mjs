@@ -82,6 +82,15 @@ test('both factions have a real 3D rover with 4-seat metadata, MG muzzle, 16 hea
   assert.equal(metadata.design.seats,4);
   assert.equal(metadata.design.team,team);
   assert.match(metadata.design.weapon,/machine gun/i);
+  assert.equal(metadata.design.wheelCount,4);
+  assert.match(metadata.design.wheelType,/rounded 64-segment offroad tyres/);
+  assert.equal(metadata.design.teamFlag,team===0?'blue':'red');
+  assert.match(metadata.design.flagGeometry,/double-sided curved cloth/);
+  for(const node of ['TerrainTireSidewall','StaggeredTreadLug','AlloyWheelFace',
+   'AlloyRimSpoke','WheelHubBolt','TeamFlagMast','TeamFlagCloth','RoverFactionFlag']){
+   assert.ok(glb.includes(Buffer.from(node)),`team ${team} missing GLB node ${node}`);
+  }
+  assert.ok(!glb.includes(Buffer.from('TreadBlock')),'no old oversized block tyres');
   assert.equal(metadata.directions,16);
   assert.deepEqual(metadata.cell,[192,192]);
   assert.ok(metadata.frames.every(f=>Array.isArray(f.muzzle)&&f.muzzle.every(Number.isFinite)));
