@@ -65,7 +65,7 @@ test('reborn: shift queues, stop, combat damage/death and attack-move continuati
  const g=peaceful(),u=g.units[0];g.command([u.id],{x:1400,y:2400,kind:'move'});g.command([u.id],{x:1600,y:2400,kind:'move'},true);assert.equal(u.orders.length,2);g.stop([u.id]);assert.equal(u.orders.length,0);
  g.units=[];const a=g.spawn(0,{x:1900,y:2100}),b=g.spawn(1,{x:2050,y:2100});
  g.updateVision();g.command([a.id],{x:2350,y:2100,kind:'attackMove'});advance(g,1);assert.ok(b.hp<100);assert.ok(a.hp<100);assert.ok(g.shots.length);
- b.hp=17;advance(g,1);assert.equal(g.units.some(u=>u.id===b.id),false);advance(g,2);assert.ok(a.x>1900);assert.ok(a.orders.length>0);
+ b.hp=17;advance(g,1);assert.equal(g.units.some(u=>u.id===b.id),false);const stand={x:a.x,y:a.y};advance(g,2);assert.ok(distance(a,stand)<.01);assert.equal(a.orders.length,0);assert.equal(a.hold,true);
 });
 
 test('reborn: line of sight blocks both reconnaissance and weapon fire through rock',()=>{
@@ -114,11 +114,21 @@ test('reborn: AI decisions do not depend on player infantry hidden by its fog',(
  assert.deepEqual(a.explored[1],b.explored[1]);assert.equal(a.credits[1],b.credits[1]);
 });
 
-test('reborn: attack-moving infantry returns fire automatically and resumes its original queued march',()=>{
+test('reborn: attacked marching infantry defend in place until a fresh player command',()=>{
  const g=peaceful();g.units=[];const blue=g.spawn(0,{x:1900,y:2100}),red=g.spawn(1,{x:2050,y:2100});
  g.command([blue.id],{x:2350,y:2100,kind:'attackMove'});g.command([blue.id],{x:2400,y:2250,kind:'attackMove'},true);g.updateVision();
- advance(g,.1);assert.ok(blue.hp<100);assert.ok(red.hp<100);assert.equal(blue.lastAttacker,red.id);assert.equal(blue.orders.length,2);
- const x=blue.x;red.hp=17;advance(g,2);assert.equal(g.units.some(u=>u.id===red.id),false);assert.ok(blue.x>x+30);assert.equal(blue.orders.length,2);
+ advance(g,.1);assert.ok(blue.hp<100);assert.ok(red.hp<100);assert.equal(blue.lastAttacker,red.id);
+ assert.equal(blue.orders.length,0,'all queued march legs are cancelled after damage');
+ assert.equal(blue.hold,true);
+ red.hp=0;advance(g,.15);
+ const stand={x:blue.x,y:blue.y};advance(g,2);
+ assert.ok(distance(blue,stand)<.01,'never resume a saved route after combat');
+ const save=Simulation.load(g.save());const restored=save.units.find(u=>u.id===blue.id);
+ assert.equal(restored.hold,true);assert.deepEqual(restored.orders,[]);
+ g.command([blue.id],{x:2350,y:2100,kind:'move'});
+ assert.equal(blue.hold,false,'a new player click explicitly releases hold');
+ advance(g,1);
+ assert.ok(distance(blue,stand)>40,'new player command moves the soldier again');
 });
 
 test('reborn: finer navigation blocks complete hill edges and places the headquarters footprint on flat ground',()=>{
