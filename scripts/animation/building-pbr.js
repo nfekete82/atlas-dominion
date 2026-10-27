@@ -13,7 +13,7 @@ function smoothNoise(x,y,seed){const ix=Math.floor(x),iy=Math.floor(y),a=x-ix,b=
 export function buildingSurfaces(){
  if(cached)return cached;
  const albedo=canvas(),normal=canvas(),orm=canvas(),ac=albedo.getContext('2d'),nc=normal.getContext('2d'),oc=orm.getContext('2d');
- const colors={sand:[177,157,117],camo:[172,154,114],steel:[101,105,101],concrete:[119,112,94],blue:[36,91,159],red:[158,49,37],rubber:[30,34,32],glass:[43,65,66],neutral:[184,179,152],hazard:[189,155,65]};
+ const colors={sand:[171,150,111],camo:[172,154,114],steel:[76,88,83],concrete:[119,112,94],blue:[36,91,159],red:[158,49,37],rubber:[30,34,32],glass:[43,65,66],neutral:[184,179,152],hazard:[189,155,65]};
  let seed=0x41a71a5;const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
  for(const [role,[tx,ty,w,h]] of Object.entries(tiles)){
   const color=colors[role],base=ac.createImageData(w,h),packed=oc.createImageData(w,h),norm=nc.createImageData(w,h),height=new Float32Array(w*h);
@@ -25,7 +25,7 @@ export function buildingSurfaces(){
    let rgb=color;
    if(role==='camo'){
     const patch=smoothNoise(x/145,y/100,619)+.24*smoothNoise(x/40,y/41,88);
-    rgb=patch<.45?[96,101,74]:patch<.60?[145,132,98]:patch<.78?[178,159,117]:[192,174,132];
+    rgb=patch<.45?[57,80,60]:patch<.60?[118,116,77]:patch<.78?[180,151,101]:[209,179,126];
    }
    if(role==='hazard')rgb=((x+y)>>6)%2?[41,43,38]:color;
    const chipped=!soft&&!glass&&!concrete&&(rim>0&&fine>.83-rim*.18||dirt>.73&&fine>.96);
@@ -142,7 +142,7 @@ export function applyBuildingPBR(model,kind,team){
    if(/glass|optic/.test(name))return 'glass';
    if(/seal|rubber/.test(name))return 'rubber';
    if(/faction enamel/.test(name))return /RoofCeramic|AirlockArmour|RoofFactionPanel/.test(n.name)?'camo':identity;
-   if(/sand|ceramic|armour|armor/.test(name))return /Hull|Roof|Armour|CeramicFoundation|CornerCeramic/.test(n.name)&&!n.name.includes('Refined')?'camo':'sand';
+   if(/sand|ceramic|armour|armor/.test(name))return /Hull|Roof|Armour|CeramicFoundation|CornerCeramic|Refined|BaseShell|MainBody|Wall|Foundation/.test(n.name)?'camo':'sand';
    if(/caution|insignia/.test(name))return 'hazard';
    return 'steel';
   });
