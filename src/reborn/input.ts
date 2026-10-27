@@ -107,15 +107,15 @@ export class Input {
     if(!r.selected.size)return;
     const friendlyUnit=g.units.filter(u=>u.owner===0&&!u.carrier&&u.hp>0&&distance(unitSelectionPoint(u),p)<Math.max(30/r.camera.zoom,unitSpec(u).width*.5)).sort((a,b)=>distance(unitSelectionPoint(a),p)-distance(unitSelectionPoint(b),p))[0];
     const friendlyBase=g.bases.find(b=>b.owner===0&&b.hp>0&&p.x>b.x-buildingSpec(b).width/2&&p.x<b.x+buildingSpec(b).width/2&&p.y>b.y-buildingSpec(b).width*.85&&p.y<b.y+b.radius*.5);
-    const helicopters=g.units.filter(u=>r.selected.has(u.id)&&u.kind==='scout'&&u.owner===0&&!u.carrier);
+    const carriers=g.units.filter(u=>r.selected.has(u.id)&&(u.kind==='scout'||u.kind==='rover')&&u.owner===0&&!u.carrier);
     if(r.commandMode==='unload'){
-      const accepted:number[]=[];for(const u of helicopters)if(g.transports.unload(u.id,p))accepted.push(u.id);if(accepted.length){this.acknowledge('unload',accepted);this.notify('Transportheli landet am Ausladeort.');}else this.notify('Kein sicherer Landeplatz oder keine Passagiere.');this.onSelection();return;
+      const accepted:number[]=[];for(const u of carriers)if(g.transports.unload(u.id,p))accepted.push(u.id);if(accepted.length){this.acknowledge('unload',accepted);this.notify('Transportfahrzeug fährt oder fliegt zum Ausladeort.');}else this.notify('Kein sicherer Landeplatz oder keine Passagiere.');this.onSelection();return;
     }
-    if(!forceMove&&!r.attackMode&&r.commandMode!=='move'&&(friendlyUnit?.kind==='scout'||(friendlyUnit&&helicopters.length))){
+    if(!forceMove&&!r.attackMode&&r.commandMode!=='move'&&((friendlyUnit?.kind==='scout'||friendlyUnit?.kind==='rover')||(friendlyUnit&&carriers.length))){
       let count=0;const accepted:number[]=[];
-      if(friendlyUnit.kind==='scout'){count=g.transports.board(friendlyUnit.id,[...r.selected]);if(count)accepted.push(friendlyUnit.id);}
-      else for(const h of helicopters){const ids=g.units.filter(u=>u.owner===0&&!u.carrier&&unitSpec(u).group==='Infanterie'&&distance(u,friendlyUnit)<100).map(u=>u.id),n=g.transports.board(h.id,ids);count+=n;if(n)accepted.push(h.id);}
-      if(count){this.notify(`${count} Infanteristen steigen beim gelandeten Heli ein.`);this.acknowledge('load',accepted);this.onSelection();return;}
+      if(friendlyUnit.kind==='scout'||friendlyUnit.kind==='rover'){count=g.transports.board(friendlyUnit.id,[...r.selected]);if(count)accepted.push(friendlyUnit.id);}
+      else for(const h of carriers){const ids=g.units.filter(u=>u.owner===0&&!u.carrier&&unitSpec(u).group==='Infanterie'&&distance(u,friendlyUnit)<100).map(u=>u.id),n=g.transports.board(h.id,ids);count+=n;if(n)accepted.push(h.id);}
+      if(count){this.notify(`${count} Infanteristen steigen in den Transporter ein.`);this.acknowledge('load',accepted);this.onSelection();return;}
     }
     if(r.commandMode==='load'){this.notify('Eigene Infanterie als Abholgruppe wählen.');this.onSelection();return;}
     if(!forceMove&&r.commandMode!=='move'&&!r.attackMode){
