@@ -235,5 +235,5 @@ export function buildHumvee(team=0){
   for(const w of wheels)w.rotation.x=tag==='idle'?0:phase*Math.PI*2;
  }
  animate('idle',0);
- return {model,muzzle,rotor:null,animate};
+ return {model,muzzle,rotor:null,wheels,animate};
 }
