@@ -5,6 +5,7 @@ on:
     branches: [feat/rover-realistic-tires-flag-20261027]
     paths:
       - .github/workflows/engineer-building-assembly.yml
+      - tests/reborn-support.test.mjs
   workflow_dispatch:
 
 permissions:
