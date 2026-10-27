@@ -61,3 +61,25 @@ test('support HUD: real worker placement, cancellation, two completed buildings,
  expect(await page.evaluate(()=>window.__reborn.game.units.find(u=>u.kind==='engineer').orders[0].kind)).toBe('repair');await advance(page,4);expect(await page.evaluate(id=>window.__reborn.game.bases.find(b=>b.id===id).hp,b.id)).toBeGreaterThan(400);
  await center(page,b);await clickWorld(page,b);await page.screenshot({path:'artifacts/reborn/support-barracks.png'});expect(errors).toEqual([]);
 });
+
+test('support HUD: right-click damaged Humvee repairs it instead of boarding the engineer',async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));await start(page);
+ const state=await page.evaluate(()=>{
+  const {game:g,renderer:r}=window.__reborn;
+  const engineer=g.units.find(u=>u.owner===0&&u.kind==='engineer');
+  const humvee=g.spawn(0,{x:engineer.x+90,y:engineer.y+30},'rover');humvee.hp=100;humvee.cooldown=1e8;
+  r.camera.x=(engineer.x+humvee.x)/2;r.camera.y=(engineer.y+humvee.y)/2;r.boundCamera();r.render(0);
+  return {engineer:{id:engineer.id,x:engineer.x,y:engineer.y-18},humvee:{id:humvee.id,x:humvee.x,y:humvee.y-18}};
+ });
+ await clickWorld(page,state.engineer);
+ await expect(page.locator('#selection-title')).toHaveText('Ingenieur');
+ await clickWorld(page,state.humvee,'right');
+ const selected=await page.evaluate(id=>{
+   const {game:g}=window.__reborn,u=g.units.find(u=>u.id===id);
+   return {order:u.orders[0]?.kind,target:u.orders[0]?.target,carrier:u.carrier};
+ },state.engineer.id);
+ expect(selected).toEqual({order:'repair',target:state.humvee.id,carrier:undefined});
+ await advance(page,3);
+ expect(await page.evaluate(id=>window.__reborn.game.units.find(u=>u.id===id).hp,state.humvee.id)).toBeGreaterThan(100);
+ expect(errors).toEqual([]);
+});
