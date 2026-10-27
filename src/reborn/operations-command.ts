@@ -15,7 +15,7 @@ export interface OperationOrder {
 /** One durable task-force requirement shared by economics and command.
  * Mission inputs must come from public sectors / observed enemy intelligence. */
 export function requiredTaskForce(defended:boolean,observedTowers:number):OperationRoster {
- if(observedTowers>0)return {infantry:3,heavy:1,medic:1,artillery:Math.min(2,observedTowers)};
+ if(observedTowers>0)return {infantry:3,heavy:1,medic:1,artillery:1};
  if(defended)return {infantry:3,heavy:1,medic:1,tank:1};
  return {infantry:3};
 }
@@ -41,9 +41,12 @@ export function nextTaskForcePurchase(
  counts:Readonly<Partial<Record<UnitKind,number>>>,
  available:(kind:UnitKind)=>boolean
 ):UnitKind|null {
- if(!order)return null;
- for(const kind of ['infantry','heavy','artillery','medic','tank'] as const)
-  if((counts[kind]??0)<(order.roster[kind]??0)&&available(kind))return kind;
+ if(!order||order.phase!=='rebuild')return null;
+ // Only a *failed* operation gets a mandatory purchase override. Early
+ // offensive planning must not postpone its first attack by reserving costly
+ // siege weapons or medics that are not yet essential.
+ const screen=(counts.infantry??0)+(counts.heavy??0);
+ if(screen<3&&available('infantry'))return 'infantry';
  return null;
 }
 export function validOperation(x:unknown,time:number,sectors:number):boolean {
