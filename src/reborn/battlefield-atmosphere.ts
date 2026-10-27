@@ -88,6 +88,18 @@ interface VehicleTrail extends Point {at:number;owner:number;kind:'wheel'|'tread
 interface Footprint extends Point {at:number;heading:number;side:-1|1;life:number}
 interface FootstepCursor extends Point {at:number;distance:number;side:-1|1}
 interface EffectsViewport {left:number;right:number;top:number;bottom:number}
+// The ambient sand streaks already travel eastward; deposits use the same wind.
+const WIND_ANGLE=.12;
+const WIND_X=Math.cos(WIND_ANGLE),WIND_Y=Math.sin(WIND_ANGLE);
+const WIND_PERP_X=-WIND_Y,WIND_PERP_Y=WIND_X;
+const inEffectsViewport=(p:Point,view?:EffectsViewport):boolean=>!view||
+  (p.x>=view.left&&p.x<=view.right&&p.y>=view.top&&p.y<=view.bottom);
+const sandGust=(x:number,y:number,time:number):number=>{
+  // Slow, spatially varying gusts without random state or per-frame allocations.
+  const swell=.5+.5*Math.sin(time*.43+x*.004+y*.003);
+  const burst=Math.max(0,Math.sin(time*1.19+x*.009-y*.005));
+  return .24+.50*swell+.26*burst*burst;
+};
 interface PreviousUnit extends Point { vehicle:boolean; hp:number; kind:string; owner:number }
 interface PreviousBase extends Point { hp:number }
 
@@ -239,7 +251,7 @@ export class BattlefieldEffects {
   /** Tracks are laid under units and underneath fog, so unexplored activity cannot leak. */
   drawTracks(c:CanvasRenderingContext2D,game:Simulation,viewport?:EffectsViewport):void {
     c.save();c.lineCap='butt';
-    const inView=(p:Point)=>!viewport||p.x>=viewport.left&&p.x<=viewport.right&&p.y>=viewport.top&&p.y<=viewport.bottom;
+    const inView=(p:Point)=>inEffectsViewport(p,viewport);
     for(const t of this.tracks){
       if(!inView(t)||!game.hasExplored(0,t))continue;
       const fade=Math.max(0,1-(game.time-t.at)/180);
@@ -276,6 +288,71 @@ export class BattlefieldEffects {
       // A faint sand wash follows the prevailing wind as the print erodes.
       c.globalAlpha=.08*fade*(age/p.life);c.fillStyle='#e7c68e';
       c.fillRect(-4,-.6,7.8,1.4);
+      c.restore();
+    }
+    c.restore();
+  }
+
+
+  /**
+   * Windblown sand settles over old boot prints and tyre/tread marks.
+   * Visual-only: deterministic from game time and existing marks, camera-culled,
+   * with no particles, timers, world changes or save-data allocations.
+   * Reduced-motion mode keeps the gradual deposit but freezes moving streaks.
+   */
+  drawWindVeil(c:CanvasRenderingContext2D,game:Simulation,viewport?:EffectsViewport,reducedMotion=false):void {
+    if(!this.tracks.length&&!this.footprints.length)return;
+    const time=game.time;
+    c.save();
+    for(const t of this.tracks){
+      if(!inEffectsViewport(t,viewport)||!game.hasExplored(0,t))continue;
+      const age=time-t.at;
+      if(age<0||age>=180)continue;
+      const progress=age/180,gust=sandGust(t.x,t.y,time);
+      const fill=Math.min(1,progress*3.5);
+      if(fill<.012)continue;
+      const drift=reducedMotion?0:Math.sin(time*.66+t.x*.026+t.y*.014)*11*gust;
+      const sideways=reducedMotion?0:Math.sin(time*.31+t.y*.021)*2;
+      c.save();
+      c.translate(t.x+WIND_X*drift+WIND_PERP_X*sideways,t.y+WIND_Y*drift+WIND_PERP_Y*sideways);
+      c.rotate(WIND_ANGLE);
+      // Settled pale grains mute the dark grooves as the vehicle trail ages.
+      c.fillStyle='#e8cd99';c.globalAlpha=(.075+.16*gust)*fill;
+      c.beginPath();c.ellipse(0,0,Math.max(9,t.length*.79),Math.max(3.8,t.width*.69),0,0,Math.PI*2);c.fill();
+      // A gust lifts a thin streak, but never animates in reduced-motion mode.
+      if(!reducedMotion){
+        const phase=((time*9+t.x*.17+t.y*.11)%38)/38;
+        const wave=Math.sin(phase*Math.PI)**2;
+        if(wave>.025){
+          c.translate(WIND_X*(phase-.5)*18,WIND_Y*(phase-.5)*18);
+          c.globalAlpha=.17*gust*wave*fill;c.fillStyle='#f3ddae';
+          c.beginPath();c.ellipse(0,-t.width*.23,Math.max(7,t.length*.54),Math.max(1.6,t.width*.21),0,0,Math.PI*2);c.fill();
+        }
+      }
+      c.restore();
+    }
+    for(const p of this.footprints){
+      if(!inEffectsViewport(p,viewport)||!game.hasExplored(0,p))continue;
+      const age=time-p.at;
+      if(age<0||age>=p.life)continue;
+      const progress=age/p.life,gust=sandGust(p.x,p.y,time);
+      const cover=Math.pow(progress,.8);
+      if(cover<.015)continue;
+      const drift=reducedMotion?0:Math.sin(time*.85+p.x*.032+p.y*.018)*3.8*gust;
+      c.save();
+      c.translate(p.x+WIND_X*drift,p.y+WIND_Y*drift);
+      c.rotate(WIND_ANGLE);
+      // Fine sand progressively sweeps into the heel/toe depression.
+      c.globalAlpha=(.13+.17*gust)*cover;c.fillStyle='#e9ce9c';
+      c.beginPath();c.ellipse(0,0,6.8+gust*1.7,2.45,0,0,Math.PI*2);c.fill();
+      if(!reducedMotion){
+        const phase=((time*13+p.x*.21-p.y*.13)%24)/24;
+        const wave=Math.sin(phase*Math.PI)**2;
+        if(wave>.025){
+          c.globalAlpha=.13*gust*wave*cover;c.fillStyle='#f3ddb2';
+          c.beginPath();c.ellipse((phase-.5)*7,-.8,4.3,1.05,0,0,Math.PI*2);c.fill();
+        }
+      }
       c.restore();
     }
     c.restore();

@@ -280,9 +280,12 @@ export class Renderer {
     this.paintSandWind(g.time);
     this.paintCliffs(c);
     const halfWidth=this.width/(2*this.camera.zoom),halfHeight=this.height/(2*this.camera.zoom);
-    this.battlefield.drawTracks(c,g,{left:this.camera.x-halfWidth-24,right:this.camera.x+halfWidth+24,
-      top:this.camera.y-halfHeight-24,bottom:this.camera.y+halfHeight+24});
+    const effectsView={left:this.camera.x-halfWidth-28,right:this.camera.x+halfWidth+28,
+      top:this.camera.y-halfHeight-28,bottom:this.camera.y+halfHeight+28};
+    this.battlefield.drawTracks(c,g,effectsView);
     this.battlefield.drawMarks(c,g);
+    // Fine drifting sand settles over prints, under fog, buildings and soldiers.
+    this.battlefield.drawWindVeil(c,g,effectsView,this.reducedMotion);
     for(const t of g.territories){
       if(t.owner>=0){this.polygon(t.polygon);c.fillStyle=t.owner===0?'#53b4ee0b':'#e257490b';c.fill();}
       if(this.overlay){this.polygon(t.polygon);c.strokeStyle=t.owner===0?'#83d3ff8c':t.owner===1?'#e2766c8c':'#ead2ac55';c.lineWidth=1.2/this.camera.zoom;c.stroke();}
