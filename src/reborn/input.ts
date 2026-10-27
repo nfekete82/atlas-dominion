@@ -46,7 +46,7 @@ export class Input {
         const point=renderer.world(p),error=renderer.game.buildError(0,renderer.placement,point);
         const site=error?null:renderer.game.build(0,renderer.placement,point,[...renderer.selected]);
         if(site){this.acknowledge('build',[...renderer.selected].filter(id=>renderer.game.units.some(u=>u.id===id&&u.kind==='engineer'&&u.orders.some(o=>o.kind==='build'&&o.target===site.id))));renderer.placement=null;canvas.classList.remove('building');this.notify('Baustelle beauftragt. Ingenieure sind unterwegs.');}
-        else this.notify(error??'Ein lebender Bauarbeiter muss die Baustelle erreichen können.');
+        else this.notify(error??'Ein lebender Ingenieur muss die Baustelle erreichen können.');
       }else if(renderer.commandMode){this.order(renderer.world(p),e.shiftKey);renderer.commandMode=null;}
       else if(this.dragging){
         const a=renderer.world(this.down),b=renderer.world(clipped(p));if(!e.shiftKey)renderer.selected.clear();renderer.selectedBase=null;
