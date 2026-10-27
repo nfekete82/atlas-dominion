@@ -22,7 +22,7 @@ const saveTurretRig=async data=>{
 };
 if(args.includes('--cpu')){
  const {exportOfflineBuildings}=await import('./animation/offline-building-export.mjs');
- await exportOfflineBuildings({saveBuilding,saveTurretRig},kinds);
+ await exportOfflineBuildings({saveBuilding,saveTurretRig,constructionOnly:args.includes('--construction-only')},kinds);
 }else{
  const {chromium}=await import('../tests/browser/node_modules/@playwright/test/index.mjs');
  const server=createServer(async(req,res)=>{try{const file=path.resolve(root,'.'+new URL(req.url,'http://localhost').pathname);if(!file.startsWith(root+path.sep))throw Error('Invalid asset path');res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript':file.endsWith('.html')?'text/html':'application/octet-stream');res.end(await readFile(file));}catch{res.writeHead(404).end();}});
@@ -31,7 +31,7 @@ if(args.includes('--cpu')){
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
   browser=await chromium.launch({channel:process.env.ATLAS_BROWSER_CHANNEL??'chrome',headless:true});
   const page=await browser.newPage();page.on('pageerror',e=>console.error(e));page.on('console',m=>{if(m.type()==='error')console.error(m.text());});
-  await page.goto('http://127.0.0.1:'+server.address().port+'/scripts/animation/building-export.html');await page.waitForFunction(()=>!!window.exportBuildings);
+  await page.goto('http://127.0.0.1:'+server.address().port+'/scripts/animation/building-export.html'+(args.includes('--construction-only')?'?constructionOnly=1':''));await page.waitForFunction(()=>!!window.exportBuildings);
   await page.exposeFunction('saveTurretRig',saveTurretRig);await page.exposeFunction('saveBuilding',saveBuilding);
   await page.evaluate(kinds=>window.exportBuildings(kinds),kinds);
  }finally{await browser?.close();if(server.listening)await new Promise(resolve=>server.close(resolve));}
