@@ -1,0 +1,53 @@
+name: Bake realistic Atlas infantry assets
+
+on:
+  push:
+    branches:
+      - feat/photoreal-desert-infantry-20261027
+    paths:
+      - scripts/animation/detailed-infantry.js
+      - scripts/animation/realistic-desert-materials.js
+      - scripts/export-detailed-infantry.mjs
+      - scripts/verify-realistic-infantry.mjs
+      - package.json
+      - .github/workflows/realistic-infantry.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: atlas-desert-infantry-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  bake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install model exporter and browser
+        run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix tests/browser --no-audit --no-fund
+          cd tests/browser
+          npx playwright install --with-deps chromium
+      - name: Export eight animated textured GLBs and RTS sprite atlases
+        env:
+          ATLAS_BROWSER_CHANNEL: chromium
+        run: npm run assets:realistic-infantry
+      - name: Test animation regression
+        run: npm run test:animation
+      - name: Commit both GLB and active battlefield atlases
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/assets/reborn/prototype/
+          if ! git diff --cached --quiet; then
+            git commit -m 'assets(infantry): bake realistic textured GLBs and battlefield atlases'
+            git push origin HEAD:feat/photoreal-desert-infantry-20261027
+          fi
