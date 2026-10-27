@@ -32,6 +32,30 @@ test('AI pressure: a late reinforcement cannot hold three ready fighters at an u
  const late=g.spawn(1,{x:900,y:2900}),guard=g.spawn(1,{x:900,y:1800});g.time=60;g.tactical.state.phase='gather';g.tactical.state.phaseAt=60;g.tactical.state.rally={x:1100,y:1900};g.updateVision();
  g.tactical.plan();assert.equal(g.tactical.state.phase,'gather');g.time+=19;g.tactical.plan();assert.equal(g.tactical.state.phase,'attack');assert.equal(g.tactical.state.group.length,3);assert.ok(!g.tactical.state.group.includes(late.id));assert.ok(!g.tactical.state.group.includes(guard.id));
 });
+test('director: tank, infantry and heavy form a shared local assault pace while artillery and distant recruits are independent',()=>{
+ const g=new Simulation(2026,4);g.units=[];g.aiClock=-1e8;g.world.blocked.fill(0);g.world.opaque.fill(0);
+ const tank=g.spawn(1,{x:1710,y:1700},'tank');
+ const heavy=g.spawn(1,{x:1680,y:1730},'heavy');
+ const foot=g.spawn(1,{x:1650,y:1700},'infantry');
+ const artillery=g.spawn(1,{x:1660,y:1640},'artillery');
+ const far=g.spawn(1,{x:880,y:1700},'rover');
+ const goal={x:2800,y:1700};
+ g.tactical.state.phase='attack';g.tactical.state.groupId=9;
+ g.tactical.issue([tank,heavy,foot,artillery,far],goal,'assault');
+ const cohort=[tank,heavy,foot].map(u=>u.id);
+ for(const u of [tank,heavy,foot]){
+  assert.deepEqual(u.orders[0].march,cohort,'nearby front shares one marching unit set');
+  assert.equal(u.orders[0].kind,'attackMove');
+ }
+ assert.equal(artillery.orders[0].march,undefined,'rocket battery takes its own safe standoff path');
+ assert.equal(far.orders[0].march,undefined,'far-away reinforcements never anchor an attack');
+ const starting=[tank,heavy,foot].map(u=>({...u}));
+ advance(g,1);
+ assert.ok([tank,heavy,foot].every((u,i)=>distance(u,starting[i])>15),'coordinated troops do advance');
+ assert.ok(distance(tank,starting[0])<=78+12,'tank does not outrun its heavy-infantry screen');
+ assert.ok(distance(far,goal)<distance({x:880,y:1700},goal),'distant vehicle is free to catch up');
+});
+
 test('AI pressure: a rock detour does not freeze the leader; open-ground cohesion remains bounded',()=>{
  const g=fixture();g.units=[];const leader=g.spawn(1,{x:2400,y:2100}),lagger=g.spawn(1,{x:1200,y:2100}),goal={x:2700,y:2100};
  for(const u of [leader,lagger]){u.orders=[{...goal,kind:'move',tactical:{group:1,mode:'safe'},march:[leader.id,lagger.id]}];u.repath=10;}
