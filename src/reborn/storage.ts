@@ -14,3 +14,14 @@ export async function loadCampaign():Promise<Simulation>{
     const tx=db.transaction(STORE,'readonly'),req=tx.objectStore(STORE).get('campaign');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
   });if(!snapshot)throw new Error('Noch kein Spielstand vorhanden. Zuerst mit F5 speichern.');return Simulation.load(snapshot);}finally{db.close();}
 }
+
+/** Availability probe only: never loads, changes or overwrites the last save. */
+export async function hasSavedCampaign():Promise<boolean>{
+ const db=await open();
+ try{return await new Promise<boolean>((resolve,reject)=>{
+  const tx=db.transaction(STORE,'readonly');
+  const req=tx.objectStore(STORE).getKey('campaign');
+  req.onsuccess=()=>resolve(req.result!==undefined);
+  req.onerror=()=>reject(req.error);
+ });}finally{db.close();}
+}
