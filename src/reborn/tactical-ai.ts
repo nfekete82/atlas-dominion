@@ -214,9 +214,21 @@ export class TacticalAI {
   const campaign=g.world.mapVersion>=3&&this.mode==='director';
   const same=!append&&units.every(u=>{const o=u.orders[0];return o?.tactical?.group===s.groupId&&o.tactical.mode===mode&&o.target===target&&(campaign?(target!==undefined||distance(o.tactical.goal??o,point)<45):distance(o,point)<45)&&(coordinated||!o.march);});if(same)return;
   g.command(ids,{x:point.x,y:point.y,kind:target!==undefined?'attack':mode==='safe'?'move':'attackMove',...(target===undefined?{}:{target})},append);
+  // An attacking army is not a stream of independent units. Pace the largest
+  // nearby ground-screen cluster together; leave remote reinforcements and
+  // artillery independent so a delayed recruit cannot freeze the whole attack.
+  // Cohort snapshots are written into existing orders, not persistent AI state.
+  const closeFront=campaign&&mode==='assault'&&coordinated&&front.length>=2
+   ? front.map(pivot=>front.filter(v=>distance(v,pivot)<=200))
+     .sort((a,b)=>b.length-a.length||Math.min(...a.map(u=>u.id))-Math.min(...b.map(u=>u.id)))[0]
+   : [];
+  const marchers=closeFront.length>=2?closeFront.map(u=>u.id):[];
   const origin=front.length?front.reduce((p,u)=>({x:p.x+u.x/front.length,y:p.y+u.y/front.length}),{x:0,y:0}):point,dist=distance(origin,point)||1,h={x:(point.x-origin.x)/dist,y:(point.y-origin.y)/dist};
   for(const u of units){const o=append?u.orders.at(-1):u.orders[0];if(!o)continue;o.tactical={group:s.groupId,mode,...(campaign?{goal:{x:point.x,y:point.y}}:{})};if(combat(u)){
-    if(coordinated&&front.length&&(g.world.mapVersion<=2||this.mode==='baseline'||mode!=='assault'))o.march=front.map(v=>v.id);else delete o.march;if(u.kind==='artillery')o.rear=150;
+    if(coordinated&&front.length&&(g.world.mapVersion<=2||this.mode==='baseline'||mode!=='assault'))o.march=front.map(v=>v.id);
+    else if(marchers.includes(u.id))o.march=marchers;
+    else delete o.march;
+    if(u.kind==='artillery')o.rear=150;
     if(target===undefined&&front.includes(u)&&front.length>1){const i=front.indexOf(u),lane=(i%2-.5)*30,depth=-Math.floor(i/2)*30,p={x:point.x+h.x*depth-h.y*lane,y:point.y+h.y*depth+h.x*lane};
      const at=unitSpec(u).flying?p:g.world.nearest(p,this.obstacles(),[],u,Math.max(0,unitSpec(u).radius-10));if(at){o.x=at.x;o.y=at.y;}
     }
