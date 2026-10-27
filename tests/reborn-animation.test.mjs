@@ -11,7 +11,7 @@ test('animation: every unit atlas has distinct blue and red faction pixels',()=>
   assert.equal(png(0).equals(png(1)),false,kind+' reused the first faction shader');
  }
 });
-test('animation: each soldier has real licensed clips, eight views and eight distinct locomotion phases',()=>{
+test('animation: infantry roles retain eight directions, moving frames and truthful rig metadata',()=>{
  for(const kind of ['infantry','medic','engineer','heavy'])for(const team of [0,1]){const a=read(kind,team);assert.equal(a.directions,8);assert.ok(a.design.version===2||(kind==='infantry'&&a.design.version===3));assert.ok(Number.isInteger(a.design.parts)&&a.design.parts>0);if(a.design.version===2)assert.ok(a.design.maxGripError<.002);else {assert.equal(a.design.rig,'No skeletal rig; static model with five root motion preview clips');assert.equal(a.timeBasedLocomotion,false);}for(const tag of ['idle','walk','attack','hit','death']){const clip=a.clips[tag];assert.ok(clip.sourceClip);assert.equal(clip.frames.length,8);assert.ok(clip.uniquePhases.every(n=>n>1),kind+' '+tag);for(const row of clip.frames)for(const index of row){const frame=a.frames[index];assert.deepEqual(frame.pivot,[96,156]);assert.ok(frame.x+frame.w<=3072);assert.ok(frame.muzzle.every(Number.isFinite));}}assert.ok(a.clips.walk.frames.every(row=>row.length===8));}
 });
 test('animation: walk uses distance and state clocks give identical results at 20 and 60 FPS',()=>{
