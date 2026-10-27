@@ -14,7 +14,7 @@ export class BuildingPresentation {
  private assets=new Map<string,Loaded>();
  async load():Promise<void>{await Promise.all(kinds.flatMap(kind=>(kind==='bastion'?[0,1,-1]:[0,1]).map(async team=>{
   const prefix=buildingAtlasPath(kind,team),response=await fetch(prefix+'.json');if(!response.ok)throw Error('Building atlas unavailable: '+prefix);const data=await response.json() as BuildingAtlas;
-  const image=async(file:string|null):Promise<HTMLImageElement|null>=>{if(!file)return null;const result=new Image();result.src='/src/assets/reborn/buildings-3d/'+file;await result.decode();return result;};
+  const image=async(file:string|null):Promise<HTMLImageElement|null>=>{if(!file)return null;const result=new Image();result.src='/src/assets/reborn/buildings-3d/'+file+'?art=pbr-strong-20261027';await result.decode();return result;};
   const [body,activity,beacon,sweep,turret]=await Promise.all([image(data.body.image),image(data.activity?.image??null),image(data.beacon?.image??null),image(data.sweep?.image??null),image(data.turret?.image??null)]),b=data.body;
   this.assets.set(kind+team,{data,body:body!,activity,beacon,sweep,turret,sprite:{image:body!,x:0,y:0,w:b.width,h:b.height,center:b.pivot[0],foot:b.pivot[1],bodyWidth:b.solidBounds.w,bodyHeight:b.pivot[1]-b.top}});
  })));}
