@@ -127,7 +127,7 @@ window.compileAtlases=async(requested)=>{
    const initial=character?'Idle':null;
    if(initial){actions.get(initial).play();mixer.setTime(0);}
    pivot.updateMatrixWorld(true);const bounds=boxVisible(model),extent=bounds.getSize(new T.Vector3());
-   const scale=character?2.1/extent.y:2.8/Math.max(extent.x,extent.z);normalization.scale.setScalar(scale);
+   const scale=character?2.1/extent.y:kind==='tank'?.67:2.8/Math.max(extent.x,extent.z);normalization.scale.setScalar(scale);
    pivot.updateMatrixWorld(true);const grounded=boxVisible(model);normalization.position.y-=grounded.min.y;
    if(file.endsWith('fbx')&&!rig)normalization.rotation.y=Math.PI/2;
    if(['scout','gunship','bomber'].includes(kind))normalization.position.y+=.75;
@@ -138,7 +138,7 @@ window.compileAtlases=async(requested)=>{
    const metadata={version:1,image:kind+'-'+team+'.png',kind,team,cell:[cell,cell],nativeScale:(character?1:(nativeWidths[kind]/72))/pixelFactor,directions:directionCount,stride:character?(kind==='heavy'?58:64):34,source:rig?'Atlas original vehicle geometry':file,design:rig?model.userData.atlasDesign:undefined,palette:'Legion ceramic / bronze / dark steel / faction enamel',lighting:'ACES 1.13 / warm sun / cool fill',renderResolution:cell,renderQuality:cell>=192?'HD native 3D raster / 2x':'standard',timeBasedLocomotion:!!rotor,rotor:!!rotor,clips:{},frames:[]};
    if(rig)metadata.model=kind+'-'+team+'.glb';
    // Project a world-fixed ground point to y=78 without changing scale per pose.
-   const size=character?3.6:4.2;camera.left=-size/2;camera.right=size/2;camera.top=size/2;camera.bottom=-size/2;camera.updateProjectionMatrix();
+   const size=character?3.6:kind==='tank'?4.7:4.2;camera.left=-size/2;camera.right=size/2;camera.top=size/2;camera.bottom=-size/2;camera.updateProjectionMatrix();
    camera.position.set(0,8,12);camera.lookAt(0,0,0);camera.updateMatrixWorld();const origin=sample(new T.Vector3());const shift=(78*pixelFactor-origin.y)*size/cell;
    camera.position.y+=shift/Math.cos(Math.atan2(8,12));camera.lookAt(0,shift/Math.cos(Math.atan2(8,12)),0);camera.updateMatrixWorld();
    const baseRotations=new Map();model.traverse(n=>{if(/Wheel_/.test(n.name))baseRotations.set(n,n.quaternion.clone());});
