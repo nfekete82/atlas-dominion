@@ -47,6 +47,12 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
  const fighters=c.army.filter(u=>!['engineer','medic','scout'].includes(u.kind)).length;
  const planned=():UnitKind|null=>{
   if(count('engineer')===0&&available('engineer'))return 'engineer';
+  // After a failed first push, a surviving rover/tank must not lock the
+  // whole economy into saving for another 450-credit vehicle. Rebuild a
+  // minimum paid infantry screen first (including soldiers already queued).
+  // This uses the existing barracks and ordinary credits, not free units.
+  const screen=count('infantry')+count('heavy');
+  if(available('infantry')&&screen<3&&fighters<5)return 'infantry';
   const response=counter();if(response)return response;
   if(c.underAttack)return null;
   const siegeNeed=s.battle?.assessment?.neededSiege??0;

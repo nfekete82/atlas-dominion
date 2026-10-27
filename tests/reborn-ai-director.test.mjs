@@ -108,6 +108,55 @@ test('director: operational factory buys a real rover before reserving credits f
  assert.equal(g.credits[1],100,'the barracks must preserve vehicle savings rather than draining the treasury');
 });
 
+test('director: after the first infantry wave dies, a surviving jeep cannot starve the barracks for a tank',()=>{
+ const g=new Simulation(2026,4);
+ const barracks=addProducer(g,'barracks',1),factory=addProducer(g,'factory',1);
+ // Reproduce the reported state: the opening infantry is gone, a paid rover
+ // survived, and the AI has fewer credits than the tank it wants next.
+ g.units=g.units.filter(u=>u.owner===0||u.kind==='engineer');
+ const home=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
+ g.spawn(1,{x:home.x+80,y:home.y-120},'rover');
+ g.time=90;g.credits[1]=150;
+ const before=g.credits[1],state=g.tactical.state;
+ developArmy(g,state,g.units.filter(u=>u.owner===1&&u.hp>0),()=>0);
+ assert.deepEqual(barracks.queueTypes,['infantry'],'new paid soldiers come before the unreachable tank budget');
+ assert.deepEqual(barracks.queueCosts,[100],'ordinary full infantry price');
+ assert.equal(g.credits[1],before-100,'no free troops, no phantom money');
+ assert.equal(factory.queue.length,0,'the factory cannot spend unavailable credits');
+ assert.equal(state.economy.production?.facilities[barracks.id]?.reason,'produced');
+ // A second tick with an earned income payment must continue reconstruction.
+ g.credits[1]+=100;
+ developArmy(g,state,g.units.filter(u=>u.owner===1&&u.hp>0),()=>0);
+ assert.equal(barracks.queueTypes.filter(k=>k==='infantry').length,2,
+  'keeps rebuilding rather than resuming tank savings after a single soldier');
+ assert.equal(g.credits[1],50);
+ // When the full screen has been paid for, normal armored doctrine resumes.
+ g.aiClock=-1e8;
+ for(let i=0;i<180;i++)g.step(.05);
+ g.credits[1]=200;
+ developArmy(g,state,g.units.filter(u=>u.owner===1&&u.hp>0),()=>0);
+ assert.ok(barracks.queueTypes.includes('infantry')||g.units.filter(u=>u.owner===1&&u.kind==='infantry').length>=3,
+  'refills the third missing frontline slot after production clears');
+});
+
+test('director: rebuilding two survivors after a wipe takes precedence over visible counters, without losing the worker',()=>{
+ const g=new Simulation(2026,4);
+ const barracks=addProducer(g,'barracks',1),factory=addProducer(g,'factory',1);
+ const worker=g.units.find(u=>u.owner===1&&u.kind==='engineer');
+ g.units=g.units.filter(u=>u.owner===0||u.id===worker.id);
+ const home=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
+ g.spawn(1,{x:home.x+95,y:home.y+85},'rover');
+ g.credits[1]=220;g.time=95;
+ const enemy=g.units.find(u=>u.owner===0&&u.kind==='infantry');
+ enemy.x=home.x+320;enemy.y=home.y+150;
+ g.updateVision();
+ developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1&&u.hp>0),()=>0);
+ assert.equal(barracks.queueTypes[0],'infantry');
+ assert.equal(g.units.find(u=>u.id===worker.id)?.hp,110,'worker is not spent to fabricate reinforcements');
+ assert.equal(factory.queue.length,0);
+ assert.equal(g.credits[1],120);
+});
+
 test('director: first aircraft factory waits for actual ground force production',()=>{
  const g=new Simulation(2026,4),hq=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
  for(let i=0;i<5;i++)g.spawn(1,{x:hq.x+100+i*12,y:hq.y-120},'infantry');
