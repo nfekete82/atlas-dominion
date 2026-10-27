@@ -17,7 +17,23 @@ test('rover, tank and artillery run over enemy infantry for 25% of maximum HP pe
     advance(g,4);
     assert.equal(infantry.hp,UNITS.heavy.hp*.75,`${kind}: exactly one 25% hit`);
     assert.equal(infantry.lastAttacker,vehicle.id);
+    assert.equal(infantry.x,1960,`${kind}: moving vehicle must not drag target forward`);
   }
+});
+
+test('vehicle can hit the same soldier again only on a genuinely separate later pass',()=>{
+  const g=scene();
+  const tank=g.spawn(0,{x:1900,y:2100},'tank');
+  const soldier=g.spawn(1,{x:1960,y:2100},'heavy');
+  tank.cooldown=100;soldier.cooldown=100;soldier.hold=true;
+  g.command([tank.id],{x:2200,y:2100,kind:'move'});
+  advance(g,5);
+  assert.equal(soldier.hp,315,'first crossing deals exactly one quarter');
+  assert.ok(tank.x>2150,'vehicle fully leaves the target area');
+  advance(g,1.6);
+  g.command([tank.id],{x:1850,y:2100,kind:'move'});
+  advance(g,8);
+  assert.equal(soldier.hp,210,'the new return crossing causes one fresh quarter');
 });
 
 test('stationary vehicles, friendly infantry and aircraft do not cause run-over damage',()=>{
