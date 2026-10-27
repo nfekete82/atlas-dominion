@@ -10,7 +10,7 @@ export interface UnitSpec {
 const foot={...RULES.infantry,group:'Infanterie' as const,flying:false,width:38,producers:['barracks'] as readonly BuildingKind[]};
 export const UNITS:Record<UnitKind,UnitSpec>={
  infantry:{...foot,name:'Infanteriesoldat',description:'Vielseitiger Schütze. Sichert Bastionen und hält die Front.'},
- medic:{...foot,name:'Sanitäter',cost:175,buildTime:8,hp:100,damage:4,range:110,cooldown:1.8,speed:105,description:'Versorgt eigene Infanterie im Umkreis von 70 M mit zusammen 12 LP/s. Langsame Selbstheilung nach einer Feuerpause.'},
+ medic:{...foot,name:'Sanitäter',cost:175,buildTime:8,hp:100,damage:4,range:110,cooldown:1.8,speed:105,description:'Heilt verletzte eigene Infanterie und Sanitäter automatisch im Umkreis von 150 M, auch während der Bewegung. Insgesamt 12 LP/s, verzögerte Selbstheilung.'},
  engineer:{...foot,producers:['headquarters'],name:'Bauarbeiter',cost:200,buildTime:7,hp:110,damage:4,range:110,cooldown:1.8,speed:105,description:'Errichtet Gebäude und repariert eigene Anlagen mit 12 LP/s. Rechtsklick auf Gebäude oder Baustelle.'},
  heavy:{...foot,name:'Schwere Infanterie',cost:250,buildTime:9,hp:420,speed:78,damage:120,range:220,cooldown:1.15,width:44,producers:['barracks'],description:'Überlegener Infanteriekämpfer mit 420 LP und schwerem automatischem Gewehr. Gegen Panzerung verringerter Schaden.'},
  rover:{name:'Spähwagen',group:'Fahrzeuge',cost:300,buildTime:10,hp:220,speed:165,sight:390,range:195,damage:19,cooldown:.55,radius:16,width:65,producers:['factory'],flying:false,description:'Schnelles Fahrzeug für Aufklärung und Flankenangriffe.'},

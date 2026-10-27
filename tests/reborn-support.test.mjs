@@ -1,7 +1,7 @@
 import {addProducer} from './fixtures/reborn-production.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {Simulation} from '../dist/src/reborn/simulation.js';
+import {Simulation,HEAL_RADIUS} from '../dist/src/reborn/simulation.js';
 import {UNITS,BUILDINGS} from '../dist/src/reborn/catalog.js';
 import {RULES,distance} from '../dist/src/reborn/config.js';
 
@@ -24,21 +24,57 @@ test('support: exact catalog values and medic production price/time at the barra
 });
 
 test('support: medic approaches infantry, heals at 12 HP/s, caps HP and rejects vehicles, buildings, dead and enemy units',()=>{
- const g=peaceful(),m=g.spawn(0,{x:1900,y:2100},'medic'),soldier=g.spawn(0,{x:2100,y:2100});soldier.hp=20;
+ const g=peaceful(),m=g.spawn(0,{x:1900,y:2100},'medic'),soldier=g.spawn(0,{x:2250,y:2100});soldier.hp=20;
  const tank=g.spawn(0,{x:1900,y:2200},'tank');tank.hp=100;
  const dead=g.spawn(0,{x:1940,y:2100});dead.hp=0;
  const enemy=g.units.find(u=>u.owner===1);enemy.hp=20;
  for(const target of [tank,g.bases[0],dead,enemy])assert.equal(g.command([m.id],point(target,'heal')),0);
  assert.equal(g.command([m.id],point(soldier,'heal')),1);advance(g,.5);assert.equal(soldier.hp,20);assert.ok(m.x>1900);
- advance(g,2);assert.ok(soldier.hp>20);assert.ok(distance(m,soldier)<=70);const hp=soldier.hp;
+ advance(g,2);assert.ok(soldier.hp>20);assert.ok(distance(m,soldier)<=HEAL_RADIUS);const hp=soldier.hp;
  advance(g,1);near(soldier.hp,hp+12);advance(g,10);assert.equal(soldier.hp,100);assert.equal(tank.hp,100);
 });
 
 test('support: idle medics prioritize relative health, heal other medics and never auto-pursue',()=>{
- const g=peaceful(),m=g.spawn(0,{x:1900,y:2100},'medic'),heavy=g.spawn(0,{x:1935,y:2100},'heavy'),other=g.spawn(0,{x:1865,y:2100},'medic');
- heavy.hp=60;other.hp=70;other.defendUntil=1e8;other.orders=[{x:1865,y:2100,kind:'move'}];g.step();near(heavy.hp,60+.4);near(other.hp,70+.2);
+ const g=peaceful(),m=g.spawn(0,{x:1900,y:2100},'medic'),heavy=g.spawn(0,{x:2035,y:2100},'heavy'),other=g.spawn(0,{x:1755,y:2100},'medic');
+ heavy.hp=60;other.hp=70;other.defendUntil=1e8;other.orders=[{x:1755,y:2100,kind:'move'}];g.step();near(heavy.hp,60+.4);near(other.hp,70+.2);
  heavy.hp=UNITS.heavy.hp;g.step();near(other.hp,70+.8);
  Object.assign(other,{x:2100,y:2100});const before={x:m.x,y:m.y},hp=other.hp;advance(g,1);assert.deepEqual({x:m.x,y:m.y},before);near(other.hp,hp);
+});
+
+test('support: passive 150m medical aura obeys real radius, line of sight and shared 12 HP/s cap',()=>{
+ const g=peaceful();g.world.blocked.fill(0);g.world.opaque.fill(0);
+ const m=g.spawn(0,{x:1900,y:2100},'medic'),inside=g.spawn(0,{x:2040,y:2100}),outside=g.spawn(0,{x:2072,y:2100});
+ inside.hp=20;outside.hp=20;
+ assert.equal(HEAL_RADIUS,150);
+ advance(g,1);
+ near(inside.hp,32);
+ near(outside.hp,20);
+ const second=g.spawn(0,{x:1900,y:2010},'heavy');second.hp=200;
+ const before=inside.hp+second.hp;advance(g,1);
+ near(inside.hp+second.hp-before,12);
+ near(outside.hp,20);
+ assert.ok(g.workEffects.some(e=>e.kind==='heal'&&e.source===m.id),'healing creates visible work feedback');
+});
+
+test('support: medic automatically heals while walking without cancelling the commanded route',()=>{
+ const g=peaceful();g.world.blocked.fill(0);g.world.opaque.fill(0);
+ const medic=g.spawn(0,{x:1700,y:2100},'medic'),wounded=g.spawn(0,{x:1810,y:2100});wounded.hp=30;
+ assert.equal(g.command([medic.id],{x:2400,y:2100,kind:'move'}),1);
+ const startX=medic.x;advance(g,1);
+ assert.ok(medic.x>startX+40,'medic continues moving despite healing');
+ assert.ok(wounded.hp>=41.9,'patient is treated throughout the movement');
+ assert.equal(medic.orders[0]?.kind,'move','automatic care does not replace the player movement order');
+});
+
+test('support: rear medic continues to follow the squad while its expanded aura heals',()=>{
+ const g=peaceful();g.world.blocked.fill(0);g.world.opaque.fill(0);
+ const front=g.spawn(0,{x:1950,y:2100}),medic=g.spawn(0,{x:1830,y:2100},'medic');
+ front.hp=25;
+ assert.equal(g.command([front.id,medic.id],{x:2470,y:2100,kind:'attackMove'}),2);
+ const original=medic.x;advance(g,2);
+ assert.ok(front.hp>25,'medic treats escort while squad is advancing');
+ assert.ok(medic.x>original+25,'medic does not freeze whenever the escort is wounded');
+ assert.ok(medic.orders[0]?.formation,'escort formation retained');
 });
 
 test('support: worker repairs only buildings after arrival, once at 12 HP/s, for free; incoming attacks interrupt work',()=>{
