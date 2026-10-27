@@ -1,0 +1,87 @@
+name: Ingenieur nearby vehicle repair and 3D building assembly
+
+on:
+  push:
+    branches: [feat/rover-realistic-tires-flag-20261027]
+    paths:
+      - .github/workflows/engineer-building-assembly.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: engineer-assembly-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  validate-and-bake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install packages
+        run: |
+          npm ci --no-audit --no-fund
+          node --check scripts/animation/building-export.js
+          node --check scripts/export-atlas-buildings.mjs
+      - name: Typecheck and build
+        run: npm run build
+      - name: Test repair radius, targeting, economy, build and combat regressions
+        run: |
+          node --test \
+            tests/reborn-support.test.mjs \
+            tests/reborn.test.mjs \
+            tests/reborn-combined-arms.test.mjs \
+            tests/reborn-humvee.test.mjs \
+            tests/reborn-buildings.test.mjs \
+            tests/reborn-building-pbr.test.mjs \
+            tests/reborn-stop-to-defend.test.mjs
+      - name: Install Chromium
+        run: |
+          npm ci --prefix tests/browser --no-audit --no-fund
+          cd tests/browser && npx playwright install --with-deps chromium
+      - name: Bake six incremental 3D mesh construction stages per team and building
+        env:
+          ATLAS_BROWSER_CHANNEL: chromium
+        run: |
+          node scripts/export-atlas-buildings.mjs --construction-only barracks factory airfield generator turret
+      - name: Verify exact 3D construction stage asset metadata
+        run: |
+          node --test tests/reborn-construction-assembly.test.mjs
+          npm run build
+      - name: Browser regression on worker production and building operations
+        env:
+          CI: true
+          ATLAS_BROWSER_CHANNEL: chromium
+        run: |
+          cd tests/browser
+          npx playwright test --config playwright.config.mjs reborn-support.spec.mjs --reporter=line
+      - name: Publish staged construction sprites (retain original finished GLBs)
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for kind in barracks factory airfield generator turret; do
+            for team in 0 1; do
+              test -s "src/assets/reborn/buildings-3d/${kind}-${team}-construction.png"
+              test -s "src/assets/reborn/buildings-3d/${kind}-${team}-construction.json"
+              git add -- "src/assets/reborn/buildings-3d/${kind}-${team}-construction.png" "src/assets/reborn/buildings-3d/${kind}-${team}-construction.json"
+            done
+          done
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo "All assemblies already current."
+            exit 0
+          fi
+          git commit -m "assets(buildings): bake real staged mesh assembly for blue and red"
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
