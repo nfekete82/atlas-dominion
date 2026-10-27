@@ -38,7 +38,7 @@ async function reuseBuildingTextures(data){
  }});
  const closed=new Set();for(const texture of replaced){texture.dispose();if(!activeSources.has(texture.source)&&!closed.has(texture.source)){texture.source.data.close?.();closed.add(texture.source);}}
 }
-const vehicleNames={rover:'Spähwagen',tank:'Panzer',artillery:'Artillerie',scout:'Spähheli',gunship:'Kampfheli',bomber:'Bomber'};
+const vehicleNames={rover:'Humvee',tank:'Panzer',artillery:'Artillerie',scout:'Spähheli',gunship:'Kampfheli',bomber:'Bomber'};
 const isVehicle=model=>Object.hasOwn(vehicleNames,model);
 const modelPath=(model,faction)=>model==='infantry'?'/src/assets/reborn/prototype/infantry-'+faction+'.glb':isVehicle(model)?'/src/assets/reborn/animation/'+model+'-'+faction+'.glb':'/src/assets/reborn/buildings-3d/'+model+'-'+faction+'.glb';
 let kind='infantry',team=0,current=null,currentData=null,mixer=null,action=null,clip='Idle',paused=false,request=0;
