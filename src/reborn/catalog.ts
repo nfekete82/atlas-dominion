@@ -35,4 +35,4 @@ export const unitKinds=Object.keys(UNITS) as UnitKind[];
 export const buildingKinds=Object.keys(BUILDINGS) as BuildingKind[];
 
 export const canAttack=(u:{kind?:UnitKind},target:{kind?:UnitKind|BuildingKind;queue?:unknown}):boolean=>'queue' in target||unitSpec(u).targetsAir!==false||!unitSpec(target as {kind?:UnitKind}).flying;
-export const weaponDamage=(u:{kind?:UnitKind},target:{kind?:UnitKind|BuildingKind;queue?:unknown}):number=>unitSpec(u).damage*(u.kind==='heavy'&&('queue' in target||unitSpec(target as {kind?:UnitKind}).group!=='Infanterie')?.45:1);
+export const weaponDamage=(u:{kind?:UnitKind},target:{kind?:UnitKind|BuildingKind;queue?:unknown}):number=>unitSpec(u).damage*(u.kind==='heavy'&&('queue' in target||unitSpec(target as {kind?:UnitKind}).group!=='Infanterie')?.45:u.kind==='rover'&&('queue' in target||unitSpec(target as {kind?:UnitKind}).group!=='Infanterie')?.35:1);
