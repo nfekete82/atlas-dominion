@@ -138,20 +138,46 @@ export function buildHumvee(team=0){
   box('SideFactionBadge',[.018,.14,.32],m.emblem,[side*1.063,1.37,-1.12]);
   box('RearTaillight',[.075,.20,.15],m.tail,[side*.93,1.16,-2.28]);
  }
- // Four true big-diameter wheel assemblies with independently rotatable pivots.
+ // Rounded all-terrain tyres: continuous curved sidewalls instead of 18 oversized
+ // cube-like lugs. Axle orientation is X; the entire wheel pivots as one part.
+ const tireSection=[
+  [.265,-.190],[.330,-.187],[.395,-.177],[.447,-.145],
+  [.472,-.109],[.480,-.070],[.480,.070],[.472,.109],
+  [.447,.145],[.395,.177],[.330,.187],[.265,.190]
+ ].map(([radius,axial])=>new T.Vector2(radius,axial));
+ const tireGeometry=new T.LatheGeometry(tireSection,64);
+ const tyrePatternSegments=36;
  for(const side of [-1,1])for(const [position,z] of [['Front',1.44],['Rear',-1.50]]){
-  const pivot=group('RoverWheel_'+(side>0?'R':'L')+'_'+position,[side*1.12,.47,z]);
-  const tire=cyl('AllTerrainWheel',.48,.32,m.rubber,[0,0,0],pivot,'x',28);
-  cyl('RimDisc',.27,.335,m.dark,[0,0,0],pivot,'x',20);
-  cyl('WheelHub',.18,.348,m.steel,[0,0,0],pivot,'x',20);
-  for(let i=0;i<18;i++){
-   const a=i*Math.PI*2/18;
-   const tread=box('TreadBlock',[.35,.085,.21],m.trim,[0,.48*Math.cos(a),.48*Math.sin(a)],pivot,.014);
-   tread.rotation.x=-a;
-  }
+  const pivot=group('RoverWheel_'+(side>0?'R':'L')+'_'+position,[side*1.12,.49,z]);
+  const tyre=add('TerrainTireSidewall',tireGeometry,m.rubber,[0,0,0],pivot);
+  tyre.rotation.z=Math.PI/2;
+  // Separate inner barrel, machined outer lip, eight alloy spokes and hub.
+  cyl('AlloyRimBarrel',.278,.385,m.dark,[0,0,0],pivot,'x',48);
+  cyl('AlloyWheelFace',.224,.024,m.steel,[side*.197,0,0],pivot,'x',48);
+  const lip=add('AlloyRimOuterLip',new T.TorusGeometry(.258,.020,10,48),m.steel,[side*.204,0,0],pivot);
+  lip.rotation.y=Math.PI/2;
   for(let i=0;i<8;i++){
-   const a=i*Math.PI/4;const bolt=cyl('RimBolt',.017,.015,m.sand,[side*.181,.125*Math.cos(a),.125*Math.sin(a)],pivot,'x',8);
-   bolt.rotation.x=a;
+   const a=i*Math.PI/4;
+   const spoke=box('AlloyRimSpoke',[.030,.154,.039],m.steel,[side*.218,.127*Math.cos(a),.127*Math.sin(a)],pivot,.009);
+   spoke.rotation.x=a;
+  }
+  cyl('WheelHubCap',.080,.045,m.dark,[side*.225,0,0],pivot,'x',24);
+  for(let i=0;i<6;i++){
+   const a=i*Math.PI/3;
+   cyl('WheelHubBolt',.017,.019,m.sand,[side*.247,.104*Math.cos(a),.104*Math.sin(a)],pivot,'x',10);
+  }
+  // Low-profile, alternating shoulder lugs: readable off-road tread without
+  // the giant tractor teeth from the previous model. Every lug follows the tyre.
+  for(let row=0;row<2;row++)for(let i=0;i<tyrePatternSegments;i++){
+   const a=(i+(row?.5:0))*Math.PI*2/tyrePatternSegments;
+   const lug=box('StaggeredTreadLug',[.152,.020,.063],m.trim,
+    [row?.115:-.115,.478*Math.cos(a),.478*Math.sin(a)],pivot,.007);
+   lug.rotation.x=a;
+  }
+  for(const face of [-1,1]){
+   const shoulder=add('TireSidewallShoulder',new T.TorusGeometry(.400,.009,8,48),
+    m.trim,[face*.160,0,0],pivot);
+   shoulder.rotation.y=Math.PI/2;
   }
   wheels.push(pivot);
  }
@@ -170,12 +196,41 @@ export function buildHumvee(team=0){
  box('MGShieldSlit',[.29,.075,.021],m.dark,[0,.55,.117],turret,.005);
  rod('MGRearHandle',[-.14,.35,-.13],[.14,.35,-.13],.025,m.steel,turret);
  const muzzle=new T.Object3D();muzzle.name='RoverMG_Muzzle';muzzle.position.set(0,.37,1.39);turret.add(muzzle);
- // Comms gear and the two clear team variations.
+ // Comms antenna stays separate from the faction flag behind the cabin.
  rod('LongRadioAntenna',[.81,2.10,-1.44],[.88,3.08,-1.54],.014,m.dark);
  cyl('AntennaTip',.030,.035,m.emblem,[.88,3.08,-1.54]);
  box('TeamRoofMarker',[.33,.03,.29],m.emblem,[-.66,2.123,-1.19]);
+ // Small rear-roof flag, with genuine two-sided cloth mesh and a gentle static
+ // wind-shaped ripple. It remains visible in the exported GLB and in game sprites.
+ const flag=group('RoverFactionFlag',[-.73,2.105,-1.48]);
+ rod('TeamFlagMast',[0,0,0],[0,.89,0],.015,m.steel,flag);
+ cyl('TeamFlagMastCap',.034,.04,m.sand,[0,.90,0],flag);
+ const flagMat=new T.MeshStandardMaterial({
+  name:'TeamFlagCloth_'+(team?'red':'blue'),color:team?'#d22d2b':'#216be9',
+  metalness:0,roughness:.95,side:T.DoubleSide
+ });
+ const flagVertices=[],flagIndices=[],flagCols=7,flagRows=3;
+ for(let y=0;y<=flagRows;y++)for(let x=0;x<=flagCols;x++){
+  const u=x/flagCols,v=y/flagRows;
+  // Cloth hangs from the pole and flows sideways toward the vehicle's left.
+  flagVertices.push(-.64*u,.86-.34*v-.025*u*u,
+   .038*Math.sin(u*Math.PI*1.65+v*.55)*u+.015*u);
+ }
+ for(let y=0;y<flagRows;y++)for(let x=0;x<flagCols;x++){
+  const a=y*(flagCols+1)+x,b=a+1,c=a+flagCols+1,d=c+1;
+  flagIndices.push(a,c,b,b,c,d);
+ }
+ const clothGeometry=new T.BufferGeometry();
+ clothGeometry.setAttribute('position',new T.Float32BufferAttribute(flagVertices,3));
+ clothGeometry.setIndex(flagIndices);clothGeometry.computeVertexNormals();
+ add('TeamFlagCloth',clothGeometry,flagMat,[0,0,0],flag);
  model.userData.atlasDesign={kind:'rover',team,seats:4,weapon:'heavy roof mounted machine gun',
-  role:'fast reconnaissance and infantry transport',geometry:'Humvee-inspired original armoured 4x4 with embedded 1K PBR camouflage',parts:count,triangles:Math.round(triangles)};
+  role:'fast reconnaissance and infantry transport',wheelCount:4,
+  wheelType:'rounded 64-segment offroad tyres, fine staggered tread, eight-spoke alloy rims',
+  teamFlag:team?'red':'blue',
+  flagGeometry:'double-sided curved cloth on independent roof mast',
+  geometry:'Humvee-inspired original armoured 4x4 with embedded 1K PBR camouflage',
+  parts:count,triangles:Math.round(triangles)};
  function animate(tag,phase){
   for(const w of wheels)w.rotation.x=tag==='idle'?0:phase*Math.PI*2;
  }
