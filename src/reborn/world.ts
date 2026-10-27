@@ -226,7 +226,7 @@ export class World {
       const mirrored=this.mapVersion>=2?Math.min(id,cols*rows-1-id):id,value=mirrored%7===0?2:mirrored%3===0?1:0;
       return {id,name:this.mapVersion===2?campaignNames[id]:this.mapVersion>=3?`Sektor ${id+1}`:names[id],polygon:[vertices[y][x],vertices[y][x+1],vertices[y+1][x+1],vertices[y+1][x]],
         point,neighbors:[x>0?id-1:-1,x<cols-1?id+1:-1,y>0?id-cols:-1,y<rows-1?id+cols:-1].filter(i=>i>=0),
-        owner:layout.starts[0].some(i=>i===id)?0:layout.starts[1].some(i=>i===id)?1:-1,capturing:-1,progress:0,income:startingBastions.includes(id)?RULES.startingBastionIncome:layout.incomes[value],value};
+        owner:layout.starts[0].some(i=>i===id)?0:layout.starts[1].some(i=>i===id)?1:-1,capturing:-1,progress:0,income:startingBastions.some(startId=>startId===id)?RULES.startingBastionIncome:layout.incomes[value],value};
     });
   }
 }
