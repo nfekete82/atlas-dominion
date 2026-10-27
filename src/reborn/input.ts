@@ -112,6 +112,17 @@ export class Input {
     if(r.commandMode==='unload'){
       const accepted:number[]=[];for(const u of carriers)if(g.transports.unload(u.id,p))accepted.push(u.id);if(accepted.length){this.acknowledge('unload',accepted);this.notify('Transportfahrzeug fährt oder fliegt zum Ausladeort.');}else this.notify('Kein sicherer Landeplatz oder keine Passagiere.');this.onSelection();return;
     }
+    // Engineer maintenance takes priority over transport boarding on damaged
+    // friendly Humvees and aircraft; otherwise right-click would embark the mechanic.
+    if(!forceMove&&!r.attackMode&&r.commandMode!=='move'&&r.commandMode!=='load'&&friendlyUnit&&
+      (unitSpec(friendlyUnit).group==='Fahrzeuge'||unitSpec(friendlyUnit).flying)&&
+      friendlyUnit.hp<unitSpec(friendlyUnit).hp){
+      const engineers=[...r.selected].filter(id=>g.units.some(u=>u.id===id&&u.kind==='engineer'&&u.owner===0&&!u.carrier));
+      if(engineers.length){
+        const count=g.command(engineers,{x:friendlyUnit.x,y:friendlyUnit.y,kind:'repair',target:friendlyUnit.id},append);
+        if(count){this.acknowledge('repair',engineers);this.onSelection();return;}
+      }
+    }
     if(!forceMove&&!r.attackMode&&r.commandMode!=='move'&&((friendlyUnit?.kind==='scout'||friendlyUnit?.kind==='rover')||(friendlyUnit&&carriers.length))){
       let count=0;const accepted:number[]=[];
       if(friendlyUnit.kind==='scout'||friendlyUnit.kind==='rover'){count=g.transports.board(friendlyUnit.id,[...r.selected]);if(count)accepted.push(friendlyUnit.id);}
