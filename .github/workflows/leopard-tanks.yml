@@ -7,6 +7,8 @@ on:
       - scripts/animation/render.js
       - scripts/create_atlas_leopard.py.gz.b64
       - scripts/create_atlas_leopard.py
+      - scripts/tank_pbr_textures.py
+      - tests/test_tank_pbr.py
       - .github/workflows/leopard-tanks.yml
   workflow_dispatch:
 
@@ -44,7 +46,8 @@ jobs:
       - name: Generate both complete faction GLB files
         shell: bash
         run: |
-          python -m pip install --disable-pip-version-check --quiet numpy trimesh
+          python -m pip install --disable-pip-version-check --quiet numpy trimesh pillow
+          PYTHONPATH=scripts python -m unittest discover -s tests -p 'test_tank_pbr.py'
           ATLAS_TANK_OUT=src/assets/reborn/animation python scripts/create_atlas_leopard.py
           python - <<'PY'
           import trimesh
@@ -55,7 +58,16 @@ jobs:
               assert 'Tank_Turret' in s.graph.nodes
               assert 'Tank_Gun' in s.graph.nodes
               assert any(n.startswith('FactionFlagCloth') for n in s.graph.nodes)
-              print(p,'verified',len(s.geometry),'meshes')
+              for g in s.geometry.values():
+                  assert g.visual.uv is not None, "Mesh missing UVs"
+                  assert len(g.visual.uv) == len(g.vertices)
+              tan = next(g.visual.material for g in s.geometry.values()
+                         if g.visual.material.name == 'tan')
+              assert tan.baseColorTexture.size == (2048, 2048)
+              assert tan.normalTexture.size == (1024, 1024)
+              assert tan.metallicRoughnessTexture.size == (1024, 1024)
+              assert p.stat().st_size < 30000000, "Unexpectedly large tank GLB"
+              print(p,'verified',len(s.geometry),'UV-mapped PBR meshes')
           PY
       - name: Install project dependencies and headless Chromium
         shell: bash
