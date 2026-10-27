@@ -2,6 +2,7 @@ import { RULES, clamp, distance, type Point } from './config.js';
 import { Renderer } from './renderer.js';
 import { buildingSpec, unitSpec } from './catalog.js';
 import { unitSelectionPoint } from './unit-presentation.js';
+import {buildingArtWidth} from './visual-scale.js';
 import type {PlayerOrder,RadioAction} from './unit-radio.js';
 
 export class Input {
@@ -92,7 +93,7 @@ export class Input {
     const unit=g.units.filter(u=>u.owner===0&&!u.carrier&&distance(unitSelectionPoint(u),p)<Math.max(32/r.camera.zoom,unitSpec(u).width*.5)).sort((a,b)=>distance(unitSelectionPoint(a),p)-distance(unitSelectionPoint(b),p))[0];
     if(!append)r.selected.clear();r.selectedBase=null;
     if(unit){if(append&&r.selected.has(unit.id))r.selected.delete(unit.id);else r.selected.add(unit.id);}
-    else {const b=g.bases.find(b=>{const spec=buildingSpec(b);return b.owner===0&&b.hp>0&&p.x>b.x-spec.width/2&&p.x<b.x+spec.width/2&&p.y>b.y-spec.width*.85&&p.y<b.y+spec.radius*.5;});r.selected.clear();if(b)r.selectedBase=b.id;}
+    else {const b=g.bases.find(b=>{const spec=buildingSpec(b),width=buildingArtWidth(b.kind,spec.width);return b.owner===0&&b.hp>0&&p.x>b.x-width/2&&p.x<b.x+width/2&&p.y>b.y-width*.85&&p.y<b.y+spec.radius*.5;});r.selected.clear();if(b)r.selectedBase=b.id;}
   }
   private acknowledge(kind:RadioAction,ids:number[]):void{
     const u=this.renderer.game.units.find(u=>ids.includes(u.id)&&u.owner===0&&u.hp>0&&!u.carrier);if(u)this.onOrder({kind,unit:u.kind,unitId:u.id});
@@ -106,7 +107,7 @@ export class Input {
     if(r.selectedBase!==null){const b=g.bases.find(b=>b.id===r.selectedBase&&b.owner===0&&b.hp>0);if(b){b.rally=g.world.nearest(p,g.obstacles());this.notify('Sammelpunkt gesetzt.');}return;}
     if(!r.selected.size)return;
     const friendlyUnit=g.units.filter(u=>u.owner===0&&!u.carrier&&u.hp>0&&distance(unitSelectionPoint(u),p)<Math.max(30/r.camera.zoom,unitSpec(u).width*.5)).sort((a,b)=>distance(unitSelectionPoint(a),p)-distance(unitSelectionPoint(b),p))[0];
-    const friendlyBase=g.bases.find(b=>b.owner===0&&b.hp>0&&p.x>b.x-buildingSpec(b).width/2&&p.x<b.x+buildingSpec(b).width/2&&p.y>b.y-buildingSpec(b).width*.85&&p.y<b.y+b.radius*.5);
+    const friendlyBase=g.bases.find(b=>b.owner===0&&b.hp>0&&p.x>b.x-buildingArtWidth(b.kind,buildingSpec(b).width)/2&&p.x<b.x+buildingArtWidth(b.kind,buildingSpec(b).width)/2&&p.y>b.y-buildingArtWidth(b.kind,buildingSpec(b).width)*.85&&p.y<b.y+b.radius*.5);
     const carriers=g.units.filter(u=>r.selected.has(u.id)&&(u.kind==='scout'||u.kind==='rover')&&u.owner===0&&!u.carrier);
     if(r.commandMode==='unload'){
       const accepted:number[]=[];for(const u of carriers)if(g.transports.unload(u.id,p))accepted.push(u.id);if(accepted.length){this.acknowledge('unload',accepted);this.notify('Transportfahrzeug fährt oder fliegt zum Ausladeort.');}else this.notify('Kein sicherer Landeplatz oder keine Passagiere.');this.onSelection();return;
