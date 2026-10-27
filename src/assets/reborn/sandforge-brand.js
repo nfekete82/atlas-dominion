@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const name = 'Sandforge: Bastion Wars';
-  const logo = '/src/assets/reborn/sandforge-logo.webp';
+  const logo = '/src/assets/reborn/sandforge-logo-transparent.webp';
   const makeLogo = (nameClass) => {
     const img = document.createElement('img');
     img.src = logo;

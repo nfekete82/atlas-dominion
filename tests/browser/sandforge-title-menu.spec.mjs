@@ -18,6 +18,24 @@ test('Sandforge shows the full-screen desert title and starts via map selection'
  expect(layout.height).toBeGreaterThan(800);
  expect(layout.background).toContain('start-screen.png');
  expect(layout.logoLoaded).toBe(true);
+ // Center the floating logo and all game-entry controls (not the old left column).
+ const position=await page.evaluate(()=>{
+  const title=document.querySelector('#main-dialog');
+  const logo=title.querySelector('.sandforge-splash-logo');
+  const buttons=title.querySelector('.menu-buttons');
+  const r=title.getBoundingClientRect(),l=logo.getBoundingClientRect(),b=buttons.getBoundingClientRect();
+  const image=document.createElement('canvas');image.width=logo.naturalWidth;image.height=logo.naturalHeight;
+  const ctx=image.getContext('2d',{willReadFrequently:true});ctx.drawImage(logo,0,0);
+  const corners=[[1,1],[image.width-2,1],[1,image.height-2],[image.width-2,image.height-2]];
+  const transparentCorners=corners.every(([x,y])=>ctx.getImageData(x,y,1,1).data[3]===0);
+  return {centerTitle:r.x+r.width/2,centerLogo:l.x+l.width/2,centerButtons:b.x+b.width/2,
+   logoBottom:l.bottom,buttonsTop:b.top,logoWidth:l.width,transparentCorners};
+ });
+ expect(Math.abs(position.centerLogo-position.centerTitle)).toBeLessThan(16);
+ expect(Math.abs(position.centerButtons-position.centerTitle)).toBeLessThan(16);
+ expect(position.buttonsTop).toBeGreaterThan(position.logoBottom);
+ expect(position.logoWidth).toBeGreaterThan(450);
+ expect(position.transparentCorners).toBe(true);
  await page.keyboard.press('Escape');
  await expect(menu).toBeVisible();
  await page.locator('#new').click();
