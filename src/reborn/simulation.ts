@@ -2,7 +2,7 @@ import {VisionCache} from './vision-cache.js';
 import { profiler } from './performance.js';
 import { RULES, clamp, distance, type Faction, type Owner, type Point, type MapVersion, mapLayout } from './config.js';
 import { World, inside, type Territory } from './world.js';
-import { UNITS, BUILDINGS, canAttack, weaponDamage, unitSpec, buildingSpec, unitKinds, type UnitKind, type BuildingKind } from './catalog.js';
+import { UNITS, BUILDINGS, canAttack, weaponDamage, armorMultiplier, unitSpec, buildingSpec, unitKinds, type UnitKind, type BuildingKind } from './catalog.js';
 import {angleDifference,turnTowards} from './sprite-animator.js';
 import {turretPivot,turretMuzzles} from './turret.js';
 import {Transports,type TransportState} from './transports.js';
@@ -24,6 +24,8 @@ export interface Unit extends Point {
   driveSpeed?:number; hullAngle?:number; combatTarget?:number|null;
   /** A real collision enabled complete clearance checks for future routes. */
   exactPath?:boolean;
+  /** Recent trampling contacts survive saves and cannot retrigger immediately. */
+  ramCooldown?:Record<string,number>;
   /** Where an autonomous pursuit began; persisted so guards do not chase indefinitely. */
   pursuitOrigin?:Point|null;
   hold?:boolean;
@@ -332,7 +334,7 @@ export class Simulation {
     else this.workEffects.push({kind,source,sources:[source],target,amount,at:this.time});
   }
   private damage(source:Unit|Base,target:Unit|Base,damage:number,weapon:Weapon,from:Point,barrel?:number):void {
-    this.strike(source.id,target,damage);
+    this.strike(source.id,target,damage*armorMultiplier(target,weapon));
     if(weapon==='turret'&&'orders' in target&&target.hp>0)this.tactical.underTowerFire(target);
     const flying='orders' in target&&unitSpec(target).flying;
     this.shots.push({from,to:{x:target.x,y:target.y-(flying?(target.kind==='scout'?34+77*((target as Unit).flightHeight??1):111):23)},owner:source.owner,life:.65,hit:true,projected:'queue' in source,source:source.id,weapon,barrel,at:this.time,
@@ -456,6 +458,31 @@ export class Simulation {
     if(spec.flying||this.world.walkable(p,this.obstacles(),clearance)){u.x=p.x;u.y=p.y;u.walkDistance+=step;u.angle=Math.atan2(dy,dx);u.facing=dx<-.05?-1:dx>.05?1:u.facing;u.moving=step>.001;}
     else {u.path=[];u.repath=0;if(this.world.mapVersion>=3&&clearance>0)u.exactPath=true;}
   }
+  /** Swept relative motion detects road kills between fixed simulation ticks. */
+  private runOver(dt:number):void {
+    // Refresh positions after movement, before the generic unit separation pass.
+    this.spatial.rebuild(this.units);
+    for(const vehicle of this.units){
+      if(vehicle.hp<=0||vehicle.carrier||!['rover','tank','artillery'].includes(vehicle.kind))continue;
+      if(vehicle.ramCooldown)for(const [id,until] of Object.entries(vehicle.ramCooldown))
+        if(until<=this.time)delete vehicle.ramCooldown[id];
+      const moved=Math.hypot(vehicle.x-vehicle.previousX,vehicle.y-vehicle.previousY);
+      if(moved<.75)continue; // stationary vehicles do not hurt approaching infantry
+      const range=unitSpec(vehicle).radius+RULES.infantry.radius+moved+RULES.infantry.speed*dt;
+      for(const soldier of this.spatial.query(vehicle,range)){
+        if(soldier.hp<=0||soldier.carrier||soldier.owner===vehicle.owner||unitSpec(soldier).group!=='Infanterie')continue;
+        if((vehicle.ramCooldown?.[soldier.id]??0)>this.time)continue;
+        const radius=unitSpec(vehicle).radius+unitSpec(soldier).radius;
+        const ax=vehicle.previousX-soldier.previousX,ay=vehicle.previousY-soldier.previousY;
+        if(Math.hypot(ax,ay)<=radius)continue; // requires a new collision
+        const dx=vehicle.x-soldier.x-ax,dy=vehicle.y-soldier.y-ay;
+        const t=clamp(-(ax*dx+ay*dy)/Math.max(1e-9,dx*dx+dy*dy),0,1);
+        if(Math.hypot(ax+t*dx,ay+t*dy)>=radius)continue;
+        (vehicle.ramCooldown??={})[soldier.id]=this.time+1.5;
+        this.strike(vehicle.id,soldier,unitSpec(soldier).hp*.25);
+      }
+    }
+  }
   step(dt=RULES.tick):void {
     if(!profiler)return this.stepMeasured(dt);const at=performance.now();try{this.stepMeasured(dt);}finally{profiler.record('simulation',performance.now()-at);}
   }
@@ -550,6 +577,7 @@ export class Simulation {
       }
     }
     for(const u of this.units)if(!u.moving&&u.driveSpeed!==undefined)u.driveSpeed=Math.max(0,u.driveSpeed-unitSpec(u).speed*2.8*dt);
+    this.runOver(dt);
     // Symmetric separation: units can pass one another without permanent deadlocks.
     for(const u of this.units)if(u.hp>0&&!u.carrier)for(const v of this.spatial.query(u,unitSpec(u).radius+26)){
       if(v.id<=u.id||v.hp<=0||unitSpec(u).flying!==unitSpec(v).flying)continue;const gap=unitSpec(u).radius+unitSpec(v).radius+1;let d=distance(u,v);if(d>=gap)continue;
@@ -641,6 +669,7 @@ export class Simulation {
     if(!s||s.version!==2||(s.productionVersion!==undefined&&s.productionVersion!==1)||(s.mapVersion!==undefined&&![0,1,2,3,4,5].includes(s.mapVersion))||!TacticalAI.valid(s.ai,s.time,point,mapLayout(s.mapVersion??0).columns*mapLayout(s.mapVersion??0).rows)||!finite(s.seed)||!finite(s.time)||s.time<0||!finite(s.incomeClock)||s.incomeClock<0||s.incomeClock>=10||
       !Array.isArray(s.units)||s.units.length>96||!Array.isArray(s.bases)||s.bases.length<2||s.bases.length>64||
       s.units.some(u=>u.exactPath!==undefined&&typeof u.exactPath!=='boolean')||
+       s.units.some(u=>u.ramCooldown!==undefined&&(!u.ramCooldown||typeof u.ramCooldown!=='object'||Array.isArray(u.ramCooldown)||Object.keys(u.ramCooldown).length>96||Object.entries(u.ramCooldown).some(([id,until])=>!Number.isSafeInteger(Number(id))||Number(id)<0||typeof until!=='number'||!Number.isFinite(until)||until<0||until>s.time+1.5+1e-6)))||
       !Array.isArray(s.territories)||s.territories.length!==mapLayout(s.mapVersion??0).columns*mapLayout(s.mapVersion??0).rows||!Array.isArray(s.explored)||s.explored.length!==2||
       s.explored.some(a=>!Array.isArray(a)||![120**2,RULES.grid**2].includes(a.length)||a.some(v=>v!==0&&v!==1))||
       !Array.isArray(s.credits)||s.credits.length!==2||s.credits.some(v=>!finite(v)||v<0)||
