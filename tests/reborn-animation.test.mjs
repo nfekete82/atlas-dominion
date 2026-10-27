@@ -36,6 +36,15 @@ test('animation: sustained hits cannot lock a soldier in a flinch or hide simult
  assert.notEqual(a.state,'hit');
  a.update(0,intent({attack:true,hit:true,dead:true}));assert.equal(a.state,'death');
 });
+test('animation: repeated hits recover and a later clean hit is animated again',()=>{
+ const a=new SpriteAnimator(read('infantry'));
+ a.update(0,intent({hit:true}));assert.equal(a.state,'hit');
+ for(let i=0;i<24;i++)a.update(.02,intent({hit:i%2===0}));
+ assert.notEqual(a.state,'hit','repeated damage must not keep the soldier flinching indefinitely');
+ for(let i=0;i<24;i++)a.update(.02,intent());
+ assert.equal(a.state,'idle');
+ a.update(0,intent({hit:true}));assert.equal(a.state,'hit','a genuine later hit can still trigger an animation');
+});
 test('animation: vehicles use real chassis views and separated turret/barrel frames where the source provides them',()=>{
  for(const k of ['rover','tank','artillery','scout','gunship','bomber']){const a=read(k);assert.equal(a.directions,16);assert.equal(a.clips.idle.frames.length,16);if(['tank','artillery'].includes(k)){assert.equal(a.clips.turret.frames.length,16);assert.equal(a.clips.barrel.frames.length,16);assert.ok(a.clips.walk.uniquePhases.every(n=>n>1));}if(k==='bomber')assert.ok(a.clips.walk.frames.every(r=>r.length===1));if(k==='scout'||k==='gunship')assert.equal(a.rotor,true);}
 });
