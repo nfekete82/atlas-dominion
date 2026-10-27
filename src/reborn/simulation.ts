@@ -383,7 +383,7 @@ export class Simulation {
     // A plain move is a strict order. Idle combat units and attack-move squads
     // can respond within sight, starting their approach before weapon range.
     // Engineers on guard duty stay near their work instead of abandoning repairs.
-    const support=u.kind==='engineer'||u.kind==='medic'||u.kind==='scout';
+    const support=u.kind==='engineer'||u.kind==='medic'||u.kind==='scout'||(u.kind==='rover'&&!!u.transport?.cargo.length);
     const proactive=!u.hold&&order?.kind!=='move'&&!support;
     const engageRadius=proactive?Math.max(spec.range,Math.min(spec.sight,spec.range+120)):spec.range;
     const visible=(e:Unit|Base)=>this.canSee(u.owner,e)||(distance(u,e)<=spec.sight&&(spec.flying||this.world.sightLine(u,e)));
@@ -509,7 +509,7 @@ export class Simulation {
         // here used to repeat an unreachable search on every fixed tick.
         if(u.repath<=0)u.path=[];
         this.move(u,enemy,dt);
-      } else if(enemy&&!u.hold&&u.kind!=='medic'&&u.kind!=='engineer'&&u.kind!=='scout'){
+      } else if(enemy&&!u.hold&&u.kind!=='medic'&&u.kind!=='engineer'&&u.kind!=='scout'&&!(u.kind==='rover'&&u.transport?.cargo.length)){
         delete u.burst;
         // Idle guards and attack-move squads close the gap, but never chase
         // farther than a short distance from where contact began.
