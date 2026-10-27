@@ -14,7 +14,7 @@ export interface Order extends Point { kind:'move'|'attackMove'|'attack'|'heal'|
 export type Weapon='rifle'|'heavy'|'pistol'|'turret'|'cannon'|'rocket';
 export interface Burst {target:number;remaining:number;at:number;index:number}
 export interface WorkEffect {kind:'heal'|'repair'|'build'|'board';target:number;source:number;sources:number[];at:number;amount:number}
-export const HEAL_RADIUS=70;
+export const HEAL_RADIUS=150;
 export interface Unit extends Point {
   id:number; owner:Faction; kind:UnitKind; hp:number; orders:Order[]; path:Point[];
   cooldown:number; facing:number; moving:boolean; hit:number; repath:number;
@@ -253,15 +253,19 @@ export class Simulation {
     const h=formation.heading,project=(p:Point)=>(p.x-formation.origin.x)*h.x+(p.y-formation.origin.y)*h.y;
     const progress=Math.min(...front.map(project)),lateral=front.reduce((n,v)=>n+(v.x-formation.origin.x)*-h.y+(v.y-formation.origin.y)*h.x,0)/front.length;
     const rear={x:formation.origin.x+h.x*(progress-formation.rear)-h.y*(lateral+formation.lane),y:formation.origin.y+h.y*(progress-formation.rear)+h.x*(lateral+formation.lane)};
-    u.workingTarget=null;u.combatTarget=null;u.pursuitOrigin=null;
+    u.combatTarget=null;u.pursuitOrigin=null;
     const safe=(p:Point)=>project(p)<=progress-32&&this.units.every(enemy=>enemy.hp<=0||enemy.carrier||enemy.owner===u.owner||!this.canSee(u.owner,enemy)||distance(p,enemy)>Math.min(unitSpec(enemy).range+12,distance(u,enemy)+2));
-    const patient=this.spatial.query(u,115).filter(v=>v.id!==u.id&&this.supportEligible(u,v,'heal')&&project(v)<=progress+35).sort((a,b)=>a.hp/unitSpec(a).hp-b.hp/unitSpec(b).hp||a.id-b.id)[0];
-    if(!patient)this.healNearby(u,dt);
+    const patient=this.spatial.query(u,HEAL_RADIUS+35).filter(v=>v.id!==u.id&&this.supportEligible(u,v,'heal')&&distance(u,v)<=HEAL_RADIUS+35&&project(v)<=progress+35).sort((a,b)=>a.hp/unitSpec(a).hp-b.hp/unitSpec(b).hp||a.id-b.id)[0];
     if(!patient&&u.defendUntil>this.time&&this.acquire(u))return false;
     let destination=rear;
     if(patient){
-      if(distance(u,patient)<=HEAL_RADIUS&&this.world.line(u,patient)){this.healNearby(u,dt);u.workingTarget=patient.id;u.path=[];u.angle=Math.atan2(patient.y-u.y,patient.x-u.x);return true;}
-      const approach={x:patient.x-h.x*45,y:patient.y-h.y*45};if(safe(approach))destination=approach;
+      if(distance(u,patient)<=HEAL_RADIUS&&this.world.line(u,patient)){
+        // The passive aura already healed this tick. Keep the medic moving with
+        // the front instead of stopping whenever a wounded ally is nearby.
+        u.workingTarget??=patient.id;
+      }else{
+        const approach={x:patient.x-h.x*45,y:patient.y-h.y*45};if(safe(approach))destination=approach;
+      }
     }
     if(distance(u,destination)>12){
       if(u.repath<=0)u.path=[];
@@ -275,7 +279,8 @@ export class Simulation {
 
   /** Work uses simulated time and target IDs; idle support never pursues distant targets. */
   private support(u:Unit,dt:number):boolean {
-    u.workingTarget=null;u.supportPaused=false;
+    if(u.kind!=='medic')u.workingTarget=null;
+    u.supportPaused=false;
     if(u.kind!=='medic'&&u.kind!=='engineer')return false;
     const order=u.orders[0],explicit=order&&['heal','repair','build'].includes(order.kind);
     if(order&&!explicit)return false;
@@ -286,7 +291,7 @@ export class Simulation {
       if(order.kind==='heal'){order.healOrigin??={x:order.x,y:order.y};if(distance(target,order.healOrigin)>160&&distance(u,target)>HEAL_RADIUS){u.path=[];u.supportPaused=true;return false;}}
       order.x=target.x;order.y=target.y;
     }else if(u.kind==='medic'){
-      target=this.spatial.query(u,HEAL_RADIUS).filter(t=>this.supportEligible(u,t,'heal')&&(t.id!==u.id||u.defendUntil<=this.time)).sort((a,b)=>a.hp/unitSpec(a).hp-b.hp/unitSpec(b).hp||a.id-b.id)[0];
+      target=this.spatial.query(u,HEAL_RADIUS).filter(t=>this.supportEligible(u,t,'heal')&&distance(u,t)<=HEAL_RADIUS&&this.world.line(u,t)&&(t.id!==u.id||u.defendUntil<=this.time)).sort((a,b)=>a.hp/unitSpec(a).hp-b.hp/unitSpec(b).hp||a.id-b.id)[0];
     }else{
       const damagedVehicles=this.spatial.query(u,80).filter(v=>this.supportEligible(u,v,'repair')&&distance(u,v)<=80);
       const damagedBuildings=this.bases.filter(b=>this.supportEligible(u,b,'repair')&&distance(u,b)<=b.radius+55);
@@ -304,7 +309,7 @@ export class Simulation {
     u.path=[];u.combatTarget=null;u.pursuitOrigin=null;u.workingTarget=target.id;
     u.angle=Math.atan2(target.y-u.y,target.x-u.x);u.facing=target.x<u.x?-1:1;
     if('orders' in target){
-      if(u.kind==='medic'){if(!this.healNearby(u,dt)){u.workingTarget=null;return false;}}
+      if(u.kind==='medic'){if(u.workingTarget===null)return false;}
       else {const before=target.hp;target.hp=Math.min(unitSpec(target).hp,target.hp+18*dt);this.work('repair',u.id,target.id,target.hp-before);}
     }
     else if(target.buildRemaining<=0){const before=target.hp;target.hp=Math.min(buildingSpec(target).hp,target.hp+12*dt);this.work('repair',u.id,target.id,target.hp-before);}
@@ -312,7 +317,7 @@ export class Simulation {
   }
   /** A shared 12 HP/s budget; self care is capped at 3 HP/s and waits after damage. */
   private healNearby(u:Unit,dt:number):boolean {
-    const patients=this.spatial.query(u,HEAL_RADIUS).filter(t=>this.supportEligible(u,t,'heal')&&this.world.line(u,t)&&(t.id!==u.id||u.defendUntil<=this.time));
+    const patients=this.spatial.query(u,HEAL_RADIUS).filter(t=>this.supportEligible(u,t,'heal')&&distance(u,t)<=HEAL_RADIUS&&this.world.line(u,t)&&(t.id!==u.id||u.defendUntil<=this.time));
     const others=patients.filter(t=>t.id!==u.id),urgent=others.some(t=>t.hp/unitSpec(t).hp<.5);
     const targets=patients.filter(t=>t.id!==u.id||!urgent);
     if(!targets.length)return false;
@@ -477,6 +482,9 @@ export class Simulation {
       if(u.hp<=0||u.carrier)continue;u.previousX=u.x;u.previousY=u.y;u.cooldown-=dt;u.repath-=dt;u.hit=Math.max(0,u.hit-dt);u.fire=Math.max(0,u.fire-dt);u.moving=false;
       const transportBusy=this.transports.step(u,dt);
       if(this.transports.boarding(u,dt))continue;
+      // One shared 12-HP/s pulse per medic and tick, including while moving,
+      // escorting or following an explicit target. Never double-heal an ally.
+      if(u.kind==='medic'){u.workingTarget=null;this.healNearby(u,dt);}
       if(this.escort(u,dt)||this.support(u,dt)){delete u.burst;continue;}
       const order=u.orders[0];
       // A player retreat / tactical reposition is authoritative. Do not let
