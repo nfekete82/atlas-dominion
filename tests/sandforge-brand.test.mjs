@@ -41,3 +41,17 @@ test('launch route shows full-screen desert art before map selection',()=>{
  assert.ok(statSync('src/assets/reborn/start-screen.png').size>100_000,'title image must be present');
  assert.ok(statSync('dist/src/assets/reborn/start-screen.png').size>100_000,'title image must be shipped');
 });
+
+test('true-alpha logo composites over desert without a black image rectangle',()=>{
+  const logo=readFileSync('src/assets/reborn/sandforge-logo.webp');
+  assert.equal(logo.toString('ascii',0,4),'RIFF');
+  assert.equal(logo.toString('ascii',8,12),'WEBP');
+  const vp8x=logo.indexOf(Buffer.from('VP8X'));
+  assert.notEqual(vp8x,-1,'WebP extended header required for the alpha channel');
+  assert.ok((logo[vp8x+8]&0x10)!==0,'WebP alpha flag must be enabled');
+  assert.notEqual(logo.indexOf(Buffer.from('ALPH')),-1,'WebP must contain an ALPH chunk');
+  assert.match(css,/SANDFORGE TRUE ALPHA V3/);
+  assert.match(css,/html\.sandforge-branded \.sandforge-logo\s*\{\s*mix-blend-mode:normal/);
+  const shipped=readFileSync('dist/src/assets/reborn/sandforge-logo.webp');
+  assert.deepEqual(shipped,logo,'Docker dist must ship the exact transparent artwork');
+});

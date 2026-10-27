@@ -453,3 +453,39 @@ dialog>small,dialog form>small,.panel-heading,.help-grid h2 {color:#d8b983;}
 
 /* Fullscreen branding: do not inherit the compact dialog's ornamental separator. */
 #main-dialog .menu-brand{border-bottom:0;padding-bottom:0}
+
+/* SANDFORGE TRUE ALPHA V3
+   The transparent RGBA logo is composited directly over the desert artwork.
+   Never use screen-blend: it makes shadows, navy armor and the emblem look washed out. */
+html.sandforge-branded .sandforge-logo{
+  mix-blend-mode:normal;
+  background:transparent;
+  image-rendering:auto;
+}
+#main-dialog .menu-brand{
+  width:min(660px,54vw);
+  margin-bottom:clamp(5px,1.4vh,16px);
+}
+#main-dialog .sandforge-splash-logo{
+  width:100%;
+  max-height:min(38vh,380px);
+  object-fit:contain;
+  object-position:left center;
+  filter:drop-shadow(0 14px 16px rgba(0,0,0,.32))
+         drop-shadow(0 2px 9px rgba(223,148,61,.15));
+}
+#main-dialog>small{letter-spacing:.20em}
+#main-dialog h1{margin-top:clamp(9px,1.5vh,18px)}
+#loading .sandforge-loading-logo,
+#pause-dialog .sandforge-pause-logo{
+  mix-blend-mode:normal;
+  filter:drop-shadow(0 7px 18px #0009);
+}
+@media(max-width:720px){
+  #main-dialog .menu-brand{width:min(520px,96%);margin-bottom:4px}
+  #main-dialog .sandforge-splash-logo{max-height:30vh}
+}
+@media(max-height:670px) and (min-width:721px){
+  #main-dialog .sandforge-splash-logo{max-height:28vh}
+  #main-dialog h1{margin-top:6px}
+}
