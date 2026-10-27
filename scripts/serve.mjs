@@ -4,7 +4,7 @@ import { resolve, sep, extname } from 'node:path';
 const PORT = Number(process.env.PORT || 8095);
 const HOST = process.env.HOST || '127.0.0.1';
 const BASE = resolve('dist');
-const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.map': 'application/json', '.png': 'image/png', '.svg':'image/svg+xml', '.wav':'audio/wav' };
+const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.map': 'application/json', '.png': 'image/png', '.webp':'image/webp', '.svg':'image/svg+xml', '.wav':'audio/wav' };
 createServer(async (req, res) => {
   try {
     const path = decodeURIComponent(new URL(req.url ?? '/', 'http://localhost').pathname);

@@ -28,3 +28,16 @@ test('package and lock names are synchronized',()=>{
  assert.equal(lock.name,p.name);
  assert.equal(lock.packages[''].name,p.name);
 });
+
+test('launch route shows full-screen desert art before map selection',()=>{
+ const main=readFileSync('src/reborn/main.ts','utf8');
+ assert.match(main,/if\(!query\.has\('debug'\)\)modal\('main-dialog'\)/);
+ assert.doesNotMatch(main,/if\(!query\.has\('debug'\)\)modal\('new-dialog'\)/);
+ assert.match(main,/main-dialog'\)\.addEventListener\('cancel',event=>event\.preventDefault\(\)\)/);
+ assert.match(main,/main-continue'\)\.hidden=!hasEnteredCampaign/);
+ assert.match(html,/<dialog id="main-dialog" class="main-menu"/);
+ assert.match(css,/#main-dialog\[open\]\s*\{display:flex/);
+ assert.match(css,/url\('\/src\/assets\/reborn\/start-screen\.png'\)/);
+ assert.ok(statSync('src/assets/reborn/start-screen.png').size>100_000,'title image must be present');
+ assert.ok(statSync('dist/src/assets/reborn/start-screen.png').size>100_000,'title image must be shipped');
+});
