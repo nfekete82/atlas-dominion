@@ -1,0 +1,46 @@
+name: Commander paired 600-second benchmark
+on:
+  push:
+    branches: [fix/campaign-route-aware-target-selection-20261027]
+    paths: [.github/workflows/commander-paired-benchmark.yml]
+permissions:
+  contents: read
+jobs:
+  paired:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund && npm run build
+      - name: Build unchanged Titan reference for paired opponent comparison
+        run: |
+          git worktree add --detach /tmp/atlas-before 2aaf66a4d2bda15b3b001117e5360b5cfc91b923
+          cd /tmp/atlas-before
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Run unchanged reference on identical maps and seeds
+        run: |
+          ATLAS_SIM_MODULE=/tmp/atlas-before/dist/src/reborn/simulation.js node scripts/benchmark-reborn-ai.mjs --maps 4 --seeds 2026,2027 --seconds 650 --modes director --label before --output /tmp/atlas-before.json > /tmp/atlas-before.log
+          grep -E '^before director' /tmp/atlas-before.log
+      - name: Run improved route selection on the same matches
+        run: |
+          node scripts/benchmark-reborn-ai.mjs --maps 4 --seeds 2026,2027 --seconds 650 --modes director --label after --output /tmp/atlas-after.json > /tmp/atlas-after.log
+          grep -E '^after director' /tmp/atlas-after.log
+      - name: Show paired score, battles and performance comparison
+        run: |
+          node --input-type=module <<'JS'
+          import {readFileSync} from 'node:fs';
+          const b=JSON.parse(readFileSync('/tmp/atlas-before.json','utf8')),a=JSON.parse(readFileSync('/tmp/atlas-after.json','utf8'));
+          console.log('DATA ROOTS',Object.keys(b),Object.keys(a));
+          const walk=(x)=>x?.results??x?.runs??x?.matches??[];
+          const pick=x=>({seed:x.seed,score:x.score,outcome:x.outcome,captures:x.captures,firstHQDamage:x.firstEnemyHQDamage,unitsLost:x.redUnitsLost,missionAborts:x.abortedMissions,aiMs:x.cpu?.meanAIPlanningCpuMs});
+          console.log('BEFORE',JSON.stringify(walk(b).map(pick)));
+          console.log('AFTER ',JSON.stringify(walk(a).map(pick)));
+          JS
