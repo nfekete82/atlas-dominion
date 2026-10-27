@@ -203,6 +203,12 @@ export class World {
   territories(seed=2026): Territory[] {
     let random=seed>>>0;const rand=()=>{random=(Math.imul(random,1664525)+1013904223)>>>0;return random/4294967296;};
     const layout=mapLayout(this.mapVersion),cols=layout.columns,rows=layout.rows,w=this.size/cols,h=this.size/rows;
+    // Only the 16-sector campaign begins with a separate bastion beside each HQ.
+    // Boost that one starting bastion for each faction, not the HQ territory or
+    // newly captured sectors. Its value transfers normally if recaptured.
+    const startingBastions=this.mapVersion===2
+      ? [layout.starts[0].find(id=>id!==layout.headquarters[0]),layout.starts[1].find(id=>id!==layout.headquarters[1])]
+      : [];
     const vertices:Point[][]=Array.from({length:rows+1},(_,y)=>Array.from({length:cols+1},(_,x)=>({
       x:x*w+(x===0||x===cols?0:(rand()-.5)*w*.24),y:y*h+(y===0||y===rows?0:(rand()-.5)*h*.24)})));
     if(this.mapVersion>=2)for(let y=0;y<=rows;y++)for(let x=0;x<=cols;x++){
@@ -220,7 +226,7 @@ export class World {
       const mirrored=this.mapVersion>=2?Math.min(id,cols*rows-1-id):id,value=mirrored%7===0?2:mirrored%3===0?1:0;
       return {id,name:this.mapVersion===2?campaignNames[id]:this.mapVersion>=3?`Sektor ${id+1}`:names[id],polygon:[vertices[y][x],vertices[y][x+1],vertices[y+1][x+1],vertices[y+1][x]],
         point,neighbors:[x>0?id-1:-1,x<cols-1?id+1:-1,y>0?id-cols:-1,y<rows-1?id+cols:-1].filter(i=>i>=0),
-        owner:layout.starts[0].some(i=>i===id)?0:layout.starts[1].some(i=>i===id)?1:-1,capturing:-1,progress:0,income:layout.incomes[value],value};
+        owner:layout.starts[0].some(i=>i===id)?0:layout.starts[1].some(i=>i===id)?1:-1,capturing:-1,progress:0,income:startingBastions.includes(id)?RULES.startingBastionIncome:layout.incomes[value],value};
     });
   }
 }
