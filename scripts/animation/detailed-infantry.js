@@ -1,54 +1,15 @@
 import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+import {realisticDesertMaterials} from './realistic-desert-materials.js';
 
-// Small seeded, tileable maps shared by every part. No downloads or runtime shaders.
-function desertMaterials(team){
- let seed=74;const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
- const size=256,canvas=()=>{const c=document.createElement('canvas');c.width=c.height=size;return c;};
- const texture=(c,color=false)=>{const t=new T.CanvasTexture(c);if(color)t.colorSpace=T.SRGBColorSpace;t.wrapS=t.wrapT=T.RepeatWrapping;return t;};
- function surface(kind){
-  const color=canvas(),ctx=color.getContext('2d'),height=new Float32Array(size*size),rough=canvas(),rctx=rough.getContext('2d'),rdata=rctx.createImageData(size,size);
-  ctx.fillStyle=kind==='cloth'?'#c4b48f':'#d4c19a';ctx.fillRect(0,0,size,size);
-  if(kind==='cloth')for(let i=0;i<34;i++){
-   const x=rand()*size,y=rand()*size,rx=10+rand()*31,ry=7+rand()*17,points=Array.from({length:10},(_,j)=>{const a=j*Math.PI/5,r=.7+rand()*.45;return [Math.cos(a)*rx*r,Math.sin(a)*ry*r];});
-   ctx.fillStyle=i%3===0?'#968061':'#dfd0af';
-   for(const dx of [-size,0,size])for(const dy of [-size,0,size]){ctx.beginPath();for(let j=0;j<points.length;j++){const p=points[j],q=points[(j+1)%points.length];if(j===0)ctx.moveTo(x+dx+p[0],y+dy+p[1]);ctx.quadraticCurveTo(x+dx+p[0],y+dy+p[1],x+dx+(p[0]+q[0])*.5,y+dy+(p[1]+q[1])*.5);}ctx.closePath();ctx.fill();}
-  }
-  for(let y=0;y<size;y++)for(let x=0;x<size;x++){
-   const noise=rand(),weave=kind==='cloth'?((x%4<2?1:-1)*(y%4<2?1:-1))*.12:0;
-   height[y*size+x]=.5+(noise-.5)*(kind==='cloth'?.16:.10)+weave;
-   const r=Math.round(255*((kind==='cloth'?.9:.73)+(noise-.5)*.10));const k=(y*size+x)*4;rdata.data.set([r,r,r,255],k);
-  }
-  // Restrained dust grain and shallow chips keep the ceramic predominantly sand.
-  for(let i=0;i<1800;i++){ctx.fillStyle=i%3?'rgba(255,244,211,.07)':'rgba(64,49,32,.07)';ctx.fillRect(rand()*size,rand()*size,.5+rand(),.5+rand());}
-  if(kind==='ceramic')for(let i=0;i<32;i++){ctx.strokeStyle='rgba(91,72,47,.15)';ctx.lineWidth=.55;const x=rand()*size,y=rand()*size;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+2+rand()*5,y+rand()*2);ctx.stroke();}
-  rctx.putImageData(rdata,0,0);const normal=canvas(),nctx=normal.getContext('2d'),ndata=nctx.createImageData(size,size);
-  for(let y=0;y<size;y++)for(let x=0;x<size;x++){const at=(a,b)=>height[((b+size)%size)*size+(a+size)%size],v=new T.Vector3((at(x-1,y)-at(x+1,y))*.6,(at(x,y-1)-at(x,y+1))*.6,1).normalize();ndata.data.set([Math.round((v.x*.5+.5)*255),Math.round((v.y*.5+.5)*255),Math.round((v.z*.5+.5)*255),255],(y*size+x)*4);}
-  nctx.putImageData(ndata,0,0);return {map:texture(color,true),roughnessMap:texture(rough),normalMap:texture(normal)};
- }
- const cloth=surface('cloth'),ceramic=surface('ceramic');
- const mat=(name,color,roughness,metalness,extra={})=>new T.MeshStandardMaterial({name,color,roughness,metalness,...extra});
- return {
-  armour:mat('Atlas sand ceramic','#ffffff',1,.06,{...ceramic,normalScale:new T.Vector2(.3,.3)}),
-  cloth:mat('Atlas three-tone desert fabric','#ffffff',1,0,{...cloth,normalScale:new T.Vector2(.55,.55)}),
-  seam:mat('Atlas sand stitching','#938568',.94,0),
-  edge:mat('Atlas worn ceramic bevels','#94815e',.72,.25,{normalMap:ceramic.normalMap,roughnessMap:ceramic.roughnessMap}),
-  dark:mat('Atlas charcoal webbing','#38362d',.94,0,{normalMap:cloth.normalMap,normalScale:new T.Vector2(.4,.4)}),
-  metal:mat('Atlas phosphate steel','#303331',.55,.78,{roughnessMap:ceramic.roughnessMap,normalMap:ceramic.normalMap,normalScale:new T.Vector2(.15,.15)}),
-  worn:mat('Atlas brushed edge steel','#6a6b61',.46,.82),
-  team:mat('Atlas faction enamel',team?'#a7312a':'#205b98',.63,.18),
-  light:mat('Atlas amber optics','#aa8951',.25,.35,{emissive:'#d8ab59',emissiveIntensity:.16}),
-  rubber:mat('Atlas dark boot rubber','#242520',.96,0),
- };
-}
-
+// PBR textile, nylon, ceramic and worn steel surfaces are baked into each GLB.
 // Original hard-surface armour built around the CC0 Quaternius skeleton.
 // Every plate follows a real animated joint; there are no screen-space limb tricks.
 export function buildDetailedInfantry(model,team=0,role='infantry'){
  const bones={};model.traverse(n=>{if(n.isBone)bones[n.name]=n;});model.updateMatrixWorld(true);
  const p=name=>{if(!bones[name])throw Error('Missing rig joint '+name);return bones[name].getWorldPosition(new T.Vector3());};
  const oldMeshes=[];model.traverse(n=>{if(n.isMesh)oldMeshes.push(n);});oldMeshes.forEach(n=>n.visible=false);
- const m=desertMaterials(team);
+ const m=realisticDesertMaterials(team);
  const parts=[];let triangles=0;
  const mesh=(name,geometry,mat,parent,position=[0,0,0])=>{const n=new T.Mesh(geometry,mat);n.name='Atlas_'+name;n.position.set(...position);n.castShadow=n.receiveShadow=true;parent.add(n);parts.push(n);triangles+=(geometry.index?.count??geometry.attributes.position.count)/3;return n;};
  const box=(name,size,mat,parent,position=[0,0,0],radius=.018)=>mesh(name,new RoundedBoxGeometry(...size,Math.min(...size)<.03?1:3,Math.min(radius,...size.map(v=>v*.25))),mat,parent,position);
@@ -59,35 +20,66 @@ export function buildDetailedInfantry(model,team=0,role='infantry'){
  const bolts=(g,w,h,z)=>{for(const x of [-w/2,w/2])for(const y of [-h/2,h/2]){cylinder('Fastener',.009,.008,m.metal,g,[x,y,z]);box('FastenerSlot',[.010,.002,.003],m.edge,g,[x,y,z+.006],.0005);}};
  // Breastplate, overlapping abdominal lames and a vented power pack.
  const chest=attach('Breastplate','Torso',new T.Vector3(0,1.25,.085));
- box('ChestRim',[.55,.40,.34],m.edge,chest,[0,0,0],.055);box('ChestCeramic',[.51,.36,.34],m.armour,chest,[0,.012,.018],.055);
- for(const x of [-.132,.132]){const plate=box('Pectoral',[.238,.195,.047],m.team,chest,[x,.075,.196],.022);plate.rotation.z=x>0?-.07:.07;}
- box('ChestInset',[.34,.057,.024],m.dark,chest,[0,-.053,.203]);box('ChestStatus',[.145,.012,.012],m.light,chest,[0,-.053,.22],.003);bolts(chest,.43,.27,.198);
+ box('ChestRim',[.55,.40,.34],m.webbing,chest,[0,0,0],.055);box('ChestCeramic',[.51,.36,.34],m.armour,chest,[0,.012,.018],.055);
+ for(const x of [-.132,.132]){const plate=box('Pectoral',[.238,.195,.047],m.armour,chest,[x,.075,.196],.022);plate.rotation.z=x>0?-.07:.07;}
+ box('ChestInset',[.34,.057,.024],m.dark,chest,[0,-.053,.203]);box('ChestStatus',[.145,.012,.012],m.dark,chest,[0,-.053,.22],.003);bolts(chest,.43,.27,.198);
  for(const x of [-.22,.22])box('ShoulderHarness',[.045,.41,.034],m.dark,chest,[x,.03,.20],.007);
+ // Sewn modular vest, MOLLE loops and real layered rifle-mag pouches.
+ for(const y of [-.093,-.137]){
+  box('MOLLEBand',[.405,.021,.028],m.webbing,chest,[0,y,.211],.003);
+  for(const x of [-.17,-.102,-.034,.034,.102,.17])
+   box('MOLLELoop',[.042,.018,.018],m.dark,chest,[x,y,.229],.003);
+ }
+ for(const x of [-.135,0,.135]){
+  box('FrontMagazine',[.104,.145,.092],m.webbing,chest,[x,-.177,.222],.012);
+  box('MagazineFlap',[.108,.042,.098],m.sand,chest,[x,-.126,.224],.007);
+  box('MagazinePullTab',[.028,.052,.012],m.dark,chest,[x,-.135,.281],.003);
+ }
+ for(const x of [-.247,.247]){
+  box('CarrierSideBuckle',[.034,.069,.045],m.metal,chest,[x,-.07,.166],.006);
+  box('CarrierSideStrap',[.037,.15,.032],m.dark,chest,[x,-.145,.178],.005);
+ }
  const abdomen=attach('AbdominalLames','Abdomen',new T.Vector3(0,.96,.06));
- for(let i=0;i<3;i++)box('AbdominalPlate',[.42-i*.025,.085,.25],i===2?m.edge:m.armour,abdomen,[0,.13-i*.077,.022],.014);
+ for(let i=0;i<3;i++)box('AbdominalPlate',[.42-i*.025,.085,.25],i===2?m.dark:m.webbing,abdomen,[0,.13-i*.077,.022],.014);
  const belt=attach('UtilityBelt','Body_1',new T.Vector3(0,.85,.02));box('Belt',[.48,.09,.29],m.dark,belt);box('Buckle',[.105,.069,.035],m.edge,belt,[0,0,.166]);
- for(const x of [-.205,.205]){box('AmmoPouch',[.105,.17,.12],m.armour,belt,[x,-.11,.12]);box('PouchLid',[.113,.045,.13],m.edge,belt,[x,-.037,.12]);}
- const pack=attach('PowerPack','Torso',new T.Vector3(0,1.24,-.17));box('PackFrame',[.34,.40,.20],m.edge,pack,[0,0,0],.03);box('PackCasing',[.30,.36,.20],m.armour,pack,[0,0,-.015],.03);
- box('PackStripe',[.20,.27,.025],m.team,pack,[0,0,-.136]);
+ for(const x of [-.205,.205]){box('AmmoPouch',[.105,.17,.12],m.webbing,belt,[x,-.11,.12]);box('PouchLid',[.113,.045,.13],m.sand,belt,[x,-.037,.12]);}
+ const pack=attach('PowerPack','Torso',new T.Vector3(0,1.24,-.17));box('PackFrame',[.34,.40,.20],m.dark,pack,[0,0,0],.03);box('PackCasing',[.30,.36,.20],m.webbing,pack,[0,0,-.015],.03);
+ box('PackStripe',[.10,.035,.026],m.team,pack,[0,.124,-.136]);
+ for(const x of [-.105,.105]){
+  box('BackpackStrap',[.038,.34,.023],m.sand,pack,[x,0,-.135],.006);
+  box('BackpackBuckle',[.052,.045,.030],m.metal,pack,[x,.085,-.14],.004);
+ }
+ box('RucksackLowerPouch',[.29,.115,.14],m.webbing,pack,[0,-.225,-.09],.015);
+ box('RucksackFlap',[.29,.035,.16],m.sand,pack,[0,-.162,-.092],.004);
  for(const x of [-.12,.12])for(let i=0;i<5;i++)box('CoolingFin',[.072,.012,.025],m.dark,pack,[x,-.08+i*.035,-.139],.002);
  cylinder('Antenna',.008,.34,m.metal,pack,[.15,.35,0],'y');sphere('AntennaCap',[.012,.017,.012],m.light,pack,[.15,.53,0]);
  // Smaller fully enclosed helmet, recessed continuous visor, ear mechanisms.
  const head=attach('Helmet','Head',new T.Vector3(0,1.68,.13));
  sphere('HelmetSeal',[.195,.195,.18],m.dark,head,[0,0,0]);sphere('HelmetShell',[.205,.20,.19],m.armour,head,[0,.025,-.012]);
- box('Brow',[.35,.067,.12],m.armour,head,[0,.065,.151],.025);box('VisorRecess',[.335,.10,.09],m.metal,head,[0,.004,.172],.025);
- box('VisorGlass',[.294,.048,.037],m.light,head,[0,.012,.217],.014);box('JawGuard',[.27,.087,.10],m.armour,head,[0,-.10,.166],.025);
+ box('Brow',[.35,.067,.12],m.armour,head,[0,.065,.151],.025);
+ box('GoggleWebbing',[.34,.065,.11],m.dark,head,[0,.011,.178],.014);
+ box('VisorRecess',[.32,.068,.06],m.rubber,head,[0,.012,.196],.019);
+ box('VisorGlass',[.294,.043,.025],m.light,head,[0,.016,.238],.012);
+ box('JawGuard',[.27,.087,.10],m.cloth,head,[0,-.10,.166],.025);
+ for(const x of [-.148,.148]){
+  box('HelmetSideRail',[.053,.063,.14],m.sand,head,[x,.082,.045],.011);
+  box('HelmetChinStrap',[.025,.115,.033],m.dark,head,[x,-.13,.15],.005);
+ }
+ box('HelmetNVGMount',[.09,.045,.045],m.metal,head,[0,.137,.155],.008);
+ box('HelmetNVGBracket',[.033,.05,.07],m.dark,head,[0,.164,.174],.008);
  for(const x of [-.118,.118]){const cheek=box('Cheek',[.069,.125,.09],m.armour,head,[x,-.048,.182]);cheek.rotation.z=x>0?.23:-.23;}
- box('HelmetStripe',[.10,.022,.23],m.team,head,[0,.218,-.01],.007);
+ box('HelmetStripe',[.065,.017,.12],m.team,head,[0,.218,-.01],.007);
  for(const x of [-.204,.204]){cylinder('EarMount',.079,.038,m.edge,head,[x,-.005,-.025],'x');cylinder('EarCover',.055,.043,m.armour,head,[x*1.03,-.005,-.025],'x');}
  const neck=attach('NeckSeal','Neck',new T.Vector3(0,1.44,.11));cylinder('Collar',.122,.12,m.dark,neck,[0,0,0],'y');
  // Articulated limbs. Plates are registered to individual joints, not to a sprite.
  for(const side of ['L','R']){
   const upper=segment('UpperArm'+side,'UpperArm'+side,'LowerArm'+side,.175,.18),arm=upper.g;
   const shoulder=box('PauldronRim',[.28,upper.length*.63,.27],m.edge,arm,[0,-upper.length*.12,0],.04);
-  box('Pauldron',[.262,upper.length*.60,.26],m.team,arm,[0,-upper.length*.13,.012],.037);
-  box('PauldronBadge',[.10,.045,.012],m.team,arm,[0,-upper.length*.13,.15],.014);
+  box('Pauldron',[.262,upper.length*.60,.26],m.cloth,arm,[0,-upper.length*.13,.012],.037);
+  box('PauldronBadge',[.12,.065,.013],m.team,arm,[0,-upper.length*.13,.15],.014);
+  box('RadioPouch',[.095,.13,.08],m.webbing,arm,[0,-upper.length*.23,.112],.012);
   const wrist=p('Index1'+side),lower=segment('Forearm'+side,'LowerArm'+side,wrist,.16,.17);
-  box('Gauntlet',[.18,lower.length*.57,.18],m.edge,lower.g,[0,lower.length*.07,0]);box('ForearmPlate',[.16,lower.length*.55,.066],m.team,lower.g,[0,lower.length*.07,.105]);
+  box('Gauntlet',[.18,lower.length*.57,.18],m.edge,lower.g,[0,lower.length*.07,0]);box('ForearmPlate',[.16,lower.length*.55,.066],m.cloth,lower.g,[0,lower.length*.07,.105]);
   for(let i=0;i<3;i++)box('WristRib',[.16,.017,.17],m.metal,lower.g,[0,lower.length*(.29+i*.07),0],.004);
   // Glove axes match the named weapon grip sockets; the wrist is oriented in the bake.
   const hand=new T.Group();hand.name='Atlas_Glove'+side;bones['Index1'+side].add(hand);const sign=side==='R'?1:-1;
@@ -100,13 +92,19 @@ export function buildDetailedInfantry(model,team=0,role='infantry'){
   }
   box('Thumb'+side,[.023,.029,.063],m.dark,hand,[sign*.060,.041,.003],.010);
   const thigh=segment('Thigh'+side,'UpperLeg'+side,'LowerLeg'+side,.20,.23);
-  box('ThighCeramic',[.19,thigh.length*.64,.07],m.armour,thigh.g,[0,-.025,.128],.022);box('ThighStripe',[.032,.065,.012],m.team,thigh.g,[0,-.025,.17],.005);
+  box('ThighCeramic',[.19,thigh.length*.64,.07],m.cloth,thigh.g,[0,-.025,.128],.022);
+  const pocket=box('ThighCargoPocket',[.175,thigh.length*.40,.105],m.webbing,thigh.g,[0,-.045,.155],.017);
+  box('ThighPocketFlap',[.183,.048,.112],m.sand,thigh.g,[0,.038,.158],.006);
+  box('ThighPocketBuckle',[.042,.035,.013],m.dark,thigh.g,[0,.015,.217],.004);
   const shin=segment('Shin'+side,'LowerLeg'+side,p('Foot'+side).clone().add(new T.Vector3(0,.08,0)),.17,.18);
-  box('ShinRim',[.20,shin.length*.74,.11],m.edge,shin.g,[0,.01,.09]);box('ShinCeramic',[.175,shin.length*.70,.083],m.armour,shin.g,[0,.01,.134],.02);bolts(shin.g,.13,shin.length*.53,.181);
+  box('ShinRim',[.20,shin.length*.74,.11],m.edge,shin.g,[0,.01,.09]);box('ShinCeramic',[.175,shin.length*.70,.083],m.cloth,shin.g,[0,.01,.134],.02);bolts(shin.g,.13,shin.length*.53,.181);
   const knee=attach('Knee'+side,'LowerLeg'+side,p('LowerLeg'+side));sphere('KneeJoint',[.104,.102,.10],m.dark,knee,[0,0,0]);box('KneeCap',[.19,.17,.10],m.armour,knee,[0,0,.095],.034);
   const boot=attach('Boot'+side,'Foot'+side,p('Foot'+side).clone().add(new T.Vector3(0,.057,.07)));
-  box('BootUpper',[.20,.16,.31],m.dark,boot,[0,.038,.015],.035);box('BootToe',[.205,.105,.19],m.rubber,boot,[0,.013,.12],.026);box('Sole',[.218,.038,.34],m.rubber,boot,[0,-.045,.025],.009);
-  for(let i=0;i<5;i++)box('Tread',[.221,.025,.023],m.metal,boot,[0,-.059,-.105+i*.065],.003);
+  box('BootUpper',[.20,.16,.31],m.sand,boot,[0,.038,.015],.035);box('BootToe',[.205,.105,.19],m.sand,boot,[0,.013,.12],.026);box('Sole',[.218,.038,.34],m.rubber,boot,[0,-.045,.025],.009);
+  for(let i=0;i<5;i++)box('Tread',[.221,.025,.023],m.rubber,boot,[0,-.059,-.105+i*.065],.003);
+  for(let i=0;i<4;i++){
+   box('BootLace',[.10,.006,.008],m.dark,boot,[0,.085-i*.021,.173],.002);
+  }
  }
  // The weapon belongs to the right wrist. Its grip frames also author the gloves.
  const socket=new T.Group();socket.name='Atlas_WeaponSocket';bones.Index1R.add(socket);
@@ -154,13 +152,17 @@ export function buildDetailedInfantry(model,team=0,role='infantry'){
  if(role==='heavy'){
   for(const side of ['L','R']){
    const arm=model.getObjectByName('Atlas_UpperArm'+side);
-   box('HeavyShoulderShell',[.36,.26,.34],m.team,arm,[0,-.03,0],.05);
+   box('HeavyShoulderShell',[.36,.26,.34],m.armour,arm,[0,-.03,0],.05);
    box('HeavyShoulderRidge',[.38,.06,.36],m.edge,arm,[0,.10,0],.015);
   }
-  box('HeavyBreastplate',[.57,.28,.08],m.team,chest,[0,.06,.25],.025);
+  box('HeavyBreastplate',[.57,.28,.08],m.armour,chest,[0,.06,.25],.025);
   box('HeavyPowerCell',[.43,.48,.24],m.dark,pack,[0,0,-.08],.025);
-  for(const x of [-.17,.17])box('HeavyPackArmour',[.10,.43,.06],m.team,pack,[x,.01,-.23],.014);
+  for(const x of [-.17,.17])box('HeavyPackArmour',[.10,.43,.06],m.webbing,pack,[x,.01,-.23],.014);
   box('HeavyWeaponReceiver',[.15,.17,.38],m.metal,rifle,[0,.015,.015],.022);
+  box('HeavyAmmoCase',[.23,.19,.16],m.webbing,rifle,[-.145,-.13,.01],.017);
+  // Exposed ammo belt makes the heavy gun distinct in a top-down RTS view.
+  for(let i=0;i<13;i++)cylinder('BeltRound',.013,.075,m.worn,rifle,
+    [-.145+Math.sin(i*.28)*.015,-.034-i*.016,.055+i*.022],'y');
   cylinder('HeavyWeaponShroud',.065,.30,m.edge,rifle,[0,.018,.61]);
   box('HeavyMuzzleBrake',[.15,.11,.14],m.metal,rifle,[0,.018,.81],.012);
   const muzzle=rifle.getObjectByName('Atlas_MuzzleBore');muzzle.position.z=.888;
@@ -177,7 +179,7 @@ export function buildDetailedInfantry(model,team=0,role='infantry'){
   const pistolGrip=box('PistolHandle',[.065,.145,.080],m.dark,rifle,[0,-.11,-.125],.012);pistolGrip.rotation.x=-.13;
   box('PistolTriggerGuard',[.012,.065,.012],m.worn,rifle,[0,-.075,-.037],.002);
   cylinder('MuzzleBore',.016,.008,m.rubber,rifle,[0,-.015,.090]);
-  const white=new T.MeshStandardMaterial({color:'#e9e5cb',roughness:.85}),green=new T.MeshStandardMaterial({color:'#36996b',roughness:.7});
+  const white=m.sand,green=m.medic;
   const cross=(parent,z)=>{box('MedicalCrossVertical',[.065,.23,.015],green,parent,[0,.025,z],.002);box('MedicalCrossHorizontal',[.22,.065,.018],green,parent,[0,.025,z],.002);};
   if(role==='medic'){
    box('MedicalSatchel',[.45,.48,.27],white,pack,[0,-.005,-.065],.045);
@@ -196,6 +198,6 @@ export function buildDetailedInfantry(model,team=0,role='infantry'){
    box('TechnicalHelmetBand',[.30,.06,.028],yellow,head,[0,.115,.177],.006);
   }
  }
- model.userData.atlasDesign={name:'Atlas Legion '+role+' / desert ceramic armour',version:2,team,role,parts:parts.length,triangles:Math.round(triangles),materials:'Seeded 256px desert fabric, ceramic PBR and phosphate steel',weaponBinding:'Right wrist socket / two-hand grip frames',geometry:'Original procedural hard-surface armour and rifle',rig:'Quaternius Toon Shooter Game Kit / CC0-1.0'};
+ model.userData.atlasDesign={name:'Atlas Legion '+role+' / multicam tactical desert kit',version:2,team,role,parts:parts.length,triangles:Math.round(triangles),materials:'Seeded 512px multicam PBR textiles, MOLLE nylon, sand ceramic and weathered steel',weaponBinding:'Right wrist socket / two-hand grip frames',geometry:'Original tactical 3D desert kit with textured carrier, cargo pockets, helmet rails and role weapons',rig:'Quaternius Toon Shooter Game Kit / CC0-1.0'};
  model.updateMatrixWorld(true);return model.userData.atlasDesign;
 }
