@@ -16,6 +16,8 @@
     "assets:animations:hd": "node scripts/render-unit-atlases.mjs --hd",
     "assets:animation-audit": "npm run build && node scripts/audit-animation-assets.mjs",
     "assets:detailed-infantry": "node scripts/export-detailed-infantry.mjs",
+    "assets:realistic-infantry": "node scripts/export-detailed-infantry.mjs && node scripts/verify-realistic-infantry.mjs",
+    "assets:realistic-infantry:verify": "node scripts/verify-realistic-infantry.mjs",
     "assets:buildings": "node scripts/export-atlas-buildings.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:performance": "npm run build && node scripts/benchmark-reborn-performance.mjs after",
