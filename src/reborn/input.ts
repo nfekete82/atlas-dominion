@@ -45,7 +45,7 @@ export class Input {
       if(renderer.placement){
         const point=renderer.world(p),error=renderer.game.buildError(0,renderer.placement,point);
         const site=error?null:renderer.game.build(0,renderer.placement,point,[...renderer.selected]);
-        if(site){this.acknowledge('build',[...renderer.selected].filter(id=>renderer.game.units.some(u=>u.id===id&&u.kind==='engineer'&&u.orders.some(o=>o.kind==='build'&&o.target===site.id))));renderer.placement=null;canvas.classList.remove('building');this.notify('Baustelle beauftragt. Bauarbeiter sind unterwegs.');}
+        if(site){this.acknowledge('build',[...renderer.selected].filter(id=>renderer.game.units.some(u=>u.id===id&&u.kind==='engineer'&&u.orders.some(o=>o.kind==='build'&&o.target===site.id))));renderer.placement=null;canvas.classList.remove('building');this.notify('Baustelle beauftragt. Ingenieure sind unterwegs.');}
         else this.notify(error??'Ein lebender Bauarbeiter muss die Baustelle erreichen können.');
       }else if(renderer.commandMode){this.order(renderer.world(p),e.shiftKey);renderer.commandMode=null;}
       else if(this.dragging){
@@ -123,6 +123,9 @@ export class Input {
       let count=0;const accepted:{id:number;kind:RadioAction}[]=[];
       for(const id of r.selected){const u=g.units.find(u=>u.id===id);if(!u)continue;
         if(u.kind==='medic'&&friendlyUnit){const n=g.command([id],{x:friendlyUnit.x,y:friendlyUnit.y,kind:'heal',target:friendlyUnit.id},append);count+=n;if(n)accepted.push({id,kind:'heal'});}
+        if(u.kind==='engineer'&&friendlyUnit&&(unitSpec(friendlyUnit).group==='Fahrzeuge'||unitSpec(friendlyUnit).flying)&&friendlyUnit.hp<unitSpec(friendlyUnit).hp){
+          const n=g.command([id],{x:friendlyUnit.x,y:friendlyUnit.y,kind:'repair',target:friendlyUnit.id},append);count+=n;if(n)accepted.push({id,kind:'repair'});
+        }
         if(u.kind==='engineer'&&friendlyBase){const kind=friendlyBase.buildRemaining>0?'build':'repair',n=g.command([id],{x:friendlyBase.x,y:friendlyBase.y,kind,target:friendlyBase.id},append);count+=n;if(n)accepted.push({id,kind});}
       }
       if(count){this.acknowledge(accepted[0].kind,[accepted[0].id]);this.onSelection();return;}
