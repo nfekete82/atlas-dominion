@@ -8,10 +8,10 @@ export const angleDifference=(a:number,b:number):number=>Math.atan2(Math.sin(b-a
 export const turnTowards=(from:number,to:number,speed:number,dt:number):number=>from+Math.max(-speed*dt,Math.min(speed*dt,angleDifference(from,to)));
 export const directionIndex=(angle:number,count:number):number=>((Math.round(angle/(Math.PI*2/count))%count)+count)%count;
 export class SpriteAnimator {
- state:AnimationState='idle';age=0;direction=0;private lastAttack=false;private lastHit=false;private walkDistance=0;private lastDistance:number|null=null;
+ state:AnimationState='idle';age=0;direction=0;private lastAttack=false;private lastHit=false;private hitLockout=0;private walkDistance=0;private lastDistance:number|null=null;
  constructor(readonly atlas:AnimationAtlas){}
  update(dt:number,input:AnimationIntent):AnimationFrame {
-  dt=Math.max(0,dt);const attack=input.attack&&!this.lastAttack,hit=input.hit&&!this.lastHit;
+  dt=Math.max(0,dt);this.hitLockout=Math.max(0,this.hitLockout-dt);const attack=input.attack&&!this.lastAttack,hit=input.hit&&!this.lastHit;
   this.lastAttack=input.attack;this.lastHit=input.hit;this.direction=directionIndex(input.angle,this.atlas.directions);
   if(this.lastDistance===null)this.walkDistance=input.distance;else if(input.moving)this.walkDistance+=Math.max(0,input.distance-this.lastDistance);this.lastDistance=input.distance;
   let next=this.state;
@@ -20,10 +20,10 @@ export class SpriteAnimator {
   // same tick. Incoming hits cannot restart or interrupt an active shot.
   else if(attack)next='attack';
   else if(this.state==='attack'&&this.age<this.atlas.clips.attack?.duration)next='attack';
-  else if(hit&&this.state!=='hit')next='hit';
+  else if(hit&&this.state!=='hit'&&this.hitLockout<=0)next='hit';
   else if(this.state==='hit'&&this.age<this.atlas.clips.hit?.duration)next='hit';
   else next=input.moving?'walk':'idle';
-  if(next!==this.state||attack&&next==='attack'){this.state=next;this.age=0;}else this.age+=dt;
+  if(next!==this.state||attack&&next==='attack'){this.state=next;this.age=0;if(next==='hit')this.hitLockout=Math.max(.60,(this.atlas.clips.hit?.duration??0)*2);}else this.age+=dt;
   return this.frame();
  }
  frame(tag:string=this.state,angle?:number):AnimationFrame {
