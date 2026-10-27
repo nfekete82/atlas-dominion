@@ -1,5 +1,6 @@
 import {UNITS,canAttack,type UnitKind} from './catalog.js';
 import {preferredRole} from './ai-director.js';
+import {nextTaskForcePurchase} from './operations-command.js';
 import type {Simulation,Unit,Base} from './simulation.js';
 import type {TacticalState} from './tactical-ai.js';
 import type {ProductionDecision} from './army-economy.js';
@@ -55,6 +56,12 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
   if(available('infantry')&&screen<3&&fighters<5)return 'infantry';
   const response=counter();if(response)return response;
   if(c.underAttack)return null;
+  // The commander and factory now share one durable mission requirement.
+  // Refuse stale directives after the commander changes its objective.
+  const mission=s.commander?.mission,operation=s.operation;
+  const order=mission&&operation&&mission.sector===operation.sector&&mission.objective===operation.objective
+   ?nextTaskForcePurchase(operation,counts(),available):null;
+  if(order)return order;
   const siegeNeed=s.battle?.assessment?.neededSiege??0;
   if(!observed.air&&available('artillery')&&count('artillery')<siegeNeed&&ground()>=2)return 'artillery';
   if(!observed.air&&available('artillery')&&count('artillery')===0&&(c.knownEnemyHQ||c.knownTurrets>0))return 'artillery';
