@@ -111,7 +111,10 @@ export class TacticalAI {
   const army=g.units.filter(v=>v.owner===1&&v.hp>0&&!v.carrier),near=army.filter(v=>distance(v,u)<450&&!s.recovering?.includes(v.id));
   const towers=s.knownTurrets.filter(t=>distance(t,u)<t.range+220),enemies=g.units.filter(v=>v.owner===0&&v.hp>0&&!v.carrier&&g.canSee(1,v)&&distance(v,u)<600);
   const assessment=assessBattle(near,enemies,towers,g.time,true);
-  if(towers.length&&assessment.stance==='attack'&&u.hp>unitSpec(u).hp*.65)return;
+  // An organized rocket battery is a committed siege, not a losing skirmish.
+  // Keep a healthy screen protecting the artillery; retreat it once genuinely
+  // wounded, or when observed strength no longer supports the bombardment.
+  if(towers.length&&(assessment.stance==='attack'||assessment.stance==='siege')&&u.hp>unitSpec(u).hp*.65)return;
   // A rocket already firing from range may continue; a short-range screen
   // under fire must move beyond the guns instead of waiting for 67% HP.
   if(u.kind==='artillery'&&towers.length&&towers.every(t=>distance(t,u)>t.range+15)&&u.hp>unitSpec(u).hp*.75)return;

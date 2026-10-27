@@ -2,6 +2,8 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {assaultDecision,abortAssault,preferredRole} from '../dist/src/reborn/ai-director.js';
 import {Simulation} from '../dist/src/reborn/simulation.js';
+import {assessBattle} from '../dist/src/reborn/battle-response.js';
+import {RULES} from '../dist/src/reborn/config.js';
 import {developArmy} from '../dist/src/reborn/army-economy.js';
 import {addProducer} from './fixtures/reborn-production.mjs';
 import {blueDefense} from '../scripts/benchmark-ai-opponent.mjs';
@@ -18,6 +20,26 @@ test('director: requires heavier support for actual visible fortifications',()=>
   readyUnits:3,readyStrength:5,phaseSeconds:30,inRegroup:false,clusteredRecentLosses:false,scoutingOpening:false};
  assert.equal(assaultDecision(s).launch,false);
  assert.equal(assaultDecision({...s,hasArtillery:true,readyUnits:5,readyStrength:7}).launch,true);
+});
+
+test('director: screen survives initial tower contact when paid rockets support the siege, but retreats when wounded',()=>{
+ const g=new Simulation(2026,4);g.units=[];g.aiClock=-1e8;g.time=60;
+ g.world.blocked.fill(0);g.world.opaque.fill(0);
+ const heavy=g.spawn(1,{x:1550,y:1800},'heavy');
+ const infantry=g.spawn(1,{x:1560,y:1810},'infantry');
+ const rocket=g.spawn(1,{x:1530,y:1770},'artillery');
+ const tower={id:9944,x:1740,y:1800,hp:650,range:RULES.turret.range,seenAt:g.time};
+ g.tactical.state.knownTurrets.push(tower);
+ g.tactical.state.group=[heavy.id,infantry.id,rocket.id];
+ const assessment=assessBattle([heavy,infantry,rocket],[],[tower],g.time,true);
+ assert.equal(assessment.stance,'siege','the real weapon mix is supported by a paid rocket battery');
+ const hp=heavy.hp;
+ heavy.hp=hp*.82;g.tactical.underTowerFire(heavy);
+ assert.equal(g.tactical.state.battle?.withdrawals.length,0,'healthy screen holds the rocket perimeter');
+ assert.equal(heavy.orders.length,0,'no false retreat order under supported siege');
+ heavy.hp=hp*.51;g.tactical.underTowerFire(heavy);
+ assert.ok(g.tactical.state.battle.withdrawals.some(w=>w.unit===heavy.id),'wounded screen retreats');
+ assert.equal(heavy.orders[0]?.kind,'move');
 });
 
 test('director: stays committed through two casualties but withdraws from near-annihilation',()=>{
