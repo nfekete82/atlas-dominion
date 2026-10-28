@@ -14,10 +14,13 @@ const FULL_CIRCLE=Math.PI*2;
 
 export function foundationFootprint(kind:BuildingKind):FoundationFootprint {
   const spec=BUILDINGS[kind],large=major.has(kind),visualWidth=buildingArtWidth(kind,spec.width);
-  const width=large?visualWidth*1.085:Math.max(spec.radius*1.88,visualWidth*.88);
+  // Give the headquarters a little more visible apron at the left and right.
+  const width=large?visualWidth*(kind==='headquarters'?1.11:1.085):Math.max(spec.radius*1.88,visualWidth*.88);
   return {
     width,
-    depth:large?Math.max(spec.radius*.95,width*(kind==='airfield'?.34:.35)):Math.max(spec.radius*.88,width*.41),
+    // The old 0.35 depth stopped halfway beneath the sprite: its rear rim was invisible.
+    // A longer pad reaches behind the roofline while the actual 3D sprite still masks its centre.
+    depth:large?Math.max(spec.radius*.95,width*(kind==='headquarters'?.68:kind==='barracks'?.64:kind==='factory'?.61:.57)):Math.max(spec.radius*.88,width*.46),
     front:large?7:4,
     corner:Math.min(17,Math.max(5,width*.047)),
     lip:large?3:2,
@@ -37,14 +40,14 @@ interface Pt {x:number;y:number}
 function outline(site:FoundationSite,f:FoundationFootprint):Pt[] {
   const x=site.x,y=site.y,half=f.width/2,back=y+f.front-f.depth,front=y+f.front,s=f.skew,k=f.corner;
   return [
-    {x:x-half+k-s,y:back},
-    {x:x+half-k-s,y:back},
-    {x:x+half-s,y:back+k*.48},
+    {x:x-half*1.055+k-s,y:back},
+    {x:x+half*1.055-k-s,y:back},
+    {x:x+half*1.045-s,y:back+k*.48},
     {x:x+half+s*.35,y:front-k*.40},
     {x:x+half-k+s*.35,y:front},
     {x:x-half+k+s*.35,y:front},
     {x:x-half+s*.35,y:front-k*.40},
-    {x:x-half-s,y:back+k*.48},
+    {x:x-half*1.045-s,y:back+k*.48},
   ];
 }
 function polygon(c:CanvasRenderingContext2D,p:readonly Pt[],dx=0,dy=0):void {
@@ -142,6 +145,9 @@ export function paintDesertFoundation(c:CanvasRenderingContext2D,site:Foundation
   windDeposit(c,site.x+half*.77,front-f.depth*.20,f.width*.28,f.depth*.51,.13,.96);
   windDeposit(c,site.x-half*.15,front-f.depth*.03,f.width*.40,f.depth*.25,-.05,.74);
   windDeposit(c,site.x+half*.52,back+f.depth*.20,f.width*.25,f.depth*.25,.10,.66);
+  // Wind-blown sand over the rear rim: the platform is built INTO the desert.
+  windDeposit(c,site.x-half*.54,back+f.depth*.08,f.width*.28,f.depth*.14,-.12,.88);
+  windDeposit(c,site.x+half*.40,back+f.depth*.05,f.width*.24,f.depth*.12,.12,.86);
 
   // A handful of curved wind ridges and tiny embedded grains break up flatness.
   for(let i=0;i<10;i++){
@@ -163,6 +169,16 @@ export function paintDesertFoundation(c:CanvasRenderingContext2D,site:Foundation
     c.fillStyle=i%3===0?'rgba(113,76,40,0.26)':'rgba(246,203,138,0.47)';
     c.fill();
   }
-  c.restore();
+  c.restore(); // End clipping; dunes below must cross the plate/terrain boundary.
+
+  // Actual edge occlusion (not a translucent texture clipped inside a rectangle).
+  // Overlaps between deposits leave irregular exposed sandstone sections.
+  windDeposit(c,site.x-half*.97,back+f.depth*.16,f.width*.18,f.depth*.15,-.28,1.10);
+  windDeposit(c,site.x+half*.98,back+f.depth*.31,f.width*.19,f.depth*.17,.29,1.06);
+  windDeposit(c,site.x-half*.98,front-f.depth*.30,f.width*.16,f.depth*.18,-.23,.98);
+  windDeposit(c,site.x+half*.97,front-f.depth*.18,f.width*.16,f.depth*.17,.18,1.05);
+  windDeposit(c,site.x-half*.55,front+f.lip,f.width*.23,Math.max(8,f.depth*.085),-.10,1.08);
+  windDeposit(c,site.x+half*.31,front+f.lip+1,f.width*.23,Math.max(8,f.depth*.10),.12,.98);
+  windDeposit(c,site.x+half*.12,back+1,f.width*.26,Math.max(7,f.depth*.09),.07,1.02);
   c.restore();
 }
