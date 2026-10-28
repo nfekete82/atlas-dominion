@@ -107,7 +107,7 @@ for(const kind of ['medic','engineer'])test(`support: ${kind} also identifies an
 
 test('support: engineers share an 18 HP/s area budget between wounded ground vehicles and aircraft',()=>{
  const g=peaceful();g.units=[];const e=g.spawn(0,{x:1900,y:2100},'engineer');
- const tank=g.spawn(0,{x:1940,y:2100},'tank'),heli=g.spawn(0,{x:1870,y:2120},'gunship');
+ const tank=g.spawn(0,{x:1940,y:2100},'tank'),heli=g.spawn(0,{x:1870,y:2120},'bomber');
  const farther=g.spawn(0,{x:2150,y:2100},'rover'),enemy=g.spawn(1,{x:1930,y:2110},'tank');
  for(const u of [tank,heli,farther,enemy]){u.hp=100;u.cooldown=1e8;}
  e.cooldown=1e8;advance(g,1);
@@ -126,7 +126,7 @@ test('support: engineers share an 18 HP/s area budget between wounded ground veh
 });
 test('support: engineers reject hostile aircraft, infantry and full-health vehicles',()=>{
  const g=peaceful(),e=g.units.find(u=>u.owner===0&&u.kind==='engineer');
- const enemy=g.spawn(1,{x:1980,y:2100},'gunship'),full=g.spawn(0,{x:2010,y:2100},'tank'),soldier=g.spawn(0,{x:2050,y:2100},'infantry');
+ const enemy=g.spawn(1,{x:1980,y:2100},'bomber'),full=g.spawn(0,{x:2010,y:2100},'tank'),soldier=g.spawn(0,{x:2050,y:2100},'infantry');
  assert.equal(g.command([e.id],point(enemy,'repair')),0);
  assert.equal(g.command([e.id],point(full,'repair')),0);
  soldier.hp-=20;assert.equal(g.command([e.id],point(soldier,'repair')),0);

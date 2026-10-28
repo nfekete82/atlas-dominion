@@ -32,27 +32,27 @@
     },
     {
       "file": "src/assets/reborn/animation/artillery-0.png",
-      "width": 1536,
-      "height": 1440,
-      "sha256": "0d15bf4c1504cd004f8096b7e5f71c314c8738beb7cf3d9c81fb412d31fe0dfd"
+      "width": 3072,
+      "height": 2880,
+      "sha256": "e753e94d90ce36344773bae80202c56ce204421f0066800bf96b3c43d176873e"
     },
     {
       "file": "src/assets/reborn/animation/artillery-1.png",
-      "width": 1536,
-      "height": 1440,
-      "sha256": "62caeb6c3f751a22f9a5f6be2443b12dc9f27a38e4073c045166e26e0773e096"
+      "width": 3072,
+      "height": 2880,
+      "sha256": "64168f62ea6c3055a9298a908dccd8b6a3c30cd842bc8095fbd9a4e9c1974c20"
     },
     {
       "file": "src/assets/reborn/animation/bomber-0.png",
-      "width": 1536,
-      "height": 192,
-      "sha256": "7e986da7363413c7c6a13751c6e40b7dad940cbe49b1225436db1efbcf82e5f3"
+      "width": 3072,
+      "height": 3072,
+      "sha256": "8d6d6abde91aaaad6af43b565ea51f932f32a7c3ee44a7e8e9f10508f6e77a6c"
     },
     {
       "file": "src/assets/reborn/animation/bomber-1.png",
-      "width": 1536,
-      "height": 192,
-      "sha256": "d4ffc7e1a5a9d57afca6eea0656038c16e5d591233a1330f47930d0bdb45b33c"
+      "width": 3072,
+      "height": 3072,
+      "sha256": "25e41c85a856ca6baa8b51b29c7419dacc575a13095db06cdacde55f0e9a30c4"
     },
     {
       "file": "src/assets/reborn/animation/engineer-0.png",
@@ -65,18 +65,6 @@
       "width": 1536,
       "height": 1536,
       "sha256": "66c3671925114219da7ff1317070ba27645a0796e6070c9beb57d00262729aea"
-    },
-    {
-      "file": "src/assets/reborn/animation/gunship-0.png",
-      "width": 1536,
-      "height": 768,
-      "sha256": "4a28f83d8d40c7ef67daa00b9b898415f9af5f66ac3edcc70c17fdf139e4fe13"
-    },
-    {
-      "file": "src/assets/reborn/animation/gunship-1.png",
-      "width": 1536,
-      "height": 768,
-      "sha256": "5f613bb0fcf2f8ceaccfdb77625d1c0d3d60179c8f0ce84c31270c4ff7307203"
     },
     {
       "file": "src/assets/reborn/animation/heavy-0.png",
@@ -104,39 +92,39 @@
     },
     {
       "file": "src/assets/reborn/animation/rover-0.png",
-      "width": 1536,
-      "height": 480,
-      "sha256": "e0740568ab9f90b0bb0d720ffee2752f174160b8a7464048eef77198bc7e3099"
+      "width": 3072,
+      "height": 2304,
+      "sha256": "5796c62c217b285edd9ef704df302727a87b7d3c541d722eba7ce274d37175e7"
     },
     {
       "file": "src/assets/reborn/animation/rover-1.png",
-      "width": 1536,
-      "height": 480,
-      "sha256": "3e4072417f62eb7d874f5affd61e72cca66a8d168168530417f13f2db6eddbe6"
+      "width": 3072,
+      "height": 2304,
+      "sha256": "ffd0ae3ade99fd7ec9bd9110615cb0b5f6d1522182b04ee3ebbf4a3b19dafe60"
     },
     {
       "file": "src/assets/reborn/animation/scout-0.png",
-      "width": 1536,
-      "height": 768,
-      "sha256": "f7d4b4a844b7b8e177648901974d35643d737bb7bb6acbe282a9525be803eb76"
+      "width": 3072,
+      "height": 1536,
+      "sha256": "db0b9beb38b63e82daf56364561d584f0e7f7f639ee32476b4e86d1ab1104899"
     },
     {
       "file": "src/assets/reborn/animation/scout-1.png",
-      "width": 1536,
-      "height": 768,
-      "sha256": "a368526e072958a635c75bb2095464c2af89c1f113dd88521b25c4b390267c3b"
+      "width": 3072,
+      "height": 1536,
+      "sha256": "6ccb1e519d778fe7f1684b1dc9b0167a902bb7d216ab971fb7ae3cbe7ea3c9d3"
     },
     {
       "file": "src/assets/reborn/animation/tank-0.png",
-      "width": 1536,
-      "height": 1440,
-      "sha256": "053eba55903bb011045cf4352deec996a4698b0914ecc594359409eefc798060"
+      "width": 3072,
+      "height": 2880,
+      "sha256": "93dbf30655e719d1c1eddd9075874b6f5ab39729d8f73fc6630d9d7acc557f42"
     },
     {
       "file": "src/assets/reborn/animation/tank-1.png",
-      "width": 1536,
-      "height": 1440,
-      "sha256": "6dd1c837913cd4b309bc8d5a0cea59db6476d6362ccafbcfb288d442a893a8f4"
+      "width": 3072,
+      "height": 2880,
+      "sha256": "d033883ab09d79ef87c1a6c999bdc870c15356502eeb923079ade8d280c069ad"
     },
     {
       "file": "src/assets/reborn/bastion-grounded-v2.png",
@@ -151,226 +139,292 @@
       "sha256": "4fde5af21fbfb65eae46bb97a3264fbaaf00dcc2419f12ae9da15315987fe4a3"
     },
     {
+      "file": "src/assets/reborn/battlefield/crater.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "25e336bac0af887eabdeaade7f8b91bac5279318b0817c8b119b9fb50266dcd9"
+    },
+    {
+      "file": "src/assets/reborn/battlefield/palm.png",
+      "width": 1092,
+      "height": 1092,
+      "sha256": "b79330da662e87e6995d7ec6ae3df8edf62eb7df57fd7fce364479e59e259d01"
+    },
+    {
+      "file": "src/assets/reborn/battlefield/rocks.png",
+      "width": 1126,
+      "height": 1126,
+      "sha256": "4a9f22bb22b305aaaf368da9dbda2ad4cd8a6340b18541630a166f1e34ac271f"
+    },
+    {
       "file": "src/assets/reborn/buildings-3d/airfield-0-beacon.png",
       "width": 11,
       "height": 14,
-      "sha256": "06a9d00d2cefb97837f1cc9ac7c9dd2e3af4e9dc1807a9b52dffc6ce72f1c3d4"
+      "sha256": "d4b9ca1603d71468ca52f74cae8f43e932ed45fadda3e3f9b54deab3ca9b2e42"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/airfield-0-construction.png",
+      "width": 2070,
+      "height": 254,
+      "sha256": "0a768ace6c56570753e0dc6d67cbe02e635114153859e16890191c79a216c9e6"
     },
     {
       "file": "src/assets/reborn/buildings-3d/airfield-0.png",
       "width": 512,
       "height": 512,
-      "sha256": "c0c48c464d2ae396b695914084f222d067905dddb17660d4705afeecc51c0fa5"
+      "sha256": "afe5ee556cf5cad8947738073e97e7b343b3a5ed8633745053ee85a1c0eaea07"
     },
     {
       "file": "src/assets/reborn/buildings-3d/airfield-1-beacon.png",
       "width": 11,
       "height": 14,
-      "sha256": "e50220ec8411e36b465fb9910ee76508cad116e33a1a6f96dfdd7db7d8ce849e"
+      "sha256": "3508a23902b9bf74bc421af1ae0a00aef3677f5074c218e3ab0dbc5571520b83"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/airfield-1-construction.png",
+      "width": 2070,
+      "height": 254,
+      "sha256": "ad1dfd23767b79cc9bb892c5727e52f1837e8c5efee1a7fde699ba3b006741bf"
     },
     {
       "file": "src/assets/reborn/buildings-3d/airfield-1.png",
       "width": 512,
       "height": 512,
-      "sha256": "fff014f1ee89dfd223af1c37ef0aaf2c392d2239c72ea3dd1b8c41df2424622b"
+      "sha256": "0531816a33ca8454e8879d6ae3b880fe7f9eea37eaf54244058bc5552acdaeb7"
     },
     {
       "file": "src/assets/reborn/buildings-3d/barracks-0-beacon.png",
       "width": 11,
       "height": 15,
-      "sha256": "3e814e5666e3fc666be8039b2d9c6b7001ebff28509292ee424e62b89b77ff88"
+      "sha256": "4daae34547b6576c32accf3b076d49aa9e4bad988671744e02dd8b76059eba59"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/barracks-0-construction.png",
+      "width": 1986,
+      "height": 274,
+      "sha256": "ed8978f1344e688c9a8a6ebf3cdf6970055d6845ec8a30b8d52ccb6b9f4b00cf"
     },
     {
       "file": "src/assets/reborn/buildings-3d/barracks-0.png",
       "width": 512,
       "height": 512,
-      "sha256": "8dd19916bceab6e76685988975971bebb98adf6aebf282800ff352f1eb4f911d"
+      "sha256": "5fa2216e983ca3694a40a2b735d4bfa5513c8a0fca9141ac6f6789345b88d411"
     },
     {
       "file": "src/assets/reborn/buildings-3d/barracks-1-beacon.png",
       "width": 11,
       "height": 15,
-      "sha256": "5726797b515cde9bc4f434e24e6c402d611070a9a125d699b2b8088ff2c1a509"
+      "sha256": "f4cf3ba2b27179a23b595c8f97fd9a0783402cdf4683b028a79d7e9c078684ed"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/barracks-1-construction.png",
+      "width": 1986,
+      "height": 274,
+      "sha256": "aaeeff4b6ea3017819ffca68508bb35a09c683dfeaf1b36b9f43777ccdd799d2"
     },
     {
       "file": "src/assets/reborn/buildings-3d/barracks-1.png",
       "width": 512,
       "height": 512,
-      "sha256": "c11c3e56493edada870d813395970ef6b9640a5026cddebaea6aeab3f612a790"
+      "sha256": "eaeb8c33497ad35b4b7644e6bc1109d58cc21e1dc05edb5d7458be446640a028"
     },
     {
       "file": "src/assets/reborn/buildings-3d/bastion--1-beacon.png",
       "width": 14,
       "height": 19,
-      "sha256": "154a0097ced81cbe0a30f56e7dfdb4234f2897a201b720cf8fb1707569e6a508"
+      "sha256": "0a95ea0a0120e5ccd5cf0eb674bf71f2a0c05e5ece133e2f1b294026da4d5dcf"
     },
     {
       "file": "src/assets/reborn/buildings-3d/bastion--1-radar.png",
       "width": 472,
       "height": 464,
-      "sha256": "0d72934984173b0f677e8252d542fde60fc324d884b0429fb6ffaba023f5c6e5"
+      "sha256": "fd128c83b28809bb87b1bb374d6bd025a1abbd028abe42f7c4b1f2bef51cf034"
     },
     {
       "file": "src/assets/reborn/buildings-3d/bastion--1-sweep.png",
       "width": 624,
       "height": 368,
-      "sha256": "b3422814c06e5b3cd88c364bb6b563fe967ef1e54ddb5eeff863f6377fa29000"
+      "sha256": "af51bc02802b8cd0cc3326f486de0d1b1f57e5737662d2b6ffee7ea59e1f63a7"
     },
     {
       "file": "src/assets/reborn/buildings-3d/bastion--1.png",
       "width": 512,
       "height": 512,
-      "sha256": "209f26ccca601910c7c35e14ee8c4c3179dec2e3630fb32a9e86b62551b07c5b"
+      "sha256": "ee783f6e43b5f4711fde69e455b5ee2aef79eed0cc73d09ee2d78401ae16f3c1"
     },
     {
       "file": "src/assets/reborn/buildings-3d/bastion-0-beacon.png",
       "width": 14,
       "height": 19,
-      "sha256": "1ee38631f23bd76ef61490e2e4093f4b6d9c089bf602848e9b680f46b4635b7d"
+      "sha256": "7f223e45410512bb4b7fe01a48d0aa7b4492efaf94cfcb66e0d1d13e879a97bf"
     },
     {
       "file": "src/assets/reborn/buildings-3d/bastion-0-radar.png",
       "width": 472,
       "height": 464,
-      "sha256": "9e81d7d9b82cb0556e3f07d8c42b11e1c187e5a138d84aacef702a3723478f16"
+      "sha256": "0023e245521d29b32a9c4d9a385cea6260c90ece532a8dde2dab9ce72749876b"
     },
     {
       "file": "src/assets/reborn/buildings-3d/bastion-0-sweep.png",
       "width": 624,
       "height": 368,
-      "sha256": "df094937fba4538eaf99ce8bf633babbc1b630c4c16356946d2f7d596da3b84a"
+      "sha256": "5fc1957dcc34d67aa541bce5b0bd1f2ee9cf75b752d4ec206e9b7e5ed0e0ad7c"
     },
     {
       "file": "src/assets/reborn/buildings-3d/bastion-0.png",
       "width": 512,
       "height": 512,
-      "sha256": "b5200b4b3a76604014b8cae68da915e7921f2c40bf4fd4e50d8f359d5d0e2160"
+      "sha256": "9e464baac16d5d020073c87dc03802398b5b9eff7331c149be0b06ba745356ce"
     },
     {
       "file": "src/assets/reborn/buildings-3d/bastion-1-beacon.png",
       "width": 14,
       "height": 19,
-      "sha256": "7ae5a6e688a3eee2e75add7e1768849b7e8fa35210762f901554afe92d83470f"
+      "sha256": "7b0b46780e6657e314fc5d4b34655c640c80253c46047f483135c125a3695998"
     },
     {
       "file": "src/assets/reborn/buildings-3d/bastion-1-radar.png",
       "width": 472,
       "height": 464,
-      "sha256": "14b8d36cad14b414e6f994cf8e33cda742d5d6f703e582a82616b1a24158ba30"
+      "sha256": "6f5b19b6ba1240ca52e8664ec5907265abb49d88547983ba35694fd8f009a53e"
     },
     {
       "file": "src/assets/reborn/buildings-3d/bastion-1-sweep.png",
       "width": 624,
       "height": 368,
-      "sha256": "97d99a18c8cc19047372487c29ddb90331593aa325fbaedfd2776cb0b0170c4d"
+      "sha256": "ea9849fe64ecd919719a7d9390609d79245461c01b556a90edde2dfd30dfae2d"
     },
     {
       "file": "src/assets/reborn/buildings-3d/bastion-1.png",
       "width": 512,
       "height": 512,
-      "sha256": "c9e5a26a34a26a4d1236efd2b77c2e4caed17e450cb0a2dedf96009803dee9ef"
+      "sha256": "15af91a90e0806d0736177677ad2611eb4bf43926f270ac20d117429acaedcf1"
     },
     {
       "file": "src/assets/reborn/buildings-3d/factory-0-beacon.png",
       "width": 11,
       "height": 15,
-      "sha256": "98a1b7e9a1978be7390a5b5d2f5f1ebc1a720cacbe78340fdd2cd91973f8eaf3"
+      "sha256": "fe0202ac40c15f72d2a2af9ae39b026f883c1d528e9d5d84a6c2b90deb93b7e0"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/factory-0-construction.png",
+      "width": 2298,
+      "height": 276,
+      "sha256": "ed23b48cb554385739372f17414560a0b33e0fe3d296a872e82c76fbeee79d32"
     },
     {
       "file": "src/assets/reborn/buildings-3d/factory-0.png",
       "width": 512,
       "height": 512,
-      "sha256": "2fb9a28f891687d63f503d36569a644ea3dd3748295bbce31106f8703eba8916"
+      "sha256": "6ce4f9f76cba52bd9aa374a9a20a00b331ee3154c0a275a00bed53dad31f2d71"
     },
     {
       "file": "src/assets/reborn/buildings-3d/factory-1-beacon.png",
       "width": 11,
       "height": 15,
-      "sha256": "b82225ca253d67998a5be757b2407d2447f4c94edeffe897fd68199064328343"
+      "sha256": "a94199b897474e2f15e3d6ef319299a2d59bf19d34dd230743f2e2a331357bbd"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/factory-1-construction.png",
+      "width": 2298,
+      "height": 276,
+      "sha256": "50435fc47dbd422230996831285b6cc594660422a4d787dcdb1eebc7aca4f6ba"
     },
     {
       "file": "src/assets/reborn/buildings-3d/factory-1.png",
       "width": 512,
       "height": 512,
-      "sha256": "0aa52f66a609a4739af64614ae6378c92e0160417955504dfa603d9e618cc0c9"
+      "sha256": "33cfcde101570c1f45d0aaeaaf5d0e7e44325df137c1e6c253677ad25e5557fa"
     },
     {
       "file": "src/assets/reborn/buildings-3d/generator-0-beacon.png",
       "width": 11,
       "height": 15,
-      "sha256": "8cb4646776fcb2bf8c23ba10a3253c75bc054d93a77c1857a8f7df04521d18e6"
+      "sha256": "bfdb1938781b8332f302a53d7a03887ad0c423103005564aacc5aee676153fe8"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/generator-0-construction.png",
+      "width": 1092,
+      "height": 168,
+      "sha256": "676f19c96e9fcaa07d58875b64fc0fd023dc92dd1422e297bd315c04956379f9"
     },
     {
       "file": "src/assets/reborn/buildings-3d/generator-0.png",
       "width": 512,
       "height": 512,
-      "sha256": "1ad1843adf9687d6fce183d4767a497b52a024690d7603b54fb3e5f963ded2bb"
+      "sha256": "f15bab6dccaa1ec2373b68143bbabef321d2bef0a077f619258271375ef8fb34"
     },
     {
       "file": "src/assets/reborn/buildings-3d/generator-1-beacon.png",
       "width": 11,
       "height": 15,
-      "sha256": "fe44d16c2e953b15f250dabe40d155817a1a93baf3940cf1e3ea5cbda3931b56"
+      "sha256": "ee82896558285c56af9f359ffeaf0346d3ac2f96c5e9069622793286766aaf03"
+    },
+    {
+      "file": "src/assets/reborn/buildings-3d/generator-1-construction.png",
+      "width": 1092,
+      "height": 168,
+      "sha256": "fefed901378a6cf756f41820ec6faebf0bf0a3a2655d467cf28de5fb349d9c4c"
     },
     {
       "file": "src/assets/reborn/buildings-3d/generator-1.png",
       "width": 512,
       "height": 512,
-      "sha256": "5710b266174ade68dbbcd18933b917e8fcf1e11c7a4cbd2609490bdce5f5ad26"
+      "sha256": "6976fc06172bac38a1fd8dd2d677ab169d424efaf34650a2f0ebb148be6a6b70"
     },
     {
       "file": "src/assets/reborn/buildings-3d/headquarters-0-beacon.png",
       "width": 11,
       "height": 17,
-      "sha256": "9516de0c5a450bb664bd11cb6d63d251519552ea04840cb93650da5a7b7dbda4"
+      "sha256": "d33f136313ae25f6150ecce520b9a2d2e0b402356548857729fe192598835f20"
     },
     {
       "file": "src/assets/reborn/buildings-3d/headquarters-0-radar.png",
       "width": 560,
       "height": 568,
-      "sha256": "c99e1ab3c57bdc0c95d9c90f09f53bdd81083c0c517780992da35c356b1d8cdf"
+      "sha256": "0898a533e28ce348c642cb20887297f589338e3f895c4523fbc093582dd3211e"
     },
     {
       "file": "src/assets/reborn/buildings-3d/headquarters-0.png",
       "width": 512,
       "height": 512,
-      "sha256": "6ac187c1eb8a91df045c013dd2e0c244b8db6f860d822f504cffe90282e2f022"
+      "sha256": "4ae01260a219b99880002ceb7e9bb0ff44a4fcc84d35e5470e9222af9b702cbc"
     },
     {
       "file": "src/assets/reborn/buildings-3d/headquarters-1-beacon.png",
       "width": 11,
       "height": 17,
-      "sha256": "3ca97b163db3fdb06f197f778705ab3af64edaa29eef1196a6bab173a1d82e1b"
+      "sha256": "12b9f1884e458e83dbad5926922c88cdd689e3b8165cb796e1fdb82fa4f86da3"
     },
     {
       "file": "src/assets/reborn/buildings-3d/headquarters-1-radar.png",
       "width": 560,
       "height": 568,
-      "sha256": "ad38e60366d05545893191df3e67573683c17e29c8ceb1e5484df7da84659507"
+      "sha256": "0c38b4d6d5fadd6f7e9cbe5666ca190d33b142dac61277dedc868baa0615f2fa"
     },
     {
       "file": "src/assets/reborn/buildings-3d/headquarters-1.png",
       "width": 512,
       "height": 512,
-      "sha256": "6059f6c2e12c83ae6e9d54cd181da5dca0ad4344e836ddf8d21ee0b997866d4a"
+      "sha256": "5bb650586e135982685af9d552c465ac183e02cc47892287e0ed10c849b9912a"
     },
     {
       "file": "src/assets/reborn/buildings-3d/textures/desert-basecolor.png",
       "width": 2048,
       "height": 2048,
-      "sha256": "7d220ad12987d7de41e3f06fa39c3445c0f6d68225ee46b8a6c0accba88e8a9f"
+      "sha256": "93765491ac5e950f4c7d1624a2979913943f97b3d2ee7164d04675641650f258"
     },
     {
       "file": "src/assets/reborn/buildings-3d/textures/desert-normal.png",
       "width": 2048,
       "height": 2048,
-      "sha256": "773e8c14103929040d8a1011bae06f301dedd195cf5572b82fcfcab259b7ea9e"
+      "sha256": "d042e76374365f4981c211249fee64e1b13e057e321e717181149362d45f184a"
     },
     {
       "file": "src/assets/reborn/buildings-3d/textures/desert-orm.png",
       "width": 2048,
       "height": 2048,
-      "sha256": "e28a58f1426e5e18f992887ab67aaf8633486f1f03681bb305a3c7ccba414446"
+      "sha256": "efd1ae41e004dde4ce4623985a9374316928b0d686bc48c866e02788e4d7a301"
     },
     {
       "file": "src/assets/reborn/buildings-3d/turret-0-beacon.png",
@@ -379,16 +433,22 @@
       "sha256": "7562b1df94c1cbe71380a13a994f06667e7b0b8a622ab37777729097472633b4"
     },
     {
+      "file": "src/assets/reborn/buildings-3d/turret-0-construction.png",
+      "width": 906,
+      "height": 121,
+      "sha256": "ed59baddbed36c4358153b0c3ecaab22e62934a6352808e62f76b77aa9ce6a4a"
+    },
+    {
       "file": "src/assets/reborn/buildings-3d/turret-0-turret.png",
       "width": 1552,
       "height": 992,
-      "sha256": "8bb5086a60cf32ff20aa1474e1118e61782da86cec0426d5e8179c9d1d963b9d"
+      "sha256": "d769725a19071371baae13f46f525f802d2a53f01714c38a828abddbb5891f3e"
     },
     {
       "file": "src/assets/reborn/buildings-3d/turret-0.png",
       "width": 512,
       "height": 512,
-      "sha256": "fa7c668eb7a22497017014579ac408c285fa370c8f5c79880082e58a8a2b0b9c"
+      "sha256": "2d0cde4e9c97b0c211f3d61886237f18261e64f7b0e053ad3fbb8807ed029dfe"
     },
     {
       "file": "src/assets/reborn/buildings-3d/turret-1-beacon.png",
@@ -397,16 +457,22 @@
       "sha256": "d56611b238ff5f18e98aaeb0621895702aae6e2840e70c4143d9048d3f72125e"
     },
     {
+      "file": "src/assets/reborn/buildings-3d/turret-1-construction.png",
+      "width": 906,
+      "height": 121,
+      "sha256": "ed59baddbed36c4358153b0c3ecaab22e62934a6352808e62f76b77aa9ce6a4a"
+    },
+    {
       "file": "src/assets/reborn/buildings-3d/turret-1-turret.png",
       "width": 1552,
       "height": 992,
-      "sha256": "4ee0d870a131946fbcc28b08085ec34d769092217d07e87b80a9e2320659269d"
+      "sha256": "bfe1ab4fe0fea8c752e9a3a4c2715a6207ab81f18b12ff7a9df0670d08578187"
     },
     {
       "file": "src/assets/reborn/buildings-3d/turret-1.png",
       "width": 512,
       "height": 512,
-      "sha256": "fa7c668eb7a22497017014579ac408c285fa370c8f5c79880082e58a8a2b0b9c"
+      "sha256": "2d0cde4e9c97b0c211f3d61886237f18261e64f7b0e053ad3fbb8807ed029dfe"
     },
     {
       "file": "src/assets/reborn/cliffs.png",
@@ -469,16 +535,52 @@
       "sha256": "2e1d90e37e7762401c1cc81d603fa2227247267a77181f9daafee5029b657d73"
     },
     {
+      "file": "src/assets/reborn/prototype/engineer-0.png",
+      "width": 3072,
+      "height": 3648,
+      "sha256": "2c2cb0bb911ac56e176876d5ba3bcfaebf31936fe2407c0c301e566362a9f32d"
+    },
+    {
+      "file": "src/assets/reborn/prototype/engineer-1.png",
+      "width": 3072,
+      "height": 3648,
+      "sha256": "19cee52fbe25db968a9b62c818f2bb17570334f90397b8205326f043995f4446"
+    },
+    {
+      "file": "src/assets/reborn/prototype/heavy-0.png",
+      "width": 3072,
+      "height": 3648,
+      "sha256": "f0a2db6298e31a4f6dc6270929e9697d16630e3c0a5f73fe8618e7a25d767434"
+    },
+    {
+      "file": "src/assets/reborn/prototype/heavy-1.png",
+      "width": 3072,
+      "height": 3648,
+      "sha256": "fdb20a2edf27353e5215cc12643ee0ddf7a2b1a8f6d1e118395286964b28801b"
+    },
+    {
       "file": "src/assets/reborn/prototype/infantry-0.png",
       "width": 3072,
       "height": 3648,
-      "sha256": "05b67a3a091f202f053ed9b80bec759ee05d36268714779a571bd3215de04fee"
+      "sha256": "487daa8983add36bf9f88c6f4eb5d04f1ee07ffc4da49a242f3a9fc254d233a2"
     },
     {
       "file": "src/assets/reborn/prototype/infantry-1.png",
       "width": 3072,
       "height": 3648,
-      "sha256": "590c0cfb3562d0375dfb2c061e1525d036366bd9225e6bdc21d36f6ac0390e12"
+      "sha256": "20ed6ddf7ba996b61117b5b5dbc353d793870820f2643e42eb6adc609e7df65a"
+    },
+    {
+      "file": "src/assets/reborn/prototype/medic-0.png",
+      "width": 3072,
+      "height": 3648,
+      "sha256": "d34024feaaff27a2acd5e4ce3eeb92dbef47bd3f2199ffea5f243d88325cc333"
+    },
+    {
+      "file": "src/assets/reborn/prototype/medic-1.png",
+      "width": 3072,
+      "height": 3648,
+      "sha256": "e705aa4f5b89847eea015c0c72d3ec6a3f72f3a7d60a941505ab80a3be2743fd"
     },
     {
       "file": "src/assets/reborn/radar-dish-turn-v1.png",
@@ -497,6 +599,18 @@
       "width": 1254,
       "height": 1254,
       "sha256": "4cc4feca5da2e1e08f2d6a962fd510b3583f4115d783c5bae9e5b4ad278f19b5"
+    },
+    {
+      "file": "src/assets/reborn/sandstone-strata-v1.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "904ec93dd943e4234148b8c5fc2c6d6d21c8fdf5c1a4458b13bac95e38d5dd0c"
+    },
+    {
+      "file": "src/assets/reborn/start-screen.png",
+      "width": 1672,
+      "height": 941,
+      "sha256": "cfa5df8dc6397593433e41944be3fc39ecf57fcc3c8e276fa457ea466284abdf"
     },
     {
       "file": "src/assets/reborn/steel.png",
@@ -587,19 +701,20 @@
     {
       "file": "src/assets/reborn/prototype/infantry-0.json",
       "roles": [
-        "infantry",
-        "engineer",
-        "heavy"
+        "infantry"
       ],
       "kind": "infantry",
       "team": 0,
       "directions": 8,
       "frameCount": 296,
       "source": "Atlas original hard-surface armour on Quaternius CC0 rig",
+      "model": "infantry-0.glb",
+      "modelSha256": "efcbd5d02d570ebbe1fd3d2d223bd5e4b666cf4e5f2ddda4d2d1192c5619e9d2",
       "design": {
-        "name": "Atlas Legion Infantry / desert ceramic armour",
+        "name": "Atlas Legion infantry / desert ceramic armour",
         "version": 2,
         "team": 0,
+        "role": "infantry",
         "parts": 246,
         "triangles": 61088,
         "materials": "Seeded 256px desert fabric, ceramic PBR and phosphate steel",
@@ -706,26 +821,25 @@
           ],
           "source": "Death / Atlas wrist socket / two-hand IK"
         }
-      },
-      "model": "infantry-0.glb",
-      "modelSha256": "d76482852de6c35cb47e28b3c43770dc7ee1bbbd687dfd6c8bac45ba6ba6d588"
+      }
     },
     {
       "file": "src/assets/reborn/prototype/infantry-1.json",
       "roles": [
-        "infantry",
-        "engineer",
-        "heavy"
+        "infantry"
       ],
       "kind": "infantry",
       "team": 1,
       "directions": 8,
       "frameCount": 296,
       "source": "Atlas original hard-surface armour on Quaternius CC0 rig",
+      "model": "infantry-1.glb",
+      "modelSha256": "57ee249a64e860b5bfdb35d4e79a574d4fcd80c59bded2f2f087cd36fcd8cf6c",
       "design": {
-        "name": "Atlas Legion Infantry / desert ceramic armour",
+        "name": "Atlas Legion infantry / desert ceramic armour",
         "version": 2,
         "team": 1,
+        "role": "infantry",
         "parts": 246,
         "triangles": 61088,
         "materials": "Seeded 256px desert fabric, ceramic PBR and phosphate steel",
@@ -832,9 +946,757 @@
           ],
           "source": "Death / Atlas wrist socket / two-hand IK"
         }
+      }
+    },
+    {
+      "file": "src/assets/reborn/prototype/medic-0.json",
+      "roles": [
+        "medic"
+      ],
+      "kind": "medic",
+      "team": 0,
+      "directions": 8,
+      "frameCount": 296,
+      "source": "Atlas original hard-surface armour on Quaternius CC0 rig",
+      "model": "medic-0.glb",
+      "modelSha256": "6479826b75be97fa6dfc9dadf2ccd51a6eb14030f5937baf92815770e9efea5e",
+      "design": {
+        "name": "Atlas Legion medic / desert ceramic armour",
+        "version": 2,
+        "team": 0,
+        "role": "medic",
+        "parts": 264,
+        "triangles": 67324,
+        "materials": "Seeded 256px desert fabric, ceramic PBR and phosphate steel",
+        "weaponBinding": "Right wrist socket / two-hand grip frames",
+        "geometry": "Original procedural hard-surface armour and rifle",
+        "rig": "Quaternius Toon Shooter Game Kit / CC0-1.0",
+        "maxGripError": 3.247121318621375e-7,
+        "gripAudit": {
+          "Idle": {
+            "samples": 101,
+            "right": 1.2865167297623865e-7,
+            "left": 2.6839140577636493e-7
+          },
+          "Run_Gun": {
+            "samples": 46,
+            "right": 1.2684528835711074e-7,
+            "left": 3.247121318621375e-7
+          },
+          "Idle_Shoot": {
+            "samples": 24,
+            "right": 2.15102736044323e-7,
+            "left": 2.698325936720053e-7
+          },
+          "HitReact": {
+            "samples": 28,
+            "right": 1.3964693350629221e-7,
+            "left": 3.0518727305387315e-7
+          },
+          "Death": {
+            "samples": 47,
+            "right": 2.3117516538437603e-7,
+            "left": 2.2304419252391304e-7
+          }
+        }
       },
-      "model": "infantry-1.glb",
-      "modelSha256": "d78b0e8dd582ad35c8af06e7b0b7bb65cd7bcb9bd045a5a73508a64f922893be"
+      "clips": {
+        "idle": {
+          "phases": 6,
+          "uniquePhases": [
+            4,
+            4,
+            4,
+            5,
+            4,
+            4,
+            4,
+            4
+          ],
+          "source": "Idle / Atlas wrist socket / two-hand IK"
+        },
+        "walk": {
+          "phases": 8,
+          "uniquePhases": [
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8
+          ],
+          "source": "Run_Gun / Atlas wrist socket / two-hand IK"
+        },
+        "attack": {
+          "phases": 6,
+          "uniquePhases": [
+            5,
+            5,
+            5,
+            5,
+            5,
+            5,
+            5,
+            5
+          ],
+          "source": "Idle_Shoot / Atlas wrist socket / two-hand IK"
+        },
+        "hit": {
+          "phases": 5,
+          "uniquePhases": [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4
+          ],
+          "source": "HitReact / Atlas wrist socket / two-hand IK"
+        },
+        "death": {
+          "phases": 12,
+          "uniquePhases": [
+            12,
+            12,
+            12,
+            12,
+            12,
+            12,
+            12,
+            12
+          ],
+          "source": "Death / Atlas wrist socket / two-hand IK"
+        }
+      }
+    },
+    {
+      "file": "src/assets/reborn/prototype/medic-1.json",
+      "roles": [
+        "medic"
+      ],
+      "kind": "medic",
+      "team": 1,
+      "directions": 8,
+      "frameCount": 296,
+      "source": "Atlas original hard-surface armour on Quaternius CC0 rig",
+      "model": "medic-1.glb",
+      "modelSha256": "8e0631b158ea4ce5e72bc044e8cfe5160342c7b58e25bb1769944ab1a8613b4f",
+      "design": {
+        "name": "Atlas Legion medic / desert ceramic armour",
+        "version": 2,
+        "team": 1,
+        "role": "medic",
+        "parts": 264,
+        "triangles": 67324,
+        "materials": "Seeded 256px desert fabric, ceramic PBR and phosphate steel",
+        "weaponBinding": "Right wrist socket / two-hand grip frames",
+        "geometry": "Original procedural hard-surface armour and rifle",
+        "rig": "Quaternius Toon Shooter Game Kit / CC0-1.0",
+        "maxGripError": 3.247121318621375e-7,
+        "gripAudit": {
+          "Idle": {
+            "samples": 101,
+            "right": 1.2865167297623865e-7,
+            "left": 2.6839140577636493e-7
+          },
+          "Run_Gun": {
+            "samples": 46,
+            "right": 1.2684528835711074e-7,
+            "left": 3.247121318621375e-7
+          },
+          "Idle_Shoot": {
+            "samples": 24,
+            "right": 2.15102736044323e-7,
+            "left": 2.698325936720053e-7
+          },
+          "HitReact": {
+            "samples": 28,
+            "right": 1.3964693350629221e-7,
+            "left": 3.0518727305387315e-7
+          },
+          "Death": {
+            "samples": 47,
+            "right": 2.3117516538437603e-7,
+            "left": 2.2304419252391304e-7
+          }
+        }
+      },
+      "clips": {
+        "idle": {
+          "phases": 6,
+          "uniquePhases": [
+            4,
+            4,
+            4,
+            5,
+            4,
+            4,
+            4,
+            4
+          ],
+          "source": "Idle / Atlas wrist socket / two-hand IK"
+        },
+        "walk": {
+          "phases": 8,
+          "uniquePhases": [
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8
+          ],
+          "source": "Run_Gun / Atlas wrist socket / two-hand IK"
+        },
+        "attack": {
+          "phases": 6,
+          "uniquePhases": [
+            5,
+            5,
+            5,
+            5,
+            5,
+            5,
+            5,
+            5
+          ],
+          "source": "Idle_Shoot / Atlas wrist socket / two-hand IK"
+        },
+        "hit": {
+          "phases": 5,
+          "uniquePhases": [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4
+          ],
+          "source": "HitReact / Atlas wrist socket / two-hand IK"
+        },
+        "death": {
+          "phases": 12,
+          "uniquePhases": [
+            12,
+            12,
+            12,
+            12,
+            12,
+            12,
+            12,
+            12
+          ],
+          "source": "Death / Atlas wrist socket / two-hand IK"
+        }
+      }
+    },
+    {
+      "file": "src/assets/reborn/prototype/engineer-0.json",
+      "roles": [
+        "engineer"
+      ],
+      "kind": "engineer",
+      "team": 0,
+      "directions": 8,
+      "frameCount": 296,
+      "source": "Atlas original hard-surface armour on Quaternius CC0 rig",
+      "model": "engineer-0.glb",
+      "modelSha256": "b20c236b5ecc38491426acbd28d5c7335eb00811ebf59566d5d8b368ed4bb377",
+      "design": {
+        "name": "Atlas Legion engineer / desert ceramic armour",
+        "version": 2,
+        "team": 0,
+        "role": "engineer",
+        "parts": 261,
+        "triangles": 66040,
+        "materials": "Seeded 256px desert fabric, ceramic PBR and phosphate steel",
+        "weaponBinding": "Right wrist socket / two-hand grip frames",
+        "geometry": "Original procedural hard-surface armour and rifle",
+        "rig": "Quaternius Toon Shooter Game Kit / CC0-1.0",
+        "maxGripError": 3.247121318621375e-7,
+        "gripAudit": {
+          "Idle": {
+            "samples": 101,
+            "right": 1.2865167297623865e-7,
+            "left": 2.6839140577636493e-7
+          },
+          "Run_Gun": {
+            "samples": 46,
+            "right": 1.2684528835711074e-7,
+            "left": 3.247121318621375e-7
+          },
+          "Idle_Shoot": {
+            "samples": 24,
+            "right": 2.15102736044323e-7,
+            "left": 2.698325936720053e-7
+          },
+          "HitReact": {
+            "samples": 28,
+            "right": 1.3964693350629221e-7,
+            "left": 3.0518727305387315e-7
+          },
+          "Death": {
+            "samples": 47,
+            "right": 2.3117516538437603e-7,
+            "left": 2.2304419252391304e-7
+          }
+        }
+      },
+      "clips": {
+        "idle": {
+          "phases": 6,
+          "uniquePhases": [
+            4,
+            4,
+            4,
+            5,
+            4,
+            4,
+            4,
+            4
+          ],
+          "source": "Idle / Atlas wrist socket / two-hand IK"
+        },
+        "walk": {
+          "phases": 8,
+          "uniquePhases": [
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8
+          ],
+          "source": "Run_Gun / Atlas wrist socket / two-hand IK"
+        },
+        "attack": {
+          "phases": 6,
+          "uniquePhases": [
+            5,
+            5,
+            5,
+            5,
+            5,
+            5,
+            5,
+            5
+          ],
+          "source": "Idle_Shoot / Atlas wrist socket / two-hand IK"
+        },
+        "hit": {
+          "phases": 5,
+          "uniquePhases": [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4
+          ],
+          "source": "HitReact / Atlas wrist socket / two-hand IK"
+        },
+        "death": {
+          "phases": 12,
+          "uniquePhases": [
+            12,
+            12,
+            12,
+            12,
+            12,
+            12,
+            12,
+            12
+          ],
+          "source": "Death / Atlas wrist socket / two-hand IK"
+        }
+      }
+    },
+    {
+      "file": "src/assets/reborn/prototype/engineer-1.json",
+      "roles": [
+        "engineer"
+      ],
+      "kind": "engineer",
+      "team": 1,
+      "directions": 8,
+      "frameCount": 296,
+      "source": "Atlas original hard-surface armour on Quaternius CC0 rig",
+      "model": "engineer-1.glb",
+      "modelSha256": "82348d321c729a58eee5df851db1bd83f67c63001c8c21087d04e0eb5c1d5c45",
+      "design": {
+        "name": "Atlas Legion engineer / desert ceramic armour",
+        "version": 2,
+        "team": 1,
+        "role": "engineer",
+        "parts": 261,
+        "triangles": 66040,
+        "materials": "Seeded 256px desert fabric, ceramic PBR and phosphate steel",
+        "weaponBinding": "Right wrist socket / two-hand grip frames",
+        "geometry": "Original procedural hard-surface armour and rifle",
+        "rig": "Quaternius Toon Shooter Game Kit / CC0-1.0",
+        "maxGripError": 3.247121318621375e-7,
+        "gripAudit": {
+          "Idle": {
+            "samples": 101,
+            "right": 1.2865167297623865e-7,
+            "left": 2.6839140577636493e-7
+          },
+          "Run_Gun": {
+            "samples": 46,
+            "right": 1.2684528835711074e-7,
+            "left": 3.247121318621375e-7
+          },
+          "Idle_Shoot": {
+            "samples": 24,
+            "right": 2.15102736044323e-7,
+            "left": 2.698325936720053e-7
+          },
+          "HitReact": {
+            "samples": 28,
+            "right": 1.3964693350629221e-7,
+            "left": 3.0518727305387315e-7
+          },
+          "Death": {
+            "samples": 47,
+            "right": 2.3117516538437603e-7,
+            "left": 2.2304419252391304e-7
+          }
+        }
+      },
+      "clips": {
+        "idle": {
+          "phases": 6,
+          "uniquePhases": [
+            4,
+            4,
+            4,
+            5,
+            4,
+            4,
+            4,
+            4
+          ],
+          "source": "Idle / Atlas wrist socket / two-hand IK"
+        },
+        "walk": {
+          "phases": 8,
+          "uniquePhases": [
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8
+          ],
+          "source": "Run_Gun / Atlas wrist socket / two-hand IK"
+        },
+        "attack": {
+          "phases": 6,
+          "uniquePhases": [
+            5,
+            5,
+            5,
+            5,
+            5,
+            5,
+            5,
+            5
+          ],
+          "source": "Idle_Shoot / Atlas wrist socket / two-hand IK"
+        },
+        "hit": {
+          "phases": 5,
+          "uniquePhases": [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4
+          ],
+          "source": "HitReact / Atlas wrist socket / two-hand IK"
+        },
+        "death": {
+          "phases": 12,
+          "uniquePhases": [
+            12,
+            12,
+            12,
+            12,
+            12,
+            12,
+            12,
+            12
+          ],
+          "source": "Death / Atlas wrist socket / two-hand IK"
+        }
+      }
+    },
+    {
+      "file": "src/assets/reborn/prototype/heavy-0.json",
+      "roles": [
+        "heavy"
+      ],
+      "kind": "heavy",
+      "team": 0,
+      "directions": 8,
+      "frameCount": 296,
+      "source": "Atlas original hard-surface armour on Quaternius CC0 rig",
+      "model": "heavy-0.glb",
+      "modelSha256": "666641d365e1325a68fd11a55503dc1970002c1a024d01bf5d4eb75ee0b7bd97",
+      "design": {
+        "name": "Atlas Legion heavy / desert ceramic armour",
+        "version": 2,
+        "team": 0,
+        "role": "heavy",
+        "parts": 257,
+        "triangles": 67048,
+        "materials": "Seeded 256px desert fabric, ceramic PBR and phosphate steel",
+        "weaponBinding": "Right wrist socket / two-hand grip frames",
+        "geometry": "Original procedural hard-surface armour and rifle",
+        "rig": "Quaternius Toon Shooter Game Kit / CC0-1.0",
+        "maxGripError": 2.689175158835587e-7,
+        "gripAudit": {
+          "Idle": {
+            "samples": 101,
+            "right": 1.2865167297623865e-7,
+            "left": 1.6376728002827787e-7
+          },
+          "Run_Gun": {
+            "samples": 46,
+            "right": 1.2684528835711074e-7,
+            "left": 2.689175158835587e-7
+          },
+          "Idle_Shoot": {
+            "samples": 24,
+            "right": 2.15102736044323e-7,
+            "left": 2.3897542450664673e-7
+          },
+          "HitReact": {
+            "samples": 28,
+            "right": 1.3964693350629221e-7,
+            "left": 2.365175440738842e-7
+          },
+          "Death": {
+            "samples": 47,
+            "right": 2.3117516538437603e-7,
+            "left": 1.5338169633980593e-7
+          }
+        }
+      },
+      "clips": {
+        "idle": {
+          "phases": 6,
+          "uniquePhases": [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4
+          ],
+          "source": "Idle / Atlas wrist socket / two-hand IK"
+        },
+        "walk": {
+          "phases": 8,
+          "uniquePhases": [
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8
+          ],
+          "source": "Run_Gun / Atlas wrist socket / two-hand IK"
+        },
+        "attack": {
+          "phases": 6,
+          "uniquePhases": [
+            5,
+            5,
+            5,
+            5,
+            5,
+            5,
+            5,
+            5
+          ],
+          "source": "Idle_Shoot / Atlas wrist socket / two-hand IK"
+        },
+        "hit": {
+          "phases": 5,
+          "uniquePhases": [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4
+          ],
+          "source": "HitReact / Atlas wrist socket / two-hand IK"
+        },
+        "death": {
+          "phases": 12,
+          "uniquePhases": [
+            12,
+            12,
+            12,
+            12,
+            12,
+            12,
+            12,
+            12
+          ],
+          "source": "Death / Atlas wrist socket / two-hand IK"
+        }
+      }
+    },
+    {
+      "file": "src/assets/reborn/prototype/heavy-1.json",
+      "roles": [
+        "heavy"
+      ],
+      "kind": "heavy",
+      "team": 1,
+      "directions": 8,
+      "frameCount": 296,
+      "source": "Atlas original hard-surface armour on Quaternius CC0 rig",
+      "model": "heavy-1.glb",
+      "modelSha256": "a4632ceb80d029cdb1d40f9a0fafc4d7aedb3b0e6348aea0b59389e00394a774",
+      "design": {
+        "name": "Atlas Legion heavy / desert ceramic armour",
+        "version": 2,
+        "team": 1,
+        "role": "heavy",
+        "parts": 257,
+        "triangles": 67048,
+        "materials": "Seeded 256px desert fabric, ceramic PBR and phosphate steel",
+        "weaponBinding": "Right wrist socket / two-hand grip frames",
+        "geometry": "Original procedural hard-surface armour and rifle",
+        "rig": "Quaternius Toon Shooter Game Kit / CC0-1.0",
+        "maxGripError": 2.689175158835587e-7,
+        "gripAudit": {
+          "Idle": {
+            "samples": 101,
+            "right": 1.2865167297623865e-7,
+            "left": 1.6376728002827787e-7
+          },
+          "Run_Gun": {
+            "samples": 46,
+            "right": 1.2684528835711074e-7,
+            "left": 2.689175158835587e-7
+          },
+          "Idle_Shoot": {
+            "samples": 24,
+            "right": 2.15102736044323e-7,
+            "left": 2.3897542450664673e-7
+          },
+          "HitReact": {
+            "samples": 28,
+            "right": 1.3964693350629221e-7,
+            "left": 2.365175440738842e-7
+          },
+          "Death": {
+            "samples": 47,
+            "right": 2.3117516538437603e-7,
+            "left": 1.5338169633980593e-7
+          }
+        }
+      },
+      "clips": {
+        "idle": {
+          "phases": 6,
+          "uniquePhases": [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4
+          ],
+          "source": "Idle / Atlas wrist socket / two-hand IK"
+        },
+        "walk": {
+          "phases": 8,
+          "uniquePhases": [
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8
+          ],
+          "source": "Run_Gun / Atlas wrist socket / two-hand IK"
+        },
+        "attack": {
+          "phases": 6,
+          "uniquePhases": [
+            5,
+            5,
+            5,
+            5,
+            5,
+            5,
+            5,
+            5
+          ],
+          "source": "Idle_Shoot / Atlas wrist socket / two-hand IK"
+        },
+        "hit": {
+          "phases": 5,
+          "uniquePhases": [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4
+          ],
+          "source": "HitReact / Atlas wrist socket / two-hand IK"
+        },
+        "death": {
+          "phases": 12,
+          "uniquePhases": [
+            12,
+            12,
+            12,
+            12,
+            12,
+            12,
+            12,
+            12
+          ],
+          "source": "Death / Atlas wrist socket / two-hand IK"
+        }
+      }
     },
     {
       "file": "src/assets/reborn/animation/rover-0.json",
@@ -844,17 +1706,23 @@
       "kind": "rover",
       "team": 0,
       "directions": 16,
-      "frameCount": 80,
+      "frameCount": 192,
       "source": "Atlas original vehicle geometry",
       "model": "rover-0.glb",
-      "modelSha256": "b86932ea4954417832709c30aa92027dbba6a5d29126c7f0b06452576bee0935",
+      "modelSha256": "cb90c2d2c09a0552d95fbc19654adb6b2372d6768b1ff18c2d3c843f42d637a7",
       "design": {
         "kind": "rover",
         "team": 0,
-        "parts": 147,
-        "triangles": 38456,
-        "geometry": "Atlas original ceramic / bronze vehicle geometry",
-        "source": "Atlas Dominion / original procedural models"
+        "seats": 4,
+        "weapon": "heavy roof mounted machine gun",
+        "role": "fast reconnaissance and infantry transport",
+        "wheelCount": 4,
+        "wheelType": "rounded 64-segment offroad tyres, fine staggered tread, eight-spoke alloy rims",
+        "teamFlag": "blue",
+        "flagGeometry": "double-sided curved cloth on independent roof mast",
+        "geometry": "Humvee-inspired original armoured 4x4 with embedded 1K PBR camouflage",
+        "parts": 485,
+        "triangles": 141618
       },
       "clips": {
         "idle": {
@@ -880,24 +1748,24 @@
           "source": "static model"
         },
         "walk": {
-          "phases": 4,
+          "phases": 11,
           "uniquePhases": [
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11
           ],
           "source": "authored rigid wheel geometry"
         }
@@ -911,17 +1779,23 @@
       "kind": "rover",
       "team": 1,
       "directions": 16,
-      "frameCount": 80,
+      "frameCount": 192,
       "source": "Atlas original vehicle geometry",
       "model": "rover-1.glb",
-      "modelSha256": "65c75914a6fe86be7f3a8f538b59740b09465ebd5231dc90500e0fc8ef991fb0",
+      "modelSha256": "0771fbd37cffb395731a35a80ef9ff9d34f45a07174de1b935cd197fe03625e0",
       "design": {
         "kind": "rover",
         "team": 1,
-        "parts": 147,
-        "triangles": 38456,
-        "geometry": "Atlas original ceramic / bronze vehicle geometry",
-        "source": "Atlas Dominion / original procedural models"
+        "seats": 4,
+        "weapon": "heavy roof mounted machine gun",
+        "role": "fast reconnaissance and infantry transport",
+        "wheelCount": 4,
+        "wheelType": "rounded 64-segment offroad tyres, fine staggered tread, eight-spoke alloy rims",
+        "teamFlag": "red",
+        "flagGeometry": "double-sided curved cloth on independent roof mast",
+        "geometry": "Humvee-inspired original armoured 4x4 with embedded 1K PBR camouflage",
+        "parts": 485,
+        "triangles": 141618
       },
       "clips": {
         "idle": {
@@ -947,24 +1821,24 @@
           "source": "static model"
         },
         "walk": {
-          "phases": 4,
+          "phases": 11,
           "uniquePhases": [
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11
           ],
           "source": "authored rigid wheel geometry"
         }
@@ -981,14 +1855,13 @@
       "frameCount": 240,
       "source": "Atlas original vehicle geometry",
       "model": "tank-0.glb",
-      "modelSha256": "865791136ec8d2820671d0c22ff5f5254b6fb6bf95fbe62a526cfb372955ec8e",
+      "modelSha256": "6d5f698271df7b313d550bcf9b0393b6a467b45d26a202b5b436a0bd8e91bf17",
       "design": {
         "kind": "tank",
         "team": 0,
-        "parts": 376,
-        "triangles": 99092,
-        "geometry": "Atlas original ceramic / bronze vehicle geometry",
-        "source": "Atlas Dominion / original procedural models"
+        "parts": 100,
+        "geometry": "Original Leopard-inspired woodland camo geometry with faction roof flag",
+        "source": "Atlas Dominion / procedural authored GLB"
       },
       "clips": {
         "idle": {
@@ -1106,14 +1979,13 @@
       "frameCount": 240,
       "source": "Atlas original vehicle geometry",
       "model": "tank-1.glb",
-      "modelSha256": "d52a5c3ffbea36d10102009c482787cfc0d00dc230ceb4e3b0582a9eaedb5a9d",
+      "modelSha256": "923a7c66aaec5bb2d26d1318fa5263e71673c55789fcefc8c34d6fec71403019",
       "design": {
         "kind": "tank",
         "team": 1,
-        "parts": 376,
-        "triangles": 99092,
-        "geometry": "Atlas original ceramic / bronze vehicle geometry",
-        "source": "Atlas Dominion / original procedural models"
+        "parts": 100,
+        "geometry": "Original Leopard-inspired woodland camo geometry with faction roof flag",
+        "source": "Atlas Dominion / procedural authored GLB"
       },
       "clips": {
         "idle": {
@@ -1231,12 +2103,14 @@
       "frameCount": 240,
       "source": "Atlas original vehicle geometry",
       "model": "artillery-0.glb",
-      "modelSha256": "82c883fd0f246a5e7a659de33c5ff5a2eb5373425d49709e833b36e186582769",
+      "modelSha256": "009eb762d55261645dae105bc4f697f1f7d4e50822321b64a0ceba77cf4ba968",
       "design": {
         "kind": "artillery",
         "team": 0,
-        "parts": 376,
-        "triangles": 99092,
+        "parts": 436,
+        "triangles": 111484,
+        "role": "long range rocket launcher",
+        "tubes": 12,
         "geometry": "Atlas original ceramic / bronze vehicle geometry",
         "source": "Atlas Dominion / original procedural models"
       },
@@ -1356,12 +2230,14 @@
       "frameCount": 240,
       "source": "Atlas original vehicle geometry",
       "model": "artillery-1.glb",
-      "modelSha256": "423503e9906d78e727c3a43c3ddeed9826cd068576abfe29f642f6471ad88576",
+      "modelSha256": "6e5f832da81564c948bf8a0ce57dfa852f39afa0a4f9230a15c56ccc0e202f32",
       "design": {
         "kind": "artillery",
         "team": 1,
-        "parts": 376,
-        "triangles": 99092,
+        "parts": 436,
+        "triangles": 111484,
+        "role": "long range rocket launcher",
+        "tubes": 12,
         "geometry": "Atlas original ceramic / bronze vehicle geometry",
         "source": "Atlas Dominion / original procedural models"
       },
@@ -1481,59 +2357,64 @@
       "frameCount": 128,
       "source": "Atlas original vehicle geometry",
       "model": "scout-0.glb",
-      "modelSha256": "051027404749ac7d69a60d9938e2e21ef6e17d5b0aebbd4eb393cf9fe28779bb",
+      "modelSha256": "af905db74a5d7e071cfa1956b4aed55a6b70c0c3ef753fe345fa647b589e1087",
       "design": {
         "kind": "scout",
         "team": 0,
-        "parts": 35,
-        "triangles": 9620,
-        "geometry": "Atlas original ceramic / bronze vehicle geometry",
-        "source": "Atlas Dominion / original procedural models"
+        "seats": 10,
+        "parts": 770,
+        "triangles": 37130,
+        "drawCalls": 13,
+        "source": "Sandforge authored original transport helicopter GLB",
+        "geometry": "Mi-8/17-inspired rounded transport, twin turbines, five-blade main rotor and three-blade tail rotor",
+        "textures": "1024² embedded base color, normal, packed ORM",
+        "mainBlades": 5,
+        "tailBlades": 3
       },
       "clips": {
         "idle": {
-          "phases": 4,
+          "phases": 8,
           "uniquePhases": [
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8
           ],
-          "source": "authored rigid rotor geometry"
+          "source": "Rotors_Continuous"
         },
         "walk": {
-          "phases": 4,
+          "phases": 8,
           "uniquePhases": [
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8
           ],
-          "source": "authored rigid rotor geometry"
+          "source": "Rotors_Continuous"
         }
       }
     },
@@ -1548,193 +2429,64 @@
       "frameCount": 128,
       "source": "Atlas original vehicle geometry",
       "model": "scout-1.glb",
-      "modelSha256": "cca50a565dab9bd67b2d0e4cb7338829d7823797bfb30229fb226b99faf8abcf",
+      "modelSha256": "b2863cc4b715dd8dfa4f20da6952c5acb0d11092c2354dccb8fd4797d485ae00",
       "design": {
         "kind": "scout",
         "team": 1,
-        "parts": 35,
-        "triangles": 9620,
-        "geometry": "Atlas original ceramic / bronze vehicle geometry",
-        "source": "Atlas Dominion / original procedural models"
+        "seats": 10,
+        "parts": 770,
+        "triangles": 37130,
+        "drawCalls": 13,
+        "source": "Sandforge authored original transport helicopter GLB",
+        "geometry": "Mi-8/17-inspired rounded transport, twin turbines, five-blade main rotor and three-blade tail rotor",
+        "textures": "1024² embedded base color, normal, packed ORM",
+        "mainBlades": 5,
+        "tailBlades": 3
       },
       "clips": {
         "idle": {
-          "phases": 4,
+          "phases": 8,
           "uniquePhases": [
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8
           ],
-          "source": "authored rigid rotor geometry"
+          "source": "Rotors_Continuous"
         },
         "walk": {
-          "phases": 4,
+          "phases": 8,
           "uniquePhases": [
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8
           ],
-          "source": "authored rigid rotor geometry"
-        }
-      }
-    },
-    {
-      "file": "src/assets/reborn/animation/gunship-0.json",
-      "roles": [
-        "gunship"
-      ],
-      "kind": "gunship",
-      "team": 0,
-      "directions": 16,
-      "frameCount": 128,
-      "source": "Atlas original vehicle geometry",
-      "model": "gunship-0.glb",
-      "modelSha256": "9164c6ad91868b5c4ef5acf03e16036e7be772c2764e7d9578cceec789f4a1db",
-      "design": {
-        "kind": "gunship",
-        "team": 0,
-        "parts": 39,
-        "triangles": 9940,
-        "geometry": "Atlas original ceramic / bronze vehicle geometry",
-        "source": "Atlas Dominion / original procedural models"
-      },
-      "clips": {
-        "idle": {
-          "phases": 4,
-          "uniquePhases": [
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4
-          ],
-          "source": "authored rigid rotor geometry"
-        },
-        "walk": {
-          "phases": 4,
-          "uniquePhases": [
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4
-          ],
-          "source": "authored rigid rotor geometry"
-        }
-      }
-    },
-    {
-      "file": "src/assets/reborn/animation/gunship-1.json",
-      "roles": [
-        "gunship"
-      ],
-      "kind": "gunship",
-      "team": 1,
-      "directions": 16,
-      "frameCount": 128,
-      "source": "Atlas original vehicle geometry",
-      "model": "gunship-1.glb",
-      "modelSha256": "89472e6cbf2ba0b51b608e2505423648fe1d8128a2eba0e38cd3da492940128a",
-      "design": {
-        "kind": "gunship",
-        "team": 1,
-        "parts": 39,
-        "triangles": 9940,
-        "geometry": "Atlas original ceramic / bronze vehicle geometry",
-        "source": "Atlas Dominion / original procedural models"
-      },
-      "clips": {
-        "idle": {
-          "phases": 4,
-          "uniquePhases": [
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4
-          ],
-          "source": "authored rigid rotor geometry"
-        },
-        "walk": {
-          "phases": 4,
-          "uniquePhases": [
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4
-          ],
-          "source": "authored rigid rotor geometry"
+          "source": "Rotors_Continuous"
         }
       }
     },
@@ -1746,62 +2498,62 @@
       "kind": "bomber",
       "team": 0,
       "directions": 16,
-      "frameCount": 32,
+      "frameCount": 256,
       "source": "Atlas original vehicle geometry",
       "model": "bomber-0.glb",
-      "modelSha256": "3dd2bfd29f6a41e969533bbc12269f5d649c3c2c7292e1321dc42aec4159f44c",
+      "modelSha256": "e5f3fe7a993c6754ce728b40c9d200687faf1805d9280d992c41f9b4d510049b",
       "design": {
         "kind": "bomber",
         "team": 0,
-        "parts": 26,
-        "triangles": 6480,
-        "geometry": "Atlas original ceramic / bronze vehicle geometry",
-        "source": "Atlas Dominion / original procedural models"
+        "parts": 33,
+        "triangles": 26616,
+        "geometry": "PBR desert twin-engine bomber with twin fins and animated propellers",
+        "source": "Sandforge authored original bomber GLB"
       },
       "clips": {
         "idle": {
-          "phases": 1,
+          "phases": 8,
           "uniquePhases": [
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8
           ],
-          "source": "static model"
+          "source": "Propellers_Continuous"
         },
         "walk": {
-          "phases": 1,
+          "phases": 8,
           "uniquePhases": [
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8
           ],
-          "source": "static model"
+          "source": "Propellers_Continuous"
         }
       }
     },
@@ -1813,62 +2565,62 @@
       "kind": "bomber",
       "team": 1,
       "directions": 16,
-      "frameCount": 32,
+      "frameCount": 256,
       "source": "Atlas original vehicle geometry",
       "model": "bomber-1.glb",
-      "modelSha256": "f6907be1a2083b8769f53a7028dab6475180d9eaf6900451502bbad4a044f2f9",
+      "modelSha256": "c040010efa3a03b4ab8823aa183890245bd8855ad9ed7f6d07ebb7fca2b133fd",
       "design": {
         "kind": "bomber",
         "team": 1,
-        "parts": 26,
-        "triangles": 6480,
-        "geometry": "Atlas original ceramic / bronze vehicle geometry",
-        "source": "Atlas Dominion / original procedural models"
+        "parts": 33,
+        "triangles": 26616,
+        "geometry": "PBR desert twin-engine bomber with twin fins and animated propellers",
+        "source": "Sandforge authored original bomber GLB"
       },
       "clips": {
         "idle": {
-          "phases": 1,
+          "phases": 8,
           "uniquePhases": [
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8
           ],
-          "source": "static model"
+          "source": "Propellers_Continuous"
         },
         "walk": {
-          "phases": 1,
+          "phases": 8,
           "uniquePhases": [
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8,
+            8
           ],
-          "source": "static model"
+          "source": "Propellers_Continuous"
         }
       }
     }
@@ -1879,9 +2631,9 @@
       "kind": "airfield",
       "team": 0,
       "model": "airfield-0.glb",
-      "sha256": "da0abb3bfde4305fad766f38c2790c61a80f9d162f49aea093ba91cb22209f46",
+      "sha256": "3b3b6e1c9cda5b96930905ebc739cc9584bfb3130b6db18f4b61f2fb3dff898a",
       "parts": 30,
-      "triangles": 23010,
+      "triangles": 23442,
       "pivot": [
         256,
         382
@@ -1900,9 +2652,9 @@
       "kind": "airfield",
       "team": 1,
       "model": "airfield-1.glb",
-      "sha256": "248f81e355323dfa78d056fb9b8c797f9fecae4912305cee556f510b1b08db10",
+      "sha256": "085d3c7a1b948fb9001d2f91f2a752aff1e479cc5232e8a233f4d379e440da5b",
       "parts": 30,
-      "triangles": 23010,
+      "triangles": 23442,
       "pivot": [
         256,
         382
@@ -1921,9 +2673,9 @@
       "kind": "barracks",
       "team": 0,
       "model": "barracks-0.glb",
-      "sha256": "810b75ac306b1b9a7bb1c47d873b150cd8e5f6dafa8c6453c4a687b8053e4289",
-      "parts": 163,
-      "triangles": 83022,
+      "sha256": "137ad4a9367c545a82283d50862e358fa19ec8a5e1314cbb7a8bd3854af4791b",
+      "parts": 164,
+      "triangles": 83994,
       "pivot": [
         256,
         382
@@ -1942,9 +2694,9 @@
       "kind": "barracks",
       "team": 1,
       "model": "barracks-1.glb",
-      "sha256": "d730df15a37ad7b47a5a231a2c98362d271890ed8aeee7ea35832ce2412a6f07",
-      "parts": 163,
-      "triangles": 83022,
+      "sha256": "ebb1eb1fa1985b180ad00c24f5e174622f90214b863bb67f01bb26b94c5768f0",
+      "parts": 164,
+      "triangles": 83994,
       "pivot": [
         256,
         382
@@ -1963,9 +2715,9 @@
       "kind": "bastion",
       "team": -1,
       "model": "bastion--1.glb",
-      "sha256": "23b0da8b12401cab8ff008c450fe2abb4989d68e3891984413089a57a4919cec",
-      "parts": 51,
-      "triangles": 35430,
+      "sha256": "f9926dca2e662ff7bc37a625ec2d4ac35cbb8000958e5293ec21cd596f19d882",
+      "parts": 53,
+      "triangles": 35862,
       "pivot": [
         256,
         382
@@ -1992,9 +2744,9 @@
       "kind": "bastion",
       "team": 0,
       "model": "bastion-0.glb",
-      "sha256": "c1b04c6485c29f1129712a10251f766ee47788352fbf61bec7536d36c0542b4a",
-      "parts": 51,
-      "triangles": 35430,
+      "sha256": "d0c1e0c655e4e782e9dc3f1229935bb84d43fc2b1fc6d0042e3ef4ab60ed08c0",
+      "parts": 53,
+      "triangles": 35862,
       "pivot": [
         256,
         382
@@ -2021,9 +2773,9 @@
       "kind": "bastion",
       "team": 1,
       "model": "bastion-1.glb",
-      "sha256": "5512f3096aed9fa7e2a91a44778f06d81177042d95e3ea0680afab87b5953ace",
-      "parts": 51,
-      "triangles": 35430,
+      "sha256": "502dfa626dc8647a09424c87ebc4f86561bb044fe6bb9d4f6b707fe7215d10cb",
+      "parts": 53,
+      "triangles": 35862,
       "pivot": [
         256,
         382
@@ -2050,9 +2802,9 @@
       "kind": "factory",
       "team": 0,
       "model": "factory-0.glb",
-      "sha256": "e777e8aebdba0c64b3ae8b334612eddbb0cb6f0f644e89109df3447721337f00",
+      "sha256": "820161edc6c2e6d55258a86583827dce3965020c714aade42534ea449dde908b",
       "parts": 53,
-      "triangles": 29382,
+      "triangles": 31002,
       "pivot": [
         256,
         382
@@ -2071,9 +2823,9 @@
       "kind": "factory",
       "team": 1,
       "model": "factory-1.glb",
-      "sha256": "b5bb57f24606da915b786b7245597eccaadb166932b5f4c3f046c1f806cc5b81",
+      "sha256": "074e6149b23e0f31c676653b2cbf96b4bc3015b47ade9a6022759dc359c1cd97",
       "parts": 53,
-      "triangles": 29382,
+      "triangles": 31002,
       "pivot": [
         256,
         382
@@ -2092,9 +2844,9 @@
       "kind": "generator",
       "team": 0,
       "model": "generator-0.glb",
-      "sha256": "0d890e6444b2ebc94f28eb996388e5b8c9f62b49fb20b1879d076c889dcd85bb",
-      "parts": 26,
-      "triangles": 15642,
+      "sha256": "ac4d90eba17cb874b480dfa312c74a19494a1d0ddc054d8bd961b8933da3b5a6",
+      "parts": 27,
+      "triangles": 15966,
       "pivot": [
         256,
         382
@@ -2113,9 +2865,9 @@
       "kind": "generator",
       "team": 1,
       "model": "generator-1.glb",
-      "sha256": "31edadf581bfc3653309b0bf5cdb75703c2efcd105ff8933f0472bfa1b6d38a2",
-      "parts": 26,
-      "triangles": 15642,
+      "sha256": "2b54f7e3f2997493b3fe83fecc51fdf0d4b200e5e8e41fb7eed4b6057b604201",
+      "parts": 27,
+      "triangles": 15966,
       "pivot": [
         256,
         382
@@ -2134,9 +2886,9 @@
       "kind": "headquarters",
       "team": 0,
       "model": "headquarters-0.glb",
-      "sha256": "5e1a8d4c0df2174d743860b602686e62cb5ebce9d35f241c4141bf7366e6f3d1",
-      "parts": 119,
-      "triangles": 67526,
+      "sha256": "978c487c6f73edf3ce50fa36b40d0df12908931573c03f33c7c30a72c92e065c",
+      "parts": 121,
+      "triangles": 69148,
       "pivot": [
         256,
         382
@@ -2159,9 +2911,9 @@
       "kind": "headquarters",
       "team": 1,
       "model": "headquarters-1.glb",
-      "sha256": "b54c142882ed078d359dcb156ed902fbb147ee96431a1f37883ecaf853a9425f",
-      "parts": 119,
-      "triangles": 67526,
+      "sha256": "c404eb70f56441dc36a1fa2c1ae1bd74001b09ead857850e7a4841ba2298f7fd",
+      "parts": 121,
+      "triangles": 69148,
       "pivot": [
         256,
         382
@@ -2184,9 +2936,9 @@
       "kind": "turret",
       "team": 0,
       "model": "turret-0.glb",
-      "sha256": "3a8a72ade020ac3fb8240e4e9aedd9619027d3f21af3e0897f589c6309a7bf9a",
-      "parts": 173,
-      "triangles": 72010,
+      "sha256": "dec7a3a650a250b41ca187794e74af0946db5b6c6375eb3736e7ee081e11b793",
+      "parts": 175,
+      "triangles": 72334,
       "pivot": [
         256,
         382
@@ -2205,9 +2957,9 @@
       "kind": "turret",
       "team": 1,
       "model": "turret-1.glb",
-      "sha256": "47eaaadf0cc00082e9fbe95cb893698342e88d12de61faa5f3c3e4eb8eb945b7",
-      "parts": 173,
-      "triangles": 72010,
+      "sha256": "31e4b7a87472d9b1dcf9fad9ec5a0384eaa179c356c23e048bf5bf462624be2c",
+      "parts": 175,
+      "triangles": 72334,
       "pivot": [
         256,
         382

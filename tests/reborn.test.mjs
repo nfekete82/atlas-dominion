@@ -222,7 +222,7 @@ test('reborn: construction respects ownership, terrain, occupied footprints, cre
 });
 test('reborn: typed production enforces the producer, refunds each type and preserves later queue timing',()=>{
  const g=peaceful();g.credits[0]=3000;const factory=buildWithWorker(g,0,'factory',buildSite(g,'factory'));advance(g,19);
- assert.equal(g.recruit(factory.id,'gunship'),false);assert.equal(g.recruit(factory.id,'tank'),true);assert.equal(g.recruit(factory.id,'rover'),true);
+ assert.equal(g.recruit(factory.id,'bomber'),false);assert.equal(g.recruit(factory.id,'tank'),true);assert.equal(g.recruit(factory.id,'rover'),true);
  advance(g,2);const progress=factory.production,credits=g.credits[0];g.cancel(factory.id,1);assert.equal(g.credits[0],credits+UNITS.rover.cost);assert.equal(factory.production,progress);
  assert.equal(g.recruit(factory.id,'artillery'),true);g.cancel(factory.id,0);assert.equal(factory.production,0);assert.deepEqual(factory.queueTypes,['artillery']);advance(g,19);
  const artillery=g.units.find(u=>u.kind==='artillery');assert.ok(artillery);assert.equal(artillery.hp,340);assert.ok(g.world.walkable(artillery,g.obstacles(),10));
@@ -244,7 +244,7 @@ test('reborn: air units cross rock and scout over it; vehicles retain terrain cl
  g.units=[];const tank=g.spawn(0,{x:1900,y:2100},'tank');g.command([tank.id],{x:2350,y:2250,kind:'move'});for(let i=0;i<100;i++){g.step();assert.ok(g.world.walkable(tank,g.obstacles(),12));}
 });
 
-for(const kind of ['scout','gunship','bomber'])for(const owner of [0,1])test(`reborn: ${kind} captures for faction ${owner} through movement, save/load, sight and income`,()=>{
+for(const kind of ['scout','bomber'])for(const owner of [0,1])test(`reborn: ${kind} captures for faction ${owner} through movement, save/load, sight and income`,()=>{
  const g=peaceful();g.units=[];
  const t=g.territories.find(t=>t.owner===-1&&t.neighbors.some(i=>g.territories[i].owner===owner)),income=g.income(owner);
  const air=g.spawn(owner,{x:t.point.x,y:t.point.y+240},kind);
@@ -259,7 +259,7 @@ for(const kind of ['scout','gunship','bomber'])for(const owner of [0,1])test(`re
 });
 
 test('reborn: air and ground units contest each other and air recapture transfers ownership and income',()=>{
- for(const [blueKind,redKind] of [['scout','infantry'],['infantry','gunship']]){
+ for(const [blueKind,redKind] of [['scout','infantry'],['infantry','bomber']]){
   const g=peaceful();g.units=[];const t=g.territories[20],blue=g.spawn(0,{x:t.point.x-20,y:t.point.y},blueKind);blue.cooldown=1e6;
   advance(g,3);const progress=t.progress;assert.ok(progress>0);
   const red=g.spawn(1,{x:t.point.x+20,y:t.point.y},redKind);red.cooldown=1e6;

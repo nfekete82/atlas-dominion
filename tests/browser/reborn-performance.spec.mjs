@@ -32,14 +32,14 @@ test('performance: optimized layered sprites match original Canvas pixels and pr
  const results=await page.evaluate(async()=>{
   const a=window.__reborn,{unitVisualLift}=await import('/src/reborn/unit-presentation.js'),out=[];
   // Reference is the original save/restore implementation, including corpse filters.
-  function reference(presentation,c,v,p){c.save();c.imageSmoothingEnabled=false;const at={x:p.x,y:p.y-unitVisualLift(v.unit)};
+  function reference(presentation,c,v,p){c.save();c.imageSmoothingEnabled=v.asset.data.cell[0]>=144;const at={x:p.x,y:p.y-unitVisualLift(v.unit)};
    if(v.asset.shadow)presentation.drawFrame(c,v,v.frame,p,{x:0,y:0},v.asset.shadow);
    if(v.dead&&!v.asset.data.clips.death)c.filter='grayscale(1) brightness(.5)';
    presentation.drawFrame(c,v,v.frame,at);
    if(v.asset.data.clips.turret){presentation.drawFrame(c,v,v.anim.frame('turret',v.turretAngle),at);if(v.asset.data.clips.barrel){const recoil=v.unit.fire>0?Math.sin(v.unit.fire/.18*Math.PI)*2.5:0;presentation.drawFrame(c,v,v.anim.frame('barrel',v.turretAngle),at,{x:-Math.cos(v.turretAngle)*recoil,y:-Math.sin(v.turretAngle)*recoil*.65});}}
    c.restore();
   }
-  for(const kind of ['infantry','heavy','medic','engineer','rover','tank','artillery','scout','gunship','bomber'])for(const scale of [.6,1,1.7]){
+  for(const kind of ['infantry','heavy','medic','engineer','rover','tank','artillery','scout','bomber'])for(const scale of [.6,1,1.7]){
    const u=a.game.spawn(0,{x:1000,y:1000},kind);u.angle=.8;u.fire=.09;a.renderer.units.update([u],0,()=>true);const view=a.renderer.units.inspect(u.id);
    for(const dead of [false,true]){view.dead=dead;const canvases=[document.createElement('canvas'),document.createElement('canvas')];for(const canvas of canvases){canvas.width=canvas.height=320;const c=canvas.getContext('2d');c.translate(160,250);c.scale(scale,scale);c.globalAlpha=.7;}
     const [expected,actual]=canvases.map(c=>c.getContext('2d'));reference(a.renderer.units,expected,view,{x:0,y:0});a.renderer.units.drawView(actual,view,{x:0,y:0});

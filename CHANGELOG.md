@@ -4,9 +4,10 @@
 
 Der lokale Paketstand ist weiterhin 1.8.0. Es wurden keine Release-Tags angelegt. Diese Änderungen sind ein Release-Entwurf. Die drei deutschen Stimmtypen sind vom Eigentümer anhand der Vergleichsproben freigegeben und alle 47 Clips aktiviert.
 
-- Zehn Einheitentypen mit eigenen Rollen: Sanitäter, Bauarbeiter, verstärkte schwere Infanterie sowie Fahrzeuge und Luftunterstützung.
+- Neun aktive Einheitentypen mit eigenen Rollen: Sanitäter, Bauarbeiter, verstärkte schwere Infanterie sowie Fahrzeuge und Luftunterstützung.
 - Artillerie zum Raketenwerfer mit 680 M Reichweite, 830 M Sicht, sichtbaren Flugkörpern und Flächenschaden umgebaut.
-- Spähheli zum bewaffneten Transportheli für zehn Infanteristen erweitert; Landen, Aufnahme, Ausladen und Start samt gespeichertem Transportzustand.
+- Transporthelikopter durch ein eigenes Mi-8/17-inspiriertes PBR-Modell für beide Teams ersetzt: fünfblättriger Hauptrotor, unabhängiger Heckrotor, 16 Richtungen und acht Spritephasen. Kampfhelikopter aus dem aktiven Kader entfernt; alte Einheiten und bezahlte Aufträge werden migriert. Zehn Transportplätze bleiben erhalten.
+- Landeanflug an den Bremsabstand angepasst und durchgehende Rotor-/Propellerphase beim Wechsel zwischen Stillstand und Flug gesichert.
 - Kompakter Geschützturm mit 600 M Reichweite, 750 M Sicht, eigenständig drehbarem Kopf, zwei registrierten Mündungen und blockierten Schusslinien hinter Felsen.
 - Gezielter Gebäudeaufbau und Reparaturen durch echte Arbeiter; Sanitäter mit begrenzter verteilter Heilung, Selbstversorgung und Position hinter der Front.
 - Gemischte, bezahlte KI-Armeen mit Sammeln, Aufklärung, Verteidigung, Belagerung, Flanken und Versorgung.

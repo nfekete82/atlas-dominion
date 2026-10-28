@@ -28,17 +28,16 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
   // Briefly losing sight of a force should not immediately restart a siege
   // purchase. The remembered kinds contain observations, never hidden state.
   const recent=belief.sightings.filter(v=>g.time-v.seenAt<=30);
-  if(belief.strategy==='air')observed.air=Math.max(observed.air,recent.filter(v=>v.kind==='gunship'||v.kind==='bomber').length);
+  if(belief.strategy==='air')observed.air=Math.max(observed.air,recent.filter(v=>v.kind==='bomber').length);
   if(belief.strategy==='armor')observed.armor=Math.max(observed.armor,recent.filter(v=>['tank','rover','artillery'].includes(v.kind)).length);
   if(belief.strategy==='infantry')observed.infantry=Math.max(observed.infantry,recent.filter(v=>v.kind==='infantry'||v.kind==='heavy').length);
  }
- const airTarget=enemyAir??(observed.air?{kind:'gunship' as const}:undefined);
+ const airTarget=enemyAir??(observed.air?{kind:'bomber' as const}:undefined);
  // A visible force, rather than an unseen technology assumption, creates a
  // counter deficit. Queue counts make this stable across successive pulses.
  const counter=():UnitKind|null=>{
   if(observed.air){
    if(available('heavy')&&count('heavy')<Math.min(3,Math.ceil(observed.air/2)))return 'heavy';
-   if(available('gunship')&&count('gunship')<Math.min(3,Math.ceil(observed.air/2)))return 'gunship';
   }
   if(observed.armor>=2&&available('tank')&&count('tank')<Math.min(4,Math.ceil(observed.armor/2)))return 'tank';
   if(observed.infantry>=3&&observed.infantry>observed.armor&&available('heavy')&&count('heavy')<Math.min(3,Math.ceil(observed.infantry/3)))return 'heavy';
@@ -60,13 +59,9 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
   // Rebuild a minimal escort before replacing expensive aircraft. An army
   // reduced to recovering armor must not spend every future payment on air.
   if(ground()>=2&&available('infantry')&&count('infantry')<2)return 'infantry';
-  if(ground()>=2&&available('heavy')&&count('heavy')===0&&(e.produced.gunship??0)>0)return 'heavy';
-  // Finish the recon role even if the first gunship was lost in combat;
-  // otherwise repeated gunship replacements can starve reconnaissance forever.
-  if(available('scout')&&(count('gunship')>0||(e.produced.gunship??0)>0)&&count('scout')===0)return 'scout';
-  // An operational airfield must get an aircraft before endless ground
-  // replacements consume its budget. Queued ground armor also protects it.
-  if(available('gunship')&&count('gunship')===0&&(ground()>=2||!available('tank')))return 'gunship';
+  if(ground()>=2&&available('heavy')&&count('heavy')===0&&(e.produced.scout??0)>0)return 'heavy';
+  // Protect the first transport and its replacements from endless ground purchases.
+  if(available('scout')&&(ground()>=2||!available('tank'))&&count('scout')===0)return 'scout';
   if(available('rover')&&ground()<3&&fighters>=5)return 'rover';
   // Protect support purchases too: repeatedly falling back to a 100-credit
   // soldier can otherwise starve heavy infantry and healing for an entire war.
@@ -78,7 +73,7 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
   infantry:8,heavy:c.income>=65?4:3,medic:Math.min(2,Math.ceil((count('infantry')+count('heavy'))/5)),
   engineer:c.own.length>=4&&(s.recovering?.length??0)>0?2:1,rover:1,tank:c.income>=65||observed.armor>=3?4:2,
   artillery:c.knownTurrets>1?3:c.knownEnemyHQ||c.knownTurrets?2:1,
-  scout:1,gunship:observed.air>=3?3:c.income>=55||observed.air>=2?2:1,bomber:c.income>=65?1:0,
+  scout:1,bomber:c.income>=65?1:0,
  })[kind];
  const ranks=(producer:Base):UnitKind[]=>{
   const n=counts();

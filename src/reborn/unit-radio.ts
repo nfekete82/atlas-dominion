@@ -6,7 +6,7 @@ export interface PlayerOrder {kind:RadioAction;unit:UnitKind;unitId:number}
 export interface RadioClip {id:string;profile:string;group:string;text:string;file:string;duration:number;speaker:string}
 export interface RadioManifest {version:1;language:string;clips:RadioClip[]}
 const ROOT='/src/assets/reborn/voices/';
-const air=(kind:UnitKind)=>['scout','gunship','bomber'].includes(kind);
+const air=(kind:UnitKind)=>['scout','bomber'].includes(kind);
 export const radioProfile=(kind:UnitKind):string=>['medic','engineer'].includes(kind)?'support':['heavy','rover','tank','artillery'].includes(kind)?'crew':'soldier';
 export function radioChoices(clips:RadioClip[],action:RadioAction,unit:UnitKind):RadioClip[]{
  const profile=radioProfile(unit),bank=clips.filter(c=>c.profile===profile),groups=(...names:string[])=>bank.filter(c=>names.includes(c.group));

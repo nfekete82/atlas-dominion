@@ -19,7 +19,7 @@ Alle sechs Typen haben 16 Richtungen. Rover-Räder, echte Kettenglieder und Roto
 Reproduzieren:
 
 ```sh
-node scripts/render-unit-atlases.mjs rover tank artillery scout gunship bomber
+node scripts/render-unit-atlases.mjs rover tank artillery scout bomber
 npm run assets:animation-audit
 npm run test:reborn
 npm run test:animation

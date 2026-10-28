@@ -28,7 +28,7 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
   else if(!has('barracks')&&fighters.length>=3)goal='barracks';
   // Reinvest a secure, established army's surplus in paid recurring income.
   // A finite generator budget avoids consuming every future air/armor purchase.
-  else if(director&&complete('airfield')&&count('gunship')>0&&count('scout')>0&&g.time>=180&&income<65&&fighters.length>=6&&own.filter(b=>b.kind==='generator').length<3)goal='generator';
+  else if(director&&complete('airfield')&&count('scout')>0&&g.time>=180&&income<65&&fighters.length>=6&&own.filter(b=>b.kind==='generator').length<3)goal='generator';
  }
  if(e.goal!==goal){e.goal=goal;e.since=g.time;}
  if(goal&&g.credits[1]>=BUILDINGS[goal].cost&&g.time-e.attemptAt>=9){
@@ -68,8 +68,7 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
   tank:complete('factory')?44+known*4+armor*6-count('tank')*16:0,
   artillery:complete('factory')&&(known||fighters.length>=5)?32+known*14-count('artillery')*32:0,
   scout:complete('airfield')&&fighters.length>=4?25-count('scout')*35:0,
-  gunship:complete('airfield')?38+air*10+armor*3-count('gunship')*19:0,
-  bomber:complete('airfield')&&(count('scout')+count('gunship')>0)&&income>=65&&fighters.length>=6&&military.length?22+military.filter(b=>b.kind==='factory'||b.kind==='airfield').length*3-count('bomber')*25:0,
+  bomber:complete('airfield')&&count('scout')>0&&income>=65&&fighters.length>=6&&military.length?22+military.filter(b=>b.kind==='factory'||b.kind==='airfield').length*3-count('bomber')*25:0,
  };
  if(underAttack&&fighters.length<4){scores.infantry+=20;scores.heavy+=15;}
  if(air){scores.artillery=0;scores.bomber=0;}

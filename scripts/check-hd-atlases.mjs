@@ -3,7 +3,7 @@ import {readFile} from 'node:fs/promises';
 import {join,resolve} from 'node:path';
 import assert from 'node:assert/strict';
 const root=resolve('src/assets/reborn/animation');
-const kinds=['rover','tank','artillery','scout','gunship','bomber'];
+const kinds=['rover','tank','artillery','scout','bomber'];
 let count=0;
 for(const kind of kinds)for(const team of [0,1]){
  const stem=kind+'-'+team;

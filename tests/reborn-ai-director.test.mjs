@@ -34,10 +34,10 @@ test('director: stays committed through two casualties but withdraws from near-a
 
 test('director: specific roles for each fully paid producer',()=>{
  const counts={engineer:1,infantry:5,heavy:1,medic:0,tank:0,rover:0,artillery:0,
-  scout:0,gunship:0,bomber:0};
+  scout:0,bomber:0};
  assert.equal(preferredRole('factory',counts,1,0)[0],'artillery');
  assert.equal(preferredRole('factory',counts,0,0)[0],'tank');
- assert.equal(preferredRole('airfield',counts,0,1)[0],'gunship');
+ assert.equal(preferredRole('airfield',counts,0,1)[0],'scout');
  assert.equal(preferredRole('barracks',counts,0,0)[0],'heavy');
 });
 
@@ -55,7 +55,7 @@ test('director: three finished buildings queue simultaneously on one economic ti
  const queued=[barracks,factory,airfield].map(b=>b.queueTypes[0]);
  assert.equal(queued[0],'heavy');
  assert.equal(queued[1],'tank');
- assert.equal(queued[2],'gunship');
+ assert.equal(queued[2],'scout');
  assert.ok(before-g.credits[1]>=3*100,'all queues spend real credits');
  assert.equal(g.queued(1),3);
 });

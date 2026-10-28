@@ -1,0 +1,26 @@
+{
+  "scout-0.glb": {
+    "sha256": "af905db74a5d7e071cfa1956b4aed55a6b70c0c3ef753fe345fa647b589e1087",
+    "identical": true
+  },
+  "scout-0.json": {
+    "sha256": "49db058a3579ad76fd3ff0b5323bb820e4712ce71e3fbccb869d4f635cd26bf9",
+    "identical": true
+  },
+  "scout-0.png": {
+    "sha256": "db0b9beb38b63e82daf56364561d584f0e7f7f639ee32476b4e86d1ab1104899",
+    "identical": true
+  },
+  "scout-1.glb": {
+    "sha256": "b2863cc4b715dd8dfa4f20da6952c5acb0d11092c2354dccb8fd4797d485ae00",
+    "identical": true
+  },
+  "scout-1.json": {
+    "sha256": "d57bb688d317f3f0a6f35472e07a0002890767b2fbf5f10f523f87363feb0a6e",
+    "identical": true
+  },
+  "scout-1.png": {
+    "sha256": "6ccb1e519d778fe7f1684b1dc9b0167a902bb7d216ab971fb7ae3cbe7ea3c9d3",
+    "identical": true
+  }
+}

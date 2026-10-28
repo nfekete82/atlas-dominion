@@ -39,7 +39,7 @@ test('control: selected helicopter escapes active combat via M and Alt-right-cli
   },pilotId);
   await clickWorld(helicopter);
   expect(await page.evaluate(id=>window.__reborn.renderer.selected.has(id),pilotId)).toBe(true);
-  await expect(page.locator('#selection-title')).toHaveText('Transportheli');
+  await expect(page.locator('#selection-title')).toHaveText('Transporthelikopter');
 
   await page.keyboard.press('m');
   await clickWorld({x:1600,y:2100});

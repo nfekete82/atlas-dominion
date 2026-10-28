@@ -27,7 +27,7 @@ test('production: every building rejects foreign roles without spending credits 
 test('production: real worker construction unlocks barracks, factory and airfield only on completion',()=>{
  const g=Simulation.campaign(2026);g.aiClock=-1e8;g.credits[0]=10000;const worker=g.units.find(u=>u.owner===0&&u.kind==='engineer');
  for(const kind of ['barracks','factory','airfield']){
-  const site=buildSite(g,kind),b=g.build(0,kind,site,[worker.id]);assert.ok(b);const roles=unitKinds.filter(k=>UNITS[k].producers.includes(kind));assert.equal(roles.length,3);
+  const site=buildSite(g,kind),b=g.build(0,kind,site,[worker.id]);assert.ok(b);const roles=unitKinds.filter(k=>UNITS[k].producers.includes(kind));assert.equal(roles.length,kind==='airfield'?2:3);
   for(const role of roles){assert.equal(g.producer(0,role),undefined);assert.equal(g.recruit(b.id,role),false);}
   for(let i=0;i<1800&&b.buildRemaining>0;i++)g.step();assert.equal(b.buildRemaining,0);
   for(const role of roles){assert.equal(g.producer(0,role).id,b.id);assert.ok(g.recruit(b.id,role));}

@@ -1,3 +1,4 @@
+import {migrateTransportRoster} from './roster-migration.js';
 import {VisionCache} from './vision-cache.js';
 import { profiler } from './performance.js';
 import { RULES, clamp, distance, type Faction, type Owner, type Point, type MapVersion, mapLayout } from './config.js';
@@ -671,7 +672,7 @@ export class Simulation {
       units:this.units,bases:this.bases,territories:this.territories,explored:this.explored.map(a=>Array.from(a)),memories:this.memories,aiClock:this.aiClock,ai:this.tactical.state,status:this.status});
   }
   static load(raw:unknown):Simulation {
-    const s=raw as Save;
+    const s=migrateTransportRoster(raw) as Save;
     const finite=(n:unknown)=>typeof n==='number'&&Number.isFinite(n);
     const point=(p:Point)=>p&&finite(p.x)&&finite(p.y)&&p.x>=0&&p.y>=0&&p.x<=RULES.worldSize&&p.y<=RULES.worldSize;
     const burst=(b:Burst|undefined,rounds:number)=>b===undefined||(b!==null&&Number.isInteger(b.target)&&Number.isInteger(b.remaining)&&b.remaining>0&&b.remaining<=rounds&&b.remaining+b.index===rounds&&Number.isInteger(b.index)&&b.index>=0&&b.index<4&&finite(b.at)&&b.at>=s.time-.11&&b.at<=s.time+.11);

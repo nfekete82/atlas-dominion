@@ -6,16 +6,16 @@ import {newCampaign,chooseMission} from '../dist/src/reborn/campaign-commander.j
 function scene(){const g=new Simulation(2026,4);g.time=100;g.visible[1].fill(0);return {g,s:newAdaptive(),home:g.bases.find(b=>b.owner===1)};}
 function see(g,u){g.visible[1][g.world.index(u)]=1;}
 test('adaptation: hidden unit types, positions, health and cargo never influence doctrine',()=>{
- const a=scene(),b=scene();const x=a.g.spawn(0,{x:400,y:2300},'gunship'),y=b.g.spawn(0,{x:1300,y:2600},'bomber');x.hp=1;y.hp=600;
+ const a=scene(),b=scene();const x=a.g.spawn(0,{x:400,y:2300},'bomber'),y=b.g.spawn(0,{x:1300,y:2600},'bomber');x.hp=1;y.hp=600;
  updateAdaptive(a.g,a.s,a.home,[]);updateAdaptive(b.g,b.s,b.home,[]);assert.deepEqual(a.s,b.s);assert.equal(a.s.strategy,'unknown');
 });
 test('adaptation: actual combat air is recognized; a transport alone does not become an air attack',()=>{
  const {g,s,home}=scene();const transport=g.spawn(0,{x:700,y:2000},'scout');see(g,transport);updateAdaptive(g,s,home,[]);assert.equal(s.counts.air,0);assert.equal(s.strategy,'unknown');
- const enemy=g.spawn(0,{x:800,y:2000},'gunship');see(g,enemy);g.time+=3;updateAdaptive(g,s,home,[]);assert.equal(s.strategy,'air');assert.ok(s.confidence>=.55);
+ const enemy=g.spawn(0,{x:800,y:2000},'bomber');see(g,enemy);g.time+=3;updateAdaptive(g,s,home,[]);assert.equal(s.strategy,'air');assert.ok(s.confidence>=.55);
  g.visible[1].fill(0);g.time+=46;updateAdaptive(g,s,home,[]);assert.equal(s.counts.air,0);
 });
 test('adaptation: hysteresis retains a plan during brief observation changes then permits a real switch',()=>{
- const {g,s,home}=scene(),air=g.spawn(0,{x:700,y:2000},'gunship');see(g,air);updateAdaptive(g,s,home,[]);
+ const {g,s,home}=scene(),air=g.spawn(0,{x:700,y:2000},'bomber');see(g,air);updateAdaptive(g,s,home,[]);
  for(let i=0;i<4;i++)see(g,g.spawn(0,{x:home.x-200+i*30,y:home.y+100},'infantry'));
  g.time++;updateAdaptive(g,s,home,[]);assert.equal(s.strategy,'air');g.time+=13;updateAdaptive(g,s,home,[]);assert.equal(s.strategy,'infantry');
 });

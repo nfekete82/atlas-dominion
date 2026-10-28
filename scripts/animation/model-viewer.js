@@ -16,7 +16,7 @@ const sharedBuildingTextures=new Map();
 async function reuseBuildingTextures(data){
  const hashes=new Map();
  for(const texture of data.parser.json.textures??[]){
-  if(!texture.name?.startsWith('Atlas desert |'))continue;
+  if(!texture.name?.startsWith('Atlas desert |')&&!['Desert camouflage / scratches','Sandblasted metal normal','Packed occlusion roughness metallic'].includes(texture.name))continue;
   const image=data.parser.json.images[texture.source],bytes=await data.parser.getDependency('bufferView',image.bufferView);
   let hash;
   if(globalThis.crypto?.subtle){const digest=await crypto.subtle.digest('SHA-256',bytes);hash=Array.from(new Uint8Array(digest),v=>v.toString(16).padStart(2,'0')).join('');}
@@ -38,7 +38,7 @@ async function reuseBuildingTextures(data){
  }});
  const closed=new Set();for(const texture of replaced){texture.dispose();if(!activeSources.has(texture.source)&&!closed.has(texture.source)){texture.source.data.close?.();closed.add(texture.source);}}
 }
-const vehicleNames={rover:'Humvee',tank:'Panzer',artillery:'Artillerie',scout:'Spähheli',gunship:'Kampfheli',bomber:'Bomber'};
+const vehicleNames={rover:'Humvee',tank:'Panzer',artillery:'Artillerie',scout:'Transporthelikopter',bomber:'Bomber'};
 const isVehicle=model=>Object.hasOwn(vehicleNames,model);
 const modelPath=(model,faction)=>model==='infantry'?'/src/assets/reborn/prototype/infantry-'+faction+'.glb':isVehicle(model)?'/src/assets/reborn/animation/'+model+'-'+faction+'.glb':'/src/assets/reborn/buildings-3d/'+model+'-'+faction+'.glb';
 /** The authored PBR bomber uses full-size aircraft coordinates (19.5 units
@@ -58,8 +58,8 @@ function fitBomberPreview(model){
 }
 let kind='infantry',team=0,current=null,currentData=null,mixer=null,action=null,clip='Idle',paused=false,request=0;
 async function faction(value){team=value;const token=++request,key=kind+':'+value,url=modelPath(kind,value);document.getElementById('status').textContent='Modell wird geladen …';document.getElementById('error').textContent='';let data=cache.get(key);if(!data){data=await loader.loadAsync(url);await reuseBuildingTextures(data);delete data.parser;cache.set(key,data);}if(token!==request)return;
- if(current)scene.remove(current);current=data.scene;if(kind==='bomber')fitBomberPreview(current);currentData=data;scene.add(current);let design;current.traverse(n=>{if(n.isMesh)n.castShadow=n.receiveShadow=true;if(n.userData.atlasDesign)design=n.userData.atlasDesign;});mixer=new T.AnimationMixer(current);action=null;if(data.animations.length)play(kind==='infantry'?(clip==='Operation'||!data.animations.some(c=>c.name===clip)?'Idle':clip):'Operation');else clip='';
- const bounds=new T.Box3().setFromObject(current),extent=bounds.getSize(new T.Vector3()),center=bounds.getCenter(new T.Vector3()),distance=Math.max(.6,extent.x,extent.y,extent.z)*(kind==='infantry'?1.8:2.3);controls.target.copy(center);camera.position.set(center.x+distance*.60,center.y+distance*.43,center.z+distance*.98);controls.minDistance=Math.max(.7,extent.length()*.35);controls.maxDistance=kind==='bomber'?Math.min(distance*3,14):distance*3;controls.update();
+ if(current){mixer?.stopAllAction();mixer?.uncacheRoot(current);scene.remove(current);}current=data.scene;if(kind==='bomber')fitBomberPreview(current);if(kind==='scout'&&!current.userData.previewFitted){fitBomberPreview(current);current.userData.previewFitted=true;}currentData=data;scene.add(current);let design;current.traverse(n=>{if(n.isMesh)n.castShadow=n.receiveShadow=true;if(n.userData.atlasDesign)design=n.userData.atlasDesign;});mixer=new T.AnimationMixer(current);action=null;if(data.animations.length)play(kind==='infantry'?(clip==='Operation'||!data.animations.some(c=>c.name===clip)?'Idle':clip):'Operation');else clip='';
+ const bounds=new T.Box3().setFromObject(current),extent=bounds.getSize(new T.Vector3()),center=bounds.getCenter(new T.Vector3()),distance=Math.max(.6,extent.x,extent.y,extent.z)*(kind==='infantry'?1.8:2.3);controls.target.copy(center);camera.position.set(center.x+distance*.60,center.y+distance*.43,center.z+distance*.98);controls.minDistance=Math.max(.7,extent.length()*.35);controls.maxDistance=kind==='bomber'?Math.min(distance*3,14):kind==='scout'?Math.min(distance*3,10):distance*3;controls.update();
  for(const [id,t] of [['blue',0],['red',1],['neutral',-1]])document.getElementById(id).setAttribute('aria-pressed',String(t===team));document.getElementById('neutral').hidden=kind!=='bastion';
  for(const b of document.querySelectorAll('[data-clip]'))b.hidden=data.animations.length===0|| (kind==='infantry'?b.dataset.clip==='Operation':b.dataset.clip!=='Operation');document.getElementById('pause').hidden=data.animations.length===0;
  document.getElementById('download').href=url;

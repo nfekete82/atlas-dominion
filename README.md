@@ -22,7 +22,7 @@ npm run dev
 - Jede Fraktion startet mit einem Ingenieur und einem Infanteriesoldaten. Das Hauptquartier bildet ausschließlich Ingenieur aus. Erst eine fertiggestellte Kaserne schaltet Infanteriesoldaten, Sanitäter und schwere Infanterie frei; Fahrzeugfabrik und Flugfeld schalten Fahrzeuge beziehungsweise Luftunterstützung frei. Der rechte Einheitenkatalog zeigt nur die durch vorhandene fertige Gebäude verfügbaren Typen. Kosten, Produktionszeit, Warteschlange und Kapazität gelten weiterhin. Ein Klick auf einen belegten Produktionsplatz storniert genau diesen Auftrag mit Kostenerstattung. Details zu Freischaltung und alten Spielständen: [Produktionsgebäude](docs/reborn-production.md).
 - Ingenieur auswählen und im Baukatalog eine Anlage platzieren. Sie muss in erkundetem, freiem und erreichbarem Gebiet liegen; der Arbeiter muss sie tatsächlich erreichen und errichten. Rechtsklick auf eine eigene beschädigte Anlage repariert sie.
 - Sanitäter heilen verletzte eigene Infanterie in 70 M Umkreis mit insgesamt 12 LP/s, auf mehrere Patienten verteilt. Ohne Beschuss regenerieren sie sich nach einer Wartezeit langsam selbst. Gruppenbefehle halten sie hinter der Front.
-- Soldaten auswählen und den Transportheli rechtsklicken, oder den Heli auswählen und eine eigene Infanteriegruppe rechtsklicken. Er landet zur Aufnahme von höchstens zehn Infanteristen und startet anschließend. **Ausladen** wählt einen sicheren Landeplatz; danach hebt er wieder ab. Passagiere und laufende Transportphasen werden gespeichert.
+- Soldaten auswählen und den Transporthelikopter rechtsklicken, oder den Heli auswählen und eine eigene Infanteriegruppe rechtsklicken. Er landet zur Aufnahme von höchstens zehn Infanteristen und startet anschließend. **Ausladen** wählt einen sicheren Landeplatz; danach hebt er wieder ab. Passagiere und laufende Transportphasen werden gespeichert.
 - Angrenzende Bastionen acht Sekunden im Einnahmeradius halten. Feinde unterbrechen die Einnahme. Eigene Bastionen geben 320 M Sicht; nach Verlust endet diese Sicht. Ein Rechtsklick auf Mast, Sockel oder Beschriftung führt zum Einnahmepunkt. Fluggeräte können im aktuellen Spiel ebenfalls sichern; transportierte Passagiere zählen während des Transports nicht separat.
 - Felsen begrenzen Bodensicht und Schusslinien. Geschütztürme haben 600 M Reichweite und 750 M Sicht. Der Raketenwerfer reicht mit 680 M und 830 M Sicht darüber hinaus.
 - Einkommen kommt alle zehn Simulationssekunden. **Leertaste** pausiert taktisch; Zahnrad oder Esc ohne Auswahl öffnet das Menü. **F5/F9** speichern/laden lokal in IndexedDB. Vor einem Neuladen speichern; bestehende Spielstände werden nicht gelöscht.
@@ -37,11 +37,12 @@ npm run dev
 | Humvee | 350 | Schnelle Aufklärung und Flanken |
 | Kampfpanzer | 450 | Gepanzerte Frontunterstützung |
 | Raketenwerfer | 600 | Bodenbeschuss mit fliegenden Raketen und Flächenschaden |
-| Transportheli | 600 | Aufklärung, zehn Passagiere und defensive Maschinengewehre |
-| Kampfheli | 750 | Bewegliche Boden- und Luftabwehr |
+| Transporthelikopter | 600 | Aufklärung, zehn Passagiere und defensive Maschinengewehre |
 | Bomber | 1000 | Schwere Feuerkraft gegen Bodenziele |
 
-Die KI bezahlt ihre Einheiten und Gebäude, sammelt gemischte Angriffsgruppen, reagiert auf gesichtete Verteidigungen, nutzt Belagerung und Flanken und zieht verletzte Truppen zur Versorgung zurück. Automatische Infanterie-Lufttransporte der KI sind bisher nicht implementiert.
+Der Transporthelikopter nutzt zwei eigene PBR-GLBs mit unabhängig animierten Haupt- und Heckrotoren. Reproduzierbarer Modell-/Sprite-Build: `npm run assets:transport`. Alte Kampfhelikopter und ihre bezahlten Aufträge werden beim Laden verlustfrei in Transporthelikopter migriert. [Modell, Migration und Prüfnachweise](docs/qa/transport-helicopter-20261028/README.md).
+
+Die KI bezahlt ihre Einheiten und Gebäude, sammelt gemischte Angriffsgruppen, reagiert auf gesichtete Verteidigungen, nutzt Belagerung und Flanken und zieht verletzte Truppen zur Versorgung zurück. Die KI kann Infanterie mit dem Transporthelikopter aufnehmen und am Einsatzort ausladen.
 
 ## Funk und Audio
 

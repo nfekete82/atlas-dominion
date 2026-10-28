@@ -6,7 +6,7 @@ export function setupScenario({name,fixed=false}){
   g.units=[];
   const battle=name.startsWith('D')||name.startsWith('E'),count=name.startsWith('C')?50:name.startsWith('B')?20:battle?36:12;
   const point=g.territories[9].point;
-  const kinds=name.startsWith('E')?['tank','heavy','artillery','gunship','bomber','medic','infantry']:['infantry','infantry','heavy','rover','engineer','medic'];
+  const kinds=name.startsWith('E')?['tank','heavy','artillery','bomber','medic','infantry']:['infantry','infantry','heavy','rover','engineer','medic'];
   for(let i=0;i<count;i++){
    const owner=battle&&i>=count/2?1:0,kind=kinds[i%kinds.length];
    const origin=battle?{x:point.x+(owner?250:-250),y:point.y}:{x:g.bases[0].x+180,y:g.bases[0].y-180};

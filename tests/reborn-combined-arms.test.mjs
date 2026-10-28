@@ -20,7 +20,7 @@ test('combined: rocket launcher outranges a turret, creates travelling saved mis
  assert.ok(UNITS.artillery.range>RULES.turret.range);assert.ok(UNITS.artillery.sight>RULES.turret.sight);assert.equal(g.canSee(0,b),true);g.command([u.id],{x:b.x,y:b.y,kind:'attack',target:b.id});g.step();assert.equal(g.missiles.length,1);assert.equal(b.hp,650);assert.equal(g.shots.at(-1).weapon,'rocket');
  const loaded=Simulation.load(g.save());loaded.aiClock=-1e8;g.paused=true;advance(g,2);assert.equal(b.hp,650);g.paused=false;
  advance(g,1.8);advance(loaded,1.8);near(b.hp,530);near(loaded.bases.find(v=>v.id===b.id).hp,530);assert.equal(g.missiles.length,0);advance(g,23);assert.ok(b.hp<=0);assert.equal(u.hp,UNITS.artillery.hp);
- assert.equal(canAttack(u,{kind:'gunship'}),false);assert.equal(canAttack({kind:'gunship'},{kind:'bomber'}),true);
+ assert.equal(canAttack(u,{kind:'bomber'}),false);assert.equal(canAttack({kind:'heavy'},{kind:'bomber'}),true);
 });
 
 function passengers(g,h,count=10){return Array.from({length:count},(_,i)=>g.spawn(h.owner,{x:h.x-60+(i%3)*25,y:h.y-30+Math.floor(i/3)*24},['infantry','medic','engineer','heavy'][i%4]));}
@@ -72,12 +72,12 @@ for(const version of [0,2])test(`combined economy: deterministic v${version} mid
 
 
 function counterFixture(air=false){
- const g=new Simulation();g.world.blocked.fill(0);g.world.opaque.fill(0);g.units=[];g.aiClock=3;g.time=30;g.credits[1]=8000;
+ const g=new Simulation(2026,air?4:0);g.world.blocked.fill(0);g.world.opaque.fill(0);g.units=[];g.aiClock=3;g.time=30;g.credits[1]=8000;
  Object.assign(g.bases[1],{x:900,y:2100});Object.assign(g.bases[0],{x:3000,y:3000});
  for(const t of g.territories){t.owner=1;t.neighbors=[];}g.territories[1].owner=-1;g.territories[1].point={x:2000,y:2200};g.territories[1].neighbors=[0];g.territories[0].point={x:900,y:2100};g.territories[0].neighbors=[1];
  for(const [i,kind] of ['barracks','factory','airfield'].entries())g.bases.push({...g.bases[1],id:1500+i,kind,x:650+i*260,y:2450,radius:BUILDINGS[kind].radius,hp:BUILDINGS[kind].hp,queue:[],queueTypes:[]});
  for(let i=0;i<6;i++)g.spawn(1,{x:1100+(i%3)*30,y:2050+Math.floor(i/3)*30},i<2?'heavy':'infantry');
- if(air){const enemy=g.spawn(0,{x:2100,y:2200},'gunship');enemy.cooldown=10000;g.stop([enemy.id],true);const observer=g.spawn(1,{x:1900,y:2200});observer.cooldown=10000;g.stop([observer.id],true);}
+ if(air){for(let i=0;i<5;i++){const enemy=g.spawn(0,{x:2100+i*10,y:2200},'bomber');enemy.cooldown=10000;g.stop([enemy.id],true);}const observer=g.spawn(1,{x:1900,y:2200});observer.cooldown=10000;g.stop([observer.id],true);}
  else {
   const tower={...g.bases[0],id:1700,kind:'turret',x:2000,y:2200,radius:30,hp:650,queue:[],queueTypes:[],cooldown:0};g.bases.push(tower);
   const observer=g.spawn(1,{x:1800,y:2150});observer.cooldown=10000;g.stop([observer.id],true);g.updateVision();Object.assign(observer,{x:1100,y:2100});
@@ -93,12 +93,12 @@ test('combined counters: observed towers lead to paid artillery, actual support 
  const rocket=g.units.find(u=>u.owner===1&&u.kind==='artillery');assert.ok(rocket.hp>0);near(g.credits[1],initial+ledger.earned-ledger.spent);
 });
 
-test('combined air response: a known air attacker produces actual gunships and does not select ground rockets as air defense',()=>{
+test('combined air response: a known air attacker produces actual heavy infantry and does not select ground rockets as air defense',()=>{
  const g=counterFixture(true),ledger=monitor(g,75),responses=ledger.orders.filter(o=>o.visibleAir>0);
- assert.ok(responses.some(o=>o.kind==='gunship'),'a paid gunship must be ordered while the air threat is actually visible');
+ assert.ok(responses.some(o=>o.kind==='heavy'),'a paid heavy infantry must be ordered while the air threat is actually visible');
  assert.ok(responses.every(o=>!['artillery','bomber'].includes(o.kind)),'ground-only weapons must not be purchased as the response to a visible air threat');
- assert.ok(ledger.births.some(u=>u.kind==='gunship'),'a paid gunship order must finish and create a real unit');
- assert.ok(g.units.some(u=>u.owner===1&&u.kind==='gunship'));
+ assert.ok(ledger.births.some(u=>u.kind==='heavy'),'a paid heavy infantry order must finish and create a real unit');
+ assert.ok(g.units.some(u=>u.owner===1&&u.kind==='heavy'));
 });
 
 test('combined strategic air: a rich army with a known military target eventually fields a paid bomber',()=>{

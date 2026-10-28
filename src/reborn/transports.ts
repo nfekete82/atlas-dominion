@@ -45,7 +45,9 @@ export class Transports {
   const g=this.g,t=h.transport;t.clock+=dt;t.transfer+=dt;
   t.pickup=t.pickup.filter(id=>g.units.some(u=>u.id===id&&u.hp>0&&!u.carrier&&u.orders[0]?.kind==='board'&&u.orders[0]?.target===h.id));
   if(t.phase==='approach'){
-   if(distance(h,t.site)>13)this.move(h,t.site,dt);else {h.x=t.site.x;h.y=t.site.y;h.path=[];h.driveSpeed=0;t.phase=h.kind==='rover'?(t.task==='load'?'loading':'unloading'):'landing';t.clock=0;t.transfer=0;}
+   // Movement brakes 14 m before a goal. Accept the same arrival envelope
+   // as direct moves so landing cannot stall just outside the touchdown radius.
+   if(distance(h,t.site)>18)this.move(h,t.site,dt);else {h.x=t.site.x;h.y=t.site.y;h.path=[];h.driveSpeed=0;t.phase=h.kind==='rover'?(t.task==='load'?'loading':'unloading'):'landing';t.clock=0;t.transfer=0;}
   }else if(t.phase==='landing'){
    h.flightHeight=Math.max(0,(h.flightHeight??1)-dt/1.2);if(h.flightHeight<=.001){h.flightHeight=0;t.phase=t.task==='load'?'loading':'unloading';t.clock=0;t.transfer=0;}
   }else if(t.phase==='loading'){

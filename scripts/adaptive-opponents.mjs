@@ -23,7 +23,7 @@ export function adaptiveOpponent(profile,metrics,{UNITS,BUILDINGS}){
   const threat=seen.filter(u=>own.some(b=>distance(u,b)<600));
   const generators=own.filter(b=>b.kind==='generator').length,towers=own.filter(b=>b.kind==='turret').length;
   let goal=null;
-  if(profile==='combined'){if(!has('airfield'))goal='airfield';else if(generators<1)goal='generator';else if(count('gunship')<1)goal=null;else if(!has('barracks'))goal='barracks';else if(!has('factory'))goal='factory';else if(generators<5)goal='generator';}
+  if(profile==='combined'){if(!has('airfield'))goal='airfield';else if(generators<1)goal='generator';else if(count('bomber')<1)goal=null;else if(!has('barracks'))goal='barracks';else if(!has('factory'))goal='factory';else if(generators<5)goal='generator';}
   else if(!has('barracks'))goal='barracks';
   else if(profile==='infantry'){if(generators<2&&fighters.length>=4)goal='generator';}
   else if(profile==='armor'){if(!has('factory'))goal='factory';else if(generators<3&&count('tank')>=1)goal='generator';}
@@ -55,13 +55,13 @@ export function adaptiveOpponent(profile,metrics,{UNITS,BUILDINGS}){
    if(b.kind==='factory'){
     if(profile==='attrition'||profile==='fortress')kind=count('artillery')<2?'artillery':count('tank')<4?'tank':null;
     else kind=count('tank')<(profile==='armor'?10:5)?'tank':null;
-    if(profile==='combined'&&has('airfield')&&count('gunship')<1)kind=null;
+    if(profile==='combined'&&has('airfield')&&count('bomber')<1)kind=null;
    }
-   if(b.kind==='airfield')kind=count('gunship')<3?'gunship':count('bomber')<1?'bomber':null;
-   if(profile==='combined'&&b.kind==='barracks'&&has('airfield')&&count('gunship')<1)kind=null;
+   if(b.kind==='airfield')kind=count('bomber')<2?'bomber':count('scout')<1?'scout':null;
+   if(profile==='combined'&&b.kind==='barracks'&&has('airfield')&&count('bomber')<1)kind=null;
    let technologyReserve=0;
    if(b.kind==='barracks'&&count('infantry')>=3){
-    if(profile==='combined'&&has('airfield')&&count('gunship')<1)technologyReserve=UNITS.gunship.cost;
+    if(profile==='combined'&&has('airfield')&&count('bomber')<1)technologyReserve=UNITS.bomber.cost;
     else if(has('factory')&&count(profile==='fortress'||profile==='attrition'?'artillery':'tank')<2)technologyReserve=UNITS[profile==='fortress'||profile==='attrition'?'artillery':'tank'].cost;
    }
    if(kind&&g.count(0)+g.queued(0)<32&&g.credits[0]-Math.max(reserve,technologyReserve)>=UNITS[kind].cost)recordRecruit(g,b,kind);

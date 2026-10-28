@@ -25,10 +25,10 @@ test('production: worker and soldier start; HQ trains only workers; actual barra
 
 test('production: real factory and airfield unlock their own menus only after completion, destroyed facilities hide them again',async({page})=>{
  const errors=await start(page);await page.evaluate(()=>window.__reborn.game.credits[0]=5000);
- for(const [building,roles] of [['factory',['rover','tank','artillery']],['airfield',['scout','gunship','bomber']]]){
+ for(const [building,roles] of [['factory',['rover','tank','artillery']],['airfield',['scout','bomber']]]){
   const b=await build(page,building);for(const kind of roles)await expect(page.locator(`[data-unit="${kind}"]`)).toBeHidden();await finish(page,b.id);
   for(const kind of roles)await expect(page.locator(`[data-unit="${kind}"]`)).toBeVisible();
-  await page.evaluate(id=>{const a=window.__reborn;a.renderer.selected.clear();a.renderer.selectedBase=id;a.refresh();},b.id);await expect(page.locator('[data-context-unit]')).toHaveCount(3);
+  await page.evaluate(id=>{const a=window.__reborn;a.renderer.selected.clear();a.renderer.selectedBase=id;a.refresh();},b.id);await expect(page.locator('[data-context-unit]')).toHaveCount(roles.length);
   await page.locator(`[data-context-unit="${roles[0]}"]`).click();expect(await page.evaluate(id=>window.__reborn.game.bases.find(b=>b.id===id).queueTypes,b.id)).toEqual([roles[0]]);
  }
  await expect(page.locator('[data-unit="infantry"]')).toBeHidden();

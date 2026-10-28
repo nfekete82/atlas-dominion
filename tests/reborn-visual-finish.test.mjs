@@ -28,7 +28,7 @@ test('field finish: HQ silhouette and rotating dish preserved, barracks has extr
 });
 
 test('vehicle scale: HD sprite footprints exactly match current gameplay catalog widths',()=>{
- for(const kind of ['rover','tank','artillery','scout','gunship','bomber']){
+ for(const kind of ['rover','tank','artillery','scout','bomber']){
   const spec=UNITS[kind];
   for(const team of [0,1]){
    const atlas=readJson('animation/'+kind+'-'+team+'.json');

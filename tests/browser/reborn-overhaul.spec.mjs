@@ -30,7 +30,7 @@ test('overhaul: compact real turret heads track and fire from their registered m
  expect(fired.shots.map(s=>s.source).sort()).toEqual([1200,1201]);expect(fired.positions).toEqual(initial.positions);expect(fired.angles).not.toEqual(initial.angles);
  const colors=await page.evaluate(()=>{
   const r=window.__reborn.renderer,result=[];
-  for(const kind of ['infantry','heavy','medic','engineer','rover','tank','artillery','scout','gunship','bomber'])for(const owner of [0,1]){
+  for(const kind of ['infantry','heavy','medic','engineer','rover','tank','artillery','scout','bomber'])for(const owner of [0,1]){
    const a=r.units.asset(kind,owner),f=a.data.frames[a.data.clips.idle.frames[1][0]],c=document.createElement('canvas');c.width=f.w;c.height=f.h;const x=c.getContext('2d');x.drawImage(a.image,f.x,f.y,f.w,f.h,0,0,f.w,f.h);const data=x.getImageData(0,0,f.w,f.h).data;let total=0,color=0;
    for(let i=0;i<data.length;i+=4)if(data[i+3]>220){total++;const [red,green,blue]=data.slice(i,i+3);if(owner?red>green*1.25&&red>blue*1.3:blue>red*1.15&&blue>green*1.05)color++;}
    result.push({kind,owner,ratio:color/Math.max(1,total)});

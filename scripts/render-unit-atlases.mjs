@@ -5,7 +5,7 @@ import path from 'node:path';
 import {chromium} from '../tests/browser/node_modules/@playwright/test/index.mjs';
 const root=path.resolve(new URL('..',import.meta.url).pathname),out=path.join(root,'src/assets/reborn/animation');await mkdir(out,{recursive:true});
 const args=process.argv.slice(2),hd=args.includes('--hd'),exportGlb=args.includes('--export-glb');
-const vehicleKinds=['rover','tank','artillery','scout','gunship','bomber'];
+const vehicleKinds=['rover','tank','artillery','scout','bomber'];
 const kinds=args.filter(arg=>!arg.startsWith('--'));
 const requested=hd&&kinds.length===0?vehicleKinds:kinds;
 if(hd&&requested.some(kind=>!vehicleKinds.includes(kind)))throw Error('HD vehicle exporter accepts: '+vehicleKinds.join(', '));

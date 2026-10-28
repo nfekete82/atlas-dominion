@@ -467,7 +467,7 @@ export class TacticalAI {
  }
  private airSupport(members:Unit[],goal:Point,targetId:number|null):void{
   const g=this.g,s=this.state,front=members.filter(frontRole),anchor=s.rally??members[0],d=distance(anchor,goal)||1,h={x:(goal.x-anchor.x)/d,y:(goal.y-anchor.y)/d};
-  for(const [index,u] of members.filter(u=>u.kind==='gunship'||u.kind==='bomber').entries()){
+  for(const [index,u] of members.filter(u=>u.kind==='bomber').entries()){
    const target=targetId===null?undefined:g.bases.find(b=>b.id===targetId&&b.hp>0&&g.canSee(1,b))??g.memories[1].find(b=>b.id===targetId&&b.hp>0)??g.units.find(v=>v.id===targetId&&v.hp>0&&!v.carrier&&g.canSee(1,v));
    if(u.kind==='bomber'&&!target){this.issue([u],anchor,'safe');continue;}
    if(u.orders.length>1)continue;
@@ -482,7 +482,7 @@ export class TacticalAI {
  private raid(fighters:Unit[]):void{
   const g=this.g,s=this.state;
   if(g.world.mapVersion<3||s.phase!=='attack'||fighters.length<10||s.target===null)return;
-  const raiders=fighters.filter(u=>!s.group.includes(u.id)&&['rover','gunship','tank'].includes(u.kind)
+  const raiders=fighters.filter(u=>!s.group.includes(u.id)&&['rover','tank'].includes(u.kind)
    &&(!u.orders.length||u.orders[0].tactical?.mode==='assault')).slice(0,2);
   if(raiders.length<2)return;
   const frontiers=g.territories.filter(t=>t.owner!==1&&t.id!==s.target&&t.neighbors.some(i=>g.territories[i].owner===1));
@@ -614,7 +614,7 @@ export class TacticalAI {
   if(intruders.length){
    // Anti-siege defence: a rocket launcher or aircraft threatening the HQ is
    // more urgent than a slightly closer infantryman. Never use unseen threats.
-   const urgency=(u:Unit)=>distance(u,home)-(u.kind==='artillery'?260:u.kind==='bomber'?220:u.kind==='gunship'?150:0);
+   const urgency=(u:Unit)=>distance(u,home)-(u.kind==='artillery'?260:u.kind==='bomber'?220:0);
    if(g.world.mapVersion>=3&&this.mode==='director')campaignPhase(s.commander??=newCampaign(),'emergencyDefense',g.time);
    const entering=s.phase!=='defend';this.setPhase('defend');const nearest=intruders.sort((a,b)=>urgency(a)-urgency(b)||a.id-b.id)[0];
    if(entering||s.objective!==nearest.id)s.groupId++;s.group=fighters.map(u=>u.id);s.objective=nearest.id;this.issue([...fighters,...medics],nearest,'defend',nearest.id);return;
@@ -700,7 +700,7 @@ export class TacticalAI {
    }
    return;
   }
-  const frontline=g.world.mapVersion>=3?ready.slice().sort((a,b)=>(b.kind==='tank'?5:b.kind==='artillery'?4:b.kind==='heavy'?3:b.kind==='gunship'?2:1)-(a.kind==='tank'?5:a.kind==='artillery'?4:a.kind==='heavy'?3:a.kind==='gunship'?2:1)||a.id-b.id):ready;
+  const frontline=g.world.mapVersion>=3?ready.slice().sort((a,b)=>(b.kind==='tank'?5:b.kind==='artillery'?4:b.kind==='heavy'?3:1)-(a.kind==='tank'?5:a.kind==='artillery'?4:a.kind==='heavy'?3:1)||a.id-b.id):ready;
   const group=[...frontline.slice(0,defended?10:6),...medics.filter(u=>distance(u,s.rally!)<240)];s.group=group.map(u=>u.id);s.groupId++;s.launchSize=group.filter(combat).length;s.launchedAt=g.time;s.lastProgress=distance(s.rally,c.t.point);s.progressAt=g.time;this.setPhase('attack');
   const obstacle=defended?c.towers.slice().sort((a,b)=>distance(s.rally!,a)-distance(s.rally!,b))[0]??c.knownHQ??c.knownIndustry:undefined;
   s.objective=obstacle?.id??null;

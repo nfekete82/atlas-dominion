@@ -79,9 +79,7 @@ export function preferredRole(kind:string,counts:Readonly<Record<string,number>>
         counts.tank<2?['tank','rover','artillery']:
         counts.rover<1?['rover','tank','artillery']:['tank','artillery','rover'];
     case 'airfield':
-      return enemyAir>0?['gunship','scout','bomber']:
-        counts.gunship<1?['gunship','scout','bomber']:
-        counts.scout<1?['scout','gunship','bomber']:['gunship','bomber','scout'];
+      return counts.scout<1?['scout','bomber']:['bomber','scout'];
     default: return [];
   }
 }

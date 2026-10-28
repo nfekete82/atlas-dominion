@@ -8,10 +8,10 @@ export const angleDifference=(a:number,b:number):number=>Math.atan2(Math.sin(b-a
 export const turnTowards=(from:number,to:number,speed:number,dt:number):number=>from+Math.max(-speed*dt,Math.min(speed*dt,angleDifference(from,to)));
 export const directionIndex=(angle:number,count:number):number=>((Math.round(angle/(Math.PI*2/count))%count)+count)%count;
 export class SpriteAnimator {
- state:AnimationState='idle';age=0;direction=0;private lastAttack=false;private lastHit=false;private hitLockout=0;private walkDistance=0;private lastDistance:number|null=null;
+ state:AnimationState='idle';age=0;direction=0;private lastAttack=false;private lastHit=false;private hitLockout=0;private walkDistance=0;private locomotionAge=0;private lastDistance:number|null=null;
  constructor(readonly atlas:AnimationAtlas){}
  update(dt:number,input:AnimationIntent):AnimationFrame {
-  dt=Math.max(0,dt);this.hitLockout=Math.max(0,this.hitLockout-dt);const attack=input.attack&&!this.lastAttack,hit=input.hit&&!this.lastHit;
+  dt=Math.max(0,dt);if(this.atlas.timeBasedLocomotion)this.locomotionAge+=dt;this.hitLockout=Math.max(0,this.hitLockout-dt);const attack=input.attack&&!this.lastAttack,hit=input.hit&&!this.lastHit;
   this.lastAttack=input.attack;this.lastHit=input.hit;this.direction=directionIndex(input.angle,this.atlas.directions);
   if(this.lastDistance===null)this.walkDistance=input.distance;else if(input.moving)this.walkDistance+=Math.max(0,input.distance-this.lastDistance);this.lastDistance=input.distance;
   let next=this.state;
@@ -32,7 +32,9 @@ export class SpriteAnimator {
   let index=0;
   if(tag==='walk'&&!this.atlas.timeBasedLocomotion)index=Math.floor(this.walkDistance/this.atlas.stride*row.length)%row.length;
   else {
-   const clock=clip.loop?this.age%clip.duration:Math.min(this.age,clip.duration-1e-8);let elapsed=0;
+   // Rotor/propeller phase is independent of idle/walk state transitions.
+   const age=this.atlas.timeBasedLocomotion&&(tag==='idle'||tag==='walk')?this.locomotionAge:this.age;
+   const clock=clip.loop?age%clip.duration:Math.min(age,clip.duration-1e-8);let elapsed=0;
    for(let i=0;i<row.length;i++){elapsed+=this.atlas.frames[row[i]].duration;if(clock<elapsed){index=i;break;}index=i;}
   }
   return this.atlas.frames[row[index]];

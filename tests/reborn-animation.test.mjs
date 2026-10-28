@@ -6,7 +6,7 @@ import {unitAtlasPath} from '../dist/src/reborn/asset-paths.js';
 const read=(kind,team=0)=>JSON.parse(fs.readFileSync(new URL('..'+unitAtlasPath(kind,team)+'.json',import.meta.url)));
 const intent=(extra={})=>({moving:false,distance:0,angle:0,attack:false,hit:false,dead:false,...extra});
 test('animation: every unit atlas has distinct blue and red faction pixels',()=>{
- for(const kind of ['infantry','medic','engineer','heavy','rover','tank','artillery','scout','gunship','bomber']){
+ for(const kind of ['infantry','medic','engineer','heavy','rover','tank','artillery','scout','bomber']){
   const png=team=>fs.readFileSync(new URL('..'+unitAtlasPath(kind,team)+'.png',import.meta.url));
   assert.equal(png(0).equals(png(1)),false,kind+' reused the first faction shader');
  }
@@ -46,7 +46,7 @@ test('animation: repeated hits recover and a later clean hit is animated again',
  a.update(0,intent({hit:true}));assert.equal(a.state,'hit','a genuine later hit can still trigger an animation');
 });
 test('animation: vehicles use real chassis views and separated turret/barrel frames where the source provides them',()=>{
- for(const k of ['rover','tank','artillery','scout','gunship','bomber']){const a=read(k);assert.equal(a.directions,16);assert.equal(a.clips.idle.frames.length,16);if(['tank','artillery'].includes(k)){assert.equal(a.clips.turret.frames.length,16);assert.equal(a.clips.barrel.frames.length,16);assert.ok(a.clips.walk.uniquePhases.every(n=>n>1));}if(k==='bomber'){
+ for(const k of ['rover','tank','artillery','scout','bomber']){const a=read(k);assert.equal(a.directions,16);assert.equal(a.clips.idle.frames.length,16);if(['tank','artillery'].includes(k)){assert.equal(a.clips.turret.frames.length,16);assert.equal(a.clips.barrel.frames.length,16);assert.ok(a.clips.walk.uniquePhases.every(n=>n>1));}if(k==='bomber'){
    assert.equal(a.rotor,true,'the new bomber has animated propellers');
    assert.equal(a.timeBasedLocomotion,true,'propellers must rotate even when stationary');
    for(const tag of ['idle','walk']){
@@ -55,10 +55,10 @@ test('animation: vehicles use real chassis views and separated turret/barrel fra
     assert.ok(clip.frames.every(row=>row.length===8),tag+' needs eight propeller phases per direction');
     assert.ok(clip.uniquePhases.some(n=>n>1),tag+' must visibly animate');
    }
-  }if(k==='scout'||k==='gunship')assert.equal(a.rotor,true);}
+  }if(k==='scout'||k==='bomber')assert.equal(a.rotor,true);}
 });
 test('animation: all vehicle and aircraft faction atlases have real 2x source detail',()=>{
- for(const kind of ['rover','tank','artillery','scout','gunship','bomber'])for(const team of [0,1]){
+ for(const kind of ['rover','tank','artillery','scout','bomber'])for(const team of [0,1]){
   const asset=read(kind,team);
   assert.deepEqual(asset.cell,[192,192],kind+' '+team);
   assert.equal(asset.renderResolution,192);
@@ -89,7 +89,7 @@ test('animation: vehicle acceleration, braking and hull turn rate are bounded an
 test('animation: slow-start vehicles still pass the narrow headquarters exit without cutting a blocked corner',()=>{
  const g=new Simulation();g.aiClock=-1e8;g.credits[0]=5000;
  const factory=addProducer(g,'factory'),airfield=addProducer(g,'airfield');
- for(const kind of ['rover','tank','artillery','scout','gunship','bomber'])assert.equal(g.recruit(['rover','tank','artillery'].includes(kind)?factory.id:airfield.id,kind),true);
+ for(const kind of ['rover','tank','artillery','scout','bomber'])assert.equal(g.recruit(['rover','tank','artillery'].includes(kind)?factory.id:airfield.id,kind),true);
  for(let i=0;i<2000;i++)g.step();const army=g.units.filter(u=>['rover','tank','artillery'].includes(u.kind)),before=army.map(u=>({...u}));
  g.command(army.map(u=>u.id),{...g.territories[20].point,kind:'move'});for(let i=0;i<280;i++)g.step();
  army.forEach((u,i)=>{assert.ok(Math.hypot(u.x-before[i].x,u.y-before[i].y)>100,u.kind+' stalled at exit');assert.ok(g.world.walkable(u,g.obstacles(),u.kind==='tank'?12:u.kind==='artillery'?10:6));});

@@ -56,7 +56,7 @@ test('gameplay bomber sprites are regenerated from the original GLBs and expose 
 test('renderer uses authored GLB without exporting over it',()=>{
  const source=fs.readFileSync(path.join(root,'scripts/animation/render.js'),'utf8');
  assert.match(source,/kind==='bomber'\?await loadFactionBomber\(team\)/);
- assert.match(source,/if\(rig&&!atlasOnly&&kind!=='bomber'\)/);
+ assert.match(source,/if\(rig&&!atlasOnly&&kind!=='bomber'&&kind!=='scout'\)/);
  assert.match(source,/\['idle','Propellers_Continuous',8,true\]/);
  assert.match(source,/\['walk','Propellers_Continuous',8,true\]/);
 });
@@ -68,7 +68,7 @@ test('bomber gallery fits oversized PBR geometry inside the visible camera and f
  const match=viewer.match(/function fitBomberPreview\(model\)\{[\s\S]*?\n\}/);
  assert.ok(match,'gallery fit function missing');
  assert.match(viewer,/if\(kind==='bomber'\)fitBomberPreview\(current\)/);
- assert.match(viewer,/controls\.maxDistance=kind==='bomber'\?Math\.min\(distance\*3,14\):distance\*3/);
+ assert.match(viewer,/controls\.maxDistance=kind==='bomber'\?Math\.min\(distance\*3,14\):kind==='scout'\?Math\.min\(distance\*3,10\):distance\*3/);
  const fit=runInNewContext('('+match[0]+')',{T});
  const bomber=new T.Group();
  const mesh=new T.Mesh(new T.BoxGeometry(19.5,4.44,15.15));

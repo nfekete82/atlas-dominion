@@ -16,43 +16,37 @@ function established(seed=2026){
 const pulse=g=>developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1&&u.hp>0&&!u.carrier),()=>0);
 const paid=g=>g.bases.filter(b=>b.owner===1).flatMap(b=>b.queueCosts??[]).reduce((a,b)=>a+b,0);
 
-test('economy: first combat aircraft has a protected paid budget ahead of ground replacements',()=>{
+test('economy: first transport aircraft has a protected paid budget ahead of ground replacements',()=>{
  const {g,factory,barracks,airfield}=established();
- g.credits[1]=700;
+ g.credits[1]=550;
  pulse(g);
- assert.equal(g.credits[1],700,'factory and barracks preserve an unaffordable gunship budget');
+ assert.equal(g.credits[1],550,'factory and barracks preserve an unaffordable transport budget');
  assert.equal(factory.queue.length+barracks.queue.length+airfield.queue.length,0);
- assert.equal(g.tactical.state.savingFor,'gunship');
+ assert.equal(g.tactical.state.savingFor,'scout');
  g.credits[1]+=100;
  const before=g.credits[1];
  pulse(g);
- assert.deepEqual(airfield.queueTypes,['gunship']);
- assert.equal(before-g.credits[1],UNITS.gunship.cost);
- assert.equal(paid(g),750);
- assert.equal(g.tactical.state.savingFor,'scout','a paid reconnaissance/transport aircraft is the next missing air role');
+ assert.deepEqual(airfield.queueTypes,['scout']);
+ assert.equal(before-g.credits[1],UNITS.scout.cost);
+ assert.equal(paid(g),600);
+ assert.notEqual(g.tactical.state.savingFor,'scout','a paid transport queue satisfies the transport deficit');
 });
 
-test('economy: aircraft savings result in real production and a subsequent paid transportheli',()=>{
- const {g,airfield}=established();
- g.credits[1]=750;pulse(g);
- g.aiClock=-1e8;
+test('economy: aircraft savings result in real production without duplicate transport purchases',()=>{
+ const {g,airfield}=established();g.credits[1]=600;pulse(g);g.aiClock=-1e8;
  for(let i=0;i<370;i++)g.step(.05);
- assert.ok(g.units.some(u=>u.owner===1&&u.kind==='gunship'),'the ordinary simulation queue must finish a real aircraft');
- assert.equal(g.tactical.state.economy.produced.gunship,1);
- g.credits[1]=650;
- const before=g.credits[1];pulse(g);
- assert.equal(airfield.queueTypes[0],'scout');
- assert.equal(airfield.queueCosts[0],600);
- assert.equal(before-g.credits[1],600);
+ assert.ok(g.units.some(u=>u.owner===1&&u.kind==='scout'));
+ assert.equal(g.tactical.state.economy.produced.scout,1);
+ g.credits[1]=650;pulse(g);assert.equal(airfield.queueTypes.includes('scout'),false);
 });
 
 test('economy: full vehicle queue does not deadlock another available producer',()=>{
  const {g,factory,barracks,airfield}=established();
  g.credits[1]=3000;
  assert.ok(g.recruit(factory.id,'tank'));assert.ok(g.recruit(factory.id,'artillery'));
- g.credits[1]=750;
+ g.credits[1]=600;
  pulse(g);
- assert.deepEqual(airfield.queueTypes,['gunship']);
+ assert.deepEqual(airfield.queueTypes,['scout']);
  assert.equal(factory.queue.length,2,'the paid ground queue remains intact');
  assert.equal(barracks.queue.length,0);
  assert.equal(g.credits[1],0);
@@ -74,7 +68,7 @@ test('economy: hidden enemy aircraft and HQ do not create production intelligenc
  const enemy=g.bases.find(b=>b.owner===0&&b.kind==='headquarters');
  addProducer(g,'barracks',1);const factory=addProducer(g,'factory',1);
  for(let i=0;i<5;i++)g.spawn(1,{x:home.x-100-i*12,y:home.y+100},'infantry');
- const hidden=g.spawn(0,{x:enemy.x,y:enemy.y},'gunship');g.updateVision();
+ const hidden=g.spawn(0,{x:enemy.x,y:enemy.y},'bomber');g.updateVision();
  assert.equal(g.canSee(1,hidden),false);
  assert.equal(g.memories[1].some(m=>m.id===enemy.id),false);
  g.credits[1]=400;pulse(g);
@@ -85,7 +79,7 @@ test('economy: hidden enemy aircraft and HQ do not create production intelligenc
 test('economy: established armor saves for heavy support rather than replacing every loss with cheap infantry',()=>{
  const {g,home,barracks}=established();
  g.units=g.units.filter(u=>u.owner!==1||u.kind!=='heavy');
- g.spawn(1,{x:home.x-180,y:home.y+220},'gunship');
+ g.spawn(1,{x:home.x-180,y:home.y+220},'bomber');
  g.spawn(1,{x:home.x-160,y:home.y+220},'scout');
  g.credits[1]=200;pulse(g);
  assert.equal(g.credits[1],200);
@@ -99,17 +93,17 @@ test('economy: established armor saves for heavy support rather than replacing e
 
 test('economy: aircraft loss preserves reconnaissance progression and rebuilds a ground escort',()=>{
  const {g,airfield,barracks}=established();
- g.credits[1]=750;pulse(g);
- assert.deepEqual(airfield.queueTypes,['gunship']);
+ g.credits[1]=600;pulse(g);
+ assert.deepEqual(airfield.queueTypes,['scout']);
  g.aiClock=-1e8;
  for(let i=0;i<370;i++)g.step(.05);
- g.units=g.units.filter(u=>u.owner!==1||!['gunship','infantry'].includes(u.kind));
+ g.units=g.units.filter(u=>u.owner!==1||!['scout','infantry'].includes(u.kind));
  g.credits[1]=600;pulse(g);
  assert.deepEqual(barracks.queueTypes,['infantry'],'a depleted escort comes before another expensive aircraft');
  assert.equal(g.tactical.state.savingFor,'infantry');
  g.credits[1]=600;pulse(g);
  assert.deepEqual(barracks.queueTypes,['infantry','infantry']);
- assert.equal(g.tactical.state.savingFor,'scout','first combat aircraft loss must not reset the reconnaissance milestone');
+ assert.equal(g.tactical.state.savingFor,'scout','first transport aircraft loss must not reset the reconnaissance milestone');
  g.credits[1]=600;pulse(g);
  assert.deepEqual(airfield.queueTypes,['scout']);
  assert.equal(airfield.queueCosts[0],600);

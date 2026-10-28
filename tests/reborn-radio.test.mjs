@@ -19,10 +19,10 @@ test('radio assets: all 47 authored German lines are real, short, non-silent mon
 test('radio catalog: requested movement and attack variants are present; every roster role has an appropriate response',()=>{
  const clips=manifest.clips;
  assert.equal(radioChoices(clips,'move','infantry').length,8);assert.equal(radioChoices(clips,'attack','infantry').length,6);
- for(const kind of ['infantry','heavy','medic','engineer','rover','tank','artillery','scout','gunship','bomber'])for(const action of ['move','attack','stop','hold'])assert.ok(radioChoices(clips,action,kind).length>=2,`${kind}/${action}`);
+ for(const kind of ['infantry','heavy','medic','engineer','rover','tank','artillery','scout','bomber'])for(const action of ['move','attack','stop','hold'])assert.ok(radioChoices(clips,action,kind).length>=2,`${kind}/${action}`);
  assert.ok(radioChoices(clips,'heal','medic').every(c=>c.group==='medic'));assert.ok(radioChoices(clips,'repair','engineer').some(c=>c.text==='Reparatur wird durchgeführt!'));assert.ok(radioChoices(clips,'build','engineer').some(c=>c.text==='Baustelle wird angefahren!'));
  assert.ok(radioChoices(clips,'move','engineer').every(c=>!['repair','build'].includes(c.group)));assert.ok(radioChoices(clips,'move','tank').every(c=>c.profile==='crew'));assert.ok(radioChoices(clips,'move','heavy').every(c=>!c.text.includes('Besatzung')));
- assert.ok(radioChoices(clips,'move','gunship').every(c=>c.group==='air'));assert.equal(radioChoices(clips,'load','scout').length,2);assert.ok(radioChoices(clips,'unload','scout').some(c=>c.text==='Truppen werden abgesetzt!'));
+ assert.ok(radioChoices(clips,'move','bomber').every(c=>c.group==='air'));assert.equal(radioChoices(clips,'load','scout').length,2);assert.ok(radioChoices(clips,'unload','scout').some(c=>c.text==='Truppen werden abgesetzt!'));
  assert.notEqual(radioProfile('heavy'),radioProfile('infantry'));assert.notEqual(radioProfile('medic'),radioProfile('infantry'));
 });
 test('radio policy: one busy global channel suppresses rapid groups; only a higher priority can replace a message',()=>{

@@ -20,7 +20,7 @@ export function updateAdaptive(g:Simulation,s:AdaptiveState,home:Point,losses:Lo
  s.sightings=s.sightings.slice(-96);
  const count=(k:UnitKind[])=>s.sightings.filter(u=>k.includes(u.kind)).length;
  const towers=g.memories[1].filter(b=>b.owner===0&&b.kind==='turret'&&b.hp>0).length;
- s.counts={infantry:count(['infantry','heavy']),armor:count(['rover','tank','artillery']),air:count(['gunship','bomber']),towers};
+ s.counts={infantry:count(['infantry','heavy']),armor:count(['rover','tank','artillery']),air:count(['bomber']),towers};
  const enemy=g.territories.filter(t=>t.owner===0).length,own=g.territories.filter(t=>t.owner===1).length;
  if(!s.ownership.length||g.time-s.ownership.at(-1)!.at>=10)s.ownership.push({at:g.time,enemy,own});s.ownership=s.ownership.filter(v=>g.time-v.at<=90).slice(-10);
  const recent=s.ownership.find(v=>g.time-v.at<=40),growth=recent?Math.max(0,enemy-recent.enemy):0;

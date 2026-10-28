@@ -12,7 +12,7 @@ function quiet() {
  return g;
 }
 
-for(const kind of ['scout','gunship','bomber','heavy']){
+for(const kind of ['scout','bomber','heavy']){
  test(`control: ${kind} obeys immediate retreat while an enemy is in attack range`,()=>{
   const g=quiet(),pilot=g.spawn(0,{x:1900,y:2100},kind);
   const enemy=g.spawn(1,{x:1900+Math.min(175,UNITS[kind].range-25),y:2100},'heavy');
@@ -31,7 +31,7 @@ for(const kind of ['scout','gunship','bomber','heavy']){
 }
 
 test('control: queued movement orders advance even if a combat target remains visible',()=>{
- const g=quiet(),h=g.spawn(0,{x:1900,y:2100},'gunship'),enemy=g.spawn(1,{x:2050,y:2100},'heavy');
+ const g=quiet(),h=g.spawn(0,{x:1900,y:2100},'bomber'),enemy=g.spawn(1,{x:2050,y:2100},'heavy');
  enemy.cooldown=100;g.stop([enemy.id],true);g.updateVision();
  assert.equal(g.command([h.id],{kind:'move',x:1860,y:2100}),1);
  assert.equal(g.command([h.id],{kind:'move',x:1750,y:2100},true),1);

@@ -252,7 +252,7 @@ test('reborn: captured bastion keeps both maps lit after infantry leaves and mar
 
 test('reborn: unit-focused HUD stays compact at bottom left and trains heavy infantry in a finished barracks',async({page})=>{
  await start(page,3434,1790);await provideFacilities(page,['barracks']);await page.locator('#select-unit').click();
- await expect(page.locator('[data-unit]')).toHaveCount(10);await expect(page.locator('.catalog-tabs button')).toHaveCount(2);
+ await expect(page.locator('[data-unit]')).toHaveCount(9);await expect(page.locator('.catalog-tabs button')).toHaveCount(2);
  await expect(page.locator('#tab-buildings, [data-building], #build-shortcut')).toHaveCount(0);
  await page.keyboard.press('b');expect(await page.evaluate(()=>window.__reborn.renderer.placement)).toBe(null);
  const panel=await page.locator('.command').boundingBox();expect(panel.x).toBeLessThanOrEqual(12);expect(panel.width).toBeLessThanOrEqual(700);expect(panel.height).toBeLessThanOrEqual(216);expect(1790-panel.y-panel.height).toBeLessThanOrEqual(12);
@@ -270,15 +270,15 @@ test('reborn: unit-focused HUD stays compact at bottom left and trains heavy inf
  expect(await page.evaluate(()=>window.__reborn.game.bases.length)).toBe(3);expect(await page.evaluate(()=>window.__reborn.game.units.some(u=>u.kind==='heavy'))).toBe(true);
 });
 
-test('reborn: factory and airfield catalogs produce all six vehicles and aircraft with distinct sprites and working movement',async({page})=>{
+test('reborn: factory and airfield catalogs produce all five vehicles and aircraft with distinct sprites and working movement',async({page})=>{
  test.setTimeout(60000);await start(page,1450,1090);const facilities=await provideFacilities(page,['factory','airfield']);
  // Fund the six production paths; the campaign test separately uses the real starting economy.
  await page.evaluate(()=>{const g=window.__reborn.game;g.credits[0]=5000;g.aiClock=-1e8;window.__reborn.refresh();});
- for(const kind of ['rover','tank','artillery','scout','gunship','bomber']){await page.locator('[data-unit="'+kind+'"]').scrollIntoViewIfNeeded();await expect(page.locator('[data-unit="'+kind+'"]')).toBeEnabled();await page.locator('[data-unit="'+kind+'"]').click();}
- expect(await page.evaluate(()=>window.__reborn.game.queued(0))).toBe(6);await expect(page.locator('#queue-slots button')).toHaveCount(8);await page.evaluate(id=>{const a=window.__reborn;a.renderer.selected.clear();a.renderer.selectedBase=id;a.refresh();},facilities.airfield);
- await advance(page,2);const credits=await page.evaluate(()=>window.__reborn.game.credits[0]);await page.locator('#queue-slots button').nth(2).click();
+ for(const kind of ['rover','tank','artillery','scout','bomber']){await page.locator('[data-unit="'+kind+'"]').scrollIntoViewIfNeeded();await expect(page.locator('[data-unit="'+kind+'"]')).toBeEnabled();await page.locator('[data-unit="'+kind+'"]').click();}
+ expect(await page.evaluate(()=>window.__reborn.game.queued(0))).toBe(5);await expect(page.locator('#queue-slots button')).toHaveCount(8);await page.evaluate(id=>{const a=window.__reborn;a.renderer.selected.clear();a.renderer.selectedBase=id;a.refresh();},facilities.airfield);
+ await advance(page,2);const credits=await page.evaluate(()=>window.__reborn.game.credits[0]);await page.locator('#queue-slots button').nth(1).click();
  expect(await page.evaluate(()=>window.__reborn.game.credits[0])).toBe(credits+1000);await page.locator('[data-unit="bomber"]').click();
- await advance(page,98);const roster=await page.evaluate(()=>window.__reborn.game.units.filter(u=>u.owner===0).map(u=>u.kind));for(const kind of ['rover','tank','artillery','scout','gunship','bomber'])expect(roster).toContain(kind);
+ await advance(page,98);const roster=await page.evaluate(()=>window.__reborn.game.units.filter(u=>u.owner===0).map(u=>u.kind));for(const kind of ['rover','tank','artillery','scout','bomber'])expect(roster).toContain(kind);
  expect(await page.evaluate(()=>window.__reborn.game.bases.length)).toBe(4);
  const moved=await page.evaluate(()=>{const {game:g}=window.__reborn,army=g.units.filter(u=>u.owner===0&&['rover','tank','artillery'].includes(u.kind));const before=army.map(u=>({id:u.id,x:u.x,y:u.y}));g.command(army.map(u=>u.id),{...g.territories[20].point,kind:'move'});return before;});await advance(page,14);
  for(const original of moved){const distance=await page.evaluate(original=>{const u=window.__reborn.game.units.find(u=>u.id===original.id);return Math.hypot(u.x-original.x,u.y-original.y);},original);expect(distance).toBeGreaterThan(45);}
@@ -440,7 +440,7 @@ test('combat: approaching enemies receive immediate fire and a second attacker d
 test('vehicle art: the full roster has real faction materials, baked shadows, animated running gear and visible turret/barrel layers',async({page})=>{
  await start(page);const result=await page.evaluate(async()=>{
   const r=window.__reborn.renderer,c=document.createElement('canvas');c.width=c.height=96;const ctx=c.getContext('2d',{willReadFrequently:true}),rows=[];
-  for(const kind of ['rover','tank','artillery','scout','gunship','bomber']){
+  for(const kind of ['rover','tank','artillery','scout','bomber']){
    const asset=r.units.asset(kind),data=asset.data;
    const count=frame=>{ctx.clearRect(0,0,96,96);ctx.drawImage(asset.image,frame.x,frame.y,96,96,0,0,96,96);const p=ctx.getImageData(0,0,96,96).data;let solid=0,shadow=0,groundShadow=0;for(let i=0;i<p.length;i+=4){if(p[i+3]>200)solid++;if(p[i+3]>5&&p[i+3]<150&&Math.max(p[i],p[i+1],p[i+2])<85){shadow++;if(Math.floor(i/4/96)>=70)groundShadow++;}}return {solid,shadow,groundShadow};};
    const base=count(data.frames[data.clips.idle.frames[0][0]]),turret=data.clips.turret?count(data.frames[data.clips.turret.frames[0][0]]):null,barrel=data.clips.barrel?count(data.frames[data.clips.barrel.frames[0][0]]):null;
@@ -590,24 +590,24 @@ test('model gallery: vehicles and aircraft are selectable as real 3D GLBs',async
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.setViewportSize({width:1280,height:850});
  await page.goto('/model-3d.html?model=rover');
- const models={rover:'Spähwagen',tank:'Panzer',artillery:'Artillerie',scout:'Spähheli',gunship:'Kampfheli',bomber:'Bomber'};
+ const models={rover:'Humvee',tank:'Panzer',artillery:'Artillerie',scout:'Transporthelikopter',bomber:'Bomber'};
  for(const [kind,label] of Object.entries(models)){
   await page.locator('#model').selectOption(kind);
-  await page.waitForFunction(k=>window.__model3D?.kind===k&&window.__model3D?.current?.getObjectByName('Atlas_'+k),kind);
+  await page.waitForFunction(k=>window.__model3D?.kind===k&&window.__model3D?.data&&document.querySelector('#download').getAttribute('href')==='/src/assets/reborn/animation/'+k+'-0.glb',kind);
   await expect(page.locator('#error')).toHaveText('');
   await expect(page.locator('#model-title')).toContainText(label);
   await expect(page.locator('#download')).toHaveAttribute('href','/src/assets/reborn/animation/'+kind+'-0.glb');
-  await expect(page.locator('[data-clip="Operation"]')).toBeHidden();
+  if(['rover','scout','bomber'].includes(kind))await expect(page.locator('[data-clip="Operation"]')).toBeVisible();else await expect(page.locator('[data-clip="Operation"]')).toBeHidden();
   const info=await page.evaluate(()=>{
    const v=window.__model3D;let meshes=0;v.current.traverse(n=>{if(n.isMesh)meshes++;});
    return {meshes,animations:v.data.animations.length,position:v.camera.position.toArray()};
   });
   expect(info.meshes).toBeGreaterThan(10);
-  expect(info.animations).toBe(0); // Vehicle movement is authored in the sprite atlases, not GLB clips.
+  expect(info.animations).toBe(['rover','scout','bomber'].includes(kind)?1:0);
   expect(info.position.every(Number.isFinite)).toBe(true);
  }
  await page.locator('#red').click();
- await page.waitForFunction(()=>window.__model3D?.team===1&&window.__model3D?.current?.getObjectByName('Atlas_bomber'));
+ await page.waitForFunction(()=>window.__model3D?.team===1&&document.querySelector('#download').getAttribute('href').endsWith('bomber-1.glb'));
  await expect(page.locator('#download')).toHaveAttribute('href','/src/assets/reborn/animation/bomber-1.glb');
  await page.locator('#model').selectOption('infantry');
  await page.waitForFunction(()=>window.__model3D?.kind==='infantry'&&window.__model3D?.data?.animations?.length===5);

@@ -11,9 +11,9 @@ import {resolve,dirname} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {blueDefense} from './benchmark-ai-opponent.mjs';
 
-const vehicles=new Set(['tank','rover','artillery','gunship','bomber','scout']);
+const vehicles=new Set(['tank','rover','artillery','bomber','scout']);
 const groundVehicles=new Set(['tank','rover','artillery']);
-const aircraft=new Set(['gunship','bomber','scout']);
+const aircraft=new Set(['bomber','scout']);
 const producers=['barracks','factory','airfield'];
 const round=n=>Number(n.toFixed(3));
 const increment=(counts,key)=>{counts[key]=(counts[key]??0)+1;};

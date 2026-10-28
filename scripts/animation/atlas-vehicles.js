@@ -77,52 +77,8 @@ export function buildAtlasVehicle(kind,team=0){
    box('MuzzleBrake',[.17,.16,.22],m.edge,[0,1.22,.48+lengthBarrel],gun,.018);box('MuzzleOpening',[.105,.065,.024],m.rubber,[0,1.22,.60+lengthBarrel],gun,.008);
   }
   lamp(.25,1.26,.30,turret);
- }else if(kind==='scout'){
-  box('TransportHull',[1.05,.60,2.12],m.edge,[0,.67,0],model,.15);
-  box('CargoCabin',[.99,.55,1.90],m.sand,[0,.78,.03],model,.13);
-  box('ArmouredCockpit',[.85,.30,.58],m.glass,[0,.92,.89],model,.10);
-  box('CockpitDivider',[.04,.34,.62],m.edge,[0,.94,.89]);
-  box('CargoRoof',[.91,.08,1.76],m.team,[0,1.12,-.06]);
-  for(const side of [-1,1]){
-   box('CargoDoorFrame',[.045,.46,1.18],m.edge,[side*.52,.76,-.14]);
-   box('SlidingCargoDoor',[.052,.37,1.06],m.team,[side*.55,.79,-.14]);
-   for(let i=0;i<3;i++)box('CargoWindow',[.063,.14,.24],m.glass,[side*.56,.87,-.50+i*.34]);
-   box('DoorRail',[.065,.035,1.55],m.dark,[side*.56,1.04,-.10]);
-   box('LandingSkid',[.09,.08,2.00],m.dark,[side*.65,.12,0]);
-   for(const z of [-.65,.65])box('LandingStrut',[.05,.38,.05],m.edge,[side*.55,.34,z]).rotation.z=-side*.28;
-   box('MGMount',[.22,.16,.30],m.edge,[side*.65,.59,.76]);
-   cylinder('DefensiveMG',.04,.58,m.dark,[side*.65,.60,1.06],model,12).rotation.x=Math.PI/2;
-   const tip=box('TransportMuzzle',[.065,.065,.025],m.rubber,[side*.65,.60,1.36],model,.005);if(!muzzle)muzzle=tip;
-   lamp(side*.36,.66,1.10);
-  }
-  box('RearCargoRamp',[.70,.43,.065],m.dark,[0,.60,-1.10]);
-  for(const z of [-.73,.73]){
-   cylinder('TandemRotorMast',.06,.28,m.edge,[0,1.28,z]);const hub=group('TransportRotor',[0,1.45,z]);
-   if(!rotor)rotor=hub;else extraRotor=hub;
-   cylinder('RotorHub',.12,.08,m.edge,[0,0,0],hub);
-   for(let i=0;i<3;i++){const blade=box('TransportRotorBlade',[1.35,.028,.13],m.dark,[Math.cos(i*Math.PI*2/3)*.60,0,Math.sin(i*Math.PI*2/3)*.60],hub,.006);blade.rotation.y=-i*Math.PI*2/3;}
-  }
-  for(const x of [-.31,.31]){cylinder('EngineExhaust',.11,.33,m.dark,[x,1.05,-1.00]).rotation.x=Math.PI/2;}
- }else{
-  const bomber=kind==='bomber',gunship=kind==='gunship';
-  box('Airframe',[.70,.45,1.65],m.edge,[0,.65,0],model,.18);box('CeramicFuselage',[.64,.40,1.51],m.sand,[0,.73,.02],model,.16);
-  box('Cockpit',[.52,.27,.60],m.glass,[0,.90,.58],model,.10);box('CockpitSpine',[.055,.045,.60],m.edge,[0,1.03,.58]);
-  box('NoseEnamel',[.16,.025,.30],m.team,[0,.87,.96]);lamp(0,.62,.86);
-  for(const side of [-1,1]){
-   box('SideEnamel',[.045,.26,.86],m.team,[side*.34,.71,-.20]);
-   box('Wing',[bomber?1.10:.57,.075,.44],m.team,[side*(bomber?.72:.45),.64,-.16],model,.025);
-   box('WingTip',[.16,.085,.36],m.team,[side*(bomber?1.20:.69),.66,-.16]);
-   if(gunship||bomber){const pod=cylinder('WeaponPod',.105,.61,m.dark,[side*.62,.48,.10]);pod.rotation.x=Math.PI/2;cylinder('WeaponRim',.12,.07,m.edge,[side*.62,.48,.42]).rotation.x=Math.PI/2;}
-   const exhaust=cylinder('Exhaust',.12,.36,m.dark,[side*.26,.71,-.90]);exhaust.rotation.x=Math.PI/2;lamp(side*.22,.72,-1.10);
-  }
-  box('TailBoom',[.19,.19,1.10],m.edge,[0,.74,-1.18]);box('TailFin',[.055,.49,.40],m.team,[0,1.02,-1.60]);box('TailPlane',[.83,.05,.23],m.sand,[0,.80,-1.56]);
-  if(!bomber){
-   for(const side of [-1,1]){box('Skid',[.07,.07,1.56],m.dark,[side*.42,.15,.02]);for(const z of [-.42,.45])box('SkidStrut',[.045,.36,.045],m.edge,[side*.36,.33,z]).rotation.z=side*-.25;}
-   cylinder('RotorMast',.055,.32,m.edge,[0,1.12,-.07]);rotor=group('AtlasRotor',[0,1.31,-.07]);cylinder('RotorHub',.10,.07,m.edge,[0,0,0],rotor);
-   for(let i=0;i<3;i++){const blade=box('RotorBlade',[1.43,.025,.10],m.dark,[0,0,0],rotor,.006);blade.position.set(Math.cos(i*Math.PI*2/3)*.61,0,Math.sin(i*Math.PI*2/3)*.61);blade.rotation.y=-i*Math.PI*2/3;}
-   tailRotor=group('TailRotor',[.08,.96,-1.62]);for(let i=0;i<2;i++)box('TailBlade',[.025,.53,.07],m.dark,[0,0,0],tailRotor,.006).rotation.x=i*Math.PI/2;
-  }
- }
+ }else{throw Error('Use the authored GLB loader for '+kind);}
+
  function animate(tag,phase){
   const moving=tag!=='idle';for(const wheel of wheels){const side=Math.sign(wheel.position.x),direction=tag==='turnLeft'?side:tag==='turnRight'?-side:1;wheel.rotation.x=moving?phase*Math.PI*2*direction:0;}
   // Each tread is a real rigid link travelling around the closed wheel loop.
@@ -133,6 +89,6 @@ export function buildAtlasVehicle(kind,team=0){
   if(rotor)rotor.rotation.y=phase*Math.PI*2/3;if(extraRotor)extraRotor.rotation.y=-phase*Math.PI*2/3;if(tailRotor)tailRotor.rotation.x=phase*Math.PI;
  }
  animate('idle',0);
- model.userData.atlasDesign={kind,team,parts,triangles:Math.round(triangles),...(kind==='scout'?{role:'reconnaissance transport',seats:10}:kind==='artillery'?{role:'long range rocket launcher',tubes:12}:{}),geometry:'Atlas original ceramic / bronze vehicle geometry',source:'Atlas Dominion / original procedural models'};
+ model.userData.atlasDesign={kind,team,parts,triangles:Math.round(triangles),...(kind==='artillery'?{role:'long range rocket launcher',tubes:12}:{}),geometry:'Atlas original ceramic / bronze vehicle geometry',source:'Atlas Dominion / original procedural models'};
  return {model,rotor,muzzle,animate};
 }

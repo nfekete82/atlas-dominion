@@ -1,4 +1,4 @@
-import { cpSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import {createHash} from 'node:crypto';
 mkdirSync('dist', { recursive: true });
 cpSync('index.html', 'dist/index.html');
@@ -16,6 +16,8 @@ cpSync('src/reborn/retro-desert.css', 'dist/retro-desert.css');
 cpSync('src/reborn/qwen-general.worker.js', 'dist/src/reborn/qwen-general.worker.js');
 cpSync('legacy', 'dist/legacy', {recursive:true});
 cpSync('src/assets', 'dist/src/assets', {recursive:true});
+// Incremental local builds must also discard the retired aircraft assets.
+for(const team of [0,1])for(const extension of ['glb','png','json'])rmSync(`dist/src/assets/reborn/animation/gunship-${team}.${extension}`,{force:true});
 // A verifiable fingerprint of the *shipped* gameplay pixels, not the source GLB.
 const art={revision:'pbr-strong-20261027',files:{}};
 for(const kind of ['headquarters','factory','barracks','airfield','generator','turret','bastion']){

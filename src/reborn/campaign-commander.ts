@@ -46,7 +46,7 @@ export function chooseMission(g:Simulation,s:CampaignState,origin:Point,context?
  }
  const owned=g.territories.filter(t=>t.owner===1).length;
  const army=g.units.filter(u=>u.owner===1&&u.hp>0&&!u.carrier&&!['engineer','medic','scout'].includes(u.kind));
- const fieldArmy=army.length>=5&&army.some(u=>['tank','artillery','gunship'].includes(u.kind));
+ const fieldArmy=army.length>=5&&army.some(u=>['tank','artillery'].includes(u.kind));
  const choices:{kind:WarMission['kind'];p:Point;sector:number;objective:number|null;hp:number;score:number}[]=[];
  for(const b of buildings){
   const blocking=b.kind==='turret'&&buildings.some(other=>['headquarters','barracks','factory','airfield'].includes(other.kind??'')&&distance(other,b)<660);
@@ -88,7 +88,7 @@ export function reconGoal(g:Simulation,s:CampaignState,u:Unit,danger:(p:Point)=>
  const candidates:{p:Point;score:number}[]=[],step=g.world.size/12;
  for(let y=step/2;y<g.world.size;y+=step)for(let x=step/2;x<g.world.size;x+=step){
   const p={x,y};if(g.canSee(1,p)||danger(p)>3||s.recon.some(t=>distance(t,p)<step*1.5)||s.survey.some(t=>distance(t,p)<step*.7))continue;
-  if(!g.world.walkable(p,[],0)&&!['scout','gunship'].includes(u.kind))continue;
+  if(!g.world.walkable(p,[],0)&&!unitSpec(u).flying)continue;
   const sector=g.territories.reduce((a,b)=>distance(p,a.point)<distance(p,b.point)?a:b);
   const stale=s.intel.some(i=>g.time-i.seenAt>90&&knownBuildings(g).some(b=>b.id===i.id&&distance(b,p)<500));
   candidates.push({p,score:distance(u,p)+(g.hasExplored(1,p)?2500:0)-(sector.owner===0?1800:0)-(stale?350:0)});

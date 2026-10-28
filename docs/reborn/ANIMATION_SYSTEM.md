@@ -1,8 +1,10 @@
 # Einheitensystem / Abschluss am 23. Oktober 2026
 
-**Aktueller Fahrzeugstand:** Sechs eigene Fahrzeugmodelle ersetzen inzwischen die vorherigen CC0-Fahrzeuge; Materialien, Beleuchtung, Räder, Ketten, Rotoren und getrennte Waffenlayer sind an die freigegebene Familie angepasst. Die folgenden historischen Quellenangaben beziehen sich auf die archivierten Quellmodelle. [Aktueller Umfang und reproduzierbare Exporte](RANDOM_CAMPAIGNS.md).
+**Aktueller Fahrzeugstand (28. Oktober 2026):** Fünf eigene Fahrzeugmodelle ersetzen inzwischen die vorherigen CC0-Fahrzeuge; Materialien, Beleuchtung, Räder, Ketten, Rotoren und getrennte Waffenlayer sind an die freigegebene Familie angepasst. Die folgenden historischen Quellenangaben beziehen sich auf die archivierten Quellmodelle. [Aktueller Umfang und reproduzierbare Exporte](RANDOM_CAMPAIGNS.md).
 
-**Aktuelle Übernahme nach Nutzerfreigabe:** Die detailliertere Legionär-Figur ist als gemeinsame Grundfigur von Infanterie, Pionier und schwerem Schützen im Spiel aktiv. Sie besitzt 192-Pixel-Zellen, Pivot (96,156), Maßstab 0,5 und 296 Frames je Team. Mündungen sind aus der wirklichen 3D-Waffe registriert. Sieben neue eigene Gebäudetypen ersetzen die bisherigen generierten Gebäudebilder; Basis und Bastion verwenden 64 registrierte Schüsselansichten. [Aktueller Umfang, Quellen und Prüfung](../buildings-3d/README.md). Das Inventar enthält 14 unterschiedliche aktive Einheitenatlanten für 18 Rollen-/Teamkombinationen sowie 15 Gebäudemodelle. Die folgenden Abschnitte dokumentieren den vorherigen Stand mit den einfachen CC0-Figuren; diese Figuren sind archiviert.
+**Transporthelikopter:** Zwei eigene PBR-GLBs mit fünfblättrigem Hauptrotor, unabhängigem Heckrotor und acht Phasen pro 16 Richtungen. Idle/Walk teilen 128 Bildframes je Team. `npm run assets:transport` erstellt Modelle und 192-Pixel-Atlanten reproduzierbar. Der Kampfhelikopter ist entfernt; Altspielstände werden migriert. [Modell und Prüfnachweise](../qa/transport-helicopter-20261028/README.md).
+
+**Aktuelle Übernahme nach Nutzerfreigabe:** Die detailliertere Legionär-Figur ist als gemeinsame Grundfigur von Infanterie, Pionier und schwerem Schützen im Spiel aktiv. Sie besitzt 192-Pixel-Zellen, Pivot (96,156), Maßstab 0,5 und 296 Frames je Team. Mündungen sind aus der wirklichen 3D-Waffe registriert. Sieben neue eigene Gebäudetypen ersetzen die bisherigen generierten Gebäudebilder; Basis und Bastion verwenden 64 registrierte Schüsselansichten. [Aktueller Umfang, Quellen und Prüfung](../buildings-3d/README.md). Das Inventar enthält 18 unterschiedliche aktive Einheitenatlanten für 18 Rollen-/Teamkombinationen sowie 15 Gebäudemodelle. Die folgenden Abschnitte dokumentieren den vorherigen Stand mit den einfachen CC0-Figuren; diese Figuren sind archiviert.
 
 Die bisherigen generierten Einzelansichten und Laufatlanten waren kein vollständiges Animationsset: Idle, Treffer, Tod und getrennte Fahrzeugteile fehlten. Der aktive Renderer lud zudem gespiegelte Fahrzeugansichten und ergänzte Bewegungen durch Darstellungsänderungen. Diese Pfade sind durch echte, offline gerenderte Spritefolgen ersetzt. Die alten Dateien bleiben als Archiv erhalten.
 
@@ -15,7 +17,7 @@ Die bisherigen generierten Einzelansichten und Laufatlanten waren kein vollstän
 | Infanterie, Pionier, schwerer Schütze | 8 | Idle 4, Walk 8, Attack 5, Hit 4, Death 10 Samples je Richtung; zusammen 248 Frames je Atlas |
 | Spähwagen | 16 | Idle und vier tatsächlich gerenderte Radstellungen |
 | Panzer, Artillerie | 16 | Vier Kettenphasen vorwärts, links und rechts; unabhängiger Turm und Rohr |
-| Spähheli, Kampfheli | 16 | Vier Stellungen der tatsächlich getrennten Quell-Rotorgeometrie, stehende und bewegte Zustände |
+| Transporthelikopter | 16 | Acht Rotorphasen aus dem eigenen PBR-GLB, unabhängiger Haupt- und Heckrotor; gemeinsame Pixel für Stillstand und Flug |
 | Bomber | 16 | Starre Richtungsansichten; eine Pose pro Zustand, keine erfundenen beweglichen Teile |
 
 Samples sind nicht automatisch unterschiedliche Posen: Alle acht Laufphasen sind pro Richtung verschieden. Stand-, Schuss- und Trefferclips enthalten teilweise Halteposen. Die tatsächlichen unterschiedlichen Pixelphasen stehen je Richtung als `uniquePhases` in den Atlasmetadaten. [ANIMATION_ASSETS.json](ANIMATION_ASSETS.json) inventarisiert sämtliche Projekt-PNGs, Quellmodelle und aktiven Clips samt SHA-256. Inventarisierte ältere Dateien sind keine zusätzlich aktiven Animationen.
@@ -42,7 +44,7 @@ Canvas 2D zeichnet native gerenderte Pixel ohne Bildglättung. Präsentationszus
 ## Konkrete Grenzen
 
 - Die CC0-Modelle sind bewusst einfachere Low-Poly-Modelle. Ihre Animationen sind vollständig nachvollziehbar; ihre Materialdetails erreichen nicht die realistische Gebäudegrafik der Bildvorlage. Hochdetaillierte, zur Vorlage passende Figuren mit denselben vollständigen Clips fehlen weiterhin.
-- Spähheli und Kampfheli verwenden dasselbe lizenzierte Hubschraubermodell in unterschiedlicher Größe. Ein eigenständiges bewaffnetes Kampfheli-Modell fehlt.
+- Das frühere CC0-Hubschraubermodell ist nur noch eine archivierte Quelle und wird vom aktiven Transporthelikopter nicht verwendet.
 - Unabhängige Türme und Rohre existieren nur für Panzer und Artillerie. Rover und Luftfahrzeuge besitzen keine passenden zusätzlichen Waffenlayer.
 - Fahrzeuge besitzen keine separaten Treffer-, Zerfalls- oder Absturzclips. Treffer werden durch Einschlagpartikel dargestellt; Bodentruppen hinterlassen einen statischen dunklen Wrackframe, Fluggeräte verschwinden mit einer Explosion. Das sind keine behaupteten animierten Zerstörungsframes.
 - Es gibt keine neue Gameplaymechanik. Notstopps und Kampfunterbrechungen behalten die bestehende unmittelbare Reaktion; Beschleunigung betrifft Marschbewegung.

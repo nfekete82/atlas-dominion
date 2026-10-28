@@ -23,7 +23,7 @@ test('matched strength uses the actual heavy armor penalty rather than nominal w
 });
 
 test('an artillery army cannot count firepower against known aircraft or claim a safe siege screen',()=>{
- const {g,home,enemy}=scene(),rockets=Array.from({length:8},()=>g.spawn(1,home,'artillery')),air=enemy('gunship');
+ const {g,home,enemy}=scene(),rockets=Array.from({length:8},()=>g.spawn(1,home,'artillery')),air=enemy('bomber');
  assert.equal(fightingPowerAgainst(rockets,[air]),0);
  assert.equal(assessBattle(rockets,[air],[],0,true).stance,'withdraw');
  const tower={id:900,x:home.x-500,y:home.y,hp:650,range:600};
@@ -42,15 +42,15 @@ test('observed armor receives a fully paid tank response during an attack',()=>{
  assert.equal(factory.queueCosts[0],450);assert.equal(g.credits[1],0);
 });
 
-test('known air force funds an affordable anti-air screen and then combat aircraft rather than artillery',()=>{
- const {g,barracks,factory,airfield,enemy,pulse}=scene();enemy('gunship');enemy('gunship');
+test('known air force funds an affordable anti-air screen and reinforces it rather than buying ground-only aircraft',()=>{
+ const {g,barracks,factory,airfield,enemy,pulse}=scene();for(let i=0;i<5;i++)enemy('bomber');
  g.credits[1]=250;pulse();assert.deepEqual(barracks.queueTypes,['heavy']);assert.deepEqual(factory.queueTypes,[]);
- g.credits[1]=750;pulse();assert.deepEqual(airfield.queueTypes,['gunship']);assert.equal(airfield.queueCosts[0],750);
+ g.credits[1]=250;pulse();assert.deepEqual(barracks.queueTypes,['heavy','heavy']);assert.deepEqual(airfield.queueTypes,[]);assert.equal(barracks.queueCosts[1],250);
  assert.equal(g.credits[1],0);assert.equal(factory.queueTypes.includes('artillery'),false);
 });
 
 test('recent observed air doctrine persists through fog but ages out',()=>{
- const {g,home,enemy,pulse}=scene();const air=enemy('gunship');g.updateVision();
+ const {g,home,enemy,pulse}=scene();const air=enemy('bomber');g.updateVision();
  const s=g.tactical.state;s.adaptive=newAdaptive();updateAdaptive(g,s.adaptive,home,[]);
  assert.equal(s.adaptive.strategy,'air');g.units=g.units.filter(u=>u!==air);g.credits[1]=200;pulse();
  assert.equal(s.savingFor,'heavy');g.time=31;g.credits[1]=200;pulse();
