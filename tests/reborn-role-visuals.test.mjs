@@ -42,15 +42,17 @@ test('role visuals: support equipment is drawn at animated body position for bot
 });
 
 test('role visuals: new role graphics leave battle data and animation atlases unchanged',()=>{
- const game=new Simulation(),before=game.save(),c=fakeContext();
- for(const kind of ['infantry','engineer','medic']){
-  const u=game.units.find(u=>u.kind===kind)??game.spawn(0,{x:1950,y:2050},kind);
-  drawSupportPack(c,kind,u,u.angle);
-  drawSupportPatch(c,kind,u,u.angle);
-  drawInfantryRoleBadge(c,kind,u.owner,u);
+ const game=new Simulation(),c=fakeContext();
+ const actors=['infantry','engineer','medic'].map(kind=>
+  game.units.find(u=>u.kind===kind)??game.spawn(0,{x:1950,y:2050},kind));
+ const before=game.save();
+ for(const u of actors){
+  drawSupportPack(c,u.kind,u,u.angle);
+  drawSupportPatch(c,u.kind,u,u.angle);
+  drawInfantryRoleBadge(c,u.kind,u.owner,u);
  }
- assert.deepEqual(game.save().units,before.units.length===game.units.length?before.units:game.units,
-  'role-only renderer must not change HP, orders or movement');
+ assert.deepEqual(game.save(),before,
+  'role-only renderer must not change HP, orders, world state or saves');
  const renderer=readFileSync(new URL('../src/reborn/renderer.ts',import.meta.url),'utf8');
  const presentation=readFileSync(new URL('../src/reborn/unit-presentation.ts',import.meta.url),'utf8');
  assert.match(renderer,/drawInfantryRoleBadge\(c,u\.kind,u\.owner,p\)/);
