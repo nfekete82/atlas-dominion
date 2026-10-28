@@ -9,6 +9,7 @@ import {segmentDistance} from './world-generation.js';
 import {newBattle,assessBattle,fightingPower,recordFailure,retryFront,validBattle,type BattleState} from './battle-response.js';
 import {newAdaptive,updateAdaptive,validAdaptive,type AdaptiveState} from './adaptive-strategy.js';
 import {rankLegacyFrontiers} from './legacy-campaign.js';
+import {chooseTacticalManeuver,flankCandidate} from './tactical-search.js';
 import type {Simulation,Unit,Memory} from './simulation.js';
 export type TacticalPhase='gather'|'attack'|'regroup'|'defend';
 export interface KnownTurret extends Point {id:number;hp:number;seenAt:number;range:number}
@@ -32,6 +33,8 @@ const fresh=():TacticalState=>({version:1,phase:'gather',phaseAt:0,lastPlan:-3,t
 export class TacticalAI {
  /** Benchmark override; normal gameplay always uses the director. */
  mode:'baseline'|'director'='director';
+ /** Benchmark-only A/B switch; classic director remains available. */
+ planningMode:'classic'|'tactical'='tactical';
  state=fresh();private risk:Float32Array|undefined;private riskAt=-1;private routeCache=new Map<string,Point[]>();private routeSignature='';
  private strategyOptions: SectorChoice[]=[];
  private sectorPreference: {sectorId:number;until:number}|null=null;
@@ -584,8 +587,34 @@ export class TacticalAI {
   const closeThreat=visible.filter(v=>members.some(u=>distance(u,v)<unitSpec(v).range+110)&&!['engineer','medic','scout'].includes(v.kind))
    .sort((a,b)=>unitSpec(b).damage/unitSpec(b).cooldown-unitSpec(a).damage/unitSpec(a).cooldown||a.id-b.id)[0];
   const combatants=closeThreat?ground.filter(u=>canAttack(u,closeThreat)):[];
+  // Only observed defenders and remembered guns are passed to the tactical
+  // forecast. Existing retreat/defense/siege authority remains unchanged.
+  const tactical=this.planningMode==='tactical'&&visible.length>=3&&members.length>=6
+    ?chooseTacticalManeuver({allies:group,observedEnemies:visible,knownGuns:towers,storm:g.weather.storm})
+    :null;
+  const continuingFlank=!closeThreat?ground.filter(u=>u.orders.length>=2&&u.orders[0].kind==='move'
+    &&u.orders[1].kind==='attackMove'&&u.orders[1].tactical?.mode==='assault'):[];
+  let newFlank:Unit[]=[];
+  if(tactical?.mode==='flank'&&!closeThreat&&!towers.length&&!continuingFlank.length){
+    const candidates=([-1,1] as const).map(side=>flankCandidate(anchor,mission,side))
+      .filter(p=>p.x>40&&p.y>40&&p.x<g.world.size-40&&p.y<g.world.size-40
+        &&g.world.walkable(p,this.obstacles(),15)&&this.danger(p)<3)
+      .map(p=>({point:p,route:this.route(anchor,p)})).filter(c=>c.route.length>0)
+      .sort((a,b)=>this.sampleRoute(a.route,anchor).length-this.sampleRoute(b.route,anchor).length);
+    const waypoint=candidates[0]?.point;
+    if(waypoint){
+      newFlank=ground.filter(u=>['rover','tank','heavy'].includes(u.kind)
+        &&!combatants.includes(u)).sort((a,b)=>unitSpec(b).speed-unitSpec(a).speed||a.id-b.id).slice(0,2);
+      if(newFlank.length===2)for(const u of newFlank){
+        this.issue([u],waypoint,'safe',undefined,false,false);
+        this.issue([u],mission,'assault',undefined,true,false);
+      }
+      else newFlank=[];
+    }
+  }
   if(closeThreat&&combatants.length)this.issue(combatants,closeThreat,'assault',closeThreat.id);
-  this.issue(ground.filter(u=>!combatants.includes(u)),mission,'assault',mission.objective??undefined);
+  const flanking=new Set([...newFlank,...continuingFlank].map(u=>u.id));
+  this.issue(ground.filter(u=>!combatants.includes(u)&&!flanking.has(u.id)),mission,'assault',mission.objective??undefined);
   this.airSupport(members,closeThreat??mission,closeThreat?.id??mission.objective);
   // Aircraft that have finished their flank route can keep the same mission.
   for(const u of members.filter(u=>unitSpec(u).flying&&!u.orders.length))this.issue([u],mission,'assault',mission.objective??undefined);
