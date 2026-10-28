@@ -160,7 +160,15 @@ test('foundations: sandstone top is solid and sand dunes cover its surface and e
   const edgeStrokes=out.calls.filter(v=>v[0]==='stroke'&&v[2]==='rgba(248,209,144,0.34)');
   assert.ok(edgeStrokes.length>=8,'wind ridges help distinguish the new deposits');
   const radialStops=out.calls.filter(v=>v[0]==='stop-radial');
-  assert.ok(radialStops.some(v=>/0\.890/.test(v[2])),'sand crest should be visibly opaque');
+  // The southwest dune is deliberately thinner so the front-left apron stays visible.
+  // Other dunes still need strong crests to bury parts of the sandstone.
+  const crestAlphas=radialStops
+    .filter(v=>v[2].startsWith('rgba(244,191,111,'))
+    .map(v=>Number(v[2].slice('rgba(244,191,111,'.length,-1)));
+  assert.ok(crestAlphas.some(alpha=>alpha>=.85&&alpha<=1),
+    'some sand crests should remain strongly visible over the plate');
+  assert.ok(crestAlphas.some(alpha=>alpha>=.5&&alpha<=.7),
+    'the southwest crest should be lighter to reveal the sandstone below');
   assert.ok(radialStops.some(v=>v[2]==='rgba(225,155,65,0)'),'outer sand should feather out into terrain');
 });
 
