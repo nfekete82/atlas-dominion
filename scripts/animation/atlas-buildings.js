@@ -118,11 +118,125 @@ export function buildAtlasBuilding(kind,team=0){
   for(const x of [-1.1,1.1]){cylinder('Exhaust',.11,.13,.48,m.edge,[x,1.72,-.78]);cylinder('ExhaustRim',.14,.14,.07,m.dark,[x,1.99,-.78]);}
   antenna(-1.12,1.40,.48,.65);
  }else if(kind==='airfield'){
-  pedestal(3.30,2.75);box('LandingDeck',[3.14,.09,2.57],m.dark,[0,.29,0],model,.04);
-  for(const x of [-1.35,1.35]){box('DeckStripe',[.08,.017,2.14],m.team,[x,.347,0],model,.007);for(let i=0;i<5;i++)box('RunwayLight',[.09,.035,.07],m.light,[x,.36,-.89+i*.45],model,.008);}
-  ring('LandingGuide',.75,.025,m.sand,[0,.35,0]);box('GuideBar',[.05,.015,.76],m.sand,[0,.355,0],model,.004);
-  box('ControlTowerBase',[.70,.83,.72],m.edge,[-1.0,.72,-.74]);box('ControlRoom',[.88,.38,.88],m.sand,[-1.0,1.30,-.74],model,.05);
-  box('ControlGlass',[.68,.20,.035],m.glass,[-1.0,1.32,-.28],model,.012);strip(-1.0,1.15,-.27,.54);antenna(-.92,1.52,-.75,.61);
+  // Full-scale forward airbase: long runway / taxi apron, open arched aircraft
+  // hangar, glazed tower, support block, fuel farm and perimeter lighting.
+  // All structures share the same origin so the sprite, GLB and construction
+  // animation stay registered when the footprint is enlarged in the game.
+  const concrete=material('Atlas runway concrete','#9c937e',.91,.04);
+  const asphalt=material('Atlas runway asphalt','#444a47',.96,.02);
+  const markings=material('Atlas runway markings','#e4d9b9',.87,.02);
+  const yellow=material('Atlas runway safety yellow','#d5a74d',.88,.03);
+  const noGo=material('Atlas hangar opening','#111a1b',.98,.02);
+  const towerDark=material('Atlas tower tinted glazing','#29434d',.28,.26);
+  pedestal(4.80,4.74);
+  box('AirfieldConcreteApron',[4.62,.065,4.56],concrete,[0,.285,0],model,.024);
+  // The long landing strip has separate taxi clearance and readable markings.
+  box('AirfieldRunway',[1.55,.043,3.75],asphalt,[.95,.335,.30],model,.015);
+  box('TaxiwayFromHangar',[2.15,.035,.73],asphalt,[-.35,.34,.37],model,.012);
+  for(const x of [.20,1.71]){
+   box('RunwayEdgeMarking',[.035,.012,3.51],markings,[x,.363,.30],model,.003);
+   for(let i=0;i<8;i++)box('RunwayEdgeLight',[.062,.045,.08],m.light,[x,.384,-1.38+i*.46],model,.009);
+  }
+  for(let i=0;i<6;i++)box('RunwayCenterDash',[.042,.012,.29],markings,[.95,.368,-1.38+i*.58],model,.004);
+  for(let i=0;i<5;i++)for(const x of [.50,.69,1.20,1.40])
+   box('RunwayThresholdBars',[.092,.015,.065],markings,[x,.369,2.00+i*.07],model,.004);
+  for(let i=0;i<5;i++)box('HangarTaxiGuide',[.23,.014,.030],yellow,[-1.62+i*.48,.368,.57],model,.003);
+  box('ApronStopLine',[2.65,.015,.047],yellow,[-1.04,.366,.72],model,.004);
+  // Two-storey hangar, visually open on the apron, with a segmented barrel roof.
+  const hx=-1.08,hz=-1.13,half=1.18,front=.06,back=-2.30;
+  for(const x of [hx-half,hx+half]){
+   box('HangarMassiveSideWall',[.15,1.22,2.37],m.sand,[x,.94,hz],model,.045);
+   box('HangarWallSkirt',[.20,.24,2.46],m.edge,[x,.39,hz],model,.02);
+   for(const z of [-1.96,-1.35,-.74,-.13]){
+    box('HangarExternalBrace',[.085,1.20,.14],m.edge,[x,.98,z],model,.01);
+    box('HangarCamoPanel',[.10,.77,.35],m.sand,[x+(x<0?-.06:.06),.97,z],model,.017);
+   }
+  }
+  box('HangarRearWall',[2.48,1.42,.16],m.sand,[hx,1.03,back],model,.04);
+  box('HangarInteriorDarkness',[2.27,1.17,.12],noGo,[hx,.91,-.075],model,.012);
+  box('HangarInteriorFloor',[2.23,.03,1.98],m.dark,[hx,.363,-1.06],model,.014);
+  // Arched panels are true 3D roof segments: visible curved barrel silhouette.
+  const arcY=x=>1.62+.47*Math.sqrt(Math.max(0,1-(x/1.23)**2));
+  const N=14;
+  for(let i=0;i<N;i++){
+   const x0=-half+i*2*half/N,x1=-half+(i+1)*2*half/N;
+   const center=(x0+x1)*.5,dy=arcY(x1)-arcY(x0),dx=x1-x0;
+   const roof=box('HangarCurvedRoofPanel',[Math.hypot(dx,dy)+.015,.088,2.57],i%4===0?m.edge:m.sand,[hx+center,(arcY(x0)+arcY(x1))*.5,hz-.01],model,.015);
+   roof.rotation.z=Math.atan2(dy,dx);
+  }
+  for(const z of [back-.04,-1.78,-1.22,-.66,front+.06]){
+   for(let i=0;i<N;i+=2){
+    const x0=-half+i*2*half/N,x1=-half+(i+1)*2*half/N,dy=arcY(x1)-arcY(x0),dx=x1-x0;
+    const rib=box('HangarArcSteelRib',[Math.hypot(dx,dy)+.03,.043,.043],m.edge,[hx+(x0+x1)*.5,(arcY(x0)+arcY(x1))*.5+.05,z],model,.007);
+    rib.rotation.z=Math.atan2(dy,dx);
+   }
+  }
+  for(const x of [hx-half,hx+half]){
+   box('HangarFrontReinforcedPillar',[.19,1.48,.21],m.edge,[x,1.04,front+.02],model,.023);
+   box('HangarVerticalWarning',[.035,1.04,.035],m.team,[x+(x<0?.08:-.08),.88,front+.144],model,.006);
+  }
+  box('HangarEntryLintel',[2.48,.14,.24],m.edge,[hx,1.73,front+.03],model,.022);
+  box('HangarEntrySafetyStripe',[2.33,.041,.026],yellow,[hx,1.69,front+.164],model,.003);
+  // Open front reveals an aircraft silhouette inside instead of a fake opaque door.
+  box('HangarSlidingLeft',[.34,.89,.09],m.edge,[hx-half+.21,.85,front+.15],model,.018);
+  box('HangarSlidingRight',[.34,.89,.09],m.edge,[hx+half-.21,.85,front+.15],model,.018);
+  for(const x of [hx-.75,hx+.75])for(const y of [.56,.92,1.28])
+   box('HangarDoorRivetPanel',[.23,.035,.018],m.sand,[x,y,front+.208],model,.004);
+  // Silhouetted maintenance aircraft on wheels (purely decorative, not a unit).
+  box('ParkedJetFuselage',[.22,.15,.94],m.edge,[hx,.53,-.81],model,.035);
+  box('ParkedJetWings',[1.04,.045,.31],m.sand,[hx,.56,-.88],model,.018);
+  box('ParkedJetTail',[.055,.27,.18],m.team,[hx,.71,-1.17],model,.013);
+  box('ParkedJetCockpit',[.14,.085,.22],m.glass,[hx,.65,-.59],model,.029);
+  for(const x of [hx-.28,hx+.28])box('JetWheel',[.065,.08,.08],m.rubber,[x,.43,-.65],model,.011);
+  // Raised ATC shaft with a six-sided glazed observation room.
+  const tx=1.55,tz=-1.58;
+  box('ControlTowerMainShaft',[.70,2.08,.69],m.sand,[tx,1.28,tz],model,.055);
+  for(const y of [.60,1.03,1.46,1.89])box('TowerReinforcingBand',[.76,.055,.75],m.edge,[tx,y,tz],model,.016);
+  box('TowerObservationDeck',[1.28,.13,1.18],m.edge,[tx,2.34,tz],model,.024);
+  box('TowerPanoramicWindows',[1.12,.49,1.02],towerDark,[tx,2.62,tz],model,.038);
+  for(const x of [tx-.37,tx,tx+.37]){
+   box('TowerWindowMullionFront',[.038,.47,.035],m.edge,[x,2.64,tz+.53],model,.005);
+   box('TowerWindowMullionBack',[.038,.47,.035],m.edge,[x,2.64,tz-.53],model,.005);
+  }
+  for(const z of [tz-.35,tz+.35])for(const x of [tx-.58,tx+.58])
+   box('TowerWindowMullionSide',[.038,.47,.032],m.edge,[x,2.64,z],model,.005);
+  box('TowerRoof',[1.39,.15,1.28],m.sand,[tx,2.95,tz],model,.03);
+  for(const x of [tx-.60,tx+.60])for(const z of [tz-.52,tz+.52])
+   cylinder('TowerGuardrailPost',.02,.02,.31,m.edge,[x,3.15,z],model,8);
+  for(const z of [tz-.52,tz+.52])box('TowerRail',[1.23,.025,.028],m.edge,[tx,3.29,z],model,.008);
+  antenna(tx+.48,3.04,tz-.38,.62);
+  // Adjacent maintenance and command rooms echo the reference silhouette.
+  box('MaintenanceServiceBlock',[1.06,.91,1.12],m.sand,[1.62,.78,-.39],model,.05);
+  box('ServiceFlatRoof',[1.15,.085,1.19],m.edge,[1.62,1.27,-.39],model,.022);
+  box('ServiceRollerDoor',[.60,.63,.03],m.dark,[1.63,.73,.188],model,.009);
+  for(let i=0;i<6;i++)box('ServiceDoorLouvre',[.55,.022,.024],m.edge,[1.63,.46+i*.09,.21],model,.004);
+  for(const x of [1.25,1.80])box('RoofCoolingUnit',[.28,.20,.33],m.edge,[x,1.44,-.62],model,.018);
+  box('AntennaEquipmentPad',[.43,.13,.43],m.dark,[2.10,1.43,-.33],model,.018);
+  // Tank farm along the left edge with visible piping, on the dry sand apron.
+  for(const z of [.84,1.53]){
+   const tank=cylinder('FuelStorageTank',.23,.23,.67,m.sand,[-1.91,.62,z],model,20);
+   tank.rotation.x=Math.PI/2;
+   for(const offset of [-.26,.26]){
+    const band=cylinder('FuelTankSteelBand',.246,.246,.035,m.edge,[-1.91,.62,z+offset],model,20);
+    band.rotation.x=Math.PI/2;
+   }
+   box('FuelTankSupport',[.33,.11,.52],m.dark,[-1.91,.38,z],model,.012);
+  }
+  box('FuelPipingMain',[.047,.045,1.56],m.edge,[-1.54,.48,1.17],model,.009);
+  for(const z of [.84,1.53])box('FuelPipeTap',[.43,.045,.045],m.dark,[-1.73,.48,z],model,.009);
+  for(const x of [-1.23,-.91,-.59])box('CargoContainer',[.25,.25,.35],m.edge,[x,.49,1.64],model,.015);
+  // Tiny runway edge mast lights; each faction gets its own blinking beacon.
+  for(const x of [-2.25,2.27])for(const z of [-2.16,1.94]){
+   cylinder('AirbaseFloodlightMast',.024,.035,1.08,m.edge,[x,.88,z],model,10);
+   box('AirbaseFloodlightTop',[.24,.10,.11],m.sand,[x,1.46,z],model,.018);
+   box('AirbaseFloodlightLens',[.19,.046,.021],m.light,[x,1.46,z+.073],model,.004);
+  }
+  for(const z of [-2.28,2.17])for(let x=-2.15;x<=2.15;x+=.86)
+   cylinder('SecurityPerimeterPost',.020,.026,.52,m.edge,[x,.60,z],model,7);
+  for(const x of [-2.33,2.32])for(let z=-1.9;z<=1.9;z+=.77)
+   cylinder('SecurityPerimeterPost',.020,.026,.52,m.edge,[x,.60,z],model,7);
+  box('SecurityFenceBack',[4.46,.021,.023],m.edge,[0,.79,-2.28],model,.004);
+  for(const x of [-2.33,2.32])box('SecurityFenceSide',[.023,.021,4.05],m.edge,[x,.79,-.06],model,.004);
  }else if(kind==='generator'){
   pedestal(1.45,1.35);cylinder('CoreFoot',.49,.58,.18,m.edge,[0,.36,0],model,12);cylinder('CoreVessel',.34,.39,1.0,m.dark,[0,.92,0],model,24);
   for(let i=0;i<6;i++){const a=i*Math.PI/3,g=new T.Group();g.position.set(Math.sin(a)*.36,.95,Math.cos(a)*.36);g.rotation.y=a;model.add(g);box('ReactorArmour',[.24,.85,.12],m.sand,[0,0,0],g);box('CoreWindow',[.095,.54,.035],m.light,[0,0,.075],g,.014);}
