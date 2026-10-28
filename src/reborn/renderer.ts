@@ -18,6 +18,7 @@ import { BattlefieldEffects, createGroundDetails, paintGroundDetails, type Groun
 import {PalmGrove} from './palm-grove.js';
 import { buildTerrainVariants, type TerrainVariantAtlases } from './terrain-variants.js';
 import {createDesertInfrastructure,paintDesertInfrastructure} from './desert-infrastructure.js';
+import {visibleInViewport} from './viewport-culling.js';
 
 interface Sprite { image:HTMLImageElement|HTMLCanvasElement; x:number; y:number; w:number; h:number; center?:number; foot?:number; bodyWidth?:number; bodyHeight?:number }
 export class Renderer {
@@ -314,6 +315,7 @@ export class Renderer {
     const halfWidth=this.width/(2*this.camera.zoom),halfHeight=this.height/(2*this.camera.zoom);
     const effectsView={left:this.camera.x-halfWidth-28,right:this.camera.x+halfWidth+28,
       top:this.camera.y-halfHeight-28,bottom:this.camera.y+halfHeight+28};
+    const inView=(point:Point,padding=0)=>visibleInViewport(point,effectsView,padding);
     this.palms.draw(c,this.groundTextures.palm,g.time,effectsView);
     this.battlefield.drawTracks(c,g,effectsView);
     this.battlefield.drawMarks(c,g);
@@ -326,15 +328,15 @@ export class Renderer {
     // Drawing it over sprites clipped tall masts against unrelated terrain cells.
     c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';c.drawImage(this.fog,0,0,s,s);c.restore();
     const ranged=g.bases.find(b=>b.id===this.selectedBase);if(ranged)this.drawRange(ranged);
-    const corpseAt=profiler?performance.now():0;this.units.drawCorpses(c,p=>g.canSee(0,p));if(profiler)profiler.record('corpses',performance.now()-corpseAt);
+    const corpseAt=profiler?performance.now():0;this.units.drawCorpses(c,p=>g.canSee(0,p),p=>inView(p,250));if(profiler)profiler.record('corpses',performance.now()-corpseAt);
     const spritesAt=profiler?performance.now():0;
     const entities:({y:number;unit:Unit}|{y:number;base:Base}|{y:number;territory:Territory})[]=[];
-    for(const t of g.territories)if(g.canSee(0,t.point))entities.push({y:t.point.y,territory:t});else if(g.hasExplored(0,t.point))this.drawBastion(t,true);
-    for(const b of g.bases)if(b.owner===0||g.canSee(0,b))entities.push({y:b.y,base:b});
-    for(const m of g.memories[0])if(m.owner!==0&&!g.canSee(0,m)){
+    for(const t of g.territories)if(inView(t.point,160)){if(g.canSee(0,t.point))entities.push({y:t.point.y,territory:t});else if(g.hasExplored(0,t.point))this.drawBastion(t,true);}
+    for(const b of g.bases)if(inView(b,500)&&(b.owner===0||g.canSee(0,b)))entities.push({y:b.y,base:b});
+    for(const m of g.memories[0])if(inView(m,500)&&m.owner!==0&&!g.canSee(0,m)){
       const kind=m.kind??'headquarters';this.spriteDraw(this.redBuildings[kind],{x:m.x,y:m.y},buildingArtWidth(kind,BUILDINGS[kind].width),false,m.hp>0?.22:.07);if(kind==='turret')this.structures.drawTurret(c,m.owner,{x:m.x,y:m.y},buildingArtWidth(kind,BUILDINGS[kind].width),0,m.hp>0?.22:.07);
     }
-    for(const u of g.units)if(!u.carrier&&(u.owner===0||g.canSee(0,u)))entities.push({y:u.y,unit:u});
+    for(const u of g.units)if(!u.carrier&&inView(u,250)&&(u.owner===0||g.canSee(0,u)))entities.push({y:u.y,unit:u});
     entities.sort((a,b)=>a.y-b.y);for(const e of entities)if('unit' in e)this.drawUnit(e.unit);else if('base' in e)this.drawBase(e.base);else this.drawBastion(e.territory);
     if(profiler)profiler.record('sprites',performance.now()-spritesAt);
     if(this.placement&&this.pointer){
