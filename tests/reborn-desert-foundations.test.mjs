@@ -13,16 +13,23 @@ test('foundations: every class has an opaque-looking shallow platform that follo
     const f=foundationFootprint(kind);
     for(const k of ['width','depth','front','corner','lip','skew'])
       assert.ok(Number.isFinite(f[k])&&f[k]>0,kind+' '+k);
-    assert.ok(f.depth<f.width*.47,kind+' ground depth should be compact');
+    assert.ok(f.depth<f.width*.74,kind+' platform stays a low ground apron, not a giant landscape polygon');
     assert.ok(f.lip<=3,kind+' foundation must remain low');
     assert.ok(f.front<=8,kind+' front edge stays near the actual foot');
-    assert.ok(f.width<buildingArtWidth(kind,BUILDINGS[kind].width)*1.12,kind+' not a giant frame');
-    assert.ok(f.depth<=f.width*.44,kind+' no large rectangle around a building');
+    assert.ok(f.width<buildingArtWidth(kind,BUILDINGS[kind].width)*1.13,kind+' not a giant frame');
+    assert.ok(f.depth<=f.width*.72,kind+' apron still fits the immediate building area');
   }
-  for(const kind of large)assert.ok(
-    foundationFootprint(kind).width>=buildingArtWidth(kind,BUILDINGS[kind].width)*1.07,
-    kind+' foundation must remain visibly wider than the 3D asset'
-  );
+  for(const kind of large){
+    const f=foundationFootprint(kind);
+    assert.ok(
+      f.width>=buildingArtWidth(kind,BUILDINGS[kind].width)*1.07,
+      kind+' foundation must remain visibly wider than the 3D asset'
+    );
+    assert.ok(f.depth>=f.width*.55,kind+' rear perimeter must be visible behind the rooftop');
+  }
+  const hq=foundationFootprint('headquarters');
+  assert.ok(hq.depth>=hq.width*.65,'HQ upper platform edge must extend behind the building');
+  assert.ok(hq.depth>foundationFootprint('barracks').depth,'HQ has the deepest substantial apron');
   for(const kind of small)assert.ok(
     foundationFootprint(kind).width<buildingArtWidth(kind,BUILDINGS[kind].width),
     kind+' has a compact pad'
@@ -76,8 +83,11 @@ test('foundations: sandstone top is solid and sand dunes cover its surface and e
   const linearStops=out.calls.filter(v=>v[0]==='stop-linear');
   assert.ok(linearStops.some(v=>v[2]==='#d8b584'),'opaque sandstone top rather than transparent wash');
   assert.ok(linearStops.some(v=>v[2]==='#b58a56'),'visible darker stone edge');
-  assert.ok(out.calls.filter(v=>v[0]==='radial').length>=7,'windblown sandy deposits around and over slab');
+  assert.ok(out.calls.filter(v=>v[0]==='radial').length>=15,'windblown sand must overlap exposed top, rear and side edges');
   assert.ok(out.calls.some(v=>v[0]==='clip'),'sand on top must be clipped to foundation');
+  const clippedIndex=out.calls.findIndex(v=>v[0]==='clip');
+  const lastRadialIndex=out.calls.findLastIndex(v=>v[0]==='radial');
+  assert.ok(lastRadialIndex>clippedIndex,'edge-covering sand is painted beyond the slab clipping pass');
   assert.ok(out.calls.filter(v=>v[0]==='bezier').length>=8,'organic dune ripple lines');
   const radialStops=out.calls.filter(v=>v[0]==='stop-radial');
   assert.ok(radialStops.some(v=>/0\.890/.test(v[2])),'sand crest should be visibly opaque');
@@ -93,7 +103,7 @@ test('foundations: stable deterministic painter, balanced canvas state and bound
   assert.equal(first.c.globalAlpha,1);
   assert.equal(first.saves.length,0,'balanced save/restore including sand masks');
   assert.ok(first.calls.some(v=>v[0]==='fill'&&v[1]===.6),'preview alpha honored');
-  assert.ok(first.calls.filter(v=>v[0]==='fill').length<35,'bounded per-frame materials');
+  assert.ok(first.calls.filter(v=>v[0]==='fill').length<45,'bounded per-frame materials');
   const none=drawing();
   paintDesertFoundation(none.c,site,0);
   assert.deepEqual(none.calls,[]);
