@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Simulation} from '../dist/src/reborn/simulation.js';
-import {UNITS,unitKinds} from '../dist/src/reborn/catalog.js';
+import {UNITS,BUILDINGS,unitKinds} from '../dist/src/reborn/catalog.js';
 import {World} from '../dist/src/reborn/world.js';
 import {RULES,distance} from '../dist/src/reborn/config.js';
 const advance=(g,seconds)=>{for(let i=0;i<Math.round(seconds/RULES.tick);i++)g.step();};
@@ -208,7 +208,8 @@ const buildSite=(g,kind)=>{
 const buildWithWorker=(g,owner,kind,site)=>{
  if(!g.buildError(owner,kind,site)){
   let worker=g.units.find(u=>u.owner===owner&&u.kind==='engineer');
-  const point=g.world.nearest({x:site.x+({barracks:53,factory:70,airfield:74,generator:38,turret:30}[kind])+32,y:site.y},g.obstacles());
+  const point=g.world.nearest({x:site.x+BUILDINGS[kind].radius+32,y:site.y},g.obstacles());
+  assert.ok(point,`No reachable worker approach for ${kind} at ${site.x},${site.y}`);
   if(worker)Object.assign(worker,point);else worker=g.spawn(owner,point,'engineer');
  }
  return g.build(owner,kind,site);
@@ -231,6 +232,7 @@ test('reborn: old saves migrate types and new saves preserve construction and he
  const g=new Simulation();g.recruit(1000);const old=g.save();delete old.productionVersion;old.units=old.units.filter(u=>u.kind==='infantry');old.credits[0]=400;old.bases[0].queue=[5];old.bases[0].queueCosts=[100];for(const u of old.units)delete u.kind;for(const b of old.bases)for(const key of ['kind','queueTypes','buildRemaining','cooldown'])delete b[key];
  const migrated=Simulation.load(old);assert.equal(migrated.units[0].kind,'infantry');assert.deepEqual(migrated.bases[0].queueTypes,[]);assert.equal(migrated.credits[0],500);
  g.credits[0]=3000;const barracks=buildWithWorker(g,0,'barracks',buildSite(g,'barracks'));advance(g,13);g.recruit(barracks.id,'heavy');g.recruit(barracks.id,'medic');advance(g,3);const airfield=buildWithWorker(g,0,'airfield',buildSite(g,'airfield'));
+ assert.ok(airfield,'The expanded airfield must remain constructible in the legacy migration test');
  const restored=Simulation.load(g.save());assert.deepEqual(restored.bases,g.bases);advance(g,25);advance(restored,25);
  assert.deepEqual(restored.units.map(u=>({kind:u.kind,hp:u.hp})),g.units.map(u=>({kind:u.kind,hp:u.hp})));assert.deepEqual(restored.credits,g.credits);assert.equal(restored.bases.find(b=>b.id===airfield.id).buildRemaining,0);
 });
