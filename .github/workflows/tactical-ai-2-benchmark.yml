@@ -1,0 +1,43 @@
+name: Tactical AI 2.0 paired benchmark
+
+on:
+  push:
+    branches: ['feat/sandforge-tactical-ai-2-*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tactical-ai-benchmark-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  benchmark:
+    name: Paired seeded combat A/B · tactical vs classic
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build production simulation
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Run seed-matched real-economy matches against three blue doctrines
+        run: |
+          node scripts/benchmark-tactical-ai-2.mjs \
+            --maps 4 \
+            --seeds 2026,77 \
+            --seconds 120 \
+            --opponents guarded,rush,fortress \
+            --output artifacts/tactical-ai-2-smoke.json
+      - name: Upload benchmark metrics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tactical-ai-2-paired-results
+          path: artifacts/tactical-ai-2-smoke.json
+          retention-days: 14
