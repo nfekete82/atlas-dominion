@@ -6,7 +6,9 @@ export const unitArtScale=(kind:UnitKind):number=>
   ['infantry','medic','engineer'].includes(kind)?.79:
   kind==='rover'?.96:
   kind==='tank'?.98:
-  kind==='artillery'?.93:1;
+  kind==='artillery'?.93:
+  kind==='scout'?1.34:
+  kind==='bomber'?1.40:1;
 
 /** Give industrial buildings the visual weight of a real base beside the infantry. */
 export const buildingArtScale=(kind:BuildingKind):number=>
