@@ -50,6 +50,10 @@ export function foundationOutline(site:FoundationSite,f:FoundationFootprint=foun
   // A real side apron: extend only the lateral vertices, not the front or rear tips.
   // Existing sand deposits use the original half-width and leave these flanks exposed.
   const sideReveal=Math.min(34,Math.max(15,f.width*.085));
+  // The near/southwest wall reaches farther down than the original diamond edge.
+  // Keep the good northeast/right side untouched and pull only the near-left apron out.
+  const southwestReveal=major.has(site.kind)?f.width*.055:0;
+  const southwestDrop=major.has(site.kind)?f.depth*.215:0;
   return [
     {x:x-k,y:back+k*.48},          // 0 top-left chamfer
     {x:x+k,y:back},                // 1 rear tip
@@ -57,7 +61,7 @@ export function foundationOutline(site:FoundationSite,f:FoundationFootprint=foun
     {x:x+half+sideReveal,y:middle+k*.50},       // 3 exposed right tip
     {x:x+k,y:front-k*.60},        // 4 lower-right chamfer
     {x:x-k,y:front},              // 5 front tip
-    {x:x-half+k-sideReveal*.82,y:middle+k*.50}, // 6 exposed lower-left flank
+    {x:x-half+k-sideReveal*.82-southwestReveal,y:middle+k*.50+southwestDrop}, // 6 near-left wall: visible sandstone
     {x:x-half-sideReveal,y:middle-k*.50},       // 7 exposed left tip
   ];
 }
@@ -213,7 +217,8 @@ export function paintDesertFoundation(c:CanvasRenderingContext2D,site:Foundation
   c.save();
   polygon(c,p);
   c.clip();
-  windDeposit(c,site.x-half*.76,front-f.depth*.17,f.width*.29,f.depth*.45,-.14,1);
+  // A lighter dust tongue exposes the southwest apron beneath the near-left wall.
+  windDeposit(c,site.x-half*.76,front-f.depth*.17,f.width*.19,f.depth*.32,-.14,.67);
   windDeposit(c,site.x+half*.77,front-f.depth*.20,f.width*.28,f.depth*.51,.13,.96);
   windDeposit(c,site.x-half*.15,front-f.depth*.03,f.width*.40,f.depth*.25,-.05,.74);
   windDeposit(c,site.x+half*.52,back+f.depth*.20,f.width*.25,f.depth*.25,.10,.66);
@@ -249,7 +254,7 @@ export function paintDesertFoundation(c:CanvasRenderingContext2D,site:Foundation
   windDeposit(c,site.x+half*.98,back+f.depth*.31,f.width*.19,f.depth*.17,.29,1.06);
   windDeposit(c,site.x-half*.98,front-f.depth*.30,f.width*.14,f.depth*.15,-.23,.83);
   windDeposit(c,site.x+half*.97,front-f.depth*.18,f.width*.14,f.depth*.15,.18,.87);
-  windDeposit(c,site.x-half*.55,front+f.lip,f.width*.23,Math.max(8,f.depth*.085),-.10,1.08);
+  windDeposit(c,site.x-half*.55,front+f.lip,f.width*.16,Math.max(7,f.depth*.07),-.10,.76);
   windDeposit(c,site.x+half*.31,front+f.lip+1,f.width*.23,Math.max(8,f.depth*.10),.12,.98);
   windDeposit(c,site.x+half*.12,back+1,f.width*.26,Math.max(7,f.depth*.09),.07,1.02);
 
@@ -259,7 +264,7 @@ export function paintDesertFoundation(c:CanvasRenderingContext2D,site:Foundation
     [number,number,number,number,number],[number,number,number,number,number]]=[
     [1,2,.12,.77,.12], // rear/right
     [3,4,.23,.62,.12], // right/front: a visible strip of sandstone remains
-    [5,6,.05,.73,.18], // front/left: preserve existing dune coverage
+    [5,6,.10,.43,.085], // southwest: expose a solid strip below the wall, with broken sand edges
     [7,0,.23,.65,.10], // left/rear: expose the side without clearing all sand
   ];
   for(const [i,j,a,b,ratio] of edges){
