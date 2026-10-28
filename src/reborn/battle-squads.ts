@@ -26,3 +26,28 @@ export function assignFlank(members:readonly SquadMember[],screen:readonly numbe
  return candidates.slice().sort((a,b)=>priority(b.kind)-priority(a.kind)||
   unitSpec(b).speed-unitSpec(a).speed||a.id-b.id).slice(0,2).map(u=>u.id);
 }
+
+/** Distance plus exposure on the actual planned approach, sampled against
+ * *observed* enemies only. No world state, fog lookups or random choices. */
+export function flankRouteScore(origin:Point,route:readonly Point[],observed:readonly ObservedThreat[]):number {
+ if(!route.length)return Number.POSITIVE_INFINITY;
+ let score=0,from=origin;
+ for(const next of route){
+  const length=distance(from,next);
+  if(!Number.isFinite(length))return Number.POSITIVE_INFINITY;
+  const samples=Math.max(1,Math.ceil(length/80));
+  for(let i=1;i<=samples;i++){
+   const p={x:from.x+(next.x-from.x)*i/samples,y:from.y+(next.y-from.y)*i/samples};
+   for(const enemy of observed){
+    if(enemy.hp<=0||!Number.isFinite(enemy.x)||!Number.isFinite(enemy.y))continue;
+    const spec=unitSpec(enemy),d=distance(p,enemy);
+    const exposure= Math.max(0,Math.min(1,(spec.range+70-d)/Math.max(1,spec.range*.65)));
+    // Range matters, but do not prefer a kilometer-long detour to avoid
+    // a single brief rifle contact.
+    score+=exposure*(spec.damage/spec.cooldown)*.50*(length/samples/80);
+   }
+  }
+  score+=length;from=next;
+ }
+ return score;
+}
