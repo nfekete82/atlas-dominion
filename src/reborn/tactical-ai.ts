@@ -628,7 +628,7 @@ export class TacticalAI {
     :eligibleScreen.filter(u=>canAttack(u,closeThreat))):[];
   const screenSet=new Set(screen.map(u=>u.id));
   const mainUnits=ground.filter(u=>!screenSet.has(u.id)&&!activeFlankIds.has(u.id)
-    &&u.kind!=='medic'&&u.kind!=='engineer');
+    &&(!tacticalEnabled||u.kind!=='medic'&&u.kind!=='engineer'));
   let newFlank:Unit[]=[];
   if(tactical?.mode==='flank'&&towers.length===0&&!continuingFlank.length){
     const flankerIds=assignFlank(mainUnits,screenIds);
