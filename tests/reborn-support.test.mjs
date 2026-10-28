@@ -18,7 +18,7 @@ const near=(actual,expected)=>assert.ok(Math.abs(actual-expected)<1e-6,`${actual
 test('support: exact catalog values and medic production price/time at the barracks',()=>{
  const g=peaceful(),hq=addProducer(g,'barracks'),before=g.credits[0];
  assert.equal(UNITS.medic.hp,100);assert.equal(UNITS.medic.cost,175);assert.equal(UNITS.medic.buildTime,8);
- assert.equal(UNITS.engineer.name,'Ingenieur');assert.equal(UNITS.engineer.cost,200);assert.equal(UNITS.engineer.hp,110);
+ assert.equal(UNITS.engineer.name,'Pionier');assert.equal(UNITS.engineer.cost,200);assert.equal(UNITS.engineer.hp,110);
  assert.ok(g.recruit(hq.id,'medic'));assert.equal(g.credits[0],before-175);advance(g,7.95);assert.ok(!g.units.some(u=>u.kind==='medic'));
  advance(g,.05);assert.equal(g.units.filter(u=>u.kind==='medic').length,1);assert.equal(g.credits[0],before-175);
 });
