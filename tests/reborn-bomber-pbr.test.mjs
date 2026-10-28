@@ -60,3 +60,27 @@ test('renderer uses authored GLB without exporting over it',()=>{
  assert.match(source,/\['idle','Propellers_Continuous',8,true\]/);
  assert.match(source,/\['walk','Propellers_Continuous',8,true\]/);
 });
+
+test('bomber gallery fits oversized PBR geometry inside the visible camera and fog',async()=>{
+ const T=await import('three');
+ const {runInNewContext}=await import('node:vm');
+ const viewer=fs.readFileSync(path.join(root,'scripts/animation/model-viewer.js'),'utf8');
+ const match=viewer.match(/function fitBomberPreview\(model\)\{[\s\S]*?\n\}/);
+ assert.ok(match,'gallery fit function missing');
+ assert.match(viewer,/if\(kind==='bomber'\)fitBomberPreview\(current\)/);
+ assert.match(viewer,/controls\.maxDistance=kind==='bomber'\?Math\.min\(distance\*3,14\):distance\*3/);
+ const fit=runInNewContext('('+match[0]+')',{T});
+ const bomber=new T.Group();
+ const mesh=new T.Mesh(new T.BoxGeometry(19.5,4.44,15.15));
+ mesh.position.y=.9;
+ bomber.add(mesh);
+ for(let i=0;i<2;i++){
+  fit(bomber); // switching teams and back must not repeatedly shrink the cached GLB
+  const bounds=new T.Box3().setFromObject(bomber);
+  const extent=bounds.getSize(new T.Vector3());
+  assert.ok(Math.abs(Math.max(extent.x,extent.y,extent.z)-3.4)<.000001);
+  assert.ok(Math.abs(bounds.min.y)<.000001);
+  const cameraOffset=3.4*2.3*Math.hypot(.60,.43,.98);
+  assert.ok(cameraOffset<12,'default gallery camera would hide the bomber in fog');
+ }
+});
