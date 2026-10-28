@@ -70,8 +70,11 @@ export function forecastManeuver(context:TacticalContext,mode:Exclude<Maneuver,'
   const foeDps=foes.reduce((n,u)=>n+effectiveDps(u,allies),0);
   const gunDps=guns.length*RULES.turret.damage/RULES.turret.cooldown;
   const artillery=allies.filter(u=>u.kind==='artillery').length;
-  const mobiles=allies.filter(u=>['rover','tank','heavy'].includes(u.kind)).length;
-  const viableFlank=mobiles>=2&&foes.length>=3&&guns.length===0&&allies.length>=6;
+  // Two healthy mobile attackers can be light infantry: early armies must not
+  // need to buy two tanks before the planner considers splitting the advance.
+  const mobiles=allies.filter(u=>['rover','tank','heavy','infantry'].includes(u.kind)
+    &&u.hp>=unitSpec(u).hp*.65).length;
+  const viableFlank=mobiles>=4&&foes.length>=2&&guns.length===0&&allies.length>=6;
   const viableSiege=artillery>0&&guns.length>0;
   // Impossible variants should never be selected by a score tie.
   if(mode==='flank'&&!viableFlank||mode==='siege'&&!viableSiege)return {
@@ -80,11 +83,10 @@ export function forecastManeuver(context:TacticalContext,mode:Exclude<Maneuver,'
   let own=allyHP,foe=totalHp(foes),gun=guns.reduce((n,g)=>n+g.hp,0),elapsed=0;
   const heal=healing(context.allies);
   for(let t=0;t<HORIZON&&own>0&&foe+gun>0;t+=STEP){
-    const penetration=t/(HORIZON-STEP);
-    const assaultRate=mode==='flank'&&t<6?.48:mode==='siege'&&t<3?.7:1;
-    const flankBenefit=mode==='flank'&&t>=6?1.17:1;
+    const assaultRate=mode==='flank'&&t<6?.7:mode==='siege'&&t<3?.7:1;
+    const flankBenefit=mode==='flank'&&t>=6?1.22:1;
     const siegeBenefit=mode==='siege'?1.25:1;
-    const exposure=mode==='flank'?(t<6?.55:.69):mode==='siege'?.8:1;
+    const exposure=mode==='flank'?(t<6?.7:.76):mode==='siege'?.8:1;
     const suppression=context.storm?.93:1;
     // An artillery screen may stand outside a known turret's gun range.
     const gunExposure=mode==='siege'?.30:mode==='flank'?.7:1;
@@ -99,14 +101,15 @@ export function forecastManeuver(context:TacticalContext,mode:Exclude<Maneuver,'
       gunDps*(gun/Math.max(1,guns.reduce((n,g)=>n+g.hp,0))))*enemyFirePower*exposure*gunExposure;
     const actualIncoming=Math.min(own,Math.max(0,rawIncoming-(!foes.length?0:Math.min(heal,rawIncoming*.6)))*STEP);
     own-=actualIncoming;foe-=fightFoe;gun-=fightGun;elapsed+=STEP;
-    void penetration;
   }
   const ownLoss=Math.max(0,allyHP-own),enemyLoss=Math.max(0,enemyHP-foe-gun);
   const ownLossFraction=ownLoss/Math.max(1,allyHP);
   const enemyLossFraction=enemyLoss/Math.max(1,enemyHP);
   const victory=foe+gun<=1e-7&&own>1e-7;
   // Favors progress and preservation, penalizes never arriving at the objective.
-  const timeCost=mode==='flank'?55:mode==='siege'?18:0;
+  // A flank spends a real six-second approach but does not incur an extra
+  // arbitrary 55-point cost after the approach is already simulated.
+  const timeCost=mode==='flank'?12:mode==='siege'?18:0;
   const score=enemyLoss/Math.max(1,enemyHP)*600-ownLossFraction*490-
     (victory?elapsed:HORIZON)*1.2-timeCost+(victory?170:0);
   return {mode,score,ownLoss,enemyLoss,ownLossFraction,enemyLossFraction,seconds:elapsed,projectedVictory:victory};
