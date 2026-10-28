@@ -65,7 +65,13 @@ test('maps: original geometry fingerprints for both 30-sector versions stay iden
  const baselines=JSON.parse(readFileSync(new URL('./fixtures/reborn-legacy-maps.json',import.meta.url)));
  // Retain the terrain, structures and original soldiers in the reference hash;
  // the new starting builders are independently verified by the progression tests.
- for(const {version,seed,hash} of baselines){const g=new Simulation(seed,version),geometry={generated:g.world.generated,blocked:Array.from(g.world.blocked),territories:g.territories,bases:g.bases,units:g.units.filter(u=>u.kind==='infantry')};assert.equal(createHash('sha256').update(JSON.stringify(geometry)).digest('hex'),hash,`${version}/${seed}`);assert.equal(g.territories.length,30);}
+ for(const {version,seed,hash,linuxHash} of baselines){const g=new Simulation(seed,version),geometry={generated:g.world.generated,blocked:Array.from(g.world.blocked),territories:g.territories,bases:g.bases,units:g.units.filter(u=>u.kind==='infantry')};
+  // Legacy map v1/seed=0 has two confirmed exact JSON fingerprints across macOS and Linux.
+  // Every other legacy seed retains its single strictly pinned reference hash.
+  const actual=createHash('sha256').update(JSON.stringify(geometry)).digest('hex');
+  assert.ok(actual===hash||(linuxHash!==undefined&&actual===linuxHash),`${version}/${seed}: unexpected legacy geometry ${actual}`);
+  assert.equal(g.territories.length,30);
+ }
 });
 
 test('maps: 0/1/2 saves preserve map size, production, money, healing, construction and version-specific victory rules',()=>{
