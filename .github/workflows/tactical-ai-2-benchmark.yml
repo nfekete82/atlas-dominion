@@ -31,7 +31,7 @@ jobs:
           node scripts/benchmark-tactical-ai-2.mjs \
             --maps 4 \
             --seeds 2026,77 \
-            --seconds 120 \
+            --seconds 600 \
             --opponents guarded,rush,fortress \
             --output artifacts/tactical-ai-2-smoke.json
       - name: Upload benchmark metrics
