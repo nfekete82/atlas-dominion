@@ -2,7 +2,8 @@ name: Build and simulation tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'feat/sandforge-*', 'fix/sandforge-*']
+  workflow_dispatch:
   pull_request:
     branches: [main]
 
@@ -17,7 +18,7 @@ jobs:
   test:
     name: Node 22 · TypeScript and simulation
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
         with:
@@ -27,9 +28,13 @@ jobs:
           node-version: 22
           package-manager-cache: false
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: TypeScript build and full game test suite
         run: npm test
+      - name: Validate real 3D building assets and animation atlases
+        run: |
+          npm run assets:buildings:validate
+          npm run assets:animation-audit
 
   browser:
     name: Chromium · Reborn RTS gameplay
