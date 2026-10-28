@@ -51,3 +51,11 @@ export function flankRouteScore(origin:Point,route:readonly Point[],observed:rea
  }
  return score;
 }
+
+/** A temporary incoming hit must not erase a queued two-leg flank. Actual
+ * retreat/recovery authority stays with the higher-level director. */
+export function isContinuingFlank(orders:readonly {kind:string;tactical?:{group:number;mode:string}}[],groupId:number):boolean {
+ return orders.length>=2&&orders[0].kind==='attackMove'&&orders[1].kind==='attackMove'
+  &&orders[0].tactical?.mode==='assault'&&orders[1].tactical?.mode==='assault'
+  &&orders[0].tactical.group===groupId&&orders[1].tactical.group===groupId;
+}
