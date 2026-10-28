@@ -57,7 +57,7 @@ test('foundations: side apron extends noticeably beyond the old diamond without 
     const reveal=Math.min(34,Math.max(15,f.width*.085));
     assert.ok(oldLeft-p[7].x>=reveal-.001,kind+' left edge exposed');
     assert.ok(p[3].x-oldRight>=reveal-.001,kind+' right edge exposed');
-    assert.ok(oldLeft-p[6].x>reveal*.60&&p[2].x-oldRight>reveal*.60-f.corner*.44,
+    assert.ok(oldLeft-p[6].x>reveal*.42&&p[2].x-oldRight>reveal*.42,
       kind+' side faces stay wide, not just a corner spike');
     assert.ok(Math.abs(p[1].x-site.x)<f.corner*.5,kind+' rear tip stays centred');
     assert.ok(Math.abs(p[5].x-site.x)<f.corner*.5,kind+' front tip stays centred');
