@@ -117,15 +117,30 @@ async function loadFactionLeopard(team){
  }
  return {model,rotor:null,muzzle,animate};
 }
+/** Load the original high-detail bomber, preserving its embedded PBR textures.
+ * The atlas builder must never re-export or replace these authored GLBs. */
+async function loadFactionBomber(team){
+ const {scene:model,animations}=await loader.loadAsync('/src/assets/reborn/animation/bomber-'+team+'.glb');
+ const propellerNames=['Propeller_Port_Spin','Propeller_Starboard_Spin'];
+ for(const name of propellerNames)if(!model.getObjectByName(name))throw Error('Bomber GLB missing '+name);
+ const clip=animations.find(a=>a.name==='Propellers_Continuous');
+ if(!clip||clip.tracks.length<2)throw Error('Bomber GLB missing two animated propellers');
+ let parts=0,triangles=0;
+ model.traverse(node=>{if(node.isMesh){parts++;triangles+=(node.geometry.index?.count??node.geometry.attributes.position.count)/3;}});
+ model.userData.atlasDesign={kind:'bomber',team,parts,triangles:Math.round(triangles),
+   geometry:'PBR desert twin-engine bomber with twin fins and animated propellers',
+   source:'Sandforge authored original bomber GLB'};
+ return {model,animations,rotor:model.getObjectByName(propellerNames[0]),animate(){}};
+}
 window.compileAtlases=async(requested)=>{
  for(const kind of Object.keys(models).filter(k=>!requested.length||requested.includes(k))){
   const character=kind in {infantry:1,engineer:1,heavy:1},[file,weapon]=models[kind];
   for(const team of [0,1]){
-   const rig=character?null:kind==='tank'?await loadFactionLeopard(team):kind==='rover'?buildHumvee(team):buildAtlasVehicle(kind,team);
-   const data=rig?{scene:rig.model,animations:[]}:await loader.loadAsync('/tools/animation-sources/'+file),model=data.scene??data;
+   const rig=character?null:kind==='tank'?await loadFactionLeopard(team):kind==='bomber'?await loadFactionBomber(team):kind==='rover'?buildHumvee(team):buildAtlasVehicle(kind,team);
+   const data=rig?{scene:rig.model,animations:rig.animations??[]}:await loader.loadAsync('/tools/animation-sources/'+file),model=data.scene??data;
    if(character)for(const name of weapons){const n=model.getObjectByName(name);if(n)n.visible=name===weapon;}
    const rotor=rig?.rotor??null;
-   if(rig&&cell>=192)weatherVehicleMaterials(model);
+   if(rig&&cell>=192&&kind!=='bomber')weatherVehicleMaterials(model); // Preserve the bomber's authored PBR maps.
    if(!rig)colorize(model,team,character);const pivot=new T.Group(),normalization=new T.Group();normalization.add(model);pivot.add(normalization);scene.add(pivot);
    const mixer=new T.AnimationMixer(model),actions=new Map((data.animations??[]).map(c=>[c.name,mixer.clipAction(c)]));
    const initial=character?'Idle':null;
@@ -134,9 +149,10 @@ window.compileAtlases=async(requested)=>{
    const scale=character?2.1/extent.y:kind==='tank'?.67:2.8/Math.max(extent.x,extent.z);normalization.scale.setScalar(scale);
    pivot.updateMatrixWorld(true);const grounded=boxVisible(model);normalization.position.y-=grounded.min.y;
    if(file.endsWith('fbx')&&!rig)normalization.rotation.y=Math.PI/2;
+   if(kind==='bomber')normalization.rotation.y=Math.PI; // Authored nose -Z -> gameplay nose +Z.
    if(['scout','gunship','bomber'].includes(kind))normalization.position.y+=.75;
    pivot.updateMatrixWorld(true);
-   const directionCount=character?8:16,config=character?clips:[['idle',null,rotor?4:1,true],['walk',null,kind==='bomber'?1:kind==='rover'?11:4,true],...(['tank','artillery'].includes(kind)?[['turnLeft',null,4,true],['turnRight',null,4,true]]:[])];
+   const directionCount=character?8:16,config=character?clips:kind==='bomber'?[['idle','Propellers_Continuous',8,true],['walk','Propellers_Continuous',8,true]]:[['idle',null,rotor?4:1,true],['walk',null,kind==='rover'?11:4,true],...(['tank','artillery'].includes(kind)?[['turnLeft',null,4,true],['turnRight',null,4,true]]:[])];
    const turret=model.getObjectByName('Tank_Turret'),gun=model.getObjectByName('Tank_Gun');
    const total=config.reduce((n,c)=>n+c[2]*directionCount,0)+(turret?32:0),canvas=document.createElement('canvas');canvas.width=columns*cell;canvas.height=Math.ceil(total/columns)*cell;const ctx=canvas.getContext('2d');
    const metadata={version:1,image:kind+'-'+team+'.png',kind,team,cell:[cell,cell],nativeScale:(character?1:(nativeWidths[kind]/72))/pixelFactor,directions:directionCount,stride:character?(kind==='heavy'?58:64):kind==='rover'?52:34,source:rig?'Atlas original vehicle geometry':file,design:rig?model.userData.atlasDesign:undefined,palette:'Legion ceramic / bronze / dark steel / faction enamel',lighting:'ACES 1.13 / warm sun / cool fill',renderResolution:cell,renderQuality:cell>=192?'HD native 3D raster / 2x':'standard',timeBasedLocomotion:!!rotor,rotor:!!rotor,clips:{},frames:[]};
@@ -180,7 +196,7 @@ window.compileAtlases=async(requested)=>{
      for(let direction=0;direction<16;direction++){pivot.rotation.y=Math.PI/2-direction*Math.PI/8;pivot.updateMatrixWorld(true);renderer.render(scene,camera);const index=metadata.frames.length,x=index%columns*cell,y=Math.floor(index/columns)*cell;ctx.drawImage(renderer.domElement,x,y);const muzzleNode=tag==='barrel'?rig?.muzzle??part.children.find(n=>n.name.startsWith('MuzzleOpening')):null,muzzle=muzzleNode?sample(muzzleNode.getWorldPosition(new T.Vector3())):null;metadata.frames.push({x,y,w:cell,h:cell,pivot:[48*pixelFactor,78*pixelFactor],duration:1,...(muzzle?{muzzle:[muzzle.x,muzzle.y]}:{})});metadata.clips[tag].frames.push([index]);}
     }
    }
-   if(rig&&!atlasOnly){model.traverse(n=>{if(n.isMesh)n.visible=true;});if(turret)turret.visible=true;if(gun)gun.visible=true;rig.animate('idle',0);
+   if(rig&&!atlasOnly&&kind!=='bomber'){model.traverse(n=>{if(n.isMesh)n.visible=true;});if(turret)turret.visible=true;if(gun)gun.visible=true;rig.animate('idle',0);
     // Embed actual quaternion animation for four wheel pivots in the 3D GLB.
     const wheelTracks=kind==='rover'?(rig.wheels??[]).map(wheel=>{
      const times=Array.from({length:25},(_,i)=>i/24),values=[];
