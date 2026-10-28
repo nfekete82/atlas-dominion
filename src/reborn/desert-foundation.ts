@@ -47,15 +47,18 @@ type Pt=FoundationPoint;
 export function foundationOutline(site:FoundationSite,f:FoundationFootprint=foundationFootprint(site.kind)):Pt[] {
   const x=site.x,half=f.width/2,back=site.y+f.front-f.depth,front=site.y+f.front;
   const middle=(back+front)/2,k=f.corner*.44;
+  // A real side apron: extend only the lateral vertices, not the front or rear tips.
+  // Existing sand deposits use the original half-width and leave these flanks exposed.
+  const sideReveal=Math.min(34,Math.max(15,f.width*.085));
   return [
     {x:x-k,y:back+k*.48},          // 0 top-left chamfer
     {x:x+k,y:back},                // 1 rear tip
-    {x:x+half-k,y:middle-k*.50},   // 2 upper-right chamfer
-    {x:x+half,y:middle+k*.50},     // 3 right tip
+    {x:x+half-k+sideReveal*.82,y:middle-k*.50}, // 2 exposed upper-right flank
+    {x:x+half+sideReveal,y:middle+k*.50},       // 3 exposed right tip
     {x:x+k,y:front-k*.60},        // 4 lower-right chamfer
     {x:x-k,y:front},              // 5 front tip
-    {x:x-half+k,y:middle+k*.50},  // 6 lower-left chamfer
-    {x:x-half,y:middle-k*.50},    // 7 left tip
+    {x:x-half+k-sideReveal*.82,y:middle+k*.50}, // 6 exposed lower-left flank
+    {x:x-half-sideReveal,y:middle-k*.50},       // 7 exposed left tip
   ];
 }
 function polygon(c:CanvasRenderingContext2D,p:readonly Pt[],dx=0,dy=0):void {

@@ -50,6 +50,20 @@ test('foundations: slightly wider major pads show side strips while side dunes r
   assert.match(source,/\[5,6,\.05,\.73,\.18\]/,'front dune coverage is preserved');
 });
 
+test('foundations: side apron extends noticeably beyond the old diamond without enlarging front or rear',()=>{
+  for(const kind of large){
+    const site={id:17,kind,x:810,y:650},f=foundationFootprint(kind),p=foundationOutline(site);
+    const oldLeft=site.x-f.width/2,oldRight=site.x+f.width/2;
+    const reveal=Math.min(34,Math.max(15,f.width*.085));
+    assert.ok(oldLeft-p[7].x>=reveal-.001,kind+' left edge exposed');
+    assert.ok(p[3].x-oldRight>=reveal-.001,kind+' right edge exposed');
+    assert.ok(oldLeft-p[6].x>reveal*.42&&p[2].x-oldRight>reveal*.42,
+      kind+' side faces stay wide, not just a corner spike');
+    assert.ok(Math.abs(p[1].x-site.x)<f.corner*.5,kind+' rear tip stays centred');
+    assert.ok(Math.abs(p[5].x-site.x)<f.corner*.5,kind+' front tip stays centred');
+  }
+});
+
 test('foundations: projected footprint follows both isometric building axes, not horizontal rectangular lines',()=>{
   for(const kind of [...large,...small]){
     const site={id:13,kind,x:920,y:1475},f=foundationFootprint(kind),p=foundationOutline(site);

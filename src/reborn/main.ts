@@ -107,14 +107,16 @@ function refreshMeasured():void{
  el('load-mode').hidden=!selected.some(u=>transportCapacity(u.kind)>0);el('unload-mode').hidden=!selected.some(u=>transportCapacity(u.kind)>0);el<HTMLButtonElement>('unload-mode').disabled=!selected.some(u=>transportCapacity(u.kind)>0&&u.transport?.cargo.length);
  if(selected.length===1&&first&&transportCapacity(first.kind)>0)detail=`${first.transport?.cargo.length??0} / ${transportCapacity(first.kind)} Passagiere · ${spec!.description}`;
  el('move-mode').hidden=!selected.length;el('rally-mode').hidden=!base||base.buildRemaining>0||!unitKinds.some(k=>UNITS[k].producers.includes(base.kind));
+ // Recruiting belongs in the large production roster, not the selected building's commands.
+ // Keep the contextual cancellation only while a construction/job can actually be stopped.
  const context=el('building-commands'),contextKey=base?`${base.id}:${base.buildRemaining>0}`:'';
  if(context.dataset.key!==contextKey){context.dataset.key=contextKey;context.replaceChildren();
-  if(base&&base.buildRemaining<=0)for(const kind of unitKinds.filter(k=>UNITS[k].producers.includes(base.kind))){const button=document.createElement('button');button.dataset.contextUnit=kind;button.title=`${UNITS[kind].name} ausbilden · ${UNITS[kind].cost} Credits · ${UNITS[kind].buildTime} S`;button.setAttribute('aria-label',`${UNITS[kind].name} ausbilden`);button.innerHTML=`<img src="${renderer.icon('unit',kind)}" alt=""/>${roleBadgeMarkup(kind)}<span>${UNITS[kind].name}</span>`;button.onclick=()=>train(kind,true);context.append(button);}
   if(base){const cancel=document.createElement('button');cancel.id='context-cancel';cancel.textContent=base.buildRemaining>0?'Bau abbrechen · 75 % zurück':'Letzten Auftrag stornieren';cancel.onclick=()=>{const b=contextBase();if(!b)return;if(b.buildRemaining>0){game.cancelConstruction(b.id);renderer.selectedBase=null;}else game.cancel(b.id);refresh();};context.append(cancel);}
  }
- context.hidden=!base;
- for(const button of context.querySelectorAll<HTMLButtonElement>('[data-context-unit]')){const kind=button.dataset.contextUnit as UnitKind;button.disabled=!base||base.queue.length>=8||game.credits[0]<UNITS[kind].cost||game.count(0)+game.queued(0)>=RULES.capacity||game.status!=='playing';}
- const contextCancel=document.getElementById('context-cancel') as HTMLButtonElement|null;if(contextCancel)contextCancel.disabled=!!base&&base.buildRemaining<=0&&!base.queue.length;
+ const canCancelContext=!!base&&(base.buildRemaining>0||base.queue.length>0);
+ context.hidden=!canCancelContext;
+ const contextCancel=document.getElementById('context-cancel') as HTMLButtonElement|null;
+ if(contextCancel)contextCancel.disabled=!canCancelContext||game.status!=='playing';
  if(selected.length===1&&first?.supportPaused)detail='Heilziel ist zu weit voraus. Sanitäter wartet; der Heilauftrag bleibt erhalten.';
  if(renderer.placement)detail=`${BUILDINGS[renderer.placement].name}: Linksklick setzt die Baustelle. Esc / Rechtsklick bricht ab.`;
  setText('selection-detail',detail);

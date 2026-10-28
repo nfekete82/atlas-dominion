@@ -55,9 +55,13 @@ test('selection strip: compact matching portrait, reachable building commands an
   await expect(logo).toHaveAttribute('src','/src/assets/reborn/sandforge-logo-transparent.webp');
   expect(await logo.evaluate(img=>img.complete&&img.naturalWidth>0&&getComputedStyle(img).objectFit==='contain')).toBe(true);
   await page.locator('#select-base').click();
-  await expect(page.locator('[data-context-unit="engineer"]')).toBeVisible();
-  await page.locator('[data-context-unit="engineer"]').click();
+  // The selected HQ shows only relevant commands; unit training lives in the roster.
+  await expect(page.locator('#building-commands [data-context-unit]')).toHaveCount(0);
+  await expect(page.locator('#building-commands')).toBeHidden();
+  await expect(page.locator('#recruit')).toHaveAttribute('aria-label','Pionier ausbilden');
+  await page.locator('#recruit').click();
   await expect(page.locator('#queue')).toContainText('1 IM AUFTRAG');
+  await expect(page.locator('#building-commands #context-cancel')).toBeVisible();
   await page.evaluate(()=>{const a=window.__reborn;a.game.cancel(a.game.bases.find(b=>b.owner===0&&b.kind==='headquarters').id);const u=a.game.units.find(u=>u.owner===0&&u.kind==='engineer');a.renderer.selectedBase=null;a.renderer.selected=new Set([u.id]);a.refresh();});
   const layout=await page.evaluate(()=>{const rect=s=>{const r=document.querySelector(s).getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom};};return {panel:rect('#selection-panel'),world:rect('#world'),portrait:rect('#portrait img'),card:rect('[data-unit="engineer"]>img'),visible:getComputedStyle(document.querySelector('#portrait')).display!=='none',fit:getComputedStyle(document.querySelector('#portrait img')).objectFit,overflow:document.body.scrollWidth>innerWidth};});
   expect(layout.panel.right).toBeLessThanOrEqual(layout.world.right);expect(layout.panel.bottom).toBeLessThanOrEqual(height);expect(layout.overflow).toBe(false);expect(layout.fit).toBe('contain');
