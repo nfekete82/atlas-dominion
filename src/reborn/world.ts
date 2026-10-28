@@ -220,7 +220,7 @@ export class World {
       const mirrored=this.mapVersion>=2?Math.min(id,cols*rows-1-id):id;
       // Modern campaign HQ sectors are always the middle economic tier.
       // Keep the top-tier neutral sectors at +35 and map symmetry intact.
-      const value=this.mapVersion>=3&&layout.headquarters.includes(id)
+      const value=this.mapVersion>=3&&layout.headquarters.some(hq=>hq===id)
         ?1:mirrored%7===0?2:mirrored%3===0?1:0;
       return {id,name:this.mapVersion===2?campaignNames[id]:this.mapVersion>=3?`Sektor ${id+1}`:names[id],polygon:[vertices[y][x],vertices[y][x+1],vertices[y+1][x+1],vertices[y+1][x]],
         point,neighbors:[x>0?id-1:-1,x<cols-1?id+1:-1,y>0?id-cols:-1,y<rows-1?id+cols:-1].filter(i=>i>=0),
