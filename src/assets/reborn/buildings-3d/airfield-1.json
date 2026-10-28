@@ -7,49 +7,40 @@
     "name": "Flugfeld",
     "kind": "airfield",
     "team": 1,
-    "parts": 30,
-    "triangles": 23442,
+    "parts": 241,
+    "triangles": 131922,
     "geometry": "Atlas original ceramic / bronze building geometry",
     "source": "Atlas Dominion / original procedural models",
     "sourceGeometry": {
-      "parts": 24,
-      "triangles": 13596
+      "parts": 236,
+      "triangles": 118032
     },
-    "serviceDetails": 103,
+    "serviceDetails": 154,
     "serviceFeatures": [
-      "HangarSideArmor",
-      "HangarOverheadSafetyBeam",
-      "HangarGateGuide",
-      "HangarShell",
-      "HangarRoofLeft",
-      "HangarRoofRight",
-      "RidgeCap",
-      "HangarDoorRecess",
-      "HangarDoorLeaf",
-      "DoorPressedPanel",
-      "HangarButtress",
-      "SafetyChevrons",
-      "DoorUpperTrack",
+      "HangarStructuralCrossBrace",
+      "HangarFieldRepairBolt",
+      "HangarRoofLongitudinalJoint",
+      "HangarHeavySill",
       "IdentificationFrame",
       "FactionIdentification",
-      "HangarRoofRibLeft",
-      "HangarRoofRibRight",
-      "HangarWallRib",
-      "SideServiceDoor",
+      "SafetyChevrons",
+      "SealedEquipmentCase",
+      "EquipmentLid",
+      "CaseStrap",
+      "ReplaceableArmour",
+      "HexFastener",
+      "AnnexEmergencyLight",
       "FanHousing",
       "FanRecess",
       "FanHub",
       "FanBlade",
       "FanSafetyGrille",
       "GrilleBolt",
-      "SealedEquipmentCase",
-      "EquipmentLid",
-      "CaseStrap",
-      "ApronStopLine",
-      "ApronGuide",
       "LadderRail",
       "LadderRung",
-      "ControlAerial"
+      "ApronInsetLight",
+      "FuelDeliveryPipe",
+      "FloodlightSupportBracket"
     ],
     "surfaceRevision": 4,
     "finish": "Desert CARC camouflage / sand paint / worn steel / packed ORM / tangent normals"
@@ -64,34 +55,34 @@
       382
     ],
     "solidBounds": {
-      "x": 96,
-      "y": 222,
-      "w": 320,
-      "h": 248
+      "x": 49,
+      "y": 97,
+      "w": 414,
+      "h": 399
     },
-    "top": 222
+    "top": 90
   },
   "activity": null,
   "beacon": {
     "image": "airfield-1-beacon.png",
     "pivot": [
-      94,
-      137
+      2,
+      292
     ],
     "frames": [
       {
         "x": 0,
         "y": 0,
-        "w": 11,
-        "h": 14
+        "w": 10,
+        "h": 13
       }
     ],
     "period": 3.8,
     "originalBounds": {
-      "x": 162,
-      "y": 245,
-      "w": 11,
-      "h": 14
+      "x": 254,
+      "y": 90,
+      "w": 10,
+      "h": 13
     }
   },
   "clips": [
