@@ -217,7 +217,11 @@ export class World {
     const campaignNames=['Westgrat','Staubpfad','Roter Kamm','Rote Zitadelle','Dünenwacht','Steinbogen','Zentralpass','Ascheposten','Sandmeer','Prospektor-Tal','Trockensee','Splittergrat','Blaue Bastion','Heimische Dünen','Südpass','Letzte Wacht'];
     return Array.from({length:cols*rows},(_,id)=>{
       const x=id%cols,y=Math.floor(id/cols),point=this.generated?{...this.generated.sites[id]}:this.nearest({x:(x+.5)*w,y:(y+.5)*h})!;
-      const mirrored=this.mapVersion>=2?Math.min(id,cols*rows-1-id):id,value=mirrored%7===0?2:mirrored%3===0?1:0;
+      const mirrored=this.mapVersion>=2?Math.min(id,cols*rows-1-id):id;
+      // Modern campaign HQ sectors are always the middle economic tier.
+      // Keep the top-tier neutral sectors at +35 and map symmetry intact.
+      const value=this.mapVersion>=3&&layout.headquarters.some(hq=>hq===id)
+        ?1:mirrored%7===0?2:mirrored%3===0?1:0;
       return {id,name:this.mapVersion===2?campaignNames[id]:this.mapVersion>=3?`Sektor ${id+1}`:names[id],polygon:[vertices[y][x],vertices[y][x+1],vertices[y+1][x+1],vertices[y+1][x]],
         point,neighbors:[x>0?id-1:-1,x<cols-1?id+1:-1,y>0?id-cols:-1,y<rows-1?id+cols:-1].filter(i=>i>=0),
         owner:layout.starts[0].some(i=>i===id)?0:layout.starts[1].some(i=>i===id)?1:-1,capturing:-1,progress:0,income:layout.incomes[value],value};
