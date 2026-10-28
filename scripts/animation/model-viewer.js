@@ -16,7 +16,7 @@ const sharedBuildingTextures=new Map();
 async function reuseBuildingTextures(data){
  const hashes=new Map();
  for(const texture of data.parser.json.textures??[]){
-  if(!texture.name?.startsWith('Atlas desert |')&&!['Desert camouflage / scratches','Sandblasted metal normal','Packed occlusion roughness metallic'].includes(texture.name))continue;
+  if(!texture.name?.startsWith('Atlas desert |')&&!['Leopard woodland camouflage / weathered paint','Desert camouflage / scratches','Sandblasted metal normal','Packed occlusion roughness metallic'].includes(texture.name))continue;
   const image=data.parser.json.images[texture.source],bytes=await data.parser.getDependency('bufferView',image.bufferView);
   let hash;
   if(globalThis.crypto?.subtle){const digest=await crypto.subtle.digest('SHA-256',bytes);hash=Array.from(new Uint8Array(digest),v=>v.toString(16).padStart(2,'0')).join('');}

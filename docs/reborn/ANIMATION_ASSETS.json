@@ -34,13 +34,13 @@
       "file": "src/assets/reborn/animation/artillery-0.png",
       "width": 3072,
       "height": 2880,
-      "sha256": "6ada334fbd5fa9a5ea286dd02e5176c8d45db49c114e7fae140dfdd010fa8d33"
+      "sha256": "f9327fde80c63c602606370dfce247497067026786131d26a11e02743a75ccb5"
     },
     {
       "file": "src/assets/reborn/animation/artillery-1.png",
       "width": 3072,
       "height": 2880,
-      "sha256": "1cc1bf09b0bf213cb03a27e1591cd622182c82fc639badd05d4de9e0eebaf038"
+      "sha256": "d6c4802c66f820353c61a0b0ed08fda0bb765f33408855826a0356ccc4dbf245"
     },
     {
       "file": "src/assets/reborn/animation/bomber-0.png",
@@ -2103,7 +2103,7 @@
       "frameCount": 240,
       "source": "Atlas original vehicle geometry",
       "model": "artillery-0.glb",
-      "modelSha256": "5988e63c410ad03ec0a66932dc37799b776af5cc3819730262ae2e4c14d7f482",
+      "modelSha256": "fc96e59de8028edbb1c2d4536875a1a960ef6451114db02ce73981a2e908c765",
       "design": {
         "kind": "artillery",
         "team": 0,
@@ -2115,7 +2115,10 @@
         "tubes": 6,
         "wheels": 6,
         "layout": "3 x 2",
-        "textures": "1024² embedded base color / normal / packed ORM",
+        "textures": "2048² tank-matched camouflage / 1024² normal and packed ORM",
+        "camouflage": "Leopard woodland olive / earth brown / sand",
+        "paintSource": "tank-0.glb / tan baseColor",
+        "paintUvScale": 0.42,
         "turretPivot": [
           0,
           1.75,
@@ -2238,7 +2241,7 @@
       "frameCount": 240,
       "source": "Atlas original vehicle geometry",
       "model": "artillery-1.glb",
-      "modelSha256": "76567146822b6c0b5d9c1ffafc188132513b4d0021fcd91719a200622397d99f",
+      "modelSha256": "80f5d1f21fafb76391c849eb064e6d8bb3538fbf4fa1de3ebc9914fb17acac79",
       "design": {
         "kind": "artillery",
         "team": 1,
@@ -2250,7 +2253,10 @@
         "tubes": 6,
         "wheels": 6,
         "layout": "3 x 2",
-        "textures": "1024² embedded base color / normal / packed ORM",
+        "textures": "2048² tank-matched camouflage / 1024² normal and packed ORM",
+        "camouflage": "Leopard woodland olive / earth brown / sand",
+        "paintSource": "tank-0.glb / tan baseColor",
+        "paintUvScale": 0.42,
         "turretPivot": [
           0,
           1.75,

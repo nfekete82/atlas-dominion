@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 import fs from 'node:fs';
-const evidence='../../docs/qa/rocket-launcher-20261028';
+const evidence='../../docs/qa/rocket-camouflage-20261028';
 test('rocket gallery: complete reference vehicle, six wheels, aiming hydraulics, team changes and safe camera',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.setViewportSize({width:1440,height:1000});await page.goto('/model-3d.html?model=artillery');await page.waitForFunction(()=>window.__model3D?.current?.getObjectByName('RocketMuzzle_5'));await expect(page.locator('#model-title')).toContainText('Raketenwerfer');await expect(page.locator('[data-clip="Operation"]')).toBeVisible();
  const before=await page.evaluate(()=>{const v=window.__model3D;return {wheel:v.current.getObjectByName('Wheel_Port_0').quaternion.toArray(),gun:v.current.getObjectByName('Tank_Gun').quaternion.toArray(),turret:v.current.getObjectByName('Tank_Turret').quaternion.toArray(),rod:v.current.getObjectByName('LiftRam_Port_Rod').scale.y};});await page.waitForTimeout(440);
@@ -20,4 +20,9 @@ test('rocket gameplay: factory production, selected name, independent aiming, sa
 });
 test('rocket gallery switching preserves bomber and transport geometry/animation',async({page})=>{
  await page.goto('/model-3d.html?model=artillery');await page.waitForFunction(()=>window.__model3D?.data?.animations.length===2);for(const [kind,node,label] of [['scout','MainRotor_Spin','Transporthelikopter'],['bomber','Propeller_Port_Spin','Bomber'],['artillery','RocketMuzzle_0','Raketenwerfer']]){await page.locator('#model').selectOption(kind);await page.waitForFunction(node=>!!window.__model3D?.current?.getObjectByName(node),node);await expect(page.locator('#error')).toBeEmpty();await expect(page.locator('#model-title')).toContainText(label);}
+});
+
+test('rocket camouflage: actual tank woodland colors, 2K detail and projected body UVs',async({page})=>{
+ await page.goto('/model-3d.html?model=artillery');await page.waitForFunction(()=>window.__model3D?.current?.getObjectByName('RocketMuzzle_5'));
+ const result=await page.evaluate(()=>{const v=window.__model3D;let paint,projected=false,colored=false;v.current.traverse(n=>{if(!n.isMesh||n.material.name!=='Woodland camouflage armor PBR')return;paint=n.material;const uv=n.geometry.attributes.uv;for(let i=0;i<uv.count;i++)if(Math.abs(uv.getX(i))>1||Math.abs(uv.getY(i))>1)projected=true;colored||=!!n.geometry.attributes.color;});const image=paint.map.image,c=document.createElement('canvas');c.width=image.width;c.height=image.height;const ctx=c.getContext('2d');ctx.drawImage(image,0,0);const pixels=ctx.getImageData(0,0,c.width,c.height).data;let olive=0,brown=0,sand=0,total=0;for(let i=0;i<pixels.length;i+=64){const [r,g,b]=pixels.subarray(i,i+3);total++;if(g>r*1.08&&g>b*1.1)olive++;if(r>g*1.18&&g>b*1.12)brown++;if(r>125&&g>110&&b>80)sand++;}return {width:c.width,height:c.height,olive:olive/total,brown:brown/total,sand:sand/total,projected,colored};});expect(result.width).toBe(2048);expect(result.height).toBe(2048);expect(result.olive).toBeGreaterThan(.15);expect(result.brown).toBeGreaterThan(.02);expect(result.sand).toBeGreaterThan(.15);expect(result.projected&&result.colored).toBe(true);
 });

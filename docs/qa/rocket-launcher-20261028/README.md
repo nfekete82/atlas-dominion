@@ -1,5 +1,7 @@
 # PBR-Raketenwerfer — 28. Oktober 2026
 
+Nachfolgender optischer Nachschliff: [Tarnlackierung wie beim Panzer mit 2K-Details](../rocket-camouflage-20261028/README.md). Die Bilder und Texturangaben dieses Berichts dokumentieren die ursprüngliche Sandlackierung.
+
 Eigenes, vollständig modelliertes 6×6-Fahrzeug im Stil der vom Nutzer beigefügten HIMARS-Referenz: gepanzerte Kabine, drei Achsen mit sechs Geländerädern, Leiterrahmen, Differenziale, Blattfedern, Kardanwelle, Tanks, Abluft, Kühlergrilles, Türbeschläge, Spiegel, Schleppösen, Rückleuchten, zwei Peitschenantennen und eine Schleifenantenne. Der sechsfache Wechselbehälter besitzt einzelne räumliche Rohre, vertiefte Abschlüsse, Metallränder, Hebebügel, Wartungsklappen, Drehkranz und echte teleskopierende Hydraulik.
 
 - Zwei selbstständige GLBs: `artillery-0.glb` und `artillery-1.glb`.

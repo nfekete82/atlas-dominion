@@ -22,7 +22,10 @@
     "tubes": 6,
     "wheels": 6,
     "layout": "3 x 2",
-    "textures": "1024² embedded base color / normal / packed ORM",
+    "textures": "2048² tank-matched camouflage / 1024² normal and packed ORM",
+    "camouflage": "Leopard woodland olive / earth brown / sand",
+    "paintSource": "tank-0.glb / tan baseColor",
+    "paintUvScale": 0.42,
     "turretPivot": [
       0,
       1.75,

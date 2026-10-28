@@ -42,7 +42,7 @@ npm run dev
 
 Der Transporthelikopter nutzt zwei eigene PBR-GLBs mit unabhängig animierten Haupt- und Heckrotoren. Reproduzierbarer Modell-/Sprite-Build: `npm run assets:transport`. Alte Kampfhelikopter und ihre bezahlten Aufträge werden beim Laden verlustfrei in Transporthelikopter migriert. [Modell, Migration und Prüfnachweise](docs/qa/transport-helicopter-20261028/README.md).
 
-Der Raketenwerfer nutzt zwei eigene PBR-GLBs nach der HIMARS-Referenz mit Rad-, Drehkranz- und Hydraulikanimationen. `npm run assets:rocket-launcher` erzeugt Modelle und getrennte Spielsprite-Layer reproduzierbar. [Modell und Prüfnachweise](docs/qa/rocket-launcher-20261028/README.md).
+Der Raketenwerfer nutzt zwei eigene PBR-GLBs nach der HIMARS-Referenz mit Rad-, Drehkranz- und Hydraulikanimationen. Er trägt die Oliv-/Braun-/Sand-Tarnung des Panzers mit 2K-Lackdetails, Schmutzspuren und Abnutzung. `npm run assets:rocket-launcher` erzeugt Modelle und getrennte Spielsprite-Layer reproduzierbar. [Modell und Prüfnachweise](docs/qa/rocket-launcher-20261028/README.md).
 
 Die KI bezahlt ihre Einheiten und Gebäude, sammelt gemischte Angriffsgruppen, reagiert auf gesichtete Verteidigungen, nutzt Belagerung und Flanken und zieht verletzte Truppen zur Versorgung zurück. Die KI kann Infanterie mit dem Transporthelikopter aufnehmen und am Einsatzort ausladen.
 

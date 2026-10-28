@@ -4,10 +4,11 @@ import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {mergeGeometries,mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 import {makeDesertSurfaceMaps} from './desert-pbr.js';
-export function buildRocketLauncher(team){
- const [base,normal,orm]=makeDesertSurfaceMaps({uniform:true});
+import {loadRocketCamouflage} from './rocket-camouflage.js';
+export async function buildRocketLauncher(team){
+ const [,normal,orm]=makeDesertSurfaceMaps({uniform:true}),base=await loadRocketCamouflage();
  const root=new T.Group();root.name='Sandforge_RocketLauncher';
- const paint=new T.MeshStandardMaterial({name:'Desert tan armor PBR',map:base,normalMap:normal,normalScale:new T.Vector2(.19,.19),metalnessMap:orm,roughnessMap:orm,aoMap:orm,aoMapIntensity:.5,metalness:.65,roughness:.93});
+ const paint=new T.MeshStandardMaterial({name:'Woodland camouflage armor PBR',map:base,normalMap:normal,normalScale:new T.Vector2(.19,.19),metalnessMap:orm,roughnessMap:orm,aoMap:orm,aoMapIntensity:.65,metalness:.32,roughness:.93,vertexColors:true});
  const steel=new T.MeshStandardMaterial({name:'Machined steel and hydraulic chrome',color:'#8a8c84',metalness:.95,roughness:.48,normalMap:normal,normalScale:new T.Vector2(.12,.12),metalnessMap:orm,roughnessMap:orm});
  const dark=new T.MeshStandardMaterial({name:'Dark chassis steel and tube interiors',color:'#252b2b',metalness:.6,roughness:.77});
  const rubber=new T.MeshStandardMaterial({name:'Heavy all terrain rubber',color:'#151918',roughness:.95});
@@ -17,7 +18,17 @@ export function buildRocketLauncher(team){
  const lamp=new T.MeshStandardMaterial({name:'Headlight glass',color:'#fff1bb',emissive:'#e0ba70',emissiveIntensity:.35,roughness:.18});
  const redLamp=new T.MeshStandardMaterial({name:'Rear lamp glass',color:'#9b2720',emissive:'#5b100a',emissiveIntensity:.2,roughness:.18});
  const buckets=new Map(),wheels=[],hydraulics=[];let parts=0;
- function batch(name,g,m,p=[0,0,0],r=null,parent=root){const mesh=new T.Mesh(g,m);mesh.position.fromArray(p);if(r)mesh.rotation.set(...r);mesh.updateMatrix();const geom=g.index?g.toNonIndexed():g.clone();geom.applyMatrix4(mesh.matrix);for(const key of Object.keys(geom.attributes))if(!['position','normal','uv'].includes(key))geom.deleteAttribute(key);if(!geom.attributes.uv)geom.setAttribute('uv',new T.Float32BufferAttribute(new Float32Array(geom.attributes.position.count*2),2));if(!geom.attributes.normal)geom.computeVertexNormals();let mats=buckets.get(parent);if(!mats)buckets.set(parent,mats=new Map());if(!mats.has(m))mats.set(m,[]);mats.get(m).push(geom);g.dispose();parts++;}
+ function batch(name,g,m,p=[0,0,0],r=null,parent=root){const mesh=new T.Mesh(g,m);mesh.position.fromArray(p);if(r)mesh.rotation.set(...r);mesh.updateMatrix();const geom=g.index?g.toNonIndexed():g.clone();geom.applyMatrix4(mesh.matrix);
+  if(m===paint){
+   // Match the tank's 0.42 repeats/metre face projection. Pattern scale is
+   // stable across cab, doors and service panels instead of restarting per box.
+   const pos=geom.attributes.position,uv=new Float32Array(pos.count*2),colors=new Float32Array(pos.count*3),a=new T.Vector3(),b=new T.Vector3(),v=new T.Vector3(),n=new T.Vector3();
+   for(let i=0;i<pos.count;i+=3){a.fromBufferAttribute(pos,i);b.fromBufferAttribute(pos,i+1).sub(a);v.fromBufferAttribute(pos,i+2).sub(a);n.crossVectors(b,v);const axis=Math.abs(n.x)>Math.abs(n.y)&&Math.abs(n.x)>Math.abs(n.z)?0:Math.abs(n.y)>Math.abs(n.z)?1:2;
+    for(let j=i;j<i+3;j++){v.fromBufferAttribute(pos,j);uv[j*2]=(axis===0?v.z:v.x)*.42;uv[j*2+1]=(axis===1?v.z:v.y)*.42;const grime=parent===root?Math.max(0,Math.min(1,(1.7-v.y)/1.05))*(.09+.025*Math.sin(v.z*9+v.x*13)):0;colors.set([1-grime*.65,1-grime*.80,1-grime],j*3);}
+   }
+   geom.setAttribute('uv',new T.Float32BufferAttribute(uv,2));geom.setAttribute('color',new T.Float32BufferAttribute(colors,3));
+  }
+  for(const key of Object.keys(geom.attributes))if(!['position','normal','uv','color'].includes(key))geom.deleteAttribute(key);if(!geom.attributes.uv)geom.setAttribute('uv',new T.Float32BufferAttribute(new Float32Array(geom.attributes.position.count*2),2));if(!geom.attributes.normal)geom.computeVertexNormals();let mats=buckets.get(parent);if(!mats)buckets.set(parent,mats=new Map());if(!mats.has(m))mats.set(m,[]);mats.get(m).push(geom);g.dispose();parts++;}
  function box(n,p,s,m=paint,r=null,parent=root,bevel=0){batch(n,bevel?new RoundedBoxGeometry(...s,1,bevel):new T.BoxGeometry(...s),m,p,r,parent);}
  const cylinder=(n,p,r,h,m=steel,axis='y',parent=root,segments=16)=>batch(n,new T.CylinderGeometry(r,r,h,segments),m,p,axis==='x'?[0,0,Math.PI/2]:axis==='z'?[Math.PI/2,0,0]:null,parent);
  const torus=(n,p,r,t,m=steel,axis='z',parent=root)=>batch(n,new T.TorusGeometry(r,t,8,32),m,p,axis==='x'?[0,Math.PI/2,0]:axis==='y'?[Math.PI/2,0,0]:null,parent);
@@ -122,6 +133,6 @@ export function buildRocketLauncher(team){
  for(const t of opTimes){const a=-.36-(1-Math.cos(t/6*Math.PI*2))*.18;yaw.push(...new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),Math.sin(t/6*Math.PI*2)*.30).toArray());elevation.push(...new T.Quaternion().setFromAxisAngle(new T.Vector3(1,0,0),a).toArray());poseHydraulics(a);hydraulics.forEach((h,i)=>{ramQ[i].push(...h.ram.quaternion.toArray());rodScales[i].push(...h.piston.scale.toArray());});}
  tracks.push(new T.QuaternionKeyframeTrack(turret.name+'.quaternion',opTimes,yaw),new T.QuaternionKeyframeTrack(gun.name+'.quaternion',opTimes,elevation));hydraulics.forEach((h,i)=>tracks.push(new T.QuaternionKeyframeTrack(h.ram.name+'.quaternion',opTimes,ramQ[i]),new T.VectorKeyframeTrack(h.piston.name+'.scale',opTimes,rodScales[i])));poseHydraulics(-.36);
  let triangles=0,drawCalls=0;root.traverse(n=>{if(n.isMesh){triangles+=(n.geometry.index?.count??n.geometry.attributes.position.count)/3;drawCalls++;}});
- root.userData.atlasDesign={kind:'artillery',team,parts,triangles,drawCalls,source:'Sandforge authored original rocket launcher GLB',geometry:'Reference-inspired desert 6x6 armored truck, six-tube elevated pod, rotating turntable and telescoping hydraulics',tubes:6,wheels:6,layout:'3 x 2',textures:'1024² embedded base color / normal / packed ORM',turretPivot:[0,1.75,0]};
+ root.userData.atlasDesign={kind:'artillery',team,parts,triangles,drawCalls,source:'Sandforge authored original rocket launcher GLB',geometry:'Reference-inspired desert 6x6 armored truck, six-tube elevated pod, rotating turntable and telescoping hydraulics',tubes:6,wheels:6,layout:'3 x 2',textures:'2048² tank-matched camouflage / 1024² normal and packed ORM',camouflage:'Leopard woodland olive / earth brown / sand',paintSource:'tank-0.glb / tan baseColor',paintUvScale:.42,turretPivot:[0,1.75,0]};
  return {model:root,animations:[rolling,new T.AnimationClip('Launcher_Operation',6,tracks)],wheels,turret,gun,muzzle:muzzles[0],animate(tag,phase){for(const w of wheels){const direction=tag==='turnLeft'?Math.sign(w.position.x):tag==='turnRight'?-Math.sign(w.position.x):1;w.rotation.x=tag==='idle'?0:phase*Math.PI*2*direction;}turret.rotation.y=0;gun.rotation.x=-.36;poseHydraulics(-.36);}};
 }
