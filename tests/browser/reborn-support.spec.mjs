@@ -16,7 +16,7 @@ test('support HUD: empty click hides all context, targeted buildings and groups 
  await page.mouse.click(500,350);await expect(page.locator('#selection-panel')).toBeHidden();await expect(page.locator('#production')).toBeVisible();
  const units=await page.evaluate(()=>{const {game:g,renderer:r}=window.__reborn;const u=g.units[0];g.units=[u];const w=g.spawn(0,{x:u.x+65,y:u.y},'engineer');r.camera.x=u.x;r.camera.y=u.y;r.render(0);return [u,w].map(u=>r.screen({x:u.x,y:u.y-18}));});
  await page.mouse.move(units[0].x-35,units[0].y-40);await page.mouse.down();await page.mouse.move(units[1].x+35,units[1].y+40,{steps:5});await page.mouse.up();
- await expect(page.locator('#selection-title')).toHaveText('2 Einheiten');await expect(page.locator('#selection-detail')).toContainText('Ingenieur');await expect(page.locator('#build-mode')).toBeVisible();
+ await expect(page.locator('#selection-title')).toHaveText('2 Einheiten');await expect(page.locator('#selection-detail')).toContainText('Pionier');await expect(page.locator('#build-mode')).toBeVisible();
  expect(errors).toEqual([]);
 });
 
@@ -36,7 +36,7 @@ test('support HUD: medic right-click heals infantry, exposes heal/move/hold/stop
 test('support HUD: real worker placement, cancellation, two completed buildings, barracks training/rally, repair and durable orders',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await start(page);
  const worker=await page.evaluate(()=>{const {game:g}=window.__reborn,w=g.units.find(u=>u.owner===0&&u.kind==='engineer');return {id:w.id,x:w.x,y:w.y-18};});
- await center(page,worker);await clickWorld(page,worker);await expect(page.locator('#selection-title')).toHaveText('Ingenieur');
+ await center(page,worker);await clickWorld(page,worker);await expect(page.locator('#selection-title')).toHaveText('Pionier');
  const credits=await page.evaluate(()=>window.__reborn.game.credits[0]);
  await page.locator('#build-mode').click();await page.locator('[data-build="barracks"]').click();await page.keyboard.press('Escape');expect(await page.evaluate(()=>window.__reborn.renderer.placement)).toBe(null);
  await page.locator('#build-mode').click();await page.locator('[data-build="turret"]').click();await page.mouse.click(600,400,{button:'right'});expect(await page.evaluate(()=>window.__reborn.renderer.placement)).toBe(null);expect(await page.evaluate(()=>window.__reborn.game.credits[0])).toBe(credits);
@@ -72,7 +72,7 @@ test('support HUD: right-click damaged Humvee repairs it instead of boarding the
   return {engineer:{id:engineer.id,x:engineer.x,y:engineer.y-18},humvee:{id:humvee.id,x:humvee.x,y:humvee.y-18}};
  });
  await clickWorld(page,state.engineer);
- await expect(page.locator('#selection-title')).toHaveText('Ingenieur');
+ await expect(page.locator('#selection-title')).toHaveText('Pionier');
  await clickWorld(page,state.humvee,'right');
  const selected=await page.evaluate(id=>{
    const {game:g}=window.__reborn,u=g.units.find(u=>u.id===id);

@@ -97,7 +97,6 @@ button:focus-visible,a:focus-visible,canvas:focus-visible {
 .radar #minimap {border:2px solid #b39660;outline:1px solid #15160f;background:#b18c52;}
 .compass {color:#d4ba86;text-shadow:0 1px #000;}
 .radar-caption {color:#cfbd9e;opacity:.9;letter-spacing:.2px;}
-.radar #home {background:#333126e8;border:1px solid #9e8658;color:#ecd4a0;}
 .catalog {padding:0 9px 11px;}
 .catalog-tabs {border-bottom:2px solid #756244;margin:1px -8px 0;}
 .catalog-tabs button {
@@ -604,4 +603,42 @@ html.sandforge-branded .sandforge-logo{
 }
 @media(prefers-reduced-motion:reduce){
   #main-dialog .menu-button{transition:none;}
+}
+
+/* Compact sidebar: keep the full square world visible inside a shallower radar. */
+#sidebar .radar{padding:7px 8px 6px}
+#sidebar .radar::before{inset:3px}
+#sidebar .radar .compass{position:absolute;top:45%}
+#sidebar .radar .west{left:5px}
+#sidebar .radar .east{left:auto;right:5px}
+#sidebar .radar #minimap{display:block;width:70%;height:auto;aspect-ratio:1;margin:0 auto;padding:0;border:0;outline:1px solid #b39660}
+#sidebar .radar-caption{position:static;display:flex;justify-content:space-between;gap:6px;margin-top:5px;min-height:12px;font:600 10px/1.2 var(--display);opacity:.95}
+#sidebar .catalog-tabs{margin:0 -8px;border-bottom-width:1px;grid-template-columns:repeat(2,minmax(0,1fr))}
+#sidebar .catalog-tabs button{min-width:0;height:56px;flex-direction:row;gap:8px;padding:7px 4px;font-size:15px;white-space:nowrap}
+#sidebar .catalog-tabs button span{font-size:inherit;line-height:1.1}
+#sidebar .catalog-tabs svg{width:22px;height:22px;flex:none}
+#sidebar .catalog-tabs button:focus-visible{outline:2px solid #e5c181;outline-offset:-3px}
+#production{min-width:0;padding-top:7px;padding-bottom:6px}
+#production #queue-slots{grid-template-columns:repeat(8,minmax(28px,1fr));grid-template-rows:auto;gap:3px;overflow-x:auto;overflow-y:hidden;padding:2px 0;scrollbar-width:thin;scrollbar-color:#8e7750 #21231c}
+#production #queue-slots button{height:32px;min-width:0;padding:0}
+#production #queue-slots button:focus-visible{outline-offset:-2px}
+#production #queue-slots .empty{font-size:18px}
+#production .queue-info{height:17px;margin-top:4px;font-size:11px}
+#production .production-progress{margin-top:3px}
+#production .section-label{font-size:11px;margin-bottom:5px;padding-right:40px}
+@media(max-width:1000px){
+ #sidebar .radar #minimap{width:76%}
+ #sidebar .radar{padding:6px 7px 5px}
+ #sidebar .catalog-tabs button{height:52px;gap:5px;font-size:12px}
+ #sidebar .catalog-tabs svg{width:19px;height:19px}
+ #production #queue-slots button{height:28px}
+}
+@media(max-width:620px){
+ #sidebar .radar #minimap{width:84%}
+ #sidebar .radar-caption{font-size:9px}
+ #sidebar .radar-caption>span:last-child{display:inline}
+ #sidebar .catalog-tabs{grid-template-columns:minmax(0,.93fr) minmax(0,1.07fr);margin-inline:-9px}
+ #sidebar .catalog-tabs button{font-size:10px;gap:3px;padding-inline:2px}
+ #sidebar .catalog-tabs svg{width:16px;height:16px}
+ #production .queue-info{font-size:10px}
 }

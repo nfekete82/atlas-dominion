@@ -46,10 +46,15 @@ function modal(id:string):void{
 }
 function openMenu():void{modal('pause-dialog');}
 function contextBase():Base|undefined{return game.bases.find(b=>b.id===renderer.selectedBase&&b.owner===0&&b.hp>0);}
-function productionBase():Base|undefined{const selected=contextBase();return selected&&selected.buildRemaining<=0&&unitKinds.some(k=>UNITS[k].producers.includes(selected.kind))?selected:game.bases.find(b=>b.owner===0&&b.hp>0&&b.buildRemaining<=0&&b.queue.length>0)??game.bases.find(b=>b.owner===0&&b.kind==='headquarters'&&b.hp>0)??game.bases.find(b=>b.owner===0&&b.hp>0&&b.buildRemaining<=0&&unitKinds.some(k=>UNITS[k].producers.includes(b.kind)));}
-function tab(next:string):void{catalogTab=next;for(const name of ['units','territories']){el('catalog-'+name).hidden=name!==next;el('tab-'+name).setAttribute('aria-pressed',String(name===next));}setText('catalog-detail',next==='territories'?'Sektor wählen, um die Kamera zu seiner Bastion zu bewegen.':'Bauarbeiter errichten Produktionsgebäude. Fertige Gebäude schalten ihre Einheiten frei.');refresh();}
-function train(kind:UnitKind,contextOnly=false):void{
- const selected=contextBase(),producer=contextOnly?selected:selected&&UNITS[kind].producers.includes(selected.kind)&&selected.buildRemaining<=0&&selected.queue.length<8?selected:game.producer(0,kind);
+function productionBase():Base|undefined{
+ const selected=contextBase(),produces=(b:Base)=>unitKinds.some(k=>UNITS[k].producers.includes(b.kind));
+ // A selected site keeps its own progress, and a non-producer must not show HQ units.
+ if(selected)return produces(selected)?selected:undefined;
+ return game.bases.find(b=>b.owner===0&&b.hp>0&&b.buildRemaining<=0&&b.queue.length>0&&produces(b))??game.bases.find(b=>b.owner===0&&b.kind==='headquarters'&&b.hp>0&&b.buildRemaining<=0)??game.bases.find(b=>b.owner===0&&b.hp>0&&b.buildRemaining<=0&&produces(b));
+}
+function tab(next:string):void{catalogTab=next;for(const name of ['units','territories']){el('catalog-'+name).hidden=name!==next;el('tab-'+name).setAttribute('aria-pressed',String(name===next));}setText('catalog-detail',next==='territories'?'Sektor wählen, um die Kamera zu seiner Bastion zu bewegen.':'Pioniere errichten Produktionsgebäude. Fertige Gebäude schalten ihre Einheiten frei.');refresh();}
+function train(kind:UnitKind,contextOnly=false,requestedProducer?:Base):void{
+ const selected=contextBase(),producer=requestedProducer??(contextOnly?selected:selected&&UNITS[kind].producers.includes(selected.kind)&&selected.buildRemaining<=0&&selected.queue.length<8?selected:game.producer(0,kind));
  if(producer&&game.recruit(producer.id,kind)){audio.command();refresh();}else notify(producer?'Produktion derzeit nicht möglich.':`${UNITS[kind].producers.map(k=>BUILDINGS[k].name).join(' oder ')} erforderlich.`);
 }
 function prepareCatalog():void{
@@ -69,7 +74,7 @@ function prepareCatalog():void{
 function prepareTerritories():void{el('catalog-territories').replaceChildren();
  for(const t of game.territories){const button=document.createElement('button');button.className='territory-row';button.dataset.territory=String(t.id);button.innerHTML='<i></i><strong></strong><small></small>';button.onclick=()=>{renderer.camera.x=game.territories[t.id].point.x;renderer.camera.y=game.territories[t.id].point.y;renderer.boundCamera();};el('catalog-territories').append(button);}
 }
-function reset():void{hasEnteredCampaign=true;closeDialogs();game=createCampaign();qwenGeneral.resetCampaign();audio.bindGame(game);renderer.game=game;renderer.invalidate();renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;renderer.placement=null;renderer.commandMode=null;renderer.canvas.classList.remove('attack','building');renderer.home();prepareTerritories();accumulator=0;resultShown=false;messages.length=0;setPause(false);tab('units');refresh();notify('Neue Kampagne. Wähle deinen Bauarbeiter und errichte zuerst eine Kaserne.');}
+function reset():void{hasEnteredCampaign=true;closeDialogs();game=createCampaign();qwenGeneral.resetCampaign();audio.bindGame(game);renderer.game=game;renderer.invalidate();renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;renderer.placement=null;renderer.commandMode=null;renderer.canvas.classList.remove('attack','building');renderer.home();prepareTerritories();accumulator=0;resultShown=false;messages.length=0;setPause(false);tab('units');refresh();notify('Neue Kampagne. Wähle deinen Pionier und errichte zuerst eine Kaserne.');}
 function refresh():void{
  if(!profiler)return refreshMeasured();const at=performance.now();try{refreshMeasured();}finally{profiler.record('hud',performance.now()-at);}
 }
@@ -79,7 +84,7 @@ function refreshMeasured():void{
  if(!game.bases.some(b=>b.id===renderer.selectedBase&&b.hp>0&&b.owner===0))renderer.selectedBase=null;
  const base=contextBase(),production=productionBase(),first=selected[0],spec=first?unitSpec(first):undefined;
  el('selection-panel').hidden=!selected.length&&!base;
- setText('production-title',production?`PRODUKTION · ${buildingSpec(production).name}`:'PRODUKTION');
+ setText('production-title',production?`${buildingSpec(production).name} · PRODUKTION`:'PRODUKTION');
  setText('campaign-goal',`Erkunde Aridis. Sichere alle ${mapLayout(game.world.mapVersion).starts[1].length} roten Startgebiete und erobere das feindliche Hauptquartier, um zu gewinnen. Zerstöre es zuerst und sichere anschließend seinen Kontrollpunkt.`);
  setText('credits',Math.floor(game.credits[0]).toLocaleString('de-DE'));setText('income',`+${game.income(0)}`);setHtml('capacity',`${game.count(0)} <em>/ ${RULES.capacity}</em>`);
  setText('territories',`${game.territories.filter(t=>t.owner===0).length} / ${game.territories.length}`);setText('clock',timestamp());setText('exploration',`${Math.round(game.explored[0].reduce((n,v)=>n+v,0)/game.explored[0].length*100)} % ERKUNDET`);
@@ -88,7 +93,7 @@ function refreshMeasured():void{
  const img=el('portrait').querySelector('img')!,desired=first?renderer.icon('unit',first.kind):renderer.icon('building',base?.kind??'headquarters');if(img.getAttribute('src')!==desired)img.src=desired;
  const hp=selected.length?selected.reduce((n,u)=>n+u.hp,0):base?.hp??0,max=selected.length?selected.reduce((n,u)=>n+unitSpec(u).hp,0):base?buildingSpec(base).hp:1;
  el('health-fill').style.width=`${Math.max(0,hp/max*100)}%`;setText('selection-health',`${Math.round(hp)} / ${max}${spec?' · '+spec.sight+' M SICHT':''}`);
- let detail=selected.length?(renderer.attackMode?'Angriffsziel mit Linksklick wählen.':selected.length>1?unitKinds.filter(k=>selected.some(u=>u.kind===k)).map(k=>`${selected.filter(u=>u.kind===k).length} × ${UNITS[k].name}`).join(' · '):spec!.description):base?(base.buildRemaining>0?`${base.constructionActive?'Bau aktiv':'Bau pausiert — Bauarbeiter erforderlich'}. ${Math.round((1-base.buildRemaining/buildingSpec(base).buildTime)*100)} % · noch ${Math.ceil(base.buildRemaining)} S. Rechtsklick mit Bauarbeiter setzt fort.`:buildingSpec(base).description):'Wähle eine Einheit.';
+ let detail=selected.length?(renderer.attackMode?'Angriffsziel mit Linksklick wählen.':selected.length>1?unitKinds.filter(k=>selected.some(u=>u.kind===k)).map(k=>`${selected.filter(u=>u.kind===k).length} × ${UNITS[k].name}`).join(' · '):spec!.description):base?(base.buildRemaining>0?`${base.constructionActive?'Bau aktiv':'Bau pausiert — Pionier erforderlich'}. ${Math.round((1-base.buildRemaining/buildingSpec(base).buildTime)*100)} % · noch ${Math.ceil(base.buildRemaining)} S. Rechtsklick mit Pionier setzt fort.`:buildingSpec(base).description):'Wähle eine Einheit.';
  el('unit-commands').hidden=selected.length===0;el('attack').setAttribute('aria-pressed',String(renderer.attackMode));el('overlay').setAttribute('aria-pressed',String(renderer.overlay));
  const medics=selected.some(u=>u.kind==='medic'),workers=selected.some(u=>u.kind==='engineer');
  el('support-commands').hidden=!selected.length;el('heal-mode').hidden=!medics;el('repair-mode').hidden=!workers;el('build-mode').hidden=!workers;
@@ -120,7 +125,7 @@ function refreshMeasured():void{
  }
  const facilities=new Set(game.bases.filter(b=>b.owner===0&&b.hp>0&&b.buildRemaining<=0).map(b=>b.kind));
  for(const category of document.querySelectorAll<HTMLElement>('[data-production-building]'))category.hidden=!facilities.has(category.dataset.productionBuilding as BuildingKind);
- const quickKind=production?unitKinds.find(k=>UNITS[k].producers.includes(production.kind)):undefined,quick=el<HTMLButtonElement>('recruit');
+ const quickKind=production&&production.buildRemaining<=0?unitKinds.find(k=>UNITS[k].producers.includes(production.kind)):undefined,quick=el<HTMLButtonElement>('recruit');
  quick.hidden=!quickKind;
  if(quickKind){const quickSpec=UNITS[quickKind];quick.disabled=production!.queue.length>=8||game.credits[0]<quickSpec.cost||game.count(0)+game.queued(0)>=RULES.capacity||game.status!=='playing';
   quick.title=`${quickSpec.name} ausbilden · ${quickSpec.cost} Credits`;quick.setAttribute('aria-label',`${quickSpec.name} ausbilden`);
@@ -151,7 +156,7 @@ el('to-main').onclick=()=>{closeDialogs();modal('main-dialog');};el('main-contin
  }
 });
 el('result-new').onclick=()=>{closeDialogs();modal('new-dialog');};el('result-close').onclick=()=>el<HTMLDialogElement>('result-dialog').close();
-el('home').onclick=()=>renderer.home();el('command-home').onclick=()=>renderer.home();el('overlay').onclick=()=>{renderer.overlay=!renderer.overlay;refresh();};
+el('command-home').onclick=()=>renderer.home();el('overlay').onclick=()=>{renderer.overlay=!renderer.overlay;refresh();};
 el('select-unit').onclick=()=>{renderer.selectedBase=null;const u=game.units.find(u=>u.owner===0&&!u.carrier);renderer.selected=new Set(u?[u.id]:[]);if(u){renderer.camera.x=u.x;renderer.camera.y=u.y;renderer.boundCamera();}refresh();};
 el('select-base').onclick=()=>{renderer.selected.clear();renderer.selectedBase=game.bases.find(b=>b.owner===0&&b.kind==='headquarters'&&b.hp>0)?.id??null;renderer.home();refresh();};
 el('hold').onclick=()=>{input.stop(true);refresh();};
@@ -165,7 +170,7 @@ for(const button of document.querySelectorAll<HTMLButtonElement>('[data-build]')
 el('stop').onclick=()=>{input.stop();refresh();};el('attack').onclick=()=>{renderer.attackMode=!renderer.attackMode;renderer.canvas.classList.toggle('attack',renderer.attackMode);refresh();};
 el('move-mode').onclick=()=>{if(renderer.selected.size){renderer.attackMode=false;renderer.commandMode='move';renderer.canvas.classList.remove('attack');notify('Linksklick auf das Bewegungsziel.');}else notify('Zuerst eine Einheit auswählen.');};
 el('rally-mode').onclick=()=>{const b=contextBase();if(b){renderer.selected.clear();renderer.selectedBase=b.id;notify('Rechtsklick auf den neuen Sammelpunkt.');refresh();}};
-el('recruit').onclick=()=>{const b=productionBase(),kind=b?unitKinds.find(k=>UNITS[k].producers.includes(b.kind)):undefined;if(kind)train(kind);};el('cancel').onclick=()=>{const b=productionBase();if(b){if(b.buildRemaining>0){game.cancelConstruction(b.id);renderer.selectedBase=null;}else game.cancel(b.id);refresh();}};
+el('recruit').onclick=()=>{const b=productionBase(),kind=b?unitKinds.find(k=>UNITS[k].producers.includes(b.kind)):undefined;if(kind)train(kind,false,b);};el('cancel').onclick=()=>{const b=productionBase();if(b){if(b.buildRemaining>0){game.cancelConstruction(b.id);renderer.selectedBase=null;}else game.cancel(b.id);refresh();}};
 el('cancel-action').onclick=()=>{if(renderer.placement||renderer.commandMode){renderer.placement=null;renderer.commandMode=null;renderer.canvas.classList.remove('building');}else{const b=contextBase();if(b&&b.buildRemaining>0){game.cancelConstruction(b.id);renderer.selectedBase=null;}else{renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;}}refresh();};
 for(const name of ['units','territories'])el('tab-'+name).onclick=()=>tab(name);
 try{renderer.units.particles.enabled=localStorage.getItem('atlas-reborn-particles')!=='false';}catch{/* Optional local setting. */}

@@ -160,7 +160,7 @@ export class Simulation {
     let id=1000;while(this.bases.some(b=>b.id===id)||this.units.some(u=>u.id===id))id++;
     const b:Base={id,owner,kind,...p,hp:spec.hp*.25,territory:territory.id,radius:spec.radius,queue:[],queueTypes:[],production:0,buildRemaining:spec.buildTime,cooldown:0,rally:null};
     this.bases.push(b);
-    if(!this.command(workers.map(u=>u.id),{...p,kind:'build',target:id})){this.bases.pop();this.notices.push('Kein ausgewählter Bauarbeiter kann diese Baustelle erreichen.');return null;}
+    if(!this.command(workers.map(u=>u.id),{...p,kind:'build',target:id})){this.bases.pop();this.notices.push('Kein ausgewählter Pionier kann diese Baustelle erreichen.');return null;}
     this.credits[owner]-=spec.cost;this.updateVision();return b;
   }
   cancelConstruction(id:number):boolean {

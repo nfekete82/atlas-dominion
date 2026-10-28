@@ -3,6 +3,7 @@ import { Renderer } from './renderer.js';
 import { buildingSpec, unitSpec } from './catalog.js';
 import { unitSelectionPoint } from './unit-presentation.js';
 import {buildingArtWidth} from './visual-scale.js';
+import {minimapWorldPoint} from './minimap-input.js';
 import type {PlayerOrder,RadioAction} from './unit-radio.js';
 
 export class Input {
@@ -62,12 +63,22 @@ export class Input {
       renderer.selectedBase=null;for(const u of renderer.game.units){const s=renderer.screen(unitSpec(u).flying?unitSelectionPoint(u):u);if(u.owner===0&&!u.carrier&&s.x>0&&s.y>0&&s.x<renderer.width&&s.y<renderer.height)renderer.selected.add(u.id);}this.onSelection();
     });
     canvas.addEventListener('wheel',e=>{e.preventDefault();renderer.zoom(e.deltaY,local(e));},{passive:false});
-    const miniMove=(e:PointerEvent)=>{const r=mini.getBoundingClientRect();renderer.camera.x=(e.clientX-r.left)/r.width*renderer.game.world.size;renderer.camera.y=(e.clientY-r.top)/r.height*renderer.game.world.size;renderer.boundCamera();};
-    mini.addEventListener('pointerdown',e=>{if(e.button!==0)return;this.miniDragging=true;mini.setPointerCapture(e.pointerId);miniMove(e);});
+    const miniPoint=(e:PointerEvent)=>minimapWorldPoint({x:e.clientX,y:e.clientY},mini.getBoundingClientRect(),renderer.game.world.size);
+    const miniMove=(e:PointerEvent)=>{const p=miniPoint(e);if(!p)return;renderer.camera.x=p.x;renderer.camera.y=p.y;renderer.boundCamera();};
+    mini.addEventListener('contextmenu',e=>e.preventDefault());
+    mini.addEventListener('pointerdown',e=>{
+      this.pointer=null;renderer.pointer=null;
+      if(e.button===2){e.preventDefault();const p=miniPoint(e);if(p)this.order(p,e.shiftKey,true);return;}
+      if(e.button!==0)return;this.miniDragging=true;mini.setPointerCapture(e.pointerId);miniMove(e);
+    });
     mini.addEventListener('pointermove',e=>{if(this.miniDragging)miniMove(e);});
-    mini.addEventListener('pointerup',()=>{this.miniDragging=false;});mini.addEventListener('pointercancel',()=>{this.miniDragging=false;});
+    mini.addEventListener('pointerup',e=>{if(e.button===0)this.miniDragging=false;});
+    mini.addEventListener('pointercancel',()=>{this.miniDragging=false;});
+    mini.addEventListener('lostpointercapture',()=>{this.miniDragging=false;});
     window.addEventListener('keydown',e=>{
       if(e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement||document.querySelector('dialog[open]'))return;
+      // Focused catalog tabs retain native Space/Enter activation.
+      if(e.target instanceof HTMLButtonElement&&e.target.matches('[data-tab]')&&(e.key===' '||e.key==='Enter'))return;
       const key=e.key.toLowerCase();if([' ','arrowup','arrowdown','arrowleft','arrowright','f5','f9'].includes(key))e.preventDefault();
       if(e.repeat)return;
       if(key===' '){this.onPause();return;}
@@ -104,6 +115,13 @@ export class Input {
   }
   order(p:Point,append=false,forceMove=false):void {
     const r=this.renderer,g=r.game;
+    // A minimap/forced move never resolves a target or a building rally point.
+    // Reuse exactly the same simulation command and feedback as world orders.
+    if(forceMove){
+      if(!g.units.some(u=>r.selected.has(u.id)&&u.owner===0&&u.hp>0&&!u.carrier))return;
+      r.placement=null;r.commandMode=null;r.attackMode=false;r.canvas.classList.remove('attack','building');
+      this.commandSelected(p,'move',append);return;
+    }
     if(r.selectedBase!==null){const b=g.bases.find(b=>b.id===r.selectedBase&&b.owner===0&&b.hp>0);if(b){b.rally=g.world.nearest(p,g.obstacles());this.notify('Sammelpunkt gesetzt.');}return;}
     if(!r.selected.size)return;
     const friendlyUnit=g.units.filter(u=>u.owner===0&&!u.carrier&&u.hp>0&&distance(unitSelectionPoint(u),p)<Math.max(30/r.camera.zoom,unitSpec(u).width*.5)).sort((a,b)=>distance(unitSelectionPoint(a),p)-distance(unitSelectionPoint(b),p))[0];
@@ -146,12 +164,18 @@ export class Input {
     const enemy=strictMove?undefined:[...g.units,...g.bases].find(e=>!('carrier' in e&&e.carrier)&&e.owner!==0&&e.hp>0&&g.canSee(0,e)&&distance('orders' in e&&unitSpec(e).flying?unitSelectionPoint(e):e,p)<('queue' in e?100:40)/r.camera.zoom);
     const kind=strictMove?'move':enemy?'attack':r.attackMode?'attackMove':'move';
     const destination=enemy?p:r.bastionAt(p)?.point??p;
-    const before=new Map(g.units.filter(u=>r.selected.has(u.id)).map(u=>[u.id,u.orders.at(-1)]));
-    const count=g.command([...r.selected],{...destination,kind,target:enemy?.id},append);
-    if(count){r.marker={point:destination,life:.8,attack:kind!=='move'};this.acknowledge(kind==='move'?'move':'attack',g.units.filter(u=>r.selected.has(u.id)&&u.orders.at(-1)!==before.get(u.id)).map(u=>u.id));}
+    this.commandSelected(destination,kind,append,enemy?.id);
+  }
+  private commandSelected(destination:Point,kind:'move'|'attack'|'attackMove',append:boolean,target?:number):void{
+    const r=this.renderer,g=r.game,ids=g.units.filter(u=>r.selected.has(u.id)&&u.owner===0&&u.hp>0&&!u.carrier).map(u=>u.id);
+    if(!ids.length)return;
+    const before=new Map(g.units.filter(u=>ids.includes(u.id)).map(u=>[u.id,u.orders.at(-1)]));
+    const count=g.command(ids,{...destination,kind,target},append);
+    if(count){r.marker={point:destination,life:.8,attack:kind!=='move'};this.acknowledge(kind==='move'?'move':'attack',g.units.filter(u=>ids.includes(u.id)&&u.orders.at(-1)!==before.get(u.id)).map(u=>u.id));}
     else this.notify('Dieses Ziel ist nicht erreichbar.');
     r.attackMode=false;r.canvas.classList.remove('attack');this.onSelection();
   }
+
   update(dt:number):void {
     if(document.querySelector('dialog[open]'))return;
     const r=this.renderer,speed=650*dt/r.camera.zoom,edge=14;let dx=0,dy=0;

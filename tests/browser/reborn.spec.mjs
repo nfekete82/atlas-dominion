@@ -22,7 +22,7 @@ async function order(page,p,{attack=false,shift=false}={}){
  await page.mouse.click(at.x,at.y,{button:'right'});if(shift)await page.keyboard.up('Shift');
 }
 async function selectArmy(page){
- await page.locator('#home').click();const positions=await page.evaluate(()=>window.__reborn.game.units.filter(u=>u.owner===0).map(u=>window.__reborn.renderer.screen(u)));
+ await page.keyboard.press('h');const positions=await page.evaluate(()=>window.__reborn.game.units.filter(u=>u.owner===0).map(u=>window.__reborn.renderer.screen(u)));
  const xs=positions.map(p=>p.x),ys=positions.map(p=>p.y);await page.mouse.move(Math.min(...xs)-30,Math.min(...ys)-65);await page.mouse.down();await page.mouse.move(Math.max(...xs)+30,Math.max(...ys)+16,{steps:12});await page.mouse.up();
 }
 
@@ -38,7 +38,7 @@ test('reborn: complete browser loop from one soldier through capture, production
  expect(await page.evaluate(()=>window.__reborn.game.territories[20].owner)).toBe(0);await expect(page.locator('#income')).toHaveText('+40');
  expect(await page.evaluate(()=>window.__reborn.game.explored[0].reduce((a,b)=>a+b,0))).toBeGreaterThan(initial.explored);
  await order(page,{x:initial.base.x+140,y:initial.base.y+100});await advance(page,7);
- await page.locator('#home').click();const b=await screen(page,{x:initial.base.x,y:initial.base.y-90});await page.mouse.click(b.x,b.y);
+ await page.keyboard.press('h');const b=await screen(page,{x:initial.base.x,y:initial.base.y-90});await page.mouse.click(b.x,b.y);
  await expect(page.locator('#production')).toBeVisible();
  const barracks=await page.evaluate(()=>{const a=window.__reborn,g=a.game,hq=g.bases[0],worker=g.units.find(u=>u.owner===0&&u.kind==='engineer');for(let r=190;r<600;r+=30)for(let i=0;i<24;i++){const p={x:hq.x+Math.cos(i*Math.PI/12)*r,y:hq.y+Math.sin(i*Math.PI/12)*r};if(!g.buildError(0,'barracks',p)){const b=g.build(0,'barracks',p,[worker.id]);return b.id;}}throw Error('No barracks site');});
  await advance(page,45);await page.evaluate(id=>{const a=window.__reborn;a.renderer.selected.clear();a.renderer.selectedBase=id;a.refresh();},barracks);
@@ -97,7 +97,7 @@ test('reborn: hidden enemies leave no main-map or minimap pixels, and terrain st
    return {canSee:g.canSee(0,enemy),explored:g.hasExplored(0,base),pixel,m};
  });
  expect(hidden.canSee).toBe(false);expect(hidden.explored).toBe(false);expect(hidden.pixel.slice(0,3).every(v=>v<12)).toBe(true);expect(hidden.m.slice(0,3).every(v=>v<12)).toBe(true);
- await page.locator('#home').click();await page.locator('#select-unit').click();await order(page,{x:1567.5,y:2633.4});await advance(page,14);await order(page,{x:940.5,y:1881});await advance(page,13);
+ await page.keyboard.press('h');await page.locator('#select-unit').click();await order(page,{x:1567.5,y:2633.4});await advance(page,14);await order(page,{x:940.5,y:1881});await advance(page,13);
  const known=await page.evaluate(()=>{const g=window.__reborn.game;return {known:g.hasExplored(0,g.territories[20].point),visible:g.canSee(0,g.territories[20].point),memory:g.explored[0].some((v,i)=>v&&!g.visible[0][i]&&!g.world.blocked[i])};});expect(known).toEqual({known:true,visible:true,memory:true});
 });
 
@@ -282,12 +282,12 @@ test('reborn: factory and airfield catalogs produce all five vehicles and aircra
  expect(await page.evaluate(()=>window.__reborn.game.bases.length)).toBe(4);
  const moved=await page.evaluate(()=>{const {game:g}=window.__reborn,army=g.units.filter(u=>u.owner===0&&['rover','tank','artillery'].includes(u.kind));const before=army.map(u=>({id:u.id,x:u.x,y:u.y}));g.command(army.map(u=>u.id),{...g.territories[20].point,kind:'move'});return before;});await advance(page,14);
  for(const original of moved){const distance=await page.evaluate(original=>{const u=window.__reborn.game.units.find(u=>u.id===original.id);return Math.hypot(u.x-original.x,u.y-original.y);},original);expect(distance).toBeGreaterThan(45);}
- await page.locator('#home').click();await page.screenshot({path:evidence+'unit-roster.png'});
+ await page.keyboard.press('h');await page.screenshot({path:evidence+'unit-roster.png'});
 });
 
 
 test('reborn: authored shadows, slow base activity and subtle sand drift stay grounded and pause with simulation time',async({page})=>{
- await start(page);await page.locator('#home').click();
+ await start(page);await page.keyboard.press('h');
  const result=await page.evaluate(()=>{
   const {renderer:r,game:g}=window.__reborn,original=r.context,selected=r.selectedBase,oldTime=g.time;
   const canvas=document.createElement('canvas');canvas.width=640;canvas.height=540;const c=canvas.getContext('2d');r.context=c;r.selectedBase=null;
@@ -581,7 +581,7 @@ test('reborn: unit portraits use subtle desert texture, aligned single-line name
   expect(report.every(r=>r.name&&/^\d/.test(r.cost))).toBe(true);
   expect(report.every(r=>r.sameRow&&r.fits&&r.aligned&&r.portraitFits&&r.footerFlex==='flex')).toBe(true);
   expect(report.every(r=>r.texture.includes('sand-ripples-v2.png'))).toBe(true);
-  expect(report.find(r=>r.name==='Bauarbeiter')?.cost).toBe('200');
+  expect(report.find(r=>r.name==='Pionier')?.cost).toBe('200');
  }
 });
 
