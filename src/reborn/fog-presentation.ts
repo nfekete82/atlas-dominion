@@ -7,7 +7,8 @@
 export const FOG_SCALE=2;
 export const FOG_REMEMBERED_ALPHA=177;
 export const FOG_UNKNOWN_ALPHA=255;
-export const FOG_FEATHER_CELLS=1.6;
+export const FOG_FEATHER_CELLS=2.4;
+export const FOG_BACKGROUND='#080b0d';
 const DIAGONAL=Math.SQRT2;
 
 /** Approximate Euclidean distance between grid-cell centers (8-neighbor chamfer). */
@@ -34,9 +35,30 @@ function distanceField(target:Uint8Array,width:number):Float32Array {
   }
   return distances;
 }
+/**
+ * Gently irregular, deterministic shoreline. The perturbation is well below a
+ * grid cell; it affects only the presentation, never visibility or exploration.
+ */
+export function fogEdgeOffset(x:number,y:number):number {
+  return Math.sin(x*.21+y*.10)*.13
+    +Math.sin(x*.11-y*.19)*.10
+    +Math.sin(x*.051+y*.049)*.08;
+}
 function feather(distance:number):number {
   const t=Math.max(0,Math.min(1,(distance-.5)/FOG_FEATHER_CELLS));
   return 1-t*t*(3-2*t);
+}
+
+/** Muted desert dust tint, painted only in genuinely visible boundary pixels. */
+export function fogOverlayRgb(alpha:number,isVisible:boolean,x:number,y:number):readonly [number,number,number] {
+  if(!isVisible||alpha<=0||alpha>=250)return [8,11,13];
+  const band=Math.max(0,1-Math.abs(alpha-96)/129);
+  if(band===0)return [8,11,13];
+  const grain=((Math.imul(x,374761393)^Math.imul(y,668265263))>>>0)%9-4;
+  const strength=band*.72;
+  return [Math.round(8+112*strength+grain*.40*strength),
+          Math.round(11+77*strength+grain*.32*strength),
+          Math.round(13+43*strength+grain*.20*strength)];
 }
 interface SampleAxis {lo:number;hi:number;t:number}
 function sampleAxes(width:number,scale:number):SampleAxis[] {
@@ -69,10 +91,11 @@ export function makeSmoothFogAlpha(visible:Uint8Array,explored:Uint8Array,grid:n
       const cell=base+((x/scale)|0);
       if(!explored[cell]){alpha[row+x]=FOG_UNKNOWN_ALPHA;continue;}
       // Interior pixels use the unchanged semantic alpha without interpolation.
-      if(!visible[cell]&&unknownDistance[cell]>3.1){alpha[row+x]=FOG_REMEMBERED_ALPHA;continue;}
-      if(visible[cell]&&unseenDistance[cell]>3.1&&unknownDistance[cell]>3.1){alpha[row+x]=0;continue;}
-      const dim=FOG_REMEMBERED_ALPHA*feather(sample(unseenDistance,grid,axes[x],axes[y]));
-      const blind=FOG_UNKNOWN_ALPHA*feather(sample(unknownDistance,grid,axes[x],axes[y]));
+      if(!visible[cell]&&unknownDistance[cell]>FOG_FEATHER_CELLS+1.2){alpha[row+x]=FOG_REMEMBERED_ALPHA;continue;}
+      if(visible[cell]&&unseenDistance[cell]>FOG_FEATHER_CELLS+1.2&&unknownDistance[cell]>FOG_FEATHER_CELLS+1.2){alpha[row+x]=0;continue;}
+      const wobble=fogEdgeOffset(x,y);
+      const dim=FOG_REMEMBERED_ALPHA*feather(sample(unseenDistance,grid,axes[x],axes[y])+wobble);
+      const blind=FOG_UNKNOWN_ALPHA*feather(sample(unknownDistance,grid,axes[x],axes[y])+wobble);
       alpha[row+x]=visible[cell]?Math.max(dim,blind):Math.max(FOG_REMEMBERED_ALPHA,blind);
     }
   }

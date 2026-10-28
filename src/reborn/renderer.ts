@@ -2,7 +2,7 @@ import { profiler } from './performance.js';
 import { ASSETS, RULES, clamp, distance, type Point } from './config.js';
 import { Simulation, HEAL_RADIUS, type Base, type Unit } from './simulation.js';
 import { type Territory } from './world.js';
-import { FOG_SCALE, fogMaskChanged, makeSmoothFogAlpha } from './fog-presentation.js';
+import { FOG_SCALE, FOG_BACKGROUND, fogMaskChanged, makeSmoothFogAlpha, fogOverlayRgb } from './fog-presentation.js';
 import { BUILDINGS, UNITS, buildingSpec, unitSpec, type BuildingKind, type UnitKind } from './catalog.js';
 import { UnitPresentation, unitVisualLift } from './unit-presentation.js';
 import {angleDifference} from './sprite-animator.js';
@@ -246,9 +246,12 @@ export class Renderer {
     this.previousFogVisible=v.slice();this.previousFogExplored=e.slice();
     const alpha=makeSmoothFogAlpha(v,e,RULES.grid),c=this.fog.getContext('2d')!;
     const data=c.createImageData(this.fog.width,this.fog.height);
+    const width=this.fog.width;
     for(let i=0;i<alpha.length;i++){
-      const j=i*4;
-      data.data[j]=3;data.data[j+1]=5;data.data[j+2]=7;data.data[j+3]=alpha[i];
+      const x=i%width,y=Math.floor(i/width);
+      const index=Math.floor(y/FOG_SCALE)*RULES.grid+Math.floor(x/FOG_SCALE);
+      const [r,g,b]=fogOverlayRgb(alpha[i],v[index]===1,x,y),j=i*4;
+      data.data[j]=r;data.data[j+1]=g;data.data[j+2]=b;data.data[j+3]=alpha[i];
     }
     c.putImageData(data,0,0);
   }
@@ -298,7 +301,7 @@ export class Renderer {
     }
     for(const blast of g.blasts)if(!this.seenImpacts.has(blast)){this.seenImpacts.add(blast);if(g.canSee(0,blast)&&g.time-blast.at<.15){particles.emit('explosion',{x:blast.x,y:blast.y-8});this.battlefield.blast(blast,g.time);}}
     this.interpolation=g.paused?1:clamp(interpolation,0,1);
-    c.fillStyle='#030507';c.fillRect(0,0,this.width,this.height);c.save();
+    c.fillStyle=FOG_BACKGROUND;c.fillRect(0,0,this.width,this.height);c.save();
     c.translate(this.width/2,this.height/2);c.scale(this.camera.zoom,this.camera.zoom);c.translate(-this.camera.x,-this.camera.y);
     c.drawImage(this.terrainSurface,0,0);
     this.paintSandWind(g.time);
