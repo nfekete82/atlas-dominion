@@ -1,0 +1,10 @@
+{
+  "artillery-0.glb": {
+    "sha256": "5988e63c410ad03ec0a66932dc37799b776af5cc3819730262ae2e4c14d7f482",
+    "unchangedWithExportGlb": true
+  },
+  "artillery-1.glb": {
+    "sha256": "76567146822b6c0b5d9c1ffafc188132513b4d0021fcd91719a200622397d99f",
+    "unchangedWithExportGlb": true
+  }
+}

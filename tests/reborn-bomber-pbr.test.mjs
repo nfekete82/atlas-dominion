@@ -56,7 +56,7 @@ test('gameplay bomber sprites are regenerated from the original GLBs and expose 
 test('renderer uses authored GLB without exporting over it',()=>{
  const source=fs.readFileSync(path.join(root,'scripts/animation/render.js'),'utf8');
  assert.match(source,/kind==='bomber'\?await loadFactionBomber\(team\)/);
- assert.match(source,/if\(rig&&!atlasOnly&&kind!=='bomber'&&kind!=='scout'\)/);
+ assert.match(source,/if\(rig&&!atlasOnly&&kind!=='bomber'&&kind!=='scout'&&kind!=='artillery'\)/);
  assert.match(source,/\['idle','Propellers_Continuous',8,true\]/);
  assert.match(source,/\['walk','Propellers_Continuous',8,true\]/);
 });

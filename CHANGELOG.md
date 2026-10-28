@@ -7,6 +7,7 @@ Der lokale Paketstand ist weiterhin 1.8.0. Es wurden keine Release-Tags angelegt
 - Neun aktive Einheitentypen mit eigenen Rollen: Sanitäter, Bauarbeiter, verstärkte schwere Infanterie sowie Fahrzeuge und Luftunterstützung.
 - Artillerie zum Raketenwerfer mit 680 M Reichweite, 830 M Sicht, sichtbaren Flugkörpern und Flächenschaden umgebaut.
 - Transporthelikopter durch ein eigenes Mi-8/17-inspiriertes PBR-Modell für beide Teams ersetzt: fünfblättriger Hauptrotor, unabhängiger Heckrotor, 16 Richtungen und acht Spritephasen. Kampfhelikopter aus dem aktiven Kader entfernt; alte Einheiten und bezahlte Aufträge werden migriert. Zehn Transportplätze bleiben erhalten.
+- Raketenwerfer durch einen detaillierten 6×6-Lkw mit Sechsfachwerfer nach HIMARS-Referenz ersetzt: PBR-Teammodelle, animierte Räder, Drehkranz und teleskopierende Hubzylinder. Sechs echte Mündungen für Geschosse und Startblitze; Spielwerte und Saveformat unverändert.
 - Landeanflug an den Bremsabstand angepasst und durchgehende Rotor-/Propellerphase beim Wechsel zwischen Stillstand und Flug gesichert.
 - Kompakter Geschützturm mit 600 M Reichweite, 750 M Sicht, eigenständig drehbarem Kopf, zwei registrierten Mündungen und blockierten Schusslinien hinter Felsen.
 - Gezielter Gebäudeaufbau und Reparaturen durch echte Arbeiter; Sanitäter mit begrenzter verteilter Heilung, Selbstversorgung und Position hinter der Front.

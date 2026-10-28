@@ -34,13 +34,13 @@
       "file": "src/assets/reborn/animation/artillery-0.png",
       "width": 3072,
       "height": 2880,
-      "sha256": "e753e94d90ce36344773bae80202c56ce204421f0066800bf96b3c43d176873e"
+      "sha256": "6ada334fbd5fa9a5ea286dd02e5176c8d45db49c114e7fae140dfdd010fa8d33"
     },
     {
       "file": "src/assets/reborn/animation/artillery-1.png",
       "width": 3072,
       "height": 2880,
-      "sha256": "64168f62ea6c3055a9298a908dccd8b6a3c30cd842bc8095fbd9a4e9c1974c20"
+      "sha256": "1cc1bf09b0bf213cb03a27e1591cd622182c82fc639badd05d4de9e0eebaf038"
     },
     {
       "file": "src/assets/reborn/animation/bomber-0.png",
@@ -2103,16 +2103,24 @@
       "frameCount": 240,
       "source": "Atlas original vehicle geometry",
       "model": "artillery-0.glb",
-      "modelSha256": "009eb762d55261645dae105bc4f697f1f7d4e50822321b64a0ceba77cf4ba968",
+      "modelSha256": "5988e63c410ad03ec0a66932dc37799b776af5cc3819730262ae2e4c14d7f482",
       "design": {
         "kind": "artillery",
         "team": 0,
-        "parts": 436,
-        "triangles": 111484,
-        "role": "long range rocket launcher",
-        "tubes": 12,
-        "geometry": "Atlas original ceramic / bronze vehicle geometry",
-        "source": "Atlas Dominion / original procedural models"
+        "parts": 999,
+        "triangles": 46770,
+        "drawCalls": 33,
+        "source": "Sandforge authored original rocket launcher GLB",
+        "geometry": "Reference-inspired desert 6x6 armored truck, six-tube elevated pod, rotating turntable and telescoping hydraulics",
+        "tubes": 6,
+        "wheels": 6,
+        "layout": "3 x 2",
+        "textures": "1024² embedded base color / normal / packed ORM",
+        "turretPivot": [
+          0,
+          1.75,
+          0
+        ]
       },
       "clips": {
         "idle": {
@@ -2157,7 +2165,7 @@
             4,
             4
           ],
-          "source": "authored rigid track geometry"
+          "source": "authored rigid wheel geometry"
         },
         "turnLeft": {
           "phases": 4,
@@ -2179,7 +2187,7 @@
             4,
             4
           ],
-          "source": "authored rigid track geometry"
+          "source": "authored rigid wheel geometry"
         },
         "turnRight": {
           "phases": 4,
@@ -2201,7 +2209,7 @@
             4,
             4
           ],
-          "source": "authored rigid track geometry"
+          "source": "authored rigid wheel geometry"
         },
         "turret": {
           "phases": 1,
@@ -2230,16 +2238,24 @@
       "frameCount": 240,
       "source": "Atlas original vehicle geometry",
       "model": "artillery-1.glb",
-      "modelSha256": "6e5f832da81564c948bf8a0ce57dfa852f39afa0a4f9230a15c56ccc0e202f32",
+      "modelSha256": "76567146822b6c0b5d9c1ffafc188132513b4d0021fcd91719a200622397d99f",
       "design": {
         "kind": "artillery",
         "team": 1,
-        "parts": 436,
-        "triangles": 111484,
-        "role": "long range rocket launcher",
-        "tubes": 12,
-        "geometry": "Atlas original ceramic / bronze vehicle geometry",
-        "source": "Atlas Dominion / original procedural models"
+        "parts": 999,
+        "triangles": 46770,
+        "drawCalls": 33,
+        "source": "Sandforge authored original rocket launcher GLB",
+        "geometry": "Reference-inspired desert 6x6 armored truck, six-tube elevated pod, rotating turntable and telescoping hydraulics",
+        "tubes": 6,
+        "wheels": 6,
+        "layout": "3 x 2",
+        "textures": "1024² embedded base color / normal / packed ORM",
+        "turretPivot": [
+          0,
+          1.75,
+          0
+        ]
       },
       "clips": {
         "idle": {
@@ -2284,7 +2300,7 @@
             4,
             4
           ],
-          "source": "authored rigid track geometry"
+          "source": "authored rigid wheel geometry"
         },
         "turnLeft": {
           "phases": 4,
@@ -2306,7 +2322,7 @@
             4,
             4
           ],
-          "source": "authored rigid track geometry"
+          "source": "authored rigid wheel geometry"
         },
         "turnRight": {
           "phases": 4,
@@ -2328,7 +2344,7 @@
             4,
             4
           ],
-          "source": "authored rigid track geometry"
+          "source": "authored rigid wheel geometry"
         },
         "turret": {
           "phases": 1,

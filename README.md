@@ -36,11 +36,13 @@ npm run dev
 | Schwere Infanterie | 250 | 420 LP, stark gegen Infanterie; weniger Schaden gegen Panzerung |
 | Humvee | 350 | Schnelle Aufklärung und Flanken |
 | Kampfpanzer | 450 | Gepanzerte Frontunterstützung |
-| Raketenwerfer | 600 | Bodenbeschuss mit fliegenden Raketen und Flächenschaden |
+| Raketenwerfer | 600 | Schwerer 6×6-Lkw mit sechs Werferrohren, fliegenden Raketen und Flächenschaden |
 | Transporthelikopter | 600 | Aufklärung, zehn Passagiere und defensive Maschinengewehre |
 | Bomber | 1000 | Schwere Feuerkraft gegen Bodenziele |
 
 Der Transporthelikopter nutzt zwei eigene PBR-GLBs mit unabhängig animierten Haupt- und Heckrotoren. Reproduzierbarer Modell-/Sprite-Build: `npm run assets:transport`. Alte Kampfhelikopter und ihre bezahlten Aufträge werden beim Laden verlustfrei in Transporthelikopter migriert. [Modell, Migration und Prüfnachweise](docs/qa/transport-helicopter-20261028/README.md).
+
+Der Raketenwerfer nutzt zwei eigene PBR-GLBs nach der HIMARS-Referenz mit Rad-, Drehkranz- und Hydraulikanimationen. `npm run assets:rocket-launcher` erzeugt Modelle und getrennte Spielsprite-Layer reproduzierbar. [Modell und Prüfnachweise](docs/qa/rocket-launcher-20261028/README.md).
 
 Die KI bezahlt ihre Einheiten und Gebäude, sammelt gemischte Angriffsgruppen, reagiert auf gesichtete Verteidigungen, nutzt Belagerung und Flanken und zieht verletzte Truppen zur Versorgung zurück. Die KI kann Infanterie mit dem Transporthelikopter aufnehmen und am Einsatzort ausladen.
 

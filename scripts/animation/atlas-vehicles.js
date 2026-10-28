@@ -38,8 +38,8 @@ export function buildAtlasVehicle(kind,team=0){
   for(const x of [-.35,.35]){lamp(x,.69,.89);bolt(x,.60,.90);}
   vent(0,.63,-.78,.50,.18);const antenna=cylinder('Antenna',.012,.58,m.edge,[.32,1.58,-.52],model,8);cylinder('AntennaTip',.021,.05,m.light,[.32,1.89,-.52]);
   cylinder('RoofMount',.18,.06,m.edge,[0,1.35,-.12]);box('Sensor',[.25,.12,.27],m.dark,[0,1.44,-.12]);lamp(0,1.44,.03);
- }else if(kind==='tank'||kind==='artillery'){
-  const artillery=kind==='artillery',length=artillery?2.12:1.92;
+ }else if(kind==='tank'){
+  const length=1.92;
   box('TrackedChassis',[1.14,.28,length],m.dark,[0,.38,0]);box('HullBronze',[1.23,.37,length*.89],m.edge,[0,.63,0],model,.08);box('CeramicHull',[1.16,.20,length*.85],m.sand,[0,.85,0],model,.07);
   for(const side of [-1,1]){
    box('TrackCavity',[.34,.43,length+.10],m.rubber,[side*.73,.36,0],model,.12);
@@ -57,25 +57,11 @@ export function buildAtlasVehicle(kind,team=0){
   box('TurretStripe',[.14,.023,.65],m.team,[0,1.42,-.15],turret);cylinder('CommanderHatch',.17,.05,m.dark,[-.22,1.44,-.22],turret);cylinder('HatchPlate',.14,.035,m.sand,[-.22,1.48,-.22],turret);
   for(const x of [-.45,.45]){box('TurretFactionBadge',[.025,.13,.31],m.team,[x,1.23,-.17],turret);vent(x*.65,1.17,-.56,.20,.15,turret);}
   const gun=group('Tank_Gun');box('GunMantlet',[.33,.23,.22],m.edge,[0,1.21,.34],gun,.05);
-  if(artillery){
-   for(const side of [-1,1]){
-    box('RocketPodCasing',[.57,.60,1.15],m.edge,[side*.34,1.40,.45],gun,.045);
-    box('RocketPodEnamel',[.50,.09,.95],m.team,[side*.34,1.74,.43],gun);
-    for(let row=0;row<3;row++)for(let col=0;col<2;col++){
-     const x=side*.34+(col-.5)*.23,y=1.20+row*.19;
-     cylinder('LaunchTube',.082,1.14,m.dark,[x,y,.46],gun,12).rotation.x=Math.PI/2;
-     cylinder('RocketTubeRim',.097,.07,m.edge,[x,y,1.04],gun,12).rotation.x=Math.PI/2;
-     const opening=box('MuzzleOpening',[.10,.10,.025],m.rubber,[x,y,1.085],gun,.007);if(!muzzle)muzzle=opening;
-     box('RocketNose',[.045,.045,.035],m.sand,[x,y,1.103],gun,.008);
-    }
-    vent(side*.34,1.41,-.16,.36,.26,gun);
-   }
-  }else{
+
    const lengthBarrel=.88,z=.45+lengthBarrel/2;
    cylinder('Barrel',.075,lengthBarrel,m.dark,[0,1.22,z],gun).rotation.x=Math.PI/2;
    cylinder('BarrelCollar',.095,.16,m.sand,[0,1.22,.59],gun).rotation.x=Math.PI/2;
    box('MuzzleBrake',[.17,.16,.22],m.edge,[0,1.22,.48+lengthBarrel],gun,.018);box('MuzzleOpening',[.105,.065,.024],m.rubber,[0,1.22,.60+lengthBarrel],gun,.008);
-  }
   lamp(.25,1.26,.30,turret);
  }else{throw Error('Use the authored GLB loader for '+kind);}
 
@@ -89,6 +75,6 @@ export function buildAtlasVehicle(kind,team=0){
   if(rotor)rotor.rotation.y=phase*Math.PI*2/3;if(extraRotor)extraRotor.rotation.y=-phase*Math.PI*2/3;if(tailRotor)tailRotor.rotation.x=phase*Math.PI;
  }
  animate('idle',0);
- model.userData.atlasDesign={kind,team,parts,triangles:Math.round(triangles),...(kind==='artillery'?{role:'long range rocket launcher',tubes:12}:{}),geometry:'Atlas original ceramic / bronze vehicle geometry',source:'Atlas Dominion / original procedural models'};
+ model.userData.atlasDesign={kind,team,parts,triangles:Math.round(triangles),geometry:'Atlas original ceramic / bronze vehicle geometry',source:'Atlas Dominion / original procedural models'};
  return {model,rotor,muzzle,animate};
 }

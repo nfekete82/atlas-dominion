@@ -21,6 +21,6 @@ test('combined arms: real rocket vehicle launches a visible travelling rocket fr
  const errors=await start(page);
  await page.evaluate(()=>{const {game:g,renderer:r}=window.__reborn;const u=g.spawn(0,{x:1900,y:2100},'artillery'),b={...g.bases[1],id:1500,x:2550,y:2100,kind:'turret',hp:650,radius:30,queue:[],queueTypes:[],cooldown:0};g.bases.push(b);g.updateVision();r.camera={x:2325,y:2150,zoom:1.2};r.boundCamera();r.selected=new Set([u.id]);r.render(0);g.command([u.id],{x:b.x,y:b.y,kind:'attack',target:b.id});window.__reborn.refresh();});
  await expect(page.locator('#selection-title')).toHaveText('Raketenwerfer');await advance(page,.6);
- expect(await page.evaluate(()=>({missiles:window.__reborn.game.missiles.length,hp:window.__reborn.game.bases.find(b=>b.id===1500).hp,rocket:window.__reborn.renderer.units.asset('artillery',0).data.design.tubes}))).toEqual({missiles:1,hp:650,rocket:12});
+ expect(await page.evaluate(()=>({missiles:window.__reborn.game.missiles.length,hp:window.__reborn.game.bases.find(b=>b.id===1500).hp,rocket:window.__reborn.renderer.units.asset('artillery',0).data.design.tubes}))).toEqual({missiles:1,hp:650,rocket:6});
  await page.screenshot({path:'artifacts/reborn/combined-rocket-flight.png'});await advance(page,1.3);expect(await page.evaluate(()=>window.__reborn.game.bases.find(b=>b.id===1500).hp)).toBe(530);expect(await page.evaluate(()=>window.__reborn.game.units.find(u=>u.kind==='artillery').hp)).toBe(340);expect(errors).toEqual([]);
 });
