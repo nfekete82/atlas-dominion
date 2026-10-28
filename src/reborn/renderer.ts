@@ -12,6 +12,7 @@ import {angleDifference} from './sprite-animator.js';
 import { BuildingPresentation } from './building-presentation.js';
 import {buildingArtWidth,unitArtScale} from './visual-scale.js';
 import {buildingPlacementRadius} from './building-spacing.js';
+import {paintDesertFoundation} from './desert-foundation.js';
 import {rosterImageRect,ROSTER_IMAGE_WIDTH,ROSTER_IMAGE_HEIGHT} from './portrait-layout.js';
 import { TERRAIN_FRAMES, TERRAIN_PLACEMENTS } from './terrain-art.js';
 import { paintGeneratedTerrain } from './terrain-presentation.js';
@@ -317,6 +318,8 @@ export class Renderer {
     const effectsView={left:this.camera.x-halfWidth-28,right:this.camera.x+halfWidth+28,
       top:this.camera.y-halfHeight-28,bottom:this.camera.y+halfHeight+28};
     const inView=(point:Point,padding=0)=>visibleInViewport(point,effectsView,padding);
+    // Built foundations are terrain: fog, tracks, units and sprites stay above them.
+    for(const b of g.bases)if(b.hp>0&&inView(b,500)&&(b.owner===0||g.canSee(0,b)))paintDesertFoundation(c,b);
     this.palms.draw(c,this.groundTextures.palm,g.time,effectsView);
     this.battlefield.drawTracks(c,g,effectsView);
     this.battlefield.drawMarks(c,g);
@@ -342,7 +345,7 @@ export class Renderer {
     if(profiler)profiler.record('sprites',performance.now()-spritesAt);
     if(this.placement&&this.pointer){
       const spec=BUILDINGS[this.placement],p=this.pointer,siteRadius=buildingPlacementRadius(this.placement),valid=g.units.some(u=>this.selected.has(u.id)&&u.kind==='engineer'&&u.owner===0&&u.hp>0)&&!g.buildError(0,this.placement,p);
-      c.save();c.strokeStyle=valid?'#96e0b8':'#f27e67';c.fillStyle=valid?'#6bcda52a':'#e66a552a';c.lineWidth=1.5;
+      c.save();paintDesertFoundation(c,{...p,id:0,kind:this.placement},.55);c.strokeStyle=valid?'#96e0b8':'#f27e67';c.fillStyle=valid?'#6bcda52a':'#e66a552a';c.lineWidth=1.5;
       c.beginPath();c.moveTo(p.x-siteRadius,p.y);c.lineTo(p.x,p.y-siteRadius*.5);c.lineTo(p.x+siteRadius,p.y);c.lineTo(p.x,p.y+siteRadius*.5);c.closePath();c.fill();c.stroke();
       this.spriteDraw(this.buildings[this.placement],p,buildingArtWidth(this.placement,spec.width),false,.65);if(this.placement==='turret')this.structures.drawTurret(c,0,p,buildingArtWidth(this.placement,spec.width),0,.65);c.restore();
     }
