@@ -10,6 +10,7 @@ import {buildingArtWidth,unitArtScale} from './visual-scale.js';
 import {rosterImageRect,ROSTER_IMAGE_WIDTH,ROSTER_IMAGE_HEIGHT} from './portrait-layout.js';
 import { TERRAIN_FRAMES, TERRAIN_PLACEMENTS } from './terrain-art.js';
 import { paintGeneratedTerrain } from './terrain-presentation.js';
+import { fineSandPattern } from './fine-sand.js';
 import { BattlefieldEffects, createGroundDetails, paintGroundDetails, type GroundDetail } from './battlefield-atmosphere.js';
 import {PalmGrove} from './palm-grove.js';
 import { buildTerrainVariants, type TerrainVariantAtlases } from './terrain-variants.js';
@@ -38,7 +39,7 @@ export class Renderer {
   private buildings={} as Record<BuildingKind,Sprite>;private redBuildings={} as Record<BuildingKind,Sprite>;
   private cliffs:Sprite[]=[];private shadows=new Map<Sprite,Sprite>();private icons=new Map<string,string>();
   private terrainSurface=document.createElement('canvas');private interpolation=1;
-  private sand=new Image();private sandstone=new Image();
+  private sandstone=new Image();
   private fog=document.createElement('canvas');private fogRevision=-1;
   private miniTerrain=document.createElement('canvas');
   constructor(readonly canvas:HTMLCanvasElement,readonly miniCanvas:HTMLCanvasElement,public game:Simulation){
@@ -67,9 +68,9 @@ export class Renderer {
   }
   async load():Promise<void>{
     this.terrain=new Image();this.terrain.src=ASSETS.terrain;
-    this.sand.src='/src/assets/reborn/sand-ripples-v2.png';this.sandstone.src='/src/assets/reborn/sandstone-strata-v1.png';
+    this.sandstone.src='/src/assets/reborn/sandstone-strata-v1.png';
     for(const [kind,image] of Object.entries(this.groundSprites))image.src='/src/assets/reborn/battlefield/'+kind+'.png';
-    const [cliffs]=await Promise.all([this.sprite(ASSETS.cliffs),this.terrain.decode(),this.units.load(),this.structures.load(),this.sand.decode(),this.sandstone.decode(),...Object.values(this.groundSprites).map(image=>image.decode())]);
+    const [cliffs]=await Promise.all([this.sprite(ASSETS.cliffs),this.terrain.decode(),this.units.load(),this.structures.load(),this.sandstone.decode(),...Object.values(this.groundSprites).map(image=>image.decode())]);
     const infantry=this.units.asset('infantry'),frame=infantry.data.frames[0];
     this.infantry={image:infantry.image,x:frame.x,y:frame.y,w:frame.w,h:frame.h};
     for(const kind of Object.keys(BUILDINGS) as BuildingKind[]){this.buildings[kind]=this.structures.sprite(kind,0);this.redBuildings[kind]=this.structures.sprite(kind,1);}
@@ -95,7 +96,7 @@ export class Renderer {
     const mini=this.miniTerrain.getContext('2d',{willReadFrequently:true})!;mini.drawImage(this.terrainSurface,0,0,224,224);mini.save();mini.scale(224/this.game.world.size,224/this.game.world.size);this.paintCliffs(mini);mini.restore();
   }
   private prepareTerrain():void{
-    if(this.game.world.generated){paintGeneratedTerrain(this.terrainSurface,this.game.world,this.sand,this.sandstone);return;}
+    if(this.game.world.generated){paintGeneratedTerrain(this.terrainSurface,this.game.world,this.sandstone);return;}
     const surface=this.terrainSurface;surface.width=surface.height=this.game.world.size;
     const ctx=surface.getContext('2d',{willReadFrequently:true})!,tile=document.createElement('canvas');tile.width=tile.height=190;
     const tc=tile.getContext('2d')!;tc.drawImage(this.terrain,445/1254*this.terrain.width,675/1254*this.terrain.height,190/1254*this.terrain.width,190/1254*this.terrain.height,0,0,190,190);
@@ -110,6 +111,9 @@ export class Renderer {
       pixels.data[i]=208+n+grain;pixels.data[i+1]=151+n*.86+grain;pixels.data[i+2]=88+n*.65+grain;pixels.data[i+3]=255;
     }
     ctx.putImageData(pixels,0,0);
+    // Legacy maps also receive the same seamless 2K fine-sand finish.
+    ctx.save();ctx.globalAlpha=.86;ctx.fillStyle=fineSandPattern(ctx);
+    ctx.fillRect(0,0,surface.width,surface.height);ctx.restore();
   }
   private paintCliffs(ctx:CanvasRenderingContext2D):void{
     if(this.game.world.generated)return;
