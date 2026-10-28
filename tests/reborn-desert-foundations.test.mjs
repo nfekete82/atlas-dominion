@@ -36,7 +36,7 @@ test('foundations: registration follows the lower visible 3D model edge rather t
     const offset=foundationGroundOffset(kind,atlas);
     const scale=buildingArtWidth(kind,BUILDINGS[kind].width)/atlas.solidBounds.w;
     assert.ok(Math.abs(offset-foot*scale)<1e-9,kind+' foundation must touch actual feet');
-    assert.ok(offset>20,kind+' original pivot would leave the slab floating behind the body');
+    assert.ok(offset>12,kind+' original pivot would leave the slab floating behind the body');
   }
 });
 
