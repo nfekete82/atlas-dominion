@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {BUILDINGS} from '../dist/src/reborn/catalog.js';
 import {buildingArtWidth} from '../dist/src/reborn/visual-scale.js';
-import {foundationFootprint,paintDesertFoundation} from '../dist/src/reborn/desert-foundation.js';
+import {foundationFootprint,foundationGroundOffset,paintDesertFoundation} from '../dist/src/reborn/desert-foundation.js';
 
 const large=['headquarters','barracks','factory','airfield'];
 const small=['generator','turret'];
@@ -13,8 +13,10 @@ test('foundations: all six building classes have finite low-profile desert platf
     const f=foundationFootprint(kind);
     for(const k of ['width','depth','front','corner','lip','skew'])assert.ok(Number.isFinite(f[k])&&f[k]>0,kind+' '+k);
     assert.ok(f.depth<f.width*.6,kind+' should read as an on-ground pad');
-    assert.ok(f.lip<=3,kind+' must not appear elevated');
-    assert.ok(f.width<buildingArtWidth(kind,BUILDINGS[kind].width)*1.12,kind+' must not become a giant concrete slab');
+    assert.ok(f.lip<=2,kind+' must not appear elevated');
+    assert.ok(f.front<=6,kind+' must sit beneath the wall, not the rooftop');
+    assert.ok(f.depth<=f.width*.38,kind+' must not surround the building with a broad polygon');
+    assert.ok(f.width<buildingArtWidth(kind,BUILDINGS[kind].width)*1.03,kind+' must not become a giant concrete slab');
   }
   for(const kind of large)assert.ok(
     foundationFootprint(kind).width>buildingArtWidth(kind,BUILDINGS[kind].width),
@@ -24,6 +26,18 @@ test('foundations: all six building classes have finite low-profile desert platf
     foundationFootprint(kind).width<buildingArtWidth(kind,BUILDINGS[kind].width),
     kind+' must have a compact pad'
   );
+});
+
+test('foundations: registration follows the lower visible 3D model edge rather than the high sprite pivot',()=>{
+  for(const kind of [...large,...small]){
+    const atlas=JSON.parse(readFileSync(new URL('../src/assets/reborn/buildings-3d/'+kind+'-0.json',import.meta.url),'utf8')).body;
+    const foot=atlas.solidBounds.y+atlas.solidBounds.h-atlas.pivot[1];
+    assert.ok(foot>0,kind+' bottom must be beyond the origin pivot');
+    const offset=foundationGroundOffset(kind,atlas);
+    const scale=buildingArtWidth(kind,BUILDINGS[kind].width)/atlas.solidBounds.w;
+    assert.ok(Math.abs(offset-foot*scale)<1e-9,kind+' foundation must touch actual feet');
+    assert.ok(offset>12,kind+' original pivot would leave the slab floating behind the body');
+  }
 });
 
 function drawing(){
@@ -61,11 +75,12 @@ test('foundations: painter is deterministic, alpha-safe, and draws a few muted m
 
 test('foundations: ground pass is below tracks, fog and all gameplay sprites and invisible enemies do not leak',()=>{
   const source=readFileSync(new URL('../src/reborn/renderer.ts',import.meta.url),'utf8');
-  const foundation=source.indexOf('paintDesertFoundation(c,b)');
+  const foundation=source.indexOf('this.drawFoundation(b)');
   assert.ok(foundation>0);
   assert.ok(foundation<source.indexOf('this.battlefield.drawTracks(c,g,effectsView)'));
   assert.ok(foundation<source.indexOf('c.drawImage(this.fog,0,0,s,s)'));
   assert.ok(foundation<source.indexOf('this.drawBase(e.base)'));
-  assert.match(source,/b.owner===0\|\|g.canSee\(0,b\)\)\)paintDesertFoundation\(c,b\)/);
-  assert.match(source,/paintDesertFoundation\(c,\{\.\.\.p,id:0,kind:this.placement\},\.55\)/);
+  assert.match(source,/b.owner===0\|\|g.canSee\(0,b\)\)\)this.drawFoundation\(b\)/);
+  assert.match(source,/this.drawFoundation\(\{\.\.\.p,id:0,kind:this.placement\},\.55\)/);
+  assert.match(source,/groundY=site.y\+foundationGroundOffset\(site.kind,body\)/);
 });
