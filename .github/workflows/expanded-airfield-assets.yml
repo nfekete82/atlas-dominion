@@ -1,0 +1,60 @@
+name: Bake expanded Sandforge airfield GLB and sprites
+on:
+  push:
+    branches:
+      - feat/sandforge-expanded-desert-airfield-20261028
+    paths:
+      - scripts/animation/atlas-buildings.js
+      - scripts/animation/building-details.js
+      - scripts/animation/building-pbr.js
+      - scripts/animation/building-export.js
+      - src/reborn/catalog.ts
+      - tests/reborn-expanded-airfield.test.mjs
+      - .github/workflows/expanded-airfield-assets.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sandforge-expanded-airfield-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  bake-airfield:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Checkout exact airfield feature branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Generate blue and red PBR airfield GLBs and sprites
+        run: node scripts/export-atlas-buildings.mjs --cpu airfield
+      - name: Build and test 3D airfield, simulation and asset integrity
+        run: |
+          npm run build
+          node --test tests/reborn-expanded-airfield.test.mjs tests/reborn-buildings.test.mjs
+          npm run assets:buildings:validate
+      - name: Commit finished 3D assets to this branch
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/assets/reborn/buildings-3d/airfield-*
+          if git diff --cached --quiet; then
+            echo "New airfield assets already committed"
+            exit 0
+          fi
+          git commit -m "assets(airfield): bake expanded desert base for both factions"
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
