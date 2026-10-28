@@ -286,8 +286,13 @@ export class Renderer {
     c.drawImage(this.terrainSurface,0,0);
     this.paintSandWind(g.time);
     this.paintCliffs(c);
-    this.battlefield.drawTracks(c,g);
+    // Cull off-screen imprints and keep sand effects beneath fog and units.
+    const halfWidth=this.width/(2*this.camera.zoom),halfHeight=this.height/(2*this.camera.zoom);
+    const effectsView={left:this.camera.x-halfWidth-28,right:this.camera.x+halfWidth+28,
+      top:this.camera.y-halfHeight-28,bottom:this.camera.y+halfHeight+28};
+    this.battlefield.drawTracks(c,g,effectsView);
     this.battlefield.drawMarks(c,g);
+    this.battlefield.drawWindVeil(c,g,effectsView,this.reducedMotion);
     for(const t of g.territories){
       if(t.owner>=0){this.polygon(t.polygon);c.fillStyle=t.owner===0?'#53b4ee0b':'#e257490b';c.fill();}
       if(this.overlay){this.polygon(t.polygon);c.strokeStyle=t.owner===0?'#83d3ff8c':t.owner===1?'#e2766c8c':'#ead2ac55';c.lineWidth=1.2/this.camera.zoom;c.stroke();}

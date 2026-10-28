@@ -48,3 +48,85 @@ test('battlefield art: four stable sprite variants on every map with original PN
   assert.ok(variants.size>=3,kind+' should not repeat just one silhouette');
  }
 });
+
+
+test('battlefield footprints: alternating infantry impressions appear, then wind erases them without changing saves',()=>{
+ const game=new Simulation(),fx=new BattlefieldEffects();
+ game.units=[];const soldier=game.spawn(0,{x:1900,y:2100},'infantry');
+ fx.reset(game);
+ for(let tick=0;tick<28;tick++){
+  game.time+=.1;soldier.x+=8;soldier.moving=true;fx.update(game,()=>true);
+ }
+ assert.ok(fx.footprintCount>=8,'moving soldiers must leave spaced steps');
+ assert.equal(fx.trackCount,0,'infantry does not draw vehicle tracks');
+ const saved=game.save();
+ const drawn=[];
+ const context={save(){},restore(){},translate(){},rotate(){},beginPath(){},ellipse(){},fill(){drawn.push('fill');},stroke(){},fillRect(){},moveTo(){},lineTo(){}};
+ const explored={time:game.time,hasExplored:()=>true};
+ fx.drawTracks(context,explored,{left:1800,right:2300,top:2000,bottom:2200});
+ assert.ok(drawn.length>0,'footprints render inside the camera');
+ const before=drawn.length;
+ fx.drawTracks(context,explored,{left:0,right:100,top:0,bottom:100});
+ assert.equal(drawn.length,before,'off-screen footprints are culled');
+ assert.deepEqual(game.save(),saved,'footprints must not enter gameplay state');
+ soldier.moving=false;game.time+=.1;fx.update(game,()=>true);
+ const stopped=fx.footprintCount;
+ game.time+=.1;fx.update(game,()=>true);assert.equal(fx.footprintCount,stopped,'idle soldiers do not stamp');
+ game.time+=90;fx.update(game,()=>true);
+ assert.equal(fx.footprintCount,0,'wind must remove expired depressions');
+ fx.reset(game);assert.equal(fx.footprintCount,0);
+});
+
+test('battlefield footprints: hidden enemies, aircraft, carriers and teleports leave no player-visible trail',()=>{
+ const game=new Simulation(),fx=new BattlefieldEffects();
+ game.units=[];
+ const enemy=game.spawn(1,{x:1900,y:2100},'infantry');
+ const aircraft=game.spawn(0,{x:1900,y:2200},'scout');
+ fx.reset(game);
+ for(let i=0;i<10;i++){
+  game.time+=.1;enemy.x+=8;aircraft.x+=8;enemy.moving=aircraft.moving=true;
+  fx.update(game,()=>false);
+ }
+ assert.equal(fx.footprintCount,0,'invisible enemy and flying aircraft never imprint');
+ enemy.x+=1000;game.time+=.1;fx.update(game,()=>true);
+ assert.equal(fx.footprintCount,0,'teleport or sudden reveal cannot connect unseen travel');
+ enemy.carrier=aircraft.id;game.time+=.1;fx.update(game,()=>true);
+ enemy.carrier=undefined;game.time+=.1;fx.update(game,()=>true);
+ assert.equal(fx.footprintCount,0,'entering or exiting aircraft does not imprint');
+});
+
+test('battlefield wind veil: deposited and drifting sand covers tracks and footsteps without changing gameplay',()=>{
+ const game=new Simulation(),fx=new BattlefieldEffects();
+ game.units=[];
+ const soldier=game.spawn(0,{x:1900,y:2100},'infantry');
+ const rover=game.spawn(0,{x:1900,y:2200},'rover');
+ fx.reset(game);
+ for(let tick=0;tick<28;tick++){
+  game.time+=.2;soldier.x+=8;rover.x+=16;
+  soldier.moving=rover.moving=true;
+  fx.update(game,()=>true);
+ }
+ assert.ok(fx.footprintCount>0,'soldiers should leave footprints for the sand to cover');
+ assert.ok(fx.trackCount>0,'vehicles should leave tracks for the sand to cover');
+ const before=game.save(),draws=[];
+ const context={
+  save(){},restore(){},translate(){},rotate(){},beginPath(){},ellipse(){},
+  fill(){draws.push('sand');},fillRect(){}
+ };
+ const explored={time:game.time,hasExplored:()=>true};
+ const near={left:1800,right:2400,top:2000,bottom:2300};
+ fx.drawWindVeil(context,explored,near);
+ assert.ok(draws.length>0,'visible trails should receive sand overlays');
+ const count=draws.length;
+ fx.drawWindVeil(context,explored,{left:0,right:100,top:0,bottom:100});
+ assert.equal(draws.length,count,'off-screen wind overlays must be culled');
+ fx.drawWindVeil(context,{time:game.time,hasExplored:()=>false},near);
+ assert.equal(draws.length,count,'unexplored tracks must not reveal enemy activity');
+ fx.drawWindVeil(context,explored,near,true);
+ assert.ok(draws.length>count,'reduced-motion mode should still deposit stationary sand');
+ assert.deepEqual(game.save(),before,'wind deposition must remain render-only');
+ fx.reset(game);
+ const after=draws.length;
+ fx.drawWindVeil(context,explored,near);
+ assert.equal(draws.length,after,'reset must clear all sand-covered trail effects');
+});

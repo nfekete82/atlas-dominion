@@ -85,6 +85,21 @@ interface Mark extends Point {radius:number;rotation:number;created:number}
 interface Smoke extends Point {created:number;duration:number;power:number;variant:number;kind:'impact'|'blast'|'wreck'}
 interface Explosion extends Point {created:number;size:number;variant:number;kind:'blast'|'wreck'}
 interface VehicleTrail extends Point {at:number;owner:number;kind:'wheel'|'tread';heading:number;width:number;length:number}
+interface Footprint extends Point {at:number;heading:number;side:-1|1;life:number}
+interface FootstepCursor extends Point {at:number;distance:number;side:-1|1}
+interface EffectsViewport {left:number;right:number;top:number;bottom:number}
+// The ambient sand streaks already travel eastward; deposits use the same wind.
+const WIND_ANGLE=.12;
+const WIND_X=Math.cos(WIND_ANGLE),WIND_Y=Math.sin(WIND_ANGLE);
+const WIND_PERP_X=-WIND_Y,WIND_PERP_Y=WIND_X;
+const inEffectsViewport=(p:Point,view?:EffectsViewport):boolean=>!view||
+  (p.x>=view.left&&p.x<=view.right&&p.y>=view.top&&p.y<=view.bottom);
+const sandGust=(x:number,y:number,time:number):number=>{
+  // Slow, spatially varying gusts without random state or per-frame allocations.
+  const swell=.5+.5*Math.sin(time*.43+x*.004+y*.003);
+  const burst=Math.max(0,Math.sin(time*1.19+x*.009-y*.005));
+  return .24+.50*swell+.26*burst*burst;
+};
 interface PreviousUnit extends Point { vehicle:boolean; hp:number; kind:string; owner:number }
 interface PreviousBase extends Point { hp:number }
 
@@ -94,7 +109,10 @@ export class BattlefieldEffects {
   private clouds:Smoke[]=[];
   private bursts:Explosion[]=[];
   private tracks:VehicleTrail[]=[];
+  private footprints:Footprint[]=[];
   private lastTrack=new Map<number,{x:number;y:number;at:number}>();
+  private lastFootstep=new Map<number,FootstepCursor>();
+  private nextFootprintSweep=0;
   private units=new Map<number,PreviousUnit>();
   private bases=new Map<number,PreviousBase>();
   private hits=0;
@@ -103,12 +121,18 @@ export class BattlefieldEffects {
   get markCount():number{return this.marks.length;}
   get smokeCount():number{return this.clouds.length;}
   get trackCount():number{return this.tracks.length;}
+  get footprintCount():number{return this.footprints.length;}
   get burstCount():number{return this.bursts.length;}
 
   reset(game:Simulation):void {
-    this.marks=[];this.clouds=[];this.tracks=[];this.bursts=[];this.lastTrack.clear();this.hits=0;
+    this.marks=[];this.clouds=[];this.tracks=[];this.footprints=[];this.bursts=[];this.lastTrack.clear();this.lastFootstep.clear();this.nextFootprintSweep=game.time;this.hits=0;
     this.units=new Map(game.units.filter(u=>u.hp>0).map(u=>[u.id,{x:u.x,y:u.y,hp:u.hp,vehicle:!unitSpec(u).flying&&unitSpec(u).group==='Fahrzeuge',kind:u.kind,owner:u.owner}]));
-    for(const u of game.units)if(u.hp>0&&!unitSpec(u).flying&&unitSpec(u).group==='Fahrzeuge')this.lastTrack.set(u.id,{x:u.x,y:u.y,at:game.time});
+    for(const u of game.units)if(u.hp>0&&!u.carrier){
+      const spec=unitSpec(u);
+      if(spec.flying)continue;
+      if(spec.group==='Fahrzeuge')this.lastTrack.set(u.id,{x:u.x,y:u.y,at:game.time});
+      else if(spec.group==='Infanterie')this.lastFootstep.set(u.id,{x:u.x,y:u.y,at:game.time,distance:0,side:1});
+    }
     this.bases=new Map(game.bases.map(b=>[b.id,{x:b.x,y:b.y,hp:b.hp}]));
   }
 
@@ -146,7 +170,43 @@ export class BattlefieldEffects {
     for(const u of game.units)if(u.hp>0){
       const spec=unitSpec(u),vehicle=!spec.flying&&spec.group==='Fahrzeuge';
       current.set(u.id,{x:u.x,y:u.y,hp:u.hp,vehicle,kind:u.kind,owner:u.owner});
-      if(!vehicle||u.carrier)continue;
+      if(u.carrier){this.lastFootstep.delete(u.id);this.lastTrack.delete(u.id);continue;}
+      if(!vehicle&&!spec.flying&&spec.group==='Infanterie'){
+        let previous=this.lastFootstep.get(u.id);
+        if(!previous){
+          previous={x:u.x,y:u.y,at:game.time,distance:0,side:1};
+          this.lastFootstep.set(u.id,previous);
+        }else{
+          const dx=u.x-previous.x,dy=u.y-previous.y,moved=Math.hypot(dx,dy);
+          // Sample real ground displacement, not render frames or walking animation.
+          // Ignore teleports, transported soldiers, idle jitter and unseen enemies.
+          if(game.time>previous.at&&u.moving&&moved>.1&&moved<=70&&visible(previous)&&visible(u)){
+            const spacing=u.kind==='heavy'?19:17;
+            const heading=Math.atan2(dy,dx),sx=-Math.sin(heading),sy=Math.cos(heading);
+            let side=previous.side;
+            for(let distance=spacing-previous.distance;distance<=moved;distance+=spacing){
+              const fraction=distance/moved;
+              const x=previous.x+dx*fraction+sx*side*3.25;
+              const y=previous.y+dy*fraction+sy*side*3.25;
+              const position={x,y},cell=game.world.index(position);
+              // Do not imprint rocks, unexplored positions or invisible ground.
+              if(cell>=0&&!game.world.blocked[cell]&&visible(position)){
+                const noise=Math.sin(x*.031+y*.019+u.id*1.31);
+                const gust=Math.sin(game.time*.13+x*.004+y*.003);
+                this.footprints.push({x,y,at:game.time,heading,side,
+                  life:55+noise*10-gust*7+(u.kind==='heavy'?7:0)});
+              }
+              side=side===1?-1:1;
+            }
+            previous.distance=(previous.distance+moved)%spacing;
+            previous.side=side;
+          }else if(moved>70||!u.moving||!visible(u)){
+            previous.distance=0;
+          }
+          previous.x=u.x;previous.y=u.y;previous.at=game.time;
+        }
+      }
+      if(!vehicle)continue;
       const last=this.lastTrack.get(u.id);
       if(!last){this.lastTrack.set(u.id,{x:u.x,y:u.y,at:game.time});continue;}
       const dx=u.x-last.x,dy=u.y-last.y,moved=Math.hypot(dx,dy);
@@ -158,8 +218,11 @@ export class BattlefieldEffects {
       if(this.tracks.length>660)this.tracks.splice(0,this.tracks.length-660);
       this.lastTrack.set(u.id,{x:u.x,y:u.y,at:game.time});
     }
+    // Batch pruning once per update instead of shifting the array for each soldier.
+    if(this.footprints.length>1200)this.footprints.splice(0,this.footprints.length-1200);
     for(const [id,old] of this.units)if(!current.has(id)){
       this.lastTrack.delete(id);
+      this.lastFootstep.delete(id);
       if(old.vehicle&&visible(old)){
         this.addSmoke(old,game.time,43,1.7,'wreck');
         this.addBurst(old,game.time,1.85,'wreck');
@@ -177,13 +240,20 @@ export class BattlefieldEffects {
     this.bursts=this.bursts.filter(v=>game.time-v.created<1.55);
     // Long enough to leave a battlefield history, bounded to avoid runaway memory.
     if(this.tracks.length)this.tracks=this.tracks.filter(v=>game.time-v.at<180);
+    // Rendering runs at up to 60+ FPS; expiring old impressions once per simulated
+    // second avoids allocating and filtering 1200 objects on every animation frame.
+    if(game.time>=this.nextFootprintSweep){
+      if(this.footprints.length)this.footprints=this.footprints.filter(v=>game.time-v.at<v.life);
+      this.nextFootprintSweep=game.time+1;
+    }
   }
 
   /** Tracks are laid under units and underneath fog, so unexplored activity cannot leak. */
-  drawTracks(c:CanvasRenderingContext2D,game:Simulation):void {
+  drawTracks(c:CanvasRenderingContext2D,game:Simulation,viewport?:EffectsViewport):void {
     c.save();c.lineCap='butt';
+    const inView=(p:Point)=>inEffectsViewport(p,viewport);
     for(const t of this.tracks){
-      if(!game.hasExplored(0,t))continue;
+      if(!inView(t)||!game.hasExplored(0,t))continue;
       const fade=Math.max(0,1-(game.time-t.at)/180);
       c.save();c.translate(t.x,t.y);c.rotate(t.heading);
       for(const side of [-1,1]){
@@ -197,6 +267,90 @@ export class BattlefieldEffects {
           for(let x=-t.length*.5;x<t.length*.5;x+=4.5){
             c.beginPath();c.moveTo(x,y-3);c.lineTo(x,y+3);c.stroke();
           }
+        }
+      }
+      c.restore();
+    }
+    // Alternating left/right boot prints: heel, toe and the sunlit raised rim.
+    // Wind-scoured sand gradually fills each depression, with no simulation changes.
+    for(const p of this.footprints){
+      if(!inView(p)||!game.hasExplored(0,p))continue;
+      const age=game.time-p.at;
+      if(age<0||age>=p.life)continue;
+      const fade=Math.pow(1-age/p.life,1.65);
+      if(fade<.014)continue;
+      c.save();c.translate(p.x,p.y);c.rotate(p.heading);
+      c.globalAlpha=.28*fade;c.fillStyle='#4b3422';
+      c.beginPath();c.ellipse(-2,0,2.3,1.55,0,0,Math.PI*2);
+      c.ellipse(2,0,3,2.05,0,0,Math.PI*2);c.fill();
+      c.globalAlpha=.18*fade;c.strokeStyle='#f2d5a4';c.lineWidth=.95;
+      c.beginPath();c.ellipse(0,.45,5.25,2.65,0,.16,Math.PI-.16);c.stroke();
+      // A faint sand wash follows the prevailing wind as the print erodes.
+      c.globalAlpha=.08*fade*(age/p.life);c.fillStyle='#e7c68e';
+      c.fillRect(-4,-.6,7.8,1.4);
+      c.restore();
+    }
+    c.restore();
+  }
+
+
+  /**
+   * Windblown sand settles over old boot prints and tyre/tread marks.
+   * Visual-only: deterministic from game time and existing marks, camera-culled,
+   * with no particles, timers, world changes or save-data allocations.
+   * Reduced-motion mode keeps the gradual deposit but freezes moving streaks.
+   */
+  drawWindVeil(c:CanvasRenderingContext2D,game:Simulation,viewport?:EffectsViewport,reducedMotion=false):void {
+    if(!this.tracks.length&&!this.footprints.length)return;
+    const time=game.time;
+    c.save();
+    for(const t of this.tracks){
+      if(!inEffectsViewport(t,viewport)||!game.hasExplored(0,t))continue;
+      const age=time-t.at;
+      if(age<0||age>=180)continue;
+      const progress=age/180,gust=sandGust(t.x,t.y,time);
+      const fill=Math.min(1,progress*3.5);
+      if(fill<.012)continue;
+      const drift=reducedMotion?0:Math.sin(time*.66+t.x*.026+t.y*.014)*11*gust;
+      const sideways=reducedMotion?0:Math.sin(time*.31+t.y*.021)*2;
+      c.save();
+      c.translate(t.x+WIND_X*drift+WIND_PERP_X*sideways,t.y+WIND_Y*drift+WIND_PERP_Y*sideways);
+      c.rotate(WIND_ANGLE);
+      // Settled pale grains mute the dark grooves as the vehicle trail ages.
+      c.fillStyle='#e8cd99';c.globalAlpha=(.075+.16*gust)*fill;
+      c.beginPath();c.ellipse(0,0,Math.max(9,t.length*.79),Math.max(3.8,t.width*.69),0,0,Math.PI*2);c.fill();
+      // A gust lifts a thin streak, but never animates in reduced-motion mode.
+      if(!reducedMotion){
+        const phase=((time*9+t.x*.17+t.y*.11)%38)/38;
+        const wave=Math.sin(phase*Math.PI)**2;
+        if(wave>.025){
+          c.translate(WIND_X*(phase-.5)*18,WIND_Y*(phase-.5)*18);
+          c.globalAlpha=.17*gust*wave*fill;c.fillStyle='#f3ddae';
+          c.beginPath();c.ellipse(0,-t.width*.23,Math.max(7,t.length*.54),Math.max(1.6,t.width*.21),0,0,Math.PI*2);c.fill();
+        }
+      }
+      c.restore();
+    }
+    for(const p of this.footprints){
+      if(!inEffectsViewport(p,viewport)||!game.hasExplored(0,p))continue;
+      const age=time-p.at;
+      if(age<0||age>=p.life)continue;
+      const progress=age/p.life,gust=sandGust(p.x,p.y,time);
+      const cover=Math.pow(progress,.8);
+      if(cover<.015)continue;
+      const drift=reducedMotion?0:Math.sin(time*.85+p.x*.032+p.y*.018)*3.8*gust;
+      c.save();
+      c.translate(p.x+WIND_X*drift,p.y+WIND_Y*drift);
+      c.rotate(WIND_ANGLE);
+      // Fine sand progressively sweeps into the heel/toe depression.
+      c.globalAlpha=(.13+.17*gust)*cover;c.fillStyle='#e9ce9c';
+      c.beginPath();c.ellipse(0,0,6.8+gust*1.7,2.45,0,0,Math.PI*2);c.fill();
+      if(!reducedMotion){
+        const phase=((time*13+p.x*.21-p.y*.13)%24)/24;
+        const wave=Math.sin(phase*Math.PI)**2;
+        if(wave>.025){
+          c.globalAlpha=.13*gust*wave*cover;c.fillStyle='#f3ddb2';
+          c.beginPath();c.ellipse((phase-.5)*7,-.8,4.3,1.05,0,0,Math.PI*2);c.fill();
         }
       }
       c.restore();
