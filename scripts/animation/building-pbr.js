@@ -138,6 +138,10 @@ export function applyBuildingPBR(model,kind,team){
   const roles=old.map(m=>{
    if(n.userData.surface)return n.userData.surface==='identity'?identity:n.userData.surface;
    const name=m.name.toLowerCase();
+   if(/runway concrete/.test(name))return 'concrete';
+   if(/runway asphalt|hangar opening/.test(name))return 'rubber';
+   if(/runway markings/.test(name))return 'neutral';
+   if(/runway safety yellow/.test(name))return 'hazard';
    if(/emission|light|glow/.test(name))return 'light';
    if(/glass|optic/.test(name))return 'glass';
    if(/seal|rubber/.test(name))return 'rubber';
