@@ -1,6 +1,7 @@
 import {drawRoleBadge,drawRank,hasRole} from './role-visuals.js';
 import {getVeterancyLevel} from './veterancy.js';
 import {WeatherPresentation} from './weather-presentation.js';
+import {FOG_SCALE,FOG_BACKGROUND,fogMaskChanged,makeSmoothFogAlpha,fogOverlayRgb} from './fog-presentation.js';
 import { profiler } from './performance.js';
 import { ASSETS, RULES, clamp, distance, type Point } from './config.js';
 import { Simulation, type Base, type Unit } from './simulation.js';
@@ -44,10 +45,11 @@ export class Renderer {
   private terrainSurface=document.createElement('canvas');private interpolation=1;
   private sand=new Image();private sandstone=new Image();
   private fog=document.createElement('canvas');private fogRevision=-1;
+  private previousFogVisible=new Uint8Array(0);private previousFogExplored=new Uint8Array(0);
   private miniTerrain=document.createElement('canvas');
   constructor(readonly canvas:HTMLCanvasElement,readonly miniCanvas:HTMLCanvasElement,public game:Simulation){
     this.context=canvas.getContext('2d',{alpha:false})!;this.mini=miniCanvas.getContext('2d',{alpha:false})!;
-    this.fog.width=this.fog.height=RULES.grid;this.miniTerrain.width=this.miniTerrain.height=224;
+    this.fog.width=this.fog.height=RULES.grid*FOG_SCALE;this.miniTerrain.width=this.miniTerrain.height=224;
     this.resize();
     new ResizeObserver(()=>this.resize()).observe(canvas);
   }
@@ -144,7 +146,7 @@ export class Renderer {
     this.context.setTransform(pixelsX/width,0,0,pixelsY/height,0,0);this.boundCamera();
   }
   home():void {const b=this.game.bases.find(b=>b.owner===0&&b.kind==='headquarters'&&b.hp>0);if(b){this.camera.zoom=1;this.camera.x=b.x+this.width*(.5-.33);this.camera.y=b.y-Math.max(this.height*.35,Math.min(this.height*.63,this.height-300))+this.height/2;this.boundCamera();}}
-  invalidate():void{if(this.infantry)this.prepareMap();this.fogRevision=-1;this.units.clear();this.seenImpacts=new WeakSet();this.battlefield.reset(this.game);}
+  invalidate():void{if(this.infantry)this.prepareMap();this.fogRevision=-1;this.previousFogVisible=new Uint8Array(0);this.previousFogExplored=new Uint8Array(0);this.units.clear();this.seenImpacts=new WeakSet();this.battlefield.reset(this.game);}
   boundCamera():void {
     const w=this.width/this.camera.zoom/2,h=this.height/this.camera.zoom/2,s=this.game.world.size;
     this.camera.x=w>=s/2?s/2:clamp(this.camera.x,w,s-w);this.camera.y=h>=s/2?s/2:clamp(this.camera.y,h,s-h);
@@ -241,9 +243,20 @@ export class Renderer {
     if(!profiler)return this.updateFogMeasured();const at=performance.now();try{this.updateFogMeasured();}finally{profiler.record('fog',performance.now()-at);}
   }
   private updateFogMeasured():void {
-    if(this.fogRevision===this.game.revision)return;this.fogRevision=this.game.revision;
-    const c=this.fog.getContext('2d')!,data=c.createImageData(RULES.grid,RULES.grid),v=this.game.visible[0],e=this.game.explored[0];
-    for(let i=0;i<v.length;i++){data.data[i*4]=3;data.data[i*4+1]=5;data.data[i*4+2]=7;data.data[i*4+3]=v[i]?0:e[i]?177:255;}
+    if(this.fogRevision===this.game.revision)return;
+    this.fogRevision=this.game.revision;
+    const v=this.game.visible[0],e=this.game.explored[0];
+    // Weather changes the authoritative visibility mask, not the artwork.
+    if(!fogMaskChanged(v,e,this.previousFogVisible,this.previousFogExplored))return;
+    this.previousFogVisible=v.slice();this.previousFogExplored=e.slice();
+    const alpha=makeSmoothFogAlpha(v,e,RULES.grid),c=this.fog.getContext('2d')!;
+    const data=c.createImageData(this.fog.width,this.fog.height),width=this.fog.width;
+    for(let i=0;i<alpha.length;i++){
+      const x=i%width,y=Math.floor(i/width);
+      const index=Math.floor(y/FOG_SCALE)*RULES.grid+Math.floor(x/FOG_SCALE);
+      const [r,g,b]=fogOverlayRgb(alpha[i],v[index]===1,x,y),j=i*4;
+      data.data[j]=r;data.data[j+1]=g;data.data[j+2]=b;data.data[j+3]=alpha[i];
+    }
     c.putImageData(data,0,0);
   }
   private drawBastion(t:Territory,dim=false):void{
@@ -292,7 +305,7 @@ export class Renderer {
     }
     for(const blast of g.blasts)if(!this.seenImpacts.has(blast)){this.seenImpacts.add(blast);if(g.canSee(0,blast)&&g.time-blast.at<.15){particles.emit('explosion',{x:blast.x,y:blast.y-8});this.battlefield.blast(blast,g.time);}}
     this.interpolation=g.paused?1:clamp(interpolation,0,1);
-    c.fillStyle='#030507';c.fillRect(0,0,this.width,this.height);c.save();
+    c.fillStyle=FOG_BACKGROUND;c.fillRect(0,0,this.width,this.height);c.save();
     c.translate(this.width/2,this.height/2);c.scale(this.camera.zoom,this.camera.zoom);c.translate(-this.camera.x,-this.camera.y);
     c.drawImage(this.terrainSurface,0,0);
     this.paintSandWind(g.time);
@@ -311,7 +324,7 @@ export class Renderer {
     }
     // Fog shades terrain; entities use visibility at their ground position.
     // Drawing it over sprites clipped tall masts against unrelated terrain cells.
-    c.imageSmoothingEnabled=true;c.drawImage(this.fog,0,0,s,s);
+    c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';c.drawImage(this.fog,0,0,s,s);c.restore();
     const ranged=g.bases.find(b=>b.id===this.selectedBase);if(ranged)this.drawRange(ranged);
     const corpseAt=profiler?performance.now():0;this.units.drawCorpses(c,p=>g.canSee(0,p));if(profiler)profiler.record('corpses',performance.now()-corpseAt);
     const spritesAt=profiler?performance.now():0;
@@ -392,7 +405,7 @@ export class Renderer {
     const c=this.mini,g=this.game,n=this.miniCanvas.width,k=n/g.world.size;
     c.drawImage(this.miniTerrain,0,0,n,n);
     for(const t of g.territories)if(t.owner>=0){c.beginPath();t.polygon.forEach((p,i)=>i?c.lineTo(p.x*k,p.y*k):c.moveTo(p.x*k,p.y*k));c.closePath();c.fillStyle=t.owner===0?'#429fe33d':'#d84b493d';c.fill();}
-    c.imageSmoothingEnabled=false;c.drawImage(this.fog,0,0,n,n);c.imageSmoothingEnabled=true;
+    c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';c.drawImage(this.fog,0,0,n,n);c.restore();
     for(const t of g.territories)if(g.hasExplored(0,t.point)){c.fillStyle=t.owner===0?'#81d2ff':t.owner===1?'#e6786a':'#f4f5f4';c.fillRect(t.point.x*k-1,t.point.y*k-1,2,2);}
     for(const b of g.bases)if(b.owner===0||g.canSee(0,b)){c.fillStyle=b.owner===0?'#82d5ff':'#f77f6b';c.fillRect(b.x*k-3,b.y*k-3,6,6);}
     for(const u of g.units)if(!u.carrier&&(u.owner===0||g.canSee(0,u))){c.fillStyle=u.owner===0?'#9bdcff':'#ff8170';c.fillRect(u.x*k-1.5,u.y*k-1.5,3,3);}
