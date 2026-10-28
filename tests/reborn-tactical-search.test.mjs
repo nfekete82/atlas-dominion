@@ -41,7 +41,7 @@ test('tactical search: tracked guns require real rockets for the standoff siege 
 test('tactical search: a flank needs enough real mobile units and defenders',()=>{
  const base={allies:[...roster('infantry',5,100),...roster('rover',2,295,0,20)],observedEnemies:roster('infantry',5,100,0,100),knownGuns:[],storm:false};
  assert.ok(forecastManeuver(base,'flank').score>-1e9);
- assert.equal(forecastManeuver({...base,allies:roster('infantry',7,100)},'flank').score,-1e9);
+ assert.equal(forecastManeuver({...base,allies:roster('artillery',7,340)},'flank').score,-1e9);
  assert.equal(forecastManeuver({...base,knownGuns:[{id:900,hp:650,range:600}]},'flank').score,-1e9);
  assert.deepEqual(flankCandidate({x:100,y:100},{x:400,y:100},1),{x:240,y:375});
  assert.deepEqual(flankCandidate({x:100,y:100},{x:400,y:100},-1),{x:240,y:-175});
