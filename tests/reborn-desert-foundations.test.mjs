@@ -43,11 +43,11 @@ test('foundations: slightly wider major pads show side strips while side dunes r
     const f=foundationFootprint(kind);
     assert.ok(Math.abs(f.width/buildingArtWidth(kind,BUILDINGS[kind].width)-1.11)<1e-10,kind);
   }
-  // Side drifts leave open gaps; the deeper front dunes are deliberately unchanged.
+  // The southwest drift is intentionally lighter so the near-left foundation stays visible.
   const source=readFileSync(new URL('../src/reborn/desert-foundation.ts',import.meta.url),'utf8');
   assert.match(source,/\[3,4,\.23,\.62,\.12\]/,'right side has a shorter shallow dune');
   assert.match(source,/\[7,0,\.23,\.65,\.10\]/,'left side has a shorter shallow dune');
-  assert.match(source,/\[5,6,\.05,\.73,\.18\]/,'front dune coverage is preserved');
+  assert.match(source,/\[5,6,\.10,\.43,\.085\]/,'near-left side exposes a solid stone apron');
 });
 
 test('foundations: side apron extends noticeably beyond the old diamond without enlarging front or rear',()=>{
@@ -57,10 +57,32 @@ test('foundations: side apron extends noticeably beyond the old diamond without 
     const reveal=Math.min(34,Math.max(15,f.width*.085));
     assert.ok(oldLeft-p[7].x>=reveal-.001,kind+' left edge exposed');
     assert.ok(p[3].x-oldRight>=reveal-.001,kind+' right edge exposed');
-    assert.ok(oldLeft-p[6].x>reveal*.42&&p[2].x-oldRight>reveal*.42,
-      kind+' side faces stay wide, not just a corner spike');
+    assert.ok(p[6].x-p[7].x>f.width*.07&&p[2].x-oldRight>reveal*.42,
+      kind+' southwest face is slanted while northeast retains its visible side');
     assert.ok(Math.abs(p[1].x-site.x)<f.corner*.5,kind+' rear tip stays centred');
     assert.ok(Math.abs(p[5].x-site.x)<f.corner*.5,kind+' front tip stays centred');
+  }
+});
+
+test('foundations: southwest wall has a clear foreground apron while northeast stays untouched',()=>{
+  for(const kind of large){
+    const f=foundationFootprint(kind),site={id:19,kind,x:960,y:700},p=foundationOutline(site,f);
+    const mid=site.y+f.front-f.depth/2,k=f.corner*.44,half=f.width/2;
+    const sideReveal=Math.min(34,Math.max(15,f.width*.085));
+    const oldSouthwestX=site.x-half+k-sideReveal*.82;
+    const oldSouthwestY=mid+k*.5;
+    assert.ok(p[6].x>oldSouthwestX+f.width*.06,kind+' southwest face slopes inward rather than forming a vertical edge');
+    assert.ok(p[6].y>oldSouthwestY+f.depth*.20,kind+' front-left pad extends below wall');
+    assert.ok(Math.abs(p[2].x-(site.x+half-k+sideReveal*.82))<1e-8,kind+' upper-right x is unchanged');
+    assert.ok(Math.abs(p[2].y-(mid-k*.5))<1e-8,kind+' upper-right y is unchanged');
+    assert.ok(Math.abs(p[3].x-(site.x+half+sideReveal))<1e-8,kind+' right tip unchanged');
+    assert.ok(p[6].y<p[5].y,'southwest edge still slopes down into the front tip');
+  }
+  // The lightweight infrastructure retains its original compact footprint.
+  for(const kind of small){
+    const f=foundationFootprint(kind),site={id:21,kind,x:960,y:700},p=foundationOutline(site,f);
+    const mid=site.y+f.front-f.depth/2,k=f.corner*.44;
+    assert.ok(Math.abs(p[6].y-(mid+k*.5))<1e-8,kind+' small pad is unchanged');
   }
 });
 
@@ -138,7 +160,15 @@ test('foundations: sandstone top is solid and sand dunes cover its surface and e
   const edgeStrokes=out.calls.filter(v=>v[0]==='stroke'&&v[2]==='rgba(248,209,144,0.34)');
   assert.ok(edgeStrokes.length>=8,'wind ridges help distinguish the new deposits');
   const radialStops=out.calls.filter(v=>v[0]==='stop-radial');
-  assert.ok(radialStops.some(v=>/0\.890/.test(v[2])),'sand crest should be visibly opaque');
+  // The southwest dune is deliberately thinner so the front-left apron stays visible.
+  // Other dunes still need strong crests to bury parts of the sandstone.
+  const crestAlphas=radialStops
+    .filter(v=>v[2].startsWith('rgba(244,191,111,'))
+    .map(v=>Number(v[2].slice('rgba(244,191,111,'.length,-1)));
+  assert.ok(crestAlphas.some(alpha=>alpha>=.85&&alpha<=1),
+    'some sand crests should remain strongly visible over the plate');
+  assert.ok(crestAlphas.some(alpha=>alpha>=.5&&alpha<=.7),
+    'the southwest crest should be lighter to reveal the sandstone below');
   assert.ok(radialStops.some(v=>v[2]==='rgba(225,155,65,0)'),'outer sand should feather out into terrain');
 });
 
