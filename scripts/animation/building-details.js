@@ -127,42 +127,37 @@ export function upgradeBuildingDetails(model,kind,team){
   box('FieldRadio',[.29,.18,.22],'sand',[-.85,1.96,-.16]);
   rod('RadioWhip',[-.85,2.03,-.16],[-.85,2.36,-.16],.009);
  }else if(kind==='airfield'){
-  // Large contrasting hangar panels and landing-direction bars.
-  box('HangarSideArmor',[.07,.81,1.39],'camo',[1.395,.83,-.29]);
-  box('HangarOverheadSafetyBeam',[1.87,.145,.11],'hazard',[.41,1.42,.72]);
-  for(const x of [-.35,1.19]){
-   box('HangarGateGuide',[.105,1.10,.115],'steel',[x,.85,.69]);
+  // Enlarged site: modular hangar plating, navigation, fuel and perimeter gear.
+  // Existing narrow-hangar details must not cover the new open aircraft bay.
+  for(const x of [-2.17,.01])for(const z of [-1.94,-1.39,-.84,-.28]){
+   box('HangarStructuralCrossBrace',[.07,.75,.05],'steel',[x,.98,z]);
+   for(const y of [.65,.97,1.26])box('HangarFieldRepairBolt',[.09,.035,.05],'hazard',[x+(x<0?-.035:.035),y,z]);
   }
-  // Retain the landing deck and tower. A steel hangar fills the back of the
-  // same foundation, leaving a marked apron in front of its closed doors.
-  const x=.41,z=-.28;
-  box('HangarShell',[1.87,.98,1.66],'camo',[x,.85,z]);
-  box('HangarRoofLeft',[1.01,.095,1.78],'sand',[x-.46,1.43,z],[0,0,.22]);
-  box('HangarRoofRight',[1.01,.095,1.78],'sand',[x+.46,1.43,z],[0,0,-.22]);
-  box('RidgeCap',[.13,.08,1.80],'steel',[x,1.55,z]);
-  box('HangarDoorRecess',[1.71,.87,.035],'rubber',[x,.81,.566]);
-  for(let i=0;i<8;i++){
-   box('HangarDoorLeaf',[.195,.77,.032],'steel',[x-.706+i*.202,.81,.595]);
-   for(const y of [.53,.80,1.07])box('DoorPressedPanel',[.163,.19,.018],'sand',[x-.706+i*.202,y,.617]);
+  for(let i=0;i<6;i++){
+   const z=-2.15+i*.39;
+   box('HangarRoofLongitudinalJoint',[.033,.034,.16],'steel',[-1.08,2.10,z]);
   }
-  for(const dx of [-.90,.90]){box('HangarButtress',[.095,.98,.13],'steel',[x+dx,.84,.60]);hazard(x+dx,.81,.676,.077,.72);}
-  box('DoorUpperTrack',[1.91,.10,.10],'steel',[x,1.29,.62]);sign(x,1.31,.682,.67,.095);
-  for(let i=0;i<5;i++){
-   const rz=-1.00+i*.36;
-   box('HangarRoofRibLeft',[1.01,.025,.025],'steel',[x-.46,1.49,rz],[0,0,.22]);
-   box('HangarRoofRibRight',[1.01,.025,.025],'steel',[x+.46,1.49,rz],[0,0,-.22]);
-   box('HangarWallRib',[.035,.90,.045],'steel',[1.36,.82,rz]);
+  box('HangarHeavySill',[2.42,.065,.15],'hazard',[-1.08,.38,.21]);
+  sign(-1.08,1.73,.25,.74,.13);
+  for(const x of [-2.09,-.08])hazard(x,.72,.19,.085,.59);
+  for(const x of [-1.92,-1.56,-1.20]){
+   crate(x,.49,.57);
   }
-  box('SideServiceDoor',[.026,.59,.28],'steel',[1.36,.68,-.56]);
-  fan(.88,1.59,-.69,.13);crate(-.31,.48,.90);
-  box('ApronStopLine',[1.44,.012,.045],'hazard',[.41,.35,.88]);
-  for(const px of [.0,.83])box('ApronGuide',[.028,.012,.33],'sand',[px,.35,1.08]);
-  ladder(-1.36,.35,1.51,-.28);
-  rod('ControlAerial',[-1.20,1.54,-.87],[-1.20,1.94,-.87],.012);
-  model.traverse(n=>{
-   if(n.name.includes('LandingGuide')){n.scale.setScalar(.31);n.position.set(.41,.35,1.12);}
-   if(n.name.includes('GuideBar')){n.scale.z=.35;n.position.x=.41;n.position.z=1.10;}
-  });
+  // Wall vents and maintenance hatches on the service annex.
+  panel(1.54,.92,.205,.42,.32,'steel');
+  box('AnnexEmergencyLight',[.31,.08,.038],'hazard',[1.60,1.20,.24]);
+  for(const x of [1.22,1.66,2.08])fan(x,1.39,-.67,.11);
+  ladder(2.15,.36,1.25,-.18);
+  for(const x of [.49,1.43])for(const z of [-1.2,-.45,.30,1.08,1.82])
+   box('ApronInsetLight',[.045,.015,.064],'hazard',[x,.377,z]);
+  for(const z of [.84,1.53])for(const x of [-1.91,-1.65]){
+   rod('FuelDeliveryPipe',[x,.43,z],[x,.52,z],.026,'steel');
+  }
+  for(const x of [-2.24,2.27])for(const z of [-2.16,1.94])
+   box('FloodlightSupportBracket',[.18,.05,.17],'steel',[x,1.41,z]);
+  // Distinct colored signage without changing the civil engineering footprint.
+  sign(1.54,2.02,-1.211,.37,.17);
+  sign(1.62,1.06,.224,.33,.13);
  }else if(kind==='generator'){
   box('GeneratorCorePanel',[.53,.82,.17],'camo',[0,.83,.56]);
   box('GeneratorServiceDoor',[.36,.62,.19],'steel',[0,.82,.68]);
