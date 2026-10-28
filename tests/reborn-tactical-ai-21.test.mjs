@@ -16,8 +16,7 @@ test('AI 2.1: the screen intercepts a visible threat with at most two mobile fro
  assert.ok(!a.includes(5)&&!a.includes(6)&&!a.includes(7),'support and rockets must not chase');
  assert.deepEqual(assignScreen(structuredClone(force),structuredClone(threat)),a);
  const flank=assignFlank(force,a);
- assert.ok(flank.length>=1&&flank.every(id=>!a.includes(id)));
- assert.ok(flank.every(id=>[2,3,4].includes(id)));
+ assert.deepEqual(flank,[],'two remaining frontline soldiers must hold the primary axis');
 });
 test('AI 2.1: only living mobile units can flank; air threats do not trick ground-only artillery',()=>{
  const force=[soldier(1,'infantry',0,0),soldier(2,'tank',20,0,620),soldier(3,'rover',25,0,295)];
