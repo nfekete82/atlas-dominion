@@ -64,15 +64,8 @@ export function paintCrater(c:CanvasRenderingContext2D,p:Point,radius:number,rot
 export function paintGroundDetails(c:CanvasRenderingContext2D,details:readonly GroundDetail[],sprites:GroundSprites):void {
   for(const d of details){
     if(d.kind==='crater'){paintCrater(c,d,d.radius,d.rotation,1,groundSprite(sprites.crater,d.variant));continue;}
-    if(d.kind==='palm'){
-      const w=d.radius*3.55,h=d.radius*3.5;
-      c.save();c.translate(d.x,d.y);c.rotate(Math.sin(d.rotation)*.07);
-      c.globalAlpha=.96;
-      // Sprite trunk-foot (83% of image height) is anchored to the ground point.
-      c.drawImage(groundSprite(sprites.palm,d.variant),-w*.5,-h*.58,w,h);
-      c.restore();
-      continue;
-    }
+    // Palm trees are drawn separately so vehicles can knock them down.
+    if(d.kind==='palm')continue;
     const w=d.radius*(d.kind==='rock'?3.7:2.3),h=d.radius*(d.kind==='rock'?2.4:1.55);
     c.save();c.translate(d.x,d.y);c.rotate(Math.sin(d.rotation)*.11);
     c.globalAlpha=d.kind==='rock'?.94:.75;
