@@ -158,39 +158,39 @@
     },
     {
       "file": "src/assets/reborn/buildings-3d/airfield-0-beacon.png",
-      "width": 11,
-      "height": 14,
-      "sha256": "d4b9ca1603d71468ca52f74cae8f43e932ed45fadda3e3f9b54deab3ca9b2e42"
+      "width": 10,
+      "height": 13,
+      "sha256": "d39e5b854f4001a4750960e23deefc79dfb0182f2adfd056ec3d995fc6dce061"
     },
     {
       "file": "src/assets/reborn/buildings-3d/airfield-0-construction.png",
-      "width": 2070,
-      "height": 254,
-      "sha256": "0a768ace6c56570753e0dc6d67cbe02e635114153859e16890191c79a216c9e6"
+      "width": 2754,
+      "height": 405,
+      "sha256": "fe3918db898d252e4ac6b212c229971397e01b907809f595ffe6ef71d8471692"
     },
     {
       "file": "src/assets/reborn/buildings-3d/airfield-0.png",
       "width": 512,
       "height": 512,
-      "sha256": "afe5ee556cf5cad8947738073e97e7b343b3a5ed8633745053ee85a1c0eaea07"
+      "sha256": "fb2f638e5dab83141a6a04f6b16984ea1787bbe209d6bb2452b699ee0c9e87f7"
     },
     {
       "file": "src/assets/reborn/buildings-3d/airfield-1-beacon.png",
-      "width": 11,
-      "height": 14,
-      "sha256": "3508a23902b9bf74bc421af1ae0a00aef3677f5074c218e3ab0dbc5571520b83"
+      "width": 10,
+      "height": 13,
+      "sha256": "7468055564b34ce925d60bae454e5842478c13b3f8c8f40e864a65ee1f502321"
     },
     {
       "file": "src/assets/reborn/buildings-3d/airfield-1-construction.png",
-      "width": 2070,
-      "height": 254,
-      "sha256": "ad1dfd23767b79cc9bb892c5727e52f1837e8c5efee1a7fde699ba3b006741bf"
+      "width": 2754,
+      "height": 405,
+      "sha256": "1c9445f2a1bbfca9152a98d79037a58eb1dab82c8038a5d9e78b3fd31090ea50"
     },
     {
       "file": "src/assets/reborn/buildings-3d/airfield-1.png",
       "width": 512,
       "height": 512,
-      "sha256": "0531816a33ca8454e8879d6ae3b880fe7f9eea37eaf54244058bc5552acdaeb7"
+      "sha256": "165957b9482f7b46834118583dd5f74dd09ef330515b7fa28fb3bc7af146e4d3"
     },
     {
       "file": "src/assets/reborn/buildings-3d/barracks-0-beacon.png",
@@ -2653,9 +2653,9 @@
       "kind": "airfield",
       "team": 0,
       "model": "airfield-0.glb",
-      "sha256": "3b3b6e1c9cda5b96930905ebc739cc9584bfb3130b6db18f4b61f2fb3dff898a",
-      "parts": 30,
-      "triangles": 23442,
+      "sha256": "4cce1c4d8733bc8c227020670b9fabd6a0a7343913d216f67ff65e8cd9ec346d",
+      "parts": 241,
+      "triangles": 131922,
       "pivot": [
         256,
         382
@@ -2674,9 +2674,9 @@
       "kind": "airfield",
       "team": 1,
       "model": "airfield-1.glb",
-      "sha256": "085d3c7a1b948fb9001d2f91f2a752aff1e479cc5232e8a233f4d379e440da5b",
-      "parts": 30,
-      "triangles": 23442,
+      "sha256": "362003d99fa460a5c7d37261085faf5d8b58ae504b219438a7cd100e75a70e7f",
+      "parts": 241,
+      "triangles": 131922,
       "pivot": [
         256,
         382
