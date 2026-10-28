@@ -623,7 +623,7 @@ export class TacticalAI {
   const activeFlankIds=new Set(continuingFlank.map(u=>u.id));
   const eligibleScreen=ground.filter(u=>!activeFlankIds.has(u.id));
   const screenIds=tacticalEnabled&&closeThreat?assignScreen(eligibleScreen,closeThreat):[];
-  const screen=closeThreat?(tacticalEnabled&&screenIds.length
+  const screen=closeThreat?(tacticalEnabled
     ?eligibleScreen.filter(u=>screenIds.includes(u.id))
     :eligibleScreen.filter(u=>canAttack(u,closeThreat))):[];
   const screenSet=new Set(screen.map(u=>u.id));
