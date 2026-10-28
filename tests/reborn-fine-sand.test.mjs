@@ -1,23 +1,29 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {FINE_SAND_TILE_SIZE,fineSandColor} from '../dist/src/reborn/fine-sand.js';
+import {readFileSync} from 'node:fs';
+import {FINE_SAND_TILE_SIZE,sandSeamWeight} from '../dist/src/reborn/fine-sand.js';
 
-test('fine sand is a high-resolution seamless 2K material',()=>{
+const source=(file)=>readFileSync(new URL('../src/reborn/'+file,import.meta.url),'utf8');
+
+test('fine sand uses 2048px native sampling and seamless feathering',()=>{
   assert.equal(FINE_SAND_TILE_SIZE,2048);
-  for(const [x,y] of [[0,0],[35,72],[501,1903],[2047,2047]]){
-    assert.deepEqual(fineSandColor(x,y),fineSandColor(x+2048,y));
-    assert.deepEqual(fineSandColor(x,y),fineSandColor(x,y+2048));
+  assert.equal(sandSeamWeight(0),0);
+  assert.equal(sandSeamWeight(112),1);
+  assert.equal(sandSeamWeight(2048),0);
+  for(const x of [1,15,55,111,112]){
+    assert.ok(Math.abs(sandSeamWeight(x)-sandSeamWeight(2048-x))<1e-9);
   }
+  assert.ok(sandSeamWeight(55)>0&&sandSeamWeight(55)<1);
 });
-test('fine sand retains subtle, deterministic golden microcontrast',()=>{
-  const pixels=[];
-  for(let y=0;y<512;y+=17)for(let x=0;x<512;x+=19) {
-    const rgb=fineSandColor(x,y);
-    assert.deepEqual(rgb,fineSandColor(x,y));
-    assert.ok(rgb[0]>197&&rgb[0]<255);
-    assert.ok(rgb[1]>155&&rgb[1]<216);
-    assert.ok(rgb[2]>89&&rgb[2]<143);
-    pixels.push(Math.round(rgb[0]));
-  }
-  assert.ok(new Set(pixels).size>12,'visible but soft sand-grain variation');
+
+test('terrain restores authored ripple artwork instead of flat noise',()=>{
+  const renderer=source('renderer.ts'),terrain=source('terrain-presentation.ts');
+  assert.match(renderer,/this\.sand\.src='\/src\/assets\/reborn\/sand-ripples-v2\.png'/);
+  assert.match(renderer,/this\.sand\.decode\(\)/);
+  assert.match(terrain,/fineSandPattern\(c,sand\)/);
+  assert.match(terrain,/globalAlpha=\.80/);
+  assert.doesNotMatch(terrain,/fineSandColor/);
+  assert.doesNotMatch(renderer,/Legacy maps also receive the same seamless 2K fine-sand finish/);
+  const png=readFileSync(new URL('../src/assets/reborn/sand-ripples-v2.png',import.meta.url));
+  assert.equal(png.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
 });

@@ -84,7 +84,7 @@ function sandPattern(c:CanvasRenderingContext2D,image:HTMLImageElement):CanvasPa
   tc.putImageData(result,0,0);return c.createPattern(tile,'repeat')!;
 }
 /** Native-resolution relief with granular sand and shallow, traversable dunes. */
-export function paintGeneratedTerrain(canvas:HTMLCanvasElement,world:World,stone:HTMLImageElement):void {
+export function paintGeneratedTerrain(canvas:HTMLCanvasElement,world:World,sand:HTMLImageElement,stone:HTMLImageElement):void {
   canvas.width=canvas.height=world.size;const c=canvas.getContext('2d',{willReadFrequently:true})!,random=seededRandom(world.seed^0x12bda3),pixels=c.createImageData(world.size,world.size);
   const broad=new Float32Array(33*33);for(let i=0;i<broad.length;i++)broad[i]=(random()-.5)*17;
   for(let y=0;y<world.size;y++)for(let x=0;x<world.size;x++){
@@ -94,7 +94,7 @@ export function paintGeneratedTerrain(canvas:HTMLCanvasElement,world:World,stone
     pixels.data[i]=222+n+grain;pixels.data[i+1]=180+n*.85+grain;pixels.data[i+2]=113+n*.65+grain;pixels.data[i+3]=255;
   }
   c.putImageData(pixels,0,0);
-  const pattern=fineSandPattern(c);pattern.setTransform(new DOMMatrix().translate(Math.floor(random()*2048),Math.floor(random()*2048)));
-  c.save();c.globalAlpha=.90;c.fillStyle=pattern;c.fillRect(0,0,world.size,world.size);c.restore();
+  const pattern=fineSandPattern(c,sand);pattern.setTransform(new DOMMatrix().translate(Math.floor(random()*1240),Math.floor(random()*1240)).scale(.62));
+  c.save();c.globalAlpha=.80;c.fillStyle=pattern;c.fillRect(0,0,world.size,world.size);c.restore();
   paintMesas(c,world.generated!.mesas,world.seed,stone);
 }
