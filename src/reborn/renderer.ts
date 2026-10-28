@@ -1,6 +1,9 @@
+import {drawRoleBadge,drawRank,hasRole} from './role-visuals.js';
+import {getVeterancyLevel} from './veterancy.js';
+import {WeatherPresentation} from './weather-presentation.js';
 import { profiler } from './performance.js';
 import { ASSETS, RULES, clamp, distance, type Point } from './config.js';
-import { Simulation, HEAL_RADIUS, type Base, type Unit } from './simulation.js';
+import { Simulation, type Base, type Unit } from './simulation.js';
 import { type Territory } from './world.js';
 import { BUILDINGS, UNITS, buildingSpec, unitSpec, type BuildingKind, type UnitKind } from './catalog.js';
 import { UnitPresentation, unitVisualLift } from './unit-presentation.js';
@@ -18,6 +21,7 @@ import {createDesertInfrastructure,paintDesertInfrastructure} from './desert-inf
 interface Sprite { image:HTMLImageElement|HTMLCanvasElement; x:number; y:number; w:number; h:number; center?:number; foot?:number; bodyWidth?:number; bodyHeight?:number }
 export class Renderer {
   readonly units=new UnitPresentation();
+  readonly weatherEffects=new WeatherPresentation();
   readonly structures=new BuildingPresentation();
   readonly battlefield=new BattlefieldEffects();
   readonly palms=new PalmGrove();
@@ -129,7 +133,6 @@ export class Renderer {
       for(let y=0;y<frame.h;y++)for(let x=0;x<frame.w;x++)if(pixels[(y*frame.w+x)*4+3]>180){left=Math.min(left,x);top=Math.min(top,y);right=Math.max(right,x);bottom=Math.max(bottom,y);}
       const width=right-left+1,height=bottom-top+1,frameRect=rosterImageRect(width,height);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(tile,left,top,width,height,frameRect.x,frameRect.y,frameRect.w,frameRect.h);
     }
-    if(kind==='engineer'||kind==='medic'||kind==='heavy'){ctx.fillStyle=kind==='medic'?'#89e4b0':kind==='engineer'?'#edbd61':'#86d4f6';ctx.fillRect(164,90,24,24);ctx.fillStyle='#10202a';ctx.font='bold 20px sans-serif';ctx.textAlign='center';ctx.fillText(kind==='medic'?'+':kind==='engineer'?'⚒':'Ⅱ',176,109);}
     const result=c.toDataURL();this.icons.set(key,result);return result;
   }
   resize():void {
@@ -178,7 +181,9 @@ export class Renderer {
     if(selected){c.strokeStyle='#88cffa';c.lineWidth=1/this.camera.zoom;c.beginPath();c.ellipse(p.x,p.y-unitVisualLift(u),15,6,0,0,Math.PI*2);c.stroke();}
     this.units.draw(c,u,p);
     if(u.kind==='scout'&&u.transport){c.font='9px monospace';c.textAlign='left';c.fillStyle=u.owner===0?'#b9e3f2':'#f0b29f';const label=u.transport.phase==='cruise'?`${u.transport.cargo.length}/10`:({approach:'LANDEANFLUG',landing:'LANDET',loading:'EINSTEIGEN',unloading:'AUSSTEIGEN',takeoff:'STARTET'} as Record<string,string>)[u.transport.phase];c.fillText(label,p.x+unitSpec(u).width*.35,p.y-20-unitVisualLift(u));}
-    if(selected||u.hp<spec.hp){const height=spec.group==='Infanterie'?56*unitArtScale(u.kind):spec.width*.68+(spec.flying?32:0)+unitVisualLift(u);this.bar({x:p.x,y:p.y-height},spec.group==='Infanterie'?27*unitArtScale(u.kind):spec.width*.55,u.hp/spec.hp,blue?'#75c5e8':'#ed7866');}
+    const rank=getVeterancyLevel(u.xp);
+    if(selected||u.hp<spec.hp||rank){const height=spec.group==='Infanterie'?56*unitArtScale(u.kind):spec.width*.68+(spec.flying?32:0)+unitVisualLift(u);this.bar({x:p.x,y:p.y-height},spec.group==='Infanterie'?27*unitArtScale(u.kind):spec.width*.55,u.hp/spec.hp,blue?'#75c5e8':'#ed7866');drawRank(c,rank,p.x,p.y-height-8/this.camera.zoom,8/this.camera.zoom);}
+    if(hasRole(u.kind))drawRoleBadge(c,u.kind,p.x+13*unitArtScale(u.kind)+5/this.camera.zoom,p.y-24*unitArtScale(u.kind),10/this.camera.zoom);
   }
 
   private drawRange(b:Base):void {
@@ -335,6 +340,7 @@ export class Renderer {
     if(this.selected.size)for(const u of g.units)if(this.selected.has(u.id)&&u.orders.length){
       c.strokeStyle='#a5dcf03d';c.lineWidth=1/this.camera.zoom;c.setLineDash([4,8]);c.beginPath();c.moveTo(u.x,u.y);for(const o of u.orders)c.lineTo(o.x,o.y);c.stroke();c.setLineDash([]);}
     c.restore();
+    this.weatherEffects.draw(this,this.reducedMotion);
     if(this.box){const {from,to}=this.box;c.fillStyle='#71c5f414';c.strokeStyle='#88d5fa';c.lineWidth=1;c.fillRect(from.x,from.y,to.x-from.x,to.y-from.y);c.strokeRect(from.x,from.y,to.x-from.x,to.y-from.y);}
     this.renderMini();
   }
@@ -352,7 +358,7 @@ export class Renderer {
     const g=this.game,c=this.context,particles=this.units.particles;if(!particles.enabled)return;
     c.save();
     for(const u of g.units)if(u.kind==='medic'&&u.hp>0&&!u.carrier&&(u.owner===0||g.canSee(0,u))&&(this.selected.has(u.id)||g.workEffects.some(e=>e.kind==='heal'&&e.sources.includes(u.id)&&g.time-e.at<.12))){
-      c.strokeStyle='#83dda03b';c.fillStyle='#71ce8c08';c.lineWidth=.8/this.camera.zoom;c.beginPath();c.arc(u.x,u.y,HEAL_RADIUS,0,Math.PI*2);c.fill();c.stroke();
+      c.strokeStyle='#83dda03b';c.fillStyle='#71ce8c08';c.lineWidth=.8/this.camera.zoom;c.beginPath();c.arc(u.x,u.y,g.healRadius(u),0,Math.PI*2);c.fill();c.stroke();
     }
     for(const e of g.workEffects){
       const unit=e.kind==='heal'?g.units.find(u=>u.id===e.target):undefined,base=e.kind!=='heal'?g.bases.find(b=>b.id===e.target):undefined,target=unit??base;

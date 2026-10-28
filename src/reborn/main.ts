@@ -1,3 +1,5 @@
+import {roleBadgeMarkup} from './role-visuals.js';
+import {getVeterancyLevel,sanitizeXp,VETERANCY_NAMES,VETERANCY_THRESHOLDS,veterancyBonuses} from './veterancy.js';
 import { profiler, PerformanceRecorder, setProfiler, mountPerformancePanel } from './performance.js';
 import { QwenGeneral } from './qwen-general.js';
 import { RULES, mapLayout, CAMPAIGN_SIZES, type MapVersion, type CampaignSize } from './config.js';
@@ -64,7 +66,7 @@ function prepareCatalog():void{
   const grid=document.createElement('div');grid.className='catalog-grid';category.append(grid);el('catalog-units').append(category);
   for(const kind of unitKinds.filter(k=>UNITS[k].producers.includes(building))){
    const spec=UNITS[kind],button=document.createElement('button');button.className='catalog-card';button.dataset.unit=kind;button.setAttribute('aria-label',`${spec.name} ausbilden · ${spec.cost} Credits`);
-   button.innerHTML=`<img src="${renderer.icon('unit',kind)}" alt=""/><span class="card-meta" aria-hidden="true"><span class="card-name"></span><span class="card-cost">${spec.cost.toLocaleString('de-DE')}</span></span>`;button.querySelector<HTMLElement>('.card-name')!.textContent=spec.name;button.title=spec.name;
+   button.innerHTML=`<img src="${renderer.icon('unit',kind)}" alt=""/>${roleBadgeMarkup(kind)}<span class="card-meta" aria-hidden="true"><span class="card-name"></span><span class="card-cost">${spec.cost.toLocaleString('de-DE')}</span></span>`;button.querySelector<HTMLElement>('.card-name')!.textContent=spec.name;button.title=spec.name;
    button.onclick=()=>train(kind);button.onpointerenter=()=>{setText('catalog-detail',`${spec.name} · ${spec.buildTime} S — ${spec.description}`);};grid.append(button);
   }
  }
@@ -89,10 +91,14 @@ function refreshMeasured():void{
  setText('credits',Math.floor(game.credits[0]).toLocaleString('de-DE'));setText('income',`+${game.income(0)}`);setHtml('capacity',`${game.count(0)} <em>/ ${RULES.capacity}</em>`);
  setText('territories',`${game.territories.filter(t=>t.owner===0).length} / ${game.territories.length}`);setText('clock',timestamp());setText('exploration',`${Math.round(game.explored[0].reduce((n,v)=>n+v,0)/game.explored[0].length*100)} % ERKUNDET`);
  const title=selected.length?(selected.length===1?spec!.name:`${selected.length} Einheiten`):base?(base.kind==='headquarters'?'Hauptquartier':buildingSpec(base).name):'';
- setText('selection-title',title);setText('selection-tag',`BLAUE LEGION${spec?' / '+spec.group.toLocaleUpperCase('de-DE'):''}`);
+ setText('selection-title',title+(selected.length===1&&getVeterancyLevel(first.xp)>0?' · '+VETERANCY_NAMES[getVeterancyLevel(first.xp)]:''));setText('selection-tag',`BLAUE LEGION${spec?' / '+spec.group.toLocaleUpperCase('de-DE'):''}`);
  const img=el('portrait').querySelector('img')!,desired=first?renderer.icon('unit',first.kind):renderer.icon('building',base?.kind??'headquarters');if(img.getAttribute('src')!==desired)img.src=desired;
+ const portrait=el('portrait'),role=first?.kind??'';if(portrait.dataset.role!==role){portrait.dataset.role=role;portrait.querySelector('.role-badge')?.remove();if(first)portrait.insertAdjacentHTML('beforeend',roleBadgeMarkup(first.kind));}
+ const experience=el('veterancy');experience.hidden=selected.length!==1;
+ if(selected.length===1){const xp=sanitizeXp(first.xp),level=getVeterancyLevel(xp),next=VETERANCY_THRESHOLDS[level+1],floor=VETERANCY_THRESHOLDS[level];setText('veterancy-xp',level===3?`HELD · MAXIMALER RANG · ${Math.floor(xp)} XP`:`${Math.floor(xp)} XP · ${Math.ceil(next-xp)} XP bis ${VETERANCY_NAMES[level+1]}`);el('veterancy-fill').style.width=`${level===3?100:(xp-floor)/(next-floor)*100}%`;setText('veterancy-bonuses',veterancyBonuses(first));}
+ const weather=el('weather-status'),phase=game.weather.phase;weather.hidden=phase==='CLEAR';const remaining=Math.ceil(game.weather.remaining);setText('weather-status',`${phase==='WARNING'?'STURMWARNUNG':phase==='SANDSTORM'?'SANDSTURM':'SICHT KLART AUF'} · ${Math.floor(remaining/60).toString().padStart(2,'0')}:${(remaining%60).toString().padStart(2,'0')}`);weather.dataset.phase=phase;
  const hp=selected.length?selected.reduce((n,u)=>n+u.hp,0):base?.hp??0,max=selected.length?selected.reduce((n,u)=>n+unitSpec(u).hp,0):base?buildingSpec(base).hp:1;
- el('health-fill').style.width=`${Math.max(0,hp/max*100)}%`;setText('selection-health',`${Math.round(hp)} / ${max}${spec?' · '+spec.sight+' M SICHT':''}`);
+ el('health-fill').style.width=`${Math.max(0,hp/max*100)}%`;setText('selection-health',`${Math.round(hp)} / ${max}${spec?' · '+Math.round(game.sight(first!))+' M SICHT':''}`);
  let detail=selected.length?(renderer.attackMode?'Angriffsziel mit Linksklick wählen.':selected.length>1?unitKinds.filter(k=>selected.some(u=>u.kind===k)).map(k=>`${selected.filter(u=>u.kind===k).length} × ${UNITS[k].name}`).join(' · '):spec!.description):base?(base.buildRemaining>0?`${base.constructionActive?'Bau aktiv':'Bau pausiert — Pionier erforderlich'}. ${Math.round((1-base.buildRemaining/buildingSpec(base).buildTime)*100)} % · noch ${Math.ceil(base.buildRemaining)} S. Rechtsklick mit Pionier setzt fort.`:buildingSpec(base).description):'Wähle eine Einheit.';
  el('unit-commands').hidden=selected.length===0;el('attack').setAttribute('aria-pressed',String(renderer.attackMode));el('overlay').setAttribute('aria-pressed',String(renderer.overlay));
  const medics=selected.some(u=>u.kind==='medic'),workers=selected.some(u=>u.kind==='engineer');
@@ -103,7 +109,7 @@ function refreshMeasured():void{
  el('move-mode').hidden=!selected.length;el('rally-mode').hidden=!base||base.buildRemaining>0||!unitKinds.some(k=>UNITS[k].producers.includes(base.kind));
  const context=el('building-commands'),contextKey=base?`${base.id}:${base.buildRemaining>0}`:'';
  if(context.dataset.key!==contextKey){context.dataset.key=contextKey;context.replaceChildren();
-  if(base&&base.buildRemaining<=0)for(const kind of unitKinds.filter(k=>UNITS[k].producers.includes(base.kind))){const button=document.createElement('button');button.dataset.contextUnit=kind;button.title=`${UNITS[kind].name} ausbilden · ${UNITS[kind].cost} Credits · ${UNITS[kind].buildTime} S`;button.setAttribute('aria-label',`${UNITS[kind].name} ausbilden`);button.innerHTML=`<img src="${renderer.icon('unit',kind)}" alt=""/><span>${UNITS[kind].name}</span>`;button.onclick=()=>train(kind,true);context.append(button);}
+  if(base&&base.buildRemaining<=0)for(const kind of unitKinds.filter(k=>UNITS[k].producers.includes(base.kind))){const button=document.createElement('button');button.dataset.contextUnit=kind;button.title=`${UNITS[kind].name} ausbilden · ${UNITS[kind].cost} Credits · ${UNITS[kind].buildTime} S`;button.setAttribute('aria-label',`${UNITS[kind].name} ausbilden`);button.innerHTML=`<img src="${renderer.icon('unit',kind)}" alt=""/>${roleBadgeMarkup(kind)}<span>${UNITS[kind].name}</span>`;button.onclick=()=>train(kind,true);context.append(button);}
   if(base){const cancel=document.createElement('button');cancel.id='context-cancel';cancel.textContent=base.buildRemaining>0?'Bau abbrechen · 75 % zurück':'Letzten Auftrag stornieren';cancel.onclick=()=>{const b=contextBase();if(!b)return;if(b.buildRemaining>0){game.cancelConstruction(b.id);renderer.selectedBase=null;}else game.cancel(b.id);refresh();};context.append(cancel);}
  }
  context.hidden=!base;
@@ -120,7 +126,7 @@ function refreshMeasured():void{
   el<HTMLButtonElement>('cancel').disabled=!building&&!production.queue.length;
  }else{setText('queue','KEINE PRODUKTIONSSTÄTTE');el('production-fill').style.width='0';setText('production-time','00:00');el<HTMLButtonElement>('cancel').disabled=true;}
  for(const [i,button] of [...el('queue-slots').children].entries()){
-  const kind=production?.queueTypes[i],key=kind??'empty';if((button as HTMLElement).dataset.kind!==key){(button as HTMLElement).dataset.kind=key;button.innerHTML=kind?`<img src="${renderer.icon('unit',kind)}" alt=""/><span class="queue-index">${i+1}</span>`:'+';}
+  const kind=production?.queueTypes[i],key=kind??'empty';if((button as HTMLElement).dataset.kind!==key){(button as HTMLElement).dataset.kind=key;button.innerHTML=kind?`<img src="${renderer.icon('unit',kind)}" alt=""/>${roleBadgeMarkup(kind)}<span class="queue-index">${i+1}</span>`:'+';}
   button.classList.toggle('empty',!kind);button.classList.toggle('current',!!kind&&i===0);(button as HTMLElement).title=kind?`${UNITS[kind].name} · Auftrag stornieren`:'Einheit hinzufügen';
  }
  const facilities=new Set(game.bases.filter(b=>b.owner===0&&b.hp>0&&b.buildRemaining<=0).map(b=>b.kind));
@@ -129,7 +135,7 @@ function refreshMeasured():void{
  quick.hidden=!quickKind;
  if(quickKind){const quickSpec=UNITS[quickKind];quick.disabled=production!.queue.length>=8||game.credits[0]<quickSpec.cost||game.count(0)+game.queued(0)>=RULES.capacity||game.status!=='playing';
   quick.title=`${quickSpec.name} ausbilden · ${quickSpec.cost} Credits`;quick.setAttribute('aria-label',`${quickSpec.name} ausbilden`);
-  if(quick.dataset.kind!==quickKind){quick.dataset.kind=quickKind;quick.innerHTML=`<img src="${renderer.icon('unit',quickKind)}" alt=""/>`;}
+  if(quick.dataset.kind!==quickKind){quick.dataset.kind=quickKind;quick.innerHTML=`<img src="${renderer.icon('unit',quickKind)}" alt=""/>${roleBadgeMarkup(quickKind)}`;}
  }
  for(const button of document.querySelectorAll<HTMLButtonElement>('[data-build]')){
   const kind=button.dataset.build as BuildingKind;

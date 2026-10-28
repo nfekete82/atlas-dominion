@@ -95,7 +95,7 @@ export class Soundscape {
   }
   update(g:Simulation,r:Renderer):void{
     this.bindGame(g);
-    if(this.context&&this.wind)this.wind.gain.setTargetAtTime(this.ambience&&!document.hidden&&!g.paused ? 1 : 0,this.context.currentTime,.2);
+    if(this.context&&this.wind)this.wind.gain.setTargetAtTime(this.ambience&&!document.hidden&&!g.paused&&g.status==='playing' ? 1+g.weather.intensity*1.25 : 0,this.context.currentTime,.2);
     const active=this.context?.state==='running'&&this.enabled&&this.volume>0&&!document.hidden&&!g.paused;
     if(document.hidden){this.silence();this.radio.stop();}else if(g.paused)this.pause();
     for(const shot of g.shots)if(!this.seenShots.has(shot)){

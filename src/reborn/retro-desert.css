@@ -691,3 +691,17 @@ body:has(#selection-panel:not([hidden])) #quick-select{bottom:186px}
  #selection-panel #build-menu{position:static;grid-column:1/-1;width:100%;max-width:none}
  body:has(#selection-panel:not([hidden])) #quick-select{bottom:calc(45dvh + 18px)}
 }
+
+/* Shared Retina role badges occupy a fixed CSS circle independently of portraits. */
+.catalog-card,#portrait,#queue-slots button,#recruit,[data-context-unit]{position:relative}
+.role-badge{display:block;position:absolute;top:4px;right:4px;width:14px;height:14px;min-width:14px;max-width:14px;min-height:14px;max-height:14px;padding:0;border:0;border-radius:50%;background-size:contain;background-repeat:no-repeat;pointer-events:none;z-index:2}
+#queue-slots .role-badge,#recruit .role-badge,[data-context-unit] .role-badge{width:12px;height:12px;min-width:12px;max-width:12px;min-height:12px;max-height:12px;top:2px;right:2px}
+#queue-slots img,#recruit img,[data-context-unit] img{object-fit:contain}
+#weather-status{position:absolute;top:78px;left:14px;z-index:4;pointer-events:none;padding:6px 9px;border:1px solid #a1824c80;background:#29251ed9;color:#eed4a1;font:600 11px/1.2 var(--mono);letter-spacing:.04em;max-width:calc(100% - 28px)}
+#weather-status[data-phase="WARNING"]{color:#f3c46a}
+#veterancy{margin-top:4px;min-width:0}
+#veterancy small{display:block;font:10px/1.25 var(--display);color:#e4cd9f;overflow-wrap:anywhere}
+.xp-track{height:3px;margin:3px 0;background:#161c1b;overflow:hidden}
+#veterancy-fill{display:block;height:100%;background:#d5b45e}
+#selection-panel:has(#veterancy:not([hidden])) #selection-detail{font-size:11px;margin-top:4px;-webkit-line-clamp:1}
+#selection-panel:has(#veterancy:not([hidden])) .selection-copy>strong{font-size:18px}
