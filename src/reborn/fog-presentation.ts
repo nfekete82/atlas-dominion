@@ -45,7 +45,7 @@ export function fogEdgeOffset(x:number,y:number):number {
     +Math.sin(x*.051+y*.049)*.08;
 }
 function feather(distance:number):number {
-  const t=Math.max(0,Math.min(1,(distance-.5)/FOG_FEATHER_CELLS));
+  const t=Math.max(0,Math.min(1,distance/FOG_FEATHER_CELLS));
   return 1-t*t*(3-2*t);
 }
 
