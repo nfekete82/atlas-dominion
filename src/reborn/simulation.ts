@@ -386,9 +386,9 @@ export class Simulation {
     if(target.hp<=0&&'queue' in target){target.hp=0;target.queue=[];target.queueTypes=[];target.queueCosts=[];target.production=0;this.notices.push(`${buildingSpec(target).name} ${target.owner===0?'verloren':'ausgeschaltet'}!`);}
   }
   private launch(u:Unit,target:Unit|Base):void{
-    const from={x:u.x,y:u.y},to={x:target.x,y:target.y},duration=Math.max(.3,distance(from,to)/400);
-    this.missiles.push({id:this.nextId++,source:u.id,owner:u.owner,from,to,angle:u.angle,at:this.time,impactAt:this.time+duration,damage:unitSpec(u).damage});
-    this.shots.push({from:{x:u.x,y:u.y-18},to:{x:target.x,y:target.y-23},owner:u.owner,life:.65,hit:false,weapon:'rocket',source:u.id,kind:'artillery',angle:u.angle,at:this.time,groundFrom:from,groundTo:to});
+    const from={x:u.x,y:u.y},to={x:target.x,y:target.y},duration=Math.max(.3,distance(from,to)/400),id=this.nextId++;
+    this.missiles.push({id,source:u.id,owner:u.owner,from,to,angle:u.angle,at:this.time,impactAt:this.time+duration,damage:unitSpec(u).damage});
+    this.shots.push({from:{x:u.x,y:u.y-18},to:{x:target.x,y:target.y-23},owner:u.owner,life:.65,hit:false,weapon:'rocket',source:u.id,kind:'artillery',barrel:id%6,angle:u.angle,at:this.time,groundFrom:from,groundTo:to});
   }
   canSee(owner:Faction,p:Point):boolean {const i=this.world.index(p);return i>=0&&this.visible[owner][i]===1;}
   hasExplored(owner:Faction,p:Point):boolean {const i=this.world.index(p);return i>=0&&this.explored[owner][i]===1;}

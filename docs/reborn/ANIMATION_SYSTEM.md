@@ -2,6 +2,8 @@
 
 **Aktueller Fahrzeugstand (28. Oktober 2026):** Fünf eigene Fahrzeugmodelle ersetzen inzwischen die vorherigen CC0-Fahrzeuge; Materialien, Beleuchtung, Räder, Ketten, Rotoren und getrennte Waffenlayer sind an die freigegebene Familie angepasst. Die folgenden historischen Quellenangaben beziehen sich auf die archivierten Quellmodelle. [Aktueller Umfang und reproduzierbare Exporte](RANDOM_CAMPAIGNS.md).
 
+**Raketenwerfer:** Eigener 6×6-Lkw mit Sechsfachwerfer nach HIMARS-Referenz, PBR-GLBs für beide Teams, echten Rad-/Werfer-/Hydraulikclips und getrennten 192-Pixel-Spiel-Layern. `npm run assets:rocket-launcher` erzeugt die Assets reproduzierbar. [Modell und Nachweise](../qa/rocket-launcher-20261028/README.md).
+
 **Transporthelikopter:** Zwei eigene PBR-GLBs mit fünfblättrigem Hauptrotor, unabhängigem Heckrotor und acht Phasen pro 16 Richtungen. Idle/Walk teilen 128 Bildframes je Team. `npm run assets:transport` erstellt Modelle und 192-Pixel-Atlanten reproduzierbar. Der Kampfhelikopter ist entfernt; Altspielstände werden migriert. [Modell und Prüfnachweise](../qa/transport-helicopter-20261028/README.md).
 
 **Aktuelle Übernahme nach Nutzerfreigabe:** Die detailliertere Legionär-Figur ist als gemeinsame Grundfigur von Infanterie, Pionier und schwerem Schützen im Spiel aktiv. Sie besitzt 192-Pixel-Zellen, Pivot (96,156), Maßstab 0,5 und 296 Frames je Team. Mündungen sind aus der wirklichen 3D-Waffe registriert. Sieben neue eigene Gebäudetypen ersetzen die bisherigen generierten Gebäudebilder; Basis und Bastion verwenden 64 registrierte Schüsselansichten. [Aktueller Umfang, Quellen und Prüfung](../buildings-3d/README.md). Das Inventar enthält 18 unterschiedliche aktive Einheitenatlanten für 18 Rollen-/Teamkombinationen sowie 15 Gebäudemodelle. Die folgenden Abschnitte dokumentieren den vorherigen Stand mit den einfachen CC0-Figuren; diese Figuren sind archiviert.
@@ -16,7 +18,8 @@ Die bisherigen generierten Einzelansichten und Laufatlanten waren kein vollstän
 | --- | --- | --- |
 | Infanterie, Pionier, schwerer Schütze | 8 | Idle 4, Walk 8, Attack 5, Hit 4, Death 10 Samples je Richtung; zusammen 248 Frames je Atlas |
 | Spähwagen | 16 | Idle und vier tatsächlich gerenderte Radstellungen |
-| Panzer, Artillerie | 16 | Vier Kettenphasen vorwärts, links und rechts; unabhängiger Turm und Rohr |
+| Panzer | 16 | Vier Kettenphasen vorwärts, links und rechts; unabhängiger Turm und Rohr |
+| Raketenwerfer | 16 | Vier Radphasen vorwärts, links und rechts; getrennte Drehkranz-/Werferlayer mit sechs registrierten Mündungen |
 | Transporthelikopter | 16 | Acht Rotorphasen aus dem eigenen PBR-GLB, unabhängiger Haupt- und Heckrotor; gemeinsame Pixel für Stillstand und Flug |
 | Bomber | 16 | Starre Richtungsansichten; eine Pose pro Zustand, keine erfundenen beweglichen Teile |
 

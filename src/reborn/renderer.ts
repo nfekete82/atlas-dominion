@@ -329,7 +329,7 @@ export class Renderer {
   private drawRockets():void{
     const g=this.game,c=this.context,particles=this.units.particles;if(!particles.enabled)return;
     for(const m of g.missiles){const t=clamp((g.time-m.at)/(m.impactAt-m.at),0,1),ground={x:m.from.x+(m.to.x-m.from.x)*t,y:m.from.y+(m.to.y-m.from.y)*t};if(!g.canSee(0,ground))continue;
-      const from=this.units.muzzleForShot({from:m.from,to:m.to,owner:m.owner,life:1,hit:false,kind:'artillery',source:m.source,angle:m.angle,groundFrom:m.from});
+      const from=this.units.muzzleForShot({from:m.from,to:m.to,owner:m.owner,life:1,hit:false,kind:'artillery',source:m.source,barrel:m.id%6,angle:m.angle,groundFrom:m.from});
       const x=from.x+(m.to.x-from.x)*t,y=from.y+(m.to.y-20-from.y)*t-(this.reducedMotion?0:Math.sin(t*Math.PI)*34),angle=Math.atan2(m.to.y-20-from.y-(this.reducedMotion?0:Math.cos(t*Math.PI)*34*Math.PI),m.to.x-from.x);
       c.save();c.translate(x,y);c.rotate(angle);c.fillStyle='#f1d7a0';c.fillRect(-5,-1.6,10,3.2);c.fillStyle='#fff4bf';c.fillRect(-9,-1,5,2);c.fillStyle='#e9893f';c.beginPath();c.moveTo(-9,-2);c.lineTo(-15,0);c.lineTo(-9,2);c.fill();c.restore();
       if(!g.paused&&!this.reducedMotion&&g.time-(this.rocketTrails.get(m.id)??-1)>.09){particles.emit('smoke',{x,y});this.rocketTrails.set(m.id,g.time);}

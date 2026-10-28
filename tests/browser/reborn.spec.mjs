@@ -590,20 +590,20 @@ test('model gallery: vehicles and aircraft are selectable as real 3D GLBs',async
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.setViewportSize({width:1280,height:850});
  await page.goto('/model-3d.html?model=rover');
- const models={rover:'Humvee',tank:'Panzer',artillery:'Artillerie',scout:'Transporthelikopter',bomber:'Bomber'};
+ const models={rover:'Humvee',tank:'Panzer',artillery:'Raketenwerfer',scout:'Transporthelikopter',bomber:'Bomber'};
  for(const [kind,label] of Object.entries(models)){
   await page.locator('#model').selectOption(kind);
   await page.waitForFunction(k=>window.__model3D?.kind===k&&window.__model3D?.data&&document.querySelector('#download').getAttribute('href')==='/src/assets/reborn/animation/'+k+'-0.glb',kind);
   await expect(page.locator('#error')).toHaveText('');
   await expect(page.locator('#model-title')).toContainText(label);
   await expect(page.locator('#download')).toHaveAttribute('href','/src/assets/reborn/animation/'+kind+'-0.glb');
-  if(['rover','scout','bomber'].includes(kind))await expect(page.locator('[data-clip="Operation"]')).toBeVisible();else await expect(page.locator('[data-clip="Operation"]')).toBeHidden();
+  if(['rover','artillery','scout','bomber'].includes(kind))await expect(page.locator('[data-clip="Operation"]')).toBeVisible();else await expect(page.locator('[data-clip="Operation"]')).toBeHidden();
   const info=await page.evaluate(()=>{
    const v=window.__model3D;let meshes=0;v.current.traverse(n=>{if(n.isMesh)meshes++;});
    return {meshes,animations:v.data.animations.length,position:v.camera.position.toArray()};
   });
   expect(info.meshes).toBeGreaterThan(10);
-  expect(info.animations).toBe(['rover','scout','bomber'].includes(kind)?1:0);
+  expect(info.animations).toBe(kind==='artillery'?2:['rover','scout','bomber'].includes(kind)?1:0);
   expect(info.position.every(Number.isFinite)).toBe(true);
  }
  await page.locator('#red').click();

@@ -1,0 +1,74 @@
+{
+  "bomber-0.glb": {
+    "sha256": "e5f3fe7a993c6754ce728b40c9d200687faf1805d9280d992c41f9b4d510049b",
+    "unchanged": true
+  },
+  "bomber-0.json": {
+    "sha256": "6ea67d56f420802c57b03ba77aa9496108dba31b05ce9ff195bc6edd3b558b4c",
+    "unchanged": true
+  },
+  "bomber-0.png": {
+    "sha256": "8d6d6abde91aaaad6af43b565ea51f932f32a7c3ee44a7e8e9f10508f6e77a6c",
+    "unchanged": true
+  },
+  "bomber-1.glb": {
+    "sha256": "c040010efa3a03b4ab8823aa183890245bd8855ad9ed7f6d07ebb7fca2b133fd",
+    "unchanged": true
+  },
+  "bomber-1.json": {
+    "sha256": "504cb70c035abfca057513e3c796adb88499f2cf9be5a005606afba758dc7436",
+    "unchanged": true
+  },
+  "bomber-1.png": {
+    "sha256": "25e41c85a856ca6baa8b51b29c7419dacc575a13095db06cdacde55f0e9a30c4",
+    "unchanged": true
+  },
+  "scout-0.glb": {
+    "sha256": "af905db74a5d7e071cfa1956b4aed55a6b70c0c3ef753fe345fa647b589e1087",
+    "unchanged": true
+  },
+  "scout-0.json": {
+    "sha256": "49db058a3579ad76fd3ff0b5323bb820e4712ce71e3fbccb869d4f635cd26bf9",
+    "unchanged": true
+  },
+  "scout-0.png": {
+    "sha256": "db0b9beb38b63e82daf56364561d584f0e7f7f639ee32476b4e86d1ab1104899",
+    "unchanged": true
+  },
+  "scout-1.glb": {
+    "sha256": "b2863cc4b715dd8dfa4f20da6952c5acb0d11092c2354dccb8fd4797d485ae00",
+    "unchanged": true
+  },
+  "scout-1.json": {
+    "sha256": "d57bb688d317f3f0a6f35472e07a0002890767b2fbf5f10f523f87363feb0a6e",
+    "unchanged": true
+  },
+  "scout-1.png": {
+    "sha256": "6ccb1e519d778fe7f1684b1dc9b0167a902bb7d216ab971fb7ae3cbe7ea3c9d3",
+    "unchanged": true
+  },
+  "tank-0.glb": {
+    "sha256": "6d5f698271df7b313d550bcf9b0393b6a467b45d26a202b5b436a0bd8e91bf17",
+    "unchanged": true
+  },
+  "tank-0.json": {
+    "sha256": "9e556b35479f1bf2ce523d6e3bb47ffe5a6b72f67129116ad11e0410f418aac9",
+    "unchanged": true
+  },
+  "tank-0.png": {
+    "sha256": "93dbf30655e719d1c1eddd9075874b6f5ab39729d8f73fc6630d9d7acc557f42",
+    "unchanged": true
+  },
+  "tank-1.glb": {
+    "sha256": "923a7c66aaec5bb2d26d1318fa5263e71673c55789fcefc8c34d6fec71403019",
+    "unchanged": true
+  },
+  "tank-1.json": {
+    "sha256": "e2a10f30e9a55b7af238de545f832ff9fc053b92a2f0d4a3cf7df6764d2aed6e",
+    "unchanged": true
+  },
+  "tank-1.png": {
+    "sha256": "d033883ab09d79ef87c1a6c999bdc870c15356502eeb923079ade8d280c069ad",
+    "unchanged": true
+  }
+}

@@ -140,15 +140,23 @@ async function loadFactionTransport(team){
  const muzzle=new T.Object3D();muzzle.position.set(0,1.5,3.7);model.add(muzzle);
  return {model,animations,muzzle,rotor:model.getObjectByName('MainRotor_Spin'),animate(){}};
 }
+async function loadFactionRocketLauncher(team){
+ const {scene:model,animations}=await loader.loadAsync('/src/assets/reborn/animation/artillery-'+team+'.glb');
+ for(const name of ['Tank_Turret','Tank_Gun','RocketMuzzle_0'])if(!model.getObjectByName(name))throw Error('Raketenwerfer GLB missing '+name);
+ const wheels=[];model.traverse(n=>{if(/^Wheel_(Port|Starboard)_\d+$/.test(n.name))wheels.push(n);if(n.userData.atlasDesign)model.userData.atlasDesign=n.userData.atlasDesign;});
+ if(wheels.length!==6)throw Error('Raketenwerfer needs six independent wheel pivots');
+ const initial=new Map(wheels.map(w=>[w,w.quaternion.clone()])),muzzles=Array.from({length:6},(_,i)=>model.getObjectByName('RocketMuzzle_'+i));
+ return {model,animations,muzzle:muzzles[0],muzzles,animate(tag,phase){for(const w of wheels){w.quaternion.copy(initial.get(w));if(tag!=='idle'){const side=Math.sign(w.position.x),direction=tag==='turnLeft'?side:tag==='turnRight'?-side:1;w.rotateX(phase*Math.PI*2*direction);}}}};
+}
 window.compileAtlases=async(requested)=>{
  for(const kind of Object.keys(models).filter(k=>!requested.length||requested.includes(k))){
   const character=kind in {infantry:1,engineer:1,heavy:1},[file,weapon]=models[kind];
   for(const team of [0,1]){
-   const rig=character?null:kind==='tank'?await loadFactionLeopard(team):kind==='bomber'?await loadFactionBomber(team):kind==='scout'?await loadFactionTransport(team):kind==='rover'?buildHumvee(team):buildAtlasVehicle(kind,team);
+   const rig=character?null:kind==='tank'?await loadFactionLeopard(team):kind==='bomber'?await loadFactionBomber(team):kind==='scout'?await loadFactionTransport(team):kind==='artillery'?await loadFactionRocketLauncher(team):kind==='rover'?buildHumvee(team):buildAtlasVehicle(kind,team);
    const data=rig?{scene:rig.model,animations:rig.animations??[]}:await loader.loadAsync('/tools/animation-sources/'+file),model=data.scene??data;
    if(character)for(const name of weapons){const n=model.getObjectByName(name);if(n)n.visible=name===weapon;}
    const rotor=rig?.rotor??null;
-   if(rig&&cell>=192&&kind!=='bomber'&&kind!=='scout')weatherVehicleMaterials(model); // Preserve the bomber's authored PBR maps.
+   if(rig&&cell>=192&&kind!=='bomber'&&kind!=='scout'&&kind!=='artillery')weatherVehicleMaterials(model); // Preserve the bomber's authored PBR maps.
    if(!rig)colorize(model,team,character);const pivot=new T.Group(),normalization=new T.Group();normalization.add(model);pivot.add(normalization);scene.add(pivot);
    const mixer=new T.AnimationMixer(model),actions=new Map((data.animations??[]).map(c=>[c.name,mixer.clipAction(c)]));
    const initial=character?'Idle':null;
@@ -170,10 +178,10 @@ window.compileAtlases=async(requested)=>{
    const size=character?3.6:kind==='tank'?4.7:4.2;camera.left=-size/2;camera.right=size/2;camera.top=size/2;camera.bottom=-size/2;camera.updateProjectionMatrix();
    camera.position.set(0,8,12);camera.lookAt(0,0,0);camera.updateMatrixWorld();const origin=sample(new T.Vector3());const shift=(78*pixelFactor-origin.y)*size/cell;
    camera.position.y+=shift/Math.cos(Math.atan2(8,12));camera.lookAt(0,shift/Math.cos(Math.atan2(8,12)),0);camera.updateMatrixWorld();
-   const baseRotations=new Map();model.traverse(n=>{if(/Wheel_/.test(n.name))baseRotations.set(n,n.quaternion.clone());});
+   const baseRotations=new Map();model.traverse(n=>{if(kind!=='artillery'&&/Wheel_/.test(n.name))baseRotations.set(n,n.quaternion.clone());});
    for(const [tag,clipName,count,loop] of config){
     const action=clipName?actions.get(clipName):null;if(clipName&&!action)throw Error(kind+' missing '+clipName);
-    metadata.clips[tag]={frames:[],duration:action?.getClip().duration??(rotor?.32:1),loop,sourceClip:clipName??(rotor?'authored rigid rotor geometry':rig&&kind!=='bomber'&&tag!=='idle'?(kind==='rover'?'authored rigid wheel geometry':'authored rigid track geometry'):'static model'),uniquePhases:[]};
+    metadata.clips[tag]={frames:[],duration:action?.getClip().duration??(rotor?.32:1),loop,sourceClip:clipName??(rotor?'authored rigid rotor geometry':rig&&kind!=='bomber'&&tag!=='idle'?(['rover','artillery'].includes(kind)?'authored rigid wheel geometry':'authored rigid track geometry'):'static model'),uniquePhases:[]};
     for(let direction=0;direction<directionCount;direction++){
      const row=[],hashes=new Set();
      for(let phase=0;phase<count;phase++){
@@ -203,12 +211,12 @@ window.compileAtlases=async(requested)=>{
     floor.visible=false;turret.visible=true;if(gun)gun.visible=true;
     const belongs=(n,part)=>{for(let p=n;p;p=p.parent)if(p===part)return true;return false;};
     for(const [tag,part] of [['turret',turret],['barrel',gun]]){
-     if(!part)continue;for(const n of all)n.visible=belongs(n,part);
+     if(!part)continue;for(const n of all)n.visible=belongs(n,part)&&!(tag==='turret'&&gun&&belongs(n,gun));
      metadata.clips[tag]={frames:[],duration:1,loop:true,sourceClip:'separate rigid '+tag+' geometry'};
-     for(let direction=0;direction<16;direction++){pivot.rotation.y=Math.PI/2-direction*Math.PI/8;pivot.updateMatrixWorld(true);renderer.render(scene,camera);const index=metadata.frames.length,x=index%columns*cell,y=Math.floor(index/columns)*cell;ctx.drawImage(renderer.domElement,x,y);const muzzleNode=tag==='barrel'?rig?.muzzle??part.children.find(n=>n.name.startsWith('MuzzleOpening')):null,muzzle=muzzleNode?sample(muzzleNode.getWorldPosition(new T.Vector3())):null;metadata.frames.push({x,y,w:cell,h:cell,pivot:[48*pixelFactor,78*pixelFactor],duration:1,...(muzzle?{muzzle:[muzzle.x,muzzle.y]}:{})});metadata.clips[tag].frames.push([index]);}
+     for(let direction=0;direction<16;direction++){pivot.rotation.y=Math.PI/2-direction*Math.PI/8;pivot.updateMatrixWorld(true);renderer.render(scene,camera);const index=metadata.frames.length,x=index%columns*cell,y=Math.floor(index/columns)*cell;ctx.drawImage(renderer.domElement,x,y);const muzzleNode=tag==='barrel'?rig?.muzzle??part.children.find(n=>n.name.startsWith('MuzzleOpening')):null,muzzle=muzzleNode?sample(muzzleNode.getWorldPosition(new T.Vector3())):null;metadata.frames.push({x,y,w:cell,h:cell,pivot:[48*pixelFactor,78*pixelFactor],duration:1,...(muzzle?{muzzle:[muzzle.x,muzzle.y]}:{}),...(tag==='barrel'&&rig?.muzzles?{muzzles:rig.muzzles.map(n=>{const p=sample(n.getWorldPosition(new T.Vector3()));return [p.x,p.y];})}:{})});metadata.clips[tag].frames.push([index]);}
     }
    }
-   if(rig&&!atlasOnly&&kind!=='bomber'&&kind!=='scout'){model.traverse(n=>{if(n.isMesh)n.visible=true;});if(turret)turret.visible=true;if(gun)gun.visible=true;rig.animate('idle',0);
+   if(rig&&!atlasOnly&&kind!=='bomber'&&kind!=='scout'&&kind!=='artillery'){model.traverse(n=>{if(n.isMesh)n.visible=true;});if(turret)turret.visible=true;if(gun)gun.visible=true;rig.animate('idle',0);
     // Embed actual quaternion animation for four wheel pivots in the 3D GLB.
     const wheelTracks=kind==='rover'?(rig.wheels??[]).map(wheel=>{
      const times=Array.from({length:25},(_,i)=>i/24),values=[];

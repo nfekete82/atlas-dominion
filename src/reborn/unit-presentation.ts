@@ -93,7 +93,7 @@ export class UnitPresentation {
   const tag=asset.data.clips.barrel?'barrel':view?.anim.state??'attack';
   const clip=asset.data.clips[tag]??asset.data.clips.idle;
   const frame=view?view.anim.frame(tag,angle):asset.data.frames[clip.frames[directionIndex(angle,asset.data.directions)][0]];
-  const scale=asset.data.nativeScale*unitArtScale(shot.kind),m=frame.muzzle,p=shot.groundFrom;
+  const scale=asset.data.nativeScale*unitArtScale(shot.kind),m=frame.muzzles?.[(shot.barrel??0)%frame.muzzles.length]??frame.muzzle,p=shot.groundFrom;
   return m?{x:p.x+(m[0]-frame.pivot[0])*scale,y:p.y+(m[1]-frame.pivot[1])*scale-unitVisualLift({kind:shot.kind,flightHeight:shot.flightHeight})}:shot.from;
  }
  muzzleFor(u:Unit):Point{const v=this.view(u);this.advance(v,u,0);return this.muzzle(v,u);}

@@ -1,6 +1,6 @@
 /** Rendering data only. Animation clocks never alter combat or order queues. */
 export type AnimationState='idle'|'walk'|'attack'|'hit'|'death';
-export interface AnimationFrame {x:number;y:number;w:number;h:number;pivot:[number,number];duration:number;muzzle?:[number,number]}
+export interface AnimationFrame {x:number;y:number;w:number;h:number;pivot:[number,number];duration:number;muzzle?:[number,number];muzzles?:[number,number][]}
 export interface AnimationClip {frames:number[][];duration:number;loop:boolean;sourceClip:string}
 export interface AnimationAtlas {version:1;image:string;kind:string;team:number;cell:[number,number];nativeScale:number;directions:number;stride:number;source:string;timeBasedLocomotion?:boolean;rotor?:boolean;clips:Record<string,AnimationClip>;frames:AnimationFrame[]}
 export interface AnimationIntent {moving:boolean;distance:number;angle:number;attack:boolean;hit:boolean;dead:boolean}

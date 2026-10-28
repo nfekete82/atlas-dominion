@@ -23,7 +23,8 @@
     "test:ai-defense": "npm run build && node scripts/benchmark-ai-defense.mjs",
     "test:ai-director": "npm run build && node --test tests/reborn-ai-director.test.mjs tests/reborn-map-ai.test.mjs tests/reborn-control-retreat.test.mjs",
     "benchmark:ai": "npm run build && node scripts/benchmark-reborn-ai.mjs",
-    "assets:transport": "node scripts/build-transport-helicopter.mjs && node scripts/render-unit-atlases.mjs --hd scout"
+    "assets:transport": "node scripts/build-transport-helicopter.mjs && node scripts/render-unit-atlases.mjs --hd scout",
+    "assets:rocket-launcher": "node scripts/build-rocket-launcher.mjs && node scripts/render-unit-atlases.mjs --hd artillery"
   },
   "devDependencies": {
     "three": "0.180.0",

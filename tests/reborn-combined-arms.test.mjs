@@ -51,9 +51,9 @@ test('transport: invalid cargo duplication and malformed missile states are reje
  const legacy=peaceful();legacy.spawn(0,{x:1900,y:2100},'heavy');legacy.spawn(0,{x:2000,y:2100},'scout');const old=legacy.save();delete old.rosterVersion;old.units[0].hp=190;old.units[1].hp=160;const migrated=Simulation.load(old);assert.equal(migrated.units[0].hp,420);assert.equal(migrated.units[1].hp,360);assert.equal(Simulation.load(migrated.save()).units[0].hp,420);
 });
 
-test('assets: both factions have a twelve-tube rocket vehicle and ten-seat tandem-rotor transport with registered MG sockets',()=>{
+test('assets: both factions have a six-tube rocket truck and ten-seat transport with registered weapon sockets',()=>{
  for(const owner of [0,1]){
-  const rocket=JSON.parse(fs.readFileSync(`src/assets/reborn/animation/artillery-${owner}.json`)),heli=JSON.parse(fs.readFileSync(`src/assets/reborn/animation/scout-${owner}.json`));assert.equal(rocket.design.tubes,12);assert.equal(heli.design.seats,10);assert.ok(heli.rotor);assert.ok(heli.frames.every(f=>f.muzzle?.every(Number.isFinite)));assert.ok(rocket.clips.barrel.frames.every(row=>rocket.frames[row[0]].muzzle));
+  const rocket=JSON.parse(fs.readFileSync(`src/assets/reborn/animation/artillery-${owner}.json`)),heli=JSON.parse(fs.readFileSync(`src/assets/reborn/animation/scout-${owner}.json`));assert.equal(rocket.design.tubes,6);assert.equal(heli.design.seats,10);assert.ok(heli.rotor);assert.ok(heli.frames.every(f=>f.muzzle?.every(Number.isFinite)));assert.ok(rocket.clips.barrel.frames.every(row=>rocket.frames[row[0]].muzzle));
  }
 });
 
