@@ -6,6 +6,7 @@ import { profiler } from './performance.js';
 import { RULES, WEATHER_RULES, clamp, distance, type Faction, type Owner, type Point, type MapVersion, mapLayout } from './config.js';
 import { World, inside, type Territory } from './world.js';
 import { UNITS, BUILDINGS, canAttack, weaponDamage, unitSpec, buildingSpec, unitKinds, type UnitKind, type BuildingKind } from './catalog.js';
+import {requiredBuildingDistance} from './building-spacing.js';
 import {angleDifference,turnTowards} from './sprite-animator.js';
 import {turretPivot,turretMuzzles} from './turret.js';
 import {Transports,type TransportState} from './transports.js';
@@ -153,7 +154,7 @@ export class Simulation {
       if(!this.world.walkable(q))return 'Felsen oder Kartenrand blockieren die Grundfläche.';
     }
     for(let i=0;i<32;i++)if(!this.world.walkable({x:p.x+Math.cos(i*Math.PI/16)*spec.radius,y:p.y+Math.sin(i*Math.PI/16)*spec.radius}))return 'Die gesamte Grundfläche muss frei sein.';
-    if(this.obstacles().some(b=>distance(b,p)<b.radius+spec.radius+24))return 'Zu nah an einem anderen Gebäude.';
+    if(this.obstacles().some(b=>distance(b,p)<requiredBuildingDistance(b.kind,kind)))return 'Zu nah an einem anderen Gebäude.';
     if(this.territories.some(t=>distance(t.point,p)<spec.radius+45))return 'Bastion und Kontrollpunkt müssen frei bleiben.';
     if(this.units.some(u=>u.hp>0&&!u.carrier&&!unitSpec(u).flying&&distance(u,p)<spec.radius+unitSpec(u).radius))return 'Einheiten blockieren die Baustelle.';
     return null;

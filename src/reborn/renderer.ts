@@ -11,6 +11,7 @@ import { UnitPresentation, unitVisualLift } from './unit-presentation.js';
 import {angleDifference} from './sprite-animator.js';
 import { BuildingPresentation } from './building-presentation.js';
 import {buildingArtWidth,unitArtScale} from './visual-scale.js';
+import {buildingPlacementRadius} from './building-spacing.js';
 import {rosterImageRect,ROSTER_IMAGE_WIDTH,ROSTER_IMAGE_HEIGHT} from './portrait-layout.js';
 import { TERRAIN_FRAMES, TERRAIN_PLACEMENTS } from './terrain-art.js';
 import { paintGeneratedTerrain } from './terrain-presentation.js';
@@ -340,9 +341,9 @@ export class Renderer {
     entities.sort((a,b)=>a.y-b.y);for(const e of entities)if('unit' in e)this.drawUnit(e.unit);else if('base' in e)this.drawBase(e.base);else this.drawBastion(e.territory);
     if(profiler)profiler.record('sprites',performance.now()-spritesAt);
     if(this.placement&&this.pointer){
-      const spec=BUILDINGS[this.placement],p=this.pointer,valid=g.units.some(u=>this.selected.has(u.id)&&u.kind==='engineer'&&u.owner===0&&u.hp>0)&&!g.buildError(0,this.placement,p);
+      const spec=BUILDINGS[this.placement],p=this.pointer,siteRadius=buildingPlacementRadius(this.placement),valid=g.units.some(u=>this.selected.has(u.id)&&u.kind==='engineer'&&u.owner===0&&u.hp>0)&&!g.buildError(0,this.placement,p);
       c.save();c.strokeStyle=valid?'#96e0b8':'#f27e67';c.fillStyle=valid?'#6bcda52a':'#e66a552a';c.lineWidth=1.5;
-      c.beginPath();c.moveTo(p.x-spec.radius,p.y);c.lineTo(p.x,p.y-spec.radius*.5);c.lineTo(p.x+spec.radius,p.y);c.lineTo(p.x,p.y+spec.radius*.5);c.closePath();c.fill();c.stroke();
+      c.beginPath();c.moveTo(p.x-siteRadius,p.y);c.lineTo(p.x,p.y-siteRadius*.5);c.lineTo(p.x+siteRadius,p.y);c.lineTo(p.x,p.y+siteRadius*.5);c.closePath();c.fill();c.stroke();
       this.spriteDraw(this.buildings[this.placement],p,buildingArtWidth(this.placement,spec.width),false,.65);if(this.placement==='turret')this.structures.drawTurret(c,0,p,buildingArtWidth(this.placement,spec.width),0,.65);c.restore();
     }
     this.drawRockets();
