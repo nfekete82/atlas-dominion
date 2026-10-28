@@ -8,16 +8,21 @@ export interface ObservedThreat extends Point {id:number;hp:number;kind:UnitKind
 export function assignScreen(members:readonly SquadMember[],threat:ObservedThreat):number[] {
  const front=members.filter(u=>u.hp>0&&['infantry','heavy','tank','rover'].includes(u.kind)&&canAttack(u,threat));
  if(!front.length)return [];
- // Two interceptors hold contact while the main body keeps its mission.
- const n=Math.min(2,Math.max(1,Math.ceil(front.length/4)));
+ // Keep a viable assault reserve while assigning enough strength to avoid
+ // a two-soldier screen being immediately wiped out by a guarded position.
+ const n=Math.min(front.length>=6?3:2,Math.max(1,front.length-1));
  return front.slice().sort((a,b)=>distance(a,threat)-distance(b,threat)||
   unitSpec(b).hp-unitSpec(a).hp||a.id-b.id).slice(0,n).map(u=>u.id);
 }
 /** Mobile escort can use a second approach without taking an emergency screen away. */
 export function assignFlank(members:readonly SquadMember[],screen:readonly number[]):number[] {
  const used=new Set(screen);
- const candidates=members.filter(u=>u.hp>unitSpec(u).hp*.6&&!used.has(u.id)&&
-  ['rover','tank','heavy'].includes(u.kind));
- return candidates.slice().sort((a,b)=>unitSpec(b).speed-unitSpec(a).speed||a.id-b.id)
-  .slice(0,2).map(u=>u.id);
+ const candidates=members.filter(u=>u.hp>=unitSpec(u).hp*.65&&!used.has(u.id)&&
+  ['rover','tank','heavy','infantry'].includes(u.kind));
+ // Leave at least two combatants holding the primary axis; otherwise a
+ // tempting two-man flank would strip the entire assault group bare.
+ if(candidates.length<4)return [];
+ const priority=(kind:UnitKind)=>kind==='rover'?4:kind==='tank'?3:kind==='heavy'?2:1;
+ return candidates.slice().sort((a,b)=>priority(b.kind)-priority(a.kind)||
+  unitSpec(b).speed-unitSpec(a).speed||a.id-b.id).slice(0,2).map(u=>u.id);
 }
