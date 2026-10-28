@@ -138,7 +138,7 @@ export function paintDesertFoundation(c:CanvasRenderingContext2D,site:Foundation
   c.save();
   polygon(c,p);
   c.clip();
-  windDeposit(c,site.x-half*.76,front-f.depth*.17,f.width*.29,f.depth*.45,-.14,.99);
+  windDeposit(c,site.x-half*.76,front-f.depth*.17,f.width*.29,f.depth*.45,-.14,1);
   windDeposit(c,site.x+half*.77,front-f.depth*.20,f.width*.28,f.depth*.51,.13,.96);
   windDeposit(c,site.x-half*.15,front-f.depth*.03,f.width*.40,f.depth*.25,-.05,.74);
   windDeposit(c,site.x+half*.52,back+f.depth*.20,f.width*.25,f.depth*.25,.10,.66);
