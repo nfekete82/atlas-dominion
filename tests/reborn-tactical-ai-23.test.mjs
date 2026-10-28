@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {flankRouteScore} from '../dist/src/reborn/battle-squads.js';
+import {flankRouteScore,isContinuingFlank} from '../dist/src/reborn/battle-squads.js';
 import {Simulation} from '../dist/src/reborn/simulation.js';
 
 test('2.3: equal-length flanks prefer the side away from real visible heavy infantry',()=>{
@@ -30,6 +30,11 @@ test('2.3: flank approach uses two accepted attack-move orders, never a helpless
  assert.equal(red.orders.length,2);
  assert.deepEqual(red.orders.map(o=>o.kind),['attackMove','attackMove']);
  assert.ok(red.orders.every(o=>o.tactical?.group===17&&o.tactical.mode==='assault'));
+ assert.equal(isContinuingFlank(red.orders,17),true);
+ assert.equal(isContinuingFlank(red.orders,18),false,'old unit groups cannot inherit a new flank');
+ red.defendUntil=g.time+5;
+ assert.equal(isContinuingFlank(red.orders,17),true,'taking a hit must not erase a two-leg flank');
+ red.defendUntil=0;
  const before=blue.hp;
  for(let i=0;i<45;i++)g.step(.05);
  assert.ok(blue.hp<before,'flanker should return fire during its first leg, unlike old safe move');
