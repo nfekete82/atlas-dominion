@@ -14,8 +14,8 @@ const FULL_CIRCLE=Math.PI*2;
 
 export function foundationFootprint(kind:BuildingKind):FoundationFootprint {
   const spec=BUILDINGS[kind],large=major.has(kind),visualWidth=buildingArtWidth(kind,spec.width);
-  // Give the headquarters a little more visible apron at the left and right.
-  const width=large?visualWidth*(kind==='headquarters'?1.11:1.085):Math.max(spec.radius*1.88,visualWidth*.88);
+  // Expose a modest strip of sandstone at the sides; keep the original isometric silhouette.
+  const width=large?visualWidth*(kind==='headquarters'?1.14:1.11):Math.max(spec.radius*1.88,visualWidth*.88);
   return {
     width,
     // The old 0.35 depth stopped halfway beneath the sprite: its rear rim was invisible.
@@ -161,8 +161,8 @@ export function paintDesertFoundation(c:CanvasRenderingContext2D,site:Foundation
   c.globalAlpha*=Math.min(1,opacity);
 
   // Sand is already packed around the foundation before the slab is drawn.
-  windDeposit(c,site.x-half*.94,front-f.depth*.22,f.width*.23,f.depth*.44,-.13,.70);
-  windDeposit(c,site.x+half*.94,front-f.depth*.38,f.width*.22,f.depth*.43,.12,.72);
+  windDeposit(c,site.x-half*.94,front-f.depth*.22,f.width*.20,f.depth*.40,-.13,.62);
+  windDeposit(c,site.x+half*.94,front-f.depth*.38,f.width*.20,f.depth*.40,.12,.63);
   windDeposit(c,site.x-half*.17,front+f.lip+3,f.width*.42,Math.max(9,f.depth*.23),0,.65);
 
   // Contact shadow and visible shallow cut-stone skirt.
@@ -244,8 +244,8 @@ export function paintDesertFoundation(c:CanvasRenderingContext2D,site:Foundation
   // Overlaps between deposits leave irregular exposed sandstone sections.
   windDeposit(c,site.x-half*.97,back+f.depth*.16,f.width*.18,f.depth*.15,-.28,1.10);
   windDeposit(c,site.x+half*.98,back+f.depth*.31,f.width*.19,f.depth*.17,.29,1.06);
-  windDeposit(c,site.x-half*.98,front-f.depth*.30,f.width*.16,f.depth*.18,-.23,.98);
-  windDeposit(c,site.x+half*.97,front-f.depth*.18,f.width*.16,f.depth*.17,.18,1.05);
+  windDeposit(c,site.x-half*.98,front-f.depth*.30,f.width*.14,f.depth*.15,-.23,.83);
+  windDeposit(c,site.x+half*.97,front-f.depth*.18,f.width*.14,f.depth*.15,.18,.87);
   windDeposit(c,site.x-half*.55,front+f.lip,f.width*.23,Math.max(8,f.depth*.085),-.10,1.08);
   windDeposit(c,site.x+half*.31,front+f.lip+1,f.width*.23,Math.max(8,f.depth*.10),.12,.98);
   windDeposit(c,site.x+half*.12,back+1,f.width*.26,Math.max(7,f.depth*.09),.07,1.02);
@@ -255,14 +255,15 @@ export function paintDesertFoundation(c:CanvasRenderingContext2D,site:Foundation
   const edges:[[number,number,number,number,number],[number,number,number,number,number],
     [number,number,number,number,number],[number,number,number,number,number]]=[
     [1,2,.12,.77,.12], // rear/right
-    [3,4,.16,.72,.18], // right/front
-    [5,6,.05,.73,.18], // front/left
-    [7,0,.14,.82,.14], // left/rear
+    [3,4,.23,.62,.12], // right/front: a visible strip of sandstone remains
+    [5,6,.05,.73,.18], // front/left: preserve existing dune coverage
+    [7,0,.23,.65,.10], // left/rear: expose the side without clearing all sand
   ];
   for(const [i,j,a,b,ratio] of edges){
     buryEdge(c,p[i],p[j],a,b,Math.max(8,f.width*ratio),rnd);
-    // Partial second drift with a gap: stone is still recognizable.
-    buryEdge(c,p[i],p[j],.84,.97,Math.max(6,f.width*.070),rnd);
+    // Leave a bit more side visible, while the front/rear keep their deeper sand tongues.
+    const side=i===3||i===7;
+    buryEdge(c,p[i],p[j],side?.87:.84,side?.95:.97,Math.max(6,f.width*(side?.044:.070)),rnd);
   }
   c.restore();
 }
