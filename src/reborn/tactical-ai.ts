@@ -9,13 +9,20 @@ import {segmentDistance} from './world-generation.js';
 import {newBattle,assessBattle,fightingPower,recordFailure,retryFront,validBattle,type BattleState} from './battle-response.js';
 import {newAdaptive,updateAdaptive,validAdaptive,type AdaptiveState} from './adaptive-strategy.js';
 import {rankLegacyFrontiers} from './legacy-campaign.js';
-import {chooseTacticalManeuver,flankCandidate} from './tactical-search.js';
+import {chooseTacticalManeuver,flankCandidate,type TacticalChoice} from './tactical-search.js';
+import {assignScreen,assignFlank} from './battle-squads.js';
 import type {Simulation,Unit,Memory} from './simulation.js';
 export type TacticalPhase='gather'|'attack'|'regroup'|'defend';
 export interface KnownTurret extends Point {id:number;hp:number;seenAt:number;range:number}
 export interface Loss extends Point {id:number;at:number;strength:number}
 export interface Attempt {sector:number;losses:number;until:number}
 export interface TacticalOrder {group:number;mode:'safe'|'assault'|'defend';goal?:Point}
+export interface TacticalDiagnostics {
+ evaluated:number;choices:Record<'assault'|'flank'|'siege'|'regroup',number>;
+ delegatedSieges:number;issuedSieges:number;screenOrders:number;flankGroups:number;flankOrders:number;mainOrders:number;
+ last:{at:number;sector:number;allies:number;visible:number;guns:number;choice:string;reason:string}|null;
+}
+const newDiagnostics=():TacticalDiagnostics=>({evaluated:0,choices:{assault:0,flank:0,siege:0,regroup:0},delegatedSieges:0,issuedSieges:0,screenOrders:0,flankGroups:0,flankOrders:0,mainOrders:0,last:null});
 export interface TacticalState {
  adaptive?:AdaptiveState;
  battle?:BattleState;
@@ -35,6 +42,8 @@ export class TacticalAI {
  mode:'baseline'|'director'='director';
  /** Benchmark-only A/B switch; classic director remains available. */
  planningMode:'classic'|'tactical'='tactical';
+ /** Runtime-only diagnostics: never influence simulation or serialize in saves. */
+ diagnostics:TacticalDiagnostics=newDiagnostics();
  state=fresh();private risk:Float32Array|undefined;private riskAt=-1;private routeCache=new Map<string,Point[]>();private routeSignature='';
  private strategyOptions: SectorChoice[]=[];
  private sectorPreference: {sectorId:number;until:number}|null=null;
@@ -52,7 +61,7 @@ export class TacticalAI {
   this.sectorPreference={sectorId,until:this.g.time+35};return true;
  }
  restore(state:TacticalState|undefined):void{
-  this.state=state?structuredClone(state):fresh();this.risk=undefined;this.riskAt=-1;this.routeCache.clear();this.strategyOptions=[];this.sectorPreference=null;
+  this.state=state?structuredClone(state):fresh();this.risk=undefined;this.riskAt=-1;this.routeCache.clear();this.strategyOptions=[];this.sectorPreference=null;this.diagnostics=newDiagnostics();
   // Legacy memories contain only previously seen buildings; no live hidden bases are consulted.
   if(!state)for(const m of this.g.memories[1])if(m.owner===0&&m.kind==='turret'&&m.hp>0)this.remember(m,Math.max(0,this.g.time-45));
  }
@@ -212,10 +221,10 @@ export class TacticalAI {
   for(const p of valid.slice(0,8))if(this.route(origin,p).length)return {...p};
   return g.world.nearest({x:home.x-150,y:home.y+120},this.obstacles())??{...home};
  }
- private issue(units:Unit[],point:Point,mode:TacticalOrder['mode'],target?:number,append=false,coordinated=mode!=='safe'||this.state.phase==='attack'):void{
-  if(!units.length)return;const g=this.g,s=this.state,ids=units.map(u=>u.id),front=units.filter(frontRole).sort((a,b)=>(b.kind==='tank'?5:b.kind==='heavy'?3:1)-(a.kind==='tank'?5:a.kind==='heavy'?3:1)||a.id-b.id);
+ private issue(units:Unit[],point:Point,mode:TacticalOrder['mode'],target?:number,append=false,coordinated=mode!=='safe'||this.state.phase==='attack'):boolean{
+  if(!units.length)return false;const g=this.g,s=this.state,ids=units.map(u=>u.id),front=units.filter(frontRole).sort((a,b)=>(b.kind==='tank'?5:b.kind==='heavy'?3:1)-(a.kind==='tank'?5:a.kind==='heavy'?3:1)||a.id-b.id);
   const campaign=g.world.mapVersion>=3&&this.mode==='director';
-  const same=!append&&units.every(u=>{const o=u.orders[0];return o?.tactical?.group===s.groupId&&o.tactical.mode===mode&&o.target===target&&(campaign?(target!==undefined||distance(o.tactical.goal??o,point)<45):distance(o,point)<45)&&(coordinated||!o.march);});if(same)return;
+  const same=!append&&units.every(u=>{const o=u.orders[0];return o?.tactical?.group===s.groupId&&o.tactical.mode===mode&&o.target===target&&(campaign?(target!==undefined||distance(o.tactical.goal??o,point)<45):distance(o,point)<45)&&(coordinated||!o.march);});if(same)return false;
   g.command(ids,{x:point.x,y:point.y,kind:target!==undefined?'attack':mode==='safe'?'move':'attackMove',...(target===undefined?{}:{target})},append);
   const origin=front.length?front.reduce((p,u)=>({x:p.x+u.x/front.length,y:p.y+u.y/front.length}),{x:0,y:0}):point,dist=distance(origin,point)||1,h={x:(point.x-origin.x)/dist,y:(point.y-origin.y)/dist};
   for(const u of units){const o=append?u.orders.at(-1):u.orders[0];if(!o)continue;o.tactical={group:s.groupId,mode,...(campaign?{goal:{x:point.x,y:point.y}}:{})};if(combat(u)){
@@ -226,6 +235,7 @@ export class TacticalAI {
    }
    if(u.kind==='medic'&&o.formation)o.formation.front=front.map(v=>v.id);
   }
+  return true;
  }
  /** Bring paid reinforcements to the active front without stopping the column
   * to wait for units still leaving the base. Join the battle only on arrival. */
@@ -575,9 +585,28 @@ export class TacticalAI {
   s.lastProgress=Math.max(0,progress);s.progressAt=mission.progressAt;
   campaignPhase(c,intel?.kind==='headquarters'?'endgame':intel?'siege':defended?'offensive':g.territories.filter(t=>t.owner===1).length<3?'expansion':'offensive',g.time);
   const group=[...members,...escorts];
+  // Decide before legacy siege dispatch: the previous integration never got
+  // here on turret objectives. Diagnosing that gate is as important as acting.
+  const tacticalEnabled=g.world.mapVersion>=3&&this.mode==='director'&&this.planningMode==='tactical';
+  const tactical:TacticalChoice|null=tacticalEnabled&&group.filter(combat).length>=3&&(visible.length>0||towers.length>0)
+    ?chooseTacticalManeuver({allies:group,observedEnemies:visible,knownGuns:towers,storm:g.weather.storm}):null;
+  if(tactical){
+    this.diagnostics.evaluated++;this.diagnostics.choices[tactical.mode]++;
+    this.diagnostics.last={at:g.time,sector:mission.sector,allies:group.length,visible:visible.length,
+      guns:towers.length,choice:tactical.mode,reason:tactical.reason};
+  }
   const previousSquad=battle.squads.find(q=>q.role==='assault');
   battle.squads=[...battle.squads.filter(q=>q.role!=='assault'),{role:'assault',ids:group.map(u=>u.id),target:mission.objective,since:previousSquad?.target===mission.objective?previousSquad.since:g.time}];
-  if(intel?.kind==='turret'&&this.siege(group,intel))return;
+  if(intel?.kind==='turret'&&this.siege(group,intel)){
+    if(tactical)this.diagnostics.delegatedSieges++;
+    return;
+  }
+  // A known battery can be a better immediate objective than rushing a
+  // capture circle. Only previously observed towers enter this candidate set.
+  if(tactical?.mode==='siege'&&towers.length>0&&members.some(u=>u.kind==='artillery')){
+    const known=towers.slice().sort((a,b)=>distance(anchor,a)-distance(anchor,b)||a.id-b.id)[0];
+    if(known&&this.siege(group,known)){this.diagnostics.issuedSieges++;return;}
+  }
   // Without artillery, close together rather than feeding isolated vehicles
   // into an observed long-range tower.
   if(intel?.kind==='turret'&&!members.some(u=>u.kind==='artillery')&&members.length<7){
@@ -586,35 +615,52 @@ export class TacticalAI {
   const ground=group.filter(u=>!unitSpec(u).flying);for(const u of ground)u.hold=false;
   const closeThreat=visible.filter(v=>members.some(u=>distance(u,v)<unitSpec(v).range+110)&&!['engineer','medic','scout'].includes(v.kind))
    .sort((a,b)=>unitSpec(b).damage/unitSpec(b).cooldown-unitSpec(a).damage/unitSpec(a).cooldown||a.id-b.id)[0];
-  const combatants=closeThreat?ground.filter(u=>canAttack(u,closeThreat)):[];
-  // Only observed defenders and remembered guns are passed to the tactical
-  // forecast. Existing retreat/defense/siege authority remains unchanged.
-  const tactical=this.planningMode==='tactical'&&visible.length>=3&&members.length>=6
-    ?chooseTacticalManeuver({allies:group,observedEnemies:visible,knownGuns:towers,storm:g.weather.storm})
-    :null;
-  const continuingFlank=!closeThreat?ground.filter(u=>u.orders.length>=2&&u.orders[0].kind==='move'
-    &&u.orders[1].kind==='attackMove'&&u.orders[1].tactical?.mode==='assault'):[];
+  // Stable waypoint queues keep a flank alive across three-second macro pulses.
+  // Never redirect recovering units or units already ordered home by defense.
+  const continuingFlank=tacticalEnabled?ground.filter(u=>u.orders.length>=2&&u.orders[0].kind==='move'
+    &&u.orders[1].kind==='attackMove'&&u.orders[1].tactical?.mode==='assault'
+    &&u.defendUntil<=g.time):[];
+  const activeFlankIds=new Set(continuingFlank.map(u=>u.id));
+  const eligibleScreen=ground.filter(u=>!activeFlankIds.has(u.id));
+  const screenIds=tacticalEnabled&&closeThreat?assignScreen(eligibleScreen,closeThreat):[];
+  const screen=closeThreat?(tacticalEnabled&&screenIds.length
+    ?eligibleScreen.filter(u=>screenIds.includes(u.id))
+    :eligibleScreen.filter(u=>canAttack(u,closeThreat))):[];
+  const screenSet=new Set(screen.map(u=>u.id));
+  const mainUnits=ground.filter(u=>!screenSet.has(u.id)&&!activeFlankIds.has(u.id)
+    &&u.kind!=='medic'&&u.kind!=='engineer');
   let newFlank:Unit[]=[];
-  if(tactical?.mode==='flank'&&!closeThreat&&!towers.length&&!continuingFlank.length){
-    const candidates=([-1,1] as const).map(side=>flankCandidate(anchor,mission,side))
-      .filter(p=>p.x>40&&p.y>40&&p.x<g.world.size-40&&p.y<g.world.size-40
-        &&g.world.walkable(p,this.obstacles(),15)&&this.danger(p)<3)
-      .map(p=>({point:p,route:this.route(anchor,p)})).filter(c=>c.route.length>0)
-      .sort((a,b)=>this.sampleRoute(a.route,anchor).length-this.sampleRoute(b.route,anchor).length);
-    const waypoint=candidates[0]?.point;
-    if(waypoint){
-      newFlank=ground.filter(u=>['rover','tank','heavy'].includes(u.kind)
-        &&!combatants.includes(u)).sort((a,b)=>unitSpec(b).speed-unitSpec(a).speed||a.id-b.id).slice(0,2);
-      if(newFlank.length===2)for(const u of newFlank){
-        this.issue([u],waypoint,'safe',undefined,false,false);
-        this.issue([u],mission,'assault',undefined,true,false);
+  if(tactical?.mode==='flank'&&towers.length===0&&!continuingFlank.length){
+    const flankerIds=assignFlank(mainUnits,screenIds);
+    if(flankerIds.length===2){
+      const candidates=([-1,1] as const).map(side=>flankCandidate(anchor,mission,side))
+        .filter(p=>p.x>40&&p.y>40&&p.x<g.world.size-40&&p.y<g.world.size-40
+          &&g.world.walkable(p,this.obstacles(),15)&&this.danger(p)<3)
+        .map(p=>({point:p,route:this.route(anchor,p)})).filter(c=>c.route.length>0)
+        .sort((a,b)=>this.sampleRoute(a.route,anchor).length-this.sampleRoute(b.route,anchor).length);
+      const waypoint=candidates[0]?.point;
+      if(waypoint){
+        newFlank=mainUnits.filter(u=>flankerIds.includes(u.id));
+        for(const u of newFlank){
+          const moved=this.issue([u],waypoint,'safe',undefined,false,false);
+          const attacked=this.issue([u],mission,'assault',undefined,true,false);
+          if(moved&&attacked)this.diagnostics.flankOrders++;
+        }
+        this.diagnostics.flankGroups++;
       }
-      else newFlank=[];
     }
   }
-  if(closeThreat&&combatants.length)this.issue(combatants,closeThreat,'assault',closeThreat.id);
+  if(closeThreat&&screen.length&&this.issue(screen,closeThreat,'assault',closeThreat.id)){
+    if(tacticalEnabled)this.diagnostics.screenOrders+=screen.length;
+  }
   const flanking=new Set([...newFlank,...continuingFlank].map(u=>u.id));
-  this.issue(ground.filter(u=>!combatants.includes(u)&&!flanking.has(u.id)),mission,'assault',mission.objective??undefined);
+  const main=mainUnits.filter(u=>!flanking.has(u.id));
+  if(this.issue(main,mission,'assault',mission.objective??undefined)&&tacticalEnabled)
+    this.diagnostics.mainOrders+=main.length;
+  // Escort medics keep the simulation's protected rear formation, rather
+  // than receiving a direct attack against a visible close-range defender.
+  if(tacticalEnabled)for(const medic of escorts)if(!medic.orders.length)
+    this.issue([medic],s.rally??anchor,'safe',undefined,false,false);
   this.airSupport(members,closeThreat??mission,closeThreat?.id??mission.objective);
   // Aircraft that have finished their flank route can keep the same mission.
   for(const u of members.filter(u=>unitSpec(u).flying&&!u.orders.length))this.issue([u],mission,'assault',mission.objective??undefined);
