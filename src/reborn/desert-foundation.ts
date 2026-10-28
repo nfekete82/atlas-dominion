@@ -52,7 +52,7 @@ export function foundationOutline(site:FoundationSite,f:FoundationFootprint=foun
   const sideReveal=Math.min(34,Math.max(15,f.width*.085));
   // The near/southwest wall reaches farther down than the original diamond edge.
   // Keep the good northeast/right side untouched and pull only the near-left apron out.
-  const southwestReveal=major.has(site.kind)?f.width*.055:0;
+  const southwestReveal=major.has(site.kind)?f.width*.065:0;
   const southwestDrop=major.has(site.kind)?f.depth*.215:0;
   return [
     {x:x-k,y:back+k*.48},          // 0 top-left chamfer
@@ -61,7 +61,7 @@ export function foundationOutline(site:FoundationSite,f:FoundationFootprint=foun
     {x:x+half+sideReveal,y:middle+k*.50},       // 3 exposed right tip
     {x:x+k,y:front-k*.60},        // 4 lower-right chamfer
     {x:x-k,y:front},              // 5 front tip
-    {x:x-half+k-sideReveal*.82-southwestReveal,y:middle+k*.50+southwestDrop}, // 6 near-left wall: visible sandstone
+    {x:x-half+k-sideReveal*.82+southwestReveal,y:middle+k*.50+southwestDrop}, // 6 near-left wall: angled stone apron
     {x:x-half-sideReveal,y:middle-k*.50},       // 7 exposed left tip
   ];
 }
