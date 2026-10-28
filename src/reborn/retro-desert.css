@@ -366,6 +366,22 @@ dialog>small,dialog form>small,.panel-heading,.help-grid h2 {color:#d8b983;}
   }
 }
 
+/* Compact HQ preview; keep the complete portrait and its baked-in tool badge. */
+#catalog-units .catalog-card[data-unit="engineer"] {
+  width:128px;
+  max-width:100%;
+  height:110px;
+}
+#catalog-units .catalog-card[data-unit="engineer"] > img {
+  object-fit:contain;
+}
+@media(max-width:1000px) {
+  #catalog-units .catalog-card[data-unit="engineer"] {width:104px;height:94px;}
+}
+@media(max-width:620px) {
+  #catalog-units .catalog-card[data-unit="engineer"] {height:72px;}
+}
+
 /* SANDFORGE: restore full-screen desert title screen from original splash implementation. */
 /* Fullscreen RTS title screen. Keep the live battle and its HUD behind the modal.
    The shipped menu-desert is the fallback if the splash artwork cannot load. */
@@ -421,11 +437,8 @@ dialog>small,dialog form>small,.panel-heading,.help-grid h2 {color:#d8b983;}
 @media(prefers-reduced-motion:reduce){#main-dialog .menu-button{transition:none}}
 
 /* SANDFORGE BRAND V2: appended CSS overrides */
-.wordmark .sandforge-hud-emblem{font-size:24px;letter-spacing:-2px;color:#e8c685;text-shadow:0 2px 3px #02070a}
-.wordmark .sandforge-hud-copy{font-size:11px;letter-spacing:.5px;line-height:.93;color:#d5bd89}
-.wordmark .sandforge-hud-copy b{font-size:22px;letter-spacing:.15px;color:#ffe1a5}
-.wordmark .sandforge-hud-copy small{display:block;font-size:7px;letter-spacing:1.15px;margin-top:4px;color:#b9d2da;white-space:nowrap}
 .sandforge-logo{display:block;max-width:100%;height:auto;object-fit:contain;mix-blend-mode:screen;filter:drop-shadow(0 8px 20px #0007)}
+.wordmark .sandforge-hud-logo{width:100%;height:100%;min-width:0;mix-blend-mode:normal;filter:drop-shadow(0 2px 2px #0008)}
 #main-dialog .menu-brand{display:block;width:min(630px,56vw);max-width:100%;margin:0 0 8px;position:relative;z-index:1}
 #main-dialog .sandforge-splash-logo{width:100%;max-height:min(37vh,320px);object-position:left center}
 #main-dialog>small{margin-top:0}
@@ -436,11 +449,6 @@ dialog>small,dialog form>small,.panel-heading,.help-grid h2 {color:#d8b983;}
 #loading p{position:static;margin:4px 0 0;letter-spacing:.12em;color:#e2c797}
 .pause-menu .menu-brand{justify-content:center;margin:0 auto 15px}
 .pause-menu .sandforge-pause-logo{width:265px;max-height:155px}
-@media(max-width:800px){
- .wordmark .sandforge-hud-emblem{font-size:19px;letter-spacing:-1px}
- .wordmark .sandforge-hud-copy b{font-size:18px}
- .wordmark .sandforge-hud-copy small{font-size:6px;letter-spacing:.25px}
-}
 @media(max-width:720px){
  #main-dialog .menu-brand{width:min(440px,96%);margin-bottom:5px}
  #main-dialog .sandforge-splash-logo{max-height:29vh}
@@ -611,7 +619,7 @@ html.sandforge-branded .sandforge-logo{
 #sidebar .radar .compass{position:absolute;top:45%}
 #sidebar .radar .west{left:5px}
 #sidebar .radar .east{left:auto;right:5px}
-#sidebar .radar #minimap{display:block;width:70%;height:auto;aspect-ratio:1;margin:0 auto;padding:0;border:0;outline:1px solid #b39660}
+#sidebar .radar #minimap{display:block;width:56%;height:auto;aspect-ratio:1;margin:0 auto;padding:0;border:0;outline:1px solid #b39660}
 #sidebar .radar-caption{position:static;display:flex;justify-content:space-between;gap:6px;margin-top:5px;min-height:12px;font:600 10px/1.2 var(--display);opacity:.95}
 #sidebar .catalog-tabs{margin:0 -8px;border-bottom-width:1px;grid-template-columns:repeat(2,minmax(0,1fr))}
 #sidebar .catalog-tabs button{min-width:0;height:56px;flex-direction:row;gap:8px;padding:7px 4px;font-size:15px;white-space:nowrap}
@@ -627,18 +635,60 @@ html.sandforge-branded .sandforge-logo{
 #production .production-progress{margin-top:3px}
 #production .section-label{font-size:11px;margin-bottom:5px;padding-right:40px}
 @media(max-width:1000px){
- #sidebar .radar #minimap{width:76%}
+ #sidebar .radar #minimap{width:62%}
  #sidebar .radar{padding:6px 7px 5px}
  #sidebar .catalog-tabs button{height:52px;gap:5px;font-size:12px}
  #sidebar .catalog-tabs svg{width:19px;height:19px}
  #production #queue-slots button{height:28px}
 }
 @media(max-width:620px){
- #sidebar .radar #minimap{width:84%}
+ #sidebar .radar #minimap{width:70%}
  #sidebar .radar-caption{font-size:9px}
  #sidebar .radar-caption>span:last-child{display:inline}
  #sidebar .catalog-tabs{grid-template-columns:minmax(0,.93fr) minmax(0,1.07fr);margin-inline:-9px}
  #sidebar .catalog-tabs button{font-size:10px;gap:3px;padding-inline:2px}
  #sidebar .catalog-tabs svg{width:16px;height:16px}
  #production .queue-info{font-size:10px}
+}
+
+/* Low selection strip: compact portrait beside details and a wider command grid. */
+#game-viewport #selection-panel{width:min(820px,calc(100% - 24px));height:168px;min-height:0;padding:11px;grid-template-columns:minmax(0,1fr) 250px;gap:0}
+#selection-panel .selection{min-width:0;align-items:center;gap:12px;padding-right:12px}
+#selection-panel .portrait{flex:0 0 128px;width:128px;min-width:0;height:80px;align-self:center}
+#selection-panel .portrait img{width:100%;height:100%;object-fit:contain}
+#selection-panel .selection-copy{min-width:0;padding:0}
+#selection-panel .selection-copy>small{font-size:11px;margin:0 0 4px}
+#selection-panel .selection-copy>strong{font-size:22px;line-height:1.1}
+#selection-panel .health-track{height:4px;margin-top:7px}
+#selection-panel #selection-health{font-size:11px;margin-top:3px}
+#selection-panel #selection-detail{font-size:13px;line-height:1.3;margin-top:6px;-webkit-line-clamp:3}
+#selection-panel .command-group{padding-left:12px;overflow:auto}
+#selection-panel .section-label{font-size:11px;padding-bottom:3px}
+#selection-panel .commands button,#selection-panel #unit-commands button{height:32px}
+#selection-panel .commands svg{width:20px;height:20px}
+#selection-panel #building-commands{grid-template-columns:repeat(3,minmax(0,1fr));max-height:none;overflow:visible}
+#selection-panel #building-commands button{min-width:0}
+body:has(#selection-panel:not([hidden])) #quick-select{bottom:186px}
+@media(max-width:1000px){
+ #game-viewport #selection-panel{height:156px;grid-template-columns:minmax(0,1fr) 200px;padding:10px}
+ #selection-panel .portrait{flex-basis:104px;width:104px;height:64px}
+ #selection-panel .selection-copy>strong{font-size:19px}
+ #selection-panel #selection-detail{font-size:12px}
+ #selection-panel .commands button,#selection-panel #unit-commands button{height:30px}
+ body:has(#selection-panel:not([hidden])) #quick-select{bottom:174px}
+}
+@container game-view (max-width:570px){
+ #game-viewport #selection-panel{grid-template-columns:minmax(0,1fr) 150px}
+ #selection-panel .portrait{display:none}
+ #selection-panel #building-commands{grid-template-columns:1fr}
+}
+@container game-view (max-width:350px){
+ #game-viewport #selection-panel{height:auto;max-height:45dvh;grid-template-columns:minmax(0,1fr);overflow:auto;padding:8px}
+ #selection-panel .selection{padding:0 0 7px}
+ #selection-panel .selection-copy>small{font-size:9px}
+ #selection-panel .selection-copy>strong{font-size:17px}
+ #selection-panel #selection-detail{font-size:11px;-webkit-line-clamp:2}
+ #selection-panel .command-group{padding:7px 0 0;border-left:0;border-top:1px solid #5362637a;overflow:visible}
+ #selection-panel #building-commands{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body:has(#selection-panel:not([hidden])) #quick-select{bottom:calc(45dvh + 18px)}
 }
