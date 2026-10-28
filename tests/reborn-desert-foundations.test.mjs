@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {BUILDINGS} from '../dist/src/reborn/catalog.js';
 import {buildingArtWidth} from '../dist/src/reborn/visual-scale.js';
-import {foundationFootprint,foundationGroundOffset,paintDesertFoundation} from '../dist/src/reborn/desert-foundation.js';
+import {foundationFootprint,foundationGroundOffset,foundationOutline,paintDesertFoundation} from '../dist/src/reborn/desert-foundation.js';
 
 const large=['headquarters','barracks','factory','airfield'];
 const small=['generator','turret'];
@@ -34,6 +34,22 @@ test('foundations: every class has an opaque-looking shallow platform that follo
     foundationFootprint(kind).width<buildingArtWidth(kind,BUILDINGS[kind].width),
     kind+' has a compact pad'
   );
+});
+
+test('foundations: projected footprint follows both isometric building axes, not horizontal rectangular lines',()=>{
+  for(const kind of [...large,...small]){
+    const site={id:13,kind,x:920,y:1475},f=foundationFootprint(kind),p=foundationOutline(site);
+    assert.equal(p.length,8);
+    assert.ok(Math.abs(p[0].x-site.x)<f.width*.06,'rear is centred, not a long flat top');
+    assert.ok(Math.abs(p[1].x-site.x)<f.width*.06,'rear tip is centred on building');
+    assert.ok(Math.abs(p[5].x-site.x)<f.width*.06,'front tip is centred below building');
+    assert.ok(p[2].x>site.x+f.width*.35&&p[6].x<site.x-f.width*.35,'wide side vertices');
+    assert.ok(p[1].y<p[2].y&&p[2].y<p[4].y&&p[4].y<p[5].y,
+      'right diagonal recedes from top to right and down to front');
+    assert.ok(p[0].y<p[7].y&&p[7].y<p[6].y&&p[6].y<p[5].y,
+      'left diagonal recedes to front');
+    assert.ok(Math.abs(p[3].y-p[7].y)<f.corner*.8,'left and right tips share ground-plane midpoint');
+  }
 });
 
 test('foundations: registration follows the lower visible 3D model edge instead of the high pivot',()=>{
@@ -88,7 +104,11 @@ test('foundations: sandstone top is solid and sand dunes cover its surface and e
   const clippedIndex=out.calls.findIndex(v=>v[0]==='clip');
   const lastRadialIndex=out.calls.findLastIndex(v=>v[0]==='radial');
   assert.ok(lastRadialIndex>clippedIndex,'edge-covering sand is painted beyond the slab clipping pass');
-  assert.ok(out.calls.filter(v=>v[0]==='bezier').length>=8,'organic dune ripple lines');
+  assert.ok(out.calls.filter(v=>v[0]==='bezier').length>=20,'bezier-shaped sand banks truly bury the slab edges');
+  const coveredStops=out.calls.filter(v=>v[0]==='stop-linear'&&v[2]==='rgba(238,182,102,0.98)');
+  assert.ok(coveredStops.length>=8,'eight near-opaque broken-edge dune tongues must cover the stone rim');
+  const edgeStrokes=out.calls.filter(v=>v[0]==='stroke'&&v[2]==='rgba(248,209,144,0.34)');
+  assert.ok(edgeStrokes.length>=8,'wind ridges help distinguish the new deposits');
   const radialStops=out.calls.filter(v=>v[0]==='stop-radial');
   assert.ok(radialStops.some(v=>/0\.890/.test(v[2])),'sand crest should be visibly opaque');
   assert.ok(radialStops.some(v=>v[2]==='rgba(225,155,65,0)'),'outer sand should feather out into terrain');
@@ -103,7 +123,7 @@ test('foundations: stable deterministic painter, balanced canvas state and bound
   assert.equal(first.c.globalAlpha,1);
   assert.equal(first.saves.length,0,'balanced save/restore including sand masks');
   assert.ok(first.calls.some(v=>v[0]==='fill'&&v[1]===.6),'preview alpha honored');
-  assert.ok(first.calls.filter(v=>v[0]==='fill').length<45,'bounded per-frame materials');
+  assert.ok(first.calls.filter(v=>v[0]==='fill').length<50,'bounded per-frame materials');
   const none=drawing();
   paintDesertFoundation(none.c,site,0);
   assert.deepEqual(none.calls,[]);
