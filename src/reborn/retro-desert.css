@@ -342,8 +342,7 @@ dialog>small,dialog form>small,.panel-heading,.help-grid h2 {color:#d8b983;}
 }
 
 
-/* Production portraits are landscape images cropped to the visible silhouette.
-   Occupy the entire artwork region, stay centred, and never cover the price bar. */
+/* Compact recruitment portraits: show the complete unit without cropping. */
 #catalog-units .catalog-card {
   justify-content:stretch;
 }
@@ -356,7 +355,7 @@ dialog>small,dialog form>small,.panel-heading,.help-grid h2 {color:#d8b983;}
   max-height:none;
   padding:0;
   margin:0;
-  object-fit:cover;
+  object-fit:contain;
   object-position:center center;
 }
 @media(max-width:620px) {
@@ -366,20 +365,19 @@ dialog>small,dialog form>small,.panel-heading,.help-grid h2 {color:#d8b983;}
   }
 }
 
-/* Compact HQ preview; keep the complete portrait and its baked-in tool badge. */
-#catalog-units .catalog-card[data-unit="engineer"] {
+/* Use the compact HQ preview size for every unit, including its role badge. */
+#catalog-units .catalog-grid {grid-template-columns:repeat(auto-fit,minmax(0,128px));gap:8px;}
+#catalog-units .catalog-card {
   width:128px;
   max-width:100%;
   height:110px;
 }
-#catalog-units .catalog-card[data-unit="engineer"] > img {
-  object-fit:contain;
-}
 @media(max-width:1000px) {
-  #catalog-units .catalog-card[data-unit="engineer"] {width:104px;height:94px;}
+  #catalog-units .catalog-grid {grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;}
+  #catalog-units .catalog-card {width:104px;height:94px;}
 }
 @media(max-width:620px) {
-  #catalog-units .catalog-card[data-unit="engineer"] {height:72px;}
+  #catalog-units .catalog-card {height:72px;}
 }
 
 /* SANDFORGE: restore full-screen desert title screen from original splash implementation. */
@@ -662,7 +660,7 @@ html.sandforge-branded .sandforge-logo{
 #selection-panel .health-track{height:4px;margin-top:7px}
 #selection-panel #selection-health{font-size:11px;margin-top:3px}
 #selection-panel #selection-detail{font-size:13px;line-height:1.3;margin-top:6px;-webkit-line-clamp:3}
-#selection-panel .command-group{padding-left:12px;overflow:auto}
+#selection-panel .command-group{padding-left:12px;overflow:visible}
 #selection-panel .section-label{font-size:11px;padding-bottom:3px}
 #selection-panel .commands button,#selection-panel #unit-commands button{height:32px}
 #selection-panel .commands svg{width:20px;height:20px}
@@ -690,5 +688,6 @@ body:has(#selection-panel:not([hidden])) #quick-select{bottom:186px}
  #selection-panel #selection-detail{font-size:11px;-webkit-line-clamp:2}
  #selection-panel .command-group{padding:7px 0 0;border-left:0;border-top:1px solid #5362637a;overflow:visible}
  #selection-panel #building-commands{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #selection-panel #build-menu{position:static;grid-column:1/-1;width:100%;max-width:none}
  body:has(#selection-panel:not([hidden])) #quick-select{bottom:calc(45dvh + 18px)}
 }

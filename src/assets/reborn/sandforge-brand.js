@@ -37,15 +37,7 @@
   const hud = document.querySelector('.top .wordmark, header .wordmark');
   if (hud) {
     hud.setAttribute('aria-label', name);
-    hud.replaceChildren();
-    const emblem = document.createElement('span');
-    emblem.className = 'emblem sandforge-hud-emblem';
-    emblem.setAttribute('aria-hidden', 'true');
-    emblem.textContent = 'SF';
-    const copy = document.createElement('span');
-    copy.className = 'brand-copy sandforge-hud-copy';
-    copy.innerHTML = 'SAND<b>FORGE</b><small>BASTION WARS</small>';
-    hud.append(emblem, copy);
+    hud.replaceChildren(makeLogo('sandforge-hud-logo'));
   }
   const handbook = document.querySelector('#help-dialog small');
   if (handbook && /ATLAS/i.test(handbook.textContent)) {
