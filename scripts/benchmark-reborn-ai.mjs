@@ -57,6 +57,7 @@ export function productionIdleReason(g,b,UNITS){
 /** Kept separate from CLI so observer accounting can be checked without running/building matches. */
 export function runMatch({Simulation,UNITS,performanceModule},options,seed,mode,version){
  const g=new Simulation(seed,version);g.tactical.mode=mode;
+ if(options.plannerMode&&'planningMode' in g.tactical)g.tactical.planningMode=options.plannerMode;
  const recorder=performanceModule?new performanceModule.PerformanceRecorder(false):null;
  performanceModule?.setProfiler(recorder);
  // Controller internals intentionally differ between original/new; hash the
