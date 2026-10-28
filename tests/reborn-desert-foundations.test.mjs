@@ -16,7 +16,7 @@ test('foundations: every class has an opaque-looking shallow platform that follo
     assert.ok(f.depth<f.width*.74,kind+' platform stays a low ground apron, not a giant landscape polygon');
     assert.ok(f.lip<=3,kind+' foundation must remain low');
     assert.ok(f.front<=8,kind+' front edge stays near the actual foot');
-    assert.ok(f.width<buildingArtWidth(kind,BUILDINGS[kind].width)*1.13,kind+' not a giant frame');
+    assert.ok(f.width<buildingArtWidth(kind,BUILDINGS[kind].width)*1.16,kind+' not a giant frame');
     assert.ok(f.depth<=f.width*.72,kind+' apron still fits the immediate building area');
   }
   for(const kind of large){
@@ -34,6 +34,20 @@ test('foundations: every class has an opaque-looking shallow platform that follo
     foundationFootprint(kind).width<buildingArtWidth(kind,BUILDINGS[kind].width),
     kind+' has a compact pad'
   );
+});
+
+test('foundations: slightly wider major pads show side strips while side dunes remain broken',()=>{
+  const hq=foundationFootprint('headquarters');
+  assert.ok(Math.abs(hq.width/buildingArtWidth('headquarters',BUILDINGS.headquarters.width)-1.14)<1e-10);
+  for(const kind of ['barracks','factory','airfield']){
+    const f=foundationFootprint(kind);
+    assert.ok(Math.abs(f.width/buildingArtWidth(kind,BUILDINGS[kind].width)-1.11)<1e-10,kind);
+  }
+  // Side drifts leave open gaps; the deeper front dunes are deliberately unchanged.
+  const source=readFileSync(new URL('../src/reborn/desert-foundation.ts',import.meta.url),'utf8');
+  assert.match(source,/\[3,4,\.23,\.62,\.12\]/,'right side has a shorter shallow dune');
+  assert.match(source,/\[7,0,\.23,\.65,\.10\]/,'left side has a shorter shallow dune');
+  assert.match(source,/\[5,6,\.05,\.73,\.18\]/,'front dune coverage is preserved');
 });
 
 test('foundations: projected footprint follows both isometric building axes, not horizontal rectangular lines',()=>{
