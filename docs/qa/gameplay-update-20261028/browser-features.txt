@@ -1,0 +1,14 @@
+
+> test
+> playwright test --config=reborn.config.mjs reborn-gameplay-update.spec.mjs --output=/tmp/sandforge-feature-final-browser
+
+
+Running 3 tests using 1 worker
+
+(node:57769) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 reborn-gameplay-update.spec.mjs:5:24 › gameplay UI: 14px shared Retina role circles, complete proportional portraits and bounded sidebar at DPR 1 (5.3s)
+  ✓  2 reborn-gameplay-update.spec.mjs:5:24 › gameplay UI: 14px shared Retina role circles, complete proportional portraits and bounded sidebar at DPR 2 (5.4s)
+  ✓  3 reborn-gameplay-update.spec.mjs:28:1 › gameplay: storm HUD, fog, frozen animation and quiet reusable wind respect pause, saves and reduced motion (3.1s)
+
+  3 passed (14.6s)

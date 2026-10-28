@@ -1,0 +1,606 @@
+
+> test
+> playwright test --config=reborn.config.mjs reborn.spec.mjs --output=/tmp/sandforge-baseline-browser-artifacts
+
+
+Running 30 tests using 1 worker
+
+(node:55943) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 reborn.spec.mjs:29:1 › reborn: complete browser loop from one soldier through capture, production, multi-unit expansion, combat and durable resume (4.3s)
+  ✓   2 reborn.spec.mjs:69:1 › reborn: minimap drag, anchored zoom, keyboard camera, shift orders, attack mode and stop use real input (1.9s)
+  ✓   3 reborn.spec.mjs:89:1 › reborn: hidden enemies leave no main-map or minimap pixels, and terrain stays remembered (1.2s)
+  ✓   4 reborn.spec.mjs:104:1 › reborn: compact viewport, instructions, pause and new campaign preserve a usable playfield (1.8s)
+  ✓   5 reborn.spec.mjs:113:1 › reborn: sound unlocks on interaction, produces an audio signal and preserves volume/mute settings (2.3s)
+  ✘   6 reborn.spec.mjs:127:1 › reborn: finer terrain, directional animation, grounded drawing and automatic retaliation render in the browser (2.2s)
+(node:56045) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   7 reborn.spec.mjs:148:1 › reborn: the headquarters black spot and the ground beneath infantry remain visible on both maps (1.1s)
+  ✓   8 reborn.spec.mjs:163:1 › reborn: detailed cliff artwork and navigation occupy the same terrain (963ms)
+  ✓   9 reborn.spec.mjs:172:1 › reborn: capture beacons emit white when neutral and saturated team colors after ownership changes (974ms)
+  ✘  10 reborn.spec.mjs:194:1 › reborn: infantry poses stay grounded without detached neighboring weapon fragments (2.2s)
+(node:56100) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  11 reborn.spec.mjs:227:1 › reborn: captured bastion keeps both maps lit after infantry leaves and marching guards initiate combat (2.7s)
+(node:56133) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  12 reborn.spec.mjs:253:1 › reborn: unit-focused HUD stays compact at bottom left and trains heavy infantry in a finished barracks (2.5s)
+(node:56169) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  13 reborn.spec.mjs:273:1 › reborn: factory and airfield catalogs produce all five vehicles and aircraft with distinct sprites and working movement (2.1s)
+  ✓  14 reborn.spec.mjs:289:1 › reborn: authored shadows, slow base activity and subtle sand drift stay grounded and pause with simulation time (1.3s)
+  ✓  15 reborn.spec.mjs:318:1 › reborn: animation laboratory visibly exercises all six scenarios with real state transitions and optional particles (4.8s)
+  ✘  16 reborn.spec.mjs:334:1 › model study: exported GLB loads real animated geometry, supports five clips, orbit controls and faction selection (224ms)
+(node:56238) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  17 reborn.spec.mjs:353:1 › model study: sprite comparison shows the adopted infantry in eight real directions and all five states (157ms)
+(node:56254) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  18 reborn.spec.mjs:362:1 › atlas models: approved infantry and real building renders are active with fixed ground shadows (179ms)
+(node:56280) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  19 reborn.spec.mjs:376:1 › atlas models: refined headquarters preserves the edited surfaces and moves its added radar details in both factions (158ms)
+(node:56294) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  20 reborn.spec.mjs:391:1 › atlas models: all seven building models load in the gallery and radar motion keeps the foundation fixed (160ms)
+(node:56308) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  21 reborn.spec.mjs:408:1 › campaign: real new-game input generates a different reachable map and save/load restores the previous terrain and minimap (145ms)
+(node:56328) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  22 reborn.spec.mjs:423:1 › combat: approaching enemies receive immediate fire and a second attacker does not steal the first target (146ms)
+(node:56342) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  23 reborn.spec.mjs:440:1 › vehicle art: the full roster has real faction materials, baked shadows, animated running gear and visible turret/barrel layers (147ms)
+(node:56356) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  24 reborn.spec.mjs:454:1 › visual polish: fine sand relief and a quiet HUD preserve usable production and compact selection (143ms)
+(node:56377) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  25 reborn.spec.mjs:468:1 › combat presentation: simultaneous hits never hide return-fire poses or delay the real weapon cadence (140ms)
+(node:56391) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  26 reborn.spec.mjs:490:1 › capture: a real two-unit drag selection captures after clicking the mast, body or label at different zoom levels (146ms)
+(node:56411) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  27 reborn.spec.mjs:514:1 › reborn: readable retro desert field HUD at the standard desktop viewport (146ms)
+(node:56431) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  28 reborn.spec.mjs:565:1 › reborn: unit portraits use subtle desert texture, aligned single-line name and cost; minimap compass stays uncluttered (150ms)
+(node:56445) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  29 reborn.spec.mjs:588:1 › model gallery: vehicles and aircraft are selectable as real 3D GLBs (149ms)
+(node:56459) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  30 reborn.spec.mjs:619:1 › infantry: exported wrist sockets retain both grips through every clip and intermediate pose for both factions (146ms)
+
+
+  1) reborn.spec.mjs:127:1 › reborn: finer terrain, directional animation, grounded drawing and automatic retaliation render in the browser 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: 0
+
+      140 |   return {blueHp:blue.hp,redHp:red.hp,orders:blue.orders.length,angle:blue.angle,changed,groundFills,groundShadows,clear,opaque,pixels:atlas.width*atlas.height,terrain:r.terrain.src,grid:g.world.blocked.length};
+      141 |  });
+    > 142 |  expect(result.blueHp).toBeLessThan(100);expect(result.redHp).toBeLessThan(100);expect(result.orders).toBe(1);
+          |                                                                                                       ^
+      143 |  expect(result.changed).toBeGreaterThan(100);expect(result.groundFills).toBe(0);expect(result.groundShadows).toBe(0);
+      144 |  expect(result.clear/result.pixels).toBeGreaterThan(.35);expect(result.opaque/result.pixels).toBeGreaterThan(.04);expect(result.terrain).toContain('desert-fine.png');expect(result.grid).toBe(240*240);
+      145 |  await page.screenshot({path:evidence+'polish-combat.png'});
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:142:103
+
+    Error Context: ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-reborn-finer-terrai-0d3a4-ation-render-in-the-browser/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-reborn-finer-terrai-0d3a4-ation-render-in-the-browser/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-reborn-finer-terrai-0d3a4-ation-render-in-the-browser/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) reborn.spec.mjs:194:1 › reborn: infantry poses stay grounded without detached neighboring weapon fragments 
+
+    Error: expect(received).toBeGreaterThan(expected)
+
+    Expected: > 70
+    Received:   62
+
+      222 |    return {maxDetachedDistance,minHeight,maxHeight};
+      223 |  });
+    > 224 |  expect(result.maxDetachedDistance).toBeLessThanOrEqual(3);expect(result.minHeight).toBeGreaterThan(70);expect(result.maxHeight).toBeLessThan(101);
+          |                                                                                     ^
+      225 | });
+      226 |
+      227 | test('reborn: captured bastion keeps both maps lit after infantry leaves and marching guards initiate combat',async({page})=>{
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:224:85
+
+    Error Context: ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-reborn-infantry-pos-72b92-eighboring-weapon-fragments/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-reborn-infantry-pos-72b92-eighboring-weapon-fragments/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-reborn-infantry-pos-72b92-eighboring-weapon-fragments/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) reborn.spec.mjs:227:1 › reborn: captured bastion keeps both maps lit after infantry leaves and marching guards initiate combat 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 2
+
+      Object {
+        "blueHp": 100,
+        "firstAttacker": null,
+        "orders": 2,
+    -   "redHp": 94.33333333333333,
+    -   "shots": 1,
+    +   "redHp": 100,
+    +   "shots": 0,
+      }
+
+      246 |    return {blueHp:blue.hp,redHp:red.hp,firstAttacker:blue.lastAttacker,orders:blue.orders.length,shots:g.shots.filter(s=>s.owner===0).length};
+      247 |  });
+    > 248 |  expect(combat).toEqual({blueHp:100,redHp:100-17/3,firstAttacker:null,orders:2,shots:1});
+          |                 ^
+      249 |  await advance(page,.15);expect(await page.evaluate(()=>window.__reborn.game.units.find(u=>u.owner===1).hp)).toBeCloseTo(83,8);
+      250 | });
+      251 |
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:248:17
+
+    Error Context: ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-reborn-captured-bas-5d37c-hing-guards-initiate-combat/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-reborn-captured-bas-5d37c-hing-guards-initiate-combat/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-reborn-captured-bas-5d37c-hing-guards-initiate-combat/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) reborn.spec.mjs:253:1 › reborn: unit-focused HUD stays compact at bottom left and trains heavy infantry in a finished barracks 
+
+    Error: expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 700
+    Received:    820
+
+      256 |  await expect(page.locator('#tab-buildings, [data-building], #build-shortcut')).toHaveCount(0);
+      257 |  await page.keyboard.press('b');expect(await page.evaluate(()=>window.__reborn.renderer.placement)).toBe(null);
+    > 258 |  const panel=await page.locator('.command').boundingBox();expect(panel.x).toBeLessThanOrEqual(12);expect(panel.width).toBeLessThanOrEqual(700);expect(panel.height).toBeLessThanOrEqual(216);expect(1790-panel.y-panel.height).toBeLessThanOrEqual(12);
+          |                                                                                                                       ^
+      259 |  await expect(page.locator('.command #production')).toHaveCount(0);await expect(page.locator('#sidebar #production')).toBeVisible();
+      260 |  await expect(page.locator('[data-unit="heavy"]')).toBeEnabled();await page.locator('[data-unit="heavy"]').click();
+      261 |  await expect(page.locator('#credits')).toHaveText('250');await expect(page.locator('#queue')).toContainText('1 IM AUFTRAG');
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:258:119
+
+    Error Context: ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-reborn-unit-focused-636f7-ntry-in-a-finished-barracks/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-reborn-unit-focused-636f7-ntry-in-a-finished-barracks/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-reborn-unit-focused-636f7-ntry-in-a-finished-barracks/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) reborn.spec.mjs:334:1 › model study: exported GLB loads real animated geometry, supports five clips, orbit controls and faction selection 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:8099/model-3d.html
+    Call log:
+      - navigating to "http://127.0.0.1:8099/model-3d.html", waiting until "load"
+
+
+      336 |  const context=await browser.newContext({viewport:{width:1450,height:1100},recordVideo:{dir:dir+'.video',size:{width:1450,height:1100}}}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+      337 |  try{
+    > 338 |   await page.goto(baseURL+'/model-3d.html');await page.waitForFunction(()=>!!window.__model3D?.data);await expect(page.locator('#error')).toHaveText('');
+          |              ^
+      339 |   const info=await page.evaluate(()=>{const v=window.__model3D;let meshes=0,triangles=0,design;v.current.traverse(n=>{if(n.isMesh){meshes++;triangles+=(n.geometry.index?.count??n.geometry.attributes.position.count)/3;}if(n.userData.atlasDesign)design=n.userData.atlasDesign;});return {meshes,triangles,design,clips:v.data.animations.map(c=>c.name)};});
+      340 |   expect(info.meshes).toBe(info.design.parts);expect(info.triangles).toBe(info.design.triangles);expect(info.triangles).toBeGreaterThan(0);expect(info.design.maxGripError).toBeLessThan(.0001);expect(info.clips.sort()).toEqual(['Death','HitReact','Idle','Idle_Shoot','Run_Gun']);
+      341 |   await page.evaluate(()=>{const v=window.__model3D;v.pause();v.play('Idle');v.mixer.setTime(.25);v.render();});await page.screenshot({path:dir+'infantry-3d.png',fullPage:true});
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:338:14
+
+    Error Context: ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-model-study-exporte-ab9fe-trols-and-faction-selection/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-model-study-exporte-ab9fe-trols-and-faction-selection/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-model-study-exporte-ab9fe-trols-and-faction-selection/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) reborn.spec.mjs:353:1 › model study: sprite comparison shows the adopted infantry in eight real directions and all five states 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:8099/model-preview.html
+    Call log:
+      - navigating to "http://127.0.0.1:8099/model-preview.html", waiting until "load"
+
+
+      352 |
+      353 | test('model study: sprite comparison shows the adopted infantry in eight real directions and all five states',async({page})=>{
+    > 354 |  const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.setViewportSize({width:1390,height:1180});await page.goto('/model-preview.html');await page.waitForFunction(()=>!!window.__modelPreview);
+          |                                                                                                                                 ^
+      355 |  const info=await page.evaluate(()=>window.__modelPreview.assets.map(a=>({directions:a.data.directions,cell:a.data.cell,frames:a.data.frames.length,walk:a.data.clips.walk.uniquePhases})));for(const a of info){expect(a.directions).toBe(8);expect(a.frames).toBe(296);expect(a.walk.every(n=>n===8)).toBe(true);}
+      356 |  await page.evaluate(()=>{const p=window.__modelPreview;p.paused=true;p.time=.15;p.render();});await page.screenshot({path:new URL('../../docs/detailed-models/infantry-study.png',import.meta.url).pathname,fullPage:true});
+      357 |  for(const label of ['Laufen','Schießen','Treffer','Tod','Stehen']){await page.getByRole('button',{name:label,exact:true}).click();await expect(page.getByRole('button',{name:label,exact:true})).toHaveAttribute('aria-pressed','true');}
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:354:129
+
+    Error Context: ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-model-study-sprite--4019d-ections-and-all-five-states/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-model-study-sprite--4019d-ections-and-all-five-states/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-model-study-sprite--4019d-ections-and-all-five-states/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  7) reborn.spec.mjs:362:1 › atlas models: approved infantry and real building renders are active with fixed ground shadows 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:8099/?debug&legacy
+    Call log:
+      - navigating to "http://127.0.0.1:8099/?debug&legacy", waiting until "load"
+
+
+      4 | const evidence=new URL('../../docs/reborn/',import.meta.url).pathname;
+      5 | async function start(page,width=1440,height=1000){
+    > 6 |  await page.setViewportSize({width,height});await page.goto('/?debug&legacy');await page.locator('#loading').waitFor({state:'detached'});
+        |                                                        ^
+      7 |  await page.evaluate(()=>{window.__reborn.game.paused=true;});
+      8 | }
+      9 | async function advance(page,seconds){return page.evaluate(seconds=>{
+        at start (/Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:6:56)
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:363:2
+
+    Error Context: ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-atlas-models-approv-3cfba-e-with-fixed-ground-shadows/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-atlas-models-approv-3cfba-e-with-fixed-ground-shadows/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-atlas-models-approv-3cfba-e-with-fixed-ground-shadows/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  8) reborn.spec.mjs:376:1 › atlas models: refined headquarters preserves the edited surfaces and moves its added radar details in both factions 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:8099/model-3d.html?model=headquarters
+    Call log:
+      - navigating to "http://127.0.0.1:8099/model-3d.html?model=headquarters", waiting until "load"
+
+
+      375 |
+      376 | test('atlas models: refined headquarters preserves the edited surfaces and moves its added radar details in both factions',async({page})=>{
+    > 377 |  const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.setViewportSize({width:1440,height:1000});await page.goto('/model-3d.html?model=headquarters');await page.waitForFunction(()=>window.__model3D?.current?.getObjectByName('AtlasRefined_trim_radar'));
+          |                                                                                                                                 ^
+      378 |  for(const team of [0,1]){
+      379 |   if(team===1){await page.locator('#red').click();await page.waitForFunction(()=>window.__model3D?.team===1&&window.__model3D.current.getObjectByName('Atlas_refined_headquarters')?.userData.atlasDesign.team===1);}
+      380 |   const result=await page.evaluate(()=>{
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:377:129
+
+    Error Context: ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-atlas-models-refine-d8c82-ar-details-in-both-factions/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-atlas-models-refine-d8c82-ar-details-in-both-factions/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-atlas-models-refine-d8c82-ar-details-in-both-factions/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  9) reborn.spec.mjs:391:1 › atlas models: all seven building models load in the gallery and radar motion keeps the foundation fixed 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:8099/model-3d.html?model=headquarters
+    Call log:
+      - navigating to "http://127.0.0.1:8099/model-3d.html?model=headquarters", waiting until "load"
+
+
+      390 |
+      391 | test('atlas models: all seven building models load in the gallery and radar motion keeps the foundation fixed',async({page})=>{
+    > 392 |  const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.setViewportSize({width:1600,height:1080});await page.goto('/model-3d.html?model=headquarters');await page.waitForFunction(()=>window.__model3D?.current?.getObjectByName('Atlas_headquarters'));
+          |                                                                                                                                 ^
+      393 |  for(const kind of ['headquarters','bastion','barracks','factory','airfield','generator','turret']){
+      394 |   await page.locator('#model').selectOption(kind);await page.waitForFunction(kind=>window.__model3D?.current?.getObjectByName('Atlas_'+kind),kind);await expect(page.locator('#error')).toHaveText('');await expect(page.locator('#download')).toHaveAttribute('href','/src/assets/reborn/buildings-3d/'+kind+'-0.glb');
+      395 |   const info=await page.evaluate(()=>{const v=window.__model3D;return {clips:v.data.animations.map(c=>c.name),parts:(()=>{let n=0;v.current.traverse(p=>{if(p.isMesh)n++;});return n;})()};});expect(info.parts).toBeGreaterThanOrEqual(14);expect(info.clips).toContain(kind==='turret'?'TurretTraverse':'BeaconPulse');
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:392:129
+
+    Error Context: ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-atlas-models-all-se-5195c--keeps-the-foundation-fixed/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-atlas-models-all-se-5195c--keeps-the-foundation-fixed/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-atlas-models-all-se-5195c--keeps-the-foundation-fixed/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  10) reborn.spec.mjs:408:1 › campaign: real new-game input generates a different reachable map and save/load restores the previous terrain and minimap 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:8099/?debug
+    Call log:
+      - navigating to "http://127.0.0.1:8099/?debug", waiting until "load"
+
+
+      407 |
+      408 | test('campaign: real new-game input generates a different reachable map and save/load restores the previous terrain and minimap',async({page})=>{
+    > 409 |  const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.setViewportSize({width:1500,height:1000});await page.goto('/?debug');await page.locator('#loading').waitFor({state:'detached'});
+          |                                                                                                                                 ^
+      410 |  const snapshot=()=>page.evaluate(()=>{
+      411 |   const {game:g,renderer:r}=window.__reborn;g.paused=true;r.render(0);
+      412 |   const digest=c=>{const d=c.getContext('2d',{willReadFrequently:true}).getImageData(0,0,c.width,c.height).data;let n=2166136261;for(let i=0;i<d.length;i+=113)n=Math.imul(n^d[i],16777619)>>>0;return n;};
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:409:129
+
+    Error Context: ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-campaign-real-new-g-14820-revious-terrain-and-minimap/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-campaign-real-new-g-14820-revious-terrain-and-minimap/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-campaign-real-new-g-14820-revious-terrain-and-minimap/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  11) reborn.spec.mjs:423:1 › combat: approaching enemies receive immediate fire and a second attacker does not steal the first target 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:8099/?debug&seed=2026
+    Call log:
+      - navigating to "http://127.0.0.1:8099/?debug&seed=2026", waiting until "load"
+
+
+      422 |
+      423 | test('combat: approaching enemies receive immediate fire and a second attacker does not steal the first target',async({page})=>{
+    > 424 |  await page.setViewportSize({width:1500,height:1000});await page.goto('/?debug&seed=2026');await page.locator('#loading').waitFor({state:'detached'});
+          |                                                                  ^
+      425 |  const first=await page.evaluate(()=>{
+      426 |   const {game:g,renderer:r}=window.__reborn;g.paused=false;g.aiClock=-1e8;g.units=[];
+      427 |   const p=g.territories[g.bases[0].territory].point,blue=g.spawn(0,p,'heavy'),a=g.spawn(1,{x:p.x+120,y:p.y}),b=g.spawn(1,{x:p.x+155,y:p.y});
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:424:66
+
+    Error Context: ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-combat-approaching--0be78--not-steal-the-first-target/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-combat-approaching--0be78--not-steal-the-first-target/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-combat-approaching--0be78--not-steal-the-first-target/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  12) reborn.spec.mjs:440:1 › vehicle art: the full roster has real faction materials, baked shadows, animated running gear and visible turret/barrel layers 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:8099/?debug&legacy
+    Call log:
+      - navigating to "http://127.0.0.1:8099/?debug&legacy", waiting until "load"
+
+
+      4 | const evidence=new URL('../../docs/reborn/',import.meta.url).pathname;
+      5 | async function start(page,width=1440,height=1000){
+    > 6 |  await page.setViewportSize({width,height});await page.goto('/?debug&legacy');await page.locator('#loading').waitFor({state:'detached'});
+        |                                                        ^
+      7 |  await page.evaluate(()=>{window.__reborn.game.paused=true;});
+      8 | }
+      9 | async function advance(page,seconds){return page.evaluate(seconds=>{
+        at start (/Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:6:56)
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:441:2
+
+    Error Context: ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-vehicle-art-the-ful-d6774-isible-turret-barrel-layers/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-vehicle-art-the-ful-d6774-isible-turret-barrel-layers/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-vehicle-art-the-ful-d6774-isible-turret-barrel-layers/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  13) reborn.spec.mjs:454:1 › visual polish: fine sand relief and a quiet HUD preserve usable production and compact selection 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:8099/?debug&seed=2026
+    Call log:
+      - navigating to "http://127.0.0.1:8099/?debug&seed=2026", waiting until "load"
+
+
+      453 |
+      454 | test('visual polish: fine sand relief and a quiet HUD preserve usable production and compact selection',async({page})=>{
+    > 455 |  const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.setViewportSize({width:1500,height:1000});await page.goto('/?debug&seed=2026');await page.locator('#loading').waitFor({state:'detached'});
+          |                                                                                                                                 ^
+      456 |  const art=await page.evaluate(()=>{
+      457 |   const {game:g,renderer:r}=window.__reborn;g.paused=true;r.home();r.render(0);const p=g.territories[g.bases[0].territory].point,ctx=r.terrainSurface.getContext('2d',{willReadFrequently:true}),data=ctx.getImageData(p.x-100,p.y-100,200,200).data;let sum=0,squares=0;
+      458 |   for(let i=0;i<data.length;i+=4){const l=data[i]*.299+data[i+1]*.587+data[i+2]*.114;sum+=l;squares+=l*l;}
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:455:129
+
+    Error Context: ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-visual-polish-fine--27d50-ction-and-compact-selection/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-visual-polish-fine--27d50-ction-and-compact-selection/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-visual-polish-fine--27d50-ction-and-compact-selection/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  14) reborn.spec.mjs:468:1 › combat presentation: simultaneous hits never hide return-fire poses or delay the real weapon cadence 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:8099/?debug&seed=2026
+    Call log:
+      - navigating to "http://127.0.0.1:8099/?debug&seed=2026", waiting until "load"
+
+
+      467 |
+      468 | test('combat presentation: simultaneous hits never hide return-fire poses or delay the real weapon cadence',async({page})=>{
+    > 469 |  await page.setViewportSize({width:1500,height:1000});await page.goto('/?debug&seed=2026');await page.locator('#loading').waitFor({state:'detached'});
+          |                                                                  ^
+      470 |  const result=await page.evaluate(()=>{
+      471 |   const {game:g,renderer:r}=window.__reborn;g.units=[];g.aiClock=-1e8;g.paused=false;const site=g.territories[g.bases[0].territory].point,p={x:site.x+50,y:site.y+95},blue=g.spawn(0,p,'heavy');
+      472 |   g.spawn(1,{x:p.x+120,y:p.y},'tank');g.spawn(1,{x:p.x+155,y:p.y},'tank');g.updateVision();r.units.clear();r.selected.add(blue.id);r.camera.x=p.x+80;r.camera.y=p.y-45;r.camera.zoom=1.65;
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:469:66
+
+    Error Context: ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-combat-presentation-577a4-lay-the-real-weapon-cadence/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-combat-presentation-577a4-lay-the-real-weapon-cadence/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-combat-presentation-577a4-lay-the-real-weapon-cadence/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  15) reborn.spec.mjs:490:1 › capture: a real two-unit drag selection captures after clicking the mast, body or label at different zoom levels 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:8099/?debug&seed=2026
+    Call log:
+      - navigating to "http://127.0.0.1:8099/?debug&seed=2026", waiting until "load"
+
+
+      489 |
+      490 | test('capture: a real two-unit drag selection captures after clicking the mast, body or label at different zoom levels',async({page})=>{
+    > 491 |  const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.setViewportSize({width:1500,height:1000});await page.goto('/?debug&seed=2026');await page.locator('#loading').waitFor({state:'detached'});
+          |                                                                                                                                 ^
+      492 |  for(const [zoom,part] of [[1,'mast'],[1.65,'body'],[.7,'label']]){
+      493 |   const setup=await page.evaluate(({zoom,part})=>{
+      494 |    const {game:g,renderer:r}=window.__reborn;g.paused=true;g.aiClock=-1e8;g.units=[];const t=g.territories[8];t.owner=-1;t.capturing=-1;t.progress=0;
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:491:129
+
+    Error Context: ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-capture-a-real-two--805dc-el-at-different-zoom-levels/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-capture-a-real-two--805dc-el-at-different-zoom-levels/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-capture-a-real-two--805dc-el-at-different-zoom-levels/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  16) reborn.spec.mjs:514:1 › reborn: readable retro desert field HUD at the standard desktop viewport 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:8099/?debug&legacy
+    Call log:
+      - navigating to "http://127.0.0.1:8099/?debug&legacy", waiting until "load"
+
+
+      4 | const evidence=new URL('../../docs/reborn/',import.meta.url).pathname;
+      5 | async function start(page,width=1440,height=1000){
+    > 6 |  await page.setViewportSize({width,height});await page.goto('/?debug&legacy');await page.locator('#loading').waitFor({state:'detached'});
+        |                                                        ^
+      7 |  await page.evaluate(()=>{window.__reborn.game.paused=true;});
+      8 | }
+      9 | async function advance(page,seconds){return page.evaluate(seconds=>{
+        at start (/Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:6:56)
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:515:2
+
+    Error Context: ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-reborn-readable-ret-cbc00-e-standard-desktop-viewport/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-reborn-readable-ret-cbc00-e-standard-desktop-viewport/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-reborn-readable-ret-cbc00-e-standard-desktop-viewport/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  17) reborn.spec.mjs:565:1 › reborn: unit portraits use subtle desert texture, aligned single-line name and cost; minimap compass stays uncluttered 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:8099/?debug&legacy
+    Call log:
+      - navigating to "http://127.0.0.1:8099/?debug&legacy", waiting until "load"
+
+
+      4 | const evidence=new URL('../../docs/reborn/',import.meta.url).pathname;
+      5 | async function start(page,width=1440,height=1000){
+    > 6 |  await page.setViewportSize({width,height});await page.goto('/?debug&legacy');await page.locator('#loading').waitFor({state:'detached'});
+        |                                                        ^
+      7 |  await page.evaluate(()=>{window.__reborn.game.paused=true;});
+      8 | }
+      9 | async function advance(page,seconds){return page.evaluate(seconds=>{
+        at start (/Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:6:56)
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:567:3
+
+    Error Context: ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-reborn-unit-portrai-9e0cf-p-compass-stays-uncluttered/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-reborn-unit-portrai-9e0cf-p-compass-stays-uncluttered/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-reborn-unit-portrai-9e0cf-p-compass-stays-uncluttered/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  18) reborn.spec.mjs:588:1 › model gallery: vehicles and aircraft are selectable as real 3D GLBs ──
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:8099/model-3d.html?model=rover
+    Call log:
+      - navigating to "http://127.0.0.1:8099/model-3d.html?model=rover", waiting until "load"
+
+
+      590 |  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+      591 |  await page.setViewportSize({width:1280,height:850});
+    > 592 |  await page.goto('/model-3d.html?model=rover');
+          |             ^
+      593 |  const models={rover:'Humvee',tank:'Panzer',artillery:'Raketenwerfer',scout:'Transporthelikopter',bomber:'Bomber'};
+      594 |  for(const [kind,label] of Object.entries(models)){
+      595 |   await page.locator('#model').selectOption(kind);
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:592:13
+
+    Error Context: ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-model-gallery-vehic-864a6--selectable-as-real-3D-GLBs/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-model-gallery-vehic-864a6--selectable-as-real-3D-GLBs/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-model-gallery-vehic-864a6--selectable-as-real-3D-GLBs/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  19) reborn.spec.mjs:619:1 › infantry: exported wrist sockets retain both grips through every clip and intermediate pose for both factions 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:8099/model-3d.html
+    Call log:
+      - navigating to "http://127.0.0.1:8099/model-3d.html", waiting until "load"
+
+
+      618 |
+      619 | test('infantry: exported wrist sockets retain both grips through every clip and intermediate pose for both factions',async({page})=>{
+    > 620 |  await page.goto('/model-3d.html');await page.waitForFunction(()=>!!window.__model3D?.data);await page.evaluate(()=>window.__model3D.pause());
+          |             ^
+      621 |  for(const team of [0,1]){
+      622 |   if(team===1){await page.locator('#red').click();await page.waitForFunction(()=>window.__model3D?.current?.getObjectByName('Atlas_GripL')&&window.__model3D.current.getObjectByName('Atlas_WeaponSocket')?.parent.name==='Index1R'&&window.__model3D.current.getObjectByName('Atlas_WeaponMark').material.color.r>window.__model3D.current.getObjectByName('Atlas_WeaponMark').material.color.b);}
+      623 |   const audit=await page.evaluate(async()=>{
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:620:13
+
+    Error Context: ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-infantry-exported-w-02905-iate-pose-for-both-factions/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-infantry-exported-w-02905-iate-pose-for-both-factions/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-infantry-exported-w-02905-iate-pose-for-both-factions/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  19 failed
+    reborn.spec.mjs:127:1 › reborn: finer terrain, directional animation, grounded drawing and automatic retaliation render in the browser 
+    reborn.spec.mjs:194:1 › reborn: infantry poses stay grounded without detached neighboring weapon fragments 
+    reborn.spec.mjs:227:1 › reborn: captured bastion keeps both maps lit after infantry leaves and marching guards initiate combat 
+    reborn.spec.mjs:253:1 › reborn: unit-focused HUD stays compact at bottom left and trains heavy infantry in a finished barracks 
+    reborn.spec.mjs:334:1 › model study: exported GLB loads real animated geometry, supports five clips, orbit controls and faction selection 
+    reborn.spec.mjs:353:1 › model study: sprite comparison shows the adopted infantry in eight real directions and all five states 
+    reborn.spec.mjs:362:1 › atlas models: approved infantry and real building renders are active with fixed ground shadows 
+    reborn.spec.mjs:376:1 › atlas models: refined headquarters preserves the edited surfaces and moves its added radar details in both factions 
+    reborn.spec.mjs:391:1 › atlas models: all seven building models load in the gallery and radar motion keeps the foundation fixed 
+    reborn.spec.mjs:408:1 › campaign: real new-game input generates a different reachable map and save/load restores the previous terrain and minimap 
+    reborn.spec.mjs:423:1 › combat: approaching enemies receive immediate fire and a second attacker does not steal the first target 
+    reborn.spec.mjs:440:1 › vehicle art: the full roster has real faction materials, baked shadows, animated running gear and visible turret/barrel layers 
+    reborn.spec.mjs:454:1 › visual polish: fine sand relief and a quiet HUD preserve usable production and compact selection 
+    reborn.spec.mjs:468:1 › combat presentation: simultaneous hits never hide return-fire poses or delay the real weapon cadence 
+    reborn.spec.mjs:490:1 › capture: a real two-unit drag selection captures after clicking the mast, body or label at different zoom levels 
+    reborn.spec.mjs:514:1 › reborn: readable retro desert field HUD at the standard desktop viewport 
+    reborn.spec.mjs:565:1 › reborn: unit portraits use subtle desert texture, aligned single-line name and cost; minimap compass stays uncluttered 
+    reborn.spec.mjs:588:1 › model gallery: vehicles and aircraft are selectable as real 3D GLBs ────
+    reborn.spec.mjs:619:1 › infantry: exported wrist sockets retain both grips through every clip and intermediate pose for both factions 
+  11 passed (49.8s)

@@ -65,7 +65,8 @@ test('maps: original geometry fingerprints for both 30-sector versions stay iden
  const baselines=JSON.parse(readFileSync(new URL('./fixtures/reborn-legacy-maps.json',import.meta.url)));
  // Retain the terrain, structures and original soldiers in the reference hash;
  // the new starting builders are independently verified by the progression tests.
- for(const {version,seed,hash,linuxHash} of baselines){const g=new Simulation(seed,version),geometry={generated:g.world.generated,blocked:Array.from(g.world.blocked),territories:g.territories,bases:g.bases,units:g.units.filter(u=>u.kind==='infantry')};
+ // Experience is save metadata; verify zero XP separately from the pinned geometry.
+ for(const {version,seed,hash,linuxHash} of baselines){const g=new Simulation(seed,version),geometry={generated:g.world.generated,blocked:Array.from(g.world.blocked),territories:g.territories,bases:g.bases,units:g.units.filter(u=>u.kind==='infantry').map(({xp,...geometry})=>{assert.equal(xp,0,'new recruits have no experience');return geometry;})};
   // Legacy map v1/seed=0 has two confirmed exact JSON fingerprints across macOS and Linux.
   // Every other legacy seed retains its single strictly pinned reference hash.
   const actual=createHash('sha256').update(JSON.stringify(geometry)).digest('hex');
