@@ -20,9 +20,11 @@ export interface TacticalOrder {group:number;mode:'safe'|'assault'|'defend';goal
 export interface TacticalDiagnostics {
  evaluated:number;choices:Record<'assault'|'flank'|'siege'|'regroup',number>;
  delegatedSieges:number;issuedSieges:number;screenOrders:number;flankGroups:number;flankOrders:number;mainOrders:number;
+ flankOpportunities:number;flankNoSquad:number;flankNoRoute:number;
  last:{at:number;sector:number;allies:number;visible:number;guns:number;choice:string;reason:string}|null;
 }
-const newDiagnostics=():TacticalDiagnostics=>({evaluated:0,choices:{assault:0,flank:0,siege:0,regroup:0},delegatedSieges:0,issuedSieges:0,screenOrders:0,flankGroups:0,flankOrders:0,mainOrders:0,last:null});
+const newDiagnostics=():TacticalDiagnostics=>({evaluated:0,choices:{assault:0,flank:0,siege:0,regroup:0},delegatedSieges:0,issuedSieges:0,screenOrders:0,flankGroups:0,flankOrders:0,mainOrders:0,
+ flankOpportunities:0,flankNoSquad:0,flankNoRoute:0,last:null});
 export interface TacticalState {
  adaptive?:AdaptiveState;
  battle?:BattleState;
@@ -614,7 +616,12 @@ export class TacticalAI {
   }
   const ground=group.filter(u=>!unitSpec(u).flying);for(const u of ground)u.hold=false;
   const closeThreat=visible.filter(v=>members.some(u=>distance(u,v)<unitSpec(v).range+110)&&!['engineer','medic','scout'].includes(v.kind))
-   .sort((a,b)=>unitSpec(b).damage/unitSpec(b).cooldown-unitSpec(a).damage/unitSpec(a).cooldown||a.id-b.id)[0];
+   .sort((a,b)=>{
+     const danger=(enemy:Unit)=>unitSpec(enemy).damage/unitSpec(enemy).cooldown*
+       (1+Math.min(2,group.filter(u=>['artillery','medic'].includes(u.kind)&&
+         distance(u,enemy)<unitSpec(enemy).range+80).length)*.65);
+     return danger(b)-danger(a)||a.hp-b.hp||a.id-b.id;
+   })[0];
   // Stable waypoint queues keep a flank alive across three-second macro pulses.
   // Never redirect recovering units or units already ordered home by defense.
   const continuingFlank=tacticalEnabled?ground.filter(u=>u.orders.length>=2&&u.orders[0].kind==='move'
@@ -631,6 +638,7 @@ export class TacticalAI {
     &&(!tacticalEnabled||u.kind!=='medic'&&u.kind!=='engineer'));
   let newFlank:Unit[]=[];
   if(tactical?.mode==='flank'&&towers.length===0&&!continuingFlank.length){
+    this.diagnostics.flankOpportunities++;
     const flankerIds=assignFlank(mainUnits,screenIds);
     if(flankerIds.length===2){
       const candidates=([-1,1] as const).map(side=>flankCandidate(anchor,mission,side))
@@ -647,8 +655,8 @@ export class TacticalAI {
           if(moved&&attacked)this.diagnostics.flankOrders++;
         }
         this.diagnostics.flankGroups++;
-      }
-    }
+      }else this.diagnostics.flankNoRoute++;
+    }else this.diagnostics.flankNoSquad++;
   }
   if(closeThreat&&screen.length&&this.issue(screen,closeThreat,'assault',closeThreat.id)){
     if(tacticalEnabled)this.diagnostics.screenOrders+=screen.length;
