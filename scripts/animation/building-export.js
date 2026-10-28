@@ -17,6 +17,13 @@ async function layer(prefix,label,canvases,period){const boxes=canvases.map(c=>b
 return async(requested=[])=>{
  if(!constructionOnly)for(const [label,texture] of Object.entries(buildingSurfaces()))await saveBuilding('textures/desert-'+({map:'basecolor',normalMap:'normal',orm:'orm'}[label])+'.png',texture.image.toDataURL('image/png'));
  for(const kind of Object.keys(buildingNames).filter(k=>!requested.length||requested.includes(k)))for(const team of kind==='bastion'?[0,1,-1]:[0,1]){
+  // Keep the ground anchor at [256,382] while fitting the wider, longer
+  // airbase onto a 512px sprite. Other building cameras stay unchanged.
+  const airfieldZoom=kind==='airfield'?.82:1;
+  camera.zoom=airfieldZoom;
+  camera.position.set(0,8+offset/airfieldZoom,12);
+  camera.lookAt(0,offset/airfieldZoom,0);
+  camera.updateProjectionMatrix();camera.updateMatrixWorld();
   const {model,clips,dish,beacon,sweep,turret}=kind==='headquarters'?await loadHeadquarters(team):kind==='bastion'?await loadBastion(team):buildAtlasBuilding(kind,team),prefix=kind+'-'+team;
   upgradeBuildingDetails(model,kind,team);
   applyBuildingPBR(model,kind,team);
