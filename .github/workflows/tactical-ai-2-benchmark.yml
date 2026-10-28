@@ -2,7 +2,7 @@ name: Tactical AI paired benchmark
 
 on:
   push:
-    branches: ['feat/sandforge-tactical-ai-2-*', 'feat/sandforge-tactical-ai-21-*', 'feat/sandforge-tactical-ai-22-*']
+    branches: ['feat/sandforge-tactical-ai-2-*', 'feat/sandforge-tactical-ai-21-*', 'feat/sandforge-tactical-ai-22-*', 'feat/sandforge-tactical-ai-23-*']
   workflow_dispatch:
 
 permissions:
