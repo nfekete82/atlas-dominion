@@ -2,7 +2,7 @@ name: Tactical AI 2.0 paired benchmark
 
 on:
   push:
-    branches: ['feat/sandforge-tactical-ai-2-*']
+    branches: ['feat/sandforge-tactical-ai-2-*', 'feat/sandforge-tactical-ai-21-*']
   workflow_dispatch:
 
 permissions:
@@ -31,7 +31,7 @@ jobs:
           node scripts/benchmark-tactical-ai-2.mjs \
             --maps 4 \
             --seeds 2026,77 \
-            --seconds 600 \
+            --seconds 360 \
             --opponents guarded,rush,fortress \
             --output artifacts/tactical-ai-2-smoke.json
       - name: Upload benchmark metrics
