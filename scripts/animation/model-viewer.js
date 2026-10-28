@@ -41,10 +41,25 @@ async function reuseBuildingTextures(data){
 const vehicleNames={rover:'Humvee',tank:'Panzer',artillery:'Artillerie',scout:'Spähheli',gunship:'Kampfheli',bomber:'Bomber'};
 const isVehicle=model=>Object.hasOwn(vehicleNames,model);
 const modelPath=(model,faction)=>model==='infantry'?'/src/assets/reborn/prototype/infantry-'+faction+'.glb':isVehicle(model)?'/src/assets/reborn/animation/'+model+'-'+faction+'.glb':'/src/assets/reborn/buildings-3d/'+model+'-'+faction+'.glb';
+/** The authored PBR bomber uses full-size aircraft coordinates (19.5 units
+ * wingtip-to-wingtip); the model gallery uses a compact 8-unit ground grid.
+ * Fit only the gallery instance, not the source GLB or the baked battle sprites.
+ * Safe for cached models: a second call preserves the target dimensions. */
+function fitBomberPreview(model){
+ const box=new T.Box3().setFromObject(model);
+ const size=box.getSize(new T.Vector3());
+ const maxExtent=Math.max(size.x,size.y,size.z);
+ if(!(Number.isFinite(maxExtent)&&maxExtent>0))throw Error('Invalid Bomber GLB bounds');
+ model.scale.multiplyScalar(3.4/maxExtent);
+ model.updateMatrixWorld(true);
+ const fitted=new T.Box3().setFromObject(model);
+ model.position.y-=fitted.min.y;
+ model.updateMatrixWorld(true);
+}
 let kind='infantry',team=0,current=null,currentData=null,mixer=null,action=null,clip='Idle',paused=false,request=0;
 async function faction(value){team=value;const token=++request,key=kind+':'+value,url=modelPath(kind,value);document.getElementById('status').textContent='Modell wird geladen …';document.getElementById('error').textContent='';let data=cache.get(key);if(!data){data=await loader.loadAsync(url);await reuseBuildingTextures(data);delete data.parser;cache.set(key,data);}if(token!==request)return;
- if(current)scene.remove(current);current=data.scene;currentData=data;scene.add(current);let design;current.traverse(n=>{if(n.isMesh)n.castShadow=n.receiveShadow=true;if(n.userData.atlasDesign)design=n.userData.atlasDesign;});mixer=new T.AnimationMixer(current);action=null;if(data.animations.length)play(kind==='infantry'?(clip==='Operation'||!data.animations.some(c=>c.name===clip)?'Idle':clip):'Operation');else clip='';
- const bounds=new T.Box3().setFromObject(current),extent=bounds.getSize(new T.Vector3()),center=bounds.getCenter(new T.Vector3()),distance=Math.max(.6,extent.x,extent.y,extent.z)*(kind==='infantry'?1.8:2.3);controls.target.copy(center);camera.position.set(center.x+distance*.60,center.y+distance*.43,center.z+distance*.98);controls.minDistance=Math.max(.7,extent.length()*.35);controls.maxDistance=distance*3;controls.update();
+ if(current)scene.remove(current);current=data.scene;if(kind==='bomber')fitBomberPreview(current);currentData=data;scene.add(current);let design;current.traverse(n=>{if(n.isMesh)n.castShadow=n.receiveShadow=true;if(n.userData.atlasDesign)design=n.userData.atlasDesign;});mixer=new T.AnimationMixer(current);action=null;if(data.animations.length)play(kind==='infantry'?(clip==='Operation'||!data.animations.some(c=>c.name===clip)?'Idle':clip):'Operation');else clip='';
+ const bounds=new T.Box3().setFromObject(current),extent=bounds.getSize(new T.Vector3()),center=bounds.getCenter(new T.Vector3()),distance=Math.max(.6,extent.x,extent.y,extent.z)*(kind==='infantry'?1.8:2.3);controls.target.copy(center);camera.position.set(center.x+distance*.60,center.y+distance*.43,center.z+distance*.98);controls.minDistance=Math.max(.7,extent.length()*.35);controls.maxDistance=kind==='bomber'?Math.min(distance*3,14):distance*3;controls.update();
  for(const [id,t] of [['blue',0],['red',1],['neutral',-1]])document.getElementById(id).setAttribute('aria-pressed',String(t===team));document.getElementById('neutral').hidden=kind!=='bastion';
  for(const b of document.querySelectorAll('[data-clip]'))b.hidden=data.animations.length===0|| (kind==='infantry'?b.dataset.clip==='Operation':b.dataset.clip!=='Operation');document.getElementById('pause').hidden=data.animations.length===0;
  document.getElementById('download').href=url;
