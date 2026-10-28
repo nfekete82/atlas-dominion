@@ -2,6 +2,7 @@ import { profiler } from './performance.js';
 import { ASSETS, RULES, clamp, distance, type Point } from './config.js';
 import { Simulation, HEAL_RADIUS, type Base, type Unit } from './simulation.js';
 import { type Territory } from './world.js';
+import { FOG_SCALE, fogMaskChanged, makeSmoothFogAlpha } from './fog-presentation.js';
 import { BUILDINGS, UNITS, buildingSpec, unitSpec, type BuildingKind, type UnitKind } from './catalog.js';
 import { UnitPresentation, unitVisualLift } from './unit-presentation.js';
 import {angleDifference} from './sprite-animator.js';
@@ -40,10 +41,11 @@ export class Renderer {
   private terrainSurface=document.createElement('canvas');private interpolation=1;
   private sand=new Image();private sandstone=new Image();
   private fog=document.createElement('canvas');private fogRevision=-1;
+  private previousFogVisible=new Uint8Array(0);private previousFogExplored=new Uint8Array(0);
   private miniTerrain=document.createElement('canvas');
   constructor(readonly canvas:HTMLCanvasElement,readonly miniCanvas:HTMLCanvasElement,public game:Simulation){
     this.context=canvas.getContext('2d',{alpha:false})!;this.mini=miniCanvas.getContext('2d',{alpha:false})!;
-    this.fog.width=this.fog.height=RULES.grid;this.miniTerrain.width=this.miniTerrain.height=224;
+    this.fog.width=this.fog.height=RULES.grid*FOG_SCALE;this.miniTerrain.width=this.miniTerrain.height=224;
     this.resize();
     new ResizeObserver(()=>this.resize()).observe(canvas);
   }
@@ -236,9 +238,18 @@ export class Renderer {
     if(!profiler)return this.updateFogMeasured();const at=performance.now();try{this.updateFogMeasured();}finally{profiler.record('fog',performance.now()-at);}
   }
   private updateFogMeasured():void {
-    if(this.fogRevision===this.game.revision)return;this.fogRevision=this.game.revision;
-    const c=this.fog.getContext('2d')!,data=c.createImageData(RULES.grid,RULES.grid),v=this.game.visible[0],e=this.game.explored[0];
-    for(let i=0;i<v.length;i++){data.data[i*4]=3;data.data[i*4+1]=5;data.data[i*4+2]=7;data.data[i*4+3]=v[i]?0:e[i]?177:255;}
+    if(this.fogRevision===this.game.revision)return;
+    this.fogRevision=this.game.revision;
+    const v=this.game.visible[0],e=this.game.explored[0];
+    // Vision can be recomputed without any changes; avoid regenerating the mask.
+    if(!fogMaskChanged(v,e,this.previousFogVisible,this.previousFogExplored))return;
+    this.previousFogVisible=v.slice();this.previousFogExplored=e.slice();
+    const alpha=makeSmoothFogAlpha(v,e,RULES.grid),c=this.fog.getContext('2d')!;
+    const data=c.createImageData(this.fog.width,this.fog.height);
+    for(let i=0;i<alpha.length;i++){
+      const j=i*4;
+      data.data[j]=3;data.data[j+1]=5;data.data[j+2]=7;data.data[j+3]=alpha[i];
+    }
     c.putImageData(data,0,0);
   }
   private drawBastion(t:Territory,dim=false):void{
@@ -306,7 +317,7 @@ export class Renderer {
     }
     // Fog shades terrain; entities use visibility at their ground position.
     // Drawing it over sprites clipped tall masts against unrelated terrain cells.
-    c.imageSmoothingEnabled=true;c.drawImage(this.fog,0,0,s,s);
+    c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';c.drawImage(this.fog,0,0,s,s);c.restore();
     const ranged=g.bases.find(b=>b.id===this.selectedBase);if(ranged)this.drawRange(ranged);
     const corpseAt=profiler?performance.now():0;this.units.drawCorpses(c,p=>g.canSee(0,p));if(profiler)profiler.record('corpses',performance.now()-corpseAt);
     const spritesAt=profiler?performance.now():0;
@@ -386,7 +397,7 @@ export class Renderer {
     const c=this.mini,g=this.game,n=this.miniCanvas.width,k=n/g.world.size;
     c.drawImage(this.miniTerrain,0,0,n,n);
     for(const t of g.territories)if(t.owner>=0){c.beginPath();t.polygon.forEach((p,i)=>i?c.lineTo(p.x*k,p.y*k):c.moveTo(p.x*k,p.y*k));c.closePath();c.fillStyle=t.owner===0?'#429fe33d':'#d84b493d';c.fill();}
-    c.imageSmoothingEnabled=false;c.drawImage(this.fog,0,0,n,n);c.imageSmoothingEnabled=true;
+    c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';c.drawImage(this.fog,0,0,n,n);c.restore();
     for(const t of g.territories)if(g.hasExplored(0,t.point)){c.fillStyle=t.owner===0?'#81d2ff':t.owner===1?'#e6786a':'#f4f5f4';c.fillRect(t.point.x*k-1,t.point.y*k-1,2,2);}
     for(const b of g.bases)if(b.owner===0||g.canSee(0,b)){c.fillStyle=b.owner===0?'#82d5ff':'#f77f6b';c.fillRect(b.x*k-3,b.y*k-3,6,6);}
     for(const u of g.units)if(!u.carrier&&(u.owner===0||g.canSee(0,u))){c.fillStyle=u.owner===0?'#9bdcff':'#ff8170';c.fillRect(u.x*k-1.5,u.y*k-1.5,3,3);}
