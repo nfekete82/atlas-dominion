@@ -10,7 +10,7 @@ import {newBattle,assessBattle,fightingPower,recordFailure,retryFront,validBattl
 import {newAdaptive,updateAdaptive,validAdaptive,type AdaptiveState} from './adaptive-strategy.js';
 import {rankLegacyFrontiers} from './legacy-campaign.js';
 import {chooseTacticalManeuver,flankCandidate,type TacticalChoice} from './tactical-search.js';
-import {assignScreen,assignFlank,flankRouteScore} from './battle-squads.js';
+import {assignScreen,assignFlank,flankRouteScore,isContinuingFlank} from './battle-squads.js';
 import type {Simulation,Unit,Memory} from './simulation.js';
 export type TacticalPhase='gather'|'attack'|'regroup'|'defend';
 export interface KnownTurret extends Point {id:number;hp:number;seenAt:number;range:number}
@@ -624,11 +624,7 @@ export class TacticalAI {
    })[0];
   // Stable waypoint queues keep a flank alive across three-second macro pulses.
   // Never redirect recovering units or units already ordered home by defense.
-  const continuingFlank=tacticalEnabled?ground.filter(u=>u.orders.length>=2
-    &&u.orders[0].kind==='attackMove'&&u.orders[0].tactical?.mode==='assault'
-    &&u.orders[1].kind==='attackMove'&&u.orders[1].tactical?.mode==='assault'
-    &&u.orders[0].tactical.group===s.groupId&&u.orders[1].tactical.group===s.groupId
-    &&u.defendUntil<=g.time):[];
+  const continuingFlank=tacticalEnabled?ground.filter(u=>isContinuingFlank(u.orders,s.groupId)):[];
   const activeFlankIds=new Set(continuingFlank.map(u=>u.id));
   const eligibleScreen=ground.filter(u=>!activeFlankIds.has(u.id));
   const screenIds=tacticalEnabled&&closeThreat?assignScreen(eligibleScreen,closeThreat):[];
