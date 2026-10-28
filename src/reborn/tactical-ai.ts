@@ -10,7 +10,7 @@ import {newBattle,assessBattle,fightingPower,recordFailure,retryFront,validBattl
 import {newAdaptive,updateAdaptive,validAdaptive,type AdaptiveState} from './adaptive-strategy.js';
 import {rankLegacyFrontiers} from './legacy-campaign.js';
 import {chooseTacticalManeuver,flankCandidate,type TacticalChoice} from './tactical-search.js';
-import {assignScreen,assignFlank} from './battle-squads.js';
+import {assignScreen,assignFlank,flankRouteScore} from './battle-squads.js';
 import type {Simulation,Unit,Memory} from './simulation.js';
 export type TacticalPhase='gather'|'attack'|'regroup'|'defend';
 export interface KnownTurret extends Point {id:number;hp:number;seenAt:number;range:number}
@@ -624,8 +624,10 @@ export class TacticalAI {
    })[0];
   // Stable waypoint queues keep a flank alive across three-second macro pulses.
   // Never redirect recovering units or units already ordered home by defense.
-  const continuingFlank=tacticalEnabled?ground.filter(u=>u.orders.length>=2&&u.orders[0].kind==='move'
+  const continuingFlank=tacticalEnabled?ground.filter(u=>u.orders.length>=2
+    &&u.orders[0].kind==='attackMove'&&u.orders[0].tactical?.mode==='assault'
     &&u.orders[1].kind==='attackMove'&&u.orders[1].tactical?.mode==='assault'
+    &&u.orders[0].tactical.group===s.groupId&&u.orders[1].tactical.group===s.groupId
     &&u.defendUntil<=g.time):[];
   const activeFlankIds=new Set(continuingFlank.map(u=>u.id));
   const eligibleScreen=ground.filter(u=>!activeFlankIds.has(u.id));
@@ -645,16 +647,22 @@ export class TacticalAI {
         .filter(p=>p.x>40&&p.y>40&&p.x<g.world.size-40&&p.y<g.world.size-40
           &&g.world.walkable(p,this.obstacles(),15)&&this.danger(p)<3)
         .map(p=>({point:p,route:this.route(anchor,p)})).filter(c=>c.route.length>0)
-        .sort((a,b)=>this.sampleRoute(a.route,anchor).length-this.sampleRoute(b.route,anchor).length);
+        .sort((a,b)=>flankRouteScore(anchor,a.route,visible)-flankRouteScore(anchor,b.route,visible)
+          ||a.point.x-b.point.x||a.point.y-b.point.y);
       const waypoint=candidates[0]?.point;
       if(waypoint){
-        newFlank=mainUnits.filter(u=>flankerIds.includes(u.id));
-        for(const u of newFlank){
-          const moved=this.issue([u],waypoint,'safe',undefined,false,false);
-          const attacked=this.issue([u],mission,'assault',undefined,true,false);
-          if(moved&&attacked)this.diagnostics.flankOrders++;
+        const assigned:Unit[]=[];
+        for(const u of mainUnits.filter(u=>flankerIds.includes(u.id))){
+          // The old safe/move leg prohibited return fire and exposed isolated
+          // flankers to helpless losses. Fight on the way to the waypoint.
+          const moved=this.issue([u],waypoint,'assault',undefined,false,false);
+          const attacked=moved&&this.issue([u],mission,'assault',undefined,true,false);
+          if(attacked){assigned.push(u);this.diagnostics.flankOrders++;}
+          else if(moved)this.issue([u],mission,'assault',undefined,false,false);
         }
-        this.diagnostics.flankGroups++;
+        newFlank=assigned;
+        if(assigned.length===2)this.diagnostics.flankGroups++;
+        else this.diagnostics.flankNoRoute++;
       }else this.diagnostics.flankNoRoute++;
     }else this.diagnostics.flankNoSquad++;
   }
