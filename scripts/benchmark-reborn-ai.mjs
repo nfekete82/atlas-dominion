@@ -266,6 +266,7 @@ export function runMatch({Simulation,UNITS,performanceModule},options,seed,mode,
   metrics.aircraftProduced=sum(Object.fromEntries(Object.entries(metrics.redProducedByKind).filter(([kind])=>aircraft.has(kind))));
   metrics.redSectors=g.territories.filter(t=>t.owner===1).length;metrics.netCaptures=metrics.redSectors-startingRedSectors;
   metrics.battleReactions=g.tactical.state.battle?.reactions??0;metrics.battleRetreats=g.tactical.state.battle?.retreats??0;
+  metrics.tactical=g.tactical.diagnostics?structuredClone(g.tactical.diagnostics):null;
   metrics.counterattackDefinition='emergencyDefense to offensive/siege/endgame commander transitions';
   metrics.finalComposition={red:Object.fromEntries(Object.keys(UNITS).map(k=>[k,g.units.filter(u=>u.owner===1&&u.kind===k&&u.hp>0).length])),blue:Object.fromEntries(Object.keys(UNITS).map(k=>[k,g.units.filter(u=>u.owner===0&&u.kind===k&&u.hp>0).length]))};
   metrics.redUnits=g.count(1);metrics.redCredits=Math.round(g.credits[1]);metrics.repairedVehiclesReused=reusedVehicles.size;
