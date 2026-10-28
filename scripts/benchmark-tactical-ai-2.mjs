@@ -85,16 +85,22 @@ export function comparePairs(rows){
   const c=group.classic,t=group.tactical;
   if(c.initialStateHash!==t.initialStateHash)throw Error('A/B mismatch in initial playable game: '+key);
   pairs.push({key,seed:c.seed,mapVersion:c.mapVersion,opponent:c.opponent,initialStateHash:c.initialStateHash,
-   classic:{win:c.win,loss:c.loss,timeout:!c.win&&!c.loss,score:c.score,captures:c.captures,blueUnitsLost:c.blueUnitsLost,redUnitsLost:c.redUnitsLost,hqDamage:c.enemyHQDamage,aborted:c.abortedMissions,stalled:c.stalledMissions,aiMeanMs:c.cpu.phases?.ai?.meanMs??null},
-   tactical:{win:t.win,loss:t.loss,timeout:!t.win&&!t.loss,score:t.score,captures:t.captures,blueUnitsLost:t.blueUnitsLost,redUnitsLost:t.redUnitsLost,hqDamage:t.enemyHQDamage,aborted:t.abortedMissions,stalled:t.stalledMissions,aiMeanMs:t.cpu.phases?.ai?.meanMs??null},
-   delta:{score:t.score-c.score,captures:t.captures-c.captures,blueUnitsLost:t.blueUnitsLost-c.blueUnitsLost,redUnitsLost:t.redUnitsLost-c.redUnitsLost,hqDamage:t.enemyHQDamage-c.enemyHQDamage,aborted:t.abortedMissions-c.abortedMissions,stalled:t.stalledMissions-c.stalledMissions}});
+   classic:{win:c.win,loss:c.loss,timeout:!c.win&&!c.loss,score:c.score,captures:c.captures,blueUnitsLost:c.blueUnitsLost,redUnitsLost:c.redUnitsLost,hqDamage:c.enemyHQDamage,aborted:c.abortedMissions,stalled:c.stalledMissions,aiMeanMs:c.cpu.phases?.ai?.meanMs??null,diagnostics:c.tactical??null},
+   tactical:{win:t.win,loss:t.loss,timeout:!t.win&&!t.loss,score:t.score,captures:t.captures,blueUnitsLost:t.blueUnitsLost,redUnitsLost:t.redUnitsLost,hqDamage:t.enemyHQDamage,aborted:t.abortedMissions,stalled:t.stalledMissions,aiMeanMs:t.cpu.phases?.ai?.meanMs??null,diagnostics:t.tactical??null},
+   delta:{score:t.score-c.score,captures:t.captures-c.captures,blueUnitsLost:t.blueUnitsLost-c.blueUnitsLost,redUnitsLost:t.redUnitsLost-c.redUnitsLost,hqDamage:t.enemyHQDamage-c.enemyHQDamage,aborted:t.abortedMissions-c.abortedMissions,stalled:t.stalledMissions-c.stalledMissions,actualSquadOrders:(t.tactical?.screenOrders??0)+(t.tactical?.flankOrders??0)+(t.tactical?.issuedSieges??0)}});
  }
  return {pairs,summary:{matches:pairs.length,classicWins:pairs.filter(p=>p.classic.win).length,tacticalWins:pairs.filter(p=>p.tactical.win).length,
   meanScoreDelta:round(average(pairs.map(p=>p.delta),'score')),meanCapturesDelta:round(average(pairs.map(p=>p.delta),'captures')),
   meanHqDamageDelta:round(average(pairs.map(p=>p.delta),'hqDamage')),
   meanRedLossDelta:round(average(pairs.map(p=>p.delta),'redUnitsLost')),
   meanAbortedDelta:round(average(pairs.map(p=>p.delta),'aborted')),
-  meanStalledDelta:round(average(pairs.map(p=>p.delta),'stalled'))}};
+  meanStalledDelta:round(average(pairs.map(p=>p.delta),'stalled')),
+  meanNewSquadOrders:round(average(pairs.map(p=>p.delta),'actualSquadOrders')),
+  observedForecasts:pairs.reduce((n,p)=>n+(p.tactical.diagnostics?.evaluated??0),0),
+  flankGroups:pairs.reduce((n,p)=>n+(p.tactical.diagnostics?.flankGroups??0),0),
+  screenOrders:pairs.reduce((n,p)=>n+(p.tactical.diagnostics?.screenOrders??0),0),
+  siegeDelegations:pairs.reduce((n,p)=>n+(p.tactical.diagnostics?.delegatedSieges??0),0),
+  siegeOrders:pairs.reduce((n,p)=>n+(p.tactical.diagnostics?.issuedSieges??0),0)}};
 }
 export async function main(argv=process.argv.slice(2)){
  const options=args(argv),started=performance.now(),details=[];
@@ -114,7 +120,9 @@ export async function main(argv=process.argv.slice(2)){
    details.push({...result,opponent,plannerMode});persist();
    console.log(plannerMode,'map',mapVersion,'seed',seed,opponent,'outcome',result.outcome,
     'captures',result.captures,'HQ dmg',round(result.enemyHQDamage),
-    'losses',result.redUnitsLost,'AI mean ms',round(result.cpu.phases?.ai?.meanMs??0));
+    'losses',result.redUnitsLost,'screen',result.tactical?.screenOrders??0,
+    'flank',result.tactical?.flankGroups??0,'forecast',result.tactical?.evaluated??0,
+    'AI mean ms',round(result.cpu.phases?.ai?.meanMs??0));
   }
  }
  console.log('BENCHMARK COMPLETE',JSON.stringify({elapsedMs:Math.round(performance.now()-started),...report.summary}));
