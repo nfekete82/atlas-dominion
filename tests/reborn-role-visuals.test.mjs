@@ -2,60 +2,75 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {Simulation} from '../dist/src/reborn/simulation.js';
-import {infantryRole,roleStyle,drawSupportPack,drawSupportPatch,drawInfantryRoleBadge} from '../dist/src/reborn/role-visuals.js';
+import {infantryRole,roleStyle,ROLE_BADGE_RADIUS,drawInfantryRoleBadge} from '../dist/src/reborn/role-visuals.js';
 
-const fakeContext=()=>({
- calls:[],fillStyle:'',strokeStyle:'',lineWidth:1,lineCap:'',
- save(){this.calls.push('save');},restore(){this.calls.push('restore');},
- translate(){this.calls.push('translate');},rotate(){this.calls.push('rotate');},
- fillRect(){this.calls.push('fillRect');},beginPath(){},arc(){this.calls.push('arc');},
- fill(){this.calls.push('fill');},stroke(){this.calls.push('stroke');},
+const mock=()=>({
+ calls:[],fillStyle:'',strokeStyle:'',lineWidth:1,
+ save(){this.calls.push({name:'save'});},
+ restore(){this.calls.push({name:'restore'});},
+ translate(x,y){this.calls.push({name:'translate',x,y});},
+ rotate(angle){this.calls.push({name:'rotate',angle});},
+ fillRect(x,y,w,h){this.calls.push({name:'rect',x,y,w,h,color:this.fillStyle});},
+ beginPath(){this.calls.push({name:'begin'});},
+ arc(x,y,r){this.calls.push({name:'arc',x,y,r});},
+ fill(){this.calls.push({name:'fill',color:this.fillStyle});},
+ stroke(){this.calls.push({name:'stroke',color:this.strokeStyle});},
  moveTo(){},lineTo(){}
 });
 
-test('role visuals: soldier rifle, engineer wrench and medic cross have distinct color identities',()=>{
- assert.deepEqual(['infantry','engineer','medic'].map(infantryRole),['infantry','engineer','medic']);
+test('role markers: smaller circles have blue rifle, green white cross, yellow white hammer',()=>{
+ assert.equal(ROLE_BADGE_RADIUS,5.3);
+ assert.deepEqual(['infantry','medic','engineer'].map(infantryRole),['infantry','medic','engineer']);
  assert.equal(infantryRole('tank'),null);
- assert.notEqual(roleStyle('infantry').accent,roleStyle('engineer').accent);
- assert.notEqual(roleStyle('medic').accent,roleStyle('engineer').accent);
- assert.equal(roleStyle('medic').label,'SANITÄTER');
- for(const role of ['infantry','engineer','medic']){
-  const c=fakeContext();drawInfantryRoleBadge(c,role,0,{x:40,y:60});
-  assert.ok(c.calls.includes('arc'));assert.ok(c.calls.includes('fill'));
-  assert.equal(c.calls[0],'save');assert.equal(c.calls.at(-1),'restore');
+ assert.equal(roleStyle('infantry').accent,'#277fce');
+ assert.equal(roleStyle('medic').accent,'#269b62');
+ assert.equal(roleStyle('engineer').accent,'#d69d1c');
+ for(const role of ['infantry','medic','engineer']){
+  const c=mock();drawInfantryRoleBadge(c,role,0,{x:100,y:200});
+  const circles=c.calls.filter(x=>x.name==='arc');
+  assert.equal(circles.length,1,role+' uses exactly one circle');
+  assert.equal(circles[0].r,5.3);
+  assert.deepEqual(c.calls.find(x=>x.name==='translate'),{name:'translate',x:114,y:195});
+  assert.equal(c.calls.find(x=>x.name==='fill').color,roleStyle(role).accent);
+  const shapes=c.calls.filter(x=>x.name==='rect');
+  assert.ok(shapes.length>=2);
+  assert.ok(shapes.every(s=>s.color==='#fff'),role+' uses white pictogram');
+  assert.equal(c.calls[0].name,'save');
+  assert.equal(c.calls.at(-1).name,'restore');
  }
 });
 
-test('role visuals: support equipment is drawn at animated body position for both factions',()=>{
- for(const role of ['engineer','medic'])for(const angle of [0,Math.PI/2,Math.PI]){
-  const c=fakeContext();
-  drawSupportPack(c,role,{x:100,y:100},angle);
-  drawSupportPatch(c,role,{x:100,y:100},angle);
-  assert.ok(c.calls.filter(v=>v==='fillRect').length>=8);
-  assert.equal(c.calls.filter(v=>v==='save').length,2);
-  assert.equal(c.calls.filter(v=>v==='restore').length,2);
- }
- const c=fakeContext();
- drawSupportPack(c,'infantry',{x:10,y:20},0);
- drawSupportPatch(c,'infantry',{x:10,y:20},0);
- assert.deepEqual(c.calls,[],'original rifle silhouette must not be covered by support kit');
+test('role markers: white weapon, cross and hammer have different geometry',()=>{
+ const shapes=role=>{
+  const c=mock();drawInfantryRoleBadge(c,role,1,{x:100,y:200});
+  return c.calls.filter(x=>x.name==='rect').map(x=>[x.x,x.y,x.w,x.h]);
+ };
+ const [rifle,cross,hammer]=['infantry','medic','engineer'].map(shapes);
+ assert.notDeepEqual(rifle,cross);
+ assert.notDeepEqual(hammer,cross);
+ assert.notDeepEqual(hammer,rifle);
+ assert.equal(cross.length,2);
+ assert.equal(hammer.length,2);
 });
 
-test('role visuals: new role graphics leave battle data and animation atlases unchanged',()=>{
- const game=new Simulation(),c=fakeContext();
- const actors=['infantry','engineer','medic'].map(kind=>
-  game.units.find(u=>u.kind===kind)??game.spawn(0,{x:1950,y:2050},kind));
- const before=game.save();
- for(const u of actors){
-  drawSupportPack(c,u.kind,u,u.angle);
-  drawSupportPatch(c,u.kind,u,u.angle);
-  drawInfantryRoleBadge(c,u.kind,u.owner,u);
- }
- assert.deepEqual(game.save(),before,
-  'role-only renderer must not change HP, orders, world state or saves');
- const renderer=readFileSync(new URL('../src/reborn/renderer.ts',import.meta.url),'utf8');
+test('role markers: no extra backpack or giant kit is drawn onto the animated characters',()=>{
  const presentation=readFileSync(new URL('../src/reborn/unit-presentation.ts',import.meta.url),'utf8');
+ const renderer=readFileSync(new URL('../src/reborn/renderer.ts',import.meta.url),'utf8');
+ const roles=readFileSync(new URL('../src/reborn/role-visuals.ts',import.meta.url),'utf8');
+ assert.doesNotMatch(presentation,/drawSupportPack|drawSupportPatch/);
+ assert.doesNotMatch(roles,/drawSupportPack|drawSupportPatch|drawImage/);
  assert.match(renderer,/drawInfantryRoleBadge\(c,u\.kind,u\.owner,p\)/);
- assert.match(presentation,/drawSupportPack\(c,v\.unit\.kind,at,v\.bodyAngle\)/);
- assert.match(presentation,/drawSupportPatch\(c,v\.unit\.kind,at,v\.bodyAngle\)/);
+});
+
+test('role markers: drawing does not change combat, saved game or unrelated units',()=>{
+ const game=new Simulation(),actors=['infantry','engineer','medic'].map(kind=>
+   game.units.find(u=>u.kind===kind)??game.spawn(0,{x:1950,y:2050},kind));
+ const saved=game.save();
+ for(const u of actors){
+  const c=mock();drawInfantryRoleBadge(c,u.kind,u.owner,u);
+  assert.equal(c.calls[0].name,'save');
+ }
+ const unrelated=mock();drawInfantryRoleBadge(unrelated,'tank',0,{x:1,y:2});
+ assert.equal(unrelated.calls.length,0);
+ assert.deepEqual(game.save(),saved);
 });

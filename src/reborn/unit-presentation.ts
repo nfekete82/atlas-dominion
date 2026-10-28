@@ -5,7 +5,6 @@ import {SpriteAnimator,turnTowards,angleDifference,directionIndex,type Animation
 import {Particles} from './particles.js';
 import {unitAtlasPath} from './asset-paths.js';
 import {unitArtScale} from './visual-scale.js';
-import {drawSupportPack,drawSupportPatch} from './role-visuals.js';
 interface Loaded {data:AnimationAtlas;image:HTMLImageElement|HTMLCanvasElement;shadow?:HTMLCanvasElement}
 /** Additional screen-space height above the ground pivot baked into air atlases. */
 export const unitVisualLift=(u:{kind?:UnitKind;flightHeight?:number}):number=>u.kind==='scout'?56-77*(1-(u.flightHeight??1)):unitSpec(u).flying?56:0;
@@ -76,9 +75,7 @@ export class UnitPresentation {
   c.imageSmoothingEnabled=v.asset.data.cell[0]>=144;const at={x:p.x,y:p.y-unitVisualLift(v.unit)};
   if(v.asset.shadow)this.drawFrame(c,v,v.frame,p,{x:0,y:0},v.asset.shadow);
   if(v.dead&&!v.asset.data.clips.death)c.filter='grayscale(1) brightness(.5)';
-  if(!v.dead)drawSupportPack(c,v.unit.kind,at,v.bodyAngle);
   this.drawFrame(c,v,v.frame,at);
-  if(!v.dead)drawSupportPatch(c,v.unit.kind,at,v.bodyAngle);
   if(v.asset.data.clips.turret){
    const turret=v.anim.frame('turret',v.turretAngle);this.drawFrame(c,v,turret,at);
    if(v.asset.data.clips.barrel){const recoil=v.unit.fire>0?Math.sin(v.unit.fire/.18*Math.PI)*2.5:0;this.drawFrame(c,v,v.anim.frame('barrel',v.turretAngle),at,{x:-Math.cos(v.turretAngle)*recoil,y:-Math.sin(v.turretAngle)*recoil*.65});}
