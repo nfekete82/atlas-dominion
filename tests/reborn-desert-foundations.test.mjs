@@ -57,8 +57,8 @@ test('foundations: side apron extends noticeably beyond the old diamond without 
     const reveal=Math.min(34,Math.max(15,f.width*.085));
     assert.ok(oldLeft-p[7].x>=reveal-.001,kind+' left edge exposed');
     assert.ok(p[3].x-oldRight>=reveal-.001,kind+' right edge exposed');
-    assert.ok(oldLeft-p[6].x>reveal*.42&&p[2].x-oldRight>reveal*.42,
-      kind+' side faces stay wide, not just a corner spike');
+    assert.ok(p[6].x-p[7].x>f.width*.07&&p[2].x-oldRight>reveal*.42,
+      kind+' southwest face is slanted while northeast retains its visible side');
     assert.ok(Math.abs(p[1].x-site.x)<f.corner*.5,kind+' rear tip stays centred');
     assert.ok(Math.abs(p[5].x-site.x)<f.corner*.5,kind+' front tip stays centred');
   }
@@ -71,7 +71,7 @@ test('foundations: southwest wall has a clear foreground apron while northeast s
     const sideReveal=Math.min(34,Math.max(15,f.width*.085));
     const oldSouthwestX=site.x-half+k-sideReveal*.82;
     const oldSouthwestY=mid+k*.5;
-    assert.ok(p[6].x<oldSouthwestX-f.width*.05,kind+' front-left footprint projects outside wall');
+    assert.ok(p[6].x>oldSouthwestX+f.width*.06,kind+' southwest face slopes inward rather than forming a vertical edge');
     assert.ok(p[6].y>oldSouthwestY+f.depth*.20,kind+' front-left pad extends below wall');
     assert.ok(Math.abs(p[2].x-(site.x+half-k+sideReveal*.82))<1e-8,kind+' upper-right x is unchanged');
     assert.ok(Math.abs(p[2].y-(mid-k*.5))<1e-8,kind+' upper-right y is unchanged');
