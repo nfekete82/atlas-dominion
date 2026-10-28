@@ -13,7 +13,8 @@ test('art scale: infantry reads smaller and command buildings read bigger; no si
   assert.equal(unitArtScale('rover'),.96);
   assert.equal(unitArtScale('tank'),.98);
   assert.equal(unitArtScale('artillery'),.93);
-  for(const kind of ['scout','bomber'])assert.equal(unitArtScale(kind),1);
+  assert.equal(unitArtScale('scout'),1.34,'transport helicopter is visually enlarged');
+  assert.equal(unitArtScale('bomber'),1.40,'bomber is visually enlarged');
   for(const kind of ['headquarters','barracks','factory','airfield','generator','turret'])
     assert.ok(buildingArtWidth(kind,BUILDINGS[kind].width)>BUILDINGS[kind].width);
   assert.equal(UNITS.tank.width,90);
