@@ -225,7 +225,7 @@ export class TacticalAI {
   if(!units.length)return false;const g=this.g,s=this.state,ids=units.map(u=>u.id),front=units.filter(frontRole).sort((a,b)=>(b.kind==='tank'?5:b.kind==='heavy'?3:1)-(a.kind==='tank'?5:a.kind==='heavy'?3:1)||a.id-b.id);
   const campaign=g.world.mapVersion>=3&&this.mode==='director';
   const same=!append&&units.every(u=>{const o=u.orders[0];return o?.tactical?.group===s.groupId&&o.tactical.mode===mode&&o.target===target&&(campaign?(target!==undefined||distance(o.tactical.goal??o,point)<45):distance(o,point)<45)&&(coordinated||!o.march);});if(same)return false;
-  g.command(ids,{x:point.x,y:point.y,kind:target!==undefined?'attack':mode==='safe'?'move':'attackMove',...(target===undefined?{}:{target})},append);
+  if(!g.command(ids,{x:point.x,y:point.y,kind:target!==undefined?'attack':mode==='safe'?'move':'attackMove',...(target===undefined?{}:{target})},append))return false;
   const origin=front.length?front.reduce((p,u)=>({x:p.x+u.x/front.length,y:p.y+u.y/front.length}),{x:0,y:0}):point,dist=distance(origin,point)||1,h={x:(point.x-origin.x)/dist,y:(point.y-origin.y)/dist};
   for(const u of units){const o=append?u.orders.at(-1):u.orders[0];if(!o)continue;o.tactical={group:s.groupId,mode,...(campaign?{goal:{x:point.x,y:point.y}}:{})};if(combat(u)){
     if(coordinated&&front.length&&(g.world.mapVersion<=2||this.mode==='baseline'||mode!=='assault'))o.march=front.map(v=>v.id);else delete o.march;if(u.kind==='artillery')o.rear=150;
