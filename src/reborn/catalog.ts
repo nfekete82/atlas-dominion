@@ -11,7 +11,7 @@ const foot={...RULES.infantry,group:'Infanterie' as const,flying:false,width:38,
 export const UNITS:Record<UnitKind,UnitSpec>={
  infantry:{...foot,name:'Infanteriesoldat',description:'Vielseitiger Schütze. Sichert Bastionen und hält die Front.'},
  medic:{...foot,name:'Sanitäter',cost:175,buildTime:8,hp:100,damage:4,range:110,cooldown:1.8,speed:105,description:'Versorgt eigene Infanterie im Umkreis von 70 M mit zusammen 12 LP/s. Langsame Selbstheilung nach einer Feuerpause.'},
- engineer:{...foot,producers:['headquarters'],name:'Ingenieur',cost:200,buildTime:7,hp:110,damage:4,range:110,cooldown:1.8,speed:105,description:'Errichtet Gebäude und repariert mehrere beschädigte Boden- und Luftfahrzeuge im Umkreis von 90 M mit insgesamt 18 LP/s. Repariert auch Anlagen und Baustellen per Rechtsklick.'},
+ engineer:{...foot,producers:['headquarters'],name:'Pionier',cost:200,buildTime:7,hp:110,damage:4,range:110,cooldown:1.8,speed:105,description:'Errichtet Gebäude und repariert mehrere beschädigte Boden- und Luftfahrzeuge im Umkreis von 90 M mit insgesamt 18 LP/s. Repariert auch Anlagen und Baustellen per Rechtsklick.'},
  heavy:{...foot,name:'Schwere Infanterie',cost:250,buildTime:9,hp:420,speed:78,damage:120,range:220,cooldown:1.15,width:44,producers:['barracks'],description:'Überlegener Infanteriekämpfer mit 420 LP und schwerem automatischem Gewehr. Gegen Panzerung verringerter Schaden.'},
  rover:{name:'Humvee',group:'Fahrzeuge',cost:350,buildTime:11,hp:295,speed:235,sight:465,range:240,damage:13,cooldown:.68,radius:18,width:76,producers:['factory'],flying:false,description:'Schneller Humvee mit schwerem Dach-MG, animierten Geländereifen und vier Sitzplätzen. Eigene Infanterie per Rechtsklick einladen und am Ziel ausladen.'},
  tank:{name:'Kampfpanzer',group:'Fahrzeuge',cost:450,buildTime:15,hp:620,speed:86,sight:350,range:255,damage:66,cooldown:1.8,radius:22,width:90,producers:['factory'],flying:false,description:'Schwere Panzerung und eine durchschlagskräftige Kanone.'},
@@ -21,7 +21,7 @@ export const UNITS:Record<UnitKind,UnitSpec>={
 };
 export interface BuildingSpec {name:string;cost:number;buildTime:number;hp:number;sight:number;radius:number;width:number;income:number;description:string}
 export const BUILDINGS:Record<BuildingKind,BuildingSpec>={
- headquarters:{...RULES.headquarters,name:'Feldkommando',cost:0,buildTime:0,width:225,income:10,description:'Hauptquartier der Blauen Legion. Bildet Ingenieure aus. Errichte Kaserne, Fahrzeugfabrik und Flugfeld für weitere Einheiten.'},
+ headquarters:{...RULES.headquarters,name:'Feldkommando',cost:0,buildTime:0,width:225,income:10,description:'Hauptquartier der Blauen Legion. Bildet Pioniere aus. Errichte Kaserne, Fahrzeugfabrik und Flugfeld für weitere Einheiten.'},
  barracks:{name:'Kaserne',cost:200,buildTime:12,hp:800,sight:300,radius:53,width:158,income:0,description:'Bildet Infanteriesoldaten, Sanitäter und schwere Infanterie aus.'},
  factory:{name:'Fahrzeugfabrik',cost:350,buildTime:18,hp:1100,sight:310,radius:70,width:200,income:0,description:'Produziert Humvees, Kampfpanzer und Raketenwerfer.'},
  airfield:{name:'Flugfeld',cost:450,buildTime:22,hp:1200,sight:410,radius:116,width:320,income:0,description:'Großer Wüstenflugplatz mit Flugzeughangar, Kontrollturm, Rollfeld und Landebahn. Produziert Transporthelikopter und Bomber.'},
