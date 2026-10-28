@@ -11,7 +11,7 @@ import {turretPivot,turretMuzzles} from './turret.js';
 import {Transports,type TransportState} from './transports.js';
 import {TacticalAI,type TacticalState,type TacticalOrder} from './tactical-ai.js';
 import { MAP_VERSION, randomMapSeed } from './world-generation.js';
-import {beginBomberOrbit,advanceBomberOrbit,validBomberOrbit,BOMBER_ORBIT_SPEED,type BomberOrbit} from './bomber-orbit.js';
+import {beginBomberOrbit,advanceBomberOrbit,validBomberOrbit,BOMBER_ORBIT_SPEED,preservesCaptureBoundary,safeOrbitApproach,isOnBomberOrbit,type BomberOrbit} from './bomber-orbit.js';
 
 export interface Formation {front:number[];heading:Point;origin:Point;goal:Point;lane:number;rear:number}
 export interface Order extends Point { kind:'move'|'attackMove'|'attack'|'heal'|'repair'|'build'|'board'; target?:number; approach?:Point; healOrigin?:Point; formation?:Formation; march?:number[]; rear?:number; tactical?:TacticalOrder }
@@ -612,14 +612,31 @@ export class Simulation {
       // Fixed-wing bombers must keep flying while idle. Hold/retreat, explicit
       // routes and pursuit always take priority; the helicopter is unchanged.
       if(u.kind==='bomber'&&!u.orders.length&&!u.hold&&!u.pursuitOrigin){
+        // A scripted position change (or an older save) must not teleport
+        // the bomber back to its stale orbit in another sector.
+        if(u.idleOrbit&&!isOnBomberOrbit(u,u.idleOrbit))delete u.idleOrbit;
         if(!u.idleOrbit){
-          u.idleOrbit=beginBomberOrbit(u,this.world.size)??undefined;
+          const safe=(orbit:BomberOrbit)=>preservesCaptureBoundary(u,orbit,
+            this.territories,u.owner,RULES.captureRadius);
+          u.idleOrbit=beginBomberOrbit(u,this.world.size,safe)??undefined;
           if(u.idleOrbit){u.path=[];u.repath=0;}
         }
         if(u.idleOrbit){
           const next=advanceBomberOrbit(u.idleOrbit,dt);
           u.x=next.x;u.y=next.y;u.angle=next.heading;u.hullAngle=next.heading;
           u.walkDistance+=next.arc;u.driveSpeed=BOMBER_ORBIT_SPEED;u.moving=true;
+        } else {
+          // Near a capture boundary, a full tangent turn may be impossible.
+          // Cruise into a safe holding area rather than standing still,
+          // abandoning an ongoing capture or capturing from outside.
+          const next=safeOrbitApproach(u,this.territories,u.owner,RULES.captureRadius,
+            this.world.size,dt);
+          if(next){
+            const dx=next.x-u.x,dy=next.y-u.y,d=Math.hypot(dx,dy);
+            u.x=next.x;u.y=next.y;
+            u.angle=Math.atan2(dy,dx);u.hullAngle=u.angle;
+            u.walkDistance+=d;u.driveSpeed=d/dt;u.moving=true;
+          }
         }
       }
     }
