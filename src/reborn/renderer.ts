@@ -5,6 +5,7 @@ import { type Territory } from './world.js';
 import { FOG_SCALE, FOG_BACKGROUND, fogMaskChanged, makeSmoothFogAlpha, fogOverlayRgb } from './fog-presentation.js';
 import { BUILDINGS, UNITS, buildingSpec, unitSpec, type BuildingKind, type UnitKind } from './catalog.js';
 import { UnitPresentation, unitVisualLift } from './unit-presentation.js';
+import {drawInfantryRoleBadge} from './role-visuals.js';
 import {angleDifference} from './sprite-animator.js';
 import { BuildingPresentation } from './building-presentation.js';
 import {buildingArtWidth,unitArtScale} from './visual-scale.js';
@@ -179,6 +180,8 @@ export class Renderer {
     const p={x:u.previousX+(u.x-u.previousX)*this.interpolation,y:u.previousY+(u.y-u.previousY)*this.interpolation};
     if(selected){c.strokeStyle='#88cffa';c.lineWidth=1/this.camera.zoom;c.beginPath();c.ellipse(p.x,p.y-unitVisualLift(u),15,6,0,0,Math.PI*2);c.stroke();}
     this.units.draw(c,u,p);
+    // Readable at RTS zoom: rifle (soldier), wrench (pioneer), plus (medic).
+    drawInfantryRoleBadge(c,u.kind,u.owner,p);
     if(u.kind==='scout'&&u.transport){c.font='9px monospace';c.textAlign='left';c.fillStyle=u.owner===0?'#b9e3f2':'#f0b29f';const label=u.transport.phase==='cruise'?`${u.transport.cargo.length}/10`:({approach:'LANDEANFLUG',landing:'LANDET',loading:'EINSTEIGEN',unloading:'AUSSTEIGEN',takeoff:'STARTET'} as Record<string,string>)[u.transport.phase];c.fillText(label,p.x+unitSpec(u).width*.35,p.y-20-unitVisualLift(u));}
     if(selected||u.hp<spec.hp){const height=spec.group==='Infanterie'?56*unitArtScale(u.kind):spec.width*.68+(spec.flying?32:0)+unitVisualLift(u);this.bar({x:p.x,y:p.y-height},spec.group==='Infanterie'?27*unitArtScale(u.kind):spec.width*.55,u.hp/spec.hp,blue?'#75c5e8':'#ed7866');}
   }
