@@ -12,15 +12,26 @@ const major=new Set<BuildingKind>(['headquarters','barracks','factory','airfield
 /** Visual geometry only: does not change collision radii or valid build sites. */
 export function foundationFootprint(kind:BuildingKind):FoundationFootprint {
   const spec=BUILDINGS[kind],large=major.has(kind),visualWidth=buildingArtWidth(kind,spec.width);
-  const width=large?visualWidth*1.045:Math.max(spec.radius*2.02,visualWidth*.72);
+  const width=large?visualWidth*1.015:Math.max(spec.radius*1.70,visualWidth*.82);
   return {
     width,
-    depth:large?Math.max(spec.radius*.9,width*(kind==='airfield'?.40:.39)):Math.max(spec.radius*1.05,width*.43),
-    front:large?Math.min(16,Math.max(8,width*.045)):Math.min(9,Math.max(5,width*.055)),
-    corner:Math.min(22,Math.max(5,width*.075)),
-    lip:large?3:2,
-    skew:Math.min(10,width*.035),
+    depth:large?Math.max(spec.radius*.82,width*(kind==='airfield'?.27:.31)):Math.max(spec.radius*.83,width*.38),
+    front:large?4:3,
+    corner:Math.min(12,Math.max(4,width*.035)),
+    lip:large?2:1.5,
+    skew:Math.min(4,Math.max(1,width*.008)),
   };
+}
+
+/** Align the front rim with the actual lower edge of the baked 3D body.
+ * The sprite pivot is NOT at the bottom of the building image.
+ * This is what kept the old slab hanging behind and beside the headquarters.
+ */
+export function foundationGroundOffset(kind:BuildingKind,body:{
+  pivot:readonly [number,number];solidBounds:{w:number;y:number;h:number}
+}):number {
+  const pixelFoot=body.solidBounds.y+body.solidBounds.h-body.pivot[1];
+  return pixelFoot*buildingArtWidth(kind,BUILDINGS[kind].width)/body.solidBounds.w;
 }
 
 interface Pt {x:number;y:number}
@@ -49,7 +60,7 @@ function grain(seed:number):()=>number {
   return ()=>{state=(Math.imul(state,1664525)+1013904223)>>>0;return state/4294967296;};
 }
 
-/** The material is deliberately sand-toned, not a bright concrete plinth. */
+/** The material is deliberately warm sand-toned, almost absorbed by the ground. */
 export function paintDesertFoundation(c:CanvasRenderingContext2D,site:FoundationSite,opacity=1):void {
   if(opacity<=0)return;
   const f=foundationFootprint(site.kind),points=outline(site,f),back=site.y+f.front-f.depth,front=site.y+f.front;
@@ -57,8 +68,8 @@ export function paintDesertFoundation(c:CanvasRenderingContext2D,site:Foundation
   c.globalAlpha*=Math.min(1,opacity);
 
   // Dry sand contact shadow: not a floating slab.
-  polygon(c,points,2,4);
-  c.fillStyle='rgba(64,43,26,0.12)';
+  polygon(c,points,1,2);
+  c.fillStyle='rgba(92,55,26,0.08)';
   c.fill();
 
   // A shallow chamfer along the southern and eastern edges (2–3 world units).
@@ -68,7 +79,7 @@ export function paintDesertFoundation(c:CanvasRenderingContext2D,site:Foundation
   c.lineTo(points[4].x+1,points[4].y+f.lip);
   c.lineTo(points[5].x+1,points[5].y+f.lip);
   c.closePath();
-  c.fillStyle='rgba(76,53,35,0.24)';
+  c.fillStyle='rgba(100,64,32,0.19)';
   c.fill();
   c.beginPath();
   c.moveTo(points[4].x,points[4].y);
@@ -76,17 +87,17 @@ export function paintDesertFoundation(c:CanvasRenderingContext2D,site:Foundation
   c.lineTo(points[3].x+1,points[3].y+f.lip);
   c.lineTo(points[4].x+1,points[4].y+f.lip);
   c.closePath();
-  c.fillStyle='rgba(92,66,44,0.15)';
+  c.fillStyle='rgba(110,72,36,0.11)';
   c.fill();
 
   polygon(c,points);
   const sand=c.createLinearGradient(0,back,0,front);
-  sand.addColorStop(0,'rgba(195,162,117,0.26)');
-  sand.addColorStop(.56,'rgba(177,151,112,0.35)');
-  sand.addColorStop(1,'rgba(151,123,86,0.28)');
+  sand.addColorStop(0,'rgba(222,174,109,0.08)');
+  sand.addColorStop(.56,'rgba(203,152,91,0.11)');
+  sand.addColorStop(1,'rgba(168,119,61,0.12)');
   c.fillStyle=sand;
   c.fill();
-  c.strokeStyle='rgba(77,54,33,0.16)';
+  c.strokeStyle='rgba(115,75,36,0.035)';
   c.lineWidth=1;
   c.stroke();
 
@@ -95,13 +106,13 @@ export function paintDesertFoundation(c:CanvasRenderingContext2D,site:Foundation
   c.moveTo(points[7].x,points[7].y);
   c.lineTo(points[0].x,points[0].y);
   c.lineTo(points[1].x,points[1].y);
-  c.strokeStyle='rgba(239,203,151,0.15)';
+  c.strokeStyle='rgba(240,184,106,0.055)';
   c.lineWidth=1.2;
   c.stroke();
 
   // Settled sand grains along the front edge; deterministic per structure.
   const random=grain((site.id*2246822519+Math.round(site.x)*97+Math.round(site.y)*193)>>>0);
-  c.fillStyle='rgba(213,162,99,0.15)';
+  c.fillStyle='rgba(227,173,97,0.13)';
   for(let i=0;i<(major.has(site.kind)?10:5);i++){
     const px=site.x+(random()-.5)*(f.width-f.corner*2),py=front+1+random()*5;
     c.beginPath();
