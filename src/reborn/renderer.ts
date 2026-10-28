@@ -10,7 +10,8 @@ import {buildingArtWidth,unitArtScale} from './visual-scale.js';
 import {rosterImageRect,ROSTER_IMAGE_WIDTH,ROSTER_IMAGE_HEIGHT} from './portrait-layout.js';
 import { TERRAIN_FRAMES, TERRAIN_PLACEMENTS } from './terrain-art.js';
 import { paintGeneratedTerrain } from './terrain-presentation.js';
-import { BattlefieldEffects, createGroundDetails, paintGroundDetails } from './battlefield-atmosphere.js';
+import { BattlefieldEffects, createGroundDetails, paintGroundDetails, type GroundDetail } from './battlefield-atmosphere.js';
+import {PalmGrove} from './palm-grove.js';
 import { buildTerrainVariants, type TerrainVariantAtlases } from './terrain-variants.js';
 import {createDesertInfrastructure,paintDesertInfrastructure} from './desert-infrastructure.js';
 
@@ -19,6 +20,8 @@ export class Renderer {
   readonly units=new UnitPresentation();
   readonly structures=new BuildingPresentation();
   readonly battlefield=new BattlefieldEffects();
+  readonly palms=new PalmGrove();
+  private groundDetails:GroundDetail[]=[];
   private readonly groundSprites={crater:new Image(),palm:new Image(),rocks:new Image()};
   private groundTextures!:TerrainVariantAtlases;
   private animationGame:Simulation|null=null;private seenImpacts=new WeakSet<object>();private effectTime=0;private workEmitted=new Map<string,number>();private rocketTrails=new Map<number,number>();
@@ -86,7 +89,9 @@ export class Renderer {
     this.prepareTerrain();
     const sites=[...this.game.territories.map(t=>t.point),...this.game.bases.filter(b=>b.kind==='headquarters')];
     paintDesertInfrastructure(this.terrainSurface.getContext('2d')!,createDesertInfrastructure(this.game.world,sites));
-    paintGroundDetails(this.terrainSurface.getContext('2d')!,createGroundDetails(this.game.world,sites),this.groundTextures);
+    this.groundDetails=createGroundDetails(this.game.world,sites);
+    paintGroundDetails(this.terrainSurface.getContext('2d')!,this.groundDetails,this.groundTextures);
+    this.palms.reset(this.groundDetails,this.game);
     const mini=this.miniTerrain.getContext('2d',{willReadFrequently:true})!;mini.drawImage(this.terrainSurface,0,0,224,224);mini.save();mini.scale(224/this.game.world.size,224/this.game.world.size);this.paintCliffs(mini);mini.restore();
   }
   private prepareTerrain():void{
@@ -266,9 +271,10 @@ export class Renderer {
   private renderMeasured(dt:number,interpolation=1):void {
     if(!this.terrain?.complete||!this.infantry)return;
     const c=this.context,g=this.game,s=this.game.world.size;this.updateFog();
-    if(this.animationGame!==g){this.units.clear();this.seenImpacts=new WeakSet();this.battlefield.reset(g);this.animationGame=g;this.effectTime=g.time;this.workEmitted.clear();this.rocketTrails.clear();}
+    if(this.animationGame!==g){this.units.clear();this.seenImpacts=new WeakSet();this.battlefield.reset(g);this.palms.reset(this.groundDetails,g);this.animationGame=g;this.effectTime=g.time;this.workEmitted.clear();this.rocketTrails.clear();}
     this.units.update(g.units,g.paused?0:dt,p=>g.canSee(0,p));
     this.battlefield.update(g,p=>g.canSee(0,p));
+    this.palms.update(g);
     const effectDt=g.paused?0:Math.max(0,g.time-this.effectTime);this.effectTime=g.time;
     const particles=this.units.particles;particles.reducedMotion=this.reducedMotion;particles.update(effectDt);
     for(const shot of g.shots)if(!this.seenImpacts.has(shot)){
@@ -290,6 +296,7 @@ export class Renderer {
     const halfWidth=this.width/(2*this.camera.zoom),halfHeight=this.height/(2*this.camera.zoom);
     const effectsView={left:this.camera.x-halfWidth-28,right:this.camera.x+halfWidth+28,
       top:this.camera.y-halfHeight-28,bottom:this.camera.y+halfHeight+28};
+    this.palms.draw(c,this.groundTextures.palm,g.time,effectsView);
     this.battlefield.drawTracks(c,g,effectsView);
     this.battlefield.drawMarks(c,g);
     this.battlefield.drawWindVeil(c,g,effectsView,this.reducedMotion);
