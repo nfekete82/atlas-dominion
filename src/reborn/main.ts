@@ -23,10 +23,10 @@ for(const span of document.querySelectorAll<HTMLElement>('[data-icon]'))span.inn
 const query=new URLSearchParams(location.search);
 if(query.has('debug')&&query.has('perf')){const recorder=new PerformanceRecorder();setProfiler(recorder);if(!query.has('perfTest'))mountPerformancePanel(recorder);}
 // Explicit legacy fixture for regression checks; normal launches always roll a new seed.
-let selectedMapVersion:MapVersion=query.has('debug')?2:4;
+let selectedMapVersion:MapVersion=query.has('debug')?2:CAMPAIGN_SIZES.medium;
 const requestedSize=query.get('map');
 if(requestedSize&&Object.hasOwn(CAMPAIGN_SIZES,requestedSize))selectedMapVersion=CAMPAIGN_SIZES[requestedSize as CampaignSize];
-el<HTMLSelectElement>('map-size').value=selectedMapVersion===3?'small':selectedMapVersion===5?'large':selectedMapVersion===6?'extraLarge':'medium';
+el<HTMLSelectElement>('map-size').value=selectedMapVersion===7?'small':selectedMapVersion===9?'large':selectedMapVersion===10?'extraLarge':'medium';
 const createCampaign=()=>{
  const campaign=query.has('debug')&&query.has('legacy')?new Simulation():Simulation.campaign(query.has('debug')&&query.has('seed')?Number(query.get('seed'))>>>0:undefined,selectedMapVersion);
  if(!query.has('debug')&&readAiLearningPreference()){
@@ -299,7 +299,7 @@ el('main-history').onclick=showCampaignHistory;
 el('to-main').onclick=()=>{closeDialogs();modal('main-dialog');};el('main-continue').onclick=()=>{if(!hasEnteredCampaign)return;closeDialogs();setPause(false);};el<HTMLDialogElement>('main-dialog').addEventListener('cancel',event=>event.preventDefault());el('new').onclick=()=>modal('new-dialog');el<HTMLDialogElement>('new-dialog').addEventListener('close',()=>{
  if(el<HTMLDialogElement>('new-dialog').returnValue==='new'){
   const size=el<HTMLSelectElement>('map-size').value as CampaignSize;
-  selectedMapVersion=CAMPAIGN_SIZES[size]??4;
+  selectedMapVersion=CAMPAIGN_SIZES[size]??CAMPAIGN_SIZES.medium;
   storeAiLearningPreference(el<HTMLInputElement>('carry-ai-learning').checked);
   reset();
  }
