@@ -5,6 +5,7 @@ import {palmCrownSway,PALM_ART_SCALE,PalmGrove} from '../dist/src/reborn/palm-gr
 import {DesertAtmosphere,ambientDust,bastionFlagPhase} from '../dist/src/reborn/desert-atmosphere.js';
 import {ambientActivity} from '../dist/src/reborn/audio.js';
 import {readFileSync} from 'node:fs';
+import {BattlefieldEffects} from '../dist/src/reborn/battlefield-atmosphere.js';
 
 test('Atmosphere 1.0: palm crowns sway slowly, trunks never gain gameplay state and reduced-motion freezes them',()=>{
  assert.equal(PALM_ART_SCALE,1.34);
@@ -72,4 +73,17 @@ test('Atmosphere 1.0: renderer hooks coexist with built-in sweep, dynamic tracks
  assert.match(audio,/this\.generatorGain.*setTargetAtTime/);
  const game=new Simulation(2026,14);
  assert.equal(game.weather.enabled,false);
+});
+
+test('Atmosphere 1.0: destroyed visible vehicles leave capped battlefield scars without save changes',()=>{
+ const g=new Simulation(2026,11),rover=g.spawn(0,{x:1900,y:2100},'rover'),fx=new BattlefieldEffects();
+ fx.reset(g);
+ g.units=g.units.filter(u=>u.id!==rover.id);
+ const before=g.save();g.time+=.05;
+ fx.update(g,()=>true);
+ assert.ok(fx.markCount>=1,'vehicle wreck leaves a permanent scorch on the sand');
+ assert.ok(fx.smokeCount>=1);
+ assert.deepEqual(g.save(),{...before,time:g.time},'visual wreck logic does not change campaign state');
+ fx.reset(g);
+ assert.equal(fx.markCount,0,'new match never inherits old wreck marks');
 });
