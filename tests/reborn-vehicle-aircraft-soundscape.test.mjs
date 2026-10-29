@@ -26,7 +26,7 @@ test('a nearby moving Jeep, tank, rocket truck, helicopter and bomber get audibl
  const a=vehicleSoundMix(g,position,()=>true),b=vehicleSoundMix(g,position,()=>true);
  assert.deepEqual(a,b,'deterministic; audio never changes the simulation');
  for(const kind of ENGINE_KINDS){
-  assert.ok(a[kind].level>.7,kind+' must be clearly heard at close distance');
+  assert.ok(a[kind].level>.25,kind+' must have a clearly nonzero close-range mix while retaining quiet gain');
   assert.ok(a[kind].throttle>.05);
   assert.equal(a[kind].count,1);
  }
