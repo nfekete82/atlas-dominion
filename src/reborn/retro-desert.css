@@ -136,6 +136,7 @@ button:focus-visible,a:focus-visible,canvas:focus-visible {
 .territory-row small {color:#cfbd9a;}
 .theatre {color:#ede0c4;text-shadow:0 2px 3px #000b;letter-spacing:1.1px;}
 .notice {background:#2d2b24ed;border:1px solid #7f6744;border-left:3px solid #c6a267;color:#e8d8b9;box-shadow:0 3px 6px #0008;}
+.notice--attack {background:#38241fee;border-color:#8e473f;border-left:4px solid #f05d4c;color:#ffe1d6;box-shadow:0 3px 10px #0009;}
 .command {background-color:#2a2b25;min-height:176px;padding:12px 13px;}
 .portrait {background:radial-gradient(ellipse at 50% 80%,#8a795131,#191c18 72%);border:2px solid #88714e;}
 .selection-copy>small {color:#cbb083;}
