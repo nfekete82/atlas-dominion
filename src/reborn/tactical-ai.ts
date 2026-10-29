@@ -476,7 +476,7 @@ export class TacticalAI {
     if(this.doctrineMode==='legacy'){selected=gun;at=p;break;}
     const path=this.sampleRoute(route,origin);
     shots.push({gunId:gun.id,at:p,travel:path.length,risk:path.risk,
-      gunHp:gun.hp,primary:gun.id===target.id});
+      gunHp:'hp' in gun&&typeof gun.hp==='number'?gun.hp:1000,primary:gun.id===target.id});
    }
    if(this.doctrineMode==='legacy'&&at)break;
   }
