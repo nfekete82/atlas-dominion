@@ -26,7 +26,7 @@ for(const owner of [0,1])test(`veterancy: faction ${owner} earns only applied da
 });
 test('veterancy: real burst hits award XP, cooldown and damage use role bonuses once',()=>{
  for(const xp of [0,100,250,500]){
-  const g=fixture(),u=g.spawn(0,{x:1900,y:2100}),t=g.spawn(1,{x:1980,y:2100},'tank');u.xp=xp;u.hold=true;t.cooldown=1e8;t.hold=true;g.updateVision();g.step();
+  const g=fixture(),u=g.spawn(0,{x:1900,y:2100}),t=g.spawn(1,{x:1980,y:2100},'tank');u.xp=xp;u.hold=true;t.cooldown=1e8;t.hold=true;g.command([u.id],{kind:'attack',x:t.x,y:t.y,target:t.id});g.updateVision();g.step();
   const m=getVeterancyModifiers({kind:'infantry',xp}),applied=17*m.damage/3;near(t.hp,620-applied);near(u.xp,xp+applied*.1);near(u.cooldown,.85/m.fireRate);advance(g,.2);near(t.hp,620-17*m.damage);
  }
  const g=fixture(),u=g.spawn(0,{x:1900,y:2100});advance(g,1);assert.equal(u.xp,0,'no shots/no hits give no XP');
@@ -66,6 +66,6 @@ test('veterancy: same seeds, orders and XP produce identical authoritative resul
  const a=fixture(),b=fixture();for(const g of [a,b]){const u=g.spawn(0,{x:1900,y:2100}),t=g.spawn(1,{x:2000,y:2100},'heavy');u.xp=250;t.xp=100;g.updateVision();advance(g,4);}assert.deepEqual(a.save(),b.save());
 });
 test('veterancy: active Humvee bursts survive save/load and retain earned experience without duplicate hits',()=>{
- const g=fixture(),u=g.spawn(0,{x:1900,y:2100},'rover'),t=g.spawn(1,{x:1980,y:2100},'tank');u.xp=250;u.hold=t.hold=true;t.cooldown=1e8;g.updateVision();g.step();assert.ok(u.burst);const restored=Simulation.load(g.save());restored.aiClock=-1e8;restored.world.blocked.fill(0);restored.world.opaque.fill(0);
+ const g=fixture(),u=g.spawn(0,{x:1900,y:2100},'rover'),t=g.spawn(1,{x:1980,y:2100},'tank');u.xp=250;u.hold=t.hold=true;t.cooldown=1e8;g.command([u.id],{kind:'attack',x:t.x,y:t.y,target:t.id});g.updateVision();g.step();assert.ok(u.burst);const restored=Simulation.load(g.save());restored.aiClock=-1e8;restored.world.blocked.fill(0);restored.world.opaque.fill(0);
  advance(g,.2);advance(restored,.2);near(restored.units.find(v=>v.id===t.id).hp,t.hp);near(restored.units.find(v=>v.id===u.id).xp,u.xp);
 });
