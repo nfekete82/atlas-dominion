@@ -7,7 +7,7 @@ test('campaign sizes: all four new layouts selectable and world bounds/minimap c
  await expect(page.locator('#new-dialog')).toBeVisible();
  await expect(page.locator('#map-size option')).toHaveCount(4);
  const choices=[
-  ['small',4,7,3240],['medium',8,8,3564],['large',12,9,3888],['extraLarge',16,10,4064]
+  ['small',4,11,3564],['medium',8,12,3920],['large',12,13,4277],['extraLarge',16,14,4470]
  ];
  for(const [name,count] of choices){
   if(!await page.locator('#new-dialog').isVisible()){
