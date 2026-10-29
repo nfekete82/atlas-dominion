@@ -5,7 +5,7 @@ import {mapLayout,campaignLayout,mapWorldSize} from '../dist/src/reborn/config.j
 import {BUILDINGS} from '../dist/src/reborn/catalog.js';
 const step=(g,seconds)=>{for(let i=0;i<Math.round(seconds/.05);i++)g.step(.05);};
 
-for(const [version,sectors,size] of [[3,4,3000],[4,8,3300],[5,12,3600],[6,16,3762]]){
+for(const [version,sectors,size] of [[3,4,3000],[4,8,3300],[5,12,3600],[6,16,3762],[7,4,3240],[8,8,3564],[9,12,3888],[10,16,4064]]){
  test(`maps: layout v${version} has ${sectors} sectors, valid HQs and stable save/reload`,()=>{
   const g=new Simulation(2026,version),layout=campaignLayout(version,g.seed);
   assert.equal(layout.columns*layout.rows,sectors);
