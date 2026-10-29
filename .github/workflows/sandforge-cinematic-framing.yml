@@ -1,8 +1,8 @@
-name: Sandforge cinematic title framing
+name: Sandforge clean title screen
 
 on:
   push:
-    branches: ['feat/sandforge-cinematic-title-framing-*']
+    branches: ['feat/sandforge-cinematic-title-framing-*', 'feat/sandforge-title-single-background-*']
   workflow_dispatch:
 
 permissions:
@@ -25,9 +25,8 @@ jobs:
         run: |
           npm ci --prefix tests/browser --no-audit --no-fund
           cd tests/browser && npx playwright install --with-deps chromium
-      - name: Test sharp, uncropped Sandforge title on 3 viewports and menu controls
+      - name: Verify one continuous desert, alpha logo, no subtitle across 3 viewports
         env:
           ATLAS_BROWSER_CHANNEL: chromium
-          SANDFORGE_REQUIRE_CINEMATIC: '1'
           CI: 'true'
         run: cd tests/browser && npx playwright test --config=cinematic.config.mjs sandforge-title-menu.spec.mjs sandforge-cinematic-framing.spec.mjs --reporter=line
