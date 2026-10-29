@@ -1,5 +1,5 @@
 import { profiler } from './performance.js';
-import { RULES, type Point, type Owner, type MapVersion, mapLayout, mapWorldSize } from './config.js';
+import { RULES, type Point, type Owner, type MapVersion, mapLayout, campaignLayout, mapWorldSize } from './config.js';
 import { TERRAIN_BLOCKED, TERRAIN_CLIFFS } from './terrain-art.js';
 import { generateMap, polygonContains, segmentDistance, type GeneratedMap } from './world-generation.js';
 import { navigationLine } from './navigation-line.js';
@@ -202,7 +202,7 @@ export class World {
   }
   territories(seed=2026): Territory[] {
     let random=seed>>>0;const rand=()=>{random=(Math.imul(random,1664525)+1013904223)>>>0;return random/4294967296;};
-    const layout=mapLayout(this.mapVersion),cols=layout.columns,rows=layout.rows,w=this.size/cols,h=this.size/rows;
+    const layout=campaignLayout(this.mapVersion,this.seed),cols=layout.columns,rows=layout.rows,w=this.size/cols,h=this.size/rows;
     const vertices:Point[][]=Array.from({length:rows+1},(_,y)=>Array.from({length:cols+1},(_,x)=>({
       x:x*w+(x===0||x===cols?0:(rand()-.5)*w*.24),y:y*h+(y===0||y===rows?0:(rand()-.5)*h*.24)})));
     if(this.mapVersion>=2)for(let y=0;y<=rows;y++)for(let x=0;x<=cols;x++){
