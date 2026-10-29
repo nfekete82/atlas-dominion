@@ -501,7 +501,8 @@ export class Simulation {
       // Player units retain the original closest-target behavior.
       const priority=u.owner===1&&'orders' in e
         ?(e.kind==='artillery'?-95:e.kind==='medic'?-65:e.kind==='bomber'?-45:0):0;
-      const score=d+priority;
+      const armorPreference=u.kind==='tank'&&('queue' in e||unitSpec(e).group==='Fahrzeuge')?-105:0;
+      const score=d+priority+armorPreference;
       if(score<bestScore){best=e;bestScore=score;}
     }
     u.combatTarget=best?.id??null;
@@ -590,7 +591,8 @@ export class Simulation {
       const enemy=this.acquire(u);
       const spec=unitSpec(u);
       if(u.kind==='tank'){u.mgCooldown=Math.max(0,(u.mgCooldown??0)-dt);this.tankMachinegun(u);}
-      if(enemy&&distance(u,enemy)<=spec.range&&(spec.flying||('orders' in enemy&&unitSpec(enemy).flying)||this.world.line(u,enemy,this.obstacles().filter(b=>b.id!==enemy.id)))){
+      const engagementRange=u.kind==='tank'&&enemy&&'orders' in enemy&&unitSpec(enemy).group==='Infanterie'?230:spec.range;
+      if(enemy&&distance(u,enemy)<=engagementRange&&(spec.flying||('orders' in enemy&&unitSpec(enemy).flying)||this.world.line(u,enemy,this.obstacles().filter(b=>b.id!==enemy.id)))){
         u.facing=enemy.x<u.x?-1:1;u.angle=Math.atan2(enemy.y-u.y,enemy.x-u.x);
         // Tank's main guided rocket is anti-armor only; infantry is handled by the independent roof MG.
         if(u.kind==='tank'&&'orders' in enemy&&unitSpec(enemy).group==='Infanterie')delete u.burst;
