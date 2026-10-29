@@ -6,6 +6,25 @@ export interface PlayerOrder {kind:RadioAction;unit:UnitKind;unitId:number}
 export interface RadioClip {id:string;profile:string;group:string;text:string;file:string;duration:number;speaker:string}
 export interface RadioManifest {version:1;language:string;clips:RadioClip[]}
 const ROOT='/src/assets/reborn/voices/';
+export type RadioVoiceStyle='military'|'original';
+/** Per-role EQ and restrained rate shift. Radio FX do not replace the approved 47 recordings. */
+export function militaryVoicePreset(unit:UnitKind):Readonly<{rate:number;highpass:number;lowpass:number;presenceHz:number;presenceDb:number;drive:number}>{
+ const profile=radioProfile(unit);
+ if(['scout','bomber'].includes(unit))return {rate:.985,highpass:300,lowpass:3150,presenceHz:2050,presenceDb:4.5,drive:1.6};
+ if(profile==='crew')return {rate:.965,highpass:185,lowpass:3350,presenceHz:1650,presenceDb:5,drive:1.85};
+ if(profile==='support')return {rate:.985,highpass:240,lowpass:3500,presenceHz:2050,presenceDb:4.5,drive:1.55};
+ return {rate:.975,highpass:215,lowpass:3350,presenceHz:1800,presenceDb:5.5,drive:1.75};
+}
+/** Precompute a stable soft saturation curve once; no allocations in the playback hot path. */
+export function radioSaturationCurve(drive:number,length=1024):Float32Array {
+ const curve=new Float32Array(length),normalization=Math.tanh(drive);
+ for(let i=0;i<length;i++)curve[i]=Math.tanh((i/(length-1)*2-1)*drive)/normalization;
+ return curve;
+}
+const RADIO_CURVES:Record<string,Float32Array>={
+ soldier:radioSaturationCurve(1.75),crew:radioSaturationCurve(1.85),
+ support:radioSaturationCurve(1.55),air:radioSaturationCurve(1.6)
+};
 const air=(kind:UnitKind)=>['scout','bomber'].includes(kind);
 export const radioProfile=(kind:UnitKind):string=>['medic','engineer'].includes(kind)?'support':['heavy','rover','tank','artillery'].includes(kind)?'crew':'soldier';
 export function radioChoices(clips:RadioClip[],action:RadioAction,unit:UnitKind):RadioClip[]{
@@ -37,7 +56,7 @@ export class RadioPolicy {
 
 /** Only pre-authored local PCM files reach this channel; no runtime speech synthesis. */
 export class UnitRadio {
- enabled=true;volume=.85;manifest:RadioManifest|null=null;
+ enabled=true;volume=.85;style:RadioVoiceStyle='military';manifest:RadioManifest|null=null;
  readonly stats={started:0,dropped:0,interrupted:0,failed:0,decoded:0};
  lastClip:RadioClip|null=null;private policy:RadioPolicy|null=null;
  private encoded=new Map<string,ArrayBuffer>();private buffers=new Map<string,AudioBuffer>();
@@ -71,6 +90,7 @@ export class UnitRadio {
   if(pending&&performance.now()<=pending.until)this.request(pending.action,pending.unit,pending.preview);
  }
  setEnabled(enabled:boolean):void{this.enabled=enabled;if(!enabled)this.stop();}
+ setStyle(style:RadioVoiceStyle):void{if(style!==this.style){this.style=style;this.stop();}}
  setVolume(volume:number):void{this.volume=clamp(volume,0,1);if(!this.volume)this.stop();else if(this.current&&this.context)this.current.gain.gain.setTargetAtTime(this.volume,this.context.currentTime,.025);}
  request(action:RadioAction,unit:UnitKind,preview=false):boolean{
   const a=this.context;
@@ -82,7 +102,28 @@ export class UnitRadio {
   const buffer=this.buffers.get(clip.id);if(!buffer)return false;
   if(this.current){this.stats.interrupted++;this.stopCurrent();}
   const source=a.createBufferSource(),gain=a.createGain(),nodes:AudioNode[]=[source,gain];source.buffer=buffer;gain.gain.value=this.volume;
-  if(air(unit)){const high=a.createBiquadFilter(),low=a.createBiquadFilter();high.type='highpass';high.frequency.value=260;low.type='lowpass';low.frequency.value=3700;source.connect(high);high.connect(low);low.connect(gain);nodes.push(high,low);}else source.connect(gain);
+  if(this.style==='military'){
+   const preset=militaryVoicePreset(unit),high=a.createBiquadFilter(),presence=a.createBiquadFilter(),
+    saturation=a.createWaveShaper(),low=a.createBiquadFilter(),compressor=a.createDynamicsCompressor();
+   source.playbackRate.value=preset.rate;
+   high.type='highpass';high.frequency.value=preset.highpass;high.Q.value=.65;
+   presence.type='peaking';presence.frequency.value=preset.presenceHz;presence.Q.value=1.0;presence.gain.value=preset.presenceDb;
+   const bank=air(unit)?'air':radioProfile(unit);
+   saturation.curve=RADIO_CURVES[bank] as Float32Array<ArrayBuffer>;saturation.oversample='2x';
+   low.type='lowpass';low.frequency.value=preset.lowpass;low.Q.value=.7;
+   compressor.threshold.value=-25;compressor.knee.value=10;compressor.ratio.value=3.5;
+   compressor.attack.value=.004;compressor.release.value=.11;
+   source.connect(high);high.connect(presence);presence.connect(saturation);
+   saturation.connect(low);low.connect(compressor);compressor.connect(gain);
+   nodes.push(high,presence,saturation,low,compressor);
+  }else{
+   // Exact legacy path for ordinary units and the original 260–3700 Hz air filter.
+   if(air(unit)){
+    const high=a.createBiquadFilter(),low=a.createBiquadFilter();
+    high.type='highpass';high.frequency.value=260;low.type='lowpass';low.frequency.value=3700;
+    source.connect(high);high.connect(low);low.connect(gain);nodes.push(high,low);
+   }else source.connect(gain);
+  }
   gain.connect(this.output);const current=this.current={source,gain,nodes,preview};
   source.onended=()=>{for(const n of nodes)n.disconnect();if(this.current===current){this.current=null;this.onActive(false);}};
   this.lastClip=clip;this.stats.started++;this.onActive(true);source.start();return true;
