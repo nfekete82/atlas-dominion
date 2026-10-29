@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
-import {RadioPolicy,radioChoices,radioProfile} from '../dist/src/reborn/unit-radio.js';
+import {RadioPolicy,radioChoices,radioProfile,militaryVoicePreset,radioSaturationCurve,UnitRadio} from '../dist/src/reborn/unit-radio.js';
 const root='src/assets/reborn/voices/',manifest=JSON.parse(fs.readFileSync(root+'manifest.json'));
 
 test('radio assets: all 47 authored German lines are real, short, non-silent mono PCM files with matching integrity',()=>{
@@ -34,4 +34,32 @@ test('radio policy: random variation never immediately repeats a clip or text, i
  let seed=19;const p=new RadioPolicy(manifest.clips,()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/2**32;});let last=null;const seen=new Set();
  for(let i=0;i<80;i++){const clip=p.choose('move',i%3===0?'tank':'infantry',i*3,false);assert.ok(clip);assert.notEqual(clip.id,last?.id);assert.notEqual(clip.text,last?.text);seen.add(clip.id);last=clip;}
  assert.ok(seen.size>=10);p.reset();assert.ok(p.choose('move','infantry',0,false));
+});
+
+test('military radio: all roles use intelligible bandpass, restrained speed change and bounded presence',()=>{
+ const plans=new Set();
+ for(const kind of ['infantry','heavy','medic','engineer','rover','tank','artillery','scout','bomber']){
+  const p=militaryVoicePreset(kind);
+  assert.ok(p.rate>=.95&&p.rate<=1,'no slow or cartoonish voices');
+  assert.ok(p.highpass>=180&&p.highpass<=320&&p.lowpass>=3000&&p.lowpass<=3600);
+  assert.ok(p.presenceDb>=4&&p.presenceDb<=6);
+  assert.ok(p.drive>1&&p.drive<2);
+  plans.add([p.rate,p.highpass,p.lowpass,p.presenceHz].join(':'));
+ }
+ assert.ok(plans.size>=4,'crew, infantry, aircrew and support have individual radio profiles');
+});
+test('military radio: saturation transfer is finite, monotonic, symmetrical and never clips',()=>{
+ for(const drive of [1.55,1.6,1.75,1.85]){
+  const curve=radioSaturationCurve(drive);
+  assert.equal(curve.length,1024);
+  assert.ok(Math.abs(curve[0]+1)<1e-5&&Math.abs(curve.at(-1)-1)<1e-5);
+  assert.ok(curve.every((v,i)=>Number.isFinite(v)&&Math.abs(v)<=1.00001&&(i===0||v>=curve[i-1])));
+ }
+});
+test('military radio: safe default, exact legacy fallback and disabling a clip on style change',()=>{
+ const radio=new UnitRadio(()=>true);
+ assert.equal(radio.style,'military');
+ radio.setStyle('original');assert.equal(radio.style,'original');
+ radio.setStyle('military');assert.equal(radio.style,'military');
+ assert.equal(radio.stats.started,0,'switching does not synthesize voice or eagerly open audio');
 });
