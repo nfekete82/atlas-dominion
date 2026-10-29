@@ -13,6 +13,7 @@ import {Transports,type TransportState} from './transports.js';
 import {TacticalAI,type TacticalState,type TacticalOrder} from './tactical-ai.js';
 import { MAP_VERSION, randomMapSeed } from './world-generation.js';
 import {beginBomberOrbit,advanceBomberOrbit,validBomberOrbit,BOMBER_ORBIT_SPEED,preservesCaptureBoundary,safeOrbitApproach,isOnBomberOrbit,type BomberOrbit} from './bomber-orbit.js';
+import {AttackAlerts} from './attack-alerts.js';
 
 export interface Formation {front:number[];heading:Point;origin:Point;goal:Point;lane:number;rear:number}
 export interface Order extends Point { kind:'move'|'attackMove'|'attack'|'heal'|'repair'|'build'|'board'; target?:number; approach?:Point; healOrigin?:Point; formation?:Formation; march?:number[]; rear?:number; tactical?:TacticalOrder }
@@ -87,6 +88,7 @@ export class Simulation {
   visible=[new Uint8Array(RULES.grid**2),new Uint8Array(RULES.grid**2)];
   explored=[new Uint8Array(RULES.grid**2),new Uint8Array(RULES.grid**2)];
   memories:Memory[][]=[[],[]]; shots:Shot[]=[]; notices:string[]=[];
+  readonly attackAlerts=new AttackAlerts();
   workEffects:WorkEffect[]=[];
   paused=false; revision=0; private fogClock=0; private visionCache=new VisionCache(); private spatial=new SpatialIndex();
   /** The original constructor remains a deterministic legacy fixture/save reader. */
@@ -379,6 +381,12 @@ export class Simulation {
     const attacker=typeof source==='number'?this.unitById.get(source):'orders' in source?source:undefined;
     const sourceId=typeof source==='number'?source:source.id;
     const alive=target.hp>0,applied=Math.min(target.hp,amount);target.hp=Math.max(0,target.hp-applied);
+    // An actual hit on a friendly position is safe to reveal. Never expose an
+    // unknown enemy's position, and never serialize transient warning markers.
+    const hostile=typeof source==='number'?this.unitById.get(source):source;
+    if(target.owner===0&&hostile?.owner===1&&applied>0){
+      this.attackAlerts.record({x:target.x,y:target.y},this.time);
+    }
     if(attacker&&attacker.hp>0&&attacker.owner!==target.owner){gainUnitXp(attacker,applied*XP_RULES.damage,'damage');if(target.hp===0)gainUnitXp(attacker,XP_RULES.kill,'kill');}
     if(alive&&target.hp<=0&&'orders' in target)this.tactical.loss(target);
     // Fast damage-driven retreat: the tactical planner runs only every 3 s,
