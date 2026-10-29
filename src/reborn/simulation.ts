@@ -7,6 +7,7 @@ import { RULES, WEATHER_RULES, clamp, distance, type Faction, type Owner, type P
 import { World, inside, type Territory } from './world.js';
 import { UNITS, BUILDINGS, canAttack, weaponDamage, unitSpec, buildingSpec, unitKinds, type UnitKind, type BuildingKind } from './catalog.js';
 import {angleDifference,turnTowards} from './sprite-animator.js';
+import {newMatchStatistics,countDeployed,countProduced,countIncome,validMatchStatistics,type MatchStatistics} from './match-statistics.js';
 import {turretPivot,turretMuzzles} from './turret.js';
 import {Transports,type TransportState} from './transports.js';
 import {TacticalAI,type TacticalState,type TacticalOrder} from './tactical-ai.js';
@@ -57,7 +58,7 @@ export interface Memory extends Point { id:number; owner:Faction; hp:number; ter
 export interface Save {
   version:2; weatherVersion?:1; productionVersion?:1; supportVersion?:1;rosterVersion?:2;missiles?:Missile[]; seed:number; mapVersion?:MapVersion; time:number; nextId:number; credits:number[]; incomeClock:number;
   units:Unit[]; bases:Base[]; territories:Territory[]; explored:number[][];
-  memories:Memory[][]; aiClock:number; ai?:TacticalState; status:'playing'|'victory'|'defeat';
+  memories:Memory[][]; aiClock:number; ai?:TacticalState; status:'playing'|'victory'|'defeat'; stats?:MatchStatistics;
 }
 
 /** Uniform buckets keep combat/vision queries independent of total army size. */
@@ -81,6 +82,7 @@ export class Simulation {
   missiles:Missile[]=[];blasts:Blast[]=[];
   seed:number; time=0; nextId=1; credits=[RULES.initialCredits as number,RULES.initialCredits as number];
   incomeClock=0; aiClock=0; status:'playing'|'victory'|'defeat'='playing';
+  stats:MatchStatistics=newMatchStatistics();
   units:Unit[]=[]; bases:Base[]=[]; territories:Territory[];
   visible=[new Uint8Array(RULES.grid**2),new Uint8Array(RULES.grid**2)];
   explored=[new Uint8Array(RULES.grid**2),new Uint8Array(RULES.grid**2)];
@@ -114,7 +116,8 @@ export class Simulation {
     while(this.bases.some(b=>b.id===this.nextId))this.nextId++;
     const u:Unit={id:this.nextId++,owner,kind,xp:0,x:p.x,y:p.y,hp:UNITS[kind].hp,orders:[],path:[],cooldown:0,facing:1,moving:false,hit:0,repath:0,
       angle:Math.PI/4,walkDistance:0,fire:0,previousX:p.x,previousY:p.y,lastAttacker:null,defendUntil:0};
-    this.units.push(u);this.unitById.set(u.id,u);return u;
+    this.units.push(u);this.unitById.set(u.id,u);
+    countDeployed(this.stats,owner,kind,this.count(owner));return u;
   }
   income(owner:Faction):number {
     return this.bases.filter(b=>b.owner===owner&&b.hp>0&&b.buildRemaining<=0).reduce((n,b)=>n+buildingSpec(b).income,0)+
@@ -537,7 +540,7 @@ export class Simulation {
       else if(phase==='RECOVERY')this.notices.push('Sichtbedingungen normalisiert.');
     }
     if(wasStorm!==this.weather.storm){this.visionCache.invalidate();this.updateVision();this.fogClock=0;}
-    if(this.incomeClock+1e-8>=RULES.incomeInterval){this.incomeClock=Math.max(0,this.incomeClock-RULES.incomeInterval);for(const owner of [0,1] as const)this.credits[owner]+=this.income(owner);}
+    if(this.incomeClock+1e-8>=RULES.incomeInterval){this.incomeClock=Math.max(0,this.incomeClock-RULES.incomeInterval);for(const owner of [0,1] as const){const earned=this.income(owner);this.credits[owner]+=earned;countIncome(this.stats,owner,earned);}}
     this.blasts=this.blasts.filter(b=>this.time-b.at<.5);
     for(const missile of this.missiles)if(missile.impactAt<=this.time){
       for(const target of [...this.units,...this.bases])if(target.owner!==missile.owner&&target.hp>0&&!('orders' in target&&(target.carrier||unitSpec(target).flying))&&distance(target,missile.to)<=60)this.strike(missile.source,target,missile.damage*(1-.5*distance(target,missile.to)/60));
@@ -704,7 +707,7 @@ export class Simulation {
       if(b.production+1e-8>=b.queue[0]){
         const kind=b.queueTypes[0]??'infantry',spec=UNITS[kind],sign=this.world.mapVersion>=2&&b.kind==='headquarters'&&b.owner===1?-1:1,exit={x:b.x+(b.radius+42)*sign,y:b.y+(b.radius+12)*sign};
         const spawn=spec.flying?exit:this.world.nearest(exit,this.obstacles(),this.units,undefined,Math.max(0,spec.radius-10));
-        if(spawn&&this.count(b.owner)<RULES.capacity){const u=this.spawn(b.owner,spawn,kind);b.queue.shift();b.queueTypes.shift();b.queueCosts?.shift();b.production=0;if(b.rally)this.command([u.id],{...b.rally,kind:'attackMove'});}
+        if(spawn&&this.count(b.owner)<RULES.capacity){const u=this.spawn(b.owner,spawn,kind);countProduced(this.stats,b.owner);b.queue.shift();b.queueTypes.shift();b.queueCosts?.shift();b.production=0;if(b.rally)this.command([u.id],{...b.rally,kind:'attackMove'});}
       }
     }
     this.spatial.rebuild(this.units);
@@ -738,15 +741,16 @@ export class Simulation {
   private think():void {this.tactical.plan();}
   save():Save {
     return structuredClone({version:2,weatherVersion:1,productionVersion:1,supportVersion:1,rosterVersion:2,missiles:this.missiles,seed:this.seed,mapVersion:this.world.mapVersion,time:this.time,nextId:this.nextId,credits:this.credits,incomeClock:this.incomeClock,
-      units:this.units,bases:this.bases,territories:this.territories,explored:this.explored.map(a=>Array.from(a)),memories:this.memories,aiClock:this.aiClock,ai:this.tactical.state,status:this.status});
+      units:this.units,bases:this.bases,territories:this.territories,explored:this.explored.map(a=>Array.from(a)),memories:this.memories,aiClock:this.aiClock,ai:this.tactical.state,status:this.status,stats:this.stats});
   }
   static load(raw:unknown):Simulation {
     const s=migrateTransportRoster(raw) as Save;
     const finite=(n:unknown)=>typeof n==='number'&&Number.isFinite(n);
+    const validMatchStatisticsOrLegacy=(data:unknown)=>data===undefined||validMatchStatistics(data);
     const point=(p:Point)=>p&&finite(p.x)&&finite(p.y)&&p.x>=0&&p.y>=0&&p.x<=RULES.worldSize&&p.y<=RULES.worldSize;
     const burst=(b:Burst|undefined,rounds:number)=>b===undefined||(b!==null&&Number.isInteger(b.target)&&Number.isInteger(b.remaining)&&b.remaining>0&&b.remaining<=rounds&&b.remaining+b.index===rounds&&Number.isInteger(b.index)&&b.index>=0&&b.index<4&&finite(b.at)&&b.at>=s.time-.11&&b.at<=s.time+.11);
     if(!s||s.version!==2||(s.weatherVersion!==undefined&&s.weatherVersion!==1)||(s.productionVersion!==undefined&&s.productionVersion!==1)||(s.mapVersion!==undefined&&![0,1,2,3,4,5,6].includes(s.mapVersion))||!TacticalAI.valid(s.ai,s.time,point,mapLayout(s.mapVersion??0).columns*mapLayout(s.mapVersion??0).rows)||!finite(s.seed)||!finite(s.time)||s.time<0||!finite(s.incomeClock)||s.incomeClock<0||s.incomeClock>=10||
-      !Array.isArray(s.units)||s.units.length>96||!Array.isArray(s.bases)||s.bases.length<2||s.bases.length>64||
+      !validMatchStatisticsOrLegacy(s.stats)||!Array.isArray(s.units)||s.units.length>96||!Array.isArray(s.bases)||s.bases.length<2||s.bases.length>64||
       s.units.some(u=>u.exactPath!==undefined&&typeof u.exactPath!=='boolean')||
       !Array.isArray(s.territories)||s.territories.length!==mapLayout(s.mapVersion??0).columns*mapLayout(s.mapVersion??0).rows||!Array.isArray(s.explored)||s.explored.length!==2||
       s.explored.some(a=>!Array.isArray(a)||![120**2,RULES.grid**2].includes(a.length)||a.some(v=>v!==0&&v!==1))||
@@ -759,7 +763,10 @@ export class Simulation {
         (b.buildRemaining!==undefined&&(!finite(b.buildRemaining)||b.buildRemaining<0||b.buildRemaining>(BUILDINGS[b.kind??'headquarters']?.buildTime??0)))||!finite(b.production)||b.production<0||b.production>(b.queue[0]??0))||
       s.territories.some((t,i)=>t.id!==i||![-1,0,1].includes(t.owner)||!finite(t.progress)||t.progress<0||t.progress>8))throw new Error('Dieser Spielstand ist beschädigt oder gehört zu einer anderen Version.');
     const game=new Simulation(s.seed,s.mapVersion??0);
-    game.time=s.time;game.nextId=Math.max(1,Number.isSafeInteger(s.nextId)?s.nextId:1,...s.units.map(u=>u.id+1),...(s.ai?.losses??[]).map(l=>l.id+1));game.credits=[...s.credits];game.incomeClock=s.incomeClock;
+    game.time=s.time;
+    game.stats=s.stats?structuredClone(s.stats):newMatchStatistics();
+    if(!s.stats){game.stats.partial=true;for(const u of s.units){if(u.hp>0){const f=game.stats.factions[u.owner];f.deployedUnits[u.kind??'infantry']++;f.peakArmy+=0;}}for(const owner of [0,1] as const)game.stats.factions[owner].peakArmy=s.units.filter(u=>u.owner===owner&&u.hp>0).length;}
+    game.nextId=Math.max(1,Number.isSafeInteger(s.nextId)?s.nextId:1,...s.units.map(u=>u.id+1),...(s.ai?.losses??[]).map(l=>l.id+1));game.credits=[...s.credits];game.incomeClock=s.incomeClock;
     game.bases=structuredClone(s.bases).map(b=>({...b,kind:b.kind??'headquarters',...game.world.clearSite(b,buildingSpec(b).radius),radius:buildingSpec(b).radius,...(b.queueCosts?{}:b.queue.length?{queueCosts:b.queue.map((_,i)=>{const k=b.queueTypes?.[i]??'infantry';return !s.supportVersion&&k==='engineer'?150:UNITS[k].cost;})}:{}),queueTypes:b.queueTypes??b.queue.map(()=>'infantry'),buildRemaining:b.buildRemaining??0,cooldown:b.cooldown??0}));
     // Old HQs could queue the entire roster. Refund now-incompatible paid
     // orders once, while preserving valid orders and their active progress.
