@@ -1,7 +1,7 @@
 {
   "name": "sandforge-bastion-wars",
   "version": "1.8.0",
-  "description": "SANDFORGE: BASTION WARS \u2014 Taktisches W\u00fcsten-RTS mit territorialer Expansion",
+  "description": "SANDFORGE: BASTION WARS — Taktisches Wüsten-RTS mit territorialer Expansion",
   "type": "module",
   "private": true,
   "scripts": {
@@ -24,7 +24,9 @@
     "test:ai-director": "npm run build && node --test tests/reborn-ai-director.test.mjs tests/reborn-map-ai.test.mjs tests/reborn-control-retreat.test.mjs",
     "benchmark:ai": "npm run build && node scripts/benchmark-reborn-ai.mjs",
     "assets:transport": "node scripts/build-transport-helicopter.mjs && node scripts/render-unit-atlases.mjs --hd scout",
-    "assets:rocket-launcher": "node scripts/build-rocket-launcher.mjs && node scripts/render-unit-atlases.mjs --hd artillery"
+    "assets:rocket-launcher": "node scripts/build-rocket-launcher.mjs && node scripts/render-unit-atlases.mjs --hd artillery",
+    "benchmark:arena": "npm run build && node scripts/ai-test-arena.mjs",
+    "benchmark:arena:compare": "node scripts/ai-test-arena-compare.mjs"
   },
   "devDependencies": {
     "three": "0.180.0",
