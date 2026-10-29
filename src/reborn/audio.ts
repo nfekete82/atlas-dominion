@@ -3,6 +3,12 @@ import { Renderer } from './renderer.js';
 import { Simulation, type Weapon } from './simulation.js';
 import {UnitRadio,type PlayerOrder} from './unit-radio.js';
 import {unitSpec} from './catalog.js';
+import {ENGINE_KINDS,ENGINE_PROFILES,vehicleSoundMix,type EngineKind} from './vehicle-soundscape.js';
+
+interface EngineVoice {
+  gain:GainNode;pan:StereoPannerNode;engine:OscillatorNode;harmonic:OscillatorNode;
+  noise:GainNode;pulseDepth:GainNode;previousMotion:number;
+}
 
 export const WEAPON_SOUNDS:Record<Weapon,{duration:number;level:number;high:number;low:number;bass:number}>={
  rifle:{duration:.11,level:.14,high:950,low:6500,bass:125},
@@ -42,6 +48,7 @@ export class Soundscape {
   get activeGameplayVoices():number{let count=0;for(const v of this.voices.values())if(v.gameplay)count++;return count;}
   private master:GainNode|null=null;private effects:GainNode|null=null;private wind:GainNode|null=null;
   private motorGain:GainNode|null=null;private generatorGain:GainNode|null=null;private motorTone:OscillatorNode|null=null;
+  private readonly engineVoices=new Map<EngineKind,EngineVoice>();
   private noise:AudioBuffer|null=null;private seenShots=new WeakSet<object>();
   private owners:number[]=[];private unitIds=new Set<number>();private footsteps=new Map<number,number>();
   private game:Simulation|null=null;private lastStep=0;
@@ -66,6 +73,31 @@ export class Soundscape {
       plant.type='triangle';plant.frequency.value=71;plantLow.type='lowpass';plantLow.frequency.value=145;plantGain.gain.value=0;
       plant.connect(plantLow);plantLow.connect(plantGain);plantGain.connect(this.effects);plant.start();
       this.generatorGain=plantGain;
+      // Persistent, silent-by-default voices for each engine family.
+      // No new audio nodes per moving unit or frame; five bounded composite voices.
+      for(const kind of ENGINE_KINDS){
+        const profile=ENGINE_PROFILES[kind];
+        const gain=a.createGain(),pan=a.createStereoPanner(),lowpass=a.createBiquadFilter();
+        gain.gain.value=0;pan.pan.value=0;lowpass.type='lowpass';lowpass.frequency.value=profile.cutoff;
+        lowpass.connect(gain);gain.connect(pan);pan.connect(this.effects);
+        const engine=a.createOscillator(),harmonic=a.createOscillator();
+        engine.type=profile.type;harmonic.type=profile.secondary;
+        engine.frequency.value=profile.low;harmonic.frequency.value=profile.high;
+        const overtone=a.createGain();overtone.gain.value=kind==='bomber'?.15:.29;
+        engine.connect(lowpass);harmonic.connect(overtone);overtone.connect(lowpass);
+        engine.start();harmonic.start();
+        const grit=a.createBufferSource(),gritFilter=a.createBiquadFilter(),noise=a.createGain();
+        grit.buffer=this.noise;grit.loop=true;gritFilter.type='bandpass';
+        gritFilter.frequency.value=profile.noiseHz;gritFilter.Q.value=profile.noiseQ;
+        noise.gain.value=profile.texture;
+        grit.connect(gritFilter);gritFilter.connect(noise);noise.connect(lowpass);grit.start();
+        const pulseDepth=a.createGain();pulseDepth.gain.value=0;
+        if(profile.pulse>0){
+          const lfo=a.createOscillator();lfo.type='sine';lfo.frequency.value=profile.pulse;
+          lfo.connect(pulseDepth);pulseDepth.connect(noise.gain);lfo.start();
+        }
+        this.engineVoices.set(kind,{gain,pan,engine,harmonic,noise,pulseDepth,previousMotion:0});
+      }
     }
     if(this.context.state==='suspended')await this.context.resume();
     this.radio.flush();
@@ -77,7 +109,13 @@ export class Soundscape {
     this.played.commands++;this.radio.request(order.kind,order.unit);
   }
   pause():void{this.silence(true);this.radio.pause();}
-  silenceScene():void{this.silence();this.radio.stop();if(this.context){for(const gain of [this.wind,this.motorGain,this.generatorGain])gain?.gain.setTargetAtTime(0,this.context.currentTime,.025);}}
+  silenceScene():void{
+    this.silence();this.radio.stop();
+    if(this.context){
+      for(const gain of [this.wind,this.motorGain,this.generatorGain])gain?.gain.setTargetAtTime(0,this.context.currentTime,.025);
+      for(const voice of this.engineVoices.values()){voice.gain.gain.setTargetAtTime(0,this.context.currentTime,.035);voice.previousMotion=0;}
+    }
+  }
   bindGame(g:Simulation):void{
     if(this.game===g)return;this.silence();this.radio.reset();this.lastStep=g.time;this.game=g;this.owners=g.territories.map(t=>t.owner);this.unitIds=new Set(g.units.map(u=>u.id));this.footsteps.clear();this.seenShots=new WeakSet();
   }
@@ -127,9 +165,35 @@ export class Soundscape {
       const sounding=this.enabled&&this.volume>0&&this.ambience&&!document.hidden&&!g.paused&&g.status==='playing';
       this.wind?.gain.setTargetAtTime(sounding?1+g.weather.intensity*1.25:0,this.context.currentTime,.2);
       const levels=sounding?ambientActivity(g,r.camera,p=>g.canSee(0,p)):{motors:0,generator:0};
-      this.motorGain?.gain.setTargetAtTime(levels.motors*.016,this.context.currentTime,.25);
+      // Old generic engine bed remains extremely quiet; distinctive vehicle layers lead.
+      this.motorGain?.gain.setTargetAtTime(levels.motors*.003,this.context.currentTime,.25);
       this.generatorGain?.gain.setTargetAtTime(levels.generator*.015,this.context.currentTime,.35);
       if(this.motorTone)this.motorTone.frequency.setTargetAtTime(53+Math.sin(g.time*1.8)*3+Math.min(8,levels.motors*3),this.context.currentTime,.12);
+      const audibleRadius=Math.max(240,Math.min(880,Math.max(r.width,r.height)/r.camera.zoom*.72));
+      const mix=sounding?vehicleSoundMix(g,r.camera,p=>g.canSee(0,p),audibleRadius):null;
+      for(const kind of ENGINE_KINDS){
+        const voice=this.engineVoices.get(kind);if(!voice)continue;
+        const profile=ENGINE_PROFILES[kind],state=mix?.[kind];
+        const level=state?.level??0,throttle=state?.throttle??0,moving=state?.moving??0;
+        const now=this.context.currentTime;
+        // The same oscillators spin up on departure and settle at idle when parked.
+        // Frequency sweeps give a real ignition/acceleration cue without creating voices.
+        const fundamental=profile.low*(1+.52*throttle);
+        if(level>.02&&moving>.35&&voice.previousMotion<.08){
+          voice.engine.frequency.setValueAtTime(Math.max(22,fundamental*.72),now);
+          voice.engine.frequency.exponentialRampToValueAtTime(fundamental*1.09,now+.21);
+        }else{
+          voice.engine.frequency.setTargetAtTime(fundamental,now,.17);
+        }
+        voice.harmonic.frequency.setTargetAtTime(profile.high*(1+.34*throttle),now,.21);
+        voice.pan.pan.setTargetAtTime(state?.pan??0,now,.20);
+        voice.noise.gain.setTargetAtTime(profile.texture*(.5+.65*throttle),now,.24);
+        voice.pulseDepth.gain.setTargetAtTime(
+          profile.pulse>0?profile.texture*(kind==='tank'?.13:.20)*(.25+.75*throttle):0,now,.26);
+        voice.gain.gain.setTargetAtTime(
+          level*profile.volume,now,level>voice.gain.gain.value?.14:.30);
+        voice.previousMotion=level>.02?moving:0;
+      }
     }
     const active=this.context?.state==='running'&&this.enabled&&this.volume>0&&!document.hidden&&!g.paused;
     if(document.hidden){this.silence();this.radio.stop();}else if(g.paused)this.pause();
