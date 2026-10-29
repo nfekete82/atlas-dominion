@@ -4,7 +4,7 @@ import type {BuildingKind,UnitKind} from './catalog.js';
 export const unitArtScale=(kind:UnitKind):number=>
   kind==='heavy'?.74:
   ['infantry','medic','engineer'].includes(kind)?.73:
-  kind==='rover'?.96:
+  kind==='rover'?1.09:
   kind==='tank'?.98:
   kind==='artillery'?.93:
   kind==='scout'?1.52:
