@@ -884,3 +884,14 @@ html.sandforge-clean-title #main-dialog .menu-buttons .menu-button:hover:not(:di
  #selection-panel .passenger-slots{grid-template-columns:repeat(4,minmax(0,1fr))}
  #selection-panel .passenger-hint{font-size:8px}
 }
+
+/* Production roster: three tidy portraits across whenever the sidebar is wide enough.
+   Narrow screens retain the accessible two-column layout. */
+@media(min-width:1001px){
+ #catalog-units .catalog-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+ #catalog-units .catalog-card{box-sizing:border-box;width:100%;min-width:0;height:106px}
+ #catalog-units .catalog-card .card-meta{padding:0 4px;gap:3px;height:25px;flex-basis:25px}
+ #catalog-units .catalog-card .card-meta .card-name{font-size:11px;line-height:1.15}
+ #catalog-units .catalog-card .card-meta .card-cost{font-size:11px;line-height:1.15}
+ #catalog-units .catalog-card>img{height:calc(100% - 25px)}
+}
