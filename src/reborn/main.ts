@@ -129,7 +129,7 @@ function notify(message:string):void{
 }
 input.notify=notify;
 function showTacticalPause(visible:boolean):void{el('pause-label').hidden=!visible;el('app').inert=visible;document.body.classList.toggle('tactical-paused',visible);}
-function setPause(paused:boolean):void{game.paused=paused;if(paused)audio.pause();accumulator=0;showTacticalPause(paused&&!document.querySelector('dialog[open]'));setText('pause',paused?'▶':'Ⅱ');el('pause').setAttribute('aria-label',paused?'Fortsetzen':'Pause');setText('simulation-status',paused?'PAUSIERT':'LIVE SIMULATION');}
+function setPause(paused:boolean):void{game.paused=paused;if(paused)audio.pause();accumulator=0;showTacticalPause(paused&&game.status==='playing'&&!document.querySelector('dialog[open]'));setText('pause',paused?'▶':'Ⅱ');el('pause').setAttribute('aria-label',paused?'Fortsetzen':'Pause');setText('simulation-status',paused?'PAUSIERT':'LIVE SIMULATION');}
 function closeDialogs():void{for(const d of document.querySelectorAll<HTMLDialogElement>('dialog[open]'))d.close('switch');}
 function modal(id:string):void{
  const d=el<HTMLDialogElement>(id);if(d.open)return;if(id==='main-dialog')el<HTMLButtonElement>('main-continue').hidden=!hasEnteredCampaign;const wasPaused=game.paused;setPause(true);d.returnValue='';d.showModal();
