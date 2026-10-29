@@ -1,0 +1,45 @@
+name: Sandforge KI-Testarena
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/sandforge-ai-test-arena-20261029
+    paths:
+      - scripts/ai-test-arena*
+      - tests/ai-test-arena.test.mjs
+      - package.json
+      - .github/workflows/ai-arena.yml
+
+permissions:
+  contents: read
+
+jobs:
+  ai-arena:
+    name: 48 headless Gefechte (Baseline vs Director)
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - name: Abhängigkeiten installieren
+        run: npm ci --no-audit --no-fund
+      - name: Spiel bauen
+        run: npm run build
+      - name: Arena-Regressionstests
+        run: node --test tests/ai-test-arena.test.mjs
+      - name: 48 reproduzierbare KI-Gefechte
+        run: node scripts/ai-test-arena.mjs --output ai-arena-results/ci.json
+      - name: Rohdaten und Auswertung archivieren
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandforge-ai-arena-results
+          path: ai-arena-results/
+          if-no-files-found: warn
+          retention-days: 14
