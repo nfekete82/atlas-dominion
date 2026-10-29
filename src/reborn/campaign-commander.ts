@@ -3,6 +3,7 @@ import type {Memory,Simulation,Unit} from './simulation.js';
 import {unitSpec} from './catalog.js';
 import {fightingPower,fightingPowerAgainst,type FailedFront} from './battle-response.js';
 import {rateMission,type EnemyStrategy} from './adaptive-strategy.js';
+import {learnedMissionBias,type Experience} from './battle-learning.js';
 import type {Loss} from './tactical-ai.js';
 import {replanAfterLoss} from './ai25-doctrine.js';
 
@@ -10,7 +11,7 @@ export type CampaignPhase='opening'|'expansion'|'buildup'|'offensive'|'siege'|'e
 export interface WarMission extends Point {kind:'capture'|'structure'|'hunt';sector:number;objective:number|null;since:number;progressAt:number;distance:number;hp:number}
 export interface ReconTask extends Point {unit:number;since:number}
 export interface CampaignState {version:1;phase:CampaignPhase;phaseSince:number;mission?:WarMission;recon:ReconTask[];survey:{x:number;y:number;at:number}[];intel:{id:number;seenAt:number}[];aborted:number;alternatives?:{sector:number;score:number;expectedLoss:number;budgetCost:number}[]}
-export interface MissionContext {strategy:EnemyStrategy;force:Unit[];losses:Loss[];fronts:FailedFront[];route:(p:Point)=>{length:number;risk:number}|undefined;intelligent?:boolean}
+export interface MissionContext {strategy:EnemyStrategy;force:Unit[];losses:Loss[];fronts:FailedFront[];route:(p:Point)=>{length:number;risk:number}|undefined;intelligent?:boolean;experience?:Experience}
 export const newCampaign=():CampaignState=>({version:1,phase:'opening',phaseSince:0,recon:[],survey:[],intel:[],aborted:0});
 export function campaignPhase(s:CampaignState,phase:CampaignPhase,time:number):void{if(s.phase!==phase){s.phase=phase;s.phaseSince=time;}}
 /** The commander's inputs are own possessions, public sectors, fog and observed
@@ -78,7 +79,8 @@ export function chooseMission(g:Simulation,s:CampaignState,origin:Point,context?
    const rating=rateMission({base:choice.score,distance:distance(origin,choice.p),income:g.income(1),missingCredits:forts.length&&!siege?Math.max(0,600-g.credits[1]):0,
     ownHP,foeDPS:forts.length*30+defenders.reduce((n,u)=>n+unitSpec(u).damage/unitSpec(u).cooldown,0),visiblePower:fightingPowerAgainst(defenders,context.force),ownPower:fightingPowerAgainst(context.force,defenders,forts.map(t=>({...t,range:600}))),
     towers:forts.length,siege,age:choice.kind==='structure'?Math.max(0,g.time-seen):0,failures:failed,capture:choice.kind==='capture',enemyOwned:g.territories[choice.sector].owner===0},context.strategy);
-   choice.score=rating.score;alternatives.push({sector:choice.sector,...rating});
+   choice.score=rating.score+(context.experience?learnedMissionBias(context.experience,forts.length?'siege':'maneuver',forts.length,context.force.length):0);
+   alternatives.push({sector:choice.sector,...rating,score:choice.score});
   }
   s.alternatives=alternatives.sort((a,b)=>a.score-b.score||a.sector-b.sector).slice(0,8);
  }
