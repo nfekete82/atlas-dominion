@@ -43,7 +43,7 @@ test('3.1: flank and siege bonuses adjust viable forecasts but never enable impo
  const base=chooseTacticalManeuver(context);
  const positive=chooseTacticalManeuver({...context,learned:{flank:.3,siege:0}});
  const flankScore=choice=>choice.forecasts.find(f=>f.mode==='flank')?.score;
- assert.equal(flankScore(positive)-flankScore(base),54);
+ assert.ok(Math.abs((flankScore(positive)-flankScore(base))-54)<1e-8);
  const noFlank=chooseTacticalManeuver({...context,observedEnemies:observedEnemies.slice(0,1),learned:{flank:100,siege:100}});
  assert.notEqual(noFlank.mode,'flank');
  assert.notEqual(noFlank.mode,'siege');
