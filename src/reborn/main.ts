@@ -43,6 +43,7 @@ if(query.has('debug')&&query.has('perfTest'))game.paused=true;
 const renderer=new Renderer(el<HTMLCanvasElement>('world'),el<HTMLCanvasElement>('minimap'),game),input=new Input(renderer),audio=new Soundscape();
 let accumulator=0,last=performance.now(),uiClock=0,resultShown=false,busy=false,ready=false,hasEnteredCampaign=query.has('debug'),selectionSound='',catalogTab='units';
 const messages:{time:string;message:string}[]=[];
+let lastAttackGame:Simulation|null=null,lastAttackSequence=0;
 let campaignReport:CampaignReport|null=hasEnteredCampaign&&!query.has('debug')?newCampaignReport(game):null;
 let historyPersistAt=-10;
 let archiveOwner:0|1=0;
@@ -336,7 +337,15 @@ qwenToggle.onchange=()=>{if(qwenToggle.checked)qwenGeneral.enable();else qwenGen
 qwenGeneral.onChange();
 el('messages').onclick=()=>{const history=el('message-history');history.replaceChildren();if(!messages.length){const p=document.createElement('p');p.textContent='Keine neuen Funkmeldungen.';history.append(p);}for(const item of messages){const p=document.createElement('p'),time=document.createElement('time');time.textContent=item.time;p.append(time,document.createTextNode(item.message));history.append(p);}el('unread').hidden=true;modal('message-dialog');};
 window.addEventListener('pointerdown',()=>{void audio.unlock().catch(()=>{});},{capture:true});window.addEventListener('keydown',()=>{void audio.unlock().catch(()=>{});},{capture:true});window.addEventListener('resize',()=>renderer.resize());document.addEventListener('visibilitychange',()=>{last=performance.now();accumulator=0;if(document.hidden){audio.silenceScene();setPause(true);}});
-function frame(now:number):void{profiler?.beginFrame(now);const dt=Math.min(.1,(now-last)/1000);last=now;const inputAt=profiler?performance.now():0;input.update(dt);if(profiler)profiler.record('input',performance.now()-inputAt);if(!game.paused){accumulator+=dt;let steps=0;while(accumulator>=RULES.tick&&steps++<5){game.step();accumulator-=RULES.tick;}}else accumulator=0;const audioAt=profiler?performance.now():0;audio.update(game,renderer);if(profiler)profiler.record('audio',performance.now()-audioAt);renderer.render(dt,accumulator/RULES.tick);uiClock+=dt;if(uiClock>.1){qwenGeneral.maybePlan(game);refresh();uiClock=0;}profiler?.endFrame(now);requestAnimationFrame(frame);}
+function showIncomingAttacks():void{
+ if(lastAttackGame!==game){lastAttackGame=game;lastAttackSequence=0;}
+ const seq=game.attackAlerts.sequence;
+ if(seq<=lastAttackSequence||game.paused||game.status!=='playing')return;
+ lastAttackSequence=seq;
+ notify('Captain, wir werden angegriffen!');
+ audio.announceAttack();
+}
+function frame(now:number):void{profiler?.beginFrame(now);const dt=Math.min(.1,(now-last)/1000);last=now;const inputAt=profiler?performance.now():0;input.update(dt);if(profiler)profiler.record('input',performance.now()-inputAt);if(!game.paused){accumulator+=dt;let steps=0;while(accumulator>=RULES.tick&&steps++<5){game.step();accumulator-=RULES.tick;}}else accumulator=0;showIncomingAttacks();const audioAt=profiler?performance.now():0;audio.update(game,renderer);if(profiler)profiler.record('audio',performance.now()-audioAt);renderer.render(dt,accumulator/RULES.tick);uiClock+=dt;if(uiClock>.1){qwenGeneral.maybePlan(game);refresh();uiClock=0;}profiler?.endFrame(now);requestAnimationFrame(frame);}
 void audio.radio.preload();
 try{await renderer.load();prepareCatalog();ready=true;el('loading').remove();refresh();last=performance.now();requestAnimationFrame(frame);if(!query.has('debug'))modal('main-dialog');}catch(e){setHtml('loading','<strong>Der Wüstensektor konnte nicht geladen werden.</strong><p>Bitte neu laden und die lokalen Grafiken prüfen.</p>');console.error(e);}
 if(new URLSearchParams(location.search).has('debug'))Object.assign(window,{__reborn:{get game(){return game;},renderer,input,refresh,audio,profiler,qwenGeneral,advance(seconds:number){for(let i=0;i<Math.round(seconds/RULES.tick);i++)game.step();refresh();renderer.render(0);},save,load}});
