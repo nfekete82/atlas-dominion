@@ -101,7 +101,7 @@ test('2.5: mission selection considers a fourth reachable frontage when higher-r
  for(let id=1;id<=4;id++){
   const t=g.territories[id];t.owner=-1;t.point={x:id*150,y:100};t.neighbors=[0];t.income=25;
  }
- const checked=[],context={strategy:'unknown',force:g.units.filter(u=>u.owner===1),
+ const checked=[],context={strategy:'unknown',intelligent:true,force:g.units.filter(u=>u.owner===1),
   losses:[],fronts:[],route:p=>{
    checked.push(p.x);
    return p.x>=600?{length:600,risk:0}:undefined;
