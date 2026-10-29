@@ -11,8 +11,8 @@ const fakeCanvas=()=>({
  drawImage(){this.draws++;}
 });
 
-test('palms: scale and atlas remain unchanged; trees are not baked into terrain',()=>{
- assert.equal(PALM_ART_SCALE,.76);
+test('palms: enlarged high-quality atlas remains a separate rendering layer',()=>{
+ assert.ok(PALM_ART_SCALE>=1.3&&PALM_ART_SCALE<=1.5);
  const ctx=fakeCanvas();
  paintGroundDetails(ctx,[palm(2000,2200)],{palm:{},rocks:{},crater:{}});
  assert.equal(ctx.draws,0);
