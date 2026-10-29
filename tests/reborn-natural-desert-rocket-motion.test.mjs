@@ -18,7 +18,7 @@ test('desert: no artificial bastion-to-bastion road painter in world or minimap;
  assert.match(renderer,/this\.miniTerrain\.getContext/,'minimap still generated from clean terrain');
 });
 test('rocket: larger on screen without altering hitbox, vehicle combat, price or armor',()=>{
- assert.equal(unitArtScale('artillery'),1.08);
+ assert.equal(unitArtScale('artillery'),1.22);
  assert.deepEqual([UNITS.artillery.width,UNITS.artillery.hp,UNITS.artillery.cost,UNITS.artillery.damage],[94,340,600,120]);
 });
 test('rocket: suspension is subtle, deterministic, finite and stops perfectly at rest',()=>{
