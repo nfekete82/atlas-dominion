@@ -34,5 +34,5 @@ export function reinforcementStagingPoint(front:Point,objective:Point,home:Point
  const rear={x:front.x-vx*170,y:front.y-vy*170};
  // Avoid sending reinforcements back across their HQ when the column has
  // barely left home. Rejoin at the active line in that case.
- return distance(home,rear)>distance(home,front)+150?{...front}:rear;
+ return distance(home,rear)>=distance(home,front)+150?{...front}:rear;
 }
