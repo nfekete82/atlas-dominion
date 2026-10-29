@@ -17,6 +17,7 @@ import { paintGeneratedTerrain } from './terrain-presentation.js';
 import { BattlefieldEffects, createGroundDetails, paintGroundDetails, type GroundDetail } from './battlefield-atmosphere.js';
 import {PalmGrove} from './palm-grove.js';
 import {DesertAtmosphere} from './desert-atmosphere.js';
+import {attackBlinkAlpha} from './attack-alerts.js';
 import { buildTerrainVariants, type TerrainVariantAtlases } from './terrain-variants.js';
 import {visibleInViewport} from './viewport-culling.js';
 
@@ -378,6 +379,17 @@ export class Renderer {
     // Selected routes are commander orders and may extend into unexplored ground.
     if(this.selected.size)for(const u of g.units)if(this.selected.has(u.id)&&u.orders.length){
       c.strokeStyle='#a5dcf03d';c.lineWidth=1/this.camera.zoom;c.setLineDash([4,8]);c.beginPath();c.moveTo(u.x,u.y);for(const o of u.orders)c.lineTo(o.x,o.y);c.stroke();c.setLineDash([]);}
+    // Hit positions are already friendly/known coordinates. No enemy information
+    // is exposed through the alert overlay, even inside unexplored territory.
+    for(const alert of g.attackAlerts.visible(g.time)){
+      const alpha=attackBlinkAlpha(g.time,alert.at,this.reducedMotion);
+      if(alpha<=0)continue;
+      c.save();c.strokeStyle='#ff3f3f';c.fillStyle='#ff3838';
+      c.globalAlpha=alpha*.17;c.beginPath();c.arc(alert.x,alert.y,54,0,Math.PI*2);c.fill();
+      c.globalAlpha=alpha;c.lineWidth=3.6/this.camera.zoom;
+      c.beginPath();c.arc(alert.x,alert.y,40+Math.sin((g.time-alert.at)*9)*5,0,Math.PI*2);c.stroke();
+      c.restore();
+    }
     c.restore();
     this.weatherEffects.draw(this,this.reducedMotion);
     if(this.box){const {from,to}=this.box;c.fillStyle='#71c5f414';c.strokeStyle='#88d5fa';c.lineWidth=1;c.fillRect(from.x,from.y,to.x-from.x,to.y-from.y);c.strokeRect(from.x,from.y,to.x-from.x,to.y-from.y);}
@@ -435,6 +447,18 @@ export class Renderer {
     for(const t of g.territories)if(g.hasExplored(0,t.point)){c.fillStyle=t.owner===0?'#81d2ff':t.owner===1?'#e6786a':'#f4f5f4';c.fillRect(t.point.x*k-1,t.point.y*k-1,2,2);}
     for(const b of g.bases)if(b.owner===0||g.canSee(0,b)){c.fillStyle=b.owner===0?'#82d5ff':'#f77f6b';c.fillRect(b.x*k-3,b.y*k-3,6,6);}
     for(const u of g.units)if(!u.carrier&&(u.owner===0||g.canSee(0,u))){c.fillStyle=u.owner===0?'#9bdcff':'#ff8170';c.fillRect(u.x*k-1.5,u.y*k-1.5,3,3);}
+    // Prominent red warning beacon at the friendly impact location, above fog
+    // and units. It fades after 5.5 s and does not reveal the attacker.
+    for(const alert of g.attackAlerts.visible(g.time)){
+      const alpha=attackBlinkAlpha(g.time,alert.at,this.reducedMotion);
+      if(alpha<=0)continue;
+      const x=alert.x*k,y=alert.y*k;
+      c.save();c.globalAlpha=alpha;
+      c.fillStyle='#fc2929';c.strokeStyle='#ff3d35';c.lineWidth=2.6;
+      c.beginPath();c.arc(x,y,7.2,0,Math.PI*2);c.fill();
+      c.beginPath();c.arc(x,y,11.5+(1-alpha)*2,0,Math.PI*2);c.stroke();
+      c.restore();
+    }
     const w=this.width/this.camera.zoom,h=this.height/this.camera.zoom;
     c.strokeStyle='#e8d7b5';c.lineWidth=1;c.strokeRect((this.camera.x-w/2)*k,(this.camera.y-h/2)*k,w*k,h*k);
   }
