@@ -388,3 +388,17 @@ body.tactical-paused #app{filter:blur(7px);pointer-events:none;user-select:none}
 #new-dialog .ai-learning-option{display:flex;align-items:center;gap:10px;margin:12px 0 5px;color:#efe2cb;font:600 14px var(--display);cursor:pointer}
 #new-dialog .ai-learning-option input{width:19px;height:19px;flex:none;accent-color:#d9b16b;cursor:pointer}
 #new-dialog .ai-learning-note{font-size:12px;line-height:1.45;opacity:.78;margin:0 0 18px}
+
+/* Main-menu archive, optimized for both desktop and compact layouts. */
+#campaign-history-dialog{max-width:950px;width:calc(100% - 32px)}
+#campaign-history-dialog h1{margin-bottom:12px}
+#campaign-history-dialog .history-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:20px 0}
+#campaign-history-dialog .history-summary>div{border:1px solid #d7b77f55;background:#dfb77813;padding:13px 10px;text-align:center}
+#campaign-history-dialog .history-summary strong{display:block;color:#ffdf9e;font:700 27px var(--display)}
+#campaign-history-dialog .history-summary span{display:block;margin-top:6px;color:#d0c5b4;font:500 11px var(--display)}
+#campaign-history-dialog .history-list{overflow-x:auto;max-height:44vh;overflow-y:auto}
+#campaign-history-dialog table{width:100%;border-collapse:collapse;font:13px var(--display);min-width:700px}
+#campaign-history-dialog th,#campaign-history-dialog td{padding:10px 9px;text-align:left;border-bottom:1px solid #d7b77f33;white-space:nowrap}
+#campaign-history-dialog th{color:#f6d59c;background:#403723}
+#campaign-history-dialog tr:hover td{background:#c8a05a16}
+@media(max-width:650px){#campaign-history-dialog .history-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
