@@ -19,7 +19,7 @@ test('aircraft art grows visually without altering authoritative world size or f
  assert.equal(unitArtScale('bomber'),1.40);
  assert.equal(unitArtScale('scout'),1.52);
  assert.equal(unitArtScale('tank'),.98);
- assert.equal(unitArtScale('infantry'),.79);
+ assert.equal(unitArtScale('infantry'),.73);
  assert.equal(unitSpec({kind:'bomber'}).width,107);
  assert.equal(unitSpec({kind:'scout'}).width,106);
  assert.equal(unitSpec({kind:'bomber'}).speed,125);
