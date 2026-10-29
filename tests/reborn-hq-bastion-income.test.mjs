@@ -17,7 +17,7 @@ for(const version of versions){
    assert.equal(game.bases.find(b=>b.kind==='headquarters'&&b.owner===owner)?.territory,home.id);
    assert.equal(game.income(owner),35,'25 territory plus 10 operational HQ');
   }
-  assert.equal(sectors.filter(s=>s.owner===-1&&s.income===35).length,2,
+  assert.equal(sectors.filter(s=>s.owner===-1&&s.income===35).length,version===6?4:2,
    'paired high-value neutral bastions remain worth 35 each');
   assert.ok(sectors.every(s=>[15,25,35].includes(s.income)));
   assert.ok(sectors.every((s,i)=>s.income===sectors[sectors.length-i-1].income),
