@@ -6,7 +6,7 @@ import {Weather} from '../dist/src/reborn/weather.js';
 import {WEATHER_RULES} from '../dist/src/reborn/config.js';
 
 const fixture=()=>{
- const game=new Simulation(2026,8);
+ const game=new Simulation(2026,8,true);
  game.aiClock=-1e8;game.units=[];game.world.blocked.fill(0);game.world.opaque.fill(0);
  return game;
 };
