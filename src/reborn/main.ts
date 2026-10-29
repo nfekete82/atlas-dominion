@@ -200,6 +200,42 @@ function refreshMeasured():void{
  if(!workers){renderer.placement=null;el('build-menu').hidden=true;renderer.canvas.classList.remove('building');}
  el('load-mode').hidden=!selected.some(u=>transportCapacity(u.kind)>0);el('unload-mode').hidden=!selected.some(u=>transportCapacity(u.kind)>0);el<HTMLButtonElement>('unload-mode').disabled=!selected.some(u=>transportCapacity(u.kind)>0&&u.transport?.cargo.length);
  if(selected.length===1&&first&&transportCapacity(first.kind)>0)detail=`${first.transport?.cargo.length??0} / ${transportCapacity(first.kind)} Passagiere · ${spec!.description}`;
+
+ const rover=selected.length===1&&first?.kind==='rover'?first:null;
+ const passengerPanel=el('transport-passengers');
+ passengerPanel.hidden=!rover;
+ if(rover){
+  const cargo=rover.transport?.cargo??[],slots=el('passenger-slots'),key=rover.id+':'+cargo.join(',');
+  setText('passenger-count',`${cargo.length} / ${transportCapacity(rover.kind)}`);
+  if(slots.dataset.key!==key){
+   slots.dataset.key=key;slots.replaceChildren();
+   for(let i=0;i<transportCapacity(rover.kind);i++){
+    const passenger=game.units.find(u=>u.id===cargo[i]&&u.carrier===rover.id&&u.owner===rover.owner&&u.hp>0);
+    const button=document.createElement('button');button.type='button';
+    button.className='passenger-slot'+(passenger?' occupied':' empty');
+    if(passenger){
+     button.dataset.passengerId=String(passenger.id);
+     button.title=`${UNITS[passenger.kind].name} · einzeln am Humvee ausladen`;
+     button.setAttribute('aria-label',`${UNITS[passenger.kind].name} einzeln ausladen`);
+     const image=document.createElement('img');image.src=renderer.icon('unit',passenger.kind);image.alt='';button.append(image);
+     button.insertAdjacentHTML('beforeend',roleBadgeMarkup(passenger.kind));
+     const carrierId=rover.id,passengerId=passenger.id;
+     button.onclick=()=>{
+      const carrier=game.units.find(u=>u.id===carrierId&&u.kind==='rover'&&u.owner===0&&u.hp>0);
+      const rider=game.units.find(u=>u.id===passengerId&&u.carrier===carrierId&&u.hp>0);
+      if(!carrier||!rider||!carrier.transport?.cargo.includes(passengerId))return;
+      if(game.transports.unload(carrier.id,{x:carrier.x,y:carrier.y},passengerId)){
+       notify(`${UNITS[rider.kind].name} steigt am Humvee aus.`);refresh();
+      }else notify('Kein sicherer Ausladeort am Humvee.');
+     };
+    }else{button.disabled=true;button.textContent='+';button.title='Freier Sitzplatz';}
+    slots.append(button);
+   }
+  }
+  const unloading=rover.transport?.task==='unload'&&rover.transport.phase!=='cruise';
+  for(const button of slots.querySelectorAll<HTMLButtonElement>('[data-passenger-id]'))button.disabled=unloading;
+ }
+
  el('move-mode').hidden=!selected.length;el('rally-mode').hidden=!base||base.buildRemaining>0||!unitKinds.some(k=>UNITS[k].producers.includes(base.kind));
  const context=el('building-commands'),contextKey=base?`${base.id}:${base.buildRemaining>0}`:'';
  if(context.dataset.key!==contextKey){context.dataset.key=contextKey;context.replaceChildren();
