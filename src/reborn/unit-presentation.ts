@@ -29,7 +29,7 @@ export function rocketSuspensionPose(
  const steering=Math.max(-1,Math.min(1,Number.isFinite(turn)?turn:0));
  const accelerationClamped=Math.max(-1,Math.min(1,Number.isFinite(acceleration)?acceleration:0));
  const driving=moving&&speed>.015;
- const wheel=driving?distance:0;
+ const wheel=driving&&Number.isFinite(distance)?distance:0;
  const rocking=driving?Math.sin(wheel/12.4)*.96+Math.sin(wheel/21.9+1.4)*.42:0;
  const idle=driving?0:Math.sin(idleAge*11)*.11;
  const recoil=shotAge>=0&&shotAge<.9?Math.sin(shotAge*13.5)*Math.exp(-shotAge*4.4)*4.8:0;
