@@ -1,0 +1,49 @@
+name: Sandforge Tactical AI 2.4 - wave coordination
+
+on:
+  push:
+    branches:
+      - feat/sandforge-tactical-ai-24-*
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wave-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Targeted wave / retreat / tactical tests
+        run: |
+          node --test \
+            tests/reborn-tactical-ai-24.test.mjs \
+            tests/reborn-tactical-ai-24-benchmark.test.mjs \
+            tests/reborn-tactical-ai-23.test.mjs \
+            tests/reborn-tactical-ai-22.test.mjs \
+            tests/reborn-ai-pressure.test.mjs \
+            tests/reborn-ai-director.test.mjs
+      - name: Paired paid economy A/B versus 2.3
+        run: |
+          node scripts/benchmark-tactical-ai-24.mjs \
+            --maps 4,5 --seeds 2026,42 --seconds 900 \
+            --opponents guarded,fortress \
+            --output artifacts/tactical-ai-24-ab.json
+      - name: Publish comparison data
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandforge-tactical-ai-24-ab
+          path: artifacts/tactical-ai-24-ab.json
+          if-no-files-found: ignore
+          retention-days: 7

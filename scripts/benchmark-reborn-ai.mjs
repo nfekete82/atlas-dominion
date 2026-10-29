@@ -58,6 +58,7 @@ export function productionIdleReason(g,b,UNITS){
 export function runMatch({Simulation,UNITS,performanceModule},options,seed,mode,version){
  const g=new Simulation(seed,version);g.tactical.mode=mode;
  if(options.plannerMode&&'planningMode' in g.tactical)g.tactical.planningMode=options.plannerMode;
+ if(options.waveMode&&'waveMode' in g.tactical)g.tactical.waveMode=options.waveMode;
  const recorder=performanceModule?new performanceModule.PerformanceRecorder(false):null;
  performanceModule?.setProfiler(recorder);
  // Controller internals intentionally differ between original/new; hash the
