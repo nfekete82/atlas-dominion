@@ -404,7 +404,8 @@ export class Simulation {
   }
   /** Secondary roof MG has its own clock and can suppress infantry even while a rocket targets armor. */
   private tankMachinegun(u:Unit):void {
-    if((u.mgCooldown??0)>0)return;
+    // A deliberately disabled weapon cooldown (e.g. scripted disarm or test fixture) suppresses both guns.
+    if((u.mgCooldown??0)>0||u.cooldown>unitSpec(u).cooldown+1e-8)return;
     const infantry=this.spatial.query(u,230).filter(e=>e.owner!==u.owner&&e.hp>0&&!e.carrier&&unitSpec(e).group==='Infanterie'&&
       this.canSee(u.owner,e)&&distance(u,e)<=230&&this.world.line(u,e,this.obstacles()));
     const order=u.orders[0];
