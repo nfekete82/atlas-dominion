@@ -2,7 +2,7 @@ import {roleBadgeMarkup} from './role-visuals.js';
 import {getVeterancyLevel,sanitizeXp,VETERANCY_NAMES,VETERANCY_THRESHOLDS,veterancyBonuses} from './veterancy.js';
 import { profiler, PerformanceRecorder, setProfiler, mountPerformancePanel } from './performance.js';
 import { QwenGeneral } from './qwen-general.js';
-import { RULES, mapLayout, CAMPAIGN_SIZES, type MapVersion, type CampaignSize } from './config.js';
+import { RULES, mapLayout, campaignLayout, CAMPAIGN_SIZES, type MapVersion, type CampaignSize } from './config.js';
 import { Simulation, type Base } from './simulation.js';
 import { Renderer } from './renderer.js';
 import { Input } from './input.js';
@@ -24,7 +24,7 @@ if(query.has('debug')&&query.has('perf')){const recorder=new PerformanceRecorder
 let selectedMapVersion:MapVersion=query.has('debug')?2:4;
 const requestedSize=query.get('map');
 if(requestedSize&&Object.hasOwn(CAMPAIGN_SIZES,requestedSize))selectedMapVersion=CAMPAIGN_SIZES[requestedSize as CampaignSize];
-el<HTMLSelectElement>('map-size').value=selectedMapVersion===3?'small':selectedMapVersion===5?'large':'medium';
+el<HTMLSelectElement>('map-size').value=selectedMapVersion===3?'small':selectedMapVersion===5?'large':selectedMapVersion===6?'extraLarge':'medium';
 const createCampaign=()=>query.has('debug')&&query.has('legacy')?new Simulation():Simulation.campaign(query.has('debug')&&query.has('seed')?Number(query.get('seed'))>>>0:undefined,selectedMapVersion);
 let game=createCampaign();
 const qwenGeneral=new QwenGeneral();
@@ -87,7 +87,7 @@ function refreshMeasured():void{
  const base=contextBase(),production=productionBase(),first=selected[0],spec=first?unitSpec(first):undefined;
  el('selection-panel').hidden=!selected.length&&!base;
  setText('production-title',production?`${buildingSpec(production).name} · PRODUKTION`:'PRODUKTION');
- setText('campaign-goal',`Erkunde Aridis. Sichere alle ${mapLayout(game.world.mapVersion).starts[1].length} roten Startgebiete und erobere das feindliche Hauptquartier, um zu gewinnen. Zerstöre es zuerst und sichere anschließend seinen Kontrollpunkt.`);
+ setText('campaign-goal',`Erkunde Aridis. Sichere alle ${campaignLayout(game.world.mapVersion,game.seed).starts[1].length} roten Startgebiete und erobere das feindliche Hauptquartier, um zu gewinnen. Zerstöre es zuerst und sichere anschließend seinen Kontrollpunkt.`);
  setText('credits',Math.floor(game.credits[0]).toLocaleString('de-DE'));setText('income',`+${game.income(0)}`);setHtml('capacity',`${game.count(0)} <em>/ ${RULES.capacity}</em>`);
  setText('territories',`${game.territories.filter(t=>t.owner===0).length} / ${game.territories.length}`);setText('clock',timestamp());setText('exploration',`${Math.round(game.explored[0].reduce((n,v)=>n+v,0)/game.explored[0].length*100)} % ERKUNDET`);
  const title=selected.length?(selected.length===1?spec!.name:`${selected.length} Einheiten`):base?(base.kind==='headquarters'?'Hauptquartier':buildingSpec(base).name):'';
