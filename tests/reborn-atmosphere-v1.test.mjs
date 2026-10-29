@@ -33,7 +33,7 @@ test('Atmosphere 1.0: dust whirls and flags are deterministic, reduced-motion sa
  const fx=new DesertAtmosphere();
  const view={left:0,right:900,top:0,bottom:900};
  const paint=[];const c={
-  save(){},restore(){},translate(){},rotate(){},beginPath(){},ellipse(){paint.push(1);},
+  save(){},restore(){},translate(){},rotate(){},beginPath(){},ellipse(){paint.push(1);},arc(){paint.push(1);},
   fill(){},stroke(){},moveTo(){},bezierCurveTo(){},quadraticCurveTo(){},
   lineTo(){},closePath(){},createLinearGradient(){return {addColorStop(){}};}
  };
