@@ -402,3 +402,15 @@ body.tactical-paused #app{filter:blur(7px);pointer-events:none;user-select:none}
 #campaign-history-dialog th{color:#f6d59c;background:#403723}
 #campaign-history-dialog tr:hover td{background:#c8a05a16}
 @media(max-width:650px){#campaign-history-dialog .history-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+#campaign-history-dialog .history-faction-controls{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+#campaign-history-dialog .history-faction-controls button{padding:10px 13px;background:#272b28;color:#d0c5b4;border:1px solid #c9a86a4a;cursor:pointer;font:600 12px var(--display)}
+#campaign-history-dialog .history-faction-controls button[aria-pressed="true"]{color:#ffe3ae;background:#80613b77;border-color:#e6bb76}
+#campaign-history-dialog .history-section-title{font:700 15px var(--display);letter-spacing:.07em;margin:14px 0 10px;color:#e6c990}
+#campaign-history-dialog .history-records{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:9px;margin:0 0 20px}
+#campaign-history-dialog .history-records>div{display:flex;flex-direction:column;gap:6px;padding:11px 12px;background:#2b302c66;border:1px solid #d7b77f32;min-width:0}
+#campaign-history-dialog .history-records span{font:600 11px var(--display);color:#d6c5a6}
+#campaign-history-dialog .history-records strong{font:700 19px var(--display);color:#ffdf9e;overflow-wrap:anywhere}
+#campaign-history-dialog .history-records small{font:11px var(--display);line-height:1.4;color:#c4bdad}
+#campaign-history-dialog .history-legend{color:#cfc4ae;font-size:11px;line-height:1.5;margin:12px 0}
+#campaign-history-dialog table{min-width:1250px}
