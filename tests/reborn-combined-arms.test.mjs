@@ -108,7 +108,7 @@ test('combined strategic air: a rich army with a known military target eventuall
 
 
 test('transport: defensive machine-gun bursts answer a real attack, without autonomous hunting',()=>{
- const g=peaceful(),h=g.spawn(0,{x:1900,y:2100},'scout'),enemy=g.spawn(1,{x:2060,y:2100});g.updateVision();g.stop([enemy.id],true);enemy.cooldown=100;advance(g,1);assert.equal(enemy.hp,100);
+ const g=peaceful(),h=g.spawn(0,{x:1900,y:2100},'scout'),enemy=g.spawn(1,{x:2060,y:2100});g.updateVision();g.stop([enemy.id],false);enemy.cooldown=100;advance(g,1);assert.equal(enemy.hp,100);
  enemy.cooldown=0;advance(g,.3);assert.ok(h.hp<UNITS.scout.hp);assert.equal(enemy.hp,100-UNITS.scout.damage);const shots=g.shots.filter(s=>s.source===h.id);assert.equal(shots.length,3);assert.ok(shots.every(s=>s.weapon==='rifle'));
 });
 
