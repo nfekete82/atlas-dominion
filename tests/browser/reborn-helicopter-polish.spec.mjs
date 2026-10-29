@@ -27,7 +27,7 @@ for(const dpr of [1,2])test('raised, crisp helicopter renders independent soft s
    const canvas=shadow.image,c=canvas.getContext('2d'),center=c.getImageData(canvas.width/2,canvas.height/2,1,1).data[3],
      corner=c.getImageData(0,0,1,1).data[3],edge=c.getImageData(canvas.width-1,canvas.height/2,1,1).data[3];
    const inspect=renderer.screen(unitSelectionPoint(heli));
-   return {dpr,lift:unitVisualLift(heli),scale:unitArtScale('scout'),soldier:unitArtScale('infantry'),
+   return {lift:unitVisualLift(heli),scale:unitArtScale('scout'),soldier:unitArtScale('infantry'),
     shadow:{center,corner,edge,width:shadow.width,height:shadow.height,x:shadow.offsetX,y:shadow.offsetY},
     hasSeparatedShadow:!!shadow&&!asset.shadow,groundFirst:calls.indexOf(groundCall)<calls.indexOf(bodyCall),
     groundY:groundCall?.[2]+groundCall?.[4]/2,bodyY:bodyCall?.[6],
