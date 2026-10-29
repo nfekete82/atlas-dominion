@@ -51,11 +51,11 @@ test('weather: save/load before, during and after storm restores phase, schedule
 });
 test('weather: AI planning ignores hidden live enemies and preserves authoritative retreat orders during storms',()=>{
  const a=new Simulation(2026,4),b=new Simulation(2026,4);for(const g of [a,b]){storm(g);g.credits[1]=1000;g.aiClock=3;}
- const hidden=b.units.find(u=>u.owner===0);hidden.kind='tank';hidden.hp=620;hidden.x=100;hidden.y=2800;b.updateVision();assert.equal(b.canSee(1,hidden),false);a.step();b.step();assert.deepEqual(a.tactical.state,b.tactical.state);
+ const hidden=b.units.find(u=>u.owner===0);hidden.kind='tank';hidden.hp=UNITS.tank.hp;hidden.x=100;hidden.y=2800;b.updateVision();assert.equal(b.canSee(1,hidden),false);a.step();b.step();assert.deepEqual(a.tactical.state,b.tactical.state);
  const u=b.units.find(u=>u.owner===1);b.command([u.id],{kind:'move',x:u.x-100,y:u.y});const before={...u};b.step();assert.equal(u.orders[0]?.kind,'move');assert.ok(distance(u,before)>0);
 });
 test('weather: combat and in-flight rocket replay retain exact HP, XP and ranks through a storm save/load',()=>{
- const g=fixture();storm(g);const u=g.spawn(0,{x:1900,y:2100},'artillery'),t=g.spawn(1,{x:2300,y:2100},'tank');u.xp=500;u.hold=t.hold=true;t.cooldown=1e8;g.command([u.id],{kind:'attack',x:t.x,y:t.y,target:t.id});g.updateVision();g.step();assert.ok(g.missiles.length);
+ const g=fixture();storm(g);const u=g.spawn(0,{x:1900,y:2100},'artillery'),t=g.spawn(1,{x:2050,y:2100},'tank');u.xp=500;u.hold=t.hold=true;t.cooldown=1e8;g.command([u.id],{kind:'attack',x:t.x,y:t.y,target:t.id});g.updateVision();g.step();assert.ok(g.missiles.length);
  const loaded=Simulation.load(g.save());loaded.aiClock=-1e8;loaded.world.blocked.fill(0);loaded.world.opaque.fill(0);
  for(let i=0;i<120;i++){g.step();loaded.step();}
  assert.deepEqual(loaded.units.map(u=>({id:u.id,hp:u.hp,xp:u.xp})),g.units.map(u=>({id:u.id,hp:u.hp,xp:u.xp})));assert.deepEqual(loaded.missiles,g.missiles);assert.deepEqual(loaded.weather,g.weather);assert.ok(g.units.every(u=>Number.isFinite(u.hp)&&u.hp>0));
