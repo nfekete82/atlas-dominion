@@ -8,6 +8,7 @@ import { Renderer } from './renderer.js';
 import { Input } from './input.js';
 import { saveCampaign, loadCampaign,readAiLearningPreference,storeAiLearningPreference,loadAiLearningProfile,saveAiLearningProfile } from './storage.js';
 import {finishExperience} from './battle-learning.js';
+import {newCampaignReport,observeCampaignReport,finishCampaignReport,readCampaignReports,writeCampaignReport,summarizeCampaignArchive,type CampaignReport} from './campaign-history.js';
 import { Soundscape } from './audio.js';
 import { BUILDINGS, UNITS, unitKinds, buildingSpec, unitSpec, type UnitKind, type BuildingKind } from './catalog.js';
 import { icon } from './icons.js';
@@ -42,6 +43,63 @@ if(query.has('debug')&&query.has('perfTest'))game.paused=true;
 const renderer=new Renderer(el<HTMLCanvasElement>('world'),el<HTMLCanvasElement>('minimap'),game),input=new Input(renderer),audio=new Soundscape();
 let accumulator=0,last=performance.now(),uiClock=0,resultShown=false,busy=false,ready=false,hasEnteredCampaign=query.has('debug'),selectionSound='',catalogTab='units';
 const messages:{time:string;message:string}[]=[];
+let campaignReport:CampaignReport|null=hasEnteredCampaign&&!query.has('debug')?newCampaignReport(game):null;
+let historyPersistAt=-10;
+/** Game history is presentation-only and cannot affect AI, map generation or combat. */
+function syncCampaignHistory(force=false):void{
+ if(!campaignReport||query.has('debug'))return;
+ observeCampaignReport(campaignReport,game);
+ if(force||game.time-historyPersistAt>=8||campaignReport.result!=='running'){
+  writeCampaignReport(campaignReport);historyPersistAt=game.time;
+ }
+}
+function retireCampaignHistory():void{
+ if(!campaignReport)return;
+ syncCampaignHistory(true);
+ if(campaignReport.result==='running'){
+  finishCampaignReport(campaignReport,'abandoned');
+  writeCampaignReport(campaignReport);
+ }
+}
+function showCampaignHistory():void{
+ syncCampaignHistory(true);
+ const reports=readCampaignReports(),summary=summarizeCampaignArchive(reports);
+ const summaryNode=el('history-summary'),listNode=el('history-list');
+ summaryNode.replaceChildren();listNode.replaceChildren();
+ const stats:[string,number][]= [
+  ['Kampagnen abgeschlossen',summary.matches],['Kampagnen gewonnen',summary.victories],
+  ['Bastionsduelle gewonnen',summary.enemyCaptures],['Bastionen verloren',summary.lostBastions]
+ ];
+ for(const [label,value] of stats){
+  const item=document.createElement('div'),number=document.createElement('strong'),name=document.createElement('span');
+  number.textContent=value.toLocaleString('de-DE');name.textContent=label;item.append(number,name);summaryNode.append(item);
+ }
+ if(!reports.length){
+  const empty=document.createElement('p');
+  empty.textContent='Noch keine Berichte vorhanden. Starte eine Kampagne – ab jetzt werden deine Ergebnisse lokal erfasst.';
+  listNode.append(empty);
+ }else{
+  const table=document.createElement('table'),thead=document.createElement('thead'),tbody=document.createElement('tbody'),head=document.createElement('tr');
+  for(const h of ['Datum','Karte','Ergebnis','Spielzeit','Bastionsduelle','Neutral','Verloren']){
+   const th=document.createElement('th');th.scope='col';th.textContent=h;head.append(th);
+  }
+  thead.append(head);
+  for(const report of reports){
+   const row=document.createElement('tr');
+   const values=[
+    new Date(report.startedAt).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'}),
+    `${report.bastions} Bastionen · Karte #${report.seed}`,
+    ({victory:'Sieg',defeat:'Niederlage',running:'Läuft',abandoned:'Abgebrochen'} as const)[report.result],
+    `${Math.floor(report.seconds/60)}:${Math.floor(report.seconds%60).toString().padStart(2,'0')}`,
+    String(report.enemyBastionsTaken),String(report.neutralBastionsTaken),String(report.ownBastionsLost)
+   ];
+   for(const value of values){const td=document.createElement('td');td.textContent=value;row.append(td);}
+   tbody.append(row);
+  }
+  table.append(thead,tbody);listNode.append(table);
+ }
+ modal('campaign-history-dialog');
+}
 try{const s=JSON.parse(localStorage.getItem('atlas-reborn-sound')??'null');if(s){audio.setEnabled(s.enabled!==false);audio.setVolume(Number.isFinite(s.volume)?s.volume:.6);audio.ambience=s.ambience!==false;audio.radio.setEnabled(s.speech!==false);audio.radio.setVolume(Number.isFinite(s.speechVolume)?s.speechVolume:.85);}}catch{/* Optional local preferences. */}
 const timestamp=()=>`${Math.floor(game.time/60).toString().padStart(2,'0')}:${Math.floor(game.time%60).toString().padStart(2,'0')}`;
 function notify(message:string):void{
@@ -88,12 +146,15 @@ function prepareTerritories():void{el('catalog-territories').replaceChildren();
 }
 function reset():void{
  if(!query.has('debug')&&readAiLearningPreference())saveAiLearningProfile(game.tactical.state.experience);
- hasEnteredCampaign=true;closeDialogs();game=createCampaign();qwenGeneral.resetCampaign();audio.bindGame(game);renderer.game=game;renderer.invalidate();renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;renderer.placement=null;renderer.commandMode=null;renderer.canvas.classList.remove('attack','building');renderer.home();prepareTerritories();accumulator=0;resultShown=false;messages.length=0;setPause(false);tab('units');refresh();notify('Neue Kampagne. Wähle deinen Pionier und errichte zuerst eine Kaserne.');}
+ retireCampaignHistory();
+ hasEnteredCampaign=true;closeDialogs();game=createCampaign();
+ campaignReport=query.has('debug')?null:newCampaignReport(game);historyPersistAt=-10;syncCampaignHistory(true);qwenGeneral.resetCampaign();audio.bindGame(game);renderer.game=game;renderer.invalidate();renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;renderer.placement=null;renderer.commandMode=null;renderer.canvas.classList.remove('attack','building');renderer.home();prepareTerritories();accumulator=0;resultShown=false;messages.length=0;setPause(false);tab('units');refresh();notify('Neue Kampagne. Wähle deinen Pionier und errichte zuerst eine Kaserne.');}
 function refresh():void{
  if(!profiler)return refreshMeasured();const at=performance.now();try{refreshMeasured();}finally{profiler.record('hud',performance.now()-at);}
 }
 function refreshMeasured():void{
  if(!ready)return;
+ if(campaignReport)syncCampaignHistory();
  const selected=game.units.filter(u=>renderer.selected.has(u.id)&&u.owner===0&&!u.carrier);renderer.selected=new Set(selected.map(u=>u.id));
  if(!game.bases.some(b=>b.id===renderer.selectedBase&&b.hp>0&&b.owner===0))renderer.selectedBase=null;
  const base=contextBase(),production=productionBase(),first=selected[0],spec=first?unitSpec(first):undefined;
@@ -167,12 +228,15 @@ function refreshMeasured():void{
    if(!query.has('debug')&&readAiLearningPreference())saveAiLearningProfile(game.tactical.state.experience);
    resultShown=true;closeDialogs();setPause(true);setText('result-title',game.status==='victory'?'Aridis gesichert.':'Die Legion ist gefallen.');setText('result-copy',game.status==='victory'?`Das feindliche Hauptquartier und seine ${mapLayout(game.world.mapVersion).starts[1].length} Startgebiete sind unter deiner Kontrolle.`:'Deine Produktionsstätten und Truppen wurden vernichtet.');el<HTMLDialogElement>('result-dialog').showModal();}
 }
-async function save():Promise<void>{if(busy)return;busy=true;try{await saveCampaign(game);if(!query.has('debug')&&readAiLearningPreference())saveAiLearningProfile(game.tactical.state.experience);notify('Kampagne lokal gespeichert.');}catch(e){notify((e as Error).message);}finally{busy=false;}}
-async function load():Promise<void>{if(busy)return;busy=true;try{const loaded=await loadCampaign();hasEnteredCampaign=true;closeDialogs();game=loaded;qwenGeneral.resetCampaign();audio.bindGame(game);renderer.game=game;renderer.invalidate();renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;renderer.placement=null;renderer.commandMode=null;renderer.canvas.classList.remove('attack','building');renderer.home();prepareTerritories();resultShown=false;accumulator=0;setPause(false);refresh();notify('Kampagne geladen.');}catch(e){notify((e as Error).message);}finally{busy=false;}}
+async function save():Promise<void>{if(busy)return;busy=true;try{syncCampaignHistory(true);await saveCampaign(game);if(!query.has('debug')&&readAiLearningPreference())saveAiLearningProfile(game.tactical.state.experience);notify('Kampagne lokal gespeichert.');}catch(e){notify((e as Error).message);}finally{busy=false;}}
+async function load():Promise<void>{if(busy)return;busy=true;try{const loaded=await loadCampaign();retireCampaignHistory();hasEnteredCampaign=true;closeDialogs();game=loaded;
+  campaignReport=query.has('debug')?null:readCampaignReports().find(r=>r.seed===(game.seed>>>0)&&r.mapVersion===game.world.mapVersion&&r.result==='running'&&r.seconds<=game.time+.01)??newCampaignReport(game);
+  historyPersistAt=-10;syncCampaignHistory(true);qwenGeneral.resetCampaign();audio.bindGame(game);renderer.game=game;renderer.invalidate();renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;renderer.placement=null;renderer.commandMode=null;renderer.canvas.classList.remove('attack','building');renderer.home();prepareTerritories();resultShown=false;accumulator=0;setPause(false);refresh();notify('Kampagne geladen.');}catch(e){notify((e as Error).message);}finally{busy=false;}}
 el('resume-tactical').onclick=()=>setPause(false);
 input.onPause=()=>setPause(!game.paused);input.onMenu=openMenu;input.onHelp=()=>modal('help-dialog');input.onSave=()=>void save();input.onLoad=()=>void load();
 input.onSelection=()=>{const next=[...renderer.selected].join(',')+':'+renderer.selectedBase;if(next!==selectionSound){selectionSound=next;audio.select();}refresh();};input.onOrder=order=>audio.acknowledge(order,game);
-el('save').onclick=()=>void save();el('load').onclick=()=>void load();el('main-load').onclick=()=>void load();el('pause').onclick=input.onPause;el('menu').onclick=openMenu;el('help').onclick=input.onHelp;
+el('main-history').onclick=showCampaignHistory;el('history-close').onclick=()=>el<HTMLDialogElement>('campaign-history-dialog').close();
+ el('save').onclick=()=>void save();el('load').onclick=()=>void load();el('main-load').onclick=()=>void load();el('pause').onclick=input.onPause;el('menu').onclick=openMenu;el('help').onclick=input.onHelp;
 el('to-main').onclick=()=>{closeDialogs();modal('main-dialog');};el('main-continue').onclick=()=>{if(!hasEnteredCampaign)return;closeDialogs();setPause(false);};el<HTMLDialogElement>('main-dialog').addEventListener('cancel',event=>event.preventDefault());el('new').onclick=()=>modal('new-dialog');el<HTMLDialogElement>('new-dialog').addEventListener('close',()=>{
  if(el<HTMLDialogElement>('new-dialog').returnValue==='new'){
   const size=el<HTMLSelectElement>('map-size').value as CampaignSize;
