@@ -2,12 +2,12 @@ import type {BuildingKind,UnitKind} from './catalog.js';
 
 /** Visual-only world scale: simulation collision, pathfinding and balancing remain unchanged. */
 export const unitArtScale=(kind:UnitKind):number=>
-  kind==='heavy'?.80:
-  ['infantry','medic','engineer'].includes(kind)?.79:
+  kind==='heavy'?.74:
+  ['infantry','medic','engineer'].includes(kind)?.73:
   kind==='rover'?.96:
   kind==='tank'?.98:
   kind==='artillery'?.93:
-  kind==='scout'?1.34:
+  kind==='scout'?1.52:
   kind==='bomber'?1.40:1;
 
 /** Give industrial buildings the visual weight of a real base beside the infantry. */

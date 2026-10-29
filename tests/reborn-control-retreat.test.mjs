@@ -16,7 +16,7 @@ for(const kind of ['scout','bomber','heavy']){
  test(`control: ${kind} obeys immediate retreat while an enemy is in attack range`,()=>{
   const g=quiet(),pilot=g.spawn(0,{x:1900,y:2100},kind);
   const enemy=g.spawn(1,{x:1900+Math.min(175,UNITS[kind].range-25),y:2100},'heavy');
-  g.stop([enemy.id],true);g.updateVision();
+  g.stop([enemy.id],false);g.updateVision();
   advance(g,.5);
   assert.ok(enemy.hp<UNITS.heavy.hp,`${kind} should have fired before retreat`);
   const before=pilot.x,enemyHp=enemy.hp;

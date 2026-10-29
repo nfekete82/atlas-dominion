@@ -182,7 +182,7 @@ export class Renderer {
     const c=this.context,selected=this.selected.has(u.id),blue=u.owner===0,spec=unitSpec(u);
     const artWidth=spec.width*(spec.flying?unitArtScale(u.kind):1);
     const p={x:u.previousX+(u.x-u.previousX)*this.interpolation,y:u.previousY+(u.y-u.previousY)*this.interpolation};
-    if(selected){c.strokeStyle='#88cffa';c.lineWidth=1/this.camera.zoom;c.beginPath();c.ellipse(p.x,p.y-unitVisualLift(u),spec.flying?artWidth*.2:15,spec.flying?9:6,0,0,Math.PI*2);c.stroke();}
+    if(selected){c.strokeStyle='#88cffa';c.lineWidth=1/this.camera.zoom;c.beginPath();c.ellipse(p.x,u.kind==='scout'?p.y:p.y-unitVisualLift(u),spec.flying?artWidth*.2:15,spec.flying?9:6,0,0,Math.PI*2);c.stroke();}
     this.units.draw(c,u,p);
     if(u.kind==='scout'&&u.transport){c.font='9px monospace';c.textAlign='left';c.fillStyle=u.owner===0?'#b9e3f2':'#f0b29f';const label=u.transport.phase==='cruise'?`${u.transport.cargo.length}/10`:({approach:'LANDEANFLUG',landing:'LANDET',loading:'EINSTEIGEN',unloading:'AUSSTEIGEN',takeoff:'STARTET'} as Record<string,string>)[u.transport.phase];c.fillText(label,p.x+artWidth*.4,p.y-20-unitVisualLift(u));}
     const rank=getVeterancyLevel(u.xp);
