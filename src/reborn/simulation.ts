@@ -446,6 +446,20 @@ export class Simulation {
       return spec.flying||('orders' in e&&unitSpec(e).flying)||
         (d<=spec.range?this.world.line(u,e):this.world.sightLine(u,e));
     };
+    // Position halten is defensive fire ONLY. Normal auto-acquisition must
+    // never choose nearby enemy units or buildings: fire at the actual, still
+    // live attacker only after taking damage, while it remains in weapon range
+    // and line of sight. Do not chase or inherit an old combat lock.
+    if(u.hold){
+      u.combatTarget=null;
+      if(u.lastAttacker===null||u.defendUntil<=this.time)return undefined;
+      const attacker=entities.find(e=>e.id===u.lastAttacker);
+      if(attacker&&eligible(attacker)){
+        u.combatTarget=attacker.id;
+        return attacker;
+      }
+      return undefined;
+    }
     // Keep explicit attack targets and current combat locks stable.
     if(order?.kind==='attack'&&order.target!==undefined){
       const manual=entities.find(e=>e.id===order.target&&e.owner!==u.owner&&e.hp>0&&!('orders' in e&&e.carrier)&&canAttack(u,e)&&visible(e));

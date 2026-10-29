@@ -20,7 +20,10 @@ for(const kind of ['infantry','heavy','medic','engineer'])test(`polish: ${kind} 
 });
 
 test('polish: pending burst survives save without replay, and a new wall interrupts its remaining damage',()=>{
- const g=game(),u=g.spawn(0,{x:1900,y:2100}),e=g.spawn(1,{x:2050,y:2100},'tank');e.cooldown=100;g.stop([u.id,e.id],true);g.step();
+ const g=game(),u=g.spawn(0,{x:1900,y:2100}),e=g.spawn(1,{x:2050,y:2100},'tank');e.cooldown=100;g.stop([u.id,e.id],true);
+ // Hold is defensive-only: explicitly order the attacking unit before testing
+ // pending burst serialization. The passive tank remains on hold.
+ g.command([u.id],{x:e.x,y:e.y,kind:'attack',target:e.id});g.step();
  const loaded=Simulation.load(g.save());loaded.aiClock=-1e8;assert.equal(loaded.shots.length,0);assert.equal(loaded.workEffects.length,0);
  advance(g,.25);advance(loaded,.25);near(g.units.find(t=>t.id===e.id).hp,loaded.units.find(t=>t.id===e.id).hp);assert.equal(loaded.shots.length,2);
  u.cooldown=0;g.step();const hp=e.hp;g.world.blocked[g.world.index({x:1980,y:2100})]=1;g.world.opaque[g.world.index({x:1980,y:2100})]=1;advance(g,.3);near(e.hp,hp);assert.equal(u.burst,undefined);
