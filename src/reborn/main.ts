@@ -124,8 +124,8 @@ function renderCampaignHistory():void{
 function showCampaignHistory():void{renderCampaignHistory();modal('campaign-history-dialog');}
 try{const s=JSON.parse(localStorage.getItem('atlas-reborn-sound')??'null');if(s){audio.setEnabled(s.enabled!==false);audio.setVolume(Number.isFinite(s.volume)?s.volume:.6);audio.ambience=s.ambience!==false;audio.radio.setEnabled(s.speech!==false);audio.radio.setVolume(Number.isFinite(s.speechVolume)?s.speechVolume:.85);audio.radio.setStyle(s.radioStyle==='original'?'original':'military');}}catch{/* Optional local preferences. */}
 const timestamp=()=>`${Math.floor(game.time/60).toString().padStart(2,'0')}:${Math.floor(game.time%60).toString().padStart(2,'0')}`;
-function notify(message:string):void{
- const item=document.createElement('div');item.className='notice';item.textContent=message;el('notices').append(item);while(el('notices').children.length>3)el('notices').firstElementChild?.remove();setTimeout(()=>item.remove(),6000);
+function notify(message:string,urgent=false):void{
+ const item=document.createElement('div');item.className=urgent?'notice notice--attack':'notice';item.textContent=message;el('notices').append(item);while(el('notices').children.length>3)el('notices').firstElementChild?.remove();setTimeout(()=>item.remove(),6000);
  messages.unshift({time:timestamp(),message});if(messages.length>60)messages.pop();el('unread').hidden=false;
 }
 input.notify=notify;
