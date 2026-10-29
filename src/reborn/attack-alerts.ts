@@ -4,6 +4,12 @@ export const ATTACK_BLINK_SECONDS=5.5;
 export const ATTACK_RADIO_COOLDOWN=14;
 export const ATTACK_LOCATION_COOLDOWN=3.5;
 export interface AttackMarker extends Point {at:number;id:number}
+export function attackBlinkAlpha(now:number,at:number,reducedMotion=false):number {
+ const age=now-at;
+ if(age<0||age>=ATTACK_BLINK_SECONDS)return 0;
+ const fade=Math.min(1,(ATTACK_BLINK_SECONDS-age)/1.2);
+ return fade*(reducedMotion?.70:.22+.78*(.5+.5*Math.sin(age*14)));
+}
 
 /** Ephemeral player-only presentation events, never serialized with game saves. */
 export class AttackAlerts {
