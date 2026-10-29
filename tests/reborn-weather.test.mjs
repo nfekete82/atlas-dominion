@@ -12,8 +12,8 @@ test('weather: deterministic seeded warning/storm/recovery/calm sequence, bounde
  const a=new Weather(72),b=new Weather(72),c=new Weather(73);assert.notEqual(a.endsAt,c.endsAt);assert.ok(a.endsAt>=180&&a.endsAt<=260);
  for(let cycle=0;cycle<10;cycle++){
   const warning=a.endsAt;assert.deepEqual(a.update(warning),['WARNING']);b.update(warning);assert.equal(a.endsAt-warning,12);
-  const start=a.endsAt;a.update(start);b.update(start);assert.equal(a.phase,'SANDSTORM');assert.ok(a.remaining>=40&&a.remaining<=70);near(a.intensity,.08);
-  a.update(start+6);assert.equal(a.intensity,1);b.update(start+6);assert.deepEqual(a,b);
+  const start=a.endsAt;a.update(start);b.update(start);assert.equal(a.phase,'SANDSTORM');assert.ok(a.remaining>=8&&a.remaining<=10);near(a.intensity,.08);
+  a.update(start+2);assert.equal(a.intensity,1);b.update(start+2);assert.deepEqual(a,b);
   const end=a.endsAt;a.update(end);b.update(end);assert.equal(a.phase,'RECOVERY');assert.equal(a.intensity,1);assert.equal(a.storm,false);
   a.update(a.endsAt);b.update(b.endsAt);assert.equal(a.phase,'CLEAR');assert.equal(a.intensity,0);assert.ok(a.remaining>=150&&a.remaining<=240);assert.deepEqual(a,b);
  }
@@ -23,9 +23,9 @@ test('weather: real fixed ticks emit each radio warning once, pause freezes weat
  const g=fixture();g.time=g.weather.endsAt-.05;g.step();assert.deepEqual(g.notices,['ACHTUNG: Sandsturm nähert sich!']);g.notices=[];const end=g.weather.endsAt;g.paused=true;g.step();assert.equal(g.weather.endsAt,end);assert.equal(g.weather.phase,'WARNING');g.paused=false;
  for(let i=0;i<240;i++)g.step();assert.equal(g.weather.phase,'SANDSTORM');assert.deepEqual(g.notices,['SANDSTURM – Sichtweite reduziert!']);g.notices=[];g.time=g.weather.endsAt-.05;g.step();assert.equal(g.weather.phase,'RECOVERY');assert.deepEqual(g.notices,['Sichtbedingungen normalisiert.']);
 });
-for(const owner of [0,1])test(`weather: faction ${owner} vision shrinks exactly 35%, invalidates stationary masks and direct target fallback; fog never reveals hidden enemy`,()=>{
+for(const owner of [0,1])test(`weather: faction ${owner} vision shrinks by 77%, invalidates stationary masks and direct target fallback; fog never reveals hidden enemy`,()=>{
  const g=fixture(),u=g.spawn(owner,{x:1900,y:1900}),enemy=g.spawn(1-owner,{x:2150,y:1900});enemy.cooldown=1e8;u.hold=true;g.updateVision();g.updateVision();g.updateVision();assert.equal(g.canSee(owner,enemy),true);near(g.sight(u),310);
- const start=stormTime(g.seed);g.time=start-.05;g.weather.update(g.time);g.step();near(g.sight(u),310*.65);assert.equal(g.canSee(owner,enemy),false);assert.equal(g.acquire(u),undefined);
+ const start=stormTime(g.seed);g.time=start-.05;g.weather.update(g.time);g.step();near(g.sight(u),310*.23);assert.equal(g.canSee(owner,enemy),false);assert.equal(g.acquire(u),undefined);
  assert.equal(g.visible[owner][g.world.index(enemy)],0);assert.equal(g.hasExplored(owner,enemy),true,'explored terrain is remembered, not currently visible');
  const end=g.weather.endsAt;g.time=end-.05;g.step();near(g.sight(u),310);assert.equal(g.canSee(owner,enemy),true);
 });
@@ -35,7 +35,7 @@ test('weather: an enemy at weapon range but outside reduced sight cannot be atta
 test('weather: aircraft retain sight and fly at exactly 80% speed, retreats still travel and ground movement is unchanged',()=>{
  for(const kind of ['infantry','tank','scout','bomber']){
   const a=fixture(),b=fixture();const us=[a,b].map(g=>{const u=g.spawn(0,{x:1900,y:1900},kind);g.command([u.id],{kind:'move',x:2300,y:1900});u.hullAngle=0;u.driveSpeed=UNITS[kind].speed;return u;});storm(b);a.step();b.step();
-  near(distance(us[1],{x:1900,y:1900})/distance(us[0],{x:1900,y:1900}),UNITS[kind].flying?.8:1);near(b.sight(us[1]),UNITS[kind].sight*(UNITS[kind].flying?1:.65));
+  near(distance(us[1],{x:1900,y:1900})/distance(us[0],{x:1900,y:1900}),UNITS[kind].flying?.8:1);near(b.sight(us[1]),UNITS[kind].sight*(UNITS[kind].flying?1:.23));
   if(UNITS[kind].flying){b.command([us[1].id],{kind:'move',x:1500,y:1900});const before=us[1].x;for(let i=0;i<40;i++)b.step();assert.ok(us[1].x<before-10);assert.ok(us[1].hp>0);}
  }
 });
