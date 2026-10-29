@@ -30,6 +30,7 @@ export class Renderer {
   readonly atmosphere=new DesertAtmosphere();
   private groundDetails:GroundDetail[]=[];
   private readonly groundSprites={crater:new Image(),palm:new Image(),rocks:new Image()};
+  private exhaustAt=new Map<number,number>();
   private groundTextures!:TerrainVariantAtlases;
   private animationGame:Simulation|null=null;private seenImpacts=new WeakSet<object>();private effectTime=0;private workEmitted=new Map<string,number>();private rocketTrails=new Map<number,number>();
   readonly context:CanvasRenderingContext2D;
@@ -292,12 +293,31 @@ export class Renderer {
   private renderMeasured(dt:number,interpolation=1):void {
     if(!this.terrain?.complete||!this.infantry)return;
     const c=this.context,g=this.game,s=this.game.world.size;this.updateFog();
-    if(this.animationGame!==g){this.units.clear();this.seenImpacts=new WeakSet();this.battlefield.reset(g);this.palms.reset(this.groundDetails,g);this.animationGame=g;this.effectTime=g.time;this.workEmitted.clear();this.rocketTrails.clear();}
+    if(this.animationGame!==g){this.units.clear();this.seenImpacts=new WeakSet();this.battlefield.reset(g);this.palms.reset(this.groundDetails,g);this.animationGame=g;this.effectTime=g.time;this.workEmitted.clear();this.rocketTrails.clear();this.exhaustAt.clear();}
     this.units.update(g.units,g.paused?0:dt,p=>g.canSee(0,p));
     this.battlefield.update(g,p=>g.canSee(0,p));
     this.palms.update(g);
     const effectDt=g.paused?0:Math.max(0,g.time-this.effectTime);this.effectTime=g.time;
     const particles=this.units.particles;particles.reducedMotion=this.reducedMotion;particles.update(effectDt);
+    // Small, budgeted vehicle exhaust. Never emit for hidden enemies or offscreen units.
+    if(!g.paused&&!this.reducedMotion&&particles.enabled){
+      let emitted=0;
+      for(const u of g.units){
+       if(emitted>=8)break;
+       if(u.hp<=0||u.carrier||unitSpec(u).group!=='Fahrzeuge'||unitSpec(u).flying||
+          !g.canSee(0,u)||!visibleInViewport(u,{left:this.camera.x-this.width/this.camera.zoom*.5-60,
+          right:this.camera.x+this.width/this.camera.zoom*.5+60,
+          top:this.camera.y-this.height/this.camera.zoom*.5-60,bottom:this.camera.y+this.height/this.camera.zoom*.5+60}))continue;
+       const last=this.exhaustAt.get(u.id)??-Infinity;
+       if(g.time-last<(u.moving?1.6:3.2))continue;
+       this.exhaustAt.set(u.id,g.time);emitted++;
+       const heading=u.angle??0;
+       const rear={x:u.x-Math.cos(heading)*unitSpec(u).width*.32,y:u.y-Math.sin(heading)*unitSpec(u).width*.32-12};
+       particles.emit(u.moving?'dust':'smoke',rear);
+      }
+      if(this.exhaustAt.size>100)for(const id of this.exhaustAt.keys())
+       if(!g.units.some(u=>u.id===id&&u.hp>0))this.exhaustAt.delete(id);
+    }
     for(const shot of g.shots)if(!this.seenImpacts.has(shot)){
       this.seenImpacts.add(shot);
       if(g.paused||g.time-(shot.at??g.time)>.15||(!g.canSee(0,shot.groundFrom??shot.from)&&!g.canSee(0,shot.groundTo??shot.to)))continue;
@@ -318,6 +338,7 @@ export class Renderer {
     const effectsView={left:this.camera.x-halfWidth-28,right:this.camera.x+halfWidth+28,
       top:this.camera.y-halfHeight-28,bottom:this.camera.y+halfHeight+28};
     const inView=(point:Point,padding=0)=>visibleInViewport(point,effectsView,padding);
+    this.atmosphere.drawHeat(c,g,effectsView,this.reducedMotion);
     this.atmosphere.drawSand(c,g,effectsView,this.reducedMotion);
     this.palms.draw(c,this.groundTextures.palm,g.time,effectsView,this.reducedMotion);
     this.battlefield.drawTracks(c,g,effectsView);
