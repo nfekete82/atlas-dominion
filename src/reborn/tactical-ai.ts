@@ -455,14 +455,13 @@ export class TacticalAI {
   * point is useful only if the real rocket range, LOS and ground route allow it. */
  private standoffSiege(members:Unit[],target:Point&{id:number},artillery:Unit[]):boolean{
   const g=this.g,s=this.state,origin=artillery[0],known=s.knownTurrets,obstacles=this.obstacles();
-  // Search all LEGALLY fireable standoff angles, not just the nearest
-  // gun's first three points. A reachable safer angle can be farther away.
-  const choices=this.doctrineMode==='intelligent'
-    ?known.filter(t=>distance(t,target)<900).sort((a,b)=>a.id-b.id)
-    :[target,...known.filter(t=>t.id!==target.id&&distance(t,target)<900)]
-      .sort((a,b)=>distance(origin,a)-distance(origin,b)||a.id-b.id);
+  // Preserve the stable 2.4 battery objective. The 2.5 improvement is
+  // which angle to fire from, NOT switching to a different tower on every
+  // three-second macro pulse. Only try another known gun if the first is
+  // truly unreachable from any eligible standoff angle.
+  const choices=[target,...known.filter(t=>t.id!==target.id&&distance(t,target)<900)]
+   .sort((a,b)=>distance(origin,a)-distance(origin,b)||a.id-b.id);
   let selected:typeof target|undefined,at:Point|undefined;
-  const shots:SiegeShot[]=[];
   for(const gun of choices){
    const heading=Math.atan2(origin.y-gun.y,origin.x-gun.x),candidates:Point[]=[];
    for(const radius of [UNITS.artillery.range-15,UNITS.artillery.range-35])for(let i=0;i<24;i++){
@@ -471,18 +470,22 @@ export class TacticalAI {
     if(g.world.walkable(p,obstacles,10)&&g.world.line(p,gun,obstacles.filter(o=>!('id' in o)||o.id!==gun.id),10))candidates.push(p);
    }
    candidates.sort((a,b)=>distance(origin,a)-distance(origin,b)||a.y-b.y||a.x-b.x);
+   const shots:SiegeShot[]=[];
    for(const p of candidates.slice(0,this.doctrineMode==='intelligent'?8:3)){
     const route=this.route(origin,p);if(!route.length)continue;
     if(this.doctrineMode==='legacy'){selected=gun;at=p;break;}
     const path=this.sampleRoute(route,origin);
     shots.push({gunId:gun.id,at:p,travel:path.length,risk:path.risk,
-      gunHp:'hp' in gun&&typeof gun.hp==='number'?gun.hp:1000,primary:gun.id===target.id});
+      gunHp:'hp' in gun&&typeof gun.hp==='number'?gun.hp:1000,primary:true});
    }
-   if(this.doctrineMode==='legacy'&&at)break;
-  }
-  if(this.doctrineMode==='intelligent'){
-   const best=chooseSiegeShot(shots);
-   if(best){selected=choices.find(gun=>gun.id===best.gunId);at=best.at;this.diagnostics.siegeAngles++;}
+   if(at)break;
+   if(this.doctrineMode==='intelligent'&&shots.length){
+    // A safer route must be a realistic detour, not a kilometer-long
+    // wandering loop that delays an otherwise winnable HQ assault.
+    const direct=Math.min(...shots.map(x=>x.travel));
+    const best=chooseSiegeShot(shots.filter(x=>x.travel<=direct*1.35+120));
+    if(best){selected=gun;at=best.at;this.diagnostics.siegeAngles++;break;}
+   }
   }
   if(!at||!selected){this.issue(members,s.rally??origin,'safe');return true;}
   if(selected.id!==target.id&&s.commander?.mission){
