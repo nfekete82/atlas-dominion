@@ -848,3 +848,25 @@ html.sandforge-clean-title #main-dialog .menu-buttons .menu-button:hover:not(:di
     font-size:11px;
   }
 }
+
+
+/* Humvee cargo strip: exact passengers, one-click single-unit deployment. */
+#selection-panel .transport-passengers[hidden]{display:none}
+#selection-panel .transport-passengers{margin-top:5px;max-width:100%;min-width:0}
+#selection-panel .passenger-roster-label{display:flex;justify-content:space-between;gap:8px;color:#d6c49a;font:700 9px/1.2 var(--display);letter-spacing:.4px;white-space:nowrap}
+#selection-panel .passenger-slots{display:flex;gap:5px;margin-top:3px;align-items:center}
+#selection-panel .passenger-slot{position:relative;flex:0 0 41px;width:41px;height:37px;min-width:0;min-height:0;padding:1px;border:1px solid #a89467;background:linear-gradient(180deg,#454238,#171d1b);display:grid;place-items:center;cursor:pointer}
+#selection-panel .passenger-slot img{display:block;width:100%;height:100%;object-fit:contain;image-rendering:auto;pointer-events:none}
+#selection-panel .passenger-slot .role-badge{width:10px;height:10px;min-width:10px;min-height:10px;top:1px;right:1px}
+#selection-panel .passenger-slot.occupied:hover:not(:disabled){background:#6b583b;border-color:#f3d392;box-shadow:0 0 0 1px #edbd65a0}
+#selection-panel .passenger-slot.empty{font-size:17px;color:#91876b;border-style:dashed;cursor:default}
+#selection-panel .passenger-slot:disabled{opacity:.46;cursor:default}
+#selection-panel:has(.transport-passengers:not([hidden])) #selection-detail{font-size:11px;line-height:1.2;margin-top:3px;-webkit-line-clamp:1}
+@media(max-width:1000px){
+ #selection-panel .passenger-slot{flex-basis:36px;width:36px;height:33px}
+ #selection-panel .passenger-roster-label{font-size:8px}
+}
+@container game-view (max-width:350px){
+ #selection-panel .passenger-slot{flex-basis:34px;width:34px;height:32px}
+ #selection-panel .passenger-roster-label{white-space:normal}
+}
