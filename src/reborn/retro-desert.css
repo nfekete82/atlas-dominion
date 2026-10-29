@@ -707,42 +707,42 @@ body:has(#selection-panel:not([hidden])) #quick-select{bottom:186px}
 #selection-panel:has(#veterancy:not([hidden])) .selection-copy>strong{font-size:18px}
 
 
-/* SANDFORGE CLEAN TITLE: One continuous desert, one TRUE-alpha logo.
-   Do not render the old precomposed poster: that raster includes the unwanted
-   "OPERATION SANDKRONE" subtitle, and compositing a second photo creates a
-   visibly rectangular patch against the background. */
+/* SANDFORGE ILLUSTRATED TITLE (2026-10-29)
+   The generated desert scene is the single FULL-BLEED background image.
+   The real alpha-channel emblem is a separate IMG above it. Never put
+   a second photographic image, decorative raster or text into ::before.
+   Existing menu actions remain semantic, clickable DOM buttons. */
 html.sandforge-clean-title #main-dialog{
   position:relative;
-  background-color:#ab7845;
+  background-color:#af793e;
   background-image:
     linear-gradient(to bottom,
-      rgba(14,16,18,.07) 0%,
-      rgba(14,16,18,.00) 38%,
-      rgba(11,13,16,.12) 72%,
-      rgba(8,11,14,.69) 100%),
+      rgba(13,17,21,.12) 0%,
+      rgba(13,17,21,.02) 30%,
+      rgba(13,17,21,.04) 52%,
+      rgba(7,13,20,.30) 83%,
+      rgba(7,13,20,.57) 100%),
     url('/src/assets/reborn/start-screen.png');
   background-size:cover,cover;
-  background-position:center,center;
+  background-position:center center,center center;
   background-repeat:no-repeat;
 }
-html.sandforge-clean-title #main-dialog::before{
-  content:none;
-}
+html.sandforge-clean-title #main-dialog::before{content:none}
 html.sandforge-clean-title #main-dialog[open]{
   display:flex;
   align-items:center;
   justify-content:flex-end;
-  padding:clamp(12px,2.5vw,32px);
+  padding:clamp(12px,2vw,30px);
 }
 html.sandforge-clean-title #main-dialog .menu-brand{
   display:flex;
   position:absolute;
   z-index:1;
   left:50%;
-  top:44%;
+  top:33%;
   transform:translate(-50%,-50%);
-  width:min(860px,86vw);
-  max-width:calc(100% - 24px);
+  width:min(920px,74vw);
+  max-width:calc(100% - 28px);
   height:auto;
   margin:0;
   padding:0;
@@ -750,56 +750,67 @@ html.sandforge-clean-title #main-dialog .menu-brand{
   align-items:center;
   overflow:visible;
   clip-path:none;
+  pointer-events:none;
 }
 html.sandforge-clean-title #main-dialog .sandforge-splash-logo{
   display:block;
   width:100%;
-  max-height:min(56vh,600px);
+  max-height:min(39vh,320px);
   height:auto;
   object-fit:contain;
   object-position:center;
   mix-blend-mode:normal;
-  filter:drop-shadow(0 16px 22px rgba(0,0,0,.35));
+  filter:drop-shadow(0 12px 17px rgba(10,11,12,.45));
 }
 html.sandforge-clean-title #main-dialog>small,
 html.sandforge-clean-title #main-dialog>h1,
-html.sandforge-clean-title #main-dialog>p{
-  display:none;
-}
+html.sandforge-clean-title #main-dialog>p{display:none}
 html.sandforge-clean-title #main-dialog .menu-buttons{
   display:flex;
-  flex-direction:row;
+  flex-direction:column;
   align-items:stretch;
   justify-content:center;
-  flex-wrap:wrap;
-  width:min(880px,96vw);
+  flex-wrap:nowrap;
+  width:min(350px,86vw);
   max-width:100%;
-  margin:0 auto clamp(5px,1.3vh,13px);
-  gap:clamp(8px,1.2vw,16px);
+  margin:0 auto clamp(20px,6vh,80px);
+  gap:10px;
   z-index:2;
 }
 html.sandforge-clean-title #main-dialog .menu-buttons .menu-button:not([hidden]){
-  flex:1 1 185px;
+  display:flex;
+  flex:0 0 clamp(47px,5.7vh,56px);
+  align-items:center;
+  justify-content:center;
   min-width:0;
-  max-width:300px;
-  height:clamp(43px,6vh,58px);
-  background:linear-gradient(115deg,rgba(13,25,33,.94),rgba(25,38,46,.90));
-  border:1px solid rgba(233,192,124,.82);
+  width:100%;
+  max-width:none;
+  height:clamp(47px,5.7vh,56px);
+  padding:0 14px;
+  background:linear-gradient(110deg,rgba(10,25,37,.96),rgba(12,28,39,.92));
+  border:1px solid rgba(200,151,82,.91);
   border-bottom-width:2px;
-  border-radius:4px;
-  box-shadow:0 4px 17px rgba(0,0,0,.46);
+  border-radius:5px;
+  color:#f5dfab;
+  font-weight:700;
+  letter-spacing:.075em;
+  box-shadow:0 5px 17px rgba(0,0,0,.46),inset 0 0 0 1px rgba(20,100,146,.16);
   backdrop-filter:none;
 }
 html.sandforge-clean-title #main-dialog .menu-buttons .menu-button.primary{
-  background:linear-gradient(110deg,rgba(114,76,37,.96),rgba(68,43,23,.94));
-  border-color:#e5bf74;
+  background:linear-gradient(110deg,rgba(9,35,52,.97),rgba(7,43,65,.95));
+  border-color:#d4a75f;
+  box-shadow:0 5px 17px rgba(0,0,0,.46),inset 0 0 0 1px rgba(20,170,225,.30);
+}
+html.sandforge-clean-title #main-dialog .menu-buttons .menu-button:hover:not(:disabled){
+  border-color:#ffe0a4;
+  background:linear-gradient(110deg,#19405a,#164968);
 }
 @media(max-width:720px){
   html.sandforge-clean-title #main-dialog{
     background-image:
-      linear-gradient(to bottom,
-        rgba(9,17,19,.08) 0%,rgba(9,17,19,.09) 48%,
-        rgba(8,12,16,.77) 100%),
+      linear-gradient(to bottom,rgba(12,17,20,.12),rgba(12,17,20,0) 41%,
+        rgba(7,13,20,.33) 79%,rgba(7,13,20,.67) 100%),
       url('/src/assets/reborn/start-screen.png');
     background-size:cover,cover;
     background-position:center,center;
@@ -810,34 +821,30 @@ html.sandforge-clean-title #main-dialog .menu-buttons .menu-button.primary{
   }
   html.sandforge-clean-title #main-dialog .menu-brand{
     width:min(94vw,600px);
-    top:37%;
+    top:31%;
   }
-  html.sandforge-clean-title #main-dialog .sandforge-splash-logo{
-    max-height:48vh;
-  }
+  html.sandforge-clean-title #main-dialog .sandforge-splash-logo{max-height:38vh}
   html.sandforge-clean-title #main-dialog .menu-buttons{
-    width:min(390px,96vw);
-    flex-direction:column;
-    gap:8px;
-    margin-bottom:max(6px,env(safe-area-inset-bottom));
+    width:min(350px,90vw);
+    gap:9px;
+    margin-bottom:max(12px,env(safe-area-inset-bottom));
   }
   html.sandforge-clean-title #main-dialog .menu-buttons .menu-button:not([hidden]){
-    flex:0 0 43px;
-    width:100%;
-    max-width:none;
-    height:43px;
+    flex-basis:46px;
+    height:46px;
+    font-size:12px;
   }
 }
 @media(max-height:520px) and (min-width:721px){
-  html.sandforge-clean-title #main-dialog .menu-brand{
-    width:min(640px,65vw);
-    top:43%;
-  }
+  html.sandforge-clean-title #main-dialog .menu-brand{width:min(580px,54vw);top:36%}
   html.sandforge-clean-title #main-dialog .menu-buttons{
-    margin-bottom:1px;
-    gap:8px;
+    margin-bottom:0;
+    width:min(300px,38vw);
+    gap:5px;
   }
   html.sandforge-clean-title #main-dialog .menu-buttons .menu-button:not([hidden]){
-    height:42px;
+    flex-basis:38px;
+    height:38px;
+    font-size:11px;
   }
 }
