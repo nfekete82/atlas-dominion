@@ -1,13 +1,13 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Simulation} from '../dist/src/reborn/simulation.js';
-import {mapLayout,RULES} from '../dist/src/reborn/config.js';
+import {mapLayout,campaignLayout,RULES} from '../dist/src/reborn/config.js';
 
-const versions=[3,4,5];
+const versions=[3,4,5,6];
 for(const version of versions){
  test('HQ bastions yield +25 for both factions, tiered neutral sectors reach +35 on map '+version,()=>{
   const game=new Simulation(2026,version);
-  const layout=mapLayout(version),sectors=game.territories;
+  const layout=campaignLayout(version,game.seed),sectors=game.territories;
   assert.equal(sectors.length,layout.columns*layout.rows);
   for(const owner of [0,1]){
    const home=sectors[layout.headquarters[owner]];
