@@ -37,6 +37,8 @@ export interface TacticalContext {
   observedEnemies:readonly Combatant[];
   knownGuns:readonly KnownGun[];
   storm:boolean;
+  /** Previous aggregate results: at most +/-0.3, never bypassing viability. */
+  learned?:{flank:number;siege:number};
   /** No influence from hidden units; tactical decision cannot see the world. */
 }
 const HORIZON=24;
@@ -120,7 +122,10 @@ export function chooseTacticalManeuver(context:TacticalContext):TacticalChoice {
   const guns=context.knownGuns.filter(g=>g.hp>0);
   if(!allies.length)return {mode:'regroup',forecasts:[],reason:'no-combat-force'};
   if(!enemies.length&&!guns.length)return {mode:'assault',forecasts:[],reason:'uncontested'};
-  const forecasts=(['assault','flank','siege'] as const).map(mode=>forecastManeuver(context,mode))
+  const forecasts=(['assault','flank','siege'] as const).map(mode=>{
+   const f=forecastManeuver(context,mode),bias=mode==='flank'?context.learned?.flank:mode==='siege'?context.learned?.siege:0;
+   return {...f,score:f.score+Math.max(-.3,Math.min(.3,bias??0))*180};
+  })
     .sort((a,b)=>b.score-a.score||(['assault','siege','flank'].indexOf(a.mode)-['assault','siege','flank'].indexOf(b.mode)));
   const best=forecasts[0];
   if(best.ownLossFraction>.75&&best.enemyLossFraction<.48&&!best.projectedVictory)
