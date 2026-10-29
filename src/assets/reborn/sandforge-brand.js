@@ -44,18 +44,8 @@
     handbook.textContent = handbook.textContent.replace(/ATLAS/i, 'SANDFORGE');
   }
   document.documentElement.classList.add('sandforge-branded');
-  // The cinematic poster contains the whole emblem. Never overlay the old
-  // transparent wordmark onto it: double lettering and a black fringe would
-  // reappear. Keep the original separate logo as a network-safe fallback.
-  const cinematic = new Image();
-  cinematic.decoding = 'async';
-  cinematic.onload = () => {
-    if (cinematic.naturalWidth >= 1200 && cinematic.naturalHeight >= 700) {
-      document.documentElement.classList.add('sandforge-cinematic-title');
-    }
-  };
-  cinematic.onerror = () => {
-    // Older installs still have the original title screen and transparent logo.
-  };
-  cinematic.src = '/src/assets/reborn/start-screen-cinematic.webp';
+  // True independent artwork layers: one full-bleed desert background and
+  // the existing RGBA logo. The old precomposed cinematic poster includes an
+  // unwanted subtitle and must never be loaded on the title screen.
+  document.documentElement.classList.add('sandforge-clean-title');
 })();
