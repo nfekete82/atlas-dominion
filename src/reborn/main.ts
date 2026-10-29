@@ -8,7 +8,7 @@ import { Renderer } from './renderer.js';
 import { Input } from './input.js';
 import { saveCampaign, loadCampaign,readAiLearningPreference,storeAiLearningPreference,loadAiLearningProfile,saveAiLearningProfile } from './storage.js';
 import {finishExperience} from './battle-learning.js';
-import {newCampaignReport,observeCampaignReport,finishCampaignReport,readCampaignReports,writeCampaignReport,summarizeCampaignArchive,type CampaignReport} from './campaign-history.js';
+import {newCampaignReport,observeCampaignReport,finishCampaignReport,readCampaignReports,writeCampaignReport,summarizeCampaignArchive,campaignStatisticsRecords,factionInReport,mostDeployed,type CampaignReport} from './campaign-history.js';
 import { Soundscape } from './audio.js';
 import { BUILDINGS, UNITS, unitKinds, buildingSpec, unitSpec, type UnitKind, type BuildingKind } from './catalog.js';
 import { icon } from './icons.js';
@@ -45,6 +45,7 @@ let accumulator=0,last=performance.now(),uiClock=0,resultShown=false,busy=false,
 const messages:{time:string;message:string}[]=[];
 let campaignReport:CampaignReport|null=hasEnteredCampaign&&!query.has('debug')?newCampaignReport(game):null;
 let historyPersistAt=-10;
+let archiveOwner:0|1=0;
 /** Game history is presentation-only and cannot affect AI, map generation or combat. */
 function syncCampaignHistory(force=false):void{
  if(!campaignReport||query.has('debug'))return;
@@ -61,11 +62,13 @@ function retireCampaignHistory():void{
   writeCampaignReport(campaignReport);
  }
 }
-function showCampaignHistory():void{
+function renderCampaignHistory():void{
  syncCampaignHistory(true);
- const reports=readCampaignReports(),summary=summarizeCampaignArchive(reports);
- const summaryNode=el('history-summary'),listNode=el('history-list');
- summaryNode.replaceChildren();listNode.replaceChildren();
+ const reports=readCampaignReports(),summary=summarizeCampaignArchive(reports),records=campaignStatisticsRecords(reports,archiveOwner);
+ const summaryNode=el('history-summary'),listNode=el('history-list'),recordNode=el('history-records');
+ summaryNode.replaceChildren();listNode.replaceChildren();recordNode.replaceChildren();
+ el('history-player').setAttribute('aria-pressed',String(archiveOwner===0));
+ el('history-ai').setAttribute('aria-pressed',String(archiveOwner===1));
  const stats:[string,number][]= [
   ['Kampagnen abgeschlossen',summary.matches],['Kampagnen gewonnen',summary.victories],
   ['Bastionsduelle gewonnen',summary.enemyCaptures],['Bastionen verloren',summary.lostBastions]
@@ -74,32 +77,50 @@ function showCampaignHistory():void{
   const item=document.createElement('div'),number=document.createElement('strong'),name=document.createElement('span');
   number.textContent=value.toLocaleString('de-DE');name.textContent=label;item.append(number,name);summaryNode.append(item);
  }
+ const statNumber=(n:number)=>Math.floor(n).toLocaleString('de-DE');
+ const recordCards:[string,string,string][]=[
+  ['Meist eingesetzte Einheit',records.topKind?UNITS[records.topKind.kind].name:'—',records.topKind?`${statNumber(records.topKind.count)} Einsätze (erzeugte Einheiten)`:'Noch keine Daten'],
+  ['Credits insgesamt verdient',records.bestCredits?statNumber(records.earnedTotal):'—',records.bestCredits?'Summe aller erfassten Partien':'Noch keine Daten'],
+  ['Höchste Credits pro Partie',records.bestCredits?statNumber(records.bestCredits.value):'—',records.bestCredits?`${records.bestCredits.report.bastions} Bastionen · ${new Date(records.bestCredits.report.startedAt).toLocaleDateString('de-DE')}`:'Noch keine Daten'],
+  ['Größte Armee gleichzeitig',records.bestArmy?statNumber(records.bestArmy.value):'—',records.bestArmy?`${records.bestArmy.report.bastions} Bastionen · ${new Date(records.bestArmy.report.startedAt).toLocaleDateString('de-DE')}`:'Noch keine Daten'],
+  ['Einheiten insgesamt produziert',records.bestProduction?statNumber(records.producedTotal):'—',records.bestProduction?'Tatsächlich fertiggestellt, ohne Starttruppen':'Noch keine Daten'],
+  ['Meiste Einheiten pro Partie',records.bestProduction?statNumber(records.bestProduction.value):'—',records.bestProduction?`${records.bestProduction.report.bastions} Bastionen · ${new Date(records.bestProduction.report.startedAt).toLocaleDateString('de-DE')}`:'Noch keine Daten'],
+  ['Höchste Einnahme / 10 Sek.',records.bestIncome?statNumber(records.bestIncome.value):'—',records.bestIncome?`${records.bestIncome.report.bastions} Bastionen · ${new Date(records.bestIncome.report.startedAt).toLocaleDateString('de-DE')}`:'Noch keine Daten']
+ ];
+ for(const [label,value,detail] of recordCards){
+  const card=document.createElement('div'),heading=document.createElement('span'),number=document.createElement('strong'),sub=document.createElement('small');
+  heading.textContent=label;number.textContent=value;sub.textContent=detail;card.append(heading,number,sub);recordNode.append(card);
+ }
  if(!reports.length){
   const empty=document.createElement('p');
   empty.textContent='Noch keine Berichte vorhanden. Starte eine Kampagne – ab jetzt werden deine Ergebnisse lokal erfasst.';
   listNode.append(empty);
  }else{
   const table=document.createElement('table'),thead=document.createElement('thead'),tbody=document.createElement('tbody'),head=document.createElement('tr');
-  for(const h of ['Datum','Karte','Ergebnis','Spielzeit','Bastionsduelle','Neutral','Verloren']){
+  for(const h of ['Datum','Karte','Ergebnis','Spielzeit','Bastionsduelle','Neutral','Verloren','Top-Einheit','Credits verdient','Truppen-Max.','Produziert','Einnahmen-Max.']){
    const th=document.createElement('th');th.scope='col';th.textContent=h;head.append(th);
   }
   thead.append(head);
   for(const report of reports){
    const row=document.createElement('tr');
+   const faction=factionInReport(report,archiveOwner),top=faction?mostDeployed(faction):null;
+   const metric=(n:number|undefined)=>n===undefined?'—':n.toLocaleString('de-DE')+(report.stats?.partial?' *':'');
    const values=[
     new Date(report.startedAt).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'}),
     `${report.bastions} Bastionen · Karte #${report.seed}`,
     ({victory:'Sieg',defeat:'Niederlage',running:'Läuft',abandoned:'Abgebrochen'} as const)[report.result],
     `${Math.floor(report.seconds/60)}:${Math.floor(report.seconds%60).toString().padStart(2,'0')}`,
-    String(report.enemyBastionsTaken),String(report.neutralBastionsTaken),String(report.ownBastionsLost)
+    String(report.enemyBastionsTaken),String(report.neutralBastionsTaken),String(report.ownBastionsLost),
+    top?`${UNITS[top.kind].name} (${top.count})`:'—',metric(faction?.earnedCredits),metric(faction?.peakArmy),metric(faction?.producedUnits),metric(faction?.peakIncome)
    ];
    for(const value of values){const td=document.createElement('td');td.textContent=value;row.append(td);}
    tbody.append(row);
   }
   table.append(thead,tbody);listNode.append(table);
+  const note=document.createElement('p');note.className='history-legend';note.textContent='Top-Einheit = am häufigsten erzeugte Einheit, einschließlich Starttruppen. Credits = tatsächlich ausgezahlte Einnahmen. * = Teilaufzeichnung aus älterem Spielstand; — = noch keine Daten.';listNode.append(note);
  }
- modal('campaign-history-dialog');
 }
+function showCampaignHistory():void{renderCampaignHistory();modal('campaign-history-dialog');}
 try{const s=JSON.parse(localStorage.getItem('atlas-reborn-sound')??'null');if(s){audio.setEnabled(s.enabled!==false);audio.setVolume(Number.isFinite(s.volume)?s.volume:.6);audio.ambience=s.ambience!==false;audio.radio.setEnabled(s.speech!==false);audio.radio.setVolume(Number.isFinite(s.speechVolume)?s.speechVolume:.85);}}catch{/* Optional local preferences. */}
 const timestamp=()=>`${Math.floor(game.time/60).toString().padStart(2,'0')}:${Math.floor(game.time%60).toString().padStart(2,'0')}`;
 function notify(message:string):void{
@@ -235,7 +256,9 @@ async function load():Promise<void>{if(busy)return;busy=true;try{const loaded=aw
 el('resume-tactical').onclick=()=>setPause(false);
 input.onPause=()=>setPause(!game.paused);input.onMenu=openMenu;input.onHelp=()=>modal('help-dialog');input.onSave=()=>void save();input.onLoad=()=>void load();
 input.onSelection=()=>{const next=[...renderer.selected].join(',')+':'+renderer.selectedBase;if(next!==selectionSound){selectionSound=next;audio.select();}refresh();};input.onOrder=order=>audio.acknowledge(order,game);
-el('main-history').onclick=showCampaignHistory;el('history-close').onclick=()=>el<HTMLDialogElement>('campaign-history-dialog').close();
+el('main-history').onclick=showCampaignHistory;
+ el('history-player').onclick=()=>{archiveOwner=0;renderCampaignHistory();};
+ el('history-ai').onclick=()=>{archiveOwner=1;renderCampaignHistory();};el('history-close').onclick=()=>el<HTMLDialogElement>('campaign-history-dialog').close();
  el('save').onclick=()=>void save();el('load').onclick=()=>void load();el('main-load').onclick=()=>void load();el('pause').onclick=input.onPause;el('menu').onclick=openMenu;el('help').onclick=input.onHelp;
 el('to-main').onclick=()=>{closeDialogs();modal('main-dialog');};el('main-continue').onclick=()=>{if(!hasEnteredCampaign)return;closeDialogs();setPause(false);};el<HTMLDialogElement>('main-dialog').addEventListener('cancel',event=>event.preventDefault());el('new').onclick=()=>modal('new-dialog');el<HTMLDialogElement>('new-dialog').addEventListener('close',()=>{
  if(el<HTMLDialogElement>('new-dialog').returnValue==='new'){
