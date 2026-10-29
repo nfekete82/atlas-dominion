@@ -1,0 +1,33 @@
+name: Sandforge cinematic title framing
+
+on:
+  push:
+    branches: ['feat/sandforge-cinematic-title-framing-*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  title:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build all assets
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Prepare Chromium browser
+        run: |
+          npm ci --prefix tests/browser --no-audit --no-fund
+          cd tests/browser && npx playwright install --with-deps chromium
+      - name: Test sharp, uncropped Sandforge title on 3 viewports and menu controls
+        env:
+          ATLAS_BROWSER_CHANNEL: chromium
+          SANDFORGE_REQUIRE_CINEMATIC: '1'
+          CI: 'true'
+        run: cd tests/browser && npx playwright test --config=cinematic.config.mjs sandforge-title-menu.spec.mjs sandforge-cinematic-framing.spec.mjs --reporter=line

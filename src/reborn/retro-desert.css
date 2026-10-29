@@ -712,15 +712,33 @@ body:has(#selection-panel:not([hidden])) #quick-select{bottom:186px}
    it. Logo, pause/loading screens and default menu remain intact if absent.
    Keep native image detail: no blur, pixelation or translucent full-screen veil. */
 html.sandforge-cinematic-title #main-dialog{
+  /* The original cover-scaled poster clips lettering on tall viewports.
+     Keep the desert full-screen and frame the logo-bearing image separately. */
+  position:relative;
+  isolation:isolate;
   background-color:#a77841;
   background-image:
-    linear-gradient(to bottom,
-      transparent 0%,transparent 73%,
-      rgba(15,13,12,.10) 79%,rgba(10,12,14,.62) 100%),
-    url('/src/assets/reborn/start-screen-cinematic.webp');
+    linear-gradient(to bottom,rgba(16,13,10,.12),rgba(16,13,10,.16) 66%,rgba(10,12,14,.64) 100%),
+    url('/src/assets/reborn/menu-desert.png');
   background-size:cover,cover;
   background-position:center,center;
   background-repeat:no-repeat;
+}
+html.sandforge-cinematic-title #main-dialog::before{
+  /* Preserve native sharpness and original 1606:979 aspect ratio. Soft edges
+     fade the poster into the underlying desert without cropping the title. */
+  content:'';
+  position:absolute;
+  left:50%;
+  top:44%;
+  transform:translate(-50%,-44%);
+  width:min(94vw,160vh);
+  aspect-ratio:1606 / 979;
+  background:url('/src/assets/reborn/start-screen-cinematic.webp') center/100% 100% no-repeat;
+  -webkit-mask-image:radial-gradient(ellipse 71% 67% at center,#000 70%,transparent 100%);
+  mask-image:radial-gradient(ellipse 71% 67% at center,#000 70%,transparent 100%);
+  pointer-events:none;
+  z-index:0;
 }
 html.sandforge-cinematic-title #main-dialog[open]{
   justify-content:flex-end;
@@ -767,10 +785,15 @@ html.sandforge-cinematic-title #main-dialog .menu-buttons .menu-button.primary{
 @media(max-width:720px){
  html.sandforge-cinematic-title #main-dialog{
    background-image:
-     linear-gradient(to bottom,transparent 0%,transparent 61%,rgba(8,12,16,.73) 100%),
-     url('/src/assets/reborn/start-screen-cinematic.webp');
+     linear-gradient(to bottom,rgba(9,17,19,.08),rgba(9,17,19,.18) 55%,rgba(8,12,16,.77) 100%),
+     url('/src/assets/reborn/menu-desert.png');
    background-position:center,center;
    background-size:cover,cover;
+ }
+ html.sandforge-cinematic-title #main-dialog::before{
+   width:min(96vw,140vh);
+   top:37%;
+   transform:translate(-50%,-37%);
  }
  html.sandforge-cinematic-title #main-dialog[open]{
    justify-content:flex-end;
