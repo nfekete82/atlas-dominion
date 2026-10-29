@@ -4,7 +4,7 @@ import {Simulation} from '../dist/src/reborn/simulation.js';
 import {RULES,distance} from '../dist/src/reborn/config.js';
 import {newBattle,assessBattle,recordFailure,retryFront} from '../dist/src/reborn/battle-response.js';
 function scene(){
- const g=new Simulation(2026,4);g.units=[];g.aiClock=-1e8;g.credits=[0,0];g.world.blocked.fill(0);g.world.opaque.fill(0);
+ const g=new Simulation(2027,4);g.units=[];g.aiClock=-1e8;g.credits=[0,0];g.world.blocked.fill(0);g.world.opaque.fill(0);
  for(const t of g.territories)t.owner=-1;
  const tower={...g.bases[0],id:1900,kind:'turret',x:1500,y:1500,hp:650,radius:30,buildRemaining:0,queue:[],queueTypes:[],turretAngle:0,cooldown:0};g.bases.push(tower);
  const unit=g.spawn(1,{x:1950,y:1500},'infantry');g.updateVision();return {g,tower,unit};

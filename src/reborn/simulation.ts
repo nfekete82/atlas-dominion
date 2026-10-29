@@ -3,7 +3,7 @@ import {gainUnitXp,getVeterancyModifiers,sanitizeXp,XP_RULES} from './veterancy.
 import {migrateTransportRoster} from './roster-migration.js';
 import {VisionCache} from './vision-cache.js';
 import { profiler } from './performance.js';
-import { RULES, WEATHER_RULES, clamp, distance, type Faction, type Owner, type Point, type MapVersion, mapLayout, mapWorldSize } from './config.js';
+import { RULES, WEATHER_RULES, clamp, distance, type Faction, type Owner, type Point, type MapVersion, mapLayout, campaignLayout, mapWorldSize } from './config.js';
 import { World, inside, type Territory } from './world.js';
 import { UNITS, BUILDINGS, canAttack, weaponDamage, unitSpec, buildingSpec, unitKinds, type UnitKind, type BuildingKind } from './catalog.js';
 import {angleDifference,turnTowards} from './sprite-animator.js';
@@ -91,7 +91,7 @@ export class Simulation {
   constructor(seed=2026,mapVersion:MapVersion=0) {
     this.seed=seed;this.weather=new Weather(seed);this.world=new World(seed,mapVersion);this.territories=this.world.territories(seed);
     if(mapVersion>=3)this.credits=[950,950];
-    const layout=mapLayout(mapVersion);
+    const layout=campaignLayout(mapVersion,seed);
     for(const owner of [0,1] as const){
       const territory=layout.headquarters[owner];
       const t=this.territories[territory],site=mapVersion>=2?{x:t.point.x+(owner===0?-260:260),y:t.point.y+(owner===0?165:-165)}:mapVersion===1?{x:t.point.x-165,y:t.point.y+45}:t.point,p=this.world.clearSite(site,RULES.headquarters.radius)!;
@@ -732,7 +732,7 @@ export class Simulation {
     this.aiClock+=dt;
     if(this.time>=RULES.aiOpeningDelay&&this.aiClock>=RULES.aiInterval){this.aiClock=0;this.think();}
     if(this.fogClock>=.2||ownershipChanged){this.fogClock=0;this.updateVision();}
-    if(this.bases.filter(b=>b.kind==='headquarters').every(b=>b.owner===0&&b.hp>0)&&mapLayout(this.world.mapVersion).starts[1].every(i=>this.territories[i].owner===0))this.status='victory';
+    if(this.bases.filter(b=>b.kind==='headquarters').every(b=>b.owner===0&&b.hp>0)&&campaignLayout(this.world.mapVersion,this.seed).starts[1].every(i=>this.territories[i].owner===0))this.status='victory';
     if(!this.bases.some(b=>b.owner===0&&b.hp>0&&['headquarters','barracks','factory','airfield'].includes(b.kind))&&this.count(0)===0)this.status='defeat';
   }
   private think():void {this.tactical.plan();}
@@ -745,7 +745,7 @@ export class Simulation {
     const finite=(n:unknown)=>typeof n==='number'&&Number.isFinite(n);
     const point=(p:Point)=>p&&finite(p.x)&&finite(p.y)&&p.x>=0&&p.y>=0&&p.x<=RULES.worldSize&&p.y<=RULES.worldSize;
     const burst=(b:Burst|undefined,rounds:number)=>b===undefined||(b!==null&&Number.isInteger(b.target)&&Number.isInteger(b.remaining)&&b.remaining>0&&b.remaining<=rounds&&b.remaining+b.index===rounds&&Number.isInteger(b.index)&&b.index>=0&&b.index<4&&finite(b.at)&&b.at>=s.time-.11&&b.at<=s.time+.11);
-    if(!s||s.version!==2||(s.weatherVersion!==undefined&&s.weatherVersion!==1)||(s.productionVersion!==undefined&&s.productionVersion!==1)||(s.mapVersion!==undefined&&![0,1,2,3,4,5].includes(s.mapVersion))||!TacticalAI.valid(s.ai,s.time,point,mapLayout(s.mapVersion??0).columns*mapLayout(s.mapVersion??0).rows)||!finite(s.seed)||!finite(s.time)||s.time<0||!finite(s.incomeClock)||s.incomeClock<0||s.incomeClock>=10||
+    if(!s||s.version!==2||(s.weatherVersion!==undefined&&s.weatherVersion!==1)||(s.productionVersion!==undefined&&s.productionVersion!==1)||(s.mapVersion!==undefined&&![0,1,2,3,4,5,6].includes(s.mapVersion))||!TacticalAI.valid(s.ai,s.time,point,mapLayout(s.mapVersion??0).columns*mapLayout(s.mapVersion??0).rows)||!finite(s.seed)||!finite(s.time)||s.time<0||!finite(s.incomeClock)||s.incomeClock<0||s.incomeClock>=10||
       !Array.isArray(s.units)||s.units.length>96||!Array.isArray(s.bases)||s.bases.length<2||s.bases.length>64||
       s.units.some(u=>u.exactPath!==undefined&&typeof u.exactPath!=='boolean')||
       !Array.isArray(s.territories)||s.territories.length!==mapLayout(s.mapVersion??0).columns*mapLayout(s.mapVersion??0).rows||!Array.isArray(s.explored)||s.explored.length!==2||

@@ -1,4 +1,4 @@
-import { RULES, mapLayout, mapWorldSize, type MapVersion, type Point } from './config.js';
+import { RULES, mapLayout, campaignLayout, mapWorldSize, type MapVersion, type Point } from './config.js';
 
 /** Versioned, deterministic geometry. Old saves continue to use the original map. */
 export const MAP_VERSION = 2;
@@ -27,7 +27,7 @@ function hull(points:Point[]):Point[] {
   return [...half(sorted),...half(sorted.reverse())];
 }
 export function generateMap(seed:number,version:Exclude<MapVersion,0>=MAP_VERSION):GeneratedMap {
-  const layout=mapLayout(version),cols=layout.columns,rows=layout.rows,count=cols*rows;
+  const layout=campaignLayout(version,seed),cols=layout.columns,rows=layout.rows,count=cols*rows;
   const rand=seededRandom(seed),size=mapWorldSize(version),grid=RULES.grid,cell=size/grid,w=size/cols,h=size/rows;
   // Stratified rejection sampling avoids clumps and preserves adjacent capture sectors.
   // Reserve all sector centres first so a later sector always has a legal fallback.

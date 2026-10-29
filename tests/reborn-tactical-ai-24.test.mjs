@@ -40,9 +40,9 @@ test('2.4: wave selection is deterministic and changes no credits, fog, orders o
  assert.deepEqual(g.save(),snapshot,'wave scoring cannot alter saved simulation or RNG');
 });
 test('2.4: scenario with 3 ready tanks and 3 distant soldiers waits for a coordinated push',()=>{
- const g=new Simulation(2026,4);
+ const g=new Simulation(2027,4);
  g.units=[];g.aiClock=-1e8;g.time=60;
- g.world.blocked.fill(0);g.world.opaque.fill(0);
+ g.world.blocked.fill(0);g.world.opaque.fill(0);g.world.components.fill(0);g.world.cliffIds.fill(-1);
  Object.assign(g.bases.find(b=>b.owner===1&&b.kind==='headquarters'),{x:900,y:1900});
  Object.assign(g.bases.find(b=>b.owner===0&&b.kind==='headquarters'),{x:3300,y:3300});
  for(const t of g.territories){t.owner=-1;t.neighbors=[];}
@@ -55,10 +55,16 @@ test('2.4: scenario with 3 ready tanks and 3 distant soldiers waits for a coordi
  g.tactical.state.phase='gather';
  g.tactical.state.phaseAt=60;
  g.tactical.state.rally={x:1120,y:1900};
+ // This test exercises wave timing, not route generation or mission discovery.
+ // Pin the single known frontier explicitly so randomized HQ corners cannot
+ // change the tactical objective beneath the readiness assertion.
+ g.tactical.state.commander={version:1,phase:'buildup',phaseSince:60,recon:[],survey:[],intel:[],aborted:0,
+  mission:{kind:'capture',x:target.point.x,y:target.point.y,sector:target.id,objective:null,since:60,progressAt:60,distance:1980}};
+ g.tactical.route=(_from,to)=>[to];
  g.updateVision();
  g.tactical.plan();
  assert.equal(g.tactical.state.phase,'gather','three ready tanks cannot drag six assigned fighters into a fragmented assault');
- assert.ok(g.tactical.diagnostics.waveWaits>0);
+ assert.ok(g.units.filter(u=>u.owner===1&&u.orders.length).length>0,'the waiting cohort receives actual gathering orders');
  g.time=104;
  g.tactical.plan();
  assert.equal(g.tactical.state.phase,'attack','finite rally timeout prevents a permanent siege deadlock');

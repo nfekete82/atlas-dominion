@@ -1,13 +1,13 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Simulation} from '../dist/src/reborn/simulation.js';
-import {mapLayout,RULES} from '../dist/src/reborn/config.js';
+import {mapLayout,campaignLayout,RULES} from '../dist/src/reborn/config.js';
 
-const versions=[3,4,5];
+const versions=[3,4,5,6];
 for(const version of versions){
  test('HQ bastions yield +25 for both factions, tiered neutral sectors reach +35 on map '+version,()=>{
   const game=new Simulation(2026,version);
-  const layout=mapLayout(version),sectors=game.territories;
+  const layout=campaignLayout(version,game.seed),sectors=game.territories;
   assert.equal(sectors.length,layout.columns*layout.rows);
   for(const owner of [0,1]){
    const home=sectors[layout.headquarters[owner]];
@@ -17,7 +17,7 @@ for(const version of versions){
    assert.equal(game.bases.find(b=>b.kind==='headquarters'&&b.owner===owner)?.territory,home.id);
    assert.equal(game.income(owner),35,'25 territory plus 10 operational HQ');
   }
-  assert.equal(sectors.filter(s=>s.owner===-1&&s.income===35).length,2,
+  assert.equal(sectors.filter(s=>s.owner===-1&&s.income===35).length,version===6?4:2,
    'paired high-value neutral bastions remain worth 35 each');
   assert.ok(sectors.every(s=>[15,25,35].includes(s.income)));
   assert.ok(sectors.every((s,i)=>s.income===sectors[sectors.length-i-1].income),
