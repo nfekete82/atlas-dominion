@@ -17,7 +17,7 @@ export function validCampaignReport(raw:unknown):raw is CampaignReport{
  const r=raw as CampaignReport;
  return r.version===1&&typeof r.id==='string'&&r.id.length>0&&r.id.length<110&&
  validDate(r.startedAt)&&validDate(r.updatedAt)&&(r.endedAt===undefined||validDate(r.endedAt))&&
- nonnegative(r.seed)&&nonnegative(r.mapVersion)&&r.mapVersion<=6&&
+ nonnegative(r.seed)&&nonnegative(r.mapVersion)&&r.mapVersion<=10&&
  nonnegative(r.bastions)&&r.bastions>=4&&r.bastions<=30&&
  Number.isFinite(r.seconds)&&r.seconds>=0&&r.seconds<10000000&&
  ['running','victory','defeat','abandoned'].includes(r.result)&&
