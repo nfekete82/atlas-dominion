@@ -705,3 +705,97 @@ body:has(#selection-panel:not([hidden])) #quick-select{bottom:186px}
 #veterancy-fill{display:block;height:100%;background:#d5b45e}
 #selection-panel:has(#veterancy:not([hidden])) #selection-detail{font-size:11px;margin-top:4px;-webkit-line-clamp:1}
 #selection-panel:has(#veterancy:not([hidden])) .selection-copy>strong{font-size:18px}
+
+
+/* CINEMATIC TITLE 2026-10-29: optional high-resolution, precomposed artwork.
+   Art includes the gold/steel fortress logo, so do NOT draw the old logo over
+   it. Logo, pause/loading screens and default menu remain intact if absent.
+   Keep native image detail: no blur, pixelation or translucent full-screen veil. */
+html.sandforge-cinematic-title #main-dialog{
+  background-color:#a77841;
+  background-image:
+    linear-gradient(to bottom,
+      transparent 0%,transparent 73%,
+      rgba(15,13,12,.10) 79%,rgba(10,12,14,.62) 100%),
+    url('/src/assets/reborn/start-screen-cinematic.webp');
+  background-size:cover,cover;
+  background-position:center,center;
+  background-repeat:no-repeat;
+}
+html.sandforge-cinematic-title #main-dialog[open]{
+  justify-content:flex-end;
+  padding:clamp(12px,2.5vw,32px);
+}
+/* Keep the accessible branded title, but don't render a duplicate over
+   the high-resolution, precomposed title graphic. */
+html.sandforge-cinematic-title #main-dialog .menu-brand,
+html.sandforge-cinematic-title #main-dialog>small{
+  position:absolute;
+  width:1px;height:1px;
+  padding:0;margin:0;
+  overflow:hidden;
+  white-space:nowrap;
+  clip-path:inset(50%);
+}
+html.sandforge-cinematic-title #main-dialog .menu-buttons{
+  display:flex;
+  flex-direction:row;
+  align-items:stretch;
+  justify-content:center;
+  flex-wrap:wrap;
+  width:min(880px,96vw);
+  max-width:100%;
+  margin:0 auto clamp(5px,1.3vh,13px);
+  gap:clamp(8px,1.2vw,16px);
+}
+html.sandforge-cinematic-title #main-dialog .menu-buttons .menu-button:not([hidden]){
+  flex:1 1 185px;
+  min-width:0;
+  max-width:300px;
+  height:clamp(43px,6vh,58px);
+  background:linear-gradient(115deg,rgba(13,25,33,.94),rgba(25,38,46,.90));
+  border:1px solid rgba(233,192,124,.82);
+  border-bottom-width:2px;
+  border-radius:4px;
+  box-shadow:0 4px 17px rgba(0,0,0,.46);
+  backdrop-filter:none;
+}
+html.sandforge-cinematic-title #main-dialog .menu-buttons .menu-button.primary{
+  background:linear-gradient(110deg,rgba(114,76,37,.96),rgba(68,43,23,.94));
+  border-color:#e5bf74;
+}
+@media(max-width:720px){
+ html.sandforge-cinematic-title #main-dialog{
+   background-image:
+     linear-gradient(to bottom,transparent 0%,transparent 61%,rgba(8,12,16,.73) 100%),
+     url('/src/assets/reborn/start-screen-cinematic.webp');
+   background-position:center,center;
+   background-size:cover,cover;
+ }
+ html.sandforge-cinematic-title #main-dialog[open]{
+   justify-content:flex-end;
+   padding:12px;
+ }
+ html.sandforge-cinematic-title #main-dialog .menu-buttons{
+   width:min(390px,96vw);
+   flex-direction:column;
+   align-items:stretch;
+   gap:8px;
+   margin-bottom:max(6px,env(safe-area-inset-bottom));
+ }
+ html.sandforge-cinematic-title #main-dialog .menu-buttons .menu-button:not([hidden]){
+   flex:0 0 43px;
+   width:100%;
+   max-width:none;
+   height:43px;
+ }
+}
+@media(max-height:520px) and (min-width:721px){
+ html.sandforge-cinematic-title #main-dialog .menu-buttons{
+   margin-bottom:1px;
+   gap:8px;
+ }
+ html.sandforge-cinematic-title #main-dialog .menu-buttons .menu-button:not([hidden]){
+   height:42px;
+ }
+}
