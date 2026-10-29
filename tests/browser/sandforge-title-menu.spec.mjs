@@ -6,6 +6,8 @@ test('Sandforge shows the full-screen desert title and starts via map selection'
  await page.locator('#loading').waitFor({state:'detached'});
  const cinematicAsset=await page.request.get('/src/assets/reborn/start-screen-cinematic.webp');
  const cinematic=cinematicAsset.ok()&&cinematicAsset.headers()['content-type']?.startsWith('image/');
+ if(process.env.SANDFORGE_REQUIRE_CINEMATIC==='1')expect(cinematic).toBe(true);
+
  if(cinematic)await expect(page.locator('html')).toHaveClass(/sandforge-cinematic-title/);
  const menu=page.locator('#main-dialog');
  await expect(menu).toBeVisible();
