@@ -758,7 +758,12 @@ export class Simulation {
       if(owner<0||owner===t.owner||defendedBase||!t.neighbors.some(i=>this.territories[i].owner===owner)){
         t.progress=Math.max(0,t.progress-dt*.5);if(t.progress===0)t.capturing=-1;continue;
       }
-      if(t.capturing!==owner){t.capturing=owner;t.progress=0;}
+      if(t.capturing!==owner){
+        // Capture pressure on a blue bastion is also an attack, even if no
+        // friendly unit is standing there to receive weapon damage.
+        if(t.owner===0&&owner===1)this.attackAlerts.record(t.point,this.time);
+        t.capturing=owner;t.progress=0;
+      }
       t.progress+=dt;
       if(t.progress+1e-8>=RULES.captureTime){
         t.owner=owner;t.progress=0;t.capturing=-1;ownershipChanged=true;
