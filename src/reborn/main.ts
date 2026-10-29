@@ -26,7 +26,7 @@ if(query.has('debug')&&query.has('perf')){const recorder=new PerformanceRecorder
 let selectedMapVersion:MapVersion=query.has('debug')?2:CAMPAIGN_SIZES.medium;
 const requestedSize=query.get('map');
 if(requestedSize&&Object.hasOwn(CAMPAIGN_SIZES,requestedSize))selectedMapVersion=CAMPAIGN_SIZES[requestedSize as CampaignSize];
-el<HTMLSelectElement>('map-size').value=selectedMapVersion===7?'small':selectedMapVersion===9?'large':selectedMapVersion===10?'extraLarge':'medium';
+el<HTMLSelectElement>('map-size').value=selectedMapVersion===11?'small':selectedMapVersion===13?'large':selectedMapVersion===14?'extraLarge':'medium';
 const createCampaign=()=>{
  const campaign=query.has('debug')&&query.has('legacy')?new Simulation():Simulation.campaign(query.has('debug')&&query.has('seed')?Number(query.get('seed'))>>>0:undefined,selectedMapVersion);
  if(!query.has('debug')&&readAiLearningPreference()){
