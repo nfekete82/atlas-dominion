@@ -50,3 +50,32 @@ test('radio: voice/master controls persist, pause stops playback, muted commands
  await page.locator('#sound').click();await page.locator('#audio-volume').fill('60');await page.screenshot({path:'artifacts/reborn/unit-radio-settings.png'});await page.locator('#audio-test').click();await expect.poll(()=>page.evaluate(()=>window.__reborn.audio.radio.active)).toBe(1);await page.locator('#audio-close').click();await page.locator('#menu').click();await page.locator('#to-main').click();await page.locator('#new').click();await page.evaluate(()=>window.__beforeRadioRestart=window.__reborn.game);await page.locator('#new-dialog button[value="new"]').click();await expect.poll(()=>page.evaluate(()=>window.__reborn.game!==window.__beforeRadioRestart)).toBe(true);
  const after=await page.evaluate(()=>{const a=window.__reborn;a.game.aiClock=-1e8;const u=a.game.units[0];a.renderer.selected=new Set([u.id]);const before=a.audio.radio.stats.started;a.input.order({x:u.x+100,y:u.y+120});return {delta:a.audio.radio.stats.started-before,active:a.audio.radio.active,decoded:a.audio.radio.stats.decoded,volume:a.audio.radio.volume};});expect(after).toEqual({delta:1,active:1,decoded:47,volume:.37});expect(errors).toEqual([]);
 });
+
+test('radio: military preset is default, produces decoded speech, persists and can switch back to original',async({page})=>{
+ const errors=await start(page);
+ await page.locator('#sound').click();
+ await expect(page.locator('#audio-radio-military')).toBeChecked();
+ const first=await page.evaluate(()=>{
+  const r=window.__reborn.audio.radio; r.reset();
+  const started=r.request('move','tank',true);
+  return {started,active:r.active,style:r.style,clips:r.stats.decoded,profile:r.lastClip?.profile};
+ });
+ expect(first).toMatchObject({started:true,active:1,style:'military',clips:47,profile:'crew'});
+ await page.locator('#audio-radio-military').uncheck();
+ expect(await page.evaluate(()=>window.__reborn.audio.radio.style)).toBe('original');
+ await page.reload();
+ await page.locator('#loading').waitFor({state:'detached'});
+ await page.locator('#sound').click();
+ await expect(page.locator('#audio-radio-military')).not.toBeChecked();
+ expect(await page.evaluate(()=>window.__reborn.audio.radio.style)).toBe('original');
+ await page.locator('#audio-radio-military').check();
+ await expect(page.locator('#audio-radio-military')).toBeChecked();
+ const military=await page.evaluate(async()=>{
+  const a=window.__reborn.audio;
+  await a.unlock();await a.radio.ready;a.radio.reset();
+  const started=a.radio.request('attack','infantry',true);
+  return {started,style:a.radio.style,active:a.radio.active,group:a.radio.lastClip?.group};
+ });
+ expect(military).toEqual({started:true,style:'military',active:1,group:'attack'});
+ expect(errors).toEqual([]);
+});
