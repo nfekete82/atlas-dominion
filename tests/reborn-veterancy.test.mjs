@@ -27,7 +27,7 @@ for(const owner of [0,1])test(`veterancy: faction ${owner} earns only applied da
 test('veterancy: real burst hits award XP, cooldown and damage use role bonuses once',()=>{
  for(const xp of [0,100,250,500]){
   const g=fixture(),u=g.spawn(0,{x:1900,y:2100}),t=g.spawn(1,{x:1980,y:2100},'tank');u.xp=xp;u.hold=true;t.cooldown=1e8;t.hold=true;g.command([u.id],{kind:'attack',x:t.x,y:t.y,target:t.id});g.updateVision();g.step();
-  const m=getVeterancyModifiers({kind:'infantry',xp}),applied=17*m.damage/3;near(t.hp,620-applied);near(u.xp,xp+applied*.1);near(u.cooldown,.85/m.fireRate);advance(g,.2);near(t.hp,620-17*m.damage);
+  const m=getVeterancyModifiers({kind:'infantry',xp}),applied=17*m.damage/3;near(t.hp,UNITS.tank.hp-applied);near(u.xp,xp+applied*.1);near(u.cooldown,.85/m.fireRate);advance(g,.2);near(t.hp,UNITS.tank.hp-17*m.damage);
  }
  const g=fixture(),u=g.spawn(0,{x:1900,y:2100});advance(g,1);assert.equal(u.xp,0,'no shots/no hits give no XP');
 });
@@ -40,7 +40,7 @@ for(const owner of [0,1])test(`veterancy: faction ${owner} healing and repair aw
  const g=fixture(),m=g.spawn(owner,{x:1900,y:2100},'medic'),t=g.spawn(owner,{x:1940,y:2100});t.hp=20;g.step();near(t.hp,20.6);near(m.xp,.15);
  m.hp=50;t.hp=100;g.step();assert.ok(m.hp>50);near(m.xp,.15);
  m.hp=100;g.step();near(m.xp,.15);
- const e=g.spawn(owner,{x:2100,y:2100},'engineer'),v=g.spawn(owner,{x:2150,y:2100},'tank');v.hp=619.7;g.step();near(v.hp,620);near(e.xp,.06);g.step();near(e.xp,.06);
+ const e=g.spawn(owner,{x:2100,y:2100},'engineer'),v=g.spawn(owner,{x:2150,y:2100},'tank');v.hp=UNITS.tank.hp-.3;g.step();near(v.hp,UNITS.tank.hp);near(e.xp,.06);g.step();near(e.xp,.06);
  const h=g.bases[owner];e.x=h.x+h.radius+32;e.y=h.y;h.hp-=.3;g.command([e.id],{...h,kind:'repair',target:h.id});g.step();near(e.xp,.12);g.step();near(e.xp,.12);
 });
 test('veterancy: elite medic has increased healing radius and rate; engineer repair and build rates remain capped',()=>{
