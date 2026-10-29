@@ -383,3 +383,8 @@ body.tactical-paused #app{filter:blur(7px);pointer-events:none;user-select:none}
 #map-size{display:block;width:100%;max-width:370px;margin:0 auto 20px;padding:13px 16px;border:1px solid #d6ad675e;border-radius:5px;background:#142a33;color:#fff0d1;font:600 15px var(--display);cursor:pointer}
 #map-size:focus-visible{outline:2px solid #e4bb79;outline-offset:3px}
 [data-build]:disabled{opacity:.38;cursor:not-allowed}
+
+/* Tactical AI 3.1: explicit, accessible, opt-in local experience transfer. */
+#new-dialog .ai-learning-option{display:flex;align-items:center;gap:10px;margin:12px 0 5px;color:#efe2cb;font:600 14px var(--display);cursor:pointer}
+#new-dialog .ai-learning-option input{width:19px;height:19px;flex:none;accent-color:#d9b16b;cursor:pointer}
+#new-dialog .ai-learning-note{font-size:12px;line-height:1.45;opacity:.78;margin:0 0 18px}

@@ -1,0 +1,25 @@
+name: Sandforge Tactical AI 3.1
+on:
+  push:
+    branches:
+      - feat/sandforge-tactical-ai-31-learning-20261029
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Build
+        run: npm run build
+      - name: Tactical AI 3.1, AI defense and 3.0 regression tests
+        run: node --test tests/reborn-tactical-ai-31.test.mjs tests/reborn-tactical-ai-30.test.mjs tests/reborn-bastion-defense.test.mjs tests/reborn-random-corners.test.mjs
+      - name: Full regression suite
+        run: npm test

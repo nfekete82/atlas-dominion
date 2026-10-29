@@ -8,7 +8,7 @@ import {newCampaign,campaignPhase,refreshIntelligence,chooseMission,reconGoal,va
 import {segmentDistance} from './world-generation.js';
 import {newBattle,assessBattle,fightingPower,recordFailure,retryFront,validBattle,type BattleState} from './battle-response.js';
 import {newAdaptive,updateAdaptive,validAdaptive,type AdaptiveState} from './adaptive-strategy.js';
-import {newExperience,validExperience,finishExperience,canOverrun,type Experience} from './battle-learning.js';
+import {newExperience,validExperience,finishExperience,canOverrun,observeOwnedLosses,lessonScore,type Experience} from './battle-learning.js';
 import {rankLegacyFrontiers} from './legacy-campaign.js';
 import {chooseTacticalManeuver,flankCandidate,type TacticalChoice} from './tactical-search.js';
 import {assignScreen,assignFlank,flankRouteScore,isContinuingFlank} from './battle-squads.js';
@@ -606,8 +606,11 @@ export class TacticalAI {
   const previous=c.mission,aborted=c.aborted,origin=centroid(assigned.length?assigned:fighters);
   const experience=s.experience??=newExperience();
   if(experience.active){const a=experience.active,won=g.territories[a.sector]?.owner===1;
-   if(won||g.time-a.at>120)finishExperience(experience,won,fighters.reduce((n,u)=>n+u.hp,0));}
-  const mission=chooseMission(g,c,origin,{strategy:s.adaptive?.strategy??'unknown',force:fighters,losses:s.losses,fronts:s.battle?.fronts??[],intelligent:this.doctrineMode==='intelligent',route:p=>{const route=this.route(origin,p);return route.length?this.sampleRoute(route,origin):undefined;}});
+   // Count an observed destroyed objective as victory, even before its sector falls.
+   const objectiveGone=a.objective!=null&&a.target!==undefined&&g.canSee(1,a.target)
+    &&!g.bases.some(b=>b.id===a.objective&&b.hp>0);
+   if(won||objectiveGone||g.time-a.at>120)finishExperience(experience,!!(won||objectiveGone),fighters.reduce((n,u)=>n+u.hp,0));}
+  const mission=chooseMission(g,c,origin,{strategy:s.adaptive?.strategy??'unknown',force:fighters,losses:s.losses,fronts:s.battle?.fronts??[],intelligent:this.doctrineMode==='intelligent',experience,route:p=>{const route=this.route(origin,p);return route.length?this.sampleRoute(route,origin):undefined;}});
   if(!mission){
    campaignPhase(c,'endgame',g.time);this.setPhase('regroup');s.group=[];s.objective=null;s.target=null;
    // Once the map is captured, ground patrols also search fog for survivors.
@@ -669,7 +672,7 @@ export class TacticalAI {
     this.issue([...selected,...medics],s.rally,'safe');return;
    }
    if(this.waveMode==='coordinated'&&defended)this.diagnostics.waveLaunches++;
-   if(!experience.active)experience.active={sector:mission.sector,tactic:overrun?'overrun':towers.length?'siege':'maneuver',guns:towers.length,force:ready.length,at:g.time,initialUnits:ready.length,initialHP:fighters.reduce((n,u)=>n+u.hp,0),progress:0};
+   if(!experience.active)experience.active={sector:mission.sector,tactic:overrun?'overrun':towers.length?'siege':'maneuver',guns:towers.length,force:ready.length,at:g.time,initialUnits:ready.length,initialHP:fighters.reduce((n,u)=>n+u.hp,0),progress:0,objective:mission.objective,target:{x:mission.x,y:mission.y}};
    s.groupId++;s.group=ready.map(u=>u.id);s.launchSize=ready.length;s.launchedAt=g.time;members=ready;this.setPhase('attack');
   }
   const anchor=centroid(members),joining=selected.filter(u=>!s.group.includes(u.id));
@@ -696,7 +699,7 @@ export class TacticalAI {
   // here on turret objectives. Diagnosing that gate is as important as acting.
   const tacticalEnabled=g.world.mapVersion>=3&&this.mode==='director'&&this.planningMode==='tactical';
   const tactical:TacticalChoice|null=tacticalEnabled&&group.filter(combat).length>=3&&(visible.length>0||towers.length>0)
-    ?chooseTacticalManeuver({allies:group,observedEnemies:visible,knownGuns:towers,storm:g.weather.storm}):null;
+    ?chooseTacticalManeuver({allies:group,observedEnemies:visible,knownGuns:towers,storm:g.weather.storm,learned:{flank:lessonScore(experience,'flank',0,group.length),siege:lessonScore(experience,'siege',towers.length,group.length)}}):null;
   if(tactical){
     this.diagnostics.evaluated++;this.diagnostics.choices[tactical.mode]++;
     this.diagnostics.last={at:g.time,sector:mission.sector,allies:group.length,visible:visible.length,
@@ -762,7 +765,10 @@ export class TacticalAI {
           else if(moved)this.issue([u],mission,'assault',undefined,false,false);
         }
         newFlank=assigned;
-        if(assigned.length===2)this.diagnostics.flankGroups++;
+        if(assigned.length===2){
+          this.diagnostics.flankGroups++;
+          if(experience.active?.sector===mission.sector&&experience.active.guns===0)experience.active.tactic='flank';
+         }
         else this.diagnostics.flankNoRoute++;
       }else this.diagnostics.flankNoRoute++;
     }else this.diagnostics.flankNoSquad++;
@@ -790,6 +796,7 @@ export class TacticalAI {
   if(signature!==this.routeSignature||this.routeCache.size>128){this.routeCache.clear();this.routeSignature=signature;}this.field();
   const army=g.units.filter(u=>u.owner===1&&u.hp>0&&!u.carrier),home=g.bases.filter(b=>b.owner===1&&b.hp>0).sort((a,b)=>(a.kind==='headquarters'?0:1)-(b.kind==='headquarters'?0:1)||a.id-b.id)[0]??g.territories.find(t=>t.owner===1)?.point??army[0];
   if(!home)return;
+  if(g.world.mapVersion>=3&&this.mode==='director')observeOwnedLosses(s.experience??=newExperience(),g.territories.filter(t=>t.owner===1).map(t=>t.id),army.filter(combat).length);
   if(g.world.mapVersion>=3&&this.mode==='director')updateAdaptive(g,s.adaptive??=newAdaptive(),home,s.losses,s.battle);
   const recovering=this.recovery(army,home);if(g.world.mapVersion>=3&&this.mode==='director')for(const id of this.withdrawals(army))recovering.add(id);
   this.airlift(army,home);const explorers=this.recon(army.filter(u=>!recovering.has(u.id)),home),boarding=new Set([...army.filter(u=>u.orders[0]?.kind==='board').map(u=>u.id),...(s.airlift?.phase==='pickup'?s.airlift.passengers??[]:[])]),fighters=army.filter(u=>combat(u)&&!recovering.has(u.id)&&!explorers.has(u.id)&&!boarding.has(u.id)),medics=army.filter(u=>u.kind==='medic'&&!recovering.has(u.id)&&!boarding.has(u.id)).slice(0,2);

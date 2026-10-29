@@ -6,7 +6,8 @@ import { RULES, mapLayout, campaignLayout, CAMPAIGN_SIZES, type MapVersion, type
 import { Simulation, type Base } from './simulation.js';
 import { Renderer } from './renderer.js';
 import { Input } from './input.js';
-import { saveCampaign, loadCampaign } from './storage.js';
+import { saveCampaign, loadCampaign,readAiLearningPreference,storeAiLearningPreference,loadAiLearningProfile,saveAiLearningProfile } from './storage.js';
+import {finishExperience} from './battle-learning.js';
 import { Soundscape } from './audio.js';
 import { BUILDINGS, UNITS, unitKinds, buildingSpec, unitSpec, type UnitKind, type BuildingKind } from './catalog.js';
 import { icon } from './icons.js';
@@ -25,7 +26,16 @@ let selectedMapVersion:MapVersion=query.has('debug')?2:4;
 const requestedSize=query.get('map');
 if(requestedSize&&Object.hasOwn(CAMPAIGN_SIZES,requestedSize))selectedMapVersion=CAMPAIGN_SIZES[requestedSize as CampaignSize];
 el<HTMLSelectElement>('map-size').value=selectedMapVersion===3?'small':selectedMapVersion===5?'large':selectedMapVersion===6?'extraLarge':'medium';
-const createCampaign=()=>query.has('debug')&&query.has('legacy')?new Simulation():Simulation.campaign(query.has('debug')&&query.has('seed')?Number(query.get('seed'))>>>0:undefined,selectedMapVersion);
+const createCampaign=()=>{
+ const campaign=query.has('debug')&&query.has('legacy')?new Simulation():Simulation.campaign(query.has('debug')&&query.has('seed')?Number(query.get('seed'))>>>0:undefined,selectedMapVersion);
+ if(!query.has('debug')&&readAiLearningPreference()){
+  const profile=loadAiLearningProfile();
+  if(profile)campaign.tactical.state.experience=profile;
+ }
+ return campaign;
+};
+el<HTMLInputElement>('carry-ai-learning').checked=readAiLearningPreference();
+el<HTMLInputElement>('carry-ai-learning').onchange=()=>storeAiLearningPreference(el<HTMLInputElement>('carry-ai-learning').checked);
 let game=createCampaign();
 const qwenGeneral=new QwenGeneral();
 if(query.has('debug')&&query.has('perfTest'))game.paused=true;
@@ -76,7 +86,9 @@ function prepareCatalog():void{
 function prepareTerritories():void{el('catalog-territories').replaceChildren();
  for(const t of game.territories){const button=document.createElement('button');button.className='territory-row';button.dataset.territory=String(t.id);button.innerHTML='<i></i><strong></strong><small></small>';button.onclick=()=>{renderer.camera.x=game.territories[t.id].point.x;renderer.camera.y=game.territories[t.id].point.y;renderer.boundCamera();};el('catalog-territories').append(button);}
 }
-function reset():void{hasEnteredCampaign=true;closeDialogs();game=createCampaign();qwenGeneral.resetCampaign();audio.bindGame(game);renderer.game=game;renderer.invalidate();renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;renderer.placement=null;renderer.commandMode=null;renderer.canvas.classList.remove('attack','building');renderer.home();prepareTerritories();accumulator=0;resultShown=false;messages.length=0;setPause(false);tab('units');refresh();notify('Neue Kampagne. Wähle deinen Pionier und errichte zuerst eine Kaserne.');}
+function reset():void{
+ if(!query.has('debug')&&readAiLearningPreference())saveAiLearningProfile(game.tactical.state.experience);
+ hasEnteredCampaign=true;closeDialogs();game=createCampaign();qwenGeneral.resetCampaign();audio.bindGame(game);renderer.game=game;renderer.invalidate();renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;renderer.placement=null;renderer.commandMode=null;renderer.canvas.classList.remove('attack','building');renderer.home();prepareTerritories();accumulator=0;resultShown=false;messages.length=0;setPause(false);tab('units');refresh();notify('Neue Kampagne. Wähle deinen Pionier und errichte zuerst eine Kaserne.');}
 function refresh():void{
  if(!profiler)return refreshMeasured();const at=performance.now();try{refreshMeasured();}finally{profiler.record('hud',performance.now()-at);}
 }
@@ -147,9 +159,15 @@ function refreshMeasured():void{
  }
  if(catalogTab==='territories')for(const button of document.querySelectorAll<HTMLButtonElement>('[data-territory]')){const t=game.territories[Number(button.dataset.territory)],known=game.hasExplored(0,t.point)||t.owner===0;button.className=`territory-row ${known?t.owner===0?'blue':t.owner===1?'red':'neutral':'unknown'}`;text(button.querySelector('strong')!,known?t.name:`Unbekannter Sektor ${t.id+1}`);text(button.querySelector('small')!,known?`+${t.income}`:'—');}
  for(const message of game.notices.splice(0))notify(message);
- if(game.status!=='playing'&&!resultShown){resultShown=true;closeDialogs();setPause(true);setText('result-title',game.status==='victory'?'Aridis gesichert.':'Die Legion ist gefallen.');setText('result-copy',game.status==='victory'?`Das feindliche Hauptquartier und seine ${mapLayout(game.world.mapVersion).starts[1].length} Startgebiete sind unter deiner Kontrolle.`:'Deine Produktionsstätten und Truppen wurden vernichtet.');el<HTMLDialogElement>('result-dialog').showModal();}
+ if(game.status!=='playing'&&!resultShown){
+   if(game.tactical.state.experience?.active){
+    finishExperience(game.tactical.state.experience,game.status==='defeat',
+      game.units.filter(u=>u.owner===1&&u.hp>0).reduce((n,u)=>n+u.hp,0));
+   }
+   if(!query.has('debug')&&readAiLearningPreference())saveAiLearningProfile(game.tactical.state.experience);
+   resultShown=true;closeDialogs();setPause(true);setText('result-title',game.status==='victory'?'Aridis gesichert.':'Die Legion ist gefallen.');setText('result-copy',game.status==='victory'?`Das feindliche Hauptquartier und seine ${mapLayout(game.world.mapVersion).starts[1].length} Startgebiete sind unter deiner Kontrolle.`:'Deine Produktionsstätten und Truppen wurden vernichtet.');el<HTMLDialogElement>('result-dialog').showModal();}
 }
-async function save():Promise<void>{if(busy)return;busy=true;try{await saveCampaign(game);notify('Kampagne lokal gespeichert.');}catch(e){notify((e as Error).message);}finally{busy=false;}}
+async function save():Promise<void>{if(busy)return;busy=true;try{await saveCampaign(game);if(!query.has('debug')&&readAiLearningPreference())saveAiLearningProfile(game.tactical.state.experience);notify('Kampagne lokal gespeichert.');}catch(e){notify((e as Error).message);}finally{busy=false;}}
 async function load():Promise<void>{if(busy)return;busy=true;try{const loaded=await loadCampaign();hasEnteredCampaign=true;closeDialogs();game=loaded;qwenGeneral.resetCampaign();audio.bindGame(game);renderer.game=game;renderer.invalidate();renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;renderer.placement=null;renderer.commandMode=null;renderer.canvas.classList.remove('attack','building');renderer.home();prepareTerritories();resultShown=false;accumulator=0;setPause(false);refresh();notify('Kampagne geladen.');}catch(e){notify((e as Error).message);}finally{busy=false;}}
 el('resume-tactical').onclick=()=>setPause(false);
 input.onPause=()=>setPause(!game.paused);input.onMenu=openMenu;input.onHelp=()=>modal('help-dialog');input.onSave=()=>void save();input.onLoad=()=>void load();
@@ -158,7 +176,9 @@ el('save').onclick=()=>void save();el('load').onclick=()=>void load();el('main-l
 el('to-main').onclick=()=>{closeDialogs();modal('main-dialog');};el('main-continue').onclick=()=>{if(!hasEnteredCampaign)return;closeDialogs();setPause(false);};el<HTMLDialogElement>('main-dialog').addEventListener('cancel',event=>event.preventDefault());el('new').onclick=()=>modal('new-dialog');el<HTMLDialogElement>('new-dialog').addEventListener('close',()=>{
  if(el<HTMLDialogElement>('new-dialog').returnValue==='new'){
   const size=el<HTMLSelectElement>('map-size').value as CampaignSize;
-  selectedMapVersion=CAMPAIGN_SIZES[size]??4;reset();
+  selectedMapVersion=CAMPAIGN_SIZES[size]??4;
+  storeAiLearningPreference(el<HTMLInputElement>('carry-ai-learning').checked);
+  reset();
  }
 });
 el('result-new').onclick=()=>{closeDialogs();modal('new-dialog');};el('result-close').onclick=()=>el<HTMLDialogElement>('result-dialog').close();
