@@ -27,6 +27,13 @@
   const description = document.querySelector('meta[name="description"]');
   if (description) description.content = name + ' – taktisches Wüsten-RTS mit Infanterie, Fahrzeugen und Bastionen.';
   brandedMenu('#main-dialog', 'sandforge-splash-logo');
+  // The illustrated start menu's OPTIONS is a real control, not painted text.
+  // Open the same audio/graphics panel used by the rest of the game. Keeping
+  // the main menu open below it ensures Close returns to the start screen.
+  document.querySelector('#main-options')?.addEventListener('click', () => {
+    const panel = document.querySelector('#audio-panel');
+    if (panel && !panel.open) panel.showModal();
+  });
   brandedMenu('#pause-dialog', 'sandforge-pause-logo');
   const loading = document.querySelector('#loading');
   if (loading) {
