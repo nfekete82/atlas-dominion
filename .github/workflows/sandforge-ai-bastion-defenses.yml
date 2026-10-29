@@ -1,0 +1,25 @@
+name: Sandforge - AI bastion defenses
+on:
+  push:
+    branches:
+      - feat/sandforge-ai-bastion-turrets-20261029
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - name: Build
+        run: npm run build
+      - name: Bastion defense and economy tests
+        run: node --test tests/reborn-bastion-defense.test.mjs tests/reborn-map-ai.test.mjs tests/reborn-random-corners.test.mjs
+      - name: Full regression suite
+        run: npm test

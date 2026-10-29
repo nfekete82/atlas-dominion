@@ -1,18 +1,20 @@
 import {UNITS,BUILDINGS,unitSpec,canAttack,type UnitKind,type BuildingKind} from './catalog.js';
 import {distance,type Point} from './config.js';
 import {produceCombinedArmy} from './director-production.js';
+import {buildBastionDefense,defensiveTowerLimit} from './bastion-defense.js';
 import type {Simulation,Unit,Base} from './simulation.js';
 import type {TacticalState} from './tactical-ai.js';
 export type ProductionReason='produced'|'saving-unit'|'saving-building'|'insufficient-credits'|'queue-blocked'|'army-cap'|'composition-complete'|'no-producer';
 export interface ProductionDecision {reason:ProductionReason;goal:UnitKind|BuildingKind|null;missing:number}
-export interface EconomyState {goal:BuildingKind|null;since:number;attemptAt:number;produced:Partial<Record<UnitKind,number>>;built:Partial<Record<BuildingKind,number>>;production? :ProductionDecision&{at:number;facilities:Record<number,ProductionDecision>}}
+export interface EconomyState {goal:BuildingKind|null;since:number;attemptAt:number;produced:Partial<Record<UnitKind,number>>;built:Partial<Record<BuildingKind,number>>;towerAttemptAt?:number;production? :ProductionDecision&{at:number;facilities:Record<number,ProductionDecision>}}
 const fighter=(u:Unit)=>!u.carrier&&!['medic','engineer','scout'].includes(u.kind);
 /** A production/building policy inside the existing tactical controller, using only paid game APIs. */
 export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p:Point)=>number):void{
- const e=s.economy??={goal:null,since:g.time,attemptAt:-9,produced:{},built:{}},own=g.bases.filter(b=>b.owner===1&&b.hp>0),home=own.find(b=>b.kind==='headquarters')??own[0];if(!home)return;
+ const e:EconomyState=s.economy??{goal:null,since:g.time,attemptAt:-9,produced:{},built:{}},own=g.bases.filter(b=>b.owner===1&&b.hp>0),home=own.find(b=>b.kind==='headquarters')??own[0];if(!home)return;
  const fighters=army.filter(fighter),workers=army.filter(u=>u.kind==='engineer'&&!u.carrier),seen=g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)),income=g.income(1);
  const underAttack=seen.some(u=>own.some(b=>distance(b,u)<480)),known=s.knownTurrets.length;
  const director=g.world.mapVersion>=3&&g.tactical.mode==='director';
+ if(director&&!s.economy)s.economy=e; // Keep paid turret cooldowns across macro ticks and save/reload.
  const count=(kind:UnitKind)=>army.filter(u=>u.kind===kind).length+own.reduce((n,b)=>n+b.queueTypes.filter(k=>k===kind).length,0);
  const has=(kind:BuildingKind)=>own.some(b=>b.kind===kind),complete=(kind:BuildingKind)=>own.some(b=>b.kind===kind&&b.buildRemaining<=0);
  const unfinished=own.find(b=>b.buildRemaining>0);
@@ -44,6 +46,20 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
    }
    candidates.sort((a,b)=>distance(a,home)+distance(a,worker)*.2-(distance(b,home)+distance(b,worker)*.2));
    for(const p of candidates.slice(0,8)){const b=g.build(1,goal,p,[worker.id]);if(b){e.built[goal]=(e.built[goal]??0)+1;e.goal=null;break;}}
+  }
+ }
+ // Fortify owned border bastions after core production has started. Unlike
+ // a passive HQ guard, a real turret can hold a captured frontier while the
+ // mobile army advances. Do not block repairs, construction or new armor.
+ if(director&&!unfinished&&!g.bases.some(b=>b.owner===1&&b.hp>0&&b.buildRemaining>0)
+  &&(goal===null||goal==='generator')&&complete('barracks')&&complete('factory')
+  &&fighters.length>=4&&g.time>=75&&g.credits[1]>=BUILDINGS.turret.cost+400
+  &&own.filter(b=>b.kind==='turret').length<defensiveTowerLimit(g.territories.length)
+  &&g.time-(e.towerAttemptAt??-30)>=18){
+  const idle=workers.filter(w=>w.defendUntil<=g.time&&!w.orders.length);
+  if(idle.length){
+   e.towerAttemptAt=g.time;
+   if(buildBastionDefense(g,idle,dangerAt)!==null)e.built.turret=(e.built.turret??0)+1;
   }
  }
  // Never reserve the airfield budget ahead of a working vehicle factory.
@@ -92,7 +108,7 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
 }
 const clampWait=(missing:number,income:number,secure:boolean)=>Math.min(secure?100:15,Math.max(6,missing/Math.max(1,income)*10+3));
 export function validEconomy(e:EconomyState|undefined,time:number):boolean{
- if(e===undefined)return true;return !!e&&(e.goal===null||Object.hasOwn(BUILDINGS,e.goal))&&Number.isFinite(e.since)&&e.since>=0&&e.since<=time+.001&&Number.isFinite(e.attemptAt)&&e.attemptAt>=-9&&e.attemptAt<=time+.001&&!!e.produced&&!!e.built&&Object.entries(e.produced).every(([k,v])=>Object.hasOwn(UNITS,k)&&Number.isSafeInteger(v)&&v>=0)&&Object.entries(e.built).every(([k,v])=>Object.hasOwn(BUILDINGS,k)&&Number.isSafeInteger(v)&&v>=0)&&
+ if(e===undefined)return true;return !!e&&(e.towerAttemptAt===undefined||(Number.isFinite(e.towerAttemptAt)&&e.towerAttemptAt>=0&&e.towerAttemptAt<=time+.001))&&(e.goal===null||Object.hasOwn(BUILDINGS,e.goal))&&Number.isFinite(e.since)&&e.since>=0&&e.since<=time+.001&&Number.isFinite(e.attemptAt)&&e.attemptAt>=-9&&e.attemptAt<=time+.001&&!!e.produced&&!!e.built&&Object.entries(e.produced).every(([k,v])=>Object.hasOwn(UNITS,k)&&Number.isSafeInteger(v)&&v>=0)&&Object.entries(e.built).every(([k,v])=>Object.hasOwn(BUILDINGS,k)&&Number.isSafeInteger(v)&&v>=0)&&
   (e.production===undefined||(Number.isFinite(e.production.at)&&e.production.at>=0&&e.production.at<=time+.001&&validDecision(e.production)&&!!e.production.facilities&&Object.entries(e.production.facilities).length<=40&&Object.entries(e.production.facilities).every(([id,d])=>Number.isSafeInteger(Number(id))&&Number(id)>=0&&validDecision(d))));
 }
 const validDecision=(d:ProductionDecision)=>!!d&&['produced','saving-unit','saving-building','insufficient-credits','queue-blocked','army-cap','composition-complete','no-producer'].includes(d.reason)&&(d.goal===null||Object.hasOwn(UNITS,d.goal)||Object.hasOwn(BUILDINGS,d.goal))&&Number.isFinite(d.missing)&&d.missing>=0;
