@@ -11,6 +11,7 @@ import {newAdaptive,updateAdaptive,validAdaptive,type AdaptiveState} from './ada
 import {rankLegacyFrontiers} from './legacy-campaign.js';
 import {chooseTacticalManeuver,flankCandidate,type TacticalChoice} from './tactical-search.js';
 import {assignScreen,assignFlank,flankRouteScore,isContinuingFlank} from './battle-squads.js';
+import {assaultWaveDecision,reinforcementStagingPoint} from './assault-wave.js';
 import type {Simulation,Unit,Memory} from './simulation.js';
 export type TacticalPhase='gather'|'attack'|'regroup'|'defend';
 export interface KnownTurret extends Point {id:number;hp:number;seenAt:number;range:number}
@@ -21,10 +22,11 @@ export interface TacticalDiagnostics {
  evaluated:number;choices:Record<'assault'|'flank'|'siege'|'regroup',number>;
  delegatedSieges:number;issuedSieges:number;screenOrders:number;flankGroups:number;flankOrders:number;mainOrders:number;
  flankOpportunities:number;flankNoSquad:number;flankNoRoute:number;
+ waveWaits:number;waveLaunches:number;reinforcementStagingOrders:number;
  last:{at:number;sector:number;allies:number;visible:number;guns:number;choice:string;reason:string}|null;
 }
 const newDiagnostics=():TacticalDiagnostics=>({evaluated:0,choices:{assault:0,flank:0,siege:0,regroup:0},delegatedSieges:0,issuedSieges:0,screenOrders:0,flankGroups:0,flankOrders:0,mainOrders:0,
- flankOpportunities:0,flankNoSquad:0,flankNoRoute:0,last:null});
+ flankOpportunities:0,flankNoSquad:0,flankNoRoute:0,waveWaits:0,waveLaunches:0,reinforcementStagingOrders:0,last:null});
 export interface TacticalState {
  adaptive?:AdaptiveState;
  battle?:BattleState;
@@ -44,6 +46,8 @@ export class TacticalAI {
  mode:'baseline'|'director'='director';
  /** Benchmark-only A/B switch; classic director remains available. */
  planningMode:'classic'|'tactical'='tactical';
+ /** Benchmark-only policy toggle: legacy Tactical AI 2.3 versus coordinated 2.4. */
+ waveMode:'legacy'|'coordinated'='coordinated';
  /** Runtime-only diagnostics: never influence simulation or serialize in saves. */
  diagnostics:TacticalDiagnostics=newDiagnostics();
  state=fresh();private risk:Float32Array|undefined;private riskAt=-1;private routeCache=new Map<string,Point[]>();private routeSignature='';
@@ -568,16 +572,29 @@ export class TacticalAI {
    const ready=selected.filter(u=>distance(u,s.rally!)<330),power=ready.reduce((n,u)=>n+combatStrength(u),0);
    const armed=ready.some(u=>u.kind==='artillery'||u.kind==='tank');
    const enough=towers.length?(assessment.stance==='attack'||assessment.stance==='siege'):defended?ready.length>=3&&power>=5&&(armed||!towers.length&&ready.length>=5):ready.length>=(g.time<40?1:2);
-   if(!enough){
+   const wave=this.waveMode==='coordinated'
+     ?assaultWaveDecision({defended,selectedGround:selected.filter(u=>!unitSpec(u).flying).length,
+        readyGround:ready.filter(u=>!unitSpec(u).flying).length,elapsed:g.time-s.phaseAt})
+     :{ready:true,required:0,reason:'legacy'};
+   if(enough&&!wave.ready)this.diagnostics.waveWaits++;
+   if(!enough||!wave.ready){
     campaignPhase(c,g.time<40?'opening':defended?'buildup':'expansion',g.time);this.setPhase('gather');
     this.issue([...selected,...medics],s.rally,'safe');return;
    }
+   if(this.waveMode==='coordinated'&&defended)this.diagnostics.waveLaunches++;
    s.groupId++;s.group=ready.map(u=>u.id);s.launchSize=ready.length;s.launchedAt=g.time;members=ready;this.setPhase('attack');
   }
   const anchor=centroid(members),joining=selected.filter(u=>!s.group.includes(u.id));
+  const staged=this.waveMode==='coordinated'
+   ?reinforcementStagingPoint(anchor,mission,home):anchor;
+  const rendezvous=this.waveMode==='coordinated'
+   ?g.world.nearest(staged,this.obstacles(),[],undefined,12)??anchor:anchor;
   for(const u of joining){
    if(distance(u,anchor)<330){s.group.push(u.id);s.launchSize++;members.push(u);}
-   else if(!u.orders.length||u.orders[0].tactical?.mode!=='assault'||distance(u.orders[0],anchor)>220)this.issue([u],anchor,'assault',undefined,false,false);
+   else if(!u.orders.length||u.orders[0].tactical?.mode!=='assault'||distance(u.orders[0],rendezvous)>180){
+    if(this.issue([u],rendezvous,'assault',undefined,false,false)&&this.waveMode==='coordinated')
+      this.diagnostics.reinforcementStagingOrders++;
+   }
   }
   const escorts=medics.filter(u=>distance(u,anchor)<360);
   for(const u of medics.filter(u=>!escorts.includes(u)))if(!u.orders.length||distance(u.orders[0],anchor)>160)this.issue([u],anchor,'safe',undefined,false,false);
