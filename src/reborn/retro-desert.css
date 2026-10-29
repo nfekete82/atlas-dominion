@@ -850,23 +850,37 @@ html.sandforge-clean-title #main-dialog .menu-buttons .menu-button:hover:not(:di
 }
 
 
-/* Humvee cargo strip: exact passengers, one-click single-unit deployment. */
+/* Humvee passenger console: dedicated right-hand slot, not below description.
+   The four occupancy cells are real unit buttons; no duplicate roster state. */
 #selection-panel .transport-passengers[hidden]{display:none}
-#selection-panel .transport-passengers{margin-top:5px;max-width:100%;min-width:0}
-#selection-panel .passenger-roster-label{display:flex;justify-content:space-between;gap:8px;color:#d6c49a;font:700 9px/1.2 var(--display);letter-spacing:.4px;white-space:nowrap}
-#selection-panel .passenger-slots{display:flex;gap:5px;margin-top:3px;align-items:center}
-#selection-panel .passenger-slot{position:relative;flex:0 0 41px;width:41px;height:37px;min-width:0;min-height:0;padding:1px;border:1px solid #a89467;background:linear-gradient(180deg,#454238,#171d1b);display:grid;place-items:center;cursor:pointer}
+#selection-panel:has(.transport-passengers:not([hidden])) .selection{align-items:center;gap:12px}
+#selection-panel .selection-copy{flex:1 1 0;min-width:0}
+#selection-panel .transport-passengers{flex:0 0 120px;width:120px;min-width:0;min-height:0;align-self:center;display:flex;flex-direction:column;gap:5px;padding:6px 7px;background:#10191b96;border:1px solid #95805d8c;box-sizing:border-box}
+#selection-panel .passenger-roster-label{display:flex;justify-content:space-between;gap:4px;color:#d6c49a;font:700 10px/1.2 var(--display);letter-spacing:.35px;white-space:nowrap}
+#selection-panel .passenger-slots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+#selection-panel .passenger-slot{position:relative;width:100%;height:34px;min-width:0;min-height:0;padding:1px;border:1px solid #a89467;background:linear-gradient(180deg,#454238,#171d1b);display:grid;place-items:center;cursor:pointer}
 #selection-panel .passenger-slot img{display:block;width:100%;height:100%;object-fit:contain;image-rendering:auto;pointer-events:none}
 #selection-panel .passenger-slot .role-badge{width:10px;height:10px;min-width:10px;min-height:10px;top:1px;right:1px}
 #selection-panel .passenger-slot.occupied:hover:not(:disabled){background:#6b583b;border-color:#f3d392;box-shadow:0 0 0 1px #edbd65a0}
 #selection-panel .passenger-slot.empty{font-size:17px;color:#91876b;border-style:dashed;cursor:default}
 #selection-panel .passenger-slot:disabled{opacity:.46;cursor:default}
-#selection-panel:has(.transport-passengers:not([hidden])) #selection-detail{font-size:11px;line-height:1.2;margin-top:3px;-webkit-line-clamp:1}
+#selection-panel .passenger-hint{color:#b9a88b;font:600 8px/1 var(--display);white-space:nowrap}
+#selection-panel:has(.transport-passengers:not([hidden])) #selection-detail{font-size:12px;line-height:1.25;margin-top:5px;-webkit-line-clamp:2}
 @media(max-width:1000px){
- #selection-panel .passenger-slot{flex-basis:36px;width:36px;height:33px}
- #selection-panel .passenger-roster-label{font-size:8px}
+ #selection-panel .transport-passengers{flex-basis:108px;width:108px;padding:4px 5px}
+ #selection-panel .passenger-slot{height:31px}
+ #selection-panel .passenger-roster-label{font-size:9px}
+ #selection-panel .passenger-hint{font-size:7px}
+}
+@container game-view (max-width:570px){
+ #selection-panel:has(.transport-passengers:not([hidden])) .selection{gap:7px}
+ #selection-panel .transport-passengers{flex-basis:92px;width:92px;padding:3px 4px}
+ #selection-panel .passenger-slot{height:28px;gap:2px}
+ #selection-panel .passenger-hint{font-size:6px;white-space:normal}
 }
 @container game-view (max-width:350px){
- #selection-panel .passenger-slot{flex-basis:34px;width:34px;height:32px}
- #selection-panel .passenger-roster-label{white-space:normal}
+ #selection-panel:has(.transport-passengers:not([hidden])) .selection{flex-wrap:wrap}
+ #selection-panel .transport-passengers{flex:0 0 100%;width:100%}
+ #selection-panel .passenger-slots{grid-template-columns:repeat(4,minmax(0,1fr))}
+ #selection-panel .passenger-hint{font-size:8px}
 }
