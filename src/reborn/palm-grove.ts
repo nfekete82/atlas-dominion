@@ -41,6 +41,14 @@ export class PalmGrove {
    const extent=d.radius*3.55*PALM_ART_SCALE;
    if(view&&(d.x+extent<view.left||d.x-extent>view.right||d.y+extent<view.top||d.y-extent>view.bottom))continue;
    const sprite=groundSprite(sprites,d.variant);
+   // Headless Node test canvases have no document. Preserve one stable upright
+   // silhouette there; actual browsers get separate wind-animated crown layers.
+   if(typeof document==='undefined'){
+    const w=d.radius*3.55*PALM_ART_SCALE,h=d.radius*3.5*PALM_ART_SCALE;
+    c.save();c.translate(d.x,d.y);c.rotate(Math.sin(d.rotation)*.07);
+    c.drawImage(sprite,-w*.5,-h*.58,w,h);c.restore();
+    continue;
+   }
    let layers=this.layers.get(sprite);
    if(!layers){layers=splitSprite(sprite);this.layers.set(sprite,layers);}
    const w=d.radius*3.55*PALM_ART_SCALE,h=d.radius*3.5*PALM_ART_SCALE;
