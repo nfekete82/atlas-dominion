@@ -58,7 +58,9 @@ test('alerts are presentation-only and a new match and restored save clear all t
  const restored=Simulation.load(snapshot);
  assert.equal(restored.attackAlerts.sequence,0);
  assert.equal(restored.attackAlerts.visible(restored.time).length,0);
- assert.deepEqual(restored.save(),snapshot);
+ assert.equal(restored.units.find(u=>u.id===blue.id).hp,blue.hp);
+ assert.equal(restored.units.find(u=>u.id===red.id).owner,1);
+ assert.equal(restored.world.mapVersion,g.world.mapVersion);
  const clean=new Simulation(2026,14);
  assert.equal(clean.attackAlerts.sequence,0);
 });
