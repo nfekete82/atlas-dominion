@@ -1,57 +1,55 @@
 import {test,expect} from '@playwright/test';
 
-test('Sandforge shows the full-screen desert title and starts via map selection',async({page})=>{
+test('Sandforge main menu uses one continuous desert and its real transparent logo',async({page})=>{
  await page.setViewportSize({width:1440,height:900});
  await page.goto('/');
  await page.locator('#loading').waitFor({state:'detached'});
- const cinematicAsset=await page.request.get('/src/assets/reborn/start-screen-cinematic.webp');
- const cinematic=cinematicAsset.ok()&&cinematicAsset.headers()['content-type']?.startsWith('image/');
- if(process.env.SANDFORGE_REQUIRE_CINEMATIC==='1')expect(cinematic).toBe(true);
-
- if(cinematic)await expect(page.locator('html')).toHaveClass(/sandforge-cinematic-title/);
  const menu=page.locator('#main-dialog');
  await expect(menu).toBeVisible();
+ await expect(page.locator('html')).toHaveClass(/sandforge-clean-title/);
+ await expect(page.locator('html')).not.toHaveClass(/sandforge-cinematic-title/);
  await expect(page.locator('#new-dialog')).not.toBeVisible();
  await expect(page.locator('#main-continue')).toBeHidden();
+ await expect(page.locator('#main-dialog .sandforge-splash-logo')).toBeVisible();
+
  const layout=await menu.evaluate(async el=>{
-   const image=el.querySelector('.sandforge-splash-logo');
-   if(image && !image.complete)await new Promise(resolve=>image.addEventListener('load',resolve,{once:true}));
-   const r=el.getBoundingClientRect();
-   return {width:r.width,height:r.height,background:getComputedStyle(el).backgroundImage,poster:getComputedStyle(el,'::before').backgroundImage,logoLoaded:!!image&&image.naturalWidth>0};
+   const logo=el.querySelector('.sandforge-splash-logo');
+   if(!logo.complete)await new Promise((resolve,reject)=>{
+     logo.addEventListener('load',resolve,{once:true});
+     logo.addEventListener('error',reject,{once:true});
+   });
+   const r=el.getBoundingClientRect(),l=logo.getBoundingClientRect();
+   const buttons=el.querySelector('.menu-buttons').getBoundingClientRect();
+   const bg=getComputedStyle(el),poster=getComputedStyle(el,'::before');
+   const canvas=document.createElement('canvas');
+   canvas.width=logo.naturalWidth;canvas.height=logo.naturalHeight;
+   const ctx=canvas.getContext('2d',{willReadFrequently:true});
+   ctx.drawImage(logo,0,0);
+   const corners=[[1,1],[canvas.width-2,1],[1,canvas.height-2],[canvas.width-2,canvas.height-2]];
+   return {width:r.width,height:r.height,
+     background:bg.backgroundImage,posterContent:poster.content,
+     logoLoaded:logo.naturalWidth>0,
+     logoUrl:logo.getAttribute('src'),
+     transparentCorners:corners.every(([x,y])=>ctx.getImageData(x,y,1,1).data[3]===0),
+     centered:Math.abs(l.x+l.width/2-(r.x+r.width/2))<16,
+     logoFits:l.left>=0&&l.right<=r.right&&l.top>=0&&l.bottom<buttons.top,
+     buttonsCentered:Math.abs(buttons.x+buttons.width/2-(r.x+r.width/2))<16,
+     operationLabel:!!el.querySelector(':scope > small')};
  });
  expect(layout.width).toBeGreaterThan(1300);
  expect(layout.height).toBeGreaterThan(800);
- if(cinematic){
-   expect(layout.background).toContain('menu-desert.png');
-   expect(layout.background).not.toContain('start-screen-cinematic.webp');
-   expect(layout.poster).toContain('start-screen-cinematic.webp');
- } else expect(layout.background).toContain('start-screen.png');
+ expect(layout.background).toContain('start-screen.png');
+ expect(layout.background).not.toContain('menu-desert.png');
+ expect(layout.background).not.toContain('start-screen-cinematic.webp');
+ expect(layout.posterContent).toBe('none');
  expect(layout.logoLoaded).toBe(true);
- // Center the floating logo and all game-entry controls (not the old left column).
- const position=await page.evaluate(()=>{
-  const title=document.querySelector('#main-dialog');
-  const logo=title.querySelector('.sandforge-splash-logo');
-  const buttons=title.querySelector('.menu-buttons');
-  const r=title.getBoundingClientRect(),l=logo.getBoundingClientRect(),b=buttons.getBoundingClientRect();
-  const image=document.createElement('canvas');image.width=logo.naturalWidth;image.height=logo.naturalHeight;
-  const ctx=image.getContext('2d',{willReadFrequently:true});ctx.drawImage(logo,0,0);
-  const corners=[[1,1],[image.width-2,1],[1,image.height-2],[image.width-2,image.height-2]];
-  const transparentCorners=corners.every(([x,y])=>ctx.getImageData(x,y,1,1).data[3]===0);
-  return {centerTitle:r.x+r.width/2,centerLogo:l.x+l.width/2,centerButtons:b.x+b.width/2,
-   logoBottom:l.bottom,buttonsTop:b.top,logoWidth:l.width,transparentCorners};
- });
- if(!cinematic)expect(Math.abs(position.centerLogo-position.centerTitle)).toBeLessThan(16);
- expect(Math.abs(position.centerButtons-position.centerTitle)).toBeLessThan(16);
- if(!cinematic)expect(position.buttonsTop).toBeGreaterThan(position.logoBottom);
- else {
-   const art=await cinematicAsset.body();
-   expect(art.byteLength).toBeGreaterThan(100000);
-   const buttonStyle=await page.locator('#main-dialog .menu-buttons').evaluate(el=>getComputedStyle(el).flexDirection);
-   expect(buttonStyle).toBe('row');
-   expect(position.buttonsTop).toBeGreaterThan(400);
- }
- if(!cinematic)expect(position.logoWidth).toBeGreaterThan(450);
- expect(position.transparentCorners).toBe(true);
+ expect(layout.logoUrl).toContain('sandforge-logo-transparent.webp');
+ expect(layout.transparentCorners).toBe(true);
+ expect(layout.centered).toBe(true);
+ expect(layout.logoFits).toBe(true);
+ expect(layout.buttonsCentered).toBe(true);
+ expect(layout.operationLabel).toBe(false);
+
  await page.keyboard.press('Escape');
  await expect(menu).toBeVisible();
  await page.locator('#new').click();
