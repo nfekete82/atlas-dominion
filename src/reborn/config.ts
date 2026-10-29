@@ -44,4 +44,4 @@ export const distance = (a: Point, b: Point): number => Math.hypot(a.x - b.x, a.
 export const clamp = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, v));
 
 /** Weather durations in simulation seconds; seeded ranges are inclusive. */
-export const WEATHER_RULES={first:[180,260],warning:12,storm:[40,70],recovery:10,calm:[150,240],fadeIn:6,groundSight:.65,airSpeed:.8,artilleryDrift:18} as const;
+export const WEATHER_RULES={first:[180,260],warning:12,storm:[8,10],recovery:3,calm:[150,240],fadeIn:1.4,groundSight:.23,airSpeed:.8,artilleryDrift:18} as const;
