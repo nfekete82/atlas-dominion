@@ -17,3 +17,6 @@ __pycache__/
 docs/.animation-video/
 docs/detailed-models/.video/
 .sandforge-bomber-backup/
+
+# Generated headless AI arena reports
+ai-arena-results/
