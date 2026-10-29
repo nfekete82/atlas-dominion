@@ -6,7 +6,7 @@ import {makeSmoothFogAlpha,FOG_UNKNOWN_ALPHA,FOG_SCALE} from '../dist/src/reborn
 import {RULES} from '../dist/src/reborn/config.js';
 
 test('integration: weather-driven visibility uses the same smooth fog without revealing unexplored terrain',()=>{
- const g=new Simulation(2026,4);
+ const g=new Simulation(2026,4,true);
  g.units=[];g.bases=[];g.territories.forEach(t=>t.owner=-1);
  g.world.opaque.fill(0);g.world.blocked.fill(0);
  g.spawn(0,{x:1900,y:1900},'infantry');
