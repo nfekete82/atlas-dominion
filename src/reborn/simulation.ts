@@ -402,6 +402,19 @@ export class Simulation {
     }
     if(target.hp<=0&&'queue' in target){target.hp=0;target.queue=[];target.queueTypes=[];target.queueCosts=[];target.production=0;this.notices.push(`${buildingSpec(target).name} ${target.owner===0?'verloren':'ausgeschaltet'}!`);}
   }
+  /** Secondary roof MG has its own clock and can suppress infantry even while a rocket targets armor. */
+  private tankMachinegun(u:Unit):void {
+    if((u.mgCooldown??0)>0)return;
+    const infantry=this.spatial.query(u,230).filter(e=>e.owner!==u.owner&&e.hp>0&&!e.carrier&&unitSpec(e).group==='Infanterie'&&
+      this.canSee(u.owner,e)&&distance(u,e)<=230&&this.world.line(u,e,this.obstacles()));
+    const order=u.orders[0];
+    const target=(u.hold
+      ? infantry.find(e=>e.id===u.lastAttacker&&u.defendUntil>this.time)
+      : infantry.find(e=>order?.kind==='attack'&&e.id===order.target)??infantry.sort((a,b)=>distance(u,a)-distance(u,b)||a.id-b.id)[0]);
+    if(!target)return;
+    u.mgCooldown=.55/getVeterancyModifiers(u).fireRate;
+    this.damage(u,target,12*getVeterancyModifiers(u).damage,'machinegun',{x:u.x,y:u.y-34});
+  }
   private launch(u:Unit,target:Unit|Base):void{
     const id=this.nextId++,antiArmor=u.kind==='tank',offset=antiArmor?{x:0,y:0}:this.weather.artilleryOffset(id,u.id),from={x:u.x,y:u.y},
       to={x:clamp(target.x+offset.x,0,this.world.size),y:clamp(target.y+offset.y,0,this.world.size)},
@@ -579,14 +592,18 @@ export class Simulation {
       if(u.kind==='tank'){u.mgCooldown=Math.max(0,(u.mgCooldown??0)-dt);this.tankMachinegun(u);}
       if(enemy&&distance(u,enemy)<=spec.range&&(spec.flying||('orders' in enemy&&unitSpec(enemy).flying)||this.world.line(u,enemy,this.obstacles().filter(b=>b.id!==enemy.id)))){
         u.facing=enemy.x<u.x?-1:1;u.angle=Math.atan2(enemy.y-u.y,enemy.x-u.x);
-        const rounds=u.kind==='infantry'||u.kind==='heavy'||u.kind==='scout'||u.kind==='rover'?3:1;
-        const weapon:Weapon=u.kind==='infantry'||u.kind==='scout'||u.kind==='rover'?'rifle':u.kind==='heavy'?'heavy':u.kind==='medic'||u.kind==='engineer'?'pistol':'cannon';
-        if(u.burst?.target!==enemy.id)delete u.burst;
-        if(!u.burst&&u.cooldown<=1e-8){u.cooldown=spec.cooldown/getVeterancyModifiers(u).fireRate;u.burst={target:enemy.id,remaining:rounds,at:this.time,index:0};}
-        while(u.burst&&u.burst.at<=this.time+1e-8&&enemy.hp>0){
-          u.fire=.18;if(u.kind==='artillery'||u.kind==='tank')this.launch(u,enemy);else this.damage(u,enemy,weaponDamage(u,enemy)*getVeterancyModifiers(u).damage/rounds,weapon,{x:u.x,y:u.y-18});
-          u.burst.remaining--;u.burst.index++;u.burst.at+=u.kind==='heavy'?.1:.075;
-          if(!u.burst.remaining)delete u.burst;
+        // Tank's main guided rocket is anti-armor only; infantry is handled by the independent roof MG.
+        if(u.kind==='tank'&&'orders' in enemy&&unitSpec(enemy).group==='Infanterie')delete u.burst;
+        else{
+          const rounds=u.kind==='infantry'||u.kind==='heavy'||u.kind==='scout'||u.kind==='rover'?3:1;
+          const weapon:Weapon=u.kind==='infantry'||u.kind==='scout'||u.kind==='rover'?'rifle':u.kind==='heavy'?'heavy':u.kind==='medic'||u.kind==='engineer'?'pistol':'cannon';
+          if(u.burst?.target!==enemy.id)delete u.burst;
+          if(!u.burst&&u.cooldown<=1e-8){u.cooldown=spec.cooldown/getVeterancyModifiers(u).fireRate;u.burst={target:enemy.id,remaining:rounds,at:this.time,index:0};}
+          while(u.burst&&u.burst.at<=this.time+1e-8&&enemy.hp>0){
+            u.fire=.18;if(u.kind==='artillery'||u.kind==='tank')this.launch(u,enemy);else this.damage(u,enemy,weaponDamage(u,enemy)*getVeterancyModifiers(u).damage/rounds,weapon,{x:u.x,y:u.y-18});
+            u.burst.remaining--;u.burst.index++;u.burst.at+=u.kind==='heavy'?.1:.075;
+            if(!u.burst.remaining)delete u.burst;
+          }
         }
       } else if(enemy&&order?.kind==='attack'){
         delete u.burst;
