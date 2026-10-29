@@ -30,5 +30,5 @@ test('3.0: experience persists with game save and rejects malformed forged entri
  assert.ok(validExperience(e,g.time,g.territories.length));
  assert.equal(validExperience({...e,records:[{...e.records[0],score:Infinity}]},g.time,g.territories.length),false);
  assert.equal(validExperience({...e,records:[{...e.records[0],wins:-1}]},g.time,g.territories.length),false);
- assert.deepEqual(saved.tactical?.experience,e);
+ assert.deepEqual(saved.ai?.experience,e);
 });
