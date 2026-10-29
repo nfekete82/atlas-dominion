@@ -8,6 +8,7 @@ import {newCampaign,campaignPhase,refreshIntelligence,chooseMission,reconGoal,va
 import {segmentDistance} from './world-generation.js';
 import {newBattle,assessBattle,fightingPower,recordFailure,retryFront,validBattle,type BattleState} from './battle-response.js';
 import {newAdaptive,updateAdaptive,validAdaptive,type AdaptiveState} from './adaptive-strategy.js';
+import {newExperience,validExperience,finishExperience,canOverrun,type Experience} from './battle-learning.js';
 import {rankLegacyFrontiers} from './legacy-campaign.js';
 import {chooseTacticalManeuver,flankCandidate,type TacticalChoice} from './tactical-search.js';
 import {assignScreen,assignFlank,flankRouteScore,isContinuingFlank} from './battle-squads.js';
@@ -30,7 +31,7 @@ export interface TacticalDiagnostics {
 const newDiagnostics=():TacticalDiagnostics=>({evaluated:0,choices:{assault:0,flank:0,siege:0,regroup:0},delegatedSieges:0,issuedSieges:0,screenOrders:0,flankGroups:0,flankOrders:0,mainOrders:0,
  flankOpportunities:0,flankNoSquad:0,flankNoRoute:0,waveWaits:0,waveLaunches:0,reinforcementStagingOrders:0,siegeAngles:0,secondaryRaids:0,secondaryRaidOrders:0,last:null});
 export interface TacticalState {
- adaptive?:AdaptiveState;
+ adaptive?:AdaptiveState;experience?:Experience;
  battle?:BattleState;
  commander?:CampaignState;
  economy?:EconomyState;recovering?:number[];version:1;phase:TacticalPhase;phaseAt:number;lastPlan:number;target:number|null;rally:Point|null;route:Point[];
@@ -603,6 +604,9 @@ export class TacticalAI {
   const centroid=(units:Unit[])=>units.length?units.reduce((p,u)=>({x:p.x+u.x/units.length,y:p.y+u.y/units.length}),{x:0,y:0}):home;
   const assigned=fighters.filter(u=>s.group.includes(u.id));
   const previous=c.mission,aborted=c.aborted,origin=centroid(assigned.length?assigned:fighters);
+  const experience=s.experience??=newExperience();
+  if(experience.active){const a=experience.active,won=g.territories[a.sector]?.owner===1;
+   if(won||g.time-a.at>120)finishExperience(experience,won,fighters.reduce((n,u)=>n+u.hp,0));}
   const mission=chooseMission(g,c,origin,{strategy:s.adaptive?.strategy??'unknown',force:fighters,losses:s.losses,fronts:s.battle?.fronts??[],intelligent:this.doctrineMode==='intelligent',route:p=>{const route=this.route(origin,p);return route.length?this.sampleRoute(route,origin):undefined;}});
   if(!mission){
    campaignPhase(c,'endgame',g.time);this.setPhase('regroup');s.group=[];s.objective=null;s.target=null;
@@ -633,19 +637,20 @@ export class TacticalAI {
   const continuing=s.phase==='attack'&&members.length>0;
   const battle=s.battle??=newBattle(),readyForce=continuing?members:selected.filter(u=>distance(u,s.rally!)<330);
   const assessment=assessBattle(readyForce,visible,towers,g.time,continuing);battle.assessment=assessment;
+  const overrun=canOverrun(assessment.own,assessment.enemy,readyForce.length,towers.length,experience)&&!readyForce.some(u=>u.kind==='artillery');
   if(!towers.length&&!retryFront(battle,mission.sector,assessment.own,0,readyForce.filter(u=>u.kind==='artillery').length,g.time)){
    campaignPhase(c,'buildup',g.time);this.issue([...selected,...medics],s.rally,'safe',undefined,false,false);return;
   }
   if(towers.length||visible.length){
    const artillery=readyForce.filter(u=>u.kind==='artillery').length;
-   if(assessment.stance==='withdraw'){
+   if(assessment.stance==='withdraw'&&!overrun){
     const at=this.withdrawPoint(centroid(members),home,towers);
     recordFailure(battle,mission.sector,mission,assessment.own,towers.length,g.time);battle.retreats++;
     for(const u of members){this.issue([u],at,'safe',undefined,false,false);battle.withdrawals=battle.withdrawals.filter(w=>w.unit!==u.id);battle.withdrawals.push({...at,unit:u.id,since:g.time,until:g.time+10});}
     this.setPhase('regroup');s.group=[];campaignPhase(c,'buildup',g.time);return;
    }
    const allowed=retryFront(battle,mission.sector,assessment.own,towers.length,artillery,g.time);
-   if(assessment.stance==='reinforce'||!allowed){
+   if((assessment.stance==='reinforce'||!allowed)&&!overrun){
     campaignPhase(c,'buildup',g.time);if(!continuing)this.setPhase('gather');
     this.issue([...selected,...medics],s.rally,'safe');return;
    }
@@ -653,7 +658,7 @@ export class TacticalAI {
   if(!continuing){
    const ready=selected.filter(u=>distance(u,s.rally!)<330),power=ready.reduce((n,u)=>n+combatStrength(u),0);
    const armed=ready.some(u=>u.kind==='artillery'||u.kind==='tank');
-   const enough=towers.length?(assessment.stance==='attack'||assessment.stance==='siege'):defended?ready.length>=3&&power>=5&&(armed||!towers.length&&ready.length>=5):ready.length>=(g.time<40?1:2);
+   const enough=towers.length?(overrun||assessment.stance==='attack'||assessment.stance==='siege'):defended?ready.length>=3&&power>=5&&(armed||!towers.length&&ready.length>=5):ready.length>=(g.time<40?1:2);
    const wave=this.waveMode==='coordinated'
      ?assaultWaveDecision({defended,selectedGround:selected.filter(u=>!unitSpec(u).flying).length,
         readyGround:ready.filter(u=>!unitSpec(u).flying).length,elapsed:g.time-s.phaseAt})
@@ -664,6 +669,7 @@ export class TacticalAI {
     this.issue([...selected,...medics],s.rally,'safe');return;
    }
    if(this.waveMode==='coordinated'&&defended)this.diagnostics.waveLaunches++;
+   if(!experience.active)experience.active={sector:mission.sector,tactic:overrun?'overrun':towers.length?'siege':'maneuver',guns:towers.length,force:ready.length,at:g.time,initialUnits:ready.length,initialHP:fighters.reduce((n,u)=>n+u.hp,0),progress:0};
    s.groupId++;s.group=ready.map(u=>u.id);s.launchSize=ready.length;s.launchedAt=g.time;members=ready;this.setPhase('attack');
   }
   const anchor=centroid(members),joining=selected.filter(u=>!s.group.includes(u.id));
@@ -710,7 +716,7 @@ export class TacticalAI {
   }
   // Without artillery, close together rather than feeding isolated vehicles
   // into an observed long-range tower.
-  if(intel?.kind==='turret'&&!members.some(u=>u.kind==='artillery')&&members.length<7){
+  if(intel?.kind==='turret'&&!overrun&&!members.some(u=>u.kind==='artillery')&&members.length<7){
    campaignPhase(c,'buildup',g.time);this.issue(group,s.rally,'safe');return;
   }
   const ground=group.filter(u=>!unitSpec(u).flying);for(const u of ground)u.hold=false;
@@ -898,6 +904,7 @@ export class TacticalAI {
   if(!validCampaign(s?.commander,time,point,sectors))return false;
   if(!validBattle(s?.battle,time,point,sectors))return false;
   if(!validAdaptive(s?.adaptive,time))return false;
+  if(!validExperience(s?.experience,time,sectors))return false;
   return !!s&&(s.airliftAt===undefined||(finite(s.airliftAt)&&s.airliftAt>=0&&s.airliftAt<=time+.001))&&(s.airlift===undefined||(!!s.airlift&&(s.airlift.passengers===undefined||(ids(s.airlift.passengers)&&s.airlift.passengers.length<=5))&&Number.isInteger(s.airlift.heli)&&s.airlift.heli>=0&&point(s.airlift.target)&&['pickup','delivery'].includes(s.airlift.phase)&&finite(s.airlift.since)&&s.airlift.since>=0&&s.airlift.since<=time+.001))&&(s.recovering===undefined||ids(s.recovering))&&validEconomy(s.economy,time)&&s.version===1&&['gather','attack','regroup','defend'].includes(s.phase)&&[s.phaseAt,s.launchedAt,s.progressAt].every(v=>finite(v)&&v>=0&&v<=time+.001)&&finite(s.lastPlan)&&s.lastPlan>=-3&&s.lastPlan<=time+.001&&finite(s.lastProgress)&&s.lastProgress>=0&&[s.groupId,s.launchSize,s.productionSerial].every(v=>Number.isInteger(v)&&v>=0)&&ids(s.group)&&(s.savingSince===null||(finite(s.savingSince)&&s.savingSince>=0&&s.savingSince<=time+.001))&&(s.savingFor===null||Object.hasOwn(UNITS,s.savingFor))&&(s.target===null||(Number.isInteger(s.target)&&s.target>=0&&s.target<sectors))&&(s.objective===null||Number.isInteger(s.objective))&&(s.rally===null||point(s.rally))&&Array.isArray(s.route)&&s.route.length<=64&&s.route.every(point)&&Array.isArray(s.knownTurrets)&&s.knownTurrets.length<=64&&s.knownTurrets.every(t=>point(t)&&Number.isInteger(t.id)&&finite(t.hp)&&t.hp>0&&finite(t.range)&&t.range===RULES.turret.range&&finite(t.seenAt)&&t.seenAt>=0&&t.seenAt<=time+.001)&&Array.isArray(s.losses)&&s.losses.length<=96&&s.losses.every(l=>point(l)&&Number.isInteger(l.id)&&finite(l.at)&&l.at>=0&&l.at<=time+.001&&finite(l.strength)&&l.strength>=0)&&Array.isArray(s.attempts)&&s.attempts.length<=sectors&&s.attempts.every(a=>Number.isInteger(a.sector)&&a.sector>=0&&a.sector<sectors&&Number.isInteger(a.losses)&&a.losses>=0&&finite(a.until)&&a.until>=0);
  }
 }
