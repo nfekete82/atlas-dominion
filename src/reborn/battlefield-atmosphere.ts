@@ -205,7 +205,7 @@ export class BattlefieldEffects {
       const dx=u.x-last.x,dy=u.y-last.y,moved=Math.hypot(dx,dy);
       if(moved>170){this.lastTrack.set(u.id,{x:u.x,y:u.y,at:game.time});continue;}
       if(game.time-last.at<.15||moved<12||!visible(u))continue;
-      const heading=Math.atan2(dy,dx),kind=u.kind==='rover'?'wheel':'tread';
+      const heading=Math.atan2(dy,dx),kind=u.kind==='rover'||u.kind==='artillery'?'wheel':'tread';
       const len=Math.min(moved,24),width=Math.max(8,spec.width*.24);
       this.tracks.push({x:(u.x+last.x)/2,y:(u.y+last.y)/2,at:game.time,owner:u.owner,kind,heading,width,length:len});
       if(this.tracks.length>660)this.tracks.splice(0,this.tracks.length-660);
