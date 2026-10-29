@@ -5,15 +5,17 @@ import {SpriteAnimator,turnTowards,angleDifference,directionIndex,type Animation
 import {Particles} from './particles.js';
 import {unitAtlasPath} from './asset-paths.js';
 import {unitArtScale} from './visual-scale.js';
+import {sharpenAtlasOpaqueRGB} from './sprite-clarity.js';
 interface GroundShadowStyle {widthRatio:number;heightRatio:number;alpha:number;offsetX:number;offsetY:number}
 /** Aircraft-specific ground projection; independent of sprite lift and gameplay positions. */
 export const AIR_GROUND_SHADOWS:Readonly<Partial<Record<UnitKind,Readonly<GroundShadowStyle>>>>=Object.freeze({
  bomber:Object.freeze({widthRatio:.60,heightRatio:.24,alpha:.22,offsetX:10,offsetY:42}),
+ scout:Object.freeze({widthRatio:.76,heightRatio:.30,alpha:.26,offsetX:14,offsetY:22}),
 });
 interface GroundShadow {image:HTMLCanvasElement;width:number;height:number;offsetX:number;offsetY:number}
 interface Loaded {data:AnimationAtlas;image:HTMLImageElement|HTMLCanvasElement;shadow?:HTMLCanvasElement;groundShadow?:GroundShadow}
 /** Additional screen-space height above the ground pivot baked into air atlases. */
-export const unitVisualLift=(u:{kind?:UnitKind;flightHeight?:number}):number=>u.kind==='scout'?56-77*(1-(u.flightHeight??1)):unitSpec(u).flying?56:0;
+export const unitVisualLift=(u:{kind?:UnitKind;flightHeight?:number}):number=>u.kind==='scout'?82-77*(1-(u.flightHeight??1)):unitSpec(u).flying?56:0;
 export const unitSelectionPoint=(u:Point&{kind?:UnitKind}):Point=>({x:u.x,y:u.y-(unitSpec(u).flying?55:18)-unitVisualLift(u)});
 interface View {unit:Unit;anim:SpriteAnimator;asset:Loaded;bodyAngle:number;turretAngle:number;lastX:number;lastY:number;lastFire:number;hp:number;dust:number;dead:boolean;deathAge:number;frame:AnimationFrame;turnTag:string|null}
 export class UnitPresentation {
@@ -33,6 +35,12 @@ export class UnitPresentation {
    for(let i=0;i<p.length;i+=4){const alpha=p[i+3];
     // Allow half a premultiplied channel step for PNG edge rounding.
     if(alpha>0&&alpha<=64&&Math.abs(p[i]-24)*alpha<=128&&Math.abs(p[i+1]-16)*alpha<=128&&Math.abs(p[i+2]-8)*alpha<=128){shade?.data.set(p.subarray(i,i+4),i);p[i+3]=0;}
+   }
+   // The original 192px helicopter atlas is softly rescaled in-game.
+   // Reinforce opaque baked seams once without dark halos or touching alpha.
+   if(kind==='scout'){
+    const sharpened=sharpenAtlasOpaqueRGB(p,body.width,body.height,data.cell[0]);
+    pixels.data.set(sharpened);
    }
    bc.putImageData(pixels,0,0);asset.image=body;
    if(style)asset.groundShadow=this.groundShadow(kind,style);
@@ -94,8 +102,10 @@ export class UnitPresentation {
  private drawView(c:CanvasRenderingContext2D,v:View,p:Point):void{
   // drawFrame only changes pixels. Restore the two properties we change rather
   // than pushing/popping the complete Canvas state for every layered sprite.
-  const smoothing=c.imageSmoothingEnabled,filter=c.filter;
-  c.imageSmoothingEnabled=v.asset.data.cell[0]>=144;const at={x:p.x,y:p.y-unitVisualLift(v.unit)};
+  const smoothing=c.imageSmoothingEnabled,quality=c.imageSmoothingQuality,filter=c.filter;
+  c.imageSmoothingEnabled=v.asset.data.cell[0]>=144;
+  if(v.unit.kind==='scout')c.imageSmoothingQuality='high';
+  const at={x:p.x,y:p.y-unitVisualLift(v.unit)};
   const ground=v.asset.groundShadow;
   if(ground)c.drawImage(ground.image,p.x+ground.offsetX-ground.width/2,p.y+ground.offsetY-ground.height/2,ground.width,ground.height);
   else if(v.asset.shadow)this.drawFrame(c,v,v.frame,p,{x:0,y:0},v.asset.shadow);
@@ -105,7 +115,7 @@ export class UnitPresentation {
    const turret=v.anim.frame('turret',v.turretAngle);this.drawFrame(c,v,turret,at);
    if(v.asset.data.clips.barrel){const recoil=v.unit.fire>0?Math.sin(v.unit.fire/.18*Math.PI)*2.5:0;this.drawFrame(c,v,v.anim.frame('barrel',v.turretAngle),at,{x:-Math.cos(v.turretAngle)*recoil,y:-Math.sin(v.turretAngle)*recoil*.65});}
   }
-  c.filter=filter;c.imageSmoothingEnabled=smoothing;
+  c.filter=filter;c.imageSmoothingEnabled=smoothing;c.imageSmoothingQuality=quality;
  }
  drawCorpses(c:CanvasRenderingContext2D,visible:(p:Point)=>boolean,inViewport:(p:Point)=>boolean=()=>true):void{for(const v of this.corpses)if(inViewport(v.unit)&&(v.unit.owner===0||visible(v.unit))){c.save();c.globalAlpha=Math.min(1,(5-v.deathAge)/.7);this.drawView(c,v,v.unit);c.restore();}}
  muzzle(v:View,u:Unit):Point{
