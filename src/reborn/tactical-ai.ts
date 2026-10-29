@@ -12,6 +12,7 @@ import {rankLegacyFrontiers} from './legacy-campaign.js';
 import {chooseTacticalManeuver,flankCandidate,type TacticalChoice} from './tactical-search.js';
 import {assignScreen,assignFlank,flankRouteScore,isContinuingFlank} from './battle-squads.js';
 import {assaultWaveDecision,reinforcementStagingPoint} from './assault-wave.js';
+import {chooseSiegeShot,chooseRaidFront,allowSecondaryPressure,type SiegeShot,type RaidFront} from './ai25-doctrine.js';
 import type {Simulation,Unit,Memory} from './simulation.js';
 export type TacticalPhase='gather'|'attack'|'regroup'|'defend';
 export interface KnownTurret extends Point {id:number;hp:number;seenAt:number;range:number}
@@ -23,10 +24,11 @@ export interface TacticalDiagnostics {
  delegatedSieges:number;issuedSieges:number;screenOrders:number;flankGroups:number;flankOrders:number;mainOrders:number;
  flankOpportunities:number;flankNoSquad:number;flankNoRoute:number;
  waveWaits:number;waveLaunches:number;reinforcementStagingOrders:number;
+ siegeAngles:number;secondaryRaids:number;secondaryRaidOrders:number;
  last:{at:number;sector:number;allies:number;visible:number;guns:number;choice:string;reason:string}|null;
 }
 const newDiagnostics=():TacticalDiagnostics=>({evaluated:0,choices:{assault:0,flank:0,siege:0,regroup:0},delegatedSieges:0,issuedSieges:0,screenOrders:0,flankGroups:0,flankOrders:0,mainOrders:0,
- flankOpportunities:0,flankNoSquad:0,flankNoRoute:0,waveWaits:0,waveLaunches:0,reinforcementStagingOrders:0,last:null});
+ flankOpportunities:0,flankNoSquad:0,flankNoRoute:0,waveWaits:0,waveLaunches:0,reinforcementStagingOrders:0,siegeAngles:0,secondaryRaids:0,secondaryRaidOrders:0,last:null});
 export interface TacticalState {
  adaptive?:AdaptiveState;
  battle?:BattleState;
@@ -48,6 +50,8 @@ export class TacticalAI {
  planningMode:'classic'|'tactical'='tactical';
  /** Benchmark-only policy toggle: legacy Tactical AI 2.3 versus coordinated 2.4. */
  waveMode:'legacy'|'coordinated'='coordinated';
+ /** 2.4/2.5 paired comparison; affects strategy only, never serialized. */
+ doctrineMode:'legacy'|'intelligent'='intelligent';
  /** Runtime-only diagnostics: never influence simulation or serialize in saves. */
  diagnostics:TacticalDiagnostics=newDiagnostics();
  state=fresh();private risk:Float32Array|undefined;private riskAt=-1;private routeCache=new Map<string,Point[]>();private routeSignature='';
@@ -451,9 +455,14 @@ export class TacticalAI {
   * point is useful only if the real rocket range, LOS and ground route allow it. */
  private standoffSiege(members:Unit[],target:Point&{id:number},artillery:Unit[]):boolean{
   const g=this.g,s=this.state,origin=artillery[0],known=s.knownTurrets,obstacles=this.obstacles();
-  const choices=[target,...known.filter(t=>t.id!==target.id&&distance(t,target)<900)]
-   .sort((a,b)=>distance(origin,a)-distance(origin,b)||a.id-b.id);
+  // Search all LEGALLY fireable standoff angles, not just the nearest
+  // gun's first three points. A reachable safer angle can be farther away.
+  const choices=this.doctrineMode==='intelligent'
+    ?known.filter(t=>distance(t,target)<900).sort((a,b)=>a.id-b.id)
+    :[target,...known.filter(t=>t.id!==target.id&&distance(t,target)<900)]
+      .sort((a,b)=>distance(origin,a)-distance(origin,b)||a.id-b.id);
   let selected:typeof target|undefined,at:Point|undefined;
+  const shots:SiegeShot[]=[];
   for(const gun of choices){
    const heading=Math.atan2(origin.y-gun.y,origin.x-gun.x),candidates:Point[]=[];
    for(const radius of [UNITS.artillery.range-15,UNITS.artillery.range-35])for(let i=0;i<24;i++){
@@ -461,13 +470,27 @@ export class TacticalAI {
     if(p.x<30||p.y<30||p.x>g.world.size-30||p.y>g.world.size-30||known.some(t=>distance(t,p)<t.range+35))continue;
     if(g.world.walkable(p,obstacles,10)&&g.world.line(p,gun,obstacles.filter(o=>!('id' in o)||o.id!==gun.id),10))candidates.push(p);
    }
-   candidates.sort((a,b)=>distance(origin,a)-distance(origin,b));
-   at=candidates.slice(0,3).find(p=>this.route(origin,p).length);if(at){selected=gun;break;}
+   candidates.sort((a,b)=>distance(origin,a)-distance(origin,b)||a.y-b.y||a.x-b.x);
+   for(const p of candidates.slice(0,this.doctrineMode==='intelligent'?8:3)){
+    const route=this.route(origin,p);if(!route.length)continue;
+    if(this.doctrineMode==='legacy'){selected=gun;at=p;break;}
+    const path=this.sampleRoute(route,origin);
+    shots.push({gunId:gun.id,at:p,travel:path.length,risk:path.risk,
+      gunHp:gun.hp,primary:gun.id===target.id});
+   }
+   if(this.doctrineMode==='legacy'&&at)break;
+  }
+  if(this.doctrineMode==='intelligent'){
+   const best=chooseSiegeShot(shots);
+   if(best){selected=choices.find(gun=>gun.id===best.gunId);at=best.at;this.diagnostics.siegeAngles++;}
   }
   if(!at||!selected){this.issue(members,s.rally??origin,'safe');return true;}
   if(selected.id!==target.id&&s.commander?.mission){
-   const m=s.commander.mission,seen=known.find(t=>t.id===selected!.id)!;
-   Object.assign(m,{x:selected.x,y:selected.y,objective:selected.id,hp:seen.hp,progressAt:g.time,distance:distance(origin,selected)});s.objective=selected.id;
+   const m=s.commander.mission,seen=knownBuildings(g).find(t=>t.id===selected!.id);
+   if(seen)Object.assign(m,{kind:'structure',sector:seen.territory,
+     x:selected.x,y:selected.y,objective:selected.id,hp:seen.hp,
+     progressAt:g.time,distance:distance(origin,selected)});
+   s.objective=selected.id;
   }
   const d=distance(at,selected)||1,h={x:(at.x-selected.x)/d,y:(at.y-selected.y)/d};
   const cover=g.world.nearest({x:at.x+h.x*100,y:at.y+h.y*100},obstacles,[],undefined,12)??at;
