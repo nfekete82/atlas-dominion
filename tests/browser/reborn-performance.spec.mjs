@@ -33,7 +33,9 @@ test('performance: optimized layered sprites match original Canvas pixels and pr
   const a=window.__reborn,{unitVisualLift}=await import('/src/reborn/unit-presentation.js'),out=[];
   // Reference is the original save/restore implementation, including corpse filters.
   function reference(presentation,c,v,p){c.save();c.imageSmoothingEnabled=v.asset.data.cell[0]>=144;const at={x:p.x,y:p.y-unitVisualLift(v.unit)};
-   if(v.asset.shadow)presentation.drawFrame(c,v,v.frame,p,{x:0,y:0},v.asset.shadow);
+   const ground=v.asset.groundShadow;
+   if(ground)c.drawImage(ground.image,p.x+ground.offsetX-ground.width/2,p.y+ground.offsetY-ground.height/2,ground.width,ground.height);
+   else if(v.asset.shadow)presentation.drawFrame(c,v,v.frame,p,{x:0,y:0},v.asset.shadow);
    if(v.dead&&!v.asset.data.clips.death)c.filter='grayscale(1) brightness(.5)';
    presentation.drawFrame(c,v,v.frame,at);
    if(v.asset.data.clips.turret){presentation.drawFrame(c,v,v.anim.frame('turret',v.turretAngle),at);if(v.asset.data.clips.barrel){const recoil=v.unit.fire>0?Math.sin(v.unit.fire/.18*Math.PI)*2.5:0;presentation.drawFrame(c,v,v.anim.frame('barrel',v.turretAngle),at,{x:-Math.cos(v.turretAngle)*recoil,y:-Math.sin(v.turretAngle)*recoil*.65});}}

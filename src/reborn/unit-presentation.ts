@@ -5,13 +5,19 @@ import {SpriteAnimator,turnTowards,angleDifference,directionIndex,type Animation
 import {Particles} from './particles.js';
 import {unitAtlasPath} from './asset-paths.js';
 import {unitArtScale} from './visual-scale.js';
-interface Loaded {data:AnimationAtlas;image:HTMLImageElement|HTMLCanvasElement;shadow?:HTMLCanvasElement}
+interface GroundShadowStyle {widthRatio:number;heightRatio:number;alpha:number;offsetX:number;offsetY:number}
+/** Aircraft-specific ground projection; independent of sprite lift and gameplay positions. */
+export const AIR_GROUND_SHADOWS:Readonly<Partial<Record<UnitKind,Readonly<GroundShadowStyle>>>>=Object.freeze({
+ bomber:Object.freeze({widthRatio:.60,heightRatio:.24,alpha:.22,offsetX:10,offsetY:42}),
+});
+interface GroundShadow {image:HTMLCanvasElement;width:number;height:number;offsetX:number;offsetY:number}
+interface Loaded {data:AnimationAtlas;image:HTMLImageElement|HTMLCanvasElement;shadow?:HTMLCanvasElement;groundShadow?:GroundShadow}
 /** Additional screen-space height above the ground pivot baked into air atlases. */
 export const unitVisualLift=(u:{kind?:UnitKind;flightHeight?:number}):number=>u.kind==='scout'?56-77*(1-(u.flightHeight??1)):unitSpec(u).flying?56:0;
 export const unitSelectionPoint=(u:Point&{kind?:UnitKind}):Point=>({x:u.x,y:u.y-(unitSpec(u).flying?55:18)-unitVisualLift(u)});
 interface View {unit:Unit;anim:SpriteAnimator;asset:Loaded;bodyAngle:number;turretAngle:number;lastX:number;lastY:number;lastFire:number;hp:number;dust:number;dead:boolean;deathAge:number;frame:AnimationFrame;turnTag:string|null}
 export class UnitPresentation {
- readonly particles=new Particles();private assets=new Map<string,Loaded>();private views=new Map<number,View>();private corpses:View[]=[];
+ readonly particles=new Particles();private assets=new Map<string,Loaded>();private views=new Map<number,View>();private corpses:View[]=[];private groundShadows=new Map<UnitKind,GroundShadow>();
  async load():Promise<void>{const cache=new Map<string,Promise<Loaded>>();await Promise.all(unitKinds.flatMap(kind=>[0,1].map(async owner=>{
   const prefix=unitAtlasPath(kind,owner);let pending=cache.get(prefix);if(!pending){pending=(async()=>{const response=await fetch(prefix+'.json');if(!response.ok)throw Error('Animation atlas unavailable: '+prefix);const data=await response.json() as AnimationAtlas,image=new Image();image.src=prefix+'.png';await image.decode();return {data,image};})();cache.set(prefix,pending);}
   const {data,image}=await pending;if(!data.clips.idle||!data.clips.walk||data.frames.length===0)throw Error('Incomplete animation atlas: '+kind);
@@ -19,18 +25,35 @@ export class UnitPresentation {
   if(unitSpec({kind}).flying){
    // The authored floor uses a warm, translucent shadow (opacity .25).
    // Split it once so raising the aircraft leaves its shadow on the ground.
-   const body=document.createElement('canvas'),shadow=document.createElement('canvas');body.width=shadow.width=image.width;body.height=shadow.height=image.height;
-   const bc=body.getContext('2d')!,sc=shadow.getContext('2d')!;bc.drawImage(image,0,0);
-   const pixels=bc.getImageData(0,0,body.width,body.height),shade=sc.createImageData(body.width,body.height);
+   const style=AIR_GROUND_SHADOWS[kind],body=document.createElement('canvas');body.width=image.width;body.height=image.height;
+   const shadow=style?undefined:document.createElement('canvas');if(shadow){shadow.width=image.width;shadow.height=image.height;}
+   const bc=body.getContext('2d')!,sc=shadow?.getContext('2d');bc.drawImage(image,0,0);
+   const pixels=bc.getImageData(0,0,body.width,body.height),shade=sc?.createImageData(body.width,body.height);
    const p=pixels.data;
    for(let i=0;i<p.length;i+=4){const alpha=p[i+3];
     // Allow half a premultiplied channel step for PNG edge rounding.
-    if(alpha>0&&alpha<=64&&Math.abs(p[i]-24)*alpha<=128&&Math.abs(p[i+1]-16)*alpha<=128&&Math.abs(p[i+2]-8)*alpha<=128){shade.data.set(p.subarray(i,i+4),i);p[i+3]=0;}
+    if(alpha>0&&alpha<=64&&Math.abs(p[i]-24)*alpha<=128&&Math.abs(p[i+1]-16)*alpha<=128&&Math.abs(p[i+2]-8)*alpha<=128){shade?.data.set(p.subarray(i,i+4),i);p[i+3]=0;}
    }
-   bc.putImageData(pixels,0,0);sc.putImageData(shade,0,0);asset.image=body;asset.shadow=shadow;
+   bc.putImageData(pixels,0,0);asset.image=body;
+   if(style)asset.groundShadow=this.groundShadow(kind,style);
+   else if(sc&&shade){sc.putImageData(shade,0,0);asset.shadow=shadow;}
   }
   this.assets.set(kind+owner,asset);
  })));}
+ /** Rasterize soft edges once per aircraft kind, shared by both factions and all frames. */
+ private groundShadow(kind:UnitKind,style:Readonly<GroundShadowStyle>):GroundShadow {
+  const cached=this.groundShadows.get(kind);if(cached)return cached;
+  const image=document.createElement('canvas');image.width=128;image.height=64;
+  const c=image.getContext('2d')!;c.translate(image.width/2,image.height/2);c.scale(image.width/2,image.height/2);
+  const fade=c.createRadialGradient(0,0,0,0,0,1);
+  fade.addColorStop(0,`rgba(24,16,8,${style.alpha})`);
+  fade.addColorStop(.35,`rgba(24,16,8,${style.alpha*.85})`);
+  fade.addColorStop(.72,`rgba(24,16,8,${style.alpha*.32})`);
+  fade.addColorStop(1,'rgba(24,16,8,0)');c.fillStyle=fade;c.fillRect(-1,-1,2,2);
+  const width=unitSpec({kind}).width*unitArtScale(kind);
+  const shadow={image,width:width*style.widthRatio,height:width*style.heightRatio,offsetX:style.offsetX,offsetY:style.offsetY};
+  this.groundShadows.set(kind,shadow);return shadow;
+ }
  clear():void{this.views.clear();this.corpses=[];this.particles.clear();}
  asset(kind:UnitKind,owner=0):Loaded{return this.assets.get(kind+owner)!;}
  inspect(id:number):View|undefined{return this.views.get(id);}
@@ -73,7 +96,9 @@ export class UnitPresentation {
   // than pushing/popping the complete Canvas state for every layered sprite.
   const smoothing=c.imageSmoothingEnabled,filter=c.filter;
   c.imageSmoothingEnabled=v.asset.data.cell[0]>=144;const at={x:p.x,y:p.y-unitVisualLift(v.unit)};
-  if(v.asset.shadow)this.drawFrame(c,v,v.frame,p,{x:0,y:0},v.asset.shadow);
+  const ground=v.asset.groundShadow;
+  if(ground)c.drawImage(ground.image,p.x+ground.offsetX-ground.width/2,p.y+ground.offsetY-ground.height/2,ground.width,ground.height);
+  else if(v.asset.shadow)this.drawFrame(c,v,v.frame,p,{x:0,y:0},v.asset.shadow);
   if(v.dead&&!v.asset.data.clips.death)c.filter='grayscale(1) brightness(.5)';
   this.drawFrame(c,v,v.frame,at);
   if(v.asset.data.clips.turret){
