@@ -1,0 +1,22 @@
+name: Sandforge campaign records
+on:
+  push:
+    branches:
+      - feat/sandforge-campaign-records-economy-units-20261029
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Statistics regression
+        run: node --test tests/reborn-campaign-records.test.mjs tests/reborn-campaign-history.test.mjs
+      - run: npm test
