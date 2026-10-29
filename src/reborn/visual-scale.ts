@@ -6,7 +6,7 @@ export const unitArtScale=(kind:UnitKind):number=>
   ['infantry','medic','engineer'].includes(kind)?.73:
   kind==='rover'?1.09:
   kind==='tank'?1.08:
-  kind==='artillery'?1.08:
+  kind==='artillery'?1.22:
   kind==='scout'?1.52:
   kind==='bomber'?1.40:1;
 
