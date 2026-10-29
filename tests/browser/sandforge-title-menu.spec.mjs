@@ -4,6 +4,11 @@ test('Sandforge shows the full-screen desert title and starts via map selection'
  await page.setViewportSize({width:1440,height:900});
  await page.goto('/');
  await page.locator('#loading').waitFor({state:'detached'});
+ const cinematicAsset=await page.request.get('/src/assets/reborn/start-screen-cinematic.webp');
+ const cinematic=cinematicAsset.ok()&&cinematicAsset.headers()['content-type']?.startsWith('image/');
+ if(process.env.SANDFORGE_REQUIRE_CINEMATIC==='1')expect(cinematic).toBe(true);
+
+ if(cinematic)await expect(page.locator('html')).toHaveClass(/sandforge-cinematic-title/);
  const menu=page.locator('#main-dialog');
  await expect(menu).toBeVisible();
  await expect(page.locator('#new-dialog')).not.toBeVisible();
@@ -16,7 +21,7 @@ test('Sandforge shows the full-screen desert title and starts via map selection'
  });
  expect(layout.width).toBeGreaterThan(1300);
  expect(layout.height).toBeGreaterThan(800);
- expect(layout.background).toContain('start-screen.png');
+ expect(layout.background).toContain(cinematic?'start-screen-cinematic.webp':'start-screen.png');
  expect(layout.logoLoaded).toBe(true);
  // Center the floating logo and all game-entry controls (not the old left column).
  const position=await page.evaluate(()=>{
@@ -31,10 +36,17 @@ test('Sandforge shows the full-screen desert title and starts via map selection'
   return {centerTitle:r.x+r.width/2,centerLogo:l.x+l.width/2,centerButtons:b.x+b.width/2,
    logoBottom:l.bottom,buttonsTop:b.top,logoWidth:l.width,transparentCorners};
  });
- expect(Math.abs(position.centerLogo-position.centerTitle)).toBeLessThan(16);
+ if(!cinematic)expect(Math.abs(position.centerLogo-position.centerTitle)).toBeLessThan(16);
  expect(Math.abs(position.centerButtons-position.centerTitle)).toBeLessThan(16);
- expect(position.buttonsTop).toBeGreaterThan(position.logoBottom);
- expect(position.logoWidth).toBeGreaterThan(450);
+ if(!cinematic)expect(position.buttonsTop).toBeGreaterThan(position.logoBottom);
+ else {
+   const art=await cinematicAsset.body();
+   expect(art.byteLength).toBeGreaterThan(100000);
+   const buttonStyle=await page.locator('#main-dialog .menu-buttons').evaluate(el=>getComputedStyle(el).flexDirection);
+   expect(buttonStyle).toBe('row');
+   expect(position.buttonsTop).toBeGreaterThan(400);
+ }
+ if(!cinematic)expect(position.logoWidth).toBeGreaterThan(450);
  expect(position.transparentCorners).toBe(true);
  await page.keyboard.press('Escape');
  await expect(menu).toBeVisible();
