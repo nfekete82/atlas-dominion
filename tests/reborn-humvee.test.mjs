@@ -5,6 +5,7 @@ import {Simulation} from '../dist/src/reborn/simulation.js';
 import {UNITS} from '../dist/src/reborn/catalog.js';
 import {distance} from '../dist/src/reborn/config.js';
 import {ROVER_CAPACITY,TRANSPORT_CAPACITY,transportCapacity} from '../dist/src/reborn/transports.js';
+import {unitArtScale} from '../dist/src/reborn/visual-scale.js';
 
 const advance=(g,seconds)=>{for(let i=0;i<Math.round(seconds/.05);i++)g.step(.05);};
 function fixture(){
@@ -58,6 +59,43 @@ test('four infantry load on the ground; five cannot; loaded crew remains hidden,
  }
  assert.equal(loaded.units.find(u=>u.id===infantry[4].id).carrier,undefined);
 });
+test('Humvee artwork grows slightly without touching its physical size, speed or passenger capacity',()=>{
+ assert.ok(unitArtScale('rover')>=1.08&&unitArtScale('rover')<=1.12,'larger but not oversized');
+ assert.equal(UNITS.rover.width,UNITS.rover.width,'visual-only scale cannot mutate gameplay dimensions');
+ assert.equal(transportCapacity('rover'),4);
+});
+
+test('Humvee unloads exactly the clicked passenger and keeps the other three aboard across save/load',()=>{
+ const {game,rover,infantry}=fixture();
+ assert.equal(game.transports.board(rover.id,infantry.map(u=>u.id)),4);
+ advance(game,9);
+ const passenger=infantry[2],nonPassenger=infantry[4];
+ const aboard=[...rover.transport.cargo];
+ assert.equal(game.transports.unload(rover.id,{x:rover.x,y:rover.y},nonPassenger.id),false,'non-passenger cannot disembark');
+ assert.deepEqual(rover.transport.cargo,aboard,'rejected request never mutates cargo');
+ assert.equal(game.transports.unload(rover.id,{x:rover.x,y:rover.y},passenger.id),true);
+ assert.deepEqual(rover.transport.release,[passenger.id]);
+ const loaded=Simulation.load(game.save());
+ loaded.aiClock=-1e8;
+ const carrier=loaded.units.find(u=>u.id===rover.id);
+ assert.deepEqual(carrier.transport.release,[passenger.id],'specific discharge request is saved');
+ advance(loaded,4);
+ assert.equal(carrier.transport.phase,'cruise');
+ assert.deepEqual(carrier.transport.cargo,aboard.filter(id=>id!==passenger.id));
+ assert.equal(loaded.units.find(u=>u.id===passenger.id).carrier,undefined);
+ assert.equal(loaded.units.filter(u=>u.carrier===carrier.id).length,3,'remaining riders stay concealed on board');
+ assert.ok(loaded.world.walkable(loaded.units.find(u=>u.id===passenger.id),loaded.obstacles()));
+ assert.equal(loaded.transports.unload(carrier.id,{x:carrier.x,y:carrier.y},passenger.id),false,'already unloaded id rejected');
+ const second=infantry[0];
+ assert.ok(loaded.transports.unload(carrier.id,{x:carrier.x,y:carrier.y},second.id));
+ advance(loaded,4);
+ assert.equal(carrier.transport.cargo.length,2,'second click unloads only one additional rider');
+ assert.ok(loaded.transports.unload(carrier.id,{x:carrier.x,y:carrier.y}),'old unload-all command remains supported');
+ advance(loaded,12);
+ assert.equal(carrier.transport.cargo.length,0);
+ assert.ok(infantry.slice(0,4).every(u=>loaded.units.find(v=>v.id===u.id).carrier===undefined));
+});
+
 test('ground carrier rejects hostile or non-infantry and protects passengers in combat/capture queries',()=>{
  const {game,rover,infantry}=fixture();
  const enemy=game.spawn(1,{x:1930,y:2090},'infantry');
