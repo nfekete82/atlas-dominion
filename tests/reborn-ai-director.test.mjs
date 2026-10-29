@@ -222,8 +222,8 @@ test('director: serviced vehicle receives actual HP and returns to the reserve a
  assert.ok(g.tactical.state.recovering?.includes(tank.id));
  assert.equal(engineer.orders[0]?.kind,'repair','director must dispatch a real engineer');
  assert.equal(engineer.orders[0]?.target,tank.id);
- for(let i=0;i<240;i++)g.step(.05);
- assert.ok(tank.hp>=558,'repair must restore at least 90 percent of the tank maximum');
+ for(let i=0;i<600;i++)g.step(.05);
+ assert.ok(tank.hp>=UNITS.tank.hp*.9,'repair must restore at least 90 percent of the tank maximum');
  g.tactical.plan();
  assert.ok(!g.tactical.state.recovering?.includes(tank.id),'repaired tank must rejoin field roster');
 });
@@ -233,11 +233,11 @@ test('director: armored reserve survives a funded barracks purchase and never mi
  const g=new Simulation(2026,4),hq=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
  for(let i=0;i<5;i++)g.spawn(1,{x:hq.x+100+i*12,y:hq.y-120},'infantry');
  const barracks=addProducer(g,'barracks',1),factory=addProducer(g,'factory',1);
- g.credits[1]=900;
+ g.credits[1]=1000;
  const start=g.credits[1];
  developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1&&u.hp>0),()=>0);
  assert.equal(factory.queueTypes[0],'tank');
- assert.equal(factory.queueCosts[0],450,'tank must cost its actual catalog price');
+ assert.equal(factory.queueCosts[0],UNITS.tank.cost,'tank must cost its actual catalog price');
  assert.equal(barracks.queueTypes[0],'infantry','barracks may produce while the next vehicle budget stays protected');
  assert.equal(g.credits[1],350,'remaining credits must stay above the 300-credit armor reserve');
  assert.ok(g.credits[1]>=300,'a funded barracks order must not drain the next vehicle reserve');
@@ -286,7 +286,7 @@ test('director: barracks stays idle exactly at the minimum reserve threshold',()
  const g=new Simulation(2026,4),hq=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
  for(let i=0;i<5;i++)g.spawn(1,{x:hq.x+100+i*12,y:hq.y-120},'infantry');
  const barracks=addProducer(g,'barracks',1),factory=addProducer(g,'factory',1);
- g.credits[1]=750;
+ g.credits[1]=850;
  developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1&&u.hp>0),()=>0);
  assert.equal(factory.queueTypes[0],'tank','factory must pay for the tank before barracks');
  assert.equal(barracks.queue.length,0,'barracks must not spend the 300-credit minimum reserve');
@@ -304,10 +304,10 @@ test('director: once a rover exists it saves for a real tank rather than buying 
  assert.equal(factory.queue.length,0,'400 credits must be saved for tank rather than a second rover');
  assert.equal(barracks.queue.length,0,'barracks must protect the entire 450-credit tank budget');
  assert.equal(g.credits[1],400);
- g.credits[1]=500;
+ g.credits[1]=600;
  developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1&&u.hp>0),()=>0);
  assert.equal(factory.queueTypes[0],'tank');
- assert.equal(factory.queueCosts[0],450);
+ assert.equal(factory.queueCosts[0],UNITS.tank.cost);
  assert.equal(g.credits[1],50);
 });
 
