@@ -537,6 +537,60 @@ export class TacticalAI {
   const target=viable[0],need=raiders.filter(u=>!u.orders[0]||distance(u.orders[0],target.point)>120);
   if(need.length)this.issue(need,target.point,'assault',undefined,false,false);
  }
+ /** 2.5 second operational axis. A two-unit mobile detachment uses ONLY
+  * public adjacent sector ownership and real observed threats. It never
+  * borrows the main assault group, reserves, medics or siege guns. */
+ private secondaryPressure(fighters:Unit[],main:{sector:number},home:Point):Set<number>{
+  if(this.doctrineMode!=='intelligent'||this.mode!=='director'||this.planningMode!=='tactical'
+    ||this.g.world.mapVersion<3)return new Set();
+  const g=this.g,s=this.state,b=s.battle??=newBattle();
+  const old=b.squads.find(q=>q.role==='raid');
+  const candidates=fighters.filter(u=>!s.group.includes(u.id)&&['rover','infantry'].includes(u.kind)
+    &&u.hp>=unitSpec(u).hp*.7&&!b.withdrawals.some(w=>w.unit===u.id));
+  // A campaign under pressure keeps a viable primary front and one guard.
+  if(!allowSecondaryPressure(fighters.length,fighters.length-2,
+    fighters.length-s.group.filter(id=>!fighters.some(u=>u.id===id)).length-2,candidates.length)){
+   b.squads=b.squads.filter(q=>q.role!=='raid');return new Set();
+  }
+  const scout=old?candidates.filter(u=>old.ids.includes(u.id)):candidates.slice()
+   .sort((a,v)=>(a.kind==='rover'?0:1)-(v.kind==='rover'?0:1)||a.id-v.id);
+  const party=scout.length>=2?scout.slice(0,2):candidates.slice()
+   .sort((a,v)=>(a.kind==='rover'?0:1)-(v.kind==='rover'?0:1)||a.id-v.id).slice(0,2);
+  if(party.length!==2)return new Set();
+  const anchor={x:(party[0].x+party[1].x)/2,y:(party[0].y+party[1].y)/2};
+  const frontier=g.territories.filter(t=>t.owner!==1&&t.id!==main.sector
+    &&t.neighbors.some(id=>g.territories[id].owner===1));
+  const fronts:RaidFront[]=[];
+  for(const t of frontier){
+   const threatened=s.knownTurrets.some(tower=>distance(tower,t.point)<tower.range+140)
+    ||g.memories[1].some(m=>m.owner===0&&m.hp>0&&m.territory===t.id)
+    ||g.units.some(enemy=>enemy.owner===0&&enemy.hp>0&&!enemy.carrier&&g.canSee(1,enemy)&&distance(enemy,t.point)<360);
+   if(threatened)continue;
+   const route=this.route(anchor,t.point);
+   if(!route.length)continue;
+   const path=this.sampleRoute(route,anchor);
+   fronts.push({id:t.id,x:t.point.x,y:t.point.y,owner:t.owner,income:t.income,
+     routeLength:path.length,routeRisk:path.risk,observedThreat:threatened});
+  }
+  // Keep a currently safe raid, rather than oscillating between equally good
+  // frontier captures every three seconds. Stop holding stale IDs on capture.
+  const continuing=old?.target!==null?fronts.find(t=>t.id===old?.target):undefined;
+  const target=continuing??chooseRaidFront(fronts,main.sector);
+  if(!target){b.squads=b.squads.filter(q=>q.role!=='raid');return new Set();}
+  const changed=old?.target!==target.id||party.some(u=>!old?.ids.includes(u.id));
+  b.squads=[...b.squads.filter(q=>q.role!=='raid'),
+   {role:'raid' as const,ids:party.map(u=>u.id),target:target.id,since:changed?g.time:old!.since}];
+  if(changed)this.diagnostics.secondaryRaids++;
+  for(const u of party){
+   const order=u.orders[0];
+   if(changed||!order||order.kind!=='attackMove'||order.tactical?.mode!=='assault'
+     ||distance(order,target)>100){
+    if(this.issue([u],target,'assault',undefined,false,false))this.diagnostics.secondaryRaidOrders++;
+   }
+  }
+  void home;
+  return new Set(party.map(u=>u.id));
+ }
  /** Strategic missions own the operational group. Capture orders, reconnaissance
   * and repair have separate rosters, so a macro pulse cannot erase their work. */
  private campaign(army:Unit[],fighters:Unit[],medics:Unit[],home:Point):void{
@@ -566,9 +620,11 @@ export class TacticalAI {
    // Stand outside an observed gun's reach; never infer an unseen gun.
    if(towers.some(t=>distance(t,s.rally!)<t.range+50))s.rally=this.rally(fighters,home);
   }
-  const reserve=fighters.length>=7?1:0;
-  const guards=new Set(fighters.filter(u=>!s.group.includes(u.id)).sort((a,b)=>distance(a,home)-distance(b,home)||a.id-b.id).slice(0,reserve).map(u=>u.id));
-  const selected=fighters.filter(u=>!guards.has(u.id)).sort((a,b)=>Number(s.group.includes(b.id))-Number(s.group.includes(a.id))||distance(a,s.rally!)-distance(b,s.rally!)||a.id-b.id).slice(0,18);
+  const raidUnits=this.secondaryPressure(fighters,mission,home);
+  const mainFighters=fighters.filter(u=>!raidUnits.has(u.id));
+  const reserve=mainFighters.length>=7?1:0;
+  const guards=new Set(mainFighters.filter(u=>!s.group.includes(u.id)).sort((a,b)=>distance(a,home)-distance(b,home)||a.id-b.id).slice(0,reserve).map(u=>u.id));
+  const selected=mainFighters.filter(u=>!guards.has(u.id)).sort((a,b)=>Number(s.group.includes(b.id))-Number(s.group.includes(a.id))||distance(a,s.rally!)-distance(b,s.rally!)||a.id-b.id).slice(0,18);
   let members=selected.filter(u=>s.group.includes(u.id));
   if(s.phase==='attack'&&members.length<Math.max(1,Math.ceil(s.launchSize*.4))){g.stop(s.group.filter(id=>fighters.some(u=>u.id===id)));s.group=[];members=[];s.launchSize=0;this.setPhase('regroup');c.aborted++;}
   const continuing=s.phase==='attack'&&members.length>0;
