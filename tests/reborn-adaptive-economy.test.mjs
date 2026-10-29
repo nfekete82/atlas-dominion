@@ -38,8 +38,8 @@ test('observed massed infantry creates a paid heavy infantry deficit before disc
 
 test('observed armor receives a fully paid tank response during an attack',()=>{
  const {g,factory,enemy,pulse}=scene();enemy('tank');enemy('tank');
- g.credits[1]=450;pulse();assert.deepEqual(factory.queueTypes,['tank']);
- assert.equal(factory.queueCosts[0],450);assert.equal(g.credits[1],0);
+ g.credits[1]=550;pulse();assert.deepEqual(factory.queueTypes,['tank']);
+ assert.equal(factory.queueCosts[0],550);assert.equal(g.credits[1],0);
 });
 
 test('known air force funds an affordable anti-air screen and reinforces it rather than buying ground-only aircraft',()=>{
@@ -62,7 +62,7 @@ test('production diagnostics distinguish saving for a role, a completed composit
  assert.equal(g.tactical.state.economy.production.facilities[factory.id].reason,'saving-unit');
  assert.ok(g.tactical.state.economy.production.facilities[factory.id].missing>0);
  assert.equal(g.tactical.state.economy.production.facilities[g.bases.find(b=>b.owner===1&&b.kind==='headquarters').id].reason,'composition-complete');
- g.credits[1]=1000;assert.ok(g.recruit(factory.id,'tank'));assert.ok(g.recruit(factory.id,'tank'));pulse();
+ g.credits[1]=1100;assert.ok(g.recruit(factory.id,'tank'));assert.ok(g.recruit(factory.id,'tank'));pulse();
  assert.equal(g.tactical.state.economy.production.facilities[factory.id].reason,'queue-blocked');
  while(g.count(1)+g.queued(1)<Math.min(36,Math.max(18,Math.floor(g.income(1)/3)+10)))g.spawn(1,{x:barracks.x,y:barracks.y},'infantry');pulse();
  assert.equal(g.tactical.state.economy.production.reason,'army-cap');
