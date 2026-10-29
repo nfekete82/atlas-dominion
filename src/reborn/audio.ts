@@ -108,9 +108,30 @@ export class Soundscape {
     if(g.paused||g.status!=='playing'||!g.units.some(u=>u.id===order.unitId&&u.kind===order.unit&&u.owner===0&&u.hp>0&&!u.carrier))return;
     this.played.commands++;this.radio.request(order.kind,order.unit);
   }
-  pause():void{this.silence(true);this.radio.pause();}
+  /** Short attack warning: local system German voice if available, otherwise
+   * the radio chirp and visible message remain. No network TTS request. */
+  announceAttack():void {
+    if(!this.enabled||this.volume<=0||document.hidden)return;
+    this.tone(820,.11,.085);this.tone(630,.16,.065,.13);
+    if(!this.radio.enabled||this.radio.volume<=0||typeof window==='undefined'||
+       !('speechSynthesis' in window)||typeof SpeechSynthesisUtterance==='undefined')return;
+    const voices=window.speechSynthesis.getVoices();
+    const voice=voices.find(v=>v.lang.toLowerCase().startsWith('de')&&v.localService);
+    if(!voice)return; // Fall back to tone + printed alert, never a cloud voice.
+    this.radio.stop();
+    const utterance=new SpeechSynthesisUtterance('Captain, wir werden angegriffen!');
+    utterance.voice=voice;utterance.lang='de-DE';utterance.rate=1.04;utterance.pitch=.88;
+    utterance.volume=Math.min(.68,this.volume*this.radio.volume*.92);
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  }
+  pause():void{
+    this.silence(true);this.radio.pause();
+    if(typeof window!=='undefined'&&'speechSynthesis' in window)window.speechSynthesis.cancel();
+  }
   silenceScene():void{
     this.silence();this.radio.stop();
+    if(typeof window!=='undefined'&&'speechSynthesis' in window)window.speechSynthesis.cancel();
     if(this.context){
       for(const gain of [this.wind,this.motorGain,this.generatorGain])gain?.gain.setTargetAtTime(0,this.context.currentTime,.025);
       for(const voice of this.engineVoices.values()){voice.gain.gain.setTargetAtTime(0,this.context.currentTime,.035);voice.previousMotion=0;}
