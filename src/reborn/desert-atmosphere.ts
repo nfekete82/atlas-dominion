@@ -1,5 +1,6 @@
 import type {Point} from './config.js';
-import type {Simulation,Territory} from './simulation.js';
+import type {Simulation} from './simulation.js';
+import type {Territory} from './world.js';
 
 export interface AtmosphereViewport {left:number;right:number;top:number;bottom:number}
 const hash=(a:number,b:number,seed:number):number=>{
