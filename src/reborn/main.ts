@@ -342,7 +342,7 @@ function showIncomingAttacks():void{
  const seq=game.attackAlerts.sequence;
  if(seq<=lastAttackSequence||game.paused||game.status!=='playing')return;
  lastAttackSequence=seq;
- notify('Captain, wir werden angegriffen!');
+ notify('Captain, wir werden angegriffen!',true);
  audio.announceAttack();
 }
 function frame(now:number):void{profiler?.beginFrame(now);const dt=Math.min(.1,(now-last)/1000);last=now;const inputAt=profiler?performance.now():0;input.update(dt);if(profiler)profiler.record('input',performance.now()-inputAt);if(!game.paused){accumulator+=dt;let steps=0;while(accumulator>=RULES.tick&&steps++<5){game.step();accumulator-=RULES.tick;}}else accumulator=0;showIncomingAttacks();const audioAt=profiler?performance.now():0;audio.update(game,renderer);if(profiler)profiler.record('audio',performance.now()-audioAt);renderer.render(dt,accumulator/RULES.tick);uiClock+=dt;if(uiClock>.1){qwenGeneral.maybePlan(game);refresh();uiClock=0;}profiler?.endFrame(now);requestAnimationFrame(frame);}
