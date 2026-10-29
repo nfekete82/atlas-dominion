@@ -1,7 +1,7 @@
 import {distance,clamp,type Point} from './config.js';
 import {unitSpec} from './catalog.js';
 import type {Simulation,Unit,Order} from './simulation.js';
-export interface TransportState {phase:'approach'|'landing'|'loading'|'unloading'|'takeoff'|'cruise';task:'load'|'unload';site:Point;cargo:number[];pickup:number[];clock:number;transfer:number;resume:Order[]}
+export interface TransportState {phase:'approach'|'landing'|'loading'|'unloading'|'takeoff'|'cruise';task:'load'|'unload';site:Point;cargo:number[];pickup:number[];clock:number;transfer:number;resume:Order[];release?:number[]}
 export const TRANSPORT_CAPACITY=10;
 export const ROVER_CAPACITY=4;
 export const transportCapacity=(kind:string):number=>kind==='rover'?ROVER_CAPACITY:kind==='scout'?TRANSPORT_CAPACITY:0;
@@ -23,10 +23,15 @@ export class Transports {
   for(const u of accepted){u.orders=[{...site,kind:'board',target:h.id}];u.path=[];u.repath=0;u.hold=false;u.workingTarget=null;delete u.burst;}
   return accepted.length;
  }
- unload(id:number,p:Point):boolean{
+ unload(id:number,p:Point,passengerId?:number):boolean{
   const h=this.g.units.find(u=>u.id===id&&isCarrier(u)&&u.hp>0);if(!h?.transport?.cargo.length)return false;
+  // A passenger ID may only select someone actually inside this carrier.
+  if(passengerId!==undefined&&!h.transport.cargo.includes(passengerId))return false;
   const site=this.site(p);if(!site||distance(site,p)>300)return false;
-  this.cancel(h);h.transport={phase:'approach',task:'unload',site,cargo:[...h.transport.cargo],pickup:[],clock:0,transfer:0,resume:[]};h.orders=[];h.path=[];h.repath=0;h.hold=false;return true;
+  const cargo=[...h.transport.cargo];this.cancel(h);
+  h.transport={phase:'approach',task:'unload',site,cargo,pickup:[],clock:0,transfer:0,resume:[],
+   ...(passengerId===undefined?{}:{release:[passengerId]})};
+  h.orders=[];h.path=[];h.repath=0;h.hold=false;return true;
  }
  cancel(h:Unit):void{
   const t=h.transport;if(!t)return;for(const id of t.pickup){const u=this.g.units.find(u=>u.id===id);if(u?.orders[0]?.kind==='board'&&u.orders[0].target===h.id){u.orders.shift();u.path=[];}}
@@ -54,11 +59,11 @@ export class Transports {
    if(t.transfer>=.3){const u=g.units.find(u=>t.pickup.includes(u.id)&&u.hp>0&&distance(u,h)<=65);if(u&&t.cargo.length<transportCapacity(h.kind)){t.cargo.push(u.id);t.pickup=t.pickup.filter(id=>id!==u.id);u.carrier=h.id;u.orders=[];u.path=[];u.workingTarget=null;u.combatTarget=null;delete u.burst;t.transfer=0;}}
    if(!t.pickup.length||t.clock>=12||t.cargo.length===transportCapacity(h.kind)){const resume=t.resume;this.cancel(h);t.resume=resume;t.phase=h.kind==='rover'?'cruise':'takeoff';t.clock=0;if(h.kind==='rover'){h.orders=resume;t.resume=[];h.path=[];h.repath=0;}}
   }else if(t.phase==='unloading'){
-   if(t.transfer>=.3&&t.cargo.length){const u=g.units.find(u=>u.id===t.cargo[0]);let at:Point|null=null;
+   if(t.transfer>=.3&&t.cargo.length){const passengerId=t.release?.[0]??t.cargo[0];const u=g.units.find(u=>u.id===passengerId);let at:Point|null=null;
     for(let i=0;i<20&&!at;i++){const a=i*Math.PI*2/20,probe={x:h.x+Math.cos(a)*62,y:h.y+Math.sin(a)*62};if(g.world.walkable(probe,g.obstacles(),Math.max(0,unitSpec(u??{}).radius-10))&&g.units.every(v=>v.carrier||v.id===h.id||unitSpec(v).flying||distance(v,probe)>unitSpec(v).radius+16))at=probe;}
-    if(u&&at){delete u.carrier;u.x=u.previousX=at.x;u.y=u.previousY=at.y;u.orders=[];u.path=[];u.repath=0;u.hold=false;u.moving=false;t.cargo.shift();t.transfer=0;}
+    if(u&&at){delete u.carrier;u.x=u.previousX=at.x;u.y=u.previousY=at.y;u.orders=[];u.path=[];u.repath=0;u.hold=false;u.moving=false;t.cargo=t.cargo.filter(id=>id!==u.id);if(t.release)t.release=t.release.filter(id=>id!==u.id);t.transfer=0;}
    }
-   if(!t.cargo.length||(h.kind==='scout'&&t.clock>=12)){t.phase=h.kind==='rover'?'cruise':'takeoff';t.clock=0;}
+   if(!t.cargo.length||(t.release!==undefined&&!t.release.length)||(h.kind==='scout'&&t.clock>=12)){t.phase=h.kind==='rover'?'cruise':'takeoff';t.clock=0;}
   }else if(t.phase==='takeoff'){
    h.flightHeight=Math.min(1,(h.flightHeight??0)+dt/1.2);if(h.flightHeight>=.999){h.flightHeight=1;t.phase='cruise';h.orders=t.resume;t.resume=[];h.path=[];h.repath=0;}
   }
@@ -72,6 +77,7 @@ export class Transports {
   for(const h of g.units){if(h.flightHeight!==undefined&&(!Number.isFinite(h.flightHeight)||h.flightHeight<0||h.flightHeight>1))return false;
    const t=h.transport;if(t){if(!isCarrier(h)||!['approach','landing','loading','unloading','takeoff','cruise'].includes(t.phase)||!['load','unload'].includes(t.task)||!t.site||![t.site.x,t.site.y].every(v=>Number.isFinite(v)&&v>=0&&v<=g.world.size)||!Array.isArray(t.cargo)||!Array.isArray(t.pickup)||t.cargo.length+t.pickup.length>transportCapacity(h.kind)||!unique([...t.cargo,...t.pickup])||![t.clock,t.transfer].every(v=>Number.isFinite(v)&&v>=0)||!Array.isArray(t.resume)||t.resume.length>32||t.resume.some(o=>!Number.isFinite(o.x)||!Number.isFinite(o.y)||!['move','attackMove','attack'].includes(o.kind)))return false;
     if(t.cargo.some(id=>!g.units.some(u=>u.id===id&&u.carrier===h.id&&u.owner===h.owner&&unitSpec(u).group==='Infanterie'))||t.pickup.some(id=>!g.units.some(u=>u.id===id&&u.owner===h.owner&&!u.carrier&&unitSpec(u).group==='Infanterie')))return false;
+   if(t.release!==undefined&&(!Array.isArray(t.release)||!unique(t.release)||t.release.some(id=>!t.cargo.includes(id))))return false;
    }
    if(h.carrier!==undefined&&!g.units.some(c=>c.id===h.carrier&&isCarrier(c)&&c.owner===h.owner&&c.transport?.cargo.includes(h.id)))return false;
   }return true;
