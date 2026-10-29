@@ -45,6 +45,10 @@ test('tank: both faction GLBs contain actual embedded PBR textures and current H
     assert.equal(glb.toString('ascii',16,20),'JSON');
     const jsonLength=glb.readUInt32LE(12);
     const model=JSON.parse(glb.toString('utf8',20,20+jsonLength));
+    const names=new Set(model.nodes.map(node=>node.name));
+    for(const part of ['MachineGunMount','RoofMachineGun','MGbarrel']){
+      assert.ok(names.has(part),`faction ${team} tank model is missing real roof MG geometry: ${part}`);
+    }
     assert.ok(model.images?.length>=3,'embedded color, normal and material maps');
     assert.ok(model.materials?.some(m=>m.pbrMetallicRoughness?.baseColorTexture),'GLB must contain painted camouflage');
     assert.ok(model.materials?.some(m=>m.normalTexture),'GLB must contain a relief/normal map');
