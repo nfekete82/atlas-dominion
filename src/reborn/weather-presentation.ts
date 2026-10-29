@@ -18,7 +18,6 @@ export class WeatherPresentation {
      const seed=((Math.imul(i+1,73856093)^Math.imul(layer+1,19349663)^g.seed)>>>0)/4294967296;
      const x=((seed*r.width*3+time*(32+layer*25))%(r.width+80))-40;
      const y=((seed*713.23+layer*.21)%1)*r.height+Math.sin(time*.3+seed*29)*3;
-     if(!g.canSee(0,r.world({x,y})))continue;
      c.globalAlpha=level*(.18+layer*.06)*(.5+.5*Math.sin(seed*13+time*.7)**2);
      c.beginPath();c.moveTo(x,y);c.lineTo(x+14+layer*13+seed*19,y+3+layer*1.4);c.stroke();
     }
