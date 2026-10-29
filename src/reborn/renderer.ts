@@ -17,7 +17,6 @@ import { paintGeneratedTerrain } from './terrain-presentation.js';
 import { BattlefieldEffects, createGroundDetails, paintGroundDetails, type GroundDetail } from './battlefield-atmosphere.js';
 import {PalmGrove} from './palm-grove.js';
 import { buildTerrainVariants, type TerrainVariantAtlases } from './terrain-variants.js';
-import {createDesertInfrastructure,paintDesertInfrastructure} from './desert-infrastructure.js';
 import {visibleInViewport} from './viewport-culling.js';
 
 interface Sprite { image:HTMLImageElement|HTMLCanvasElement; x:number; y:number; w:number; h:number; center?:number; foot?:number; bodyWidth?:number; bodyHeight?:number }
@@ -95,7 +94,6 @@ export class Renderer {
   private prepareMap():void {
     this.prepareTerrain();
     const sites=[...this.game.territories.map(t=>t.point),...this.game.bases.filter(b=>b.kind==='headquarters')];
-    paintDesertInfrastructure(this.terrainSurface.getContext('2d')!,createDesertInfrastructure(this.game.world,sites));
     this.groundDetails=createGroundDetails(this.game.world,sites);
     paintGroundDetails(this.terrainSurface.getContext('2d')!,this.groundDetails,this.groundTextures);
     this.palms.reset(this.groundDetails,this.game);
