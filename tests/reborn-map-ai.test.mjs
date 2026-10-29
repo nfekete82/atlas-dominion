@@ -1,13 +1,13 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Simulation} from '../dist/src/reborn/simulation.js';
-import {mapLayout,mapWorldSize} from '../dist/src/reborn/config.js';
+import {mapLayout,campaignLayout,mapWorldSize} from '../dist/src/reborn/config.js';
 import {BUILDINGS} from '../dist/src/reborn/catalog.js';
 const step=(g,seconds)=>{for(let i=0;i<Math.round(seconds/.05);i++)g.step(.05);};
 
-for(const [version,sectors,size] of [[3,4,2200],[4,8,3000],[5,12,3762]]){
+for(const [version,sectors,size] of [[3,4,3000],[4,8,3300],[5,12,3600],[6,16,3762]]){
  test(`maps: layout v${version} has ${sectors} sectors, valid HQs and stable save/reload`,()=>{
-  const g=new Simulation(2026,version),layout=mapLayout(version);
+  const g=new Simulation(2026,version),layout=campaignLayout(version,g.seed);
   assert.equal(layout.columns*layout.rows,sectors);
   assert.equal(g.territories.length,sectors);
   assert.equal(g.world.size,size);
