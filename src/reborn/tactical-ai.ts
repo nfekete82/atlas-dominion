@@ -12,6 +12,7 @@ import {rankLegacyFrontiers} from './legacy-campaign.js';
 import {chooseTacticalManeuver,flankCandidate,type TacticalChoice} from './tactical-search.js';
 import {assignScreen,assignFlank,flankRouteScore,isContinuingFlank} from './battle-squads.js';
 import {assaultWaveDecision,reinforcementStagingPoint} from './assault-wave.js';
+import {chooseSiegeShot,chooseRaidFront,allowSecondaryPressure,type SiegeShot,type RaidFront} from './ai25-doctrine.js';
 import type {Simulation,Unit,Memory} from './simulation.js';
 export type TacticalPhase='gather'|'attack'|'regroup'|'defend';
 export interface KnownTurret extends Point {id:number;hp:number;seenAt:number;range:number}
@@ -23,10 +24,11 @@ export interface TacticalDiagnostics {
  delegatedSieges:number;issuedSieges:number;screenOrders:number;flankGroups:number;flankOrders:number;mainOrders:number;
  flankOpportunities:number;flankNoSquad:number;flankNoRoute:number;
  waveWaits:number;waveLaunches:number;reinforcementStagingOrders:number;
+ siegeAngles:number;secondaryRaids:number;secondaryRaidOrders:number;
  last:{at:number;sector:number;allies:number;visible:number;guns:number;choice:string;reason:string}|null;
 }
 const newDiagnostics=():TacticalDiagnostics=>({evaluated:0,choices:{assault:0,flank:0,siege:0,regroup:0},delegatedSieges:0,issuedSieges:0,screenOrders:0,flankGroups:0,flankOrders:0,mainOrders:0,
- flankOpportunities:0,flankNoSquad:0,flankNoRoute:0,waveWaits:0,waveLaunches:0,reinforcementStagingOrders:0,last:null});
+ flankOpportunities:0,flankNoSquad:0,flankNoRoute:0,waveWaits:0,waveLaunches:0,reinforcementStagingOrders:0,siegeAngles:0,secondaryRaids:0,secondaryRaidOrders:0,last:null});
 export interface TacticalState {
  adaptive?:AdaptiveState;
  battle?:BattleState;
@@ -48,6 +50,8 @@ export class TacticalAI {
  planningMode:'classic'|'tactical'='tactical';
  /** Benchmark-only policy toggle: legacy Tactical AI 2.3 versus coordinated 2.4. */
  waveMode:'legacy'|'coordinated'='coordinated';
+ /** 2.4/2.5 paired comparison; affects strategy only, never serialized. */
+ doctrineMode:'legacy'|'intelligent'='intelligent';
  /** Runtime-only diagnostics: never influence simulation or serialize in saves. */
  diagnostics:TacticalDiagnostics=newDiagnostics();
  state=fresh();private risk:Float32Array|undefined;private riskAt=-1;private routeCache=new Map<string,Point[]>();private routeSignature='';
@@ -451,6 +455,10 @@ export class TacticalAI {
   * point is useful only if the real rocket range, LOS and ground route allow it. */
  private standoffSiege(members:Unit[],target:Point&{id:number},artillery:Unit[]):boolean{
   const g=this.g,s=this.state,origin=artillery[0],known=s.knownTurrets,obstacles=this.obstacles();
+  // Preserve the stable 2.4 battery objective. The 2.5 improvement is
+  // which angle to fire from, NOT switching to a different tower on every
+  // three-second macro pulse. Only try another known gun if the first is
+  // truly unreachable from any eligible standoff angle.
   const choices=[target,...known.filter(t=>t.id!==target.id&&distance(t,target)<900)]
    .sort((a,b)=>distance(origin,a)-distance(origin,b)||a.id-b.id);
   let selected:typeof target|undefined,at:Point|undefined;
@@ -461,13 +469,31 @@ export class TacticalAI {
     if(p.x<30||p.y<30||p.x>g.world.size-30||p.y>g.world.size-30||known.some(t=>distance(t,p)<t.range+35))continue;
     if(g.world.walkable(p,obstacles,10)&&g.world.line(p,gun,obstacles.filter(o=>!('id' in o)||o.id!==gun.id),10))candidates.push(p);
    }
-   candidates.sort((a,b)=>distance(origin,a)-distance(origin,b));
-   at=candidates.slice(0,3).find(p=>this.route(origin,p).length);if(at){selected=gun;break;}
+   candidates.sort((a,b)=>distance(origin,a)-distance(origin,b)||a.y-b.y||a.x-b.x);
+   const shots:SiegeShot[]=[];
+   for(const p of candidates.slice(0,this.doctrineMode==='intelligent'?8:3)){
+    const route=this.route(origin,p);if(!route.length)continue;
+    if(this.doctrineMode==='legacy'){selected=gun;at=p;break;}
+    const path=this.sampleRoute(route,origin);
+    shots.push({gunId:gun.id,at:p,travel:path.length,risk:path.risk,
+      gunHp:'hp' in gun&&typeof gun.hp==='number'?gun.hp:1000,primary:true});
+   }
+   if(at)break;
+   if(this.doctrineMode==='intelligent'&&shots.length){
+    // A safer route must be a realistic detour, not a kilometer-long
+    // wandering loop that delays an otherwise winnable HQ assault.
+    const direct=Math.min(...shots.map(x=>x.travel));
+    const best=chooseSiegeShot(shots.filter(x=>x.travel<=direct*1.35+120));
+    if(best){selected=gun;at=best.at;this.diagnostics.siegeAngles++;break;}
+   }
   }
   if(!at||!selected){this.issue(members,s.rally??origin,'safe');return true;}
   if(selected.id!==target.id&&s.commander?.mission){
-   const m=s.commander.mission,seen=known.find(t=>t.id===selected!.id)!;
-   Object.assign(m,{x:selected.x,y:selected.y,objective:selected.id,hp:seen.hp,progressAt:g.time,distance:distance(origin,selected)});s.objective=selected.id;
+   const m=s.commander.mission,seen=knownBuildings(g).find(t=>t.id===selected!.id);
+   if(seen)Object.assign(m,{kind:'structure',sector:seen.territory,
+     x:selected.x,y:selected.y,objective:selected.id,hp:seen.hp,
+     progressAt:g.time,distance:distance(origin,selected)});
+   s.objective=selected.id;
   }
   const d=distance(at,selected)||1,h={x:(at.x-selected.x)/d,y:(at.y-selected.y)/d};
   const cover=g.world.nearest({x:at.x+h.x*100,y:at.y+h.y*100},obstacles,[],undefined,12)??at;
@@ -514,6 +540,60 @@ export class TacticalAI {
   const target=viable[0],need=raiders.filter(u=>!u.orders[0]||distance(u.orders[0],target.point)>120);
   if(need.length)this.issue(need,target.point,'assault',undefined,false,false);
  }
+ /** 2.5 second operational axis. A two-unit mobile detachment uses ONLY
+  * public adjacent sector ownership and real observed threats. It never
+  * borrows the main assault group, reserves, medics or siege guns. */
+ private secondaryPressure(fighters:Unit[],main:{sector:number},home:Point):Set<number>{
+  if(this.doctrineMode!=='intelligent'||this.mode!=='director'||this.planningMode!=='tactical'
+    ||this.g.world.mapVersion<3)return new Set();
+  const g=this.g,s=this.state,b=s.battle??=newBattle();
+  const old=b.squads.find(q=>q.role==='raid');
+  const candidates=fighters.filter(u=>!s.group.includes(u.id)&&['rover','infantry'].includes(u.kind)
+    &&u.hp>=unitSpec(u).hp*.7&&!b.withdrawals.some(w=>w.unit===u.id));
+  // A campaign under pressure keeps a viable primary front and one guard.
+  if(!allowSecondaryPressure(fighters.length,fighters.length-2,
+    fighters.length-s.group.filter(id=>!fighters.some(u=>u.id===id)).length-2,candidates.length)){
+   b.squads=b.squads.filter(q=>q.role!=='raid');return new Set();
+  }
+  const scout=old?candidates.filter(u=>old.ids.includes(u.id)):candidates.slice()
+   .sort((a,v)=>(a.kind==='rover'?0:1)-(v.kind==='rover'?0:1)||a.id-v.id);
+  const party=scout.length>=2?scout.slice(0,2):candidates.slice()
+   .sort((a,v)=>(a.kind==='rover'?0:1)-(v.kind==='rover'?0:1)||a.id-v.id).slice(0,2);
+  if(party.length!==2)return new Set();
+  const anchor={x:(party[0].x+party[1].x)/2,y:(party[0].y+party[1].y)/2};
+  const frontier=g.territories.filter(t=>t.owner!==1&&t.id!==main.sector
+    &&t.neighbors.some(id=>g.territories[id].owner===1));
+  const fronts:RaidFront[]=[];
+  for(const t of frontier){
+   const threatened=s.knownTurrets.some(tower=>distance(tower,t.point)<tower.range+140)
+    ||g.memories[1].some(m=>m.owner===0&&m.hp>0&&m.territory===t.id)
+    ||g.units.some(enemy=>enemy.owner===0&&enemy.hp>0&&!enemy.carrier&&g.canSee(1,enemy)&&distance(enemy,t.point)<360);
+   if(threatened)continue;
+   const route=this.route(anchor,t.point);
+   if(!route.length)continue;
+   const path=this.sampleRoute(route,anchor);
+   fronts.push({id:t.id,x:t.point.x,y:t.point.y,owner:t.owner,income:t.income,
+     routeLength:path.length,routeRisk:path.risk,observedThreat:threatened});
+  }
+  // Keep a currently safe raid, rather than oscillating between equally good
+  // frontier captures every three seconds. Stop holding stale IDs on capture.
+  const continuing=old?.target!==null?fronts.find(t=>t.id===old?.target):undefined;
+  const target=continuing??chooseRaidFront(fronts,main.sector);
+  if(!target){b.squads=b.squads.filter(q=>q.role!=='raid');return new Set();}
+  const changed=old?.target!==target.id||party.some(u=>!old?.ids.includes(u.id));
+  b.squads=[...b.squads.filter(q=>q.role!=='raid'),
+   {role:'raid' as const,ids:party.map(u=>u.id),target:target.id,since:changed?g.time:old!.since}];
+  if(changed)this.diagnostics.secondaryRaids++;
+  for(const u of party){
+   const order=u.orders[0];
+   if(changed||!order||order.kind!=='attackMove'||order.tactical?.mode!=='assault'
+     ||distance(order,target)>100){
+    if(this.issue([u],target,'assault',undefined,false,false))this.diagnostics.secondaryRaidOrders++;
+   }
+  }
+  void home;
+  return new Set(party.map(u=>u.id));
+ }
  /** Strategic missions own the operational group. Capture orders, reconnaissance
   * and repair have separate rosters, so a macro pulse cannot erase their work. */
  private campaign(army:Unit[],fighters:Unit[],medics:Unit[],home:Point):void{
@@ -523,7 +603,7 @@ export class TacticalAI {
   const centroid=(units:Unit[])=>units.length?units.reduce((p,u)=>({x:p.x+u.x/units.length,y:p.y+u.y/units.length}),{x:0,y:0}):home;
   const assigned=fighters.filter(u=>s.group.includes(u.id));
   const previous=c.mission,aborted=c.aborted,origin=centroid(assigned.length?assigned:fighters);
-  const mission=chooseMission(g,c,origin,{strategy:s.adaptive?.strategy??'unknown',force:fighters,losses:s.losses,fronts:s.battle?.fronts??[],route:p=>{const route=this.route(origin,p);return route.length?this.sampleRoute(route,origin):undefined;}});
+  const mission=chooseMission(g,c,origin,{strategy:s.adaptive?.strategy??'unknown',force:fighters,losses:s.losses,fronts:s.battle?.fronts??[],intelligent:this.doctrineMode==='intelligent',route:p=>{const route=this.route(origin,p);return route.length?this.sampleRoute(route,origin):undefined;}});
   if(!mission){
    campaignPhase(c,'endgame',g.time);this.setPhase('regroup');s.group=[];s.objective=null;s.target=null;
    // Once the map is captured, ground patrols also search fog for survivors.
@@ -543,9 +623,11 @@ export class TacticalAI {
    // Stand outside an observed gun's reach; never infer an unseen gun.
    if(towers.some(t=>distance(t,s.rally!)<t.range+50))s.rally=this.rally(fighters,home);
   }
-  const reserve=fighters.length>=7?1:0;
-  const guards=new Set(fighters.filter(u=>!s.group.includes(u.id)).sort((a,b)=>distance(a,home)-distance(b,home)||a.id-b.id).slice(0,reserve).map(u=>u.id));
-  const selected=fighters.filter(u=>!guards.has(u.id)).sort((a,b)=>Number(s.group.includes(b.id))-Number(s.group.includes(a.id))||distance(a,s.rally!)-distance(b,s.rally!)||a.id-b.id).slice(0,18);
+  const raidUnits=this.secondaryPressure(fighters,mission,home);
+  const mainFighters=fighters.filter(u=>!raidUnits.has(u.id));
+  const reserve=mainFighters.length>=7?1:0;
+  const guards=new Set(mainFighters.filter(u=>!s.group.includes(u.id)).sort((a,b)=>distance(a,home)-distance(b,home)||a.id-b.id).slice(0,reserve).map(u=>u.id));
+  const selected=mainFighters.filter(u=>!guards.has(u.id)).sort((a,b)=>Number(s.group.includes(b.id))-Number(s.group.includes(a.id))||distance(a,s.rally!)-distance(b,s.rally!)||a.id-b.id).slice(0,18);
   let members=selected.filter(u=>s.group.includes(u.id));
   if(s.phase==='attack'&&members.length<Math.max(1,Math.ceil(s.launchSize*.4))){g.stop(s.group.filter(id=>fighters.some(u=>u.id===id)));s.group=[];members=[];s.launchSize=0;this.setPhase('regroup');c.aborted++;}
   const continuing=s.phase==='attack'&&members.length>0;

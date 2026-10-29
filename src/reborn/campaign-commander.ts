@@ -4,12 +4,13 @@ import {unitSpec} from './catalog.js';
 import {fightingPower,fightingPowerAgainst,type FailedFront} from './battle-response.js';
 import {rateMission,type EnemyStrategy} from './adaptive-strategy.js';
 import type {Loss} from './tactical-ai.js';
+import {replanAfterLoss} from './ai25-doctrine.js';
 
 export type CampaignPhase='opening'|'expansion'|'buildup'|'offensive'|'siege'|'endgame'|'emergencyDefense';
 export interface WarMission extends Point {kind:'capture'|'structure'|'hunt';sector:number;objective:number|null;since:number;progressAt:number;distance:number;hp:number}
 export interface ReconTask extends Point {unit:number;since:number}
 export interface CampaignState {version:1;phase:CampaignPhase;phaseSince:number;mission?:WarMission;recon:ReconTask[];survey:{x:number;y:number;at:number}[];intel:{id:number;seenAt:number}[];aborted:number;alternatives?:{sector:number;score:number;expectedLoss:number;budgetCost:number}[]}
-export interface MissionContext {strategy:EnemyStrategy;force:Unit[];losses:Loss[];fronts:FailedFront[];route:(p:Point)=>{length:number;risk:number}|undefined}
+export interface MissionContext {strategy:EnemyStrategy;force:Unit[];losses:Loss[];fronts:FailedFront[];route:(p:Point)=>{length:number;risk:number}|undefined;intelligent?:boolean}
 export const newCampaign=():CampaignState=>({version:1,phase:'opening',phaseSince:0,recon:[],survey:[],intel:[],aborted:0});
 export function campaignPhase(s:CampaignState,phase:CampaignPhase,time:number):void{if(s.phase!==phase){s.phase=phase;s.phaseSince=time;}}
 /** The commander's inputs are own possessions, public sectors, fog and observed
@@ -31,7 +32,16 @@ export function chooseMission(g:Simulation,s:CampaignState,origin:Point,context?
   const remembered=old.objective===null?undefined:buildings.find(b=>b.id===old.objective);
   const enemy=old.kind==='hunt'?g.units.find(u=>u.id===old.objective&&u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)):undefined;
   const valid=old.kind==='capture'?g.territories[old.sector]?.owner!==1:old.kind==='structure'?!!remembered:!!enemy;
-  const costly=context&&g.time-old.since>30&&context.losses.filter(l=>g.time-l.at<60&&distance(l,old)<700).length>=3&&context.fronts.some(f=>f.sector===old.sector&&f.failures>=2&&g.time-f.at<90);
+  const failed=context?.fronts.filter(f=>f.sector===old.sector).sort((a,b)=>b.at-a.at)[0];
+  const costly=context?.intelligent?replanAfterLoss({
+   elapsed:g.time-old.since,
+   freshDamage:!!remembered&&remembered.hp<old.hp,
+   progressAge:g.time-old.progressAt,
+   recentLosses:context.losses.filter(l=>g.time-l.at<60&&distance(l,old)<700).length,
+   frontFailures:failed?.failures??0,
+   frontAge:failed?g.time-failed.at:Infinity
+  }):!!context&&g.time-old.since>30&&context.losses.filter(l=>g.time-l.at<60&&distance(l,old)<700).length>=3&&
+    context.fronts.some(f=>f.sector===old.sector&&f.failures>=2&&g.time-f.at<90);
   const unready=context&&old.kind==='structure'&&g.time-old.since>30&&!context.force.some(u=>u.kind==='artillery')&&buildings.filter(b=>b.kind==='turret'&&distance(b,old)<800).length>=2&&g.territories.some(t=>t.owner!==1&&t.neighbors.some(id=>g.territories[id].owner===1)&&!buildings.some(b=>b.kind==='turret'&&distance(b,t.point)<740));
   if(valid&&!costly&&!unready&&g.time-old.progressAt<100){
    if(remembered){old.x=remembered.x;old.y=remembered.y;if(remembered.hp<old.hp){old.progressAt=g.time;old.hp=remembered.hp;}}
@@ -74,7 +84,12 @@ export function chooseMission(g:Simulation,s:CampaignState,origin:Point,context?
  }
  choices.sort((a,b)=>a.score-b.score||a.sector-b.sector||(a.objective??0)-(b.objective??0));
  const routed:{c:typeof choices[number];route:{length:number;risk:number}}[]=[];
- if(context)for(const c of choices){const route=context.route(c.p);if(route)routed.push({c,route});if(routed.length===3)break;}
+ // Test as many as sixteen scored candidates (not merely the first three).
+ // An unreachable attractive bunker must not conceal the next valid flank.
+ if(context)for(const c of choices.slice(0,context.intelligent?16:choices.length)){
+  const route=context.route(c.p);if(route)routed.push({c,route});
+  if(routed.length===(context.intelligent?4:3))break;
+ }
  routed.sort((a,b)=>a.c.score+a.route.length*.15+a.route.risk*12-b.c.score-b.route.length*.15-b.route.risk*12);
  const next=context?routed[0]?.c:choices[0];
  return s.mission=next?{kind:next.kind,x:next.p.x,y:next.p.y,sector:next.sector,objective:next.objective,hp:next.hp,since:g.time,progressAt:g.time,distance:distance(origin,next.p)}:undefined;

@@ -59,6 +59,7 @@ export function runMatch({Simulation,UNITS,performanceModule},options,seed,mode,
  const g=new Simulation(seed,version);g.tactical.mode=mode;
  if(options.plannerMode&&'planningMode' in g.tactical)g.tactical.planningMode=options.plannerMode;
  if(options.waveMode&&'waveMode' in g.tactical)g.tactical.waveMode=options.waveMode;
+ if(options.doctrineMode&&'doctrineMode' in g.tactical)g.tactical.doctrineMode=options.doctrineMode;
  const recorder=performanceModule?new performanceModule.PerformanceRecorder(false):null;
  performanceModule?.setProfiler(recorder);
  // Controller internals intentionally differ between original/new; hash the
