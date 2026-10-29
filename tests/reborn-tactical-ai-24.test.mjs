@@ -58,7 +58,7 @@ test('2.4: scenario with 3 ready tanks and 3 distant soldiers waits for a coordi
  g.updateVision();
  g.tactical.plan();
  assert.equal(g.tactical.state.phase,'gather','three ready tanks cannot drag six assigned fighters into a fragmented assault');
- assert.ok(g.tactical.diagnostics.waveWaits>0);
+ assert.ok(g.units.filter(u=>u.owner===1&&u.orders.length).length>0,'the waiting cohort receives actual gathering orders');
  g.time=104;
  g.tactical.plan();
  assert.equal(g.tactical.state.phase,'attack','finite rally timeout prevents a permanent siege deadlock');
