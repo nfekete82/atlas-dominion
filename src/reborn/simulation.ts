@@ -90,8 +90,8 @@ export class Simulation {
   workEffects:WorkEffect[]=[];
   paused=false; revision=0; private fogClock=0; private visionCache=new VisionCache(); private spatial=new SpatialIndex();
   /** The original constructor remains a deterministic legacy fixture/save reader. */
-  constructor(seed=2026,mapVersion:MapVersion=0) {
-    this.seed=seed;this.weather=new Weather(seed);this.world=new World(seed,mapVersion);this.territories=this.world.territories(seed);
+  constructor(seed=2026,mapVersion:MapVersion=0,weatherEnabled=false) {
+    this.seed=seed;this.weather=new Weather(seed,weatherEnabled);this.world=new World(seed,mapVersion);this.territories=this.world.territories(seed);
     if(mapVersion>=3)this.credits=[950,950];
     const layout=campaignLayout(mapVersion,seed);
     for(const owner of [0,1] as const){
@@ -771,7 +771,7 @@ export class Simulation {
     return structuredClone({version:2,weatherVersion:1,productionVersion:1,supportVersion:1,rosterVersion:2,missiles:this.missiles,seed:this.seed,mapVersion:this.world.mapVersion,time:this.time,nextId:this.nextId,credits:this.credits,incomeClock:this.incomeClock,
       units:this.units,bases:this.bases,territories:this.territories,explored:this.explored.map(a=>Array.from(a)),memories:this.memories,aiClock:this.aiClock,ai:this.tactical.state,status:this.status,stats:this.stats});
   }
-  static load(raw:unknown):Simulation {
+  static load(raw:unknown,weatherEnabled=false):Simulation {
     const s=migrateTransportRoster(raw) as Save;
     const finite=(n:unknown)=>typeof n==='number'&&Number.isFinite(n);
     const validMatchStatisticsOrLegacy=(data:unknown)=>data===undefined||validMatchStatistics(data);
@@ -790,7 +790,7 @@ export class Simulation {
         (b.queueCosts!==undefined&&(!Array.isArray(b.queueCosts)||b.queueCosts.length!==b.queue.length||b.queueCosts.some(v=>!finite(v)||v<0)))||
         (b.buildRemaining!==undefined&&(!finite(b.buildRemaining)||b.buildRemaining<0||b.buildRemaining>(BUILDINGS[b.kind??'headquarters']?.buildTime??0)))||!finite(b.production)||b.production<0||b.production>(b.queue[0]??0))||
       s.territories.some((t,i)=>t.id!==i||![-1,0,1].includes(t.owner)||!finite(t.progress)||t.progress<0||t.progress>8))throw new Error('Dieser Spielstand ist beschädigt oder gehört zu einer anderen Version.');
-    const game=new Simulation(s.seed,s.mapVersion??0);
+    const game=new Simulation(s.seed,s.mapVersion??0,weatherEnabled);
     game.time=s.time;
     game.stats=s.stats?structuredClone(s.stats):newMatchStatistics();
     if(!s.stats){game.stats.partial=true;for(const u of s.units){if(u.hp>0){const f=game.stats.factions[u.owner];f.deployedUnits[u.kind??'infantry']++;f.peakArmy+=0;}}for(const owner of [0,1] as const)game.stats.factions[owner].peakArmy=s.units.filter(u=>u.owner===owner&&u.hp>0).length;}
