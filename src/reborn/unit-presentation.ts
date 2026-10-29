@@ -124,6 +124,10 @@ export class UnitPresentation {
  }
  muzzleForShot(shot:Shot):Point{
   if(!shot.kind||!shot.groundFrom)return shot.from;
+  if(shot.kind==='tank'&&shot.weapon==='machinegun'){
+   const p=shot.groundFrom,angle=shot.angle??0;
+   return {x:p.x+Math.cos(angle)*16,y:p.y-34+Math.sin(angle)*7};
+  }
   const asset=this.asset(shot.kind,shot.owner),view=shot.source===undefined?undefined:this.views.get(shot.source),angle=shot.kind==='scout'&&view?view.bodyAngle:shot.angle??0;
   const tag=asset.data.clips.barrel?'barrel':view?.anim.state??'attack';
   const clip=asset.data.clips[tag]??asset.data.clips.idle;
