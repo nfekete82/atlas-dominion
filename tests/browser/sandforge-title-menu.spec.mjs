@@ -17,11 +17,15 @@ test('Sandforge shows the full-screen desert title and starts via map selection'
    const image=el.querySelector('.sandforge-splash-logo');
    if(image && !image.complete)await new Promise(resolve=>image.addEventListener('load',resolve,{once:true}));
    const r=el.getBoundingClientRect();
-   return {width:r.width,height:r.height,background:getComputedStyle(el).backgroundImage,logoLoaded:!!image&&image.naturalWidth>0};
+   return {width:r.width,height:r.height,background:getComputedStyle(el).backgroundImage,poster:getComputedStyle(el,'::before').backgroundImage,logoLoaded:!!image&&image.naturalWidth>0};
  });
  expect(layout.width).toBeGreaterThan(1300);
  expect(layout.height).toBeGreaterThan(800);
- expect(layout.background).toContain(cinematic?'start-screen-cinematic.webp':'start-screen.png');
+ if(cinematic){
+   expect(layout.background).toContain('menu-desert.png');
+   expect(layout.background).not.toContain('start-screen-cinematic.webp');
+   expect(layout.poster).toContain('start-screen-cinematic.webp');
+ } else expect(layout.background).toContain('start-screen.png');
  expect(layout.logoLoaded).toBe(true);
  // Center the floating logo and all game-entry controls (not the old left column).
  const position=await page.evaluate(()=>{
