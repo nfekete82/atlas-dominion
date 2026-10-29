@@ -19,7 +19,7 @@ export function createDesertInfrastructure(world:World,sites:readonly Point[]):D
     // Sparse campaigns have only a handful of links: keep enough roads to read as a network.
     if(links.length>8&&random()>.59)continue;
     const length=Math.hypot(b.x-a.x,b.y-a.y);
-    if(length<120||length>world.size*.36)continue;
+    if(length<120||length>world.size*.65)continue;
     const bend=(random()-.5)*Math.min(42,length*.10);
     const dx=(b.x-a.x)/length,dy=(b.y-a.y)/length;
     // Check the actual quadratic curve, not only its endpoints.
