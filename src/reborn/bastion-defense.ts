@@ -23,7 +23,11 @@ export function rankBastionDefenses(g:Simulation):BastionDefenseCandidate[]{
   const threats=hostile.length?hostile:front;
   const threat=threats.slice().sort((a,b)=>distance(a.point,t.point)-distance(b.point,t.point)||a.id-b.id)[0];
   const nearby=visible.filter(u=>distance(u,t.point)<RULES.turret.sight);
-  const score=hostile.length*1500+(friendlyHq.has(t.id)?0:550)+t.income*8+nearby.length*100;
+  const lost=g.tactical.state.experience?.lastLostSector;
+  // Public loss history: secure neighboring bastions instead of replacing the
+  // lost point with a turret in hostile territory.
+  const score=hostile.length*1500+(friendlyHq.has(t.id)?0:550)+t.income*8+nearby.length*100
+   +(lost!==undefined&&t.neighbors.includes(lost)?1200:0);
   ranked.push({sector:t.id,score,threat:nearby[0]??threat.point});
  }
  return ranked.sort((a,b)=>b.score-a.score||a.sector-b.sector);
