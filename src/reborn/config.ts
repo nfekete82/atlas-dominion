@@ -10,13 +10,13 @@ export const RULES = {
   turret: { range:600, sight:750, turnSpeed:Math.PI, damage:24, cooldown:.8 },
   aiInterval: 3, aiOpeningDelay: 25,
 } as const;
-export type MapVersion=0|1|2|3|4|5|6|7|8|9|10;
+export type MapVersion=0|1|2|3|4|5|6|7|8|9|10|11|12|13|14;
 export type CampaignSize='small'|'medium'|'large'|'extraLarge';
-export const CAMPAIGN_SIZES:Record<CampaignSize,MapVersion>={small:7,medium:8,large:9,extraLarge:10};
-export const mapWorldSize=(version:MapVersion):number=>version===7?3240:version===8?3564:version===9?3888:version===10?4064:version===3?3000:version===4?3300:version===5?3600:RULES.worldSize;
+export const CAMPAIGN_SIZES:Record<CampaignSize,MapVersion>={small:11,medium:12,large:13,extraLarge:14};
+export const mapWorldSize=(version:MapVersion):number=>version===11?3564:version===12?3920:version===13?4277:version===14?4470:version===7?3240:version===8?3564:version===9?3888:version===10?4064:version===3?3000:version===4?3300:version===5?3600:RULES.worldSize;
 const legacyLayout={columns:6,rows:5,headquarters:[19,5],starts:[[18,19,25],[4,5,11]],spacing:440,incomes:RULES.territoryIncome} as const;
 /** Geometry and starting rules are versioned independently of the save envelope. */
-export const MAP_LAYOUTS={0:legacyLayout,1:legacyLayout,2:{columns:4,rows:4,headquarters:[12,3],starts:[[12,13],[2,3]],spacing:650,incomes:[10,15,30]},3:{columns:2,rows:2,headquarters:[2,1],starts:[[2],[1]],spacing:570,incomes:[15,25,35]},4:{columns:4,rows:2,headquarters:[4,3],starts:[[4],[3]],spacing:550,incomes:[15,25,35]},5:{columns:4,rows:3,headquarters:[8,3],starts:[[8],[3]],spacing:590,incomes:[15,25,35]},6:{columns:4,rows:4,headquarters:[12,3],starts:[[12],[3]],spacing:590,incomes:[15,25,35]},7:{columns:2,rows:2,headquarters:[2,1],starts:[[2],[1]],spacing:616,incomes:[15,25,35]},8:{columns:4,rows:2,headquarters:[4,3],starts:[[4],[3]],spacing:594,incomes:[15,25,35]},9:{columns:4,rows:3,headquarters:[8,3],starts:[[8],[3]],spacing:637,incomes:[15,25,35]},10:{columns:4,rows:4,headquarters:[12,3],starts:[[12],[3]],spacing:637,incomes:[15,25,35]}} as const;
+export const MAP_LAYOUTS={0:legacyLayout,1:legacyLayout,2:{columns:4,rows:4,headquarters:[12,3],starts:[[12,13],[2,3]],spacing:650,incomes:[10,15,30]},3:{columns:2,rows:2,headquarters:[2,1],starts:[[2],[1]],spacing:570,incomes:[15,25,35]},4:{columns:4,rows:2,headquarters:[4,3],starts:[[4],[3]],spacing:550,incomes:[15,25,35]},5:{columns:4,rows:3,headquarters:[8,3],starts:[[8],[3]],spacing:590,incomes:[15,25,35]},6:{columns:4,rows:4,headquarters:[12,3],starts:[[12],[3]],spacing:590,incomes:[15,25,35]},7:{columns:2,rows:2,headquarters:[2,1],starts:[[2],[1]],spacing:616,incomes:[15,25,35]},8:{columns:4,rows:2,headquarters:[4,3],starts:[[4],[3]],spacing:594,incomes:[15,25,35]},9:{columns:4,rows:3,headquarters:[8,3],starts:[[8],[3]],spacing:637,incomes:[15,25,35]},10:{columns:4,rows:4,headquarters:[12,3],starts:[[12],[3]],spacing:637,incomes:[15,25,35]},11:{columns:2,rows:2,headquarters:[2,1],starts:[[2],[1]],spacing:678,incomes:[15,25,35]},12:{columns:4,rows:2,headquarters:[4,3],starts:[[4],[3]],spacing:654,incomes:[15,25,35]},13:{columns:4,rows:3,headquarters:[8,3],starts:[[8],[3]],spacing:701,incomes:[15,25,35]},14:{columns:4,rows:4,headquarters:[12,3],starts:[[12],[3]],spacing:701,incomes:[15,25,35]}} as const;
 export const mapLayout=(version:MapVersion)=>MAP_LAYOUTS[version];
 /** A seeded diagonal corner assignment, shared by generation, spawning and victory checks. */
 export function campaignLayout(version:MapVersion,seed:number){
