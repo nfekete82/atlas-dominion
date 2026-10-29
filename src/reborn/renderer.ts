@@ -322,7 +322,7 @@ export class Renderer {
       this.seenImpacts.add(shot);
       if(g.paused||g.time-(shot.at??g.time)>.15||(!g.canSee(0,shot.groundFrom??shot.from)&&!g.canSee(0,shot.groundTo??shot.to)))continue;
       const from=shot.projected?shot.from:this.units.muzzleForShot(shot);
-      if(shot.weapon==='rocket'){particles.emit('muzzle',from,shot.angle);particles.emit('smoke',from);continue;}
+      if(shot.weapon==='rocket'){particles.emit('muzzle',from,shot.angle);particles.emit('smoke',from);if(shot.kind==='artillery'&&!this.reducedMotion){const base=shot.groundFrom??shot.from;particles.emit('dust',{x:base.x-24,y:base.y+8});particles.emit('dust',{x:base.x+24,y:base.y+8});}continue;}
       particles.shot(from,shot.to,shot.weapon==='heavy'||shot.weapon==='turret'||shot.weapon==='cannon',shot.armored);
       this.battlefield.impact(shot.groundTo??shot.to,g.time);
     }
