@@ -65,7 +65,7 @@ test('economy: new mid-sized match builds a paid vehicle factory and fields vehi
 });
 
 test('supply: a transport helicopter accepts real infantry for a forward airlift',()=>{
- const g=new Simulation(2026,5),home=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
+ const g=new Simulation(2027,5),home=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
  g.aiClock=-1e8;g.time=90;g.credits[1]=0;
  g.territories[8].owner=1;
  const h=g.spawn(1,{x:home.x-120,y:home.y+90},'scout');
