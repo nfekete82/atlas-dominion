@@ -55,6 +55,28 @@ export class DesertAtmosphere {
    c.restore();
   }
  }
+ /** Subtle hot-air mirage lines, not a full-screen blur; independent of tactical vision. */
+ drawHeat(c:CanvasRenderingContext2D,g:Simulation,view:AtmosphereViewport,reduced=false):void {
+  if(reduced||g.paused||g.status!=='playing')return;
+  const step=480;
+  let drawn=0;
+  for(let row=Math.floor(view.top/step);row<=Math.ceil(view.bottom/step)&&drawn<8;row++)
+   for(let col=Math.floor(view.left/step);col<=Math.ceil(view.right/step)&&drawn<8;col++){
+    const seed=hash(col,row,g.seed^0x9a731);
+    const x=col*step+100+seed*190,y=row*step+170+hash(row,col,g.seed)*140;
+    if(x<view.left||x>view.right||y<view.top||y>view.bottom||x<0||y<0||
+      x>=g.world.size||y>=g.world.size||!g.canSee(0,{x,y}))continue;
+    const idx=g.world.index({x,y});if(idx<0||g.world.blocked[idx])continue;
+    const pulse=Math.sin(g.time*.85+seed*24);
+    const alpha=.028+.019*Math.abs(pulse);
+    c.save();c.strokeStyle=`rgba(251,228,181,${alpha.toFixed(3)})`;c.lineWidth=1.2;
+    for(let i=0;i<2;i++){
+     c.beginPath();c.moveTo(x-39,y+i*5);
+     c.bezierCurveTo(x-18,y-3+i*5+pulse*2,x+11,y+4+i*5-pulse*2,x+45,y+i*5);
+     c.stroke();
+    }c.restore();drawn++;
+   }
+ }
  drawBastion(c:CanvasRenderingContext2D,t:Territory,time:number,reduced=false):void {
   if(t.owner<0)return;
   const x=t.point.x+29,y=t.point.y-38,phase=bastionFlagPhase(time,t.id,reduced);
