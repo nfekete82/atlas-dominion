@@ -16,6 +16,7 @@ import { TERRAIN_FRAMES, TERRAIN_PLACEMENTS } from './terrain-art.js';
 import { paintGeneratedTerrain } from './terrain-presentation.js';
 import { BattlefieldEffects, createGroundDetails, paintGroundDetails, type GroundDetail } from './battlefield-atmosphere.js';
 import {PalmGrove} from './palm-grove.js';
+import {DesertAtmosphere} from './desert-atmosphere.js';
 import { buildTerrainVariants, type TerrainVariantAtlases } from './terrain-variants.js';
 import {visibleInViewport} from './viewport-culling.js';
 
@@ -26,6 +27,7 @@ export class Renderer {
   readonly structures=new BuildingPresentation();
   readonly battlefield=new BattlefieldEffects();
   readonly palms=new PalmGrove();
+  readonly atmosphere=new DesertAtmosphere();
   private groundDetails:GroundDetail[]=[];
   private readonly groundSprites={crater:new Image(),palm:new Image(),rocks:new Image()};
   private groundTextures!:TerrainVariantAtlases;
@@ -264,6 +266,7 @@ export class Renderer {
     c.save();if(dim)c.globalAlpha=.32;
     this.spriteDraw(this.bastions[t.owner===0?'blue':t.owner===1?'red':'neutral'],p,67,false,dim?.32:1);
     this.structures.drawActivity(c,'bastion',t.owner,p,67,g.time,this.reducedMotion,dim?.32:1);
+    if(!dim)this.atmosphere.drawBastion(c,t,g.time,this.reducedMotion);
     c.font='500 10px system-ui';c.textAlign='center';c.fillStyle='#100e0b99';c.fillRect(p.x-53,p.y+19,106,30);
     c.fillStyle='#e1d2b7';c.fillText(t.name.toLocaleUpperCase('de-DE'),p.x,p.y+31);c.fillStyle=color;c.font='10px monospace';c.fillText(`${t.owner===0?'BLAU':t.owner===1?'ROT':'NEUTRAL'} · +${t.income} / 10 s`,p.x,p.y+43);
     const hovered=!dim&&this.pointer&&this.bastionAt(this.pointer)?.id===t.id;
@@ -315,7 +318,8 @@ export class Renderer {
     const effectsView={left:this.camera.x-halfWidth-28,right:this.camera.x+halfWidth+28,
       top:this.camera.y-halfHeight-28,bottom:this.camera.y+halfHeight+28};
     const inView=(point:Point,padding=0)=>visibleInViewport(point,effectsView,padding);
-    this.palms.draw(c,this.groundTextures.palm,g.time,effectsView);
+    this.atmosphere.drawSand(c,g,effectsView,this.reducedMotion);
+    this.palms.draw(c,this.groundTextures.palm,g.time,effectsView,this.reducedMotion);
     this.battlefield.drawTracks(c,g,effectsView);
     this.battlefield.drawMarks(c,g);
     this.battlefield.drawWindVeil(c,g,effectsView,this.reducedMotion);
