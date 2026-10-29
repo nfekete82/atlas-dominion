@@ -40,7 +40,7 @@ test('2.4: wave selection is deterministic and changes no credits, fog, orders o
  assert.deepEqual(g.save(),snapshot,'wave scoring cannot alter saved simulation or RNG');
 });
 test('2.4: scenario with 3 ready tanks and 3 distant soldiers waits for a coordinated push',()=>{
- const g=new Simulation(2026,4);
+ const g=new Simulation(2027,4);
  g.units=[];g.aiClock=-1e8;g.time=60;
  g.world.blocked.fill(0);g.world.opaque.fill(0);
  Object.assign(g.bases.find(b=>b.owner===1&&b.kind==='headquarters'),{x:900,y:1900});
