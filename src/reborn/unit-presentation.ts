@@ -19,11 +19,39 @@ export function rocketChassisMotion(distance:number,moving:boolean):{heave:numbe
  if(!moving||!Number.isFinite(distance))return {heave:0,roll:0};
  return {heave:Math.sin(distance/18)*1.2,roll:Math.sin(distance/31)*.007};
 }
+/** Render-only suspension and firing response. Real motion drives the pose; the truck
+ * never swims or sways during tactical pause. No simulation/save fields are added. */
+export interface RocketPose {heave:number;roll:number;pitch:number;recoil:number}
+export function rocketSuspensionPose(
+ distance:number,moving:boolean,speedRatio:number,turn:number,acceleration:number,shotAge:number,idleAge:number,
+):RocketPose {
+ const speed=Math.max(0,Math.min(1,Number.isFinite(speedRatio)?speedRatio:0));
+ const steering=Math.max(-1,Math.min(1,Number.isFinite(turn)?turn:0));
+ const accelerationClamped=Math.max(-1,Math.min(1,Number.isFinite(acceleration)?acceleration:0));
+ const driving=moving&&speed>.015;
+ const wheel=driving?distance:0;
+ const rocking=driving?Math.sin(wheel/12.4)*.96+Math.sin(wheel/21.9+1.4)*.42:0;
+ const idle=driving?0:Math.sin(idleAge*11)*.11;
+ const recoil=shotAge>=0&&shotAge<.9?Math.sin(shotAge*13.5)*Math.exp(-shotAge*4.4)*4.8:0;
+ return {
+  heave:rocking*speed+idle+recoil*.32,
+  roll:driving?Math.sin(wheel/27)*.006*speed+steering*.022*speed:0,
+  pitch:driving?accelerationClamped*.012+Math.sin(wheel/18)*.004*speed:0,
+  recoil,
+ };
+}
+/** Phase interpolation takes place only between wheels from the existing 3D-baked
+ * chassis frames. Bodywork is registered identically across wheel rotations. */
+export function rocketWheelPhase(distance:number,stride:number,phases:number):{index:number;next:number;blend:number}{
+ if(!Number.isFinite(distance)||!Number.isFinite(stride)||stride<=0||phases<=0)return {index:0,next:0,blend:0};
+ const span=Math.max(0,distance)/stride*phases,index=Math.floor(span)%phases;
+ return {index,next:(index+1)%phases,blend:span-Math.floor(span)};
+}
 interface Loaded {data:AnimationAtlas;image:HTMLImageElement|HTMLCanvasElement;shadow?:HTMLCanvasElement;groundShadow?:GroundShadow}
 /** Additional screen-space height above the ground pivot baked into air atlases. */
 export const unitVisualLift=(u:{kind?:UnitKind;flightHeight?:number}):number=>u.kind==='scout'?82-77*(1-(u.flightHeight??1)):unitSpec(u).flying?56:0;
 export const unitSelectionPoint=(u:Point&{kind?:UnitKind}):Point=>({x:u.x,y:u.y-(unitSpec(u).flying?55:18)-unitVisualLift(u)});
-interface View {unit:Unit;anim:SpriteAnimator;asset:Loaded;bodyAngle:number;turretAngle:number;lastX:number;lastY:number;lastFire:number;hp:number;dust:number;dead:boolean;deathAge:number;frame:AnimationFrame;turnTag:string|null}
+interface View {unit:Unit;anim:SpriteAnimator;asset:Loaded;bodyAngle:number;turretAngle:number;lastX:number;lastY:number;lastFire:number;hp:number;dust:number;dead:boolean;deathAge:number;frame:AnimationFrame;turnTag:string|null;rocket?:{speed:number;turn:number;acceleration:number;shotAge:number;idleAge:number}}
 export class UnitPresentation {
  readonly particles=new Particles();private assets=new Map<string,Loaded>();private views=new Map<number,View>();private corpses:View[]=[];private groundShadows=new Map<UnitKind,GroundShadow>();
  async load():Promise<void>{const cache=new Map<string,Promise<Loaded>>();await Promise.all(unitKinds.flatMap(kind=>[0,1].map(async owner=>{
@@ -72,7 +100,7 @@ export class UnitPresentation {
  asset(kind:UnitKind,owner=0):Loaded{return this.assets.get(kind+owner)!;}
  inspect(id:number):View|undefined{return this.views.get(id);}
  private view(u:Unit):View {
-  let v=this.views.get(u.id);if(!v){const asset=this.asset(u.kind,u.owner),anim=new SpriteAnimator(asset.data);v={unit:u,anim,asset,bodyAngle:u.hullAngle??u.angle,turretAngle:u.angle,lastX:u.x,lastY:u.y,lastFire:0,hp:u.hp,dust:0,dead:false,deathAge:0,frame:asset.data.frames[0],turnTag:null};this.views.set(u.id,v);}return v;
+  let v=this.views.get(u.id);if(!v){const asset=this.asset(u.kind,u.owner),anim=new SpriteAnimator(asset.data);v={unit:u,anim,asset,bodyAngle:u.hullAngle??u.angle,turretAngle:u.angle,lastX:u.x,lastY:u.y,lastFire:0,hp:u.hp,dust:0,dead:false,deathAge:0,frame:asset.data.frames[0],turnTag:null,...(u.kind==='artillery'?{rocket:{speed:0,turn:0,acceleration:0,shotAge:1,idleAge:0}}:{})};this.views.set(u.id,v);}return v;
  }
  update(units:Unit[],dt:number,visible:(p:Point)=>boolean):void {
   const alive=new Set(units.filter(u=>u.hp>0&&!u.carrier).map(u=>u.id));
@@ -90,6 +118,19 @@ export class UnitPresentation {
   v.bodyAngle=vehicle?turnTowards(v.bodyAngle,desiredHull,spec.flying?2:3.3,dt):u.angle;
   if(dt>0){const turn=angleDifference(previousBody,v.bodyAngle);v.turnTag=!u.moving&&Math.abs(turn)>.001?(turn<0?'turnLeft':'turnRight'):null;}
   v.turretAngle=u.fire>0?u.angle:turnTowards(v.turretAngle,u.angle,3.8,dt);
+  // Damp acceleration and yaw input to avoid wobbling from the 20 Hz game tick.
+  if(v.rocket&&dt>0){
+   const r=v.rocket,targetSpeed=u.moving?Math.min(1,Math.max(0,(u.driveSpeed??moved/dt)/spec.speed)):0;
+   const before=r.speed;
+   r.speed+=Math.min(1,dt*6)*(targetSpeed-r.speed);
+   r.acceleration+=(Math.min(1,dt*6))*(
+     Math.max(-1,Math.min(1,(targetSpeed-before)/Math.max(.0001,dt)*.14))-r.acceleration);
+   const yaw=Math.max(-1,Math.min(1,angleDifference(previousBody,v.bodyAngle)/Math.max(.0001,dt)/1.75));
+   r.turn+=Math.min(1,dt*5)*(yaw-r.turn);
+   r.idleAge+=dt;
+   if(u.fire>0&&v.lastFire<=0)r.shotAge=0;
+   else r.shotAge+=dt;
+  }
   v.dust+=dt;
   if(dt>0&&vehicle&&!spec.flying&&moved>.2&&v.dust>.1&&(u.moving||Math.abs(angleDifference(v.bodyAngle,heading))>.1)){
    this.particles.emit('dust',{x:u.x-Math.cos(v.bodyAngle)*spec.width*.3,y:u.y+8});
@@ -117,16 +158,39 @@ export class UnitPresentation {
   if(ground)c.drawImage(ground.image,p.x+ground.offsetX-ground.width/2,p.y+ground.offsetY-ground.height/2,ground.width,ground.height);
   else if(v.asset.shadow)this.drawFrame(c,v,v.frame,p,{x:0,y:0},v.asset.shadow);
   if(v.dead&&!v.asset.data.clips.death)c.filter='grayscale(1) brightness(.5)';
-  const ride=v.unit.kind==='artillery'?rocketChassisMotion(v.unit.walkDistance,v.unit.moving&&v.anim.state==='walk'):{heave:0,roll:0};
-  const rocking=ride.heave!==0||ride.roll!==0;
-  if(rocking){c.save();c.translate(p.x,p.y);c.rotate(ride.roll);c.translate(-p.x,-p.y);}
-  const shifted={x:at.x,y:at.y+ride.heave};
+  const rocket=v.rocket;
+  const ride=rocket?rocketSuspensionPose(v.unit.walkDistance,v.unit.moving,rocket.speed,rocket.turn,
+    rocket.acceleration,rocket.shotAge,rocket.idleAge):null;
+  if(ride){c.save();c.translate(p.x,p.y);c.rotate(ride.roll);c.transform(1,ride.pitch,0,1,0,0);c.translate(-p.x,-p.y);}
+  const shifted={x:at.x,y:at.y+(ride?.heave??0)};
   this.drawFrame(c,v,v.frame,shifted);
+  // The source GLB has only four baked wheel phases. A faint registered blend
+  // smooths intermediate tyre rotations without introducing SVG/circle "wheels".
+  if(rocket&&v.anim.state==='walk'&&v.unit.moving){
+   const row=v.asset.data.clips.walk.frames[v.anim.direction];
+   if(row.length>1){
+    const phase=rocketWheelPhase(v.unit.walkDistance,v.asset.data.stride,row.length);
+    const next=v.asset.data.frames[row[phase.next]];
+    const opacity=c.globalAlpha;
+    c.globalAlpha=opacity*Math.min(.32,phase.blend*.32);
+    this.drawFrame(c,v,next,shifted);
+    c.globalAlpha=opacity;
+   }
+  }
   if(v.asset.data.clips.turret){
    const turret=v.anim.frame('turret',v.turretAngle);this.drawFrame(c,v,turret,shifted);
-   if(v.asset.data.clips.barrel){const recoil=v.unit.fire>0?Math.sin(v.unit.fire/.18*Math.PI)*2.5:0;this.drawFrame(c,v,v.anim.frame('barrel',v.turretAngle),shifted,{x:-Math.cos(v.turretAngle)*recoil,y:-Math.sin(v.turretAngle)*recoil*.65});}
+   if(v.asset.data.clips.barrel){
+    const recoil=rocket?Math.max(0,ride?.recoil??0)+Math.max(0,v.unit.fire)*8:
+      v.unit.fire>0?Math.sin(v.unit.fire/.18*Math.PI)*2.5:0;
+    // Hydraulic pod absorbs a rocket salvo, followed by a fading oscillation.
+    if(rocket){c.save();const pivot={x:shifted.x,y:shifted.y-24*unitArtScale(v.unit.kind)};
+     c.translate(pivot.x,pivot.y);c.rotate(-(ride?.recoil??0)*.0025);c.translate(-pivot.x,-pivot.y);}
+    this.drawFrame(c,v,v.anim.frame('barrel',v.turretAngle),shifted,
+      {x:-Math.cos(v.turretAngle)*recoil,y:-Math.sin(v.turretAngle)*recoil*.6-recoil*.38});
+    if(rocket)c.restore();
+   }
   }
-  if(rocking)c.restore();
+  if(ride)c.restore();
   c.filter=filter;c.imageSmoothingEnabled=smoothing;c.imageSmoothingQuality=quality;
  }
  drawCorpses(c:CanvasRenderingContext2D,visible:(p:Point)=>boolean,inViewport:(p:Point)=>boolean=()=>true):void{for(const v of this.corpses)if(inViewport(v.unit)&&(v.unit.owner===0||visible(v.unit))){c.save();c.globalAlpha=Math.min(1,(5-v.deathAge)/.7);this.drawView(c,v,v.unit);c.restore();}}
