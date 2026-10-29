@@ -2,6 +2,7 @@ import { clamp, distance, type Point } from './config.js';
 import { Renderer } from './renderer.js';
 import { Simulation, type Weapon } from './simulation.js';
 import {UnitRadio,type PlayerOrder} from './unit-radio.js';
+import {unitSpec} from './catalog.js';
 
 export const WEAPON_SOUNDS:Record<Weapon,{duration:number;level:number;high:number;low:number;bass:number}>={
  rifle:{duration:.11,level:.14,high:950,low:6500,bass:125},
@@ -12,6 +13,22 @@ export const WEAPON_SOUNDS:Record<Weapon,{duration:number;level:number;high:numb
  machinegun:{duration:.10,level:.115,high:820,low:5800,bass:106},
  cannon:{duration:.22,level:.17,high:300,low:2800,bass:55},
 };
+/** Pure visibility-aware levels: distant or unexplored enemy movement never leaks information. */
+export function ambientActivity(g:Simulation,center:Point,visible:(p:Point)=>boolean):{motors:number;generator:number}{
+ let motors=0,generator=0;
+ for(const u of g.units){
+  if(u.hp<=0||u.carrier||unitSpec(u).flying||unitSpec(u).group!=='Fahrzeuge'||!visible(u))continue;
+  const falloff=Math.max(0,1-distance(u,center)/670);
+  motors+=falloff*(u.moving?1:.40);
+ }
+ for(const b of g.bases){
+  if(b.hp<=0||b.buildRemaining>0||!visible(b))continue;
+  if(b.kind!=='generator'&&b.kind!=='headquarters'&&b.kind!=='factory')continue;
+  const falloff=Math.max(0,1-distance(b,center)/700);
+  generator+=falloff*(b.kind==='generator'?1:b.kind==='headquarters'?.5:.65);
+ }
+ return {motors:clamp(motors,0,2.4),generator:clamp(generator,0,1.8)};
+}
 /** Local sound design: synthesized effects and a separate pre-authored speech channel. */
 export class Soundscape {
   context:AudioContext|null=null;
@@ -24,6 +41,7 @@ export class Soundscape {
   get activeVoices():number{return this.voices.size;}
   get activeGameplayVoices():number{let count=0;for(const v of this.voices.values())if(v.gameplay)count++;return count;}
   private master:GainNode|null=null;private effects:GainNode|null=null;private wind:GainNode|null=null;
+  private motorGain:GainNode|null=null;private generatorGain:GainNode|null=null;private motorTone:OscillatorNode|null=null;
   private noise:AudioBuffer|null=null;private seenShots=new WeakSet<object>();
   private owners:number[]=[];private unitIds=new Set<number>();private footsteps=new Map<number,number>();
   private game:Simulation|null=null;private lastStep=0;
@@ -39,6 +57,15 @@ export class Soundscape {
       const windLevel=a.createGain();windLevel.gain.value=.055;this.wind=a.createGain();this.wind.gain.value=1;
       source.connect(filter);filter.connect(windLevel);windLevel.connect(this.wind);this.wind.connect(this.effects);source.start();
       const lfo=a.createOscillator(),swell=a.createGain();lfo.frequency.value=.08;swell.gain.value=.025;lfo.connect(swell);swell.connect(windLevel.gain);lfo.start();
+      // Two perpetually running but silent-by-default filtered oscillators; no per-frame voice allocations.
+      const motor=a.createOscillator(),motorLow=a.createBiquadFilter(),motorGain=a.createGain();
+      motor.type='sawtooth';motor.frequency.value=55;motorLow.type='lowpass';motorLow.frequency.value=195;motorGain.gain.value=0;
+      motor.connect(motorLow);motorLow.connect(motorGain);motorGain.connect(this.effects);motor.start();
+      this.motorGain=motorGain;this.motorTone=motor;
+      const plant=a.createOscillator(),plantLow=a.createBiquadFilter(),plantGain=a.createGain();
+      plant.type='triangle';plant.frequency.value=71;plantLow.type='lowpass';plantLow.frequency.value=145;plantGain.gain.value=0;
+      plant.connect(plantLow);plantLow.connect(plantGain);plantGain.connect(this.effects);plant.start();
+      this.generatorGain=plantGain;
     }
     if(this.context.state==='suspended')await this.context.resume();
     this.radio.flush();
@@ -50,7 +77,7 @@ export class Soundscape {
     this.played.commands++;this.radio.request(order.kind,order.unit);
   }
   pause():void{this.silence(true);this.radio.pause();}
-  silenceScene():void{this.silence();this.radio.stop();if(this.context&&this.wind)this.wind.gain.setTargetAtTime(0,this.context.currentTime,.025);}
+  silenceScene():void{this.silence();this.radio.stop();if(this.context){for(const gain of [this.wind,this.motorGain,this.generatorGain])gain?.gain.setTargetAtTime(0,this.context.currentTime,.025);}}
   bindGame(g:Simulation):void{
     if(this.game===g)return;this.silence();this.radio.reset();this.lastStep=g.time;this.game=g;this.owners=g.territories.map(t=>t.owner);this.unitIds=new Set(g.units.map(u=>u.id));this.footsteps.clear();this.seenShots=new WeakSet();
   }
@@ -96,7 +123,14 @@ export class Soundscape {
   }
   update(g:Simulation,r:Renderer):void{
     this.bindGame(g);
-    if(this.context&&this.wind)this.wind.gain.setTargetAtTime(this.ambience&&!document.hidden&&!g.paused&&g.status==='playing' ? 1+g.weather.intensity*1.25 : 0,this.context.currentTime,.2);
+    if(this.context){
+      const sounding=this.enabled&&this.volume>0&&this.ambience&&!document.hidden&&!g.paused&&g.status==='playing';
+      this.wind?.gain.setTargetAtTime(sounding?1+g.weather.intensity*1.25:0,this.context.currentTime,.2);
+      const levels=sounding?ambientActivity(g,r.camera,p=>g.canSee(0,p)):{motors:0,generator:0};
+      this.motorGain?.gain.setTargetAtTime(levels.motors*.016,this.context.currentTime,.25);
+      this.generatorGain?.gain.setTargetAtTime(levels.generator*.015,this.context.currentTime,.35);
+      if(this.motorTone)this.motorTone.frequency.setTargetAtTime(53+Math.sin(g.time*1.8)*3+Math.min(8,levels.motors*3),this.context.currentTime,.12);
+    }
     const active=this.context?.state==='running'&&this.enabled&&this.volume>0&&!document.hidden&&!g.paused;
     if(document.hidden){this.silence();this.radio.stop();}else if(g.paused)this.pause();
     for(const shot of g.shots)if(!this.seenShots.has(shot)){
