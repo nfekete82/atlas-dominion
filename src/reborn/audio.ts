@@ -191,7 +191,7 @@ export class Soundscape {
         voice.pulseDepth.gain.setTargetAtTime(
           profile.pulse>0?profile.texture*(kind==='tank'?.13:.20)*(.25+.75*throttle):0,now,.26);
         voice.gain.gain.setTargetAtTime(
-          level*profile.volume,now,level>voice.gain.gain.value?.14:.30);
+          level*profile.volume,now,level>voice.gain.gain.value ? .14 : .30);
         voice.previousMotion=level>.02?moving:0;
       }
     }
