@@ -1,0 +1,45 @@
+name: Sandforge Hold Position - defensive-only fire
+
+on:
+  push:
+    branches:
+      - fix/sandforge-hold-fire-only-when-attacked-*
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hold-fire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build current game
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Defensive hold plus existing combat and AI regressions
+        run: |
+          node --test \
+            tests/reborn-hold-fire.test.mjs \
+            tests/reborn-polish.test.mjs \
+            tests/reborn-combat-missions.test.mjs \
+            tests/reborn-tactical-ai-23.test.mjs \
+            tests/reborn-tactical-ai-24.test.mjs
+      - name: Prepare Chromium
+        run: |
+          npm --prefix tests/browser ci --no-audit --no-fund
+          cd tests/browser && npx playwright install --with-deps chromium
+      - name: Real hold button and title UI browser smoke test
+        env:
+          ATLAS_BROWSER_CHANNEL: chromium
+          CI: 'true'
+        run: |
+          cd tests/browser
+          npx playwright test --config=cinematic.config.mjs \
+            reborn-hold-fire.spec.mjs sandforge-title-menu.spec.mjs \
+            --reporter=line
