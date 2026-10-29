@@ -27,10 +27,18 @@ test('Humvee passenger portraits show exact riders and click unloads one at a ti
  expect(thumbs.every(t=>t.width>0&&t.src.includes('/'))).toBe(true);
  const geometry=await page.evaluate(()=>{
   const box=selector=>document.querySelector(selector).getBoundingClientRect();
-  const roster=box('#transport-passengers'),hud=box('#selection-panel'),selection=box('.selection-copy');
-  return {withinHUD:roster.bottom<=hud.bottom+2,withinSelection:roster.right<=selection.right+2};
+  const roster=box('#transport-passengers'),hud=box('#selection-panel'),selection=box('.selection-copy'),commands=box('.command-group');
+  const slots=[...document.querySelectorAll('#passenger-slots button')].map(b=>b.getBoundingClientRect());
+  return {
+   withinHUD:roster.bottom<=hud.bottom+2&&roster.top>=hud.top-2,
+   rightOfDetails:roster.left>=selection.right-2,
+   leftOfCommands:roster.right<=commands.left+2,
+   grid2x2:slots.length===4&&Math.abs(slots[0].top-slots[1].top)<2&&
+     Math.abs(slots[2].top-slots[3].top)<2&&slots[2].top>slots[0].bottom-2&&
+     slots[1].left>slots[0].right-2
+  };
  });
- expect(geometry.withinHUD&&geometry.withinSelection).toBe(true);
+ expect(geometry).toEqual({withinHUD:true,rightOfDetails:true,leftOfCommands:true,grid2x2:true});
  const target=data.passengers[2];
  await page.locator('[data-passenger-id="'+target.id+'"]').click();
  const targeted=await page.evaluate(id=>{
