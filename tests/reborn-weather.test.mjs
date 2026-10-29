@@ -5,7 +5,7 @@ import {WEATHER_RULES,distance} from '../dist/src/reborn/config.js';
 import {Simulation} from '../dist/src/reborn/simulation.js';
 import {UNITS} from '../dist/src/reborn/catalog.js';
 const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-7,`${a} != ${b}`);
-const fixture=()=>{const g=new Simulation();g.aiClock=-1e8;g.units=[];g.world.blocked.fill(0);g.world.opaque.fill(0);return g;};
+const fixture=()=>{const g=new Simulation(2026,0,true);g.aiClock=-1e8;g.units=[];g.world.blocked.fill(0);g.world.opaque.fill(0);return g;};
 const stormTime=seed=>{const w=new Weather(seed);return w.endsAt+WEATHER_RULES.warning;};
 const storm=g=>{g.time=stormTime(g.seed);g.weather.update(g.time);g.updateVision();};
 test('weather: deterministic seeded warning/storm/recovery/calm sequence, bounded durations and nonpermanent storms',()=>{
@@ -40,23 +40,23 @@ test('weather: aircraft retain sight and fly at exactly 80% speed, retreats stil
  }
 });
 test('weather: artillery dispersion is small, deterministic, projectile-specific and preserved in flight saves',()=>{
- const a=fixture(),b=fixture();for(const g of [a,b]){storm(g);const u=g.spawn(0,{x:1900,y:2100},'artillery'),t=g.spawn(1,{x:2400,y:2100},'tank');u.xp=500;g.launch(u,t);const m=g.missiles[0];assert.ok(distance(m.to,t)>0&&distance(m.to,t)<=18);near(m.damage,126);const saved=Simulation.load(g.save());assert.deepEqual(saved.missiles,g.missiles);assert.equal(saved.weather.phase,'SANDSTORM');}
+ const a=fixture(),b=fixture();for(const g of [a,b]){storm(g);const u=g.spawn(0,{x:1900,y:2100},'artillery'),t=g.spawn(1,{x:2400,y:2100},'tank');u.xp=500;g.launch(u,t);const m=g.missiles[0];assert.ok(distance(m.to,t)>0&&distance(m.to,t)<=18);near(m.damage,126);const saved=Simulation.load(g.save(),true);assert.deepEqual(saved.missiles,g.missiles);assert.equal(saved.weather.phase,'SANDSTORM');}
  assert.deepEqual(a.missiles,b.missiles);assert.notDeepEqual(a.weather.artilleryOffset(1,2),a.weather.artilleryOffset(2,2));const clear=new Weather(2026);assert.deepEqual(clear.artilleryOffset(1,2),{x:0,y:0});
 });
 test('weather: save/load before, during and after storm restores phase, schedule and exact vision with no duplicate messages',()=>{
  for(const phase of ['CLEAR','WARNING','SANDSTORM','RECOVERY']){
-  const g=fixture();g.spawn(0,{x:1900,y:1900});while(g.weather.phase!==phase){g.time=g.weather.endsAt;g.weather.update(g.time);}g.updateVision();const loaded=Simulation.load(g.save());loaded.world.blocked.fill(0);loaded.world.opaque.fill(0);loaded.updateVision();assert.deepEqual(loaded.weather,g.weather);assert.deepEqual(loaded.visible,g.visible);assert.deepEqual(loaded.notices,[]);g.step();loaded.step();assert.deepEqual(loaded.weather,g.weather);
+  const g=fixture();g.spawn(0,{x:1900,y:1900});while(g.weather.phase!==phase){g.time=g.weather.endsAt;g.weather.update(g.time);}g.updateVision();const loaded=Simulation.load(g.save(),true);loaded.world.blocked.fill(0);loaded.world.opaque.fill(0);loaded.updateVision();assert.deepEqual(loaded.weather,g.weather);assert.deepEqual(loaded.visible,g.visible);assert.deepEqual(loaded.notices,[]);g.step();loaded.step();assert.deepEqual(loaded.weather,g.weather);
  }
  const g=new Simulation(),s=g.save();delete s.weatherVersion;for(const u of s.units)delete u.xp;assert.equal(Simulation.load(s).weather.phase,'CLEAR');
 });
 test('weather: AI planning ignores hidden live enemies and preserves authoritative retreat orders during storms',()=>{
- const a=new Simulation(2026,4),b=new Simulation(2026,4);for(const g of [a,b]){storm(g);g.credits[1]=1000;g.aiClock=3;}
+ const a=new Simulation(2026,4,true),b=new Simulation(2026,4,true);for(const g of [a,b]){storm(g);g.credits[1]=1000;g.aiClock=3;}
  const hidden=b.units.find(u=>u.owner===0);hidden.kind='tank';hidden.hp=UNITS.tank.hp;hidden.x=100;hidden.y=2800;b.updateVision();assert.equal(b.canSee(1,hidden),false);a.step();b.step();assert.deepEqual(a.tactical.state,b.tactical.state);
  const u=b.units.find(u=>u.owner===1);b.command([u.id],{kind:'move',x:u.x-100,y:u.y});const before={...u};b.step();assert.equal(u.orders[0]?.kind,'move');assert.ok(distance(u,before)>0);
 });
 test('weather: combat and in-flight rocket replay retain exact HP, XP and ranks through a storm save/load',()=>{
  const g=fixture();storm(g);const u=g.spawn(0,{x:1900,y:2100},'artillery'),t=g.spawn(1,{x:2050,y:2100},'tank');u.xp=500;u.hold=t.hold=true;t.cooldown=1e8;g.command([u.id],{kind:'attack',x:t.x,y:t.y,target:t.id});g.updateVision();g.step();assert.ok(g.missiles.length);
- const loaded=Simulation.load(g.save());loaded.aiClock=-1e8;loaded.world.blocked.fill(0);loaded.world.opaque.fill(0);
+ const loaded=Simulation.load(g.save(),true);loaded.aiClock=-1e8;loaded.world.blocked.fill(0);loaded.world.opaque.fill(0);
  for(let i=0;i<120;i++){g.step();loaded.step();}
  assert.deepEqual(loaded.units.map(u=>({id:u.id,hp:u.hp,xp:u.xp})),g.units.map(u=>({id:u.id,hp:u.hp,xp:u.xp})));assert.deepEqual(loaded.missiles,g.missiles);assert.deepEqual(loaded.weather,g.weather);assert.ok(g.units.every(u=>Number.isFinite(u.hp)&&u.hp>0));
 });
