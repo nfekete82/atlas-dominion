@@ -217,6 +217,10 @@ export class BattlefieldEffects {
       this.lastTrack.delete(id);
       this.lastFootstep.delete(id);
       if(old.vehicle&&visible(old)){
+        // Scorched wreck footprint persists after the brief smoke, limited like impact marks.
+        this.hits++;
+        this.marks.push({...old,radius:30,rotation:(old.x*.017+old.y*.023)%(Math.PI*2),created:game.time});
+        if(this.marks.length>96)this.marks.shift();
         this.addSmoke(old,game.time,43,1.7,'wreck');
         this.addBurst(old,game.time,1.85,'wreck');
       }
@@ -225,6 +229,9 @@ export class BattlefieldEffects {
     const bases=new Map<number,PreviousBase>();
     for(const b of game.bases)bases.set(b.id,{x:b.x,y:b.y,hp:b.hp});
     for(const [id,old] of this.bases)if(old.hp>0&&(bases.get(id)?.hp??0)<=0&&visible(old)){
+      this.hits++;
+      this.marks.push({...old,radius:36,rotation:(old.x*.017+old.y*.023)%(Math.PI*2),created:game.time});
+      if(this.marks.length>96)this.marks.shift();
       this.addSmoke(old,game.time,47,1.9,'wreck');
       this.addBurst(old,game.time,2.0,'wreck');
     }
