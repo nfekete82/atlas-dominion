@@ -12,7 +12,7 @@ permissions:
 jobs:
   wave-regression:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,7 +36,7 @@ jobs:
       - name: Paired paid economy A/B versus 2.3
         run: |
           node scripts/benchmark-tactical-ai-24.mjs \
-            --maps 4,5 --seeds 2026 --seconds 150 \
+            --maps 4,5 --seeds 2026,42 --seconds 900 \
             --opponents guarded,fortress \
             --output artifacts/tactical-ai-24-ab.json
       - name: Publish comparison data
