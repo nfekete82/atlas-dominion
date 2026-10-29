@@ -2,6 +2,7 @@ import {UNITS,BUILDINGS,unitSpec,canAttack,type UnitKind,type BuildingKind} from
 import {distance,type Point} from './config.js';
 import {produceCombinedArmy} from './director-production.js';
 import {buildBastionDefense,defensiveTowerLimit} from './bastion-defense.js';
+import {defenseLessonsLost} from './battle-learning.js';
 import type {Simulation,Unit,Base} from './simulation.js';
 import type {TacticalState} from './tactical-ai.js';
 export type ProductionReason='produced'|'saving-unit'|'saving-building'|'insufficient-credits'|'queue-blocked'|'army-cap'|'composition-complete'|'no-producer';
@@ -51,8 +52,9 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
  // Fortify owned border bastions after core production has started. Unlike
  // a passive HQ guard, a real turret can hold a captured frontier while the
  // mobile army advances. Do not block repairs, construction or new armor.
+ const learnedDefense=director&&s.experience?defenseLessonsLost(s.experience)>0:false;
  if(director&&!unfinished&&!g.bases.some(b=>b.owner===1&&b.hp>0&&b.buildRemaining>0)
-  &&(goal===null||goal==='generator')&&complete('barracks')&&complete('factory')
+  &&(goal===null||goal==='generator'||learnedDefense&&goal==='factory')&&complete('barracks')&&(complete('factory')||learnedDefense)
   &&fighters.length>=4&&g.time>=75&&g.credits[1]>=BUILDINGS.turret.cost+400
   &&own.filter(b=>b.kind==='turret').length<defensiveTowerLimit(g.territories.length)
   &&g.time-(e.towerAttemptAt??-30)>=18){
