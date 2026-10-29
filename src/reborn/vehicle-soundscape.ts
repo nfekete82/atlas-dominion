@@ -39,7 +39,7 @@ export function vehicleSoundMix(
   const profile=unitSpec(u),flying=profile.flying;
   const motion=u.moving?1:0;
   const physicalSpeed=u.driveSpeed??(u.moving?profile.speed*.72:0);
-  const throttle=u.moving?clamp(physicalSpeed/Math.max(1,profile.speed),.10,1):flying?.46:.23;
+  const throttle=u.moving?clamp(physicalSpeed/Math.max(1,profile.speed),flying?.55:.10,1):flying?.46:.23;
   const idle=flying?.68:.25;
   const activity=weight*(idle+(1-idle)*throttle);
   const m=result[kind];sums[kind]+=activity;m.count++;
