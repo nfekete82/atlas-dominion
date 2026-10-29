@@ -58,12 +58,12 @@ export function readPortableExperience(raw:unknown):Experience|undefined {
  if(p.active!==undefined||p.held!==undefined||p.lastLostSector!==undefined||!validExperience(p,0,64))return undefined;
  return portableExperience(p);
 }
-export function validExperience(raw:unknown,time:number,sectors:number):boolean {
+export function validExperience(raw:unknown,time:number,sectors:number,withinWorld:(p:Point)=>boolean=(p)=>p.x<=3762&&p.y<=3762):boolean {
  if(raw===undefined)return true;
  const s=raw as Experience,id=(n:unknown)=>Number.isSafeInteger(n)&&(n as number)>=0,
  num=(n:unknown)=>typeof n==='number'&&Number.isFinite(n)&&n>=0,
  tactic=(t:unknown)=>tactics.includes(t as LessonTactic),
- point=(p:Point|undefined)=>p===undefined||!!p&&num(p.x)&&num(p.y)&&p.x<=3762&&p.y<=3762;
+ point=(p:Point|undefined)=>p===undefined||!!p&&num(p.x)&&num(p.y)&&withinWorld(p);
  return !!s&&s.version===1&&Array.isArray(s.records)&&s.records.length<=36&&s.records.every(r=>tactic(r.tactic)&&id(r.guns)&&r.guns<=3&&id(r.force)&&r.force<=3&&id(r.wins)&&id(r.losses)&&typeof r.score==='number'&&Number.isFinite(r.score)&&Math.abs(r.score)<=20)
  &&(s.held===undefined||(Array.isArray(s.held)&&s.held.length<=sectors&&new Set(s.held).size===s.held.length&&s.held.every(v=>id(v)&&v<sectors)))
  &&(s.lastLostSector===undefined||(id(s.lastLostSector)&&s.lastLostSector<sectors))
