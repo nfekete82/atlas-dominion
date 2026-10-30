@@ -357,8 +357,13 @@ export class Renderer {
     const inView=(point:Point,padding=0)=>visibleInViewport(point,effectsView,padding);
     this.atmosphere.drawHeat(c,g,effectsView,this.reducedMotion);
     this.atmosphere.drawSand(c,g,effectsView,this.reducedMotion);
-    this.palms.draw(c,g.time,effectsView,this.reducedMotion);
-    for(const d of this.groundDetails)if(d.kind==='skull'&&inView(d,40)&&environmentPropVisible(d,g))
+    // Outside direct sight, keep the original fog-shaded terrain decorations.
+    // Palms and skulls in direct sight belong to the same world-Y sort as units,
+    // otherwise soldiers appear to stand on TOP of the foliage.
+    const nearbyPalms=this.palms.visibleTrees(effectsView);
+    const nearbySkulls=this.groundDetails.filter(d=>d.kind==='skull'&&inView(d,40)&&environmentPropVisible(d,g));
+    for(const d of nearbyPalms)if(!g.canSee(0,d))this.palms.drawOne(c,d);
+    for(const d of nearbySkulls)if(!g.canSee(0,d))
       this.propAtlas.draw(c,'desert-skull',d,d.radius*2.5,Math.floor(d.variant*4));
     this.battlefield.drawTracks(c,g,effectsView);
     this.battlefield.drawMarks(c,g);
@@ -373,14 +378,23 @@ export class Renderer {
     const ranged=g.bases.find(b=>b.id===this.selectedBase);if(ranged)this.drawRange(ranged);
     const corpseAt=profiler?performance.now():0;this.units.drawCorpses(c,p=>g.canSee(0,p),p=>inView(p,250));if(profiler)profiler.record('corpses',performance.now()-corpseAt);
     const spritesAt=profiler?performance.now():0;
-    const entities:({y:number;unit:Unit}|{y:number;base:Base}|{y:number;territory:Territory})[]=[];
+    const entities:({y:number;unit:Unit}|{y:number;base:Base}|{y:number;territory:Territory}|{y:number;palm:GroundDetail}|{y:number;skull:GroundDetail})[]=[];
+    for(const d of nearbyPalms)if(g.canSee(0,d))entities.push({y:d.y+.001,palm:d});
+    for(const d of nearbySkulls)if(g.canSee(0,d))entities.push({y:d.y+.001,skull:d});
     for(const t of g.territories)if(inView(t.point,160)){if(g.canSee(0,t.point))entities.push({y:t.point.y,territory:t});else if(g.hasExplored(0,t.point))this.drawBastion(t,true);}
     for(const b of g.bases)if(inView(b,500)&&(b.owner===0||g.canSee(0,b)))entities.push({y:b.y,base:b});
     for(const m of g.memories[0])if(inView(m,500)&&m.owner!==0&&!g.canSee(0,m)){
       const kind=m.kind??'headquarters';this.spriteDraw(this.redBuildings[kind],{x:m.x,y:m.y},buildingArtWidth(kind,BUILDINGS[kind].width),false,m.hp>0?.22:.07);if(kind==='turret')this.structures.drawTurret(c,m.owner,{x:m.x,y:m.y},buildingArtWidth(kind,BUILDINGS[kind].width),0,m.hp>0?.22:.07);
     }
     for(const u of g.units)if(!u.carrier&&inView(u,250)&&(u.owner===0||g.canSee(0,u)))entities.push({y:u.y,unit:u});
-    entities.sort((a,b)=>a.y-b.y);for(const e of entities)if('unit' in e)this.drawUnit(e.unit);else if('base' in e)this.drawBase(e.base);else this.drawBastion(e.territory);
+    entities.sort((a,b)=>a.y-b.y);
+    for(const e of entities){
+      if('unit' in e)this.drawUnit(e.unit);
+      else if('base' in e)this.drawBase(e.base);
+      else if('territory' in e)this.drawBastion(e.territory);
+      else if('palm' in e)this.palms.drawOne(c,e.palm);
+      else this.propAtlas.draw(c,'desert-skull',e.skull,e.skull.radius*2.5,Math.floor(e.skull.variant*4));
+    }
     if(profiler)profiler.record('sprites',performance.now()-spritesAt);
     if(this.placement&&this.pointer){
       const spec=BUILDINGS[this.placement],p=this.pointer,valid=g.units.some(u=>this.selected.has(u.id)&&u.kind==='engineer'&&u.owner===0&&u.hp>0)&&!g.buildError(0,this.placement,p);
