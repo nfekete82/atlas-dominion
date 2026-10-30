@@ -213,14 +213,15 @@ export class Renderer {
         // Keep the previous clipped preview for builds using legacy art.
         draw(alpha*.3);c.save();c.beginPath();c.rect(b.x-artWidth/2,anchor.y-height*progress,artWidth,height*progress);c.clip();draw(alpha);c.restore();
       }
+      c.restore(); // Construction artwork mirrors, but German progress text remains legible.
       this.bar({x:b.x,y:b.y+spec.radius*.46+6},Math.min(85,spec.width*.6),progress,'#e9bb61');c.fillStyle='#f1d48e';c.font='10px monospace';c.textAlign='center';c.fillText(`${b.constructionActive?'BAU':'PAUSIERT'} ${Math.ceil(b.buildRemaining)} S`,b.x,b.y+spec.radius*.46+24);
     }else{
       this.decor.draw(c,b.kind,anchor,spec.radius,b.id,this.game.seed,b.owner,'behind',this.game.time,this.reducedMotion,alpha);
       draw(alpha);
       this.structures.drawActivity(c,b.kind,b.owner,anchor,artWidth,this.game.time,this.reducedMotion,alpha);
       this.decor.draw(c,b.kind,anchor,spec.radius,b.id,this.game.seed,b.owner,'front',this.game.time,this.reducedMotion,alpha);
+      c.restore();
     }
-    c.restore();
     if(selected||b.hp<spec.hp)this.bar({x:b.x,y:anchor.y-height-8},86,b.hp/spec.hp,b.owner===0?'#75c5e8':'#ed7866');
     if(b.queue.length&&b.owner===0)this.bar({x:b.x,y:b.y+24},75,b.production/b.queue[0],'#dfb278');
     if(selected&&b.rally){c.strokeStyle='#94d9f399';c.setLineDash([5,6]);c.beginPath();c.moveTo(b.x,b.y);c.lineTo(b.rally.x,b.rally.y);c.stroke();c.setLineDash([]);
