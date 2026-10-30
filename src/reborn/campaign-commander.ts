@@ -23,6 +23,9 @@ export function refreshIntelligence(g:Simulation,s:CampaignState):void{
  // fog is never proof that the headquarters was destroyed.
  const hq=known.find(m=>m.kind==='headquarters');
  if(hq&&!s.observedEnemyHQ)s.observedEnemyHQ={id:hq.id,x:hq.x,y:hq.y};
+ // If the opponent genuinely rebuilt/recaptured a visible HQ, it is no
+ // longer legitimate to assume the endgame is won.
+ if(hq&&s.enemyHQEliminatedAt!==undefined&&g.canSee(1,hq))s.enemyHQEliminatedAt=undefined;
  if(s.observedEnemyHQ&&s.enemyHQEliminatedAt===undefined&&
     g.canSee(1,s.observedEnemyHQ)&&
     !known.some(m=>m.id===s.observedEnemyHQ!.id&&m.kind==='headquarters')&&
