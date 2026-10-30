@@ -125,6 +125,30 @@ export class Soundscape {
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
   }
+  private lastReadySignal=-Infinity;
+  /** Player-only construction/production cue, with no external TTS service.
+   * Every completion is logged in the HUD; busy production lines share a short
+   * signal rather than interrupting radio or flooding the speaker. */
+  announceReady(kind:'building'|'unit'):void {
+    const a=this.context;
+    if(!a||!this.enabled||this.volume<=0||document.hidden||a.state!=='running')return;
+    if(a.currentTime-this.lastReadySignal<2.1)return;
+    this.lastReadySignal=a.currentTime;
+    if(kind==='building'){
+      this.tone(620,.13,.075);this.tone(930,.19,.063,.13);
+    }else{
+      this.tone(760,.09,.06);this.tone(1050,.14,.05,.10);
+    }
+    if(!this.radio.enabled||this.radio.volume<=0||this.radio.active>0||
+       typeof window==='undefined'||!('speechSynthesis' in window)||
+       typeof SpeechSynthesisUtterance==='undefined'||window.speechSynthesis.speaking)return;
+    const voice=window.speechSynthesis.getVoices().find(v=>v.localService&&v.lang.toLowerCase().startsWith('de'));
+    if(!voice)return;
+    const announcement=new SpeechSynthesisUtterance(kind==='building'?'Gebäude fertiggestellt.':'Einheit bereit.');
+    announcement.voice=voice;announcement.lang='de-DE';announcement.rate=1.05;
+    announcement.pitch=.92;announcement.volume=Math.min(.58,this.volume*this.radio.volume*.8);
+    window.speechSynthesis.speak(announcement);
+  }
   pause():void{
     this.silence(true);this.radio.pause();
     if(typeof window!=='undefined'&&'speechSynthesis' in window)window.speechSynthesis.cancel();
