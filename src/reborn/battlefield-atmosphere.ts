@@ -64,7 +64,7 @@ export function paintCrater(c:CanvasRenderingContext2D,p:Point,radius:number,rot
 export function paintGroundDetails(c:CanvasRenderingContext2D,details:readonly GroundDetail[],sprites:GroundSprites):void {
   for(const d of details){
     if(d.kind==='crater'){paintCrater(c,d,d.radius,d.rotation,1,groundSprite(sprites.crater,d.variant));continue;}
-    // Mesh-rendered palms and bones stay separate so occupied slots can disappear.
+    // Mesh-rendered palms and bones stay separate for correct depth; moving units never hide them.
     if(d.kind==='palm'||d.kind==='skull')continue;
     const w=d.radius*(d.kind==='rock'?3.7:2.3),h=d.radius*(d.kind==='rock'?2.4:1.55);
     c.save();c.translate(d.x,d.y);c.rotate(Math.sin(d.rotation)*.11);
