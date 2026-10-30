@@ -6,25 +6,31 @@ export async function browserCheck({baseURL,credentials,release,artifacts}){
  const browser=await chromium.launch({channel:process.env.ATLAS_BROWSER_CHANNEL??'chrome',headless:true});
  const abort=()=>{void browser.close().catch(()=>{});};cancellation.signal.addEventListener('abort',abort,{once:true});
  const errors=[],failed=[],external=[];
+ let phase='Browserkontext erstellen';
  try{
   const context=await browser.newContext({httpCredentials:credentials,viewport:{width:1440,height:1000}}),page=await context.newPage();
   page.on('pageerror',error=>errors.push(error.message));
   page.on('console',message=>{if(message.type()==='error')errors.push(message.text());});
   page.on('response',r=>{if(new URL(r.url()).origin===baseURL&&r.status()>=400&&r.status()!==401)failed.push({status:r.status(),path:new URL(r.url()).pathname});});
   page.on('request',r=>{if(/^https?:/.test(r.url())&&new URL(r.url()).origin!==baseURL)external.push(new URL(r.url()).origin);});
+  phase='Hauptmenü und Assets laden';
   await page.goto(baseURL+'/',{waitUntil:'domcontentloaded'});await page.locator('#loading').waitFor({state:'detached',timeout:90000});
   await page.locator('#main-dialog').waitFor({state:'visible'});
   if(await page.evaluate(()=>('__reborn' in window)))throw Error('Production exposed debug state');
+  phase='Neues Spiel öffnen';
   const start=page.locator('#main-dialog button').filter({hasText:/neue|neues/i}).first();await start.click();
   await page.locator('#new-dialog').waitFor({state:'visible'});await page.locator('#new-dialog button[value="new"]').click();
+  phase='HQ-Baumenü prüfen';
   await page.locator('#radar-offline').waitFor({state:'visible'});await page.locator('#build-mode').click();
   await page.locator('[data-build="headquarters"]').waitFor({state:'visible'});await page.locator('[data-build="headquarters"]').click();await page.keyboard.press('r');
   if(!await page.locator('#hint').textContent().then(t=>t.includes('R: GEBÄUDE DREHEN')))throw Error('Construction hint missing');
   await page.keyboard.press('Escape');
+  phase='Renderausgabe prüfen';
   const pixels=await page.locator('#world').evaluate(canvas=>{const c=canvas.getContext('2d'),d=c.getImageData(0,0,canvas.width,canvas.height).data;let n=0;for(let i=0;i<d.length;i+=400)if(d[i]>70&&d[i+1]>40)n++;return n;});
   if(pixels<100)throw Error('World/units failed to render');
   // Exercise the exact shipped modules in the authenticated browser, without
   // publishing instrumentation or changing the live game's running state.
+  phase='Simulation und IndexedDB prüfen';
   const simulation=await page.evaluate(async release=>{
    const prefix='/releases/'+release+'/src/reborn/';
    const {Simulation}=await import(prefix+'simulation.js'),{saveCampaign,loadCampaign}=await import(prefix+'storage.js');
@@ -37,9 +43,11 @@ export async function browserCheck({baseURL,credentials,release,artifacts}){
    return {headquarters:true,ai:true,indexedDB:true,statistics:!!g.stats?.factions};
   },release);
   if(!simulation.statistics)throw Error('Match statistics missing');
+  phase='Browserkonsole und Ressourcenzugriffe prüfen';
   if(external.length)throw Error('Default play unexpectedly required external services');
   if(errors.length||failed.length)throw Error('Browser errors: '+JSON.stringify({errors,failed}));
   if(artifacts){await mkdir(artifacts,{recursive:true});await page.screenshot({path:artifacts+'/online-game.png'});}
   return {menu:true,game:true,construction:true,debugDisabled:true,...simulation,consoleErrors:0,failedResources:0,defaultExternalRequests:0};
- }finally{cancellation.signal.removeEventListener('abort',abort);await browser.close();}
+ }catch(error){throw new Error('Browserprüfung ('+phase+'): '+error.message,{cause:error});}
+ finally{cancellation.signal.removeEventListener('abort',abort);await browser.close();}
 }
