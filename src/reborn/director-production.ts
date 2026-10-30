@@ -7,7 +7,7 @@ import type {ProductionDecision} from './army-economy.js';
 interface ProductionContext {
  own:Base[]; army:Unit[]; seen:Unit[]; income:number; underAttack:boolean;
  knownTurrets:number; knownEnemyHQ:boolean; reserve:number; maxArmy:number;
- scores:Record<UnitKind,number>;defenseNeedsWorker:boolean;
+ scores:Record<UnitKind,number>;defenseNeedsWorker:boolean;finishing:boolean;
 }
 /** Purchase priorities are persistent composition deficits, not affordable-unit scores.
  * Counts include paid queues, so one factory never reserves money for a unit it
@@ -47,6 +47,12 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
  const planned=():UnitKind|null=>{
   if(count('engineer')===0&&available('engineer'))return 'engineer';
   if(c.defenseNeedsWorker&&count('engineer')<2&&available('engineer'))return 'engineer';
+  // Convert spare income into a real cleanup squad. Prefer affordable ground
+  // forces over speculative aircraft once HQ loss is actually confirmed.
+  if(c.finishing&&!c.underAttack){
+   if(count('infantry')<6&&available('infantry'))return 'infantry';
+   if(count('heavy')<2&&available('heavy'))return 'heavy';
+  }
   const response=counter();if(response)return response;
   if(c.underAttack)return null;
   const siegeNeed=s.battle?.assessment?.neededSiege??0;
@@ -78,6 +84,7 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
  })[kind];
  const ranks=(producer:Base):UnitKind[]=>{
   const n=counts();
+  if(c.finishing&&producer.kind==='airfield'&&count('scout')>=1)return [];
   let result=preferredRole(producer.kind,n,c.knownTurrets+(c.knownEnemyHQ?1:0),observed.air) as UnitKind[];
   // A second worker is useful once repairs and construction can overlap.
   if(producer.kind==='headquarters')result=['engineer'];
