@@ -14,7 +14,7 @@ test('construction: R and the HUD switch mirrored façade without changing terra
   for(let radius=200;radius<=800&&!point;radius+=20)
    for(let i=0;i<40;i++){
     const p={x:hq.x+radius*Math.cos(i*Math.PI/20),y:hq.y+radius*Math.sin(i*Math.PI/20)};
-    if(!g.buildError(0,'generator',p)){point=p;break;}
+    if(!g.buildError(0,'turret',p)){point=p;break;}
    }
   if(point){r.camera.x=point.x;r.camera.y=point.y;r.boundCamera();}
   a.refresh();return point;
