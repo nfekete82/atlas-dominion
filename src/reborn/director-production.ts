@@ -7,7 +7,7 @@ import type {ProductionDecision} from './army-economy.js';
 interface ProductionContext {
  own:Base[]; army:Unit[]; seen:Unit[]; income:number; underAttack:boolean;
  knownTurrets:number; knownEnemyHQ:boolean; reserve:number; maxArmy:number;
- scores:Record<UnitKind,number>;
+ scores:Record<UnitKind,number>;defenseNeedsWorker:boolean;
 }
 /** Purchase priorities are persistent composition deficits, not affordable-unit scores.
  * Counts include paid queues, so one factory never reserves money for a unit it
@@ -46,6 +46,7 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
  const fighters=c.army.filter(u=>!['engineer','medic','scout'].includes(u.kind)).length;
  const planned=():UnitKind|null=>{
   if(count('engineer')===0&&available('engineer'))return 'engineer';
+  if(c.defenseNeedsWorker&&count('engineer')<2&&available('engineer'))return 'engineer';
   const response=counter();if(response)return response;
   if(c.underAttack)return null;
   const siegeNeed=s.battle?.assessment?.neededSiege??0;
@@ -71,7 +72,7 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
  };
  const ceiling=(kind:UnitKind):number=>({
   infantry:8,heavy:c.income>=65?4:3,medic:Math.min(2,Math.ceil((count('infantry')+count('heavy'))/5)),
-  engineer:c.own.length>=4&&(s.recovering?.length??0)>0?2:1,rover:1,tank:c.income>=65||observed.armor>=3?4:2,
+  engineer:c.defenseNeedsWorker||c.own.length>=4&&(s.recovering?.length??0)>0?2:1,rover:1,tank:c.income>=65||observed.armor>=3?4:2,
   artillery:c.knownTurrets>1?3:c.knownEnemyHQ||c.knownTurrets?2:1,
   scout:1,bomber:c.income>=65?1:0,
  })[kind];
