@@ -1,8 +1,8 @@
 /** Local, bounded campaign experience. Tactical inputs must be observed or public. */
 import type {Point} from './config.js';
 export type LessonTactic='overrun'|'siege'|'maneuver'|'flank'|'defense';
-export interface Lesson {tactic:LessonTactic;guns:number;force:number;wins:number;losses:number;score:number}
-export interface ActiveLesson {sector:number;tactic:LessonTactic;guns:number;force:number;at:number;initialUnits:number;initialHP:number;progress:number;objective?:number|null;target?:Point}
+export interface Lesson {tactic:LessonTactic;guns:number;force:number;wins:number;losses:number;score:number;unsupportedSiegeLosses?:number}
+export interface ActiveLesson {sector:number;tactic:LessonTactic;guns:number;force:number;at:number;initialUnits:number;initialHP:number;progress:number;siegeWeapons?:number;objective?:number|null;target?:Point}
 export interface Experience {version:1;records:Lesson[];active?:ActiveLesson;held?:number[];lastLostSector?:number}
 export const newExperience=():Experience=>({version:1,records:[]});
 const tactics:readonly LessonTactic[]=['overrun','siege','maneuver','flank','defense'];
@@ -29,6 +29,12 @@ export function finishExperience(s:Experience,success:boolean,remainingHP:number
  const a=s.active;if(!a)return;
  const retained=Math.max(0,Math.min(1,remainingHP/Math.max(1,a.initialHP)));
  recordLesson(s,a.tactic,a.guns,a.force,success,retained);
+ // Count only a witnessed failed attack against known guns with no paid
+ // artillery. Older saves without siegeWeapons provide no such evidence.
+ if(!success&&a.guns>0&&a.siegeWeapons===0){
+  const record=s.records.find(r=>r.tactic===a.tactic&&r.guns===gunBucket(a.guns)&&r.force===forceBucket(a.force));
+  if(record)record.unsupportedSiegeLosses=Math.min(20,(record.unsupportedSiegeLosses??0)+1);
+ }
  s.active=undefined;
 }
 /** Public territory ownership can reveal that a defended bastion was lost;
@@ -64,14 +70,19 @@ export function validExperience(raw:unknown,time:number,sectors:number,withinWor
  num=(n:unknown)=>typeof n==='number'&&Number.isFinite(n)&&n>=0,
  tactic=(t:unknown)=>tactics.includes(t as LessonTactic),
  point=(p:Point|undefined)=>p===undefined||!!p&&num(p.x)&&num(p.y)&&withinWorld(p);
- return !!s&&s.version===1&&Array.isArray(s.records)&&s.records.length<=36&&s.records.every(r=>tactic(r.tactic)&&id(r.guns)&&r.guns<=3&&id(r.force)&&r.force<=3&&id(r.wins)&&id(r.losses)&&typeof r.score==='number'&&Number.isFinite(r.score)&&Math.abs(r.score)<=20)
+ return !!s&&s.version===1&&Array.isArray(s.records)&&s.records.length<=36&&s.records.every(r=>tactic(r.tactic)&&id(r.guns)&&r.guns<=3&&id(r.force)&&r.force<=3&&id(r.wins)&&id(r.losses)&&typeof r.score==='number'&&Number.isFinite(r.score)&&Math.abs(r.score)<=20&&(r.unsupportedSiegeLosses===undefined||(id(r.unsupportedSiegeLosses)&&r.unsupportedSiegeLosses<=20)))
  &&(s.held===undefined||(Array.isArray(s.held)&&s.held.length<=sectors&&new Set(s.held).size===s.held.length&&s.held.every(v=>id(v)&&v<sectors)))
  &&(s.lastLostSector===undefined||(id(s.lastLostSector)&&s.lastLostSector<sectors))
- &&(s.active===undefined||(id(s.active.sector)&&s.active.sector<sectors&&tactic(s.active.tactic)&&id(s.active.guns)&&id(s.active.force)&&num(s.active.at)&&s.active.at<=time+.001&&id(s.active.initialUnits)&&num(s.active.initialHP)&&num(s.active.progress)&&point(s.active.target)&&(s.active.objective===undefined||s.active.objective===null||id(s.active.objective))));
+ &&(s.active===undefined||(id(s.active.sector)&&s.active.sector<sectors&&tactic(s.active.tactic)&&id(s.active.guns)&&id(s.active.force)&&num(s.active.at)&&s.active.at<=time+.001&&id(s.active.initialUnits)&&num(s.active.initialHP)&&num(s.active.progress)&&(s.active.siegeWeapons===undefined||(id(s.active.siegeWeapons)&&s.active.siegeWeapons<=64))&&point(s.active.target)&&(s.active.objective===undefined||s.active.objective===null||id(s.active.objective))));
 }
 /** Prior losses raise the required conventional overmatch; wins lower it. */
+/** Recorded failed unsupported assaults raise the bar for repeating a rush.
+ * The AI may still attack with overwhelming real strength, never with hidden intel. */
+export function unsupportedSiegeLosses(s:Experience):number {
+ return s.records.reduce((total,r)=>total+(r.unsupportedSiegeLosses??0),0);
+}
 export function canOverrun(ownPower:number,enemyPower:number,units:number,guns:number,experience:Experience):boolean {
  if(!guns||units<7||ownPower<=0)return false;
- const multiplier=2.0-lessonScore(experience,'overrun',guns,units);
+ const multiplier=2.0+Math.min(1.25,unsupportedSiegeLosses(experience)*.75)-lessonScore(experience,'overrun',guns,units);
  return ownPower>=Math.max(1,enemyPower)*multiplier;
 }
