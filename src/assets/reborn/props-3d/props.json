@@ -19,11 +19,11 @@
     ],
     "frustum": 6.8
   },
-  "atlasSHA256": "ddc4ac4b2a4fa592ef8599179466c389e7a4e354f31e86494bca048adeee5d07",
+  "atlasSHA256": "89ab1fc6f29e68d8d9817e7eccfbfaa83c40e7d0fd537bf0f5bb8fc83ac140fb",
   "props": {
     "military-crate": {
       "model": "military-crate.glb",
-      "sha256": "017a95634a10e2d544ce5e9df7d99db2856ac8b685331fc8a9404631902dd00e",
+      "sha256": "4700adc6f70d0728d0714c9dae41b62c5a2bfdfee841a70ade43c00c2ab31dfa",
       "version": 1,
       "kind": "military-crate",
       "parts": 30,
@@ -31,6 +31,7 @@
       "visualOnly": true,
       "style": "Sandforge desert / CARC sand / worn steel / bleached bone / date palm",
       "embeddedPBR": true,
+      "surfaceRevision": 2,
       "zoom": 3.1,
       "solidWidth": 228,
       "pivot": [
@@ -66,7 +67,7 @@
     },
     "military-crate-stack": {
       "model": "military-crate-stack.glb",
-      "sha256": "9be5e88dd7f3cf46326ebf70bcc47af61a84a53a163078ead083e8befdf5d02e",
+      "sha256": "f9b7c04505c18689f0f35f8a21767dea61d68a8e0d8134ae8741e82f6582dcb9",
       "version": 1,
       "kind": "military-crate-stack",
       "parts": 97,
@@ -74,6 +75,7 @@
       "visualOnly": true,
       "style": "Sandforge desert / CARC sand / worn steel / bleached bone / date palm",
       "embeddedPBR": true,
+      "surfaceRevision": 2,
       "zoom": 2.4,
       "solidWidth": 280,
       "pivot": [
@@ -109,7 +111,7 @@
     },
     "service-lamp": {
       "model": "service-lamp.glb",
-      "sha256": "b7bd63ee1476e343f9c74d8001f3804c2390a5ac5278267e575182e91b4cf939",
+      "sha256": "bbc7611974a6113dd92fabcb66f1c667afef43e1b73dd1fc33fe5312456d98a9",
       "version": 1,
       "kind": "service-lamp",
       "parts": 18,
@@ -117,6 +119,7 @@
       "visualOnly": true,
       "style": "Sandforge desert / CARC sand / worn steel / bleached bone / date palm",
       "embeddedPBR": true,
+      "surfaceRevision": 2,
       "zoom": 1.65,
       "solidWidth": 100,
       "pivot": [
@@ -152,7 +155,7 @@
     },
     "service-terminal": {
       "model": "service-terminal.glb",
-      "sha256": "ddccae9d85ef39ec66c4c63e5877ea5c8affc80209c3ac6aca7b5c00d4a14a52",
+      "sha256": "0ef624ffab2c4f49beb00ef28b84a9cda79f2e6eb0e2f4b5ee6d30ddd0e031d7",
       "version": 1,
       "kind": "service-terminal",
       "parts": 15,
@@ -160,6 +163,7 @@
       "visualOnly": true,
       "style": "Sandforge desert / CARC sand / worn steel / bleached bone / date palm",
       "embeddedPBR": true,
+      "surfaceRevision": 2,
       "zoom": 3,
       "solidWidth": 192,
       "pivot": [
@@ -195,7 +199,7 @@
     },
     "fuel-barrels": {
       "model": "fuel-barrels.glb",
-      "sha256": "47b0e0dc2e6f3442b784ce01e505d7446a868d0bfd5ceeed18bbffa6eb4f1807",
+      "sha256": "d59326e81ba6e856958bfb4dfcc6dbbf41501a6d8b3201f2201f4226f3f7f723",
       "version": 1,
       "kind": "fuel-barrels",
       "parts": 20,
@@ -203,6 +207,7 @@
       "visualOnly": true,
       "style": "Sandforge desert / CARC sand / worn steel / bleached bone / date palm",
       "embeddedPBR": true,
+      "surfaceRevision": 2,
       "zoom": 2.9,
       "solidWidth": 191,
       "pivot": [
@@ -238,7 +243,7 @@
     },
     "sandbags": {
       "model": "sandbags.glb",
-      "sha256": "4d901726d7b79837aa07e8fbd9cd84413bb9d12794b5cddc11ccced504b2a1ff",
+      "sha256": "3db580c6e96800b9fa05fdb558e1ce65ad293abbb98b79c61ebda075d36354bf",
       "version": 1,
       "kind": "sandbags",
       "parts": 15,
@@ -246,6 +251,7 @@
       "visualOnly": true,
       "style": "Sandforge desert / CARC sand / worn steel / bleached bone / date palm",
       "embeddedPBR": true,
+      "surfaceRevision": 2,
       "zoom": 2.8,
       "solidWidth": 218,
       "pivot": [
@@ -281,7 +287,7 @@
     },
     "desert-skull": {
       "model": "desert-skull.glb",
-      "sha256": "7fc6ba35653d1cdf5f4ae8c7e4bfb7ea98e547750db5cd7ce5c9af58b8941770",
+      "sha256": "0f8ee5358ecfcc4e2f2e8b448840fd146c2edfeec34dfd95166e767a5fd52982",
       "version": 1,
       "kind": "desert-skull",
       "parts": 25,
@@ -289,6 +295,7 @@
       "visualOnly": true,
       "style": "Sandforge desert / CARC sand / worn steel / bleached bone / date palm",
       "embeddedPBR": true,
+      "surfaceRevision": 2,
       "zoom": 3.1,
       "solidWidth": 384,
       "pivot": [
@@ -324,7 +331,7 @@
     },
     "palm-tree": {
       "model": "palm-tree.glb",
-      "sha256": "502b5255ab6f433e39f96d5144ab78a21096f9e62f308f485beb081b4e5ab741",
+      "sha256": "b03b826fee79e974e152786bf8da3bf3a626470e7a131f980e18532aeaaf0ba0",
       "version": 1,
       "kind": "palm-tree",
       "parts": 89,
@@ -332,6 +339,7 @@
       "visualOnly": true,
       "style": "Sandforge desert / CARC sand / worn steel / bleached bone / date palm",
       "embeddedPBR": true,
+      "surfaceRevision": 2,
       "zoom": 1.02,
       "solidWidth": 227,
       "pivot": [

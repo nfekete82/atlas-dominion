@@ -1,54 +1,21 @@
 /** Sandforge Prop Pack V1. Original, reproducible mesh authoring; no billboards. */
 import * as T from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {buildingSurfaces,mapSurfaceUV} from './building-pbr.js';
+import {mapSurfaceUV} from './building-pbr.js';
+
+import {applyPropPBR} from './prop-pbr.js';
 
 export const PROP_KINDS=['military-crate','military-crate-stack','service-lamp','service-terminal','fuel-barrels','sandbags','desert-skull','palm-tree'];
-const organicCache=new Map();
-let hardSurfaceCache;
-function propSurfaces(){
- if(hardSurfaceCache)return hardSurfaceCache;
- // 1K master maps retain the building finish without embedding three 2K maps
- // into each small accessory. UV registration remains identical.
- hardSurfaceCache=Object.fromEntries(Object.entries(buildingSurfaces()).map(([role,source])=>{
-  const c=document.createElement('canvas');c.width=c.height=1024;
-  c.getContext('2d').drawImage(source.image,0,0,1024,1024);
-  const texture=new T.CanvasTexture(c);texture.name=source.name;texture.colorSpace=source.colorSpace;return [role,texture];
- }));
- return hardSurfaceCache;
-}
-function organicMaterial(role){
- if(organicCache.has(role))return organicCache.get(role);
- const size=256,images=Array.from({length:3},()=>{const c=document.createElement('canvas');c.width=c.height=size;return c;});
- const data=images.map(c=>c.getContext('2d').createImageData(size,size));
- const colors={bone:[202,185,145],bark:[102,81,51],leaf:[77,91,46],dry:[130,111,64],cloth:[155,137,100]};
- for(let y=0;y<size;y++)for(let x=0;x<size;x++){
-  let h=Math.imul(x+17,374761393)^Math.imul(y+89,668265263);h=Math.imul(h^(h>>>13),1274126177);const noise=((h^(h>>>16))>>>0)/4294967296;
-  const grain=role==='bark'?Math.sin(y*.31+Math.sin(x*.21)*.7)*12:role==='leaf'?Math.sin(x*.83+y*.09)*8:role==='cloth'?((x%3===0?1:0)+(y%3===0?1:0))*6:Math.sin(x*.065+Math.cos(y*.06))*4;
-  const i=(y*size+x)*4;
-  for(let k=0;k<3;k++)data[0].data[i+k]=colors[role][k]+grain+(noise-.5)*19;
-  data[0].data[i+3]=255;
-  data[1].data.set([127+(noise-.5)*24,128+Math.cos(y*.31)*9,252,255],i);
-  data[2].data.set([230+noise*25,role==='leaf'?175+noise*40:215+noise*35,0,255],i);
- }
- const textures=images.map((c,i)=>{c.getContext('2d').putImageData(data[i],0,0);const t=new T.CanvasTexture(c);t.name=role+' '+['albedo','normal','ORM'][i];t.colorSpace=i===0?T.SRGBColorSpace:T.NoColorSpace;return t;});
- const m=new T.MeshStandardMaterial({name:'Weathered '+role,map:textures[0],normalMap:textures[1],roughnessMap:textures[2],metalnessMap:textures[2],aoMap:textures[2],roughness:1,metalness:1,side:role==='leaf'||role==='dry'?T.DoubleSide:T.FrontSide});m.normalScale.setScalar(.38);organicCache.set(role,m);return m;
-}
-
 export function buildProp(kind){
  if(!PROP_KINDS.includes(kind))throw Error('Unknown prop '+kind);
  const model=new T.Group();model.name='Sandforge_'+kind;
- const surfaces=propSurfaces(),pool=new Map();
+ const pool=new Map();
  function material(role){
-  if(['bone','bark','leaf','dry','cloth'].includes(role))return organicMaterial(role);
-  if(pool.has(role))return pool.get(role);
-  const m=new T.MeshStandardMaterial({name:'Sandforge '+role,roughness:.8,metalness:.1});
-  if(role==='light'){m.color.set('#e1d7ac');m.emissive.set('#d7be7c');m.emissiveIntensity=.32;}
-  else {m.map=surfaces.map;m.normalMap=surfaces.normalMap;m.normalScale.setScalar(.55);m.roughnessMap=m.metalnessMap=m.aoMap=surfaces.orm;m.roughness=m.metalness=1;}
-  pool.set(role,m);return m;
+  if(!pool.has(role))pool.set(role,new T.MeshStandardMaterial({name:role,side:role==='leaf'||role==='dry'?T.DoubleSide:T.FrontSide}));
+  return pool.get(role);
  }
  function mesh(name,geometry,role,at=[0,0,0],parent=model){
-  const n=new T.Mesh(['bone','bark','leaf','dry','cloth','light'].includes(role)?geometry:mapSurfaceUV(geometry,role),material(role));n.name=name;n.position.set(...at);n.castShadow=n.receiveShadow=true;parent.add(n);return n;
+  const n=new T.Mesh(['bone','bark','leaf','dry','cloth','light'].includes(role)?geometry:mapSurfaceUV(geometry,role),material(role));n.name=name;n.userData.propSurface=role;n.position.set(...at);n.castShadow=n.receiveShadow=true;parent.add(n);return n;
  }
  const box=(name,size,role,at,parent=model,r=.018)=>mesh(name,new RoundedBoxGeometry(...size,3,Math.min(r,...size.map(v=>v*.2))),role,at,parent);
  const cyl=(name,r1,r2,height,role,at,parent=model)=>mesh(name,new T.CylinderGeometry(r1,r2,height,24),role,at,parent);
@@ -181,5 +148,5 @@ export function buildProp(kind){
  }
  let triangles=0,parts=0;model.traverse(n=>{if(n.isMesh){triangles+=(n.geometry.index?.count??n.geometry.attributes.position.count)/3;parts++;}});
  model.userData.propPack={version:1,kind,parts,triangles,visualOnly:true,style:'Sandforge desert / CARC sand / worn steel / bleached bone / date palm',embeddedPBR:true};
- return model;
+ return applyPropPBR(model,kind);
 }

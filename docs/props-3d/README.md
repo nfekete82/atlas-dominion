@@ -1,5 +1,7 @@
 # Sandforge 3D Prop Pack V1 · 30.10.2026
 
+Aktuelle Materialveredelung: [PBR-Revision 2 mit Vorher-/Nachher-Vergleich und neuen Prüfungen](../props-pbr-polish/README.md). Die folgende Beschreibung dokumentiert den ursprünglichen Pack-Stand.
+
 [Browser-Sichtung: Gebäude, gespiegelte Versorgungsplätze, Fahrzeuge, Palmen und Schädel](runtime-review.png) · [Transparenter 3D-Atlas](../../src/assets/reborn/props-3d/props.png)
 
 Acht originale Masterassets in `src/assets/reborn/props-3d/`:

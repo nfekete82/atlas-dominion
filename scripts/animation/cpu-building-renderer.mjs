@@ -58,12 +58,16 @@ export class CPUBuildingRenderer{
    const coords=transform(mesh,vp,width,height),p=g.attributes.position,n=g.attributes.normal,uv=g.attributes.uv,normalMatrix=new T.Matrix3().getNormalMatrix(mesh.matrixWorld),world=new Float32Array(p.count*3),normals=new Float32Array(p.count*3),v3=new T.Vector3();
    for(let i=0;i<p.count;i++){v3.fromBufferAttribute(p,i).applyMatrix4(mesh.matrixWorld).toArray(world,i*3);if(n)v3.fromBufferAttribute(n,i).applyNormalMatrix(normalMatrix).toArray(normals,i*3);}
    const image=material.map?.image,normalImage=material.normalMap?.image,orm=material.roughnessMap?.image;
+   // Prop masters use glTF texture transforms to preserve authored UV buffers.
+   // All PBR channels share this transform; default building maps are identity.
+   const textureMatrix=material.map?.matrix;
+   const textureUV=id=>{const p=uv?new T.Vector2(uv.getX(id),uv.getY(id)):new T.Vector2();if(textureMatrix)p.applyMatrix3(textureMatrix);return p.toArray();};
    const sample=(image,u,v)=>{
     const x=Math.max(0,Math.min(image.width-1,u*image.width-.5)),y=Math.max(0,Math.min(image.height-1,(1-v)*image.height-.5)),ix=Math.floor(x),iy=Math.floor(y),fx=x-ix,fy=y-iy,at=(iy*image.width+ix)*4,at2=(Math.min(iy+1,image.height-1)*image.width+ix)*4,dx=ix+1<image.width?4:0,a=image.pixels;
     return [0,1,2].map(k=>(a[at+k]*(1-fx)+a[at+dx+k]*fx)*(1-fy)+(a[at2+k]*(1-fx)+a[at2+dx+k]*fx)*fy);
    };
    raster(coords,g.index,width,height,depth,ids=>{
-    const pos=ids.map(id=>Array.from(world.subarray(id*3,id*3+3))),ns=ids.map(id=>Array.from(normals.subarray(id*3,id*3+3))),tex=ids.map(id=>uv?[uv.getX(id),uv.getY(id)]:[0,0]);
+    const pos=ids.map(id=>Array.from(world.subarray(id*3,id*3+3))),ns=ids.map(id=>Array.from(normals.subarray(id*3,id*3+3))),tex=ids.map(textureUV);
     const e1=pos[1].map((v,i)=>v-pos[0][i]),e2=pos[2].map((v,i)=>v-pos[0][i]),du1=tex[1][0]-tex[0][0],dv1=tex[1][1]-tex[0][1],du2=tex[2][0]-tex[0][0],dv2=tex[2][1]-tex[0][1],det=du1*dv2-dv1*du2;
     const tangent=normalize(e1.map((v,i)=>(v*dv2-e2[i]*dv1)/(det||1))),face=normalize(cross(e1,e2));
     return (at,a,b,c)=>{

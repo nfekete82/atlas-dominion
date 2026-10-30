@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-30",
+  "sourceCommit": "cbe0d1d",
+  "build": "passed",
+  "assetExport": "passed",
+  "byteIdenticalReexport": "passed",
+  "node": {
+    "passed": 60,
+    "failed": 0
+  },
+  "browser": {
+    "passed": 5,
+    "failed": 0
+  },
+  "geometryAndUVBuffersUnchanged": true,
+  "nodeTransformsUnchanged": true,
+  "atlasAlphaUnchanged": true,
+  "atlasLayoutUnchanged": true,
+  "runtimeSimulationOrSaveChanges": false,
+  "normalZoomReview": {
+    "zoom": 1,
+    "viewport": [
+      1600,
+      1000
+    ],
+    "before": "before-normal-zoom.png",
+    "after": "after-normal-zoom.png",
+    "comparison": "comparison-normal-zoom.png",
+    "changedPixelsAboveRGBDelta6": 12291,
+    "maximumSummedRGBDelta": 281
+  }
+}
