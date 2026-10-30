@@ -48,9 +48,15 @@ async function deploy(dryRun=false){
  log('Packe ausschließlich Produktionsmodule, vollständige Spielassets und Versionsmanifest.');
  const pack=await packageProduction({root,output:directory,release,commit,branch});
  log(Object.keys(pack.manifest.files).length+' Dateien, '+(pack.bytes/1024/1024).toFixed(1)+' MiB; keine Source-Maps, Entwicklungseinstiege oder Secrets.');
- log('Starte Browserprüfung des tatsächlichen Produktionspakets ohne Debug-Modus.');
+ log('Phase 1/3: Prüfe lokales Produktionspaket im Browser ohne Debug-Modus.');
  const localBrowser=await localPreview(directory,release);
- const before=await inspect();await unauthorizedChecks(before.current);
+ log('Phase 1/3: Lokaler Produktionsbrowser bestanden.');
+ log('Phase 2/3: Prüfe Uberspace-SSH-Zustand und Release-Zeiger.');
+ const before=await inspect();
+ log('Phase 2/3: SSH-Zustand bestätigt.');
+ log('Phase 3/3: Prüfe HTTP→HTTPS und anonymen 401-Schutz.');
+ await unauthorizedChecks(before.current);
+ log('Phase 3/3: HTTPS-Schutz bestätigt; beginne erst jetzt mit der Release-Vorbereitung.');
  const uploadArgs=['-rczi','--delay-updates','--chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r','-e',['ssh',...sshArgs].map(shellQuote).join(' ')];
  if(before.current)uploadArgs.push('--link-dest='+REMOTE_ROOT+'/releases/'+before.current);
  if(dryRun){
@@ -105,4 +111,4 @@ async function rollback(target){
 }
 try{
  if(mode==='--check')await status();else if(mode==='--dry-run')await deploy(true);else if(mode==='--rollback')await rollback(args[1]);else if(mode==='--deploy')await deploy();else throw Error('Usage: deploy-uberspace.mjs [--deploy|--dry-run|--check|--rollback [release-id]]');
-}catch(error){console.error('[Sandforge] FEHLER: '+error.message);process.exitCode=1;}
+}catch(error){console.error('[Sandforge] FEHLER: '+error.message);const reason=error.cause?.code??error.cause?.cause?.code;if(reason)console.error('[Sandforge] NETZWERKURSACHE: '+reason);process.exitCode=1;}
