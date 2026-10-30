@@ -45,7 +45,7 @@ export class Input {
       if(this.dragging&&(renderer.placement||renderer.commandMode||renderer.attackMode)&&document.elementFromPoint(e.clientX,e.clientY)!==canvas){renderer.box=null;this.down=null;this.dragging=false;this.pointer=null;renderer.pointer=null;return;}
       if(renderer.placement){
         const point=renderer.world(p),error=renderer.game.buildError(0,renderer.placement,point);
-        const site=error?null:renderer.game.build(0,renderer.placement,point,[...renderer.selected]);
+        const site=error?null:renderer.game.build(0,renderer.placement,point,[...renderer.selected],renderer.placementFacing);
         if(site){this.acknowledge('build',[...renderer.selected].filter(id=>renderer.game.units.some(u=>u.id===id&&u.kind==='engineer'&&u.orders.some(o=>o.kind==='build'&&o.target===site.id))));renderer.placement=null;canvas.classList.remove('building');this.notify('Baustelle beauftragt. Pioniere sind unterwegs.');}
         else this.notify(error??'Ein einsatzfähiger Pionier muss die Baustelle erreichen können.');
       }else if(renderer.commandMode){this.order(renderer.world(p),e.shiftKey);renderer.commandMode=null;}
@@ -80,6 +80,14 @@ export class Input {
       // Focused catalog tabs retain native Space/Enter activation.
       if(e.target instanceof HTMLButtonElement&&e.target.matches('[data-tab]')&&(e.key===' '||e.key==='Enter'))return;
       const key=e.key.toLowerCase();if([' ','arrowup','arrowdown','arrowleft','arrowright','f5','f9'].includes(key))e.preventDefault();
+      if(key==='r'&&renderer.placement){
+        e.preventDefault();
+        if(e.repeat)return;
+        renderer.placementFacing=renderer.placementFacing===0?1:0;
+        this.notify(renderer.placementFacing===1?'Gebäudeausrichtung: gespiegelt.':'Gebäudeausrichtung: Standard.');
+        this.onSelection();
+        return;
+      }
       if(e.repeat)return;
       if(key===' '){this.onPause();return;}
       if(key==='s'&&renderer.selected.size){this.stop();this.notify('Einheiten halten die Position.');this.keys.add(key);this.commandHeld.set(key,performance.now());return;}
