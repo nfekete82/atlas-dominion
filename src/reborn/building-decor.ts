@@ -1,4 +1,3 @@
-import type {Base} from './simulation.js';
 import type {BuildingKind} from './catalog.js';
 import type {Owner} from './config.js';
 
