@@ -17,6 +17,8 @@ import { paintGeneratedTerrain } from './terrain-presentation.js';
 import { BattlefieldEffects, createGroundDetails, paintGroundDetails, type GroundDetail } from './battlefield-atmosphere.js';
 import {PalmGrove} from './palm-grove.js';
 import {DesertAtmosphere} from './desert-atmosphere.js';
+import {environmentPropVisible,propSiteClear} from './prop-placement.js';
+import {PropAtlas} from './prop-atlas.js';
 import {BuildingDecor} from './building-decor.js';
 import {attackBlinkAlpha} from './attack-alerts.js';
 import { buildTerrainVariants, type TerrainVariantAtlases } from './terrain-variants.js';
@@ -28,11 +30,12 @@ export class Renderer {
   readonly weatherEffects=new WeatherPresentation();
   readonly structures=new BuildingPresentation();
   readonly battlefield=new BattlefieldEffects();
-  readonly palms=new PalmGrove();
+  readonly propAtlas=new PropAtlas();
+  readonly palms=new PalmGrove(this.propAtlas);
   readonly atmosphere=new DesertAtmosphere();
-  readonly decor=new BuildingDecor();
+  readonly decor=new BuildingDecor(this.propAtlas);
   private groundDetails:GroundDetail[]=[];
-  private readonly groundSprites={crater:new Image(),palm:new Image(),rocks:new Image()};
+  private readonly groundSprites={crater:new Image(),rocks:new Image()};
   private exhaustAt=new Map<number,number>();
   private groundTextures!:TerrainVariantAtlases;
   private animationGame:Simulation|null=null;private seenImpacts=new WeakSet<object>();private effectTime=0;private workEmitted=new Map<string,number>();private rocketTrails=new Map<number,number>();
@@ -81,7 +84,7 @@ export class Renderer {
     this.terrain=new Image();this.terrain.src=ASSETS.terrain;
     this.sand.src='/src/assets/reborn/sand-ripples-v2.png';this.sandstone.src='/src/assets/reborn/sandstone-strata-v1.png';
     for(const [kind,image] of Object.entries(this.groundSprites))image.src='/src/assets/reborn/battlefield/'+kind+'.png';
-    const [cliffs]=await Promise.all([this.sprite(ASSETS.cliffs),this.terrain.decode(),this.units.load(),this.structures.load(),this.sand.decode(),this.sandstone.decode(),...Object.values(this.groundSprites).map(image=>image.decode())]);
+    const [cliffs]=await Promise.all([this.sprite(ASSETS.cliffs),this.terrain.decode(),this.units.load(),this.structures.load(),this.propAtlas.load(),this.sand.decode(),this.sandstone.decode(),...Object.values(this.groundSprites).map(image=>image.decode())]);
     const infantry=this.units.asset('infantry'),frame=infantry.data.frames[0];
     this.infantry={image:infantry.image,x:frame.x,y:frame.y,w:frame.w,h:frame.h};
     for(const kind of Object.keys(BUILDINGS) as BuildingKind[]){this.buildings[kind]=this.structures.sprite(kind,0);this.redBuildings[kind]=this.structures.sprite(kind,1);}
@@ -216,11 +219,14 @@ export class Renderer {
       c.restore(); // Construction artwork mirrors, but German progress text remains legible.
       this.bar({x:b.x,y:b.y+spec.radius*.46+6},Math.min(85,spec.width*.6),progress,'#e9bb61');c.fillStyle='#f1d48e';c.font='10px monospace';c.textAlign='center';c.fillText(`${b.constructionActive?'BAU':'PAUSIERT'} ${Math.ceil(b.buildRemaining)} S`,b.x,b.y+spec.radius*.46+24);
     }else{
-      this.decor.draw(c,b.kind,anchor,spec.radius,b.id,this.game.seed,b.owner,'behind',this.game.time,this.reducedMotion,alpha);
+      c.restore();
+      const visible=(p:{x:number;y:number;size:number})=>propSiteClear(p,p.size,this.game,{base:b.id});
+      this.decor.draw(c,b.kind,anchor,spec.radius,b.id,this.game.seed,b.owner,'behind',this.game.time,this.reducedMotion,alpha,b.facing,visible);
+      c.save();if(b.facing===1){c.translate(2*b.x,0);c.scale(-1,1);}
       draw(alpha);
       this.structures.drawActivity(c,b.kind,b.owner,anchor,artWidth,this.game.time,this.reducedMotion,alpha);
-      this.decor.draw(c,b.kind,anchor,spec.radius,b.id,this.game.seed,b.owner,'front',this.game.time,this.reducedMotion,alpha);
       c.restore();
+      this.decor.draw(c,b.kind,anchor,spec.radius,b.id,this.game.seed,b.owner,'front',this.game.time,this.reducedMotion,alpha,b.facing,visible);
     }
     if(selected||b.hp<spec.hp)this.bar({x:b.x,y:anchor.y-height-8},86,b.hp/spec.hp,b.owner===0?'#75c5e8':'#ed7866');
     if(b.queue.length&&b.owner===0)this.bar({x:b.x,y:b.y+24},75,b.production/b.queue[0],'#dfb278');
@@ -273,11 +279,11 @@ export class Renderer {
   private drawBastion(t:Territory,dim=false):void{
     const c=this.context,g=this.game,p=t.point,color=t.owner===0?'#72cfff':t.owner===1?'#ff7869':'#f4f5f4';
     c.save();if(dim)c.globalAlpha=.32;
-    if(!dim)this.decor.draw(c,'bastion',p,42,t.id,g.seed,t.owner,'behind',g.time,this.reducedMotion);
+    if(!dim)this.decor.draw(c,'bastion',p,42,t.id,g.seed,t.owner,'behind',g.time,this.reducedMotion,1,0,p=>propSiteClear(p,p.size,g,{territory:t.id}));
     this.spriteDraw(this.bastions[t.owner===0?'blue':t.owner===1?'red':'neutral'],p,67,false,dim?.32:1);
     this.structures.drawActivity(c,'bastion',t.owner,p,67,g.time,this.reducedMotion,dim?.32:1);
     if(!dim)this.atmosphere.drawBastion(c,t,g.time,this.reducedMotion);
-    if(!dim)this.decor.draw(c,'bastion',p,42,t.id,g.seed,t.owner,'front',g.time,this.reducedMotion);
+    if(!dim)this.decor.draw(c,'bastion',p,42,t.id,g.seed,t.owner,'front',g.time,this.reducedMotion,1,0,p=>propSiteClear(p,p.size,g,{territory:t.id}));
     c.font='500 10px system-ui';c.textAlign='center';c.fillStyle='#100e0b99';c.fillRect(p.x-53,p.y+19,106,30);
     c.fillStyle='#e1d2b7';c.fillText(t.name.toLocaleUpperCase('de-DE'),p.x,p.y+31);c.fillStyle=color;c.font='10px monospace';c.fillText(`${t.owner===0?'BLAU':t.owner===1?'ROT':'NEUTRAL'} · +${t.income} / 10 s`,p.x,p.y+43);
     const hovered=!dim&&this.pointer&&this.bastionAt(this.pointer)?.id===t.id;
@@ -350,7 +356,9 @@ export class Renderer {
     const inView=(point:Point,padding=0)=>visibleInViewport(point,effectsView,padding);
     this.atmosphere.drawHeat(c,g,effectsView,this.reducedMotion);
     this.atmosphere.drawSand(c,g,effectsView,this.reducedMotion);
-    this.palms.draw(c,this.groundTextures.palm,g.time,effectsView,this.reducedMotion);
+    this.palms.draw(c,g.time,effectsView,this.reducedMotion);
+    for(const d of this.groundDetails)if(d.kind==='skull'&&inView(d,40)&&environmentPropVisible(d,g))
+      this.propAtlas.draw(c,'desert-skull',d,d.radius*2.5,Math.floor(d.variant*4));
     this.battlefield.drawTracks(c,g,effectsView);
     this.battlefield.drawMarks(c,g);
     this.battlefield.drawWindVeil(c,g,effectsView,this.reducedMotion);

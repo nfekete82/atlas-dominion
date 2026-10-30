@@ -5,7 +5,7 @@ import type { World } from './world.js';
 import { seededRandom } from './world-generation.js';
 import { terrainVariantIndex } from './terrain-variants.js';
 
-export type GroundDetailKind = 'stones' | 'rock' | 'palm' | 'crater';
+export type GroundDetailKind = 'stones' | 'rock' | 'palm' | 'crater' | 'skull';
 export interface GroundDetail extends Point {
   kind: GroundDetailKind;
   radius: number;
@@ -23,8 +23,8 @@ export function createGroundDetails(world: World, importantSites: readonly Point
       if (random() > .48) continue;
       const at = {x: x + (random() - .5) * step * .75, y: y + (random() - .5) * step * .75};
       const chance = random();
-      const kind: GroundDetailKind = chance < .40 ? 'stones' : chance < .76 ? 'rock' : chance < .94 ? 'crater' : 'palm';
-      const radius = kind === 'palm' ? 23 + random() * 16 : kind === 'crater' ? 11 + random() * 23 : kind === 'rock' ? 9 + random() * 18 : 7 + random() * 12;
+      const kind: GroundDetailKind = chance < .40 ? 'stones' : chance < .76 ? 'rock' : chance < .94 ? 'crater' : chance < .97 ? 'palm' : 'skull';
+      const radius = kind === 'palm' ? 23 + random() * 16 : kind === 'skull' ? 6 + random() * 3 : kind === 'crater' ? 11 + random() * 23 : kind === 'rock' ? 9 + random() * 18 : 7 + random() * 12;
       const cell = world.index(at);
       if (cell < 0 || world.blocked[cell]) continue;
       // No art across capturable bastions, initial headquarters or narrow cliff edges.
@@ -40,7 +40,7 @@ export function createGroundDetails(world: World, importantSites: readonly Point
 export type GroundSpriteVariant=CanvasImageSource|readonly CanvasImageSource[];
 export interface GroundSprites {
   crater: GroundSpriteVariant;
-  palm: GroundSpriteVariant;
+  palm?: GroundSpriteVariant;
   rocks: GroundSpriteVariant;
 }
 /** Selection is stable for each terrain seed; works with both old and variant atlases. */
@@ -64,8 +64,8 @@ export function paintCrater(c:CanvasRenderingContext2D,p:Point,radius:number,rot
 export function paintGroundDetails(c:CanvasRenderingContext2D,details:readonly GroundDetail[],sprites:GroundSprites):void {
   for(const d of details){
     if(d.kind==='crater'){paintCrater(c,d,d.radius,d.rotation,1,groundSprite(sprites.crater,d.variant));continue;}
-    // Palm trees are drawn separately so vehicles can knock them down.
-    if(d.kind==='palm')continue;
+    // Mesh-rendered palms and bones stay separate so occupied slots can disappear.
+    if(d.kind==='palm'||d.kind==='skull')continue;
     const w=d.radius*(d.kind==='rock'?3.7:2.3),h=d.radius*(d.kind==='rock'?2.4:1.55);
     c.save();c.translate(d.x,d.y);c.rotate(Math.sin(d.rotation)*.11);
     c.globalAlpha=d.kind==='rock'?.94:.75;

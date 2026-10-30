@@ -2,7 +2,7 @@
  * Four deterministic silhouettes per authored PNG. Build once when a map loads:
  * no extra downloads, no runtime per-frame texture processing and no save changes.
  */
-export type TerrainSpriteKind='palm'|'rocks'|'crater';
+export type TerrainSpriteKind='rocks'|'crater';
 export type TerrainVariantAtlases=Record<TerrainSpriteKind,readonly HTMLCanvasElement[]>;
 export const TERRAIN_VARIANT_COUNT=4;
 
@@ -12,12 +12,6 @@ export function terrainVariantIndex(value:number):number {
 
 interface Treatment {angle:number;sx:number;sy:number;shear:number;hue:number;saturation:number;brightness:number}
 const PRESETS:Record<TerrainSpriteKind,readonly Treatment[]>={
-  palm:[
-    {angle:0,sx:1,sy:1,shear:0,hue:0,saturation:1,brightness:1},
-    {angle:-.11,sx:.79,sy:1.09,shear:-.08,hue:11,saturation:.87,brightness:1.03},
-    {angle:.10,sx:1.17,sy:.91,shear:.09,hue:-14,saturation:1.10,brightness:.95},
-    {angle:-.06,sx:.92,sy:1.04,shear:.13,hue:20,saturation:.78,brightness:.93}
-  ],
   rocks:[
     {angle:0,sx:1,sy:1,shear:0,hue:0,saturation:1,brightness:1},
     {angle:-.13,sx:.81,sy:1.08,shear:.06,hue:-4,saturation:.93,brightness:.97},
@@ -41,38 +35,6 @@ function treatmentFilter(t:Treatment):string {
   return 'hue-rotate('+t.hue+'deg) saturate('+t.saturation+') brightness('+t.brightness+')';
 }
 
-/** Palm crown gets its own geometric silhouette while the trunk foot and
- * sun-facing ground shadow retain their fixed placement and light direction. */
-function palmVariant(source:HTMLImageElement,size:number,t:Treatment,index:number):HTMLCanvasElement {
-  const output=canvas(size),c=output.getContext('2d')!;
-  c.drawImage(source,0,0,size,size);
-  if(index===0)return output;
-
-  const crown=canvas(size),cc=crown.getContext('2d')!;
-  cc.translate(size*.48,size*.33);
-  cc.rotate(t.angle);
-  cc.transform(t.sx,0,t.shear,t.sy,0,0);
-  cc.filter=treatmentFilter(t);
-  cc.drawImage(source,-size*.48,-size*.33,size,size);
-  cc.filter='none';
-  cc.setTransform(1,0,0,1,0,0);
-  const fade=cc.createLinearGradient(0,0,0,size*.68);
-  fade.addColorStop(0,'#000');
-  fade.addColorStop(.76,'#000');
-  fade.addColorStop(1,'#0000');
-  cc.globalCompositeOperation='destination-in';
-  cc.fillStyle=fade;cc.fillRect(0,0,size,size);
-  cc.globalCompositeOperation='source-over';
-
-  // Remove the original canopy using the same alpha ramp as the new one:
-  // the preserved trunk and its original shadow still blend without a seam.
-  c.save();
-  c.globalCompositeOperation='destination-out';
-  c.fillStyle=fade;c.fillRect(0,0,size,size);
-  c.restore();
-  c.drawImage(crown,0,0);
-  return output;
-}
 function earthVariant(source:HTMLImageElement,size:number,t:Treatment,index:number):HTMLCanvasElement {
   const output=canvas(size),c=output.getContext('2d')!;
   if(index===0){c.drawImage(source,0,0,size,size);return output;}
@@ -90,9 +52,9 @@ function earthVariant(source:HTMLImageElement,size:number,t:Treatment,index:numb
 export function buildTerrainVariants(sources:Record<TerrainSpriteKind,HTMLImageElement>):TerrainVariantAtlases {
   const size=640;
   const result={} as Record<TerrainSpriteKind,HTMLCanvasElement[]>;
-  for(const kind of ['palm','rocks','crater'] as const){
+  for(const kind of ['rocks','crater'] as const){
     if(!sources[kind].complete||sources[kind].naturalWidth===0)throw new Error('Terrain image not loaded: '+kind);
-    result[kind]=PRESETS[kind].map((t,i)=>kind==='palm'?palmVariant(sources[kind],size,t,i):earthVariant(sources[kind],size,t,i));
+    result[kind]=PRESETS[kind].map((t,i)=>earthVariant(sources[kind],size,t,i));
   }
   return result;
 }

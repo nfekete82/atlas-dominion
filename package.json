@@ -16,6 +16,7 @@
     "assets:animations:hd": "node scripts/render-unit-atlases.mjs --hd",
     "assets:animation-audit": "npm run build && node scripts/audit-animation-assets.mjs",
     "assets:detailed-infantry": "node scripts/export-detailed-infantry.mjs",
+    "assets:props": "node scripts/export-prop-pack.mjs",
     "assets:buildings": "node scripts/export-atlas-buildings.mjs",
     "assets:buildings:validate": "node scripts/validate-building-assets.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
