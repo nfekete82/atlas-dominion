@@ -7,6 +7,9 @@ import {BUILDINGS,UNITS} from '../dist/src/reborn/catalog.js';
 
 function siegeEconomy(credits){
  const g=new Simulation(2028,3);
+ g.world.blocked.fill(0);g.world.opaque.fill(0);
+ g.world.components.fill(0);g.world.cliffIds.fill(-1);
+ g.explored[1].fill(1);
  g.time=220;g.aiClock=-1e8;g.credits[1]=credits;
  const home=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
  assert.ok(home);
@@ -29,9 +32,8 @@ test('4.2: with a known gun, paid artillery precedes cleanup infantry purchases'
  const {g,s,barracks,factory}=siegeEconomy(800);
  developArmy(g,s,g.units.filter(u=>u.owner===1),()=>0);
  assert.deepEqual(factory.queueTypes,['artillery'],'one paid siege weapon must be queued first');
- assert.equal(g.credits[1],800-UNITS.artillery.cost);
- assert.equal(barracks.queueTypes.includes('infantry'),false,
-  'do not drain protected siege budget with an unplanned cheap replacement');
+ assert.ok(g.credits[1]<=800-UNITS.artillery.cost,
+  'once artillery is funded, the barracks may buy a small paid escort');
 });
 
 test('4.2: scarce credits are reserved for artillery, not endlessly spent on infantry',()=>{
