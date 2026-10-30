@@ -714,7 +714,7 @@ export class Simulation {
         if(work>0)this.work('build',workers[0].id,b.id,work);
         b.buildRemaining=Math.max(0,b.buildRemaining-work);if(b.buildRemaining<1e-8)b.buildRemaining=0;
         b.hp=Math.min(buildingSpec(b).hp,b.hp+buildingSpec(b).hp*.75*work/buildingSpec(b).buildTime);
-        if(b.buildRemaining===0&&b.owner===0)this.notices.push(`${buildingSpec(b).name} einsatzbereit.`);continue;
+        if(b.buildRemaining===0&&b.owner===0)this.notices.push(`Gebäude fertiggestellt: ${buildingSpec(b).name}.`);continue;
       }
       b.cooldown-=dt;
       if(b.kind==='turret'){
@@ -743,7 +743,7 @@ export class Simulation {
       if(b.production+1e-8>=b.queue[0]){
         const kind=b.queueTypes[0]??'infantry',spec=UNITS[kind],sign=this.world.mapVersion>=2&&b.kind==='headquarters'&&b.owner===1?-1:1,exit={x:b.x+(b.radius+42)*sign,y:b.y+(b.radius+12)*sign};
         const spawn=spec.flying?exit:this.world.nearest(exit,this.obstacles(),this.units,undefined,Math.max(0,spec.radius-10));
-        if(spawn&&this.count(b.owner)<RULES.capacity){const u=this.spawn(b.owner,spawn,kind);countProduced(this.stats,b.owner);b.queue.shift();b.queueTypes.shift();b.queueCosts?.shift();b.production=0;if(b.rally)this.command([u.id],{...b.rally,kind:'attackMove'});}
+        if(spawn&&this.count(b.owner)<RULES.capacity){const u=this.spawn(b.owner,spawn,kind);countProduced(this.stats,b.owner);if(b.owner===0)this.notices.push(`Einheit bereit: ${spec.name}.`);b.queue.shift();b.queueTypes.shift();b.queueCosts?.shift();b.production=0;if(b.rally)this.command([u.id],{...b.rally,kind:'attackMove'});}
       }
     }
     this.spatial.rebuild(this.units);
