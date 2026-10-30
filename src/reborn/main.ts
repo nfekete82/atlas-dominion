@@ -250,7 +250,7 @@ function refreshMeasured():void{
  if(selected.length===1&&first?.supportPaused)detail='Heilziel ist zu weit voraus. Sanitäter wartet; der Heilauftrag bleibt erhalten.';
  if(renderer.placement)detail=`${BUILDINGS[renderer.placement].name}: ${renderer.placementFacing===1?'Gespiegelt':'Standardausrichtung'}. R / ↔ wechselt die Richtung · Linksklick baut · Esc bricht ab.`;
  setText('selection-detail',detail);
- setText('hint',renderer.attackMode?'ANGRIFFSBEWEGUNG: LINKSKLICK AUF DAS ZIEL':'ZIEHEN: AUSWAHL · RECHTSKLICK: BEWEGEN · SHIFT: BEFEHLSKETTE');
+ setText('hint',renderer.placement?'R: GEBÄUDE DREHEN · LINKSKLICK: PLATZIEREN · ESC: ABBRECHEN':renderer.attackMode?'ANGRIFFSBEWEGUNG: LINKSKLICK AUF DAS ZIEL':'ZIEHEN: AUSWAHL · RECHTSKLICK: BEWEGEN · SHIFT: BEFEHLSKETTE');
  if(production){
   const building=production.buildRemaining>0,duration=production.queue[0]??5,ratio=building?1-production.buildRemaining/buildingSpec(production).buildTime:production.production/duration;
   el('production-fill').style.width=`${ratio*100}%`;setText('production-time',building?`BAU ${Math.ceil(production.buildRemaining).toString().padStart(2,'0')} S`:production.queue.length?`00:${Math.ceil(duration-production.production).toString().padStart(2,'0')}`:'00:00');
