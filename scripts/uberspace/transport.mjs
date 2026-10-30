@@ -40,16 +40,42 @@ export async function withProbe(fn){
  try{const credentials=await remote('probe',{username,guardSHA256:await guardHash()});return await fn(credentials);}
  finally{await remote('unprobe',{username});}
 }
+/** Retry only idempotent HTTP requests after transport errors, never after HTTP
+ * authorization, TLS certificate, content integrity or validation failures.
+ * Diagnostics contain only method/path/error codes, never Basic credentials. */
+const transientCodes=new Set([
+ 'EAI_AGAIN','ECONNRESET','ECONNREFUSED','ETIMEDOUT','EPIPE',
+ 'ENETUNREACH','EHOSTUNREACH','UND_ERR_CONNECT_TIMEOUT',
+ 'UND_ERR_HEADERS_TIMEOUT','UND_ERR_SOCKET'
+]);
+export async function fetchWithDiagnostics(url,options={}){
+ const method=(options.method??'GET').toUpperCase(),where=new URL(url).pathname;
+ for(let attempt=1;attempt<=3;attempt++){
+  try{
+   // Give every attempt its own deadline. The global cancellation always wins.
+   return await fetch(url,{...options,signal:AbortSignal.any([cancellation.signal,AbortSignal.timeout(30000)])});
+  }catch(error){
+   const code=error?.cause?.code??error?.code??null;
+   const reason=code??error?.name??'unknown';
+   const retryable=method==='GET'||method==='HEAD';
+   const transient=code?transientCodes.has(code):error instanceof TypeError&&error.message==='fetch failed'||error?.name==='TimeoutError';
+   if(cancellation.signal.aborted||!retryable||!transient||attempt===3)
+    throw new Error(method+' '+where+' failed ('+reason+', attempt '+attempt+'/3)',{cause:error});
+   console.warn('[Sandforge] Netzwerkprüfung '+method+' '+where+': '+reason+'; erneuter Versuch '+(attempt+1)+'/3.');
+   await new Promise(resolve=>setTimeout(resolve,250*attempt));
+  }
+ }
+}
 export async function request(url,{credentials,method='GET',headers={},body=false}={}){
  if(new URL(url).origin!==ORIGIN)throw Error('Refusing credentials outside the configured HTTPS origin');
  // Compare manifest sizes with the original representation. Apache may report
  // the size of an empty gzip stream for a compressed HEAD response.
  const all={...(method==='HEAD'?{'accept-encoding':'identity'}:{}),...headers};if(credentials)all.Authorization='Basic '+Buffer.from(credentials.username+':'+credentials.password).toString('base64');
- const response=await fetch(url,{method,headers:all,redirect:'error',signal:AbortSignal.any([cancellation.signal,AbortSignal.timeout(30000)])});
+ const response=await fetchWithDiagnostics(url,{method,headers:all,redirect:'error'});
  if(!body)await response.body?.cancel();return response;
 }
 export async function unauthorizedChecks(release){
- const insecure=await fetch('http://nf.uber.space/',{redirect:'manual',signal:AbortSignal.any([cancellation.signal,AbortSignal.timeout(30000)])});
+ const insecure=await fetchWithDiagnostics('http://nf.uber.space/',{redirect:'manual'});
  await insecure.body?.cancel();
  if(![301,302,307,308].includes(insecure.status)||insecure.headers.get('location')!==ORIGIN+'/')throw Error('HTTP must redirect to the configured HTTPS origin before authentication');
  const paths=['/','/deployment.json','/src/reborn/main.js'];
