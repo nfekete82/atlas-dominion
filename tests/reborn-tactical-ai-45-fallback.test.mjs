@@ -63,7 +63,7 @@ test('4.5: no viable standoff shot returns false without issuing retreat orders'
 
 test('4.5: existing multi-gun doctrine retains its original dispatch',()=>{
  const {g,artillery,target}=fixture({endgame:false,clear:true});
- g.tactical.state.knownTurrets.push({...target,id:99101,x:target.x+40,y:target.y+80});
+ g.tactical.state.knownTurrets.push({...target,id:99101,x:target.x+40,y:target.y+80,hp:600,range:600,seenAt:0});
  assert.ok(g.world.mapVersion>=3,'requires modern tactical map');
  assert.equal(g.tactical.state.knownTurrets.length,2,'both guns were observed');
  assert.equal(g.tactical.state.knownTurrets.filter(t=>Math.hypot(t.x-target.x,t.y-target.y)<t.range+200).length,2,
