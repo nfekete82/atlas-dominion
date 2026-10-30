@@ -15,7 +15,7 @@ export class BuildingPresentation {
  async load():Promise<void>{await Promise.all(kinds.flatMap(kind=>(kind==='bastion'?[0,1,-1]:[0,1]).map(async team=>{
   const prefix=buildingAtlasPath(kind,team),response=await fetch(prefix+'.json');if(!response.ok)throw Error('Building atlas unavailable: '+prefix);const data=await response.json() as BuildingAtlas;
   // A missing construction atlas is legal for previous installations.
-  const stagesResponse=kind==='headquarters'||kind==='bastion'?null:await fetch(prefix+'-construction.json').catch(()=>null);
+  const stagesResponse=kind==='bastion'?null:await fetch(prefix+'-construction.json').catch(()=>null);
   const construction:Layer|null=stagesResponse?.ok?(await stagesResponse.json() as {layer:Layer}).layer:null;
   const image=async(file:string|null):Promise<HTMLImageElement|null>=>{if(!file)return null;const result=new Image();result.src='/src/assets/reborn/buildings-3d/'+file+'?art=pbr-strong-20261027';await result.decode();return result;};
   const [body,activity,beacon,sweep,turret,constructionImage]=await Promise.all([image(data.body.image),image(data.activity?.image??null),image(data.beacon?.image??null),image(data.sweep?.image??null),image(data.turret?.image??null),image(construction?.image??null)]),b=data.body;
