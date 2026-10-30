@@ -18,6 +18,7 @@
     "assets:detailed-infantry": "node scripts/export-detailed-infantry.mjs",
     "assets:props": "node scripts/export-prop-pack.mjs",
     "assets:buildings": "node scripts/export-atlas-buildings.mjs",
+    "assets:hq-construction": "node scripts/export-atlas-buildings.mjs --cpu --construction-only headquarters",
     "assets:buildings:validate": "node scripts/validate-building-assets.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:performance": "npm run build && node scripts/benchmark-reborn-performance.mjs after",
