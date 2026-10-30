@@ -41,7 +41,7 @@ return async(requested=[])=>{
     const construction=await layer(prefix,'construction',frames,1);
     await saveBuilding(prefix+'-construction.json',JSON.stringify({
      version:1,kind,team,model:prefix+'.glb',parts,stages:construction.frames.length,layer:construction
-    },null,2)+'\\n');
+    },null,2)+'\n');
    }else{
    const structural=[];
    model.traverse(n=>{if(n.isMesh&&!excluded.has(n)&&n.visible){
