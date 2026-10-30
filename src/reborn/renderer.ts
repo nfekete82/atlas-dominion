@@ -203,7 +203,7 @@ export class Renderer {
     const c=this.context,selected=this.selectedBase===b.id,spec=buildingSpec(b),sprite=(b.owner===0?this.buildings:this.redBuildings)[b.kind];
     const anchor={x:b.x,y:b.y},artWidth=buildingArtWidth(b.kind,spec.width),height=artWidth*(sprite.bodyHeight??sprite.h)/(sprite.bodyWidth??sprite.w);
     const angle=this.game.paused||this.game.shots.some(s=>s.source===b.id)?b.turretAngle??0:(b.previousTurretAngle??b.turretAngle??0)+angleDifference(b.previousTurretAngle??b.turretAngle??0,b.turretAngle??0)*this.interpolation;
-    const draw=(opacity=1)=>{this.spriteDraw(sprite,anchor,artWidth,false,opacity);if(b.kind==='turret'){const firing=this.units.particles.enabled&&!this.reducedMotion?this.game.shots.find(s=>s.source===b.id&&this.game.time-(s.at??0)<.07):undefined;const recoil=firing?Math.sin(Math.min(1,(this.game.time-(firing.at??0))/.07)*Math.PI)*1.1:0;this.structures.drawTurret(c,b.owner,{x:anchor.x-Math.cos(angle)*recoil,y:anchor.y-Math.sin(angle)*recoil*.65},artWidth,angle,opacity);}};
+    const draw=(opacity=1)=>{this.spriteDraw(sprite,anchor,artWidth,false,opacity);if(b.kind==='turret'){const firing=this.units.particles.enabled&&!this.reducedMotion?this.game.shots.find(s=>s.source===b.id&&this.game.time-(s.at??0)<.07):undefined;const recoil=firing?Math.sin(Math.min(1,(this.game.time-(firing.at??0))/.07)*Math.PI)*1.1:0;this.structures.drawTurret(c,b.owner,{x:anchor.x-Math.cos(angle)*recoil,y:anchor.y-Math.sin(angle)*recoil*.65},artWidth,b.facing===1?Math.PI-angle:angle,opacity);}};
     if(b.hp<=0){c.save();if(b.facing===1){c.translate(2*b.x,0);c.scale(-1,1);}draw(.18);c.restore();return;}
     if(selected){c.strokeStyle='#78c8f1';c.lineWidth=1.1;c.setLineDash([8,5]);c.beginPath();c.ellipse(b.x,b.y-8,spec.radius+17,(spec.radius+17)*.47,0,0,Math.PI*2);c.stroke();c.setLineDash([]);}
     c.save();if(b.facing===1){c.translate(2*b.x,0);c.scale(-1,1);}
@@ -378,7 +378,7 @@ export class Renderer {
       c.beginPath();c.moveTo(p.x-spec.radius,p.y);c.lineTo(p.x,p.y-spec.radius*.5);c.lineTo(p.x+spec.radius,p.y);c.lineTo(p.x,p.y+spec.radius*.5);c.closePath();c.fill();c.stroke();
       c.save();if(this.placementFacing===1){c.translate(2*p.x,0);c.scale(-1,1);}
       this.spriteDraw(this.buildings[this.placement],p,buildingArtWidth(this.placement,spec.width),false,.65);
-      if(this.placement==='turret')this.structures.drawTurret(c,0,p,buildingArtWidth(this.placement,spec.width),0,.65);
+      if(this.placement==='turret')this.structures.drawTurret(c,0,p,buildingArtWidth(this.placement,spec.width),this.placementFacing===1?Math.PI:0,.65);
       c.restore();c.restore();
     }
     this.drawRockets();
