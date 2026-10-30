@@ -10,7 +10,8 @@ on:
       - src/reborn/director-production.ts
       - src/reborn/army-economy.ts
       - src/reborn/tactical-ai.ts
-      - tests/reborn-tactical-ai-43-recovery.test.mjs tests/reborn-tactical-ai-42-siege.test.mjs
+      - tests/reborn-tactical-ai-43-recovery.test.mjs
+      - tests/reborn-tactical-ai-42-siege.test.mjs
   workflow_dispatch:
 
 permissions:
