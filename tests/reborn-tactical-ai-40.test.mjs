@@ -94,8 +94,11 @@ test('4.0: observed attack or actual neighboring loss raises bastion urgency',()
 });
 
 test('4.0: urgent threatened bastion can be fortified with a smaller cash buffer',()=>{
- const {g,owned}=battlefield();
- const enemy=g.spawn(0,{x:owned.point.x+40,y:owned.point.y+60},'heavy');
+ const {g,owned,enemySector}=battlefield();
+ // Visible approaching force, but far enough away for a safe rear turret site.
+ const dx=enemySector.point.x-owned.point.x,dy=enemySector.point.y-owned.point.y;
+ const length=Math.hypot(dx,dy);
+ const enemy=g.spawn(0,{x:owned.point.x+dx/length*620,y:owned.point.y+dy/length*620},'heavy');
  g.visible[1][g.world.index(enemy)]=1;
  g.credits[1]=BUILDINGS.turret.cost+200;
  g.tactical.plan();
