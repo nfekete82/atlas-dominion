@@ -1,0 +1,108 @@
+name: Sandforge Tactical AI 4.4 – single-turret standoff benchmark
+
+on:
+  push:
+    branches:
+      - feat/sandforge-ai-44-standoff-siege-20261030
+    paths:
+      - .github/workflows/sandforge-ai-44-paired.yml
+      - scripts/ai-44-version-report.mjs
+      - src/reborn/director-production.ts
+      - src/reborn/army-economy.ts
+      - src/reborn/tactical-ai.ts
+      - tests/reborn-tactical-ai-44-standoff.test.mjs
+      - tests/reborn-tactical-ai-43-recovery.test.mjs
+      - tests/reborn-tactical-ai-42-siege.test.mjs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sandforge-ai-44-paired-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  paired-arena:
+    name: 48 paired battles – AI 4.3 vs AI 4.4
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      BEFORE: de2c7dddc9bc03b7a9d3fb7f5daf1917b09602a1
+      AFTER: ${{ github.sha }}
+      SEEDS: 2026,2027,2028,2029,2030,2031,2032,2033
+      MAPS: 3,4,5
+      MATCH_SECONDS: '420'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - name: Verify pinned historical baseline and current revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          git cat-file -e "${BEFORE}^{commit}"
+          git cat-file -e "${AFTER}^{commit}"
+          git merge-base --is-ancestor "$BEFORE" "$AFTER"
+          echo "Before: $BEFORE"
+          echo "After:  $AFTER"
+          test "$MATCH_SECONDS" = 420
+          mkdir -p ai-arena-results
+      - name: Validate AI 4.4 standoff regressions before spending benchmark time
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm run build
+          node --test tests/reborn-tactical-ai-44-standoff.test.mjs tests/reborn-tactical-ai-43-recovery.test.mjs tests/reborn-tactical-ai-42-siege.test.mjs tests/reborn-tactical-ai-41-endgame.test.mjs tests/reborn-tactical-ai-40.test.mjs
+      - name: Build baseline and run 24 headless battles
+        shell: bash
+        run: |
+          set -euo pipefail
+          git switch --detach "$BEFORE"
+          npm ci --no-audit --no-fund
+          npm run build
+          node scripts/ai-test-arena.mjs \
+            --maps "$MAPS" --seeds "$SEEDS" \
+            --seconds "$MATCH_SECONDS" --modes director --opponent guarded \
+            --label "AI 4.3 $BEFORE" \
+            --output "$GITHUB_WORKSPACE/ai-arena-results/before.json"
+      - name: Build AI 4.4 and run 24 identical headless battles
+        shell: bash
+        run: |
+          set -euo pipefail
+          git switch --detach "$AFTER"
+          npm ci --no-audit --no-fund
+          npm run build
+          node scripts/ai-test-arena.mjs \
+            --maps "$MAPS" --seeds "$SEEDS" \
+            --seconds "$MATCH_SECONDS" --modes director --opponent guarded \
+            --label "AI 4.4 $AFTER" \
+            --output "$GITHUB_WORKSPACE/ai-arena-results/after.json"
+      - name: Strict paired version comparison and report
+        shell: bash
+        run: |
+          set -euo pipefail
+          git switch --detach "$GITHUB_SHA"
+          node scripts/ai-test-arena-compare.mjs \
+            ai-arena-results/before.json \
+            ai-arena-results/after.json \
+            ai-arena-results/paired-comparison.md
+          node scripts/ai-44-version-report.mjs \
+            ai-arena-results/before.json \
+            ai-arena-results/after.json \
+            ai-arena-results/ai-44-summary.md
+          cat ai-arena-results/ai-44-summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Preserve before/after data and evaluations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandforge-ai44-paired-48-battles
+          path: ai-arena-results/
+          if-no-files-found: warn
+          retention-days: 30
