@@ -21,13 +21,20 @@ export class PalmGrove {
  get initiallyFallenCount():number{return 0;}
  reset(details:readonly GroundDetail[],game:Simulation):void{this.trees=details.filter(d=>d.kind==='palm');this.game=game;}
  update(_game:Simulation):void{}
- draw(c:CanvasRenderingContext2D,_time:number,view?:PalmViewport,_reducedMotion=false):void {
-  for(const d of this.trees){
+ /** Visible static trees, in world coordinates. Keep the ground foot as depth anchor. */
+ visibleTrees(view?:PalmViewport):GroundDetail[]{
+  return this.trees.filter(d=>{
    const extent=d.radius*3.55*PALM_ART_SCALE;
-   if(view&&(d.x+extent<view.left||d.x-extent>view.right||d.y+extent<view.top||d.y-extent>view.bottom))continue;
-   if(this.game&&!environmentPropVisible(d,this.game))continue;
-   c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';
-   this.atlas.draw(c,'palm-tree',d,d.radius*3.3,Math.floor(d.variant*4));c.restore();
-  }
+   if(view&&(d.x+extent<view.left||d.x-extent>view.right||d.y+extent<view.top||d.y-extent>view.bottom))return false;
+   return !this.game||environmentPropVisible(d,this.game);
+  });
+ }
+ /** Draw a single tree; renderer can depth-sort it alongside soldiers and buildings. */
+ drawOne(c:CanvasRenderingContext2D,d:GroundDetail):void{
+  c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';
+  this.atlas.draw(c,'palm-tree',d,d.radius*3.3,Math.floor(d.variant*4));c.restore();
+ }
+ draw(c:CanvasRenderingContext2D,_time:number,view?:PalmViewport,_reducedMotion=false):void{
+  for(const d of this.visibleTrees(view))this.drawOne(c,d);
  }
 }
