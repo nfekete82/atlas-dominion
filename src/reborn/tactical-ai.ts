@@ -47,6 +47,14 @@ export function holdForSiegeWeapon(objectiveKind:string|undefined,overrun:boolea
 const combat=(u:Unit)=>u.hp>0&&!u.carrier&&!['medic','engineer','scout'].includes(u.kind);
 const frontRole=(u:Unit)=>combat(u)&&u.kind!=='artillery'&&!unitSpec(u).flying;
 export const combatStrength=(u:Unit)=>u.hp/100*Math.pow((unitSpec(u).damage/unitSpec(u).cooldown)/(17/.85),.35);
+/** Earlier retreats require a real living medic and confirmed enemy HQ loss. */
+export function infantryRecoveryThreshold(endgame:boolean,medicAvailable:boolean):number{
+ return endgame && medicAvailable ? 0.48 : 0.30;
+}
+/** Keep one healthy replacement screen for larger cleanup formations. */
+export function cleanupReserveSize(endgame:boolean,fighters:number):number{
+ return endgame&&fighters>=9?1:!endgame&&fighters>=7?1:0;
+}
 const fresh=():TacticalState=>({version:1,phase:'gather',phaseAt:0,lastPlan:-3,target:null,rally:null,route:[],savingSince:null,savingFor:null,group:[],groupId:0,launchSize:0,launchedAt:0,objective:null,knownTurrets:[],losses:[],attempts:[],productionSerial:0,lastProgress:0,progressAt:0});
 /** Knowledge, plans and production use simulated time and the red faction's own observations. */
 export class TacticalAI {
@@ -376,8 +384,11 @@ export class TacticalAI {
  }
  private recovery(army:Unit[],home:Point):Set<number>{
   const g=this.g,s=this.state,ids=new Set(s.recovering??[]);
+  const threshold=infantryRecoveryThreshold(
+   g.world.mapVersion>=3&&this.mode==='director'&&s.commander?.enemyHQEliminatedAt!==undefined,
+   army.some(v=>v.kind==='medic'&&v.hp>unitSpec(v).hp*.45));
   for(const u of army){
-   if(['infantry','heavy'].includes(u.kind)&&u.hp<unitSpec(u).hp*.3)ids.add(u.id);
+   if(['infantry','heavy'].includes(u.kind)&&u.hp<unitSpec(u).hp*threshold)ids.add(u.id);
    // Vehicles survive sustained campaigns when they can break contact,
    // travel back to a real engineer, then return above 80% health.
    if(g.world.mapVersion>=3&&this.mode==='director'
@@ -639,7 +650,7 @@ export class TacticalAI {
  // a secondary neutral bastion while enemy production is still standing.
  const raidUnits=c.enemyHQEliminatedAt===undefined?this.secondaryPressure(fighters,mission,home):new Set<number>();
   const mainFighters=fighters.filter(u=>!raidUnits.has(u.id));
-  const reserve=c.enemyHQEliminatedAt!==undefined?0:mainFighters.length>=7?1:0;
+  const reserve=cleanupReserveSize(c.enemyHQEliminatedAt!==undefined,mainFighters.length);
   const guards=new Set(mainFighters.filter(u=>!s.group.includes(u.id)).sort((a,b)=>distance(a,home)-distance(b,home)||a.id-b.id).slice(0,reserve).map(u=>u.id));
   const selected=mainFighters.filter(u=>!guards.has(u.id)).sort((a,b)=>Number(s.group.includes(b.id))-Number(s.group.includes(a.id))||distance(a,s.rally!)-distance(b,s.rally!)||a.id-b.id).slice(0,18);
   let members=selected.filter(u=>s.group.includes(u.id));
