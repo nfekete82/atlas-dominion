@@ -1,0 +1,35 @@
+# Sandforge Uberspace 8 guard. Managed separately from application releases.
+AuthType Basic
+AuthName "Sandforge private"
+AuthBasicProvider file
+AuthUserFile "/var/www/virtual/nf/.htpasswd"
+Require valid-user
+<FilesMatch "^\.">
+  Require all denied
+</FilesMatch>
+
+Options -Indexes -MultiViews +SymLinksIfOwnerMatch
+DirectoryIndex index.html
+AddType application/javascript .js .mjs
+AddType application/json .json
+AddType model/gltf-binary .glb
+AddType application/wasm .wasm
+
+Header always set Cache-Control "private, no-store"
+Header always set X-Content-Type-Options "nosniff"
+Header always set X-Frame-Options "DENY"
+Header always set Referrer-Policy "same-origin"
+Header always set X-Robots-Tag "noindex, nofollow"
+
+RewriteEngine On
+# Internal symlinks and development entry points are never public routes.
+RewriteRule ^\.(?:current|releases)(?:/|$) - [R=404,END]
+RewriteRule ^(?:legacy|vendor|model-3d\.html|model-preview\.html|animation-lab\.html|node_modules)(?:/|$) - [R=404,END]
+RewriteCond %{QUERY_STRING} (^|&)debug(?:=|&|$) [NC]
+RewriteRule ^ - [R=404,END]
+# Each document pins all resources to its immutable, retained release.
+RewriteRule ^releases/(v-[a-z0-9-]+)/([A-Za-z0-9_-]+(?:[./][A-Za-z0-9_-]+)*)$ .releases/$1/$2 [END]
+RewriteRule ^$ .current/index.html [END]
+RewriteRule ^index\.html$ .current/index.html [END]
+RewriteRule ^deployment\.json$ .current/deployment.json [END]
+RewriteRule ^ - [R=404,END]

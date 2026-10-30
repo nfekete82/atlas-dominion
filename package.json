@@ -28,7 +28,11 @@
     "assets:transport": "node scripts/build-transport-helicopter.mjs && node scripts/render-unit-atlases.mjs --hd scout",
     "assets:rocket-launcher": "node scripts/build-rocket-launcher.mjs && node scripts/render-unit-atlases.mjs --hd artillery",
     "benchmark:arena": "npm run build && node scripts/ai-test-arena.mjs",
-    "benchmark:arena:compare": "node scripts/ai-test-arena-compare.mjs"
+    "benchmark:arena:compare": "node scripts/ai-test-arena-compare.mjs",
+    "deploy:uberspace": "node scripts/deploy-uberspace.mjs",
+    "deploy:uberspace:dry-run": "node scripts/deploy-uberspace.mjs --dry-run",
+    "deploy:uberspace:check": "node scripts/deploy-uberspace.mjs --check",
+    "deploy:uberspace:rollback": "node scripts/deploy-uberspace.mjs --rollback"
   },
   "devDependencies": {
     "three": "0.180.0",
