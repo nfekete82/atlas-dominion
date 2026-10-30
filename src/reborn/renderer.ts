@@ -380,7 +380,20 @@ export class Renderer {
       c.save();if(this.placementFacing===1){c.translate(2*p.x,0);c.scale(-1,1);}
       this.spriteDraw(this.buildings[this.placement],p,buildingArtWidth(this.placement,spec.width),false,.65);
       if(this.placement==='turret')this.structures.drawTurret(c,0,p,buildingArtWidth(this.placement,spec.width),this.placementFacing===1?Math.PI:0,.65);
-      c.restore();c.restore();
+      c.restore();
+      // Always-visible, camera-size-independent help beside the live ghost.
+      // The shortcut does not depend on the selection-panel being open.
+      c.save();
+      c.translate(p.x,p.y+spec.radius*.5+22/this.camera.zoom);
+      c.scale(1/this.camera.zoom,1/this.camera.zoom);
+      c.fillStyle='#172324ef';c.strokeStyle=valid?'#a8c39d':'#d69a80';c.lineWidth=1;
+      c.fillRect(-84,0,168,27);c.strokeRect(-84,0,168,27);
+      c.fillStyle='#e1c68a';c.fillRect(-76,5,19,17);
+      c.fillStyle='#182023';c.font='bold 12px system-ui';c.textAlign='center';c.fillText('R',-66.5,18);
+      c.font='bold 10px system-ui';c.fillStyle='#eee5cb';
+      c.fillText('GEBÄUDE DREHEN',13,17.5);
+      c.restore();
+      c.restore();
     }
     this.drawRockets();
     this.drawWork();
