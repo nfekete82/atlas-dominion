@@ -33,7 +33,7 @@ Das Spiel lädt ausschließlich den gemeinsamen PNG/JSON-Atlas (32 Frames, rund 
 
 Feste Slots: HQ 5, Kaserne 3, Fabrik 4, Flugfeld 3, Generator/Geschützturm/Bastion jeweils 1. Vollständige Fassaden und der südöstliche Ausgang bleiben frei. Gespiegelte Gebäude spiegeln die Slotkoordinaten; die Sonne der Props wird nicht gespiegelt. Bei überlappenden neu gebauten oder unfertigen Gebäuden werden Props nur in der Darstellung unterdrückt. Bewegliche Einheiten dagegen blenden Palmen, Schädel, Kisten und Lampen nicht mehr aus.
 
-Palmen und Schädel belegen jeweils etwa 3 % der möglichen Atmosphärendetails, mit zusätzlichem Abstand zu HQs, Startgebieten und Bastionen. Schädel bleiben etwa 15–23 Welteinheiten breit. Positionen und Ausrichtung entstehen rein aus dem Seed; dynamische Belegung kann nur die Sichtbarkeit ändern. Keine neuen Hindernisse, Sichtquellen, Simulationswerte oder gespeicherten Felder. Bestehende Spielstände benötigen keine Migration für diese Props.
+Palmen und Schädel belegen jeweils etwa 3 % der möglichen Atmosphärendetails, mit zusätzlichem Abstand zu HQs, Startgebieten und Bastionen. Schädel bleiben etwa 15–23 Welteinheiten breit. Positionen und Ausrichtung entstehen rein aus dem Seed; feste Hindernisse und nachträgliche Gebäude können die Sichtbarkeit ändern; Einheitenbewegung dagegen nicht. Keine neuen Hindernisse, Sichtquellen, Simulationswerte oder gespeicherten Felder. Bestehende Spielstände benötigen keine Migration für diese Props.
 
 ## Prüfung
 
