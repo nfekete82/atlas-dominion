@@ -20,11 +20,11 @@ test('palms: all seed variants stay upright, use mesh sprites and respect camera
  grove.draw(c,g.time,{left:1900,right:2300,top:1950,bottom:2250});assert.equal(c.draws,3);
  assert.deepEqual(g.save(),before);
 });
-test('palms: occupied tree slots hide without collisions, falling silhouettes or movement changes',()=>{
+test('palms: occupied tree slots remain visible without collisions, falling silhouettes or movement changes',()=>{
  const g=emptyGame(),grove=new PalmGrove(fakeAtlas),rover=g.spawn(0,{x:2000,y:2100},'rover');
  grove.reset([palm(2000,2100)],g);
- let c=fakeCanvas();grove.draw(c,g.time);assert.equal(c.draws,0,'unit has visual priority');
+ let c=fakeCanvas();grove.draw(c,g.time);assert.equal(c.draws,1,'a passing vehicle must not hide static scenery');
  rover.x=2200;g.time+=.2;grove.update(g);
- assert.equal(grove.fallenCount,0);c=fakeCanvas();grove.draw(c,g.time);assert.equal(c.draws,1,'upright palm returns after vehicle passes');
+ assert.equal(grove.fallenCount,0);c=fakeCanvas();grove.draw(c,g.time);assert.equal(c.draws,1,'palm stays visible after vehicle passes');
  assert.equal(rover.x,2200);
 });
