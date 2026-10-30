@@ -199,6 +199,7 @@ function refreshMeasured():void{
  const medics=selected.some(u=>u.kind==='medic'),workers=selected.some(u=>u.kind==='engineer');
  el('support-commands').hidden=!selected.length;el('heal-mode').hidden=!medics;el('repair-mode').hidden=!workers;el('build-mode').hidden=!workers;
  if(!workers){renderer.placement=null;el('build-menu').hidden=true;renderer.canvas.classList.remove('building');}
+ el<HTMLButtonElement>('rotate-building').hidden=!renderer.placement;
  el('load-mode').hidden=!selected.some(u=>transportCapacity(u.kind)>0);el('unload-mode').hidden=!selected.some(u=>transportCapacity(u.kind)>0);el<HTMLButtonElement>('unload-mode').disabled=!selected.some(u=>transportCapacity(u.kind)>0&&u.transport?.cargo.length);
  if(selected.length===1&&first&&transportCapacity(first.kind)>0)detail=`${first.transport?.cargo.length??0} / ${transportCapacity(first.kind)} Passagiere · ${spec!.description}`;
 
@@ -247,7 +248,7 @@ function refreshMeasured():void{
  for(const button of context.querySelectorAll<HTMLButtonElement>('[data-context-unit]')){const kind=button.dataset.contextUnit as UnitKind;button.disabled=!base||base.queue.length>=8||game.credits[0]<UNITS[kind].cost||game.count(0)+game.queued(0)>=RULES.capacity||game.status!=='playing';}
  const contextCancel=document.getElementById('context-cancel') as HTMLButtonElement|null;if(contextCancel)contextCancel.disabled=!!base&&base.buildRemaining<=0&&!base.queue.length;
  if(selected.length===1&&first?.supportPaused)detail='Heilziel ist zu weit voraus. Sanitäter wartet; der Heilauftrag bleibt erhalten.';
- if(renderer.placement)detail=`${BUILDINGS[renderer.placement].name}: Linksklick setzt die Baustelle. Esc / Rechtsklick bricht ab.`;
+ if(renderer.placement)detail=`${BUILDINGS[renderer.placement].name}: ${renderer.placementFacing===1?'Gespiegelt':'Standardausrichtung'}. R / ↔ wechselt die Richtung · Linksklick baut · Esc bricht ab.`;
  setText('selection-detail',detail);
  setText('hint',renderer.attackMode?'ANGRIFFSBEWEGUNG: LINKSKLICK AUF DAS ZIEL':'ZIEHEN: AUSWAHL · RECHTSKLICK: BEWEGEN · SHIFT: BEFEHLSKETTE');
  if(production){
@@ -322,7 +323,8 @@ el('unload-mode').onclick=()=>{renderer.commandMode='unload';renderer.attackMode
 el('repair-mode').onclick=()=>{renderer.commandMode='repair';renderer.attackMode=false;renderer.canvas.classList.remove('attack');notify('Eigenes beschädigtes Gebäude oder Baustelle mit Linksklick wählen.');};
 el('close-build-menu').onclick=()=>{el('build-menu').hidden=true;};
 el('build-mode').onclick=()=>{el('build-menu').hidden=!el('build-menu').hidden;};
-for(const button of document.querySelectorAll<HTMLButtonElement>('[data-build]'))button.onclick=()=>{renderer.placement=button.dataset.build as BuildingKind;renderer.commandMode=null;renderer.attackMode=false;renderer.canvas.classList.remove('attack');renderer.canvas.classList.add('building');el('build-menu').hidden=true;refresh();};
+for(const button of document.querySelectorAll<HTMLButtonElement>('[data-build]'))button.onclick=()=>{renderer.placementFacing=0;renderer.placement=button.dataset.build as BuildingKind;renderer.commandMode=null;renderer.attackMode=false;renderer.canvas.classList.remove('attack');renderer.canvas.classList.add('building');el('build-menu').hidden=true;refresh();};
+el('rotate-building').onclick=()=>{if(!renderer.placement)return;renderer.placementFacing=renderer.placementFacing===0?1:0;audio.select();refresh();};
 el('stop').onclick=()=>{input.stop();refresh();};el('attack').onclick=()=>{renderer.attackMode=!renderer.attackMode;renderer.canvas.classList.toggle('attack',renderer.attackMode);refresh();};
 el('move-mode').onclick=()=>{if(renderer.selected.size){renderer.attackMode=false;renderer.commandMode='move';renderer.canvas.classList.remove('attack');notify('Linksklick auf das Bewegungsziel.');}else notify('Zuerst eine Einheit auswählen.');};
 el('rally-mode').onclick=()=>{const b=contextBase();if(b){renderer.selected.clear();renderer.selectedBase=b.id;notify('Rechtsklick auf den neuen Sammelpunkt.');refresh();}};
