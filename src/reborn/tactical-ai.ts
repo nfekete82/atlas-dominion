@@ -50,6 +50,15 @@ export function holdForSiegeWeapon(objectiveKind:string|undefined,overrun:boolea
 export function attemptEndgameStandoff(confirmedCleanup:boolean,observedObjective:boolean,directLineClear:boolean):boolean{
  return confirmedCleanup&&observedObjective&&!directLineClear;
 }
+/** A previously observed battery has held up an actual artillery mission for
+ * long enough to justify ONE safer route attempt, even before the HQ falls.
+ * The caller supplies only its existing mission's progress timestamps, never
+ * hidden enemy HP or hidden tower positions. */
+export function stalledObservedSiege(mission:{kind:string;objective:number|null;since:number;progressAt:number}|undefined,
+ targetId:number,time:number):boolean{
+ return !!mission&&mission.kind==='structure'&&mission.objective===targetId
+  &&time-mission.since>=60&&time-mission.progressAt>=42;
+}
 const combat=(u:Unit)=>u.hp>0&&!u.carrier&&!['medic','engineer','scout'].includes(u.kind);
 const frontRole=(u:Unit)=>combat(u)&&u.kind!=='artillery'&&!unitSpec(u).flying;
 export const combatStrength=(u:Unit)=>u.hp/100*Math.pow((unitSpec(u).damage/unitSpec(u).cooldown)/(17/.85),.35);
@@ -448,7 +457,11 @@ export class TacticalAI {
    const knownObjective=observed.some(t=>t.id===target.id);
    const directLineClear=g.world.line(artillery[0],target,
     this.obstacles().filter(o=>!('id' in o)||o.id!==target.id),10);
-   if(attemptEndgameStandoff(s.commander?.enemyHQEliminatedAt!==undefined,knownObjective,directLineClear)
+   const cleanup=s.commander?.enemyHQEliminatedAt!==undefined;
+   const stalled=stalledObservedSiege(s.commander?.mission,target.id,g.time);
+   // Allow bounded recovery from genuinely stalled single-gun fights. Do not
+   // disturb a progressing attack or invoke a speculative fogged objective.
+   if(knownObjective&&!directLineClear&&(cleanup||stalled)
      &&this.standoffSiege(members,target,artillery,true))return true;
    // If the safe angle search fails, continue the proven AI 4.3 attack.
   }
