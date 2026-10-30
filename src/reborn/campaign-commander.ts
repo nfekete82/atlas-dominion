@@ -25,7 +25,8 @@ export function refreshIntelligence(g:Simulation,s:CampaignState):void{
  if(hq&&!s.observedEnemyHQ)s.observedEnemyHQ={id:hq.id,x:hq.x,y:hq.y};
  if(s.observedEnemyHQ&&s.enemyHQEliminatedAt===undefined&&
     g.canSee(1,s.observedEnemyHQ)&&
-    !known.some(m=>m.id===s.observedEnemyHQ!.id&&m.kind==='headquarters'))
+    !known.some(m=>m.id===s.observedEnemyHQ!.id&&m.kind==='headquarters')&&
+    !g.bases.some(b=>b.id===s.observedEnemyHQ!.id&&b.owner===0&&b.hp>0&&g.canSee(1,b)))
   s.enemyHQEliminatedAt=g.time;
  s.intel=s.intel.filter(i=>known.some(m=>m.id===i.id));
  for(const m of known)if(g.canSee(1,m)){
