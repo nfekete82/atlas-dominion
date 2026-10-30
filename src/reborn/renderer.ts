@@ -384,10 +384,6 @@ export class Renderer {
     if(profiler)profiler.record('sprites',performance.now()-spritesAt);
     if(this.placement&&this.pointer){
       const spec=BUILDINGS[this.placement],p=this.pointer,valid=g.units.some(u=>this.selected.has(u.id)&&u.kind==='engineer'&&u.owner===0&&u.hp>0)&&!g.buildError(0,this.placement,p);
-      if(this.placement==='headquarters'&&g.needsHeadquarters(0)){
-        const region=g.startRegions[0];c.save();c.strokeStyle='#d3ded2aa';c.lineWidth=1.5/this.camera.zoom;c.setLineDash([10,8]);
-        c.beginPath();c.arc(region.center.x,region.center.y,region.radius,0,Math.PI*2);c.stroke();c.restore();
-      }
       c.save();c.strokeStyle=valid?'#96e0b8':'#f27e67';c.fillStyle=valid?'#6bcda52a':'#e66a552a';c.lineWidth=1.5;
       c.beginPath();c.moveTo(p.x-spec.radius,p.y);c.lineTo(p.x,p.y-spec.radius*.5);c.lineTo(p.x+spec.radius,p.y);c.lineTo(p.x,p.y+spec.radius*.5);c.closePath();c.fill();c.stroke();
       c.save();if(this.placementFacing===1){c.translate(2*p.x,0);c.scale(-1,1);}
