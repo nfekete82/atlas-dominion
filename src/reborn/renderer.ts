@@ -17,6 +17,7 @@ import { paintGeneratedTerrain } from './terrain-presentation.js';
 import { BattlefieldEffects, createGroundDetails, paintGroundDetails, type GroundDetail } from './battlefield-atmosphere.js';
 import {PalmGrove} from './palm-grove.js';
 import {DesertAtmosphere} from './desert-atmosphere.js';
+import {BuildingDecor} from './building-decor.js';
 import {attackBlinkAlpha} from './attack-alerts.js';
 import { buildTerrainVariants, type TerrainVariantAtlases } from './terrain-variants.js';
 import {visibleInViewport} from './viewport-culling.js';
@@ -29,6 +30,7 @@ export class Renderer {
   readonly battlefield=new BattlefieldEffects();
   readonly palms=new PalmGrove();
   readonly atmosphere=new DesertAtmosphere();
+  readonly decor=new BuildingDecor();
   private groundDetails:GroundDetail[]=[];
   private readonly groundSprites={crater:new Image(),palm:new Image(),rocks:new Image()};
   private exhaustAt=new Map<number,number>();
@@ -212,8 +214,10 @@ export class Renderer {
       }
       this.bar({x:b.x,y:b.y+spec.radius*.46+6},Math.min(85,spec.width*.6),progress,'#e9bb61');c.fillStyle='#f1d48e';c.font='10px monospace';c.textAlign='center';c.fillText(`${b.constructionActive?'BAU':'PAUSIERT'} ${Math.ceil(b.buildRemaining)} S`,b.x,b.y+spec.radius*.46+24);
     }else{
+      this.decor.draw(c,b.kind,anchor,spec.radius,b.id,this.game.seed,b.owner,'behind',this.game.time,this.reducedMotion,alpha);
       draw(alpha);
       this.structures.drawActivity(c,b.kind,b.owner,anchor,artWidth,this.game.time,this.reducedMotion,alpha);
+      this.decor.draw(c,b.kind,anchor,spec.radius,b.id,this.game.seed,b.owner,'front',this.game.time,this.reducedMotion,alpha);
     }
     if(selected||b.hp<spec.hp)this.bar({x:b.x,y:anchor.y-height-8},86,b.hp/spec.hp,b.owner===0?'#75c5e8':'#ed7866');
     if(b.queue.length&&b.owner===0)this.bar({x:b.x,y:b.y+24},75,b.production/b.queue[0],'#dfb278');
@@ -266,9 +270,11 @@ export class Renderer {
   private drawBastion(t:Territory,dim=false):void{
     const c=this.context,g=this.game,p=t.point,color=t.owner===0?'#72cfff':t.owner===1?'#ff7869':'#f4f5f4';
     c.save();if(dim)c.globalAlpha=.32;
+    if(!dim)this.decor.draw(c,'bastion',p,42,t.id,g.seed,t.owner,'behind',g.time,this.reducedMotion);
     this.spriteDraw(this.bastions[t.owner===0?'blue':t.owner===1?'red':'neutral'],p,67,false,dim?.32:1);
     this.structures.drawActivity(c,'bastion',t.owner,p,67,g.time,this.reducedMotion,dim?.32:1);
     if(!dim)this.atmosphere.drawBastion(c,t,g.time,this.reducedMotion);
+    if(!dim)this.decor.draw(c,'bastion',p,42,t.id,g.seed,t.owner,'front',g.time,this.reducedMotion);
     c.font='500 10px system-ui';c.textAlign='center';c.fillStyle='#100e0b99';c.fillRect(p.x-53,p.y+19,106,30);
     c.fillStyle='#e1d2b7';c.fillText(t.name.toLocaleUpperCase('de-DE'),p.x,p.y+31);c.fillStyle=color;c.font='10px monospace';c.fillText(`${t.owner===0?'BLAU':t.owner===1?'ROT':'NEUTRAL'} · +${t.income} / 10 s`,p.x,p.y+43);
     const hovered=!dim&&this.pointer&&this.bastionAt(this.pointer)?.id===t.id;
