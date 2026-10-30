@@ -1,0 +1,62 @@
+name: Sandforge HQ progressive 3D assembly bake
+
+on:
+  push:
+    branches: [feat/sandforge-anywhere-hq-progressive-assembly-20261030]
+    paths:
+      - .github/workflows/sandforge-hq-assembly-bake.yml
+      - scripts/animation/hq-construction-stages.js
+      - scripts/animation/building-export.js
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hq-assembly-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  bake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install build tools
+        run: npm ci --no-audit --no-fund
+      - name: Check staged 3D baker source
+        run: |
+          node --check scripts/animation/hq-construction-stages.js
+          node --check scripts/animation/building-export.js
+      - name: Render six real 3D HQ construction stages for both factions
+        run: npm run assets:hq-construction
+      - name: Validate stage assets and game
+        run: |
+          npm run build
+          node --test tests/reborn-construction-assembly.test.mjs
+      - name: Publish assembled HQ sprite atlases without changing finished building assets
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for team in 0 1; do
+            test -s "src/assets/reborn/buildings-3d/headquarters-${team}-construction.png"
+            test -s "src/assets/reborn/buildings-3d/headquarters-${team}-construction.json"
+            git add "src/assets/reborn/buildings-3d/headquarters-${team}-construction.png" "src/assets/reborn/buildings-3d/headquarters-${team}-construction.json"
+          done
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo "HQ construction atlases already current."
+            exit 0
+          fi
+          git commit -m "assets(hq): publish six real PBR mesh assembly stages"
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
