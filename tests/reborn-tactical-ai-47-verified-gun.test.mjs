@@ -13,7 +13,7 @@ test('4.7: actual blocked firing requires a stationary observed gun in range wit
  assert.equal(verifiedBlockedArtillery([gun],goal,true,()=>true),false);
  assert.equal(verifiedBlockedArtillery([{...gun,moving:true}],goal,true,()=>false),false);
  assert.equal(verifiedBlockedArtillery([{...gun,cooldown:1.2}],goal,true,()=>false),false);
- assert.equal(verifiedBlockedArtillery([{...gun,x:-320}],goal,true,()=>false);
+ assert.equal(verifiedBlockedArtillery([{...gun,x:-320}],goal,true,()=>false),false);
  assert.equal(verifiedBlockedArtillery([{...gun,orders:[{kind:'move',x:400,y:300}]}],goal,true,()=>false),false);
  assert.equal(verifiedBlockedArtillery([{...gun,orders:[{kind:'attack',target:999,x:400,y:300}]}],goal,true,()=>false),false);
  assert.equal(verifiedBlockedArtillery([],goal,true,()=>false),false);
