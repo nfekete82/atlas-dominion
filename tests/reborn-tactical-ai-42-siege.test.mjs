@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {Simulation} from '../dist/src/reborn/simulation.js';
 import {newCampaign} from '../dist/src/reborn/campaign-commander.js';
 import {developArmy} from '../dist/src/reborn/army-economy.js';
+import {holdForSiegeWeapon} from '../dist/src/reborn/tactical-ai.js';
 import {BUILDINGS,UNITS} from '../dist/src/reborn/catalog.js';
 
 function siegeEconomy(credits){
@@ -63,4 +64,13 @@ test('4.2: if a known turret survives but the siege factory is destroyed, rebuil
  developArmy(g,s,g.units.filter(u=>u.owner===1),()=>0);
  assert.equal(s.economy.built.factory,1);
  assert.equal(g.bases.filter(b=>b.owner===1&&b.kind==='factory').length,1);
+});
+
+test('4.2: an observed turret requires artillery even with 7 or more ordinary fighters',()=>{
+ for(const size of [3,7,9,16])assert.equal(
+  holdForSiegeWeapon('turret',false,0),true,'unsupported attack is not safe at '+size+' fighters');
+ assert.equal(holdForSiegeWeapon('turret',false,1),false,'artillery makes a supported siege possible');
+ assert.equal(holdForSiegeWeapon('turret',true,0),false,'genuine overmatch is still a permitted alternative');
+ assert.equal(holdForSiegeWeapon('barracks',false,0),false,'non-turret objectives are unaffected');
+ assert.equal(holdForSiegeWeapon(undefined,false,0),false,'no imaginary fogged turret');
 });
