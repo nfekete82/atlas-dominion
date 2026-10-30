@@ -89,3 +89,31 @@ test('HQ opening: compact layout keeps offline guidance over the receiver and pr
  const before=await page.evaluate(()=>window.__reborn.renderer.camera.x);await page.keyboard.down('ArrowRight');await page.waitForTimeout(180);await page.keyboard.up('ArrowRight');
  expect(await page.evaluate(()=>window.__reborn.renderer.camera.x)).toBeGreaterThan(before);expect(errors).toEqual([]);
 });
+
+test('HQ opening: real six-stage mesh assembly changes in-game artwork before radar comes online',async({page})=>{
+ const errors=await start(page);
+ const images=await page.evaluate(()=>{
+  const r=window.__reborn.renderer,asset=r.structures.asset('headquarters',0);
+  const stageCount=asset.construction?.frames.length??0;
+  const canvas=document.createElement('canvas');canvas.width=canvas.height=512;
+  const c=canvas.getContext('2d'),signature=[];
+  for(const progress of [.02,.20,.40,.60,.80,.99]){
+   c.clearRect(0,0,512,512);
+   const handled=r.structures.drawConstruction(c,'headquarters',0,{x:256,y:382},225,progress);
+   if(!handled)throw Error('Missing progressive 3D HQ construction atlas');
+   const pixels=c.getImageData(0,0,512,512).data;
+   let count=0,checksum=0;
+   for(let i=0;i<pixels.length;i+=4){
+    if(pixels[i+3]>100)count++;
+    checksum=(Math.imul(checksum,31)+pixels[i]+pixels[i+1]+pixels[i+2]+pixels[i+3])>>>0;
+   }
+   signature.push({count,checksum});
+  }
+  return {stageCount,signature};
+ });
+ expect(images.stageCount).toBe(6);
+ expect(new Set(images.signature.map(s=>s.checksum)).size).toBe(6);
+ expect(images.signature[5].count).toBeGreaterThan(images.signature[0].count);
+ await expect(page.locator('#radar-offline')).toBeVisible();
+ expect(errors).toEqual([]);
+});
