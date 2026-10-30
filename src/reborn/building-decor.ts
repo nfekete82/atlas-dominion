@@ -29,7 +29,7 @@ const layouts:Record<DecoratedStructure,readonly Slot[]>={
   {kind:'terminal',x:1.91,y:-.74,layer:'behind',scale:.86},
   {kind:'sandbags',x:-1.91,y:.54,layer:'front',scale:.85},
   {kind:'crate',x:-1.48,y:.82,layer:'front',scale:.86},
-  {kind:'bollard',x:1.87,y:-.18,layer:'behind'},
+  {kind:'bollard',x:1.87,y:-.43,layer:'behind'},
  ],
  factory:[
   {kind:'lamp',x:-1.96,y:-.75,layer:'behind'},
@@ -38,7 +38,7 @@ const layouts:Record<DecoratedStructure,readonly Slot[]>={
   {kind:'stack',x:1.86,y:-.42,layer:'behind',scale:.93},
   {kind:'fuel',x:-1.89,y:.48,layer:'front',scale:.86},
   {kind:'barrel',x:-1.62,y:.80,layer:'front',scale:.86},
-  {kind:'crate',x:1.90,y:-.14,layer:'behind',scale:.88},
+  {kind:'crate',x:2.29,y:-.33,layer:'behind',scale:.88},
   {kind:'lamp',x:2.00,y:-1.10,layer:'behind',scale:.86},
  ],
  airfield:[
@@ -48,7 +48,7 @@ const layouts:Record<DecoratedStructure,readonly Slot[]>={
   {kind:'terminal',x:1.90,y:-.50,layer:'behind',scale:.85},
   {kind:'stack',x:-1.90,y:.21,layer:'front',scale:.90},
   {kind:'groundlight',x:-1.75,y:.87,layer:'front',scale:.83},
-  {kind:'groundlight',x:1.79,y:-.12,layer:'behind',scale:.83},
+  {kind:'groundlight',x:1.79,y:-.39,layer:'behind',scale:.83},
   {kind:'barrel',x:-1.80,y:.58,layer:'front',scale:.81},
   {kind:'lamp',x:1.96,y:-1.22,layer:'behind',scale:1.0},
  ],
