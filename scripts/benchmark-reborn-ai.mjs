@@ -10,6 +10,7 @@ import {readFileSync,mkdirSync,writeFileSync,renameSync} from 'node:fs';
 import {resolve,dirname} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {blueDefense} from './benchmark-ai-opponent.mjs';
+import {createArtilleryObserver} from './ai-artillery-observer.mjs';
 
 const vehicles=new Set(['tank','rover','artillery','bomber','scout']);
 const groundVehicles=new Set(['tank','rover','artillery']);
@@ -91,6 +92,7 @@ export function runMatch({Simulation,UNITS,performanceModule},options,seed,mode,
   productionIdleReasons:{},productionIdleReasonSources:{},productionDecisionReasons:{},bluePaidOrdersByKind:{},bluePaidRecruitCredits:0,
   paidBuildCredits:0,bluePaidBuildCredits:0,paidBuildingsByKind:{},bluePaidBuildingsByKind:{},
   battleReactions:0,battleRetreats:0,reinforcements:0,counterattacks:0,enemyBuildingKillsByKind:{},missionEvents:[],timeline:[],score:0,wallMs:0,cpu:null};
+ const artilleryObserver=createArtilleryObserver(UNITS);
  const initialUnits=new Set(g.units.map(u=>u.id)),bornUnits=new Set(initialUnits);
  const unitsKnown=new Map(g.units.map(u=>[u.id,{owner:u.owner,kind:u.kind}]));
  const buildingsKnown=new Map(g.bases.map(b=>[b.id,{owner:b.owner,kind:b.kind}]));
@@ -117,12 +119,30 @@ export function runMatch({Simulation,UNITS,performanceModule},options,seed,mode,
  if(typeof g.build==='function'){const build=g.build.bind(g);g.build=(owner,kind,...args)=>{const before=g.credits[owner],result=build(owner,kind,...args);if(result){metrics[owner===1?'paidBuildCredits':'bluePaidBuildCredits']+=before-g.credits[owner];increment(metrics[owner===1?'paidBuildingsByKind':'bluePaidBuildingsByKind'],kind);}return result;};}
  const lastOrders=new Map(),command=g.command.bind(g);
  g.command=(ids,order,...rest)=>{
+  const oldArtillery=artilleryObserver.beforeCommand(g,ids);
   const redIds=ids.filter(id=>g.units.some(u=>u.id===id&&u.owner===1&&u.hp>0));
   if(redIds.length){metrics.commands++;metrics.unitCommands+=redIds.length;
    const signature=JSON.stringify({kind:order.kind,target:order.target,x:Math.round(order.x??0),y:Math.round(order.y??0)});
    for(const id of redIds){const old=lastOrders.get(id);if(old?.signature===signature)metrics.repeatedUnitCommands++;else if(old&&g.time-old.at<3)metrics.rapidUnitOrderChanges++;lastOrders.set(id,{signature,at:g.time});}
    if(order.kind==='attack'){metrics.attackCommands++;if(g.bases.some(b=>b.id===order.target&&b.owner===0))metrics.buildingAttackCommands++;}}
-  return command(ids,order,...rest);
+  const result=command(ids,order,...rest);
+  if(result)artilleryObserver.afterCommand(g,oldArtillery,rest[0]);
+  return result;
+ };
+ // Intercept only actual launched missiles. An attack order does not imply a shot.
+ const launch=g.launch.bind(g);
+ g.launch=(u,target)=>{
+  const before=g.missiles.length,result=launch(u,target);
+  if(g.missiles.length>before)artilleryObserver.shot(g,u,target);
+  return result;
+ };
+ // Count all AI cancellations, including direct stop calls that bypass command().
+ const stop=g.stop.bind(g);
+ g.stop=(ids,...rest)=>{
+  const oldArtillery=artilleryObserver.beforeStop(g,ids);
+  const result=stop(ids,...rest);
+  artilleryObserver.afterStop(g,oldArtillery);
+  return result;
  };
  // TypeScript private methods compile as ordinary methods in this project.
  // Observe exact applied combat damage before healing/construction can hide it.
@@ -165,7 +185,7 @@ export function runMatch({Simulation,UNITS,performanceModule},options,seed,mode,
  try{
   for(let step=0;step<steps&&g.status==='playing';step++){
    if(options.opponent==='guarded'&&step%60===0)(options.defender??blueDefense)(g);
-   const at=performance.now();g.step(dt);stepTimes.push(performance.now()-at);options.observe?.(g);
+   const at=performance.now();g.step(dt);stepTimes.push(performance.now()-at);options.observe?.(g);artilleryObserver.sample(g);
    const s=g.tactical.state,now=time();metrics.elapsedSeconds=now;
    for(const u of g.units){
     unitsKnown.set(u.id,{owner:u.owner,kind:u.kind});
@@ -269,6 +289,7 @@ export function runMatch({Simulation,UNITS,performanceModule},options,seed,mode,
   metrics.redSectors=g.territories.filter(t=>t.owner===1).length;metrics.netCaptures=metrics.redSectors-startingRedSectors;
   metrics.battleReactions=g.tactical.state.battle?.reactions??0;metrics.battleRetreats=g.tactical.state.battle?.retreats??0;
   metrics.tactical=g.tactical.diagnostics?structuredClone(g.tactical.diagnostics):null;
+  metrics.artilleryTelemetry=artilleryObserver.snapshot();
   metrics.counterattackDefinition='emergencyDefense to offensive/siege/endgame commander transitions';
   metrics.finalComposition={red:Object.fromEntries(Object.keys(UNITS).map(k=>[k,g.units.filter(u=>u.owner===1&&u.kind===k&&u.hp>0).length])),blue:Object.fromEntries(Object.keys(UNITS).map(k=>[k,g.units.filter(u=>u.owner===0&&u.kind===k&&u.hp>0).length]))};
   metrics.redUnits=g.count(1);metrics.redCredits=Math.round(g.credits[1]);metrics.repairedVehiclesReused=reusedVehicles.size;
