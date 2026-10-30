@@ -9,63 +9,66 @@ interface Slot {kind:BasePropKind;x:number;y:number;layer:PropLayer;scale?:numbe
 export interface BuildingProp {kind:BasePropKind;x:number;y:number;layer:PropLayer;size:number;variant:number}
 export type DecoratedStructure=BuildingKind|'bastion';
 
+/** Props live in dedicated service yards OUTSIDE the entire building sprite,
+ * not only outside the physics radius. Keep the southeast/front-right entry
+ * quadrant empty for Pioneers, spawning infantry and vehicle ramps. */
 const layouts:Record<DecoratedStructure,readonly Slot[]>={
  headquarters:[
-  {kind:'lamp',x:-1.31,y:-.50,layer:'behind',scale:1.05},
-  {kind:'stack',x:-1.14,y:-.08,layer:'behind'},
-  {kind:'terminal',x:1.15,y:-.16,layer:'behind'},
-  {kind:'lamp',x:1.36,y:-.47,layer:'behind'},
-  {kind:'barrel',x:-1.24,y:.38,layer:'front'},
-  {kind:'crate',x:1.25,y:.39,layer:'front'},
-  {kind:'bollard',x:-.99,y:.68,layer:'front'},
-  {kind:'bollard',x:.98,y:.68,layer:'front'},
+  {kind:'lamp',x:-1.82,y:-.76,layer:'behind',scale:.96},
+  {kind:'stack',x:-1.79,y:-.32,layer:'behind'},
+  {kind:'terminal',x:-1.84,y:.05,layer:'behind',scale:.85},
+  {kind:'lamp',x:1.80,y:-.80,layer:'behind',scale:.96},
+  {kind:'barrel',x:-1.77,y:.51,layer:'front',scale:.86},
+  {kind:'crate',x:-1.47,y:.78,layer:'front',scale:.85},
+  {kind:'bollard',x:-1.82,y:.91,layer:'front'},
+  {kind:'bollard',x:1.80,y:-.34,layer:'behind'},
  ],
  barracks:[
-  {kind:'lamp',x:-1.45,y:-.33,layer:'behind'},
-  {kind:'stack',x:-1.22,y:.03,layer:'behind'},
-  {kind:'terminal',x:1.33,y:-.35,layer:'behind'},
-  {kind:'sandbags',x:-1.33,y:.50,layer:'front'},
-  {kind:'crate',x:1.23,y:.47,layer:'front'},
-  {kind:'bollard',x:.98,y:.82,layer:'front'},
+  {kind:'lamp',x:-1.92,y:-.55,layer:'behind'},
+  {kind:'stack',x:-1.84,y:-.04,layer:'behind'},
+  {kind:'terminal',x:1.91,y:-.74,layer:'behind',scale:.86},
+  {kind:'sandbags',x:-1.91,y:.54,layer:'front',scale:.85},
+  {kind:'crate',x:-1.48,y:.82,layer:'front',scale:.86},
+  {kind:'bollard',x:1.87,y:-.18,layer:'behind'},
  ],
  factory:[
-  {kind:'lamp',x:-1.40,y:-.47,layer:'behind'},
-  {kind:'pallet',x:-1.30,y:-.07,layer:'behind',scale:1.12},
-  {kind:'terminal',x:1.41,y:-.34,layer:'behind'},
-  {kind:'stack',x:1.30,y:.00,layer:'behind'},
-  {kind:'fuel',x:-1.37,y:.48,layer:'front'},
-  {kind:'barrel',x:-1.00,y:.80,layer:'front'},
-  {kind:'crate',x:1.34,y:.51,layer:'front'},
-  {kind:'lamp',x:1.51,y:.80,layer:'front'},
+  {kind:'lamp',x:-1.96,y:-.75,layer:'behind'},
+  {kind:'pallet',x:-1.87,y:-.25,layer:'behind',scale:1.0},
+  {kind:'terminal',x:1.91,y:-.84,layer:'behind',scale:.85},
+  {kind:'stack',x:1.86,y:-.42,layer:'behind',scale:.93},
+  {kind:'fuel',x:-1.89,y:.48,layer:'front',scale:.86},
+  {kind:'barrel',x:-1.62,y:.80,layer:'front',scale:.86},
+  {kind:'crate',x:1.90,y:-.14,layer:'behind',scale:.88},
+  {kind:'lamp',x:2.00,y:-1.10,layer:'behind',scale:.86},
  ],
  airfield:[
-  {kind:'lamp',x:-1.29,y:-.45,layer:'behind',scale:1.15},
-  {kind:'pallet',x:-1.36,y:-.07,layer:'behind'},
-  {kind:'fuel',x:1.31,y:-.35,layer:'behind'},
-  {kind:'terminal',x:1.33,y:.02,layer:'behind'},
-  {kind:'stack',x:-1.43,y:.40,layer:'front'},
-  {kind:'groundlight',x:-.96,y:.79,layer:'front'},
-  {kind:'groundlight',x:.92,y:.79,layer:'front'},
-  {kind:'barrel',x:1.30,y:.50,layer:'front'},
-  {kind:'lamp',x:1.48,y:.85,layer:'front'},
+  {kind:'lamp',x:-1.90,y:-.92,layer:'behind',scale:1.03},
+  {kind:'pallet',x:-1.89,y:-.37,layer:'behind',scale:.90},
+  {kind:'fuel',x:1.92,y:-.93,layer:'behind',scale:.91},
+  {kind:'terminal',x:1.90,y:-.50,layer:'behind',scale:.85},
+  {kind:'stack',x:-1.90,y:.21,layer:'front',scale:.90},
+  {kind:'groundlight',x:-1.75,y:.87,layer:'front',scale:.83},
+  {kind:'groundlight',x:1.79,y:-.12,layer:'behind',scale:.83},
+  {kind:'barrel',x:-1.80,y:.58,layer:'front',scale:.81},
+  {kind:'lamp',x:1.96,y:-1.22,layer:'behind',scale:1.0},
  ],
  generator:[
-  {kind:'terminal',x:-1.47,y:-.35,layer:'behind',scale:.84},
-  {kind:'lamp',x:1.44,y:-.41,layer:'behind',scale:.85},
-  {kind:'barrel',x:-1.35,y:.56,layer:'front',scale:.86},
+  {kind:'terminal',x:-1.99,y:-.57,layer:'behind',scale:.82},
+  {kind:'lamp',x:1.99,y:-.77,layer:'behind',scale:.80},
+  {kind:'barrel',x:-1.92,y:.62,layer:'front',scale:.80},
  ],
  turret:[
-  {kind:'crate',x:-1.70,y:-.24,layer:'behind',scale:.76},
-  {kind:'sandbags',x:1.71,y:.20,layer:'front',scale:.79},
+  {kind:'crate',x:-1.95,y:-.50,layer:'behind',scale:.75},
+  {kind:'sandbags',x:-1.92,y:.53,layer:'front',scale:.77},
  ],
  bastion:[
-  {kind:'lamp',x:-1.55,y:-.24,layer:'behind',scale:.80},
-  {kind:'crate',x:1.65,y:-.05,layer:'behind',scale:.76},
+  {kind:'lamp',x:-1.96,y:-.40,layer:'behind',scale:.73},
+  {kind:'crate',x:1.91,y:-.33,layer:'behind',scale:.70},
  ]
 };
 const visualSize:Record<BasePropKind,number>={
- crate:52,stack:60,lamp:63,barrel:49,terminal:55,pallet:63,
- sandbags:64,bollard:40,fuel:57,groundlight:42
+ crate:66,stack:72,lamp:80,barrel:58,terminal:65,pallet:74,
+ sandbags:70,bollard:42,fuel:64,groundlight:48
 };
 const unit=(v:number)=>((v>>>0)/4294967296);
 const mix=(seed:number,id:number,index:number):number=>{
