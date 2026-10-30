@@ -386,7 +386,10 @@ export class Renderer {
     for(const m of g.memories[0])if(inView(m,500)&&m.owner!==0&&!g.canSee(0,m)){
       const kind=m.kind??'headquarters';this.spriteDraw(this.redBuildings[kind],{x:m.x,y:m.y},buildingArtWidth(kind,BUILDINGS[kind].width),false,m.hp>0?.22:.07);if(kind==='turret')this.structures.drawTurret(c,m.owner,{x:m.x,y:m.y},buildingArtWidth(kind,BUILDINGS[kind].width),0,m.hp>0?.22:.07);
     }
-    for(const u of g.units)if(!u.carrier&&inView(u,250)&&(u.owner===0||g.canSee(0,u)))entities.push({y:u.y,unit:u});
+    // Depth must use the same interpolated ground-foot position as drawUnit().
+    // Otherwise a moving soldier can pop in front of the canopy one frame early.
+    for(const u of g.units)if(!u.carrier&&inView(u,250)&&(u.owner===0||g.canSee(0,u)))
+      entities.push({y:u.previousY+(u.y-u.previousY)*this.interpolation,unit:u});
     entities.sort((a,b)=>a.y-b.y);
     for(const e of entities){
       if('unit' in e)this.drawUnit(e.unit);
