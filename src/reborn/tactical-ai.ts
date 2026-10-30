@@ -50,6 +50,15 @@ export function holdForSiegeWeapon(objectiveKind:string|undefined,overrun:boolea
 export function attemptEndgameStandoff(confirmedCleanup:boolean,observedObjective:boolean,directLineClear:boolean):boolean{
  return confirmedCleanup&&observedObjective&&!directLineClear;
 }
+/** Requires a confirmed, locally observable failure of an actual rocket shot.
+ * Approaching reinforcements and guns that are still firing must not detour. */
+export function verifiedBlockedArtillery(guns:readonly Unit[],objective:Point&{id:number},
+ visible:boolean,hasLine:(gun:Unit)=>boolean):boolean{
+ return visible&&guns.length>0&&guns.every(u=>u.hp>0&&u.kind==='artillery'
+  &&u.orders[0]?.kind==='attack'&&u.orders[0].target===objective.id
+  &&distance(u,objective)<=unitSpec(u).range-10
+  &&!u.moving&&u.cooldown<=0&&!hasLine(u));
+}
 const combat=(u:Unit)=>u.hp>0&&!u.carrier&&!['medic','engineer','scout'].includes(u.kind);
 const frontRole=(u:Unit)=>combat(u)&&u.kind!=='artillery'&&!unitSpec(u).flying;
 export const combatStrength=(u:Unit)=>u.hp/100*Math.pow((unitSpec(u).damage/unitSpec(u).cooldown)/(17/.85),.35);
@@ -75,6 +84,9 @@ export class TacticalAI {
  /** Runtime-only diagnostics: never influence simulation or serialize in saves. */
  diagnostics:TacticalDiagnostics=newDiagnostics();
  state=fresh();private risk:Float32Array|undefined;private riskAt=-1;private routeCache=new Map<string,Point[]>();private routeSignature='';
+ // Runtime-only combat observations; not serialized or shared with the opponent.
+ private blockedGun:{objective:number;since:number}|null=null;
+ private activeGunDetour:{objective:number;until:number}|null=null;
  private strategyOptions: SectorChoice[]=[];
  private sectorPreference: {sectorId:number;until:number}|null=null;
  constructor(private readonly g:Simulation){}
@@ -91,7 +103,7 @@ export class TacticalAI {
   this.sectorPreference={sectorId,until:this.g.time+35};return true;
  }
  restore(state:TacticalState|undefined):void{
-  this.state=state?structuredClone(state):fresh();this.risk=undefined;this.riskAt=-1;this.routeCache.clear();this.strategyOptions=[];this.sectorPreference=null;this.diagnostics=newDiagnostics();
+  this.state=state?structuredClone(state):fresh();this.risk=undefined;this.riskAt=-1;this.routeCache.clear();this.strategyOptions=[];this.sectorPreference=null;this.diagnostics=newDiagnostics();this.blockedGun=null;this.activeGunDetour=null;
   // Legacy memories contain only previously seen buildings; no live hidden bases are consulted.
   if(!state)for(const m of this.g.memories[1])if(m.owner===0&&m.kind==='turret'&&m.hp>0)this.remember(m,Math.max(0,this.g.time-45));
  }
@@ -446,11 +458,35 @@ export class TacticalAI {
    // Preserve every already validated multi-gun engagement from AI 4.3.
    if(observed.length>1)return this.standoffSiege(members,target,artillery);
    const knownObjective=observed.some(t=>t.id===target.id);
-   const directLineClear=g.world.line(artillery[0],target,
-    this.obstacles().filter(o=>!('id' in o)||o.id!==target.id),10);
-   if(attemptEndgameStandoff(s.commander?.enemyHQEliminatedAt!==undefined,knownObjective,directLineClear)
-     &&this.standoffSiege(members,target,artillery,true))return true;
-   // If the safe angle search fails, continue the proven AI 4.3 attack.
+   const blockers=this.obstacles().filter(o=>!('id' in o)||o.id!==target.id);
+   const hasLine=(u:Unit)=>g.world.line(u,target,blockers,10);
+   const directLineClear=hasLine(artillery[0]);
+   const cleanup=s.commander?.enemyHQEliminatedAt!==undefined;
+   // Keep a short verified move+attack order across macro pulses.
+   const detour=this.activeGunDetour;
+   if(detour&&detour.objective===target.id&&g.time<detour.until
+    &&artillery.some(u=>u.orders[0]?.kind==='move'&&u.orders.some(o=>o.kind==='attack'&&o.target===target.id)))
+    return true;
+   this.activeGunDetour=null;
+   const blocked=knownObjective&&!cleanup
+    &&s.commander?.mission?.kind==='structure'
+    &&s.commander.mission.objective===target.id
+    &&g.time-s.commander.mission.progressAt>=25
+    &&verifiedBlockedArtillery(artillery,target,g.canSee(1,target),hasLine);
+   if(blocked){
+    if(!this.blockedGun||this.blockedGun.objective!==target.id)
+     this.blockedGun={objective:target.id,since:g.time};
+   }else this.blockedGun=null;
+   const verifiedStall=!!blocked&&this.blockedGun!==null&&g.time-this.blockedGun.since>=12;
+   if((attemptEndgameStandoff(cleanup,knownObjective,directLineClear)||verifiedStall)
+    &&this.standoffSiege(members,target,artillery,true)){
+    if(verifiedStall){
+     this.activeGunDetour={objective:target.id,until:g.time+24};
+     this.blockedGun=null;
+    }
+    return true;
+   }
+   // Without a verified alternative, preserve the proven AI 4.5 attack.
   }
   const anchor=s.rally??members[0],d=distance(anchor,target)||1,h={x:(anchor.x-target.x)/d,y:(anchor.y-target.y)/d},cover={x:target.x+h.x*(RULES.turret.range+30),y:target.y+h.y*(RULES.turret.range+30)};
   const at=g.world.nearest(cover,this.obstacles(),[],undefined,12);if(!at)return false;
