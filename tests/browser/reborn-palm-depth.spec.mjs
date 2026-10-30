@@ -35,3 +35,34 @@ test('palm scenery uses foot Y-depth: soldiers behind go under crown, soldiers i
  expect(order.front).toEqual(['palm','soldier']);
  expect(errors).toEqual([]);
 });
+
+test('palm overlap uses interpolated soldier feet, so foliage does not pop across a moving unit',async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/?debug&perfTest&seed=2026&map=medium');
+ await page.locator('#loading').waitFor({state:'detached'});
+ const order=await page.evaluate(()=>{
+  const {renderer:r,game:g}=window.__reborn,tree=r.palms.visibleTrees().find(d=>d.x>400&&d.y>400&&d.x<g.world.size-400&&d.y<g.world.size-400);
+  if(!tree)throw Error('No palm in seeded scene');
+  const infantry=g.units.find(u=>u.owner===0&&u.kind==='infantry');
+  if(!infantry)throw Error('No infantry');
+  g.paused=false;r.camera.x=tree.x;r.camera.y=tree.y;r.camera.zoom=1;r.boundCamera();
+  infantry.x=infantry.previousX=tree.x;
+  infantry.previousY=tree.y-55;infantry.y=tree.y+40;
+  g.updateVision();
+  const observed=[],origTree=r.palms.drawOne,origSoldier=r.drawUnit;
+  try{
+   r.palms.drawOne=function(c,d){if(d===tree)observed.push('palm');return origTree.call(this,c,d);};
+   r.drawUnit=function(u){if(u.id===infantry.id)observed.push('soldier');return origSoldier.call(this,u);};
+   const check=interpolation=>{
+    observed.length=0;r.render(0,interpolation);
+    return observed.filter(x=>x==='palm'||x==='soldier');
+   };
+   return {nearBack:check(.2),nearFront:check(.9)};
+  }finally{
+   r.palms.drawOne=origTree;r.drawUnit=origSoldier;
+  }
+ });
+ expect(order.nearBack).toEqual(['soldier','palm']);
+ expect(order.nearFront).toEqual(['palm','soldier']);
+ expect(errors).toEqual([]);
+});
