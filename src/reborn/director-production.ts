@@ -47,13 +47,19 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
  const planned=():UnitKind|null=>{
   if(count('engineer')===0&&available('engineer'))return 'engineer';
   if(c.defenseNeedsWorker&&count('engineer')<2&&available('engineer'))return 'engineer';
-  // Convert spare income into a real cleanup squad. Prefer affordable ground
-  // forces over speculative aircraft once HQ loss is actually confirmed.
-  if(c.finishing&&!c.underAttack){
-   if(count('infantry')<6&&available('infantry'))return 'infantry';
-   if(count('heavy')<2&&available('heavy'))return 'heavy';
-  }
+  // The 4.1 cleanup loop repeatedly bought cheap infantry while its factory
+  // saved for a gun. Force a paid artillery priority before adding escorts.
+  // Queued artillery counts; the same resource must not be reserved twice.
+  if(c.finishing&&!c.underAttack&&!observed.air&&available('artillery')&&
+    count('artillery')===0&&(c.knownTurrets>0||s.battle?.assessment?.neededSiege))
+   return 'artillery';
   const response=counter();if(response)return response;
+  if(c.finishing&&!c.underAttack){
+   // A small screen can protect the siege weapon; indefinitely replacing
+   // fallen infantry cannot. Keep an affordable heavy escort too.
+   if(count('heavy')<2&&available('heavy'))return 'heavy';
+   if(count('infantry')<3&&available('infantry'))return 'infantry';
+  }
   if(c.underAttack)return null;
   const siegeNeed=s.battle?.assessment?.neededSiege??0;
   if(!observed.air&&available('artillery')&&count('artillery')<siegeNeed&&ground()>=2)return 'artillery';
