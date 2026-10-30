@@ -6,7 +6,7 @@ import type {Simulation,Unit} from './simulation.js';
 /** A few defensive towers protect valuable fronts without replacing a mobile army. */
 export const defensiveTowerLimit=(sectors:number):number=>Math.min(4,Math.max(1,Math.floor(sectors/4)));
 
-export interface BastionDefenseCandidate {sector:number;score:number;threat:Point}
+export interface BastionDefenseCandidate {sector:number;score:number;threat:Point;urgent:boolean}
 
 /** Rank only public territorial ownership and enemies actually visible to red.
  * Never use hidden enemy positions or future opponent orders. */
@@ -22,13 +22,18 @@ export function rankBastionDefenses(g:Simulation):BastionDefenseCandidate[]{
   const hostile=front.filter(n=>n.owner===0);
   const threats=hostile.length?hostile:front;
   const threat=threats.slice().sort((a,b)=>distance(a.point,t.point)-distance(b.point,t.point)||a.id-b.id)[0];
-  const nearby=visible.filter(u=>distance(u,t.point)<RULES.turret.sight);
+  const nearby=visible.filter(u=>distance(u,t.point)<RULES.turret.sight)
+   .sort((a,b)=>distance(a,t.point)-distance(b,t.point)||a.id-b.id);
   const lost=g.tactical.state.experience?.lastLostSector;
-  // Public loss history: secure neighboring bastions instead of replacing the
-  // lost point with a turret in hostile territory.
-  const score=hostile.length*1500+(friendlyHq.has(t.id)?0:550)+t.income*8+nearby.length*100
-   +(lost!==undefined&&t.neighbors.includes(lost)?1200:0);
-  ranked.push({sector:t.id,score,threat:nearby[0]??threat.point});
+  // A visible attack or actual lost neighboring bastion is a concrete alarm;
+  // public ownership alone creates a frontier, not an emergency.
+  const lossFront=lost!==undefined&&t.neighbors.includes(lost);
+  const urgent=nearby.length>0||lossFront;
+  const closest=nearby[0];
+  const proximity=closest?Math.max(0,1-distance(closest,t.point)/RULES.turret.sight):0;
+  const score=hostile.length*1500+(friendlyHq.has(t.id)?0:550)+t.income*8
+   +nearby.length*350+proximity*900+(lossFront?1400:0);
+  ranked.push({sector:t.id,score,threat:closest??threat.point,urgent});
  }
  return ranked.sort((a,b)=>b.score-a.score||a.sector-b.sector);
 }
