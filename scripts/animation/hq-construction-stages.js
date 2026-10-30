@@ -9,12 +9,15 @@ export function bakeHeadquartersAssembly(model,excluded,snapshot,stageCount=6){
  const originals=[];
  model.traverse(node=>{if(node.isMesh&&!excluded.has(node)&&node.visible)originals.push(node);});
  if(originals.length<6)throw Error('HQ construction has too few structural meshes');
- const v=new T.Vector3(),heights=[];
+ const v=new T.Vector3();let low=Infinity,high=-Infinity;
  for(const mesh of originals){
   const p=mesh.geometry.attributes.position;
-  for(let i=0;i<p.count;i++)heights.push(v.fromBufferAttribute(p,i).applyMatrix4(mesh.matrixWorld).y);
+  for(let i=0;i<p.count;i++){
+   const y=v.fromBufferAttribute(p,i).applyMatrix4(mesh.matrixWorld).y;
+   low=Math.min(low,y);high=Math.max(high,y);
+  }
  }
- const low=Math.min(...heights),high=Math.max(...heights),span=high-low;
+ const span=high-low;
  if(!Number.isFinite(span)||span<.5)throw Error('HQ construction needs full-height 3D geometry');
  const slices=[];
  try{
