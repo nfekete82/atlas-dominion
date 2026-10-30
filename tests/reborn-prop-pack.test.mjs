@@ -82,12 +82,13 @@ test('environment props: sparse deterministic slots avoid starts and bastions in
   assert.ok(!Object.keys(save).some(k=>/prop|decor|palm|skull/i.test(k)));
  }
 });
-test('environment and base props: occupied and newly built slots hide; simulation movement remains free',()=>{
+test('environment and base props: moving units do not hide scenery; permanent structures still take priority',()=>{
  const g=new Simulation(2026,11);g.world.blocked.fill(0);g.bases=[];g.territories=[];g.units=[];
  const p={x:1000,y:1000,radius:30,kind:'palm',rotation:0,variant:.5};
  assert.ok(environmentPropVisible(p,g));
  const u=g.spawn(0,p,'rover'),save=g.save();
- assert.equal(environmentPropVisible(p,g),false);assert.equal(propSiteClear(p,30,g),false);
+ assert.equal(environmentPropVisible(p,g),true,'rover passing through tree must not erase it');
+ assert.equal(propSiteClear(p,30,g),true,'crates and lamps must stay drawn next to moving units');
  assert.deepEqual(g.save(),save);u.x+=250;
  assert.ok(environmentPropVisible(p,g));
  g.bases.push({id:1001,kind:'factory',x:p.x,y:p.y,radius:70,buildRemaining:10});
