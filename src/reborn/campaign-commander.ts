@@ -10,7 +10,7 @@ import {replanAfterLoss} from './ai25-doctrine.js';
 export type CampaignPhase='opening'|'expansion'|'buildup'|'offensive'|'siege'|'endgame'|'emergencyDefense';
 export interface WarMission extends Point {kind:'capture'|'structure'|'hunt';sector:number;objective:number|null;since:number;progressAt:number;distance:number;hp:number}
 export interface ReconTask extends Point {unit:number;since:number}
-export interface CampaignState {version:1;phase:CampaignPhase;phaseSince:number;mission?:WarMission;recon:ReconTask[];survey:{x:number;y:number;at:number}[];intel:{id:number;seenAt:number}[];aborted:number;alternatives?:{sector:number;score:number;expectedLoss:number;budgetCost:number}[]}
+export interface CampaignState {version:1;phase:CampaignPhase;phaseSince:number;mission?:WarMission;recon:ReconTask[];survey:{x:number;y:number;at:number}[];intel:{id:number;seenAt:number}[];aborted:number;observedEnemyHQ?:Point&{id:number};enemyHQEliminatedAt?:number;alternatives?:{sector:number;score:number;expectedLoss:number;budgetCost:number}[]}
 export interface MissionContext {strategy:EnemyStrategy;force:Unit[];losses:Loss[];fronts:FailedFront[];route:(p:Point)=>{length:number;risk:number}|undefined;intelligent?:boolean;experience?:Experience}
 export const newCampaign=():CampaignState=>({version:1,phase:'opening',phaseSince:0,recon:[],survey:[],intel:[],aborted:0});
 export function campaignPhase(s:CampaignState,phase:CampaignPhase,time:number):void{if(s.phase!==phase){s.phase=phase;s.phaseSince=time;}}
@@ -19,6 +19,14 @@ export function campaignPhase(s:CampaignState,phase:CampaignPhase,time:number):v
 export function knownBuildings(g:Simulation):Memory[]{return g.memories[1].filter(m=>m.owner===0&&m.hp>0);}
 export function refreshIntelligence(g:Simulation,s:CampaignState):void{
  const known=knownBuildings(g);
+ // Only confirmed observations may activate endgame. Memory loss behind
+ // fog is never proof that the headquarters was destroyed.
+ const hq=known.find(m=>m.kind==='headquarters');
+ if(hq&&!s.observedEnemyHQ)s.observedEnemyHQ={id:hq.id,x:hq.x,y:hq.y};
+ if(s.observedEnemyHQ&&s.enemyHQEliminatedAt===undefined&&
+    g.canSee(1,s.observedEnemyHQ)&&
+    !known.some(m=>m.id===s.observedEnemyHQ!.id&&m.kind==='headquarters'))
+  s.enemyHQEliminatedAt=g.time;
  s.intel=s.intel.filter(i=>known.some(m=>m.id===i.id));
  for(const m of known)if(g.canSee(1,m)){
   const i=s.intel.find(i=>i.id===m.id);if(i)i.seenAt=g.time;else s.intel.push({id:m.id,seenAt:g.time});
@@ -59,15 +67,21 @@ export function chooseMission(g:Simulation,s:CampaignState,origin:Point,context?
  const army=g.units.filter(u=>u.owner===1&&u.hp>0&&!u.carrier&&!['engineer','medic','scout'].includes(u.kind));
  const fieldArmy=army.length>=5&&army.some(u=>['tank','artillery'].includes(u.kind));
  const choices:{kind:WarMission['kind'];p:Point;sector:number;objective:number|null;hp:number;score:number}[]=[];
+ const finishing=s.enemyHQEliminatedAt!==undefined;
  for(const b of buildings){
   const blocking=b.kind==='turret'&&buildings.some(other=>['headquarters','barracks','factory','airfield'].includes(other.kind??'')&&distance(other,b)<660);
-  const value=blocking?2100:b.kind==='headquarters'?1900:b.kind==='turret'?1200:['barracks','factory','airfield'].includes(b.kind??'')?1450:700;
+  // Cleanup destroys observed production before chasing neutral bastions.
+  const production=['barracks','factory','airfield'].includes(b.kind??'');
+  const value=finishing?(blocking?3500:production?3900:b.kind==='turret'?2600:1750)
+   :blocking?2100:b.kind==='headquarters'?1900:b.kind==='turret'?1200:production?1450:700;
   choices.push({kind:'structure',p:b,sector:b.territory,objective:b.id,hp:b.hp,score:distance(origin,b)-value});
  }
  for(const t of g.territories)if(t.owner!==1&&t.neighbors.some(id=>g.territories[id].owner===1))
-  choices.push({kind:'capture',p:t.point,sector:t.id,objective:null,hp:0,score:distance(origin,t.point)-t.income*10+(t.owner===0?(fieldArmy&&owned>=2?-900:1300):0)});
- if(!choices.length)for(const u of g.units)if(u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u))
-  choices.push({kind:'hunt',p:u,sector:g.territories.reduce((a,b)=>distance(u,a.point)<distance(u,b.point)?a:b).id,objective:u.id,hp:u.hp,score:distance(origin,u)});
+  choices.push({kind:'capture',p:t.point,sector:t.id,objective:null,hp:0,score:distance(origin,t.point)-t.income*10+
+   (finishing?(t.owner===0?-1500:2300):(t.owner===0?(fieldArmy&&owned>=2?-900:1300):0))});
+ // In cleanup, visible survivors remain targets even with neutral fronts.
+ if(finishing||!choices.length)for(const u of g.units)if(u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u))
+  choices.push({kind:'hunt',p:u,sector:g.territories.reduce((a,b)=>distance(u,a.point)<distance(u,b.point)?a:b).id,objective:u.id,hp:u.hp,score:distance(origin,u)-(finishing?1650:0)});
  if(context){
   const ownHP=context.force.reduce((n,u)=>n+u.hp,0),siege=context.force.some(u=>u.kind==='artillery');
   const alternatives:{sector:number;score:number;expectedLoss:number;budgetCost:number}[]=[];
@@ -116,6 +130,8 @@ export function reconGoal(g:Simulation,s:CampaignState,u:Unit,danger:(p:Point)=>
 export function validCampaign(raw:unknown,time:number,point:(p:Point)=>boolean,sectors:number):boolean{
  if(raw===undefined)return true;const s=raw as CampaignState,num=(n:unknown)=>typeof n==='number'&&Number.isFinite(n)&&n>=0,at=(n:unknown)=>num(n)&&(n as number)<=time+.001,id=(n:unknown)=>Number.isInteger(n)&&(n as number)>=0;
  return !!s&&s.version===1&&['opening','expansion','buildup','offensive','siege','endgame','emergencyDefense'].includes(s.phase)&&at(s.phaseSince)&&id(s.aborted)
+  &&(s.observedEnemyHQ===undefined||(point(s.observedEnemyHQ)&&id(s.observedEnemyHQ.id)))
+  &&(s.enemyHQEliminatedAt===undefined||(at(s.enemyHQEliminatedAt)&&s.observedEnemyHQ!==undefined))
   &&(s.alternatives===undefined||(Array.isArray(s.alternatives)&&s.alternatives.length<=8&&s.alternatives.every(a=>id(a.sector)&&a.sector<sectors&&typeof a.score==='number'&&Number.isFinite(a.score)&&num(a.expectedLoss)&&a.expectedLoss<=1&&num(a.budgetCost))))
   &&Array.isArray(s.recon)&&s.recon.length<=16&&s.recon.every(t=>point(t)&&id(t.unit)&&at(t.since))
   &&Array.isArray(s.survey)&&s.survey.length<=65&&s.survey.every(p=>point(p)&&at(p.at))
