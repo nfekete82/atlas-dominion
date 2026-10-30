@@ -630,9 +630,11 @@ export class TacticalAI {
    // Stand outside an observed gun's reach; never infer an unseen gun.
    if(towers.some(t=>distance(t,s.rally!)<t.range+50))s.rally=this.rally(fighters,home);
   }
-  const raidUnits=this.secondaryPressure(fighters,mission,home);
+  // Cleanup holds the paid army together rather than sending two fighters to
+ // a secondary neutral bastion while enemy production is still standing.
+ const raidUnits=c.enemyHQEliminatedAt===undefined?this.secondaryPressure(fighters,mission,home):new Set<number>();
   const mainFighters=fighters.filter(u=>!raidUnits.has(u.id));
-  const reserve=mainFighters.length>=7?1:0;
+  const reserve=c.enemyHQEliminatedAt!==undefined?0:mainFighters.length>=7?1:0;
   const guards=new Set(mainFighters.filter(u=>!s.group.includes(u.id)).sort((a,b)=>distance(a,home)-distance(b,home)||a.id-b.id).slice(0,reserve).map(u=>u.id));
   const selected=mainFighters.filter(u=>!guards.has(u.id)).sort((a,b)=>Number(s.group.includes(b.id))-Number(s.group.includes(a.id))||distance(a,s.rally!)-distance(b,s.rally!)||a.id-b.id).slice(0,18);
   let members=selected.filter(u=>s.group.includes(u.id));
@@ -693,7 +695,7 @@ export class TacticalAI {
   const progress=Math.min(...members.map(u=>distance(u,mission)));
   if(progress<mission.distance-45){mission.distance=progress;mission.progressAt=g.time;}
   s.lastProgress=Math.max(0,progress);s.progressAt=mission.progressAt;
-  campaignPhase(c,intel?.kind==='headquarters'?'endgame':intel?'siege':defended?'offensive':g.territories.filter(t=>t.owner===1).length<3?'expansion':'offensive',g.time);
+  campaignPhase(c,c.enemyHQEliminatedAt!==undefined||intel?.kind==='headquarters'?'endgame':intel?'siege':defended?'offensive':g.territories.filter(t=>t.owner===1).length<3?'expansion':'offensive',g.time);
   const group=[...members,...escorts];
   // Decide before legacy siege dispatch: the previous integration never got
   // here on turret objectives. Diagnosing that gate is as important as acting.
