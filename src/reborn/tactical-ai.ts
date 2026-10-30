@@ -39,6 +39,11 @@ export interface TacticalState {
  knownTurrets:KnownTurret[];losses:Loss[];attempts:Attempt[];productionSerial:number;lastProgress:number;progressAt:number;
  airliftAt?:number;airlift?:{heli:number;target:Point;phase:'pickup'|'delivery';since:number;passengers?:number[]};
 }
+/** Only the observed current objective can trigger siege discipline.
+ * Troop quantity alone cannot replace paid artillery at a known battery. */
+export function holdForSiegeWeapon(objectiveKind:string|undefined,overrun:boolean,artilleryCount:number):boolean{
+ return objectiveKind==='turret'&&!overrun&&artilleryCount===0;
+}
 const combat=(u:Unit)=>u.hp>0&&!u.carrier&&!['medic','engineer','scout'].includes(u.kind);
 const frontRole=(u:Unit)=>combat(u)&&u.kind!=='artillery'&&!unitSpec(u).flying;
 export const combatStrength=(u:Unit)=>u.hp/100*Math.pow((unitSpec(u).damage/unitSpec(u).cooldown)/(17/.85),.35);
@@ -722,7 +727,7 @@ export class TacticalAI {
   // Never let the 4.1 cleanup roster size bypass the siege safety gate.
   // Seven ordinary infantry cannot substitute for a real artillery weapon.
   // Existing withdrawals, repairs and local-defense priorities remain active.
-  if(intel?.kind==='turret'&&!overrun&&!members.some(u=>u.kind==='artillery')){
+  if(holdForSiegeWeapon(intel?.kind,overrun,members.filter(u=>u.kind==='artillery').length)){
    campaignPhase(c,'buildup',g.time);this.issue(group,s.rally,'safe',undefined,false,false);return;
   }
   const ground=group.filter(u=>!unitSpec(u).flying);for(const u of ground)u.hold=false;
