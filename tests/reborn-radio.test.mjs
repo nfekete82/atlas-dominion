@@ -18,7 +18,7 @@ test('radio assets: all 47 authored German lines are real, short, non-silent mon
 });
 test('radio catalog: requested movement and attack variants are present; every roster role has an appropriate response',()=>{
  const clips=manifest.clips;
- assert.equal(radioChoices(clips,'move','infantry').length,8);assert.equal(radioChoices(clips,'attack','infantry').length,6);
+ assert.equal(radioChoices(clips,'move','infantry').length,7);assert.equal(radioChoices(clips,'attack','infantry').length,6);
  for(const kind of ['infantry','heavy','medic','engineer','rover','tank','artillery','scout','bomber'])for(const action of ['move','attack','stop','hold'])assert.ok(radioChoices(clips,action,kind).length>=2,`${kind}/${action}`);
  assert.ok(radioChoices(clips,'heal','medic').every(c=>c.group==='medic'));assert.ok(radioChoices(clips,'repair','engineer').some(c=>c.text==='Reparatur wird durchgeführt!'));assert.ok(radioChoices(clips,'build','engineer').some(c=>c.text==='Baustelle wird angefahren!'));
  assert.ok(radioChoices(clips,'move','engineer').every(c=>!['repair','build'].includes(c.group)));assert.ok(radioChoices(clips,'move','tank').every(c=>c.profile==='crew'));assert.ok(radioChoices(clips,'move','heavy').every(c=>!c.text.includes('Besatzung')));
@@ -62,4 +62,26 @@ test('military radio: safe default, exact legacy fallback and disabling a clip o
  radio.setStyle('original');assert.equal(radio.style,'original');
  radio.setStyle('military');assert.equal(radio.style,'military');
  assert.equal(radio.stats.started,0,'switching does not synthesize voice or eagerly open audio');
+});
+
+test('infantry never says vehicle-only driving phrase, even when the forbidden recording is still available in the approved bank',()=>{
+ const forbidden=manifest.clips.find(c=>c.text==='Position wird angefahren!');
+ assert.ok(forbidden,'keep the original recording and metadata intact');
+ assert.equal(forbidden.profile,'soldier');
+ for(const action of ['move','attack','heal','repair','build','load','unload','stop','hold']){
+  const clips=radioChoices(manifest.clips,action,'infantry');
+  assert.ok(clips.length>0,action+' should still have valid infantry speech');
+  assert.ok(clips.every(c=>!(/angefahren/i).test(c.text)),action+' offered a vehicle phrase');
+  assert.ok(clips.every(c=>c.id!==forbidden.id));
+ }
+ // Exercise real policy selection over a long sequence including deterministic tail values.
+ const policy=new RadioPolicy(manifest.clips,()=>.999999);
+ for(let n=0;n<45;n++){
+  const clip=policy.choose('move','infantry',n*2,false);
+  assert.ok(clip);
+  assert.notEqual(clip.id,forbidden.id);
+  assert.doesNotMatch(clip.text,/angefahren/i);
+ }
+ assert.ok(radioChoices(manifest.clips,'build','engineer').some(c=>c.text==='Baustelle wird angefahren!'),
+   'specialized engineer construction announcements are unaffected');
 });
