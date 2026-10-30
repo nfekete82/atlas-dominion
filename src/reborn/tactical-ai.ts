@@ -672,7 +672,7 @@ export class TacticalAI {
     this.issue([...selected,...medics],s.rally,'safe');return;
    }
    if(this.waveMode==='coordinated'&&defended)this.diagnostics.waveLaunches++;
-   if(!experience.active)experience.active={sector:mission.sector,tactic:overrun?'overrun':towers.length?'siege':'maneuver',guns:towers.length,force:ready.length,at:g.time,initialUnits:ready.length,initialHP:fighters.reduce((n,u)=>n+u.hp,0),progress:0,objective:mission.objective,target:{x:mission.x,y:mission.y}};
+   if(!experience.active)experience.active={sector:mission.sector,tactic:overrun?'overrun':towers.length?'siege':'maneuver',guns:towers.length,force:ready.length,at:g.time,initialUnits:ready.length,initialHP:fighters.reduce((n,u)=>n+u.hp,0),progress:0,siegeWeapons:ready.filter(u=>u.kind==='artillery').length,objective:mission.objective,target:{x:mission.x,y:mission.y}};
    s.groupId++;s.group=ready.map(u=>u.id);s.launchSize=ready.length;s.launchedAt=g.time;members=ready;this.setPhase('attack');
   }
   const anchor=centroid(members),joining=selected.filter(u=>!s.group.includes(u.id));
