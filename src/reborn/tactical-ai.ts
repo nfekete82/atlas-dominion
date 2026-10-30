@@ -44,6 +44,12 @@ export interface TacticalState {
 export function holdForSiegeWeapon(objectiveKind:string|undefined,overrun:boolean,artilleryCount:number):boolean{
  return objectiveKind==='turret'&&!overrun&&artilleryCount===0;
 }
+/** A failed 4.4 unconditional single-gun detour cost five wins. Restrict
+ * experiments to confirmed cleanup with a previously observed gun and a
+ * demonstrably obstructed current firing line. Never infer unseen guns. */
+export function attemptEndgameStandoff(confirmedCleanup:boolean,observedObjective:boolean,directLineClear:boolean):boolean{
+ return confirmedCleanup&&observedObjective&&!directLineClear;
+}
 const combat=(u:Unit)=>u.hp>0&&!u.carrier&&!['medic','engineer','scout'].includes(u.kind);
 const frontRole=(u:Unit)=>combat(u)&&u.kind!=='artillery'&&!unitSpec(u).flying;
 export const combatStrength=(u:Unit)=>u.hp/100*Math.pow((unitSpec(u).damage/unitSpec(u).cooldown)/(17/.85),.35);
@@ -435,7 +441,17 @@ export class TacticalAI {
  }
  private siege(members:Unit[],target:Point&{id:number}):boolean{
   const g=this.g,s=this.state,artillery=members.filter(u=>u.kind==='artillery'&&u.hp>0);if(!artillery.length)return false;
-  if(g.world.mapVersion>=3&&this.mode==='director'&&s.knownTurrets.filter(t=>distance(t,target)<t.range+200).length>1)return this.standoffSiege(members,target,artillery);
+  if(g.world.mapVersion>=3&&this.mode==='director'){
+   const observed=s.knownTurrets.filter(t=>distance(t,target)<t.range+200);
+   // Preserve every already validated multi-gun engagement from AI 4.3.
+   if(observed.length>1)return this.standoffSiege(members,target,artillery);
+   const knownObjective=observed.some(t=>t.id===target.id);
+   const directLineClear=g.world.line(artillery[0],target,
+    this.obstacles().filter(o=>!('id' in o)||o.id!==target.id),10);
+   if(attemptEndgameStandoff(s.commander?.enemyHQEliminatedAt!==undefined,knownObjective,directLineClear)
+     &&this.standoffSiege(members,target,artillery,true))return true;
+   // If the safe angle search fails, continue the proven AI 4.3 attack.
+  }
   const anchor=s.rally??members[0],d=distance(anchor,target)||1,h={x:(anchor.x-target.x)/d,y:(anchor.y-target.y)/d},cover={x:target.x+h.x*(RULES.turret.range+30),y:target.y+h.y*(RULES.turret.range+30)};
   const at=g.world.nearest(cover,this.obstacles(),[],undefined,12);if(!at)return false;
   const interceptors=g.world.mapVersion>=3&&this.mode==='director'?this.screenThreats(members,target):new Set<number>();
@@ -470,7 +486,7 @@ export class TacticalAI {
  }
  /** Check the entire observed battery, not only the selected gun. A firing
   * point is useful only if the real rocket range, LOS and ground route allow it. */
- private standoffSiege(members:Unit[],target:Point&{id:number},artillery:Unit[]):boolean{
+ private standoffSiege(members:Unit[],target:Point&{id:number},artillery:Unit[],fallback=false):boolean{
   const g=this.g,s=this.state,origin=artillery[0],known=s.knownTurrets,obstacles=this.obstacles();
   // Preserve the stable 2.4 battery objective. The 2.5 improvement is
   // which angle to fire from, NOT switching to a different tower on every
@@ -490,8 +506,11 @@ export class TacticalAI {
    const shots:SiegeShot[]=[];
    for(const p of candidates.slice(0,this.doctrineMode==='intelligent'?8:3)){
     const route=this.route(origin,p);if(!route.length)continue;
-    if(this.doctrineMode==='legacy'){selected=gun;at=p;break;}
     const path=this.sampleRoute(route,origin);
+    // The exploratory one-gun detour must be short and reasonably safe.
+    // Leave original multi-gun doctrine untouched.
+    if(fallback&&(path.length>distance(origin,gun)*1.35+220||path.risk>40))continue;
+    if(this.doctrineMode==='legacy'){selected=gun;at=p;break;}
     shots.push({gunId:gun.id,at:p,travel:path.length,risk:path.risk,
       gunHp:'hp' in gun&&typeof gun.hp==='number'?gun.hp:1000,primary:true});
    }
@@ -504,7 +523,12 @@ export class TacticalAI {
     if(best){selected=gun;at=best.at;this.diagnostics.siegeAngles++;break;}
    }
   }
-  if(!at||!selected){this.issue(members,s.rally??origin,'safe');return true;}
+  if(!at||!selected){
+   // A navigation failure is not proof that combat cannot proceed. This
+   // fallback is exclusively for the new single-gun endgame experiment.
+   if(fallback)return false;
+   this.issue(members,s.rally??origin,'safe');return true;
+  }
   if(selected.id!==target.id&&s.commander?.mission){
    const m=s.commander.mission,seen=knownBuildings(g).find(t=>t.id===selected!.id);
    if(seen)Object.assign(m,{kind:'structure',sector:seen.territory,
