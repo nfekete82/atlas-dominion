@@ -44,6 +44,12 @@ export interface TacticalState {
 export function holdForSiegeWeapon(objectiveKind:string|undefined,overrun:boolean,artilleryCount:number):boolean{
  return objectiveKind==='turret'&&!overrun&&artilleryCount===0;
 }
+/** Prefer a navigable, checked long-range shot for a known turret objective
+ * rather than projecting from a possibly blocked rally. Do not change ordinary
+ * structure assaults or infer hidden guns behind fog of war. */
+export function shouldUseStandoffSiege(observedGunIds:readonly number[],objectiveId:number):boolean{
+ return observedGunIds.length>1||observedGunIds.includes(objectiveId);
+}
 const combat=(u:Unit)=>u.hp>0&&!u.carrier&&!['medic','engineer','scout'].includes(u.kind);
 const frontRole=(u:Unit)=>combat(u)&&u.kind!=='artillery'&&!unitSpec(u).flying;
 export const combatStrength=(u:Unit)=>u.hp/100*Math.pow((unitSpec(u).damage/unitSpec(u).cooldown)/(17/.85),.35);
@@ -435,7 +441,14 @@ export class TacticalAI {
  }
  private siege(members:Unit[],target:Point&{id:number}):boolean{
   const g=this.g,s=this.state,artillery=members.filter(u=>u.kind==='artillery'&&u.hp>0);if(!artillery.length)return false;
-  if(g.world.mapVersion>=3&&this.mode==='director'&&s.knownTurrets.filter(t=>distance(t,target)<t.range+200).length>1)return this.standoffSiege(members,target,artillery);
+  // 4.4: even a single observed tower deserves a verified, reachable
+  // artillery firing angle. The former straight-line rally approach could
+  // remain blocked for an entire match with an intact Rocket Launcher.
+  // Existing multiple-tower behavior is deliberately unchanged.
+  const neighboringGuns=s.knownTurrets.filter(t=>distance(t,target)<t.range+200);
+  if(g.world.mapVersion>=3&&this.mode==='director'&&
+    shouldUseStandoffSiege(neighboringGuns.map(t=>t.id),target.id))
+   return this.standoffSiege(members,target,artillery);
   const anchor=s.rally??members[0],d=distance(anchor,target)||1,h={x:(anchor.x-target.x)/d,y:(anchor.y-target.y)/d},cover={x:target.x+h.x*(RULES.turret.range+30),y:target.y+h.y*(RULES.turret.range+30)};
   const at=g.world.nearest(cover,this.obstacles(),[],undefined,12);if(!at)return false;
   const interceptors=g.world.mapVersion>=3&&this.mode==='director'?this.screenThreats(members,target):new Set<number>();
