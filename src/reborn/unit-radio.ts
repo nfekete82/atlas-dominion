@@ -28,7 +28,9 @@ const RADIO_CURVES:Record<string,Float32Array>={
 const air=(kind:UnitKind)=>['scout','bomber'].includes(kind);
 export const radioProfile=(kind:UnitKind):string=>['medic','engineer'].includes(kind)?'support':['heavy','rover','tank','artillery'].includes(kind)?'crew':'soldier';
 export function radioChoices(clips:RadioClip[],action:RadioAction,unit:UnitKind):RadioClip[]{
- const profile=radioProfile(unit),bank=clips.filter(c=>c.profile===profile),groups=(...names:string[])=>bank.filter(c=>names.includes(c.group));
+ // A foot soldier never reports driving to a destination. Keep the approved
+ // recording in the manifest, but never offer it for infantry orders.
+ const profile=radioProfile(unit),bank=clips.filter(c=>c.profile===profile&&(unit!=='infantry'||!/\bangefahren\b/i.test(c.text))),groups=(...names:string[])=>bank.filter(c=>names.includes(c.group));
  if(action==='stop'||action==='hold')return groups('stop');
  if(unit==='scout'&&(action==='load'||action==='unload'))return action==='load'?groups('load'):bank.filter(c=>c.group==='unload'||c.text==='Landezone bestätigt!');
  if(action==='attack'){const attacks=groups('attack');return attacks.length?attacks:groups('move');}
