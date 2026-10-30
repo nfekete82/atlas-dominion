@@ -49,7 +49,7 @@ const frontRole=(u:Unit)=>combat(u)&&u.kind!=='artillery'&&!unitSpec(u).flying;
 export const combatStrength=(u:Unit)=>u.hp/100*Math.pow((unitSpec(u).damage/unitSpec(u).cooldown)/(17/.85),.35);
 /** Earlier retreats require a real living medic and confirmed enemy HQ loss. */
 export function infantryRecoveryThreshold(endgame:boolean,medicAvailable:boolean):number{
- return endgame&&medicAvailable?.48:.3;
+ return endgame && medicAvailable ? 0.48 : 0.30;
 }
 /** Keep one healthy replacement screen for larger cleanup formations. */
 export function cleanupReserveSize(endgame:boolean,fighters:number):number{
