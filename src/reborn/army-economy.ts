@@ -15,6 +15,7 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
  const fighters=army.filter(fighter),workers=army.filter(u=>u.kind==='engineer'&&!u.carrier),seen=g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)),income=g.income(1);
  const underAttack=seen.some(u=>own.some(b=>distance(b,u)<480)),known=s.knownTurrets.length;
  const director=g.world.mapVersion>=3&&g.tactical.mode==='director';
+ const finishing=director&&s.commander?.enemyHQEliminatedAt!==undefined;
  if(director&&!s.economy)s.economy=e; // Keep paid turret cooldowns across macro ticks and save/reload.
  const count=(kind:UnitKind)=>army.filter(u=>u.kind===kind).length+own.reduce((n,b)=>n+b.queueTypes.filter(k=>k===kind).length,0);
  const has=(kind:BuildingKind)=>own.some(b=>b.kind===kind),complete=(kind:BuildingKind)=>own.some(b=>b.kind===kind&&b.buildRemaining<=0);
@@ -27,7 +28,7 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
   if(target)g.command([w.id],{...target,kind:target.buildRemaining>0?'build':'repair',target:target.id});
  }
  let goal:BuildingKind|null=null;
- if(!unfinished&&workers.length&&(!underAttack||!has('barracks'))){
+ if((!finishing||!has('barracks'))&&!unfinished&&workers.length&&(!underAttack||!has('barracks'))){
   if(!has('barracks'))goal='barracks';
   else if(!has('factory')&&fighters.length>=3&&(income>=20||known>0||g.time>=55))goal='factory';
   else if(!has('airfield')&&has('factory')&&fighters.length>=4&&(income>=35||g.time>=110||seen.some(u=>unitSpec(u).flying))&&(!director||(complete('factory')&&count('tank')+count('rover')+count('artillery')>=3&&income>=35)))goal='airfield';
@@ -55,7 +56,7 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
  // Fortify owned border bastions after core production has started. Unlike
  // a passive HQ guard, a real turret can hold a captured frontier while the
  // mobile army advances. Do not block repairs, construction or new armor.
- if(director&&!unfinished&&!g.bases.some(b=>b.owner===1&&b.hp>0&&b.buildRemaining>0)
+ if(director&&!finishing&&!unfinished&&!g.bases.some(b=>b.owner===1&&b.hp>0&&b.buildRemaining>0)
   &&(goal===null||goal==='generator'||(learnedDefense||urgentDefense)&&goal==='factory')&&complete('barracks')&&(complete('factory')||learnedDefense||urgentDefense)
   &&fighters.length>=(urgentDefense?3:4)&&g.time>=(urgentDefense?60:75)&&g.credits[1]>=BUILDINGS.turret.cost+(urgentDefense?150:400)
   &&own.filter(b=>b.kind==='turret').length<defensiveTowerLimit(g.territories.length)
@@ -70,7 +71,7 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
  // Early-game macro first pays for at least two actual ground vehicles.
  // A second paid engineer enables forward fortifications while the first
  // completes construction/repairs; never cancel an existing worker order.
- const defenseNeedsWorker=director&&complete('barracks')&&(complete('factory')||learnedDefense||urgentDefense)
+ const defenseNeedsWorker=director&&!finishing&&complete('barracks')&&(complete('factory')||learnedDefense||urgentDefense)
   &&g.time>=75&&fighters.length>=4&&workers.length===1
   &&own.filter(b=>b.kind==='turret').length<defensiveTowerLimit(g.territories.length)
   &&rankBastionDefenses(g).length>0&&!workers.some(w=>w.defendUntil<=g.time&&!w.orders.length)
@@ -97,13 +98,17 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
   scout:complete('airfield')&&fighters.length>=4?25-count('scout')*35:0,
   bomber:complete('airfield')&&count('scout')>0&&income>=65&&fighters.length>=6&&military.length?22+military.filter(b=>b.kind==='factory'||b.kind==='airfield').length*3-count('bomber')*25:0,
  };
+ if(finishing){
+  // Preserve a paid replacement builder, but put other spending into the army.
+  scores.bomber=0;scores.engineer=count('engineer')===0?80:0;
+ }
  if(underAttack&&fighters.length<4){scores.infantry+=20;scores.heavy+=15;}
  if(air){scores.artillery=0;scores.bomber=0;}
  // Macro manager: all completed producers can run independently. In the old
  // algorithm just ONE facility queued an item per AI pulse, leaving expensive
  // factories/airfields idle while barracks bought cheap infantry.
  if(director){
-  produceCombinedArmy(g,s,{own,army,seen,income,underAttack,knownTurrets:known,knownEnemyHQ,reserve,maxArmy,scores,defenseNeedsWorker});
+  produceCombinedArmy(g,s,{own,army,seen,income,underAttack,knownTurrets:known,knownEnemyHQ,reserve,maxArmy,scores,defenseNeedsWorker,finishing});
   return;
  }
  const choices=(Object.keys(scores) as UnitKind[]).filter(k=>scores[k]>0&&own.some(b=>b.buildRemaining<=0&&b.queue.length<2&&UNITS[k].producers.includes(b.kind))&&(!air||canAttack({kind:k},seen.find(u=>unitSpec(u).flying)!)||['medic','engineer','scout'].includes(k))).sort((a,b)=>scores[b]-scores[a]||Object.keys(scores).indexOf(a)-Object.keys(scores).indexOf(b));
