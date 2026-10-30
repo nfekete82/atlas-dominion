@@ -169,11 +169,9 @@ export class Simulation {
     if(kind==='headquarters'){
       if(this.bootstrapVersion!==1)return 'Dieses Gebäude kann hier nicht errichtet werden.';
       if(this.bases.some(b=>b.owner===owner&&b.kind==='headquarters'&&b.hp>0))return 'Ein Hauptquartier oder seine Baustelle existiert bereits.';
-      const region=this.startRegions[owner];
-      if(distance(p,region.center)+spec.radius>region.radius)return 'Errichte dein Hauptquartier innerhalb der Startregion.';
     }else if(!this.hasHeadquarters(owner))return 'Ein fertiggestelltes Hauptquartier ist erforderlich.';
     if(this.credits[owner]<spec.cost)return 'Zu wenig Credits.';
-    if(!this.hasExplored(owner,p))return 'Dieser Bauplatz ist noch nicht erforscht.';
+    if(kind!=='headquarters'&&!this.hasExplored(owner,p))return 'Dieser Bauplatz ist noch nicht erforscht.';
     if(!this.world.walkable(p))return 'Felsen blockieren die Baustelle.';
     // Every terrain tile intersecting the circular footprint must have been explored.
     const cell=this.world.cell;
@@ -181,7 +179,7 @@ export class Simulation {
       const nearest={x:clamp(p.x,x*cell,(x+1)*cell),y:clamp(p.y,y*cell,(y+1)*cell)};
       if(distance(nearest,p)>spec.radius)continue;
       const q={x:(x+.5)*cell,y:(y+.5)*cell};
-      if(!this.hasExplored(owner,q))return 'Die gesamte Grundfläche muss erforscht sein.';
+      if(kind!=='headquarters'&&!this.hasExplored(owner,q))return 'Die gesamte Grundfläche muss erforscht sein.';
       if(!this.world.walkable(q))return 'Felsen oder Kartenrand blockieren die Grundfläche.';
     }
     for(let i=0;i<32;i++)if(!this.world.walkable({x:p.x+Math.cos(i*Math.PI/16)*spec.radius,y:p.y+Math.sin(i*Math.PI/16)*spec.radius}))return 'Die gesamte Grundfläche muss frei sein.';
