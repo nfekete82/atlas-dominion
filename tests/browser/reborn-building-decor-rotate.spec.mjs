@@ -23,6 +23,13 @@ test('construction: R and the HUD switch mirrored façade without changing terra
  await page.locator('#build-mode').click();
  await page.locator('[data-build="turret"]').click();
  await expect(page.locator('#rotate-building')).toBeVisible();
+ await expect(page.locator('#hint')).toContainText('R: GEBÄUDE DREHEN');
+ // The build hint is also drawn beside the cursor, not just in the lower HUD.
+ const source=await page.evaluate(async()=>{
+   const response=await fetch('/src/reborn/renderer.js');
+   return response.ok?await response.text():'';
+ });
+ expect(source).toContain('GEBÄUDE DREHEN');
  const a=await page.evaluate(()=>window.__reborn.renderer.placementFacing);
  expect(a).toBe(0);
  await page.keyboard.press('r');
