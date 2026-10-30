@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const base='src/assets/reborn/buildings-3d';
-for(const kind of ['barracks','factory','airfield','generator','turret'])
+for(const kind of ['headquarters','barracks','factory','airfield','generator','turret'])
  for(const team of [0,1])test('assembly: '+kind+' team '+team+' builds through six registered 3D mesh stages',()=>{
   const prefix=path.join(base,kind+'-'+team);
   const meta=JSON.parse(fs.readFileSync(prefix+'-construction.json','utf8'));
