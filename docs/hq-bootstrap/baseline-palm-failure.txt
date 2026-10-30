@@ -1,0 +1,30 @@
+✖ palms: occupied tree slots hide without collisions, falling silhouettes or movement changes (20.580584ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 94.317833
+
+✖ failing tests:
+
+test at tests/reborn-palm-knockdown.test.mjs:23:1
+✖ palms: occupied tree slots hide without collisions, falling silhouettes or movement changes (20.580584ms)
+  AssertionError [ERR_ASSERTION]: unit has visual priority
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (file:///private/tmp/sandforge-hq-baseline/tests/reborn-palm-knockdown.test.mjs:26:49)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.start (node:internal/test_runner/test:1096:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

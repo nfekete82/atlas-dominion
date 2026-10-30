@@ -20,7 +20,7 @@ test('campaign: 100 different maps space every bastion and connect all of them b
     assert.ok(distance(path.at(-1),t.point)<.001,`substituted unreachable destination ${seed}/${t.id}`);
    }
   }
-  for(const b of g.bases)assert.deepEqual(w.clearSite({x:b.x,y:b.y},b.radius+20),{x:b.x,y:b.y});
+  for(const region of g.startRegions)assert.deepEqual(w.clearSite(region.center,RULES.headquarters.radius+20),region.center);
  }
  assert.equal(layouts.size,100);
 });

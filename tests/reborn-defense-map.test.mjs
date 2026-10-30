@@ -39,7 +39,7 @@ for(const kind of ['infantry','scout'])test(`defense: shared faction vision cann
 
 test('maps: 16 connected sectors give each faction two fair starts, equal income, spaced headquarters and open construction ground',()=>{
  for(const seed of [0,2026,4294967295]){
-  const g=Simulation.campaign(seed),layout=mapLayout(g.world.mapVersion);assert.equal(g.world.mapVersion,2);assert.equal(g.territories.length,16);assert.deepEqual([0,1,-1].map(owner=>g.territories.filter(t=>t.owner===owner).length),[2,2,12]);assert.equal(g.income(0),35);assert.equal(g.income(1),35);
+  const g=new Simulation(seed,2),layout=mapLayout(g.world.mapVersion);assert.equal(g.world.mapVersion,2);assert.equal(g.territories.length,16);assert.deepEqual([0,1,-1].map(owner=>g.territories.filter(t=>t.owner===owner).length),[2,2,12]);assert.equal(g.income(0),35);assert.equal(g.income(1),35);
   const visited=new Set([0]),queue=[0];for(const id of queue)for(const n of g.territories[id].neighbors)if(!visited.has(n)){visited.add(n);queue.push(n);}assert.equal(visited.size,16);
   g.explored[0].fill(1);g.credits[0]=10000;
   for(const t of g.territories){
@@ -55,10 +55,10 @@ test('maps: 16 connected sectors give each faction two fair starts, equal income
 });
 
 test('maps: new capture, income, AI expansion and two-start-sector victory all work',()=>{
- const g=Simulation.campaign(2026);g.aiClock=-1e8;const t=g.territories.find(t=>t.owner===-1&&t.neighbors.some(i=>g.territories[i].owner===0));
+ const g=new Simulation(2026,2);g.aiClock=-1e8;const t=g.territories.find(t=>t.owner===-1&&t.neighbors.some(i=>g.territories[i].owner===0));
  g.command([g.units[0].id],{...t.point,kind:'move'});advance(g,30);assert.equal(t.owner,0);assert.equal(g.income(0),35+t.income);
- const ai=Simulation.campaign(2026);advance(ai,150);assert.ok(ai.territories.filter(t=>t.owner===1).length>2);assert.ok(ai.count(1)>1);
- const victory=Simulation.campaign(123);victory.aiClock=-1e8;for(const b of victory.bases)b.owner=0;victory.territories[2].owner=0;victory.step();assert.equal(victory.status,'playing');victory.territories[3].owner=0;victory.step();assert.equal(victory.status,'victory');
+ const ai=new Simulation(2026,2);advance(ai,150);assert.ok(ai.territories.filter(t=>t.owner===1).length>2);assert.ok(ai.count(1)>1);
+ const victory=new Simulation(123,2);victory.aiClock=-1e8;for(const b of victory.bases)b.owner=0;victory.territories[2].owner=0;victory.step();assert.equal(victory.status,'playing');victory.territories[3].owner=0;victory.step();assert.equal(victory.status,'victory');
 });
 
 test('maps: original geometry fingerprints for both 30-sector versions stay identical',()=>{
@@ -90,6 +90,6 @@ test('maps: 0/1/2 saves preserve map size, production, money, healing, construct
 });
 
 test('maps: new headquarters have mirrored safe production exits while legacy maps retain their original rules',()=>{
- const g=Simulation.campaign(2026);g.aiClock=-1e8;g.units=[];for(const b of g.bases)assert.ok(g.recruit(b.id));advance(g,7);assert.equal(g.units.length,2);
+ const g=new Simulation(2026,2);g.aiClock=-1e8;g.units=[];for(const b of g.bases)assert.ok(g.recruit(b.id));advance(g,7);assert.equal(g.units.length,2);
  const a=g.units.find(u=>u.owner===0),b=g.units.find(u=>u.owner===1);near(a.x+b.x,RULES.worldSize);near(a.y+b.y,RULES.worldSize);for(const u of g.units)assert.ok(g.world.walkable(u,g.obstacles()));
 });

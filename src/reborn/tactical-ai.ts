@@ -791,7 +791,26 @@ export class TacticalAI {
  plan():void{
   if(!profiler)return this.planMeasured();const at=performance.now();try{this.planMeasured();}finally{profiler.record('ai',performance.now()-at);}
  }
+ /** Opening uses ordinary paid construction and reachable worker orders. */
+ private bootstrapHeadquarters():void{
+  const g=this.g,workers=g.units.filter(u=>u.owner===1&&u.kind==='engineer'&&u.hp>0&&!u.carrier);
+  if(!workers.length)return;
+  const site=g.bases.find(b=>b.owner===1&&b.kind==='headquarters'&&b.hp>0);
+  if(site){
+   for(const w of workers)if(w.orders[0]?.kind!=='build'||w.orders[0]?.target!==site.id)
+    g.command([w.id],{...site,kind:'build',target:site.id});
+   return;
+  }
+  for(const p of g.headquartersCandidates(1))if(!g.buildError(1,'headquarters',p)&&g.build(1,'headquarters',p,workers.map(w=>w.id)))return;
+  // Explore within the start region if the first valid footprint is still fogged.
+  // This observes no enemy state and never substitutes a free/spawned building.
+  for(const p of g.headquartersCandidates(1))if(g.world.walkable(p,g.obstacles(),12)&&!g.hasExplored(1,p)){
+   const w=workers[0];if(!w.orders.length&&g.world.path(w,p,g.obstacles(),12).length)g.command([w.id],{...p,kind:'move'});
+   if(w.orders.length)return;
+  }
+ }
  private planMeasured():void{
+  if(this.g.needsHeadquarters(1)){this.bootstrapHeadquarters();return;}
   const g=this.g,s=this.state;this.observe();s.lastPlan=g.time;s.losses=s.losses.filter(l=>g.time-l.at<90);s.attempts=s.attempts.filter(a=>a.until>g.time||a.losses>0).slice(-30);const signature=JSON.stringify([s.knownTurrets.map(t=>[t.id,t.x,t.y,Math.floor((g.time-t.seenAt)/30)]),s.losses.map(l=>[l.id,Math.floor((g.time-l.at)/15)]),g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)).map(u=>[u.id,u.kind,u.x,u.y,u.hp]),this.obstacles().map(o=>[o.x,o.y,o.radius])]);
   if(signature!==this.routeSignature||this.routeCache.size>128){this.routeCache.clear();this.routeSignature=signature;}this.field();
   const army=g.units.filter(u=>u.owner===1&&u.hp>0&&!u.carrier),home=g.bases.filter(b=>b.owner===1&&b.hp>0).sort((a,b)=>(a.kind==='headquarters'?0:1)-(b.kind==='headquarters'?0:1)||a.id-b.id)[0]??g.territories.find(t=>t.owner===1)?.point??army[0];

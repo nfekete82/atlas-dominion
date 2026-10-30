@@ -1,21 +1,29 @@
 import {test,expect} from '@playwright/test';
+import {finishOpeningHQ} from './hq-bootstrap-fixture.mjs';
 async function start(page){
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.setViewportSize({width:1440,height:1000});await page.goto('/?debug&perfTest&seed=2026');await page.locator('#loading').waitFor({state:'detached'});
+ await finishOpeningHQ(page);
  await page.evaluate(()=>{window.__reborn.game.aiClock=-1e8;window.__reborn.refresh();});return errors;
 }
 async function build(page,kind){
- const site=await page.evaluate(kind=>{const a=window.__reborn,g=a.game,hq=g.bases[0],w=g.units.find(u=>u.owner===0&&u.kind==='engineer');a.renderer.selected=new Set([w.id]);a.renderer.selectedBase=null;a.refresh();
-  for(let radius=180;radius<650;radius+=25)for(let i=0;i<32;i++){const p={x:hq.x+Math.cos(i*Math.PI/16)*radius,y:hq.y+Math.sin(i*Math.PI/16)*radius};if(!g.buildError(0,kind,p)){a.renderer.camera.x=p.x;a.renderer.camera.y=p.y;a.renderer.boundCamera();const at=a.renderer.screen(p);if(at.y>130&&at.y<a.renderer.height-270&&document.elementFromPoint(at.x,at.y)?.id==='world')return p;}}throw Error('No legal site');},kind);
+ const site=await page.evaluate(async kind=>{const a=window.__reborn,g=a.game,{BUILDINGS}=await import('/src/reborn/catalog.js'),hq=g.bases[0],w=g.units.find(u=>u.owner===0&&u.kind==='engineer');a.renderer.selected=new Set([w.id]);a.renderer.selectedBase=null;a.refresh();
+  for(let radius=180;radius<650;radius+=25)for(let i=0;i<32;i++){const p={x:hq.x+Math.cos(i*Math.PI/16)*radius,y:hq.y+Math.sin(i*Math.PI/16)*radius};if(!g.buildError(0,kind,p)){
+   const spec=BUILDINGS[kind],probe={...hq,...p,id:-1,kind,radius:spec.radius,queue:[]},obstacles=[...g.obstacles(),probe],angle=Math.atan2(w.y-p.y,w.x-p.x);
+   const approach=g.world.nearest({x:p.x+Math.cos(angle)*(spec.radius+32),y:p.y+Math.sin(angle)*(spec.radius+32)},obstacles,[],w);
+   if(!approach||Math.hypot(approach.x-p.x,approach.y-p.y)>spec.radius+55||!g.world.line(approach,p))continue;
+   const path=g.world.path(w,approach,obstacles);
+   if(Math.hypot(w.x-p.x,w.y-p.y)>spec.radius+55&&(!path.length||Math.hypot(path.at(-1).x-p.x,path.at(-1).y-p.y)>spec.radius+55))continue;
+   a.renderer.camera.x=p.x;a.renderer.camera.y=p.y;a.renderer.boundCamera();const at=a.renderer.screen(p);if(at.y>130&&at.y<a.renderer.height-270&&document.elementFromPoint(at.x,at.y)?.id==='world')return p;}}throw Error('No legal site');},kind);
  await page.locator('#build-mode').click();await page.locator(`[data-build="${kind}"]`).click();const at=await page.evaluate(p=>window.__reborn.renderer.screen(p),site),box=await page.locator('#world').boundingBox();await page.mouse.click(box.x+at.x,box.y+at.y);
  return page.evaluate(kind=>{const b=window.__reborn.game.bases.find(b=>b.kind===kind);return {id:b.id,remaining:b.buildRemaining};},kind);
 }
 async function finish(page,id){await page.evaluate(id=>{const a=window.__reborn,g=a.game;g.paused=false;for(let i=0;i<2400&&g.bases.find(b=>b.id===id).buildRemaining>0;i++)g.step();g.paused=true;a.refresh();a.renderer.render(0);},id);}
 
 test('production: worker and soldier start; HQ trains only workers; actual barracks construction unlocks soldiers and durable queues',async({page})=>{
- const errors=await start(page);expect(await page.evaluate(()=>window.__reborn.game.units.filter(u=>u.owner===0).map(u=>u.kind).sort())).toEqual(['engineer','infantry']);
+ const errors=await start(page),openingCredits=await page.evaluate(()=>window.__reborn.game.credits[0]);expect(await page.evaluate(()=>window.__reborn.game.units.filter(u=>u.owner===0).map(u=>u.kind).sort())).toEqual(['engineer','infantry']);
  await expect(page.locator('#catalog-units [data-unit]:visible')).toHaveCount(1);await expect(page.locator('[data-unit="engineer"]')).toBeVisible();await expect(page.locator('[data-unit="infantry"]')).toBeHidden();
  await page.locator('#select-base').click();await expect(page.locator('[data-context-unit]')).toHaveCount(1);await expect(page.locator('[data-context-unit="engineer"]')).toBeVisible();await expect(page.locator('#recruit')).toHaveAttribute('data-kind','engineer');
- await page.locator('#recruit').click();expect(await page.evaluate(()=>window.__reborn.game.bases[0].queueTypes)).toEqual(['engineer']);await page.locator('#cancel').click();await expect(page.locator('#credits')).toHaveText('500');
+ await page.locator('#recruit').click();expect(await page.evaluate(()=>window.__reborn.game.bases[0].queueTypes)).toEqual(['engineer']);await page.locator('#cancel').click();await expect(page.locator('#credits')).toHaveText(openingCredits.toLocaleString('de-DE'));
  const barracks=await build(page,'barracks');expect(barracks.remaining).toBeGreaterThan(0);await expect(page.locator('[data-unit="infantry"]')).toBeHidden();await finish(page,barracks.id);
  await expect(page.locator('#catalog-units [data-unit]:visible')).toHaveCount(4);for(const kind of ['infantry','medic','heavy'])await expect(page.locator(`[data-unit="${kind}"]`)).toBeVisible();await expect(page.locator('[data-unit="tank"]')).toBeHidden();
  await page.locator('[data-unit="infantry"]').click();expect(await page.evaluate(id=>window.__reborn.game.bases.find(b=>b.id===id).queueTypes,barracks.id)).toEqual(['infantry']);

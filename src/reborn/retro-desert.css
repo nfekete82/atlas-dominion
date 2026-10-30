@@ -897,3 +897,11 @@ html.sandforge-clean-title #main-dialog .menu-buttons .menu-button:hover:not(:di
  #catalog-units .catalog-card .card-meta .card-cost{font-size:11px;line-height:1.15}
  #catalog-units .catalog-card>img{height:calc(100% - 25px)}
 }
+
+/* The receiver overlay contains only local bootstrap guidance, never map data. */
+#sidebar .radar .radar-offline{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;pointer-events:none;text-align:center;color:#fff;text-shadow:0 1px 3px #000,0 0 9px #000;font-family:var(--display)}
+.radar-offline strong{font-size:16px;letter-spacing:1.5px;background:#171919bf;padding:7px 12px}
+.radar-offline span{font-size:12px;background:#171919c9;padding:4px 7px}
+.radar-offline[hidden]{display:none}
+
+@media(max-width:620px){#sidebar .radar-offline strong{font-size:12px;letter-spacing:.5px;padding:5px}#sidebar .radar-offline span{font-size:10px;padding:3px}}

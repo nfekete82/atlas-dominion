@@ -1,3 +1,4 @@
+import {paintOfflineRadar} from './radar-offline.js';
 import {drawRoleBadge,drawRank,hasRole} from './role-visuals.js';
 import {getVeterancyLevel} from './veterancy.js';
 import {WeatherPresentation} from './weather-presentation.js';
@@ -102,7 +103,7 @@ export class Renderer {
   }
   private prepareMap():void {
     this.prepareTerrain();
-    const sites=[...this.game.territories.map(t=>t.point),...this.game.bases.filter(b=>b.kind==='headquarters')];
+    const sites=[...this.game.territories.map(t=>t.point),...this.game.bases.filter(b=>b.kind==='headquarters'),...this.game.startRegions.map(r=>r.center)];
     this.groundDetails=createGroundDetails(this.game.world,sites);
     paintGroundDetails(this.terrainSurface.getContext('2d')!,this.groundDetails,this.groundTextures);
     this.palms.reset(this.groundDetails,this.game);
@@ -153,7 +154,7 @@ export class Renderer {
     this.width=width;this.height=height;this.canvas.width=pixelsX;this.canvas.height=pixelsY;
     this.context.setTransform(pixelsX/width,0,0,pixelsY/height,0,0);this.boundCamera();
   }
-  home():void {const b=this.game.bases.find(b=>b.owner===0&&b.kind==='headquarters'&&b.hp>0);if(b){this.camera.zoom=1;this.camera.x=b.x+this.width*(.5-.33);this.camera.y=b.y-Math.max(this.height*.35,Math.min(this.height*.63,this.height-300))+this.height/2;this.boundCamera();}}
+  home():void {const b=this.game.bases.find(b=>b.owner===0&&b.kind==='headquarters'&&b.hp>0)??this.game.units.find(u=>u.owner===0&&u.hp>0&&u.kind==='engineer')??this.game.units.find(u=>u.owner===0&&u.hp>0);if(b){this.camera.zoom=1;this.camera.x=b.x+this.width*(.5-.33);this.camera.y=b.y-Math.max(this.height*.35,Math.min(this.height*.63,this.height-300))+this.height/2;this.boundCamera();}}
   invalidate():void{if(this.infantry)this.prepareMap();this.fogRevision=-1;this.previousFogVisible=new Uint8Array(0);this.previousFogExplored=new Uint8Array(0);this.units.clear();this.seenImpacts=new WeakSet();this.battlefield.reset(this.game);}
   boundCamera():void {
     const w=this.width/this.camera.zoom/2,h=this.height/this.camera.zoom/2,s=this.game.world.size;
@@ -383,6 +384,10 @@ export class Renderer {
     if(profiler)profiler.record('sprites',performance.now()-spritesAt);
     if(this.placement&&this.pointer){
       const spec=BUILDINGS[this.placement],p=this.pointer,valid=g.units.some(u=>this.selected.has(u.id)&&u.kind==='engineer'&&u.owner===0&&u.hp>0)&&!g.buildError(0,this.placement,p);
+      if(this.placement==='headquarters'&&g.needsHeadquarters(0)){
+        const region=g.startRegions[0];c.save();c.strokeStyle='#d3ded2aa';c.lineWidth=1.5/this.camera.zoom;c.setLineDash([10,8]);
+        c.beginPath();c.arc(region.center.x,region.center.y,region.radius,0,Math.PI*2);c.stroke();c.restore();
+      }
       c.save();c.strokeStyle=valid?'#96e0b8':'#f27e67';c.fillStyle=valid?'#6bcda52a':'#e66a552a';c.lineWidth=1.5;
       c.beginPath();c.moveTo(p.x-spec.radius,p.y);c.lineTo(p.x,p.y-spec.radius*.5);c.lineTo(p.x+spec.radius,p.y);c.lineTo(p.x,p.y+spec.radius*.5);c.closePath();c.fill();c.stroke();
       c.save();if(this.placementFacing===1){c.translate(2*p.x,0);c.scale(-1,1);}
@@ -473,7 +478,9 @@ export class Renderer {
     if(!profiler)return this.renderMiniMeasured();const at=performance.now();try{this.renderMiniMeasured();}finally{profiler.record('minimap',performance.now()-at);}
   }
   private renderMiniMeasured():void {
-    const c=this.mini,g=this.game,n=this.miniCanvas.width,k=n/g.world.size;
+    const c=this.mini,g=this.game,n=this.miniCanvas.width;
+    if(!g.radarOnline(0)){paintOfflineRadar(c,n,performance.now()/1000,this.reducedMotion);return;}
+    const k=n/g.world.size;
     c.drawImage(this.miniTerrain,0,0,n,n);
     for(const t of g.territories)if(t.owner>=0){c.beginPath();t.polygon.forEach((p,i)=>i?c.lineTo(p.x*k,p.y*k):c.moveTo(p.x*k,p.y*k));c.closePath();c.fillStyle=t.owner===0?'#429fe33d':'#d84b493d';c.fill();}
     c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';c.drawImage(this.fog,0,0,n,n);c.restore();

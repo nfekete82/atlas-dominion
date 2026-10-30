@@ -125,7 +125,7 @@ function showCampaignHistory():void{renderCampaignHistory();modal('campaign-hist
 try{const s=JSON.parse(localStorage.getItem('atlas-reborn-sound')??'null');if(s){audio.setEnabled(s.enabled!==false);audio.setVolume(Number.isFinite(s.volume)?s.volume:.6);audio.ambience=s.ambience!==false;audio.radio.setEnabled(s.speech!==false);audio.radio.setVolume(Number.isFinite(s.speechVolume)?s.speechVolume:.85);audio.radio.setStyle(s.radioStyle==='original'?'original':'military');}}catch{/* Optional local preferences. */}
 const timestamp=()=>`${Math.floor(game.time/60).toString().padStart(2,'0')}:${Math.floor(game.time%60).toString().padStart(2,'0')}`;
 function notify(message:string,urgent=false):void{
- const item=document.createElement('div');item.className=urgent?'notice notice--attack':/^(Gebäude fertiggestellt:|Einheit bereit:)/.test(message)?'notice notice--ready':'notice';item.textContent=message;el('notices').append(item);while(el('notices').children.length>3)el('notices').firstElementChild?.remove();setTimeout(()=>item.remove(),6000);
+ const item=document.createElement('div');item.className=urgent?'notice notice--attack':/^(Gebäude fertiggestellt:|Einheit bereit:|Hauptquartier errichtet\.)/.test(message)?'notice notice--ready':'notice';item.textContent=message;el('notices').append(item);while(el('notices').children.length>3)el('notices').firstElementChild?.remove();setTimeout(()=>item.remove(),6000);
  messages.unshift({time:timestamp(),message});if(messages.length>60)messages.pop();el('unread').hidden=false;
 }
 input.notify=notify;
@@ -166,11 +166,14 @@ function prepareCatalog():void{
 function prepareTerritories():void{el('catalog-territories').replaceChildren();
  for(const t of game.territories){const button=document.createElement('button');button.className='territory-row';button.dataset.territory=String(t.id);button.innerHTML='<i></i><strong></strong><small></small>';button.onclick=()=>{renderer.camera.x=game.territories[t.id].point.x;renderer.camera.y=game.territories[t.id].point.y;renderer.boundCamera();};el('catalog-territories').append(button);}
 }
+function selectOpeningWorker():void{
+ if(game.needsHeadquarters(0)){const worker=game.units.find(u=>u.owner===0&&u.kind==='engineer'&&u.hp>0);if(worker)renderer.selected.add(worker.id);}
+}
 function reset():void{
  if(!query.has('debug')&&readAiLearningPreference())saveAiLearningProfile(game.tactical.state.experience);
  retireCampaignHistory();
  hasEnteredCampaign=true;closeDialogs();game=createCampaign();
- campaignReport=query.has('debug')?null:newCampaignReport(game);historyPersistAt=-10;syncCampaignHistory(true);qwenGeneral.resetCampaign();audio.bindGame(game);renderer.game=game;renderer.invalidate();renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;renderer.placement=null;renderer.commandMode=null;renderer.canvas.classList.remove('attack','building');renderer.home();prepareTerritories();accumulator=0;resultShown=false;messages.length=0;setPause(false);tab('units');refresh();notify('Neue Kampagne. Wähle deinen Pionier und errichte zuerst eine Kaserne.');}
+ campaignReport=query.has('debug')?null:newCampaignReport(game);historyPersistAt=-10;syncCampaignHistory(true);qwenGeneral.resetCampaign();audio.bindGame(game);renderer.game=game;renderer.invalidate();renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;renderer.placement=null;renderer.commandMode=null;renderer.canvas.classList.remove('attack','building');renderer.home();prepareTerritories();selectOpeningWorker();accumulator=0;resultShown=false;messages.length=0;setPause(false);tab('units');refresh();notify('Neue Kampagne. Errichte ein Hauptquartier in deiner Startregion.');}
 function refresh():void{
  if(!profiler)return refreshMeasured();const at=performance.now();try{refreshMeasured();}finally{profiler.record('hud',performance.now()-at);}
 }
@@ -179,12 +182,15 @@ function refreshMeasured():void{
  if(campaignReport)syncCampaignHistory();
  const selected=game.units.filter(u=>renderer.selected.has(u.id)&&u.owner===0&&!u.carrier);renderer.selected=new Set(selected.map(u=>u.id));
  if(!game.bases.some(b=>b.id===renderer.selectedBase&&b.hp>0&&b.owner===0))renderer.selectedBase=null;
+ const radarOnline=game.radarOnline(0);el('radar-offline').hidden=radarOnline;
+ const mini=el<HTMLCanvasElement>('minimap');mini.setAttribute('aria-disabled',String(!radarOnline));
+ mini.setAttribute('aria-label',radarOnline?'Minikarte: Linksklick bewegt die Kamera; Rechtsklick bewegt Einheiten.':'RADAR OFFLINE. Errichte ein Hauptquartier.');
  const base=contextBase(),production=productionBase(),first=selected[0],spec=first?unitSpec(first):undefined;
  el('selection-panel').hidden=!selected.length&&!base;
  setText('production-title',production?`${buildingSpec(production).name} · PRODUKTION`:'PRODUKTION');
- setText('campaign-goal',`Erkunde Aridis. Sichere alle ${campaignLayout(game.world.mapVersion,game.seed).starts[1].length} roten Startgebiete und erobere das feindliche Hauptquartier, um zu gewinnen. Zerstöre es zuerst und sichere anschließend seinen Kontrollpunkt.`);
+ setText('campaign-goal',game.needsHeadquarters(0)?'Errichte ein Hauptquartier. Wähle einen freien, erforschten Bauplatz in deiner Startregion.':`Erkunde Aridis. Sichere alle ${campaignLayout(game.world.mapVersion,game.seed).starts[1].length} roten Startgebiete und erobere das feindliche Hauptquartier, um zu gewinnen. Zerstöre es zuerst und sichere anschließend seinen Kontrollpunkt.`);
  setText('credits',Math.floor(game.credits[0]).toLocaleString('de-DE'));setText('income',`+${game.income(0)}`);setHtml('capacity',`${game.count(0)} <em>/ ${RULES.capacity}</em>`);
- setText('territories',`${game.territories.filter(t=>t.owner===0).length} / ${game.territories.length}`);setText('clock',timestamp());setText('exploration',`${Math.round(game.explored[0].reduce((n,v)=>n+v,0)/game.explored[0].length*100)} % ERKUNDET`);
+ setText('territories',radarOnline?`${game.territories.filter(t=>t.owner===0).length} / ${game.territories.length}`:'— / —');setText('clock',timestamp());setText('exploration',radarOnline?`${Math.round(game.explored[0].reduce((n,v)=>n+v,0)/game.explored[0].length*100)} % ERKUNDET`:'KEIN SIGNAL');
  const title=selected.length?(selected.length===1?spec!.name:`${selected.length} Einheiten`):base?(base.kind==='headquarters'?'Hauptquartier':buildingSpec(base).name):'';
  setText('selection-title',title+(selected.length===1&&getVeterancyLevel(first.xp)>0?' · '+VETERANCY_NAMES[getVeterancyLevel(first.xp)]:''));setText('selection-tag',`BLAUE LEGION${spec?' / '+spec.group.toLocaleUpperCase('de-DE'):''}`);
  const img=el('portrait').querySelector('img')!,desired=first?renderer.icon('unit',first.kind):renderer.icon('building',base?.kind??'headquarters');if(img.getAttribute('src')!==desired)img.src=desired;
@@ -250,7 +256,7 @@ function refreshMeasured():void{
  if(selected.length===1&&first?.supportPaused)detail='Heilziel ist zu weit voraus. Sanitäter wartet; der Heilauftrag bleibt erhalten.';
  if(renderer.placement)detail=`${BUILDINGS[renderer.placement].name}: ${renderer.placementFacing===1?'Gespiegelt':'Standardausrichtung'}. R / ↔ wechselt die Richtung · Linksklick baut · Esc bricht ab.`;
  setText('selection-detail',detail);
- setText('hint',renderer.placement?'R: GEBÄUDE DREHEN · LINKSKLICK: PLATZIEREN · ESC: ABBRECHEN':renderer.attackMode?'ANGRIFFSBEWEGUNG: LINKSKLICK AUF DAS ZIEL':'ZIEHEN: AUSWAHL · RECHTSKLICK: BEWEGEN · SHIFT: BEFEHLSKETTE');
+ setText('hint',renderer.placement?'R: GEBÄUDE DREHEN · LINKSKLICK: PLATZIEREN · ESC: ABBRECHEN':game.needsHeadquarters(0)?'Errichte ein Hauptquartier':renderer.attackMode?'ANGRIFFSBEWEGUNG: LINKSKLICK AUF DAS ZIEL':'ZIEHEN: AUSWAHL · RECHTSKLICK: BEWEGEN · SHIFT: BEFEHLSKETTE');
  if(production){
   const building=production.buildRemaining>0,duration=production.queue[0]??5,ratio=building?1-production.buildRemaining/buildingSpec(production).buildTime:production.production/duration;
   el('production-fill').style.width=`${ratio*100}%`;setText('production-time',building?`BAU ${Math.ceil(production.buildRemaining).toString().padStart(2,'0')} S`:production.queue.length?`00:${Math.ceil(duration-production.production).toString().padStart(2,'0')}`:'00:00');
@@ -272,7 +278,9 @@ function refreshMeasured():void{
  for(const button of document.querySelectorAll<HTMLButtonElement>('[data-build]')){
   const kind=button.dataset.build as BuildingKind;
   const existing=['barracks','factory','airfield'].includes(kind)&&game.bases.some(b=>b.owner===0&&b.hp>0&&b.kind===kind);
-  button.disabled=existing;button.title=existing?'Bereits vorhanden: maximal ein Gebäude dieses Typs.':'';
+  const opening=game.needsHeadquarters(0),hqSite=kind==='headquarters'&&game.bases.some(b=>b.owner===0&&b.hp>0&&b.kind==='headquarters');
+  button.hidden=kind==='headquarters'?!opening:opening;
+  button.disabled=existing||hqSite;button.title=hqSite?'Hauptquartier ist bereits im Bau.':existing?'Bereits vorhanden: maximal ein Gebäude dieses Typs.':'';
  }
  for(const button of document.querySelectorAll<HTMLButtonElement>('[data-unit]')){
   const kind=button.dataset.unit as UnitKind,producer=game.producer(0,kind);button.hidden=!UNITS[kind].producers.some(k=>facilities.has(k));button.disabled=!producer||game.credits[0]<UNITS[kind].cost||game.count(0)+game.queued(0)>=RULES.capacity||game.status!=='playing';button.classList.toggle('locked',!producer);button.title=`${UNITS[kind].name} · ${UNITS[kind].cost} Credits · ${UNITS[kind].buildTime} S${producer?'':' · '+UNITS[kind].producers.map(k=>BUILDINGS[k].name).join(' / ')+' erforderlich'}`;
@@ -281,7 +289,7 @@ function refreshMeasured():void{
  for(const message of game.notices.splice(0)){
   notify(message);
   if(!game.paused&&game.status==='playing'){
-   if(message.startsWith('Gebäude fertiggestellt:'))audio.announceReady('building');
+   if(message.startsWith('Gebäude fertiggestellt:')||message==='Hauptquartier errichtet. Radar online.')audio.announceReady('building');
    else if(message.startsWith('Einheit bereit:'))audio.announceReady('unit');
   }
  }
@@ -291,12 +299,12 @@ function refreshMeasured():void{
       game.units.filter(u=>u.owner===1&&u.hp>0).reduce((n,u)=>n+u.hp,0));
    }
    if(!query.has('debug')&&readAiLearningPreference())saveAiLearningProfile(game.tactical.state.experience);
-   resultShown=true;closeDialogs();setPause(true);setText('result-title',game.status==='victory'?'Aridis gesichert.':'Die Legion ist gefallen.');setText('result-copy',game.status==='victory'?`Das feindliche Hauptquartier und seine ${mapLayout(game.world.mapVersion).starts[1].length} Startgebiete sind unter deiner Kontrolle.`:'Deine Produktionsstätten und Truppen wurden vernichtet.');el<HTMLDialogElement>('result-dialog').showModal();}
+   resultShown=true;closeDialogs();setPause(true);setText('result-title',game.status==='victory'?'Aridis gesichert.':'Die Legion ist gefallen.');setText('result-copy',game.status==='victory'?(game.needsHeadquarters(1)&&!game.units.some(u=>u.owner===1&&u.kind==='engineer'&&u.hp>0)?'Der Gegner hat kein Hauptquartier und keinen Pionier mehr. Sein Basisaufbau ist beendet.':`Das feindliche Hauptquartier und seine ${mapLayout(game.world.mapVersion).starts[1].length} Startgebiete sind unter deiner Kontrolle.`):game.needsHeadquarters(0)?'Kein Hauptquartier und kein einsatzfähiger Pionier mehr. Deine Basis kann nicht aufgebaut werden.':'Deine Produktionsstätten und Truppen wurden vernichtet.');el<HTMLDialogElement>('result-dialog').showModal();}
 }
 async function save():Promise<void>{if(busy)return;busy=true;try{syncCampaignHistory(true);await saveCampaign(game);if(!query.has('debug')&&readAiLearningPreference())saveAiLearningProfile(game.tactical.state.experience);notify('Kampagne lokal gespeichert.');}catch(e){notify((e as Error).message);}finally{busy=false;}}
 async function load():Promise<void>{if(busy)return;busy=true;try{const loaded=await loadCampaign();retireCampaignHistory();hasEnteredCampaign=true;closeDialogs();game=loaded;
   campaignReport=query.has('debug')?null:readCampaignReports().find(r=>r.seed===(game.seed>>>0)&&r.mapVersion===game.world.mapVersion&&r.result==='running'&&r.seconds<=game.time+.01)??newCampaignReport(game);
-  historyPersistAt=-10;syncCampaignHistory(true);qwenGeneral.resetCampaign();audio.bindGame(game);renderer.game=game;renderer.invalidate();renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;renderer.placement=null;renderer.commandMode=null;renderer.canvas.classList.remove('attack','building');renderer.home();prepareTerritories();resultShown=false;accumulator=0;setPause(false);refresh();notify('Kampagne geladen.');}catch(e){notify((e as Error).message);}finally{busy=false;}}
+  historyPersistAt=-10;syncCampaignHistory(true);qwenGeneral.resetCampaign();audio.bindGame(game);renderer.game=game;renderer.invalidate();renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;renderer.placement=null;renderer.commandMode=null;renderer.canvas.classList.remove('attack','building');renderer.home();prepareTerritories();selectOpeningWorker();resultShown=false;accumulator=0;setPause(false);refresh();notify('Kampagne geladen.');}catch(e){notify((e as Error).message);}finally{busy=false;}}
 el('resume-tactical').onclick=()=>setPause(false);
 input.onPause=()=>setPause(!game.paused);input.onMenu=openMenu;input.onHelp=()=>modal('help-dialog');input.onSave=()=>void save();input.onLoad=()=>void load();
 input.onSelection=()=>{const next=[...renderer.selected].join(',')+':'+renderer.selectedBase;if(next!==selectionSound){selectionSound=next;audio.select();}refresh();};input.onOrder=order=>audio.acknowledge(order,game);
@@ -323,7 +331,7 @@ el('unload-mode').onclick=()=>{renderer.commandMode='unload';renderer.attackMode
 el('repair-mode').onclick=()=>{renderer.commandMode='repair';renderer.attackMode=false;renderer.canvas.classList.remove('attack');notify('Eigenes beschädigtes Gebäude oder Baustelle mit Linksklick wählen.');};
 el('close-build-menu').onclick=()=>{el('build-menu').hidden=true;};
 el('build-mode').onclick=()=>{el('build-menu').hidden=!el('build-menu').hidden;};
-for(const button of document.querySelectorAll<HTMLButtonElement>('[data-build]'))button.onclick=()=>{renderer.placementFacing=0;renderer.placement=button.dataset.build as BuildingKind;renderer.commandMode=null;renderer.attackMode=false;renderer.canvas.classList.remove('attack');renderer.canvas.classList.add('building');el('build-menu').hidden=true;refresh();};
+for(const button of document.querySelectorAll<HTMLButtonElement>('[data-build]'))button.onclick=()=>{if(button.hidden||button.disabled)return;renderer.placementFacing=0;renderer.placement=button.dataset.build as BuildingKind;renderer.commandMode=null;renderer.attackMode=false;renderer.canvas.classList.remove('attack');renderer.canvas.classList.add('building');el('build-menu').hidden=true;refresh();};
 el('rotate-building').onclick=()=>{if(!renderer.placement)return;renderer.placementFacing=renderer.placementFacing===0?1:0;audio.select();refresh();};
 el('stop').onclick=()=>{input.stop();refresh();};el('attack').onclick=()=>{renderer.attackMode=!renderer.attackMode;renderer.canvas.classList.toggle('attack',renderer.attackMode);refresh();};
 el('move-mode').onclick=()=>{if(renderer.selected.size){renderer.attackMode=false;renderer.commandMode='move';renderer.canvas.classList.remove('attack');notify('Linksklick auf das Bewegungsziel.');}else notify('Zuerst eine Einheit auswählen.');};
@@ -355,5 +363,5 @@ function showIncomingAttacks():void{
 }
 function frame(now:number):void{profiler?.beginFrame(now);const dt=Math.min(.1,(now-last)/1000);last=now;const inputAt=profiler?performance.now():0;input.update(dt);if(profiler)profiler.record('input',performance.now()-inputAt);if(!game.paused){accumulator+=dt;let steps=0;while(accumulator>=RULES.tick&&steps++<5){game.step();accumulator-=RULES.tick;}}else accumulator=0;showIncomingAttacks();const audioAt=profiler?performance.now():0;audio.update(game,renderer);if(profiler)profiler.record('audio',performance.now()-audioAt);renderer.render(dt,accumulator/RULES.tick);uiClock+=dt;if(uiClock>.1){qwenGeneral.maybePlan(game);refresh();uiClock=0;}profiler?.endFrame(now);requestAnimationFrame(frame);}
 void audio.radio.preload();
-try{await renderer.load();prepareCatalog();ready=true;el('loading').remove();refresh();last=performance.now();requestAnimationFrame(frame);if(!query.has('debug'))modal('main-dialog');}catch(e){setHtml('loading','<strong>Der Wüstensektor konnte nicht geladen werden.</strong><p>Bitte neu laden und die lokalen Grafiken prüfen.</p>');console.error(e);}
+try{await renderer.load();prepareCatalog();ready=true;selectOpeningWorker();el('loading').remove();refresh();last=performance.now();requestAnimationFrame(frame);if(!query.has('debug'))modal('main-dialog');}catch(e){setHtml('loading','<strong>Der Wüstensektor konnte nicht geladen werden.</strong><p>Bitte neu laden und die lokalen Grafiken prüfen.</p>');console.error(e);}
 if(new URLSearchParams(location.search).has('debug'))Object.assign(window,{__reborn:{get game(){return game;},renderer,input,refresh,audio,profiler,qwenGeneral,advance(seconds:number){for(let i=0;i<Math.round(seconds/RULES.tick);i++)game.step();refresh();renderer.render(0);},save,load}});

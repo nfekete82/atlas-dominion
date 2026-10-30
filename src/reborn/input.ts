@@ -63,10 +63,11 @@ export class Input {
       renderer.selectedBase=null;for(const u of renderer.game.units){const s=renderer.screen(unitSpec(u).flying?unitSelectionPoint(u):u);if(u.owner===0&&!u.carrier&&s.x>0&&s.y>0&&s.x<renderer.width&&s.y<renderer.height)renderer.selected.add(u.id);}this.onSelection();
     });
     canvas.addEventListener('wheel',e=>{e.preventDefault();renderer.zoom(e.deltaY,local(e));},{passive:false});
-    const miniPoint=(e:PointerEvent)=>minimapWorldPoint({x:e.clientX,y:e.clientY},mini.getBoundingClientRect(),renderer.game.world.size);
+    const miniPoint=(e:PointerEvent)=>renderer.game.radarOnline(0)?minimapWorldPoint({x:e.clientX,y:e.clientY},mini.getBoundingClientRect(),renderer.game.world.size):null;
     const miniMove=(e:PointerEvent)=>{const p=miniPoint(e);if(!p)return;renderer.camera.x=p.x;renderer.camera.y=p.y;renderer.boundCamera();};
     mini.addEventListener('contextmenu',e=>e.preventDefault());
     mini.addEventListener('pointerdown',e=>{
+      if(!renderer.game.radarOnline(0))return;
       this.pointer=null;renderer.pointer=null;
       if(e.button===2){e.preventDefault();const p=miniPoint(e);if(p)this.order(p,e.shiftKey,true);return;}
       if(e.button!==0)return;this.miniDragging=true;mini.setPointerCapture(e.pointerId);miniMove(e);

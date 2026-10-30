@@ -59,7 +59,7 @@ export interface Blast extends Point {at:number;id:number}
 export type CaptureReadiness='owned'|'no-unit'|'out-of-range'|'contested'|'enemy-hq'|'disconnected'|'capturing';
 export interface Memory extends Point { id:number; owner:Faction; hp:number; territory:number; kind?:BuildingKind }
 export interface Save {
-  version:2; weatherVersion?:1; productionVersion?:1; supportVersion?:1;rosterVersion?:2;missiles?:Missile[]; seed:number; mapVersion?:MapVersion; time:number; nextId:number; credits:number[]; incomeClock:number;
+  version:2; bootstrapVersion?:1; weatherVersion?:1; productionVersion?:1; supportVersion?:1;rosterVersion?:2;missiles?:Missile[]; seed:number; mapVersion?:MapVersion; time:number; nextId:number; credits:number[]; incomeClock:number;
   units:Unit[]; bases:Base[]; territories:Territory[]; explored:number[][];
   memories:Memory[][]; aiClock:number; ai?:TacticalState; status:'playing'|'victory'|'defeat'; stats?:MatchStatistics;
 }
@@ -76,6 +76,21 @@ class SpatialIndex {
 
 export class Simulation {
   readonly world:World;
+  /** Present only for the new HQ-less campaign; absent in legacy saves. */
+  readonly bootstrapVersion?:1;
+  readonly startRegions:{center:Point;radius:number}[]=[];
+  hasHeadquarters(owner:Faction):boolean{return this.bases.some(b=>b.owner===owner&&b.kind==='headquarters'&&b.hp>0&&b.buildRemaining<=0);}
+  needsHeadquarters(owner:Faction):boolean{return this.bootstrapVersion===1&&!this.hasHeadquarters(owner);}
+  radarOnline(owner:Faction):boolean{return !this.needsHeadquarters(owner);}
+  headquartersCandidates(owner:Faction):Point[]{
+    const {center,radius}=this.startRegions[owner],points:Point[]=[{...center}];
+    for(let r=64;r+BUILDINGS.headquarters.radius<=radius;r+=64)for(let i=0;i<24;i++){
+      const angle=(i+((this.seed>>>0)%24))*Math.PI/12;points.push({x:center.x+Math.cos(angle)*r,y:center.y+Math.sin(angle)*r});
+    }
+    return points;
+  }
+  private bootstrapLost(owner:Faction):boolean{return this.needsHeadquarters(owner)&&!this.units.some(u=>u.owner===owner&&u.kind==='engineer'&&u.hp>0);}
+
   readonly weather:Weather;
   private unitById=new Map<number,Unit>();
   sight(u:Unit):number{return unitSpec(u).sight*(this.weather.storm&&!unitSpec(u).flying?WEATHER_RULES.groundSight:1);}
@@ -94,14 +109,15 @@ export class Simulation {
   workEffects:WorkEffect[]=[];
   paused=false; revision=0; private fogClock=0; private visionCache=new VisionCache(); private spatial=new SpatialIndex();
   /** The original constructor remains a deterministic legacy fixture/save reader. */
-  constructor(seed=2026,mapVersion:MapVersion=0,weatherEnabled=false) {
-    this.seed=seed;this.weather=new Weather(seed,weatherEnabled);this.world=new World(seed,mapVersion);this.territories=this.world.territories(seed);
+  constructor(seed=2026,mapVersion:MapVersion=0,weatherEnabled=false,bootstrap=false) {
+    this.bootstrapVersion=bootstrap?1:undefined;this.seed=seed;this.weather=new Weather(seed,weatherEnabled);this.world=new World(seed,mapVersion);this.territories=this.world.territories(seed);
     if(mapVersion>=3)this.credits=[950,950];
     const layout=campaignLayout(mapVersion,seed);
     for(const owner of [0,1] as const){
       const territory=layout.headquarters[owner];
       const t=this.territories[territory],site=mapVersion>=2?{x:t.point.x+(owner===0?-260:260),y:t.point.y+(owner===0?165:-165)}:mapVersion===1?{x:t.point.x-165,y:t.point.y+45}:t.point,p=this.world.clearSite(site,RULES.headquarters.radius)!;
-      this.bases.push({id:1000+owner,owner,kind:'headquarters',...p,hp:RULES.headquarters.hp,territory,queue:[],queueTypes:[],production:0,buildRemaining:0,cooldown:0,rally:null,radius:RULES.headquarters.radius});
+      this.startRegions.push({center:{...p},radius:Math.min(600,this.world.size/6)});
+      if(!bootstrap)this.bases.push({id:1000+owner,owner,kind:'headquarters',...p,hp:RULES.headquarters.hp,territory,queue:[],queueTypes:[],production:0,buildRemaining:0,cooldown:0,rally:null,radius:RULES.headquarters.radius});
       if(mapVersion===0)t.point=this.world.nearest({x:p.x+165,y:p.y-45},this.obstacles())!;
       const sign=mapVersion>=2&&owner===1?-1:1;
       this.spawn(owner,this.world.nearest({x:p.x+140*sign,y:p.y+100*sign},this.obstacles())!);
@@ -114,7 +130,7 @@ export class Simulation {
     }
     this.spatial.rebuild(this.units);this.updateVision();
   }
-  static campaign(seed=randomMapSeed(),version:MapVersion=MAP_VERSION):Simulation {return new Simulation(seed,version);}
+  static campaign(seed=randomMapSeed(),version:MapVersion=MAP_VERSION):Simulation {return new Simulation(seed,version,false,true);}
   obstacles():Base[]{return this.bases.filter(b=>b.hp>0);}
   spawn(owner:Faction,p:Point,kind:UnitKind='infantry'):Unit {
     while(this.bases.some(b=>b.id===this.nextId))this.nextId++;
@@ -130,12 +146,13 @@ export class Simulation {
   count(owner:Faction):number{return this.units.filter(u=>u.owner===owner&&u.hp>0).length;}
   queued(owner:Faction):number{return this.bases.filter(b=>b.owner===owner).reduce((n,b)=>n+b.queue.length,0);}
   producer(owner:Faction,kind:UnitKind):Base|undefined {
+    if(this.needsHeadquarters(owner))return undefined;
     return this.bases.filter(b=>b.owner===owner&&b.hp>0&&b.buildRemaining<=0&&UNITS[kind].producers.includes(b.kind)&&b.queue.length<8).sort((a,b)=>a.queue.length-b.queue.length||a.id-b.id)[0];
   }
   recruit(baseId:number,kind?:UnitKind):boolean {
     const b=this.bases.find(b=>b.id===baseId);if(!b)return false;
     kind??=unitKinds.find(k=>UNITS[k].producers.includes(b.kind));const spec=kind?UNITS[kind]:undefined;
-    if(!kind||!spec||b.hp<=0||b.buildRemaining>0||!spec.producers.includes(b.kind)||this.status!=='playing'||b.queue.length>=8||this.credits[b.owner]<spec.cost||this.count(b.owner)+this.queued(b.owner)>=RULES.capacity)return false;
+    if(this.needsHeadquarters(b.owner)||!kind||!spec||b.hp<=0||b.buildRemaining>0||!spec.producers.includes(b.kind)||this.status!=='playing'||b.queue.length>=8||this.credits[b.owner]<spec.cost||this.count(b.owner)+this.queued(b.owner)>=RULES.capacity)return false;
     b.queueCosts??=b.queueTypes.map(k=>UNITS[k].cost);b.queueCosts.push(spec.cost);this.credits[b.owner]-=spec.cost;b.queue.push(spec.buildTime);b.queueTypes.push(kind);return true;
   }
   cancel(baseId:number,index?:number):void {
@@ -146,10 +163,15 @@ export class Simulation {
   buildError(owner:Faction,kind:BuildingKind,p:Point):string|null {
     const spec=BUILDINGS[kind];
     if(!Number.isFinite(p.x)||!Number.isFinite(p.y))return 'Ungültiger Kartenbereich.';
-    if(!spec||kind==='headquarters'||this.status!=='playing')return 'Dieses Gebäude kann hier nicht errichtet werden.';
+    if(!spec||this.status!=='playing')return 'Dieses Gebäude kann hier nicht errichtet werden.';
     if(this.bases.filter(b=>b.hp>0).length>=40)return 'Gebäudelimit erreicht.';
     if(['barracks','factory','airfield'].includes(kind)&&this.bases.some(b=>b.owner===owner&&b.kind===kind&&b.hp>0))return 'Dieses Produktionsgebäude existiert bereits.';
-    if(!this.bases.some(b=>b.owner===owner&&b.kind==='headquarters'&&b.hp>0))return 'Ein Hauptquartier ist erforderlich.';
+    if(kind==='headquarters'){
+      if(this.bootstrapVersion!==1)return 'Dieses Gebäude kann hier nicht errichtet werden.';
+      if(this.bases.some(b=>b.owner===owner&&b.kind==='headquarters'&&b.hp>0))return 'Ein Hauptquartier oder seine Baustelle existiert bereits.';
+      const region=this.startRegions[owner];
+      if(distance(p,region.center)+spec.radius>region.radius)return 'Errichte dein Hauptquartier innerhalb der Startregion.';
+    }else if(!this.hasHeadquarters(owner))return 'Ein fertiggestelltes Hauptquartier ist erforderlich.';
     if(this.credits[owner]<spec.cost)return 'Zu wenig Credits.';
     if(!this.hasExplored(owner,p))return 'Dieser Bauplatz ist noch nicht erforscht.';
     if(!this.world.walkable(p))return 'Felsen blockieren die Baustelle.';
@@ -716,7 +738,7 @@ export class Simulation {
         if(work>0)this.work('build',workers[0].id,b.id,work);
         b.buildRemaining=Math.max(0,b.buildRemaining-work);if(b.buildRemaining<1e-8)b.buildRemaining=0;
         b.hp=Math.min(buildingSpec(b).hp,b.hp+buildingSpec(b).hp*.75*work/buildingSpec(b).buildTime);
-        if(b.buildRemaining===0&&b.owner===0)this.notices.push(`Gebäude fertiggestellt: ${buildingSpec(b).name}.`);continue;
+        if(b.buildRemaining===0&&b.owner===0)this.notices.push(b.kind==='headquarters'&&this.bootstrapVersion===1?'Hauptquartier errichtet. Radar online.':`Gebäude fertiggestellt: ${buildingSpec(b).name}.`);continue;
       }
       b.cooldown-=dt;
       if(b.kind==='turret'){
@@ -776,14 +798,14 @@ export class Simulation {
       }
     }
     this.aiClock+=dt;
-    if(this.time>=RULES.aiOpeningDelay&&this.aiClock>=RULES.aiInterval){this.aiClock=0;this.think();}
+    if((this.time>=RULES.aiOpeningDelay||this.needsHeadquarters(1))&&this.aiClock>=RULES.aiInterval){this.aiClock=0;this.think();}
     if(this.fogClock>=.2||ownershipChanged){this.fogClock=0;this.updateVision();}
-    if(this.bases.filter(b=>b.kind==='headquarters').every(b=>b.owner===0&&b.hp>0)&&campaignLayout(this.world.mapVersion,this.seed).starts[1].every(i=>this.territories[i].owner===0))this.status='victory';
-    if(!this.bases.some(b=>b.owner===0&&b.hp>0&&['headquarters','barracks','factory','airfield'].includes(b.kind))&&this.count(0)===0)this.status='defeat';
+    if((this.bootstrapLost(1)||this.bases.filter(b=>b.kind==='headquarters').length>=2&&this.bases.filter(b=>b.kind==='headquarters').every(b=>b.owner===0&&b.hp>0)&&campaignLayout(this.world.mapVersion,this.seed).starts[1].every(i=>this.territories[i].owner===0)))this.status='victory';
+    if(this.bootstrapLost(0)||!this.bases.some(b=>b.owner===0&&b.hp>0&&['headquarters','barracks','factory','airfield'].includes(b.kind))&&this.count(0)===0)this.status='defeat';
   }
   private think():void {this.tactical.plan();}
   save():Save {
-    return structuredClone({version:2,weatherVersion:1,productionVersion:1,supportVersion:1,rosterVersion:2,missiles:this.missiles,seed:this.seed,mapVersion:this.world.mapVersion,time:this.time,nextId:this.nextId,credits:this.credits,incomeClock:this.incomeClock,
+    return structuredClone({version:2,...(this.bootstrapVersion?{bootstrapVersion:this.bootstrapVersion}:{}),weatherVersion:1,productionVersion:1,supportVersion:1,rosterVersion:2,missiles:this.missiles,seed:this.seed,mapVersion:this.world.mapVersion,time:this.time,nextId:this.nextId,credits:this.credits,incomeClock:this.incomeClock,
       units:this.units,bases:this.bases,territories:this.territories,explored:this.explored.map(a=>Array.from(a)),memories:this.memories,aiClock:this.aiClock,ai:this.tactical.state,status:this.status,stats:this.stats});
   }
   static load(raw:unknown,weatherEnabled=false):Simulation {
@@ -792,8 +814,8 @@ export class Simulation {
     const validMatchStatisticsOrLegacy=(data:unknown)=>data===undefined||validMatchStatistics(data);
     const point=(p:Point)=>p&&finite(p.x)&&finite(p.y)&&p.x>=0&&p.y>=0&&p.x<=mapWorldSize(s?.mapVersion??0)&&p.y<=mapWorldSize(s?.mapVersion??0);
     const burst=(b:Burst|undefined,rounds:number)=>b===undefined||(b!==null&&Number.isInteger(b.target)&&Number.isInteger(b.remaining)&&b.remaining>0&&b.remaining<=rounds&&b.remaining+b.index===rounds&&Number.isInteger(b.index)&&b.index>=0&&b.index<4&&finite(b.at)&&b.at>=s.time-.11&&b.at<=s.time+.11);
-    if(!s||s.version!==2||(s.weatherVersion!==undefined&&s.weatherVersion!==1)||(s.productionVersion!==undefined&&s.productionVersion!==1)||(s.mapVersion!==undefined&&![0,1,2,3,4,5,6,7,8,9,10,11,12,13,14].includes(s.mapVersion))||!TacticalAI.valid(s.ai,s.time,point,mapLayout(s.mapVersion??0).columns*mapLayout(s.mapVersion??0).rows)||!finite(s.seed)||!finite(s.time)||s.time<0||!finite(s.incomeClock)||s.incomeClock<0||s.incomeClock>=10||
-      !validMatchStatisticsOrLegacy(s.stats)||!Array.isArray(s.units)||s.units.length>96||!Array.isArray(s.bases)||s.bases.length<2||s.bases.length>64||
+    if(!s||s.version!==2||(s.bootstrapVersion!==undefined&&s.bootstrapVersion!==1)||(s.weatherVersion!==undefined&&s.weatherVersion!==1)||(s.productionVersion!==undefined&&s.productionVersion!==1)||(s.mapVersion!==undefined&&![0,1,2,3,4,5,6,7,8,9,10,11,12,13,14].includes(s.mapVersion))||!TacticalAI.valid(s.ai,s.time,point,mapLayout(s.mapVersion??0).columns*mapLayout(s.mapVersion??0).rows)||!finite(s.seed)||!finite(s.time)||s.time<0||!finite(s.incomeClock)||s.incomeClock<0||s.incomeClock>=10||
+      !validMatchStatisticsOrLegacy(s.stats)||!Array.isArray(s.units)||s.units.length>96||!Array.isArray(s.bases)||s.bases.length<(s.bootstrapVersion===1?0:2)||s.bases.length>64||
       s.units.some(u=>u.exactPath!==undefined&&typeof u.exactPath!=='boolean')||
       !Array.isArray(s.territories)||s.territories.length!==mapLayout(s.mapVersion??0).columns*mapLayout(s.mapVersion??0).rows||!Array.isArray(s.explored)||s.explored.length!==2||
       s.explored.some(a=>!Array.isArray(a)||![120**2,RULES.grid**2].includes(a.length)||a.some(v=>v!==0&&v!==1))||
@@ -805,7 +827,7 @@ export class Simulation {
         (b.queueCosts!==undefined&&(!Array.isArray(b.queueCosts)||b.queueCosts.length!==b.queue.length||b.queueCosts.some(v=>!finite(v)||v<0)))||
         (b.buildRemaining!==undefined&&(!finite(b.buildRemaining)||b.buildRemaining<0||b.buildRemaining>(BUILDINGS[b.kind??'headquarters']?.buildTime??0)))||!finite(b.production)||b.production<0||b.production>(b.queue[0]??0))||
       s.territories.some((t,i)=>t.id!==i||![-1,0,1].includes(t.owner)||!finite(t.progress)||t.progress<0||t.progress>8))throw new Error('Dieser Spielstand ist beschädigt oder gehört zu einer anderen Version.');
-    const game=new Simulation(s.seed,s.mapVersion??0,weatherEnabled);
+    const game=new Simulation(s.seed,s.mapVersion??0,weatherEnabled,s.bootstrapVersion===1);
     game.time=s.time;
     game.stats=s.stats?structuredClone(s.stats):newMatchStatistics();
     if(!s.stats){game.stats.partial=true;for(const u of s.units){if(u.hp>0){const f=game.stats.factions[u.owner];f.deployedUnits[u.kind??'infantry']++;f.peakArmy+=0;}}for(const owner of [0,1] as const)game.stats.factions[owner].peakArmy=s.units.filter(u=>u.owner===owner&&u.hp>0).length;}

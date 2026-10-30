@@ -1,11 +1,13 @@
 import {test,expect} from '@playwright/test';
+import {finishOpeningHQ} from './hq-bootstrap-fixture.mjs';
 import {readFileSync} from 'node:fs';
 
 test('construction: R and the HUD switch mirrored façade without changing terrain, then it is saved',async({page})=>{
  const errors=[],requested=[];page.on('request',r=>requested.push(r.url()));page.on('pageerror',e=>errors.push(e.message));
  await page.setViewportSize({width:1440,height:900});
- await page.goto('/?debug&seed=2026&map=medium');
+ await page.goto('/?debug&perfTest&seed=2026&map=medium');
  await page.locator('#loading').waitFor({state:'detached'});
+ await finishOpeningHQ(page);
  const target=await page.evaluate(()=>{
   const a=window.__reborn,g=a.game,r=a.renderer,hq=g.bases.find(b=>b.owner===0&&b.kind==='headquarters');
   const engineer=g.units.find(u=>u.owner===0&&u.kind==='engineer');

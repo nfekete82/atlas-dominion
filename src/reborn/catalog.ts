@@ -21,7 +21,7 @@ export const UNITS:Record<UnitKind,UnitSpec>={
 };
 export interface BuildingSpec {name:string;cost:number;buildTime:number;hp:number;sight:number;radius:number;width:number;income:number;description:string}
 export const BUILDINGS:Record<BuildingKind,BuildingSpec>={
- headquarters:{...RULES.headquarters,name:'Feldkommando',cost:0,buildTime:0,width:225,income:10,description:'Hauptquartier der Blauen Legion. Bildet Pioniere aus. Errichte Kaserne, Fahrzeugfabrik und Flugfeld für weitere Einheiten.'},
+ headquarters:{...RULES.headquarters,name:'Feldkommando',cost:300,buildTime:20,width:225,income:10,description:'Hauptquartier der Blauen Legion. Bildet Pioniere aus. Errichte Kaserne, Fahrzeugfabrik und Flugfeld für weitere Einheiten.'},
  barracks:{name:'Kaserne',cost:200,buildTime:12,hp:800,sight:300,radius:53,width:158,income:0,description:'Bildet Infanteriesoldaten, Sanitäter und schwere Infanterie aus.'},
  factory:{name:'Fahrzeugfabrik',cost:350,buildTime:18,hp:1100,sight:310,radius:70,width:200,income:0,description:'Produziert Humvees, Kampfpanzer und Raketenwerfer.'},
  airfield:{name:'Flugfeld',cost:450,buildTime:22,hp:1200,sight:410,radius:116,width:320,income:0,description:'Großer Wüstenflugplatz mit Flugzeughangar, Kontrollturm, Rollfeld und Landebahn. Produziert Transporthelikopter und Bomber.'},

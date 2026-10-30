@@ -18,14 +18,14 @@ for(const version of [0,1,2])test(`production: map ${version} starts both factio
  }
 });
 test('production: every building rejects foreign roles without spending credits or queuing them',()=>{
- const g=Simulation.campaign(2026);g.aiClock=-1e8;g.credits[0]=10000;
+ const g=new Simulation(2026,2);g.aiClock=-1e8;g.credits[0]=10000;
  for(const kind of ['headquarters','barracks','factory','airfield']){
   const b={...g.bases[0],id:1700+g.bases.length,kind,queue:[],queueTypes:[],queueCosts:[]};g.bases.push(b);
   for(const role of unitKinds){const before=g.credits[0],ok=g.recruit(b.id,role);assert.equal(ok,UNITS[role].producers.includes(kind));if(ok){assert.equal(g.credits[0],before-UNITS[role].cost);g.cancel(b.id);}else{assert.equal(g.credits[0],before);assert.equal(b.queue.length,0);}}
  }
 });
 test('production: real worker construction unlocks barracks, factory and airfield only on completion',()=>{
- const g=Simulation.campaign(2026);g.aiClock=-1e8;g.credits[0]=10000;const worker=g.units.find(u=>u.owner===0&&u.kind==='engineer');
+ const g=new Simulation(2026,2);g.aiClock=-1e8;g.credits[0]=10000;const worker=g.units.find(u=>u.owner===0&&u.kind==='engineer');
  for(const kind of ['barracks','factory','airfield']){
   const site=buildSite(g,kind),b=g.build(0,kind,site,[worker.id]);assert.ok(b);const roles=unitKinds.filter(k=>UNITS[k].producers.includes(kind));assert.equal(roles.length,kind==='airfield'?2:3);
   for(const role of roles){assert.equal(g.producer(0,role),undefined);assert.equal(g.recruit(b.id,role),false);}
@@ -36,12 +36,12 @@ test('production: real worker construction unlocks barracks, factory and airfiel
  }
 });
 test('production: destroyed or enemy facilities do not unlock units, full queues do not count as missing buildings',()=>{
- const g=Simulation.campaign(2026);g.aiClock=-1e8;g.credits[0]=5000;const b={...g.bases[0],id:1700,kind:'barracks',queue:[],queueTypes:[]};g.bases.push(b);
+ const g=new Simulation(2026,2);g.aiClock=-1e8;g.credits[0]=5000;const b={...g.bases[0],id:1700,kind:'barracks',queue:[],queueTypes:[]};g.bases.push(b);
  for(let i=0;i<8;i++)assert.ok(g.recruit(b.id,'infantry'));assert.equal(g.recruit(b.id,'infantry'),false);b.queue=[];b.queueTypes=[];b.queueCosts=[];
  b.owner=1;assert.equal(g.producer(0,'infantry'),undefined);b.owner=0;b.hp=0;assert.equal(g.producer(0,'infantry'),undefined);
 });
 test('production: old mixed HQ queues refund unsupported orders once and retain paid workers and existing troops',()=>{
- const g=Simulation.campaign(2026);g.aiClock=-1e8;const raw=g.save(),hq=raw.bases[0];delete raw.productionVersion;
+ const g=new Simulation(2026,2);g.aiClock=-1e8;const raw=g.save(),hq=raw.bases[0];delete raw.productionVersion;
  hq.queue=[UNITS.infantry.buildTime,UNITS.engineer.buildTime,UNITS.tank.buildTime];hq.queueTypes=['infantry','engineer','tank'];hq.queueCosts=[100,200,450];hq.production=2;raw.credits[0]=50;
  const loaded=Simulation.load(raw);assert.equal(loaded.credits[0],600);assert.deepEqual(loaded.bases[0].queueTypes,['engineer']);assert.deepEqual(loaded.bases[0].queueCosts,[200]);assert.equal(loaded.bases[0].production,0);assert.equal(loaded.units.length,raw.units.length);
  const again=Simulation.load(loaded.save());assert.equal(again.credits[0],600);assert.equal(again.units.length,raw.units.length);assert.equal(again.save().productionVersion,1);
@@ -55,5 +55,5 @@ test('production: the AI builds a paid barracks from the ordinary start and recr
  advance(g,100);const barracks=ledger.find(e=>e.kind==='barracks'),soldier=ledger.find(e=>e.unit==='infantry');assert.ok(barracks);assert.ok(soldier);assert.equal(soldier.producer,'barracks');assert.ok(soldier.at>=barracks.at+BUILDINGS.barracks.buildTime);assert.ok(g.count(1)>2);
 });
 test('production: the AI replaces a missing builder instead of waiting for unavailable infantry',()=>{
- const g=Simulation.campaign(2026);g.units=g.units.filter(u=>u.owner!==1||u.kind!=='engineer');g.tactical.plan();assert.deepEqual(g.bases[1].queueTypes,['engineer']);
+ const g=new Simulation(2026,2);g.units=g.units.filter(u=>u.owner!==1||u.kind!=='engineer');g.tactical.plan();assert.deepEqual(g.bases[1].queueTypes,['engineer']);
 });
