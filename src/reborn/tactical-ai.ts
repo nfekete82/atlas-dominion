@@ -802,8 +802,8 @@ export class TacticalAI {
    return;
   }
   for(const p of g.headquartersCandidates(1))if(!g.buildError(1,'headquarters',p)&&g.build(1,'headquarters',p,workers.map(w=>w.id)))return;
-  // Explore within the start region if the first valid footprint is still fogged.
-  // This observes no enemy state and never substitutes a free/spawned building.
+  // The start anchor remains a sensible deterministic AI preference, not a build restriction.
+  // Explore fallback positions when terrain or a unit blocks local candidates.
   for(const p of g.headquartersCandidates(1))if(g.world.walkable(p,g.obstacles(),12)&&!g.hasExplored(1,p)){
    const w=workers[0];if(!w.orders.length&&g.world.path(w,p,g.obstacles(),12).length)g.command([w.id],{...p,kind:'move'});
    if(w.orders.length)return;
