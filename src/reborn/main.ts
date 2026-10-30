@@ -125,7 +125,7 @@ function showCampaignHistory():void{renderCampaignHistory();modal('campaign-hist
 try{const s=JSON.parse(localStorage.getItem('atlas-reborn-sound')??'null');if(s){audio.setEnabled(s.enabled!==false);audio.setVolume(Number.isFinite(s.volume)?s.volume:.6);audio.ambience=s.ambience!==false;audio.radio.setEnabled(s.speech!==false);audio.radio.setVolume(Number.isFinite(s.speechVolume)?s.speechVolume:.85);audio.radio.setStyle(s.radioStyle==='original'?'original':'military');}}catch{/* Optional local preferences. */}
 const timestamp=()=>`${Math.floor(game.time/60).toString().padStart(2,'0')}:${Math.floor(game.time%60).toString().padStart(2,'0')}`;
 function notify(message:string,urgent=false):void{
- const item=document.createElement('div');item.className=urgent?'notice notice--attack':'notice';item.textContent=message;el('notices').append(item);while(el('notices').children.length>3)el('notices').firstElementChild?.remove();setTimeout(()=>item.remove(),6000);
+ const item=document.createElement('div');item.className=urgent?'notice notice--attack':/^(Gebäude fertiggestellt:|Einheit bereit:)/.test(message)?'notice notice--ready':'notice';item.textContent=message;el('notices').append(item);while(el('notices').children.length>3)el('notices').firstElementChild?.remove();setTimeout(()=>item.remove(),6000);
  messages.unshift({time:timestamp(),message});if(messages.length>60)messages.pop();el('unread').hidden=false;
 }
 input.notify=notify;
@@ -277,7 +277,13 @@ function refreshMeasured():void{
   const kind=button.dataset.unit as UnitKind,producer=game.producer(0,kind);button.hidden=!UNITS[kind].producers.some(k=>facilities.has(k));button.disabled=!producer||game.credits[0]<UNITS[kind].cost||game.count(0)+game.queued(0)>=RULES.capacity||game.status!=='playing';button.classList.toggle('locked',!producer);button.title=`${UNITS[kind].name} · ${UNITS[kind].cost} Credits · ${UNITS[kind].buildTime} S${producer?'':' · '+UNITS[kind].producers.map(k=>BUILDINGS[k].name).join(' / ')+' erforderlich'}`;
  }
  if(catalogTab==='territories')for(const button of document.querySelectorAll<HTMLButtonElement>('[data-territory]')){const t=game.territories[Number(button.dataset.territory)],known=game.hasExplored(0,t.point)||t.owner===0;button.className=`territory-row ${known?t.owner===0?'blue':t.owner===1?'red':'neutral':'unknown'}`;text(button.querySelector('strong')!,known?t.name:`Unbekannter Sektor ${t.id+1}`);text(button.querySelector('small')!,known?`+${t.income}`:'—');}
- for(const message of game.notices.splice(0))notify(message);
+ for(const message of game.notices.splice(0)){
+  notify(message);
+  if(!game.paused&&game.status==='playing'){
+   if(message.startsWith('Gebäude fertiggestellt:'))audio.announceReady('building');
+   else if(message.startsWith('Einheit bereit:'))audio.announceReady('unit');
+  }
+ }
  if(game.status!=='playing'&&!resultShown){
    if(game.tactical.state.experience?.active){
     finishExperience(game.tactical.state.experience,game.status==='defeat',
