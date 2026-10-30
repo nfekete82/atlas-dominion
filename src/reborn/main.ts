@@ -173,7 +173,7 @@ function reset():void{
  if(!query.has('debug')&&readAiLearningPreference())saveAiLearningProfile(game.tactical.state.experience);
  retireCampaignHistory();
  hasEnteredCampaign=true;closeDialogs();game=createCampaign();
- campaignReport=query.has('debug')?null:newCampaignReport(game);historyPersistAt=-10;syncCampaignHistory(true);qwenGeneral.resetCampaign();audio.bindGame(game);renderer.game=game;renderer.invalidate();renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;renderer.placement=null;renderer.commandMode=null;renderer.canvas.classList.remove('attack','building');renderer.home();prepareTerritories();selectOpeningWorker();accumulator=0;resultShown=false;messages.length=0;setPause(false);tab('units');refresh();notify('Neue Kampagne. Errichte ein Hauptquartier in deiner Startregion.');}
+ campaignReport=query.has('debug')?null:newCampaignReport(game);historyPersistAt=-10;syncCampaignHistory(true);qwenGeneral.resetCampaign();audio.bindGame(game);renderer.game=game;renderer.invalidate();renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;renderer.placement=null;renderer.commandMode=null;renderer.canvas.classList.remove('attack','building');renderer.home();prepareTerritories();selectOpeningWorker();accumulator=0;resultShown=false;messages.length=0;setPause(false);tab('units');refresh();notify('Neue Kampagne. Wähle einen Bauplatz für dein Hauptquartier – überall auf der Karte.');}
 function refresh():void{
  if(!profiler)return refreshMeasured();const at=performance.now();try{refreshMeasured();}finally{profiler.record('hud',performance.now()-at);}
 }
@@ -188,7 +188,7 @@ function refreshMeasured():void{
  const base=contextBase(),production=productionBase(),first=selected[0],spec=first?unitSpec(first):undefined;
  el('selection-panel').hidden=!selected.length&&!base;
  setText('production-title',production?`${buildingSpec(production).name} · PRODUKTION`:'PRODUKTION');
- setText('campaign-goal',game.needsHeadquarters(0)?'Errichte ein Hauptquartier. Wähle einen freien, erforschten Bauplatz in deiner Startregion.':`Erkunde Aridis. Sichere alle ${campaignLayout(game.world.mapVersion,game.seed).starts[1].length} roten Startgebiete und erobere das feindliche Hauptquartier, um zu gewinnen. Zerstöre es zuerst und sichere anschließend seinen Kontrollpunkt.`);
+ setText('campaign-goal',game.needsHeadquarters(0)?'Errichte ein Hauptquartier an einem beliebigen freien Standort auf der Karte.':`Erkunde Aridis. Sichere alle ${campaignLayout(game.world.mapVersion,game.seed).starts[1].length} roten Startgebiete und erobere das feindliche Hauptquartier, um zu gewinnen. Zerstöre es zuerst und sichere anschließend seinen Kontrollpunkt.`);
  setText('credits',Math.floor(game.credits[0]).toLocaleString('de-DE'));setText('income',`+${game.income(0)}`);setHtml('capacity',`${game.count(0)} <em>/ ${RULES.capacity}</em>`);
  setText('territories',radarOnline?`${game.territories.filter(t=>t.owner===0).length} / ${game.territories.length}`:'— / —');setText('clock',timestamp());setText('exploration',radarOnline?`${Math.round(game.explored[0].reduce((n,v)=>n+v,0)/game.explored[0].length*100)} % ERKUNDET`:'KEIN SIGNAL');
  const title=selected.length?(selected.length===1?spec!.name:`${selected.length} Einheiten`):base?(base.kind==='headquarters'?'Hauptquartier':buildingSpec(base).name):'';
