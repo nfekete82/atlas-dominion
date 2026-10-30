@@ -37,12 +37,27 @@ test('HQ bootstrap: every campaign starts with one soldier and one pioneer per f
   g.step();assert.equal(g.status,'playing','empty HQ list never gives a vacuous victory');
  }
 });
-test('HQ bootstrap: exact terrain/footprint, occupied cells, explored ground and own start region are all authoritative',()=>{
+test('HQ bootstrap: map-wide construction keeps terrain, footprint and unit safety without start radius or fog lock',()=>{
  const g=campaign(),p=g.headquartersCandidates(0).find(p=>!g.buildError(0,'headquarters',p));
- assert.match(g.buildError(0,'headquarters',g.startRegions[1].center),/Startregion/);
+ // Starting anchors guide the AI; they no longer restrict player construction.
+ // Check an ordinary tile far beyond the former starting radius.
+ const region=g.startRegions[0],r=BUILDINGS.headquarters.radius;
+ let distant=null;
+ for(let y=r+80;y<g.world.size-r-80&&!distant;y+=90)
+  for(let x=r+80;x<g.world.size-r-80;x+=90){
+   const site={x,y};
+   if(distance(site,region.center)<=region.radius+r+120)continue;
+   if(g.buildError(0,'headquarters',site)===null){distant=site;break;}
+  }
+ assert.ok(distant,'a valid first-HQ site exists outside the former start region');
+ assert.ok(distance(distant,region.center)>region.radius+r+120);
+ const previousFog=g.explored[0].slice();
+ g.explored[0].fill(0);
+ assert.equal(g.buildError(0,'headquarters',distant),null,'HQ construction works even on unexplored ground');
+ g.explored[0].set(previousFog);
  const cell=g.world.index(p),blocked=g.world.blocked[cell];g.world.blocked[cell]=1;
  assert.match(g.buildError(0,'headquarters',p),/Felsen/);g.world.blocked[cell]=blocked;
- const explored=g.explored[0].slice();g.explored[0].fill(0);assert.match(g.buildError(0,'headquarters',p),/erforscht/);g.explored[0].set(explored);
+ const explored=g.explored[0].slice();g.explored[0].fill(0);assert.equal(g.buildError(0,'headquarters',p),null,'first HQ has no fog gate');g.explored[0].set(explored);
  const u=g.units.find(u=>u.owner===0&&u.kind==='infantry'),old={x:u.x,y:u.y};Object.assign(u,p);
  assert.match(g.buildError(0,'headquarters',p),/Einheiten/);Object.assign(u,old);
  const credits=g.credits[0];assert.equal(g.build(0,'headquarters',p,[worker(g,1).id]),null);assert.equal(g.credits[0],credits);
