@@ -40,7 +40,7 @@ export class Renderer {
   readonly mini:CanvasRenderingContext2D;
   camera={x:1200,y:2500,zoom:1};
   selected=new Set<number>(); selectedBase:number|null=null; overlay=false; attackMode=false;
-  placement:BuildingKind|null=null;pointer:Point|null=null;
+  placement:BuildingKind|null=null;placementFacing:0|1=0;pointer:Point|null=null;
   commandMode:'heal'|'repair'|'move'|'load'|'unload'|null=null;
   box:{from:Point;to:Point}|null=null; marker:{point:Point;life:number;attack:boolean}|null=null;
   width=0;height=0;terrain!:HTMLImageElement; infantry!:Sprite; headquarters!:Sprite;
@@ -204,8 +204,9 @@ export class Renderer {
     const anchor={x:b.x,y:b.y},artWidth=buildingArtWidth(b.kind,spec.width),height=artWidth*(sprite.bodyHeight??sprite.h)/(sprite.bodyWidth??sprite.w);
     const angle=this.game.paused||this.game.shots.some(s=>s.source===b.id)?b.turretAngle??0:(b.previousTurretAngle??b.turretAngle??0)+angleDifference(b.previousTurretAngle??b.turretAngle??0,b.turretAngle??0)*this.interpolation;
     const draw=(opacity=1)=>{this.spriteDraw(sprite,anchor,artWidth,false,opacity);if(b.kind==='turret'){const firing=this.units.particles.enabled&&!this.reducedMotion?this.game.shots.find(s=>s.source===b.id&&this.game.time-(s.at??0)<.07):undefined;const recoil=firing?Math.sin(Math.min(1,(this.game.time-(firing.at??0))/.07)*Math.PI)*1.1:0;this.structures.drawTurret(c,b.owner,{x:anchor.x-Math.cos(angle)*recoil,y:anchor.y-Math.sin(angle)*recoil*.65},artWidth,angle,opacity);}};
-    if(b.hp<=0){draw(.18);return;}
+    if(b.hp<=0){c.save();if(b.facing===1){c.translate(2*b.x,0);c.scale(-1,1);}draw(.18);c.restore();return;}
     if(selected){c.strokeStyle='#78c8f1';c.lineWidth=1.1;c.setLineDash([8,5]);c.beginPath();c.ellipse(b.x,b.y-8,spec.radius+17,(spec.radius+17)*.47,0,0,Math.PI*2);c.stroke();c.setLineDash([]);}
+    c.save();if(b.facing===1){c.translate(2*b.x,0);c.scale(-1,1);}
     if(b.buildRemaining>0){
       const progress=1-b.buildRemaining/spec.buildTime;
       if(!this.structures.drawConstruction(c,b.kind,b.owner,anchor,artWidth,progress,alpha)){
@@ -219,6 +220,7 @@ export class Renderer {
       this.structures.drawActivity(c,b.kind,b.owner,anchor,artWidth,this.game.time,this.reducedMotion,alpha);
       this.decor.draw(c,b.kind,anchor,spec.radius,b.id,this.game.seed,b.owner,'front',this.game.time,this.reducedMotion,alpha);
     }
+    c.restore();
     if(selected||b.hp<spec.hp)this.bar({x:b.x,y:anchor.y-height-8},86,b.hp/spec.hp,b.owner===0?'#75c5e8':'#ed7866');
     if(b.queue.length&&b.owner===0)this.bar({x:b.x,y:b.y+24},75,b.production/b.queue[0],'#dfb278');
     if(selected&&b.rally){c.strokeStyle='#94d9f399';c.setLineDash([5,6]);c.beginPath();c.moveTo(b.x,b.y);c.lineTo(b.rally.x,b.rally.y);c.stroke();c.setLineDash([]);
@@ -374,7 +376,10 @@ export class Renderer {
       const spec=BUILDINGS[this.placement],p=this.pointer,valid=g.units.some(u=>this.selected.has(u.id)&&u.kind==='engineer'&&u.owner===0&&u.hp>0)&&!g.buildError(0,this.placement,p);
       c.save();c.strokeStyle=valid?'#96e0b8':'#f27e67';c.fillStyle=valid?'#6bcda52a':'#e66a552a';c.lineWidth=1.5;
       c.beginPath();c.moveTo(p.x-spec.radius,p.y);c.lineTo(p.x,p.y-spec.radius*.5);c.lineTo(p.x+spec.radius,p.y);c.lineTo(p.x,p.y+spec.radius*.5);c.closePath();c.fill();c.stroke();
-      this.spriteDraw(this.buildings[this.placement],p,buildingArtWidth(this.placement,spec.width),false,.65);if(this.placement==='turret')this.structures.drawTurret(c,0,p,buildingArtWidth(this.placement,spec.width),0,.65);c.restore();
+      c.save();if(this.placementFacing===1){c.translate(2*p.x,0);c.scale(-1,1);}
+      this.spriteDraw(this.buildings[this.placement],p,buildingArtWidth(this.placement,spec.width),false,.65);
+      if(this.placement==='turret')this.structures.drawTurret(c,0,p,buildingArtWidth(this.placement,spec.width),0,.65);
+      c.restore();c.restore();
     }
     this.drawRockets();
     this.drawWork();
