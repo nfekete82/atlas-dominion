@@ -4,6 +4,7 @@ import {loadRefinedBastion} from './refined-bastion.js';
 import {applyBuildingPBR,buildingSurfaces} from './building-pbr.js';
 import {upgradeBuildingDetails} from './building-details.js';
 import {isometricStage} from './isometric-stage.js';
+import {bakeHeadquartersAssembly} from './hq-construction-stages.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 export function createBuildingExporter({renderer,saveBuilding,saveTurretRig,loadHeadquarters=loadRefinedHeadquarters,loadBastion=loadRefinedBastion,constructionOnly=false}){
 const size=512,pivot=[256,382];renderer.setSize(size,size);renderer.setClearColor(0,0);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.13;
@@ -32,9 +33,16 @@ return async(requested=[])=>{
   // Progressive assembly is baked from subsets of the actual textured 3D model.
   // Every frame uses exactly the same camera, scale and registered ground pivot
   // as the final building; the Canvas game only selects the stage by buildRemaining.
-  if(kind!=='headquarters'&&kind!=='bastion'){
+  if(kind!=='bastion'){
    const excluded=new Set();
    for(const part of [dish,beacon,sweep,turret])part?.traverse(n=>{if(n.isMesh)excluded.add(n);});
+   if(kind==='headquarters'){
+    const {frames,parts}=bakeHeadquartersAssembly(model,excluded,snapshot);
+    const construction=await layer(prefix,'construction',frames,1);
+    await saveBuilding(prefix+'-construction.json',JSON.stringify({
+     version:1,kind,team,model:prefix+'.glb',parts,stages:construction.frames.length,layer:construction
+    },null,2)+'\\n');
+   }else{
    const structural=[];
    model.traverse(n=>{if(n.isMesh&&!excluded.has(n)&&n.visible){
     const box=new T.Box3().setFromObject(n,true);
@@ -57,6 +65,7 @@ return async(requested=[])=>{
    await saveBuilding(prefix+'-construction.json',JSON.stringify({
     version:1,kind,team,model:prefix+'.glb',parts:structural.length,stages:construction.frames.length,layer:construction
    },null,2)+'\n');
+   }
   }
   if(constructionOnly){scene.remove(turn);continue;}
   const body=snapshot();let solidBounds=bounds(body);await saveBuilding(prefix+'.png',body.toDataURL('image/png'));
