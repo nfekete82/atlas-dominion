@@ -7,6 +7,10 @@ on:
     paths:
       - .github/workflows/sandforge-ai-42-paired.yml
       - scripts/ai-42-version-report.mjs
+      - src/reborn/director-production.ts
+      - src/reborn/army-economy.ts
+      - src/reborn/tactical-ai.ts
+      - tests/reborn-tactical-ai-42-siege.test.mjs
   workflow_dispatch:
 
 permissions:
@@ -14,7 +18,7 @@ permissions:
 
 concurrency:
   group: sandforge-ai-42-paired-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   paired-arena:
