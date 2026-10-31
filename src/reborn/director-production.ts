@@ -17,7 +17,7 @@ export function earlyArtilleryWindow(input:{
  fighters:number; income:number; underAttack:boolean; visibleEnemyAir:boolean; time:number;
 }):boolean{
  return input.factoryReady&&input.artillery===0&&input.rovers>=1&&input.tanks===0
-  &&input.fighters>=5&&input.income>=65&&input.time>=75&&input.time<210
+  &&input.fighters>=5&&input.income>=65&&input.time>=60&&input.time<210
   &&!input.underAttack&&!input.visibleEnemyAir;
 }
 /** Purchase priorities are persistent composition deficits, not affordable-unit scores.
