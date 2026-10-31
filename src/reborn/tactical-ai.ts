@@ -696,7 +696,7 @@ export class TacticalAI {
   const safeBattery=new Set<number>();
   if(!continuing&&c.enemyHQEliminatedAt!==undefined&&intel?.kind==='turret'
    &&g.canSee(1,intel)){
-   const blockers=this.obstacles().filter(o=>o.id!==intel.id);
+   const blockers=this.obstacles().filter(o=>!('id' in o)||o.id!==intel.id);
    for(const u of selected.filter(u=>u.kind==='artillery'&&u.hp>0)){
     const mobileThreat=g.units.some(v=>v.owner===0&&v.hp>0&&!v.carrier&&g.canSee(1,v)
      &&distance(u,v)<unitSpec(v).range+90);
