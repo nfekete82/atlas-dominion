@@ -1,0 +1,128 @@
+name: Sandforge Tactical AI 5.2 – focused safe post-HQ sight and objective stability
+
+on:
+  push:
+    branches:
+      - feat/sandforge-ai-52-safe-endgame-sight-20261031
+    paths:
+      - .github/workflows/sandforge-ai-52-focus.yml
+      - scripts/ai-52-version-report.mjs
+      - src/reborn/director-production.ts
+      - src/reborn/army-economy.ts
+      - src/reborn/tactical-ai.ts
+      - tests/reborn-tactical-ai-49-early-artillery.test.mjs
+      - tests/reborn-tactical-ai-50-endgame.test.mjs
+      - tests/reborn-tactical-ai-52-vision.test.mjs
+      - src/reborn/campaign-commander.ts
+      - scripts/benchmark-reborn-ai.mjs
+      - scripts/ai-51-endgame-observer.mjs
+      - scripts/ai-51-endgame-report.mjs
+      - tests/ai-51-endgame-observer.test.mjs
+      - scripts/benchmark-reborn-ai.mjs
+      - scripts/ai-artillery-observer.mjs
+      - scripts/ai-48-artillery-report.mjs
+      - tests/ai-artillery-observer.test.mjs
+      - tests/reborn-tactical-ai-45-fallback.test.mjs
+      - tests/reborn-tactical-ai-43-recovery.test.mjs
+      - tests/reborn-tactical-ai-42-siege.test.mjs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sandforge-ai-52-focus-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  paired-arena:
+    name: 8 focused battles – AI 5.1 vs AI 5.2
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      BEFORE: 2ed7192512fcae8f2bab216ebad8b0446284ae4c
+      AFTER: ${{ github.sha }}
+      SEEDS: 2026,2027,2032,2033
+      MAPS: 5
+      MATCH_SECONDS: '420'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - name: Verify pinned historical baseline and current revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          git cat-file -e "${BEFORE}^{commit}"
+          git cat-file -e "${AFTER}^{commit}"
+          git merge-base --is-ancestor "$BEFORE" "$AFTER"
+          echo "Before: $BEFORE"
+          echo "After:  $AFTER"
+          test "$MATCH_SECONDS" = 420
+          mkdir -p ai-arena-results
+      - name: Validate AI 5.2 objective recovery, artillery safety and existing combat regressions before spending benchmark time
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm run build
+          node --test tests/reborn-tactical-ai-52-vision.test.mjs tests/ai-51-endgame-observer.test.mjs tests/reborn-tactical-ai-50-endgame.test.mjs tests/reborn-tactical-ai-49-early-artillery.test.mjs tests/ai-artillery-observer.test.mjs tests/reborn-tactical-ai-45-fallback.test.mjs tests/reborn-tactical-ai-43-recovery.test.mjs tests/reborn-tactical-ai-42-siege.test.mjs tests/reborn-tactical-ai-41-endgame.test.mjs tests/reborn-tactical-ai-40.test.mjs
+      - name: Build baseline and run four focused headless battles
+        shell: bash
+        run: |
+          set -euo pipefail
+          git switch --detach "$BEFORE"
+          npm ci --no-audit --no-fund
+          npm run build
+          node scripts/ai-test-arena.mjs \
+            --maps "$MAPS" --seeds "$SEEDS" \
+            --seconds "$MATCH_SECONDS" --modes director --opponent guarded \
+            --label "AI 5.1 $BEFORE" \
+            --output "$GITHUB_WORKSPACE/ai-arena-results/before.json"
+      - name: Build AI 5.2 and instrument four identical headless battles
+        shell: bash
+        run: |
+          set -euo pipefail
+          git switch --detach "$AFTER"
+          npm ci --no-audit --no-fund
+          npm run build
+          node scripts/ai-test-arena.mjs \
+            --maps "$MAPS" --seeds "$SEEDS" \
+            --seconds "$MATCH_SECONDS" --modes director --opponent guarded \
+            --label "AI 5.2 $AFTER" \
+            --output "$GITHUB_WORKSPACE/ai-arena-results/after.json"
+      - name: Strict paired version comparison and report
+        shell: bash
+        run: |
+          set -euo pipefail
+          git switch --detach "$GITHUB_SHA"
+          node scripts/ai-test-arena-compare.mjs \
+            ai-arena-results/before.json \
+            ai-arena-results/after.json \
+            ai-arena-results/paired-comparison.md
+          node scripts/ai-52-version-report.mjs \
+            ai-arena-results/before.json \
+            ai-arena-results/after.json \
+            ai-arena-results/ai-52-summary.md
+          node scripts/ai-48-artillery-report.mjs \
+            ai-arena-results/after.json \
+            ai-arena-results/ai-48-artillery-diagnostics.md
+          node scripts/ai-51-endgame-report.mjs \
+            ai-arena-results/after.json \
+            ai-arena-results/ai-51-endgame-diagnostics.md
+          cat ai-arena-results/ai-52-summary.md >> "$GITHUB_STEP_SUMMARY"
+          cat ai-arena-results/ai-51-endgame-diagnostics.md >> "$GITHUB_STEP_SUMMARY"
+          cat ai-arena-results/ai-48-artillery-diagnostics.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Preserve before/after data and evaluations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandforge-ai52-focused-8-battles
+          path: ai-arena-results/
+          if-no-files-found: warn
+          retention-days: 30

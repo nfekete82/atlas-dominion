@@ -20,7 +20,7 @@ export function keepCleanupTowerObjective(x:{
  missionSeconds:number;recentNearbyLosses:number;recentIntel:boolean;
 }):boolean{
  return x.confirmedEndgame&&x.knownTurret&&x.hasArtillery
-  &&x.missionSeconds>=0&&x.missionSeconds<70
+  &&x.missionSeconds>=0&&x.missionSeconds<90
   &&x.recentNearbyLosses<2&&x.recentIntel;
 }
 export function campaignPhase(s:CampaignState,phase:CampaignPhase,time:number):void{if(s.phase!==phase){s.phase=phase;s.phaseSince=time;}}
@@ -57,7 +57,7 @@ export function chooseMission(g:Simulation,s:CampaignState,origin:Point,context?
   const valid=old.kind==='capture'?g.territories[old.sector]?.owner!==1:old.kind==='structure'?!!remembered:!!enemy;
   const failed=context?.fronts.filter(f=>f.sector===old.sector).sort((a,b)=>b.at-a.at)[0];
   const nearbyLosses=context?.losses.filter(l=>g.time-l.at<60&&distance(l,old)<700).length??0;
-  const recentlySeen=s.intel.some(i=>i.id===old.objective&&g.time-i.seenAt<60);
+  const recentlySeen=s.intel.some(i=>i.id===old.objective&&g.time-i.seenAt<105);
   const protectTower=keepCleanupTowerObjective({
    confirmedEndgame:s.enemyHQEliminatedAt!==undefined,
    knownTurret:remembered?.kind==='turret',

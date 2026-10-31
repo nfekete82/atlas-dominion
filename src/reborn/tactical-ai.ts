@@ -54,6 +54,36 @@ export function keepEndgameBatteryFiring(x:{
   &&x.distanceToTurret>x.turretRange+25
   &&x.distanceToTurret<=x.artilleryRange-10&&x.clearLine&&!x.mobileThreat;
 }
+/** Select an observed turret's safe standoff lookout from public terrain and
+ * *previously observed* guns only. The caller verifies real ground navigation
+ * and sight geometry. No unseen structure or unit is inspected. */
+export function chooseEndgameVisionPost(x:{
+ origin:Point;target:Point&{id:number};known:readonly (Point&{id:number;range:number})[];
+ unitRange:number;unitSight:number;size:number;
+ walkable:(p:Point)=>boolean;clearLine:(p:Point)=>boolean;
+ route:(p:Point)=>{length:number;safe:boolean}|undefined;
+}):Point|undefined{
+ const minR=RULES.turret.range+42,maxR=Math.min(x.unitRange-12,x.unitSight-70);
+ if(maxR<minR||x.known.some(t=>t.id===x.target.id&&t.range>=maxR-20))return;
+ const heading=Math.atan2(x.origin.y-x.target.y,x.origin.x-x.target.x),points:Point[]=[];
+ for(const radius of [maxR-4,maxR-18])if(radius>=minR)for(let i=0;i<12;i++){
+  const a=heading+(i%2?-1:1)*Math.ceil(i/2)*Math.PI/12;
+  const p={x:x.target.x+Math.cos(a)*radius,y:x.target.y+Math.sin(a)*radius};
+  if(p.x<35||p.y<35||p.x>x.size-35||p.y>x.size-35)continue;
+  if(x.known.some(t=>Math.hypot(p.x-t.x,p.y-t.y)<t.range+32))continue;
+  if(!x.walkable(p)||!x.clearLine(p))continue;
+  points.push(p);
+ }
+ points.sort((a,b)=>distance(a,x.origin)-distance(b,x.origin)||a.y-b.y||a.x-b.x);
+ let best:{p:Point;score:number}|undefined;
+ for(const p of points.slice(0,7)){
+  const path=x.route(p);
+  if(!path||!path.safe||path.length>distance(x.origin,x.target)*1.6+280)continue;
+  const score=path.length+distance(p,x.origin)*.15;
+  if(!best||score<best.score)best={p,score};
+ }
+ return best?.p;
+}
 /** A failed 4.4 unconditional single-gun detour cost five wins. Restrict
  * experiments to confirmed cleanup with a previously observed gun and a
  * demonstrably obstructed current firing line. Never infer unseen guns. */
@@ -707,9 +737,49 @@ export class TacticalAI {
      mobileThreat}))safeBattery.add(u.id);
    }
   }
+  // The rocket itself has 830m sight, enough to reacquire a memorized
+  // turret beyond its real 600m firing radius. No helicopter tech needed.
+  // Restrict to confirmed cleanup; never march into a fogged opponent.
+  const visionPosts=new Map<number,Point>();
+  if(!continuing&&c.enemyHQEliminatedAt!==undefined&&intel?.kind==='turret'
+   &&!g.canSee(1,intel)){
+   const obstacles=this.obstacles().filter(o=>!('id' in o)||o.id!==intel.id);
+   const rocket=selected.filter(u=>u.kind==='artillery'&&u.hp>=unitSpec(u).hp*.7
+    &&!u.carrier&&!battle.withdrawals.some(w=>w.unit===u.id&&w.until>g.time))
+    .sort((a,b)=>distance(a,intel)-distance(b,intel)||a.id-b.id)[0];
+   if(rocket){
+    const post=chooseEndgameVisionPost({
+     origin:rocket,target:intel,known:s.knownTurrets,
+     unitRange:unitSpec(rocket).range,unitSight:unitSpec(rocket).sight,
+     size:g.world.size,walkable:p=>g.world.walkable(p,this.obstacles(),10),
+     clearLine:p=>g.world.line(p,intel,obstacles,10),
+     route:p=>{
+      const route=this.route(rocket,p);if(!route.length)return;
+      // Sampling the complete path prevents cutting through a known gun's
+      // firing radius just to reach a safe-looking endpoint.
+      let previous:Point=rocket,length=0,safe=true;
+      for(const next of route){
+       const d=distance(previous,next);length+=d;
+       for(let i=0;i<=Math.ceil(d/35);i++){
+        const q={x:previous.x+(next.x-previous.x)*i/Math.max(1,Math.ceil(d/35)),
+         y:previous.y+(next.y-previous.y)*i/Math.max(1,Math.ceil(d/35))};
+        if(s.knownTurrets.some(t=>distance(q,t)<t.range+20)){safe=false;break;}
+       }
+       if(!safe)break;previous=next;
+      }
+      return {length,safe};
+     }
+    });
+    if(post)visionPosts.set(rocket.id,post);
+   }
+  }
   const stageForSiege=()=>{
-   this.issue([...selected.filter(u=>!safeBattery.has(u.id)),...medics],s.rally!,'safe');
+   this.issue([...selected.filter(u=>!safeBattery.has(u.id)&&!visionPosts.has(u.id)),...medics],s.rally!,'safe');
    for(const u of selected.filter(u=>safeBattery.has(u.id)))this.issue([u],intel!,'assault',intel!.id);
+   for(const u of selected.filter(u=>visionPosts.has(u.id))){
+    const post=visionPosts.get(u.id)!;
+    if(distance(u,post)>25)this.issue([u],post,'safe',undefined,false,false);
+   }
   };
   const assessment=assessBattle(readyForce,visible,towers,g.time,continuing);battle.assessment=assessment;
   const overrun=canOverrun(assessment.own,assessment.enemy,readyForce.length,towers.length,experience)&&!readyForce.some(u=>u.kind==='artillery');
