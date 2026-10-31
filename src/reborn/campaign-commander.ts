@@ -13,6 +13,16 @@ export interface ReconTask extends Point {unit:number;since:number}
 export interface CampaignState {version:1;phase:CampaignPhase;phaseSince:number;mission?:WarMission;recon:ReconTask[];survey:{x:number;y:number;at:number}[];intel:{id:number;seenAt:number}[];aborted:number;observedEnemyHQ?:Point&{id:number};enemyHQEliminatedAt?:number;alternatives?:{sector:number;score:number;expectedLoss:number;budgetCost:number}[]}
 export interface MissionContext {strategy:EnemyStrategy;force:Unit[];losses:Loss[];fronts:FailedFront[];route:(p:Point)=>{length:number;risk:number}|undefined;intelligent?:boolean;experience?:Experience}
 export const newCampaign=():CampaignState=>({version:1,phase:'opening',phaseSince:0,recon:[],survey:[],intel:[],aborted:0});
+/** Preserve a recent, observed tower objective after confirmed HQ loss,
+ * unless the screen suffers substantial losses or artillery disappears. */
+export function keepCleanupTowerObjective(x:{
+ confirmedEndgame:boolean;knownTurret:boolean;hasArtillery:boolean;
+ missionSeconds:number;recentNearbyLosses:number;recentIntel:boolean;
+}):boolean{
+ return x.confirmedEndgame&&x.knownTurret&&x.hasArtillery
+  &&x.missionSeconds>=0&&x.missionSeconds<70
+  &&x.recentNearbyLosses<2&&x.recentIntel;
+}
 export function campaignPhase(s:CampaignState,phase:CampaignPhase,time:number):void{if(s.phase!==phase){s.phase=phase;s.phaseSince=time;}}
 /** The commander's inputs are own possessions, public sectors, fog and observed
  * memories. Never resolve an unseen enemy ID against the live simulation. */
@@ -46,15 +56,23 @@ export function chooseMission(g:Simulation,s:CampaignState,origin:Point,context?
   const enemy=old.kind==='hunt'?g.units.find(u=>u.id===old.objective&&u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)):undefined;
   const valid=old.kind==='capture'?g.territories[old.sector]?.owner!==1:old.kind==='structure'?!!remembered:!!enemy;
   const failed=context?.fronts.filter(f=>f.sector===old.sector).sort((a,b)=>b.at-a.at)[0];
-  const costly=context?.intelligent?replanAfterLoss({
+  const nearbyLosses=context?.losses.filter(l=>g.time-l.at<60&&distance(l,old)<700).length??0;
+  const recentlySeen=s.intel.some(i=>i.id===old.objective&&g.time-i.seenAt<60);
+  const protectTower=keepCleanupTowerObjective({
+   confirmedEndgame:s.enemyHQEliminatedAt!==undefined,
+   knownTurret:remembered?.kind==='turret',
+   hasArtillery:!!context?.force.some(u=>u.kind==='artillery'&&u.hp>0),
+   missionSeconds:g.time-old.since,recentNearbyLosses:nearbyLosses,recentIntel:recentlySeen
+  });
+  const costly=!protectTower&&(context?.intelligent?replanAfterLoss({
    elapsed:g.time-old.since,
    freshDamage:!!remembered&&remembered.hp<old.hp,
    progressAge:g.time-old.progressAt,
-   recentLosses:context.losses.filter(l=>g.time-l.at<60&&distance(l,old)<700).length,
+   recentLosses:nearbyLosses,
    frontFailures:failed?.failures??0,
    frontAge:failed?g.time-failed.at:Infinity
-  }):!!context&&g.time-old.since>30&&context.losses.filter(l=>g.time-l.at<60&&distance(l,old)<700).length>=3&&
-    context.fronts.some(f=>f.sector===old.sector&&f.failures>=2&&g.time-f.at<90);
+  }):!!context&&g.time-old.since>30&&nearbyLosses>=3&&
+    context.fronts.some(f=>f.sector===old.sector&&f.failures>=2&&g.time-f.at<90));
   const unready=context&&old.kind==='structure'&&g.time-old.since>30&&!context.force.some(u=>u.kind==='artillery')&&buildings.filter(b=>b.kind==='turret'&&distance(b,old)<800).length>=2&&g.territories.some(t=>t.owner!==1&&t.neighbors.some(id=>g.territories[id].owner===1)&&!buildings.some(b=>b.kind==='turret'&&distance(b,t.point)<740));
   if(valid&&!costly&&!unready&&g.time-old.progressAt<100){
    if(remembered){old.x=remembered.x;old.y=remembered.y;if(remembered.hp<old.hp){old.progressAt=g.time;old.hp=remembered.hp;}}

@@ -44,6 +44,16 @@ export interface TacticalState {
 export function holdForSiegeWeapon(objectiveKind:string|undefined,overrun:boolean,artilleryCount:number):boolean{
  return objectiveKind==='turret'&&!overrun&&artilleryCount===0;
 }
+/** Keep a safe, observed firing lane during endgame squad assembly. */
+export function keepEndgameBatteryFiring(x:{
+ confirmedEndgame:boolean;visibleTurret:boolean;livingGun:boolean;
+ healthyGun:boolean;distanceToTurret:number;turretRange:number;
+ artilleryRange:number;clearLine:boolean;mobileThreat:boolean;
+}):boolean{
+ return x.confirmedEndgame&&x.visibleTurret&&x.livingGun&&x.healthyGun
+  &&x.distanceToTurret>x.turretRange+25
+  &&x.distanceToTurret<=x.artilleryRange-10&&x.clearLine&&!x.mobileThreat;
+}
 /** A failed 4.4 unconditional single-gun detour cost five wins. Restrict
  * experiments to confirmed cleanup with a previously observed gun and a
  * demonstrably obstructed current firing line. Never infer unseen guns. */
@@ -681,6 +691,26 @@ export class TacticalAI {
   if(s.phase==='attack'&&members.length<Math.max(1,Math.ceil(s.launchSize*.4))){g.stop(s.group.filter(id=>fighters.some(u=>u.id===id)));s.group=[];members=[];s.launchSize=0;this.setPhase('regroup');c.aborted++;}
   const continuing=s.phase==='attack'&&members.length>0;
   const battle=s.battle??=newBattle(),readyForce=continuing?members:selected.filter(u=>distance(u,s.rally!)<330);
+  // Keep safe, in-range rockets firing while the screen reforms. The existing
+  // normal rally, turret threat and emergency defense logic remain unchanged.
+  const safeBattery=new Set<number>();
+  if(!continuing&&c.enemyHQEliminatedAt!==undefined&&intel?.kind==='turret'
+   &&g.canSee(1,intel)){
+   const blockers=this.obstacles().filter(o=>!('id' in o)||o.id!==intel.id);
+   for(const u of selected.filter(u=>u.kind==='artillery'&&u.hp>0)){
+    const mobileThreat=g.units.some(v=>v.owner===0&&v.hp>0&&!v.carrier&&g.canSee(1,v)
+     &&distance(u,v)<unitSpec(v).range+90);
+    if(keepEndgameBatteryFiring({confirmedEndgame:true,visibleTurret:true,
+     livingGun:!u.carrier,healthyGun:u.hp>=unitSpec(u).hp*.7,
+     distanceToTurret:distance(u,intel),turretRange:RULES.turret.range,
+     artilleryRange:unitSpec(u).range,clearLine:g.world.line(u,intel,blockers,10),
+     mobileThreat}))safeBattery.add(u.id);
+   }
+  }
+  const stageForSiege=()=>{
+   this.issue([...selected.filter(u=>!safeBattery.has(u.id)),...medics],s.rally!,'safe');
+   for(const u of selected.filter(u=>safeBattery.has(u.id)))this.issue([u],intel!,'assault',intel!.id);
+  };
   const assessment=assessBattle(readyForce,visible,towers,g.time,continuing);battle.assessment=assessment;
   const overrun=canOverrun(assessment.own,assessment.enemy,readyForce.length,towers.length,experience)&&!readyForce.some(u=>u.kind==='artillery');
   if(!towers.length&&!retryFront(battle,mission.sector,assessment.own,0,readyForce.filter(u=>u.kind==='artillery').length,g.time)){
@@ -697,7 +727,7 @@ export class TacticalAI {
    const allowed=retryFront(battle,mission.sector,assessment.own,towers.length,artillery,g.time);
    if((assessment.stance==='reinforce'||!allowed)&&!overrun){
     campaignPhase(c,'buildup',g.time);if(!continuing)this.setPhase('gather');
-    this.issue([...selected,...medics],s.rally,'safe');return;
+    stageForSiege();return;
    }
   }
   if(!continuing){
@@ -711,7 +741,7 @@ export class TacticalAI {
    if(enough&&!wave.ready)this.diagnostics.waveWaits++;
    if(!enough||!wave.ready){
     campaignPhase(c,g.time<40?'opening':defended?'buildup':'expansion',g.time);this.setPhase('gather');
-    this.issue([...selected,...medics],s.rally,'safe');return;
+    stageForSiege();return;
    }
    if(this.waveMode==='coordinated'&&defended)this.diagnostics.waveLaunches++;
    if(!experience.active)experience.active={sector:mission.sector,tactic:overrun?'overrun':towers.length?'siege':'maneuver',guns:towers.length,force:ready.length,at:g.time,initialUnits:ready.length,initialHP:fighters.reduce((n,u)=>n+u.hp,0),progress:0,siegeWeapons:ready.filter(u=>u.kind==='artillery').length,objective:mission.objective,target:{x:mission.x,y:mission.y}};
