@@ -26,6 +26,7 @@ function fixture(){
  const g=new Simulation(2026,4);
  const home=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
  const factory=addProducer(g,'factory',1);
+ g.spawn(1,{x:home.x-80,y:home.y+105},'engineer');
  for(let i=0;i<5;i++)g.spawn(1,{x:home.x-100-i*10,y:home.y+125},'infantry');
  g.spawn(1,{x:home.x-140,y:home.y+190},'rover');
  g.time=75;
