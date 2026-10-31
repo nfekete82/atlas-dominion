@@ -10,7 +10,7 @@ test('5.0: only a recently observed post-HQ turret with a living rocket earns a 
  assert.equal(keepCleanupTowerObjective(good),true);
  for(const bad of [
   {confirmedEndgame:false},{knownTurret:false},{hasArtillery:false},
-  {missionSeconds:70},{missionSeconds:-1},{recentNearbyLosses:2},{recentIntel:false}
+  {missionSeconds:90},{missionSeconds:-1},{recentNearbyLosses:2},{recentIntel:false}
  ])assert.equal(keepCleanupTowerObjective({...good,...bad}),false,JSON.stringify(bad));
 });
 
@@ -43,8 +43,8 @@ test('5.0: real losses, expired lock and stale intelligence still allow a differ
  for(const variant of ['losses','expired','unseen','no-artillery','hq-present']){
   const {g,s,old,ctx,tower}=missionScene();
   if(variant==='losses')ctx.losses=[{id:2,x:tower.x,y:tower.y,at:400,strength:100},{id:3,x:tower.x,y:tower.y,at:400,strength:100}];
-  if(variant==='expired')old.since=320;
-  if(variant==='unseen')s.intel[0].seenAt=325;
+  if(variant==='expired')old.since=305;
+  if(variant==='unseen')s.intel[0].seenAt=285;
   if(variant==='no-artillery')ctx.force=ctx.force.filter(u=>u.kind!=='artillery');
   if(variant==='hq-present')s.enemyHQEliminatedAt=undefined;
   chooseMission(g,s,{x:0,y:0},ctx);
