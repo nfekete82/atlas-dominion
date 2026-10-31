@@ -130,20 +130,26 @@ export function runMatch({Simulation,UNITS,performanceModule},options,seed,mode,
   return result;
  };
  // Intercept only actual launched missiles. An attack order does not imply a shot.
- const launch=g.launch.bind(g);
- g.launch=(u,target)=>{
-  const before=g.missiles.length,result=launch(u,target);
-  if(g.missiles.length>before)artilleryObserver.shot(g,u,target);
-  return result;
- };
+ // Minimal benchmark fixtures may omit missile launch and stop APIs.
+ // Keep telemetry observational, without requiring synthetic game behavior.
+ if(typeof g.launch==='function'&&Array.isArray(g.missiles)){
+  const launch=g.launch.bind(g);
+  g.launch=(u,target)=>{
+   const before=g.missiles.length,result=launch(u,target);
+   if(g.missiles.length>before)artilleryObserver.shot(g,u,target);
+   return result;
+  };
+ }
  // Count all AI cancellations, including direct stop calls that bypass command().
- const stop=g.stop.bind(g);
- g.stop=(ids,...rest)=>{
-  const oldArtillery=artilleryObserver.beforeStop(g,ids);
-  const result=stop(ids,...rest);
-  artilleryObserver.afterStop(g,oldArtillery);
-  return result;
- };
+ if(typeof g.stop==='function'){
+  const stop=g.stop.bind(g);
+  g.stop=(ids,...rest)=>{
+   const oldArtillery=artilleryObserver.beforeStop(g,ids);
+   const result=stop(ids,...rest);
+   artilleryObserver.afterStop(g,oldArtillery);
+   return result;
+  };
+ }
  // TypeScript private methods compile as ordinary methods in this project.
  // Observe exact applied combat damage before healing/construction can hide it.
  const exactDamage=typeof g.strike==='function';
