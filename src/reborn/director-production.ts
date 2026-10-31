@@ -9,6 +9,17 @@ interface ProductionContext {
  knownTurrets:number; knownEnemyHQ:boolean; reserve:number; maxArmy:number;
  scores:Record<UnitKind,number>;defenseNeedsWorker:boolean;finishing:boolean;
 }
+/** A paid early rocket after the first scout vehicle covers the eventual tower
+ * assault without claiming knowledge of an undiscovered enemy. Do not sacrifice
+ * emergency defense, air counters or the opening economy in weak positions. */
+export function earlyArtilleryWindow(input:{
+ factoryReady:boolean; artillery:number; rovers:number; tanks:number;
+ fighters:number; income:number; underAttack:boolean; visibleEnemyAir:boolean; time:number;
+}):boolean{
+ return input.factoryReady&&input.artillery===0&&input.rovers>=1&&input.tanks===0
+  &&input.fighters>=5&&input.income>=65&&input.time>=75&&input.time<210
+  &&!input.underAttack&&!input.visibleEnemyAir;
+}
 /** Purchase priorities are persistent composition deficits, not affordable-unit scores.
  * Counts include paid queues, so one factory never reserves money for a unit it
  * has already ordered. Every purchase still goes through Simulation.recruit. */
@@ -54,6 +65,14 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
     count('artillery')===0&&(c.knownTurrets>0||s.battle?.assessment?.neededSiege))
    return 'artillery';
   const response=counter();if(response)return response;
+  // AI 4.8 diagnostics: factories are available around 68 seconds, but
+  // first artillery often takes 210-370 seconds. Use one optional early
+  // siege weapon only after a paid rover and an established funded army.
+  // A queued rocket counts as already purchased and avoids duplicate saving.
+  if(earlyArtilleryWindow({factoryReady:available('artillery'),
+     artillery:count('artillery'),rovers:count('rover'),tanks:count('tank'),
+     fighters,income:c.income,underAttack:c.underAttack,
+     visibleEnemyAir:observed.air>0,time:g.time}))return 'artillery';
   if(c.finishing&&!c.underAttack){
    // A small screen can protect the siege weapon; indefinitely replacing
    // fallen infantry cannot. Keep an affordable heavy escort too.
