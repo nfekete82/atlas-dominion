@@ -9,6 +9,12 @@ export type ProductionReason='produced'|'saving-unit'|'saving-building'|'insuffi
 export interface ProductionDecision {reason:ProductionReason;goal:UnitKind|BuildingKind|null;missing:number}
 export interface EconomyState {goal:BuildingKind|null;since:number;attemptAt:number;produced:Partial<Record<UnitKind,number>>;built:Partial<Record<BuildingKind,number>>;towerAttemptAt?:number;production? :ProductionDecision&{at:number;facilities:Record<number,ProductionDecision>}}
 const fighter=(u:Unit)=>!u.carrier&&!['medic','engineer','scout'].includes(u.kind);
+/** Only already observed enemy infrastructure, an operational factory and a
+ * missing paid siege weapon may defer optional airfield construction. */
+export function deferOptionalAirfieldForSiege(goal:BuildingKind|null,observedSiege:boolean,
+ factoryReady:boolean,artilleryCount:number,underAttack:boolean):boolean{
+ return goal==='airfield'&&observedSiege&&factoryReady&&artilleryCount===0&&!underAttack;
+}
 /** A production/building policy inside the existing tactical controller, using only paid game APIs. */
 export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p:Point)=>number):void{
  const e:EconomyState=s.economy??{goal:null,since:g.time,attemptAt:-9,produced:{},built:{}},own=g.bases.filter(b=>b.owner===1&&b.hp>0),home=own.find(b=>b.kind==='headquarters')??own[0];if(!home)return;
@@ -37,6 +43,11 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
   // A finite generator budget avoids consuming every future air/armor purchase.
   else if(director&&complete('airfield')&&count('scout')>0&&g.time>=180&&income<65&&fighters.length>=6&&own.filter(b=>b.kind==='generator').length<3)goal='generator';
  }
+ // A confirmed visible or remembered siege objective should not lose its
+ // first funded rocket to optional airfield construction. Fogged HQs do not
+ // qualify; an already paid artillery queue releases this temporary deferral.
+ const observedSiege=known>0||g.memories[1].some(m=>m.owner===0&&m.hp>0&&m.kind==='headquarters');
+ if(deferOptionalAirfieldForSiege(goal,observedSiege,complete('factory'),count('artillery'),underAttack))goal=null;
  if(e.goal!==goal){e.goal=goal;e.since=g.time;}
  if(goal&&g.credits[1]>=BUILDINGS[goal].cost&&g.time-e.attemptAt>=9){
   e.attemptAt=g.time;
@@ -57,7 +68,9 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
  // a passive HQ guard, a real turret can hold a captured frontier while the
  // mobile army advances. Do not block repairs, construction or new armor.
  if(director&&!finishing&&!unfinished&&!g.bases.some(b=>b.owner===1&&b.hp>0&&b.buildRemaining>0)
-  &&(goal===null||goal==='generator'||(learnedDefense||urgentDefense)&&goal==='factory')&&complete('barracks')&&(complete('factory')||learnedDefense||urgentDefense)
+  &&(goal===null||goal==='generator'||(learnedDefense||urgentDefense)&&goal==='factory')
+  &&(!observedSiege||count('artillery')>0||urgentDefense)
+  &&complete('barracks')&&(complete('factory')||learnedDefense||urgentDefense)
   &&fighters.length>=(urgentDefense?3:4)&&g.time>=(urgentDefense?60:75)&&g.credits[1]>=BUILDINGS.turret.cost+(urgentDefense?150:400)
   &&own.filter(b=>b.kind==='turret').length<defensiveTowerLimit(g.territories.length)
   &&g.time-(e.towerAttemptAt??-30)>=18){
