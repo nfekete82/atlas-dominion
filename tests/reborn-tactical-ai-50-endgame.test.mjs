@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Simulation} from '../dist/src/reborn/simulation.js';
+import {keepEndgameBatteryFiring} from '../dist/src/reborn/tactical-ai.js';
 import {newCampaign,keepCleanupTowerObjective,chooseMission} from '../dist/src/reborn/campaign-commander.js';
 
 const good={confirmedEndgame:true,knownTurret:true,hasArtillery:true,
@@ -56,4 +57,16 @@ test('5.0: destroyed tower is not locked by a stale mission',()=>{
  g.memories[1]=g.memories[1].filter(m=>m.id!==tower.id);
  chooseMission(g,s,{x:0,y:0},ctx);
  assert.notEqual(s.mission,old);
+});
+
+test('5.0: only observed healthy batteries beyond turret range keep firing during regroup',()=>{
+ const x={confirmedEndgame:true,visibleTurret:true,livingGun:true,healthyGun:true,
+  distanceToTurret:650,turretRange:600,artilleryRange:680,
+  clearLine:true,mobileThreat:false};
+ assert.equal(keepEndgameBatteryFiring(x),true);
+ for(const bad of [
+  {confirmedEndgame:false},{visibleTurret:false},{livingGun:false},
+  {healthyGun:false},{distanceToTurret:620},{distanceToTurret:710},
+  {clearLine:false},{mobileThreat:true}
+ ])assert.equal(keepEndgameBatteryFiring({...x,...bad}),false,JSON.stringify(bad));
 });
