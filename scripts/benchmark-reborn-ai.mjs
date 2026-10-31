@@ -11,6 +11,7 @@ import {resolve,dirname} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {blueDefense} from './benchmark-ai-opponent.mjs';
 import {createArtilleryObserver} from './ai-artillery-observer.mjs';
+import {createEndgameObserver} from './ai-51-endgame-observer.mjs';
 
 const vehicles=new Set(['tank','rover','artillery','bomber','scout']);
 const groundVehicles=new Set(['tank','rover','artillery']);
@@ -93,6 +94,7 @@ export function runMatch({Simulation,UNITS,performanceModule},options,seed,mode,
   paidBuildCredits:0,bluePaidBuildCredits:0,paidBuildingsByKind:{},bluePaidBuildingsByKind:{},
   battleReactions:0,battleRetreats:0,reinforcements:0,counterattacks:0,enemyBuildingKillsByKind:{},missionEvents:[],timeline:[],score:0,wallMs:0,cpu:null};
  const artilleryObserver=createArtilleryObserver(UNITS);
+ const endgameObserver=createEndgameObserver(initialHQId,UNITS);
  const initialUnits=new Set(g.units.map(u=>u.id)),bornUnits=new Set(initialUnits);
  const unitsKnown=new Map(g.units.map(u=>[u.id,{owner:u.owner,kind:u.kind}]));
  const buildingsKnown=new Map(g.bases.map(b=>[b.id,{owner:b.owner,kind:b.kind}]));
@@ -191,7 +193,7 @@ export function runMatch({Simulation,UNITS,performanceModule},options,seed,mode,
  try{
   for(let step=0;step<steps&&g.status==='playing';step++){
    if(options.opponent==='guarded'&&step%60===0)(options.defender??blueDefense)(g);
-   const at=performance.now();g.step(dt);stepTimes.push(performance.now()-at);options.observe?.(g);artilleryObserver.sample(g);
+   const at=performance.now();g.step(dt);stepTimes.push(performance.now()-at);options.observe?.(g);artilleryObserver.sample(g);endgameObserver.sample(g);
    const s=g.tactical.state,now=time();metrics.elapsedSeconds=now;
    for(const u of g.units){
     unitsKnown.set(u.id,{owner:u.owner,kind:u.kind});
@@ -296,6 +298,7 @@ export function runMatch({Simulation,UNITS,performanceModule},options,seed,mode,
   metrics.battleReactions=g.tactical.state.battle?.reactions??0;metrics.battleRetreats=g.tactical.state.battle?.retreats??0;
   metrics.tactical=g.tactical.diagnostics?structuredClone(g.tactical.diagnostics):null;
   metrics.artilleryTelemetry=artilleryObserver.snapshot();
+  metrics.endgameTelemetry=endgameObserver.snapshot();
   metrics.counterattackDefinition='emergencyDefense to offensive/siege/endgame commander transitions';
   metrics.finalComposition={red:Object.fromEntries(Object.keys(UNITS).map(k=>[k,g.units.filter(u=>u.owner===1&&u.kind===k&&u.hp>0).length])),blue:Object.fromEntries(Object.keys(UNITS).map(k=>[k,g.units.filter(u=>u.owner===0&&u.kind===k&&u.hp>0).length]))};
   metrics.redUnits=g.count(1);metrics.redCredits=Math.round(g.credits[1]);metrics.repairedVehiclesReused=reusedVehicles.size;
