@@ -25,7 +25,8 @@ export function generatorBuildPriority(input:{
 }):boolean{
  const {existing,fighters,credits,barracksReady,underAttack,finishing}=input;
  if(finishing||underAttack||existing>=MAX_GENERATORS_PER_FACTION)return false;
- if(existing===0)return credits>=BUILDINGS.generator.cost;
+ // Keep saving for the first core even if fewer than 150 credits remain.
+ if(existing===0)return true;
  if(!barracksReady)return false;
  const minimumFighters=existing===1?3:5;
  const reserveAfterBuild=existing===1?200:300;
