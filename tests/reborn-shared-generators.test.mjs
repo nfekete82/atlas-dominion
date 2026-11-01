@@ -150,7 +150,7 @@ test('shared generators: investment rules cannot suppress early force expansion'
  const choose=(existing,fighters,credits,barracksReady=true,underAttack=false,finishing=false)=>
   generatorBuildPriority({existing,fighters,credits,barracksReady,underAttack,finishing});
  assert.equal(choose(0,2,150,false),true,'first core is a low-cost opening move');
- assert.equal(choose(0,2,149,false),false,'cannot build without 150 credits');
+ assert.equal(choose(0,2,149,false),true,'saving for the first core remains the opening priority');
  assert.equal(choose(1,2,1800,true),false,'two initial soldiers are not a viable expansion force');
  assert.equal(choose(1,3,349,true),false,'maintain 200 credits after second core');
  assert.equal(choose(1,3,350,true),true);
