@@ -37,7 +37,7 @@ export function comebackPressure(territories:readonly Territory[],owner:Owner):b
  return territories.filter(t=>t.owner===1-owner).length-territories.filter(t=>t.owner===owner).length>=2;
 }
 
-export interface RaidOpportunity {id:number;owner:Owner;income:number;routeLength:number;routeRisk:number;protected:boolean;recentlyLost:boolean}
+export interface RaidOpportunity extends Point {id:number;owner:number;income:number;routeLength:number;routeRisk:number;protected:boolean;recentlyLost:boolean}
 /** Objective ranking is public-income based, risk-first, and reproducible.
  * Dangerous towers and unseen threats never become attractive via income. */
 export function chooseComebackOpportunity(fronts:readonly RaidOpportunity[]):RaidOpportunity|undefined{
