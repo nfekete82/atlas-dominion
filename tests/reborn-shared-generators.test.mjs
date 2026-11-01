@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {Simulation} from '../dist/src/reborn/simulation.js';
 import {BUILDINGS,MAX_GENERATORS_PER_FACTION} from '../dist/src/reborn/catalog.js';
-import {developArmy} from '../dist/src/reborn/army-economy.js';
+import {developArmy,generatorBuildPriority} from '../dist/src/reborn/army-economy.js';
+import {chooseMission,newCampaign} from '../dist/src/reborn/campaign-commander.js';
 import {comebackPressure} from '../dist/src/reborn/territory-warfare.js';
 
 const makeGenerator=(g,owner,id,buildRemaining=0)=>{
@@ -100,43 +101,67 @@ test('shared generators: underdog AI can invest before an airfield with paid wor
  assert.ok(worker.orders.some(o=>o.kind==='build'&&o.target===generator.id));
 });
 
-test('shared generators: AI makes three successive energy cores its FIRST build goal regardless of sector advantage',()=>{
- for(const expanded of [false,true]){
-  const g=new Simulation(2026,14);g.aiClock=-1e8;g.credits[1]=2100;
-  const hq=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
-  if(expanded)for(const t of g.territories.filter(t=>t.owner===-1).slice(0,5))t.owner=1;
-  const worker=g.units.find(u=>u.owner===1&&u.kind==='engineer');
-  assert.ok(worker);
-  for(let n=1;n<=3;n++){
-   const prior=g.bases.filter(b=>b.owner===1&&b.kind==='generator').length;
-   developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1),()=>0);
-   const cores=g.bases.filter(b=>b.owner===1&&b.kind==='generator');
-   assert.equal(cores.length,prior+1,
-    'core '+n+' blocked '+JSON.stringify({time:g.time,credits:g.credits[1],
-     workerOrders:worker.orders,defendUntil:worker.defendUntil,goal:g.tactical.state.economy?.goal,
-     attempt:g.tactical.state.economy?.attemptAt,
-     unfinished:g.bases.filter(b=>b.owner===1&&b.buildRemaining>0).map(b=>({kind:b.kind,id:b.id,left:b.buildRemaining})),
-     explored:g.explored[1].filter(Boolean).length}));
-   assert.equal(g.tactical.state.economy.built.generator,n);
-   assert.equal(g.bases.some(b=>b.owner===1&&['barracks','factory','airfield'].includes(b.kind)),false,
-    'the three cores must take precedence over military production buildings');
-   assert.equal(cores.at(-1).buildRemaining,BUILDINGS.generator.buildTime);
-   assert.ok(worker.orders.some(o=>o.kind==='build'&&o.target===cores.at(-1).id));
-   // Run the actual builder movement and building ticks. The pioneer
-   // explores more ground on approach, revealing legal sites for later cores.
-   const active=cores.at(-1);
-   for(let tick=0;tick<1600&&active.buildRemaining>0;tick++)g.step(.05);
-   assert.equal(active.buildRemaining,0,'core '+n+' needs real completed pioneer construction');
-   for(let tick=0;tick<100&&worker.orders.length;tick++)g.step(.05);
-  }
-  developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1),()=>0);
-  assert.equal(g.bases.filter(b=>b.owner===1&&b.kind==='generator').length,3);
-  assert.equal(g.tactical.state.economy.built.generator,3);
-  assert.ok(g.credits[1]>=0);
-  assert.ok(hq.hp>0);
- }
+
+test('shared generators: first core early, then paid infantry and capture goals, later cores with spare money',()=>{
+ const g=new Simulation(2026,14);g.aiClock=-1e8;g.credits[1]=1850;
+ g.world.blocked.fill(0);g.world.opaque.fill(0);g.world.components.fill(0);g.world.cliffIds.fill(-1);
+ g.explored[1].fill(1);
+ const home=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
+ const worker=g.units.find(u=>u.owner===1&&u.kind==='engineer');
+ assert.ok(worker);
+ // First 150-credit investment immediately, rather than delaying military.
+ developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1),()=>0);
+ let cores=g.bases.filter(b=>b.owner===1&&b.kind==='generator');
+ assert.equal(cores.length,1);
+ assert.ok(worker.orders.some(o=>o.kind==='build'&&o.target===cores[0].id));
+ assert.equal(g.bases.some(b=>b.owner===1&&b.kind==='barracks'),false);
+ // Complete the real work, then prove the NEXT investment is barracks.
+ for(let tick=0;tick<1600&&cores[0].buildRemaining>0;tick++)g.step(.05);
+ assert.equal(cores[0].buildRemaining,0);
+ for(let tick=0;tick<100&&worker.orders.length;tick++)g.step(.05);
+ g.time+=12;
+ developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1),()=>0);
+ const barracks=g.bases.find(b=>b.owner===1&&b.kind==='barracks');
+ assert.ok(barracks,'the second build must establish infantry production');
+ assert.equal(g.bases.filter(b=>b.owner===1&&b.kind==='generator').length,1,
+  'the second generator must wait for a real army');
+ // Commander still selects frontier captures while the economy expands.
+ const mission=chooseMission(g,newCampaign(),home);
+ assert.equal(mission?.kind,'capture','territory income remains an active strategic goal');
+ assert.ok(g.territories[mission.sector].neighbors.some(id=>g.territories[id].owner===1));
+ // A complete barracks and three fighters allow a second core with liquidity.
+ barracks.buildRemaining=0;barracks.hp=BUILDINGS.barracks.hp;worker.orders=[];g.time+=12;
+ for(let i=0;i<2;i++)g.spawn(1,{x:home.x+220+i*25,y:home.y+140},'infantry');
+ g.credits[1]=850;
+ developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1),()=>0);
+ cores=g.bases.filter(b=>b.owner===1&&b.kind==='generator');
+ assert.equal(cores.length,2,'second core follows a sufficient infantry screen');
+ assert.ok(g.credits[1]>=0);
+ // Five fighters and renewed cash trigger the third, not a fixed timer.
+ cores.at(-1).buildRemaining=0;cores.at(-1).hp=BUILDINGS.generator.hp;worker.orders=[];g.time+=12;
+ for(let i=0;i<2;i++)g.spawn(1,{x:home.x+240+i*25,y:home.y+170},'infantry');
+ g.credits[1]=1000;
+ developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1),()=>0);
+ assert.equal(g.bases.filter(b=>b.owner===1&&b.kind==='generator').length,3);
+ assert.equal(g.tactical.state.economy.built.generator,3);
 });
 
+test('shared generators: investment rules cannot suppress early force expansion',()=>{
+ const choose=(existing,fighters,credits,barracksReady=true,underAttack=false,finishing=false)=>
+  generatorBuildPriority({existing,fighters,credits,barracksReady,underAttack,finishing});
+ assert.equal(choose(0,2,150,false),true,'first core is a low-cost opening move');
+ assert.equal(choose(0,2,149,false),false,'cannot build without 150 credits');
+ assert.equal(choose(1,2,1800,true),false,'two initial soldiers are not a viable expansion force');
+ assert.equal(choose(1,3,349,true),false,'maintain 200 credits after second core');
+ assert.equal(choose(1,3,350,true),true);
+ assert.equal(choose(1,5,1500,false),false,'barracks must be ready before investing again');
+ assert.equal(choose(2,4,1500,true),false,'third core waits for a stronger army');
+ assert.equal(choose(2,5,449,true),false,'retain 300 credits for replacement troops');
+ assert.equal(choose(2,5,450,true),true);
+ assert.equal(choose(2,9,1000,true,true),false,'direct attack postpones optional construction');
+ assert.equal(choose(3,12,1500,true),false,'no fourth generator');
+ assert.equal(choose(1,10,1500,true,false,true),false,'endgame must be fought rather than invested away');
+});
 test('shared generators: underfunded AI never gets a free core and tries again when credits arrive',()=>{
  const g=new Simulation(2026,14);g.aiClock=-1e8;g.credits[1]=75;
  const worker=g.units.find(u=>u.owner===1&&u.kind==='engineer');
