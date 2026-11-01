@@ -739,6 +739,9 @@ export class Simulation {
         if(work>0)this.work('build',workers[0].id,b.id,work);
         b.buildRemaining=Math.max(0,b.buildRemaining-work);if(b.buildRemaining<1e-8)b.buildRemaining=0;
         b.hp=Math.min(buildingSpec(b).hp,b.hp+buildingSpec(b).hp*.75*work/buildingSpec(b).buildTime);
+        // Remove floating-point dust at completion. A 1e-12 HP deficit must
+        // not trigger an autonomous repair order and stall the next core.
+        if(b.buildRemaining===0&&b.hp>=buildingSpec(b).hp-1e-6)b.hp=buildingSpec(b).hp;
         if(b.buildRemaining===0&&b.owner===0)this.notices.push(b.kind==='headquarters'&&this.bootstrapVersion===1?'Hauptquartier errichtet. Radar online.':`Gebäude fertiggestellt: ${buildingSpec(b).name}.`);continue;
       }
       b.cooldown-=dt;
