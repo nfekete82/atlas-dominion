@@ -6,7 +6,7 @@ import { profiler } from './performance.js';
 import { RULES, WEATHER_RULES, clamp, distance, type Faction, type Owner, type Point, type MapVersion, mapLayout, campaignLayout, mapWorldSize } from './config.js';
 import { World, inside, type Territory } from './world.js';
 import {canCaptureSector,captureSeconds} from './territory-warfare.js';
-import { UNITS, BUILDINGS, canAttack, weaponDamage, unitSpec, buildingSpec, unitKinds, type UnitKind, type BuildingKind } from './catalog.js';
+import { UNITS, BUILDINGS, canAttack, weaponDamage, unitSpec, buildingSpec, unitKinds, MAX_GENERATORS_PER_FACTION, type UnitKind, type BuildingKind } from './catalog.js';
 import {angleDifference,turnTowards} from './sprite-animator.js';
 import {newMatchStatistics,countDeployed,countProduced,countIncome,validMatchStatistics,type MatchStatistics} from './match-statistics.js';
 import {turretPivot,turretMuzzles} from './turret.js';
@@ -166,6 +166,8 @@ export class Simulation {
     if(!Number.isFinite(p.x)||!Number.isFinite(p.y))return 'Ungültiger Kartenbereich.';
     if(!spec||this.status!=='playing')return 'Dieses Gebäude kann hier nicht errichtet werden.';
     if(this.bases.filter(b=>b.hp>0).length>=40)return 'Gebäudelimit erreicht.';
+    if(kind==='generator'&&this.bases.filter(b=>b.owner===owner&&b.kind==='generator'&&b.hp>0).length>=MAX_GENERATORS_PER_FACTION)
+      return `Maximal ${MAX_GENERATORS_PER_FACTION} Energiekerne pro Fraktion.`;
     if(['barracks','factory','airfield'].includes(kind)&&this.bases.some(b=>b.owner===owner&&b.kind===kind&&b.hp>0))return 'Dieses Produktionsgebäude existiert bereits.';
     if(kind==='headquarters'){
       if(this.bootstrapVersion!==1)return 'Dieses Gebäude kann hier nicht errichtet werden.';
