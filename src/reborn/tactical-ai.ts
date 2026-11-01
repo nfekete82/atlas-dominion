@@ -10,6 +10,7 @@ import {newBattle,assessBattle,fightingPower,recordFailure,retryFront,validBattl
 import {newAdaptive,updateAdaptive,validAdaptive,type AdaptiveState} from './adaptive-strategy.js';
 import {newExperience,validExperience,finishExperience,canOverrun,observeOwnedLosses,lessonScore,type Experience} from './battle-learning.js';
 import {rankLegacyFrontiers} from './legacy-campaign.js';
+import {canCaptureSector,comebackPressure,chooseComebackOpportunity} from './territory-warfare.js';
 import {chooseTacticalManeuver,flankCandidate,type TacticalChoice} from './tactical-search.js';
 import {assignScreen,assignFlank,flankRouteScore,isContinuingFlank} from './battle-squads.js';
 import {assaultWaveDecision,reinforcementStagingPoint} from './assault-wave.js';
@@ -629,11 +630,16 @@ export class TacticalAI {
     ||this.g.world.mapVersion<3)return new Set();
   const g=this.g,s=this.state,b=s.battle??=newBattle();
   const old=b.squads.find(q=>q.role==='raid');
+  // Losing two sectors triggers a small paid detachment sooner than the
+  // normal ten-fighter doctrine. No new units or economic bonuses.
+  const comeback=g.world.mapVersion>=11&&g.time>=45&&comebackPressure(g.territories,1);
   const candidates=fighters.filter(u=>!s.group.includes(u.id)&&['rover','infantry'].includes(u.kind)
-    &&u.hp>=unitSpec(u).hp*.7&&!b.withdrawals.some(w=>w.unit===u.id));
-  // A campaign under pressure keeps a viable primary front and one guard.
-  if(!allowSecondaryPressure(fighters.length,fighters.length-2,
-    fighters.length-s.group.filter(id=>!fighters.some(u=>u.id===id)).length-2,candidates.length)){
+    &&u.hp>=unitSpec(u).hp*.7&&!b.withdrawals.some(w=>w.unit===u.id&&w.until>g.time));
+  const normal=allowSecondaryPressure(fighters.length,fighters.length-2,
+    fighters.length-s.group.filter(id=>!fighters.some(u=>u.id===id)).length-2,candidates.length);
+  // Keep three paid fighters on main defense; never steal emergency defenders.
+  const emergency=b.squads.some(q=>q.role==='defense'&&q.ids.length>0);
+  if((!normal&&!(comeback&&fighters.length>=5&&candidates.length>=2))||emergency){
    b.squads=b.squads.filter(q=>q.role!=='raid');return new Set();
   }
   const scout=old?candidates.filter(u=>old.ids.includes(u.id)):candidates.slice()
@@ -643,7 +649,8 @@ export class TacticalAI {
   if(party.length!==2)return new Set();
   const anchor={x:(party[0].x+party[1].x)/2,y:(party[0].y+party[1].y)/2};
   const frontier=g.territories.filter(t=>t.owner!==1&&t.id!==main.sector
-    &&t.neighbors.some(id=>g.territories[id].owner===1));
+    &&(t.neighbors.some(id=>g.territories[id].owner===1)
+      ||comeback&&canCaptureSector(g.territories,t,1,g.world.mapVersion)));
   const fronts:RaidFront[]=[];
   for(const t of frontier){
    const threatened=s.knownTurrets.some(tower=>distance(tower,t.point)<tower.range+140)
@@ -653,13 +660,17 @@ export class TacticalAI {
    const route=this.route(anchor,t.point);
    if(!route.length)continue;
    const path=this.sampleRoute(route,anchor);
+   if(path.risk>=8||comeback&&path.length>2400)continue;
    fronts.push({id:t.id,x:t.point.x,y:t.point.y,owner:t.owner,income:t.income,
      routeLength:path.length,routeRisk:path.risk,observedThreat:threatened});
   }
-  // Keep a currently safe raid, rather than oscillating between equally good
-  // frontier captures every three seconds. Stop holding stale IDs on capture.
+  // Retain an active safe raid; prioritize valuable enemy sectors while
+  // behind, using public ownership and only previously observed threats.
   const continuing=old?.target!==null?fronts.find(t=>t.id===old?.target):undefined;
-  const target=continuing??chooseRaidFront(fronts,main.sector);
+  const counter=comeback?chooseComebackOpportunity(fronts.map(t=>({
+   ...t,protected:t.observedThreat,recentlyLost:s.experience?.lastLostSector===t.id
+  }))):undefined;
+  const target=continuing??counter??chooseRaidFront(fronts,main.sector);
   if(!target){b.squads=b.squads.filter(q=>q.role!=='raid');return new Set();}
   const changed=old?.target!==target.id||party.some(u=>!old?.ids.includes(u.id));
   b.squads=[...b.squads.filter(q=>q.role!=='raid'),

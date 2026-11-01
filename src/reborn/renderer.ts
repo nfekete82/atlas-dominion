@@ -7,6 +7,7 @@ import { profiler } from './performance.js';
 import { ASSETS, RULES, clamp, distance, type Point } from './config.js';
 import { Simulation, type Base, type Unit } from './simulation.js';
 import { type Territory } from './world.js';
+import {captureSeconds} from './territory-warfare.js';
 import { BUILDINGS, UNITS, buildingSpec, unitSpec, type BuildingKind, type UnitKind } from './catalog.js';
 import { UnitPresentation, unitVisualLift } from './unit-presentation.js';
 import {angleDifference} from './sprite-animator.js';
@@ -300,8 +301,10 @@ export class Renderer {
     }
     if(!dim&&(t.progress>0||state==='contested')){
       const contested=state==='contested'||g.units.some(u=>u.hp>0&&!u.carrier&&u.owner!==t.capturing&&distance(u,p)<=RULES.captureRadius);
-      if(t.progress>0)this.bar({x:p.x,y:p.y-99},65,t.progress/RULES.captureTime,contested?'#e6b475':t.capturing===0?'#71c5f4':'#ed7f6d');
-      c.fillStyle='#f0dfbe';c.font='10px monospace';c.fillText(contested?'UMKÄMPFT':`SICHERN ${Math.round(t.progress/RULES.captureTime*100)} %`,p.x,p.y-106);}
+      const seconds=captureSeconds({version:g.world.mapVersion,territory:t,attacker:t.capturing,units:g.units,bases:g.bases});
+      const captureProgress=Math.min(1,t.progress/seconds);
+      if(t.progress>0)this.bar({x:p.x,y:p.y-99},65,captureProgress,contested?'#e6b475':t.capturing===0?'#71c5f4':'#ed7f6d');
+      c.fillStyle='#f0dfbe';c.font='10px monospace';c.fillText(contested?'UMKÄMPFT':`SICHERN ${Math.round(captureProgress*100)} %`,p.x,p.y-106);}
     c.restore();
   }
   render(dt:number,interpolation=1):void {

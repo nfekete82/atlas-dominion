@@ -5,6 +5,7 @@ import {VisionCache} from './vision-cache.js';
 import { profiler } from './performance.js';
 import { RULES, WEATHER_RULES, clamp, distance, type Faction, type Owner, type Point, type MapVersion, mapLayout, campaignLayout, mapWorldSize } from './config.js';
 import { World, inside, type Territory } from './world.js';
+import {canCaptureSector,captureSeconds} from './territory-warfare.js';
 import { UNITS, BUILDINGS, canAttack, weaponDamage, unitSpec, buildingSpec, unitKinds, type UnitKind, type BuildingKind } from './catalog.js';
 import {angleDifference,turnTowards} from './sprite-animator.js';
 import {newMatchStatistics,countDeployed,countProduced,countIncome,validMatchStatistics,type MatchStatistics} from './match-statistics.js';
@@ -262,7 +263,7 @@ export class Simulation {
     if(!inside)return friendly.some(u=>distance(u,t.point)<=RULES.captureRadius+120)?'out-of-range':'no-unit';
     if(this.units.some(u=>u.owner!==owner&&u.hp>0&&!u.carrier&&distance(u,t.point)<=RULES.captureRadius))return 'contested';
     if(this.bases.some(b=>b.kind==='headquarters'&&b.territory===t.id&&b.owner!==owner&&b.hp>0))return 'enemy-hq';
-    if(!t.neighbors.some(i=>this.territories[i].owner===owner))return 'disconnected';
+    if(!canCaptureSector(this.territories,t,owner,this.world.mapVersion))return 'disconnected';
     return 'capturing';
   }
   stop(ids:number[],hold=false):void {for(const u of this.units)if(ids.includes(u.id)){this.transports.cancel(u);u.orders=[];u.path=[];u.repath=0;u.moving=false;u.pursuitOrigin=null;u.combatTarget=null;u.hold=hold;u.supportPaused=false;u.workingTarget=null;delete u.burst;}}
@@ -777,7 +778,7 @@ export class Simulation {
       if(blue&&red)continue;
       const owner:Owner=blue?0:red?1:-1;
       const defendedBase=this.bases.some(b=>b.kind==='headquarters'&&b.territory===t.id&&b.owner!==owner&&b.hp>0);
-      if(owner<0||owner===t.owner||defendedBase||!t.neighbors.some(i=>this.territories[i].owner===owner)){
+      if(owner<0||owner===t.owner||defendedBase||!canCaptureSector(this.territories,t,owner,this.world.mapVersion)){
         t.progress=Math.max(0,t.progress-dt*.5);if(t.progress===0)t.capturing=-1;continue;
       }
       if(t.capturing!==owner){
@@ -787,7 +788,7 @@ export class Simulation {
         t.capturing=owner;t.progress=0;
       }
       t.progress+=dt;
-      if(t.progress+1e-8>=RULES.captureTime){
+      if(t.progress+1e-8>=captureSeconds({version:this.world.mapVersion,territory:t,attacker:owner,units:this.units,bases:this.bases})){
         t.owner=owner;t.progress=0;t.capturing=-1;ownershipChanged=true;
         for(const b of this.bases)if(b.kind==='headquarters'&&b.territory===t.id&&b.hp<=0){b.owner=owner as Faction;b.hp=RULES.headquarters.hp*.5;b.queue=[];b.queueTypes=[];b.queueCosts=[];b.production=0;}
         if(owner===0)this.notices.push(`${t.name} gesichert · +${t.income} Credits / 10 s`);
