@@ -15,6 +15,22 @@ export function deferOptionalAirfieldForSiege(goal:BuildingKind|null,observedSie
  factoryReady:boolean,artilleryCount:number,underAttack:boolean):boolean{
  return goal==='airfield'&&observedSiege&&factoryReady&&artilleryCount===0&&!underAttack;
 }
+/** Stage passive-income construction around an actual field army. The first
+ * core is an opening investment; later cores must not delay a barracks,
+ * leave an undefended front, or eat the cash needed for replacement troops.
+ * No enemy information or invisible economy is required. */
+export function generatorBuildPriority(input:{
+ existing:number;fighters:number;credits:number;
+ barracksReady:boolean;underAttack:boolean;finishing:boolean
+}):boolean{
+ const {existing,fighters,credits,barracksReady,underAttack,finishing}=input;
+ if(finishing||underAttack||existing>=MAX_GENERATORS_PER_FACTION)return false;
+ if(existing===0)return credits>=BUILDINGS.generator.cost;
+ if(!barracksReady)return false;
+ const minimumFighters=existing===1?3:5;
+ const reserveAfterBuild=existing===1?200:300;
+ return fighters>=minimumFighters&&credits>=BUILDINGS.generator.cost+reserveAfterBuild;
+}
 /** A production/building policy inside the existing tactical controller, using only paid game APIs. */
 export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p:Point)=>number):void{
  const e:EconomyState=s.economy??{goal:null,since:g.time,attemptAt:-9,produced:{},built:{}},own=g.bases.filter(b=>b.owner===1&&b.hp>0),home=own.find(b=>b.kind==='headquarters')??own[0];if(!home)return;
@@ -36,11 +52,15 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
   if(target)g.command([w.id],{...target,kind:target.buildRemaining>0?'build':'repair',target:target.id});
  }
  let goal:BuildingKind|null=null;
- if((!finishing||!has('barracks')||!has('factory')&&known>0||director&&generators<MAX_GENERATORS_PER_FACTION)
+ const wantCore=director&&generatorBuildPriority({
+  existing:generators,fighters:fighters.length,credits:g.credits[1],
+  barracksReady:complete('barracks'),underAttack,finishing
+ });
+ if((!finishing||!has('barracks')||!has('factory')&&known>0||wantCore)
   &&!unfinished&&workers.length&&(!underAttack||!has('barracks'))){
-  // Prioritize all three paid energy cores from the first build pulse.
-  // Existing HQ construction, a busy builder and emergency defense are still respected.
-  if(director&&generators<MAX_GENERATORS_PER_FACTION)goal='generator';
+  // First core immediately; later cores only when a paid ground force is
+  // already available and enough credits remain for ongoing recruitment.
+  if(wantCore)goal='generator';
   else if(!has('barracks'))goal='barracks';
   else if(!has('factory')&&fighters.length>=3&&(income>=20||known>0||g.time>=55))goal='factory';
   else if(!has('airfield')&&has('factory')&&fighters.length>=4&&(income>=35||g.time>=110||seen.some(u=>unitSpec(u).flying))&&(!director||(complete('factory')&&count('tank')+count('rover')+count('artillery')>=3&&income>=35)))goal='airfield';
@@ -93,10 +113,11 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
   &&own.filter(b=>b.kind==='turret').length<defensiveTowerLimit(g.territories.length)
   &&rankBastionDefenses(g).length>0&&!workers.some(w=>w.defendUntil<=g.time&&!w.orders.length)
   &&g.credits[1]>=BUILDINGS.turret.cost+(urgentDefense?150:400);
- // Reserve the remaining paid generator budget, even while one core is being built.
- const coreReserve=director&&!underAttack?Math.max(0,MAX_GENERATORS_PER_FACTION-generators)*BUILDINGS.generator.cost:0;
- const buildReserve=e.goal&&(e.goal==='barracks'||!underAttack&&fighters.length>=3)&&g.time-e.since<85?BUILDINGS[e.goal].cost:0;
- const reserve=Math.max(coreReserve,buildReserve);
+ // Do not freeze recruitment for an unbuilt second or third core. Preserve
+ // only the committed active construction goal, then reassess next pulse.
+ const buildReserve=e.goal&&(e.goal==='barracks'||!underAttack&&fighters.length>=3)
+  &&g.time-e.since<85?BUILDINGS[e.goal].cost:0;
+ const reserve=buildReserve;
  const maxArmy=director?Math.min(36,Math.max(18,Math.floor(income/3)+10)):Math.min(30,Math.max(14,Math.floor(income/4)+8));if(g.count(1)+g.queued(1)>=maxArmy&&(!director||count('engineer')>0)){
   if(director)e.production={at:g.time,reason:'army-cap',goal:null,missing:0,facilities:Object.fromEntries(own.filter(b=>b.buildRemaining<=0).map(b=>[b.id,{reason:b.queue.length>=2?'queue-blocked':'army-cap',goal:null,missing:0}]))};
   return;
