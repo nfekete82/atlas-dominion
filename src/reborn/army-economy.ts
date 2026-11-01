@@ -1,4 +1,5 @@
-import {UNITS,BUILDINGS,unitSpec,canAttack,type UnitKind,type BuildingKind} from './catalog.js';
+import {UNITS,BUILDINGS,MAX_GENERATORS_PER_FACTION,unitSpec,canAttack,type UnitKind,type BuildingKind} from './catalog.js';
+import {comebackPressure} from './territory-warfare.js';
 import {distance,type Point} from './config.js';
 import {produceCombinedArmy} from './director-production.js';
 import {buildBastionDefense,defensiveTowerLimit,rankBastionDefenses} from './bastion-defense.js';
@@ -29,6 +30,9 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
  const learnedDefense=director&&s.experience?defenseLessonsLost(s.experience)>0:false;
  const defenseFronts=director?rankBastionDefenses(g):[];
  const urgentDefense=defenseFronts.some(c=>c.urgent);
+ const comeback=director&&g.world.mapVersion>=11&&comebackPressure(g.territories,1);
+ const generators=own.filter(b=>b.kind==='generator').length;
+ const observedSiege=known>0||g.memories[1].some(m=>m.owner===0&&m.hp>0&&m.kind==='headquarters');
  for(const w of workers)if(!w.orders.length&&w.defendUntil<=g.time){
   const target=unfinished??own.filter(b=>b.buildRemaining<=0&&b.hp<BUILDINGS[b.kind].hp).sort((a,b)=>distance(w,a)-distance(w,b))[0];
   if(target)g.command([w.id],{...target,kind:target.buildRemaining>0?'build':'repair',target:target.id});
@@ -37,16 +41,20 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
  if((!finishing||!has('barracks')||!has('factory')&&known>0)&&!unfinished&&workers.length&&(!underAttack||!has('barracks'))){
   if(!has('barracks'))goal='barracks';
   else if(!has('factory')&&fighters.length>=3&&(income>=20||known>0||g.time>=55))goal='factory';
+  // A paid, protected second income stream can fund a counterattack even
+  // when the enemy holds two more bastions. Do not skip the ground factory,
+  // drain the next anti-turret rocket or steal the base-defense budget.
+  else if(director&&complete('factory')&&fighters.length>=4&&!underAttack
+   &&g.time>=(comeback?95:145)&&generators<(comeback?MAX_GENERATORS_PER_FACTION:2)
+   &&income<(comeback?105:75)
+   &&g.credits[1]>=BUILDINGS.generator.cost+(comeback?225:450)
+   &&(!observedSiege||count('artillery')>0))goal='generator';
   else if(!has('airfield')&&has('factory')&&fighters.length>=4&&(income>=35||g.time>=110||seen.some(u=>unitSpec(u).flying))&&(!director||(complete('factory')&&count('tank')+count('rover')+count('artillery')>=3&&income>=35)))goal='airfield';
   else if(!has('barracks')&&fighters.length>=3)goal='barracks';
-  // Reinvest a secure, established army's surplus in paid recurring income.
-  // A finite generator budget avoids consuming every future air/armor purchase.
-  else if(director&&complete('airfield')&&count('scout')>0&&g.time>=180&&income<65&&fighters.length>=6&&own.filter(b=>b.kind==='generator').length<3)goal='generator';
  }
  // A confirmed visible or remembered siege objective should not lose its
  // first funded rocket to optional airfield construction. Fogged HQs do not
  // qualify; an already paid artillery queue releases this temporary deferral.
- const observedSiege=known>0||g.memories[1].some(m=>m.owner===0&&m.hp>0&&m.kind==='headquarters');
  if(deferOptionalAirfieldForSiege(goal,observedSiege,complete('factory'),count('artillery'),underAttack))goal=null;
  if(e.goal!==goal){e.goal=goal;e.since=g.time;}
  if(goal&&g.credits[1]>=BUILDINGS[goal].cost&&g.time-e.attemptAt>=9){
