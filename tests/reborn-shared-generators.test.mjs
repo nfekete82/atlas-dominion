@@ -117,9 +117,12 @@ test('shared generators: AI makes three successive energy cores its FIRST build 
     'the three cores must take precedence over military production buildings');
    assert.equal(cores.at(-1).buildRemaining,BUILDINGS.generator.buildTime);
    assert.ok(worker.orders.some(o=>o.kind==='build'&&o.target===cores.at(-1).id));
-   cores.at(-1).buildRemaining=0;
-   worker.orders=[];
-   g.time+=12; // The worker and simulated build are ready for a new construction order.
+   // Run the actual builder movement and building ticks. The pioneer
+   // explores more ground on approach, revealing legal sites for later cores.
+   const active=cores.at(-1);
+   for(let tick=0;tick<1600&&active.buildRemaining>0;tick++)g.step(.05);
+   assert.equal(active.buildRemaining,0,'core '+n+' needs real completed pioneer construction');
+   for(let tick=0;tick<100&&worker.orders.length;tick++)g.step(.05);
   }
   developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1),()=>0);
   assert.equal(g.bases.filter(b=>b.owner===1&&b.kind==='generator').length,3);
