@@ -31,8 +31,9 @@ export function rankBastionDefenses(g:Simulation):BastionDefenseCandidate[]{
   const urgent=nearby.length>0||lossFront;
   const closest=nearby[0];
   const proximity=closest?Math.max(0,1-distance(closest,t.point)/RULES.turret.sight):0;
-  const score=hostile.length*1500+(friendlyHq.has(t.id)?0:550)+t.income*8
-   +nearby.length*350+proximity*900+(lossFront?1400:0);
+  // Prioritize valuable, actually owned fronts when investing in paid towers.
+  const score=hostile.length*1500+(friendlyHq.has(t.id)?0:550)+t.income*18
+   +nearby.length*350+proximity*900+(lossFront?1600:0);
   ranked.push({sector:t.id,score,threat:closest??threat.point,urgent});
  }
  return ranked.sort((a,b)=>b.score-a.score||a.sector-b.sector);
