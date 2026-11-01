@@ -32,7 +32,7 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
  const generators=own.filter(b=>b.kind==='generator').length;
  const observedSiege=known>0||g.memories[1].some(m=>m.owner===0&&m.hp>0&&m.kind==='headquarters');
  for(const w of workers)if(!w.orders.length&&w.defendUntil<=g.time){
-  const target=unfinished??own.filter(b=>b.buildRemaining<=0&&b.hp<BUILDINGS[b.kind].hp).sort((a,b)=>distance(w,a)-distance(w,b))[0];
+  const target=unfinished??own.filter(b=>b.buildRemaining<=0&&b.hp<BUILDINGS[b.kind].hp-.01).sort((a,b)=>distance(w,a)-distance(w,b))[0];
   if(target)g.command([w.id],{...target,kind:target.buildRemaining>0?'build':'repair',target:target.id});
  }
  let goal:BuildingKind|null=null;
