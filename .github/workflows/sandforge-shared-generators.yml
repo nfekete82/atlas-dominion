@@ -1,0 +1,37 @@
+name: Sandforge – shared generators and economic fairness
+on:
+  push:
+    branches: [feat/sandforge-shared-generators-20261101]
+    paths:
+      - .github/workflows/sandforge-shared-generators.yml
+      - src/reborn/catalog.ts
+      - src/reborn/simulation.ts
+      - src/reborn/main.ts
+      - src/reborn/army-economy.ts
+      - index.html
+      - tests/reborn-shared-generators.test.mjs
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: shared-generators-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  economics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Generator income, capped construction, save compatibility, paid AI and territory regressions
+        run: |
+          node --test \
+            tests/reborn-shared-generators.test.mjs \
+            tests/reborn-dynamic-territory-warfare.test.mjs \
+            tests/reborn-map-ai.test.mjs \
+            tests/reborn-capture-feedback.test.mjs

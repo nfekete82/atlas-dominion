@@ -6,7 +6,7 @@ import { profiler } from './performance.js';
 import { RULES, WEATHER_RULES, clamp, distance, type Faction, type Owner, type Point, type MapVersion, mapLayout, campaignLayout, mapWorldSize } from './config.js';
 import { World, inside, type Territory } from './world.js';
 import {canCaptureSector,captureSeconds} from './territory-warfare.js';
-import { UNITS, BUILDINGS, canAttack, weaponDamage, unitSpec, buildingSpec, unitKinds, type UnitKind, type BuildingKind } from './catalog.js';
+import { UNITS, BUILDINGS, canAttack, weaponDamage, unitSpec, buildingSpec, unitKinds, MAX_GENERATORS_PER_FACTION, type UnitKind, type BuildingKind } from './catalog.js';
 import {angleDifference,turnTowards} from './sprite-animator.js';
 import {newMatchStatistics,countDeployed,countProduced,countIncome,validMatchStatistics,type MatchStatistics} from './match-statistics.js';
 import {turretPivot,turretMuzzles} from './turret.js';
@@ -166,6 +166,8 @@ export class Simulation {
     if(!Number.isFinite(p.x)||!Number.isFinite(p.y))return 'Ungültiger Kartenbereich.';
     if(!spec||this.status!=='playing')return 'Dieses Gebäude kann hier nicht errichtet werden.';
     if(this.bases.filter(b=>b.hp>0).length>=40)return 'Gebäudelimit erreicht.';
+    if(kind==='generator'&&this.bases.filter(b=>b.owner===owner&&b.kind==='generator'&&b.hp>0).length>=MAX_GENERATORS_PER_FACTION)
+      return `Maximal ${MAX_GENERATORS_PER_FACTION} Energiekerne pro Fraktion.`;
     if(['barracks','factory','airfield'].includes(kind)&&this.bases.some(b=>b.owner===owner&&b.kind===kind&&b.hp>0))return 'Dieses Produktionsgebäude existiert bereits.';
     if(kind==='headquarters'){
       if(this.bootstrapVersion!==1)return 'Dieses Gebäude kann hier nicht errichtet werden.';
@@ -737,6 +739,9 @@ export class Simulation {
         if(work>0)this.work('build',workers[0].id,b.id,work);
         b.buildRemaining=Math.max(0,b.buildRemaining-work);if(b.buildRemaining<1e-8)b.buildRemaining=0;
         b.hp=Math.min(buildingSpec(b).hp,b.hp+buildingSpec(b).hp*.75*work/buildingSpec(b).buildTime);
+        // Remove floating-point dust at completion. A 1e-12 HP deficit must
+        // not trigger an autonomous repair order and stall the next core.
+        if(b.buildRemaining===0&&b.hp>=buildingSpec(b).hp-1e-6)b.hp=buildingSpec(b).hp;
         if(b.buildRemaining===0&&b.owner===0)this.notices.push(b.kind==='headquarters'&&this.bootstrapVersion===1?'Hauptquartier errichtet. Radar online.':`Gebäude fertiggestellt: ${buildingSpec(b).name}.`);continue;
       }
       b.cooldown-=dt;

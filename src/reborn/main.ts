@@ -10,7 +10,7 @@ import { saveCampaign, loadCampaign,readAiLearningPreference,storeAiLearningPref
 import {finishExperience} from './battle-learning.js';
 import {newCampaignReport,observeCampaignReport,finishCampaignReport,readCampaignReports,writeCampaignReport,summarizeCampaignArchive,campaignStatisticsRecords,factionInReport,mostDeployed,type CampaignReport} from './campaign-history.js';
 import { Soundscape } from './audio.js';
-import { BUILDINGS, UNITS, unitKinds, buildingSpec, unitSpec, type UnitKind, type BuildingKind } from './catalog.js';
+import { BUILDINGS, UNITS, unitKinds, buildingSpec, unitSpec, MAX_GENERATORS_PER_FACTION, type UnitKind, type BuildingKind } from './catalog.js';
 import { icon } from './icons.js';
 import {transportCapacity} from './transports.js';
 
@@ -278,9 +278,14 @@ function refreshMeasured():void{
  for(const button of document.querySelectorAll<HTMLButtonElement>('[data-build]')){
   const kind=button.dataset.build as BuildingKind;
   const existing=['barracks','factory','airfield'].includes(kind)&&game.bases.some(b=>b.owner===0&&b.hp>0&&b.kind===kind);
+  const generatorCount=kind==='generator'?game.bases.filter(b=>b.owner===0&&b.kind==='generator'&&b.hp>0).length:0;
+  const generatorFull=kind==='generator'&&generatorCount>=MAX_GENERATORS_PER_FACTION;
   const opening=game.needsHeadquarters(0),hqSite=kind==='headquarters'&&game.bases.some(b=>b.owner===0&&b.hp>0&&b.kind==='headquarters');
   button.hidden=kind==='headquarters'?!opening:opening;
-  button.disabled=existing||hqSite;button.title=hqSite?'Hauptquartier ist bereits im Bau.':existing?'Bereits vorhanden: maximal ein Gebäude dieses Typs.':'';
+  button.disabled=existing||hqSite||generatorFull;
+  button.title=generatorFull?`Maximal ${MAX_GENERATORS_PER_FACTION} Energiekerne pro Fraktion.`
+   :kind==='generator'?`Energiekern: +${BUILDINGS.generator.income} Credits / ${RULES.incomeInterval} s · ${generatorCount}/${MAX_GENERATORS_PER_FACTION} gebaut.`
+   :hqSite?'Hauptquartier ist bereits im Bau.':existing?'Bereits vorhanden: maximal ein Gebäude dieses Typs.':'';
  }
  for(const button of document.querySelectorAll<HTMLButtonElement>('[data-unit]')){
   const kind=button.dataset.unit as UnitKind,producer=game.producer(0,kind);button.hidden=!UNITS[kind].producers.some(k=>facilities.has(k));button.disabled=!producer||game.credits[0]<UNITS[kind].cost||game.count(0)+game.queued(0)>=RULES.capacity||game.status!=='playing';button.classList.toggle('locked',!producer);button.title=`${UNITS[kind].name} · ${UNITS[kind].cost} Credits · ${UNITS[kind].buildTime} S${producer?'':' · '+UNITS[kind].producers.map(k=>BUILDINGS[k].name).join(' / ')+' erforderlich'}`;

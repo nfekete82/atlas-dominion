@@ -106,8 +106,11 @@ test('4.0: urgent threatened bastion can be fortified with a smaller cash buffer
  assert.equal(g.tactical.state.economy.built.turret,1);
 });
 
-test('4.0: busy builder triggers a second paid engineer, without cancelling work',()=>{
+test('4.0: busy builder triggers a second paid engineer without losing an existing order',()=>{
  const {g,hq,worker}=battlefield();
+ // Existing 4.0 worker tests isolate the post-generator defense stage.
+ for(let i=0;i<3;i++)g.bases.push({...hq,id:7900+i,kind:'generator',hp:BUILDINGS.generator.hp,
+  radius:BUILDINGS.generator.radius,buildRemaining:0,x:80+i*45,y:80,queue:[],queueTypes:[],production:0});
  worker.orders=[{kind:'move',x:worker.x+30,y:worker.y}];
  g.credits[1]=BUILDINGS.turret.cost+600;
  const originalOrder=worker.orders[0];
