@@ -187,3 +187,16 @@ test('shared generators: AI never steals an active pioneer order for a new core'
  developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1),()=>0);
  assert.equal(g.bases.filter(b=>b.owner===1&&b.kind==='generator').length,1);
 });
+
+test('shared generators: first energy core does not prevent a real AI frontier capture mission',()=>{
+ const g=new Simulation(2026,14);g.aiClock=-1e8;g.time=30;g.credits[1]=950;
+ g.tactical.plan();
+ assert.ok(g.bases.some(b=>b.owner===1&&b.kind==='generator'),
+  'early passive income construction must start');
+ const mission=g.tactical.state.commander?.mission;
+ assert.equal(mission?.kind,'capture','combat controller must keep expanding toward a real bastion');
+ assert.ok(g.territories[mission.sector].neighbors.some(i=>g.territories[i].owner===1),
+  'target is an accessible frontline capture');
+ const combat=g.units.filter(u=>u.owner===1&&['infantry','heavy','rover'].includes(u.kind));
+ assert.ok(combat.some(u=>u.orders.length>0),'an early capture must actually dispatch combat units');
+});
