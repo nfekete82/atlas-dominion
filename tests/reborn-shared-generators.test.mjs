@@ -32,7 +32,7 @@ test('shared generators: blue and red have identical hard limits including unfin
   assert.match(error,/Maximal 3 Energiekerne pro Fraktion/);
   assert.equal(g.build(owner,'generator',{x:home.x+220,y:home.y+80}),null);
   assert.equal(g.credits[owner],initial,'an unavailable fourth generator never costs credits');
-  assert.equal(g.buildError(1-owner,'generator',{x:home.x+220,y:home.y+80})?.includes('Maximal 3'),false,
+  assert.doesNotMatch(g.buildError(1-owner,'generator',{x:home.x+220,y:home.y+80})??'',/Maximal 3/,
    'the other faction has an independent allowance');
   g.bases.at(-1).hp=0;
   assert.doesNotMatch(g.buildError(owner,'generator',{x:home.x+220,y:home.y+80})??'',/Maximal 3/,
