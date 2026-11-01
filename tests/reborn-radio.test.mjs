@@ -20,7 +20,7 @@ test('radio catalog: requested movement and attack variants are present; every r
  const clips=manifest.clips;
  assert.equal(radioChoices(clips,'move','infantry').length,7);assert.equal(radioChoices(clips,'attack','infantry').length,6);
  for(const kind of ['infantry','heavy','medic','engineer','rover','tank','artillery','scout','bomber'])for(const action of ['move','attack','stop','hold'])assert.ok(radioChoices(clips,action,kind).length>=2,`${kind}/${action}`);
- assert.ok(radioChoices(clips,'heal','medic').every(c=>c.group==='medic'));assert.ok(radioChoices(clips,'repair','engineer').some(c=>c.text==='Reparatur wird durchgeführt!'));assert.ok(radioChoices(clips,'build','engineer').some(c=>c.text==='Baustelle wird angefahren!'));
+ assert.ok(radioChoices(clips,'heal','medic').every(c=>c.group==='medic'));assert.ok(radioChoices(clips,'repair','engineer').some(c=>c.text==='Reparatur wird durchgeführt!'));assert.deepEqual(radioChoices(clips,'build','engineer').map(c=>c.text).sort(),['Auftrag erhalten!','Wird erledigt!']);
  assert.ok(radioChoices(clips,'move','engineer').every(c=>!['repair','build'].includes(c.group)));assert.ok(radioChoices(clips,'move','tank').every(c=>c.profile==='crew'));assert.ok(radioChoices(clips,'move','heavy').every(c=>!c.text.includes('Besatzung')));
  assert.ok(radioChoices(clips,'move','bomber').every(c=>c.group==='air'));assert.equal(radioChoices(clips,'load','scout').length,2);assert.ok(radioChoices(clips,'unload','scout').some(c=>c.text==='Truppen werden abgesetzt!'));
  assert.notEqual(radioProfile('heavy'),radioProfile('infantry'));assert.notEqual(radioProfile('medic'),radioProfile('infantry'));
@@ -82,6 +82,26 @@ test('infantry never says vehicle-only driving phrase, even when the forbidden r
   assert.notEqual(clip.id,forbidden.id);
   assert.doesNotMatch(clip.text,/angefahren/i);
  }
- assert.ok(radioChoices(manifest.clips,'build','engineer').some(c=>c.text==='Baustelle wird angefahren!'),
-   'specialized engineer construction announcements are unaffected');
+ // The original recording remains available for archival integrity, but the
+ // walking engineer may never say that a building site is being driven to.
+ const engineerForbidden=manifest.clips.find(c=>c.text==='Baustelle wird angefahren!');
+ assert.ok(engineerForbidden,'do not silently alter the approved recording');
+ assert.equal(engineerForbidden.group,'build');
+ for(const action of ['move','attack','heal','repair','build','load','unload','stop','hold']){
+  const choices=radioChoices(manifest.clips,action,'engineer');
+  assert.ok(choices.length>0,action+' must retain intelligible pioneer feedback');
+  assert.ok(choices.every(c=>c.id!==engineerForbidden.id&&!/angefahren/i.test(c.text)),
+   action+' should not offer a driving phrase for a pedestrian');
+ }
+ const buildChoices=radioChoices(manifest.clips,'build','engineer');
+ assert.deepEqual(buildChoices.map(c=>c.text).sort(),['Auftrag erhalten!','Wird erledigt!']);
+ for(const random of [0,.5,.999999]){
+  const policy=new RadioPolicy(manifest.clips,()=>random);
+  for(let i=0;i<8;i++){
+   const chosen=policy.choose('build','engineer',i*3,false);
+   assert.ok(chosen);
+   assert.equal(chosen.group,'engineer');
+   assert.notEqual(chosen.id,engineerForbidden.id);
+  }
+ }
 });

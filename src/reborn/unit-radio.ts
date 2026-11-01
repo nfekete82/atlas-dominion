@@ -35,7 +35,10 @@ export function radioChoices(clips:RadioClip[],action:RadioAction,unit:UnitKind)
  if(unit==='scout'&&(action==='load'||action==='unload'))return action==='load'?groups('load'):bank.filter(c=>c.group==='unload'||c.text==='Landezone bestätigt!');
  if(action==='attack'){const attacks=groups('attack');return attacks.length?attacks:groups('move');}
  if(unit==='medic')return groups('medic');
- if(unit==='engineer')return action==='build'?groups('engineer','build'):action==='repair'?groups('engineer','repair'):groups('engineer');
+ // The pioneer walks to construction sites. The approved 'Baustelle wird angefahren!'
+ // clip is semantically wrong for a foot unit; prefer existing spoken order
+ // acknowledgements rather than changing only the manifest subtitle.
+ if(unit==='engineer')return action==='repair'?groups('engineer','repair'):groups('engineer');
  if(air(unit))return groups('air');
  if(unit==='heavy')return groups('move').filter(c=>c.text!=='Besatzung bereit!'&&c.text!=='Zielkoordinaten bestätigt!');
  return groups('move');
