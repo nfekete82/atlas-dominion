@@ -91,7 +91,11 @@ test('shared generators: underdog AI can invest before an airfield with paid wor
  const generator=g.bases.find(b=>b.owner===1&&b.kind==='generator');
  assert.ok(generator,'underdog AI should commission a generator ahead of an airfield');
  assert.equal(generator.buildRemaining,9);
- assert.equal(g.credits[1],priorCredits-BUILDINGS.generator.cost);
+ const paidUnitQueues=g.bases.filter(b=>b.owner===1)
+  .reduce((sum,b)=>sum+(b.queueCosts??[]).reduce((n,c)=>n+c,0),0);
+ assert.equal(g.credits[1],priorCredits-BUILDINGS.generator.cost-paidUnitQueues,
+  'generator and simultaneously paid army orders must both be accounted for');
+ assert.ok(g.credits[1]>=0,'AI never receives borrowed or hidden Credits');
  assert.equal(g.bases.some(b=>b.owner===1&&b.kind==='airfield'),false);
  assert.ok(worker.orders.some(o=>o.kind==='build'&&o.target===generator.id));
 });
