@@ -2,6 +2,8 @@ import { RULES } from './config.js';
 
 export type UnitKind='infantry'|'medic'|'engineer'|'heavy'|'rover'|'tank'|'artillery'|'scout'|'bomber';
 export type BuildingKind='headquarters'|'barracks'|'factory'|'airfield'|'generator'|'turret';
+/** Both factions may operate the same maximum number of recurring-income generators. */
+export const MAX_GENERATORS_PER_FACTION=3;
 export interface UnitSpec {
   name:string; group:'Infanterie'|'Fahrzeuge'|'Luftunterstützung'; cost:number; buildTime:number;
   hp:number; speed:number; sight:number; range:number; damage:number; cooldown:number; radius:number;
