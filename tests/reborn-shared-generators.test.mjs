@@ -111,7 +111,12 @@ test('shared generators: AI makes three successive energy cores its FIRST build 
    const prior=g.bases.filter(b=>b.owner===1&&b.kind==='generator').length;
    developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1),()=>0);
    const cores=g.bases.filter(b=>b.owner===1&&b.kind==='generator');
-   assert.equal(cores.length,prior+1,'AI should build core '+n+' before optional technology');
+   assert.equal(cores.length,prior+1,
+    'core '+n+' blocked '+JSON.stringify({time:g.time,credits:g.credits[1],
+     workerOrders:worker.orders,defendUntil:worker.defendUntil,goal:g.tactical.state.economy?.goal,
+     attempt:g.tactical.state.economy?.attemptAt,
+     unfinished:g.bases.filter(b=>b.owner===1&&b.buildRemaining>0).map(b=>({kind:b.kind,id:b.id,left:b.buildRemaining})),
+     explored:g.explored[1].filter(Boolean).length}));
    assert.equal(g.tactical.state.economy.built.generator,n);
    assert.equal(g.bases.some(b=>b.owner===1&&['barracks','factory','airfield'].includes(b.kind)),false,
     'the three cores must take precedence over military production buildings');
