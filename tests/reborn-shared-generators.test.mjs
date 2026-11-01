@@ -99,3 +99,58 @@ test('shared generators: underdog AI can invest before an airfield with paid wor
  assert.equal(g.bases.some(b=>b.owner===1&&b.kind==='airfield'),false);
  assert.ok(worker.orders.some(o=>o.kind==='build'&&o.target===generator.id));
 });
+
+test('shared generators: AI makes three successive energy cores its FIRST build goal regardless of sector advantage',()=>{
+ for(const expanded of [false,true]){
+  const g=new Simulation(2026,14);g.aiClock=-1e8;g.credits[1]=2100;
+  const hq=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
+  if(expanded)for(const t of g.territories.filter(t=>t.owner===-1).slice(0,5))t.owner=1;
+  const worker=g.units.find(u=>u.owner===1&&u.kind==='engineer');
+  assert.ok(worker);
+  for(let n=1;n<=3;n++){
+   const prior=g.bases.filter(b=>b.owner===1&&b.kind==='generator').length;
+   developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1),()=>0);
+   const cores=g.bases.filter(b=>b.owner===1&&b.kind==='generator');
+   assert.equal(cores.length,prior+1,'AI should build core '+n+' before optional technology');
+   assert.equal(g.tactical.state.economy.built.generator,n);
+   assert.equal(g.bases.some(b=>b.owner===1&&['barracks','factory','airfield'].includes(b.kind)),false,
+    'the three cores must take precedence over military production buildings');
+   assert.equal(cores.at(-1).buildRemaining,BUILDINGS.generator.buildTime);
+   assert.ok(worker.orders.some(o=>o.kind==='build'&&o.target===cores.at(-1).id));
+   cores.at(-1).buildRemaining=0;
+   worker.orders=[];
+   g.time+=12; // The worker and simulated build are ready for a new construction order.
+  }
+  developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1),()=>0);
+  assert.equal(g.bases.filter(b=>b.owner===1&&b.kind==='generator').length,3);
+  assert.equal(g.tactical.state.economy.built.generator,3);
+  assert.ok(g.credits[1]>=0);
+  assert.ok(hq.hp>0);
+ }
+});
+
+test('shared generators: underfunded AI never gets a free core and tries again when credits arrive',()=>{
+ const g=new Simulation(2026,14);g.aiClock=-1e8;g.credits[1]=75;
+ const worker=g.units.find(u=>u.owner===1&&u.kind==='engineer');
+ assert.ok(worker);
+ developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1),()=>0);
+ assert.equal(g.bases.filter(b=>b.owner===1&&b.kind==='generator').length,0);
+ assert.equal(g.credits[1],75);
+ g.credits[1]=150;
+ g.time+=3;
+ developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1),()=>0);
+ assert.equal(g.bases.filter(b=>b.owner===1&&b.kind==='generator').length,1);
+ assert.ok(g.credits[1]>=0,'only actually earned credits are spent');
+});
+
+test('shared generators: AI never steals an active pioneer order for a new core',()=>{
+ const g=new Simulation(2026,14);g.aiClock=-1e8;g.credits[1]=950;
+ const w=g.units.find(u=>u.owner===1&&u.kind==='engineer'),order={kind:'move',x:w.x+25,y:w.y};
+ w.orders=[order];
+ developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1),()=>0);
+ assert.equal(w.orders[0],order);
+ assert.equal(g.bases.filter(b=>b.owner===1&&b.kind==='generator').length,0);
+ w.orders=[];g.time+=12;
+ developArmy(g,g.tactical.state,g.units.filter(u=>u.owner===1),()=>0);
+ assert.equal(g.bases.filter(b=>b.owner===1&&b.kind==='generator').length,1);
+});
