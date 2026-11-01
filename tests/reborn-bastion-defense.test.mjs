@@ -58,8 +58,11 @@ test('AI never builds a second tower guarding the same bastion or through unknow
  g.explored[1].fill(0);
  assert.equal(buildBastionDefense(g,[worker],()=>0),null);
 });
-test('economic planner defers towers until barracks, factory and a real cash buffer exist',()=>{
- const {g}=scene();
+test('economic planner defers towers until generators, barracks, factory and cash buffer exist',()=>{
+ const {g,hq}=scene();
+ // Tower-specific fixture starts after the newly prioritized economy phase.
+ for(let i=0;i<3;i++)g.bases.push({...hq,id:7900+i,kind:'generator',hp:BUILDINGS.generator.hp,
+  radius:BUILDINGS.generator.radius,buildRemaining:0,x:80+i*45,y:80,queue:[],queueTypes:[],production:0});
  g.credits[1]=400;
  g.tactical.plan();
  assert.equal(g.bases.filter(b=>b.owner===1&&b.kind==='turret').length,0);
