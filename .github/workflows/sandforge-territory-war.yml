@@ -1,0 +1,38 @@
+name: Sandforge Dynamic Territory Warfare – capture and comeback tests
+on:
+  push:
+    branches: [feat/sandforge-dynamic-territory-warfare-20261101]
+    paths:
+      - .github/workflows/sandforge-territory-war.yml
+      - src/reborn/territory-warfare.ts
+      - src/reborn/simulation.ts
+      - src/reborn/tactical-ai.ts
+      - src/reborn/bastion-defense.ts
+      - src/reborn/renderer.ts
+      - tests/reborn-dynamic-territory-warfare.test.mjs
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: territory-war-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  game-rules:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Capture, rescue, AI, legacy save and sector regression tests
+        run: |
+          node --test \
+            tests/reborn-dynamic-territory-warfare.test.mjs \
+            tests/reborn-capture-feedback.test.mjs \
+            tests/reborn-map-ai.test.mjs \
+            tests/reborn-tactical-ai-52-vision.test.mjs \
+            tests/reborn-tactical-ai-50-endgame.test.mjs
