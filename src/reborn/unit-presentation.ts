@@ -5,6 +5,7 @@ import {SpriteAnimator,turnTowards,angleDifference,directionIndex,type Animation
 import {Particles} from './particles.js';
 import {unitAtlasPath} from './asset-paths.js';
 import {unitArtScale} from './visual-scale.js';
+import {rocketTubeOffset} from './rocket-presentation.js';
 import {sharpenAtlasOpaqueRGB} from './sprite-clarity.js';
 interface GroundShadowStyle {widthRatio:number;heightRatio:number;alpha:number;offsetX:number;offsetY:number}
 /** Aircraft-specific ground projection; independent of sprite lift and gameplay positions. */
@@ -16,7 +17,7 @@ export const AIR_GROUND_SHADOWS:Readonly<Partial<Record<UnitKind,Readonly<Ground
 export const VEHICLE_CONTACT_SHADOWS:Readonly<Partial<Record<UnitKind,Readonly<GroundShadowStyle>>>>=Object.freeze({
  tank:Object.freeze({widthRatio:.84,heightRatio:.30,alpha:.14,offsetX:6,offsetY:8}),
  rover:Object.freeze({widthRatio:.79,heightRatio:.28,alpha:.12,offsetX:5,offsetY:7}),
- artillery:Object.freeze({widthRatio:.86,heightRatio:.29,alpha:.13,offsetX:6,offsetY:8}),
+ artillery:Object.freeze({widthRatio:.93,heightRatio:.31,alpha:.17,offsetX:7,offsetY:9}),
 });
 interface GroundShadow {image:HTMLCanvasElement;width:number;height:number;offsetX:number;offsetY:number}
 /** Very subtle unsprung 6x6 chassis motion from travelled ground distance.
@@ -56,9 +57,9 @@ export function rocketWheelPhase(distance:number,stride:number,phases:number):{i
 /** Movement- and weapon-driven secondary body motion, kept outside simulation/save. */
 export function groundVehiclePose(kind:UnitKind,distance:number,moving:boolean,speedRatio:number,turn:number,acceleration:number,shotAge:number,idleAge:number):RocketPose{
  const pose=rocketSuspensionPose(distance,moving,speedRatio,turn,acceleration,shotAge,idleAge);
- const factor=kind==='tank'?.48:kind==='rover'?.90:1;
- return {heave:pose.heave*factor,roll:pose.roll*(kind==='tank'?.55:1),
-   pitch:pose.pitch*(kind==='tank'?.55:1),recoil:pose.recoil*(kind==='tank'?.65:kind==='rover'?.35:1)};
+ const factor=kind==='tank'?.48:kind==='rover'?.90:kind==='artillery'?.80:1;
+ return {heave:pose.heave*factor,roll:pose.roll*(kind==='tank'?.55:kind==='artillery'?.70:1),
+   pitch:pose.pitch*(kind==='tank'?.55:kind==='artillery'?.85:1),recoil:pose.recoil*(kind==='tank'?.65:kind==='rover'?.35:kind==='artillery'?.95:1)};
 }
 interface Loaded {data:AnimationAtlas;image:HTMLImageElement|HTMLCanvasElement;shadow?:HTMLCanvasElement;groundShadow?:GroundShadow}
 /** Additional screen-space height above the ground pivot baked into air atlases. */
@@ -79,7 +80,7 @@ export class UnitPresentation {
     const body=document.createElement('canvas');body.width=image.width;body.height=image.height;
     const bc=body.getContext('2d')!;bc.drawImage(image,0,0);
     const pixels=bc.getImageData(0,0,body.width,body.height);
-    pixels.data.set(sharpenAtlasOpaqueRGB(pixels.data,body.width,body.height,data.cell[0],kind==='tank'?.22:.17));
+    pixels.data.set(sharpenAtlasOpaqueRGB(pixels.data,body.width,body.height,data.cell[0],kind==='tank'?.22:kind==='artillery'?.255:.17));
     bc.putImageData(pixels,0,0);asset.image=body;
    }
   }
@@ -199,7 +200,7 @@ export class UnitPresentation {
     const phase=rocketWheelPhase(v.unit.walkDistance,v.asset.data.stride,row.length);
     const next=v.asset.data.frames[row[phase.next]];
     const opacity=c.globalAlpha;
-    const strength=rocket ? .32 : v.unit.kind==='tank' ? .16 : .20;
+    const strength=rocket ? .18 : v.unit.kind==='tank' ? .16 : .20;
     c.globalAlpha=opacity*Math.min(strength,phase.blend*strength);
     this.drawFrame(c,v,next,shifted);
     c.globalAlpha=opacity;
@@ -237,7 +238,14 @@ export class UnitPresentation {
   const clip=asset.data.clips[tag]??asset.data.clips.idle;
   const frame=view?view.anim.frame(tag,angle):asset.data.frames[clip.frames[directionIndex(angle,asset.data.directions)][0]];
   const scale=asset.data.nativeScale*unitArtScale(shot.kind),m=frame.muzzles?.[(shot.barrel??0)%frame.muzzles.length]??frame.muzzle,p=shot.groundFrom;
-  return m?{x:p.x+(m[0]-frame.pivot[0])*scale,y:p.y+(m[1]-frame.pivot[1])*scale-unitVisualLift({kind:shot.kind,flightHeight:shot.flightHeight})}:shot.from;
+  const muzzle=m?{x:p.x+(m[0]-frame.pivot[0])*scale,y:p.y+(m[1]-frame.pivot[1])*scale-unitVisualLift({kind:shot.kind,flightHeight:shot.flightHeight})}:shot.from;
+  // Current baked launcher frames contain only one muzzle. Separate the six
+  // firing ports until the atlas gets individually authored muzzle anchors.
+  if(shot.kind==='artillery'&&shot.barrel!==undefined&&!frame.muzzles?.length){
+   const offset=rocketTubeOffset(shot.barrel,angle,unitArtScale('artillery'));
+   return {x:muzzle.x+offset.x,y:muzzle.y+offset.y};
+  }
+  return muzzle;
  }
  muzzleFor(u:Unit):Point{const v=this.view(u);this.advance(v,u,0);return this.muzzle(v,u);}
 }
