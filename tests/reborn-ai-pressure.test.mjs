@@ -20,7 +20,7 @@ test('AI pressure: paid reinforcements leave home, keep a guard and join the act
  assert.ok(g.units.some(u=>u.owner===1&&!g.tactical.state.group.includes(u.id)&&!u.orders.length),'retain a real home guard');
  const before={...travelling};advance(g,1);assert.ok(distance(before,travelling)>50);
  const front=g.units.filter(u=>oldGroup.includes(u.id)),anchor=front.reduce((p,u)=>({x:p.x+u.x/front.length,y:p.y+u.y/front.length}),{x:0,y:0});Object.assign(travelling,{x:anchor.x+30,y:anchor.y+30});
- g.tactical.plan();assert.ok(g.tactical.state.group.includes(travelling.id));assert.ok(oldGroup.every(id=>g.tactical.state.group.includes(id)));assert.ok(travelling.orders.length);
+ g.tactical.plan();assert.ok(g.tactical.state.group.includes(travelling.id),JSON.stringify({phase:g.tactical.state.phase,target:g.tactical.state.target,group:g.tactical.state.group,travelling:{id:travelling.id,x:travelling.x,y:travelling.y,order:travelling.orders[0]},newUnits:recruits.map(u=>({id:u.id,x:u.x,y:u.y,order:u.orders[0]})),old:oldGroup}));assert.ok(oldGroup.every(id=>g.tactical.state.group.includes(id)));assert.ok(travelling.orders.length);
 });
 test('AI pressure: rallying troops approach independently instead of waiting on a marching cohort',()=>{
  const g=fixture();g.tactical.state.rally={x:1500,y:1700};g.tactical.plan();assert.equal(g.tactical.state.phase,'gather');
