@@ -5,12 +5,15 @@ import type {Territory} from './world.js';
  * their original fixed eight-second, adjacent-only territory mechanics. */
 export const dynamicTerritoryWarfare=(version:MapVersion):boolean=>version>=11;
 
-/** Modern campaigns can capture any occupied bastion without requiring a
- * neighboring owned sector. Legacy map versions 0–2 retain their original
- * adjacent-only capture rules (and eight-second capture clock). */
-export function canCaptureSector(territories:readonly Territory[],sector:Territory,owner:Owner,version:MapVersion):boolean{
- return (owner===0||owner===1)&&sector.owner!==owner&&
-  (version>=3||sector.neighbors.some(id=>territories[id]?.owner===owner));
+/** Ground forces may capture a distant sector; an intact opposing HQ
+ * and actual physical contest still block capture in the simulation. */
+export function canCaptureSector(_territories:readonly Territory[],sector:Territory,owner:Owner,_version:MapVersion):boolean{
+ return (owner===0||owner===1)&&sector.owner!==owner;
+}
+/** Classic air-only raids require a connected ground foothold. Modern
+ * Sandforge campaigns retain their original unrestricted sector access. */
+export function canAirOnlyCaptureSector(territories:readonly Territory[],sector:Territory,owner:Owner,version:MapVersion):boolean{
+ return version>=3||sector.neighbors.some(id=>territories[id]?.owner===owner);
 }
 
 export interface TerritoryGuard extends Point {owner:Owner;hp:number;carrier?:number|null}
