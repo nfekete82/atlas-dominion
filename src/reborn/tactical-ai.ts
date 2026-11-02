@@ -707,7 +707,7 @@ export class TacticalAI {
    const objectiveGone=a.objective!=null&&a.target!==undefined&&g.canSee(1,a.target)
     &&!g.bases.some(b=>b.id===a.objective&&b.hp>0);
    if(won||objectiveGone||g.time-a.at>120)finishExperience(experience,!!(won||objectiveGone),fighters.reduce((n,u)=>n+u.hp,0));}
-  const mission=chooseMission(g,c,origin,{strategy:s.adaptive?.strategy??'unknown',force:fighters,losses:s.losses,fronts:s.battle?.fronts??[],intelligent:this.doctrineMode==='intelligent',experience,route:p=>{const route=this.route(origin,p);return route.length?this.sampleRoute(route,origin):undefined;}});
+  const mission=chooseMission(g,c,origin,{strategy:s.adaptive?.strategy??'unknown',force:fighters,losses:s.losses,fronts:s.battle?.fronts??[],intelligent:this.doctrineMode==='intelligent',experience,frontDoctrine:this.frontDoctrine,route:p=>{const route=this.route(origin,p);return route.length?this.sampleRoute(route,origin):undefined;}});
   if(!mission){
    campaignPhase(c,'endgame',g.time);this.setPhase('regroup');s.group=[];s.objective=null;s.target=null;
    // Once the map is captured, ground patrols also search fog for survivors.
