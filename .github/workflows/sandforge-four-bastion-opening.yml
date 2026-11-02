@@ -1,0 +1,42 @@
+name: Sandforge four bastion AI opening A/B
+on:
+  push:
+    branches:
+      - feat/sandforge-four-bastion-opening-20261102
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  four-bastion-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Four-bastion strategy and existing AI regressions
+        run: node --test tests/sandforge-four-bastion-opening.test.mjs tests/reborn-map-ai.test.mjs tests/reborn-ai-director.test.mjs tests/reborn-combat-missions.test.mjs tests/reborn-commander.test.mjs
+  opening-ab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: 4x paired fair four-bastion matches versus scripted guarded opponent
+        run: node scripts/benchmark-four-bastion-opening.mjs --seconds 240 --seeds 2026,2027,2028,2029
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: four-bastion-opening-paired-matches
+          path: ai-arena-results/four-bastion-opening.json
+          if-no-files-found: ignore
+          retention-days: 14
