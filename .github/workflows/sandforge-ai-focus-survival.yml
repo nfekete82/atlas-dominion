@@ -40,3 +40,23 @@ jobs:
           path: ai-arena-results/focus-survival.json
           if-no-files-found: ignore
           retention-days: 14
+  pressure-benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Compare 4 identical seeds against paid expanding BLUE opponent
+        run: node scripts/benchmark-ai-focus-survival.mjs --opponent pressure --seconds 240 --seeds 2026,2027,2028,2029 --output ai-arena-results/focus-survival-pressure.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: focus-survival-pressure-report
+          path: ai-arena-results/focus-survival-pressure.json
+          if-no-files-found: ignore
+          retention-days: 14
