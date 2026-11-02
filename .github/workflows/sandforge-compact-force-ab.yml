@@ -18,7 +18,7 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - run: npm run build
-      - run: node --test tests/sandforge-four-bastion-force-concentration.test.mjs tests/reborn-combat-missions.test.mjs tests/reborn-commander.test.mjs tests/sandforge-ai-frontline-learning.test.mjs
+      - run: node --test tests/sandforge-four-bastion-force-concentration.test.mjs tests/reborn-combat-missions.test.mjs tests/reborn-commander.test.mjs tests/reborn-map-ai.test.mjs
   pressure:
     runs-on: ubuntu-latest
     timeout-minutes: 25
