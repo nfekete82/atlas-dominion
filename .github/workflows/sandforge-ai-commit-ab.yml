@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/sandforge-ai-paired-release-benchmark-20261102
+      - feat/sandforge-ai-prebuilt-siege-artillery-budget-20261102
   workflow_dispatch:
 
 permissions:
@@ -11,7 +12,7 @@ permissions:
 
 jobs:
   ab:
-    name: Matched map-seed A/B (old vs armored assault)
+    name: Matched map-seed A/B (first siege rocket budget)
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -21,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: nfekete82/atlas-dominion
-          ref: 73b8315a5bb0998710f9f70d18aeea059c03b122
+          ref: 613ced90b38547784638dfea8f8906947091ecd2
           path: previous
           persist-credentials: false
       - uses: actions/setup-node@v4
@@ -44,15 +45,15 @@ jobs:
           ATLAS_SIM_MODULE: ${{ github.workspace }}/previous/dist/src/reborn/simulation.js
         run: |
           node scripts/ai-test-arena.mjs \
-            --maps 3,4,5 --seeds 2026,2027 --seconds 240 \
-            --modes director --label before-73b8315 \
+            --maps 3,4,5 --seeds 2026,2027,2028 --seconds 360 \
+            --modes director --label before-613ced9 \
             --output ai-arena-results/previous.json
       - name: Run improved AI against the identical opponent
         working-directory: candidate
         run: |
           node scripts/ai-test-arena.mjs \
-            --maps 3,4,5 --seeds 2026,2027 --seconds 240 \
-            --modes director --label after-f328503 \
+            --maps 3,4,5 --seeds 2026,2027,2028 --seconds 360 \
+            --modes director --label after-siege-budget \
             --output ai-arena-results/current.json
       - name: Compare identical initial-world hashes and report actual gains
         working-directory: candidate

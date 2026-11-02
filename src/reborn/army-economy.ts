@@ -32,6 +32,19 @@ export function generatorBuildPriority(input:{
  const reserveAfterBuild=existing===1?200:300;
  return fighters>=minimumFighters&&credits>=BUILDINGS.generator.cost+reserveAfterBuild;
 }
+/** Temporary, derived siege budget: never add virtual credits or remember an
+ * unknown enemy. The first paid rocket is protected while our first factory
+ * is being built; observed threats and a destroyed factory cancel protection. */
+export function firstSiegeRocketReserve(input:{
+ director:boolean;factoryPresent:boolean;observedSiege:boolean;
+ underAttack:boolean;urgentDefense:boolean;visibleAir:boolean;
+ visibleArmorThreat:boolean;fighters:number;artillery:number;
+}):number{
+ return input.director&&input.factoryPresent&&input.observedSiege&&
+  !input.underAttack&&!input.urgentDefense&&!input.visibleAir&&
+  !input.visibleArmorThreat&&input.fighters>=3&&input.artillery===0
+  ? UNITS.artillery.cost : 0;
+}
 /** A production/building policy inside the existing tactical controller, using only paid game APIs. */
 export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p:Point)=>number):void{
  const e:EconomyState=s.economy??{goal:null,since:g.time,attemptAt:-9,produced:{},built:{}},own=g.bases.filter(b=>b.owner===1&&b.hp>0),home=own.find(b=>b.kind==='headquarters')??own[0];if(!home)return;
@@ -48,12 +61,20 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
  const urgentDefense=defenseFronts.some(c=>c.urgent);
  const generators=own.filter(b=>b.kind==='generator').length;
  const observedSiege=known>0||g.memories[1].some(m=>m.owner===0&&m.hp>0&&m.kind==='headquarters');
+ // Compute the reserve BEFORE optional construction can spend it.
+ // The first generator is a core investment; later cores are optional.
+ const siegeReserve=firstSiegeRocketReserve({
+  director,factoryPresent:has('factory'),observedSiege,underAttack,urgentDefense,
+  visibleAir:seen.some(u=>unitSpec(u).flying),
+  visibleArmorThreat:seen.filter(u=>unitSpec(u).group==='Fahrzeuge'&&!unitSpec(u).flying).length>=2,
+  fighters:fighters.length,artillery:count('artillery')
+ });
  for(const w of workers)if(!w.orders.length&&w.defendUntil<=g.time){
   const target=unfinished??own.filter(b=>b.buildRemaining<=0&&b.hp<BUILDINGS[b.kind].hp-.01).sort((a,b)=>distance(w,a)-distance(w,b))[0];
   if(target)g.command([w.id],{...target,kind:target.buildRemaining>0?'build':'repair',target:target.id});
  }
  let goal:BuildingKind|null=null;
- const wantCore=director&&generatorBuildPriority({
+ const wantCore=director&&(generators===0||siegeReserve===0)&&generatorBuildPriority({
   existing:generators,fighters:fighters.length,credits:g.credits[1],
   barracksReady:complete('barracks'),underAttack,finishing
  });
@@ -118,7 +139,7 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
  // only the committed active construction goal, then reassess next pulse.
  const buildReserve=e.goal&&(e.goal==='barracks'||!underAttack&&fighters.length>=3)
   &&g.time-e.since<85?BUILDINGS[e.goal].cost:0;
- const reserve=buildReserve;
+ const reserve=Math.max(buildReserve,siegeReserve);
  const maxArmy=director?Math.min(36,Math.max(18,Math.floor(income/3)+10)):Math.min(30,Math.max(14,Math.floor(income/4)+8));if(g.count(1)+g.queued(1)>=maxArmy&&(!director||count('engineer')>0)){
   if(director)e.production={at:g.time,reason:'army-cap',goal:null,missing:0,facilities:Object.fromEntries(own.filter(b=>b.buildRemaining<=0).map(b=>[b.id,{reason:b.queue.length>=2?'queue-blocked':'army-cap',goal:null,missing:0}]))};
   return;
@@ -150,7 +171,7 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
  // algorithm just ONE facility queued an item per AI pulse, leaving expensive
  // factories/airfields idle while barracks bought cheap infantry.
  if(director){
-  produceCombinedArmy(g,s,{own,army,seen,income,underAttack,knownTurrets:known,knownEnemyHQ,reserve,maxArmy,scores,defenseNeedsWorker,finishing});
+  produceCombinedArmy(g,s,{own,army,seen,income,underAttack,knownTurrets:known,knownEnemyHQ,reserve,siegeReserve,maxArmy,scores,defenseNeedsWorker,finishing});
   return;
  }
  const choices=(Object.keys(scores) as UnitKind[]).filter(k=>scores[k]>0&&own.some(b=>b.buildRemaining<=0&&b.queue.length<2&&UNITS[k].producers.includes(b.kind))&&(!air||canAttack({kind:k},seen.find(u=>unitSpec(u).flying)!)||['medic','engineer','scout'].includes(k))).sort((a,b)=>scores[b]-scores[a]||Object.keys(scores).indexOf(a)-Object.keys(scores).indexOf(b));

@@ -99,6 +99,12 @@ export function compareMatched(before,after,requireSource=false){
    // Missing timestamps are never misrepresented as zero-second attacks.
    firstOrganizedAttackDelta:finite(old.firstOrganizedAttack)&&finite(next.firstOrganizedAttack)
     ?round(next.firstOrganizedAttack-old.firstOrganizedAttack):null,
+   firstArtilleryOrderDelta:finite(old.firstArtilleryOrder)&&finite(next.firstArtilleryOrder)
+    ?round(next.firstArtilleryOrder-old.firstArtilleryOrder):null,
+   firstArtilleryDelta:finite(old.firstArtillery)&&finite(next.firstArtillery)
+    ?round(next.firstArtillery-old.firstArtillery):null,
+   beforeArtilleryOrder:finite(old.firstArtilleryOrder),
+   afterArtilleryOrder:finite(next.firstArtilleryOrder),
    beforeOrganizedAttack:finite(old.firstOrganizedAttack),
    afterOrganizedAttack:finite(next.firstOrganizedAttack),
    combatReadyWaveLaunches:value(next.tactical?.combatReadyWaveLaunches),
@@ -111,6 +117,13 @@ export function compareMatched(before,after,requireSource=false){
   meanScoreDelta:mean(pairs,'scoreDelta'),meanHQDamageDelta:mean(pairs,'hqDamageDelta'),
   meanCaptureDelta:mean(pairs,'captureDelta'),meanRedLossesDelta:mean(pairs,'redLossesDelta'),
   meanBlueLossesDelta:mean(pairs,'blueLossesDelta'),meanAbortedMissionsDelta:mean(pairs,'abortedMissionsDelta'),
+  pairedArtilleryOrderSamples:pairs.filter(p=>finite(p.firstArtilleryOrderDelta)).length,
+  meanFirstArtilleryOrderDelta:mean(pairs.filter(p=>finite(p.firstArtilleryOrderDelta)),'firstArtilleryOrderDelta'),
+  pairedArtilleryUnitSamples:pairs.filter(p=>finite(p.firstArtilleryDelta)).length,
+  meanFirstArtilleryDelta:mean(pairs.filter(p=>finite(p.firstArtilleryDelta)),'firstArtilleryDelta'),
+  fasterArtilleryOrders:pairs.filter(p=>finite(p.firstArtilleryOrderDelta)&&p.firstArtilleryOrderDelta<0).length,
+  artilleryOrdersBefore:pairs.filter(p=>p.beforeArtilleryOrder).length,
+  artilleryOrdersAfter:pairs.filter(p=>p.afterArtilleryOrder).length,
   pairedAttackTimeSamples:pairs.filter(p=>finite(p.firstOrganizedAttackDelta)).length,
   meanFirstOrganizedAttackDelta:mean(pairs.filter(p=>finite(p.firstOrganizedAttackDelta)),'firstOrganizedAttackDelta'),
   organizedAttacksBefore:pairs.filter(p=>p.beforeOrganizedAttack).length,

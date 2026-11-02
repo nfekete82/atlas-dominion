@@ -28,6 +28,19 @@ test('AI A/B: identical playable worlds compare first attacks and actual combat-
  assert.equal(result.meanBlueLossesDelta,1);assert.equal(result.meanRedLossesDelta,-.5);
  assert.match(comparisonMarkdown(result),/Auslösungen der neuen Kampfkraft-Regel \| 2/);
 });
+test('AI A/B: earlier paid artillery is tracked separately from unfinished units',()=>{
+ const before=report('before',[sample(2026,'director',{firstArtilleryOrder:188,firstArtillery:206}),
+  sample(2027,'director',{firstArtilleryOrder:null,firstArtillery:null})]);
+ const after=report('after',[sample(2026,'director',{firstArtilleryOrder:170,firstArtillery:188}),
+  sample(2027,'director',{firstArtilleryOrder:176,firstArtillery:null})]);
+ const c=compareArenaReports(before,after);
+ assert.equal(c.fasterArtilleryOrders,1);
+ assert.equal(c.pairedArtilleryOrderSamples,1);
+ assert.equal(c.meanFirstArtilleryOrderDelta,-18);
+ assert.equal(c.meanFirstArtilleryDelta,-18);
+ assert.equal(c.artilleryOrdersBefore,1);assert.equal(c.artilleryOrdersAfter,2);
+ assert.match(comparisonMarkdown(c),/Frühere Artilleriebestellungen/);
+});
 test('AI A/B: reject unequal starting worlds and incomplete comparisons',()=>{
  const old=report('before',[sample(2026,'director'),sample(2027,'director')]);
  assert.throws(()=>compareArenaReports(old,report('after',[

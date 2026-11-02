@@ -54,6 +54,11 @@ Erzeuge mit derselben Testkonfiguration einen Bericht auf der alten und einen au
 Der Vergleich bricht ab bei abweichenden spielbaren Startwelten, Einheitenkatalogen,
 Gegnerskripten, Testdauern oder Modusbelegungen. Die eigentliche KI-Implementierung darf sich unterscheiden.
 
+## Experiment: zweckgebundenes Artilleriebudget
+Bei tatsächlich aufgeklärten Geschütztürmen oder einem bekannten gegnerischen HQ reserviert der taktische Director **einmalig 600 Credits**, sobald eine eigene Fahrzeugfabrik gebaut oder fertiggestellt ist, eine ausreichende eigene Front besteht und kein akuter Verteidigungsbedarf besteht. Für den ersten bezahlten Raketenwerfer wird diese Reserve freigegeben; andere Einheiten dürfen sie nicht ausgeben. Eine vorhandene oder bereits bezahlte Artillerieeinheit löscht die Reserve automatisch. Bei akuter Bedrohung wird die Reserve aufgehoben.
+
+Dies ist **nur ein A/B-Kandidat**; die normale Artillerie- und Produktionslogik bleibt als Vergleich erhalten.
+
 ## Entwicklungsschleife
 
 1. Drei häufigste Warnsignale auswählen.
