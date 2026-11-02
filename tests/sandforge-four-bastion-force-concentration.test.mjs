@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Simulation} from '../dist/src/reborn/simulation.js';
-import {isCompactBattle,sectorDefenseAnchor,fourBastionPlanningDelay,neutralExpansionPreference} from '../dist/src/reborn/four-bastion-front-doctrine.js';
+import {isCompactBattle,sectorDefenseAnchor,fourBastionPlanningDelay,neutralExpansionPreference,considerEarlyBorderFortification} from '../dist/src/reborn/four-bastion-front-doctrine.js';
 import {RULES} from '../dist/src/reborn/config.js';
 
 test('focus front policy is only opt-in for exactly four campaign bastions',()=>{
@@ -75,4 +75,15 @@ test('safe neutral sector priority is scoped, observed and no privileged informa
  assert.equal(neutralExpansionPreference({...base,sectors:8}),0);
  assert.equal(neutralExpansionPreference({...base,mode:'classic'}),0);
  assert.equal(fourBastionPlanningDelay(11,4,'tempo-sector',25),6);
+});
+
+test('paid forward fortification only after taking a frontier with surviving soldiers',()=>{
+ const base={mode:'fortify-early',mapVersion:11,sectors:4,time:80,
+  ownedForwardBastions:1,fighters:4,barracksReady:true};
+ assert.equal(considerEarlyBorderFortification(base),true);
+ assert.equal(considerEarlyBorderFortification({...base,ownedForwardBastions:0}),false);
+ assert.equal(considerEarlyBorderFortification({...base,time:40}),false);
+ assert.equal(considerEarlyBorderFortification({...base,fighters:2}),false);
+ assert.equal(considerEarlyBorderFortification({...base,mode:'classic'}),false);
+ assert.equal(considerEarlyBorderFortification({...base,sectors:8}),false);
 });
