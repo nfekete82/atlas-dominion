@@ -20,7 +20,7 @@ function arena(kind='factory'){
  return {g,b};
 }
 const bounds=(b)=>infantryStructureColliders([b]);
-const walk=(g,b,u)=>g.world.walkable(u,bounds(b),Math.max(0,UNITS[u.kind??'infantry'].radius-10));
+const walk=(g,b,u)=>g.world.walkable(u,bounds(b),Math.max(0,(UNITS[u.kind]??UNITS.infantry).radius-10));
 const run=(g,seconds,check=()=>{})=>{for(let i=0;i<Math.round(seconds/RULES.tick);i++){g.step(RULES.tick);check();}};
 
 test('visual footprint: infantry collision grows beyond old construction circle',()=>{
