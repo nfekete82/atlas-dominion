@@ -3,6 +3,9 @@ on:
   push:
     branches:
       - feat/sandforge-desert-visual-polish-20261102
+  pull_request:
+    branches:
+      - feat/sandforge-tank-balance-20261102
   workflow_dispatch:
 permissions:
   contents: read
