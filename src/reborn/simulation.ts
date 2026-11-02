@@ -9,6 +9,7 @@ import {visibleBasePropColliders} from './vehicle-decor-collision.js';
 import {vehicleStructureColliders} from './vehicle-structure-collision.js';
 import {infantryStructureColliders} from './infantry-structure-collision.js';
 import {constructionVisualClearance} from './construction-spacing.js';
+import {fourBastionPlanningDelay} from './four-bastion-front-doctrine.js';
 import {segmentDistance} from './world-generation.js';
 import {canCaptureSector,captureSeconds} from './territory-warfare.js';
 import { UNITS, BUILDINGS, TANK_MG, canAttack, weaponDamage, unitSpec, buildingSpec, unitKinds, MAX_GENERATORS_PER_FACTION, type UnitKind, type BuildingKind } from './catalog.js';
@@ -913,7 +914,7 @@ export class Simulation {
       }
     }
     this.aiClock+=dt;
-    if((this.time>=RULES.aiOpeningDelay||this.needsHeadquarters(1))&&this.aiClock>=RULES.aiInterval){this.aiClock=0;this.think();}
+    if((this.time>=fourBastionPlanningDelay(this.world.mapVersion,this.territories.length,this.tactical.frontDoctrine,RULES.aiOpeningDelay)||this.needsHeadquarters(1))&&this.aiClock>=RULES.aiInterval){this.aiClock=0;this.think();}
     if(this.fogClock>=.2||ownershipChanged){this.fogClock=0;this.updateVision();}
     if((this.bootstrapLost(1)||this.bases.filter(b=>b.kind==='headquarters').length>=2&&this.bases.filter(b=>b.kind==='headquarters').every(b=>b.owner===0&&b.hp>0)&&campaignLayout(this.world.mapVersion,this.seed).starts[1].every(i=>this.territories[i].owner===0)))this.status='victory';
     if(this.bootstrapLost(0)||!this.bases.some(b=>b.owner===0&&b.hp>0&&['headquarters','barracks','factory','airfield'].includes(b.kind))&&this.count(0)===0)this.status='defeat';
