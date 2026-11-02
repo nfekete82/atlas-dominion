@@ -5,8 +5,7 @@ import {VisionCache} from './vision-cache.js';
 import { profiler } from './performance.js';
 import { RULES, WEATHER_RULES, clamp, distance, type Faction, type Owner, type Point, type MapVersion, mapLayout, campaignLayout, mapWorldSize } from './config.js';
 import { World, inside, type Territory } from './world.js';
-import {buildingProps} from './building-decor.js';
-import {propSiteClear} from './prop-placement.js';
+import {visibleBasePropColliders} from './vehicle-decor-collision.js';
 import {segmentDistance} from './world-generation.js';
 import {canCaptureSector,captureSeconds} from './territory-warfare.js';
 import { UNITS, BUILDINGS, canAttack, weaponDamage, unitSpec, buildingSpec, unitKinds, MAX_GENERATORS_PER_FACTION, type UnitKind, type BuildingKind } from './catalog.js';
@@ -104,14 +103,7 @@ export class Simulation {
   private decorObstacles:{x:number;y:number;radius:number}[]=[];
   private vehicleDecorObstacles():{x:number;y:number;radius:number}[]{
     if(this.decorObstaclesAt===this.time&&this.decorObstaclesCount===this.bases.length)return this.decorObstacles;
-    const visible:{x:number;y:number;radius:number}[]=[];
-    for(const b of this.bases){
-      if(b.hp<=0||b.buildRemaining>0)continue;
-      for(const p of buildingProps(b.kind,b,b.radius,b.id,this.seed,b.facing??0))
-        if(propSiteClear(p,p.size,this,{base:b.id}))
-          visible.push({x:p.x,y:p.y,radius:p.size*.43});
-    }
-    this.decorObstacles=visible;
+    this.decorObstacles=visibleBasePropColliders(this);
     this.decorObstaclesAt=this.time;
     this.decorObstaclesCount=this.bases.length;
     return visible;
