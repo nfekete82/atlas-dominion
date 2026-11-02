@@ -5,11 +5,12 @@ import type {Territory} from './world.js';
  * their original fixed eight-second, adjacent-only territory mechanics. */
 export const dynamicTerritoryWarfare=(version:MapVersion):boolean=>version>=11;
 
-/** Any neutral or hostile bastion may be captured by either faction, regardless
- * of adjacent ownership. The simulation still enforces presence, contest and
- * the intact-enemy-HQ lock. Keep the original parameters for caller stability. */
-export function canCaptureSector(_territories:readonly Territory[],sector:Territory,owner:Owner,_version:MapVersion):boolean{
- return (owner===0||owner===1)&&sector.owner!==owner;
+/** Modern campaigns can capture any occupied bastion without requiring a
+ * neighboring owned sector. Legacy map versions 0–2 retain their original
+ * adjacent-only capture rules (and eight-second capture clock). */
+export function canCaptureSector(territories:readonly Territory[],sector:Territory,owner:Owner,version:MapVersion):boolean{
+ return (owner===0||owner===1)&&sector.owner!==owner&&
+  (version>=3||sector.neighbors.some(id=>territories[id]?.owner===owner));
 }
 
 export interface TerritoryGuard extends Point {owner:Owner;hp:number;carrier?:number|null}
