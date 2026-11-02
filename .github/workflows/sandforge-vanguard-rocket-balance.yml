@@ -1,0 +1,32 @@
+name: Sandforge vehicle vanguard and rocket launcher
+on:
+  push:
+    branches:
+      - feat/sandforge-vehicle-frontlines-base-spacing-20261102
+  pull_request:
+    branches:
+      - feat/sandforge-rocket-launcher-polish-20261102
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  balance-and-formation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node --test tests/sandforge-armored-vanguard-base-spacing.test.mjs tests/sandforge-rocket-launcher-polish.test.mjs tests/sandforge-tank-balance.test.mjs tests/sandforge-engineer-squad-escort.test.mjs tests/sandforge-engineer-sequential-orders.test.mjs tests/sandforge-infantry-building-clearance.test.mjs
+      - name: Audit all unit combat stats
+        run: node scripts/audit-unit-balance.mjs > sandforge-unit-matrix.md
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sandforge-balance-vanguard-report
+          path: sandforge-unit-matrix.md
+          if-no-files-found: ignore
