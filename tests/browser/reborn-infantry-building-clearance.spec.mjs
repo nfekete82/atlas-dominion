@@ -35,6 +35,7 @@ test('browser: infantry circles an actual factory instead of crossing its painte
   r.camera={x:b.x,y:b.y,zoom:.85};r.boundCamera();r.render(0);
   return {accepted,breaches,maxX,buildingX:b.x,minDetour,soldier:{x:soldier.x,y:soldier.y,orders:soldier.orders,path:soldier.path,moving:soldier.moving,repath:soldier.repath,stuck:soldier.vehicleEscape},medic:{x:medic.x,y:medic.y,orders:medic.orders,path:medic.path,moving:medic.moving},time:g.time,status:g.status,checkpoints,alternativePath:g.world.path(soldier,goal,[...g.obstacles(),...colliders],0,undefined,false,true),alternativePlain:g.world.path(soldier,goal,[...g.obstacles(),...colliders])};
  });
+ console.log('NAVTRACE '+JSON.stringify(result));
  expect(result.accepted).toBe(2);
  expect(result.breaches).toBe(0);
  expect(result.maxX,JSON.stringify(result)).toBeGreaterThan(result.buildingX+100);
