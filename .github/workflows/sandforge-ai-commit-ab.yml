@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   ab:
-    name: Matched map-seed A/B (old vs armored assault)
+    name: Matched map-seed A/B (first siege rocket budget)
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -45,14 +45,14 @@ jobs:
           ATLAS_SIM_MODULE: ${{ github.workspace }}/previous/dist/src/reborn/simulation.js
         run: |
           node scripts/ai-test-arena.mjs \
-            --maps 3,4,5 --seeds 2026,2027 --seconds 240 \
+            --maps 3,4,5 --seeds 2026,2027,2028 --seconds 360 \
             --modes director --label before-613ced9 \
             --output ai-arena-results/previous.json
       - name: Run improved AI against the identical opponent
         working-directory: candidate
         run: |
           node scripts/ai-test-arena.mjs \
-            --maps 3,4,5 --seeds 2026,2027 --seconds 240 \
+            --maps 3,4,5 --seeds 2026,2027,2028 --seconds 360 \
             --modes director --label after-siege-budget \
             --output ai-arena-results/current.json
       - name: Compare identical initial-world hashes and report actual gains

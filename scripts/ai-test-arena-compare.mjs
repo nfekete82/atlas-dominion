@@ -38,6 +38,10 @@ export function comparisonMarkdown(r){
   '| Ø HQ-Schaden-Differenz | '+r.meanHQDamageDelta+' |',
   '| Ø zusätzliche Eroberungen | '+r.meanCaptureDelta+' |',
   '| Ø zusätzliche eigene Verluste | '+r.meanRedLossesDelta+' |',
+  '| Frühere Artilleriebestellungen (Paare) | '+r.fasterArtilleryOrders+' / '+r.pairedArtilleryOrderSamples+' |',
+  '| Ø erste Artilleriebestellung, beidseitig beobachtet | '+(r.meanFirstArtilleryOrderDelta??'nicht vergleichbar')+' s |',
+  '| Ø erste fertige Artillerie, beidseitig beobachtet | '+(r.meanFirstArtilleryDelta??'nicht vergleichbar')+' s |',
+  '| Bestellungen vor/nach | '+r.artilleryOrdersBefore+' / '+r.artilleryOrdersAfter+' |',
   '| Ø zusätzliche gegnerische Verluste | '+r.meanBlueLossesDelta+' |',
   '| Ø zusätzliche Missionsabbrüche | '+r.meanAbortedMissionsDelta+' |',
   '| Ø erster organisierter Angriff, nur beidseitig beobachtet | '+(r.meanFirstOrganizedAttackDelta??'nicht vergleichbar')+' s |',
@@ -48,7 +52,7 @@ export function comparisonMarkdown(r){
   'Der Gegner, die Einheitenkosten, die Laufzeit und die Zeitschrittweite sind unverändert. '+
   'Zeitlimits zählen nicht als Siege oder Niederlagen. '+
   'Score-Differenzen sind Hinweise und keine Garantie für bessere Spielstärke. '+
-  'Die Angriffszeit ist nur für Paare mit beidseitig beobachtetem ersten Angriff vergleichbar.',
+  'Zeitdifferenzen werden nur dann gerechnet, wenn beide Versionen den jeweiligen Auftrag bzw. die Fertigstellung beobachten.',
   '',
   '## Einzelne Paare','','| Karte | Seed | Modus | Vorher | Nachher | Score-Δ | HQ-Δ |',
   '|---|---:|---|---|---|---:|---:|'];
