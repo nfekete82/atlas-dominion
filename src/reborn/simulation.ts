@@ -5,6 +5,8 @@ import {VisionCache} from './vision-cache.js';
 import { profiler } from './performance.js';
 import { RULES, WEATHER_RULES, clamp, distance, type Faction, type Owner, type Point, type MapVersion, mapLayout, campaignLayout, mapWorldSize } from './config.js';
 import { World, inside, type Territory } from './world.js';
+import {visibleBasePropColliders} from './vehicle-decor-collision.js';
+import {segmentDistance} from './world-generation.js';
 import {canCaptureSector,captureSeconds} from './territory-warfare.js';
 import { UNITS, BUILDINGS, canAttack, weaponDamage, unitSpec, buildingSpec, unitKinds, MAX_GENERATORS_PER_FACTION, type UnitKind, type BuildingKind } from './catalog.js';
 import {angleDifference,turnTowards} from './sprite-animator.js';
@@ -94,6 +96,18 @@ export class Simulation {
 
   readonly weather:Weather;
   private unitById=new Map<number,Unit>();
+  // Props are visual assets but also physical navigation obstacles for ground
+  // vehicles. Cache per simulation tick, not per vehicle movement.
+  private decorObstaclesAt=-1;
+  private decorObstaclesCount=-1;
+  private decorObstacles:{x:number;y:number;radius:number}[]=[];
+  private vehicleDecorObstacles():{x:number;y:number;radius:number}[]{
+    if(this.decorObstaclesAt===this.time&&this.decorObstaclesCount===this.bases.length)return this.decorObstacles;
+    this.decorObstacles=visibleBasePropColliders(this);
+    this.decorObstaclesAt=this.time;
+    this.decorObstaclesCount=this.bases.length;
+    return this.decorObstacles;
+  }
   sight(u:Unit):number{return unitSpec(u).sight*(this.weather.storm&&!unitSpec(u).flying?WEATHER_RULES.groundSight:1);}
   healRadius(u:Unit):number{return HEAL_RADIUS*getVeterancyModifiers(u).healRange;}
   readonly tactical=new TacticalAI(this);
@@ -543,7 +557,22 @@ export class Simulation {
   }
   private move(u:Unit,target:Point,dt:number,speedLimit=Infinity):void {
     const spec=unitSpec(u),clearance=Math.max(0,spec.radius-10);
-    if(!u.path.length&&u.repath<=0){u.path=spec.flying&&!this.tactical.costs(u)?[target]:this.world.path(u,target,u.owner===1&&u.orders[0]?.tactical?this.tactical.navigationObstacles():this.obstacles(),clearance,this.tactical.costs(u),spec.flying,u.exactPath);u.repath=.7;}
+    const vehicle=spec.group==='Fahrzeuge'&&!spec.flying;
+    const decor=vehicle?this.vehicleDecorObstacles():[];
+    const collisionObstacles=vehicle?[...this.obstacles(),...decor]:this.obstacles();
+    if(!u.path.length&&u.repath<=0){
+      const tactical=u.owner===1&&u.orders[0]?.tactical;
+      const baseObstacles=tactical?this.tactical.navigationObstacles():this.obstacles();
+      const routeObstacles=vehicle?[...baseObstacles,...decor]:baseObstacles;
+      u.path=spec.flying&&!this.tactical.costs(u)?[target]:this.world.path(u,target,routeObstacles,clearance,this.tactical.costs(u),spec.flying,u.exactPath);
+      // A coarse cliff route may graze blocked terrain. Retry with exact
+      // cell traversal immediately, even for infantry with zero extra clearance.
+      if(!u.path.length&&!spec.flying&&this.world.mapVersion>=3&&!u.exactPath){
+        u.exactPath=true;
+        u.path=this.world.path(u,target,routeObstacles,clearance,this.tactical.costs(u),false,true);
+      }
+      u.repath=u.path.length?.7:1.4;
+    }
     let next=u.path[0];if(!next)return;
     let d=distance(u,next);if(d<(spec.group==='Infanterie'?5:.4)){u.path.shift();next=u.path[0];if(!next)return;d=distance(u,next);}
     const dx=(next.x-u.x)/d,dy=(next.y-u.y)/d;
@@ -571,8 +600,9 @@ export class Simulation {
     }
     const speed=velocity*(spec.flying&&this.weather.storm?WEATHER_RULES.airSpeed:1)*dt,step=Math.min(speed,d);
     const p={x:u.x+dx*step,y:u.y+dy*step};
-    if(spec.flying||this.world.walkable(p,this.obstacles(),clearance)){u.x=p.x;u.y=p.y;u.walkDistance+=step;u.angle=Math.atan2(dy,dx);u.facing=dx<-.05?-1:dx>.05?1:u.facing;u.moving=step>.001;}
-    else {u.path=[];u.repath=0;if(this.world.mapVersion>=3&&clearance>0)u.exactPath=true;}
+    const decorClear=!vehicle||decor.every(o=>segmentDistance(o,u,p)>=o.radius+RULES.infantry.radius+clearance);
+    if(spec.flying||(decorClear&&this.world.walkable(p,collisionObstacles,clearance))){u.x=p.x;u.y=p.y;u.walkDistance+=step;u.angle=Math.atan2(dy,dx);u.facing=dx<-.05?-1:dx>.05?1:u.facing;u.moving=step>.001;}
+    else {u.path=[];u.repath=0;if(this.world.mapVersion>=3&&!spec.flying)u.exactPath=true;}
   }
   step(dt=RULES.tick):void {
     if(!profiler)return this.stepMeasured(dt);const at=performance.now();try{this.stepMeasured(dt);}finally{profiler.record('simulation',performance.now()-at);}
