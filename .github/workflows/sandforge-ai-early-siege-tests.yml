@@ -1,0 +1,19 @@
+name: Sandforge AI 5.4 early artillery safety tests
+on:
+  push:
+    branches:
+      - feat/sandforge-ai-early-siege-production-20261102
+permissions:
+  contents: read
+jobs:
+  priority:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node --test tests/reborn-tactical-ai-49-early-artillery.test.mjs tests/reborn-tactical-ai-42-siege.test.mjs tests/reborn-tactical-ai-50-endgame.test.mjs tests/sandforge-ai-combat-ready-waves.test.mjs

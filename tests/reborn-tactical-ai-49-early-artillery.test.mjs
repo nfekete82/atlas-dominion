@@ -10,9 +10,14 @@ const valid={factoryReady:true,artillery:0,rovers:1,tanks:0,fighters:5,income:80
  underAttack:false,visibleEnemyAir:false,time:74};
 test('4.9: first paid rocket is reserved after rover with sound economy, not from hidden turret intelligence',()=>{
  assert.equal(earlyArtilleryWindow(valid),true);
- for(const change of [{factoryReady:false},{artillery:1},{rovers:0},{tanks:1},
-  {fighters:4},{income:55},{underAttack:true},{visibleEnemyAir:true},{time:220}])
+ for(const change of [{factoryReady:false},{artillery:1},{rovers:0,tanks:0},
+  {fighters:3},{income:45},{underAttack:true},{visibleEnemyAir:true},{time:220}])
   assert.equal(earlyArtilleryWindow({...valid,...change}),false,JSON.stringify(change));
+});
+test('5.4: the first existing tank also qualifies for an early siege rocket',()=>{
+ assert.equal(earlyArtilleryWindow({...valid,rovers:0,tanks:1,fighters:4,income:55,time:55}),true);
+ assert.equal(earlyArtilleryWindow({...valid,rovers:0,tanks:0}),false);
+ assert.equal(earlyArtilleryWindow({...valid,rovers:1,tanks:1,underAttack:true}),false);
 });
 test('4.9: optional airfield only defers for an observed siege and a factory without artillery',()=>{
  assert.equal(deferOptionalAirfieldForSiege('airfield',true,true,0,false),true);
