@@ -1,0 +1,19 @@
+name: Sandforge legacy adjacency regression
+on:
+  push:
+    branches:
+      - fix/sandforge-legacy-sector-adjacency-20261102
+permissions:
+  contents: read
+jobs:
+  legacy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node --test tests/sandforge-legacy-adjacency.test.mjs tests/reborn.test.mjs tests/reborn-defense-map.test.mjs tests/reborn-tactical-ai.test.mjs
