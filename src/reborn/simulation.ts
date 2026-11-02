@@ -320,7 +320,8 @@ export class Simulation {
   }
   /** Rear support follows the slowest surviving front rank, rather than racing to the destination. */
   private escort(u:Unit,dt:number):boolean {
-    const order=u.orders[0],formation=order?.formation;if((u.kind!=='medic'&&u.kind!=='engineer')||!formation)return false;
+    const order=u.orders[0],formation=order?.formation;
+    if(!formation||!['medic','engineer','infantry','heavy','artillery'].includes(u.kind))return false;
     const recovering=u.owner===1&&this.world.mapVersion>=3&&this.tactical.mode==='director'
       ?this.tactical.state.recovering:undefined;
     const front=this.units.filter(v=>formation.front.includes(v.id)&&v.owner===u.owner&&v.hp>0&&!recovering?.includes(v.id));
@@ -328,12 +329,15 @@ export class Simulation {
     const h=formation.heading,project=(p:Point)=>(p.x-formation.origin.x)*h.x+(p.y-formation.origin.y)*h.y;
     const progress=Math.min(...front.map(project)),lateral=front.reduce((n,v)=>n+(v.x-formation.origin.x)*-h.y+(v.y-formation.origin.y)*h.x,0)/front.length;
     const rear={x:formation.origin.x+h.x*(progress-formation.rear)-h.y*(lateral+formation.lane),y:formation.origin.y+h.y*(progress-formation.rear)+h.x*(lateral+formation.lane)};
+    const fighter=u.kind==='infantry'||u.kind==='heavy'||u.kind==='artillery';
+    // Attack-move ranks may fire while remaining behind the vehicles.
+    if(fighter&&order?.kind!=='move'&&this.acquire(u))return false;
     u.workingTarget=null;u.combatTarget=null;u.pursuitOrigin=null;
     const safe=(p:Point)=>project(p)<=progress-32&&this.units.every(enemy=>enemy.hp<=0||enemy.carrier||enemy.owner===u.owner||!this.canSee(u.owner,enemy)||distance(p,enemy)>Math.min(unitSpec(enemy).range+12,distance(u,enemy)+2));
     const medic=u.kind==='medic',workKind=medic?'heal':'repair';
-    const patient=this.spatial.query(u,115).filter(v=>v.id!==u.id&&this.supportEligible(u,v,workKind)&&project(v)<=progress+35).sort((a,b)=>a.hp/unitSpec(a).hp-b.hp/unitSpec(b).hp||a.id-b.id)[0];
+    const patient=fighter?undefined:this.spatial.query(u,115).filter(v=>v.id!==u.id&&this.supportEligible(u,v,workKind)&&project(v)<=progress+35).sort((a,b)=>a.hp/unitSpec(a).hp-b.hp/unitSpec(b).hp||a.id-b.id)[0];
     const canWork=u.defendUntil<=this.time||medic;
-    if(!patient&&canWork){if(medic)this.healNearby(u,dt);else this.repairNearby(u,dt);}
+    if(!patient&&canWork&&!fighter){if(medic)this.healNearby(u,dt);else this.repairNearby(u,dt);}
     if(medic&&!patient&&u.defendUntil>this.time&&this.acquire(u))return false;
     let destination=rear;
     if(patient){
@@ -346,7 +350,10 @@ export class Simulation {
     }
     if(distance(u,destination)>12){
       if(u.repath<=0)u.path=[];
-      const target=this.world.nearest(destination,this.obstacles(),[],u);
+      const buildings=this.obstacles(),obstacles=unitSpec(u).group==='Infanterie'
+         ?[...buildings,...infantryStructureColliders(buildings)]
+         :[...buildings,...vehicleStructureColliders(buildings),...this.vehicleDecorObstacles()];
+       const target=this.world.nearest(destination,obstacles,[],u);
       if(target){const before={x:u.x,y:u.y},walk=u.walkDistance;// Pioneers match the squad pace even when a nearby vehicle needs repair;
         // an isolated pioneer (without formation) still uses its full catalog speed.
         this.move(u,target,dt,medic&&patient?unitSpec(u).speed:Math.min(...front.map(v=>unitSpec(v).speed)));
