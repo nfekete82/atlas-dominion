@@ -56,21 +56,21 @@ export class BuildingPresentation {
   const w=aperture.width*scale,h=aperture.height*scale,skew=aperture.skew*scale;
   c.save();c.globalAlpha*=alpha;c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';
   c.beginPath();c.moveTo(x+skew,y);c.lineTo(x+w+skew,y);c.lineTo(x+w,y+h);c.lineTo(x,y+h);c.closePath();c.clip();
-  // Inside the raised gate: cool interior shade and warm ground bounce.
-  c.fillStyle='#0c1416';c.fillRect(x+skew-2,y-2,w+Math.abs(skew)+4,h+4);
-  const bounce=c.createLinearGradient(x,y+h*.2,x,y+h);
-  bounce.addColorStop(0,'rgba(27,44,46,.46)');
-  bounce.addColorStop(1,'rgba(94,73,44,.32)');
-  c.fillStyle=bounce;c.fillRect(x+skew-2,y,w+Math.abs(skew)+4,h);
-  const rise=fraction*h*.94;
+  // Cover only the uncovered bottom strip, not a large flat rectangle on
+  // the baked facade. The intact top remains textured from the original atlas.
+  const rise=fraction*h*.82,openingTop=y+h-rise;
+  const recess=c.createLinearGradient(x,openingTop,x,y+h);
+  recess.addColorStop(0,'rgba(22,32,28,.73)');
+  recess.addColorStop(1,'rgba(43,35,27,.82)');
+  c.fillStyle=recess;c.fillRect(x+skew-2,openingTop,w+Math.abs(skew)+4,rise+2);
+  c.save();c.globalAlpha*=.72;
   c.drawImage(a.body,aperture.x,aperture.y,aperture.width,aperture.height,
     x,y-rise,w,h);
-  // A narrow shaded top edge gives the shutter thickness without fake geometry.
-  c.fillStyle='rgba(8,13,15,.58)';c.fillRect(x+skew,y+Math.max(0,h-rise)-3*scale,w,3*scale);
   c.restore();
-  c.save();c.globalAlpha*=alpha*fraction;
-  c.strokeStyle='rgba(156,172,155,.35)';c.lineWidth=Math.max(.6,scale*.8);
-  c.beginPath();c.moveTo(x,y+h);c.lineTo(x+w,y+h);c.stroke();c.restore();
+  // Narrow shutter lip and recessed step; subdued compared with real PBR art.
+  c.strokeStyle='rgba(158,158,125,.38)';c.lineWidth=Math.max(.5,scale*.6);
+  c.beginPath();c.moveTo(x+skew,openingTop);c.lineTo(x+w+skew,openingTop);c.stroke();
+  c.restore();
  }
  drawTurret(c:CanvasRenderingContext2D,owner:Owner,p:Point,width:number,angle=0,alpha=1):void{
   const a=this.asset('turret',owner),layer=a.data.turret;if(!layer||!a.turret)return;
