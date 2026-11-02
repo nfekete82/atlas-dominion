@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {assaultDecision,abortAssault,preferredRole} from '../dist/src/reborn/ai-director.js';
 import {Simulation} from '../dist/src/reborn/simulation.js';
 import {developArmy} from '../dist/src/reborn/army-economy.js';
-import {addProducer} from './fixtures/reborn-production.mjs';
+import {addProducer,seedCompletedGenerators} from './fixtures/reborn-production.mjs';
 import {blueDefense} from '../scripts/benchmark-ai-opponent.mjs';
 import {UNITS} from '../dist/src/reborn/catalog.js';
 
@@ -72,6 +72,7 @@ test('director: baseline can still be benchmarked without mutating campaign stat
 
 test('director: operational factory buys a real rover before reserving credits for the airfield',()=>{
  const g=new Simulation(2026,4),hq=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
+ seedCompletedGenerators(g);
  for(let i=0;i<5;i++)g.spawn(1,{x:hq.x+100+i*12,y:hq.y-120},'infantry');
  addProducer(g,'barracks',1);
  const factory=addProducer(g,'factory',1);
@@ -231,6 +232,7 @@ test('director: serviced vehicle receives actual HP and returns to the reserve a
 
 test('director: armored reserve survives a funded barracks purchase and never mints credits',()=>{
  const g=new Simulation(2026,4),hq=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
+ seedCompletedGenerators(g);
  for(let i=0;i<5;i++)g.spawn(1,{x:hq.x+100+i*12,y:hq.y-120},'infantry');
  const barracks=addProducer(g,'barracks',1),factory=addProducer(g,'factory',1);
  g.credits[1]=1000;
@@ -264,6 +266,7 @@ test('director: a threatened base may recruit infantry instead of preserving the
 
 test('director: a sighted enemy HQ triggers a fully paid rocket siege rather than random rovers',()=>{
  const g=new Simulation(2026,4),hq=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
+ seedCompletedGenerators(g);
  for(let i=0;i<5;i++)g.spawn(1,{x:hq.x+105+i*9,y:hq.y-110},'infantry');
  const factory=addProducer(g,'factory',1),barracks=addProducer(g,'barracks',1);
  const blueHQ=g.bases.find(b=>b.owner===0&&b.kind==='headquarters');
@@ -284,6 +287,7 @@ test('director: a sighted enemy HQ triggers a fully paid rocket siege rather tha
 
 test('director: barracks stays idle exactly at the minimum reserve threshold',()=>{
  const g=new Simulation(2026,4),hq=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
+ seedCompletedGenerators(g);
  for(let i=0;i<5;i++)g.spawn(1,{x:hq.x+100+i*12,y:hq.y-120},'infantry');
  const barracks=addProducer(g,'barracks',1),factory=addProducer(g,'factory',1);
  g.credits[1]=850;
@@ -296,6 +300,7 @@ test('director: barracks stays idle exactly at the minimum reserve threshold',()
 
 test('director: once a rover exists it saves for a real tank rather than buying another rover',()=>{
  const g=new Simulation(2026,4),hq=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
+ seedCompletedGenerators(g);
  for(let i=0;i<5;i++)g.spawn(1,{x:hq.x+110+i*10,y:hq.y-120},'infantry');
  g.spawn(1,{x:hq.x+110,y:hq.y+135},'rover');
  const factory=addProducer(g,'factory',1),barracks=addProducer(g,'barracks',1);
@@ -313,6 +318,7 @@ test('director: once a rover exists it saves for a real tank rather than buying 
 
 test('director: after rover and tank it finances a real artillery unit at mature income',()=>{
  const g=new Simulation(2026,4),hq=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
+ seedCompletedGenerators(g);
  for(let i=0;i<5;i++)g.spawn(1,{x:hq.x+110+i*10,y:hq.y-120},'infantry');
  g.spawn(1,{x:hq.x+115,y:hq.y+110},'rover');
  g.spawn(1,{x:hq.x+155,y:hq.y+135},'tank');
