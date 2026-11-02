@@ -6,11 +6,13 @@ import {RULES} from '../dist/src/reborn/config.js';
 
 const step=(g,seconds)=>{for(let i=0;i<Math.round(seconds/RULES.tick);i++)g.step(RULES.tick);};
 function fixture(){
- const g=new Simulation();g.aiClock=-1e8;g.credits[0]=5000;
+ const g=new Simulation(2026,4);g.aiClock=-1e8;g.credits[0]=5000;
+ // Deterministic, fully explored and unobstructed engineering test range.
+ g.explored[0].fill(1);g.visible[0].fill(1);g.world.blocked.fill(0);
  g.units=g.units.filter(u=>u.owner!==0);
- function position(){
-  for(let y=2100;y<3450;y+=28)for(let x=220;x<1750;x+=28)
-   if(!g.buildError(0,'barracks',{x,y}))return {x,y};
+ function position(kind='barracks'){
+  for(let y=300;y<g.world.size-200;y+=32)for(let x=250;x<g.world.size-200;x+=32)
+   if(!g.buildError(0,kind,{x,y}))return {x,y};
   throw Error('No legal site for construction test');
  }
  const first=position(),p=g.world.nearest({x:first.x+BUILDINGS.barracks.radius+32,y:first.y},g.obstacles());
@@ -24,14 +26,14 @@ test('pioneer queue: shift-placement builds two sites in sequence and pays exact
  const startingCredits=g.credits[0];
  const a=g.build(0,'barracks',first,[worker.id]);
  assert.ok(a);
- const b=g.build(0,'barracks',position(),[worker.id],0,true);
+ const b=g.build(0,'turret',position('turret'),[worker.id],0,true);
  assert.ok(b);
  assert.deepEqual(worker.orders.map(o=>o.target),[a.id,b.id]);
  assert.deepEqual(worker.orders.map(o=>o.kind),['build','build']);
- assert.equal(g.credits[0],startingCredits-2*BUILDINGS.barracks.cost);
+ assert.equal(g.credits[0],startingCredits-BUILDINGS.barracks.cost-BUILDINGS.turret.cost);
  // The second site is queued, not built concurrently.
  step(g,1);
- assert.equal(b.buildRemaining,BUILDINGS.barracks.buildTime);
+ assert.equal(b.buildRemaining,BUILDINGS.turret.buildTime);
  step(g,90);
  assert.equal(a.buildRemaining,0,'first building should be finished');
  assert.equal(b.buildRemaining,0,'then the second building should finish automatically');
@@ -41,7 +43,7 @@ test('pioneer queue: shift-placement builds two sites in sequence and pays exact
 test('pioneer queue: ordinary new construction still replaces the active job',()=>{
  const {g,worker,first,position}=fixture();
  const a=g.build(0,'barracks',first,[worker.id]);
- const b=g.build(0,'barracks',position(),[worker.id]);
+ const b=g.build(0,'turret',position('turret'),[worker.id]);
  assert.ok(a&&b);
  assert.deepEqual(worker.orders.map(o=>o.target),[b.id]);
  step(g,2);
@@ -51,7 +53,7 @@ test('pioneer queue: ordinary new construction still replaces the active job',()
 test('pioneer queue: canceling the active site leaves the queued building job intact',()=>{
  const {g,worker,first,position}=fixture();
  const a=g.build(0,'barracks',first,[worker.id]);
- const b=g.build(0,'barracks',position(),[worker.id],0,true);
+ const b=g.build(0,'turret',position('turret'),[worker.id],0,true);
  assert.ok(a&&b);
  assert.equal(g.cancelConstruction(a.id),true);
  assert.deepEqual(worker.orders.map(o=>o.target),[b.id]);
@@ -62,7 +64,7 @@ test('pioneer queue: canceling the active site leaves the queued building job in
 test('pioneer queue: existing build and repair jobs survive save/load in order',()=>{
  const {g,worker,first,position}=fixture();
  const a=g.build(0,'barracks',first,[worker.id]);
- const b=g.build(0,'barracks',position(),[worker.id],0,true);
+ const b=g.build(0,'turret',position('turret'),[worker.id],0,true);
  assert.ok(a&&b);
  step(g,1);
  const saved=Simulation.load(g.save());saved.aiClock=-1e8;
@@ -80,7 +82,7 @@ test('pioneer queue: if a worker is full, do not create or charge a ghost site',
  assert.ok(a);
  worker.orders=Array.from({length:32},()=>({...worker.orders[0]}));
  const before=g.credits[0],bases=g.bases.length;
- assert.equal(g.build(0,'barracks',position(),[worker.id],0,true),null);
+ assert.equal(g.build(0,'turret',position('turret'),[worker.id],0,true),null);
  assert.equal(g.bases.length,bases);
  assert.equal(g.credits[0],before);
 });
@@ -110,12 +112,12 @@ test('pioneer queue: damaged building is repaired before newly scheduled constru
  assert.equal(finished.buildRemaining,0);
  finished.hp=BUILDINGS.barracks.hp-48;
  assert.equal(g.command([worker.id],{x:finished.x,y:finished.y,kind:'repair',target:finished.id}),1);
- const next=g.build(0,'barracks',position(),[worker.id],0,true);
+ const next=g.build(0,'turret',position('turret'),[worker.id],0,true);
  assert.ok(next);
  assert.deepEqual(worker.orders.map(o=>o.kind),['repair','build']);
  step(g,.5);
  assert.ok(finished.hp>BUILDINGS.barracks.hp-48,'repair work starts first');
- assert.equal(next.buildRemaining,BUILDINGS.barracks.buildTime,'queued construction remains untouched');
+ assert.equal(next.buildRemaining,BUILDINGS.turret.buildTime,'queued construction remains untouched');
  step(g,70);
  assert.equal(finished.hp,BUILDINGS.barracks.hp);
  assert.equal(next.buildRemaining,0);
