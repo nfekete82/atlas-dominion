@@ -78,6 +78,8 @@ export function runMatch({Simulation,UNITS,performanceModule},options,seed,mode,
   enemyHQSeen:false,enemyHQDamaged:false,enemyHQDestroyed:false,enemyHQCaptured:false,enemyHQDamage:0,
   blueHeadquartersHp:initialHQHp,enemyBuildingsSeen:0,enemyBuildingsDamaged:0,enemyBuildingsDestroyed:0,
   enemyBuildingDamage:0,enemyTowersDestroyed:0,firstFactory:null,firstFrontContact:null,firstEnemyContact:null,
+  firstArtilleryOrder:null,artilleryCreditsBeforeOrder:null,artilleryQueueAtEnd:0,
+  factoryToArtilleryOrderSeconds:null,artilleryOrderToUnitSeconds:null,
   finishedBuildings:0,vehicles:0,peakVehicles:0,peakArmy:0,peakAircraft:0,vehiclesOrdered:0,vehicleOrdersByKind:{},
   redOrdersByKind:{},redProducedByKind:{},blueProducedByKind:{},redLossesByKind:{},blueLossesByKind:{},
   paidRecruitCredits:0,refundedRecruitCredits:0,vehiclesProduced:0,aircraftProduced:0,
@@ -112,7 +114,11 @@ export function runMatch({Simulation,UNITS,performanceModule},options,seed,mode,
  const recruit=g.recruit.bind(g);
  g.recruit=(id,kind)=>{
   const building=g.bases.find(b=>b.id===id),before=g.credits[1],beforeBlue=g.credits[0],ok=recruit(id,kind);
-  if(ok&&building?.owner===1){increment(metrics.redOrdersByKind,building.queueTypes.at(-1));metrics.paidRecruitCredits+=before-g.credits[1];}
+  if(ok&&building?.owner===1){
+   const ordered=building.queueTypes.at(-1);
+   increment(metrics.redOrdersByKind,ordered);metrics.paidRecruitCredits+=before-g.credits[1];
+   if(ordered==='artillery'&&metrics.firstArtilleryOrder===null){metrics.firstArtilleryOrder=time();metrics.artilleryCreditsBeforeOrder=round(before);}
+  }
   if(ok&&building?.owner===0){increment(metrics.bluePaidOrdersByKind,building.queueTypes.at(-1));metrics.bluePaidRecruitCredits+=beforeBlue-g.credits[0];}
   return ok;
  };
@@ -297,6 +303,11 @@ export function runMatch({Simulation,UNITS,performanceModule},options,seed,mode,
   metrics.redSectors=g.territories.filter(t=>t.owner===1).length;metrics.netCaptures=metrics.redSectors-startingRedSectors;
   metrics.battleReactions=g.tactical.state.battle?.reactions??0;metrics.battleRetreats=g.tactical.state.battle?.retreats??0;
   metrics.tactical=g.tactical.diagnostics?structuredClone(g.tactical.diagnostics):null;
+  metrics.artilleryQueueAtEnd=g.bases.filter(b=>b.owner===1&&b.hp>0).reduce((n,b)=>n+b.queueTypes.filter(k=>k==='artillery').length,0);
+  if(metrics.firstFactory!==null&&metrics.firstArtilleryOrder!==null)
+   metrics.factoryToArtilleryOrderSeconds=round(metrics.firstArtilleryOrder-metrics.firstFactory);
+  if(metrics.firstArtilleryOrder!==null&&metrics.firstArtillery!==null)
+   metrics.artilleryOrderToUnitSeconds=round(metrics.firstArtillery-metrics.firstArtilleryOrder);
   metrics.artilleryTelemetry=artilleryObserver.snapshot();
   metrics.endgameTelemetry=endgameObserver.snapshot();
   metrics.counterattackDefinition='emergencyDefense to offensive/siege/endgame commander transitions';

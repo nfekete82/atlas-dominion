@@ -25,6 +25,10 @@ Ergebnisse werden **nach jedem Match** atomar geschrieben:
 
 Die Rohdaten werden nicht in Git eingecheckt. Die GitHub-Actions-Testarena archiviert sie als Artefakte.
 
+## Produktionsdiagnose
+
+Der KI-Benchmark erfasst separat, wann die erste Fabrik fertig wird, wann der erste Raketenwerfer **tatsächlich bezahlt und bestellt** wird, wann er spielbar fertiggestellt wird und ob am Testende noch Artillerie in einer Warteschlange liegt. Damit lassen sich Bauverzögerungen, Finanzierungszeiten und Produktionsdauer auseinanderhalten. Nicht beobachtete Werte bleiben `null` und erscheinen als `–`; sie sind keine Null-Sekunden-Produktionen.
+
 ## Messregeln und Grenzen
 
 - Rot ist die zu prüfende KI, Blau ein festes, budgetbeschränktes Verteidigungsskript.
