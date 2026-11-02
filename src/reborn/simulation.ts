@@ -59,6 +59,8 @@ export interface Base extends Point {
   queueCosts?:number[];
   turretAngle?:number; previousTurretAngle?:number; turretTarget?:number|null;
 }
+/** Transient on-screen release cue. Never serialized or used for collisions. */
+export interface ProductionRelease {unitId:number;baseId:number;kind:UnitKind;owner:Faction;at:number;from:Point;to:Point}
 export interface Shot { from:Point; to:Point; owner:Faction; life:number; hit:boolean; projected?:boolean; source?:number; weapon?:Weapon; barrel?:number; at?:number; groundFrom?:Point; groundTo?:Point; armored?:boolean; kind?:UnitKind; angle?:number;flightHeight?:number }
 export interface Missile {id:number;source:number;owner:Faction;from:Point;to:Point;angle:number;at:number;impactAt:number;damage:number;type?:'antiArmor'}
 export interface Blast extends Point {at:number;id:number}
@@ -123,6 +125,7 @@ export class Simulation {
   visible=[new Uint8Array(RULES.grid**2),new Uint8Array(RULES.grid**2)];
   explored=[new Uint8Array(RULES.grid**2),new Uint8Array(RULES.grid**2)];
   memories:Memory[][]=[[],[]]; shots:Shot[]=[]; notices:string[]=[];
+  readonly productionReleases:ProductionRelease[]=[];
   readonly attackAlerts=new AttackAlerts();
   workEffects:WorkEffect[]=[];
   paused=false; revision=0; private fogClock=0; private visionCache=new VisionCache(); private spatial=new SpatialIndex();
@@ -848,7 +851,12 @@ export class Simulation {
         // A factory exit must be clear of the painted building silhouettes,
         // not merely outside their smaller construction footprint circles.
         const spawn=spec.flying?exit:this.world.nearest(exit,spawnObstacles,this.units,undefined,Math.max(0,spec.radius-10));
-        if(spawn&&this.count(b.owner)<RULES.capacity){const u=this.spawn(b.owner,spawn,kind);countProduced(this.stats,b.owner);if(b.owner===0)this.notices.push(`Einheit bereit: ${spec.name}.`);b.queue.shift();b.queueTypes.shift();b.queueCosts?.shift();b.production=0;if(b.rally)this.command([u.id],{...b.rally,kind:'attackMove'});}
+        if(spawn&&this.count(b.owner)<RULES.capacity){const u=this.spawn(b.owner,spawn,kind);
+          // The actual spawn remains authoritative; the renderer performs only a
+          // short exterior arrival fade. Never fake an opening in the baked facade.
+          this.productionReleases.push({unitId:u.id,baseId:b.id,kind,owner:b.owner,at:this.time,from:{x:b.x,y:b.y},to:{...spawn}});
+          if(this.productionReleases.length>24)this.productionReleases.shift();
+          countProduced(this.stats,b.owner);if(b.owner===0)this.notices.push(`Einheit bereit: ${spec.name}.`);b.queue.shift();b.queueTypes.shift();b.queueCosts?.shift();b.production=0;if(b.rally)this.command([u.id],{...b.rally,kind:'attackMove'});}
       }
     }
     this.spatial.rebuild(this.units);

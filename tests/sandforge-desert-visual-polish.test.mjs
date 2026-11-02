@@ -1,7 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {palmGroup,PALM_ART_SCALE} from '../dist/src/reborn/palm-grove.js';
-import {ProductionGates,PRODUCTION_GATE_APERTURES} from '../dist/src/reborn/production-gates.js';
 import {VEHICLE_CONTACT_SHADOWS,groundVehiclePose} from '../dist/src/reborn/unit-presentation.js';
 import {Simulation} from '../dist/src/reborn/simulation.js';
 
@@ -38,38 +37,6 @@ test('desert: groves do not touch saved simulation state or collision paths',()=
  assert.deepEqual(g.save(),before);
 });
 
-const base={id:10,kind:'factory',hp:1100,buildRemaining:0,queue:[12],production:0};
-test('gate: only a producing intact building gets a smooth opening',()=>{
- const gates=new ProductionGates();
- assert.equal(gates.sample(base,0),0);
- assert.equal(gates.sample({...base,production:8},8),0);
- const opening=gates.sample({...base,production:10.8},10.8);
- assert.ok(opening>0&&opening<1,'gate starts lifting before output');
- assert.ok(gates.sample({...base,production:12},12)>0.99);
- assert.equal(gates.sample({...base,hp:0},13),0);
- assert.equal(gates.sample({...base,buildRemaining:5},14),0);
-});
-test('gate: remains open through actual spawn and closes afterwards',()=>{
- const gates=new ProductionGates();
- gates.sample({...base,production:11.5},11.5);
- const released=gates.sample({...base,queue:[],production:0},12);
- assert.ok(released>.9,'shutter remains open while the unit emerges');
- assert.ok(gates.sample({...base,queue:[],production:0},12.7)>0);
- assert.equal(gates.sample({...base,queue:[],production:0},14),0);
-});
-test('gate: queue progress reset from two jobs triggers opening without changing production',()=>{
- const gates=new ProductionGates(),b={...base,queue:[12,12],production:11.8};
- gates.sample(b,11.8);
- assert.ok(gates.sample({...b,queue:[12],production:.2},12.0)>.9);
-});
-test('gate: HQ barracks factory and airfield have bounded atlas-space shutters',()=>{
- assert.equal(Object.keys(PRODUCTION_GATE_APERTURES).length,4);
- for(const a of Object.values(PRODUCTION_GATE_APERTURES)){
-  assert.ok(a.x>0&&a.y>0&&a.width>15&&a.height>15);
-  assert.ok(a.x+a.width<512&&a.y+a.height<512);
-  assert.ok(a.width<=58&&a.height<=60,'shutter must stay a compact facade detail, not an opaque wall overlay');
- }
-});
 test('vehicle finish: three tracked or wheeled models get subtle world-anchored contact shadows',()=>{
  for(const kind of ['tank','rover','artillery']){
   const s=VEHICLE_CONTACT_SHADOWS[kind];
