@@ -14,6 +14,7 @@ import {canCaptureSector,comebackPressure,chooseComebackOpportunity} from './ter
 import {chooseTacticalManeuver,flankCandidate,type TacticalChoice} from './tactical-search.js';
 import {assignScreen,assignFlank,flankRouteScore,isContinuingFlank} from './battle-squads.js';
 import {assaultWaveDecision,reinforcementStagingPoint} from './assault-wave.js';
+import {isCompactBattle,sectorDefenseAnchor,type FrontDoctrine} from './four-bastion-front-doctrine.js';
 import {chooseSiegeShot,chooseRaidFront,allowSecondaryPressure,type SiegeShot,type RaidFront} from './ai25-doctrine.js';
 import type {Simulation,Unit,Memory} from './simulation.js';
 export type TacticalPhase='gather'|'attack'|'regroup'|'defend';
@@ -113,6 +114,8 @@ export class TacticalAI {
  waveMode:'legacy'|'coordinated'='coordinated';
  /** 2.4/2.5 paired comparison; affects strategy only, never serialized. */
  doctrineMode:'legacy'|'intelligent'='intelligent';
+ /** Experimental policy; ordinary play remains classic until measured. */
+ frontDoctrine:FrontDoctrine='classic';
  /** Runtime-only diagnostics: never influence simulation or serialize in saves. */
  diagnostics:TacticalDiagnostics=newDiagnostics();
  state=fresh();private risk:Float32Array|undefined;private riskAt=-1;private routeCache=new Map<string,Point[]>();private routeSignature='';
@@ -726,7 +729,9 @@ export class TacticalAI {
   }
   // Cleanup holds the paid army together rather than sending two fighters to
  // a secondary neutral bastion while enemy production is still standing.
- const raidUnits=c.enemyHQEliminatedAt===undefined?this.secondaryPressure(fighters,mission,home):new Set<number>();
+ const raidUnits=c.enemyHQEliminatedAt===undefined&&
+  !isCompactBattle(g.world.mapVersion,g.territories.length,this.frontDoctrine)
+  ?this.secondaryPressure(fighters,mission,home):new Set<number>();
   const mainFighters=fighters.filter(u=>!raidUnits.has(u.id));
   const reserve=cleanupReserveSize(c.enemyHQEliminatedAt!==undefined,mainFighters.length);
   const guards=new Set(mainFighters.filter(u=>!s.group.includes(u.id)).sort((a,b)=>distance(a,home)-distance(b,home)||a.id-b.id).slice(0,reserve).map(u=>u.id));
@@ -983,10 +988,17 @@ export class TacticalAI {
   this.airlift(army,home);const explorers=this.recon(army.filter(u=>!recovering.has(u.id)),home),boarding=new Set([...army.filter(u=>u.orders[0]?.kind==='board').map(u=>u.id),...(s.airlift?.phase==='pickup'?s.airlift.passengers??[]:[])]),fighters=army.filter(u=>combat(u)&&!recovering.has(u.id)&&!explorers.has(u.id)&&!boarding.has(u.id)),medics=army.filter(u=>u.kind==='medic'&&!recovering.has(u.id)&&!boarding.has(u.id)).slice(0,2);
   developArmy(g,s,army,p=>this.danger(p));
   for(const w of army.filter(u=>u.kind==='engineer'&&!u.orders.length)){const b=g.bases.filter(b=>b.owner===1&&b.hp>0&&b.hp<buildingSpec(b).hp&&b.buildRemaining<=0).sort((a,b)=>distance(w,a)-distance(w,b))[0];if(b)g.command([w.id],{...b,kind:'repair',target:b.id});}
-  const intruders=g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)&&g.bases.some(b=>b.owner===1&&b.hp>0&&distance(u,b)<(b.kind==='headquarters'?560:420)));
+  const visibleEnemies=g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u));
+  const compact=isCompactBattle(g.world.mapVersion,g.territories.length,this.frontDoctrine);
+  const anchor=compact&&this.frontDoctrine==='sector-defense'
+   ?sectorDefenseAnchor({territories:g.territories.map(t=>({...t.point,id:t.id,owner:t.owner})),
+      visibleEnemies,home,minFighters:fighters.length,engagedAttack:s.phase==='attack'})
+   :undefined;
+  const intruders=visibleEnemies.filter(u=>g.bases.some(b=>b.owner===1&&b.hp>0&&distance(u,b)<(b.kind==='headquarters'?560:420))
+   ||anchor!==undefined&&distance(u,anchor)<255);
   if(g.world.mapVersion>=3&&this.mode==='director'){
-   const defense=this.localDefense(fighters,medics,intruders,home);
-   const raiders=this.expansionRaid(fighters.filter(u=>!defense.has(u.id)),home);
+   const defense=this.localDefense(fighters,medics,intruders,anchor??home);
+   const raiders=compact?new Set<number>():this.expansionRaid(fighters.filter(u=>!defense.has(u.id)),home);
    this.campaign(army,fighters.filter(u=>!defense.has(u.id)&&!raiders.has(u.id)),medics.filter(u=>!defense.has(u.id)),home);
    if(defense.size)campaignPhase(s.commander??=newCampaign(),'emergencyDefense',g.time);
    return;
