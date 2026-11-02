@@ -67,6 +67,7 @@ test('gate: HQ barracks factory and airfield have bounded atlas-space shutters',
  for(const a of Object.values(PRODUCTION_GATE_APERTURES)){
   assert.ok(a.x>0&&a.y>0&&a.width>15&&a.height>15);
   assert.ok(a.x+a.width<512&&a.y+a.height<512);
+  assert.ok(a.width<=58&&a.height<=60,'shutter must stay a compact facade detail, not an opaque wall overlay');
  }
 });
 test('vehicle finish: three tracked or wheeled models get subtle world-anchored contact shadows',()=>{
