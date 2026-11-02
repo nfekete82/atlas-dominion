@@ -3,6 +3,7 @@ import {directionIndex} from './sprite-animator.js';
 import {rosterImageRect,ROSTER_IMAGE_WIDTH,ROSTER_IMAGE_HEIGHT} from './portrait-layout.js';
 import type {Owner,Point} from './config.js';
 import {buildingAtlasPath} from './asset-paths.js';
+import {PRODUCTION_GATE_APERTURES} from './production-gates.js';
 export type StructureKind=BuildingKind|'bastion';
 interface Frame {x:number;y:number;w:number;h:number}
 interface Layer {image:string;pivot:[number,number];frames:Frame[];period:number;originalBounds:Frame}
@@ -43,6 +44,33 @@ export class BuildingPresentation {
   const asset=this.asset(kind,owner),scale=width/asset.data.body.solidBounds.w,clock=reduced?0:time;
   const draw=(layer:Layer|null,image:HTMLImageElement|null,opacity:number)=>{if(!layer||!image)return;const f=layer.frames[Math.floor(clock/layer.period*layer.frames.length)%layer.frames.length];c.save();c.globalAlpha=alpha*opacity;c.drawImage(image,f.x,f.y,f.w,f.h,p.x-layer.pivot[0]*scale,p.y-layer.pivot[1]*scale,f.w*scale,f.h*scale);c.restore();};
   draw(asset.data.sweep??null,asset.sweep,1);draw(asset.data.activity,asset.activity,1);const pulse=Math.pow(Math.max(0,Math.cos(clock*Math.PI*2/3.8)),18);draw(asset.data.beacon,asset.beacon,.22+.78*pulse);
+ }
+ /** Raise a baked facade shutter within its actual texture-space footprint.
+  * Overlay is cosmetic: unit spawns, obstacles and production timing stay unchanged.
+  * A closed door draws no additional pixels, preserving original detailed art. */
+ drawProductionGate(c:CanvasRenderingContext2D,kind:BuildingKind,owner:Owner,p:Point,width:number,opening:number,alpha=1):void{
+  const aperture=PRODUCTION_GATE_APERTURES[kind],fraction=Math.max(0,Math.min(1,opening));
+  if(!aperture||fraction<.001)return;
+  const a=this.asset(kind,owner),body=a.data.body,scale=width/body.solidBounds.w;
+  const x=p.x+(aperture.x-body.pivot[0])*scale,y=p.y+(aperture.y-body.pivot[1])*scale;
+  const w=aperture.width*scale,h=aperture.height*scale,skew=aperture.skew*scale;
+  c.save();c.globalAlpha*=alpha;c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';
+  c.beginPath();c.moveTo(x+skew,y);c.lineTo(x+w+skew,y);c.lineTo(x+w,y+h);c.lineTo(x,y+h);c.closePath();c.clip();
+  // Inside the raised gate: cool interior shade and warm ground bounce.
+  c.fillStyle='#0c1416';c.fillRect(x+skew-2,y-2,w+Math.abs(skew)+4,h+4);
+  const bounce=c.createLinearGradient(x,y+h*.2,x,y+h);
+  bounce.addColorStop(0,'rgba(27,44,46,.46)');
+  bounce.addColorStop(1,'rgba(94,73,44,.32)');
+  c.fillStyle=bounce;c.fillRect(x+skew-2,y,w+Math.abs(skew)+4,h);
+  const rise=fraction*h*.94;
+  c.drawImage(a.body,aperture.x,aperture.y,aperture.width,aperture.height,
+    x,y-rise,w,h);
+  // A narrow shaded top edge gives the shutter thickness without fake geometry.
+  c.fillStyle='rgba(8,13,15,.58)';c.fillRect(x+skew,y+Math.max(0,h-rise)-3*scale,w,3*scale);
+  c.restore();
+  c.save();c.globalAlpha*=alpha*fraction;
+  c.strokeStyle='rgba(156,172,155,.35)';c.lineWidth=Math.max(.6,scale*.8);
+  c.beginPath();c.moveTo(x,y+h);c.lineTo(x+w,y+h);c.stroke();c.restore();
  }
  drawTurret(c:CanvasRenderingContext2D,owner:Owner,p:Point,width:number,angle=0,alpha=1):void{
   const a=this.asset('turret',owner),layer=a.data.turret;if(!layer||!a.turret)return;
