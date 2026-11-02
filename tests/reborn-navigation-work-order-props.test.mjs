@@ -5,7 +5,8 @@ import {buildingProps} from '../dist/src/reborn/building-decor.js';
 import {propSiteClear} from '../dist/src/reborn/prop-placement.js';
 import {preserveAssignedWork} from '../dist/src/reborn/work-order-guard.js';
 import {Input} from '../dist/src/reborn/input.js';
-import {RULES,distance} from '../dist/src/reborn/config.js';
+import {RULES} from '../dist/src/reborn/config.js';
+import {UNITS} from '../dist/src/reborn/catalog.js';
 
 test('work: routine right-click preserves active engineer build/repair; explicit commands override',()=>{
  for(const current of ['build','repair']){
@@ -45,8 +46,8 @@ test('vehicles: completed visible crates/lamps physically block direct travel, w
  const p=props.find(p=>p.kind==='service-lamp');
  const obstacles=[{x:p.x,y:p.y,radius:p.size*.43}];
  const start={x:p.x-75,y:p.y},end={x:p.x+75,y:p.y};
- assert.equal(g.world.line(start,end,obstacles,Math.max(0,RULES.rover.radius-10)),false);
- const route=g.world.path(start,end,[...g.obstacles(),...obstacles],Math.max(0,RULES.rover.radius-10),undefined,false,true);
+ assert.equal(g.world.line(start,end,obstacles,Math.max(0,UNITS.rover.radius-10)),false);
+ const route=g.world.path(start,end,[...g.obstacles(),...obstacles],Math.max(0,UNITS.rover.radius-10),undefined,false,true);
  assert.ok(route.length,'ground vehicle can find detour round service prop');
 });
 
