@@ -5,13 +5,11 @@ import type {Territory} from './world.js';
  * their original fixed eight-second, adjacent-only territory mechanics. */
 export const dynamicTerritoryWarfare=(version:MapVersion):boolean=>version>=11;
 
-/** A tactical leap may reach an ENEMY-held sector exactly one territory beyond
- * the ordinary front. Neutral sectors still require a connected capture. */
-export function canCaptureSector(territories:readonly Territory[],sector:Territory,owner:Owner,version:MapVersion):boolean{
- if(owner!==0&&owner!==1||sector.owner===owner)return false;
- if(sector.neighbors.some(id=>territories[id]?.owner===owner))return true;
- return dynamicTerritoryWarfare(version)&&sector.owner===1-owner&&
-  sector.neighbors.some(id=>territories[id]?.neighbors.some(next=>territories[next]?.owner===owner));
+/** Any neutral or hostile bastion may be captured by either faction, regardless
+ * of adjacent ownership. The simulation still enforces presence, contest and
+ * the intact-enemy-HQ lock. Keep the original parameters for caller stability. */
+export function canCaptureSector(_territories:readonly Territory[],sector:Territory,owner:Owner,_version:MapVersion):boolean{
+ return (owner===0||owner===1)&&sector.owner!==owner;
 }
 
 export interface TerritoryGuard extends Point {owner:Owner;hp:number;carrier?:number|null}

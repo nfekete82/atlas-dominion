@@ -295,7 +295,7 @@ export class Renderer {
       // The circle is measured from the tower FOOT, not its tall visible mast.
       c.save();c.strokeStyle=state==='capturing'?'#a6d2aa':state==='contested'?'#e6ad77':'#d0b379';
       c.lineWidth=1.7;c.setLineDash([10,6]);c.beginPath();c.arc(p.x,p.y,RULES.captureRadius,0,Math.PI*2);c.stroke();c.setLineDash([]);
-      const hint=state==='no-unit'?'EINHEIT ZUM KONTROLLPUNKT':state==='out-of-range'?'NOCH ZU WEIT':state==='contested'?'UMKÄMPFT':state==='enemy-hq'?'ERST FEIND-HQ ZERSTÖREN':state==='disconnected'?'ERST NACHBARSEKTOR SICHERN':'EROBERUNG LÄUFT';
+      const hint=state==='no-unit'?'EINHEIT ZUM KONTROLLPUNKT':state==='out-of-range'?'NOCH ZU WEIT':state==='contested'?'UMKÄMPFT':state==='enemy-hq'?'ERST FEIND-HQ ZERSTÖREN':'EROBERUNG LÄUFT';
       c.font='bold 10px monospace';const width=Math.max(144,c.measureText(hint).width+16);
       c.fillStyle='#28251fe8';c.fillRect(p.x-width/2,p.y+53,width,20);c.strokeStyle='#a9946a';c.lineWidth=.8;c.strokeRect(p.x-width/2,p.y+53,width,20);c.fillStyle=state==='capturing'?'#d0e8bb':'#f0d8ad';c.fillText(hint,p.x,p.y+67);c.restore();
     }

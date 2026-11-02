@@ -37,8 +37,8 @@ test('reborn: physical movement explores and captures an adjacent territory afte
  assert.equal(g.hasExplored(0,t.point),true);assert.equal(g.canSee(0,t.point),true);
 });
 
-test('reborn: disconnected captures fail; enemies contest and interrupt capture',()=>{
- const g=peaceful(),u=g.units[0],t=g.territories[16];Object.assign(u,t.point);advance(g,10);assert.equal(t.owner,-1);assert.equal(t.progress,0);
+test('reborn: remote neutral capture works; enemies still contest and interrupt capture',()=>{
+ const g=peaceful(),u=g.units[0],t=g.territories[16];Object.assign(u,t.point);advance(g,10);assert.equal(t.owner,0);assert.equal(t.progress,0);
  const adjacent=g.territories[20];Object.assign(u,adjacent.point);advance(g,3);assert.ok(adjacent.progress>2.8);
  const enemy=g.units[1];Object.assign(enemy,adjacent.point);u.orders=[{...u,kind:'move'}];enemy.orders=[{...enemy,kind:'move'}];
  const progress=adjacent.progress;advance(g,3);assert.equal(adjacent.progress,progress);assert.equal(adjacent.owner,-1);
@@ -274,7 +274,7 @@ test('reborn: air and ground units contest each other and air recapture transfer
  advance(g,RULES.captureTime);assert.equal(t.owner,1);assert.equal(g.income(0),incomes[0]-t.income);assert.equal(g.income(1),incomes[1]+t.income);
 });
 
-test('reborn: air capture still requires ground proximity, a connected sector and an undefended headquarters',()=>{
+test('reborn: air capture still requires ground proximity and an undefended headquarters',()=>{
  const g=peaceful();g.units=[];const adjacent=g.territories[20],disconnected=g.territories[16];
  const air=g.spawn(0,{x:adjacent.point.x+RULES.captureRadius+10,y:adjacent.point.y},'bomber');air.cooldown=1e6;
  advance(g,9);assert.equal(adjacent.owner,-1);assert.equal(adjacent.progress,0);

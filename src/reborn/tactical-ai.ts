@@ -1024,7 +1024,9 @@ export class TacticalAI {
   const reserve=fighters.length>=8?2:fighters.length>=5?1:0;
   const available=fighters.slice().sort((a,b)=>distance(b,home)-distance(a,home)||a.id-b.id).slice(0,fighters.length-reserve);
   const selected=available.sort((a,b)=>distance(a,s.rally!)-distance(b,s.rally!)||a.id-b.id).slice(0,10);
-  const targets=g.territories.filter(t=>t.owner!==1&&t.neighbors.some(i=>g.territories[i].owner===1));
+  // Ownership adjacency no longer gates capture; let route, observed risk and
+  // travel costs prioritize reachable objectives, including deeper strikes.
+  const targets=g.territories.filter(t=>canCaptureSector(g.territories,t,1,g.world.mapVersion));
   // Once real paid long-range siege weapons are available, towers should be
   // objectives rather than near-absolute forbidden zones. The risk field still
   // applies, but the score reflects the weapon's standoff advantage.
