@@ -1,0 +1,32 @@
+name: Sandforge WASD camera and order hotkeys
+on:
+  push:
+    branches:
+      - fix/sandforge-wasd-camera-hotkey-conflict-20261102
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  shortcuts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Static key ownership checks
+        run: node --test tests/sandforge-wasd-hotkeys.test.mjs
+      - run: npm ci --prefix tests/browser --no-audit --no-fund
+      - run: cd tests/browser && npx playwright install --with-deps chromium
+      - name: Actual browser keyboard and orders regression
+        env:
+          ATLAS_BROWSER_CHANNEL: chromium
+        run: cd tests/browser && npx playwright test --config=reborn.config.mjs reborn-wasd-hotkeys.spec.mjs

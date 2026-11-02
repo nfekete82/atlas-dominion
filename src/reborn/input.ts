@@ -9,7 +9,6 @@ import {preserveAssignedWork} from './work-order-guard.js';
 
 export class Input {
   private keys=new Set<string>();private pointer:Point|null=null;
-  private commandHeld=new Map<string,number>();
   private down:Point|null=null;private miniDragging=false;private dragging=false;
   onSelection=()=>{};onPause=()=>{};onHelp=()=>{};onSave=()=>{};onLoad=()=>{};
   onMenu=()=>{};
@@ -92,8 +91,8 @@ export class Input {
       }
       if(e.repeat)return;
       if(key===' '){this.onPause();return;}
-      if(key==='s'&&renderer.selected.size){this.stop();this.notify('Einheiten halten die Position.');this.keys.add(key);this.commandHeld.set(key,performance.now());return;}
-      if(key==='a'&&renderer.selected.size){renderer.attackMode=true;renderer.commandMode=null;canvas.classList.add('attack');this.onSelection();this.keys.add(key);this.commandHeld.set(key,performance.now());return;}
+      if(key==='x'&&renderer.selected.size){this.stop();this.notify('Einheiten gestoppt.');return;}
+      if(key==='q'&&renderer.selected.size){renderer.attackMode=true;renderer.commandMode=null;canvas.classList.add('attack');this.onSelection();return;}
       if(key==='m'&&renderer.selected.size){
         renderer.attackMode=false;renderer.commandMode='move';canvas.classList.remove('attack');
         this.notify('Rückzug / Bewegen: Ziel mit Linksklick wählen (ignoriert Angriffsziele).');
@@ -106,8 +105,8 @@ export class Input {
       if(key==='f5')this.onSave();if(key==='f9')this.onLoad();
       this.keys.add(key);
     });
-    window.addEventListener('keyup',e=>{this.keys.delete(e.key.toLowerCase());this.commandHeld.delete(e.key.toLowerCase());});
-    window.addEventListener('blur',()=>{this.keys.clear();this.commandHeld.clear();this.pointer=null;});
+    window.addEventListener('keyup',e=>{this.keys.delete(e.key.toLowerCase());});
+    window.addEventListener('blur',()=>{this.keys.clear();this.pointer=null;});
   }
   select(p:Point,append=false):void {
     const r=this.renderer,g=r.game;
@@ -195,12 +194,12 @@ export class Input {
   update(dt:number):void {
     if(document.querySelector('dialog[open]'))return;
     const r=this.renderer,speed=650*dt/r.camera.zoom,edge=14;let dx=0,dy=0;
-    const held=(key:string)=>this.keys.has(key)&&(!this.commandHeld.has(key)||performance.now()-this.commandHeld.get(key)!>180);
-    if(this.keys.has('arrowleft')||held('a'))dx--;
+    // WASD exclusively pans the camera. Commands have dedicated keys so
+    // navigating the battlefield never replaces unit orders.
+    if(this.keys.has('arrowleft')||this.keys.has('a'))dx--;
     if(this.keys.has('arrowright')||this.keys.has('d'))dx++;
     if(this.keys.has('arrowup')||this.keys.has('w'))dy--;
-    if(this.keys.has('arrowdown')||held('s'))dy++;
-    if(held('a')&&this.commandHeld.has('a')&&r.attackMode){r.attackMode=false;r.canvas.classList.remove('attack');this.onSelection();}
+    if(this.keys.has('arrowdown')||this.keys.has('s'))dy++;
     if(this.pointer&&!this.down&&this.pointer.x>=0&&this.pointer.x<=r.width&&this.pointer.y>=0&&this.pointer.y<=r.height){if(this.pointer.x<edge)dx--;if(this.pointer.x>r.width-edge)dx++;if(this.pointer.y<edge)dy--;if(this.pointer.y>r.height-edge)dy++;}
     r.camera.x+=dx*speed;r.camera.y+=dy*speed;r.boundCamera();
   }
