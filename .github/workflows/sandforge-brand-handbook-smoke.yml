@@ -1,0 +1,27 @@
+name: Sandforge brand and handbook smoke
+
+on:
+  push:
+    branches:
+      - fix/sandforge-branding-handbook-cleanup-20261102
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  brand-handbook:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Verify branding, help and unchanged UI controls
+        run: node --test tests/sandforge-branding-cleanup.test.mjs
