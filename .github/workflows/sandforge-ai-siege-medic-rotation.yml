@@ -1,0 +1,19 @@
+name: Sandforge AI siege medic rotation
+on:
+  push:
+    branches:
+      - feat/sandforge-ai-siege-medic-rotation-20261102
+permissions:
+  contents: read
+jobs:
+  rotation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node --test tests/sandforge-ai-siege-medic-rotation.test.mjs tests/reborn-tactical-ai-43-recovery.test.mjs tests/reborn-tactical-ai-50-endgame.test.mjs tests/reborn-combat-missions.test.mjs
