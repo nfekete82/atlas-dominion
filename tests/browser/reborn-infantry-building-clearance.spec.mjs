@@ -31,11 +31,11 @@ test('browser: infantry circles an actual factory instead of crossing its painte
   }
   g.paused=true;g.revision++;g.updateVision();
   r.camera={x:b.x,y:b.y,zoom:.85};r.boundCamera();r.render(0);
-  return {accepted,breaches,maxX,buildingX:b.x,minDetour};
+  return {accepted,breaches,maxX,buildingX:b.x,minDetour,soldier:{x:soldier.x,y:soldier.y,orders:soldier.orders,path:soldier.path,moving:soldier.moving,repath:soldier.repath,stuck:soldier.vehicleEscape},medic:{x:medic.x,y:medic.y,orders:medic.orders,path:medic.path,moving:medic.moving},time:g.time,status:g.status};
  });
  expect(result.accepted).toBe(2);
  expect(result.breaches).toBe(0);
- expect(result.maxX).toBeGreaterThan(result.buildingX+100);
+ expect(result.maxX,JSON.stringify(result)).toBeGreaterThan(result.buildingX+100);
  expect(result.minDetour).toBeGreaterThan(70);
  await page.screenshot({path:'artifacts/reborn/infantry-around-factory.png'});
  expect(errors).toEqual([]);
