@@ -59,3 +59,21 @@ export function isContinuingFlank(orders:readonly {kind:string;tactical?:{group:
   &&orders[0].tactical?.mode==='assault'&&orders[1].tactical?.mode==='assault'
   &&orders[0].tactical.group===groupId&&orders[1].tactical.group===groupId;
 }
+
+/** Limit a siege counterattack to a real mobile escort, instead of ordering
+ * every rifleman into an enemy firing lane. Receives only our own combatants
+ * and one legally visible enemy. At least one soldier remains at the battery
+ * when the screen has two or more members. No unit is conjured or buffed. */
+export function selectSiegeInterceptors(members:readonly SquadMember[],threat:ObservedThreat):number[]{
+ const attackers=members.filter(u=>u.hp>0&&['infantry','heavy','tank','rover'].includes(u.kind)&&canAttack(u,threat));
+ if(!attackers.length)return [];
+ // A critically wounded fighter should not become the first to intercept
+ // just because its position happens to be slightly closer.
+ const healthy=attackers.filter(u=>u.hp>=unitSpec(u).hp*.45);
+ const candidates=healthy.length?healthy:attackers;
+ const role=(kind:UnitKind)=>kind==='tank'?4:kind==='heavy'?3:kind==='rover'?2:1;
+ const size=Math.min(candidates.length,attackers.length===1?1:Math.max(1,Math.min(attackers.length-1,attackers.length>=6?3:2)));
+ return candidates.slice().sort((a,b)=>role(b.kind)-role(a.kind)
+   ||b.hp/unitSpec(b).hp-a.hp/unitSpec(a).hp
+   ||distance(a,threat)-distance(b,threat)||a.id-b.id).slice(0,size).map(u=>u.id);
+}
