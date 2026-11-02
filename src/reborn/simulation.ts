@@ -664,7 +664,7 @@ export class Simulation {
     // Check the entire step, not just its endpoint, so fast vehicles cannot
     // clip through a wall or a visible service prop between simulation ticks.
     const segmentClear=spec.flying||activeObstacles.every(o=>
-      segmentDistance(o,u,p)>=o.radius+RULES.infantry.radius+clearance);
+      segmentDistance(o,u,p)>=o.radius+clearance+(spec.group==='Infanterie'?0:RULES.infantry.radius));
     if(spec.flying||(segmentClear&&this.world.walkable(p,activeObstacles,clearance))){u.x=p.x;u.y=p.y;u.walkDistance+=step;u.angle=Math.atan2(dy,dx);u.facing=dx<-.05?-1:dx>.05?1:u.facing;u.moving=step>.001;}
     else {u.path=[];u.repath=0;delete u.vehicleEscape;if(this.world.mapVersion>=3&&!spec.flying)u.exactPath=true;}
   }
