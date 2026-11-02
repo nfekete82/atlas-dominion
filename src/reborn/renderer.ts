@@ -18,6 +18,7 @@ import { TERRAIN_FRAMES, TERRAIN_PLACEMENTS } from './terrain-art.js';
 import { paintGeneratedTerrain } from './terrain-presentation.js';
 import { BattlefieldEffects, createGroundDetails, paintGroundDetails, type GroundDetail } from './battlefield-atmosphere.js';
 import {PalmGrove} from './palm-grove.js';
+import {ProductionGates} from './production-gates.js';
 import {DesertAtmosphere} from './desert-atmosphere.js';
 import {environmentPropVisible,propSiteClear} from './prop-placement.js';
 import {PropAtlas} from './prop-atlas.js';
@@ -34,6 +35,7 @@ export class Renderer {
   readonly battlefield=new BattlefieldEffects();
   readonly propAtlas=new PropAtlas();
   readonly palms=new PalmGrove(this.propAtlas);
+  readonly productionGates=new ProductionGates();
   readonly atmosphere=new DesertAtmosphere();
   readonly decor=new BuildingDecor(this.propAtlas);
   private groundDetails:GroundDetail[]=[];
@@ -226,6 +228,8 @@ export class Renderer {
       this.decor.draw(c,b.kind,anchor,spec.radius,b.id,this.game.seed,b.owner,'behind',this.game.time,this.reducedMotion,alpha,b.facing,visible);
       c.save();if(b.facing===1){c.translate(2*b.x,0);c.scale(-1,1);}
       draw(alpha);
+      const opening=this.productionGates.sample(b,this.game.time,this.reducedMotion);
+      this.structures.drawProductionGate(c,b.kind,b.owner,anchor,artWidth,opening,alpha);
       this.structures.drawActivity(c,b.kind,b.owner,anchor,artWidth,this.game.time,this.reducedMotion,alpha);
       c.restore();
       this.decor.draw(c,b.kind,anchor,spec.radius,b.id,this.game.seed,b.owner,'front',this.game.time,this.reducedMotion,alpha,b.facing,visible);
@@ -313,7 +317,7 @@ export class Renderer {
   private renderMeasured(dt:number,interpolation=1):void {
     if(!this.terrain?.complete||!this.infantry)return;
     const c=this.context,g=this.game,s=this.game.world.size;this.updateFog();
-    if(this.animationGame!==g){this.units.clear();this.seenImpacts=new WeakSet();this.battlefield.reset(g);this.palms.reset(this.groundDetails,g);this.animationGame=g;this.effectTime=g.time;this.workEmitted.clear();this.rocketTrails.clear();this.exhaustAt.clear();}
+    if(this.animationGame!==g){this.units.clear();this.seenImpacts=new WeakSet();this.battlefield.reset(g);this.palms.reset(this.groundDetails,g);this.productionGates.clear();this.animationGame=g;this.effectTime=g.time;this.workEmitted.clear();this.rocketTrails.clear();this.exhaustAt.clear();}
     this.units.update(g.units,g.paused?0:dt,p=>g.canSee(0,p));
     this.battlefield.update(g,p=>g.canSee(0,p));
     this.palms.update(g);
