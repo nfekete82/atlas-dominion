@@ -8,7 +8,7 @@ import { World, inside, type Territory } from './world.js';
 import {visibleBasePropColliders} from './vehicle-decor-collision.js';
 import {vehicleStructureColliders} from './vehicle-structure-collision.js';
 import {segmentDistance} from './world-generation.js';
-import {canCaptureSector,captureSeconds} from './territory-warfare.js';
+import {canCaptureSector,canAirOnlyCaptureSector,captureSeconds} from './territory-warfare.js';
 import { UNITS, BUILDINGS, canAttack, weaponDamage, unitSpec, buildingSpec, unitKinds, MAX_GENERATORS_PER_FACTION, type UnitKind, type BuildingKind } from './catalog.js';
 import {angleDifference,turnTowards} from './sprite-animator.js';
 import {newMatchStatistics,countDeployed,countProduced,countIncome,validMatchStatistics,type MatchStatistics} from './match-statistics.js';
@@ -854,8 +854,12 @@ export class Simulation {
       const blue=nearby.some(u=>u.owner===0),red=nearby.some(u=>u.owner===1);
       if(blue&&red)continue;
       const owner:Owner=blue?0:red?1:-1;
+      // Legacy airborne units cannot skip the ground front line. Real ground
+      // combatants retain remote-capture rights; modern maps are unchanged.
+      const airOnly=owner>=0&&nearby.filter(u=>u.owner===owner).every(u=>unitSpec(u).flying);
+      const airAccess=!airOnly||canAirOnlyCaptureSector(this.territories,t,owner,this.world.mapVersion);
       const defendedBase=this.bases.some(b=>b.kind==='headquarters'&&b.territory===t.id&&b.owner!==owner&&b.hp>0);
-      if(owner<0||owner===t.owner||defendedBase||!canCaptureSector(this.territories,t,owner,this.world.mapVersion)){
+      if(owner<0||owner===t.owner||defendedBase||!airAccess||!canCaptureSector(this.territories,t,owner,this.world.mapVersion)){
         t.progress=Math.max(0,t.progress-dt*.5);if(t.progress===0)t.capturing=-1;continue;
       }
       if(t.capturing!==owner){
