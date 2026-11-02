@@ -130,7 +130,7 @@ export class Input {
     if(forceMove){
       if(!g.units.some(u=>r.selected.has(u.id)&&u.owner===0&&u.hp>0&&!u.carrier))return;
       r.placement=null;r.commandMode=null;r.attackMode=false;r.canvas.classList.remove('attack','building');
-      this.commandSelected(p,'move',append);return;
+      this.commandSelected(p,'move',append,undefined,true);return;
     }
     if(r.selectedBase!==null){const b=g.bases.find(b=>b.id===r.selectedBase&&b.owner===0&&b.hp>0);if(b){b.rally=g.world.nearest(p,g.obstacles());this.notify('Sammelpunkt gesetzt.');}return;}
     if(!r.selected.size)return;
