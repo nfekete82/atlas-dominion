@@ -236,8 +236,7 @@ export class Simulation {
     const members=this.units.filter(u=>ids.includes(u.id)&&u.hp>0&&!u.carrier);
     const armoredFront=members.filter(u=>u.kind==='tank'||u.kind==='rover');
     const fighters=members.filter(u=>u.kind!=='medic'&&u.kind!=='engineer'&&!unitSpec(u).flying);
-    const screen=fighters.filter(u=>u.kind!=='artillery');
-    const front=armoredFront.length?armoredFront:screen.length?screen:fighters;
+    const front=armoredFront.length?armoredFront:fighters;
     const support=members.filter(u=>u.kind==='medic'||u.kind==='engineer');
     const rearFighters=armoredFront.length?members.filter(u=>['infantry','heavy','artillery'].includes(u.kind)):[];
     const mixed=front.length>0&&(support.length>0||rearFighters.length>0)&&['move','attackMove','attack'].includes(order.kind);
