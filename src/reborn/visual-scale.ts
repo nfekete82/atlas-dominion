@@ -14,7 +14,10 @@ export const unitArtScale=(kind:UnitKind):number=>
 export const buildingArtScale=(kind:BuildingKind):number=>
   kind==='headquarters'?1.30:
   kind==='barracks'||kind==='factory'||kind==='airfield'?1.26:
-  kind==='generator'?1.21:1.15;
+  kind==='generator'?1.21*.88:1.15;
 
 export const buildingArtWidth=(kind:BuildingKind,width:number):number=>
   width*buildingArtScale(kind);
+
+/** A visually prominent control tower without touching the 95-unit capture radius. */
+export const bastionArtWidth=67*1.20;

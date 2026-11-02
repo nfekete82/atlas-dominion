@@ -1,0 +1,26 @@
+name: Sandforge visual size smoke
+on:
+  push:
+    branches:
+      - feat/sandforge-bastion-generator-visual-scale-20261102
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  visual-size:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Verify generator and bastion render scale
+        run: node --test tests/sandforge-visual-scale.test.mjs
