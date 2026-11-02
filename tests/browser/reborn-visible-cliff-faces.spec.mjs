@@ -50,3 +50,37 @@ test('cliff fog: a seen sandstone wall stays lit while the terrain behind stays 
  await page.screenshot({path:'artifacts/reborn/visible-cliff-faces.png'});
  expect(errors).toEqual([]);
 });
+
+
+test('cliff fog: approaching a real rock with infantry reveals its face but not the ground beyond',async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.setViewportSize({width:1400,height:900});
+ await page.goto('/?debug&perfTest&seed=2026&map=medium');
+ await page.locator('#loading').waitFor({state:'detached'});
+ const state=await page.evaluate(()=>{
+  const r=window.__reborn.renderer,g=window.__reborn.game,world=g.world;
+  g.paused=true;g.aiClock=-1e8;g.bases=[];g.units=[];g.territories=[];
+  let result=null;
+  for(const [id,mesa] of world.generated.mesas.entries()){
+    const outline=mesa.outline,minX=Math.min(...outline.map(p=>p.x)),maxX=Math.max(...outline.map(p=>p.x)),
+      minY=Math.min(...outline.map(p=>p.y)),maxY=Math.max(...outline.map(p=>p.y)),x=(minX+maxX)/2;
+    const front=world.nearest({x,y:maxY+65},[],[],undefined,12);
+    const back={x,y:Math.max(20,minY-85)};
+    if(!front)continue;
+    g.units=[];g.spawn(0,front,'infantry');g.updateVision();
+    if(!world.cliffCells[id].some(i=>g.visible[0][i]===1)||g.canSee(0,back))continue;
+    result={id,front,back,center:{x,y:(minY+maxY)/2}};
+    break;
+  }
+  if(!result)throw Error('No front-facing rock with correct line-of-sight behavior');
+  r.camera={x:result.center.x,y:result.center.y+90,zoom:1};r.boundCamera();
+  g.revision++;r.render(0);
+  return {rockVisible:world.cliffCells[result.id].some(i=>g.visible[0][i]===1),
+    behindHidden:!g.canSee(0,result.back),soldierCount:g.units.filter(u=>u.owner===0).length};
+ });
+ expect(state.rockVisible).toBe(true);
+ expect(state.behindHidden).toBe(true);
+ expect(state.soldierCount).toBe(1);
+ await page.screenshot({path:'artifacts/reborn/visible-cliff-with-soldier.png'});
+ expect(errors).toEqual([]);
+});
