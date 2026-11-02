@@ -1,13 +1,14 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Simulation} from '../dist/src/reborn/simulation.js';
-import {isCompactBattle,sectorDefenseAnchor} from '../dist/src/reborn/four-bastion-front-doctrine.js';
+import {isCompactBattle,sectorDefenseAnchor,fourBastionPlanningDelay} from '../dist/src/reborn/four-bastion-front-doctrine.js';
 import {RULES} from '../dist/src/reborn/config.js';
 
 test('focus front policy is only opt-in for exactly four campaign bastions',()=>{
  assert.equal(isCompactBattle(11,4,'concentrated'),true);
  assert.equal(isCompactBattle(11,4,'sector-defense'),true);
  assert.equal(isCompactBattle(11,4,'classic'),false);
+ assert.equal(isCompactBattle(11,4,'tempo-only'),false);
  for(const [version,sectors] of [[11,8],[11,12],[12,4],[3,4]])
   assert.equal(isCompactBattle(version,sectors,'sector-defense'),false);
 });
@@ -48,4 +49,16 @@ test('four-bastion experimental plans do not reserve fake units or create free m
  assert.ok(g.tactical.state.lastPlan>=25);
  assert.ok(g.units.length>=initial);
  assert.ok(g.credits[1]<=credits+g.income(1)*3);
+});
+
+test('six-second planning changes only the isolated tempo-only small-map policy',()=>{
+ assert.equal(fourBastionPlanningDelay(11,4,'tempo-only',25),6);
+ for(const policy of ['classic','concentrated','sector-defense'])
+  assert.equal(fourBastionPlanningDelay(11,4,policy,25),25);
+ assert.equal(fourBastionPlanningDelay(11,8,'tempo-only',25),25);
+ const faster=new Simulation(2026,11);faster.tactical.frontDoctrine='tempo-only';
+ for(let i=0;i<Math.ceil(12/RULES.tick);i++)faster.step(RULES.tick);
+ assert.ok(faster.tactical.state.lastPlan>=6);
+ assert.ok(faster.bases.some(b=>b.owner===1&&b.kind==='generator'),
+  'tempo-only must keep original first-generator economy');
 });
