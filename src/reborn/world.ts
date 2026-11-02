@@ -159,7 +159,7 @@ export class World {
   // Never cache across calls: construction, fog knowledge and test maps can change.
   private pathWorkspace?:{costs:Float64Array;prev:Int32Array;closed:Uint8Array;walkable:Int8Array};
   private findPath(start: Point, target: Point, obstacles: {x:number;y:number;radius:number}[]=[],clearance=0,risk?:Float32Array,air=false,exact=false): Point[] {
-    const precise=exact&&this.mapVersion>=3&&!air&&clearance>0;
+    const precise=exact&&this.mapVersion>=3&&!air;
     const walk=(p:Point)=>air?(p.x>=10&&p.y>=10&&p.x<=this.size-10&&p.y<=this.size-10):this.walkable(p,obstacles,clearance);
     const line=(a:Point,b:Point)=>air?walk(a)&&walk(b):precise
       ?walk(a)&&walk(b)&&navigationLine(a,b,this.cell,RULES.grid,this.blocked,obstacles,RULES.infantry.radius,clearance)

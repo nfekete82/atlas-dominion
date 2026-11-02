@@ -5,6 +5,7 @@ import { unitSelectionPoint } from './unit-presentation.js';
 import {buildingArtWidth} from './visual-scale.js';
 import {minimapWorldPoint} from './minimap-input.js';
 import type {PlayerOrder,RadioAction} from './unit-radio.js';
+import {preserveAssignedWork} from './work-order-guard.js';
 
 export class Input {
   private keys=new Set<string>();private pointer:Point|null=null;
@@ -173,11 +174,17 @@ export class Input {
     const enemy=strictMove?undefined:[...g.units,...g.bases].find(e=>!('carrier' in e&&e.carrier)&&e.owner!==0&&e.hp>0&&g.canSee(0,e)&&distance('orders' in e&&unitSpec(e).flying?unitSelectionPoint(e):e,p)<('queue' in e?100:40)/r.camera.zoom);
     const kind=strictMove?'move':enemy?'attack':r.attackMode?'attackMove':'move';
     const destination=enemy?p:r.bastionAt(p)?.point??p;
-    this.commandSelected(destination,kind,append,enemy?.id);
+    this.commandSelected(destination,kind,append,enemy?.id,strictMove);
   }
-  private commandSelected(destination:Point,kind:'move'|'attack'|'attackMove',append:boolean,target?:number):void{
-    const r=this.renderer,g=r.game,ids=g.units.filter(u=>r.selected.has(u.id)&&u.owner===0&&u.hp>0&&!u.carrier).map(u=>u.id);
-    if(!ids.length)return;
+  private commandSelected(destination:Point,kind:'move'|'attack'|'attackMove',append:boolean,target?:number,explicitMove=false):void{
+    const r=this.renderer,g=r.game,selected=g.units.filter(u=>r.selected.has(u.id)&&u.owner===0&&u.hp>0&&!u.carrier);
+    // A stray right-click on empty terrain must not cancel an existing
+    // engineer construction/repair order. Explicit M/Alt-move and Stop work.
+    const ids=selected.filter(u=>!preserveAssignedWork(u.orders[0]?.kind,kind,append,explicitMove)).map(u=>u.id);
+    if(!ids.length){
+      if(selected.length)this.notify('Pionier arbeitet weiter. Für einen neuen Bewegungsauftrag M oder Alt+Rechtsklick verwenden.');
+      return;
+    }
     const before=new Map(g.units.filter(u=>ids.includes(u.id)).map(u=>[u.id,u.orders.at(-1)]));
     const count=g.command(ids,{...destination,kind,target},append);
     if(count){r.marker={point:destination,life:.8,attack:kind!=='move'};this.acknowledge(kind==='move'?'move':'attack',g.units.filter(u=>ids.includes(u.id)&&u.orders.at(-1)!==before.get(u.id)).map(u=>u.id));}
