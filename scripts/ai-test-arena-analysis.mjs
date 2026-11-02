@@ -93,7 +93,15 @@ export function compareMatched(before,after,requireSource=false){
    before:old.outcome,after:next.outcome,scoreDelta:round(value(next.score)-value(old.score)),
    hqDamageDelta:round(value(next.enemyHQDamage)-value(old.enemyHQDamage)),
    captureDelta:value(next.captures)-value(old.captures),
+   blueLossesDelta:value(next.blueUnitsLost)-value(old.blueUnitsLost),
    redLossesDelta:value(next.redUnitsLost)-value(old.redUnitsLost),
+   abortedMissionsDelta:value(next.abortedMissions)-value(old.abortedMissions),
+   // Missing timestamps are never misrepresented as zero-second attacks.
+   firstOrganizedAttackDelta:finite(old.firstOrganizedAttack)&&finite(next.firstOrganizedAttack)
+    ?round(next.firstOrganizedAttack-old.firstOrganizedAttack):null,
+   beforeOrganizedAttack:finite(old.firstOrganizedAttack),
+   afterOrganizedAttack:finite(next.firstOrganizedAttack),
+   combatReadyWaveLaunches:value(next.tactical?.combatReadyWaveLaunches),
    winDelta:Number(next.outcome==='win')-Number(old.outcome==='win')});
  }
  return {
@@ -102,6 +110,12 @@ export function compareMatched(before,after,requireSource=false){
   worldMismatches:mismatches,
   meanScoreDelta:mean(pairs,'scoreDelta'),meanHQDamageDelta:mean(pairs,'hqDamageDelta'),
   meanCaptureDelta:mean(pairs,'captureDelta'),meanRedLossesDelta:mean(pairs,'redLossesDelta'),
+  meanBlueLossesDelta:mean(pairs,'blueLossesDelta'),meanAbortedMissionsDelta:mean(pairs,'abortedMissionsDelta'),
+  pairedAttackTimeSamples:pairs.filter(p=>finite(p.firstOrganizedAttackDelta)).length,
+  meanFirstOrganizedAttackDelta:mean(pairs.filter(p=>finite(p.firstOrganizedAttackDelta)),'firstOrganizedAttackDelta'),
+  organizedAttacksBefore:pairs.filter(p=>p.beforeOrganizedAttack).length,
+  organizedAttacksAfter:pairs.filter(p=>p.afterOrganizedAttack).length,
+  combatReadyWaveLaunches:pairs.reduce((n,p)=>n+p.combatReadyWaveLaunches,0),
   extraWins:pairs.reduce((n,p)=>n+p.winDelta,0),perMatch:pairs
  };
 }

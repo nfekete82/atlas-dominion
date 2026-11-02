@@ -36,11 +36,12 @@ export function arenaOptions(argv){
 }
 
 export async function runArena(options){
- const simulationURL=new URL('../dist/src/reborn/simulation.js',import.meta.url);
- const catalogURL=new URL('../dist/src/reborn/catalog.js',import.meta.url);
+ const external=process.env.ATLAS_SIM_MODULE;
+ const simulationURL=external?(external.startsWith('file:')?new URL(external):pathToFileURL(resolve(external))):new URL('../dist/src/reborn/simulation.js',import.meta.url);
+ const catalogURL=new URL('./catalog.js',simulationURL);
  const [{Simulation},{UNITS},performanceModule]=await Promise.all([
   import(simulationURL.href),import(catalogURL.href),
-  import(new URL('../dist/src/reborn/performance.js',import.meta.url).href)
+  import(new URL('./performance.js',simulationURL).href)
  ]);
  const output=resolve(options.output??defaultOutput);
  const sha=file=>digest(readFileSync(file));

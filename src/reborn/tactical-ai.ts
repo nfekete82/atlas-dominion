@@ -25,12 +25,12 @@ export interface TacticalDiagnostics {
  evaluated:number;choices:Record<'assault'|'flank'|'siege'|'regroup',number>;
  delegatedSieges:number;issuedSieges:number;screenOrders:number;flankGroups:number;flankOrders:number;mainOrders:number;
  flankOpportunities:number;flankNoSquad:number;flankNoRoute:number;
- waveWaits:number;waveLaunches:number;reinforcementStagingOrders:number;
+ waveWaits:number;waveLaunches:number;combatReadyWaveLaunches:number;reinforcementStagingOrders:number;
  siegeAngles:number;secondaryRaids:number;secondaryRaidOrders:number;
  last:{at:number;sector:number;allies:number;visible:number;guns:number;choice:string;reason:string}|null;
 }
 const newDiagnostics=():TacticalDiagnostics=>({evaluated:0,choices:{assault:0,flank:0,siege:0,regroup:0},delegatedSieges:0,issuedSieges:0,screenOrders:0,flankGroups:0,flankOrders:0,mainOrders:0,
- flankOpportunities:0,flankNoSquad:0,flankNoRoute:0,waveWaits:0,waveLaunches:0,reinforcementStagingOrders:0,siegeAngles:0,secondaryRaids:0,secondaryRaidOrders:0,last:null});
+ flankOpportunities:0,flankNoSquad:0,flankNoRoute:0,waveWaits:0,waveLaunches:0,combatReadyWaveLaunches:0,reinforcementStagingOrders:0,siegeAngles:0,secondaryRaids:0,secondaryRaidOrders:0,last:null});
 export interface TacticalState {
  adaptive?:AdaptiveState;experience?:Experience;
  battle?:BattleState;
@@ -829,6 +829,7 @@ export class TacticalAI {
     stageForSiege();return;
    }
    if(this.waveMode==='coordinated'&&defended)this.diagnostics.waveLaunches++;
+   if(wave.reason==='combat-ready')this.diagnostics.combatReadyWaveLaunches++;
    if(!experience.active)experience.active={sector:mission.sector,tactic:overrun?'overrun':towers.length?'siege':'maneuver',guns:towers.length,force:ready.length,at:g.time,initialUnits:ready.length,initialHP:fighters.reduce((n,u)=>n+u.hp,0),progress:0,siegeWeapons:ready.filter(u=>u.kind==='artillery').length,objective:mission.objective,target:{x:mission.x,y:mission.y}};
    s.groupId++;s.group=ready.map(u=>u.id);s.launchSize=ready.length;s.launchedAt=g.time;members=ready;this.setPhase('attack');
   }

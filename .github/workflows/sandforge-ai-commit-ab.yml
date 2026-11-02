@@ -1,0 +1,71 @@
+name: Sandforge AI – paired before-after combat benchmark
+
+on:
+  push:
+    branches:
+      - feat/sandforge-ai-paired-release-benchmark-20261102
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ab:
+    name: Matched map-seed A/B (old vs armored assault)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: candidate
+      - uses: actions/checkout@v4
+        with:
+          repository: nfekete82/atlas-dominion
+          ref: 73b8315a5bb0998710f9f70d18aeea059c03b122
+          path: previous
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build old simulation independently
+        working-directory: previous
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Build new simulation and verify A/B comparison invariants
+        working-directory: candidate
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+          node --test tests/ai-test-arena.test.mjs tests/sandforge-ai-commit-ab.test.mjs tests/sandforge-ai-combat-ready-waves.test.mjs
+      - name: Run old AI against a fixed paid opponent
+        working-directory: candidate
+        env:
+          ATLAS_SIM_MODULE: ${{ github.workspace }}/previous/dist/src/reborn/simulation.js
+        run: |
+          node scripts/ai-test-arena.mjs \
+            --maps 3,4,5 --seeds 2026,2027 --seconds 240 \
+            --modes director --label before-73b8315 \
+            --output ai-arena-results/previous.json
+      - name: Run improved AI against the identical opponent
+        working-directory: candidate
+        run: |
+          node scripts/ai-test-arena.mjs \
+            --maps 3,4,5 --seeds 2026,2027 --seconds 240 \
+            --modes director --label after-f328503 \
+            --output ai-arena-results/current.json
+      - name: Compare identical initial-world hashes and report actual gains
+        working-directory: candidate
+        run: |
+          node scripts/ai-test-arena-compare.mjs \
+            ai-arena-results/previous.json ai-arena-results/current.json \
+            ai-arena-results/compare.md
+          cat ai-arena-results/compare.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Preserve raw combat results and comparison
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandforge-ai-before-after-matches
+          path: candidate/ai-arena-results/
+          retention-days: 14
+          if-no-files-found: warn
