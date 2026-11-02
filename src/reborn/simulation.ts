@@ -334,7 +334,9 @@ export class Simulation {
     if(distance(u,destination)>12){
       if(u.repath<=0)u.path=[];
       const target=this.world.nearest(destination,this.obstacles(),[],u);
-      if(target){const before={x:u.x,y:u.y},walk=u.walkDistance;this.move(u,target,dt,patient?unitSpec(u).speed:Math.min(...front.map(v=>unitSpec(v).speed)));
+      if(target){const before={x:u.x,y:u.y},walk=u.walkDistance;// Pioneers match the squad pace even when a nearby vehicle needs repair;
+        // an isolated pioneer (without formation) still uses its full catalog speed.
+        this.move(u,target,dt,medic&&patient?unitSpec(u).speed:Math.min(...front.map(v=>unitSpec(v).speed)));
         if(project(u)>progress-32&&project(u)>project(before)){u.x=before.x;u.y=before.y;u.walkDistance=walk;u.moving=false;u.path=[];}
       }
     }else{u.path=[];if(front.every(v=>!v.orders.length)&&distance(u,rear)<18)u.orders.shift();}
