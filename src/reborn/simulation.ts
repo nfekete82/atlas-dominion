@@ -324,9 +324,9 @@ export class Simulation {
     let destination=rear;
     if(patient){
       const range=medic?this.healRadius(u):REPAIR_RADIUS;
-      if(distance(u,patient)<=range&&this.world.line(u,patient)){
-        if(canWork){if(medic)this.healNearby(u,dt);else this.repairNearby(u,dt,patient.id);u.workingTarget=patient.id;}
-        u.path=[];u.angle=Math.atan2(patient.y-u.y,patient.x-u.x);return true;
+      if(canWork&&distance(u,patient)<=range&&this.world.line(u,patient)){
+        if(medic)this.healNearby(u,dt);else this.repairNearby(u,dt,patient.id);
+        u.workingTarget=patient.id;u.path=[];u.angle=Math.atan2(patient.y-u.y,patient.x-u.x);return true;
       }
       const approach={x:patient.x-h.x*45,y:patient.y-h.y*45};if(safe(approach))destination=approach;
     }
