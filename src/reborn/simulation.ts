@@ -106,7 +106,7 @@ export class Simulation {
     this.decorObstacles=visibleBasePropColliders(this);
     this.decorObstaclesAt=this.time;
     this.decorObstaclesCount=this.bases.length;
-    return visible;
+    return this.decorObstacles;
   }
   sight(u:Unit):number{return unitSpec(u).sight*(this.weather.storm&&!unitSpec(u).flying?WEATHER_RULES.groundSight:1);}
   healRadius(u:Unit):number{return HEAL_RADIUS*getVeterancyModifiers(u).healRange;}
