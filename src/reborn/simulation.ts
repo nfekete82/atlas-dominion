@@ -9,6 +9,7 @@ import {visibleBasePropColliders} from './vehicle-decor-collision.js';
 import {vehicleStructureColliders} from './vehicle-structure-collision.js';
 import {infantryStructureColliders} from './infantry-structure-collision.js';
 import {constructionVisualClearance} from './construction-spacing.js';
+import {focusFireDistanceAdjustment} from './ai-focus-survival.js';
 import {segmentDistance} from './world-generation.js';
 import {canCaptureSector,captureSeconds} from './territory-warfare.js';
 import { UNITS, BUILDINGS, TANK_MG, canAttack, weaponDamage, unitSpec, buildingSpec, unitKinds, MAX_GENERATORS_PER_FACTION, type UnitKind, type BuildingKind } from './catalog.js';
@@ -469,6 +470,7 @@ export class Simulation {
     // Fast damage-driven retreat: the tactical planner runs only every 3 s,
     // longer than the time a low-HP rover can survive under enemy fire.
     if(alive&&target.hp>0&&'orders' in target)this.tactical.evacuateVehicle(target);
+    if(alive&&target.hp>0&&'orders' in target)this.tactical.evacuateInfantry(target);
     if('hit' in target){
       target.hit=.18;target.lastAttacker=sourceId;target.defendUntil=this.time+5;
       // Player infantry under fire stop for a defensive stand. Plain moves,
@@ -540,6 +542,8 @@ export class Simulation {
     // can respond within sight, starting their approach before weapon range.
     // Engineers on guard duty stay near their work instead of abandoning repairs.
     const support=u.kind==='engineer'||u.kind==='medic'||u.kind==='scout'||(u.kind==='rover'&&!!u.transport?.cargo.length);
+    const coordinated=u.owner===1&&this.world.mapVersion>=3&&
+      this.tactical.mode==='director'&&this.tactical.focusMode==='coordinated';
     const proactive=!u.hold&&order?.kind!=='move'&&!support;
     const engageRadius=proactive?Math.max(spec.range,Math.min(this.sight(u),spec.range+120)):spec.range;
     const visible=(e:Unit|Base)=>this.canSee(u.owner,e)||(distance(u,e)<=this.sight(u)&&(spec.flying||this.world.sightLine(u,e)));
@@ -570,7 +574,7 @@ export class Simulation {
       if(manual){u.combatTarget=manual.id;return manual;}
     }
     const locked=entities.find(e=>e.id===u.combatTarget);
-    if(!support&&locked&&eligible(locked))return locked;
+    if(!support&&!coordinated&&locked&&eligible(locked))return locked;
     u.combatTarget=null;
     if(u.lastAttacker!==null&&u.defendUntil>this.time){
       const attacker=entities.find(e=>e.id===u.lastAttacker);
@@ -578,6 +582,11 @@ export class Simulation {
     }
     if(support)return undefined;
     // Direct sight runs every fixed tick rather than waiting for fog updates.
+    // Only own nearby fighting units; their current locks are public to their
+    // commander. Candidate targets below still need ordinary line of sight.
+    const allies=coordinated?this.spatial.query(u,260)
+      .filter(v=>v.id!==u.id&&v.owner===u.owner&&v.hp>0&&!v.carrier&&
+        v.kind!=='engineer'&&v.kind!=='medic'&&v.kind!=='scout'):[];
     let best:Unit|Base|undefined,bestScore=Infinity;
     for(const e of [...this.spatial.query(u,engageRadius),...this.bases]){
       const d=distance(u,e);
@@ -588,7 +597,15 @@ export class Simulation {
       const priority=u.owner===1&&'orders' in e
         ?(e.kind==='artillery'?-95:e.kind==='medic'?-65:e.kind==='bomber'?-45:0):0;
       const armorPreference=u.kind==='tank'&&('queue' in e||unitSpec(e).group==='Fahrzeuge')?-105:0;
-      const score=d+priority+armorPreference;
+      const helpers=coordinated?allies.filter(v=>v.combatTarget===e.id&&canAttack(v,e)
+        &&distance(v,e)<=unitSpec(v).range+35):[];
+      const alliedDps=helpers.reduce((n,v)=>n+weaponDamage(v,e)/unitSpec(v).cooldown,0);
+      const focus=coordinated?focusFireDistanceAdjustment({
+        hp:e.hp,maxHp:('queue' in e?buildingSpec(e).hp:unitSpec(e).hp),
+        ownDamage:weaponDamage(u,e),assigned:helpers.length,alliedDps}):0;
+      // Small lock hysteresis prevents aim jitter; stronger allied focus can
+      // override a stale individual lock without rapid target switching.
+      const score=d+priority+armorPreference+focus-(coordinated&&e.id===locked?.id?16:0);
       if(score<bestScore){best=e;bestScore=score;}
     }
     u.combatTarget=best?.id??null;
