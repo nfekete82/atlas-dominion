@@ -12,7 +12,7 @@ import {newExperience,validExperience,finishExperience,canOverrun,observeOwnedLo
 import {rankLegacyFrontiers} from './legacy-campaign.js';
 import {canCaptureSector,comebackPressure,chooseComebackOpportunity} from './territory-warfare.js';
 import {chooseTacticalManeuver,flankCandidate,type TacticalChoice} from './tactical-search.js';
-import {assignScreen,assignFlank,flankRouteScore,isContinuingFlank} from './battle-squads.js';
+import {assignScreen,assignFlank,flankRouteScore,isContinuingFlank,selectSiegeInterceptors} from './battle-squads.js';
 import {assaultWaveDecision,reinforcementStagingPoint} from './assault-wave.js';
 import {chooseSiegeShot,chooseRaidFront,allowSecondaryPressure,type SiegeShot,type RaidFront} from './ai25-doctrine.js';
 import type {Simulation,Unit,Memory} from './simulation.js';
@@ -23,13 +23,13 @@ export interface Attempt {sector:number;losses:number;until:number}
 export interface TacticalOrder {group:number;mode:'safe'|'assault'|'defend';goal?:Point}
 export interface TacticalDiagnostics {
  evaluated:number;choices:Record<'assault'|'flank'|'siege'|'regroup',number>;
- delegatedSieges:number;issuedSieges:number;screenOrders:number;flankGroups:number;flankOrders:number;mainOrders:number;
+ delegatedSieges:number;issuedSieges:number;screenOrders:number;siegeInterceptorOrders:number;siegeScreenRetained:number;flankGroups:number;flankOrders:number;mainOrders:number;
  flankOpportunities:number;flankNoSquad:number;flankNoRoute:number;
  waveWaits:number;waveLaunches:number;combatReadyWaveLaunches:number;reinforcementStagingOrders:number;
  siegeAngles:number;secondaryRaids:number;secondaryRaidOrders:number;
  last:{at:number;sector:number;allies:number;visible:number;guns:number;choice:string;reason:string}|null;
 }
-const newDiagnostics=():TacticalDiagnostics=>({evaluated:0,choices:{assault:0,flank:0,siege:0,regroup:0},delegatedSieges:0,issuedSieges:0,screenOrders:0,flankGroups:0,flankOrders:0,mainOrders:0,
+const newDiagnostics=():TacticalDiagnostics=>({evaluated:0,choices:{assault:0,flank:0,siege:0,regroup:0},delegatedSieges:0,issuedSieges:0,screenOrders:0,siegeInterceptorOrders:0,siegeScreenRetained:0,flankGroups:0,flankOrders:0,mainOrders:0,
  flankOpportunities:0,flankNoSquad:0,flankNoRoute:0,waveWaits:0,waveLaunches:0,combatReadyWaveLaunches:0,reinforcementStagingOrders:0,siegeAngles:0,secondaryRaids:0,secondaryRaidOrders:0,last:null});
 export interface TacticalState {
  adaptive?:AdaptiveState;experience?:Experience;
@@ -516,12 +516,19 @@ export class TacticalAI {
   const threats=g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)&&support.some(v=>distance(u,v)<unitSpec(u).range+100))
    .sort((a,b)=>(unitSpec(b).damage/unitSpec(b).cooldown)-(unitSpec(a).damage/unitSpec(a).cooldown)||a.id-b.id);
   const assigned=new Set<number>(),target=threats[0];if(!target)return assigned;
-  for(const u of members.filter(frontRole)){
-   if(!canAttack(u,target)||s.battle?.withdrawals.some(w=>w.unit===u.id))continue;
+  const eligible=members.filter(frontRole).filter(u=>{
+   if(!canAttack(u,target)||s.battle?.withdrawals.some(w=>w.unit===u.id))return false;
    const d=distance(u,target)||1,range=unitSpec(u).range-15;
    const firing={x:target.x+(u.x-target.x)/d*range,y:target.y+(u.y-target.y)/d*range};
-   if(s.knownTurrets.some(t=>distance(t,firing)<t.range+15)||!g.world.walkable(firing,this.obstacles(),10))continue;
-   this.issue([u],target,'assault',target.id,false,false);assigned.add(u.id);
+   return !s.knownTurrets.some(t=>distance(t,firing)<t.range+15)
+     &&g.world.walkable(firing,this.obstacles(),10);
+  });
+  const ids=new Set(selectSiegeInterceptors(eligible,target));
+  this.diagnostics.siegeScreenRetained+=Math.max(0,eligible.length-ids.size);
+  for(const u of eligible.filter(u=>ids.has(u.id))){
+   if(this.issue([u],target,'assault',target.id,false,false))
+    this.diagnostics.siegeInterceptorOrders++;
+   assigned.add(u.id);
   }
   void goal;return assigned;
  }

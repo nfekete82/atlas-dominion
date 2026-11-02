@@ -1,0 +1,50 @@
+name: Sandforge AI siege screen 360s matched A/B
+on:
+  push:
+    branches:
+      - feat/sandforge-ai-limited-siege-screen-20261102
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: candidate
+      - uses: actions/checkout@v4
+        with:
+          repository: nfekete82/atlas-dominion
+          ref: 3416c325fa926722ec8d4580bef21eb98193205d
+          path: previous
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build both independent simulation versions
+        run: |
+          (cd previous && npm ci --no-audit --no-fund && npm run build)
+          (cd candidate && npm ci --no-audit --no-fund && npm run build)
+      - name: Previous AI, 9 independent campaigns
+        working-directory: candidate
+        env:
+          ATLAS_SIM_MODULE: ${{ github.workspace }}/previous/dist/src/reborn/simulation.js
+        run: |
+          node scripts/ai-test-arena.mjs --maps 3,4,5 --seeds 2026,2027,2028 --seconds 360 --modes director --label baseline --output ai-arena-results/before.json
+      - name: Restricted siege screen AI
+        working-directory: candidate
+        run: |
+          node scripts/ai-test-arena.mjs --maps 3,4,5 --seeds 2026,2027,2028 --seconds 360 --modes director --label limited-screen --output ai-arena-results/after.json
+      - name: Compare casualties, attack capability and real decisions
+        working-directory: candidate
+        run: |
+          node scripts/ai-test-arena-compare.mjs ai-arena-results/before.json ai-arena-results/after.json ai-arena-results/comparison.md
+          cat ai-arena-results/comparison.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Archive full combat state and decision counts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandforge-siege-screen-360s-ab
+          path: candidate/ai-arena-results/
+          retention-days: 14
