@@ -23,6 +23,7 @@ function scenario(known=true){
  g.world.blocked.fill(0);g.world.opaque.fill(0);g.world.components.fill(0);
  g.world.cliffIds.fill(-1);g.explored[1].fill(1);
  const barracks=addProducer(g,'barracks',1),factory=addProducer(g,'factory',1);
+ addProducer(g,'generator',1); // Opening power core is already paid and online.
  factory.buildRemaining=6;
  for(let i=0;i<5;i++)g.spawn(1,{x:home.x+100+i*20,y:home.y+105},'infantry');
  if(known)g.tactical.state.knownTurrets=[{id:9007,x:home.x+1600,y:home.y+1400,
@@ -53,6 +54,15 @@ test('AI unseen targets do not trigger virtual siege budgeting or block the barr
  developArmy(g,g.tactical.state,army(),()=>0);
  assert.ok(barracks.queueTypes.length>0,'normal infantry production remains paid and available');
  assert.ok(g.credits[1]<650,'without observation there is no withheld money');
+});
+
+test('AI keeps the first essential generator even when a turret is observed',()=>{
+ const {g,factory,army}=scenario();
+ g.bases=g.bases.filter(b=>b.kind!=='generator');
+ factory.buildRemaining=0;
+ const builder=g.units.find(u=>u.owner===1&&u.kind==='engineer');builder.orders=[];
+ developArmy(g,g.tactical.state,army(),()=>0);
+ assert.equal(g.bases.filter(b=>b.owner===1&&b.kind==='generator').length,1);
 });
 
 test('AI emergency defense releases siege budget rather than freezing the army',()=>{
