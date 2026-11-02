@@ -7,6 +7,7 @@ import { RULES, WEATHER_RULES, clamp, distance, type Faction, type Owner, type P
 import { World, inside, type Territory } from './world.js';
 import {visibleBasePropColliders} from './vehicle-decor-collision.js';
 import {vehicleStructureColliders} from './vehicle-structure-collision.js';
+import {infantryStructureColliders} from './infantry-structure-collision.js';
 import {segmentDistance} from './world-generation.js';
 import {canCaptureSector,captureSeconds} from './territory-warfare.js';
 import { UNITS, BUILDINGS, TANK_MG, canAttack, weaponDamage, unitSpec, buildingSpec, unitKinds, MAX_GENERATORS_PER_FACTION, type UnitKind, type BuildingKind } from './catalog.js';
@@ -249,7 +250,7 @@ export class Simulation {
         const entity=order.kind==='heal'?this.units.find(t=>t.id===order.target):order.kind==='repair'?this.bases.find(t=>t.id===order.target)??this.units.find(t=>t.id===order.target):this.bases.find(t=>t.id===order.target);
         if(!entity||!this.supportEligible(u,entity,order.kind))return;
         const approach=this.supportApproach(u,entity);if(!approach)return;
-        if('queue' in entity){const path=this.world.path(u,approach,this.obstacles());if(distance(u,entity)>entity.radius+55&&(!path.length||distance(path[path.length-1],entity)>entity.radius+55))return;}
+        if('queue' in entity){const buildings=this.obstacles();const path=this.world.path(u,approach,[...buildings,...infantryStructureColliders(buildings)]);if(distance(u,entity)>entity.radius+55&&(!path.length||distance(path[path.length-1],entity)>entity.radius+55))return;}
         const next:Order={...order,x:entity.x,y:entity.y,...('queue' in entity?{approach}:{healOrigin:{x:entity.x,y:entity.y}})};
         if(append){if(u.orders.length>=32)return;u.orders.push(next);}else{u.orders=[next];u.path=[];u.repath=0;delete u.burst;}
         // Enqueuing future maintenance must not interrupt the work in progress.
@@ -271,7 +272,9 @@ export class Simulation {
       if(captureSite){const length=Math.hypot(offset.x,offset.y),limit=RULES.captureRadius-30;
         if(length>limit){offset={x:offset.x*limit/length,y:offset.y*limit/length};}}
       const spec=unitSpec(u),p={x:order.x+offset.x,y:order.y+offset.y};
-      const target=spec.flying?{x:clamp(p.x,8,this.world.size-8),y:clamp(p.y,8,this.world.size-8)}:this.world.nearest(p,this.obstacles(),[],u,Math.max(0,spec.radius-10));if(!target)return;
+      const buildings=this.obstacles(),obstacles=spec.flying?buildings:spec.group==='Infanterie'
+         ?[...buildings,...infantryStructureColliders(buildings)]:[...buildings,...vehicleStructureColliders(buildings),...this.vehicleDecorObstacles()];
+       const target=spec.flying?{x:clamp(p.x,8,this.world.size-8),y:clamp(p.y,8,this.world.size-8)}:this.world.nearest(p,obstacles,[],u,Math.max(0,spec.radius-10));if(!target)return;
       const next:Order={...order,...target,...(mixed&&u.kind!=='medic'&&u.kind!=='engineer'?{march:front.map(v=>v.id)}:{}),...(formation?{formation,kind:order.kind==='attack'?'attackMove':order.kind,target:undefined}:{})};u.hold=false;u.supportPaused=false;u.workingTarget=null;
       if(append){if(u.orders.length<32)u.orders.push(next);else return;}
       else {this.transports.cancel(u);delete u.burst;u.orders=formation&&u.orders[0]?.kind==='heal'?[u.orders[0],next]:[next];u.path=[];u.repath=0;u.combatTarget=null;u.pursuitOrigin=null;}
@@ -301,9 +304,10 @@ export class Simulation {
   }
   private supportApproach(u:Unit,target:Unit|Base):Point|null {
     const radius='queue' in target?target.radius+32:35,angle=Math.atan2(u.y-target.y,u.x-target.x),range='queue' in target?target.radius+55:u.kind==='engineer'?REPAIR_RADIUS:this.healRadius(u);
+    const buildings=this.obstacles(),obstacles=[...buildings,...infantryStructureColliders(buildings)];
     for(let i=0;i<16;i++){
       const turn=angle+(i%2?1:-1)*Math.ceil(i/2)*Math.PI/8;
-      const p=this.world.nearest({x:target.x+Math.cos(turn)*radius,y:target.y+Math.sin(turn)*radius},this.obstacles(),[],u);
+      const p=this.world.nearest({x:target.x+Math.cos(turn)*radius,y:target.y+Math.sin(turn)*radius},obstacles,[],u);
       if(p&&distance(p,target)<=range&&this.world.line(p,target))return p;
     }
     return null;
@@ -371,7 +375,7 @@ export class Simulation {
     if(u.kind==='engineer'&&u.defendUntil>this.time)return false;
     const range='queue' in target?target.radius+55:u.kind==='engineer'?REPAIR_RADIUS:this.healRadius(u);
     if(distance(u,target)>range||!this.world.line(u,target)){
-      if(explicit&&!u.hold){if(u.repath<=0)u.path=[];const p=order?.approach&&this.world.walkable(order.approach,this.obstacles())?order.approach:this.supportApproach(u,target);if(p)this.move(u,p,dt);}
+      if(explicit&&!u.hold){if(u.repath<=0)u.path=[];const buildings=this.obstacles();const p=order?.approach&&this.world.walkable(order.approach,[...buildings,...infantryStructureColliders(buildings)])?order.approach:this.supportApproach(u,target);if(p)this.move(u,p,dt);}
       return true;
     }
     u.path=[];u.combatTarget=null;u.pursuitOrigin=null;u.workingTarget=target.id;
@@ -575,21 +579,22 @@ export class Simulation {
   }
   private move(u:Unit,target:Point,dt:number,speedLimit=Infinity):void {
     const spec=unitSpec(u),clearance=Math.max(0,spec.radius-10);
-    const vehicle=spec.group==='Fahrzeuge'&&!spec.flying;
+    const vehicle=spec.group==='Fahrzeuge'&&!spec.flying,ground=!spec.flying;
     const buildings=this.obstacles();
     const decor=vehicle?this.vehicleDecorObstacles():[];
-    const visualBuildings=vehicle?vehicleStructureColliders(buildings):[];
-    const collisionObstacles=vehicle?[...buildings,...visualBuildings,...decor]:buildings;
+    const visualBuildings=vehicle?vehicleStructureColliders(buildings):
+      ground?infantryStructureColliders(buildings):[];
+    const collisionObstacles=ground?[...buildings,...visualBuildings,...decor]:buildings;
     // Older savegames can contain vehicles standing within the newly enlarged
     // visual clearance. Allow only a proven escape route out, then route normally.
-    if(vehicle&&u.vehicleEscape==='exit'&&this.world.walkable(u,collisionObstacles,clearance)){
+    if(ground&&u.vehicleEscape==='exit'&&this.world.walkable(u,collisionObstacles,clearance)){
       delete u.vehicleEscape;u.path=[];u.repath=0;
     }
     if(!u.path.length&&u.repath<=0){
       delete u.vehicleEscape;
       const tactical=u.owner===1&&u.orders[0]?.tactical;
       const baseObstacles=tactical?this.tactical.navigationObstacles():buildings;
-      const routeObstacles=vehicle?[...baseObstacles,...visualBuildings,...decor]:baseObstacles;
+      const routeObstacles=ground?[...baseObstacles,...visualBuildings,...decor]:baseObstacles;
       const risk=this.tactical.costs(u);
       u.path=spec.flying&&!risk?[target]:this.world.path(u,target,routeObstacles,clearance,risk,spec.flying,u.exactPath);
       // A coarse cliff route may graze blocked terrain. Retry with exact
@@ -598,16 +603,20 @@ export class Simulation {
         u.exactPath=true;
         u.path=this.world.path(u,target,routeObstacles,clearance,risk,false,true);
       }
-      if(vehicle&&!u.path.length){
+      if(ground&&!u.path.length){
         // LAST RESORT: only after normal and exact visual-clearance routes have
         // both failed, use the original solid-building footprint. This retains
         // real collision and never ignores rocks, crates or service lamps.
         const legacyObstacles=[...baseObstacles,...decor];
         const trapped=!this.world.walkable(u,collisionObstacles,clearance);
-        const safeExit=trapped?this.world.nearest(u,collisionObstacles,[],undefined,clearance):null;
-        const escapeTarget=safeExit??target;
-        u.path=this.world.path(u,escapeTarget,legacyObstacles,clearance,risk,false,true);
-        if(u.path.length)u.vehicleEscape=safeExit?'exit':'last-resort';
+        // Infantry never ignores the larger visual wall unless it is already
+        // trapped inside it (legacy saves, just-placed construction).
+        if(trapped||vehicle){
+          const safeExit=trapped?this.world.nearest(u,collisionObstacles,[],undefined,clearance):null;
+          const escapeTarget=safeExit??target;
+          u.path=this.world.path(u,escapeTarget,legacyObstacles,clearance,risk,false,true);
+          if(u.path.length)u.vehicleEscape=safeExit?'exit':'last-resort';
+        }
       }
       u.repath=u.path.length?.7:1.4;
     }
@@ -638,11 +647,11 @@ export class Simulation {
     }
     const speed=velocity*(spec.flying&&this.weather.storm?WEATHER_RULES.airSpeed:1)*dt,step=Math.min(speed,d);
     const p={x:u.x+dx*step,y:u.y+dy*step};
-    const activeObstacles=vehicle&&u.vehicleEscape?[...buildings,...decor]:collisionObstacles;
+    const activeObstacles=ground&&u.vehicleEscape?[...buildings,...decor]:collisionObstacles;
     // Check the entire step, not just its endpoint, so fast vehicles cannot
     // clip through a wall or a visible service prop between simulation ticks.
     const segmentClear=spec.flying||activeObstacles.every(o=>
-      segmentDistance(o,u,p)>=o.radius+RULES.infantry.radius+clearance);
+      segmentDistance(o,u,p)>=o.radius+clearance+(spec.group==='Infanterie'?0:RULES.infantry.radius));
     if(spec.flying||(segmentClear&&this.world.walkable(p,activeObstacles,clearance))){u.x=p.x;u.y=p.y;u.walkDistance+=step;u.angle=Math.atan2(dy,dx);u.facing=dx<-.05?-1:dx>.05?1:u.facing;u.moving=step>.001;}
     else {u.path=[];u.repath=0;delete u.vehicleEscape;if(this.world.mapVersion>=3&&!spec.flying)u.exactPath=true;}
   }
@@ -797,7 +806,7 @@ export class Simulation {
       if(v.id<=u.id||v.hp<=0||unitSpec(u).flying!==unitSpec(v).flying)continue;const gap=unitSpec(u).radius+unitSpec(v).radius+1;let d=distance(u,v);if(d>=gap)continue;
       const dx=d>.01?(u.x-v.x)/d:(u.id%2?1:-1),dy=d>.01?(u.y-v.y)/d:.25,push=Math.min(3,(gap-d)*.5);
       for(const [a,sign] of [[u,1],[v,-1]] as const){const p={x:a.x+dx*push*sign,y:a.y+dy*push*sign};
-        const colliders=unitSpec(a).group==='Fahrzeuge'?[...separationBuildings,...separationVisual,...separationDecor]:separationBuildings;
+        const colliders=unitSpec(a).group==='Fahrzeuge'?[...separationBuildings,...separationVisual,...separationDecor]:unitSpec(a).flying?separationBuildings:[...separationBuildings,...infantryStructureColliders(separationBuildings)];
         if(unitSpec(a).flying||this.world.walkable(p,colliders,Math.max(0,unitSpec(a).radius-10))){a.x=p.x;a.y=p.y;}}
     }
     this.transports.cleanup();
@@ -847,7 +856,7 @@ export class Simulation {
         const kind=b.queueTypes[0]??'infantry',spec=UNITS[kind],sign=this.world.mapVersion>=2&&b.kind==='headquarters'&&b.owner===1?-1:1,exit={x:b.x+(b.radius+42)*sign,y:b.y+(b.radius+12)*sign};
         const vehicle=spec.group==='Fahrzeuge'&&!spec.flying;
         const buildings=this.obstacles();
-        const spawnObstacles=vehicle?[...buildings,...vehicleStructureColliders(buildings),...this.vehicleDecorObstacles()]:buildings;
+        const spawnObstacles=vehicle?[...buildings,...vehicleStructureColliders(buildings),...this.vehicleDecorObstacles()]:spec.flying?buildings:[...buildings,...infantryStructureColliders(buildings)];
         // A factory exit must be clear of the painted building silhouettes,
         // not merely outside their smaller construction footprint circles.
         const spawn=spec.flying?exit:this.world.nearest(exit,spawnObstacles,this.units,undefined,Math.max(0,spec.radius-10));
@@ -935,7 +944,7 @@ export class Simulation {
     }
     if(playerRefund>0)game.notices.push(`Nicht mehr passende Produktionsaufträge erstattet · ${playerRefund.toLocaleString('de-DE')} Credits.`);
     game.units=structuredClone(s.units).map(u=>{
-      const p=u.carrier||unitSpec(u).flying?{x:u.x,y:u.y}:game.world.nearest({x:u.x,y:u.y},game.obstacles(),[],undefined,Math.max(0,unitSpec(u).radius-10))??u;
+      const p=u.carrier||unitSpec(u).flying?{x:u.x,y:u.y}:game.world.nearest({x:u.x,y:u.y},[...game.obstacles(),...(unitSpec(u).group==='Infanterie'?infantryStructureColliders(game.obstacles()):vehicleStructureColliders(game.obstacles()))],[],undefined,Math.max(0,unitSpec(u).radius-10))??u;
       return {...u,xp:sanitizeXp(u.xp),kind:u.kind??'infantry',...(!s.rosterVersion&&u.kind==='heavy'?{hp:u.hp/190*UNITS.heavy.hp}:!s.rosterVersion&&u.kind==='scout'?{hp:u.hp/160*UNITS.scout.hp}:{}),...p,path:[],repath:0,hit:0,fire:0,previousX:p.x,previousY:p.y,
         angle:u.angle??(u.facing<0?Math.PI:0),walkDistance:u.walkDistance??0,lastAttacker:u.lastAttacker??null,defendUntil:u.defendUntil??0,
         combatTarget:Number.isInteger(u.combatTarget)?u.combatTarget:null,
