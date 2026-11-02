@@ -34,7 +34,7 @@ test('combat: RED chooses visible focused enemy, BLUE and classic keep closer ta
  const p={x:1700,y:1700};
  const red=g.spawn(1,p,'infantry'),ally=g.spawn(1,{x:1714,y:1720},'infantry');
  const nearer=g.spawn(0,{x:1770,y:1700},'infantry');
- const focused=g.spawn(0,{x:1815,y:1700},'infantry');
+ const focused=g.spawn(0,{x:1790,y:1700},'infantry');
  g.spatial.rebuild(g.units);g.updateVision();
  nearer.hp=100;focused.hp=32;ally.combatTarget=focused.id;
  g.tactical.focusMode='classic';
