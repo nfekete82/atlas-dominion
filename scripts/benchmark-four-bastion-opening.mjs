@@ -20,8 +20,8 @@ if(!Number.isInteger(seconds)||seconds<90||seconds>900||seeds.length<1||seeds.le
 const config={seconds,opponent:'guarded',label:'four-bastion-opening-ab'};
 const measurements=[];
 for(const seed of seeds){
- const pair={seed,initialHash:null,classic:null,responsive:null};
- for(const tempo of ['classic','responsive']){
+ const pair={seed,initialHash:null,classic:null,responsive:null,prepared:null};
+ for(const tempo of ['classic','responsive','prepared']){
   class PolicySimulation extends RealSimulation{
    constructor(seed,version){super(seed,version);this.smallMapTempo=tempo;}
   }
@@ -48,10 +48,11 @@ for(const seed of seeds){
 const avg=(mode,key)=>measurements.reduce((sum,p)=>sum+(Number(p[mode][key])||0),0)/measurements.length;
 const summary={seeds:seeds.length,
  classic:{avgCaptures:avg('classic','captures'),avgHQDamage:avg('classic','enemyHQDamage'),avgRedLosses:avg('classic','redUnitsLost'),wins:measurements.filter(p=>p.classic.outcome==='win').length},
- responsive:{avgCaptures:avg('responsive','captures'),avgHQDamage:avg('responsive','enemyHQDamage'),avgRedLosses:avg('responsive','redUnitsLost'),wins:measurements.filter(p=>p.responsive.outcome==='win').length}};
-summary.deltas={captures:summary.responsive.avgCaptures-summary.classic.avgCaptures,
- hqDamage:summary.responsive.avgHQDamage-summary.classic.avgHQDamage,
- redLosses:summary.responsive.avgRedLosses-summary.classic.avgRedLosses};
+ responsive:{avgCaptures:avg('responsive','captures'),avgHQDamage:avg('responsive','enemyHQDamage'),avgRedLosses:avg('responsive','redUnitsLost'),wins:measurements.filter(p=>p.responsive.outcome==='win').length},
+ prepared:{avgCaptures:avg('prepared','captures'),avgHQDamage:avg('prepared','enemyHQDamage'),avgRedLosses:avg('prepared','redUnitsLost'),wins:measurements.filter(p=>p.prepared.outcome==='win').length}};
+summary.deltas={captures:summary.prepared.avgCaptures-summary.classic.avgCaptures,
+ hqDamage:summary.prepared.avgHQDamage-summary.classic.avgHQDamage,
+ redLosses:summary.prepared.avgRedLosses-summary.classic.avgRedLosses};
 const report={description:'Paired guarded BLUE synthetic opponent, not a human match prediction',
  mapVersion:11,seconds,seeds,summary,measurements};
 mkdirSync(dirname(path),{recursive:true});writeFileSync(path,JSON.stringify(report,null,2)+'\n');
