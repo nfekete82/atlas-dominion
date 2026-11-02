@@ -6,7 +6,7 @@ import type {ProductionDecision} from './army-economy.js';
 
 interface ProductionContext {
  own:Base[]; army:Unit[]; seen:Unit[]; income:number; underAttack:boolean;
- knownTurrets:number; knownEnemyHQ:boolean; reserve:number; maxArmy:number;
+ knownTurrets:number; knownEnemyHQ:boolean; reserve:number; siegeReserve?:number; maxArmy:number;
  scores:Record<UnitKind,number>;defenseNeedsWorker:boolean;finishing:boolean;
 }
 /** A paid early rocket after the first scout vehicle covers the eventual tower
@@ -65,6 +65,11 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
     count('artillery')===0&&(c.knownTurrets>0||s.battle?.assessment?.neededSiege))
    return 'artillery';
   const response=counter();if(response)return response;
+  // An observed siege earns its first paid rocket as soon as the factory
+  // opens. While construction is unfinished, the same funds are reserved
+  // from barracks and other producers by the macro controller.
+  if(c.siegeReserve&&available('artillery')&&count('artillery')===0&&
+     !c.underAttack&&!observed.air)return 'artillery';
   // AI 4.8 diagnostics: factories are available around 68 seconds, but
   // first artillery often takes 210-370 seconds. Use one optional early
   // siege weapon only after a paid rover and an established funded army.
@@ -128,7 +133,11 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
   if(g.count(1)+g.queued(1)>=c.maxArmy&&!workerLost){facilities[producer.id]={reason:'army-cap',goal:null,missing:0};continue;}
   const need=planned(),isPlanned=need!==null&&UNITS[need].producers.includes(producer.kind);
   const protection=need&&!isPlanned?UNITS[need].cost:0;
-  const budget=g.credits[1]-(workerLost?0:c.reserve)-protection;
+  // The reservation is not a tax on the rocket it protects. Release only
+  // that portion for a real paid artillery purchase, never for other units.
+  const committedReserve=isPlanned&&need==='artillery'
+   ?Math.max(0,c.reserve-(c.siegeReserve??0)):c.reserve;
+  const budget=g.credits[1]-(workerLost?0:committedReserve)-protection;
   let choices=isPlanned?[need!,...ranks(producer).filter(k=>k!==need)]:ranks(producer);
   // Saving for tank/artillery/aircraft must not quietly turn into a cheap
   // substitute on the next AI pulse. The first affordable rover is deliberate.
