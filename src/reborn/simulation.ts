@@ -21,7 +21,7 @@ import { MAP_VERSION, randomMapSeed } from './world-generation.js';
 import {beginBomberOrbit,advanceBomberOrbit,validBomberOrbit,BOMBER_ORBIT_SPEED,preservesCaptureBoundary,safeOrbitApproach,isOnBomberOrbit,type BomberOrbit} from './bomber-orbit.js';
 import {AttackAlerts} from './attack-alerts.js';
 
-export interface Formation {front:number[];heading:Point;origin:Point;goal:Point;lane:number;rear:number}
+export interface Formation {front:number[];fallback?:number[];heading:Point;origin:Point;goal:Point;lane:number;rear:number}
 export interface Order extends Point { kind:'move'|'attackMove'|'attack'|'heal'|'repair'|'build'|'board'; target?:number; approach?:Point; healOrigin?:Point; formation?:Formation; march?:number[]; rear?:number; tactical?:TacticalOrder }
 export type Weapon='rifle'|'heavy'|'pistol'|'turret'|'cannon'|'rocket'|'machinegun';
 export interface Burst {target:number;remaining:number;at:number;index:number}
@@ -268,7 +268,7 @@ export class Simulation {
           const helper=support.includes(u),group=helper?support:rearFighters;
           const index=group.indexOf(u),columns=Math.min(3,group.length),lane=(index%columns-(columns-1)/2)*34;
           const rear=(armoredFront.length?(helper?200:u.kind==='artillery'?150:86):72)+Math.floor(index/columns)*36;
-          formation={front:front.map(v=>v.id),heading,origin,goal:{x:order.x,y:order.y},lane,rear};
+          formation={front:front.map(v=>v.id),...(armoredFront.length?{fallback:rearFighters.filter(v=>v.kind==='infantry'||v.kind==='heavy').map(v=>v.id)}:{}),heading,origin,goal:{x:order.x,y:order.y},lane,rear};
           offset={x:-heading.x*rear-heading.y*lane,y:-heading.y*rear+heading.x*lane};
         }else{const index=front.indexOf(u),columns=Math.ceil(Math.sqrt(front.length)),lane=(index%columns-(columns-1)/2)*34,depth=-Math.floor(index/columns)*34;offset={x:heading.x*depth-heading.y*lane,y:heading.y*depth+heading.x*lane};}
       }
@@ -281,7 +281,7 @@ export class Simulation {
       const buildings=this.obstacles(),obstacles=spec.flying?buildings:spec.group==='Infanterie'
          ?[...buildings,...infantryStructureColliders(buildings)]:[...buildings,...vehicleStructureColliders(buildings),...this.vehicleDecorObstacles()];
        const target=spec.flying?{x:clamp(p.x,8,this.world.size-8),y:clamp(p.y,8,this.world.size-8)}:this.world.nearest(p,obstacles,[],u,Math.max(0,spec.radius-10));if(!target)return;
-      const next:Order={...order,...target,...(mixed&&front.includes(u)?{march:(armoredFront.length?members.filter(v=>!unitSpec(v).flying):front).map(v=>v.id)}:{}),...(formation?{formation,kind:order.kind==='attack'?'attackMove':order.kind,target:undefined}:{})};u.hold=false;u.supportPaused=false;u.workingTarget=null;
+      const next:Order={...order,...target,...(mixed&&front.includes(u)?{march:(armoredFront.length?members.filter(v=>!unitSpec(v).flying):front).map(v=>v.id)}:{}),...(formation?{formation,...(support.includes(u)?{kind:order.kind==='attack'?'attackMove':order.kind,target:undefined}:{})}:{})};u.hold=false;u.supportPaused=false;u.workingTarget=null;
       if(append){if(u.orders.length<32)u.orders.push(next);else return;}
       else {this.transports.cancel(u);delete u.burst;u.orders=formation&&u.orders[0]?.kind==='heal'?[u.orders[0],next]:[next];u.path=[];u.repath=0;u.combatTarget=null;u.pursuitOrigin=null;}
       if(u.transport&&u.transport.phase!=='cruise'){u.transport.resume=structuredClone(u.orders);u.orders=[];}
@@ -324,7 +324,9 @@ export class Simulation {
     if(!formation||!['medic','engineer','infantry','heavy','artillery'].includes(u.kind))return false;
     const recovering=u.owner===1&&this.world.mapVersion>=3&&this.tactical.mode==='director'
       ?this.tactical.state.recovering:undefined;
-    const front=this.units.filter(v=>formation.front.includes(v.id)&&v.owner===u.owner&&v.hp>0&&!recovering?.includes(v.id));
+    let front=this.units.filter(v=>formation.front.includes(v.id)&&v.owner===u.owner&&v.hp>0&&!recovering?.includes(v.id));
+    if(!front.length&&formation.fallback?.length)
+      front=this.units.filter(v=>formation.fallback!.includes(v.id)&&v.owner===u.owner&&v.hp>0&&!recovering?.includes(v.id));
     if(!front.length){u.orders.shift();u.path=[];u.repath=0;u.workingTarget=null;return true;}
     const h=formation.heading,project=(p:Point)=>(p.x-formation.origin.x)*h.x+(p.y-formation.origin.y)*h.y;
     const progress=Math.min(...front.map(project)),lateral=front.reduce((n,v)=>n+(v.x-formation.origin.x)*-h.y+(v.y-formation.origin.y)*h.x,0)/front.length;
