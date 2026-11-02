@@ -1,0 +1,33 @@
+name: Sandforge AI artillery bottleneck diagnosis
+on:
+  push:
+    branches:
+      - feat/sandforge-ai-artillery-production-diagnostics-20261102
+permissions:
+  contents: read
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node --test tests/sandforge-ai-artillery-diagnostics.test.mjs tests/ai-test-arena.test.mjs
+      - name: Six real-economy campaign matches
+        run: |
+          node scripts/ai-test-arena.mjs \
+            --maps 3,4,5 --seeds 2026,2027 --seconds 240 \
+            --modes director --label artillery-timeline \
+            --output ai-arena-results/artillery-diagnostic.json
+          cat ai-arena-results/artillery-diagnostic.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Archive full production timeline
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandforge-artillery-production-diagnostics
+          path: ai-arena-results/
+          retention-days: 14

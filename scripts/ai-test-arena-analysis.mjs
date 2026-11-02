@@ -189,6 +189,17 @@ export function arenaMarkdown(report){
   lines.push('| '+name+' | '+r.matches+' | '+r.wins+' | '+r.losses+' | '+r.timeouts+
    ' | '+r.winRateAll+' % | '+r.meanScore+' | '+r.meanEnemyHQDamage+' |');
  }
+ const siege=(report.details??[]).filter(r=>r.mode==='director');
+ if(siege.length){
+  const at=n=>typeof n==='number'&&Number.isFinite(n)?String(n):'–';
+  lines.push('','## Erste Artillerie: Produktionskette','',
+   '| Karte | Seed | Fabrik fertig (s) | Artillerie bezahlt (s) | Artillerie fertig (s) | Fabrik→Bestellung (s) | Bestellung→Einheit (s) | Artillerie in Queue am Ende |',
+   '|---|---:|---:|---:|---:|---:|---:|---:|---:|');
+  for(const r of siege)lines.push('| '+r.mapVersion+' | '+r.seed+' | '+at(r.firstFactory)+' | '+
+   at(r.firstArtilleryOrder)+' | '+at(r.firstArtillery)+' | '+
+   at(r.factoryToArtilleryOrderSeconds)+' | '+at(r.artilleryOrderToUnitSeconds)+' | '+(r.artilleryQueueAtEnd??0)+' |');
+  lines.push('','– bedeutet: nicht innerhalb des Simulationsfensters beobachtet. Ein bezahlter Auftrag ist keine fertige Einheit.','');
+ }
  const p=a.modeComparison;
  lines.push('','## Paarvergleich Director minus Baseline','',
   '**Vergleichbare Paare:** '+p.pairs+' · **Abweichende Startwelten:** '+p.worldMismatches.length,
