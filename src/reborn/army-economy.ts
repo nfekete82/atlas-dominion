@@ -3,6 +3,7 @@ import {distance,type Point} from './config.js';
 import {produceCombinedArmy} from './director-production.js';
 import {buildBastionDefense,defensiveTowerLimit,rankBastionDefenses} from './bastion-defense.js';
 import {aiBuildSiteScore} from './construction-spacing.js';
+import {shortMapFirstBarracks} from './small-map-opening.js';
 import {defenseLessonsLost} from './battle-learning.js';
 import type {Simulation,Unit,Base} from './simulation.js';
 import type {TacticalState} from './tactical-ai.js';
@@ -75,7 +76,8 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
   if(target)g.command([w.id],{...target,kind:target.buildRemaining>0?'build':'repair',target:target.id});
  }
  let goal:BuildingKind|null=null;
- const wantCore=director&&(generators===0||siegeReserve===0)&&generatorBuildPriority({
+ const prioritizeBarracks=shortMapFirstBarracks(g.world.mapVersion,g.smallMapTempo,own);
+ const wantCore=director&&!prioritizeBarracks&&(generators===0||siegeReserve===0)&&generatorBuildPriority({
   existing:generators,fighters:fighters.length,credits:g.credits[1],
   barracksReady:complete('barracks'),underAttack,finishing
  });
