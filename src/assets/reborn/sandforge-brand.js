@@ -46,10 +46,6 @@
     hud.setAttribute('aria-label', name);
     hud.replaceChildren(makeLogo('sandforge-hud-logo'));
   }
-  const handbook = document.querySelector('#help-dialog small');
-  if (handbook && /ATLAS/i.test(handbook.textContent)) {
-    handbook.textContent = handbook.textContent.replace(/ATLAS/i, 'SANDFORGE');
-  }
   document.documentElement.classList.add('sandforge-branded');
   // True independent artwork layers: one full-bleed desert background and
   // the existing RGBA logo. The old precomposed cinematic poster includes an
