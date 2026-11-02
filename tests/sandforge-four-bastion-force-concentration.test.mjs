@@ -87,3 +87,17 @@ test('paid forward fortification only after taking a frontier with surviving sol
  assert.equal(considerEarlyBorderFortification({...base,mode:'classic'}),false);
  assert.equal(considerEarlyBorderFortification({...base,sectors:8}),false);
 });
+
+test('fair-start removes artificial 25 second delay but changes no starting resources',()=>{
+ const normal=new Simulation(2026,11),equal=new Simulation(2026,11);
+ equal.tactical.frontDoctrine='fair-start';
+ assert.equal(fourBastionPlanningDelay(11,4,'fair-start',25),0);
+ assert.equal(fourBastionPlanningDelay(11,8,'fair-start',25),25);
+ assert.deepEqual(normal.bases,equal.bases);
+ assert.deepEqual(normal.units,equal.units);
+ assert.deepEqual(normal.credits,equal.credits);
+ assert.deepEqual(normal.territories,equal.territories);
+ for(let i=0;i<Math.ceil(12/RULES.tick);i++){normal.step(RULES.tick);equal.step(RULES.tick);}
+ assert.equal(normal.tactical.state.lastPlan,-3);
+ assert.ok(equal.tactical.state.lastPlan>0,'equal-start policy must begin planning promptly');
+});
