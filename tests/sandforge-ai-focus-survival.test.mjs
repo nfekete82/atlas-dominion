@@ -42,11 +42,16 @@ test('combat: RED chooses visible focused enemy, BLUE and classic keep closer ta
  g.tactical.focusMode='coordinated';
  assert.equal(g.acquire(red)?.id,focused.id,'squad selects already wounded enemy');
  assert.ok(g.canSee(1,focused),'the focused target is genuinely visible');
- const player=g.spawn(0,{x:2100,y:2100},'infantry');
- const playerClose=g.spawn(1,{x:2160,y:2100},'infantry');
- const playerFar=g.spawn(1,{x:2200,y:2100},'infantry');
- playerFar.hp=10;g.updateVision();g.spatial.rebuild(g.units);
- assert.equal(g.acquire(player)?.id,playerClose.id,'player auto-targeting remains distance-based');
+ // Isolate the player check from the preceding RED squad and ensure
+ // identical open field / real sight lines rather than map-specific cliffs.
+ const h=new Simulation(2026,11);
+ h.units=[];h.unitById.clear();
+ h.world.blocked.fill(0);h.world.opaque.fill(0);h.world.components.fill(0);
+ const player=h.spawn(0,{x:1700,y:1700},'infantry');
+ const playerClose=h.spawn(1,{x:1760,y:1700},'infantry');
+ const playerFar=h.spawn(1,{x:1800,y:1700},'infantry');
+ playerFar.hp=10;h.updateVision();h.spatial.rebuild(h.units);h.tactical.focusMode='coordinated';
+ assert.equal(h.acquire(player)?.id,playerClose.id,'player auto-targeting remains distance-based');
 });
 
 test('combat: explicit RED attack target is authoritative even with coordinated target mode',()=>{
