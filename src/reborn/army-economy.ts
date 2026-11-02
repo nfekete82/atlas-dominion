@@ -3,6 +3,7 @@ import {distance,type Point} from './config.js';
 import {produceCombinedArmy} from './director-production.js';
 import {buildBastionDefense,defensiveTowerLimit,rankBastionDefenses} from './bastion-defense.js';
 import {aiBuildSiteScore} from './construction-spacing.js';
+import {considerEarlyBorderFortification} from './four-bastion-front-doctrine.js';
 import {defenseLessonsLost} from './battle-learning.js';
 import type {Simulation,Unit,Base} from './simulation.js';
 import type {TacticalState} from './tactical-ai.js';
@@ -111,14 +112,21 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
    for(const p of candidates.slice(0,12)){const b=g.build(1,goal,p,[worker.id]);if(b){e.built[goal]=(e.built[goal]??0)+1;e.goal=null;break;}}
   }
  }
+ const earlyFortify=considerEarlyBorderFortification({
+  mapVersion:g.world.mapVersion,sectors:g.territories.length,
+  mode:g.tactical.frontDoctrine,time:g.time,
+  ownedForwardBastions:g.territories.filter(t=>t.owner===1&&
+   !own.some(b=>b.kind==='headquarters'&&b.territory===t.id)).length,
+  fighters:fighters.length,barracksReady:complete('barracks')
+ });
  // Fortify owned border bastions after core production has started. Unlike
  // a passive HQ guard, a real turret can hold a captured frontier while the
  // mobile army advances. Do not block repairs, construction or new armor.
  if(director&&!finishing&&!unfinished&&!g.bases.some(b=>b.owner===1&&b.hp>0&&b.buildRemaining>0)
-  &&(goal===null||goal==='generator'||(learnedDefense||urgentDefense)&&goal==='factory')
+  &&(earlyFortify||goal===null||goal==='generator'||(learnedDefense||urgentDefense)&&goal==='factory')
   &&(!observedSiege||count('artillery')>0||urgentDefense)
-  &&complete('barracks')&&(complete('factory')||learnedDefense||urgentDefense)
-  &&fighters.length>=(urgentDefense?3:4)&&g.time>=(urgentDefense?60:75)&&g.credits[1]>=BUILDINGS.turret.cost+(urgentDefense?150:400)
+  &&complete('barracks')&&(earlyFortify||complete('factory')||learnedDefense||urgentDefense)
+  &&fighters.length>=(earlyFortify||urgentDefense?3:4)&&g.time>=(earlyFortify?55:urgentDefense?60:75)&&g.credits[1]>=BUILDINGS.turret.cost+(earlyFortify||urgentDefense?150:400)
   &&own.filter(b=>b.kind==='turret').length<defensiveTowerLimit(g.territories.length)
   &&g.time-(e.towerAttemptAt??-30)>=18){
   const idle=workers.filter(w=>w.defendUntil<=g.time&&!w.orders.length);
