@@ -30,3 +30,30 @@ jobs:
           name: sandforge-balance-vanguard-report
           path: sandforge-unit-matrix.md
           if-no-files-found: ignore
+  browser-vanguard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm ci --prefix tests/browser --no-audit --no-fund
+      - run: cd tests/browser && npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Render armored vanguard and infantry around factory
+        env:
+          ATLAS_BROWSER_CHANNEL: chromium
+        run: cd tests/browser && npx playwright test --config=reborn.config.mjs reborn-armored-vanguard.spec.mjs reborn-infantry-building-clearance.spec.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sandforge-vanguard-browser-proof
+          path: |
+            tests/browser/artifacts/reborn/armored-vanguard.png
+            tests/browser/artifacts/reborn/infantry-around-factory.png
+            tests/browser/artifacts/reborn-results.json
+          if-no-files-found: ignore
+          retention-days: 14
