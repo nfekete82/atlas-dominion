@@ -8,16 +8,31 @@ const sector=(id,owner,neighbors,income=25)=>({id,owner,neighbors,income,
  point:{x:400+id*400,y:450},capturing:-1,progress:0,value:1,name:'Sector '+id,polygon:[]});
 const step=(g,seconds)=>{for(let n=0;n<Math.round(seconds/.05);n++)g.step(.05);};
 
-test('territory-war: identical two-hop hostile recapture rights for both factions, not neutral hopping or legacy saves',()=>{
+test('territory-war: free remote capture applies symmetrically to hostile and neutral sectors on all maps',()=>{
  const sectors=[sector(0,0,[1]),sector(1,-1,[0,2]),sector(2,1,[1,3]),sector(3,-1,[2])];
- assert.equal(canCaptureSector(sectors,sectors[2],0,14),true,'blue may reach enemy one sector behind frontier');
- assert.equal(canCaptureSector(sectors,sectors[0],1,14),true,'red can do exactly the same');
- assert.equal(canCaptureSector(sectors,sectors[1],0,14),true,'direct neutral front remains capturable');
- assert.equal(canCaptureSector(sectors,sectors[3],0,14),false,'cannot leap across two unknown/neutral sectors');
- assert.equal(canCaptureSector(sectors,sectors[2],0,10),false,'old campaigns retain connected capture rules');
- assert.equal(canCaptureSector(sectors,sectors[0],1,10),false);
- assert.equal(canCaptureSector(sectors,sectors[0],0,14),false);
- assert.equal(canCaptureSector(sectors,sectors[2],-1,14),false);
+ for(const version of [1,10,11,14]){
+  assert.equal(canCaptureSector(sectors,sectors[2],0,version),true,'BLUE may capture a remote hostile sector');
+  assert.equal(canCaptureSector(sectors,sectors[0],1,version),true,'RED may capture a remote hostile sector');
+  assert.equal(canCaptureSector(sectors,sectors[3],0,version),true,'BLUE may capture an isolated neutral sector');
+  assert.equal(canCaptureSector(sectors,sectors[1],1,version),true,'RED may capture a neutral sector');
+  assert.equal(canCaptureSector(sectors,sectors[0],0,version),false,'a faction never recaptures its own sector');
+  assert.equal(canCaptureSector(sectors,sectors[2],-1,version),false,'neutral is not a capturing faction');
+ }
+});
+
+test('territory-war: remote neutral bastions capture in real simulation for BLUE and RED',()=>{
+ for(const version of [1,10,14]){
+  for(const owner of [0,1]){
+   const g=new Simulation(2026,version);g.aiClock=-1e8;g.units=[];
+   const remote=g.territories.find(t=>t.owner===-1&&!t.neighbors.some(id=>g.territories[id].owner===owner));
+   assert.ok(remote,'a nonadjacent neutral sector is available');
+   const soldier=g.spawn(owner,{...remote.point},'infantry');
+   assert.ok(soldier);
+   assert.equal(g.captureReadiness(remote,owner),'capturing');
+   step(g,RULES.captureTime+0.2);
+   assert.equal(remote.owner,owner,'capture works without controlling a neighboring sector');
+  }
+ }
 });
 
 test('territory-war: 5 seconds only for exposed enemy territory; protected guns or guards preserve 8 seconds',()=>{

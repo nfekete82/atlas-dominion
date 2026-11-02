@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {Simulation} from '../dist/src/reborn/simulation.js';
 import {RULES,distance} from '../dist/src/reborn/config.js';
 
-test('capture feedback distinguishes distance, enemy contest, disconnected sector and HQ defense',()=>{
+test('capture feedback distinguishes distance, enemy contest, remote sector and HQ defense',()=>{
  const g=new Simulation(2026,1);g.aiClock=-1e8;g.units=[];
  const connected=g.territories[20],isolated=g.territories[16];
  assert.equal(g.captureReadiness(connected,0),'no-unit');
@@ -16,7 +16,7 @@ test('capture feedback distinguishes distance, enemy contest, disconnected secto
  opponent.hp=0;
  assert.equal(g.captureReadiness(connected,0),'capturing');
  Object.assign(unit,isolated.point);
- assert.equal(g.captureReadiness(isolated,0),'disconnected');
+ assert.equal(g.captureReadiness(isolated,0),'capturing');
  const hq=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
  const sector=g.territories[hq.territory];
  g.territories[sector.neighbors[0]].owner=0;
