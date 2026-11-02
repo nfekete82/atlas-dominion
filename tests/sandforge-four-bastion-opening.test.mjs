@@ -45,8 +45,8 @@ test('four-bastion responsive strategy issues legal work before classic starts',
  assert.equal(classic.tactical.state.lastPlan,-3,'legacy AI still waits for 25 seconds');
  const built=fast.bases.filter(b=>b.owner===1&&b.kind==='barracks');
  assert.ok(built.length===1,'responsive AI orders exactly one paid barracks in opening');
- assert.equal(fast.credits[1],950-BUILDINGS.barracks.cost,
-  'no resources were created; the actual barracks price was paid');
+ assert.equal(fast.credits[1],950+fast.income(1)-BUILDINGS.barracks.cost,
+  'only one normal 10-second income payment and the actual barracks cost apply');
  assert.ok(classic.bases.every(b=>b.owner!==1||b.kind!=='barracks'));
 });
 
