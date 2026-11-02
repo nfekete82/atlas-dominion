@@ -325,12 +325,14 @@ export class Simulation {
     const recovering=u.owner===1&&this.world.mapVersion>=3&&this.tactical.mode==='director'
       ?this.tactical.state.recovering:undefined;
     let front=this.units.filter(v=>formation.front.includes(v.id)&&v.owner===u.owner&&v.hp>0&&!recovering?.includes(v.id));
+    const armorStillLeading=front.length>0;
     if(!front.length&&formation.fallback?.length)
       front=this.units.filter(v=>formation.fallback!.includes(v.id)&&v.owner===u.owner&&v.hp>0&&!recovering?.includes(v.id));
     if(!front.length){u.orders.shift();u.path=[];u.repath=0;u.workingTarget=null;return true;}
     const h=formation.heading,project=(p:Point)=>(p.x-formation.origin.x)*h.x+(p.y-formation.origin.y)*h.y;
     const progress=Math.min(...front.map(project)),lateral=front.reduce((n,v)=>n+(v.x-formation.origin.x)*-h.y+(v.y-formation.origin.y)*h.x,0)/front.length;
-    const rear={x:formation.origin.x+h.x*(progress-formation.rear)-h.y*(lateral+formation.lane),y:formation.origin.y+h.y*(progress-formation.rear)+h.x*(lateral+formation.lane)};
+    const rearDistance=armorStillLeading?formation.rear:Math.min(formation.rear,72);
+    const rear={x:formation.origin.x+h.x*(progress-rearDistance)-h.y*(lateral+formation.lane),y:formation.origin.y+h.y*(progress-rearDistance)+h.x*(lateral+formation.lane)};
     const fighter=u.kind==='infantry'||u.kind==='heavy'||u.kind==='artillery';
     // Attack-move ranks may fire while remaining behind the vehicles.
     if(fighter&&order?.kind!=='move'&&this.acquire(u))return false;
