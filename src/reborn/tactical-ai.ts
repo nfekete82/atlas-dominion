@@ -817,7 +817,11 @@ export class TacticalAI {
    const enough=towers.length?(overrun||assessment.stance==='attack'||assessment.stance==='siege'):defended?ready.length>=3&&power>=5&&(armed||!towers.length&&ready.length>=5):ready.length>=(g.time<40?1:2);
    const wave=this.waveMode==='coordinated'
      ?assaultWaveDecision({defended,selectedGround:selected.filter(u=>!unitSpec(u).flying).length,
-        readyGround:ready.filter(u=>!unitSpec(u).flying).length,elapsed:g.time-s.phaseAt})
+        readyGround:ready.filter(u=>!unitSpec(u).flying).length,elapsed:g.time-s.phaseAt,
+        selectedStrength:selected.filter(u=>!unitSpec(u).flying).reduce((n,u)=>n+combatStrength(u),0),
+        readyStrength:ready.filter(u=>!unitSpec(u).flying).reduce((n,u)=>n+combatStrength(u),0),
+        // A known gun requires a real artillery escort or proved overmatch.
+        siegeSupported:!towers.length||ready.some(u=>u.kind==='artillery')||overrun})
      :{ready:true,required:0,reason:'legacy'};
    if(enough&&!wave.ready)this.diagnostics.waveWaits++;
    if(!enough||!wave.ready){

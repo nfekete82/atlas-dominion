@@ -7,8 +7,13 @@ export interface WaveReadiness {
  selectedGround:number;
  readyGround:number;
  elapsed:number;
+ /** Paid, living ground-force strength. Legacy callers may omit these. */
+ selectedStrength?:number;
+ readyStrength?:number;
+ /** Known turrets require artillery or a separately validated overrun. */
+ siegeSupported?:boolean;
 }
-export interface WaveDecision {ready:boolean;required:number;reason:'open-front'|'small-force'|'assembled'|'bounded-wait'|'assembling'}
+export interface WaveDecision {ready:boolean;required:number;reason:'open-front'|'small-force'|'assembled'|'combat-ready'|'bounded-wait'|'assembling'}
 export function assaultWaveDecision(x:WaveReadiness):WaveDecision {
  const planned=Math.max(0,Math.floor(x.selectedGround));
  const ready=Math.max(0,Math.floor(x.readyGround));
@@ -18,6 +23,13 @@ export function assaultWaveDecision(x:WaveReadiness):WaveDecision {
  if(planned<5)return {ready:true,required:0,reason:'small-force'};
  const required=Math.min(planned,Math.max(4,Math.ceil(planned*.7)));
  if(ready>=required)return {ready:true,required,reason:'assembled'};
+ // A ready armored vanguard can carry most of the army's paid firepower.
+ // Do not delay it for distant light units, but never bypass siege safety.
+ if(x.siegeSupported===true&&ready>=4&&
+   Number.isFinite(x.selectedStrength)&&Number.isFinite(x.readyStrength)&&
+   (x.selectedStrength??0)>0&&
+   (x.readyStrength??0)>=Math.max(8,(x.selectedStrength??0)*.8))
+  return {ready:true,required,reason:'combat-ready'};
  // No permanent stalemate: leave after a bounded rally if base combat
  // assessment already judges the *arrived* force sufficient.
  if(x.elapsed>=42)return {ready:true,required,reason:'bounded-wait'};
