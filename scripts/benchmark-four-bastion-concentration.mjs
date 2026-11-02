@@ -13,7 +13,10 @@ const output=resolve(read('output','ai-arena-results/compact-front.json'));
 if(!['guarded','pressure'].includes(opponent)||seeds.length<1||seeds.length>16||
  seconds<60||seconds>900||!Number.isInteger(seconds)||
  seeds.some(n=>!Number.isSafeInteger(n)||n<0))throw Error('invalid benchmark arguments');
-const modes=['classic','tempo-only','concentrated','sector-defense','sector-priority','tempo-sector','fortify-early'],results=[];
+const allModes=['classic','fair-start','tempo-only','concentrated','sector-defense','sector-priority','tempo-sector','fortify-early'];
+const modes=read('modes','classic,fair-start').split(',');
+if(modes.some(x=>!allModes.includes(x)))throw Error('invalid modes');
+const results=[];
 for(const seed of seeds){
  let initial=null;
  for(const policy of modes){
