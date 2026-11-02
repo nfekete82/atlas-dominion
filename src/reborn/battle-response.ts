@@ -1,5 +1,5 @@
 import {RULES,distance,type Point} from './config.js';
-import {unitSpec,weaponDamage,canAttack} from './catalog.js';
+import {unitSpec,weaponDamage,combatDpsAgainst,canAttack} from './catalog.js';
 import type {Unit} from './simulation.js';
 
 /** Original Atlas doctrine: estimates use HP, real damage/cooldown and range.
@@ -26,9 +26,9 @@ export function fightingPowerAgainst(units:readonly Unit[],targets:readonly Unit
  if(hp<=0)return fightingPower(units);
  return units.filter(fighting).reduce((n,u)=>{
   const spec=unitSpec(u);
-  const mobile=enemies.reduce((d,t)=>d+(canAttack(u,t)?weaponDamage(u,t)*t.hp:0),0);
-  const fort=towers.reduce((d,t)=>d+weaponDamage(u,{kind:'turret',queue:[]})*t.hp,0);
-  return n+Math.sqrt(u.hp*(mobile+fort)/hp/spec.cooldown)*(spec.range>=RULES.turret.range?1.15:1);
+  const mobile=enemies.reduce((d,t)=>d+(canAttack(u,t)?combatDpsAgainst(u,t)*t.hp:0),0);
+  const fort=towers.reduce((d,t)=>d+combatDpsAgainst(u,{kind:'turret',queue:[]})*t.hp,0);
+  return n+Math.sqrt(u.hp*(mobile+fort)/hp)*(spec.range>=RULES.turret.range?1.15:1);
  },0);
 }
 export function assessBattle(units:readonly Unit[],enemies:readonly Unit[],towers:readonly ObservedTower[],at:number,engaged=false):BattleAssessment{
