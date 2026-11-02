@@ -431,8 +431,15 @@ export class TacticalAI {
  }
  private recovery(army:Unit[],home:Point):Set<number>{
   const g=this.g,s=this.state,ids=new Set(s.recovering??[]);
+  // A real medic can rotate an injured screen out of a *known* siege
+  // even before the enemy HQ falls. Require a paid living rocket so this
+  // precaution cannot paralyse the early infantry-only expansion.
+  const supportedSiege=g.world.mapVersion>=3&&this.mode==='director'
+   &&s.knownTurrets.length>0
+   &&army.some(v=>v.kind==='artillery'&&v.hp>0);
   const threshold=infantryRecoveryThreshold(
-   g.world.mapVersion>=3&&this.mode==='director'&&s.commander?.enemyHQEliminatedAt!==undefined,
+   g.world.mapVersion>=3&&this.mode==='director'
+    &&(s.commander?.enemyHQEliminatedAt!==undefined||supportedSiege),
    army.some(v=>v.kind==='medic'&&v.hp>unitSpec(v).hp*.45));
   for(const u of army){
    if(['infantry','heavy'].includes(u.kind)&&u.hp<unitSpec(u).hp*threshold)ids.add(u.id);
