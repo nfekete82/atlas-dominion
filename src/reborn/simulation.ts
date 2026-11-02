@@ -8,6 +8,7 @@ import { World, inside, type Territory } from './world.js';
 import {visibleBasePropColliders} from './vehicle-decor-collision.js';
 import {vehicleStructureColliders} from './vehicle-structure-collision.js';
 import {infantryStructureColliders} from './infantry-structure-collision.js';
+import {constructionVisualClearance} from './construction-spacing.js';
 import {segmentDistance} from './world-generation.js';
 import {canCaptureSector,captureSeconds} from './territory-warfare.js';
 import { UNITS, BUILDINGS, TANK_MG, canAttack, weaponDamage, unitSpec, buildingSpec, unitKinds, MAX_GENERATORS_PER_FACTION, type UnitKind, type BuildingKind } from './catalog.js';
@@ -207,7 +208,7 @@ export class Simulation {
       if(!this.world.walkable(q))return 'Felsen oder Kartenrand blockieren die Grundfläche.';
     }
     for(let i=0;i<32;i++)if(!this.world.walkable({x:p.x+Math.cos(i*Math.PI/16)*spec.radius,y:p.y+Math.sin(i*Math.PI/16)*spec.radius}))return 'Die gesamte Grundfläche muss frei sein.';
-    if(this.obstacles().some(b=>distance(b,p)<b.radius+spec.radius+24))return 'Zu nah an einem anderen Gebäude.';
+    if(this.obstacles().some(b=>distance(b,p)<constructionVisualClearance(kind,b.kind)))return 'Zu nah an einem anderen Gebäude.';
     if(this.territories.some(t=>distance(t.point,p)<spec.radius+45))return 'Bastion und Kontrollpunkt müssen frei bleiben.';
     if(this.units.some(u=>u.hp>0&&!u.carrier&&!unitSpec(u).flying&&distance(u,p)<spec.radius+unitSpec(u).radius))return 'Einheiten blockieren die Baustelle.';
     return null;
