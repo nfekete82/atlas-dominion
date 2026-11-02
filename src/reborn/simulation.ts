@@ -9,7 +9,7 @@ import {visibleBasePropColliders} from './vehicle-decor-collision.js';
 import {vehicleStructureColliders} from './vehicle-structure-collision.js';
 import {segmentDistance} from './world-generation.js';
 import {canCaptureSector,captureSeconds} from './territory-warfare.js';
-import { UNITS, BUILDINGS, canAttack, weaponDamage, unitSpec, buildingSpec, unitKinds, MAX_GENERATORS_PER_FACTION, type UnitKind, type BuildingKind } from './catalog.js';
+import { UNITS, BUILDINGS, TANK_MG, canAttack, weaponDamage, unitSpec, buildingSpec, unitKinds, MAX_GENERATORS_PER_FACTION, type UnitKind, type BuildingKind } from './catalog.js';
 import {angleDifference,turnTowards} from './sprite-animator.js';
 import {newMatchStatistics,countDeployed,countProduced,countIncome,validMatchStatistics,type MatchStatistics} from './match-statistics.js';
 import {turretPivot,turretMuzzles} from './turret.js';
@@ -467,15 +467,15 @@ export class Simulation {
   private tankMachinegun(u:Unit):void {
     // A deliberately disabled weapon cooldown (e.g. scripted disarm or test fixture) suppresses both guns.
     if((u.mgCooldown??0)>0||u.cooldown>unitSpec(u).cooldown+1e-8)return;
-    const infantry=this.spatial.query(u,230).filter(e=>e.owner!==u.owner&&e.hp>0&&!e.carrier&&unitSpec(e).group==='Infanterie'&&
-      this.canSee(u.owner,e)&&distance(u,e)<=230&&this.world.line(u,e,this.obstacles()));
+    const infantry=this.spatial.query(u,TANK_MG.range).filter(e=>e.owner!==u.owner&&e.hp>0&&!e.carrier&&unitSpec(e).group==='Infanterie'&&
+      this.canSee(u.owner,e)&&distance(u,e)<=TANK_MG.range&&this.world.line(u,e,this.obstacles()));
     const order=u.orders[0];
     const target=(u.hold
       ? infantry.find(e=>e.id===u.lastAttacker&&u.defendUntil>this.time)
       : infantry.find(e=>order?.kind==='attack'&&e.id===order.target)??infantry.sort((a,b)=>distance(u,a)-distance(u,b)||a.id-b.id)[0]);
     if(!target)return;
-    u.mgCooldown=.55/getVeterancyModifiers(u).fireRate;
-    this.damage(u,target,12*getVeterancyModifiers(u).damage,'machinegun',{x:u.x,y:u.y-34});
+    u.mgCooldown=TANK_MG.cooldown/getVeterancyModifiers(u).fireRate;
+    this.damage(u,target,TANK_MG.damage*getVeterancyModifiers(u).damage,'machinegun',{x:u.x,y:u.y-34});
   }
   private launch(u:Unit,target:Unit|Base):void{
     const id=this.nextId++,antiArmor=u.kind==='tank',offset=antiArmor?{x:0,y:0}:this.weather.artilleryOffset(id,u.id),from={x:u.x,y:u.y},
@@ -693,7 +693,7 @@ export class Simulation {
       const enemy=this.acquire(u);
       const spec=unitSpec(u);
       if(u.kind==='tank'){u.mgCooldown=Math.max(0,(u.mgCooldown??0)-dt);this.tankMachinegun(u);}
-      const engagementRange=u.kind==='tank'&&enemy&&'orders' in enemy&&unitSpec(enemy).group==='Infanterie'?230:spec.range;
+      const engagementRange=u.kind==='tank'&&enemy&&'orders' in enemy&&unitSpec(enemy).group==='Infanterie'?TANK_MG.range:spec.range;
       if(enemy&&distance(u,enemy)<=engagementRange&&(spec.flying||('orders' in enemy&&unitSpec(enemy).flying)||this.world.line(u,enemy,this.obstacles().filter(b=>b.id!==enemy.id)))){
         u.facing=enemy.x<u.x?-1:1;u.angle=Math.atan2(enemy.y-u.y,enemy.x-u.x);
         // Tank's main guided rocket is anti-armor only; infantry is handled by the independent roof MG.
