@@ -41,7 +41,7 @@ test('four-bastion opening is fair: identical map, units, sight, credits and inc
 
 test('four-bastion responsive strategy issues legal work before classic starts',()=>{
  const fast=new Simulation(2026,11),classic=new Simulation(2026,11);
- classic.smallMapTempo='classic';
+ fast.smallMapTempo='responsive';classic.smallMapTempo='classic';
  step(fast,12);step(classic,12);
  assert.ok(fast.tactical.state.lastPlan>=6, 'responsive AI plans within first 12 seconds');
  assert.equal(classic.tactical.state.lastPlan,-3,'legacy AI still waits for 25 seconds');
