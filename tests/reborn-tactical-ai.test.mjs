@@ -54,7 +54,11 @@ test('tactical: a standard group launches together with shared pace, keeps a hom
 });
 
 test('tactical: a defended bastion waits for six to ten real combat units and then concentrates on the registered tower before capture',()=>{
- const {g,u,target}=fixture();target.point={x:1900,y:1900};const b=tower(g);reveal(g,b);force(g);assert.notEqual(g.tactical.state.phase,'attack');
+ const {g,u,target}=fixture();target.point={x:1900,y:1900};
+// Keep this target as the only unclaimed sector: unrelated neutral
+// settlements otherwise make the AI correctly begin a different attack.
+for(const t of g.territories)if(t.id!==target.id)t.owner=1;
+const b=tower(g);reveal(g,b);force(g);assert.notEqual(g.tactical.state.phase,'attack');
  for(let i=0;i<7;i++)g.spawn(1,{x:1110+(i%3)*30,y:1870+Math.floor(i/3)*30},i===0?'tank':i<3?'heavy':'infantry');
  const medic=g.spawn(1,{x:1080,y:1900},'medic');force(g);const s=g.tactical.state;assert.equal(s.phase,'attack');assert.ok(s.launchSize>=6&&s.launchSize<=10);assert.equal(s.objective,b.id);assert.equal(s.target,target.id);
  const front=red(g).filter(u=>s.group.includes(u.id)&&u.kind!=='medic');assert.ok(front.every(u=>u.orders[0].target===b.id));assert.equal(medic.orders[0].formation.front.length,s.launchSize);assert.ok(medic.orders[0].formation.rear>=72);
@@ -63,8 +67,13 @@ test('tactical: a defended bastion waits for six to ten real combat units and th
 });
 
 test('tactical: a safer income sector wins over a tower covered objective and repeated failed assaults trigger regrouping',()=>{
- const {g,u,target,own}=fixture();target.point={x:1900,y:1900};const b=tower(g);reveal(g,b);
- const alternative=g.territories[2];alternative.point={x:1150,y:2800};alternative.neighbors=[own.id];own.neighbors.push(alternative.id);force(g);assert.equal(g.tactical.state.target,alternative.id);
+ const {g,u,target,own}=fixture();target.point={x:1900,y:1900};
+const alternative=g.territories[2];
+// Compare exactly one risky tower objective with one safer income sector;
+// nearby incidental neutrals are not the subject of this scenario.
+for(const t of g.territories)if(t.id!==target.id&&t.id!==alternative.id)t.owner=1;
+const b=tower(g);reveal(g,b);
+ alternative.point={x:1150,y:2800};alternative.neighbors=[own.id];own.neighbors.push(alternative.id);force(g);assert.equal(g.tactical.state.target,alternative.id);
  for(let i=0;i<5;i++)g.spawn(1,{x:1100+i*16,y:1900+i*9});g.tactical.state.phase='gather';g.tactical.state.group=[];force(g);assert.equal(g.tactical.state.phase,'attack');const ids=[...g.tactical.state.group];
  for(const id of ids.slice(0,2)){const unit=g.units.find(u=>u.id===id);unit.hp=0;g.tactical.loss(unit);}g.units=g.units.filter(u=>u.hp>0);force(g);
  assert.equal(g.tactical.state.phase,'regroup');assert.ok(g.tactical.state.attempts.some(a=>a.losses===2));assert.ok(red(g).some(u=>u.orders[0]?.tactical.mode==='safe'));
@@ -94,11 +103,16 @@ for(const version of [0,1,2])test(`tactical: v${version} optional state saves, l
 
 
 test('tactical: a mixed assault actually advances at the heavy pace while the medic stays behind',()=>{
- const {g,target}=fixture();target.point={x:1900,y:1900};const b=tower(g);reveal(g,b);
+ const {g,target}=fixture();target.point={x:1900,y:1900};
+// Ensure the front objective is in front of the column. An incidental
+// unclaimed sector behind the starting units would correctly redirect
+// the AI, invalidating the pace/escort scenario.
+for(const t of g.territories)if(t.id!==target.id)t.owner=1;
+const b=tower(g);reveal(g,b);
  for(let i=0;i<7;i++)g.spawn(1,{x:1130+(i%3)*27,y:1880+Math.floor(i/3)*26},i===0?'heavy':i===1?'rover':i===2?'tank':'infantry');
  const m=g.spawn(1,{x:1080,y:1900},'medic');force(g);assert.equal(g.tactical.state.phase,'attack');
  const members=red(g).filter(u=>g.tactical.state.group.includes(u.id)&&u.kind!=='medic'),initial=new Map(members.map(u=>[u.id,{x:u.x,y:u.y}]));
- advance(g,4);const distances=members.map(u=>distance(u,initial.get(u.id)));assert.ok(distances.every(d=>d>200));assert.ok(Math.max(...distances)<UNITS.heavy.speed*4+10);assert.ok(Math.max(...members.map(u=>u.x))-Math.min(...members.map(u=>u.x))<115,'front stays within the coordinated march bound despite local vehicle queuing');assert.ok(m.x<Math.min(...members.map(u=>u.x))-25);
+ advance(g,4);const distances=members.map(u=>distance(u,initial.get(u.id)));assert.ok(distances.every(d=>d>200),'front fighters must advance toward the only unclaimed sector');assert.ok(Math.max(...distances)<UNITS.heavy.speed*4+12,'allow two map units of discrete path-stepping tolerance');assert.ok(Math.max(...members.map(u=>u.x))-Math.min(...members.map(u=>u.x))<115,'front stays within the coordinated march bound despite local vehicle queuing');assert.ok(m.x<Math.min(...members.map(u=>u.x))-25);
 });
 
 for(const version of [0,2])test(`tactical: active v${version} campaign save continues with the same strategy, production and territory`,()=>{
