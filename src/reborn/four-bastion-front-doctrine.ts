@@ -3,7 +3,7 @@ import {distance,type Point} from './config.js';
 /** Only opt-in experiments on the 4-bastion campaign. No resource, fog,
  * movement or damage changes; selectors consume only visible enemies and
  * publicly observable sector ownership. */
-export type FrontDoctrine='classic'|'concentrated'|'sector-defense'|'tempo-only'|'sector-priority'|'tempo-sector';
+export type FrontDoctrine='classic'|'concentrated'|'sector-defense'|'tempo-only'|'sector-priority'|'tempo-sector'|'fortify-early';
 export function isCompactBattle(mapVersion:number,sectors:number,mode:FrontDoctrine):boolean{
  return mapVersion===11&&sectors===4&&(mode==='concentrated'||mode==='sector-defense');
 }
@@ -44,4 +44,15 @@ export function neutralExpansionPreference(input:{
  return x.mapVersion===11&&x.sectors===4&&
   (x.mode==='sector-priority'||x.mode==='tempo-sector')&&
   x.neutral&&!x.observedDefender&&!x.observedTurret&&!x.endgame?-1900:0;
+}
+
+/** Pay for a real forward turret once RED actually owns a border bastion.
+ * A turret is not spawned for free; the existing safe build-site search,
+ * worker order, construction time and budget rules still apply. */
+export function considerEarlyBorderFortification(x:{
+ mapVersion:number;sectors:number;mode:FrontDoctrine;time:number;
+ ownedForwardBastions:number;fighters:number;barracksReady:boolean;
+}):boolean{
+ return x.mapVersion===11&&x.sectors===4&&x.mode==='fortify-early'&&
+  x.time>=55&&x.ownedForwardBastions>=1&&x.fighters>=3&&x.barracksReady;
 }
