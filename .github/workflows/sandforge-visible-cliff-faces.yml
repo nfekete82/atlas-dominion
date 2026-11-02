@@ -45,6 +45,7 @@ jobs:
           name: seen-sandstone-fog-proof
           path: |
             tests/browser/artifacts/reborn/visible-cliff-faces.png
+            tests/browser/artifacts/reborn/visible-cliff-with-soldier.png
             tests/browser/artifacts/reborn-results.json
           if-no-files-found: ignore
           retention-days: 14
