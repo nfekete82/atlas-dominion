@@ -57,11 +57,16 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
   existing:generators,fighters:fighters.length,credits:g.credits[1],
   barracksReady:complete('barracks'),underAttack,finishing
  });
- if((!finishing||!has('barracks')||!has('factory')&&known>0||wantCore)
+ // When an enemy turret/HQ has actually been observed, delay optional
+ // second/third income cores until the first vehicle factory is built.
+ // Never infer a hidden siege target, and preserve the very first core.
+ const urgentSiegeFactory=director&&observedSiege&&generators>=1&&
+  complete('barracks')&&!has('factory')&&fighters.length>=3;
+ if((!finishing||!has('barracks')||!has('factory')&&known>0||wantCore||urgentSiegeFactory)
   &&!unfinished&&workers.length&&(!underAttack||!has('barracks'))){
   // First core immediately; later cores only when a paid ground force is
   // already available and enough credits remain for ongoing recruitment.
-  if(wantCore)goal='generator';
+  if(wantCore&&!urgentSiegeFactory)goal='generator';
   else if(!has('barracks'))goal='barracks';
   else if(!has('factory')&&fighters.length>=3&&(income>=20||known>0||g.time>=55))goal='factory';
   else if(!has('airfield')&&has('factory')&&fighters.length>=4&&(income>=35||g.time>=110||seen.some(u=>unitSpec(u).flying))&&(!director||(complete('factory')&&count('tank')+count('rover')+count('artillery')>=3&&income>=35)))goal='airfield';

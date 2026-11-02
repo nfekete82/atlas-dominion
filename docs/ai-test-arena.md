@@ -50,6 +50,10 @@ Erzeuge mit derselben Testkonfiguration einen Bericht auf der alten und einen au
 Der Vergleich bricht ab bei abweichenden spielbaren Startwelten, Einheitenkatalogen,
 Gegnerskripten, Testdauern oder Modusbelegungen. Die eigentliche KI-Implementierung darf sich unterscheiden.
 
+## Priorität bei beobachteter Belagerung (Experiment)
+
+Für bereits beobachtete Geschütze oder ein aufgeklärtes feindliches HQ wird die erste Fahrzeugfabrik vor zusätzlichen Energiekernen priorisiert, solange eine Kaserne und mindestens drei Kämpfer vorhanden sind. Der erste Energiekern, Baukosten, Sichtbarkeit und Verteidigungsausnahmen bleiben erhalten. Diese Änderung ist ein **separater A/B-Kandidat**; ohne nachgewiesene bessere Ergebnisse nicht zur Produktion freigeben.
+
 ## Entwicklungsschleife
 
 1. Drei häufigste Warnsignale auswählen.
