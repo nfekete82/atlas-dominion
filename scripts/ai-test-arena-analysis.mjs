@@ -189,7 +189,7 @@ export function arenaMarkdown(report){
   lines.push('| '+name+' | '+r.matches+' | '+r.wins+' | '+r.losses+' | '+r.timeouts+
    ' | '+r.winRateAll+' % | '+r.meanScore+' | '+r.meanEnemyHQDamage+' |');
  }
- const siege=details.filter(r=>r.mode==='director');
+ const siege=(report.details??[]).filter(r=>r.mode==='director');
  if(siege.length){
   const at=n=>typeof n==='number'&&Number.isFinite(n)?String(n):'–';
   lines.push('','## Erste Artillerie: Produktionskette','',
