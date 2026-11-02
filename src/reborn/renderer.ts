@@ -26,6 +26,7 @@ import {BuildingDecor} from './building-decor.js';
 import {attackBlinkAlpha} from './attack-alerts.js';
 import { buildTerrainVariants, type TerrainVariantAtlases } from './terrain-variants.js';
 import {visibleInViewport} from './viewport-culling.js';
+import {visibleCliffIds} from './cliff-visibility.js';
 
 interface Sprite { image:HTMLImageElement|HTMLCanvasElement; x:number; y:number; w:number; h:number; center?:number; foot?:number; bodyWidth?:number; bodyHeight?:number }
 export class Renderer {
@@ -134,6 +135,57 @@ export class Renderer {
     for(const p of TERRAIN_PLACEMENTS){const sprite=this.cliffs[p.frame],shadow=this.shadows.get(sprite);
       if(shadow){ctx.save();ctx.globalAlpha=.25;ctx.translate(p.x+p.w/2,p.y+p.h-2);ctx.transform(1,0,-.42,-.14,0,0);ctx.drawImage(shadow.image,shadow.x,shadow.y,shadow.w,shadow.h,-p.w/2,-p.h,p.w,p.h);ctx.restore();}
       ctx.drawImage(sprite.image,sprite.x,sprite.y,sprite.w,sprite.h,p.x,p.y,p.w,p.h);
+    }
+  }
+  /** Paint only the known rock pixels again over the terrain fog.
+   * The saved/authoritative fog is untouched: paths and entities BEHIND the
+   * formation stay dark/invisible. Never do this merely for explored cliffs.
+   * Each mesa uses its baked polygon silhouette, not its broad bounding box. */
+  private revealVisibleCliffs(ctx:CanvasRenderingContext2D,view:{left:number;right:number;top:number;bottom:number}):void{
+    const g=this.game,world=g.world,generated=world.generated;
+    const count=generated?generated.mesas.length:TERRAIN_PLACEMENTS.reduce((n,p)=>Math.max(n,p.region+1),0);
+    const lit=visibleCliffIds(g.visible[0],world.cliffIds,count);
+    if(generated){
+      for(const [id,mesa] of generated.mesas.entries()){
+        if(!lit[id])continue;
+        const points=mesa.columns.flatMap(column=>[...column.base,...column.top]);
+        if(!points.length)continue;
+        const left=Math.max(0,Math.floor(Math.min(...points.map(p=>p.x))-2)),
+          top=Math.max(0,Math.floor(Math.min(...points.map(p=>p.y))-2)),
+          right=Math.min(world.size,Math.ceil(Math.max(...points.map(p=>p.x))+2)),
+          bottom=Math.min(world.size,Math.ceil(Math.max(...points.map(p=>p.y))+2));
+        if(right<=view.left||left>=view.right||bottom<=view.top||top>=view.bottom||right<=left||bottom<=top)continue;
+        ctx.save();ctx.beginPath();
+        const polygon=(points:readonly Point[])=>{
+          if(points.length<3)return;
+          ctx.moveTo(points[0].x,points[0].y);
+          for(let i=1;i<points.length;i++)ctx.lineTo(points[i].x,points[i].y);
+          ctx.closePath();
+        };
+        for(const column of mesa.columns){
+          const cy=column.base.reduce((n,p)=>n+p.y,0)/column.base.length;
+          column.base.forEach((a,i)=>{
+            const b=column.base[(i+1)%column.base.length];
+            if((a.y+b.y)/2>cy-4)polygon([a,b,column.top[(i+1)%column.top.length],column.top[i]]);
+          });
+          polygon(column.top);
+        }
+        ctx.clip();
+        // Sample the original fully lit sandstone colors from the static terrain.
+        // Never draw units or props through the fog.
+        ctx.drawImage(this.terrainSurface,left,top,right-left,bottom-top,left,top,right-left,bottom-top);
+        ctx.restore();
+      }
+      return;
+    }
+    // Legacy cliff atlas uses transparent sprites instead of generated polygon
+    // geometry. Repaint only the visible static rock sprite, not its terrain box.
+    for(const placement of TERRAIN_PLACEMENTS){
+      if(!lit[placement.region]||placement.x+placement.w<view.left||
+        placement.x>view.right||placement.y+placement.h<view.top||placement.y>view.bottom)continue;
+      const sprite=this.cliffs[placement.frame];
+      ctx.drawImage(sprite.image,sprite.x,sprite.y,sprite.w,sprite.h,
+        placement.x,placement.y,placement.w,placement.h);
     }
   }
   icon(type:'unit'|'building',kind:UnitKind|BuildingKind):string{
@@ -382,6 +434,7 @@ export class Renderer {
     // Fog shades terrain; entities use visibility at their ground position.
     // Drawing it over sprites clipped tall masts against unrelated terrain cells.
     c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';c.drawImage(this.fog,0,0,s,s);c.restore();
+    this.revealVisibleCliffs(c,effectsView);
     const ranged=g.bases.find(b=>b.id===this.selectedBase);if(ranged)this.drawRange(ranged);
     const corpseAt=profiler?performance.now():0;this.units.drawCorpses(c,p=>g.canSee(0,p),p=>inView(p,250));if(profiler)profiler.record('corpses',performance.now()-corpseAt);
     const spritesAt=profiler?performance.now():0;
