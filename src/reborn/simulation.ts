@@ -233,13 +233,17 @@ export class Simulation {
     if(order.kind==='board')return this.transports.board(order.target??-1,ids);
     if(!Number.isFinite(order.x)||!Number.isFinite(order.y))return 0;
     const members=this.units.filter(u=>ids.includes(u.id)&&u.hp>0&&!u.carrier);
-    const front=members.filter(u=>u.kind!=='medic'&&u.kind!=='engineer'&&!unitSpec(u).flying);
-    const combat=members.filter(u=>u.kind!=='medic'&&u.kind!=='engineer');
+    const armoredFront=members.filter(u=>u.kind==='tank'||u.kind==='rover');
+    const fighters=members.filter(u=>u.kind!=='medic'&&u.kind!=='engineer'&&!unitSpec(u).flying);
+    const screen=fighters.filter(u=>u.kind!=='artillery');
+    const front=armoredFront.length?armoredFront:screen.length?screen:fighters;
     const support=members.filter(u=>u.kind==='medic'||u.kind==='engineer');
-    const mixed=front.length>0&&support.length>0&&['move','attackMove','attack'].includes(order.kind);
+    const rearFighters=armoredFront.length?members.filter(u=>['infantry','heavy','artillery'].includes(u.kind)):[];
+    const mixed=front.length>0&&(support.length>0||rearFighters.length>0)&&['move','attackMove','attack'].includes(order.kind);
     const origin={x:front.reduce((n,u)=>n+u.x,0)/Math.max(1,front.length),y:front.reduce((n,u)=>n+u.y,0)/Math.max(1,front.length)},length=distance(origin,order)||1;
     const heading={x:(order.x-origin.x)/length,y:(order.y-origin.y)/length};
-    if(mixed)members.sort((a,b)=>((a.kind==='medic'||a.kind==='engineer')?2:a.kind==='heavy'?0:1)-((b.kind==='medic'||b.kind==='engineer')?2:b.kind==='heavy'?0:1)||a.id-b.id);
+    if(mixed){const priority=(u:Unit)=>u.kind==='tank'?0:u.kind==='rover'?1:u.kind==='infantry'||u.kind==='heavy'?2:u.kind==='artillery'?3:4;
+      members.sort((a,b)=>priority(a)-priority(b)||a.id-b.id);}
     const width=Math.ceil(Math.sqrt(members.length)),slots=members.map((_,i)=>({x:i%width*27,y:Math.floor(i/width)*27}));
     // Centre the actual occupied slots, including a short last row. Using the
     // column count for both axes shifted a two-unit group north of its target.
@@ -260,11 +264,13 @@ export class Simulation {
       let offset={x:slots[i].x-center.x,y:slots[i].y-center.y};
       let formation:Formation|undefined;
       if(mixed){
-        if(u.kind==='medic'||u.kind==='engineer'){
-          const index=support.indexOf(u),columns=Math.min(3,support.length),lane=(index%columns-(columns-1)/2)*34,rear=72+Math.floor(index/columns)*32;
+        if(support.includes(u)||rearFighters.includes(u)){
+          const helper=support.includes(u),group=helper?support:rearFighters;
+          const index=group.indexOf(u),columns=Math.min(3,group.length),lane=(index%columns-(columns-1)/2)*34;
+          const rear=(armoredFront.length?(helper?200:u.kind==='artillery'?150:86):72)+Math.floor(index/columns)*36;
           formation={front:front.map(v=>v.id),heading,origin,goal:{x:order.x,y:order.y},lane,rear};
           offset={x:-heading.x*rear-heading.y*lane,y:-heading.y*rear+heading.x*lane};
-        }else{const index=combat.indexOf(u),columns=Math.ceil(Math.sqrt(combat.length)),lane=(index%columns-(columns-1)/2)*29,depth=-Math.floor(index/columns)*29;offset={x:heading.x*depth-heading.y*lane,y:heading.y*depth+heading.x*lane};}
+        }else{const index=front.indexOf(u),columns=Math.ceil(Math.sqrt(front.length)),lane=(index%columns-(columns-1)/2)*34,depth=-Math.floor(index/columns)*34;offset={x:heading.x*depth-heading.y*lane,y:heading.y*depth+heading.x*lane};}
       }
       // Bastion right-clicks are capture orders: even a 48-unit formation must
       // stop INSIDE the capture circle, not in decorative slots beyond it.
@@ -275,7 +281,7 @@ export class Simulation {
       const buildings=this.obstacles(),obstacles=spec.flying?buildings:spec.group==='Infanterie'
          ?[...buildings,...infantryStructureColliders(buildings)]:[...buildings,...vehicleStructureColliders(buildings),...this.vehicleDecorObstacles()];
        const target=spec.flying?{x:clamp(p.x,8,this.world.size-8),y:clamp(p.y,8,this.world.size-8)}:this.world.nearest(p,obstacles,[],u,Math.max(0,spec.radius-10));if(!target)return;
-      const next:Order={...order,...target,...(mixed&&u.kind!=='medic'&&u.kind!=='engineer'?{march:front.map(v=>v.id)}:{}),...(formation?{formation,kind:order.kind==='attack'?'attackMove':order.kind,target:undefined}:{})};u.hold=false;u.supportPaused=false;u.workingTarget=null;
+      const next:Order={...order,...target,...(mixed&&front.includes(u)?{march:(armoredFront.length?members.filter(v=>!unitSpec(v).flying):front).map(v=>v.id)}:{}),...(formation?{formation,kind:order.kind==='attack'?'attackMove':order.kind,target:undefined}:{})};u.hold=false;u.supportPaused=false;u.workingTarget=null;
       if(append){if(u.orders.length<32)u.orders.push(next);else return;}
       else {this.transports.cancel(u);delete u.burst;u.orders=formation&&u.orders[0]?.kind==='heal'?[u.orders[0],next]:[next];u.path=[];u.repath=0;u.combatTarget=null;u.pursuitOrigin=null;}
       if(u.transport&&u.transport.phase!=='cruise'){u.transport.resume=structuredClone(u.orders);u.orders=[];}
