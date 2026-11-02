@@ -27,7 +27,7 @@ test('small-map barracks-first is explicit, map-scoped and stops after a paid ba
 
 test('four-bastion opening is fair: identical map, units, sight, credits and income',()=>{
  const fast=new Simulation(2026,11),classic=new Simulation(2026,11);
- classic.smallMapTempo='classic';
+ fast.smallMapTempo='responsive';classic.smallMapTempo='classic';
  assert.deepEqual(fast.bases,classic.bases);
  assert.deepEqual(fast.units,classic.units);
  assert.deepEqual(fast.territories,classic.territories);
@@ -63,11 +63,11 @@ test('eight-bastion and classic four-bastion retain standard generator-first pri
 });
 
 test('opening tempo uses no saved-game cheats, is transparent to save/load and never affects player order semantics',()=>{
- const fast=new Simulation(2026,11);step(fast,8);
+ const fast=new Simulation(2026,11);fast.smallMapTempo='prepared';step(fast,8);
  const saved=fast.save();
  assert.ok(!Object.hasOwn(saved,'smallMapTempo'));
  const restored=Simulation.load(saved);
- assert.equal(restored.smallMapTempo,'prepared');
+ assert.equal(restored.smallMapTempo,'classic');
  assert.equal(restored.credits[0],fast.credits[0]);
  assert.equal(restored.territories.filter(t=>t.owner===0).length,fast.territories.filter(t=>t.owner===0).length);
 });
@@ -82,10 +82,17 @@ test('prepared opening delays unsupported solo attacks but expires or defends wh
  assert.equal(waitForOpeningScreen(12,'prepared',9,1,false),false);
 });
 test('prepared opening spends money on an army before initiating neutral rush',()=>{
- const g=new Simulation(2026,11);
+ const g=new Simulation(2026,11);g.smallMapTempo='prepared';
  step(g,12);
  assert.equal(g.smallMapTempo,'prepared');
  assert.equal(g.tactical.state.phase,'gather');
  assert.ok(g.tactical.state.group.length===0,'opening must not commit lone infantry');
  assert.ok(g.bases.some(b=>b.owner===1&&b.kind==='barracks'));
+});
+
+test('live gameplay keeps the measured classic policy until an experiment wins',()=>{
+ const g=new Simulation(2026,11);
+ assert.equal(g.smallMapTempo,'classic');
+ assert.equal(aiOpeningDelay(g.world.mapVersion,g.smallMapTempo),RULES.aiOpeningDelay);
+ assert.equal(shortMapFirstBarracks(g.world.mapVersion,g.smallMapTempo,g.bases),false);
 });
