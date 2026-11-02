@@ -23,3 +23,29 @@ jobs:
       - run: npm run build
       - name: Infantry navigation, construction, support and production
         run: node --test tests/sandforge-infantry-building-clearance.test.mjs tests/reborn-support.test.mjs tests/sandforge-engineer-sequential-orders.test.mjs tests/sandforge-engineer-squad-escort.test.mjs tests/sandforge-clean-production-exit.test.mjs
+  browser-route:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm ci --prefix tests/browser --no-audit --no-fund
+      - run: cd tests/browser && npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: March infantry around rendered factory
+        env:
+          ATLAS_BROWSER_CHANNEL: chromium
+        run: cd tests/browser && npx playwright test --config=reborn.config.mjs reborn-infantry-building-clearance.spec.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: infantry-building-clearance-proof
+          path: |
+            tests/browser/artifacts/reborn/infantry-around-factory.png
+            tests/browser/artifacts/reborn-results.json
+          if-no-files-found: ignore
+          retention-days: 14
