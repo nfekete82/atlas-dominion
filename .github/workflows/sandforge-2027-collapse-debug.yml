@@ -1,0 +1,21 @@
+name: Diagnose four-bastion recovery collapse
+on:
+  push:
+    branches:
+      - feat/sandforge-four-bastion-force-concentration-20261102
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  collapse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node scripts/diagnose-ai-collapse-2027.mjs
