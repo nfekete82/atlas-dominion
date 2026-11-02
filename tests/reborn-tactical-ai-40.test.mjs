@@ -7,6 +7,7 @@ import {
 import {rankBastionDefenses} from '../dist/src/reborn/bastion-defense.js';
 import {Simulation} from '../dist/src/reborn/simulation.js';
 import {BUILDINGS} from '../dist/src/reborn/catalog.js';
+import {seedCompletedGenerators} from './fixtures/reborn-production.mjs';
 
 const assault=(siegeWeapons)=>({
  sector:2,tactic:'overrun',guns:2,force:9,at:20,initialUnits:9,
@@ -95,6 +96,7 @@ test('4.0: observed attack or actual neighboring loss raises bastion urgency',()
 
 test('4.0: urgent threatened bastion can be fortified with a smaller cash buffer',()=>{
  const {g,owned,enemySector}=battlefield();
+ seedCompletedGenerators(g);
  // Visible approaching force, but far enough away for a safe rear turret site.
  const dx=enemySector.point.x-owned.point.x,dy=enemySector.point.y-owned.point.y;
  const length=Math.hypot(dx,dy);

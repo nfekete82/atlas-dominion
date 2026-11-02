@@ -1,4 +1,4 @@
-import {BUILDINGS} from '../../dist/src/reborn/catalog.js';
+import {BUILDINGS,MAX_GENERATORS_PER_FACTION} from '../../dist/src/reborn/catalog.js';
 import {distance} from '../../dist/src/reborn/config.js';
 
 // Completed infrastructure for tests about combat/production rather than building.
@@ -11,4 +11,12 @@ export function addProducer(g,kind,owner=0){
   let id=1700;while(g.bases.some(b=>b.id===id)||g.units.some(u=>u.id===id))id++;
   const b={...home,...p,id,kind,hp:spec.hp,radius:spec.radius,queue:[],queueTypes:[],queueCosts:[],production:0,buildRemaining:0,cooldown:0,rally:null};g.bases.push(b);return b;
  }throw Error('No fixture site for '+kind);
+}
+
+// Late-economy test scenarios deliberately start after the generator opening.
+// Existing production assertions still verify actual paid queues and reserves.
+export function seedCompletedGenerators(g,owner=1){
+ const existing=g.bases.filter(b=>b.owner===owner&&b.kind==='generator'&&b.hp>0);
+ for(let i=existing.length;i<MAX_GENERATORS_PER_FACTION;i++)addProducer(g,'generator',owner);
+ return g.bases.filter(b=>b.owner===owner&&b.kind==='generator'&&b.hp>0);
 }

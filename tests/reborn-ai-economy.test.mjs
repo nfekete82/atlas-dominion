@@ -3,11 +3,12 @@ import assert from 'node:assert/strict';
 import {Simulation} from '../dist/src/reborn/simulation.js';
 import {developArmy} from '../dist/src/reborn/army-economy.js';
 import {UNITS} from '../dist/src/reborn/catalog.js';
-import {addProducer} from './fixtures/reborn-production.mjs';
+import {addProducer,seedCompletedGenerators} from './fixtures/reborn-production.mjs';
 
 function established(seed=2026){
  const g=new Simulation(seed,4),home=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
  const barracks=addProducer(g,'barracks',1),factory=addProducer(g,'factory',1),airfield=addProducer(g,'airfield',1);
+ seedCompletedGenerators(g);
  for(let i=0;i<4;i++)g.spawn(1,{x:home.x-140-i*15,y:home.y+100},'infantry');
  g.spawn(1,{x:home.x-170,y:home.y+110},'heavy');
  for(const [i,kind] of ['rover','tank','artillery'].entries())g.spawn(1,{x:home.x-220-i*45,y:home.y+160},kind);
@@ -65,6 +66,7 @@ test('economy: construction and repair worker replacement overrides army savings
 
 test('economy: hidden enemy aircraft and HQ do not create production intelligence',()=>{
  const g=new Simulation(2043,4),home=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
+ seedCompletedGenerators(g);
  const enemy=g.bases.find(b=>b.owner===0&&b.kind==='headquarters');
  addProducer(g,'barracks',1);const factory=addProducer(g,'factory',1);
  for(let i=0;i<5;i++)g.spawn(1,{x:home.x-100-i*12,y:home.y+100},'infantry');
