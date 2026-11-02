@@ -254,9 +254,14 @@ function refreshMeasured():void{
  for(const button of context.querySelectorAll<HTMLButtonElement>('[data-context-unit]')){const kind=button.dataset.contextUnit as UnitKind;button.disabled=!base||base.queue.length>=8||game.credits[0]<UNITS[kind].cost||game.count(0)+game.queued(0)>=RULES.capacity||game.status!=='playing';}
  const contextCancel=document.getElementById('context-cancel') as HTMLButtonElement|null;if(contextCancel)contextCancel.disabled=!!base&&base.buildRemaining<=0&&!base.queue.length;
  if(selected.length===1&&first?.supportPaused)detail='Heilziel ist zu weit voraus. Sanitäter wartet; der Heilauftrag bleibt erhalten.';
- if(renderer.placement)detail=`${BUILDINGS[renderer.placement].name}: ${renderer.placementFacing===1?'Gespiegelt':'Standardausrichtung'}. R / ↔ wechselt die Richtung · Linksklick baut · Esc bricht ab.`;
+  if(selected.length===1&&first?.kind==='engineer'&&!renderer.placement){
+   const active=first.orders[0],pending=Math.max(0,first.orders.length-1);
+   if(active?.kind==='build'||active?.kind==='repair')detail=`${active.kind==='build'?'Baut':'Repariert'} gerade · ${pending} weitere Aufträge in der Warteschlange. Shift + Rechtsklick hängt Aufträge an.`;
+   else detail+= ' Shift + Rechtsklick fügt weitere Bau- und Reparaturaufträge zur Warteschlange hinzu.';
+  }
+  if(renderer.placement)detail=`${BUILDINGS[renderer.placement].name}: ${renderer.placementFacing===1?'Gespiegelt':'Standardausrichtung'}. R / ↔ dreht · Linksklick baut sofort · Shift + Linksklick hängt Bauaufträge an · Esc bricht ab.`;
  setText('selection-detail',detail);
- setText('hint',renderer.placement?'R: GEBÄUDE DREHEN · LINKSKLICK: PLATZIEREN · ESC: ABBRECHEN':game.needsHeadquarters(0)?'Errichte ein Hauptquartier':renderer.attackMode?'ANGRIFFSBEWEGUNG: LINKSKLICK AUF DAS ZIEL':'ZIEHEN: AUSWAHL · RECHTSKLICK: BEWEGEN · SHIFT: BEFEHLSKETTE');
+ setText('hint',renderer.placement?'R: DREHEN · SHIFT + KLICK: BAUEN ANHÄNGEN · ESC: ABBRECHEN':game.needsHeadquarters(0)?'Errichte ein Hauptquartier':renderer.attackMode?'ANGRIFFSBEWEGUNG: LINKSKLICK AUF DAS ZIEL':'ZIEHEN: AUSWAHL · RECHTSKLICK: BEWEGEN · SHIFT: BEFEHLSKETTE');
  if(production){
   const building=production.buildRemaining>0,duration=production.queue[0]??5,ratio=building?1-production.buildRemaining/buildingSpec(production).buildTime:production.production/duration;
   el('production-fill').style.width=`${ratio*100}%`;setText('production-time',building?`BAU ${Math.ceil(production.buildRemaining).toString().padStart(2,'0')} S`:production.queue.length?`00:${Math.ceil(duration-production.production).toString().padStart(2,'0')}`:'00:00');
