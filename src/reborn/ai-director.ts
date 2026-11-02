@@ -33,6 +33,14 @@ export function assaultDecision(ctx: AssaultContext): AssaultDecision {
     : 2;
   if(ctx.inRegroup && ctx.phaseSeconds < 6)
     return {launch:false,requiredUnits,requiredStrength,reason:'recovering'};
+  // When reconnaissance confirms no towers and a clearly superior force is ready,
+  // do not idle for a fifth unit or an artillery purchase. Never override regroup.
+  // Unknown / unscouted defenses are not treated as a safe overmatch.
+  const overmatch = ctx.defended && ctx.observedTowers===0 && !ctx.clusteredRecentLosses
+    && !ctx.inRegroup && ctx.phaseSeconds>=12 && ctx.readyUnits>=4
+    && ctx.readyStrength>=Math.max(7,ctx.visibleDefenderStrength*2.5);
+  if(overmatch)
+    return {launch:true,requiredUnits:4,requiredStrength:Math.max(7,ctx.visibleDefenderStrength*2.5),reason:'ready'};
   if(ctx.readyUnits>=requiredUnits && ctx.readyStrength>=requiredStrength)
     return {launch:true,requiredUnits,requiredStrength,reason:'ready'};
   if(ctx.scoutingOpening && !ctx.defended && !ctx.clusteredRecentLosses && ctx.readyUnits>=1)
