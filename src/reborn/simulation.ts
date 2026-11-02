@@ -229,11 +229,12 @@ export class Simulation {
     if(order.kind==='board')return this.transports.board(order.target??-1,ids);
     if(!Number.isFinite(order.x)||!Number.isFinite(order.y))return 0;
     const members=this.units.filter(u=>ids.includes(u.id)&&u.hp>0&&!u.carrier);
-    const front=members.filter(u=>u.kind!=='medic'&&u.kind!=='engineer'&&!unitSpec(u).flying),medics=members.filter(u=>u.kind==='medic');
-    const mixed=front.length>0&&medics.length>0&&['move','attackMove','attack'].includes(order.kind);
+    const front=members.filter(u=>u.kind!=='medic'&&u.kind!=='engineer'&&!unitSpec(u).flying);
+    const support=members.filter(u=>u.kind==='medic'||u.kind==='engineer');
+    const mixed=front.length>0&&support.length>0&&['move','attackMove','attack'].includes(order.kind);
     const origin={x:front.reduce((n,u)=>n+u.x,0)/Math.max(1,front.length),y:front.reduce((n,u)=>n+u.y,0)/Math.max(1,front.length)},length=distance(origin,order)||1;
     const heading={x:(order.x-origin.x)/length,y:(order.y-origin.y)/length};
-    if(mixed)members.sort((a,b)=>(a.kind==='medic'?2:a.kind==='heavy'?0:1)-(b.kind==='medic'?2:b.kind==='heavy'?0:1)||a.id-b.id);
+    if(mixed)members.sort((a,b)=>((a.kind==='medic'||a.kind==='engineer')?2:a.kind==='heavy'?0:1)-((b.kind==='medic'||b.kind==='engineer')?2:b.kind==='heavy'?0:1)||a.id-b.id);
     const width=Math.ceil(Math.sqrt(members.length)),slots=members.map((_,i)=>({x:i%width*27,y:Math.floor(i/width)*27}));
     // Centre the actual occupied slots, including a short last row. Using the
     // column count for both axes shifted a two-unit group north of its target.
@@ -254,11 +255,11 @@ export class Simulation {
       let offset={x:slots[i].x-center.x,y:slots[i].y-center.y};
       let formation:Formation|undefined;
       if(mixed){
-        if(u.kind==='medic'){
-          const index=medics.indexOf(u),columns=Math.min(3,medics.length),lane=(index%columns-(columns-1)/2)*34,rear=72+Math.floor(index/columns)*32;
+        if(u.kind==='medic'||u.kind==='engineer'){
+          const index=support.indexOf(u),columns=Math.min(3,support.length),lane=(index%columns-(columns-1)/2)*34,rear=72+Math.floor(index/columns)*32;
           formation={front:front.map(v=>v.id),heading,origin,goal:{x:order.x,y:order.y},lane,rear};
           offset={x:-heading.x*rear-heading.y*lane,y:-heading.y*rear+heading.x*lane};
-        }else{const index=members.filter(v=>v.kind!=='medic').indexOf(u),columns=Math.ceil(Math.sqrt(members.length-medics.length)),lane=(index%columns-(columns-1)/2)*29,depth=-Math.floor(index/columns)*29;offset={x:heading.x*depth-heading.y*lane,y:heading.y*depth+heading.x*lane};}
+        }else{const index=front.indexOf(u),columns=Math.ceil(Math.sqrt(front.length)),lane=(index%columns-(columns-1)/2)*29,depth=-Math.floor(index/columns)*29;offset={x:heading.x*depth-heading.y*lane,y:heading.y*depth+heading.x*lane};}
       }
       // Bastion right-clicks are capture orders: even a 48-unit formation must
       // stop INSIDE the capture circle, not in decorative slots beyond it.
@@ -267,7 +268,7 @@ export class Simulation {
         if(length>limit){offset={x:offset.x*limit/length,y:offset.y*limit/length};}}
       const spec=unitSpec(u),p={x:order.x+offset.x,y:order.y+offset.y};
       const target=spec.flying?{x:clamp(p.x,8,this.world.size-8),y:clamp(p.y,8,this.world.size-8)}:this.world.nearest(p,this.obstacles(),[],u,Math.max(0,spec.radius-10));if(!target)return;
-      const next:Order={...order,...target,...(mixed&&u.kind!=='medic'?{march:front.map(v=>v.id)}:{}),...(formation?{formation,kind:order.kind==='attack'?'attackMove':order.kind,target:undefined}:{})};u.hold=false;u.supportPaused=false;u.workingTarget=null;
+      const next:Order={...order,...target,...(mixed&&u.kind!=='medic'&&u.kind!=='engineer'?{march:front.map(v=>v.id)}:{}),...(formation?{formation,kind:order.kind==='attack'?'attackMove':order.kind,target:undefined}:{})};u.hold=false;u.supportPaused=false;u.workingTarget=null;
       if(append){if(u.orders.length<32)u.orders.push(next);else return;}
       else {this.transports.cancel(u);delete u.burst;u.orders=formation&&u.orders[0]?.kind==='heal'?[u.orders[0],next]:[next];u.path=[];u.repath=0;u.combatTarget=null;u.pursuitOrigin=null;}
       if(u.transport&&u.transport.phase!=='cruise'){u.transport.resume=structuredClone(u.orders);u.orders=[];}
@@ -305,7 +306,7 @@ export class Simulation {
   }
   /** Rear support follows the slowest surviving front rank, rather than racing to the destination. */
   private escort(u:Unit,dt:number):boolean {
-    const order=u.orders[0],formation=order?.formation;if(u.kind!=='medic'||!formation)return false;
+    const order=u.orders[0],formation=order?.formation;if((u.kind!=='medic'&&u.kind!=='engineer')||!formation)return false;
     const recovering=u.owner===1&&this.world.mapVersion>=3&&this.tactical.mode==='director'
       ?this.tactical.state.recovering:undefined;
     const front=this.units.filter(v=>formation.front.includes(v.id)&&v.owner===u.owner&&v.hp>0&&!recovering?.includes(v.id));
@@ -315,12 +316,18 @@ export class Simulation {
     const rear={x:formation.origin.x+h.x*(progress-formation.rear)-h.y*(lateral+formation.lane),y:formation.origin.y+h.y*(progress-formation.rear)+h.x*(lateral+formation.lane)};
     u.workingTarget=null;u.combatTarget=null;u.pursuitOrigin=null;
     const safe=(p:Point)=>project(p)<=progress-32&&this.units.every(enemy=>enemy.hp<=0||enemy.carrier||enemy.owner===u.owner||!this.canSee(u.owner,enemy)||distance(p,enemy)>Math.min(unitSpec(enemy).range+12,distance(u,enemy)+2));
-    const patient=this.spatial.query(u,115).filter(v=>v.id!==u.id&&this.supportEligible(u,v,'heal')&&project(v)<=progress+35).sort((a,b)=>a.hp/unitSpec(a).hp-b.hp/unitSpec(b).hp||a.id-b.id)[0];
-    if(!patient)this.healNearby(u,dt);
-    if(!patient&&u.defendUntil>this.time&&this.acquire(u))return false;
+    const medic=u.kind==='medic',workKind=medic?'heal':'repair';
+    const patient=this.spatial.query(u,115).filter(v=>v.id!==u.id&&this.supportEligible(u,v,workKind)&&project(v)<=progress+35).sort((a,b)=>a.hp/unitSpec(a).hp-b.hp/unitSpec(b).hp||a.id-b.id)[0];
+    const canWork=u.defendUntil<=this.time||medic;
+    if(!patient&&canWork){if(medic)this.healNearby(u,dt);else this.repairNearby(u,dt);}
+    if(medic&&!patient&&u.defendUntil>this.time&&this.acquire(u))return false;
     let destination=rear;
     if(patient){
-      if(distance(u,patient)<=this.healRadius(u)&&this.world.line(u,patient)){this.healNearby(u,dt);u.workingTarget=patient.id;u.path=[];u.angle=Math.atan2(patient.y-u.y,patient.x-u.x);return true;}
+      const range=medic?this.healRadius(u):REPAIR_RADIUS;
+      if(distance(u,patient)<=range&&this.world.line(u,patient)){
+        if(canWork){if(medic)this.healNearby(u,dt);else this.repairNearby(u,dt,patient.id);u.workingTarget=patient.id;}
+        u.path=[];u.angle=Math.atan2(patient.y-u.y,patient.x-u.x);return true;
+      }
       const approach={x:patient.x-h.x*45,y:patient.y-h.y*45};if(safe(approach))destination=approach;
     }
     if(distance(u,destination)>12){
