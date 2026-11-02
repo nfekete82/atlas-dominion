@@ -1,0 +1,42 @@
+name: Sandforge focus fire and survivor A/B
+on:
+  push:
+    branches:
+      - feat/sandforge-ai-focusfire-survival-20261102
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Targeting, retreat and tactical regressions
+        run: node --test tests/sandforge-ai-focus-survival.test.mjs tests/reborn-control-retreat.test.mjs tests/reborn-combat-missions.test.mjs tests/reborn-commander.test.mjs tests/reborn-support.test.mjs
+  paired-benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Evaluate 4 identical four-bastion seeds
+        run: node scripts/benchmark-ai-focus-survival.mjs --seconds 240 --seeds 2026,2027,2028,2029
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: focus-survival-paired-report
+          path: ai-arena-results/focus-survival.json
+          if-no-files-found: ignore
+          retention-days: 14
