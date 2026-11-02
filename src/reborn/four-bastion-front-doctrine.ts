@@ -3,7 +3,7 @@ import {distance,type Point} from './config.js';
 /** Only opt-in experiments on the 4-bastion campaign. No resource, fog,
  * movement or damage changes; selectors consume only visible enemies and
  * publicly observable sector ownership. */
-export type FrontDoctrine='classic'|'concentrated'|'sector-defense'|'tempo-only'|'sector-priority'|'tempo-sector'|'fortify-early';
+export type FrontDoctrine='classic'|'concentrated'|'sector-defense'|'tempo-only'|'sector-priority'|'tempo-sector'|'fortify-early'|'fair-start';
 export function isCompactBattle(mapVersion:number,sectors:number,mode:FrontDoctrine):boolean{
  return mapVersion===11&&sectors===4&&(mode==='concentrated'||mode==='sector-defense');
 }
@@ -30,7 +30,8 @@ export function sectorDefenseAnchor(input:{
 /** Isolate earlier macro planning from the old failed barracks-first experiment.
  * The normal paid generator-first economy and all battle logic remain intact. */
 export function fourBastionPlanningDelay(mapVersion:number,sectors:number,mode:FrontDoctrine,defaultDelay:number):number{
- return mapVersion===11&&sectors===4&&(mode==='tempo-only'||mode==='tempo-sector')?6:defaultDelay;
+ return mapVersion===11&&sectors===4&&mode==='fair-start'?0:
+  mapVersion===11&&sectors===4&&(mode==='tempo-only'||mode==='tempo-sector')?6:defaultDelay;
 }
 
 /** An observed safe neutral income point should beat an early frontal HQ raid,
