@@ -199,7 +199,7 @@ export class UnitPresentation {
     const phase=rocketWheelPhase(v.unit.walkDistance,v.asset.data.stride,row.length);
     const next=v.asset.data.frames[row[phase.next]];
     const opacity=c.globalAlpha;
-    const strength=rocket?.32:v.unit.kind==='tank'?.16:.20;
+    const strength=rocket ? .32 : v.unit.kind==='tank' ? .16 : .20;
     c.globalAlpha=opacity*Math.min(strength,phase.blend*strength);
     this.drawFrame(c,v,next,shifted);
     c.globalAlpha=opacity;
