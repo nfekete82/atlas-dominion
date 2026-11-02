@@ -4,6 +4,7 @@ import {RULES,distance,clamp,type Point} from './config.js';
 import {UNITS,unitSpec,buildingSpec,canAttack,type UnitKind} from './catalog.js';
 import {developArmy,validEconomy,type EconomyState} from './army-economy.js';
 import {assaultDecision,abortAssault} from './ai-director.js';
+import {shouldWithdrawInfantry,type SquadTargetMode,type InfantrySurvivalMode} from './ai-focus-survival.js';
 import {newCampaign,campaignPhase,refreshIntelligence,chooseMission,reconGoal,validCampaign,knownBuildings,type CampaignState} from './campaign-commander.js';
 import {segmentDistance} from './world-generation.js';
 import {newBattle,assessBattle,fightingPower,recordFailure,retryFront,validBattle,type BattleState} from './battle-response.js';
@@ -113,6 +114,9 @@ export class TacticalAI {
  waveMode:'legacy'|'coordinated'='coordinated';
  /** 2.4/2.5 paired comparison; affects strategy only, never serialized. */
  doctrineMode:'legacy'|'intelligent'='intelligent';
+ /** Paired-match policy switches; remain classic until improvement is proven. */
+ focusMode:SquadTargetMode='classic';
+ survivalMode:InfantrySurvivalMode='classic';
  /** Runtime-only diagnostics: never influence simulation or serialize in saves. */
  diagnostics:TacticalDiagnostics=newDiagnostics();
  state=fresh();private risk:Float32Array|undefined;private riskAt=-1;private routeCache=new Map<string,Point[]>();private routeSignature='';
@@ -430,6 +434,27 @@ export class TacticalAI {
   const dock=g.world.nearest(edge,this.obstacles(),[],u,Math.max(0,unitSpec(u).radius-10));
   if(!dock||!g.command([u.id],{...dock,kind:'move'}))return;
   u.orders[0].tactical={group:s.groupId,mode:'safe'};
+  s.recovering??=[];s.recovering.push(u.id);
+ }
+ /** Immediate reaction to a legitimate hit, not omniscient threat scanning.
+  * Only a medic-backed soldier with surviving support can leave the firing
+  * line; the existing recovery loop must actually heal him before rejoining. */
+ evacuateInfantry(u:Unit):void{
+  const g=this.g,s=this.state;
+  if(this.mode!=='director'||this.survivalMode!=='adaptive'||g.world.mapVersion<3||
+    u.owner!==1||u.hp<=0||u.carrier)return;
+  const army=g.units.filter(v=>v.owner===1&&v.hp>0&&!v.carrier);
+  const medicDistance=Math.min(Infinity,...army.filter(v=>v.kind==='medic').map(v=>distance(v,u)));
+  const screen=army.filter(v=>v.id!==u.id&&v.kind!=='medic'&&v.kind!=='engineer'
+    &&v.kind!=='scout'&&distance(v,u)<480).length;
+  if(!shouldWithdrawInfantry({kind:u.kind,hp:u.hp,maxHp:unitSpec(u).hp,
+    medicWithin:medicDistance,friendlyScreen:screen,underFire:true,
+    alreadyRecovering:!!s.recovering?.includes(u.id)}))return;
+  const home=g.bases.find(b=>b.owner===1&&b.kind==='headquarters'&&b.hp>0)
+    ??g.territories.find(t=>t.owner===1)?.point;
+  if(!home)return;
+  const goal=this.withdrawPoint(u,home,[]);
+  if(!g.command([u.id],{...goal,kind:'move'}))return;
   s.recovering??=[];s.recovering.push(u.id);
  }
  private recovery(army:Unit[],home:Point):Set<number>{
