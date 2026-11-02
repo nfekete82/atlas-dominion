@@ -542,6 +542,8 @@ export class Simulation {
     // can respond within sight, starting their approach before weapon range.
     // Engineers on guard duty stay near their work instead of abandoning repairs.
     const support=u.kind==='engineer'||u.kind==='medic'||u.kind==='scout'||(u.kind==='rover'&&!!u.transport?.cargo.length);
+    const coordinated=u.owner===1&&this.world.mapVersion>=3&&
+      this.tactical.mode==='director'&&this.tactical.focusMode==='coordinated';
     const proactive=!u.hold&&order?.kind!=='move'&&!support;
     const engageRadius=proactive?Math.max(spec.range,Math.min(this.sight(u),spec.range+120)):spec.range;
     const visible=(e:Unit|Base)=>this.canSee(u.owner,e)||(distance(u,e)<=this.sight(u)&&(spec.flying||this.world.sightLine(u,e)));
@@ -572,7 +574,7 @@ export class Simulation {
       if(manual){u.combatTarget=manual.id;return manual;}
     }
     const locked=entities.find(e=>e.id===u.combatTarget);
-    if(!support&&locked&&eligible(locked))return locked;
+    if(!support&&!coordinated&&locked&&eligible(locked))return locked;
     u.combatTarget=null;
     if(u.lastAttacker!==null&&u.defendUntil>this.time){
       const attacker=entities.find(e=>e.id===u.lastAttacker);
@@ -580,8 +582,6 @@ export class Simulation {
     }
     if(support)return undefined;
     // Direct sight runs every fixed tick rather than waiting for fog updates.
-    const coordinated=u.owner===1&&this.world.mapVersion>=3&&
-      this.tactical.mode==='director'&&this.tactical.focusMode==='coordinated';
     // Only own nearby fighting units; their current locks are public to their
     // commander. Candidate targets below still need ordinary line of sight.
     const allies=coordinated?this.spatial.query(u,260)
@@ -603,7 +603,9 @@ export class Simulation {
       const focus=coordinated?focusFireDistanceAdjustment({
         hp:e.hp,maxHp:('queue' in e?buildingSpec(e).hp:unitSpec(e).hp),
         ownDamage:weaponDamage(u,e),assigned:helpers.length,alliedDps}):0;
-      const score=d+priority+armorPreference+focus;
+      // Small lock hysteresis prevents aim jitter; stronger allied focus can
+      // override a stale individual lock without rapid target switching.
+      const score=d+priority+armorPreference+focus-(coordinated&&e.id===locked?.id?16:0);
       if(score<bestScore){best=e;bestScore=score;}
     }
     u.combatTarget=best?.id??null;
