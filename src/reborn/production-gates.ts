@@ -5,10 +5,10 @@ import type {BuildingKind} from './catalog.js';
  * Coordinates are intentionally stable across blue/red textures of each model. */
 export interface GateAperture {x:number;y:number;width:number;height:number;skew:number}
 export const PRODUCTION_GATE_APERTURES:Readonly<Partial<Record<BuildingKind,Readonly<GateAperture>>>>={
- headquarters:{x:297,y:329,width:48,height:62,skew:-5},
- barracks:{x:307,y:321,width:62,height:76,skew:-8},
- factory:{x:291,y:311,width:87,height:93,skew:-10},
- airfield:{x:305,y:337,width:89,height:81,skew:-11},
+ headquarters:{x:325,y:350,width:38,height:43,skew:-4},
+ barracks:{x:337,y:369,width:45,height:48,skew:-5},
+ factory:{x:332,y:354,width:52,height:58,skew:-5},
+ airfield:{x:335,y:369,width:56,height:52,skew:-6},
 } as const;
 
 interface GateProducer {
