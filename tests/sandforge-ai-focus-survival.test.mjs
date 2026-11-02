@@ -42,9 +42,9 @@ test('combat: RED chooses visible focused enemy, BLUE and classic keep closer ta
  g.tactical.focusMode='coordinated';
  assert.equal(g.acquire(red)?.id,focused.id,'squad selects already wounded enemy');
  assert.ok(g.canSee(1,focused),'the focused target is genuinely visible');
- const player=g.spawn(0,{x:1700,y:1770},'infantry');
- const playerClose=g.spawn(1,{x:1760,y:1770},'infantry');
- const playerFar=g.spawn(1,{x:1800,y:1770},'infantry');
+ const player=g.spawn(0,{x:2100,y:2100},'infantry');
+ const playerClose=g.spawn(1,{x:2160,y:2100},'infantry');
+ const playerFar=g.spawn(1,{x:2200,y:2100},'infantry');
  playerFar.hp=10;g.updateVision();g.spatial.rebuild(g.units);
  assert.equal(g.acquire(player)?.id,playerClose.id,'player auto-targeting remains distance-based');
 });
