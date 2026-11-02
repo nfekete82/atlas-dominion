@@ -7,7 +7,7 @@ import {RULES} from '../dist/src/reborn/config.js';
 
 test('visual scale: energy generator 12% smaller, bastion 20% larger',()=>{
  assert.equal(buildingArtScale('generator'),1.21*.88);
- assert.equal(buildingArtWidth('generator',BUILDINGS.generator.width),BUILDINGS.generator.width*1.21*.88);
+ assert.ok(Math.abs(buildingArtWidth('generator',BUILDINGS.generator.width)-BUILDINGS.generator.width*1.21*.88)<1e-10,'generator visual scale matches within floating-point precision');
  assert.equal(bastionArtWidth,67*1.20);
  assert.equal(buildingArtScale('headquarters'),1.30);
  assert.equal(buildingArtScale('factory'),1.26);
