@@ -3,7 +3,6 @@ import {directionIndex} from './sprite-animator.js';
 import {rosterImageRect,ROSTER_IMAGE_WIDTH,ROSTER_IMAGE_HEIGHT} from './portrait-layout.js';
 import type {Owner,Point} from './config.js';
 import {buildingAtlasPath} from './asset-paths.js';
-import {PRODUCTION_GATE_APERTURES} from './production-gates.js';
 export type StructureKind=BuildingKind|'bastion';
 interface Frame {x:number;y:number;w:number;h:number}
 interface Layer {image:string;pivot:[number,number];frames:Frame[];period:number;originalBounds:Frame}
@@ -44,33 +43,6 @@ export class BuildingPresentation {
   const asset=this.asset(kind,owner),scale=width/asset.data.body.solidBounds.w,clock=reduced?0:time;
   const draw=(layer:Layer|null,image:HTMLImageElement|null,opacity:number)=>{if(!layer||!image)return;const f=layer.frames[Math.floor(clock/layer.period*layer.frames.length)%layer.frames.length];c.save();c.globalAlpha=alpha*opacity;c.drawImage(image,f.x,f.y,f.w,f.h,p.x-layer.pivot[0]*scale,p.y-layer.pivot[1]*scale,f.w*scale,f.h*scale);c.restore();};
   draw(asset.data.sweep??null,asset.sweep,1);draw(asset.data.activity,asset.activity,1);const pulse=Math.pow(Math.max(0,Math.cos(clock*Math.PI*2/3.8)),18);draw(asset.data.beacon,asset.beacon,.22+.78*pulse);
- }
- /** Raise a baked facade shutter within its actual texture-space footprint.
-  * Overlay is cosmetic: unit spawns, obstacles and production timing stay unchanged.
-  * A closed door draws no additional pixels, preserving original detailed art. */
- drawProductionGate(c:CanvasRenderingContext2D,kind:BuildingKind,owner:Owner,p:Point,width:number,opening:number,alpha=1):void{
-  const aperture=PRODUCTION_GATE_APERTURES[kind],fraction=Math.max(0,Math.min(1,opening));
-  if(!aperture||fraction<.001)return;
-  const a=this.asset(kind,owner),body=a.data.body,scale=width/body.solidBounds.w;
-  const x=p.x+(aperture.x-body.pivot[0])*scale,y=p.y+(aperture.y-body.pivot[1])*scale;
-  const w=aperture.width*scale,h=aperture.height*scale,skew=aperture.skew*scale;
-  c.save();c.globalAlpha*=alpha;c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';
-  c.beginPath();c.moveTo(x+skew,y);c.lineTo(x+w+skew,y);c.lineTo(x+w,y+h);c.lineTo(x,y+h);c.closePath();c.clip();
-  // Cover only the uncovered bottom strip, not a large flat rectangle on
-  // the baked facade. The intact top remains textured from the original atlas.
-  const rise=fraction*h*.82,openingTop=y+h-rise;
-  const recess=c.createLinearGradient(x,openingTop,x,y+h);
-  recess.addColorStop(0,'rgba(22,32,28,.73)');
-  recess.addColorStop(1,'rgba(43,35,27,.82)');
-  c.fillStyle=recess;c.fillRect(x+skew-2,openingTop,w+Math.abs(skew)+4,rise+2);
-  c.save();c.globalAlpha*=.72;
-  c.drawImage(a.body,aperture.x,aperture.y,aperture.width,aperture.height,
-    x,y-rise,w,h);
-  c.restore();
-  // Narrow shutter lip and recessed step; subdued compared with real PBR art.
-  c.strokeStyle='rgba(158,158,125,.38)';c.lineWidth=Math.max(.5,scale*.6);
-  c.beginPath();c.moveTo(x+skew,openingTop);c.lineTo(x+w+skew,openingTop);c.stroke();
-  c.restore();
  }
  drawTurret(c:CanvasRenderingContext2D,owner:Owner,p:Point,width:number,angle=0,alpha=1):void{
   const a=this.asset('turret',owner),layer=a.data.turret;if(!layer||!a.turret)return;
