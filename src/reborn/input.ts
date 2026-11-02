@@ -45,10 +45,12 @@ export class Input {
       if(this.dragging&&(renderer.placement||renderer.commandMode||renderer.attackMode)&&document.elementFromPoint(e.clientX,e.clientY)!==canvas){renderer.box=null;this.down=null;this.dragging=false;this.pointer=null;renderer.pointer=null;return;}
       if(renderer.placement){
         const point=renderer.world(p),error=renderer.game.buildError(0,renderer.placement,point);
-        const site=error?null:renderer.game.build(0,renderer.placement,point,[...renderer.selected],renderer.placementFacing);
-        if(site){this.acknowledge('build',[...renderer.selected].filter(id=>renderer.game.units.some(u=>u.id===id&&u.kind==='engineer'&&u.orders.some(o=>o.kind==='build'&&o.target===site.id))));renderer.placement=null;canvas.classList.remove('building');this.notify('Baustelle beauftragt. Pioniere sind unterwegs.');}
+        const site=error?null:renderer.game.build(0,renderer.placement,point,[...renderer.selected],renderer.placementFacing,e.shiftKey);
+        if(site){this.acknowledge('build',[...renderer.selected].filter(id=>renderer.game.units.some(u=>u.id===id&&u.kind==='engineer'&&u.orders.some(o=>o.kind==='build'&&o.target===site.id))));
+          if(!e.shiftKey){renderer.placement=null;canvas.classList.remove('building');}
+          this.notify(e.shiftKey?'Bauauftrag angehängt. Shift halten und weitere Baustellen platzieren.':'Baustelle beauftragt. Pioniere sind unterwegs.');}
         else this.notify(error??'Ein einsatzfähiger Pionier muss die Baustelle erreichen können.');
-      }else if(renderer.commandMode){this.order(renderer.world(p),e.shiftKey);renderer.commandMode=null;}
+      }else if(renderer.commandMode){const mode=renderer.commandMode;this.order(renderer.world(p),e.shiftKey);if(!e.shiftKey||mode==='move'||mode==='load'||mode==='unload')renderer.commandMode=null;}
       else if(this.dragging){
         const a=renderer.world(this.down),b=renderer.world(clipped(p));if(!e.shiftKey)renderer.selected.clear();renderer.selectedBase=null;
         for(const u of renderer.game.units){const p=unitSpec(u).flying?unitSelectionPoint(u):u;if(u.owner===0&&!u.carrier&&p.x>=Math.min(a.x,b.x)&&p.x<=Math.max(a.x,b.x)&&p.y>=Math.min(a.y,b.y)&&p.y<=Math.max(a.y,b.y))renderer.selected.add(u.id);}
