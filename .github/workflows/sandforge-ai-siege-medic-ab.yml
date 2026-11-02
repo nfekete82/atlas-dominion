@@ -1,0 +1,50 @@
+name: Sandforge AI siege medic rotation 360s A/B
+on:
+  push:
+    branches:
+      - feat/sandforge-ai-siege-medic-rotation-20261102
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: candidate
+      - uses: actions/checkout@v4
+        with:
+          repository: nfekete82/atlas-dominion
+          ref: 33f728459d0f4c6d7103135f995e3e6941b42090
+          path: previous
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build both versions separately
+        run: |
+          (cd previous && npm ci --no-audit --no-fund && npm run build)
+          (cd candidate && npm ci --no-audit --no-fund && npm run build)
+      - name: Run previous director
+        working-directory: candidate
+        env:
+          ATLAS_SIM_MODULE: ${{ github.workspace }}/previous/dist/src/reborn/simulation.js
+        run: |
+          node scripts/ai-test-arena.mjs --maps 3,4,5 --seeds 2026,2027,2028 --seconds 360 --modes director --label baseline --output ai-arena-results/before.json
+      - name: Run medic-rotation director
+        working-directory: candidate
+        run: |
+          node scripts/ai-test-arena.mjs --maps 3,4,5 --seeds 2026,2027,2028 --seconds 360 --modes director --label siege-medic --output ai-arena-results/after.json
+      - name: Compare first artillery, wins, captures and own casualties
+        working-directory: candidate
+        run: |
+          node scripts/ai-test-arena-compare.mjs ai-arena-results/before.json ai-arena-results/after.json ai-arena-results/compare.md
+          cat ai-arena-results/compare.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Keep raw match results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandforge-siege-medic-ab
+          path: candidate/ai-arena-results/
+          retention-days: 14
