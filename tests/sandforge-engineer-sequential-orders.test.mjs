@@ -101,3 +101,22 @@ test('pioneer queue: explicit vehicle repairs focus one target before the next',
  assert.equal(v1.hp,UNITS.rover.hp);
  assert.equal(v2.hp,UNITS.rover.hp,'second repair eventually completes');
 });
+
+test('pioneer queue: damaged building is repaired before newly scheduled construction',()=>{
+ const {g,worker,first,position}=fixture();
+ const finished=g.build(0,'barracks',first,[worker.id]);
+ assert.ok(finished);
+ step(g,60);
+ assert.equal(finished.buildRemaining,0);
+ finished.hp=BUILDINGS.barracks.hp-48;
+ assert.equal(g.command([worker.id],{x:finished.x,y:finished.y,kind:'repair',target:finished.id}),1);
+ const next=g.build(0,'barracks',position(),[worker.id],0,true);
+ assert.ok(next);
+ assert.deepEqual(worker.orders.map(o=>o.kind),['repair','build']);
+ step(g,.5);
+ assert.ok(finished.hp>BUILDINGS.barracks.hp-48,'repair work starts first');
+ assert.equal(next.buildRemaining,BUILDINGS.barracks.buildTime,'queued construction remains untouched');
+ step(g,70);
+ assert.equal(finished.hp,BUILDINGS.barracks.hp);
+ assert.equal(next.buildRemaining,0);
+});
