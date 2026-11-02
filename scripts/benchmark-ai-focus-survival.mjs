@@ -7,6 +7,7 @@ import {resolve,dirname} from 'node:path';
 import {Simulation as Engine} from '../dist/src/reborn/simulation.js';
 import {UNITS} from '../dist/src/reborn/catalog.js';
 import {runMatch} from './benchmark-reborn-ai.mjs';
+import {bluePressure} from './benchmark-blue-pressure.mjs';
 
 const variants=[
  ['classic','classic','classic'],
@@ -17,6 +18,8 @@ const read=(key,fallback)=>{const i=process.argv.indexOf('--'+key);return i<0?fa
 const seeds=read('seeds','2026,2027,2028,2029').split(',').map(Number),
  seconds=Number(read('seconds','240')),
  output=resolve(read('output','ai-arena-results/focus-survival.json'));
+const opponent=read('opponent','guarded');
+if(!['guarded','pressure'].includes(opponent))throw Error('unknown opponent');
 if(seeds.length<1||seeds.length>16||seeds.some(x=>!Number.isSafeInteger(x)||x<0)||
  seconds<60||seconds>900||!Number.isInteger(seconds))throw Error('invalid benchmark settings');
 
@@ -31,7 +34,7 @@ for(const seed of seeds){
     this.tactical.survivalMode=survival;
    }
   }
-  const m=runMatch({Simulation:AB,UNITS},{seconds,opponent:'guarded',label},seed,'director',11);
+  const m=runMatch({Simulation:AB,UNITS},{seconds,opponent:'guarded',label,defender:opponent==='pressure'?bluePressure:undefined},seed,'director',11);
   if(initial&&initial!==m.initialStateHash)throw Error('A/B initial state changed');
   initial=m.initialStateHash;
   results.push({seed,label,initialHash:initial,outcome:m.outcome,elapsedSeconds:m.elapsedSeconds,
@@ -55,6 +58,6 @@ for(const [label] of variants){
   timeouts:rows.filter(r=>r.outcome==='timeout').length};
 }
 const report={description:'Paired RED AI headless evaluation versus budget-constrained scripted BLUE, not human skill rating',
- mapVersion:11,seeds,seconds,summary,results};
+ mapVersion:11,seeds,seconds,opponent,summary,results};
 mkdirSync(dirname(output),{recursive:true});writeFileSync(output,JSON.stringify(report,null,2)+'\n');
 console.log(JSON.stringify(summary,null,2));console.log('Report: '+output);
