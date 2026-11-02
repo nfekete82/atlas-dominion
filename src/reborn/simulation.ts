@@ -561,7 +561,12 @@ export class Simulation {
   private move(u:Unit,target:Point,dt:number,speedLimit=Infinity):void {
     const spec=unitSpec(u),clearance=Math.max(0,spec.radius-10);
     const vehicle=spec.group==='Fahrzeuge'&&!spec.flying;
-    const buildings=this.obstacles();
+    // A tactical order must navigate against the building knowledge of its
+    // faction, including remembered structures that may have been destroyed
+    // outside sight. Collision may not reveal a hidden change of enemy HP.
+    // Player/non-tactical units retain the normal physical-world obstacles.
+    const buildings=u.owner===1&&u.orders[0]?.tactical
+      ?this.tactical.navigationObstacles():this.obstacles();
     const decor=vehicle?this.vehicleDecorObstacles():[];
     const visualBuildings=vehicle?vehicleStructureColliders(buildings):[];
     const collisionObstacles=vehicle?[...buildings,...visualBuildings,...decor]:buildings;
