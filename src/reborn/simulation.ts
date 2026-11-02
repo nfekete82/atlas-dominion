@@ -208,7 +208,7 @@ export class Simulation {
     if(this.units.some(u=>u.hp>0&&!u.carrier&&!unitSpec(u).flying&&distance(u,p)<spec.radius+unitSpec(u).radius))return 'Einheiten blockieren die Baustelle.';
     return null;
   }
-  build(owner:Faction,kind:BuildingKind,p:Point,workerIds?:number[],facing:0|1=0):Base|null {
+  build(owner:Faction,kind:BuildingKind,p:Point,workerIds?:number[],facing:0|1=0,append=false):Base|null {
     if(this.buildError(owner,kind,p))return null;
     const workers=this.units.filter(u=>u.owner===owner&&u.kind==='engineer'&&u.hp>0&&!u.carrier&&(!workerIds||workerIds.includes(u.id)));
     if(!workers.length)return null;
@@ -216,7 +216,7 @@ export class Simulation {
     let id=1000;while(this.bases.some(b=>b.id===id)||this.units.some(u=>u.id===id))id++;
     const b:Base={id,owner,kind,...p,hp:spec.hp*.25,territory:territory.id,radius:spec.radius,queue:[],queueTypes:[],production:0,buildRemaining:spec.buildTime,cooldown:0,rally:null,...(facing===1?{facing:1 as const}:{})};
     this.bases.push(b);
-    if(!this.command(workers.map(u=>u.id),{...p,kind:'build',target:id})){this.bases.pop();this.notices.push('Kein ausgewählter Pionier kann diese Baustelle erreichen.');return null;}
+    if(!this.command(workers.map(u=>u.id),{...p,kind:'build',target:id},append)){this.bases.pop();this.notices.push('Kein ausgewählter Pionier kann diese Baustelle erreichen.');return null;}
     this.credits[owner]-=spec.cost;this.updateVision();return b;
   }
   cancelConstruction(id:number):boolean {
@@ -247,7 +247,9 @@ export class Simulation {
         if('queue' in entity){const path=this.world.path(u,approach,this.obstacles());if(distance(u,entity)>entity.radius+55&&(!path.length||distance(path[path.length-1],entity)>entity.radius+55))return;}
         const next:Order={...order,x:entity.x,y:entity.y,...('queue' in entity?{approach}:{healOrigin:{x:entity.x,y:entity.y}})};
         if(append){if(u.orders.length>=32)return;u.orders.push(next);}else{u.orders=[next];u.path=[];u.repath=0;delete u.burst;}
-        u.hold=false;u.supportPaused=false;u.combatTarget=null;u.pursuitOrigin=null;accepted++;return;
+        // Enqueuing future maintenance must not interrupt the work in progress.
+        if(!append){u.hold=false;u.supportPaused=false;u.combatTarget=null;u.pursuitOrigin=null;}
+        accepted++;return;
       }
       let offset={x:slots[i].x-center.x,y:slots[i].y-center.y};
       let formation:Formation|undefined;
@@ -363,16 +365,16 @@ export class Simulation {
     u.angle=Math.atan2(target.y-u.y,target.x-u.x);u.facing=target.x<u.x?-1:1;
     if('orders' in target){
       if(u.kind==='medic'){if(!this.healNearby(u,dt)){u.workingTarget=null;return false;}}
-      else if(!this.repairNearby(u,dt)){u.workingTarget=null;return false;}
+      else if(!this.repairNearby(u,dt,explicit&&order?.kind==='repair'?target.id:undefined)){u.workingTarget=null;return false;}
     }
     else if(target.buildRemaining<=0){const before=target.hp;target.hp=Math.min(buildingSpec(target).hp,target.hp+12*getVeterancyModifiers(u).repairRate*dt);gainUnitXp(u,(target.hp-before)*XP_RULES.repair,'repair');this.work('repair',u.id,target.id,target.hp-before);}
     return true;
   }
   /** Shared 18 HP/s maintenance across all damaged friendly vehicles and aircraft within 90 M.
    * Never moves the engineer, ignores transports' embarked units, and respects obstacles. */
-  private repairNearby(u:Unit,dt:number):boolean {
+  private repairNearby(u:Unit,dt:number,onlyTarget?:number):boolean {
     const vehicles=this.spatial.query(u,REPAIR_RADIUS).filter(v=>
-      this.supportEligible(u,v,'repair')&&distance(u,v)<=REPAIR_RADIUS&&this.world.line(u,v));
+      (onlyTarget===undefined||v.id===onlyTarget)&&this.supportEligible(u,v,'repair')&&distance(u,v)<=REPAIR_RADIUS&&this.world.line(u,v));
     if(!vehicles.length)return false;
     const total=vehicles.reduce((sum,v)=>sum+(v.hp/unitSpec(v).hp<.5?2:1),0);
     let repaired=false;
