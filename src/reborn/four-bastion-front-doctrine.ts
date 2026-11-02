@@ -3,9 +3,9 @@ import {distance,type Point} from './config.js';
 /** Only opt-in experiments on the 4-bastion campaign. No resource, fog,
  * movement or damage changes; selectors consume only visible enemies and
  * publicly observable sector ownership. */
-export type FrontDoctrine='classic'|'concentrated'|'sector-defense';
+export type FrontDoctrine='classic'|'concentrated'|'sector-defense'|'tempo-only';
 export function isCompactBattle(mapVersion:number,sectors:number,mode:FrontDoctrine):boolean{
- return mapVersion===11&&sectors===4&&mode!=='classic';
+ return mapVersion===11&&sectors===4&&(mode==='concentrated'||mode==='sector-defense');
 }
 export interface OwnedSector extends Point {id:number;owner:number}
 export interface ObservedThreat extends Point {id:number;kind:string}
@@ -25,4 +25,10 @@ export function sectorDefenseAnchor(input:{
   .map(e=>({sector:t,enemy:e,score:distance(e,t)-distance(e,input.home)*.05})));
  options.sort((a,b)=>a.score-b.score||a.sector.id-b.sector.id||a.enemy.id-b.enemy.id);
  return options[0]?.sector;
+}
+
+/** Isolate earlier macro planning from the old failed barracks-first experiment.
+ * The normal paid generator-first economy and all battle logic remain intact. */
+export function fourBastionPlanningDelay(mapVersion:number,sectors:number,mode:FrontDoctrine,defaultDelay:number):number{
+ return mapVersion===11&&sectors===4&&mode==='tempo-only'?6:defaultDelay;
 }
