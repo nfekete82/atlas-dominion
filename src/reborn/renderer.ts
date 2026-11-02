@@ -18,7 +18,7 @@ import { TERRAIN_FRAMES, TERRAIN_PLACEMENTS } from './terrain-art.js';
 import { paintGeneratedTerrain } from './terrain-presentation.js';
 import { BattlefieldEffects, createGroundDetails, paintGroundDetails, type GroundDetail } from './battlefield-atmosphere.js';
 import {PalmGrove} from './palm-grove.js';
-import {ProductionGates} from './production-gates.js';
+import {productionExitPose,productionExitDustPoint,PRODUCTION_EXIT_DURATION} from './production-exit.js';
 import {DesertAtmosphere} from './desert-atmosphere.js';
 import {environmentPropVisible,propSiteClear} from './prop-placement.js';
 import {PropAtlas} from './prop-atlas.js';
@@ -36,7 +36,7 @@ export class Renderer {
   readonly battlefield=new BattlefieldEffects();
   readonly propAtlas=new PropAtlas();
   readonly palms=new PalmGrove(this.propAtlas);
-  readonly productionGates=new ProductionGates();
+  private emittedReleases=new Set<number>();
   readonly atmosphere=new DesertAtmosphere();
   readonly decor=new BuildingDecor(this.propAtlas);
   private groundDetails:GroundDetail[]=[];
@@ -246,7 +246,11 @@ export class Renderer {
     const artWidth=spec.width*unitArtScale(u.kind);
     const p={x:u.previousX+(u.x-u.previousX)*this.interpolation,y:u.previousY+(u.y-u.previousY)*this.interpolation};
     if(selected){c.strokeStyle='#88cffa';c.lineWidth=1/this.camera.zoom;c.beginPath();c.ellipse(p.x,u.kind==='scout'?p.y:p.y-unitVisualLift(u),spec.flying?artWidth*.2:u.kind==='rover'?artWidth*.28:15,spec.flying?9:6,0,0,Math.PI*2);c.stroke();}
-    this.units.draw(c,u,p);
+    const release=this.game.productionReleases.find(r=>r.unitId===u.id&&r.owner===u.owner);
+    const pose=release?productionExitPose(release,this.game.time,this.reducedMotion):null;
+    if(pose?.active){c.save();c.globalAlpha*=pose.alpha;
+      this.units.draw(c,u,{x:p.x+pose.x,y:p.y+pose.y});c.restore();
+    }else this.units.draw(c,u,p);
     if(u.kind==='scout'&&u.transport){c.font='9px monospace';c.textAlign='left';c.fillStyle=u.owner===0?'#b9e3f2':'#f0b29f';const label=u.transport.phase==='cruise'?`${u.transport.cargo.length}/10`:({approach:'LANDEANFLUG',landing:'LANDET',loading:'EINSTEIGEN',unloading:'AUSSTEIGEN',takeoff:'STARTET'} as Record<string,string>)[u.transport.phase];c.fillText(label,p.x+artWidth*.4,p.y-20-unitVisualLift(u));}
     const rank=getVeterancyLevel(u.xp);
     if(selected||u.hp<spec.hp||rank){const height=spec.group==='Infanterie'?56*unitArtScale(u.kind):artWidth*.68+(spec.flying?32:0)+unitVisualLift(u);this.bar({x:p.x,y:p.y-height},spec.group==='Infanterie'?27*unitArtScale(u.kind):artWidth*.55,u.hp/spec.hp,blue?'#75c5e8':'#ed7866');drawRank(c,rank,p.x,p.y-height-8/this.camera.zoom,8/this.camera.zoom);}
@@ -280,8 +284,6 @@ export class Renderer {
       this.decor.draw(c,b.kind,anchor,spec.radius,b.id,this.game.seed,b.owner,'behind',this.game.time,this.reducedMotion,alpha,b.facing,visible);
       c.save();if(b.facing===1){c.translate(2*b.x,0);c.scale(-1,1);}
       draw(alpha);
-      const opening=this.productionGates.sample(b,this.game.time,this.reducedMotion);
-      this.structures.drawProductionGate(c,b.kind,b.owner,anchor,artWidth,opening,alpha);
       this.structures.drawActivity(c,b.kind,b.owner,anchor,artWidth,this.game.time,this.reducedMotion,alpha);
       c.restore();
       this.decor.draw(c,b.kind,anchor,spec.radius,b.id,this.game.seed,b.owner,'front',this.game.time,this.reducedMotion,alpha,b.facing,visible);
@@ -369,7 +371,7 @@ export class Renderer {
   private renderMeasured(dt:number,interpolation=1):void {
     if(!this.terrain?.complete||!this.infantry)return;
     const c=this.context,g=this.game,s=this.game.world.size;this.updateFog();
-    if(this.animationGame!==g){this.units.clear();this.seenImpacts=new WeakSet();this.battlefield.reset(g);this.palms.reset(this.groundDetails,g);this.productionGates.clear();this.animationGame=g;this.effectTime=g.time;this.workEmitted.clear();this.rocketTrails.clear();this.exhaustAt.clear();}
+    if(this.animationGame!==g){this.units.clear();this.seenImpacts=new WeakSet();this.battlefield.reset(g);this.palms.reset(this.groundDetails,g);this.emittedReleases.clear();this.animationGame=g;this.effectTime=g.time;this.workEmitted.clear();this.rocketTrails.clear();this.exhaustAt.clear();}
     this.units.update(g.units,g.paused?0:dt,p=>g.canSee(0,p));
     this.battlefield.update(g,p=>g.canSee(0,p));
     this.palms.update(g);
@@ -394,6 +396,19 @@ export class Renderer {
       if(this.exhaustAt.size>100)for(const id of this.exhaustAt.keys())
        if(!g.units.some(u=>u.id===id&&u.hp>0))this.exhaustAt.delete(id);
     }
+    // Exactly one soft, short dust puff at the actual production exit.
+    // Initial units and resurrected saves never trigger release events.
+    for(const release of g.productionReleases){
+      if(this.emittedReleases.has(release.unitId))continue;
+      const elapsed=g.time-release.at;
+      if(elapsed<0||elapsed>PRODUCTION_EXIT_DURATION)continue;
+      this.emittedReleases.add(release.unitId);
+      if(release.owner===0||g.canSee(0,release.to)){
+        if(!g.paused&&!this.reducedMotion&&particles.enabled)
+          particles.emit('dust',productionExitDustPoint(release));
+      }
+    }
+    if(this.emittedReleases.size>64)this.emittedReleases=new Set(g.productionReleases.map(r=>r.unitId));
     for(const shot of g.shots)if(!this.seenImpacts.has(shot)){
       this.seenImpacts.add(shot);
       if(g.paused||g.time-(shot.at??g.time)>.15||(!g.canSee(0,shot.groundFrom??shot.from)&&!g.canSee(0,shot.groundTo??shot.to)))continue;
