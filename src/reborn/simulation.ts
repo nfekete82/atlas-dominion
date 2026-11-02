@@ -124,7 +124,7 @@ export class Simulation {
   seed:number; time=0; nextId=1; credits=[RULES.initialCredits as number,RULES.initialCredits as number];
   incomeClock=0; aiClock=0; status:'playing'|'victory'|'defeat'='playing';
   /** Benchmark-only A/B toggle; normal four-bastion matches use responsive. */
-  smallMapTempo:ShortMapTempo='responsive';
+  smallMapTempo:ShortMapTempo='prepared';
   stats:MatchStatistics=newMatchStatistics();
   units:Unit[]=[]; bases:Base[]=[]; territories:Territory[];
   visible=[new Uint8Array(RULES.grid**2),new Uint8Array(RULES.grid**2)];
