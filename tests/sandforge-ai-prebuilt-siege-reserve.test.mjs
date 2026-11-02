@@ -37,6 +37,9 @@ test('AI siege budget is held during factory construction and spent on the first
  assert.deepEqual(barracks.queueTypes,[]);
  assert.deepEqual(factory.queueTypes,[]);
  factory.buildRemaining=0;
+ // Finish the builder's work order as the real simulation does on completion.
+ const builder=g.units.find(u=>u.owner===1&&u.kind==='engineer');
+ builder.orders=[];
  developArmy(g,g.tactical.state,army(),()=>0);
  assert.deepEqual(factory.queueTypes,['artillery'],'first rocket was paid for, not merely planned');
  assert.equal(g.credits[1],50);
