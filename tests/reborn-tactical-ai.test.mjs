@@ -103,11 +103,16 @@ for(const version of [0,1,2])test(`tactical: v${version} optional state saves, l
 
 
 test('tactical: a mixed assault actually advances at the heavy pace while the medic stays behind',()=>{
- const {g,target}=fixture();target.point={x:1900,y:1900};const b=tower(g);reveal(g,b);
+ const {g,target}=fixture();target.point={x:1900,y:1900};
+// Ensure the front objective is in front of the column. An incidental
+// unclaimed sector behind the starting units would correctly redirect
+// the AI, invalidating the pace/escort scenario.
+for(const t of g.territories)if(t.id!==target.id)t.owner=1;
+const b=tower(g);reveal(g,b);
  for(let i=0;i<7;i++)g.spawn(1,{x:1130+(i%3)*27,y:1880+Math.floor(i/3)*26},i===0?'heavy':i===1?'rover':i===2?'tank':'infantry');
  const m=g.spawn(1,{x:1080,y:1900},'medic');force(g);assert.equal(g.tactical.state.phase,'attack');
  const members=red(g).filter(u=>g.tactical.state.group.includes(u.id)&&u.kind!=='medic'),initial=new Map(members.map(u=>[u.id,{x:u.x,y:u.y}]));
- advance(g,4);const distances=members.map(u=>distance(u,initial.get(u.id)));assert.ok(distances.every(d=>d>200),JSON.stringify({phase:g.tactical.state.phase,target:g.tactical.state.target,distances,members:members.map((u,i)=>({id:u.id,kind:u.kind,original:initial.get(u.id),now:{x:u.x,y:u.y},orders:u.orders,move:u.moving,path:u.path.slice(0,2)})),medic:{x:m.x,y:m.y}}));assert.ok(Math.max(...distances)<UNITS.heavy.speed*4+10);assert.ok(Math.max(...members.map(u=>u.x))-Math.min(...members.map(u=>u.x))<115,'front stays within the coordinated march bound despite local vehicle queuing');assert.ok(m.x<Math.min(...members.map(u=>u.x))-25);
+ advance(g,4);const distances=members.map(u=>distance(u,initial.get(u.id)));assert.ok(distances.every(d=>d>200),'front fighters must advance toward the only unclaimed sector');assert.ok(Math.max(...distances)<UNITS.heavy.speed*4+10);assert.ok(Math.max(...members.map(u=>u.x))-Math.min(...members.map(u=>u.x))<115,'front stays within the coordinated march bound despite local vehicle queuing');assert.ok(m.x<Math.min(...members.map(u=>u.x))-25);
 });
 
 for(const version of [0,2])test(`tactical: active v${version} campaign save continues with the same strategy, production and territory`,()=>{
