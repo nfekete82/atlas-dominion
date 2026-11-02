@@ -23,3 +23,29 @@ jobs:
       - run: npm run build
       - name: Deterministic art, construction, vehicle tests
         run: node --test tests/sandforge-desert-visual-polish.test.mjs tests/sandforge-engineer-sequential-orders.test.mjs tests/sandforge-engineer-squad-escort.test.mjs tests/reborn-support.test.mjs
+  browser-render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm ci --prefix tests/browser --no-audit --no-fund
+      - run: cd tests/browser && npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Browser visual smoke and screenshot
+        env:
+          ATLAS_BROWSER_CHANNEL: chromium
+        run: cd tests/browser && npx playwright test --config=reborn.config.mjs reborn-desert-visual-polish.spec.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sandforge-desert-visual-proof
+          path: |
+            tests/browser/artifacts/reborn/desert-visual-polish.png
+            tests/browser/artifacts/reborn-results.json
+          if-no-files-found: ignore
+          retention-days: 14
