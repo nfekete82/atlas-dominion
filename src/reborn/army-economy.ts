@@ -61,12 +61,20 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
  const urgentDefense=defenseFronts.some(c=>c.urgent);
  const generators=own.filter(b=>b.kind==='generator').length;
  const observedSiege=known>0||g.memories[1].some(m=>m.owner===0&&m.hp>0&&m.kind==='headquarters');
+ // Compute the reserve BEFORE optional construction can spend it.
+ // The first generator is a core investment; later cores are optional.
+ const siegeReserve=firstSiegeRocketReserve({
+  director,factoryPresent:has('factory'),observedSiege,underAttack,urgentDefense,
+  visibleAir:seen.some(u=>unitSpec(u).flying),
+  visibleArmorThreat:seen.filter(u=>unitSpec(u).group==='Fahrzeuge'&&!unitSpec(u).flying).length>=2,
+  fighters:fighters.length,artillery:count('artillery')
+ });
  for(const w of workers)if(!w.orders.length&&w.defendUntil<=g.time){
   const target=unfinished??own.filter(b=>b.buildRemaining<=0&&b.hp<BUILDINGS[b.kind].hp-.01).sort((a,b)=>distance(w,a)-distance(w,b))[0];
   if(target)g.command([w.id],{...target,kind:target.buildRemaining>0?'build':'repair',target:target.id});
  }
  let goal:BuildingKind|null=null;
- const wantCore=director&&generatorBuildPriority({
+ const wantCore=director&&(generators===0||siegeReserve===0)&&generatorBuildPriority({
   existing:generators,fighters:fighters.length,credits:g.credits[1],
   barracksReady:complete('barracks'),underAttack,finishing
  });
@@ -131,12 +139,6 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
  // only the committed active construction goal, then reassess next pulse.
  const buildReserve=e.goal&&(e.goal==='barracks'||!underAttack&&fighters.length>=3)
   &&g.time-e.since<85?BUILDINGS[e.goal].cost:0;
- const siegeReserve=firstSiegeRocketReserve({
-  director,factoryPresent:has('factory'),observedSiege,underAttack,urgentDefense,
-  visibleAir:seen.some(u=>unitSpec(u).flying),
-  visibleArmorThreat:seen.filter(u=>unitSpec(u).group==='Fahrzeuge'&&!unitSpec(u).flying).length>=2,
-  fighters:fighters.length,artillery:count('artillery')
- });
  const reserve=Math.max(buildReserve,siegeReserve);
  const maxArmy=director?Math.min(36,Math.max(18,Math.floor(income/3)+10)):Math.min(30,Math.max(14,Math.floor(income/4)+8));if(g.count(1)+g.queued(1)>=maxArmy&&(!director||count('engineer')>0)){
   if(director)e.production={at:g.time,reason:'army-cap',goal:null,missing:0,facilities:Object.fromEntries(own.filter(b=>b.buildRemaining<=0).map(b=>[b.id,{reason:b.queue.length>=2?'queue-blocked':'army-cap',goal:null,missing:0}]))};
