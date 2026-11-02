@@ -730,7 +730,7 @@ export class TacticalAI {
   // Cleanup holds the paid army together rather than sending two fighters to
  // a secondary neutral bastion while enemy production is still standing.
  const raidUnits=c.enemyHQEliminatedAt===undefined&&
-  !isCompactBattle(g.world.mapVersion,g.territories.length,this.frontDoctrine)
+  !(isCompactBattle(g.world.mapVersion,g.territories.length,this.frontDoctrine)&&this.frontDoctrine==='concentrated')
   ?this.secondaryPressure(fighters,mission,home):new Set<number>();
   const mainFighters=fighters.filter(u=>!raidUnits.has(u.id));
   const reserve=cleanupReserveSize(c.enemyHQEliminatedAt!==undefined,mainFighters.length);
@@ -999,7 +999,7 @@ export class TacticalAI {
    ||anchor!==undefined&&distance(u,anchor)<255);
   if(g.world.mapVersion>=3&&this.mode==='director'){
    const defense=this.localDefense(fighters,medics,intruders,anchor??home);
-   const raiders=compact?new Set<number>():this.expansionRaid(fighters.filter(u=>!defense.has(u.id)),home);
+   const raiders=compact&&this.frontDoctrine==='concentrated'?new Set<number>():this.expansionRaid(fighters.filter(u=>!defense.has(u.id)),home);
    this.campaign(army,fighters.filter(u=>!defense.has(u.id)&&!raiders.has(u.id)),medics.filter(u=>!defense.has(u.id)),home);
    if(defense.size)campaignPhase(s.commander??=newCampaign(),'emergencyDefense',g.time);
    return;
