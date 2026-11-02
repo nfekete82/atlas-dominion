@@ -20,9 +20,11 @@ test('browser: infantry circles an actual factory instead of crossing its painte
   const goal={kind:'move',x:b.x+270,y:b.y-20};
   const accepted=g.command([soldier.id,medic.id],goal);
   const colliders=infantryStructureColliders([b]);
+  const checkpoints=[];
   let breaches=0,maxX=soldier.x,minDetour=Infinity;
   for(let i=0;i<285;i++){
    g.step();
+   if(i%40===0)checkpoints.push({i,x:soldier.x,y:soldier.y,path:soldier.path.map(p=>[Math.round(p.x),Math.round(p.y)]),repath:soldier.repath,exact:soldier.exactPath,escape:soldier.vehicleEscape,medicX:medic.x});
    for(const u of [soldier,medic]){
     if(!g.world.walkable(u,colliders,Math.max(0,UNITS[u.kind].radius-10)))breaches++;
    }
@@ -31,7 +33,7 @@ test('browser: infantry circles an actual factory instead of crossing its painte
   }
   g.paused=true;g.revision++;g.updateVision();
   r.camera={x:b.x,y:b.y,zoom:.85};r.boundCamera();r.render(0);
-  return {accepted,breaches,maxX,buildingX:b.x,minDetour,soldier:{x:soldier.x,y:soldier.y,orders:soldier.orders,path:soldier.path,moving:soldier.moving,repath:soldier.repath,stuck:soldier.vehicleEscape},medic:{x:medic.x,y:medic.y,orders:medic.orders,path:medic.path,moving:medic.moving},time:g.time,status:g.status};
+  return {accepted,breaches,maxX,buildingX:b.x,minDetour,soldier:{x:soldier.x,y:soldier.y,orders:soldier.orders,path:soldier.path,moving:soldier.moving,repath:soldier.repath,stuck:soldier.vehicleEscape},medic:{x:medic.x,y:medic.y,orders:medic.orders,path:medic.path,moving:medic.moving},time:g.time,status:g.status,checkpoints,alternativePath:g.world.path(soldier,goal,[...g.obstacles(),...colliders],0,undefined,false,true),alternativePlain:g.world.path(soldier,goal,[...g.obstacles(),...colliders])};
  });
  expect(result.accepted).toBe(2);
  expect(result.breaches).toBe(0);
