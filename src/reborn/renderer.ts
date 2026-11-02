@@ -12,7 +12,7 @@ import { BUILDINGS, UNITS, buildingSpec, unitSpec, type BuildingKind, type UnitK
 import { UnitPresentation, unitVisualLift } from './unit-presentation.js';
 import {angleDifference} from './sprite-animator.js';
 import { BuildingPresentation } from './building-presentation.js';
-import {buildingArtWidth,unitArtScale} from './visual-scale.js';
+import {buildingArtWidth,bastionArtWidth,unitArtScale} from './visual-scale.js';
 import {rosterImageRect,ROSTER_IMAGE_WIDTH,ROSTER_IMAGE_HEIGHT} from './portrait-layout.js';
 import { TERRAIN_FRAMES, TERRAIN_PLACEMENTS } from './terrain-art.js';
 import { paintGeneratedTerrain } from './terrain-presentation.js';
@@ -282,8 +282,8 @@ export class Renderer {
     const c=this.context,g=this.game,p=t.point,color=t.owner===0?'#72cfff':t.owner===1?'#ff7869':'#f4f5f4';
     c.save();if(dim)c.globalAlpha=.32;
     if(!dim)this.decor.draw(c,'bastion',p,42,t.id,g.seed,t.owner,'behind',g.time,this.reducedMotion,1,0,p=>propSiteClear(p,p.size,g,{territory:t.id}));
-    this.spriteDraw(this.bastions[t.owner===0?'blue':t.owner===1?'red':'neutral'],p,67,false,dim?.32:1);
-    this.structures.drawActivity(c,'bastion',t.owner,p,67,g.time,this.reducedMotion,dim?.32:1);
+    this.spriteDraw(this.bastions[t.owner===0?'blue':t.owner===1?'red':'neutral'],p,bastionArtWidth,false,dim?.32:1);
+    this.structures.drawActivity(c,'bastion',t.owner,p,bastionArtWidth,g.time,this.reducedMotion,dim?.32:1);
     if(!dim)this.atmosphere.drawBastion(c,t,g.time,this.reducedMotion);
     if(!dim)this.decor.draw(c,'bastion',p,42,t.id,g.seed,t.owner,'front',g.time,this.reducedMotion,1,0,p=>propSiteClear(p,p.size,g,{territory:t.id}));
     c.font='500 10px system-ui';c.textAlign='center';c.fillStyle='#100e0b99';c.fillRect(p.x-53,p.y+19,106,30);
