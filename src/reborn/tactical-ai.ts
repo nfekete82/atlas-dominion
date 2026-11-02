@@ -990,7 +990,8 @@ export class TacticalAI {
   for(const w of army.filter(u=>u.kind==='engineer'&&!u.orders.length)){const b=g.bases.filter(b=>b.owner===1&&b.hp>0&&b.hp<buildingSpec(b).hp&&b.buildRemaining<=0).sort((a,b)=>distance(w,a)-distance(w,b))[0];if(b)g.command([w.id],{...b,kind:'repair',target:b.id});}
   const visibleEnemies=g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u));
   const compact=isCompactBattle(g.world.mapVersion,g.territories.length,this.frontDoctrine);
-  const anchor=compact&&this.frontDoctrine==='sector-defense'
+  const hqInDanger=visibleEnemies.some(u=>distance(u,home)<560);
+  const anchor=compact&&this.frontDoctrine==='sector-defense'&&!hqInDanger
    ?sectorDefenseAnchor({territories:g.territories.map(t=>({...t.point,id:t.id,owner:t.owner})),
       visibleEnemies,home,minFighters:fighters.length,engagedAttack:s.phase==='attack'})
    :undefined;
