@@ -230,6 +230,7 @@ export class Simulation {
     if(!Number.isFinite(order.x)||!Number.isFinite(order.y))return 0;
     const members=this.units.filter(u=>ids.includes(u.id)&&u.hp>0&&!u.carrier);
     const front=members.filter(u=>u.kind!=='medic'&&u.kind!=='engineer'&&!unitSpec(u).flying);
+    const combat=members.filter(u=>u.kind!=='medic'&&u.kind!=='engineer');
     const support=members.filter(u=>u.kind==='medic'||u.kind==='engineer');
     const mixed=front.length>0&&support.length>0&&['move','attackMove','attack'].includes(order.kind);
     const origin={x:front.reduce((n,u)=>n+u.x,0)/Math.max(1,front.length),y:front.reduce((n,u)=>n+u.y,0)/Math.max(1,front.length)},length=distance(origin,order)||1;
@@ -259,7 +260,7 @@ export class Simulation {
           const index=support.indexOf(u),columns=Math.min(3,support.length),lane=(index%columns-(columns-1)/2)*34,rear=72+Math.floor(index/columns)*32;
           formation={front:front.map(v=>v.id),heading,origin,goal:{x:order.x,y:order.y},lane,rear};
           offset={x:-heading.x*rear-heading.y*lane,y:-heading.y*rear+heading.x*lane};
-        }else{const index=front.indexOf(u),columns=Math.ceil(Math.sqrt(front.length)),lane=(index%columns-(columns-1)/2)*29,depth=-Math.floor(index/columns)*29;offset={x:heading.x*depth-heading.y*lane,y:heading.y*depth+heading.x*lane};}
+        }else{const index=combat.indexOf(u),columns=Math.ceil(Math.sqrt(combat.length)),lane=(index%columns-(columns-1)/2)*29,depth=-Math.floor(index/columns)*29;offset={x:heading.x*depth-heading.y*lane,y:heading.y*depth+heading.x*lane};}
       }
       // Bastion right-clicks are capture orders: even a 48-unit formation must
       // stop INSIDE the capture circle, not in decorative slots beyond it.
