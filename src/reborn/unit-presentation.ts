@@ -12,6 +12,12 @@ export const AIR_GROUND_SHADOWS:Readonly<Partial<Record<UnitKind,Readonly<Ground
  bomber:Object.freeze({widthRatio:.60,heightRatio:.24,alpha:.22,offsetX:10,offsetY:42}),
  scout:Object.freeze({widthRatio:.76,heightRatio:.30,alpha:.26,offsetX:14,offsetY:22}),
 });
+/** Subtle contact shadows complement, rather than replace, the baked model shadows. */
+export const VEHICLE_CONTACT_SHADOWS:Readonly<Partial<Record<UnitKind,Readonly<GroundShadowStyle>>>>=Object.freeze({
+ tank:Object.freeze({widthRatio:.84,heightRatio:.30,alpha:.14,offsetX:6,offsetY:8}),
+ rover:Object.freeze({widthRatio:.79,heightRatio:.28,alpha:.12,offsetX:5,offsetY:7}),
+ artillery:Object.freeze({widthRatio:.86,heightRatio:.29,alpha:.13,offsetX:6,offsetY:8}),
+});
 interface GroundShadow {image:HTMLCanvasElement;width:number;height:number;offsetX:number;offsetY:number}
 /** Very subtle unsprung 6x6 chassis motion from travelled ground distance.
  * Deterministic: standing still and paused vehicles never bob or roll. */
@@ -47,17 +53,36 @@ export function rocketWheelPhase(distance:number,stride:number,phases:number):{i
  const span=Math.max(0,distance)/stride*phases,index=Math.floor(span)%phases;
  return {index,next:(index+1)%phases,blend:span-Math.floor(span)};
 }
+/** Movement- and weapon-driven secondary body motion, kept outside simulation/save. */
+export function groundVehiclePose(kind:UnitKind,distance:number,moving:boolean,speedRatio:number,turn:number,acceleration:number,shotAge:number,idleAge:number):RocketPose{
+ const pose=rocketSuspensionPose(distance,moving,speedRatio,turn,acceleration,shotAge,idleAge);
+ const factor=kind==='tank'?.48:kind==='rover'?.90:1;
+ return {heave:pose.heave*factor,roll:pose.roll*(kind==='tank'?.55:1),
+   pitch:pose.pitch*(kind==='tank'?.55:1),recoil:pose.recoil*(kind==='tank'?.65:kind==='rover'?.35:1)};
+}
 interface Loaded {data:AnimationAtlas;image:HTMLImageElement|HTMLCanvasElement;shadow?:HTMLCanvasElement;groundShadow?:GroundShadow}
 /** Additional screen-space height above the ground pivot baked into air atlases. */
 export const unitVisualLift=(u:{kind?:UnitKind;flightHeight?:number}):number=>u.kind==='scout'?82-77*(1-(u.flightHeight??1)):unitSpec(u).flying?56:0;
 export const unitSelectionPoint=(u:Point&{kind?:UnitKind}):Point=>({x:u.x,y:u.y-(unitSpec(u).flying?55:18)-unitVisualLift(u)});
-interface View {unit:Unit;anim:SpriteAnimator;asset:Loaded;bodyAngle:number;turretAngle:number;lastX:number;lastY:number;lastFire:number;hp:number;dust:number;dead:boolean;deathAge:number;frame:AnimationFrame;turnTag:string|null;rocket?:{speed:number;turn:number;acceleration:number;shotAge:number;idleAge:number}}
+interface View {unit:Unit;anim:SpriteAnimator;asset:Loaded;bodyAngle:number;turretAngle:number;lastX:number;lastY:number;lastFire:number;hp:number;dust:number;dead:boolean;deathAge:number;frame:AnimationFrame;turnTag:string|null;rocket?:{speed:number;turn:number;acceleration:number;shotAge:number;idleAge:number};chassis?:{speed:number;turn:number;acceleration:number;shotAge:number;idleAge:number}}
 export class UnitPresentation {
  readonly particles=new Particles();private assets=new Map<string,Loaded>();private views=new Map<number,View>();private corpses:View[]=[];private groundShadows=new Map<UnitKind,GroundShadow>();
  async load():Promise<void>{const cache=new Map<string,Promise<Loaded>>();await Promise.all(unitKinds.flatMap(kind=>[0,1].map(async owner=>{
   const prefix=unitAtlasPath(kind,owner);let pending=cache.get(prefix);if(!pending){pending=(async()=>{const response=await fetch(prefix+'.json');if(!response.ok)throw Error('Animation atlas unavailable: '+prefix);const data=await response.json() as AnimationAtlas,image=new Image();image.src=prefix+'.png';await image.decode();return {data,image};})();cache.set(prefix,pending);}
   const {data,image}=await pending;if(!data.clips.idle||!data.clips.walk||data.frames.length===0)throw Error('Incomplete animation atlas: '+kind);
   const asset:Loaded={data:{...data,kind,stride:kind==='artillery'?78:data.stride},image};
+  if(VEHICLE_CONTACT_SHADOWS[kind]){
+   asset.groundShadow=this.groundShadow(kind,VEHICLE_CONTACT_SHADOWS[kind]);
+   // One-time modest interior sharpening. Existing silhouette and alpha stay
+   // untouched, and only actual 3D-baked details are recovered.
+   if(image.width*image.height<=12000000){
+    const body=document.createElement('canvas');body.width=image.width;body.height=image.height;
+    const bc=body.getContext('2d')!;bc.drawImage(image,0,0);
+    const pixels=bc.getImageData(0,0,body.width,body.height);
+    pixels.data.set(sharpenAtlasOpaqueRGB(pixels.data,body.width,body.height,data.cell[0],kind==='tank'?.22:.17));
+    bc.putImageData(pixels,0,0);asset.image=body;
+   }
+  }
   if(unitSpec({kind}).flying){
    // The authored floor uses a warm, translucent shadow (opacity .25).
    // Split it once so raising the aircraft leaves its shadow on the ground.
@@ -100,7 +125,8 @@ export class UnitPresentation {
  asset(kind:UnitKind,owner=0):Loaded{return this.assets.get(kind+owner)!;}
  inspect(id:number):View|undefined{return this.views.get(id);}
  private view(u:Unit):View {
-  let v=this.views.get(u.id);if(!v){const asset=this.asset(u.kind,u.owner),anim=new SpriteAnimator(asset.data);v={unit:u,anim,asset,bodyAngle:u.hullAngle??u.angle,turretAngle:u.angle,lastX:u.x,lastY:u.y,lastFire:0,hp:u.hp,dust:0,dead:false,deathAge:0,frame:asset.data.frames[0],turnTag:null,...(u.kind==='artillery'?{rocket:{speed:0,turn:0,acceleration:0,shotAge:1,idleAge:0}}:{})};this.views.set(u.id,v);}return v;
+  let v=this.views.get(u.id);if(!v){const asset=this.asset(u.kind,u.owner),anim=new SpriteAnimator(asset.data);v={unit:u,anim,asset,bodyAngle:u.hullAngle??u.angle,turretAngle:u.angle,lastX:u.x,lastY:u.y,lastFire:0,hp:u.hp,dust:0,dead:false,deathAge:0,frame:asset.data.frames[0],turnTag:null,...(u.kind==='artillery'?{rocket:{speed:0,turn:0,acceleration:0,shotAge:1,idleAge:0}}:
+    (u.kind==='tank'||u.kind==='rover')?{chassis:{speed:0,turn:0,acceleration:0,shotAge:1,idleAge:0}}:{})};this.views.set(u.id,v);}return v;
  }
  update(units:Unit[],dt:number,visible:(p:Point)=>boolean):void {
   const alive=new Set(units.filter(u=>u.hp>0&&!u.carrier).map(u=>u.id));
@@ -119,8 +145,9 @@ export class UnitPresentation {
   if(dt>0){const turn=angleDifference(previousBody,v.bodyAngle);v.turnTag=!u.moving&&Math.abs(turn)>.001?(turn<0?'turnLeft':'turnRight'):null;}
   v.turretAngle=u.fire>0?u.angle:turnTowards(v.turretAngle,u.angle,3.8,dt);
   // Damp acceleration and yaw input to avoid wobbling from the 20 Hz game tick.
-  if(v.rocket&&dt>0){
-   const r=v.rocket,targetSpeed=u.moving?Math.min(1,Math.max(0,(u.driveSpeed??moved/dt)/spec.speed)):0;
+  const suspension=v.rocket??v.chassis;
+  if(suspension&&dt>0){
+   const r=suspension,targetSpeed=u.moving?Math.min(1,Math.max(0,(u.driveSpeed??moved/dt)/spec.speed)):0;
    const before=r.speed;
    r.speed+=Math.min(1,dt*6)*(targetSpeed-r.speed);
    r.acceleration+=(Math.min(1,dt*6))*(
@@ -152,27 +179,28 @@ export class UnitPresentation {
   // than pushing/popping the complete Canvas state for every layered sprite.
   const smoothing=c.imageSmoothingEnabled,quality=c.imageSmoothingQuality,filter=c.filter;
   c.imageSmoothingEnabled=v.asset.data.cell[0]>=144;
-  if(v.unit.kind==='scout'||v.unit.kind==='artillery')c.imageSmoothingQuality='high';
+  if(v.unit.kind==='scout'||v.unit.kind==='artillery'||v.unit.kind==='tank'||v.unit.kind==='rover')c.imageSmoothingQuality='high';
   const at={x:p.x,y:p.y-unitVisualLift(v.unit)};
   const ground=v.asset.groundShadow;
   if(ground)c.drawImage(ground.image,p.x+ground.offsetX-ground.width/2,p.y+ground.offsetY-ground.height/2,ground.width,ground.height);
   else if(v.asset.shadow)this.drawFrame(c,v,v.frame,p,{x:0,y:0},v.asset.shadow);
   if(v.dead&&!v.asset.data.clips.death)c.filter='grayscale(1) brightness(.5)';
-  const rocket=v.rocket;
-  const ride=rocket?rocketSuspensionPose(v.unit.walkDistance,v.unit.moving,rocket.speed,rocket.turn,
-    rocket.acceleration,rocket.shotAge,rocket.idleAge):null;
+  const rocket=v.rocket,suspension=rocket??v.chassis;
+  const ride=suspension?groundVehiclePose(v.unit.kind,v.unit.walkDistance,v.unit.moving,suspension.speed,suspension.turn,
+    suspension.acceleration,suspension.shotAge,suspension.idleAge):null;
   if(ride){c.save();c.translate(p.x,p.y);c.rotate(ride.roll);c.transform(1,ride.pitch,0,1,0,0);c.translate(-p.x,-p.y);}
   const shifted={x:at.x,y:at.y+(ride?.heave??0)};
   this.drawFrame(c,v,v.frame,shifted);
   // The source GLB has only four baked wheel phases. A faint registered blend
   // smooths intermediate tyre rotations without introducing SVG/circle "wheels".
-  if(rocket&&v.anim.state==='walk'&&v.unit.moving){
+  if(suspension&&v.anim.state==='walk'&&v.unit.moving){
    const row=v.asset.data.clips.walk.frames[v.anim.direction];
    if(row.length>1){
     const phase=rocketWheelPhase(v.unit.walkDistance,v.asset.data.stride,row.length);
     const next=v.asset.data.frames[row[phase.next]];
     const opacity=c.globalAlpha;
-    c.globalAlpha=opacity*Math.min(.32,phase.blend*.32);
+    const strength=rocket?.32:v.unit.kind==='tank'?.16:.20;
+    c.globalAlpha=opacity*Math.min(strength,phase.blend*strength);
     this.drawFrame(c,v,next,shifted);
     c.globalAlpha=opacity;
    }
