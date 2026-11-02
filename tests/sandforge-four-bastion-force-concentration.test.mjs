@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Simulation} from '../dist/src/reborn/simulation.js';
-import {isCompactBattle,sectorDefenseAnchor,fourBastionPlanningDelay} from '../dist/src/reborn/four-bastion-front-doctrine.js';
+import {isCompactBattle,sectorDefenseAnchor,fourBastionPlanningDelay,neutralExpansionPreference} from '../dist/src/reborn/four-bastion-front-doctrine.js';
 import {RULES} from '../dist/src/reborn/config.js';
 
 test('focus front policy is only opt-in for exactly four campaign bastions',()=>{
@@ -61,4 +61,18 @@ test('six-second planning changes only the isolated tempo-only small-map policy'
  assert.ok(faster.tactical.state.lastPlan>=6);
  assert.ok(faster.bases.some(b=>b.owner===1&&b.kind==='generator'),
   'tempo-only must keep original first-generator economy');
+});
+
+test('safe neutral sector priority is scoped, observed and no privileged information',()=>{
+ const base={mode:'sector-priority',mapVersion:11,sectors:4,neutral:true,
+ observedDefender:false,observedTurret:false,endgame:false};
+ assert.equal(neutralExpansionPreference(base),-1900);
+ assert.equal(neutralExpansionPreference({...base,mode:'tempo-sector'}),-1900);
+ assert.equal(neutralExpansionPreference({...base,observedDefender:true}),0);
+ assert.equal(neutralExpansionPreference({...base,observedTurret:true}),0);
+ assert.equal(neutralExpansionPreference({...base,neutral:false}),0);
+ assert.equal(neutralExpansionPreference({...base,endgame:true}),0);
+ assert.equal(neutralExpansionPreference({...base,sectors:8}),0);
+ assert.equal(neutralExpansionPreference({...base,mode:'classic'}),0);
+ assert.equal(fourBastionPlanningDelay(11,4,'tempo-sector',25),6);
 });
