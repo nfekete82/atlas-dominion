@@ -293,7 +293,10 @@ export class TacticalAI {
   return g.world.nearest({x:home.x-150,y:home.y+120},this.obstacles())??{...home};
  }
  private issue(units:Unit[],point:Point,mode:TacticalOrder['mode'],target?:number,append=false,coordinated=mode!=='safe'||this.state.phase==='attack'):boolean{
-  if(!units.length)return false;const g=this.g,s=this.state,ids=units.map(u=>u.id),front=units.filter(frontRole).sort((a,b)=>(b.kind==='tank'?5:b.kind==='heavy'?3:1)-(a.kind==='tank'?5:a.kind==='heavy'?3:1)||a.id-b.id);
+  if(!units.length)return false;
+   const g=this.g,s=this.state,ids=units.map(u=>u.id),armor=units.filter(u=>u.kind==='tank'||u.kind==='rover');
+   const front=(armor.length?armor:units.filter(frontRole)).sort((a,b)=>
+     (b.kind==='tank'?5:b.kind==='rover'?4:b.kind==='heavy'?3:1)-(a.kind==='tank'?5:a.kind==='rover'?4:a.kind==='heavy'?3:1)||a.id-b.id);
   const campaign=g.world.mapVersion>=3&&this.mode==='director';
   const same=!append&&units.every(u=>{const o=u.orders[0];return o?.tactical?.group===s.groupId&&o.tactical.mode===mode&&o.target===target&&(campaign?(target!==undefined||distance(o.tactical.goal??o,point)<45):distance(o,point)<45)&&(coordinated||!o.march);});if(same)return false;
   if(!g.command(ids,{x:point.x,y:point.y,kind:target!==undefined?'attack':mode==='safe'?'move':'attackMove',...(target===undefined?{}:{target})},append))return false;
@@ -304,7 +307,7 @@ export class TacticalAI {
      const at=unitSpec(u).flying?p:g.world.nearest(p,this.obstacles(),[],u,Math.max(0,unitSpec(u).radius-10));if(at){o.x=at.x;o.y=at.y;}
     }
    }
-   if(u.kind==='medic'&&o.formation)o.formation.front=front.map(v=>v.id);
+   if(o.formation&&front.length)o.formation.front=front.map(v=>v.id);
   }
   return true;
  }
