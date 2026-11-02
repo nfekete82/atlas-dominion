@@ -1,0 +1,20 @@
+name: Sandforge fog-aware movement regression
+on:
+  push:
+    branches:
+      - fix/sandforge-fog-aware-unit-collision-20261102
+permissions:
+  contents: read
+jobs:
+  fog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Fog, remembered targets, navigation and physical vehicles
+        run: node --test tests/reborn-combat-missions.test.mjs tests/reborn-navigation-work-order-props.test.mjs tests/sandforge-vehicle-building-clearance.test.mjs
