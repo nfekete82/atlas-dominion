@@ -1,0 +1,29 @@
+name: Diagnose 4-bastion AI failures
+on:
+  push:
+    branches:
+      - feat/sandforge-four-bastion-force-concentration-20261102
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Capture actual tactical and economy events with paid BLUE opponent
+        run: node scripts/diagnose-four-bastion-ai.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: four-bastion-full-diagnostics
+          path: ai-arena-results/four-bastion-diagnostics.json
+          if-no-files-found: ignore
+          retention-days: 14
