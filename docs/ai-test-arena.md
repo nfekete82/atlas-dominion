@@ -38,6 +38,11 @@ Die Rohdaten werden nicht in Git eingecheckt. Die GitHub-Actions-Testarena archi
 
 ## Versionsvergleich
 
+Der reproduzierbare GitHub-Actions-Versionsvergleich (`sandforge-ai-commit-ab.yml`) baut den vorherigen und den neuen Git-Commit getrennt. Die Benchmark-CLI nutzt auf beiden Seiten **dasselbe Gegnerskript**, dieselben Seeds, Karten und die exakt gleiche Messlogik. Der ältere Simulations-Code wird über `ATLAS_SIM_MODULE=/absolute/path/to/previous/dist/src/reborn/simulation.js` geladen. Die Paarvergleichsfunktion verweigert Vergleiche mit ungleichen spielbaren Startwelten.
+
+Die Versionsauswertung zeigt zusätzlich organisierte Angriffe, gegnerische/eigene Verluste, Missionsabbrüche sowie die Anzahl tatsächlich vorzeitig gestarteter kampfstarker Wellen. Fehlende Angriffszeiten werden **nicht** zu Null umgedeutet. Ein Nullwert bei der Auslösung der neuen Regel bedeutet: Der neue KI-Pfad wurde in den gemessenen Gefechten nicht genutzt – dies ist kein Wirksamkeitsnachweis.
+
+
 Erzeuge mit derselben Testkonfiguration einen Bericht auf der alten und einen auf der neuen Git-Revision.
 
     npm run benchmark:arena:compare -- /pfad/vorher.json /pfad/nachher.json ai-arena-results/vergleich.md
