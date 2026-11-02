@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/sandforge-ai-paired-release-benchmark-20261102
+      - feat/sandforge-ai-early-siege-production-20261102
   workflow_dispatch:
 
 permissions:
@@ -21,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: nfekete82/atlas-dominion
-          ref: 73b8315a5bb0998710f9f70d18aeea059c03b122
+          ref: adbd6ebbe62cdaaa1112f293e1cc0ead07577be5
           path: previous
           persist-credentials: false
       - uses: actions/setup-node@v4
@@ -45,14 +46,14 @@ jobs:
         run: |
           node scripts/ai-test-arena.mjs \
             --maps 3,4,5 --seeds 2026,2027 --seconds 240 \
-            --modes director --label before-73b8315 \
+            --modes director --label before-adbd6ebb \
             --output ai-arena-results/previous.json
       - name: Run improved AI against the identical opponent
         working-directory: candidate
         run: |
           node scripts/ai-test-arena.mjs \
             --maps 3,4,5 --seeds 2026,2027 --seconds 240 \
-            --modes director --label after-f328503 \
+            --modes director --label after-early-siege \
             --output ai-arena-results/current.json
       - name: Compare identical initial-world hashes and report actual gains
         working-directory: candidate

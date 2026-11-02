@@ -9,15 +9,15 @@ interface ProductionContext {
  knownTurrets:number; knownEnemyHQ:boolean; reserve:number; maxArmy:number;
  scores:Record<UnitKind,number>;defenseNeedsWorker:boolean;finishing:boolean;
 }
-/** A paid early rocket after the first scout vehicle covers the eventual tower
- * assault without claiming knowledge of an undiscovered enemy. Do not sacrifice
- * emergency defense, air counters or the opening economy in weak positions. */
+/** Secure the first paid artillery after a ground vehicle and a real
+ * infantry screen. The first armor purchase is not a reason to suppress
+ * the siege weapon. Uses own paid queue/army only, never hidden enemy data. */
 export function earlyArtilleryWindow(input:{
  factoryReady:boolean; artillery:number; rovers:number; tanks:number;
  fighters:number; income:number; underAttack:boolean; visibleEnemyAir:boolean; time:number;
 }):boolean{
- return input.factoryReady&&input.artillery===0&&input.rovers>=1&&input.tanks===0
-  &&input.fighters>=5&&input.income>=65&&input.time>=60&&input.time<210
+ return input.factoryReady&&input.artillery===0&&(input.rovers+input.tanks)>=1
+  &&input.fighters>=4&&input.income>=50&&input.time>=55&&input.time<210
   &&!input.underAttack&&!input.visibleEnemyAir;
 }
 /** Purchase priorities are persistent composition deficits, not affordable-unit scores.
@@ -65,10 +65,10 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
     count('artillery')===0&&(c.knownTurrets>0||s.battle?.assessment?.neededSiege))
    return 'artillery';
   const response=counter();if(response)return response;
-  // AI 4.8 diagnostics: factories are available around 68 seconds, but
-  // first artillery often takes 210-370 seconds. Use one optional early
-  // siege weapon only after a paid rover and an established funded army.
-  // A queued rocket counts as already purchased and avoids duplicate saving.
+  // Arena diagnostics: first artillery often arrives after 190 seconds.
+  // Reserve ONE early paid rocket after the first ground vehicle (rover
+  // OR tank) and a four-fighter screen, unless defense/air needs take priority.
+  // A queued rocket counts as paid, so no speculative double reservation.
   if(earlyArtilleryWindow({factoryReady:available('artillery'),
      artillery:count('artillery'),rovers:count('rover'),tanks:count('tank'),
      fighters,income:c.income,underAttack:c.underAttack,
