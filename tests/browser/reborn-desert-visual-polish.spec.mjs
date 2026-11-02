@@ -18,7 +18,11 @@ test('visual polish: mixed palm grove, open production shutters and grounded veh
     production:duration*.95,facing:0});
   g.bases=[make('factory',7010,1290,1510,18),make('barracks',7011,1790,1470,5)];
   g.territories=[];
+  const {palmGroup}=await import('/src/reborn/palm-grove.js');
+  const groveSite={kind:'palm',x:1370,y:1820,radius:40,rotation:0,variant:.3};
+  for(let i=0;i<80&&palmGroup(groveSite,g.seed,g.world.size).length!==3;i++)groveSite.x+=5;
   r.groundDetails=[
+   groveSite,
    {kind:'palm',x:1060,y:1370,radius:38,rotation:.2,variant:.2},
    {kind:'palm',x:1540,y:1710,radius:34,rotation:0,variant:.6},
    {kind:'palm',x:1970,y:1650,radius:28,rotation:.8,variant:.7},
@@ -42,7 +46,7 @@ test('visual polish: mixed palm grove, open production shutters and grounded veh
  });
  expect(result.gateCalls).toBeGreaterThanOrEqual(2);
  expect(result.vehicles).toBe(2);
- expect(result.count).toBeGreaterThanOrEqual(3);
+ expect(result.count).toBeGreaterThanOrEqual(6);
  expect(result.unchanged).toBe(true);
  expect(result.gateProgress).toBe(true);
  await page.screenshot({path:'artifacts/reborn/desert-visual-polish.png'});
