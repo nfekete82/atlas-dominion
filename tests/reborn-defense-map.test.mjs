@@ -23,7 +23,14 @@ for(const owner of [0,1])for(const kind of ['infantry','tank','scout'])test(`def
 
 test('defense: a bastion is not a combat target; nearby enemy units are acquired at 500 and locks remain stable',()=>{
  const g=fixture(),t=g.territories[14],p={x:t.point.x,y:t.point.y+20},b=turret(g,0,{x:p.x-500,y:p.y}),a=opponent(g,0,p),c=opponent(g,0,{x:p.x+50,y:p.y});
- const snapshot=structuredClone(t);g.updateVision();g.step();assert.equal(b.turretTarget,a.id);Object.assign(c,{x:b.x+100,y:b.y+70});g.step();assert.equal(b.turretTarget,a.id);a.hp=0;g.step();assert.equal(b.turretTarget,c.id);assert.deepEqual(t,snapshot);
+ const snapshot=structuredClone(t);g.updateVision();g.step();assert.equal(b.turretTarget,a.id);Object.assign(c,{x:b.x+100,y:b.y+70});g.step();assert.equal(b.turretTarget,a.id);a.hp=0;g.step();assert.equal(b.turretTarget,c.id);
+ // A sector cannot become the tower's combat target; nevertheless, standing
+ // enemy infantry legitimately starts its independent capture progress.
+ assert.equal(t.owner,snapshot.owner);
+ assert.deepEqual(t.polygon,snapshot.polygon);
+ assert.deepEqual(t.neighbors,snapshot.neighbors);
+ assert.equal(t.income,snapshot.income);
+ assert.ok(t.progress>0&&t.capturing===1,'real capture pressure must continue during tower combat');
 });
 
 test('defense: sight extends to 750 but weapon range ends at exactly 600',()=>{
