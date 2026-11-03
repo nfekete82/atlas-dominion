@@ -21,6 +21,13 @@ function setText(id:string,value:string):void{text(el(id),value);}
 function setHtml(id:string,value:string):void{const node=el(id);if(node.innerHTML!==value)node.innerHTML=value;}
 for(const span of document.querySelectorAll<HTMLElement>('[data-icon]'))span.innerHTML=icon(span.dataset.icon!);
 const query=new URLSearchParams(location.search);
+const previewEarlyBarracks=query.get('aiOpening')==='early-barracks';
+/** Explicit local opt-in, never persisted as a hidden difficulty advantage. */
+function applyAiOpeningPreview(game:Simulation):Simulation{
+ if(previewEarlyBarracks&&game.world.mapVersion===11)
+  game.tactical.earlyEconomyMode='barracks-first';
+ return game;
+}
 if(query.has('debug')&&query.has('perf')){const recorder=new PerformanceRecorder();setProfiler(recorder);if(!query.has('perfTest'))mountPerformancePanel(recorder);}
 // Explicit legacy fixture for regression checks; normal launches always roll a new seed.
 let selectedMapVersion:MapVersion=query.has('debug')?2:CAMPAIGN_SIZES.medium;
@@ -33,7 +40,7 @@ const createCampaign=()=>{
   const profile=loadAiLearningProfile();
   if(profile)campaign.tactical.state.experience=profile;
  }
- return campaign;
+ return applyAiOpeningPreview(campaign);
 };
 el<HTMLInputElement>('carry-ai-learning').checked=readAiLearningPreference();
 el<HTMLInputElement>('carry-ai-learning').onchange=()=>storeAiLearningPreference(el<HTMLInputElement>('carry-ai-learning').checked);
@@ -312,7 +319,7 @@ function refreshMeasured():void{
    resultShown=true;closeDialogs();setPause(true);setText('result-title',game.status==='victory'?'Sandforge gesichert.':'Die Legion ist gefallen.');setText('result-copy',game.status==='victory'?(game.needsHeadquarters(1)&&!game.units.some(u=>u.owner===1&&u.kind==='engineer'&&u.hp>0)?'Der Gegner hat kein Hauptquartier und keinen Pionier mehr. Sein Basisaufbau ist beendet.':`Das feindliche Hauptquartier und seine ${mapLayout(game.world.mapVersion).starts[1].length} Startgebiete sind unter deiner Kontrolle.`):game.needsHeadquarters(0)?'Kein Hauptquartier und kein einsatzfähiger Pionier mehr. Deine Basis kann nicht aufgebaut werden.':'Deine Produktionsstätten und Truppen wurden vernichtet.');el<HTMLDialogElement>('result-dialog').showModal();}
 }
 async function save():Promise<void>{if(busy)return;busy=true;try{syncCampaignHistory(true);await saveCampaign(game);if(!query.has('debug')&&readAiLearningPreference())saveAiLearningProfile(game.tactical.state.experience);notify('Kampagne lokal gespeichert.');}catch(e){notify((e as Error).message);}finally{busy=false;}}
-async function load():Promise<void>{if(busy)return;busy=true;try{const loaded=await loadCampaign();retireCampaignHistory();hasEnteredCampaign=true;closeDialogs();game=loaded;
+async function load():Promise<void>{if(busy)return;busy=true;try{const loaded=await loadCampaign();retireCampaignHistory();hasEnteredCampaign=true;closeDialogs();game=applyAiOpeningPreview(loaded);
   campaignReport=query.has('debug')?null:readCampaignReports().find(r=>r.seed===(game.seed>>>0)&&r.mapVersion===game.world.mapVersion&&r.result==='running'&&r.seconds<=game.time+.01)??newCampaignReport(game);
   historyPersistAt=-10;syncCampaignHistory(true);qwenGeneral.resetCampaign();audio.bindGame(game);renderer.game=game;renderer.invalidate();renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;renderer.placement=null;renderer.commandMode=null;renderer.canvas.classList.remove('attack','building');renderer.home();prepareTerritories();selectOpeningWorker();resultShown=false;accumulator=0;setPause(false);refresh();notify('Kampagne geladen.');}catch(e){notify((e as Error).message);}finally{busy=false;}}
 el('resume-tactical').onclick=()=>setPause(false);
