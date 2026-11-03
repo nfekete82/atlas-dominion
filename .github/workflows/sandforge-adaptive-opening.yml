@@ -1,0 +1,52 @@
+name: Sandforge adaptive opening strategy A/B
+on:
+  push:
+    branches: [feat/sandforge-adaptive-opening-20261103]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node --test tests/sandforge-ai-tournament.test.mjs tests/sandforge-four-bastion-postmortem.test.mjs tests/reborn-combat-missions.test.mjs tests/reborn-commander.test.mjs
+  paired:
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        opponent: [guarded, pressure, expansion, armored]
+        cohort: [original, prior-holdout, new-holdout]
+        include:
+          - cohort: original
+            seeds: '2026,2027,2028,2029'
+          - cohort: prior-holdout
+            seeds: '2030,2031,2032,2033'
+          - cohort: new-holdout
+            seeds: '2038,2039,2040,2041'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Same-state paid adaptive opening tournament
+        run: node scripts/ai-strategy-tournament.mjs --opponents "${{ matrix.opponent }}" --seeds "${{ matrix.seeds }}" --seconds 360 --contenders current,early-barracks,adaptive-opening --output ai-arena-results/adaptive-${{ matrix.opponent }}-${{ matrix.cohort }}.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: adaptive-${{ matrix.opponent }}-${{ matrix.cohort }}
+          path: ai-arena-results/adaptive-${{ matrix.opponent }}-${{ matrix.cohort }}.json
+          retention-days: 21
