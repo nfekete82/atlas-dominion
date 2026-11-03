@@ -11,7 +11,7 @@ export type CampaignPhase='opening'|'expansion'|'buildup'|'offensive'|'siege'|'e
 export interface WarMission extends Point {kind:'capture'|'structure'|'hunt';sector:number;objective:number|null;since:number;progressAt:number;distance:number;hp:number}
 export interface ReconTask extends Point {unit:number;since:number}
 export interface CampaignState {version:1;phase:CampaignPhase;phaseSince:number;mission?:WarMission;recon:ReconTask[];survey:{x:number;y:number;at:number}[];intel:{id:number;seenAt:number}[];aborted:number;observedEnemyHQ?:Point&{id:number};enemyHQEliminatedAt?:number;alternatives?:{sector:number;score:number;expectedLoss:number;budgetCost:number}[]}
-export interface MissionContext {strategy:EnemyStrategy;force:Unit[];losses:Loss[];fronts:FailedFront[];route:(p:Point)=>{length:number;risk:number}|undefined;intelligent?:boolean;experience?:Experience}
+export interface MissionContext {strategy:EnemyStrategy;force:Unit[];losses:Loss[];fronts:FailedFront[];route:(p:Point)=>{length:number;risk:number}|undefined;intelligent?:boolean;experience?:Experience;measuredEscape?:boolean;committedArtillery?:boolean}
 export const newCampaign=():CampaignState=>({version:1,phase:'opening',phaseSince:0,recon:[],survey:[],intel:[],aborted:0});
 /** Preserve a recent, observed tower objective after confirmed HQ loss,
  * unless the screen suffers substantial losses or artillery disappears. */
@@ -47,10 +47,60 @@ export function refreshIntelligence(g:Simulation,s:CampaignState):void{
  }
  s.survey=s.survey.filter(p=>g.time-p.at<180).slice(-64);
 }
+/** Only public sectors, RED-visible opponents and RED-known structures may
+ * justify escaping a stalled, tower-blocked assault. Never infer hidden safety.
+ * No diversion once a paid siege weapon is fielded or funds committed. */
+export function findReachableUnfortifiedFront(x:{
+ active:boolean;ageSinceProgress:number;fieldFighters:number;hasArtillery:boolean;
+ committedArtillery:boolean;homeThreat:boolean;blockedByKnownTurret:boolean;
+ fronts:{id:number;owner:number;adjacent:boolean;knownDefense:boolean;
+  visibleDefenders:number;routeLength:number;routeRisk:number;income:number}[];
+}):number|null{
+ if(!x.active||x.ageSinceProgress<42||x.fieldFighters<4||x.hasArtillery||
+  x.committedArtillery||x.homeThreat||!x.blockedByKnownTurret)return null;
+ const suitable=x.fronts.filter(t=>t.adjacent&&t.owner!==1&&!t.knownDefense&&
+  t.visibleDefenders===0&&Number.isFinite(t.routeLength)&&t.routeLength>0&&
+  t.routeLength<=2200&&Number.isFinite(t.routeRisk)&&t.routeRisk>=0&&t.routeRisk<6);
+ suitable.sort((a,b)=>(a.routeLength+a.routeRisk*100-a.income*10-(a.owner===0?350:0))-
+  (b.routeLength+b.routeRisk*100-b.income*10-(b.owner===0?350:0))||a.id-b.id);
+ return suitable[0]?.id??null;
+}
+
 /** Stable goals survive captures: a remembered HQ in an already owned sector
  * remains a war objective until its destruction has actually been observed. */
 export function chooseMission(g:Simulation,s:CampaignState,origin:Point,context?:MissionContext):WarMission|undefined{
  const buildings=knownBuildings(g),old=s.mission;
+ if(old&&context?.measuredEscape&&old.kind==='structure'&&
+   old.objective!==null&&g.world.mapVersion===11&&g.time>=75){
+  const site=buildings.find(b=>b.id===old.objective);
+  const visibleHomeAttack=g.bases.some(b=>b.owner===1&&b.hp>0&&
+   g.units.some(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)&&distance(u,b)<440));
+  const decision=findReachableUnfortifiedFront({
+   active:!!site,ageSinceProgress:g.time-old.progressAt,
+   fieldFighters:context.force.filter(u=>u.hp>0&&!u.carrier).length,
+   hasArtillery:context.force.some(u=>u.kind==='artillery'&&u.hp>0),
+   committedArtillery:!!context.committedArtillery,
+   homeThreat:visibleHomeAttack,
+   blockedByKnownTurret:buildings.some(b=>b.kind==='turret'&&distance(b,old)<680),
+   fronts:g.territories.filter(t=>t.owner!==1).map(t=>{
+    const route=context.route(t.point);
+    return {id:t.id,owner:t.owner,income:t.income,
+     adjacent:t.neighbors.some(id=>g.territories[id]?.owner===1),
+     knownDefense:buildings.some(b=>distance(b,t.point)<690&&
+      ['headquarters','turret'].includes(b.kind??'')),
+     visibleDefenders:g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&
+      g.canSee(1,u)&&distance(u,t.point)<400).length,
+     routeLength:route?.length??Infinity,routeRisk:route?.risk??Infinity};
+   })
+  });
+  if(decision!==null){
+   const target=g.territories[decision];
+   s.aborted++;
+   return s.mission={kind:'capture',x:target.point.x,y:target.point.y,
+    sector:target.id,objective:null,hp:0,since:g.time,progressAt:g.time,
+    distance:distance(origin,target.point)};
+  }
+ }
  if(old){
   const remembered=old.objective===null?undefined:buildings.find(b=>b.id===old.objective);
   const enemy=old.kind==='hunt'?g.units.find(u=>u.id===old.objective&&u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)):undefined;
