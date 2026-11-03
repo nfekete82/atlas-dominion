@@ -116,6 +116,8 @@ export class TacticalAI {
  doctrineMode:'legacy'|'intelligent'='intelligent';
  /** Opt-in: paid barracks before standard 25s strategic opening. */
  earlyEconomyMode:'classic'|'barracks-first'='classic';
+ /** Opt-in A/B: resume stalled paid factory construction, never grant units. */
+ constructionRecoveryMode:'off'|'stalled-factory'='off';
  /** Experimental ablations: opt-in per-component doctrine comparisons. */
  missionPlannerMode:'inherit'|'legacy'='inherit';
  siegeEvaluationMode:'inherit'|'legacy'='inherit';

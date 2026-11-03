@@ -1,0 +1,70 @@
+name: Sandforge critical paid factory recovery A/B
+on:
+  push:
+    branches: [feat/sandforge-critical-construction-recovery-20261103]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node --test tests/sandforge-critical-construction-recovery.test.mjs tests/sandforge-ai-tournament.test.mjs tests/reborn-commander.test.mjs tests/reborn-combat-missions.test.mjs
+  terminal-failure:
+    needs: regressions
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: A/B same-world 900s formerly stalled guarded seed
+        run: node scripts/ai-strategy-tournament.mjs --opponents guarded --seeds 2075 --seconds 900 --contenders current,early-barracks,critical-factory --output ai-arena-results/critical-guarded-2075-900.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: critical-guarded-2075-900
+          path: ai-arena-results/critical-guarded-2075-900.json
+          retention-days: 21
+  matchups:
+    needs: regressions
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        opponent: [guarded, pressure, expansion, armored]
+        cohort: [known, unseen]
+        include:
+          - cohort: known
+            seeds: '2026,2028,2029,2075'
+          - cohort: unseen
+            seeds: '2076,2077,2078,2079'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Paid, equal-state full 360s A/B with three contenders
+        run: node scripts/ai-strategy-tournament.mjs --opponents "${{ matrix.opponent }}" --seeds "${{ matrix.seeds }}" --seconds 360 --contenders current,early-barracks,critical-factory --output ai-arena-results/critical-${{ matrix.opponent }}-${{ matrix.cohort }}.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: critical-${{ matrix.opponent }}-${{ matrix.cohort }}
+          path: ai-arena-results/critical-${{ matrix.opponent }}-${{ matrix.cohort }}.json
+          retention-days: 21
