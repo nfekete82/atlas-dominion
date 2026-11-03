@@ -1,0 +1,22 @@
+name: Sandforge Canyon Front prototype validation
+on:
+  push:
+    branches: [feat/sandforge-canyon-ruins-v1-20261103]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  canyon:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Compile project and terrain features
+        run: npm run build
+      - name: Verify cliff navigation, ramps, ruins, old saves and seed determinism
+        run: node --test tests/sandforge-canyon-front.test.mjs tests/sandforge-canyon-models.test.mjs tests/reborn-campaign.test.mjs tests/reborn-buildings.test.mjs

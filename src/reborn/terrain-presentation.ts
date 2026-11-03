@@ -2,6 +2,7 @@ import { type Point } from './config.js';
 import { type World } from './world.js';
 import { seededRandom, type Mesa, type MesaColumn } from './world-generation.js';
 import {fineSandPattern} from './fine-sand.js';
+import {paintCanyonRidges,paintCanyonRuins,paintCanyonRoads} from './canyon-front.js';
 
 function polygon(c:CanvasRenderingContext2D,points:Point[],color:string):void {
   c.beginPath();points.forEach((p,i)=>i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y));c.closePath();c.fillStyle=color;c.fill();
@@ -86,15 +87,18 @@ function sandPattern(c:CanvasRenderingContext2D,image:HTMLImageElement):CanvasPa
 /** Native-resolution relief with granular sand and shallow, traversable dunes. */
 export function paintGeneratedTerrain(canvas:HTMLCanvasElement,world:World,sand:HTMLImageElement,stone:HTMLImageElement):void {
   canvas.width=canvas.height=world.size;const c=canvas.getContext('2d',{willReadFrequently:true})!,random=seededRandom(world.seed^0x12bda3),pixels=c.createImageData(world.size,world.size);
-  const broad=new Float32Array(33*33);for(let i=0;i<broad.length;i++)broad[i]=(random()-.5)*17;
+  const noiseSide=Math.ceil(world.size/128)+2,broad=new Float32Array(noiseSide*noiseSide);for(let i=0;i<broad.length;i++)broad[i]=(random()-.5)*17;
   for(let y=0;y<world.size;y++)for(let x=0;x<world.size;x++){
     const gx=x/128,gy=y/128,ix=Math.floor(gx),iy=Math.floor(gy),fx=gx-ix,fy=gy-iy;
-    const n=(broad[iy*33+ix]*(1-fx)+broad[iy*33+ix+1]*fx)*(1-fy)+(broad[(iy+1)*33+ix]*(1-fx)+broad[(iy+1)*33+ix+1]*fx)*fy;
+    const n=(broad[iy*noiseSide+ix]*(1-fx)+broad[iy*noiseSide+ix+1]*fx)*(1-fy)+(broad[(iy+1)*noiseSide+ix]*(1-fx)+broad[(iy+1)*noiseSide+ix+1]*fx)*fy;
     const grain=(random()-.5)*3,i=(y*world.size+x)*4;
     pixels.data[i]=222+n+grain;pixels.data[i+1]=180+n*.85+grain;pixels.data[i+2]=113+n*.65+grain;pixels.data[i+3]=255;
   }
   c.putImageData(pixels,0,0);
   const pattern=fineSandPattern(c,sand);pattern.setTransform(new DOMMatrix().translate(Math.floor(random()*1240),Math.floor(random()*1240)).scale(.62));
   c.save();c.globalAlpha=.80;c.fillStyle=pattern;c.fillRect(0,0,world.size,world.size);c.restore();
+  if(world.generated!.ridges.length)paintCanyonRoads(c,world.generated!.corridors,world.seed);
   paintMesas(c,world.generated!.mesas,world.seed,stone);
+  if(world.generated!.ridges.length)paintCanyonRidges(c,world.generated!.ridges);
+  if(world.generated!.ruins.length)paintCanyonRuins(c,world.generated!.ruins);
 }

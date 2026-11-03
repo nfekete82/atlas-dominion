@@ -1,4 +1,5 @@
 import { RULES, mapLayout, campaignLayout, mapWorldSize, type MapVersion, type Point } from './config.js';
+import {generateCanyonFeatures,canyonRuinBlocked,type CanyonRidge,type CanyonRuin} from './canyon-front.js';
 
 /** Versioned, deterministic geometry. Old saves continue to use the original map. */
 export const MAP_VERSION = 2;
@@ -6,7 +7,7 @@ export const BASTION_SPACING = mapLayout(MAP_VERSION).spacing;
 export const CORRIDOR_RADIUS = 85;
 export interface MesaColumn { base:Point[]; top:Point[]; height:number; shade:number }
 export interface Mesa { columns:MesaColumn[]; outline:Point[]; crystals:Point|null }
-export interface GeneratedMap { sites:Point[]; mesas:Mesa[]; corridors:[Point,Point][] }
+export interface GeneratedMap { sites:Point[]; mesas:Mesa[]; corridors:[Point,Point][]; ridges:CanyonRidge[]; ruins:CanyonRuin[] }
 export function seededRandom(seed:number):()=>number {
   let state=seed>>>0;
   return ()=>{state=(state+0x6d2b79f5)>>>0;let n=state;n=Math.imul(n^(n>>>15),n|1);n^=n+Math.imul(n^(n>>>7),n|61);return ((n^(n>>>14))>>>0)/4294967296;};
@@ -44,10 +45,12 @@ export function generateMap(seed:number,version:Exclude<MapVersion,0>=MAP_VERSIO
   }
   const corridors:[Point,Point][]=[];
   sites.forEach((p,i)=>{if(i%cols<cols-1)corridors.push([p,sites[i+1]]);if(i<count-cols)corridors.push([p,sites[i+cols]]);});
+  // New canyon-only geometry. Previous map versions keep identical world tiles.
+  const canyon=version>=15?generateCanyonFeatures(seed,size,cols,rows,sites,corridors):{ridges:[],ruins:[]};
   const reserved=new Uint8Array(grid*grid),occupied=new Uint8Array(grid*grid);
   for(let i=0;i<reserved.length;i++){
     const p={x:(i%grid+.5)*cell,y:(Math.floor(i/grid)+.5)*cell};
-    if(sites.some((s,j)=>Math.hypot(p.x-s.x,p.y-s.y)<(layout.headquarters.some(id=>id===j)?version>=2?Math.min(520,w*.7):335:version>=2?Math.min(230,w*.38):155))||corridors.some(([a,b])=>segmentDistance(p,a,b)<CORRIDOR_RADIUS+cell))reserved[i]=1;
+    if(sites.some((s,j)=>Math.hypot(p.x-s.x,p.y-s.y)<(layout.headquarters.some(id=>id===j)?version>=2?Math.min(520,w*.7):335:version>=2?Math.min(230,w*.38):155))||corridors.some(([a,b])=>segmentDistance(p,a,b)<CORRIDOR_RADIUS+cell)||canyon.ridges.some(r=>r.spine.slice(1).some((b,j)=>segmentDistance(p,r.spine[j],b)<r.width+125))||canyon.ruins.some(r=>canyonRuinBlocked(p,r,95)))reserved[i]=1;
   }
   const mesas:Mesa[]=[];
   for(let attempt=0;attempt<900&&mesas.length<Math.max(12,Math.round(44*(size/RULES.worldSize)**2));attempt++){
@@ -80,5 +83,5 @@ export function generateMap(seed:number,version:Exclude<MapVersion,0>=MAP_VERSIO
     const foot=outline.reduce((a,b)=>a.y>b.y?a:b);
     mesas.push({columns,outline,crystals:rand()<.32?{x:foot.x+10,y:foot.y-5}:null});
   }
-  return {sites,mesas,corridors};
+  return {sites,mesas,corridors,...canyon};
 }
