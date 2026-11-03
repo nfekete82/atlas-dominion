@@ -1,0 +1,56 @@
+name: Sandforge strategy tournament
+on:
+  push:
+    branches: [feat/sandforge-ai-tournament-economy-20261103]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node --test tests/sandforge-ai-economy-tournament.test.mjs tests/reborn-combat-missions.test.mjs tests/reborn-commander.test.mjs tests/reborn-control-retreat.test.mjs
+  tournament-guarded-rush:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node scripts/benchmark-ai-tournament.mjs --profiles guarded,rush --seconds 360 --seeds 2026,2027,2028,2029,2030,2031 --output ai-arena-results/tournament-guarded-rush.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tournament-guarded-rush
+          path: ai-arena-results/tournament-guarded-rush.json
+          retention-days: 14
+  tournament-expansion:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node scripts/benchmark-ai-tournament.mjs --profiles expansion --seconds 360 --seeds 2026,2027,2028,2029,2030,2031 --output ai-arena-results/tournament-expansion.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tournament-expansion
+          path: ai-arena-results/tournament-expansion.json
+          retention-days: 14
