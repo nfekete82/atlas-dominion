@@ -37,3 +37,22 @@ test('classic policy is default and is never serialized into a saved match',()=>
  assert.equal(g.save().ai?.sectorDefenseMode,undefined);
  assert.equal(Simulation.load(g.save()).tactical.sectorDefenseMode,'classic');
 });
+
+test('remote sector defense never steals the ongoing assault army in reserve-only mode',()=>{
+ const g=new Simulation(2026,11);g.aiClock=-1e8;
+ const t=g.territories.find(t=>t.owner===-1);
+ t.owner=1;
+ const home=g.bases.find(b=>b.owner===1&&b.kind==='headquarters');
+ // Same visible opponent with the same paid fighters; remote reaction must
+ // not overwrite an assault when the small reserve cannot defend the sector.
+ const attackers=[g.spawn(1,{x:t.point.x-300,y:t.point.y-80},'heavy'),
+   g.spawn(1,{x:t.point.x-310,y:t.point.y-50},'infantry')];
+ const reserve=g.spawn(1,{x:t.point.x-350,y:t.point.y-60},'infantry');
+ g.tactical.sectorDefenseMode='reserved';
+ g.tactical.state.group=attackers.map(u=>u.id);
+ const before=attackers.map(u=>({id:u.id,orders:structuredClone(u.orders)}));
+ const blue=g.spawn(0,{x:t.point.x+55,y:t.point.y},'heavy');
+ const defended=g.tactical.localDefense([...attackers,reserve],[],[blue],home);
+ assert.equal(defended.size,0);
+ assert.deepEqual(attackers.map(u=>({id:u.id,orders:u.orders})),before);
+});
