@@ -6,6 +6,7 @@ COPY legacy ./legacy
 COPY scripts/build.mjs ./scripts/build.mjs
 COPY scripts/animation/model-viewer.js ./scripts/animation/model-viewer.js
 COPY scripts/webgl-preview.js ./scripts/webgl-preview.js
+COPY scripts/webgl-battlefield.js ./scripts/webgl-battlefield.js
 RUN npm install --no-audit --no-fund && npm run build
 
 FROM node:22-alpine
