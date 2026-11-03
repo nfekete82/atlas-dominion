@@ -137,7 +137,7 @@ export function runTournament(opts){
    report.results.push(row);report.completed++;
    persist(opts.output,report);
    console.log('match '+report.completed+'/'+expected,opponent,seed,strategy,
-    row.outcome,'captures='+row.captures,'deaths='+row.redUnitsLost,'HQ='+Math.round(row.enemyHQDamage));
+    row.outcome,'captures='+row.captures,'deaths='+row.redUnitsLost,'HQ='+Math.round(row.enemyHQDamage),'forwardLaunches='+row.forwardCaptureLaunches,'attackSeconds='+Math.round(row.attackingSeconds));
   }
  }
  report.complete=true;report.analysis=summarizeTournament(report.results,opts.contenders,opts.opponents,opts.seeds);
