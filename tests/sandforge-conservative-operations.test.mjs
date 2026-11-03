@@ -63,12 +63,14 @@ test('conservative operations: defensive priority and revealed obstacles cannot 
   enemyHQEliminated:false,observedEnemyHQ:false,
   visibleHomeThreat:false,knownEnemyTowerCount:1,
   fronts:[{sector:2,owner:0,income:25,routeLength:800,routeRisk:1,
-   observedTower:false,observedHQ:false,visibleFighters:0}]};
+   observedTower:false,observedHQ:false,visibleFighters:0,currentlyVisible:true}]};
  assert.equal(chooseOperation(view).next.mode,'expand');
  assert.equal(chooseOperation({...view,visibleHomeThreat:true}).next.mode,'defend');
  assert.equal(chooseOperation({...view,hasArtillery:true}).next.mode,'siege');
  assert.equal(chooseOperation({...view,fronts:[{...view.fronts[0],observedTower:true}]}).openFront,null);
  assert.equal(chooseOperation({...view,fronts:[{...view.fronts[0],visibleFighters:1}]}).openFront,null);
+ assert.equal(chooseOperation({...view,fronts:[{...view.fronts[0],currentlyVisible:false}]}).openFront,null,
+  'fog-hidden capture point cannot be treated as observed safe route');
 });
 
 test('conservative operations: own opening inventory and purchased costs remain unchanged',()=>{
