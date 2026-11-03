@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {Simulation} from '/src/reborn/simulation.js';
-import {canyonGroundSampler,rampAtX} from '/src/reborn/canyon-height.js';
+import {canyonGroundSampler,rampAtX,ridgeCenterY} from '/src/reborn/canyon-height.js';
 
 /** Opt-in WebGL scene using the real authoritative Sandforge map and simulation.
  * This page is isolated from the production Canvas renderer, save format and AI
@@ -46,7 +46,13 @@ sun.target.position.set(0,0,0);scene.add(sun,sun.target);
 const fill=new THREE.DirectionalLight('#b9d6dc',.65);
 fill.position.set(650,500,-450);scene.add(fill);
 const camera=new THREE.OrthographicCamera(-680,680,410,-410,10,12000);
-const cameraTarget=new THREE.Vector3(0,50,0);
+// Initial framing presents a real ruin and the adjacent ridge in one view,
+ // rather than an empty central section of sand.
+ const feature=terrain.ruins.slice().sort((a,b)=>
+  Math.hypot(a.x-half,a.y-half)-Math.hypot(b.x-half,b.y-half))[0];
+ const focalX=feature?.x??half;
+ const focalZ=feature&&ridge?(feature.y+ridgeCenterY(ridge,feature.x))*.5:half;
+ const cameraTarget=new THREE.Vector3(focalX-half,heightAt(focalX,focalZ)+42,focalZ-half);
 camera.position.copy(cameraTarget).add(new THREE.Vector3(1050,1200,1450));
 camera.lookAt(cameraTarget);
 const controls=new OrbitControls(camera,renderer.domElement);
@@ -156,29 +162,35 @@ function instancedStone(){
  return counts.reduce((a,b)=>a+b,0);
 }
 function sandRoads(){
- // Subdued, discontinuous rutted sand paths. No floating grey road rectangles.
+ // Discontinuous sandy tire marks share one GPU draw call, not thousands of
+ // individual meshes. Gaps and imperfect widths imply old worn tracks.
  const material=pbr('#99704b'),geometry=new THREE.PlaneGeometry(1,1);
  geometry.rotateX(-Math.PI/2);
- const r=rnd(seed^0x2023cb47),group=new THREE.Group();
+ const r=rnd(seed^0x2023cb47),dummy=new THREE.Object3D();
+ const tracks=new THREE.InstancedMesh(geometry,material,5000);
+ let count=0;
  for(const [a,b] of terrain.corridors){
   if(r()>.7)continue;
   const dx=b.x-a.x,dz=b.y-a.y,d=Math.hypot(dx,dz),steps=Math.floor(d/36);
   const heading=Math.atan2(dx,dz);
   for(let i=0;i<steps;i++){
-   if(i%9===0||r()>.72)continue;
+   if(i%9===0||r()>.72||count>=4998)continue;
    const t=(i+.5)/steps,x=a.x+dx*t,z=a.y+dz*t;
-   if(world.blocked[world.index({x,y:z})])continue;
+   const index=world.index({x,y:z});
+   if(index<0||world.blocked[index])continue;
    for(const offset of [-14,14]){
     const px=x+offset*Math.cos(heading),pz=z-offset*Math.sin(heading);
-    const plane=new THREE.Mesh(geometry,material);
-    plane.position.set(px-half,heightAt(px,pz)+.46,pz-half);
-    plane.scale.set(4+r()*3,1,16+r()*7);
-    plane.rotation.y=heading;
-    group.add(plane);
+    dummy.position.set(px-half,heightAt(px,pz)+.46,pz-half);
+    dummy.scale.set(4+r()*3,1,16+r()*7);
+    dummy.rotation.set(0,heading,0);dummy.updateMatrix();
+    tracks.setMatrixAt(count++,dummy.matrix);
    }
   }
  }
- scene.add(group);
+ tracks.count=count;
+ tracks.instanceMatrix.needsUpdate=true;
+ tracks.frustumCulled=false;
+ scene.add(tracks);
 }
 function marker(position,color,radius=37){
  const ring=new THREE.Mesh(new THREE.TorusGeometry(radius,2.3,6,48),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.86}));
@@ -325,7 +337,7 @@ function spin(angle){
  camera.lookAt(controls.target);controls.update();
 }
 $('home').onclick=()=>{
- controls.target.set(0,50,0);camera.position.set(1050,1200,1450);
+ controls.target.copy(cameraTarget);camera.position.copy(cameraTarget).add(new THREE.Vector3(1050,1200,1450));
  camera.zoom=1;camera.updateProjectionMatrix();controls.update();
 };
 $('load').onclick=()=>{
