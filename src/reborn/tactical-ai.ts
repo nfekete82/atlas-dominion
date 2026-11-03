@@ -116,6 +116,8 @@ export class TacticalAI {
  doctrineMode:'legacy'|'intelligent'='intelligent';
  /** Opt-in: paid barracks before standard 25s strategic opening. */
  earlyEconomyMode:'classic'|'barracks-first'='classic';
+ /** Benchmark-only wider peaceful rally radius; no safety-gate bypass. */
+ rallyTempoMode:'standard'|'extended'='standard';
  /** Experimental ablations: opt-in per-component doctrine comparisons. */
  missionPlannerMode:'inherit'|'legacy'='inherit';
  siegeEvaluationMode:'inherit'|'legacy'='inherit';
@@ -751,7 +753,10 @@ export class TacticalAI {
   let members=selected.filter(u=>s.group.includes(u.id));
   if(s.phase==='attack'&&members.length<Math.max(1,Math.ceil(s.launchSize*.4))){g.stop(s.group.filter(id=>fighters.some(u=>u.id===id)));s.group=[];members=[];s.launchSize=0;this.setPhase('regroup');c.aborted++;}
   const continuing=s.phase==='attack'&&members.length>0;
-  const battle=s.battle??=newBattle(),readyForce=continuing?members:selected.filter(u=>distance(u,s.rally!)<330);
+  // On observed peaceful fronts only, nearby paid units may join the rally
+  // sooner. Known towers and visible enemy forces retain original spacing.
+  const readinessRadius=this.rallyTempoMode==='extended'&&!towers.length&&!visible.length?410:330;
+  const battle=s.battle??=newBattle(),readyForce=continuing?members:selected.filter(u=>distance(u,s.rally!)<readinessRadius);
   // Keep safe, in-range rockets firing while the screen reforms. The existing
   // normal rally, turret threat and emergency defense logic remain unchanged.
   const safeBattery=new Set<number>();
@@ -832,7 +837,7 @@ export class TacticalAI {
    }
   }
   if(!continuing){
-   const ready=selected.filter(u=>distance(u,s.rally!)<330),power=ready.reduce((n,u)=>n+combatStrength(u),0);
+   const ready=selected.filter(u=>distance(u,s.rally!)<readinessRadius),power=ready.reduce((n,u)=>n+combatStrength(u),0);
    const armed=ready.some(u=>u.kind==='artillery'||u.kind==='tank');
    const enough=towers.length?(overrun||assessment.stance==='attack'||assessment.stance==='siege'):defended?ready.length>=3&&power>=5&&(armed||!towers.length&&ready.length>=5):ready.length>=(g.time<40?1:2);
    const wave=this.waveMode==='coordinated'

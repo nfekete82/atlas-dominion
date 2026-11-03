@@ -1,0 +1,50 @@
+name: Sandforge rally-tempo 900s paired no-regression test
+on:
+  push:
+    branches: [exp/sandforge-rally-readiness-tempo-20261103]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node --test tests/sandforge-ai-tournament.test.mjs tests/reborn-commander.test.mjs
+  paired:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        opponent: [guarded, pressure, expansion, armored]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Run 8 paid 900-second matches per opponent
+        run: >-
+          node scripts/ai-strategy-tournament.mjs
+          --seeds 2026,2029,2074,2075
+          --seconds 900
+          --opponents "${{ matrix.opponent }}"
+          --contenders current,rally-tempo
+          --output ai-arena-results/rally-tempo-${{ matrix.opponent }}.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rally-tempo-${{ matrix.opponent }}
+          path: ai-arena-results/rally-tempo-${{ matrix.opponent }}.json
+          retention-days: 21
