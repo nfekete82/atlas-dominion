@@ -75,7 +75,9 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
   if(target)g.command([w.id],{...target,kind:target.buildRemaining>0?'build':'repair',target:target.id});
  }
  let goal:BuildingKind|null=null;
- const wantCore=director&&(generators===0||siegeReserve===0)&&generatorBuildPriority({
+ const openingBarracks=director&&g.world.mapVersion===11&&
+  g.tactical.earlyEconomyMode==='barracks-first'&&!has('barracks');
+ const wantCore=director&&!openingBarracks&&(generators===0||siegeReserve===0)&&generatorBuildPriority({
   existing:generators,fighters:fighters.length,credits:g.credits[1],
   barracksReady:complete('barracks'),underAttack,finishing
  });
