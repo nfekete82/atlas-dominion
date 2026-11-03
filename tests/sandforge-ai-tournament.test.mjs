@@ -10,7 +10,7 @@ import {contactReinforcement,guardedContactReinforcement} from '../dist/src/rebo
 test('tournament: exactly four reproducible, legal BLUE opponents',()=>{
  assert.deepEqual(OPPONENTS,['guarded','pressure','expansion','armored']);
  assert.equal(new Set(OPPONENTS).size,4);
- assert.equal(new Set(CONTENDERS).size,15);
+ assert.equal(new Set(CONTENDERS).size,16);
  assert.throws(()=>scriptedBlueTurn(new Simulation(2026,11),'omniscient'));
 });
 test('tournament: flags validate seeds, complete A/B and real time horizon',()=>{
