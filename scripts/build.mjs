@@ -5,8 +5,11 @@ cpSync('index.html', 'dist/index.html');
 cpSync('animation-lab.html','dist/animation-lab.html');
 cpSync('model-preview.html','dist/model-preview.html');
 cpSync('model-3d.html','dist/model-3d.html');
+cpSync('webgl-preview.html','dist/webgl-preview.html');
+cpSync('scripts/webgl-preview.js','dist/webgl-preview.js');
 cpSync('scripts/animation/model-viewer.js','dist/model-viewer.js');
-// The isolated 3D model inspector uses these local modules; the game stays Canvas 2D.
+// WebGL preview and 3D inspector share the same local Three.js modules.
+// The production game continues to use its existing Canvas renderer.
 for(const file of ['build/three.module.js','build/three.core.js','examples/jsm/loaders/GLTFLoader.js','examples/jsm/controls/OrbitControls.js','examples/jsm/utils/BufferGeometryUtils.js','examples/jsm/environments/RoomEnvironment.js']){
   const target='dist/vendor/three/'+file.replace('build/','').replace('examples/jsm/','addons/');mkdirSync(target.slice(0,target.lastIndexOf('/')),{recursive:true});cpSync('node_modules/three/'+file,target);
 }
