@@ -5,11 +5,12 @@ import {OPPONENTS,scriptedBlueTurn} from '../scripts/ai-tournament-opponents.mjs
 import {CONTENDERS,configureContender,tournamentOptions,summarizeTournament} from '../scripts/ai-strategy-tournament.mjs';
 import {selectiveRaidAllowed} from '../dist/src/reborn/selective-raids.js';
 import {deferOpeningInvestment} from '../dist/src/reborn/army-economy.js';
+import {contactReinforcement} from '../dist/src/reborn/director-production.js';
 
 test('tournament: exactly four reproducible, legal BLUE opponents',()=>{
  assert.deepEqual(OPPONENTS,['guarded','pressure','expansion','armored']);
  assert.equal(new Set(OPPONENTS).size,4);
- assert.equal(new Set(CONTENDERS).size,12);
+ assert.equal(new Set(CONTENDERS).size,13);
  assert.throws(()=>scriptedBlueTurn(new Simulation(2026,11),'omniscient'));
 });
 test('tournament: flags validate seeds, complete A/B and real time horizon',()=>{
@@ -212,6 +213,35 @@ test('adaptive opening only responds to visible and public threats',()=>{
  configureContender(otherMap.tactical,'adaptive-opening');
  for(let i=0;i<240;i++)otherMap.step(.05);
  assert.equal(otherMap.bases.some(b=>b.owner===1&&b.kind==='barracks'),false);
+});
+test('post-contact policy buys only paid visible counters, with strict guards',()=>{
+ const x={mode:'adaptive-contact',mapVersion:11,time:105,finishing:false,
+  underAttack:false,visibleInfantry:0,visibleArmor:0,visibleAir:0,enemySectorLead:0,
+  livingLine:3,orderedLine:4,infantry:3,heavy:1,tank:0,factoryReady:false};
+ assert.equal(contactReinforcement(x),null,'no phantom opponent');
+ assert.equal(contactReinforcement({...x,visibleInfantry:2}),'infantry');
+ assert.equal(contactReinforcement({...x,visibleInfantry:2,heavy:0}),'heavy');
+ assert.equal(contactReinforcement({...x,underAttack:true,visibleInfantry:1}),'infantry');
+ assert.equal(contactReinforcement({...x,enemySectorLead:1}),'infantry');
+ assert.equal(contactReinforcement({...x,visibleArmor:1}),null,'no magical factory');
+ assert.equal(contactReinforcement({...x,visibleArmor:1,factoryReady:true}),'tank');
+ assert.equal(contactReinforcement({...x,visibleArmor:1,factoryReady:true,tank:1}),null);
+ for(const alt of [
+  {mode:'barracks-first'},{time:54},{time:211},{mapVersion:12},
+  {visibleAir:1},{livingLine:6},{orderedLine:7},{finishing:true}
+ ]){
+  assert.equal(contactReinforcement({...x,visibleInfantry:2,...alt}),null,
+   'must not override protected match states: '+JSON.stringify(alt));
+ }
+ const standard=new Simulation(2038,11),candidate=new Simulation(2038,11);
+ configureContender(standard.tactical,'early-barracks');
+ configureContender(candidate.tactical,'adaptive-contact');
+ for(let i=0;i<240;i++){standard.step(.05);candidate.step(.05);}
+ assert.deepEqual(candidate.bases,standard.bases,'early paid barracks remains untouched');
+ assert.deepEqual(candidate.credits,standard.credits,'no credit cheats');
+ assert.deepEqual(candidate.visible,standard.visible,'no modified fog');
+ assert.equal(candidate.tactical.state.lastPlan,-3,'no early military plan');
+ assert.equal(candidate.save().ai?.earlyEconomyMode,undefined);
 });
 test('paid opening is map-scoped and keeps ordinary 25s strategic timing',()=>{
  const larger=new Simulation(2026,12);

@@ -20,6 +20,30 @@ export function earlyArtilleryWindow(input:{
   &&input.fighters>=5&&input.income>=65&&input.time>=60&&input.time<210
   &&!input.underAttack&&!input.visibleEnemyAir;
 }
+/** Contextual paid reinforcement after first contact. Unlike opening gates,
+ * this can operate once both armies already have real units. Use only visible
+ * opponents and public sector ownership; queues count toward target ceilings. */
+export function contactReinforcement(input:{
+ mode:string;mapVersion:number;time:number;finishing:boolean;underAttack:boolean;
+ visibleInfantry:number;visibleArmor:number;visibleAir:number;enemySectorLead:number;
+ livingLine:number;orderedLine:number;infantry:number;heavy:number;tank:number;
+ factoryReady:boolean;
+}):UnitKind|null{
+ const x=input;
+ if(x.mode!=='adaptive-contact'||x.mapVersion!==11||x.time<55||x.time>210||
+  x.finishing||x.visibleAir>0)return null;
+ // One *observed* enemy vehicle warrants a paid tank counter; don't guess
+ // armor from an unseen factory and don't divert credits before factory ready.
+ if(x.visibleArmor>0)return x.factoryReady&&x.tank===0?'tank':null;
+ const contested=x.visibleInfantry>=2||x.underAttack&&x.visibleInfantry>0||
+  x.enemySectorLead>0&&x.time>=75;
+ if(!contested||x.livingLine>=6||x.orderedLine>=7)return null;
+ // Replace a depleted frontline with a single heavy, then affordable troops.
+ if(x.heavy<1&&x.livingLine>=2)return 'heavy';
+ if(x.infantry<5)return 'infantry';
+ return null;
+}
+
 /** Purchase priorities are persistent composition deficits, not affordable-unit scores.
  * Counts include paid queues, so one factory never reserves money for a unit it
  * has already ordered. Every purchase still goes through Simulation.recruit. */
@@ -65,6 +89,19 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
     count('artillery')===0&&(c.knownTurrets>0||s.battle?.assessment?.neededSiege))
    return 'artillery';
   const response=counter();if(response)return response;
+  const reinforcement=contactReinforcement({
+   mode:g.tactical.earlyEconomyMode,mapVersion:g.world.mapVersion,time:g.time,
+   finishing:c.finishing,underAttack:c.underAttack,
+   visibleInfantry:observed.infantry,visibleArmor:observed.armor,
+   visibleAir:observed.air,
+   enemySectorLead:g.territories.filter(t=>t.owner===0).length-
+    g.territories.filter(t=>t.owner===1).length,
+   livingLine:c.army.filter(u=>u.kind==='infantry'||u.kind==='heavy').length,
+   orderedLine:count('infantry')+count('heavy'),
+   infantry:count('infantry'),heavy:count('heavy'),tank:count('tank'),
+   factoryReady:available('tank')
+  });
+  if(reinforcement&&available(reinforcement))return reinforcement;
   // An observed siege earns its first paid rocket as soon as the factory
   // opens. While construction is unfinished, the same funds are reserved
   // from barracks and other producers by the macro controller.
