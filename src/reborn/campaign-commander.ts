@@ -132,12 +132,28 @@ export function chooseMission(g:Simulation,s:CampaignState,origin:Point,context?
   // At most the ranked mission candidates are resolved. Routes include
   // known hazards via the tactical controller; unseen enemy state is NEVER
   // consulted to manufacture strategic intelligence.
-  const candidates:OperationCandidate[]=choices.map(choice=>{
+  // Bound pathfinding work. The original controller explores only a handful
+  // of rated candidates, not every remembered building each macro pulse.
+  const ranked=choices.slice().sort((a,b)=>a.score-b.score||
+   a.sector-b.sector||(a.objective??0)-(b.objective??0));
+  const active=old&&ranked.find(c=>c.kind===old.kind&&
+   c.sector===old.sector&&c.objective===old.objective);
+  const pool=[...ranked.slice(0,4),
+   ...ranked.filter(c=>c.kind==='capture').slice(0,2),
+   ...(active?[active]:[])];
+  const inspected=new Set<string>();
+  const shortlist=pool.filter(c=>{
+   const key=c.kind+':'+(c.objective??c.sector);
+   if(inspected.has(key))return false;
+   inspected.add(key);return true;
+  });
+  const candidates:OperationCandidate[]=shortlist.map(choice=>{
    const route=context.route(choice.p);
    const territory=g.territories[choice.sector];
    return {key:choice.kind+':'+(choice.objective??choice.sector),
     kind:choice.kind,sector:choice.sector,objective:choice.objective,
     owner:territory.owner,income:territory.income,
+    legacyScore:choice.score,
     structureKind:choice.kind==='structure'?
      buildings.find(b=>b.id===choice.objective)?.kind??null:null,
     routeLength:route?.length??Infinity,routeRisk:route?.risk??Infinity,
