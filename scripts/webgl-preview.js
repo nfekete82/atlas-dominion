@@ -225,9 +225,10 @@ async function addRuins(){
  }
  return ruinMeshes.length;
 }
-async function addBases(){
+async function addBases(highDetail=true){
  const bases=game.bases.filter(b=>b.hp>0&&b.kind==='headquarters');
  for(const b of bases){baseModels.set(b.id,primitiveBase(b));marker(pos(b.x,b.y),b.owner===0?'#6ce1ff':'#ff8765',112);}
+ if(!highDetail)return 0;
  const load=await Promise.allSettled([0,1].map(owner=>tryModel('/src/assets/reborn/buildings-3d/headquarters-'+owner+'.glb')));
  for(const b of bases){
   const data=load[b.owner];if(data.status!=='fulfilled')continue;
@@ -260,8 +261,9 @@ function fallbackSoldier(unit){
  const weapon=new THREE.Mesh(new THREE.BoxGeometry(4,4,28),steel);weapon.position.set(8,24,-12);group.add(weapon);
  group.position.copy(pos(unit.x,unit.y));scene.add(group);return group;
 }
-async function loadUnits(){
+async function loadUnits(highDetail=true){
  for(const u of game.units.filter(u=>u.hp>0&&!u.carrier))displayUnits.set(u.id,fallbackSoldier(u));
+ if(!highDetail)return 0;
  const data=await Promise.allSettled([0,1].map(owner=>tryModel('/src/assets/reborn/prototype/infantry-'+owner+'.glb')));
  for(const u of game.units.filter(u=>u.hp>0&&!u.carrier)){
   const d=data[u.owner];if(d.status!=='fulfilled')continue;
@@ -371,7 +373,9 @@ async function main(){
   const ruins=await addRuins();
   setStatus('3D-Ruinen geladen. Lade Hauptquartiere und Einheiten …');
   // These large original PBR GLBs are optional, and do not block the terrain.
-  const [bases,units]=await Promise.allSettled([addBases(),loadUnits()]);
+  status.dataset.ready='true';
+  const lightweight=query.get('lite')==='1';
+  const [bases,units]=await Promise.allSettled([addBases(!lightweight),loadUnits(!lightweight)]);
   const loadedBases=bases.status==='fulfilled'?bases.value:0;
   const loadedUnits=units.status==='fulfilled'?units.value:0;
   if(bases.status==='rejected')console.warn('HQ model fallback',bases.reason);
