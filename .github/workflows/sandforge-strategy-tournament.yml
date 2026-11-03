@@ -54,3 +54,29 @@ jobs:
           name: tournament-expansion
           path: ai-arena-results/tournament-expansion.json
           retention-days: 14
+  decision:
+    needs: [tournament-guarded-rush,tournament-expansion]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          name: tournament-guarded-rush
+          path: ai-arena-results
+      - uses: actions/download-artifact@v4
+        with:
+          name: tournament-expansion
+          path: ai-arena-results
+      - name: Combine all opponents and refuse promotion on regression
+        run: node scripts/summarize-ai-tournament.mjs ai-arena-results/tournament-guarded-rush.json ai-arena-results/tournament-expansion.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: complete-tournament-decision
+          path: ai-tournament-decision.json
+          if-no-files-found: ignore
+          retention-days: 30
