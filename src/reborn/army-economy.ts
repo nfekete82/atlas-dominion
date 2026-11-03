@@ -3,12 +3,13 @@ import {distance,type Point} from './config.js';
 import {produceCombinedArmy} from './director-production.js';
 import {buildBastionDefense,defensiveTowerLimit,rankBastionDefenses} from './bastion-defense.js';
 import {aiBuildSiteScore} from './construction-spacing.js';
+import {criticalConstructionRecovery,validConstructionMonitor,type ConstructionMonitor} from './critical-construction-recovery.js';
 import {defenseLessonsLost} from './battle-learning.js';
 import type {Simulation,Unit,Base} from './simulation.js';
 import type {TacticalState} from './tactical-ai.js';
 export type ProductionReason='produced'|'saving-unit'|'saving-building'|'insufficient-credits'|'queue-blocked'|'army-cap'|'composition-complete'|'no-producer';
 export interface ProductionDecision {reason:ProductionReason;goal:UnitKind|BuildingKind|null;missing:number}
-export interface EconomyState {goal:BuildingKind|null;since:number;attemptAt:number;produced:Partial<Record<UnitKind,number>>;built:Partial<Record<BuildingKind,number>>;towerAttemptAt?:number;production? :ProductionDecision&{at:number;facilities:Record<number,ProductionDecision>}}
+export interface EconomyState {goal:BuildingKind|null;since:number;attemptAt:number;produced:Partial<Record<UnitKind,number>>;built:Partial<Record<BuildingKind,number>>;towerAttemptAt?:number;constructionMonitor?:ConstructionMonitor;production? :ProductionDecision&{at:number;facilities:Record<number,ProductionDecision>}}
 const fighter=(u:Unit)=>!u.carrier&&!['medic','engineer','scout'].includes(u.kind);
 /** Only already observed enemy infrastructure, an operational factory and a
  * missing paid siege weapon may defer optional airfield construction. */
@@ -70,6 +71,29 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
   visibleArmorThreat:seen.filter(u=>unitSpec(u).group==='Fahrzeuge'&&!unitSpec(u).flying).length>=2,
   fighters:fighters.length,artillery:count('artillery')
  });
+ // A committed and paid factory cannot remain a useless quarter-HP
+ // blueprint indefinitely while known tower defenses need real artillery.
+ // Observe ONLY our own factory and worker orders; wait for 24s of objectively
+ // unchanged build progress before issuing one standard build order.
+ if(director&&g.world.mapVersion===11&&g.tactical.constructionRecoveryMode==='stalled-factory'){
+  const factory=own.find(b=>b.kind==='factory'&&b.buildRemaining>0);
+  const candidates=factory?workers.filter(w=>w.defendUntil<=g.time&&
+   !w.orders.some(o=>o.kind==='build'&&o.target!==factory.id)&&
+   !(w.orders[0]?.kind==='repair'&&
+    (own.some(b=>b.id===w.orders[0].target&&b.kind==='headquarters'&&b.hp<BUILDINGS.headquarters.hp*.6)||
+     army.some(v=>v.id===w.orders[0].target&&s.recovering?.includes(v.id)))))
+   .sort((a,b)=>distance(a,factory)-distance(b,factory)||a.id-b.id):[];
+  const worker=candidates[0],order=worker?.orders[0];
+  const action=criticalConstructionRecovery({
+   time:g.time,factoryId:factory?.id??null,remaining:factory?.buildRemaining??0,
+   observedSiege,livingArtillery:count('artillery')>0,underAttack,urgentDefense,
+   workerAvailable:!!worker,workerAlreadyBuilding:order?.kind==='build'&&order.target===factory?.id,
+   workerHasActivePath:!!worker?.path.length
+  },e.constructionMonitor);
+  e.constructionMonitor=action.monitor;
+  if(action.retryBuild&&worker&&factory)
+   g.command([worker.id],{x:factory.x,y:factory.y,kind:'build',target:factory.id});
+ }
  for(const w of workers)if(!w.orders.length&&w.defendUntil<=g.time){
   const target=unfinished??own.filter(b=>b.buildRemaining<=0&&b.hp<BUILDINGS[b.kind].hp-.01).sort((a,b)=>distance(w,a)-distance(w,b))[0];
   if(target)g.command([w.id],{...target,kind:target.buildRemaining>0?'build':'repair',target:target.id});
@@ -190,7 +214,7 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
 }
 const clampWait=(missing:number,income:number,secure:boolean)=>Math.min(secure?100:15,Math.max(6,missing/Math.max(1,income)*10+3));
 export function validEconomy(e:EconomyState|undefined,time:number):boolean{
- if(e===undefined)return true;return !!e&&(e.towerAttemptAt===undefined||(Number.isFinite(e.towerAttemptAt)&&e.towerAttemptAt>=0&&e.towerAttemptAt<=time+.001))&&(e.goal===null||Object.hasOwn(BUILDINGS,e.goal))&&Number.isFinite(e.since)&&e.since>=0&&e.since<=time+.001&&Number.isFinite(e.attemptAt)&&e.attemptAt>=-9&&e.attemptAt<=time+.001&&!!e.produced&&!!e.built&&Object.entries(e.produced).every(([k,v])=>Object.hasOwn(UNITS,k)&&Number.isSafeInteger(v)&&v>=0)&&Object.entries(e.built).every(([k,v])=>Object.hasOwn(BUILDINGS,k)&&Number.isSafeInteger(v)&&v>=0)&&
+ if(e===undefined)return true;return !!e&&(e.towerAttemptAt===undefined||(Number.isFinite(e.towerAttemptAt)&&e.towerAttemptAt>=0&&e.towerAttemptAt<=time+.001))&&(e.goal===null||Object.hasOwn(BUILDINGS,e.goal))&&Number.isFinite(e.since)&&e.since>=0&&e.since<=time+.001&&Number.isFinite(e.attemptAt)&&e.attemptAt>=-9&&e.attemptAt<=time+.001&&!!e.produced&&!!e.built&&validConstructionMonitor(e.constructionMonitor,time)&&Object.entries(e.produced).every(([k,v])=>Object.hasOwn(UNITS,k)&&Number.isSafeInteger(v)&&v>=0)&&Object.entries(e.built).every(([k,v])=>Object.hasOwn(BUILDINGS,k)&&Number.isSafeInteger(v)&&v>=0)&&
   (e.production===undefined||(Number.isFinite(e.production.at)&&e.production.at>=0&&e.production.at<=time+.001&&validDecision(e.production)&&!!e.production.facilities&&Object.entries(e.production.facilities).length<=40&&Object.entries(e.production.facilities).every(([id,d])=>Number.isSafeInteger(Number(id))&&Number(id)>=0&&validDecision(d))));
 }
 const validDecision=(d:ProductionDecision)=>!!d&&['produced','saving-unit','saving-building','insufficient-credits','queue-blocked','army-cap','composition-complete','no-producer'].includes(d.reason)&&(d.goal===null||Object.hasOwn(UNITS,d.goal)||Object.hasOwn(BUILDINGS,d.goal))&&Number.isFinite(d.missing)&&d.missing>=0;
