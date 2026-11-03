@@ -67,5 +67,16 @@ a:hover{text-decoration:underline}
   <span class="counter"><span id="fps">–</span> FPS · <span id="clock">0 s</span></span>
  </div>
 </div>
+<script>
+(function(){
+ const show=(message)=>{
+  const error=document.getElementById('error'),status=document.getElementById('status');
+  if(error)error.textContent='3D-Startfehler: '+message;
+  if(status)status.textContent='Die 3D-Szene konnte nicht initialisiert werden.';
+ };
+ window.addEventListener('error',e=>show(e.message||'JavaScript-Modul konnte nicht geladen werden'));
+ window.addEventListener('unhandledrejection',e=>show(String(e.reason||'Unbehandelter Ladefehler')));
+})();
+</script>
 <script type="module" src="/webgl-preview.js"></script>
 </body></html>
