@@ -27,7 +27,7 @@ export function chooseParallelCapture(x:ParallelSiegeInput):number|null{
    Number.isFinite(t.routeLength)&&t.routeLength>0&&t.routeLength<=2400&&
    Number.isFinite(t.routeRisk)&&t.routeRisk>=0&&t.routeRisk<6);
  candidates.sort((a,b)=>{
-  const score=t=>t.routeLength+t.routeRisk*125-t.income*13-(t.owner===0?280:0);
+  const score=(t:ParallelCaptureFront)=>t.routeLength+t.routeRisk*125-t.income*13-(t.owner===0?280:0);
   return score(a)-score(b)||a.id-b.id;
  });
  return candidates[0]?.id??null;
