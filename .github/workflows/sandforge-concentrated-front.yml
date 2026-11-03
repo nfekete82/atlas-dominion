@@ -1,0 +1,57 @@
+name: Sandforge concentrated front A/B
+on:
+  push:
+    branches: [feat/sandforge-concentrated-front-20261103]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Front behavior and existing mission regressions
+        run: node --test tests/sandforge-concentrated-front.test.mjs tests/reborn-combat-missions.test.mjs tests/reborn-commander.test.mjs tests/reborn-control-retreat.test.mjs
+  guarded-ab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node scripts/benchmark-concentrated-front.mjs --opponent guarded --seconds 240 --seeds 2026,2027,2028,2029 --output ai-arena-results/concentrated-guarded.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: concentrated-guarded
+          path: ai-arena-results/concentrated-guarded.json
+          retention-days: 14
+  pressure-ab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node scripts/benchmark-concentrated-front.mjs --opponent pressure --seconds 240 --seeds 2026,2027,2028,2029 --output ai-arena-results/concentrated-pressure.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: concentrated-pressure
+          path: ai-arena-results/concentrated-pressure.json
+          retention-days: 14
