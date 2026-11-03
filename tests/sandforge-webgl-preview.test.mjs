@@ -43,6 +43,9 @@ test('webgl: preview is actually packaged with local offline Three.js vendor and
  assert.match(html,/type="importmap"/);
  assert.match(html,/\/webgl-preview.js/);
  assert.match(js,/new THREE.WebGLRenderer/);
+ assert.match(js,/const smooth=value=>/, 'WebGL terrain must define its smoothstep shading helper');
+ assert.match(js,/inputSeed!==null/, 'missing query seed must preserve the default 2026');
+ assert.match(html,/3D-Startfehler/, 'browser crashes must surface visibly');
  assert.match(js,/new THREE.InstancedMesh/);
  assert.match(js,/\.gltf/);
  assert.match(js,/new Simulation\(seed,sizes\[bastions\]\)/);
