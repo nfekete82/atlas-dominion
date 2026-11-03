@@ -5,7 +5,8 @@ export const AI_CANDIDATES=Object.freeze({
  classicPlanner:{mode:'director',planningMode:'classic',waveMode:'coordinated',doctrineMode:'intelligent'},
  fastWaves:{mode:'director',planningMode:'tactical',waveMode:'legacy',doctrineMode:'intelligent'},
  legacyDoctrine:{mode:'director',planningMode:'classic',waveMode:'legacy',doctrineMode:'legacy'},
- baseline:{mode:'baseline',planningMode:'classic',waveMode:'legacy',doctrineMode:'legacy'}
+ baseline:{mode:'baseline',planningMode:'classic',waveMode:'legacy',doctrineMode:'legacy'},
+ hqStand:{mode:'director',planningMode:'tactical',waveMode:'coordinated',doctrineMode:'intelligent',hqStandMode:'lastStand'}
 });
 
 export const AI_METRICS=Object.freeze(['redSectors','blueSectors','captures','redUnitsLost',
