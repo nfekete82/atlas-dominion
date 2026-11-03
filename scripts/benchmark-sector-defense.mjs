@@ -30,7 +30,7 @@ const pressure=g=>{
 const results=[];
 for(const seed of seeds){
  let initial=null;
- for(const policy of ['classic','responsive']){
+ for(const policy of ['classic','responsive','reserved']){
   class Variant extends Engine{
    constructor(seed,version){super(seed,version);this.tactical.sectorDefenseMode=policy;}
   }
@@ -48,7 +48,7 @@ for(const seed of seeds){
  }
 }
 const summary={};
-for(const policy of ['classic','responsive']){
+for(const policy of ['classic','responsive','reserved']){
  const rows=results.filter(r=>r.policy===policy),avg=key=>rows.reduce((n,r)=>n+(Number(r[key])||0),0)/rows.length;
  summary[policy]={captures:avg('captures'),HQDamage:avg('enemyHQDamage'),deaths:avg('redUnitsLost'),
   blueDeaths:avg('blueUnitsLost'),wins:rows.filter(r=>r.outcome==='win').length,
