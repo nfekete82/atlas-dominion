@@ -3,6 +3,7 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {Simulation} from '/src/reborn/simulation.js';
 import {canyonGroundSampler,rampAtX,ridgeCenterY} from '/src/reborn/canyon-height.js';
+import {SandforgeBattlefield} from '/webgl-battlefield.js';
 
 /** Opt-in WebGL scene using the real authoritative Sandforge map and simulation.
  * This page is isolated from the production Canvas renderer, save format and AI
@@ -15,7 +16,16 @@ const inputSeed=query.get('seed');
 const seed=inputSeed!==null&&Number.isSafeInteger(Number(inputSeed))&&Number(inputSeed)>=0
   ?Number(inputSeed)>>>0:2026;
 $('bastions').value=String(bastions);$('seed').value=String(seed);
-const game=new Simulation(seed,sizes[bastions]);
+// Preview uses the same authoritative save/load envelope as the 2D game.
+const session=query.get('resume')==='1'?(()=>{
+ try{
+  const saved=localStorage.getItem('sandforge:webgl:v1');
+  if(!saved)return null;
+  const restored=Simulation.load(JSON.parse(saved));
+  return restored.seed===seed&&restored.world.mapVersion===sizes[bastions]?restored:null;
+ }catch(error){console.warn('Saved 3D game could not be loaded:',error);return null;}
+})():null;
+const game=session??new Simulation(seed,sizes[bastions]);
 const world=game.world,terrain=world.generated,size=world.size,half=size/2;
 const status=$('status'),errorNode=$('error'),stage=$('stage');
 const setStatus=value=>{status.textContent=value;};
@@ -66,8 +76,8 @@ controls.minPolarAngle=.34;controls.maxPolarAngle=1.22;
 controls.mouseButtons={LEFT:THREE.MOUSE.PAN,MIDDLE:THREE.MOUSE.DOLLY,RIGHT:THREE.MOUSE.ROTATE};
 controls.target.copy(cameraTarget);
 const loader=new GLTFLoader();
-const models=new Map(),ruinMeshes=[],unitModels=new Map(),baseModels=new Map();
-let groundMeshes=[],running=false,selected=[],frameTimes=[],last=performance.now(),accumulator=0,elapsed=0;
+const models=new Map(),ruinMeshes=[];
+let groundMeshes=[],running=false,accumulator=0,elapsed=0;
 function sandTexture(){
  const c=document.createElement('canvas');c.width=c.height=256;
  const ctx=c.getContext('2d'),pixels=ctx.createImageData(256,256),r=rnd(seed^0x192cb110);
@@ -240,93 +250,6 @@ async function addRuins(){
  }
  return ruinMeshes.length;
 }
-async function addBases(highDetail=true){
- const bases=game.bases.filter(b=>b.hp>0&&b.kind==='headquarters');
- for(const b of bases){baseModels.set(b.id,primitiveBase(b));marker(pos(b.x,b.y),b.owner===0?'#6ce1ff':'#ff8765',112);}
- if(!highDetail)return 0;
- const load=await Promise.allSettled([0,1].map(owner=>tryModel('/src/assets/reborn/buildings-3d/headquarters-'+owner+'.glb')));
- for(const b of bases){
-  const data=load[b.owner];if(data.status!=='fulfilled')continue;
-  const old=baseModels.get(b.id),model=normalized(data.value.scene.clone(true),170),anchor=new THREE.Group();
-  anchor.position.copy(pos(b.x,b.y));anchor.add(model);
-  scene.add(anchor);scene.remove(old);baseModels.set(b.id,anchor);
- }
- return load.filter(v=>v.status==='fulfilled').length;
-}
-function addBastions(){
- const disk=new THREE.CylinderGeometry(39,42,6,10),post=new THREE.CylinderGeometry(12,19,55,8),
-  mat=pbr('#baa078'),mast=pbr('#485961',.55,.35);
- for(const t of game.territories){
-  const spot=pos(t.point.x,t.point.y);
-  const group=new THREE.Group();group.position.copy(spot);
-  const base=new THREE.Mesh(disk,mat);base.position.y=3;base.receiveShadow=true;group.add(base);
-  const core=new THREE.Mesh(post,mast);core.position.y=30;core.castShadow=true;group.add(core);
-  const beacon=new THREE.Mesh(new THREE.ConeGeometry(9,22,8),
-   new THREE.MeshStandardMaterial({color:t.owner===0?'#74cefa':t.owner===1?'#ff9876':'#d8c9a4',emissive:t.owner===0?'#074564':'#66301c',emissiveIntensity:.3}));
-  beacon.position.y=67;group.add(beacon);scene.add(group);
-  marker(spot,t.owner===0?'#68cbef':t.owner===1?'#ec9075':'#c6c6a8',55);
- }
-}
-const displayUnits=new Map();
-function fallbackSoldier(unit){
- const group=new THREE.Group(),team=pbr(unit.owner===0?'#277c9e':'#a15d47',.7,.35);
- const steel=pbr('#3f4143',.73,.38);
- const chest=new THREE.Mesh(new THREE.CapsuleGeometry(8,12,4,8),team);chest.position.y=22;chest.castShadow=true;group.add(chest);
- const helmet=new THREE.Mesh(new THREE.SphereGeometry(10,10,8),steel);helmet.position.y=39;helmet.castShadow=true;group.add(helmet);
- const weapon=new THREE.Mesh(new THREE.BoxGeometry(4,4,28),steel);weapon.position.set(8,24,-12);group.add(weapon);
- group.position.copy(pos(unit.x,unit.y));scene.add(group);return group;
-}
-async function loadUnits(highDetail=true){
- for(const u of game.units.filter(u=>u.hp>0&&!u.carrier))displayUnits.set(u.id,fallbackSoldier(u));
- if(!highDetail)return 0;
- const data=await Promise.allSettled([0,1].map(owner=>tryModel('/src/assets/reborn/prototype/infantry-'+owner+'.glb')));
- for(const u of game.units.filter(u=>u.hp>0&&!u.carrier)){
-  const d=data[u.owner];if(d.status!=='fulfilled')continue;
-  const node=normalized(d.value.scene.clone(true),23),anchor=new THREE.Group();
-  anchor.position.copy(pos(u.x,u.y));anchor.add(node);
-  scene.add(anchor);scene.remove(displayUnits.get(u.id));displayUnits.set(u.id,anchor);
- }
- return data.filter(v=>v.status==='fulfilled').length;
-}
-function syncUnits(){
- const active=new Set();
- for(const u of game.units.filter(u=>u.hp>0&&!u.carrier)){
-  active.add(u.id);
-  let group=displayUnits.get(u.id);
-  if(!group){group=fallbackSoldier(u);displayUnits.set(u.id,group);}
-  group.position.copy(pos(u.x,u.y));
-  group.rotation.y=-u.angle+Math.PI*.5;
- }
- for(const [id,group] of displayUnits)if(!active.has(id)){scene.remove(group);displayUnits.delete(id);}
-}
-const groundRay=new THREE.Raycaster(),pointer=new THREE.Vector2();
-function terrainHit(event){
- const rect=renderer.domElement.getBoundingClientRect();
- pointer.x=(event.clientX-rect.left)/rect.width*2-1;
- pointer.y=1-(event.clientY-rect.top)/rect.height*2;
- groundRay.setFromCamera(pointer,camera);
- const hits=groundRay.intersectObjects(groundMeshes,false);
- if(!hits.length)return null;
- const p=hits[0].point;return {x:p.x+half,y:p.z+half};
-}
-function pointDown(e){renderer.domElement.dataset.downX=String(e.clientX);renderer.domElement.dataset.downY=String(e.clientY);}
-function pointUp(e){
- const x=Number(renderer.domElement.dataset.downX),y=Number(renderer.domElement.dataset.downY);
- if(!Number.isFinite(x)||Math.hypot(e.clientX-x,e.clientY-y)>6)return;
- const hit=terrainHit(e);if(!hit)return;
- if(e.button===0){
-  const nearest=game.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier)
-   .map(u=>({u,d:Math.hypot(u.x-hit.x,u.y-hit.y)})).sort((a,b)=>a.d-b.d)[0];
-  selected=nearest&&nearest.d<65?[nearest.u.id]:[];
-  $('selection').textContent=selected.length?'Einheit '+selected[0]+' gewählt · Rechtsklick: bewegen':'Keine Einheit gewählt';
- }else if(e.button===2&&selected.length){
-  const count=game.command(selected,{x:hit.x,y:hit.y,kind:'attackMove'});
-  $('selection').textContent=count?count+' Einheit(en) unterwegs':'Ziel nicht erreichbar';
- }
-}
-renderer.domElement.addEventListener('pointerdown',pointDown);
-renderer.domElement.addEventListener('pointerup',pointUp);
-renderer.domElement.addEventListener('contextmenu',event=>event.preventDefault());
 $('simulation').onclick=()=>{
  running=!running;$('simulation').textContent=running?'Simulation pausieren':'Simulation starten';
  $('simulation').setAttribute('aria-pressed',String(running));
@@ -359,15 +282,20 @@ function resize(){
  camera.updateProjectionMatrix();renderer.setSize(w,h,false);
 }
 new ResizeObserver(resize).observe(stage);resize();
-const chunks=buildTerrain(),stones=instancedStone();sandRoads();addBastions();
+const chunks=buildTerrain(),stones=instancedStone();sandRoads();
+const battlefield=new SandforgeBattlefield({
+ game,world,terrain,scene,renderer,camera,controls,loader,groundMeshes,heightAt,pos,
+ lite:query.get('lite')==='1'
+});
 let lastFrame=performance.now(),frames=0;
 function animate(now){
  const dt=Math.min(.08,(now-lastFrame)/1000);lastFrame=now;
  if(running){
   accumulator=Math.min(accumulator+dt,.20);
   let steps=0;while(accumulator>=.05&&steps<4){game.step(.05);accumulator-=.05;steps++;}
-  syncUnits();
+  battlefield.sync(false,dt);
  }
+ if(!running)battlefield.sync(false,dt);
  controls.update();
  renderer.render(scene,camera);
  frames++;elapsed+=dt;
@@ -377,7 +305,7 @@ function animate(now){
  }
 }
 renderer.setAnimationLoop(animate);
-window.__sandforgeWebGL={renderer,scene,camera,controls,game,terrain,heightAt,
+window.__sandforgeWebGL={renderer,scene,camera,controls,game,terrain,heightAt,battlefield,
  get ruinsLoaded(){return ruinMeshes.length;},
  get loaded(){return status.dataset.ready==='true';},
  get simulationRunning(){return running;},
@@ -386,17 +314,10 @@ async function main(){
  try{
   setStatus('Lade echte 3D-Ruinen …');
   const ruins=await addRuins();
-  setStatus('3D-Ruinen geladen. Lade Hauptquartiere und Einheiten …');
-  // These large original PBR GLBs are optional, and do not block the terrain.
+  // The 3D battlefield is live immediately; heavyweight PBR assets stream in.
+  battlefield.sync(true);
   status.dataset.ready='true';
-  const lightweight=query.get('lite')==='1';
-  const [bases,units]=await Promise.allSettled([addBases(!lightweight),loadUnits(!lightweight)]);
-  const loadedBases=bases.status==='fulfilled'?bases.value:0;
-  const loadedUnits=units.status==='fulfilled'?units.value:0;
-  if(bases.status==='rejected')console.warn('HQ model fallback',bases.reason);
-  if(units.status==='rejected')console.warn('Unit model fallback',units.reason);
-  status.dataset.ready='true';
-  setStatus('WebGL2 aktiv · '+chunks+' Terrain-Chunks · '+stones+' Felsen · '+ruins+' echte glTF-Ruinen · '+loadedBases+' HQ-Assetvarianten · '+loadedUnits+' Einheitenvarianten');
+  setStatus('WebGL2 aktiv · '+chunks+' Terrain-Chunks · '+stones+' Felsen · '+ruins+' glTF-Ruinen · 3D-Spielmechanik aktiv.');
  }catch(error){
   console.error(error);errorNode.textContent='3D-Assets konnten nicht geladen werden: '+String(error);
   status.dataset.ready='false';setStatus('WebGL-Szene verfügbar; Asset-Ladevorgang fehlgeschlagen');
