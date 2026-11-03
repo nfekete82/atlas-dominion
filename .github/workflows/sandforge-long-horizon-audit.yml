@@ -1,0 +1,45 @@
+name: Sandforge long-horizon outcome audit
+on:
+  push:
+    branches: [diag/sandforge-long-horizon-battle-study-20261103]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node --test tests/sandforge-ai-tournament.test.mjs tests/reborn-commander.test.mjs
+  compare:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        opponent: [guarded, pressure, expansion, armored]
+        horizon: [360, 600, 900]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Compare genuine outcomes at identical paired seeds
+        run: node scripts/ai-strategy-tournament.mjs --opponents "${{ matrix.opponent }}" --seeds 2026,2029,2074,2075 --seconds "${{ matrix.horizon }}" --contenders current,early-barracks --output ai-arena-results/horizon-${{ matrix.opponent }}-${{ matrix.horizon }}.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: horizon-${{ matrix.opponent }}-${{ matrix.horizon }}
+          path: ai-arena-results/horizon-${{ matrix.opponent }}-${{ matrix.horizon }}.json
+          retention-days: 21
