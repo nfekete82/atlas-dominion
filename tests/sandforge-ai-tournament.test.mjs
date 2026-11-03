@@ -3,11 +3,12 @@ import assert from 'node:assert/strict';
 import {Simulation} from '../dist/src/reborn/simulation.js';
 import {OPPONENTS,scriptedBlueTurn} from '../scripts/ai-tournament-opponents.mjs';
 import {CONTENDERS,configureContender,tournamentOptions,summarizeTournament} from '../scripts/ai-strategy-tournament.mjs';
+import {selectiveRaidAllowed} from '../dist/src/reborn/selective-raids.js';
 
 test('tournament: exactly four reproducible, legal BLUE opponents',()=>{
  assert.deepEqual(OPPONENTS,['guarded','pressure','expansion','armored']);
  assert.equal(new Set(OPPONENTS).size,4);
- assert.equal(new Set(CONTENDERS).size,8);
+ assert.equal(new Set(CONTENDERS).size,9);
  assert.throws(()=>scriptedBlueTurn(new Simulation(2026,11),'omniscient'));
 });
 test('tournament: flags validate seeds, complete A/B and real time horizon',()=>{
@@ -118,4 +119,24 @@ test('ablation: each strategy modifies ONLY its intended doctrine switch',()=>{
  assert.deepEqual(both.credits,classic.credits);
  assert.deepEqual(both.visible,classic.visible);
  assert.deepEqual(both.units,classic.units);
+});
+
+test('selective raiding: no two-unit split from a five-unit army under comeback pressure',()=>{
+ const base={fighters:5,mainScreen:3,eligibleRaiders:2,
+  normalDoctrine:false,behindByTwoSectors:true,observedHomeThreat:false};
+ assert.equal(selectiveRaidAllowed(base),false);
+ assert.equal(selectiveRaidAllowed({...base,fighters:8,mainScreen:5}),true);
+ assert.equal(selectiveRaidAllowed({...base,fighters:10,mainScreen:7,normalDoctrine:true,behindByTwoSectors:false}),true);
+ assert.equal(selectiveRaidAllowed({...base,fighters:12,mainScreen:9,normalDoctrine:true,observedHomeThreat:true}),false);
+ assert.equal(selectiveRaidAllowed({...base,fighters:12,mainScreen:9,normalDoctrine:true,eligibleRaiders:1}),false);
+ assert.equal(selectiveRaidAllowed({...base,fighters:8,mainScreen:4}),false);
+ const current=new Simulation(2026,11),variant=new Simulation(2026,11);
+ configureContender(variant.tactical,'selective-raids');
+ assert.equal(variant.tactical.raidDetachmentMode,'selective');
+ assert.equal(current.tactical.raidDetachmentMode,'inherit');
+ assert.equal(variant.tactical.doctrineMode,current.tactical.doctrineMode);
+ assert.deepEqual(variant.units,current.units);
+ assert.deepEqual(variant.credits,current.credits);
+ assert.deepEqual(variant.visible,current.visible);
+ assert.equal(variant.save().ai?.raidDetachmentMode,undefined);
 });
