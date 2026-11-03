@@ -1,0 +1,56 @@
+name: Sandforge sector defense A/B
+on:
+  push:
+    branches: [feat/sandforge-sector-defense-20261103]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node --test tests/sandforge-sector-defense.test.mjs tests/reborn-combat-missions.test.mjs tests/reborn-commander.test.mjs tests/reborn-control-retreat.test.mjs
+  guarded-ab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node scripts/benchmark-sector-defense.mjs --opponent guarded --seconds 240 --seeds 2026,2027,2028,2029 --output ai-arena-results/sector-guarded.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sector-guarded
+          path: ai-arena-results/sector-guarded.json
+          retention-days: 14
+  pressure-ab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node scripts/benchmark-sector-defense.mjs --opponent pressure --seconds 240 --seeds 2026,2027,2028,2029 --output ai-arena-results/sector-pressure.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sector-pressure
+          path: ai-arena-results/sector-pressure.json
+          retention-days: 14
