@@ -1,0 +1,83 @@
+name: Sandforge HQ emergency hold A/B
+on:
+  push:
+    branches: [feat/sandforge-ai-hq-stand-20261103]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: sandforge-hq-stand-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  correctness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node --test tests/sandforge-ai-hq-stand.test.mjs tests/sandforge-ai-strategy-tournament.test.mjs tests/reborn-combat-missions.test.mjs tests/reborn-control-retreat.test.mjs
+  matchups:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        opponent: [guarded, rush, expansion, armor, siege]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Compare standard director with emergency HQ stand
+        run: >-
+          node scripts/benchmark-ai-strategy-tournament.mjs
+          --opponents ${{ matrix.opponent }}
+          --policies current,hqStand
+          --seeds 2026,2027,2028
+          --seconds 480
+          --output ai-arena-results/tournament-${{ matrix.opponent }}.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tournament-${{ matrix.opponent }}
+          path: ai-arena-results/tournament-${{ matrix.opponent }}*
+          if-no-files-found: ignore
+          retention-days: 14
+  leaderboard:
+    needs: [correctness, matchups]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: tournament-*
+          path: ai-arena-results
+          merge-multiple: true
+      - run: >-
+          node scripts/aggregate-ai-tournament.mjs
+          --dir ai-arena-results
+          --opponents guarded,rush,expansion,armor,siege
+          --output ai-arena-results/strategy-overall.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sandforge-hq-last-stand-results
+          path: |
+            ai-arena-results/strategy-overall.json
+            ai-arena-results/strategy-overall-summary.md
+          if-no-files-found: ignore

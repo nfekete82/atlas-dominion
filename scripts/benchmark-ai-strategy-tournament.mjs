@@ -41,6 +41,7 @@ for(const opponent of opponents){
      this.tactical.planningMode=cfg.planningMode;
      this.tactical.waveMode=cfg.waveMode;
      this.tactical.doctrineMode=cfg.doctrineMode;
+     this.tactical.hqStandMode=cfg.hqStandMode??'classic';
     }
    }
    let lastSec=0,redSectorSeconds=0,blueSectorSeconds=0,neutralSectorSeconds=0;

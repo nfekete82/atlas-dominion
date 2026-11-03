@@ -113,6 +113,8 @@ export class TacticalAI {
  waveMode:'legacy'|'coordinated'='coordinated';
  /** 2.4/2.5 paired comparison; affects strategy only, never serialized. */
  doctrineMode:'legacy'|'intelligent'='intelligent';
+  /** Four-bastion A/B policy: fight to defend HQ instead of indefinitely retreating. */
+  hqStandMode:'classic'|'lastStand'='classic';
  /** Runtime-only diagnostics: never influence simulation or serialize in saves. */
  diagnostics:TacticalDiagnostics=newDiagnostics();
  state=fresh();private risk:Float32Array|undefined;private riskAt=-1;private routeCache=new Map<string,Point[]>();private routeSignature='';
@@ -244,7 +246,13 @@ export class TacticalAI {
   const ids=new Set(defenders.map(u=>u.id));
   b.squads=[...b.squads.filter(q=>q.role!=='defense').map(q=>({...q,ids:q.ids.filter(id=>!ids.has(id))})),{role:'defense',ids:[...ids],target:target.id,since:old?.target===target.id?old.since:g.time}];
   const enough=fightingPower(defenders)>=fightingPower(nearby)*.85;
-  if(enough)this.issue(defenders,target,'defend',target.id,false,false);
+  const threatenedHQ=g.world.mapVersion===11&&this.hqStandMode==='lastStand'&&
+    g.bases.some(base=>base.kind==='headquarters'&&base.owner===1&&base.hp>0&&
+      distance(target,base)<450);
+  // In a direct HQ rush the old director fled even with the last defender.
+  // Fighting while under-strength is only a short-map HQ emergency option;
+  // remote towers and other maps retain the proven withdrawal rules.
+  if(enough||threatenedHQ)this.issue(defenders,target,'defend',target.id,false,false);
   else this.issue(defenders,this.withdrawPoint(target,home),'safe',undefined,false,false);
   return new Set(defenders.map(u=>u.id));
  }
