@@ -1,0 +1,61 @@
+name: Sandforge WebGL3D isolated preview
+on:
+  push:
+    branches: [feat/sandforge-webgl3d-preview-20261103]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: webgl-preview-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    name: Node 22 · real terrain + offline model packaging
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - run: npm ci --no-audit --no-fund
+      - name: Parse renderer and compile the existing RTS without migration
+        run: |
+          node --check scripts/webgl-preview.js
+          npm run build
+      - name: Verify heightfield, paths, glTF model geometry, old saves and offline assets
+        run: node --test tests/sandforge-webgl-preview.test.mjs tests/sandforge-canyon-front.test.mjs tests/sandforge-canyon-models.test.mjs
+  visual:
+    name: Chromium · live WebGL2 and 3D ruin screenshot
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix tests/browser --no-audit --no-fund
+          cd tests/browser
+          npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Run isolated WebGL screenshot and simulation interaction
+        env:
+          ATLAS_BROWSER_CHANNEL: chromium
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: cd tests/browser && npx playwright test webgl-preview.spec.mjs --config=playwright.config.mjs
+      - name: Preserve rendered browser screenshot and trace
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandforge-webgl3d-browser-evidence
+          path: tests/browser/artifacts/
+          retention-days: 21
