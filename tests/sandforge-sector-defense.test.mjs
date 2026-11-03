@@ -5,9 +5,9 @@ import {threatenedOwnedSectors,sectorThreatScore} from '../dist/src/reborn/secto
 
 test('income sectors: visible intruder threatening owned sector without a building triggers response',()=>{
  const g=new Simulation(2026,11);
- const owned=g.territories.find(t=>t.owner===1&&
-    !g.bases.some(b=>b.owner===1&&Math.hypot(b.x-t.point.x,b.y-t.point.y)<400));
- assert.ok(owned,'fixture has an owned outpost without a building');
+ const owned=g.territories.find(t=>t.owner===-1);
+ assert.ok(owned,'fixture has a neutral outpost to simulate capture');
+ owned.owner=1; // A legally captured outpost with no building on it.
  const blue={id:88,x:owned.point.x+85,y:owned.point.y,hp:100};
  const threats=threatenedOwnedSectors(g.territories,[blue],1);
  assert.ok(threats.some(t=>t.sector===owned.id&&t.enemy===blue.id));
