@@ -6,12 +6,13 @@ import {rateMission,type EnemyStrategy} from './adaptive-strategy.js';
 import {learnedMissionBias,type Experience} from './battle-learning.js';
 import type {Loss} from './tactical-ai.js';
 import {replanAfterLoss} from './ai25-doctrine.js';
+import {chooseOperation,operationBias,validOperation,type OperationSnapshot,type OperationFront} from './operation-controller.js';
 
 export type CampaignPhase='opening'|'expansion'|'buildup'|'offensive'|'siege'|'endgame'|'emergencyDefense';
 export interface WarMission extends Point {kind:'capture'|'structure'|'hunt';sector:number;objective:number|null;since:number;progressAt:number;distance:number;hp:number}
 export interface ReconTask extends Point {unit:number;since:number}
-export interface CampaignState {version:1;phase:CampaignPhase;phaseSince:number;mission?:WarMission;recon:ReconTask[];survey:{x:number;y:number;at:number}[];intel:{id:number;seenAt:number}[];aborted:number;observedEnemyHQ?:Point&{id:number};enemyHQEliminatedAt?:number;alternatives?:{sector:number;score:number;expectedLoss:number;budgetCost:number}[]}
-export interface MissionContext {strategy:EnemyStrategy;force:Unit[];losses:Loss[];fronts:FailedFront[];route:(p:Point)=>{length:number;risk:number}|undefined;intelligent?:boolean;experience?:Experience}
+export interface CampaignState {version:1;phase:CampaignPhase;phaseSince:number;operation?:OperationSnapshot;mission?:WarMission;recon:ReconTask[];survey:{x:number;y:number;at:number}[];intel:{id:number;seenAt:number}[];aborted:number;observedEnemyHQ?:Point&{id:number};enemyHQEliminatedAt?:number;alternatives?:{sector:number;score:number;expectedLoss:number;budgetCost:number}[]}
+export interface MissionContext {strategy:EnemyStrategy;force:Unit[];losses:Loss[];fronts:FailedFront[];route:(p:Point)=>{length:number;risk:number}|undefined;intelligent?:boolean;experience?:Experience;centralOperations?:boolean}
 export const newCampaign=():CampaignState=>({version:1,phase:'opening',phaseSince:0,recon:[],survey:[],intel:[],aborted:0});
 /** Preserve a recent, observed tower objective after confirmed HQ loss,
  * unless the screen suffers substantial losses or artillery disappears. */
@@ -51,6 +52,34 @@ export function refreshIntelligence(g:Simulation,s:CampaignState):void{
  * remains a war objective until its destruction has actually been observed. */
 export function chooseMission(g:Simulation,s:CampaignState,origin:Point,context?:MissionContext):WarMission|undefined{
  const buildings=knownBuildings(g),old=s.mission;
+ let operation:OperationSnapshot|undefined,operationFronts:OperationFront[]=[];
+ if(context?.centralOperations&&g.world.mapVersion===11){
+  // One strategic intent based only on public sectors and RED observations.
+  operationFronts=g.territories.filter(t=>t.owner!==1&&
+   t.neighbors.some(id=>g.territories[id]?.owner===1)).map(t=>{
+    const r=context.route(t.point);
+    return {sector:t.id,owner:t.owner,income:t.income,
+     routeLength:r?.length??Infinity,routeRisk:r?.risk??Infinity,
+     observedTower:buildings.some(b=>b.kind==='turret'&&distance(b,t.point)<740),
+     observedHQ:buildings.some(b=>b.kind==='headquarters'&&distance(b,t.point)<740),
+     visibleFighters:g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&
+      !['engineer','medic','scout'].includes(u.kind)&&g.canSee(1,u)&&
+      distance(u,t.point)<420).length};
+   });
+  const threatened=g.bases.some(b=>b.owner===1&&b.hp>0&&
+   g.units.some(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)&&
+    distance(u,b)<440));
+  const decision=chooseOperation({at:g.time,
+   livingFighters:context.force.filter(u=>u.hp>0&&!u.carrier&&
+    !['engineer','medic','scout'].includes(u.kind)).length,
+   hasArtillery:context.force.some(u=>u.kind==='artillery'&&u.hp>0),
+   enemyHQEliminated:s.enemyHQEliminatedAt!==undefined,
+   observedEnemyHQ:buildings.some(b=>b.kind==='headquarters'),
+   visibleHomeThreat:threatened,
+   knownEnemyTowerCount:buildings.filter(b=>b.kind==='turret').length,
+   fronts:operationFronts},s.operation);
+  operation=s.operation=decision.next;
+ }
  if(old){
   const remembered=old.objective===null?undefined:buildings.find(b=>b.id===old.objective);
   const enemy=old.kind==='hunt'?g.units.find(u=>u.id===old.objective&&u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)):undefined;
@@ -64,6 +93,13 @@ export function chooseMission(g:Simulation,s:CampaignState,origin:Point,context?
    hasArtillery:!!context?.force.some(u=>u.kind==='artillery'&&u.hp>0),
    missionSeconds:g.time-old.since,recentNearbyLosses:nearbyLosses,recentIntel:recentlySeen
   });
+  // Switch mission only if one centrally selected operation supersedes it;
+  // a real fresh HP reduction is still protected.
+  const mismatched=operation&&g.time-old.since>=30&&
+   (operation.mode==='expand'&&old.kind!=='capture'||
+    operation.mode==='siege'&&old.kind==='capture'||
+    operation.mode==='assault'&&old.kind==='capture');
+  const operationalReplan=!!mismatched&&!(remembered&&remembered.hp<old.hp);
   const costly=!protectTower&&(context?.intelligent?replanAfterLoss({
    elapsed:g.time-old.since,
    freshDamage:!!remembered&&remembered.hp<old.hp,
@@ -74,7 +110,7 @@ export function chooseMission(g:Simulation,s:CampaignState,origin:Point,context?
   }):!!context&&g.time-old.since>30&&nearbyLosses>=3&&
     context.fronts.some(f=>f.sector===old.sector&&f.failures>=2&&g.time-f.at<90));
   const unready=context&&old.kind==='structure'&&g.time-old.since>30&&!context.force.some(u=>u.kind==='artillery')&&buildings.filter(b=>b.kind==='turret'&&distance(b,old)<800).length>=2&&g.territories.some(t=>t.owner!==1&&t.neighbors.some(id=>g.territories[id].owner===1)&&!buildings.some(b=>b.kind==='turret'&&distance(b,t.point)<740));
-  if(valid&&!costly&&!unready&&g.time-old.progressAt<100){
+  if(valid&&!costly&&!unready&&!operationalReplan&&g.time-old.progressAt<100){
    if(remembered){old.x=remembered.x;old.y=remembered.y;if(remembered.hp<old.hp){old.progressAt=g.time;old.hp=remembered.hp;}}
    if(enemy){old.x=enemy.x;old.y=enemy.y;}
    // A newly observed tower covering an HQ approach is a concrete reason to
@@ -120,6 +156,19 @@ export function chooseMission(g:Simulation,s:CampaignState,origin:Point,context?
   }
   s.alternatives=alternatives.sort((a,b)=>a.score-b.score||a.sector-b.sector).slice(0,8);
  }
+ if(operation&&['expand','siege','assault','cleanup'].includes(operation.mode)){
+  const open=new Set(operationFronts.filter(f=>f.owner!==1&&
+   !f.observedTower&&!f.observedHQ&&f.visibleFighters===0&&
+   f.routeLength>0&&f.routeLength<=2400&&f.routeRisk<7).map(f=>f.sector));
+  for(const candidate of choices){
+   const kind=candidate.kind==='structure'
+    ?buildings.find(b=>b.id===candidate.objective)?.kind:undefined;
+   candidate.score+=operationBias(operation.mode,{
+    kind:candidate.kind,sector:candidate.sector,objectiveKind:kind,
+    exposedTower:buildings.some(b=>b.kind==='turret'&&distance(b,candidate.p)<740),
+    openFront:open.has(candidate.sector)});
+  }
+ }
  choices.sort((a,b)=>a.score-b.score||a.sector-b.sector||(a.objective??0)-(b.objective??0));
  const routed:{c:typeof choices[number];route:{length:number;risk:number}}[]=[];
  // Test as many as sixteen scored candidates (not merely the first three).
@@ -158,5 +207,6 @@ export function validCampaign(raw:unknown,time:number,point:(p:Point)=>boolean,s
   &&Array.isArray(s.recon)&&s.recon.length<=16&&s.recon.every(t=>point(t)&&id(t.unit)&&at(t.since))
   &&Array.isArray(s.survey)&&s.survey.length<=65&&s.survey.every(p=>point(p)&&at(p.at))
   &&Array.isArray(s.intel)&&s.intel.length<=128&&s.intel.every(i=>id(i.id)&&at(i.seenAt))
+  &&validOperation(s.operation,time)
   &&(s.mission===undefined||(point(s.mission)&&['capture','structure','hunt'].includes(s.mission.kind)&&id(s.mission.sector)&&s.mission.sector<sectors&&(s.mission.objective===null||id(s.mission.objective))&&at(s.mission.since)&&at(s.mission.progressAt)&&num(s.mission.distance)&&num(s.mission.hp)));
 }
