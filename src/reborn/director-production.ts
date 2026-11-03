@@ -128,8 +128,8 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
    imminentHQThreat:c.seen.some(u=>!['engineer','medic','scout'].includes(u.kind)&&
     c.own.some(b=>b.kind==='headquarters'&&Math.hypot(u.x-b.x,u.y-b.y)<380)),
    activeAssault:s.phase==='attack',
-   committedSiege:c.siegeReserve>0||s.savingFor==='artillery'||
-    s.battle?.assessment?.neededSiege!==undefined&&s.battle.assessment.neededSiege>0,
+   committedSiege:(c.siegeReserve??0)>0||s.savingFor==='artillery'||
+    (s.battle?.assessment?.neededSiege??0)>0,
    livingLine:c.army.filter(u=>u.kind==='infantry'||u.kind==='heavy').length,
    orderedLine:count('infantry')+count('heavy'),
    infantry:count('infantry'),heavy:count('heavy'),tank:count('tank'),
