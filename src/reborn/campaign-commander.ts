@@ -6,12 +6,13 @@ import {rateMission,type EnemyStrategy} from './adaptive-strategy.js';
 import {learnedMissionBias,type Experience} from './battle-learning.js';
 import type {Loss} from './tactical-ai.js';
 import {replanAfterLoss} from './ai25-doctrine.js';
+import {decideOperation,type OperationMemory,type OperationCandidate} from './operations-commander.js';
 
 export type CampaignPhase='opening'|'expansion'|'buildup'|'offensive'|'siege'|'endgame'|'emergencyDefense';
 export interface WarMission extends Point {kind:'capture'|'structure'|'hunt';sector:number;objective:number|null;since:number;progressAt:number;distance:number;hp:number}
 export interface ReconTask extends Point {unit:number;since:number}
 export interface CampaignState {version:1;phase:CampaignPhase;phaseSince:number;mission?:WarMission;recon:ReconTask[];survey:{x:number;y:number;at:number}[];intel:{id:number;seenAt:number}[];aborted:number;observedEnemyHQ?:Point&{id:number};enemyHQEliminatedAt?:number;alternatives?:{sector:number;score:number;expectedLoss:number;budgetCost:number}[]}
-export interface MissionContext {strategy:EnemyStrategy;force:Unit[];losses:Loss[];fronts:FailedFront[];route:(p:Point)=>{length:number;risk:number}|undefined;intelligent?:boolean;experience?:Experience}
+export interface MissionContext {strategy:EnemyStrategy;force:Unit[];losses:Loss[];fronts:FailedFront[];route:(p:Point)=>{length:number;risk:number}|undefined;intelligent?:boolean;experience?:Experience;operations?:OperationMemory}
 export const newCampaign=():CampaignState=>({version:1,phase:'opening',phaseSince:0,recon:[],survey:[],intel:[],aborted:0});
 /** Preserve a recent, observed tower objective after confirmed HQ loss,
  * unless the screen suffers substantial losses or artillery disappears. */
@@ -51,7 +52,9 @@ export function refreshIntelligence(g:Simulation,s:CampaignState):void{
  * remains a war objective until its destruction has actually been observed. */
 export function chooseMission(g:Simulation,s:CampaignState,origin:Point,context?:MissionContext):WarMission|undefined{
  const buildings=knownBuildings(g),old=s.mission;
- if(old){
+ // V1 operational command has its own stable target lock and loss memory.
+ // Original retention is unchanged for all normal (nonexperimental) games.
+ if(old&&!context?.operations){
   const remembered=old.objective===null?undefined:buildings.find(b=>b.id===old.objective);
   const enemy=old.kind==='hunt'?g.units.find(u=>u.id===old.objective&&u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)):undefined;
   const valid=old.kind==='capture'?g.territories[old.sector]?.owner!==1:old.kind==='structure'?!!remembered:!!enemy;
@@ -119,6 +122,83 @@ export function chooseMission(g:Simulation,s:CampaignState,origin:Point,context?
    alternatives.push({sector:choice.sector,...rating,score:choice.score});
   }
   s.alternatives=alternatives.sort((a,b)=>a.score-b.score||a.sector-b.sector).slice(0,8);
+ }
+ if(context?.operations){
+  const state=context.operations;
+  const ownerSectors=g.territories.filter(t=>t.owner===1).length;
+  const fighters=context.force.filter(u=>u.hp>0&&!u.carrier&&
+   !['engineer','medic','scout'].includes(u.kind));
+  const knownTowers=buildings.filter(b=>b.kind==='turret');
+  // At most the ranked mission candidates are resolved. Routes include
+  // known hazards via the tactical controller; unseen enemy state is NEVER
+  // consulted to manufacture strategic intelligence.
+  // Bound pathfinding work. The original controller explores only a handful
+  // of rated candidates, not every remembered building each macro pulse.
+  const ranked=choices.slice().sort((a,b)=>a.score-b.score||
+   a.sector-b.sector||(a.objective??0)-(b.objective??0));
+  const active=old&&ranked.find(c=>c.kind===old.kind&&
+   c.sector===old.sector&&c.objective===old.objective);
+  const pool=[...ranked.slice(0,4),
+   ...ranked.filter(c=>c.kind==='capture').slice(0,2),
+   ...(active?[active]:[])];
+  const inspected=new Set<string>();
+  const shortlist=pool.filter(c=>{
+   const key=c.kind+':'+(c.objective??c.sector);
+   if(inspected.has(key))return false;
+   inspected.add(key);return true;
+  });
+  const candidates:OperationCandidate[]=shortlist.map(choice=>{
+   const route=context.route(choice.p);
+   const territory=g.territories[choice.sector];
+   return {key:choice.kind+':'+(choice.objective??choice.sector),
+    kind:choice.kind,sector:choice.sector,objective:choice.objective,
+    owner:territory.owner,income:territory.income,
+    legacyScore:choice.score,
+    structureKind:choice.kind==='structure'?
+     buildings.find(b=>b.id===choice.objective)?.kind??null:null,
+    routeLength:route?.length??Infinity,routeRisk:route?.risk??Infinity,
+    knownTowers:knownTowers.filter(t=>distance(t,choice.p)<740).length,
+    visibleDefenders:g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&
+     g.canSee(1,u)&&!['engineer','medic','scout'].includes(u.kind)&&
+     distance(u,choice.p)<450).length,
+    knownEnemyBase:buildings.some(b=>b.kind==='headquarters'&&
+     b.territory===choice.sector)
+   };
+  });
+  const visibleHomeThreat=g.bases.some(b=>b.owner===1&&b.hp>0&&
+   g.units.some(u=>u.owner===0&&u.hp>0&&!u.carrier&&
+    g.canSee(1,u)&&distance(u,b)<440));
+  const remembered=old?.objective===null?undefined:
+   buildings.find(b=>b.id===old?.objective);
+  const activeDamage=old?.kind==='structure'&&!!remembered&&
+   remembered.hp<old.hp;
+  const plan=decideOperation(state,{
+   time:g.time,mapVersion:g.world.mapVersion,ownSectors:ownerSectors,
+   fighters:fighters.length,artillery:fighters.filter(u=>u.kind==='artillery').length,
+   recentLosses:context.losses.filter(l=>g.time-l.at<55).length,
+   enemyHQEliminated:s.enemyHQEliminatedAt!==undefined,
+   homeThreat:visibleHomeThreat,
+   activeKey:old?old.kind+':'+(old.objective??old.sector):null,
+   activeProgressAge:old?g.time-old.progressAt:Infinity,
+   activeObjectiveDamaged:!!activeDamage,
+   candidates
+  });
+  Object.assign(state,plan.state);
+  const selected=choices.find(c=>c.kind+':'+(c.objective??c.sector)===plan.key);
+  if(!selected)return s.mission=undefined;
+  // Keep object identity and real progress tracking. A new object on every
+  // three-second pulse would reset rally/order authority and destroy missions.
+  if(old&&old.kind===selected.kind&&old.sector===selected.sector&&
+   old.objective===selected.objective){
+   if(remembered&&remembered.hp<old.hp){
+    old.hp=remembered.hp;old.progressAt=g.time;
+   }
+   return old;
+  }
+  if(old)s.aborted++;
+  return s.mission={kind:selected.kind,x:selected.p.x,y:selected.p.y,
+   sector:selected.sector,objective:selected.objective,hp:selected.hp,
+   since:g.time,progressAt:g.time,distance:distance(origin,selected.p)};
  }
  choices.sort((a,b)=>a.score-b.score||a.sector-b.sector||(a.objective??0)-(b.objective??0));
  const routed:{c:typeof choices[number];route:{length:number;risk:number}}[]=[];

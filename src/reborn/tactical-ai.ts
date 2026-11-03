@@ -16,6 +16,7 @@ import {chooseTacticalManeuver,flankCandidate,type TacticalChoice} from './tacti
 import {assignScreen,assignFlank,flankRouteScore,isContinuingFlank} from './battle-squads.js';
 import {assaultWaveDecision,reinforcementStagingPoint} from './assault-wave.js';
 import {chooseSiegeShot,chooseRaidFront,allowSecondaryPressure,type SiegeShot,type RaidFront} from './ai25-doctrine.js';
+import {newOperations,type OperationMemory} from './operations-commander.js';
 import type {Simulation,Unit,Memory} from './simulation.js';
 export type TacticalPhase='gather'|'attack'|'regroup'|'defend';
 export interface KnownTurret extends Point {id:number;hp:number;seenAt:number;range:number}
@@ -118,6 +119,9 @@ export class TacticalAI {
  earlyEconomyMode:'classic'|'barracks-first'='classic';
  /** Experimental ablations: opt-in per-component doctrine comparisons. */
  missionPlannerMode:'inherit'|'legacy'='inherit';
+ /** New unified strategic mission authority; runtime-only benchmark opt-in. */
+ operationsMode:'legacy'|'v1'='legacy';
+ operations:OperationMemory=newOperations();
  siegeEvaluationMode:'inherit'|'legacy'='inherit';
  raidDetachmentMode:'inherit'|'off'|'selective'='inherit';
  /** Runtime-only diagnostics: never influence simulation or serialize in saves. */
@@ -139,7 +143,7 @@ export class TacticalAI {
   this.sectorPreference={sectorId,until:this.g.time+35};return true;
  }
  restore(state:TacticalState|undefined):void{
-  this.state=state?structuredClone(state):fresh();this.risk=undefined;this.riskAt=-1;this.routeCache.clear();this.strategyOptions=[];this.sectorPreference=null;this.diagnostics=newDiagnostics();
+  this.state=state?structuredClone(state):fresh();this.operations=newOperations();this.risk=undefined;this.riskAt=-1;this.routeCache.clear();this.strategyOptions=[];this.sectorPreference=null;this.diagnostics=newDiagnostics();
   // Legacy memories contain only previously seen buildings; no live hidden bases are consulted.
   if(!state)for(const m of this.g.memories[1])if(m.owner===0&&m.kind==='turret'&&m.hp>0)this.remember(m,Math.max(0,this.g.time-45));
  }
@@ -721,7 +725,7 @@ export class TacticalAI {
    const objectiveGone=a.objective!=null&&a.target!==undefined&&g.canSee(1,a.target)
     &&!g.bases.some(b=>b.id===a.objective&&b.hp>0);
    if(won||objectiveGone||g.time-a.at>120)finishExperience(experience,!!(won||objectiveGone),fighters.reduce((n,u)=>n+u.hp,0));}
-  const mission=chooseMission(g,c,origin,{strategy:s.adaptive?.strategy??'unknown',force:fighters,losses:s.losses,fronts:s.battle?.fronts??[],intelligent:this.missionPlannerMode==='legacy'?false:this.doctrineMode==='intelligent',experience,route:p=>{const route=this.route(origin,p);return route.length?this.sampleRoute(route,origin):undefined;}});
+  const mission=chooseMission(g,c,origin,{strategy:s.adaptive?.strategy??'unknown',force:fighters,losses:s.losses,fronts:s.battle?.fronts??[],intelligent:this.missionPlannerMode==='legacy'?false:this.doctrineMode==='intelligent',experience,operations:this.operationsMode==='v1'&&g.world.mapVersion===11?this.operations:undefined,route:p=>{const route=this.route(origin,p);return route.length?this.sampleRoute(route,origin):undefined;}});
   if(!mission){
    campaignPhase(c,'endgame',g.time);this.setPhase('regroup');s.group=[];s.objective=null;s.target=null;
    // Once the map is captured, ground patrols also search fog for survivors.
