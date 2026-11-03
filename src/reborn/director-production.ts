@@ -68,6 +68,26 @@ export function guardedContactReinforcement(input:{
  return null;
 }
 
+/** Mission-continuity rule: at a depleted front, refill the real paid
+ * barracks queue rather than letting an unrelated expensive vehicle purchase
+ * reserve every credit. No special units, hidden intel or economy grants.
+ * An existing siege reserve always has priority over the rebuild. */
+export function frontlineRecoveryPriority(x:{
+ mode:string;mapVersion:number;time:number;livingFighters:number;
+ queuedFighters:number;infantryOrdered:number;
+ barracksReady:boolean;finishing:boolean;
+ committedSiegeBudget:number;visibleEnemyAir:boolean;
+}):UnitKind|null{
+ if(x.mode!=='frontline-recovery'||x.mapVersion!==11||
+  x.time<55||x.time>330||!x.barracksReady||x.finishing||
+  x.committedSiegeBudget>0||x.visibleEnemyAir)return null;
+ // Total strength includes existing queued fighters, not just present units.
+ // Prevent multiple barracks pulses from over-ordering the recovery target.
+ if(x.livingFighters>=4||x.livingFighters+x.queuedFighters>=4||
+  x.infantryOrdered>=4)return null;
+ return 'infantry';
+}
+
 /** Purchase priorities are persistent composition deficits, not affordable-unit scores.
  * Counts include paid queues, so one factory never reserves money for a unit it
  * has already ordered. Every purchase still goes through Simulation.recruit. */
@@ -154,6 +174,15 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
   // from barracks and other producers by the macro controller.
   if(c.siegeReserve&&available('artillery')&&count('artillery')===0&&
      !c.underAttack&&!observed.air)return 'artillery';
+  const queuedFighters=c.own.reduce((n,b)=>n+b.queueTypes.filter(
+    k=>!['engineer','medic','scout'].includes(k)).length,0);
+  const refill=frontlineRecoveryPriority({
+   mode:g.tactical.earlyEconomyMode,mapVersion:g.world.mapVersion,time:g.time,
+   livingFighters:fighters,queuedFighters,infantryOrdered:count('infantry'),
+   barracksReady:available('infantry'),finishing:c.finishing,
+   committedSiegeBudget:c.siegeReserve??0,visibleEnemyAir:observed.air>0
+  });
+  if(refill)return refill;
   // AI 4.8 diagnostics: factories are available around 68 seconds, but
   // first artillery often takes 210-370 seconds. Use one optional early
   // siege weapon only after a paid rover and an established funded army.
