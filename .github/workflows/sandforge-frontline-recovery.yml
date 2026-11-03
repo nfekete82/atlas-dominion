@@ -1,0 +1,52 @@
+name: Sandforge paid frontline replenishment benchmark
+on:
+  push:
+    branches: [feat/sandforge-paid-frontline-recovery-20261103]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node --test tests/sandforge-paid-frontline-recovery.test.mjs tests/sandforge-ai-tournament.test.mjs tests/sandforge-assault-tempo-audit.test.mjs tests/sandforge-flank-tempo.test.mjs tests/reborn-commander.test.mjs
+  league:
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        opponent: [guarded, pressure, expansion, armored]
+        cohort: [known, heldout, virgin]
+        include:
+          - cohort: known
+            seeds: '2026,2027,2028,2029'
+          - cohort: heldout
+            seeds: '2046,2047,2048,2049'
+          - cohort: virgin
+            seeds: '2054,2055,2056,2057'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Paid A/B with true outcomes and attack time
+        run: node scripts/ai-strategy-tournament.mjs --opponents "${{ matrix.opponent }}" --seeds "${{ matrix.seeds }}" --seconds 360 --contenders current,early-barracks,frontline-recovery --output ai-arena-results/recovery-${{ matrix.opponent }}-${{ matrix.cohort }}.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: recovery-${{ matrix.opponent }}-${{ matrix.cohort }}
+          path: ai-arena-results/recovery-${{ matrix.opponent }}-${{ matrix.cohort }}.json
+          retention-days: 21
