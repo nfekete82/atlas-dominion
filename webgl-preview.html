@@ -43,7 +43,7 @@ a:hover{text-decoration:underline}
 <div id="stage" aria-label="Echte Three.js WebGL 3D Wüstenlandschaft"></div>
 <div class="header">
  <div class="brand"><div class="small">SANDFORGE / THREE.JS PREVIEW</div><h1>BASTION WARS <span style="color:var(--gold)">3D</span></h1>
- <p>Operation Canyon Front · experimenteller Renderer</p></div>
+ <p>Operation Canyon Front · spielbare WebGL-Kampagne</p></div>
  <div class="panel" role="group" aria-label="3D-Kartensteuerung">
   <label for="bastions">Bastionen<select id="bastions"><option value="4">4</option><option value="8">8</option><option value="12">12</option><option value="16">16</option></select></label>
   <label for="seed">Karten-Seed<input id="seed" inputmode="numeric" type="number" min="0" max="4294967295" value="2026"></label>
@@ -55,9 +55,9 @@ a:hover{text-decoration:underline}
  <div class="info">
   <div><strong>WebGL-Rendering</strong> <span class="note">· echte Höhengeometrie, GPU-Schatten und PBR-glTF-Assets</span></div>
   <div id="status" role="status">Initialisiere WebGL-3D-Szene …</div>
-  <div id="selection" aria-live="polite">Linksklick: Einheit wählen · Rechtsklick: bewegen · Ziehen: Kamera verschieben · Mausrad: Zoom · Q/E: drehen</div>
+  <div id="selection" aria-live="polite">Linksklick: auswählen · Rechtsklick: Befehl · Mittlere Maustaste: Kamera · Mausrad: Zoom · Q/E: drehen</div>
   <div id="error" role="alert"></div>
-  <div class="note">Eigenständiger Grafik-Prototyp. Die bisherige Canvas-Spielversion bleibt unangetastet.</div>
+  <div class="note">3D-Kampagne mit Produktion, Bau, KI, Kampf und Speicherfunktion. Das klassische RTS bleibt separat.</div>
  </div>
  <div class="toolbar">
   <button id="rotate-left" title="Kamera nach links drehen" aria-label="Kamera links">↶</button>
