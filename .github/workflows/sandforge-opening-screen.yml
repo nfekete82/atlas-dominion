@@ -1,0 +1,52 @@
+name: Sandforge screened opening A/B tournament
+on:
+  push:
+    branches: [feat/sandforge-opening-screen-20261103]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node --test tests/sandforge-ai-tournament.test.mjs tests/sandforge-four-bastion-postmortem.test.mjs tests/reborn-combat-missions.test.mjs tests/reborn-commander.test.mjs
+  paired:
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        opponent: [guarded, pressure, expansion, armored]
+        cohort: [original, previous-holdout, fresh-holdout]
+        include:
+          - cohort: original
+            seeds: '2026,2027,2028,2029'
+          - cohort: previous-holdout
+            seeds: '2030,2031,2032,2033'
+          - cohort: fresh-holdout
+            seeds: '2034,2035,2036,2037'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Equal-state paid strategy tournament
+        run: node scripts/ai-strategy-tournament.mjs --opponents "${{ matrix.opponent }}" --seeds "${{ matrix.seeds }}" --seconds 360 --contenders current,early-barracks,screened-opening --output ai-arena-results/screened-${{ matrix.opponent }}-${{ matrix.cohort }}.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screened-${{ matrix.opponent }}-${{ matrix.cohort }}
+          path: ai-arena-results/screened-${{ matrix.opponent }}-${{ matrix.cohort }}.json
+          retention-days: 21
