@@ -29,7 +29,7 @@ export class SandforgeBattlefield {
   this.buildInterface();this.addFog();this.createBastions();
   this.attachInput();this.sync(true);
  }
- entityPosition(p){return this.pos(p.x,p.y,this.heightAt(p.x,p.y)+(unitSpec(p).flying?75+100*(p.flightHeight??1):0));}
+ entityPosition(p){return this.pos(p.x,p.y,this.heightAt(p.x,p.y)+(UNITS[p.kind]?.flying?75+100*(p.flightHeight??1):0));}
  createFallback(kind,owner,type){
   const group=new THREE.Group(),team=owner===0?'#397f9d':'#9f5541',metal=new THREE.MeshStandardMaterial({color:team,metalness:.55,roughness:.53}),
    dark=new THREE.MeshStandardMaterial({color:'#444743',metalness:.45,roughness:.7});
@@ -148,7 +148,7 @@ export class SandforgeBattlefield {
   for(const [id,entry] of this.bastions)if(!known.has(id)){this.scene.remove(entry.node);this.bastions.delete(id);}
   for(const territory of this.game.territories){
    const entry=this.bastions.get(territory.id);
-   if(entry&&entry.owner!==territory.owner){entry.owner=territory.owner;entry.core.material.color.set(territory.owner===0?colors.blue:territory.owner===1?colors.red:colors.neutral);}
+   if(entry&&entry.owner!==territory.owner){entry.owner=territory.owner;entry.core.material.color.set(territory.owner===0?colors.blue:territory.owner===1?colors.red:colors.neutral);entry.halo.material.color.set(territory.owner===0?colors.blue:territory.owner===1?colors.red:colors.neutral);}
   }
   this.updateSelectionRings();
   this.updateShots();
