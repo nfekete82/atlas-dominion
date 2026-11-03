@@ -39,14 +39,14 @@ export function criticalConstructionRecovery(status:ConstructionStatus,monitor?:
  if(!status.observedSiege||status.livingArtillery)return reply('not-needed');
  if(status.underAttack||status.urgentDefense||!status.workerAvailable)return reply('protected-work');
  if(time-next.progressAt<24||time-next.issuedAt<24)return reply('watching');
- if(status.workerAlreadyBuilding&&status.workerHasActivePath)return reply('en-route');
+ if(status.workerAlreadyBuilding&&status.workerHasActivePath&&time-next.progressAt<90)return reply('en-route');
  return {monitor:{...next,issuedAt:time},retryBuild:true,reason:'retry-build'};
 }
 export function validConstructionMonitor(m:unknown,time:number):boolean{
  if(m===undefined)return true;
  if(!m||typeof m!=='object')return false;
  const o=m as Partial<ConstructionMonitor>;
- return Number.isSafeInteger(o.buildingId)&&o.buildingId!>=0&&
+ return Number.isSafeInteger(o.buildingId)&&(o.buildingId??-1)>=0&&
   typeof o.remaining==='number'&&Number.isFinite(o.remaining)&&o.remaining>0&&
   typeof o.progressAt==='number'&&Number.isFinite(o.progressAt)&&o.progressAt>=0&&o.progressAt<=time+.001&&
   typeof o.issuedAt==='number'&&Number.isFinite(o.issuedAt)&&o.issuedAt>=0&&o.issuedAt<=time+.001;
