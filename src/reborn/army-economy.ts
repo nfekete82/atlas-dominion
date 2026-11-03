@@ -33,14 +33,21 @@ export function generatorBuildPriority(input:{
  const reserveAfterBuild=existing===1?200:300;
  return fighters>=minimumFighters&&credits>=BUILDINGS.generator.cost+reserveAfterBuild;
 }
-/** A four-bastion opening variant: actually field four paid combat units before
- * buying a passive generator or factory. Queue promises alone do not protect
- * a contested neutral bastion. Outside the opening this is a no-op. */
+/** Opt-in spending gate: only *deployed*, paid fighters protect a frontier.
+ * The static screen is retained for A/B comparison. Adaptive screen instead
+ * reacts only to units we actually see and to public territorial ownership;
+ * neither opponent scripts nor hidden units feed this policy. */
 export function deferOpeningInvestment(input:{
- mapVersion:number;mode:string;time:number;fighters:number;barracksReady:boolean
+ mapVersion:number;mode:string;time:number;fighters:number;barracksReady:boolean;
+ visibleAttackers?:number;visibleArmor?:number;enemySectorLead?:number;
 }):boolean{
- return input.mapVersion===11&&input.mode==='barracks-screen'&&input.time<90
-  &&input.barracksReady&&input.fighters<4;
+ if(input.mapVersion!==11||input.time>=90||!input.barracksReady||input.fighters>=4)return false;
+ if(input.mode==='barracks-screen')return true;
+ if(input.mode!=='adaptive-screen')return false;
+ // Do not cripple economy against passive/armored opponents without evidence.
+ // Territory leadership is public, not guessed from fog-hidden enemy troops.
+ return (input.visibleAttackers??0)>=2||(input.visibleArmor??0)>=1
+  ||(input.enemySectorLead??0)>0;
 }
 /** Temporary, derived siege budget: never add virtual credits or remember an
  * unknown enemy. The first paid rocket is protected while our first factory
@@ -88,7 +95,14 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
   g.tactical.earlyEconomyMode!=='classic'&&!has('barracks');
  const screenHold=deferOpeningInvestment({mapVersion:g.world.mapVersion,
   mode:g.tactical.earlyEconomyMode,time:g.time,fighters:fighters.length,
-  barracksReady:complete('barracks')});
+  barracksReady:complete('barracks'),
+  visibleAttackers:seen.filter(u=>!['engineer','medic','scout'].includes(u.kind)
+   &&distance(u,home)<760).length,
+  visibleArmor:seen.filter(u=>unitSpec(u).group==='Fahrzeuge'
+   &&distance(u,home)<920).length,
+  enemySectorLead:g.territories.filter(t=>t.owner===0).length-
+   g.territories.filter(t=>t.owner===1).length
+ });
  const wantCore=director&&!openingBarracks&&!screenHold&&(generators===0||siegeReserve===0)&&generatorBuildPriority({
   existing:generators,fighters:fighters.length,credits:g.credits[1],
   barracksReady:complete('barracks'),underAttack,finishing
