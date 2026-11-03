@@ -115,7 +115,7 @@ export class TacticalAI {
  /** 2.4/2.5 paired comparison; affects strategy only, never serialized. */
  doctrineMode:'legacy'|'intelligent'='intelligent';
  /** Opt-in: paid barracks before standard 25s strategic opening. */
- earlyEconomyMode:'classic'|'barracks-first'|'barracks-screen'|'adaptive-screen'|'adaptive-contact'|'threat-guard'='classic';
+ earlyEconomyMode:'classic'|'barracks-first'|'barracks-screen'|'adaptive-screen'|'adaptive-contact'|'threat-guard'|'frontline-recovery'='classic';
  /** Opt-in mission diversion after a real, observed unsieged stall. */
  flankTempoMode:'classic'|'flank'='classic';
  /** Experimental ablations: opt-in per-component doctrine comparisons. */
