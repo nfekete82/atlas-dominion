@@ -14,7 +14,7 @@ import {rankLegacyFrontiers} from './legacy-campaign.js';
 import {canCaptureSector,comebackPressure,chooseComebackOpportunity} from './territory-warfare.js';
 import {chooseTacticalManeuver,flankCandidate,type TacticalChoice} from './tactical-search.js';
 import {assignScreen,assignFlank,flankRouteScore,isContinuingFlank} from './battle-squads.js';
-import {assaultWaveDecision,reinforcementStagingPoint} from './assault-wave.js';
+import {assaultWaveDecision,reinforcementStagingPoint,forwardCaptureVanguard} from './assault-wave.js';
 import {chooseSiegeShot,chooseRaidFront,allowSecondaryPressure,type SiegeShot,type RaidFront} from './ai25-doctrine.js';
 import type {Simulation,Unit,Memory} from './simulation.js';
 export type TacticalPhase='gather'|'attack'|'regroup'|'defend';
@@ -27,11 +27,12 @@ export interface TacticalDiagnostics {
  delegatedSieges:number;issuedSieges:number;screenOrders:number;flankGroups:number;flankOrders:number;mainOrders:number;
  flankOpportunities:number;flankNoSquad:number;flankNoRoute:number;
  waveWaits:number;waveLaunches:number;combatReadyWaveLaunches:number;reinforcementStagingOrders:number;
+ forwardCaptureLaunches:number;forwardCaptureUnits:number;
  siegeAngles:number;secondaryRaids:number;secondaryRaidOrders:number;
  last:{at:number;sector:number;allies:number;visible:number;guns:number;choice:string;reason:string}|null;
 }
 const newDiagnostics=():TacticalDiagnostics=>({evaluated:0,choices:{assault:0,flank:0,siege:0,regroup:0},delegatedSieges:0,issuedSieges:0,screenOrders:0,flankGroups:0,flankOrders:0,mainOrders:0,
- flankOpportunities:0,flankNoSquad:0,flankNoRoute:0,waveWaits:0,waveLaunches:0,combatReadyWaveLaunches:0,reinforcementStagingOrders:0,siegeAngles:0,secondaryRaids:0,secondaryRaidOrders:0,last:null});
+ flankOpportunities:0,flankNoSquad:0,flankNoRoute:0,waveWaits:0,waveLaunches:0,combatReadyWaveLaunches:0,reinforcementStagingOrders:0,forwardCaptureLaunches:0,forwardCaptureUnits:0,siegeAngles:0,secondaryRaids:0,secondaryRaidOrders:0,last:null});
 export interface TacticalState {
  adaptive?:AdaptiveState;experience?:Experience;
  battle?:BattleState;
@@ -116,6 +117,8 @@ export class TacticalAI {
  doctrineMode:'legacy'|'intelligent'='intelligent';
  /** Opt-in: paid barracks before standard 25s strategic opening. */
  earlyEconomyMode:'classic'|'barracks-first'='classic';
+ /** Benchmark-only: do not rally healthy forward units away from neutral land. */
+ forwardCaptureMode:'classic'|'advance'='classic';
  /** Experimental ablations: opt-in per-component doctrine comparisons. */
  missionPlannerMode:'inherit'|'legacy'='inherit';
  siegeEvaluationMode:'inherit'|'legacy'='inherit';
@@ -751,7 +754,24 @@ export class TacticalAI {
   let members=selected.filter(u=>s.group.includes(u.id));
   if(s.phase==='attack'&&members.length<Math.max(1,Math.ceil(s.launchSize*.4))){g.stop(s.group.filter(id=>fighters.some(u=>u.id===id)));s.group=[];members=[];s.launchSize=0;this.setPhase('regroup');c.aborted++;}
   const continuing=s.phase==='attack'&&members.length>0;
-  const battle=s.battle??=newBattle(),readyForce=continuing?members:selected.filter(u=>distance(u,s.rally!)<330);
+  // A healthy PAID squad already near a public neutral capture point should
+  // not march back to rear rally, then forward again. Do not bypass a known
+  // gun, visible defender, emergency HQ defense or real regroup cooldown.
+  const forwardIds=!continuing?new Set(forwardCaptureVanguard({
+   enabled:this.forwardCaptureMode==='advance',mapVersion:g.world.mapVersion,
+   time:g.time,phase:s.phase,phaseSeconds:g.time-s.phaseAt,
+   missionKind:mission.kind,sectorOwner:g.territories[mission.sector].owner,
+   knownGunCover:s.knownTurrets.some(t=>distance(t,mission)<t.range+240),
+   observedDefenders:visible.length,
+   homeUnderAttack:g.units.some(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)&&
+    g.bases.some(b=>b.owner===1&&b.hp>0&&distance(u,b)<(b.kind==='headquarters'?560:420))),
+   members:selected.map(u=>({id:u.id,ground:!unitSpec(u).flying,
+    healthFraction:u.hp/unitSpec(u).hp,
+    distanceToMission:distance(u,mission),distanceToRally:distance(u,s.rally!)}))
+  })):new Set<number>();
+  const battle=s.battle??=newBattle(),readyForce=continuing?members:
+   forwardIds.size?selected.filter(u=>forwardIds.has(u.id)):
+    selected.filter(u=>distance(u,s.rally!)<330);
   // Keep safe, in-range rockets firing while the screen reforms. The existing
   // normal rally, turret threat and emergency defense logic remain unchanged.
   const safeBattery=new Set<number>();
@@ -832,7 +852,7 @@ export class TacticalAI {
    }
   }
   if(!continuing){
-   const ready=selected.filter(u=>distance(u,s.rally!)<330),power=ready.reduce((n,u)=>n+combatStrength(u),0);
+   const ready=readyForce,power=ready.reduce((n,u)=>n+combatStrength(u),0);
    const armed=ready.some(u=>u.kind==='artillery'||u.kind==='tank');
    const enough=towers.length?(overrun||assessment.stance==='attack'||assessment.stance==='siege'):defended?ready.length>=3&&power>=5&&(armed||!towers.length&&ready.length>=5):ready.length>=(g.time<40?1:2);
    const wave=this.waveMode==='coordinated'
@@ -851,6 +871,7 @@ export class TacticalAI {
    if(this.waveMode==='coordinated'&&defended)this.diagnostics.waveLaunches++;
    if(wave.reason==='combat-ready')this.diagnostics.combatReadyWaveLaunches++;
    if(!experience.active)experience.active={sector:mission.sector,tactic:overrun?'overrun':towers.length?'siege':'maneuver',guns:towers.length,force:ready.length,at:g.time,initialUnits:ready.length,initialHP:fighters.reduce((n,u)=>n+u.hp,0),progress:0,siegeWeapons:ready.filter(u=>u.kind==='artillery').length,objective:mission.objective,target:{x:mission.x,y:mission.y}};
+   if(forwardIds.size){this.diagnostics.forwardCaptureLaunches++;this.diagnostics.forwardCaptureUnits+=forwardIds.size;}
    s.groupId++;s.group=ready.map(u=>u.id);s.launchSize=ready.length;s.launchedAt=g.time;members=ready;this.setPhase('attack');
   }
   const anchor=centroid(members),joining=selected.filter(u=>!s.group.includes(u.id));
