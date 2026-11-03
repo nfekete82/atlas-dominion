@@ -1,0 +1,52 @@
+name: Sandforge conservative operation selection A/B
+on:
+  push:
+    branches: [feat/sandforge-conservative-operation-director-20261103]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node --test tests/sandforge-conservative-operations.test.mjs tests/sandforge-ai-tournament.test.mjs tests/reborn-commander.test.mjs tests/reborn-combat-missions.test.mjs
+  league:
+    needs: regressions
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        opponent: [guarded, pressure, expansion, armored]
+        cohort: [known, heldout, new]
+        include:
+          - cohort: known
+            seeds: '2026,2027,2028,2029'
+          - cohort: heldout
+            seeds: '2066,2067,2068,2069'
+          - cohort: new
+            seeds: '2070,2071,2072,2073'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Three-way paid paired match with unchanged initial states
+        run: node scripts/ai-strategy-tournament.mjs --opponents "${{ matrix.opponent }}" --seeds "${{ matrix.seeds }}" --seconds 360 --contenders current,early-barracks,conservative-operations --output ai-arena-results/conservative-operations-${{ matrix.opponent }}-${{ matrix.cohort }}.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: conservative-operations-${{ matrix.opponent }}-${{ matrix.cohort }}
+          path: ai-arena-results/conservative-operations-${{ matrix.opponent }}-${{ matrix.cohort }}.json
+          retention-days: 21
