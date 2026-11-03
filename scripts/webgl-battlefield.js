@@ -300,18 +300,24 @@ export class SandforgeBattlefield {
   const g=this.game,s=this.panel.querySelector('#sf-stats'),a=this.panel.querySelector('#sf-actions'),el=this.panel.querySelector('#sf-selection');
   s.innerHTML='<span>Credits <b>'+format(g.credits[0])+'</b></span><span>+ '+format(g.income(0))+' / 10s</span><span>'+g.count(0)+'/'+RULES.capacity+'</span>';
   const button=(data,label,disabled=false,active=false)=>'<button '+data+(disabled?' disabled':'')+(active?' class="sf-btn-active"':'')+'>'+plain(label)+'</button>';
-  a.innerHTML='<h3>Gebäude & Produktion</h3><div class="sf-buttons">'+
+  const actionsMarkup='<h3>Gebäude & Produktion</h3><div class="sf-buttons">'+
    buildingKinds.map(kind=>button('data-build="'+kind+'"',BUILDINGS[kind].name+' '+BUILDINGS[kind].cost,
     g.credits[0]<BUILDINGS[kind].cost||!g.hasHeadquarters(0)&&kind!=='headquarters',this.buildKind===kind)).join('')+
    button('data-action="cancel"','Abbrechen',false,false)+'</div><div class="sf-section sf-buttons">'+
    unitKinds.map(kind=>button('data-unit="'+kind+'"',UNITS[kind].name+' '+UNITS[kind].cost,
     !g.producer(0,kind)||g.credits[0]<UNITS[kind].cost||g.count(0)+g.queued(0)>=RULES.capacity)).join('')+'</div>';
+  if(this.previousActionsMarkup!==actionsMarkup){
+   a.innerHTML=actionsMarkup;this.previousActionsMarkup=actionsMarkup;
+  }
   const chosen=this.game.units.filter(u=>this.selected.has(u.id)&&u.hp>0);
   const base=this.game.bases.find(b=>b.id===this.selectedBase&&b.hp>0);
   const text=chosen.length?chosen.length===1?UNITS[chosen[0].kind].name+' · '+Math.ceil(chosen[0].hp)+' LP':chosen.length+' Einheiten ausgewählt'
    :base?BUILDINGS[base.kind].name+' · '+Math.ceil(base.hp)+' LP'+(base.queue.length?' · '+base.queue.length+' in Produktion':''):'Keine Auswahl';
-  el.innerHTML='<h3>Auswahl / Kommandos</h3><div>'+plain(text)+'</div><div class="sf-buttons">'+
+  const selectionMarkup='<h3>Auswahl / Kommandos</h3><div>'+plain(text)+'</div><div class="sf-buttons">'+
    button('data-action="select-all"','Alle Truppen')+'</div>';
+  if(this.previousSelectionMarkup!==selectionMarkup){
+   el.innerHTML=selectionMarkup;this.previousSelectionMarkup=selectionMarkup;
+  }
   if(g.status!=='playing')this.message(g.status==='victory'?'SIEG – alle Gegner besiegt':'NIEDERLAGE');
  }
  drawMinimap(){
