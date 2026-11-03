@@ -5,12 +5,12 @@ import {OPPONENTS,scriptedBlueTurn} from '../scripts/ai-tournament-opponents.mjs
 import {CONTENDERS,configureContender,tournamentOptions,summarizeTournament} from '../scripts/ai-strategy-tournament.mjs';
 import {selectiveRaidAllowed} from '../dist/src/reborn/selective-raids.js';
 import {deferOpeningInvestment} from '../dist/src/reborn/army-economy.js';
-import {contactReinforcement} from '../dist/src/reborn/director-production.js';
+import {contactReinforcement,guardedContactReinforcement} from '../dist/src/reborn/director-production.js';
 
 test('tournament: exactly four reproducible, legal BLUE opponents',()=>{
  assert.deepEqual(OPPONENTS,['guarded','pressure','expansion','armored']);
  assert.equal(new Set(OPPONENTS).size,4);
- assert.equal(new Set(CONTENDERS).size,13);
+ assert.equal(new Set(CONTENDERS).size,14);
  assert.throws(()=>scriptedBlueTurn(new Simulation(2026,11),'omniscient'));
 });
 test('tournament: flags validate seeds, complete A/B and real time horizon',()=>{
@@ -242,6 +242,43 @@ test('post-contact policy buys only paid visible counters, with strict guards',(
  assert.deepEqual(candidate.visible,standard.visible,'no modified fog');
  assert.equal(candidate.tactical.state.lastPlan,-3,'no early military plan');
  assert.equal(candidate.save().ai?.earlyEconomyMode,undefined);
+});
+test('threat-guard: only nearby observed attacks trigger a paid response',()=>{
+ const x={mode:'threat-guard',mapVersion:11,time:110,
+  finishing:false,visibleAir:0,nearbyInfantry:0,nearbyArmor:0,
+  homeThreat:false,imminentHQThreat:false,activeAssault:false,
+  committedSiege:false,livingLine:3,orderedLine:3,
+  infantry:3,heavy:0,tank:0,factoryReady:false};
+ const decide=patch=>guardedContactReinforcement({...x,...patch});
+ assert.equal(decide({}),null,'public sector deficit alone is insufficient');
+ assert.equal(decide({nearbyInfantry:2}),null,'distant or off-front observations must not count');
+ assert.equal(decide({homeThreat:true,nearbyInfantry:2}),'heavy','a real local rush needs one heavy escort');
+ assert.equal(decide({homeThreat:true,nearbyInfantry:2,heavy:1}),'infantry','cheap replacement after heavy');
+ assert.equal(decide({homeThreat:true,nearbyInfantry:1}),null,'one infantry does not imply a rush');
+ assert.equal(decide({homeThreat:true,nearbyArmor:1}),null,'no imaginary factory');
+ assert.equal(decide({homeThreat:true,nearbyArmor:1,factoryReady:true}),'tank','one real paid armor counter');
+ assert.equal(decide({homeThreat:true,nearbyArmor:1,factoryReady:true,tank:1}),null,'no repeated tanks');
+ assert.equal(decide({homeThreat:true,nearbyInfantry:2,livingLine:5}),null,'screen is capped');
+ assert.equal(decide({homeThreat:true,nearbyInfantry:2,orderedLine:6}),null,'queue counts');
+ assert.equal(decide({homeThreat:true,nearbyInfantry:2,activeAssault:true}),null,'no raid diversion');
+ assert.equal(decide({homeThreat:true,nearbyInfantry:2,activeAssault:true,
+  imminentHQThreat:true}),'heavy','visible emergency can override active assault');
+ assert.equal(decide({homeThreat:true,nearbyInfantry:2,committedSiege:true}),null,
+  'protect funded artillery and siege roles');
+ for(const patch of [{mode:'adaptive-contact'},{mapVersion:12},{time:54},
+  {time:211},{visibleAir:1},{finishing:true}])
+  assert.equal(decide({...patch,homeThreat:true,nearbyInfantry:3}),null,
+   JSON.stringify(patch));
+ const old=new Simulation(2042,11),changed=new Simulation(2042,11);
+ configureContender(old.tactical,'early-barracks');
+ configureContender(changed.tactical,'threat-guard');
+ assert.equal(changed.tactical.earlyEconomyMode,'threat-guard');
+ for(let i=0;i<240;i++){old.step(.05);changed.step(.05);}
+ assert.deepEqual(changed.bases,old.bases);
+ assert.deepEqual(changed.credits,old.credits,'first paid opening unchanged');
+ assert.deepEqual(changed.visible,old.visible,'same fog');
+ assert.equal(changed.tactical.state.lastPlan,-3,'no early solo attack');
+ assert.equal(changed.save().ai?.earlyEconomyMode,undefined,'experiment never persisted');
 });
 test('paid opening is map-scoped and keeps ordinary 25s strategic timing',()=>{
  const larger=new Simulation(2026,12);
