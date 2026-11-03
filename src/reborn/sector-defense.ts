@@ -24,6 +24,7 @@ export function threatenedOwnedSectors(territories:readonly Territory[],
 /** Preserve immediate HQ urgency. An enemy entering the actual sector
  * capture circle is more urgent than a distant attacker merely approaching. */
 export function sectorThreatScore(e:ObservedEnemy,threats:readonly SectorThreat[],home:Point):number{
+ if(distance(e,home)<280)return -1500+distance(e,home);
  const match=threats.filter(t=>t.enemy===e.id)
   .sort((a,b)=>a.distance-b.distance||b.income-a.income)[0];
  if(!match)return distance(e,home);
