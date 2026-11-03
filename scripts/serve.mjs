@@ -8,6 +8,11 @@ const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css
 createServer(async (req, res) => {
   try {
     const path = decodeURIComponent(new URL(req.url ?? '/', 'http://localhost').pathname);
+    if (path === '/healthz') {
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify({ ok: true, service: 'sandforge' }));
+      return;
+    }
     const file = resolve(BASE, '.' + (path === '/' ? '/index.html' : path));
     if (!(file === BASE || file.startsWith(BASE + sep))) { res.writeHead(403).end(); return; }
     if (!(await stat(file)).isFile()) { res.writeHead(404).end(); return; }
