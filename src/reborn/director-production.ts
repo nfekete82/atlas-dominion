@@ -44,6 +44,30 @@ export function contactReinforcement(input:{
  return null;
 }
 
+/** Emergency-only, paid post-contact screen. Public sector ownership does not
+ * justify diverting credits by itself: a threat must be locally observed.
+ * Existing assault and siege commitments are respected unless home is under
+ * immediate attack. The caller supplies observed information only. */
+export function guardedContactReinforcement(input:{
+ mode:string;mapVersion:number;time:number;finishing:boolean;visibleAir:number;
+ nearbyInfantry:number;nearbyArmor:number;homeThreat:boolean;imminentHQThreat:boolean;
+ activeAssault:boolean;committedSiege:boolean;
+ livingLine:number;orderedLine:number;infantry:number;heavy:number;
+ tank:number;factoryReady:boolean;
+}):UnitKind|null{
+ const x=input;
+ if(x.mode!=='threat-guard'||x.mapVersion!==11||x.time<55||x.time>210||
+  x.finishing||x.visibleAir>0||x.committedSiege)return null;
+ if(!x.homeThreat||x.activeAssault&&!x.imminentHQThreat)return null;
+ // Do not build an imaginary counter to an armored army beyond sight.
+ if(x.nearbyArmor>0)return x.factoryReady&&x.tank===0?'tank':null;
+ if(x.nearbyInfantry<2||x.livingLine>=5||x.orderedLine>=6)return null;
+ // A tiny screen needs affordable replacements, not an endless heavy queue.
+ if(x.heavy<1&&x.livingLine>=2)return 'heavy';
+ if(x.infantry<4)return 'infantry';
+ return null;
+}
+
 /** Purchase priorities are persistent composition deficits, not affordable-unit scores.
  * Counts include paid queues, so one factory never reserves money for a unit it
  * has already ordered. Every purchase still goes through Simulation.recruit. */
@@ -89,6 +113,29 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
     count('artillery')===0&&(c.knownTurrets>0||s.battle?.assessment?.neededSiege))
    return 'artillery';
   const response=counter();if(response)return response;
+  // Only a visible local emergency can divert cash from strategic production.
+  const localInfantry=c.seen.filter(u=>UNITS[u.kind].group==='Infanterie'&&
+   !['engineer','medic'].includes(u.kind)&&c.own.some(b=>
+    Math.hypot(u.x-b.x,u.y-b.y)<520)).length;
+  const localArmor=c.seen.filter(u=>UNITS[u.kind].group==='Fahrzeuge'&&
+   !UNITS[u.kind].flying&&c.own.some(b=>
+    Math.hypot(u.x-b.x,u.y-b.y)<580)).length;
+  const guarded=guardedContactReinforcement({
+   mode:g.tactical.earlyEconomyMode,mapVersion:g.world.mapVersion,time:g.time,
+   finishing:c.finishing,visibleAir:observed.air,
+   nearbyInfantry:localInfantry,nearbyArmor:localArmor,
+   homeThreat:localInfantry>=2||localArmor>0,
+   imminentHQThreat:c.seen.some(u=>!['engineer','medic','scout'].includes(u.kind)&&
+    c.own.some(b=>b.kind==='headquarters'&&Math.hypot(u.x-b.x,u.y-b.y)<380)),
+   activeAssault:s.phase==='attack',
+   committedSiege:(c.siegeReserve??0)>0||s.savingFor==='artillery'||
+    (s.battle?.assessment?.neededSiege??0)>0,
+   livingLine:c.army.filter(u=>u.kind==='infantry'||u.kind==='heavy').length,
+   orderedLine:count('infantry')+count('heavy'),
+   infantry:count('infantry'),heavy:count('heavy'),tank:count('tank'),
+   factoryReady:available('tank')
+  });
+  if(guarded&&available(guarded))return guarded;
   const reinforcement=contactReinforcement({
    mode:g.tactical.earlyEconomyMode,mapVersion:g.world.mapVersion,time:g.time,
    finishing:c.finishing,underAttack:c.underAttack,
