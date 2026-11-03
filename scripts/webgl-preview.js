@@ -11,13 +11,16 @@ const $=id=>document.getElementById(id);
 const query=new URLSearchParams(location.search);
 const sizes={4:15,8:16,12:17,16:18};
 const bastions=Object.hasOwn(sizes,query.get('bastions'))?Number(query.get('bastions')):8;
-const seed=Number.isSafeInteger(Number(query.get('seed')))&&Number(query.get('seed'))>=0
-  ?Number(query.get('seed'))>>>0:2026;
+const inputSeed=query.get('seed');
+const seed=inputSeed!==null&&Number.isSafeInteger(Number(inputSeed))&&Number(inputSeed)>=0
+  ?Number(inputSeed)>>>0:2026;
 $('bastions').value=String(bastions);$('seed').value=String(seed);
 const game=new Simulation(seed,sizes[bastions]);
 const world=game.world,terrain=world.generated,size=world.size,half=size/2;
 const status=$('status'),errorNode=$('error'),stage=$('stage');
 const setStatus=value=>{status.textContent=value;};
+const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
+const smooth=value=>{const t=clamp(value,0,1);return t*t*(3-2*t);};
 const rnd=seed=>{let s=seed>>>0;return ()=>{s=(s+0x6d2b79f5)>>>0;let n=s;n=Math.imul(n^(n>>>15),n|1);n^=n+Math.imul(n^(n>>>7),n|61);return ((n^(n>>>14))>>>0)/4294967296;};};
 const random=rnd(seed^0xb6aa3371),ridge=terrain.ridges[0];
 const heightAt=canyonGroundSampler(seed,terrain.ridges);
