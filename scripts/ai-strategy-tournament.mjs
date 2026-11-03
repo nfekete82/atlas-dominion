@@ -133,7 +133,9 @@ export function runTournament(opts){
     elapsedSeconds:m.elapsedSeconds,captures:m.captures,netCaptures:m.netCaptures,
     redUnitsLost:m.redUnitsLost,blueUnitsLost:m.blueUnitsLost,
     redSectors:m.redSectors,enemyHQDamage:m.enemyHQDamage,
-    abortedMissions:m.abortedMissions,redCredits:m.redCredits,
+    abortedMissions:m.abortedMissions,stalledMissions:m.stalledMissions,
+    attackingSeconds:m.attackingSeconds,firstArtilleryOrder:m.firstArtilleryOrder,
+    firstArtillery:m.firstArtillery,redCredits:m.redCredits,
     paidRecruitCredits:m.paidRecruitCredits,paidBuildCredits:m.paidBuildCredits,
     bluePaidRecruitCredits:m.bluePaidRecruitCredits,bluePaidBuildCredits:m.bluePaidBuildCredits,
     wallMs:m.wallMs};
