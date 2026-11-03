@@ -9,6 +9,7 @@ import {resolve,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {Simulation} from '../dist/src/reborn/simulation.js';
 import {UNITS} from '../dist/src/reborn/catalog.js';
+import {RULES} from '../dist/src/reborn/config.js';
 import {runMatch} from './benchmark-reborn-ai.mjs';
 import {configureContender} from './ai-strategy-tournament.mjs';
 import {OPPONENTS,scriptedBlueTurn} from './ai-tournament-opponents.mjs';
@@ -26,8 +27,8 @@ export function terminalSnapshot(g){
  const pending=g.territories.filter(t=>t.owner!==1).map(t=>{
   const nearest=redFighters.map(u=>({unit:u.id,kind:u.kind,range:rounded(dist(u,t.point)),
    order:u.orders[0]?.kind??null})).sort((a,b)=>a.range-b.range||a.unit-b.unit)[0]??null;
-  const insideRed=red.some(u=>dist(u,t.point)<=g.rules.captureRadius);
-  const insideBlue=blue.some(u=>dist(u,t.point)<=g.rules.captureRadius);
+  const insideRed=red.some(u=>dist(u,t.point)<=RULES.captureRadius);
+  const insideBlue=blue.some(u=>dist(u,t.point)<=RULES.captureRadius);
   return {id:t.id,owner:t.owner,captureProgress:rounded(t.progress),capturing:t.capturing,
    readiness:g.captureReadiness(t,1),nearest,insideRed,insideBlue};
  });
