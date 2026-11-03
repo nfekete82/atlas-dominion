@@ -4,6 +4,7 @@ import {RULES,distance,clamp,type Point} from './config.js';
 import {UNITS,unitSpec,buildingSpec,canAttack,type UnitKind} from './catalog.js';
 import {developArmy,validEconomy,type EconomyState} from './army-economy.js';
 import {assaultDecision,abortAssault} from './ai-director.js';
+import {selectiveRaidAllowed} from './selective-raids.js';
 import {newCampaign,campaignPhase,refreshIntelligence,chooseMission,reconGoal,validCampaign,knownBuildings,type CampaignState} from './campaign-commander.js';
 import {segmentDistance} from './world-generation.js';
 import {newBattle,assessBattle,fightingPower,recordFailure,retryFront,validBattle,type BattleState} from './battle-response.js';
@@ -116,7 +117,7 @@ export class TacticalAI {
  /** Experimental ablations: opt-in per-component doctrine comparisons. */
  missionPlannerMode:'inherit'|'legacy'='inherit';
  siegeEvaluationMode:'inherit'|'legacy'='inherit';
- raidDetachmentMode:'inherit'|'off'='inherit';
+ raidDetachmentMode:'inherit'|'off'|'selective'='inherit';
  /** Runtime-only diagnostics: never influence simulation or serialize in saves. */
  diagnostics:TacticalDiagnostics=newDiagnostics();
  state=fresh();private risk:Float32Array|undefined;private riskAt=-1;private routeCache=new Map<string,Point[]>();private routeSignature='';
@@ -647,7 +648,16 @@ export class TacticalAI {
     fighters.length-s.group.filter(id=>!fighters.some(u=>u.id===id)).length-2,candidates.length);
   // Keep three paid fighters on main defense; never steal emergency defenders.
   const emergency=b.squads.some(q=>q.role==='defense'&&q.ids.length>0);
-  if((!normal&&!(comeback&&fighters.length>=5&&candidates.length>=2))||emergency){
+  const selective=this.raidDetachmentMode==='selective'&&g.world.mapVersion===11;
+  const currentFront=s.group.filter(id=>fighters.some(u=>u.id===id)).length;
+  const homeThreat=selective&&g.units.some(u=>u.owner===0&&u.hp>0&&!u.carrier
+    &&g.canSee(1,u)&&distance(u,home)<560);
+  const permitted=selective?selectiveRaidAllowed({
+    fighters:fighters.length,mainScreen:currentFront,
+    eligibleRaiders:candidates.length,normalDoctrine:normal,
+    behindByTwoSectors:comeback,observedHomeThreat:homeThreat}):
+    (normal||comeback&&fighters.length>=5&&candidates.length>=2);
+  if(!permitted||emergency){
    b.squads=b.squads.filter(q=>q.role!=='raid');return new Set();
   }
   const scout=old?candidates.filter(u=>old.ids.includes(u.id)):candidates.slice()
