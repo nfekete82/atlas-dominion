@@ -29,6 +29,9 @@ test('Playable 3D: assets, terrain, fog, units, buildings, minimap and productio
  const initial=await page.evaluate(()=>window.__sandforgeWebGL.battlefield.fogEnabled);
  await page.locator('[data-action="fog"]').click();
  expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.fogEnabled)).toBe(!initial);
+ await page.evaluate(()=>{window.__stableCommandButton=document.querySelector('[data-action="select-all"]');});
+ await page.waitForTimeout(900);
+ expect(await page.evaluate(()=>document.querySelector('[data-action="select-all"]')===window.__stableCommandButton)).toBe(true);
  await page.locator('[data-action="select-all"]').click();
  expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.selected.size)).toBeGreaterThan(0);
  await page.locator('[data-build="barracks"]').click();
