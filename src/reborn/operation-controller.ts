@@ -7,6 +7,8 @@ export interface OperationSnapshot {mode:OperationMode;since:number;reason:strin
 export interface OperationFront {
  sector:number;owner:number;income:number;routeLength:number;routeRisk:number;
  observedTower:boolean;observedHQ:boolean;visibleFighters:number;
+ /** Positive RED sight on the capture point: fog is not proof of safety. */
+ currentlyVisible:boolean;
 }
 export interface OperationView {
  at:number;livingFighters:number;hasArtillery:boolean;
@@ -15,7 +17,7 @@ export interface OperationView {
  fronts:readonly OperationFront[];
 }
 export interface OperationDecision {next:OperationSnapshot;changed:boolean;openFront:number|null}
-const isOpen=(f:OperationFront)=>f.owner!==1&&!f.observedTower&&!f.observedHQ&&
+const isOpen=(f:OperationFront)=>f.owner!==1&&f.currentlyVisible&&!f.observedTower&&!f.observedHQ&&
  f.visibleFighters===0&&Number.isFinite(f.routeLength)&&f.routeLength>0&&
  f.routeLength<=2400&&Number.isFinite(f.routeRisk)&&f.routeRisk>=0&&f.routeRisk<7;
 export function chooseOperation(view:OperationView,old?:OperationSnapshot):OperationDecision{
