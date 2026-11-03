@@ -4,6 +4,7 @@ import {RULES,distance,clamp,type Point} from './config.js';
 import {UNITS,unitSpec,buildingSpec,canAttack,type UnitKind} from './catalog.js';
 import {developArmy,validEconomy,type EconomyState} from './army-economy.js';
 import {assaultDecision,abortAssault} from './ai-director.js';
+import {concentrateFront,allowDetachedRaid,strategicReserve,frontReinforcementDistance,frontStrengthRequired,type FrontPolicy} from './strategic-front.js';
 import {newCampaign,campaignPhase,refreshIntelligence,chooseMission,reconGoal,validCampaign,knownBuildings,type CampaignState} from './campaign-commander.js';
 import {segmentDistance} from './world-generation.js';
 import {newBattle,assessBattle,fightingPower,recordFailure,retryFront,validBattle,type BattleState} from './battle-response.js';
@@ -113,6 +114,8 @@ export class TacticalAI {
  waveMode:'legacy'|'coordinated'='coordinated';
  /** 2.4/2.5 paired comparison; affects strategy only, never serialized. */
  doctrineMode:'legacy'|'intelligent'='intelligent';
+ /** A/B only; keep normal gameplay classic until a measured improvement. */
+ frontPolicy:FrontPolicy='classic';
  /** Runtime-only diagnostics: never influence simulation or serialize in saves. */
  diagnostics:TacticalDiagnostics=newDiagnostics();
  state=fresh();private risk:Float32Array|undefined;private riskAt=-1;private routeCache=new Map<string,Point[]>();private routeSignature='';
@@ -262,6 +265,7 @@ export class TacticalAI {
   b.squads=b.squads.filter(q=>q.role!=='raid');
   if(old){const units=fighters.filter(u=>old.ids.includes(u.id));if(old.target!==null&&g.territories[old.target]?.owner!==1)this.issue(units,s.rally??home,'safe',undefined,false,false);}
   if(fighters.length<5||!['reinforce','withdraw'].includes(b.assessment?.stance??'')||b.squads.some(q=>q.role==='defense'&&q.ids.length))return new Set();
+   if(!allowDetachedRaid({small:concentrateFront(g.world.mapVersion,this.frontPolicy),available:fighters.length,front:s.group.length,observedThreat:0}))return new Set();
   const spare=fighters.filter(u=>!s.group.includes(u.id)&&['infantry','rover'].includes(u.kind));if(spare.length<2)return new Set();
   const targets=g.territories.filter(t=>safe(t.id)&&t.neighbors.some(id=>g.territories[id].owner===1))
    .sort((a,v)=>distance(spare[0],a.point)-distance(spare[0],v.point)||a.id-v.id);
@@ -316,14 +320,15 @@ export class TacticalAI {
  private reinforce(fighters:Unit[],home:Point):void{
   const g=this.g,s=this.state,front=fighters.filter(u=>s.group.includes(u.id));
   if(!front.length||front.length>=10||s.target===null)return;
-  const available=fighters.filter(u=>!s.group.includes(u.id)&&!(g.world.mapVersion>=3&&u.orders[0]?.tactical?.mode==='assault')),reserve=fighters.length>=8?2:fighters.length>=5?1:0;
+  const available=fighters.filter(u=>!s.group.includes(u.id)&&!(g.world.mapVersion>=3&&u.orders[0]?.tactical?.mode==='assault')),
+     reserve=strategicReserve({small:concentrateFront(g.world.mapVersion,this.frontPolicy),count:fighters.length,enemyNearHome:false});
   const guard=new Set(available.slice().sort((a,b)=>distance(a,home)-distance(b,home)||a.id-b.id).slice(0,reserve).map(u=>u.id));
   const anchor=front.reduce((p,u)=>({x:p.x+u.x/front.length,y:p.y+u.y/front.length}),{x:0,y:0});
   const next=available.filter(u=>!guard.has(u.id)).sort((a,b)=>distance(a,anchor)-distance(b,anchor)||a.id-b.id).slice(0,10-front.length);
   const target=g.territories[s.target],objective=s.objective===null?undefined:g.memories[1].find(b=>b.id===s.objective&&b.hp>0);
   const approaching:Unit[]=[];
   for(const u of next){
-   if(distance(u,anchor)>280){approaching.push(u);continue;}
+   if(distance(u,anchor)>frontReinforcementDistance(concentrateFront(g.world.mapVersion,this.frontPolicy))){approaching.push(u);continue;}
    s.group.push(u.id);s.launchSize++;this.issue([u],objective??target.point,objective||g.world.mapVersion>=3&&this.mode==='director'?'assault':'safe',objective?.id);
   }
   // Keep moving reinforcements on a stable route. Rewriting the waypoint every
@@ -631,6 +636,7 @@ export class TacticalAI {
  private secondaryPressure(fighters:Unit[],main:{sector:number},home:Point):Set<number>{
   if(this.doctrineMode!=='intelligent'||this.mode!=='director'||this.planningMode!=='tactical'
     ||this.g.world.mapVersion<3)return new Set();
+   if(concentrateFront(this.g.world.mapVersion,this.frontPolicy))return new Set();
   const g=this.g,s=this.state,b=s.battle??=newBattle();
   const old=b.squads.find(q=>q.role==='raid');
   // Losing two sectors triggers a small paid detachment sooner than the
@@ -726,9 +732,10 @@ export class TacticalAI {
   }
   // Cleanup holds the paid army together rather than sending two fighters to
  // a secondary neutral bastion while enemy production is still standing.
- const raidUnits=c.enemyHQEliminatedAt===undefined?this.secondaryPressure(fighters,mission,home):new Set<number>();
+ const raidUnits=c.enemyHQEliminatedAt===undefined&&!concentrateFront(g.world.mapVersion,this.frontPolicy)?this.secondaryPressure(fighters,mission,home):new Set<number>();
   const mainFighters=fighters.filter(u=>!raidUnits.has(u.id));
-  const reserve=cleanupReserveSize(c.enemyHQEliminatedAt!==undefined,mainFighters.length);
+  const reserve=concentrateFront(g.world.mapVersion,this.frontPolicy)?strategicReserve({small:true,count:mainFighters.length,
+     enemyNearHome:g.units.some(u=>u.owner===0&&u.hp>0&&g.canSee(1,u)&&distance(u,home)<600)}):cleanupReserveSize(c.enemyHQEliminatedAt!==undefined,mainFighters.length);
   const guards=new Set(mainFighters.filter(u=>!s.group.includes(u.id)).sort((a,b)=>distance(a,home)-distance(b,home)||a.id-b.id).slice(0,reserve).map(u=>u.id));
   const selected=mainFighters.filter(u=>!guards.has(u.id)).sort((a,b)=>Number(s.group.includes(b.id))-Number(s.group.includes(a.id))||distance(a,s.rally!)-distance(b,s.rally!)||a.id-b.id).slice(0,18);
   let members=selected.filter(u=>s.group.includes(u.id));
@@ -826,8 +833,10 @@ export class TacticalAI {
         // A known gun requires a real artillery escort or proved overmatch.
         siegeSupported:!towers.length||ready.some(u=>u.kind==='artillery')||overrun})
      :{ready:true,required:0,reason:'legacy'};
-   if(enough&&!wave.ready)this.diagnostics.waveWaits++;
-   if(!enough||!wave.ready){
+   const disciplined=frontStrengthRequired({small:concentrateFront(g.world.mapVersion,this.frontPolicy),defended,
+     readyCount:ready.length,selectedCount:selected.length,hasArmor:armed,observedThreat:visible.length+towers.length});
+   if(enough&&(!wave.ready||!disciplined))this.diagnostics.waveWaits++;
+   if(!enough||!wave.ready||!disciplined){
     campaignPhase(c,g.time<40?'opening':defended?'buildup':'expansion',g.time);this.setPhase('gather');
     stageForSiege();return;
    }
@@ -986,7 +995,7 @@ export class TacticalAI {
   const intruders=g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)&&g.bases.some(b=>b.owner===1&&b.hp>0&&distance(u,b)<(b.kind==='headquarters'?560:420)));
   if(g.world.mapVersion>=3&&this.mode==='director'){
    const defense=this.localDefense(fighters,medics,intruders,home);
-   const raiders=this.expansionRaid(fighters.filter(u=>!defense.has(u.id)),home);
+   const raiders=concentrateFront(g.world.mapVersion,this.frontPolicy)?new Set<number>():this.expansionRaid(fighters.filter(u=>!defense.has(u.id)),home);
    this.campaign(army,fighters.filter(u=>!defense.has(u.id)&&!raiders.has(u.id)),medics.filter(u=>!defense.has(u.id)),home);
    if(defense.size)campaignPhase(s.commander??=newCampaign(),'emergencyDefense',g.time);
    return;
