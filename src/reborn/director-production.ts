@@ -50,7 +50,7 @@ export function contactReinforcement(input:{
  * immediate attack. The caller supplies observed information only. */
 export function guardedContactReinforcement(input:{
  mode:string;mapVersion:number;time:number;finishing:boolean;visibleAir:number;
- nearbyInfantry:number;nearbyArmor:number;homeThreat:boolean;
+ nearbyInfantry:number;nearbyArmor:number;homeThreat:boolean;imminentHQThreat:boolean;
  activeAssault:boolean;committedSiege:boolean;
  livingLine:number;orderedLine:number;infantry:number;heavy:number;
  tank:number;factoryReady:boolean;
@@ -58,7 +58,7 @@ export function guardedContactReinforcement(input:{
  const x=input;
  if(x.mode!=='threat-guard'||x.mapVersion!==11||x.time<55||x.time>210||
   x.finishing||x.visibleAir>0||x.committedSiege)return null;
- if(!x.homeThreat||x.activeAssault)return null;
+ if(!x.homeThreat||x.activeAssault&&!x.imminentHQThreat)return null;
  // Do not build an imaginary counter to an armored army beyond sight.
  if(x.nearbyArmor>0)return x.factoryReady&&x.tank===0?'tank':null;
  if(x.nearbyInfantry<2||x.livingLine>=5||x.orderedLine>=6)return null;
@@ -125,6 +125,8 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
    finishing:c.finishing,visibleAir:observed.air,
    nearbyInfantry:localInfantry,nearbyArmor:localArmor,
    homeThreat:localInfantry>=2||localArmor>0,
+   imminentHQThreat:c.seen.some(u=>!['engineer','medic','scout'].includes(u.kind)&&
+    c.own.some(b=>b.kind==='headquarters'&&Math.hypot(u.x-b.x,u.y-b.y)<380)),
    activeAssault:s.phase==='attack',
    committedSiege:c.siegeReserve>0||s.savingFor==='artillery'||
     s.battle?.assessment?.neededSiege!==undefined&&s.battle.assessment.neededSiege>0,
