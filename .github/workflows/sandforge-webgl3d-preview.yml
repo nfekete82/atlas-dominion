@@ -27,7 +27,7 @@ jobs:
           node --check scripts/webgl-preview.js
           npm run build
       - name: Verify heightfield, paths, glTF model geometry, old saves and offline assets
-        run: node --test tests/sandforge-webgl-preview.test.mjs tests/sandforge-canyon-front.test.mjs tests/sandforge-canyon-models.test.mjs
+        run: node --test tests/sandforge-webgl-preview.test.mjs tests/sandforge-canyon-front.test.mjs tests/sandforge-canyon-models.test.mjs tests/sandforge-webgl-server.test.mjs
   visual:
     name: Chromium · live WebGL2 and 3D ruin screenshot
     needs: verify
