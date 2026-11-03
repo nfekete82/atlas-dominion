@@ -13,7 +13,7 @@ import {runMatch} from './benchmark-reborn-ai.mjs';
 import {OPPONENTS,scriptedBlueTurn} from './ai-tournament-opponents.mjs';
 
 export const CONTENDERS=Object.freeze(['current','legacy-wave','legacy-doctrine','baseline',
- 'legacy-mission','no-side-raids','legacy-mission-no-raids','legacy-siege','selective-raids','early-barracks','screened-opening','adaptive-opening','adaptive-contact','threat-guard']);
+ 'legacy-mission','no-side-raids','legacy-mission-no-raids','legacy-siege','selective-raids','early-barracks','screened-opening','adaptive-opening','adaptive-contact','threat-guard','flank-tempo']);
 export function tournamentOptions(argv){
  const flags={};
  for(let i=0;i<argv.length;i+=2){
@@ -50,6 +50,7 @@ export function configureContender(tactical,name){
  if(name==='adaptive-opening')tactical.earlyEconomyMode='adaptive-screen';
  if(name==='adaptive-contact')tactical.earlyEconomyMode='adaptive-contact';
  if(name==='threat-guard')tactical.earlyEconomyMode='threat-guard';
+ if(name==='flank-tempo'){tactical.earlyEconomyMode='barracks-first';tactical.flankTempoMode='flank';}
 }
 /** Independent, auditable metrics. Do not call a draw a victory, and do not
  * treat a tiny tie-breaker difference as evidence of a superior strategy. */
