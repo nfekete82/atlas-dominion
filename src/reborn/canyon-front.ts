@@ -72,6 +72,33 @@ function shape(c:CanvasRenderingContext2D,pts:readonly Point[],color:string):voi
  c.beginPath();pts.forEach((p,i)=>i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y));
  c.closePath();c.fillStyle=color;c.fill();
 }
+/** Broken paved service roads. Visual only: pathfinding remains governed by
+ * the real ground grid. Segments have chipped shoulders, asphalt and faded paint. */
+export function paintCanyonRoads(c:CanvasRenderingContext2D,roads:readonly (readonly [Point,Point])[],seed:number):void{
+ const random=mix(seed^0x73e8bfa4);c.save();c.lineCap='butt';c.lineJoin='round';
+ for(const [from,to] of roads){
+  const d=dist(from,to);if(d<260||random()>.68)continue;
+  const parts=2+Math.floor(random()*2);
+  for(let k=0;k<parts;k++){
+   const t0=.06+k/parts*.84,t1=Math.min(.96,t0+.16+random()*.13);
+   const a={x:from.x+(to.x-from.x)*t0,y:from.y+(to.y-from.y)*t0};
+   const b={x:from.x+(to.x-from.x)*t1,y:from.y+(to.y-from.y)*t1};
+   const width=27+random()*13;
+   c.beginPath();c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);
+   c.strokeStyle='#8b7555';c.lineWidth=width+9;c.stroke();
+   c.strokeStyle='#5b5b50';c.lineWidth=width;c.stroke();
+   c.strokeStyle='#77766a';c.lineWidth=width-5;c.stroke();
+   c.strokeStyle='#ddd3b08f';c.lineWidth=1.7;c.setLineDash([10,20]);c.stroke();c.setLineDash([]);
+   // Intermittent fractured paving and sand drifts.
+   for(let j=0;j<4;j++){
+    const t=.08+random()*.84,x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t;
+    c.strokeStyle='#2d302b85';c.lineWidth=.8+random();
+    c.beginPath();c.moveTo(x-width*.2,y-8);c.lineTo(x+width*.28,y+7);c.lineTo(x+width*.12,y+12);c.stroke();
+   }
+  }
+ }
+ c.restore();
+}
 function ridgeAtX(r:CanyonRidge,x:number):Point{
  for(let i=1;i<r.spine.length;i++)if(x<=r.spine[i].x){
   const a=r.spine[i-1],b=r.spine[i],t=Math.max(0,Math.min(1,(x-a.x)/(b.x-a.x)));
