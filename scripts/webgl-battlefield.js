@@ -148,7 +148,8 @@ export class SandforgeBattlefield {
   for(const [id,entry] of this.bastions)if(!known.has(id)){this.scene.remove(entry.node);this.bastions.delete(id);}
   for(const territory of this.game.territories){
    const entry=this.bastions.get(territory.id);
-   if(entry&&entry.owner!==territory.owner){entry.owner=territory.owner;entry.core.material.color.set(territory.owner===0?colors.blue:territory.owner===1?colors.red:colors.neutral);entry.halo.material.color.set(territory.owner===0?colors.blue:territory.owner===1?colors.red:colors.neutral);}
+   if(entry&&entry.owner!==territory.owner){entry.owner=territory.owner;entry.core.material.color.set(territory.owner===0?colors.blue:territory.owner===1?colors.red:colors.neutral);entry.halo.material.color.set(territory.owner===0?colors.blue:territory.owner===1?colors.red:colors.neutral);
+    if(!this.lite)this.loadBastionModel(entry,territory.owner);}
   }
   this.updateSelectionRings();
   this.updateShots();
@@ -156,6 +157,23 @@ export class SandforgeBattlefield {
   if(force||now-this.fogLast>350){this.updateFog();this.fogLast=now;}
   if(force||now-this.uiLast>280){this.drawInterface();this.uiLast=now;}
   if(force||now-this.miniLast>700){this.drawMinimap();this.miniLast=now;}
+ }
+ async loadBastionModel(entry,owner){
+  const version=(entry.version??0)+1;entry.version=version;
+  try{
+   const modelPath='/src/assets/reborn/buildings-3d/bastion-'+owner+'.glb';
+   const data=await this.getModel(modelPath);
+   if(version!==entry.version||!entry.node.parent)return;
+   const detail=cloneSkeleton(data.scene);
+   const box=new THREE.Box3().setFromObject(detail),size=box.getSize(new THREE.Vector3());
+   const factor=116/Math.max(.0001,size.x,size.z),center=box.getCenter(new THREE.Vector3());
+   detail.scale.multiplyScalar(factor);
+   detail.position.set(-center.x*factor,-box.min.y*factor,-center.z*factor);
+   detail.traverse(mesh=>{if(mesh.isMesh){mesh.castShadow=true;mesh.receiveShadow=true;}});
+   if(entry.detail)entry.node.remove(entry.detail);
+   entry.detail=detail;entry.node.add(detail);
+   entry.pad.visible=false;entry.core.visible=false;
+  }catch(error){console.warn('Bastion 3D model fallback',error);}
  }
  createBastions(){
   const base=new THREE.CylinderGeometry(38,40,9,12),ob=new THREE.CylinderGeometry(11,18,45,12);
@@ -168,7 +186,10 @@ export class SandforgeBattlefield {
    core.position.y=33;core.castShadow=true;node.add(core);
    const halo=new THREE.Mesh(new THREE.TorusGeometry(49,2,6,48),new THREE.MeshBasicMaterial({color:t.owner===0?colors.blue:t.owner===1?colors.red:colors.neutral,transparent:true,opacity:.75}));
    halo.rotation.x=-Math.PI/2;halo.position.y=5;node.add(halo);
-   this.scene.add(node);this.bastions.set(t.id,{node,core,owner:t.owner,halo});
+   this.scene.add(node);
+   const entry={node,core,pad,owner:t.owner,halo};
+   this.bastions.set(t.id,entry);
+   if(!this.lite)this.loadBastionModel(entry,t.owner);
   }
  }
  addFog(){
