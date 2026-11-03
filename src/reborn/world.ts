@@ -3,6 +3,7 @@ import { RULES, type Point, type Owner, type MapVersion, mapLayout, campaignLayo
 import { TERRAIN_BLOCKED, TERRAIN_CLIFFS } from './terrain-art.js';
 import { generateMap, polygonContains, segmentDistance, type GeneratedMap } from './world-generation.js';
 import { navigationLine } from './navigation-line.js';
+import {canyonCliffBlocked,canyonRuinBlocked} from './canyon-front.js';
 
 export interface Territory {
   id: number; name: string; polygon: Point[]; point: Point; neighbors: number[];
@@ -67,6 +68,23 @@ export class World {
           if(solid||mesa.outline.some((a,n)=>segmentDistance(p,a,mesa.outline[(n+1)%mesa.outline.length])<this.cell)){this.blocked[i]=1;}
           if(solid){this.opaque[i]=1;this.cliffIds[i]=id;this.cliffCells[id].push(i);}
         }
+      }
+      // Same geometry as the painted canyon mesh. Ramps are real openings,
+      // not merely a texture painted across an impassable rock wall.
+      for(const [n,ridge] of this.generated.ridges.entries()){
+        const id=this.generated.mesas.length+n;
+        this.cliffCells[id]=[];
+        for(let i=0;i<this.blocked.length;i++){
+          const p=this.center(i);
+          if(!canyonCliffBlocked(p,ridge))continue;
+          this.blocked[i]=1;this.opaque[i]=1;this.cliffIds[i]=id;
+          this.cliffCells[id].push(i);
+        }
+      }
+      // Collide with the actual rectangular 3D ruin footprints. No vehicles
+      // can phase through fallen walls; flying movement remains unblocked.
+      for(const ruin of this.generated.ruins)for(let i=0;i<this.blocked.length;i++){
+        if(canyonRuinBlocked(this.center(i),ruin,8))this.blocked[i]=1;
       }
     }else{
       this.blocked.set(Uint8Array.from(atob(TERRAIN_BLOCKED),c=>c.charCodeAt(0)));
