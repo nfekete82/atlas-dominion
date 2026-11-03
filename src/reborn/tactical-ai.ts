@@ -115,7 +115,7 @@ export class TacticalAI {
  /** 2.4/2.5 paired comparison; affects strategy only, never serialized. */
  doctrineMode:'legacy'|'intelligent'='intelligent';
  /** Opt-in: paid barracks before standard 25s strategic opening. */
- earlyEconomyMode:'classic'|'barracks-first'='classic';
+ earlyEconomyMode:'classic'|'barracks-first'|'barracks-screen'='classic';
  /** Experimental ablations: opt-in per-component doctrine comparisons. */
  missionPlannerMode:'inherit'|'legacy'='inherit';
  siegeEvaluationMode:'inherit'|'legacy'='inherit';
@@ -975,7 +975,7 @@ export class TacticalAI {
   * Existing economy code pays for everything and chooses legal build sites. */
  openingEconomy():void{
   const g=this.g;
-  if(this.mode!=='director'||this.earlyEconomyMode!=='barracks-first'
+  if(this.mode!=='director'||this.earlyEconomyMode==='classic'
    ||g.world.mapVersion!==11||g.time>=RULES.aiOpeningDelay
    ||g.needsHeadquarters(1)||g.status!=='playing')return;
   const army=g.units.filter(u=>u.owner===1&&u.hp>0&&!u.carrier);
