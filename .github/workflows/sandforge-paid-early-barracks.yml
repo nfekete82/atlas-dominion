@@ -48,3 +48,20 @@ jobs:
           name: early-barracks-${{ matrix.opponent }}-${{ matrix.cohort }}
           path: ai-arena-results/early-barracks-${{ matrix.opponent }}-${{ matrix.cohort }}.json
           retention-days: 21
+  preview-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm ci --prefix tests/browser --no-audit --no-fund
+      - run: cd tests/browser && npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Real HQ-bootstrap preview URL and untouched default
+        env:
+          ATLAS_BROWSER_CHANNEL: chromium
+        run: cd tests/browser && npx playwright test --config=reborn.config.mjs reborn-ai-early-barracks-preview.spec.mjs
