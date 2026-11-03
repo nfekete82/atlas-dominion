@@ -48,6 +48,10 @@ for(const opponent of opponents){
     seconds,opponent:'guarded',label:opponent+':'+policy,
     defender:g=>blueTournamentOpponent(g,opponent),
     observe:g=>{
+     // Runtime-only A/B transition, never changes credits, fog, game rules
+     // or the persisted default. The director inherits only real game state.
+     if(cfg.switchAt&&g.time>=cfg.switchAt&&g.tactical.mode==='baseline')
+      g.tactical.mode='director';
      const second=Math.floor(g.time+1e-8);
      if(second<=lastSec)return;
      const elapsed=Math.min(second,seconds)-lastSec;
