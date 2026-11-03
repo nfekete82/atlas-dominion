@@ -10,6 +10,7 @@ export class DesertArtPass {
   this.items=[];this.animations=[];
   this.addCraters();
   this.addDebris();
+  this.addRuinRubble();
  }
  makeCraterTexture(){
   const canvas=document.createElement('canvas');canvas.width=canvas.height=128;
@@ -27,6 +28,12 @@ export class DesertArtPass {
   const crater=this.details.filter(d=>d.kind==='crater').slice(0,this.lowQuality?55:230);
   const mesh=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),
    new THREE.MeshBasicMaterial({map:this.makeCraterTexture(),transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1}),crater.length);
+  // Detailed authored crater decal takes priority when available, with the
+  // procedural crater as an offline-safe fallback.
+  const craterMaterial=mesh.material;
+  new THREE.TextureLoader().load('/src/assets/reborn/battlefield/crater.png',texture=>{
+   texture.colorSpace=THREE.SRGBColorSpace;craterMaterial.map=texture;craterMaterial.needsUpdate=true;
+  },undefined,error=>console.warn('Crater art fallback',error));
   const dummy=new THREE.Object3D();
   crater.forEach((d,i)=>{
    dummy.position.copy(this.pos(d.x,d.y));dummy.position.y+=.9;
@@ -63,6 +70,34 @@ export class DesertArtPass {
   model.position.set(-center.x*scale,-box.min.y*scale,-center.z*scale);
   model.traverse(n=>{if(n.isMesh){n.castShadow=true;n.receiveShadow=true;}});
   return model;
+ }
+ addRuinRubble(){
+  // A broken concrete shell needs grounded masonry at its feet, not an
+  // immaculate square base. Small fragments deliberately have no collider.
+  const count=this.terrain.ruins.length*(this.lowQuality?8:27);
+  if(!count)return;
+  const geometry=new THREE.DodecahedronGeometry(1,0);
+  const materials=[
+   new THREE.MeshStandardMaterial({color:'#d8bd98',roughness:1}),
+   new THREE.MeshStandardMaterial({color:'#9f8060',roughness:1})
+  ];
+  const meshes=materials.map(material=>new THREE.InstancedMesh(geometry,material,count));
+  const counters=[0,0],dummy=new THREE.Object3D();
+  let state=(this.world.seed^0x6ac8b547)>>>0;
+  const rand=()=>{state=(Math.imul(state,1664525)+1013904223)>>>0;return state/4294967296;};
+  for(const ruin of this.terrain.ruins)for(let k=0;k<(this.lowQuality?8:27);k++){
+   const angle=rand()*Math.PI*2,wall=Math.max(ruin.width*.5,ruin.depth*.5);
+   const distance=wall*(.78+rand()*.56),x=ruin.x+Math.cos(angle)*distance,z=ruin.y+Math.sin(angle)*distance;
+   const radius=1.9+rand()*6,kind=rand()>.55?1:0;
+   dummy.position.copy(this.pos(x,z));dummy.position.y+=radius*.42;
+   dummy.rotation.set(rand()*.55,rand()*Math.PI*2,rand()*.44);
+   dummy.scale.set(radius*1.6,radius*(.2+rand()*.5),radius*(.65+rand()*1.3));
+   dummy.updateMatrix();meshes[kind].setMatrixAt(counters[kind]++,dummy.matrix);
+  }
+  for(let i=0;i<meshes.length;i++){
+   const mesh=meshes[i];mesh.count=counters[i];mesh.instanceMatrix.needsUpdate=true;
+   mesh.castShadow=false;mesh.receiveShadow=true;this.scene.add(mesh);this.items.push(mesh);
+  }
  }
  async loadPalmGroves(){
   const palms=this.details.filter(d=>d.kind==='palm'&&
