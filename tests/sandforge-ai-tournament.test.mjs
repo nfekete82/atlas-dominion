@@ -4,11 +4,12 @@ import {Simulation} from '../dist/src/reborn/simulation.js';
 import {OPPONENTS,scriptedBlueTurn} from '../scripts/ai-tournament-opponents.mjs';
 import {CONTENDERS,configureContender,tournamentOptions,summarizeTournament} from '../scripts/ai-strategy-tournament.mjs';
 import {selectiveRaidAllowed} from '../dist/src/reborn/selective-raids.js';
+import {deferOpeningInvestment} from '../dist/src/reborn/army-economy.js';
 
 test('tournament: exactly four reproducible, legal BLUE opponents',()=>{
  assert.deepEqual(OPPONENTS,['guarded','pressure','expansion','armored']);
  assert.equal(new Set(OPPONENTS).size,4);
- assert.equal(new Set(CONTENDERS).size,10);
+ assert.equal(new Set(CONTENDERS).size,11);
  assert.throws(()=>scriptedBlueTurn(new Simulation(2026,11),'omniscient'));
 });
 test('tournament: flags validate seeds, complete A/B and real time horizon',()=>{
@@ -157,6 +158,31 @@ test('paid four-bastion opening: one barracks before 12s without early soldier a
  assert.deepEqual(early.territories,now.territories);
  assert.equal(early.credits[0],now.credits[0],'BLUE resources untouched');
  assert.equal(early.save().ai?.earlyEconomyMode,undefined,'experimental flag not serialized');
+});
+test('screened opening waits for four real field fighters, never hidden units',()=>{
+ const input={mapVersion:11,mode:'barracks-screen',time:45,
+  fighters:2,barracksReady:true};
+ assert.equal(deferOpeningInvestment(input),true);
+ for(const variation of [
+  {...input,fighters:4},
+  {...input,time:90},
+  {...input,mapVersion:12},
+  {...input,mode:'barracks-first'},
+  {...input,barracksReady:false}
+ ])assert.equal(deferOpeningInvestment(variation),false);
+ const reference=new Simulation(2026,11),screen=new Simulation(2026,11);
+ configureContender(reference.tactical,'early-barracks');
+ configureContender(screen.tactical,'screened-opening');
+ assert.equal(screen.tactical.earlyEconomyMode,'barracks-screen');
+ for(let i=0;i<240;i++){reference.step(.05);screen.step(.05);}
+ assert.deepEqual(screen.bases,reference.bases,'first 12s build must be identical');
+ assert.deepEqual(screen.credits,reference.credits,'all opening purchases are paid');
+ assert.equal(screen.tactical.state.lastPlan,-3,'no premature tactical attack');
+ assert.equal(screen.save().ai?.earlyEconomyMode,undefined,'experiment is not serialized');
+ const otherMap=new Simulation(2026,12);
+ configureContender(otherMap.tactical,'screened-opening');
+ for(let i=0;i<240;i++)otherMap.step(.05);
+ assert.equal(otherMap.bases.some(b=>b.owner===1&&b.kind==='barracks'),false);
 });
 test('paid opening is map-scoped and keeps ordinary 25s strategic timing',()=>{
  const larger=new Simulation(2026,12);

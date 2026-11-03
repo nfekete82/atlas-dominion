@@ -915,7 +915,7 @@ export class Simulation {
     this.aiClock+=dt;
     const fullPlan=this.time>=RULES.aiOpeningDelay||this.needsHeadquarters(1);
     const earlyPaidEconomy=this.tactical.mode==='director'&&
-      this.tactical.earlyEconomyMode==='barracks-first'&&this.world.mapVersion===11&&this.time>=2;
+      this.tactical.earlyEconomyMode!=='classic'&&this.world.mapVersion===11&&this.time>=2;
     if(this.aiClock>=RULES.aiInterval&&(fullPlan||earlyPaidEconomy)){
       this.aiClock=0;
       if(fullPlan)this.think();else this.tactical.openingEconomy();

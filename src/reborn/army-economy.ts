@@ -33,6 +33,15 @@ export function generatorBuildPriority(input:{
  const reserveAfterBuild=existing===1?200:300;
  return fighters>=minimumFighters&&credits>=BUILDINGS.generator.cost+reserveAfterBuild;
 }
+/** A four-bastion opening variant: actually field four paid combat units before
+ * buying a passive generator or factory. Queue promises alone do not protect
+ * a contested neutral bastion. Outside the opening this is a no-op. */
+export function deferOpeningInvestment(input:{
+ mapVersion:number;mode:string;time:number;fighters:number;barracksReady:boolean
+}):boolean{
+ return input.mapVersion===11&&input.mode==='barracks-screen'&&input.time<90
+  &&input.barracksReady&&input.fighters<4;
+}
 /** Temporary, derived siege budget: never add virtual credits or remember an
  * unknown enemy. The first paid rocket is protected while our first factory
  * is being built; observed threats and a destroyed factory cancel protection. */
@@ -76,8 +85,11 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
  }
  let goal:BuildingKind|null=null;
  const openingBarracks=director&&g.world.mapVersion===11&&
-  g.tactical.earlyEconomyMode==='barracks-first'&&!has('barracks');
- const wantCore=director&&!openingBarracks&&(generators===0||siegeReserve===0)&&generatorBuildPriority({
+  g.tactical.earlyEconomyMode!=='classic'&&!has('barracks');
+ const screenHold=deferOpeningInvestment({mapVersion:g.world.mapVersion,
+  mode:g.tactical.earlyEconomyMode,time:g.time,fighters:fighters.length,
+  barracksReady:complete('barracks')});
+ const wantCore=director&&!openingBarracks&&!screenHold&&(generators===0||siegeReserve===0)&&generatorBuildPriority({
   existing:generators,fighters:fighters.length,credits:g.credits[1],
   barracksReady:complete('barracks'),underAttack,finishing
  });
@@ -87,7 +99,7 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
   // already available and enough credits remain for ongoing recruitment.
   if(wantCore)goal='generator';
   else if(!has('barracks'))goal='barracks';
-  else if(!has('factory')&&fighters.length>=3&&(income>=20||known>0||g.time>=55))goal='factory';
+  else if(!screenHold&&!has('factory')&&fighters.length>=3&&(income>=20||known>0||g.time>=55))goal='factory';
   else if(!has('airfield')&&has('factory')&&fighters.length>=4&&(income>=35||g.time>=110||seen.some(u=>unitSpec(u).flying))&&(!director||(complete('factory')&&count('tank')+count('rover')+count('artillery')>=3&&income>=35)))goal='airfield';
   else if(!has('barracks')&&fighters.length>=3)goal='barracks';
  }
