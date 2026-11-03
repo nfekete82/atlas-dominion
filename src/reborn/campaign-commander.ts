@@ -67,11 +67,12 @@ export function chooseMission(g:Simulation,s:CampaignState,origin:Point,context?
     const hq=buildings.some(b=>b.kind==='headquarters'&&distance(b,t.point)<740);
     const visible=g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&
      !['engineer','medic','scout'].includes(u.kind)&&g.canSee(1,u)&&distance(u,t.point)<420).length;
-    if(route&&route.length>0&&route.length<=2400&&route.risk>=0&&route.risk<7&&
+    const currentlyVisible=g.canSee(1,t.point);
+    if(currentlyVisible&&route&&route.length>0&&route.length<=2400&&route.risk>=0&&route.risk<7&&
      !tower&&!hq&&!visible)openOperationalSectors.add(t.id);
     return {sector:t.id,owner:t.owner,income:t.income,
      routeLength:route?.length??Infinity,routeRisk:route?.risk??Infinity,
-     observedTower:tower,observedHQ:hq,visibleFighters:visible};
+     observedTower:tower,observedHQ:hq,visibleFighters:visible,currentlyVisible};
   });
   const threat=g.bases.some(b=>b.owner===1&&b.hp>0&&
    g.units.some(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)&&distance(u,b)<440));
