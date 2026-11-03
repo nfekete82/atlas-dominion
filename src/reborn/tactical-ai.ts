@@ -113,6 +113,10 @@ export class TacticalAI {
  waveMode:'legacy'|'coordinated'='coordinated';
  /** 2.4/2.5 paired comparison; affects strategy only, never serialized. */
  doctrineMode:'legacy'|'intelligent'='intelligent';
+ /** Experimental ablations: opt-in per-component doctrine comparisons. */
+ missionPlannerMode:'inherit'|'legacy'='inherit';
+ siegeEvaluationMode:'inherit'|'legacy'='inherit';
+ raidDetachmentMode:'inherit'|'off'='inherit';
  /** Runtime-only diagnostics: never influence simulation or serialize in saves. */
  diagnostics:TacticalDiagnostics=newDiagnostics();
  state=fresh();private risk:Float32Array|undefined;private riskAt=-1;private routeCache=new Map<string,Point[]>();private routeSignature='';
@@ -548,18 +552,19 @@ export class TacticalAI {
    }
    candidates.sort((a,b)=>distance(origin,a)-distance(origin,b)||a.y-b.y||a.x-b.x);
    const shots:SiegeShot[]=[];
-   for(const p of candidates.slice(0,this.doctrineMode==='intelligent'?8:3)){
+    const smartSiege=this.siegeEvaluationMode!=='legacy'&&this.doctrineMode==='intelligent';
+   for(const p of candidates.slice(0,smartSiege?8:3)){
     const route=this.route(origin,p);if(!route.length)continue;
     const path=this.sampleRoute(route,origin);
     // The exploratory one-gun detour must be short and reasonably safe.
     // Leave original multi-gun doctrine untouched.
     if(fallback&&(path.length>distance(origin,gun)*1.35+220||path.risk>40))continue;
-    if(this.doctrineMode==='legacy'){selected=gun;at=p;break;}
+    if(!smartSiege){selected=gun;at=p;break;}
     shots.push({gunId:gun.id,at:p,travel:path.length,risk:path.risk,
       gunHp:'hp' in gun&&typeof gun.hp==='number'?gun.hp:1000,primary:true});
    }
    if(at)break;
-   if(this.doctrineMode==='intelligent'&&shots.length){
+   if(smartSiege&&shots.length){
     // A safer route must be a realistic detour, not a kilometer-long
     // wandering loop that delays an otherwise winnable HQ assault.
     const direct=Math.min(...shots.map(x=>x.travel));
@@ -629,7 +634,7 @@ export class TacticalAI {
   * public adjacent sector ownership and real observed threats. It never
   * borrows the main assault group, reserves, medics or siege guns. */
  private secondaryPressure(fighters:Unit[],main:{sector:number},home:Point):Set<number>{
-  if(this.doctrineMode!=='intelligent'||this.mode!=='director'||this.planningMode!=='tactical'
+  if(this.raidDetachmentMode==='off'||this.doctrineMode!=='intelligent'||this.mode!=='director'||this.planningMode!=='tactical'
     ||this.g.world.mapVersion<3)return new Set();
   const g=this.g,s=this.state,b=s.battle??=newBattle();
   const old=b.squads.find(q=>q.role==='raid');
@@ -704,7 +709,7 @@ export class TacticalAI {
    const objectiveGone=a.objective!=null&&a.target!==undefined&&g.canSee(1,a.target)
     &&!g.bases.some(b=>b.id===a.objective&&b.hp>0);
    if(won||objectiveGone||g.time-a.at>120)finishExperience(experience,!!(won||objectiveGone),fighters.reduce((n,u)=>n+u.hp,0));}
-  const mission=chooseMission(g,c,origin,{strategy:s.adaptive?.strategy??'unknown',force:fighters,losses:s.losses,fronts:s.battle?.fronts??[],intelligent:this.doctrineMode==='intelligent',experience,route:p=>{const route=this.route(origin,p);return route.length?this.sampleRoute(route,origin):undefined;}});
+  const mission=chooseMission(g,c,origin,{strategy:s.adaptive?.strategy??'unknown',force:fighters,losses:s.losses,fronts:s.battle?.fronts??[],intelligent:this.missionPlannerMode==='legacy'?false:this.doctrineMode==='intelligent',experience,route:p=>{const route=this.route(origin,p);return route.length?this.sampleRoute(route,origin):undefined;}});
   if(!mission){
    campaignPhase(c,'endgame',g.time);this.setPhase('regroup');s.group=[];s.objective=null;s.target=null;
    // Once the map is captured, ground patrols also search fog for survivors.

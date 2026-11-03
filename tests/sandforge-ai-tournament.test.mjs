@@ -7,7 +7,7 @@ import {CONTENDERS,configureContender,tournamentOptions,summarizeTournament} fro
 test('tournament: exactly four reproducible, legal BLUE opponents',()=>{
  assert.deepEqual(OPPONENTS,['guarded','pressure','expansion','armored']);
  assert.equal(new Set(OPPONENTS).size,4);
- assert.equal(new Set(CONTENDERS).size,4);
+ assert.equal(new Set(CONTENDERS).size,8);
  assert.throws(()=>scriptedBlueTurn(new Simulation(2026,11),'omniscient'));
 });
 test('tournament: flags validate seeds, complete A/B and real time horizon',()=>{
@@ -81,4 +81,41 @@ test('tournament: selectable BLUE attack only issues valid commands when eligibl
   assert.equal(g.credits[1],before[1]);
   assert.ok(g.units.every(u=>u.hp>0));
  }
+});
+
+test('ablation: each strategy modifies ONLY its intended doctrine switch',()=>{
+ const classic=new Simulation(2026,11);
+ assert.equal(classic.tactical.missionPlannerMode,'inherit');
+ assert.equal(classic.tactical.raidDetachmentMode,'inherit');
+ assert.equal(classic.tactical.siegeEvaluationMode,'inherit');
+ const cases=[
+  ['legacy-mission','missionPlannerMode','legacy'],
+  ['no-side-raids','raidDetachmentMode','off'],
+  ['legacy-siege','siegeEvaluationMode','legacy']
+ ];
+ for(const [strategy,key,value] of cases){
+  const g=new Simulation(2026,11);
+  configureContender(g.tactical,strategy);
+  assert.equal(g.tactical[key],value);
+  assert.equal(g.tactical.doctrineMode,'intelligent');
+  assert.equal(g.tactical.mode,'director');
+  for(const other of ['missionPlannerMode','raidDetachmentMode','siegeEvaluationMode'])
+   if(other!==key)assert.equal(g.tactical[other],'inherit');
+ }
+ const both=new Simulation(2026,11);
+ configureContender(both.tactical,'legacy-mission-no-raids');
+ assert.equal(both.tactical.missionPlannerMode,'legacy');
+ assert.equal(both.tactical.raidDetachmentMode,'off');
+ assert.equal(both.tactical.siegeEvaluationMode,'inherit');
+ const legacy=new Simulation(2026,11);
+ configureContender(legacy.tactical,'legacy-doctrine');
+ assert.equal(legacy.tactical.doctrineMode,'legacy');
+ assert.equal(legacy.tactical.missionPlannerMode,'inherit');
+ // These are benchmark-only toggles, never persisted to user saves.
+ const saved=both.save(),restored=Simulation.load(saved);
+ assert.equal(saved.ai?.missionPlannerMode,undefined);
+ assert.equal(restored.tactical.missionPlannerMode,'inherit');
+ assert.deepEqual(both.credits,classic.credits);
+ assert.deepEqual(both.visible,classic.visible);
+ assert.deepEqual(both.units,classic.units);
 });
