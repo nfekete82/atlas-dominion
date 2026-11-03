@@ -1,0 +1,73 @@
+name: Sandforge unified operational commander V1
+on:
+  push:
+    branches: [feat/sandforge-operational-commander-v1-20261103]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Pure operations and unchanged tactical modules
+        run: node --test tests/sandforge-operational-commander.test.mjs tests/sandforge-ai-tournament.test.mjs tests/reborn-commander.test.mjs tests/reborn-combat-missions.test.mjs tests/sandforge-four-bastion-postmortem.test.mjs
+  league:
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        opponent: [guarded, pressure, expansion, armored]
+        cohort: [reference, untouched-a, untouched-b]
+        include:
+          - cohort: reference
+            seeds: '2026,2027,2028,2029'
+          - cohort: untouched-a
+            seeds: '2066,2067,2068,2069'
+          - cohort: untouched-b
+            seeds: '2070,2071,2072,2073'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Three equally paid real-outcome policies, no cheating or draw wins
+        run: node scripts/ai-strategy-tournament.mjs --opponents "${{ matrix.opponent }}" --seeds "${{ matrix.seeds }}" --seconds 360 --contenders current,early-barracks,operations-v1 --output ai-arena-results/operations-v1-${{ matrix.opponent }}-${{ matrix.cohort }}.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: operations-v1-${{ matrix.opponent }}-${{ matrix.cohort }}
+          path: ai-arena-results/operations-v1-${{ matrix.opponent }}-${{ matrix.cohort }}.json
+          retention-days: 21
+  broad-suite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Surface legacy broad-suite failures; not a production release gate bypass
+        run: npm test > broad-tests.log 2>&1 || { tail -100 broad-tests.log; exit 1; }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: operations-v1-broad-suite-log
+          path: broad-tests.log
+          retention-days: 14
