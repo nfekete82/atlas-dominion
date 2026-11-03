@@ -1,0 +1,44 @@
+name: Sandforge clean-base paid production root-cause audit
+on:
+  push:
+    branches: [diag/sandforge-clean-paid-barracks-bottleneck-20261103]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node --test tests/sandforge-paid-production-starvation.test.mjs tests/sandforge-ai-tournament.test.mjs
+  audit:
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        opponent: [guarded, pressure, expansion, armored]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Attribute queue vs economic reserve bottlenecks, 360 paid seconds
+        run: node scripts/ai-paid-production-starvation.mjs --opponent "${{ matrix.opponent }}" --seeds 2026,2029,2032,2051 --seconds 360 --output ai-arena-results/paid-starvation-${{ matrix.opponent }}.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: paid-starvation-${{ matrix.opponent }}
+          path: ai-arena-results/paid-starvation-${{ matrix.opponent }}.json
+          retention-days: 21
