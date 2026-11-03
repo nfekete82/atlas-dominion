@@ -6,12 +6,13 @@ import {rateMission,type EnemyStrategy} from './adaptive-strategy.js';
 import {learnedMissionBias,type Experience} from './battle-learning.js';
 import type {Loss} from './tactical-ai.js';
 import {replanAfterLoss} from './ai25-doctrine.js';
+import {chooseOperation,validOperation,type OperationSnapshot,type OperationFront} from './operation-controller.js';
 
 export type CampaignPhase='opening'|'expansion'|'buildup'|'offensive'|'siege'|'endgame'|'emergencyDefense';
 export interface WarMission extends Point {kind:'capture'|'structure'|'hunt';sector:number;objective:number|null;since:number;progressAt:number;distance:number;hp:number}
 export interface ReconTask extends Point {unit:number;since:number}
-export interface CampaignState {version:1;phase:CampaignPhase;phaseSince:number;mission?:WarMission;recon:ReconTask[];survey:{x:number;y:number;at:number}[];intel:{id:number;seenAt:number}[];aborted:number;observedEnemyHQ?:Point&{id:number};enemyHQEliminatedAt?:number;alternatives?:{sector:number;score:number;expectedLoss:number;budgetCost:number}[]}
-export interface MissionContext {strategy:EnemyStrategy;force:Unit[];losses:Loss[];fronts:FailedFront[];route:(p:Point)=>{length:number;risk:number}|undefined;intelligent?:boolean;experience?:Experience}
+export interface CampaignState {version:1;phase:CampaignPhase;phaseSince:number;operation?:OperationSnapshot;mission?:WarMission;recon:ReconTask[];survey:{x:number;y:number;at:number}[];intel:{id:number;seenAt:number}[];aborted:number;observedEnemyHQ?:Point&{id:number};enemyHQEliminatedAt?:number;alternatives?:{sector:number;score:number;expectedLoss:number;budgetCost:number}[]}
+export interface MissionContext {strategy:EnemyStrategy;force:Unit[];losses:Loss[];fronts:FailedFront[];route:(p:Point)=>{length:number;risk:number}|undefined;intelligent?:boolean;experience?:Experience;conservativeOperations?:boolean}
 export const newCampaign=():CampaignState=>({version:1,phase:'opening',phaseSince:0,recon:[],survey:[],intel:[],aborted:0});
 /** Preserve a recent, observed tower objective after confirmed HQ loss,
  * unless the screen suffers substantial losses or artillery disappears. */
@@ -51,6 +52,38 @@ export function refreshIntelligence(g:Simulation,s:CampaignState):void{
  * remains a war objective until its destruction has actually been observed. */
 export function chooseMission(g:Simulation,s:CampaignState,origin:Point,context?:MissionContext):WarMission|undefined{
  const buildings=knownBuildings(g),old=s.mission;
+ let operation:OperationSnapshot|undefined;
+ let openOperationalSectors=new Set<number>();
+ if(context?.conservativeOperations&&g.world.mapVersion===11){
+  // Strategic intent is separate from the existing mission executor.
+  // It reads RED-held/RED-visible information only and NEVER breaks
+  // an active mission, siege commitment, retreat or emergency defense.
+  const fighters=context.force.filter(u=>u.hp>0&&!u.carrier&&
+   !['engineer','medic','scout'].includes(u.kind));
+  const fronts:OperationFront[]=g.territories.filter(t=>t.owner!==1&&
+   t.neighbors.some(id=>g.territories[id]?.owner===1)).map(t=>{
+    const route=context.route(t.point);
+    const tower=buildings.some(b=>b.kind==='turret'&&distance(b,t.point)<740);
+    const hq=buildings.some(b=>b.kind==='headquarters'&&distance(b,t.point)<740);
+    const visible=g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&
+     !['engineer','medic','scout'].includes(u.kind)&&g.canSee(1,u)&&distance(u,t.point)<420).length;
+    if(route&&route.length>0&&route.length<=2400&&route.risk>=0&&route.risk<7&&
+     !tower&&!hq&&!visible)openOperationalSectors.add(t.id);
+    return {sector:t.id,owner:t.owner,income:t.income,
+     routeLength:route?.length??Infinity,routeRisk:route?.risk??Infinity,
+     observedTower:tower,observedHQ:hq,visibleFighters:visible};
+  });
+  const threat=g.bases.some(b=>b.owner===1&&b.hp>0&&
+   g.units.some(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)&&distance(u,b)<440));
+  operation=s.operation=chooseOperation({
+   at:g.time,livingFighters:fighters.length,
+   hasArtillery:fighters.some(u=>u.kind==='artillery'),
+   enemyHQEliminated:s.enemyHQEliminatedAt!==undefined,
+   observedEnemyHQ:buildings.some(b=>b.kind==='headquarters'),
+   visibleHomeThreat:threat,
+   knownEnemyTowerCount:buildings.filter(b=>b.kind==='turret').length,fronts
+  },s.operation).next;
+ }
  if(old){
   const remembered=old.objective===null?undefined:buildings.find(b=>b.id===old.objective);
   const enemy=old.kind==='hunt'?g.units.find(u=>u.id===old.objective&&u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)):undefined;
@@ -120,6 +153,21 @@ export function chooseMission(g:Simulation,s:CampaignState,origin:Point,context?
   }
   s.alternatives=alternatives.sort((a,b)=>a.score-b.score||a.sector-b.sector).slice(0,8);
  }
+ // Operate only when an existing mission has already naturally ended or
+ // was independently rejected by proven commander rules. No forced replans.
+ // Bound each bias: the tactical evaluator still owns strength, loss and risk.
+ if(operation&&['expand','siege','assault'].includes(operation.mode)&&
+  s.enemyHQEliminatedAt===undefined){
+  for(const c of choices){
+   const known=c.objective===null?undefined:buildings.find(b=>b.id===c.objective);
+   if(operation.mode==='expand'&&c.kind==='capture'&&openOperationalSectors.has(c.sector))
+    c.score-=480;
+   if(operation.mode==='siege'&&c.kind==='structure'&&known?.kind==='turret')
+    c.score-=680;
+   if(operation.mode==='assault'&&c.kind==='structure'&&known?.kind==='headquarters')
+    c.score-=630;
+  }
+ }
  choices.sort((a,b)=>a.score-b.score||a.sector-b.sector||(a.objective??0)-(b.objective??0));
  const routed:{c:typeof choices[number];route:{length:number;risk:number}}[]=[];
  // Test as many as sixteen scored candidates (not merely the first three).
@@ -158,5 +206,6 @@ export function validCampaign(raw:unknown,time:number,point:(p:Point)=>boolean,s
   &&Array.isArray(s.recon)&&s.recon.length<=16&&s.recon.every(t=>point(t)&&id(t.unit)&&at(t.since))
   &&Array.isArray(s.survey)&&s.survey.length<=65&&s.survey.every(p=>point(p)&&at(p.at))
   &&Array.isArray(s.intel)&&s.intel.length<=128&&s.intel.every(i=>id(i.id)&&at(i.seenAt))
+  &&validOperation(s.operation,time)
   &&(s.mission===undefined||(point(s.mission)&&['capture','structure','hunt'].includes(s.mission.kind)&&id(s.mission.sector)&&s.mission.sector<sectors&&(s.mission.objective===null||id(s.mission.objective))&&at(s.mission.since)&&at(s.mission.progressAt)&&num(s.mission.distance)&&num(s.mission.hp)));
 }
