@@ -9,7 +9,7 @@ import {deferOpeningInvestment} from '../dist/src/reborn/army-economy.js';
 test('tournament: exactly four reproducible, legal BLUE opponents',()=>{
  assert.deepEqual(OPPONENTS,['guarded','pressure','expansion','armored']);
  assert.equal(new Set(OPPONENTS).size,4);
- assert.equal(new Set(CONTENDERS).size,11);
+ assert.equal(new Set(CONTENDERS).size,12);
  assert.throws(()=>scriptedBlueTurn(new Simulation(2026,11),'omniscient'));
 });
 test('tournament: flags validate seeds, complete A/B and real time horizon',()=>{
@@ -181,6 +181,35 @@ test('screened opening waits for four real field fighters, never hidden units',(
  assert.equal(screen.save().ai?.earlyEconomyMode,undefined,'experiment is not serialized');
  const otherMap=new Simulation(2026,12);
  configureContender(otherMap.tactical,'screened-opening');
+ for(let i=0;i<240;i++)otherMap.step(.05);
+ assert.equal(otherMap.bases.some(b=>b.owner===1&&b.kind==='barracks'),false);
+});
+test('adaptive opening only responds to visible and public threats',()=>{
+ const input={mapVersion:11,mode:'adaptive-screen',time:45,
+  fighters:2,barracksReady:true,visibleAttackers:0,visibleArmor:0,enemySectorLead:0};
+ assert.equal(deferOpeningInvestment(input),false,'do not delay economy on imagined enemy');
+ assert.equal(deferOpeningInvestment({...input,visibleAttackers:1}),false,'one distant scout is not a rush');
+ assert.equal(deferOpeningInvestment({...input,visibleAttackers:2}),true,'observed enemy infantry pressure');
+ assert.equal(deferOpeningInvestment({...input,visibleArmor:1}),true,'observed enemy armor threat');
+ assert.equal(deferOpeningInvestment({...input,enemySectorLead:1}),true,'public enemy sector advantage');
+ for(const mutation of [
+  {time:90},{fighters:4},{barracksReady:false},{mapVersion:12}
+ ]){
+  assert.equal(deferOpeningInvestment({...input,visibleAttackers:3,...mutation}),false);
+ }
+ const base=new Simulation(2026,11),candidate=new Simulation(2026,11);
+ configureContender(base.tactical,'early-barracks');
+ configureContender(candidate.tactical,'adaptive-opening');
+ assert.equal(candidate.tactical.earlyEconomyMode,'adaptive-screen');
+ assert.deepEqual(candidate.credits,base.credits);
+ assert.deepEqual(candidate.visible,base.visible);
+ for(let i=0;i<240;i++){base.step(.05);candidate.step(.05);}
+ assert.deepEqual(candidate.bases,base.bases,'first paid barracks unaffected by policy');
+ assert.deepEqual(candidate.credits,base.credits,'no unearned credits');
+ assert.equal(candidate.tactical.state.lastPlan,-3,'no early attack planned');
+ assert.equal(candidate.save().ai?.earlyEconomyMode,undefined,'runtime experiment stays out of save files');
+ const otherMap=new Simulation(2026,12);
+ configureContender(otherMap.tactical,'adaptive-opening');
  for(let i=0;i<240;i++)otherMap.step(.05);
  assert.equal(otherMap.bases.some(b=>b.owner===1&&b.kind==='barracks'),false);
 });
