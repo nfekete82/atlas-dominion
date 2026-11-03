@@ -31,7 +31,7 @@ export function tournamentOptions(argv){
   !Number.isInteger(seconds)||seconds<120||seconds>1200||
   opponents.length<1||new Set(opponents).size!==opponents.length||
   opponents.some(v=>!OPPONENTS.includes(v))||
-  contenders.length<2||new Set(contenders).size!==contenders.length||
+  contenders.length<2||!contenders.includes('current')||new Set(contenders).size!==contenders.length||
   contenders.some(v=>!CONTENDERS.includes(v)))throw Error('Invalid tournament configuration');
  return {seeds,seconds,opponents,contenders,output};
 }
@@ -114,7 +114,7 @@ export function runTournament(opts){
    }
    const m=runMatch({Simulation:TournamentSimulation,UNITS},
     {seconds:opts.seconds,opponent:'guarded',label:strategy,defender:g=>scriptedBlueTurn(g,opponent)},
-    seed,'director',11);
+    seed,strategy==='baseline'?'baseline':'director',11);
    if(hash!==null&&hash!==m.initialStateHash)throw Error('Tournament initial-state integrity failure');
    hash=m.initialStateHash;
    const row={opponent,seed,strategy,initialStateHash:hash,outcome:m.outcome,
