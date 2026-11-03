@@ -4,6 +4,7 @@ import {RULES,distance,clamp,type Point} from './config.js';
 import {UNITS,unitSpec,buildingSpec,canAttack,type UnitKind} from './catalog.js';
 import {developArmy,validEconomy,type EconomyState} from './army-economy.js';
 import {assaultDecision,abortAssault} from './ai-director.js';
+import type {EconomyPolicy} from './ai-sector-economy.js';
 import {newCampaign,campaignPhase,refreshIntelligence,chooseMission,reconGoal,validCampaign,knownBuildings,type CampaignState} from './campaign-commander.js';
 import {segmentDistance} from './world-generation.js';
 import {newBattle,assessBattle,fightingPower,recordFailure,retryFront,validBattle,type BattleState} from './battle-response.js';
@@ -113,6 +114,8 @@ export class TacticalAI {
  waveMode:'legacy'|'coordinated'='coordinated';
  /** 2.4/2.5 paired comparison; affects strategy only, never serialized. */
  doctrineMode:'legacy'|'intelligent'='intelligent';
+ /** Benchmark toggle only; default remains classic until a measured win. */
+ economyPolicy:EconomyPolicy='classic';
  /** Runtime-only diagnostics: never influence simulation or serialize in saves. */
  diagnostics:TacticalDiagnostics=newDiagnostics();
  state=fresh();private risk:Float32Array|undefined;private riskAt=-1;private routeCache=new Map<string,Point[]>();private routeSignature='';
@@ -704,7 +707,7 @@ export class TacticalAI {
    const objectiveGone=a.objective!=null&&a.target!==undefined&&g.canSee(1,a.target)
     &&!g.bases.some(b=>b.id===a.objective&&b.hp>0);
    if(won||objectiveGone||g.time-a.at>120)finishExperience(experience,!!(won||objectiveGone),fighters.reduce((n,u)=>n+u.hp,0));}
-  const mission=chooseMission(g,c,origin,{strategy:s.adaptive?.strategy??'unknown',force:fighters,losses:s.losses,fronts:s.battle?.fronts??[],intelligent:this.doctrineMode==='intelligent',experience,route:p=>{const route=this.route(origin,p);return route.length?this.sampleRoute(route,origin):undefined;}});
+  const mission=chooseMission(g,c,origin,{strategy:s.adaptive?.strategy??'unknown',force:fighters,losses:s.losses,fronts:s.battle?.fronts??[],intelligent:this.doctrineMode==='intelligent',economyPolicy:this.economyPolicy,experience,route:p=>{const route=this.route(origin,p);return route.length?this.sampleRoute(route,origin):undefined;}});
   if(!mission){
    campaignPhase(c,'endgame',g.time);this.setPhase('regroup');s.group=[];s.objective=null;s.target=null;
    // Once the map is captured, ground patrols also search fog for survivors.
