@@ -34,6 +34,7 @@ export function plannedConstruction(profile,own){
  const order=profile==='armor'?['factory','barracks','generator']:
   profile==='siege'?['factory','barracks','generator']:
   profile==='expansion'?['barracks','generator','factory']:
+  profile==='rush'?['barracks']:
   ['barracks','factory','generator'];
  return order.find(kind=>!has(kind))??null;
 }
