@@ -13,7 +13,7 @@ import {runMatch} from './benchmark-reborn-ai.mjs';
 import {OPPONENTS,scriptedBlueTurn} from './ai-tournament-opponents.mjs';
 
 export const CONTENDERS=Object.freeze(['current','legacy-wave','legacy-doctrine','baseline',
- 'legacy-mission','no-side-raids','legacy-mission-no-raids','legacy-siege']);
+ 'legacy-mission','no-side-raids','legacy-mission-no-raids','legacy-siege','selective-raids']);
 export function tournamentOptions(argv){
  const flags={};
  for(let i=0;i<argv.length;i+=2){
@@ -44,6 +44,7 @@ export function configureContender(tactical,name){
  if(name==='legacy-mission'||name==='legacy-mission-no-raids')tactical.missionPlannerMode='legacy';
  if(name==='no-side-raids'||name==='legacy-mission-no-raids')tactical.raidDetachmentMode='off';
  if(name==='legacy-siege')tactical.siegeEvaluationMode='legacy';
+ if(name==='selective-raids')tactical.raidDetachmentMode='selective';
 }
 /** Independent, auditable metrics. Do not call a draw a victory, and do not
  * treat a tiny tie-breaker difference as evidence of a superior strategy. */
