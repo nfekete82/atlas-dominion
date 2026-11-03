@@ -15,6 +15,8 @@ export type OperationKind='capture'|'structure'|'hunt';
 export interface OperationCandidate {
  key:string;kind:OperationKind;sector:number;objective:number|null;
  owner:number;income:number;structureKind:string|null;
+ /** Original battle-aware mission evaluation, retained as a proven prior. */
+ legacyScore?:number;
  routeLength:number;routeRisk:number;knownTowers:number;
  visibleDefenders:number;knownEnemyBase:boolean;
 }
@@ -27,7 +29,7 @@ export interface OperationObservation {
 export interface OperationMemory {
  version:1;key:string|null;phase:OperationPhase;since:number;
  switches:number;failedKey:string|null;failedUntil:number;
- reason:string;lastScore:number;
+ lastDamageAt:number|null;reason:string;lastScore:number;
 }
 export interface OperationDecision {
  key:string|null;phase:OperationPhase;reason:string;
@@ -35,7 +37,7 @@ export interface OperationDecision {
 }
 export function newOperations():OperationMemory{
  return {version:1,key:null,phase:'expand',since:0,switches:0,
-  failedKey:null,failedUntil:0,reason:'initial',lastScore:Infinity};
+  failedKey:null,failedUntil:0,lastDamageAt:null,reason:'initial',lastScore:Infinity};
 }
 const isRouted=(c:OperationCandidate)=>Number.isFinite(c.routeLength)&&
  c.routeLength>0&&c.routeLength<=3500&&Number.isFinite(c.routeRisk)&&
@@ -57,11 +59,16 @@ export function operationScore(c:OperationCandidate,x:OperationObservation,
  if(c.kind==='capture'){
   // Take ground and income before the front becomes a stationary tower queue.
   score+=c.owner===0?-850:-650;
+  // Once the HQ is verifiably gone, controlling its red start sector is
+  // a victory condition, not optional cleanup behind remote production.
+  if(x.enemyHQEliminated&&c.owner===0)score-=2000;
   if(understrength&&(heavyCover||c.visibleDefenders>0))score+=1700;
   if(c.knownEnemyBase&&!x.enemyHQEliminated)score+=2600;
  }else if(c.kind==='structure'){
   if(c.structureKind==='headquarters'){
-   score-=realSiege?2300:700;
+   // An observed HQ without a covering gun is an immediate victory target,
+   // not a weaker objective than a fourth neutral income point.
+   score-=realSiege||!heavyCover?2400:700;
    if(heavyCover&&!realSiege)score+=1800;
   }else if(c.structureKind==='turret'){
    score-=realSiege?1550:150;
@@ -75,12 +82,19 @@ export function operationScore(c:OperationCandidate,x:OperationObservation,
  // Avoid pointless mission churn while real HP/proximity progress occurs.
  if(c.key===x.activeKey&&x.activeProgressAge<45)score-=350;
  if(c.key===memory.key&&x.time-memory.since<24)score-=300;
+ // Reuse the proven combat-aware utility as a prior instead of replacing
+ // years of threat/loss/risk analysis with a completely novel ranking.
+ if(Number.isFinite(c.legacyScore))score=score*.3+(c.legacyScore??0)*.7;
  return score;
 }
 export function decideOperation(
  current:OperationMemory,obs:OperationObservation
 ):OperationDecision{
  const memory={...current};
+ // Observed *actual* structure HP damage gives the active operation a
+ // limited commitment lease. Squad movement alone cannot renew the lease.
+ if(obs.activeKey===memory.key&&obs.activeObjectiveDamaged)
+  memory.lastDamageAt=obs.time;
  const eligible=obs.candidates.filter(isRouted).map(c=>({
   c,score:operationScore(c,obs,memory)
  })).filter(v=>Number.isFinite(v.score))
@@ -95,8 +109,11 @@ export function decideOperation(
  const lostProgress=old&&obs.activeProgressAge>=55&&!obs.activeObjectiveDamaged;
  // Holding an already selected mission may be preferable to a marginal score
  // win: route stability beats a stream of three-second strategic reversals.
+ const recentActualDamage=!!old&&memory.key===old.c.key&&
+  memory.lastDamageAt!==null&&obs.time-memory.lastDamageAt<55;
  const keep=!!old&&!!best&&old.c.key!==best.c.key&&
-  (!lostProgress&&age<30 ||!lostProgress&&old.score<=best.score+300||
+  (recentActualDamage||!lostProgress&&age<30 ||
+   !lostProgress&&old.score<=best.score+300||
    lostProgress&&old.score<=best.score+70);
  let chosen=keep?old:best;
  if(!chosen&&old)chosen=old;
@@ -112,7 +129,7 @@ export function decideOperation(
   memory.failedUntil=obs.time+55;
  }
  const phase=phaseFor(chosen.c,obs);
- if(changed){memory.switches++;memory.since=obs.time;}
+ if(changed){memory.switches++;memory.since=obs.time;memory.lastDamageAt=null;}
  memory.key=chosen.c.key;
  memory.phase=phase;
  memory.lastScore=chosen.score;
