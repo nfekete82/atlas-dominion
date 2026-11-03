@@ -4,6 +4,7 @@ import {RULES,distance,clamp,type Point} from './config.js';
 import {UNITS,unitSpec,buildingSpec,canAttack,type UnitKind} from './catalog.js';
 import {developArmy,validEconomy,type EconomyState} from './army-economy.js';
 import {assaultDecision,abortAssault} from './ai-director.js';
+import {threatenedOwnedSectors,sectorThreatScore} from './sector-defense.js';
 import {newCampaign,campaignPhase,refreshIntelligence,chooseMission,reconGoal,validCampaign,knownBuildings,type CampaignState} from './campaign-commander.js';
 import {segmentDistance} from './world-generation.js';
 import {newBattle,assessBattle,fightingPower,recordFailure,retryFront,validBattle,type BattleState} from './battle-response.js';
@@ -113,6 +114,8 @@ export class TacticalAI {
  waveMode:'legacy'|'coordinated'='coordinated';
  /** 2.4/2.5 paired comparison; affects strategy only, never serialized. */
  doctrineMode:'legacy'|'intelligent'='intelligent';
+ /** Experiment only; classic remains the normal gameplay default. */
+ sectorDefenseMode:'classic'|'responsive'|'reserved'='classic';
  /** Runtime-only diagnostics: never influence simulation or serialize in saves. */
  diagnostics:TacticalDiagnostics=newDiagnostics();
  state=fresh();private risk:Float32Array|undefined;private riskAt=-1;private routeCache=new Map<string,Point[]>();private routeSignature='';
@@ -236,9 +239,24 @@ export class TacticalAI {
    if(old)g.stop(old.ids.filter(id=>!s.recovering?.includes(id)&&!b.withdrawals.some(w=>w.unit===id)));
    b.squads=b.squads.filter(q=>q.role!=='defense');return new Set();
   }
-  const target=intruders.slice().sort((a,v)=>distance(a,home)-(a.kind==='artillery'?250:0)-distance(v,home)+(v.kind==='artillery'?250:0)||a.id-v.id)[0];
+  const sectorAwareness=this.sectorDefenseMode!=='classic'&&g.world.mapVersion===11
+    ?threatenedOwnedSectors(g.territories,intruders,1):[];
+   const urgency=(u:Unit)=>sectorAwareness.length
+    ?sectorThreatScore(u,sectorAwareness,home)-(u.kind==='artillery'?250:0)
+    :distance(u,home)-(u.kind==='artillery'?250:0);
+   const target=intruders.slice().sort((a,v)=>urgency(a)-urgency(v)||a.id-v.id)[0];
   const nearby=intruders.filter(u=>distance(u,target)<400),needed=fightingPower(nearby)*1.2;
-  const available=fighters.slice().sort((a,v)=>Number(old?.ids.includes(v.id))-Number(old?.ids.includes(a.id))||distance(a,target)-distance(v,target)||a.id-v.id);
+  const sectorOnly=this.sectorDefenseMode==='reserved'&&g.world.mapVersion===11&&
+    !intruders.some(enemy=>g.bases.some(base=>base.owner===1&&base.hp>0&&
+      distance(enemy,base)<(base.kind==='headquarters'?560:420)));
+  // Never pull an existing attack screen into a remote sector chase.
+  const pool=sectorOnly?fighters.filter(u=>!s.group.includes(u.id)&&
+    u.orders[0]?.tactical?.mode!=='assault'):fighters;
+  const available=pool.slice().sort((a,v)=>Number(old?.ids.includes(v.id))-Number(old?.ids.includes(a.id))||distance(a,target)-distance(v,target)||a.id-v.id);
+  if(sectorOnly&&(available.length<2||fightingPower(available)<needed*.85)){
+    b.squads=b.squads.filter(q=>q.role!=='defense');
+    return new Set();
+  }
   const defenders:Unit[]=[];for(const u of available){defenders.push(u);if(fightingPower(defenders)>=needed)break;}
   const medic=medics.slice().sort((a,v)=>distance(a,target)-distance(v,target))[0];if(medic)defenders.push(medic);
   const ids=new Set(defenders.map(u=>u.id));
@@ -983,7 +1001,12 @@ export class TacticalAI {
   this.airlift(army,home);const explorers=this.recon(army.filter(u=>!recovering.has(u.id)),home),boarding=new Set([...army.filter(u=>u.orders[0]?.kind==='board').map(u=>u.id),...(s.airlift?.phase==='pickup'?s.airlift.passengers??[]:[])]),fighters=army.filter(u=>combat(u)&&!recovering.has(u.id)&&!explorers.has(u.id)&&!boarding.has(u.id)),medics=army.filter(u=>u.kind==='medic'&&!recovering.has(u.id)&&!boarding.has(u.id)).slice(0,2);
   developArmy(g,s,army,p=>this.danger(p));
   for(const w of army.filter(u=>u.kind==='engineer'&&!u.orders.length)){const b=g.bases.filter(b=>b.owner===1&&b.hp>0&&b.hp<buildingSpec(b).hp&&b.buildRemaining<=0).sort((a,b)=>distance(w,a)-distance(w,b))[0];if(b)g.command([w.id],{...b,kind:'repair',target:b.id});}
-  const intruders=g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)&&g.bases.some(b=>b.owner===1&&b.hp>0&&distance(u,b)<(b.kind==='headquarters'?560:420)));
+  const seenEnemies=g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u));
+   const sectorThreats=this.sectorDefenseMode!=='classic'&&g.world.mapVersion===11
+     ?threatenedOwnedSectors(g.territories,seenEnemies,1):[];
+   const threatenedIds=new Set(sectorThreats.map(t=>t.enemy));
+   const intruders=seenEnemies.filter(u=>threatenedIds.has(u.id)||
+     g.bases.some(b=>b.owner===1&&b.hp>0&&distance(u,b)<(b.kind==='headquarters'?560:420)));
   if(g.world.mapVersion>=3&&this.mode==='director'){
    const defense=this.localDefense(fighters,medics,intruders,home);
    const raiders=this.expansionRaid(fighters.filter(u=>!defense.has(u.id)),home);
