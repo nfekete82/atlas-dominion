@@ -1,0 +1,34 @@
+name: Sandforge threat guard known-regression spotchecks
+on:
+  push:
+    branches: [test/sandforge-threat-guard-regressions-20261103]
+permissions:
+  contents: read
+jobs:
+  known-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - opponent: pressure
+            seed: 2026
+          - opponent: armored
+            seed: 2044
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Reproduce exact prior victory and defeat regressions
+        run: node scripts/ai-strategy-tournament.mjs --opponents "${{ matrix.opponent }}" --seeds "${{ matrix.seed }}" --seconds 360 --contenders current,early-barracks,adaptive-contact,threat-guard --output ai-arena-results/guard-regression-${{ matrix.opponent }}-${{ matrix.seed }}.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: guard-regression-${{ matrix.opponent }}-${{ matrix.seed }}
+          path: ai-arena-results/guard-regression-${{ matrix.opponent }}-${{ matrix.seed }}.json
+          retention-days: 21
