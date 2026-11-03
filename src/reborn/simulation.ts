@@ -913,7 +913,13 @@ export class Simulation {
       }
     }
     this.aiClock+=dt;
-    if((this.time>=RULES.aiOpeningDelay||this.needsHeadquarters(1))&&this.aiClock>=RULES.aiInterval){this.aiClock=0;this.think();}
+    const fullPlan=this.time>=RULES.aiOpeningDelay||this.needsHeadquarters(1);
+    const earlyPaidEconomy=this.tactical.mode==='director'&&
+      this.tactical.earlyEconomyMode==='barracks-first'&&this.world.mapVersion===11&&this.time>=2;
+    if(this.aiClock>=RULES.aiInterval&&(fullPlan||earlyPaidEconomy)){
+      this.aiClock=0;
+      if(fullPlan)this.think();else this.tactical.openingEconomy();
+    }
     if(this.fogClock>=.2||ownershipChanged){this.fogClock=0;this.updateVision();}
     if((this.bootstrapLost(1)||this.bases.filter(b=>b.kind==='headquarters').length>=2&&this.bases.filter(b=>b.kind==='headquarters').every(b=>b.owner===0&&b.hp>0)&&campaignLayout(this.world.mapVersion,this.seed).starts[1].every(i=>this.territories[i].owner===0)))this.status='victory';
     if(this.bootstrapLost(0)||!this.bases.some(b=>b.owner===0&&b.hp>0&&['headquarters','barracks','factory','airfield'].includes(b.kind))&&this.count(0)===0)this.status='defeat';

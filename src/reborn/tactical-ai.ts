@@ -114,6 +114,8 @@ export class TacticalAI {
  waveMode:'legacy'|'coordinated'='coordinated';
  /** 2.4/2.5 paired comparison; affects strategy only, never serialized. */
  doctrineMode:'legacy'|'intelligent'='intelligent';
+ /** Opt-in: paid barracks before standard 25s strategic opening. */
+ earlyEconomyMode:'classic'|'barracks-first'='classic';
  /** Experimental ablations: opt-in per-component doctrine comparisons. */
  missionPlannerMode:'inherit'|'legacy'='inherit';
  siegeEvaluationMode:'inherit'|'legacy'='inherit';
@@ -967,6 +969,17 @@ export class TacticalAI {
  }
  plan():void{
   if(!profiler)return this.planMeasured();const at=performance.now();try{this.planMeasured();}finally{profiler.record('ai',performance.now()-at);}
+ }
+ /** Early economic decisions ONLY. Do not issue a lone infantry attack
+  * sooner; the normal 25-second operational planner remains untouched.
+  * Existing economy code pays for everything and chooses legal build sites. */
+ openingEconomy():void{
+  const g=this.g;
+  if(this.mode!=='director'||this.earlyEconomyMode!=='barracks-first'
+   ||g.world.mapVersion!==11||g.time>=RULES.aiOpeningDelay
+   ||g.needsHeadquarters(1)||g.status!=='playing')return;
+  const army=g.units.filter(u=>u.owner===1&&u.hp>0&&!u.carrier);
+  developArmy(g,this.state,army,p=>this.danger(p));
  }
  /** Opening uses ordinary paid construction and reachable worker orders. */
  private bootstrapHeadquarters():void{

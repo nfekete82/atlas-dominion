@@ -8,7 +8,7 @@ import {selectiveRaidAllowed} from '../dist/src/reborn/selective-raids.js';
 test('tournament: exactly four reproducible, legal BLUE opponents',()=>{
  assert.deepEqual(OPPONENTS,['guarded','pressure','expansion','armored']);
  assert.equal(new Set(OPPONENTS).size,4);
- assert.equal(new Set(CONTENDERS).size,9);
+ assert.equal(new Set(CONTENDERS).size,10);
  assert.throws(()=>scriptedBlueTurn(new Simulation(2026,11),'omniscient'));
 });
 test('tournament: flags validate seeds, complete A/B and real time horizon',()=>{
@@ -139,4 +139,32 @@ test('selective raiding: no two-unit split from a five-unit army under comeback 
  assert.deepEqual(variant.credits,current.credits);
  assert.deepEqual(variant.visible,current.visible);
  assert.equal(variant.save().ai?.raidDetachmentMode,undefined);
+});
+
+test('paid four-bastion opening: one barracks before 12s without early soldier assault',()=>{
+ const now=new Simulation(2026,11),early=new Simulation(2026,11);
+ configureContender(early.tactical,'early-barracks');
+ for(let i=0;i<240;i++){now.step(.05);early.step(.05);}
+ assert.equal(early.tactical.earlyEconomyMode,'barracks-first');
+ assert.equal(now.tactical.earlyEconomyMode,'classic');
+ assert.equal(early.tactical.state.lastPlan,-3,'no full AI plan before 25 seconds');
+ assert.equal(now.tactical.state.lastPlan,-3);
+ assert.ok(early.bases.some(b=>b.owner===1&&b.kind==='barracks'),'barracks is funded before first military plan');
+ assert.ok(!now.bases.some(b=>b.owner===1&&b.kind==='barracks'),'original AI still waits');
+ assert.ok(early.credits[1]<now.credits[1],'RED pays for its actual barracks');
+ assert.ok(early.units.find(u=>u.owner===1&&u.kind==='infantry')?.orders.length===0,
+  'initial infantry should not be sent out before the original attack-planning clock');
+ assert.deepEqual(early.territories,now.territories);
+ assert.equal(early.credits[0],now.credits[0],'BLUE resources untouched');
+ assert.equal(early.save().ai?.earlyEconomyMode,undefined,'experimental flag not serialized');
+});
+test('paid opening is map-scoped and keeps ordinary 25s strategic timing',()=>{
+ const larger=new Simulation(2026,12);
+ configureContender(larger.tactical,'early-barracks');
+ for(let i=0;i<240;i++)larger.step(.05);
+ assert.equal(larger.bases.some(b=>b.owner===1&&b.kind==='barracks'),false,
+  'eight-bastion version remains original');
+ const small=new Simulation(2026,11);configureContender(small.tactical,'early-barracks');
+ for(let i=0;i<600;i++)small.step(.05);
+ assert.ok(small.tactical.state.lastPlan>=25,'normal planning starts after 25s');
 });
