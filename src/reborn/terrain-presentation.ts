@@ -2,7 +2,7 @@ import { type Point } from './config.js';
 import { type World } from './world.js';
 import { seededRandom, type Mesa, type MesaColumn } from './world-generation.js';
 import {fineSandPattern} from './fine-sand.js';
-import {paintCanyonRidges,paintCanyonRuins} from './canyon-front.js';
+import {paintCanyonRidges,paintCanyonRuins,paintCanyonRoads} from './canyon-front.js';
 
 function polygon(c:CanvasRenderingContext2D,points:Point[],color:string):void {
   c.beginPath();points.forEach((p,i)=>i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y));c.closePath();c.fillStyle=color;c.fill();
@@ -97,6 +97,7 @@ export function paintGeneratedTerrain(canvas:HTMLCanvasElement,world:World,sand:
   c.putImageData(pixels,0,0);
   const pattern=fineSandPattern(c,sand);pattern.setTransform(new DOMMatrix().translate(Math.floor(random()*1240),Math.floor(random()*1240)).scale(.62));
   c.save();c.globalAlpha=.80;c.fillStyle=pattern;c.fillRect(0,0,world.size,world.size);c.restore();
+  if(world.generated!.ridges.length)paintCanyonRoads(c,world.generated!.corridors,world.seed);
   paintMesas(c,world.generated!.mesas,world.seed,stone);
   if(world.generated!.ridges.length)paintCanyonRidges(c,world.generated!.ridges);
   if(world.generated!.ruins.length)paintCanyonRuins(c,world.generated!.ruins);
