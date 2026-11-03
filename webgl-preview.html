@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sandforge: Bastion Wars · WebGL 3D Vorschau</title>
+<link rel="icon" type="image/svg+xml" href="/src/assets/reborn/sandforge-icon.svg">
+<script type="importmap">{"imports":{"three":"/vendor/three/three.module.js","three/addons/":"/vendor/three/addons/"}}</script>
+<style>
+:root{color-scheme:dark;--bg:#121a1b;--panel:#182528eb;--line:#40504c;--text:#f0e9dc;--muted:#b5b9ac;--gold:#efb86b}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;font:14px system-ui,-apple-system,BlinkMacSystemFont,sans-serif;color:var(--text);background:var(--bg)}
+#stage{width:100%;height:100%;display:block;position:absolute;inset:0}
+#stage canvas{display:block;width:100%;height:100%;outline:none}
+.header{z-index:2;position:absolute;left:20px;top:18px;right:20px;display:flex;gap:16px;align-items:flex-start;justify-content:space-between;pointer-events:none}
+.brand{pointer-events:auto;background:var(--panel);border:1px solid #ffffff24;backdrop-filter:blur(12px);border-radius:10px;padding:12px 17px 13px;box-shadow:0 12px 26px #0006}
+.brand .small{color:var(--gold);font-weight:700;letter-spacing:.19em;font-size:10px}
+.brand h1{margin:3px 0 1px;font-size:22px;letter-spacing:.07em}
+.brand p{margin:4px 0 0;font-size:12px;color:var(--muted)}
+.panel{pointer-events:auto;background:var(--panel);backdrop-filter:blur(12px);border:1px solid #ffffff24;border-radius:9px;padding:11px;display:flex;gap:9px;flex-wrap:wrap;align-items:end}
+label{font-size:11px;color:#ccd1bf;display:grid;gap:5px}
+button,select,input{font:inherit;color:var(--text);border:1px solid #72807877;border-radius:5px;background:#253335;min-height:34px;padding:7px 11px}
+button{cursor:pointer}button:hover{background:#3a4b4b}button[aria-pressed=true]{border-color:#deab64;background:#554535}
+input{width:92px}
+a{color:#f3cf8b;text-decoration:none}
+a:hover{text-decoration:underline}
+.footer{position:absolute;bottom:18px;left:20px;right:20px;display:flex;align-items:end;justify-content:space-between;gap:10px;z-index:2;pointer-events:none}
+.footer>*{pointer-events:auto}
+.info{background:var(--panel);backdrop-filter:blur(12px);border:1px solid #ffffff24;border-radius:9px;padding:12px 15px;max-width:660px;line-height:1.65}
+.info strong{color:#f4d39a}
+.info #status{color:#dee0cf;font-size:12px}
+.info #selection{color:#a6d8e2;font-size:12px}
+#error{color:#ffab9c}
+.toolbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;background:var(--panel);border:1px solid #ffffff24;border-radius:9px;padding:8px}
+.counter{font:600 12px ui-monospace,monospace;color:#e7d8ac;padding:5px 8px;white-space:nowrap}
+.note{font-size:11px;color:#bec7bd}
+@media(max-width:900px){
+ .header{left:8px;right:8px;top:8px;flex-direction:column}.footer{left:8px;right:8px;bottom:8px;flex-direction:column;align-items:start}
+ .brand h1{font-size:18px}.panel{max-width:100%;padding:8px}.info{max-width:100%;font-size:12px}
+}
+</style>
+</head>
+<body>
+<div id="stage" aria-label="Echte Three.js WebGL 3D Wüstenlandschaft"></div>
+<div class="header">
+ <div class="brand"><div class="small">SANDFORGE / THREE.JS PREVIEW</div><h1>BASTION WARS <span style="color:var(--gold)">3D</span></h1>
+ <p>Operation Canyon Front · experimenteller Renderer</p></div>
+ <div class="panel" role="group" aria-label="3D-Kartensteuerung">
+  <label for="bastions">Bastionen<select id="bastions"><option value="4">4</option><option value="8">8</option><option value="12">12</option><option value="16">16</option></select></label>
+  <label for="seed">Karten-Seed<input id="seed" inputmode="numeric" type="number" min="0" max="4294967295" value="2026"></label>
+  <button id="load" title="Neue 3D-Karte laden">Karte laden</button>
+  <a href="/" style="padding:10px 6px;font-size:12px">Klassisches RTS</a>
+ </div>
+</div>
+<div class="footer">
+ <div class="info">
+  <div><strong>WebGL-Rendering</strong> <span class="note">· echte Höhengeometrie, GPU-Schatten und PBR-glTF-Assets</span></div>
+  <div id="status" role="status">Initialisiere WebGL-3D-Szene …</div>
+  <div id="selection" aria-live="polite">Linksklick: Einheit wählen · Rechtsklick: bewegen · Ziehen: Kamera verschieben · Mausrad: Zoom · Q/E: drehen</div>
+  <div id="error" role="alert"></div>
+  <div class="note">Eigenständiger Grafik-Prototyp. Die bisherige Canvas-Spielversion bleibt unangetastet.</div>
+ </div>
+ <div class="toolbar">
+  <button id="rotate-left" title="Kamera nach links drehen" aria-label="Kamera links">↶</button>
+  <button id="rotate-right" title="Kamera nach rechts drehen" aria-label="Kamera rechts">↷</button>
+  <button id="home">Ansicht zurücksetzen</button>
+  <button id="simulation" aria-pressed="false">Simulation starten</button>
+  <span class="counter"><span id="fps">–</span> FPS · <span id="clock">0 s</span></span>
+ </div>
+</div>
+<script>
+(function(){
+ const show=(message)=>{
+  const error=document.getElementById('error'),status=document.getElementById('status');
+  if(error)error.textContent='3D-Startfehler: '+message;
+  if(status)status.textContent='Die 3D-Szene konnte nicht initialisiert werden.';
+ };
+ window.addEventListener('error',e=>show(e.message||'JavaScript-Modul konnte nicht geladen werden'));
+ window.addEventListener('unhandledrejection',e=>show(String(e.reason||'Unbehandelter Ladefehler')));
+})();
+</script>
+<script type="module" src="/webgl-preview.js"></script>
+</body></html>
