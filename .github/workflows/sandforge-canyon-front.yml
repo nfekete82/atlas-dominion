@@ -19,4 +19,4 @@ jobs:
       - name: Compile project and terrain features
         run: npm run build
       - name: Verify cliff navigation, ramps, ruins, old saves and seed determinism
-        run: node --test tests/sandforge-canyon-front.test.mjs tests/reborn-campaign.test.mjs tests/reborn-buildings.test.mjs
+        run: node --test tests/sandforge-canyon-front.test.mjs tests/sandforge-canyon-models.test.mjs tests/reborn-campaign.test.mjs tests/reborn-buildings.test.mjs
