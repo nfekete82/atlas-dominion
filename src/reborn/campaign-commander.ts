@@ -6,12 +6,13 @@ import {rateMission,type EnemyStrategy} from './adaptive-strategy.js';
 import {learnedMissionBias,type Experience} from './battle-learning.js';
 import type {Loss} from './tactical-ai.js';
 import {replanAfterLoss} from './ai25-doctrine.js';
+import {chooseParallelCapture} from './siege-parallel-capture.js';
 
 export type CampaignPhase='opening'|'expansion'|'buildup'|'offensive'|'siege'|'endgame'|'emergencyDefense';
 export interface WarMission extends Point {kind:'capture'|'structure'|'hunt';sector:number;objective:number|null;since:number;progressAt:number;distance:number;hp:number}
 export interface ReconTask extends Point {unit:number;since:number}
 export interface CampaignState {version:1;phase:CampaignPhase;phaseSince:number;mission?:WarMission;recon:ReconTask[];survey:{x:number;y:number;at:number}[];intel:{id:number;seenAt:number}[];aborted:number;observedEnemyHQ?:Point&{id:number};enemyHQEliminatedAt?:number;alternatives?:{sector:number;score:number;expectedLoss:number;budgetCost:number}[]}
-export interface MissionContext {strategy:EnemyStrategy;force:Unit[];losses:Loss[];fronts:FailedFront[];route:(p:Point)=>{length:number;risk:number}|undefined;intelligent?:boolean;experience?:Experience}
+export interface MissionContext {strategy:EnemyStrategy;force:Unit[];losses:Loss[];fronts:FailedFront[];route:(p:Point)=>{length:number;risk:number}|undefined;intelligent?:boolean;experience?:Experience;parallelCapture?:boolean}
 export const newCampaign=():CampaignState=>({version:1,phase:'opening',phaseSince:0,recon:[],survey:[],intel:[],aborted:0});
 /** Preserve a recent, observed tower objective after confirmed HQ loss,
  * unless the screen suffers substantial losses or artillery disappears. */
@@ -51,6 +52,47 @@ export function refreshIntelligence(g:Simulation,s:CampaignState):void{
  * remains a war objective until its destruction has actually been observed. */
 export function chooseMission(g:Simulation,s:CampaignState,origin:Point,context?:MissionContext):WarMission|undefined{
  const buildings=knownBuildings(g),old=s.mission;
+ // Only a *known*, tower-covered objective qualifies. Progress from real
+ // damage overrides the diversion. Existing production keeps funding any
+ // paid siege weapon while the field group takes a reachable public sector.
+ if(context?.parallelCapture&&old?.kind==='structure'&&old.objective!==null){
+  const remembered=buildings.find(b=>b.id===old.objective);
+  const field=context.force.filter(u=>u.hp>0&&!u.carrier&&
+   !['engineer','medic','scout'].includes(u.kind));
+  const homeThreat=g.bases.some(b=>b.owner===1&&b.hp>0&&
+   g.units.some(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)&&distance(u,b)<440));
+  // Only evaluate paths after cheap eligibility gates to avoid unnecessary
+  // pathfinding in the frequent mission-switching macro loop.
+  const eligible=old.since<=g.time-36&&g.time>=70&&g.world.mapVersion===11&&
+   remembered&&field.length>=3&&!field.some(u=>u.kind==='artillery')&&
+   s.enemyHQEliminatedAt===undefined&&!homeThreat&&
+   buildings.some(b=>b.kind==='turret'&&distance(b,old)<680)&&
+   !(remembered.hp<old.hp);
+  if(eligible){
+   const fronts=g.territories.filter(t=>t.owner!==1).map(t=>{
+    const r=context.route(t.point);
+    return {id:t.id,owner:t.owner,income:t.income,
+     routeLength:r?.length??Infinity,routeRisk:r?.risk??Infinity,
+     rememberedFortification:buildings.some(b=>
+      ['headquarters','turret'].includes(b.kind??'')&&distance(b,t.point)<690),
+     visibleEnemyFighters:g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&
+      g.canSee(1,u)&&!['engineer','medic','scout'].includes(u.kind)&&
+      distance(u,t.point)<420).length};
+   });
+   const sector=chooseParallelCapture({enabled:true,mapVersion:g.world.mapVersion,
+    time:g.time,siegeMissionAge:g.time-old.since,
+    confirmedObservedTower:true,observedObjectiveDamage:false,
+    confirmedEnemyHQDefeated:false,fieldFighters:field.length,
+    livingArtillery:false,visibleHomeThreat:false,fronts});
+   if(sector!==null){
+    const t=g.territories[sector];
+    s.aborted++;
+    return s.mission={kind:'capture',x:t.point.x,y:t.point.y,
+     sector:t.id,objective:null,hp:0,since:g.time,progressAt:g.time,
+     distance:distance(origin,t.point)};
+   }
+  }
+ }
  if(old){
   const remembered=old.objective===null?undefined:buildings.find(b=>b.id===old.objective);
   const enemy=old.kind==='hunt'?g.units.find(u=>u.id===old.objective&&u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)):undefined;
