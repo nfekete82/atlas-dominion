@@ -100,3 +100,37 @@ test('operations: verified targets tie-break deterministically independent of en
  assert.equal(a.key,'capture:2');assert.equal(a.key,b.key);
  assert.ok(Number.isFinite(operationScore(frontA,obs(),newOperations())));
 });
+
+test('operations: verified structure damage leases commitment but does not lock forever',()=>{
+ const hq=target({key:'structure:55',kind:'structure',objective:55,
+  owner:0,routeLength:700,knownTowers:1,structureKind:'headquarters'});
+ const choices=[target(),hq];
+ const memory={...newOperations(),key:hq.key,phase:'finish',since:20,switches:1};
+ const active=decideOperation(memory,obs({time:95,activeKey:hq.key,
+  activeProgressAge:75,activeObjectiveDamaged:true,candidates:choices}));
+ assert.equal(active.key,hq.key,'real damage outranks a speculative capture');
+ assert.equal(active.state.lastDamageAt,95);
+ const later=decideOperation(active.state,obs({time:160,activeKey:hq.key,
+  activeProgressAge:65,activeObjectiveDamaged:false,candidates:choices}));
+ assert.equal(later.key,'capture:2','lease ends after lack of real progress');
+ assert.equal(later.state.lastDamageAt,null);
+ assert.equal(memory.lastDamageAt,null,'input memory never mutated');
+});
+test('operations: a reachable unfortified HQ and confirmed cleanup outrank income farming',()=>{
+ const hq=target({key:'structure:55',kind:'structure',objective:55,
+  owner:0,routeLength:800,knownTowers:0,structureKind:'headquarters'});
+ const neutral=target({routeLength:700});
+ assert.equal(decideOperation(newOperations(),obs({candidates:[neutral,hq]})).key,hq.key);
+ const red=target({key:'capture:3',sector:3,owner:0,routeLength:1050});
+ const finish=decideOperation(newOperations(),obs({enemyHQEliminated:true,
+  candidates:[neutral,red]}));
+ assert.equal(finish.key,red.key);
+ assert.equal(finish.phase,'finish');
+});
+test('operations: battle-aware proven prior remains an explicit component',()=>{
+ const p=target({legacyScore:-1000});
+ const q=target({key:'capture:3',sector:3,legacyScore:1000});
+ assert.ok(operationScore(p,obs(),newOperations())<
+   operationScore(q,obs(),newOperations()));
+ assert.equal(decideOperation(newOperations(),obs({candidates:[q,p]})).key,p.key);
+});
