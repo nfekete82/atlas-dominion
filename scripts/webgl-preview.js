@@ -248,6 +248,62 @@ async function tryModel(url){
  if(!models.has(url))models.set(url,loader.loadAsync(url).catch(err=>{models.delete(url);throw err;}));
  return models.get(url);
 }
+// Rough plaster material and cracks are shared across every imported real
+// ruin mesh. Original glTF triangles have normals but no UVs, so assign
+// face-oriented UV coordinates before adding textured masonry weathering.
+function makeRuinGrit(){
+ const canvas=document.createElement('canvas');canvas.width=canvas.height=512;
+ const c=canvas.getContext('2d'),image=c.createImageData(512,512),random=rnd(seed^0x8174c2aa);
+ for(let i=0;i<512*512;i++){
+  const j=i*4,noise=(random()-.5)*31,shade=226+noise;
+  image.data[j]=shade+7;image.data[j+1]=shade+2;image.data[j+2]=shade-5;image.data[j+3]=255;
+ }
+ c.putImageData(image,0,0);
+ for(let i=0;i<130;i++){
+  const x=random()*512,y=random()*512,size=3+random()*44;
+  c.fillStyle='rgba(72,54,38,'+(.015+random()*.085)+')';
+  c.beginPath();c.ellipse(x,y,size*.95,size*.4,random()*Math.PI,0,Math.PI*2);c.fill();
+ }
+ for(let i=0;i<35;i++){
+  const x=random()*512,y=random()*512;
+  c.strokeStyle='rgba(87,69,53,'+(.07+random()*.11)+')';c.lineWidth=.5+random()*1.3;
+  c.beginPath();c.moveTo(x,y);
+  c.lineTo(x+(random()-.5)*48,y+random()*70);
+  c.lineTo(x+(random()-.5)*100,y+random()*96);c.stroke();
+ }
+ const texture=new THREE.CanvasTexture(canvas);
+ texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.colorSpace=THREE.SRGBColorSpace;
+ texture.anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),8);
+ return texture;
+}
+const ruinGrit=makeRuinGrit();
+function weatherRuinMeshes(node){
+ node.traverse(mesh=>{
+  if(!mesh.isMesh)return;
+  const geometry=mesh.geometry,positions=geometry.getAttribute('position'),normals=geometry.getAttribute('normal');
+  if(positions&&!geometry.getAttribute('uv')){
+   const uv=new Float32Array(positions.count*2);
+   for(let i=0;i<positions.count;i++){
+    const x=positions.getX(i),y=positions.getY(i),z=positions.getZ(i);
+    const nx=Math.abs(normals?.getX(i)??0),ny=Math.abs(normals?.getY(i)??0),nz=Math.abs(normals?.getZ(i)??0);
+    const u=ny>nx&&ny>nz?x:nx>nz?z:x;
+    const v=ny>nx&&ny>nz?z:y;
+    uv[i*2]=u*.9;uv[i*2+1]=v*.9;
+   }
+   geometry.setAttribute('uv',new THREE.BufferAttribute(uv,2));
+  }
+  const upgrade=m=>{
+   const value=m.clone();
+   if(/plaster|sandstone|concrete|roof|rubble|dust/i.test(value.name||'')){
+    value.map=ruinGrit;value.bumpMap=ruinGrit;value.bumpScale=.09;
+    value.roughness=1;value.metalness=0;value.needsUpdate=true;
+   }
+   return value;
+  };
+  mesh.material=Array.isArray(mesh.material)?mesh.material.map(upgrade):upgrade(mesh.material);
+  mesh.castShadow=mesh.receiveShadow=true;
+ });
+}
 async function addRuins(){
  // Every ruin instance is a real glTF triangle mesh with PBR materials.
  const data=await Promise.all([
@@ -255,6 +311,7 @@ async function addRuins(){
   tryModel('/src/assets/reborn/canyon-3d/ruin-depot.gltf')]);
  for(const [i,ruin] of terrain.ruins.entries()){
   const source=data[ruin.variant===1?1:0].scene.clone(true);
+  weatherRuinMeshes(source);
   normalized(source,ruin.width*.98);
   const anchor=new THREE.Group();
   anchor.position.copy(pos(ruin.x,ruin.y));
