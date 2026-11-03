@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {Simulation} from '/src/reborn/simulation.js';
+import {canyonGroundSampler,rampAtX} from '/src/reborn/canyon-height.js';
 
 /** Opt-in WebGL scene using the real authoritative Sandforge map and simulation.
  * This page is isolated from the production Canvas renderer, save format and AI
@@ -17,35 +18,10 @@ const game=new Simulation(seed,sizes[bastions]);
 const world=game.world,terrain=world.generated,size=world.size,half=size/2;
 const status=$('status'),errorNode=$('error'),stage=$('stage');
 const setStatus=value=>{status.textContent=value;};
-const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const smooth=t=>{const x=clamp(t,0,1);return x*x*(3-2*x);};
 const rnd=seed=>{let s=seed>>>0;return ()=>{s=(s+0x6d2b79f5)>>>0;let n=s;n=Math.imul(n^(n>>>15),n|1);n^=n+Math.imul(n^(n>>>7),n|61);return ((n^(n>>>14))>>>0)/4294967296;};};
 const random=rnd(seed^0xb6aa3371),ridge=terrain.ridges[0];
-function ridgeYAt(x){
- const pts=ridge.spine;
- if(x<=pts[0].x)return pts[0].y;
- for(let i=1;i<pts.length;i++)if(x<=pts[i].x){
-  const a=pts[i-1],b=pts[i],t=(x-a.x)/(b.x-a.x);
-  return a.y+(b.y-a.y)*t;
- }
- return pts.at(-1).y;
-}
-function rampAt(x){
- return ridge.ramps.some(r=>Math.abs(x-r.x)<=r.width*.5);
-}
-function heightAt(x,z){
- const dune=4.8*Math.sin(x*.0053+seed*.002)*Math.cos(z*.0038)+
-  2.9*Math.sin(z*.012+x*.009)+1.8*Math.cos(z*.022-x*.015);
- if(!ridge)return dune;
- const a=ridge.spine[0].x,b=ridge.spine.at(-1).x;
- const span=smooth((x-a+180)/180)*smooth((b+180-x)/180);
- if(span<=0)return dune;
- // Two genuine ramps use a long gradual slope; cliffs retain a sharp
- // 110-unit vertical face. Ramp gates and collisions share source geometry.
- const roadWidth=rampAt(x)?235:21,delta=ridgeYAt(x)-z;
- return dune+ridge.height*span*smooth((delta+roadWidth)/ (roadWidth*2));
-}
-const yAt=p=>heightAt(p.x,p.y);
+const heightAt=canyonGroundSampler(seed,terrain.ridges);
+const rampAt=x=>ridge?rampAtX(ridge,x):false;
 const pos=(x,z,y=heightAt(x,z))=>new THREE.Vector3(x-half,y,z-half);
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance',alpha:false});
 renderer.outputColorSpace=THREE.SRGBColorSpace;
@@ -196,7 +172,7 @@ function sandRoads(){
     const px=x+offset*Math.cos(heading),pz=z-offset*Math.sin(heading);
     const plane=new THREE.Mesh(geometry,material);
     plane.position.set(px-half,heightAt(px,pz)+.46,pz-half);
-    plane.scale.set(4+r()*3,16+r()*7,1);
+    plane.scale.set(4+r()*3,1,16+r()*7);
     plane.rotation.y=heading;
     group.add(plane);
    }
