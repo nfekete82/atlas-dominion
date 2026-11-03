@@ -4,6 +4,7 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {Simulation} from '/src/reborn/simulation.js';
 import {canyonGroundSampler,rampAtX,ridgeCenterY} from '/src/reborn/canyon-height.js';
 import {SandforgeBattlefield} from '/webgl-battlefield.js';
+import {DesertArtPass} from '/webgl-environment.js';
 
 /** Opt-in WebGL scene using the real authoritative Sandforge map and simulation.
  * This page is isolated from the production Canvas renderer, save format and AI
@@ -101,7 +102,18 @@ function sandTexture(){
  return t;
 }
 function buildTerrain(){
- const texture=sandTexture(),material=new THREE.MeshStandardMaterial({color:'#d7b17d',map:texture,vertexColors:true,roughness:1,metalness:0});
+ const texture=sandTexture(),material=new THREE.MeshStandardMaterial({color:'#f5eadb',map:texture,vertexColors:true,roughness:.99,metalness:0});
+ // Reuse the existing authored PBR desert texture set that made Sandforge's
+ // original buildings look detailed; terrain UVs remain continuous across chunks.
+ const textures=new THREE.TextureLoader();
+ const configure=(t,srgb)=>{t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),8);if(srgb)t.colorSpace=THREE.SRGBColorSpace;t.needsUpdate=true;return t;};
+ textures.load('/src/assets/reborn/buildings-3d/textures/desert-basecolor.png',t=>{
+  material.map=configure(t,true);material.needsUpdate=true;
+ },undefined,e=>console.warn('PBR sand albedo fallback',e));
+ textures.load('/src/assets/reborn/buildings-3d/textures/desert-normal.png',t=>{
+  material.normalMap=configure(t,false);material.normalScale.set(.32,.32);
+  material.needsUpdate=true;
+ },undefined,e=>console.warn('PBR sand normal fallback',e));
  const chunks=4,segments=56,patch=size/chunks;
  for(let cy=0;cy<chunks;cy++)for(let cx=0;cx<chunks;cx++){
   const count=(segments+1)**2,vertices=new Float32Array(count*3),
@@ -113,10 +125,11 @@ function buildTerrain(){
    const slope=Math.abs(heightAt(x,z-24)-heightAt(x,z+24))/48;
    const rocky=smooth((slope-.20)/.9);
    const nval=.96+.055*Math.sin(x*.013+z*.009)+.025*Math.cos(x*.071-z*.032);
-   const col=new THREE.Color('#e9c48b').lerp(new THREE.Color('#ab7950'),rocky*.75);
+   const bands=(Math.sin(h*.19+x*.003+z*.002)*.5+.5)*rocky;
+   const col=new THREE.Color('#faf1e0').lerp(new THREE.Color('#b58b63'),rocky*.65+bands*.12);
    col.multiplyScalar(nval);
    colors[n]=col.r;colors[n+1]=col.g;colors[n+2]=col.b;
-   uv[k*2]=x/135;uv[k*2+1]=z/135;
+   uv[k*2]=x/750;uv[k*2+1]=z/750;
   }
   for(let j=0;j<segments;j++)for(let i=0;i<segments;i++){
    const a=j*(segments+1)+i,b=a+1,c=a+segments+1,d=c+1;
@@ -135,7 +148,7 @@ function buildTerrain(){
 }
 const pbr=(color,roughness=1,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness,flatShading:true});
 function instancedStone(){
- const geometry=new THREE.IcosahedronGeometry(1,1),materials=[pbr('#b99168'),pbr('#9f7351'),pbr('#d4af7b')];
+ const geometry=new THREE.IcosahedronGeometry(1,2),materials=[pbr('#b99168'),pbr('#9f7351'),pbr('#d4af7b')];
  const dummy=new THREE.Object3D(),groups=materials.map(mat=>new THREE.InstancedMesh(geometry,mat,1100));
  const counts=[0,0,0],r=rnd(seed^0x73c02f4b);
  const put=(x,z,wide,tall,depth)=>{
@@ -287,6 +300,7 @@ const battlefield=new SandforgeBattlefield({
  game,world,terrain,scene,renderer,camera,controls,loader,groundMeshes,heightAt,pos,
  lite:query.get('lite')==='1'
 });
+const desertArt=new DesertArtPass({scene,world,terrain,heightAt,pos,loader,lowQuality:query.get('lite')==='1'});
 let lastFrame=performance.now(),frames=0;
 function animate(now){
  const dt=Math.min(.08,(now-lastFrame)/1000);lastFrame=now;
@@ -314,6 +328,7 @@ async function main(){
  try{
   setStatus('Lade echte 3D-Ruinen …');
   const ruins=await addRuins();
+  desertArt.load().then(count=>{console.info('3D environment props',count);}).catch(error=>console.warn('Desert detail fallback',error));
   // The 3D battlefield is live immediately; heavyweight PBR assets stream in.
   battlefield.sync(true);
   status.dataset.ready='true';
