@@ -35,6 +35,9 @@ test('webgl: preview is actually packaged with local offline Three.js vendor and
  for(const name of ['webgl-preview.html','webgl-preview.js','vendor/three/three.module.js','vendor/three/addons/loaders/GLTFLoader.js',
   'src/reborn/canyon-height.js','src/assets/reborn/canyon-3d/ruin-house.gltf','src/assets/reborn/canyon-3d/ruin-depot.gltf'])
   assert.ok(existsSync('dist/'+name),'missing offline asset: '+name);
+ const docker=readFileSync('Dockerfile','utf8');
+ assert.match(docker,/webgl-preview\.html/,'Docker build stage must copy WebGL HTML');
+ assert.match(docker,/COPY scripts\/webgl-preview\.js/,'Docker build stage must copy WebGL script');
  const html=readFileSync('dist/webgl-preview.html','utf8');
  const js=readFileSync('dist/webgl-preview.js','utf8');
  assert.match(html,/type="importmap"/);
