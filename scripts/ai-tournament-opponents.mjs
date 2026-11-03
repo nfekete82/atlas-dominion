@@ -13,8 +13,8 @@ const fighters=g=>g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&
 const near=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const homeBase=g=>g.bases.find(b=>b.owner===0&&b.hp>0&&b.kind==='headquarters');
 function sectorTarget(g,home,kind){
- const choices=g.territories.filter(t=>t.owner!==0&&
-  !g.bases.some(b=>b.owner===1&&b.kind==='headquarters'&&b.hp>0&&b.territory===t.id));
+ // Ownership is public; never inspect unseen RED bases to choose a target.
+ const choices=g.territories.filter(t=>t.owner!==0);
  if(!choices.length)return null;
  choices.sort((a,b)=>{
   const score=t=>(kind==='pressure'&&t.owner===1?-250:0)+
