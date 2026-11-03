@@ -1,0 +1,50 @@
+name: Sandforge endgame capture postmortem
+on:
+  push:
+    branches: [diag/sandforge-terminal-cleanup-bottleneck-20261103]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node --test tests/sandforge-terminal-cleanup-audit.test.mjs tests/reborn-commander.test.mjs
+  postmortem:
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - opponent: guarded
+            seeds: '2075,2026'
+          - opponent: pressure
+            seeds: '2029,2074'
+          - opponent: expansion
+            seeds: '2074,2075'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Capture actual endgame state without editing commands
+        run: node scripts/ai-terminal-cleanup-audit.mjs --opponent "${{ matrix.opponent }}" --seeds "${{ matrix.seeds }}" --seconds 900 --output ai-arena-results/terminal-${{ matrix.opponent }}.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: terminal-${{ matrix.opponent }}
+          path: ai-arena-results/terminal-${{ matrix.opponent }}.json
+          retention-days: 21
