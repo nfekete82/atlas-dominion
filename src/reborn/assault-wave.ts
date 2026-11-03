@@ -48,3 +48,32 @@ export function reinforcementStagingPoint(front:Point,objective:Point,home:Point
  // barely left home. Rejoin at the active line in that case.
  return distance(home,rear)>=distance(home,front)+150?{...front}:rear;
 }
+
+/** Launch a healthy, already-forward paid squad on an adjacent, publicly neutral
+ * bastion instead of ordering it BACK to a rear-area rally. Only own-unit
+ * positions and observed enemy threats are inputs; no fog-hidden inference.
+ * Fortified or enemy-owned sectors must keep the full siege/assault doctrine. */
+export interface ForwardCaptureMember {
+ id:number; ground:boolean; healthFraction:number;
+ distanceToMission:number; distanceToRally:number;
+}
+export interface ForwardCaptureReadiness {
+ enabled:boolean; mapVersion:number; time:number; phase:string; phaseSeconds:number;
+ missionKind:string; sectorOwner:number; knownGunCover:boolean;
+ observedDefenders:number; homeUnderAttack:boolean;
+ members:readonly ForwardCaptureMember[];
+}
+export function forwardCaptureVanguard(x:ForwardCaptureReadiness):number[]{
+ if(!x.enabled||x.mapVersion!==11||x.time<40||x.time>330||
+  !['gather','regroup'].includes(x.phase)||
+  x.phase==='regroup'&&x.phaseSeconds<6||
+  x.missionKind!=='capture'||x.sectorOwner!==-1||
+  x.knownGunCover||x.observedDefenders>0||x.homeUnderAttack)return [];
+ const front=x.members.filter(m=>m.ground&&m.healthFraction>=.6&&
+   m.distanceToMission<=520&&m.distanceToMission>=60&&
+   m.distanceToRally>350&&m.distanceToRally>m.distanceToMission+80)
+  .sort((a,b)=>a.distanceToMission-b.distanceToMission||a.id-b.id);
+ // Do not trick the assault doctrine into sending a lone scout or tank;
+ // at least three healthy, PAID ground combatants must already be forward.
+ return front.length>=3?front.slice(0,8).map(m=>m.id):[];
+}
