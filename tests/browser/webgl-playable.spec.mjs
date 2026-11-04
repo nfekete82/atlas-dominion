@@ -34,6 +34,9 @@ test('Playable 3D: assets, terrain, fog, units, buildings, minimap and productio
  expect(await page.evaluate(()=>document.querySelector('[data-action="select-all"]')===window.__stableCommandButton)).toBe(true);
  await page.locator('[data-action="select-all"]').click();
  expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.selected.size)).toBeGreaterThan(0);
+ await page.locator('[data-tab="buildings"]').click();
+ await expect(page.locator('[data-sf-group="buildings"]')).toBeVisible();
+ await expect(page.locator('[data-sf-group="units"]')).toBeHidden();
  await page.locator('[data-build="barracks"]').click();
  expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.buildKind)).toBe('barracks');
  await page.locator('[data-action="cancel"]').click();
@@ -143,4 +146,54 @@ test('3D RTS: original-style HUD starts live and a real right click moves select
   return u&&Math.hypot(u.x-origin.x,u.y-origin.y)>12;
  },{id:state.id,origin:state.origin},{timeout:14000});
  expect(errors).toEqual([]);
+});
+
+test('WebGL menu v2: every tab isolates its content and unit sprites become proper portraits',async({page})=>{
+ test.setTimeout(110000);
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.setViewportSize({width:1440,height:900});
+ await page.goto('/webgl-preview.html?bastions=4&seed=2026&lite=1&pause=1',{waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:90000});
+ await expect(page.locator('[data-sf-group="units"]')).toBeVisible();
+ await expect(page.locator('[data-sf-group="buildings"]')).toBeHidden();
+ await expect(page.locator('[data-sf-group="territories"]')).toBeHidden();
+ await expect(page.locator('[data-sf-producer="barracks"]')).toBeVisible();
+ await page.waitForFunction(()=>{
+  const icons=[...document.querySelectorAll('img[data-sf-unit-icon]')];
+  return icons.length===9&&icons.every(i=>i.dataset.sfIconStatus==='ready'&&i.naturalWidth===192&&i.naturalHeight===132);
+ },{timeout:60000});
+ const icon=await page.locator('img[data-sf-unit-icon="infantry"]').getAttribute('src');
+ expect(icon).toMatch(/^data:image\/png;base64,/);
+ await page.locator('[data-tab="buildings"]').click();
+ await expect(page.locator('[data-sf-group="units"]')).toBeHidden();
+ await expect(page.locator('[data-sf-group="buildings"]')).toBeVisible();
+ await expect(page.locator('[data-build="headquarters"]')).toBeVisible();
+ await page.locator('[data-tab="territories"]').click();
+ await expect(page.locator('[data-sf-group="buildings"]')).toBeHidden();
+ await expect(page.locator('[data-sf-group="territories"]')).toBeVisible();
+ await expect(page.locator('[data-territory="0"]')).toBeVisible();
+ await page.locator('[data-tab="units"]').click();
+ await expect(page.locator('[data-sf-group="units"]')).toBeVisible();
+ expect(errors).toEqual([]);
+ await mkdir(fileURLToPath(new URL('./artifacts/',import.meta.url)),{recursive:true});
+ await page.screenshot({path:fileURLToPath(new URL('./artifacts/webgl-menu-v2.png',import.meta.url)),fullPage:true});
+});
+
+test('WebGL terrain: landscape uses seamless original sand, never the building material atlas',async({page})=>{
+ test.setTimeout(110000);
+ await page.goto('/webgl-preview.html?bastions=4&seed=2026&lite=1&pause=1',{waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:90000});
+ await page.waitForFunction(()=>{
+  const mesh=window.__sandforgeWebGL.scene.children.find(o=>o.userData.terrain);
+  return mesh?.material?.map?.image?.width===2048;
+ },{timeout:35000});
+ const map=await page.evaluate(()=>{
+  const mesh=window.__sandforgeWebGL.scene.children.find(o=>o.userData.terrain);
+  return {w:mesh.material.map.image.width,h:mesh.material.map.image.height,
+   isCanvas:mesh.material.map.isCanvasTexture,normalMap:mesh.material.normalMap};
+ });
+ expect(map.w).toBe(2048);
+ expect(map.h).toBe(2048);
+ expect(map.isCanvas).toBe(true);
+ expect(map.normalMap).toBe(null);
 });
