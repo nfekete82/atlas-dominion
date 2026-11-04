@@ -141,7 +141,8 @@ function buildTerrain(){
  const chunks=4,segments=56,patch=size/chunks;
  for(let cy=0;cy<chunks;cy++)for(let cx=0;cx<chunks;cx++){
   const count=(segments+1)**2,vertices=new Float32Array(count*3),
-   colors=new Float32Array(count*3),uv=new Float32Array(count*2),indices=[];
+   colors=new Float32Array(count*3),uv=new Float32Array(count*2),
+   normals=new Float32Array(count*3),indices=[];
   for(let j=0;j<=segments;j++)for(let i=0;i<=segments;i++){
    const x=(cx+i/segments)*patch,z=(cy+j/segments)*patch;
    const h=heightAt(x,z),k=j*(segments+1)+i,n=k*3;
@@ -154,6 +155,12 @@ function buildTerrain(){
    col.multiplyScalar(nval);
    colors[n]=col.r;colors[n+1]=col.g;colors[n+2]=col.b;
    uv[k*2]=x/1500;uv[k*2+1]=z/1500;
+   // Sample normals from the continuous field, not triangle tessellation:
+   // border ring and playable terrain now have identical lighting at seams.
+   const eps=1.6,dx=(heightAt(x+eps,z)-heightAt(x-eps,z))/(2*eps);
+   const dz=(heightAt(x,z+eps)-heightAt(x,z-eps))/(2*eps);
+   const inv=1/Math.hypot(dx,1,dz);
+   normals[n]=-dx*inv;normals[n+1]=inv;normals[n+2]=-dz*inv;
   }
   for(let j=0;j<segments;j++)for(let i=0;i<segments;i++){
    const a=j*(segments+1)+i,b=a+1,c=a+segments+1,d=c+1;
@@ -163,7 +170,8 @@ function buildTerrain(){
   geometry.setAttribute('position',new THREE.BufferAttribute(vertices,3));
   geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));
   geometry.setAttribute('uv',new THREE.BufferAttribute(uv,2));
-  geometry.setIndex(indices);geometry.computeVertexNormals();
+  geometry.setAttribute('normal',new THREE.BufferAttribute(normals,3));
+  geometry.setIndex(indices);
   const mesh=new THREE.Mesh(geometry,material);
   mesh.receiveShadow=true;mesh.userData.terrain=true;
   scene.add(mesh);groundMeshes.push(mesh);
