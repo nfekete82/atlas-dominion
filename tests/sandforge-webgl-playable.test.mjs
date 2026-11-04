@@ -53,3 +53,23 @@ test('WebGL build exposes full gameplay adapter, all draw modules and skinned Th
  assert.match(docker,/COPY scripts\/webgl-battlefield\.js/);
  assert.match(docker,/COPY scripts\/webgl-environment\.js/);
 });
+
+test('Classic Sandforge WebGL HUD shares the original shipped CSS and starts live',()=>{
+ for(const path of ['dist/webgl-classic-hud.js','dist/webgl-classic-hud.css','dist/style.css','dist/retro-desert.css'])
+  assert.ok(existsSync(path),path+' missing from Docker build');
+ const hud=readFileSync('dist/webgl-classic-hud.js','utf8');
+ const skin=readFileSync('dist/webgl-classic-hud.css','utf8');
+ const js=readFileSync('dist/webgl-preview.js','utf8');
+ const html=readFileSync('dist/webgl-preview.html','utf8');
+ assert.match(hud,/class="top hud frame"/);
+ assert.match(hud,/class="radar hud frame"/);
+ assert.match(hud,/class="catalog hud frame"/);
+ assert.match(hud,/class="command hud frame sf-command"/);
+ assert.match(hud,/data-action="save"/);
+ assert.match(skin,/#sf-classic-root/);
+ assert.match(js,/running=query.get\('pause'\)!=='1'/);
+ assert.match(js,/game.paused=false/);
+ assert.match(html,/href="\/style.css"/);
+ assert.match(html,/href="\/retro-desert.css"/);
+ assert.match(html,/href="\/webgl-classic-hud.css"/);
+});
