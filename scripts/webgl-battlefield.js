@@ -245,15 +245,17 @@ export class SandforgeBattlefield {
   this.fogTexture.wrapS=this.fogTexture.wrapT=THREE.ClampToEdgeWrapping;
   const mat=new THREE.ShaderMaterial({
    uniforms:{fogTex:{value:this.fogTexture},mapSize:{value:this.world.size}},
-   // Lift the fog sheet over soldiers, buildings and rocks. Otherwise the
-   // original ground-height sheet darkened sand but left every prop exposed.
-   vertexShader:'uniform float mapSize; varying vec2 fogUv; void main(){fogUv=vec2(position.x/mapSize+.5,position.z/mapSize+.5);vec3 p=position;p.y+=420.0;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);}',
+   // Fog must share the actual terrain plane. A raised sheet causes severe
+   // screen-space parallax: revealed tiles shift away from their soldiers.
+   // Composite the aligned fog last to conceal objects in unseen territory.
+   vertexShader:'uniform float mapSize; varying vec2 fogUv; void main(){fogUv=vec2(position.x/mapSize+.5,position.z/mapSize+.5);vec3 p=position;p.y+=3.0;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);}',
    fragmentShader:'uniform sampler2D fogTex;varying vec2 fogUv;void main(){float a=texture2D(fogTex,fogUv).a;gl_FragColor=vec4(0.004,0.006,0.008,a);}',
-   transparent:true,depthWrite:false,side:THREE.DoubleSide
+   transparent:true,depthTest:false,depthWrite:false,side:THREE.DoubleSide
   });
   this.fogNodes=this.groundMeshes.map(mesh=>{
    const layer=new THREE.Mesh(mesh.geometry,mat);layer.frustumCulled=false;
-   layer.renderOrder=5;this.scene.add(layer);return layer;
+   layer.renderOrder=990;layer.userData={fogOverlay:true,visualOnly:true};
+   this.scene.add(layer);return layer;
   });
  }
  updateFog(){
