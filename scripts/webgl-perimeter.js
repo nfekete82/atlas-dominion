@@ -10,7 +10,7 @@ export function addVisualPerimeter({scene,size,heightAt,material,ringTiles=2,seg
  const out=[],normal=new THREE.Vector3();
  const c0=new THREE.Color('#faf1e0'),c1=new THREE.Color('#b58b63');
  const warmRim=new THREE.Color('#b28250');
- const darkBeyond=new THREE.Color('#070909');
+ const darkBeyond=new THREE.Color('#000000');
  const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
  const smooth=value=>{const t=clamp(value,0,1);return t*t*(3-2*t);};
  // Only the four central tiles per side are playable. The surrounding mesh
@@ -20,11 +20,11 @@ export function addVisualPerimeter({scene,size,heightAt,material,ringTiles=2,seg
  const outsideDistance=(x,z)=>Math.max(0,-x,x-size,-z,z-size);
  const heightFade=(x,z)=>smooth((outsideDistance(x,z)-margin*.36)/(margin*.64));
  const outerHeight=(x,z)=>heightAt(x,z)*(1-heightFade(x,z));
- // A seeded-looking irregular coastline prevents a rectangular shadow edge.
- // Its darkest part begins well BEYOND the decorative cliff foot.
+ // Zero Hour-style: only a narrow, irregular sand apron at the edge;
+ // the world stops in absolute black rather than creating an endless desert.
  const edgeShadow=(x,z)=> {
-  const uneven=31*Math.sin(x*.011+z*.007)+17*Math.sin(z*.021-x*.009);
-  return smooth((outsideDistance(x,z)-300-uneven)/310);
+  const uneven=18*Math.sin(x*.011+z*.007)+10*Math.sin(z*.021-x*.009);
+  return smooth((outsideDistance(x,z)-95-uneven)/170);
  };
  for(let cy=-ringTiles;cy<playableChunks+ringTiles;cy++)
   for(let cx=-ringTiles;cx<playableChunks+ringTiles;cx++){
@@ -45,9 +45,9 @@ export function addVisualPerimeter({scene,size,heightAt,material,ringTiles=2,seg
     const nval=.96+.055*Math.sin(x*.013+z*.009)+.025*Math.cos(x*.071-z*.032);
     const bands=(Math.sin(h*.19+x*.003+z*.002)*.5+.5)*rocky;
     const outside=outsideDistance(x,z);
-    const rim=smooth((outside-24)/145)*(1-smooth((outside-160)/190));
+    const rim=smooth((outside-15)/60)*(1-smooth((outside-95)/85));
     const color=c0.clone().lerp(c1,rocky*.65+bands*.12).multiplyScalar(nval);
-    color.lerp(warmRim,rim*.44).lerp(darkBeyond,shadow*.997);
+    color.lerp(warmRim,rim*.35).lerp(darkBeyond,shadow);
     colors[n]=color.r;colors[n+1]=color.g;colors[n+2]=color.b;
     uv[k*2]=x/1500;uv[k*2+1]=z/1500;
     // The same finite-difference sampling across chunk boundaries prevents
