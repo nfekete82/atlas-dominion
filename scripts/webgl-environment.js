@@ -103,7 +103,7 @@ export class DesertArtPass {
   const palms=this.details.filter(d=>d.kind==='palm'&&
    !this.terrain.ridges.some(r=>r.spine.some(p=>Math.hypot(d.x-p.x,d.y-p.y)<140)))
    .slice(0,this.lowQuality?6:28);
-  if(!palms.length)return 0;
+  // Border groves also render on seeds with no walkable interior palms.
   const gltf=await this.loader.loadAsync('/src/assets/reborn/props-3d/palm-tree.glb');
   for(const d of palms){
    const palm=this.normalize(gltf.scene.clone(true),d.radius*3);
