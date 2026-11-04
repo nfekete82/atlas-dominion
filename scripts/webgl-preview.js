@@ -50,7 +50,9 @@ const pos=(x,z,y=heightAt(x,z))=>new THREE.Vector3(x-half,y,z-half);
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance',alpha:false});
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.17;
+// Lower the hot highlights of the preview: original sandstone and buildings
+// share one warm daylight exposure instead of glowing in different palettes.
+renderer.toneMappingExposure=1.04;
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.65));
@@ -58,8 +60,8 @@ stage.append(renderer.domElement);
 const scene=new THREE.Scene();
 scene.background=new THREE.Color('#bea17b');
 scene.fog=new THREE.FogExp2('#bea17b',.00011);
-scene.add(new THREE.HemisphereLight('#fff0d6','#6c4c33',2.05));
-const sun=new THREE.DirectionalLight('#ffe6bd',3.3);
+scene.add(new THREE.HemisphereLight('#fff1dd','#776251',1.7));
+const sun=new THREE.DirectionalLight('#fff1d6',2.65);
 sun.position.set(-700,1100,420);
 sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
 sun.shadow.camera.left=-1250;sun.shadow.camera.right=1250;
@@ -189,7 +191,8 @@ function buildTerrain(){
 }
 const pbr=(color,roughness=1,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness,flatShading:true});
 function instancedStone(){
- const geometry=new THREE.IcosahedronGeometry(1,2),materials=[pbr('#c4ab8a'),pbr('#ab9171'),pbr('#d4bd97')];
+ // More irregular weathered sandstone, fewer identical round orange pebbles.
+ const geometry=new THREE.DodecahedronGeometry(1,1),materials=[pbr('#bfa889'),pbr('#ab9478'),pbr('#d0b89b')];
  // Irregular weathering breaks the obvious smooth polygon-egg silhouettes.
  // It operates once on the shared instanced mesh, not per boulder or frame.
  const positions=geometry.getAttribute('position');
@@ -217,14 +220,14 @@ function instancedStone(){
   const k=Math.floor(r()*3);if(counts[k]>=1750)return;
   const y=heightAt(x,z);
   // Bury the lower half of the rock instead of standing it on the terrain.
-  dummy.position.set(x-half,y+tall*.35,z-half);
+  dummy.position.set(x-half,y+tall*.24,z-half);
   dummy.scale.set(wide,tall,depth);
   dummy.rotation.set((r()-.5)*.18,r()*6.28,(r()-.5)*.20);
   dummy.updateMatrix();groups[k].setMatrixAt(counts[k]++,dummy.matrix);
   if(contactCount<contacts.instanceMatrix.count){
    contactDummy.position.set(x-half,y+.53,z-half);
    contactDummy.rotation.set(0,0,0);
-   contactDummy.scale.set(wide*2.15,1,depth*2.1);
+   contactDummy.scale.set(wide*2.55,1,depth*2.45);
    contactDummy.updateMatrix();contacts.setMatrixAt(contactCount++,contactDummy.matrix);
   }
  };
