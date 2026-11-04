@@ -731,6 +731,7 @@ function setShowcase(enabled){
 showcaseButton.onclick=()=>setShowcase(!showcaseActive);
 if(query.get('showcase')==='1')setShowcase(true);
 const desertArt=new DesertArtPass({scene,world,terrain,heightAt,pos,loader,lowQuality:query.get('lite')==='1'});
+let desertArtReady=false;
 const effects=new SandforgeCombatEffects({scene,camera,game,world,heightAt,pos,lowQuality:query.get('lite')==='1'});
 // Renderer-only weather preview: weather rules in Simulation are unchanged.
 const stormButton=document.createElement('button');
@@ -850,6 +851,7 @@ window.__sandforgeWebGL={renderer,scene,camera,controls,game,terrain,heightAt,ba
  get showcaseActive(){return showcaseActive;},
  setShowcase,
  get ruinsLoaded(){return ruinMeshes.length;},
+ get desertArtReady(){return desertArtReady;},
  get loaded(){return status.dataset.ready==='true';},
  get simulationRunning(){return running;},
  sampleGround:(x,z)=>heightAt(x,z)};
@@ -857,7 +859,10 @@ async function main(){
  try{
   setStatus('Lade echte 3D-Ruinen …');
   const ruins=await addRuins();
-  desertArt.load().then(count=>{console.info('3D environment props',count);}).catch(error=>console.warn('Desert detail fallback',error));
+  desertArt.load().then(count=>{
+   console.info('3D environment props',count);
+  }).catch(error=>console.warn('Desert detail fallback',error))
+   .finally(()=>{desertArtReady=true;});
   // The 3D battlefield is live immediately; heavyweight PBR assets stream in.
   battlefield.sync(true);
   status.dataset.ready='true';
