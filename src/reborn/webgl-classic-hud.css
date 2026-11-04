@@ -702,3 +702,38 @@
 #sf-classic-root #sf-actions .catalog-card[data-build] .sf-card-image img[data-sf-icon-status="ready"]{
  transform:scale(1.04)!important;
 }
+
+/* The existing original transparent Sandforge badge replaces the placeholder
+   "SF / SAND FORGE" lettering in the 3D RTS resource bar. No menu asset fork. */
+#sf-classic-root .top .wordmark{
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ flex:0 0 158px;
+ width:158px;
+ min-width:158px;
+ height:44px;
+ padding:2px 8px 2px 4px;
+ overflow:hidden;
+}
+#sf-classic-root .top .wordmark .sandforge-hud-logo{
+ display:block;
+ width:100%;
+ height:100%;
+ max-width:100%;
+ min-width:0;
+ object-fit:contain;
+ object-position:center;
+ mix-blend-mode:normal;
+ background:transparent;
+ filter:drop-shadow(0 1px 2px #000a);
+}
+@media(max-width:620px){
+ #sf-classic-root .top .wordmark{
+  flex-basis:125px;
+  width:125px;
+  min-width:125px;
+  height:40px;
+  padding:2px 5px;
+ }
+}
