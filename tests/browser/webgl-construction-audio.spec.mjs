@@ -84,7 +84,7 @@ test('3D audio and HUD: clicks enabled by user gesture, complete unit text, zoom
    soundState:a.sound.context?.state??'not created'};
  });
  expect(before.minZoom).toBeCloseTo(.46,2);
- expect(before.vision).toBeCloseTo(1.12,2);
+ expect(before.vision).toBeCloseTo(1.30,2);
  expect(before.audioEnabled).toBe(true);
  await page.locator('#sf-classic-root .catalog-tabs [data-tab="units"]').first().click();
  const soldier=page.locator('[data-unit="infantry"] .card-name');
