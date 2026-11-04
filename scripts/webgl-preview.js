@@ -557,6 +557,18 @@ function unlockGameAudio(){
 }
 window.addEventListener('pointerdown',unlockGameAudio,{capture:true});
 window.addEventListener('keydown',unlockGameAudio,{capture:true});
+// WebAudio may be suspended by Safari/Chromium after tab switches, display
+// sleep or device changes. The gesture listeners above remain the fallback
+// when a focus/visibility event has no audio-unlock permission.
+window.addEventListener('focus',()=>{
+ if(!document.hidden)unlockGameAudio();
+});
+window.addEventListener('pageshow',()=>{
+ if(!document.hidden)unlockGameAudio();
+});
+document.addEventListener('visibilitychange',()=>{
+ if(!document.hidden)unlockGameAudio();
+});
 const soundView={
  get width(){return renderer.domElement.clientWidth;},
  get height(){return renderer.domElement.clientHeight;},
@@ -571,8 +583,10 @@ battlefield.sound=sound;
 soundButton.onclick=async()=>{
  const enabled=!sound.enabled;
  sound.setEnabled(enabled);
- if(enabled){try{await sound.unlock();sound.select();}catch(error){console.warn('WebAudio unavailable',error);}}
- else sound.silenceScene();
+ if(enabled){
+  try{await sound.unlock();sound.select();}
+  catch(error){console.warn('WebAudio unavailable',error);}
+ }else sound.silenceScene();
  updateSoundButton();
 };
 
