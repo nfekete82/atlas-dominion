@@ -46,7 +46,7 @@ test('Zero Hour-inspired HUD has left minimap, horizontal middle catalog and rig
   const engineer=game.units.find(u=>u.owner===0&&u.kind==='engineer');
   battlefield.selected=new Set([engineer.id]);battlefield.selectedBase=null; battlefield.drawInterface();
  });
- await page.locator('[data-tab="buildings"]').click();
+ await page.locator('#sf-tabs button[data-tab="buildings"]').click();
  const after=await page.evaluate(()=>{
   const elements=[...document.querySelectorAll(
    '#sf-actions .sf-group[data-sf-group="buildings"] .catalog-card')];
@@ -256,8 +256,8 @@ test('selecting a completed HQ trains the pioneer in that exact building queue',
   battlefield.sync(true,.06,false,1);battlefield.drawInterface();
   return base.id;
  });
- await expect(page.locator('[data-tab="units"]')).toBeVisible();
- await expect(page.locator('[data-tab="buildings"]')).toBeHidden();
+ await expect(page.locator('#sf-tabs button[data-tab="units"]')).toBeVisible();
+ await expect(page.locator('#sf-tabs button[data-tab="buildings"]')).toBeHidden();
  await expect(page.locator('[data-sf-producer="headquarters"]')).toBeVisible();
  await expect(page.locator('[data-sf-producer="barracks"]')).toBeHidden();
  await page.locator('[data-unit="engineer"]').click();
