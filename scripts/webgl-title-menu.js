@@ -187,6 +187,6 @@
   });
  }else{
   menu.showModal();
-  status.textContent='CANYON FRONT · 3D-KAMPAGNE';
+  status.textContent='WEITE WÜSTE · 3D-KAMPAGNE';
  }
 })();
