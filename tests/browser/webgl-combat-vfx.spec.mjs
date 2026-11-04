@@ -37,4 +37,19 @@ test('WebGL 3D combat smoke, fire, scorch, tank tracks and wrecks draw from game
  const out=fileURLToPath(new URL('./artifacts/',import.meta.url));
  await mkdir(out,{recursive:true});
  await page.screenshot({path:out+'webgl-3d-combat-vfx.png',fullPage:true});
+ await page.locator('#sound').click();
+ await expect(page.locator('#sound')).toHaveAttribute('aria-pressed','true');
+ const audio=await page.evaluate(()=>({
+  enabled:window.__sandforgeWebGL.sound.enabled,
+  context:window.__sandforgeWebGL.sound.context?.state||'missing'
+ }));
+ expect(audio.enabled).toBe(true);
+ expect(['running','suspended']).toContain(audio.context);
+ await page.locator('#simulation').click();
+ await page.waitForTimeout(300);
+ expect(await page.evaluate(()=>window.__sandforgeWebGL.game.time)).toBeGreaterThan(0);
+ await page.locator('#simulation').click();
+ await page.locator('#sound').click();
+ await expect(page.locator('#sound')).toHaveAttribute('aria-pressed','false');
+
 });
