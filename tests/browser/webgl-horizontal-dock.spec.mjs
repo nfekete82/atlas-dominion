@@ -47,12 +47,58 @@ test('Zero Hour-inspired HUD has left minimap, horizontal middle catalog and rig
    '#sf-actions .sf-group[data-sf-group="buildings"] .catalog-card')];
   const visible=elements.filter(e=>e.getBoundingClientRect().width>0);
   const boxes=visible.slice(0,2).map(e=>e.getBoundingClientRect());
-  return {tab:document.querySelector('#sf-classic-root').dataset.tab,
-   cards:visible.length,first:boxes[0]?.left??0,second:boxes[1]?.left??0};
+  const first=visible[0],last=visible.at(-1);
+  const names=visible.map(card=>card.querySelector('.card-name'));
+  const toNum=(e,key)=>Number.parseFloat(getComputedStyle(e)[key])||0;
+  const tab=document.querySelector('#sidebar .catalog-tabs button[data-tab="buildings"]');
+  return {
+   tab:document.querySelector('#sf-classic-root').dataset.tab,
+   cards:visible.length,first:boxes[0]?.left??0,second:boxes[1]?.left??0,
+   dockHeight:document.querySelector('#sidebar').getBoundingClientRect().height,
+   tabHeight:tab.getBoundingClientRect().height,tabFont:toNum(tab,'fontSize'),
+   cardHeight:first.getBoundingClientRect().height,
+   labelMin:Math.min(...names.map(el=>toNum(el,'fontSize'))),
+   firstRow:last.getBoundingClientRect().top-first.getBoundingClientRect().top<5,
+   commandFont:toNum(document.querySelector('#sf-selection-panel .commands button'),'fontSize')
+  };
  });
  expect(after.tab).toBe('buildings');
  expect(after.cards).toBeGreaterThan(1);
  expect(after.second).toBeGreaterThan(after.first);
+ expect(after.dockHeight).toBeGreaterThanOrEqual(265);
+ expect(after.tabHeight).toBeGreaterThanOrEqual(40);
+ expect(after.tabFont).toBeGreaterThanOrEqual(12);
+ expect(after.cardHeight).toBeGreaterThanOrEqual(120);
+ expect(after.labelMin).toBeGreaterThanOrEqual(12);
+ expect(after.commandFont).toBeGreaterThanOrEqual(12);
+ expect(after.firstRow).toBe(true);
+});
+
+test('spacious desert details are subtle decals, not oversized scattered blobs',async({page})=>{
+ test.setTimeout(120000);
+ await load(page);
+ const visuals=await page.evaluate(()=>{
+  const a=window.__sandforgeWebGL,scene=a.scene;
+  const craters=scene.getObjectByName('visual-desert-craters');
+  const stones=scene.getObjectByName('visual-desert-debris');
+  const craterScale=new THREE.Vector3(),dummy=new THREE.Matrix4();
+  // Read matrices without depending on the renderer instance count.
+  const sizes=[];
+  if(craters)for(let i=0;i<Math.min(craters.count,8);i++){
+   craters.getMatrixAt(i,dummy);dummy.decompose(
+    new THREE.Vector3(),new THREE.Quaternion(),craterScale);
+   sizes.push(Math.max(craterScale.x,craterScale.y,craterScale.z));
+  }
+  return {version:a.world?.mapVersion??a.game.world.mapVersion,
+   craters:craters?.count??0,opacity:craters?.material?.opacity,
+   debris:stones?.count??0,craterSizes:sizes};
+ });
+ expect(visuals.version).toBe(19);
+ expect(visuals.craters).toBeLessThanOrEqual(30);
+ expect(visuals.craters).toBeGreaterThan(0);
+ expect(visuals.opacity).toBeCloseTo(.74,2);
+ expect(visuals.debris).toBeLessThanOrEqual(160);
+ expect(visuals.craterSizes.every(v=>v>0&&v<150)).toBe(true);
 });
 
 test('lite mode still requests original detailed PBR building model, and ruins receive props',async({page})=>{
