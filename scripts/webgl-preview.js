@@ -200,7 +200,10 @@ function buildTerrain(){
  // A ring of lower-detail sand continues beyond all four visible edges.
  // Only the 16 central tiles feed fog, unit movement or clicking. The extra
  // 48 tiles are decorative and share the same texture and height sampler.
- visualPerimeter=addVisualPerimeter({scene,size,heightAt,material,ringTiles:2,segments:24});
+ // Extend decorative geometry further for low-angle 3D camera shots.
+// These tiles are visual-only and never enter the simulation or raycaster.
+visualPerimeter=addVisualPerimeter({scene,size,heightAt,material,
+ ringTiles:query.get('lite')==='1'?2:3,segments:22});
  return chunks*chunks;
 }
 const pbr=(color,roughness=1,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness,flatShading:true});
