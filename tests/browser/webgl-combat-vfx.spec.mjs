@@ -10,9 +10,10 @@ test('WebGL 3D combat smoke, fire, scorch, tank tracks and wrecks draw from game
  await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:95000});
  const state=await page.evaluate(()=>{
   const a=window.__sandforgeWebGL,fx=a.effects,g=a.game;
-  const b=g.bases.find(base=>base.owner===0&&base.kind==='headquarters');
-  const p={x:b.x,y:b.y};
-  if(!g.canSee(0,p))throw new Error('Friendly headquarters must be visible');
+  const unit=g.units.find(u=>u.owner===0&&u.hp>0);
+  const p={x:unit.x,y:unit.y};
+  if(!g.canSee(0,p))throw new Error('Friendly starting unit must be visible');
+  const b=p;
   const before={blasts:fx.stats.blasts,scorch:fx.stats.scorch,tracks:fx.stats.tracks,wrecks:fx.stats.wrecks};
   g.blasts.push({...p,id:90001234,at:g.time});
   fx.update(.15,true);
