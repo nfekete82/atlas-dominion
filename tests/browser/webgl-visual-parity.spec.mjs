@@ -142,3 +142,73 @@ test('dark natural map rim has grounded non-playable palm groves and no bright o
  expect(fogState.decorative).toBe(0);
  expect(fogState.unknown).toBe(true);
 });
+
+
+test('3D buildings receive texture-based fill without brightening sand or soldier materials',async({page})=>{
+ test.setTimeout(125000);
+ await page.setViewportSize({width:1440,height:900});
+ await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',
+  {waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,null,{timeout:95000});
+ const fixture=await page.evaluate(()=>{
+  const v=window.__sandforgeWebGL,g=v.game,b=v.battlefield;
+  const terrain=v.terrain;
+  const fallback=b.createFallback('headquarters',0,'building');
+  const soldier=b.createFallback('infantry',0,'unit');
+  const materials=root=>{
+   const list=[];root.traverse(o=>{
+    if(o.isMesh){const m=Array.isArray(o.material)?o.material:[o.material];
+     list.push(...m.filter(Boolean));}
+   });return list;
+  };
+  const fallbackMaterials=materials(fallback),unitMaterials=materials(soldier);
+  const readySite=g.headquartersCandidates(0)
+   .find(p=>g.buildError(0,'headquarters',p)===null);
+  if(!readySite)throw Error('No HQ fixture construction site');
+  const base=g.build(0,'headquarters',readySite);
+  if(!base)throw Error('Could not build HQ fixture');
+  base.buildRemaining=0;base.hp=1200;
+  b.sync(true,.06,false,1);
+  return {id:base.id,exposure:v.renderer.toneMappingExposure,
+   fallbackLit:fallbackMaterials.every(m=>m.emissiveIntensity===.22),
+   soldierUnchanged:unitMaterials.every(m=>m.emissiveIntensity===1&&m.emissive.getHex()===0),
+   terrainUnchanged:terrain.every?.(mesh=>!mesh.material?.userData?.sandforgeBuildingFill)??true};
+ });
+ expect(fixture.fallbackLit).toBe(true);
+ expect(fixture.soldierUnchanged).toBe(true);
+ expect(fixture.terrainUnchanged).toBe(true);
+ expect(fixture.exposure).toBeCloseTo(.96,3);
+ await page.waitForFunction(id=>{
+  const b=window.__sandforgeWebGL.battlefield;
+  return Boolean(b.bases.get(id)?.detail);
+ },fixture.id,{timeout:65000});
+ const state=await page.evaluate(async id=>{
+  const b=window.__sandforgeWebGL.battlefield;
+  const model=b.bases.get(id).detail;
+  const materials=[];
+  model.traverse(obj=>{
+   if(obj.isMesh){
+    const values=Array.isArray(obj.material)?obj.material:[obj.material];
+    materials.push(...values.filter(m=>m?.isMeshStandardMaterial));
+   }
+  });
+  const original=(await b.getModel(b.asset('headquarters',0,'building'))).scene;
+  const originals=[];
+  original.traverse(obj=>{
+   if(obj.isMesh){
+    const values=Array.isArray(obj.material)?obj.material:[obj.material];
+    originals.push(...values.filter(m=>m?.isMeshStandardMaterial));
+   }
+  });
+  return {modelMaterials:materials.length,
+   colored:materials.every(m=>m.userData.sandforgeBuildingFill===true&&m.emissiveIntensity===.22),
+   textured:materials.filter(m=>m.map).length,
+   mapUsedAsFill:materials.filter(m=>m.map).every(m=>m.emissiveMap===m.map),
+   originalUnchanged:originals.every(m=>!m.userData?.sandforgeBuildingFill)};
+ },fixture.id);
+ expect(state.modelMaterials).toBeGreaterThan(0);
+ expect(state.colored).toBe(true);
+ expect(state.textured).toBeGreaterThan(0);
+ expect(state.mapUsedAsFill).toBe(true);
+ expect(state.originalUnchanged).toBe(true);
+});
