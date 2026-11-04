@@ -386,7 +386,7 @@
 }
 #sf-classic-root #sf-actions .catalog-grid{
  display:grid!important;
- grid-template-columns:repeat(auto-fill,minmax(125px,1fr))!important;
+ grid-template-columns:repeat(auto-fill,minmax(120px,1fr))!important;
  gap:10px!important;padding:4px!important;
 }
 #sf-classic-root #sf-actions .catalog-card{
