@@ -35,6 +35,7 @@ jobs:
           node --check scripts/webgl-edge-cliffs.js
           node --check scripts/webgl-grounding.js
           node --check scripts/webgl-construction.js
+          node --check scripts/webgl-construction-recovery.js
           node --check scripts/webgl-scale.js
           node --check scripts/webgl-health.js
       - run: npm run build
