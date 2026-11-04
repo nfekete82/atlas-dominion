@@ -10,7 +10,7 @@ test('Playable 3D: assets, terrain, fog, units, buildings, minimap and productio
  await page.goto(pageUrl,{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:90000});
  await expect(page.locator('#sf-stats')).toContainText('Credits');
- await expect(page.locator('#sf-actions')).toContainText('Kaserne');
+ await expect(page.locator('#sf-actions')).toContainText('SEKTOR');
  const before=await page.evaluate(()=>{
   const {battlefield,game}=window.__sandforgeWebGL;
   return {
@@ -169,26 +169,43 @@ test('WebGL menu v2: every tab isolates its content and unit sprites become prop
  await page.setViewportSize({width:1440,height:900});
  await page.goto('/webgl-preview.html?bastions=4&seed=2026&lite=1&pause=1',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:90000});
- await expect(page.locator('[data-sf-group="units"]')).toBeVisible();
+ await expect(page.locator('[data-sf-group="units"]')).toBeHidden();
  await expect(page.locator('[data-sf-group="buildings"]')).toBeHidden();
- await expect(page.locator('[data-sf-group="territories"]')).toBeHidden();
- await expect(page.locator('[data-sf-producer="barracks"]')).toBeVisible();
+ await expect(page.locator('[data-sf-group="territories"]')).toBeVisible();
+ await expect(page.locator('[data-tab="units"]')).toBeHidden();
+ await page.evaluate(()=>{
+  const a=window.__sandforgeWebGL,g=a.game,b=a.battlefield;
+  const engineer=g.units.find(u=>u.owner===0&&u.kind==='engineer');
+  b.selected=new Set([engineer.id]);b.selectedBase=null;b.drawInterface();
+ });
+ await expect(page.locator('[data-sf-group="buildings"]')).toBeVisible();
+ await expect(page.locator('[data-tab="buildings"]')).toBeVisible();
  await page.waitForFunction(()=>{
   const icons=[...document.querySelectorAll('img[data-sf-unit-icon]')];
   return icons.length===9&&icons.every(i=>i.dataset.sfIconStatus==='ready'&&i.naturalWidth===192&&i.naturalHeight===132);
  },{timeout:60000});
  const icon=await page.locator('img[data-sf-unit-icon="infantry"]').getAttribute('src');
  expect(icon).toMatch(/^data:image\/png;base64,/);
- await page.locator('[data-tab="buildings"]').click();
- await expect(page.locator('[data-sf-group="units"]')).toBeHidden();
- await expect(page.locator('[data-sf-group="buildings"]')).toBeVisible();
  await expect(page.locator('[data-build="headquarters"]')).toBeVisible();
  await page.locator('[data-tab="territories"]').click();
  await expect(page.locator('[data-sf-group="buildings"]')).toBeHidden();
  await expect(page.locator('[data-sf-group="territories"]')).toBeVisible();
  await expect(page.locator('[data-territory="0"]')).toBeVisible();
- await page.locator('[data-tab="units"]').click();
+ await page.evaluate(()=>{
+  const v=window.__sandforgeWebGL,g=v.game,b=v.battlefield;
+  const site=g.headquartersCandidates(0).find(p=>g.buildError(0,'headquarters',p)===null);
+  if(!site)throw Error('No HQ site');
+  const building=g.build(0,'headquarters',site);
+  if(!building)throw Error('Could not build HQ');
+  building.buildRemaining=0;building.hp=1200;
+  b.selected.clear();b.selectedBase=building.id;
+  b.sync(true,.06,false,1);b.drawInterface();
+ });
  await expect(page.locator('[data-sf-group="units"]')).toBeVisible();
+ await expect(page.locator('[data-sf-producer="headquarters"]')).toBeVisible();
+ await expect(page.locator('[data-sf-producer="barracks"]')).toBeHidden();
+ await expect(page.locator('[data-unit="engineer"]')).toBeVisible();
+ await expect(page.locator('[data-unit="infantry"]')).toBeHidden();
  expect(errors).toEqual([]);
  await mkdir(fileURLToPath(new URL('./artifacts/',import.meta.url)),{recursive:true});
  await page.screenshot({path:fileURLToPath(new URL('./artifacts/webgl-menu-v2.png',import.meta.url)),fullPage:true});
