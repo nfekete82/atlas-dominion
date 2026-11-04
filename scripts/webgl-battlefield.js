@@ -356,7 +356,7 @@ export class SandforgeBattlefield {
   this.fogTexture.magFilter=THREE.LinearFilter;this.fogTexture.minFilter=THREE.LinearFilter;
   this.fogTexture.wrapS=this.fogTexture.wrapT=THREE.ClampToEdgeWrapping;
   const mat=new THREE.ShaderMaterial({
-   uniforms:{fogTex:{value:this.fogTexture},mapSize:{value:this.world.size}},
+   uniforms:{fogTex:{value:this.fogTexture},mapSize:{value:this.world.size},fogStep:{value:1/RULES.grid}},
    // Fog must share the actual terrain plane. A raised sheet causes severe
    // screen-space parallax: revealed tiles shift away from their soldiers.
    // Composite the aligned fog last to conceal objects in unseen territory.
@@ -364,7 +364,7 @@ export class SandforgeBattlefield {
    // Sample world-space fog identically on playable ground and the decorative
    // perimeter. Outside the map, fade from the nearest discovered edge to
    // fully black within ~400 world units; never reveal the end of the mesh.
-   fragmentShader:'uniform sampler2D fogTex;uniform float mapSize;varying vec2 fogUv;void main(){vec2 uv=clamp(fogUv,vec2(0.001),vec2(0.999));float a=texture2D(fogTex,uv).a;vec2 beyond=max(max(-fogUv,fogUv-1.0),vec2(0.0));float edge=max(beyond.x,beyond.y);a=max(a,smoothstep(0.0,400.0/mapSize,edge));gl_FragColor=vec4(0.040,0.032,0.025,a);}',
+   fragmentShader:'uniform sampler2D fogTex;uniform float mapSize;uniform float fogStep;varying vec2 fogUv;void main(){vec2 uv=clamp(fogUv,vec2(0.001),vec2(0.999));float a=texture2D(fogTex,uv).a;vec2 d=vec2(fogStep*1.6,0.0);float n=max(max(texture2D(fogTex,clamp(uv+d,0.001,0.999)).a,texture2D(fogTex,clamp(uv-d,0.001,0.999)).a),max(texture2D(fogTex,clamp(uv+d.yx,0.001,0.999)).a,texture2D(fogTex,clamp(uv-d.yx,0.001,0.999)).a));a=max(a,n*0.44);vec2 beyond=max(max(-fogUv,fogUv-1.0),vec2(0.0));float edge=max(beyond.x,beyond.y);a=max(a,smoothstep(0.0,420.0/mapSize,edge));gl_FragColor=vec4(0.055,0.043,0.033,a);}',
    transparent:true,depthTest:false,depthWrite:false,side:THREE.DoubleSide
   });
   const groundAndPerimeter=[...this.groundMeshes,
