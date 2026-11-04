@@ -71,6 +71,9 @@ test('sector capture ring remains reachable outside the tower for every spacious
 test('a spacious-map infantry capture order reaches a neutral bastion and flips its owner',()=>{
  const game=Simulation.campaign(2074,19),soldier=game.units.find(u=>u.owner===0&&u.kind==='infantry');
  assert.ok(soldier,'campaign needs a blue infantry unit');
+ // Keep this regression deterministic: the opponent must not send an
+ // independent assault into the test's deliberately unguarded sector.
+ game.aiClock=-100000;
  const obstacles=[...game.obstacles(),...game.bastionColliders()];
  let approach=null,sector=null;
  for(const t of game.territories.filter(t=>t.owner===-1)){
