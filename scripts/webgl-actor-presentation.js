@@ -170,6 +170,7 @@ export class SandforgeActorPresentation {
   if(!body)return;
   const base=entry.visualBaseY??body.position.y;
   if(!Number.isFinite(entry.visualBaseY))entry.visualBaseY=base;
+  if(!Number.isFinite(entry.visualBaseZ))entry.visualBaseZ=body.position.z;
   // Keep the glTF transform immutable: only a tiny relative suspension/bob.
   // Fallback models have no clips, so this also makes their motion readable.
   if(active&&dt>0){
@@ -181,7 +182,7 @@ export class SandforgeActorPresentation {
    Math.sin((entity.walkDistance??state.motionDistance)*.18)*1.4:0;
   const recoil=shooting?Math.sin((1-clamp(state.shotPulse/.23,0,1))*Math.PI)*2.4:0;
   body.position.y=base+bob;
-  if(!air.has(entity.kind))body.position.z=(entry.visualBaseZ??body.position.z)+recoil;
+  if(!air.has(entity.kind))body.position.z=entry.visualBaseZ+recoil;
  }
  refreshStats(){
   this.stats.visibleBars=0;this.stats.walking=0;this.stats.shooting=0;
