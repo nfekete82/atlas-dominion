@@ -34,6 +34,9 @@ test('WebGL build exposes full gameplay adapter, all draw modules and skinned Th
  for(const path of ['dist/webgl-preview.html','dist/webgl-preview.js','dist/webgl-battlefield.js','dist/webgl-environment.js','dist/vendor/three/addons/utils/SkeletonUtils.js']){
   assert.ok(existsSync(path),path+' missing from runtime image');
  }
+ assert.ok(existsSync('dist/webgl-actor-presentation.js'),'required 3D animation module must be shipped');
+ assert.match(readFileSync('Dockerfile','utf8'),/COPY scripts\/webgl-actor-presentation\.js/);
+ assert.match(readFileSync('scripts/build.mjs','utf8'),/cpSync\('scripts\/webgl-actor-presentation\.js'/);
  const main=readFileSync('dist/webgl-preview.js','utf8');
  const adapter=readFileSync('dist/webgl-battlefield.js','utf8');
  assert.match(main,/new SandforgeBattlefield/);
