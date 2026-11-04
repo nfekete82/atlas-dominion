@@ -9,6 +9,7 @@ import {SandforgeCombatEffects} from '/webgl-combat-vfx.js';
 import {addVisualPerimeter} from '/webgl-perimeter.js';
 import {addBoundaryCliffs} from '/webgl-edge-cliffs.js';
 import {groundContactMaterial} from '/webgl-grounding.js';
+import {SandforgeConstructionRecovery} from '/webgl-construction-recovery.js';
 import {Soundscape} from '/src/reborn/audio.js';
 import {fineSandPattern} from '/src/reborn/fine-sand.js';
 
@@ -535,6 +536,7 @@ if(query.get('fog')==='0'){
 }
 const desertArt=new DesertArtPass({scene,world,terrain,heightAt,pos,loader,lowQuality:query.get('lite')==='1'});
 const effects=new SandforgeCombatEffects({scene,camera,game,world,heightAt,pos,lowQuality:query.get('lite')==='1'});
+const constructionRecovery=new SandforgeConstructionRecovery(game);
 const sound=new Soundscape();
 const bootOptions=window.Sandforge3DMenu?.readOptions?.()??{};
 sound.setEnabled(bootOptions.sound!==false);
@@ -595,7 +597,7 @@ function animate(now){
  const dt=Math.min(.08,(now-lastFrame)/1000);lastFrame=now;
  if(running){
   accumulator=Math.min(accumulator+dt,.20);
-  let steps=0;while(accumulator>=.05&&steps<4){game.step(.05);accumulator-=.05;steps++;}
+  let steps=0;while(accumulator>=.05&&steps<4){game.step(.05);constructionRecovery.tick();accumulator-=.05;steps++;}
   battlefield.sync(false,dt);
  }
  if(!running)battlefield.sync(false,dt);
@@ -612,7 +614,7 @@ function animate(now){
  }
 }
 renderer.setAnimationLoop(animate);
-window.__sandforgeWebGL={renderer,scene,camera,controls,game,terrain,heightAt,battlefield,effects,sound,visualPerimeter,boundaryCliffs,panKeys,
+window.__sandforgeWebGL={renderer,scene,camera,controls,game,terrain,heightAt,battlefield,effects,sound,constructionRecovery,visualPerimeter,boundaryCliffs,panKeys,
  get ruinsLoaded(){return ruinMeshes.length;},
  get loaded(){return status.dataset.ready==='true';},
  get simulationRunning(){return running;},
