@@ -581,3 +581,80 @@ test('3D soldier portraits use the same detailed prototype source as medic',asyn
     expect(result[kind]).toContain('/prototype/'+kind+'-0');
   expect(result.rover).toContain('/animation/rover-0');
 });
+
+
+test('right-clicking the visible 3D bastion sends infantry into its capture ring and changes ownership',async({page})=>{
+ test.setTimeout(125000);
+ await load(page);
+ const fixture=await page.evaluate(()=>{
+  const v=window.__sandforgeWebGL,g=v.game,b=v.battlefield;
+  const soldier=g.units.find(u=>u.owner===0&&u.kind==='infantry'&&u.hp>0);
+  if(!soldier)throw Error('No starting infantry');
+  const blockers=[...g.obstacles(),...g.bastionColliders()];
+  let choice=null;
+  for(const territory of g.territories.filter(t=>t.owner===-1)){
+   if(g.units.some(u=>u.owner===1&&u.hp>0&&Math.hypot(u.x-territory.point.x,u.y-territory.point.y)<350))continue;
+   for(let n=0;n<16&&!choice;n++){
+    const theta=n*Math.PI/8;
+    const start={x:territory.point.x+180*Math.cos(theta),
+     y:territory.point.y+180*Math.sin(theta)};
+    if(!g.world.walkable(start,blockers))continue;
+    if(!g.world.path(start,territory.point,blockers).length)continue;
+    choice={territory,start};
+   }
+   if(choice)break;
+  }
+  if(!choice)throw Error('No reachable neutral bastion fixture');
+  const {territory,start}=choice;
+  soldier.x=start.x;soldier.y=start.y;
+  soldier.previousX=start.x;soldier.previousY=start.y;
+  soldier.orders=[];soldier.path=[];soldier.repath=0;
+  b.selected=new Set([soldier.id]);b.selectedBase=null;
+  b.sync(true,.06,false,1);
+  const center=b.pos(territory.point.x,territory.point.y);
+  const pan=center.clone().sub(v.controls.target);
+  v.controls.target.add(pan);v.camera.position.add(pan);
+  v.controls.update();
+  const entry=b.bastions.get(territory.id);
+  entry.node.updateMatrixWorld(true);
+  const modelPoint=entry.core.getWorldPosition(center.clone()).project(v.camera);
+  const rect=v.renderer.domElement.getBoundingClientRect();
+  return {id:territory.id,unitId:soldier.id,
+   x:rect.left+(modelPoint.x+1)*rect.width*.5,
+   y:rect.top+(1-modelPoint.y)*rect.height*.5,
+   sourceDistance:Math.hypot(soldier.x-territory.point.x,soldier.y-territory.point.y)};
+ });
+ expect(fixture.sourceDistance).toBeGreaterThan(95);
+ expect(fixture.x).toBeGreaterThan(0);
+ expect(fixture.x).toBeLessThan(1440);
+ expect(fixture.y).toBeGreaterThan(0);
+ expect(fixture.y).toBeLessThan(580);
+ await page.mouse.click(fixture.x,fixture.y,{button:'right'});
+ const order=await page.evaluate(({id,unitId})=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  const t=game.territories.find(t=>t.id===id);
+  const soldier=game.units.find(u=>u.id===unitId);
+  const o=soldier.orders[0];
+  return {kind:o?.kind,distance:o?Math.hypot(o.x-t.point.x,o.y-t.point.y):9999,
+   message:battlefield.panel.querySelector('#sf-message').textContent};
+ },fixture);
+ expect(order.kind).toBe('move');
+ expect(order.distance).toBeLessThanOrEqual(95);
+ expect(order.message).toContain('Bastion');
+ const capture=await page.evaluate(({id,unitId})=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  const t=game.territories.find(t=>t.id===id);
+  let maxProgress=0;
+  for(let n=0;n<380&&t.owner!==0;n++){
+   game.step(.05);
+   maxProgress=Math.max(maxProgress,t.progress);
+  }
+  battlefield.sync(true,.05,false,1);
+  const soldier=game.units.find(u=>u.id===unitId);
+  return {owner:t.owner,maxProgress,
+   distance:soldier?Math.hypot(soldier.x-t.point.x,soldier.y-t.point.y):9999};
+ },fixture);
+ expect(capture.maxProgress).toBeGreaterThan(0);
+ expect(capture.owner).toBe(0);
+ expect(capture.distance).toBeLessThanOrEqual(95);
+});
