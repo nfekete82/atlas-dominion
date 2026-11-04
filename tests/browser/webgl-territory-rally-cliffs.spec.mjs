@@ -83,3 +83,36 @@ test('a completed production building exposes a rally command and Escape cancels
   await page.keyboard.press('Escape');
   expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.rallyMode)).toBe(false);
 });
+
+test('bastions show an in-world progress bar only while capture is active',async({page})=>{
+  await load(page);
+  const state=await page.evaluate(()=>{
+    const a=window.__sandforgeWebGL;
+    const t=a.game.territories[0],entry=a.battlefield.bastions.get(t.id);
+    const original={progress:t.progress,capturing:t.capturing,fog:a.battlefield.fogEnabled};
+    a.battlefield.fogEnabled=false;
+    t.capturing=1;
+    t.progress=2;
+    a.battlefield.sync(true,0,false);
+    const active={
+      visible:entry.captureBar.visible,
+      fraction:entry.captureBar.userData.captureFraction,
+      duration:entry.captureBar.userData.captureSeconds,
+      red:entry.captureBar.userData.captureFill.material.color.getHexString()
+    };
+    t.progress=0;
+    t.capturing=-1;
+    a.battlefield.sync(true,0,false);
+    const hidden=!entry.captureBar.visible;
+    Object.assign(t,{progress:original.progress,capturing:original.capturing});
+    a.battlefield.fogEnabled=original.fog;
+    a.battlefield.sync(true,0,false);
+    return {active,hidden};
+  });
+  expect(state.active.visible).toBe(true);
+  expect(state.active.fraction).toBeGreaterThan(0);
+  expect(state.active.fraction).toBeLessThanOrEqual(1);
+  expect(state.active.duration).toBeGreaterThan(0);
+  expect(state.active.red).toBe('f19b73');
+  expect(state.hidden).toBe(true);
+});
