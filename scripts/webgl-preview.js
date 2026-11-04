@@ -74,10 +74,11 @@ fill.position.set(650,500,-450);scene.add(fill);
 const camera=new THREE.OrthographicCamera(-680,680,410,-410,10,12000);
 // Initial framing presents a real ruin and the adjacent ridge in one view,
  // rather than an empty central section of sand.
- const feature=terrain.ruins.slice().sort((a,b)=>
-  Math.hypot(a.x-half,a.y-half)-Math.hypot(b.x-half,b.y-half))[0];
- const focalX=feature?.x??half;
- const focalZ=feature&&ridge?(feature.y+ridgeCenterY(ridge,feature.x))*.5:half;
+ // The classic HQ-less campaign begins around its two starting units.
+ // Looking at a central ruin would now show an all-black fog-covered screen.
+ const own=game.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier);
+ const focalX=own.length?own.reduce((sum,u)=>sum+u.x,0)/own.length:half;
+ const focalZ=own.length?own.reduce((sum,u)=>sum+u.y,0)/own.length:half;
  const cameraTarget=new THREE.Vector3(focalX-half,heightAt(focalX,focalZ)+42,focalZ-half);
 camera.position.copy(cameraTarget).add(new THREE.Vector3(1050,1200,1450));
 camera.lookAt(cameraTarget);
