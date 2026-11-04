@@ -141,7 +141,7 @@ test('3D Fog is black until discovery and zoom is constrained like the classic R
  const preview=readFileSync('dist/webgl-preview.js','utf8');
  const adapter=readFileSync('dist/webgl-battlefield.js','utf8');
  assert.match(preview,/Simulation\.campaign\(seed,sizes\[bastions\]\)/);
- assert.match(preview,/controls\.minZoom=1\.0;controls\.maxZoom=3\.5/);
+ assert.match(preview,/controls\.minZoom=\.70;controls\.maxZoom=3\.5/);
  assert.match(preview,/cameraRay\.setFromCamera\(c,camera\)/);
  assert.match(preview,/cameraGroundPlane/);
  assert.match(preview,/const correction=\(low,high\)/);
