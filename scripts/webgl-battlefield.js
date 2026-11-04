@@ -8,6 +8,7 @@ import {SandforgeActorPresentation} from '/webgl-actor-presentation.js';
 import {calibratedScale} from '/webgl-scale.js';
 import {SandforgeGroundingPass} from '/webgl-grounding.js';
 import {SandforgeConstructionPresentation} from '/webgl-construction.js';
+import {createBastionCaptureBar,updateBastionCaptureBar} from '/webgl-bastion-capture.js';
 
 // Runtime adapter: game state, movement, combat, production and AI are owned
 // exclusively by the original Simulation. 3D nodes are presentation only.
@@ -290,6 +291,7 @@ export class SandforgeBattlefield {
    const entry=this.bastions.get(territory.id);
    if(entry&&entry.owner!==territory.owner){entry.owner=territory.owner;entry.core.material.color.set(territory.owner===0?colors.blue:territory.owner===1?colors.red:colors.neutral);entry.halo.material.color.set(territory.owner===0?colors.blue:territory.owner===1?colors.red:colors.neutral);
     if(!this.lite)this.loadBastionModel(entry,territory.owner);}
+   if(entry)updateBastionCaptureBar(entry.captureBar,territory,this.game,this.fogEnabled);
   }
   this.updateSelectionRings();
   this.updateShots();
@@ -326,8 +328,9 @@ export class SandforgeBattlefield {
    core.position.y=33;core.castShadow=true;node.add(core);
    const halo=new THREE.Mesh(new THREE.TorusGeometry(49,2,6,48),new THREE.MeshBasicMaterial({color:t.owner===0?colors.blue:t.owner===1?colors.red:colors.neutral,transparent:true,opacity:.75}));
    halo.rotation.x=-Math.PI/2;halo.position.y=5;node.add(halo);
+   const captureBar=createBastionCaptureBar();node.add(captureBar);
    this.scene.add(node);
-   const entry={node,core,pad,owner:t.owner,halo};
+   const entry={node,core,pad,owner:t.owner,halo,captureBar};
    this.bastions.set(t.id,entry);
    if(!this.lite)this.loadBastionModel(entry,t.owner);
   }
