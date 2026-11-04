@@ -123,10 +123,21 @@
  menu.addEventListener('cancel',e=>e.preventDefault());
  pauseDialog.addEventListener('cancel',e=>{e.preventDefault();resumeGame();});
  document.addEventListener('keydown',e=>{
-  if(e.code!=='Escape'||e.repeat||(e.target instanceof Element&&e.target.matches('input,select,textarea')))return;
-  if(menu.open||newDialog.open||optionsDialog.open||pauseDialog.open)return;
+  if(e.repeat||e.ctrlKey||e.metaKey||e.altKey||
+   (e.target instanceof Element&&e.target.matches('input,select,textarea,[contenteditable]')))return;
+  if(e.code==='Space'){
+   if(menu.open||newDialog.open||optionsDialog.open)return;
+   if(!window.__sandforgeWebGL?.loaded)return;
+   // A modal dialog is the actual classic-style pause screen. The key must
+   // not also toggle the bare simulation button in webgl-preview.js.
+   e.preventDefault();e.stopImmediatePropagation();
+   if(pauseDialog.open)resumeGame();
+   else openPause();
+   return;
+  }
+  if(e.code!=='Escape'||menu.open||newDialog.open||optionsDialog.open||pauseDialog.open)return;
   const field=window.__sandforgeWebGL?.battlefield;
-  if(field&&(field.attackMode||field.buildKind||field.selected?.size))return;
+  if(field&&(field.attackMode||field.buildKind))return;
   if(window.__sandforgeWebGL?.loaded){e.preventDefault();e.stopImmediatePropagation();openPause();}
  },true);
  window.Sandforge3DMenu={openPause,goMain,continueSave,play,readSave,readOptions};
