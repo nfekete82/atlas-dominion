@@ -331,3 +331,47 @@ test('3D sandstorm preview creates GPU dust without changing simulation weather'
   await page.waitForFunction(()=>window.__sandforgeWebGL.atmosphere.dustMesh.count===0);
   await expect(storm).toHaveAttribute('aria-pressed','false');
 });
+
+test('3D sand heightfield uses directional micro-normal maps with playable collision unchanged',async({page})=>{
+  await load(page);
+  const state=await page.evaluate(()=>{
+    const a=window.__sandforgeWebGL;
+    const chunks=a.scene.children.filter(m=>m.userData?.terrain);
+    const mesh=chunks[0];
+    return {
+      chunks:chunks.length,
+      geometry:mesh?.geometry?.getAttribute('position')?.count,
+      sandNormals:mesh?.material?.normalMap?.isTexture===true,
+      materialType:mesh?.material?.type,
+      walkableCells:a.game.world.blocked.length
+    };
+  });
+  expect(state.chunks).toBe(16);
+  expect(state.geometry).toBeGreaterThan(3000);
+  expect(state.sandNormals).toBe(true);
+  expect(state.materialType).toBe('MeshStandardMaterial');
+  expect(state.walkableCells).toBe(240*240);
+});
+
+test('real-time explosions create and retire 3D shockwaves independently of combat',async({page})=>{
+  await load(page);
+  const result=await page.evaluate(()=>{
+    const a=window.__sandforgeWebGL,e=a.effects;
+    const soldier=a.game.units.find(u=>u.owner===0&&u.hp>0);
+    const before=a.game.units.length;
+    e.blastAt(soldier.x,soldier.y,true);
+    e.update(.04,true);
+    const during={
+      count:e.shockwave.count,
+      is3D:e.shockwave.geometry.type==='TorusGeometry',
+      visualOnly:e.shockwave.userData.visualOnly
+    };
+    e.update(.72,true);
+    return {during,after:e.shockwave.count,unitsUnchanged:a.game.units.length===before};
+  });
+  expect(result.during.count).toBeGreaterThan(0);
+  expect(result.during.is3D).toBe(true);
+  expect(result.during.visualOnly).toBe(true);
+  expect(result.after).toBe(0);
+  expect(result.unitsUnchanged).toBe(true);
+});
