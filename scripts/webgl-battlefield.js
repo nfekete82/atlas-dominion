@@ -30,6 +30,13 @@ export class SandforgeBattlefield {
   this.presentation=new SandforgeActorPresentation(scene,camera,game);
   this.grounding=new SandforgeGroundingPass(scene);
   this.construction=new SandforgeConstructionPresentation(renderer);
+  // Dedicated second render pass: the building hologram must remain visible
+  // over fog, units, rocks and terrain, independent of transparent sorting.
+  // Visual only; the game's real 3D collision/raycast scene is unchanged.
+  this.buildPreviewScene=new THREE.Scene();
+  this.buildPreviewScene.add(new THREE.HemisphereLight('#fff4e4','#796d5b',2.5));
+  const hologramSun=new THREE.DirectionalLight('#fff6e2',2.1);
+  hologramSun.position.set(420,750,310);this.buildPreviewScene.add(hologramSun);
   this.buildPreview=null;this.previewKind=null;this.placementFacing=0;
   this.buildHint=document.createElement('div');
   this.buildHint.id='sf3d-build-hint';this.buildHint.setAttribute('role','status');
@@ -182,7 +189,7 @@ export class SandforgeBattlefield {
    new THREE.RingGeometry(spec.radius-2.5,spec.radius+1.5,48),
    new THREE.MeshBasicMaterial({color:'#80efae',transparent:true,opacity:.92,depthTest:false,depthWrite:false,side:THREE.DoubleSide}));
   circle.rotation.x=-Math.PI/2;circle.position.y=2;circle.renderOrder=1009;group.add(circle);
-  this.scene.add(group);
+  this.buildPreviewScene.add(group);
   this.buildPreview=group;group.visible=false;
   this.getModel(this.asset(kind,0,'building')).then(data=>{
    if(this.buildPreview!==group||this.buildKind!==kind)return;
@@ -199,7 +206,7 @@ export class SandforgeBattlefield {
  }
  clearPlacement(){
   this.buildKind=null;this.previewKind=null;
-  if(this.buildPreview){this.scene.remove(this.buildPreview);this.buildPreview=null;}
+  if(this.buildPreview){this.buildPreviewScene.remove(this.buildPreview);this.buildPreview=null;}
   if(this.buildHint)this.buildHint.style.display='none';
  }
  updatePlacementPreview(event){
