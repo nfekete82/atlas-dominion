@@ -692,6 +692,52 @@ export class SandforgeBattlefield {
   if(!hits.length)return null;
   const p=hits[0].point;return {x:p.x+this.world.size*.5,y:p.z+this.world.size*.5};
  }
+ enemyAtPointer(event){
+  // Resolve visible enemy models before terrain: clicking a soldier or a tank
+  // must issue an ATTACK order, not a ground-move order.
+  const targets=[];
+  for(const u of this.game.units){
+   if(u.owner===0||u.hp<=0||u.carrier||!this.game.canSee(0,u))continue;
+   const entry=this.units.get(u.id);
+   if(entry?.node.visible)targets.push({entity:u,node:entry.node,isUnit:true});
+  }
+  for(const b of this.game.bases){
+   if(b.owner===0||b.hp<=0||!this.game.canSee(0,b))continue;
+   const entry=this.bases.get(b.id);
+   if(entry?.node.visible)targets.push({entity:b,node:entry.node,isUnit:false});
+  }
+  if(!targets.length)return null;
+  const rect=this.renderer.domElement.getBoundingClientRect();
+  if(!rect.width||!rect.height)return null;
+  const ndc=new THREE.Vector2(
+   (event.clientX-rect.left)/rect.width*2-1,
+   1-(event.clientY-rect.top)/rect.height*2
+  );
+  this.camera.updateMatrixWorld(true);
+  const ray=new THREE.Raycaster();
+  ray.setFromCamera(ndc,this.camera);
+  const rootOf=new Map(targets.map(target=>[target.node,target]));
+  const hits=ray.intersectObjects(targets.map(target=>target.node),true);
+  for(const hit of hits){
+   let node=hit.object;
+   while(node&&!rootOf.has(node))node=node.parent;
+   if(node)return rootOf.get(node).entity;
+  }
+  // Projected pick radius lets tiny infantry remain clickable at wide RTS zoom.
+  let nearest=null,nearestDist=Infinity;
+  const projected=new THREE.Vector3();
+  for(const t of targets){
+   const x=t.node.position.x,y=t.node.position.y+(t.isUnit?28:50),z=t.node.position.z;
+   projected.set(x,y,z).project(this.camera);
+   if(projected.z<-1||projected.z>1)continue;
+   const px=rect.left+(projected.x+1)*rect.width*.5;
+   const py=rect.top+(1-projected.y)*rect.height*.5;
+   const distance=Math.hypot(event.clientX-px,event.clientY-py);
+   const radius=t.isUnit?Math.max(12,Math.min(30,16*this.camera.zoom)):Math.max(22,Math.min(52,30*this.camera.zoom));
+   if(distance<=radius&&distance<nearestDist){nearest=t.entity;nearestDist=distance;}
+  }
+  return nearest;
+ }
  pointerUp(event){
   if(!this.clickStart||event.button!==this.clickStart.button)return;
   const start=this.clickStart;
@@ -701,7 +747,9 @@ export class SandforgeBattlefield {
    if(event.button===0)this.selectBoxUnits(start.x,start.y,event.clientX,event.clientY,event.shiftKey);
    return;
   }
-  const p=this.terrainPoint(event);
+  // Do not require a terrain hit underneath a tall enemy model.
+  const clickedEnemy=event.button===2&&this.selected.size?this.enemyAtPointer(event):null;
+  const p=clickedEnemy?{x:clickedEnemy.x,y:clickedEnemy.y}:this.terrainPoint(event);
   if(!p){
    if(event.button===2&&this.selected.size)this.message('Marschziel außerhalb der Karte');
    return;
@@ -739,13 +787,14 @@ export class SandforgeBattlefield {
    if(!event.shiftKey){this.selected.clear();this.selectedBase=null;this.drawInterface();}
   }else if(event.button===2){
    if(!this.selected.size)return;
-   const ids=[...this.selected],kind=this.attackMode?'attackMove':'move';
-   const accepted=this.game.command(ids,{x:p.x,y:p.y,kind},event.shiftKey);
-   this.message(accepted?accepted+' Einheit(en): '+(this.attackMode?'Angriff':'Marsch'):'Ziel nicht erreichbar');
+   const ids=[...this.selected],kind=clickedEnemy?'attack':this.attackMode?'attackMove':'move';
+   const order={x:p.x,y:p.y,kind,...(clickedEnemy?{target:clickedEnemy.id}:{})};
+   const accepted=this.game.command(ids,order,event.shiftKey);
+   this.message(accepted?accepted+' Einheit(en): '+(clickedEnemy?'Ziel angreifen':this.attackMode?'Angriff':'Marsch'):'Ziel nicht erreichbar');
    if(accepted){
-    this.sound?.command?.(kind==='attackMove');
+    this.sound?.command?.(kind!=='move');
     const unit=this.game.units.find(u=>ids.includes(u.id)&&u.owner===0&&u.hp>0);
-    if(unit)this.sound?.acknowledge?.({kind:kind==='attackMove'?'attack':'move',unit:unit.kind,unitId:unit.id},this.game);
+    if(unit)this.sound?.acknowledge?.({kind:kind!=='move'?'attack':'move',unit:unit.kind,unitId:unit.id},this.game);
    }
    this.attackMode=false;
   }
