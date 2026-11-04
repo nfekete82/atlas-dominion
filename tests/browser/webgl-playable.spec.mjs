@@ -25,9 +25,9 @@ test('Playable 3D: assets, terrain, fog, units, buildings, minimap and productio
  expect(await page.evaluate(()=>window.__sandforgeWebGL.game.needsHeadquarters(0))).toBe(true);
  expect(before.sectors).toBe(4);
  expect(before.worldSectors).toBe(4);
- // The 16 terrain chunks plus 48 external perimeter patches share the same
- // fog mask, preventing visible desert outside the playable world.
- expect(before.fogMeshes).toBe(64);
+ // Fog overlays only the 16 playable chunks. Decorative terrain is outside
+ // the authoritative map and fades naturally into the black background.
+ expect(before.fogMeshes).toBe(16);
  expect(before.textureWidth).toBe(240);
  const initial=await page.evaluate(()=>window.__sandforgeWebGL.battlefield.fogEnabled);
  await page.locator('[data-action="fog"]').click();
