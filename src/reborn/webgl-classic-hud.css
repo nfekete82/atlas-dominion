@@ -611,8 +611,13 @@
 #sf-classic-root #sf-tabs button{
  flex:1 1 0!important;
 }
-#sf-classic-root #sf-tabs button[hidden],
-#sf-classic-root #sf-actions [data-sf-producer][hidden]{
+#sf-classic-root #sf-tabs button[hidden]{
+ display:none!important;
+}
+/* Match the selector that forces production rows to display:flex!important.
+   [hidden] must win at every breakpoint, otherwise other producer types remain
+   visible even though JavaScript set section.hidden correctly. */
+#sf-classic-root #sf-actions .sf-group[data-sf-group="units"] > .sf-roster-section[hidden]{
  display:none!important;
 }
 /* Give the PBR building renders the tile space, not an oversized footer. */
