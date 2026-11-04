@@ -206,7 +206,7 @@ test('visual depth preview keeps an angled 3D RTS camera and desert fog',async({
   expect(state.angle).toBeLessThan(1.3);
   expect(state.zoom).toBeCloseTo(.59,2);
   expect(state.infantryHeight).toBe(61);
-  expect(state.dimensionVersion).toBe(2);
+  expect(state.dimensionVersion).toBe(3);
   expect(state.fogStillOpaque).toBe(true);
   expect(state.fogTint).toBe(true);
 });
