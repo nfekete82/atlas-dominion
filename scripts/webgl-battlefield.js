@@ -714,6 +714,52 @@ export class SandforgeBattlefield {
   if(!hits.length)return null;
   const p=hits[0].point;return {x:p.x+this.world.size*.5,y:p.z+this.world.size*.5};
  }
+ friendlyAtPointer(event){
+  // Select the model under the cursor instead of a displaced terrain hit.
+  const rect=this.renderer.domElement.getBoundingClientRect();
+  if(!rect.width||!rect.height)return null;
+  const ndc=new THREE.Vector2(
+   (event.clientX-rect.left)/rect.width*2-1,
+   1-(event.clientY-rect.top)/rect.height*2
+  );
+  const candidates=[];
+  for(const unit of this.game.units){
+   if(unit.owner!==0||unit.hp<=0||unit.carrier)continue;
+   const entry=this.units.get(unit.id);
+   if(entry?.node.visible)candidates.push({entity:unit,node:entry.node,type:'unit'});
+  }
+  for(const base of this.game.bases){
+   if(base.owner!==0||base.hp<=0)continue;
+   const entry=this.bases.get(base.id);
+   if(entry?.node.visible)candidates.push({entity:base,node:entry.node,type:'base'});
+  }
+  if(!candidates.length)return null;
+  this.camera.updateMatrixWorld(true);
+  const ray=new THREE.Raycaster();
+  ray.setFromCamera(ndc,this.camera);
+  const owners=new Map(candidates.map(candidate=>[candidate.node,candidate]));
+  for(const hit of ray.intersectObjects(candidates.map(candidate=>candidate.node),true)){
+   let node=hit.object;
+   while(node&&!owners.has(node))node=node.parent;
+   if(node)return owners.get(node);
+  }
+  // Tiny infantry are still selectable at wide tactical zoom.
+  const projected=new THREE.Vector3();
+  let best=null,bestDistance=Infinity;
+  for(const candidate of candidates){
+   const y=candidate.type==='unit'?30:Math.min(75,(BUILDINGS[candidate.entity.kind]?.width??130)*.40);
+   projected.copy(candidate.node.position);projected.y+=y;
+   projected.project(this.camera);
+   if(projected.z<-1||projected.z>1)continue;
+   const px=rect.left+(projected.x+1)*rect.width*.5;
+   const py=rect.top+(1-projected.y)*rect.height*.5;
+   const distance=Math.hypot(event.clientX-px,event.clientY-py);
+   const radius=candidate.type==='unit'?Math.max(20,22*this.camera.zoom)
+    :Math.max(25,Math.min(70,54*this.camera.zoom));
+   if(distance<=radius&&distance<bestDistance){best=candidate;bestDistance=distance;}
+  }
+  return best;
+ }
  enemyAtPointer(event){
   // Resolve visible enemy models before terrain: clicking a soldier or a tank
   // must issue an ATTACK order, not a ground-move order.
@@ -785,6 +831,9 @@ export class SandforgeBattlefield {
    if(event.button===0)this.selectBoxUnits(start.x,start.y,event.clientX,event.clientY,event.shiftKey);
    return;
   }
+  if(event.button===2&&this.buildKind){
+   this.clearPlacement();this.message('Bauplatzwahl abgebrochen');this.drawInterface();return;
+  }
   // Do not require a terrain hit underneath a tall enemy model.
   const clickedEnemy=event.button===2&&this.selected.size?this.enemyAtPointer(event):null;
   const p=clickedEnemy?{x:clickedEnemy.x,y:clickedEnemy.y}:this.terrainPoint(event);
@@ -796,6 +845,20 @@ export class SandforgeBattlefield {
   // for clicks outside the terrain or for a right-button drag.
   if(event.button===2)this.showCommandPulse(p,Boolean(clickedEnemy)||this.attackMode);
   if(event.button===0){
+   if(!this.rallyMode&&!this.buildKind){
+    const hit=this.friendlyAtPointer(event);
+    if(hit){
+     if(hit.type==='unit'){
+      if(!event.shiftKey)this.selected.clear();
+      if(event.shiftKey&&this.selected.has(hit.entity.id))this.selected.delete(hit.entity.id);
+      else this.selected.add(hit.entity.id);
+      this.selectedBase=null;
+     }else{
+      this.selected.clear();this.selectedBase=hit.entity.id;
+     }
+     this.rallyMode=false;this.sound?.select?.();this.drawInterface();return;
+    }
+   }
    if(this.rallyMode){
     const base=this.game.bases.find(b=>b.id===this.selectedBase&&b.owner===0&&b.hp>0&&b.buildRemaining<=0);
     this.rallyMode=false;
@@ -827,6 +890,17 @@ export class SandforgeBattlefield {
    if(base&&base.d<base.b.radius+55){this.selectedBase=base.b.id;this.rallyMode=false;this.selected.clear();this.drawInterface();return;}
    if(!event.shiftKey){this.selected.clear();this.selectedBase=null;this.drawInterface();}
   }else if(event.button===2){
+   // Classic parity: selected production building + RMB sets rally directly.
+   if(this.selectedBase!==null){
+    const base=this.game.bases.find(b=>b.id===this.selectedBase&&b.owner===0&&b.hp>0&&b.buildRemaining<=0);
+    if(base){
+     base.rally=this.world.nearest(p,this.game.obstacles());
+     this.rallyMode=false;
+     this.message('Sammelpunkt gesetzt: '+BUILDINGS[base.kind].name);
+     this.sound?.command?.();
+     this.drawInterface();return;
+    }
+   }
    if(!this.selected.size)return;
    const ids=[...this.selected],kind=clickedEnemy?'attack':this.attackMode?'attackMove':'move';
    const order={x:p.x,y:p.y,kind,...(clickedEnemy?{target:clickedEnemy.id}:{})};
@@ -849,6 +923,9 @@ export class SandforgeBattlefield {
   const canvas=this.renderer.domElement;
   canvas.addEventListener('pointerdown',e=>{
    this.clickStart={x:e.clientX,y:e.clientY,button:e.button};
+   // The Canvas RTS issues right-click commands on press, not release.
+   // With RMB rotation disabled this also supports Mac trackpad clicks.
+   if(e.button===2){e.preventDefault();this.pointerUp(e);}
   });
   canvas.addEventListener('pointermove',e=>{
    if(this.buildKind)this.updatePlacementPreview(e);
