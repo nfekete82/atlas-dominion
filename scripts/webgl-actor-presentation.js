@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {UNITS,BUILDINGS} from '/src/reborn/catalog.js';
+import {healthFraction,healthColor} from '/webgl-health.js';
 
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const infantry=new Set(['infantry','medic','engineer','heavy']);
@@ -158,7 +159,7 @@ export class SandforgeActorPresentation {
   const bar=state.bar;
   const hp=Math.max(0,entity.hp);
   const maxHp=(type==='unit'?UNITS[entity.kind]:BUILDINGS[entity.kind])?.hp??hp;
-  const pct=clamp(hp/Math.max(1,maxHp),0,1);
+  const pct=healthFraction(hp,maxHp);
   if(hp<bar.previousHp-.001){
    bar.hitPulse=.26;
    state.hurtTime=.25;
@@ -182,7 +183,7 @@ export class SandforgeActorPresentation {
    bar.fill.position.x=-(bar.width*(1-pct))/2;
    // Health is authoritative: full HP green, depleted HP loses actual width
    // and transitions through yellow/orange/red. Hit flashes never overwrite it.
-   const color=pct>.7?'#24e568':pct>.4?'#f6d44b':pct>.2?'#f29a36':'#ed5146';
+   const color=healthColor(pct);
    bar.fraction=pct;
    if(bar.lastColor!==color){bar.fillMaterial.color.set(color);bar.lastColor=color;}
    // No selection enlargement: fixed physical size, like the Canvas UI.
