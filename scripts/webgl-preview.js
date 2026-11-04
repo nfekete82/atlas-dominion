@@ -7,6 +7,8 @@ import {SandforgeBattlefield} from '/webgl-battlefield.js';
 import {DesertArtPass} from '/webgl-environment.js';
 import {SandforgeCombatEffects} from '/webgl-combat-vfx.js';
 import {addVisualPerimeter} from '/webgl-perimeter.js';
+import {addBoundaryCliffs} from '/webgl-edge-cliffs.js';
+import {groundContactMaterial} from '/webgl-grounding.js';
 import {Soundscape} from '/src/reborn/audio.js';
 import {fineSandPattern} from '/src/reborn/fine-sand.js';
 
@@ -88,7 +90,7 @@ const models=new Map(),ruinMeshes=[];
 // never appear accepted while an unannounced preview-level pause blocks ticks.
 game.paused=false;
 let groundMeshes=[],running=query.get('pause')!=='1',accumulator=0,elapsed=0;
-let visualPerimeter=null;
+let visualPerimeter=null,boundaryCliffs=null;
 function sandTexture(){
  const c=document.createElement('canvas');c.width=c.height=256;
  const ctx=c.getContext('2d'),pixels=ctx.createImageData(256,256),r=rnd(seed^0x192cb110);
@@ -184,7 +186,7 @@ function buildTerrain(){
 }
 const pbr=(color,roughness=1,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness,flatShading:true});
 function instancedStone(){
- const geometry=new THREE.IcosahedronGeometry(1,2),materials=[pbr('#bd9a72'),pbr('#9f7758'),pbr('#d6ad77')];
+ const geometry=new THREE.IcosahedronGeometry(1,2),materials=[pbr('#c4ab8a'),pbr('#ab9171'),pbr('#d4bd97')];
  // Irregular weathering breaks the obvious smooth polygon-egg silhouettes.
  // It operates once on the shared instanced mesh, not per boulder or frame.
  const positions=geometry.getAttribute('position');
@@ -204,13 +206,24 @@ function instancedStone(){
   for(const mat of materials){mat.map=image;mat.needsUpdate=true;}
  },undefined,error=>console.warn('Rock detail unavailable; solid sandstone fallback',error));
  const dummy=new THREE.Object3D(),groups=materials.map(mat=>new THREE.InstancedMesh(geometry,mat,1750));
+ const contactGeometry=new THREE.PlaneGeometry(1,1);contactGeometry.rotateX(-Math.PI/2);
+ const contacts=new THREE.InstancedMesh(contactGeometry,groundContactMaterial(),5250);
+ const contactDummy=new THREE.Object3D();let contactCount=0;
  const counts=[0,0,0],r=rnd(seed^0x73c02f4b);
  const put=(x,z,wide,tall,depth)=>{
   const k=Math.floor(r()*3);if(counts[k]>=1750)return;
-  dummy.position.set(x-half,heightAt(x,z)+tall*.43,z-half);
+  const y=heightAt(x,z);
+  // Bury the lower half of the rock instead of standing it on the terrain.
+  dummy.position.set(x-half,y+tall*.35,z-half);
   dummy.scale.set(wide,tall,depth);
   dummy.rotation.set((r()-.5)*.18,r()*6.28,(r()-.5)*.20);
   dummy.updateMatrix();groups[k].setMatrixAt(counts[k]++,dummy.matrix);
+  if(contactCount<contacts.instanceMatrix.count){
+   contactDummy.position.set(x-half,y+.53,z-half);
+   contactDummy.rotation.set(0,0,0);
+   contactDummy.scale.set(wide*2.15,1,depth*2.1);
+   contactDummy.updateMatrix();contacts.setMatrixAt(contactCount++,contactDummy.matrix);
+  }
  };
  // Rough cliff faces and weathered sandstone ledges, skipping real ramps.
  for(const ridge of terrain.ridges)for(let i=1;i<ridge.spine.length;i++){
@@ -252,6 +265,9 @@ function instancedStone(){
   groups[i].count=counts[i];groups[i].instanceMatrix.needsUpdate=true;
   groups[i].castShadow=false;groups[i].receiveShadow=true;scene.add(groups[i]);
  }
+ contacts.count=contactCount;contacts.instanceMatrix.needsUpdate=true;
+ contacts.userData={nonPlayable:true,groundContact:true};contacts.renderOrder=3;
+ contacts.frustumCulled=false;scene.add(contacts);
  return counts.reduce((a,b)=>a+b,0);
 }
 function sandRoads(){
@@ -456,7 +472,9 @@ function resize(){
  camera.updateProjectionMatrix();renderer.setSize(w,h,false);
 }
 new ResizeObserver(resize).observe(stage);resize();
-const chunks=buildTerrain(),stones=instancedStone();sandRoads();
+const chunks=buildTerrain();
+boundaryCliffs=addBoundaryCliffs({scene,size,heightAt,seed,lowQuality:query.get('lite')==='1'});
+const stones=instancedStone();sandRoads();
 const battlefield=new SandforgeBattlefield({
  game,world,terrain,scene,renderer,camera,controls,loader,groundMeshes,heightAt,pos,
  lite:query.get('lite')==='1'
@@ -522,7 +540,7 @@ function animate(now){
  }
 }
 renderer.setAnimationLoop(animate);
-window.__sandforgeWebGL={renderer,scene,camera,controls,game,terrain,heightAt,battlefield,effects,sound,visualPerimeter,panKeys,
+window.__sandforgeWebGL={renderer,scene,camera,controls,game,terrain,heightAt,battlefield,effects,sound,visualPerimeter,boundaryCliffs,panKeys,
  get ruinsLoaded(){return ruinMeshes.length;},
  get loaded(){return status.dataset.ready==='true';},
  get simulationRunning(){return running;},
