@@ -30,7 +30,7 @@ test('3D campaign parity: black fog, engineer HQ bootstrap and blocked productio
  expect(initial.black).toBe(initial.unknown);
  expect(initial.visible).toBeGreaterThan(0);
  expect(initial.cameraDistance).toBeLessThan(100);
- expect(initial.minZoom).toBeCloseTo(.7,2);
+ expect(initial.minZoom).toBeCloseTo(.46,2);
  expect(initial.maxZoom).toBeLessThanOrEqual(3.5);
  await expect(page.locator('[data-unit="infantry"]')).toBeDisabled();
  await page.locator('[data-tab="buildings"]').click();
@@ -74,7 +74,7 @@ test('3D camera maximum zoom-out stays inside tactical framing',async({page})=>{
   a.camera.zoom=.1;a.controls.update();
   return {minimum:a.controls.minZoom,actual:a.camera.zoom,maximum:a.controls.maxZoom};
  });
- expect(state.minimum).toBeCloseTo(.70,2);
+ expect(state.minimum).toBeCloseTo(.46,2);
  expect(state.actual).toBeGreaterThanOrEqual(state.minimum);
  expect(state.actual).toBeLessThanOrEqual(state.maximum);
 });

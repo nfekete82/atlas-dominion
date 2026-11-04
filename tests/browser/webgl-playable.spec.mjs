@@ -25,9 +25,9 @@ test('Playable 3D: assets, terrain, fog, units, buildings, minimap and productio
  expect(await page.evaluate(()=>window.__sandforgeWebGL.game.needsHeadquarters(0))).toBe(true);
  expect(before.sectors).toBe(4);
  expect(before.worldSectors).toBe(4);
- // The 16 terrain chunks plus 48 external perimeter patches share the same
- // fog mask, preventing visible desert outside the playable world.
- expect(before.fogMeshes).toBe(64);
+ // Fog overlays only the 16 playable chunks. Decorative terrain is outside
+ // the authoritative map and fades naturally into the black background.
+ expect(before.fogMeshes).toBe(16);
  expect(before.textureWidth).toBe(240);
  const initial=await page.evaluate(()=>window.__sandforgeWebGL.battlefield.fogEnabled);
  await page.locator('[data-action="fog"]').click();
@@ -147,7 +147,15 @@ test('3D RTS: original-style HUD starts live and a real right click moves select
  expect(state.y).toBeLessThan(770);
  await page.locator('[data-action="select-all"]').click();
  await page.mouse.click(state.x,state.y,{button:'right'});
+ const pulse=await page.evaluate(()=>{
+  const p=window.__sandforgeWebGL.battlefield.commandPulse;
+  return {visible:p.visible,opacity:p.material.opacity,position:p.position.clone().toArray()};
+ });
+ expect(pulse.visible).toBe(true);
+ expect(pulse.opacity).toBeGreaterThan(.3);
  await expect(page.locator('#sf-message')).toContainText('Marsch');
+ await page.waitForFunction(()=>!window.__sandforgeWebGL.battlefield.commandPulse.visible,
+   null,{timeout:4000});
  await page.waitForFunction(({id,origin})=>{
   const u=window.__sandforgeWebGL.game.units.find(x=>x.id===id);
   return u&&Math.hypot(u.x-origin.x,u.y-origin.y)>12;

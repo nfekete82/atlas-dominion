@@ -24,7 +24,7 @@ test('WebGL: real GPU terrain, correctly mapped canyon ramps and original glTF r
  expect(state.cliff).toBeGreaterThan(60);
  expect(state.blocked).toBe(false);
  expect(state.cameraType).toBe('OrthographicCamera');
- expect(state.version).toBe(15);
+ expect(state.version).toBe(19);
  expect(errors).toEqual([]);
  await mkdir(new URL('artifacts/',import.meta.url).pathname,{recursive:true});
  await page.screenshot({path:new URL('artifacts/webgl-canyon-4-bastions.png',import.meta.url).pathname,fullPage:true});

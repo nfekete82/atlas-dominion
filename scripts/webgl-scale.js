@@ -10,7 +10,16 @@ export const MODEL_HEIGHTS=Object.freeze({
  rover:42,tank:46,artillery:51,scout:48,bomber:51,
  headquarters:158,barracks:119,factory:125,airfield:137,generator:92,turret:95
 });
-export const DIMENSIONS_VERSION=2;
+export const DIMENSIONS_VERSION=3;
+// Presentation-only scale: keep gameplay collision, reach, selection,
+// spacing and saved dimensions unchanged. Infantry read as humans beside
+// larger real structures, rather than as toy-sized buildings.
+export function visualUnitScale(kind){
+ if(['infantry','medic','engineer','heavy'].includes(kind))return .88;
+ if(['rover','artillery'].includes(kind))return .92;
+ if(kind==='tank')return .95;
+ return .94;
+}
 const infantry=new Set(['infantry','medic','engineer','heavy']);
 const valid=n=>typeof n==='number'&&Number.isFinite(n)&&n>.00001;
 export function calibratedScale(kind,type,bounds,targetWidth){

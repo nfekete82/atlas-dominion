@@ -5,21 +5,27 @@ import * as THREE from 'three';
  * World. Camera can see continuous desert beyond the playable boundary.
  * Exact world-space UVs and height samples match the real terrain edges.
  */
-export function addVisualPerimeter({scene,size,heightAt,material,ringTiles=2,segments=24}){
+export function addVisualPerimeter({scene,size,heightAt,material,ringTiles=2,segments=24,textureScale=1500}){
  const playableChunks=4,patch=size/playableChunks,half=size*.5;
  const out=[],normal=new THREE.Vector3();
  const c0=new THREE.Color('#faf1e0'),c1=new THREE.Color('#b58b63');
- const horizon=new THREE.Color('#bea17b');
+ const warmRim=new THREE.Color('#b28250');
+ const darkBeyond=new THREE.Color('#000000');
  const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
  const smooth=value=>{const t=clamp(value,0,1);return t*t*(3-2*t);};
- // Outside the playable world, let dunes settle gently into the distant
- // desert instead of ending on a visible vertical tile seam.
+ // Only the four central tiles per side are playable. The surrounding mesh
+ // is visual-only: a warm erosion apron dissolves into near-black map void.
+ // Keep exactly the same edge heights and normals at x/z = 0 or size.
  const margin=ringTiles*patch;
- const fade=(x,z)=>{
-  const outside=Math.max(0,-x,x-size,-z,z-size);
-  return smooth((outside-margin*.42)/(margin*.58));
+ const outsideDistance=(x,z)=>Math.max(0,-x,x-size,-z,z-size);
+ const heightFade=(x,z)=>smooth((outsideDistance(x,z)-margin*.36)/(margin*.64));
+ const outerHeight=(x,z)=>heightAt(x,z)*(1-heightFade(x,z));
+ // Zero Hour-style: only a narrow, irregular sand apron at the edge;
+ // the world stops in absolute black rather than creating an endless desert.
+ const edgeShadow=(x,z)=> {
+  const uneven=18*Math.sin(x*.011+z*.007)+10*Math.sin(z*.021-x*.009);
+  return smooth((outsideDistance(x,z)-95-uneven)/170);
  };
- const outerHeight=(x,z)=>heightAt(x,z)*(1-fade(x,z));
  for(let cy=-ringTiles;cy<playableChunks+ringTiles;cy++)
   for(let cx=-ringTiles;cx<playableChunks+ringTiles;cx++){
    if(cx>=0&&cx<playableChunks&&cy>=0&&cy<playableChunks)continue;
@@ -31,16 +37,19 @@ export function addVisualPerimeter({scene,size,heightAt,material,ringTiles=2,seg
    const indices=[];
    for(let j=0;j<=segments;j++)for(let i=0;i<=segments;i++){
     const x=(cx+i/segments)*patch,z=(cy+j/segments)*patch,h=outerHeight(x,z);
-    const horizonFade=fade(x,z);
+    const shadow=edgeShadow(x,z);
     const k=j*(segments+1)+i,n=k*3;
     positions[n]=x-half;positions[n+1]=h;positions[n+2]=z-half;
     const slope=Math.abs(outerHeight(x,z-24)-outerHeight(x,z+24))/48;
     const rocky=smooth((slope-.20)/.9);
     const nval=.96+.055*Math.sin(x*.013+z*.009)+.025*Math.cos(x*.071-z*.032);
     const bands=(Math.sin(h*.19+x*.003+z*.002)*.5+.5)*rocky;
-    const color=c0.clone().lerp(c1,rocky*.65+bands*.12).multiplyScalar(nval).lerp(horizon,horizonFade*.94);
+    const outside=outsideDistance(x,z);
+    const rim=smooth((outside-15)/60)*(1-smooth((outside-95)/85));
+    const color=c0.clone().lerp(c1,rocky*.65+bands*.12).multiplyScalar(nval);
+    color.lerp(warmRim,rim*.35).lerp(darkBeyond,shadow);
     colors[n]=color.r;colors[n+1]=color.g;colors[n+2]=color.b;
-    uv[k*2]=x/1500;uv[k*2+1]=z/1500;
+    uv[k*2]=x/textureScale;uv[k*2+1]=z/textureScale;
     // The same finite-difference sampling across chunk boundaries prevents
     // normal seams even with fewer triangles on the decorative outer ring.
     const eps=1.6;

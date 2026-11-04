@@ -85,3 +85,60 @@ test('4 contiguous rocky outer walls mark map boundary and do not change collisi
  await mkdir(out,{recursive:true});
  await page.screenshot({path:out+'webgl-canyon-boundary-hp.png',fullPage:true});
 });
+
+test('dark natural map rim has grounded non-playable palm groves and no bright outer sand',async({page})=>{
+ test.setTimeout(115000);
+ await page.setViewportSize({width:1440,height:900});
+ await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',{waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:90000});
+ // Detailed palms stream in asynchronously after the tactical scene is ready.
+ await page.waitForFunction(()=>window.__sandforgeWebGL.scene.children.some(
+  node=>node.name==='visual-boundary-palm'),{timeout:20000});
+ const state=await page.evaluate(()=>{
+  const v=window.__sandforgeWebGL,size=v.game.world.size,half=size*.5;
+  const edgeColor=[],voidColor=[];
+  for(const tile of v.visualPerimeter.meshes){
+   const p=tile.geometry.getAttribute('position');
+   const c=tile.geometry.getAttribute('color');
+   for(let i=0;i<p.count;i++){
+    const x=p.getX(i)+half,z=p.getZ(i)+half;
+    const beyond=Math.max(0,-x,x-size,-z,z-size);
+    const brightness=(c.getX(i)+c.getY(i)+c.getZ(i))/3;
+    if(beyond<.01)edgeColor.push(brightness);
+    if(beyond>1000)voidColor.push(brightness);
+   }
+  }
+  const palms=v.scene.children.filter(node=>node.name==='visual-boundary-palm');
+  return {
+   edge:edgeColor.reduce((a,b)=>a+b,0)/edgeColor.length,
+   beyond:voidColor.reduce((a,b)=>a+b,0)/voidColor.length,
+   samples:[edgeColor.length,voidColor.length],
+   background:'#'+v.scene.background.getHexString(),
+   palmCount:palms.length,
+   allOutside:palms.every(node=>{
+    const x=node.position.x+half,z=node.position.z+half;
+    return x<0||x>size||z<0||z>size;
+   }),
+   cosmetic:palms.every(node=>node.userData.visualBoundary&&node.userData.nonPlayable)
+  };
+ });
+ expect(state.samples[0]).toBeGreaterThan(0);
+ expect(state.samples[1]).toBeGreaterThan(0);
+ expect(state.beyond).toBeLessThan(state.edge*.15);
+ expect(state.background).toBe('#000000');
+ expect(state.palmCount).toBeGreaterThanOrEqual(12);
+ expect(state.allOutside).toBe(true);
+ expect(state.cosmetic).toBe(true);
+ // Render-only border never receives fog-of-war overlays: dense unknown
+ // terrain is still hidden inside the 16 authoritative map chunks only.
+ const fogState=await page.evaluate(()=>{
+   const v=window.__sandforgeWebGL;
+   return {count:v.battlefield.fogNodes.length,
+     decorative:v.battlefield.fogNodes.filter(
+       m=>v.visualPerimeter.meshes.some(p=>p.geometry===m.geometry)).length,
+     unknown:v.battlefield.fogTexture.image.data.some((n,i)=>i%4===3&&n===255)};
+ });
+ expect(fogState.count).toBe(16);
+ expect(fogState.decorative).toBe(0);
+ expect(fogState.unknown).toBe(true);
+});

@@ -4,18 +4,20 @@ import * as THREE from 'three';
  * They begin OUTSIDE the authoritative World, so no cells are opened,
  * no unit/pathfinding bounds change and projectiles do not hit them.
  */
-export function addBoundaryCliffs({scene,size,heightAt,seed=0,lowQuality=false}){
- const half=size*.5,rows=[0,24,62,112,174,238];
- const lift=[0,5,38,105,139,145];
- const tiles=lowQuality?48:112;
+export function addBoundaryCliffs({scene,size,heightAt,seed=0,lowQuality=false,softRim=false}){
+ const half=size*.5,rows=[0,38,80,130,196,286];
+ // Stepped erosion rather than a 300-unit tall foreground mountain.
+ // The boundary belongs to the background, not the player camera.
+ const lift=[0,4,19,48,83,114];
+ const tiles=lowQuality?64:144;
  const materials=new THREE.MeshStandardMaterial({
-  color:'#e7d5bb',roughness:1,metalness:0,vertexColors:true,
+  color:'#f0e0c5',roughness:1,metalness:0,vertexColors:true,
   side:THREE.DoubleSide
  });
  const colors=[
-  new THREE.Color('#d1bd99'),new THREE.Color('#c4a984'),
-  new THREE.Color('#97795d'),new THREE.Color('#8c7359'),
-  new THREE.Color('#b09a78'),new THREE.Color('#c5b18c')
+  new THREE.Color('#e2c99e'),new THREE.Color('#cbb08a'),
+  new THREE.Color('#a88461'),new THREE.Color('#80644c'),
+  new THREE.Color('#b69872'),new THREE.Color('#d0b08a')
  ];
  const cliffs=[],scree=[];
  function boundaryPoint(edge,t,offset){
@@ -32,16 +34,26 @@ export function addBoundaryCliffs({scene,size,heightAt,seed=0,lowQuality=false})
  for(let edge=0;edge<4;edge++){
   const positions=[],uv=[],vertexColors=[],indices=[];
   for(let band=0;band<rows.length;band++)for(let k=0;k<=tiles;k++){
-   const t=k/tiles,p=boundaryPoint(edge,t,rows[band]);
-   const irregular=Math.sin(t*46+edge*11.3+seed*.001)*6+
-      Math.sin(t*93-edge*5.1+seed*.0004)*2.8;
-   const amount=band===0?0:irregular*(band/rows.length)*Math.sin(Math.PI*t);
-   const y=heightAt(p.x,p.z)+lift[band]+amount;
+   const t=k/tiles;
+   // Both ends retain the original corner positions/heights, so adjacent
+   // walls share identical vertices. Interior sections form broken escarpments
+   // and a visibly mountainous skyline instead of four straight rails.
+   const cornerSafe=Math.sin(Math.PI*t)**2;
+   const ledgeWobble=cornerSafe*(Math.sin(t*31+seed*.0007+edge*4.1)*10+
+     Math.sin(t*77-seed*.0004+edge*1.8)*4);
+   const offset=rows[band]+(band===0?0:ledgeWobble*band/(rows.length-1));
+   const p=boundaryPoint(edge,t,offset);
+   const ridge=1+cornerSafe*(.16*Math.sin(t*15+seed*.0017+edge*.9)+
+     .12*Math.sin(t*38-seed*.0011+edge*2.7)+
+     .25*Math.max(0,Math.sin(t*24+edge*1.5+seed*.0003)));
+   const weather=cornerSafe*(Math.sin(t*97+edge*9.3)*3+
+     Math.sin(t*173+band*2.4)*1.5)*(band/(rows.length-1));
+   const y=heightAt(p.x,p.z)+lift[band]*ridge+weather;
    positions.push(p.x-half,y,p.z-half);
    // Fine striations and changing sun exposure break the uniform wall.
-   const strata=Math.sin(y*.18+t*61+edge*3)*.045+
-     Math.cos(y*.49-t*39)*.025;
-   const c=colors[band].clone().multiplyScalar(.94+strata);
+   const strata=Math.sin(y*.11+t*47+edge*3)*.065+
+     Math.cos(y*.27-t*31)*.035;
+   const c=colors[band].clone().multiplyScalar(.97+strata);
    vertexColors.push(c.r,c.g,c.b);
    uv.push(t*size/250,band*.65);
   }
@@ -59,6 +71,9 @@ export function addBoundaryCliffs({scene,size,heightAt,seed=0,lowQuality=false})
   // instead of a row of repeated orange boulders. Slight environmental
   // roughness and consistent sand colors keep them in the same light family.
   wall.receiveShadow=true;wall.castShadow=false;wall.frustumCulled=true;
+  // No continuous wall in spacious maps: a low erosion apron and isolated
+  // natural rocks lead to a black background, as in Zero Hour.
+  wall.visible=!softRim;
   wall.name='visual-boundary-cliff-'+edge;
   wall.userData={visualBoundary:true,nonPlayable:true,edge};
   scene.add(wall);cliffs.push(wall);
@@ -85,30 +100,52 @@ export function addBoundaryCliffs({scene,size,heightAt,seed=0,lowQuality=false})
  scene.add(rubble);scree.push(rubble);
  // Monumental weathered sandstone outcrops. Purely visual and instanced:
  // never registered with the World, raycasts, navigation, or capture systems.
- const monolithGeometry=new THREE.DodecahedronGeometry(1,1);
+ // Low-poly facets retain a rock silhouette, but a deterministic deformation
+ // breaks the repeated egg-like shape of the old dodecahedron instances.
+ const monolithGeometry=new THREE.IcosahedronGeometry(1,2);
+ const rockVertices=monolithGeometry.getAttribute('position');
+ for(let v=0;v<rockVertices.count;v++){
+  const x=rockVertices.getX(v),y=rockVertices.getY(v),z=rockVertices.getZ(v);
+  const chip=1+.14*Math.sin(x*17+y*9+z*21)+.075*Math.cos(y*29-x*13);
+  rockVertices.setXYZ(v,x*chip,y*(.94+.09*Math.sin(x*23+z*7)),z*chip);
+ }
+ rockVertices.needsUpdate=true;
+ monolithGeometry.computeVertexNormals();
  const monolithMaterial=new THREE.MeshStandardMaterial({
-  color:'#b69a78',roughness:1,metalness:0,flatShading:true
+  color:'#ba9c7a',roughness:1,metalness:0,flatShading:false
  });
+ // Borrow the original Sandforge sandstone grain, giving exterior rocks
+ // physical texture rather than a single flat beige polygon color.
+ new THREE.TextureLoader().load('/src/assets/reborn/sandstone-detail.png',texture=>{
+  texture.colorSpace=THREE.SRGBColorSpace;
+  texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
+  texture.anisotropy=4;
+  monolithMaterial.map=texture;monolithMaterial.needsUpdate=true;
+ },undefined,error=>console.warn('Boundary sandstone texture fallback:',error));
  const perEdge=lowQuality?12:28;
  const monoliths=new THREE.InstancedMesh(monolithGeometry,monolithMaterial,perEdge*4);
  let monolithCount=0;
  for(let edge=0;edge<4;edge++)for(let i=0;i<perEdge;i++){
   const t=(i+.16+rand()*.68)/perEdge;
   // Keep every rock beyond the playable 0..size square.
-  const offset=43+rand()*155;
+  const offset=softRim?12+rand()*62:105+rand()*150;
   const p=boundaryPoint(edge,t,offset);
-  const width=46+rand()*93,height=100+rand()*170;
+  const width=softRim?11+rand()*25:19+rand()*34,
+   height=softRim?15+rand()*48:28+rand()*66;
   // Sink the outcrop into its terrain, rather than exposing a flat model base.
   dummy.position.set(p.x-half,heightAt(p.x,p.z)+height*.27,p.z-half);
   dummy.rotation.set((rand()-.5)*.16,rand()*Math.PI*2,(rand()-.5)*.22);
-  dummy.scale.set(width,height,width*(.65+rand()*.65));
-  dummy.updateMatrix();monoliths.setMatrixAt(monolithCount++,dummy.matrix);
+  dummy.scale.set(width,height,width*(.72+rand()*.52));
+  dummy.updateMatrix();monoliths.setMatrixAt(monolithCount,dummy.matrix);
+  const tint=new THREE.Color('#d6bc94').lerp(new THREE.Color('#987459'),rand()*.55);
+  monoliths.setColorAt(monolithCount++,tint);
  }
  monoliths.count=monolithCount;
  monoliths.instanceMatrix.needsUpdate=true;
+ if(monoliths.instanceColor)monoliths.instanceColor.needsUpdate=true;
  monoliths.castShadow=!lowQuality;monoliths.receiveShadow=true;
  monoliths.userData={visualBoundary:true,nonPlayable:true,monoliths:true};
  monoliths.name='visual-boundary-monoliths';
  scene.add(monoliths);
- return {cliffs,scree,monoliths,height:315,margin:238,collisionChanged:false};
+ return {cliffs,scree,monoliths,height:180,margin:286,collisionChanged:false};
 }

@@ -5,7 +5,7 @@ import {RULES} from '/src/reborn/config.js';
 import {installClassicHud} from '/webgl-classic-hud.js';
 import {hydrateUnitIcons,unitIcon,buildingIconUrl} from '/webgl-portraits.js';
 import {SandforgeActorPresentation} from '/webgl-actor-presentation.js';
-import {calibratedScale} from '/webgl-scale.js';
+import {calibratedScale,visualUnitScale} from '/webgl-scale.js';
 import {SandforgeGroundingPass} from '/webgl-grounding.js';
 import {SandforgeConstructionPresentation} from '/webgl-construction.js';
 import {createBastionCaptureBar,updateBastionCaptureBar} from '/webgl-bastion-capture.js';
@@ -35,6 +35,18 @@ export class SandforgeBattlefield {
   this.rallyMarker.renderOrder=1012;
   this.rallyMarker.visible=false;
   this.scene.add(this.rallyMarker);
+  // Every ground right-click gets a short, expanding Zero Hour-style ping.
+  // Unlike the permanent rally ring it never enters World or save data.
+  this.commandPulse=new THREE.Mesh(
+   new THREE.RingGeometry(23,26,48),
+   new THREE.MeshBasicMaterial({color:'#7ce7ef',transparent:true,
+    opacity:0,depthTest:false,depthWrite:false,side:THREE.DoubleSide})
+  );
+  this.commandPulse.name='visual-ground-command-pulse';
+  this.commandPulse.userData={visualOnly:true,nonPlayable:true,commandPulse:true};
+  this.commandPulse.rotation.x=-Math.PI/2;
+  this.commandPulse.renderOrder=1013;this.commandPulse.visible=false;
+  this.commandPulseTime=.7;this.scene.add(this.commandPulse);
   this.miniLast=0;this.uiLast=0;this.fogLast=0;
   this.fogEnabled=true;this.selectedRings=new Map();this.animations=new Map();
   this.presentation=new SandforgeActorPresentation(scene,camera,game);
@@ -103,7 +115,11 @@ export class SandforgeBattlefield {
  }
  // Do not download every 15–25 MB faction model on the first frame.
  scheduleDetail(entry,entity,type){
-  if(this.lite||entry.requested||this.loadingCount+this.modelQueue.length>=this.maxModels)return;
+  // Lite mode reduces terrain/actor detail, but authored PBR buildings must
+  // still appear. Falling back to primitive grey cubes would make the actual
+  // player's base look markedly worse than the 2D game.
+  if((this.lite&&type!=='building')||entry.requested||
+     this.loadingCount+this.modelQueue.length>=this.maxModels)return;
   entry.requested=true;
   const url=this.asset(entity.kind,entity.owner,type);
   this.modelQueue.push({url,entry,type});
@@ -120,7 +136,9 @@ export class SandforgeBattlefield {
     const desired=type==='unit'?UNITS[entry.kind].width:BUILDINGS[entry.kind].width;
     const extent=Math.max(dims.x,dims.z);
     if(extent>.0001){
-     const scale=calibratedScale(entry.kind,type,dims,desired);model.scale.multiplyScalar(scale);
+     const scale=calibratedScale(entry.kind,type,dims,desired)*
+       (type==='unit'?visualUnitScale(entry.kind):1);
+     model.scale.multiplyScalar(scale);
      model.position.set(-box0.getCenter(new THREE.Vector3()).x*scale,
       -box0.min.y*scale,-box0.getCenter(new THREE.Vector3()).z*scale);
     }
@@ -128,8 +146,10 @@ export class SandforgeBattlefield {
     // Visual normalization is independent of collision/pathfinding. Re-ground
     // imported GLBs against the same heightfield sample as their placeholder.
     entry.node.remove(entry.placeholder);entry.node.add(model);entry.detail=model;
-    entry.modelHeight=dims.y*calibratedScale(entry.kind,type,dims,desired);
-    entry.modelFootprint=Math.max(dims.x,dims.z)*calibratedScale(entry.kind,type,dims,desired);
+    const visualScale=calibratedScale(entry.kind,type,dims,desired)*
+      (type==='unit'?visualUnitScale(entry.kind):1);
+    entry.modelHeight=dims.y*visualScale;
+    entry.modelFootprint=Math.max(dims.x,dims.z)*visualScale;
     entry.visualBaseY=model.position.y;entry.visualBaseZ=model.position.z;
     if(type==='unit'&&data.animations.length){
      const mixer=new THREE.AnimationMixer(model);
@@ -170,6 +190,8 @@ export class SandforgeBattlefield {
   node.name=type+'-'+entity.kind+'-'+entity.id;
   node.userData={id:entity.id,type};
   const placeholder=this.createFallback(entity.kind,entity.owner,type);
+  // Lite mode must match detailed mode: both receive the same visual scale.
+  if(type==='unit')placeholder.scale.setScalar(visualUnitScale(entity.kind));
   node.add(placeholder);node.position.copy(this.entityPosition(entity));
   this.scene.add(node);
   const entry={node,placeholder,kind:entity.kind,owner:entity.owner,requested:false};
@@ -361,15 +383,15 @@ export class SandforgeBattlefield {
    // screen-space parallax: revealed tiles shift away from their soldiers.
    // Composite the aligned fog last to conceal objects in unseen territory.
    vertexShader:'uniform float mapSize; varying vec2 fogUv; void main(){fogUv=vec2(position.x/mapSize+.5,position.z/mapSize+.5);vec3 p=position;p.y+=3.0;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);}',
-   // Sample world-space fog identically on playable ground and the decorative
-   // perimeter. Outside the map, fade from the nearest discovered edge to
-   // fully black within ~400 world units; never reveal the end of the mesh.
-   fragmentShader:'uniform sampler2D fogTex;uniform float mapSize;uniform float fogStep;varying vec2 fogUv;void main(){vec2 uv=clamp(fogUv,vec2(0.001),vec2(0.999));float a=texture2D(fogTex,uv).a;vec2 d=vec2(fogStep*1.6,0.0);float n=max(max(texture2D(fogTex,clamp(uv+d,vec2(0.001),vec2(0.999))).a,texture2D(fogTex,clamp(uv-d,vec2(0.001),vec2(0.999))).a),max(texture2D(fogTex,clamp(uv+d.yx,vec2(0.001),vec2(0.999))).a,texture2D(fogTex,clamp(uv-d.yx,vec2(0.001),vec2(0.999))).a));a=max(a,n*0.44);vec2 beyond=max(max(-fogUv,fogUv-1.0),vec2(0.0));float edge=max(beyond.x,beyond.y);a=max(a,smoothstep(0.0,420.0/mapSize,edge));gl_FragColor=vec4(0.055,0.043,0.033,a);}',
+   // Only real playable terrain receives authoritative fog-of-war; the
+   // decorative outer ring contains no units, buildings or discovery data.
+   // Covering that ring would hide its mountains and palm groves completely.
+   fragmentShader:'uniform sampler2D fogTex;uniform float mapSize;uniform float fogStep;varying vec2 fogUv;void main(){vec2 uv=clamp(fogUv,vec2(0.001),vec2(0.999));float a=texture2D(fogTex,uv).a;vec2 d=vec2(fogStep*1.6,0.0);float n=max(max(texture2D(fogTex,clamp(uv+d,vec2(0.001),vec2(0.999))).a,texture2D(fogTex,clamp(uv-d,vec2(0.001),vec2(0.999))).a),max(texture2D(fogTex,clamp(uv+d.yx,vec2(0.001),vec2(0.999))).a,texture2D(fogTex,clamp(uv-d.yx,vec2(0.001),vec2(0.999))).a));a=max(a,n*0.44);vec2 beyond=max(max(-fogUv,fogUv-1.0),vec2(0.0));float edge=max(beyond.x,beyond.y);a=max(a,smoothstep(0.0,420.0/mapSize,edge));gl_FragColor=vec4(0.14,0.108,0.075,a);}',
    transparent:true,depthTest:false,depthWrite:false,side:THREE.DoubleSide
   });
-  const groundAndPerimeter=[...this.groundMeshes,
-   ...this.scene.children.filter(node=>node.userData?.visualPerimeter)];
-  this.fogNodes=groundAndPerimeter.map(mesh=>{
+  // Decorative, non-playable perimeter is always visible. Fog remains
+  // fully opaque in undiscovered playable cells and cannot leak enemy data.
+  this.fogNodes=this.groundMeshes.map(mesh=>{
    const layer=new THREE.Mesh(mesh.geometry,mat);layer.frustumCulled=false;
    layer.renderOrder=990;layer.userData={fogOverlay:true,visualOnly:true};
    this.scene.add(layer);return layer;
@@ -533,7 +555,7 @@ export class SandforgeBattlefield {
     '<i></i><strong>SEKTOR '+(t.id+1)+'</strong><small>'+label+capture+'</small></button>';
   }).join('');
   const markup='<div class="sf-group" data-sf-group="units">'+roster+'</div>'+
-   '<div class="sf-group" data-sf-group="buildings"><h2>GEBÄUDE BAUEN</h2><div class="catalog-grid">'+
+   '<div class="sf-group" data-sf-group="buildings"><div class="catalog-grid">'+
    cards(buildingKinds,'building')+'</div></div>'+
    '<div class="sf-group" data-sf-group="territories"><h2>KONTROLLPUNKTE</h2>'+tiles+'</div></div>';
   if(this.previousActionsMarkup!==markup){
@@ -738,6 +760,22 @@ export class SandforgeBattlefield {
   }
   return nearest;
  }
+ showCommandPulse(point,attack=false){
+  this.commandPulse.position.copy(this.pos(point.x,point.y,
+   this.heightAt(point.x,point.y)+2.8));
+  this.commandPulse.material.color.set(attack?'#ffbd76':'#7ce7ef');
+  this.commandPulse.scale.setScalar(.72);
+  this.commandPulse.material.opacity=.9;
+  this.commandPulseTime=0;this.commandPulse.visible=true;
+ }
+ updateCommandPulse(dt){
+  if(!this.commandPulse.visible)return;
+  this.commandPulseTime+=Math.max(0,dt);
+  const t=Math.min(1,this.commandPulseTime/.65);
+  this.commandPulse.scale.setScalar(.72+t*.78);
+  this.commandPulse.material.opacity=.9*(1-t)*(1-t);
+  if(t>=1)this.commandPulse.visible=false;
+ }
  pointerUp(event){
   if(!this.clickStart||event.button!==this.clickStart.button)return;
   const start=this.clickStart;
@@ -754,6 +792,9 @@ export class SandforgeBattlefield {
    if(event.button===2&&this.selected.size)this.message('Marschziel außerhalb der Karte');
    return;
   }
+  // Immediate acknowledgment, including an unselected RMB click; no pulse
+  // for clicks outside the terrain or for a right-button drag.
+  if(event.button===2)this.showCommandPulse(p,Boolean(clickedEnemy)||this.attackMode);
   if(event.button===0){
    if(this.rallyMode){
     const base=this.game.bases.find(b=>b.id===this.selectedBase&&b.owner===0&&b.hp>0&&b.buildRemaining<=0);

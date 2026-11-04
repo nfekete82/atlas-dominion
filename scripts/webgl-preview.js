@@ -11,6 +11,7 @@ import {addVisualPerimeter} from '/webgl-perimeter.js';
 import {addBoundaryCliffs} from '/webgl-edge-cliffs.js';
 import {groundContactMaterial} from '/webgl-grounding.js';
 import {SandforgeConstructionRecovery} from '/webgl-construction-recovery.js';
+import {SandforgeGroundTracks} from '/webgl-ground-tracks.js';
 import {Soundscape} from '/src/reborn/audio.js';
 import {fineSandPattern} from '/src/reborn/fine-sand.js';
 
@@ -19,7 +20,9 @@ import {fineSandPattern} from '/src/reborn/fine-sand.js';
  * benchmarks. The 3D camera never changes the simulation's map coordinates. */
 const $=id=>document.getElementById(id);
 const query=new URLSearchParams(location.search);
-const sizes={4:15,8:16,12:17,16:18};
+// Brand-new 50%-larger WebGL battlefields. Earlier Canyon v15-v18 saves
+// remain available via legacy=1 and are never silently migrated.
+const sizes=query.get('legacy')==='1'?{4:15,8:16,12:17,16:18}:{4:19,8:20,12:21,16:22};
 const bastions=Object.hasOwn(sizes,query.get('bastions'))?Number(query.get('bastions')):8;
 const inputSeed=query.get('seed');
 const seed=inputSeed!==null&&Number.isSafeInteger(Number(inputSeed))&&Number(inputSeed)>=0
@@ -41,9 +44,10 @@ const game=session??Simulation.campaign(seed,sizes[bastions]);
 // benchmarks retain exactly their original LOS and balance.
 // Optional visual comparison; classic gameplay remains unchanged.
 const wideView=query.get('view')==='wide';
-game.visionScale=wideView?1.35:1.12;
+game.visionScale=wideView?1.35:game.world.mapVersion>=19?1.30:1.12;
 game.updateVision();
 const world=game.world,terrain=world.generated,size=world.size,half=size/2;
+const spacious=world.mapVersion>=19;
 const status=$('status'),errorNode=$('error'),stage=$('stage');
 $('simulation').textContent=query.get('pause')==='1'?'Simulation starten':'Simulation pausieren';
 $('simulation').setAttribute('aria-pressed',String(query.get('pause')!=='1'));
@@ -60,16 +64,18 @@ renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
 // Lower the hot highlights of the preview: original sandstone and buildings
 // share one warm daylight exposure instead of glowing in different palettes.
-renderer.toneMappingExposure=1.00;
+renderer.toneMappingExposure=spacious?.96:1.00;
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.65));
 stage.append(renderer.domElement);
 const scene=new THREE.Scene();
-scene.background=new THREE.Color('#bea17b');
-scene.fog=new THREE.FogExp2('#bea17b',.00011);
+// The playable desert ends in a mountain rim and a dark C&C-style void.
+// A beige background would still reveal a bright square beyond the terrain.
+scene.background=new THREE.Color('#000000');
+scene.fog=new THREE.FogExp2('#080605',.00008);
 scene.add(new THREE.HemisphereLight('#fff1dd','#675246',1.20));
-const sun=new THREE.DirectionalLight('#fff0d4',3.05);
+const sun=new THREE.DirectionalLight('#fff0d4',spacious?2.85:3.05);
 sun.position.set(-700,1100,420);
 sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
 sun.shadow.camera.left=-1250;sun.shadow.camera.right=1250;
@@ -97,8 +103,11 @@ const controls=new OrbitControls(camera,renderer.domElement);
 controls.enableDamping=true;controls.dampingFactor=.10;
 controls.screenSpacePanning=true;
 // C&C-style constrained orthographic RTS camera: the map is NOT a tabletop.
-controls.minZoom=wideView?.55:.70;controls.maxZoom=3.5;
-camera.zoom=.74;camera.updateProjectionMatrix();
+// The default tactical view shows ~25% more world area per axis than the
+// old .74 zoom. Models are unchanged in the simulation; on-screen footprint
+// shrinks to 80%, as requested for better strategic overview.
+controls.minZoom=wideView?.42:.46;controls.maxZoom=3.5;
+camera.zoom=.59;camera.updateProjectionMatrix();
 // A lower camera angle gives rock faces and buildings visible depth.
 controls.minPolarAngle=.65;controls.maxPolarAngle=1.30;
 controls.mouseButtons={LEFT:THREE.MOUSE.PAN,MIDDLE:THREE.MOUSE.DOLLY,RIGHT:THREE.MOUSE.ROTATE};
@@ -159,7 +168,7 @@ function sandMicroNormalTexture(){
 function buildTerrain(){
  const texture=sandTexture(),normalMap=sandMicroNormalTexture();
  const material=new THREE.MeshStandardMaterial({
-  color:'#f5eadb',map:texture,normalMap,normalScale:new THREE.Vector2(.45,.45),
+  color:spacious?'#e7dbca':'#f5eadb',map:texture,normalMap,normalScale:new THREE.Vector2(.45,.45),
   vertexColors:true,roughness:.99,metalness:0
  });
  // The buildings-3d/desert-basecolor.png is a *model material atlas*,
@@ -200,10 +209,11 @@ function buildTerrain(){
    const rocky=smooth((slope-.20)/.9);
    const nval=.96+.055*Math.sin(x*.013+z*.009)+.025*Math.cos(x*.071-z*.032);
    const bands=(Math.sin(h*.19+x*.003+z*.002)*.5+.5)*rocky;
-   const col=new THREE.Color('#faf1e0').lerp(new THREE.Color('#b58b63'),rocky*.65+bands*.12);
+   const col=new THREE.Color(spacious?'#e9dcc6':'#faf1e0')
+     .lerp(new THREE.Color(spacious?'#9f8160':'#b58b63'),rocky*.65+bands*.12);
    col.multiplyScalar(nval);
    colors[n]=col.r;colors[n+1]=col.g;colors[n+2]=col.b;
-   uv[k*2]=x/1500;uv[k*2+1]=z/1500;
+   uv[k*2]=x/(spacious?2200:1500);uv[k*2+1]=z/(spacious?2200:1500);
    // Sample normals from the continuous field, not triangle tessellation:
    // border ring and playable terrain now have identical lighting at seams.
    const eps=1.6,dx=(heightAt(x+eps,z)-heightAt(x-eps,z))/(2*eps);
@@ -231,13 +241,15 @@ function buildTerrain(){
  // Extend decorative geometry further for low-angle 3D camera shots.
 // These tiles are visual-only and never enter the simulation or raycaster.
 visualPerimeter=addVisualPerimeter({scene,size,heightAt,material,
- ringTiles:query.get('lite')==='1'?2:3,segments:22});
+ ringTiles:query.get('lite')==='1'?2:3,segments:22,textureScale:spacious?2200:1500});
  return chunks*chunks;
 }
 const pbr=(color,roughness=1,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness,flatShading:true});
 function instancedStone(){
  // More irregular weathered sandstone, fewer identical round orange pebbles.
- const geometry=new THREE.DodecahedronGeometry(1,1),materials=[pbr('#bfa889'),pbr('#ab9478'),pbr('#d0b89b')];
+ const geometry=new THREE.DodecahedronGeometry(1,1),materials=spacious?
+   [pbr('#ac987d'),pbr('#9a8770'),pbr('#c0aa8b')]:
+   [pbr('#bfa889'),pbr('#ab9478'),pbr('#d0b89b')];
  // Irregular weathering breaks the obvious smooth polygon-egg silhouettes.
  // It operates once on the shared instanced mesh, not per boulder or frame.
  const positions=geometry.getAttribute('position');
@@ -279,11 +291,12 @@ function instancedStone(){
  // Rough cliff faces and weathered sandstone ledges, skipping real ramps.
  for(const ridge of terrain.ridges)for(let i=1;i<ridge.spine.length;i++){
   const a=ridge.spine[i-1],b=ridge.spine[i],length=Math.hypot(b.x-a.x,b.y-a.y);
-  for(let k=0;k<Math.ceil(length/26);k++){
-   const t=(k+r()*.7)/Math.ceil(length/26),x=a.x+(b.x-a.x)*t,z=a.y+(b.y-a.y)*t;
+  for(let k=0;k<Math.ceil(length/(spacious?43:26));k++){
+   const t=(k+r()*.7)/Math.ceil(length/(spacious?43:26)),x=a.x+(b.x-a.x)*t,z=a.y+(b.y-a.y)*t;
    if(rampAt(x))continue;
-   for(let j=0;j<2;j++){
-    const dz=(r()-.5)*68,wide=9+r()*22,tall=16+r()*26;
+   for(let j=0;j<(spacious?1:2);j++){
+    const dz=(r()-.5)*68,wide=spacious?7+r()*14:9+r()*22,
+     tall=spacious?10+r()*22:16+r()*26;
     put(x+(r()-.5)*17,z+dz,wide,tall,11+r()*20);
    }
   }
@@ -291,26 +304,40 @@ function instancedStone(){
  for(const mesa of terrain.mesas)for(const col of mesa.columns){
   const x=col.base.reduce((n,p)=>n+p.x,0)/col.base.length;
   const z=col.base.reduce((n,p)=>n+p.y,0)/col.base.length;
-  put(x,z,20+r()*28,30+r()*55,18+r()*25);
-  for(let i=0;i<2;i++)put(x+(r()-.5)*55,z+(r()-.5)*55,8+r()*16,8+r()*26,8+r()*15);
+  put(x,z,spacious?23+r()*29:20+r()*28,
+   spacious?18+r()*34:30+r()*55,
+   spacious?24+r()*27:18+r()*25);
+  for(let i=0;i<(spacious?1:2);i++)
+   put(x+(r()-.5)*55,z+(r()-.5)*55,8+r()*16,
+    spacious?7+r()*16:8+r()*26,8+r()*15);
  }
- for(let i=0;i<1600;i++){
+ for(let i=0;i<(spacious?420:1600);i++){
   const x=75+r()*(size-150),z=75+r()*(size-150),index=world.index({x,y:z});
   if(index<0||world.blocked[index]||terrain.sites.some(p=>Math.hypot(x-p.x,z-p.y)<160))continue;
-  put(x,z,2+r()*5,1+r()*4,2+r()*6);
+  put(x,z,spacious?1.4+r()*3.6:2+r()*5,
+   spacious?.8+r()*2.7:1+r()*4,
+   spacious?1.5+r()*4.2:2+r()*6);
  }
  // Continue weathered stones across the *visual* perimeter. This scatter
  // uses a different RNG stream so existing battlefield stones stay unchanged.
  const extra=rnd(seed^0xb487c7e1),margin=visualPerimeter?.margin??size*.5;
- for(let i=0;i<2100;i++){
-  const x=-margin+extra()*(size+2*margin),z=-margin+extra()*(size+2*margin);
+ for(let i=0;i<(spacious?200:2100);i++){
+  // Never allow decorative stones to float over the black void. Scatter
+  // only in the first narrow erosion apron adjacent to the playfield.
+  const x=spacious?-95+extra()*(size+190):-margin+extra()*(size+2*margin);
+  const z=spacious?-95+extra()*(size+190):-margin+extra()*(size+2*margin);
   if(x>=0&&x<=size&&z>=0&&z<=size)continue;
-  const cluster=extra()>.93;
+  if(spacious&&Math.max(-x,x-size,-z,z-size)>82)continue;
+  const cluster=extra()>(spacious?.96:.93);
   if(cluster){
-   put(x,z,9+extra()*20,14+extra()*28,8+extra()*20);
+   put(x,z,spacious?7+extra()*13:9+extra()*20,
+    spacious?9+extra()*16:14+extra()*28,
+    spacious?6+extra()*14:8+extra()*20);
    for(let k=0;k<3;k++)
     put(x+(extra()-.5)*55,z+(extra()-.5)*55,4+extra()*9,5+extra()*17,5+extra()*9);
-  }else put(x,z,1.7+extra()*5.4,1+extra()*3.8,2+extra()*6);
+  }else put(x,z,spacious?1.2+extra()*3.5:1.7+extra()*5.4,
+   spacious?.8+extra()*2.8:1+extra()*3.8,
+   spacious?1.5+extra()*4:2+extra()*6);
  }
  for(let i=0;i<groups.length;i++){
   groups[i].count=counts[i];groups[i].instanceMatrix.needsUpdate=true;
@@ -428,6 +455,19 @@ function makeRuinGrit(){
  return texture;
 }
 const ruinGrit=makeRuinGrit();
+let ruinStrata=null;
+const ruinStrataLoad=new Promise(resolve=>{
+ new THREE.TextureLoader().load('/src/assets/reborn/sandstone-strata-v1.png',
+  texture=>{
+   texture.colorSpace=THREE.SRGBColorSpace;
+   texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
+   texture.anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),8);
+   ruinStrata=texture;resolve(true);
+  },undefined,()=>{
+   console.warn('Ruin sandstone fallback: using procedural weathering');
+   resolve(false);
+  });
+});
 function weatherRuinMeshes(node){
  node.traverse(mesh=>{
   if(!mesh.isMesh)return;
@@ -446,7 +486,12 @@ function weatherRuinMeshes(node){
   const upgrade=m=>{
    const value=m.clone();
    if(/plaster|sandstone|concrete|roof|rubble|dust/i.test(value.name||'')){
-    value.map=ruinGrit;value.bumpMap=ruinGrit;value.bumpScale=.09;
+    // Sandstone keeps its native stratified PBR grain, while plaster, roof
+    // and concrete share the fine procedural dirt/crack map.
+    const naturalStone=/sandstone|rubble/i.test(value.name||'');
+    const detail=naturalStone?(ruinStrata??ruinGrit):ruinGrit;
+    value.map=detail;value.bumpMap=detail;
+    value.bumpScale=naturalStone?.17:.09;
     value.roughness=1;value.metalness=0;value.needsUpdate=true;
    }
    return value;
@@ -457,6 +502,8 @@ function weatherRuinMeshes(node){
 }
 async function addRuins(){
  // Every ruin instance is a real glTF triangle mesh with PBR materials.
+ // Wait for the authored rock texture so instances are textured on first paint.
+ await ruinStrataLoad;
  const data=await Promise.all([
   tryModel('/src/assets/reborn/canyon-3d/ruin-house.gltf'),
   tryModel('/src/assets/reborn/canyon-3d/ruin-depot.gltf')]);
@@ -486,7 +533,7 @@ function spin(angle){
 }
 $('home').onclick=()=>{
  controls.target.copy(cameraTarget);camera.position.copy(cameraTarget).add(new THREE.Vector3(1200,1110,1640));
- camera.zoom=.74;camera.updateProjectionMatrix();controls.update();
+ camera.zoom=.59;camera.updateProjectionMatrix();controls.update();
 };
 $('load').onclick=()=>{
  const q=new URLSearchParams({bastions:$('bastions').value,seed:String(Number($('seed').value)>>>0)});
@@ -580,12 +627,16 @@ function resize(){
 }
 new ResizeObserver(resize).observe(stage);resize();
 const chunks=buildTerrain();
-boundaryCliffs=addBoundaryCliffs({scene,size,heightAt,seed,lowQuality:query.get('lite')==='1'});
+boundaryCliffs=addBoundaryCliffs({scene,size,heightAt,seed,lowQuality:query.get('lite')==='1',softRim:spacious});
 const stones=instancedStone();sandRoads();
 const battlefield=new SandforgeBattlefield({
  game,world,terrain,scene,renderer,camera,controls,loader,groundMeshes,heightAt,pos,
  lite:query.get('lite')==='1'
 });
+const groundTracks=new SandforgeGroundTracks({
+ scene,game,pos,heightAt,lite:query.get('lite')==='1'
+});
+groundTracks.capture();
 const atmosphere=new SandforgeAtmosphere3D({
  scene,game,world,heightAt,camera,controls,lowQuality:query.get('lite')==='1'
 });
@@ -756,6 +807,9 @@ function animate(now){
   battlefield.sync(false,dt);
  }
  if(!running)battlefield.sync(false,dt);
+ if(running)groundTracks.capture();
+ groundTracks.update(dt,running);
+ battlefield.updateCommandPulse(dt);
  effects.update(dt,running);
  if(running&&sound.enabled)sound.update(game,soundView);
  controls.update();
@@ -783,7 +837,7 @@ function animate(now){
  }
 }
 renderer.setAnimationLoop(animate);
-window.__sandforgeWebGL={renderer,scene,camera,controls,game,terrain,heightAt,battlefield,effects,atmosphere,sound,constructionRecovery,visualPerimeter,boundaryCliffs,panKeys,
+window.__sandforgeWebGL={renderer,scene,camera,controls,game,terrain,heightAt,battlefield,effects,atmosphere,sound,constructionRecovery,visualPerimeter,boundaryCliffs,panKeys,groundTracks,
  setStormPreview,
  get showcaseActive(){return showcaseActive;},
  setShowcase,

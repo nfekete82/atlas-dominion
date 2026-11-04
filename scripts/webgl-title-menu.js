@@ -6,7 +6,7 @@
  const query=new URLSearchParams(location.search);
  const savedKey='sandforge:webgl:v1';
  const optionKey='sandforge:webgl:options';
- const modes={15:4,16:8,17:12,18:16};
+ const modes={15:4,16:8,17:12,18:16,19:4,20:8,21:12,22:16};
  const menu=$('main-dialog'),newDialog=$('sf3d-new-dialog');
  const optionsDialog=$('sf3d-options-dialog'),pauseDialog=$('sf3d-pause-dialog');
  const status=$('sf3d-menu-status');
@@ -19,9 +19,10 @@
  };
  let returnToGame=false;
  const saved=readSave();
- const play=(count,seed,{resume=false}={})=>{
+ const play=(count,seed,{resume=false,legacy=false}={})=>{
   const params=new URLSearchParams({bastions:String(count),seed:String(seed>>>0),play:'1'});
   if(resume)params.set('resume','1');
+  if(legacy)params.set('legacy','1');
   const options=readOptions();
   if(options.quality==='lite')params.set('lite','1');
   if(options.fog===false)params.set('fog','0');
@@ -32,7 +33,7 @@
   if(!data||!bastions||!Number.isSafeInteger(data.seed)){
    notify('Kein kompatibler 3D-Spielstand gefunden.');return;
   }
-  play(bastions,data.seed,{resume:true});
+  play(bastions,data.seed,{resume:true,legacy:data.mapVersion<=18});
  }
  function randomSeed(){
   if(window.crypto?.getRandomValues){
@@ -186,6 +187,6 @@
   });
  }else{
   menu.showModal();
-  status.textContent='CANYON FRONT · 3D-KAMPAGNE';
+  status.textContent='WEITE WÜSTE · 3D-KAMPAGNE';
  }
 })();

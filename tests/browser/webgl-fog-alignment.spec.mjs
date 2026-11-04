@@ -44,11 +44,11 @@ test('Fog-of-war follows actual 3D soldiers without projected parallax, includin
   expect(unit.alpha).toBe(0);
   expect(unit.screenOffset).toBeLessThan(5);
  }
- expect(initial.fogLayers).toBe(64);
+ expect(initial.fogLayers).toBe(16);
  expect(initial.fogGroundHeight).toBe(true);
  expect(initial.fogMaterial.depthTest).toBe(false);
  expect(initial.fogMaterial.order).toBeGreaterThan(100);
- expect(initial.fogMaterial.perimeter).toBe(1);
+ expect(initial.fogMaterial.perimeter).toBe(0);
  expect(initial.fogEnabled).toBe(true);
  const movement=await page.evaluate(()=>{
   const a=window.__sandforgeWebGL,g=a.game,b=a.battlefield,w=g.world;

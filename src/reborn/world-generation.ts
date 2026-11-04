@@ -53,7 +53,11 @@ export function generateMap(seed:number,version:Exclude<MapVersion,0>=MAP_VERSIO
     if(sites.some((s,j)=>Math.hypot(p.x-s.x,p.y-s.y)<(layout.headquarters.some(id=>id===j)?version>=2?Math.min(520,w*.7):335:version>=2?Math.min(230,w*.38):155))||corridors.some(([a,b])=>segmentDistance(p,a,b)<CORRIDOR_RADIUS+cell)||canyon.ridges.some(r=>r.spine.slice(1).some((b,j)=>segmentDistance(p,r.spine[j],b)<r.width+125))||canyon.ruins.some(r=>canyonRuinBlocked(p,r,95)))reserved[i]=1;
   }
   const mesas:Mesa[]=[];
-  for(let attempt=0;attempt<900&&mesas.length<Math.max(12,Math.round(44*(size/RULES.worldSize)**2));attempt++){
+  // Wide v19+ landscapes should have expansive empty maneuvering ground.
+  // Preserve legacy mesa counts/seed streams for all old map versions.
+  const mesaTarget=version>=19?Math.round(13+count*.75):
+   Math.max(12,Math.round(44*(size/RULES.worldSize)**2));
+  for(let attempt=0;attempt<900&&mesas.length<mesaTarget;attempt++){
     const x=100+rand()*(size-200),y=160+rand()*(size-270),radius=50+rand()*75,columns:MesaColumn[]=[];
     const count=3+Math.floor(rand()*5),rotation=rand()*Math.PI*2;
     for(let n=0;n<count;n++){
