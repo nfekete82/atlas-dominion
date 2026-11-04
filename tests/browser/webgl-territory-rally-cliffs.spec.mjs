@@ -204,7 +204,7 @@ test('visual depth preview keeps an angled 3D RTS camera and desert fog',async({
   expect(state.isWebGLRenderer).toBe(true);
   expect(state.angle).toBeGreaterThan(1);
   expect(state.angle).toBeLessThan(1.3);
-  expect(state.zoom).toBeCloseTo(.74,2);
+  expect(state.zoom).toBeCloseTo(.59,2);
   expect(state.infantryHeight).toBe(61);
   expect(state.dimensionVersion).toBe(2);
   expect(state.fogStillOpaque).toBe(true);
@@ -429,13 +429,13 @@ test('the higher, wider default camera is restored by Home',async({page})=>{
     const view=window.__sandforgeWebGL;
     return {zoom:view.camera.zoom,polar:view.controls.getPolarAngle()};
   });
-  expect(before.zoom).toBeCloseTo(.74,2);
+  expect(before.zoom).toBeCloseTo(.59,2);
   expect(before.polar).toBeGreaterThan(.98);
   expect(before.polar).toBeLessThan(1.15);
   await page.locator('#sf3d-showcase').click();
   await page.locator('#sf3d-showcase').click();
   await page.locator('#home').click();
-  expect(await page.evaluate(()=>window.__sandforgeWebGL.camera.zoom)).toBeCloseTo(.74,2);
+  expect(await page.evaluate(()=>window.__sandforgeWebGL.camera.zoom)).toBeCloseTo(.59,2);
 });
 
 test('Fog-of-War shader softens the visible-side border without uncovering hidden cells',async({page})=>{
