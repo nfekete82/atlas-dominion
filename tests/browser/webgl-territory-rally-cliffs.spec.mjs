@@ -204,3 +204,56 @@ test('visual depth preview keeps an angled 3D RTS camera and desert fog',async({
   expect(state.fogStillOpaque).toBe(true);
   expect(state.fogTint).toBe(true);
 });
+
+test('3D showcase button reveals an orbiting scene and restores the original RTS view',async({page})=>{
+  await load(page);
+  const before=await page.evaluate(()=>{
+    const v=window.__sandforgeWebGL;
+    return {
+      camera:v.camera.position.toArray(),
+      target:v.controls.target.toArray(),
+      zoom:v.camera.zoom,fog:v.battlefield.fogEnabled
+    };
+  });
+  const button=page.locator('#sf3d-showcase');
+  await expect(button).toBeVisible();
+  await button.click();
+  await expect(button).toHaveAttribute('aria-pressed','true');
+  await expect(page.locator('#sf3d-showcase-hint')).toBeVisible();
+  const active=await page.evaluate(()=>{
+    const v=window.__sandforgeWebGL;
+    return {
+      active:v.showcaseActive,zoom:v.camera.zoom,
+      autoRotate:v.controls.autoRotate,
+      fog:v.battlefield.fogEnabled,
+      axes:v.scene.getObjectByName('visual-only-3d-reference-axes')?.visible
+    };
+  });
+  expect(active).toEqual({
+    active:true,zoom:1.55,autoRotate:true,fog:false,axes:true
+  });
+  await button.click();
+  await expect(button).toHaveAttribute('aria-pressed','false');
+  await expect(page.locator('#sf3d-showcase-hint')).toBeHidden();
+  const restored=await page.evaluate(()=>{
+    const v=window.__sandforgeWebGL;
+    return {
+      active:v.showcaseActive,zoom:v.camera.zoom,
+      fog:v.battlefield.fogEnabled,
+      autoRotate:v.controls.autoRotate,
+      axes:v.scene.getObjectByName('visual-only-3d-reference-axes')?.visible
+    };
+  });
+  expect(restored).toEqual({
+    active:false,zoom:before.zoom,fog:before.fog,autoRotate:false,axes:false
+  });
+});
+
+test('showcase URL parameter starts an obvious 3D preview automatically',async({page})=>{
+  await page.setViewportSize({width:1440,height:900});
+  await page.goto(route+'&showcase=1',{waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:95000});
+  await expect(page.locator('#sf3d-showcase')).toHaveAttribute('aria-pressed','true');
+  await expect(page.locator('#sf3d-showcase-hint')).toBeVisible();
+  expect(await page.evaluate(()=>window.__sandforgeWebGL.showcaseActive)).toBe(true);
+});
