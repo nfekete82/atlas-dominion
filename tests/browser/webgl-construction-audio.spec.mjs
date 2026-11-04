@@ -94,3 +94,41 @@ test('3D audio and HUD: clicks enabled by user gesture, complete unit text, zoom
  await page.waitForFunction(()=>window.__sandforgeWebGL?.sound?.context?.state==='running',{timeout:20000});
  expect(await page.evaluate(()=>window.__sandforgeWebGL.sound.enabled)).toBe(true);
 });
+
+test('Audio resumes after suspension; locked production stays legible; interrupted 3D work gets reassigned',async({page})=>{
+ test.setTimeout(120000);
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.setViewportSize({width:1440,height:900});
+ await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',{waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:95000});
+ await page.locator('[data-tab="buildings"]').click();
+ await expect(page.locator('[data-build="barracks"]')).toBeDisabled();
+ const filter=await page.locator('[data-build="barracks"] .sf-card-image img')
+   .evaluate(el=>({filter:getComputedStyle(el).filter,opacity:getComputedStyle(el).opacity}));
+ expect(filter.filter).toContain('grayscale(1)');
+ expect(filter.filter).toContain('blur(');
+ expect(Number(filter.opacity)).toBeLessThan(1);
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.sound?.context?.state==='running',{timeout:20000});
+ await page.evaluate(()=>window.__sandforgeWebGL.sound.context.suspend());
+ await page.waitForFunction(()=>window.__sandforgeWebGL.sound.context.state==='suspended');
+ // The next real pointer interaction is a permitted autoplay-unlock gesture.
+ await page.locator('[data-tab="units"]').click();
+ await page.waitForFunction(()=>window.__sandforgeWebGL.sound.context.state==='running',{timeout:15000});
+ const recovered=await page.evaluate(()=>{
+  const a=window.__sandforgeWebGL,g=a.game,repair=a.constructionRecovery;
+  const site=g.headquartersCandidates(0).find(p=>g.buildError(0,'headquarters',p)===null);
+  const base=g.build(0,'headquarters',site);
+  if(!base)throw Error('Cannot commission HQ');
+  const worker=g.units.find(u=>u.owner===0&&u.kind==='engineer');
+  repair.tick(); // Capture the original worker ID.
+  worker.orders=[];worker.path=[];worker.repath=0;
+  g.time+=4.4;repair.tick();
+  return {working:worker.orders[0]?.kind,target:worker.orders[0]?.target,baseId:base.id,
+   restored:repair.recovered,remaining:base.buildRemaining};
+ });
+ expect(recovered.restored).toBe(1);
+ expect(recovered.working).toBe('build');
+ expect(recovered.target).toBe(recovered.baseId);
+ expect(recovered.remaining).toBeGreaterThan(0);
+ expect(errors).toEqual([]);
+});
