@@ -103,7 +103,11 @@ export class SandforgeBattlefield {
  }
  // Do not download every 15–25 MB faction model on the first frame.
  scheduleDetail(entry,entity,type){
-  if(this.lite||entry.requested||this.loadingCount+this.modelQueue.length>=this.maxModels)return;
+  // Lite mode reduces terrain/actor detail, but authored PBR buildings must
+  // still appear. Falling back to primitive grey cubes would make the actual
+  // player's base look markedly worse than the 2D game.
+  if((this.lite&&type!=='building')||entry.requested||
+     this.loadingCount+this.modelQueue.length>=this.maxModels)return;
   entry.requested=true;
   const url=this.asset(entity.kind,entity.owner,type);
   this.modelQueue.push({url,entry,type});
