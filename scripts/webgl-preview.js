@@ -132,8 +132,36 @@ function sandTexture(){
  t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),8);
  return t;
 }
+// Tiny wind-carved ridges are normal-mapped on the true 3D heightfield.
+// The micro-relief changes lighting only, never collision or navigation.
+function sandMicroNormalTexture(){
+ const canvas=document.createElement('canvas');canvas.width=canvas.height=256;
+ const ctx=canvas.getContext('2d'),pixels=ctx.createImageData(256,256);
+ for(let y=0;y<256;y++)for(let x=0;x<256;x++){
+  const ripple=Math.cos(x*.19+y*.048)*.16+
+   Math.cos(x*.57-y*.12)*.06+
+   Math.cos(y*.41+x*.06)*.04;
+  const cross=Math.sin(x*.19+y*.048)*.035+
+   Math.sin(y*.41+x*.06)*.018;
+  const inv=1/Math.hypot(ripple,1,cross);
+  const k=(y*256+x)*4;
+  pixels.data[k]=Math.round(127.5*(1-ripple*inv));
+  pixels.data[k+1]=Math.round(127.5*(1+cross*inv));
+  pixels.data[k+2]=Math.round(127.5*(1+inv));
+  pixels.data[k+3]=255;
+ }
+ ctx.putImageData(pixels,0,0);
+ const map=new THREE.CanvasTexture(canvas);
+ map.wrapS=map.wrapT=THREE.RepeatWrapping;
+ map.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+ return map;
+}
 function buildTerrain(){
- const texture=sandTexture(),material=new THREE.MeshStandardMaterial({color:'#f5eadb',map:texture,vertexColors:true,roughness:.99,metalness:0});
+ const texture=sandTexture(),normalMap=sandMicroNormalTexture();
+ const material=new THREE.MeshStandardMaterial({
+  color:'#f5eadb',map:texture,normalMap,normalScale:new THREE.Vector2(.45,.45),
+  vertexColors:true,roughness:.99,metalness:0
+ });
  // The buildings-3d/desert-basecolor.png is a *model material atlas*,
  // with hazard stripes, blue and red panels! Tiling it over the world caused
  // the obvious checkerboard terrain. Reuse the original Sandforge 2K sand
@@ -150,8 +178,8 @@ function buildTerrain(){
    sand.wrapS=sand.wrapT=THREE.RepeatWrapping;
    sand.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
    material.map=sand;
-   // The model's normal atlas must NOT be applied to the landscape either.
-   material.normalMap=null;
+   // A dedicated procedural wind-ripple normal replaces the unsuitable
+   // building-model normal atlas; retain it when swapping the base color.
    material.needsUpdate=true;
    texture.dispose();
    console.info('Sandforge 3D terrain: seamless original sand artwork loaded');
