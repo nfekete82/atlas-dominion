@@ -375,6 +375,7 @@ export class SandforgeBattlefield {
     if(!event.shiftKey)this.selected.clear();
     if(this.selected.has(near.u.id)&&event.shiftKey)this.selected.delete(near.u.id);
     else this.selected.add(near.u.id);
+    this.sound?.select?.();
     this.selectedBase=null;this.drawInterface();return;
    }
    const base=this.game.bases.filter(b=>b.owner===0&&b.hp>0).map(b=>({b,d:dist(b,p)})).sort((a,b)=>a.d-b.d)[0];
@@ -385,6 +386,11 @@ export class SandforgeBattlefield {
    const ids=[...this.selected],kind=this.attackMode?'attackMove':'move';
    const accepted=this.game.command(ids,{x:p.x,y:p.y,kind});
    this.message(accepted?accepted+' Einheit(en): '+(this.attackMode?'Angriff':'Marsch'):'Ziel nicht erreichbar');
+   if(accepted){
+    this.sound?.command?.(kind==='attackMove');
+    const unit=this.game.units.find(u=>ids.includes(u.id)&&u.owner===0&&u.hp>0);
+    if(unit)this.sound?.acknowledge?.({kind:kind==='attackMove'?'attack':'move',unit:unit.kind,unitId:unit.id},this.game);
+   }
    this.attackMode=false;
   }
  }
