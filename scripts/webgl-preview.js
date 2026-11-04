@@ -59,7 +59,7 @@ renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
 // Lower the hot highlights of the preview: original sandstone and buildings
 // share one warm daylight exposure instead of glowing in different palettes.
-renderer.toneMappingExposure=1.04;
+renderer.toneMappingExposure=1.00;
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.65));
@@ -67,8 +67,8 @@ stage.append(renderer.domElement);
 const scene=new THREE.Scene();
 scene.background=new THREE.Color('#bea17b');
 scene.fog=new THREE.FogExp2('#bea17b',.00011);
-scene.add(new THREE.HemisphereLight('#fff1dd','#776251',1.7));
-const sun=new THREE.DirectionalLight('#fff1d6',2.65);
+scene.add(new THREE.HemisphereLight('#fff1dd','#675246',1.20));
+const sun=new THREE.DirectionalLight('#fff0d4',3.05);
 sun.position.set(-700,1100,420);
 sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
 sun.shadow.camera.left=-1250;sun.shadow.camera.right=1250;
@@ -76,7 +76,7 @@ sun.shadow.camera.top=1250;sun.shadow.camera.bottom=-1250;
 sun.shadow.camera.near=1;sun.shadow.camera.far=3000;
 sun.shadow.bias=-.00006;sun.shadow.normalBias=.038;
 sun.target.position.set(0,0,0);scene.add(sun,sun.target);
-const fill=new THREE.DirectionalLight('#b9d6dc',.65);
+const fill=new THREE.DirectionalLight('#c2d7df',.40);
 fill.position.set(650,500,-450);scene.add(fill);
 const camera=new THREE.OrthographicCamera(-680,680,410,-410,10,12000);
 // Initial framing presents a real ruin and the adjacent ridge in one view,
@@ -87,15 +87,19 @@ const camera=new THREE.OrthographicCamera(-680,680,410,-410,10,12000);
  const focalX=own.length?own.reduce((sum,u)=>sum+u.x,0)/own.length:half;
  const focalZ=own.length?own.reduce((sum,u)=>sum+u.y,0)/own.length:half;
  const cameraTarget=new THREE.Vector3(focalX-half,heightAt(focalX,focalZ)+42,focalZ-half);
-camera.position.copy(cameraTarget).add(new THREE.Vector3(1050,1200,1450));
+camera.position.copy(cameraTarget).add(new THREE.Vector3(1100,885,1510));
+// Anchor the initial sunlight to the player spawn for visible unit shadows.
+sun.target.position.copy(cameraTarget);
+sun.position.copy(cameraTarget).add(new THREE.Vector3(-700,1100,420));
 camera.lookAt(cameraTarget);
 const controls=new OrbitControls(camera,renderer.domElement);
 controls.enableDamping=true;controls.dampingFactor=.10;
 controls.screenSpacePanning=true;
 // C&C-style constrained orthographic RTS camera: the map is NOT a tabletop.
 controls.minZoom=wideView?.55:.70;controls.maxZoom=3.5;
-camera.zoom=.90;camera.updateProjectionMatrix();
-controls.minPolarAngle=.34;controls.maxPolarAngle=1.22;
+camera.zoom=.86;camera.updateProjectionMatrix();
+// A lower camera angle gives rock faces and buildings visible depth.
+controls.minPolarAngle=.65;controls.maxPolarAngle=1.30;
 controls.mouseButtons={LEFT:THREE.MOUSE.PAN,MIDDLE:THREE.MOUSE.DOLLY,RIGHT:THREE.MOUSE.ROTATE};
 controls.target.copy(cameraTarget);
 const loader=new GLTFLoader();
@@ -432,8 +436,8 @@ function spin(angle){
  camera.lookAt(controls.target);controls.update();
 }
 $('home').onclick=()=>{
- controls.target.copy(cameraTarget);camera.position.copy(cameraTarget).add(new THREE.Vector3(1050,1200,1450));
- camera.zoom=.90;camera.updateProjectionMatrix();controls.update();
+ controls.target.copy(cameraTarget);camera.position.copy(cameraTarget).add(new THREE.Vector3(1100,885,1510));
+ camera.zoom=.86;camera.updateProjectionMatrix();controls.update();
 };
 $('load').onclick=()=>{
  const q=new URLSearchParams({bastions:$('bastions').value,seed:String(Number($('seed').value)>>>0)});
