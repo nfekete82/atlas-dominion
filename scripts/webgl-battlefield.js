@@ -22,6 +22,7 @@ export class SandforgeBattlefield {
  constructor({game,world,terrain,scene,renderer,camera,controls,loader,groundMeshes,heightAt,pos,lite=false}){
   Object.assign(this,{game,world,terrain,scene,renderer,camera,controls,loader,groundMeshes,heightAt,pos,lite});
   this.units=new Map();this.bases=new Map();this.bastions=new Map();
+  this.announcedBuildings=new Set(game.bases.filter(b=>b.buildRemaining<=0).map(b=>b.id));
   this.models=new Map();this.pending=new Set();this.selected=new Set();
   this.selectedBase=null;this.buildKind=null;this.attackMode=false;
   this.miniLast=0;this.uiLast=0;this.fogLast=0;
@@ -250,6 +251,10 @@ export class SandforgeBattlefield {
    entry.node.scale.y=1;
    entry.node.rotation.y=b.facing===1?Math.PI:0;
    this.construction.update(entry,b);
+   if(b.buildRemaining<=0&&!this.announcedBuildings.has(b.id)){
+    this.announcedBuildings.add(b.id);
+    if(b.owner===0&&this.sound?.enabled)this.sound.announceReady('building');
+   }
   }
   for(const [id,e] of this.bases)if(!aliveBases.has(id)){this.presentation.remove(e,this.game.bases.find(base=>base.id===id));this.construction.dispose(e);this.grounding.detachBuilding(id);this.scene.remove(e.node);this.bases.delete(id);if(this.selectedBase===id)this.selectedBase=null;}
   this.presentation.consumeShots(this.units,this.bases);
@@ -383,6 +388,7 @@ export class SandforgeBattlefield {
   this.mini=this.panel.querySelector('#sf-map');
   this.panel.addEventListener('click',e=>{
    const button=e.target.closest('button');if(!button)return;
+   if(this.sound?.enabled)this.sound.select();
    const kind=button.dataset.build,unit=button.dataset.unit,action=button.dataset.action;
    if(kind){this.beginPlacement(kind);this.attackMode=false;this.sound?.select?.();
     this.message('Bauplatz wählen: '+BUILDINGS[kind].name+' · R: drehen · Shift: Aufträge anhängen');this.drawInterface();}
