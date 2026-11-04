@@ -519,3 +519,85 @@
  #sf-classic-root #sf-selection-panel .commands{grid-template-columns:repeat(2,minmax(0,1fr))!important}
  #sf-classic-root #sf-selection-panel .commands button{font-size:10px!important;min-height:33px!important;height:33px!important}
 }
+
+/* Horizontal production catalog (2026-11-04)
+ * Each unit producer remains a real, accessible DOM section for test and
+ * entitlement parity, but their cards form ONE continuous horizontal row.
+ * The scroll container itself owns horizontal overflow; no nested rows. */
+#sf-classic-root[data-tab="units"] #sf-actions .sf-group[data-sf-group="units"]{
+ display:flex!important;
+ flex-direction:row!important;
+ flex-wrap:nowrap!important;
+ align-items:flex-start!important;
+ gap:8px!important;
+ width:100%!important;
+ min-width:0!important;
+ overflow-x:auto!important;
+ overflow-y:hidden!important;
+ padding:4px 4px 13px!important;
+ scrollbar-width:thin;
+ scrollbar-color:#ae8e56 #19232a;
+}
+#sf-classic-root #sf-actions .sf-group[data-sf-group="units"] > .sf-roster-section{
+ display:flex!important;
+ flex:0 0 auto!important;
+ width:max-content!important;
+ min-width:max-content!important;
+ margin:0!important;
+ padding:0!important;
+ align-items:flex-start!important;
+}
+#sf-classic-root #sf-actions .sf-group[data-sf-group="units"] .sf-roster-section > h2{
+ display:none!important;
+}
+#sf-classic-root #sf-actions .sf-group[data-sf-group="units"] .sf-roster-section > .catalog-grid{
+ display:flex!important;
+ flex:0 0 auto!important;
+ flex-direction:row!important;
+ flex-wrap:nowrap!important;
+ width:max-content!important;
+ min-width:max-content!important;
+ gap:8px!important;
+ overflow:visible!important;
+ padding:0!important;
+}
+/* Building cards are already one group; scroll within it. */
+#sf-classic-root #sf-actions .sf-group[data-sf-group="buildings"] > .catalog-grid{
+ display:flex!important;
+ flex-direction:row!important;
+ flex-wrap:nowrap!important;
+ gap:8px!important;
+ overflow-x:auto!important;
+ overflow-y:hidden!important;
+ padding:4px 4px 13px!important;
+ scrollbar-width:thin;
+ scrollbar-color:#ae8e56 #19232a;
+}
+#sf-classic-root #sf-actions .sf-group:is(
+ [data-sf-group="units"],[data-sf-group="buildings"]
+) .catalog-card{
+ flex:0 0 138px!important;
+ width:138px!important;
+ min-width:138px!important;
+ max-width:138px!important;
+}
+@media(max-width:1000px){
+ #sf-classic-root #sf-actions .sf-group:is(
+  [data-sf-group="units"],[data-sf-group="buildings"]
+ ) .catalog-card{
+  flex-basis:114px!important;
+  width:114px!important;
+  min-width:114px!important;
+  max-width:114px!important;
+ }
+}
+@media(max-width:680px){
+ #sf-classic-root #sf-actions .sf-group:is(
+  [data-sf-group="units"],[data-sf-group="buildings"]
+ ) .catalog-card{
+  flex-basis:96px!important;
+  width:96px!important;
+  min-width:96px!important;
+  max-width:96px!important;
+ }
+}
