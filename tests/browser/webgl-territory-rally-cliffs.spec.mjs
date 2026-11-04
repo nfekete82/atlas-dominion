@@ -146,3 +146,30 @@ test('sector takeover and loss show player-only HUD feedback',async({page})=>{
   expect(events.some(e=>e.type==='lost'&&e.message.includes('VERLOREN'))).toBe(true);
   expect(result.reset).toBe(false);
 });
+
+test('production percentage increases with elapsed time and construction is visible',async({page})=>{
+  await load(page);
+  const info=await page.evaluate(()=>{
+    const a=window.__sandforgeWebGL,g=a.game,b=a.battlefield;
+    const base=g.bases.find(x=>x.owner===0&&x.kind==='headquarters');
+    if(!base)return {error:'No blue HQ'};
+    const old={queue:[...base.queue],queueTypes:[...base.queueTypes],production:base.production,buildRemaining:base.buildRemaining};
+    base.queue=[5];base.queueTypes=['engineer'];base.production=2.5;
+    base.buildRemaining=10;
+    b.drawInterface();
+    const bar=b.panel.querySelector('#sf-progress').style.width;
+    const eta=b.panel.querySelector('#sf-queue-time').textContent;
+    const construction=b.panel.querySelector('#sf-building-status').textContent;
+    const count=b.panel.querySelector('#sf-queue-count').textContent;
+    base.queue=old.queue;base.queueTypes=old.queueTypes;
+    base.production=old.production;base.buildRemaining=old.buildRemaining;
+    b.drawInterface();
+    return {bar,eta,construction,count};
+  });
+  expect(info.error).toBeUndefined();
+  expect(info.bar).toBe('50.0%');
+  expect(info.eta).toBe('3 s');
+  expect(info.construction).toContain('50%');
+  expect(info.count).toContain('1 PRODUKTION');
+  expect(info.count).toContain('1 BAU');
+});
