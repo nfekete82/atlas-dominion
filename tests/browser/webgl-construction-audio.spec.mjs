@@ -6,7 +6,7 @@ test('3D original-style blueprint: translucent ghost, live site validation and R
  await page.setViewportSize({width:1440,height:900});
  await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:95000});
- await page.locator('[data-tab="buildings"]').click();
+ await page.locator('#sf-classic-root .catalog-tabs [data-tab="buildings"]').first().click();
  await page.locator('[data-build="headquarters"]').click();
  expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.buildPreview?.userData.buildGhost)).toBe(true);
  const canvas=page.locator('#stage canvas');
@@ -86,11 +86,11 @@ test('3D audio and HUD: clicks enabled by user gesture, complete unit text, zoom
  expect(before.minZoom).toBeCloseTo(.70,2);
  expect(before.vision).toBeCloseTo(1.12,2);
  expect(before.audioEnabled).toBe(true);
- await page.locator('[data-tab="units"]').click();
+ await page.locator('#sf-classic-root .catalog-tabs [data-tab="units"]').first().click();
  const soldier=page.locator('[data-unit="infantry"] .card-name');
  await expect(soldier).toHaveText('Infanteriesoldat');
  expect(await soldier.evaluate(el=>getComputedStyle(el).whiteSpace)).toBe('normal');
- await page.locator('[data-tab="buildings"]').click();
+ await page.locator('#sf-classic-root .catalog-tabs [data-tab="buildings"]').first().click();
  await page.waitForFunction(()=>window.__sandforgeWebGL?.sound?.context?.state==='running',{timeout:20000});
  expect(await page.evaluate(()=>window.__sandforgeWebGL.sound.enabled)).toBe(true);
 });
@@ -101,7 +101,7 @@ test('Audio resumes after suspension; locked production stays legible; interrupt
  await page.setViewportSize({width:1440,height:900});
  await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:95000});
- await page.locator('[data-tab="buildings"]').click();
+ await page.locator('#sf-classic-root .catalog-tabs [data-tab="buildings"]').first().click();
  await expect(page.locator('[data-build="barracks"]')).toBeDisabled();
  const filter=await page.locator('[data-build="barracks"] .sf-card-image img')
    .evaluate(el=>({filter:getComputedStyle(el).filter,opacity:getComputedStyle(el).opacity}));
@@ -112,7 +112,7 @@ test('Audio resumes after suspension; locked production stays legible; interrupt
  await page.evaluate(()=>window.__sandforgeWebGL.sound.context.suspend());
  await page.waitForFunction(()=>window.__sandforgeWebGL.sound.context.state==='suspended');
  // The next real pointer interaction is a permitted autoplay-unlock gesture.
- await page.locator('[data-tab="units"]').click();
+ await page.locator('#sf-classic-root .catalog-tabs [data-tab="units"]').first().click();
  await page.waitForFunction(()=>window.__sandforgeWebGL.sound.context.state==='running',{timeout:15000});
  const recovered=await page.evaluate(()=>{
   const a=window.__sandforgeWebGL,g=a.game,repair=a.constructionRecovery;
@@ -139,7 +139,7 @@ test('3D placement overlay is drawn in a separate foreground pass after black fo
  await page.setViewportSize({width:1440,height:900});
  await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:95000});
- await page.locator('[data-tab="buildings"]').click();
+ await page.locator('#sf-classic-root .catalog-tabs [data-tab="buildings"]').first().click();
  await page.locator('[data-build="headquarters"]').click();
  const canvas=page.locator('#stage canvas'),r=await canvas.boundingBox();
  await page.mouse.move(r.x+r.width*.47,r.y+r.height*.47);
