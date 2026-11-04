@@ -10,6 +10,7 @@ COPY scripts/webgl-battlefield.js ./scripts/webgl-battlefield.js
 COPY scripts/webgl-environment.js ./scripts/webgl-environment.js
 COPY scripts/webgl-combat-vfx.js ./scripts/webgl-combat-vfx.js
 COPY scripts/webgl-classic-hud.js ./scripts/webgl-classic-hud.js
+COPY scripts/webgl-portraits.js ./scripts/webgl-portraits.js
 RUN npm install --no-audit --no-fund && npm run build
 
 FROM node:22-alpine
