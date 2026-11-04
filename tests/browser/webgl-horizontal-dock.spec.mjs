@@ -74,6 +74,22 @@ test('Zero Hour-inspired HUD has left minimap, horizontal middle catalog and rig
  expect(after.firstRow).toBe(true);
 });
 
+test('lite infantry visual scale is reduced without changing unit collision radius',async({page})=>{
+ test.setTimeout(115000);
+ await load(page);
+ const result=await page.evaluate(()=>{
+  const view=window.__sandforgeWebGL,game=view.game;
+  const soldier=game.units.find(u=>u.owner===0&&u.kind==='infantry');
+  const entry=view.battlefield.units.get(soldier.id);
+  return {scale:entry?.placeholder?.scale.x,kind:soldier.kind,
+   radius:game.world.walkable(soldier),sameUnit:entry?.node?.userData?.id===soldier.id};
+ });
+ expect(result.kind).toBe('infantry');
+ expect(result.scale).toBeCloseTo(.88,3);
+ expect(result.sameUnit).toBe(true);
+ expect(result.radius).toBe(true);
+});
+
 test('spacious desert details are subtle decals, not oversized scattered blobs',async({page})=>{
  test.setTimeout(120000);
  await load(page);
