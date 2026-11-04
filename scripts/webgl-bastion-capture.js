@@ -6,18 +6,18 @@ import {captureSeconds} from '/src/reborn/territory-warfare.js';
 export function createBastionCaptureBar(){
  const group=new THREE.Group();
  group.name='bastion-capture-bar';
- group.position.y=153;
+ group.position.y=128;
  group.visible=false;
  const background=new THREE.Sprite(new THREE.SpriteMaterial({
   color:'#0c151d',opacity:.94,transparent:true,depthTest:false,depthWrite:false
  }));
- background.scale.set(144,17,1);
+ background.scale.set(72,8,1);
  background.renderOrder=1002;
  group.add(background);
  const fill=new THREE.Sprite(new THREE.SpriteMaterial({
   color:'#62c6e9',transparent:true,depthTest:false,depthWrite:false
  }));
- fill.scale.set(1,11,1);
+ fill.scale.set(1,5,1);
  fill.renderOrder=1003;
  fill.position.z=1;
  group.add(fill);
@@ -45,8 +45,8 @@ export function updateBastionCaptureBar(group,territory,game,fogEnabled){
  })||RULES.captureTime);
  const fraction=Math.max(0,Math.min(1,territory.progress/seconds));
  const fill=group.userData.captureFill;
- fill.scale.x=Math.max(.01,136*fraction);
- fill.position.x=-68+fill.scale.x/2;
+ fill.scale.x=Math.max(.01,66*fraction);
+ fill.position.x=-33+fill.scale.x/2;
  fill.material.color.set(territory.capturing===0?'#62c6e9':'#f19b73');
  group.userData.captureFraction=fraction;
  group.userData.captureSeconds=seconds;
