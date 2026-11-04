@@ -97,3 +97,22 @@ test('WebGL RTS menu v2: isolated tabs and real 192x132 unit sprite portraits',(
   assert.ok(existsSync(root+'.json'),kind+' frames missing');
  }
 });
+
+test('Decoration outside the map is packaged but is absent from AI, pathfinding and gameplay raycasts',()=>{
+ const perimeterPath='dist/webgl-perimeter.js';
+ assert.ok(existsSync(perimeterPath),'visual-only terrain module missing from Docker runtime');
+ const perimeter=readFileSync(perimeterPath,'utf8');
+ const preview=readFileSync('dist/webgl-preview.js','utf8');
+ const battlefield=readFileSync('dist/webgl-battlefield.js','utf8');
+ const docker=readFileSync('Dockerfile','utf8');
+ assert.match(perimeter,/visualPerimeter:true/);
+ assert.match(perimeter,/nonPlayable:true/);
+ assert.match(perimeter,/ringTiles=2/);
+ assert.match(preview,/addVisualPerimeter\(/);
+ assert.match(preview,/groundMeshes\.push\(mesh\)/);
+ assert.match(preview,/panControls=new Set/);
+ assert.match(preview,/stepCamera\(dt\)/);
+ assert.match(battlefield,/KeyF/);
+ assert.doesNotMatch(battlefield,/KeyA/);
+ assert.match(docker,/COPY scripts\/webgl-perimeter\.js/);
+});
