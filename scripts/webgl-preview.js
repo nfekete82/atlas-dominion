@@ -293,7 +293,24 @@ function instancedStone(){
 function sandRoads(){
  // Discontinuous sandy tire marks share one GPU draw call, not thousands of
  // individual meshes. Gaps and imperfect widths imply old worn tracks.
- const material=pbr('#99704b'),geometry=new THREE.PlaneGeometry(1,1);
+ // Per-pixel alpha softens the old rectangular sticker appearance.
+ const canvas=document.createElement('canvas');
+ canvas.width=32;canvas.height=128;
+ const ctx=canvas.getContext('2d'),pixels=ctx.createImageData(32,128);
+ for(let y=0;y<128;y++)for(let x=0;x<32;x++){
+  const edge=Math.sin(Math.PI*x/31)**1.7*Math.sin(Math.PI*y/127)**1.25;
+  const noise=.8+.2*Math.sin(y*.73+x*1.91);
+  const k=(y*32+x)*4;
+  pixels.data[k]=89;pixels.data[k+1]=69;pixels.data[k+2]=47;
+  pixels.data[k+3]=Math.round(172*edge*noise);
+ }
+ ctx.putImageData(pixels,0,0);
+ const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
+ const material=new THREE.MeshBasicMaterial({
+  map:texture,transparent:true,opacity:.62,depthWrite:false,
+  polygonOffset:true,polygonOffsetFactor:-1,side:THREE.DoubleSide
+ });
+ const geometry=new THREE.PlaneGeometry(1,1);
  geometry.rotateX(-Math.PI/2);
  const r=rnd(seed^0x2023cb47),dummy=new THREE.Object3D();
  const tracks=new THREE.InstancedMesh(geometry,material,5000);
@@ -713,6 +730,9 @@ function animate(now){
  controls.update();
  stepCamera(dt);
  controls.update();
+ // Keep the shadow-map volume centered on the active camera area.
+ const shift=controls.target.clone().sub(sun.target.position);
+ sun.position.add(shift);sun.target.position.add(shift);
  atmosphere.update(dt);
  renderer.render(scene,camera);
  if(battlefield.buildPreview?.visible){
