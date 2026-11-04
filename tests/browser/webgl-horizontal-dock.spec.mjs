@@ -81,13 +81,13 @@ test('spacious desert details are subtle decals, not oversized scattered blobs',
   const a=window.__sandforgeWebGL,scene=a.scene;
   const craters=scene.getObjectByName('visual-desert-craters');
   const stones=scene.getObjectByName('visual-desert-debris');
-  const craterScale=new THREE.Vector3(),dummy=new THREE.Matrix4();
-  // Read matrices without depending on the renderer instance count.
+  // Instanced matrices are available without exposing THREE globally.
   const sizes=[];
   if(craters)for(let i=0;i<Math.min(craters.count,8);i++){
-   craters.getMatrixAt(i,dummy);dummy.decompose(
-    new THREE.Vector3(),new THREE.Quaternion(),craterScale);
-   sizes.push(Math.max(craterScale.x,craterScale.y,craterScale.z));
+   const m=craters.instanceMatrix.array,offset=i*16;
+   const x=Math.hypot(m[offset],m[offset+1],m[offset+2]);
+   const y=Math.hypot(m[offset+4],m[offset+5],m[offset+6]);
+   sizes.push(Math.max(x,y));
   }
   return {version:a.world?.mapVersion??a.game.world.mapVersion,
    craters:craters?.count??0,opacity:craters?.material?.opacity,
