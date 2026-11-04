@@ -433,6 +433,19 @@ function makeRuinGrit(){
  return texture;
 }
 const ruinGrit=makeRuinGrit();
+let ruinStrata=null;
+const ruinStrataLoad=new Promise(resolve=>{
+ new THREE.TextureLoader().load('/src/assets/reborn/sandstone-strata-v1.png',
+  texture=>{
+   texture.colorSpace=THREE.SRGBColorSpace;
+   texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
+   texture.anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),8);
+   ruinStrata=texture;resolve(true);
+  },undefined,()=>{
+   console.warn('Ruin sandstone fallback: using procedural weathering');
+   resolve(false);
+  });
+});
 function weatherRuinMeshes(node){
  node.traverse(mesh=>{
   if(!mesh.isMesh)return;
@@ -451,7 +464,12 @@ function weatherRuinMeshes(node){
   const upgrade=m=>{
    const value=m.clone();
    if(/plaster|sandstone|concrete|roof|rubble|dust/i.test(value.name||'')){
-    value.map=ruinGrit;value.bumpMap=ruinGrit;value.bumpScale=.09;
+    // Sandstone keeps its native stratified PBR grain, while plaster, roof
+    // and concrete share the fine procedural dirt/crack map.
+    const naturalStone=/sandstone|rubble/i.test(value.name||'');
+    const detail=naturalStone?(ruinStrata??ruinGrit):ruinGrit;
+    value.map=detail;value.bumpMap=detail;
+    value.bumpScale=naturalStone?.17:.09;
     value.roughness=1;value.metalness=0;value.needsUpdate=true;
    }
    return value;
@@ -462,6 +480,8 @@ function weatherRuinMeshes(node){
 }
 async function addRuins(){
  // Every ruin instance is a real glTF triangle mesh with PBR materials.
+ // Wait for the authored rock texture so instances are textured on first paint.
+ await ruinStrataLoad;
  const data=await Promise.all([
   tryModel('/src/assets/reborn/canyon-3d/ruin-house.gltf'),
   tryModel('/src/assets/reborn/canyon-3d/ruin-depot.gltf')]);
