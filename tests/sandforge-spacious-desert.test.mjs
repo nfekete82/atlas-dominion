@@ -4,6 +4,7 @@ import {World} from '../dist/src/reborn/world.js';
 import {Simulation} from '../dist/src/reborn/simulation.js';
 import {mapWorldSize,mapLayout} from '../dist/src/reborn/config.js';
 import {generateMap} from '../dist/src/reborn/world-generation.js';
+import {visualUnitScale} from '../dist/webgl-scale.js';
 
 const versions=[[15,19,4],[16,20,8],[17,21,12],[18,22,16]];
 
@@ -22,6 +23,10 @@ test('large desert generation stays deterministic, spacious and navigable for al
   assert.equal(world.size,mapWorldSize(version));
   assert.equal(map.sites.length,count);
   assert.ok(map.ruins.length>=4,'ruins missing on map '+version);
+  assert.ok(map.ruins.every(ruin=>ruin.width>=108 && ruin.depth>=89),
+   'all roomy desert ruins must be physically upscaled on '+version);
+  assert.ok(map.ruins.every(ruin=>!world.walkable({x:ruin.x,y:ruin.y})),
+   'enlarged ruin collision footprints must be solid on '+version);
   assert.ok(map.mesas.length<=Math.round(13+count*.75),'too many mesas on '+version);
   assert.deepEqual(map,generateMap(2074,version),'generation must be deterministic');
   for(const p of map.sites)assert.ok(world.walkable(p),'unwalkable bastion '+version);
@@ -35,6 +40,15 @@ test('large desert generation stays deterministic, spacious and navigable for al
   const old=new World(2074,oldVersion);
   assert.equal(old.size,mapWorldSize(oldVersion));
  }
+});
+
+test('visual scaling keeps soldiers smaller than trucks without changing gameplay radii',()=>{
+ for(const kind of ['infantry','medic','engineer','heavy'])
+  assert.equal(visualUnitScale(kind),.88);
+ assert.equal(visualUnitScale('rover'),.92);
+ assert.equal(visualUnitScale('artillery'),.92);
+ assert.equal(visualUnitScale('tank'),.95);
+ assert.ok(visualUnitScale('bomber')>0&&visualUnitScale('bomber')<=1);
 });
 
 test('v19-v22 games can build HQ, save and reload with original simulation state',()=>{
