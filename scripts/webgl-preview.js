@@ -195,10 +195,10 @@ function instancedStone(){
   image.colorSpace=THREE.SRGBColorSpace;
   for(const mat of materials){mat.map=image;mat.needsUpdate=true;}
  },undefined,error=>console.warn('Rock detail unavailable; solid sandstone fallback',error));
- const dummy=new THREE.Object3D(),groups=materials.map(mat=>new THREE.InstancedMesh(geometry,mat,1100));
+ const dummy=new THREE.Object3D(),groups=materials.map(mat=>new THREE.InstancedMesh(geometry,mat,1750));
  const counts=[0,0,0],r=rnd(seed^0x73c02f4b);
  const put=(x,z,wide,tall,depth)=>{
-  const k=Math.floor(r()*3);if(counts[k]>=1100)return;
+  const k=Math.floor(r()*3);if(counts[k]>=1750)return;
   dummy.position.set(x-half,heightAt(x,z)+tall*.43,z-half);
   dummy.scale.set(wide,tall,depth);
   dummy.rotation.set((r()-.5)*.18,r()*6.28,(r()-.5)*.20);
@@ -226,6 +226,19 @@ function instancedStone(){
   const x=75+r()*(size-150),z=75+r()*(size-150),index=world.index({x,y:z});
   if(index<0||world.blocked[index]||terrain.sites.some(p=>Math.hypot(x-p.x,z-p.y)<160))continue;
   put(x,z,2+r()*5,1+r()*4,2+r()*6);
+ }
+ // Continue weathered stones across the *visual* perimeter. This scatter
+ // uses a different RNG stream so existing battlefield stones stay unchanged.
+ const extra=rnd(seed^0xb487c7e1),margin=visualPerimeter?.margin??size*.5;
+ for(let i=0;i<2100;i++){
+  const x=-margin+extra()*(size+2*margin),z=-margin+extra()*(size+2*margin);
+  if(x>=0&&x<=size&&z>=0&&z<=size)continue;
+  const cluster=extra()>.93;
+  if(cluster){
+   put(x,z,9+extra()*20,14+extra()*28,8+extra()*20);
+   for(let k=0;k<3;k++)
+    put(x+(extra()-.5)*55,z+(extra()-.5)*55,4+extra()*9,5+extra()*17,5+extra()*9);
+  }else put(x,z,1.7+extra()*5.4,1+extra()*3.8,2+extra()*6);
  }
  for(let i=0;i<groups.length;i++){
   groups[i].count=counts[i];groups[i].instanceMatrix.needsUpdate=true;
