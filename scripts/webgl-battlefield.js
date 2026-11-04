@@ -35,6 +35,18 @@ export class SandforgeBattlefield {
   this.rallyMarker.renderOrder=1012;
   this.rallyMarker.visible=false;
   this.scene.add(this.rallyMarker);
+  // Every ground right-click gets a short, expanding Zero Hour-style ping.
+  // Unlike the permanent rally ring it never enters World or save data.
+  this.commandPulse=new THREE.Mesh(
+   new THREE.RingGeometry(23,26,48),
+   new THREE.MeshBasicMaterial({color:'#7ce7ef',transparent:true,
+    opacity:0,depthTest:false,depthWrite:false,side:THREE.DoubleSide})
+  );
+  this.commandPulse.name='visual-ground-command-pulse';
+  this.commandPulse.userData={visualOnly:true,nonPlayable:true,commandPulse:true};
+  this.commandPulse.rotation.x=-Math.PI/2;
+  this.commandPulse.renderOrder=1013;this.commandPulse.visible=false;
+  this.commandPulseTime=.7;this.scene.add(this.commandPulse);
   this.miniLast=0;this.uiLast=0;this.fogLast=0;
   this.fogEnabled=true;this.selectedRings=new Map();this.animations=new Map();
   this.presentation=new SandforgeActorPresentation(scene,camera,game);
@@ -748,6 +760,22 @@ export class SandforgeBattlefield {
   }
   return nearest;
  }
+ showCommandPulse(point,attack=false){
+  this.commandPulse.position.copy(this.pos(point.x,point.y,
+   this.heightAt(point.x,point.y)+2.8));
+  this.commandPulse.material.color.set(attack?'#ffbd76':'#7ce7ef');
+  this.commandPulse.scale.setScalar(.72);
+  this.commandPulse.material.opacity=.9;
+  this.commandPulseTime=0;this.commandPulse.visible=true;
+ }
+ updateCommandPulse(dt){
+  if(!this.commandPulse.visible)return;
+  this.commandPulseTime+=Math.max(0,dt);
+  const t=Math.min(1,this.commandPulseTime/.65);
+  this.commandPulse.scale.setScalar(.72+t*.78);
+  this.commandPulse.material.opacity=.9*(1-t)*(1-t);
+  if(t>=1)this.commandPulse.visible=false;
+ }
  pointerUp(event){
   if(!this.clickStart||event.button!==this.clickStart.button)return;
   const start=this.clickStart;
@@ -764,6 +792,9 @@ export class SandforgeBattlefield {
    if(event.button===2&&this.selected.size)this.message('Marschziel außerhalb der Karte');
    return;
   }
+  // Immediate acknowledgment, including an unselected RMB click; no pulse
+  // for clicks outside the terrain or for a right-button drag.
+  if(event.button===2)this.showCommandPulse(p,Boolean(clickedEnemy)||this.attackMode);
   if(event.button===0){
    if(this.rallyMode){
     const base=this.game.bases.find(b=>b.id===this.selectedBase&&b.owner===0&&b.hp>0&&b.buildRemaining<=0);
