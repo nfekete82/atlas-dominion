@@ -25,9 +25,12 @@ export class DesertArtPass {
   return texture;
  }
  addCraters(){
-  const crater=this.details.filter(d=>d.kind==='crater').slice(0,this.lowQuality?55:230);
+  const spacious=this.world.mapVersion>=19;
+  const crater=this.details.filter(d=>d.kind==='crater')
+    .slice(0,spacious?(this.lowQuality?30:110):(this.lowQuality?55:230));
   const mesh=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),
-   new THREE.MeshBasicMaterial({map:this.makeCraterTexture(),transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1}),crater.length);
+   new THREE.MeshBasicMaterial({map:this.makeCraterTexture(),transparent:true,
+    opacity:spacious?.74:1,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1}),crater.length);
   // Detailed authored crater decal takes priority when available, with the
   // procedural crater as an offline-safe fallback.
   const craterMaterial=mesh.material;
@@ -38,7 +41,8 @@ export class DesertArtPass {
   crater.forEach((d,i)=>{
    dummy.position.copy(this.pos(d.x,d.y));dummy.position.y+=.9;
    dummy.rotation.set(-Math.PI*.5,0,d.rotation);
-   dummy.scale.set(d.radius*3.1,d.radius*2.3,1);
+   const scale=spacious?.60:1;
+   dummy.scale.set(d.radius*3.1*scale,d.radius*2.3*scale,1);
    dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
   });
   mesh.instanceMatrix.needsUpdate=true;mesh.frustumCulled=false;mesh.renderOrder=2;
@@ -47,7 +51,10 @@ export class DesertArtPass {
  addDebris(){
   const dust=new THREE.MeshStandardMaterial({color:'#a98259',roughness:1,metalness:0});
   const material=new THREE.MeshStandardMaterial({color:'#bba178',roughness:.97,metalness:0});
-  const geometry=new THREE.DodecahedronGeometry(1,0),mesh=new THREE.InstancedMesh(geometry,dust,this.lowQuality?240:850);
+  const geometry=new THREE.DodecahedronGeometry(1,0);
+  const spacious=this.world.mapVersion>=19;
+  const mesh=new THREE.InstancedMesh(geometry,dust,
+    spacious?(this.lowQuality?160:500):(this.lowQuality?240:850));
   const dummy=new THREE.Object3D();
   let count=0;
   for(const d of this.details) {
@@ -55,7 +62,7 @@ export class DesertArtPass {
    if(count>=mesh.instanceMatrix.count)break;
    const p=this.pos(d.x,d.y);dummy.position.copy(p);dummy.position.y+=d.radius*.12;
    dummy.rotation.set(d.rotation*.13,d.rotation,0);
-   const r=d.radius*(d.kind==='stones'?.36:.68);
+   const r=d.radius*(d.kind==='stones'?.36:.68)*(spacious?.78:1);
    dummy.scale.set(r,.42*r,.85*r);dummy.updateMatrix();mesh.setMatrixAt(count++,dummy.matrix);
   }
   mesh.count=count;mesh.instanceMatrix.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=true;
@@ -111,7 +118,9 @@ export class DesertArtPass {
   for(const d of palms){
    const palm=this.normalize(gltf.scene.clone(true),d.radius*3);
    const group=new THREE.Group();group.position.copy(this.pos(d.x,d.y));
-   group.rotation.y=d.rotation;group.add(palm);
+   group.rotation.y=d.rotation;
+   if(spacious)group.scale.setScalar(1.12);
+   group.add(palm);
    this.scene.add(group);this.items.push(group);
   }
   // The larger maps use small coherent oases near old outposts rather than
@@ -133,7 +142,7 @@ export class DesertArtPass {
      const radius=15+roll()*42;
      const x=center.x+Math.cos(angle)*radius,z=center.y+Math.sin(angle)*radius;
      if(!this.world.walkable({x,y:z}))continue;
-     const palm=this.normalize(gltf.scene.clone(true),58+roll()*32);
+     const palm=this.normalize(gltf.scene.clone(true),(58+roll()*32)*1.12);
      const instance=new THREE.Group();
      instance.position.set(x-center.x,this.heightAt(x,z)-this.heightAt(center.x,center.y),z-center.y);
      instance.rotation.y=roll()*Math.PI*2;
@@ -169,7 +178,7 @@ export class DesertArtPass {
     group.userData={visualBoundary:true,nonPlayable:true,edge};
     group.position.copy(this.pos(p.x,p.y));
     group.rotation.y=rand()*Math.PI*2;
-    group.scale.setScalar(.83+rand()*.38);
+    group.scale.setScalar((.83+rand()*.38)*(spacious?1.12:1));
     group.add(palm);
     this.scene.add(group);this.items.push(group);borderPalms++;
    }
