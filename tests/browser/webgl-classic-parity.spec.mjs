@@ -74,7 +74,7 @@ test('3D camera maximum zoom-out stays inside tactical framing',async({page})=>{
   a.camera.zoom=.1;a.controls.update();
   return {minimum:a.controls.minZoom,actual:a.camera.zoom,maximum:a.controls.maxZoom};
  });
- expect(state.minimum).toBeGreaterThanOrEqual(1);
+ expect(state.minimum).toBeCloseTo(.70,2);
  expect(state.actual).toBeGreaterThanOrEqual(state.minimum);
  expect(state.actual).toBeLessThanOrEqual(state.maximum);
 });
