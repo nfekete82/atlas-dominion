@@ -62,3 +62,32 @@ test('Playable 3D: save and resume hold authoritative combat and economy state',
  });
  expect(after).toEqual(initial);
 });
+
+test('3D RTS: mouse drag rectangle selects owned units without interfering with camera or HUD',async({page})=>{
+ test.setTimeout(105000);
+ await page.setViewportSize({width:1440,height:900});
+ await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1',{waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:90000});
+ const target=await page.evaluate(()=>{
+  const a=window.__sandforgeWebGL;
+  const unit=a.game.units.find(u=>u.owner===0&&u.hp>0&&!u.carrier);
+  const entry=a.battlefield.units.get(unit.id);
+  const delta=entry.node.position.clone().sub(a.controls.target);
+  a.controls.target.add(delta);a.camera.position.add(delta);a.controls.update();
+  const p=entry.node.position.clone().project(a.camera);
+  const rect=a.renderer.domElement.getBoundingClientRect();
+  return {id:unit.id,x:rect.left+(p.x*.5+.5)*rect.width,y:rect.top+(.5-p.y*.5)*rect.height};
+ });
+ expect(target.x).toBeGreaterThan(100);
+ expect(target.y).toBeGreaterThan(110);
+ await page.mouse.move(target.x-65,target.y-65);
+ await page.mouse.down();
+ await page.mouse.move(target.x+65,target.y+65,{steps:8});
+ await page.mouse.up();
+ const result=await page.evaluate(id=>({
+  selected:window.__sandforgeWebGL.battlefield.selected.has(id),
+  boxHidden:window.__sandforgeWebGL.battlefield.selectionBox.style.display==='none'
+ }),target.id);
+ expect(result.selected).toBe(true);
+ expect(result.boxHidden).toBe(true);
+});
