@@ -324,6 +324,7 @@ async function addRuins(){
 }
 $('simulation').onclick=()=>{
  running=!running;$('simulation').textContent=running?'Simulation pausieren':'Simulation starten';
+ if(!running)sound.pause();
  $('simulation').setAttribute('aria-pressed',String(running));
 };
 $('rotate-left').onclick=()=>spin(-Math.PI/4);
