@@ -642,8 +642,7 @@ export class Simulation {
         // New maps may escape a pre-existing overlap but can never pass a
         // different tower or a newly constructed visible wall.
         const legacyObstacles=this.world.mapVersion>=19?
-          [...baseObstacles,...visualBuildings,...decor,
-            ...towers.filter(o=>distance(o,u)>=o.radius+RULES.infantry.radius+clearance)]:
+          collisionObstacles.filter(o=>distance(o,u)>=o.radius+RULES.infantry.radius+clearance):
           [...baseObstacles,...decor];
         // Infantry never ignores the larger visual wall unless it is already
         // trapped inside it (legacy saves, just-placed construction).
@@ -683,8 +682,12 @@ export class Simulation {
     }
     const speed=velocity*(spec.flying&&this.weather.storm?WEATHER_RULES.airSpeed:1)*dt,step=Math.min(speed,d);
     const p={x:u.x+dx*step,y:u.y+dy*step};
-    const activeObstacles=ground&&u.vehicleEscape&&this.world.mapVersion<19?
-      [...buildings,...decor]:collisionObstacles;
+    // If an old save begins *inside* a new collider, only allow movement
+    // strictly outward from that exact collider. No new overlaps are allowed.
+    const activeObstacles=ground&&u.vehicleEscape==='exit'&&this.world.mapVersion>=19?
+      collisionObstacles.filter(o=>!(distance(o,u)<o.radius+RULES.infantry.radius+clearance&&
+        distance(o,p)>distance(o,u)+.001)):
+      ground&&u.vehicleEscape&&this.world.mapVersion<19?[...buildings,...decor]:collisionObstacles;
     // Check the entire step, not just its endpoint, so fast vehicles cannot
     // clip through a wall or a visible service prop between simulation ticks.
     const segmentClear=spec.flying||activeObstacles.every(o=>
