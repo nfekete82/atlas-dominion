@@ -7,10 +7,25 @@ cpSync('model-preview.html','dist/model-preview.html');
 cpSync('model-3d.html','dist/model-3d.html');
 cpSync('webgl-preview.html','dist/webgl-preview.html');
 cpSync('scripts/webgl-preview.js','dist/webgl-preview.js');
+cpSync('scripts/webgl-title-menu.js','dist/webgl-title-menu.js');
+cpSync('scripts/webgl-battlefield.js','dist/webgl-battlefield.js');
+cpSync('scripts/webgl-actor-presentation.js','dist/webgl-actor-presentation.js');
+cpSync('scripts/webgl-environment.js','dist/webgl-environment.js');
+cpSync('scripts/webgl-combat-vfx.js','dist/webgl-combat-vfx.js');
+cpSync('scripts/webgl-classic-hud.js','dist/webgl-classic-hud.js');
+cpSync('scripts/webgl-portraits.js','dist/webgl-portraits.js');
+cpSync('scripts/webgl-perimeter.js','dist/webgl-perimeter.js');
+cpSync('scripts/webgl-edge-cliffs.js','dist/webgl-edge-cliffs.js');
+cpSync('scripts/webgl-grounding.js','dist/webgl-grounding.js');
+cpSync('scripts/webgl-construction.js','dist/webgl-construction.js');
+cpSync('scripts/webgl-construction-recovery.js','dist/webgl-construction-recovery.js');
+cpSync('scripts/webgl-scale.js','dist/webgl-scale.js');
+cpSync('scripts/webgl-health.js','dist/webgl-health.js');
+cpSync('src/reborn/webgl-classic-hud.css','dist/webgl-classic-hud.css');
 cpSync('scripts/animation/model-viewer.js','dist/model-viewer.js');
 // WebGL preview and 3D inspector share the same local Three.js modules.
 // The production game continues to use its existing Canvas renderer.
-for(const file of ['build/three.module.js','build/three.core.js','examples/jsm/loaders/GLTFLoader.js','examples/jsm/controls/OrbitControls.js','examples/jsm/utils/BufferGeometryUtils.js','examples/jsm/environments/RoomEnvironment.js']){
+for(const file of ['build/three.module.js','build/three.core.js','examples/jsm/loaders/GLTFLoader.js','examples/jsm/controls/OrbitControls.js','examples/jsm/utils/BufferGeometryUtils.js','examples/jsm/utils/SkeletonUtils.js','examples/jsm/environments/RoomEnvironment.js']){
   const target='dist/vendor/three/'+file.replace('build/','').replace('examples/jsm/','addons/');mkdirSync(target.slice(0,target.lastIndexOf('/')),{recursive:true});cpSync('node_modules/three/'+file,target);
 }
 cpSync('node_modules/three/LICENSE','dist/vendor/three/LICENSE');

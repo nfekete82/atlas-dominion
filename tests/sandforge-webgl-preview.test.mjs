@@ -41,13 +41,16 @@ test('webgl: preview is actually packaged with local offline Three.js vendor and
  const html=readFileSync('dist/webgl-preview.html','utf8');
  const js=readFileSync('dist/webgl-preview.js','utf8');
  assert.match(html,/type="importmap"/);
- assert.match(html,/\/webgl-preview.js/);
+ assert.match(html,/\/webgl-title-menu.js/);
+ assert.ok(existsSync('dist/webgl-title-menu.js'),'title loader missing from Docker build');
+ assert.match(readFileSync('dist/webgl-title-menu.js','utf8'),/import\('\/webgl-preview.js'\)/);
+ assert.ok(existsSync('dist/webgl-actor-presentation.js'),'actor presentation missing from Docker build');
  assert.match(js,/new THREE.WebGLRenderer/);
  assert.match(js,/const smooth=value=>/, 'WebGL terrain must define its smoothstep shading helper');
  assert.match(js,/inputSeed!==null/, 'missing query seed must preserve the default 2026');
  assert.match(html,/3D-Startfehler/, 'browser crashes must surface visibly');
  assert.match(js,/new THREE.InstancedMesh/);
  assert.match(js,/\.gltf/);
- assert.match(js,/new Simulation\(seed,sizes\[bastions\]\)/);
+ assert.match(js,/Simulation\.campaign\(seed,sizes\[bastions\]\)/);
  assert.doesNotMatch(js,/eval\(|https?:\/\//);
 });

@@ -33,7 +33,7 @@ test('OrbStack HTTP: health check and WebGL asset respond after ready, including
    await sleep(110);
   }
   assert.ok(ready,'server did not become healthy within readiness window');
-  for(const path of ['/','/webgl-preview.html','/webgl-preview.js','/vendor/three/three.module.js','/src/assets/reborn/canyon-3d/ruin-house.gltf']){
+  for(const path of ['/','/webgl-preview.html','/webgl-preview.js','/webgl-title-menu.js','/webgl-actor-presentation.js','/vendor/three/three.module.js','/src/assets/reborn/canyon-3d/ruin-house.gltf']){
    const response=await fetch(root+path,{method:'HEAD',signal:AbortSignal.timeout(3500)});
    assert.equal(response.status,200,'HEAD '+path+' must respond 200');
   }
