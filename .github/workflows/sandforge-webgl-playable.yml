@@ -27,6 +27,7 @@ jobs:
           node --check scripts/webgl-preview.js
           node --check scripts/webgl-battlefield.js
           node --check scripts/webgl-environment.js
+          node --check scripts/webgl-combat-vfx.js
       - run: npm run build
       - name: Validate actual 3D models, 2D simulation reuse and saved Canyon maps
         run: >-
@@ -36,6 +37,7 @@ jobs:
           tests/sandforge-canyon-front.test.mjs
           tests/sandforge-canyon-models.test.mjs
           tests/sandforge-webgl-server.test.mjs
+          tests/sandforge-webgl-combat-vfx.test.mjs
   visual:
     name: Chromium · playable WebGL3D graphics and economy
     needs: verify
@@ -59,7 +61,7 @@ jobs:
         env:
           ATLAS_BROWSER_CHANNEL: chromium
           LIBGL_ALWAYS_SOFTWARE: '1'
-        run: cd tests/browser && npx playwright test webgl-playable.spec.mjs --config=playwright.config.mjs
+        run: cd tests/browser && npx playwright test webgl-playable.spec.mjs webgl-combat-vfx.spec.mjs --config=playwright.config.mjs
       - name: Store real WebGL screenshot and browser trace
         if: always()
         uses: actions/upload-artifact@v4
