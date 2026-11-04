@@ -113,3 +113,66 @@
  #sf-classic-root #sf-actions .catalog-card {height:94px;min-height:94px}
  #sf-classic-root .catalog #sf-catalog-detail {display:none}
 }
+
+/* WebGL overlay is NOT inside #app's two-column grid. The original #sidebar
+   switches to position:relative in the classic app stylesheet: explicitly
+   override every grid/inset property, so it cannot drift to the left. */
+#sf-classic-root #sidebar {
+ position:fixed !important;
+ inset:58px 10px 10px auto !important;
+ left:auto !important;
+ right:10px !important;
+ top:58px !important;
+ bottom:10px !important;
+ width:var(--side) !important;
+ height:auto !important;
+ min-height:0 !important;
+ min-width:0 !important;
+ grid-column:auto !important;
+ grid-row:auto !important;
+ margin:0 !important;
+ padding:9px 8px 8px !important;
+ overflow:hidden !important;
+ display:flex !important;
+ flex-direction:column !important;
+ background:#101b20f2;
+ border:1px solid #776848;
+ z-index:12 !important;
+}
+#sf-classic-root #sidebar .radar {width:100%;flex:0 0 auto}
+#sf-classic-root #sidebar .catalog {flex:1 1 auto !important;min-height:0 !important;overflow:hidden !important}
+#sf-classic-root #sidebar .catalog-scroll {height:auto !important;overflow-x:hidden !important;overflow-y:auto !important}
+#sf-classic-root .sf-command {
+ position:fixed !important;
+ bottom:10px !important;
+ left:10px !important;
+ right:auto !important;
+ width:min(680px,calc(100vw - var(--side) - 45px)) !important;
+ height:132px !important;
+ min-height:132px !important;
+ max-width:calc(100vw - var(--side) - 45px) !important;
+ z-index:11;
+}
+#sf-classic-root .sf-command .selection-copy strong {display:block;font-size:17px;line-height:1.08;margin-top:4px}
+#sf-classic-root .sf-command .portrait {min-width:90px;align-self:center}
+#sf-classic-root #sf-actions .catalog-card.locked {opacity:1 !important;filter:none !important}
+#sf-classic-root #sf-actions .catalog-card:disabled {opacity:1 !important;filter:none !important;background:#363a30 !important}
+#sf-classic-root #sf-actions .catalog-card.locked .sf-card-image img {opacity:1 !important;filter:none !important}
+#sf-classic-root #sf-actions .catalog-card.locked .card-meta {color:#b0a18a;background:#292921}
+#sf-classic-root #sf-actions .catalog-card:not(:disabled):hover {background:#554734;border-color:#d8b47d}
+#sf-classic-root #sf-actions .catalog-card:not(:disabled):focus-visible {outline:2px solid #edca88;outline-offset:-2px}
+#sf-classic-root .sf-game-settings {position:fixed !important;left:auto !important;right:12px !important;top:55px !important;z-index:30}
+#sf-classic-root .sf-settings-close {cursor:pointer}
+@media(max-width:1050px) {
+ #sf-classic-root #sidebar {right:8px !important;top:96px !important;bottom:8px !important}
+ #sf-classic-root .sf-command {width:calc(100vw - var(--side) - 28px) !important;max-width:calc(100vw - var(--side) - 28px) !important}
+}
+@media(max-width:650px) {
+ #sf-classic-root {--side:192px}
+ #sf-classic-root #sidebar {top:100px !important;right:5px !important;bottom:6px !important}
+ #sf-classic-root .sf-command {left:5px !important;bottom:6px !important;width:calc(100vw - var(--side) - 15px) !important;max-width:calc(100vw - var(--side) - 15px) !important;height:auto !important;min-height:100px !important;grid-template-columns:1fr !important;padding:5px !important}
+ #sf-classic-root .sf-command .portrait {display:none}
+ #sf-classic-root .sf-command .commands {grid-template-columns:repeat(2,1fr)}
+ #sf-classic-root #sf-actions .catalog-grid {grid-template-columns:1fr 1fr;gap:3px}
+ #sf-classic-root #sf-actions .catalog-card {min-height:89px;height:89px}
+}
