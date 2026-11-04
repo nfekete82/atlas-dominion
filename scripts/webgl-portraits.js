@@ -65,6 +65,60 @@ export function unitIcon(kind){
  }));
  return iconCache.get(kind);
 }
+// Transparent padding in original building PNGs makes their thumbnails
+// look tiny. Trim alpha bounds at low resolution and draw the whole building
+// into a consistent wide tile without clipping its silhouette.
+const buildingIconCache=new Map();
+async function rasterizeBuildingIcon(kind){
+ const image=await loadImage(buildingIconUrl(kind));
+ const ratio=Math.min(1,384/Math.max(image.naturalWidth,image.naturalHeight));
+ const probe=document.createElement('canvas');
+ probe.width=Math.max(1,Math.round(image.naturalWidth*ratio));
+ probe.height=Math.max(1,Math.round(image.naturalHeight*ratio));
+ const pc=probe.getContext('2d',{willReadFrequently:true});
+ pc.drawImage(image,0,0,probe.width,probe.height);
+ const pixels=pc.getImageData(0,0,probe.width,probe.height).data;
+ let left=probe.width,top=probe.height,right=-1,bottom=-1;
+ for(let y=0;y<probe.height;y++)for(let x=0;x<probe.width;x++){
+  if(pixels[(y*probe.width+x)*4+3]<36)continue;
+  left=Math.min(left,x);top=Math.min(top,y);
+  right=Math.max(right,x);bottom=Math.max(bottom,y);
+ }
+ if(right<left)throw new Error('Empty building portrait: '+kind);
+ const sx=left/ratio,sy=top/ratio;
+ const w=(right-left+1)/ratio,h=(bottom-top+1)/ratio;
+ const target=document.createElement('canvas');
+ target.width=320;target.height=220;
+ const ctx=target.getContext('2d');
+ ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+ const scale=Math.min(306/w,208/h);
+ const dw=w*scale,dh=h*scale;
+ ctx.drawImage(image,sx,sy,w,h,(320-dw)/2,(220-dh)/2,dw,dh);
+ return target.toDataURL('image/png');
+}
+export function buildingIcon(kind){
+ if(!buildingIconCache.has(kind))
+  buildingIconCache.set(kind,rasterizeBuildingIcon(kind).catch(error=>{
+   buildingIconCache.delete(kind);throw error;
+  }));
+ return buildingIconCache.get(kind);
+}
+export function hydrateBuildingIcons(root){
+ for(const img of root.querySelectorAll('img[data-sf-building-icon]')){
+  const kind=img.dataset.sfBuildingIcon;
+  if(!kind||img.dataset.sfIconStatus)return;
+  img.dataset.sfIconStatus='loading';
+  buildingIcon(kind).then(url=>{
+   if(img.isConnected&&img.dataset.sfBuildingIcon===kind){
+    img.src=url;img.dataset.sfIconStatus='ready';
+   }
+  }).catch(error=>{
+   if(img.isConnected)img.dataset.sfIconStatus='error';
+   console.warn('Building portrait fallback:',kind,error);
+  });
+ }
+}
+
 export function hydrateUnitIcons(root){
  for(const img of root.querySelectorAll('img[data-sf-unit-icon]')){
   const kind=img.dataset.sfUnitIcon;
