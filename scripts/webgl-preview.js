@@ -6,6 +6,7 @@ import {canyonGroundSampler,rampAtX,ridgeCenterY} from '/src/reborn/canyon-heigh
 import {SandforgeBattlefield} from '/webgl-battlefield.js';
 import {DesertArtPass} from '/webgl-environment.js';
 import {SandforgeCombatEffects} from '/webgl-combat-vfx.js';
+import {SandforgeAtmosphere3D} from '/webgl-atmosphere-3d.js';
 import {addVisualPerimeter} from '/webgl-perimeter.js';
 import {addBoundaryCliffs} from '/webgl-edge-cliffs.js';
 import {groundContactMaterial} from '/webgl-grounding.js';
@@ -537,6 +538,11 @@ const battlefield=new SandforgeBattlefield({
  game,world,terrain,scene,renderer,camera,controls,loader,groundMeshes,heightAt,pos,
  lite:query.get('lite')==='1'
 });
+const atmosphere=new SandforgeAtmosphere3D({
+ scene,game,world,heightAt,camera,controls,lowQuality:query.get('lite')==='1'
+});
+battlefield.fogAtmosphere=atmosphere;
+atmosphere.setFogEnabled(battlefield.fogEnabled);
 if(query.get('fog')==='0'){
  battlefield.fogEnabled=false;
  battlefield.updateFog();
@@ -619,6 +625,21 @@ showcaseButton.onclick=()=>setShowcase(!showcaseActive);
 if(query.get('showcase')==='1')setShowcase(true);
 const desertArt=new DesertArtPass({scene,world,terrain,heightAt,pos,loader,lowQuality:query.get('lite')==='1'});
 const effects=new SandforgeCombatEffects({scene,camera,game,world,heightAt,pos,lowQuality:query.get('lite')==='1'});
+// Renderer-only weather preview: weather rules in Simulation are unchanged.
+const stormButton=document.createElement('button');
+stormButton.id='sf3d-storm';
+stormButton.type='button';
+stormButton.className='sf-tool-button';
+stormButton.setAttribute('aria-label','Dreidimensionalen Sandsturm zu Testzwecken umschalten');
+stormButton.title='GPU-Sandsturm demonstrieren (ändert keine Spielregeln)';
+battlefield.panel.querySelector('#sf-tools').prepend(stormButton);
+function setStormPreview(enabled){
+ atmosphere.setStormPreview(enabled);
+ stormButton.textContent=enabled?'STURM AN':'STURM';
+ stormButton.setAttribute('aria-pressed',String(Boolean(enabled)));
+}
+stormButton.onclick=()=>setStormPreview(!atmosphere.stormPreview);
+setStormPreview(query.get('storm')==='1');
 const constructionRecovery=new SandforgeConstructionRecovery(game);
 const sound=new Soundscape();
 // Louder RTS feedback than the subdued classic soundtrack; independent of
@@ -692,6 +713,7 @@ function animate(now){
  controls.update();
  stepCamera(dt);
  controls.update();
+ atmosphere.update(dt);
  renderer.render(scene,camera);
  if(battlefield.buildPreview?.visible){
   // A second render pass guarantees the translucent construction silhouette
@@ -710,7 +732,8 @@ function animate(now){
  }
 }
 renderer.setAnimationLoop(animate);
-window.__sandforgeWebGL={renderer,scene,camera,controls,game,terrain,heightAt,battlefield,effects,sound,constructionRecovery,visualPerimeter,boundaryCliffs,panKeys,
+window.__sandforgeWebGL={renderer,scene,camera,controls,game,terrain,heightAt,battlefield,effects,atmosphere,sound,constructionRecovery,visualPerimeter,boundaryCliffs,panKeys,
+ setStormPreview,
  get showcaseActive(){return showcaseActive;},
  setShowcase,
  get ruinsLoaded(){return ruinMeshes.length;},
