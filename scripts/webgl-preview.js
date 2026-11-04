@@ -589,7 +589,10 @@ function stepCamera(dt){
   camera.position.x+=nx-controls.target.x;camera.position.z+=nz-controls.target.z;
   controls.target.x=nx;controls.target.z=nz;
  }
- const border=half+Math.max(180,(visualPerimeter?.margin??size*.5)-90),
+ // Keep the visible corners inside the textured erosion apron, not at
+ // the far outer mesh edge where the black scene background is exposed.
+ // The authored perimeter stays decorative; no playable bounds change.
+ const border=half+Math.min(320,Math.max(180,(visualPerimeter?.margin??size*.5)*.15)),
   groundY=heightAt(controls.target.x+half,controls.target.z+half);
  cameraGroundPlane.constant=-groundY;
  camera.updateMatrixWorld(true);
