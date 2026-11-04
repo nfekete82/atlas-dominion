@@ -31,8 +31,8 @@ const session=query.get('resume')==='1'?(()=>{
 const game=session??new Simulation(seed,sizes[bastions]);
 const world=game.world,terrain=world.generated,size=world.size,half=size/2;
 const status=$('status'),errorNode=$('error'),stage=$('stage');
-$('simulation').textContent='Simulation pausieren';
-$('simulation').setAttribute('aria-pressed','true');
+$('simulation').textContent=query.get('pause')==='1'?'Simulation starten':'Simulation pausieren';
+$('simulation').setAttribute('aria-pressed',String(query.get('pause')!=='1'));
 const setStatus=value=>{status.textContent=value;};
 const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
 const smooth=value=>{const t=clamp(value,0,1);return t*t*(3-2*t);};
@@ -85,7 +85,7 @@ const models=new Map(),ruinMeshes=[];
 // A player campaign starts LIVE, as in the original Canvas RTS. Orders must
 // never appear accepted while an unannounced preview-level pause blocks ticks.
 game.paused=false;
-let groundMeshes=[],running=true,accumulator=0,elapsed=0;
+let groundMeshes=[],running=query.get('pause')!=='1',accumulator=0,elapsed=0;
 function sandTexture(){
  const c=document.createElement('canvas');c.width=c.height=256;
  const ctx=c.getContext('2d'),pixels=ctx.createImageData(256,256),r=rnd(seed^0x192cb110);
