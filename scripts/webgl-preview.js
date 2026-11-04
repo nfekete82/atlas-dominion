@@ -99,8 +99,11 @@ const controls=new OrbitControls(camera,renderer.domElement);
 controls.enableDamping=true;controls.dampingFactor=.10;
 controls.screenSpacePanning=true;
 // C&C-style constrained orthographic RTS camera: the map is NOT a tabletop.
-controls.minZoom=wideView?.55:.70;controls.maxZoom=3.5;
-camera.zoom=.74;camera.updateProjectionMatrix();
+// The default tactical view shows ~25% more world area per axis than the
+// old .74 zoom. Models are unchanged in the simulation; on-screen footprint
+// shrinks to 80%, as requested for better strategic overview.
+controls.minZoom=wideView?.42:.46;controls.maxZoom=3.5;
+camera.zoom=.59;camera.updateProjectionMatrix();
 // A lower camera angle gives rock faces and buildings visible depth.
 controls.minPolarAngle=.65;controls.maxPolarAngle=1.30;
 controls.mouseButtons={LEFT:THREE.MOUSE.PAN,MIDDLE:THREE.MOUSE.DOLLY,RIGHT:THREE.MOUSE.ROTATE};
@@ -488,7 +491,7 @@ function spin(angle){
 }
 $('home').onclick=()=>{
  controls.target.copy(cameraTarget);camera.position.copy(cameraTarget).add(new THREE.Vector3(1200,1110,1640));
- camera.zoom=.74;camera.updateProjectionMatrix();controls.update();
+ camera.zoom=.59;camera.updateProjectionMatrix();controls.update();
 };
 $('load').onclick=()=>{
  const q=new URLSearchParams({bastions:$('bastions').value,seed:String(Number($('seed').value)>>>0)});
