@@ -147,6 +147,7 @@ export class SandforgeBattlefield {
   const aliveUnits=new Set(),aliveBases=new Set();
   const blend=Math.max(0,Math.min(1,alpha));
   this.presentation.refreshStats();
+  this.presentation.stepRemnants(dt,active);
   for(const u of this.game.units){
    if(u.hp<=0||u.carrier)continue;
    aliveUnits.add(u.id);
@@ -162,7 +163,7 @@ export class SandforgeBattlefield {
    entry.node.rotation.y=Math.PI*.5-u.angle;
    entry.node.visible=u.owner===0||this.game.canSee(0,u);
   }
-  for(const [id,e] of this.units)if(!aliveUnits.has(id)){this.presentation.remove(e);this.scene.remove(e.node);this.units.delete(id);this.selected.delete(id);}
+  for(const [id,e] of this.units)if(!aliveUnits.has(id)){this.presentation.remove(e,this.game.units.find(u=>u.id===id));this.scene.remove(e.node);this.units.delete(id);this.selected.delete(id);}
   for(const b of this.game.bases){
    if(b.hp<=0)continue;
    aliveBases.add(b.id);
@@ -172,7 +173,7 @@ export class SandforgeBattlefield {
    entry.node.visible=b.owner===0||this.game.canSee(0,b);
    entry.node.scale.y=b.buildRemaining>0?.58:1;
   }
-  for(const [id,e] of this.bases)if(!aliveBases.has(id)){this.presentation.remove(e);this.scene.remove(e.node);this.bases.delete(id);if(this.selectedBase===id)this.selectedBase=null;}
+  for(const [id,e] of this.bases)if(!aliveBases.has(id)){this.presentation.remove(e,this.game.bases.find(base=>base.id===id));this.scene.remove(e.node);this.bases.delete(id);if(this.selectedBase===id)this.selectedBase=null;}
   this.presentation.consumeShots(this.units,this.bases);
   for(const u of this.game.units){
    const entry=this.units.get(u.id);
@@ -307,6 +308,12 @@ export class SandforgeBattlefield {
      const dest=this.pos(t.point.x,t.point.y),delta=dest.clone().sub(this.controls.target);
      this.controls.target.add(delta);this.camera.position.add(delta);this.controls.update();
     }
+   }
+   if(action==='health'){
+    const modes=['all','damaged','selected','off'];
+    const old=this.presentation.showHealth;
+    this.presentation.setHealthMode(modes[(modes.indexOf(old)+1)%modes.length]);
+    this.message('Lebensbalken: '+({all:'Alle',damaged:'Beschädigte',selected:'Ausgewählte',off:'Aus'}[this.presentation.showHealth]));
    }
    if(action==='fog'){this.fogEnabled=!this.fogEnabled;this.updateFog();this.message('Nebel des Krieges '+(this.fogEnabled?'aktiv':'deaktiviert'));}
    if(action==='save'){try{localStorage.setItem('sandforge:webgl:v1',JSON.stringify(this.game.save()));this.message('3D-Kampagne gespeichert');}catch(error){this.message('Speichern fehlgeschlagen: '+error.message);}}
