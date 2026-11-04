@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {BUILDINGS} from '/src/reborn/catalog.js';
 
 /** Soft, low-contrast contact shading to integrate models into desert sand.
  * Rendering only; never changes collision, navigation, visibility or saves. */
@@ -29,7 +30,7 @@ export class SandforgeGroundingPass{
  }
  attachBuilding(entry,entity){
   if(!entry||this.items.has(entity.id))return;
-  const diameter=(entity.width??0)||(entity.radius??0)*2||120;
+  const diameter=BUILDINGS[entity.kind]?.width??(entity.radius??60)*2;
   const base=new THREE.Mesh(this.geometry,this.material);
   base.name='sand-contact-'+entity.kind+'-'+entity.id;
   base.userData={decoration:true,nonPlayable:true};
