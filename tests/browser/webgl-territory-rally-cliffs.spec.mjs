@@ -198,7 +198,7 @@ test('visual depth preview keeps an angled 3D RTS camera and desert fog',async({
   expect(state.isWebGLRenderer).toBe(true);
   expect(state.angle).toBeGreaterThan(1);
   expect(state.angle).toBeLessThan(1.3);
-  expect(state.zoom).toBeCloseTo(.86,2);
+  expect(state.zoom).toBeCloseTo(.74,2);
   expect(state.infantryHeight).toBe(61);
   expect(state.dimensionVersion).toBe(2);
   expect(state.fogStillOpaque).toBe(true);
@@ -374,4 +374,74 @@ test('real-time explosions create and retire 3D shockwaves independently of comb
   expect(result.during.visualOnly).toBe(true);
   expect(result.after).toBe(0);
   expect(result.unitsUnchanged).toBe(true);
+});
+
+test('right-clicking a visible enemy issues an explicit focus-fire order',async({page})=>{
+  await load(page);
+  const click=await page.evaluate(()=>{
+    const view=window.__sandforgeWebGL,game=view.game,b=view.battlefield;
+    const friendly=game.units.find(u=>u.owner===0&&u.kind==='infantry'&&u.hp>0);
+    if(!friendly)return {error:'Missing friendly infantry'};
+    const spot=game.world.nearest(
+      {x:friendly.x+105,y:friendly.y+65},game.obstacles(),game.units,friendly
+    );
+    if(!spot)return {error:'No valid enemy spawn position'};
+    const enemy=game.spawn(1,spot,'infantry');
+    game.updateVision();
+    b.sync(true);
+    if(!game.canSee(0,enemy))return {error:'Enemy not visible in test fixture'};
+    b.selected.clear();
+    b.selected.add(friendly.id);
+    b.drawInterface();
+    view.camera.updateMatrixWorld(true);
+    const entry=b.units.get(enemy.id);
+    const pos=entry.node.position.clone();
+    pos.y+=28;
+    pos.project(view.camera);
+    const rect=view.renderer.domElement.getBoundingClientRect();
+    return {
+      x:rect.left+(pos.x+1)*rect.width/2,
+      y:rect.top+(1-pos.y)*rect.height/2,
+      friendlyId:friendly.id,
+      enemyId:enemy.id
+    };
+  });
+  expect(click.error).toBeUndefined();
+  await page.mouse.click(click.x,click.y,{button:'right'});
+  const order=await page.evaluate(id=>{
+    const g=window.__sandforgeWebGL.game;
+    const u=g.units.find(u=>u.id===id);
+    return {kind:u.orders[0]?.kind,target:u.orders[0]?.target};
+  },click.friendlyId);
+  expect(order).toEqual({kind:'attack',target:click.enemyId});
+  await expect(page.locator('#sf-message')).toContainText('Ziel angreifen');
+});
+
+test('the higher, wider default camera is restored by Home',async({page})=>{
+  await load(page);
+  const before=await page.evaluate(()=>{
+    const view=window.__sandforgeWebGL;
+    return {zoom:view.camera.zoom,polar:view.controls.getPolarAngle()};
+  });
+  expect(before.zoom).toBeCloseTo(.74,2);
+  expect(before.polar).toBeGreaterThan(.98);
+  expect(before.polar).toBeLessThan(1.15);
+  await page.locator('#sf3d-showcase').click();
+  await page.locator('#sf3d-showcase').click();
+  await page.locator('#home').click();
+  expect(await page.evaluate(()=>window.__sandforgeWebGL.camera.zoom)).toBeCloseTo(.74,2);
+});
+
+test('Fog-of-War shader softens the visible-side border without uncovering hidden cells',async({page})=>{
+  await load(page);
+  const state=await page.evaluate(()=>{
+    const view=window.__sandforgeWebGL;
+    const mat=view.battlefield.fogNodes[0].material;
+    return {softened:mat.fragmentShader.includes('n*0.44'),
+      cellStep:mat.uniforms.fogStep.value,
+      unexploredOpacity:view.battlefield.fogTexture.image.data.some((v,i)=>i%4===3&&v===255)};
+  });
+  expect(state.softened).toBe(true);
+  expect(state.cellStep).toBeGreaterThan(0);
+  expect(state.unexploredOpacity).toBe(true);
 });
