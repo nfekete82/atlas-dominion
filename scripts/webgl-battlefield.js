@@ -4,6 +4,7 @@ import {UNITS,BUILDINGS,unitKinds,buildingKinds,unitSpec,buildingSpec} from '/sr
 import {RULES} from '/src/reborn/config.js';
 import {installClassicHud} from '/webgl-classic-hud.js';
 import {hydrateUnitIcons,unitIcon,buildingIconUrl} from '/webgl-portraits.js';
+import {SandforgeActorPresentation} from '/webgl-actor-presentation.js';
 
 // Runtime adapter: game state, movement, combat, production and AI are owned
 // exclusively by the original Simulation. 3D nodes are presentation only.
@@ -22,6 +23,7 @@ export class SandforgeBattlefield {
   this.selectedBase=null;this.buildKind=null;this.attackMode=false;
   this.miniLast=0;this.uiLast=0;this.fogLast=0;
   this.fogEnabled=true;this.selectedRings=new Map();this.animations=new Map();
+  this.presentation=new SandforgeActorPresentation(scene,camera,game);
   this.defaultFactions=[0,1];
   this.maxModels=80;this.loadingCount=0;this.modelQueue=[];
   this.clickStart=null;this.groups=new Map();
@@ -96,22 +98,40 @@ export class SandforgeBattlefield {
     }
     model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
     entry.node.remove(entry.placeholder);entry.node.add(model);entry.detail=model;
+    entry.visualBaseY=model.position.y;entry.visualBaseZ=model.position.z;
     if(type==='unit'&&data.animations.length){
      const mixer=new THREE.AnimationMixer(model);
-     const idle=data.animations.find(a=>/idle/i.test(a.name))||data.animations[0];
-     const walk=data.animations.find(a=>/walk|move|drive|operation/i.test(a.name))||idle;
-     entry.animation={mixer,idle,walk,playing:null};
+     const idle=data.animations.find(a=>/idle|stand|hover|engine/i.test(a.name))||data.animations[0];
+     const walk=data.animations.find(a=>/walk|run|move|drive|roll|fly|operation/i.test(a.name))||idle;
+     const attack=data.animations.find(a=>/attack|shoot|fire|recoil|strike/i.test(a.name))||null;
+     const hit=data.animations.find(a=>/hit|damage|hurt/i.test(a.name))||null;
+     const death=data.animations.find(a=>/death|die|destroy/i.test(a.name))||null;
+     entry.animation={mixer,idle,walk,attack,hit,death,playing:null};
+     entry.playAnimation=(clip,retrigger=false)=>this.playClip(entry,clip,retrigger);
      this.playClip(entry,idle);
     }
    }).catch(err=>console.warn('3D asset fallback:',task.url,err.message))
     .finally(()=>{this.loadingCount--;this.pumpModelQueue();});
   }
  }
- playClip(entry,clip){
-  if(!entry.animation||entry.animation.playing===clip)return;
-  entry.animation.mixer.stopAllAction();
-  entry.animation.mixer.clipAction(clip).reset().play();
-  entry.animation.playing=clip;
+ playClip(entry,clip,retrigger=false){
+  const anim=entry.animation;
+  if(!anim||!clip||anim.playing===clip&&!retrigger)return;
+  const prev=anim.playing?anim.mixer.existingAction(anim.playing):null;
+  const next=anim.mixer.clipAction(clip);
+  next.enabled=true;next.setEffectiveWeight(1);next.setEffectiveTimeScale(1);
+  // Smooth idle -> walking -> combat changes. Fire clips repeat once,
+  // walking/idle loops continuously, without restarting every frame.
+  if(clip===anim.attack||clip===anim.hit||clip===anim.death){
+   next.setLoop(THREE.LoopOnce,1);next.clampWhenFinished=true;
+  }else{
+   next.setLoop(THREE.LoopRepeat,Infinity);next.clampWhenFinished=false;
+  }
+  if(retrigger||next!==prev)next.reset();
+  next.play();
+  if(prev&&prev!==next){next.crossFadeFrom(prev,.12,false);}
+  else if(retrigger&&prev===next){next.reset().play();}
+  anim.playing=clip;
  }
  spawnNode(entity,type){
   const node=new THREE.Group();
@@ -123,22 +143,26 @@ export class SandforgeBattlefield {
   const entry={node,placeholder,kind:entity.kind,owner:entity.owner,requested:false};
   this.scheduleDetail(entry,entity,type);return entry;
  }
- sync(force=false,dt=0){
+ sync(force=false,dt=0,active=true,alpha=1){
   const aliveUnits=new Set(),aliveBases=new Set();
+  const blend=Math.max(0,Math.min(1,alpha));
+  this.presentation.refreshStats();
   for(const u of this.game.units){
    if(u.hp<=0||u.carrier)continue;
    aliveUnits.add(u.id);
    let entry=this.units.get(u.id);
    if(!entry){entry=this.spawnNode(u,'unit');this.units.set(u.id,entry);}
-   entry.node.position.copy(this.entityPosition(u));
+   // Interpolate between authoritative 20 Hz snapshots for smooth 60–120 FPS
+   // visuals. Simulation, pathfinding and orders use true u.x/u.y only.
+   const travel=Math.hypot(u.x-u.previousX,u.y-u.previousY);
+   const lerp=Number.isFinite(travel)&&travel<180?blend:1;
+   const x=Number.isFinite(u.previousX)?u.previousX+(u.x-u.previousX)*lerp:u.x;
+   const z=Number.isFinite(u.previousY)?u.previousY+(u.y-u.previousY)*lerp:u.y;
+   entry.node.position.copy(this.pos(x,z,this.heightAt(x,z)+(UNITS[u.kind]?.flying?75+100*(u.flightHeight??1):0)));
    entry.node.rotation.y=Math.PI*.5-u.angle;
    entry.node.visible=u.owner===0||this.game.canSee(0,u);
-   if(entry.animation){
-    this.playClip(entry,u.moving?entry.animation.walk:entry.animation.idle);
-    if(entry.node.visible)entry.animation.mixer.update(Math.min(.05,dt));
-   }
   }
-  for(const [id,e] of this.units)if(!aliveUnits.has(id)){this.scene.remove(e.node);this.units.delete(id);this.selected.delete(id);}
+  for(const [id,e] of this.units)if(!aliveUnits.has(id)){this.presentation.remove(e);this.scene.remove(e.node);this.units.delete(id);this.selected.delete(id);}
   for(const b of this.game.bases){
    if(b.hp<=0)continue;
    aliveBases.add(b.id);
@@ -148,7 +172,16 @@ export class SandforgeBattlefield {
    entry.node.visible=b.owner===0||this.game.canSee(0,b);
    entry.node.scale.y=b.buildRemaining>0?.58:1;
   }
-  for(const [id,e] of this.bases)if(!aliveBases.has(id)){this.scene.remove(e.node);this.bases.delete(id);if(this.selectedBase===id)this.selectedBase=null;}
+  for(const [id,e] of this.bases)if(!aliveBases.has(id)){this.presentation.remove(e);this.scene.remove(e.node);this.bases.delete(id);if(this.selectedBase===id)this.selectedBase=null;}
+  this.presentation.consumeShots(this.units,this.bases);
+  for(const u of this.game.units){
+   const entry=this.units.get(u.id);
+   if(entry)this.presentation.update(entry,u,'unit',dt,this.selected.has(u.id),active);
+  }
+  for(const b of this.game.bases){
+   const entry=this.bases.get(b.id);
+   if(entry)this.presentation.update(entry,b,'building',dt,this.selectedBase===b.id,active);
+  }
   const known=new Set(this.game.territories.map(t=>t.id));
   for(const [id,entry] of this.bastions)if(!known.has(id)){this.scene.remove(entry.node);this.bastions.delete(id);}
   for(const territory of this.game.territories){
@@ -252,7 +285,7 @@ export class SandforgeBattlefield {
     ring.rotation.x=-Math.PI/2;ring.renderOrder=9;this.scene.add(ring);
     this.selectedRings.set(id,ring);
    }
-   ring.position.copy(this.entityPosition(unit));ring.position.y+=3;
+   ring.position.copy(this.units.get(id)?.node.position??this.entityPosition(unit));ring.position.y+=3;
   }
  }
  buildInterface(){
