@@ -23,7 +23,10 @@ test('Zero Hour-inspired HUD has left minimap, horizontal middle catalog and rig
    commands:rect('#sf-selection-panel'),
    map:rect('#sf-map'),
    zoom:window.__sandforgeWebGL.camera.zoom,
-   minZoom:window.__sandforgeWebGL.controls.minZoom
+   minZoom:window.__sandforgeWebGL.controls.minZoom,
+   worldSize:window.__sandforgeWebGL.game.world.size,
+   worldVersion:window.__sandforgeWebGL.game.world.mapVersion,
+   rimHidden:window.__sandforgeWebGL.boundaryCliffs.cliffs.every(x=>!x.visible)
   };
  });
  expect(before.dock.top).toBeGreaterThan(600);
@@ -35,6 +38,9 @@ test('Zero Hour-inspired HUD has left minimap, horizontal middle catalog and rig
  expect(before.map.width).toBeGreaterThan(100);
  expect(before.zoom).toBeCloseTo(.59,2);
  expect(before.minZoom).toBeLessThan(.5);
+ expect(before.worldVersion).toBe(19);
+ expect(before.worldSize).toBe(6240);
+ expect(before.rimHidden).toBe(true);
  await page.locator('[data-tab="buildings"]').click();
  const after=await page.evaluate(()=>{
   const elements=[...document.querySelectorAll(
