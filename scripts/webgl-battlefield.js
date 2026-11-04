@@ -622,7 +622,11 @@ export class SandforgeBattlefield {
    if(event.button===0)this.selectBoxUnits(start.x,start.y,event.clientX,event.clientY,event.shiftKey);
    return;
   }
-  const p=this.terrainPoint(event);if(!p)return;
+  const p=this.terrainPoint(event);
+  if(!p){
+   if(event.button===2&&this.selected.size)this.message('Marschziel außerhalb der Karte');
+   return;
+  }
   if(event.button===0){
    if(this.buildKind){
     const kind=this.buildKind,workerIds=this.game.units.filter(u=>this.selected.has(u.id)&&u.kind==='engineer'&&u.owner===0).map(u=>u.id);
@@ -663,7 +667,9 @@ export class SandforgeBattlefield {
  attachInput(){
   // The left mouse button belongs to RTS selection; middle mouse pans and
   // right-drag rotates. A right *click* issues a command.
-  this.controls.mouseButtons={LEFT:null,MIDDLE:THREE.MOUSE.PAN,RIGHT:THREE.MOUSE.ROTATE};
+  // OrbitControls must never capture RMB: that caused right-click movement
+  // to be consumed/turned into rotation on some browsers. Q/E handles turning.
+  this.controls.mouseButtons={LEFT:null,MIDDLE:THREE.MOUSE.PAN,RIGHT:null};
   const canvas=this.renderer.domElement;
   canvas.addEventListener('pointerdown',e=>{
    this.clickStart={x:e.clientX,y:e.clientY,button:e.button};
@@ -686,6 +692,8 @@ export class SandforgeBattlefield {
   canvas.addEventListener('pointercancel',()=>{
    this.clickStart=null;this.selectionBox.style.display='none';
   });
+  // Prevent the native menu without routing duplicate commands. Every
+  // pointerup, including a normal RMB click, reaches pointerUp() unchanged.
   canvas.addEventListener('contextmenu',e=>e.preventDefault());
   document.addEventListener('keydown',event=>{
    if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;
