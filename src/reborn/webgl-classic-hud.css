@@ -272,3 +272,7 @@
 #sf-classic-root #sf-rally[hidden]{display:none!important}
 #sf-classic-root #sf-rally[aria-pressed="true"]{background:#73603e;color:#ffdda1;border-color:#e4bd6c}
 #sf-classic-root .territory-row small{font-size:10px;white-space:normal;text-align:right}
+
+/* Player-facing sector change cue, distinct from normal RTS command feedback. */
+.sf-rts .sf-notice[data-sector-event="secured"]{border-left-color:#62c6e9;color:#d2f2ff;background:#152d35f0}
+.sf-rts .sf-notice[data-sector-event="lost"]{border-left-color:#f19b73;color:#ffe4d5;background:#3b2323f0}
