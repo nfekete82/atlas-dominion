@@ -91,3 +91,56 @@ test('3D RTS: mouse drag rectangle selects owned units without interfering with 
  expect(result.selected).toBe(true);
  expect(result.boxHidden).toBe(true);
 });
+
+test('3D RTS: original-style HUD starts live and a real right click moves selected units',async({page})=>{
+ test.setTimeout(115000);
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.setViewportSize({width:1440,height:900});
+ await page.goto('/webgl-preview.html?bastions=4&seed=2026&lite=1',{waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:90000});
+ await expect(page.locator('.sf-rts .top .wordmark')).toContainText('SANDFORGE');
+ await expect(page.locator('#sidebar .catalog-tabs')).toBeVisible();
+ await expect(page.locator('#sidebar .radar')).toBeVisible();
+ await expect(page.locator('#sf-selection-panel')).toBeVisible();
+ const state=await page.evaluate(()=>{
+  const a=window.__sandforgeWebGL,g=a.game;
+  const u=g.units.find(v=>v.owner===0&&v.kind==='infantry'&&v.hp>0);
+  if(!u)throw new Error('Starting infantry not found');
+  const origin={x:u.x,y:u.y};
+  let point=null;
+  for(const distance of [180,230,290,350,420]){
+   if(point)break;
+   for(let i=0;i<16;i++){
+    const angle=i*Math.PI/8;
+    const p={x:u.x+Math.cos(angle)*distance,y:u.y+Math.sin(angle)*distance};
+    if(!g.world.walkable(p,g.obstacles()))continue;
+    const path=g.world.path(u,p,g.obstacles());
+    if(path.length&&Math.hypot(path.at(-1).x-p.x,path.at(-1).y-p.y)<70){point=p;break;}
+   }
+  }
+  if(!point)throw new Error('No safe nearby marching destination found');
+  const target=a.battlefield.pos(point.x,point.y);
+  const viewport=a.renderer.domElement.getBoundingClientRect();
+  const cameraCenter=a.battlefield.pos(u.x,u.y),delta=cameraCenter.clone().sub(a.controls.target);
+  a.controls.target.add(delta);a.camera.position.add(delta);a.controls.update();
+  target.project(a.camera);
+  return {id:u.id,origin,point,
+   x:viewport.left+(target.x*.5+.5)*viewport.width,
+   y:viewport.top+(.5-target.y*.5)*viewport.height,
+   running:a.simulationRunning,paused:g.paused};
+ });
+ expect(state.running).toBe(true);
+ expect(state.paused).toBe(false);
+ expect(state.x).toBeGreaterThan(50);
+ expect(state.x).toBeLessThan(1100);
+ expect(state.y).toBeGreaterThan(90);
+ expect(state.y).toBeLessThan(770);
+ await page.locator('[data-action="select-all"]').click();
+ await page.mouse.click(state.x,state.y,{button:'right'});
+ await expect(page.locator('#sf-message')).toContainText('Marsch');
+ await page.waitForFunction(({id,origin})=>{
+  const u=window.__sandforgeWebGL.game.units.find(x=>x.id===id);
+  return u&&Math.hypot(u.x-origin.x,u.y-origin.y)>12;
+ },{id:state.id,origin:state.origin},{timeout:14000});
+ expect(errors).toEqual([]);
+});
