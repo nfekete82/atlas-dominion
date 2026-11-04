@@ -63,7 +63,7 @@ renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
 // Lower the hot highlights of the preview: original sandstone and buildings
 // share one warm daylight exposure instead of glowing in different palettes.
-renderer.toneMappingExposure=1.00;
+renderer.toneMappingExposure=spacious?.96:1.00;
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.65));
@@ -74,7 +74,7 @@ const scene=new THREE.Scene();
 scene.background=new THREE.Color('#000000');
 scene.fog=new THREE.FogExp2('#080605',.00008);
 scene.add(new THREE.HemisphereLight('#fff1dd','#675246',1.20));
-const sun=new THREE.DirectionalLight('#fff0d4',3.05);
+const sun=new THREE.DirectionalLight('#fff0d4',spacious?2.85:3.05);
 sun.position.set(-700,1100,420);
 sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
 sun.shadow.camera.left=-1250;sun.shadow.camera.right=1250;
@@ -212,7 +212,7 @@ function buildTerrain(){
      .lerp(new THREE.Color(spacious?'#9f8160':'#b58b63'),rocky*.65+bands*.12);
    col.multiplyScalar(nval);
    colors[n]=col.r;colors[n+1]=col.g;colors[n+2]=col.b;
-   uv[k*2]=x/1500;uv[k*2+1]=z/1500;
+   uv[k*2]=x/(spacious?2200:1500);uv[k*2+1]=z/(spacious?2200:1500);
    // Sample normals from the continuous field, not triangle tessellation:
    // border ring and playable terrain now have identical lighting at seams.
    const eps=1.6,dx=(heightAt(x+eps,z)-heightAt(x-eps,z))/(2*eps);
@@ -240,7 +240,7 @@ function buildTerrain(){
  // Extend decorative geometry further for low-angle 3D camera shots.
 // These tiles are visual-only and never enter the simulation or raycaster.
 visualPerimeter=addVisualPerimeter({scene,size,heightAt,material,
- ringTiles:query.get('lite')==='1'?2:3,segments:22});
+ ringTiles:query.get('lite')==='1'?2:3,segments:22,textureScale:spacious?2200:1500});
  return chunks*chunks;
 }
 const pbr=(color,roughness=1,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness,flatShading:true});
