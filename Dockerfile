@@ -6,6 +6,7 @@ COPY legacy ./legacy
 COPY scripts/build.mjs ./scripts/build.mjs
 COPY scripts/animation/model-viewer.js ./scripts/animation/model-viewer.js
 COPY scripts/webgl-preview.js ./scripts/webgl-preview.js
+COPY scripts/webgl-title-menu.js ./scripts/webgl-title-menu.js
 COPY scripts/webgl-battlefield.js ./scripts/webgl-battlefield.js
 COPY scripts/webgl-actor-presentation.js ./scripts/webgl-actor-presentation.js
 COPY scripts/webgl-environment.js ./scripts/webgl-environment.js
