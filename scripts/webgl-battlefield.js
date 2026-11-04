@@ -387,6 +387,7 @@ export class SandforgeBattlefield {
   }
   this.fogTexture.needsUpdate=true;
   this.fogNodes.forEach(n=>n.visible=this.fogEnabled);
+  this.fogAtmosphere?.setFogEnabled(this.fogEnabled);
  }
  updateShots(){
   const lines=[],tints=[];
