@@ -45,7 +45,7 @@ test('Playable 3D: assets, terrain, fog, units, buildings, minimap and productio
 
 test('Playable 3D: save and resume hold authoritative combat and economy state',async({page})=>{
  test.setTimeout(110000);
- await page.goto(pageUrl,{waitUntil:'domcontentloaded'});
+ await page.goto(pageUrl+'&pause=1',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:90000});
  const initial=await page.evaluate(()=>{
   const g=window.__sandforgeWebGL.game;
@@ -54,7 +54,7 @@ test('Playable 3D: save and resume hold authoritative combat and economy state',
  });
  await page.locator('[data-action="save"]').click();
  await expect(page.locator('#sf-message')).toContainText('gespeichert');
- await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&resume=1',{waitUntil:'domcontentloaded'});
+ await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&resume=1&pause=1',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:90000});
  const after=await page.evaluate(()=>{
   const g=window.__sandforgeWebGL.game;
