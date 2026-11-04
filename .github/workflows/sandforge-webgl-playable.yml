@@ -26,6 +26,7 @@ jobs:
         run: |
           node --check scripts/webgl-preview.js
           node --check scripts/webgl-battlefield.js
+          node --check scripts/webgl-actor-presentation.js
           node --check scripts/webgl-environment.js
           node --check scripts/webgl-combat-vfx.js
           node --check scripts/webgl-portraits.js
