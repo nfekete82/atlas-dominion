@@ -23,6 +23,9 @@ export class SandforgeBattlefield {
   this.defaultFactions=[0,1];
   this.maxModels=80;this.loadingCount=0;this.modelQueue=[];
   this.clickStart=null;this.groups=new Map();
+  this.selectionBox=document.createElement('div');
+  this.selectionBox.style.cssText='position:fixed;z-index:11;pointer-events:none;border:1px solid #9be5ef;background:#4ca4ce35;display:none;box-shadow:inset 0 0 0 1px #1c3945a8';
+  document.body.append(this.selectionBox);
   this.tracer=new THREE.LineSegments(new THREE.BufferGeometry(),
     new THREE.LineBasicMaterial({vertexColors:true,transparent:true,opacity:.96,depthWrite:false}));
   this.tracer.frustumCulled=false;scene.add(this.tracer);
@@ -347,6 +350,20 @@ export class SandforgeBattlefield {
   const origin=this.controls.target;
   ctx.strokeStyle='#fff7d8';ctx.strokeRect((origin.x+map.size*.5)*scale-11,(origin.z+map.size*.5)*scale-11,22,22);
  }
+ selectBoxUnits(x0,y0,x1,y1,append=false){
+  const rect=this.renderer.domElement.getBoundingClientRect();
+  const left=Math.min(x0,x1),right=Math.max(x0,x1);
+  const top=Math.min(y0,y1),bottom=Math.max(y0,y1);
+  if(!append)this.selected.clear();
+  for(const u of this.game.units){
+   if(u.hp<=0||u.carrier||u.owner!==0)continue;
+   const entry=this.units.get(u.id);if(!entry)continue;
+   const p=entry.node.position.clone().project(this.camera);
+   const x=(p.x*.5+.5)*rect.width+rect.left,y=(.5-p.y*.5)*rect.height+rect.top;
+   if(x>=left&&x<=right&&y>=top&&y<=bottom)this.selected.add(u.id);
+  }
+  this.selectedBase=null;this.drawInterface();
+ }
  terrainPoint(event){
   const rect=this.renderer.domElement.getBoundingClientRect();
   const ndc=new THREE.Vector2((event.clientX-rect.left)/rect.width*2-1,1-(event.clientY-rect.top)/rect.height*2);
@@ -357,8 +374,13 @@ export class SandforgeBattlefield {
  }
  pointerUp(event){
   if(!this.clickStart||event.button!==this.clickStart.button)return;
-  const moved=Math.hypot(event.clientX-this.clickStart.x,event.clientY-this.clickStart.y);
-  this.clickStart=null;if(moved>7)return;
+  const start=this.clickStart;
+  const moved=Math.hypot(event.clientX-start.x,event.clientY-start.y);
+  this.clickStart=null;this.selectionBox.style.display='none';
+  if(moved>7){
+   if(event.button===0)this.selectBoxUnits(start.x,start.y,event.clientX,event.clientY,event.shiftKey);
+   return;
+  }
   const p=this.terrainPoint(event);if(!p)return;
   if(event.button===0){
    if(this.buildKind){
@@ -384,7 +406,7 @@ export class SandforgeBattlefield {
   }else if(event.button===2){
    if(!this.selected.size)return;
    const ids=[...this.selected],kind=this.attackMode?'attackMove':'move';
-   const accepted=this.game.command(ids,{x:p.x,y:p.y,kind});
+   const accepted=this.game.command(ids,{x:p.x,y:p.y,kind},event.shiftKey);
    this.message(accepted?accepted+' Einheit(en): '+(this.attackMode?'Angriff':'Marsch'):'Ziel nicht erreichbar');
    if(accepted){
     this.sound?.command?.(kind==='attackMove');
@@ -399,8 +421,25 @@ export class SandforgeBattlefield {
   // right-drag rotates. A right *click* issues a command.
   this.controls.mouseButtons={LEFT:null,MIDDLE:THREE.MOUSE.PAN,RIGHT:THREE.MOUSE.ROTATE};
   const canvas=this.renderer.domElement;
-  canvas.addEventListener('pointerdown',e=>{this.clickStart={x:e.clientX,y:e.clientY,button:e.button};});
+  canvas.addEventListener('pointerdown',e=>{
+   this.clickStart={x:e.clientX,y:e.clientY,button:e.button};
+  });
+  canvas.addEventListener('pointermove',e=>{
+   const start=this.clickStart;
+   if(!start||start.button!==0||!(e.buttons&1))return;
+   if(Math.hypot(e.clientX-start.x,e.clientY-start.y)<7)return;
+   Object.assign(this.selectionBox.style,{
+    display:'block',left:Math.min(start.x,e.clientX)+'px',
+    top:Math.min(start.y,e.clientY)+'px',
+    width:Math.abs(e.clientX-start.x)+'px',
+    height:Math.abs(e.clientY-start.y)+'px'
+   });
+  });
   canvas.addEventListener('pointerup',e=>this.pointerUp(e));
+  window.addEventListener('pointerup',e=>{if(this.clickStart)this.pointerUp(e);});
+  canvas.addEventListener('pointercancel',()=>{
+   this.clickStart=null;this.selectionBox.style.display='none';
+  });
   canvas.addEventListener('contextmenu',e=>e.preventDefault());
   document.addEventListener('keydown',event=>{
    if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;
