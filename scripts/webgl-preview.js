@@ -6,6 +6,7 @@ import {canyonGroundSampler,rampAtX,ridgeCenterY} from '/src/reborn/canyon-heigh
 import {SandforgeBattlefield} from '/webgl-battlefield.js';
 import {DesertArtPass} from '/webgl-environment.js';
 import {SandforgeCombatEffects} from '/webgl-combat-vfx.js';
+import {addVisualPerimeter} from '/webgl-perimeter.js';
 import {Soundscape} from '/src/reborn/audio.js';
 import {fineSandPattern} from '/src/reborn/fine-sand.js';
 
@@ -87,6 +88,7 @@ const models=new Map(),ruinMeshes=[];
 // never appear accepted while an unannounced preview-level pause blocks ticks.
 game.paused=false;
 let groundMeshes=[],running=query.get('pause')!=='1',accumulator=0,elapsed=0;
+let visualPerimeter=null;
 function sandTexture(){
  const c=document.createElement('canvas');c.width=c.height=256;
  const ctx=c.getContext('2d'),pixels=ctx.createImageData(256,256),r=rnd(seed^0x192cb110);
@@ -166,6 +168,10 @@ function buildTerrain(){
   mesh.receiveShadow=true;mesh.userData.terrain=true;
   scene.add(mesh);groundMeshes.push(mesh);
  }
+ // A ring of lower-detail sand continues beyond all four visible edges.
+ // Only the 16 central tiles feed fog, unit movement or clicking. The extra
+ // 48 tiles are decorative and share the same texture and height sampler.
+ visualPerimeter=addVisualPerimeter({scene,size,heightAt,material,ringTiles:2,segments:24});
  return chunks*chunks;
 }
 const pbr=(color,roughness=1,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness,flatShading:true});
@@ -381,12 +387,48 @@ $('load').onclick=()=>{
  const q=new URLSearchParams({bastions:$('bastions').value,seed:String(Number($('seed').value)>>>0)});
  location.href='/webgl-preview.html?'+q;
 };
+// Camera navigation is independent of the simulation. WASD and cursor keys
+// work during pause; F becomes attack-move so A remains free for panning.
+const panKeys=new Set();
+const panControls=new Set(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowLeft','ArrowDown','ArrowRight']);
+const forward=new THREE.Vector3(),right=new THREE.Vector3(),deltaPan=new THREE.Vector3();
+const typing=()=>['INPUT','SELECT','TEXTAREA'].includes(document.activeElement?.tagName)||
+ document.activeElement?.isContentEditable===true;
 addEventListener('keydown',event=>{
- if(['INPUT','SELECT','TEXTAREA'].includes(document.activeElement?.tagName))return;
- if(event.code==='KeyQ')spin(-Math.PI/8);
- if(event.code==='KeyE')spin(Math.PI/8);
+ if(typing()||event.ctrlKey||event.metaKey||event.altKey)return;
+ if(panControls.has(event.code)){
+  event.preventDefault();panKeys.add(event.code);return;
+ }
+ if(event.repeat)return;
+ if(event.code==='KeyQ'){event.preventDefault();spin(-Math.PI/8);}
+ if(event.code==='KeyE'){event.preventDefault();spin(Math.PI/8);}
  if(event.code==='Space'){event.preventDefault();$('simulation').click();}
 });
+addEventListener('keyup',event=>panKeys.delete(event.code));
+addEventListener('blur',()=>panKeys.clear());
+function stepCamera(dt){
+ let horizontal=Number(panKeys.has('KeyD')||panKeys.has('ArrowRight'))-
+  Number(panKeys.has('KeyA')||panKeys.has('ArrowLeft'));
+ let vertical=Number(panKeys.has('KeyW')||panKeys.has('ArrowUp'))-
+  Number(panKeys.has('KeyS')||panKeys.has('ArrowDown'));
+ const magnitude=Math.hypot(horizontal,vertical);
+ if(magnitude){
+  camera.updateMatrixWorld();
+  right.setFromMatrixColumn(camera.matrixWorld,0).setY(0).normalize();
+  camera.getWorldDirection(forward);forward.y=0;forward.normalize();
+  const speed=(770/Math.max(.25,camera.zoom))*Math.min(.08,dt)/magnitude;
+  deltaPan.copy(right).multiplyScalar(horizontal*speed).addScaledVector(forward,vertical*speed);
+  camera.position.add(deltaPan);controls.target.add(deltaPan);
+ }
+ // Keep the camera looking over the drawn desert. Units still cannot leave
+ // World.indexXY 0..size and the 3D perimeter is never a raycast target.
+ const cameraLimit=Math.max(200,visualPerimeter?.margin??size*.5)*.80;
+ const edge=half+cameraLimit;
+ const x=Math.max(-edge,Math.min(edge,controls.target.x));
+ const z=Math.max(-edge,Math.min(edge,controls.target.z));
+ const fixX=x-controls.target.x,fixZ=z-controls.target.z;
+ if(fixX||fixZ){camera.position.x+=fixX;camera.position.z+=fixZ;controls.target.x=x;controls.target.z=z;}
+}
 function resize(){
  const w=Math.max(320,stage.clientWidth),h=Math.max(280,stage.clientHeight);
  camera.left=-w/h*480;camera.right=w/h*480;camera.top=480;camera.bottom=-480;
@@ -440,6 +482,7 @@ function animate(now){
  if(!running)battlefield.sync(false,dt);
  effects.update(dt,running);
  if(running&&sound.enabled)sound.update(game,soundView);
+ stepCamera(dt);
  controls.update();
  renderer.render(scene,camera);
  frames++;elapsed+=dt;
@@ -449,7 +492,7 @@ function animate(now){
  }
 }
 renderer.setAnimationLoop(animate);
-window.__sandforgeWebGL={renderer,scene,camera,controls,game,terrain,heightAt,battlefield,effects,sound,
+window.__sandforgeWebGL={renderer,scene,camera,controls,game,terrain,heightAt,battlefield,effects,sound,visualPerimeter,panKeys,
  get ruinsLoaded(){return ruinMeshes.length;},
  get loaded(){return status.dataset.ready==='true';},
  get simulationRunning(){return running;},
