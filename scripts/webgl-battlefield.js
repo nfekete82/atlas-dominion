@@ -6,6 +6,7 @@ import {installClassicHud} from '/webgl-classic-hud.js';
 import {hydrateUnitIcons,unitIcon,buildingIconUrl} from '/webgl-portraits.js';
 import {SandforgeActorPresentation} from '/webgl-actor-presentation.js';
 import {calibratedScale} from '/webgl-scale.js';
+import {SandforgeGroundingPass} from '/webgl-grounding.js';
 
 // Runtime adapter: game state, movement, combat, production and AI are owned
 // exclusively by the original Simulation. 3D nodes are presentation only.
@@ -25,6 +26,7 @@ export class SandforgeBattlefield {
   this.miniLast=0;this.uiLast=0;this.fogLast=0;
   this.fogEnabled=true;this.selectedRings=new Map();this.animations=new Map();
   this.presentation=new SandforgeActorPresentation(scene,camera,game);
+  this.grounding=new SandforgeGroundingPass(scene);
   this.defaultFactions=[0,1];
   this.maxModels=80;this.loadingCount=0;this.modelQueue=[];
   this.clickStart=null;this.groups=new Map();
@@ -173,12 +175,12 @@ export class SandforgeBattlefield {
    if(b.hp<=0)continue;
    aliveBases.add(b.id);
    let entry=this.bases.get(b.id);
-   if(!entry){entry=this.spawnNode(b,'building');this.bases.set(b.id,entry);}
+   if(!entry){entry=this.spawnNode(b,'building');this.bases.set(b.id,entry);this.grounding.attachBuilding(entry,b);}
    entry.node.position.copy(this.entityPosition(b));
    entry.node.visible=b.owner===0||this.game.canSee(0,b);
    entry.node.scale.y=b.buildRemaining>0?.58:1;
   }
-  for(const [id,e] of this.bases)if(!aliveBases.has(id)){this.presentation.remove(e,this.game.bases.find(base=>base.id===id));this.scene.remove(e.node);this.bases.delete(id);if(this.selectedBase===id)this.selectedBase=null;}
+  for(const [id,e] of this.bases)if(!aliveBases.has(id)){this.presentation.remove(e,this.game.bases.find(base=>base.id===id));this.grounding.detachBuilding(id);this.scene.remove(e.node);this.bases.delete(id);if(this.selectedBase===id)this.selectedBase=null;}
   this.presentation.consumeShots(this.units,this.bases);
   for(const u of this.game.units){
    const entry=this.units.get(u.id);
