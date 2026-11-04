@@ -436,6 +436,10 @@ $('load').onclick=()=>{
 const panKeys=new Set();
 const panControls=new Set(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowLeft','ArrowDown','ArrowRight']);
 const forward=new THREE.Vector3(),right=new THREE.Vector3(),deltaPan=new THREE.Vector3();
+const cameraRay=new THREE.Raycaster(),cameraHit=new THREE.Vector3();
+const cameraGroundPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
+const cameraCorners=[new THREE.Vector2(-1,-1),new THREE.Vector2(-1,1),
+ new THREE.Vector2(1,-1),new THREE.Vector2(1,1)];
 const typing=()=>['INPUT','SELECT','TEXTAREA'].includes(document.activeElement?.tagName)||
  document.activeElement?.isContentEditable===true;
 addEventListener('keydown',event=>{
@@ -464,18 +468,40 @@ function stepCamera(dt){
   deltaPan.copy(right).multiplyScalar(horizontal*speed).addScaledVector(forward,vertical*speed);
   camera.position.add(deltaPan);controls.target.add(deltaPan);
  }
- // Keep the camera looking over the drawn desert. Units still cannot leave
- // World.indexXY 0..size and the 3D perimeter is never a raycast target.
- // Clamp the whole visible orthographic viewport inside the playable map.
- // A generous interior margin hides the decorative rim even after rotations.
- const viewWidth=(camera.right-camera.left)/camera.zoom;
- const viewHeight=(camera.top-camera.bottom)/camera.zoom;
- const projectedRadius=Math.hypot(viewWidth,viewHeight)*.45;
- const limit=Math.max(65,half-projectedRadius-100);
- const x=Math.max(-limit,Math.min(limit,controls.target.x));
- const z=Math.max(-limit,Math.min(limit,controls.target.z));
- const fixX=x-controls.target.x,fixZ=z-controls.target.z;
- if(fixX||fixZ){camera.position.x+=fixX;camera.position.z+=fixZ;controls.target.x=x;controls.target.z=z;}
+ // Screen-corner ground intersections, not a guessed radius, determine
+ // exactly what this tilted/isometric orthographic camera can reveal.
+ // Decorative landscape ends far outside the actual 4160+ unit world; keep
+ // the viewing footprint within the cliff/fog transition so no beige void
+ // or mesh edge appears, including on wide screens and after camera rotation.
+ const border=half+280, groundY=heightAt(controls.target.x+half,controls.target.z+half);
+ cameraGroundPlane.constant=-groundY;
+ camera.updateMatrixWorld(true);
+ const scanCorners=()=>{
+  let minX=Infinity,maxX=-Infinity,minZ=Infinity,maxZ=-Infinity;
+  for(const c of cameraCorners){
+   cameraRay.setFromCamera(c,camera);
+   if(!cameraRay.ray.intersectPlane(cameraGroundPlane,cameraHit))continue;
+   minX=Math.min(minX,cameraHit.x);maxX=Math.max(maxX,cameraHit.x);
+   minZ=Math.min(minZ,cameraHit.z);maxZ=Math.max(maxZ,cameraHit.z);
+  }
+  return {minX,maxX,minZ,maxZ};
+ };
+ let view=scanCorners();
+ const span=Math.max((view.maxX-view.minX)/(border*2),(view.maxZ-view.minZ)/(border*2));
+ if(span>1.001&&Number.isFinite(span)){
+  // Preserve the map framing on ultrawide displays instead of permitting a
+  // zoom level at which the complete visual edge becomes visible.
+  camera.zoom=Math.min(controls.maxZoom,camera.zoom*span*1.035);
+  camera.updateProjectionMatrix();
+  view=scanCorners();
+ }
+ const correction=(low,high)=>low < -border ? -border-low : high>border ? border-high : 0;
+ const fixX=correction(view.minX,view.maxX);
+ const fixZ=correction(view.minZ,view.maxZ);
+ if(fixX||fixZ){
+  camera.position.x+=fixX;camera.position.z+=fixZ;
+  controls.target.x+=fixX;controls.target.z+=fixZ;
+ }
 }
 function resize(){
  const w=Math.max(320,stage.clientWidth),h=Math.max(280,stage.clientHeight);
