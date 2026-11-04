@@ -171,7 +171,8 @@ test('production percentage increases with elapsed time and construction is visi
     return {bar,eta,construction,count};
   });
   expect(info.error).toBeUndefined();
-  expect(info.bar).toBe('50.0%');
+  // CSSOM normalizes 50.0% to 50%; assert the numeric progress, not formatting.
+  expect(parseFloat(info.bar)).toBeCloseTo(50,5);
   expect(info.eta).toBe('3 s');
   expect(info.construction).toContain('50%');
   expect(info.count).toContain('1 PRODUKTION');
