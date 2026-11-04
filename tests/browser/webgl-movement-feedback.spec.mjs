@@ -28,7 +28,10 @@ test('moving infantry and vehicles leave short-lived footprint and tire decals',
    foot:tracks.foot.mesh.count,vehicle:tracks.vehicle.mesh.count,
    footName:tracks.foot.mesh.name,vehicleName:tracks.vehicle.mesh.name,
    footFade:firstFade,vehicleFade,footTTL:tracks.foot.ttl,
-   vehicleTTL:tracks.vehicle.ttl
+   vehicleTTL:tracks.vehicle.ttl,
+   footWidth:Math.hypot(...tracks.foot.mesh.instanceMatrix.array.slice(0,3)),
+   footLength:Math.hypot(...tracks.foot.mesh.instanceMatrix.array.slice(8,11)),
+   footAlpha:tracks.foot.mesh.material.uniforms.baseAlpha.value
   };
  });
  expect(stamps.foot).toBeGreaterThan(0);
@@ -38,6 +41,9 @@ test('moving infantry and vehicles leave short-lived footprint and tire decals',
  expect(stamps.footFade).toBeGreaterThan(.9);
  expect(stamps.vehicleFade).toBeGreaterThan(.9);
  expect(stamps.vehicleTTL).toBeGreaterThan(stamps.footTTL);
+ expect(stamps.footWidth).toBeGreaterThanOrEqual(10);
+ expect(stamps.footLength).toBeGreaterThanOrEqual(20);
+ expect(stamps.footAlpha).toBeGreaterThanOrEqual(.75);
 
  const expired=await page.evaluate(()=>{
   const tracks=window.__sandforgeWebGL.groundTracks;
