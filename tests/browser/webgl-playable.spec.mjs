@@ -37,7 +37,7 @@ test('Playable 3D: assets, terrain, fog, units, buildings, minimap and productio
  expect(await page.evaluate(()=>document.querySelector('[data-action="select-all"]')===window.__stableCommandButton)).toBe(true);
  await page.locator('[data-action="select-all"]').click();
  expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.selected.size)).toBeGreaterThan(0);
- await page.locator('[data-tab="buildings"]').click();
+ await page.locator('#sf-tabs button[data-tab="buildings"]').click();
  await expect(page.locator('[data-sf-group="buildings"]')).toBeVisible();
  await expect(page.locator('[data-sf-group="units"]')).toBeHidden();
  await expect(page.locator('[data-build="barracks"]')).toBeDisabled();
@@ -172,14 +172,14 @@ test('WebGL menu v2: every tab isolates its content and unit sprites become prop
  await expect(page.locator('[data-sf-group="units"]')).toBeHidden();
  await expect(page.locator('[data-sf-group="buildings"]')).toBeHidden();
  await expect(page.locator('[data-sf-group="territories"]')).toBeVisible();
- await expect(page.locator('[data-tab="units"]')).toBeHidden();
+ await expect(page.locator('#sf-tabs button[data-tab="units"]')).toBeHidden();
  await page.evaluate(()=>{
   const a=window.__sandforgeWebGL,g=a.game,b=a.battlefield;
   const engineer=g.units.find(u=>u.owner===0&&u.kind==='engineer');
   b.selected=new Set([engineer.id]);b.selectedBase=null;b.drawInterface();
  });
  await expect(page.locator('[data-sf-group="buildings"]')).toBeVisible();
- await expect(page.locator('[data-tab="buildings"]')).toBeVisible();
+ await expect(page.locator('#sf-tabs button[data-tab="buildings"]')).toBeVisible();
  await page.waitForFunction(()=>{
   const icons=[...document.querySelectorAll('img[data-sf-unit-icon]')];
   return icons.length===9&&icons.every(i=>i.dataset.sfIconStatus==='ready'&&i.naturalWidth===192&&i.naturalHeight===132);
@@ -187,7 +187,7 @@ test('WebGL menu v2: every tab isolates its content and unit sprites become prop
  const icon=await page.locator('img[data-sf-unit-icon="infantry"]').getAttribute('src');
  expect(icon).toMatch(/^data:image\/png;base64,/);
  await expect(page.locator('[data-build="headquarters"]')).toBeVisible();
- await page.locator('[data-tab="territories"]').click();
+ await page.locator('#sf-tabs button[data-tab="territories"]').click();
  await expect(page.locator('[data-sf-group="buildings"]')).toBeHidden();
  await expect(page.locator('[data-sf-group="territories"]')).toBeVisible();
  await expect(page.locator('[data-territory="0"]')).toBeVisible();
