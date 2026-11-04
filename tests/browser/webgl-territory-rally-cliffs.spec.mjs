@@ -197,12 +197,14 @@ test('visual depth preview keeps an angled 3D RTS camera and desert fog',async({
       infantryHeight:MODEL_HEIGHTS.infantry,
       dimensionVersion:DIMENSIONS_VERSION,
       fogStillOpaque:view.battlefield.fogTexture.image.data.some((v,i)=>i%4===3&&v===255),
-      // Verify a dark warm fog tint, without pinning tests to one exact RGB triplet.
+      // The new Fog of War is near-black charcoal rather than desert brown.
+      // Check its dark, neutral character without pinning the shader to one
+      // hard-coded RGB triplet (the dedicated fog spec checks the exact mode).
       fogTint:(()=>{
         const match=shader.match(/gl_FragColor\s*=\s*vec4\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*a\s*\)/);
         if(!match)return false;
         const [r,g,b]=match.slice(1).map(Number);
-        return r>g&&g>b&&r<.15&&b>=0;
+        return [r,g,b].every(v=>v>=0&&v<=.06)&&b>=r&&g>=r;
       })(),
       isWebGLRenderer:view.renderer.isWebGLRenderer===true
     };
