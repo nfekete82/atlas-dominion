@@ -7,6 +7,7 @@ cpSync('model-preview.html','dist/model-preview.html');
 cpSync('model-3d.html','dist/model-3d.html');
 cpSync('webgl-preview.html','dist/webgl-preview.html');
 cpSync('scripts/webgl-preview.js','dist/webgl-preview.js');
+cpSync('scripts/webgl-title-menu.js','dist/webgl-title-menu.js');
 cpSync('scripts/webgl-battlefield.js','dist/webgl-battlefield.js');
 cpSync('scripts/webgl-actor-presentation.js','dist/webgl-actor-presentation.js');
 cpSync('scripts/webgl-environment.js','dist/webgl-environment.js');
