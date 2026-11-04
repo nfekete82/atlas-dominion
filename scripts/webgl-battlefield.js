@@ -5,7 +5,7 @@ import {RULES} from '/src/reborn/config.js';
 import {installClassicHud} from '/webgl-classic-hud.js';
 import {hydrateUnitIcons,unitIcon,buildingIconUrl} from '/webgl-portraits.js';
 import {SandforgeActorPresentation} from '/webgl-actor-presentation.js';
-import {calibratedScale} from '/webgl-scale.js';
+import {calibratedScale,visualUnitScale} from '/webgl-scale.js';
 import {SandforgeGroundingPass} from '/webgl-grounding.js';
 import {SandforgeConstructionPresentation} from '/webgl-construction.js';
 import {createBastionCaptureBar,updateBastionCaptureBar} from '/webgl-bastion-capture.js';
@@ -124,7 +124,9 @@ export class SandforgeBattlefield {
     const desired=type==='unit'?UNITS[entry.kind].width:BUILDINGS[entry.kind].width;
     const extent=Math.max(dims.x,dims.z);
     if(extent>.0001){
-     const scale=calibratedScale(entry.kind,type,dims,desired);model.scale.multiplyScalar(scale);
+     const scale=calibratedScale(entry.kind,type,dims,desired)*
+       (type==='unit'?visualUnitScale(entry.kind):1);
+     model.scale.multiplyScalar(scale);
      model.position.set(-box0.getCenter(new THREE.Vector3()).x*scale,
       -box0.min.y*scale,-box0.getCenter(new THREE.Vector3()).z*scale);
     }
@@ -132,8 +134,10 @@ export class SandforgeBattlefield {
     // Visual normalization is independent of collision/pathfinding. Re-ground
     // imported GLBs against the same heightfield sample as their placeholder.
     entry.node.remove(entry.placeholder);entry.node.add(model);entry.detail=model;
-    entry.modelHeight=dims.y*calibratedScale(entry.kind,type,dims,desired);
-    entry.modelFootprint=Math.max(dims.x,dims.z)*calibratedScale(entry.kind,type,dims,desired);
+    const visualScale=calibratedScale(entry.kind,type,dims,desired)*
+      (type==='unit'?visualUnitScale(entry.kind):1);
+    entry.modelHeight=dims.y*visualScale;
+    entry.modelFootprint=Math.max(dims.x,dims.z)*visualScale;
     entry.visualBaseY=model.position.y;entry.visualBaseZ=model.position.z;
     if(type==='unit'&&data.animations.length){
      const mixer=new THREE.AnimationMixer(model);
@@ -174,6 +178,8 @@ export class SandforgeBattlefield {
   node.name=type+'-'+entity.kind+'-'+entity.id;
   node.userData={id:entity.id,type};
   const placeholder=this.createFallback(entity.kind,entity.owner,type);
+  // Lite mode must match detailed mode: both receive the same visual scale.
+  if(type==='unit')placeholder.scale.setScalar(visualUnitScale(entity.kind));
   node.add(placeholder);node.position.copy(this.entityPosition(entity));
   this.scene.add(node);
   const entry={node,placeholder,kind:entity.kind,owner:entity.owner,requested:false};
