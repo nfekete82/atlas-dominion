@@ -70,7 +70,7 @@ jobs:
         env:
           ATLAS_BROWSER_CHANNEL: chromium
           LIBGL_ALWAYS_SOFTWARE: '1'
-        run: cd tests/browser && npx playwright test webgl-playable.spec.mjs webgl-combat-vfx.spec.mjs webgl-perimeter-navigation.spec.mjs webgl-actor-presentation.spec.mjs webgl-title-menu.spec.mjs webgl-visual-parity.spec.mjs webgl-classic-parity.spec.mjs --config=playwright.config.mjs
+        run: cd tests/browser && npx playwright test webgl-playable.spec.mjs webgl-combat-vfx.spec.mjs webgl-perimeter-navigation.spec.mjs webgl-actor-presentation.spec.mjs webgl-title-menu.spec.mjs webgl-visual-parity.spec.mjs webgl-classic-parity.spec.mjs webgl-fog-alignment.spec.mjs --config=playwright.config.mjs
       - name: Store real WebGL screenshot and browser trace
         if: always()
         uses: actions/upload-artifact@v4
