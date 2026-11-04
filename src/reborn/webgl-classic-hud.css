@@ -176,3 +176,41 @@
  #sf-classic-root #sf-actions .catalog-grid {grid-template-columns:1fr 1fr;gap:3px}
  #sf-classic-root #sf-actions .catalog-card {min-height:89px;height:89px}
 }
+
+/* Unit roster parity: reserve two FULL lines for names, rather than forcing
+   long classic names (Infanteriesoldat, Transporthelikopter) into ellipses. */
+#sf-classic-root #sf-actions .catalog-card {
+ min-height:133px!important;height:133px!important;
+}
+#sf-classic-root #sf-actions .card-meta {
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr) auto;
+ align-items:center;
+ min-height:43px!important;height:43px!important;
+ padding:3px 6px!important;
+ column-gap:6px;
+}
+#sf-classic-root #sf-actions .card-name {
+ font:700 11px/1.15 var(--display)!important;
+ max-width:none!important;
+ white-space:normal!important;
+ overflow:visible!important;
+ text-overflow:clip!important;
+ overflow-wrap:break-word;
+}
+#sf-classic-root #sf-actions .card-cost {
+ font:700 10px var(--mono)!important;
+ align-self:end;
+ padding-bottom:2px;
+}
+#sf-classic-root #sf-actions .sf-card-image {
+ min-height:76px!important;
+}
+#sf-classic-root #sf-actions .sf-card-image img {
+ image-rendering:auto;
+ object-position:center 85%;
+}
+@media(max-height:750px){
+ #sf-classic-root #sf-actions .catalog-card{min-height:115px!important;height:115px!important}
+ #sf-classic-root #sf-actions .sf-card-image{min-height:63px!important}
+}
