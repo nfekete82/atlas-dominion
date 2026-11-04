@@ -15,6 +15,9 @@ cpSync('scripts/webgl-combat-vfx.js','dist/webgl-combat-vfx.js');
 cpSync('scripts/webgl-classic-hud.js','dist/webgl-classic-hud.js');
 cpSync('scripts/webgl-portraits.js','dist/webgl-portraits.js');
 cpSync('scripts/webgl-perimeter.js','dist/webgl-perimeter.js');
+cpSync('scripts/webgl-edge-cliffs.js','dist/webgl-edge-cliffs.js');
+cpSync('scripts/webgl-grounding.js','dist/webgl-grounding.js');
+cpSync('scripts/webgl-scale.js','dist/webgl-scale.js');
 cpSync('src/reborn/webgl-classic-hud.css','dist/webgl-classic-hud.css');
 cpSync('scripts/animation/model-viewer.js','dist/model-viewer.js');
 // WebGL preview and 3D inspector share the same local Three.js modules.
