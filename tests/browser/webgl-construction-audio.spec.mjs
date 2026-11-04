@@ -149,7 +149,16 @@ test('3D placement overlay is drawn in a separate foreground pass after black fo
    foregroundScene:ghost?.parent===b.buildPreviewScene,
    absentFromWorld:!a.scene.children.includes(ghost),
    lightCount:b.buildPreviewScene.children.filter(x=>x.isLight).length,
-   transparent:ghost.children.some(c=>c.children?.some(n=>n.isMesh&&n.material?.transparent&&n.material?.depthTest===false)),
+   transparent:(()=>{
+    const meshes=[];
+    ghost.traverse(node=>{if(node.isMesh)meshes.push(node);});
+    return meshes.length>0&&meshes.every(node=>{
+      const materials=Array.isArray(node.material)?node.material:[node.material];
+      return materials.length>0&&materials.every(m=>
+        m?.transparent===true&&m.depthTest===false&&m.depthWrite===false
+      );
+    });
+   })(),
    stage:a.renderer.domElement.width};
  });
  expect(result.ghostVisible).toBe(true);

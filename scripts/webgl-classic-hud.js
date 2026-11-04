@@ -58,7 +58,7 @@ export function installClassicHud(){
 </section>
 <div class="sf-notice" id="sf-message" role="status" aria-live="polite"></div>
 <div class="sf-game-settings hud frame" id="sf-settings">
- <div class="section-label">3D SCHLACHTFELD</div><div id="sf-settings-fields"></div>
+ <div class="sf-settings-header"><div class="section-label">3D SCHLACHTFELD</div><button type="button" id="sf-settings-close" class="sf-settings-close" aria-label="Menü schließen">✕</button></div><div id="sf-settings-fields"></div>
 </div>
 <div class="sf-debug" id="sf-debug"><span id="sf-debug-status"></span><span id="sf-debug-error"></span></div>
 `;
@@ -98,10 +98,26 @@ export function installClassicHud(){
  settingsButton.textContent='⚙';settingsButton.title='Kartengröße und Seed';
  settingsButton.setAttribute('aria-label','Karteneinstellungen anzeigen');
  tools.insertBefore(settingsButton,tools.firstChild);
+ const closeSettings=()=>{
+  panel.classList.remove('sf-settings-open');
+  settingsButton.setAttribute('aria-expanded','false');
+ };
+ const openSettings=()=>{
+  panel.classList.add('sf-settings-open');
+  settingsButton.setAttribute('aria-expanded','true');
+ };
  settingsButton.addEventListener('click',()=>{
-  const open=panel.classList.toggle('sf-settings-open');
-  settingsButton.setAttribute('aria-expanded',String(open));
+  if(panel.classList.contains('sf-settings-open'))closeSettings();
+  else openSettings();
  });
+ panel.querySelector('#sf-settings-close')?.addEventListener('click',closeSettings);
+ window.addEventListener('keydown',event=>{
+  if(event.key!=='Escape'||!panel.classList.contains('sf-settings-open'))
+   return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  closeSettings();
+ },true);
  const status=move('status',panel.querySelector('#sf-debug-status'));
  const error=move('error',panel.querySelector('#sf-debug-error'));
  status.classList.add('sf-status');error.classList.add('sf-error');

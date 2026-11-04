@@ -244,3 +244,26 @@
 #sf-classic-root #sf-actions button.catalog-card.locked .card-cost {
   color:#b8aa88 !important;
 }
+
+
+/* WebGL settings header integration */
+#sf-classic-root .sf-settings-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+#sf-classic-root .sf-settings-close {
+  appearance:none;
+  border:1px solid #a58b65;
+  border-radius:6px;
+  background:#243137;
+  color:#f7ebd4;
+  cursor:pointer;
+  min-width:32px;
+  min-height:32px;
+  font-size:18px;
+}
+#sf-classic-root .sf-settings-close:hover {
+  background:#43535a;
+}
