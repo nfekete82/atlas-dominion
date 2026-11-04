@@ -62,8 +62,12 @@ export function generateCanyonFeatures(seed:number,size:number,columns:number,ro
    for(let trial=0;trial<32&&!added;trial++){
     const variant=Math.floor(random()*3);
     const r:CanyonRuin={x:(ax+(random()-.5)*.09)*size,y:(ay+(random()-.5)*.09)*size,
-      width:variant===1?120:80+random()*35,depth:variant===1?88:66+random()*29,
-      height:variant===1?63:39+random()*26,rotation:(random()-.5)*.24,variant};
+      // On v19+ the *physical* ruin footprint grows with the mesh, so units
+      // cannot walk through larger facades. Older maps remain byte-identical.
+      width:(variant===1?120:80+random()*35)*(spacious?1.35:1),
+      depth:(variant===1?88:66+random()*29)*(spacious?1.35:1),
+      height:(variant===1?63:39+random()*26)*(spacious?1.20:1),
+      rotation:(random()-.5)*.24,variant};
     if(safe(r)){ruins.push(r);added=true;}
    }
   }
