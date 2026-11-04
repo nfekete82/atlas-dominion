@@ -40,20 +40,24 @@ export function generateCanyonFeatures(seed:number,size:number,columns:number,ro
    .map(x=>({x:x*size,width:Math.max(205,size*.045)}))
  };
  const ruins:CanyonRuin[]=[];
- const nearRoad=(p:Point)=>corridors.some(([a,b])=>segmentDistance(p,a,b)<112);
+ const spacious=size>=6000; // v19+ only; old deterministic canyon maps untouched.
+ const nearRoad=(p:Point)=>corridors.some(([a,b])=>segmentDistance(p,a,b)<(spacious?135:112));
  const safe=(r:CanyonRuin)=>{
   const p={x:r.x,y:r.y},radius=Math.hypot(r.width,r.depth)*.65;
   return p.x>200+radius&&p.x<size-200-radius&&p.y>200+radius&&p.y<size-200-radius
    &&sites.every(s=>dist(s,p)>280+radius)
    &&!nearRoad(p)
    &&!ridge.spine.slice(1).some((b,i)=>segmentDistance(p,ridge.spine[i],b)<r.width+radius+120)
-   &&ruins.every(o=>dist(o,p)>Math.max(o.width,o.depth)+radius+55);
+   &&ruins.every(o=>dist(o,p)>Math.max(o.width,o.depth)+radius+(spacious?195:55));
  };
  // Fixed visual zones, deterministic small offsets. Gameplay paths are never
  // inferred from this decoration; the block grid is built from exact footprints.
- const anchors=[[.2,.2],[.8,.22],[.21,.75],[.77,.77],[.48,.2],[.5,.79],[.1,.48],[.9,.53]];
- for(const [ax,ay] of anchors){
-  for(let n=0;n<3;n++){
+ const anchors=spacious?
+  [[.16,.19],[.82,.18],[.19,.81],[.81,.81],[.46,.19],[.54,.79],[.12,.46],[.87,.54],[.34,.33],[.66,.67]]:
+  [[.2,.2],[.8,.22],[.21,.75],[.77,.77],[.48,.2],[.5,.79],[.1,.48],[.9,.53]];
+ for(const [index,[ax,ay]] of anchors.entries()){
+  // One or two derelicts per region, not three identical buildings side by side.
+  for(let n=0;n<(spacious?1+(index%3===0?1:0):3);n++){
    let added=false;
    for(let trial=0;trial<32&&!added;trial++){
     const variant=Math.floor(random()*3);
