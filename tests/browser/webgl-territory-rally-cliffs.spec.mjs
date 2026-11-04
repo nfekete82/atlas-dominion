@@ -151,8 +151,12 @@ test('production percentage increases with elapsed time and construction is visi
   await load(page);
   const info=await page.evaluate(()=>{
     const a=window.__sandforgeWebGL,g=a.game,b=a.battlefield;
-    const base=g.bases.find(x=>x.owner===0&&x.kind==='headquarters');
-    if(!base)return {error:'No blue HQ'};
+    // Campaigns deliberately start without a completed HQ. Build the
+    // same real headquarters fixture used by the rally control test.
+    const site=g.headquartersCandidates(0).find(p=>g.buildError(0,'headquarters',p)===null);
+    if(!site)return {error:'No valid HQ construction site'};
+    const base=g.build(0,'headquarters',site);
+    if(!base)return {error:'Could not create HQ fixture'};
     const old={queue:[...base.queue],queueTypes:[...base.queueTypes],production:base.production,buildRemaining:base.buildRemaining};
     base.queue=[5];base.queueTypes=['engineer'];base.production=2.5;
     base.buildRemaining=10;
