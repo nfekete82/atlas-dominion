@@ -33,6 +33,14 @@ test('3D campaign parity: black fog, engineer HQ bootstrap and blocked productio
  expect(initial.minZoom).toBeCloseTo(.46,2);
  expect(initial.maxZoom).toBeLessThanOrEqual(3.5);
  await expect(page.locator('[data-unit="infantry"]')).toBeDisabled();
+ await expect(page.locator('[data-tab="buildings"]')).toBeHidden();
+ await page.evaluate(()=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  const worker=game.units.find(u=>u.owner===0&&u.kind==='engineer');
+  battlefield.selected=new Set([worker.id]);battlefield.selectedBase=null;
+  battlefield.drawInterface();
+ });
+ await expect(page.locator('[data-tab="buildings"]')).toBeVisible();
  await page.locator('[data-tab="buildings"]').click();
  await expect(page.locator('[data-build="barracks"]')).toBeDisabled();
  await expect(page.locator('[data-build="factory"]')).toBeDisabled();
