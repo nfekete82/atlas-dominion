@@ -5,6 +5,7 @@ import {RULES} from '/src/reborn/config.js';
 import {installClassicHud} from '/webgl-classic-hud.js';
 import {hydrateUnitIcons,unitIcon,buildingIconUrl} from '/webgl-portraits.js';
 import {SandforgeActorPresentation} from '/webgl-actor-presentation.js';
+import {calibratedScale} from '/webgl-scale.js';
 
 // Runtime adapter: game state, movement, combat, production and AI are owned
 // exclusively by the original Simulation. 3D nodes are presentation only.
@@ -92,12 +93,16 @@ export class SandforgeBattlefield {
     const desired=type==='unit'?UNITS[entry.kind].width:BUILDINGS[entry.kind].width;
     const extent=Math.max(dims.x,dims.z);
     if(extent>.0001){
-     const scale=desired/extent;model.scale.multiplyScalar(scale);
+     const scale=calibratedScale(entry.kind,type,dims,desired);model.scale.multiplyScalar(scale);
      model.position.set(-box0.getCenter(new THREE.Vector3()).x*scale,
       -box0.min.y*scale,-box0.getCenter(new THREE.Vector3()).z*scale);
     }
     model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+    // Visual normalization is independent of collision/pathfinding. Re-ground
+    // imported GLBs against the same heightfield sample as their placeholder.
     entry.node.remove(entry.placeholder);entry.node.add(model);entry.detail=model;
+    entry.modelHeight=dims.y*calibratedScale(entry.kind,type,dims,desired);
+    entry.modelFootprint=Math.max(dims.x,dims.z)*calibratedScale(entry.kind,type,dims,desired);
     entry.visualBaseY=model.position.y;entry.visualBaseZ=model.position.z;
     if(type==='unit'&&data.animations.length){
      const mixer=new THREE.AnimationMixer(model);
