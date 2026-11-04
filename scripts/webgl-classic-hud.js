@@ -14,6 +14,7 @@ export function installClassicHud(){
   <span class="emblem">SF</span><span class="brand-copy">SAND<b>FORGE</b></span>
  </a>
  <div class="resources">
+  <span id="sf-stats" class="sf-assist-stats">Credits / Kapazität</span>
   <div class="credit-resource"><span class="credit-cube" aria-hidden="true">◆</span><div><strong id="sf-credits">500</strong><small><span id="sf-income">+35</span> / 10 S</small></div></div>
   <div class="capacity-resource"><span aria-hidden="true">♙</span><strong id="sf-capacity">2 <em>/ 48</em></strong></div>
  </div>
