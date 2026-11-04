@@ -35,6 +35,9 @@ const session=query.get('resume')==='1'?(()=>{
 // Exactly the classic Sandforge campaign bootstrap: both factions start
 // with an engineer and infantry, NOT with a free completed headquarters.
 const game=session??Simulation.campaign(seed,sizes[bastions]);
+// Only this WebGL campaign gets a modest vision bonus; classic/headless
+// benchmarks retain exactly their original LOS and balance.
+game.visionScale=1.12;game.updateVision();
 const world=game.world,terrain=world.generated,size=world.size,half=size/2;
 const status=$('status'),errorNode=$('error'),stage=$('stage');
 $('simulation').textContent=query.get('pause')==='1'?'Simulation starten':'Simulation pausieren';
@@ -86,7 +89,8 @@ const controls=new OrbitControls(camera,renderer.domElement);
 controls.enableDamping=true;controls.dampingFactor=.10;
 controls.screenSpacePanning=true;
 // C&C-style constrained orthographic RTS camera: the map is NOT a tabletop.
-controls.minZoom=1.0;controls.maxZoom=3.5;
+controls.minZoom=.70;controls.maxZoom=3.5;
+camera.zoom=.90;camera.updateProjectionMatrix();
 controls.minPolarAngle=.34;controls.maxPolarAngle=1.22;
 controls.mouseButtons={LEFT:THREE.MOUSE.PAN,MIDDLE:THREE.MOUSE.DOLLY,RIGHT:THREE.MOUSE.ROTATE};
 controls.target.copy(cameraTarget);
@@ -425,7 +429,7 @@ function spin(angle){
 }
 $('home').onclick=()=>{
  controls.target.copy(cameraTarget);camera.position.copy(cameraTarget).add(new THREE.Vector3(1050,1200,1450));
- camera.zoom=1;camera.updateProjectionMatrix();controls.update();
+ camera.zoom=.90;camera.updateProjectionMatrix();controls.update();
 };
 $('load').onclick=()=>{
  const q=new URLSearchParams({bastions:$('bastions').value,seed:String(Number($('seed').value)>>>0)});
@@ -473,7 +477,16 @@ function stepCamera(dt){
  // Decorative landscape ends far outside the actual 4160+ unit world; keep
  // the viewing footprint within the cliff/fog transition so no beige void
  // or mesh edge appears, including on wide screens and after camera rotation.
- const border=half+280, groundY=heightAt(controls.target.x+half,controls.target.z+half);
+// Let the player reach the last playable edge, but never reveal the mesh end.
+ const focusLimit=half-45;
+ const nx=Math.max(-focusLimit,Math.min(focusLimit,controls.target.x));
+ const nz=Math.max(-focusLimit,Math.min(focusLimit,controls.target.z));
+ if(nx!==controls.target.x||nz!==controls.target.z){
+  camera.position.x+=nx-controls.target.x;camera.position.z+=nz-controls.target.z;
+  controls.target.x=nx;controls.target.z=nz;
+ }
+ const border=half+Math.max(180,(visualPerimeter?.margin??size*.5)-90),
+  groundY=heightAt(controls.target.x+half,controls.target.z+half);
  cameraGroundPlane.constant=-groundY;
  camera.updateMatrixWorld(true);
  const scanCorners=()=>{
@@ -523,12 +536,27 @@ if(query.get('fog')==='0'){
 const desertArt=new DesertArtPass({scene,world,terrain,heightAt,pos,loader,lowQuality:query.get('lite')==='1'});
 const effects=new SandforgeCombatEffects({scene,camera,game,world,heightAt,pos,lowQuality:query.get('lite')==='1'});
 const sound=new Soundscape();
-sound.setEnabled(false);
 const bootOptions=window.Sandforge3DMenu?.readOptions?.()??{};
-if(bootOptions.sound===false){
- $('sound').disabled=true;
- $('sound').title='Sound in den Optionen deaktiviert';
+sound.setEnabled(bootOptions.sound!==false);
+sound.bindGame(game);
+const soundButton=$('sound');
+function updateSoundButton(){
+ soundButton.textContent=sound.enabled?'Sound ausschalten':'Sound einschalten';
+ soundButton.setAttribute('aria-pressed',String(sound.enabled));
+ soundButton.title=sound.enabled?(sound.context?.state==='running'?'Audio aktiv':'Beim nächsten Klick aktivieren'):'Sound aktivieren';
 }
+updateSoundButton();
+let audioUnlockPending=false;
+function unlockGameAudio(){
+ if(!sound.enabled||sound.context?.state==='running'||audioUnlockPending)return;
+ audioUnlockPending=true;
+ void sound.unlock().then(()=>{
+  sound.select();updateSoundButton();
+ }).catch(error=>console.warn('WebAudio freischalten fehlgeschlagen',error))
+ .finally(()=>{audioUnlockPending=false;});
+}
+window.addEventListener('pointerdown',unlockGameAudio,{capture:true});
+window.addEventListener('keydown',unlockGameAudio,{capture:true});
 const soundView={
  get width(){return renderer.domElement.clientWidth;},
  get height(){return renderer.domElement.clientHeight;},
@@ -540,20 +568,12 @@ const soundView={
  }
 };
 battlefield.sound=sound;
-$('sound').onclick=async()=>{
+soundButton.onclick=async()=>{
  const enabled=!sound.enabled;
  sound.setEnabled(enabled);
- try{
-  if(enabled)await sound.unlock();
-  else sound.silenceScene();
-  $('sound').textContent=enabled?'Sound ausschalten':'Sound einschalten';
-  $('sound').setAttribute('aria-pressed',String(enabled));
- }catch(error){
-  sound.setEnabled(false);
-  $('sound').textContent='Sound einschalten';
-  $('sound').setAttribute('aria-pressed','false');
-  console.warn('WebAudio unavailable',error);
- }
+ if(enabled){try{await sound.unlock();sound.select();}catch(error){console.warn('WebAudio unavailable',error);}}
+ else sound.silenceScene();
+ updateSoundButton();
 };
 
 let lastFrame=performance.now(),frames=0;
