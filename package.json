@@ -32,7 +32,8 @@
     "deploy:uberspace": "node scripts/deploy-uberspace.mjs",
     "deploy:uberspace:dry-run": "node scripts/deploy-uberspace.mjs --dry-run",
     "deploy:uberspace:check": "node scripts/deploy-uberspace.mjs --check",
-    "deploy:uberspace:rollback": "node scripts/deploy-uberspace.mjs --rollback"
+    "deploy:uberspace:rollback": "node scripts/deploy-uberspace.mjs --rollback",
+    "test:webgl-integration": "npm run build && node scripts/test-webgl-integration.mjs"
   },
   "devDependencies": {
     "three": "0.180.0",
