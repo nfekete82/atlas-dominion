@@ -50,9 +50,12 @@ test('WebGL: camera, map selection and simulation retain authoritative RTS state
  });
  expect(moved.accepted).toBeGreaterThan(0);
  expect(moved.travel).toBeGreaterThan(0);
- await page.locator('#simulation').click();
  expect(await page.evaluate(()=>window.__sandforgeWebGL.simulationRunning)).toBe(true);
  await page.locator('#simulation').click();
+ expect(await page.evaluate(()=>window.__sandforgeWebGL.simulationRunning)).toBe(false);
+ await page.locator('#simulation').click();
+ expect(await page.evaluate(()=>window.__sandforgeWebGL.simulationRunning)).toBe(true);
+ await page.locator('[aria-label="Karteneinstellungen anzeigen"]').click();
  await page.locator('#bastions').selectOption('12');
  await page.locator('#seed').fill('2037');
  await page.locator('#load').click();
