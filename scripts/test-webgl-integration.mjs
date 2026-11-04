@@ -9,6 +9,7 @@ const host='127.0.0.1';
 const playwright=resolve(root,'tests/browser/node_modules/.bin/playwright');
 const config='tests/browser/playwright.config.mjs';
 const specs=[
+  'tests/browser/webgl-fog-alignment.spec.mjs',
   'tests/browser/webgl-territory-rally-cliffs.spec.mjs',
   'tests/browser/webgl-playable.spec.mjs',
   'tests/browser/webgl-construction-audio.spec.mjs',
