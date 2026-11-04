@@ -123,6 +123,8 @@ a:hover{text-decoration:underline}
  </label>
  <label class="sf3d-check" for="sf3d-fog"><input id="sf3d-fog" type="checkbox" checked> Nebel des Krieges</label>
  <label class="sf3d-check" for="sf3d-sound"><input id="sf3d-sound" type="checkbox" checked> Sounds erlauben (erst nach Klick aktiv)</label>
+ <button id="sf3d-audio-test" type="button" style="display:block;width:100%;margin:8px 0;border-color:#af9264">SOUND TESTEN</button>
+ <p id="sf3d-audio-status" role="status" style="font:12px system-ui;color:#ddc6a0;min-height:18px">Klickgeräusche, Befehle und Kampf-Sounds über WebAudio</p>
  <p>Grafikqualität wird beim nächsten Start übernommen. Sound benötigt eine Benutzeraktion.</p>
  <div class="dialog-actions"><button type="button" data-sf3d-close>ABBRECHEN</button><button id="sf3d-options-save" class="primary" type="button">SPEICHERN</button></div>
 </dialog>
@@ -135,7 +137,9 @@ a:hover{text-decoration:underline}
   <button id="sf3d-pause-options" class="menu-button">OPTIONEN</button>
   <button id="sf3d-pause-new" class="menu-button">NEUE KAMPAGNE</button>
   <button id="sf3d-pause-main" class="menu-button">ZUM HAUPTMENÜ</button>
- </div><p role="status" id="sf3d-pause-status"></p>
+ </div>
+ <div class="pause-scene" aria-hidden="true"><span>OPERATION CANYON FRONT<small>SIMULATION ANGEHALTEN</small></span></div>
+ <p role="status" id="sf3d-pause-status"></p>
 </dialog>
 <div id="sf3d-boot" role="status" hidden>Sandforge 3D wird geladen …</div>
 <div id="sf3d-fatal" role="alert" hidden>
