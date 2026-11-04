@@ -461,10 +461,19 @@ const battlefield=new SandforgeBattlefield({
  game,world,terrain,scene,renderer,camera,controls,loader,groundMeshes,heightAt,pos,
  lite:query.get('lite')==='1'
 });
+if(query.get('fog')==='0'){
+ battlefield.fogEnabled=false;
+ battlefield.updateFog();
+}
 const desertArt=new DesertArtPass({scene,world,terrain,heightAt,pos,loader,lowQuality:query.get('lite')==='1'});
 const effects=new SandforgeCombatEffects({scene,camera,game,world,heightAt,pos,lowQuality:query.get('lite')==='1'});
 const sound=new Soundscape();
 sound.setEnabled(false);
+const bootOptions=window.Sandforge3DMenu?.readOptions?.()??{};
+if(bootOptions.sound===false){
+ $('sound').disabled=true;
+ $('sound').title='Sound in den Optionen deaktiviert';
+}
 const soundView={
  get width(){return renderer.domElement.clientWidth;},
  get height(){return renderer.domElement.clientHeight;},
