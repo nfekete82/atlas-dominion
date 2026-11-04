@@ -538,6 +538,9 @@ const desertArt=new DesertArtPass({scene,world,terrain,heightAt,pos,loader,lowQu
 const effects=new SandforgeCombatEffects({scene,camera,game,world,heightAt,pos,lowQuality:query.get('lite')==='1'});
 const constructionRecovery=new SandforgeConstructionRecovery(game);
 const sound=new Soundscape();
+// Louder RTS feedback than the subdued classic soundtrack; independent of
+// local OS/browser volume, without changing the original Canvas audio defaults.
+sound.setVolume(.85);
 const bootOptions=window.Sandforge3DMenu?.readOptions?.()??{};
 sound.setEnabled(bootOptions.sound!==false);
 sound.bindGame(game);
