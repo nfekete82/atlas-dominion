@@ -17,7 +17,10 @@ test('3D campaign parity: black fog, engineer HQ bootstrap and blocked productio
   return {bootstrap:game.bootstrapVersion,needsHQ:game.needsHeadquarters(0),
    bases:game.bases.length,engineers:game.units.filter(u=>u.owner===0&&u.kind==='engineer').length,
    unknown:unexplored,black,visible,
-   minZoom:controls.minZoom,maxZoom:controls.maxZoom,zoom:controls.object.zoom};
+   minZoom:controls.minZoom,maxZoom:controls.maxZoom,zoom:controls.object.zoom,
+   cameraDistance:Math.hypot(
+    controls.target.x-(game.units.filter(u=>u.owner===0).reduce((sum,u)=>sum+u.x,0)/2-game.world.size/2),
+    controls.target.z-(game.units.filter(u=>u.owner===0).reduce((sum,u)=>sum+u.y,0)/2-game.world.size/2))};
  });
  expect(initial.bootstrap).toBe(1);
  expect(initial.needsHQ).toBe(true);
@@ -26,6 +29,7 @@ test('3D campaign parity: black fog, engineer HQ bootstrap and blocked productio
  expect(initial.unknown).toBeGreaterThan(0);
  expect(initial.black).toBe(initial.unknown);
  expect(initial.visible).toBeGreaterThan(0);
+ expect(initial.cameraDistance).toBeLessThan(100);
  expect(initial.minZoom).toBeGreaterThanOrEqual(1);
  expect(initial.maxZoom).toBeLessThanOrEqual(3.5);
  await expect(page.locator('[data-unit="infantry"]')).toBeDisabled();
