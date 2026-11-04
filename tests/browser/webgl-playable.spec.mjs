@@ -197,10 +197,15 @@ test('WebGL terrain: landscape uses seamless original sand, never the building m
  const map=await page.evaluate(()=>{
   const mesh=window.__sandforgeWebGL.scene.children.find(o=>o.userData.terrain);
   return {w:mesh.material.map.image.width,h:mesh.material.map.image.height,
-   isCanvas:mesh.material.map.isCanvasTexture,normalMap:mesh.material.normalMap};
+   isCanvas:mesh.material.map.isCanvasTexture,
+   hasMicroNormal:mesh.material.normalMap?.isCanvasTexture===true,
+   normalWidth:mesh.material.normalMap?.image?.width};
  });
  expect(map.w).toBe(2048);
  expect(map.h).toBe(2048);
  expect(map.isCanvas).toBe(true);
- expect(map.normalMap).toBe(null);
+ // The dedicated wind-ripple normal texture is valid; only the old building
+ // material atlas (color AND normal) must never be mapped onto terrain.
+ expect(map.hasMicroNormal).toBe(true);
+ expect(map.normalWidth).toBe(256);
 });
