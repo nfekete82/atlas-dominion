@@ -743,9 +743,21 @@ export class SandforgeBattlefield {
   // Prevent the native menu without routing duplicate commands. Every
   // pointerup, including a normal RMB click, reaches pointerUp() unchanged.
   canvas.addEventListener('contextmenu',e=>e.preventDefault());
+  // Handle Escape during capture: the original menu/toolbar may stop
+  // propagation before a document-level listener receives the event.
+  // The HUD settings dialog has its own earlier capture handler and
+  // consumes Escape first when that dialog is open.
+  window.addEventListener('keydown',event=>{
+   if(event.code!=='Escape'||['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;
+   if(!this.rallyMode&&!this.buildKind&&!this.attackMode)return;
+   event.preventDefault();
+   this.clearPlacement();
+   this.attackMode=false;
+   this.rallyMode=false;
+   this.drawInterface();
+  },true);
   document.addEventListener('keydown',event=>{
    if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;
-   if(event.code==='Escape'){this.clearPlacement();this.attackMode=false;this.rallyMode=false;this.drawInterface();}
    if(event.code==='KeyR'&&this.buildKind){
     event.preventDefault();this.placementFacing=this.placementFacing===0?1:0;
     if(this.buildPreview)this.buildPreview.rotation.y=this.placementFacing?Math.PI:0;
