@@ -143,17 +143,46 @@ export class DesertArtPass {
   return palms.length+borderPalms;
  }
  async loadProps(){
-  const points=this.terrain.ruins.slice(0,this.lowQuality?1:8).map((r,i)=>({
-   x:r.x+(i%2?180:-180),y:r.y+105
-  })).filter(p=>this.world.walkable(p));
-  if(!points.length)return 0;
-  const source=await this.loader.loadAsync('/src/assets/reborn/props-3d/sandbags.glb');
-  for(const point of points){
-   const mesh=this.normalize(source.scene.clone(true),64);
-   const group=new THREE.Group();group.position.copy(this.pos(point.x,point.y));
-   group.add(mesh);this.scene.add(group);this.items.push(group);
+  // Place authored PBR supply hardware beside derelict compounds. The old
+  // preview placed only plain sandbags at one point for each ruin.
+  // These are render-only objects, with no edits to pathfinding or saves.
+  const sites=this.terrain.ruins.slice(0,this.lowQuality?3:10);
+  if(!sites.length)return 0;
+  const sources=this.lowQuality?
+   ['sandbags','military-crate-stack']:
+   ['sandbags','military-crate-stack','fuel-barrels','service-lamp'];
+  const results=await Promise.allSettled(sources.map(kind=>
+   this.loader.loadAsync('/src/assets/reborn/props-3d/'+kind+'.glb')));
+  const available=sources.flatMap((kind,i)=>results[i].status==='fulfilled'?
+    [{kind,scene:results[i].value.scene}]:[]);
+  if(!available.length)return 0;
+  let count=0,state=((this.world.seed??0)^0x9d3b3a81)>>>0;
+  const random=()=>{state=(Math.imul(state,1664525)+1013904223)>>>0;
+    return state/4294967296;};
+  for(const ruin of sites){
+   const radius=Math.max(ruin.width??120,ruin.depth??100)*.5;
+   const props=this.lowQuality?2:3;
+   for(let i=0;i<props;i++){
+    const source=available[(i+Math.floor(random()*available.length))%available.length];
+    const angle=ruin.rotation+Math.PI*(.2+random()*.6);
+    const distance=radius*(1.05+random()*.34);
+    const x=ruin.x+Math.cos(angle)*distance;
+    const z=ruin.y+Math.sin(angle)*distance;
+    if(x<35||z<35||x>this.world.size-35||z>this.world.size-35)continue;
+    // Never place decorative supplies in a passable corridor or gameplay
+    // building spot; the visual props have deliberately no collision.
+    const model=this.normalize(source.scene.clone(true),
+     source.kind==='service-lamp'?28:source.kind==='sandbags'?38:28+random()*19);
+    const group=new THREE.Group();
+    group.name='desert-ruin-decor-'+source.kind;
+    group.userData={visualOnly:true,nonPlayable:true,ruinDecor:true};
+    group.position.copy(this.pos(x,z));
+    group.rotation.y=angle+random()*.5;
+    group.add(model);
+    this.scene.add(group);this.items.push(group);count++;
+   }
   }
-  return points.length;
+  return count;
  }
  async load(){
   const [palms,props]=await Promise.allSettled([this.loadPalmGroves(),this.loadProps()]);
