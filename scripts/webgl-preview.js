@@ -68,8 +68,8 @@ stage.append(renderer.domElement);
 const scene=new THREE.Scene();
 // The playable desert ends in a mountain rim and a dark C&C-style void.
 // A beige background would still reveal a bright square beyond the terrain.
-scene.background=new THREE.Color('#080a0b');
-scene.fog=new THREE.FogExp2('#30261e',.00011);
+scene.background=new THREE.Color('#000000');
+scene.fog=new THREE.FogExp2('#080605',.00008);
 scene.add(new THREE.HemisphereLight('#fff1dd','#675246',1.20));
 const sun=new THREE.DirectionalLight('#fff0d4',3.05);
 sun.position.set(-700,1100,420);
