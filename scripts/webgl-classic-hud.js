@@ -37,6 +37,7 @@ export function installClassicHud(){
    <div class="section-label">PRODUKTION <span id="sf-queue-count">0 AUFTRÄGE</span></div>
    <div class="production-track"><i id="sf-progress"></i></div>
    <div class="queue-info"><span id="sf-queue">WARTESCHLANGE LEER</span><span id="sf-queue-time">--:--</span></div>
+   <div id="sf-building-status" class="sf-building-status" hidden></div>
   </div>
   <div id="sf-catalog-detail">Pioniere errichten Produktionsgebäude. Fertige Gebäude schalten Einheiten frei.</div>
  </section>
