@@ -116,3 +116,33 @@ test('bastions show an in-world progress bar only while capture is active',async
   expect(state.active.red).toBe('f19b73');
   expect(state.hidden).toBe(true);
 });
+
+test('sector takeover and loss show player-only HUD feedback',async({page})=>{
+  await load(page);
+  const result=await page.evaluate(()=>{
+    const a=window.__sandforgeWebGL,b=a.battlefield;
+    const territory=a.game.territories[0],entry=b.bastions.get(territory.id);
+    const owner=territory.owner,previous=entry.owner;
+    // Exercise the real ownership-change synchronizer, not a mock banner.
+    territory.owner=previous===0?1:0;
+    b.sync(true,0,false);
+    const first={
+      message:b.panel.querySelector('#sf-message')?.textContent,
+      type:b.panel.querySelector('#sf-message')?.getAttribute('data-sector-event')
+    };
+    territory.owner=previous;
+    b.sync(true,0,false);
+    const second={
+      message:b.panel.querySelector('#sf-message')?.textContent,
+      type:b.panel.querySelector('#sf-message')?.getAttribute('data-sector-event')
+    };
+    territory.owner=owner;
+    b.message('Marschziel gesetzt');
+    const reset=b.panel.querySelector('#sf-message')?.hasAttribute('data-sector-event');
+    return {first,second,reset};
+  });
+  const events=[result.first,result.second];
+  expect(events.some(e=>e.type==='secured'&&e.message.includes('EROBERT'))).toBe(true);
+  expect(events.some(e=>e.type==='lost'&&e.message.includes('VERLOREN'))).toBe(true);
+  expect(result.reset).toBe(false);
+});
