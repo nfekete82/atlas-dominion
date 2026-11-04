@@ -178,3 +178,29 @@ test('production percentage increases with elapsed time and construction is visi
   expect(info.count).toContain('1 PRODUKTION');
   expect(info.count).toContain('1 BAU');
 });
+
+test('visual depth preview keeps an angled 3D RTS camera and desert fog',async({page})=>{
+  await load(page);
+  const state=await page.evaluate(async()=>{
+    const view=window.__sandforgeWebGL;
+    const {MODEL_HEIGHTS,DIMENSIONS_VERSION}=await import('/webgl-scale.js');
+    const shader=view.battlefield.fogNodes[0]?.material?.fragmentShader??'';
+    return {
+      angle:view.controls.getPolarAngle(),
+      zoom:view.camera.zoom,
+      infantryHeight:MODEL_HEIGHTS.infantry,
+      dimensionVersion:DIMENSIONS_VERSION,
+      fogStillOpaque:view.battlefield.fogTexture.image.data.some((v,i)=>i%4===3&&v===255),
+      fogTint:shader.includes('vec4(0.040,0.032,0.025,a)'),
+      isWebGLRenderer:view.renderer.isWebGLRenderer===true
+    };
+  });
+  expect(state.isWebGLRenderer).toBe(true);
+  expect(state.angle).toBeGreaterThan(1);
+  expect(state.angle).toBeLessThan(1.3);
+  expect(state.zoom).toBeCloseTo(.86,2);
+  expect(state.infantryHeight).toBe(61);
+  expect(state.dimensionVersion).toBe(2);
+  expect(state.fogStillOpaque).toBe(true);
+  expect(state.fogTint).toBe(true);
+});
