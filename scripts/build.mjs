@@ -10,6 +10,8 @@ cpSync('scripts/webgl-preview.js','dist/webgl-preview.js');
 cpSync('scripts/webgl-battlefield.js','dist/webgl-battlefield.js');
 cpSync('scripts/webgl-environment.js','dist/webgl-environment.js');
 cpSync('scripts/webgl-combat-vfx.js','dist/webgl-combat-vfx.js');
+cpSync('scripts/webgl-classic-hud.js','dist/webgl-classic-hud.js');
+cpSync('src/reborn/webgl-classic-hud.css','dist/webgl-classic-hud.css');
 cpSync('scripts/animation/model-viewer.js','dist/model-viewer.js');
 // WebGL preview and 3D inspector share the same local Three.js modules.
 // The production game continues to use its existing Canvas renderer.
