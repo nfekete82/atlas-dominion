@@ -15,6 +15,7 @@ const specs=[
   'tests/browser/webgl-classic-parity.spec.mjs',
   'tests/browser/webgl-visual-parity.spec.mjs',
   'tests/browser/webgl-horizontal-dock.spec.mjs',
+  'tests/browser/webgl-movement-feedback.spec.mjs',
   'tests/browser/webgl-settings-close.spec.mjs'
 ];
 
