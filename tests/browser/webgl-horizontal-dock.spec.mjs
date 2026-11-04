@@ -235,3 +235,36 @@ test('context menus expose builder construction and only the selected producer u
  expect(roster.variants.airfield[0].units).toEqual(['scout','bomber']);
  expect(roster.tabs).toEqual(['units','territories']);
 });
+
+test('selecting a completed HQ trains the pioneer in that exact building queue',async({page})=>{
+ test.setTimeout(115000);
+ await load(page);
+ const buildingId=await page.evaluate(()=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  game.credits[0]=10000;
+  const site=game.headquartersCandidates(0).find(p=>game.buildError(0,'headquarters',p)===null);
+  if(!site)throw Error('No HQ fixture site');
+  const base=game.build(0,'headquarters',site);
+  if(!base)throw Error('Could not build HQ fixture');
+  base.buildRemaining=0;base.hp=1200;
+  battlefield.selected.clear();battlefield.selectedBase=base.id;
+  battlefield.sync(true,.06,false,1);battlefield.drawInterface();
+  return base.id;
+ });
+ await expect(page.locator('[data-tab="units"]')).toBeVisible();
+ await expect(page.locator('[data-tab="buildings"]')).toBeHidden();
+ await expect(page.locator('[data-sf-producer="headquarters"]')).toBeVisible();
+ await expect(page.locator('[data-sf-producer="barracks"]')).toBeHidden();
+ await page.locator('[data-unit="engineer"]').click();
+ const result=await page.evaluate(id=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  const base=game.bases.find(b=>b.id===id);
+  return {queue:base.queueTypes.slice(),selectedBase:battlefield.selectedBase,
+   notice:battlefield.panel.querySelector('#sf-message').textContent,
+   context:battlefield.panel.dataset.tab};
+ },buildingId);
+ expect(result.queue).toContain('engineer');
+ expect(result.selectedBase).toBe(buildingId);
+ expect(result.notice).toContain('in Auftrag');
+ expect(result.context).toBe('units');
+});
