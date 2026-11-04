@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {clone as cloneSkeleton} from 'three/addons/utils/SkeletonUtils.js';
 import {UNITS,BUILDINGS,unitKinds,buildingKinds,unitSpec,buildingSpec} from '/src/reborn/catalog.js';
 import {RULES} from '/src/reborn/config.js';
+import {installClassicHud} from '/webgl-classic-hud.js';
 
 // Runtime adapter: game state, movement, combat, production and AI are owned
 // exclusively by the original Simulation. 3D nodes are presentation only.
@@ -254,12 +255,7 @@ export class SandforgeBattlefield {
   }
  }
  buildInterface(){
-  const css=document.createElement('style');
-  css.textContent='.sf-rts{position:absolute;z-index:10;right:17px;top:88px;width:258px;background:#152325ed;border:1px solid #54706e99;box-shadow:0 14px 35px #0006;border-radius:10px;backdrop-filter:blur(10px);padding:12px;font:12px system-ui;color:#eae9db}.sf-rts h3{font-size:13px;margin:5px 0 8px;color:#f4d9ae}.sf-rts .sf-line{display:flex;justify-content:space-between;margin:5px 0;color:#cad7d2}.sf-rts .sf-buttons{display:flex;flex-wrap:wrap;gap:5px}.sf-rts button{font-size:11px;min-height:30px;padding:5px 7px;border-radius:4px}.sf-rts button:disabled{opacity:.38;cursor:not-allowed}.sf-rts .sf-section{border-top:1px solid #ffffff28;margin-top:8px;padding-top:8px}.sf-rts .sf-btn-active{background:#826036!important;border-color:#ebb26c!important}.sf-map{width:224px;height:224px;display:block;margin:8px auto 3px;border:1px solid #a88a5c;cursor:crosshair;background:#ad8d62}.sf-rts .sf-help{font-size:10px;line-height:1.4;color:#a9b4ab}.sf-rts .sf-notice{min-height:18px;margin-top:6px;font-size:11px;color:#efc786}.sf-rts .sf-menu-title{font-size:10px;letter-spacing:.11em;color:#d4a866}@media(max-width:900px){.sf-rts{top:108px;right:8px;width:215px;max-height:67vh;overflow:auto}.sf-map{width:180px;height:180px}}';
-  document.head.append(css);
-  this.panel=document.createElement('aside');this.panel.className='sf-rts';
-  this.panel.innerHTML='<div class="sf-menu-title">SANDFORGE / ECHTES 3D-RTS</div><div id="sf-stats" class="sf-line"></div><div class="sf-section" id="sf-actions"></div><div id="sf-selection" class="sf-section"></div><div class="sf-section"><div class="sf-buttons"><button data-action="save">Speichern</button><button data-action="load">Laden</button><button data-action="fog">Nebel an/aus</button></div></div><canvas id="sf-map" class="sf-map" width="224" height="224"></canvas><div class="sf-help">Linksklick auswählen · Shift + Klick erweitern · Rechtsklick bewegen · Mittlere Maustaste verschieben · Q/E drehen · A Angriff · Ctrl+1..5 Gruppen</div><div class="sf-notice" id="sf-message"></div>';
-  document.body.append(this.panel);
+  this.panel=installClassicHud();
   this.mini=this.panel.querySelector('#sf-map');
   this.panel.addEventListener('click',e=>{
    const button=e.target.closest('button');if(!button)return;
@@ -274,8 +270,18 @@ export class SandforgeBattlefield {
    if(action==='fog'){this.fogEnabled=!this.fogEnabled;this.updateFog();this.message('Nebel des Krieges '+(this.fogEnabled?'aktiv':'deaktiviert'));}
    if(action==='save'){try{localStorage.setItem('sandforge:webgl:v1',JSON.stringify(this.game.save()));this.message('3D-Kampagne gespeichert');}catch(error){this.message('Speichern fehlgeschlagen: '+error.message);}}
    if(action==='load'){this.loadSave();}
-   if(action==='cancel'){this.buildKind=null;this.drawInterface();}
+   if(action==='attack'){this.attackMode=!this.attackMode;this.buildKind=null;this.drawInterface();this.message(this.attackMode?'Angriffsbewegung: Rechtsklick auf Ziel':'Angriffsbewegung beendet');}
+   if(action==='stop'){
+    const count=this.game.command([...this.selected],{kind:'stop',x:0,y:0});
+    this.message(count?count+' Einheiten angehalten':'Keine Einheiten gewählt');
+   }
+   if(action==='cancel'){this.buildKind=null;this.attackMode=false;this.selected.clear();this.selectedBase=null;this.drawInterface();}
    if(action==='select-all'){this.selected=new Set(this.game.units.filter(u=>u.hp>0&&u.owner===0&&!u.carrier).map(u=>u.id));this.selectedBase=null;this.drawInterface();}
+  });
+  this.panel.addEventListener('sandforge-tabchange',event=>{
+   const section=this.panel.querySelector('[data-sf-group="'+event.detail.tab+'"]');
+   const container=this.panel.querySelector('#sf-actions');
+   if(section&&container)container.scrollTop=Math.max(0,section.offsetTop-container.offsetTop);
   });
   this.mini.addEventListener('click',e=>{
    const rect=this.mini.getBoundingClientRect();
@@ -300,27 +306,75 @@ export class SandforgeBattlefield {
   this.panel.querySelector('#sf-message').textContent=text;
  }
  drawInterface(){
-  const g=this.game,s=this.panel.querySelector('#sf-stats'),a=this.panel.querySelector('#sf-actions'),el=this.panel.querySelector('#sf-selection');
-  s.innerHTML='<span>Credits <b>'+format(g.credits[0])+'</b></span><span>+ '+format(g.income(0))+' / 10s</span><span>'+g.count(0)+'/'+RULES.capacity+'</span>';
-  const button=(data,label,disabled=false,active=false)=>'<button '+data+(disabled?' disabled':'')+(active?' class="sf-btn-active"':'')+'>'+plain(label)+'</button>';
-  const actionsMarkup='<h3>Gebäude & Produktion</h3><div class="sf-buttons">'+
-   buildingKinds.map(kind=>button('data-build="'+kind+'"',BUILDINGS[kind].name+' '+BUILDINGS[kind].cost,
-    g.credits[0]<BUILDINGS[kind].cost||!g.hasHeadquarters(0)&&kind!=='headquarters',this.buildKind===kind)).join('')+
-   button('data-action="cancel"','Abbrechen',false,false)+'</div><div class="sf-section sf-buttons">'+
-   unitKinds.map(kind=>button('data-unit="'+kind+'"',UNITS[kind].name+' '+UNITS[kind].cost,
-    !g.producer(0,kind)||g.credits[0]<UNITS[kind].cost||g.count(0)+g.queued(0)>=RULES.capacity)).join('')+'</div>';
-  if(this.previousActionsMarkup!==actionsMarkup){
-   a.innerHTML=actionsMarkup;this.previousActionsMarkup=actionsMarkup;
+  const g=this.game,view=this.panel,actions=view.querySelector('#sf-actions');
+  view.querySelector('#sf-credits').textContent=format(g.credits[0]);
+  view.querySelector('#sf-income').textContent='+ '+format(g.income(0));
+  view.querySelector('#sf-capacity').innerHTML=g.count(0)+' <em>/ '+RULES.capacity+'</em>';
+  view.querySelector('#sf-stats').textContent='Credits '+format(g.credits[0])+' · '+g.count(0)+'/'+RULES.capacity;
+  view.querySelector('#sf-sectors').textContent=g.territories.filter(t=>t.owner===0).length+' / '+g.territories.length+' SEKTOREN';
+  const cards=(kinds,type)=>kinds.map(kind=>{
+   const spec=type==='unit'?UNITS[kind]:BUILDINGS[kind];
+   const unavailable=type==='unit'
+    ?!g.producer(0,kind)||g.credits[0]<spec.cost||g.count(0)+g.queued(0)>=RULES.capacity
+    :g.credits[0]<spec.cost||!g.hasHeadquarters(0)&&kind!=='headquarters';
+   const image=type==='unit'
+    ?'/src/assets/reborn/'+(kind==='medic'?'prototype/':'animation/')+kind+'-0.png'
+    :'/src/assets/reborn/buildings-3d/'+kind+'-0.png';
+   const dataset=type==='unit'?'data-unit="'+kind+'"':'data-build="'+kind+'"';
+   return '<button class="catalog-card'+(unavailable?' locked':'')+'" '+dataset+
+    (unavailable?' disabled':'')+' title="'+plain(spec.description)+'" aria-label="'+plain(spec.name)+' – '+spec.cost+' Credits">'+
+    '<img src="'+image+'" alt="" loading="lazy"><span class="card-meta"><span class="card-name">'+
+    plain(spec.name)+'</span><span class="card-cost">'+spec.cost+'</span></span></button>';
+  }).join('');
+  const tiles=this.game.territories.map(t=>{
+   const label=t.owner===0?'BLAU':t.owner===1?'ROT':'NEUTRAL';
+   const cls=t.owner===0?'blue':t.owner===1?'red':'unknown';
+   return '<div class="territory-row '+cls+'"><i></i><strong>SEKTOR '+(t.id+1)+'</strong><small>'+label+'</small></div>';
+  }).join('');
+  const markup='<div class="sf-group" data-sf-group="units"><h2>EINHEITEN</h2><div class="catalog-grid">'+cards(unitKinds,'unit')+'</div></div>'+
+   '<div class="sf-group" data-sf-group="buildings"><h2>GEBÄUDE BAUEN</h2><div class="catalog-grid">'+cards(buildingKinds,'building')+'</div></div>'+
+   '<div class="sf-group" data-sf-group="territories"><h2>SEKTOREN</h2>'+tiles+'</div></div>';
+  if(this.previousActionsMarkup!==markup){
+   const scroll=actions.scrollTop;
+   actions.innerHTML=markup;this.previousActionsMarkup=markup;
+   actions.scrollTop=scroll;
   }
-  const chosen=this.game.units.filter(u=>this.selected.has(u.id)&&u.hp>0);
-  const base=this.game.bases.find(b=>b.id===this.selectedBase&&b.hp>0);
-  const text=chosen.length?chosen.length===1?UNITS[chosen[0].kind].name+' · '+Math.ceil(chosen[0].hp)+' LP':chosen.length+' Einheiten ausgewählt'
-   :base?BUILDINGS[base.kind].name+' · '+Math.ceil(base.hp)+' LP'+(base.queue.length?' · '+base.queue.length+' in Produktion':''):'Keine Auswahl';
-  const selectionMarkup='<h3>Auswahl / Kommandos</h3><div>'+plain(text)+'</div><div class="sf-buttons">'+
-   button('data-action="select-all"','Alle Truppen')+'</div>';
-  if(this.previousSelectionMarkup!==selectionMarkup){
-   el.innerHTML=selectionMarkup;this.previousSelectionMarkup=selectionMarkup;
+  const queuedBases=g.bases.filter(b=>b.owner===0&&b.queue?.length);
+  const queues=queuedBases.reduce((sum,b)=>sum+b.queue.length,0);
+  view.querySelector('#sf-queue-count').textContent=queues+' AUFTRÄGE';
+  view.querySelector('#sf-queue').textContent=queues?queuedBases.map(b=>BUILDINGS[b.kind].name+': '+b.queue.length).join(' · '):'WARTESCHLANGE LEER';
+  const producer=queuedBases[0];
+  const duration=producer?.queueTypes?.length?UNITS[producer.queueTypes[0]]?.buildTime??1:1;
+  const progress=producer?Math.max(0,Math.min(100,100*(1-producer.production/duration))):0;
+  view.querySelector('#sf-progress').style.width=progress.toFixed(1)+'%';
+  view.querySelector('#sf-queue-time').textContent=producer?Math.max(0,Math.ceil(producer.production))+' s':'--:--';
+  const el=view.querySelector('#sf-selection');
+  const chosen=g.units.filter(u=>this.selected.has(u.id)&&u.hp>0);
+  const base=g.bases.find(b=>b.id===this.selectedBase&&b.hp>0);
+  const item=chosen.length===1?chosen[0]:base;
+  const kind=item?.kind;
+  const spec=item?(item.queue?BUILDINGS[kind]:UNITS[kind]):null;
+  const heading=chosen.length>1?chosen.length+' Einheiten ausgewählt':spec?.name??'Keine Auswahl';
+  const hp=item?Math.max(0,Math.ceil(item.hp)):0;
+  const maxHp=spec?.hp??1;
+  const meta=chosen.length?'BLAUE LEGION / TRUPP':'BLAUE LEGION / STÜTZPUNKT';
+  const description=spec?.description??'Wähle eine Einheit oder ein Gebäude. Rechtsklick: Marsch oder Zielbefehl.';
+  const selectedMarkup='<small>'+meta+'</small><strong>'+plain(heading)+'</strong>'+
+   (item?'<div class="health-track"><i style="width:'+Math.min(100,hp/maxHp*100)+'%"></i></div>'+
+   '<div class="sf-health">'+hp+' / '+maxHp+' LP</div>':'')+
+   '<p>'+plain(description)+'</p>';
+  if(this.previousSelectionMarkup!==selectedMarkup){
+   el.innerHTML=selectedMarkup;this.previousSelectionMarkup=selectedMarkup;
   }
+  const portrait=view.querySelector('#sf-portrait');
+  const desired=item
+   ?item.queue?'/src/assets/reborn/buildings-3d/'+kind+'-0.png':
+    '/src/assets/reborn/'+(kind==='medic'?'prototype/':'animation/')+kind+'-0.png'
+   :'/src/assets/reborn/headquarters.png';
+  if(portrait.getAttribute('src')!==desired)portrait.src=desired;
+  view.querySelector('[data-action="attack"]').setAttribute('aria-pressed',String(this.attackMode));
+  view.querySelector('#sf-catalog-detail').textContent=
+   spec?.description??'Einheiten auswählen · Rechtsklick bewegen · Pionier für Gebäude erforderlich.';
   if(g.status!=='playing')this.message(g.status==='victory'?'SIEG – alle Gegner besiegt':'NIEDERLAGE');
  }
  drawMinimap(){
