@@ -645,7 +645,12 @@ const atmosphere=new SandforgeAtmosphere3D({
 });
 battlefield.fogAtmosphere=atmosphere;
 atmosphere.setFogEnabled(battlefield.fogEnabled);
-if(query.get('fog')==='0'){
+// Fog of War is the default for the actual 3D game. Older preview links
+// used fog=0 to make screenshots of bare terrain; don't let those links
+// silently turn the player's war map into an omniscient desert.
+// Developers can still explicitly disable the visual overlay via fog=off,
+// and players retain the NEBEL AN/AUS HUD button.
+if(query.get('fog')==='off'){
  battlefield.fogEnabled=false;
  battlefield.updateFog();
 }
