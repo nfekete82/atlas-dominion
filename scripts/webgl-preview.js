@@ -11,6 +11,7 @@ import {addVisualPerimeter} from '/webgl-perimeter.js';
 import {addBoundaryCliffs} from '/webgl-edge-cliffs.js';
 import {groundContactMaterial} from '/webgl-grounding.js';
 import {SandforgeConstructionRecovery} from '/webgl-construction-recovery.js';
+import {SandforgeGroundTracks} from '/webgl-ground-tracks.js';
 import {Soundscape} from '/src/reborn/audio.js';
 import {fineSandPattern} from '/src/reborn/fine-sand.js';
 
@@ -632,6 +633,10 @@ const battlefield=new SandforgeBattlefield({
  game,world,terrain,scene,renderer,camera,controls,loader,groundMeshes,heightAt,pos,
  lite:query.get('lite')==='1'
 });
+const groundTracks=new SandforgeGroundTracks({
+ scene,game,pos,heightAt,lite:query.get('lite')==='1'
+});
+groundTracks.capture();
 const atmosphere=new SandforgeAtmosphere3D({
  scene,game,world,heightAt,camera,controls,lowQuality:query.get('lite')==='1'
 });
@@ -802,6 +807,9 @@ function animate(now){
   battlefield.sync(false,dt);
  }
  if(!running)battlefield.sync(false,dt);
+ if(running)groundTracks.capture();
+ groundTracks.update(dt,running);
+ battlefield.updateCommandPulse(dt);
  effects.update(dt,running);
  if(running&&sound.enabled)sound.update(game,soundView);
  controls.update();
