@@ -801,6 +801,36 @@ export class SandforgeBattlefield {
   }
   return best;
  }
+ bastionAtPointer(event,groundPoint=null){
+  // The Canvas RTS snaps a right-click on a capture site to the actual
+  // control-point center. A tilted WebGL camera instead raycasts sand
+  // BEHIND the tall tower, frequently outside the 95-unit capture radius.
+  // Recognize both the terrain near the site and the visible 3D model.
+  const capturable=this.game.territories.filter(t=>t.owner!==0);
+  if(groundPoint){
+   const near=capturable.filter(t=>dist(t.point,groundPoint)<=RULES.captureRadius+34)
+    .sort((a,b)=>dist(a.point,groundPoint)-dist(b.point,groundPoint))[0];
+   if(near)return near;
+  }
+  const rect=this.renderer.domElement.getBoundingClientRect();
+  if(!rect.width||!rect.height)return null;
+  const targets=capturable.map(t=>({territory:t,node:this.bastions.get(t.id)?.node}))
+   .filter(item=>item.node?.visible);
+  if(!targets.length)return null;
+  const ndc=new THREE.Vector2(
+   (event.clientX-rect.left)/rect.width*2-1,
+   1-(event.clientY-rect.top)/rect.height*2);
+  this.camera.updateMatrixWorld(true);
+  const ray=new THREE.Raycaster();
+  ray.setFromCamera(ndc,this.camera);
+  const rootOf=new Map(targets.map(item=>[item.node,item.territory]));
+  for(const hit of ray.intersectObjects(targets.map(item=>item.node),true)){
+   let node=hit.object;
+   while(node&&!rootOf.has(node))node=node.parent;
+   if(node)return rootOf.get(node);
+  }
+  return null;
+ }
  enemyAtPointer(event){
   // Resolve visible enemy models before terrain: clicking a soldier or a tank
   // must issue an ATTACK order, not a ground-move order.
@@ -875,9 +905,14 @@ export class SandforgeBattlefield {
   if(event.button===2&&this.buildKind){
    this.clearPlacement();this.message('Bauplatzwahl abgebrochen');this.drawInterface();return;
   }
-  // Do not require a terrain hit underneath a tall enemy model.
+  // Right-click an enemy to attack; right-click the 3D bastion itself
+  // (or its nearby capture ring) to issue a genuine capture approach order.
   const clickedEnemy=event.button===2&&this.selected.size?this.enemyAtPointer(event):null;
-  const p=clickedEnemy?{x:clickedEnemy.x,y:clickedEnemy.y}:this.terrainPoint(event);
+  const groundPoint=clickedEnemy?null:this.terrainPoint(event);
+  const clickedBastion=event.button===2&&this.selected.size&&!clickedEnemy
+   ?this.bastionAtPointer(event,groundPoint):null;
+  const p=clickedEnemy?{x:clickedEnemy.x,y:clickedEnemy.y}
+   :clickedBastion?{...clickedBastion.point}:groundPoint;
   if(!p){
    if(event.button===2&&this.selected.size)this.message('Marschziel außerhalb der Karte');
    return;
@@ -946,7 +981,10 @@ export class SandforgeBattlefield {
    const ids=[...this.selected],kind=clickedEnemy?'attack':this.attackMode?'attackMove':'move';
    const order={x:p.x,y:p.y,kind,...(clickedEnemy?{target:clickedEnemy.id}:{})};
    const accepted=this.game.command(ids,order,event.shiftKey);
-   this.message(accepted?accepted+' Einheit(en): '+(clickedEnemy?'Ziel angreifen':this.attackMode?'Angriff':'Marsch'):'Ziel nicht erreichbar');
+   this.message(accepted?(clickedBastion
+    ?accepted+' Einheit(en): Bastion '+clickedBastion.name+' ansteuern'
+    :accepted+' Einheit(en): '+(clickedEnemy?'Ziel angreifen':this.attackMode?'Angriff':'Marsch'))
+    :'Ziel nicht erreichbar');
    if(accepted){
     this.sound?.command?.(kind!=='move');
     const unit=this.game.units.find(u=>ids.includes(u.id)&&u.owner===0&&u.hp>0);
