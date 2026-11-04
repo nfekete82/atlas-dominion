@@ -47,8 +47,10 @@ test('WebGL build exposes full gameplay adapter, all draw modules and skinned Th
  assert.match(adapter,/cloneSkeleton/);
  assert.match(adapter,/updateShots\(/);
  assert.match(adapter,/drawMinimap\(/);
- assert.match(main,/desert-basecolor\.png/);
- assert.match(main,/desert-normal\.png/);
+ assert.match(main,/fineSandPattern\(context,source\)/);
+ assert.match(main,/sand-ripples-v2\.png/);
+ assert.doesNotMatch(main,/textures\.load\('\/src\/assets\/reborn\/buildings-3d\/textures\/desert-basecolor/);
+ assert.doesNotMatch(main,/textures\.load\('\/src\/assets\/reborn\/buildings-3d\/textures\/desert-normal/);
  const docker=readFileSync('Dockerfile','utf8');
  assert.match(docker,/COPY scripts\/webgl-battlefield\.js/);
  assert.match(docker,/COPY scripts\/webgl-environment\.js/);
@@ -72,4 +74,26 @@ test('Classic Sandforge WebGL HUD shares the original shipped CSS and starts liv
  assert.match(html,/href="\/style.css"/);
  assert.match(html,/href="\/retro-desert.css"/);
  assert.match(html,/href="\/webgl-classic-hud.css"/);
+});
+
+test('WebGL RTS menu v2: isolated tabs and real 192x132 unit sprite portraits',()=>{
+ assert.ok(existsSync('dist/webgl-portraits.js'),'portrait extractor must ship with Docker');
+ const js=readFileSync('dist/webgl-portraits.js','utf8');
+ const battlefield=readFileSync('dist/webgl-battlefield.js','utf8');
+ const css=readFileSync('dist/webgl-classic-hud.css','utf8');
+ assert.match(js,/const frameIndex=directions\[/);
+ assert.match(js,/target.width=192;target.height=132/);
+ assert.match(js,/sfIconStatus/);
+ assert.match(battlefield,/hydrateUnitIcons\(actions\)/);
+ assert.match(battlefield,/data-sf-producer/);
+ assert.match(battlefield,/button\.dataset\.unit/);
+ assert.match(css,/data-tab="units"/);
+ assert.match(css,/data-tab="buildings"/);
+ assert.match(css,/data-tab="territories"/);
+ for(const kind of Object.keys(UNITS)){
+  const folder=kind==='medic'?'prototype':'animation';
+  const root='dist/src/assets/reborn/'+folder+'/'+kind+'-0';
+  assert.ok(existsSync(root+'.png'),kind+' sprite missing');
+  assert.ok(existsSync(root+'.json'),kind+' frames missing');
+ }
 });
