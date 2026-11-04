@@ -493,7 +493,9 @@ export class SandforgeBattlefield {
   }catch(error){this.message('Laden fehlgeschlagen: '+error.message);}
  }
  message(text){
-  this.panel.querySelector('#sf-message').textContent=text;
+  const notice=this.panel.querySelector('#sf-message');
+  notice.removeAttribute('data-sector-event');
+  notice.textContent=text;
  }
  drawInterface(){
   const g=this.game,view=this.panel,actions=view.querySelector('#sf-actions');
