@@ -21,7 +21,8 @@ test('Playable 3D: assets, terrain, fog, units, buildings, minimap and productio
   };
  });
  expect(before.unitCount).toBeGreaterThanOrEqual(4);
- expect(before.baseCount).toBe(2);
+ expect(before.baseCount).toBe(0);
+ expect(await page.evaluate(()=>window.__sandforgeWebGL.game.needsHeadquarters(0))).toBe(true);
  expect(before.sectors).toBe(4);
  expect(before.worldSectors).toBe(4);
  expect(before.fogMeshes).toBe(16);
@@ -37,8 +38,12 @@ test('Playable 3D: assets, terrain, fog, units, buildings, minimap and productio
  await page.locator('[data-tab="buildings"]').click();
  await expect(page.locator('[data-sf-group="buildings"]')).toBeVisible();
  await expect(page.locator('[data-sf-group="units"]')).toBeHidden();
- await page.locator('[data-build="barracks"]').click();
- expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.buildKind)).toBe('barracks');
+ await expect(page.locator('[data-build="barracks"]')).toBeDisabled();
+ await expect(page.locator('[data-build="factory"]')).toBeDisabled();
+ await expect(page.locator('[data-build="headquarters"]')).toBeEnabled();
+ await expect(page.locator('[data-build="barracks"]')).toHaveAttribute('title',/Hauptquartier/);
+ await page.locator('[data-build="headquarters"]').click();
+ expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.buildKind)).toBe('headquarters');
  await page.locator('[data-action="cancel"]').click();
  expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.buildKind)).toBe(null);
  expect(errors).toEqual([]);
