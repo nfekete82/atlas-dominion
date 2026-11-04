@@ -541,7 +541,7 @@ if(query.get('fog')==='0'){
  battlefield.fogEnabled=false;
  battlefield.updateFog();
 }
-// Visual verification tool: a close 3D orbit with a physical XYZ reference.
+// Visual verification tool: a stationary close 3D view with an XYZ reference.
 // Never changes game state, saves, unit collision, AI, or production.
 let showcaseActive=false,showcasePrevious=null;
 const showcaseFocus=new THREE.Vector3(focalX-half,heightAt(focalX,focalZ)+42,focalZ-half);
@@ -557,21 +557,37 @@ showcaseButton.type='button';
 showcaseButton.className='sf-tool-button';
 showcaseButton.textContent='3D';
 showcaseButton.setAttribute('aria-label','3D-Kamerademo ein- oder ausschalten');
-showcaseButton.title='3D beweisen: Kamera schwenkt, dichter Zoom, Nebel aus';
+showcaseButton.title='3D-Nahansicht: ruhige Kamera, Kriegsnebel bleibt erhalten';
 battlefield.panel.querySelector('#sf-tools').prepend(showcaseButton);
 const showcaseHint=document.createElement('div');
 showcaseHint.id='sf3d-showcase-hint';
 showcaseHint.setAttribute('role','status');
-showcaseHint.textContent='3D-DEMO AKTIV · Kamera kreist um die Einheiten · Kriegsnebel temporär aus · 3D erneut klicken';
+showcaseHint.textContent='3D-NAHANSICHT · Ruhige Kamera · Kriegsnebel aktiv · Q/E: drehen · 3D: zurück';
 showcaseHint.hidden=true;
 document.body.append(showcaseHint);
+// The same authoritative Fog-of-War works in both camera modes.
+// Label the existing toggle clearly instead of hiding the fog in showcase.
+const fogToggle=battlefield.panel.querySelector('button[data-action="fog"]');
+function syncFogIndicator(){
+ const enabled=battlefield.fogEnabled;
+ if(fogToggle){
+  fogToggle.textContent=enabled?'NEBEL AN':'NEBEL AUS';
+  fogToggle.title=enabled?'Kriegsnebel ausschalten':'Kriegsnebel einschalten';
+  fogToggle.setAttribute('aria-pressed',String(enabled));
+ }
+ showcaseHint.textContent='3D-NAHANSICHT · Ruhige Kamera · Kriegsnebel '+(enabled?'AN':'AUS')+' · Q/E: drehen · 3D: zurück';
+}
+battlefield.panel.addEventListener('click',event=>{
+ if(event.target.closest('button[data-action="fog"]'))syncFogIndicator();
+});
+syncFogIndicator();
 function setShowcase(enabled){
  if(showcaseActive===enabled)return;
  showcaseActive=enabled;
  if(enabled){
   showcasePrevious={
    position:camera.position.clone(),target:controls.target.clone(),
-   zoom:camera.zoom,fog:battlefield.fogEnabled,autoRotate:controls.autoRotate
+   zoom:camera.zoom,autoRotate:controls.autoRotate
   };
   controls.autoRotate=false;
   controls.target.copy(showcaseFocus);
@@ -580,11 +596,8 @@ function setShowcase(enabled){
   camera.lookAt(showcaseFocus);
   camera.zoom=1.55;
   camera.updateProjectionMatrix();
-  battlefield.fogEnabled=false;
-  battlefield.updateFog();
+  // Never auto-rotate or reveal hidden map sectors. Camera control stays manual.
   showcaseAxes.visible=true;
-  controls.autoRotateSpeed=0.9;
-  controls.autoRotate=true;
  }else{
   controls.autoRotate=false;
   if(showcasePrevious){
@@ -592,8 +605,6 @@ function setShowcase(enabled){
    controls.target.copy(showcasePrevious.target);
    camera.zoom=showcasePrevious.zoom;
    camera.updateProjectionMatrix();
-   battlefield.fogEnabled=showcasePrevious.fog;
-   battlefield.updateFog();
    controls.autoRotate=showcasePrevious.autoRotate;
   }
   showcaseAxes.visible=false;
