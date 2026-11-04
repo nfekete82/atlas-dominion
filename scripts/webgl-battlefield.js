@@ -532,7 +532,7 @@ export class SandforgeBattlefield {
   document.addEventListener('keydown',event=>{
    if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;
    if(event.code==='Escape'){this.buildKind=null;this.attackMode=false;this.drawInterface();}
-   if(event.code==='KeyA'){this.attackMode=true;this.message('Angriffsbewegung: Rechtsklick auf Ziel');}
+   if(event.code==='KeyF'){this.attackMode=true;this.message('Angriffsbewegung: Rechtsklick auf Ziel');}
    if(event.code==='KeyH'){this.selected=new Set(this.game.units.filter(u=>u.hp>0&&u.owner===0&&!u.carrier).map(u=>u.id));this.drawInterface();}
    const number=Number(event.code.replace('Digit',''));
    if(event.code.startsWith('Digit')&&number>=1&&number<=5){
