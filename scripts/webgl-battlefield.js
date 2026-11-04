@@ -3,6 +3,7 @@ import {clone as cloneSkeleton} from 'three/addons/utils/SkeletonUtils.js';
 import {UNITS,BUILDINGS,unitKinds,buildingKinds,unitSpec,buildingSpec} from '/src/reborn/catalog.js';
 import {RULES} from '/src/reborn/config.js';
 import {installClassicHud} from '/webgl-classic-hud.js';
+import {hydrateUnitIcons,unitIcon,buildingIconUrl} from '/webgl-portraits.js';
 
 // Runtime adapter: game state, movement, combat, production and AI are owned
 // exclusively by the original Simulation. 3D nodes are presentation only.
@@ -267,6 +268,13 @@ export class SandforgeBattlefield {
     else this.message('Nicht möglich: Gebäude, Kapazität oder Credits prüfen');
     this.drawInterface();
    }
+   if(button.dataset.territory!==undefined){
+    const t=this.game.territories.find(t=>t.id===Number(button.dataset.territory));
+    if(t){
+     const dest=this.pos(t.point.x,t.point.y),delta=dest.clone().sub(this.controls.target);
+     this.controls.target.add(delta);this.camera.position.add(delta);this.controls.update();
+    }
+   }
    if(action==='fog'){this.fogEnabled=!this.fogEnabled;this.updateFog();this.message('Nebel des Krieges '+(this.fogEnabled?'aktiv':'deaktiviert'));}
    if(action==='save'){try{localStorage.setItem('sandforge:webgl:v1',JSON.stringify(this.game.save()));this.message('3D-Kampagne gespeichert');}catch(error){this.message('Speichern fehlgeschlagen: '+error.message);}}
    if(action==='load'){this.loadSave();}
@@ -280,9 +288,11 @@ export class SandforgeBattlefield {
    if(action==='select-all'){this.selected=new Set(this.game.units.filter(u=>u.hp>0&&u.owner===0&&!u.carrier).map(u=>u.id));this.selectedBase=null;this.drawInterface();}
   });
   this.panel.addEventListener('sandforge-tabchange',event=>{
-   const section=this.panel.querySelector('[data-sf-group="'+event.detail.tab+'"]');
-   const container=this.panel.querySelector('#sf-actions');
-   if(section&&container)container.scrollTop=Math.max(0,section.offsetTop-container.offsetTop);
+   this.panel.querySelector('#sf-actions').scrollTop=0;
+   const descriptions={units:'Wähle einen Produktionsauftrag. Gebäude schalten neue Einheiten frei.',
+    buildings:'Gebäude auswählen und einen freien Bauplatz auf der Karte anklicken.',
+    territories:'Kontrollpunkt wählen, um die Kamera zum Sektor zu bewegen.'};
+   this.panel.querySelector('#sf-catalog-detail').textContent=descriptions[event.detail.tab]??'';
   });
   this.mini.addEventListener('click',e=>{
    const rect=this.mini.getBoundingClientRect();
@@ -313,33 +323,50 @@ export class SandforgeBattlefield {
   view.querySelector('#sf-capacity').innerHTML=g.count(0)+' <em>/ '+RULES.capacity+'</em>';
   view.querySelector('#sf-stats').textContent='Credits '+format(g.credits[0])+' · '+g.count(0)+'/'+RULES.capacity;
   view.querySelector('#sf-sectors').textContent=g.territories.filter(t=>t.owner===0).length+' / '+g.territories.length+' SEKTOREN';
+  // Rebuild only when the roster/territory markup itself changes. Credits and
+  // producer availability update button states in place, preserving clicks.
   const cards=(kinds,type)=>kinds.map(kind=>{
    const spec=type==='unit'?UNITS[kind]:BUILDINGS[kind];
-   const unavailable=type==='unit'
-    ?!g.producer(0,kind)||g.credits[0]<spec.cost||g.count(0)+g.queued(0)>=RULES.capacity
-    :g.credits[0]<spec.cost||!g.hasHeadquarters(0)&&kind!=='headquarters';
    const image=type==='unit'
-    ?'/src/assets/reborn/'+(kind==='medic'?'prototype/':'animation/')+kind+'-0.png'
-    :'/src/assets/reborn/buildings-3d/'+kind+'-0.png';
+    ?'<img data-sf-unit-icon="'+kind+'" alt="" decoding="async">'
+    :'<img src="'+buildingIconUrl(kind)+'" alt="" loading="lazy" decoding="async">';
    const dataset=type==='unit'?'data-unit="'+kind+'"':'data-build="'+kind+'"';
-   return '<button class="catalog-card'+(unavailable?' locked':'')+'" '+dataset+
-    (unavailable?' disabled':'')+' title="'+plain(spec.description)+'" aria-label="'+plain(spec.name)+' – '+spec.cost+' Credits">'+
-    '<img src="'+image+'" alt="" loading="lazy"><span class="card-meta"><span class="card-name">'+
-    plain(spec.name)+'</span><span class="card-cost">'+spec.cost+'</span></span></button>';
+   return '<button class="catalog-card" '+dataset+
+    ' title="'+plain(spec.description)+'" aria-label="'+plain(spec.name)+' – '+spec.cost+' Credits">'+
+    '<span class="sf-card-image">'+image+'</span>'+
+    '<span class="card-meta"><span class="card-name">'+plain(spec.name)+
+    '</span><span class="card-cost">'+spec.cost+'</span></span></button>';
   }).join('');
+  const producers=[['headquarters','HAUPTQUARTIER'],['barracks','KASERNE'],['factory','FAHRZEUGFABRIK'],['airfield','FLUGFELD']];
+  const roster=producers.map(([kind,label])=>
+   '<section class="sf-roster-section" data-sf-producer="'+kind+'"><h2>'+label+'</h2><div class="catalog-grid">'+
+   cards(unitKinds.filter(k=>UNITS[k].producers.includes(kind)),'unit')+'</div></section>').join('');
   const tiles=this.game.territories.map(t=>{
    const label=t.owner===0?'BLAU':t.owner===1?'ROT':'NEUTRAL';
    const cls=t.owner===0?'blue':t.owner===1?'red':'unknown';
-   return '<div class="territory-row '+cls+'"><i></i><strong>SEKTOR '+(t.id+1)+'</strong><small>'+label+'</small></div>';
+   return '<button class="territory-row '+cls+'" data-territory="'+t.id+'" aria-label="Sektor '+(t.id+1)+' zentrieren">'+
+    '<i></i><strong>SEKTOR '+(t.id+1)+'</strong><small>'+label+'</small></button>';
   }).join('');
-  const markup='<div class="sf-group" data-sf-group="units"><h2>EINHEITEN</h2><div class="catalog-grid">'+cards(unitKinds,'unit')+'</div></div>'+
-   '<div class="sf-group" data-sf-group="buildings"><h2>GEBÄUDE BAUEN</h2><div class="catalog-grid">'+cards(buildingKinds,'building')+'</div></div>'+
-   '<div class="sf-group" data-sf-group="territories"><h2>SEKTOREN</h2>'+tiles+'</div></div>';
+  const markup='<div class="sf-group" data-sf-group="units">'+roster+'</div>'+
+   '<div class="sf-group" data-sf-group="buildings"><h2>GEBÄUDE BAUEN</h2><div class="catalog-grid">'+
+   cards(buildingKinds,'building')+'</div></div>'+
+   '<div class="sf-group" data-sf-group="territories"><h2>KONTROLLPUNKTE</h2>'+tiles+'</div></div>';
   if(this.previousActionsMarkup!==markup){
    const scroll=actions.scrollTop;
    actions.innerHTML=markup;this.previousActionsMarkup=markup;
    actions.scrollTop=scroll;
   }
+  for(const button of actions.querySelectorAll('button[data-unit],button[data-build]')){
+   const kind=button.dataset.unit??button.dataset.build;
+   const spec=button.dataset.unit?UNITS[kind]:BUILDINGS[kind];
+   const unavailable=button.dataset.unit
+    ?!g.producer(0,kind)||g.credits[0]<spec.cost||g.count(0)+g.queued(0)>=RULES.capacity
+    :g.credits[0]<spec.cost||!g.hasHeadquarters(0)&&kind!=='headquarters';
+   if(button.disabled!==unavailable)button.disabled=unavailable;
+   button.classList.toggle('locked',unavailable);
+   button.classList.toggle('sf-selected-build',button.dataset.build===this.buildKind);
+  }
+  hydrateUnitIcons(actions);
   const queuedBases=g.bases.filter(b=>b.owner===0&&b.queue?.length);
   const queues=queuedBases.reduce((sum,b)=>sum+b.queue.length,0);
   view.querySelector('#sf-queue-count').textContent=queues+' AUFTRÄGE';
@@ -368,11 +395,17 @@ export class SandforgeBattlefield {
    el.innerHTML=selectedMarkup;this.previousSelectionMarkup=selectedMarkup;
   }
   const portrait=view.querySelector('#sf-portrait');
-  const desired=item
-   ?item.queue?'/src/assets/reborn/buildings-3d/'+kind+'-0.png':
-    '/src/assets/reborn/'+(kind==='medic'?'prototype/':'animation/')+kind+'-0.png'
-   :'/src/assets/reborn/headquarters.png';
-  if(portrait.getAttribute('src')!==desired)portrait.src=desired;
+  const portraitKey=item?(item.queue?'building:':'unit:')+kind:'building:headquarters';
+  if(this.previousPortraitKey!==portraitKey){
+   this.previousPortraitKey=portraitKey;
+   if(item&&!item.queue){
+    // Use the same cropped idle portrait as in the unit roster.
+    unitIcon(kind).then(url=>{
+     if(this.previousPortraitKey===portraitKey)portrait.src=url;
+    }).catch(error=>console.warn('Portrait fallback',error));
+    portrait.src='/src/assets/reborn/infantry-grounded-v3.png';
+   }else portrait.src=buildingIconUrl(item?.kind??'headquarters');
+  }
   view.querySelector('[data-action="attack"]').setAttribute('aria-pressed',String(this.attackMode));
   view.querySelector('#sf-catalog-detail').textContent=
    spec?.description??'Einheiten auswählen · Rechtsklick bewegen · Pionier für Gebäude erforderlich.';
