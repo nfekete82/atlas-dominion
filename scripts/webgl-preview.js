@@ -541,6 +541,71 @@ if(query.get('fog')==='0'){
  battlefield.fogEnabled=false;
  battlefield.updateFog();
 }
+// Visual verification tool: a close 3D orbit with a physical XYZ reference.
+// Never changes game state, saves, unit collision, AI, or production.
+let showcaseActive=false,showcasePrevious=null;
+const showcaseFocus=new THREE.Vector3(focalX-half,heightAt(focalX,focalZ)+42,focalZ-half);
+const showcaseAxes=new THREE.AxesHelper(125);
+showcaseAxes.name='visual-only-3d-reference-axes';
+showcaseAxes.position.copy(showcaseFocus);
+showcaseAxes.userData={visualOnly:true,nonPlayable:true};
+showcaseAxes.visible=false;
+scene.add(showcaseAxes);
+const showcaseButton=document.createElement('button');
+showcaseButton.id='sf3d-showcase';
+showcaseButton.type='button';
+showcaseButton.className='sf-tool-button';
+showcaseButton.textContent='3D';
+showcaseButton.setAttribute('aria-label','3D-Kamerademo ein- oder ausschalten');
+showcaseButton.title='3D beweisen: Kamera schwenkt, dichter Zoom, Nebel aus';
+battlefield.panel.querySelector('#sf-tools').prepend(showcaseButton);
+const showcaseHint=document.createElement('div');
+showcaseHint.id='sf3d-showcase-hint';
+showcaseHint.setAttribute('role','status');
+showcaseHint.textContent='3D-DEMO AKTIV · Kamera kreist um die Einheiten · Kriegsnebel temporär aus · 3D erneut klicken';
+showcaseHint.hidden=true;
+document.body.append(showcaseHint);
+function setShowcase(enabled){
+ if(showcaseActive===enabled)return;
+ showcaseActive=enabled;
+ if(enabled){
+  showcasePrevious={
+   position:camera.position.clone(),target:controls.target.clone(),
+   zoom:camera.zoom,fog:battlefield.fogEnabled,autoRotate:controls.autoRotate
+  };
+  controls.autoRotate=false;
+  controls.target.copy(showcaseFocus);
+  // Close, low-angle view makes rock and soldier volume obvious.
+  camera.position.copy(showcaseFocus).add(new THREE.Vector3(420,350,620));
+  camera.lookAt(showcaseFocus);
+  camera.zoom=1.55;
+  camera.updateProjectionMatrix();
+  battlefield.fogEnabled=false;
+  battlefield.updateFog();
+  showcaseAxes.visible=true;
+  controls.autoRotateSpeed=0.9;
+  controls.autoRotate=true;
+ }else{
+  controls.autoRotate=false;
+  if(showcasePrevious){
+   camera.position.copy(showcasePrevious.position);
+   controls.target.copy(showcasePrevious.target);
+   camera.zoom=showcasePrevious.zoom;
+   camera.updateProjectionMatrix();
+   battlefield.fogEnabled=showcasePrevious.fog;
+   battlefield.updateFog();
+   controls.autoRotate=showcasePrevious.autoRotate;
+  }
+  showcaseAxes.visible=false;
+  showcasePrevious=null;
+ }
+ controls.update();
+ showcaseButton.setAttribute('aria-pressed',String(enabled));
+ showcaseButton.textContent=enabled?'3D ✓':'3D';
+ showcaseHint.hidden=!enabled;
+}
+showcaseButton.onclick=()=>setShowcase(!showcaseActive);
+if(query.get('showcase')==='1')setShowcase(true);
 const desertArt=new DesertArtPass({scene,world,terrain,heightAt,pos,loader,lowQuality:query.get('lite')==='1'});
 const effects=new SandforgeCombatEffects({scene,camera,game,world,heightAt,pos,lowQuality:query.get('lite')==='1'});
 const constructionRecovery=new SandforgeConstructionRecovery(game);
@@ -635,6 +700,8 @@ function animate(now){
 }
 renderer.setAnimationLoop(animate);
 window.__sandforgeWebGL={renderer,scene,camera,controls,game,terrain,heightAt,battlefield,effects,sound,constructionRecovery,visualPerimeter,boundaryCliffs,panKeys,
+ get showcaseActive(){return showcaseActive;},
+ setShowcase,
  get ruinsLoaded(){return ruinMeshes.length;},
  get loaded(){return status.dataset.ready==='true';},
  get simulationRunning(){return running;},
