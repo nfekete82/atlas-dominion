@@ -2,7 +2,7 @@
  * The classic game crops one idle frame rather than scaling down the entire
  * 8/16-direction animation atlas (which looks like tiny dots). */
 const iconCache=new Map();
-const folders=kind=>kind==='medic'?'prototype':'animation';
+const folders=kind=>['infantry','engineer','medic','heavy'].includes(kind)?'prototype':'animation';
 export const unitAtlasUrl=kind=>'/src/assets/reborn/'+folders(kind)+'/'+kind+'-0';
 export const buildingIconUrl=kind=>'/src/assets/reborn/buildings-3d/'+kind+'-0.png';
 
