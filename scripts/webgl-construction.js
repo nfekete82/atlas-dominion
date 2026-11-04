@@ -84,15 +84,17 @@ export class SandforgeConstructionPresentation{
   }
   const realHeight=entry.modelHeight??state.height;
   state.clip.constant=entry.node.position.y+Math.max(1.5,realHeight*progress);
-  const tick=Math.floor(progress*20);
-  if(tick!==state.lastLabel){
-   state.lastLabel=tick;const c=state.canvas.getContext('2d');
+  const tick=Math.floor(progress*20),working=base.constructionActive!==false;
+  if(tick!==state.lastLabel||state.lastWorking!==working){
+   state.lastLabel=tick;state.lastWorking=working;
+   const c=state.canvas.getContext('2d');
    c.clearRect(0,0,256,64);
    c.fillStyle='#172b29dd';c.fillRect(3,4,250,56);
    c.strokeStyle='#d4b376';c.lineWidth=3;c.strokeRect(3,4,250,56);
-   c.fillStyle='#f0d5a1';c.font='bold 26px system-ui';
+   c.fillStyle=working?'#f0d5a1':'#f7b39d';
+   c.font=working?'bold 26px system-ui':'bold 18px system-ui';
    c.textAlign='center';c.textBaseline='middle';
-   c.fillText('BAU '+Math.round(progress*100)+' %',128,32);
+   c.fillText(working?'BAU '+Math.round(progress*100)+' %':'PAUSIERT · PIONIER',128,32);
    state.texture.needsUpdate=true;
   }
  }
