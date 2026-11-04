@@ -32,7 +32,9 @@ const session=query.get('resume')==='1'?(()=>{
   return restored.seed===seed&&restored.world.mapVersion===sizes[bastions]?restored:null;
  }catch(error){console.warn('Saved 3D game could not be loaded:',error);return null;}
 })():null;
-const game=session??new Simulation(seed,sizes[bastions]);
+// Exactly the classic Sandforge campaign bootstrap: both factions start
+// with an engineer and infantry, NOT with a free completed headquarters.
+const game=session??Simulation.campaign(seed,sizes[bastions]);
 const world=game.world,terrain=world.generated,size=world.size,half=size/2;
 const status=$('status'),errorNode=$('error'),stage=$('stage');
 $('simulation').textContent=query.get('pause')==='1'?'Simulation starten':'Simulation pausieren';
@@ -80,7 +82,8 @@ camera.lookAt(cameraTarget);
 const controls=new OrbitControls(camera,renderer.domElement);
 controls.enableDamping=true;controls.dampingFactor=.10;
 controls.screenSpacePanning=true;
-controls.minZoom=.25;controls.maxZoom=5;
+// C&C-style constrained orthographic RTS camera: the map is NOT a tabletop.
+controls.minZoom=1.0;controls.maxZoom=3.5;
 controls.minPolarAngle=.34;controls.maxPolarAngle=1.22;
 controls.mouseButtons={LEFT:THREE.MOUSE.PAN,MIDDLE:THREE.MOUSE.DOLLY,RIGHT:THREE.MOUSE.ROTATE};
 controls.target.copy(cameraTarget);
@@ -459,10 +462,14 @@ function stepCamera(dt){
  }
  // Keep the camera looking over the drawn desert. Units still cannot leave
  // World.indexXY 0..size and the 3D perimeter is never a raycast target.
- const cameraLimit=Math.max(200,visualPerimeter?.margin??size*.5)*.80;
- const edge=half+cameraLimit;
- const x=Math.max(-edge,Math.min(edge,controls.target.x));
- const z=Math.max(-edge,Math.min(edge,controls.target.z));
+ // Clamp the whole visible orthographic viewport inside the playable map.
+ // A generous interior margin hides the decorative rim even after rotations.
+ const viewWidth=(camera.right-camera.left)/camera.zoom;
+ const viewHeight=(camera.top-camera.bottom)/camera.zoom;
+ const projectedRadius=Math.hypot(viewWidth,viewHeight)*.45;
+ const limit=Math.max(65,half-projectedRadius-100);
+ const x=Math.max(-limit,Math.min(limit,controls.target.x));
+ const z=Math.max(-limit,Math.min(limit,controls.target.z));
  const fixX=x-controls.target.x,fixZ=z-controls.target.z;
  if(fixX||fixZ){camera.position.x+=fixX;camera.position.z+=fixZ;controls.target.x=x;controls.target.z=z;}
 }
@@ -530,6 +537,7 @@ function animate(now){
  if(!running)battlefield.sync(false,dt);
  effects.update(dt,running);
  if(running&&sound.enabled)sound.update(game,soundView);
+ controls.update();
  stepCamera(dt);
  controls.update();
  renderer.render(scene,camera);
