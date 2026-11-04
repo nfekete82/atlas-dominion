@@ -51,8 +51,12 @@ async function rasterizeUnitIcon(kind){
  const target=document.createElement('canvas');target.width=192;target.height=132;
  const ctx=target.getContext('2d');ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
  const w=right-left+1,h=bottom-top+1;
- const scale=Math.min(164/w,112/h),dw=w*scale,dh=h*scale;
- ctx.drawImage(tile,left,top,w,h,(192-dw)/2,(132-dh)/2,dw,dh);
+ // Keep all four ground soldiers at the same apparent standing height,
+ // matching the original role illustrations regardless of atlas whitespace.
+ const infantry=['infantry','medic','engineer','heavy'].includes(kind);
+ const scale=Math.min((infantry?144:164)/w,(infantry?105:112)/h);
+ const dw=w*scale,dh=h*scale;
+ ctx.drawImage(tile,left,top,w,h,(192-dw)/2,infantry?119-dh:(132-dh)/2,dw,dh);
  return target.toDataURL('image/png');
 }
 export function unitIcon(kind){
