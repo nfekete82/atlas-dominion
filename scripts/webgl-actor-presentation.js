@@ -31,11 +31,11 @@ const flashTex=muzzleTexture();
 const ownerColor=owner=>owner===0?'#68ddf5':'#ff8a69';
 const pulseSize=kind=>infantry.has(kind)?21:air.has(kind)?36:kind==='tank'?40:35;
 const barWidth=(kind,type)=>type==='building'
- ?Math.max(52,Math.min(110,(BUILDINGS[kind]?.width??115)*.48)):
- infantry.has(kind)?39:air.has(kind)?69:62;
+ ?Math.max(42,Math.min(68,(BUILDINGS[kind]?.width??115)*.30)):
+ infantry.has(kind)?26:air.has(kind)?44:36;
 const barAltitude=(kind,type)=>type==='building'
- ?Math.max(60,Math.min(150,(BUILDINGS[kind]?.width??130)*.64)):
- infantry.has(kind)?75:air.has(kind)?48:70;
+ ?Math.max(65,Math.min(144,(BUILDINGS[kind]?.width??130)*.55)):
+ infantry.has(kind)?62:air.has(kind)?49:56;
 
 function statusBar(scene,entity,type){
  const width=barWidth(entity.kind,type);
@@ -43,18 +43,20 @@ function statusBar(scene,entity,type){
  root.name='hp-'+type+'-'+entity.id;
  root.userData={type,id:entity.id,healthBar:true};
  const surround=new THREE.Mesh(barGeo,outlineMat);
- surround.scale.set(width+3,9,1);surround.position.z=0;
+ surround.scale.set(width+1.8,4.8,1);surround.position.z=0;surround.renderOrder=17;
  root.add(surround);
  const back=new THREE.Mesh(barGeo,bgMat);
- back.scale.set(width,6.5,1);back.position.z=.28;
+ back.scale.set(width,3.4,1);back.position.z=.9;back.renderOrder=18;
  root.add(back);
- const fillMaterial=new THREE.MeshBasicMaterial({color:'#7ad389',depthTest:true,
+ // All three health pieces must share the transparent rendering pass: an
+ // opaque fill drawn before the translucent background appeared BLACK.
+ const fillMaterial=new THREE.MeshBasicMaterial({color:'#24e568',transparent:true,opacity:1,depthTest:true,
   depthWrite:false,side:THREE.DoubleSide,toneMapped:false});
  const fill=new THREE.Mesh(barGeo,fillMaterial);
- fill.scale.set(width-3,4.5,1);fill.position.z=.58;root.add(fill);
+ fill.scale.set(width-2.1,2.5,1);fill.position.z=1.8;fill.renderOrder=19;root.add(fill);
  root.renderOrder=17;
  scene.add(root);
- return {root,fill,fillMaterial,width:width-3,altitude:barAltitude(entity.kind,type),
+ return {root,fill,fillMaterial,width:width-2.1,altitude:barAltitude(entity.kind,type),
    previousHp:entity.hp,hitPulse:0,healPulse:0};
 }
 
@@ -82,7 +84,8 @@ export class SandforgeActorPresentation {
   this.status=new Map();
   this.stats={shots:0,hits:0,heals:0,visibleBars:0,walking:0,shooting:0};
   this.time=0;
-  this.showHealth='all';
+  // Match the original Sandforge: only selected/damaged troops show HP by default.
+  this.showHealth='damaged';
   this.remnants=[];
   this.remnantMaterial=new THREE.MeshBasicMaterial({
    color:'#4e4337',transparent:true,opacity:.64,depthWrite:false,side:THREE.DoubleSide
@@ -172,15 +175,17 @@ export class SandforgeActorPresentation {
   if(showBar)this.stats.visibleBars++;
   if(visible){
    bar.root.position.copy(entry.node.position);
-   bar.root.position.y+=bar.altitude;
+   bar.root.position.y+=entry.modelHeight?Math.max(bar.altitude,entry.modelHeight+5):bar.altitude;
    bar.root.quaternion.copy(this.camera.quaternion);
    bar.fill.scale.x=bar.width*pct;
    bar.fill.position.x=-(bar.width*(1-pct))/2;
-   const color=bar.hitPulse>0?'#ffe2b5':bar.healPulse>0?'#71ecde':
-    pct>.64?'#85d994':pct>.3?'#eed276':'#f1786d';
+   // Health is authoritative: full HP green, depleted HP loses actual width
+   // and transitions through yellow/orange/red. Hit flashes never overwrite it.
+   const color=pct>.7?'#24e568':pct>.4?'#f6d44b':pct>.2?'#f29a36':'#ed5146';
+   bar.fraction=pct;
    if(bar.lastColor!==color){bar.fillMaterial.color.set(color);bar.lastColor=color;}
-   if(selected)bar.root.scale.setScalar(1.20);
-   else bar.root.scale.setScalar(1);
+   // No selection enlargement: fixed physical size, like the Canvas UI.
+   bar.root.scale.setScalar(1);
   }
   // A brief additive muzzle flash is driven only by real Shot events.
   state.shotPulse=Math.max(0,state.shotPulse-dt);
