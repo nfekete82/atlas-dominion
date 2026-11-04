@@ -46,6 +46,8 @@ export class DesertArtPass {
    dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
   });
   mesh.instanceMatrix.needsUpdate=true;mesh.frustumCulled=false;mesh.renderOrder=2;
+  mesh.name='visual-desert-craters';
+  mesh.userData={visualOnly:true,nonPlayable:true,craterDecals:true};
   this.scene.add(mesh);this.items.push(mesh);
  }
  addDebris(){
@@ -66,6 +68,8 @@ export class DesertArtPass {
    dummy.scale.set(r,.42*r,.85*r);dummy.updateMatrix();mesh.setMatrixAt(count++,dummy.matrix);
   }
   mesh.count=count;mesh.instanceMatrix.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=true;
+  mesh.name='visual-desert-debris';
+  mesh.userData={visualOnly:true,nonPlayable:true,debris:true};
   this.scene.add(mesh);this.items.push(mesh);
  }
  normalize(model,targetWidth){
