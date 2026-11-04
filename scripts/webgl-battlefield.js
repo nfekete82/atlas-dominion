@@ -169,17 +169,19 @@ export class SandforgeBattlefield {
     if(!obj.isMesh)return;
     const make=mat=>{
      const m=mat.clone();m.color?.lerp(new THREE.Color('#8ad6b3'),.32);
-     m.transparent=true;m.opacity=.52;m.depthWrite=false;
+     m.transparent=true;m.opacity=.72;m.depthWrite=false;
+     m.depthTest=false;m.side=THREE.DoubleSide;
      return m;
     };
     obj.material=Array.isArray(obj.material)?obj.material.map(make):make(obj.material);
+    obj.renderOrder=1010;obj.castShadow=false;obj.receiveShadow=false;
    });
   };
   tint(placeholder);group.add(placeholder);
   const circle=new THREE.Mesh(
    new THREE.RingGeometry(spec.radius-2.5,spec.radius+1.5,48),
-   new THREE.MeshBasicMaterial({color:'#80efae',transparent:true,opacity:.87,depthWrite:false,side:THREE.DoubleSide}));
-  circle.rotation.x=-Math.PI/2;circle.position.y=2;group.add(circle);
+   new THREE.MeshBasicMaterial({color:'#80efae',transparent:true,opacity:.92,depthTest:false,depthWrite:false,side:THREE.DoubleSide}));
+  circle.rotation.x=-Math.PI/2;circle.position.y=2;circle.renderOrder=1009;group.add(circle);
   this.scene.add(group);
   this.buildPreview=group;group.visible=false;
   this.getModel(this.asset(kind,0,'building')).then(data=>{
