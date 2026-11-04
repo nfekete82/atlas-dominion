@@ -607,6 +607,16 @@ function animate(now){
  stepCamera(dt);
  controls.update();
  renderer.render(scene,camera);
+ if(battlefield.buildPreview?.visible){
+  // A second render pass guarantees the translucent construction silhouette
+  // is always visible even behind rocks, soldiers, the black fog or buildings.
+  // The first pass already cleared the frame. Clear only depth for the overlay.
+  const autoClear=renderer.autoClear;
+  renderer.autoClear=false;
+  renderer.clearDepth();
+  renderer.render(battlefield.buildPreviewScene,camera);
+  renderer.autoClear=autoClear;
+ }
  frames++;elapsed+=dt;
  if(elapsed>=.5){
   $('fps').textContent=String(Math.round(frames/elapsed));frames=0;elapsed=0;
