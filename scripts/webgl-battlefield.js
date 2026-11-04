@@ -245,8 +245,10 @@ export class SandforgeBattlefield {
   this.fogTexture.wrapS=this.fogTexture.wrapT=THREE.ClampToEdgeWrapping;
   const mat=new THREE.ShaderMaterial({
    uniforms:{fogTex:{value:this.fogTexture},mapSize:{value:this.world.size}},
-   vertexShader:'uniform float mapSize; varying vec2 fogUv; void main(){fogUv=vec2(position.x/mapSize+.5,position.z/mapSize+.5);vec3 p=position;p.y+=2.5;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);}',
-   fragmentShader:'uniform sampler2D fogTex;varying vec2 fogUv;void main(){float a=texture2D(fogTex,fogUv).a;gl_FragColor=vec4(.048,.057,.060,a);}',
+   // Lift the fog sheet over soldiers, buildings and rocks. Otherwise the
+   // original ground-height sheet darkened sand but left every prop exposed.
+   vertexShader:'uniform float mapSize; varying vec2 fogUv; void main(){fogUv=vec2(position.x/mapSize+.5,position.z/mapSize+.5);vec3 p=position;p.y+=420.0;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);}',
+   fragmentShader:'uniform sampler2D fogTex;varying vec2 fogUv;void main(){float a=texture2D(fogTex,fogUv).a;gl_FragColor=vec4(0.004,0.006,0.008,a);}',
    transparent:true,depthWrite:false,side:THREE.DoubleSide
   });
   this.fogNodes=this.groundMeshes.map(mesh=>{
@@ -260,7 +262,9 @@ export class SandforgeBattlefield {
   for(let i=0;i<this.world.blocked.length;i++){
    const k=i*4;
    data[k]=24;data[k+1]=30;data[k+2]=31;
-   data[k+3]=visible[0][i]?0:explored[0][i]?95:160;
+   // Unexplored = truly black (not transparent brown); explored but no
+   // current vision = a dark memory, as in the original Canvas RTS.
+   data[k+3]=visible[0][i]?0:explored[0][i]?215:255;
   }
   this.fogTexture.needsUpdate=true;
   this.fogNodes.forEach(n=>n.visible=this.fogEnabled);
@@ -478,8 +482,8 @@ export class SandforgeBattlefield {
   }
   if(this.fogEnabled){
    for(let iy=0;iy<RULES.grid;iy+=4)for(let ix=0;ix<RULES.grid;ix+=4){
-    const index=iy*RULES.grid+ix,alpha=this.game.visible[0][index]?0:this.game.explored[0][index]?.25:.60;
-    if(!alpha)continue;ctx.fillStyle='rgba(7,21,22,'+alpha+')';
+    const index=iy*RULES.grid+ix,alpha=this.game.visible[0][index]?0:this.game.explored[0][index]?.82:1;
+    if(!alpha)continue;ctx.fillStyle='rgba(0,0,0,'+alpha+')';
     ctx.fillRect(ix/RULES.grid*width,iy/RULES.grid*height,width/RULES.grid*4,height/RULES.grid*4);
    }
   }
