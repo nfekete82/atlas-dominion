@@ -588,6 +588,7 @@ test('right-clicking the visible 3D bastion sends infantry into its capture ring
  await load(page);
  const fixture=await page.evaluate(()=>{
   const v=window.__sandforgeWebGL,g=v.game,b=v.battlefield;
+  g.aiClock=-100000; // Capture path, not an unrelated director assault.
   const soldier=g.units.find(u=>u.owner===0&&u.kind==='infantry'&&u.hp>0);
   if(!soldier)throw Error('No starting infantry');
   const blockers=[...g.obstacles(),...g.bastionColliders()];
