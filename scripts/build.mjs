@@ -19,6 +19,7 @@ cpSync('scripts/webgl-portraits.js','dist/webgl-portraits.js');
 cpSync('scripts/webgl-perimeter.js','dist/webgl-perimeter.js');
 cpSync('scripts/webgl-edge-cliffs.js','dist/webgl-edge-cliffs.js');
 cpSync('scripts/webgl-grounding.js','dist/webgl-grounding.js');
+cpSync('scripts/webgl-ground-tracks.js','dist/webgl-ground-tracks.js');
 cpSync('scripts/webgl-construction.js','dist/webgl-construction.js');
 cpSync('scripts/webgl-construction-recovery.js','dist/webgl-construction-recovery.js');
 cpSync('scripts/webgl-scale.js','dist/webgl-scale.js');
