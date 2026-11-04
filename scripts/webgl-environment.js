@@ -74,7 +74,9 @@ export class DesertArtPass {
  addRuinRubble(){
   // A broken concrete shell needs grounded masonry at its feet, not an
   // immaculate square base. Small fragments deliberately have no collider.
-  const count=this.terrain.ruins.length*(this.lowQuality?8:27);
+  const spacious=this.world.mapVersion>=19;
+  const rubblePerRuin=spacious?(this.lowQuality?5:13):(this.lowQuality?8:27);
+  const count=this.terrain.ruins.length*rubblePerRuin;
   if(!count)return;
   const geometry=new THREE.DodecahedronGeometry(1,0);
   const materials=[
@@ -85,7 +87,7 @@ export class DesertArtPass {
   const counters=[0,0],dummy=new THREE.Object3D();
   let state=(this.world.seed^0x6ac8b547)>>>0;
   const rand=()=>{state=(Math.imul(state,1664525)+1013904223)>>>0;return state/4294967296;};
-  for(const ruin of this.terrain.ruins)for(let k=0;k<(this.lowQuality?8:27);k++){
+  for(const ruin of this.terrain.ruins)for(let k=0;k<rubblePerRuin;k++){
    const angle=rand()*Math.PI*2,wall=Math.max(ruin.width*.5,ruin.depth*.5);
    const distance=wall*(.78+rand()*.56),x=ruin.x+Math.cos(angle)*distance,z=ruin.y+Math.sin(angle)*distance;
    const radius=1.9+rand()*6,kind=rand()>.55?1:0;
@@ -100,9 +102,10 @@ export class DesertArtPass {
   }
  }
  async loadPalmGroves(){
+  const spacious=this.world.mapVersion>=19;
   const palms=this.details.filter(d=>d.kind==='palm'&&
    !this.terrain.ridges.some(r=>r.spine.some(p=>Math.hypot(d.x-p.x,d.y-p.y)<140)))
-   .slice(0,this.lowQuality?6:28);
+   .slice(0,spacious?(this.lowQuality?2:6):(this.lowQuality?6:28));
   // Border groves also render on seeds with no walkable interior palms.
   const gltf=await this.loader.loadAsync('/src/assets/reborn/props-3d/palm-tree.glb');
   for(const d of palms){
@@ -110,6 +113,37 @@ export class DesertArtPass {
    const group=new THREE.Group();group.position.copy(this.pos(d.x,d.y));
    group.rotation.y=d.rotation;group.add(palm);
    this.scene.add(group);this.items.push(group);
+  }
+  // The larger maps use small coherent oases near old outposts rather than
+  // scattering palms uniformly through otherwise open military terrain.
+  let oasisCount=0;
+  if(spacious){
+   let oasisState=((this.world.seed??0)^0x52a73b29)>>>0;
+   const roll=()=>{oasisState=(Math.imul(oasisState,1664525)+1013904223)>>>0;
+    return oasisState/4294967296;};
+   for(const ruin of this.terrain.ruins.slice(0,this.lowQuality?5:9)){
+    const direction=roll()*Math.PI*2;
+    const center={x:ruin.x+Math.cos(direction)*260,y:ruin.y+Math.sin(direction)*260};
+    if(!this.world.walkable(center)||this.terrain.sites.some(s=>
+      Math.hypot(center.x-s.x,center.y-s.y)<340))continue;
+    const grove=new THREE.Group();grove.name='visual-desert-oasis';
+    grove.userData={visualOnly:true,nonPlayable:true,oasis:true};
+    for(let k=0;k<(this.lowQuality?3:4);k++){
+     const angle=k*(Math.PI*2/(this.lowQuality?3:4))+roll()*.32;
+     const radius=15+roll()*42;
+     const x=center.x+Math.cos(angle)*radius,z=center.y+Math.sin(angle)*radius;
+     if(!this.world.walkable({x,y:z}))continue;
+     const palm=this.normalize(gltf.scene.clone(true),58+roll()*32);
+     const instance=new THREE.Group();
+     instance.position.set(x-center.x,this.heightAt(x,z)-this.heightAt(center.x,center.y),z-center.y);
+     instance.rotation.y=roll()*Math.PI*2;
+     instance.add(palm);grove.add(instance);oasisCount++;
+    }
+    if(grove.children.length){
+     grove.position.copy(this.pos(center.x,center.y));
+     this.scene.add(grove);this.items.push(grove);
+    }
+   }
   }
   // Natural palm clusters at the foot of the OUTER cliffs, not inside the
   // World. Reuse the same authored GLB; all placements are seeded, visual-only
@@ -140,13 +174,14 @@ export class DesertArtPass {
     this.scene.add(group);this.items.push(group);borderPalms++;
    }
   }
-  return palms.length+borderPalms;
+  return palms.length+borderPalms+oasisCount;
  }
  async loadProps(){
   // Place authored PBR supply hardware beside derelict compounds. The old
   // preview placed only plain sandbags at one point for each ruin.
   // These are render-only objects, with no edits to pathfinding or saves.
-  const sites=this.terrain.ruins.slice(0,this.lowQuality?3:10);
+  const sites=this.terrain.ruins.slice(0,
+   this.world.mapVersion>=19?(this.lowQuality?6:12):(this.lowQuality?3:10));
   if(!sites.length)return 0;
   const sources=this.lowQuality?
    ['sandbags','military-crate-stack']:
