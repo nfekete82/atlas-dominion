@@ -303,8 +303,12 @@ function instancedStone(){
  for(const mesa of terrain.mesas)for(const col of mesa.columns){
   const x=col.base.reduce((n,p)=>n+p.x,0)/col.base.length;
   const z=col.base.reduce((n,p)=>n+p.y,0)/col.base.length;
-  put(x,z,20+r()*28,30+r()*55,18+r()*25);
-  for(let i=0;i<2;i++)put(x+(r()-.5)*55,z+(r()-.5)*55,8+r()*16,8+r()*26,8+r()*15);
+  put(x,z,spacious?23+r()*29:20+r()*28,
+   spacious?18+r()*34:30+r()*55,
+   spacious?24+r()*27:18+r()*25);
+  for(let i=0;i<(spacious?1:2);i++)
+   put(x+(r()-.5)*55,z+(r()-.5)*55,8+r()*16,
+    spacious?7+r()*16:8+r()*26,8+r()*15);
  }
  for(let i=0;i<(spacious?620:1600);i++){
   const x=75+r()*(size-150),z=75+r()*(size-150),index=world.index({x,y:z});
