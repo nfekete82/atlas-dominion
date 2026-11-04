@@ -29,7 +29,7 @@ test('Zero Hour-inspired HUD has left minimap, horizontal middle catalog and rig
    rimHidden:window.__sandforgeWebGL.boundaryCliffs.cliffs.every(x=>!x.visible)
   };
  });
- expect(before.dock.top).toBeGreaterThan(600);
+ expect(before.dock.top).toBeGreaterThan(560); // 310px contextual dock at 900px viewport
  expect(before.dock.bottom).toBeGreaterThan(875);
  expect(before.radar.left).toBeLessThan(before.catalog.left);
  expect(before.catalog.left).toBeLessThan(before.commands.left);
