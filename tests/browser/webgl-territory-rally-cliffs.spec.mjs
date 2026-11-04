@@ -98,6 +98,9 @@ test('bastions show an in-world progress bar only while capture is active',async
       visible:entry.captureBar.visible,
       fraction:entry.captureBar.userData.captureFraction,
       duration:entry.captureBar.userData.captureSeconds,
+      width:entry.captureBar.children[0].scale.x,
+      height:entry.captureBar.children[0].scale.y,
+      y:entry.captureBar.position.y,
       red:entry.captureBar.userData.captureFill.material.color.getHexString()
     };
     t.progress=0;
@@ -114,6 +117,9 @@ test('bastions show an in-world progress bar only while capture is active',async
   expect(state.active.fraction).toBeLessThanOrEqual(1);
   expect(state.active.duration).toBeGreaterThan(0);
   expect(state.active.red).toBe('f19b73');
+  expect(state.active.width).toBeLessThanOrEqual(80);
+  expect(state.active.height).toBeLessThanOrEqual(10);
+  expect(state.active.y).toBeLessThan(140);
   expect(state.hidden).toBe(true);
 });
 
