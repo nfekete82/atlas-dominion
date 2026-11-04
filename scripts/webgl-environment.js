@@ -111,7 +111,36 @@ export class DesertArtPass {
    group.rotation.y=d.rotation;group.add(palm);
    this.scene.add(group);this.items.push(group);
   }
-  return palms.length;
+  // Natural palm clusters at the foot of the OUTER cliffs, not inside the
+  // World. Reuse the same authored GLB; all placements are seeded, visual-only
+  // and excluded from gameplay collision, pathfinding, saves and raycasts.
+  let state=((this.world.seed??0)^0x3ac719d5)>>>0;
+  const rand=()=>{state=(Math.imul(state,1664525)+1013904223)>>>0;return state/4294967296;};
+  const groves=this.lowQuality?4:9;
+  let borderPalms=0;
+  for(let grove=0;grove<groves;grove++){
+   const edge=Math.floor(rand()*4),center=.09+rand()*.82;
+   const number=this.lowQuality?3:3+Math.floor(rand()*3);
+   for(let i=0;i<number;i++){
+    const t=Math.max(.035,Math.min(.965,center+(rand()-.5)*.052));
+    const offset=9+rand()*28;
+    const along=t*this.world.size;
+    const p=edge===0?{x:along,y:-offset}:
+     edge===1?{x:this.world.size+offset,y:along}:
+     edge===2?{x:along,y:this.world.size+offset}:
+      {x:-offset,y:along};
+    const palm=this.normalize(gltf.scene.clone(true),64+rand()*40);
+    const group=new THREE.Group();
+    group.name='visual-boundary-palm';
+    group.userData={visualBoundary:true,nonPlayable:true,edge};
+    group.position.copy(this.pos(p.x,p.y));
+    group.rotation.y=rand()*Math.PI*2;
+    group.scale.setScalar(.83+rand()*.38);
+    group.add(palm);
+    this.scene.add(group);this.items.push(group);borderPalms++;
+   }
+  }
+  return palms.length+borderPalms;
  }
  async loadProps(){
   const points=this.terrain.ruins.slice(0,this.lowQuality?1:8).map((r,i)=>({
