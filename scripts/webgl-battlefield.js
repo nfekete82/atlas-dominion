@@ -364,7 +364,7 @@ export class SandforgeBattlefield {
    // Sample world-space fog identically on playable ground and the decorative
    // perimeter. Outside the map, fade from the nearest discovered edge to
    // fully black within ~400 world units; never reveal the end of the mesh.
-   fragmentShader:'uniform sampler2D fogTex;uniform float mapSize;varying vec2 fogUv;void main(){vec2 uv=clamp(fogUv,vec2(0.001),vec2(0.999));float a=texture2D(fogTex,uv).a;vec2 beyond=max(max(-fogUv,fogUv-1.0),vec2(0.0));float edge=max(beyond.x,beyond.y);a=max(a,smoothstep(0.0,400.0/mapSize,edge));gl_FragColor=vec4(0.004,0.006,0.008,a);}',
+   fragmentShader:'uniform sampler2D fogTex;uniform float mapSize;varying vec2 fogUv;void main(){vec2 uv=clamp(fogUv,vec2(0.001),vec2(0.999));float a=texture2D(fogTex,uv).a;vec2 beyond=max(max(-fogUv,fogUv-1.0),vec2(0.0));float edge=max(beyond.x,beyond.y);a=max(a,smoothstep(0.0,400.0/mapSize,edge));gl_FragColor=vec4(0.040,0.032,0.025,a);}',
    transparent:true,depthTest:false,depthWrite:false,side:THREE.DoubleSide
   });
   const groundAndPerimeter=[...this.groundMeshes,
@@ -381,8 +381,8 @@ export class SandforgeBattlefield {
   for(let i=0;i<this.world.blocked.length;i++){
    const k=i*4;
    data[k]=24;data[k+1]=30;data[k+2]=31;
-   // Unexplored = truly black (not transparent brown); explored but no
-   // current vision = a dark memory, as in the original Canvas RTS.
+   // Unexplored remains opaque (no hidden information leaks). Give the
+   // cover a subtle dark-sand tint so the battlefield reads as one world.
    data[k+3]=visible[0][i]?0:explored[0][i]?215:255;
   }
   this.fogTexture.needsUpdate=true;
