@@ -289,8 +289,23 @@ export class SandforgeBattlefield {
   for(const [id,entry] of this.bastions)if(!known.has(id)){this.scene.remove(entry.node);this.bastions.delete(id);}
   for(const territory of this.game.territories){
    const entry=this.bastions.get(territory.id);
-   if(entry&&entry.owner!==territory.owner){entry.owner=territory.owner;entry.core.material.color.set(territory.owner===0?colors.blue:territory.owner===1?colors.red:colors.neutral);entry.halo.material.color.set(territory.owner===0?colors.blue:territory.owner===1?colors.red:colors.neutral);
-    if(!this.lite)this.loadBastionModel(entry,territory.owner);}
+   if(entry&&entry.owner!==territory.owner){
+    const previousOwner=entry.owner;
+    entry.owner=territory.owner;
+    entry.core.material.color.set(territory.owner===0?colors.blue:territory.owner===1?colors.red:colors.neutral);
+    entry.halo.material.color.set(territory.owner===0?colors.blue:territory.owner===1?colors.red:colors.neutral);
+    if(!this.lite)this.loadBastionModel(entry,territory.owner);
+    // Only announce ownership changes involving the local faction. Unknown
+    // battles between other factions must never leak through Fog of War.
+    if(territory.owner===0){
+     this.message('SEKTOR '+(territory.id+1)+' EROBERT · +'+territory.income+' Credits / 10 s');
+     this.panel.querySelector('#sf-message')?.setAttribute('data-sector-event','secured');
+     this.sound?.command?.();
+    }else if(previousOwner===0){
+     this.message('SEKTOR '+(territory.id+1)+' VERLOREN');
+     this.panel.querySelector('#sf-message')?.setAttribute('data-sector-event','lost');
+    }
+   }
    if(entry)updateBastionCaptureBar(entry.captureBar,territory,this.game,this.fogEnabled);
   }
   this.updateSelectionRings();
