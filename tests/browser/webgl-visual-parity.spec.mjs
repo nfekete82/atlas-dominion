@@ -125,8 +125,20 @@ test('dark natural map rim has grounded non-playable palm groves and no bright o
  expect(state.samples[0]).toBeGreaterThan(0);
  expect(state.samples[1]).toBeGreaterThan(0);
  expect(state.beyond).toBeLessThan(state.edge*.15);
- expect(state.background).toBe('#080a0b');
+ expect(state.background).toBe('#000000');
  expect(state.palmCount).toBeGreaterThanOrEqual(12);
  expect(state.allOutside).toBe(true);
  expect(state.cosmetic).toBe(true);
+ // Render-only border never receives fog-of-war overlays: dense unknown
+ // terrain is still hidden inside the 16 authoritative map chunks only.
+ const fogState=await page.evaluate(()=>{
+   const v=window.__sandforgeWebGL;
+   return {count:v.battlefield.fogNodes.length,
+     decorative:v.battlefield.fogNodes.filter(
+       m=>v.visualPerimeter.meshes.some(p=>p.geometry===m.geometry)).length,
+     unknown:v.battlefield.fogTexture.image.data.some((n,i)=>i%4===3&&n===255)};
+ });
+ expect(fogState.count).toBe(16);
+ expect(fogState.decorative).toBe(0);
+ expect(fogState.unknown).toBe(true);
 });
