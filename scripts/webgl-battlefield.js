@@ -414,8 +414,24 @@ export class SandforgeBattlefield {
    const unavailable=button.dataset.unit
     ?!g.producer(0,kind)||g.credits[0]<spec.cost||g.count(0)+g.queued(0)>=RULES.capacity
     :g.credits[0]<spec.cost||!g.hasHeadquarters(0)&&kind!=='headquarters';
-   if(button.disabled!==unavailable)button.disabled=unavailable;
-   button.classList.toggle('locked',unavailable);
+   const completed=g.bases.some(b=>b.owner===0&&b.kind===kind&&b.hp>0&&b.buildRemaining<=0);
+   const underConstruction=g.bases.some(b=>b.owner===0&&b.kind===kind&&b.hp>0&&b.buildRemaining>0);
+   const requirement=button.dataset.unit
+    ?(!g.hasHeadquarters(0)?'Hauptquartier zuerst fertigstellen':
+       !g.producer(0,kind)?'Benötigt fertiges Gebäude: '+UNITS[kind].producers.map(k=>BUILDINGS[k].name).join(' / '):
+       g.credits[0]<spec.cost?'Zu wenig Credits':
+       g.count(0)+g.queued(0)>=RULES.capacity?'Einheitenlimit erreicht':'')
+    :(!g.hasHeadquarters(0)&&kind!=='headquarters'?'Hauptquartier zuerst fertigstellen':
+       g.credits[0]<spec.cost?'Zu wenig Credits':
+       kind==='headquarters'&&!g.needsHeadquarters(0)?'Hauptquartier bereits vorhanden':'');
+   // Completed buildings alone unlock production. A construction site does not.
+   const blocked=unavailable||(button.dataset.build==='headquarters'&&!g.needsHeadquarters(0));
+   if(button.disabled!==blocked)button.disabled=blocked;
+   button.classList.toggle('locked',blocked);
+   const explanation=requirement||spec.description;
+   if(button.title!==explanation)button.title=explanation;
+   if(blocked)button.setAttribute('aria-description',explanation);
+   else button.removeAttribute('aria-description');
    button.classList.toggle('sf-selected-build',button.dataset.build===this.buildKind);
   }
   hydrateUnitIcons(actions);
