@@ -5,6 +5,7 @@ import {Simulation} from '/src/reborn/simulation.js';
 import {canyonGroundSampler,rampAtX,ridgeCenterY} from '/src/reborn/canyon-height.js';
 import {SandforgeBattlefield} from '/webgl-battlefield.js';
 import {DesertArtPass} from '/webgl-environment.js';
+import {SandforgeCombatEffects} from '/webgl-combat-vfx.js';
 
 /** Opt-in WebGL scene using the real authoritative Sandforge map and simulation.
  * This page is isolated from the production Canvas renderer, save format and AI
@@ -358,6 +359,7 @@ const battlefield=new SandforgeBattlefield({
  lite:query.get('lite')==='1'
 });
 const desertArt=new DesertArtPass({scene,world,terrain,heightAt,pos,loader,lowQuality:query.get('lite')==='1'});
+const effects=new SandforgeCombatEffects({scene,camera,game,world,heightAt,pos,lowQuality:query.get('lite')==='1'});
 let lastFrame=performance.now(),frames=0;
 function animate(now){
  const dt=Math.min(.08,(now-lastFrame)/1000);lastFrame=now;
@@ -367,6 +369,7 @@ function animate(now){
   battlefield.sync(false,dt);
  }
  if(!running)battlefield.sync(false,dt);
+ effects.update(dt,running);
  controls.update();
  renderer.render(scene,camera);
  frames++;elapsed+=dt;
@@ -376,7 +379,7 @@ function animate(now){
  }
 }
 renderer.setAnimationLoop(animate);
-window.__sandforgeWebGL={renderer,scene,camera,controls,game,terrain,heightAt,battlefield,
+window.__sandforgeWebGL={renderer,scene,camera,controls,game,terrain,heightAt,battlefield,effects,
  get ruinsLoaded(){return ruinMeshes.length;},
  get loaded(){return status.dataset.ready==='true';},
  get simulationRunning(){return running;},
