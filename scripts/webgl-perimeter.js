@@ -9,8 +9,17 @@ export function addVisualPerimeter({scene,size,heightAt,material,ringTiles=2,seg
  const playableChunks=4,patch=size/playableChunks,half=size*.5;
  const out=[],normal=new THREE.Vector3();
  const c0=new THREE.Color('#faf1e0'),c1=new THREE.Color('#b58b63');
+ const horizon=new THREE.Color('#bea17b');
  const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
  const smooth=value=>{const t=clamp(value,0,1);return t*t*(3-2*t);};
+ // Outside the playable world, let dunes settle gently into the distant
+ // desert instead of ending on a visible vertical tile seam.
+ const margin=ringTiles*patch;
+ const fade=(x,z)=>{
+  const outside=Math.max(0,-x,x-size,-z,z-size);
+  return smooth((outside-margin*.42)/(margin*.58));
+ };
+ const outerHeight=(x,z)=>heightAt(x,z)*(1-fade(x,z));
  for(let cy=-ringTiles;cy<playableChunks+ringTiles;cy++)
   for(let cx=-ringTiles;cx<playableChunks+ringTiles;cx++){
    if(cx>=0&&cx<playableChunks&&cy>=0&&cy<playableChunks)continue;
@@ -21,21 +30,22 @@ export function addVisualPerimeter({scene,size,heightAt,material,ringTiles=2,seg
    const normals=new Float32Array(count*3);
    const indices=[];
    for(let j=0;j<=segments;j++)for(let i=0;i<=segments;i++){
-    const x=(cx+i/segments)*patch,z=(cy+j/segments)*patch,h=heightAt(x,z);
+    const x=(cx+i/segments)*patch,z=(cy+j/segments)*patch,h=outerHeight(x,z);
+    const horizonFade=fade(x,z);
     const k=j*(segments+1)+i,n=k*3;
     positions[n]=x-half;positions[n+1]=h;positions[n+2]=z-half;
-    const slope=Math.abs(heightAt(x,z-24)-heightAt(x,z+24))/48;
+    const slope=Math.abs(outerHeight(x,z-24)-outerHeight(x,z+24))/48;
     const rocky=smooth((slope-.20)/.9);
     const nval=.96+.055*Math.sin(x*.013+z*.009)+.025*Math.cos(x*.071-z*.032);
     const bands=(Math.sin(h*.19+x*.003+z*.002)*.5+.5)*rocky;
-    const color=c0.clone().lerp(c1,rocky*.65+bands*.12).multiplyScalar(nval);
+    const color=c0.clone().lerp(c1,rocky*.65+bands*.12).multiplyScalar(nval).lerp(horizon,horizonFade*.94);
     colors[n]=color.r;colors[n+1]=color.g;colors[n+2]=color.b;
     uv[k*2]=x/1500;uv[k*2+1]=z/1500;
     // The same finite-difference sampling across chunk boundaries prevents
     // normal seams even with fewer triangles on the decorative outer ring.
     const eps=1.6;
-    const dx=(heightAt(x+eps,z)-heightAt(x-eps,z))/(2*eps);
-    const dz=(heightAt(x,z+eps)-heightAt(x,z-eps))/(2*eps);
+    const dx=(outerHeight(x+eps,z)-outerHeight(x-eps,z))/(2*eps);
+    const dz=(outerHeight(x,z+eps)-outerHeight(x,z-eps))/(2*eps);
     normal.set(-dx,1,-dz).normalize();
     normals[n]=normal.x;normals[n+1]=normal.y;normals[n+2]=normal.z;
    }
