@@ -386,7 +386,7 @@
 }
 #sf-classic-root #sf-actions .catalog-grid{
  display:grid!important;
- grid-template-columns:repeat(auto-fill,minmax(140px,1fr))!important;
+ grid-template-columns:repeat(auto-fill,minmax(125px,1fr))!important;
  gap:10px!important;padding:4px!important;
 }
 #sf-classic-root #sf-actions .catalog-card{
@@ -467,6 +467,24 @@
 #sf-classic-root #sf-selection-panel .commands button{
  width:100%!important;min-width:0!important;min-height:40px!important;
  height:40px!important;padding:4px!important;font-size:13px!important;font-weight:800!important;
+}
+/* Use readable typography without sacrificing the six-column building row.
+   These overrides are scoped to the WebGL HUD; Canvas retains its own UI. */
+#sf-classic-root #sidebar .catalog #sf-production :is(.section-label,.queue-info){
+ font-size:12px!important;
+ line-height:1.35!important;
+}
+#sf-classic-root .sf-command .selection-copy small{
+ font-size:12px!important;line-height:1.25!important;
+}
+#sf-classic-root #sf-actions button.catalog-card:disabled .card-name,
+#sf-classic-root #sf-actions button.catalog-card.locked .card-name{
+ color:#d1ccc3!important;
+}
+#sf-classic-root #sf-actions button.catalog-card:disabled .sf-card-image img,
+#sf-classic-root #sf-actions button.catalog-card.locked .sf-card-image img{
+ filter:grayscale(1) blur(.65px) brightness(.70)!important;
+ opacity:.77!important;
 }
 #sf-classic-root .sf-notice{
  bottom:calc(var(--sf-dock-height) + 17px)!important;
