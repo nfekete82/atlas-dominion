@@ -25,6 +25,13 @@ test('four infantry classes are normalized by measured GLB height, not weapons',
   const scale=calibratedScale(kind,'unit',bounds,width);
   assert.equal(Math.round(scale*bounds.y),MODEL_HEIGHTS[kind],kind+' model height');
  }
+ // Rifle / shoulder equipment can be wider than the torso. It must NOT
+ // make a whole infantry class smaller than other soldiers.
+ for(const kind of ['infantry','medic','engineer','heavy']){
+  const width=kind==='heavy'?44:38;
+  const scale=calibratedScale(kind,'unit',{x:28,y:4,z:1.2},width);
+  assert.equal(Math.round(scale*4),MODEL_HEIGHTS[kind],kind+' wide-weapon model height');
+ }
  for(const kind of ['tank','rover','artillery','scout','bomber']){
   const scale=calibratedScale(kind,'unit',{x:8,y:5,z:10},90);
   assert.ok(scale>0&&scale*5<=MODEL_HEIGHTS[kind]+.001,kind+' bounded height');
