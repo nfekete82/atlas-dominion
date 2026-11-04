@@ -90,6 +90,19 @@ export class SandforgeCombatEffects {
   for(const mesh of [this.wreckHull,this.wreckTurret]){
    mesh.count=0;mesh.castShadow=false;mesh.receiveShadow=true;scene.add(mesh);
   }
+  // Actual 3D torus shockwaves complement the existing GPU smoke and debris.
+  this.shockwave=new THREE.InstancedMesh(
+   new THREE.TorusGeometry(1,.075,6,42),
+   new THREE.MeshBasicMaterial({color:'#f7ddb1',transparent:true,opacity:.63,
+    depthWrite:false,depthTest:true,side:THREE.DoubleSide}),
+   lowQuality?16:48
+  );
+  this.shockwave.geometry.rotateX(-Math.PI/2);
+  this.shockwave.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  this.shockwave.frustumCulled=false;this.shockwave.count=0;
+  this.shockwave.renderOrder=12;this.shockwave.name='3d-explosion-shockwaves';
+  this.shockwave.userData={visualOnly:true,nonPlayable:true};
+  scene.add(this.shockwave);this.shocks=[];
   this.wreckCount=0;this.emitters=[];this.seenBlasts=new Set();this.seenShots=new WeakSet();
   this.lastUnits=new Map();
   this.seed=game.seed>>>0;this.frame=0;
@@ -109,6 +122,8 @@ export class SandforgeCombatEffects {
   if(!this.game.canSee(0,{x,y:z}))return;
   this.stats.blasts++;
   const p=this.pos(x,z),width=strong?115:65;
+  this.shocks.push({x,z,life:.62,ttl:.62,max:strong?115:64});
+  if(this.shocks.length>this.shockwave.instanceMatrix.count)this.shocks.shift();
   this.placeScorch(x,z,width);
   const fires=strong?13:6,smokes=strong?19:9;
   for(let i=0;i<fires;i++){
@@ -215,6 +230,19 @@ export class SandforgeCombatEffects {
    }
   }
   this.emitters=this.emitters.filter(e=>e.life>0);
+  this.shocks=this.shocks.filter(s=>(s.life-=dt)>0);
+  let shockIndex=0;
+  for(const shock of this.shocks){
+   const progress=1-shock.life/shock.ttl;
+   const radius=Math.max(1,shock.max*(.16+.84*progress));
+   dummy.position.set(shock.x-this.world.size*.5,this.heightAt(shock.x,shock.z)+3,
+    shock.z-this.world.size*.5);
+   dummy.rotation.set(0,0,0);
+   dummy.scale.setScalar(radius);
+   dummy.updateMatrix();this.shockwave.setMatrixAt(shockIndex++,dummy.matrix);
+  }
+  this.shockwave.count=shockIndex;
+  if(shockIndex)this.shockwave.instanceMatrix.needsUpdate=true;
   for(const pool of [this.smoke,this.flames,this.dust]){
    const alive=[];let k=0;
    for(const p of pool.particles){
