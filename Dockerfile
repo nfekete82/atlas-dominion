@@ -16,6 +16,7 @@ COPY scripts/webgl-portraits.js ./scripts/webgl-portraits.js
 COPY scripts/webgl-perimeter.js ./scripts/webgl-perimeter.js
 COPY scripts/webgl-edge-cliffs.js ./scripts/webgl-edge-cliffs.js
 COPY scripts/webgl-grounding.js ./scripts/webgl-grounding.js
+COPY scripts/webgl-construction.js ./scripts/webgl-construction.js
 COPY scripts/webgl-scale.js ./scripts/webgl-scale.js
 COPY scripts/webgl-health.js ./scripts/webgl-health.js
 RUN npm install --no-audit --no-fund && npm run build
