@@ -605,11 +605,14 @@ export class SandforgeBattlefield {
    const spec=button.dataset.unit?UNITS[kind]:BUILDINGS[kind];
    const correctProducer=context.producer&&UNITS[kind]?.producers.includes(context.producer.kind);
    const unavailable=button.dataset.unit
-    ?!correctProducer||g.credits[0]<spec.cost||g.count(0)+g.queued(0)>=RULES.capacity
+    ?!correctProducer||g.needsHeadquarters(0)||context.producer.queue.length>=8||
+      g.credits[0]<spec.cost||g.count(0)+g.queued(0)>=RULES.capacity
     :!context.engineer||g.credits[0]<spec.cost||!g.hasHeadquarters(0)&&kind!=='headquarters';
    const requirement=button.dataset.unit
     ?(!context.producer?'Produktionsgebäude auswählen':
        !correctProducer?'Dieses Gebäude produziert diese Einheit nicht':
+       g.needsHeadquarters(0)?'Feldkommando erforderlich':
+       context.producer.queue.length>=8?'Warteschlange voll':
        g.credits[0]<spec.cost?'Zu wenig Credits':
        g.count(0)+g.queued(0)>=RULES.capacity?'Einheitenlimit erreicht':'')
     :(!context.engineer?'Pionier auswählen':
