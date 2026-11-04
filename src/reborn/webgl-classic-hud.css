@@ -322,7 +322,7 @@
    event handlers, catalog groups, radar and queue remain the same DOM nodes.
    Keep the battlefield full-width ABOVE the dock; no fixed right sidebar. */
 #sf-classic-root{
- --sf-dock-height:286px;
+ --sf-dock-height:310px;
  --sf-dock-command:374px;
  --sf-dock-radar:226px;
 }
@@ -493,7 +493,7 @@
 #sf-classic-root .sf-debug{bottom:calc(var(--sf-dock-height) + 12px)!important}
 @media(max-width:1000px){
  #sf-classic-root{
-  --sf-dock-height:232px;--sf-dock-command:270px;--sf-dock-radar:170px;
+  --sf-dock-height:250px;--sf-dock-command:270px;--sf-dock-radar:170px;
  }
  #sf-classic-root #sidebar #sf-map{width:138px!important}
  #sf-classic-root #sf-actions .catalog-grid{
@@ -504,7 +504,7 @@
 }
 @media(max-width:680px){
  #sf-classic-root{
-  --sf-dock-height:206px;--sf-dock-command:195px;--sf-dock-radar:106px;
+  --sf-dock-height:224px;--sf-dock-command:195px;--sf-dock-radar:106px;
  }
  #sf-classic-root #sidebar{gap:3px!important;padding:4px!important}
  #sf-classic-root #sidebar .radar{padding:3px!important}
@@ -599,5 +599,95 @@
   width:96px!important;
   min-width:96px!important;
   max-width:96px!important;
+ }
+}
+
+/* Selection-driven WebGL RTS catalogue: original Canvas layout is untouched.
+   One live producer only; prevent hidden sections from claiming flex space. */
+#sf-classic-root #sf-tabs{
+ display:flex!important;
+ grid-template-columns:none!important;
+}
+#sf-classic-root #sf-tabs button{
+ flex:1 1 0!important;
+}
+#sf-classic-root #sf-tabs button[hidden],
+#sf-classic-root #sf-actions [data-sf-producer][hidden]{
+ display:none!important;
+}
+/* Give the PBR building renders the tile space, not an oversized footer. */
+#sf-classic-root #sf-actions .catalog-card{
+ height:163px!important;
+ min-height:163px!important;
+}
+#sf-classic-root #sf-actions .catalog-card[data-build] .sf-card-image{
+ flex:1 1 auto!important;
+ min-height:100px!important;
+ overflow:hidden!important;
+}
+#sf-classic-root #sf-actions .catalog-card[data-build] .sf-card-image img{
+ width:100%!important;
+ height:100%!important;
+ padding:0!important;
+ object-fit:contain!important;
+ object-position:center center!important;
+ transform:scale(1.55);
+ transform-origin:center center;
+}
+#sf-classic-root #sf-actions .catalog-card[data-build="headquarters"] .sf-card-image img{
+ transform:scale(1.65);
+}
+#sf-classic-root #sf-actions .catalog-card[data-build="airfield"] .sf-card-image img{
+ transform:scale(1.27);
+}
+#sf-classic-root #sf-actions .catalog-card[data-build] .card-meta{
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr)!important;
+ grid-template-rows:18px 18px!important;
+ align-content:center!important;
+ justify-items:start!important;
+ gap:1px!important;
+ height:46px!important;
+ min-height:46px!important;
+ padding:3px 7px!important;
+}
+#sf-classic-root #sf-actions .catalog-card[data-build] .card-name{
+ display:block!important;
+ width:100%!important;
+ max-width:100%!important;
+ font-size:12px!important;
+ line-height:17px!important;
+ white-space:nowrap!important;
+ overflow:hidden!important;
+ text-overflow:ellipsis!important;
+ overflow-wrap:normal!important;
+}
+#sf-classic-root #sf-actions .catalog-card[data-build] .card-cost{
+ display:block!important;
+ width:100%!important;
+ font-size:12px!important;
+ line-height:17px!important;
+ align-self:start!important;
+ padding:0!important;
+}
+@media(max-width:1000px){
+ #sf-classic-root #sf-actions .catalog-card{
+  min-height:151px!important;
+  height:151px!important;
+ }
+ #sf-classic-root #sf-actions .catalog-card[data-build] .sf-card-image{
+  min-height:85px!important;
+ }
+ #sf-classic-root #sf-actions .catalog-card[data-build] .card-name{
+  font-size:11px!important;
+ }
+}
+@media(max-width:680px){
+ #sf-classic-root #sf-actions .catalog-card{
+  min-height:130px!important;
+  height:130px!important;
+ }
+ #sf-classic-root #sf-actions .catalog-card[data-build] .sf-card-image{
+  min-height:70px!important;
  }
 }
