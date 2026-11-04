@@ -33,7 +33,7 @@
     "deploy:uberspace:dry-run": "node scripts/deploy-uberspace.mjs --dry-run",
     "deploy:uberspace:check": "node scripts/deploy-uberspace.mjs --check",
     "deploy:uberspace:rollback": "node scripts/deploy-uberspace.mjs --rollback",
-    "test:webgl-integration": "npm run build && node --test tests/sandforge-spacious-desert.test.mjs && node scripts/test-webgl-integration.mjs"
+    "test:webgl-integration": "npm run build && node --test tests/sandforge-spacious-desert.test.mjs tests/sandforge-bastion-navigation.test.mjs && node scripts/test-webgl-integration.mjs"
   },
   "devDependencies": {
     "three": "0.180.0",
