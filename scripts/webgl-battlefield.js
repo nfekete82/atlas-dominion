@@ -249,10 +249,15 @@ export class SandforgeBattlefield {
    // screen-space parallax: revealed tiles shift away from their soldiers.
    // Composite the aligned fog last to conceal objects in unseen territory.
    vertexShader:'uniform float mapSize; varying vec2 fogUv; void main(){fogUv=vec2(position.x/mapSize+.5,position.z/mapSize+.5);vec3 p=position;p.y+=3.0;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);}',
-   fragmentShader:'uniform sampler2D fogTex;varying vec2 fogUv;void main(){float a=texture2D(fogTex,fogUv).a;gl_FragColor=vec4(0.004,0.006,0.008,a);}',
+   // Sample world-space fog identically on playable ground and the decorative
+   // perimeter. Outside the map, fade from the nearest discovered edge to
+   // fully black within ~400 world units; never reveal the end of the mesh.
+   fragmentShader:'uniform sampler2D fogTex;uniform float mapSize;varying vec2 fogUv;void main(){vec2 uv=clamp(fogUv,vec2(0.001),vec2(0.999));float a=texture2D(fogTex,uv).a;vec2 beyond=max(max(-fogUv,fogUv-1.0),vec2(0.0));float edge=max(beyond.x,beyond.y);a=max(a,smoothstep(0.0,400.0/mapSize,edge));gl_FragColor=vec4(0.004,0.006,0.008,a);}',
    transparent:true,depthTest:false,depthWrite:false,side:THREE.DoubleSide
   });
-  this.fogNodes=this.groundMeshes.map(mesh=>{
+  const groundAndPerimeter=[...this.groundMeshes,
+   ...this.scene.children.filter(node=>node.userData?.visualPerimeter)];
+  this.fogNodes=groundAndPerimeter.map(mesh=>{
    const layer=new THREE.Mesh(mesh.geometry,mat);layer.frustumCulled=false;
    layer.renderOrder=990;layer.userData={fogOverlay:true,visualOnly:true};
    this.scene.add(layer);return layer;
