@@ -87,7 +87,7 @@ export class SandforgeActorPresentation {
   this.time=0;
   // At full HP this is visibly green; combat depletes the width. The icon
   // toggles all/damaged/selected/off (the classic selection policy is damaged).
-  this.showHealth='all';
+  this.showHealth='damaged';
   this.remnants=[];
   this.remnantMaterial=new THREE.MeshBasicMaterial({
    color:'#4e4337',transparent:true,opacity:.64,depthWrite:false,side:THREE.DoubleSide
