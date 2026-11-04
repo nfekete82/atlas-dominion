@@ -169,8 +169,8 @@ export class DesertArtPass {
     const x=ruin.x+Math.cos(angle)*distance;
     const z=ruin.y+Math.sin(angle)*distance;
     if(x<35||z<35||x>this.world.size-35||z>this.world.size-35)continue;
-    // Never place decorative supplies in a passable corridor or gameplay
-    // building spot; the visual props have deliberately no collision.
+    // Keep props outside the ruin footprint. These visual details have
+    // no gameplay collision and never modify the authoritative World.
     const model=this.normalize(source.scene.clone(true),
      source.kind==='service-lamp'?28:source.kind==='sandbags'?38:28+random()*19);
     const group=new THREE.Group();
