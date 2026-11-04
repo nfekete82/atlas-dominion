@@ -35,6 +35,7 @@ jobs:
           node --check scripts/webgl-edge-cliffs.js
           node --check scripts/webgl-grounding.js
           node --check scripts/webgl-scale.js
+          node --check scripts/webgl-health.js
       - run: npm run build
       - name: Validate actual 3D models, 2D simulation reuse and saved Canyon maps
         run: >-
@@ -45,6 +46,7 @@ jobs:
           tests/sandforge-canyon-models.test.mjs
           tests/sandforge-webgl-server.test.mjs
           tests/sandforge-webgl-combat-vfx.test.mjs
+          tests/sandforge-webgl-visual-parity.test.mjs
   visual:
     name: Chromium · playable WebGL3D graphics and economy
     needs: verify
@@ -68,7 +70,7 @@ jobs:
         env:
           ATLAS_BROWSER_CHANNEL: chromium
           LIBGL_ALWAYS_SOFTWARE: '1'
-        run: cd tests/browser && npx playwright test webgl-playable.spec.mjs webgl-combat-vfx.spec.mjs webgl-perimeter-navigation.spec.mjs webgl-actor-presentation.spec.mjs webgl-title-menu.spec.mjs --config=playwright.config.mjs
+        run: cd tests/browser && npx playwright test webgl-playable.spec.mjs webgl-combat-vfx.spec.mjs webgl-perimeter-navigation.spec.mjs webgl-actor-presentation.spec.mjs webgl-title-menu.spec.mjs webgl-visual-parity.spec.mjs --config=playwright.config.mjs
       - name: Store real WebGL screenshot and browser trace
         if: always()
         uses: actions/upload-artifact@v4
