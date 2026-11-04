@@ -133,6 +133,34 @@ export class SandforgeBattlefield {
   this.modelQueue.push({url,entry,type});
   this.pumpModelQueue();
  }
+ // Render-only ambient fill for authored building and bastion GLBs.
+ // Reuse the model's own albedo texture so the shaded facades brighten
+ // without flattening metal panels, camo or the surrounding desert.
+ // Clone material instances per model: cached glTF templates, soldiers,
+ // vehicles, fog, shadow casting and gameplay all remain unchanged.
+ lightBuildingMeshes(root){
+  const materials=new Map();
+  const brighten=original=>{
+   if(!original?.isMeshStandardMaterial)return original;
+   if(materials.has(original))return materials.get(original);
+   const material=original.clone();
+   if(material.map){
+    material.emissive.setRGB(1,1,1);
+    material.emissiveMap=material.map;
+   }else material.emissive.copy(material.color);
+   material.emissiveIntensity=.22;
+   material.userData={...material.userData,sandforgeBuildingFill:true};
+   material.needsUpdate=true;
+   materials.set(original,material);
+   return material;
+  };
+  root.traverse(mesh=>{
+   if(!mesh.isMesh)return;
+   mesh.castShadow=true;mesh.receiveShadow=true;
+   mesh.material=Array.isArray(mesh.material)
+    ?mesh.material.map(brighten):brighten(mesh.material);
+  });
+ }
  pumpModelQueue(){
   while(this.loadingCount<2&&this.modelQueue.length){
    const task=this.modelQueue.shift();this.loadingCount++;
@@ -150,35 +178,9 @@ export class SandforgeBattlefield {
      model.position.set(-box0.getCenter(new THREE.Vector3()).x*scale,
       -box0.min.y*scale,-box0.getCenter(new THREE.Vector3()).z*scale);
     }
-    // Keep desert exposure, unit models, fog and shadows unchanged. The PBR
-    // building atlas looks almost black on the camera's shaded side: reuse
-    // its own albedo as a *small* emissive fill for readable shaded facades.
-    // Clone materials per actor so the cached glTF and other entities are
-    // never brightened accidentally (including soldiers and vehicles).
-    const buildingMaterials=new Map();
-    const brightenBuildingMaterial=(original)=>{
-     if(!original?.isMeshStandardMaterial)return original;
-     if(buildingMaterials.has(original))return buildingMaterials.get(original);
-     const material=original.clone();
-     if(material.map){
-      material.emissive.setRGB(1,1,1);
-      material.emissiveMap=material.map;
-      material.emissiveIntensity=.22;
-     }else{
-      material.emissive.copy(material.color);
-      material.emissiveIntensity=.22;
-     }
-     material.userData={...material.userData,sandforgeBuildingFill:true};
-     material.needsUpdate=true;
-     buildingMaterials.set(original,material);
-     return material;
-    };
-    model.traverse(o=>{
-     if(!o.isMesh)return;
-     o.castShadow=true;o.receiveShadow=true;
-     if(type==='building')
-      o.material=Array.isArray(o.material)
-       ?o.material.map(brightenBuildingMaterial):brightenBuildingMaterial(o.material);
+    if(type==='building')this.lightBuildingMeshes(model);
+    else model.traverse(o=>{
+     if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}
     });
     // Visual normalization is independent of collision/pathfinding. Re-ground
     // imported GLBs against the same heightfield sample as their placeholder.
@@ -385,7 +387,7 @@ export class SandforgeBattlefield {
    const factor=116/Math.max(.0001,size.x,size.z),center=box.getCenter(new THREE.Vector3());
    detail.scale.multiplyScalar(factor);
    detail.position.set(-center.x*factor,-box.min.y*factor,-center.z*factor);
-   detail.traverse(mesh=>{if(mesh.isMesh){mesh.castShadow=true;mesh.receiveShadow=true;}});
+   this.lightBuildingMeshes(detail);
    if(entry.detail)entry.node.remove(entry.detail);
    entry.detail=detail;entry.node.add(detail);
    entry.pad.visible=false;entry.core.visible=false;
