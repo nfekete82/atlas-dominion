@@ -272,7 +272,8 @@ export class SandforgeBattlefield {
    if(action==='load'){this.loadSave();}
    if(action==='attack'){this.attackMode=!this.attackMode;this.buildKind=null;this.drawInterface();this.message(this.attackMode?'Angriffsbewegung: Rechtsklick auf Ziel':'Angriffsbewegung beendet');}
    if(action==='stop'){
-    const count=this.game.command([...this.selected],{kind:'stop',x:0,y:0});
+    const count=this.selected.size;
+    this.game.stop([...this.selected],false);
     this.message(count?count+' Einheiten angehalten':'Keine Einheiten gewählt');
    }
    if(action==='cancel'){this.buildKind=null;this.attackMode=false;this.selected.clear();this.selectedBase=null;this.drawInterface();}
