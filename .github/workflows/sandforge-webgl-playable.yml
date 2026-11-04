@@ -25,6 +25,7 @@ jobs:
       - name: Validate all WebGL JavaScript syntax
         run: |
           node --check scripts/webgl-preview.js
+          node --check scripts/webgl-title-menu.js
           node --check scripts/webgl-battlefield.js
           node --check scripts/webgl-actor-presentation.js
           node --check scripts/webgl-environment.js
