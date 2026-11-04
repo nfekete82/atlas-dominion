@@ -157,6 +157,68 @@ export class SandforgeBattlefield {
   const entry={node,placeholder,kind:entity.kind,owner:entity.owner,requested:false};
   this.scheduleDetail(entry,entity,type);return entry;
  }
+ beginPlacement(kind){
+  this.clearPlacement();
+  this.buildKind=kind;this.previewKind=kind;this.placementFacing=0;
+  const spec=BUILDINGS[kind],group=new THREE.Group();
+  group.name='ghost-building-'+kind;group.userData={buildGhost:true,nonPlayable:true};
+  const placeholder=this.createFallback(kind,0,'building');
+  const tint=(root)=>{
+   root.traverse(obj=>{
+    if(!obj.isMesh)return;
+    const make=mat=>{
+     const m=mat.clone();m.color?.lerp(new THREE.Color('#8ad6b3'),.32);
+     m.transparent=true;m.opacity=.52;m.depthWrite=false;
+     return m;
+    };
+    obj.material=Array.isArray(obj.material)?obj.material.map(make):make(obj.material);
+   });
+  };
+  tint(placeholder);group.add(placeholder);
+  const circle=new THREE.Mesh(
+   new THREE.RingGeometry(spec.radius-2.5,spec.radius+1.5,48),
+   new THREE.MeshBasicMaterial({color:'#80efae',transparent:true,opacity:.87,depthWrite:false,side:THREE.DoubleSide}));
+  circle.rotation.x=-Math.PI/2;circle.position.y=2;group.add(circle);
+  this.scene.add(group);
+  this.buildPreview=group;group.visible=false;
+  this.getModel(this.asset(kind,0,'building')).then(data=>{
+   if(this.buildPreview!==group||this.buildKind!==kind)return;
+   const model=cloneSkeleton(data.scene),bounds=new THREE.Box3().setFromObject(model);
+   const size=bounds.getSize(new THREE.Vector3());
+   if(size.y>0&&Math.max(size.x,size.z)>0){
+    const scale=calibratedScale(kind,'building',size,spec.width);
+    model.scale.multiplyScalar(scale);
+    model.position.set(-bounds.getCenter(new THREE.Vector3()).x*scale,
+      -bounds.min.y*scale,-bounds.getCenter(new THREE.Vector3()).z*scale);
+   }
+   tint(model);group.remove(placeholder);group.add(model);
+  }).catch(error=>console.warn('Baupreview: vereinfachtes 3D-Modell',error));
+ }
+ clearPlacement(){
+  this.buildKind=null;this.previewKind=null;
+  if(this.buildPreview){this.scene.remove(this.buildPreview);this.buildPreview=null;}
+  if(this.buildHint)this.buildHint.style.display='none';
+ }
+ updatePlacementPreview(event){
+  const ghost=this.buildPreview;if(!this.buildKind||!ghost)return;
+  const p=this.terrainPoint(event);
+  ghost.visible=Boolean(p);
+  if(!p){this.buildHint.style.display='none';return;}
+  ghost.position.copy(this.pos(p.x,p.y));
+  ghost.rotation.y=this.placementFacing?Math.PI:0;
+  const error=this.game.buildError(0,this.buildKind,p);
+  const engineer=this.game.units.some(u=>u.owner===0&&u.kind==='engineer'&&u.hp>0&&!u.carrier);
+  const valid=!error&&engineer;
+  const ring=ghost.children.find(x=>x.geometry?.type==='RingGeometry');
+  if(ring)ring.material.color.set(valid?'#87efb5':'#ff796b');
+  this.buildHint.style.display='block';
+  this.buildHint.style.left=Math.max(4,Math.min(event.clientX+17,window.innerWidth-265))+'px';
+  this.buildHint.style.top=Math.max(4,Math.min(event.clientY+15,window.innerHeight-85))+'px';
+  this.buildHint.textContent=BUILDINGS[this.buildKind].name+' · '+
+   (valid?'Bauplatz frei · Klick baut':error??'Pionier benötigt')+
+   ' · R drehen';
+  this.buildHint.style.borderColor=valid?'#9edfbe':'#ee8875';
+ }
  sync(force=false,dt=0,active=true,alpha=1){
   const aliveUnits=new Set(),aliveBases=new Set();
   const blend=Math.max(0,Math.min(1,alpha));
