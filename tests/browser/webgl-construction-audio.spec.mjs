@@ -1,0 +1,96 @@
+import {test,expect} from '@playwright/test';
+
+test('3D original-style blueprint: translucent ghost, live site validation and R rotation',async({page})=>{
+ test.setTimeout(120000);
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.setViewportSize({width:1440,height:900});
+ await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',{waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:95000});
+ await page.locator('[data-tab="buildings"]').click();
+ await page.locator('[data-build="headquarters"]').click();
+ expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.buildPreview?.userData.buildGhost)).toBe(true);
+ const canvas=page.locator('#stage canvas');
+ const rect=await canvas.boundingBox();expect(rect).toBeTruthy();
+ await page.mouse.move(rect.x+rect.width*.44,rect.y+rect.height*.47);
+ await expect(page.locator('#sf3d-build-hint')).toBeVisible();
+ const ghost=await page.evaluate(()=>{
+  const a=window.__sandforgeWebGL.battlefield;
+  const g=a.buildPreview;
+  return {visible:g.visible,footprint:g.children.some(o=>o.geometry?.type==='RingGeometry'),
+   opacity:g.children.filter(o=>o.type==='Group').some(x=>x.children.some(c=>c.material?.transparent)),
+   facing:g.rotation.y,hit:!!a.terrainPoint({clientX:window.innerWidth*.44,clientY:window.innerHeight*.47})};
+ });
+ expect(ghost.visible).toBe(true);
+ expect(ghost.footprint).toBe(true);
+ await page.keyboard.press('r');
+ expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.placementFacing)).toBe(1);
+ await page.keyboard.press('Escape');
+ expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.buildPreview)).toBe(null);
+ await expect(page.locator('#sf3d-build-hint')).toBeHidden();
+ expect(errors).toEqual([]);
+});
+
+test('3D construction: foundations, columns, rails and roof appear by actual build progress',async({page})=>{
+ test.setTimeout(120000);
+ await page.setViewportSize({width:1440,height:900});
+ await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',{waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:95000});
+ const stages=await page.evaluate(()=>{
+  const a=window.__sandforgeWebGL,g=a.game,b=a.battlefield;
+  const site=g.headquartersCandidates(0).find(p=>g.buildError(0,'headquarters',p)===null);
+  if(!site)throw Error('No legal site for a new HQ');
+  const building=g.build(0,'headquarters',site);
+  if(!building)throw Error('HQ construction rejected');
+  const capture=(fraction)=>{
+   building.buildRemaining=(1-fraction)*20;
+   b.sync(true,.06,false,1);
+   const e=b.bases.get(building.id),c=e?.construction;
+   if(!c)throw Error('Missing staged 3D construction');
+   return {progress:fraction,post:c.columns[0].scale.y,
+    top:c.roof.visible,rail0:c.rails[0].meshes[0].visible,
+    rail1:c.rails[1].meshes[0].visible,
+    clipped:c.materials.length>0&&c.materials.every(m=>m.clippingPlanes?.[0]===c.clip),
+    label:c.lastLabel};
+  };
+  const phases=[.1,.42,.82].map(capture);
+  building.buildRemaining=0;building.hp=1200;b.sync(true,.06,false,1);
+  const e=b.bases.get(building.id);
+  return {phases,finished:e.construction===null,scale:e.node.scale.y,
+   completed:g.hasHeadquarters(0)};
+ });
+ const [early,middle,late]=stages.phases;
+ expect(early.clipped).toBe(true);
+ expect(early.top).toBe(false);
+ expect(early.rail0).toBe(false);
+ expect(middle.post).toBeGreaterThan(early.post);
+ expect(middle.rail0).toBe(true);
+ expect(middle.rail1).toBe(false);
+ expect(late.rail1).toBe(true);
+ expect(late.top).toBe(true);
+ expect(stages.completed).toBe(true);
+ expect(stages.finished).toBe(true);
+ expect(stages.scale).toBe(1);
+});
+
+test('3D audio and HUD: clicks enabled by user gesture, complete unit text, zoom and sight bonus',async({page})=>{
+ test.setTimeout(120000);
+ await page.setViewportSize({width:1440,height:900});
+ await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',{waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:95000});
+ const before=await page.evaluate(()=>{
+  const a=window.__sandforgeWebGL;
+  return {minZoom:a.controls.minZoom,vision:a.game.visionScale,
+   audioEnabled:a.sound.enabled,
+   soundState:a.sound.context?.state??'not created'};
+ });
+ expect(before.minZoom).toBeCloseTo(.70,2);
+ expect(before.vision).toBeCloseTo(1.12,2);
+ expect(before.audioEnabled).toBe(true);
+ await page.locator('[data-tab="units"]').click();
+ const soldier=page.locator('[data-unit="infantry"] .card-name');
+ await expect(soldier).toHaveText('Infanteriesoldat');
+ expect(await soldier.evaluate(el=>getComputedStyle(el).whiteSpace)).toBe('normal');
+ await page.locator('[data-tab="buildings"]').click();
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.sound?.context?.state==='running',{timeout:20000});
+ expect(await page.evaluate(()=>window.__sandforgeWebGL.sound.enabled)).toBe(true);
+});
