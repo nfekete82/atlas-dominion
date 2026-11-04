@@ -41,6 +41,11 @@ test('Zero Hour-inspired HUD has left minimap, horizontal middle catalog and rig
  expect(before.worldVersion).toBe(19);
  expect(before.worldSize).toBe(6240);
  expect(before.rimHidden).toBe(true);
+ await page.evaluate(()=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  const engineer=game.units.find(u=>u.owner===0&&u.kind==='engineer');
+  battlefield.selected=new Set([engineer.id]);battlefield.selectedBase=null; battlefield.drawInterface();
+ });
  await page.locator('[data-tab="buildings"]').click();
  const after=await page.evaluate(()=>{
   const elements=[...document.querySelectorAll(
@@ -163,45 +168,70 @@ test('lite mode still requests original detailed PBR building model, and ruins r
 });
 
 
-test('all nine unit types occupy one horizontal scroll row and buildings have no duplicate heading',async({page})=>{
+test('context menus expose builder construction and only the selected producer unit row',async({page})=>{
  test.setTimeout(115000);
  await load(page);
- const units=await page.evaluate(()=>{
-  const group=document.querySelector('#sf-actions [data-sf-group="units"]');
-  const cards=[...group.querySelectorAll('.catalog-card')];
-  const boxes=cards.map(el=>el.getBoundingClientRect());
-  const producers=[...group.querySelectorAll('[data-sf-producer]')];
-  const headingDisplays=producers.map(node=>getComputedStyle(node.querySelector('h2')).display);
-  const scrollable=group.scrollWidth>group.clientWidth;
-  group.scrollLeft=150;
-  return {
-   total:cards.length,
-   positions:boxes.map(box=>({x:box.x,y:box.y,width:box.width})),
-   producers:producers.length,
-   headingDisplays,
-   scrollable,
-   scrollLeft:group.scrollLeft
-  };
+ const initial=await page.evaluate(()=>{
+  const b=window.__sandforgeWebGL.battlefield;
+  return {tab:b.panel.dataset.tab,unitsTab:b.panel.querySelector('[data-tab="units"]').hidden,
+   buildingsTab:b.panel.querySelector('[data-tab="buildings"]').hidden};
  });
- expect(units.total).toBe(9);
- expect(units.producers).toBe(4);
- expect(units.headingDisplays.every(value=>value==='none')).toBe(true);
- expect(units.positions.every((p,i)=>i===0||p.x>units.positions[i-1].x)).toBe(true);
- expect(units.positions.every(p=>Math.abs(p.y-units.positions[0].y)<5)).toBe(true);
- expect(units.positions.every(p=>p.width>=130)).toBe(true);
- expect(units.scrollable).toBe(true);
- expect(units.scrollLeft).toBeGreaterThan(0);
- await page.locator('#sf-tabs [data-tab="buildings"]').click();
- const buildings=await page.evaluate(()=>{
+ expect(initial).toEqual({tab:'territories',unitsTab:true,buildingsTab:true});
+ const builder=await page.evaluate(()=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  const engineer=game.units.find(u=>u.owner===0&&u.kind==='engineer');
+  battlefield.selected=new Set([engineer.id]);battlefield.selectedBase=null;
+  battlefield.drawInterface();
   const group=document.querySelector('#sf-actions [data-sf-group="buildings"]');
   const cards=[...group.querySelectorAll('.catalog-card')];
-  const positions=cards.map(el=>el.getBoundingClientRect());
-  return {count:cards.length,heading:group.querySelector('h2'),
-   sameRow:positions.every(p=>Math.abs(p.y-positions[0].y)<5),
-   display:getComputedStyle(group.querySelector('.catalog-grid')).display};
+  const boxes=cards.map(el=>el.getBoundingClientRect());
+  return {tab:battlefield.panel.dataset.tab,count:cards.length,
+   row:boxes.every(box=>Math.abs(box.y-boxes[0].y)<5),
+   name:getComputedStyle(cards[0].querySelector('.card-name')).whiteSpace,
+   priceBelow:cards[0].querySelector('.card-cost').getBoundingClientRect().y>
+     cards[0].querySelector('.card-name').getBoundingClientRect().y,
+   dockHeight:document.querySelector('#sidebar').getBoundingClientRect().height,
+   unitTab:battlefield.panel.querySelector('[data-tab="units"]').hidden};
  });
- expect(buildings.count).toBe(6);
- expect(buildings.heading).toBeNull();
- expect(buildings.sameRow).toBe(true);
- expect(buildings.display).toBe('flex');
+ expect(builder.tab).toBe('buildings');
+ expect(builder.count).toBe(6);
+ expect(builder.row).toBe(true);
+ expect(builder.name).toBe('nowrap');
+ expect(builder.priceBelow).toBe(true);
+ expect(builder.dockHeight).toBeGreaterThanOrEqual(300);
+ expect(builder.unitTab).toBe(true);
+
+ const roster=await page.evaluate(()=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  const site=game.headquartersCandidates(0).find(p=>game.buildError(0,'headquarters',p)===null);
+  if(!site)throw Error('No HQ site');
+  const base=game.build(0,'headquarters',site);
+  if(!base)throw Error('Could not build HQ');
+  base.buildRemaining=0;base.hp=1200;
+  battlefield.selected.clear();battlefield.selectedBase=base.id;
+  battlefield.sync(true,.06,false,1);battlefield.drawInterface();
+  const active=()=>[...document.querySelectorAll('[data-sf-producer]')]
+   .filter(el=>!el.hidden).map(el=>({kind:el.dataset.sfProducer,
+    units:[...el.querySelectorAll('[data-unit]')].map(button=>button.dataset.unit)}));
+  const hq=active();
+  const kinds=['barracks','factory','airfield'];
+  const variants={};
+  for(const kind of kinds){
+   // Change only the selected completed producer's presentation kind for this
+   // isolated, paused roster filter test; no production order or simulation step.
+   base.kind=kind;
+   battlefield.drawInterface();
+   variants[kind]=active();
+  }
+  base.kind='headquarters';battlefield.drawInterface();
+  return {tab:battlefield.panel.dataset.tab,hq,variants,
+   tabs:[...battlefield.panel.querySelectorAll('#sf-tabs [data-tab]')]
+    .filter(el=>!el.hidden).map(el=>el.dataset.tab)};
+ });
+ expect(roster.tab).toBe('units');
+ expect(roster.hq).toEqual([{kind:'headquarters',units:['engineer']}]);
+ expect(roster.variants.barracks[0].units).toEqual(['infantry','medic','heavy']);
+ expect(roster.variants.factory[0].units).toEqual(['rover','tank','artillery']);
+ expect(roster.variants.airfield[0].units).toEqual(['scout','bomber']);
+ expect(roster.tabs).toEqual(['units','territories']);
 });
