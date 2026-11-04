@@ -567,15 +567,32 @@ export class SandforgeBattlefield {
    button.classList.toggle('sf-selected-build',button.dataset.build===this.buildKind);
   }
   hydrateUnitIcons(actions);
-  const queuedBases=g.bases.filter(b=>b.owner===0&&b.queue?.length);
+  const queuedBases=g.bases.filter(b=>b.owner===0&&b.hp>0&&b.queue?.length);
   const queues=queuedBases.reduce((sum,b)=>sum+b.queue.length,0);
-  view.querySelector('#sf-queue-count').textContent=queues+' AUFTRÄGE';
-  view.querySelector('#sf-queue').textContent=queues?queuedBases.map(b=>BUILDINGS[b.kind].name+': '+b.queue.length).join(' · '):'WARTESCHLANGE LEER';
-  const producer=queuedBases[0];
-  const duration=producer?.queueTypes?.length?UNITS[producer.queueTypes[0]]?.buildTime??1:1;
-  const progress=producer?Math.max(0,Math.min(100,100*(1-producer.production/duration))):0;
+  const constructionSites=g.bases.filter(b=>b.owner===0&&b.hp>0&&b.buildRemaining>0);
+  const producer=queuedBases.find(b=>b.id===this.selectedBase)??queuedBases[0];
+  const duration=producer?.queue?.[0]??1;
+  // Simulation accumulates b.production from zero up to queue[0].
+  const progress=producer?Math.max(0,Math.min(100,100*producer.production/Math.max(0.001,duration))):0;
   view.querySelector('#sf-progress').style.width=progress.toFixed(1)+'%';
-  view.querySelector('#sf-queue-time').textContent=producer?Math.max(0,Math.ceil(producer.production))+' s':'--:--';
+  const currentKind=producer?.queueTypes?.[0];
+  const currentName=currentKind?UNITS[currentKind]?.name??currentKind:'';
+  view.querySelector('#sf-queue-count').textContent=queues+' PRODUKTION · '+constructionSites.length+' BAU';
+  view.querySelector('#sf-queue').textContent=producer
+   ?BUILDINGS[producer.kind].name+': '+currentName+' ('+producer.queue.length+' Aufträge)'
+   :constructionSites.length?constructionSites.map(b=>BUILDINGS[b.kind].name+' (im Bau)').join(' · ')
+   :'WARTESCHLANGE LEER';
+  const remaining=producer?Math.max(0,duration-producer.production):0;
+  view.querySelector('#sf-queue-time').textContent=producer?Math.ceil(remaining)+' s':'--:--';
+  const buildingStatus=view.querySelector('#sf-building-status');
+  if(buildingStatus){
+   buildingStatus.hidden=!constructionSites.length;
+   buildingStatus.textContent=constructionSites.map(b=>{
+    const total=BUILDINGS[b.kind]?.buildTime??1;
+    const pct=Math.round(Math.max(0,Math.min(100,100*(1-b.buildRemaining/Math.max(0.001,total)))));
+    return BUILDINGS[b.kind].name+' '+pct+'%';
+   }).join(' · ');
+  }
   const el=view.querySelector('#sf-selection');
   const chosen=g.units.filter(u=>this.selected.has(u.id)&&u.hp>0);
   const base=g.bases.find(b=>b.id===this.selectedBase&&b.hp>0);
