@@ -276,3 +276,6 @@
 /* Player-facing sector change cue, distinct from normal RTS command feedback. */
 .sf-rts .sf-notice[data-sector-event="secured"]{border-left-color:#62c6e9;color:#d2f2ff;background:#152d35f0}
 .sf-rts .sf-notice[data-sector-event="lost"]{border-left-color:#f19b73;color:#ffe4d5;background:#3b2323f0}
+
+#sf-classic-root .sf-building-status{font:10px var(--mono);color:#e8c992;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:4px}
+#sf-classic-root .sf-building-status[hidden]{display:none}
