@@ -147,7 +147,15 @@ test('3D RTS: original-style HUD starts live and a real right click moves select
  expect(state.y).toBeLessThan(770);
  await page.locator('[data-action="select-all"]').click();
  await page.mouse.click(state.x,state.y,{button:'right'});
+ const pulse=await page.evaluate(()=>{
+  const p=window.__sandforgeWebGL.battlefield.commandPulse;
+  return {visible:p.visible,opacity:p.material.opacity,position:p.position.clone().toArray()};
+ });
+ expect(pulse.visible).toBe(true);
+ expect(pulse.opacity).toBeGreaterThan(.3);
  await expect(page.locator('#sf-message')).toContainText('Marsch');
+ await page.waitForFunction(()=>!window.__sandforgeWebGL.battlefield.commandPulse.visible,
+   null,{timeout:4000});
  await page.waitForFunction(({id,origin})=>{
   const u=window.__sandforgeWebGL.game.units.find(x=>x.id===id);
   return u&&Math.hypot(u.x-origin.x,u.y-origin.y)>12;
