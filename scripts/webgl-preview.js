@@ -7,6 +7,7 @@ import {SandforgeBattlefield} from '/webgl-battlefield.js';
 import {DesertArtPass} from '/webgl-environment.js';
 import {SandforgeCombatEffects} from '/webgl-combat-vfx.js';
 import {Soundscape} from '/src/reborn/audio.js';
+import {fineSandPattern} from '/src/reborn/fine-sand.js';
 
 /** Opt-in WebGL scene using the real authoritative Sandforge map and simulation.
  * This page is isolated from the production Canvas renderer, save format and AI
@@ -110,17 +111,31 @@ function sandTexture(){
 }
 function buildTerrain(){
  const texture=sandTexture(),material=new THREE.MeshStandardMaterial({color:'#f5eadb',map:texture,vertexColors:true,roughness:.99,metalness:0});
- // Reuse the existing authored PBR desert texture set that made Sandforge's
- // original buildings look detailed; terrain UVs remain continuous across chunks.
- const textures=new THREE.TextureLoader();
- const configure=(t,srgb)=>{t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),8);if(srgb)t.colorSpace=THREE.SRGBColorSpace;t.needsUpdate=true;return t;};
- textures.load('/src/assets/reborn/buildings-3d/textures/desert-basecolor.png',t=>{
-  material.map=configure(t,true);material.needsUpdate=true;
- },undefined,e=>console.warn('PBR sand albedo fallback',e));
- textures.load('/src/assets/reborn/buildings-3d/textures/desert-normal.png',t=>{
-  material.normalMap=configure(t,false);material.normalScale.set(.32,.32);
-  material.needsUpdate=true;
- },undefined,e=>console.warn('PBR sand normal fallback',e));
+ // The buildings-3d/desert-basecolor.png is a *model material atlas*,
+ // with hazard stripes, blue and red panels! Tiling it over the world caused
+ // the obvious checkerboard terrain. Reuse the original Sandforge 2K sand
+ // artwork, edge-blended with the SAME fineSandPattern as the Canvas RTS.
+ const source=new Image();
+ source.onload=()=>{
+  try{
+   const canvas=document.createElement('canvas');canvas.width=canvas.height=2048;
+   const context=canvas.getContext('2d');
+   context.fillStyle=fineSandPattern(context,source);
+   context.fillRect(0,0,canvas.width,canvas.height);
+   const sand=new THREE.CanvasTexture(canvas);
+   sand.colorSpace=THREE.SRGBColorSpace;
+   sand.wrapS=sand.wrapT=THREE.RepeatWrapping;
+   sand.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+   material.map=sand;
+   // The model's normal atlas must NOT be applied to the landscape either.
+   material.normalMap=null;
+   material.needsUpdate=true;
+   texture.dispose();
+   console.info('Sandforge 3D terrain: seamless original sand artwork loaded');
+  }catch(error){console.warn('Original sand unavailable; keeping procedural sand',error);}
+ };
+ source.onerror=()=>console.warn('Sand source unavailable; keeping procedural sand');
+ source.src='/src/assets/reborn/sand-ripples-v2.png';
  const chunks=4,segments=56,patch=size/chunks;
  for(let cy=0;cy<chunks;cy++)for(let cx=0;cx<chunks;cx++){
   const count=(segments+1)**2,vertices=new Float32Array(count*3),
@@ -136,7 +151,7 @@ function buildTerrain(){
    const col=new THREE.Color('#faf1e0').lerp(new THREE.Color('#b58b63'),rocky*.65+bands*.12);
    col.multiplyScalar(nval);
    colors[n]=col.r;colors[n+1]=col.g;colors[n+2]=col.b;
-   uv[k*2]=x/750;uv[k*2+1]=z/750;
+   uv[k*2]=x/1500;uv[k*2+1]=z/1500;
   }
   for(let j=0;j<segments;j++)for(let i=0;i<segments;i++){
    const a=j*(segments+1)+i,b=a+1,c=a+segments+1,d=c+1;
@@ -155,7 +170,25 @@ function buildTerrain(){
 }
 const pbr=(color,roughness=1,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness,flatShading:true});
 function instancedStone(){
- const geometry=new THREE.IcosahedronGeometry(1,2),materials=[pbr('#b99168'),pbr('#9f7351'),pbr('#d4af7b')];
+ const geometry=new THREE.IcosahedronGeometry(1,2),materials=[pbr('#bd9a72'),pbr('#9f7758'),pbr('#d6ad77')];
+ // Irregular weathering breaks the obvious smooth polygon-egg silhouettes.
+ // It operates once on the shared instanced mesh, not per boulder or frame.
+ const positions=geometry.getAttribute('position');
+ for(let i=0;i<positions.count;i++){
+  const x=positions.getX(i),y=positions.getY(i),z=positions.getZ(i);
+  const noise=Math.sin(x*11.1+z*7.7)*Math.cos(y*8.9-z*3.4)*.065+
+   Math.sin(x*23.2-y*5.6+z*13.3)*.024;
+  const width=1+noise;
+  positions.setXYZ(i,x*width,y*(1+noise*.57),z*width);
+ }
+ positions.needsUpdate=true;geometry.computeVertexNormals();
+ const sandstone=new THREE.TextureLoader();
+ sandstone.load('/src/assets/reborn/sandstone-detail.png',image=>{
+  image.wrapS=image.wrapT=THREE.RepeatWrapping;
+  image.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+  image.colorSpace=THREE.SRGBColorSpace;
+  for(const mat of materials){mat.map=image;mat.needsUpdate=true;}
+ },undefined,error=>console.warn('Rock detail unavailable; solid sandstone fallback',error));
  const dummy=new THREE.Object3D(),groups=materials.map(mat=>new THREE.InstancedMesh(geometry,mat,1100));
  const counts=[0,0,0],r=rnd(seed^0x73c02f4b);
  const put=(x,z,wide,tall,depth)=>{
