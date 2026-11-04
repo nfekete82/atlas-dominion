@@ -31,7 +31,8 @@ test('3D starts with the original Sandforge title and enters a real playable cam
   hasHud:Boolean(document.querySelector('#sf-classic-root'))
  }));
  expect(state.actors).toBeGreaterThanOrEqual(2);
- expect(state.structures).toBeGreaterThan(0);
+ expect(state.structures).toBe(0);
+ expect(await page.evaluate(()=>window.__sandforgeWebGL.game.needsHeadquarters(0))).toBe(true);
  expect(state.meshes).toBe(16);
  expect(state.hasWebGL).toBe(true);
  expect(state.canvas).toBeGreaterThan(400);
