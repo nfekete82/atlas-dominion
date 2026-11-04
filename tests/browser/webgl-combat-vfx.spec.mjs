@@ -45,10 +45,13 @@ test('WebGL 3D combat smoke, fire, scorch, tank tracks and wrecks draw from game
  }));
  expect(audio.enabled).toBe(true);
  expect(['running','suspended']).toContain(audio.context);
- await page.locator('#simulation').click();
+ expect(await page.evaluate(()=>window.__sandforgeWebGL.simulationRunning)).toBe(true);
  await page.waitForTimeout(300);
  expect(await page.evaluate(()=>window.__sandforgeWebGL.game.time)).toBeGreaterThan(0);
  await page.locator('#simulation').click();
+ expect(await page.evaluate(()=>window.__sandforgeWebGL.simulationRunning)).toBe(false);
+ await page.locator('#simulation').click();
+ expect(await page.evaluate(()=>window.__sandforgeWebGL.simulationRunning)).toBe(true);
  await page.locator('#sound').click();
  await expect(page.locator('#sound')).toHaveAttribute('aria-pressed','false');
 
