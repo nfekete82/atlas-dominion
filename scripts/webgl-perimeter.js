@@ -7,7 +7,30 @@ import * as THREE from 'three';
  */
 export function addVisualPerimeter({scene,size,heightAt,material,ringTiles=2,segments=24,textureScale=1500}){
  const playableChunks=4,patch=size/playableChunks,half=size*.5;
- const out=[],normal=new THREE.Vector3();
+ const out=[],voidCover=[],normal=new THREE.Vector3();
+ // This is NOT the gameplay Fog of War. Always mask the far, decorative
+ // landscape, even when the player turns NEBEL AUS. The terrain's vertex
+ // tint alone cannot hide taller palm/rock meshes drawn on top of black sand.
+ // Draw an exact-black world-space cover after all exterior geometry.
+ const voidMaterial=new THREE.ShaderMaterial({
+  uniforms:{mapSize:{value:size}},
+  vertexShader:`varying vec2 worldXZ; void main(){
+   vec4 worldPosition=modelMatrix*vec4(position,1.0);
+   worldXZ=worldPosition.xz;
+   vec3 p=position;p.y+=2.0;
+   gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);
+  }`,
+  fragmentShader:`uniform float mapSize;varying vec2 worldXZ;
+   void main(){
+    float halfMap=mapSize*.5;
+    float outside=max(max(abs(worldXZ.x)-halfMap,abs(worldXZ.y)-halfMap),0.0);
+    // Monotonic: beyond the fade there can never be bright terrain again.
+    float darkness=smoothstep(20.0,205.0,outside);
+    gl_FragColor=vec4(0.0,0.0,0.0,darkness);
+   }`,
+  transparent:true,depthTest:false,depthWrite:false,side:THREE.DoubleSide,
+  fog:false,toneMapped:false
+ });
  const c0=new THREE.Color('#faf1e0'),c1=new THREE.Color('#b58b63');
  const warmRim=new THREE.Color('#b28250');
  const darkBeyond=new THREE.Color('#000000');
@@ -76,9 +99,18 @@ export function addVisualPerimeter({scene,size,heightAt,material,ringTiles=2,seg
    mesh.userData={visualPerimeter:true,nonPlayable:true,tileX:cx,tileY:cy};
    mesh.frustumCulled=true;
    scene.add(mesh);out.push(mesh);
+   // Same heightfield triangles as the desert apron: unlike a flat plane,
+   // this remains aligned across angled/zoomed cameras and cannot expose a
+   // second lit strip behind the dark boundary. Non-playable and not picked.
+   const blackout=new THREE.Mesh(geometry,voidMaterial);
+   blackout.renderOrder=1100;
+   blackout.frustumCulled=true;
+   blackout.userData={perimeterVoid:true,visualOnly:true,nonPlayable:true};
+   scene.add(blackout);voidCover.push(blackout);
   }
  return {
   meshes:out,
+  voidCover,
   margin:ringTiles*patch,
   minX:-ringTiles*patch,
   maxX:size+ringTiles*patch,
