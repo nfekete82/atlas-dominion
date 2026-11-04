@@ -86,14 +86,15 @@ test('4 contiguous rocky outer walls mark map boundary and do not change collisi
  await page.screenshot({path:out+'webgl-canyon-boundary-hp.png',fullPage:true});
 });
 
-test('dark natural map rim has grounded non-playable palm groves and no bright outer sand',async({page})=>{
+test('dark natural map rim has no off-map foliage or reappearing bright exterior',async({page})=>{
  test.setTimeout(115000);
  await page.setViewportSize({width:1440,height:900});
  await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:90000});
- // Detailed palms stream in asynchronously after the tactical scene is ready.
- await page.waitForFunction(()=>window.__sandforgeWebGL.scene.children.some(
-  node=>node.name==='visual-boundary-palm'),{timeout:20000});
+ // Wait for asynchronous decorations: exterior should remain empty even
+ // after all in-world palm trees finish loading.
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.desertArtReady===true,
+  null,{timeout:30000});
  const state=await page.evaluate(()=>{
   const v=window.__sandforgeWebGL,size=v.game.world.size,half=size*.5;
   const edgeColor=[],voidColor=[];
@@ -119,16 +120,27 @@ test('dark natural map rim has grounded non-playable palm groves and no bright o
     const x=node.position.x+half,z=node.position.z+half;
     return x<0||x>size||z<0||z>size;
    }),
-   cosmetic:palms.every(node=>node.userData.visualBoundary&&node.userData.nonPlayable)
+   cosmetic:palms.every(node=>node.userData.visualBoundary&&node.userData.nonPlayable),
+   voidCover:v.visualPerimeter.voidCover.length,
+   coveredGeometry:v.visualPerimeter.voidCover.every((overlay,i)=>
+    overlay.geometry===v.visualPerimeter.meshes[i].geometry),
+   permanentlyBlack:v.visualPerimeter.voidCover.every(overlay=>
+    overlay.visible&&overlay.renderOrder>=1100&&
+    overlay.material.depthTest===false&&
+    overlay.material.fragmentShader.includes('vec4(0.0,0.0,0.0,darkness)')&&
+    overlay.material.fragmentShader.includes('smoothstep(20.0,205.0,outside)'))
   };
  });
  expect(state.samples[0]).toBeGreaterThan(0);
  expect(state.samples[1]).toBeGreaterThan(0);
  expect(state.beyond).toBeLessThan(state.edge*.15);
  expect(state.background).toBe('#000000');
- expect(state.palmCount).toBeGreaterThanOrEqual(12);
+ expect(state.palmCount).toBe(0);
  expect(state.allOutside).toBe(true);
  expect(state.cosmetic).toBe(true);
+ expect(state.voidCover).toBe(48);
+ expect(state.coveredGeometry).toBe(true);
+ expect(state.permanentlyBlack).toBe(true);
  // Render-only border never receives fog-of-war overlays: dense unknown
  // terrain is still hidden inside the 16 authoritative map chunks only.
  const fogState=await page.evaluate(()=>{
