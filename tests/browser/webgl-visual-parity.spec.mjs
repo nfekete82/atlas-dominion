@@ -152,7 +152,8 @@ test('3D buildings receive texture-based fill without brightening sand or soldie
  await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,null,{timeout:95000});
  const fixture=await page.evaluate(()=>{
   const v=window.__sandforgeWebGL,g=v.game,b=v.battlefield;
-  const terrain=v.terrain;
+  const sandMeshes=[];
+  v.scene.traverse(obj=>{if(obj.isMesh&&obj.userData?.terrain)sandMeshes.push(obj);});
   const fallback=b.createFallback('headquarters',0,'building');
   const soldier=b.createFallback('infantry',0,'unit');
   const materials=root=>{
@@ -172,7 +173,9 @@ test('3D buildings receive texture-based fill without brightening sand or soldie
   return {id:base.id,exposure:v.renderer.toneMappingExposure,
    fallbackLit:fallbackMaterials.every(m=>m.emissiveIntensity===.22),
    soldierUnchanged:unitMaterials.every(m=>m.emissiveIntensity===1&&m.emissive.getHex()===0),
-   terrainUnchanged:terrain.every?.(mesh=>!mesh.material?.userData?.sandforgeBuildingFill)??true};
+   terrainUnchanged:sandMeshes.length>0&&sandMeshes.every(mesh=>
+    !mesh.material?.userData?.sandforgeBuildingFill&&
+    !mesh.material?.emissiveMap)};
  });
  expect(fixture.fallbackLit).toBe(true);
  expect(fixture.soldierUnchanged).toBe(true);
