@@ -837,7 +837,7 @@ function animate(now){
  }
 }
 renderer.setAnimationLoop(animate);
-window.__sandforgeWebGL={renderer,scene,camera,controls,game,terrain,heightAt,battlefield,effects,atmosphere,sound,constructionRecovery,visualPerimeter,boundaryCliffs,panKeys,
+window.__sandforgeWebGL={renderer,scene,camera,controls,game,terrain,heightAt,battlefield,effects,atmosphere,sound,constructionRecovery,visualPerimeter,boundaryCliffs,panKeys,groundTracks,
  setStormPreview,
  get showcaseActive(){return showcaseActive;},
  setShowcase,
