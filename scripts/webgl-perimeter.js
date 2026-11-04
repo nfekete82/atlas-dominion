@@ -24,7 +24,9 @@ export function addVisualPerimeter({scene,size,heightAt,material,ringTiles=2,seg
  // the world stops in absolute black rather than creating an endless desert.
  const edgeShadow=(x,z)=> {
   const uneven=18*Math.sin(x*.011+z*.007)+10*Math.sin(z*.021-x*.009);
-  return smooth((outsideDistance(x,z)-95-uneven)/170);
+  // Dark void starts well outside the camera's allowed 320-unit apron.
+  // Never show a hard black wedge immediately behind the playable rim.
+  return smooth((outsideDistance(x,z)-420-uneven)/340);
  };
  for(let cy=-ringTiles;cy<playableChunks+ringTiles;cy++)
   for(let cx=-ringTiles;cx<playableChunks+ringTiles;cx++){
