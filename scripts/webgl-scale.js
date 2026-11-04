@@ -20,9 +20,9 @@ export function calibratedScale(kind,type,bounds,targetWidth){
  const byWidth=targetWidth/width;
  if(type==='unit'&&infantry.has(kind)){
   const humanHeight=MODEL_HEIGHTS[kind]??55;
-  // Prioritize identical body height. Outstretched weapons are allowed
-  // beyond the exact 2D footprint, because they are not collision volumes.
-  return Math.min(humanHeight/height,targetWidth*1.75/width);
+  // Outstretched guns and equipment must not shrink the soldier itself.
+  // The gameplay footprint is still provided by the original World object.
+  return humanHeight/height;
  }
  if(type==='unit')return Math.min(byWidth,(MODEL_HEIGHTS[kind]??50)/height);
  // Footprint stays aligned with the original building collision width;
