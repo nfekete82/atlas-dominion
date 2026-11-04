@@ -88,7 +88,7 @@ const camera=new THREE.OrthographicCamera(-680,680,410,-410,10,12000);
  const focalX=own.length?own.reduce((sum,u)=>sum+u.x,0)/own.length:half;
  const focalZ=own.length?own.reduce((sum,u)=>sum+u.y,0)/own.length:half;
  const cameraTarget=new THREE.Vector3(focalX-half,heightAt(focalX,focalZ)+42,focalZ-half);
-camera.position.copy(cameraTarget).add(new THREE.Vector3(1100,885,1510));
+camera.position.copy(cameraTarget).add(new THREE.Vector3(1200,1110,1640));
 // Anchor the initial sunlight to the player spawn for visible unit shadows.
 sun.target.position.copy(cameraTarget);
 sun.position.copy(cameraTarget).add(new THREE.Vector3(-700,1100,420));
@@ -98,7 +98,7 @@ controls.enableDamping=true;controls.dampingFactor=.10;
 controls.screenSpacePanning=true;
 // C&C-style constrained orthographic RTS camera: the map is NOT a tabletop.
 controls.minZoom=wideView?.55:.70;controls.maxZoom=3.5;
-camera.zoom=.86;camera.updateProjectionMatrix();
+camera.zoom=.74;camera.updateProjectionMatrix();
 // A lower camera angle gives rock faces and buildings visible depth.
 controls.minPolarAngle=.65;controls.maxPolarAngle=1.30;
 controls.mouseButtons={LEFT:THREE.MOUSE.PAN,MIDDLE:THREE.MOUSE.DOLLY,RIGHT:THREE.MOUSE.ROTATE};
@@ -485,8 +485,8 @@ function spin(angle){
  camera.lookAt(controls.target);controls.update();
 }
 $('home').onclick=()=>{
- controls.target.copy(cameraTarget);camera.position.copy(cameraTarget).add(new THREE.Vector3(1100,885,1510));
- camera.zoom=.86;camera.updateProjectionMatrix();controls.update();
+ controls.target.copy(cameraTarget);camera.position.copy(cameraTarget).add(new THREE.Vector3(1200,1110,1640));
+ camera.zoom=.74;camera.updateProjectionMatrix();controls.update();
 };
 $('load').onclick=()=>{
  const q=new URLSearchParams({bastions:$('bastions').value,seed:String(Number($('seed').value)>>>0)});
