@@ -8,7 +8,7 @@ test('Fog-of-war follows actual 3D soldiers without projected parallax, includin
  await page.setViewportSize({width:1440,height:900});
  await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',
   {waitUntil:'domcontentloaded'});
- await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:95000});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,null,{timeout:95000});
  const initial=await page.evaluate(()=>{
   const a=window.__sandforgeWebGL,g=a.game,b=a.battlefield,w=g.world;
   const units=g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier);
@@ -81,7 +81,7 @@ test('Camera clamps a forced off-map pan before revealing the flat scene boundar
  test.setTimeout(120000);
  await page.setViewportSize({width:1440,height:900});
  await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',{waitUntil:'domcontentloaded'});
- await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:95000});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,null,{timeout:95000});
  await page.evaluate(()=>{
   const a=window.__sandforgeWebGL;
   const amount=a.game.world.size*10;
