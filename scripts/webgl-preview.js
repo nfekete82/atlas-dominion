@@ -38,7 +38,10 @@ const session=query.get('resume')==='1'?(()=>{
 const game=session??Simulation.campaign(seed,sizes[bastions]);
 // Only this WebGL campaign gets a modest vision bonus; classic/headless
 // benchmarks retain exactly their original LOS and balance.
-game.visionScale=1.12;game.updateVision();
+// Optional visual comparison; classic gameplay remains unchanged.
+const wideView=query.get('view')==='wide';
+game.visionScale=wideView?1.35:1.12;
+game.updateVision();
 const world=game.world,terrain=world.generated,size=world.size,half=size/2;
 const status=$('status'),errorNode=$('error'),stage=$('stage');
 $('simulation').textContent=query.get('pause')==='1'?'Simulation starten':'Simulation pausieren';
@@ -90,7 +93,7 @@ const controls=new OrbitControls(camera,renderer.domElement);
 controls.enableDamping=true;controls.dampingFactor=.10;
 controls.screenSpacePanning=true;
 // C&C-style constrained orthographic RTS camera: the map is NOT a tabletop.
-controls.minZoom=.70;controls.maxZoom=3.5;
+controls.minZoom=wideView?.55:.70;controls.maxZoom=3.5;
 camera.zoom=.90;camera.updateProjectionMatrix();
 controls.minPolarAngle=.34;controls.maxPolarAngle=1.22;
 controls.mouseButtons={LEFT:THREE.MOUSE.PAN,MIDDLE:THREE.MOUSE.DOLLY,RIGHT:THREE.MOUSE.ROTATE};

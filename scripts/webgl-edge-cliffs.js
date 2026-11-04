@@ -83,5 +83,31 @@ export function addBoundaryCliffs({scene,size,heightAt,seed=0,lowQuality=false})
  rubble.castShadow=false;rubble.receiveShadow=true;
  rubble.userData={visualBoundary:true,nonPlayable:true,scree:true};
  scene.add(rubble);scree.push(rubble);
- return {cliffs,scree,height:145,margin:238,collisionChanged:false};
+ // Monumental weathered sandstone outcrops. Purely visual and instanced:
+ // never registered with the World, raycasts, navigation, or capture systems.
+ const monolithGeometry=new THREE.DodecahedronGeometry(1,1);
+ const monolithMaterial=new THREE.MeshStandardMaterial({
+  color:'#a99070',roughness:1,metalness:0,flatShading:true
+ });
+ const perEdge=lowQuality?12:28;
+ const monoliths=new THREE.InstancedMesh(monolithGeometry,monolithMaterial,perEdge*4);
+ let monolithCount=0;
+ for(let edge=0;edge<4;edge++)for(let i=0;i<perEdge;i++){
+  const t=(i+.16+rand()*.68)/perEdge;
+  // Keep every rock beyond the playable 0..size square.
+  const offset=43+rand()*155;
+  const p=boundaryPoint(edge,t,offset);
+  const width=46+rand()*93,height=100+rand()*170;
+  dummy.position.set(p.x-half,heightAt(p.x,p.z)+height*.43,p.z-half);
+  dummy.rotation.set((rand()-.5)*.16,rand()*Math.PI*2,(rand()-.5)*.22);
+  dummy.scale.set(width,height,width*(.65+rand()*.65));
+  dummy.updateMatrix();monoliths.setMatrixAt(monolithCount++,dummy.matrix);
+ }
+ monoliths.count=monolithCount;
+ monoliths.instanceMatrix.needsUpdate=true;
+ monoliths.castShadow=false;monoliths.receiveShadow=true;
+ monoliths.userData={visualBoundary:true,nonPlayable:true,monoliths:true};
+ monoliths.name='visual-boundary-monoliths';
+ scene.add(monoliths);
+ return {cliffs,scree,monoliths,height:315,margin:238,collisionChanged:false};
 }

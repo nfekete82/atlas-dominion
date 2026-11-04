@@ -25,6 +25,15 @@ export class SandforgeBattlefield {
   this.announcedBuildings=new Set(game.bases.filter(b=>b.buildRemaining<=0).map(b=>b.id));
   this.models=new Map();this.pending=new Set();this.selected=new Set();
   this.selectedBase=null;this.buildKind=null;this.attackMode=false;
+  this.rallyMode=false;
+  this.rallyMarker=new THREE.Mesh(
+   new THREE.RingGeometry(19,25,32),
+   new THREE.MeshBasicMaterial({color:'#ffcf6a',transparent:true,opacity:.9,depthTest:false,depthWrite:false,side:THREE.DoubleSide})
+  );
+  this.rallyMarker.rotation.x=-Math.PI/2;
+  this.rallyMarker.renderOrder=1012;
+  this.rallyMarker.visible=false;
+  this.scene.add(this.rallyMarker);
   this.miniLast=0;this.uiLast=0;this.fogLast=0;
   this.fogEnabled=true;this.selectedRings=new Map();this.animations=new Map();
   this.presentation=new SandforgeActorPresentation(scene,camera,game);
@@ -414,6 +423,12 @@ export class SandforgeBattlefield {
      this.controls.target.add(delta);this.camera.position.add(delta);this.controls.update();
     }
    }
+   if(action==='rally'){
+    const base=this.game.bases.find(b=>b.id===this.selectedBase&&b.owner===0&&b.hp>0&&b.buildRemaining<=0);
+    if(base){this.rallyMode=!this.rallyMode;this.clearPlacement();this.attackMode=false;
+     this.message(this.rallyMode?'Linksklick auf Gelände: Sammelpunkt setzen · Escape: Abbruch':'Sammelpunkt-Modus beendet');
+     this.drawInterface();}
+   }
    if(action==='menu'){window.Sandforge3DMenu?.openPause();}
    if(action==='health'){
     const modes=['all','damaged','selected','off'];
@@ -490,8 +505,11 @@ export class SandforgeBattlefield {
   const tiles=this.game.territories.map(t=>{
    const label=t.owner===0?'BLAU':t.owner===1?'ROT':'NEUTRAL';
    const cls=t.owner===0?'blue':t.owner===1?'red':'unknown';
+   const capture=t.progress>0&&t.capturing>=0
+    ?' · EROBERUNG '+Math.floor(t.progress*10)/10+' s '+(t.capturing===0?'BLAU':'ROT')
+    :'';
    return '<button class="territory-row '+cls+'" data-territory="'+t.id+'" aria-label="Sektor '+(t.id+1)+' zentrieren">'+
-    '<i></i><strong>SEKTOR '+(t.id+1)+'</strong><small>'+label+'</small></button>';
+    '<i></i><strong>SEKTOR '+(t.id+1)+'</strong><small>'+label+capture+'</small></button>';
   }).join('');
   const markup='<div class="sf-group" data-sf-group="units">'+roster+'</div>'+
    '<div class="sf-group" data-sf-group="buildings"><h2>GEBÄUDE BAUEN</h2><div class="catalog-grid">'+
@@ -541,6 +559,14 @@ export class SandforgeBattlefield {
   const el=view.querySelector('#sf-selection');
   const chosen=g.units.filter(u=>this.selected.has(u.id)&&u.hp>0);
   const base=g.bases.find(b=>b.id===this.selectedBase&&b.hp>0);
+  const rallyButton=view.querySelector('#sf-rally');
+  if(rallyButton){
+   rallyButton.hidden=!base||base.owner!==0||base.buildRemaining>0;
+   rallyButton.setAttribute('aria-pressed',String(this.rallyMode));
+  }
+  const rally=base?.rally;
+  this.rallyMarker.visible=Boolean(rally&&base.owner===0);
+  if(this.rallyMarker.visible)this.rallyMarker.position.copy(this.pos(rally.x,rally.y,this.heightAt(rally.x,rally.y)+5));
   const item=chosen.length===1?chosen[0]:base;
   const kind=item?.kind;
   const spec=item?(item.queue?BUILDINGS[kind]:UNITS[kind]):null;
@@ -548,7 +574,9 @@ export class SandforgeBattlefield {
   const hp=item?Math.max(0,Math.ceil(item.hp)):0;
   const maxHp=spec?.hp??1;
   const meta=chosen.length?'BLAUE LEGION / TRUPP':'BLAUE LEGION / STÜTZPUNKT';
-  const description=spec?.description??'Wähle eine Einheit oder ein Gebäude. Rechtsklick: Marsch oder Zielbefehl.';
+  const description=base?.rally
+   ?'Sammelpunkt aktiv · Neue Einheiten marschieren automatisch zum markierten Ziel.'
+   :spec?.description??'Wähle eine Einheit oder ein Gebäude. Rechtsklick: Marsch oder Zielbefehl.';
   const selectedMarkup='<small>'+meta+'</small><strong>'+plain(heading)+'</strong>'+
    (item?'<div class="health-track"><i style="width:'+Math.min(100,hp/maxHp*100)+'%"></i></div>'+
    '<div class="sf-health">'+hp+' / '+maxHp+' LP</div>':'')+
@@ -585,6 +613,10 @@ export class SandforgeBattlefield {
   for(const t of this.game.territories){
    ctx.fillStyle=t.owner===0?colors.blue:t.owner===1?colors.red:'#eed3a0';
    ctx.beginPath();ctx.arc(t.point.x*scale,t.point.y*scale,3,0,Math.PI*2);ctx.fill();
+   if(t.progress>0&&t.capturing>=0){
+    ctx.lineWidth=2;ctx.strokeStyle=t.capturing===0?'#53f4e2':'#ff7151';
+    ctx.beginPath();ctx.arc(t.point.x*scale,t.point.y*scale,6,0,Math.PI*2);ctx.stroke();
+   }
   }
   for(const u of this.game.units)if(u.hp>0&&(u.owner===0||this.game.canSee(0,u))){
    ctx.fillStyle=u.owner===0?'#53f4e2':'#ff7151';
@@ -637,6 +669,13 @@ export class SandforgeBattlefield {
    return;
   }
   if(event.button===0){
+   if(this.rallyMode){
+    const base=this.game.bases.find(b=>b.id===this.selectedBase&&b.owner===0&&b.hp>0&&b.buildRemaining<=0);
+    this.rallyMode=false;
+    if(base){base.rally={x:p.x,y:p.y};this.message('Sammelpunkt gesetzt: '+BUILDINGS[base.kind].name);}
+    else this.message('Produktionsgebäude nicht mehr verfügbar');
+    this.drawInterface();return;
+   }
    if(this.buildKind){
     const kind=this.buildKind,workerIds=this.game.units.filter(u=>this.selected.has(u.id)&&u.kind==='engineer'&&u.owner===0).map(u=>u.id);
     const blocked=this.game.buildError(0,kind,p);
@@ -655,10 +694,10 @@ export class SandforgeBattlefield {
     if(this.selected.has(near.u.id)&&event.shiftKey)this.selected.delete(near.u.id);
     else this.selected.add(near.u.id);
     this.sound?.select?.();
-    this.selectedBase=null;this.drawInterface();return;
+    this.selectedBase=null;this.rallyMode=false;this.drawInterface();return;
    }
    const base=this.game.bases.filter(b=>b.owner===0&&b.hp>0).map(b=>({b,d:dist(b,p)})).sort((a,b)=>a.d-b.d)[0];
-   if(base&&base.d<base.b.radius+55){this.selectedBase=base.b.id;this.selected.clear();this.drawInterface();return;}
+   if(base&&base.d<base.b.radius+55){this.selectedBase=base.b.id;this.rallyMode=false;this.selected.clear();this.drawInterface();return;}
    if(!event.shiftKey){this.selected.clear();this.selectedBase=null;this.drawInterface();}
   }else if(event.button===2){
    if(!this.selected.size)return;
@@ -706,7 +745,7 @@ export class SandforgeBattlefield {
   canvas.addEventListener('contextmenu',e=>e.preventDefault());
   document.addEventListener('keydown',event=>{
    if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;
-   if(event.code==='Escape'){this.clearPlacement();this.attackMode=false;this.drawInterface();}
+   if(event.code==='Escape'){this.clearPlacement();this.attackMode=false;this.rallyMode=false;this.drawInterface();}
    if(event.code==='KeyR'&&this.buildKind){
     event.preventDefault();this.placementFacing=this.placementFacing===0?1:0;
     if(this.buildPreview)this.buildPreview.rotation.y=this.placementFacing?Math.PI:0;

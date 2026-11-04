@@ -267,3 +267,8 @@
 #sf-classic-root .sf-settings-close:hover {
   background:#43535a;
 }
+
+/* RTS parity: production rally point and ongoing bastion capture. */
+#sf-classic-root #sf-rally[hidden]{display:none!important}
+#sf-classic-root #sf-rally[aria-pressed="true"]{background:#73603e;color:#ffdda1;border-color:#e4bd6c}
+#sf-classic-root .territory-row small{font-size:10px;white-space:normal;text-align:right}

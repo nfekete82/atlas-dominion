@@ -51,6 +51,7 @@ export function installClassicHud(){
   <div class="commands" id="sf-command-buttons">
    <button data-action="select-all" title="Alle Truppen auswählen">ALLE</button>
    <button data-action="attack" title="Angriffsbewegung (F)">ANGRIFF</button>
+   <button data-action="rally" id="sf-rally" title="Sammelpunkt für neue Einheiten setzen">SAMMELPUNKT</button>
    <button data-action="stop" title="Einheiten anhalten (X)">STOPP</button>
    <button data-action="cancel" title="Auswahl oder Bauplatz abbrechen (Esc)">ZURÜCK</button>
   </div>
