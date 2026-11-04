@@ -7,6 +7,7 @@ import {hydrateUnitIcons,unitIcon,buildingIconUrl} from '/webgl-portraits.js';
 import {SandforgeActorPresentation} from '/webgl-actor-presentation.js';
 import {calibratedScale} from '/webgl-scale.js';
 import {SandforgeGroundingPass} from '/webgl-grounding.js';
+import {SandforgeConstructionPresentation} from '/webgl-construction.js';
 
 // Runtime adapter: game state, movement, combat, production and AI are owned
 // exclusively by the original Simulation. 3D nodes are presentation only.
@@ -27,6 +28,12 @@ export class SandforgeBattlefield {
   this.fogEnabled=true;this.selectedRings=new Map();this.animations=new Map();
   this.presentation=new SandforgeActorPresentation(scene,camera,game);
   this.grounding=new SandforgeGroundingPass(scene);
+  this.construction=new SandforgeConstructionPresentation(renderer);
+  this.buildPreview=null;this.previewKind=null;this.placementFacing=0;
+  this.buildHint=document.createElement('div');
+  this.buildHint.id='sf3d-build-hint';this.buildHint.setAttribute('role','status');
+  this.buildHint.style.cssText='position:fixed;z-index:18;pointer-events:none;display:none;min-width:156px;max-width:250px;padding:7px 10px;background:#14221ef0;border:1px solid #b5a177;color:#e7dbb7;font:bold 12px system-ui;box-shadow:0 5px 16px #0008';
+  document.body.append(this.buildHint);
   this.defaultFactions=[0,1];
   this.maxModels=80;this.loadingCount=0;this.modelQueue=[];
   this.clickStart=null;this.groups=new Map();
@@ -178,9 +185,11 @@ export class SandforgeBattlefield {
    if(!entry){entry=this.spawnNode(b,'building');this.bases.set(b.id,entry);this.grounding.attachBuilding(entry,b);}
    entry.node.position.copy(this.entityPosition(b));
    entry.node.visible=b.owner===0||this.game.canSee(0,b);
-   entry.node.scale.y=b.buildRemaining>0?.58:1;
+   entry.node.scale.y=1;
+   entry.node.rotation.y=b.facing===1?Math.PI:0;
+   this.construction.update(entry,b);
   }
-  for(const [id,e] of this.bases)if(!aliveBases.has(id)){this.presentation.remove(e,this.game.bases.find(base=>base.id===id));this.grounding.detachBuilding(id);this.scene.remove(e.node);this.bases.delete(id);if(this.selectedBase===id)this.selectedBase=null;}
+  for(const [id,e] of this.bases)if(!aliveBases.has(id)){this.presentation.remove(e,this.game.bases.find(base=>base.id===id));this.construction.dispose(e);this.grounding.detachBuilding(id);this.scene.remove(e.node);this.bases.delete(id);if(this.selectedBase===id)this.selectedBase=null;}
   this.presentation.consumeShots(this.units,this.bases);
   for(const u of this.game.units){
    const entry=this.units.get(u.id);
@@ -313,7 +322,8 @@ export class SandforgeBattlefield {
   this.panel.addEventListener('click',e=>{
    const button=e.target.closest('button');if(!button)return;
    const kind=button.dataset.build,unit=button.dataset.unit,action=button.dataset.action;
-   if(kind){this.buildKind=kind;this.attackMode=false;this.message('Bauplatz wählen: '+BUILDINGS[kind].name);this.drawInterface();}
+   if(kind){this.beginPlacement(kind);this.attackMode=false;this.sound?.select?.();
+    this.message('Bauplatz wählen: '+BUILDINGS[kind].name+' · R: drehen · Shift: Aufträge anhängen');this.drawInterface();}
    if(unit){
     const producer=this.game.producer(0,unit);
     if(this.game.recruit(producer?.id??-1,unit))this.message(UNITS[unit].name+' in Auftrag');
@@ -337,13 +347,13 @@ export class SandforgeBattlefield {
    if(action==='fog'){this.fogEnabled=!this.fogEnabled;this.updateFog();this.message('Nebel des Krieges '+(this.fogEnabled?'aktiv':'deaktiviert'));}
    if(action==='save'){try{localStorage.setItem('sandforge:webgl:v1',JSON.stringify(this.game.save()));this.message('3D-Kampagne gespeichert');}catch(error){this.message('Speichern fehlgeschlagen: '+error.message);}}
    if(action==='load'){this.loadSave();}
-   if(action==='attack'){this.attackMode=!this.attackMode;this.buildKind=null;this.drawInterface();this.message(this.attackMode?'Angriffsbewegung: Rechtsklick auf Ziel':'Angriffsbewegung beendet');}
+   if(action==='attack'){this.attackMode=!this.attackMode;this.clearPlacement();this.drawInterface();this.message(this.attackMode?'Angriffsbewegung: Rechtsklick auf Ziel':'Angriffsbewegung beendet');}
    if(action==='stop'){
     const count=this.selected.size;
     this.game.stop([...this.selected],false);
     this.message(count?count+' Einheiten angehalten':'Keine Einheiten gewählt');
    }
-   if(action==='cancel'){this.buildKind=null;this.attackMode=false;this.selected.clear();this.selectedBase=null;this.drawInterface();}
+   if(action==='cancel'){this.clearPlacement();this.attackMode=false;this.selected.clear();this.selectedBase=null;this.drawInterface();}
    if(action==='select-all'){this.selected=new Set(this.game.units.filter(u=>u.hp>0&&u.owner===0&&!u.carrier).map(u=>u.id));this.selectedBase=null;this.drawInterface();}
   });
   this.panel.addEventListener('sandforge-tabchange',event=>{
@@ -550,9 +560,12 @@ export class SandforgeBattlefield {
     const kind=this.buildKind,workerIds=this.game.units.filter(u=>this.selected.has(u.id)&&u.kind==='engineer'&&u.owner===0).map(u=>u.id);
     const blocked=this.game.buildError(0,kind,p);
     if(blocked){this.message(blocked);return;}
-    const result=this.game.build(0,kind,p,workerIds.length?workerIds:undefined);
-    if(result){this.message(BUILDINGS[kind].name+' beauftragt');this.buildKind=null;this.sync(true);}
-    else this.message('Kein verfügbarer Pionier oder keine Route zum Bauplatz');
+    const result=this.game.build(0,kind,p,workerIds.length?workerIds:undefined,this.placementFacing,event.shiftKey);
+    if(result){
+     this.sound?.command?.();this.message(BUILDINGS[kind].name+' beauftragt');
+     if(!event.shiftKey)this.clearPlacement();
+     this.sync(true);
+    }else this.message('Kein verfügbarer Pionier oder keine Route zum Bauplatz');
     return;
    }
    const near=this.game.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier).map(u=>({u,d:dist(u,p)})).sort((a,b)=>a.d-b.d)[0];
@@ -588,6 +601,7 @@ export class SandforgeBattlefield {
    this.clickStart={x:e.clientX,y:e.clientY,button:e.button};
   });
   canvas.addEventListener('pointermove',e=>{
+   if(this.buildKind)this.updatePlacementPreview(e);
    const start=this.clickStart;
    if(!start||start.button!==0||!(e.buttons&1))return;
    if(Math.hypot(e.clientX-start.x,e.clientY-start.y)<7)return;
@@ -600,13 +614,19 @@ export class SandforgeBattlefield {
   });
   canvas.addEventListener('pointerup',e=>this.pointerUp(e));
   window.addEventListener('pointerup',e=>{if(this.clickStart)this.pointerUp(e);});
+  canvas.addEventListener('pointerleave',()=>{if(this.buildPreview)this.buildPreview.visible=false;this.buildHint.style.display='none';});
   canvas.addEventListener('pointercancel',()=>{
    this.clickStart=null;this.selectionBox.style.display='none';
   });
   canvas.addEventListener('contextmenu',e=>e.preventDefault());
   document.addEventListener('keydown',event=>{
    if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;
-   if(event.code==='Escape'){this.buildKind=null;this.attackMode=false;this.drawInterface();}
+   if(event.code==='Escape'){this.clearPlacement();this.attackMode=false;this.drawInterface();}
+   if(event.code==='KeyR'&&this.buildKind){
+    event.preventDefault();this.placementFacing=this.placementFacing===0?1:0;
+    if(this.buildPreview)this.buildPreview.rotation.y=this.placementFacing?Math.PI:0;
+    this.sound?.select?.();this.message('Gebäude '+(this.placementFacing?'gedreht':'Standardausrichtung'));
+   }
    if(event.code==='KeyF'){this.attackMode=true;this.message('Angriffsbewegung: Rechtsklick auf Ziel');}
    if(event.code==='KeyH'){this.selected=new Set(this.game.units.filter(u=>u.hp>0&&u.owner===0&&!u.carrier).map(u=>u.id));this.drawInterface();}
    const number=Number(event.code.replace('Digit',''));
