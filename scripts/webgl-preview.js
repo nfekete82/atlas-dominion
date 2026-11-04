@@ -6,6 +6,7 @@ import {canyonGroundSampler,rampAtX,ridgeCenterY} from '/src/reborn/canyon-heigh
 import {SandforgeBattlefield} from '/webgl-battlefield.js';
 import {DesertArtPass} from '/webgl-environment.js';
 import {SandforgeCombatEffects} from '/webgl-combat-vfx.js';
+import {Soundscape} from '/src/reborn/audio.js';
 
 /** Opt-in WebGL scene using the real authoritative Sandforge map and simulation.
  * This page is isolated from the production Canvas renderer, save format and AI
@@ -360,6 +361,35 @@ const battlefield=new SandforgeBattlefield({
 });
 const desertArt=new DesertArtPass({scene,world,terrain,heightAt,pos,loader,lowQuality:query.get('lite')==='1'});
 const effects=new SandforgeCombatEffects({scene,camera,game,world,heightAt,pos,lowQuality:query.get('lite')==='1'});
+const sound=new Soundscape();
+sound.setEnabled(false);
+const soundView={
+ get width(){return renderer.domElement.clientWidth;},
+ get height(){return renderer.domElement.clientHeight;},
+ get camera(){return {x:controls.target.x+half,y:controls.target.z+half,zoom:camera.zoom};},
+ screen(p){
+  const v=new THREE.Vector3(p.x-half,heightAt(p.x,p.y)+22,p.y-half).project(camera);
+  return {x:(v.x*.5+.5)*renderer.domElement.clientWidth,
+          y:(.5-v.y*.5)*renderer.domElement.clientHeight};
+ }
+};
+battlefield.sound=sound;
+$('sound').onclick=async()=>{
+ const enabled=!sound.enabled;
+ sound.setEnabled(enabled);
+ try{
+  if(enabled)await sound.unlock();
+  else sound.silenceScene();
+  $('sound').textContent=enabled?'Sound ausschalten':'Sound einschalten';
+  $('sound').setAttribute('aria-pressed',String(enabled));
+ }catch(error){
+  sound.setEnabled(false);
+  $('sound').textContent='Sound einschalten';
+  $('sound').setAttribute('aria-pressed','false');
+  console.warn('WebAudio unavailable',error);
+ }
+};
+
 let lastFrame=performance.now(),frames=0;
 function animate(now){
  const dt=Math.min(.08,(now-lastFrame)/1000);lastFrame=now;
@@ -370,6 +400,7 @@ function animate(now){
  }
  if(!running)battlefield.sync(false,dt);
  effects.update(dt,running);
+ if(running&&sound.enabled)sound.update(game,soundView);
  controls.update();
  renderer.render(scene,camera);
  frames++;elapsed+=dt;
@@ -379,7 +410,7 @@ function animate(now){
  }
 }
 renderer.setAnimationLoop(animate);
-window.__sandforgeWebGL={renderer,scene,camera,controls,game,terrain,heightAt,battlefield,effects,
+window.__sandforgeWebGL={renderer,scene,camera,controls,game,terrain,heightAt,battlefield,effects,sound,
  get ruinsLoaded(){return ruinMeshes.length;},
  get loaded(){return status.dataset.ready==='true';},
  get simulationRunning(){return running;},
