@@ -2,6 +2,8 @@
    adapters belong here; do not recreate the legacy palette or widget visuals. */
 .sf-rts{position:fixed;inset:0;z-index:9;pointer-events:none;font-family:var(--display)}
 .sf-rts :is(.top,.tools,#sidebar,.sf-command,.sf-game-settings){pointer-events:auto}
+.sf-rts .sf-assist-stats{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(100%);white-space:nowrap}
+#sf-classic-root #sidebar .catalog-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}
 .sf-rts .top{z-index:3}
 .sf-rts .tools{z-index:4;right:12px;top:10px;min-width:312px;justify-content:flex-end}
 .sf-rts .tools button{width:35px;height:33px;font:700 15px/1 var(--display)}
