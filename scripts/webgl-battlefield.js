@@ -309,6 +309,7 @@ export class SandforgeBattlefield {
      this.controls.target.add(delta);this.camera.position.add(delta);this.controls.update();
     }
    }
+   if(action==='menu'){window.Sandforge3DMenu?.openPause();}
    if(action==='health'){
     const modes=['all','damaged','selected','off'];
     const old=this.presentation.showHealth;
