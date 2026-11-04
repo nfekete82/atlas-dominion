@@ -6,11 +6,11 @@
  * rifle/helmet width, so all four roles occupy the same apparent human scale.
  */
 export const MODEL_HEIGHTS=Object.freeze({
- infantry:55,medic:55,engineer:55,heavy:59,
- rover:39,tank:43,artillery:48,scout:45,bomber:48,
+ infantry:61,medic:61,engineer:61,heavy:65,
+ rover:42,tank:46,artillery:51,scout:48,bomber:51,
  headquarters:158,barracks:119,factory:125,airfield:137,generator:92,turret:95
 });
-export const DIMENSIONS_VERSION=1;
+export const DIMENSIONS_VERSION=2;
 const infantry=new Set(['infantry','medic','engineer','heavy']);
 const valid=n=>typeof n==='number'&&Number.isFinite(n)&&n>.00001;
 export function calibratedScale(kind,type,bounds,targetWidth){
