@@ -310,27 +310,33 @@ function instancedStone(){
    put(x+(r()-.5)*55,z+(r()-.5)*55,8+r()*16,
     spacious?7+r()*16:8+r()*26,8+r()*15);
  }
- for(let i=0;i<(spacious?620:1600);i++){
+ for(let i=0;i<(spacious?420:1600);i++){
   const x=75+r()*(size-150),z=75+r()*(size-150),index=world.index({x,y:z});
   if(index<0||world.blocked[index]||terrain.sites.some(p=>Math.hypot(x-p.x,z-p.y)<160))continue;
-  put(x,z,2+r()*5,1+r()*4,2+r()*6);
+  put(x,z,spacious?1.4+r()*3.6:2+r()*5,
+   spacious?.8+r()*2.7:1+r()*4,
+   spacious?1.5+r()*4.2:2+r()*6);
  }
  // Continue weathered stones across the *visual* perimeter. This scatter
  // uses a different RNG stream so existing battlefield stones stay unchanged.
  const extra=rnd(seed^0xb487c7e1),margin=visualPerimeter?.margin??size*.5;
- for(let i=0;i<(spacious?360:2100);i++){
+ for(let i=0;i<(spacious?200:2100);i++){
   // Never allow decorative stones to float over the black void. Scatter
   // only in the first narrow erosion apron adjacent to the playfield.
   const x=spacious?-95+extra()*(size+190):-margin+extra()*(size+2*margin);
   const z=spacious?-95+extra()*(size+190):-margin+extra()*(size+2*margin);
   if(x>=0&&x<=size&&z>=0&&z<=size)continue;
   if(spacious&&Math.max(-x,x-size,-z,z-size)>82)continue;
-  const cluster=extra()>.93;
+  const cluster=extra()>(spacious?.96:.93);
   if(cluster){
-   put(x,z,9+extra()*20,14+extra()*28,8+extra()*20);
+   put(x,z,spacious?7+extra()*13:9+extra()*20,
+    spacious?9+extra()*16:14+extra()*28,
+    spacious?6+extra()*14:8+extra()*20);
    for(let k=0;k<3;k++)
     put(x+(extra()-.5)*55,z+(extra()-.5)*55,4+extra()*9,5+extra()*17,5+extra()*9);
-  }else put(x,z,1.7+extra()*5.4,1+extra()*3.8,2+extra()*6);
+  }else put(x,z,spacious?1.2+extra()*3.5:1.7+extra()*5.4,
+   spacious?.8+extra()*2.8:1+extra()*3.8,
+   spacious?1.5+extra()*4:2+extra()*6);
  }
  for(let i=0;i<groups.length;i++){
   groups[i].count=counts[i];groups[i].instanceMatrix.needsUpdate=true;
