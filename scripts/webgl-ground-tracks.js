@@ -82,7 +82,7 @@ export class SandforgeGroundTracks{
  constructor({scene,game,pos,heightAt,lite=false}){
   Object.assign(this,{scene,game,pos,heightAt});
   this.clock=0;this.last=new Map();
-  this.foot=markPool(scene,'foot',lite?700:1700,15,.65);
+  this.foot=markPool(scene,'foot',lite?700:1700,18,.79);
   this.vehicle=markPool(scene,'vehicle',lite?850:2200,24,.64);
   this.pool=[this.foot,this.vehicle];
   this.dummy=new THREE.Object3D();
@@ -117,7 +117,7 @@ export class SandforgeGroundTracks{
    const dx=now.x-last.x,dz=now.y-last.y,d=Math.hypot(dx,dz);
    if(d<.01||d>this.maxTrailSpan)continue; // stationary or teleported
    const vehicle=['rover','tank','artillery'].includes(unit.kind);
-   const interval=vehicle?19:11;
+   const interval=vehicle?19:17;
    const heading=Math.atan2(dx,dz);
    let distance=interval-last.carry;
    if(distance<.001)distance=interval;
@@ -132,8 +132,8 @@ export class SandforgeGroundTracks{
       heading,width,interval+3);
     }else{
      const side=now.foot%2===0?-1:1;
-     this.put(this.foot,x+side*4*sideways.x,z+side*4*sideways.z,
-      heading,6,13);
+     this.put(this.foot,x+side*6*sideways.x,z+side*6*sideways.z,
+      heading,10.5,21);
      now.foot++;
     }
     distance+=interval;
