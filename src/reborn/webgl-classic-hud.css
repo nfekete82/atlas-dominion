@@ -691,3 +691,9 @@
   min-height:70px!important;
  }
 }
+
+/* Alpha-trimmed building renders already fill their 320×220 canvas; do not
+   enlarge those again (unprocessed fallback art retains the original zoom). */
+#sf-classic-root #sf-actions .catalog-card[data-build] .sf-card-image img[data-sf-icon-status="ready"]{
+ transform:scale(1.04)!important;
+}
