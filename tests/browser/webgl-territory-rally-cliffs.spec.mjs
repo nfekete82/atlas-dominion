@@ -280,3 +280,54 @@ test('Fog of War can be toggled during 3D showcase and stays selected on return'
   await expect(fog).toHaveText('NEBEL AN');
   expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.fogNodes.every(n=>n.visible))).toBe(true);
 });
+
+test('3D Fog-of-War frontier follows the real vision grid and hides when disabled',async({page})=>{
+  await load(page);
+  const initial=await page.evaluate(()=>{
+    const v=window.__sandforgeWebGL;
+    return {
+      fog:v.battlefield.fogEnabled,
+      frontier:v.atmosphere.fogMesh.count,
+      visualOnly:v.atmosphere.fogMesh.userData.nonPlayable,
+      authoritativeCells:v.game.visible[0].filter(Boolean).length
+    };
+  });
+  expect(initial.fog).toBe(true);
+  expect(initial.visualOnly).toBe(true);
+  expect(initial.authoritativeCells).toBeGreaterThan(0);
+  expect(initial.frontier).toBeGreaterThan(0);
+  expect(initial.frontier).toBeLessThanOrEqual(300);
+  const fog=page.locator('#sf-tools button[data-action="fog"]');
+  await fog.click();
+  expect(await page.evaluate(()=>window.__sandforgeWebGL.atmosphere.fogMesh.count)).toBe(0);
+  await fog.click();
+  expect(await page.evaluate(()=>window.__sandforgeWebGL.atmosphere.fogMesh.count)).toBeGreaterThan(0);
+});
+
+test('3D sandstorm preview creates GPU dust without changing simulation weather',async({page})=>{
+  await load(page);
+  const initial=await page.evaluate(()=>{
+    const v=window.__sandforgeWebGL;
+    return {storm:v.atmosphere.stormPreview,dust:v.atmosphere.dustMesh.count,weather:v.game.weather.intensity};
+  });
+  expect(initial.storm).toBe(false);
+  expect(initial.dust).toBe(0);
+  const storm=page.locator('#sf3d-storm');
+  await expect(storm).toBeVisible();
+  await storm.click();
+  await expect(storm).toHaveAttribute('aria-pressed','true');
+  await page.waitForFunction(()=>window.__sandforgeWebGL.atmosphere.dustMesh.count>0);
+  const active=await page.evaluate(()=>{
+    const v=window.__sandforgeWebGL;
+    return {dust:v.atmosphere.dustMesh.count,weather:v.game.weather.intensity,
+      tagged:v.atmosphere.dustMesh.userData.visualOnly,
+      sceneFog:v.scene.fog.density};
+  });
+  expect(active.dust).toBeGreaterThan(0);
+  expect(active.tagged).toBe(true);
+  expect(active.weather).toBe(initial.weather);
+  expect(active.sceneFog).toBeGreaterThan(0.00011);
+  await storm.click();
+  await page.waitForFunction(()=>window.__sandforgeWebGL.atmosphere.dustMesh.count===0);
+  await expect(storm).toHaveAttribute('aria-pressed','false');
+});
