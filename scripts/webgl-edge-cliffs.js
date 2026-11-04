@@ -5,9 +5,11 @@ import * as THREE from 'three';
  * no unit/pathfinding bounds change and projectiles do not hit them.
  */
 export function addBoundaryCliffs({scene,size,heightAt,seed=0,lowQuality=false}){
- const half=size*.5,rows=[0,20,58,102,164,254];
- const lift=[0,12,64,157,222,268];
- const tiles=lowQuality?48:112;
+ const half=size*.5,rows=[0,38,80,130,196,286];
+ // Stepped erosion rather than a 300-unit tall foreground mountain.
+ // The boundary belongs to the background, not the player camera.
+ const lift=[0,4,19,48,83,114];
+ const tiles=lowQuality?64:144;
  const materials=new THREE.MeshStandardMaterial({
   color:'#f0e0c5',roughness:1,metalness:0,vertexColors:true,
   side:THREE.DoubleSide
@@ -41,11 +43,11 @@ export function addBoundaryCliffs({scene,size,heightAt,seed=0,lowQuality=false})
      Math.sin(t*77-seed*.0004+edge*1.8)*4);
    const offset=rows[band]+(band===0?0:ledgeWobble*band/(rows.length-1));
    const p=boundaryPoint(edge,t,offset);
-   const ridge=1+cornerSafe*(.25*Math.sin(t*15+seed*.0017+edge*.9)+
-     .19*Math.sin(t*38-seed*.0011+edge*2.7)+
-     .30*Math.max(0,Math.sin(t*24+edge*1.5+seed*.0003)));
-   const weather=cornerSafe*(Math.sin(t*97+edge*9.3)*5+
-     Math.sin(t*173+band*2.4)*2)*(band/(rows.length-1));
+   const ridge=1+cornerSafe*(.16*Math.sin(t*15+seed*.0017+edge*.9)+
+     .12*Math.sin(t*38-seed*.0011+edge*2.7)+
+     .25*Math.max(0,Math.sin(t*24+edge*1.5+seed*.0003)));
+   const weather=cornerSafe*(Math.sin(t*97+edge*9.3)*3+
+     Math.sin(t*173+band*2.4)*1.5)*(band/(rows.length-1));
    const y=heightAt(p.x,p.z)+lift[band]*ridge+weather;
    positions.push(p.x-half,y,p.z-half);
    // Fine striations and changing sun exposure break the uniform wall.
@@ -97,7 +99,7 @@ export function addBoundaryCliffs({scene,size,heightAt,seed=0,lowQuality=false})
  // never registered with the World, raycasts, navigation, or capture systems.
  // Low-poly facets retain a rock silhouette, but a deterministic deformation
  // breaks the repeated egg-like shape of the old dodecahedron instances.
- const monolithGeometry=new THREE.IcosahedronGeometry(1,1);
+ const monolithGeometry=new THREE.IcosahedronGeometry(1,2);
  const rockVertices=monolithGeometry.getAttribute('position');
  for(let v=0;v<rockVertices.count;v++){
   const x=rockVertices.getX(v),y=rockVertices.getY(v),z=rockVertices.getZ(v);
@@ -107,7 +109,7 @@ export function addBoundaryCliffs({scene,size,heightAt,seed=0,lowQuality=false})
  rockVertices.needsUpdate=true;
  monolithGeometry.computeVertexNormals();
  const monolithMaterial=new THREE.MeshStandardMaterial({
-  color:'#b69a78',roughness:1,metalness:0,flatShading:true
+  color:'#a88d6c',roughness:1,metalness:0,flatShading:false
  });
  const perEdge=lowQuality?12:28;
  const monoliths=new THREE.InstancedMesh(monolithGeometry,monolithMaterial,perEdge*4);
@@ -115,20 +117,23 @@ export function addBoundaryCliffs({scene,size,heightAt,seed=0,lowQuality=false})
  for(let edge=0;edge<4;edge++)for(let i=0;i<perEdge;i++){
   const t=(i+.16+rand()*.68)/perEdge;
   // Keep every rock beyond the playable 0..size square.
-  const offset=43+rand()*155;
+  const offset=105+rand()*150;
   const p=boundaryPoint(edge,t,offset);
-  const width=53+rand()*102,height=106+rand()*210;
+  const width=19+rand()*34,height=28+rand()*66;
   // Sink the outcrop into its terrain, rather than exposing a flat model base.
   dummy.position.set(p.x-half,heightAt(p.x,p.z)+height*.27,p.z-half);
   dummy.rotation.set((rand()-.5)*.16,rand()*Math.PI*2,(rand()-.5)*.22);
-  dummy.scale.set(width,height,width*(.65+rand()*.85));
-  dummy.updateMatrix();monoliths.setMatrixAt(monolithCount++,dummy.matrix);
+  dummy.scale.set(width,height,width*(.72+rand()*.52));
+  dummy.updateMatrix();monoliths.setMatrixAt(monolithCount,dummy.matrix);
+  const tint=new THREE.Color('#d6bc94').lerp(new THREE.Color('#987459'),rand()*.55);
+  monoliths.setColorAt(monolithCount++,tint);
  }
  monoliths.count=monolithCount;
  monoliths.instanceMatrix.needsUpdate=true;
+ if(monoliths.instanceColor)monoliths.instanceColor.needsUpdate=true;
  monoliths.castShadow=!lowQuality;monoliths.receiveShadow=true;
  monoliths.userData={visualBoundary:true,nonPlayable:true,monoliths:true};
  monoliths.name='visual-boundary-monoliths';
  scene.add(monoliths);
- return {cliffs,scree,monoliths,height:440,margin:254,collisionChanged:false};
+ return {cliffs,scree,monoliths,height:180,margin:286,collisionChanged:false};
 }
