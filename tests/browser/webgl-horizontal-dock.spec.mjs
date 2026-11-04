@@ -68,10 +68,14 @@ test('lite mode still requests original detailed PBR building model, and ruins r
   const entry=b.bases.get(building.id);
   return {requested:entry?.requested===true,
    filename:b.asset('headquarters',0,'building'),
+   sandApron:entry?.node.getObjectByName('sand-apron-headquarters-'+building.id)?.isMesh===true,
+   grounding:b.grounding.items.has(building.id),
    lite:b.lite===true};
  });
  expect(state.lite).toBe(true);
  expect(state.requested).toBe(true);
+ expect(state.sandApron).toBe(true);
+ expect(state.grounding).toBe(true);
  expect(state.filename).toContain('buildings-3d/headquarters-0.glb');
  await page.waitForFunction(()=>{
   const b=window.__sandforgeWebGL?.battlefield;
