@@ -13,6 +13,8 @@ test('3D HP bar is bright green at 100%, decreases smoothly and turns yellow/red
   const unit=g.units.find(u=>u.owner===0&&u.hp>0);
   const e=b.units.get(unit.id);if(!e)throw Error('Missing owned actor');
   const full=unit.hp;
+  const defaultMode=b.presentation.showHealth;
+  b.presentation.setHealthMode('all'); // explicit visibility mode for HP snapshots
   b.sync(true,.02,false,1);
   const sample=()=>({
    fraction:e.presentation.bar.fraction,
@@ -24,7 +26,7 @@ test('3D HP bar is bright green at 100%, decreases smoothly and turns yellow/red
   const fullBar=sample();
   unit.hp=full*.5;b.sync(true,.02,false,1);const halfBar=sample();
   unit.hp=full*.12;b.sync(true,.02,false,1);const lowBar=sample();
-  return {fullBar,halfBar,lowBar,mode:b.presentation.showHealth,
+  return {fullBar,halfBar,lowBar,mode:b.presentation.showHealth,defaultMode,
    buildingShadows:b.grounding.items.size,structures:b.bases.size};
  });
  expect(result.fullBar.fraction).toBe(1);
@@ -38,6 +40,7 @@ test('3D HP bar is bright green at 100%, decreases smoothly and turns yellow/red
  expect(result.lowBar.color).toBe('#ed5146');
  expect(result.lowBar.width).toBeLessThan(result.halfBar.width);
  expect(result.buildingShadows).toBe(result.structures);
+ expect(result.defaultMode).toBe('damaged');
  expect(result.mode).toBe('all');
  expect(errors).toEqual([]);
 });
