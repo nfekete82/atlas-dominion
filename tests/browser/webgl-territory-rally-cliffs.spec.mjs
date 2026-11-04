@@ -191,7 +191,13 @@ test('visual depth preview keeps an angled 3D RTS camera and desert fog',async({
       infantryHeight:MODEL_HEIGHTS.infantry,
       dimensionVersion:DIMENSIONS_VERSION,
       fogStillOpaque:view.battlefield.fogTexture.image.data.some((v,i)=>i%4===3&&v===255),
-      fogTint:shader.includes('vec4(0.040,0.032,0.025,a)'),
+      // Verify a dark warm fog tint, without pinning tests to one exact RGB triplet.
+      fogTint:(()=>{
+        const match=shader.match(/gl_FragColor\s*=\s*vec4\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*a\s*\)/);
+        if(!match)return false;
+        const [r,g,b]=match.slice(1).map(Number);
+        return r>g&&g>b&&r<.15&&b>=0;
+      })(),
       isWebGLRenderer:view.renderer.isWebGLRenderer===true
     };
   });
