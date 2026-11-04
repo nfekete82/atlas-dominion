@@ -71,12 +71,36 @@ export function unitIcon(kind){
 const buildingIconCache=new Map();
 async function rasterizeBuildingIcon(kind){
  const image=await loadImage(buildingIconUrl(kind));
- const ratio=Math.min(1,384/Math.max(image.naturalWidth,image.naturalHeight));
+ let source=image;
+ if(kind==='turret'){
+  // The authored turret body PNG deliberately EXCLUDES its moving weapon
+  // head. The classic 2D renderer draws that from a separate direction
+  // atlas; compose the same two layers for the static WebGL build card.
+  const response=await fetch('/src/assets/reborn/buildings-3d/turret-0.json');
+  if(!response.ok)throw new Error('Turret weapon metadata missing');
+  const data=await response.json();
+  const layer=data.turret,body=data.body;
+  const frame=layer?.frames?.[0];
+  if(!frame||!layer?.pivot||!body?.pivot||!layer.image)
+   throw new Error('Turret weapon layer missing');
+  const turret=await loadImage('/src/assets/reborn/buildings-3d/'+layer.image);
+  const composed=document.createElement('canvas');
+  composed.width=image.naturalWidth;composed.height=image.naturalHeight;
+  const cc=composed.getContext('2d');
+  cc.drawImage(image,0,0);
+  cc.drawImage(turret,frame.x,frame.y,frame.w,frame.h,
+   body.pivot[0]-layer.pivot[0],body.pivot[1]-layer.pivot[1],
+   frame.w,frame.h);
+  source=composed;
+ }
+ const width=source.naturalWidth??source.width;
+ const height=source.naturalHeight??source.height;
+ const ratio=Math.min(1,384/Math.max(width,height));
  const probe=document.createElement('canvas');
- probe.width=Math.max(1,Math.round(image.naturalWidth*ratio));
- probe.height=Math.max(1,Math.round(image.naturalHeight*ratio));
+ probe.width=Math.max(1,Math.round(width*ratio));
+ probe.height=Math.max(1,Math.round(height*ratio));
  const pc=probe.getContext('2d',{willReadFrequently:true});
- pc.drawImage(image,0,0,probe.width,probe.height);
+ pc.drawImage(source,0,0,probe.width,probe.height);
  const pixels=pc.getImageData(0,0,probe.width,probe.height).data;
  let left=probe.width,top=probe.height,right=-1,bottom=-1;
  for(let y=0;y<probe.height;y++)for(let x=0;x<probe.width;x++){
@@ -93,7 +117,7 @@ async function rasterizeBuildingIcon(kind){
  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
  const scale=Math.min(306/w,208/h);
  const dw=w*scale,dh=h*scale;
- ctx.drawImage(image,sx,sy,w,h,(320-dw)/2,(220-dh)/2,dw,dh);
+ ctx.drawImage(source,sx,sy,w,h,(320-dw)/2,(220-dh)/2,dw,dh);
  return target.toDataURL('image/png');
 }
 export function buildingIcon(kind){
