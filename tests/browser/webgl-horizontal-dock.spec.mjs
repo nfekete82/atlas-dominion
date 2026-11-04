@@ -4,7 +4,7 @@ async function load(page){
  await page.setViewportSize({width:1440,height:900});
  await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',
   {waitUntil:'domcontentloaded'});
- await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:95000});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,null,{timeout:95000});
 }
 
 test('Zero Hour-inspired HUD has left minimap, horizontal middle catalog and right commands',async({page})=>{
@@ -67,8 +67,24 @@ test('lite mode still requests original detailed PBR building model, and ruins r
  expect(state.lite).toBe(true);
  expect(state.requested).toBe(true);
  expect(state.filename).toContain('buildings-3d/headquarters-0.glb');
+ await page.waitForFunction(()=>{
+  const b=window.__sandforgeWebGL?.battlefield;
+  return [...(b?.bases.values()??[])].some(e=>e.kind==='headquarters'&&e.detail);
+ },null,{timeout:65000});
+ const hasPBR=await page.evaluate(()=>{
+  const entries=[...window.__sandforgeWebGL.battlefield.bases.values()];
+  const model=entries.find(e=>e.kind==='headquarters')?.detail;
+  let maps=0;
+  model?.traverse(n=>{
+   if(!n.isMesh)return;
+   const materials=Array.isArray(n.material)?n.material:[n.material];
+   maps+=materials.filter(m=>m?.map&&m?.normalMap).length;
+  });
+  return maps>0;
+ });
+ expect(hasPBR).toBe(true);
  await page.waitForFunction(()=>window.__sandforgeWebGL.scene.children.some(
-  node=>node.userData?.ruinDecor===true),{timeout:35000});
+  node=>node.userData?.ruinDecor===true),null,{timeout:65000});
  const props=await page.evaluate(()=>window.__sandforgeWebGL.scene.children.filter(
   node=>node.userData?.ruinDecor===true).length);
  expect(props).toBeGreaterThan(0);
