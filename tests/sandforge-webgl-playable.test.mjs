@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {existsSync,readFileSync} from 'node:fs';
 import {Simulation} from '../dist/src/reborn/simulation.js';
 import {BUILDINGS,UNITS} from '../dist/src/reborn/catalog.js';
+import {SandforgeConstructionRecovery} from '../dist/webgl-construction-recovery.js';
 
 test('Canyon v15-v18: 3D campaign saves remain reloadable without changing simulation',()=>{
  for(const version of [15,16,17,18]){
@@ -152,4 +153,45 @@ test('3D Fog is black until discovery and zoom is constrained like the classic R
  assert.match(adapter,/depthTest:false,depthWrite:false/);
  assert.match(adapter,/renderOrder=990/);
  assert.ok(adapter.includes('visualPerimeter'),'outer terrain must participate in fog');
+});
+
+test('3D stalled construction safely retries paths, reattaches idle original worker, preserves manual orders',()=>{
+ const b={id:1000,owner:0,kind:'headquarters',x:200,y:200,radius:80,hp:300,buildRemaining:4};
+ const worker={id:1,owner:0,kind:'engineer',hp:110,x:280,y:270,defendUntil:0,
+  hold:false,carrier:null,workingTarget:null,repath:3,
+  path:[{x:240,y:210}],orders:[{kind:'build',target:1000,x:200,y:200,approach:{x:290,y:210}}]};
+ let commands=0;
+ const g={time:0,paused:false,status:'playing',bases:[b],units:[worker],notices:[],
+  command(ids,order){commands++;assert.deepEqual(ids,[1]);worker.orders=[order];return 1;}};
+ const repair=new SandforgeConstructionRecovery(g);
+ repair.tick();
+ g.time=4.1;repair.tick();
+ assert.equal(worker.path.length,0,'stalled original path must be cleared');
+ assert.equal(worker.repath,0);
+ assert.equal(worker.orders[0].approach,undefined,'stale approach must be recalculated');
+ assert.equal(commands,0,'active build order must not be overwritten');
+ worker.orders=[];g.time=9.2;repair.tick();
+ assert.equal(commands,1,'idle originally assigned pioneer should be re-commissioned');
+ assert.equal(worker.orders[0].kind,'build');
+ assert.equal(repair.recovered,1);
+ worker.orders=[{kind:'move',x:400,y:400}];
+ g.time=15;repair.tick();
+ assert.equal(commands,1,'manual move order must not be overwritten');
+ assert.equal(worker.orders[0].kind,'move');
+ b.buildRemaining=2.8;g.time=15.2;repair.tick();
+ assert.equal(commands,1,'genuine progress must reset recovery timer');
+});
+
+test('3D suspended audio and unavailable tech-tree artwork have explicit styles',()=>{
+ const main=readFileSync('dist/webgl-preview.js','utf8');
+ const style=readFileSync('dist/webgl-classic-hud.css','utf8');
+ const construction=readFileSync('dist/webgl-construction.js','utf8');
+ assert.match(main,/window\.addEventListener\('focus',/);
+ assert.match(main,/window\.addEventListener\('pageshow',/);
+ assert.match(main,/document\.addEventListener\('visibilitychange',/);
+ assert.match(main,/constructionRecovery\.tick\(\)/);
+ assert.match(style,/filter:grayscale\(1\) blur\(\.85px\)/);
+ assert.match(style,/button\.catalog-card:disabled/);
+ assert.match(construction,/PAUSIERT · PIONIER/);
+ assert.ok(existsSync('dist/webgl-construction-recovery.js'));
 });
