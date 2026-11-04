@@ -161,3 +161,47 @@ test('lite mode still requests original detailed PBR building model, and ruins r
   node=>node.userData?.ruinDecor===true).length);
  expect(props).toBeGreaterThan(0);
 });
+
+
+test('all nine unit types occupy one horizontal scroll row and buildings have no duplicate heading',async({page})=>{
+ test.setTimeout(115000);
+ await load(page);
+ const units=await page.evaluate(()=>{
+  const group=document.querySelector('#sf-actions [data-sf-group="units"]');
+  const cards=[...group.querySelectorAll('.catalog-card')];
+  const boxes=cards.map(el=>el.getBoundingClientRect());
+  const producers=[...group.querySelectorAll('[data-sf-producer]')];
+  const headingDisplays=producers.map(node=>getComputedStyle(node.querySelector('h2')).display);
+  const scrollable=group.scrollWidth>group.clientWidth;
+  group.scrollLeft=150;
+  return {
+   total:cards.length,
+   positions:boxes.map(box=>({x:box.x,y:box.y,width:box.width})),
+   producers:producers.length,
+   headingDisplays,
+   scrollable,
+   scrollLeft:group.scrollLeft
+  };
+ });
+ expect(units.total).toBe(9);
+ expect(units.producers).toBe(4);
+ expect(units.headingDisplays.every(value=>value==='none')).toBe(true);
+ expect(units.positions.every((p,i)=>i===0||p.x>units.positions[i-1].x)).toBe(true);
+ expect(units.positions.every(p=>Math.abs(p.y-units.positions[0].y)<5)).toBe(true);
+ expect(units.positions.every(p=>p.width>=130)).toBe(true);
+ expect(units.scrollable).toBe(true);
+ expect(units.scrollLeft).toBeGreaterThan(0);
+ await page.locator('#sf-tabs [data-tab="buildings"]').click();
+ const buildings=await page.evaluate(()=>{
+  const group=document.querySelector('#sf-actions [data-sf-group="buildings"]');
+  const cards=[...group.querySelectorAll('.catalog-card')];
+  const positions=cards.map(el=>el.getBoundingClientRect());
+  return {count:cards.length,heading:group.querySelector('h2'),
+   sameRow:positions.every(p=>Math.abs(p.y-positions[0].y)<5),
+   display:getComputedStyle(group.querySelector('.catalog-grid')).display};
+ });
+ expect(buildings.count).toBe(6);
+ expect(buildings.heading).toBeNull();
+ expect(buildings.sameRow).toBe(true);
+ expect(buildings.display).toBe('flex');
+});
