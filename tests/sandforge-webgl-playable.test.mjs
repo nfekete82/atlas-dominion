@@ -65,7 +65,7 @@ test('Classic Sandforge WebGL HUD shares the original shipped CSS and starts liv
  assert.match(hud,/class="radar hud frame"/);
  assert.match(hud,/class="catalog hud frame"/);
  assert.match(hud,/class="command hud frame sf-command"/);
- assert.match(hud,/data-action="save"/);
+ assert.match(hud,/makeAction\('save'/);
  assert.match(skin,/#sf-classic-root/);
  assert.match(js,/running=query.get\('pause'\)!=='1'/);
  assert.match(js,/game.paused=false/);
