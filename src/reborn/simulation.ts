@@ -115,6 +115,9 @@ export class Simulation {
     this.decorObstaclesCount=this.bases.length;
     return this.decorObstacles;
   }
+  /** Visibility-source scale only. Defaults to 1, preserving classic RTS and
+   * all headless AI/benchmark fixtures. 3D campaigns opt in to a modest bonus. */
+  visionScale=1;
   sight(u:Unit):number{return unitSpec(u).sight*(this.weather.storm&&!unitSpec(u).flying?WEATHER_RULES.groundSight:1);}
   healRadius(u:Unit):number{return HEAL_RADIUS*getVeterancyModifiers(u).healRange;}
   readonly tactical=new TacticalAI(this);
@@ -516,9 +519,9 @@ export class Simulation {
   private updateVisionMeasured():void {
     for(const owner of [0,1] as const){
       const visible=this.visible[owner];visible.fill(0);
-      const sources=[...this.units.filter(u=>u.owner===owner&&u.hp>0&&!u.carrier).map(u=>({key:`u${u.id}`,x:u.x,y:u.y,sight:this.sight(u),close:unitSpec(u).radius+this.world.cell*2,air:unitSpec(u).flying})),
-        ...this.bases.filter(b=>b.owner===owner&&b.hp>0).map(b=>({key:`b${b.id}`,x:b.x,y:b.y,sight:b.buildRemaining>0?110:buildingSpec(b).sight,close:b.radius+this.world.cell*2,air:false})),
-        ...this.territories.filter(t=>t.owner===owner).map(t=>({key:`t${t.id}`,...t.point,sight:RULES.bastion.sight,close:RULES.bastion.radius+this.world.cell*2,air:false}))];
+      const sources=[...this.units.filter(u=>u.owner===owner&&u.hp>0&&!u.carrier).map(u=>({key:`u${u.id}`,x:u.x,y:u.y,sight:this.sight(u)*this.visionScale,close:unitSpec(u).radius+this.world.cell*2,air:unitSpec(u).flying})),
+        ...this.bases.filter(b=>b.owner===owner&&b.hp>0).map(b=>({key:`b${b.id}`,x:b.x,y:b.y,sight:(b.buildRemaining>0?110:buildingSpec(b).sight)*this.visionScale,close:b.radius+this.world.cell*2,air:false})),
+        ...this.territories.filter(t=>t.owner===owner).map(t=>({key:`t${t.id}`,...t.point,sight:RULES.bastion.sight*this.visionScale,close:RULES.bastion.radius+this.world.cell*2,air:false}))];
       this.visionCache.update(this.world,owner,sources,visible);
       const discovered=new Set<number>();
       for(let i=0;i<visible.length;i++)if(visible[i]){this.explored[owner][i]=1;const cliff=this.world.cliffIds[i];if(cliff>=0)discovered.add(cliff);}
