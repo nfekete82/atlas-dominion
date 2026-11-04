@@ -3,7 +3,7 @@ import {clone as cloneSkeleton} from 'three/addons/utils/SkeletonUtils.js';
 import {UNITS,BUILDINGS,unitKinds,buildingKinds,unitSpec,buildingSpec} from '/src/reborn/catalog.js';
 import {RULES} from '/src/reborn/config.js';
 import {installClassicHud} from '/webgl-classic-hud.js';
-import {hydrateUnitIcons,unitIcon,buildingIconUrl} from '/webgl-portraits.js';
+import {hydrateUnitIcons,hydrateBuildingIcons,unitIcon,buildingIconUrl} from '/webgl-portraits.js';
 import {SandforgeActorPresentation} from '/webgl-actor-presentation.js';
 import {calibratedScale,visualUnitScale} from '/webgl-scale.js';
 import {SandforgeGroundingPass} from '/webgl-grounding.js';
@@ -566,7 +566,7 @@ export class SandforgeBattlefield {
    const spec=type==='unit'?UNITS[kind]:BUILDINGS[kind];
    const image=type==='unit'
     ?'<img data-sf-unit-icon="'+kind+'" alt="" decoding="async">'
-    :'<img src="'+buildingIconUrl(kind)+'" alt="" loading="lazy" decoding="async">';
+    :'<img data-sf-building-icon="'+kind+'" src="'+buildingIconUrl(kind)+'" alt="" loading="lazy" decoding="async">';
    const dataset=type==='unit'?'data-unit="'+kind+'"':'data-build="'+kind+'"';
    return '<button class="catalog-card" '+dataset+
     ' title="'+plain(spec.description)+'" aria-label="'+plain(spec.name)+' – '+spec.cost+' Credits">'+
@@ -630,6 +630,7 @@ export class SandforgeBattlefield {
    button.classList.toggle('sf-selected-build',button.dataset.build===this.buildKind);
   }
   hydrateUnitIcons(actions);
+  hydrateBuildingIcons(actions);
   const queuedBases=g.bases.filter(b=>b.owner===0&&b.hp>0&&b.queue?.length);
   const queues=queuedBases.reduce((sum,b)=>sum+b.queue.length,0);
   const constructionSites=g.bases.filter(b=>b.owner===0&&b.hp>0&&b.buildRemaining>0);
