@@ -132,3 +132,77 @@ test('Audio resumes after suspension; locked production stays legible; interrupt
  expect(recovered.remaining).toBeGreaterThan(0);
  expect(errors).toEqual([]);
 });
+
+test('3D placement overlay is drawn in a separate foreground pass after black fog and rocks',async({page})=>{
+ test.setTimeout(120000);
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.setViewportSize({width:1440,height:900});
+ await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',{waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:95000});
+ await page.locator('[data-tab="buildings"]').click();
+ await page.locator('[data-build="headquarters"]').click();
+ const canvas=page.locator('#stage canvas'),r=await canvas.boundingBox();
+ await page.mouse.move(r.x+r.width*.47,r.y+r.height*.47);
+ const result=await page.evaluate(()=>{
+  const a=window.__sandforgeWebGL,b=a.battlefield,ghost=b.buildPreview;
+  return {ghostVisible:ghost?.visible,
+   foregroundScene:ghost?.parent===b.buildPreviewScene,
+   absentFromWorld:!a.scene.children.includes(ghost),
+   lightCount:b.buildPreviewScene.children.filter(x=>x.isLight).length,
+   transparent:ghost.children.some(c=>c.children?.some(n=>n.isMesh&&n.material?.transparent&&n.material?.depthTest===false)),
+   stage:a.renderer.domElement.width};
+ });
+ expect(result.ghostVisible).toBe(true);
+ expect(result.foregroundScene).toBe(true);
+ expect(result.absentFromWorld).toBe(true);
+ expect(result.lightCount).toBeGreaterThanOrEqual(2);
+ expect(result.transparent).toBe(true);
+ expect(result.stage).toBeGreaterThan(400);
+ expect(errors).toEqual([]);
+});
+
+test('Space opens original Sandforge pause dialog even with units selected and resumes on second Space',async({page})=>{
+ test.setTimeout(120000);
+ await page.setViewportSize({width:1440,height:900});
+ await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1',{waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:95000});
+ const wasRunning=await page.evaluate(()=>{
+  const a=window.__sandforgeWebGL;
+  a.battlefield.selected=new Set(a.game.units.filter(x=>x.owner===0).map(u=>u.id));
+  return a.simulationRunning;
+ });
+ expect(wasRunning).toBe(true);
+ await page.keyboard.press('Space');
+ await expect(page.locator('#sf3d-pause-dialog')).toBeVisible();
+ expect(await page.evaluate(()=>window.__sandforgeWebGL.simulationRunning)).toBe(false);
+ await expect(page.locator('#sf3d-pause-dialog .pause-scene')).toBeVisible();
+ await page.keyboard.press('Space');
+ await expect(page.locator('#sf3d-pause-dialog')).toBeHidden();
+ expect(await page.evaluate(()=>window.__sandforgeWebGL.simulationRunning)).toBe(true);
+});
+
+test('3D audio settings can be enabled again and the user can play an audible test',async({page})=>{
+ test.setTimeout(120000);
+ await page.setViewportSize({width:1440,height:900});
+ await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',{waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:95000});
+ await page.locator('[data-action="menu"]').click();
+ await page.locator('#sf3d-pause-options').click();
+ await expect(page.locator('#sf3d-options-dialog')).toBeVisible();
+ await page.locator('#sf3d-sound').uncheck();
+ await page.locator('#sf3d-options-save').click();
+ expect(await page.evaluate(()=>window.__sandforgeWebGL.sound.enabled)).toBe(false);
+ await page.locator('#sf3d-pause-options').click();
+ await page.locator('#sf3d-sound').check();
+ await page.locator('#sf3d-audio-test').click();
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.sound?.context?.state==='running',{timeout:15000});
+ await expect(page.locator('#sf3d-audio-status')).toContainText('Soundtest gespielt');
+ const state=await page.evaluate(()=>{
+  const a=window.__sandforgeWebGL;
+  return {enabled:a.sound.enabled,volume:a.sound.volume,commands:a.sound.played.commands,state:a.sound.context.state};
+ });
+ expect(state.enabled).toBe(true);
+ expect(state.volume).toBeGreaterThanOrEqual(.85);
+ expect(state.commands).toBeGreaterThanOrEqual(1);
+ expect(state.state).toBe('running');
+});
