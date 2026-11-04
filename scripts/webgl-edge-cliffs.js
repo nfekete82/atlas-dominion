@@ -19,7 +19,9 @@ export function addBoundaryCliffs({scene,size,heightAt,seed=0,lowQuality=false})
  ];
  const cliffs=[],scree=[];
  function boundaryPoint(edge,t,offset){
-  const along=t*size;
+  // Extend each outer band to the offset of its adjacent edge, closing all
+  // four rocky corners without visible cracks or disconnected wall segments.
+  const along=-offset+t*(size+2*offset);
   if(edge===0)return {x:along,z:-offset};         // north
   if(edge===1)return {x:size+offset,z:along};    // east
   if(edge===2)return {x:size-along,z:size+offset}; // south
@@ -33,7 +35,7 @@ export function addBoundaryCliffs({scene,size,heightAt,seed=0,lowQuality=false})
    const t=k/tiles,p=boundaryPoint(edge,t,rows[band]);
    const irregular=Math.sin(t*46+edge*11.3+seed*.001)*6+
       Math.sin(t*93-edge*5.1+seed*.0004)*2.8;
-   const amount=band===0?0:irregular*(band/rows.length);
+   const amount=band===0?0:irregular*(band/rows.length)*Math.sin(Math.PI*t);
    const y=heightAt(p.x,p.z)+lift[band]+amount;
    positions.push(p.x-half,y,p.z-half);
    // Fine striations and changing sun exposure break the uniform wall.
@@ -53,6 +55,9 @@ export function addBoundaryCliffs({scene,size,heightAt,seed=0,lowQuality=false})
   geom.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
   geom.setIndex(indices);geom.computeVertexNormals();
   const wall=new THREE.Mesh(geom,materials);
+  // Short vertex contours give the cliffs broad side-to-side stratification
+  // instead of a row of repeated orange boulders. Slight environmental
+  // roughness and consistent sand colors keep them in the same light family.
   wall.receiveShadow=true;wall.castShadow=false;wall.frustumCulled=true;
   wall.name='visual-boundary-cliff-'+edge;
   wall.userData={visualBoundary:true,nonPlayable:true,edge};
