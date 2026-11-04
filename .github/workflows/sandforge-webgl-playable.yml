@@ -28,6 +28,7 @@ jobs:
           node --check scripts/webgl-battlefield.js
           node --check scripts/webgl-environment.js
           node --check scripts/webgl-combat-vfx.js
+          node --check scripts/webgl-portraits.js
       - run: npm run build
       - name: Validate actual 3D models, 2D simulation reuse and saved Canyon maps
         run: >-
