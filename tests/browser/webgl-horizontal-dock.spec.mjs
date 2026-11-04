@@ -200,6 +200,11 @@ test('context menus expose builder construction and only the selected producer u
  expect(builder.priceBelow).toBe(true);
  expect(builder.dockHeight).toBeGreaterThanOrEqual(300);
  expect(builder.unitTab).toBe(true);
+ await page.waitForFunction(()=>{
+  const icons=[...document.querySelectorAll('img[data-sf-building-icon]')];
+  return icons.length===6&&icons.every(img=>img.dataset.sfIconStatus==='ready'&&
+   img.naturalWidth===320&&img.naturalHeight===220);
+ },null,{timeout:45000});
 
  const roster=await page.evaluate(()=>{
   const {game,battlefield}=window.__sandforgeWebGL;
