@@ -82,6 +82,12 @@ export class SandforgeActorPresentation {
   this.status=new Map();
   this.stats={shots:0,hits:0,heals:0,visibleBars:0,walking:0,shooting:0};
   this.time=0;
+  this.showHealth='all';
+  this.remnants=[];
+  this.remnantMaterial=new THREE.MeshBasicMaterial({
+   color:'#4e4337',transparent:true,opacity:.64,depthWrite:false,side:THREE.DoubleSide
+  });
+  this.remnantGeometry=new THREE.PlaneGeometry(1,1);
  }
  attach(entry,entity,type){
   const bar=statusBar(this.scene,entity,type);
@@ -91,15 +97,43 @@ export class SandforgeActorPresentation {
   this.status.set(type+':'+entity.id,state);
   return state;
  }
- remove(entry){
+ remove(entry,entity=null){
   const state=entry?.presentation;
   if(!state)return;
+  // Preserve a short, visually grounded fall/wreck shadow without retaining
+  // a skinned model or influencing World collision/pathfinding.
+  if(entity?.hp<=0&&entry.node.visible){
+   const size=infantry.has(entity.kind)?23:air.has(entity.kind)?43:42;
+   const remnant=new THREE.Mesh(this.remnantGeometry,this.remnantMaterial.clone());
+   remnant.name='fallen-'+entity.kind+'-'+entity.id;
+   remnant.userData={deathEffect:true,nonPlayable:true};
+   remnant.rotation.x=-Math.PI/2;
+   remnant.scale.set(size,size*.6,1);
+   remnant.position.copy(entry.node.position);
+   remnant.position.y=Math.max(2,entry.node.position.y-(air.has(entity.kind)?170:0))+2;
+   this.scene.add(remnant);this.remnants.push({mesh:remnant,time:2.8,total:2.8});
+  }
   this.scene.remove(state.bar.root);
   state.bar.fillMaterial.dispose();
   state.flash.material.dispose();
   entry.node.remove(state.flash);
   this.status.delete(state.type+':'+state.unitId);
   entry.presentation=null;
+ }
+ stepRemnants(dt=0,active=true){
+  if(!active)return;
+  for(const r of this.remnants){
+   r.time-=dt;
+   r.mesh.material.opacity=.64*Math.min(1,Math.max(0,r.time)/.9);
+   r.mesh.scale.multiplyScalar(1+.035*dt);
+  }
+  this.remnants=this.remnants.filter(r=>{
+   if(r.time>0)return true;
+   this.scene.remove(r.mesh);r.mesh.material.dispose();return false;
+  });
+ }
+ setHealthMode(mode){
+  if(['all','selected','damaged','off'].includes(mode))this.showHealth=mode;
  }
  consumeShots(units,bases){
   for(const shot of this.game.shots){
@@ -121,13 +155,21 @@ export class SandforgeActorPresentation {
   const hp=Math.max(0,entity.hp);
   const maxHp=(type==='unit'?UNITS[entity.kind]:BUILDINGS[entity.kind])?.hp??hp;
   const pct=clamp(hp/Math.max(1,maxHp),0,1);
-  if(hp<bar.previousHp-.001){bar.hitPulse=.26;this.stats.hits++;}
+  if(hp<bar.previousHp-.001){
+   bar.hitPulse=.26;
+   state.hurtTime=.25;
+   this.stats.hits++;
+  }
   if(hp>bar.previousHp+.001){bar.healPulse=.22;this.stats.heals++;}
   bar.previousHp=hp;
   bar.hitPulse=Math.max(0,bar.hitPulse-dt);
   bar.healPulse=Math.max(0,bar.healPulse-dt);
   const visible=entry.node.visible&&hp>0;
-  bar.root.visible=visible;
+  const showBar=visible&&(this.showHealth==='all'||
+   this.showHealth==='selected'&&selected||
+   this.showHealth==='damaged'&&(selected||pct<.999));
+  bar.root.visible=showBar;
+  if(showBar)this.stats.visibleBars++;
   if(visible){
    bar.root.position.copy(entry.node.position);
    bar.root.position.y+=bar.altitude;
@@ -158,7 +200,9 @@ export class SandforgeActorPresentation {
   if(shooting&&visible)this.stats.shooting++;
   if(entry.animation){
    const clips=entry.animation;
-   const desired=shooting&&clips.attack?clips.attack:
+   const hurt=(state.hurtTime??0)>0;
+   const desired=hurt&&clips.hit?clips.hit:
+    shooting&&clips.attack?clips.attack:
     moving?clips.walk:clips.idle;
    const retrigger=shooting&&state.shotTrigger!==(state.lastClipTrigger??-1);
    if(desired&&typeof entry.playAnimation==='function')
@@ -180,9 +224,11 @@ export class SandforgeActorPresentation {
   const animated=Boolean(entry.animation?.walk&&entry.animation.walk!==entry.animation.idle);
   const bob=moving&&!animated&&infantry.has(entity.kind)?
    Math.sin((entity.walkDistance??state.motionDistance)*.18)*1.4:0;
+  state.hurtTime=Math.max(0,(state.hurtTime??0)-(active?dt:0));
   const recoil=shooting?Math.sin((1-clamp(state.shotPulse/.23,0,1))*Math.PI)*2.4:0;
+  const stagger=state.hurtTime>0?Math.sin((1-state.hurtTime/.25)*Math.PI)*1.7:0;
   body.position.y=base+bob;
-  if(!air.has(entity.kind))body.position.z=entry.visualBaseZ+recoil;
+  if(!air.has(entity.kind))body.position.z=entry.visualBaseZ+recoil-stagger;
  }
  refreshStats(){
   this.stats.visibleBars=0;this.stats.walking=0;this.stats.shooting=0;
