@@ -361,15 +361,15 @@ export class SandforgeBattlefield {
    // screen-space parallax: revealed tiles shift away from their soldiers.
    // Composite the aligned fog last to conceal objects in unseen territory.
    vertexShader:'uniform float mapSize; varying vec2 fogUv; void main(){fogUv=vec2(position.x/mapSize+.5,position.z/mapSize+.5);vec3 p=position;p.y+=3.0;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);}',
-   // Sample world-space fog identically on playable ground and the decorative
-   // perimeter. Outside the map, fade from the nearest discovered edge to
-   // fully black within ~400 world units; never reveal the end of the mesh.
-   fragmentShader:'uniform sampler2D fogTex;uniform float mapSize;uniform float fogStep;varying vec2 fogUv;void main(){vec2 uv=clamp(fogUv,vec2(0.001),vec2(0.999));float a=texture2D(fogTex,uv).a;vec2 d=vec2(fogStep*1.6,0.0);float n=max(max(texture2D(fogTex,clamp(uv+d,vec2(0.001),vec2(0.999))).a,texture2D(fogTex,clamp(uv-d,vec2(0.001),vec2(0.999))).a),max(texture2D(fogTex,clamp(uv+d.yx,vec2(0.001),vec2(0.999))).a,texture2D(fogTex,clamp(uv-d.yx,vec2(0.001),vec2(0.999))).a));a=max(a,n*0.44);vec2 beyond=max(max(-fogUv,fogUv-1.0),vec2(0.0));float edge=max(beyond.x,beyond.y);a=max(a,smoothstep(0.0,420.0/mapSize,edge));gl_FragColor=vec4(0.055,0.043,0.033,a);}',
+   // Only real playable terrain receives authoritative fog-of-war; the
+   // decorative outer ring contains no units, buildings or discovery data.
+   // Covering that ring would hide its mountains and palm groves completely.
+   fragmentShader:'uniform sampler2D fogTex;uniform float mapSize;uniform float fogStep;varying vec2 fogUv;void main(){vec2 uv=clamp(fogUv,vec2(0.001),vec2(0.999));float a=texture2D(fogTex,uv).a;vec2 d=vec2(fogStep*1.6,0.0);float n=max(max(texture2D(fogTex,clamp(uv+d,vec2(0.001),vec2(0.999))).a,texture2D(fogTex,clamp(uv-d,vec2(0.001),vec2(0.999))).a),max(texture2D(fogTex,clamp(uv+d.yx,vec2(0.001),vec2(0.999))).a,texture2D(fogTex,clamp(uv-d.yx,vec2(0.001),vec2(0.999))).a));a=max(a,n*0.44);vec2 beyond=max(max(-fogUv,fogUv-1.0),vec2(0.0));float edge=max(beyond.x,beyond.y);a=max(a,smoothstep(0.0,420.0/mapSize,edge));gl_FragColor=vec4(0.14,0.108,0.075,a);}',
    transparent:true,depthTest:false,depthWrite:false,side:THREE.DoubleSide
   });
-  const groundAndPerimeter=[...this.groundMeshes,
-   ...this.scene.children.filter(node=>node.userData?.visualPerimeter)];
-  this.fogNodes=groundAndPerimeter.map(mesh=>{
+  // Decorative, non-playable perimeter is always visible. Fog remains
+  // fully opaque in undiscovered playable cells and cannot leak enemy data.
+  this.fogNodes=this.groundMeshes.map(mesh=>{
    const layer=new THREE.Mesh(mesh.geometry,mat);layer.frustumCulled=false;
    layer.renderOrder=990;layer.userData={fogOverlay:true,visualOnly:true};
    this.scene.add(layer);return layer;
