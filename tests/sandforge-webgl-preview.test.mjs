@@ -51,6 +51,6 @@ test('webgl: preview is actually packaged with local offline Three.js vendor and
  assert.match(html,/3D-Startfehler/, 'browser crashes must surface visibly');
  assert.match(js,/new THREE.InstancedMesh/);
  assert.match(js,/\.gltf/);
- assert.match(js,/new Simulation\(seed,sizes\[bastions\]\)/);
+ assert.match(js,/Simulation\.campaign\(seed,sizes\[bastions\]\)/);
  assert.doesNotMatch(js,/eval\(|https?:\/\//);
 });
