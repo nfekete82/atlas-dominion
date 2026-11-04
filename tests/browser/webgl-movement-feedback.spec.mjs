@@ -63,8 +63,7 @@ test('an unselected ground right-click still produces a short temporary destinat
   const p=world.nearest({x:unit.x+180,y:unit.y+40});
   const camera=view.camera,controls=view.controls;
   const center=view.battlefield.pos(p.x,p.y);
-  const unitPos=view.battlefield.pos(unit.x,unit.y);
-  const delta=unitPos.clone().sub(controls.target);
+  const delta=center.clone().sub(controls.target);
   controls.target.add(delta);camera.position.add(delta);controls.update();
   const rect=canvas.getBoundingClientRect();
   center.project(camera);
