@@ -30,7 +30,7 @@ test('3D campaign parity: black fog, engineer HQ bootstrap and blocked productio
  expect(initial.black).toBe(initial.unknown);
  expect(initial.visible).toBeGreaterThan(0);
  expect(initial.cameraDistance).toBeLessThan(100);
- expect(initial.minZoom).toBeGreaterThanOrEqual(1);
+ expect(initial.minZoom).toBeCloseTo(.7,2);
  expect(initial.maxZoom).toBeLessThanOrEqual(3.5);
  await expect(page.locator('[data-unit="infantry"]')).toBeDisabled();
  await page.locator('[data-tab="buildings"]').click();
