@@ -80,6 +80,7 @@ export function installClassicHud(){
  makeAction('save','Spiel speichern','▣');
  makeAction('load','Spielstand laden','⇧');
  makeAction('fog','Nebel des Krieges umschalten','◉');
+ makeAction('health','Lebensbalken umschalten','♥');
  action('rotate-left','Kamera links drehen','Kamera links drehen (Q)');
  action('rotate-right','Kamera rechts drehen','Kamera rechts drehen (E)');
  action('home','Kamera zur Basis','Ansicht zurücksetzen');
