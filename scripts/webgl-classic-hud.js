@@ -72,6 +72,14 @@ export function installClassicHud(){
   const el=move(id,tools);el.title=tooltip;el.setAttribute('aria-label',label);
   el.classList.add('sf-tool-button');return el;
  };
+ const makeAction=(action,label,icon)=>{
+  const button=document.createElement('button');button.type='button';
+  button.dataset.action=action;button.title=label;button.setAttribute('aria-label',label);
+  button.textContent=icon;button.className='sf-tool-button';tools.append(button);
+ };
+ makeAction('save','Spiel speichern','▣');
+ makeAction('load','Spielstand laden','⇧');
+ makeAction('fog','Nebel des Krieges umschalten','◉');
  action('rotate-left','Kamera links drehen','Kamera links drehen (Q)');
  action('rotate-right','Kamera rechts drehen','Kamera rechts drehen (E)');
  action('home','Kamera zur Basis','Ansicht zurücksetzen');
