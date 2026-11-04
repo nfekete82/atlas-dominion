@@ -62,11 +62,13 @@
    active.battlefield.fogEnabled=enabled;
    active.battlefield.updateFog();
    const soundButton=$('sound');
-   soundButton.disabled=!$('sf3d-sound').checked;
-   if(soundButton.disabled&&active.sound?.enabled){
-    active.sound.setEnabled(false);
-    soundButton.setAttribute('aria-pressed','false');
-   }
+   const shouldEnable=$('sf3d-sound').checked;
+   soundButton.disabled=false;
+   active.sound.setEnabled(shouldEnable);
+   soundButton.setAttribute('aria-pressed',String(shouldEnable));
+   soundButton.textContent=shouldEnable?'Sound ausschalten':'Sound einschalten';
+   soundButton.title=shouldEnable?'Audio freigegeben (Klick zum Ausschalten)':'Audio deaktiviert (Klick zum Einschalten)';
+   if(shouldEnable)void active.sound.unlock().catch(error=>console.warn('WebAudio activation requires a gesture',error));
   }
   notify('Optionen gespeichert. Grafikqualität gilt beim nächsten Spielstart.');
  }
@@ -95,6 +97,28 @@
  $('sf3d-main-load').addEventListener('click',continueSave);
  $('sf3d-main-options').addEventListener('click',openOptions);
  $('sf3d-options-save').addEventListener('click',saveOptions);
+ $('sf3d-audio-test').addEventListener('click',async()=>{
+  const status=$('sf3d-audio-status');
+  const runtime=window.__sandforgeWebGL;
+  if(!runtime?.sound){
+   status.textContent='Audio-Test erst innerhalb einer gestarteten Kampagne verfügbar.';
+   return;
+  }
+  // Deliberate user gesture: browsers allow AudioContext.resume() here.
+  const sound=runtime.sound;
+  $('sf3d-sound').checked=true;
+  sound.setEnabled(true);
+  sound.setVolume(Math.max(sound.volume,.85));
+  try{
+   await sound.unlock();
+   if(sound.context?.state!=='running')throw new Error('AudioContext '+(sound.context?.state??'unbekannt'));
+   sound.command();sound.select();
+   status.textContent='Soundtest gespielt · AudioContext läuft · Lautstärke '+Math.round(sound.volume*100)+' %';
+  }catch(error){
+   status.textContent='Audio blockiert: '+String(error?.message??error);
+   console.warn('Sandforge sound test failed:',error);
+  }
+ });
  $('sf3d-new-confirm').addEventListener('click',()=>{
   const count=Number($('sf3d-map-size').value);
   const text=$('sf3d-seed').value.trim();
