@@ -425,7 +425,7 @@ export class SandforgeBattlefield {
    // Only real playable terrain receives authoritative fog-of-war; the
    // decorative outer ring contains no units, buildings or discovery data.
    // Covering that ring would hide its mountains and palm groves completely.
-   fragmentShader:'uniform sampler2D fogTex;uniform float mapSize;uniform float fogStep;varying vec2 fogUv;void main(){vec2 uv=clamp(fogUv,vec2(0.001),vec2(0.999));float a=texture2D(fogTex,uv).a;vec2 d=vec2(fogStep*1.6,0.0);float n=max(max(texture2D(fogTex,clamp(uv+d,vec2(0.001),vec2(0.999))).a,texture2D(fogTex,clamp(uv-d,vec2(0.001),vec2(0.999))).a),max(texture2D(fogTex,clamp(uv+d.yx,vec2(0.001),vec2(0.999))).a,texture2D(fogTex,clamp(uv-d.yx,vec2(0.001),vec2(0.999))).a));a=max(a,n*0.44);vec2 beyond=max(max(-fogUv,fogUv-1.0),vec2(0.0));float edge=max(beyond.x,beyond.y);a=max(a,smoothstep(0.0,420.0/mapSize,edge));gl_FragColor=vec4(0.14,0.108,0.075,a);}',
+   fragmentShader:'uniform sampler2D fogTex;uniform float mapSize;uniform float fogStep;varying vec2 fogUv;void main(){vec2 uv=clamp(fogUv,vec2(0.001),vec2(0.999));float a=texture2D(fogTex,uv).a;vec2 d=vec2(fogStep*1.6,0.0);float n=max(max(texture2D(fogTex,clamp(uv+d,vec2(0.001),vec2(0.999))).a,texture2D(fogTex,clamp(uv-d,vec2(0.001),vec2(0.999))).a),max(texture2D(fogTex,clamp(uv+d.yx,vec2(0.001),vec2(0.999))).a,texture2D(fogTex,clamp(uv-d.yx,vec2(0.001),vec2(0.999))).a));a=max(a,n*0.44);vec2 beyond=max(max(-fogUv,fogUv-1.0),vec2(0.0));float edge=max(beyond.x,beyond.y);a=max(a,smoothstep(0.0,420.0/mapSize,edge));gl_FragColor=vec4(0.018,0.023,0.026,a);}',
    transparent:true,depthTest:false,depthWrite:false,side:THREE.DoubleSide
   });
   // Decorative, non-playable perimeter is always visible. Fog remains
@@ -443,7 +443,8 @@ export class SandforgeBattlefield {
    const k=i*4;
    data[k]=24;data[k+1]=30;data[k+2]=31;
    // Unexplored remains opaque (no hidden information leaks). Give the
-   // cover a subtle dark-sand tint so the battlefield reads as one world.
+   // cover opaque near-black like the original RTS; explored areas still
+   // retain partial visibility, and currently visible cells stay uncovered.
    data[k+3]=visible[0][i]?0:explored[0][i]?215:255;
   }
   this.fogTexture.needsUpdate=true;
