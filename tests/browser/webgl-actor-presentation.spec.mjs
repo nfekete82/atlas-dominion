@@ -34,8 +34,8 @@ test('3D soldiers: health changes, weapon fire, hit recoil and death effect foll
  expect(before.removed).toBe(true);
  expect(before.remaining).toBe(0);
  await page.locator('[data-action="health"]').click();
- expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.presentation.showHealth)).toBe('damaged');
- await page.locator('[data-action="health"]').click();
  expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.presentation.showHealth)).toBe('selected');
+ await page.locator('[data-action="health"]').click();
+ expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.presentation.showHealth)).toBe('off');
  expect(errors).toEqual([]);
 });
