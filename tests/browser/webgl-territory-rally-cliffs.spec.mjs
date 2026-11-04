@@ -445,3 +445,22 @@ test('Fog-of-War shader softens the visible-side border without uncovering hidde
   expect(state.cellStep).toBeGreaterThan(0);
   expect(state.unexploredOpacity).toBe(true);
 });
+
+test('decorative 3D desert tapers into the horizon instead of ending as a hard cliff',async({page})=>{
+  await load(page);
+  const state=await page.evaluate(()=>{
+    const perimeter=window.__sandforgeWebGL.visualPerimeter;
+    const leftmost=Math.min(...perimeter.meshes.map(m=>m.userData.tileX));
+    const edge=perimeter.meshes.find(m=>m.userData.tileX===leftmost&&m.userData.tileY===0);
+    return {
+      edgeHeight:edge?.geometry.getAttribute('position').getY(0),
+      tileCount:perimeter.meshes.length,
+      decorativeOnly:edge?.userData.nonPlayable,
+      worldSize:window.__sandforgeWebGL.game.world.size
+    };
+  });
+  expect(state.tileCount).toBeGreaterThan(10);
+  expect(state.decorativeOnly).toBe(true);
+  expect(state.edgeHeight).toBeCloseTo(0,3);
+  expect(state.worldSize).toBeGreaterThan(0);
+});
