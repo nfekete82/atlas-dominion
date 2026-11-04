@@ -4,7 +4,7 @@ import * as THREE from 'three';
  * They begin OUTSIDE the authoritative World, so no cells are opened,
  * no unit/pathfinding bounds change and projectiles do not hit them.
  */
-export function addBoundaryCliffs({scene,size,heightAt,seed=0,lowQuality=false}){
+export function addBoundaryCliffs({scene,size,heightAt,seed=0,lowQuality=false,softRim=false}){
  const half=size*.5,rows=[0,38,80,130,196,286];
  // Stepped erosion rather than a 300-unit tall foreground mountain.
  // The boundary belongs to the background, not the player camera.
@@ -71,6 +71,9 @@ export function addBoundaryCliffs({scene,size,heightAt,seed=0,lowQuality=false})
   // instead of a row of repeated orange boulders. Slight environmental
   // roughness and consistent sand colors keep them in the same light family.
   wall.receiveShadow=true;wall.castShadow=false;wall.frustumCulled=true;
+  // No continuous wall in spacious maps: a low erosion apron and isolated
+  // natural rocks lead to a black background, as in Zero Hour.
+  wall.visible=!softRim;
   wall.name='visual-boundary-cliff-'+edge;
   wall.userData={visualBoundary:true,nonPlayable:true,edge};
   scene.add(wall);cliffs.push(wall);
@@ -125,9 +128,10 @@ export function addBoundaryCliffs({scene,size,heightAt,seed=0,lowQuality=false})
  for(let edge=0;edge<4;edge++)for(let i=0;i<perEdge;i++){
   const t=(i+.16+rand()*.68)/perEdge;
   // Keep every rock beyond the playable 0..size square.
-  const offset=105+rand()*150;
+  const offset=softRim?12+rand()*62:105+rand()*150;
   const p=boundaryPoint(edge,t,offset);
-  const width=19+rand()*34,height=28+rand()*66;
+  const width=softRim?11+rand()*25:19+rand()*34,
+   height=softRim?15+rand()*48:28+rand()*66;
   // Sink the outcrop into its terrain, rather than exposing a flat model base.
   dummy.position.set(p.x-half,heightAt(p.x,p.z)+height*.27,p.z-half);
   dummy.rotation.set((rand()-.5)*.16,rand()*Math.PI*2,(rand()-.5)*.22);
