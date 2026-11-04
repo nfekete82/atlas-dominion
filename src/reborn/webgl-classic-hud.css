@@ -214,3 +214,33 @@
  #sf-classic-root #sf-actions .catalog-card{min-height:115px!important;height:115px!important}
  #sf-classic-root #sf-actions .sf-card-image{min-height:63px!important}
 }
+
+/* Locked tech-tree units/buildings: desaturate and softly blur the art, but
+   leave the name, price and prerequisites readable in German. Earlier menu
+   overrides set filter:none !important; this block intentionally comes last. */
+#sf-classic-root #sf-actions button.catalog-card:disabled,
+#sf-classic-root #sf-actions button.catalog-card.locked {
+  opacity:.78 !important;
+  filter:none !important;
+  background:linear-gradient(155deg,#343632,#171e1c 72%) !important;
+  border-color:#555b54 !important;
+  cursor:not-allowed;
+}
+#sf-classic-root #sf-actions button.catalog-card:disabled .sf-card-image img,
+#sf-classic-root #sf-actions button.catalog-card.locked .sf-card-image img {
+  filter:grayscale(1) blur(.85px) brightness(.55) !important;
+  opacity:.64 !important;
+}
+#sf-classic-root #sf-actions button.catalog-card:disabled .card-meta,
+#sf-classic-root #sf-actions button.catalog-card.locked .card-meta {
+  background:#202622 !important;
+  color:#a0aca6 !important;
+}
+#sf-classic-root #sf-actions button.catalog-card:disabled .card-name,
+#sf-classic-root #sf-actions button.catalog-card.locked .card-name {
+  color:#a9b1a9 !important;
+}
+#sf-classic-root #sf-actions button.catalog-card:disabled .card-cost,
+#sf-classic-root #sf-actions button.catalog-card.locked .card-cost {
+  color:#b8aa88 !important;
+}
