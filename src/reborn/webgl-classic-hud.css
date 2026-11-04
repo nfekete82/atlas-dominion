@@ -322,9 +322,9 @@
    event handlers, catalog groups, radar and queue remain the same DOM nodes.
    Keep the battlefield full-width ABOVE the dock; no fixed right sidebar. */
 #sf-classic-root{
- --sf-dock-height:270px;
- --sf-dock-command:360px;
- --sf-dock-radar:220px;
+ --sf-dock-height:286px;
+ --sf-dock-command:374px;
+ --sf-dock-radar:226px;
 }
 #sf-classic-root #sidebar{
  position:fixed!important;
@@ -576,10 +576,10 @@
 #sf-classic-root #sf-actions .sf-group:is(
  [data-sf-group="units"],[data-sf-group="buildings"]
 ) .catalog-card{
- flex:0 0 138px!important;
- width:138px!important;
- min-width:138px!important;
- max-width:138px!important;
+ flex:0 0 146px!important;
+ width:146px!important;
+ min-width:146px!important;
+ max-width:146px!important;
 }
 @media(max-width:1000px){
  #sf-classic-root #sf-actions .sf-group:is(
