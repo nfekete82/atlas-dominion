@@ -119,3 +119,31 @@ test('Decoration outside the map is packaged but is absent from AI, pathfinding 
  assert.doesNotMatch(battlefield,/KeyA/);
  assert.match(docker,/COPY scripts\/webgl-perimeter\.js/);
 });
+
+test('3D and classic campaign share HQ-first economy, save flags and unit producer rules',()=>{
+ for(const mapVersion of [15,16,17,18]){
+  const game=Simulation.campaign(2074,mapVersion);
+  assert.equal(game.bootstrapVersion,1);
+  assert.equal(game.hasHeadquarters(0),false);
+  assert.equal(game.needsHeadquarters(0),true);
+  assert.equal(game.producer(0,'infantry'),undefined);
+  assert.equal(game.producer(0,'engineer'),undefined);
+  const saved=Simulation.load(game.save());
+  assert.equal(saved.needsHeadquarters(0),true,'no free HQ after reload');
+  const candidates=game.headquartersCandidates(0);
+  const site=candidates.find(p=>game.buildError(0,'headquarters',p)===null);
+  assert.ok(site,'at least one legal engineer HQ construction site on '+mapVersion);
+  assert.equal(game.buildError(0,'barracks',site),'Ein fertiggestelltes Hauptquartier ist erforderlich.');
+ }
+});
+
+test('3D Fog is black until discovery and zoom is constrained like the classic RTS',()=>{
+ const preview=readFileSync('dist/webgl-preview.js','utf8');
+ const adapter=readFileSync('dist/webgl-battlefield.js','utf8');
+ assert.match(preview,/Simulation\.campaign\(seed,sizes\[bastions\]\)/);
+ assert.match(preview,/controls\.minZoom=1\.0;controls\.maxZoom=3\.5/);
+ assert.match(preview,/projectedRadius/);
+ assert.match(adapter,/visible\[0\]\[i\]\?0:explored\[0\]\[i\]\?215:255/);
+ assert.match(adapter,/visible\[0\]\[index\]\?0:this\.game\.explored\[0\]\[index\]\?\.82:1/);
+ assert.match(adapter,/p\.y\+=420\.0/);
+});
