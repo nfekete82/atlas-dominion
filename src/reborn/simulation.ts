@@ -159,9 +159,11 @@ export class Simulation {
   }
   static campaign(seed=randomMapSeed(),version:MapVersion=MAP_VERSION):Simulation {return new Simulation(seed,version,false,true);}
   obstacles():Base[]{return this.bases.filter(b=>b.hp>0);}
-  /** A tower is solid for pathfinding while its capture annulus remains free. */
+  /** Tower footprints are immutable for a match; reuse across AI and ticks. */
+  private bastionNavigationCache?:{x:number;y:number;radius:number}[];
   bastionColliders():{x:number;y:number;radius:number}[]{
-    return bastionStructureColliders(this.territories,this.world.mapVersion);
+    return this.bastionNavigationCache??=
+      bastionStructureColliders(this.territories,this.world.mapVersion);
   }
   spawn(owner:Faction,p:Point,kind:UnitKind='infantry'):Unit {
     while(this.bases.some(b=>b.id===this.nextId))this.nextId++;
