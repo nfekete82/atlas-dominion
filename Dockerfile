@@ -14,6 +14,9 @@ COPY scripts/webgl-combat-vfx.js ./scripts/webgl-combat-vfx.js
 COPY scripts/webgl-classic-hud.js ./scripts/webgl-classic-hud.js
 COPY scripts/webgl-portraits.js ./scripts/webgl-portraits.js
 COPY scripts/webgl-perimeter.js ./scripts/webgl-perimeter.js
+COPY scripts/webgl-edge-cliffs.js ./scripts/webgl-edge-cliffs.js
+COPY scripts/webgl-grounding.js ./scripts/webgl-grounding.js
+COPY scripts/webgl-scale.js ./scripts/webgl-scale.js
 RUN npm install --no-audit --no-fund && npm run build
 
 FROM node:22-alpine
