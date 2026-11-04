@@ -442,6 +442,16 @@ export class SandforgeBattlefield {
    ring.position.copy(this.units.get(id)?.node.position??this.entityPosition(unit));ring.position.y+=3;
   }
  }
+ // Selection is the source of truth for the production catalogue.
+ // A builder exposes construction; a completed, selected producer exposes
+ // ONLY its own unit roster. Global tech unlocks never reveal unrelated tabs.
+ catalogContext(){
+  const game=this.game;
+  const engineer=game.units.some(u=>this.selected.has(u.id)&&u.owner===0&&u.hp>0&&!u.carrier&&u.kind==='engineer');
+  const base=game.bases.find(b=>b.id===this.selectedBase&&b.owner===0&&b.hp>0&&b.buildRemaining<=0);
+  const producer=base&&unitKinds.some(kind=>UNITS[kind].producers.includes(base.kind))?base:null;
+  return {engineer,producer,preferred:engineer?'buildings':producer?'units':'territories'};
+ }
  buildInterface(){
   this.panel=installClassicHud();
   this.mini=this.panel.querySelector('#sf-map');
@@ -449,11 +459,17 @@ export class SandforgeBattlefield {
    const button=e.target.closest('button');if(!button)return;
    if(this.sound?.enabled)this.sound.select();
    const kind=button.dataset.build,unit=button.dataset.unit,action=button.dataset.action;
-   if(kind){this.beginPlacement(kind);this.attackMode=false;this.sound?.select?.();
-    this.message('Bauplatz wählen: '+BUILDINGS[kind].name+' · R: drehen · Shift: Aufträge anhängen');this.drawInterface();}
+   if(kind){
+    if(!this.catalogContext().engineer){this.message('Zum Bauen zuerst einen Pionier auswählen');return;}
+    this.beginPlacement(kind);this.attackMode=false;this.sound?.select?.();
+    this.message('Bauplatz wählen: '+BUILDINGS[kind].name+' · R: drehen · Shift: Aufträge anhängen');this.drawInterface();
+   }
    if(unit){
-    const producer=this.game.producer(0,unit);
-    if(this.game.recruit(producer?.id??-1,unit))this.message(UNITS[unit].name+' in Auftrag');
+    const producer=this.catalogContext().producer;
+    if(!producer||!UNITS[unit].producers.includes(producer.kind)){
+     this.message('Zum Ausbilden das passende Produktionsgebäude auswählen');return;
+    }
+    if(this.game.recruit(producer.id,unit))this.message(UNITS[unit].name+' in Auftrag');
     else this.message('Nicht möglich: Gebäude, Kapazität oder Credits prüfen');
     this.drawInterface();
    }
@@ -490,6 +506,8 @@ export class SandforgeBattlefield {
    if(action==='select-all'){this.selected=new Set(this.game.units.filter(u=>u.hp>0&&u.owner===0&&!u.carrier).map(u=>u.id));this.selectedBase=null;this.drawInterface();}
   });
   this.panel.addEventListener('sandforge-tabchange',event=>{
+   const available={buildings:this.catalogContext().engineer,units:Boolean(this.catalogContext().producer),territories:true};
+   if(!available[event.detail.tab])return;
    this.panel.querySelector('#sf-actions').scrollTop=0;
    const descriptions={units:'Wähle einen Produktionsauftrag. Gebäude schalten neue Einheiten frei.',
     buildings:'Gebäude auswählen und einen freien Bauplatz auf der Karte anklicken.',
@@ -522,6 +540,21 @@ export class SandforgeBattlefield {
  }
  drawInterface(){
   const g=this.game,view=this.panel,actions=view.querySelector('#sf-actions');
+  const context=this.catalogContext();
+  const selectionKey=[...this.selected].sort((a,b)=>a-b).join(',')+'|'+String(this.selectedBase)+'|'+Boolean(context.producer);
+  const available={units:Boolean(context.producer),buildings:context.engineer,territories:true};
+  if(this.catalogSelectionKey!==selectionKey||!available[view.dataset.tab]){
+   view.dataset.tab=context.preferred;
+   this.catalogSelectionKey=selectionKey;
+   actions.scrollTop=0;actions.scrollLeft=0;
+  }
+  view.dataset.catalogContext=context.preferred;
+  for(const tab of view.querySelectorAll('#sf-tabs [data-tab]')){
+   const allowed=available[tab.dataset.tab];
+   tab.hidden=!allowed;
+   tab.disabled=!allowed;
+   tab.setAttribute('aria-pressed',String(view.dataset.tab===tab.dataset.tab));
+  }
   view.querySelector('#sf-credits').textContent=format(g.credits[0]);
   view.querySelector('#sf-income').textContent='+ '+format(g.income(0));
   view.querySelector('#sf-capacity').innerHTML=g.count(0)+' <em>/ '+RULES.capacity+'</em>';
@@ -563,20 +596,24 @@ export class SandforgeBattlefield {
    actions.innerHTML=markup;this.previousActionsMarkup=markup;
    actions.scrollTop=scroll;
   }
+  // The DOM keeps the complete catalogue for fast updates and icon caching,
+  // but only the selected producer's section can be viewed or activated.
+  for(const section of actions.querySelectorAll('[data-sf-producer]'))
+   section.hidden=!context.producer||section.dataset.sfProducer!==context.producer.kind;
   for(const button of actions.querySelectorAll('button[data-unit],button[data-build]')){
    const kind=button.dataset.unit??button.dataset.build;
    const spec=button.dataset.unit?UNITS[kind]:BUILDINGS[kind];
+   const correctProducer=context.producer&&UNITS[kind]?.producers.includes(context.producer.kind);
    const unavailable=button.dataset.unit
-    ?!g.producer(0,kind)||g.credits[0]<spec.cost||g.count(0)+g.queued(0)>=RULES.capacity
-    :g.credits[0]<spec.cost||!g.hasHeadquarters(0)&&kind!=='headquarters';
-   const completed=g.bases.some(b=>b.owner===0&&b.kind===kind&&b.hp>0&&b.buildRemaining<=0);
-   const underConstruction=g.bases.some(b=>b.owner===0&&b.kind===kind&&b.hp>0&&b.buildRemaining>0);
+    ?!correctProducer||g.credits[0]<spec.cost||g.count(0)+g.queued(0)>=RULES.capacity
+    :!context.engineer||g.credits[0]<spec.cost||!g.hasHeadquarters(0)&&kind!=='headquarters';
    const requirement=button.dataset.unit
-    ?(!g.hasHeadquarters(0)?'Hauptquartier zuerst fertigstellen':
-       !g.producer(0,kind)?'Benötigt fertiges Gebäude: '+UNITS[kind].producers.map(k=>BUILDINGS[k].name).join(' / '):
+    ?(!context.producer?'Produktionsgebäude auswählen':
+       !correctProducer?'Dieses Gebäude produziert diese Einheit nicht':
        g.credits[0]<spec.cost?'Zu wenig Credits':
        g.count(0)+g.queued(0)>=RULES.capacity?'Einheitenlimit erreicht':'')
-    :(!g.hasHeadquarters(0)&&kind!=='headquarters'?'Hauptquartier zuerst fertigstellen':
+    :(!context.engineer?'Pionier auswählen':
+       !g.hasHeadquarters(0)&&kind!=='headquarters'?'Hauptquartier zuerst fertigstellen':
        g.credits[0]<spec.cost?'Zu wenig Credits':
        kind==='headquarters'&&!g.needsHeadquarters(0)?'Hauptquartier bereits vorhanden':'');
    // Completed buildings alone unlock production. A construction site does not.
