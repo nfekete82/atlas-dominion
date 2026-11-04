@@ -108,7 +108,13 @@ test('3D RTS: original-style HUD starts live and a real right click moves select
  await page.setViewportSize({width:1440,height:900});
  await page.goto('/webgl-preview.html?bastions=4&seed=2026&lite=1',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:90000});
- await expect(page.locator('.sf-rts .top .wordmark')).toContainText('SANDFORGE');
+ const wordmark=page.locator('.sf-rts .top .wordmark');
+ await expect(wordmark).toBeVisible();
+ const logo=wordmark.locator('img.sandforge-hud-logo');
+ await expect(logo).toHaveAttribute('src','/src/assets/reborn/sandforge-logo-transparent.webp');
+ await expect(logo).toHaveAttribute('alt',/Sandforge/i);
+ await expect(logo).toBeVisible();
+ await expect.poll(()=>logo.evaluate(img=>img.complete&&img.naturalWidth>0)).toBe(true);
  await expect(page.locator('#sidebar .catalog-tabs')).toBeVisible();
  await expect(page.locator('#sidebar .radar')).toBeVisible();
  await expect(page.locator('#sf-selection-panel')).toBeVisible();
