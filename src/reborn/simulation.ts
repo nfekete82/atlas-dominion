@@ -8,6 +8,7 @@ import { World, inside, type Territory } from './world.js';
 import {visibleBasePropColliders} from './vehicle-decor-collision.js';
 import {vehicleStructureColliders} from './vehicle-structure-collision.js';
 import {infantryStructureColliders} from './infantry-structure-collision.js';
+import {bastionStructureColliders} from './bastion-structure-collision.js';
 import {constructionVisualClearance} from './construction-spacing.js';
 import {segmentDistance} from './world-generation.js';
 import {canCaptureSector,captureSeconds} from './territory-warfare.js';
@@ -158,6 +159,10 @@ export class Simulation {
   }
   static campaign(seed=randomMapSeed(),version:MapVersion=MAP_VERSION):Simulation {return new Simulation(seed,version,false,true);}
   obstacles():Base[]{return this.bases.filter(b=>b.hp>0);}
+  /** A tower is solid for pathfinding while its capture annulus remains free. */
+  bastionColliders():{x:number;y:number;radius:number}[]{
+    return bastionStructureColliders(this.territories,this.world.mapVersion);
+  }
   spawn(owner:Faction,p:Point,kind:UnitKind='infantry'):Unit {
     while(this.bases.some(b=>b.id===this.nextId))this.nextId++;
     const u:Unit={id:this.nextId++,owner,kind,xp:0,x:p.x,y:p.y,hp:UNITS[kind].hp,orders:[],path:[],cooldown:0,facing:1,moving:false,hit:0,repath:0,
@@ -281,8 +286,10 @@ export class Simulation {
       if(captureSite){const length=Math.hypot(offset.x,offset.y),limit=RULES.captureRadius-30;
         if(length>limit){offset={x:offset.x*limit/length,y:offset.y*limit/length};}}
       const spec=unitSpec(u),p={x:order.x+offset.x,y:order.y+offset.y};
-      const buildings=this.obstacles(),obstacles=spec.flying?buildings:spec.group==='Infanterie'
-         ?[...buildings,...infantryStructureColliders(buildings)]:[...buildings,...vehicleStructureColliders(buildings),...this.vehicleDecorObstacles()];
+      const buildings=this.obstacles(),towers=this.bastionColliders();
+      const obstacles=spec.flying?buildings:spec.group==='Infanterie'
+         ?[...buildings,...infantryStructureColliders(buildings),...towers]
+         :[...buildings,...vehicleStructureColliders(buildings),...this.vehicleDecorObstacles(),...towers];
        const target=spec.flying?{x:clamp(p.x,8,this.world.size-8),y:clamp(p.y,8,this.world.size-8)}:this.world.nearest(p,obstacles,[],u,Math.max(0,spec.radius-10));if(!target)return;
       const next:Order={...order,...target,...(mixed&&front.includes(u)?{march:(armoredFront.length?members.filter(v=>!unitSpec(v).flying):front).map(v=>v.id)}:{}),...(formation?{formation,...(support.includes(u)?{kind:order.kind==='attack'?'attackMove':order.kind,target:undefined}:{})}:{})};u.hold=false;u.supportPaused=false;u.workingTarget=null;
       if(append){if(u.orders.length<32)u.orders.push(next);else return;}
@@ -313,7 +320,8 @@ export class Simulation {
   }
   private supportApproach(u:Unit,target:Unit|Base):Point|null {
     const radius='queue' in target?target.radius+32:35,angle=Math.atan2(u.y-target.y,u.x-target.x),range='queue' in target?target.radius+55:u.kind==='engineer'?REPAIR_RADIUS:this.healRadius(u);
-    const buildings=this.obstacles(),obstacles=[...buildings,...infantryStructureColliders(buildings)];
+    const buildings=this.obstacles(),obstacles=[...buildings,
+      ...infantryStructureColliders(buildings),...this.bastionColliders()];
     for(let i=0;i<16;i++){
       const turn=angle+(i%2?1:-1)*Math.ceil(i/2)*Math.PI/8;
       const p=this.world.nearest({x:target.x+Math.cos(turn)*radius,y:target.y+Math.sin(turn)*radius},obstacles,[],u);
@@ -357,9 +365,10 @@ export class Simulation {
     }
     if(distance(u,destination)>12){
       if(u.repath<=0)u.path=[];
-      const buildings=this.obstacles(),obstacles=unitSpec(u).group==='Infanterie'
-         ?[...buildings,...infantryStructureColliders(buildings)]
-         :[...buildings,...vehicleStructureColliders(buildings),...this.vehicleDecorObstacles()];
+      const buildings=this.obstacles(),towers=this.bastionColliders();
+      const obstacles=unitSpec(u).group==='Infanterie'
+         ?[...buildings,...infantryStructureColliders(buildings),...towers]
+         :[...buildings,...vehicleStructureColliders(buildings),...this.vehicleDecorObstacles(),...towers];
        const target=this.world.nearest(destination,obstacles,[],u);
       if(target){const before={x:u.x,y:u.y},walk=u.walkDistance;// Pioneers match the squad pace even when a nearby vehicle needs repair;
         // an isolated pioneer (without formation) still uses its full catalog speed.
@@ -395,7 +404,7 @@ export class Simulation {
     if(u.kind==='engineer'&&u.defendUntil>this.time)return false;
     const range='queue' in target?target.radius+55:u.kind==='engineer'?REPAIR_RADIUS:this.healRadius(u);
     if(distance(u,target)>range||!this.world.line(u,target)){
-      if(explicit&&!u.hold){if(u.repath<=0)u.path=[];const buildings=this.obstacles();const p=order?.approach&&this.world.walkable(order.approach,[...buildings,...infantryStructureColliders(buildings)])?order.approach:this.supportApproach(u,target);if(p)this.move(u,p,dt);}
+      if(explicit&&!u.hold){if(u.repath<=0)u.path=[];const buildings=this.obstacles();const p=order?.approach&&this.world.walkable(order.approach,[...buildings,...infantryStructureColliders(buildings),...this.bastionColliders()])?order.approach:this.supportApproach(u,target);if(p)this.move(u,p,dt);}
       return true;
     }
     u.path=[];u.combatTarget=null;u.pursuitOrigin=null;u.workingTarget=target.id;
@@ -601,10 +610,11 @@ export class Simulation {
     const spec=unitSpec(u),clearance=Math.max(0,spec.radius-10);
     const vehicle=spec.group==='Fahrzeuge'&&!spec.flying,ground=!spec.flying;
     const buildings=this.obstacles();
+    const towers=ground?this.bastionColliders():[];
     const decor=vehicle?this.vehicleDecorObstacles():[];
     const visualBuildings=vehicle?vehicleStructureColliders(buildings):
       ground?infantryStructureColliders(buildings):[];
-    const collisionObstacles=ground?[...buildings,...visualBuildings,...decor]:buildings;
+    const collisionObstacles=ground?[...buildings,...visualBuildings,...decor,...towers]:buildings;
     // Older savegames can contain vehicles standing within the newly enlarged
     // visual clearance. Allow only a proven escape route out, then route normally.
     if(ground&&u.vehicleEscape==='exit'&&this.world.walkable(u,collisionObstacles,clearance)){
@@ -614,7 +624,7 @@ export class Simulation {
       delete u.vehicleEscape;
       const tactical=u.owner===1&&u.orders[0]?.tactical;
       const baseObstacles=tactical?this.tactical.navigationObstacles():buildings;
-      const routeObstacles=ground?[...baseObstacles,...visualBuildings,...decor]:baseObstacles;
+      const routeObstacles=ground?[...baseObstacles,...visualBuildings,...decor,...towers]:baseObstacles;
       const risk=this.tactical.costs(u);
       u.path=spec.flying&&!risk?[target]:this.world.path(u,target,routeObstacles,clearance,risk,spec.flying,u.exactPath);
       // A coarse cliff route may graze blocked terrain. Retry with exact
@@ -627,11 +637,17 @@ export class Simulation {
         // LAST RESORT: only after normal and exact visual-clearance routes have
         // both failed, use the original solid-building footprint. This retains
         // real collision and never ignores rocks, crates or service lamps.
-        const legacyObstacles=[...baseObstacles,...decor];
         const trapped=!this.world.walkable(u,collisionObstacles,clearance);
+        // Only v15-v18 retain the former fallback through visual facades.
+        // New maps may escape a pre-existing overlap but can never pass a
+        // different tower or a newly constructed visible wall.
+        const legacyObstacles=this.world.mapVersion>=19?
+          [...baseObstacles,...visualBuildings,...decor,
+            ...towers.filter(o=>distance(o,u)>=o.radius+RULES.infantry.radius+clearance)]:
+          [...baseObstacles,...decor];
         // Infantry never ignores the larger visual wall unless it is already
         // trapped inside it (legacy saves, just-placed construction).
-        if(trapped||vehicle){
+        if(trapped||(vehicle&&this.world.mapVersion<19)){
           const safeExit=trapped?this.world.nearest(u,collisionObstacles,[],undefined,clearance):null;
           const escapeTarget=safeExit??target;
           u.path=this.world.path(u,escapeTarget,legacyObstacles,clearance,risk,false,true);
@@ -667,7 +683,8 @@ export class Simulation {
     }
     const speed=velocity*(spec.flying&&this.weather.storm?WEATHER_RULES.airSpeed:1)*dt,step=Math.min(speed,d);
     const p={x:u.x+dx*step,y:u.y+dy*step};
-    const activeObstacles=ground&&u.vehicleEscape?[...buildings,...decor]:collisionObstacles;
+    const activeObstacles=ground&&u.vehicleEscape&&this.world.mapVersion<19?
+      [...buildings,...decor]:collisionObstacles;
     // Check the entire step, not just its endpoint, so fast vehicles cannot
     // clip through a wall or a visible service prop between simulation ticks.
     const segmentClear=spec.flying||activeObstacles.every(o=>
@@ -821,12 +838,12 @@ export class Simulation {
     for(const u of this.units)if(!u.moving&&u.driveSpeed!==undefined)u.driveSpeed=Math.max(0,u.driveSpeed-unitSpec(u).speed*2.8*dt);
     // Symmetric separation: units can pass one another without permanent deadlocks.
     const separationBuildings=this.obstacles(),separationVisual=vehicleStructureColliders(separationBuildings);
-    const separationDecor=this.vehicleDecorObstacles();
+    const separationDecor=this.vehicleDecorObstacles(),separationTowers=this.bastionColliders();
     for(const u of this.units)if(u.hp>0&&!u.carrier)for(const v of this.spatial.query(u,unitSpec(u).radius+26)){
       if(v.id<=u.id||v.hp<=0||unitSpec(u).flying!==unitSpec(v).flying)continue;const gap=unitSpec(u).radius+unitSpec(v).radius+1;let d=distance(u,v);if(d>=gap)continue;
       const dx=d>.01?(u.x-v.x)/d:(u.id%2?1:-1),dy=d>.01?(u.y-v.y)/d:.25,push=Math.min(3,(gap-d)*.5);
       for(const [a,sign] of [[u,1],[v,-1]] as const){const p={x:a.x+dx*push*sign,y:a.y+dy*push*sign};
-        const colliders=unitSpec(a).group==='Fahrzeuge'?[...separationBuildings,...separationVisual,...separationDecor]:unitSpec(a).flying?separationBuildings:[...separationBuildings,...infantryStructureColliders(separationBuildings)];
+        const colliders=unitSpec(a).group==='Fahrzeuge'?[...separationBuildings,...separationVisual,...separationDecor,...separationTowers]:unitSpec(a).flying?separationBuildings:[...separationBuildings,...infantryStructureColliders(separationBuildings),...separationTowers];
         if(unitSpec(a).flying||this.world.walkable(p,colliders,Math.max(0,unitSpec(a).radius-10))){a.x=p.x;a.y=p.y;}}
     }
     this.transports.cleanup();
@@ -876,7 +893,7 @@ export class Simulation {
         const kind=b.queueTypes[0]??'infantry',spec=UNITS[kind],sign=this.world.mapVersion>=2&&b.kind==='headquarters'&&b.owner===1?-1:1,exit={x:b.x+(b.radius+42)*sign,y:b.y+(b.radius+12)*sign};
         const vehicle=spec.group==='Fahrzeuge'&&!spec.flying;
         const buildings=this.obstacles();
-        const spawnObstacles=vehicle?[...buildings,...vehicleStructureColliders(buildings),...this.vehicleDecorObstacles()]:spec.flying?buildings:[...buildings,...infantryStructureColliders(buildings)];
+        const spawnObstacles=vehicle?[...buildings,...vehicleStructureColliders(buildings),...this.vehicleDecorObstacles(),...this.bastionColliders()]:spec.flying?buildings:[...buildings,...infantryStructureColliders(buildings),...this.bastionColliders()];
         // A factory exit must be clear of the painted building silhouettes,
         // not merely outside their smaller construction footprint circles.
         const spawn=spec.flying?exit:this.world.nearest(exit,spawnObstacles,this.units,undefined,Math.max(0,spec.radius-10));
