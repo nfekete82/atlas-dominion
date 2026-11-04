@@ -109,8 +109,16 @@ export function addBoundaryCliffs({scene,size,heightAt,seed=0,lowQuality=false})
  rockVertices.needsUpdate=true;
  monolithGeometry.computeVertexNormals();
  const monolithMaterial=new THREE.MeshStandardMaterial({
-  color:'#a88d6c',roughness:1,metalness:0,flatShading:false
+  color:'#ba9c7a',roughness:1,metalness:0,flatShading:false
  });
+ // Borrow the original Sandforge sandstone grain, giving exterior rocks
+ // physical texture rather than a single flat beige polygon color.
+ new THREE.TextureLoader().load('/src/assets/reborn/sandstone-detail.png',texture=>{
+  texture.colorSpace=THREE.SRGBColorSpace;
+  texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
+  texture.anisotropy=4;
+  monolithMaterial.map=texture;monolithMaterial.needsUpdate=true;
+ },undefined,error=>console.warn('Boundary sandstone texture fallback:',error));
  const perEdge=lowQuality?12:28;
  const monoliths=new THREE.InstancedMesh(monolithGeometry,monolithMaterial,perEdge*4);
  let monolithCount=0;
