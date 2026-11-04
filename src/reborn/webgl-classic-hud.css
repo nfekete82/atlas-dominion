@@ -279,3 +279,21 @@
 
 #sf-classic-root .sf-building-status{font:10px var(--mono);color:#e8c992;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:4px}
 #sf-classic-root .sf-building-status[hidden]{display:none}
+
+/* Temporary in-game Three.js verification mode; regular RTS HUD unchanged. */
+#sf-classic-root .tools #sf3d-showcase{
+ width:auto;min-width:44px;padding:0 8px;
+ font:800 12px/1 var(--display);letter-spacing:.04em;color:#f1d097;
+ border-color:#a68b50;
+}
+#sf-classic-root .tools #sf3d-showcase[aria-pressed="true"]{
+ background:#315c5b;color:#e6fff7;border-color:#73d7bc;
+}
+#sf3d-showcase-hint{
+ position:fixed;z-index:14;top:54px;left:50%;transform:translateX(-50%);
+ max-width:min(92vw,680px);padding:9px 13px;
+ background:#142c31ed;color:#f5e3b8;border:1px solid #76b8b1;
+ box-shadow:0 5px 18px #000a;text-align:center;
+ font:700 12px/1.45 system-ui;pointer-events:none;
+}
+#sf3d-showcase-hint[hidden]{display:none}
