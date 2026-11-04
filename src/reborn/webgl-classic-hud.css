@@ -322,9 +322,9 @@
    event handlers, catalog groups, radar and queue remain the same DOM nodes.
    Keep the battlefield full-width ABOVE the dock; no fixed right sidebar. */
 #sf-classic-root{
- --sf-dock-height:220px;
- --sf-dock-command:310px;
- --sf-dock-radar:190px;
+ --sf-dock-height:270px;
+ --sf-dock-command:360px;
+ --sf-dock-radar:220px;
 }
 #sf-classic-root #sidebar{
  position:fixed!important;
@@ -351,13 +351,13 @@
  display:flex!important;flex-direction:column!important;justify-content:center!important;
 }
 #sf-classic-root #sidebar #sf-map{
- display:block!important;width:min(154px,100%)!important;
- height:auto!important;max-height:calc(var(--sf-dock-height) - 52px)!important;
+ display:block!important;width:min(190px,100%)!important;
+ height:auto!important;max-height:calc(var(--sf-dock-height) - 48px)!important;
  aspect-ratio:1!important;object-fit:contain!important;
  margin:1px auto!important;
 }
 #sf-classic-root #sidebar .radar-caption{
- font-size:9px!important;margin-top:3px!important;white-space:nowrap!important;
+ font-size:11px!important;margin-top:5px!important;white-space:nowrap!important;
 }
 #sf-classic-root #sidebar .catalog{
  display:flex!important;flex-direction:column!important;
@@ -366,11 +366,11 @@
 }
 #sf-classic-root #sidebar .catalog-tabs{
  display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
- gap:3px!important;flex:0 0 32px!important;margin-bottom:2px!important;
+ gap:6px!important;flex:0 0 42px!important;margin-bottom:6px!important;
 }
 #sf-classic-root #sidebar .catalog-tabs button{
- height:32px!important;min-height:32px!important;
- padding:2px 6px!important;font-size:10px!important;
+ height:42px!important;min-height:42px!important;
+ padding:4px 8px!important;font-size:13px!important;font-weight:800!important;
 }
 #sf-classic-root #sidebar .catalog-scroll{
  flex:1 1 auto!important;min-height:0!important;height:auto!important;
@@ -381,16 +381,16 @@
 #sf-classic-root #sf-actions .sf-roster-section{margin:0 0 7px!important}
 #sf-classic-root #sf-actions .sf-roster-section h2,
 #sf-classic-root #sf-actions .sf-group>h2{
- margin:2px 0 4px!important;padding:0 1px 3px!important;
- font-size:10px!important;
+ margin:4px 0 8px!important;padding:0 2px 4px!important;
+ font-size:14px!important;font-weight:800!important;
 }
 #sf-classic-root #sf-actions .catalog-grid{
  display:grid!important;
- grid-template-columns:repeat(auto-fill,minmax(91px,1fr))!important;
- gap:5px!important;padding:0 2px!important;
+ grid-template-columns:repeat(auto-fill,minmax(140px,1fr))!important;
+ gap:10px!important;padding:4px!important;
 }
 #sf-classic-root #sf-actions .catalog-card{
- min-height:88px!important;height:88px!important;
+ min-height:128px!important;height:128px!important;
  border-width:1px!important;
 }
 #sf-classic-root #sf-actions .sf-card-image{
@@ -401,20 +401,20 @@
  object-position:center 73%!important;
 }
 #sf-classic-root #sf-actions .card-meta{
- min-height:29px!important;height:29px!important;
+ min-height:42px!important;height:42px!important;
  display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;
- padding:2px 4px!important;gap:2px!important;
+ padding:4px 6px!important;gap:6px!important;
 }
 #sf-classic-root #sf-actions .card-name{
- font-size:9px!important;line-height:1.1!important;
- max-height:23px!important;overflow:hidden!important;overflow-wrap:anywhere!important;
+ font-size:13px!important;line-height:1.15!important;font-weight:700!important;
+ max-height:32px!important;overflow:hidden!important;overflow-wrap:anywhere!important;
 }
 #sf-classic-root #sf-actions .card-cost{
- font-size:9px!important;padding:0!important;align-self:end!important;
+ font-size:13px!important;padding:0!important;font-weight:800!important;align-self:end!important;
 }
 #sf-classic-root .catalog #sf-production{
- flex:0 0 40px!important;min-height:40px!important;
- margin:2px 0 0!important;padding:3px 5px!important;
+ flex:0 0 48px!important;min-height:48px!important;
+ margin:4px 0 0!important;padding:5px 7px!important;
  overflow:hidden!important;
 }
 #sf-classic-root #sf-catalog-detail{display:none!important}
@@ -440,33 +440,33 @@
  min-width:0!important;min-height:0!important;padding:0!important;gap:8px!important;
 }
 #sf-classic-root .sf-command .portrait{
- display:block!important;flex:0 0 82px!important;width:82px!important;
- height:78px!important;min-width:0!important;margin:0!important;
+ display:block!important;flex:0 0 96px!important;width:96px!important;
+ height:94px!important;min-width:0!important;margin:0!important;
 }
 #sf-classic-root .sf-command .selection-copy{
  padding:0!important;min-width:0!important;overflow:hidden!important;
 }
 #sf-classic-root .sf-command .selection-copy strong{
- font-size:13px!important;line-height:1.12!important;
+ font-size:16px!important;line-height:1.15!important;
 }
 #sf-classic-root .sf-command .selection-copy p{
- font-size:10px!important;line-height:1.25!important;margin:3px 0!important;
- display:-webkit-box!important;-webkit-line-clamp:2!important;
+ font-size:12px!important;line-height:1.35!important;margin:5px 0!important;
+ display:-webkit-box!important;-webkit-line-clamp:3!important;
  -webkit-box-orient:vertical!important;overflow:hidden!important;
 }
 #sf-classic-root .sf-command .command-group{
  min-height:0!important;display:flex!important;flex-direction:column!important;
 }
 #sf-classic-root .sf-command .command-group .section-label{
- font-size:10px!important;margin-bottom:3px!important;
+ font-size:13px!important;margin-bottom:5px!important;
 }
 #sf-classic-root #sf-selection-panel .commands{
  display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
- gap:4px!important;
+ gap:6px!important;
 }
 #sf-classic-root #sf-selection-panel .commands button{
- width:100%!important;min-width:0!important;min-height:29px!important;
- height:29px!important;padding:2px!important;font-size:10px!important;
+ width:100%!important;min-width:0!important;min-height:40px!important;
+ height:40px!important;padding:4px!important;font-size:13px!important;font-weight:800!important;
 }
 #sf-classic-root .sf-notice{
  bottom:calc(var(--sf-dock-height) + 17px)!important;
@@ -475,29 +475,29 @@
 #sf-classic-root .sf-debug{bottom:calc(var(--sf-dock-height) + 12px)!important}
 @media(max-width:1000px){
  #sf-classic-root{
-  --sf-dock-height:194px;--sf-dock-command:244px;--sf-dock-radar:150px;
+  --sf-dock-height:232px;--sf-dock-command:270px;--sf-dock-radar:170px;
  }
- #sf-classic-root #sidebar #sf-map{width:120px!important}
+ #sf-classic-root #sidebar #sf-map{width:138px!important}
  #sf-classic-root #sf-actions .catalog-grid{
-  grid-template-columns:repeat(auto-fill,minmax(78px,1fr))!important;
+  grid-template-columns:repeat(auto-fill,minmax(110px,1fr))!important;
  }
- #sf-classic-root #sf-selection-panel .portrait{flex-basis:66px!important;width:66px!important;height:65px!important}
- #sf-classic-root .sf-command .selection-copy strong{font-size:11px!important}
+ #sf-classic-root #sf-selection-panel .portrait{flex-basis:74px!important;width:74px!important;height:72px!important}
+ #sf-classic-root .sf-command .selection-copy strong{font-size:13px!important}
 }
 @media(max-width:680px){
  #sf-classic-root{
-  --sf-dock-height:183px;--sf-dock-command:185px;--sf-dock-radar:104px;
+  --sf-dock-height:206px;--sf-dock-command:195px;--sf-dock-radar:106px;
  }
  #sf-classic-root #sidebar{gap:3px!important;padding:4px!important}
  #sf-classic-root #sidebar .radar{padding:3px!important}
  #sf-classic-root #sidebar #sf-map{width:88px!important}
- #sf-classic-root #sidebar .radar-caption{font-size:7px!important}
+ #sf-classic-root #sidebar .radar-caption{font-size:8px!important}
  #sf-classic-root #sidebar .catalog{padding:0 2px!important}
- #sf-classic-root #sidebar .catalog-tabs button{font-size:8px!important;padding:1px!important}
- #sf-classic-root #sf-actions .catalog-grid{grid-template-columns:repeat(2,minmax(65px,1fr))!important}
+ #sf-classic-root #sidebar .catalog-tabs button{font-size:10px!important;padding:2px!important}
+ #sf-classic-root #sf-actions .catalog-grid{grid-template-columns:repeat(2,minmax(78px,1fr))!important;gap:4px!important}
  #sf-classic-root #sf-selection-panel .portrait{display:none!important}
  #sf-classic-root .sf-command{padding:5px!important}
  #sf-classic-root .sf-command .selection-copy p{display:none!important}
  #sf-classic-root #sf-selection-panel .commands{grid-template-columns:repeat(2,minmax(0,1fr))!important}
- #sf-classic-root #sf-selection-panel .commands button{font-size:8px!important;min-height:26px!important;height:26px!important}
+ #sf-classic-root #sf-selection-panel .commands button{font-size:10px!important;min-height:33px!important;height:33px!important}
 }
