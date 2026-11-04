@@ -205,7 +205,7 @@ test('visual depth preview keeps an angled 3D RTS camera and desert fog',async({
   expect(state.fogTint).toBe(true);
 });
 
-test('3D showcase button reveals an orbiting scene and restores the original RTS view',async({page})=>{
+test('3D showcase uses a stationary camera, keeps fog and restores the RTS view',async({page})=>{
   await load(page);
   const before=await page.evaluate(()=>{
     const v=window.__sandforgeWebGL;
@@ -230,7 +230,7 @@ test('3D showcase button reveals an orbiting scene and restores the original RTS
     };
   });
   expect(active).toEqual({
-    active:true,zoom:1.55,autoRotate:true,fog:false,axes:true
+    active:true,zoom:1.55,autoRotate:false,fog:before.fog,axes:true
   });
   await button.click();
   await expect(button).toHaveAttribute('aria-pressed','false');
@@ -256,4 +256,27 @@ test('showcase URL parameter starts an obvious 3D preview automatically',async({
   await expect(page.locator('#sf3d-showcase')).toHaveAttribute('aria-pressed','true');
   await expect(page.locator('#sf3d-showcase-hint')).toBeVisible();
   expect(await page.evaluate(()=>window.__sandforgeWebGL.showcaseActive)).toBe(true);
+});
+
+test('Fog of War can be toggled during 3D showcase and stays selected on return',async({page})=>{
+  await load(page);
+  const button=page.locator('#sf3d-showcase');
+  const fog=page.locator('#sf-tools button[data-action="fog"]');
+  await expect(fog).toHaveAttribute('aria-pressed','true');
+  await expect(fog).toHaveText('NEBEL AN');
+  await button.click();
+  await expect(button).toHaveAttribute('aria-pressed','true');
+  await expect(fog).toHaveAttribute('aria-pressed','true');
+  await expect(page.locator('#sf3d-showcase-hint')).toContainText('Kriegsnebel AN');
+  expect(await page.evaluate(()=>window.__sandforgeWebGL.controls.autoRotate)).toBe(false);
+  await fog.click();
+  await expect(fog).toHaveAttribute('aria-pressed','false');
+  await expect(fog).toHaveText('NEBEL AUS');
+  await expect(page.locator('#sf3d-showcase-hint')).toContainText('Kriegsnebel AUS');
+  expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.fogNodes.every(n=>!n.visible))).toBe(true);
+  await button.click();
+  expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.fogEnabled)).toBe(false);
+  await fog.click();
+  await expect(fog).toHaveText('NEBEL AN');
+  expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.fogNodes.every(n=>n.visible))).toBe(true);
 });
