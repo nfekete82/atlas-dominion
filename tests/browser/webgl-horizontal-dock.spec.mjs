@@ -70,6 +70,6 @@ test('lite mode still requests original detailed PBR building model, and ruins r
  await page.waitForFunction(()=>window.__sandforgeWebGL.scene.children.some(
   node=>node.userData?.ruinDecor===true),{timeout:35000});
  const props=await page.evaluate(()=>window.__sandforgeWebGL.scene.children.filter(
-  node=>node.userData?.ruinDecor===true));
- expect(props.length).toBeGreaterThan(0);
+  node=>node.userData?.ruinDecor===true).length);
+ expect(props).toBeGreaterThan(0);
 });
