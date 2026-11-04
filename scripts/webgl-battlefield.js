@@ -555,7 +555,7 @@ export class SandforgeBattlefield {
     '<i></i><strong>SEKTOR '+(t.id+1)+'</strong><small>'+label+capture+'</small></button>';
   }).join('');
   const markup='<div class="sf-group" data-sf-group="units">'+roster+'</div>'+
-   '<div class="sf-group" data-sf-group="buildings"><h2>GEBÄUDE BAUEN</h2><div class="catalog-grid">'+
+   '<div class="sf-group" data-sf-group="buildings"><div class="catalog-grid">'+
    cards(buildingKinds,'building')+'</div></div>'+
    '<div class="sf-group" data-sf-group="territories"><h2>KONTROLLPUNKTE</h2>'+tiles+'</div></div>';
   if(this.previousActionsMarkup!==markup){
