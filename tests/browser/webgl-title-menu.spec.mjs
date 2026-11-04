@@ -28,14 +28,14 @@ test('3D starts with the original Sandforge title and enters a real playable cam
   meshes:window.__sandforgeWebGL.scene.children.filter(x=>x.userData.terrain).length,
   hasWebGL:window.__sandforgeWebGL.renderer.capabilities.isWebGL2,
   canvas:document.querySelector('#stage canvas')?.width,
-  body:document.querySelector('#sf-classic-root')
+  hasHud:Boolean(document.querySelector('#sf-classic-root'))
  }));
  expect(state.actors).toBeGreaterThanOrEqual(2);
  expect(state.structures).toBeGreaterThan(0);
  expect(state.meshes).toBe(16);
  expect(state.hasWebGL).toBe(true);
  expect(state.canvas).toBeGreaterThan(400);
- expect(state.body).toBeTruthy();
+ expect(state.hasHud).toBe(true);
  await page.locator('[data-action="menu"]').click();
  await expect(page.locator('#sf3d-pause-dialog')).toBeVisible();
  await page.locator('#sf3d-pause-save').click();
