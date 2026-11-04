@@ -40,8 +40,8 @@ export class SandforgeConstructionPresentation{
   roof.position.y=height*.88;frame.add(roof);
   const canvas=document.createElement('canvas');canvas.width=256;canvas.height=64;
   const texture=new THREE.CanvasTexture(canvas);
-  const label=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,depthTest:false}));
-  label.scale.set(115,29,1);label.position.set(0,height+30,0);frame.add(label);
+  const label=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,opacity:.86,depthTest:false,depthWrite:false}));
+  label.scale.set(83,21,1);label.position.set(0,height+23,0);frame.add(label);
   entry.node.add(frame);
   const construction={frame,columns,rails,slab,roof,canvas,texture,label,
    height,clip:new THREE.Plane(new THREE.Vector3(0,-1,0),0),
@@ -89,10 +89,10 @@ export class SandforgeConstructionPresentation{
    state.lastLabel=tick;state.lastWorking=working;
    const c=state.canvas.getContext('2d');
    c.clearRect(0,0,256,64);
-   c.fillStyle='#172b29dd';c.fillRect(3,4,250,56);
-   c.strokeStyle='#d4b376';c.lineWidth=3;c.strokeRect(3,4,250,56);
-   c.fillStyle=working?'#f0d5a1':'#f7b39d';
-   c.font=working?'bold 26px system-ui':'bold 18px system-ui';
+   c.fillStyle='rgba(16,28,30,.32)';c.fillRect(3,8,250,48);
+   c.strokeStyle='rgba(220,194,148,.25)';c.lineWidth=2;c.strokeRect(3,8,250,48);
+   c.fillStyle=working?'rgba(245,223,181,.86)':'rgba(251,181,157,.86)';
+   c.font=working?'600 23px system-ui':'600 18px system-ui';
    c.textAlign='center';c.textBaseline='middle';
    c.fillText(working?'BAU '+Math.round(progress*100)+' %':'PAUSIERT · PIONIER',128,32);
    state.texture.needsUpdate=true;
