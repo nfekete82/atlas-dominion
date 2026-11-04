@@ -5,7 +5,7 @@ import * as THREE from 'three';
  * World. Camera can see continuous desert beyond the playable boundary.
  * Exact world-space UVs and height samples match the real terrain edges.
  */
-export function addVisualPerimeter({scene,size,heightAt,material,ringTiles=2,segments=24}){
+export function addVisualPerimeter({scene,size,heightAt,material,ringTiles=2,segments=24,textureScale=1500}){
  const playableChunks=4,patch=size/playableChunks,half=size*.5;
  const out=[],normal=new THREE.Vector3();
  const c0=new THREE.Color('#faf1e0'),c1=new THREE.Color('#b58b63');
@@ -49,7 +49,7 @@ export function addVisualPerimeter({scene,size,heightAt,material,ringTiles=2,seg
     const color=c0.clone().lerp(c1,rocky*.65+bands*.12).multiplyScalar(nval);
     color.lerp(warmRim,rim*.35).lerp(darkBeyond,shadow);
     colors[n]=color.r;colors[n+1]=color.g;colors[n+2]=color.b;
-    uv[k*2]=x/1500;uv[k*2+1]=z/1500;
+    uv[k*2]=x/textureScale;uv[k*2+1]=z/textureScale;
     // The same finite-difference sampling across chunk boundaries prevents
     // normal seams even with fewer triangles on the decorative outer ring.
     const eps=1.6;
