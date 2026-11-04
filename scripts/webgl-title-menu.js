@@ -56,6 +56,18 @@
    }));
   }catch(error){console.warn('Could not save local graphics options:',error);}
   optionsDialog.close();
+  const active=window.__sandforgeWebGL;
+  if(active?.battlefield){
+   const enabled=$('sf3d-fog').checked;
+   active.battlefield.fogEnabled=enabled;
+   active.battlefield.updateFog();
+   const soundButton=$('sound');
+   soundButton.disabled=!$('sf3d-sound').checked;
+   if(soundButton.disabled&&active.sound?.enabled){
+    active.sound.setEnabled(false);
+    soundButton.setAttribute('aria-pressed','false');
+   }
+  }
   notify('Optionen gespeichert. Grafikqualität gilt beim nächsten Spielstart.');
  }
  function openPause(){
@@ -111,7 +123,7 @@
  menu.addEventListener('cancel',e=>e.preventDefault());
  pauseDialog.addEventListener('cancel',e=>{e.preventDefault();resumeGame();});
  document.addEventListener('keydown',e=>{
-  if(e.code!=='Escape'||e.repeat||e.target?.matches('input,select,textarea'))return;
+  if(e.code!=='Escape'||e.repeat||(e.target instanceof Element&&e.target.matches('input,select,textarea')))return;
   if(menu.open||newDialog.open||optionsDialog.open||pauseDialog.open)return;
   const field=window.__sandforgeWebGL?.battlefield;
   if(field&&(field.attackMode||field.buildKind||field.selected?.size))return;
