@@ -11,6 +11,16 @@ export const MODEL_HEIGHTS=Object.freeze({
  headquarters:158,barracks:119,factory:125,airfield:137,generator:92,turret:95
 });
 export const DIMENSIONS_VERSION=3;
+
+// Historically facing=1 meant 180 degrees. Preserve that meaning in old
+// saves while allowing all four cardinal orientations in the WebGL builder:
+// R cycles 0 -> 90 -> 180 -> 270 -> 0 degrees (stored as 0,2,1,3).
+export const buildingFacingAngle=facing=>
+ [0,Math.PI,Math.PI/2,Math.PI*1.5][facing??0]??0;
+export const nextBuildingFacing=facing=>
+ [2,3,1,0][facing??0]??0;
+export const buildingFacingDegrees=facing=>
+ [0,180,90,270][facing??0]??0;
 // Presentation-only scale: keep gameplay collision, reach, selection,
 // spacing and saved dimensions unchanged. Infantry read as humans beside
 // larger real structures, rather than as toy-sized buildings.
