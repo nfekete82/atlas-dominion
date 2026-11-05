@@ -12,7 +12,7 @@ const pairs=[
 ];
 
 test('maps: each new 4/8/12/16 Bastion variant has at least 8% longer edges and proportionate clearance',()=>{
- assert.deepEqual(Object.values(CAMPAIGN_SIZES),[11,12,13,14]);
+ assert.deepEqual(Object.values(CAMPAIGN_SIZES),[15,16,17,18]);
  for(const {old,now,count,oldSize,size} of pairs){
   assert.equal(mapWorldSize(old),oldSize,'historic playable map size must be frozen');
   assert.equal(mapWorldSize(now),size);
