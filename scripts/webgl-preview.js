@@ -799,7 +799,7 @@ showcaseButton.onclick=()=>setShowcase(!showcaseActive);
 if(query.get('showcase')==='1')setShowcase(true);
 const desertArt=new DesertArtPass({scene,world,terrain,heightAt,pos,loader,lowQuality:query.get('lite')==='1'});
 let desertArtReady=false;
-const effects=new SandforgeCombatEffects({scene,camera,game,world,heightAt,pos,lowQuality:query.get('lite')==='1'});
+const effects=new SandforgeCombatEffects({scene,camera,game,world,heightAt,pos,battlefield,lowQuality:query.get('lite')==='1'});
 // Renderer-only weather preview: weather rules in Simulation are unchanged.
 const stormButton=document.createElement('button');
 stormButton.id='sf3d-storm';
@@ -890,7 +890,7 @@ function animate(now){
  if(running)groundTracks.capture();
  groundTracks.update(dt,running);
  battlefield.updateCommandPulse(dt);
- effects.update(dt,running);
+ effects.update(dt,running,accumulator);
  if(running&&sound.enabled)sound.update(game,soundView);
  controls.update();
  stepCamera(dt);
