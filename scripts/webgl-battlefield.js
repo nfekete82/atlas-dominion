@@ -711,7 +711,7 @@ export class SandforgeBattlefield {
     this.message('Lebensbalken: '+({all:'Alle',damaged:'Beschädigte',selected:'Ausgewählte',off:'Aus'}[this.presentation.showHealth]));
    }
    if(action==='fog'){this.fogEnabled=!this.fogEnabled;this.updateFog();this.message('Nebel des Krieges '+(this.fogEnabled?'aktiv':'deaktiviert'));}
-   if(action==='save'){try{localStorage.setItem('sandforge:webgl:v1',JSON.stringify(this.game.save()));this.message('3D-Kampagne gespeichert');}catch(error){this.message('Speichern fehlgeschlagen: '+error.message);}}
+   if(action==='save')this.saveGame();
    if(action==='load'){this.loadSave();}
    if(action==='attack'){this.attackMode=!this.attackMode;this.clearPlacement();this.drawInterface();this.message(this.attackMode?'Angriffsbewegung: Rechtsklick auf Ziel':'Angriffsbewegung beendet');}
    if(action==='stop'){
@@ -739,15 +739,26 @@ export class SandforgeBattlefield {
    this.controls.target.add(delta);this.camera.position.add(delta);this.controls.update();
   });
  }
+ saveGame(){
+  try{
+   const payload=JSON.stringify(this.game.save());
+   localStorage.setItem('sandforge:webgl:v1',payload);
+   this.message('3D-Kampagne gespeichert');
+   return true;
+  }catch(error){
+   this.message('Speichern fehlgeschlagen: '+(error?.message??error));
+   return false;
+  }
+ }
  loadSave(){
   try{
    const raw=localStorage.getItem('sandforge:webgl:v1');
    if(!raw){this.message('Kein gespeicherter 3D-Spielstand');return;}
    const snapshot=JSON.parse(raw);
    if(snapshot.seed!==this.game.seed||snapshot.mapVersion!==this.game.world.mapVersion){
-    location.href='/webgl-preview.html?bastions='+this.game.territories.length+'&seed='+snapshot.seed+'&resume=1';return;
+    location.href=(window.Sandforge3DMenu?.gameRoute?.()??'/webgl-preview.html')+'?bastions='+this.game.territories.length+'&seed='+snapshot.seed+'&resume=1';return;
    }
-   location.href='/webgl-preview.html?bastions='+this.game.territories.length+'&seed='+this.game.seed+'&resume=1';
+   location.href=(window.Sandforge3DMenu?.gameRoute?.()??'/webgl-preview.html')+'?bastions='+this.game.territories.length+'&seed='+this.game.seed+'&resume=1';
   }catch(error){this.message('Laden fehlgeschlagen: '+error.message);}
  }
  message(text){
