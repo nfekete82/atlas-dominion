@@ -64,6 +64,9 @@ function statusBar(scene,entity,type){
 
 function flashSprite(entry,entity,type){
  if(type==='building'&&entity.kind==='turret')return null;
+ // Rocket artillery flashes belong to the individual launch tubes. The
+ // former generic sprite looked like an MG and hovered above the truck.
+ if(type==='unit'&&entity.kind==='artillery')return null;
  const mat=new THREE.SpriteMaterial({map:flashTex,color:'#fff3bd',
   blending:THREE.AdditiveBlending,transparent:true,depthWrite:false,depthTest:true,
   opacity:0,toneMapped:false});
