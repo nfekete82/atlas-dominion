@@ -1319,8 +1319,27 @@ export class SandforgeBattlefield {
   canvas.addEventListener('pointerup',e=>this.pointerUp(e));
   window.addEventListener('pointerup',e=>{if(this.clickStart)this.pointerUp(e);});
   canvas.addEventListener('pointerleave',()=>{if(this.buildPreview)this.buildPreview.visible=false;this.buildHint.style.display='none';});
-  canvas.addEventListener('pointercancel',()=>{
-   this.clickStart=null;this.selectionBox.style.display='none';
+  const resetPointerGesture=()=>{
+   this.clickStart=null;
+   this.selectionBox.style.display='none';
+   if(this.buildPreview)this.buildPreview.visible=false;
+   this.buildHint.style.display='none';
+  };
+  canvas.addEventListener('pointercancel',resetPointerGesture);
+  // Losing focus during a drag must never leave a selection rectangle
+  // or an armed placement/attack/rally mode behind.
+  const cancelTransientModes=()=>{
+   const hadMode=Boolean(this.buildKind||this.attackMode||this.rallyMode);
+   resetPointerGesture();
+   if(!hadMode)return;
+   this.clearPlacement();
+   this.attackMode=false;
+   this.rallyMode=false;
+   this.drawInterface();
+  };
+  window.addEventListener('blur',cancelTransientModes);
+  document.addEventListener('visibilitychange',()=>{
+   if(document.hidden)cancelTransientModes();
   });
   // Prevent the native menu without routing duplicate commands. Every
   // pointerup, including a normal RMB click, reaches pointerUp() unchanged.
