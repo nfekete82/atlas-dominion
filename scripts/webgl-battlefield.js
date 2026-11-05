@@ -838,16 +838,38 @@ export class SandforgeBattlefield {
    el.innerHTML=selectedMarkup;this.previousSelectionMarkup=selectedMarkup;
   }
   const portrait=view.querySelector('#sf-portrait');
-  const portraitKey=item?(item.queue?'building:':'unit:')+kind:'building:headquarters';
-  if(this.previousPortraitKey!==portraitKey){
-   this.previousPortraitKey=portraitKey;
-   if(item&&!item.queue){
-    // Use the same cropped idle portrait as in the unit roster.
-    unitIcon(kind).then(url=>{
-     if(this.previousPortraitKey===portraitKey)portrait.src=url;
-    }).catch(error=>console.warn('Portrait fallback',error));
-    portrait.src='/src/assets/reborn/infantry-grounded-v3.png';
-   }else portrait.src=buildingIconUrl(item?.kind??'headquarters');
+  const squadPortrait=view.querySelector('#sf-squad-portrait');
+  const squadSelected=chosen.length>1;
+  portrait.hidden=squadSelected;
+  squadPortrait.hidden=!squadSelected;
+  if(squadSelected){
+   const lineup=[chosen[0],chosen[Math.floor(chosen.length*.5)],chosen[chosen.length-1]];
+   const squadKinds=lineup.map(u=>u.kind);
+   const portraitKey='squad:'+squadKinds.join(',');
+   squadPortrait.setAttribute('aria-label',chosen.length+' ausgewählte Einheiten');
+   squadPortrait.querySelector('.sf-squad-count').textContent='×'+chosen.length;
+   if(this.previousPortraitKey!==portraitKey){
+    this.previousPortraitKey=portraitKey;
+    const images=[...squadPortrait.querySelectorAll('.sf-squad-member')];
+    for(let i=0;i<images.length;i++){
+     const img=images[i],unit=squadKinds[i];
+     img.src='/src/assets/reborn/infantry-grounded-v3.png';
+     unitIcon(unit).then(url=>{
+      if(this.previousPortraitKey===portraitKey&&img.isConnected)img.src=url;
+     }).catch(error=>console.warn('Squad portrait fallback:',unit,error));
+    }
+   }
+  }else{
+   const portraitKey=item?(item.queue?'building:':'unit:')+kind:'building:headquarters';
+   if(this.previousPortraitKey!==portraitKey){
+    this.previousPortraitKey=portraitKey;
+    if(item&&!item.queue){
+     unitIcon(kind).then(url=>{
+      if(this.previousPortraitKey===portraitKey)portrait.src=url;
+     }).catch(error=>console.warn('Portrait fallback',error));
+     portrait.src='/src/assets/reborn/infantry-grounded-v3.png';
+    }else portrait.src=buildingIconUrl(item?.kind??'headquarters');
+   }
   }
   view.querySelector('[data-action="attack"]').setAttribute('aria-pressed',String(this.attackMode));
   view.querySelector('#sf-catalog-detail').textContent=
