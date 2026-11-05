@@ -128,7 +128,9 @@ export function addBoundaryCliffs({scene,size,heightAt,seed=0,lowQuality=false,s
  for(let edge=0;edge<4;edge++)for(let i=0;i<perEdge;i++){
   const t=(i+.16+rand()*.68)/perEdge;
   // Keep every rock beyond the playable 0..size square.
-  const offset=softRim?12+rand()*62:105+rand()*150;
+  // Wide-map monoliths remain at the eroded border, never floating
+  // independently in the exterior black void. Legacy maps stay the same.
+  const offset=softRim?10+rand()*20:105+rand()*150;
   const p=boundaryPoint(edge,t,offset);
   const width=softRim?11+rand()*25:19+rand()*34,
    height=softRim?15+rand()*48:28+rand()*66;
