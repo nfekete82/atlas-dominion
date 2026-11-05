@@ -12,16 +12,19 @@ function radialTexture({inner='#ffffff',outer='#ffffff',mode='smoke'}){
  const ctx=canvas.getContext('2d');
  const g=ctx.createRadialGradient(64,64,0,64,64,63);
  if(mode==='smoke'){
-  g.addColorStop(0,'rgba(244,241,229,.94)');
-  g.addColorStop(.34,'rgba(242,238,224,.86)');
-  g.addColorStop(.66,'rgba(230,226,211,.39)');
-  g.addColorStop(1,'rgba(210,205,190,0)');
+  // Charcoal combustion smoke, not the former flat white circles.
+  g.addColorStop(0,'rgba(30,33,32,.82)');
+  g.addColorStop(.29,'rgba(56,57,53,.79)');
+  g.addColorStop(.56,'rgba(83,78,69,.45)');
+  g.addColorStop(.82,'rgba(119,104,87,.16)');
+  g.addColorStop(1,'rgba(141,119,95,0)');
  }else if(mode==='flame'){
-  g.addColorStop(0,'rgba(255,255,219,1)');
-  g.addColorStop(.27,'rgba(255,211,76,.96)');
-  g.addColorStop(.51,'rgba(248,91,25,.68)');
-  g.addColorStop(.78,'rgba(122,32,12,.2)');
-  g.addColorStop(1,'rgba(80,19,8,0)');
+  g.addColorStop(0,'rgba(255,255,242,1)');
+  g.addColorStop(.17,'rgba(255,235,140,.98)');
+  g.addColorStop(.33,'rgba(255,137,33,.89)');
+  g.addColorStop(.56,'rgba(202,48,11,.55)');
+  g.addColorStop(.78,'rgba(72,27,15,.19)');
+  g.addColorStop(1,'rgba(57,18,11,0)');
  }else if(mode==='spark'){
   // Tiny bright metal impacts, never a flame ball or an explosion plume.
   g.addColorStop(0,'rgba(255,252,228,1)');
@@ -29,9 +32,15 @@ function radialTexture({inner='#ffffff',outer='#ffffff',mode='smoke'}){
   g.addColorStop(.65,'rgba(255,171,62,.48)');
   g.addColorStop(1,'rgba(255,145,34,0)');
  }else if(mode==='dust'){
-  g.addColorStop(0,'rgba(229,198,152,.62)');
-  g.addColorStop(.38,'rgba(212,177,136,.40)');
-  g.addColorStop(1,'rgba(205,168,131,0)');
+  g.addColorStop(0,'rgba(187,147,105,.55)');
+  g.addColorStop(.39,'rgba(163,123,83,.41)');
+  g.addColorStop(.72,'rgba(137,104,71,.17)');
+  g.addColorStop(1,'rgba(120,92,65,0)');
+ }else if(mode==='debris'){
+  g.addColorStop(0,'rgba(54,50,44,.98)');
+  g.addColorStop(.57,'rgba(45,41,35,.96)');
+  g.addColorStop(.72,'rgba(32,29,26,.48)');
+  g.addColorStop(1,'rgba(25,24,23,0)');
  }else if(mode==='scorch'){
   g.addColorStop(0,'rgba(48,36,28,.85)');
   g.addColorStop(.25,'rgba(58,40,29,.76)');
@@ -44,6 +53,20 @@ function radialTexture({inner='#ffffff',outer='#ffffff',mode='smoke'}){
   g.addColorStop(1,'rgba(104,73,44,0)');
  }
  ctx.fillStyle=g;ctx.fillRect(0,0,128,128);
+ // Stable, generated-once irregular wisps break up the radial-sprite look.
+ // Texture-space only; no RNG consumed by gameplay or added frame draws.
+ if(mode==='smoke'||mode==='dust'){
+  for(let i=0;i<22;i++){
+   const angle=i*2.399963229728653;
+   const radius=12+Math.sqrt((i+.5)/22)*43;
+   const px=64+Math.cos(angle)*radius,py=64+Math.sin(angle)*radius;
+   const d=8+(i*7%17);
+   const puff=ctx.createRadialGradient(px,py,0,px,py,d);
+   puff.addColorStop(0,mode==='smoke'?'rgba(19,23,22,.19)':'rgba(79,60,43,.13)');
+   puff.addColorStop(1,'rgba(0,0,0,0)');
+   ctx.fillStyle=puff;ctx.fillRect(px-d,py-d,d*2,d*2);
+  }
+ }
  const texture=new THREE.CanvasTexture(canvas);
  texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=4;
  return texture;
@@ -79,7 +102,8 @@ export class SandforgeCombatEffects {
   this.flames=makePool(scene,'flame',lowQuality?28:120,.94);
   this.dust=makePool(scene,'dust',lowQuality?40:170,.50);
   this.sparks=makePool(scene,'spark',lowQuality?90:300,.96);
-  for(const pool of [this.smoke,this.flames,this.dust,this.sparks])clearInstances(pool);
+  this.debris=makePool(scene,'debris',lowQuality?42:120,.84);
+  for(const pool of [this.smoke,this.flames,this.dust,this.sparks,this.debris])clearInstances(pool);
   this.scorch=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),materialFor('scorch',.93),lowQuality?70:210);
   this.scorch.geometry.rotateX(-Math.PI*.5);
   this.scorch.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
