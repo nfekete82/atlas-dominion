@@ -28,7 +28,7 @@ export function addVisualPerimeter({scene,size,heightAt,material,ringTiles=2,seg
     // Monotonic: beyond the fade there can never be bright terrain again.
     // Only a narrow apron of sand remains visible at the map border.
     // Beyond 60 world units there is no second stretch of lit terrain.
-    float darkness=smoothstep(-5.0,60.0,outside);
+    float darkness=smoothstep(-2.0,18.0,outside);
     gl_FragColor=vec4(0.0,0.0,0.0,darkness);
    }`,
   transparent:true,depthTest:true,depthWrite:false,side:THREE.DoubleSide,
@@ -54,7 +54,7 @@ export function addVisualPerimeter({scene,size,heightAt,material,ringTiles=2,seg
   // The original 245-unit fade left a clearly visible detached strip of
   // desert beyond the black Fog of War. Limit its tinted terrain to the
   // same narrow border that the depth-tested exterior mask uses.
-  return smooth((outsideDistance(x,z)-5-uneven*.35)/65);
+  return smooth((outsideDistance(x,z)-2-uneven*.12)/18);
  };
  for(let cy=-ringTiles;cy<playableChunks+ringTiles;cy++)
   for(let cx=-ringTiles;cx<playableChunks+ringTiles;cx++){
