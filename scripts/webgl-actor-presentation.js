@@ -8,10 +8,10 @@ const infantry=new Set(['infantry','medic','engineer','heavy']);
 const air=new Set(['scout','bomber']);
 const barGeo=new THREE.PlaneGeometry(1,1);
 const bgMat=new THREE.MeshBasicMaterial({
- color:'#101c21',transparent:true,opacity:.93,depthTest:true,depthWrite:false,side:THREE.DoubleSide
+ color:'#101c21',transparent:true,opacity:.93,depthTest:false,depthWrite:false,side:THREE.DoubleSide
 });
 const outlineMat=new THREE.MeshBasicMaterial({
- color:'#d8c6a3',transparent:true,opacity:.84,depthTest:true,depthWrite:false,side:THREE.DoubleSide
+ color:'#d8c6a3',transparent:true,opacity:.84,depthTest:false,depthWrite:false,side:THREE.DoubleSide
 });
 
 function muzzleTexture(){
@@ -45,18 +45,18 @@ function statusBar(scene,entity,type){
  root.name='hp-'+type+'-'+entity.id;
  root.userData={type,id:entity.id,healthBar:true};
  const surround=new THREE.Mesh(barGeo,outlineMat);
- surround.scale.set(width+1.8,4.8,1);surround.position.z=0;surround.renderOrder=17;
+ surround.scale.set(width+1.8,4.8,1);surround.position.z=0;surround.renderOrder=1016;
  root.add(surround);
  const back=new THREE.Mesh(barGeo,bgMat);
- back.scale.set(width,3.4,1);back.position.z=.9;back.renderOrder=18;
+ back.scale.set(width,3.4,1);back.position.z=.9;back.renderOrder=1017;
  root.add(back);
  // All three health pieces must share the transparent rendering pass: an
  // opaque fill drawn before the translucent background appeared BLACK.
- const fillMaterial=new THREE.MeshBasicMaterial({color:'#24e568',transparent:true,opacity:1,depthTest:true,
+ const fillMaterial=new THREE.MeshBasicMaterial({color:'#24e568',transparent:true,opacity:1,depthTest:false,
   depthWrite:false,side:THREE.DoubleSide,toneMapped:false});
  const fill=new THREE.Mesh(barGeo,fillMaterial);
- fill.scale.set(width-2.1,2.5,1);fill.position.z=1.8;fill.renderOrder=19;root.add(fill);
- root.renderOrder=17;
+ fill.scale.set(width-2.1,2.5,1);fill.position.z=1.8;fill.renderOrder=1018;root.add(fill);
+ root.renderOrder=1015;
  scene.add(root);
  return {root,fill,fillMaterial,width:width-2.1,altitude:barAltitude(entity.kind,type),
    previousHp:entity.hp,hitPulse:0,healPulse:0};
@@ -87,9 +87,9 @@ export class SandforgeActorPresentation {
   this.status=new Map();
   this.stats={shots:0,hits:0,heals:0,visibleBars:0,walking:0,shooting:0};
   this.time=0;
-  // At full HP this is visibly green; combat depletes the width. The icon
-  // toggles all/damaged/selected/off (the classic selection policy is damaged).
-  this.showHealth='damaged';
+  // HUD health must remain visible for every currently seen unit by default.
+  // A pre-existing damaged-only preset hid full-HP soldiers and vehicles.
+  this.showHealth='all';
   this.remnants=[];
   this.remnantMaterial=new THREE.MeshBasicMaterial({
    color:'#4e4337',transparent:true,opacity:.64,depthWrite:false,side:THREE.DoubleSide
