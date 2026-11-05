@@ -94,7 +94,16 @@ export class SandforgeBattlefield {
    if(['tank','rover','artillery'].includes(kind)){
     const length=kind==='tank'?77:kind==='artillery'?84:57;
     make(new THREE.BoxGeometry(44,15,length),metal,0,16,0);
-    make(new THREE.BoxGeometry(32,12,length*.45),dark,0,30,0);
+    if(kind==='tank'){
+     // Keep the turret and gun independently steerable while GLB is loading.
+     const turret=new THREE.Group();turret.name='Tank_Turret';group.add(turret);
+     const cap=new THREE.Mesh(new THREE.BoxGeometry(32,12,length*.45),dark);
+     cap.position.set(0,30,-2);cap.castShadow=true;turret.add(cap);
+     const gun=new THREE.Group();gun.name='Tank_Gun';group.add(gun);
+     const tube=new THREE.Mesh(new THREE.CylinderGeometry(2.5,3.2,37,10),dark);
+     tube.rotation.x=Math.PI/2;tube.position.set(0,29,27);
+     tube.castShadow=true;gun.add(tube);
+    }else make(new THREE.BoxGeometry(32,12,length*.45),dark,0,30,0);
     for(const x of [-22,22])for(const z of [-length*.33,length*.33])make(new THREE.CylinderGeometry(10,10,7,12),dark,x,9,z).rotation.z=Math.PI*.5;
    }else if(['scout','bomber'].includes(kind)){
     make(new THREE.CapsuleGeometry(13,36,4,8),metal,0,15,0).rotation.x=Math.PI*.5;
@@ -179,6 +188,27 @@ export class SandforgeBattlefield {
    mesh.material=Array.isArray(mesh.material)
     ?mesh.material.map(brighten):brighten(mesh.material);
   });
+ }
+ // The authored tank exposes two rigid GLB nodes, Tank_Turret and
+ // Tank_Gun. Handle both sibling and parented variations of the rig.
+ installTankRig(entry,model){
+  if(entry.kind!=='tank')return;
+  const turret=model.getObjectByName('Tank_Turret');
+  const gun=model.getObjectByName('Tank_Gun');
+  let gunNested=false;
+  if(turret&&gun)for(let p=gun.parent;p;p=p.parent)if(p===turret){gunNested=true;break;}
+  entry.tankRig={turret,gun,gunNested,
+   turretRest:turret?.rotation.y??0,gunRest:gun?.rotation.y??0};
+ }
+ orientTankRig(entry,unit){
+  const hull=Number.isFinite(unit.hullAngle)?unit.hullAngle:unit.angle;
+  const gun=Number.isFinite(unit.angle)?unit.angle:hull;
+  // Local +Z points forwards. The outer actor follows the slower physical
+  // hullAngle; both rigid gun groups independently track the aimed bearing.
+  const relative=hull-gun;
+  const rig=entry.tankRig;
+  if(rig?.turret)rig.turret.rotation.y=rig.turretRest+relative;
+  if(rig?.gun&&!rig.gunNested)rig.gun.rotation.y=rig.gunRest+relative;
  }
  // Restore authored building activity. Clip-controlled rotors get driven by
  // authoritative turretAngle; exported static models receive an unobtrusive
@@ -286,6 +316,7 @@ export class SandforgeBattlefield {
     entry.modelFootprint=Math.max(dims.x,dims.z)*visualScale;
     entry.visualBaseY=model.position.y;entry.visualBaseZ=model.position.z;
     if(type==='building')this.attachBuildingMotion(entry,data);
+    if(type==='unit'&&entry.kind==='tank')this.installTankRig(entry,model);
     if(type==='unit'&&data.animations.length){
      const mixer=new THREE.AnimationMixer(model);
      const idle=data.animations.find(a=>/idle|stand|hover|engine/i.test(a.name))||data.animations[0];
@@ -344,6 +375,7 @@ export class SandforgeBattlefield {
   node.add(placeholder);node.position.copy(this.entityPosition(entity));
   this.scene.add(node);
   const entry={node,placeholder,kind:entity.kind,owner:entity.owner,requested:false};
+  if(type==='unit'&&entity.kind==='tank')this.installTankRig(entry,placeholder);
   this.scheduleDetail(entry,entity,type);return entry;
  }
  beginPlacement(kind){
@@ -427,7 +459,9 @@ export class SandforgeBattlefield {
    const x=Number.isFinite(u.previousX)?u.previousX+(u.x-u.previousX)*lerp:u.x;
    const z=Number.isFinite(u.previousY)?u.previousY+(u.y-u.previousY)*lerp:u.y;
    entry.node.position.copy(this.pos(x,z,this.heightAt(x,z)+(UNITS[u.kind]?.flying?75+100*(u.flightHeight??1):0)));
-   entry.node.rotation.y=Math.PI*.5-u.angle;
+   const hullAngle=u.kind==='tank'&&Number.isFinite(u.hullAngle)?u.hullAngle:u.angle;
+   entry.node.rotation.y=Math.PI*.5-hullAngle;
+   if(u.kind==='tank')this.orientTankRig(entry,u);
    entry.node.visible=u.owner===0||this.game.canSee(0,u);
   }
   for(const [id,e] of this.units)if(!aliveUnits.has(id)){this.presentation.remove(e,this.game.units.find(u=>u.id===id));this.scene.remove(e.node);this.units.delete(id);this.selected.delete(id);}
