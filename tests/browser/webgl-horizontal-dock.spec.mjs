@@ -275,3 +275,36 @@ test('selecting a completed HQ trains the pioneer in that exact building queue',
  expect(result.notice).toContain('in Auftrag');
  expect(result.context).toBe('units');
 });
+
+test('selecting multiple soldiers shows a squad portrait with the correct count',async({page})=>{
+ test.setTimeout(115000);
+ await load(page);
+ const squad=await page.evaluate(()=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  const soldiers=game.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier).slice(0,2);
+  if(soldiers.length!==2)throw Error('Starting campaign needs two soldiers');
+  battlefield.selected=new Set(soldiers.map(u=>u.id));
+  battlefield.selectedBase=null;
+  battlefield.drawInterface();
+  const selected=document.querySelector('#sf-squad-portrait');
+  return {count:battlefield.selected.size,visible:!selected.hidden,
+   singleHidden:document.querySelector('#sf-portrait').hidden,
+   images:[...selected.querySelectorAll('.sf-squad-member')].length,
+   label:selected.getAttribute('aria-label'),
+   countLabel:selected.querySelector('.sf-squad-count').textContent};
+ });
+ expect(squad).toMatchObject({
+  count:2,visible:true,singleHidden:true,images:3,
+  label:'2 ausgewählte Einheiten',countLabel:'×2'
+ });
+ await expect.poll(()=>page.locator('#sf-squad-portrait .sf-squad-member').first()
+  .evaluate(img=>img.complete&&img.naturalWidth>0)).toBe(true);
+ const single=await page.evaluate(()=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  const soldier=game.units.find(u=>u.owner===0&&u.hp>0&&!u.carrier);
+  battlefield.selected=new Set([soldier.id]);battlefield.drawInterface();
+  return {groupHidden:document.querySelector('#sf-squad-portrait').hidden,
+   singleVisible:!document.querySelector('#sf-portrait').hidden};
+ });
+ expect(single).toEqual({groupHidden:true,singleVisible:true});
+});
