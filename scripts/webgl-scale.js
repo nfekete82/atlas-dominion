@@ -22,13 +22,13 @@ export const nextBuildingFacing=facing=>
 export const buildingFacingDegrees=facing=>
  [0,180,90,270][facing??0]??0;
 
-// A 2D turret angle is atan2(worldZ, worldX). In Three.js a positive
-// Y rotation turns local +X towards -Z, so aiming uses its negative.
-// Subtract the placed building's own facing: never rotate the gun twice.
-// Authored twin cannons face +X in their rig's rest pose; the procedural
-// fallback's cylinders face -Z and need an additional -90 degrees.
+// Simulation uses atan2(worldZ,worldX). The ACTUAL imported TurretHead
+// points down local +Z (see TurretMuzzleL/R in atlas-buildings.js), NOT +X.
+// Three.js Y+ turns +Z toward +X. Subtract the building's own facing to
+// keep a rotating head independent from 0/90/180/270 degree placements.
+// Only the old procedural fallback points toward local -Z.
 export function turretAimLocalYaw(angle,facing=0,procedural=false){
- return (procedural?-Math.PI/2:0)-angle-buildingFacingAngle(facing);
+ return (procedural?-Math.PI/2:Math.PI/2)-angle-buildingFacingAngle(facing);
 }
 
 // Two independent world-space muzzle positions. Gameplay still owns the
