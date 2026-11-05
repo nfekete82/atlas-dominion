@@ -44,7 +44,14 @@ export function installClassicHud(){
 </aside>
 <section class="command hud frame sf-command" id="sf-selection-panel" aria-label="Auswahl und Befehle">
  <div class="selection">
-  <div class="portrait"><img id="sf-portrait" src="/src/assets/reborn/headquarters.png" alt=""></div>
+  <div class="portrait"><img id="sf-portrait" src="/src/assets/reborn/headquarters.png" alt="">
+   <div id="sf-squad-portrait" class="sf-squad-portrait" role="img" aria-label="Ausgewählter Trupp" hidden>
+    <img class="sf-squad-member" alt="" aria-hidden="true">
+    <img class="sf-squad-member" alt="" aria-hidden="true">
+    <img class="sf-squad-member" alt="" aria-hidden="true">
+    <span class="sf-squad-count" aria-hidden="true"></span>
+   </div>
+  </div>
   <div class="selection-copy" id="sf-selection"><small>BLAUE LEGION</small><strong>Keine Auswahl</strong></div>
  </div>
  <div class="command-group">
