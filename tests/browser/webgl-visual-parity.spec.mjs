@@ -239,3 +239,62 @@ test('3D buildings receive texture-based fill without brightening sand or soldie
  expect(state.mapUsedAsFill).toBe(true);
  expect(state.originalUnchanged).toBe(true);
 });
+
+test('3D turret aims its two flashes and tracers at the simulated target from either barrel',async({page})=>{
+ test.setTimeout(125000);
+ await page.setViewportSize({width:1440,height:900});
+ await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',
+  {waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,null,{timeout:95000});
+ const state=await page.evaluate(()=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  const site=game.headquartersCandidates(0).find(p=>game.buildError(0,'headquarters',p)===null);
+  if(!site)throw Error('Missing turret fixture location');
+  const turret=game.build(0,'headquarters',site);
+  if(!turret)throw Error('Could not create fixture');
+  turret.kind='turret';turret.hp=650;turret.buildRemaining=0;
+  turret.turretAngle=0;turret.previousTurretAngle=0;
+  battlefield.sync(true,0,false,1);
+  const entry=battlefield.bases.get(turret.id);
+  const emitters=entry?.presentation?.turretFlashes;
+  if(emitters?.length!==2)throw Error('Missing independent barrel flashes');
+  const bearings=[];
+  for(const facing of [0,2,1,3])for(const angle of [0,Math.PI/2,Math.PI,Math.PI*1.5]){
+   turret.facing=facing;turret.turretAngle=angle;
+   battlefield.sync(false,0,false,1);
+   const a=emitters[0].position,b=emitters[1].position;
+   const dx=(a.x+b.x)*.5-entry.node.position.x;
+   const dz=(a.z+b.z)*.5-entry.node.position.z;
+   bearings.push({alignment:(dx*Math.cos(angle)+dz*Math.sin(angle))/
+     Math.max(.001,Math.hypot(dx,dz)),range:Math.hypot(dx,dz),
+    spread:Math.hypot(a.x-b.x,a.z-b.z)});
+  }
+  turret.facing=0;turret.turretAngle=0;
+  battlefield.sync(false,0,false,1);
+  const shot0={from:{x:turret.x,y:turret.y},to:{x:turret.x+170,y:turret.y},
+   source:turret.id,owner:0,weapon:'turret',barrel:0,life:.65,hit:true,at:game.time};
+  game.shots.push(shot0);battlefield.sync(false,0,false,1);
+  const onlyFirst=emitters.map(e=>e.visible);
+  const leftOrigin=emitters[0].position.toArray();
+  const tr0=battlefield.tracer.geometry.getAttribute('position');
+  const leftTrace=[tr0.getX(0),tr0.getY(0),tr0.getZ(0)];
+  game.shots.push({...shot0,barrel:1});battlefield.sync(false,0,false,1);
+  const both=emitters.map(e=>e.visible);
+  const rightOrigin=emitters[1].position.toArray();
+  const tr1=battlefield.tracer.geometry.getAttribute('position');
+  const rightTrace=[tr1.getX(2),tr1.getY(2),tr1.getZ(2)];
+  return {bearings,onlyFirst,both,leftOrigin,leftTrace,rightOrigin,rightTrace};
+ });
+ expect(state.bearings).toHaveLength(16);
+ for(const a of state.bearings){
+  expect(a.alignment).toBeCloseTo(1,5);
+  expect(a.range).toBeCloseTo(37,5);
+  expect(a.spread).toBeCloseTo(11,5);
+ }
+ expect(state.onlyFirst).toEqual([true,false]);
+ expect(state.both).toEqual([true,true]);
+ for(let i=0;i<3;i++){
+  expect(state.leftTrace[i]).toBeCloseTo(state.leftOrigin[i],3);
+  expect(state.rightTrace[i]).toBeCloseTo(state.rightOrigin[i],3);
+ }
+});
