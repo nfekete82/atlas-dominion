@@ -70,6 +70,7 @@ function clearInstances(pool){
  const {mesh}=pool;mesh.count=pool.max;
  for(let i=0;i<pool.max;i++)mesh.setMatrixAt(i,emptyMatrix);
  mesh.instanceMatrix.needsUpdate=true;
+ mesh.count=0; // zero particles must not draw the full inactive GPU pool
 }
 export class SandforgeCombatEffects {
  constructor({scene,camera,game,world,heightAt,pos,lowQuality=false}){
@@ -85,7 +86,9 @@ export class SandforgeCombatEffects {
   this.scorch.count=0;this.scorch.frustumCulled=false;this.scorch.renderOrder=4;
   scene.add(this.scorch);
   this.scorchCount=0;
-  this.track=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),materialFor('track',.48),lowQuality?450:2400);
+  // Vehicle grooves are a bounded cosmetic ring, never an unbounded
+  // GPU workload that remains after a large battle.
+  this.track=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),materialFor('track',.48),lowQuality?350:900);
   this.track.geometry.rotateX(-Math.PI*.5);
   this.track.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   this.track.count=0;this.track.frustumCulled=false;this.track.renderOrder=3;
@@ -114,6 +117,7 @@ export class SandforgeCombatEffects {
   this.lastUnits=new Map();
   this.seed=game.seed>>>0;this.frame=0;
   this.stats={blasts:0,impacts:0,scorch:0,tracks:0,wrecks:0};
+  this.activeParticles=0;
   for(const u of game.units)if(u.hp>0&&!u.carrier)this.lastUnits.set(u.id,{x:u.x,y:u.y,kind:u.kind,owner:u.owner,angle:u.angle});
  }
  rand(){
@@ -279,8 +283,11 @@ export class SandforgeCombatEffects {
     pool.mesh.setMatrixAt(k++,dummy.matrix);alive.push(p);
    }
    pool.particles=alive;
-   pool.mesh.count=k;pool.mesh.instanceMatrix.needsUpdate=true;
+   pool.mesh.count=k;
+   // Avoid uploading a large instance matrix when nothing is left to draw.
+   if(k||pool.mesh.instanceMatrix.needsUpdate)pool.mesh.instanceMatrix.needsUpdate=true;
   }
+  this.activeParticles=this.particleCount;
  }
  get particleCount(){return this.smoke.particles.length+this.flames.particles.length+this.dust.particles.length+this.sparks.particles.length;}
 }
