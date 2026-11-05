@@ -5,7 +5,7 @@ import {RULES} from '/src/reborn/config.js';
 import {installClassicHud} from '/webgl-classic-hud.js';
 import {hydrateUnitIcons,hydrateBuildingIcons,unitIcon,buildingIconUrl} from '/webgl-portraits.js';
 import {SandforgeActorPresentation} from '/webgl-actor-presentation.js';
-import {calibratedScale,visualUnitScale} from '/webgl-scale.js';
+import {calibratedScale,visualUnitScale,buildingFacingAngle,nextBuildingFacing,buildingFacingDegrees} from '/webgl-scale.js';
 import {SandforgeGroundingPass} from '/webgl-grounding.js';
 import {SandforgeConstructionPresentation} from '/webgl-construction.js';
 import {createBastionCaptureBar,updateBastionCaptureBar} from '/webgl-bastion-capture.js';
@@ -349,7 +349,7 @@ export class SandforgeBattlefield {
   ghost.visible=Boolean(p);
   if(!p){this.buildHint.style.display='none';return;}
   ghost.position.copy(this.pos(p.x,p.y));
-  ghost.rotation.y=this.placementFacing?Math.PI:0;
+  ghost.rotation.y=buildingFacingAngle(this.placementFacing);
   const error=this.game.buildError(0,this.buildKind,p);
   const engineer=this.game.units.some(u=>u.owner===0&&u.kind==='engineer'&&u.hp>0&&!u.carrier);
   const valid=!error&&engineer;
@@ -360,7 +360,7 @@ export class SandforgeBattlefield {
   this.buildHint.style.top=Math.max(4,Math.min(event.clientY+15,window.innerHeight-85))+'px';
   this.buildHint.textContent=BUILDINGS[this.buildKind].name+' · '+
    (valid?'Bauplatz frei · Klick baut':error??'Pionier benötigt')+
-   ' · R drehen';
+   ' · R drehen ('+buildingFacingDegrees(this.placementFacing)+'°)';
   this.buildHint.style.borderColor=valid?'#9edfbe':'#ee8875';
  }
  sync(force=false,dt=0,active=true,alpha=1){
@@ -392,7 +392,7 @@ export class SandforgeBattlefield {
    entry.node.position.copy(this.entityPosition(b));
    entry.node.visible=b.owner===0||this.game.canSee(0,b);
    entry.node.scale.y=1;
-   entry.node.rotation.y=b.facing===1?Math.PI:0;
+   entry.node.rotation.y=buildingFacingAngle(b.facing);
    this.construction.update(entry,b);
    this.animateBuildingMotion(entry,b,dt,active);
    if(b.buildRemaining<=0&&!this.announcedBuildings.has(b.id)){
@@ -1163,9 +1163,16 @@ export class SandforgeBattlefield {
   document.addEventListener('keydown',event=>{
    if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;
    if(event.code==='KeyR'&&this.buildKind){
-    event.preventDefault();this.placementFacing=this.placementFacing===0?1:0;
-    if(this.buildPreview)this.buildPreview.rotation.y=this.placementFacing?Math.PI:0;
-    this.sound?.select?.();this.message('Gebäude '+(this.placementFacing?'gedreht':'Standardausrichtung'));
+    if(event.repeat)return;
+    event.preventDefault();
+    this.placementFacing=nextBuildingFacing(this.placementFacing);
+    const degrees=buildingFacingDegrees(this.placementFacing);
+    if(this.buildPreview)this.buildPreview.rotation.y=buildingFacingAngle(this.placementFacing);
+    if(this.buildHint?.style.display!=='none'){
+     const hint=this.buildHint;
+     hint.textContent=hint.textContent.replace(/R drehen \(\d+°\)/,'R drehen ('+degrees+'°)');
+    }
+    this.sound?.select?.();this.message('Gebäudeausrichtung '+degrees+'° · R für nächste Richtung');
    }
    if(event.code==='KeyF'){this.attackMode=true;this.message('Angriffsbewegung: Rechtsklick auf Ziel');}
    if(event.code==='KeyH'){this.selected=new Set(this.game.units.filter(u=>u.hp>0&&u.owner===0&&!u.carrier).map(u=>u.id));this.drawInterface();}
