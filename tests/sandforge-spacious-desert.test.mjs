@@ -5,7 +5,7 @@ import {World} from '../dist/src/reborn/world.js';
 import {Simulation} from '../dist/src/reborn/simulation.js';
 import {mapWorldSize,mapLayout} from '../dist/src/reborn/config.js';
 import {generateMap} from '../dist/src/reborn/world-generation.js';
-import {visualUnitScale} from '../dist/webgl-scale.js';
+import {visualUnitScale,turretAimLocalYaw,turretMuzzleOffset,buildingFacingAngle} from '../dist/webgl-scale.js';
 import {buildingProps} from '../dist/src/reborn/building-decor.js';
 
 const versions=[[15,19,4],[16,20,8],[17,21,12],[18,22,16]];
@@ -119,6 +119,38 @@ test('building props preserve classic facings and rotate consistently for 90 and
     assert.ok(Math.abs(actual.y-anchor.y-expected.y)<1e-8,
      kind+' facing '+facing+' Y prop drift');
    }
+  }
+ }
+});
+
+test('3D turret points at the simulation target for every map angle and placed facing',()=>{
+ const pi=Math.PI;
+ // In Three.js: R_y(theta) projects local X,Z to
+ // (cos(theta)*X+sin(theta)*Z, -sin(theta)*X+cos(theta)*Z).
+ const rotate=(x,z,theta)=>({
+  x:Math.cos(theta)*x+Math.sin(theta)*z,
+  z:-Math.sin(theta)*x+Math.cos(theta)*z
+ });
+ for(const facing of [0,1,2,3]){
+  for(const angle of [0,pi/2,pi,pi*1.5,-pi/4]){
+   const buildingYaw=buildingFacingAngle(facing);
+   const authored=rotate(1,0,buildingYaw+turretAimLocalYaw(angle,facing));
+   const procedural=rotate(0,-1,buildingYaw+turretAimLocalYaw(angle,facing,true));
+   for(const [kind,dir] of [['authored',authored],['fallback',procedural]]){
+    assert.ok(Math.abs(dir.x-Math.cos(angle))<1e-10,
+     kind+' facing='+facing+' angle='+angle+' X is reversed');
+    assert.ok(Math.abs(dir.z-Math.sin(angle))<1e-10,
+     kind+' facing='+facing+' angle='+angle+' Z is reversed');
+   }
+   const left=turretMuzzleOffset(angle,0),right=turretMuzzleOffset(angle,1);
+   const midpoint={x:(left.x+right.x)/2,z:(left.z+right.z)/2};
+   assert.ok(Math.abs(midpoint.x-Math.cos(angle)*37)<1e-10);
+   assert.ok(Math.abs(midpoint.z-Math.sin(angle)*37)<1e-10);
+   assert.ok(Math.abs(Math.hypot(left.x-right.x,left.z-right.z)-11)<1e-10,
+    'twin cannon muzzle separation must stay constant');
+   const lateral={x:right.x-left.x,z:right.z-left.z};
+   assert.ok(Math.abs(lateral.x*Math.cos(angle)+lateral.z*Math.sin(angle))<1e-10,
+    'cannon separation must stay perpendicular to target');
   }
  }
 });
