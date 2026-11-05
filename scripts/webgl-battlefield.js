@@ -103,6 +103,22 @@ export class SandforgeBattlefield {
      const tube=new THREE.Mesh(new THREE.CylinderGeometry(2.5,3.2,37,10),dark);
      tube.rotation.x=Math.PI/2;tube.position.set(0,29,27);
      tube.castShadow=true;gun.add(tube);
+    }else if(kind==='artillery'){
+     // The lite-mode rocket launcher must look and behave like a six-tube
+     // launcher, not a generic MG truck while its authored GLB is absent.
+     const turret=new THREE.Group();turret.name='Tank_Turret';group.add(turret);
+     const gun=new THREE.Group();gun.name='Tank_Gun';turret.add(gun);
+     const pod=new THREE.Mesh(new THREE.BoxGeometry(36,16,42),metal);
+     pod.position.set(0,39,0);pod.castShadow=true;gun.add(pod);
+     for(let row=0;row<2;row++)for(let col=0;col<3;col++){
+      const index=row*3+col,x=(col-1)*10,y=35+row*8;
+      const tube=new THREE.Mesh(new THREE.CylinderGeometry(3.4,3.4,42,12),dark);
+      tube.rotation.x=Math.PI/2;tube.position.set(x,y,0);tube.castShadow=true;
+      gun.add(tube);
+      const muzzle=new THREE.Object3D();
+      muzzle.name='RocketMuzzle_'+index;
+      muzzle.position.set(x,y,26);gun.add(muzzle);
+     }
     }else make(new THREE.BoxGeometry(32,12,length*.45),dark,0,30,0);
     for(const x of [-22,22])for(const z of [-length*.33,length*.33])make(new THREE.CylinderGeometry(10,10,7,12),dark,x,9,z).rotation.z=Math.PI*.5;
    }else if(['scout','bomber'].includes(kind)){
@@ -192,13 +208,15 @@ export class SandforgeBattlefield {
  // The authored tank exposes two rigid GLB nodes, Tank_Turret and
  // Tank_Gun. Handle both sibling and parented variations of the rig.
  installTankRig(entry,model){
-  if(entry.kind!=='tank')return;
+  if(entry.kind!=='tank'&&entry.kind!=='artillery')return;
   const turret=model.getObjectByName('Tank_Turret');
   const gun=model.getObjectByName('Tank_Gun');
   let gunNested=false;
   if(turret&&gun)for(let p=gun.parent;p;p=p.parent)if(p===turret){gunNested=true;break;}
   entry.tankRig={turret,gun,gunNested,
    turretRest:turret?.rotation.y??0,gunRest:gun?.rotation.y??0};
+  if(entry.kind==='artillery')
+   entry.rocketMuzzles=Array.from({length:6},(_,i)=>model.getObjectByName('RocketMuzzle_'+i));
  }
  orientTankRig(entry,unit){
   const hull=Number.isFinite(unit.hullAngle)?unit.hullAngle:unit.angle;
@@ -316,7 +334,7 @@ export class SandforgeBattlefield {
     entry.modelFootprint=Math.max(dims.x,dims.z)*visualScale;
     entry.visualBaseY=model.position.y;entry.visualBaseZ=model.position.z;
     if(type==='building')this.attachBuildingMotion(entry,data);
-    if(type==='unit'&&entry.kind==='tank')this.installTankRig(entry,model);
+    if(type==='unit'&&['tank','artillery'].includes(entry.kind))this.installTankRig(entry,model);
     if(type==='unit'&&data.animations.length){
      const mixer=new THREE.AnimationMixer(model);
      const idle=data.animations.find(a=>/idle|stand|hover|engine/i.test(a.name))||data.animations[0];
@@ -375,7 +393,7 @@ export class SandforgeBattlefield {
   node.add(placeholder);node.position.copy(this.entityPosition(entity));
   this.scene.add(node);
   const entry={node,placeholder,kind:entity.kind,owner:entity.owner,requested:false};
-  if(type==='unit'&&entity.kind==='tank')this.installTankRig(entry,placeholder);
+  if(type==='unit'&&['tank','artillery'].includes(entity.kind))this.installTankRig(entry,placeholder);
   this.scheduleDetail(entry,entity,type);return entry;
  }
  beginPlacement(kind){
@@ -459,9 +477,9 @@ export class SandforgeBattlefield {
    const x=Number.isFinite(u.previousX)?u.previousX+(u.x-u.previousX)*lerp:u.x;
    const z=Number.isFinite(u.previousY)?u.previousY+(u.y-u.previousY)*lerp:u.y;
    entry.node.position.copy(this.pos(x,z,this.heightAt(x,z)+(UNITS[u.kind]?.flying?75+100*(u.flightHeight??1):0)));
-   const hullAngle=u.kind==='tank'&&Number.isFinite(u.hullAngle)?u.hullAngle:u.angle;
+   const hullAngle=['tank','artillery'].includes(u.kind)&&Number.isFinite(u.hullAngle)?u.hullAngle:u.angle;
    entry.node.rotation.y=Math.PI*.5-hullAngle;
-   if(u.kind==='tank')this.orientTankRig(entry,u);
+   if(u.kind==='tank'||u.kind==='artillery')this.orientTankRig(entry,u);
    entry.node.visible=u.owner===0||this.game.canSee(0,u);
   }
   for(const [id,e] of this.units)if(!aliveUnits.has(id)){this.presentation.remove(e,this.game.units.find(u=>u.id===id));this.scene.remove(e.node);this.units.delete(id);this.selected.delete(id);}
