@@ -155,3 +155,38 @@ test('Leopard GLB turns turret and cannon independently of its slowly pivoting h
  for(const r of state)
   expect(r.cannonYaw).toBeCloseTo(r.gunNested?0:r.turretYaw,5);
 });
+
+
+test('WebGL input clears stale selection gesture and pending commands after focus loss',async({page})=>{
+ test.setTimeout(115000);
+ await page.setViewportSize({width:1440,height:900});
+ await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',
+  {waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,null,{timeout:95000});
+ const state=await page.evaluate(()=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  const ids=[...battlefield.selected],before=game.units.map(u=>u.orders.length);
+  battlefield.clickStart={x:100,y:130,button:0};
+  battlefield.selectionBox.style.display='block';
+  battlefield.buildKind='barracks';battlefield.attackMode=true;
+  battlefield.rallyMode=true;
+  window.dispatchEvent(new Event('blur'));
+  return {
+   dragging:battlefield.clickStart,
+   box:battlefield.selectionBox.style.display,
+   placement:battlefield.buildKind,
+   attack:battlefield.attackMode,
+   rally:battlefield.rallyMode,
+   selection:[...battlefield.selected],
+   sameOrders:game.units.every((u,i)=>u.orders.length===before[i]),
+   selectedBefore:ids
+  };
+ });
+ expect(state.dragging).toBeNull();
+ expect(state.box).toBe('none');
+ expect(state.placement).toBeNull();
+ expect(state.attack).toBe(false);
+ expect(state.rally).toBe(false);
+ expect(state.selection).toEqual(state.selectedBefore);
+ expect(state.sameOrders).toBe(true);
+});
