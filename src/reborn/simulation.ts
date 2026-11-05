@@ -124,7 +124,8 @@ export class Simulation {
   // Canvas, saved games and headless AI benchmarks retain the default 1.0.
   infantryVisionBonus=1;
   readonly hills:RollingHill[]=[];
-  onHighGround(p:Point):boolean{return standsOnHill(this.hills,p);}
+  highGroundEnabled=false; // opt-in only in the playable WebGL campaign
+  onHighGround(p:Point):boolean{return this.highGroundEnabled&&standsOnHill(this.hills,p);}
   sight(u:Unit):number{
     const infantry=['infantry','medic','engineer','heavy'].includes(u.kind);
     return unitSpec(u).sight*(infantry?this.infantryVisionBonus:1)*
