@@ -7,6 +7,7 @@ import {canyonGroundSampler,rampAtX,ridgeCenterY} from '/src/reborn/canyon-heigh
 import {SandforgeBattlefield} from '/webgl-battlefield.js';
 import {DesertArtPass} from '/webgl-environment.js';
 import {SandforgeCombatEffects} from '/webgl-combat-vfx.js';
+import {SandforgePerformanceWatch} from '/webgl-perf-watch.js';
 import {SandforgeAtmosphere3D} from '/webgl-atmosphere-3d.js';
 import {addVisualPerimeter} from '/webgl-perimeter.js';
 import {addBoundaryCliffs} from '/webgl-edge-cliffs.js';
@@ -855,15 +856,19 @@ soundButton.onclick=async()=>{
  updateSoundButton();
 };
 
+const performanceWatch=new SandforgePerformanceWatch({game,renderer,effects,groundTracks});
 let lastFrame=performance.now(),frames=0;
 function animate(now){
+ performanceWatch.begin(now);
  const dt=Math.min(.08,(now-lastFrame)/1000);lastFrame=now;
+ const beforeSteps=performanceWatch.enabled?performance.now():0;
  if(running){
   accumulator=Math.min(accumulator+dt,.20);
   let steps=0;while(accumulator>=.05&&steps<4){game.step(.05);constructionRecovery.tick();accumulator-=.05;steps++;}
   battlefield.sync(false,dt);
  }
  if(!running)battlefield.sync(false,dt);
+ if(performanceWatch.enabled)performanceWatch.simulation(performance.now()-beforeSteps);
  if(running)groundTracks.capture();
  groundTracks.update(dt,running);
  battlefield.updateCommandPulse(dt);
@@ -887,6 +892,7 @@ function animate(now){
   renderer.render(battlefield.buildPreviewScene,camera);
   renderer.autoClear=autoClear;
  }
+ performanceWatch.end(now);
  frames++;elapsed+=dt;
  if(elapsed>=.5){
   $('fps').textContent=String(Math.round(frames/elapsed));frames=0;elapsed=0;
@@ -895,6 +901,7 @@ function animate(now){
 }
 renderer.setAnimationLoop(animate);
 window.__sandforgeWebGL={renderer,scene,camera,controls,game,terrain,heightAt,battlefield,effects,atmosphere,sound,constructionRecovery,visualPerimeter,boundaryCliffs,panKeys,groundTracks,
+ performance:performanceWatch,
  setStormPreview,
  get showcaseActive(){return showcaseActive;},
  setShowcase,
