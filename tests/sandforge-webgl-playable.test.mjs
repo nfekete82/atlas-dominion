@@ -152,7 +152,8 @@ test('3D Fog is black until discovery and zoom is constrained like the classic R
  assert.ok(!adapter.includes('p.y+=420.0'),'old elevated fog causes parallax');
  assert.match(adapter,/depthTest:false,depthWrite:false/);
  assert.match(adapter,/renderOrder=990/);
- assert.ok(adapter.includes('visualPerimeter'),'outer terrain must participate in fog');
+ assert.match(preview,/visualPerimeter=addVisualPerimeter\(/,'black outer desert is constructed in the scene');
+ assert.match(adapter,/this\.fogNodes=this\.groundMeshes\.map\(/,'fog overlays cover playable terrain meshes');
 });
 
 test('3D stalled construction safely retries paths, reattaches idle original worker, preserves manual orders',()=>{
