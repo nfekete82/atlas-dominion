@@ -36,8 +36,20 @@ test('3D original-style blueprint: translucent ghost, live site validation and R
  });
  expect(ghost.visible).toBe(true);
  expect(ghost.footprint).toBe(true);
- await page.keyboard.press('r');
- expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.placementFacing)).toBe(1);
+ // Each tap advances exactly 90°, including a full return to the
+ // starting orientation. Legacy stored facing=1 still means 180°.
+ for(const [facing,angle,degrees] of [
+  [2,Math.PI/2,90],[1,Math.PI,180],[3,Math.PI*1.5,270],[0,0,0]
+ ]){
+  await page.keyboard.press('r');
+  const placement=await page.evaluate(()=>{
+   const b=window.__sandforgeWebGL.battlefield;
+   return {facing:b.placementFacing,angle:b.buildPreview.rotation.y};
+  });
+  expect(placement.facing).toBe(facing);
+  expect(placement.angle).toBeCloseTo(angle,5);
+  await expect(page.locator('#sf3d-build-hint')).toContainText('R drehen ('+degrees+'°)');
+ }
  await page.keyboard.press('Escape');
  expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.buildPreview)).toBe(null);
  await expect(page.locator('#sf3d-build-hint')).toBeHidden();
@@ -241,4 +253,41 @@ test('3D audio settings can be enabled again and the user can play an audible te
  expect(state.volume).toBeGreaterThanOrEqual(.85);
  expect(state.commands).toBeGreaterThanOrEqual(1);
  expect(state.state).toBe('running');
+});
+
+test('R cycles through all four cardinal placements for every 3D building type',async({page})=>{
+ test.setTimeout(120000);
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',
+  {waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,null,{timeout:95000});
+ for(const kind of ['headquarters','barracks','factory','airfield','generator','turret']){
+  await page.evaluate(kind=>window.__sandforgeWebGL.battlefield.beginPlacement(kind),kind);
+  for(const [stored,angle] of [[2,Math.PI/2],[1,Math.PI],[3,Math.PI*1.5],[0,0]]){
+   await page.keyboard.press('r');
+   const state=await page.evaluate(()=>{
+    const b=window.__sandforgeWebGL.battlefield;
+    return {facing:b.placementFacing,rotation:b.buildPreview.rotation.y,kind:b.buildKind};
+   });
+   expect(state.kind).toBe(kind);
+   expect(state.facing).toBe(stored);
+   expect(state.rotation).toBeCloseTo(angle,5);
+  }
+ }
+ // The actual building, not just the green ghost, must retain 90° orientation.
+ const state=await page.evaluate(()=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  const site=game.headquartersCandidates(0).find(p=>game.buildError(0,'headquarters',p)===null);
+  if(!site)throw Error('No available HQ site');
+  const built=game.build(0,'headquarters',site,undefined,2);
+  if(!built)throw Error('Could not place the rotated headquarters');
+  battlefield.sync(true);
+  return {savedFacing:built.facing,
+   sceneFacing:battlefield.bases.get(built.id)?.node.rotation.y,
+   recoveredFacing:game.constructor.load(game.save()).bases.find(b=>b.id===built.id)?.facing};
+ });
+ expect(state.savedFacing).toBe(2);
+ expect(state.sceneFacing).toBeCloseTo(Math.PI/2,5);
+ expect(state.recoveredFacing).toBe(2);
+ expect(errors).toEqual([]);
 });
