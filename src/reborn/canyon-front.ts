@@ -67,7 +67,9 @@ export function generateCanyonFeatures(seed:number,size:number,columns:number,ro
       width:(variant===1?120:80+random()*35)*(spacious?1.35:1),
       depth:(variant===1?88:66+random()*29)*(spacious?1.35:1),
       height:(variant===1?63:39+random()*26)*(spacious?1.20:1),
-      rotation:(random()-.5)*.24,variant};
+      // Give spacious 3D ruins genuinely different orientations, not the
+      // nearly identical +/-7-degree facing of legacy Canyon maps.
+      rotation:spacious?(random()-.5)*Math.PI*1.7:(random()-.5)*.24,variant};
     if(safe(r)){ruins.push(r);added=true;}
    }
   }
