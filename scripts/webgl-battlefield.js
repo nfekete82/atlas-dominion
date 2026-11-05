@@ -5,7 +5,7 @@ import {RULES} from '/src/reborn/config.js';
 import {installClassicHud} from '/webgl-classic-hud.js';
 import {hydrateUnitIcons,hydrateBuildingIcons,unitIcon,buildingIconUrl} from '/webgl-portraits.js';
 import {SandforgeActorPresentation} from '/webgl-actor-presentation.js';
-import {calibratedScale,visualUnitScale,buildingFacingAngle,nextBuildingFacing,buildingFacingDegrees} from '/webgl-scale.js';
+import {calibratedScale,visualUnitScale,buildingFacingAngle,nextBuildingFacing,buildingFacingDegrees,turretAimLocalYaw} from '/webgl-scale.js';
 import {SandforgeGroundingPass} from '/webgl-grounding.js';
 import {SandforgeConstructionPresentation} from '/webgl-construction.js';
 import {createBastionCaptureBar,updateBastionCaptureBar} from '/webgl-bastion-capture.js';
@@ -231,11 +231,18 @@ export class SandforgeBattlefield {
   if(motion.kind==='turret'){
    const angle=Number.isFinite(base.turretAngle)?base.turretAngle:0;
    if(motion.mixer&&motion.clip){
-    const phase=((angle%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
+    // The authored rest-position cannons face +X; the simulation's
+    // angle grows towards +Z, while Three.js yaw grows towards -Z.
+    // The building root already carries its own facing rotation.
+    const yaw=turretAimLocalYaw(angle,base.facing);
+    const phase=((yaw%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
     motion.action.paused=false;
     motion.mixer.setTime(phase/(Math.PI*2)*motion.clip.duration);
     motion.action.paused=true;
-   }else if(motion.rotor)motion.rotor.rotation.y=Math.PI*.5-angle;
+   }else if(motion.rotor){
+    // Procedural cylinders instead point down local -Z.
+    motion.rotor.rotation.y=turretAimLocalYaw(angle,base.facing,true);
+   }
   }else if(active){
    if(motion.mixer)motion.mixer.update(dt);
    else if(motion.rotor)motion.rotor.rotation.y+=dt*.52;
