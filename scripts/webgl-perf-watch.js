@@ -36,11 +36,11 @@ export class SandforgePerformanceWatch{
   this.lastSnapshot=report;
   this.element.textContent=
    'FPS '+report.fps.toFixed(0)+' / 1% '+report.lowFps.toFixed(0)+
-   '\\nFrame p95 '+report.frameP95.toFixed(1)+'ms · Sim p95 '+report.simP95.toFixed(1)+'ms'+
-   '\\nDraw calls '+report.drawCalls+' · Triangles '+report.triangles+
-   '\\nUnits '+report.units+' · Particles '+report.particles+
-   '\\nTrails '+report.tracks+' · Effects '+report.emitters+
-   '\\nGPU geometries '+report.geometries+' / textures '+report.textures;
+   '\nFrame p95 '+report.frameP95.toFixed(1)+'ms · Sim p95 '+report.simP95.toFixed(1)+'ms'+
+   '\nDraw calls '+report.drawCalls+' · Triangles '+report.triangles+
+   '\nUnits '+report.units+' · Particles '+report.particles+
+   '\nTrails '+report.tracks+' · Effects '+report.emitters+
+   '\nGPU geometries '+report.geometries+' / textures '+report.textures;
  }
  snapshot(){
   const frames=Array.from(this.samples.subarray(0,this.length)).sort((a,b)=>a-b);
