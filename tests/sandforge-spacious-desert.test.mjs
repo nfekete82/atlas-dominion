@@ -134,7 +134,7 @@ test('3D turret points at the simulation target for every map angle and placed f
  for(const facing of [0,1,2,3]){
   for(const angle of [0,pi/2,pi,pi*1.5,-pi/4]){
    const buildingYaw=buildingFacingAngle(facing);
-   const authored=rotate(1,0,buildingYaw+turretAimLocalYaw(angle,facing));
+   const authored=rotate(0,1,buildingYaw+turretAimLocalYaw(angle,facing));
    const procedural=rotate(0,-1,buildingYaw+turretAimLocalYaw(angle,facing,true));
    for(const [kind,dir] of [['authored',authored],['fallback',procedural]]){
     assert.ok(Math.abs(dir.x-Math.cos(angle))<1e-10,
