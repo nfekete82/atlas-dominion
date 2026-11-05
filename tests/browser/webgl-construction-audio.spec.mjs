@@ -107,7 +107,13 @@ test('3D audio and HUD: clicks enabled by user gesture, complete unit text, zoom
  // Unit sprites remain present in the DOM but only the selected producer can show them.
  const soldier=page.locator('[data-unit="infantry"] .card-name');
  await expect(soldier).toHaveText('Infanteriesoldat');
- expect(await soldier.evaluate(el=>getComputedStyle(el).whiteSpace)).toBe('normal');
+ // All 3D unit-card names now occupy one line, with the price below.
+ // Keep the entire accessible name in the DOM; only visual overflow clips.
+ expect(await soldier.evaluate(el=>getComputedStyle(el).whiteSpace)).toBe('nowrap');
+ const artillery=page.locator('[data-unit="artillery"]');
+ await expect(artillery.locator('.card-name')).toHaveText('Raketenwerfer');
+ expect(await artillery.locator('.card-name').evaluate(el=>getComputedStyle(el).whiteSpace)).toBe('nowrap');
+ expect(await artillery.locator('.card-cost')).toHaveText('600');
  await selectEngineer(page);
  await page.locator('#sf-classic-root .catalog-tabs [data-tab="buildings"]').first().click();
  await page.waitForFunction(()=>window.__sandforgeWebGL?.sound?.context?.state==='running',{timeout:20000});
