@@ -71,7 +71,19 @@ export class SandforgeBattlefield {
   this.selectionBox=document.createElement('div');
   this.selectionBox.style.cssText='position:fixed;z-index:11;pointer-events:none;border:1px solid #9be5ef;background:#4ca4ce35;display:none;box-shadow:inset 0 0 0 1px #1c3945a8';
   document.body.append(this.selectionBox);
-  this.tracer=new THREE.LineSegments(new THREE.BufferGeometry(),
+  // Fixed-size, reusable GPU buffer: the previous code created two new
+  // BufferAttributes every render frame (and old GPU buffers accumulated).
+  // No per-frame geometry allocation even after hours of large battles.
+  this.maxTracerShots=110;
+  const tracerGeometry=new THREE.BufferGeometry();
+  this.tracerPositions=new THREE.Float32BufferAttribute(
+   new Float32Array(this.maxTracerShots*6),3).setUsage(THREE.DynamicDrawUsage);
+  this.tracerColors=new THREE.Float32BufferAttribute(
+   new Float32Array(this.maxTracerShots*6),3).setUsage(THREE.DynamicDrawUsage);
+  tracerGeometry.setAttribute('position',this.tracerPositions);
+  tracerGeometry.setAttribute('color',this.tracerColors);
+  tracerGeometry.setDrawRange(0,0);
+  this.tracer=new THREE.LineSegments(tracerGeometry,
     new THREE.LineBasicMaterial({vertexColors:true,transparent:true,opacity:.96,depthWrite:false}));
   this.tracer.frustumCulled=false;scene.add(this.tracer);
   this.buildInterface();this.addFog();this.createBastions();
@@ -637,12 +649,15 @@ export class SandforgeBattlefield {
   this.fogAtmosphere?.setFogEnabled(this.fogEnabled);
  }
  updateShots(){
-  const lines=[],tints=[];
-  // A turret's visual tracer must originate at the SAME left/right barrel
-  // as the muzzle flash. Freeze the first world-space source position per
-  // shot: later turret rotations must not bend a shot already in flight.
+  // Rockets are simulated moving missiles, never hitscan tracer lines.
+  // Update the SAME GPU buffer instead of allocating geometry every frame.
+  const positions=this.tracerPositions.array,colors=this.tracerColors.array;
+  let n=0;
   this.turretTracerOrigins??=new WeakMap();
-  for(const shot of this.game.shots.slice(-110)){
+  const shots=this.game.shots;
+  for(let i=Math.max(0,shots.length-this.maxTracerShots);i<shots.length;i++){
+   const shot=shots[i];
+   if(shot.weapon==='rocket')continue;
    if(!this.game.canSee(0,shot.from)&&!this.game.canSee(0,shot.to))continue;
    if(shot.weapon==='turret'&&shot.source&&!this.turretTracerOrigins.has(shot)){
     const barrel=shot.barrel===1?1:0;
@@ -652,14 +667,20 @@ export class SandforgeBattlefield {
    const a=this.turretTracerOrigins.get(shot)??
     this.pos(shot.from.x,shot.from.y,this.heightAt(shot.from.x,shot.from.y)+27);
    const b=this.pos(shot.to.x,shot.to.y,this.heightAt(shot.to.x,shot.to.y)+27);
-   lines.push(a.x,a.y,a.z,b.x,b.y,b.z);
-   const c=shot.weapon==='rocket'||shot.weapon==='cannon'?[1,.58,.17]:shot.owner===0?[.55,.89,1]:[1,.47,.25];
-   tints.push(...c,...c);
+   const offset=n*6;
+   positions[offset]=a.x;positions[offset+1]=a.y;positions[offset+2]=a.z;
+   positions[offset+3]=b.x;positions[offset+4]=b.y;positions[offset+5]=b.z;
+   const c=shot.weapon==='cannon'?[1,.58,.17]:shot.owner===0?[.55,.89,1]:[1,.47,.25];
+   colors[offset]=c[0];colors[offset+1]=c[1];colors[offset+2]=c[2];
+   colors[offset+3]=c[0];colors[offset+4]=c[1];colors[offset+5]=c[2];
+   n++;
   }
   const geometry=this.tracer.geometry;
-  geometry.setAttribute('position',new THREE.Float32BufferAttribute(lines,3));
-  geometry.setAttribute('color',new THREE.Float32BufferAttribute(tints,3));
-  geometry.computeBoundingSphere();
+  geometry.setDrawRange(0,n*2);
+  this.tracerPositions.needsUpdate=true;
+  this.tracerColors.needsUpdate=true;
+  // frustumCulled=false, so there is no need to recalculate bounds on each
+  // frame; this avoids additional O(shots) work and transient allocations.
  }
  updateSelectionRings(){
   for(const [id,ring] of this.selectedRings)if(!this.selected.has(id)||!this.units.has(id)){
