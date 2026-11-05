@@ -572,9 +572,19 @@ export class SandforgeBattlefield {
  }
  updateShots(){
   const lines=[],tints=[];
+  // A turret's visual tracer must originate at the SAME left/right barrel
+  // as the muzzle flash. Freeze the first world-space source position per
+  // shot: later turret rotations must not bend a shot already in flight.
+  this.turretTracerOrigins??=new WeakMap();
   for(const shot of this.game.shots.slice(-110)){
    if(!this.game.canSee(0,shot.from)&&!this.game.canSee(0,shot.to))continue;
-   const a=this.pos(shot.from.x,shot.from.y,this.heightAt(shot.from.x,shot.from.y)+27);
+   if(shot.weapon==='turret'&&shot.source&&!this.turretTracerOrigins.has(shot)){
+    const barrel=shot.barrel===1?1:0;
+    const sprite=this.bases.get(shot.source)?.presentation?.turretFlashes?.[barrel];
+    if(sprite)this.turretTracerOrigins.set(shot,sprite.position.clone());
+   }
+   const a=this.turretTracerOrigins.get(shot)??
+    this.pos(shot.from.x,shot.from.y,this.heightAt(shot.from.x,shot.from.y)+27);
    const b=this.pos(shot.to.x,shot.to.y,this.heightAt(shot.to.x,shot.to.y)+27);
    lines.push(a.x,a.y,a.z,b.x,b.y,b.z);
    const c=shot.weapon==='rocket'||shot.weapon==='cannon'?[1,.58,.17]:shot.owner===0?[.55,.89,1]:[1,.47,.25];
