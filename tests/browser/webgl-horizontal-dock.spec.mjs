@@ -331,3 +331,29 @@ test('paused simulation is visibly labeled and resumes unit logic in 3D showcase
  await page.waitForTimeout(180);
  expect(await page.evaluate(()=>window.__sandforgeWebGL.game.time)).toBeCloseTo(stopped,5);
 });
+
+test('a medic in lite 3D mode is a detailed soldier instead of a blue capsule',async({page})=>{
+ test.setTimeout(125000);
+ await load(page);
+ const medicId=await page.evaluate(()=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  const engineer=game.units.find(u=>u.owner===0&&u.hp>0&&u.kind==='engineer');
+  if(!engineer)throw Error('No engineer to anchor test');
+  const medic=game.spawn(0,{x:engineer.x+75,y:engineer.y+15},'medic');
+  battlefield.sync(true,.02,false,1);
+  const entry=battlefield.units.get(medic.id);
+  if(!entry?.requested)throw Error('Lite mode failed to request genuine medic GLB');
+  if(entry.placeholder.children.length<10)throw Error('Medic fallback still looks like a capsule');
+  return medic.id;
+ });
+ await page.waitForFunction(id=>Boolean(window.__sandforgeWebGL.battlefield.units.get(id)?.detail),
+  medicId,{timeout:70000});
+ const state=await page.evaluate(id=>{
+  const e=window.__sandforgeWebGL.battlefield.units.get(id);
+  return {kind:e.kind,detail:!!e.detail,removed:!e.placeholder.parent,meshes:e.detail.children.length};
+ },medicId);
+ expect(state.kind).toBe('medic');
+ expect(state.detail).toBe(true);
+ expect(state.removed).toBe(true);
+ expect(state.meshes).toBeGreaterThan(0);
+});
