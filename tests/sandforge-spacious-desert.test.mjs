@@ -68,7 +68,7 @@ test('v19-v22 games can build HQ, save and reload with original simulation state
 
 test('production WebGL preview ships all root-relative modules in its static imports',()=>{
  const entry=readFileSync('dist/webgl-preview.js','utf8');
- const modules=[...entry.matchAll(/from\\s*['"]\\/([^'"]+\\.js)['"]/g)].map(m=>m[1]);
+ const modules=[...entry.matchAll(/from\s*['"]\/([^'"]+\.js)['"]/g)].map(m=>m[1]);
  assert.ok(modules.includes('webgl-perf-watch.js'),
   'combat profiler import must be included in deployment smoke test');
  for(const modulePath of modules){
