@@ -803,70 +803,70 @@ export class SandforgeBattlefield {
   }
   hydrateUnitIcons(actions);
   hydrateBuildingIcons(actions);
+  // The bottom production panel is GLOBAL: every producer and every build
+  // site stays visible regardless of which unit or structure is selected.
   const queuedBases=g.bases.filter(b=>b.owner===0&&b.hp>0&&b.queue?.length);
   const queues=queuedBases.reduce((sum,b)=>sum+b.queue.length,0);
   const constructionSites=g.bases.filter(b=>b.owner===0&&b.hp>0&&b.buildRemaining>0);
-  const producer=queuedBases.find(b=>b.id===this.selectedBase)??queuedBases[0];
-  const duration=producer?.queue?.[0]??1;
-  const firstSite=constructionSites[0];
+  const primary=queuedBases[0],firstSite=constructionSites[0];
   const sitePct=b=>Math.max(0,Math.min(100,
    100*(1-b.buildRemaining/Math.max(.001,BUILDINGS[b.kind]?.buildTime??1))));
-  // Simulation accumulates b.production from zero up to queue[0].
-  const progress=producer?Math.max(0,Math.min(100,100*producer.production/Math.max(.001,duration)))
-   :firstSite?sitePct(firstSite):0;
+  const unitPct=b=>Math.max(0,Math.min(100,
+   100*b.production/Math.max(.001,b.queue[0]??1)));
+  const progress=primary?unitPct(primary):firstSite?sitePct(firstSite):0;
   view.querySelector('#sf-progress').style.width=progress.toFixed(1)+'%';
   view.querySelector('#sf-production .production-track')
    .setAttribute('aria-valuenow',String(Math.round(progress)));
-  const currentKind=producer?.queueTypes?.[0];
-  const currentName=currentKind?UNITS[currentKind]?.name??currentKind:'';
-  view.querySelector('#sf-queue-count').textContent=queues+' '+(queues===1?'AUFTRAG':'AUFTRÄGE')+' · '+constructionSites.length+' BAU';
-  view.querySelector('#sf-queue').textContent=producer
-   ?BUILDINGS[producer.kind].name+': '+currentName+' ('+producer.queue.length+' in Warteschlange)'
+  view.querySelector('#sf-queue-count').textContent=queues+' '+
+   (queues===1?'AUFTRAG':'AUFTRÄGE')+' · '+constructionSites.length+' BAU';
+  view.querySelector('#sf-queue').textContent=primary
+   ?queuedBases.length+' Produktionsgebäude aktiv · '+queues+' Aufträge'
    :constructionSites.length?constructionSites.map(b=>BUILDINGS[b.kind].name+' (im Bau)').join(' · ')
    :'WARTESCHLANGE LEER';
-  const remaining=producer?Math.max(0,duration-producer.production):firstSite?.buildRemaining??0;
-  view.querySelector('#sf-queue-time').textContent=producer||firstSite?Math.ceil(remaining)+' s':'--:--';
+  const remaining=primary?Math.max(0,(primary.queue[0]??0)-primary.production)
+   :firstSite?.buildRemaining??0;
+  view.querySelector('#sf-queue-time').textContent=primary||firstSite?Math.ceil(remaining)+' s':'--:--';
 
-  // Update the production tiles only when orders/sites actually change, not
-  // on every visual frame. Keep the horizontal scroll position and icon cache.
+  // Rebuild on actual global queue / construction changes, never on selection.
+  // All orders fit into a single horizontally scrollable strip. Nothing is
+  // hidden behind a per-building tab or a capped preview of five items.
   const slots=view.querySelector('#sf-queue-slots');
-  const queuedKinds=producer?.queueTypes??[];
-  const slotKey=(producer?.id??'-')+'|'+queuedKinds.join(',')+'|'+
-   constructionSites.map(b=>b.id+':'+b.kind).join(',');
+  const slotKey=queuedBases.map(b=>b.id+':'+b.kind+':'+b.queueTypes.join(',')).join('|')+
+   '|B|'+constructionSites.map(b=>b.id+':'+b.kind).join('|');
   if(this.previousProductionSlotsKey!==slotKey){
    const scroll=slots.scrollLeft,items=[];
-   for(let i=0;i<Math.min(5,queuedKinds.length);i++){
-    const kind=queuedKinds[i],name=UNITS[kind]?.name??kind;
+   for(const b of queuedBases)for(let i=0;i<b.queueTypes.length;i++){
+    const kind=b.queueTypes[i]??'infantry',name=UNITS[kind]?.name??kind;
+    const source=BUILDINGS[b.kind]?.name??b.kind;
     items.push('<div role="listitem" class="sf-production-slot'+(i===0?' is-active':'')+
-     '" data-queue-index="'+i+'" title="'+plain(name)+'">'+
+     '" data-queue-base="'+b.id+'" data-queue-index="'+i+
+     '" title="'+plain(source)+' · '+plain(name)+'">'+
      '<img data-sf-unit-icon="'+kind+'" alt="" decoding="async">'+
      '<div class="sf-production-slot-copy"><strong>'+plain(name)+'</strong>'+
-     '<small>'+(i===0?'IN ARBEIT':'WARTET')+'</small></div>'+
+     '<small>'+(i===0?'IN ARBEIT':'WARTET')+'</small>'+
+     '<span class="sf-production-source">'+plain(source)+'</span></div>'+
      '<span class="sf-slot-progress"><i></i></span></div>');
    }
-   if(queuedKinds.length>5)
-    items.push('<div role="listitem" class="sf-production-more">+'+
-     (queuedKinds.length-5)+' weitere</div>');
-   for(const b of constructionSites.slice(0,2)){
+   for(const b of constructionSites){
     items.push('<div role="listitem" class="sf-production-slot is-build" data-build-id="'+
      b.id+'" title="'+plain(BUILDINGS[b.kind].name)+' im Bau">'+
      '<img src="'+buildingIconUrl(b.kind)+'" alt="" loading="lazy" decoding="async">'+
      '<div class="sf-production-slot-copy"><strong>'+plain(BUILDINGS[b.kind].name)+'</strong>'+
      '<small>BAU</small></div><span class="sf-slot-progress"><i></i></span></div>');
    }
-   if(constructionSites.length>2)
-    items.push('<div role="listitem" class="sf-production-more">+'+
-     (constructionSites.length-2)+' Baustellen</div>');
    slots.innerHTML=items.join('')||
     '<div class="sf-production-empty">Noch keine Produktion aktiv</div>';
    this.previousProductionSlotsKey=slotKey;
    slots.scrollLeft=scroll;
    hydrateUnitIcons(slots);
   }
-  for(const tile of slots.querySelectorAll('[data-queue-index]')){
+  for(const tile of slots.querySelectorAll('[data-queue-base]')){
+   const producer=queuedBases.find(b=>b.id===Number(tile.dataset.queueBase));
+   if(!producer)continue;
    const active=Number(tile.dataset.queueIndex)===0;
-   tile.querySelector('.sf-slot-progress i').style.width=(active?progress:0).toFixed(1)+'%';
-   if(active)tile.querySelector('small').textContent='IN ARBEIT · '+Math.round(progress)+'%';
+   const pct=active?unitPct(producer):0;
+   tile.querySelector('.sf-slot-progress i').style.width=pct.toFixed(1)+'%';
+   tile.querySelector('small').textContent=active?'IN ARBEIT · '+Math.round(pct)+'%':'WARTET';
   }
   for(const tile of slots.querySelectorAll('[data-build-id]')){
    const site=constructionSites.find(b=>b.id===Number(tile.dataset.buildId));
