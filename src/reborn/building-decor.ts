@@ -9,6 +9,8 @@ export type PropLayer='behind'|'front';
 interface Slot {kind:BasePropKind;x:number;y:number;layer:PropLayer}
 export interface BuildingProp {kind:BasePropKind;x:number;y:number;layer:PropLayer;size:number;variant:number}
 export type DecoratedStructure=BuildingKind|'bastion';
+/** Legacy 1 means mirrored facade; WebGL-added 2/3 mean quarter-turns. */
+export type BuildingFacing=0|1|2|3;
 const layouts:Record<DecoratedStructure,readonly Slot[]>={
  headquarters:[
   {kind:'service-lamp',x:-2.10,y:-.84,layer:'behind'},
@@ -46,13 +48,20 @@ const mix=(seed:number,id:number,index:number):number=>{
  n=Math.imul(n^(n>>>16),0x7feb352d);n=Math.imul(n^(n>>>15),0x846ca68b);
  return ((n^(n>>>16))>>>0)/4294967296;
 };
-export function buildingProps(kind:DecoratedStructure,point:{x:number;y:number},radius:number,id:number,seed:number,facing:0|1=0):BuildingProp[]{
+export function buildingProps(kind:DecoratedStructure,point:{x:number;y:number},radius:number,id:number,seed:number,facing:BuildingFacing=0):BuildingProp[]{
  if(!Number.isFinite(radius)||radius<=0)return [];
  return layouts[kind].map((slot,i)=>{
   const v=mix(seed,id,i),w=mix(seed^0x2fba91,id,i);
+  const x=(slot.x+(v-.5)*.035)*radius;
+  const y=(slot.y+(w-.5)*.035)*radius;
+  // Preserve legacy 180° *mirroring* exactly; it was never a quarter-turn.
+  // The new 90°/270° facings follow the model's Three.js Y rotation
+  // projected onto the world X/Z plane. Ground vehicle colliders use these
+  // same positions, so rotated props cannot be driven through.
+  const dx=facing===1?-x:facing===2?y:facing===3?-y:x;
+  const dy=facing===2?-x:facing===3?x:y;
   return {kind:slot.kind,layer:slot.layer,
-   x:point.x+(facing===1?-1:1)*(slot.x+(v-.5)*.035)*radius,
-   y:point.y+(slot.y+(w-.5)*.035)*radius,
+   x:point.x+dx,y:point.y+dy,
    size:visualSize[slot.kind]*(.97+v*.06),variant:Math.floor(w*4)};
  });
 }
@@ -64,7 +73,7 @@ export class BuildingDecor {
  get spriteCount():number{return this.atlas.spriteCount;}
  draw(c:CanvasRenderingContext2D,kind:DecoratedStructure,point:{x:number;y:number},radius:number,
   id:number,seed:number,_owner:Owner,layer:PropLayer,_time=0,_reducedMotion=false,alpha=1,
-  facing:0|1=0,visible:(prop:BuildingProp)=>boolean=()=>true):void {
+  facing:BuildingFacing=0,visible:(prop:BuildingProp)=>boolean=()=>true):void {
   c.save();c.globalAlpha=Math.max(0,Math.min(1,alpha));c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';
   for(const p of buildingProps(kind,point,radius,id,seed,facing))if(p.layer===layer&&visible(p))this.atlas.draw(c,p.kind,p,p.size,p.variant);
   c.restore();
