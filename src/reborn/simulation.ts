@@ -694,14 +694,18 @@ export class Simulation {
       u.hullAngle=hull;
       u.angle=turnTowards(u.angle,desired,2.05,dt);
       u.facing=Math.cos(u.angle)<-.05?-1:Math.cos(u.angle)>.05?1:u.facing;
-      const gunError=Math.abs(angleDifference(u.angle,desired));
-      if(gunError>.10){
-        u.driveSpeed=0;u.moving=false;return;
-      }
-      u.hullAngle=turnTowards(hull,desired,1.05,dt);
-      const hullError=Math.abs(angleDifference(u.hullAngle,desired));
-      if(hullError>.085){
-        u.driveSpeed=0;u.moving=false;return;
+      // Once moving, keep steering through gentle path bends rather than
+      // stopping/restarting for every navigation waypoint.
+      if((u.driveSpeed??0)<2){
+        const gunError=Math.abs(angleDifference(u.angle,desired));
+        if(gunError>.10){
+          u.driveSpeed=0;u.moving=false;return;
+        }
+        u.hullAngle=turnTowards(hull,desired,1.05,dt);
+        const hullError=Math.abs(angleDifference(u.hullAngle,desired));
+        if(hullError>.085){
+          u.driveSpeed=0;u.moving=false;return;
+        }
       }
     }
     const cohort=u.orders[0]?.march;
@@ -739,7 +743,7 @@ export class Simulation {
     // clip through a wall or a visible service prop between simulation ticks.
     const segmentClear=spec.flying||activeObstacles.every(o=>
       segmentDistance(o,u,p)>=o.radius+clearance+(spec.group==='Infanterie'?0:RULES.infantry.radius));
-    if(spec.flying||(segmentClear&&this.world.walkable(p,activeObstacles,clearance))){u.x=p.x;u.y=p.y;u.walkDistance+=step;u.angle=Math.atan2(dy,dx);u.facing=dx<-.05?-1:dx>.05?1:u.facing;u.moving=step>.001;}
+    if(spec.flying||(segmentClear&&this.world.walkable(p,activeObstacles,clearance))){u.x=p.x;u.y=p.y;u.walkDistance+=step;if(u.kind!=='tank')u.angle=Math.atan2(dy,dx);u.facing=dx<-.05?-1:dx>.05?1:u.facing;u.moving=step>.001;}
     else {u.path=[];u.repath=0;delete u.vehicleEscape;if(this.world.mapVersion>=3&&!spec.flying)u.exactPath=true;}
   }
   step(dt=RULES.tick):void {
