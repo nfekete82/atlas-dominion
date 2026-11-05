@@ -17,7 +17,8 @@ export function addVisualPerimeter({scene,size,heightAt,material,ringTiles=2,seg
   vertexShader:`varying vec2 worldXZ; void main(){
    vec4 worldPosition=modelMatrix*vec4(position,1.0);
    worldXZ=worldPosition.xz;
-   vec3 p=position;p.y+=2.0;
+   // Small lift off the original perimeter mesh prevents z-fighting.
+   vec3 p=position;p.y+=0.75;
    gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);
   }`,
   fragmentShader:`uniform float mapSize;varying vec2 worldXZ;
@@ -25,10 +26,13 @@ export function addVisualPerimeter({scene,size,heightAt,material,ringTiles=2,seg
     float halfMap=mapSize*.5;
     float outside=max(max(abs(worldXZ.x)-halfMap,abs(worldXZ.y)-halfMap),0.0);
     // Monotonic: beyond the fade there can never be bright terrain again.
-    float darkness=smoothstep(20.0,205.0,outside);
+    // Only a narrow apron of sand remains visible at the map border.
+    // Beyond 60 world units there is no second stretch of lit terrain.
+    float darkness=smoothstep(-5.0,60.0,outside);
     gl_FragColor=vec4(0.0,0.0,0.0,darkness);
    }`,
-  transparent:true,depthTest:false,depthWrite:false,side:THREE.DoubleSide,
+  transparent:true,depthTest:true,depthWrite:false,side:THREE.DoubleSide,
+  polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1,
   fog:false,toneMapped:false
  });
  const c0=new THREE.Color('#faf1e0'),c1=new THREE.Color('#b58b63');
@@ -47,10 +51,10 @@ export function addVisualPerimeter({scene,size,heightAt,material,ringTiles=2,seg
  // the world stops in absolute black rather than creating an endless desert.
  const edgeShadow=(x,z)=> {
   const uneven=18*Math.sin(x*.011+z*.007)+10*Math.sin(z*.021-x*.009);
-  // Restore the dark map surround before the camera clamp at 320 units.
-  // A 245-unit irregular gradient, not a square terrain cut, keeps the
-  // near-edge rocks/sand visible while the distant ring fades into black.
-  return smooth((outsideDistance(x,z)-80-uneven)/245);
+  // The original 245-unit fade left a clearly visible detached strip of
+  // desert beyond the black Fog of War. Limit its tinted terrain to the
+  // same narrow border that the depth-tested exterior mask uses.
+  return smooth((outsideDistance(x,z)-5-uneven*.35)/65);
  };
  for(let cy=-ringTiles;cy<playableChunks+ringTiles;cy++)
   for(let cx=-ringTiles;cx<playableChunks+ringTiles;cx++){
@@ -103,7 +107,10 @@ export function addVisualPerimeter({scene,size,heightAt,material,ringTiles=2,seg
    // this remains aligned across angled/zoomed cameras and cannot expose a
    // second lit strip behind the dark boundary. Non-playable and not picked.
    const blackout=new THREE.Mesh(geometry,voidMaterial);
-   blackout.renderOrder=1100;
+   // Depth-test this decorative cover against the real map and actors.
+   // A no-depth-test overlay drawn last was incorrectly painting BLACK
+   // across already-visible playable ground in oblique camera views.
+   blackout.renderOrder=980;
    blackout.frustumCulled=true;
    blackout.userData={perimeterVoid:true,visualOnly:true,nonPlayable:true};
    scene.add(blackout);voidCover.push(blackout);
