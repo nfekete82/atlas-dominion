@@ -133,6 +133,48 @@ WebGL-Release-Testplan auf dem exakt veröffentlichten Commit.
 - Jede Statusmeldung nennt den geprüften Commit und trennt **implementiert**,
   **statisch geprüft**, **lokal getestet** und **visuell abgenommen**.
 
+## Umsetzung – WebGL-Konsolidierung, erster Entwicklungsschritt
+
+Die Änderungen sind auf PR #227 implementiert, aber **noch nicht lokal/visuell
+abgenommen**. Der PR bleibt deshalb als Entwurf bestehen:
+
+- PR-184-Zielsuche wurde **selektiv** in den aktuellen 3D-Simulationsstand
+  übertragen; der pro Tick erneuerte `unitById`-Index ersetzt die temporäre
+  Kopie aller Einheiten und Gebäude in `acquire()`.
+- Die **zwei deterministischen Tests** aus PR #184 wurden übernommen und
+  sind Teil von `npm run test:webgl-integration`; der komplette Panzer- und
+  WebGL-Stand wurde nicht durch einen älteren Canvas-Branch ersetzt.
+- Ein dediziertes GitHub-Actions-Gate unter
+  `.github/workflows/sandforge-webgl-consolidation.yml` prüft TypeScript,
+  Combat-Index und Chromium-WebGL-Integration. Es prüft danach ausdrücklich
+  auch den Root-Einstieg mit tatsächlichem WebGL-Canvas.
+- Der Build bietet jetzt einen **reversiblen G2-Kandidaten**:
+  `SANDFORGE_RENDERER=webgl npm run build` oder `npm run dev:3d`.
+  Nur dabei wird `dist/index.html` zur 3D-Spielseite; die alte Canvas-Seite
+  liegt unter `/classic.html`. Ohne Flag bleibt `/` unverändert, bis G0/G1
+  nachweislich bestanden sind.
+- In der WebGL-Eingabe werden ein hängen gebliebenes Auswahlrechteck und
+  bewaffnete Bau-/Angriffs-/Sammelpunktmodi bei Fenster-Fokusverlust
+  bereinigt. Ein neuer Browser-Test prüft die Regression.
+
+Diese Arbeiten sind **kein fertiger Release**: weitere Grafik-/AI-/Langzeittests
+und die formale Umstellung des Default-Builds folgen erst nach erfolgreicher
+Abnahme. Die 18 historisch dokumentierten Canvas-Fehler sind dadurch nicht
+pauschal gelöst.
+
+### Sofort lokal testen
+
+```bash
+cd ~/Projects/sandforge-input-preview
+git fetch origin
+git switch --detach origin/fix/webgl-classic-input-parity-20261104
+npm run test:webgl-integration
+PORT=8102 HOST=127.0.0.1 npm run dev:3d
+```
+
+Dann `http://127.0.0.1:8102/` (3D-Haupteinstieg) und
+`http://127.0.0.1:8102/classic.html` (Canvas-Referenz) prüfen.
+
 ## Laufende lokale Abnahme
 
 ```bash
