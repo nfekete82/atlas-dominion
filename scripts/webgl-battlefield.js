@@ -98,6 +98,22 @@ export class SandforgeBattlefield {
    }else if(['scout','bomber'].includes(kind)){
     make(new THREE.CapsuleGeometry(13,36,4,8),metal,0,15,0).rotation.x=Math.PI*.5;
     make(new THREE.BoxGeometry(95,2,15),dark,0,18,0);
+   }else if(kind==='medic'){
+    // Human medical fallback while the authored soldier GLB streams in.
+    const cloth=new THREE.MeshStandardMaterial({color:owner===0?'#b9afa0':'#ac8276',roughness:.86}),
+     armor=new THREE.MeshStandardMaterial({color:owner===0?'#385d67':'#805044',roughness:.7}),
+     white=new THREE.MeshStandardMaterial({color:'#eae4d6',roughness:.82}),
+     cross=new THREE.MeshStandardMaterial({color:'#ca3035',roughness:.76});
+    make(new THREE.BoxGeometry(17,20,12),cloth,0,22,0);
+    for(const x of [-5.5,5.5]){
+     make(new THREE.BoxGeometry(5,17,7),cloth,x,5,0);
+     make(new THREE.BoxGeometry(5,15,6),armor,x*1.8,23,-.5);
+    }
+    make(new THREE.SphereGeometry(7.5,10,8),cloth,0,39,0);
+    make(new THREE.SphereGeometry(9,10,8,0,Math.PI*2,0,Math.PI*.53),armor,0,43,0);
+    make(new THREE.BoxGeometry(14,17,6),white,0,23,8.5);
+    make(new THREE.BoxGeometry(3,11,1),cross,0,23,12);
+    make(new THREE.BoxGeometry(10,3,1),cross,0,23,12.1);
    }else{
     make(new THREE.CapsuleGeometry(8,13,4,10),metal,0,22,0);
     make(new THREE.SphereGeometry(9,10,8),dark,0,42,0);
@@ -126,11 +142,13 @@ export class SandforgeBattlefield {
   // Lite mode reduces terrain/actor detail, but authored PBR buildings must
   // still appear. Falling back to primitive grey cubes would make the actual
   // player's base look markedly worse than the 2D game.
-  if((this.lite&&type!=='building')||entry.requested||
+  // Medics always load their authored 3D soldier, even in lite mode.
+  if((this.lite&&type!=='building'&&entity.kind!=='medic')||entry.requested||
      this.loadingCount+this.modelQueue.length>=this.maxModels)return;
   entry.requested=true;
   const url=this.asset(entity.kind,entity.owner,type);
-  this.modelQueue.push({url,entry,type});
+  if(type==='unit'&&entity.kind==='medic')this.modelQueue.unshift({url,entry,type});
+  else this.modelQueue.push({url,entry,type});
   this.pumpModelQueue();
  }
  // Render-only ambient fill for authored building and bastion GLBs.
@@ -264,8 +282,22 @@ export class SandforgeBattlefield {
      entry.playAnimation=(clip,retrigger=false)=>this.playClip(entry,clip,retrigger);
      this.playClip(entry,idle);
     }
-   }).catch(err=>console.warn('3D asset fallback:',task.url,err.message))
-    .finally(()=>{this.loadingCount--;this.pumpModelQueue();});
+   }).catch(err=>{
+    entry.modelLoadError=String(err.message);
+    console.warn('3D asset fallback:',task.url,err.message);
+   }).finally(()=>{
+    this.loadingCount--;this.pumpModelQueue();
+    // Avoid permanent primitives after a mass deployment fills the queue.
+    if(this.loadingCount+this.modelQueue.length>=4)return;
+    for(const unit of this.game.units){
+     if(unit.hp<=0||unit.carrier)continue;
+     const pending=this.units.get(unit.id);
+     if(!pending||pending.requested||pending.detail)continue;
+     if(this.lite&&unit.kind!=='medic')continue;
+     this.scheduleDetail(pending,unit,'unit');
+     if(this.loadingCount+this.modelQueue.length>=4)break;
+    }
+   });
   }
  }
  playClip(entry,clip,retrigger=false){
