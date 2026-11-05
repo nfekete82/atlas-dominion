@@ -308,3 +308,26 @@ test('selecting multiple soldiers shows a squad portrait with the correct count'
  });
  expect(single).toEqual({groupHidden:true,singleVisible:true});
 });
+
+test('paused simulation is visibly labeled and resumes unit logic in 3D showcase',async({page})=>{
+ test.setTimeout(120000);
+ await load(page); // deliberately starts in ?pause=1
+ const banner=page.locator('#sf3d-simulation-state');
+ await expect(banner).toBeVisible();
+ await expect(banner).toContainText('SIMULATION PAUSIERT');
+ const start=await page.evaluate(()=>window.__sandforgeWebGL.game.time);
+ await page.evaluate(()=>document.getElementById('simulation').click());
+ await expect(banner).toBeHidden();
+ await page.waitForFunction(previous=>window.__sandforgeWebGL.game.time>previous+.20,
+  start,{timeout:15000});
+ await page.evaluate(()=>window.__sandforgeWebGL.setShowcase(true));
+ const before=await page.evaluate(()=>window.__sandforgeWebGL.game.time);
+ await page.waitForFunction(previous=>window.__sandforgeWebGL.game.time>previous+.20,
+  before,{timeout:15000});
+ expect(await page.evaluate(()=>window.__sandforgeWebGL.simulationRunning)).toBe(true);
+ await page.evaluate(()=>document.getElementById('simulation').click());
+ await expect(banner).toContainText('SIMULATION PAUSIERT');
+ const stopped=await page.evaluate(()=>window.__sandforgeWebGL.game.time);
+ await page.waitForTimeout(180);
+ expect(await page.evaluate(()=>window.__sandforgeWebGL.game.time)).toBeCloseTo(stopped,5);
+});
