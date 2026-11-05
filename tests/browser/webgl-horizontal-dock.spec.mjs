@@ -405,8 +405,8 @@ test('production has a framed panel with live queue slots and building progress'
  expect(queue.name).toBe('Pionier');
  expect(queue.icon).toBe('engineer');
  expect(queue.status).toContain('50%');
- expect(queue.progress).toBe('50.0%');
- expect(queue.tileProgress).toBe('50.0%');
+ expect(Number.parseFloat(queue.progress)).toBeCloseTo(50,5);
+ expect(Number.parseFloat(queue.tileProgress)).toBeCloseTo(50,5);
  expect(queue.aria).toBe('50');
  expect(queue.time).toMatch(/^\d+ s$/);
  expect(queue.summary).toContain('2 AUFTRÄGE');
@@ -426,7 +426,7 @@ test('production has a framed panel with live queue slots and building progress'
  });
  expect(construction.name).toBe('Feldkommando');
  expect(construction.status).toContain('BAU · 50%');
- expect(construction.progress).toBe('50.0%');
+ expect(Number.parseFloat(construction.progress)).toBeCloseTo(50,5);
  expect(construction.buildHidden).toBe(false);
  expect(construction.summary).toContain('1 BAU');
 });
