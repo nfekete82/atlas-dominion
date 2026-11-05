@@ -70,9 +70,16 @@ test('maps: original geometry fingerprints for both 30-sector versions stay iden
   const g=new Simulation(seed,version),generated=g.world.generated;
   // Canyon v15+ added two explicit optional collections. They must remain
   // empty on v0/v1; hash the unchanged historical terrain payload only.
-  assert.deepEqual(generated.ridges??[],[],'legacy maps cannot gain canyon ridges');
-  assert.deepEqual(generated.ruins??[],[],'legacy maps cannot gain canyon ruins');
-  const originalGenerated={sites:generated.sites,mesas:generated.mesas,corridors:generated.corridors};
+  // v0 uses the original static terrain and has no generated payload.
+  // v1 generates terrain; compare only the historic fields, while requiring
+  // new Canyon-only collections to remain absent of actual geometry.
+  if(version===0)assert.equal(generated,undefined,'original static map must not generate new terrain');
+  if(generated){
+   assert.deepEqual(generated.ridges??[],[],'legacy maps cannot gain canyon ridges');
+   assert.deepEqual(generated.ruins??[],[],'legacy maps cannot gain canyon ruins');
+  }
+  const originalGenerated=generated===undefined?undefined:
+   {sites:generated.sites,mesas:generated.mesas,corridors:generated.corridors};
   const geometry={generated:originalGenerated,blocked:Array.from(g.world.blocked),territories:g.territories,bases:g.bases,units:g.units.filter(u=>u.kind==='infantry').map(({xp,...geometry})=>{assert.equal(xp,0,'new recruits have no experience');return geometry;})};
   // Legacy map v1/seed=0 has two confirmed exact JSON fingerprints across macOS and Linux.
   // Every other legacy seed retains its single strictly pinned reference hash.
