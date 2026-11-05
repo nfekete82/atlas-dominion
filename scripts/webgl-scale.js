@@ -16,7 +16,10 @@ export const DIMENSIONS_VERSION=3;
 // larger real structures, rather than as toy-sized buildings.
 export function visualUnitScale(kind){
  if(['infantry','medic','engineer','heavy'].includes(kind))return .88;
- if(['rover','artillery'].includes(kind))return .92;
+ // Humvee needs a substantial visual presence beside full-scale buildings.
+ // Only the rendered mesh changes; navigation/collision/save width stays 76.
+ if(kind==='rover')return 1.34;
+ if(kind==='artillery')return .92;
  if(kind==='tank')return .95;
  return .94;
 }
