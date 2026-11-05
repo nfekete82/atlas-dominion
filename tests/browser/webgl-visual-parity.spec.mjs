@@ -240,59 +240,80 @@ test('3D buildings receive texture-based fill without brightening sand or soldie
  expect(state.originalUnchanged).toBe(true);
 });
 
-test('3D turret aims its two flashes and tracers at the simulated target from either barrel',async({page})=>{
- test.setTimeout(125000);
+test('loaded GLB turret head, real muzzle nodes, flashes and shot traces share one heading',async({page})=>{
+ test.setTimeout(135000);
  await page.setViewportSize({width:1440,height:900});
  await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',
   {waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,null,{timeout:95000});
- const state=await page.evaluate(()=>{
+ const id=await page.evaluate(()=>{
   const {game,battlefield}=window.__sandforgeWebGL;
   const site=game.headquartersCandidates(0).find(p=>game.buildError(0,'headquarters',p)===null);
-  if(!site)throw Error('Missing turret fixture location');
-  const turret=game.build(0,'headquarters',site);
-  if(!turret)throw Error('Could not create fixture');
-  turret.kind='turret';turret.hp=650;turret.buildRemaining=0;
-  turret.turretAngle=0;turret.previousTurretAngle=0;
+  if(!site)throw Error('Missing turret fixture site');
+  const base=game.build(0,'headquarters',site);
+  if(!base)throw Error('Could not build fixture');
+  base.kind='turret';base.hp=650;base.buildRemaining=0;
+  base.turretAngle=0;base.previousTurretAngle=0;
   battlefield.sync(true,0,false,1);
-  const entry=battlefield.bases.get(turret.id);
-  const emitters=entry?.presentation?.turretFlashes;
-  if(emitters?.length!==2)throw Error('Missing independent barrel flashes');
-  const bearings=[];
+  return base.id;
+ });
+ // The old test passed against only analytic placeholder offsets. Require
+ // the shipped 16MB model AND its actual animated head and muzzle nodes.
+ await page.waitForFunction(id=>{
+  const entry=window.__sandforgeWebGL.battlefield.bases.get(id);
+  return Boolean(entry?.detail&&entry.motion?.mode==='authored-rig'&&
+   entry.motion.muzzles?.length===2&&entry.motion.muzzles.every(Boolean));
+ },id,{timeout:80000});
+ const state=await page.evaluate(id=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  const turret=game.bases.find(b=>b.id===id),entry=battlefield.bases.get(id);
+  const flashes=entry.presentation.turretFlashes;
+  const Vector3=entry.node.position.constructor;
+  const samples=[];
   for(const facing of [0,2,1,3])for(const angle of [0,Math.PI/2,Math.PI,Math.PI*1.5]){
    turret.facing=facing;turret.turretAngle=angle;
    battlefield.sync(false,0,false,1);
-   const a=emitters[0].position,b=emitters[1].position;
-   const dx=(a.x+b.x)*.5-entry.node.position.x;
-   const dz=(a.z+b.z)*.5-entry.node.position.z;
-   bearings.push({alignment:(dx*Math.cos(angle)+dz*Math.sin(angle))/
-     Math.max(.001,Math.hypot(dx,dz)),range:Math.hypot(dx,dz),
-    spread:Math.hypot(a.x-b.x,a.z-b.z)});
+   entry.node.updateWorldMatrix(true,true);
+   const head=entry.motion.rotor.getWorldPosition(new Vector3());
+   const left=entry.motion.muzzles[0].getWorldPosition(new Vector3());
+   const right=entry.motion.muzzles[1].getWorldPosition(new Vector3());
+   const dx=(left.x+right.x)*.5-head.x;
+   const dz=(left.z+right.z)*.5-head.z;
+   const dir=dx*Math.cos(angle)+dz*Math.sin(angle);
+   samples.push({
+    mode:entry.motion.mode,angle,facing,
+    aligned:dir/Math.max(.001,Math.hypot(dx,dz)),
+    barrelSpread:Math.hypot(left.x-right.x,left.z-right.z),
+    leftFlashError:flashes[0].position.distanceTo(left),
+    rightFlashError:flashes[1].position.distanceTo(right)
+   });
   }
   turret.facing=0;turret.turretAngle=0;
   battlefield.sync(false,0,false,1);
-  const shot0={from:{x:turret.x,y:turret.y},to:{x:turret.x+170,y:turret.y},
+  const shot={from:{x:turret.x,y:turret.y},to:{x:turret.x+170,y:turret.y},
    source:turret.id,owner:0,weapon:'turret',barrel:0,life:.65,hit:true,at:game.time};
-  game.shots.push(shot0);battlefield.sync(false,0,false,1);
-  const onlyFirst=emitters.map(e=>e.visible);
-  const leftOrigin=emitters[0].position.toArray();
-  const tr0=battlefield.tracer.geometry.getAttribute('position');
+  game.shots.push(shot);battlefield.sync(false,0,false,1);
+  const firstVisible=flashes.map(e=>e.visible);
+  const leftOrigin=flashes[0].position.toArray(),tr0=battlefield.tracer.geometry.getAttribute('position');
   const leftTrace=[tr0.getX(0),tr0.getY(0),tr0.getZ(0)];
-  game.shots.push({...shot0,barrel:1});battlefield.sync(false,0,false,1);
-  const both=emitters.map(e=>e.visible);
-  const rightOrigin=emitters[1].position.toArray();
-  const tr1=battlefield.tracer.geometry.getAttribute('position');
+  game.shots.push({...shot,barrel:1});battlefield.sync(false,0,false,1);
+  const bothVisible=flashes.map(e=>e.visible);
+  const rightOrigin=flashes[1].position.toArray(),tr1=battlefield.tracer.geometry.getAttribute('position');
   const rightTrace=[tr1.getX(2),tr1.getY(2),tr1.getZ(2)];
-  return {bearings,onlyFirst,both,leftOrigin,leftTrace,rightOrigin,rightTrace};
- });
- expect(state.bearings).toHaveLength(16);
- for(const a of state.bearings){
-  expect(a.alignment).toBeCloseTo(1,5);
-  expect(a.range).toBeCloseTo(37,5);
-  expect(a.spread).toBeCloseTo(11,5);
+  return {samples,firstVisible,bothVisible,leftOrigin,leftTrace,rightOrigin,rightTrace,
+   names:entry.motion.muzzles.map(n=>n.name)};
+ },id);
+ expect(state.samples).toHaveLength(16);
+ for(const sample of state.samples){
+  expect(sample.mode).toBe('authored-rig');
+  expect(sample.aligned).toBeCloseTo(1,4);
+  expect(sample.barrelSpread).toBeGreaterThan(2);
+  expect(sample.leftFlashError).toBeLessThan(.01);
+  expect(sample.rightFlashError).toBeLessThan(.01);
  }
- expect(state.onlyFirst).toEqual([true,false]);
- expect(state.both).toEqual([true,true]);
+ expect(state.names).toEqual(['TurretMuzzleL','TurretMuzzleR']);
+ expect(state.firstVisible).toEqual([true,false]);
+ expect(state.bothVisible).toEqual([true,true]);
  for(let i=0;i<3;i++){
   expect(state.leftTrace[i]).toBeCloseTo(state.leftOrigin[i],3);
   expect(state.rightTrace[i]).toBeCloseTo(state.rightOrigin[i],3);
