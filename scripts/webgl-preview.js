@@ -604,7 +604,7 @@ $('home').onclick=()=>{
 };
 $('load').onclick=()=>{
  const q=new URLSearchParams({bastions:$('bastions').value,seed:String(Number($('seed').value)>>>0)});
- location.href='/webgl-preview.html?'+q;
+ location.href=(window.Sandforge3DMenu?.gameRoute?.()??'/webgl-preview.html')+'?'+q;
 };
 // Camera navigation is independent of the simulation. WASD and cursor keys
 // work during pause; F becomes attack-move so A remains free for panning.
