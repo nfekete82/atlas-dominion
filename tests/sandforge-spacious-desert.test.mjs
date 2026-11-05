@@ -154,3 +154,49 @@ test('3D turret points at the simulation target for every map angle and placed f
   }
  }
 });
+
+
+test('tank moves only after turning the independent gun, then the slower hull',()=>{
+ const game=Simulation.campaign(2074,19);
+ const unit=game.spawn(0,{x:game.world.size*.5,y:game.world.size*.5},'tank');
+ const start={x:unit.x,y:unit.y};
+ const goal={x:start.x,y:start.y+175};
+ // Isolate motor timing from route-finding; this one-way unobstructed
+ // lane fixture still uses the real simulation's private move() method.
+ game.world.walkable=()=>true;
+ game.obstacles=()=>[];
+ game.bastionColliders=()=>[];
+ game.vehicleDecorObstacles=()=>[];
+ unit.angle=0;
+ unit.hullAngle=0;
+ unit.path=[goal];
+ unit.repath=999;
+ const frames=[];
+ for(let tick=0;tick<155;tick++){
+  game.move(unit,goal,.05);
+  frames.push({gun:unit.angle,hull:unit.hullAngle,
+   traveled:Math.hypot(unit.x-start.x,unit.y-start.y),
+   moving:unit.moving===true,speed:unit.driveSpeed??0});
+ }
+ const firstGun=frames.findIndex(v=>v.gun>.005);
+ const firstHull=frames.findIndex(v=>v.hull>.005);
+ const firstDrive=frames.findIndex(v=>v.traveled>.005);
+ assert.ok(firstGun>=0&&firstHull>firstGun&&firstDrive>firstHull,
+  'startup sequence must be gun -> tracked hull -> forward movement');
+ assert.equal(frames[firstHull].traveled,0,'tank may not slide as hull begins rotating');
+ assert.ok(frames.slice(0,firstDrive).every(v=>v.traveled<.005),
+  'no lateral vehicle teleport before aim and hull match');
+ assert.ok(frames[firstDrive].hull>1.4,
+  'hull should finish most of the turn before acceleration');
+ assert.ok(frames[154].traveled>75,'tank eventually advances after steering');
+ assert.ok(frames[154].traveled<=175+.01,'tank must not overshoot destination');
+ const maxHullStep=Math.max(...frames.slice(1).map((v,i)=>
+  Math.abs(Math.atan2(Math.sin(v.hull-frames[i].hull),Math.cos(v.hull-frames[i].hull)))));
+ assert.ok(maxHullStep<=1.05*.05+.00001,'hull pivots at the promised slower rate');
+ // Already-aimed departures should not impose another artificial fixed delay.
+ const aligned=game.spawn(0,{x:start.x+350,y:start.y},'tank');
+ aligned.angle=Math.PI/2;aligned.hullAngle=Math.PI/2;
+ aligned.path=[{x:aligned.x,y:aligned.y+175}];aligned.repath=999;
+ game.move(aligned,aligned.path[0],.05);
+ assert.ok(aligned.y>start.y,'aligned tank may accelerate immediately');
+});
