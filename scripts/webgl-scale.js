@@ -21,6 +21,25 @@ export const nextBuildingFacing=facing=>
  [2,3,1,0][facing??0]??0;
 export const buildingFacingDegrees=facing=>
  [0,180,90,270][facing??0]??0;
+
+// A 2D turret angle is atan2(worldZ, worldX). In Three.js a positive
+// Y rotation turns local +X towards -Z, so aiming uses its negative.
+// Subtract the placed building's own facing: never rotate the gun twice.
+// Authored twin cannons face +X in their rig's rest pose; the procedural
+// fallback's cylinders face -Z and need an additional -90 degrees.
+export function turretAimLocalYaw(angle,facing=0,procedural=false){
+ return (procedural?-Math.PI/2:0)-angle-buildingFacingAngle(facing);
+}
+
+// Two independent world-space muzzle positions. Gameplay still owns the
+// authoritative source and barrel indices; this is a presentation offset.
+export function turretMuzzleOffset(angle,barrel){
+ const reach=37,side=(barrel===1?1:-1)*5.5;
+ return {
+  x:Math.cos(angle)*reach-Math.sin(angle)*side,
+  z:Math.sin(angle)*reach+Math.cos(angle)*side
+ };
+}
 // Presentation-only scale: keep gameplay collision, reach, selection,
 // spacing and saved dimensions unchanged. Infantry read as humans beside
 // larger real structures, rather than as toy-sized buildings.
