@@ -36,9 +36,11 @@ export class SandforgePerformanceWatch{
   this.lastSnapshot=report;
   this.element.textContent=
    'FPS '+report.fps.toFixed(0)+' / 1% '+report.lowFps.toFixed(0)+
+   '\nSim-Zeit '+report.clock.toFixed(1)+' s · '+report.gameStatus+
    '\nFrame p95 '+report.frameP95.toFixed(1)+'ms · Sim p95 '+report.simP95.toFixed(1)+'ms'+
    '\nDraw calls '+report.drawCalls+' · Triangles '+report.triangles+
-   '\nUnits '+report.units+' · Particles '+report.particles+
+   '\nUnits '+report.units+' · Moving '+report.moving+' · Orders '+report.orders+
+   '\nParticles '+report.particles+
    '\nTrails '+report.tracks+' · Effects '+report.emitters+
    '\nGPU geometries '+report.geometries+' / textures '+report.textures;
  }
@@ -56,6 +58,9 @@ export class SandforgePerformanceWatch{
    drawCalls:info.render.calls,triangles:info.render.triangles,
    geometries:info.memory.geometries,textures:info.memory.textures,
    units:this.game.units.filter(u=>u.hp>0&&!u.carrier).length,
+   moving:this.game.units.filter(u=>u.hp>0&&!u.carrier&&u.moving).length,
+   orders:this.game.units.filter(u=>u.hp>0&&!u.carrier&&u.orders?.length).length,
+   clock:this.game.time,gameStatus:this.game.status+(this.game.paused?' (PAUSED)':''),
    particles:this.effects.particleCount,
    tracks:this.groundTracks.activeTracks,
    emitters:this.effects.emitters.length,
