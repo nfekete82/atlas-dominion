@@ -327,7 +327,9 @@ function instancedStone(){
   const x=spacious?-95+extra()*(size+190):-margin+extra()*(size+2*margin);
   const z=spacious?-95+extra()*(size+190):-margin+extra()*(size+2*margin);
   if(x>=0&&x<=size&&z>=0&&z<=size)continue;
-  if(spacious&&Math.max(-x,x-size,-z,z-size)>82)continue;
+  // Decorative stones only on the visible first apron. Never populate
+  // the solid black exterior beyond the edge fade.
+  if(spacious&&Math.max(-x,x-size,-z,z-size)>34)continue;
   const cluster=extra()>(spacious?.96:.93);
   if(cluster){
    put(x,z,spacious?7+extra()*13:9+extra()*20,
