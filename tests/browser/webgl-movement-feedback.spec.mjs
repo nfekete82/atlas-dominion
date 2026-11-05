@@ -91,3 +91,67 @@ test('an unselected ground right-click still produces a short temporary destinat
  await page.waitForFunction(()=>!window.__sandforgeWebGL.battlefield.commandPulse.visible,
    null,{timeout:4000});
 });
+
+
+test('Leopard GLB turns turret and cannon independently of its slowly pivoting hull',async({page})=>{
+ test.setTimeout(130000);
+ await page.setViewportSize({width:1440,height:900});
+ await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',
+  {waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,null,{timeout:95000});
+ const id=await page.evaluate(()=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  const nearby=game.units.find(u=>u.owner===0&&!u.carrier);
+  if(!nearby)throw Error('Missing player unit near spawn');
+  const tank=game.spawn(0,{x:nearby.x+80,y:nearby.y+35},'tank');
+  tank.angle=0;tank.hullAngle=0;
+  battlefield.sync(true,0,false,1);
+  const entry=battlefield.units.get(tank.id);
+  if(entry.tankRig?.turret?.name!=='Tank_Turret')throw Error('Fallback lacks turret rig');
+  // Lite mode intentionally skips the 12MB vehicle GLB; explicitly request
+  // this single original model for visual rig regression coverage.
+  battlefield.lite=false;
+  battlefield.scheduleDetail(entry,tank,'unit');
+  battlefield.lite=true;
+  return tank.id;
+ });
+ await page.waitForFunction(id=>{
+  const entry=window.__sandforgeWebGL.battlefield.units.get(id);
+  return !!(entry?.detail&&entry.tankRig?.turret?.name==='Tank_Turret'&&
+   entry.tankRig?.gun?.name==='Tank_Gun');
+ },id,{timeout:85000});
+ const state=await page.evaluate(id=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  const tank=game.units.find(u=>u.id===id),entry=battlefield.units.get(id);
+  const rig=entry.tankRig;
+  const scenarios=[
+   {hull:0,gun:Math.PI/2}, // cannon should turn while tracked hull is fixed
+   {hull:Math.PI/4,gun:Math.PI/2}, // hull rotates underneath the aimed cannon
+   {hull:Math.PI/2,gun:Math.PI/2}, // both ready to drive straight
+  ];
+  const result=[];
+  for(const {hull,gun} of scenarios){
+   tank.hullAngle=hull;tank.angle=gun;
+   battlefield.sync(false,0,false,1);
+   result.push({
+    bodyYaw:entry.node.rotation.y,
+    turretYaw:rig.turret.rotation.y-rig.turretRest,
+    cannonYaw:rig.gun.rotation.y-rig.gunRest,
+    gunNested:rig.gunNested,
+    bodyVisible:entry.node.visible,
+    actualModel:entry.detail?.name
+   });
+  }
+  return result;
+ },id);
+ expect(state).toHaveLength(3);
+ expect(state[0].bodyYaw).toBeCloseTo(Math.PI/2,5);
+ expect(state[0].turretYaw).toBeCloseTo(-Math.PI/2,5);
+ expect(state[0].bodyVisible).toBe(true);
+ expect(state[1].bodyYaw).toBeCloseTo(Math.PI/4,5);
+ expect(state[1].turretYaw).toBeCloseTo(-Math.PI/4,5);
+ expect(state[2].bodyYaw).toBeCloseTo(0,5);
+ expect(state[2].turretYaw).toBeCloseTo(0,5);
+ for(const r of state)
+  expect(r.cannonYaw).toBeCloseTo(r.gunNested?0:r.turretYaw,5);
+});
