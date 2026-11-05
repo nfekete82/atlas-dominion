@@ -2,6 +2,7 @@ import {Weather} from './weather.js';
 import {gainUnitXp,getVeterancyModifiers,sanitizeXp,XP_RULES} from './veterancy.js';
 import {migrateTransportRoster} from './roster-migration.js';
 import {VisionCache} from './vision-cache.js';
+import {generateRollingHills,standsOnHill,type RollingHill} from './rolling-hills.js';
 import { profiler } from './performance.js';
 import { RULES, WEATHER_RULES, clamp, distance, type Faction, type Owner, type Point, type MapVersion, mapLayout, campaignLayout, mapWorldSize } from './config.js';
 import { World, inside, type Territory } from './world.js';
@@ -122,6 +123,8 @@ export class Simulation {
   // Presentation-scoped option: only the WebGL preview opts in. Classic
   // Canvas, saved games and headless AI benchmarks retain the default 1.0.
   infantryVisionBonus=1;
+  readonly hills:RollingHill[]=[];
+  onHighGround(p:Point):boolean{return standsOnHill(this.hills,p);}
   sight(u:Unit):number{
     const infantry=['infantry','medic','engineer','heavy'].includes(u.kind);
     return unitSpec(u).sight*(infantry?this.infantryVisionBonus:1)*
@@ -146,6 +149,8 @@ export class Simulation {
   constructor(seed=2026,mapVersion:MapVersion=0,weatherEnabled=false,bootstrap=false) {
     this.bootstrapVersion=bootstrap?1:undefined;this.seed=seed;this.weather=new Weather(seed,weatherEnabled);this.world=new World(seed,mapVersion);this.territories=this.world.territories(seed);
     if(mapVersion>=3)this.credits=[950,950];
+    this.hills=generateRollingHills(seed,mapVersion,this.world.size,
+      this.world.generated?.sites??[],this.world.generated?.ruins??[]);
     const layout=campaignLayout(mapVersion,seed);
     for(const owner of [0,1] as const){
       const territory=layout.headquarters[owner];
@@ -478,7 +483,15 @@ export class Simulation {
     if(!Number.isFinite(amount)||amount<=0||target.hp<=0)return;
     const attacker=typeof source==='number'?this.unitById.get(source):'orders' in source?source:undefined;
     const sourceId=typeof source==='number'?source:source.id;
-    const alive=target.hp>0,applied=Math.min(target.hp,amount);target.hp=Math.max(0,target.hp-applied);
+    // A unit on the crown of a gentle 3D hill has +20% damage and takes
+    // 10% less incoming damage. Air units/buildings and legacy maps retain
+    // the original combat math. Applies equally to hits and rocket splash.
+    const groundUnit=(entity:Unit|Base|undefined):entity is Unit=>
+      Boolean(entity&&'orders' in entity&&!unitSpec(entity).flying);
+    const outgoing=groundUnit(attacker)&&this.onHighGround(attacker)?1.2:1;
+    const incoming=groundUnit(target)&&this.onHighGround(target)?.9:1;
+    const adjusted=amount*outgoing*incoming;
+    const alive=target.hp>0,applied=Math.min(target.hp,adjusted);target.hp=Math.max(0,target.hp-applied);
     // An actual hit on a friendly position is safe to reveal. Never expose an
     // unknown enemy's position, and never serialize transient warning markers.
     const hostile=typeof source==='number'?this.unitById.get(source):source;
