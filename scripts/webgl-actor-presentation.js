@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {UNITS,BUILDINGS} from '/src/reborn/catalog.js';
 import {healthFraction,healthColor} from '/webgl-health.js';
+import {turretMuzzleOffset} from '/webgl-scale.js';
 
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const infantry=new Set(['infantry','medic','engineer','heavy']);
@@ -62,6 +63,7 @@ function statusBar(scene,entity,type){
 }
 
 function flashSprite(entry,entity,type){
+ if(type==='building'&&entity.kind==='turret')return null;
  const mat=new THREE.SpriteMaterial({map:flashTex,color:'#fff3bd',
   blending:THREE.AdditiveBlending,transparent:true,depthWrite:false,depthTest:true,
   opacity:0,toneMapped:false});
@@ -97,7 +99,22 @@ export class SandforgeActorPresentation {
  attach(entry,entity,type){
   const bar=statusBar(this.scene,entity,type);
   const flash=flashSprite(entry,entity,type);
-  const state={bar,flash,shotPulse:0,shotTrigger:0,type,unitId:entity.id};
+  // Separate emitters track the simulation's actual 0/1 barrel index.
+  // Place them in scene/world space so the building's cardinal facing does
+  // not introduce a second rotation or move the flashes off the barrels.
+  const turretFlashes=type==='building'&&entity.kind==='turret'
+   ?[0,1].map(barrel=>{
+     const material=new THREE.SpriteMaterial({map:flashTex,color:'#fff1b0',
+      blending:THREE.AdditiveBlending,transparent:true,depthWrite:false,depthTest:true,
+      opacity:0,toneMapped:false});
+     const sprite=new THREE.Sprite(material);
+     sprite.name='turret-muzzle-'+barrel;
+     sprite.userData={barrel,visualOnly:true};
+     sprite.visible=false;this.scene.add(sprite);
+     return sprite;
+    }):null;
+  const state={bar,flash,turretFlashes,turretPulses:[0,0],
+   shotPulse:0,shotTrigger:0,type,unitId:entity.id};
   entry.presentation=state;
   this.status.set(type+':'+entity.id,state);
   return state;
@@ -120,8 +137,13 @@ export class SandforgeActorPresentation {
   }
   this.scene.remove(state.bar.root);
   state.bar.fillMaterial.dispose();
-  state.flash.material.dispose();
-  entry.node.remove(state.flash);
+  if(state.flash){
+   state.flash.material.dispose();
+   entry.node.remove(state.flash);
+  }
+  for(const sprite of state.turretFlashes??[]){
+   this.scene.remove(sprite);sprite.material.dispose();
+  }
   this.status.delete(state.type+':'+state.unitId);
   entry.presentation=null;
  }
@@ -150,6 +172,8 @@ export class SandforgeActorPresentation {
    const state=entry.presentation;
    if(!state)continue;
    state.shotPulse=.23;
+   if(state.turretFlashes&&shot.weapon==='turret')
+    state.turretPulses[shot.barrel===1?1:0]=.17;
    state.shotTrigger++;
    this.stats.shots++;
   }
@@ -191,12 +215,33 @@ export class SandforgeActorPresentation {
   }
   // A brief additive muzzle flash is driven only by real Shot events.
   state.shotPulse=Math.max(0,state.shotPulse-dt);
-  state.flash.visible=visible&&state.shotPulse>0;
-  if(state.flash.visible){
-   const strength=clamp(state.shotPulse/.23,0,1);
-   state.flash.material.opacity=.94*Math.min(1,strength*3.1);
-   const scale=pulseSize(entity.kind)*(.5+(1-strength)*.7);
-   state.flash.scale.set(scale,scale,1);
+  if(state.flash){
+   state.flash.visible=visible&&state.shotPulse>0;
+   if(state.flash.visible){
+    const strength=clamp(state.shotPulse/.23,0,1);
+    state.flash.material.opacity=.94*Math.min(1,strength*3.1);
+    const scale=pulseSize(entity.kind)*(.5+(1-strength)*.7);
+    state.flash.scale.set(scale,scale,1);
+   }
+  }
+  if(state.turretFlashes){
+   const angle=Number.isFinite(entity.turretAngle)?entity.turretAngle:0;
+   for(let barrel=0;barrel<2;barrel++){
+    const sprite=state.turretFlashes[barrel];
+    state.turretPulses[barrel]=Math.max(0,state.turretPulses[barrel]-dt);
+    const pulse=state.turretPulses[barrel];
+    const offset=turretMuzzleOffset(angle,barrel);
+    sprite.position.set(entry.node.position.x+offset.x,
+     entry.node.position.y+(entry.modelHeight??92)*.83,
+     entry.node.position.z+offset.z);
+    sprite.visible=visible&&pulse>0;
+    if(sprite.visible){
+     const strength=clamp(pulse/.17,0,1);
+     sprite.material.opacity=.95*Math.min(1,strength*3.5);
+     const size=12+12*(1-strength);
+     sprite.scale.set(size,size,1);
+    }
+   }
   }
   if(type!=='unit')return;
   // Built-in glTF clips are preferred. The procedural pose is used only if
