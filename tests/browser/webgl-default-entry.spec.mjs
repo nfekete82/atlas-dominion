@@ -38,7 +38,8 @@ test('3D root menu keeps all new games and saves on / instead of returning to pr
  await page.setViewportSize({width:1440,height:900});
  await page.goto('/',{waitUntil:'domcontentloaded'});
  await expect(page.locator('#main-dialog')).toBeVisible();
- await expect(page.locator('#main-dialog a[href="/classic.html"]')).toBeVisible();
+ // Canvas is available for QA or WebGL failure, not a competing main-menu mode.
+ await expect(page.locator('#main-dialog a[href="/classic.html"]')).toHaveCount(0);
  expect(new URL(page.url()).pathname).toBe('/');
  await page.locator('#sf3d-main-options').click();
  await page.locator('#sf3d-quality').selectOption('lite');
