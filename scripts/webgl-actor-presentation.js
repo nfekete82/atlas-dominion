@@ -226,14 +226,21 @@ export class SandforgeActorPresentation {
   }
   if(state.turretFlashes){
    const angle=Number.isFinite(entity.turretAngle)?entity.turretAngle:0;
+   const muzzles=entry.motion?.muzzles;
+   if(muzzles?.every(Boolean))entry.node.updateWorldMatrix(true,true);
    for(let barrel=0;barrel<2;barrel++){
     const sprite=state.turretFlashes[barrel];
     state.turretPulses[barrel]=Math.max(0,state.turretPulses[barrel]-dt);
     const pulse=state.turretPulses[barrel];
-    const offset=turretMuzzleOffset(angle,barrel);
-    sprite.position.set(entry.node.position.x+offset.x,
-     entry.node.position.y+(entry.modelHeight??92)*.83,
-     entry.node.position.z+offset.z);
+    // Read the actual GLB barrel endpoints after target rotation, model
+    // normalization and building placement. Never guess world offsets.
+    if(muzzles?.[barrel])muzzles[barrel].getWorldPosition(sprite.position);
+    else{
+     const offset=turretMuzzleOffset(angle,barrel);
+     sprite.position.set(entry.node.position.x+offset.x,
+      entry.node.position.y+(entry.modelHeight??92)*.83,
+      entry.node.position.z+offset.z);
+    }
     sprite.visible=visible&&pulse>0;
     if(sprite.visible){
      const strength=clamp(pulse/.17,0,1);
