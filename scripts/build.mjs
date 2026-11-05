@@ -14,6 +14,9 @@ cpSync('scripts/webgl-actor-presentation.js','dist/webgl-actor-presentation.js')
 cpSync('scripts/webgl-environment.js','dist/webgl-environment.js');
 cpSync('scripts/webgl-atmosphere-3d.js','dist/webgl-atmosphere-3d.js');
 cpSync('scripts/webgl-combat-vfx.js','dist/webgl-combat-vfx.js');
+// Keep the optional battle profiler deployable; an unresolved static import
+// prevents the entire WebGL preview from booting, even when perf=0.
+cpSync('scripts/webgl-perf-watch.js','dist/webgl-perf-watch.js');
 cpSync('scripts/webgl-classic-hud.js','dist/webgl-classic-hud.js');
 cpSync('scripts/webgl-portraits.js','dist/webgl-portraits.js');
 cpSync('scripts/webgl-perimeter.js','dist/webgl-perimeter.js');
