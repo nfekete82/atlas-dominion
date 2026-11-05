@@ -1,5 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync,existsSync} from 'node:fs';
 import {World} from '../dist/src/reborn/world.js';
 import {Simulation} from '../dist/src/reborn/simulation.js';
 import {mapWorldSize,mapLayout} from '../dist/src/reborn/config.js';
@@ -62,5 +63,16 @@ test('v19-v22 games can build HQ, save and reload with original simulation state
   assert.equal(restored.world.size,game.world.size);
   assert.deepEqual(restored.territories.map(t=>t.point),game.territories.map(t=>t.point));
   assert.equal(restored.units.length,game.units.length);
+ }
+});
+
+test('production WebGL preview ships all root-relative modules in its static imports',()=>{
+ const entry=readFileSync('dist/webgl-preview.js','utf8');
+ const modules=[...entry.matchAll(/from\\s*['"]\\/([^'"]+\\.js)['"]/g)].map(m=>m[1]);
+ assert.ok(modules.includes('webgl-perf-watch.js'),
+  'combat profiler import must be included in deployment smoke test');
+ for(const modulePath of modules){
+  assert.ok(existsSync('dist/'+modulePath),
+   'Missing WebGL static import /'+modulePath+' in dist; preview would stall at loading');
  }
 });
