@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import {UNITS} from '/src/reborn/catalog.js';
+import {visualUnitScale} from '/webgl-scale.js';
 
 // Ephemeral footsteps and two-track vehicle impressions. All data stays in
 // this presentation module: no save schema changes, gameplay colliders,
@@ -78,6 +80,18 @@ function markPool(scene,type,capacity,ttl,opacity){
  return {mesh,capacity,ttl,fading,born:new Float32Array(capacity),
    next:0,total:0};
 }
+/** Two wheel/tread impressions are sized to the actual 3D vehicle width,
+ * not to a fixed track gauge that looks wrong after visual model scaling.
+ * Render-only: UNITS collision radii and saved movement are untouched. */
+export function vehicleTrackProfile(kind){
+ const footprint=(UNITS[kind]?.width??80)*visualUnitScale(kind);
+ const treadFraction=kind==='rover'?.08:kind==='tank'?.105:.11;
+ return {
+  footprint,
+  offset:footprint*(kind==='rover'?.265:kind==='tank'?.25:.27),
+  width:Math.max(5,Math.min(12,footprint*treadFraction))
+ };
+}
 export class SandforgeGroundTracks{
  constructor({scene,game,pos,heightAt,lite=false}){
   Object.assign(this,{scene,game,pos,heightAt});
@@ -125,8 +139,7 @@ export class SandforgeGroundTracks{
     const t=distance/d,x=last.x+dx*t,z=last.y+dz*t;
     const sideways={x:Math.cos(heading),z:-Math.sin(heading)};
     if(vehicle){
-     const offset=unit.kind==='rover'?17:unit.kind==='tank'?22:23;
-     const width=unit.kind==='rover'?5:10;
+     const {offset,width}=vehicleTrackProfile(unit.kind);
      for(const side of [-1,1])this.put(this.vehicle,
       x+side*offset*sideways.x,z+side*offset*sideways.z,
       heading,width,interval+3);
