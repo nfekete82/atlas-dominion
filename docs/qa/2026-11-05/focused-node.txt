@@ -1,0 +1,47 @@
+✔ arena: default experiment has 48 map/seed/mode matches and user flags override defaults (1.597125ms)
+✔ arena: no timeouts are relabeled as losses and only wins count as wins (0.606584ms)
+✔ arena: identical world hashes compare baseline and director with proper score signs (5.647167ms)
+✔ arena: mismatched starting worlds never become paired wins (0.149375ms)
+✔ arena: evidence-based signals avoid asserting loss causes without observations (0.260125ms)
+✔ arena: prior and current report compare only matched map seed mode hashes (0.206708ms)
+✔ benchmark CLI accepts reference-friendly single modes and several map sizes (1.700792ms)
+✔ benchmark CLI accepts current campaign maps and rejects nonexistent map versions (0.20825ms)
+✔ benchmark counts actual births, gross recaptures, exact HQ damage and true terminal wins (3.031375ms)
+✔ parallel production measures overlapping queue time rather than adding producer durations (0.67875ms)
+✔ animation: every unit atlas has distinct blue and red faction pixels (6.354208ms)
+✔ animation: infantry roles retain eight directions, moving frames and truthful rig metadata (5.371167ms)
+✔ animation: walk uses distance and state clocks give identical results at 20 and 60 FPS (0.469709ms)
+✔ animation: shots finish through incoming hits; flinches yield to fire and death remains terminal (0.285375ms)
+✔ animation: sustained hits cannot lock a soldier in a flinch or hide simultaneous return fire (0.246042ms)
+✔ animation: repeated hits recover and a later clean hit is animated again (0.210792ms)
+✔ animation: vehicles use real chassis views and separated turret/barrel frames where the source provides them (1.140167ms)
+✔ animation: all vehicle and aircraft faction atlases have real 2x source detail (3.8935ms)
+✔ animation: bounded particles clear when disabled and turning always takes the shortest bounded angular step (1.095625ms)
+✔ animation: vehicle acceleration, braking and hull turn rate are bounded and old saves remain usable (85.756125ms)
+✔ animation: slow-start vehicles still pass the narrow headquarters exit without cutting a blocked corner (329.281416ms)
+✔ buildings rigs: actual exported clips move their hardware while all foundations and pivot positions remain fixed (203.462875ms)
+✔ control: scout obeys immediate retreat while an enemy is in attack range (45.875084ms)
+✔ control: bomber obeys immediate retreat while an enemy is in attack range (10.057667ms)
+✔ control: heavy obeys immediate retreat while an enemy is in attack range (15.922208ms)
+✔ control: queued movement orders advance even if a combat target remains visible (18.013583ms)
+✔ combat AI: red heavy infantry prioritizes a visible rocket launcher over a slightly closer rifleman (7.805375ms)
+✔ combat AI: real enemy artillery threatening the red HQ outranks nearby infantry (10.189791ms)
+✔ performance: A* preserves exact legacy/generated, weighted, vehicle and air routes (252.528833ms)
+✔ performance: subsequent paths observe changed terrain and building obstacles (4.66975ms)
+✔ performance: disabled by default, percentiles and 1% low use uncapped frame intervals (1.372167ms)
+✔ performance: frame history is bounded and profiling leaves path results unchanged (5.610167ms)
+✔ vision cache: every bit matches original ray casting across movement, cliffs, flight and all current maps (357.779416ms)
+✔ vision cache: changed terrain, ownership and sight invalidate exact masks without fog leakage (30.953208ms)
+✔ vision cache: stationary sources stop repeating terrain rays after warmup (32.354375ms)
+✔ vision cache: paid autonomous simulation and saves match a deliberately uncached control (453.714209ms)
+✔ vision cache: clear-rectangle shortcut avoids empty-ground rays and still hides targets behind a changed wall (39.489708ms)
+✔ keyboard: WASD is exclusively camera navigation, never a unit command (0.796333ms)
+✔ keyboard: X stops and Q enters attack-move; help and buttons use identical shortcuts (0.098333ms)
+ℹ tests 39
+ℹ suites 0
+ℹ pass 39
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 991.476917

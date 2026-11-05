@@ -8,6 +8,11 @@ test('benchmark CLI accepts reference-friendly single modes and several map size
  for(const argv of [['--modes','cheat'],['--maps','4,4'],['--seconds','NaN'],['--output'],['--secret','1'],['--seeds','2026,2026']])assert.throws(()=>parseOptions(argv));
 });
 
+test('benchmark CLI accepts current campaign maps and rejects nonexistent map versions',()=>{
+ const options=parseOptions(['--maps','11,12,13,14']);assert.deepEqual(options.maps,[11,12,13,14]);
+ for(const map of ['0','2','15','11.5','NaN',''])assert.throws(()=>parseOptions(['--maps',map]));
+});
+
 // This fixture verifies observer accounting, not the AI's playing strength.
 // Its HQ is deliberately on a different territory than the first blue sector,
 // and is captured/repaired after destruction, as real Simulation.step permits.

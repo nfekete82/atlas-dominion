@@ -1,0 +1,42 @@
+
+> test
+> playwright test --config=reborn.config.mjs --grep command cancellation:|weapon sockets|performance:|combined-arms column|infantry.*building|six-wheel launcher|holding WASD|support HUD:|HQ opening:|visual polish:
+
+[WebServer] (node:10677) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 29 tests using 1 worker
+
+(node:10683) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 reborn-armored-vanguard.spec.mjs:3:1 › combined-arms column: vehicles visibly lead and soldiers follow behind (1.6s)
+  ✓   2 reborn-command-cancellation.spec.mjs:17:1 › command cancellation: Escape leaves units selected, clears attack cursor, second Escape deselects (1.5s)
+  ✓   3 reborn-command-cancellation.spec.mjs:25:31 › command cancellation: x stops pending attack and move targeting (2.3s)
+  ✓   4 reborn-command-cancellation.spec.mjs:25:31 › command cancellation: hold stops pending attack and move targeting (1.7s)
+  ✓   5 reborn-command-cancellation.spec.mjs:36:1 › command cancellation: right-click cancels move mode without issuing orders (1.3s)
+  ✓   6 reborn-command-cancellation.spec.mjs:43:1 › command cancellation: focus loss discards an unfinished selection rectangle and edge pointer (1.6s)
+  ✓   7 reborn-desert-visual-polish.spec.mjs:3:1 › visual polish: mixed palm grove, natural production facades and grounded vehicles render in the live canvas (1.6s)
+  ✓   8 reborn-hq-bootstrap.spec.mjs:24:1 › HQ opening: only two starting units, only HQ build menu, animated offline noise and inert minimap controls (2.1s)
+  ✓   9 reborn-hq-bootstrap.spec.mjs:42:1 › HQ opening: real mirrored placement stays offline through paused construction, then enables radar and all base functions once (1.9s)
+  ✓  10 reborn-hq-bootstrap.spec.mjs:55:1 › HQ opening: AI chooses and finishes its own HQ and continues paid Tactical AI construction (1.7s)
+  ✓  11 reborn-hq-bootstrap.spec.mjs:61:1 › HQ opening: IndexedDB saves before HQ and during construction reload without new units or premature radar (2.7s)
+  ✓  12 reborn-hq-bootstrap.spec.mjs:71:34 › HQ opening: no softlock when only pioneer dies before HQ (1.5s)
+  ✓  13 reborn-hq-bootstrap.spec.mjs:71:34 › HQ opening: no softlock when only pioneer dies during construction (1.8s)
+  ✓  14 reborn-hq-bootstrap.spec.mjs:76:1 › HQ opening: a legacy saved campaign with HQs loads with its normal radar and build menu (2.0s)
+  ✓  15 reborn-hq-bootstrap.spec.mjs:83:1 › HQ opening: compact layout keeps offline guidance over the receiver and preserves camera keyboard control (1.7s)
+  ✓  16 reborn-hq-bootstrap.spec.mjs:93:1 › HQ opening: real six-stage mesh assembly changes in-game artwork before radar comes online (1.7s)
+  ✓  17 reborn-infantry-building-clearance.spec.mjs:3:1 › browser: infantry circles an actual factory instead of crossing its painted walls (1.6s)
+  ✓  18 reborn-muzzle-registration.spec.mjs:3:1 › weapon sockets follow actual drawn barrel transforms in every direction during suspension and recoil (1.4s)
+  ✓  19 reborn-performance.spec.mjs:3:1 › performance: profiler requires debug and perf; overlay reports and exports measurements (5.9s)
+  ✓  20 reborn-performance.spec.mjs:17:1 › performance: unchanged HUD text and queue DOM survive refresh, selection responds immediately (1.4s)
+  ✓  21 reborn-performance.spec.mjs:30:1 › performance: optimized layered sprites match original Canvas pixels and preserve caller state (1.7s)
+  ✓  22 reborn-rocket-kinematics-v2.spec.mjs:3:1 › six-wheel launcher: motion and recoil are visually rendered, game state and hitbox stay unchanged (1.5s)
+  ✓  23 reborn-support.spec.mjs:11:1 › support HUD: empty click hides all context, targeted buildings and groups have correct actions, global production stays usable (1.8s)
+  ✓  24 reborn-support.spec.mjs:23:1 › support HUD: medic right-click heals infantry, exposes heal/move/hold/stop and renders distinct animated equipment (1.8s)
+  ✓  25 reborn-support.spec.mjs:36:1 › support HUD: real worker placement, cancellation, two completed buildings, barracks training/rally, repair and durable orders (3.2s)
+  ✓  26 reborn-support.spec.mjs:65:1 › support HUD: right-click damaged Humvee repairs it instead of boarding the engineer (1.6s)
+  ✓  27 reborn-wasd-hotkeys.spec.mjs:3:1 › holding WASD pans the camera without canceling selected units march orders (2.5s)
+  ✓  28 reborn.spec.mjs:362:1 › atlas models: approved infantry and real building renders are active with fixed ground shadows (1.5s)
+  ✓  29 reborn.spec.mjs:454:1 › visual polish: fine sand relief and a quiet HUD preserve usable production and compact selection (1.9s)
+
+  29 passed (58.0s)

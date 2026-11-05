@@ -28,7 +28,7 @@ export class Input {
           canvas.classList.remove('building','attack');
           this.order(renderer.world(this.pointer),e.shiftKey,true);return;
         }
-        if(renderer.placement||renderer.commandMode){renderer.placement=null;renderer.commandMode=null;renderer.canvas.classList.remove('building');this.onSelection();return;}
+        if(renderer.placement||renderer.commandMode){this.cancelCommandMode();this.onSelection();return;}
         this.order(renderer.world(this.pointer),e.shiftKey);return;
       }
       if(e.button===0){this.down=local(e);this.dragging=false;canvas.setPointerCapture(e.pointerId);}
@@ -100,7 +100,7 @@ export class Input {
         this.notify('Rückzug / Bewegen: Ziel mit Linksklick wählen (ignoriert Angriffsziele).');
         this.onSelection();return;
       }
-      if(key==='escape'){e.preventDefault();if(renderer.placement||renderer.commandMode){renderer.placement=null;renderer.commandMode=null;canvas.classList.remove('building');this.onSelection();return;}if(!renderer.selected.size&&renderer.selectedBase===null&&!renderer.attackMode){this.onMenu();return;}renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;canvas.classList.remove('attack');this.onSelection();}
+      if(key==='escape'){e.preventDefault();if(renderer.placement||renderer.commandMode||renderer.attackMode){this.cancelCommandMode();this.onSelection();return;}if(!renderer.selected.size&&renderer.selectedBase===null&&!renderer.attackMode){this.onMenu();return;}renderer.selected.clear();renderer.selectedBase=null;renderer.attackMode=false;canvas.classList.remove('attack');this.onSelection();}
       if(key==='h'||key==='home')renderer.home();
       if(key==='t'){renderer.overlay=!renderer.overlay;this.onSelection();}
       if(key==='?'||key==='f1'){e.preventDefault();this.onHelp();}
@@ -108,7 +108,10 @@ export class Input {
       this.keys.add(key);
     });
     window.addEventListener('keyup',e=>{this.keys.delete(e.key.toLowerCase());});
-    window.addEventListener('blur',()=>{this.keys.clear();this.pointer=null;});
+    window.addEventListener('blur',()=>{
+      this.keys.clear();this.down=null;this.dragging=false;this.miniDragging=false;
+      this.pointer=null;renderer.pointer=null;renderer.box=null;
+    });
   }
   select(p:Point,append=false):void {
     const r=this.renderer,g=r.game;
@@ -120,7 +123,12 @@ export class Input {
   private acknowledge(kind:RadioAction,ids:number[]):void{
     const u=this.renderer.game.units.find(u=>ids.includes(u.id)&&u.owner===0&&u.hp>0&&!u.carrier);if(u)this.onOrder({kind,unit:u.kind,unitId:u.id});
   }
+  private cancelCommandMode():void{
+    const r=this.renderer;r.placement=null;r.commandMode=null;r.attackMode=false;
+    r.canvas.classList.remove('attack','building');
+  }
   stop(hold=false):void{
+    this.cancelCommandMode();
     const ids=[...this.renderer.selected].filter(id=>this.renderer.game.units.some(u=>u.id===id&&u.owner===0&&u.hp>0&&!u.carrier));
     this.renderer.game.stop(ids,hold);if(ids.length)this.acknowledge(hold?'hold':'stop',ids);
   }

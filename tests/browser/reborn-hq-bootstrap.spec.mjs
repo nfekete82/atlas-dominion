@@ -14,7 +14,7 @@ async function placeHQ(page){
   }throw Error('No visible HQ site');
  });
  await page.locator('#build-mode').click();await page.locator('[data-build="headquarters"]').click();
- await expect(page.locator('#hint')).toContainText('R: GEBÄUDE DREHEN');await page.keyboard.press('r');
+ await expect(page.locator('#hint')).toContainText('R: DREHEN');await page.keyboard.press('r');
  const screen=await page.evaluate(p=>window.__reborn.renderer.screen(p),target),box=await page.locator('#world').boundingBox();await page.mouse.click(box.x+screen.x,box.y+screen.y);
  return page.evaluate(()=>{const b=window.__reborn.game.bases.find(b=>b.owner===0&&b.kind==='headquarters');if(!b)throw Error('HQ placement failed');return b.id;});
 }

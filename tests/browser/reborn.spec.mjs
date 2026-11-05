@@ -452,7 +452,7 @@ test('vehicle art: the full roster has real faction materials, baked shadows, an
 });
 
 test('visual polish: fine sand relief and a quiet HUD preserve usable production and compact selection',async({page})=>{
- const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.setViewportSize({width:1500,height:1000});await page.goto('/?debug&seed=2026');await page.locator('#loading').waitFor({state:'detached'});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.setViewportSize({width:1500,height:1000});await page.goto('/?debug&perfTest&legacy&seed=2026');await page.locator('#loading').waitFor({state:'detached'});
  const art=await page.evaluate(()=>{
   const {game:g,renderer:r}=window.__reborn;g.paused=true;r.home();r.render(0);const p=g.territories[g.bases[0].territory].point,ctx=r.terrainSurface.getContext('2d',{willReadFrequently:true}),data=ctx.getImageData(p.x-100,p.y-100,200,200).data;let sum=0,squares=0;
   for(let i=0;i<data.length;i+=4){const l=data[i]*.299+data[i+1]*.587+data[i+2]*.114;sum+=l;squares+=l*l;}

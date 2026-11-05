@@ -1,0 +1,167 @@
+{
+  "baseline": {
+    "counts": {
+      "tests": 1102,
+      "pass": 1083,
+      "fail": 18,
+      "skipped": 1
+    },
+    "failures": [
+      {
+        "location": "tests/reborn-adaptive-economy.test.mjs:19:1",
+        "name": "matched strength uses the actual heavy armor penalty rather than nominal weapon damage"
+      },
+      {
+        "location": "tests/reborn-ai-pressure.test.mjs:14:1",
+        "name": "AI pressure: paid reinforcements leave home, keep a guard and join the active attack without stopping the original column"
+      },
+      {
+        "location": "tests/reborn-building-orientation.test.mjs:36:1",
+        "name": "direction control has live ghost, R shortcut, clickable HUD, and symmetric decorated final building"
+      },
+      {
+        "location": "tests/reborn-defense-map.test.mjs:24:1",
+        "name": "defense: a bastion is not a combat target; nearby enemy units are acquired at 500 and locks remain stable"
+      },
+      {
+        "location": "tests/reborn-expanded-economy-maps.test.mjs:89:1",
+        "name": "tank is visibly 10 percent larger but model hitbox, armament and vehicle behavior are unchanged"
+      },
+      {
+        "location": "tests/reborn-palm-depth.test.mjs:30:1",
+        "name": "single-tree depth rendering does not move or hide the physical palm"
+      },
+      {
+        "location": "tests/reborn-palm-knockdown.test.mjs:15:1",
+        "name": "palms: all seed variants stay upright, use mesh sprites and respect camera culling"
+      },
+      {
+        "location": "tests/reborn-palm-knockdown.test.mjs:23:1",
+        "name": "palms: occupied tree slots remain visible without collisions, falling silhouettes or movement changes"
+      },
+      {
+        "location": "tests/reborn-polish.test.mjs:10:59",
+        "name": "polish: infantry authoritative rounds, total damage, cadence, pause and reload"
+      },
+      {
+        "location": "tests/reborn-production.test.mjs:27:1",
+        "name": "production: real worker construction unlocks barracks, factory and airfield only on completion"
+      },
+      {
+        "location": "tests/reborn-static-props-visibility.test.mjs:30:1",
+        "name": "3D palms still draw their sprite when a ground unit arrives underneath the canopy"
+      },
+      {
+        "location": "tests/reborn-tactical-ai.test.mjs:56:1",
+        "name": "tactical: a defended bastion waits for six to ten real combat units and then concentrates on the registered tower before capture"
+      },
+      {
+        "location": "tests/reborn-tactical-ai.test.mjs:65:1",
+        "name": "tactical: a safer income sector wins over a tower covered objective and repeated failed assaults trigger regrouping"
+      },
+      {
+        "location": "tests/reborn-tactical-ai.test.mjs:96:1",
+        "name": "tactical: a mixed assault actually advances at the heavy pace while the medic stays behind"
+      },
+      {
+        "location": "tests/reborn-tank-dual-weapon.test.mjs:13:1",
+        "name": "tank: dual-weapon combat has more armor and expensive 550-credit production"
+      },
+      {
+        "location": "tests/reborn-veterancy.test.mjs:27:1",
+        "name": "veterancy: real burst hits award XP, cooldown and damage use role bonuses once"
+      },
+      {
+        "location": "tests/reborn.test.mjs:277:1",
+        "name": "reborn: air capture still requires ground proximity and an undefended headquarters"
+      },
+      {
+        "location": "tests/titan-benchmark.test.mjs:52:1",
+        "name": "combined actor finances an actual airframe from normal initial credits and income"
+      }
+    ]
+  },
+  "final": {
+    "counts": {
+      "tests": 1105,
+      "pass": 1086,
+      "fail": 18,
+      "skipped": 1
+    },
+    "failures": [
+      {
+        "location": "tests/reborn-adaptive-economy.test.mjs:19:1",
+        "name": "matched strength uses the actual heavy armor penalty rather than nominal weapon damage"
+      },
+      {
+        "location": "tests/reborn-ai-pressure.test.mjs:14:1",
+        "name": "AI pressure: paid reinforcements leave home, keep a guard and join the active attack without stopping the original column"
+      },
+      {
+        "location": "tests/reborn-building-orientation.test.mjs:36:1",
+        "name": "direction control has live ghost, R shortcut, clickable HUD, and symmetric decorated final building"
+      },
+      {
+        "location": "tests/reborn-defense-map.test.mjs:24:1",
+        "name": "defense: a bastion is not a combat target; nearby enemy units are acquired at 500 and locks remain stable"
+      },
+      {
+        "location": "tests/reborn-expanded-economy-maps.test.mjs:89:1",
+        "name": "tank is visibly 10 percent larger but model hitbox, armament and vehicle behavior are unchanged"
+      },
+      {
+        "location": "tests/reborn-palm-depth.test.mjs:30:1",
+        "name": "single-tree depth rendering does not move or hide the physical palm"
+      },
+      {
+        "location": "tests/reborn-palm-knockdown.test.mjs:15:1",
+        "name": "palms: all seed variants stay upright, use mesh sprites and respect camera culling"
+      },
+      {
+        "location": "tests/reborn-palm-knockdown.test.mjs:23:1",
+        "name": "palms: occupied tree slots remain visible without collisions, falling silhouettes or movement changes"
+      },
+      {
+        "location": "tests/reborn-polish.test.mjs:10:59",
+        "name": "polish: infantry authoritative rounds, total damage, cadence, pause and reload"
+      },
+      {
+        "location": "tests/reborn-production.test.mjs:27:1",
+        "name": "production: real worker construction unlocks barracks, factory and airfield only on completion"
+      },
+      {
+        "location": "tests/reborn-static-props-visibility.test.mjs:30:1",
+        "name": "3D palms still draw their sprite when a ground unit arrives underneath the canopy"
+      },
+      {
+        "location": "tests/reborn-tactical-ai.test.mjs:56:1",
+        "name": "tactical: a defended bastion waits for six to ten real combat units and then concentrates on the registered tower before capture"
+      },
+      {
+        "location": "tests/reborn-tactical-ai.test.mjs:65:1",
+        "name": "tactical: a safer income sector wins over a tower covered objective and repeated failed assaults trigger regrouping"
+      },
+      {
+        "location": "tests/reborn-tactical-ai.test.mjs:96:1",
+        "name": "tactical: a mixed assault actually advances at the heavy pace while the medic stays behind"
+      },
+      {
+        "location": "tests/reborn-tank-dual-weapon.test.mjs:13:1",
+        "name": "tank: dual-weapon combat has more armor and expensive 550-credit production"
+      },
+      {
+        "location": "tests/reborn-veterancy.test.mjs:27:1",
+        "name": "veterancy: real burst hits award XP, cooldown and damage use role bonuses once"
+      },
+      {
+        "location": "tests/reborn.test.mjs:277:1",
+        "name": "reborn: air capture still requires ground proximity and an undefended headquarters"
+      },
+      {
+        "location": "tests/titan-benchmark.test.mjs:52:1",
+        "name": "combined actor finances an actual airframe from normal initial credits and income"
+      }
+    ]
+  },
+  "sameFailingTests": true
+}
