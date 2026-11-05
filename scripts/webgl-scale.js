@@ -27,12 +27,13 @@ export const buildingFacingDegrees=facing=>
 export function visualUnitScale(kind){
  // Align all four foot soldiers with larger rocket artillery and Humvee.
  // This is a render-only factor: no change to move, weapon or capture radius.
- if(['infantry','medic','engineer','heavy'].includes(kind))return .72;
+ if(['infantry','medic','engineer'].includes(kind))return .64;
+ if(kind==='heavy')return .66;
  // Humvee needs a substantial visual presence beside full-scale buildings.
  // Only the rendered mesh changes; navigation/collision/save width stays 76.
  if(kind==='rover')return 1.34;
  if(kind==='artillery')return .92;
- if(kind==='tank')return .95;
+ if(kind==='tank')return 1.22;
  return .94;
 }
 const infantry=new Set(['infantry','medic','engineer','heavy']);
