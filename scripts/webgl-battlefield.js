@@ -705,7 +705,7 @@ export class SandforgeBattlefield {
    }
    if(action==='menu'){window.Sandforge3DMenu?.openPause();}
    if(action==='health'){
-    const modes=['all','damaged','selected','off'];
+    const modes=['all','selected','off','damaged'];
     const old=this.presentation.showHealth;
     this.presentation.setHealthMode(modes[(modes.indexOf(old)+1)%modes.length]);
     this.message('Lebensbalken: '+({all:'Alle',damaged:'Beschädigte',selected:'Ausgewählte',off:'Aus'}[this.presentation.showHealth]));
