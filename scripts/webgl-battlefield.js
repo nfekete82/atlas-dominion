@@ -799,7 +799,7 @@ export class SandforgeBattlefield {
    .setAttribute('aria-valuenow',String(Math.round(progress)));
   const currentKind=producer?.queueTypes?.[0];
   const currentName=currentKind?UNITS[currentKind]?.name??currentKind:'';
-  view.querySelector('#sf-queue-count').textContent=queues+' AUFTRÄGE · '+constructionSites.length+' BAU';
+  view.querySelector('#sf-queue-count').textContent=queues+' '+(queues===1?'AUFTRAG':'AUFTRÄGE')+' · '+constructionSites.length+' BAU';
   view.querySelector('#sf-queue').textContent=producer
    ?BUILDINGS[producer.kind].name+': '+currentName+' ('+producer.queue.length+' in Warteschlange)'
    :constructionSites.length?constructionSites.map(b=>BUILDINGS[b.kind].name+' (im Bau)').join(' · ')
