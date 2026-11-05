@@ -778,3 +778,43 @@
  overflow-wrap:normal!important;
  text-overflow:clip!important;
 }
+
+/* Rocket artillery: full single-line name ABOVE its price. Preserve
+   horizontal roster scrolling even at the narrower responsive breakpoints. */
+#sf-classic-root #sf-actions .sf-group[data-sf-group="units"]
+ .catalog-card[data-unit="artillery"]{
+ flex:0 0 152px!important;
+ width:152px!important;
+ min-width:152px!important;
+ max-width:152px!important;
+}
+#sf-classic-root #sf-actions .catalog-card[data-unit="artillery"] .card-meta{
+ display:flex!important;
+ flex-direction:column!important;
+ justify-content:center!important;
+ align-items:stretch!important;
+ gap:0!important;
+ min-height:43px!important;
+ height:43px!important;
+ padding:3px 7px!important;
+}
+#sf-classic-root #sf-actions .catalog-card[data-unit="artillery"] .card-name{
+ display:block!important;
+ width:100%!important;
+ max-width:none!important;
+ white-space:nowrap!important;
+ overflow-wrap:normal!important;
+ word-break:normal!important;
+ overflow:hidden!important;
+ text-overflow:clip!important;
+ font-size:12px!important;
+ line-height:17px!important;
+ height:17px!important;
+}
+#sf-classic-root #sf-actions .catalog-card[data-unit="artillery"] .card-cost{
+ display:block!important;
+ align-self:flex-end!important;
+ white-space:nowrap!important;
+ line-height:17px!important;
+ height:17px!important;
+}
