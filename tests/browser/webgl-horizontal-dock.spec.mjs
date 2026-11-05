@@ -29,7 +29,7 @@ test('Zero Hour-inspired HUD has left minimap, horizontal middle catalog and rig
    rimHidden:window.__sandforgeWebGL.boundaryCliffs.cliffs.every(x=>!x.visible)
   };
  });
- expect(before.dock.top).toBeGreaterThan(560); // 310px contextual dock at 900px viewport
+ expect(before.dock.top).toBeGreaterThan(510); // taller dock makes room for a dedicated production panel
  expect(before.dock.bottom).toBeGreaterThan(875);
  expect(before.radar.left).toBeLessThan(before.catalog.left);
  expect(before.catalog.left).toBeLessThan(before.commands.left);
@@ -356,4 +356,77 @@ test('a medic in lite 3D mode is a detailed soldier instead of a blue capsule',a
  expect(state.detail).toBe(true);
  expect(state.removed).toBe(true);
  expect(state.meshes).toBeGreaterThan(0);
+});
+
+test('production has a framed panel with live queue slots and building progress',async({page})=>{
+ test.setTimeout(120000);
+ await load(page);
+ const layout=await page.evaluate(()=>{
+  const dock=document.querySelector('#sidebar').getBoundingClientRect();
+  const panel=document.querySelector('#sf-production');
+  const production=panel.getBoundingClientRect();
+  const catalog=document.querySelector('#sf-actions').getBoundingClientRect();
+  return {height:production.height,catalogHeight:catalog.height,
+   below:production.top>=catalog.bottom-2,inside:production.bottom<=dock.bottom,
+   border:getComputedStyle(panel).borderTopWidth,
+   empty:document.querySelector('#sf-queue-slots').textContent};
+ });
+ expect(layout.height).toBeGreaterThanOrEqual(120);
+ expect(layout.catalogHeight).toBeGreaterThan(100);
+ expect(layout.below).toBe(true);
+ expect(layout.inside).toBe(true);
+ expect(layout.border).toBe('2px');
+ expect(layout.empty).toContain('Noch keine Produktion aktiv');
+
+ const queue=await page.evaluate(()=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  game.credits[0]=10000;
+  const site=game.headquartersCandidates(0).find(p=>game.buildError(0,'headquarters',p)===null);
+  if(!site)throw Error('No HQ location');
+  const hq=game.build(0,'headquarters',site);
+  if(!hq)throw Error('HQ build failed');
+  hq.buildRemaining=0;hq.hp=1200;
+  if(!game.recruit(hq.id,'engineer')||!game.recruit(hq.id,'engineer'))
+   throw Error('Cannot enqueue 2 pioneers');
+  hq.production=hq.queue[0]*.5;
+  battlefield.selectedBase=hq.id;battlefield.selected.clear();battlefield.drawInterface();
+  const panel=document.querySelector('#sf-production');
+  const first=panel.querySelector('[data-queue-index="0"]');
+  return {count:panel.querySelectorAll('[data-queue-index]').length,
+   name:first.querySelector('strong').textContent,icon:first.querySelector('img').dataset.sfUnitIcon,
+   status:first.querySelector('small').textContent,
+   progress:panel.querySelector('#sf-progress').style.width,
+   tileProgress:first.querySelector('.sf-slot-progress i').style.width,
+   aria:panel.querySelector('.production-track').getAttribute('aria-valuenow'),
+   time:panel.querySelector('#sf-queue-time').textContent,
+   summary:panel.querySelector('#sf-queue-count').textContent};
+ });
+ expect(queue.count).toBe(2);
+ expect(queue.name).toBe('Pionier');
+ expect(queue.icon).toBe('engineer');
+ expect(queue.status).toContain('50%');
+ expect(queue.progress).toBe('50.0%');
+ expect(queue.tileProgress).toBe('50.0%');
+ expect(queue.aria).toBe('50');
+ expect(queue.time).toMatch(/^\d+ s$/);
+ expect(queue.summary).toContain('2 AUFTRÄGE');
+
+ const construction=await page.evaluate(()=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  const hq=game.bases.find(b=>b.id===battlefield.selectedBase);
+  game.cancel(hq.id);game.cancel(hq.id);
+  hq.buildRemaining=10;hq.production=0;
+  battlefield.drawInterface();
+  const tile=document.querySelector('#sf-queue-slots [data-build-id]');
+  return {name:tile?.querySelector('strong').textContent,
+   status:tile?.querySelector('small').textContent,
+   progress:document.querySelector('#sf-progress').style.width,
+   buildHidden:document.querySelector('#sf-building-status').hidden,
+   summary:document.querySelector('#sf-queue-count').textContent};
+ });
+ expect(construction.name).toBe('Feldkommando');
+ expect(construction.status).toContain('BAU · 50%');
+ expect(construction.progress).toBe('50.0%');
+ expect(construction.buildHidden).toBe(false);
+ expect(construction.summary).toContain('1 BAU');
 });
