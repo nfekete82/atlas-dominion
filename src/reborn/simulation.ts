@@ -682,6 +682,28 @@ export class Simulation {
     let next=u.path[0];if(!next)return;
     let d=distance(u,next);if(d<(spec.group==='Infanterie'?5:.4)){u.path.shift();next=u.path[0];if(!next)return;d=distance(u,next);}
     const dx=(next.x-u.x)/d,dy=(next.y-u.y)/d;
+    // Heavy tanks have a deliberate turn-in-place departure:
+    // 1. aim the separate gun towards the next waypoint,
+    // 2. slew the tracked hull more slowly,
+    // 3. accelerate only once both are aligned.
+    // The existing u.angle is gun bearing; u.hullAngle is the independent
+    // physical hull bearing. Avoid new save fields or visual position drift.
+    if(u.kind==='tank'){
+      const desired=Math.atan2(dy,dx);
+      const hull=u.hullAngle??u.angle;
+      u.hullAngle=hull;
+      u.angle=turnTowards(u.angle,desired,2.05,dt);
+      u.facing=Math.cos(u.angle)<-.05?-1:Math.cos(u.angle)>.05?1:u.facing;
+      const gunError=Math.abs(angleDifference(u.angle,desired));
+      if(gunError>.10){
+        u.driveSpeed=0;u.moving=false;return;
+      }
+      u.hullAngle=turnTowards(hull,desired,1.05,dt);
+      const hullError=Math.abs(angleDifference(u.hullAngle,desired));
+      if(hullError>.085){
+        u.driveSpeed=0;u.moving=false;return;
+      }
+    }
     const cohort=u.orders[0]?.march;
     if(cohort){const allies=this.units.filter(v=>cohort.includes(v.id)&&v.owner===u.owner&&v.hp>0);if(allies.length){speedLimit=Math.min(speedLimit,...allies.map(v=>unitSpec(v).speed));
       if(u.orders[0]?.rear&&!u.orders[0].target&&distance(u,target)<Math.max(...allies.map(v=>distance(v,v.orders[0]??target)))+u.orders[0].rear)speedLimit=0;
@@ -692,7 +714,8 @@ export class Simulation {
     let velocity=Math.min(spec.speed,speedLimit);
     if(spec.group!=='Infanterie'){
       const desired=Math.atan2(dy,dx),current=u.hullAngle??u.angle,error=Math.atan2(Math.sin(desired-current),Math.cos(desired-current));
-      u.hullAngle=current+clamp(error,-(spec.flying?1.8:2.5)*dt,(spec.flying?1.8:2.5)*dt);
+      const turnRate=spec.flying?1.8:u.kind==='tank'?1.05:2.5;
+      u.hullAngle=current+clamp(error,-turnRate*dt,turnRate*dt);
       const remaining=Math.max(0,distance(u,target)-14),braking=spec.speed*2.8;
       // Aircraft can translate while banking/turning during a direct move.
       // Otherwise a helicopter ordered to retreat in the opposite direction
