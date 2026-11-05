@@ -7,6 +7,7 @@ import {hydrateUnitIcons,hydrateBuildingIcons,unitIcon,buildingIconUrl} from '/w
 import {SandforgeActorPresentation} from '/webgl-actor-presentation.js';
 import {calibratedScale,visualUnitScale,buildingFacingAngle,nextBuildingFacing,buildingFacingDegrees,turretAimLocalYaw} from '/webgl-scale.js';
 import {SandforgeGroundingPass} from '/webgl-grounding.js';
+import {createBuildingYard} from '/webgl-building-yard.js';
 import {SandforgeConstructionPresentation} from '/webgl-construction.js';
 import {createBastionCaptureBar,updateBastionCaptureBar} from '/webgl-bastion-capture.js';
 
@@ -440,6 +441,12 @@ export class SandforgeBattlefield {
    entry.node.scale.y=1;
    entry.node.rotation.y=buildingFacingAngle(b.facing);
    this.construction.update(entry,b);
+   // Recognizable physical inventory identifies each production building
+   // even at tactical zoom. Purely visual, and built only once on completion.
+   if(b.buildRemaining<=0&&!entry.yard){
+    entry.yard=createBuildingYard(b.kind,BUILDINGS[b.kind]?.width);
+    if(entry.yard)entry.node.add(entry.yard);
+   }
    this.animateBuildingMotion(entry,b,dt,active);
    if(b.buildRemaining<=0&&!this.announcedBuildings.has(b.id)){
     this.announcedBuildings.add(b.id);
