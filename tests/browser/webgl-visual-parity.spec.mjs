@@ -40,7 +40,7 @@ test('3D HP bar is bright green at 100%, decreases smoothly and turns yellow/red
  expect(result.lowBar.color).toBe('#ed5146');
  expect(result.lowBar.width).toBeLessThan(result.halfBar.width);
  expect(result.buildingShadows).toBe(result.structures);
- expect(result.defaultMode).toBe('damaged');
+ expect(result.defaultMode).toBe('all');
  expect(result.mode).toBe('all');
  expect(errors).toEqual([]);
 });
@@ -318,4 +318,121 @@ test('loaded GLB turret head, real muzzle nodes, flashes and shot traces share o
   expect(state.leftTrace[i]).toBeCloseTo(state.leftOrigin[i],3);
   expect(state.rightTrace[i]).toBeCloseTo(state.rightOrigin[i],3);
  }
+});
+
+
+test('live HP stays visible above FOW for full-health friendlies without leaking hidden enemy health',async({page})=>{
+ test.setTimeout(115000);
+ await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',
+  {waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,null,{timeout:95000});
+ const result=await page.evaluate(()=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  battlefield.sync(true,0,false,1);
+  const friendly=game.units.find(u=>u.owner===0&&u.hp>0);
+  const entry=battlefield.units.get(friendly.id);
+  const initial={mode:battlefield.presentation.showHealth,
+   visible:entry.presentation.bar.root.visible,
+   depthTest:entry.presentation.bar.fill.material.depthTest,
+   barOrder:entry.presentation.bar.fill.renderOrder,
+   fogOrder:battlefield.fogNodes[0].renderOrder};
+  const hostile=game.units.find(u=>u.owner===1&&u.hp>0);
+  const hostileEntry=battlefield.units.get(hostile?.id);
+  const unseen=hostileEntry&&!game.canSee(0,hostile)
+   ?hostileEntry.presentation.bar.root.visible:false;
+  battlefield.presentation.setHealthMode('off');
+  battlefield.sync(true,0,false,1);
+  return {initial,unseen,off:entry.presentation.bar.root.visible};
+ });
+ expect(result.initial.mode).toBe('all');
+ expect(result.initial.visible).toBe(true);
+ expect(result.initial.depthTest).toBe(false);
+ expect(result.initial.barOrder).toBeGreaterThan(result.initial.fogOrder);
+ expect(result.unseen).toBe(false);
+ expect(result.off).toBe(false);
+});
+
+test('guided six-tube rocket flies in 3D, skips MG tracer and produces pooled staged impact effects',async({page})=>{
+ test.setTimeout(125000);
+ await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',
+  {waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,null,{timeout:95000});
+ const data=await page.evaluate(()=>{
+  const {game,battlefield,effects}=window.__sandforgeWebGL;
+  const ally=game.units.find(u=>u.owner===0&&u.hp>0);
+  const gun=game.spawn(0,{x:ally.x+24,y:ally.y+24},'artillery');
+  gun.angle=0;gun.hullAngle=0;
+  battlefield.sync(true,0,false,1);
+  const actor=battlefield.units.get(gun.id);
+  const tubes=actor.rocketMuzzles?.map(m=>m?.name);
+  const rocket={id:900999,source:gun.id,owner:0,
+   from:{x:gun.x,y:gun.y},to:{x:gun.x+140,y:gun.y+30},
+   angle:0,at:game.time,impactAt:game.time+1,damage:120};
+  game.missiles=[rocket];game.shots=[{
+   from:{x:gun.x,y:gun.y},to:rocket.to,source:gun.id,owner:0,
+   hit:false,weapon:'rocket',barrel:rocket.id%6,life:.65,at:game.time
+  }];
+  battlefield.sync(true,0,false,1);
+  effects.update(.05,true,.025);
+  const first=[...effects.rockets.instanceMatrix.array.slice(12,15)];
+  const initial={
+   rocket:effects.rockets.count,nose:effects.rocketNoses.count,
+   exhaust:effects.rocketExhaust.count,
+   trace: battleFieldDrawRange(),flash:actor.presentation.flash?.visible??false,
+   tubes,point:first,
+   smoke:effects.smoke.particles.length
+  };
+  function battleFieldDrawRange(){return battlefield.tracer.geometry.drawRange.count;}
+  // Fast-forward only the cosmetic trajectory. Gameplay and impact damage
+  // remain authoritative in the simulation, not handled by effects.update().
+  game.time+=.25;
+  effects.update(.05,true,0);
+  const next=[...effects.rockets.instanceMatrix.array.slice(12,15)];
+  game.missiles=[];
+  game.blasts.push({x:rocket.to.x,y:rocket.to.y,id:rocket.id,at:game.time});
+  effects.update(.05,true,0);
+  return {initial,next,
+   gone:effects.rockets.count,
+   blast:effects.stats.blasts,
+   dust:effects.dust.mesh.count,
+   debris:effects.debris.mesh.count,
+   smoke:effects.smoke.mesh.count};
+ });
+ expect(data.initial.tubes).toEqual([
+  'RocketMuzzle_0','RocketMuzzle_1','RocketMuzzle_2',
+  'RocketMuzzle_3','RocketMuzzle_4','RocketMuzzle_5'
+ ]);
+ expect(data.initial.rocket).toBe(1);
+ expect(data.initial.nose).toBe(1);
+ expect(data.initial.exhaust).toBe(1);
+ expect(data.initial.trace).toBe(0);
+ expect(data.initial.flash).toBe(false);
+ expect(data.initial.smoke).toBeGreaterThan(0);
+ expect(data.next).not.toEqual(data.initial.point);
+ expect(data.gone).toBe(0);
+ expect(data.blast).toBeGreaterThan(0);
+ expect(data.dust).toBeGreaterThan(0);
+ expect(data.debris).toBeGreaterThan(0);
+ expect(data.smoke).toBeGreaterThan(0);
+});
+
+test('rocket-free tracer buffers remain stable after 300 visual frames',async({page})=>{
+ test.setTimeout(115000);
+ await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',
+  {waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,null,{timeout:95000});
+ const data=await page.evaluate(()=>{
+  const {battlefield,game}=window.__sandforgeWebGL;
+  const pos=battlefield.tracer.geometry.getAttribute('position');
+  const color=battlefield.tracer.geometry.getAttribute('color');
+  const ally=game.units.find(u=>u.owner===0&&u.hp>0);
+  game.shots=[{from:{x:ally.x,y:ally.y},
+   to:{x:ally.x+15,y:ally.y},owner:0,source:ally.id,
+   weapon:'rifle',hit:true,life:.5,at:game.time}];
+  for(let frame=0;frame<300;frame++)battlefield.updateShots();
+  return {samePos:pos===battlefield.tracer.geometry.getAttribute('position'),
+   sameColor:color===battlefield.tracer.geometry.getAttribute('color'),
+   length:pos.array.length,draw:battlefield.tracer.geometry.drawRange.count};
+ });
+ expect(data).toEqual({samePos:true,sameColor:true,length:660,draw:2});
 });
