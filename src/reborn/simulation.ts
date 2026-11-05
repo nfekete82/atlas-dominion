@@ -309,7 +309,8 @@ export class Simulation {
        const target=spec.flying?{x:clamp(p.x,8,this.world.size-8),y:clamp(p.y,8,this.world.size-8)}:this.world.nearest(p,obstacles,[],u,Math.max(0,spec.radius-10));if(!target)return;
       const next:Order={...order,...target,...(mixed&&front.includes(u)?{march:(armoredFront.length?members.filter(v=>!unitSpec(v).flying):front).map(v=>v.id)}:{}),...(formation?{formation,...(support.includes(u)?{kind:order.kind==='attack'?'attackMove':order.kind,target:undefined}:{})}:{})};u.hold=false;u.supportPaused=false;u.workingTarget=null;
       if(append){if(u.orders.length<32)u.orders.push(next);else return;}
-      else {this.transports.cancel(u);delete u.burst;u.orders=formation&&u.orders[0]?.kind==='heal'?[u.orders[0],next]:[next];u.path=[];u.repath=0;u.combatTarget=null;u.pursuitOrigin=null;}
+      else {this.transports.cancel(u);delete u.burst;u.orders=formation&&u.orders[0]?.kind==='heal'?[u.orders[0],next]:[next];u.path=[];u.repath=0;u.combatTarget=null;u.pursuitOrigin=null;
+        if(u.kind==='tank'&&!u.moving)u.driveSpeed=0;}
       if(u.transport&&u.transport.phase!=='cruise'){u.transport.resume=structuredClone(u.orders);u.orders=[];}
       accepted++;
     });return accepted;
@@ -326,7 +327,7 @@ export class Simulation {
     if(this.bases.some(b=>b.kind==='headquarters'&&b.territory===t.id&&b.owner!==owner&&b.hp>0))return 'enemy-hq';
     return 'capturing';
   }
-  stop(ids:number[],hold=false):void {for(const u of this.units)if(ids.includes(u.id)){this.transports.cancel(u);u.orders=[];u.path=[];u.repath=0;u.moving=false;u.pursuitOrigin=null;u.combatTarget=null;u.hold=hold;u.supportPaused=false;u.workingTarget=null;delete u.burst;}}
+  stop(ids:number[],hold=false):void {for(const u of this.units)if(ids.includes(u.id)){this.transports.cancel(u);u.orders=[];u.path=[];u.repath=0;u.moving=false;if(u.kind==='tank')u.driveSpeed=0;u.pursuitOrigin=null;u.combatTarget=null;u.hold=hold;u.supportPaused=false;u.workingTarget=null;delete u.burst;}}
   private supportEligible(u:Unit,target:Unit|Base,kind:string):boolean {
     if(target.hp<=0||('orders' in target&&target.carrier)||target.owner!==u.owner)return false;
     if(kind==='heal')return u.kind==='medic'&&'orders' in target&&unitSpec(target).group==='Infanterie'&&target.hp<unitSpec(target).hp;
@@ -782,6 +783,9 @@ export class Simulation {
       if(this.transports.boarding(u,dt))continue;
       if(this.escort(u,dt)||this.support(u,dt)){delete u.burst;continue;}
       const order=u.orders[0];
+      // Idle tanks must not inherit their previous acceleration after an old
+      // order has ended. A new departure should visibly aim and pivot first.
+      if(u.kind==='tank'&&!order&&!u.pursuitOrigin)u.driveSpeed=0;
       // A player retreat / tactical reposition is authoritative. Do not let
       // defensive reaction fire or an old attack lock stall the movement.
       // Boarding/takeoff animations finish before movement resumes.
@@ -789,7 +793,7 @@ export class Simulation {
       if(u.kind==='bomber'&&(u.orders.length>0||u.hold||u.pursuitOrigin))delete u.idleOrbit;
       if(order?.kind==='move'&&(u.owner===0||this.world.mapVersion>=3&&this.tactical.mode==='director'||this.tactical.state.phase!=='attack')){
         delete u.burst;u.combatTarget=null;u.pursuitOrigin=null;
-        if(distance(u,order)<18){u.orders.shift();u.path=[];u.repath=0;}
+        if(distance(u,order)<18){u.orders.shift();u.path=[];u.repath=0;if(u.kind==='tank')u.driveSpeed=0;}
         else this.move(u,order,dt);
         continue;
       }
@@ -832,7 +836,7 @@ export class Simulation {
           // Keep its origin until contact ends so the same fleeing opponent
           // cannot immediately start another pursuit on the following tick.
           if(u.path.length&&distance(u.path[u.path.length-1],order)>55){u.path=[];u.repath=0;}
-          if(distance(u,order)<18){u.orders.shift();u.path=[];u.repath=0;}
+          if(distance(u,order)<18){u.orders.shift();u.path=[];u.repath=0;if(u.kind==='tank')u.driveSpeed=0;}
           else this.move(u,order,dt);
         } else {u.path=[];u.repath=0;}
       } else {
@@ -854,7 +858,7 @@ export class Simulation {
               ?this.memories[u.owner].find(m=>m.id===order.target&&m.owner!==u.owner&&m.hp>0):undefined;
             if(!remembered){order.kind='attackMove';delete order.target;}
           }
-          if(distance(u,order)<18){u.orders.shift();u.path=[];u.repath=0;}
+          if(distance(u,order)<18){u.orders.shift();u.path=[];u.repath=0;if(u.kind==='tank')u.driveSpeed=0;}
           else this.move(u,order,dt);
         }
       }
