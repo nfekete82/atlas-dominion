@@ -125,10 +125,10 @@ test('dark natural map rim has no off-map foliage or reappearing bright exterior
    coveredGeometry:v.visualPerimeter.voidCover.every((overlay,i)=>
     overlay.geometry===v.visualPerimeter.meshes[i].geometry),
    permanentlyBlack:v.visualPerimeter.voidCover.every(overlay=>
-    overlay.visible&&overlay.renderOrder>=1100&&
-    overlay.material.depthTest===false&&
+    overlay.visible&&overlay.renderOrder===980&&
+    overlay.material.depthTest===true&&overlay.material.depthWrite===false&&
     overlay.material.fragmentShader.includes('vec4(0.0,0.0,0.0,darkness)')&&
-    overlay.material.fragmentShader.includes('smoothstep(20.0,205.0,outside)'))
+    overlay.material.fragmentShader.includes('smoothstep(-5.0,60.0,outside)'))
   };
  });
  expect(state.samples[0]).toBeGreaterThan(0);
