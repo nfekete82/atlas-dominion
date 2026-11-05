@@ -44,7 +44,7 @@ test('large desert generation stays deterministic, spacious and navigable for al
 
 test('visual scaling keeps soldiers smaller than trucks without changing gameplay radii',()=>{
  for(const kind of ['infantry','medic','engineer','heavy'])
-  assert.equal(visualUnitScale(kind),.88);
+  assert.equal(visualUnitScale(kind),.72);
  assert.equal(visualUnitScale('rover'),1.34);
  assert.equal(visualUnitScale('artillery'),.92);
  assert.equal(visualUnitScale('tank'),.95);
