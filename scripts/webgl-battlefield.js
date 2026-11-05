@@ -194,6 +194,9 @@ export class SandforgeBattlefield {
     const barrel=new THREE.Mesh(new THREE.CylinderGeometry(1.8,2.3,31,8),dark);
     barrel.rotation.x=Math.PI/2;barrel.position.set(x,1,-23);
     barrel.castShadow=true;root.add(barrel);
+    const muzzle=new THREE.Object3D();
+    muzzle.name=x<0?'TurretMuzzleL':'TurretMuzzleR';
+    muzzle.position.set(x,1,-39);root.add(muzzle);
    }
   }else{
    const pole=new THREE.Mesh(new THREE.CylinderGeometry(1.9,2.6,16,8),dark);
@@ -212,37 +215,41 @@ export class SandforgeBattlefield {
  }
  attachBuildingMotion(entry,data){
   if(!['turret','headquarters'].includes(entry.kind))return;
-  const name=entry.kind==='turret'?'TurretTraverse':'RadarSpin';
-  const clip=data.animations?.find(c=>c.name===name);
-  if(clip?.tracks?.length){
-   const mixer=new THREE.AnimationMixer(entry.detail),action=mixer.clipAction(clip);
-   action.setLoop(THREE.LoopRepeat,Infinity);action.play();
-   if(entry.kind==='turret')action.paused=true;
-   entry.motion={kind:entry.kind,mixer,clip,action,mode:'authored'};
-  }else{
-   const rotor=this.createMechanicalRotor(entry.kind,entry.modelHeight,BUILDINGS[entry.kind].width);
-   entry.node.add(rotor);
-   entry.motion={kind:entry.kind,rotor,mode:'fallback'};
+  // Read the actual glTF hierarchy instead of sampling an animation by
+  // elapsed time: the two visible imported barrels face local +Z, while
+  // the old animation sampling assumed local +X and drifted by 90 degrees.
+  if(entry.kind==='turret'){
+   const head=entry.detail?.getObjectByName('TurretHead');
+   if(head){
+    const left=entry.detail.getObjectByName('TurretMuzzleL');
+    const right=entry.detail.getObjectByName('TurretMuzzleR');
+    entry.motion={kind:'turret',rotor:head,muzzles:left&&right?[left,right]:null,
+     mode:'authored-rig'};
+    return;
+   }
   }
+  if(entry.kind==='headquarters'){
+   const clip=data.animations?.find(c=>c.name==='RadarSpin');
+   if(clip?.tracks?.length){
+    const mixer=new THREE.AnimationMixer(entry.detail),action=mixer.clipAction(clip);
+    action.setLoop(THREE.LoopRepeat,Infinity);action.play();
+    entry.motion={kind:'headquarters',mixer,clip,action,mode:'authored'};
+    return;
+   }
+  }
+  const rotor=this.createMechanicalRotor(entry.kind,entry.modelHeight,BUILDINGS[entry.kind].width);
+  entry.node.add(rotor);
+  entry.motion={kind:entry.kind,rotor,
+   muzzles:entry.kind==='turret'?
+    [rotor.getObjectByName('TurretMuzzleL'),rotor.getObjectByName('TurretMuzzleR')]:null,
+   mode:'fallback'};
  }
  animateBuildingMotion(entry,base,dt,active){
   const motion=entry.motion;
   if(!motion||base.buildRemaining>0)return;
   if(motion.kind==='turret'){
    const angle=Number.isFinite(base.turretAngle)?base.turretAngle:0;
-   if(motion.mixer&&motion.clip){
-    // The authored rest-position cannons face +X; the simulation's
-    // angle grows towards +Z, while Three.js yaw grows towards -Z.
-    // The building root already carries its own facing rotation.
-    const yaw=turretAimLocalYaw(angle,base.facing);
-    const phase=((yaw%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
-    motion.action.paused=false;
-    motion.mixer.setTime(phase/(Math.PI*2)*motion.clip.duration);
-    motion.action.paused=true;
-   }else if(motion.rotor){
-    // Procedural cylinders instead point down local -Z.
-    motion.rotor.rotation.y=turretAimLocalYaw(angle,base.facing,true);
-   }
+   if(motion.rotor)motion.rotor.rotation.y=turretAimLocalYaw(angle,base.facing,motion.mode==='fallback');
   }else if(active){
    if(motion.mixer)motion.mixer.update(dt);
    else if(motion.rotor)motion.rotor.rotation.y+=dt*.52;
