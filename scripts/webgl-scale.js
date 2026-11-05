@@ -15,7 +15,9 @@ export const DIMENSIONS_VERSION=3;
 // spacing and saved dimensions unchanged. Infantry read as humans beside
 // larger real structures, rather than as toy-sized buildings.
 export function visualUnitScale(kind){
- if(['infantry','medic','engineer','heavy'].includes(kind))return .88;
+ // Align all four foot soldiers with larger rocket artillery and Humvee.
+ // This is a render-only factor: no change to move, weapon or capture radius.
+ if(['infantry','medic','engineer','heavy'].includes(kind))return .72;
  // Humvee needs a substantial visual presence beside full-scale buildings.
  // Only the rendered mesh changes; navigation/collision/save width stays 76.
  if(kind==='rover')return 1.34;
