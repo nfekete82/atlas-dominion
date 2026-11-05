@@ -125,6 +125,23 @@ const models=new Map(),ruinMeshes=[];
 // never appear accepted while an unannounced preview-level pause blocks ticks.
 game.paused=false;
 let groundMeshes=[],running=query.get('pause')!=='1',accumulator=0,elapsed=0;
+// Distinguish a deliberate pause or an ended battle from an animation stall.
+// Previously all three looked identical: stationary soldiers on screen.
+const simulationBanner=document.createElement('div');
+simulationBanner.id='sf3d-simulation-state';
+simulationBanner.setAttribute('role','status');
+simulationBanner.hidden=true;
+simulationBanner.style.cssText='position:fixed;top:71px;left:50%;transform:translateX(-50%);z-index:15;pointer-events:none;background:#111d23ea;border:1px solid #c5a570;color:#f6dfa9;font:800 12px/1.3 system-ui;padding:7px 13px;letter-spacing:.04em;text-align:center;box-shadow:0 5px 18px #0008';
+document.body.append(simulationBanner);
+function updateSimulationBanner(){
+ const reason=!running?'SIMULATION PAUSIERT · ▶ zum Fortsetzen':
+  game.paused?'SIMULATION INTERN PAUSIERT':
+  game.status==='victory'?'SIEG · Gefecht beendet':
+  game.status==='defeat'?'NIEDERLAGE · Gefecht beendet':'';
+ simulationBanner.hidden=!reason;
+ if(reason&&simulationBanner.textContent!==reason)simulationBanner.textContent=reason;
+}
+updateSimulationBanner();
 let visualPerimeter=null,boundaryCliffs=null;
 function sandTexture(){
  const c=document.createElement('canvas');c.width=c.height=256;
@@ -571,6 +588,7 @@ $('simulation').onclick=()=>{
  running=!running;$('simulation').textContent=running?'Simulation pausieren':'Simulation starten';
  if(!running)sound.pause();
  $('simulation').setAttribute('aria-pressed',String(running));
+ updateSimulationBanner();
 };
 $('rotate-left').onclick=()=>spin(-Math.PI/4);
 $('rotate-right').onclick=()=>spin(Math.PI/4);
@@ -895,6 +913,7 @@ function animate(now){
  performanceWatch.end(now);
  frames++;elapsed+=dt;
  if(elapsed>=.5){
+  updateSimulationBanner();
   $('fps').textContent=String(Math.round(frames/elapsed));frames=0;elapsed=0;
   $('clock').textContent=Math.floor(game.time)+' s';
  }
