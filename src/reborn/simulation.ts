@@ -119,7 +119,14 @@ export class Simulation {
   /** Visibility-source scale only. Defaults to 1, preserving classic RTS and
    * all headless AI/benchmark fixtures. 3D campaigns opt in to a modest bonus. */
   visionScale=1;
-  sight(u:Unit):number{return unitSpec(u).sight*(this.weather.storm&&!unitSpec(u).flying?WEATHER_RULES.groundSight:1);}
+  // Presentation-scoped option: only the WebGL preview opts in. Classic
+  // Canvas, saved games and headless AI benchmarks retain the default 1.0.
+  infantryVisionBonus=1;
+  sight(u:Unit):number{
+    const infantry=['infantry','medic','engineer','heavy'].includes(u.kind);
+    return unitSpec(u).sight*(infantry?this.infantryVisionBonus:1)*
+      (this.weather.storm&&!unitSpec(u).flying?WEATHER_RULES.groundSight:1);
+  }
   healRadius(u:Unit):number{return HEAL_RADIUS*getVeterancyModifiers(u).healRange;}
   readonly tactical=new TacticalAI(this);
   readonly transports=new Transports(this,(u,p,dt)=>this.move(u,p,dt));
