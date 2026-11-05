@@ -571,8 +571,14 @@ export class Simulation {
     }
     this.tactical.observe();this.revision++;
   }
+  private combatEntity(id:number|null|undefined):Unit|Base|undefined {
+    // Combat targets are resolved against the index refreshed at every
+    // simulation tick, without allocating a new army array on each lookup.
+    // Buildings retain their ID lookup; null/undefined locks need no scan.
+    return id==null?undefined:this.unitById.get(id)??this.bases.find(b=>b.id===id);
+  }
   private acquire(u:Unit):Unit|Base|undefined {
-    const order=u.orders[0],spec=unitSpec(u),entities=[...this.units,...this.bases];
+    const order=u.orders[0],spec=unitSpec(u);
     // A plain move is a strict order. Idle combat units and attack-move squads
     // can respond within sight, starting their approach before weapon range.
     // Engineers on guard duty stay near their work instead of abandoning repairs.
@@ -594,7 +600,7 @@ export class Simulation {
     if(u.hold){
       u.combatTarget=null;
       if(u.lastAttacker===null||u.defendUntil<=this.time)return undefined;
-      const attacker=entities.find(e=>e.id===u.lastAttacker);
+      const attacker=this.combatEntity(u.lastAttacker);
       if(attacker&&eligible(attacker)){
         u.combatTarget=attacker.id;
         return attacker;
@@ -603,14 +609,14 @@ export class Simulation {
     }
     // Keep explicit attack targets and current combat locks stable.
     if(order?.kind==='attack'&&order.target!==undefined){
-      const manual=entities.find(e=>e.id===order.target&&e.owner!==u.owner&&e.hp>0&&!('orders' in e&&e.carrier)&&canAttack(u,e)&&visible(e));
-      if(manual){u.combatTarget=manual.id;return manual;}
+      const manual=this.combatEntity(order.target);
+      if(manual&&manual.owner!==u.owner&&manual.hp>0&&!('orders' in manual&&manual.carrier)&&canAttack(u,manual)&&visible(manual)){u.combatTarget=manual.id;return manual;}
     }
-    const locked=entities.find(e=>e.id===u.combatTarget);
+    const locked=this.combatEntity(u.combatTarget);
     if(!support&&locked&&eligible(locked))return locked;
     u.combatTarget=null;
     if(u.lastAttacker!==null&&u.defendUntil>this.time){
-      const attacker=entities.find(e=>e.id===u.lastAttacker);
+      const attacker=this.combatEntity(u.lastAttacker);
       if(attacker&&eligible(attacker)){u.combatTarget=attacker.id;return attacker;}
     }
     if(support)return undefined;
