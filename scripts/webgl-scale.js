@@ -32,7 +32,7 @@ export function visualUnitScale(kind){
  // Humvee needs a substantial visual presence beside full-scale buildings.
  // Only the rendered mesh changes; navigation/collision/save width stays 76.
  if(kind==='rover')return 1.34;
- if(kind==='artillery')return .92;
+ if(kind==='artillery')return 1.32;
  if(kind==='tank')return 1.22;
  return .94;
 }
