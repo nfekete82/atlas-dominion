@@ -1,7 +1,20 @@
 import { cpSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import {createHash} from 'node:crypto';
 mkdirSync('dist', { recursive: true });
-cpSync('index.html', 'dist/index.html');
+// Reversible WebGL-first release candidate. The old Canvas renderer is
+// preserved as /classic.html while it is still needed for migration tests.
+// G0 checks must pass before the standard build is switched to WebGL.
+const webglDefault=process.env.SANDFORGE_RENDERER==='webgl';
+cpSync('index.html','dist/classic.html');
+if(webglDefault){
+  const landing=readFileSync('webgl-preview.html','utf8')
+    .replace('<title>Sandforge: Bastion Wars · WebGL 3D Vorschau</title>',
+      '<title>Sandforge: Bastion Wars</title>')
+    .replace('SANDFORGE / THREE.JS PREVIEW','SANDFORGE / WEBGL 3D')
+    .replace('· <a href="/">KLASSISCHES RTS</a>',
+      '· <a href="/classic.html">KLASSISCHE VERSION</a>');
+  writeFileSync('dist/index.html',landing);
+}else cpSync('index.html','dist/index.html');
 cpSync('animation-lab.html','dist/animation-lab.html');
 cpSync('model-preview.html','dist/model-preview.html');
 cpSync('model-3d.html','dist/model-3d.html');
@@ -31,7 +44,7 @@ cpSync('scripts/webgl-health.js','dist/webgl-health.js');
 cpSync('src/reborn/webgl-classic-hud.css','dist/webgl-classic-hud.css');
 cpSync('scripts/animation/model-viewer.js','dist/model-viewer.js');
 // WebGL preview and 3D inspector share the same local Three.js modules.
-// The production game continues to use its existing Canvas renderer.
+// Three.js assets are required by the 3D game and optional in classic mode.
 for(const file of ['build/three.module.js','build/three.core.js','examples/jsm/loaders/GLTFLoader.js','examples/jsm/controls/OrbitControls.js','examples/jsm/utils/BufferGeometryUtils.js','examples/jsm/utils/SkeletonUtils.js','examples/jsm/environments/RoomEnvironment.js']){
   const target='dist/vendor/three/'+file.replace('build/','').replace('examples/jsm/','addons/');mkdirSync(target.slice(0,target.lastIndexOf('/')),{recursive:true});cpSync('node_modules/three/'+file,target);
 }
