@@ -65,6 +65,8 @@ function markPool(scene,type,capacity,ttl,opacity){
    varying vec2 vUv;
    varying float vFade;
    void main(){
+    // Old decals remain in the ring buffer but must cost NO fragments once faded.
+    if(vFade<=.004)discard;
     vec4 ink=texture2D(stamp,vUv);
     gl_FragColor=vec4(ink.rgb,ink.a*baseAlpha*vFade);
    }`,
@@ -96,11 +98,15 @@ export class SandforgeGroundTracks{
  constructor({scene,game,pos,heightAt,lite=false}){
   Object.assign(this,{scene,game,pos,heightAt});
   this.clock=0;this.last=new Map();
-  this.foot=markPool(scene,'foot',lite?700:1700,18,.79);
-  this.vehicle=markPool(scene,'vehicle',lite?850:2200,24,.64);
+  // Bound permanent GPU work after long battles. The last few seconds of
+  // footprints remain visible, but old zero-alpha decals no longer fill
+  // thousands of GPU instances for the entire rest of the match.
+  this.foot=markPool(scene,'foot',lite?440:900,12,.79);
+  this.vehicle=markPool(scene,'vehicle',lite?500:1000,16,.64);
   this.pool=[this.foot,this.vehicle];
   this.dummy=new THREE.Object3D();
   this.maxTrailSpan=140;
+  this.activeTracks=0;
  }
  put(pool,x,z,heading,width,length){
   const slot=pool.next;
@@ -157,6 +163,7 @@ export class SandforgeGroundTracks{
  }
  update(dt,active=true){
   if(active)this.clock+=Math.max(0,Math.min(dt,.15));
+  let activeTracks=0;
   for(const pool of this.pool){
    if(!pool.total)continue;
    const a=pool.fading.array;
@@ -164,10 +171,12 @@ export class SandforgeGroundTracks{
    for(let i=0;i<pool.total;i++){
     const t=Math.max(0,1-(this.clock-pool.born[i])/pool.ttl);
     const opacity=t*t;
+    if(opacity>.004)activeTracks++;
     if(Math.abs(a[i]-opacity)>.006){a[i]=opacity;changed=true;}
    }
    if(changed)pool.fading.needsUpdate=true;
   }
+  this.activeTracks=activeTracks;
  }
  dispose(){
   for(const pool of this.pool){
