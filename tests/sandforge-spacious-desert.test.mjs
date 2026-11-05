@@ -76,3 +76,24 @@ test('production WebGL preview ships all root-relative modules in its static imp
    'Missing WebGL static import /'+modulePath+' in dist; preview would stall at loading');
  }
 });
+
+test('all four 3D building facings survive saves, and legacy facing=1 remains valid',()=>{
+ for(const facing of [0,2,1,3]){
+  const game=Simulation.campaign(2074,19);
+  const site=game.headquartersCandidates(0)
+   .find(p=>game.buildError(0,'headquarters',p)===null);
+  assert.ok(site,'no clear HQ site');
+  const base=game.build(0,'headquarters',site,undefined,facing);
+  assert.ok(base,'engineer cannot create HQ fixture');
+  assert.equal(base.facing??0,facing);
+  const save=game.save();
+  const restored=Simulation.load(save);
+  assert.equal(restored.bases.find(b=>b.id===base.id)?.facing??0,facing);
+  if(facing===3){
+   const invalid=structuredClone(save);
+   const building=invalid.bases.find(b=>b.id===base.id);
+   building.facing=4;
+   assert.throws(()=>Simulation.load(invalid),/beschädigt/);
+  }
+ }
+});
