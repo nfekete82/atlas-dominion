@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {Simulation} from '/src/reborn/simulation.js';
+import {rollingHillHeight} from '/src/reborn/rolling-hills.js';
 import {canyonGroundSampler,rampAtX,ridgeCenterY} from '/src/reborn/canyon-height.js';
 import {SandforgeBattlefield} from '/webgl-battlefield.js';
 import {DesertArtPass} from '/webgl-environment.js';
@@ -57,7 +58,10 @@ const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
 const smooth=value=>{const t=clamp(value,0,1);return t*t*(3-2*t);};
 const rnd=seed=>{let s=seed>>>0;return ()=>{s=(s+0x6d2b79f5)>>>0;let n=s;n=Math.imul(n^(n>>>15),n|1);n^=n+Math.imul(n^(n>>>7),n|61);return ((n^(n>>>14))>>>0)/4294967296;};};
 const random=rnd(seed^0xb6aa3371),ridge=terrain.ridges[0];
-const heightAt=canyonGroundSampler(seed,terrain.ridges);
+// Gentle hills follow the same authoritative coordinates used for the
+// high-ground combat advantage, without creating any blocking grid cells.
+const canyonHeightAt=canyonGroundSampler(seed,terrain.ridges);
+const heightAt=(x,z)=>canyonHeightAt(x,z)+rollingHillHeight(game.hills,x,z);
 const rampAt=x=>ridge?rampAtX(ridge,x):false;
 const pos=(x,z,y=heightAt(x,z))=>new THREE.Vector3(x-half,y,z-half);
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance',alpha:false});
