@@ -40,6 +40,21 @@ jobs:
           LIBGL_ALWAYS_SOFTWARE: '1'
           CI: 'true'
         run: npm run test:webgl-integration
+      - name: Build 3D-first root without overwriting the classic game
+        run: |
+          npm run build:3d
+          SANDFORGE_RENDERER=webgl node --test tests/sandforge-webgl-entry.test.mjs
+      - name: Live Chromium smoke test of the 3D game at /
+        env:
+          SANDFORGE_RENDERER: webgl
+          ATLAS_BROWSER_CHANNEL: chromium
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          CI: 'true'
+        run: |
+          tests/browser/node_modules/.bin/playwright test \
+            --config=tests/browser/playwright.config.mjs \
+            tests/browser/webgl-default-entry.spec.mjs \
+            --workers=1 --reporter=line
       - name: Preserve failure traces and screenshots
         if: always()
         uses: actions/upload-artifact@v4
