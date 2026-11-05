@@ -508,6 +508,44 @@ function weatherRuinMeshes(node){
   mesh.castShadow=mesh.receiveShadow=true;
  });
 }
+// A few hand-shaped, collapsed remnants make the two real ruin GLBs
+// appear differently destroyed across the map. They are separate VISUAL-ONLY
+// child meshes, never additional World obstacles or save fields.
+function dressRuinDamage(anchor,ruin,index){
+ const random=rnd((seed^(index*0x9e3779b9)^0x476fac13)>>>0);
+ const group=new THREE.Group();
+ group.name='visual-ruin-collapse-'+index;
+ group.userData={visualOnly:true,nonPlayable:true,ruinCollapse:true};
+ const masonry=new THREE.MeshStandardMaterial({color:'#967f66',roughness:1,metalness:.05,flatShading:true});
+ const charred=new THREE.MeshStandardMaterial({color:'#4b463e',roughness:.96,metalness:.18});
+ const palette=[masonry,charred];
+ const fragments=4+index%4;
+ for(let part=0;part<fragments;part++){
+  const ang=random()*Math.PI*2,rx=Math.cos(ang)*ruin.width*(.16+random()*.24);
+  const rz=Math.sin(ang)*ruin.depth*(.16+random()*.25);
+  const scale=7+random()*12,broken=part%3===0;
+  const geo=broken
+   ?new THREE.TetrahedronGeometry(scale*(.85+random()*.45),0)
+   :new THREE.BoxGeometry(scale*(1+random()),2.4+random()*4,scale*(.6+random()));
+  const mesh=new THREE.Mesh(geo,palette[(part+index)%2]);
+  mesh.position.set(rx,2+random()*6,rz);
+  mesh.rotation.set((random()-.5)*.9,ang,(random()-.5)*.7);
+  mesh.castShadow=true;mesh.receiveShadow=true;group.add(mesh);
+ }
+ // Torn roof sections/leaning beams: different configurations per ruin,
+ // not a pristine square rooftop cloned identically at every site.
+ for(let beam=0;beam<2+index%2;beam++){
+  const length=ruin.width*(.18+random()*.17);
+  const iron=new THREE.Mesh(new THREE.BoxGeometry(2.4+random()*2.5,length,2.8),charred);
+  const side=beam%2?-1:1;
+  iron.position.set(side*ruin.width*.27,10+random()*ruin.height*.32,
+   (random()-.5)*ruin.depth*.46);
+  iron.rotation.set((random()-.5)*.35,random()*Math.PI,side*(.48+random()*.44));
+  iron.castShadow=true;iron.receiveShadow=true;group.add(iron);
+ }
+ anchor.add(group);
+ return group;
+}
 async function addRuins(){
  // Every ruin instance is a real glTF triangle mesh with PBR materials.
  // Wait for the authored rock texture so instances are textured on first paint.
@@ -522,7 +560,9 @@ async function addRuins(){
   const anchor=new THREE.Group();
   anchor.position.copy(pos(ruin.x,ruin.y));
   anchor.rotation.y=ruin.rotation;
-  anchor.add(source);scene.add(anchor);ruinMeshes.push(anchor);
+  anchor.add(source);
+  if(spacious)dressRuinDamage(anchor,ruin,i);
+  scene.add(anchor);ruinMeshes.push(anchor);
  }
  return ruinMeshes.length;
 }
