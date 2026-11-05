@@ -181,7 +181,7 @@ test('production percentage increases with elapsed time and construction is visi
   expect(parseFloat(info.bar)).toBeCloseTo(50,5);
   expect(info.eta).toBe('3 s');
   expect(info.construction).toContain('50%');
-  expect(info.count).toContain('1 PRODUKTION');
+  expect(info.count).toContain('1 AUFTRAG');
   expect(info.count).toContain('1 BAU');
 });
 
