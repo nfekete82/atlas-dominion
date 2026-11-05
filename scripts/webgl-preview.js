@@ -45,6 +45,7 @@ const game=session??Simulation.campaign(seed,sizes[bastions]);
 // Optional visual comparison; classic gameplay remains unchanged.
 const wideView=query.get('view')==='wide';
 game.visionScale=wideView?1.35:game.world.mapVersion>=19?1.30:1.12;
+game.infantryVisionBonus=1.15; // modest +15% infantry sight in 3D only
 game.updateVision();
 const world=game.world,terrain=world.generated,size=world.size,half=size/2;
 const spacious=world.mapVersion>=19;
