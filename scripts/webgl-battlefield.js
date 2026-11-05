@@ -521,7 +521,12 @@ export class SandforgeBattlefield {
   this.presentation.consumeShots(this.units,this.bases);
   for(const u of this.game.units){
    const entry=this.units.get(u.id);
-   if(entry)this.presentation.update(entry,u,'unit',dt,this.selected.has(u.id),active);
+   if(entry){
+    this.presentation.update(entry,u,'unit',dt,this.selected.has(u.id),active);
+    // Authored vehicle clips can animate Turret/Gun quaternion and overwrite
+    // our aim. Reapply authoritative heading AFTER AnimationMixer.update().
+    if(u.kind==='tank'||u.kind==='artillery')this.orientTankRig(entry,u);
+   }
   }
   for(const b of this.game.bases){
    const entry=this.bases.get(b.id);
