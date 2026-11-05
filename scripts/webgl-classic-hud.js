@@ -33,12 +33,21 @@ export function installClassicHud(){
    <button data-tab="territories" aria-pressed="false">SEKTOREN</button>
   </nav>
   <div class="catalog-scroll" id="sf-actions" aria-label="Einheiten, Gebäude und Territorien"></div>
-  <div class="production" id="sf-production">
-   <div class="section-label">PRODUKTION <span id="sf-queue-count">0 AUFTRÄGE</span></div>
-   <div class="production-track"><i id="sf-progress"></i></div>
-   <div class="queue-info"><span id="sf-queue">WARTESCHLANGE LEER</span><span id="sf-queue-time">--:--</span></div>
+  <section class="production sf-production-panel" id="sf-production" aria-label="Produktion und Warteschlange">
+   <div class="sf-production-heading">
+    <strong>PRODUKTION</strong>
+    <span id="sf-queue-count">0 AUFTRÄGE</span>
+   </div>
+   <div class="sf-production-slots" id="sf-queue-slots" role="list" aria-label="Produktionsaufträge">
+    <div class="sf-production-empty">Noch keine Produktion aktiv</div>
+   </div>
+   <div class="sf-production-progressline">
+    <div class="production-track" role="progressbar" aria-label="Aktuelle Produktion" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="sf-progress"></i></div>
+    <span id="sf-queue-time">--:--</span>
+   </div>
+   <div class="queue-info"><span id="sf-queue">WARTESCHLANGE LEER</span></div>
    <div id="sf-building-status" class="sf-building-status" hidden></div>
-  </div>
+  </section>
   <div id="sf-catalog-detail">Pioniere errichten Produktionsgebäude. Fertige Gebäude schalten Einheiten frei.</div>
  </section>
 </aside>
