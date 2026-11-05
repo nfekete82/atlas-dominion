@@ -237,6 +237,81 @@ export class SandforgeCombatEffects {
   this.stats.wrecks++;
   this.blastAt(u.x,u.y,true);
  }
+ // The simulation already supplies authoritative missiles and impact times.
+ // This renderer interpolates their 3D trajectory without altering damage.
+ rocketLaunchWorld(missile){
+  const entry=this.battlefield?.units?.get(missile.source);
+  const barrel=missile.id%6;
+  const muzzle=missile.type==='antiArmor'
+   ?entry?.detail?.getObjectByName('AtlasMuzzleTip')
+   :entry?.rocketMuzzles?.[barrel]??
+    entry?.detail?.getObjectByName('RocketMuzzle_'+barrel);
+  if(muzzle&&entry?.node){
+   entry.node.updateWorldMatrix(true,true);
+   return muzzle.getWorldPosition(new THREE.Vector3());
+  }
+  const a=missile.angle??Math.atan2(
+   missile.to.y-missile.from.y,missile.to.x-missile.from.x);
+  const forward=missile.type==='antiArmor'?29:32;
+  const x=missile.from.x+Math.cos(a)*forward;
+  const z=missile.from.y+Math.sin(a)*forward;
+  return this.pos(x,z,this.heightAt(missile.from.x,missile.from.y)+
+   (missile.type==='antiArmor'?43:52));
+ }
+ updateRockets(active=true,subTick=0){
+  const live=new Set();
+  const up=new THREE.Vector3(0,1,0);
+  let count=0;
+  for(const missile of this.game.missiles){
+   live.add(missile.id);
+   if(!this.rocketOrigins.has(missile.id)){
+    this.rocketOrigins.set(missile.id,this.rocketLaunchWorld(missile));
+    this.statsRocket.launched++;
+   }
+   const duration=Math.max(.01,missile.impactAt-missile.at);
+   const progress=clamp((this.game.time+(active?subTick:0)-missile.at)/duration,0,.999);
+   const origin=this.rocketOrigins.get(missile.id);
+   const target=this.pos(missile.to.x,missile.to.y,
+    this.heightAt(missile.to.x,missile.to.y)+15);
+   const displacement=target.clone().sub(origin);
+   const arc=Math.min(120,Math.max(35,
+    Math.hypot(missile.to.x-missile.from.x,missile.to.y-missile.from.y)*.14));
+   const point=origin.clone().addScaledVector(displacement,progress);
+   point.y+=Math.sin(progress*Math.PI)*arc;
+   // Only render where the projectile itself is currently visible.
+   const x=point.x+this.world.size*.5,z=point.z+this.world.size*.5;
+   if(!this.game.canSee(0,{x,y:z}))continue;
+   if(count>=this.rockets.instanceMatrix.count)break;
+   const heading=displacement.clone();
+   heading.y+=Math.cos(progress*Math.PI)*Math.PI*arc;
+   heading.normalize();
+   dummy.position.copy(point);
+   dummy.quaternion.setFromUnitVectors(up,heading);
+   dummy.scale.set(1,1,1);dummy.updateMatrix();
+   this.rockets.setMatrixAt(count,dummy.matrix);
+   dummy.position.copy(point).addScaledVector(heading,11);
+   dummy.updateMatrix();this.rocketNoses.setMatrixAt(count,dummy.matrix);
+   dummy.position.copy(point).addScaledVector(heading,-14);
+   dummy.quaternion.setFromUnitVectors(up,heading.clone().negate());
+   dummy.updateMatrix();this.rocketExhaust.setMatrixAt(count,dummy.matrix);
+   count++;
+   if(active&&this.game.time-(this.rocketTrailAt.get(missile.id)??-1)>.075){
+    this.rocketTrailAt.set(missile.id,this.game.time);
+    const tail=point.clone().addScaledVector(heading,-14);
+    this.particle(this.smoke,tail.x+this.world.size*.5,
+     tail.z+this.world.size*.5,tail.y,10+this.rand()*6,.65+this.rand()*.45,
+     (this.rand()-.5)*8,(this.rand()-.5)*8,4+this.rand()*7);
+   }
+  }
+  for(const mesh of [this.rockets,this.rocketNoses,this.rocketExhaust]){
+   mesh.count=count;
+   if(count)mesh.instanceMatrix.needsUpdate=true;
+  }
+  this.stats.rockets=count;this.statsRocket.visible=count;
+  for(const id of this.rocketOrigins.keys())if(!live.has(id)){
+   this.rocketOrigins.delete(id);this.rocketTrailAt.delete(id);
+  }
+ }
  pollSimulation(){
   for(const blast of this.game.blasts){
    const key=String(blast.id)+'@'+String(blast.at);
@@ -269,8 +344,9 @@ export class SandforgeCombatEffects {
   }
   this.lastUnits=next;
  }
- update(dt,active=true){
+ update(dt,active=true,subTick=0){
   this.pollSimulation();
+  this.updateRockets(active,subTick);
   if(!active)return;
   this.frame++;
   for(const emitter of this.emitters){
