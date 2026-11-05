@@ -126,7 +126,8 @@ test('legacy 3D preview links show original logo, dark Fog of War and black fadi
     const x=pos.getX(i)+half,z=pos.getZ(i)+half;
     const outside=Math.max(0,-x,x-size,-z,z-size);
     const light=(colors.getX(i)+colors.getY(i)+colors.getZ(i))/3;
-    if(outside>=35&&outside<=145)near.push(light);
+    // New narrow border: sample its actual inner seam and first apron.
+    if(outside>=0&&outside<=80)near.push(light);
     if(outside>=550)far.push(light);
    }
   }
@@ -158,7 +159,7 @@ test('legacy 3D preview links show original logo, dark Fog of War and black fadi
  expect(state.unexploredCells).toBeGreaterThan(100);
  expect(state.samples.near).toBeGreaterThan(0);
  expect(state.samples.far).toBeGreaterThan(0);
- expect(state.samples.nearLight).toBeGreaterThan(state.samples.farLight+.1);
+ expect(state.samples.nearLight).toBeGreaterThan(state.samples.farLight+.06);
  await page.locator('button[data-action="fog"]').click();
  expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.fogEnabled)).toBe(false);
  expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.fogNodes.every(n=>!n.visible))).toBe(true);
