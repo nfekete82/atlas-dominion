@@ -22,6 +22,12 @@ function radialTexture({inner='#ffffff',outer='#ffffff',mode='smoke'}){
   g.addColorStop(.51,'rgba(248,91,25,.68)');
   g.addColorStop(.78,'rgba(122,32,12,.2)');
   g.addColorStop(1,'rgba(80,19,8,0)');
+ }else if(mode==='spark'){
+  // Tiny bright metal impacts, never a flame ball or an explosion plume.
+  g.addColorStop(0,'rgba(255,252,228,1)');
+  g.addColorStop(.25,'rgba(255,224,123,.97)');
+  g.addColorStop(.65,'rgba(255,171,62,.48)');
+  g.addColorStop(1,'rgba(255,145,34,0)');
  }else if(mode==='dust'){
   g.addColorStop(0,'rgba(229,198,152,.62)');
   g.addColorStop(.38,'rgba(212,177,136,.40)');
@@ -46,13 +52,13 @@ function materialFor(mode,opacity){
  return new THREE.MeshBasicMaterial({
   map:radialTexture({mode}),transparent:true,opacity,depthWrite:false,
   alphaTest:.015,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-1,
-  toneMapped:mode!=='flame'
+  toneMapped:mode!=='flame'&&mode!=='spark'
  });
 }
 function makePool(scene,mode,max,opacity){
  const mesh=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),materialFor(mode,opacity),max);
  mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
- mesh.frustumCulled=false;mesh.renderOrder=mode==='flame'?16:mode==='dust'?10:14;mesh.count=0;
+ mesh.frustumCulled=false;mesh.renderOrder=mode==='spark'?18:mode==='flame'?16:mode==='dust'?10:14;mesh.count=0;
  scene.add(mesh);
  return {mesh,particles:[],max,mode};
 }
@@ -71,7 +77,8 @@ export class SandforgeCombatEffects {
   this.smoke=makePool(scene,'smoke',lowQuality?70:260,.68);
   this.flames=makePool(scene,'flame',lowQuality?28:120,.94);
   this.dust=makePool(scene,'dust',lowQuality?40:170,.50);
-  for(const pool of [this.smoke,this.flames,this.dust])clearInstances(pool);
+  this.sparks=makePool(scene,'spark',lowQuality?90:300,.96);
+  for(const pool of [this.smoke,this.flames,this.dust,this.sparks])clearInstances(pool);
   this.scorch=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),materialFor('scorch',.93),lowQuality?70:210);
   this.scorch.geometry.rotateX(-Math.PI*.5);
   this.scorch.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -106,7 +113,7 @@ export class SandforgeCombatEffects {
   this.wreckCount=0;this.emitters=[];this.seenBlasts=new Set();this.seenShots=new WeakSet();
   this.lastUnits=new Map();
   this.seed=game.seed>>>0;this.frame=0;
-  this.stats={blasts:0,scorch:0,tracks:0,wrecks:0};
+  this.stats={blasts:0,impacts:0,scorch:0,tracks:0,wrecks:0};
   for(const u of game.units)if(u.hp>0&&!u.carrier)this.lastUnits.set(u.id,{x:u.x,y:u.y,kind:u.kind,owner:u.owner,angle:u.angle});
  }
  rand(){
@@ -117,6 +124,19 @@ export class SandforgeCombatEffects {
  particle(pool,x,z,y,size,life,vx=0,vz=0,vy=0){
   if(pool.particles.length>=pool.max)pool.particles.shift();
   pool.particles.push({x,z,y,size,life,ttl:life,vx,vz,vy,angle:(this.rand()-.5)*.45});
+ }
+ sparkAt(x,z,armored=false){
+  if(!this.game.canSee(0,{x,y:z}))return;
+  this.stats.impacts++;
+  // Rifle, turret and tank MG hits get only a handful of short white-gold
+  // pinpricks. Never create shockwaves, flames, prolonged smoke or scorches.
+  const count=armored?5:3;
+  for(let i=0;i<count;i++){
+   const px=x+(this.rand()-.5)*8,pz=z+(this.rand()-.5)*8;
+   this.particle(this.sparks,px,pz,this.heightAt(px,pz)+12+this.rand()*13,
+    3.5+this.rand()*4.5,.09+this.rand()*.09,
+    (this.rand()-.5)*28,(this.rand()-.5)*28,17+this.rand()*35);
+  }
  }
  blastAt(x,z,strong=true){
   if(!this.game.canSee(0,{x,y:z}))return;
@@ -196,9 +216,11 @@ export class SandforgeCombatEffects {
   for(const shot of this.game.shots){
    if(this.seenShots.has(shot))continue;
    this.seenShots.add(shot);
-   if(!shot.hit||!['cannon','rocket','turret'].includes(shot.weapon))continue;
+   if(!shot.hit)continue;
    const p=shot.groundTo??shot.to;
-   this.blastAt(p.x,p.y,false);
+   if(['cannon','rocket'].includes(shot.weapon))this.blastAt(p.x,p.y,false);
+   else if(['turret','machinegun','rifle','heavy','pistol'].includes(shot.weapon))
+    this.sparkAt(p.x,p.y,Boolean(shot.armored));
   }
   const next=new Map();
   for(const u of this.game.units){
@@ -243,7 +265,7 @@ export class SandforgeCombatEffects {
   }
   this.shockwave.count=shockIndex;
   if(shockIndex)this.shockwave.instanceMatrix.needsUpdate=true;
-  for(const pool of [this.smoke,this.flames,this.dust]){
+  for(const pool of [this.smoke,this.flames,this.dust,this.sparks]){
    const alive=[];let k=0;
    for(const p of pool.particles){
     p.life-=dt;
@@ -260,6 +282,6 @@ export class SandforgeCombatEffects {
    pool.mesh.count=k;pool.mesh.instanceMatrix.needsUpdate=true;
   }
  }
- get particleCount(){return this.smoke.particles.length+this.flames.particles.length+this.dust.particles.length;}
+ get particleCount(){return this.smoke.particles.length+this.flames.particles.length+this.dust.particles.length+this.sparks.particles.length;}
 }
 const worldIndex=(world,x,z)=>world.index({x,y:z});
