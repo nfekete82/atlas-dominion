@@ -2,6 +2,7 @@ import {UNITS,BUILDINGS,MAX_GENERATORS_PER_FACTION,unitSpec,canAttack,type UnitK
 import {distance,type Point} from './config.js';
 import {produceCombinedArmy} from './director-production.js';
 import {buildBastionDefense,defensiveTowerLimit,rankBastionDefenses} from './bastion-defense.js';
+import {aiBuildSiteScore} from './construction-spacing.js';
 import {defenseLessonsLost} from './battle-learning.js';
 import type {Simulation,Unit,Base} from './simulation.js';
 import type {TacticalState} from './tactical-ai.js';
@@ -103,11 +104,11 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
        (g.world.mapVersion>=3&&g.tactical.mode==='director'&&o.kind==='repair'&&
         army.some(v=>v.id===o.target&&s.recovering?.includes(v.id))))));
   if(worker){
-   const candidates:Point[]=[];for(const center of [home,...g.territories.filter(t=>t.owner===1).map(t=>t.point)])for(const radius of [180,250,330,410])for(let i=0;i<16;i++){
-    const p={x:center.x+Math.cos(i*Math.PI/8)*radius,y:center.y+Math.sin(i*Math.PI/8)*radius};if(dangerAt(p)<2&&!g.buildError(1,goal,p))candidates.push(p);
+   const candidates:Point[]=[];for(const center of [home,...g.territories.filter(t=>t.owner===1).map(t=>t.point)])for(const radius of [260,340,430,520,620])for(let i=0;i<20;i++){
+    const p={x:center.x+Math.cos(i*Math.PI/10)*radius,y:center.y+Math.sin(i*Math.PI/10)*radius};if(dangerAt(p)<2&&!g.buildError(1,goal,p))candidates.push(p);
    }
-   candidates.sort((a,b)=>distance(a,home)+distance(a,worker)*.2-(distance(b,home)+distance(b,worker)*.2));
-   for(const p of candidates.slice(0,8)){const b=g.build(1,goal,p,[worker.id]);if(b){e.built[goal]=(e.built[goal]??0)+1;e.goal=null;break;}}
+   candidates.sort((a,b)=>aiBuildSiteScore(a,goal,home,worker,own)-aiBuildSiteScore(b,goal,home,worker,own)||a.x-b.x||a.y-b.y);
+   for(const p of candidates.slice(0,12)){const b=g.build(1,goal,p,[worker.id]);if(b){e.built[goal]=(e.built[goal]??0)+1;e.goal=null;break;}}
   }
  }
  // Fortify owned border bastions after core production has started. Unlike

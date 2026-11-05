@@ -1,0 +1,1 @@
+Validated 15 GLBs: embedded PBR, UVs, geometry, clips, all teams and every sprite frame.

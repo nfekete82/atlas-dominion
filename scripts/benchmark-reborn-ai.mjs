@@ -33,7 +33,7 @@ export function parseOptions(argv){
  const result={maps:String(values.maps??values.map??4).split(',').map(Number),seconds:Number(values.seconds??240),
   seeds:String(values.seeds??'2026,2027,2028').split(',').map(Number),opponent:values.opponent??'guarded',
   modes:String(values.modes??'baseline,director').split(','),output:values.output?resolve(values.output):null,label:values.label??'current'};
- if(result.maps.some(v=>![3,4,5].includes(v))||new Set(result.maps).size!==result.maps.length
+ if(result.maps.some(v=>(!Number.isInteger(v)||v<3||v>14))||new Set(result.maps).size!==result.maps.length
   ||!['guarded','idle'].includes(result.opponent)||!Number.isInteger(result.seconds)||result.seconds<30||result.seconds>3600
   ||result.seeds.length<1||result.seeds.length>24||result.seeds.some(v=>!Number.isSafeInteger(v)||v<0||v>4294967295)
   ||new Set(result.seeds).size!==result.seeds.length||result.modes.some(v=>!['baseline','director'].includes(v))

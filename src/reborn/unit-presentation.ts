@@ -175,6 +175,35 @@ export class UnitPresentation {
  draw(c:CanvasRenderingContext2D,u:Unit,p:Point):void{
   const v=this.view(u);this.advance(v,u,0);this.drawView(c,v,p);
  }
+ private ride(v:View):RocketPose|null{
+  const suspension=v.rocket??v.chassis;
+  return suspension?groundVehiclePose(v.unit.kind,v.unit.walkDistance,v.unit.moving,suspension.speed,suspension.turn,
+    suspension.acceleration,suspension.shotAge,suspension.idleAge):null;
+ }
+ private barrelRecoil(v:View,ride:RocketPose|null):number{
+  return v.rocket?Math.max(0,ride?.recoil??0)+Math.max(0,v.unit.fire)*8:
+    v.unit.fire>0?Math.sin(v.unit.fire/.18*Math.PI)*2.5:0;
+ }
+ /** Apply the same local barrel, hydraulic and chassis transforms as drawView.
+  * Ground coordinates and simulation ballistics stay untouched. */
+ private posedMuzzle(v:View,p:Point,muzzle:Point,barrel:boolean):Point{
+  const ride=this.ride(v);let x=muzzle.x-p.x,y=muzzle.y-p.y+(ride?.heave??0);
+  if(barrel){
+   const recoil=this.barrelRecoil(v,ride);
+   x-=Math.cos(v.turretAngle)*recoil;y-=Math.sin(v.turretAngle)*recoil*.6+recoil*.38;
+   if(v.rocket){
+    const pivot=-unitVisualLift(v.unit)+(ride?.heave??0)-24*unitArtScale(v.unit.kind),angle=-(ride?.recoil??0)*.0025;
+    const dy=y-pivot,c=Math.cos(angle),s=Math.sin(angle);
+    const rotatedX=x*c-dy*s;y=pivot+x*s+dy*c;x=rotatedX;
+   }
+  }
+  if(ride){
+   y+=ride.pitch*x;
+   const c=Math.cos(ride.roll),s=Math.sin(ride.roll),rotatedX=x*c-y*s;
+   y=x*s+y*c;x=rotatedX;
+  }
+  return {x:p.x+x,y:p.y+y};
+ }
  private drawView(c:CanvasRenderingContext2D,v:View,p:Point):void{
   // drawFrame only changes pixels. Restore the two properties we change rather
   // than pushing/popping the complete Canvas state for every layered sprite.
@@ -187,8 +216,7 @@ export class UnitPresentation {
   else if(v.asset.shadow)this.drawFrame(c,v,v.frame,p,{x:0,y:0},v.asset.shadow);
   if(v.dead&&!v.asset.data.clips.death)c.filter='grayscale(1) brightness(.5)';
   const rocket=v.rocket,suspension=rocket??v.chassis;
-  const ride=suspension?groundVehiclePose(v.unit.kind,v.unit.walkDistance,v.unit.moving,suspension.speed,suspension.turn,
-    suspension.acceleration,suspension.shotAge,suspension.idleAge):null;
+  const ride=this.ride(v);
   if(ride){c.save();c.translate(p.x,p.y);c.rotate(ride.roll);c.transform(1,ride.pitch,0,1,0,0);c.translate(-p.x,-p.y);}
   const shifted={x:at.x,y:at.y+(ride?.heave??0)};
   this.drawFrame(c,v,v.frame,shifted);
@@ -209,8 +237,7 @@ export class UnitPresentation {
   if(v.asset.data.clips.turret){
    const turret=v.anim.frame('turret',v.turretAngle);this.drawFrame(c,v,turret,shifted);
    if(v.asset.data.clips.barrel){
-    const recoil=rocket?Math.max(0,ride?.recoil??0)+Math.max(0,v.unit.fire)*8:
-      v.unit.fire>0?Math.sin(v.unit.fire/.18*Math.PI)*2.5:0;
+    const recoil=this.barrelRecoil(v,ride);
     // Hydraulic pod absorbs a rocket salvo, followed by a fading oscillation.
     if(rocket){c.save();const pivot={x:shifted.x,y:shifted.y-24*unitArtScale(v.unit.kind)};
      c.translate(pivot.x,pivot.y);c.rotate(-(ride?.recoil??0)*.0025);c.translate(-pivot.x,-pivot.y);}
@@ -225,7 +252,8 @@ export class UnitPresentation {
  drawCorpses(c:CanvasRenderingContext2D,visible:(p:Point)=>boolean,inViewport:(p:Point)=>boolean=()=>true):void{for(const v of this.corpses)if(inViewport(v.unit)&&(v.unit.owner===0||visible(v.unit))){c.save();c.globalAlpha=Math.min(1,(5-v.deathAge)/.7);this.drawView(c,v,v.unit);c.restore();}}
  muzzle(v:View,u:Unit):Point{
   const scale=v.asset.data.nativeScale*unitArtScale(u.kind),frame=v.asset.data.clips.barrel?v.anim.frame('barrel',v.turretAngle):v.frame,muzzle=frame.muzzle,spec=unitSpec(u);
-  return muzzle?{x:u.x+(muzzle[0]-frame.pivot[0])*scale,y:u.y+(muzzle[1]-frame.pivot[1])*scale-unitVisualLift(u)}:{x:u.x+Math.cos(v.turretAngle)*spec.width*.42,y:u.y-16-(spec.flying?32:0)-unitVisualLift(u)+Math.sin(v.turretAngle)*spec.width*.18};
+  const point=muzzle?{x:u.x+(muzzle[0]-frame.pivot[0])*scale,y:u.y+(muzzle[1]-frame.pivot[1])*scale-unitVisualLift(u)}:{x:u.x+Math.cos(v.turretAngle)*spec.width*.42,y:u.y-16-(spec.flying?32:0)-unitVisualLift(u)+Math.sin(v.turretAngle)*spec.width*.18};
+  return this.posedMuzzle(v,u,point,!!v.asset.data.clips.barrel);
  }
  muzzleForShot(shot:Shot):Point{
   if(!shot.kind||!shot.groundFrom)return shot.from;
@@ -233,19 +261,19 @@ export class UnitPresentation {
    const p=shot.groundFrom,angle=shot.angle??0;
    return {x:p.x+Math.cos(angle)*16,y:p.y-34+Math.sin(angle)*7};
   }
-  const asset=this.asset(shot.kind,shot.owner),view=shot.source===undefined?undefined:this.views.get(shot.source),angle=shot.kind==='scout'&&view?view.bodyAngle:shot.angle??0;
+  const asset=this.asset(shot.kind,shot.owner),view=shot.source===undefined?undefined:this.views.get(shot.source),angle=!asset.data.clips.turret&&view?view.bodyAngle:shot.angle??0;
   const tag=asset.data.clips.barrel?'barrel':view?.anim.state??'attack';
   const clip=asset.data.clips[tag]??asset.data.clips.idle;
-  const frame=view?view.anim.frame(tag,angle):asset.data.frames[clip.frames[directionIndex(angle,asset.data.directions)][0]];
+  const frame=view?(asset.data.clips.barrel?view.anim.frame(tag,angle):view.frame):asset.data.frames[clip.frames[directionIndex(angle,asset.data.directions)][0]];
   const scale=asset.data.nativeScale*unitArtScale(shot.kind),m=frame.muzzles?.[(shot.barrel??0)%frame.muzzles.length]??frame.muzzle,p=shot.groundFrom;
-  const muzzle=m?{x:p.x+(m[0]-frame.pivot[0])*scale,y:p.y+(m[1]-frame.pivot[1])*scale-unitVisualLift({kind:shot.kind,flightHeight:shot.flightHeight})}:shot.from;
-  // Current baked launcher frames contain only one muzzle. Separate the six
-  // firing ports until the atlas gets individually authored muzzle anchors.
+  let muzzle=m?{x:p.x+(m[0]-frame.pivot[0])*scale,y:p.y+(m[1]-frame.pivot[1])*scale-unitVisualLift({kind:shot.kind,flightHeight:shot.flightHeight})}:shot.from;
+  // Older launcher atlases contain only one muzzle. Keep a six-port fallback
+  // while preferring individually authored anchors from current atlases.
   if(shot.kind==='artillery'&&shot.barrel!==undefined&&!frame.muzzles?.length){
    const offset=rocketTubeOffset(shot.barrel,angle,unitArtScale('artillery'));
-   return {x:muzzle.x+offset.x,y:muzzle.y+offset.y};
+   muzzle={x:muzzle.x+offset.x,y:muzzle.y+offset.y};
   }
-  return muzzle;
+  return view?this.posedMuzzle(view,p,muzzle,!!asset.data.clips.barrel):muzzle;
  }
  muzzleFor(u:Unit):Point{const v=this.view(u);this.advance(v,u,0);return this.muzzle(v,u);}
 }

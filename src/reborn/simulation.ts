@@ -8,6 +8,7 @@ import { World, inside, type Territory } from './world.js';
 import {visibleBasePropColliders} from './vehicle-decor-collision.js';
 import {vehicleStructureColliders} from './vehicle-structure-collision.js';
 import {infantryStructureColliders} from './infantry-structure-collision.js';
+import {constructionVisualClearance} from './construction-spacing.js';
 import {segmentDistance} from './world-generation.js';
 import {canCaptureSector,captureSeconds} from './territory-warfare.js';
 import { UNITS, BUILDINGS, TANK_MG, canAttack, weaponDamage, unitSpec, buildingSpec, unitKinds, MAX_GENERATORS_PER_FACTION, type UnitKind, type BuildingKind } from './catalog.js';
@@ -20,7 +21,7 @@ import { MAP_VERSION, randomMapSeed } from './world-generation.js';
 import {beginBomberOrbit,advanceBomberOrbit,validBomberOrbit,BOMBER_ORBIT_SPEED,preservesCaptureBoundary,safeOrbitApproach,isOnBomberOrbit,type BomberOrbit} from './bomber-orbit.js';
 import {AttackAlerts} from './attack-alerts.js';
 
-export interface Formation {front:number[];heading:Point;origin:Point;goal:Point;lane:number;rear:number}
+export interface Formation {front:number[];fallback?:number[];heading:Point;origin:Point;goal:Point;lane:number;rear:number}
 export interface Order extends Point { kind:'move'|'attackMove'|'attack'|'heal'|'repair'|'build'|'board'; target?:number; approach?:Point; healOrigin?:Point; formation?:Formation; march?:number[]; rear?:number; tactical?:TacticalOrder }
 export type Weapon='rifle'|'heavy'|'pistol'|'turret'|'cannon'|'rocket'|'machinegun';
 export interface Burst {target:number;remaining:number;at:number;index:number}
@@ -207,7 +208,7 @@ export class Simulation {
       if(!this.world.walkable(q))return 'Felsen oder Kartenrand blockieren die Grundfläche.';
     }
     for(let i=0;i<32;i++)if(!this.world.walkable({x:p.x+Math.cos(i*Math.PI/16)*spec.radius,y:p.y+Math.sin(i*Math.PI/16)*spec.radius}))return 'Die gesamte Grundfläche muss frei sein.';
-    if(this.obstacles().some(b=>distance(b,p)<b.radius+spec.radius+24))return 'Zu nah an einem anderen Gebäude.';
+    if(this.obstacles().some(b=>distance(b,p)<constructionVisualClearance(kind,b.kind)))return 'Zu nah an einem anderen Gebäude.';
     if(this.territories.some(t=>distance(t.point,p)<spec.radius+45))return 'Bastion und Kontrollpunkt müssen frei bleiben.';
     if(this.units.some(u=>u.hp>0&&!u.carrier&&!unitSpec(u).flying&&distance(u,p)<spec.radius+unitSpec(u).radius))return 'Einheiten blockieren die Baustelle.';
     return null;
@@ -233,13 +234,16 @@ export class Simulation {
     if(order.kind==='board')return this.transports.board(order.target??-1,ids);
     if(!Number.isFinite(order.x)||!Number.isFinite(order.y))return 0;
     const members=this.units.filter(u=>ids.includes(u.id)&&u.hp>0&&!u.carrier);
-    const front=members.filter(u=>u.kind!=='medic'&&u.kind!=='engineer'&&!unitSpec(u).flying);
-    const combat=members.filter(u=>u.kind!=='medic'&&u.kind!=='engineer');
+    const armoredFront=members.filter(u=>u.kind==='tank'||u.kind==='rover');
+    const fighters=members.filter(u=>u.kind!=='medic'&&u.kind!=='engineer'&&!unitSpec(u).flying);
+    const front=armoredFront.length?armoredFront:fighters;
     const support=members.filter(u=>u.kind==='medic'||u.kind==='engineer');
-    const mixed=front.length>0&&support.length>0&&['move','attackMove','attack'].includes(order.kind);
+    const rearFighters=armoredFront.length?members.filter(u=>['infantry','heavy','artillery'].includes(u.kind)):[];
+    const mixed=front.length>0&&(support.length>0||rearFighters.length>0)&&['move','attackMove','attack'].includes(order.kind);
     const origin={x:front.reduce((n,u)=>n+u.x,0)/Math.max(1,front.length),y:front.reduce((n,u)=>n+u.y,0)/Math.max(1,front.length)},length=distance(origin,order)||1;
     const heading={x:(order.x-origin.x)/length,y:(order.y-origin.y)/length};
-    if(mixed)members.sort((a,b)=>((a.kind==='medic'||a.kind==='engineer')?2:a.kind==='heavy'?0:1)-((b.kind==='medic'||b.kind==='engineer')?2:b.kind==='heavy'?0:1)||a.id-b.id);
+    if(mixed){const priority=(u:Unit)=>u.kind==='tank'?0:u.kind==='rover'?1:u.kind==='infantry'||u.kind==='heavy'?2:u.kind==='artillery'?3:4;
+      members.sort((a,b)=>priority(a)-priority(b)||a.id-b.id);}
     const width=Math.ceil(Math.sqrt(members.length)),slots=members.map((_,i)=>({x:i%width*27,y:Math.floor(i/width)*27}));
     // Centre the actual occupied slots, including a short last row. Using the
     // column count for both axes shifted a two-unit group north of its target.
@@ -260,11 +264,13 @@ export class Simulation {
       let offset={x:slots[i].x-center.x,y:slots[i].y-center.y};
       let formation:Formation|undefined;
       if(mixed){
-        if(u.kind==='medic'||u.kind==='engineer'){
-          const index=support.indexOf(u),columns=Math.min(3,support.length),lane=(index%columns-(columns-1)/2)*34,rear=72+Math.floor(index/columns)*32;
-          formation={front:front.map(v=>v.id),heading,origin,goal:{x:order.x,y:order.y},lane,rear};
+        if(support.includes(u)||rearFighters.includes(u)){
+          const helper=support.includes(u),group=helper?support:rearFighters;
+          const index=group.indexOf(u),columns=Math.min(3,group.length),lane=(index%columns-(columns-1)/2)*34;
+          const rear=(armoredFront.length?(helper?200:u.kind==='artillery'?150:86):72)+Math.floor(index/columns)*36;
+          formation={front:front.map(v=>v.id),...(armoredFront.length?{fallback:rearFighters.filter(v=>v.kind==='infantry'||v.kind==='heavy').map(v=>v.id)}:{}),heading,origin,goal:{x:order.x,y:order.y},lane,rear};
           offset={x:-heading.x*rear-heading.y*lane,y:-heading.y*rear+heading.x*lane};
-        }else{const index=combat.indexOf(u),columns=Math.ceil(Math.sqrt(combat.length)),lane=(index%columns-(columns-1)/2)*29,depth=-Math.floor(index/columns)*29;offset={x:heading.x*depth-heading.y*lane,y:heading.y*depth+heading.x*lane};}
+        }else{const index=front.indexOf(u),columns=Math.ceil(Math.sqrt(front.length)),lane=(index%columns-(columns-1)/2)*34,depth=-Math.floor(index/columns)*34;offset={x:heading.x*depth-heading.y*lane,y:heading.y*depth+heading.x*lane};}
       }
       // Bastion right-clicks are capture orders: even a 48-unit formation must
       // stop INSIDE the capture circle, not in decorative slots beyond it.
@@ -275,7 +281,7 @@ export class Simulation {
       const buildings=this.obstacles(),obstacles=spec.flying?buildings:spec.group==='Infanterie'
          ?[...buildings,...infantryStructureColliders(buildings)]:[...buildings,...vehicleStructureColliders(buildings),...this.vehicleDecorObstacles()];
        const target=spec.flying?{x:clamp(p.x,8,this.world.size-8),y:clamp(p.y,8,this.world.size-8)}:this.world.nearest(p,obstacles,[],u,Math.max(0,spec.radius-10));if(!target)return;
-      const next:Order={...order,...target,...(mixed&&u.kind!=='medic'&&u.kind!=='engineer'?{march:front.map(v=>v.id)}:{}),...(formation?{formation,kind:order.kind==='attack'?'attackMove':order.kind,target:undefined}:{})};u.hold=false;u.supportPaused=false;u.workingTarget=null;
+      const next:Order={...order,...target,...(mixed&&front.includes(u)?{march:(armoredFront.length?members.filter(v=>!unitSpec(v).flying):front).map(v=>v.id)}:{}),...(formation?{formation,...(support.includes(u)?{kind:order.kind==='attack'?'attackMove':order.kind,target:undefined}:{})}:{})};u.hold=false;u.supportPaused=false;u.workingTarget=null;
       if(append){if(u.orders.length<32)u.orders.push(next);else return;}
       else {this.transports.cancel(u);delete u.burst;u.orders=formation&&u.orders[0]?.kind==='heal'?[u.orders[0],next]:[next];u.path=[];u.repath=0;u.combatTarget=null;u.pursuitOrigin=null;}
       if(u.transport&&u.transport.phase!=='cruise'){u.transport.resume=structuredClone(u.orders);u.orders=[];}
@@ -314,20 +320,28 @@ export class Simulation {
   }
   /** Rear support follows the slowest surviving front rank, rather than racing to the destination. */
   private escort(u:Unit,dt:number):boolean {
-    const order=u.orders[0],formation=order?.formation;if((u.kind!=='medic'&&u.kind!=='engineer')||!formation)return false;
+    const order=u.orders[0],formation=order?.formation;
+    if(!formation||!['medic','engineer','infantry','heavy','artillery'].includes(u.kind))return false;
     const recovering=u.owner===1&&this.world.mapVersion>=3&&this.tactical.mode==='director'
       ?this.tactical.state.recovering:undefined;
-    const front=this.units.filter(v=>formation.front.includes(v.id)&&v.owner===u.owner&&v.hp>0&&!recovering?.includes(v.id));
+    let front=this.units.filter(v=>formation.front.includes(v.id)&&v.owner===u.owner&&v.hp>0&&!recovering?.includes(v.id));
+    const armorStillLeading=front.length>0;
+    if(!front.length&&formation.fallback?.length)
+      front=this.units.filter(v=>formation.fallback!.includes(v.id)&&v.owner===u.owner&&v.hp>0&&!recovering?.includes(v.id));
     if(!front.length){u.orders.shift();u.path=[];u.repath=0;u.workingTarget=null;return true;}
     const h=formation.heading,project=(p:Point)=>(p.x-formation.origin.x)*h.x+(p.y-formation.origin.y)*h.y;
     const progress=Math.min(...front.map(project)),lateral=front.reduce((n,v)=>n+(v.x-formation.origin.x)*-h.y+(v.y-formation.origin.y)*h.x,0)/front.length;
-    const rear={x:formation.origin.x+h.x*(progress-formation.rear)-h.y*(lateral+formation.lane),y:formation.origin.y+h.y*(progress-formation.rear)+h.x*(lateral+formation.lane)};
+    const rearDistance=armorStillLeading?formation.rear:Math.min(formation.rear,72);
+    const rear={x:formation.origin.x+h.x*(progress-rearDistance)-h.y*(lateral+formation.lane),y:formation.origin.y+h.y*(progress-rearDistance)+h.x*(lateral+formation.lane)};
+    const fighter=u.kind==='infantry'||u.kind==='heavy'||u.kind==='artillery';
+    // Attack-move ranks may fire while remaining behind the vehicles.
+    if(fighter&&order?.kind!=='move'&&this.acquire(u))return false;
     u.workingTarget=null;u.combatTarget=null;u.pursuitOrigin=null;
     const safe=(p:Point)=>project(p)<=progress-32&&this.units.every(enemy=>enemy.hp<=0||enemy.carrier||enemy.owner===u.owner||!this.canSee(u.owner,enemy)||distance(p,enemy)>Math.min(unitSpec(enemy).range+12,distance(u,enemy)+2));
     const medic=u.kind==='medic',workKind=medic?'heal':'repair';
-    const patient=this.spatial.query(u,115).filter(v=>v.id!==u.id&&this.supportEligible(u,v,workKind)&&project(v)<=progress+35).sort((a,b)=>a.hp/unitSpec(a).hp-b.hp/unitSpec(b).hp||a.id-b.id)[0];
+    const patient=fighter?undefined:this.spatial.query(u,115).filter(v=>v.id!==u.id&&this.supportEligible(u,v,workKind)&&project(v)<=progress+35).sort((a,b)=>a.hp/unitSpec(a).hp-b.hp/unitSpec(b).hp||a.id-b.id)[0];
     const canWork=u.defendUntil<=this.time||medic;
-    if(!patient&&canWork){if(medic)this.healNearby(u,dt);else this.repairNearby(u,dt);}
+    if(!patient&&canWork&&!fighter){if(medic)this.healNearby(u,dt);else this.repairNearby(u,dt);}
     if(medic&&!patient&&u.defendUntil>this.time&&this.acquire(u))return false;
     let destination=rear;
     if(patient){
@@ -340,7 +354,10 @@ export class Simulation {
     }
     if(distance(u,destination)>12){
       if(u.repath<=0)u.path=[];
-      const target=this.world.nearest(destination,this.obstacles(),[],u);
+      const buildings=this.obstacles(),obstacles=unitSpec(u).group==='Infanterie'
+         ?[...buildings,...infantryStructureColliders(buildings)]
+         :[...buildings,...vehicleStructureColliders(buildings),...this.vehicleDecorObstacles()];
+       const target=this.world.nearest(destination,obstacles,[],u);
       if(target){const before={x:u.x,y:u.y},walk=u.walkDistance;// Pioneers match the squad pace even when a nearby vehicle needs repair;
         // an isolated pioneer (without formation) still uses its full catalog speed.
         this.move(u,target,dt,medic&&patient?unitSpec(u).speed:Math.min(...front.map(v=>unitSpec(v).speed)));
@@ -517,8 +534,13 @@ export class Simulation {
     }
     this.tactical.observe();this.revision++;
   }
+  private combatEntity(id:number|null|undefined):Unit|Base|undefined {
+    // Null locks are common for idle armies. Never copy/scan the whole army
+    // for each acquisition; the index is refreshed before every fixed tick.
+    return id==null?undefined:this.unitById.get(id)??this.bases.find(b=>b.id===id);
+  }
   private acquire(u:Unit):Unit|Base|undefined {
-    const order=u.orders[0],spec=unitSpec(u),entities=[...this.units,...this.bases];
+    const order=u.orders[0],spec=unitSpec(u);
     // A plain move is a strict order. Idle combat units and attack-move squads
     // can respond within sight, starting their approach before weapon range.
     // Engineers on guard duty stay near their work instead of abandoning repairs.
@@ -540,7 +562,7 @@ export class Simulation {
     if(u.hold){
       u.combatTarget=null;
       if(u.lastAttacker===null||u.defendUntil<=this.time)return undefined;
-      const attacker=entities.find(e=>e.id===u.lastAttacker);
+      const attacker=this.combatEntity(u.lastAttacker);
       if(attacker&&eligible(attacker)){
         u.combatTarget=attacker.id;
         return attacker;
@@ -549,14 +571,14 @@ export class Simulation {
     }
     // Keep explicit attack targets and current combat locks stable.
     if(order?.kind==='attack'&&order.target!==undefined){
-      const manual=entities.find(e=>e.id===order.target&&e.owner!==u.owner&&e.hp>0&&!('orders' in e&&e.carrier)&&canAttack(u,e)&&visible(e));
-      if(manual){u.combatTarget=manual.id;return manual;}
+      const manual=this.combatEntity(order.target);
+      if(manual&&manual.owner!==u.owner&&manual.hp>0&&!('orders' in manual&&manual.carrier)&&canAttack(u,manual)&&visible(manual)){u.combatTarget=manual.id;return manual;}
     }
-    const locked=entities.find(e=>e.id===u.combatTarget);
+    const locked=this.combatEntity(u.combatTarget);
     if(!support&&locked&&eligible(locked))return locked;
     u.combatTarget=null;
     if(u.lastAttacker!==null&&u.defendUntil>this.time){
-      const attacker=entities.find(e=>e.id===u.lastAttacker);
+      const attacker=this.combatEntity(u.lastAttacker);
       if(attacker&&eligible(attacker)){u.combatTarget=attacker.id;return attacker;}
     }
     if(support)return undefined;
@@ -651,7 +673,7 @@ export class Simulation {
     // Check the entire step, not just its endpoint, so fast vehicles cannot
     // clip through a wall or a visible service prop between simulation ticks.
     const segmentClear=spec.flying||activeObstacles.every(o=>
-      segmentDistance(o,u,p)>=o.radius+RULES.infantry.radius+clearance);
+      segmentDistance(o,u,p)>=o.radius+clearance+(spec.group==='Infanterie'?0:RULES.infantry.radius));
     if(spec.flying||(segmentClear&&this.world.walkable(p,activeObstacles,clearance))){u.x=p.x;u.y=p.y;u.walkDistance+=step;u.angle=Math.atan2(dy,dx);u.facing=dx<-.05?-1:dx>.05?1:u.facing;u.moving=step>.001;}
     else {u.path=[];u.repath=0;delete u.vehicleEscape;if(this.world.mapVersion>=3&&!spec.flying)u.exactPath=true;}
   }

@@ -1,22 +1,24 @@
 # SANDFORGE: BASTION WARS
 
-Lokales Wüsten-RTS mit zehn Einheitentypen, eroberbaren Bastionen und einer gegnerischen Armee aus Infanterie, Fahrzeugen und Luftunterstützung. Neue Kampagnen haben 16 Bastionen und je zwei blaue und rote Startsektoren. Alte Spielstände mit 30 Bastionen und ihren ursprünglichen Startgebieten bleiben ladbar.
+Lokales Wüsten-RTS mit neun Einheitentypen, eroberbaren Bastionen und einer gegnerischen Armee aus Infanterie, Fahrzeugen und Luftunterstützung. Neue Kampagnen bieten vier Kartengrößen mit 4, 8, 12 oder 16 Bastionen und je einem Startsektor pro Fraktion. Alte Spielstände mit 30 Bastionen und ihren ursprünglichen Startgebieten bleiben ladbar.
 
 Der lokale Entwicklungsstand trägt weiterhin **1.8.0**; als nächste Version ist **1.9.0** vorgeschlagen. [Release-Entwurf](docs/releases/v1.9.0-de.md), [Prüfbericht](docs/qa/release-2026-10-24.md) und [sichere Veröffentlichungsschritte](docs/releases/RELEASE.md). Die deutschen Stimmen A, B und C wurden anhand der Hörproben vom Eigentümer freigegeben und für alle 47 Meldungen aktiviert.
 
-Sandforge ist der aktuelle Spielname. Das GitHub-Repository ist aus historischen Gründen noch unter `nfekete82/atlas-dominion` erreichbar; interne Kennungen des Spielstands bleiben aus Kompatibilitätsgründen erhalten.\n\n## Starten
+Sandforge ist der aktuelle Spielname. Das GitHub-Repository ist aus historischen Gründen noch unter `nfekete82/atlas-dominion` erreichbar; interne Kennungen des Spielstands bleiben aus Kompatibilitätsgründen erhalten.
+
+## Starten
 
 ```sh
 npm ci
 npm run dev
 ```
 
-**http://127.0.0.1:8095** — alternativ `docker compose up --build -d`. Der Server bindet standardmäßig nur an Loopback. Keine Accounts oder TTS-Anfragen während des Spielens. Start: 500 Credits, ein Soldat, Hauptquartier und zwei eigene Sektoren. Neue Kampagnen erzeugen Gelände und erreichbare Bastionen aus einem neuen Seed; Laden stellt die gespeicherte Karte wieder her.
+**http://127.0.0.1:8095** — alternativ `docker compose up --build -d`. Der Server bindet standardmäßig nur an Loopback. Keine Accounts oder TTS-Anfragen während des Spielens. Start auf den aktuellen Kartengrößen: 950 Credits, ein Pionier, ein Soldat und ein eigener Startsektor. Das Hauptquartier wird mit dem Pionier errichtet; bis zur Fertigstellung bleibt das Radar offline. Neue Kampagnen erzeugen Gelände und erreichbare Bastionen aus einem neuen Seed; Laden stellt die gespeicherte Karte wieder her.
 
 ## Spielen
 
 - Linksklick wählt Einheiten oder Gebäude, Ziehen markiert eine Gruppe. Doppelklick markiert sichtbare eigene Truppen.
-- Rechtsklick bewegt oder greift sichtbare Gegner an. Shift hängt Befehle an. **A** aktiviert Angriffsbewegung, **S** hält die Position. Nach einem Gefecht setzen Einheiten ihren Auftrag fort.
+- Rechtsklick bewegt oder greift sichtbare Gegner an. Shift hängt Befehle an. **Q** aktiviert Angriffsbewegung, **X** stoppt die Auswahl; **Position halten** steht im Befehlsfeld. **M** oder Alt+Rechtsklick erteilt einen ausdrücklichen Bewegungsauftrag. Esc bricht zunächst einen Zielmodus ab und behält die Auswahl bei. Nach einem Gefecht setzen Einheiten ihren Auftrag fort.
 - WASD/Pfeile und der Spielfeldrand bewegen die Kamera. Mausrad zoomt am Zeiger; Radar klicken/ziehen verschiebt den Ausschnitt. **H** zeigt das Hauptquartier, **T** die Sektorgrenzen.
 - Das Spielfeld liegt links, die Sidebar in einer eigenen CSS-Grid-Spalte rechts. Der gesamte sichtbare Kartenrand bleibt für Auswahl, Befehle und Bau erreichbar, auch nach Resize und auf Retina-Displays.
 - Jede Fraktion startet mit einem Pionier und einem Infanteriesoldaten. Das Hauptquartier bildet ausschließlich Pioniere aus. Erst eine fertiggestellte Kaserne schaltet Infanteriesoldaten, Sanitäter und schwere Infanterie frei; Fahrzeugfabrik und Flugfeld schalten Fahrzeuge beziehungsweise Luftunterstützung frei. Der rechte Einheitenkatalog zeigt nur die durch vorhandene fertige Gebäude verfügbaren Typen. Kosten, Produktionszeit, Warteschlange und Kapazität gelten weiterhin. Ein Klick auf einen belegten Produktionsplatz storniert genau diesen Auftrag mit Kostenerstattung. Details zu Freischaltung und alten Spielständen: [Produktionsgebäude](docs/reborn-production.md).
@@ -35,7 +37,7 @@ npm run dev
 | Pionier | 200 | Gebäude bauen und reparieren |
 | Schwere Infanterie | 250 | 420 LP, stark gegen Infanterie; weniger Schaden gegen Panzerung |
 | Humvee | 350 | Schnelle Aufklärung und Flanken |
-| Kampfpanzer | 450 | Gepanzerte Frontunterstützung |
+| Kampfpanzer | 550 | 1.000 LP, Panzerabwehrraketen und separates Dach-MG |
 | Raketenwerfer | 600 | Schwerer 6×6-Lkw mit sechs Werferrohren, fliegenden Raketen und Flächenschaden |
 | Transporthelikopter | 600 | Aufklärung, zehn Passagiere und defensive Maschinengewehre |
 | Bomber | 1000 | Schwere Feuerkraft gegen Bodenziele |
@@ -58,7 +60,7 @@ Die drei fiktiven deutschen Stimmen A, B und C aus Qwen3-TTS VoiceDesign und Bas
 npm run build
 npm test                    # vollständige Node-Suite, einschließlich Archiv und HTTP
 npm ci --prefix tests/browser
-npm run test:browser         # 52 Browserfälle: Spiel, HUD, Audio und Modellwerkzeuge
+npm run test:browser         # Browserfälle: Spiel, HUD, Audio und Modellwerkzeuge
 python3 scripts/audit-radio-bank.py src/assets/reborn/voices
 ```
 
@@ -81,3 +83,5 @@ Die frühere Europaversion bleibt unter **http://127.0.0.1:8095/legacy/index.htm
 ### Performance-Debugging
 
 Mit `/?debug&perf` lassen sich Frame-Spitzen, 1%-Low-FPS und die Kosten von Simulation, KI, Wegfindung, Rendering, Minikarte und HUD messen und als JSON exportieren. `npm run test:performance` wiederholt acht feste Lastszenarien. Messwerte, Regressionen und verbleibende Engpässe: [Performance-Bericht](docs/performance/README.md).
+
+Prüfstand vom 05.11.2026: [Qualitätsbericht mit Messungen, bekannten Regressionen und Testbefehlen](docs/qa/2026-11-05/README.md).
