@@ -90,7 +90,9 @@ test('lite infantry visual scale is reduced without changing unit collision radi
    radius:game.world.walkable(soldier),sameUnit:entry?.node?.userData?.id===soldier.id};
  });
  expect(result.kind).toBe('infantry');
- expect(result.scale).toBeCloseTo(.88,3);
+ // Deliberately downsized infantry in 3D: the engine collision footprint
+ // and authoritative movement remain unchanged.
+ expect(result.scale).toBeCloseTo(.72,3);
  expect(result.sameUnit).toBe(true);
  expect(result.radius).toBe(true);
 });
