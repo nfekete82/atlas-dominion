@@ -430,3 +430,132 @@ test('production has a framed panel with live queue slots and building progress'
  expect(construction.buildHidden).toBe(false);
  expect(construction.summary).toContain('1 BAU');
 });
+
+
+test('production strip globally lists every producer and building site without selection',async({page})=>{
+ test.setTimeout(120000);
+ await load(page);
+ const state=await page.evaluate(()=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  game.credits[0]=10000;
+  const site=game.headquartersCandidates(0).find(p=>game.buildError(0,'headquarters',p)===null);
+  const hq=game.build(0,'headquarters',site);
+  if(!hq)throw Error('No headquarters');
+  hq.buildRemaining=0;
+  hq.queue=[7,7];hq.queueTypes=['engineer','engineer'];hq.production=3.5;
+  const barracks={...hq,id:hq.id+1000,kind:'barracks',hp:800,
+   x:hq.x+220,queue:[10,8],queueTypes:['infantry','medic'],production:5};
+  const factory={...hq,id:hq.id+1001,kind:'factory',hp:1100,
+   x:hq.x+390,queue:[18],queueTypes:['tank'],production:9};
+  const newSite={...hq,id:hq.id+1002,kind:'turret',hp:650,
+   x:hq.x+510,queue:[],queueTypes:[],production:0,buildRemaining:5};
+  game.bases.push(barracks,factory,newSite);
+  battlefield.selected.clear();battlefield.selectedBase=null; battlefield.drawInterface();
+  const panel=document.querySelector('#sf-queue-slots');
+  const before=[...panel.querySelectorAll('[data-queue-base]')]
+   .map(n=>({base:Number(n.dataset.queueBase),unit:n.querySelector('strong').textContent,
+    source:n.querySelector('.sf-production-source')?.textContent,
+    pct:n.querySelector('small').textContent}));
+  const siteCount=panel.querySelectorAll('[data-build-id]').length;
+  const savedNode=panel.querySelector('[data-queue-base]');
+  battlefield.selectedBase=factory.id;battlefield.drawInterface();
+  const afterFactory=panel.querySelector('[data-queue-base]')===savedNode;
+  battlefield.selectedBase=hq.id;battlefield.drawInterface();
+  const afterHQ=panel.querySelector('[data-queue-base]')===savedNode;
+  battlefield.selectedBase=null;battlefield.drawInterface();
+  return {before,siteCount,afterFactory,afterHQ,
+   summary:document.querySelector('#sf-queue-count').textContent};
+ });
+ expect(state.before.map(x=>x.unit)).toEqual([
+  'Pionier','Pionier','Infanteriesoldat','Sanitäter','Kampfpanzer'
+ ]);
+ expect(new Set(state.before.map(x=>x.base)).size).toBe(3);
+ expect(state.before.find(x=>x.unit==='Kampfpanzer').source).toBe('Fahrzeugfabrik');
+ expect(state.before.find(x=>x.unit==='Kampfpanzer').pct).toContain('50%');
+ expect(state.siteCount).toBe(1);
+ expect(state.afterFactory).toBe(true);
+ expect(state.afterHQ).toBe(true);
+ expect(state.summary).toContain('5 AUFTRÄGE');
+ expect(state.summary).toContain('1 BAU');
+});
+
+test('generator build card becomes grey and disabled after the third energy core',async({page})=>{
+ test.setTimeout(115000);
+ await load(page);
+ const state=await page.evaluate(()=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  game.credits[0]=10000;
+  const site=game.headquartersCandidates(0).find(p=>game.buildError(0,'headquarters',p)===null);
+  const hq=game.build(0,'headquarters',site);
+  if(!hq)throw Error('Could not build HQ');
+  hq.buildRemaining=0;
+  const engineer=game.units.find(u=>u.owner===0&&u.kind==='engineer');
+  battlefield.selected=new Set([engineer.id]);
+  battlefield.selectedBase=null;
+  const button=()=>document.querySelector('#sf-actions [data-build="generator"]');
+  battlefield.drawInterface();
+  const initial={disabled:button()?.disabled};
+  for(let i=0;i<2;i++){
+   game.bases.push({...hq,id:hq.id+2000+i,kind:'generator',hp:500,
+    queue:[],queueTypes:[],buildRemaining:9,production:0});
+  }
+  battlefield.drawInterface();
+  const two={disabled:button().disabled};
+  game.bases.push({...hq,id:hq.id+2002,kind:'generator',hp:500,
+   queue:[],queueTypes:[],buildRemaining:9,production:0});
+  battlefield.drawInterface();
+  const three={disabled:button().disabled,locked:button().classList.contains('locked'),
+   reason:button().getAttribute('aria-description'),tooltip:button().title};
+  game.bases.pop();battlefield.drawInterface();
+  const afterRemoval={disabled:button().disabled};
+  return {initial,two,three,afterRemoval};
+ });
+ expect(state.initial.disabled).toBe(false);
+ expect(state.two.disabled).toBe(false);
+ expect(state.three.disabled).toBe(true);
+ expect(state.three.locked).toBe(true);
+ expect(state.three.reason).toContain('Maximal 3 Energiekerne');
+ expect(state.three.tooltip).toContain('Maximal 3 Energiekerne');
+ expect(state.afterRemoval.disabled).toBe(false);
+});
+
+test('vehicle factory and barracks have recognizable physical equipment beside them',async({page})=>{
+ test.setTimeout(120000);
+ await load(page);
+ const state=await page.evaluate(()=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  game.credits[0]=10000;
+  const site=game.headquartersCandidates(0).find(p=>game.buildError(0,'headquarters',p)===null);
+  const base=game.build(0,'headquarters',site);
+  if(!base)throw Error('HQ fixture missing');
+  base.kind='factory';base.hp=1100;base.buildRemaining=0;
+  const barracks={...base,id:base.id+3000,kind:'barracks',hp:800,
+   x:base.x+250,queue:[],queueTypes:[],production:0};
+  game.bases.push(barracks);
+  battlefield.sync(true,0,false,1);
+  const workshop=battlefield.bases.get(base.id)?.yard;
+  const infantry=battlefield.bases.get(barracks.id)?.yard;
+  const count=(root,name)=>{
+   let n=0;root?.traverse(obj=>{if(obj.name===name)n++;});return n;
+  };
+  base.facing=2;barracks.facing=3;battlefield.sync(false,0,false,1);
+  return {workshop:workshop?.name,infantry:infantry?.name,
+   wheels:count(workshop,'SpareTyre'),tracks:count(workshop,'SpareTrackLink'),
+   engines:count(workshop,'EngineBlock'),
+   helmets:count(infantry,'InfantryHelmet'),
+   guns:count(infantry,'InfantryWeaponRackRifle'),
+   visuallyOnly:workshop?.userData?.nonPlayable&&infantry?.userData?.nonPlayable,
+   factoryTurn:battlefield.bases.get(base.id)?.node.rotation.y,
+   barracksTurn:battlefield.bases.get(barracks.id)?.node.rotation.y};
+ });
+ expect(state.workshop).toBe('sf-yard-factory');
+ expect(state.infantry).toBe('sf-yard-barracks');
+ expect(state.wheels).toBe(5);
+ expect(state.tracks).toBe(8);
+ expect(state.engines).toBe(1);
+ expect(state.helmets).toBe(3);
+ expect(state.guns).toBe(3);
+ expect(state.visuallyOnly).toBe(true);
+ expect(state.factoryTurn).toBeCloseTo(Math.PI/2,5);
+ expect(state.barracksTurn).toBeCloseTo(Math.PI*1.5,5);
+});
