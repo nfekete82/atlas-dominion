@@ -46,13 +46,13 @@ export function turretMuzzleOffset(angle,barrel){
 export function visualUnitScale(kind){
  // Align all four foot soldiers with larger rocket artillery and Humvee.
  // This is a render-only factor: no change to move, weapon or capture radius.
- if(['infantry','medic','engineer'].includes(kind))return .64;
- if(kind==='heavy')return .66;
+ if(['infantry','medic','engineer'].includes(kind))return .59;
+ if(kind==='heavy')return .61;
  // Humvee needs a substantial visual presence beside full-scale buildings.
  // Only the rendered mesh changes; navigation/collision/save width stays 76.
  if(kind==='rover')return 1.34;
  if(kind==='artillery')return 1.32;
- if(kind==='tank')return 1.22;
+ if(kind==='tank')return 1.36;
  return .94;
 }
 const infantry=new Set(['infantry','medic','engineer','heavy']);
