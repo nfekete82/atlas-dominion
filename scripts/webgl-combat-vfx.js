@@ -73,8 +73,8 @@ function clearInstances(pool){
  mesh.count=0; // zero particles must not draw the full inactive GPU pool
 }
 export class SandforgeCombatEffects {
- constructor({scene,camera,game,world,heightAt,pos,lowQuality=false}){
-  Object.assign(this,{scene,camera,game,world,heightAt,pos,lowQuality});
+ constructor({scene,camera,game,world,heightAt,pos,battlefield=null,lowQuality=false}){
+  Object.assign(this,{scene,camera,game,world,heightAt,pos,battlefield,lowQuality});
   this.smoke=makePool(scene,'smoke',lowQuality?70:260,.68);
   this.flames=makePool(scene,'flame',lowQuality?28:120,.94);
   this.dust=makePool(scene,'dust',lowQuality?40:170,.50);
@@ -113,10 +113,38 @@ export class SandforgeCombatEffects {
   this.shockwave.renderOrder=12;this.shockwave.name='3d-explosion-shockwaves';
   this.shockwave.userData={visualOnly:true,nonPlayable:true};
   scene.add(this.shockwave);this.shocks=[];
+  // Real rockets, not instant rifle/MG tracers: each flying missile gets a
+  // visible metal body, tapered warhead and luminous exhaust in world space.
+  // Bounded instancing keeps draw calls fixed during mass artillery fire.
+  const rocketLimit=lowQuality?32:64;
+  const rocketMat=new THREE.MeshStandardMaterial({
+   color:'#b7afa0',metalness:.57,roughness:.43,emissive:'#b47a32',emissiveIntensity:.17
+  });
+  const noseMat=new THREE.MeshStandardMaterial({
+   color:'#d3caa7',metalness:.64,roughness:.37
+  });
+  const flameMat=new THREE.MeshBasicMaterial({
+   color:'#ffa53a',blending:THREE.AdditiveBlending,transparent:true,
+   opacity:.93,depthTest:true,depthWrite:false,toneMapped:false
+  });
+  this.rockets=new THREE.InstancedMesh(new THREE.CylinderGeometry(2.1,2.3,16,10),
+   rocketMat,rocketLimit);
+  this.rocketNoses=new THREE.InstancedMesh(new THREE.ConeGeometry(2.1,6,10),
+   noseMat,rocketLimit);
+  this.rocketExhaust=new THREE.InstancedMesh(new THREE.ConeGeometry(3,14,10),
+   flameMat,rocketLimit);
+  for(const item of [this.rockets,this.rocketNoses,this.rocketExhaust]){
+   item.name='visual-3d-'+(item===this.rockets?'rocket-body':item===this.rocketNoses?'rocket-warhead':'rocket-exhaust');
+   item.userData={visualOnly:true,nonPlayable:true,projectile:true};
+   item.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+   item.count=0;item.frustumCulled=false;scene.add(item);
+  }
+  this.rocketOrigins=new Map();this.rocketTrailAt=new Map();
+  this.statsRocket={launched:0,visible:0};
   this.wreckCount=0;this.emitters=[];this.seenBlasts=new Set();this.seenShots=new WeakSet();
   this.lastUnits=new Map();
   this.seed=game.seed>>>0;this.frame=0;
-  this.stats={blasts:0,impacts:0,scorch:0,tracks:0,wrecks:0};
+  this.stats={blasts:0,impacts:0,scorch:0,tracks:0,wrecks:0,rockets:0};
   this.activeParticles=0;
   for(const u of game.units)if(u.hp>0&&!u.carrier)this.lastUnits.set(u.id,{x:u.x,y:u.y,kind:u.kind,owner:u.owner,angle:u.angle});
  }
