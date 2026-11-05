@@ -8,7 +8,7 @@ test('Fog-of-war follows actual 3D soldiers without projected parallax, includin
  await page.setViewportSize({width:1440,height:900});
  await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',
   {waitUntil:'domcontentloaded'});
- await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:95000});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,null,{timeout:95000});
  const initial=await page.evaluate(()=>{
   const a=window.__sandforgeWebGL,g=a.game,b=a.battlefield,w=g.world;
   const units=g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier);
@@ -81,7 +81,7 @@ test('Camera clamps a forced off-map pan before revealing the flat scene boundar
  test.setTimeout(120000);
  await page.setViewportSize({width:1440,height:900});
  await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',{waitUntil:'domcontentloaded'});
- await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:95000});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,null,{timeout:95000});
  await page.evaluate(()=>{
   const a=window.__sandforgeWebGL;
   const amount=a.game.world.size*10;
@@ -101,4 +101,69 @@ test('Camera clamps a forced off-map pan before revealing the flat scene boundar
  expect(Math.abs(state.z)).toBeLessThan(state.limit);
  expect(state.zoom).toBeGreaterThanOrEqual(state.min);
  expect(state.zoom).toBeLessThanOrEqual(state.max);
+});
+
+
+test('legacy 3D preview links show original logo, dark Fog of War and black fading map rim',async({page})=>{
+ test.setTimeout(125000);
+ const pageErrors=[];page.on('pageerror',e=>pageErrors.push(e.message));
+ await page.setViewportSize({width:1440,height:900});
+ // Older shared preview URLs used fog=0 to reveal the terrain. Player-facing
+ // links must now start with the authentic black war fog instead.
+ await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1&fog=0',
+  {waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,null,{timeout:95000});
+ await page.locator('#sf-classic-root .top .sandforge-hud-logo')
+  .evaluate(async img=>{if(!img.complete)await img.decode();});
+ const state=await page.evaluate(()=>{
+  const v=window.__sandforgeWebGL,b=v.battlefield;
+  const logo=document.querySelector('#sf-classic-root .top .sandforge-hud-logo');
+  const near=[],far=[],half=v.game.world.size/2,size=v.game.world.size;
+  for(const mesh of v.visualPerimeter.meshes){
+   const pos=mesh.geometry.getAttribute('position');
+   const colors=mesh.geometry.getAttribute('color');
+   for(let i=0;i<pos.count;i++){
+    const x=pos.getX(i)+half,z=pos.getZ(i)+half;
+    const outside=Math.max(0,-x,x-size,-z,z-size);
+    const light=(colors.getX(i)+colors.getY(i)+colors.getZ(i))/3;
+    // New narrow border: sample its actual inner seam and first apron.
+    if(outside>=0&&outside<=80)near.push(light);
+    if(outside>=550)far.push(light);
+   }
+  }
+  const average=values=>values.reduce((a,n)=>a+n,0)/values.length;
+  const undiscovered=v.game.visible[0].filter(i=>!i).length;
+  return {
+   logo:{
+    url:logo?.getAttribute('src'),loaded:logo?.naturalWidth>0,
+    height:logo?.getBoundingClientRect().height,
+    name:logo?.alt
+   },
+   fog:b.fogEnabled,visibleOverlay:b.fogNodes.every(n=>n.visible),
+   fogTint:b.fogNodes[0].material.fragmentShader.includes('vec4(0.018,0.023,0.026,a)'),
+   darkBackground:v.scene.background.getHexString(),
+   unexploredCells:undiscovered,
+   samples:{near:near.length,far:far.length,nearLight:average(near),farLight:average(far)},
+   button:b.panel.querySelector('button[data-action="fog"]')?.textContent
+  };
+ });
+ expect(state.logo.url).toBe('/src/assets/reborn/sandforge-logo-transparent.webp');
+ expect(state.logo.loaded).toBe(true);
+ expect(state.logo.height).toBeGreaterThan(20);
+ expect(state.logo.name).toContain('Sandforge');
+ expect(state.fog).toBe(true);
+ expect(state.visibleOverlay).toBe(true);
+ expect(state.fogTint).toBe(true);
+ expect(state.button).toContain('NEBEL AN');
+ expect(state.darkBackground).toBe('000000');
+ expect(state.unexploredCells).toBeGreaterThan(100);
+ expect(state.samples.near).toBeGreaterThan(0);
+ expect(state.samples.far).toBeGreaterThan(0);
+ expect(state.samples.nearLight).toBeGreaterThan(state.samples.farLight+.06);
+ await page.locator('button[data-action="fog"]').click();
+ expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.fogEnabled)).toBe(false);
+ expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.fogNodes.every(n=>!n.visible))).toBe(true);
+ await page.locator('button[data-action="fog"]').click();
+ expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.fogEnabled)).toBe(true);
+ expect(pageErrors).toEqual([]);
 });

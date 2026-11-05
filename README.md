@@ -1,5 +1,26 @@
 # SANDFORGE: BASTION WARS
 
+
+## WebGL-3D-Releasekandidat (Entwicklung)
+
+Die spielbare Three.js/WebGL-Version wird zur einzigen regulären Spieloberfläche
+konsolidiert. Während der Abnahme ist der 3D-Haupteinstieg reversibel aktivierbar:
+
+```sh
+npm ci
+npm ci --prefix tests/browser
+npm run test:webgl-integration
+PORT=8102 HOST=127.0.0.1 npm run dev:3d
+```
+
+`http://127.0.0.1:8102/` startet **WebGL 3D**;
+`http://127.0.0.1:8102/classic.html` hält die alte Canvas-Version für
+Vergleichs- und Spielstandtests verfügbar. Die unveränderte Standard-Build-Option
+(`npm run dev`) startet derzeit weiterhin Canvas; die endgültige Umstellung
+folgt erst nach erfolgreich bestandener Release-Abnahme.
+
+[Umsetzungs- und Freigabeplan](docs/webgl-3d-release-plan.md).
+
 Lokales Wüsten-RTS mit zehn Einheitentypen, eroberbaren Bastionen und einer gegnerischen Armee aus Infanterie, Fahrzeugen und Luftunterstützung. Neue Kampagnen haben 16 Bastionen und je zwei blaue und rote Startsektoren. Alte Spielstände mit 30 Bastionen und ihren ursprünglichen Startgebieten bleiben ladbar.
 
 Der lokale Entwicklungsstand trägt weiterhin **1.8.0**; als nächste Version ist **1.9.0** vorgeschlagen. [Release-Entwurf](docs/releases/v1.9.0-de.md), [Prüfbericht](docs/qa/release-2026-10-24.md) und [sichere Veröffentlichungsschritte](docs/releases/RELEASE.md). Die deutschen Stimmen A, B und C wurden anhand der Hörproben vom Eigentümer freigegeben und für alle 47 Meldungen aktiviert.

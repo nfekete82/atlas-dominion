@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import {UNITS} from '/src/reborn/catalog.js';
+import {visualUnitScale} from '/webgl-scale.js';
 
 // Ephemeral footsteps and two-track vehicle impressions. All data stays in
 // this presentation module: no save schema changes, gameplay colliders,
@@ -63,6 +65,8 @@ function markPool(scene,type,capacity,ttl,opacity){
    varying vec2 vUv;
    varying float vFade;
    void main(){
+    // Old decals remain in the ring buffer but must cost NO fragments once faded.
+    if(vFade<=.004)discard;
     vec4 ink=texture2D(stamp,vUv);
     gl_FragColor=vec4(ink.rgb,ink.a*baseAlpha*vFade);
    }`,
@@ -78,15 +82,31 @@ function markPool(scene,type,capacity,ttl,opacity){
  return {mesh,capacity,ttl,fading,born:new Float32Array(capacity),
    next:0,total:0};
 }
+/** Two wheel/tread impressions are sized to the actual 3D vehicle width,
+ * not to a fixed track gauge that looks wrong after visual model scaling.
+ * Render-only: UNITS collision radii and saved movement are untouched. */
+export function vehicleTrackProfile(kind){
+ const footprint=(UNITS[kind]?.width??80)*visualUnitScale(kind);
+ const treadFraction=kind==='rover'?.08:kind==='tank'?.105:.11;
+ return {
+  footprint,
+  offset:footprint*(kind==='rover'?.265:kind==='tank'?.25:.27),
+  width:Math.max(5,Math.min(12,footprint*treadFraction))
+ };
+}
 export class SandforgeGroundTracks{
  constructor({scene,game,pos,heightAt,lite=false}){
   Object.assign(this,{scene,game,pos,heightAt});
   this.clock=0;this.last=new Map();
-  this.foot=markPool(scene,'foot',lite?700:1700,15,.65);
-  this.vehicle=markPool(scene,'vehicle',lite?850:2200,24,.64);
+  // Bound permanent GPU work after long battles. The last few seconds of
+  // footprints remain visible, but old zero-alpha decals no longer fill
+  // thousands of GPU instances for the entire rest of the match.
+  this.foot=markPool(scene,'foot',lite?440:900,12,.79);
+  this.vehicle=markPool(scene,'vehicle',lite?500:1000,16,.64);
   this.pool=[this.foot,this.vehicle];
   this.dummy=new THREE.Object3D();
   this.maxTrailSpan=140;
+  this.activeTracks=0;
  }
  put(pool,x,z,heading,width,length){
   const slot=pool.next;
@@ -117,7 +137,7 @@ export class SandforgeGroundTracks{
    const dx=now.x-last.x,dz=now.y-last.y,d=Math.hypot(dx,dz);
    if(d<.01||d>this.maxTrailSpan)continue; // stationary or teleported
    const vehicle=['rover','tank','artillery'].includes(unit.kind);
-   const interval=vehicle?19:11;
+   const interval=vehicle?19:17;
    const heading=Math.atan2(dx,dz);
    let distance=interval-last.carry;
    if(distance<.001)distance=interval;
@@ -125,15 +145,14 @@ export class SandforgeGroundTracks{
     const t=distance/d,x=last.x+dx*t,z=last.y+dz*t;
     const sideways={x:Math.cos(heading),z:-Math.sin(heading)};
     if(vehicle){
-     const offset=unit.kind==='rover'?17:unit.kind==='tank'?22:23;
-     const width=unit.kind==='rover'?5:10;
+     const {offset,width}=vehicleTrackProfile(unit.kind);
      for(const side of [-1,1])this.put(this.vehicle,
       x+side*offset*sideways.x,z+side*offset*sideways.z,
       heading,width,interval+3);
     }else{
      const side=now.foot%2===0?-1:1;
-     this.put(this.foot,x+side*4*sideways.x,z+side*4*sideways.z,
-      heading,6,13);
+     this.put(this.foot,x+side*6*sideways.x,z+side*6*sideways.z,
+      heading,10.5,21);
      now.foot++;
     }
     distance+=interval;
@@ -144,6 +163,7 @@ export class SandforgeGroundTracks{
  }
  update(dt,active=true){
   if(active)this.clock+=Math.max(0,Math.min(dt,.15));
+  let activeTracks=0;
   for(const pool of this.pool){
    if(!pool.total)continue;
    const a=pool.fading.array;
@@ -151,10 +171,12 @@ export class SandforgeGroundTracks{
    for(let i=0;i<pool.total;i++){
     const t=Math.max(0,1-(this.clock-pool.born[i])/pool.ttl);
     const opacity=t*t;
+    if(opacity>.004)activeTracks++;
     if(Math.abs(a[i]-opacity)>.006){a[i]=opacity;changed=true;}
    }
    if(changed)pool.fading.needsUpdate=true;
   }
+  this.activeTracks=activeTracks;
  }
  dispose(){
   for(const pool of this.pool){

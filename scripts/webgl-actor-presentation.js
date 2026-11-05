@@ -1,16 +1,17 @@
 import * as THREE from 'three';
 import {UNITS,BUILDINGS} from '/src/reborn/catalog.js';
 import {healthFraction,healthColor} from '/webgl-health.js';
+import {turretMuzzleOffset} from '/webgl-scale.js';
 
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const infantry=new Set(['infantry','medic','engineer','heavy']);
 const air=new Set(['scout','bomber']);
 const barGeo=new THREE.PlaneGeometry(1,1);
 const bgMat=new THREE.MeshBasicMaterial({
- color:'#101c21',transparent:true,opacity:.93,depthTest:true,depthWrite:false,side:THREE.DoubleSide
+ color:'#101c21',transparent:true,opacity:.93,depthTest:false,depthWrite:false,side:THREE.DoubleSide
 });
 const outlineMat=new THREE.MeshBasicMaterial({
- color:'#d8c6a3',transparent:true,opacity:.84,depthTest:true,depthWrite:false,side:THREE.DoubleSide
+ color:'#d8c6a3',transparent:true,opacity:.84,depthTest:false,depthWrite:false,side:THREE.DoubleSide
 });
 
 function muzzleTexture(){
@@ -44,24 +45,28 @@ function statusBar(scene,entity,type){
  root.name='hp-'+type+'-'+entity.id;
  root.userData={type,id:entity.id,healthBar:true};
  const surround=new THREE.Mesh(barGeo,outlineMat);
- surround.scale.set(width+1.8,4.8,1);surround.position.z=0;surround.renderOrder=17;
+ surround.scale.set(width+1.8,4.8,1);surround.position.z=0;surround.renderOrder=1016;
  root.add(surround);
  const back=new THREE.Mesh(barGeo,bgMat);
- back.scale.set(width,3.4,1);back.position.z=.9;back.renderOrder=18;
+ back.scale.set(width,3.4,1);back.position.z=.9;back.renderOrder=1017;
  root.add(back);
  // All three health pieces must share the transparent rendering pass: an
  // opaque fill drawn before the translucent background appeared BLACK.
- const fillMaterial=new THREE.MeshBasicMaterial({color:'#24e568',transparent:true,opacity:1,depthTest:true,
+ const fillMaterial=new THREE.MeshBasicMaterial({color:'#24e568',transparent:true,opacity:1,depthTest:false,
   depthWrite:false,side:THREE.DoubleSide,toneMapped:false});
  const fill=new THREE.Mesh(barGeo,fillMaterial);
- fill.scale.set(width-2.1,2.5,1);fill.position.z=1.8;fill.renderOrder=19;root.add(fill);
- root.renderOrder=17;
+ fill.scale.set(width-2.1,2.5,1);fill.position.z=1.8;fill.renderOrder=1018;root.add(fill);
+ root.renderOrder=1015;
  scene.add(root);
  return {root,fill,fillMaterial,width:width-2.1,altitude:barAltitude(entity.kind,type),
    previousHp:entity.hp,hitPulse:0,healPulse:0};
 }
 
 function flashSprite(entry,entity,type){
+ if(type==='building'&&entity.kind==='turret')return null;
+ // Rocket artillery flashes belong to the individual launch tubes. The
+ // former generic sprite looked like an MG and hovered above the truck.
+ if(type==='unit'&&entity.kind==='artillery')return null;
  const mat=new THREE.SpriteMaterial({map:flashTex,color:'#fff3bd',
   blending:THREE.AdditiveBlending,transparent:true,depthWrite:false,depthTest:true,
   opacity:0,toneMapped:false});
@@ -85,9 +90,9 @@ export class SandforgeActorPresentation {
   this.status=new Map();
   this.stats={shots:0,hits:0,heals:0,visibleBars:0,walking:0,shooting:0};
   this.time=0;
-  // At full HP this is visibly green; combat depletes the width. The icon
-  // toggles all/damaged/selected/off (the classic selection policy is damaged).
-  this.showHealth='damaged';
+  // HUD health must remain visible for every currently seen unit by default.
+  // A pre-existing damaged-only preset hid full-HP soldiers and vehicles.
+  this.showHealth='all';
   this.remnants=[];
   this.remnantMaterial=new THREE.MeshBasicMaterial({
    color:'#4e4337',transparent:true,opacity:.64,depthWrite:false,side:THREE.DoubleSide
@@ -97,7 +102,22 @@ export class SandforgeActorPresentation {
  attach(entry,entity,type){
   const bar=statusBar(this.scene,entity,type);
   const flash=flashSprite(entry,entity,type);
-  const state={bar,flash,shotPulse:0,shotTrigger:0,type,unitId:entity.id};
+  // Separate emitters track the simulation's actual 0/1 barrel index.
+  // Place them in scene/world space so the building's cardinal facing does
+  // not introduce a second rotation or move the flashes off the barrels.
+  const turretFlashes=type==='building'&&entity.kind==='turret'
+   ?[0,1].map(barrel=>{
+     const material=new THREE.SpriteMaterial({map:flashTex,color:'#fff1b0',
+      blending:THREE.AdditiveBlending,transparent:true,depthWrite:false,depthTest:true,
+      opacity:0,toneMapped:false});
+     const sprite=new THREE.Sprite(material);
+     sprite.name='turret-muzzle-'+barrel;
+     sprite.userData={barrel,visualOnly:true};
+     sprite.visible=false;this.scene.add(sprite);
+     return sprite;
+    }):null;
+  const state={bar,flash,turretFlashes,turretPulses:[0,0],
+   shotPulse:0,shotTrigger:0,type,unitId:entity.id};
   entry.presentation=state;
   this.status.set(type+':'+entity.id,state);
   return state;
@@ -120,8 +140,13 @@ export class SandforgeActorPresentation {
   }
   this.scene.remove(state.bar.root);
   state.bar.fillMaterial.dispose();
-  state.flash.material.dispose();
-  entry.node.remove(state.flash);
+  if(state.flash){
+   state.flash.material.dispose();
+   entry.node.remove(state.flash);
+  }
+  for(const sprite of state.turretFlashes??[]){
+   this.scene.remove(sprite);sprite.material.dispose();
+  }
   this.status.delete(state.type+':'+state.unitId);
   entry.presentation=null;
  }
@@ -150,6 +175,8 @@ export class SandforgeActorPresentation {
    const state=entry.presentation;
    if(!state)continue;
    state.shotPulse=.23;
+   if(state.turretFlashes&&shot.weapon==='turret')
+    state.turretPulses[shot.barrel===1?1:0]=.17;
    state.shotTrigger++;
    this.stats.shots++;
   }
@@ -191,12 +218,40 @@ export class SandforgeActorPresentation {
   }
   // A brief additive muzzle flash is driven only by real Shot events.
   state.shotPulse=Math.max(0,state.shotPulse-dt);
-  state.flash.visible=visible&&state.shotPulse>0;
-  if(state.flash.visible){
-   const strength=clamp(state.shotPulse/.23,0,1);
-   state.flash.material.opacity=.94*Math.min(1,strength*3.1);
-   const scale=pulseSize(entity.kind)*(.5+(1-strength)*.7);
-   state.flash.scale.set(scale,scale,1);
+  if(state.flash){
+   state.flash.visible=visible&&state.shotPulse>0;
+   if(state.flash.visible){
+    const strength=clamp(state.shotPulse/.23,0,1);
+    state.flash.material.opacity=.94*Math.min(1,strength*3.1);
+    const scale=pulseSize(entity.kind)*(.5+(1-strength)*.7);
+    state.flash.scale.set(scale,scale,1);
+   }
+  }
+  if(state.turretFlashes){
+   const angle=Number.isFinite(entity.turretAngle)?entity.turretAngle:0;
+   const muzzles=entry.motion?.muzzles;
+   if(muzzles?.every(Boolean))entry.node.updateWorldMatrix(true,true);
+   for(let barrel=0;barrel<2;barrel++){
+    const sprite=state.turretFlashes[barrel];
+    state.turretPulses[barrel]=Math.max(0,state.turretPulses[barrel]-dt);
+    const pulse=state.turretPulses[barrel];
+    // Read the actual GLB barrel endpoints after target rotation, model
+    // normalization and building placement. Never guess world offsets.
+    if(muzzles?.[barrel])muzzles[barrel].getWorldPosition(sprite.position);
+    else{
+     const offset=turretMuzzleOffset(angle,barrel);
+     sprite.position.set(entry.node.position.x+offset.x,
+      entry.node.position.y+(entry.modelHeight??92)*.83,
+      entry.node.position.z+offset.z);
+    }
+    sprite.visible=visible&&pulse>0;
+    if(sprite.visible){
+     const strength=clamp(pulse/.17,0,1);
+     sprite.material.opacity=.95*Math.min(1,strength*3.5);
+     const size=12+12*(1-strength);
+     sprite.scale.set(size,size,1);
+    }
+   }
   }
   if(type!=='unit')return;
   // Built-in glTF clips are preferred. The procedural pose is used only if

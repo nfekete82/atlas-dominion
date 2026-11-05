@@ -322,9 +322,9 @@
    event handlers, catalog groups, radar and queue remain the same DOM nodes.
    Keep the battlefield full-width ABOVE the dock; no fixed right sidebar. */
 #sf-classic-root{
- --sf-dock-height:270px;
- --sf-dock-command:360px;
- --sf-dock-radar:220px;
+ --sf-dock-height:310px;
+ --sf-dock-command:374px;
+ --sf-dock-radar:226px;
 }
 #sf-classic-root #sidebar{
  position:fixed!important;
@@ -493,7 +493,7 @@
 #sf-classic-root .sf-debug{bottom:calc(var(--sf-dock-height) + 12px)!important}
 @media(max-width:1000px){
  #sf-classic-root{
-  --sf-dock-height:232px;--sf-dock-command:270px;--sf-dock-radar:170px;
+  --sf-dock-height:250px;--sf-dock-command:270px;--sf-dock-radar:170px;
  }
  #sf-classic-root #sidebar #sf-map{width:138px!important}
  #sf-classic-root #sf-actions .catalog-grid{
@@ -504,7 +504,7 @@
 }
 @media(max-width:680px){
  #sf-classic-root{
-  --sf-dock-height:206px;--sf-dock-command:195px;--sf-dock-radar:106px;
+  --sf-dock-height:224px;--sf-dock-command:195px;--sf-dock-radar:106px;
  }
  #sf-classic-root #sidebar{gap:3px!important;padding:4px!important}
  #sf-classic-root #sidebar .radar{padding:3px!important}
@@ -576,10 +576,10 @@
 #sf-classic-root #sf-actions .sf-group:is(
  [data-sf-group="units"],[data-sf-group="buildings"]
 ) .catalog-card{
- flex:0 0 138px!important;
- width:138px!important;
- min-width:138px!important;
- max-width:138px!important;
+ flex:0 0 146px!important;
+ width:146px!important;
+ min-width:146px!important;
+ max-width:146px!important;
 }
 @media(max-width:1000px){
  #sf-classic-root #sf-actions .sf-group:is(
@@ -601,3 +601,423 @@
   max-width:96px!important;
  }
 }
+
+/* Selection-driven WebGL RTS catalogue: original Canvas layout is untouched.
+   One live producer only; prevent hidden sections from claiming flex space. */
+#sf-classic-root #sf-tabs{
+ display:flex!important;
+ grid-template-columns:none!important;
+}
+#sf-classic-root #sf-tabs button{
+ flex:1 1 0!important;
+}
+#sf-classic-root #sf-tabs button[hidden]{
+ display:none!important;
+}
+/* Match the selector that forces production rows to display:flex!important.
+   [hidden] must win at every breakpoint, otherwise other producer types remain
+   visible even though JavaScript set section.hidden correctly. */
+#sf-classic-root #sf-actions .sf-group[data-sf-group="units"] > .sf-roster-section[hidden]{
+ display:none!important;
+}
+/* Give the PBR building renders the tile space, not an oversized footer. */
+#sf-classic-root #sf-actions .catalog-card{
+ height:163px!important;
+ min-height:163px!important;
+}
+#sf-classic-root #sf-actions .catalog-card[data-build] .sf-card-image{
+ flex:1 1 auto!important;
+ min-height:100px!important;
+ overflow:hidden!important;
+}
+#sf-classic-root #sf-actions .catalog-card[data-build] .sf-card-image img{
+ width:100%!important;
+ height:100%!important;
+ padding:0!important;
+ object-fit:contain!important;
+ object-position:center center!important;
+ transform:scale(1.55);
+ transform-origin:center center;
+}
+#sf-classic-root #sf-actions .catalog-card[data-build="headquarters"] .sf-card-image img{
+ transform:scale(1.65);
+}
+#sf-classic-root #sf-actions .catalog-card[data-build="airfield"] .sf-card-image img{
+ transform:scale(1.27);
+}
+#sf-classic-root #sf-actions .catalog-card[data-build] .card-meta{
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr)!important;
+ grid-template-rows:18px 18px!important;
+ align-content:center!important;
+ justify-items:start!important;
+ gap:1px!important;
+ height:46px!important;
+ min-height:46px!important;
+ padding:3px 7px!important;
+}
+#sf-classic-root #sf-actions .catalog-card[data-build] .card-name{
+ display:block!important;
+ width:100%!important;
+ max-width:100%!important;
+ font-size:12px!important;
+ line-height:17px!important;
+ white-space:nowrap!important;
+ overflow:hidden!important;
+ text-overflow:ellipsis!important;
+ overflow-wrap:normal!important;
+}
+#sf-classic-root #sf-actions .catalog-card[data-build] .card-cost{
+ display:block!important;
+ width:100%!important;
+ font-size:12px!important;
+ line-height:17px!important;
+ align-self:start!important;
+ padding:0!important;
+}
+@media(max-width:1000px){
+ #sf-classic-root #sf-actions .catalog-card{
+  min-height:151px!important;
+  height:151px!important;
+ }
+ #sf-classic-root #sf-actions .catalog-card[data-build] .sf-card-image{
+  min-height:85px!important;
+ }
+ #sf-classic-root #sf-actions .catalog-card[data-build] .card-name{
+  font-size:11px!important;
+ }
+}
+@media(max-width:680px){
+ #sf-classic-root #sf-actions .catalog-card{
+  min-height:130px!important;
+  height:130px!important;
+ }
+ #sf-classic-root #sf-actions .catalog-card[data-build] .sf-card-image{
+  min-height:70px!important;
+ }
+}
+
+/* Alpha-trimmed building renders already fill their 320×220 canvas; do not
+   enlarge those again (unprocessed fallback art retains the original zoom). */
+#sf-classic-root #sf-actions .catalog-card[data-build] .sf-card-image img[data-sf-icon-status="ready"]{
+ transform:scale(1.04)!important;
+}
+
+/* The existing original transparent Sandforge badge replaces the placeholder
+   "SF / SAND FORGE" lettering in the 3D RTS resource bar. No menu asset fork. */
+#sf-classic-root .top .wordmark{
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ flex:0 0 158px;
+ width:158px;
+ min-width:158px;
+ height:44px;
+ padding:2px 8px 2px 4px;
+ overflow:hidden;
+}
+#sf-classic-root .top .wordmark .sandforge-hud-logo{
+ display:block;
+ width:100%;
+ height:100%;
+ max-width:100%;
+ min-width:0;
+ object-fit:contain;
+ object-position:center;
+ mix-blend-mode:normal;
+ background:transparent;
+ filter:drop-shadow(0 1px 2px #000a);
+}
+@media(max-width:620px){
+ #sf-classic-root .top .wordmark{
+  flex-basis:125px;
+  width:125px;
+  min-width:125px;
+  height:40px;
+  padding:2px 5px;
+ }
+}
+
+/* WebGL unit tiles: long names (RAKETENWERFER etc.) and the price each
+   occupy precisely one separate line. Never wrap the label or Credits. */
+#sf-classic-root #sf-actions .catalog-card[data-unit] .card-meta{
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr)!important;
+ grid-template-rows:18px 18px!important;
+ align-content:center!important;
+ justify-items:start!important;
+ gap:1px!important;
+ min-height:45px!important;
+ height:45px!important;
+ padding:3px 5px!important;
+ overflow:hidden!important;
+}
+#sf-classic-root #sf-actions .catalog-card[data-unit] .card-name{
+ display:block!important;
+ width:100%!important;
+ max-width:100%!important;
+ min-width:0!important;
+ height:18px!important;
+ font-size:11px!important;
+ line-height:18px!important;
+ letter-spacing:-.22px!important;
+ white-space:nowrap!important;
+ overflow:hidden!important;
+ overflow-wrap:normal!important;
+ text-overflow:ellipsis!important;
+}
+#sf-classic-root #sf-actions .catalog-card[data-unit] .card-cost{
+ display:block!important;
+ width:100%!important;
+ max-width:100%!important;
+ min-width:0!important;
+ font-size:12px!important;
+ line-height:17px!important;
+ white-space:nowrap!important;
+ overflow:hidden!important;
+ overflow-wrap:normal!important;
+ text-overflow:clip!important;
+}
+
+/* Rocket artillery: full single-line name ABOVE its price. Preserve
+   horizontal roster scrolling even at the narrower responsive breakpoints. */
+#sf-classic-root #sf-actions .sf-group[data-sf-group="units"]
+ .catalog-card[data-unit="artillery"]{
+ flex:0 0 152px!important;
+ width:152px!important;
+ min-width:152px!important;
+ max-width:152px!important;
+}
+#sf-classic-root #sf-actions .catalog-card[data-unit="artillery"] .card-meta{
+ display:flex!important;
+ flex-direction:column!important;
+ justify-content:center!important;
+ align-items:stretch!important;
+ gap:0!important;
+ min-height:43px!important;
+ height:43px!important;
+ padding:3px 7px!important;
+}
+#sf-classic-root #sf-actions .catalog-card[data-unit="artillery"] .card-name{
+ display:block!important;
+ width:100%!important;
+ max-width:none!important;
+ white-space:nowrap!important;
+ overflow-wrap:normal!important;
+ word-break:normal!important;
+ overflow:hidden!important;
+ text-overflow:clip!important;
+ font-size:12px!important;
+ line-height:17px!important;
+ height:17px!important;
+}
+#sf-classic-root #sf-actions .catalog-card[data-unit="artillery"] .card-cost{
+ display:block!important;
+ align-self:flex-end!important;
+ white-space:nowrap!important;
+ line-height:17px!important;
+ height:17px!important;
+}
+
+/* WebGL tactical-pause layout; classic Canvas pause menu is unchanged. */
+#sf3d-pause-dialog.pause-menu{
+ width:min(342px,calc(100vw - 20px));
+ padding:16px 18px 0;
+ text-align:center;
+}
+#sf3d-pause-dialog .sf3d-pause-brand{
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ width:100%;
+ height:79px;
+ margin:0 auto 4px;
+}
+#sf3d-pause-dialog .sandforge-pause-logo{
+ display:block;
+ width:235px;
+ max-width:100%;
+ height:76px;
+ max-height:76px;
+ margin:auto;
+ object-fit:contain;
+ mix-blend-mode:normal;
+ filter:drop-shadow(0 3px 4px #000b);
+}
+#sf3d-pause-dialog .sf3d-pause-title{
+ margin:0 0 13px;
+ color:#f0d49b;
+ font-size:17px;
+ font-weight:800;
+ line-height:1.25;
+ letter-spacing:.12em;
+ text-align:center;
+ text-shadow:0 1px 2px #000a;
+}
+
+/* Multi-select uses the same cropped unit portraits, composed as a squad.
+   Single selected units and producer portraits keep their existing artwork. */
+#sf-classic-root #sf-selection-panel .portrait{position:relative!important;overflow:hidden}
+#sf-classic-root #sf-selection-panel #sf-portrait[hidden],
+#sf-classic-root #sf-selection-panel #sf-squad-portrait[hidden]{display:none!important}
+#sf-classic-root #sf-selection-panel .sf-squad-portrait{
+ position:absolute;inset:0;display:block;overflow:hidden;
+ background:radial-gradient(ellipse at 50% 72%,#485348b0,#18262fe8 79%);
+}
+#sf-classic-root #sf-selection-panel .sf-squad-member{
+ position:absolute;width:68%;height:80%;object-fit:contain;
+ bottom:6%;filter:drop-shadow(1px 3px 2px #000a);
+}
+#sf-classic-root #sf-selection-panel .sf-squad-member:nth-child(1){
+ left:-13%;z-index:1;transform:scale(.85);transform-origin:bottom center;
+}
+#sf-classic-root #sf-selection-panel .sf-squad-member:nth-child(2){
+ left:18%;z-index:3;transform:scale(1.04);transform-origin:bottom center;
+}
+#sf-classic-root #sf-selection-panel .sf-squad-member:nth-child(3){
+ left:48%;z-index:2;transform:scale(.88);transform-origin:bottom center;
+}
+#sf-classic-root #sf-selection-panel .sf-squad-count{
+ position:absolute;right:4px;bottom:3px;z-index:4;
+ padding:1px 4px;border:1px solid #c9ad72a0;border-radius:3px;
+ background:#101c24e8;color:#f2dfb7;font:800 12px/1.25 var(--mono,monospace);
+}
+
+/* Dedicated visible production compartment, not the old 48px footer.
+   The 3D dock gains height so the unit cards remain usable above it. */
+#sf-classic-root{--sf-dock-height:360px}
+#sf-classic-root #sidebar .catalog #sf-production.sf-production-panel{
+ display:flex!important;flex:0 0 132px!important;
+ box-sizing:border-box!important;
+ height:132px!important;min-height:132px!important;max-height:132px!important;
+ margin:6px 0 0!important;padding:7px 9px!important;
+ gap:2px!important;overflow:hidden!important;
+ border:2px solid #a1834e!important;border-radius:3px!important;
+ background:linear-gradient(180deg,#263238,#111c22 78%)!important;
+ box-shadow:inset 0 1px 0 #d5b47a29,0 2px 9px #0008!important;
+}
+#sf-classic-root #sf-production .sf-production-heading{
+ flex:0 0 19px;display:flex;align-items:center;justify-content:space-between;
+ min-height:0;gap:10px;white-space:nowrap;
+ border-bottom:1px solid #8a734b65;
+}
+#sf-classic-root #sf-production .sf-production-heading strong{
+ color:#efd19a;font:800 13px/1.2 var(--display,system-ui);
+ letter-spacing:.07em;
+}
+#sf-classic-root #sf-production #sf-queue-count{
+ float:none!important;color:#d4b784!important;
+ font:700 10px/1.2 var(--mono,monospace)!important;
+ white-space:nowrap!important;
+}
+#sf-classic-root #sf-production .sf-production-slots{
+ flex:0 0 48px;display:flex;flex-wrap:nowrap;align-items:stretch;gap:6px;
+ min-height:0;min-width:0;overflow-x:auto;overflow-y:hidden;
+ padding:1px 0 3px;scrollbar-width:thin;scrollbar-color:#b29560 #1b282e;
+}
+#sf-classic-root #sf-production .sf-production-slot{
+ position:relative;flex:0 0 156px;min-width:0;min-height:0;
+ display:flex;align-items:center;gap:6px;padding:2px 6px 5px 3px;
+ border:1px solid #665c48;background:#1d292e;
+ color:#f2dfbc;overflow:hidden;
+}
+#sf-classic-root #sf-production .sf-production-slot.is-active{
+ border-color:#d6ad60;background:#39382d;
+ box-shadow:inset 0 0 0 1px #e5c17829;
+}
+#sf-classic-root #sf-production .sf-production-slot.is-build{
+ border-color:#73999c;background:#203335;
+}
+#sf-classic-root #sf-production .sf-production-slot img{
+ display:block;flex:0 0 35px;width:35px;height:39px;
+ object-fit:contain;object-position:center;background:transparent;
+}
+#sf-classic-root #sf-production .sf-production-slot-copy{
+ display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;
+}
+#sf-classic-root #sf-production .sf-production-slot-copy strong{
+ display:block;color:#f2dfbc;font:700 10px/1.15 var(--display,system-ui);
+ overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+}
+#sf-classic-root #sf-production .sf-production-slot-copy small{
+ display:block;color:#b9c2b2;font:700 9px/1.2 var(--mono,monospace);
+ white-space:nowrap;
+}
+#sf-classic-root #sf-production .sf-slot-progress{
+ position:absolute;left:3px;right:3px;bottom:2px;height:3px;
+ background:#070f14;border-radius:1px;overflow:hidden;
+}
+#sf-classic-root #sf-production .sf-slot-progress i{
+ display:block;width:0;height:100%;background:#e7c079;
+}
+#sf-classic-root #sf-production .sf-production-empty,
+#sf-classic-root #sf-production .sf-production-more{
+ display:flex;align-items:center;justify-content:center;
+ flex:0 0 auto;padding:0 10px;min-height:0;
+ color:#c8b996;font:700 11px var(--display,system-ui);
+ border:1px dashed #655b48;background:#202a2d;
+}
+#sf-classic-root #sf-production .sf-production-empty{flex:1}
+#sf-classic-root #sf-production .sf-production-progressline{
+ display:grid;grid-template-columns:minmax(0,1fr) 42px;
+ gap:8px;align-items:center;min-height:12px;flex:0 0 12px;
+}
+#sf-classic-root #sf-production .production-track{
+ display:block;min-width:0;width:100%;height:9px!important;
+ min-height:9px!important;margin:0!important;overflow:hidden;
+ border:1px solid #af9060;background:#0b1318;
+}
+#sf-classic-root #sf-production #sf-progress{
+ display:block;height:100%;background:linear-gradient(90deg,#af8a50,#f0cf88);
+}
+#sf-classic-root #sf-production #sf-queue-time{
+ color:#f0d49b;font:800 11px/1.1 var(--mono,monospace);
+ white-space:nowrap;text-align:right;
+}
+#sf-classic-root #sf-production .queue-info{
+ display:block!important;min-height:13px;flex:0 0 13px;
+ padding:0!important;margin:0!important;overflow:hidden!important;
+ color:#c9c2a7!important;font:700 10px/1.3 var(--display,system-ui)!important;
+ white-space:nowrap;text-overflow:ellipsis;
+}
+#sf-classic-root #sf-production #sf-queue{
+ display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+}
+#sf-classic-root #sf-production #sf-building-status{
+ margin:0!important;min-height:12px;font-size:10px!important;
+}
+#sf-classic-root #sf-production #sf-building-status[hidden]{display:none!important}
+@media(max-width:1000px){
+ #sf-classic-root{--sf-dock-height:332px}
+ #sf-classic-root #sidebar .catalog #sf-production.sf-production-panel{
+  flex-basis:124px!important;height:124px!important;
+  min-height:124px!important;max-height:124px!important;
+ }
+ #sf-classic-root #sf-production .sf-production-slot{flex-basis:144px}
+ #sf-classic-root #sf-production .sf-production-slots{flex-basis:42px}
+}
+@media(max-width:680px){
+ #sf-classic-root{--sf-dock-height:292px}
+ #sf-classic-root #sidebar .catalog #sf-production.sf-production-panel{
+  flex-basis:112px!important;height:112px!important;
+  min-height:112px!important;max-height:112px!important;
+  padding:5px!important;
+ }
+ #sf-classic-root #sf-production .sf-production-slots{flex-basis:38px}
+ #sf-classic-root #sf-production #sf-building-status{display:none!important}
+ #sf-classic-root #sf-production .sf-production-slot{flex-basis:122px}
+ #sf-classic-root #sf-production .sf-production-slot img{width:26px;flex-basis:26px;height:30px}
+ #sf-classic-root #sf-production .sf-production-heading strong{font-size:11px}
+ #sf-classic-root #sf-production #sf-queue-count{font-size:8px!important}
+}
+/* Global production overview: each queue tile identifies its producer without
+   requiring any building selection. Keep three lines legible at tactical zoom. */
+#sf-classic-root #sf-production .sf-production-source{
+ display:block;max-width:100%;overflow:hidden;white-space:nowrap;
+ text-overflow:ellipsis;color:#c5ad83;
+ font:700 9px/1.12 var(--display,system-ui);
+}
+#sf-classic-root #sf-production .sf-production-slot.is-active .sf-production-source{
+ color:#efc886;
+}
+

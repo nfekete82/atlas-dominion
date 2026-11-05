@@ -98,6 +98,9 @@ test('bastions show an in-world progress bar only while capture is active',async
       visible:entry.captureBar.visible,
       fraction:entry.captureBar.userData.captureFraction,
       duration:entry.captureBar.userData.captureSeconds,
+      width:entry.captureBar.children[0].scale.x,
+      height:entry.captureBar.children[0].scale.y,
+      y:entry.captureBar.position.y,
       red:entry.captureBar.userData.captureFill.material.color.getHexString()
     };
     t.progress=0;
@@ -114,6 +117,9 @@ test('bastions show an in-world progress bar only while capture is active',async
   expect(state.active.fraction).toBeLessThanOrEqual(1);
   expect(state.active.duration).toBeGreaterThan(0);
   expect(state.active.red).toBe('f19b73');
+  expect(state.active.width).toBeLessThanOrEqual(80);
+  expect(state.active.height).toBeLessThanOrEqual(10);
+  expect(state.active.y).toBeLessThan(140);
   expect(state.hidden).toBe(true);
 });
 
@@ -175,7 +181,7 @@ test('production percentage increases with elapsed time and construction is visi
   expect(parseFloat(info.bar)).toBeCloseTo(50,5);
   expect(info.eta).toBe('3 s');
   expect(info.construction).toContain('50%');
-  expect(info.count).toContain('1 PRODUKTION');
+  expect(info.count).toContain('1 AUFTRAG');
   expect(info.count).toContain('1 BAU');
 });
 
@@ -191,12 +197,14 @@ test('visual depth preview keeps an angled 3D RTS camera and desert fog',async({
       infantryHeight:MODEL_HEIGHTS.infantry,
       dimensionVersion:DIMENSIONS_VERSION,
       fogStillOpaque:view.battlefield.fogTexture.image.data.some((v,i)=>i%4===3&&v===255),
-      // Verify a dark warm fog tint, without pinning tests to one exact RGB triplet.
+      // The new Fog of War is near-black charcoal rather than desert brown.
+      // Check its dark, neutral character without pinning the shader to one
+      // hard-coded RGB triplet (the dedicated fog spec checks the exact mode).
       fogTint:(()=>{
         const match=shader.match(/gl_FragColor\s*=\s*vec4\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*a\s*\)/);
         if(!match)return false;
         const [r,g,b]=match.slice(1).map(Number);
-        return r>g&&g>b&&r<.15&&b>=0;
+        return [r,g,b].every(v=>v>=0&&v<=.06)&&b>=r&&g>=r;
       })(),
       isWebGLRenderer:view.renderer.isWebGLRenderer===true
     };
@@ -469,4 +477,187 @@ test('decorative 3D desert tapers into the horizon instead of ending as a hard c
   expect(state.decorativeOnly).toBe(true);
   expect(state.edgeHeight).toBeCloseTo(0,3);
   expect(state.worldSize).toBeGreaterThan(0);
+});
+
+
+test('3D parity: click a completed base and right-click the map to set rally immediately',async({page})=>{
+  test.setTimeout(115000);
+  await load(page);
+  const fixture=await page.evaluate(()=>{
+    const v=window.__sandforgeWebGL,g=v.game,b=v.battlefield;
+    const site=g.headquartersCandidates(0).find(p=>g.buildError(0,'headquarters',p)===null);
+    if(!site)throw new Error('No valid HQ construction site');
+    const base=g.build(0,'headquarters',site);
+    if(!base)throw new Error('Could not build HQ fixture');
+    base.buildRemaining=0;
+    b.sync(true,.06,false,1);
+    const node=b.bases.get(base.id)?.node;
+    if(!node)throw new Error('3D building model missing');
+    const target=g.world.nearest({x:base.x+250,y:base.y+145},g.obstacles());
+    const center=b.pos(base.x,base.y);
+    const shift=center.clone().sub(v.controls.target);
+    v.controls.target.add(shift);v.camera.position.add(shift);v.controls.update();
+    const rect=v.renderer.domElement.getBoundingClientRect();
+    const project=(point)=>{
+      const p=b.pos(point.x,point.y,point.height).project(v.camera);
+      return {x:rect.left+(p.x+1)*rect.width/2,
+       y:rect.top+(1-p.y)*rect.height/2};
+    };
+    return {id:base.id,target,baseClick:project({x:base.x,y:base.y,
+      height:b.heightAt(base.x,base.y)+22}),targetClick:project(target)};
+  });
+  await page.mouse.click(fixture.baseClick.x,fixture.baseClick.y);
+  expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.selectedBase)).toBe(fixture.id);
+  expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.rallyMode)).toBe(false);
+  await page.mouse.click(fixture.targetClick.x,fixture.targetClick.y,{button:'right'});
+  const result=await page.evaluate(id=>{
+    const v=window.__sandforgeWebGL,b=v.battlefield;
+    const base=v.game.bases.find(x=>x.id===id);
+    return {rally:base.rally,selectedBase:b.selectedBase,rallyMode:b.rallyMode,
+      feedback:b.panel.querySelector('#sf-message').textContent,
+      marker:b.rallyMarker.visible};
+  },fixture.id);
+  expect(result.selectedBase).toBe(fixture.id);
+  expect(result.rallyMode).toBe(false);
+  expect(result.marker).toBe(true);
+  expect(result.feedback).toContain('Sammelpunkt gesetzt');
+  expect(result.rally).toBeTruthy();
+  expect(Math.hypot(result.rally.x-fixture.target.x,result.rally.y-fixture.target.y)).toBeLessThan(45);
+});
+
+test('3D parity: model click selects a soldier, RMB on ground issues one movement order',async({page})=>{
+  test.setTimeout(115000);
+  await load(page);
+  const fixture=await page.evaluate(()=>{
+    const v=window.__sandforgeWebGL,g=v.game,b=v.battlefield;
+    const unit=g.units.find(u=>u.owner===0&&u.kind==='infantry'&&u.hp>0);
+    if(!unit)throw new Error('No friendly infantry');
+    b.selected.clear();b.selectedBase=null;b.drawInterface();
+    const position=b.pos(unit.x,unit.y);
+    const delta=position.clone().sub(v.controls.target);
+    v.controls.target.add(delta);v.camera.position.add(delta);v.controls.update();
+    let target=null;
+    for(const radius of [180,250,340]){
+      if(target)break;
+      for(let n=0;n<16;n++){
+        const p={x:unit.x+Math.cos(n*Math.PI/8)*radius,
+         y:unit.y+Math.sin(n*Math.PI/8)*radius};
+        if(g.world.walkable(p,g.obstacles())&&g.world.path(unit,p,g.obstacles()).length){
+          target=p;break;
+        }
+      }
+    }
+    if(!target)throw new Error('No safe movement destination');
+    const rect=v.renderer.domElement.getBoundingClientRect();
+    const project=point=>{
+      const pt=b.pos(point.x,point.y,point.height).project(v.camera);
+      return {x:rect.left+(pt.x+1)*rect.width/2,
+       y:rect.top+(1-pt.y)*rect.height/2};
+    };
+    return {id:unit.id,
+      unitClick:project({x:unit.x,y:unit.y,height:b.heightAt(unit.x,unit.y)+24}),
+      targetClick:project(target)};
+  });
+  await page.mouse.click(fixture.unitClick.x,fixture.unitClick.y);
+  const selected=await page.evaluate(id=>window.__sandforgeWebGL.battlefield.selected.has(id),fixture.id);
+  expect(selected).toBe(true);
+  await page.mouse.click(fixture.targetClick.x,fixture.targetClick.y,{button:'right'});
+  const state=await page.evaluate(id=>{
+    const v=window.__sandforgeWebGL,u=v.game.units.find(x=>x.id===id);
+    return {kind:u.orders.at(-1)?.kind,pulse:v.battlefield.commandPulse.visible,
+      message:v.battlefield.panel.querySelector('#sf-message').textContent};
+  },fixture.id);
+  expect(state.kind).toBe('move');
+  expect(state.pulse).toBe(true);
+  expect(state.message).toContain('Marsch');
+});
+
+test('3D soldier portraits use the same detailed prototype source as medic',async({page})=>{
+  await load(page);
+  const result=await page.evaluate(async()=>{
+    const {unitAtlasUrl}=await import('/webgl-portraits.js');
+    return Object.fromEntries(['infantry','engineer','medic','heavy','rover']
+      .map(kind=>[kind,unitAtlasUrl(kind)]));
+  });
+  for(const kind of ['infantry','engineer','medic','heavy'])
+    expect(result[kind]).toContain('/prototype/'+kind+'-0');
+  expect(result.rover).toContain('/animation/rover-0');
+});
+
+
+test('right-clicking the visible 3D bastion sends infantry into its capture ring and changes ownership',async({page})=>{
+ test.setTimeout(125000);
+ await load(page);
+ const fixture=await page.evaluate(()=>{
+  const v=window.__sandforgeWebGL,g=v.game,b=v.battlefield;
+  g.aiClock=-100000; // Capture path, not an unrelated director assault.
+  const soldier=g.units.find(u=>u.owner===0&&u.kind==='infantry'&&u.hp>0);
+  if(!soldier)throw Error('No starting infantry');
+  const blockers=[...g.obstacles(),...g.bastionColliders()];
+  let choice=null;
+  for(const territory of g.territories.filter(t=>t.owner===-1)){
+   if(g.units.some(u=>u.owner===1&&u.hp>0&&Math.hypot(u.x-territory.point.x,u.y-territory.point.y)<350))continue;
+   for(let n=0;n<16&&!choice;n++){
+    const theta=n*Math.PI/8;
+    const start={x:territory.point.x+180*Math.cos(theta),
+     y:territory.point.y+180*Math.sin(theta)};
+    if(!g.world.walkable(start,blockers))continue;
+    if(!g.world.path(start,territory.point,blockers).length)continue;
+    choice={territory,start};
+   }
+   if(choice)break;
+  }
+  if(!choice)throw Error('No reachable neutral bastion fixture');
+  const {territory,start}=choice;
+  soldier.x=start.x;soldier.y=start.y;
+  soldier.previousX=start.x;soldier.previousY=start.y;
+  soldier.orders=[];soldier.path=[];soldier.repath=0;
+  b.selected=new Set([soldier.id]);b.selectedBase=null;
+  b.sync(true,.06,false,1);
+  const center=b.pos(territory.point.x,territory.point.y);
+  const pan=center.clone().sub(v.controls.target);
+  v.controls.target.add(pan);v.camera.position.add(pan);
+  v.controls.update();
+  const entry=b.bastions.get(territory.id);
+  entry.node.updateMatrixWorld(true);
+  const modelPoint=entry.core.getWorldPosition(center.clone()).project(v.camera);
+  const rect=v.renderer.domElement.getBoundingClientRect();
+  return {id:territory.id,unitId:soldier.id,
+   x:rect.left+(modelPoint.x+1)*rect.width*.5,
+   y:rect.top+(1-modelPoint.y)*rect.height*.5,
+   sourceDistance:Math.hypot(soldier.x-territory.point.x,soldier.y-territory.point.y)};
+ });
+ expect(fixture.sourceDistance).toBeGreaterThan(95);
+ expect(fixture.x).toBeGreaterThan(0);
+ expect(fixture.x).toBeLessThan(1440);
+ expect(fixture.y).toBeGreaterThan(0);
+ expect(fixture.y).toBeLessThan(580);
+ await page.mouse.click(fixture.x,fixture.y,{button:'right'});
+ const order=await page.evaluate(({id,unitId})=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  const t=game.territories.find(t=>t.id===id);
+  const soldier=game.units.find(u=>u.id===unitId);
+  const o=soldier.orders[0];
+  return {kind:o?.kind,distance:o?Math.hypot(o.x-t.point.x,o.y-t.point.y):9999,
+   message:battlefield.panel.querySelector('#sf-message').textContent};
+ },fixture);
+ expect(order.kind).toBe('move');
+ expect(order.distance).toBeLessThanOrEqual(95);
+ expect(order.message).toContain('Bastion');
+ const capture=await page.evaluate(({id,unitId})=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  const t=game.territories.find(t=>t.id===id);
+  let maxProgress=0;
+  for(let n=0;n<380&&t.owner!==0;n++){
+   game.step(.05);
+   maxProgress=Math.max(maxProgress,t.progress);
+  }
+  battlefield.sync(true,.05,false,1);
+  const soldier=game.units.find(u=>u.id===unitId);
+  return {owner:t.owner,maxProgress,
+   distance:soldier?Math.hypot(soldier.x-t.point.x,soldier.y-t.point.y):9999};
+ },fixture);
+ expect(capture.maxProgress).toBeGreaterThan(0);
+ expect(capture.owner).toBe(0);
+ expect(capture.distance).toBeLessThanOrEqual(95);
 });

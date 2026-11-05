@@ -11,7 +11,7 @@ export function installClassicHud(){
  panel.innerHTML=`
 <header class="top hud frame" aria-label="Sandforge Ressourcen">
  <a class="wordmark" href="/" title="Zur klassischen Sandforge-Version">
-  <span class="emblem">SF</span><span class="brand-copy">SAND<b>FORGE</b></span>
+  <img class="sandforge-logo sandforge-hud-logo" src="/src/assets/reborn/sandforge-logo-transparent.webp" alt="Sandforge: Bastion Wars" decoding="async">
  </a>
  <div class="resources">
   <span id="sf-stats" class="sf-assist-stats">Credits / Kapazität</span>
@@ -33,18 +33,34 @@ export function installClassicHud(){
    <button data-tab="territories" aria-pressed="false">SEKTOREN</button>
   </nav>
   <div class="catalog-scroll" id="sf-actions" aria-label="Einheiten, Gebäude und Territorien"></div>
-  <div class="production" id="sf-production">
-   <div class="section-label">PRODUKTION <span id="sf-queue-count">0 AUFTRÄGE</span></div>
-   <div class="production-track"><i id="sf-progress"></i></div>
-   <div class="queue-info"><span id="sf-queue">WARTESCHLANGE LEER</span><span id="sf-queue-time">--:--</span></div>
+  <section class="production sf-production-panel" id="sf-production" aria-label="Produktion und Warteschlange">
+   <div class="sf-production-heading">
+    <strong>PRODUKTION</strong>
+    <span id="sf-queue-count">0 AUFTRÄGE</span>
+   </div>
+   <div class="sf-production-slots" id="sf-queue-slots" role="list" aria-label="Produktionsaufträge">
+    <div class="sf-production-empty">Noch keine Produktion aktiv</div>
+   </div>
+   <div class="sf-production-progressline">
+    <div class="production-track" role="progressbar" aria-label="Aktuelle Produktion" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="sf-progress"></i></div>
+    <span id="sf-queue-time">--:--</span>
+   </div>
+   <div class="queue-info"><span id="sf-queue">WARTESCHLANGE LEER</span></div>
    <div id="sf-building-status" class="sf-building-status" hidden></div>
-  </div>
+  </section>
   <div id="sf-catalog-detail">Pioniere errichten Produktionsgebäude. Fertige Gebäude schalten Einheiten frei.</div>
  </section>
 </aside>
 <section class="command hud frame sf-command" id="sf-selection-panel" aria-label="Auswahl und Befehle">
  <div class="selection">
-  <div class="portrait"><img id="sf-portrait" src="/src/assets/reborn/headquarters.png" alt=""></div>
+  <div class="portrait"><img id="sf-portrait" src="/src/assets/reborn/headquarters.png" alt="">
+   <div id="sf-squad-portrait" class="sf-squad-portrait" role="img" aria-label="Ausgewählter Trupp" hidden>
+    <img class="sf-squad-member" alt="" aria-hidden="true">
+    <img class="sf-squad-member" alt="" aria-hidden="true">
+    <img class="sf-squad-member" alt="" aria-hidden="true">
+    <span class="sf-squad-count" aria-hidden="true"></span>
+   </div>
+  </div>
   <div class="selection-copy" id="sf-selection"><small>BLAUE LEGION</small><strong>Keine Auswahl</strong></div>
  </div>
  <div class="command-group">

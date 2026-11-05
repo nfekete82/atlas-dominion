@@ -2,10 +2,12 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {Simulation} from '/src/reborn/simulation.js';
+import {rollingHillHeight} from '/src/reborn/rolling-hills.js';
 import {canyonGroundSampler,rampAtX,ridgeCenterY} from '/src/reborn/canyon-height.js';
 import {SandforgeBattlefield} from '/webgl-battlefield.js';
 import {DesertArtPass} from '/webgl-environment.js';
 import {SandforgeCombatEffects} from '/webgl-combat-vfx.js';
+import {SandforgePerformanceWatch} from '/webgl-perf-watch.js';
 import {SandforgeAtmosphere3D} from '/webgl-atmosphere-3d.js';
 import {addVisualPerimeter} from '/webgl-perimeter.js';
 import {addBoundaryCliffs} from '/webgl-edge-cliffs.js';
@@ -45,6 +47,8 @@ const game=session??Simulation.campaign(seed,sizes[bastions]);
 // Optional visual comparison; classic gameplay remains unchanged.
 const wideView=query.get('view')==='wide';
 game.visionScale=wideView?1.35:game.world.mapVersion>=19?1.30:1.12;
+game.infantryVisionBonus=1.15; // modest +15% infantry sight in 3D only
+game.highGroundEnabled=true; // tactical +20% outgoing / -10% incoming only in 3D
 game.updateVision();
 const world=game.world,terrain=world.generated,size=world.size,half=size/2;
 const spacious=world.mapVersion>=19;
@@ -56,7 +60,10 @@ const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
 const smooth=value=>{const t=clamp(value,0,1);return t*t*(3-2*t);};
 const rnd=seed=>{let s=seed>>>0;return ()=>{s=(s+0x6d2b79f5)>>>0;let n=s;n=Math.imul(n^(n>>>15),n|1);n^=n+Math.imul(n^(n>>>7),n|61);return ((n^(n>>>14))>>>0)/4294967296;};};
 const random=rnd(seed^0xb6aa3371),ridge=terrain.ridges[0];
-const heightAt=canyonGroundSampler(seed,terrain.ridges);
+// Gentle hills follow the same authoritative coordinates used for the
+// high-ground combat advantage, without creating any blocking grid cells.
+const canyonHeightAt=canyonGroundSampler(seed,terrain.ridges);
+const heightAt=(x,z)=>canyonHeightAt(x,z)+rollingHillHeight(game.hills,x,z);
 const rampAt=x=>ridge?rampAtX(ridge,x):false;
 const pos=(x,z,y=heightAt(x,z))=>new THREE.Vector3(x-half,y,z-half);
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance',alpha:false});
@@ -118,6 +125,23 @@ const models=new Map(),ruinMeshes=[];
 // never appear accepted while an unannounced preview-level pause blocks ticks.
 game.paused=false;
 let groundMeshes=[],running=query.get('pause')!=='1',accumulator=0,elapsed=0;
+// Distinguish a deliberate pause or an ended battle from an animation stall.
+// Previously all three looked identical: stationary soldiers on screen.
+const simulationBanner=document.createElement('div');
+simulationBanner.id='sf3d-simulation-state';
+simulationBanner.setAttribute('role','status');
+simulationBanner.hidden=true;
+simulationBanner.style.cssText='position:fixed;top:71px;left:50%;transform:translateX(-50%);z-index:15;pointer-events:none;background:#111d23ea;border:1px solid #c5a570;color:#f6dfa9;font:800 12px/1.3 system-ui;padding:7px 13px;letter-spacing:.04em;text-align:center;box-shadow:0 5px 18px #0008';
+document.body.append(simulationBanner);
+function updateSimulationBanner(){
+ const reason=!running?'SIMULATION PAUSIERT · ▶ zum Fortsetzen':
+  game.paused?'SIMULATION INTERN PAUSIERT':
+  game.status==='victory'?'SIEG · Gefecht beendet':
+  game.status==='defeat'?'NIEDERLAGE · Gefecht beendet':'';
+ simulationBanner.hidden=!reason;
+ if(reason&&simulationBanner.textContent!==reason)simulationBanner.textContent=reason;
+}
+updateSimulationBanner();
 let visualPerimeter=null,boundaryCliffs=null;
 function sandTexture(){
  const c=document.createElement('canvas');c.width=c.height=256;
@@ -327,7 +351,9 @@ function instancedStone(){
   const x=spacious?-95+extra()*(size+190):-margin+extra()*(size+2*margin);
   const z=spacious?-95+extra()*(size+190):-margin+extra()*(size+2*margin);
   if(x>=0&&x<=size&&z>=0&&z<=size)continue;
-  if(spacious&&Math.max(-x,x-size,-z,z-size)>82)continue;
+  // Decorative stones only on the visible first apron. Never populate
+  // the solid black exterior beyond the edge fade.
+  if(spacious&&Math.max(-x,x-size,-z,z-size)>8)continue;
   const cluster=extra()>(spacious?.96:.93);
   if(cluster){
    put(x,z,spacious?7+extra()*13:9+extra()*20,
@@ -500,6 +526,44 @@ function weatherRuinMeshes(node){
   mesh.castShadow=mesh.receiveShadow=true;
  });
 }
+// A few hand-shaped, collapsed remnants make the two real ruin GLBs
+// appear differently destroyed across the map. They are separate VISUAL-ONLY
+// child meshes, never additional World obstacles or save fields.
+function dressRuinDamage(anchor,ruin,index){
+ const random=rnd((seed^(index*0x9e3779b9)^0x476fac13)>>>0);
+ const group=new THREE.Group();
+ group.name='visual-ruin-collapse-'+index;
+ group.userData={visualOnly:true,nonPlayable:true,ruinCollapse:true};
+ const masonry=new THREE.MeshStandardMaterial({color:'#967f66',roughness:1,metalness:.05,flatShading:true});
+ const charred=new THREE.MeshStandardMaterial({color:'#4b463e',roughness:.96,metalness:.18});
+ const palette=[masonry,charred];
+ const fragments=4+index%4;
+ for(let part=0;part<fragments;part++){
+  const ang=random()*Math.PI*2,rx=Math.cos(ang)*ruin.width*(.16+random()*.24);
+  const rz=Math.sin(ang)*ruin.depth*(.16+random()*.25);
+  const scale=7+random()*12,broken=part%3===0;
+  const geo=broken
+   ?new THREE.TetrahedronGeometry(scale*(.85+random()*.45),0)
+   :new THREE.BoxGeometry(scale*(1+random()),2.4+random()*4,scale*(.6+random()));
+  const mesh=new THREE.Mesh(geo,palette[(part+index)%2]);
+  mesh.position.set(rx,2+random()*6,rz);
+  mesh.rotation.set((random()-.5)*.9,ang,(random()-.5)*.7);
+  mesh.castShadow=true;mesh.receiveShadow=true;group.add(mesh);
+ }
+ // Torn roof sections/leaning beams: different configurations per ruin,
+ // not a pristine square rooftop cloned identically at every site.
+ for(let beam=0;beam<2+index%2;beam++){
+  const length=ruin.width*(.18+random()*.17);
+  const iron=new THREE.Mesh(new THREE.BoxGeometry(2.4+random()*2.5,length,2.8),charred);
+  const side=beam%2?-1:1;
+  iron.position.set(side*ruin.width*.27,10+random()*ruin.height*.32,
+   (random()-.5)*ruin.depth*.46);
+  iron.rotation.set((random()-.5)*.35,random()*Math.PI,side*(.48+random()*.44));
+  iron.castShadow=true;iron.receiveShadow=true;group.add(iron);
+ }
+ anchor.add(group);
+ return group;
+}
 async function addRuins(){
  // Every ruin instance is a real glTF triangle mesh with PBR materials.
  // Wait for the authored rock texture so instances are textured on first paint.
@@ -514,7 +578,9 @@ async function addRuins(){
   const anchor=new THREE.Group();
   anchor.position.copy(pos(ruin.x,ruin.y));
   anchor.rotation.y=ruin.rotation;
-  anchor.add(source);scene.add(anchor);ruinMeshes.push(anchor);
+  anchor.add(source);
+  if(spacious)dressRuinDamage(anchor,ruin,i);
+  scene.add(anchor);ruinMeshes.push(anchor);
  }
  return ruinMeshes.length;
 }
@@ -522,6 +588,7 @@ $('simulation').onclick=()=>{
  running=!running;$('simulation').textContent=running?'Simulation pausieren':'Simulation starten';
  if(!running)sound.pause();
  $('simulation').setAttribute('aria-pressed',String(running));
+ updateSimulationBanner();
 };
 $('rotate-left').onclick=()=>spin(-Math.PI/4);
 $('rotate-right').onclick=()=>spin(Math.PI/4);
@@ -537,7 +604,7 @@ $('home').onclick=()=>{
 };
 $('load').onclick=()=>{
  const q=new URLSearchParams({bastions:$('bastions').value,seed:String(Number($('seed').value)>>>0)});
- location.href='/webgl-preview.html?'+q;
+ location.href=(window.Sandforge3DMenu?.gameRoute?.()??'/webgl-preview.html')+'?'+q;
 };
 // Camera navigation is independent of the simulation. WASD and cursor keys
 // work during pause; F becomes attack-move so A remains free for panning.
@@ -589,7 +656,10 @@ function stepCamera(dt){
   camera.position.x+=nx-controls.target.x;camera.position.z+=nz-controls.target.z;
   controls.target.x=nx;controls.target.z=nz;
  }
- const border=half+Math.max(180,(visualPerimeter?.margin??size*.5)-90),
+ // Keep the visible corners inside the textured erosion apron, not at
+ // the far outer mesh edge where the black scene background is exposed.
+ // The authored perimeter stays decorative; no playable bounds change.
+ const border=half+Math.min(320,Math.max(180,(visualPerimeter?.margin??size*.5)*.15)),
   groundY=heightAt(controls.target.x+half,controls.target.z+half);
  cameraGroundPlane.constant=-groundY;
  camera.updateMatrixWorld(true);
@@ -642,7 +712,12 @@ const atmosphere=new SandforgeAtmosphere3D({
 });
 battlefield.fogAtmosphere=atmosphere;
 atmosphere.setFogEnabled(battlefield.fogEnabled);
-if(query.get('fog')==='0'){
+// Fog of War is the default for the actual 3D game. Older preview links
+// used fog=0 to make screenshots of bare terrain; don't let those links
+// silently turn the player's war map into an omniscient desert.
+// Developers can still explicitly disable the visual overlay via fog=off,
+// and players retain the NEBEL AN/AUS HUD button.
+if(query.get('fog')==='off'){
  battlefield.fogEnabled=false;
  battlefield.updateFog();
 }
@@ -723,7 +798,8 @@ function setShowcase(enabled){
 showcaseButton.onclick=()=>setShowcase(!showcaseActive);
 if(query.get('showcase')==='1')setShowcase(true);
 const desertArt=new DesertArtPass({scene,world,terrain,heightAt,pos,loader,lowQuality:query.get('lite')==='1'});
-const effects=new SandforgeCombatEffects({scene,camera,game,world,heightAt,pos,lowQuality:query.get('lite')==='1'});
+let desertArtReady=false;
+const effects=new SandforgeCombatEffects({scene,camera,game,world,heightAt,pos,battlefield,lowQuality:query.get('lite')==='1'});
 // Renderer-only weather preview: weather rules in Simulation are unchanged.
 const stormButton=document.createElement('button');
 stormButton.id='sf3d-storm';
@@ -798,19 +874,23 @@ soundButton.onclick=async()=>{
  updateSoundButton();
 };
 
+const performanceWatch=new SandforgePerformanceWatch({game,renderer,effects,groundTracks});
 let lastFrame=performance.now(),frames=0;
 function animate(now){
+ performanceWatch.begin(now);
  const dt=Math.min(.08,(now-lastFrame)/1000);lastFrame=now;
+ const beforeSteps=performanceWatch.enabled?performance.now():0;
  if(running){
   accumulator=Math.min(accumulator+dt,.20);
   let steps=0;while(accumulator>=.05&&steps<4){game.step(.05);constructionRecovery.tick();accumulator-=.05;steps++;}
   battlefield.sync(false,dt);
  }
  if(!running)battlefield.sync(false,dt);
+ if(performanceWatch.enabled)performanceWatch.simulation(performance.now()-beforeSteps);
  if(running)groundTracks.capture();
  groundTracks.update(dt,running);
  battlefield.updateCommandPulse(dt);
- effects.update(dt,running);
+ effects.update(dt,running,accumulator);
  if(running&&sound.enabled)sound.update(game,soundView);
  controls.update();
  stepCamera(dt);
@@ -830,18 +910,22 @@ function animate(now){
   renderer.render(battlefield.buildPreviewScene,camera);
   renderer.autoClear=autoClear;
  }
+ performanceWatch.end(now);
  frames++;elapsed+=dt;
  if(elapsed>=.5){
+  updateSimulationBanner();
   $('fps').textContent=String(Math.round(frames/elapsed));frames=0;elapsed=0;
   $('clock').textContent=Math.floor(game.time)+' s';
  }
 }
 renderer.setAnimationLoop(animate);
 window.__sandforgeWebGL={renderer,scene,camera,controls,game,terrain,heightAt,battlefield,effects,atmosphere,sound,constructionRecovery,visualPerimeter,boundaryCliffs,panKeys,groundTracks,
+ performance:performanceWatch,
  setStormPreview,
  get showcaseActive(){return showcaseActive;},
  setShowcase,
  get ruinsLoaded(){return ruinMeshes.length;},
+ get desertArtReady(){return desertArtReady;},
  get loaded(){return status.dataset.ready==='true';},
  get simulationRunning(){return running;},
  sampleGround:(x,z)=>heightAt(x,z)};
@@ -849,7 +933,10 @@ async function main(){
  try{
   setStatus('Lade echte 3D-Ruinen …');
   const ruins=await addRuins();
-  desertArt.load().then(count=>{console.info('3D environment props',count);}).catch(error=>console.warn('Desert detail fallback',error));
+  desertArt.load().then(count=>{
+   console.info('3D environment props',count);
+  }).catch(error=>console.warn('Desert detail fallback',error))
+   .finally(()=>{desertArtReady=true;});
   // The 3D battlefield is live immediately; heavyweight PBR assets stream in.
   battlefield.sync(true);
   status.dataset.ready='true';

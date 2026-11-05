@@ -1,7 +1,20 @@
 import { cpSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import {createHash} from 'node:crypto';
 mkdirSync('dist', { recursive: true });
-cpSync('index.html', 'dist/index.html');
+// Reversible WebGL-first release candidate. The old Canvas renderer is
+// preserved as /classic.html while it is still needed for migration tests.
+// G0 checks must pass before the standard build is switched to WebGL.
+const webglDefault=process.env.SANDFORGE_RENDERER==='webgl';
+cpSync('index.html','dist/classic.html');
+if(webglDefault){
+  const landing=readFileSync('webgl-preview.html','utf8')
+    .replace('<title>Sandforge: Bastion Wars · WebGL 3D Vorschau</title>',
+      '<title>Sandforge: Bastion Wars</title>')
+    .replace('SANDFORGE / THREE.JS PREVIEW','SANDFORGE / WEBGL 3D')
+    .replace('· <a href="/">KLASSISCHES RTS</a>',
+      '· <a href="/classic.html">KLASSISCHE VERSION</a>');
+  writeFileSync('dist/index.html',landing);
+}else cpSync('index.html','dist/index.html');
 cpSync('animation-lab.html','dist/animation-lab.html');
 cpSync('model-preview.html','dist/model-preview.html');
 cpSync('model-3d.html','dist/model-3d.html');
@@ -14,12 +27,16 @@ cpSync('scripts/webgl-actor-presentation.js','dist/webgl-actor-presentation.js')
 cpSync('scripts/webgl-environment.js','dist/webgl-environment.js');
 cpSync('scripts/webgl-atmosphere-3d.js','dist/webgl-atmosphere-3d.js');
 cpSync('scripts/webgl-combat-vfx.js','dist/webgl-combat-vfx.js');
+// Keep the optional battle profiler deployable; an unresolved static import
+// prevents the entire WebGL preview from booting, even when perf=0.
+cpSync('scripts/webgl-perf-watch.js','dist/webgl-perf-watch.js');
 cpSync('scripts/webgl-classic-hud.js','dist/webgl-classic-hud.js');
 cpSync('scripts/webgl-portraits.js','dist/webgl-portraits.js');
 cpSync('scripts/webgl-perimeter.js','dist/webgl-perimeter.js');
 cpSync('scripts/webgl-edge-cliffs.js','dist/webgl-edge-cliffs.js');
 cpSync('scripts/webgl-grounding.js','dist/webgl-grounding.js');
 cpSync('scripts/webgl-ground-tracks.js','dist/webgl-ground-tracks.js');
+cpSync('scripts/webgl-building-yard.js','dist/webgl-building-yard.js');
 cpSync('scripts/webgl-construction.js','dist/webgl-construction.js');
 cpSync('scripts/webgl-construction-recovery.js','dist/webgl-construction-recovery.js');
 cpSync('scripts/webgl-scale.js','dist/webgl-scale.js');
@@ -27,7 +44,7 @@ cpSync('scripts/webgl-health.js','dist/webgl-health.js');
 cpSync('src/reborn/webgl-classic-hud.css','dist/webgl-classic-hud.css');
 cpSync('scripts/animation/model-viewer.js','dist/model-viewer.js');
 // WebGL preview and 3D inspector share the same local Three.js modules.
-// The production game continues to use its existing Canvas renderer.
+// Three.js assets are required by the 3D game and optional in classic mode.
 for(const file of ['build/three.module.js','build/three.core.js','examples/jsm/loaders/GLTFLoader.js','examples/jsm/controls/OrbitControls.js','examples/jsm/utils/BufferGeometryUtils.js','examples/jsm/utils/SkeletonUtils.js','examples/jsm/environments/RoomEnvironment.js']){
   const target='dist/vendor/three/'+file.replace('build/','').replace('examples/jsm/','addons/');mkdirSync(target.slice(0,target.lastIndexOf('/')),{recursive:true});cpSync('node_modules/three/'+file,target);
 }

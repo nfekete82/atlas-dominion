@@ -6,6 +6,10 @@
  const query=new URLSearchParams(location.search);
  const savedKey='sandforge:webgl:v1';
  const optionKey='sandforge:webgl:options';
+ // The 3D game may run at / (release candidate) or /webgl-preview.html
+ // (existing QA/deep links). Stay on the active entry during navigation.
+ const gameRoute=()=>location.pathname==='/'||location.pathname==='/index.html'
+  ?'/':'/webgl-preview.html';
  const modes={15:4,16:8,17:12,18:16,19:4,20:8,21:12,22:16};
  const menu=$('main-dialog'),newDialog=$('sf3d-new-dialog');
  const optionsDialog=$('sf3d-options-dialog'),pauseDialog=$('sf3d-pause-dialog');
@@ -26,7 +30,7 @@
   const options=readOptions();
   if(options.quality==='lite')params.set('lite','1');
   if(options.fog===false)params.set('fog','0');
-  location.assign('/webgl-preview.html?'+params);
+  location.assign(gameRoute()+'?'+params);
  };
  function continueSave(){
   const data=readSave(),bastions=data&&modes[data.mapVersion];
@@ -85,7 +89,7 @@
   if(returnToGame)changePause(true);
  }
  function goMain(){
-  location.assign('/webgl-preview.html');
+  location.assign(gameRoute());
  }
  $('sf3d-new').addEventListener('click',()=>{
   const source=$('bastions');
@@ -132,9 +136,10 @@
  $('sf3d-pause-resume').addEventListener('click',resumeGame);
  $('sf3d-pause-save').addEventListener('click',()=>{
   const game=window.__sandforgeWebGL?.battlefield;
-  if(!game)return;
-  game.panel.querySelector('[data-action="save"]')?.click();
-  $('sf3d-pause-status').textContent='Kampagne lokal gespeichert.';
+  const saved=game?.saveGame?.()===true;
+  $('sf3d-pause-status').textContent=saved
+   ?'Kampagne lokal gespeichert.'
+   :'Speichern fehlgeschlagen. Bitte Speicherplatz und Browser-Einstellungen prüfen.';
  });
  $('sf3d-pause-load').addEventListener('click',continueSave);
  $('sf3d-pause-options').addEventListener('click',openOptions);
@@ -165,7 +170,7 @@
   if(field&&(field.attackMode||field.buildKind))return;
   if(window.__sandforgeWebGL?.loaded){e.preventDefault();e.stopImmediatePropagation();openPause();}
  },true);
- window.Sandforge3DMenu={openPause,goMain,continueSave,play,readSave,readOptions};
+ window.Sandforge3DMenu={openPause,goMain,continueSave,play,readSave,readOptions,gameRoute};
  const options=readOptions();
  $('sf3d-continue').hidden=!Boolean(saved&&modes[saved.mapVersion]);
  $('sf3d-main-load').disabled=!Boolean(saved&&modes[saved.mapVersion]);

@@ -1,11 +1,25 @@
 import {test,expect} from '@playwright/test';
 
+// The WebGL catalog now reflects the selected actor, just like a classic RTS.
+async function selectEngineer(page){
+ await page.evaluate(()=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  const engineer=game.units.find(u=>u.owner===0&&u.hp>0&&u.kind==='engineer');
+  if(!engineer)throw Error('Starting engineer missing');
+  battlefield.selected=new Set([engineer.id]);
+  battlefield.selectedBase=null;
+  battlefield.drawInterface();
+ });
+}
+
+
 test('3D original-style blueprint: translucent ghost, live site validation and R rotation',async({page})=>{
  test.setTimeout(120000);
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.setViewportSize({width:1440,height:900});
  await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:95000});
+ await selectEngineer(page);
  await page.locator('#sf-classic-root .catalog-tabs [data-tab="buildings"]').first().click();
  await page.locator('[data-build="headquarters"]').click();
  expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.buildPreview?.userData.buildGhost)).toBe(true);
@@ -22,8 +36,20 @@ test('3D original-style blueprint: translucent ghost, live site validation and R
  });
  expect(ghost.visible).toBe(true);
  expect(ghost.footprint).toBe(true);
- await page.keyboard.press('r');
- expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.placementFacing)).toBe(1);
+ // Each tap advances exactly 90°, including a full return to the
+ // starting orientation. Legacy stored facing=1 still means 180°.
+ for(const [facing,angle,degrees] of [
+  [2,Math.PI/2,90],[1,Math.PI,180],[3,Math.PI*1.5,270],[0,0,0]
+ ]){
+  await page.keyboard.press('r');
+  const placement=await page.evaluate(()=>{
+   const b=window.__sandforgeWebGL.battlefield;
+   return {facing:b.placementFacing,angle:b.buildPreview.rotation.y};
+  });
+  expect(placement.facing).toBe(facing);
+  expect(placement.angle).toBeCloseTo(angle,5);
+  await expect(page.locator('#sf3d-build-hint')).toContainText('R drehen ('+degrees+'°)');
+ }
  await page.keyboard.press('Escape');
  expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.buildPreview)).toBe(null);
  await expect(page.locator('#sf3d-build-hint')).toBeHidden();
@@ -50,7 +76,8 @@ test('3D construction: foundations, columns, rails and roof appear by actual bui
     top:c.roof.visible,rail0:c.rails[0].meshes[0].visible,
     rail1:c.rails[1].meshes[0].visible,
     clipped:c.materials.length>0&&c.materials.every(m=>m.clippingPlanes?.[0]===c.clip),
-    label:c.lastLabel};
+    label:c.lastLabel,labelWidth:c.label.scale.x,labelHeight:c.label.scale.y,
+    labelOpacity:c.label.material.opacity};
   };
   const phases=[.1,.42,.82].map(capture);
   building.buildRemaining=0;building.hp=1200;b.sync(true,.06,false,1);
@@ -60,6 +87,9 @@ test('3D construction: foundations, columns, rails and roof appear by actual bui
  });
  const [early,middle,late]=stages.phases;
  expect(early.clipped).toBe(true);
+ expect(early.labelWidth).toBeLessThanOrEqual(85);
+ expect(early.labelHeight).toBeLessThanOrEqual(22);
+ expect(early.labelOpacity).toBeLessThanOrEqual(.9);
  expect(early.top).toBe(false);
  expect(early.rail0).toBe(false);
  expect(middle.post).toBeGreaterThan(early.post);
@@ -86,10 +116,17 @@ test('3D audio and HUD: clicks enabled by user gesture, complete unit text, zoom
  expect(before.minZoom).toBeCloseTo(.46,2);
  expect(before.vision).toBeCloseTo(1.30,2);
  expect(before.audioEnabled).toBe(true);
- await page.locator('#sf-classic-root .catalog-tabs [data-tab="units"]').first().click();
+ // Unit sprites remain present in the DOM but only the selected producer can show them.
  const soldier=page.locator('[data-unit="infantry"] .card-name');
  await expect(soldier).toHaveText('Infanteriesoldat');
- expect(await soldier.evaluate(el=>getComputedStyle(el).whiteSpace)).toBe('normal');
+ // All 3D unit-card names now occupy one line, with the price below.
+ // Keep the entire accessible name in the DOM; only visual overflow clips.
+ expect(await soldier.evaluate(el=>getComputedStyle(el).whiteSpace)).toBe('nowrap');
+ const artillery=page.locator('[data-unit="artillery"]');
+ await expect(artillery.locator('.card-name')).toHaveText('Raketenwerfer');
+ expect(await artillery.locator('.card-name').evaluate(el=>getComputedStyle(el).whiteSpace)).toBe('nowrap');
+ expect(await artillery.locator('.card-cost')).toHaveText('600');
+ await selectEngineer(page);
  await page.locator('#sf-classic-root .catalog-tabs [data-tab="buildings"]').first().click();
  await page.waitForFunction(()=>window.__sandforgeWebGL?.sound?.context?.state==='running',{timeout:20000});
  expect(await page.evaluate(()=>window.__sandforgeWebGL.sound.enabled)).toBe(true);
@@ -101,6 +138,7 @@ test('Audio resumes after suspension; locked production stays legible; interrupt
  await page.setViewportSize({width:1440,height:900});
  await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:95000});
+ await selectEngineer(page);
  await page.locator('#sf-classic-root .catalog-tabs [data-tab="buildings"]').first().click();
  await expect(page.locator('[data-build="barracks"]')).toBeDisabled();
  const filter=await page.locator('[data-build="barracks"] .sf-card-image img')
@@ -112,7 +150,7 @@ test('Audio resumes after suspension; locked production stays legible; interrupt
  await page.evaluate(()=>window.__sandforgeWebGL.sound.context.suspend());
  await page.waitForFunction(()=>window.__sandforgeWebGL.sound.context.state==='suspended');
  // The next real pointer interaction is a permitted autoplay-unlock gesture.
- await page.locator('#sf-classic-root .catalog-tabs [data-tab="units"]').first().click();
+ await page.locator('#sf-classic-root .catalog-tabs [data-tab="territories"]').first().click();
  await page.waitForFunction(()=>window.__sandforgeWebGL.sound.context.state==='running',{timeout:15000});
  const recovered=await page.evaluate(()=>{
   const a=window.__sandforgeWebGL,g=a.game,repair=a.constructionRecovery;
@@ -139,6 +177,7 @@ test('3D placement overlay is drawn in a separate foreground pass after black fo
  await page.setViewportSize({width:1440,height:900});
  await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:95000});
+ await selectEngineer(page);
  await page.locator('#sf-classic-root .catalog-tabs [data-tab="buildings"]').first().click();
  await page.locator('[data-build="headquarters"]').click();
  const canvas=page.locator('#stage canvas'),r=await canvas.boundingBox();
@@ -214,4 +253,41 @@ test('3D audio settings can be enabled again and the user can play an audible te
  expect(state.volume).toBeGreaterThanOrEqual(.85);
  expect(state.commands).toBeGreaterThanOrEqual(1);
  expect(state.state).toBe('running');
+});
+
+test('R cycles through all four cardinal placements for every 3D building type',async({page})=>{
+ test.setTimeout(120000);
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',
+  {waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,null,{timeout:95000});
+ for(const kind of ['headquarters','barracks','factory','airfield','generator','turret']){
+  await page.evaluate(kind=>window.__sandforgeWebGL.battlefield.beginPlacement(kind),kind);
+  for(const [stored,angle] of [[2,Math.PI/2],[1,Math.PI],[3,Math.PI*1.5],[0,0]]){
+   await page.keyboard.press('r');
+   const state=await page.evaluate(()=>{
+    const b=window.__sandforgeWebGL.battlefield;
+    return {facing:b.placementFacing,rotation:b.buildPreview.rotation.y,kind:b.buildKind};
+   });
+   expect(state.kind).toBe(kind);
+   expect(state.facing).toBe(stored);
+   expect(state.rotation).toBeCloseTo(angle,5);
+  }
+ }
+ // The actual building, not just the green ghost, must retain 90° orientation.
+ const state=await page.evaluate(()=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  const site=game.headquartersCandidates(0).find(p=>game.buildError(0,'headquarters',p)===null);
+  if(!site)throw Error('No available HQ site');
+  const built=game.build(0,'headquarters',site,undefined,2);
+  if(!built)throw Error('Could not place the rotated headquarters');
+  battlefield.sync(true);
+  return {savedFacing:built.facing,
+   sceneFacing:battlefield.bases.get(built.id)?.node.rotation.y,
+   recoveredFacing:game.constructor.load(game.save()).bases.find(b=>b.id===built.id)?.facing};
+ });
+ expect(state.savedFacing).toBe(2);
+ expect(state.sceneFacing).toBeCloseTo(Math.PI/2,5);
+ expect(state.recoveredFacing).toBe(2);
+ expect(errors).toEqual([]);
 });

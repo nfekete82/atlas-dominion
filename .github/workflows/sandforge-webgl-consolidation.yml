@@ -1,0 +1,66 @@
+name: Sandforge 3D consolidation gate
+on:
+  push:
+    branches:
+      - fix/webgl-classic-input-parity-20261104
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: sandforge-3d-gate-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  webgl-gate:
+    name: TypeScript, combat parity and real Chromium WebGL integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install pinned dependencies
+        run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix tests/browser --no-audit --no-fund
+          cd tests/browser
+          npx playwright install --with-deps chromium
+      - name: Validate modified renderer modules
+        run: |
+          node --check scripts/webgl-battlefield.js
+          node --check scripts/webgl-actor-presentation.js
+          node --check scripts/webgl-building-yard.js
+          node --check tests/reborn-combat-index.test.mjs
+      - name: Build and full WebGL regression suite
+        env:
+          ATLAS_BROWSER_CHANNEL: chromium
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          CI: 'true'
+        run: npm run test:webgl-integration
+      - name: Build 3D-first root without overwriting the classic game
+        run: |
+          npm run build:3d
+          SANDFORGE_RENDERER=webgl node --test tests/sandforge-webgl-entry.test.mjs
+      - name: Live Chromium smoke test of the 3D game at /
+        env:
+          SANDFORGE_RENDERER: webgl
+          ATLAS_BROWSER_CHANNEL: chromium
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          CI: 'true'
+        run: |
+          tests/browser/node_modules/.bin/playwright test \
+            --config=tests/browser/playwright.config.mjs \
+            tests/browser/webgl-default-entry.spec.mjs \
+            --workers=1 --reporter=line
+      - name: Preserve failure traces and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandforge-3d-consolidation-evidence
+          path: |
+            tests/browser/artifacts/
+          if-no-files-found: ignore
+          retention-days: 14

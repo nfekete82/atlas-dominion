@@ -158,9 +158,11 @@ export class DesertArtPass {
     }
    }
   }
-  // Natural palm clusters at the foot of the OUTER cliffs, not inside the
-  // World. Reuse the same authored GLB; all placements are seeded, visual-only
-  // and excluded from gameplay collision, pathfinding, saves and raycasts.
+  // Zero Hour-style outer void on the spacious 3D maps: NO palm groves
+  // outside the playable boundary. Those tall 3D meshes previously poked
+  // through the black soil fade when viewed from the low/zoomed-out camera.
+  // Keep the classic legacy-map border groves unchanged.
+  if(!spacious){
   let state=((this.world.seed??0)^0x3ac719d5)>>>0;
   const rand=()=>{state=(Math.imul(state,1664525)+1013904223)>>>0;return state/4294967296;};
   const groves=this.lowQuality?4:9;
@@ -186,6 +188,7 @@ export class DesertArtPass {
     group.add(palm);
     this.scene.add(group);this.items.push(group);borderPalms++;
    }
+  }
   }
   return palms.length+borderPalms+oasisCount;
  }
