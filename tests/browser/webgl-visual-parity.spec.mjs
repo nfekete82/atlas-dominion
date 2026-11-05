@@ -124,11 +124,18 @@ test('dark natural map rim has no off-map foliage or reappearing bright exterior
    voidCover:v.visualPerimeter.voidCover.length,
    coveredGeometry:v.visualPerimeter.voidCover.every((overlay,i)=>
     overlay.geometry===v.visualPerimeter.meshes[i].geometry),
+   // Validate the *behavior* of the shader, rather than pinning it to
+   // an old hard-coded fade length. A Zero-Hour-style exterior must reach
+   // fully opaque black no farther than 24 world units from the boundary.
+   fadeStops:(()=>{
+    const shader=v.visualPerimeter.voidCover[0].material.fragmentShader;
+    const match=shader.match(/float\s+darkness\s*=\s*smoothstep\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*,\s*outside\s*\)/);
+    return match?[Number(match[1]),Number(match[2])]:null;
+   })(),
    permanentlyBlack:v.visualPerimeter.voidCover.every(overlay=>
     overlay.visible&&overlay.renderOrder===980&&
     overlay.material.depthTest===true&&overlay.material.depthWrite===false&&
-    overlay.material.fragmentShader.includes('vec4(0.0,0.0,0.0,darkness)')&&
-    overlay.material.fragmentShader.includes('smoothstep(-5.0,60.0,outside)'))
+    overlay.material.fragmentShader.includes('vec4(0.0,0.0,0.0,darkness)'))
   };
  });
  expect(state.samples[0]).toBeGreaterThan(0);
@@ -141,6 +148,11 @@ test('dark natural map rim has no off-map foliage or reappearing bright exterior
  expect(state.voidCover).toBe(48);
  expect(state.coveredGeometry).toBe(true);
  expect(state.permanentlyBlack).toBe(true);
+ expect(state.fadeStops).not.toBeNull();
+ expect(state.fadeStops[0]).toBeLessThanOrEqual(0);
+ expect(state.fadeStops[1]).toBeGreaterThan(state.fadeStops[0]);
+ expect(state.fadeStops[1]).toBeLessThanOrEqual(24);
+ expect(state.fadeStops[1]-state.fadeStops[0]).toBeLessThanOrEqual(26);
  // Render-only border never receives fog-of-war overlays: dense unknown
  // terrain is still hidden inside the 16 authoritative map chunks only.
  const fogState=await page.evaluate(()=>{
