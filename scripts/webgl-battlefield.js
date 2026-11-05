@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {clone as cloneSkeleton} from 'three/addons/utils/SkeletonUtils.js';
-import {UNITS,BUILDINGS,unitKinds,buildingKinds,unitSpec,buildingSpec} from '/src/reborn/catalog.js';
+import {UNITS,BUILDINGS,MAX_GENERATORS_PER_FACTION,unitKinds,buildingKinds,unitSpec,buildingSpec} from '/src/reborn/catalog.js';
 import {RULES} from '/src/reborn/config.js';
 import {installClassicHud} from '/webgl-classic-hud.js';
 import {hydrateUnitIcons,hydrateBuildingIcons,unitIcon,buildingIconUrl} from '/webgl-portraits.js';
@@ -769,6 +769,7 @@ export class SandforgeBattlefield {
   // but only the selected producer's section can be viewed or activated.
   for(const section of actions.querySelectorAll('[data-sf-producer]'))
    section.hidden=!context.producer||section.dataset.sfProducer!==context.producer.kind;
+  const generatorLimitReached=g.bases.filter(b=>b.owner===0&&b.kind==='generator'&&b.hp>0).length>=MAX_GENERATORS_PER_FACTION;
   for(const button of actions.querySelectorAll('button[data-unit],button[data-build]')){
    const kind=button.dataset.unit??button.dataset.build;
    const spec=button.dataset.unit?UNITS[kind]:BUILDINGS[kind];
@@ -776,7 +777,8 @@ export class SandforgeBattlefield {
    const unavailable=button.dataset.unit
     ?!correctProducer||g.needsHeadquarters(0)||context.producer.queue.length>=8||
       g.credits[0]<spec.cost||g.count(0)+g.queued(0)>=RULES.capacity
-    :!context.engineer||g.credits[0]<spec.cost||!g.hasHeadquarters(0)&&kind!=='headquarters';
+    :!context.engineer||g.credits[0]<spec.cost||!g.hasHeadquarters(0)&&kind!=='headquarters'||
+      kind==='generator'&&generatorLimitReached;
    const requirement=button.dataset.unit
     ?(!context.producer?'Produktionsgebäude auswählen':
        !correctProducer?'Dieses Gebäude produziert diese Einheit nicht':
@@ -784,7 +786,8 @@ export class SandforgeBattlefield {
        context.producer.queue.length>=8?'Warteschlange voll':
        g.credits[0]<spec.cost?'Zu wenig Credits':
        g.count(0)+g.queued(0)>=RULES.capacity?'Einheitenlimit erreicht':'')
-    :(!context.engineer?'Pionier auswählen':
+    :(kind==='generator'&&generatorLimitReached?'Maximal '+MAX_GENERATORS_PER_FACTION+' Energiekerne pro Fraktion':
+       !context.engineer?'Pionier auswählen':
        !g.hasHeadquarters(0)&&kind!=='headquarters'?'Hauptquartier zuerst fertigstellen':
        g.credits[0]<spec.cost?'Zu wenig Credits':
        kind==='headquarters'&&!g.needsHeadquarters(0)?'Hauptquartier bereits vorhanden':'');
