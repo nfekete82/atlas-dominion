@@ -854,3 +854,31 @@
  text-align:center;
  text-shadow:0 1px 2px #000a;
 }
+
+/* Multi-select uses the same cropped unit portraits, composed as a squad.
+   Single selected units and producer portraits keep their existing artwork. */
+#sf-classic-root #sf-selection-panel .portrait{position:relative!important;overflow:hidden}
+#sf-classic-root #sf-selection-panel #sf-portrait[hidden],
+#sf-classic-root #sf-selection-panel #sf-squad-portrait[hidden]{display:none!important}
+#sf-classic-root #sf-selection-panel .sf-squad-portrait{
+ position:absolute;inset:0;display:block;overflow:hidden;
+ background:radial-gradient(ellipse at 50% 72%,#485348b0,#18262fe8 79%);
+}
+#sf-classic-root #sf-selection-panel .sf-squad-member{
+ position:absolute;width:68%;height:80%;object-fit:contain;
+ bottom:6%;filter:drop-shadow(1px 3px 2px #000a);
+}
+#sf-classic-root #sf-selection-panel .sf-squad-member:nth-child(1){
+ left:-13%;z-index:1;transform:scale(.85);transform-origin:bottom center;
+}
+#sf-classic-root #sf-selection-panel .sf-squad-member:nth-child(2){
+ left:18%;z-index:3;transform:scale(1.04);transform-origin:bottom center;
+}
+#sf-classic-root #sf-selection-panel .sf-squad-member:nth-child(3){
+ left:48%;z-index:2;transform:scale(.88);transform-origin:bottom center;
+}
+#sf-classic-root #sf-selection-panel .sf-squad-count{
+ position:absolute;right:4px;bottom:3px;z-index:4;
+ padding:1px 4px;border:1px solid #c9ad72a0;border-radius:3px;
+ background:#101c24e8;color:#f2dfb7;font:800 12px/1.25 var(--mono,monospace);
+}
