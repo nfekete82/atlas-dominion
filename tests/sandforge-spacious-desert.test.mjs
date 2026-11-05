@@ -199,4 +199,15 @@ test('tank moves only after turning the independent gun, then the slower hull',(
  aligned.path=[{x:aligned.x,y:aligned.y+175}];aligned.repath=999;
  game.move(aligned,aligned.path[0],.05);
  assert.ok(aligned.y>start.y,'aligned tank may accelerate immediately');
+ // While already rolling, subsequent waypoints must steer the cannon
+ // gradually instead of instantaneously snapping at a path corner.
+ const previousGun=unit.angle;
+ unit.driveSpeed=45;unit.path=[{x:unit.x+140,y:unit.y}];unit.repath=999;
+ game.move(unit,unit.path[0],.05);
+ const gunStep=Math.abs(Math.atan2(
+  Math.sin(unit.angle-previousGun),Math.cos(unit.angle-previousGun)));
+ assert.ok(gunStep<=2.05*.05+.00001,'moving cannon must not snap to new waypoint');
+ // Stopping clears the motor; the next command must start from rest.
+ game.stop([unit.id]);
+ assert.equal(unit.driveSpeed,0,'stop command resets tank acceleration');
 });
