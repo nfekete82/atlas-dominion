@@ -189,3 +189,17 @@ WebGL-Spiel: `http://127.0.0.1:8102/webgl-preview.html?bastions=4&seed=2074&perf
 
 Dieser Plan ist **kein** Nachweis einer bereits abgeschlossenen Migration
 oder Release-Freigabe.
+
+
+## Lokale Integrationsabnahme — 05.11.2026, Commit `e0b194d`
+
+Vom Entwickler auf dem Mac im Worktree `~/Projects/sandforge-input-preview` ausgeführt:
+
+- `git fetch origin && git switch --detach origin/fix/webgl-classic-input-parity-20261104` → HEAD `e0b194d`.
+- `npm run test:webgl-integration` → `tsc` + Build erfolgreich.
+- Node `node --test ...` → **17/17 bestanden**, 0 fehlgeschlagen.
+- Playwright Chromium → **70/70 bestanden**, 0 fehlgeschlagen; angezeigte Dauer 1,0 min.
+- **Nicht** aus dieser Ausgabe ableitbar: reale grafische Sichtabnahme, vollständiges `npm test`, Langzeit-Performance, Gameplay-/KI-Balance oder Produktionsfreigabe.
+- Beim Checkout meldete Git **`M scripts/webgl-construction.js`**: lokale, nicht eingecheckte Änderung; vor weiterem Wechseln/Zurücksetzen nicht überschreiben.
+
+**Nächster Gate-G0-Schritt:** `npm test` auf exakt diesem HEAD ausführen; alle Fehler gegen die bestehende 18-Fehler-Baseline klassifizieren. Parallel den reversiblen 3D-Root mit `PORT=8102 HOST=127.0.0.1 npm run dev:3d` starten und echte Waffenprojektil-/Lebensbalken-/Bauablauf-/Pause-/Eroberungsfälle manuell prüfen. Keine Main- oder Deployment-Änderungen vor der Freigabe.
