@@ -161,6 +161,68 @@ export class SandforgeBattlefield {
     ?mesh.material.map(brighten):brighten(mesh.material);
   });
  }
+ // Restore authored building activity. Clip-controlled rotors get driven by
+ // authoritative turretAngle; exported static models receive an unobtrusive
+ // procedural animated attachment instead of freezing permanently.
+ createMechanicalRotor(kind,height,width=105){
+  const root=new THREE.Group(),mat=new THREE.MeshStandardMaterial({
+   color:kind==='turret'?'#777f79':'#a9b6ad',metalness:.68,roughness:.42
+  });
+  const dark=new THREE.MeshStandardMaterial({color:'#303c42',metalness:.65,roughness:.6});
+  if(kind==='turret'){
+   const body=new THREE.Mesh(new THREE.CylinderGeometry(13,17,8,12),mat);
+   body.castShadow=true;root.add(body);
+   for(const x of [-5.5,5.5]){
+    const barrel=new THREE.Mesh(new THREE.CylinderGeometry(1.8,2.3,31,8),dark);
+    barrel.rotation.x=Math.PI/2;barrel.position.set(x,1,-23);
+    barrel.castShadow=true;root.add(barrel);
+   }
+  }else{
+   const pole=new THREE.Mesh(new THREE.CylinderGeometry(1.9,2.6,16,8),dark);
+   pole.position.y=6;root.add(pole);
+   const frame=new THREE.Mesh(new THREE.BoxGeometry(29,2.2,6),mat);
+   frame.position.y=15;frame.rotation.z=-.2;frame.castShadow=true;root.add(frame);
+   for(const x of [-12,12]){
+    const reflector=new THREE.Mesh(new THREE.BoxGeometry(2,15,5),mat);
+    reflector.position.set(x,16,0);reflector.castShadow=true;root.add(reflector);
+   }
+  }
+  root.position.set(kind==='turret'?0:width*.18,height*(kind==='turret'?.84:.78),kind==='turret'?0:-width*.12);
+  root.name='sandforge-animated-'+(kind==='turret'?'gun':'radar');
+  root.userData={visualOnly:true,mechanicalMotion:true};
+  return root;
+ }
+ attachBuildingMotion(entry,data){
+  if(!['turret','headquarters'].includes(entry.kind))return;
+  const name=entry.kind==='turret'?'TurretTraverse':'RadarSpin';
+  const clip=data.animations?.find(c=>c.name===name);
+  if(clip?.tracks?.length){
+   const mixer=new THREE.AnimationMixer(entry.detail),action=mixer.clipAction(clip);
+   action.setLoop(THREE.LoopRepeat,Infinity);action.play();
+   if(entry.kind==='turret')action.paused=true;
+   entry.motion={kind:entry.kind,mixer,clip,action,mode:'authored'};
+  }else{
+   const rotor=this.createMechanicalRotor(entry.kind,entry.modelHeight,BUILDINGS[entry.kind].width);
+   entry.node.add(rotor);
+   entry.motion={kind:entry.kind,rotor,mode:'fallback'};
+  }
+ }
+ animateBuildingMotion(entry,base,dt,active){
+  const motion=entry.motion;
+  if(!motion||base.buildRemaining>0)return;
+  if(motion.kind==='turret'){
+   const angle=Number.isFinite(base.turretAngle)?base.turretAngle:0;
+   if(motion.mixer&&motion.clip){
+    const phase=((angle%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
+    motion.action.paused=false;
+    motion.mixer.setTime(phase/(Math.PI*2)*motion.clip.duration);
+    motion.action.paused=true;
+   }else if(motion.rotor)motion.rotor.rotation.y=Math.PI*.5-angle;
+  }else if(active){
+   if(motion.mixer)motion.mixer.update(dt);
+   else if(motion.rotor)motion.rotor.rotation.y+=dt*.52;
+  }
+ }
  pumpModelQueue(){
   while(this.loadingCount<2&&this.modelQueue.length){
    const task=this.modelQueue.shift();this.loadingCount++;
@@ -190,6 +252,7 @@ export class SandforgeBattlefield {
     entry.modelHeight=dims.y*visualScale;
     entry.modelFootprint=Math.max(dims.x,dims.z)*visualScale;
     entry.visualBaseY=model.position.y;entry.visualBaseZ=model.position.z;
+    if(type==='building')this.attachBuildingMotion(entry,data);
     if(type==='unit'&&data.animations.length){
      const mixer=new THREE.AnimationMixer(model);
      const idle=data.animations.find(a=>/idle|stand|hover|engine/i.test(a.name))||data.animations[0];
@@ -331,6 +394,7 @@ export class SandforgeBattlefield {
    entry.node.scale.y=1;
    entry.node.rotation.y=b.facing===1?Math.PI:0;
    this.construction.update(entry,b);
+   this.animateBuildingMotion(entry,b,dt,active);
    if(b.buildRemaining<=0&&!this.announcedBuildings.has(b.id)){
     this.announcedBuildings.add(b.id);
     if(b.owner===0&&this.sound?.enabled)this.sound.announceReady('building');
@@ -367,7 +431,13 @@ export class SandforgeBattlefield {
      this.panel.querySelector('#sf-message')?.setAttribute('data-sector-event','lost');
     }
    }
-   if(entry)updateBastionCaptureBar(entry.captureBar,territory,this.game,this.fogEnabled);
+   if(entry){
+    updateBastionCaptureBar(entry.captureBar,territory,this.game,this.fogEnabled);
+    if(active&&entry.motion){
+     if(entry.motion.mixer)entry.motion.mixer.update(dt);
+     else if(entry.motion.rotor)entry.motion.rotor.rotation.y+=dt*.35;
+    }
+   }
   }
   this.updateSelectionRings();
   this.updateShots();
@@ -390,6 +460,16 @@ export class SandforgeBattlefield {
    this.lightBuildingMeshes(detail);
    if(entry.detail)entry.node.remove(entry.detail);
    entry.detail=detail;entry.node.add(detail);
+   // Bastions also have the RadarSpin animation in their authored assets.
+   const radarClip=data.animations?.find(c=>c.name==='RadarSpin');
+   if(radarClip?.tracks?.length){
+    const mixer=new THREE.AnimationMixer(detail),action=mixer.clipAction(radarClip);
+    action.setLoop(THREE.LoopRepeat,Infinity);action.play();
+    entry.motion={kind:'headquarters',mixer,action,mode:'authored'};
+   }else{
+    const rotor=this.createMechanicalRotor('headquarters',115,116);
+    entry.node.add(rotor);entry.motion={kind:'headquarters',rotor,mode:'fallback'};
+   }
    entry.pad.visible=false;entry.core.visible=false;
   }catch(error){console.warn('Bastion 3D model fallback',error);}
  }
