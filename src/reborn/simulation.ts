@@ -720,7 +720,12 @@ export class Simulation {
     if(spec.group!=='Infanterie'){
       const desired=Math.atan2(dy,dx),current=u.hullAngle??u.angle,error=Math.atan2(Math.sin(desired-current),Math.cos(desired-current));
       const turnRate=spec.flying?1.8:u.kind==='tank'?1.05:2.5;
-      u.hullAngle=current+clamp(error,-turnRate*dt,turnRate*dt);
+      // Startup already slewed the tank hull in the gun -> hull -> drive
+      // sequence above. Do not rotate it a second time during the same tick:
+      // that doubled the advertised 1.05 rad/s yaw limit at departure.
+      // Once driving, this shared steering pass handles route bends normally.
+      if(u.kind!=='tank'||(u.driveSpeed??0)>=2)
+        u.hullAngle=current+clamp(error,-turnRate*dt,turnRate*dt);
       const remaining=Math.max(0,distance(u,target)-14),braking=spec.speed*2.8;
       // Aircraft can translate while banking/turning during a direct move.
       // Otherwise a helicopter ordered to retreat in the opposite direction
