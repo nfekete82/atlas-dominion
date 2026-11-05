@@ -1010,3 +1010,14 @@
  #sf-classic-root #sf-production .sf-production-heading strong{font-size:11px}
  #sf-classic-root #sf-production #sf-queue-count{font-size:8px!important}
 }
+/* Global production overview: each queue tile identifies its producer without
+   requiring any building selection. Keep three lines legible at tactical zoom. */
+#sf-classic-root #sf-production .sf-production-source{
+ display:block;max-width:100%;overflow:hidden;white-space:nowrap;
+ text-overflow:ellipsis;color:#c5ad83;
+ font:700 9px/1.12 var(--display,system-ui);
+}
+#sf-classic-root #sf-production .sf-production-slot.is-active .sf-production-source{
+ color:#efc886;
+}
+
