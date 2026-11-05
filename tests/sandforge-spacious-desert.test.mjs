@@ -6,6 +6,7 @@ import {Simulation} from '../dist/src/reborn/simulation.js';
 import {mapWorldSize,mapLayout} from '../dist/src/reborn/config.js';
 import {generateMap} from '../dist/src/reborn/world-generation.js';
 import {visualUnitScale} from '../dist/webgl-scale.js';
+import {buildingProps} from '../dist/src/reborn/building-decor.js';
 
 const versions=[[15,19,4],[16,20,8],[17,21,12],[18,22,16]];
 
@@ -95,6 +96,29 @@ test('all four 3D building facings survive saves, and legacy facing=1 remains va
    const building=invalid.bases.find(b=>b.id===base.id);
    building.facing=4;
    assert.throws(()=>Simulation.load(invalid),/beschädigt/);
+  }
+ }
+});
+
+test('building props preserve classic facings and rotate consistently for 90 and 270 degrees',()=>{
+ const anchor={x:1200,y:1400},radius=65,seed=2074;
+ for(const kind of ['headquarters','barracks','factory','airfield','generator','turret','bastion']){
+  const standard=buildingProps(kind,anchor,radius,1000,seed,0);
+  assert.ok(standard.length>0,kind+' needs at least one service prop');
+  for(const facing of [1,2,3]){
+   const oriented=buildingProps(kind,anchor,radius,1000,seed,facing);
+   assert.equal(oriented.length,standard.length);
+   for(let i=0;i<standard.length;i++){
+    const a=standard[i],actual=oriented[i],dx=a.x-anchor.x,dy=a.y-anchor.y;
+    const expected=facing===1?{x:-dx,y:dy}:
+     facing===2?{x:dy,y:-dx}:{x:-dy,y:dx};
+    assert.equal(actual.kind,a.kind);
+    assert.equal(actual.variant,a.variant);
+    assert.ok(Math.abs(actual.x-anchor.x-expected.x)<1e-8,
+     kind+' facing '+facing+' X prop drift');
+    assert.ok(Math.abs(actual.y-anchor.y-expected.y)<1e-8,
+     kind+' facing '+facing+' Y prop drift');
+   }
   }
  }
 });
