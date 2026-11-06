@@ -42,7 +42,7 @@ test('tactical: two nearby losses create a danger memory without revealing the u
  for(let i=0;i<2;i++){const victim=g.spawn(1,{x:1350,y:1900+i*40});victim.hp=1;b.cooldown=0;g.damage(b,victim,6,'turret',{x:b.x,y:b.y});}
  g.units=g.units.filter(u=>u.hp>0);assert.equal(g.tactical.state.losses.length,2);assert.equal(g.tactical.state.knownTurrets.length,0);force(g);
  assert.notEqual(g.tactical.state.phase,'attack');assert.ok(u.orders[0]?.tactical.mode==='safe');assert.ok(distance(u.orders[0],b)>600);
- for(let i=0;i<4;i++){g.time+=3;force(g);assert.notEqual(g.tactical.state.phase,'attack');}
+ for(let i=0;i<4;i++){g.time+=3;force(g);assert.notEqual(g.tactical.state.phase,'attack',JSON.stringify({target:g.tactical.state.target,phase:g.tactical.state.phase,knownTurrets:g.tactical.state.knownTurrets,options:g.tactical.strategyOptions,group:g.tactical.state.group}));}
 });
 
 test('tactical: a standard group launches together with shared pace, keeps a home guard and does not overwrite stable commands',()=>{
@@ -64,7 +64,7 @@ test('tactical: a defended bastion waits for six to ten real combat units and th
 
 test('tactical: a safer income sector wins over a tower covered objective and repeated failed assaults trigger regrouping',()=>{
  const {g,u,target,own}=fixture();target.point={x:1900,y:1900};const b=tower(g);reveal(g,b);
- const alternative=g.territories[2];alternative.point={x:1150,y:2800};alternative.neighbors=[own.id];own.neighbors.push(alternative.id);force(g);assert.equal(g.tactical.state.target,alternative.id);
+ const alternative=g.territories[2];alternative.point={x:1150,y:2800};alternative.neighbors=[own.id];own.neighbors.push(alternative.id);force(g);assert.equal(g.tactical.state.target,alternative.id,JSON.stringify({actual:g.tactical.state.target,alternative:alternative.id,options:g.tactical.strategyOptions,knownTurrets:g.tactical.state.knownTurrets}));
  for(let i=0;i<5;i++)g.spawn(1,{x:1100+i*16,y:1900+i*9});g.tactical.state.phase='gather';g.tactical.state.group=[];force(g);assert.equal(g.tactical.state.phase,'attack');const ids=[...g.tactical.state.group];
  for(const id of ids.slice(0,2)){const unit=g.units.find(u=>u.id===id);unit.hp=0;g.tactical.loss(unit);}g.units=g.units.filter(u=>u.hp>0);force(g);
  assert.equal(g.tactical.state.phase,'regroup');assert.ok(g.tactical.state.attempts.some(a=>a.losses===2));assert.ok(red(g).some(u=>u.orders[0]?.tactical.mode==='safe'));
@@ -98,7 +98,7 @@ test('tactical: a mixed assault actually advances at the heavy pace while the me
  for(let i=0;i<7;i++)g.spawn(1,{x:1130+(i%3)*27,y:1880+Math.floor(i/3)*26},i===0?'heavy':i===1?'rover':i===2?'tank':'infantry');
  const m=g.spawn(1,{x:1080,y:1900},'medic');force(g);assert.equal(g.tactical.state.phase,'attack');
  const members=red(g).filter(u=>g.tactical.state.group.includes(u.id)&&u.kind!=='medic'),initial=new Map(members.map(u=>[u.id,{x:u.x,y:u.y}]));
- advance(g,4);const distances=members.map(u=>distance(u,initial.get(u.id)));assert.ok(distances.every(d=>d>200));assert.ok(Math.max(...distances)<UNITS.heavy.speed*4+10);assert.ok(Math.max(...members.map(u=>u.x))-Math.min(...members.map(u=>u.x))<115,'front stays within the coordinated march bound despite local vehicle queuing');assert.ok(m.x<Math.min(...members.map(u=>u.x))-25);
+ advance(g,4);const distances=members.map(u=>distance(u,initial.get(u.id)));assert.ok(distances.every(d=>d>200),JSON.stringify({distances,members:members.map(u=>({id:u.id,kind:u.kind,x:u.x,y:u.y,orders:u.orders.slice(0,1)})),phase:g.tactical.state.phase,group:g.tactical.state.group}));assert.ok(Math.max(...distances)<UNITS.heavy.speed*4+10);assert.ok(Math.max(...members.map(u=>u.x))-Math.min(...members.map(u=>u.x))<115,'front stays within the coordinated march bound despite local vehicle queuing');assert.ok(m.x<Math.min(...members.map(u=>u.x))-25);
 });
 
 for(const version of [0,2])test(`tactical: active v${version} campaign save continues with the same strategy, production and territory`,()=>{
