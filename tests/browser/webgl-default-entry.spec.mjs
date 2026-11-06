@@ -4,7 +4,7 @@ import {test,expect} from '@playwright/test';
 // explicitly set SANDFORGE_RENDERER=classic to test the Canvas reference.
 test('release candidate starts the actual WebGL game at / and keeps classic accessible',async({page,request})=>{
  test.skip(process.env.SANDFORGE_RENDERER==='classic',
-  'Run with SANDFORGE_RENDERER=webgl after the 3D release candidate build');
+  'The explicitly classic build must not be tested as a 3D root');
  test.setTimeout(125000);
  const errors=[];
  page.on('pageerror',error=>errors.push(error.message));
@@ -30,8 +30,8 @@ test('release candidate starts the actual WebGL game at / and keeps classic acce
 
 
 test('3D root menu keeps all new games and saves on / instead of returning to preview',async({page})=>{
- test.skip(process.env.SANDFORGE_RENDERER!=='webgl',
-  'Requires SANDFORGE_RENDERER=webgl release-candidate build');
+ test.skip(process.env.SANDFORGE_RENDERER==='classic',
+  'The classic override intentionally exposes Canvas at /');
  test.setTimeout(210000);
  const errors=[];
  page.on('pageerror',err=>errors.push(err.message));
