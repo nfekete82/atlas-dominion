@@ -23,9 +23,20 @@ test('Prebuilt client serves HTML, CSS, JS and no source secrets',async()=>{
   try{
     const base=`http://127.0.0.1:${port}`;
     await waitReady(base,server);
-    const reborn=await fetch(base+'/').then(r=>r.text());
+    const entry=await fetch(base+'/').then(r=>r.text());
+    const classicResponse=await fetch(base+'/classic.html');
+    assert.equal(classicResponse.status,200,'explicit Classic fallback must load');
+    const reborn=await classicResponse.text();
+    if(process.env.SANDFORGE_RENDERER==='classic'){
+      assert.match(entry,/<canvas id="world"/,'explicit classic build retains its original root');
+    }else{
+      assert.match(entry,/id="stage"/,'ordinary release must start Three.js/WebGL at /');
+      assert.match(entry,/type="importmap"/,'3D root must include local Three.js import map');
+      assert.doesNotMatch(entry,/<canvas id="world"/,'Canvas must not be the standard root');
+      assert.match(entry,/href="\/classic\.html"/,'3D root must link back to Classic');
+    }
     for(const id of ['world','minimap','credits','income','production','recruit','save','load'])
-      assert.ok(reborn.includes(`id="${id}"`),id);
+      assert.ok(reborn.includes(`id="${id}"`),'classic '+id);
     assert.match(reborn,/src\/reborn\/main.js/);
     const html=await fetch(base+'/legacy/index.html').then(r=>r.text());
     assert.match(html,/ATLAS DOMINION/);
@@ -43,7 +54,7 @@ test('Prebuilt client serves HTML, CSS, JS and no source secrets',async()=>{
     assert.match(html,/id="defenseTickLoss"/);
     assert.match(html,/id="battleReport"/);
     for(const id of ["mobileTroops","frontTroops","offensiveTroops","fallenTroops"])assert.ok(html.includes(`id="${id}"`),id);
-    for(const [path,contentType] of [['/src/reborn/main.js','text/javascript'],['/src/reborn/simulation.js','text/javascript'],['/src/assets/reborn/desert.png','image/png'],['/legacy/style.css','text/css'],['/style.css','text/css'],['/src/main.js','text/javascript'],['/src/engine/game.js','text/javascript'],['/src/data/europe.js','text/javascript'],['/src/data/countries.js','text/javascript'],['/src/engine/economy.js','text/javascript'],['/src/engine/difficulty.js','text/javascript'],['/src/render/building-markers.js','text/javascript'],['/src/render/front-battles.js','text/javascript']]){
+    for(const [path,contentType] of [['/webgl-preview.js','text/javascript'],['/webgl-battlefield.js','text/javascript'],['/vendor/three/three.module.js','text/javascript'],['/src/reborn/main.js','text/javascript'],['/src/reborn/simulation.js','text/javascript'],['/src/assets/reborn/desert.png','image/png'],['/legacy/style.css','text/css'],['/style.css','text/css'],['/src/main.js','text/javascript'],['/src/engine/game.js','text/javascript'],['/src/data/europe.js','text/javascript'],['/src/data/countries.js','text/javascript'],['/src/engine/economy.js','text/javascript'],['/src/engine/difficulty.js','text/javascript'],['/src/render/building-markers.js','text/javascript'],['/src/render/front-battles.js','text/javascript']]){
       const response=await fetch(base+path);
       assert.equal(response.status,200,path);
       assert.ok(response.headers.get('content-type').includes(contentType),path);
