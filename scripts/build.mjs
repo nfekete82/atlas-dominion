@@ -1,10 +1,13 @@
 import { cpSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import {createHash} from 'node:crypto';
 mkdirSync('dist', { recursive: true });
-// Reversible WebGL-first release candidate. The old Canvas renderer is
-// preserved as /classic.html while it is still needed for migration tests.
-// G0 checks must pass before the standard build is switched to WebGL.
-const webglDefault=process.env.SANDFORGE_RENDERER==='webgl';
+// RC2: WebGL is the default for all ordinary builds, including Docker.
+// Explicit SANDFORGE_RENDERER=classic retains the historical root for
+// isolated legacy regression tests; /classic.html is always emitted.
+const renderer=process.env.SANDFORGE_RENDERER??'webgl';
+if(!['webgl','classic'].includes(renderer))
+ throw Error('SANDFORGE_RENDERER must be webgl or classic, got '+renderer);
+const webglDefault=renderer==='webgl';
 cpSync('index.html','dist/classic.html');
 if(webglDefault){
   const landing=readFileSync('webgl-preview.html','utf8')
