@@ -1056,8 +1056,8 @@ export class Simulation {
           countProduced(this.stats,b.owner);if(b.owner===0)this.notices.push(`Einheit bereit: ${spec.name}.`);b.queue.shift();b.queueTypes.shift();b.queueCosts?.shift();b.production=0;if(b.rally)this.command([u.id],{...b.rally,kind:'attackMove'});
           // Arm *after* the automatic rally call so subsequent explicit orders
           // can cancel this hold. These are bounded, deterministic sim times.
-          if(b.kind==='factory')u.productionExitUntil=this.time+((b.facing===1||b.facing===3)?9.0:6.5);
-          else if(b.kind==='barracks')u.productionExitUntil=this.time+3.3;
+          if(this.world.mapVersion>=19&&b.kind==='factory')u.productionExitUntil=this.time+((b.facing===1||b.facing===3)?9.0:6.5);
+          else if(this.world.mapVersion>=19&&b.kind==='barracks')u.productionExitUntil=this.time+3.3;
         }
       }
     }
