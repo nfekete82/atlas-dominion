@@ -418,6 +418,14 @@ export class Simulation {
          ?[...buildings,...infantryStructureColliders(buildings),...towers]
          :[...buildings,...vehicleStructureColliders(buildings),...this.vehicleDecorObstacles(),...towers];
        const target=this.world.nearest(destination,obstacles,[],u);
+      // A tank moves its rear escort point every tick. Keeping the old
+      // seven-tenths-second path to that moving point leaves legacy assault
+      // infantry trailing the armor even on clear terrain. Only refresh when
+      // its path endpoint is materially stale; modern campaign and manual
+      // formations retain their existing cadence and obstacle rules.
+      if(target&&fighter&&u.owner===1&&this.world.mapVersion<=2&&
+        order?.tactical?.mode==='assault'&&u.path.length&&
+        distance(u.path[u.path.length-1],target)>18){u.path=[];u.repath=0;}
       if(target){const before={x:u.x,y:u.y},walk=u.walkDistance;// Pioneers match the squad pace even when a nearby vehicle needs repair;
         // an isolated pioneer (without formation) still uses its full catalog speed.
         this.move(u,target,dt,medic&&patient?unitSpec(u).speed:Math.min(...front.map(v=>unitSpec(v).speed)));
