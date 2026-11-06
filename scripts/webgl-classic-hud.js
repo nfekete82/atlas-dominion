@@ -33,7 +33,7 @@ export function installClassicHud(){
    <button data-tab="territories" aria-pressed="false">SEKTOREN</button>
   </nav>
   <div class="catalog-scroll" id="sf-actions" aria-label="Einheiten, Gebäude und Territorien"></div>
-  <section class="production sf-production-panel" id="sf-production" aria-label="Produktion und Warteschlange">
+  <section class="production hud frame sf-production-panel" id="sf-production" aria-label="Produktion und Warteschlange">
    <div class="sf-production-heading">
     <strong>PRODUKTION</strong>
     <span id="sf-queue-count">0 AUFTRÄGE</span>
@@ -81,6 +81,9 @@ export function installClassicHud(){
 <div class="sf-debug" id="sf-debug"><span id="sf-debug-status"></span><span id="sf-debug-error"></span></div>
 `;
  document.body.append(panel);
+ // Give production its own framed column next to radar and catalog.
+ // Move the EXISTING node so all queue/cancel handlers and IDs stay intact.
+ panel.querySelector('#sidebar').append(panel.querySelector('#sf-production'));
  const tools=panel.querySelector('#sf-tools');
  const move=(id,parent)=>{
   const el=document.getElementById(id);if(!el)throw new Error('Missing existing WebGL control '+id);

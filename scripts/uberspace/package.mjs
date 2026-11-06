@@ -36,6 +36,9 @@ export async function listFiles(root,prefix=''){
  }return result.sort();
 }
 export async function packageProduction({root,output,release,commit,branch}){
+ const rootHTML=await readFile(path.join(root,'dist/index.html'),'utf8');
+ if(/id=["']stage["']/.test(rootHTML)||/webgl-preview\.js/.test(rootHTML))
+  throw Error('Uberspace legacy packaging does not contain the complete WebGL module graph; refusing unsafe partial 3D release.');
  if(!validRelease(release))throw Error('Invalid release ID');
  const dist=path.join(root,'dist'),included=new Set(['index.html','style.css','retro-desert.css','building-art-version.json']);
  const queue=['src/reborn/main.js'];

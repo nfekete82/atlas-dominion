@@ -11,10 +11,10 @@ test('the classic Canvas RTS stays available through a stable explicit URL',()=>
  assert.match(classic,/src="\/src\/reborn\/main\.js"/,'classic game retains its controller entry');
 });
 
-test('3D root switch is reversible and preserves the standalone WebGL entry',()=>{
+test('WebGL is the normal root and the classic override remains reversible',()=>{
  const landing=read('dist/index.html');
  const standalone=read('dist/webgl-preview.html');
- const webglDefault=process.env.SANDFORGE_RENDERER==='webgl';
+ const webglDefault=process.env.SANDFORGE_RENDERER!=='classic';
  assert.match(standalone,/id="stage"/,'WebGL game must still have its original standalone URL');
  if(webglDefault){
   assert.match(landing,/id="stage"/,'3D build must open a real Three.js stage at /');
@@ -23,7 +23,7 @@ test('3D root switch is reversible and preserves the standalone WebGL entry',()=
   assert.match(landing,/href="\/classic\.html"/,'legacy fallback cannot loop back into 3D');
   assert.doesNotMatch(landing,/THREE\.JS PREVIEW/,'released title must not say preview');
  }else{
-  assert.match(landing,/<canvas id="world"/,'standard build remains classic until 3D release gate');
+  assert.match(landing,/<canvas id="world"/,'explicit classic override must keep old root');
   assert.match(landing,/src="\/src\/reborn\/main\.js"/);
  }
 });

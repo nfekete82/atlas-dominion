@@ -1,10 +1,10 @@
 import {test,expect} from '@playwright/test';
 
-// The 3D root is opt-in during G0. CI builds with SANDFORGE_RENDERER=webgl
-// and exercises a real WebGL scene, not just HTML string replacement.
+// RC2: the ordinary build opens the 3D game at /. Legacy-only suites
+// explicitly set SANDFORGE_RENDERER=classic to test the Canvas reference.
 test('release candidate starts the actual WebGL game at / and keeps classic accessible',async({page,request})=>{
- test.skip(process.env.SANDFORGE_RENDERER!=='webgl',
-  'Run with SANDFORGE_RENDERER=webgl after the 3D release candidate build');
+ test.skip(process.env.SANDFORGE_RENDERER==='classic',
+  'The explicitly classic build must not be tested as a 3D root');
  test.setTimeout(125000);
  const errors=[];
  page.on('pageerror',error=>errors.push(error.message));
@@ -30,8 +30,8 @@ test('release candidate starts the actual WebGL game at / and keeps classic acce
 
 
 test('3D root menu keeps all new games and saves on / instead of returning to preview',async({page})=>{
- test.skip(process.env.SANDFORGE_RENDERER!=='webgl',
-  'Requires SANDFORGE_RENDERER=webgl release-candidate build');
+ test.skip(process.env.SANDFORGE_RENDERER==='classic',
+  'The classic override intentionally exposes Canvas at /');
  test.setTimeout(210000);
  const errors=[];
  page.on('pageerror',err=>errors.push(err.message));
@@ -72,4 +72,17 @@ test('3D root menu keeps all new games and saves on / instead of returning to pr
  }));
  expect(resumed).toEqual({seed:2074,model:true,route:'/'});
  expect(errors).toEqual([]);
+});
+
+test('RC2: a failed WebGL import displays a usable Classic escape hatch',async({page})=>{
+ test.skip(process.env.SANDFORGE_RENDERER==='classic','Classic override does not load WebGL at /');
+ test.setTimeout(35000);
+ await page.route('**/webgl-preview.js',route=>route.abort('failed'));
+ await page.goto('/?bastions=4&seed=2074&lite=1',{waitUntil:'domcontentloaded'});
+ await expect(page.locator('#sf3d-fatal')).toBeVisible({timeout:15000});
+ await expect(page.locator('#sf3d-fatal-detail')).not.toBeEmpty();
+ await expect(page.locator('#sf3d-fatal a[href="/classic.html"]')).toBeVisible();
+ await page.locator('#sf3d-fatal a[href="/classic.html"]').click();
+ await expect(page).toHaveURL(/\/classic\.html$/);
+ await expect(page.locator('canvas#world')).toBeVisible();
 });

@@ -9,7 +9,8 @@
     "dev": "npm run build && node scripts/serve.mjs",
     "preview": "node scripts/serve.mjs",
     "test": "npm run build && node --test tests/*.test.mjs",
-    "test:browser": "npm run build && npm --prefix tests/browser test",
+    "test:browser": "npm run test:webgl-integration",
+    "test:browser:classic": "npm run build:classic && npm --prefix tests/browser test",
     "test:reborn": "npm run build && node --test tests/reborn.test.mjs tests/reborn-campaign.test.mjs",
     "test:animation": "npm run build && node --test tests/reborn-animation.test.mjs tests/reborn-buildings.test.mjs tests/reborn-building-pbr.test.mjs tests/reborn-building-rigs.test.mjs",
     "assets:animations": "node scripts/render-unit-atlases.mjs",
@@ -35,7 +36,9 @@
     "deploy:uberspace:rollback": "node scripts/deploy-uberspace.mjs --rollback",
     "test:webgl-integration": "npm run build && node --test tests/sandforge-spacious-desert.test.mjs tests/sandforge-bastion-navigation.test.mjs tests/reborn-combat-index.test.mjs tests/sandforge-webgl-entry.test.mjs && node scripts/test-webgl-integration.mjs",
     "build:3d": "SANDFORGE_RENDERER=webgl npm run build",
-    "dev:3d": "SANDFORGE_RENDERER=webgl npm run dev"
+    "build:classic": "SANDFORGE_RENDERER=classic npm run build",
+    "dev:3d": "SANDFORGE_RENDERER=webgl npm run dev",
+    "dev:classic": "SANDFORGE_RENDERER=classic npm run dev"
   },
   "devDependencies": {
     "three": "0.180.0",

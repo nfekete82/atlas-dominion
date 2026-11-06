@@ -1,0 +1,158 @@
+name: Sandforge WebGL RC2 default entry and preview gate
+
+on:
+  push:
+    branches:
+      - feat/webgl-default-rc2-20261106
+  pull_request:
+    branches:
+      - test/webgl-rc1-ci-stress-20261106
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sandforge-rc2-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  node:
+    name: TypeScript + complete simulation and reversible entry
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install pinned dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Full game regression with normal WebGL default
+        run: npm test
+      - name: RC2 root, Docker isolation and unsafe deploy packaging
+        run: node --test tests/rc2-release-entry.test.mjs tests/sandforge-webgl-entry.test.mjs
+      - name: Confirm legacy override is reversible
+        run: |
+          npm run build:classic
+          SANDFORGE_RENDERER=classic node --test tests/sandforge-webgl-entry.test.mjs tests/rc2-release-entry.test.mjs
+      - name: Restore default WebGL and verify legacy deploy guard fails safely
+        run: |
+          npm run build
+          if npm run deploy:uberspace:dry-run > /tmp/sf-rc2-guard.log 2>&1; then
+            echo 'ERROR: legacy deploy unexpectedly accepted WebGL'
+            exit 1
+          fi
+          grep -q 'Uberspace deployment blocked' /tmp/sf-rc2-guard.log
+
+  chromium:
+    name: Real Chromium WebGL regression and root menu/save
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CI: 'true'
+      ATLAS_BROWSER_CHANNEL: chromium
+      LIBGL_ALWAYS_SOFTWARE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies and Chromium
+        run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix tests/browser --no-audit --no-fund
+          cd tests/browser
+          npx playwright install --with-deps chromium
+      - name: Fast Mac-sized four-panel HUD layout without GPU load
+        run: |
+          npm run build
+          tests/browser/node_modules/.bin/playwright test \
+            --config=tests/browser/playwright.config.mjs \
+            tests/browser/webgl-hud-responsive.spec.mjs \
+            --workers=1 --reporter=line
+      - name: Full WebGL game integration (17 Node + Chromium specs)
+        run: npm run test:webgl-integration
+      - name: Default root menu, save/restore and explicit classic URL
+        run: |
+          tests/browser/node_modules/.bin/playwright test \
+            --config=tests/browser/playwright.config.mjs \
+            tests/browser/webgl-default-entry.spec.mjs \
+            --workers=1 --reporter=line
+      - name: Classic UI migration baseline (no WebGL root substitution)
+        run: |
+          npm run build:classic
+          tests/browser/node_modules/.bin/playwright test \
+            --config=tests/browser/reborn.config.mjs \
+            tests/browser/reborn-compact-ui.spec.mjs \
+            --workers=1 --reporter=line
+      - name: Keep test traces for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandforge-rc2-browser-${{ github.run_id }}
+          path: tests/browser/artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  docker-preview:
+    name: Docker release artifact and independent preview smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build real Docker image with new default
+        run: docker build -t sandforge-rc2-ci:latest .
+      - name: Run isolated container and check delivered WebGL assets
+        run: |
+          set -euo pipefail
+          docker run -d --name sandforge-rc2-ci -p 127.0.0.1:8105:8095 sandforge-rc2-ci:latest
+          trap 'docker rm -f sandforge-rc2-ci >/dev/null 2>&1 || true' EXIT
+          READY=0
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:8105/healthz >/dev/null 2>&1; then READY=1; break; fi
+            sleep 1
+          done
+          test "$READY" -eq 1 || { docker logs sandforge-rc2-ci; exit 1; }
+          curl -fsS http://127.0.0.1:8105/ -o /tmp/sandforge-rc2-root.html
+          curl -fsS http://127.0.0.1:8105/classic.html -o /tmp/sandforge-rc2-classic.html
+          grep -q 'id="stage"' /tmp/sandforge-rc2-root.html
+          ! grep -q 'id="world"' /tmp/sandforge-rc2-root.html
+          grep -q 'id="world"' /tmp/sandforge-rc2-classic.html
+          grep -q 'href="/classic.html"' /tmp/sandforge-rc2-root.html
+          for route in \
+            webgl-preview.js webgl-battlefield.js webgl-title-menu.js \
+            webgl-perf-watch.js webgl-bastion-capture.js \
+            webgl-construction-recovery.js webgl-building-yard.js \
+            vendor/three/three.module.js \
+            src/assets/reborn/sandforge-logo-transparent.webp; do
+            curl -fsS -o /dev/null "http://127.0.0.1:8105/$route"
+          done
+          docker inspect --format='{{.State.Running}}' sandforge-rc2-ci | grep -q '^true$'
+          echo "RC2 preview served WebGL root, classic fallback and runtime assets"
+      - name: Build a static preview archive (not deployed)
+        run: |
+          docker create --name sandforge-rc2-export sandforge-rc2-ci:latest
+          trap 'docker rm -f sandforge-rc2-export >/dev/null 2>&1 || true' EXIT
+          mkdir -p rc2-preview
+          docker cp sandforge-rc2-export:/app/dist rc2-preview/dist
+          cp compose.rc2-preview.yaml rc2-preview/compose.rc2-preview.yaml
+          tar -czf sandforge-rc2-static-preview.tar.gz -C rc2-preview .
+          sha256sum sandforge-rc2-static-preview.tar.gz > rc2-static-sha256.txt
+      - name: Archive preview build and checksum
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandforge-rc2-static-preview-${{ github.run_id }}
+          path: |
+            sandforge-rc2-static-preview.tar.gz
+            rc2-static-sha256.txt
+          retention-days: 7
+          if-no-files-found: error

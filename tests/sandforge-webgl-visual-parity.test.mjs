@@ -49,7 +49,7 @@ test('3D menu, terrain, models and health parity modules are all shipped',()=>{
  const adapter=readFileSync('dist/webgl-battlefield.js','utf8');
  const cliff=readFileSync('dist/webgl-edge-cliffs.js','utf8');
  const docker=readFileSync('Dockerfile','utf8');
- for(const name of files)assert.ok(docker.includes('COPY scripts/'+name),name+' missing Docker COPY');
+ for(const name of files)assert.ok(docker.includes('COPY scripts ./scripts')||docker.includes('COPY scripts/'+name),name+' missing from Docker script copy');
  assert.match(preview,/addBoundaryCliffs\(/);
  assert.match(adapter,/calibratedScale\(/);
  assert.match(adapter,/attachBuilding\(entry,b\)/);

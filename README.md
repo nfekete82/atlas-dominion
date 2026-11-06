@@ -1,25 +1,40 @@
 # SANDFORGE: BASTION WARS
 
 
-## WebGL-3D-Releasekandidat (Entwicklung)
+## WebGL 3D RC2 — Standard-Spieloberfläche (Entwicklung)
 
-Die spielbare Three.js/WebGL-Version wird zur einzigen regulären Spieloberfläche
-konsolidiert. Während der Abnahme ist der 3D-Haupteinstieg reversibel aktivierbar:
+Im RC2-Branch startet **Sandforge WebGL/Three.js standardmäßig unter `/`**.
+Die alte Canvas-Version bleibt ausschließlich unter `/classic.html` für
+Spielstands- und Regressionstests erreichbar. Am laufenden Produktionscontainer
+auf Port 8095 ändert dieser Entwicklungsbranch nichts.
 
 ```sh
 npm ci
 npm ci --prefix tests/browser
-npm run test:webgl-integration
-PORT=8102 HOST=127.0.0.1 npm run dev:3d
+npm run dev                    # WebGL 3D unter http://127.0.0.1:8095/
+npm run test:webgl-integration # 3D Node- und Chromium-Regression
+npm run test:browser           # dieselbe WebGL-Browser-Integration
+npm run test:browser:classic   # explizit isolierte Legacy-Canvas-Tests
+npm run dev:classic            # nur für eine separate Legacy-Arbeitskopie
 ```
 
-`http://127.0.0.1:8102/` startet **WebGL 3D**;
-`http://127.0.0.1:8102/classic.html` hält die alte Canvas-Version für
-Vergleichs- und Spielstandtests verfügbar. Die unveränderte Standard-Build-Option
-(`npm run dev`) startet derzeit weiterhin Canvas; die endgültige Umstellung
-folgt erst nach erfolgreich bestandener Release-Abnahme.
+**Separates Docker-Vorschau-Deployment, ohne Port 8095 anzufassen:**
 
-[Umsetzungs- und Freigabeplan](docs/webgl-3d-release-plan.md).
+```sh
+docker compose -p sandforge-rc2-preview -f compose.rc2-preview.yaml up --build -d
+# http://127.0.0.1:8106/ (3D) und /classic.html (Legacy)
+docker compose -p sandforge-rc2-preview -f compose.rc2-preview.yaml down
+```
+
+Die Uberspace-Veröffentlichung ist bewusst gesperrt, bis der alte
+Canvas-Paketierer vollständig auf WebGL und seine Module umgestellt und
+abgenommen ist. `deploy:uberspace:check` und der bestehende Rollback bleiben
+weiterhin verfügbar; **kein ungeprüfter 3D-Upload auf Uberspace**.
+
+[RC2-Abnahme und Checkliste](docs/releases/webgl-rc2-20261106.md) ·
+[WebGL-Migrationshistorie](docs/webgl-3d-release-plan.md) ·
+[CI-Stresstests](https://github.com/nfekete82/atlas-dominion/pull/236).
+
 
 Lokales Wüsten-RTS mit zehn Einheitentypen, eroberbaren Bastionen und einer gegnerischen Armee aus Infanterie, Fahrzeugen und Luftunterstützung. Neue Kampagnen haben 16 Bastionen und je zwei blaue und rote Startsektoren. Alte Spielstände mit 30 Bastionen und ihren ursprünglichen Startgebieten bleiben ladbar.
 
@@ -32,7 +47,7 @@ npm ci
 npm run dev
 ```
 
-**http://127.0.0.1:8095** — alternativ `docker compose up --build -d`. Der Server bindet standardmäßig nur an Loopback. Keine Accounts oder TTS-Anfragen während des Spielens. Start: 500 Credits, ein Soldat, Hauptquartier und zwei eigene Sektoren. Neue Kampagnen erzeugen Gelände und erreichbare Bastionen aus einem neuen Seed; Laden stellt die gespeicherte Karte wieder her.
+**http://127.0.0.1:8095** — alternativ `docker compose up --build -d`. Der Server bindet standardmäßig nur an Loopback. Keine Accounts oder TTS-Anfragen während des Spielens. Start einer aktuellen WebGL-Kampagne: 950 Credits je Fraktion, ein Infanterist und ein Pionier, zunächst ohne Hauptquartier. Der Pionier errichtet zuerst das HQ; ältere Spielstände mit vorhandenen HQs bleiben im Classic-Modus erhalten. Neue Kampagnen erzeugen Gelände und erreichbare Bastionen aus einem neuen Seed; Laden stellt die gespeicherte Karte wieder her.
 
 ## Spielen
 
@@ -56,7 +71,7 @@ npm run dev
 | Pionier | 200 | Gebäude bauen und reparieren |
 | Schwere Infanterie | 250 | 420 LP, stark gegen Infanterie; weniger Schaden gegen Panzerung |
 | Humvee | 350 | Schnelle Aufklärung und Flanken |
-| Kampfpanzer | 450 | Gepanzerte Frontunterstützung |
+| Kampfpanzer | 550 | Gepanzerte Frontunterstützung |
 | Raketenwerfer | 600 | Schwerer 6×6-Lkw mit sechs Werferrohren, fliegenden Raketen und Flächenschaden |
 | Transporthelikopter | 600 | Aufklärung, zehn Passagiere und defensive Maschinengewehre |
 | Bomber | 1000 | Schwere Feuerkraft gegen Bodenziele |
