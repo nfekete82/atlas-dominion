@@ -36,6 +36,11 @@ async function status(){
  const result={...health,unauthorized,previous:state.state.previous??null};log(JSON.stringify(result));return result;
 }
 async function deploy(dryRun=false){
+ // The legacy Uberspace package/browser verifier only understands Canvas.
+ // Never send a 3D-default build through the old partial-asset packager.
+ // --check and --rollback remain read-only/previous-version compatible.
+ if(process.env.SANDFORGE_RENDERER!=='classic')
+  throw Error('Uberspace deployment blocked: the legacy packager ships Canvas modules only. Use RC2 Docker preview; a versioned WebGL package must be validated before Uberspace deployment. Existing --check/--rollback remain available.');
  const dirty=(await run('git',['status','--porcelain'],{cwd:root,quiet:true})).stdout.trim();
  if(dirty&&!dryRun)throw Error('Lokale Änderungen zuerst committen; veröffentlicht werden nur nachvollziehbare Git-Versionen.');
  const commit=(await run('git',['rev-parse','HEAD'],{cwd:root,quiet:true})).stdout.trim(),branch=(await run('git',['branch','--show-current'],{cwd:root,quiet:true})).stdout.trim();
