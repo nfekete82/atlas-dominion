@@ -27,7 +27,9 @@ test('production: every building rejects foreign roles without spending credits 
 test('production: real worker construction unlocks barracks, factory and airfield only on completion',()=>{
  const g=new Simulation(2026,2);g.aiClock=-1e8;g.credits[0]=10000;const worker=g.units.find(u=>u.owner===0&&u.kind==='engineer');
  for(const kind of ['barracks','factory','airfield']){
-  const site=buildSite(g,kind),b=g.build(0,kind,site,[worker.id]);assert.ok(b);const roles=unitKinds.filter(k=>UNITS[k].producers.includes(kind));assert.equal(roles.length,kind==='airfield'?2:3);
+  const site=buildSite(g,kind),b=g.build(0,kind,site,[worker.id]);
+  assert.ok(b,`${kind}: build rejected a legal site at ${JSON.stringify(site)} (worker ${JSON.stringify({x:worker.x,y:worker.y})}; ${g.notices.at(-1)??'no notice'})`);
+  const roles=unitKinds.filter(k=>UNITS[k].producers.includes(kind));assert.equal(roles.length,kind==='airfield'?2:3);
   for(const role of roles){assert.equal(g.producer(0,role),undefined);assert.equal(g.recruit(b.id,role),false);}
   for(let i=0;i<1800&&b.buildRemaining>0;i++)g.step();assert.equal(b.buildRemaining,0);
   for(const role of roles){assert.equal(g.producer(0,role).id,b.id);assert.ok(g.recruit(b.id,role));}
@@ -40,6 +42,28 @@ test('production: destroyed or enemy facilities do not unlock units, full queues
  for(let i=0;i<8;i++)assert.ok(g.recruit(b.id,'infantry'));assert.equal(g.recruit(b.id,'infantry'),false);b.queue=[];b.queueTypes=[];b.queueCosts=[];
  b.owner=1;assert.equal(g.producer(0,'infantry'),undefined);b.owner=0;b.hp=0;assert.equal(g.producer(0,'infantry'),undefined);
 });
+test('production: a blocked first approach retries another side of a legal foundation without losing credits',()=>{
+ const g=new Simulation(2026,2);g.aiClock=-1e8;g.credits[0]=10000;
+ g.world.blocked.fill(0);g.world.opaque.fill(0);
+ const worker=g.units.find(u=>u.owner===0&&u.kind==='engineer'),site=buildSite(g,'generator');
+ // Simulate a blocked first route, not an invalid building position. Other
+ // sides must still be considered, while commands remain physically routed.
+ const originalPath=g.world.path.bind(g.world);let attempts=0;
+ g.world.path=(...args)=>{attempts++;return attempts===1?[]:originalPath(...args);};
+ const before=g.credits[0],b=g.build(0,'generator',site,[worker.id]);
+ assert.ok(b,'the alternate reachable approach should allow construction');
+ assert.ok(attempts>=2,'pathfinder must retry after an obstructed first approach');
+ assert.equal(g.credits[0],before-BUILDINGS.generator.cost);
+ assert.equal(worker.orders[0]?.target,b.id);
+ const blocked=new Simulation(2026,2);blocked.aiClock=-1e8;blocked.credits[0]=10000;
+ blocked.world.blocked.fill(0);blocked.world.opaque.fill(0);
+ const worker2=blocked.units.find(u=>u.owner===0&&u.kind==='engineer'),site2=buildSite(blocked,'generator'),money=blocked.credits[0],bases=blocked.bases.length;
+ blocked.world.path=()=>[];
+ assert.equal(blocked.build(0,'generator',site2,[worker2.id]),null,'unreachable site must still be rejected');
+ assert.equal(blocked.credits[0],money,'failed construction never spends credits');
+ assert.equal(blocked.bases.length,bases,'failed construction leaves no ghost building');
+});
+
 test('production: old mixed HQ queues refund unsupported orders once and retain paid workers and existing troops',()=>{
  const g=new Simulation(2026,2);g.aiClock=-1e8;const raw=g.save(),hq=raw.bases[0];delete raw.productionVersion;
  hq.queue=[UNITS.infantry.buildTime,UNITS.engineer.buildTime,UNITS.tank.buildTime];hq.queueTypes=['infantry','engineer','tank'];hq.queueCosts=[100,200,450];hq.production=2;raw.credits[0]=50;
