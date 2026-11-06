@@ -10,7 +10,7 @@ const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-6,`${a} != ${b}`);
 for(const kind of ['infantry','heavy','medic','engineer'])test(`polish: ${kind} authoritative rounds, total damage, cadence, pause and reload`,()=>{
  for(const dt of [.05,.1]){
   const g=game(),u=g.spawn(0,{x:1900,y:2100},kind),e=g.spawn(1,{x:1980,y:2100},'tank');e.cooldown=100;g.stop([e.id],true);g.command([u.id],{...e,kind:'attack',target:e.id});g.updateVision();
-  const hp=e.hp,damage=kind==='heavy'?54:UNITS[kind].damage;g.step(dt);const rounds=kind==='infantry'||kind==='heavy'?3:1;
+  const hp=e.hp,damage=kind==='heavy'?54:kind==='infantry'?UNITS.infantry.damage*.65:UNITS[kind].damage;g.step(dt);const rounds=kind==='infantry'||kind==='heavy'?3:1;
   near(hp-e.hp,damage/rounds);assert.equal(g.shots.length,1);assert.equal(g.shots[0].source,u.id);assert.equal(g.shots[0].weapon,kind==='infantry'?'rifle':kind==='heavy'?'heavy':'pistol');
   g.paused=true;advance(g,1,dt);assert.equal(g.shots.length,1);g.paused=false;
   advance(g,.3,dt);near(hp-e.hp,damage);assert.equal(g.shots.length,rounds);
