@@ -1,25 +1,40 @@
 # SANDFORGE: BASTION WARS
 
 
-## WebGL-3D-Releasekandidat (Entwicklung)
+## WebGL 3D RC2 — Standard-Spieloberfläche (Entwicklung)
 
-Die spielbare Three.js/WebGL-Version wird zur einzigen regulären Spieloberfläche
-konsolidiert. Während der Abnahme ist der 3D-Haupteinstieg reversibel aktivierbar:
+Im RC2-Branch startet **Sandforge WebGL/Three.js standardmäßig unter `/`**.
+Die alte Canvas-Version bleibt ausschließlich unter `/classic.html` für
+Spielstands- und Regressionstests erreichbar. Am laufenden Produktionscontainer
+auf Port 8095 ändert dieser Entwicklungsbranch nichts.
 
 ```sh
 npm ci
 npm ci --prefix tests/browser
-npm run test:webgl-integration
-PORT=8102 HOST=127.0.0.1 npm run dev:3d
+npm run dev                    # WebGL 3D unter http://127.0.0.1:8095/
+npm run test:webgl-integration # 3D Node- und Chromium-Regression
+npm run test:browser           # dieselbe WebGL-Browser-Integration
+npm run test:browser:classic   # explizit isolierte Legacy-Canvas-Tests
+npm run dev:classic            # nur für eine separate Legacy-Arbeitskopie
 ```
 
-`http://127.0.0.1:8102/` startet **WebGL 3D**;
-`http://127.0.0.1:8102/classic.html` hält die alte Canvas-Version für
-Vergleichs- und Spielstandtests verfügbar. Die unveränderte Standard-Build-Option
-(`npm run dev`) startet derzeit weiterhin Canvas; die endgültige Umstellung
-folgt erst nach erfolgreich bestandener Release-Abnahme.
+**Separates Docker-Vorschau-Deployment, ohne Port 8095 anzufassen:**
 
-[Umsetzungs- und Freigabeplan](docs/webgl-3d-release-plan.md).
+```sh
+docker compose -p sandforge-rc2-preview -f compose.rc2-preview.yaml up --build -d
+# http://127.0.0.1:8106/ (3D) und /classic.html (Legacy)
+docker compose -p sandforge-rc2-preview -f compose.rc2-preview.yaml down
+```
+
+Die Uberspace-Veröffentlichung ist bewusst gesperrt, bis der alte
+Canvas-Paketierer vollständig auf WebGL und seine Module umgestellt und
+abgenommen ist. `deploy:uberspace:check` und der bestehende Rollback bleiben
+weiterhin verfügbar; **kein ungeprüfter 3D-Upload auf Uberspace**.
+
+[RC2-Abnahme und Checkliste](docs/releases/webgl-rc2-20261106.md) ·
+[WebGL-Migrationshistorie](docs/webgl-3d-release-plan.md) ·
+[CI-Stresstests](https://github.com/nfekete82/atlas-dominion/pull/236).
+
 
 Lokales Wüsten-RTS mit zehn Einheitentypen, eroberbaren Bastionen und einer gegnerischen Armee aus Infanterie, Fahrzeugen und Luftunterstützung. Neue Kampagnen haben 16 Bastionen und je zwei blaue und rote Startsektoren. Alte Spielstände mit 30 Bastionen und ihren ursprünglichen Startgebieten bleiben ladbar.
 
