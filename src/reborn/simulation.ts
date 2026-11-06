@@ -277,8 +277,10 @@ export class Simulation {
       if(['heal','repair','build'].includes(order.kind)){
         const entity=order.kind==='heal'?this.units.find(t=>t.id===order.target):order.kind==='repair'?this.bases.find(t=>t.id===order.target)??this.units.find(t=>t.id===order.target):this.bases.find(t=>t.id===order.target);
         if(!entity||!this.supportEligible(u,entity,order.kind))return;
-        const approach=this.supportApproach(u,entity);if(!approach)return;
-        if('queue' in entity){const buildings=this.obstacles();const path=this.world.path(u,approach,[...buildings,...infantryStructureColliders(buildings)]);if(distance(u,entity)>entity.radius+55&&(!path.length||distance(path[path.length-1],entity)>entity.radius+55))return;}
+        // Buildings need a route to the worker's approach, not merely a free
+        // point beside the foundation. Try the other sides before rejecting
+        // a legal site because the first approach lies behind another building.
+        const approach=this.supportApproach(u,entity,'queue' in entity);if(!approach)return;
         const next:Order={...order,x:entity.x,y:entity.y,...('queue' in entity?{approach}:{healOrigin:{x:entity.x,y:entity.y}})};
         if(append){if(u.orders.length>=32)return;u.orders.push(next);}else{u.orders=[next];u.path=[];u.repath=0;delete u.burst;}
         // Enqueuing future maintenance must not interrupt the work in progress.
@@ -335,14 +337,19 @@ export class Simulation {
       return target.id!==u.id&&(unitSpec(target).group==='Fahrzeuge'||unitSpec(target).flying)&&target.hp<unitSpec(target).hp;
     return u.kind==='engineer'&&'queue' in target&&(kind==='build'?target.buildRemaining>0:target.buildRemaining<=0&&target.hp<buildingSpec(target).hp);
   }
-  private supportApproach(u:Unit,target:Unit|Base):Point|null {
+  private supportApproach(u:Unit,target:Unit|Base,requireReachable=false):Point|null {
     const radius='queue' in target?target.radius+32:35,angle=Math.atan2(u.y-target.y,u.x-target.x),range='queue' in target?target.radius+55:u.kind==='engineer'?REPAIR_RADIUS:this.healRadius(u);
-    const buildings=this.obstacles(),obstacles=[...buildings,
-      ...infantryStructureColliders(buildings),...this.bastionColliders()];
+    const buildings=this.obstacles(),routeObstacles=[...buildings,...infantryStructureColliders(buildings)],
+      obstacles=[...routeObstacles,...this.bastionColliders()];
     for(let i=0;i<16;i++){
       const turn=angle+(i%2?1:-1)*Math.ceil(i/2)*Math.PI/8;
       const p=this.world.nearest({x:target.x+Math.cos(turn)*radius,y:target.y+Math.sin(turn)*radius},obstacles,[],u);
-      if(p&&distance(p,target)<=range&&this.world.line(p,target))return p;
+      if(!p||distance(p,target)>range||!this.world.line(p,target))continue;
+      if(requireReachable&&distance(u,target)>range){
+        const path=this.world.path(u,p,routeObstacles);
+        if(!path.length||distance(path[path.length-1],target)>range)continue;
+      }
+      return p;
     }
     return null;
   }
