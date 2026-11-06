@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {Simulation} from '../dist/src/reborn/simulation.js';
 import {UNITS,BUILDINGS,unitKinds} from '../dist/src/reborn/catalog.js';
 import {distance} from '../dist/src/reborn/config.js';
-import {infantryStructureColliders} from '../dist/src/reborn/infantry-structure-collision.js';
+import {infantryStructureCollider,infantryStructureColliders} from '../dist/src/reborn/infantry-structure-collision.js';
 const advance=(g,seconds)=>{for(let i=0;i<Math.round(seconds/.05);i++)g.step();};
 function buildSite(g,kind,owner=0){
  const home=g.bases.find(b=>b.owner===owner&&b.kind==='headquarters');
@@ -43,6 +43,26 @@ test('production: destroyed or enemy facilities do not unlock units, full queues
  for(let i=0;i<8;i++)assert.ok(g.recruit(b.id,'infantry'));assert.equal(g.recruit(b.id,'infantry'),false);b.queue=[];b.queueTypes=[];b.queueCosts=[];
  b.owner=1;assert.equal(g.producer(0,'infantry'),undefined);b.owner=0;b.hp=0;assert.equal(g.producer(0,'infantry'),undefined);
 });
+test('production: legal ground cannot spawn a factory facade over a nearby pioneer',()=>{
+ const g=new Simulation(2026,2);g.aiClock=-1e8;g.credits[0]=10000;
+ const site=buildSite(g,'factory'),worker=g.units.find(u=>u.owner===0&&u.kind==='engineer');
+ // Same offset as the sequential barracks->factory failure, where distance
+ // from the foundation is 125.36 (> physical collision radius of 80) but
+ // the feet are inside the north-shifted visible factory collider.
+ Object.assign(worker,{x:site.x+45.4840051359776,y:site.y-116.8123390393185});
+ const wall=infantryStructureCollider('factory',site);
+ assert.ok(distance(worker,site)>BUILDINGS.factory.radius+UNITS.engineer.radius);
+ assert.ok(distance(worker,wall)<wall.radius+UNITS.engineer.radius);
+ const money=g.credits[0],count=g.bases.length;
+ assert.equal(g.buildError(0,'factory',site),'Einheiten blockieren die Baustelle.');
+ assert.equal(g.build(0,'factory',site,[worker.id]),null);
+ assert.equal(g.credits[0],money);
+ assert.equal(g.bases.length,count);
+ // The unchanged ground becomes buildable again when the worker steps away.
+ Object.assign(worker,{x:site.x+400,y:site.y+400});
+ assert.equal(g.buildError(0,'factory',site),null);
+});
+
 test('production: a blocked first approach retries another side of a legal foundation without losing credits',()=>{
  const g=new Simulation(2026,2);g.aiClock=-1e8;g.credits[0]=10000;
  g.world.blocked.fill(0);g.world.opaque.fill(0);
