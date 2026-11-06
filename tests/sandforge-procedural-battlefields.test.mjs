@@ -1,4 +1,6 @@
 import {test} from 'node:test';
+import * as THREE from 'three';
+import {blendOasisTerrain} from '../scripts/webgl-oasis-materials.js';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
@@ -10,11 +12,18 @@ import {TERRAIN_PROFILES,battlefieldHeightAt,battlefieldSlopeAt,streamSeed,terra
 import {validateBattlefield} from '../dist/src/reborn/battlefield-validation.js';
 import {generateMap} from '../dist/src/reborn/world-generation.js';
 import {generateOases,safeOasis} from '../scripts/webgl-oasis-generation.js';
+const portableHash=w=>createHash('sha256').update(JSON.stringify(w.generated??null,(_,v)=>typeof v==='number'?Math.round(v*1e6)/1e6:v)).update(w.blocked).update(w.opaque).update(JSON.stringify(w.territories(),(_,v)=>typeof v==='number'?Math.round(v*1e6)/1e6:v)).digest('hex');
 const hash=w=>createHash('sha256').update(JSON.stringify(w.generated??null)).update(w.blocked).update(w.opaque).update(JSON.stringify(w.territories())).digest('hex');
 
 test('historical v0–22 geometry, collisions, opacity and economy match 69 PR #239 golden fingerprints',()=>{
  const fixtures=JSON.parse(readFileSync(new URL('./fixtures/battlefield-historical-geometry.json',import.meta.url),'utf8'));
- for(const f of fixtures)assert.equal(hash(new World(f.seed,f.version)),f.hash,`v${f.version}, seed ${f.seed}`);
+ for(const f of fixtures){
+  const w=new World(f.seed,f.version);
+  // Number serialization of trigonometry differs in the last bits between
+  // Node 22/x86 and Node 25/ARM. Collision and opacity remain byte-exact.
+  assert.equal(portableHash(w),f.portableHash,`v${f.version}, seed ${f.seed}`);
+  if(process.version===f.node&&process.platform===f.platform&&process.arch===f.arch)assert.equal(hash(w),f.hash);
+ }
 });
 
 test('all sizes, profiles and four actual starting orientations have connected tank routes and equal HQ pads',()=>{
@@ -133,5 +142,22 @@ test('paid AI bootstrap builds headquarters, produces and reaches new bastions f
   }
   assert.ok(hq,`HQ v${version} seed ${seed}`);assert.ok(produced,`production v${version} seed ${seed}`);assert.ok(expanded,`expansion v${version} seed ${seed}`);
   for(const u of g.units.filter(u=>u.owner===1&&!['bomber','scout'].includes(u.kind)))assert.ok(g.world.walkable(u));
+ }
+});
+
+
+test('premium soil shader includes every oasis and reclaims the fifth soil mask on construction',()=>{
+ for(const count of [1,4,5]){
+  const material=new THREE.MeshStandardMaterial(),original=material.onBeforeCompile;
+  const oases=Array.from({length:count},(_,i)=>({x:500+i*500,y:900,radius:120,phase:0,aspect:.7,rotation:0,type:'water'}));
+  const restore=blendOasisTerrain(material,oases,3000),shader={uniforms:{},vertexShader:'#include <common>\n#include <begin_vertex>',fragmentShader:'#include <common>\n#include <color_fragment>\n#include <roughnessmap_fragment>'};
+  material.onBeforeCompile(shader);
+  assert.equal(shader.uniforms.oasisCenters.value.length,Math.max(4,count));
+  assert.equal(shader.uniforms.oasisShapes.value.length,Math.max(4,count));
+  assert.ok(shader.fragmentShader.includes(`oasisCenters[${Math.max(4,count)}]`));
+  const last=count-1;assert.equal(shader.uniforms.oasisCenters.value[last].x,oases[last].x-3000);
+  restore.setHidden(new Set([last]));assert.equal(shader.uniforms.oasisCenters.value[last].x,1e8);
+  restore.setHidden(new Set());assert.equal(shader.uniforms.oasisCenters.value[last].x,oases[last].x-3000);
+  restore();assert.equal(material.onBeforeCompile,original);material.dispose();
  }
 });

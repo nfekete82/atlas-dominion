@@ -28,6 +28,10 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - run: npm test
+      - name: Byte-exact historical comparison with unmodified PR 239 on the same Node engine
+        run: |
+          git fetch --depth=1 origin d97da1a35adf020c85c8566ee54bf267aa2790bb
+          node scripts/check-historical-battlefields.mjs d97da1a35adf020c85c8566ee54bf267aa2790bb
       - name: 1000 worlds, conservative tank clearance, HQ pads and oasis safety
         run: node scripts/stress-procedural-battlefields.mjs geometry
       - name: Paid AI bootstrap, production and expansion from all four corners

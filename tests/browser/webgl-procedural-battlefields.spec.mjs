@@ -20,7 +20,7 @@ for(const profile of profiles){
     fog:units.every(u=>fog[w.index(u)*4+3]===0),fogMeshes:b.fogNodes.every((m,i)=>m.geometry===b.groundMeshes[i].geometry),
     minimap:miniature[obstacle*4]===104,outline:b.miniViewportCorners.length,
     rocks:a.scene.getObjectByName('physical-battlefield-rocks')?.geometry.attributes.position.count,
-    oases:a.oases.layout.length,waters:a.oases.water.map(m=>{
+    oases:a.oases.layout.length,soilCapacity:Math.max(...a.renderer.info.programs.map(p=>p.getUniforms().map.oasisCenters?.size??0)),waters:a.oases.water.map(m=>{
      const p=m.geometry.attributes.position;let error=0;
      for(let i=0;i<p.count;i++)error=Math.max(error,Math.abs(p.getY(i)-a.oases.renderedHeight(p.getX(i)+w.size/2,p.getZ(i)+w.size/2)-.2));return error;
     })};
@@ -28,7 +28,7 @@ for(const profile of profiles){
   expect(state.version).toBe(26);expect(state.profile).toBe(profile);expect(state.valid).toBe(true);
   expect(state.heightError).toBeLessThan(.001);expect(state.fog).toBe(true);expect(state.fogMeshes).toBe(true);
   expect(state.minimap).toBe(true);expect(state.outline).toBe(4);expect(state.rocks).toBeGreaterThan(0);
-  expect(state.oases).toBeGreaterThan(0);for(const e of state.waters)expect(e).toBeLessThan(.003);
+  expect(state.oases).toBeGreaterThan(0);if(profile==='oasis')expect(state.soilCapacity).toBeGreaterThanOrEqual(state.oases);for(const e of state.waters)expect(e).toBeLessThan(.003);
   // The real startup view includes the unmodified fog and the flat HQ region.
   await page.screenshot({path:test.info().outputPath(`${profile}-start.png`)});
   // Same camera and world focal point across profiles for direct comparison.
@@ -46,6 +46,15 @@ for(const profile of profiles){
   await page.evaluate(()=>{const a=window.__sandforgeWebGL;a.camera.zoom=.85;a.camera.updateProjectionMatrix();a.controls.update();a.battlefield.drawMinimap();});
   await page.waitForTimeout(200);await page.screenshot({path:test.info().outputPath(`${profile}-central.png`)});
   await page.locator('#sf-map').screenshot({path:test.info().outputPath(`${profile}-minimap.png`)});
+  if(profile==='oasis'){
+   await page.evaluate(()=>{
+    const a=window.__sandforgeWebGL,o=a.oases.layout[4],half=a.game.world.size/2;
+    if(!o)throw Error('Fifth oasis missing');
+    a.controls.target.set(o.x-half,a.heightAt(o.x,o.y)+30,o.y-half);
+    a.camera.position.copy(a.controls.target).add({x:1200,y:1110,z:1640});a.camera.zoom=1.15;a.camera.updateProjectionMatrix();a.controls.update();
+   });
+   await page.waitForTimeout(200);await page.screenshot({path:test.info().outputPath('oasis-fifth-soil.png')});
+  }
   const edge=await page.evaluate(()=>{
    const a=window.__sandforgeWebGL,w=a.game.world,s=w.size;
    a.controls.target.set(s*8,0,s*8);a.camera.position.set(s*8+1200,1110,s*8+1640);a.controls.update();
