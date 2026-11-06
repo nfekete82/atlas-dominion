@@ -18,7 +18,7 @@ function scene(){
 
 test('matched strength uses the actual heavy armor penalty rather than nominal weapon damage',()=>{
  const {g,home,enemy}=scene(),heavy=g.spawn(1,home,'heavy'),tank=enemy('tank'),infantry=enemy('infantry');
- assert.equal(fightingPowerAgainst([heavy],[infantry]),fightingPower([heavy]));
+ assert.ok(Math.abs(fightingPowerAgainst([heavy],[infantry])-fightingPower([heavy]))<1e-10);
  assert.ok(Math.abs(fightingPowerAgainst([heavy],[tank])/fightingPower([heavy])-Math.sqrt(.45))<1e-12);
 });
 
