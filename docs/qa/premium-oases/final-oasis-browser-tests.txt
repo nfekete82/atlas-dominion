@@ -1,0 +1,13 @@
+
+Running 5 tests using 1 worker
+
+(node:10867) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/5] tests/browser/webgl-oases.spec.mjs:3:2 › 4 bastions: premium oases in built WebGL scene, exact ground contact and gameplay isolation
+[2/5] tests/browser/webgl-oases.spec.mjs:3:2 › 8 bastions: premium oases in built WebGL scene, exact ground contact and gameplay isolation
+[3/5] tests/browser/webgl-oases.spec.mjs:3:2 › 12 bastions: premium oases in built WebGL scene, exact ground contact and gameplay isolation
+[4/5] tests/browser/webgl-oases.spec.mjs:3:2 › 16 bastions: premium oases in built WebGL scene, exact ground contact and gameplay isolation
+[5/5] tests/browser/webgl-oases.spec.mjs:41:1 › occupied saves and construction reclaim oases; repeated disposal releases resources
+  5 passed (7.5s)

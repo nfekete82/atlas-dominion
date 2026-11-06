@@ -1,0 +1,9 @@
+✔ world minimap projection shares the exact world center and boundaries (0.090375ms)
+ℹ tests 1175
+ℹ suites 0
+ℹ pass 1174
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 58984.157375

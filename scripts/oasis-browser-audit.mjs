@@ -1,0 +1,10 @@
+import {chromium} from '../tests/browser/node_modules/playwright-core/index.mjs';
+import {writeFileSync} from 'node:fs';
+const browser=await chromium.launch({channel:process.env.ATLAS_BROWSER_CHANNEL??'chrome',headless:true});
+const page=await browser.newPage({viewport:{width:1440,height:900}});
+await page.goto(`${process.env.ATLAS_BASE_URL??'http://127.0.0.1:8127'}/?bastions=4&seed=2074&pause=1&fog=off`);
+await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded&&window.__sandforgeWebGL.desertArtReady);
+await page.waitForTimeout(2500);
+const result=await page.evaluate(async()=>{const a=window.__sandforgeWebGL,frames=[];let last=performance.now();for(let i=0;i<120;i++){await new Promise(requestAnimationFrame);const now=performance.now();frames.push(now-last);last=now;}frames.sort((a,b)=>a-b);return {render:a.renderer.info.render,memory:a.renderer.info.memory,programs:a.renderer.info.programs.length,frameMs:{median:frames[60],p95:frames[114]},renderer:a.renderer.getContext().getParameter(a.renderer.getContext().RENDERER)};});
+writeFileSync(`docs/qa/premium-oases/${process.argv[2]??'baseline'}.json`,JSON.stringify(result,null,2));
+await browser.close();

@@ -1,0 +1,138 @@
+[
+  {
+    "bastions": 4,
+    "enabled": true,
+    "focus": {
+      "id": 0,
+      "x": 5738.359404151886,
+      "y": 5067.4480683088295,
+      "radius": 132.88175121881068,
+      "type": "water",
+      "phase": 0.12512542847919497,
+      "aspect": 0.7974593132385053,
+      "rotation": 2.202601466597833,
+      "seed": 1240792021
+    },
+    "render": {
+      "frame": 353,
+      "calls": 174,
+      "triangles": 333472,
+      "points": 0,
+      "lines": 0
+    },
+    "memory": {
+      "geometries": 814,
+      "textures": 86
+    },
+    "programs": 44,
+    "frameMs": {
+      "median": 16.600000143051147,
+      "p95": 17.40000009536743
+    },
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Max, Unspecified Version)",
+    "oasisGeometryBufferBytes": 1257264,
+    "oases": 3
+  },
+  {
+    "bastions": 4,
+    "enabled": false,
+    "focus": {
+      "id": 0,
+      "x": 5738.359404151886,
+      "y": 5067.4480683088295,
+      "radius": 132.88175121881068,
+      "type": "water",
+      "phase": 0.12512542847919497,
+      "aspect": 0.7974593132385053,
+      "rotation": 2.202601466597833,
+      "seed": 1240792021
+    },
+    "render": {
+      "frame": 352,
+      "calls": 163,
+      "triangles": 252246,
+      "points": 0,
+      "lines": 0
+    },
+    "memory": {
+      "geometries": 803,
+      "textures": 86
+    },
+    "programs": 42,
+    "frameMs": {
+      "median": 16.59999990463257,
+      "p95": 18.5
+    },
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Max, Unspecified Version)",
+    "oasisGeometryBufferBytes": 0,
+    "oases": 0
+  },
+  {
+    "bastions": 16,
+    "enabled": true,
+    "focus": {
+      "id": 0,
+      "x": 1811.9039057764226,
+      "y": 2603.3458660338074,
+      "radius": 112.7232312283013,
+      "type": "water",
+      "phase": 0.39949771990643745,
+      "aspect": 0.683835829058662,
+      "rotation": 1.3633429246594277,
+      "seed": 1074619427
+    },
+    "render": {
+      "frame": 351,
+      "calls": 52,
+      "triangles": 321808,
+      "points": 0,
+      "lines": 0
+    },
+    "memory": {
+      "geometries": 901,
+      "textures": 89
+    },
+    "programs": 45,
+    "frameMs": {
+      "median": 16.700000047683716,
+      "p95": 17.59999990463257
+    },
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Max, Unspecified Version)",
+    "oasisGeometryBufferBytes": 1256136,
+    "oases": 3
+  },
+  {
+    "bastions": 16,
+    "enabled": false,
+    "focus": {
+      "id": 0,
+      "x": 1811.9039057764226,
+      "y": 2603.3458660338074,
+      "radius": 112.7232312283013,
+      "type": "water",
+      "phase": 0.39949771990643745,
+      "aspect": 0.683835829058662,
+      "rotation": 1.3633429246594277,
+      "seed": 1074619427
+    },
+    "render": {
+      "frame": 352,
+      "calls": 41,
+      "triangles": 230632,
+      "points": 0,
+      "lines": 0
+    },
+    "memory": {
+      "geometries": 890,
+      "textures": 89
+    },
+    "programs": 42,
+    "frameMs": {
+      "median": 16.700000047683716,
+      "p95": 17.5
+    },
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Max, Unspecified Version)",
+    "oasisGeometryBufferBytes": 0,
+    "oases": 0
+  }
+]

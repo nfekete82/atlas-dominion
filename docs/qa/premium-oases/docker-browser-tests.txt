@@ -1,0 +1,19 @@
+
+Running 11 tests using 1 worker
+
+(node:10214) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/11] tests/browser/webgl-fog-alignment.spec.mjs:5:1 › Fog-of-war follows actual 3D soldiers without projected parallax, including movement
+[2/11] tests/browser/webgl-fog-alignment.spec.mjs:80:1 › Camera clamps a forced off-map pan before revealing the flat scene boundary
+[3/11] tests/browser/webgl-fog-alignment.spec.mjs:107:1 › legacy 3D preview links show original logo, dark Fog of War and black fading map rim
+[4/11] tests/browser/webgl-fog-alignment.spec.mjs:172:1 › minimap uses the exact 3D vision grid and a rotated ground-footprint outline
+[5/11] tests/browser/webgl-fog-alignment.spec.mjs:218:1 › near-edge RMB ray fallback reaches all four playable sides of the tilted map
+[6/11] tests/browser/webgl-hud-responsive.spec.mjs:9:1 › compact independent production panel aligns with the catalog on MacBook and narrow windows
+[7/11] tests/browser/webgl-oases.spec.mjs:3:2 › 4 bastions: premium oases in built WebGL scene, exact ground contact and gameplay isolation
+[8/11] tests/browser/webgl-oases.spec.mjs:3:2 › 8 bastions: premium oases in built WebGL scene, exact ground contact and gameplay isolation
+[9/11] tests/browser/webgl-oases.spec.mjs:3:2 › 12 bastions: premium oases in built WebGL scene, exact ground contact and gameplay isolation
+[10/11] tests/browser/webgl-oases.spec.mjs:3:2 › 16 bastions: premium oases in built WebGL scene, exact ground contact and gameplay isolation
+[11/11] tests/browser/webgl-oases.spec.mjs:40:1 › occupied saves and construction reclaim oases; repeated disposal releases resources
+  11 passed (14.6s)
