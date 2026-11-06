@@ -40,7 +40,7 @@ test('direction control has live ghost, R shortcut, clickable HUD, and symmetric
  const html=readFileSync('index.html','utf8');
  assert.match(input,/key==='r'&&renderer\.placement/);
  assert.match(input,/renderer\.placementFacing=renderer\.placementFacing===0\?1:0/);
- assert.match(input,/renderer\.game\.build\(0,renderer\.placement,point,\[\.\.\.renderer\.selected\],renderer\.placementFacing\)/);
+ assert.match(input,/renderer\.game\.build\(0,renderer\.placement,point,\[\.\.\.renderer\.selected\],renderer\.placementFacing,e\.shiftKey\)/);
  assert.match(main,/rotate-building'\)\.onclick/);
  assert.match(main,/el<HTMLButtonElement>\('rotate-building'\)\.hidden=!renderer\.placement/);
  assert.match(html,/id="rotate-building"/);
