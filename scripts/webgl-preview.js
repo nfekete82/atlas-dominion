@@ -11,6 +11,7 @@ import {SandforgePerformanceWatch} from '/webgl-perf-watch.js';
 import {SandforgeAtmosphere3D} from '/webgl-atmosphere-3d.js';
 import {addVisualPerimeter} from '/webgl-perimeter.js';
 import {addBoundaryCliffs} from '/webgl-edge-cliffs.js';
+import {cameraEdgeReach} from '/webgl-map-edges.js';
 import {groundContactMaterial} from '/webgl-grounding.js';
 import {SandforgeConstructionRecovery} from '/webgl-construction-recovery.js';
 import {SandforgeGroundTracks} from '/webgl-ground-tracks.js';
@@ -648,8 +649,9 @@ function stepCamera(dt){
  // Decorative landscape ends far outside the actual 4160+ unit world; keep
  // the viewing footprint within the cliff/fog transition so no beige void
  // or mesh edge appears, including on wide screens and after camera rotation.
-// Let the player reach the last playable edge, but never reveal the mesh end.
- const focusLimit=half-45;
+// Permit a small overscan beyond the playable border. The frustum clamp
+ // below still keeps decorative mesh endings out of view.
+ const focusLimit=half+cameraEdgeReach(size);
  const nx=Math.max(-focusLimit,Math.min(focusLimit,controls.target.x));
  const nz=Math.max(-focusLimit,Math.min(focusLimit,controls.target.z));
  if(nx!==controls.target.x||nz!==controls.target.z){
