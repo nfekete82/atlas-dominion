@@ -314,7 +314,20 @@ export class TacticalAI {
      const at=unitSpec(u).flying?p:g.world.nearest(p,this.obstacles(),[],u,Math.max(0,unitSpec(u).radius-10));if(at){o.x=at.x;o.y=at.y;}
     }
    }
-   if(o.formation&&front.length)o.formation.front=front.map(v=>v.id);
+   if(o.formation&&front.length){
+    // On legacy tactical assaults, medics protect the *whole paid combat
+    // line*, not just the armored vanguard chosen for collision-safe leading.
+    // Modern campaign escort behavior is intentionally unchanged.
+    if(g.world.mapVersion<=2&&u.kind==='medic'&&mode==='assault')
+     o.formation.front=units.filter(combat).map(v=>v.id);
+    else o.formation.front=front.map(v=>v.id);
+    // The standard 86/122-unit second rank leaves legacy mixed assaults
+    // hundreds of units behind the tank after several seconds. Keep the
+    // ground infantry behind the hull, but close enough to advance at the
+    // heavy-infantry pace rather than repeatedly chasing a stale rear slot.
+    if(g.world.mapVersion<=2&&mode==='assault'&&armor.length&&['infantry','heavy'].includes(u.kind))
+     o.formation.rear=32;
+   }
   }
   return true;
  }
