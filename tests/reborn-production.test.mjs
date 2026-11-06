@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {Simulation} from '../dist/src/reborn/simulation.js';
 import {UNITS,BUILDINGS,unitKinds} from '../dist/src/reborn/catalog.js';
 import {distance} from '../dist/src/reborn/config.js';
+import {infantryStructureColliders} from '../dist/src/reborn/infantry-structure-collision.js';
 const advance=(g,seconds)=>{for(let i=0;i<Math.round(seconds/.05);i++)g.step();};
 function buildSite(g,kind,owner=0){
  const home=g.bases.find(b=>b.owner===owner&&b.kind==='headquarters');
@@ -64,6 +65,31 @@ test('production: a blocked first approach retries another side of a legal found
  assert.equal(blocked.build(0,'generator',site2,[worker2.id]),null,'unreachable site must still be rejected');
  assert.equal(blocked.credits[0],money,'failed construction never spends credits');
  assert.equal(blocked.bases.length,bases,'failed construction leaves no ghost building');
+});
+
+test('production: pioneer a fraction beyond factory reach can take a collision-free short step and build',()=>{
+ const g=new Simulation(2026,2);g.aiClock=-1e8;g.credits[0]=10000;
+ g.world.blocked.fill(0);g.world.opaque.fill(0);
+ const worker=g.units.find(u=>u.owner===0&&u.kind==='engineer'),site=buildSite(g,'factory');
+ const radius=BUILDINGS.factory.radius,range=radius+55,gap=range+.5;
+ const mock={...g.bases[0],...site,kind:'factory',id:1999,radius,hp:BUILDINGS.factory.hp*.25};
+ const bases=[...g.bases,mock],obstacles=[...bases,...infantryStructureColliders(bases)];
+ let position=null;
+ for(let i=0;i<32&&!position;i++){
+  const a=i*Math.PI/16,p={x:site.x+Math.cos(a)*gap,y:site.y+Math.sin(a)*gap},
+   step={x:site.x+Math.cos(a)*(range-6),y:site.y+Math.sin(a)*(range-6)};
+  if(g.world.walkable(p,obstacles)&&g.world.walkable(step,obstacles)&&
+   g.world.line(step,site)&&g.world.path(p,step,obstacles).length)position=p;
+ }
+ assert.ok(position,'fixture requires at least one physically clear path into factory working range');
+ Object.assign(worker,position);
+ const before=g.credits[0],b=g.build(0,'factory',site,[worker.id]);
+ assert.ok(b,'a near-range pioneer must not be rejected by coarse grid-centre sampling');
+ assert.equal(g.credits[0],before-BUILDINGS.factory.cost);
+ assert.equal(worker.orders[0]?.target,b.id);
+ assert.ok(distance(worker.orders[0].approach,site)<=range);
+ for(let i=0;i<1800&&b.buildRemaining>0;i++)g.step();
+ assert.equal(b.buildRemaining,0,'pioneer actually walks the short approach and completes construction');
 });
 
 test('production: old mixed HQ queues refund unsupported orders once and retain paid workers and existing troops',()=>{
