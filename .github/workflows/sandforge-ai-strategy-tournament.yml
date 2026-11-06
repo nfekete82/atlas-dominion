@@ -1,0 +1,44 @@
+name: Sandforge AI strategy tournament
+on:
+  push:
+    branches: [feat/sandforge-ai-tournament-lab-20261103]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node --test tests/sandforge-ai-tournament.test.mjs tests/reborn-combat-missions.test.mjs tests/reborn-commander.test.mjs tests/reborn-control-retreat.test.mjs
+  tournament:
+    runs-on: ubuntu-latest
+    needs: validation
+    strategy:
+      fail-fast: false
+      matrix:
+        opponent: [guarded, pressure, expansion, armored]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Paired four-bastion tournament
+        run: node scripts/ai-strategy-tournament.mjs --opponents "${{ matrix.opponent }}" --seeds 2026,2027,2028,2029 --seconds 360 --contenders current,legacy-wave,legacy-doctrine,baseline --output ai-arena-results/league-${{ matrix.opponent }}.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: league-${{ matrix.opponent }}
+          path: ai-arena-results/league-${{ matrix.opponent }}.json
+          retention-days: 21

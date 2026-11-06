@@ -1,0 +1,44 @@
+name: Sandforge four bastion failure postmortem
+on:
+  push:
+    branches: [feat/sandforge-four-bastion-failure-diagnostics-20261103]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node --test tests/sandforge-four-bastion-postmortem.test.mjs tests/sandforge-ai-tournament.test.mjs
+  diagnosis:
+    needs: safety
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        opponent: [pressure, expansion]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Diagnose opening losses and route fairness
+        run: node scripts/ai-four-bastion-postmortem.mjs --seeds 2026,2027,2028,2030,2031,2033 --seconds 360 --opponents "${{ matrix.opponent }}" --output ai-arena-results/postmortem-${{ matrix.opponent }}.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: four-bastion-postmortem-${{ matrix.opponent }}
+          path: ai-arena-results/postmortem-${{ matrix.opponent }}.json
+          retention-days: 21

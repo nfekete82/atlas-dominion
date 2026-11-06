@@ -1,0 +1,26 @@
+name: Verify Sandforge sand footprints and wheel tracks
+on:
+  push:
+    branches: [fix/sandforge-footprints-vehicle-tracks-20261028]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-effects:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Build game including restored prints and sand overlays
+        run: npm run build
+      - name: Verify all sand-trail regressions and airfield integrity
+        run: |
+          node --test tests/reborn-battlefield-atmosphere.test.mjs tests/reborn-expanded-airfield.test.mjs
+          node --test tests/reborn-buildings.test.mjs

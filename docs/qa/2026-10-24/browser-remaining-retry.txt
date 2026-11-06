@@ -1,0 +1,15 @@
+
+> test
+> playwright test --config=reborn.config.mjs --grep captured bastion keeps both|atlas models: all seven
+
+[WebServer] (node:92257) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:92258) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 reborn.spec.mjs:224:1 › reborn: captured bastion keeps both maps lit after infantry leaves and marching guards initiate combat (1.5s)
+  ✓  2 reborn.spec.mjs:388:1 › atlas models: all seven building models load in the gallery and radar motion keeps the foundation fixed (785ms)
+
+  2 passed (3.2s)

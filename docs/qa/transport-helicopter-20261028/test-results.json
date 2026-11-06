@@ -1,0 +1,94 @@
+{
+  "node": {
+    "total": 697,
+    "passed": 696,
+    "failed": 0,
+    "skipped": 1,
+    "skipReason": "Existing premium infantry binary is not installed in this checkout"
+  },
+  "relevantBrowser": {
+    "passed": 13,
+    "failed": 0
+  },
+  "fullBrowser": {
+    "passed": 59,
+    "failed": 10,
+    "failures": [
+      {
+        "file": "reborn-overhaul.spec.mjs",
+        "test": "overhaul: compact real turret heads track and fire from their registered muzzles in both factions; all faction/role atlases load",
+        "error": "Error: tank/0 faction area"
+      },
+      {
+        "file": "reborn-polish.spec.mjs",
+        "test": "polish: live rifle bursts use warm muzzle sockets and short travelling tracers, actual shot audio, pause and settings",
+        "error": "\u001b[31mTest timeout of 45000ms exceeded.\u001b[39m"
+      },
+      {
+        "file": "reborn.spec.mjs",
+        "test": "reborn: finer terrain, directional animation, grounded drawing and automatic retaliation render in the browser",
+        "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m"
+      },
+      {
+        "file": "reborn.spec.mjs",
+        "test": "reborn: infantry poses stay grounded without detached neighboring weapon fragments",
+        "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m"
+      },
+      {
+        "file": "reborn.spec.mjs",
+        "test": "reborn: captured bastion keeps both maps lit after infantry leaves and marching guards initiate combat",
+        "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m"
+      },
+      {
+        "file": "reborn.spec.mjs",
+        "test": "campaign: real new-game input generates a different reachable map and save/load restores the previous terrain and minimap",
+        "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m"
+      },
+      {
+        "file": "reborn.spec.mjs",
+        "test": "combat: approaching enemies receive immediate fire and a second attacker does not steal the first target",
+        "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m"
+      },
+      {
+        "file": "reborn.spec.mjs",
+        "test": "vehicle art: the full roster has real faction materials, baked shadows, animated running gear and visible turret/barrel layers",
+        "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m"
+      },
+      {
+        "file": "reborn.spec.mjs",
+        "test": "reborn: readable retro desert field HUD at the standard desktop viewport",
+        "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m"
+      },
+      {
+        "file": "reborn.spec.mjs",
+        "test": "reborn: unit portraits use subtle desert texture, aligned single-line name and cost; minimap compass stays uncluttered",
+        "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed"
+      }
+    ]
+  },
+  "baselineComparison": {
+    "commit": "0b3ab386b503c1245b8011e18f0dd232692a8480",
+    "unchangedBaselineFailedTests": [
+      "overhaul: compact real turret heads track and fire from their registered muzzles in both factions; all faction/role atlases load",
+      "polish: live rifle bursts use warm muzzle sockets and short travelling tracers, actual shot audio, pause and settings",
+      "reborn: finer terrain, directional animation, grounded drawing and automatic retaliation render in the browser",
+      "reborn: infantry poses stay grounded without detached neighboring weapon fragments",
+      "reborn: captured bastion keeps both maps lit after infantry leaves and marching guards initiate combat",
+      "combat: approaching enemies receive immediate fire and a second attacker does not steal the first target",
+      "vehicle art: the full roster has real faction materials, baked shadows, animated running gear and visible turret/barrel layers",
+      "reborn: readable retro desert field HUD at the standard desktop viewport",
+      "reborn: unit portraits use subtle desert texture, aligned single-line name and cost; minimap compass stays uncluttered"
+    ],
+    "randomMapReachabilityRepeatedOnBaseline": {
+      "passed": 4,
+      "failed": 1
+    }
+  },
+  "gltf": {
+    "models": 2,
+    "errors": 0,
+    "warnings": 0
+  },
+  "reproducibleAssets": 6,
+  "bomberAssetsUnchanged": 6
+}

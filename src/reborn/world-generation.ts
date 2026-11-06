@@ -1,12 +1,13 @@
-import { RULES, type Point } from './config.js';
+import { RULES, mapLayout, campaignLayout, mapWorldSize, type MapVersion, type Point } from './config.js';
+import {generateCanyonFeatures,canyonRuinBlocked,type CanyonRidge,type CanyonRuin} from './canyon-front.js';
 
 /** Versioned, deterministic geometry. Old saves continue to use the original map. */
-export const MAP_VERSION = 1;
-export const BASTION_SPACING = 440;
+export const MAP_VERSION = 2;
+export const BASTION_SPACING = mapLayout(MAP_VERSION).spacing;
 export const CORRIDOR_RADIUS = 85;
 export interface MesaColumn { base:Point[]; top:Point[]; height:number; shade:number }
 export interface Mesa { columns:MesaColumn[]; outline:Point[]; crystals:Point|null }
-export interface GeneratedMap { sites:Point[]; mesas:Mesa[]; corridors:[Point,Point][] }
+export interface GeneratedMap { sites:Point[]; mesas:Mesa[]; corridors:[Point,Point][]; ridges:CanyonRidge[]; ruins:CanyonRuin[] }
 export function seededRandom(seed:number):()=>number {
   let state=seed>>>0;
   return ()=>{state=(state+0x6d2b79f5)>>>0;let n=state;n=Math.imul(n^(n>>>15),n|1);n^=n+Math.imul(n^(n>>>7),n|61);return ((n^(n>>>14))>>>0)/4294967296;};
@@ -26,25 +27,37 @@ function hull(points:Point[]):Point[] {
   const half=(list:Point[])=>{const result:Point[]=[];for(const p of list){while(result.length>1&&cross(result.at(-2)!,result.at(-1)!,p)<=0)result.pop();result.push(p);}result.pop();return result;};
   return [...half(sorted),...half(sorted.reverse())];
 }
-export function generateMap(seed:number):GeneratedMap {
-  const rand=seededRandom(seed),size=RULES.worldSize,grid=RULES.grid,cell=size/grid,w=size/RULES.columns,h=size/RULES.rows;
+export function generateMap(seed:number,version:Exclude<MapVersion,0>=MAP_VERSION):GeneratedMap {
+  const layout=campaignLayout(version,seed),cols=layout.columns,rows=layout.rows,count=cols*rows;
+  const rand=seededRandom(seed),size=mapWorldSize(version),grid=RULES.grid,cell=size/grid,w=size/cols,h=size/rows;
   // Stratified rejection sampling avoids clumps and preserves adjacent capture sectors.
   // Reserve all sector centres first so a later sector always has a legal fallback.
-  const sites=Array.from({length:30},(_,i)=>({x:(i%6+.5)*w,y:(Math.floor(i/6)+.5)*h}));
-  for(let i=0;i<sites.length;i++)for(let attempt=0;attempt<80;attempt++){
-    const p={x:(i%6+.5+(rand()-.5)*.56)*w,y:(Math.floor(i/6)+.5+(rand()-.5)*.54)*h};
+  const sites=Array.from({length:count},(_,i)=>({x:(i%cols+.5)*w,y:(Math.floor(i/cols)+.5)*h}));
+  for(let i=0;i<(version>=2?count/2:count);i++)for(let attempt=0;attempt<80;attempt++){
+    const p={x:(i%cols+.5+(rand()-.5)*(version>=2?.46:.56))*w,y:(Math.floor(i/cols)+.5+(rand()-.5)*(version>=2?.46:.54))*h};
     if(p.x<270||p.x>size-270||p.y<270||p.y>size-270)continue;
-    if(sites.every((q,j)=>i===j||Math.hypot(p.x-q.x,p.y-q.y)>=BASTION_SPACING)){sites[i]=p;break;}
+    if(version>=2){
+      const partner=count-1-i,mirror={x:size-p.x,y:size-p.y};
+      if(layout.headquarters.some(id=>id===i||id===partner)&&(p.x<460||p.x>size-460||p.y<460||p.y>size-460))continue;
+      if(Math.hypot(p.x-mirror.x,p.y-mirror.y)<layout.spacing)continue;
+      if(sites.every((q,j)=>i===j||partner===j||(Math.hypot(p.x-q.x,p.y-q.y)>=layout.spacing&&Math.hypot(mirror.x-q.x,mirror.y-q.y)>=layout.spacing))){sites[i]=p;sites[partner]=mirror;break;}
+    }else if(sites.every((q,j)=>i===j||Math.hypot(p.x-q.x,p.y-q.y)>=layout.spacing)){sites[i]=p;break;}
   }
   const corridors:[Point,Point][]=[];
-  sites.forEach((p,i)=>{if(i%6<5)corridors.push([p,sites[i+1]]);if(i<24)corridors.push([p,sites[i+6]]);});
+  sites.forEach((p,i)=>{if(i%cols<cols-1)corridors.push([p,sites[i+1]]);if(i<count-cols)corridors.push([p,sites[i+cols]]);});
+  // New canyon-only geometry. Previous map versions keep identical world tiles.
+  const canyon=version>=15?generateCanyonFeatures(seed,size,cols,rows,sites,corridors):{ridges:[],ruins:[]};
   const reserved=new Uint8Array(grid*grid),occupied=new Uint8Array(grid*grid);
   for(let i=0;i<reserved.length;i++){
     const p={x:(i%grid+.5)*cell,y:(Math.floor(i/grid)+.5)*cell};
-    if(sites.some((s,j)=>Math.hypot(p.x-s.x,p.y-s.y)<([5,19].includes(j)?335:155))||corridors.some(([a,b])=>segmentDistance(p,a,b)<CORRIDOR_RADIUS+cell))reserved[i]=1;
+    if(sites.some((s,j)=>Math.hypot(p.x-s.x,p.y-s.y)<(layout.headquarters.some(id=>id===j)?version>=2?Math.min(520,w*.7):335:version>=2?Math.min(230,w*.38):155))||corridors.some(([a,b])=>segmentDistance(p,a,b)<CORRIDOR_RADIUS+cell)||canyon.ridges.some(r=>r.spine.slice(1).some((b,j)=>segmentDistance(p,r.spine[j],b)<r.width+125))||canyon.ruins.some(r=>canyonRuinBlocked(p,r,95)))reserved[i]=1;
   }
   const mesas:Mesa[]=[];
-  for(let attempt=0;attempt<900&&mesas.length<44;attempt++){
+  // Wide v19+ landscapes should have expansive empty maneuvering ground.
+  // Preserve legacy mesa counts/seed streams for all old map versions.
+  const mesaTarget=version>=19?Math.round(13+count*.75):
+   Math.max(12,Math.round(44*(size/RULES.worldSize)**2));
+  for(let attempt=0;attempt<900&&mesas.length<mesaTarget;attempt++){
     const x=100+rand()*(size-200),y=160+rand()*(size-270),radius=50+rand()*75,columns:MesaColumn[]=[];
     const count=3+Math.floor(rand()*5),rotation=rand()*Math.PI*2;
     for(let n=0;n<count;n++){
@@ -74,5 +87,5 @@ export function generateMap(seed:number):GeneratedMap {
     const foot=outline.reduce((a,b)=>a.y>b.y?a:b);
     mesas.push({columns,outline,crystals:rand()<.32?{x:foot.x+10,y:foot.y-5}:null});
   }
-  return {sites,mesas,corridors};
+  return {sites,mesas,corridors,...canyon};
 }

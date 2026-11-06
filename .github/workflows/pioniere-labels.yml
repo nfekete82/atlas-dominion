@@ -1,0 +1,38 @@
+name: Verify Pioniere naming and save compatibility
+on:
+  push:
+    branches: [feat/sandforge-pioniere-labels-20261028]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  labels:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Compile game and run engineer identifier compatibility tests
+        run: |
+          npm run build
+          node --test tests/reborn-support.test.mjs tests/reborn-production.test.mjs tests/reborn-palm-knockdown.test.mjs tests/reborn-expanded-airfield.test.mjs
+      - name: Verify UI labels and internal IDs
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          const catalog=fs.readFileSync('src/reborn/catalog.ts','utf8');
+          const input=fs.readFileSync('src/reborn/input.ts','utf8');
+          assert.match(catalog,/engineer:\{[^\n]*name:'Pionier'/);
+          assert.match(catalog,/Bildet Pioniere aus/);
+          assert.match(input,/Pioniere sind unterwegs/);
+          assert.ok(!/Ingenieur(e|en)?/.test(catalog+input));
+          assert.match(catalog,/export type UnitKind=.*'engineer'/);
+          console.log('Pioniere visible, engineer kind unchanged');
+          JS

@@ -1,0 +1,51 @@
+name: Sandforge helicopter and soldier visual polish
+
+on:
+  push:
+    branches:
+      - feat/sandforge-heli-visual-polish-*
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  visual-polish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Focused scale / alpha / combat regression
+        run: |
+          node --test \
+            tests/reborn-art-scale.test.mjs \
+            tests/reborn-heli-visual.test.mjs \
+            tests/reborn-animation.test.mjs \
+            tests/reborn-hold-fire.test.mjs \
+            tests/reborn-campaign.test.mjs \
+            tests/reborn-control-retreat.test.mjs \
+            tests/reborn-veterancy.test.mjs \
+            tests/reborn-weather.test.mjs \
+            tests/reborn-combined-arms.test.mjs
+      - name: Install Chromium
+        run: |
+          npm --prefix tests/browser ci --no-audit --no-fund
+          cd tests/browser && npx playwright install --with-deps chromium
+      - name: Visual helicopter and bomber shadow in browser
+        env:
+          ATLAS_BROWSER_CHANNEL: chromium
+          CI: 'true'
+        run: |
+          cd tests/browser
+          npx playwright test --config=cinematic.config.mjs \
+            reborn-helicopter-polish.spec.mjs \
+            reborn-bomber-shadow.spec.mjs \
+            reborn-hold-fire.spec.mjs \
+            --reporter=line

@@ -1,0 +1,25 @@
+name: Sandforge palm knockdown and scale regression
+on:
+  push:
+    branches: [feat/sandforge-palm-knockdown-scale-20261028]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: TypeScript compilation and production build
+        run: npm run build
+      - name: Test palm knockdowns, art scales and existing airfield and sand effects
+        run: |
+          node --test tests/reborn-palm-knockdown.test.mjs tests/reborn-art-scale.test.mjs tests/reborn-battlefield-atmosphere.test.mjs tests/reborn-expanded-airfield.test.mjs

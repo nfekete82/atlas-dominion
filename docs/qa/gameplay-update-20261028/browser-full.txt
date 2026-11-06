@@ -1,0 +1,532 @@
+
+> test
+> playwright test --config=reborn.config.mjs
+
+[WebServer] (node:53615) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 84 tests using 1 worker
+
+(node:53619) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 reborn-building-pbr.spec.mjs:6:1 › buildings PBR: all factions load embedded physical surfaces in the actual 3D gallery (3.9s)
+  ✓   2 reborn-building-pbr.spec.mjs:33:1 › buildings PBR: runtime sprites, radar, sweep and rotating weapons draw for all 15 variants without changing a save (1.4s)
+  ✓   3 reborn-combined-arms.spec.mjs:7:1 › combined arms: transport has real loading commands, lands for ten soldiers, saves during descent, unloads safely and takes off (2.6s)
+  ✓   4 reborn-combined-arms.spec.mjs:20:1 › combined arms: real rocket vehicle launches a visible travelling rocket from beyond turret range (1.4s)
+  ✓   5 reborn-compact-ui.spec.mjs:8:1 › compact UI: square complete radar, horizontal tabs and eight queue slots in one row across screen sizes (1.8s)
+  ✓   6 reborn-compact-ui.spec.mjs:21:1 › minimap right click: infantry, vehicle and aircraft receive strict moves and physically travel (1.3s)
+  ✓   7 reborn-compact-ui.spec.mjs:27:1 › minimap group and Shift moves reuse formations and append waypoints without replacing routes (1.2s)
+  ✓   8 reborn-compact-ui.spec.mjs:32:1 › minimap no-selection, HQ-only, enemy and modal targeting cannot create unintended actions or context menus (1.2s)
+  ✓   9 reborn-compact-ui.spec.mjs:37:1 › minimap left drag still navigates, H still homes, and transformed Retina canvas maps accurately (3.0s)
+  ✓  10 reborn-compact-ui.spec.mjs:43:1 › production: selected producer owns all eight slots, cancellation, progress and correct Pionier catalog (1.6s)
+  ✓  11 reborn-compact-ui.spec.mjs:50:1 › selection strip: compact matching portrait, reachable building commands and real HUD logo across viewports (4.2s)
+  ✓  12 reborn-defense-map.spec.mjs:9:1 › defense map: legacy maps load through the real save store and a new campaign uses the current medium map (2.9s)
+  ✓  13 reborn-defense-map.spec.mjs:31:1 › defense map: selected turret draws exactly 600 range and fights a unit beside a bastion at 500 while tracking through reload (1.3s)
+  ✓  14 reborn-defense-map.spec.mjs:50:1 › defense map: new campaign capture updates income, minimap ownership and the 16-sector counter (1.4s)
+  ✓  15 reborn-gameplay-update.spec.mjs:5:24 › gameplay UI: 14px shared Retina role circles, complete proportional portraits and bounded sidebar at DPR 1 (2.9s)
+  ✓  16 reborn-gameplay-update.spec.mjs:5:24 › gameplay UI: 14px shared Retina role circles, complete proportional portraits and bounded sidebar at DPR 2 (4.5s)
+  ✓  17 reborn-gameplay-update.spec.mjs:28:1 › gameplay: storm HUD, fog, frozen animation and quiet reusable wind respect pause, saves and reduced motion (2.3s)
+  ✓  18 reborn-layout.spec.mjs:12:1 › layout: canvas and sidebar own disjoint columns at desktop, tablet and phone sizes, including fractional widths and layout-only resizing (1.5s)
+  ✓  19 reborn-layout.spec.mjs:23:1 › layout: real selection, right click, rectangle selection and captured gestures work at the visible right edge without HUD click-through (1.3s)
+  ✓  20 reborn-layout.spec.mjs:37:1 › layout: building placement, building selection and rally targets use the rightmost visible map area, and releases over the sidebar cannot build (1.2s)
+  ✓  21 reborn-layout.spec.mjs:50:1 › layout: right edge scroll reaches the full world boundary, stops in the sidebar, minimap still pans, and mouse-anchored zoom remains exact (1.6s)
+  ✓  22 reborn-layout.spec.mjs:60:1 › layout: Retina backing pixels match fractional viewport dimensions without changing CSS-coordinate input (2.3s)
+  ✘  23 reborn-overhaul.spec.mjs:10:1 › overhaul: compact real turret heads track and fire from their registered muzzles in both factions; all faction/role atlases load (2.6s)
+(node:54013) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  24 reborn-overhaul.spec.mjs:44:1 › overhaul: a worker places in explored neutral fog, walks there and completes the barracks without taking the territory (1.6s)
+  ✓  25 reborn-overhaul.spec.mjs:64:1 › overhaul: real group input keeps medics behind the front, heals during attack-move, and persists formation state (1.6s)
+  ✓  26 reborn-performance.spec.mjs:3:1 › performance: profiler requires debug and perf; overlay reports and exports measurements (3.9s)
+  ✓  27 reborn-performance.spec.mjs:17:1 › performance: unchanged HUD text and queue DOM survive refresh, selection responds immediately (1.0s)
+  ✓  28 reborn-performance.spec.mjs:30:1 › performance: optimized layered sprites match original Canvas pixels and preserve caller state (1.2s)
+  ✘  29 reborn-polish.spec.mjs:8:1 › polish: live rifle bursts use warm muzzle sockets and short travelling tracers, actual shot audio, pause and settings (47.2s)
+(node:54376) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  30 reborn-polish.spec.mjs:38:1 › polish: real dual turret barrels, distinct synthesized weapon signals and capped audio voices (1.5s)
+  ✓  31 reborn-polish.spec.mjs:63:1 › polish: real healing crosses, self care, one repair wrench and construction activity stop on interruption and load (1.4s)
+  ✓  32 reborn-production.spec.mjs:14:1 › production: worker and soldier start; HQ trains only workers; actual barracks construction unlocks soldiers and durable queues (1.7s)
+  ✓  33 reborn-production.spec.mjs:26:1 › production: real factory and airfield unlock their own menus only after completion, destroyed facilities hide them again (1.5s)
+  ✓  34 reborn-production.spec.mjs:38:1 › production: full queues disable available cards without hiding their category; enemy buildings do not unlock it (1.2s)
+  ✓  35 reborn-production.spec.mjs:45:1 › production: old paid HQ queues migrate through IndexedDB without free starting units or repeated refunds (1.6s)
+  ✓  36 reborn-radio.spec.mjs:9:1 › radio: local speech decodes, real mouse commands speak immediately, groups speak once and attack priority replaces movement (4.2s)
+  ✓  37 reborn-radio.spec.mjs:26:1 › radio: actual specialist, attack, healing, repair, build and transport commands choose fitting speech; invalid and autonomous commands stay silent (1.2s)
+  ✓  38 reborn-radio.spec.mjs:42:1 › radio: voice/master controls persist, pause stops playback, muted commands never replay, and a real new campaign reuses the decoded bank (3.0s)
+  ✓  39 reborn-rocket-pbr.spec.mjs:4:1 › rocket gallery: complete reference vehicle, six wheels, aiming hydraulics, team changes and safe camera (1.5s)
+  ✓  40 reborn-rocket-pbr.spec.mjs:12:1 › rocket sprites: all directions visible, no cropping, real separate layers and wheel phases (504ms)
+  ✓  41 reborn-rocket-pbr.spec.mjs:16:1 › rocket gameplay: factory production, selected name, independent aiming, saved missile and impact (1.5s)
+  ✓  42 reborn-rocket-pbr.spec.mjs:21:1 › rocket gallery switching preserves bomber and transport geometry/animation (590ms)
+  ✓  43 reborn-rocket-pbr.spec.mjs:25:1 › rocket camouflage: actual tank woodland colors, 2K detail and projected body UVs (340ms)
+  ✓  44 reborn-support.spec.mjs:11:1 › support HUD: empty click hides all context, targeted buildings and groups have correct actions, global production stays usable (1.2s)
+  ✓  45 reborn-support.spec.mjs:23:1 › support HUD: medic right-click heals infantry, exposes heal/move/hold/stop and renders distinct animated equipment (1.3s)
+  ✓  46 reborn-support.spec.mjs:36:1 › support HUD: real worker placement, cancellation, two completed buildings, barracks training/rally, repair and durable orders (2.4s)
+  ✓  47 reborn-support.spec.mjs:65:1 › support HUD: right-click damaged Humvee repairs it instead of boarding the engineer (1.1s)
+  ✓  48 reborn-tactical-ai.spec.mjs:3:1 › tactical AI: a genuinely built blue turret kills two red infantry; the 16-sector AI gathers paid reinforcements, attacks together and saves its lessons (1.9s)
+  ✓  49 reborn-tactics-visuals.spec.mjs:3:1 › tactical pause: large centred sharp text, blurred battlefield and sidebar, frozen simulation and both resume controls (2.0s)
+  ✓  50 reborn-tactics-visuals.spec.mjs:18:1 › terrain and turret: natural rock texture has no cyan crystals, map geometry survives painting, both refined rigs render (1.1s)
+  ✓  51 reborn-transport-pbr.spec.mjs:4:1 › transport gallery: visible PBR airframe, independent rotors, team switch, orbit and zoom (1.2s)
+  ✓  52 reborn-transport-pbr.spec.mjs:14:1 › sprite pixels: all rotor frames visible, transparent border and blue/red differences (366ms)
+  ✓  53 reborn-transport-pbr.spec.mjs:17:1 › game: ten passengers land, board, fly, unload and keep idle rotor motion (1.5s)
+  ✓  54 reborn-transport-pbr.spec.mjs:21:1 › bomber regression: original PBR bomber visible and animated after helicopter team changes (734ms)
+  ✓  55 reborn.spec.mjs:29:1 › reborn: complete browser loop from one soldier through capture, production, multi-unit expansion, combat and durable resume (4.9s)
+  ✓  56 reborn.spec.mjs:69:1 › reborn: minimap drag, anchored zoom, keyboard camera, shift orders, attack mode and stop use real input (2.2s)
+  ✓  57 reborn.spec.mjs:89:1 › reborn: hidden enemies leave no main-map or minimap pixels, and terrain stays remembered (1.5s)
+  ✓  58 reborn.spec.mjs:104:1 › reborn: compact viewport, instructions, pause and new campaign preserve a usable playfield (2.3s)
+  ✓  59 reborn.spec.mjs:113:1 › reborn: sound unlocks on interaction, produces an audio signal and preserves volume/mute settings (2.9s)
+  ✘  60 reborn.spec.mjs:127:1 › reborn: finer terrain, directional animation, grounded drawing and automatic retaliation render in the browser (3.1s)
+(node:54992) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  61 reborn.spec.mjs:148:1 › reborn: the headquarters black spot and the ground beneath infantry remain visible on both maps (1.4s)
+  ✓  62 reborn.spec.mjs:163:1 › reborn: detailed cliff artwork and navigation occupy the same terrain (1.4s)
+  ✓  63 reborn.spec.mjs:172:1 › reborn: capture beacons emit white when neutral and saturated team colors after ownership changes (1.4s)
+  ✘  64 reborn.spec.mjs:194:1 › reborn: infantry poses stay grounded without detached neighboring weapon fragments (3.1s)
+(node:55091) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  65 reborn.spec.mjs:227:1 › reborn: captured bastion keeps both maps lit after infantry leaves and marching guards initiate combat (3.5s)
+(node:55154) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  66 reborn.spec.mjs:253:1 › reborn: unit-focused HUD stays compact at bottom left and trains heavy infantry in a finished barracks (3.0s)
+(node:55229) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  67 reborn.spec.mjs:273:1 › reborn: factory and airfield catalogs produce all five vehicles and aircraft with distinct sprites and working movement (2.2s)
+  ✓  68 reborn.spec.mjs:289:1 › reborn: authored shadows, slow base activity and subtle sand drift stay grounded and pause with simulation time (1.4s)
+  ✓  69 reborn.spec.mjs:318:1 › reborn: animation laboratory visibly exercises all six scenarios with real state transitions and optional particles (4.9s)
+  ✓  70 reborn.spec.mjs:334:1 › model study: exported GLB loads real animated geometry, supports five clips, orbit controls and faction selection (4.1s)
+  ✓  71 reborn.spec.mjs:353:1 › model study: sprite comparison shows the adopted infantry in eight real directions and all five states (676ms)
+  ✓  72 reborn.spec.mjs:362:1 › atlas models: approved infantry and real building renders are active with fixed ground shadows (1.3s)
+  ✓  73 reborn.spec.mjs:376:1 › atlas models: refined headquarters preserves the edited surfaces and moves its added radar details in both factions (1.7s)
+  ✓  74 reborn.spec.mjs:391:1 › atlas models: all seven building models load in the gallery and radar motion keeps the foundation fixed (1.3s)
+  ✘  75 reborn.spec.mjs:408:1 › campaign: real new-game input generates a different reachable map and save/load restores the previous terrain and minimap (3.1s)
+(node:55420) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  76 reborn.spec.mjs:423:1 › combat: approaching enemies receive immediate fire and a second attacker does not steal the first target (2.4s)
+(node:55485) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  77 reborn.spec.mjs:440:1 › vehicle art: the full roster has real faction materials, baked shadows, animated running gear and visible turret/barrel layers (2.5s)
+(node:55537) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  78 reborn.spec.mjs:454:1 › visual polish: fine sand relief and a quiet HUD preserve usable production and compact selection (1.7s)
+  ✓  79 reborn.spec.mjs:468:1 › combat presentation: simultaneous hits never hide return-fire poses or delay the real weapon cadence (1.4s)
+  ✓  80 reborn.spec.mjs:490:1 › capture: a real two-unit drag selection captures after clicking the mast, body or label at different zoom levels (1.8s)
+  ✘  81 reborn.spec.mjs:514:1 › reborn: readable retro desert field HUD at the standard desktop viewport (2.4s)
+(node:55670) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  82 reborn.spec.mjs:565:1 › reborn: unit portraits use subtle desert texture, aligned single-line name and cost; minimap compass stays uncluttered (7.7s)
+(node:55812) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  83 reborn.spec.mjs:588:1 › model gallery: vehicles and aircraft are selectable as real 3D GLBs (4.3s)
+  ✓  84 reborn.spec.mjs:619:1 › infantry: exported wrist sockets retain both grips through every clip and intermediate pose for both factions (685ms)
+
+
+  1) reborn-overhaul.spec.mjs:10:1 › overhaul: compact real turret heads track and fire from their registered muzzles in both factions; all faction/role atlases load 
+
+    Error: tank/0 faction area
+
+    expect(received).toBeGreaterThan(expected)
+
+    Expected: > 0.06
+    Received:   0.02144987382427162
+
+      38 |   return result;
+      39 |  });
+    > 40 |  for(const item of colors)expect(item.ratio,`${item.kind}/${item.owner} faction area`).toBeGreaterThan(.06);
+         |                                                                                        ^
+      41 |  await page.screenshot({path:'artifacts/reborn/overhaul-turrets.png'});expect(health.errors).toEqual([]);expect(health.assets).toEqual([]);
+      42 | });
+      43 |
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn-overhaul.spec.mjs:40:88
+
+    Error Context: artifacts/reborn/reborn-overhaul-overhaul-c-9ce3d-l-faction-role-atlases-load/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    artifacts/reborn/reborn-overhaul-overhaul-c-9ce3d-l-faction-role-atlases-load/trace.zip
+    Usage:
+
+        npx playwright show-trace artifacts/reborn/reborn-overhaul-overhaul-c-9ce3d-l-faction-role-atlases-load/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) reborn-polish.spec.mjs:8:1 › polish: live rifle bursts use warm muzzle sockets and short travelling tracers, actual shot audio, pause and settings 
+
+    Test timeout of 45000ms exceeded.
+
+    Error: locator.click: Test timeout of 45000ms exceeded.
+    Browser logs:
+
+    <launching> /Applications/Google Chrome.app/Contents/MacOS/Google Chrome --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,NetworkTimeServiceQuerying,AimEnabled,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/33/0q5pt4f53vsb1cxdgl0q__gc0000gn/T/playwright_chromiumdev_profile-nRvB63 --remote-debugging-pipe --no-startup-window
+    <launched> pid=54014
+    [pid=54014][err] Trying to load the allocator multiple times. This is *not* supported.
+    [pid=54014][err] [54020:18926250:1028/152843.519383:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152843.519624:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926250:1028/152843.520779:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152843.520825:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926250:1028/152843.521302:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152843.521348:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926250:1028/152843.521663:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152843.521697:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926250:1028/152843.521791:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152843.521836:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54033:18926436:1028/152844.572665:ERROR:sandbox/mac/system_services.cc:31] SetApplicationIsDaemon: Error Domain=NSOSStatusErrorDomain Code=-50 "paramErr: error in user parameter list" (-50)
+    [pid=54014][err] [54020:18926250:1028/152845.078623:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152845.078686:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926250:1028/152845.079388:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152845.079430:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926250:1028/152845.079884:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152845.079930:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926250:1028/152845.080021:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152845.080063:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926250:1028/152845.080157:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152845.080203:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926250:1028/152846.690651:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152846.690712:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926250:1028/152846.691343:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152846.691387:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926250:1028/152846.691674:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152846.691711:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926250:1028/152846.691806:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152846.691843:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926250:1028/152846.691933:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152846.691971:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926250:1028/152850.614690:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152850.614742:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926250:1028/152850.615657:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152850.615701:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926250:1028/152850.616106:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152850.616150:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926250:1028/152850.616242:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152850.616279:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926250:1028/152850.616360:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152850.616405:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926250:1028/152851.634160:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152851.634211:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926250:1028/152851.634773:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152851.634815:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926250:1028/152851.635370:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152851.635410:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926250:1028/152851.635500:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152851.635539:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926250:1028/152851.635616:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152851.635662:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926250:1028/152852.825830:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152852.825882:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926250:1028/152852.826517:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152852.826559:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926250:1028/152852.826943:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152852.826985:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926250:1028/152852.827079:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152852.827125:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926250:1028/152852.827212:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014][err] [54020:18926318:1028/152852.827250:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=54014] <gracefully close start>
+    Call log:
+      - waiting for locator('#sound')
+        - locator resolved to <button id="sound" aria-expanded="false" title="Sound und Optionen" aria-controls="audio-panel" aria-label="Sound und Lautstärke">…</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div role="status" id="pause-label">…</div> intercepts pointer events
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div role="status" id="pause-label">…</div> intercepts pointer events
+        - retrying click action
+          - waiting 100ms
+        86 × waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - <div role="status" id="pause-label">…</div> intercepts pointer events
+         - retrying click action
+           - waiting 500ms
+        - waiting for element to be visible, enabled and stable
+
+
+      32 |  });
+      33 |  expect(new Set(Object.values(suppressed)).size).toBe(1);
+    > 34 |  await page.locator('#sound').click();await page.locator('#audio-volume').fill('25');await expect(page.locator('#audio-level')).toHaveText('25 %');await page.locator('#particles-enabled').uncheck();
+         |                               ^
+      35 |  expect(await page.evaluate(()=>({volume:window.__reborn.audio.volume,particles:window.__reborn.renderer.units.particles.enabled}))).toEqual({volume:.25,particles:false});expect(errors).toEqual([]);
+      36 | });
+      37 |
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn-polish.spec.mjs:34:31
+
+    Error Context: artifacts/reborn/reborn-polish-polish-live--88b48-ot-audio-pause-and-settings/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    artifacts/reborn/reborn-polish-polish-live--88b48-ot-audio-pause-and-settings/trace.zip
+    Usage:
+
+        npx playwright show-trace artifacts/reborn/reborn-polish-polish-live--88b48-ot-audio-pause-and-settings/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) reborn.spec.mjs:127:1 › reborn: finer terrain, directional animation, grounded drawing and automatic retaliation render in the browser 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: 0
+
+      140 |   return {blueHp:blue.hp,redHp:red.hp,orders:blue.orders.length,angle:blue.angle,changed,groundFills,groundShadows,clear,opaque,pixels:atlas.width*atlas.height,terrain:r.terrain.src,grid:g.world.blocked.length};
+      141 |  });
+    > 142 |  expect(result.blueHp).toBeLessThan(100);expect(result.redHp).toBeLessThan(100);expect(result.orders).toBe(1);
+          |                                                                                                       ^
+      143 |  expect(result.changed).toBeGreaterThan(100);expect(result.groundFills).toBe(0);expect(result.groundShadows).toBe(0);
+      144 |  expect(result.clear/result.pixels).toBeGreaterThan(.35);expect(result.opaque/result.pixels).toBeGreaterThan(.04);expect(result.terrain).toContain('desert-fine.png');expect(result.grid).toBe(240*240);
+      145 |  await page.screenshot({path:evidence+'polish-combat.png'});
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:142:103
+
+    Error Context: artifacts/reborn/reborn-reborn-finer-terrai-0d3a4-ation-render-in-the-browser/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    artifacts/reborn/reborn-reborn-finer-terrai-0d3a4-ation-render-in-the-browser/trace.zip
+    Usage:
+
+        npx playwright show-trace artifacts/reborn/reborn-reborn-finer-terrai-0d3a4-ation-render-in-the-browser/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) reborn.spec.mjs:194:1 › reborn: infantry poses stay grounded without detached neighboring weapon fragments 
+
+    Error: expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 3
+    Received:    9
+
+      222 |    return {maxDetachedDistance,minHeight,maxHeight};
+      223 |  });
+    > 224 |  expect(result.maxDetachedDistance).toBeLessThanOrEqual(3);expect(result.minHeight).toBeGreaterThan(70);expect(result.maxHeight).toBeLessThan(101);
+          |                                     ^
+      225 | });
+      226 |
+      227 | test('reborn: captured bastion keeps both maps lit after infantry leaves and marching guards initiate combat',async({page})=>{
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:224:37
+
+    Error Context: artifacts/reborn/reborn-reborn-infantry-pos-72b92-eighboring-weapon-fragments/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    artifacts/reborn/reborn-reborn-infantry-pos-72b92-eighboring-weapon-fragments/trace.zip
+    Usage:
+
+        npx playwright show-trace artifacts/reborn/reborn-reborn-infantry-pos-72b92-eighboring-weapon-fragments/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) reborn.spec.mjs:227:1 › reborn: captured bastion keeps both maps lit after infantry leaves and marching guards initiate combat 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 2
+
+      Object {
+        "blueHp": 100,
+        "firstAttacker": null,
+        "orders": 2,
+    -   "redHp": 94.33333333333333,
+    -   "shots": 1,
+    +   "redHp": 100,
+    +   "shots": 0,
+      }
+
+      246 |    return {blueHp:blue.hp,redHp:red.hp,firstAttacker:blue.lastAttacker,orders:blue.orders.length,shots:g.shots.filter(s=>s.owner===0).length};
+      247 |  });
+    > 248 |  expect(combat).toEqual({blueHp:100,redHp:100-17/3,firstAttacker:null,orders:2,shots:1});
+          |                 ^
+      249 |  await advance(page,.15);expect(await page.evaluate(()=>window.__reborn.game.units.find(u=>u.owner===1).hp)).toBeCloseTo(83,8);
+      250 | });
+      251 |
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:248:17
+
+    Error Context: artifacts/reborn/reborn-reborn-captured-bas-5d37c-hing-guards-initiate-combat/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    artifacts/reborn/reborn-reborn-captured-bas-5d37c-hing-guards-initiate-combat/trace.zip
+    Usage:
+
+        npx playwright show-trace artifacts/reborn/reborn-reborn-captured-bas-5d37c-hing-guards-initiate-combat/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) reborn.spec.mjs:253:1 › reborn: unit-focused HUD stays compact at bottom left and trains heavy infantry in a finished barracks 
+
+    Error: expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 700
+    Received:    820
+
+      256 |  await expect(page.locator('#tab-buildings, [data-building], #build-shortcut')).toHaveCount(0);
+      257 |  await page.keyboard.press('b');expect(await page.evaluate(()=>window.__reborn.renderer.placement)).toBe(null);
+    > 258 |  const panel=await page.locator('.command').boundingBox();expect(panel.x).toBeLessThanOrEqual(12);expect(panel.width).toBeLessThanOrEqual(700);expect(panel.height).toBeLessThanOrEqual(216);expect(1790-panel.y-panel.height).toBeLessThanOrEqual(12);
+          |                                                                                                                       ^
+      259 |  await expect(page.locator('.command #production')).toHaveCount(0);await expect(page.locator('#sidebar #production')).toBeVisible();
+      260 |  await expect(page.locator('[data-unit="heavy"]')).toBeEnabled();await page.locator('[data-unit="heavy"]').click();
+      261 |  await expect(page.locator('#credits')).toHaveText('250');await expect(page.locator('#queue')).toContainText('1 IM AUFTRAG');
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:258:119
+
+    Error Context: artifacts/reborn/reborn-reborn-unit-focused-636f7-ntry-in-a-finished-barracks/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    artifacts/reborn/reborn-reborn-unit-focused-636f7-ntry-in-a-finished-barracks/trace.zip
+    Usage:
+
+        npx playwright show-trace artifacts/reborn/reborn-reborn-unit-focused-636f7-ntry-in-a-finished-barracks/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  7) reborn.spec.mjs:408:1 › campaign: real new-game input generates a different reachable map and save/load restores the previous terrain and minimap 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      416 |  await openMenu(page);await page.locator('#save').click();await expect(page.locator('#notices')).toContainText('Kampagne lokal gespeichert');
+      417 |  await newCampaign(page);await page.locator('#new-dialog [value="new"]').click();await expect.poll(()=>page.evaluate(()=>window.__reborn.game.seed)).not.toBe(before.seed);const after=await snapshot();
+    > 418 |  expect(after.seed).not.toBe(before.seed);expect(after.sites).not.toEqual(before.sites);expect(after.terrain).not.toBe(before.terrain);expect(after.mini).not.toBe(before.mini);expect(after.reachable).toBe(true);expect(after.spaced).toBe(true);
+          |                                                                                                                                                                                                                                         ^
+      419 |  await openMenu(page);await page.locator('#load').click();await expect(page.locator('#notices')).toContainText('Kampagne geladen');const restored=await snapshot();expect(restored).toEqual(before);
+      420 |  await page.screenshot({path:evidence+'random-campaign.png'});expect(errors).toEqual([]);
+      421 | });
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:418:233
+
+    Error Context: artifacts/reborn/reborn-campaign-real-new-g-14820-revious-terrain-and-minimap/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    artifacts/reborn/reborn-campaign-real-new-g-14820-revious-terrain-and-minimap/trace.zip
+    Usage:
+
+        npx playwright show-trace artifacts/reborn/reborn-campaign-real-new-g-14820-revious-terrain-and-minimap/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  8) reborn.spec.mjs:423:1 › combat: approaching enemies receive immediate fire and a second attacker does not steal the first target 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 6
+    Received: null
+
+      430 |   return {blue:blue.id,first:a.id,second:b.id,target:blue.combatTarget,attacker:blue.lastAttacker,hp:[a.hp,b.hp]};
+      431 |  });
+    > 432 |  expect(first.target).toBe(first.first);expect(first.attacker).toBe(first.second);expect(first.hp).toEqual([60,100]);
+          |                       ^
+      433 |  await advance(page,.2);
+      434 |  const next=await page.evaluate(()=>{const g=window.__reborn.game;return {survivors:g.units.filter(u=>u.owner===1).map(u=>u.id),hp:g.units.find(u=>u.owner===1).hp,blue:g.units.find(u=>u.owner===0).hp,orders:g.units.find(u=>u.owner===0).orders.length};});
+      435 |  expect(next.survivors).toEqual([first.second]);expect(next.hp).toBe(100);expect(next.blue).toBeGreaterThan(0);expect(next.orders).toBe(2);
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:432:23
+
+    Error Context: artifacts/reborn/reborn-combat-approaching--0be78--not-steal-the-first-target/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    artifacts/reborn/reborn-combat-approaching--0be78--not-steal-the-first-target/trace.zip
+    Usage:
+
+        npx playwright show-trace artifacts/reborn/reborn-combat-approaching--0be78--not-steal-the-first-target/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  9) reborn.spec.mjs:440:1 › vehicle art: the full roster has real faction materials, baked shadows, animated running gear and visible turret/barrel layers 
+
+    Error: expect(received).toBeGreaterThan(expected)
+
+    Expected: > 60
+    Received:   0
+
+      449 |   return rows;
+      450 |  });
+    > 451 |  for(const row of result){expect(row.parts).toBeGreaterThan(20);expect(row.source).toBe('Atlas original vehicle geometry');expect(row.model).toBe(true);expect(row.base.solid).toBeGreaterThan(60);expect(row.base.shadow).toBeGreaterThan(10);if(row.kind!=='bomber')expect(row.phases.every(n=>n>=4)).toBe(true);if(row.turret){expect(row.turret.solid).toBeGreaterThan(15);expect(row.barrel.solid).toBeGreaterThan(3);expect(row.barrel.groundShadow).toBe(0);}}
+          |                                                                                                                                                                                ^
+      452 | });
+      453 |
+      454 | test('visual polish: fine sand relief and a quiet HUD preserve usable production and compact selection',async({page})=>{
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:451:176
+
+    Error Context: artifacts/reborn/reborn-vehicle-art-the-ful-d6774-isible-turret-barrel-layers/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    artifacts/reborn/reborn-vehicle-art-the-ful-d6774-isible-turret-barrel-layers/trace.zip
+    Usage:
+
+        npx playwright show-trace artifacts/reborn/reborn-vehicle-art-the-ful-d6774-isible-turret-barrel-layers/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  10) reborn.spec.mjs:514:1 › reborn: readable retro desert field HUD at the standard desktop viewport 
+
+    Error: expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 210
+    Received:    168
+
+      526 |  expect(values.sidebar.width).toBeGreaterThanOrEqual(335);
+      527 |  expect(values.command.width).toBeGreaterThanOrEqual(690);
+    > 528 |  expect(values.command.height).toBeGreaterThanOrEqual(210);
+          |                                ^
+      529 |  expect(values.command.right).toBeLessThan(values.sidebar.x);
+      530 |  expect(values.command.bottom).toBeLessThanOrEqual(900);
+      531 |  expect(values.tabs).toBeGreaterThanOrEqual(15);
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:528:32
+
+    Error Context: artifacts/reborn/reborn-reborn-readable-ret-cbc00-e-standard-desktop-viewport/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    artifacts/reborn/reborn-reborn-readable-ret-cbc00-e-standard-desktop-viewport/trace.zip
+    Usage:
+
+        npx playwright show-trace artifacts/reborn/reborn-reborn-readable-ret-cbc00-e-standard-desktop-viewport/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  11) reborn.spec.mjs:565:1 › reborn: unit portraits use subtle desert texture, aligned single-line name and cost; minimap compass stays uncluttered 
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('#catalog-units .catalog-card')
+    Expected: 10
+    Received: 9
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveCount" locator('#catalog-units .catalog-card') with timeout 5000ms
+      - waiting for locator('#catalog-units .catalog-card')
+        14 × locator resolved to 9 elements
+           - unexpected value "9"
+
+
+      566 |  for(const [width,height] of [[1200,900],[760,770]]){
+      567 |   await start(page,width,height);
+    > 568 |   await expect(page.locator('#catalog-units .catalog-card')).toHaveCount(10);
+          |                                                              ^
+      569 |   await expect(page.locator('.compass.north,.compass.south')).toHaveCount(0);
+      570 |   const report=await page.locator('#catalog-units .catalog-card').evaluateAll(cards=>cards.map(card=>{
+      571 |    const name=card.querySelector('.card-name'),cost=card.querySelector('.card-cost'),meta=card.querySelector('.card-meta');
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:568:62
+
+    Error Context: artifacts/reborn/reborn-reborn-unit-portrai-9e0cf-p-compass-stays-uncluttered/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    artifacts/reborn/reborn-reborn-unit-portrai-9e0cf-p-compass-stays-uncluttered/trace.zip
+    Usage:
+
+        npx playwright show-trace artifacts/reborn/reborn-reborn-unit-portrai-9e0cf-p-compass-stays-uncluttered/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  11 failed
+    reborn-overhaul.spec.mjs:10:1 › overhaul: compact real turret heads track and fire from their registered muzzles in both factions; all faction/role atlases load 
+    reborn-polish.spec.mjs:8:1 › polish: live rifle bursts use warm muzzle sockets and short travelling tracers, actual shot audio, pause and settings 
+    reborn.spec.mjs:127:1 › reborn: finer terrain, directional animation, grounded drawing and automatic retaliation render in the browser 
+    reborn.spec.mjs:194:1 › reborn: infantry poses stay grounded without detached neighboring weapon fragments 
+    reborn.spec.mjs:227:1 › reborn: captured bastion keeps both maps lit after infantry leaves and marching guards initiate combat 
+    reborn.spec.mjs:253:1 › reborn: unit-focused HUD stays compact at bottom left and trains heavy infantry in a finished barracks 
+    reborn.spec.mjs:408:1 › campaign: real new-game input generates a different reachable map and save/load restores the previous terrain and minimap 
+    reborn.spec.mjs:423:1 › combat: approaching enemies receive immediate fire and a second attacker does not steal the first target 
+    reborn.spec.mjs:440:1 › vehicle art: the full roster has real faction materials, baked shadows, animated running gear and visible turret/barrel layers 
+    reborn.spec.mjs:514:1 › reborn: readable retro desert field HUD at the standard desktop viewport 
+    reborn.spec.mjs:565:1 › reborn: unit portraits use subtle desert texture, aligned single-line name and cost; minimap compass stays uncluttered 
+  73 passed (4.1m)

@@ -1,0 +1,142 @@
+
+> test
+> playwright test --config=reborn.config.mjs reborn-overhaul.spec.mjs reborn-polish.spec.mjs
+
+
+Running 6 tests using 1 worker
+
+(node:55098) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 reborn-overhaul.spec.mjs:10:1 › overhaul: compact real turret heads track and fire from their registered muzzles in both factions; all faction/role atlases load (3.9s)
+(node:55164) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 reborn-overhaul.spec.mjs:44:1 › overhaul: a worker places in explored neutral fog, walks there and completes the barracks without taking the territory (1.9s)
+  ✓  3 reborn-overhaul.spec.mjs:64:1 › overhaul: real group input keeps medics behind the front, heals during attack-move, and persists formation state (1.7s)
+  ✘  4 reborn-polish.spec.mjs:8:1 › polish: live rifle bursts use warm muzzle sockets and short travelling tracers, actual shot audio, pause and settings (47.3s)
+(node:55762) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  5 reborn-polish.spec.mjs:38:1 › polish: real dual turret barrels, distinct synthesized weapon signals and capped audio voices (1.9s)
+  ✓  6 reborn-polish.spec.mjs:63:1 › polish: real healing crosses, self care, one repair wrench and construction activity stop on interruption and load (1.7s)
+
+
+  1) reborn-overhaul.spec.mjs:10:1 › overhaul: compact real turret heads track and fire from their registered muzzles in both factions; all faction/role atlases load 
+
+    Error: tank/0 faction area
+
+    expect(received).toBeGreaterThan(expected)
+
+    Expected: > 0.06
+    Received:   0.02144987382427162
+
+      38 |   return result;
+      39 |  });
+    > 40 |  for(const item of colors)expect(item.ratio,`${item.kind}/${item.owner} faction area`).toBeGreaterThan(.06);
+         |                                                                                        ^
+      41 |  await page.screenshot({path:'artifacts/reborn/overhaul-turrets.png'});expect(health.errors).toEqual([]);expect(health.assets).toEqual([]);
+      42 | });
+      43 |
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn-overhaul.spec.mjs:40:88
+
+    Error Context: artifacts/reborn/reborn-overhaul-overhaul-c-9ce3d-l-faction-role-atlases-load/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    artifacts/reborn/reborn-overhaul-overhaul-c-9ce3d-l-faction-role-atlases-load/trace.zip
+    Usage:
+
+        npx playwright show-trace artifacts/reborn/reborn-overhaul-overhaul-c-9ce3d-l-faction-role-atlases-load/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) reborn-polish.spec.mjs:8:1 › polish: live rifle bursts use warm muzzle sockets and short travelling tracers, actual shot audio, pause and settings 
+
+    Test timeout of 45000ms exceeded.
+
+    Error: locator.click: Test timeout of 45000ms exceeded.
+    Browser logs:
+
+    <launching> /Applications/Google Chrome.app/Contents/MacOS/Google Chrome --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,NetworkTimeServiceQuerying,AimEnabled,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/33/0q5pt4f53vsb1cxdgl0q__gc0000gn/T/playwright_chromiumdev_profile-7cnqhe --remote-debugging-pipe --no-startup-window
+    <launched> pid=55174
+    [pid=55174][err] Trying to load the allocator multiple times. This is *not* supported.
+    [pid=55174][err] [55179:18936361:1028/153054.205157:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174][err] [55179:18936426:1028/153054.205471:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174][err] [55179:18936361:1028/153054.206063:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174][err] [55179:18936426:1028/153054.206123:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174][err] [55179:18936361:1028/153054.206809:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174][err] [55179:18936426:1028/153054.206883:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174][err] [55179:18936361:1028/153054.207084:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174][err] [55179:18936426:1028/153054.207157:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174][err] [55179:18936361:1028/153054.207294:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174][err] [55179:18936426:1028/153054.207362:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174][err] [55201:18936618:1028/153055.431025:ERROR:sandbox/mac/system_services.cc:31] SetApplicationIsDaemon: Error Domain=NSOSStatusErrorDomain Code=-50 "paramErr: error in user parameter list" (-50)
+    [pid=55174][err] [55179:18936361:1028/153055.984609:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174][err] [55179:18936426:1028/153055.984666:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174][err] [55179:18936361:1028/153055.985371:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174][err] [55179:18936426:1028/153055.985433:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174][err] [55179:18936361:1028/153055.985766:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174][err] [55179:18936426:1028/153055.985812:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174][err] [55179:18936361:1028/153055.986602:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174][err] [55179:18936426:1028/153055.986649:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174][err] [55179:18936361:1028/153055.986747:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174][err] [55179:18936426:1028/153055.986790:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174][err] [55179:18936361:1028/153057.749997:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174][err] [55179:18936426:1028/153057.750055:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174][err] [55179:18936361:1028/153057.750801:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174][err] [55179:18936426:1028/153057.750851:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174][err] [55179:18936361:1028/153057.751396:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174][err] [55179:18936426:1028/153057.751447:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174][err] [55179:18936361:1028/153057.751566:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174][err] [55179:18936426:1028/153057.751611:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174][err] [55179:18936361:1028/153057.751720:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174][err] [55179:18936426:1028/153057.751767:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=55174] <gracefully close start>
+    Call log:
+      - waiting for locator('#sound')
+        - locator resolved to <button id="sound" aria-expanded="false" title="Sound und Optionen" aria-controls="audio-panel" aria-label="Sound und Lautstärke">…</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div role="status" id="pause-label">…</div> intercepts pointer events
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div role="status" id="pause-label">…</div> intercepts pointer events
+        - retrying click action
+          - waiting 100ms
+        86 × waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - <div role="status" id="pause-label">…</div> intercepts pointer events
+         - retrying click action
+           - waiting 500ms
+        - waiting for element to be visible, enabled and stable
+
+
+      32 |  });
+      33 |  expect(new Set(Object.values(suppressed)).size).toBe(1);
+    > 34 |  await page.locator('#sound').click();await page.locator('#audio-volume').fill('25');await expect(page.locator('#audio-level')).toHaveText('25 %');await page.locator('#particles-enabled').uncheck();
+         |                               ^
+      35 |  expect(await page.evaluate(()=>({volume:window.__reborn.audio.volume,particles:window.__reborn.renderer.units.particles.enabled}))).toEqual({volume:.25,particles:false});expect(errors).toEqual([]);
+      36 | });
+      37 |
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn-polish.spec.mjs:34:31
+
+    Error Context: artifacts/reborn/reborn-polish-polish-live--88b48-ot-audio-pause-and-settings/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    artifacts/reborn/reborn-polish-polish-live--88b48-ot-audio-pause-and-settings/trace.zip
+    Usage:
+
+        npx playwright show-trace artifacts/reborn/reborn-polish-polish-live--88b48-ot-audio-pause-and-settings/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    reborn-overhaul.spec.mjs:10:1 › overhaul: compact real turret heads track and fire from their registered muzzles in both factions; all faction/role atlases load 
+    reborn-polish.spec.mjs:8:1 › polish: live rifle bursts use warm muzzle sockets and short travelling tracers, actual shot audio, pause and settings 
+  4 passed (1.1m)

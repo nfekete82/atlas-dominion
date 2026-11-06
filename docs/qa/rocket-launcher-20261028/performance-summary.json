@@ -1,0 +1,42 @@
+{
+  "A-start": {
+    "stateIdentical": true,
+    "frameP95": 16.700000000000273,
+    "simulationMax": 1.399999976158142
+  },
+  "B-20-moving": {
+    "stateIdentical": true,
+    "frameP95": 16.700000000000273,
+    "simulationMax": 20.699999928474426
+  },
+  "C-50-moving": {
+    "stateIdentical": true,
+    "frameP95": 16.799999999999727,
+    "simulationMax": 46.5
+  },
+  "D-turret-battle": {
+    "stateIdentical": true,
+    "frameP95": 16.799999999999727,
+    "simulationMax": 16.5
+  },
+  "E-combined-ai": {
+    "stateIdentical": true,
+    "frameP95": 16.700000000000273,
+    "simulationMax": 23
+  },
+  "F-radio-events": {
+    "stateIdentical": true,
+    "frameP95": 16.700000000000273,
+    "simulationMax": 1.8000000715255737
+  },
+  "G-camera-zoom": {
+    "stateIdentical": true,
+    "frameP95": 16.700000000000273,
+    "simulationMax": 1.7000000476837158
+  },
+  "H-sidebar-production": {
+    "stateIdentical": true,
+    "frameP95": 16.799999999999955,
+    "simulationMax": 1.8000000715255737
+  }
+}

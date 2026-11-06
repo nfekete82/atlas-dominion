@@ -1,0 +1,479 @@
+{
+  "bank": "src/assets/reborn/voices",
+  "format": "24000 Hz, mono, signed PCM 16-bit",
+  "count": 47,
+  "passed": true,
+  "errors": [],
+  "clips": [
+    {
+      "id": "soldier-move-01",
+      "sha256": "fe10baac1dc68b0b46be4e96aac14d69c713c5505e4edf212c1e2ec5d878b606",
+      "duration": 0.785,
+      "rms": 0.136386,
+      "peak": 0.797821,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.04,
+      "trailingBelowThresholdSeconds": 0.045
+    },
+    {
+      "id": "soldier-move-02",
+      "sha256": "187bb6dcf498314f03d4c7cdb2de785569c9a797beda1ca94a66aeb517c776a3",
+      "duration": 1.04,
+      "rms": 0.137282,
+      "peak": 0.683289,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.06,
+      "trailingBelowThresholdSeconds": 0.05
+    },
+    {
+      "id": "soldier-move-03",
+      "sha256": "a436f8fb74f42edf71bb5b40eee369b6936bd8052c48c2e4e2e85103978a792a",
+      "duration": 1.15,
+      "rms": 0.137544,
+      "peak": 0.711945,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.06,
+      "trailingBelowThresholdSeconds": 0.06
+    },
+    {
+      "id": "soldier-move-04",
+      "sha256": "8987ac136d81581b8a1250b8e12436bd4c7b08fb4fa6ca2b300c7af0361df980",
+      "duration": 2.135,
+      "rms": 0.092028,
+      "peak": 0.819977,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.02,
+      "trailingBelowThresholdSeconds": 0.065
+    },
+    {
+      "id": "soldier-move-05",
+      "sha256": "c88feef7383f88305802875f497f18a0c820ceaedb55db3f0ab7127b392b0782",
+      "duration": 1.72,
+      "rms": 0.093785,
+      "peak": 0.819977,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.02,
+      "trailingBelowThresholdSeconds": 0.05
+    },
+    {
+      "id": "soldier-move-06",
+      "sha256": "ef5b2dacca82327de8e56e6962700d9abf822ff3ebd252d534aeb20396e8946c",
+      "duration": 0.605,
+      "rms": 0.135293,
+      "peak": 0.55545,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.06,
+      "trailingBelowThresholdSeconds": 0.045
+    },
+    {
+      "id": "soldier-move-07",
+      "sha256": "44ff4188edfb1500a2a2ea7055ace5c9091ecc1c7ea90050a58e09599c75b976",
+      "duration": 1.79,
+      "rms": 0.138427,
+      "peak": 0.634094,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.06,
+      "trailingBelowThresholdSeconds": 0.06
+    },
+    {
+      "id": "soldier-move-08",
+      "sha256": "ddb1d4dbd22b853862c5a4f3f6018f20fd2c149abb2850c37f37384d7f0c1e75",
+      "duration": 0.815,
+      "rms": 0.136521,
+      "peak": 0.750641,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.06,
+      "trailingBelowThresholdSeconds": 0.045
+    },
+    {
+      "id": "soldier-attack-01",
+      "sha256": "3539155bf8e25d0087a68eff436ee19fd9f03ad0c7456fe9bd9c4b9aa3dcfcf8",
+      "duration": 1.06,
+      "rms": 0.136842,
+      "peak": 0.819977,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.06,
+      "trailingBelowThresholdSeconds": 0.06
+    },
+    {
+      "id": "soldier-attack-02",
+      "sha256": "d8a73c4f5ad00ca15bd423f83b1b55f30c0afa1e68dd48920625ac3046ad6958",
+      "duration": 1.54,
+      "rms": 0.124817,
+      "peak": 0.819977,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.06,
+      "trailingBelowThresholdSeconds": 0.06
+    },
+    {
+      "id": "soldier-attack-03",
+      "sha256": "9acb26d5b324eff7e37c858f7df0bc8275860d4c5f0d038055d89e996ce6baa4",
+      "duration": 0.99,
+      "rms": 0.137142,
+      "peak": 0.651123,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.05,
+      "trailingBelowThresholdSeconds": 0.07
+    },
+    {
+      "id": "soldier-attack-04",
+      "sha256": "c294468aa506c3959657f501297a679b71f96fa3501b0d3f0dd4b98ca83b38da",
+      "duration": 1.03,
+      "rms": 0.137253,
+      "peak": 0.804749,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.03,
+      "trailingBelowThresholdSeconds": 0.06
+    },
+    {
+      "id": "soldier-attack-05",
+      "sha256": "10c18cc302437fd4ddd7f6b7e69cf18ec8a468258e28d31b3cc071987b22cd89",
+      "duration": 1.42,
+      "rms": 0.129226,
+      "peak": 0.819977,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.05,
+      "trailingBelowThresholdSeconds": 0.07
+    },
+    {
+      "id": "soldier-attack-06",
+      "sha256": "18c50a2791ae823c96c885ce5e3372ea7c31520b4f9dd8ef262e94a925de1eb2",
+      "duration": 1.35,
+      "rms": 0.13791,
+      "peak": 0.622711,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.07,
+      "trailingBelowThresholdSeconds": 0.03
+    },
+    {
+      "id": "crew-attack-01",
+      "sha256": "a7b7de5e0f798f38bdef28200dd774e4ed74c0f330e4d952145ee64aa7b286da",
+      "duration": 0.915,
+      "rms": 0.136906,
+      "peak": 0.581207,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.09,
+      "trailingBelowThresholdSeconds": 0.075
+    },
+    {
+      "id": "crew-attack-02",
+      "sha256": "7c827184378317368c105412f3e4072bd1af84fed0e09fd8158d2bfc0ef1db49",
+      "duration": 1.245,
+      "rms": 0.137733,
+      "peak": 0.624817,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.07,
+      "trailingBelowThresholdSeconds": 0.055
+    },
+    {
+      "id": "crew-attack-03",
+      "sha256": "c99d0ed3c783917584aef239a59f01911cda724ea03d8d61fb141cdb68dc383e",
+      "duration": 0.92,
+      "rms": 0.136923,
+      "peak": 0.499207,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.06,
+      "trailingBelowThresholdSeconds": 0.1
+    },
+    {
+      "id": "crew-attack-04",
+      "sha256": "ac91807be099cf7a3be67af6928e6361ab204c40bbb35b008ec973177c001d12",
+      "duration": 0.755,
+      "rms": 0.136241,
+      "peak": 0.611053,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.05,
+      "trailingBelowThresholdSeconds": 0.045
+    },
+    {
+      "id": "crew-attack-05",
+      "sha256": "2a22d20e09750ffb5f06e2978c07525cfdf63b9fd1a4d2913c4dd953dcf133f6",
+      "duration": 1.12,
+      "rms": 0.137478,
+      "peak": 0.551483,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.05,
+      "trailingBelowThresholdSeconds": 0.1
+    },
+    {
+      "id": "crew-attack-06",
+      "sha256": "71abdb3479af9fc946fcdf4272e3cf8904fdcfbef03bc8466af415b1ca8667dc",
+      "duration": 1.52,
+      "rms": 0.138146,
+      "peak": 0.497375,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.07,
+      "trailingBelowThresholdSeconds": 0.11
+    },
+    {
+      "id": "support-medic-01",
+      "sha256": "3e721f976794e2bed295a46ee4043fdc166f7c9e0b97af852e98e47507ca0353",
+      "duration": 1.43,
+      "rms": 0.138028,
+      "peak": 0.738068,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.07,
+      "trailingBelowThresholdSeconds": 0.14
+    },
+    {
+      "id": "support-medic-02",
+      "sha256": "178a0527a53d9750f391009f4053c6efe4866e61b814e4ef49d3377c4fff01d2",
+      "duration": 1.35,
+      "rms": 0.137911,
+      "peak": 0.564819,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.06,
+      "trailingBelowThresholdSeconds": 0.1
+    },
+    {
+      "id": "support-medic-03",
+      "sha256": "961fafebaf41b398666274382c8dd8e2d3093e7ceaddc71c263e2ebe1fd60f34",
+      "duration": 1.685,
+      "rms": 0.138328,
+      "peak": 0.577576,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.07,
+      "trailingBelowThresholdSeconds": 0.055
+    },
+    {
+      "id": "support-medic-04",
+      "sha256": "428f31ff34b8636803075773ef6173d1e7adfb6278db77b817395a9fc8a3c58d",
+      "duration": 0.94,
+      "rms": 0.136989,
+      "peak": 0.60611,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.06,
+      "trailingBelowThresholdSeconds": 0.09
+    },
+    {
+      "id": "support-engineer-01",
+      "sha256": "b4bb5a9e7a93c38fbde3702bbbfbf5562717ec8e2d00ade5ae3506cf0701f901",
+      "duration": 1.29,
+      "rms": 0.124081,
+      "peak": 0.819977,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.07,
+      "trailingBelowThresholdSeconds": 0.1
+    },
+    {
+      "id": "support-engineer-02",
+      "sha256": "ffe695019937dfab5e5d9ad70c8923e5dfbc0911e5117aeed7695811e27350be",
+      "duration": 1.48,
+      "rms": 0.132971,
+      "peak": 0.819977,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.02,
+      "trailingBelowThresholdSeconds": 0.08
+    },
+    {
+      "id": "support-repair-01",
+      "sha256": "27e7dfea8e453ea084c893317c9daad8439820863d1cf796791e4ee7272f510d",
+      "duration": 2.12,
+      "rms": 0.131745,
+      "peak": 0.819977,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.03,
+      "trailingBelowThresholdSeconds": 0.04
+    },
+    {
+      "id": "support-build-01",
+      "sha256": "368df7e1f4821d5c151302ae4ac2fcbab5439a14ae4232652491957899f47a38",
+      "duration": 1.96,
+      "rms": 0.124519,
+      "peak": 0.819977,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.05,
+      "trailingBelowThresholdSeconds": 0.07
+    },
+    {
+      "id": "crew-move-01",
+      "sha256": "b7728b30b4286a59970762656691c02ce32885cec69b89ddcdf97657e0f4ad9a",
+      "duration": 0.985,
+      "rms": 0.137128,
+      "peak": 0.576416,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.07,
+      "trailingBelowThresholdSeconds": 0.045
+    },
+    {
+      "id": "crew-move-02",
+      "sha256": "2d0efeb70378292379a79fbb4ea2cafefd30864894d6f66830c43d569dff272a",
+      "duration": 0.8,
+      "rms": 0.136456,
+      "peak": 0.499573,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.06,
+      "trailingBelowThresholdSeconds": 0.1
+    },
+    {
+      "id": "crew-move-03",
+      "sha256": "d1115c87566fd81ab85be4f6ddc1ca1225e7e470812e2ce4d896a8f6bc0fec51",
+      "duration": 1.6,
+      "rms": 0.138239,
+      "peak": 0.594574,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.1,
+      "trailingBelowThresholdSeconds": 0.05
+    },
+    {
+      "id": "crew-move-04",
+      "sha256": "d1fa5c5574fe03911bbee9111723acfc0a6225c5e5dff302ddd68baee93ef619",
+      "duration": 1.565,
+      "rms": 0.1382,
+      "peak": 0.492188,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.05,
+      "trailingBelowThresholdSeconds": 0.085
+    },
+    {
+      "id": "soldier-air-01",
+      "sha256": "30bafb029479ff4e724f8228b2c65656b5e20a37b35a83d2db72bd994dba43c5",
+      "duration": 0.65,
+      "rms": 0.135624,
+      "peak": 0.786011,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.06,
+      "trailingBelowThresholdSeconds": 0.06
+    },
+    {
+      "id": "soldier-air-02",
+      "sha256": "df6087cc952117e44979b24855f5f385eb88274ac76edbafbea44acc2ba5f8a2",
+      "duration": 1.23,
+      "rms": 0.137704,
+      "peak": 0.766937,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.07,
+      "trailingBelowThresholdSeconds": 0.03
+    },
+    {
+      "id": "soldier-air-03",
+      "sha256": "314b220bd73e5be665e0f5e3b6d8ebbd3ccab1dafd1f7b970b3ee8050a446ef3",
+      "duration": 0.825,
+      "rms": 0.136564,
+      "peak": 0.574036,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.07,
+      "trailingBelowThresholdSeconds": 0.025
+    },
+    {
+      "id": "soldier-air-04",
+      "sha256": "5f0168204dbeba2fe92f33ef63273a3eda3fc9e315668a823a133703c26160cc",
+      "duration": 1.54,
+      "rms": 0.138168,
+      "peak": 0.67984,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.03,
+      "trailingBelowThresholdSeconds": 0.03
+    },
+    {
+      "id": "soldier-load-01",
+      "sha256": "bc555665f3b06b7c0ade87d16fdfffa5d852c9b00e7895a064cc618a4d927c78",
+      "duration": 1.68,
+      "rms": 0.138323,
+      "peak": 0.732819,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.06,
+      "trailingBelowThresholdSeconds": 0.09
+    },
+    {
+      "id": "soldier-load-02",
+      "sha256": "66a7fa02f6f6daeb0d86a18093ed421798039feb6efb409cbd01e104a9ef5613",
+      "duration": 1.35,
+      "rms": 0.133629,
+      "peak": 0.819977,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.06,
+      "trailingBelowThresholdSeconds": 0.03
+    },
+    {
+      "id": "soldier-unload-01",
+      "sha256": "10b1e030f214265c3364302f9456554fa9a0e77af39f0c74e8d73c5a3c2c5d3e",
+      "duration": 1.55,
+      "rms": 0.138182,
+      "peak": 0.791138,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.06,
+      "trailingBelowThresholdSeconds": 0.1
+    },
+    {
+      "id": "support-move-01",
+      "sha256": "552da3eda2b87fc7e5de7199f8ea3eef7d1007131bc43e02394b1304de510443",
+      "duration": 1.16,
+      "rms": 0.137565,
+      "peak": 0.784698,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.04,
+      "trailingBelowThresholdSeconds": 0.05
+    },
+    {
+      "id": "support-move-02",
+      "sha256": "0bf552d34d2e1049d1e8b0bc3dc461b72319dd3f8aff54d97baaa5b2b68a09c2",
+      "duration": 1.085,
+      "rms": 0.132193,
+      "peak": 0.819977,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.06,
+      "trailingBelowThresholdSeconds": 0.055
+    },
+    {
+      "id": "soldier-stop-01",
+      "sha256": "bdbb14590fe68263b505cd9146d601741df264bfeb881668ddaf93f8aed7f7f6",
+      "duration": 1.185,
+      "rms": 0.137617,
+      "peak": 0.637787,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.07,
+      "trailingBelowThresholdSeconds": 0.035
+    },
+    {
+      "id": "soldier-stop-02",
+      "sha256": "739e2087dce3d755f03b1db13b44831fa6246046f7118493c7c4f0648b07e7d8",
+      "duration": 1.045,
+      "rms": 0.137295,
+      "peak": 0.743866,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.06,
+      "trailingBelowThresholdSeconds": 0.085
+    },
+    {
+      "id": "crew-stop-01",
+      "sha256": "efc0597a5d16ed1391faa67f90734a8fbf8e9aaba26092354e8abcf29ee765ef",
+      "duration": 1.14,
+      "rms": 0.137522,
+      "peak": 0.512756,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.06,
+      "trailingBelowThresholdSeconds": 0.1
+    },
+    {
+      "id": "crew-stop-02",
+      "sha256": "22fdb0539ed74b9fc5425f6522c58155c88c1f906876ce82f9c3a8ace6072f65",
+      "duration": 0.85,
+      "rms": 0.136667,
+      "peak": 0.625244,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.06,
+      "trailingBelowThresholdSeconds": 0.1
+    },
+    {
+      "id": "support-stop-01",
+      "sha256": "8a8bd7dcc848009b4adedbb0f29cae7097e45dfc208f28ba353ef815cbd8b5ed",
+      "duration": 1.3,
+      "rms": 0.13783,
+      "peak": 0.621613,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.06,
+      "trailingBelowThresholdSeconds": 0.1
+    },
+    {
+      "id": "support-stop-02",
+      "sha256": "baf92564a445208ad9a71d82a7cc9b997c6a31fd129ccdcf6f4f65b331f284c1",
+      "duration": 1.135,
+      "rms": 0.135618,
+      "peak": 0.819977,
+      "clippedSamples": 0,
+      "leadingBelowThresholdSeconds": 0.03,
+      "trailingBelowThresholdSeconds": 0.095
+    }
+  ]
+}

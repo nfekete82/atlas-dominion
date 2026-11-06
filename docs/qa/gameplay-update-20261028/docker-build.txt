@@ -1,0 +1,72 @@
+ Image sandforge-gameplay-qa-sandforge-bastion-wars Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 648B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 577B done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/node:22-alpine
+#3 DONE 0.0s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 96B done
+#4 DONE 0.0s
+
+#5 [build 1/8] FROM docker.io/library/node:22-alpine
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 transferring context: 218.87kB 0.0s done
+#6 DONE 0.1s
+
+#7 [build 2/8] WORKDIR /app
+#7 CACHED
+
+#8 [build 3/8] COPY package*.json tsconfig.json index.html animation-lab.html model-preview.html model-3d.html ./
+#8 DONE 0.2s
+
+#9 [build 4/8] COPY src ./src
+#9 DONE 1.2s
+
+#10 [build 5/8] COPY legacy ./legacy
+#10 DONE 0.1s
+
+#11 [build 6/8] COPY scripts/build.mjs ./scripts/build.mjs
+#11 DONE 0.4s
+
+#12 [build 7/8] COPY scripts/animation/model-viewer.js ./scripts/animation/model-viewer.js
+#12 DONE 0.1s
+
+#13 [build 8/8] RUN npm install --no-audit --no-fund && npm run build
+#13 2.287 
+#13 2.287 added 2 packages in 2s
+#13 2.288 npm notice
+#13 2.288 npm notice New major version of npm available! 10.9.9 -> 12.2.1
+#13 2.288 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+#13 2.288 npm notice To update run: npm install -g npm@12.2.1
+#13 2.288 npm notice
+#13 2.370 
+#13 2.370 > sandforge-bastion-wars@1.8.0 build
+#13 2.370 > tsc -p tsconfig.json && node scripts/build.mjs
+#13 2.370 
+#13 4.600 Built SANDFORGE: BASTION WARS in dist/
+#13 DONE 5.0s
+
+#14 [stage-1 3/4] COPY --from=build /app/dist ./dist
+#14 DONE 0.1s
+
+#15 [stage-1 4/4] COPY scripts/serve.mjs ./scripts/serve.mjs
+#15 DONE 0.1s
+
+#16 exporting to image
+#16 exporting layers
+#16 exporting layers 0.6s done
+#16 writing image sha256:55ff51b44a00e178b1fa4292d3478f6418d48254116f9d8ac489fc2c45e41b07 done
+#16 naming to docker.io/library/sandforge-gameplay-qa-sandforge-bastion-wars done
+#16 DONE 0.6s
+
+#17 resolving provenance for metadata file
+#17 DONE 0.0s
+ Image sandforge-gameplay-qa-sandforge-bastion-wars Built 

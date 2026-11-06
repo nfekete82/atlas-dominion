@@ -1,0 +1,32 @@
+name: Sandforge unit balance and tank skirmish
+on:
+  push:
+    branches:
+      - feat/sandforge-tank-balance-20261102
+  pull_request:
+    branches:
+      - feat/sandforge-engineer-squad-escort-20261102
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  balance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Tank battle regression and existing combat tests
+        run: node --test tests/sandforge-tank-balance.test.mjs tests/reborn-control-retreat.test.mjs tests/reborn-ai-director.test.mjs tests/reborn-support.test.mjs
+      - name: Generate all-unit DPS balance matrix
+        run: node scripts/audit-unit-balance.mjs > unit-balance-matrix.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sandforge-unit-balance-matrix
+          path: unit-balance-matrix.md
+          retention-days: 14

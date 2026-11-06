@@ -1,0 +1,125 @@
+name: Restore Sandforge full-screen title and rename project
+
+on:
+  push:
+    branches: [feat/sandforge-brand-recovery-20261027]
+    paths:
+      - .github/workflows/restore-sandforge-branding.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  restore-branding:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Restore verified title art and branding code without touching gameplay
+        run: |
+          set -euo pipefail
+          git restore --source=d0c461e -- \
+            index.html \
+            src/reborn/main.ts \
+            src/reborn/retro-desert.css \
+            src/assets/reborn/start-screen.png \
+            src/assets/reborn/sandforge-logo.webp \
+            src/assets/reborn/sandforge-brand.js \
+            src/assets/reborn/sandforge-icon.svg \
+            package.json \
+            package-lock.json \
+            scripts/serve.mjs \
+            tests/browser/sandforge-title-menu.spec.mjs
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const read=path=>fs.readFileSync(path,'utf8');
+          const write=(path,data)=>fs.writeFileSync(path,data);
+          let html=read('index.html');
+          html=html.replaceAll('ATLAS DOMINION','SANDFORGE: BASTION WARS')
+            .replaceAll('Atlas Dominion Reborn','Sandforge: Bastion Wars')
+            .replaceAll('ATLAS / FELDHANDBUCH','SANDFORGE / FELDHANDBUCH');
+          write('index.html',html);
+          let compose=read('compose.yaml');
+          if(!compose.includes('  atlas-dominion:'))throw Error('Unexpected Compose service');
+          compose=compose.replace('  atlas-dominion:','  sandforge-bastion-wars:');
+          write('compose.yaml',compose);
+          let build=read('scripts/build.mjs');
+          build=build.replace('Built ATLAS DOMINION in dist/','Built SANDFORGE: BASTION WARS in dist/');
+          write('scripts/build.mjs',build);
+          let serve=read('scripts/serve.mjs');
+          serve=serve.replace('ATLAS DOMINION →','SANDFORGE: BASTION WARS →');
+          write('scripts/serve.mjs',serve);
+          let readme=read('README.md');
+          readme=readme.replace('# ATLAS DOMINION — REBORN','# SANDFORGE: BASTION WARS');
+          readme=readme.replace('## Starten','Sandforge ist der aktuelle Spielname. Das GitHub-Repository ist aus historischen Gründen noch unter `nfekete82/atlas-dominion` erreichbar; interne Kennungen des Spielstands bleiben aus Kompatibilitätsgründen erhalten.\\n\\n## Starten');
+          write('README.md',readme);
+          JS
+      - name: Install and build
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Check restored splash image, alpha logo, full-screen menu, stable saves
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          const text=fs.readFileSync('dist/index.html','utf8');
+          const css=fs.readFileSync('dist/retro-desert.css','utf8');
+          const app=fs.readFileSync('dist/src/reborn/main.js','utf8');
+          assert.match(text,/<title>Sandforge: Bastion Wars<\/title>/);
+          assert.match(text,/sandforge-brand\.js/);
+          assert.match(text,/sandforge-icon\.svg/);
+          assert.match(css,/start-screen\.png/);
+          assert.match(css,/#main-dialog\[open\]/);
+          assert.match(app,/main-dialog/);
+          assert.match(app,/hasEnteredCampaign/);
+          assert.equal(JSON.parse(fs.readFileSync('package.json')).name,'sandforge-bastion-wars');
+          assert.equal(JSON.parse(fs.readFileSync('package-lock.json')).name,'sandforge-bastion-wars');
+          assert.match(fs.readFileSync('compose.yaml','utf8'),/sandforge-bastion-wars:/);
+          const png=fs.readFileSync('dist/src/assets/reborn/start-screen.png');
+          assert.equal(png.subarray(1,4).toString('ascii'),'PNG');
+          const logo=fs.readFileSync('dist/src/assets/reborn/sandforge-logo.webp');
+          assert.equal(logo.toString('ascii',0,4),'RIFF');
+          assert.equal(logo.toString('ascii',8,12),'WEBP');
+          assert.ok(png.length>100000&&logo.length>10000);
+          JS
+          node --test tests/reborn-animation.test.mjs tests/reborn-premium-legionnaire.test.mjs tests/reborn-campaign.test.mjs
+      - name: Install browser tests
+        run: |
+          npm ci --prefix tests/browser --no-audit --no-fund
+          cd tests/browser && npx playwright install --with-deps chromium
+      - name: Verify actual Sandforge menu and campaign entry in Chromium
+        env:
+          ATLAS_BROWSER_CHANNEL: chromium
+          CI: true
+        run: |
+          cd tests/browser
+          npx playwright test --config playwright.config.mjs sandforge-title-menu.spec.mjs --reporter=line
+      - name: Publish safely to brand recovery branch
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- \
+            index.html src/reborn/main.ts src/reborn/retro-desert.css \
+            src/assets/reborn/start-screen.png src/assets/reborn/sandforge-logo.webp \
+            src/assets/reborn/sandforge-brand.js src/assets/reborn/sandforge-icon.svg \
+            package.json package-lock.json scripts/serve.mjs scripts/build.mjs \
+            tests/browser/sandforge-title-menu.spec.mjs README.md compose.yaml
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo 'Branding already restored'
+            exit 0
+          fi
+          git commit -m 'feat(brand): restore Sandforge fullscreen title and rename runtime project'
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

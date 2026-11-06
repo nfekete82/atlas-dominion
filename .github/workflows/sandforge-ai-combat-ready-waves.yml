@@ -1,0 +1,24 @@
+name: Sandforge AI combat-ready waves
+on:
+  push:
+    branches:
+      - feat/sandforge-ai-strength-aware-assault-waves-20261102
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tactical:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Verify assault readiness, siege safety and old regressions
+        run: node --test tests/sandforge-ai-combat-ready-waves.test.mjs tests/reborn-tactical-ai-24.test.mjs tests/reborn-tactical-ai-40.test.mjs tests/reborn-tactical-ai-42-siege.test.mjs

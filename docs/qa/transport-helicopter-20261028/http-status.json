@@ -1,0 +1,27 @@
+{
+  "/": {
+    "status": 200
+  },
+  "/model-3d.html?model=scout": {
+    "status": 200
+  },
+  "/src/assets/reborn/animation/scout-0.glb": {
+    "status": 200,
+    "matchesSource": true
+  },
+  "/src/assets/reborn/animation/scout-1.glb": {
+    "status": 200,
+    "matchesSource": true
+  },
+  "/src/assets/reborn/animation/scout-0.png": {
+    "status": 200,
+    "matchesSource": true
+  },
+  "/src/assets/reborn/animation/scout-1.png": {
+    "status": 200,
+    "matchesSource": true
+  },
+  "/src/assets/reborn/animation/gunship-0.glb": {
+    "status": 404
+  }
+}

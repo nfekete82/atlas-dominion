@@ -1,0 +1,16 @@
+
+> test
+> playwright test --config=reborn.config.mjs --grep ^(combined arms:|layout:|radio:|polish:|defense map:|support HUD:|overhaul:|tactical AI:|campaign:|combat:|vehicle art:|combat presentation:|capture:)|reborn: complete browser loop|reborn: minimap drag|reborn: readable translucent HUD
+
+[WebServer] (node:87683) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+(node:87684) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 reborn.spec.mjs:28:1 › reborn: complete browser loop from one soldier through capture, production, multi-unit expansion, combat and durable resume (7.5s)
+  ✓  2 reborn.spec.mjs:66:1 › reborn: minimap drag, anchored zoom, keyboard camera, shift orders, attack mode and stop use real input (1.8s)
+  ✓  3 reborn.spec.mjs:501:1 › reborn: readable translucent HUD at the standard desktop viewport (928ms)
+
+  3 passed (11.2s)

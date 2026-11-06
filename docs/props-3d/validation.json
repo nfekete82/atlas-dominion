@@ -1,0 +1,15 @@
+{
+  "date": "2026-10-30",
+  "build": "passed",
+  "node": {"passed": 57, "failed": 0, "log": "node-tests.txt"},
+  "targetedBrowser": {"passed": 3, "failed": 0},
+  "assetReproducibility": "all eight GLBs, PNG and JSON byte-identical via assets:props -- --check",
+  "extendedBrowser": {
+    "passed": 11,
+    "failed": 2,
+    "baselineComparison": "Both failures reproduced identically with the unchanged presentation modules from the parent HEAD",
+    "existingFailures": ["reborn-production: old paid HQ queues", "reborn-three-column-catalog: hidden cards have width zero"]
+  },
+  "visualReview": ["props.png", "runtime-review.png"],
+  "simulationOrSaveSchemaChanges": false
+}

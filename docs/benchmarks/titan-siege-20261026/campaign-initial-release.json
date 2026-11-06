@@ -1,0 +1,6858 @@
+{
+  "schemaVersion": 2,
+  "label": "siege-release",
+  "simulationModule": "file:///tmp/atlas-titan-siege-release/dist/src/reborn/simulation.js",
+  "simulationSourceHash": "de808ae09477784a59074b3b4ef93927bbc86ff4c64f6acee4902a9d27566364",
+  "catalogSourceHash": "5a7902af0044fce362a047b2ca0d2e316e6164c6d2448f62b647b9afc035524f",
+  "opponentSourceHash": "1843776f566dbb4111de55e30d736443097574a274adef141903a34fd87bf8ce",
+  "maps": [
+    3,
+    4,
+    5
+  ],
+  "mapVersion": null,
+  "requestedSeconds": 900,
+  "opponent": "guarded",
+  "seeds": [
+    2026,
+    2027
+  ],
+  "modes": [
+    "director"
+  ],
+  "timestep": 0.05,
+  "completedRuns": 6,
+  "expectedRuns": 6,
+  "complete": true,
+  "summary": {
+    "map3:director": {
+      "runs": 2,
+      "wins": 2,
+      "losses": 0,
+      "timeouts": 0,
+      "hqSeen": 2,
+      "hqDamaged": 2,
+      "hqDestroyed": 2,
+      "meanFirstOrganizedAttack": 57.025,
+      "meanFirstEnemyHQSeen": 251.7,
+      "meanFirstEnemyHQDamage": 350.575,
+      "meanFirstEnemyHQDestroyed": 357.775,
+      "meanCaptures": 2,
+      "meanNetCaptures": 2,
+      "meanBlueDeaths": 14.5,
+      "meanRedDeaths": 5.5,
+      "meanEnemyHQDamage": 1200,
+      "meanEnemyBuildingsDestroyed": 3,
+      "meanVehiclesProduced": 3,
+      "meanAircraftProduced": 0,
+      "meanPeakVehicles": 3,
+      "meanVehiclesOrdered": 3,
+      "meanVehicleShots": 35.5,
+      "meanVehicleDeaths": 0,
+      "meanVehicleRepairHp": 213,
+      "meanEvacuations": 1.5,
+      "meanReturned": 1.5,
+      "meanReused": 0.5,
+      "meanPlayedSeconds": 361.075,
+      "meanVehicles": 3,
+      "meanScore": 12512,
+      "meanAttackingSeconds": 171.425,
+      "meanParallelProductionSeconds": 3.9,
+      "meanTripleProductionSeconds": 0,
+      "meanAbortedMissions": 2.5,
+      "meanStalledMissions": 0,
+      "meanWallMs": 18984.5,
+      "production": {
+        "barracks": {
+          "builtRuns": 2,
+          "meanAvailableSeconds": 324.075,
+          "meanIdleSeconds": 267.575,
+          "idleFraction": 0.826
+        },
+        "factory": {
+          "builtRuns": 2,
+          "meanAvailableSeconds": 293.6,
+          "meanIdleSeconds": 250.6,
+          "idleFraction": 0.854
+        },
+        "airfield": {
+          "builtRuns": 2,
+          "meanAvailableSeconds": 40.8,
+          "meanIdleSeconds": 40.8,
+          "idleFraction": 1
+        }
+      },
+      "meanStepCpuMs": 2.623,
+      "meanAIPlanningCpuMs": 4.19
+    },
+    "map4:director": {
+      "runs": 2,
+      "wins": 2,
+      "losses": 0,
+      "timeouts": 0,
+      "hqSeen": 2,
+      "hqDamaged": 2,
+      "hqDestroyed": 2,
+      "meanFirstOrganizedAttack": 67.7,
+      "meanFirstEnemyHQSeen": 159.5,
+      "meanFirstEnemyHQDamage": 226.225,
+      "meanFirstEnemyHQDestroyed": 290.225,
+      "meanCaptures": 6,
+      "meanNetCaptures": 6,
+      "meanBlueDeaths": 14,
+      "meanRedDeaths": 1.5,
+      "meanEnemyHQDamage": 1200,
+      "meanEnemyBuildingsDestroyed": 3,
+      "meanVehiclesProduced": 3,
+      "meanAircraftProduced": 0,
+      "meanPeakVehicles": 3,
+      "meanVehiclesOrdered": 3,
+      "meanVehicleShots": 27,
+      "meanVehicleDeaths": 0,
+      "meanVehicleRepairHp": 236,
+      "meanEvacuations": 1,
+      "meanReturned": 1,
+      "meanReused": 1,
+      "meanPlayedSeconds": 294.55,
+      "meanVehicles": 3,
+      "meanScore": 12902,
+      "meanAttackingSeconds": 233,
+      "meanParallelProductionSeconds": 0,
+      "meanTripleProductionSeconds": 0,
+      "meanAbortedMissions": 2.5,
+      "meanStalledMissions": 0,
+      "meanWallMs": 5331,
+      "production": {
+        "barracks": {
+          "builtRuns": 2,
+          "meanAvailableSeconds": 257.6,
+          "meanIdleSeconds": 215.6,
+          "idleFraction": 0.837
+        },
+        "factory": {
+          "builtRuns": 2,
+          "meanAvailableSeconds": 227.15,
+          "meanIdleSeconds": 184.15,
+          "idleFraction": 0.811
+        },
+        "airfield": {
+          "builtRuns": 2,
+          "meanAvailableSeconds": 48.8,
+          "meanIdleSeconds": 48.8,
+          "idleFraction": 1
+        }
+      },
+      "meanStepCpuMs": 0.899,
+      "meanAIPlanningCpuMs": 5.908
+    },
+    "map5:director": {
+      "runs": 2,
+      "wins": 2,
+      "losses": 0,
+      "timeouts": 0,
+      "hqSeen": 2,
+      "hqDamaged": 2,
+      "hqDestroyed": 2,
+      "meanFirstOrganizedAttack": 73.8,
+      "meanFirstEnemyHQSeen": 203.4,
+      "meanFirstEnemyHQDamage": 454,
+      "meanFirstEnemyHQDestroyed": 460.075,
+      "meanCaptures": 10,
+      "meanNetCaptures": 10,
+      "meanBlueDeaths": 14.5,
+      "meanRedDeaths": 2,
+      "meanEnemyHQDamage": 1200,
+      "meanEnemyBuildingsDestroyed": 3,
+      "meanVehiclesProduced": 6.5,
+      "meanAircraftProduced": 2,
+      "meanPeakVehicles": 6.5,
+      "meanVehiclesOrdered": 6.5,
+      "meanVehicleShots": 42.5,
+      "meanVehicleDeaths": 0,
+      "meanVehicleRepairHp": 233,
+      "meanEvacuations": 1.5,
+      "meanReturned": 1.5,
+      "meanReused": 0.5,
+      "meanPlayedSeconds": 460.6,
+      "meanVehicles": 6.5,
+      "meanScore": 13322,
+      "meanAttackingSeconds": 370.075,
+      "meanParallelProductionSeconds": 9.85,
+      "meanTripleProductionSeconds": 0,
+      "meanAbortedMissions": 4,
+      "meanStalledMissions": 0.5,
+      "meanWallMs": 18100,
+      "production": {
+        "barracks": {
+          "builtRuns": 2,
+          "meanAvailableSeconds": 423.25,
+          "meanIdleSeconds": 347.175,
+          "idleFraction": 0.82
+        },
+        "factory": {
+          "builtRuns": 2,
+          "meanAvailableSeconds": 391.55,
+          "meanIdleSeconds": 324.55,
+          "idleFraction": 0.829
+        },
+        "airfield": {
+          "builtRuns": 2,
+          "meanAvailableSeconds": 214.7,
+          "meanIdleSeconds": 182.7,
+          "idleFraction": 0.851
+        }
+      },
+      "meanStepCpuMs": 1.832,
+      "meanAIPlanningCpuMs": 7.724
+    }
+  },
+  "details": [
+    {
+      "seed": 2026,
+      "mode": "director",
+      "mapVersion": 3,
+      "label": "siege-release",
+      "opponent": "guarded",
+      "initialStateHash": "05c84d08e137d9639306a8b7660a3bbd016cc07dba0c7cd8ff178494ba76724a",
+      "initialStateHashScope": "playable-world-v1",
+      "requestedSeconds": 900,
+      "elapsedSeconds": 346.1,
+      "terminalStatus": "defeat",
+      "outcome": "win",
+      "win": true,
+      "loss": false,
+      "initialCredits": 950,
+      "initialComposition": {
+        "red": {
+          "infantry": 1,
+          "medic": 0,
+          "engineer": 1,
+          "heavy": 0,
+          "rover": 0,
+          "tank": 0,
+          "artillery": 0,
+          "scout": 0,
+          "gunship": 0,
+          "bomber": 0
+        },
+        "blue": {
+          "infantry": 1,
+          "medic": 0,
+          "engineer": 1,
+          "heavy": 0,
+          "rover": 0,
+          "tank": 0,
+          "artillery": 0,
+          "scout": 0,
+          "gunship": 0,
+          "bomber": 0
+        }
+      },
+      "firstAssault": 25,
+      "firstOrganizedAttack": 55.5,
+      "firstVehicle": 111.25,
+      "firstTank": 165.05,
+      "firstArtillery": 250.4,
+      "firstAircraft": null,
+      "firstEnemyHQSeen": 173.05,
+      "firstEnemyHQDamage": 333.8,
+      "firstEnemyHQDestroyed": 340.9,
+      "enemyHQSeen": true,
+      "enemyHQDamaged": true,
+      "enemyHQDestroyed": true,
+      "enemyHQCaptured": false,
+      "enemyHQDamage": 1200,
+      "blueHeadquartersHp": 0,
+      "enemyBuildingsSeen": 3,
+      "enemyBuildingsDamaged": 3,
+      "enemyBuildingsDestroyed": 3,
+      "enemyBuildingDamage": 2693.8,
+      "enemyTowersDestroyed": 1,
+      "firstFactory": 67.55,
+      "firstFrontContact": 35.05,
+      "firstEnemyContact": 79.05,
+      "finishedBuildings": 3,
+      "vehicles": 3,
+      "peakVehicles": 3,
+      "peakArmy": 9,
+      "peakAircraft": 0,
+      "vehiclesOrdered": 3,
+      "vehicleOrdersByKind": {
+        "rover": 1,
+        "tank": 1,
+        "artillery": 1
+      },
+      "redOrdersByKind": {
+        "infantry": 5,
+        "heavy": 3,
+        "rover": 1,
+        "tank": 1,
+        "artillery": 1
+      },
+      "redProducedByKind": {
+        "infantry": 5,
+        "heavy": 3,
+        "rover": 1,
+        "tank": 1,
+        "artillery": 1
+      },
+      "blueProducedByKind": {
+        "infantry": 11,
+        "heavy": 1
+      },
+      "redLossesByKind": {
+        "infantry": 4
+      },
+      "blueLossesByKind": {
+        "infantry": 12,
+        "heavy": 1,
+        "engineer": 1
+      },
+      "paidRecruitCredits": 2600,
+      "refundedRecruitCredits": 0,
+      "vehiclesProduced": 3,
+      "aircraftProduced": 0,
+      "redSectors": 3,
+      "captures": 2,
+      "netCaptures": 2,
+      "territoriesLost": 0,
+      "blueCaptures": 0,
+      "blueTerritoriesLost": 0,
+      "blueUnitsLost": 14,
+      "redUnitsLost": 4,
+      "blueUnitDamage": 1730,
+      "redUnitDamage": 538.667,
+      "redUnits": 9,
+      "redCredits": 230,
+      "firstVehicleShot": 279.5,
+      "vehicleShots": 25,
+      "shotsByKind": {
+        "infantry": 14,
+        "artillery": 16,
+        "tank": 9,
+        "heavy": 75
+      },
+      "damageByRedKind": {
+        "infantry": 79.3333333333334,
+        "artillery": 2286.616247406999,
+        "tank": 594,
+        "heavy": 1463.8504192596693
+      },
+      "vehicleDeaths": 0,
+      "vehicleRepairHp": 0,
+      "vehicleEvacuations": 0,
+      "vehicleReturned": 0,
+      "repairedVehiclesReused": 0,
+      "attackingSeconds": 208.3,
+      "productiveFactorySeconds": 43,
+      "productiveBarracksSeconds": 52,
+      "productiveAirfieldSeconds": 0,
+      "parallelProductionSeconds": 2.8,
+      "tripleProductionSeconds": 0,
+      "maxParallelProducers": 2,
+      "productionSeconds": {
+        "barracks": {
+          "available": 309.05,
+          "busy": 52,
+          "idle": 257.05
+        },
+        "factory": {
+          "available": 278.6,
+          "busy": 43,
+          "idle": 235.6
+        },
+        "airfield": {
+          "available": 50.3,
+          "busy": 0,
+          "idle": 50.3
+        }
+      },
+      "phaseTransitions": 4,
+      "commanderTransitions": 6,
+      "commanderSeconds": {
+        "unavailable": 24.95,
+        "expansion": 45.75,
+        "offensive": 9.15,
+        "buildup": 189.1,
+        "siege": 58.85,
+        "endgame": 18.3
+      },
+      "missionCount": 6,
+      "abortedMissions": 1,
+      "unfinishedMissions": 0,
+      "stalledMissions": 0,
+      "commands": 130,
+      "unitCommands": 288,
+      "attackCommands": 7,
+      "buildingAttackCommands": 5,
+      "repeatedUnitCommands": 190,
+      "rapidUnitOrderChanges": 2,
+      "productionIdleReasons": {
+        "unexplained-idle": 0.1,
+        "saving-unit": 542.85
+      },
+      "productionIdleReasonSources": {
+        "inferred": 0.85,
+        "controller": 542.1
+      },
+      "productionDecisionReasons": {
+        "unexplained-idle": 0.1,
+        "produced": 33.55,
+        "queue-blocked": 3.05,
+        "saving-unit": 601.25
+      },
+      "bluePaidOrdersByKind": {
+        "infantry": 11,
+        "heavy": 1
+      },
+      "bluePaidRecruitCredits": 1350,
+      "paidBuildCredits": 1000,
+      "bluePaidBuildCredits": 375,
+      "paidBuildingsByKind": {
+        "barracks": 1,
+        "factory": 1,
+        "airfield": 1
+      },
+      "bluePaidBuildingsByKind": {
+        "barracks": 1,
+        "turret": 1
+      },
+      "battleReactions": 4,
+      "battleRetreats": 0,
+      "reinforcements": 3,
+      "counterattacks": 0,
+      "enemyBuildingKillsByKind": {
+        "turret": 1,
+        "headquarters": 1,
+        "barracks": 1
+      },
+      "missionEvents": [
+        {
+          "groupId": 1,
+          "target": 0,
+          "objective": null,
+          "started": 25,
+          "stalled": false,
+          "ended": 46.35,
+          "survivors": 1,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 3,
+          "objective": null,
+          "started": 46.35,
+          "stalled": false,
+          "ended": 70.75,
+          "survivors": 3,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 2,
+          "objective": null,
+          "started": 70.75,
+          "stalled": false,
+          "ended": 82.95,
+          "survivors": 2,
+          "outcome": "aborted"
+        },
+        {
+          "groupId": 2,
+          "target": 2,
+          "objective": 1004,
+          "started": 195.8,
+          "stalled": false,
+          "ended": 323.9,
+          "survivors": 5,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 2,
+          "target": 2,
+          "objective": 1000,
+          "started": 323.9,
+          "stalled": false,
+          "ended": 342.2,
+          "survivors": 4,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 2,
+          "target": 2,
+          "objective": 1002,
+          "started": 342.2,
+          "stalled": false,
+          "ended": 346.1,
+          "survivors": 4,
+          "outcome": "completed"
+        }
+      ],
+      "timeline": [
+        {
+          "at": 0.05,
+          "credits": 950,
+          "income": 25,
+          "phase": "gather",
+          "commander": "unavailable",
+          "adaptive": null,
+          "battle": null,
+          "mission": null,
+          "target": null,
+          "objective": null,
+          "group": 0,
+          "redUnits": 2,
+          "blueUnits": 2,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 202.5
+            }
+          ],
+          "sectors": 1,
+          "produced": {},
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 30,
+          "credits": 825,
+          "income": 25,
+          "phase": "attack",
+          "commander": "expansion",
+          "adaptive": "unknown",
+          "battle": {
+            "at": 28.050000000000264,
+            "own": 44.721359549995796,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 0,
+          "objective": null,
+          "group": 1,
+          "redUnits": 2,
+          "blueUnits": 5,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            }
+          ],
+          "sectors": 1,
+          "produced": {},
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 60.05,
+          "credits": 170,
+          "income": 60,
+          "phase": "attack",
+          "commander": "expansion",
+          "adaptive": "unknown",
+          "battle": {
+            "at": 58.54999999999881,
+            "own": 134.1640786499874,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 3,
+          "objective": null,
+          "group": 3,
+          "redUnits": 5,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 2,
+          "produced": {
+            "infantry": 2,
+            "heavy": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 90.05,
+          "credits": 205,
+          "income": 95,
+          "phase": "regroup",
+          "commander": "buildup",
+          "adaptive": "infantry",
+          "battle": {
+            "at": 89.04999999999708,
+            "own": 0,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "reinforce"
+          },
+          "mission": "capture",
+          "target": 2,
+          "objective": null,
+          "group": 0,
+          "redUnits": 3,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 3,
+          "produced": {
+            "infantry": 2,
+            "heavy": 2
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 120.05,
+          "credits": 190,
+          "income": 95,
+          "phase": "gather",
+          "commander": "buildup",
+          "adaptive": "infantry",
+          "battle": {
+            "at": 119.54999999999535,
+            "own": 418.6936204745505,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 2,
+          "objective": null,
+          "group": 0,
+          "redUnits": 4,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 3,
+          "produced": {
+            "infantry": 2,
+            "heavy": 2,
+            "rover": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 150.05,
+          "credits": 25,
+          "income": 95,
+          "phase": "gather",
+          "commander": "buildup",
+          "adaptive": "unknown",
+          "battle": {
+            "at": 150.04999999999987,
+            "own": 505.87159934536396,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 2,
+          "objective": null,
+          "group": 0,
+          "redUnits": 4,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 3,
+          "produced": {
+            "infantry": 2,
+            "heavy": 2,
+            "rover": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 180,
+          "credits": 210,
+          "income": 95,
+          "phase": "gather",
+          "commander": "buildup",
+          "adaptive": "infantry",
+          "battle": {
+            "at": 177.5000000000061,
+            "own": 0,
+            "enemy": 487.30676992814756,
+            "deficit": 560.4027854173696,
+            "towers": 1,
+            "neededSiege": 1,
+            "stance": "reinforce"
+          },
+          "mission": "structure",
+          "target": 2,
+          "objective": 1004,
+          "group": 0,
+          "redUnits": 6,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 3,
+          "produced": {
+            "infantry": 3,
+            "heavy": 2,
+            "rover": 1,
+            "tank": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 210,
+          "credits": 495,
+          "income": 95,
+          "phase": "attack",
+          "commander": "buildup",
+          "adaptive": "infantry",
+          "battle": {
+            "at": 208.00000000001305,
+            "own": 476.3653503932888,
+            "enemy": 188.51724059088073,
+            "deficit": 0,
+            "towers": 1,
+            "neededSiege": 1,
+            "stance": "attack"
+          },
+          "mission": "structure",
+          "target": 2,
+          "objective": 1004,
+          "group": 4,
+          "redUnits": 6,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 3,
+          "produced": {
+            "infantry": 3,
+            "heavy": 2,
+            "rover": 1,
+            "tank": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 240,
+          "credits": 180,
+          "income": 95,
+          "phase": "attack",
+          "commander": "buildup",
+          "adaptive": "tower",
+          "battle": {
+            "at": 238.50000000001998,
+            "own": 476.3653503932888,
+            "enemy": 188.51724059088073,
+            "deficit": 0,
+            "towers": 1,
+            "neededSiege": 1,
+            "stance": "attack"
+          },
+          "mission": "structure",
+          "target": 2,
+          "objective": 1004,
+          "group": 4,
+          "redUnits": 6,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 3,
+          "produced": {
+            "infantry": 3,
+            "heavy": 2,
+            "rover": 1,
+            "tank": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 270,
+          "credits": 465,
+          "income": 95,
+          "phase": "attack",
+          "commander": "siege",
+          "adaptive": "tower",
+          "battle": {
+            "at": 269.0000000000269,
+            "own": 476.3653503932888,
+            "enemy": 188.51724059088073,
+            "deficit": 0,
+            "towers": 1,
+            "neededSiege": 1,
+            "stance": "attack"
+          },
+          "mission": "structure",
+          "target": 2,
+          "objective": 1004,
+          "group": 5,
+          "redUnits": 7,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 3,
+          "produced": {
+            "infantry": 3,
+            "heavy": 2,
+            "rover": 1,
+            "tank": 1,
+            "artillery": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 300,
+          "credits": 200,
+          "income": 95,
+          "phase": "attack",
+          "commander": "siege",
+          "adaptive": "infantry",
+          "battle": {
+            "at": 299.5000000000338,
+            "own": 617.5490993196289,
+            "enemy": 233.23860014087654,
+            "deficit": 0,
+            "towers": 1,
+            "neededSiege": 1,
+            "stance": "siege"
+          },
+          "mission": "structure",
+          "target": 2,
+          "objective": 1004,
+          "group": 5,
+          "redUnits": 8,
+          "blueUnits": 2,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 3,
+          "produced": {
+            "infantry": 4,
+            "heavy": 2,
+            "rover": 1,
+            "tank": 1,
+            "artillery": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 330,
+          "credits": 135,
+          "income": 95,
+          "phase": "attack",
+          "commander": "endgame",
+          "adaptive": "infantry",
+          "battle": {
+            "at": 330.00000000004076,
+            "own": 664.6627049946758,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "structure",
+          "target": 2,
+          "objective": 1000,
+          "group": 4,
+          "redUnits": 8,
+          "blueUnits": 0,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            }
+          ],
+          "sectors": 3,
+          "produced": {
+            "infantry": 4,
+            "heavy": 3,
+            "rover": 1,
+            "tank": 1,
+            "artillery": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        }
+      ],
+      "score": 12502,
+      "wallMs": 18325,
+      "cpu": {
+        "scope": "Node simulation ticks including transparent API telemetry; excludes rendering, opponent actor and benchmark observation between ticks",
+        "steps": 6922,
+        "stepMs": {
+          "mean": 2.639101458971399,
+          "p95": 4.458416999999827,
+          "p99": 36.679792000000816,
+          "max": 281.86599999999817
+        },
+        "phases": {
+          "simulation": {
+            "calls": 6922,
+            "totalMs": 18266.141987,
+            "meanMs": 2.6388532197341807,
+            "maxMs": 281.86516699999993,
+            "p95Ms": 4.457957999999053,
+            "p99Ms": 36.679041000001234
+          },
+          "ai": {
+            "calls": 106,
+            "totalMs": 446.0735080000044,
+            "meanMs": 4.208240641509475,
+            "maxMs": 281.77791699999943,
+            "p95Ms": 2.6272920000000113,
+            "p99Ms": 30.32916699999987
+          },
+          "pathfinding": {
+            "calls": 1306,
+            "totalMs": 11589.323633999948,
+            "meanMs": 8.873907836140848,
+            "maxMs": 198.88583300000028,
+            "p95Ms": 20.233249999999998,
+            "p99Ms": 182.71950000000106
+          },
+          "vision": {
+            "calls": 1736,
+            "totalMs": 6335.073778000007,
+            "meanMs": 3.649236047235027,
+            "maxMs": 41.443084000000454,
+            "p95Ms": 25.1334169999991,
+            "p99Ms": 33.608791999999085
+          },
+          "render": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "minimap": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "hud": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "audio": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "input": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "fog": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "sprites": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "corpses": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "particles": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          }
+        },
+        "pathfinding": {
+          "calls": 1306,
+          "nodes": 3551563
+        }
+      },
+      "counterattackDefinition": "emergencyDefense to offensive/siege/endgame commander transitions",
+      "finalComposition": {
+        "red": {
+          "infantry": 2,
+          "medic": 0,
+          "engineer": 1,
+          "heavy": 3,
+          "rover": 1,
+          "tank": 1,
+          "artillery": 1,
+          "scout": 0,
+          "gunship": 0,
+          "bomber": 0
+        },
+        "blue": {
+          "infantry": 0,
+          "medic": 0,
+          "engineer": 0,
+          "heavy": 0,
+          "rover": 0,
+          "tank": 0,
+          "artillery": 0,
+          "scout": 0,
+          "gunship": 0,
+          "bomber": 0
+        }
+      }
+    },
+    {
+      "seed": 2027,
+      "mode": "director",
+      "mapVersion": 3,
+      "label": "siege-release",
+      "opponent": "guarded",
+      "initialStateHash": "57b805a53a83f6e93dd2629e285ebda98e422ba2e4944a33ed5dd7c45539af73",
+      "initialStateHashScope": "playable-world-v1",
+      "requestedSeconds": 900,
+      "elapsedSeconds": 376.05,
+      "terminalStatus": "defeat",
+      "outcome": "win",
+      "win": true,
+      "loss": false,
+      "initialCredits": 950,
+      "initialComposition": {
+        "red": {
+          "infantry": 1,
+          "medic": 0,
+          "engineer": 1,
+          "heavy": 0,
+          "rover": 0,
+          "tank": 0,
+          "artillery": 0,
+          "scout": 0,
+          "gunship": 0,
+          "bomber": 0
+        },
+        "blue": {
+          "infantry": 1,
+          "medic": 0,
+          "engineer": 1,
+          "heavy": 0,
+          "rover": 0,
+          "tank": 0,
+          "artillery": 0,
+          "scout": 0,
+          "gunship": 0,
+          "bomber": 0
+        }
+      },
+      "firstAssault": 25,
+      "firstOrganizedAttack": 58.55,
+      "firstVehicle": 132.6,
+      "firstTank": 186.4,
+      "firstArtillery": 280.9,
+      "firstAircraft": null,
+      "firstEnemyHQSeen": 330.35,
+      "firstEnemyHQDamage": 367.35,
+      "firstEnemyHQDestroyed": 374.65,
+      "enemyHQSeen": true,
+      "enemyHQDamaged": true,
+      "enemyHQDestroyed": true,
+      "enemyHQCaptured": false,
+      "enemyHQDamage": 1200,
+      "blueHeadquartersHp": 0,
+      "enemyBuildingsSeen": 3,
+      "enemyBuildingsDamaged": 3,
+      "enemyBuildingsDestroyed": 3,
+      "enemyBuildingDamage": 2807.8,
+      "enemyTowersDestroyed": 1,
+      "firstFactory": 67.5,
+      "firstFrontContact": 31.05,
+      "firstEnemyContact": 65.05,
+      "finishedBuildings": 3,
+      "vehicles": 3,
+      "peakVehicles": 3,
+      "peakArmy": 8,
+      "peakAircraft": 0,
+      "vehiclesOrdered": 3,
+      "vehicleOrdersByKind": {
+        "rover": 1,
+        "tank": 1,
+        "artillery": 1
+      },
+      "redOrdersByKind": {
+        "infantry": 7,
+        "heavy": 2,
+        "medic": 1,
+        "rover": 1,
+        "tank": 1,
+        "artillery": 1
+      },
+      "redProducedByKind": {
+        "infantry": 7,
+        "heavy": 2,
+        "medic": 1,
+        "rover": 1,
+        "tank": 1,
+        "artillery": 1
+      },
+      "blueProducedByKind": {
+        "infantry": 12,
+        "heavy": 1
+      },
+      "redLossesByKind": {
+        "infantry": 6,
+        "medic": 1
+      },
+      "blueLossesByKind": {
+        "infantry": 13,
+        "heavy": 1,
+        "engineer": 1
+      },
+      "paidRecruitCredits": 2725,
+      "refundedRecruitCredits": 0,
+      "vehiclesProduced": 3,
+      "aircraftProduced": 0,
+      "redSectors": 3,
+      "captures": 2,
+      "netCaptures": 2,
+      "territoriesLost": 0,
+      "blueCaptures": 0,
+      "blueTerritoriesLost": 0,
+      "blueUnitsLost": 15,
+      "redUnitsLost": 7,
+      "blueUnitDamage": 1830,
+      "redUnitDamage": 1689.933,
+      "redUnits": 8,
+      "redCredits": 425,
+      "firstVehicleShot": 207.1,
+      "vehicleShots": 46,
+      "shotsByKind": {
+        "infantry": 120,
+        "tank": 8,
+        "heavy": 48,
+        "artillery": 16,
+        "rover": 22
+      },
+      "damageByRedKind": {
+        "infantry": 677.4840667001293,
+        "tank": 469,
+        "heavy": 1221.8063368045462,
+        "artillery": 1851.5095964953298,
+        "rover": 418
+      },
+      "vehicleDeaths": 0,
+      "vehicleRepairHp": 426,
+      "vehicleEvacuations": 3,
+      "vehicleReturned": 3,
+      "repairedVehiclesReused": 1,
+      "attackingSeconds": 134.55,
+      "productiveFactorySeconds": 43,
+      "productiveBarracksSeconds": 61,
+      "productiveAirfieldSeconds": 0,
+      "parallelProductionSeconds": 5,
+      "tripleProductionSeconds": 0,
+      "maxParallelProducers": 2,
+      "productionSeconds": {
+        "barracks": {
+          "available": 339.1,
+          "busy": 61,
+          "idle": 278.1
+        },
+        "factory": {
+          "available": 308.6,
+          "busy": 43,
+          "idle": 265.6
+        },
+        "airfield": {
+          "available": 31.3,
+          "busy": 0,
+          "idle": 31.3
+        }
+      },
+      "phaseTransitions": 10,
+      "commanderTransitions": 14,
+      "commanderSeconds": {
+        "unavailable": 24.95,
+        "expansion": 36.6,
+        "offensive": 33.55,
+        "buildup": 231.8,
+        "siege": 33.9,
+        "endgame": 15.25
+      },
+      "missionCount": 9,
+      "abortedMissions": 4,
+      "unfinishedMissions": 0,
+      "stalledMissions": 0,
+      "commands": 152,
+      "unitCommands": 415,
+      "attackCommands": 8,
+      "buildingAttackCommands": 5,
+      "repeatedUnitCommands": 279,
+      "rapidUnitOrderChanges": 9,
+      "productionIdleReasons": {
+        "unexplained-idle": 0.2,
+        "saving-unit": 567.15,
+        "insufficient-credits": 7.65
+      },
+      "productionIdleReasonSources": {
+        "inferred": 0.85,
+        "controller": 574.15
+      },
+      "productionDecisionReasons": {
+        "unexplained-idle": 0.2,
+        "produced": 39.65,
+        "queue-blocked": 3.05,
+        "saving-unit": 617.6,
+        "insufficient-credits": 18.5
+      },
+      "bluePaidOrdersByKind": {
+        "infantry": 12,
+        "heavy": 1
+      },
+      "bluePaidRecruitCredits": 1450,
+      "paidBuildCredits": 1000,
+      "bluePaidBuildCredits": 375,
+      "paidBuildingsByKind": {
+        "barracks": 1,
+        "factory": 1,
+        "airfield": 1
+      },
+      "bluePaidBuildingsByKind": {
+        "barracks": 1,
+        "turret": 1
+      },
+      "battleReactions": 15,
+      "battleRetreats": 0,
+      "reinforcements": 7,
+      "counterattacks": 0,
+      "enemyBuildingKillsByKind": {
+        "turret": 1,
+        "headquarters": 1,
+        "barracks": 1
+      },
+      "missionEvents": [
+        {
+          "groupId": 1,
+          "target": 0,
+          "objective": null,
+          "started": 25,
+          "stalled": false,
+          "ended": 40.25,
+          "survivors": 1,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 3,
+          "objective": null,
+          "started": 40.25,
+          "stalled": false,
+          "ended": 61.6,
+          "survivors": 3,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 2,
+          "objective": null,
+          "started": 61.6,
+          "stalled": false,
+          "ended": 67.7,
+          "survivors": 3,
+          "outcome": "aborted"
+        },
+        {
+          "groupId": 2,
+          "target": 2,
+          "objective": null,
+          "started": 201.9,
+          "stalled": false,
+          "ended": 229.35,
+          "survivors": 5,
+          "outcome": "aborted"
+        },
+        {
+          "groupId": 3,
+          "target": 2,
+          "objective": null,
+          "started": 299.5,
+          "stalled": false,
+          "ended": 308.65,
+          "survivors": 4,
+          "outcome": "aborted"
+        },
+        {
+          "groupId": 4,
+          "target": 2,
+          "objective": null,
+          "started": 317.8,
+          "stalled": false,
+          "ended": 323.9,
+          "survivors": 3,
+          "outcome": "aborted"
+        },
+        {
+          "groupId": 5,
+          "target": 2,
+          "objective": 1004,
+          "started": 326.95,
+          "stalled": false,
+          "ended": 360.5,
+          "survivors": 6,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 5,
+          "target": 2,
+          "objective": 1000,
+          "started": 360.5,
+          "stalled": false,
+          "ended": 375.75,
+          "survivors": 6,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 5,
+          "target": 2,
+          "objective": 1002,
+          "started": 375.75,
+          "stalled": false,
+          "ended": 376.05,
+          "survivors": 6,
+          "outcome": "completed"
+        }
+      ],
+      "timeline": [
+        {
+          "at": 0.05,
+          "credits": 950,
+          "income": 25,
+          "phase": "gather",
+          "commander": "unavailable",
+          "adaptive": null,
+          "battle": null,
+          "mission": null,
+          "target": null,
+          "objective": null,
+          "group": 0,
+          "redUnits": 2,
+          "blueUnits": 2,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 202.5
+            }
+          ],
+          "sectors": 1,
+          "produced": {},
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 30,
+          "credits": 825,
+          "income": 25,
+          "phase": "attack",
+          "commander": "expansion",
+          "adaptive": "unknown",
+          "battle": {
+            "at": 28.050000000000264,
+            "own": 44.721359549995796,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 0,
+          "objective": null,
+          "group": 1,
+          "redUnits": 2,
+          "blueUnits": 5,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            }
+          ],
+          "sectors": 1,
+          "produced": {},
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 60.05,
+          "credits": 205,
+          "income": 95,
+          "phase": "attack",
+          "commander": "expansion",
+          "adaptive": "unknown",
+          "battle": {
+            "at": 58.54999999999881,
+            "own": 89.44271909999159,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 3,
+          "objective": null,
+          "group": 3,
+          "redUnits": 5,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 3,
+          "produced": {
+            "infantry": 2,
+            "heavy": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 90.05,
+          "credits": 315,
+          "income": 95,
+          "phase": "gather",
+          "commander": "buildup",
+          "adaptive": "infantry",
+          "battle": {
+            "at": 89.04999999999708,
+            "own": 209.34681023727526,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 2,
+          "objective": null,
+          "group": 0,
+          "redUnits": 4,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 3,
+          "produced": {
+            "infantry": 2,
+            "heavy": 1,
+            "medic": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 120.05,
+          "credits": 350,
+          "income": 95,
+          "phase": "gather",
+          "commander": "buildup",
+          "adaptive": "unknown",
+          "battle": {
+            "at": 119.54999999999535,
+            "own": 460.9152578974012,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 2,
+          "objective": null,
+          "group": 0,
+          "redUnits": 5,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 3,
+          "produced": {
+            "infantry": 2,
+            "heavy": 2,
+            "medic": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 150.05,
+          "credits": 335,
+          "income": 95,
+          "phase": "gather",
+          "commander": "buildup",
+          "adaptive": "unknown",
+          "battle": {
+            "at": 150.04999999999987,
+            "own": 460.9152578974012,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 2,
+          "objective": null,
+          "group": 0,
+          "redUnits": 6,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 3,
+          "produced": {
+            "infantry": 2,
+            "heavy": 2,
+            "medic": 1,
+            "rover": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 180,
+          "credits": 170,
+          "income": 95,
+          "phase": "gather",
+          "commander": "buildup",
+          "adaptive": "unknown",
+          "battle": {
+            "at": 177.5000000000061,
+            "own": 460.9152578974012,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 2,
+          "objective": null,
+          "group": 0,
+          "redUnits": 6,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 3,
+          "produced": {
+            "infantry": 2,
+            "heavy": 2,
+            "medic": 1,
+            "rover": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 210,
+          "credits": 355,
+          "income": 95,
+          "phase": "attack",
+          "commander": "buildup",
+          "adaptive": "infantry",
+          "battle": {
+            "at": 208.00000000001305,
+            "own": 360.1225819425905,
+            "enemy": 113.24748052846776,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 2,
+          "objective": null,
+          "group": 4,
+          "redUnits": 7,
+          "blueUnits": 4,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 3,
+          "produced": {
+            "infantry": 3,
+            "heavy": 2,
+            "medic": 1,
+            "rover": 1,
+            "tank": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 240,
+          "credits": 440,
+          "income": 95,
+          "phase": "regroup",
+          "commander": "buildup",
+          "adaptive": "attrition",
+          "battle": {
+            "at": 238.50000000001998,
+            "own": 359.8233011459131,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 2,
+          "objective": null,
+          "group": 0,
+          "redUnits": 6,
+          "blueUnits": 6,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 3,
+          "produced": {
+            "infantry": 4,
+            "heavy": 2,
+            "medic": 1,
+            "rover": 1,
+            "tank": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 270,
+          "credits": 125,
+          "income": 95,
+          "phase": "regroup",
+          "commander": "buildup",
+          "adaptive": "infantry",
+          "battle": {
+            "at": 269.0000000000269,
+            "own": 576.8523081829915,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 2,
+          "objective": null,
+          "group": 0,
+          "redUnits": 7,
+          "blueUnits": 6,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 3,
+          "produced": {
+            "infantry": 5,
+            "heavy": 2,
+            "medic": 1,
+            "rover": 1,
+            "tank": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 300,
+          "credits": 410,
+          "income": 95,
+          "phase": "attack",
+          "commander": "offensive",
+          "adaptive": "infantry",
+          "battle": {
+            "at": 299.5000000000338,
+            "own": 696.0138526686624,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 2,
+          "objective": null,
+          "group": 6,
+          "redUnits": 8,
+          "blueUnits": 6,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 3,
+          "produced": {
+            "infantry": 5,
+            "heavy": 2,
+            "medic": 1,
+            "rover": 1,
+            "tank": 1,
+            "artillery": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 330,
+          "credits": 245,
+          "income": 95,
+          "phase": "attack",
+          "commander": "siege",
+          "adaptive": "infantry",
+          "battle": {
+            "at": 330.00000000004076,
+            "own": 206.33952335648436,
+            "enemy": 188.51724059088073,
+            "deficit": 10.45530332302846,
+            "towers": 1,
+            "neededSiege": 1,
+            "stance": "siege"
+          },
+          "mission": "structure",
+          "target": 2,
+          "objective": 1004,
+          "group": 2,
+          "redUnits": 6,
+          "blueUnits": 1,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 755.6
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 3,
+          "produced": {
+            "infantry": 5,
+            "heavy": 2,
+            "medic": 1,
+            "rover": 1,
+            "tank": 1,
+            "artillery": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 360,
+          "credits": 330,
+          "income": 95,
+          "phase": "attack",
+          "commander": "siege",
+          "adaptive": "tower",
+          "battle": {
+            "at": 357.450000000047,
+            "own": 569.8321053161046,
+            "enemy": 116.56368690650682,
+            "deficit": 0,
+            "towers": 1,
+            "neededSiege": 1,
+            "stance": "siege"
+          },
+          "mission": "structure",
+          "target": 2,
+          "objective": 1004,
+          "group": 6,
+          "redUnits": 8,
+          "blueUnits": 1,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 673.4
+            }
+          ],
+          "sectors": 3,
+          "produced": {
+            "infantry": 7,
+            "heavy": 2,
+            "medic": 1,
+            "rover": 1,
+            "tank": 1,
+            "artillery": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        }
+      ],
+      "score": 12522,
+      "wallMs": 19644,
+      "cpu": {
+        "scope": "Node simulation ticks including transparent API telemetry; excludes rendering, opponent actor and benchmark observation between ticks",
+        "steps": 7521,
+        "stepMs": {
+          "mean": 2.6068039941497116,
+          "p95": 4.07420799999818,
+          "p99": 135.37733399999706,
+          "max": 167.42237499999464
+        },
+        "phases": {
+          "simulation": {
+            "calls": 7521,
+            "totalMs": 19604.348442000297,
+            "meanMs": 2.6066146047068606,
+            "maxMs": 167.4214589999974,
+            "p95Ms": 4.0740420000001905,
+            "p99Ms": 135.37683399999878
+          },
+          "ai": {
+            "calls": 116,
+            "totalMs": 484.02629000000525,
+            "meanMs": 4.172640431034528,
+            "maxMs": 149.9083329999994,
+            "p95Ms": 11.962749999998778,
+            "p99Ms": 104.62270799999897
+          },
+          "pathfinding": {
+            "calls": 564,
+            "totalMs": 13366.635636999988,
+            "meanMs": 23.699708576241115,
+            "maxMs": 154.80191699999705,
+            "p95Ms": 139.6749579999996,
+            "p99Ms": 147.294332999998
+          },
+          "vision": {
+            "calls": 1885,
+            "totalMs": 5946.451237999841,
+            "meanMs": 3.154616041379226,
+            "maxMs": 31.956624999998894,
+            "p95Ms": 20.716959000004863,
+            "p99Ms": 24.07195800000045
+          },
+          "render": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "minimap": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "hud": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "audio": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "input": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "fog": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "sprites": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "corpses": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "particles": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          }
+        },
+        "pathfinding": {
+          "calls": 564,
+          "nodes": 4655477
+        }
+      },
+      "counterattackDefinition": "emergencyDefense to offensive/siege/endgame commander transitions",
+      "finalComposition": {
+        "red": {
+          "infantry": 2,
+          "medic": 0,
+          "engineer": 1,
+          "heavy": 2,
+          "rover": 1,
+          "tank": 1,
+          "artillery": 1,
+          "scout": 0,
+          "gunship": 0,
+          "bomber": 0
+        },
+        "blue": {
+          "infantry": 0,
+          "medic": 0,
+          "engineer": 0,
+          "heavy": 0,
+          "rover": 0,
+          "tank": 0,
+          "artillery": 0,
+          "scout": 0,
+          "gunship": 0,
+          "bomber": 0
+        }
+      }
+    },
+    {
+      "seed": 2026,
+      "mode": "director",
+      "mapVersion": 4,
+      "label": "siege-release",
+      "opponent": "guarded",
+      "initialStateHash": "dc7c7e66df7d02c5f019b4ce734188ba2cc892a8d82f31cd09b5d2393848345a",
+      "initialStateHashScope": "playable-world-v1",
+      "requestedSeconds": 900,
+      "elapsedSeconds": 267.1,
+      "terminalStatus": "defeat",
+      "outcome": "win",
+      "win": true,
+      "loss": false,
+      "initialCredits": 950,
+      "initialComposition": {
+        "red": {
+          "infantry": 1,
+          "medic": 0,
+          "engineer": 1,
+          "heavy": 0,
+          "rover": 0,
+          "tank": 0,
+          "artillery": 0,
+          "scout": 0,
+          "gunship": 0,
+          "bomber": 0
+        },
+        "blue": {
+          "infantry": 1,
+          "medic": 0,
+          "engineer": 1,
+          "heavy": 0,
+          "rover": 0,
+          "tank": 0,
+          "artillery": 0,
+          "scout": 0,
+          "gunship": 0,
+          "bomber": 0
+        }
+      },
+      "firstAssault": 25,
+      "firstOrganizedAttack": 67.7,
+      "firstVehicle": 92.95,
+      "firstTank": 195.55,
+      "firstArtillery": 158.9,
+      "firstAircraft": null,
+      "firstEnemyHQSeen": 123.6,
+      "firstEnemyHQDamage": 255.45,
+      "firstEnemyHQDestroyed": 262.7,
+      "enemyHQSeen": true,
+      "enemyHQDamaged": true,
+      "enemyHQDestroyed": true,
+      "enemyHQCaptured": false,
+      "enemyHQDamage": 1200,
+      "blueHeadquartersHp": 0,
+      "enemyBuildingsSeen": 3,
+      "enemyBuildingsDamaged": 3,
+      "enemyBuildingsDestroyed": 3,
+      "enemyBuildingDamage": 2693.8,
+      "enemyTowersDestroyed": 1,
+      "firstFactory": 67.4,
+      "firstFrontContact": 31.05,
+      "firstEnemyContact": 124.05,
+      "finishedBuildings": 3,
+      "vehicles": 3,
+      "peakVehicles": 3,
+      "peakArmy": 9,
+      "peakAircraft": 0,
+      "vehiclesOrdered": 3,
+      "vehicleOrdersByKind": {
+        "rover": 1,
+        "artillery": 1,
+        "tank": 1
+      },
+      "redOrdersByKind": {
+        "infantry": 2,
+        "heavy": 2,
+        "rover": 1,
+        "artillery": 1,
+        "tank": 1
+      },
+      "redProducedByKind": {
+        "infantry": 2,
+        "heavy": 2,
+        "rover": 1,
+        "artillery": 1,
+        "tank": 1
+      },
+      "blueProducedByKind": {
+        "infantry": 11,
+        "heavy": 1
+      },
+      "redLossesByKind": {},
+      "blueLossesByKind": {
+        "infantry": 12,
+        "heavy": 1,
+        "engineer": 1
+      },
+      "paidRecruitCredits": 2050,
+      "refundedRecruitCredits": 0,
+      "vehiclesProduced": 3,
+      "aircraftProduced": 0,
+      "redSectors": 7,
+      "captures": 6,
+      "netCaptures": 6,
+      "territoriesLost": 0,
+      "blueCaptures": 0,
+      "blueTerritoriesLost": 0,
+      "blueUnitsLost": 14,
+      "redUnitsLost": 0,
+      "blueUnitDamage": 1730,
+      "redUnitDamage": 90.667,
+      "redUnits": 9,
+      "redCredits": 430,
+      "firstVehicleShot": 198.75,
+      "vehicleShots": 25,
+      "shotsByKind": {
+        "artillery": 17,
+        "infantry": 145,
+        "tank": 8,
+        "heavy": 33
+      },
+      "damageByRedKind": {
+        "artillery": 2416.4666666666685,
+        "infantry": 816.9999999999997,
+        "tank": 528,
+        "heavy": 662.3333333333333
+      },
+      "vehicleDeaths": 0,
+      "vehicleRepairHp": 0,
+      "vehicleEvacuations": 0,
+      "vehicleReturned": 0,
+      "repairedVehiclesReused": 0,
+      "attackingSeconds": 229.95,
+      "productiveFactorySeconds": 43,
+      "productiveBarracksSeconds": 28,
+      "productiveAirfieldSeconds": 0,
+      "parallelProductionSeconds": 0,
+      "tripleProductionSeconds": 0,
+      "maxParallelProducers": 1,
+      "productionSeconds": {
+        "barracks": {
+          "available": 230.15,
+          "busy": 28,
+          "idle": 202.15
+        },
+        "factory": {
+          "available": 199.75,
+          "busy": 43,
+          "idle": 156.75
+        },
+        "airfield": {
+          "available": 31.95,
+          "busy": 0,
+          "idle": 31.95
+        }
+      },
+      "phaseTransitions": 4,
+      "commanderTransitions": 8,
+      "commanderSeconds": {
+        "unavailable": 24.95,
+        "expansion": 30.5,
+        "offensive": 73.2,
+        "buildup": 76.25,
+        "siege": 46.95,
+        "endgame": 15.25
+      },
+      "missionCount": 10,
+      "abortedMissions": 1,
+      "unfinishedMissions": 0,
+      "stalledMissions": 0,
+      "commands": 122,
+      "unitCommands": 234,
+      "attackCommands": 8,
+      "buildingAttackCommands": 6,
+      "repeatedUnitCommands": 107,
+      "rapidUnitOrderChanges": 0,
+      "productionIdleReasons": {
+        "unexplained-idle": 0.2,
+        "saving-unit": 390.65
+      },
+      "productionIdleReasonSources": {
+        "inferred": 0.75,
+        "controller": 390.1
+      },
+      "productionDecisionReasons": {
+        "unexplained-idle": 0.2,
+        "produced": 21.35,
+        "queue-blocked": 3.05,
+        "saving-unit": 437.25
+      },
+      "bluePaidOrdersByKind": {
+        "infantry": 11,
+        "heavy": 1
+      },
+      "bluePaidRecruitCredits": 1350,
+      "paidBuildCredits": 1000,
+      "bluePaidBuildCredits": 375,
+      "paidBuildingsByKind": {
+        "barracks": 1,
+        "factory": 1,
+        "airfield": 1
+      },
+      "bluePaidBuildingsByKind": {
+        "barracks": 1,
+        "turret": 1
+      },
+      "battleReactions": 0,
+      "battleRetreats": 1,
+      "reinforcements": 4,
+      "counterattacks": 0,
+      "enemyBuildingKillsByKind": {
+        "turret": 1,
+        "headquarters": 1,
+        "barracks": 1
+      },
+      "missionEvents": [
+        {
+          "groupId": 1,
+          "target": 2,
+          "objective": null,
+          "started": 25,
+          "stalled": false,
+          "ended": 40.25,
+          "survivors": 1,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 1,
+          "objective": null,
+          "started": 40.25,
+          "stalled": false,
+          "ended": 55.5,
+          "survivors": 1,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 0,
+          "objective": null,
+          "started": 55.5,
+          "stalled": false,
+          "ended": 70.75,
+          "survivors": 3,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 5,
+          "objective": null,
+          "started": 70.75,
+          "stalled": false,
+          "ended": 98.2,
+          "survivors": 4,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 6,
+          "objective": null,
+          "started": 98.2,
+          "stalled": false,
+          "ended": 113.45,
+          "survivors": 4,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 7,
+          "objective": null,
+          "started": 113.45,
+          "stalled": false,
+          "ended": 128.7,
+          "survivors": 4,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 4,
+          "objective": 1004,
+          "started": 128.7,
+          "stalled": false,
+          "ended": 198.85,
+          "survivors": 5,
+          "outcome": "aborted"
+        },
+        {
+          "groupId": 2,
+          "target": 4,
+          "objective": 1004,
+          "started": 211.05,
+          "stalled": false,
+          "ended": 247.65,
+          "survivors": 6,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 2,
+          "target": 4,
+          "objective": 1000,
+          "started": 247.65,
+          "stalled": false,
+          "ended": 262.9,
+          "survivors": 6,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 2,
+          "target": 4,
+          "objective": 1002,
+          "started": 262.9,
+          "stalled": false,
+          "ended": 267.1,
+          "survivors": 6,
+          "outcome": "completed"
+        }
+      ],
+      "timeline": [
+        {
+          "at": 0.05,
+          "credits": 950,
+          "income": 30,
+          "phase": "gather",
+          "commander": "unavailable",
+          "adaptive": null,
+          "battle": null,
+          "mission": null,
+          "target": null,
+          "objective": null,
+          "group": 0,
+          "redUnits": 2,
+          "blueUnits": 2,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 202.5
+            }
+          ],
+          "sectors": 1,
+          "produced": {},
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 30,
+          "credits": 840,
+          "income": 30,
+          "phase": "attack",
+          "commander": "expansion",
+          "adaptive": "unknown",
+          "battle": {
+            "at": 28.050000000000264,
+            "own": 44.721359549995796,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 2,
+          "objective": null,
+          "group": 1,
+          "redUnits": 2,
+          "blueUnits": 5,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            }
+          ],
+          "sectors": 1,
+          "produced": {},
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 60.05,
+          "credits": 170,
+          "income": 50,
+          "phase": "attack",
+          "commander": "offensive",
+          "adaptive": "unknown",
+          "battle": {
+            "at": 58.54999999999881,
+            "own": 89.44271909999159,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 0,
+          "objective": null,
+          "group": 2,
+          "redUnits": 5,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 3,
+          "produced": {
+            "infantry": 2,
+            "heavy": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 90.05,
+          "credits": 80,
+          "income": 80,
+          "phase": "attack",
+          "commander": "offensive",
+          "adaptive": "unknown",
+          "battle": {
+            "at": 89.04999999999708,
+            "own": 134.1640786499874,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 5,
+          "objective": null,
+          "group": 3,
+          "redUnits": 5,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 4,
+          "produced": {
+            "infantry": 2,
+            "heavy": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 120.05,
+          "credits": 360,
+          "income": 100,
+          "phase": "attack",
+          "commander": "offensive",
+          "adaptive": "unknown",
+          "battle": {
+            "at": 119.54999999999535,
+            "own": 343.51088888726264,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 7,
+          "objective": null,
+          "group": 4,
+          "redUnits": 6,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 6,
+          "produced": {
+            "infantry": 2,
+            "heavy": 1,
+            "rover": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 150.05,
+          "credits": 150,
+          "income": 130,
+          "phase": "attack",
+          "commander": "buildup",
+          "adaptive": "tower",
+          "battle": {
+            "at": 150.04999999999987,
+            "own": 274.59818821897625,
+            "enemy": 188.51724059088073,
+            "deficit": 0,
+            "towers": 1,
+            "neededSiege": 1,
+            "stance": "attack"
+          },
+          "mission": "structure",
+          "target": 4,
+          "objective": 1004,
+          "group": 4,
+          "redUnits": 6,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 7,
+          "produced": {
+            "infantry": 2,
+            "heavy": 1,
+            "rover": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 180,
+          "credits": 540,
+          "income": 130,
+          "phase": "attack",
+          "commander": "buildup",
+          "adaptive": "tower",
+          "battle": {
+            "at": 177.5000000000061,
+            "own": 274.59818821897625,
+            "enemy": 188.51724059088073,
+            "deficit": 0,
+            "towers": 1,
+            "neededSiege": 1,
+            "stance": "attack"
+          },
+          "mission": "structure",
+          "target": 4,
+          "objective": 1004,
+          "group": 4,
+          "redUnits": 7,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 7,
+          "produced": {
+            "infantry": 2,
+            "heavy": 1,
+            "rover": 1,
+            "artillery": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 210,
+          "credits": 480,
+          "income": 130,
+          "phase": "gather",
+          "commander": "buildup",
+          "adaptive": "infantry",
+          "battle": {
+            "at": 208.00000000001305,
+            "own": 0,
+            "enemy": 389.4233398005779,
+            "deficit": 447.83684077066454,
+            "towers": 1,
+            "neededSiege": 1,
+            "stance": "reinforce"
+          },
+          "mission": "structure",
+          "target": 4,
+          "objective": 1004,
+          "group": 0,
+          "redUnits": 8,
+          "blueUnits": 3,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 7,
+          "produced": {
+            "infantry": 2,
+            "heavy": 1,
+            "rover": 1,
+            "artillery": 1,
+            "tank": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 240,
+          "credits": 170,
+          "income": 130,
+          "phase": "attack",
+          "commander": "siege",
+          "adaptive": "infantry",
+          "battle": {
+            "at": 238.50000000001998,
+            "own": 573.7514812908798,
+            "enemy": 229.00932200312388,
+            "deficit": 0,
+            "towers": 1,
+            "neededSiege": 1,
+            "stance": "siege"
+          },
+          "mission": "structure",
+          "target": 4,
+          "objective": 1004,
+          "group": 6,
+          "redUnits": 8,
+          "blueUnits": 3,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 213.8
+            }
+          ],
+          "sectors": 7,
+          "produced": {
+            "infantry": 2,
+            "heavy": 1,
+            "rover": 1,
+            "artillery": 1,
+            "tank": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        }
+      ],
+      "score": 12902,
+      "wallMs": 4727,
+      "cpu": {
+        "scope": "Node simulation ticks including transparent API telemetry; excludes rendering, opponent actor and benchmark observation between ticks",
+        "steps": 5342,
+        "stepMs": {
+          "mean": 0.8807475383751615,
+          "p95": 3.740958000002138,
+          "p99": 12.41629099999409,
+          "max": 570.2023750000008
+        },
+        "phases": {
+          "simulation": {
+            "calls": 5342,
+            "totalMs": 4704.136014000127,
+            "meanMs": 0.8805945365032061,
+            "maxMs": 570.2016250000015,
+            "p95Ms": 3.740834000003815,
+            "p99Ms": 12.415999999997439
+          },
+          "ai": {
+            "calls": 80,
+            "totalMs": 785.3379189999832,
+            "meanMs": 9.81672398749979,
+            "maxMs": 569.7302080000009,
+            "p95Ms": 7.148083000000042,
+            "p99Ms": 569.7302080000009
+          },
+          "pathfinding": {
+            "calls": 396,
+            "totalMs": 1149.6535960000037,
+            "meanMs": 2.903165646464656,
+            "maxMs": 193.1339999999982,
+            "p95Ms": 8.66112499999872,
+            "p99Ms": 52.700958000001265
+          },
+          "vision": {
+            "calls": 1343,
+            "totalMs": 3373.238225000139,
+            "meanMs": 2.5117187081162613,
+            "maxMs": 14.13037500000064,
+            "p95Ms": 11.61158300000534,
+            "p99Ms": 13.384500000000116
+          },
+          "render": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "minimap": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "hud": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "audio": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "input": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "fog": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "sprites": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "corpses": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "particles": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          }
+        },
+        "pathfinding": {
+          "calls": 396,
+          "nodes": 428861
+        }
+      },
+      "counterattackDefinition": "emergencyDefense to offensive/siege/endgame commander transitions",
+      "finalComposition": {
+        "red": {
+          "infantry": 3,
+          "medic": 0,
+          "engineer": 1,
+          "heavy": 2,
+          "rover": 1,
+          "tank": 1,
+          "artillery": 1,
+          "scout": 0,
+          "gunship": 0,
+          "bomber": 0
+        },
+        "blue": {
+          "infantry": 0,
+          "medic": 0,
+          "engineer": 0,
+          "heavy": 0,
+          "rover": 0,
+          "tank": 0,
+          "artillery": 0,
+          "scout": 0,
+          "gunship": 0,
+          "bomber": 0
+        }
+      }
+    },
+    {
+      "seed": 2027,
+      "mode": "director",
+      "mapVersion": 4,
+      "label": "siege-release",
+      "opponent": "guarded",
+      "initialStateHash": "f36b1a0472aef227accc7b6375aa4a2aa87a26cc2a1e5c71109c12a4f6b048ce",
+      "initialStateHashScope": "playable-world-v1",
+      "requestedSeconds": 900,
+      "elapsedSeconds": 322,
+      "terminalStatus": "defeat",
+      "outcome": "win",
+      "win": true,
+      "loss": false,
+      "initialCredits": 950,
+      "initialComposition": {
+        "red": {
+          "infantry": 1,
+          "medic": 0,
+          "engineer": 1,
+          "heavy": 0,
+          "rover": 0,
+          "tank": 0,
+          "artillery": 0,
+          "scout": 0,
+          "gunship": 0,
+          "bomber": 0
+        },
+        "blue": {
+          "infantry": 1,
+          "medic": 0,
+          "engineer": 1,
+          "heavy": 0,
+          "rover": 0,
+          "tank": 0,
+          "artillery": 0,
+          "scout": 0,
+          "gunship": 0,
+          "bomber": 0
+        }
+      },
+      "firstAssault": 25,
+      "firstOrganizedAttack": 67.7,
+      "firstVehicle": 92.95,
+      "firstTank": 146.75,
+      "firstArtillery": 210.75,
+      "firstAircraft": null,
+      "firstEnemyHQSeen": 195.4,
+      "firstEnemyHQDamage": 197,
+      "firstEnemyHQDestroyed": 317.75,
+      "enemyHQSeen": true,
+      "enemyHQDamaged": true,
+      "enemyHQDestroyed": true,
+      "enemyHQCaptured": false,
+      "enemyHQDamage": 1200,
+      "blueHeadquartersHp": 0,
+      "enemyBuildingsSeen": 3,
+      "enemyBuildingsDamaged": 3,
+      "enemyBuildingsDestroyed": 3,
+      "enemyBuildingDamage": 2693.8,
+      "enemyTowersDestroyed": 1,
+      "firstFactory": 67.5,
+      "firstFrontContact": 31.05,
+      "firstEnemyContact": 138.05,
+      "finishedBuildings": 3,
+      "vehicles": 3,
+      "peakVehicles": 3,
+      "peakArmy": 10,
+      "peakAircraft": 0,
+      "vehiclesOrdered": 3,
+      "vehicleOrdersByKind": {
+        "rover": 1,
+        "tank": 1,
+        "artillery": 1
+      },
+      "redOrdersByKind": {
+        "infantry": 4,
+        "heavy": 4,
+        "rover": 1,
+        "tank": 1,
+        "artillery": 1
+      },
+      "redProducedByKind": {
+        "infantry": 4,
+        "heavy": 4,
+        "rover": 1,
+        "tank": 1,
+        "artillery": 1
+      },
+      "blueProducedByKind": {
+        "infantry": 10,
+        "heavy": 2
+      },
+      "redLossesByKind": {
+        "infantry": 2,
+        "heavy": 1
+      },
+      "blueLossesByKind": {
+        "infantry": 11,
+        "heavy": 2,
+        "engineer": 1
+      },
+      "paidRecruitCredits": 2750,
+      "refundedRecruitCredits": 0,
+      "vehiclesProduced": 3,
+      "aircraftProduced": 0,
+      "redSectors": 7,
+      "captures": 6,
+      "netCaptures": 6,
+      "territoriesLost": 0,
+      "blueCaptures": 0,
+      "blueTerritoriesLost": 0,
+      "blueUnitsLost": 14,
+      "redUnitsLost": 3,
+      "blueUnitDamage": 2050,
+      "redUnitDamage": 1324.667,
+      "redUnits": 10,
+      "redCredits": 550,
+      "firstVehicleShot": 192.8,
+      "vehicleShots": 29,
+      "shotsByKind": {
+        "infantry": 127,
+        "heavy": 46,
+        "tank": 7,
+        "rover": 4,
+        "artillery": 18
+      },
+      "damageByRedKind": {
+        "infantry": 711.6666666666654,
+        "heavy": 1101,
+        "tank": 371.000000000001,
+        "rover": 76,
+        "artillery": 2484.133333333335
+      },
+      "vehicleDeaths": 0,
+      "vehicleRepairHp": 472,
+      "vehicleEvacuations": 2,
+      "vehicleReturned": 2,
+      "repairedVehiclesReused": 2,
+      "attackingSeconds": 236.05,
+      "productiveFactorySeconds": 43,
+      "productiveBarracksSeconds": 56,
+      "productiveAirfieldSeconds": 0,
+      "parallelProductionSeconds": 0,
+      "tripleProductionSeconds": 0,
+      "maxParallelProducers": 1,
+      "productionSeconds": {
+        "barracks": {
+          "available": 285.05,
+          "busy": 56,
+          "idle": 229.05
+        },
+        "factory": {
+          "available": 254.55,
+          "busy": 43,
+          "idle": 211.55
+        },
+        "airfield": {
+          "available": 65.65,
+          "busy": 0,
+          "idle": 65.65
+        }
+      },
+      "phaseTransitions": 9,
+      "commanderTransitions": 13,
+      "commanderSeconds": {
+        "unavailable": 24.95,
+        "expansion": 30.5,
+        "offensive": 97.6,
+        "buildup": 100.65,
+        "endgame": 21.35,
+        "siege": 46.95
+      },
+      "missionCount": 13,
+      "abortedMissions": 4,
+      "unfinishedMissions": 0,
+      "stalledMissions": 0,
+      "commands": 120,
+      "unitCommands": 219,
+      "attackCommands": 12,
+      "buildingAttackCommands": 7,
+      "repeatedUnitCommands": 89,
+      "rapidUnitOrderChanges": 4,
+      "productionIdleReasons": {
+        "unexplained-idle": 0.2,
+        "saving-unit": 499.95,
+        "insufficient-credits": 6.1
+      },
+      "productionIdleReasonSources": {
+        "inferred": 0.8,
+        "controller": 505.45
+      },
+      "productionDecisionReasons": {
+        "unexplained-idle": 0.2,
+        "produced": 33.55,
+        "queue-blocked": 3.05,
+        "saving-unit": 562.35,
+        "insufficient-credits": 6.1
+      },
+      "bluePaidOrdersByKind": {
+        "infantry": 10,
+        "heavy": 2
+      },
+      "bluePaidRecruitCredits": 1500,
+      "paidBuildCredits": 1000,
+      "bluePaidBuildCredits": 375,
+      "paidBuildingsByKind": {
+        "barracks": 1,
+        "factory": 1,
+        "airfield": 1
+      },
+      "bluePaidBuildingsByKind": {
+        "barracks": 1,
+        "turret": 1
+      },
+      "battleReactions": 2,
+      "battleRetreats": 1,
+      "reinforcements": 5,
+      "counterattacks": 0,
+      "enemyBuildingKillsByKind": {
+        "turret": 1,
+        "headquarters": 1,
+        "barracks": 1
+      },
+      "missionEvents": [
+        {
+          "groupId": 1,
+          "target": 2,
+          "objective": null,
+          "started": 25,
+          "stalled": false,
+          "ended": 40.25,
+          "survivors": 1,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 1,
+          "objective": null,
+          "started": 40.25,
+          "stalled": false,
+          "ended": 55.5,
+          "survivors": 1,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 0,
+          "objective": null,
+          "started": 55.5,
+          "stalled": false,
+          "ended": 70.75,
+          "survivors": 3,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 5,
+          "objective": null,
+          "started": 70.75,
+          "stalled": false,
+          "ended": 92.1,
+          "survivors": 3,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 6,
+          "objective": null,
+          "started": 92.1,
+          "stalled": false,
+          "ended": 107.35,
+          "survivors": 4,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 7,
+          "objective": null,
+          "started": 107.35,
+          "stalled": false,
+          "ended": 122.6,
+          "survivors": 4,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 4,
+          "objective": null,
+          "started": 122.6,
+          "stalled": false,
+          "ended": 147,
+          "survivors": 2,
+          "outcome": "aborted"
+        },
+        {
+          "groupId": 2,
+          "target": 4,
+          "objective": null,
+          "started": 186.65,
+          "stalled": false,
+          "ended": 195.8,
+          "survivors": 2,
+          "outcome": "aborted"
+        },
+        {
+          "groupId": 2,
+          "target": 4,
+          "objective": 1000,
+          "started": 195.8,
+          "stalled": false,
+          "ended": 198.85,
+          "survivors": 2,
+          "outcome": "aborted"
+        },
+        {
+          "groupId": 3,
+          "target": 4,
+          "objective": 1004,
+          "started": 208,
+          "stalled": false,
+          "ended": 250.7,
+          "survivors": 3,
+          "outcome": "aborted"
+        },
+        {
+          "groupId": 4,
+          "target": 4,
+          "objective": 1004,
+          "started": 262.9,
+          "stalled": false,
+          "ended": 302.55,
+          "survivors": 4,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 4,
+          "target": 4,
+          "objective": 1000,
+          "started": 302.55,
+          "stalled": false,
+          "ended": 320.85,
+          "survivors": 5,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 4,
+          "target": 4,
+          "objective": 1002,
+          "started": 320.85,
+          "stalled": false,
+          "ended": 322,
+          "survivors": 5,
+          "outcome": "completed"
+        }
+      ],
+      "timeline": [
+        {
+          "at": 0.05,
+          "credits": 950,
+          "income": 30,
+          "phase": "gather",
+          "commander": "unavailable",
+          "adaptive": null,
+          "battle": null,
+          "mission": null,
+          "target": null,
+          "objective": null,
+          "group": 0,
+          "redUnits": 2,
+          "blueUnits": 2,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 202.5
+            }
+          ],
+          "sectors": 1,
+          "produced": {},
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 30,
+          "credits": 840,
+          "income": 30,
+          "phase": "attack",
+          "commander": "expansion",
+          "adaptive": "unknown",
+          "battle": {
+            "at": 28.050000000000264,
+            "own": 44.721359549995796,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 2,
+          "objective": null,
+          "group": 1,
+          "redUnits": 2,
+          "blueUnits": 5,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            }
+          ],
+          "sectors": 1,
+          "produced": {},
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 60.05,
+          "credits": 170,
+          "income": 50,
+          "phase": "attack",
+          "commander": "offensive",
+          "adaptive": "unknown",
+          "battle": {
+            "at": 58.54999999999881,
+            "own": 89.44271909999159,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 0,
+          "objective": null,
+          "group": 2,
+          "redUnits": 5,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 3,
+          "produced": {
+            "infantry": 2,
+            "heavy": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 90.05,
+          "credits": 110,
+          "income": 80,
+          "phase": "attack",
+          "commander": "offensive",
+          "adaptive": "unknown",
+          "battle": {
+            "at": 89.04999999999708,
+            "own": 134.1640786499874,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 5,
+          "objective": null,
+          "group": 3,
+          "redUnits": 5,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 4,
+          "produced": {
+            "infantry": 2,
+            "heavy": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 120.05,
+          "credits": 400,
+          "income": 100,
+          "phase": "attack",
+          "commander": "offensive",
+          "adaptive": "unknown",
+          "battle": {
+            "at": 119.54999999999535,
+            "own": 343.51088888726264,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 7,
+          "objective": null,
+          "group": 4,
+          "redUnits": 6,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 6,
+          "produced": {
+            "infantry": 2,
+            "heavy": 1,
+            "rover": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 150.05,
+          "credits": 90,
+          "income": 130,
+          "phase": "gather",
+          "commander": "buildup",
+          "adaptive": "infantry",
+          "battle": {
+            "at": 150.04999999999987,
+            "own": 202.1622250010899,
+            "enemy": 79.4584674702972,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 4,
+          "objective": null,
+          "group": 0,
+          "redUnits": 5,
+          "blueUnits": 6,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 7,
+          "produced": {
+            "infantry": 2,
+            "heavy": 1,
+            "rover": 1,
+            "tank": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 180,
+          "credits": 480,
+          "income": 130,
+          "phase": "gather",
+          "commander": "buildup",
+          "adaptive": "infantry",
+          "battle": {
+            "at": 177.5000000000061,
+            "own": 352.9379967064051,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 4,
+          "objective": null,
+          "group": 0,
+          "redUnits": 6,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 7,
+          "produced": {
+            "infantry": 2,
+            "heavy": 2,
+            "rover": 1,
+            "tank": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 210,
+          "credits": 270,
+          "income": 130,
+          "phase": "attack",
+          "commander": "buildup",
+          "adaptive": "infantry",
+          "battle": {
+            "at": 208.00000000001305,
+            "own": 216.84210534287254,
+            "enemy": 188.51724059088073,
+            "deficit": 0,
+            "towers": 1,
+            "neededSiege": 1,
+            "stance": "attack"
+          },
+          "mission": "structure",
+          "target": 4,
+          "objective": 1004,
+          "group": 2,
+          "redUnits": 5,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1124
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 7,
+          "produced": {
+            "infantry": 2,
+            "heavy": 2,
+            "rover": 1,
+            "tank": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1124,
+          "enemyHQDamage": 76
+        },
+        {
+          "at": 240,
+          "credits": 210,
+          "income": 130,
+          "phase": "attack",
+          "commander": "buildup",
+          "adaptive": "infantry",
+          "battle": {
+            "at": 238.50000000001998,
+            "own": 216.84210534287254,
+            "enemy": 188.51724059088073,
+            "deficit": 0,
+            "towers": 1,
+            "neededSiege": 1,
+            "stance": "attack"
+          },
+          "mission": "structure",
+          "target": 4,
+          "objective": 1004,
+          "group": 2,
+          "redUnits": 6,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1124
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 7,
+          "produced": {
+            "infantry": 2,
+            "heavy": 2,
+            "rover": 1,
+            "tank": 1,
+            "artillery": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1124,
+          "enemyHQDamage": 76
+        },
+        {
+          "at": 270,
+          "credits": 150,
+          "income": 130,
+          "phase": "attack",
+          "commander": "siege",
+          "adaptive": "infantry",
+          "battle": {
+            "at": 269.0000000000269,
+            "own": 271.9760845215116,
+            "enemy": 267.88990734412585,
+            "deficit": 36.09730892423306,
+            "towers": 1,
+            "neededSiege": 1,
+            "stance": "siege"
+          },
+          "mission": "structure",
+          "target": 4,
+          "objective": 1004,
+          "group": 3,
+          "redUnits": 8,
+          "blueUnits": 3,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1124
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 7,
+          "produced": {
+            "infantry": 4,
+            "heavy": 2,
+            "rover": 1,
+            "tank": 1,
+            "artillery": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1124,
+          "enemyHQDamage": 76
+        },
+        {
+          "at": 300,
+          "credits": 290,
+          "income": 130,
+          "phase": "attack",
+          "commander": "siege",
+          "adaptive": "infantry",
+          "battle": {
+            "at": 299.5000000000338,
+            "own": 387.93491658939115,
+            "enemy": 116.33501048332059,
+            "deficit": 0,
+            "towers": 1,
+            "neededSiege": 1,
+            "stance": "siege"
+          },
+          "mission": "structure",
+          "target": 4,
+          "objective": 1004,
+          "group": 4,
+          "redUnits": 10,
+          "blueUnits": 1,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1124
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 93.8
+            }
+          ],
+          "sectors": 7,
+          "produced": {
+            "infantry": 4,
+            "heavy": 4,
+            "rover": 1,
+            "tank": 1,
+            "artillery": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1124,
+          "enemyHQDamage": 76
+        }
+      ],
+      "score": 12902,
+      "wallMs": 5935,
+      "cpu": {
+        "scope": "Node simulation ticks including transparent API telemetry; excludes rendering, opponent actor and benchmark observation between ticks",
+        "steps": 6440,
+        "stepMs": {
+          "mean": 0.9181342700310496,
+          "p95": 3.1158749999958673,
+          "p99": 12.981667000000016,
+          "max": 57.1429169999974
+        },
+        "phases": {
+          "simulation": {
+            "calls": 6440,
+            "totalMs": 5911.854652999718,
+            "meanMs": 0.9179898529502668,
+            "maxMs": 57.14208299999882,
+            "p95Ms": 3.115624999998545,
+            "p99Ms": 12.981041999999434
+          },
+          "ai": {
+            "calls": 98,
+            "totalMs": 196.01675199998863,
+            "meanMs": 2.000170938775394,
+            "maxMs": 41.4965830000001,
+            "p95Ms": 10.108749999999418,
+            "p99Ms": 41.4965830000001
+          },
+          "pathfinding": {
+            "calls": 6130,
+            "totalMs": 2100.300183999825,
+            "meanMs": 0.3426264574224837,
+            "maxMs": 43.25687499999913,
+            "p95Ms": 1.3033330000034766,
+            "p99Ms": 3.206584000006842
+          },
+          "vision": {
+            "calls": 1617,
+            "totalMs": 3582.8151539998944,
+            "meanMs": 2.2157174730982647,
+            "maxMs": 15.964375000003201,
+            "p95Ms": 11.105999999999767,
+            "p99Ms": 13.025583999995433
+          },
+          "render": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "minimap": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "hud": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "audio": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "input": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "fog": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "sprites": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "corpses": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "particles": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          }
+        },
+        "pathfinding": {
+          "calls": 6130,
+          "nodes": 2615498
+        }
+      },
+      "counterattackDefinition": "emergencyDefense to offensive/siege/endgame commander transitions",
+      "finalComposition": {
+        "red": {
+          "infantry": 3,
+          "medic": 0,
+          "engineer": 1,
+          "heavy": 3,
+          "rover": 1,
+          "tank": 1,
+          "artillery": 1,
+          "scout": 0,
+          "gunship": 0,
+          "bomber": 0
+        },
+        "blue": {
+          "infantry": 0,
+          "medic": 0,
+          "engineer": 0,
+          "heavy": 0,
+          "rover": 0,
+          "tank": 0,
+          "artillery": 0,
+          "scout": 0,
+          "gunship": 0,
+          "bomber": 0
+        }
+      }
+    },
+    {
+      "seed": 2026,
+      "mode": "director",
+      "mapVersion": 5,
+      "label": "siege-release",
+      "opponent": "guarded",
+      "initialStateHash": "438465105c7d84265ac860ce951b25ddd922b5580b80c5bee830a1411762ba2c",
+      "initialStateHashScope": "playable-world-v1",
+      "requestedSeconds": 900,
+      "elapsedSeconds": 555.6,
+      "terminalStatus": "defeat",
+      "outcome": "win",
+      "win": true,
+      "loss": false,
+      "initialCredits": 950,
+      "initialComposition": {
+        "red": {
+          "infantry": 1,
+          "medic": 0,
+          "engineer": 1,
+          "heavy": 0,
+          "rover": 0,
+          "tank": 0,
+          "artillery": 0,
+          "scout": 0,
+          "gunship": 0,
+          "bomber": 0
+        },
+        "blue": {
+          "infantry": 1,
+          "medic": 0,
+          "engineer": 1,
+          "heavy": 0,
+          "rover": 0,
+          "tank": 0,
+          "artillery": 0,
+          "scout": 0,
+          "gunship": 0,
+          "bomber": 0
+        }
+      },
+      "firstAssault": 25,
+      "firstOrganizedAttack": 76.85,
+      "firstVehicle": 102.1,
+      "firstTank": 155.9,
+      "firstArtillery": 210.75,
+      "firstAircraft": 329.7,
+      "firstEnemyHQSeen": 155.15,
+      "firstEnemyHQDamage": 550.4,
+      "firstEnemyHQDestroyed": 554.55,
+      "enemyHQSeen": true,
+      "enemyHQDamaged": true,
+      "enemyHQDestroyed": true,
+      "enemyHQCaptured": false,
+      "enemyHQDamage": 1200,
+      "blueHeadquartersHp": 0,
+      "enemyBuildingsSeen": 3,
+      "enemyBuildingsDamaged": 3,
+      "enemyBuildingsDestroyed": 3,
+      "enemyBuildingDamage": 3228.8,
+      "enemyTowersDestroyed": 1,
+      "firstFactory": 70.65,
+      "firstFrontContact": 33.05,
+      "firstEnemyContact": 149.05,
+      "finishedBuildings": 3,
+      "vehicles": 8,
+      "peakVehicles": 8,
+      "peakArmy": 24,
+      "peakAircraft": 2,
+      "vehiclesOrdered": 8,
+      "vehicleOrdersByKind": {
+        "rover": 1,
+        "tank": 3,
+        "artillery": 2,
+        "gunship": 1,
+        "scout": 1
+      },
+      "redOrdersByKind": {
+        "infantry": 8,
+        "heavy": 4,
+        "rover": 1,
+        "tank": 3,
+        "artillery": 2,
+        "medic": 2,
+        "gunship": 1,
+        "scout": 1,
+        "engineer": 1
+      },
+      "redProducedByKind": {
+        "infantry": 8,
+        "heavy": 4,
+        "rover": 1,
+        "tank": 3,
+        "artillery": 2,
+        "medic": 2,
+        "gunship": 1,
+        "scout": 1,
+        "engineer": 1
+      },
+      "blueProducedByKind": {
+        "infantry": 16,
+        "heavy": 1
+      },
+      "redLossesByKind": {
+        "infantry": 1
+      },
+      "blueLossesByKind": {
+        "infantry": 17,
+        "heavy": 1,
+        "engineer": 1
+      },
+      "paidRecruitCredits": 6550,
+      "refundedRecruitCredits": 0,
+      "vehiclesProduced": 8,
+      "aircraftProduced": 2,
+      "redSectors": 11,
+      "captures": 10,
+      "netCaptures": 10,
+      "territoriesLost": 0,
+      "blueCaptures": 0,
+      "blueTerritoriesLost": 0,
+      "blueUnitsLost": 19,
+      "redUnitsLost": 1,
+      "blueUnitDamage": 2230,
+      "redUnitDamage": 533.333,
+      "redUnits": 24,
+      "redCredits": 685,
+      "firstVehicleShot": 271.35,
+      "vehicleShots": 57,
+      "shotsByKind": {
+        "artillery": 26,
+        "tank": 6,
+        "infantry": 151,
+        "gunship": 15,
+        "rover": 10,
+        "heavy": 23
+      },
+      "damageByRedKind": {
+        "artillery": 3166.8000000000015,
+        "tank": 298.9999999999998,
+        "infantry": 851.6666666666642,
+        "gunship": 570,
+        "rover": 172.3333333333332,
+        "heavy": 399.00000000000074
+      },
+      "vehicleDeaths": 0,
+      "vehicleRepairHp": 211.333,
+      "vehicleEvacuations": 1,
+      "vehicleReturned": 1,
+      "repairedVehiclesReused": 1,
+      "attackingSeconds": 451.35,
+      "productiveFactorySeconds": 91,
+      "productiveBarracksSeconds": 92,
+      "productiveAirfieldSeconds": 32,
+      "parallelProductionSeconds": 9.85,
+      "tripleProductionSeconds": 0,
+      "maxParallelProducers": 2,
+      "productionSeconds": {
+        "barracks": {
+          "available": 517.85,
+          "busy": 92,
+          "idle": 425.85
+        },
+        "factory": {
+          "available": 485,
+          "busy": 91,
+          "idle": 394
+        },
+        "airfield": {
+          "available": 320.9,
+          "busy": 32,
+          "idle": 288.9
+        }
+      },
+      "phaseTransitions": 9,
+      "commanderTransitions": 15,
+      "commanderSeconds": {
+        "unavailable": 24.95,
+        "expansion": 33.55,
+        "offensive": 122,
+        "buildup": 201.3,
+        "siege": 164.7,
+        "endgame": 9.1
+      },
+      "missionCount": 15,
+      "abortedMissions": 4,
+      "unfinishedMissions": 0,
+      "stalledMissions": 1,
+      "commands": 468,
+      "unitCommands": 1163,
+      "attackCommands": 24,
+      "buildingAttackCommands": 20,
+      "repeatedUnitCommands": 610,
+      "rapidUnitOrderChanges": 22,
+      "productionIdleReasons": {
+        "unexplained-idle": 2.45,
+        "saving-unit": 598.55,
+        "insufficient-credits": 344.8,
+        "composition-complete": 162.95
+      },
+      "productionIdleReasonSources": {
+        "inferred": 3.25,
+        "controller": 1105.5
+      },
+      "productionDecisionReasons": {
+        "unexplained-idle": 2.45,
+        "produced": 67.1,
+        "queue-blocked": 3.05,
+        "saving-unit": 671,
+        "insufficient-credits": 400.3,
+        "composition-complete": 179.85
+      },
+      "bluePaidOrdersByKind": {
+        "infantry": 17,
+        "heavy": 1
+      },
+      "bluePaidRecruitCredits": 1950,
+      "paidBuildCredits": 1000,
+      "bluePaidBuildCredits": 375,
+      "paidBuildingsByKind": {
+        "barracks": 1,
+        "factory": 1,
+        "airfield": 1
+      },
+      "bluePaidBuildingsByKind": {
+        "barracks": 1,
+        "turret": 1
+      },
+      "battleReactions": 5,
+      "battleRetreats": 0,
+      "reinforcements": 41,
+      "counterattacks": 0,
+      "enemyBuildingKillsByKind": {
+        "turret": 1,
+        "headquarters": 1,
+        "barracks": 1
+      },
+      "missionEvents": [
+        {
+          "groupId": 1,
+          "target": 2,
+          "objective": null,
+          "started": 25,
+          "stalled": false,
+          "ended": 43.3,
+          "survivors": 1,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 1,
+          "objective": null,
+          "started": 43.3,
+          "stalled": false,
+          "ended": 58.55,
+          "survivors": 1,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 0,
+          "objective": null,
+          "started": 58.55,
+          "stalled": false,
+          "ended": 76.85,
+          "survivors": 2,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 4,
+          "objective": null,
+          "started": 76.85,
+          "stalled": false,
+          "ended": 95.15,
+          "survivors": 3,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 5,
+          "objective": null,
+          "started": 95.15,
+          "stalled": false,
+          "ended": 110.4,
+          "survivors": 4,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 6,
+          "objective": null,
+          "started": 110.4,
+          "stalled": false,
+          "ended": 128.7,
+          "survivors": 4,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 7,
+          "objective": null,
+          "started": 128.7,
+          "stalled": false,
+          "ended": 143.95,
+          "survivors": 4,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 11,
+          "objective": null,
+          "started": 143.95,
+          "stalled": false,
+          "ended": 162.25,
+          "survivors": 4,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 10,
+          "objective": null,
+          "started": 162.25,
+          "stalled": false,
+          "ended": 180.55,
+          "survivors": 4,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 8,
+          "objective": 1004,
+          "started": 180.55,
+          "stalled": false,
+          "ended": 378.8,
+          "survivors": 10,
+          "outcome": "aborted"
+        },
+        {
+          "groupId": 2,
+          "target": 8,
+          "objective": 1004,
+          "started": 418.45,
+          "stalled": false,
+          "ended": 436.75,
+          "survivors": 12,
+          "outcome": "aborted"
+        },
+        {
+          "groupId": 3,
+          "target": 8,
+          "objective": 1004,
+          "started": 455.05,
+          "stalled": true,
+          "ended": 476.4,
+          "survivors": 17,
+          "outcome": "aborted"
+        },
+        {
+          "groupId": 4,
+          "target": 8,
+          "objective": 1004,
+          "started": 494.7,
+          "stalled": false,
+          "ended": 522.15,
+          "survivors": 18,
+          "outcome": "aborted"
+        },
+        {
+          "groupId": 5,
+          "target": 8,
+          "objective": 1004,
+          "started": 525.2,
+          "stalled": false,
+          "ended": 546.55,
+          "survivors": 18,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 5,
+          "target": 8,
+          "objective": 1000,
+          "started": 546.55,
+          "stalled": false,
+          "ended": 555.6,
+          "survivors": 18,
+          "outcome": "completed"
+        }
+      ],
+      "timeline": [
+        {
+          "at": 0.05,
+          "credits": 950,
+          "income": 25,
+          "phase": "gather",
+          "commander": "unavailable",
+          "adaptive": null,
+          "battle": null,
+          "mission": null,
+          "target": null,
+          "objective": null,
+          "group": 0,
+          "redUnits": 2,
+          "blueUnits": 2,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 202.5
+            }
+          ],
+          "sectors": 1,
+          "produced": {},
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 30,
+          "credits": 825,
+          "income": 25,
+          "phase": "attack",
+          "commander": "expansion",
+          "adaptive": "unknown",
+          "battle": {
+            "at": 28.050000000000264,
+            "own": 44.721359549995796,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 2,
+          "objective": null,
+          "group": 1,
+          "redUnits": 2,
+          "blueUnits": 5,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            }
+          ],
+          "sectors": 1,
+          "produced": {},
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 60.05,
+          "credits": 130,
+          "income": 45,
+          "phase": "attack",
+          "commander": "offensive",
+          "adaptive": "unknown",
+          "battle": {
+            "at": 58.54999999999881,
+            "own": 44.721359549995796,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 0,
+          "objective": null,
+          "group": 1,
+          "redUnits": 5,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 3,
+          "produced": {
+            "infantry": 2,
+            "heavy": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 90.05,
+          "credits": 325,
+          "income": 75,
+          "phase": "attack",
+          "commander": "offensive",
+          "adaptive": "unknown",
+          "battle": {
+            "at": 89.04999999999708,
+            "own": 134.1640786499874,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 4,
+          "objective": null,
+          "group": 3,
+          "redUnits": 5,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 4,
+          "produced": {
+            "infantry": 2,
+            "heavy": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 120.05,
+          "credits": 300,
+          "income": 95,
+          "phase": "attack",
+          "commander": "offensive",
+          "adaptive": "unknown",
+          "battle": {
+            "at": 119.54999999999535,
+            "own": 343.51088888726264,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 6,
+          "objective": null,
+          "group": 4,
+          "redUnits": 6,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 6,
+          "produced": {
+            "infantry": 2,
+            "heavy": 1,
+            "rover": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 150.05,
+          "credits": 175,
+          "income": 115,
+          "phase": "attack",
+          "commander": "offensive",
+          "adaptive": "infantry",
+          "battle": {
+            "at": 150.04999999999987,
+            "own": 343.51088888726264,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 11,
+          "objective": null,
+          "group": 4,
+          "redUnits": 6,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 8,
+          "produced": {
+            "infantry": 2,
+            "heavy": 1,
+            "rover": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 180,
+          "credits": 590,
+          "income": 155,
+          "phase": "attack",
+          "commander": "offensive",
+          "adaptive": "infantry",
+          "battle": {
+            "at": 177.5000000000061,
+            "own": 343.51088888726264,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 10,
+          "objective": null,
+          "group": 4,
+          "redUnits": 7,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 10,
+          "produced": {
+            "infantry": 2,
+            "heavy": 1,
+            "rover": 1,
+            "tank": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 210,
+          "credits": 455,
+          "income": 155,
+          "phase": "attack",
+          "commander": "buildup",
+          "adaptive": "tower",
+          "battle": {
+            "at": 208.00000000001305,
+            "own": 274.5981882189763,
+            "enemy": 188.51724059088073,
+            "deficit": 0,
+            "towers": 1,
+            "neededSiege": 1,
+            "stance": "attack"
+          },
+          "mission": "structure",
+          "target": 8,
+          "objective": 1004,
+          "group": 4,
+          "redUnits": 7,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 10,
+          "produced": {
+            "infantry": 2,
+            "heavy": 1,
+            "rover": 1,
+            "tank": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 240,
+          "credits": 295,
+          "income": 155,
+          "phase": "attack",
+          "commander": "buildup",
+          "adaptive": "tower",
+          "battle": {
+            "at": 238.50000000001998,
+            "own": 425.37395992429146,
+            "enemy": 188.51724059088073,
+            "deficit": 0,
+            "towers": 1,
+            "neededSiege": 1,
+            "stance": "attack"
+          },
+          "mission": "structure",
+          "target": 8,
+          "objective": 1004,
+          "group": 5,
+          "redUnits": 8,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 10,
+          "produced": {
+            "infantry": 2,
+            "heavy": 1,
+            "rover": 1,
+            "tank": 1,
+            "artillery": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 270,
+          "credits": 760,
+          "income": 155,
+          "phase": "attack",
+          "commander": "siege",
+          "adaptive": "tower",
+          "battle": {
+            "at": 269.0000000000269,
+            "own": 544.5355044099624,
+            "enemy": 188.51724059088073,
+            "deficit": 0,
+            "towers": 1,
+            "neededSiege": 1,
+            "stance": "siege"
+          },
+          "mission": "structure",
+          "target": 8,
+          "objective": 1004,
+          "group": 6,
+          "redUnits": 9,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 10,
+          "produced": {
+            "infantry": 2,
+            "heavy": 1,
+            "rover": 1,
+            "tank": 1,
+            "artillery": 1,
+            "medic": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 300,
+          "credits": 725,
+          "income": 155,
+          "phase": "attack",
+          "commander": "siege",
+          "adaptive": "infantry",
+          "battle": {
+            "at": 299.5000000000338,
+            "own": 563.522254434728,
+            "enemy": 282.4320956458722,
+            "deficit": 0,
+            "towers": 1,
+            "neededSiege": 1,
+            "stance": "siege"
+          },
+          "mission": "structure",
+          "target": 8,
+          "objective": 1004,
+          "group": 7,
+          "redUnits": 11,
+          "blueUnits": 4,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 10,
+          "produced": {
+            "infantry": 2,
+            "heavy": 3,
+            "rover": 1,
+            "tank": 1,
+            "artillery": 1,
+            "medic": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 330,
+          "credits": 440,
+          "income": 155,
+          "phase": "attack",
+          "commander": "buildup",
+          "adaptive": "infantry",
+          "battle": {
+            "at": 330.00000000004076,
+            "own": 241.39405601549163,
+            "enemy": 228.21213588493907,
+            "deficit": 21.04990025218831,
+            "towers": 1,
+            "neededSiege": 1,
+            "stance": "reinforce"
+          },
+          "mission": "structure",
+          "target": 8,
+          "objective": 1004,
+          "group": 7,
+          "redUnits": 12,
+          "blueUnits": 2,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 615.8
+            }
+          ],
+          "sectors": 10,
+          "produced": {
+            "infantry": 2,
+            "heavy": 3,
+            "rover": 1,
+            "tank": 1,
+            "artillery": 1,
+            "medic": 1,
+            "gunship": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 360,
+          "credits": 205,
+          "income": 155,
+          "phase": "attack",
+          "commander": "siege",
+          "adaptive": "tower",
+          "battle": {
+            "at": 357.450000000047,
+            "own": 565.8080694932804,
+            "enemy": 188.51724059088073,
+            "deficit": 0,
+            "towers": 1,
+            "neededSiege": 1,
+            "stance": "attack"
+          },
+          "mission": "structure",
+          "target": 8,
+          "objective": 1004,
+          "group": 9,
+          "redUnits": 13,
+          "blueUnits": 3,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 10,
+          "produced": {
+            "infantry": 3,
+            "heavy": 3,
+            "rover": 1,
+            "tank": 1,
+            "artillery": 1,
+            "medic": 1,
+            "gunship": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 390,
+          "credits": 195,
+          "income": 155,
+          "phase": "gather",
+          "commander": "buildup",
+          "adaptive": "tower",
+          "battle": {
+            "at": 387.95000000005393,
+            "own": 44.72135954999579,
+            "enemy": 171.02960270081937,
+            "deficit": 151.96268355594648,
+            "towers": 1,
+            "neededSiege": 1,
+            "stance": "reinforce"
+          },
+          "mission": "structure",
+          "target": 8,
+          "objective": 1004,
+          "group": 0,
+          "redUnits": 16,
+          "blueUnits": 1,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 10,
+          "produced": {
+            "infantry": 5,
+            "heavy": 3,
+            "rover": 1,
+            "tank": 1,
+            "artillery": 1,
+            "medic": 2,
+            "gunship": 1,
+            "scout": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 420,
+          "credits": 240,
+          "income": 165,
+          "phase": "attack",
+          "commander": "siege",
+          "adaptive": "tower",
+          "battle": {
+            "at": 418.45000000006087,
+            "own": 996.8450455331358,
+            "enemy": 188.51724059088073,
+            "deficit": 0,
+            "towers": 1,
+            "neededSiege": 1,
+            "stance": "attack"
+          },
+          "mission": "structure",
+          "target": 8,
+          "objective": 1004,
+          "group": 11,
+          "redUnits": 20,
+          "blueUnits": 2,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 11,
+          "produced": {
+            "infantry": 8,
+            "heavy": 4,
+            "rover": 1,
+            "tank": 1,
+            "artillery": 1,
+            "medic": 2,
+            "gunship": 1,
+            "scout": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 450,
+          "credits": 535,
+          "income": 165,
+          "phase": "gather",
+          "commander": "buildup",
+          "adaptive": "tower",
+          "battle": {
+            "at": 448.9500000000678,
+            "own": 262.2386591270415,
+            "enemy": 173.83052091045516,
+            "deficit": 0,
+            "towers": 1,
+            "neededSiege": 1,
+            "stance": "attack"
+          },
+          "mission": "structure",
+          "target": 8,
+          "objective": 1004,
+          "group": 0,
+          "redUnits": 21,
+          "blueUnits": 2,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 798.333
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 648.667
+            }
+          ],
+          "sectors": 11,
+          "produced": {
+            "infantry": 8,
+            "heavy": 4,
+            "rover": 1,
+            "tank": 1,
+            "artillery": 1,
+            "medic": 2,
+            "gunship": 1,
+            "scout": 1,
+            "engineer": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 480,
+          "credits": 580,
+          "income": 165,
+          "phase": "gather",
+          "commander": "buildup",
+          "adaptive": "tower",
+          "battle": {
+            "at": 479.45000000007474,
+            "own": 0,
+            "enemy": 233.23860014087654,
+            "deficit": 268.224390162008,
+            "towers": 1,
+            "neededSiege": 1,
+            "stance": "reinforce"
+          },
+          "mission": "structure",
+          "target": 8,
+          "objective": 1004,
+          "group": 0,
+          "redUnits": 22,
+          "blueUnits": 2,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 11,
+          "produced": {
+            "infantry": 8,
+            "heavy": 4,
+            "rover": 1,
+            "tank": 2,
+            "artillery": 1,
+            "medic": 2,
+            "gunship": 1,
+            "scout": 1,
+            "engineer": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 510,
+          "credits": 625,
+          "income": 165,
+          "phase": "attack",
+          "commander": "siege",
+          "adaptive": "tower",
+          "battle": {
+            "at": 509.9500000000817,
+            "own": 1396.685647240724,
+            "enemy": 177.12288107412914,
+            "deficit": 0,
+            "towers": 1,
+            "neededSiege": 1,
+            "stance": "siege"
+          },
+          "mission": "structure",
+          "target": 8,
+          "objective": 1004,
+          "group": 18,
+          "redUnits": 23,
+          "blueUnits": 0,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 573.8
+            }
+          ],
+          "sectors": 11,
+          "produced": {
+            "infantry": 8,
+            "heavy": 4,
+            "rover": 1,
+            "tank": 3,
+            "artillery": 1,
+            "medic": 2,
+            "gunship": 1,
+            "scout": 1,
+            "engineer": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 540,
+          "credits": 520,
+          "income": 165,
+          "phase": "attack",
+          "commander": "siege",
+          "adaptive": "tower",
+          "battle": {
+            "at": 537.400000000059,
+            "own": 1277.5241027550528,
+            "enemy": 108.11806047095041,
+            "deficit": 0,
+            "towers": 1,
+            "neededSiege": 1,
+            "stance": "attack"
+          },
+          "mission": "structure",
+          "target": 8,
+          "objective": 1004,
+          "group": 18,
+          "redUnits": 24,
+          "blueUnits": 0,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 320
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 213.8
+            }
+          ],
+          "sectors": 11,
+          "produced": {
+            "infantry": 8,
+            "heavy": 4,
+            "rover": 1,
+            "tank": 3,
+            "artillery": 2,
+            "medic": 2,
+            "gunship": 1,
+            "scout": 1,
+            "engineer": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        }
+      ],
+      "score": 13414,
+      "wallMs": 27127,
+      "cpu": {
+        "scope": "Node simulation ticks including transparent API telemetry; excludes rendering, opponent actor and benchmark observation between ticks",
+        "steps": 11112,
+        "stepMs": {
+          "mean": 2.433760169996354,
+          "p95": 7.801125000005413,
+          "p99": 22.14425000000483,
+          "max": 670.6317080000008
+        },
+        "phases": {
+          "simulation": {
+            "calls": 11112,
+            "totalMs": 27040.848728999765,
+            "meanMs": 2.433481707073413,
+            "maxMs": 670.6302079999878,
+            "p95Ms": 7.8006250000034925,
+            "p99Ms": 22.14183299999422
+          },
+          "ai": {
+            "calls": 174,
+            "totalMs": 2443.747707000017,
+            "meanMs": 14.044527051724234,
+            "maxMs": 669.0034169999999,
+            "p95Ms": 60.0767909999995,
+            "p99Ms": 346.12862500000483
+          },
+          "pathfinding": {
+            "calls": 8621,
+            "totalMs": 16783.96287399935,
+            "meanMs": 1.9468696060781057,
+            "maxMs": 260.8696249999921,
+            "p95Ms": 2.7123329999958514,
+            "p99Ms": 26.13537499999802
+          },
+          "vision": {
+            "calls": 2787,
+            "totalMs": 9429.937476,
+            "meanMs": 3.3835441248654465,
+            "maxMs": 27.09454099999857,
+            "p95Ms": 8.653917000003275,
+            "p99Ms": 9.89833300000464
+          },
+          "render": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "minimap": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "hud": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "audio": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "input": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "fog": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "sprites": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "corpses": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "particles": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          }
+        },
+        "pathfinding": {
+          "calls": 8621,
+          "nodes": 8438248
+        }
+      },
+      "counterattackDefinition": "emergencyDefense to offensive/siege/endgame commander transitions",
+      "finalComposition": {
+        "red": {
+          "infantry": 8,
+          "medic": 2,
+          "engineer": 2,
+          "heavy": 4,
+          "rover": 1,
+          "tank": 3,
+          "artillery": 2,
+          "scout": 1,
+          "gunship": 1,
+          "bomber": 0
+        },
+        "blue": {
+          "infantry": 0,
+          "medic": 0,
+          "engineer": 0,
+          "heavy": 0,
+          "rover": 0,
+          "tank": 0,
+          "artillery": 0,
+          "scout": 0,
+          "gunship": 0,
+          "bomber": 0
+        }
+      }
+    },
+    {
+      "seed": 2027,
+      "mode": "director",
+      "mapVersion": 5,
+      "label": "siege-release",
+      "opponent": "guarded",
+      "initialStateHash": "070be9ac14779d8876176da0e432c20264a8ee59d6771e9fbb83f1b13d435c2b",
+      "initialStateHashScope": "playable-world-v1",
+      "requestedSeconds": 900,
+      "elapsedSeconds": 365.6,
+      "terminalStatus": "defeat",
+      "outcome": "win",
+      "win": true,
+      "loss": false,
+      "initialCredits": 950,
+      "initialComposition": {
+        "red": {
+          "infantry": 1,
+          "medic": 0,
+          "engineer": 1,
+          "heavy": 0,
+          "rover": 0,
+          "tank": 0,
+          "artillery": 0,
+          "scout": 0,
+          "gunship": 0,
+          "bomber": 0
+        },
+        "blue": {
+          "infantry": 1,
+          "medic": 0,
+          "engineer": 1,
+          "heavy": 0,
+          "rover": 0,
+          "tank": 0,
+          "artillery": 0,
+          "scout": 0,
+          "gunship": 0,
+          "bomber": 0
+        }
+      },
+      "firstAssault": 25,
+      "firstOrganizedAttack": 70.75,
+      "firstVehicle": 102.1,
+      "firstTank": 177.25,
+      "firstArtillery": 219.9,
+      "firstAircraft": 320.55,
+      "firstEnemyHQSeen": 251.65,
+      "firstEnemyHQDamage": 357.6,
+      "firstEnemyHQDestroyed": 365.6,
+      "enemyHQSeen": true,
+      "enemyHQDamaged": true,
+      "enemyHQDestroyed": true,
+      "enemyHQCaptured": false,
+      "enemyHQDamage": 1200,
+      "blueHeadquartersHp": 0,
+      "enemyBuildingsSeen": 3,
+      "enemyBuildingsDamaged": 3,
+      "enemyBuildingsDestroyed": 3,
+      "enemyBuildingDamage": 2736.4,
+      "enemyTowersDestroyed": 1,
+      "firstFactory": 67.55,
+      "firstFrontContact": 32.05,
+      "firstEnemyContact": 136.05,
+      "finishedBuildings": 3,
+      "vehicles": 5,
+      "peakVehicles": 5,
+      "peakArmy": 13,
+      "peakAircraft": 2,
+      "vehiclesOrdered": 5,
+      "vehicleOrdersByKind": {
+        "rover": 1,
+        "tank": 1,
+        "artillery": 1,
+        "gunship": 1,
+        "scout": 1
+      },
+      "redOrdersByKind": {
+        "infantry": 6,
+        "heavy": 3,
+        "rover": 1,
+        "tank": 1,
+        "artillery": 1,
+        "gunship": 1,
+        "scout": 1,
+        "medic": 1
+      },
+      "redProducedByKind": {
+        "infantry": 5,
+        "heavy": 3,
+        "rover": 1,
+        "tank": 1,
+        "artillery": 1,
+        "gunship": 1,
+        "scout": 1,
+        "medic": 1
+      },
+      "blueProducedByKind": {
+        "infantry": 7,
+        "heavy": 1
+      },
+      "redLossesByKind": {
+        "infantry": 3
+      },
+      "blueLossesByKind": {
+        "infantry": 8,
+        "heavy": 1,
+        "engineer": 1
+      },
+      "paidRecruitCredits": 4225,
+      "refundedRecruitCredits": 0,
+      "vehiclesProduced": 5,
+      "aircraftProduced": 2,
+      "redSectors": 11,
+      "captures": 10,
+      "netCaptures": 10,
+      "territoriesLost": 0,
+      "blueCaptures": 0,
+      "blueTerritoriesLost": 0,
+      "blueUnitsLost": 10,
+      "redUnitsLost": 3,
+      "blueUnitDamage": 1330,
+      "redUnitDamage": 1390,
+      "redUnits": 13,
+      "redCredits": 25,
+      "firstVehicleShot": 232.25,
+      "vehicleShots": 28,
+      "shotsByKind": {
+        "infantry": 34,
+        "tank": 14,
+        "heavy": 77,
+        "artillery": 10,
+        "gunship": 4
+      },
+      "damageByRedKind": {
+        "infantry": 192.66666666666657,
+        "tank": 781.7333333333357,
+        "heavy": 1820,
+        "artillery": 1120,
+        "gunship": 152
+      },
+      "vehicleDeaths": 0,
+      "vehicleRepairHp": 254.667,
+      "vehicleEvacuations": 2,
+      "vehicleReturned": 2,
+      "repairedVehiclesReused": 0,
+      "attackingSeconds": 288.8,
+      "productiveFactorySeconds": 43,
+      "productiveBarracksSeconds": 60.15,
+      "productiveAirfieldSeconds": 32,
+      "parallelProductionSeconds": 9.85,
+      "tripleProductionSeconds": 0,
+      "maxParallelProducers": 2,
+      "productionSeconds": {
+        "barracks": {
+          "available": 328.65,
+          "busy": 60.15,
+          "idle": 268.5
+        },
+        "factory": {
+          "available": 298.1,
+          "busy": 43,
+          "idle": 255.1
+        },
+        "airfield": {
+          "available": 108.5,
+          "busy": 32,
+          "idle": 76.5
+        }
+      },
+      "phaseTransitions": 7,
+      "commanderTransitions": 10,
+      "commanderSeconds": {
+        "unavailable": 24.95,
+        "expansion": 36.6,
+        "offensive": 189.1,
+        "buildup": 51.85,
+        "endgame": 29.55,
+        "siege": 33.55
+      },
+      "missionCount": 16,
+      "abortedMissions": 4,
+      "unfinishedMissions": 0,
+      "stalledMissions": 0,
+      "commands": 168,
+      "unitCommands": 322,
+      "attackCommands": 10,
+      "buildingAttackCommands": 6,
+      "repeatedUnitCommands": 124,
+      "rapidUnitOrderChanges": 8,
+      "productionIdleReasons": {
+        "unexplained-idle": 0.2,
+        "saving-unit": 575,
+        "insufficient-credits": 24.9
+      },
+      "productionIdleReasonSources": {
+        "inferred": 3.05,
+        "controller": 597.05
+      },
+      "productionDecisionReasons": {
+        "unexplained-idle": 0.2,
+        "produced": 44.8,
+        "queue-blocked": 3.05,
+        "saving-unit": 652.5,
+        "insufficient-credits": 34.7
+      },
+      "bluePaidOrdersByKind": {
+        "infantry": 9,
+        "heavy": 1
+      },
+      "bluePaidRecruitCredits": 1150,
+      "paidBuildCredits": 1000,
+      "bluePaidBuildCredits": 375,
+      "paidBuildingsByKind": {
+        "barracks": 1,
+        "factory": 1,
+        "airfield": 1
+      },
+      "bluePaidBuildingsByKind": {
+        "barracks": 1,
+        "turret": 1
+      },
+      "battleReactions": 8,
+      "battleRetreats": 0,
+      "reinforcements": 8,
+      "counterattacks": 0,
+      "enemyBuildingKillsByKind": {
+        "barracks": 1,
+        "turret": 1,
+        "headquarters": 1
+      },
+      "missionEvents": [
+        {
+          "groupId": 1,
+          "target": 2,
+          "objective": null,
+          "started": 25,
+          "stalled": false,
+          "ended": 43.3,
+          "survivors": 1,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 1,
+          "objective": null,
+          "started": 43.3,
+          "stalled": false,
+          "ended": 61.6,
+          "survivors": 2,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 0,
+          "objective": null,
+          "started": 61.6,
+          "stalled": false,
+          "ended": 76.85,
+          "survivors": 3,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 5,
+          "objective": null,
+          "started": 76.85,
+          "stalled": false,
+          "ended": 98.2,
+          "survivors": 4,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 4,
+          "objective": null,
+          "started": 98.2,
+          "stalled": false,
+          "ended": 113.45,
+          "survivors": 4,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 9,
+          "objective": null,
+          "started": 113.45,
+          "stalled": false,
+          "ended": 134.8,
+          "survivors": 4,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 10,
+          "objective": null,
+          "started": 134.8,
+          "stalled": false,
+          "ended": 153.1,
+          "survivors": 4,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 11,
+          "objective": null,
+          "started": 153.1,
+          "stalled": false,
+          "ended": 168.35,
+          "survivors": 4,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 6,
+          "objective": null,
+          "started": 168.35,
+          "stalled": false,
+          "ended": 189.7,
+          "survivors": 5,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 7,
+          "objective": null,
+          "started": 189.7,
+          "stalled": false,
+          "ended": 204.95,
+          "survivors": 6,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 1,
+          "target": 8,
+          "objective": null,
+          "started": 204.95,
+          "stalled": false,
+          "ended": 250.7,
+          "survivors": 4,
+          "outcome": "aborted"
+        },
+        {
+          "groupId": 2,
+          "target": 8,
+          "objective": 1000,
+          "started": 272.05,
+          "stalled": false,
+          "ended": 281.2,
+          "survivors": 3,
+          "outcome": "aborted"
+        },
+        {
+          "groupId": 3,
+          "target": 8,
+          "objective": 1000,
+          "started": 296.45,
+          "stalled": false,
+          "ended": 305.6,
+          "survivors": 4,
+          "outcome": "aborted"
+        },
+        {
+          "groupId": 3,
+          "target": 8,
+          "objective": 1004,
+          "started": 305.6,
+          "stalled": false,
+          "ended": 308.65,
+          "survivors": 4,
+          "outcome": "aborted"
+        },
+        {
+          "groupId": 4,
+          "target": 8,
+          "objective": 1004,
+          "started": 323.9,
+          "stalled": false,
+          "ended": 354.4,
+          "survivors": 5,
+          "outcome": "completed"
+        },
+        {
+          "groupId": 4,
+          "target": 8,
+          "objective": 1000,
+          "started": 354.4,
+          "stalled": false,
+          "ended": 365.6,
+          "survivors": 6,
+          "outcome": "completed"
+        }
+      ],
+      "timeline": [
+        {
+          "at": 0.05,
+          "credits": 950,
+          "income": 25,
+          "phase": "gather",
+          "commander": "unavailable",
+          "adaptive": null,
+          "battle": null,
+          "mission": null,
+          "target": null,
+          "objective": null,
+          "group": 0,
+          "redUnits": 2,
+          "blueUnits": 2,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 202.5
+            }
+          ],
+          "sectors": 1,
+          "produced": {},
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 30,
+          "credits": 825,
+          "income": 25,
+          "phase": "attack",
+          "commander": "expansion",
+          "adaptive": "unknown",
+          "battle": {
+            "at": 28.050000000000264,
+            "own": 44.721359549995796,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 2,
+          "objective": null,
+          "group": 1,
+          "redUnits": 2,
+          "blueUnits": 5,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            }
+          ],
+          "sectors": 1,
+          "produced": {},
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 60.05,
+          "credits": 130,
+          "income": 45,
+          "phase": "attack",
+          "commander": "expansion",
+          "adaptive": "unknown",
+          "battle": {
+            "at": 58.54999999999881,
+            "own": 44.721359549995796,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 1,
+          "objective": null,
+          "group": 2,
+          "redUnits": 5,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 3,
+          "produced": {
+            "infantry": 2,
+            "heavy": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 90.05,
+          "credits": 325,
+          "income": 75,
+          "phase": "attack",
+          "commander": "offensive",
+          "adaptive": "unknown",
+          "battle": {
+            "at": 89.04999999999708,
+            "own": 134.1640786499874,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 5,
+          "objective": null,
+          "group": 3,
+          "redUnits": 5,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 4,
+          "produced": {
+            "infantry": 2,
+            "heavy": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 120.05,
+          "credits": 290,
+          "income": 95,
+          "phase": "attack",
+          "commander": "offensive",
+          "adaptive": "unknown",
+          "battle": {
+            "at": 119.54999999999535,
+            "own": 343.51088888726264,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 9,
+          "objective": null,
+          "group": 4,
+          "redUnits": 6,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 6,
+          "produced": {
+            "infantry": 2,
+            "heavy": 1,
+            "rover": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 150.05,
+          "credits": 345,
+          "income": 105,
+          "phase": "attack",
+          "commander": "offensive",
+          "adaptive": "infantry",
+          "battle": {
+            "at": 150.04999999999987,
+            "own": 343.51088888726264,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 10,
+          "objective": null,
+          "group": 4,
+          "redUnits": 7,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 7,
+          "produced": {
+            "infantry": 2,
+            "heavy": 2,
+            "rover": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 180,
+          "credits": 300,
+          "income": 145,
+          "phase": "attack",
+          "commander": "offensive",
+          "adaptive": "infantry",
+          "battle": {
+            "at": 177.5000000000061,
+            "own": 552.8576991245379,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 6,
+          "objective": null,
+          "group": 5,
+          "redUnits": 8,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 9,
+          "produced": {
+            "infantry": 2,
+            "heavy": 2,
+            "rover": 1,
+            "tank": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 210,
+          "credits": 175,
+          "income": 165,
+          "phase": "attack",
+          "commander": "offensive",
+          "adaptive": "unknown",
+          "battle": {
+            "at": 208.00000000001305,
+            "own": 703.6334708298532,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 8,
+          "objective": null,
+          "group": 6,
+          "redUnits": 8,
+          "blueUnits": 7,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 11,
+          "produced": {
+            "infantry": 2,
+            "heavy": 2,
+            "rover": 1,
+            "tank": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 240,
+          "credits": 220,
+          "income": 165,
+          "phase": "attack",
+          "commander": "offensive",
+          "adaptive": "infantry",
+          "battle": {
+            "at": 238.50000000001998,
+            "own": 555.7094346469786,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "capture",
+          "target": 8,
+          "objective": null,
+          "group": 4,
+          "redUnits": 7,
+          "blueUnits": 2,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1002,
+              "kind": "barracks",
+              "hp": 800
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 11,
+          "produced": {
+            "infantry": 2,
+            "heavy": 2,
+            "rover": 1,
+            "tank": 1,
+            "artillery": 1
+          },
+          "enemyHQSeen": false,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 270,
+          "credits": 365,
+          "income": 165,
+          "phase": "gather",
+          "commander": "buildup",
+          "adaptive": "infantry",
+          "battle": {
+            "at": 269.0000000000269,
+            "own": 346.3626244097033,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "structure",
+          "target": 8,
+          "objective": 1000,
+          "group": 0,
+          "redUnits": 9,
+          "blueUnits": 1,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 11,
+          "produced": {
+            "infantry": 3,
+            "heavy": 3,
+            "rover": 1,
+            "tank": 1,
+            "artillery": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 300,
+          "credits": 860,
+          "income": 165,
+          "phase": "attack",
+          "commander": "endgame",
+          "adaptive": "unknown",
+          "battle": {
+            "at": 299.5000000000338,
+            "own": 348.431872054509,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "structure",
+          "target": 8,
+          "objective": 1000,
+          "group": 4,
+          "redUnits": 9,
+          "blueUnits": 1,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 11,
+          "produced": {
+            "infantry": 3,
+            "heavy": 3,
+            "rover": 1,
+            "tank": 1,
+            "artillery": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 330,
+          "credits": 505,
+          "income": 165,
+          "phase": "attack",
+          "commander": "siege",
+          "adaptive": "tower",
+          "battle": {
+            "at": 330.00000000004076,
+            "own": 345.7720356359088,
+            "enemy": 188.51724059088073,
+            "deficit": 0,
+            "towers": 1,
+            "neededSiege": 1,
+            "stance": "siege"
+          },
+          "mission": "structure",
+          "target": 8,
+          "objective": 1004,
+          "group": 3,
+          "redUnits": 10,
+          "blueUnits": 0,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1200
+            },
+            {
+              "id": 1004,
+              "kind": "turret",
+              "hp": 650
+            }
+          ],
+          "sectors": 11,
+          "produced": {
+            "infantry": 4,
+            "heavy": 3,
+            "rover": 1,
+            "tank": 1,
+            "artillery": 1,
+            "gunship": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1200,
+          "enemyHQDamage": 0
+        },
+        {
+          "at": 360,
+          "credits": 225,
+          "income": 165,
+          "phase": "attack",
+          "commander": "endgame",
+          "adaptive": "unknown",
+          "battle": {
+            "at": 357.450000000047,
+            "own": 782.2179637643611,
+            "enemy": 0,
+            "deficit": 0,
+            "towers": 0,
+            "neededSiege": 0,
+            "stance": "attack"
+          },
+          "mission": "structure",
+          "target": 8,
+          "objective": 1000,
+          "group": 6,
+          "redUnits": 12,
+          "blueUnits": 0,
+          "blueBuildings": [
+            {
+              "id": 1000,
+              "kind": "headquarters",
+              "hp": 1063
+            }
+          ],
+          "sectors": 11,
+          "produced": {
+            "infantry": 4,
+            "heavy": 3,
+            "rover": 1,
+            "tank": 1,
+            "artillery": 1,
+            "gunship": 1,
+            "scout": 1,
+            "medic": 1
+          },
+          "enemyHQSeen": true,
+          "enemyHQHp": 1063,
+          "enemyHQDamage": 137
+        }
+      ],
+      "score": 13230,
+      "wallMs": 9073,
+      "cpu": {
+        "scope": "Node simulation ticks including transparent API telemetry; excludes rendering, opponent actor and benchmark observation between ticks",
+        "steps": 7312,
+        "stepMs": {
+          "mean": 1.2311995292669329,
+          "p95": 7.117791999990004,
+          "p99": 10.970583999995142,
+          "max": 73.721292000002
+        },
+        "phases": {
+          "simulation": {
+            "calls": 7312,
+            "totalMs": 8998.904957999883,
+            "meanMs": 1.2307036321115814,
+            "maxMs": 73.71887500000594,
+            "p95Ms": 7.114332999990438,
+            "p99Ms": 10.968957999997656
+          },
+          "ai": {
+            "calls": 112,
+            "totalMs": 157.19713200005936,
+            "meanMs": 1.4035458214291014,
+            "maxMs": 14.397125000003143,
+            "p95Ms": 7.06416700000409,
+            "p99Ms": 11.428542000008747
+          },
+          "pathfinding": {
+            "calls": 1561,
+            "totalMs": 4140.461677000028,
+            "meanMs": 2.652441817424746,
+            "maxMs": 64.03945799999929,
+            "p95Ms": 4.182958000004874,
+            "p99Ms": 14.149124999996275
+          },
+          "vision": {
+            "calls": 1836,
+            "totalMs": 4432.177553999587,
+            "meanMs": 2.4140400620912783,
+            "maxMs": 13.23420900000201,
+            "p95Ms": 8.78016700000444,
+            "p99Ms": 10.92912499999511
+          },
+          "render": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "minimap": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "hud": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "audio": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "input": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "fog": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "sprites": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "corpses": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          },
+          "particles": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0,
+            "p95Ms": 0,
+            "p99Ms": 0
+          }
+        },
+        "pathfinding": {
+          "calls": 1561,
+          "nodes": 3609832
+        }
+      },
+      "counterattackDefinition": "emergencyDefense to offensive/siege/endgame commander transitions",
+      "finalComposition": {
+        "red": {
+          "infantry": 3,
+          "medic": 1,
+          "engineer": 1,
+          "heavy": 3,
+          "rover": 1,
+          "tank": 1,
+          "artillery": 1,
+          "scout": 1,
+          "gunship": 1,
+          "bomber": 0
+        },
+        "blue": {
+          "infantry": 0,
+          "medic": 0,
+          "engineer": 0,
+          "heavy": 0,
+          "rover": 0,
+          "tank": 0,
+          "artillery": 0,
+          "scout": 0,
+          "gunship": 0,
+          "bomber": 0
+        }
+      }
+    }
+  ]
+}

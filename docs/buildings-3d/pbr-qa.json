@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-27",
+  "branch": "feat/pbr-buildings-overhaul-20261027-144413",
+  "typecheck": "passed",
+  "build": "passed",
+  "assets": {
+    "models": 15,
+    "embeddedMapsPerGLB": 3,
+    "textureSize": 2048,
+    "spriteFrames": 668,
+    "allFramesValidated": true,
+    "whiteBodyPixels": 0
+  },
+  "nodeTests": {
+    "total": 669,
+    "passed": 668,
+    "failed": 1,
+    "blockedTest": "tests/http.test.mjs",
+    "reason": "Sandbox denies listen on 127.0.0.1 (EPERM)"
+  },
+  "animationTests": {
+    "total": 16,
+    "passed": 16
+  },
+  "visualReview": {
+    "artifact": "pbr-sprite-overview.png",
+    "reviewed": true,
+    "method": "Offline composite of final game sprites with registered moving layers"
+  },
+  "playwright": {
+    "status": "blocked",
+    "reason": "Test server bind to 127.0.0.1:8097 denied (EPERM); standalone Chromium launch also terminated by environment",
+    "browserScreenshotsProduced": false
+  },
+  "git": {
+    "newCommits": [],
+    "reason": "Git metadata is read-only; .git/index.lock creation denied. Full HTTP/browser QA also remains blocked.",
+    "pushed": false
+  }
+}

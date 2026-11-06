@@ -1,0 +1,18 @@
+
+> test
+> playwright test --config=reborn.config.mjs --grep construction: R|3D prop pack|Atmosphere 1.0|prop PBR polish
+
+[WebServer] (node:27430) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 5 tests using 1 worker
+
+(node:27434) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 reborn-atmosphere-v1.spec.mjs:3:1 › Atmosphere 1.0: palms, ambient details and existing tracks render without touching campaign state (1.6s)
+  ✓  2 reborn-building-decor-rotate.spec.mjs:4:1 › construction: R and the HUD switch mirrored façade without changing terrain, then it is saved (1.6s)
+  ✓  3 reborn-building-decor-rotate.spec.mjs:69:1 › 3D prop pack: actual base sprites, mirrored yards and sparse environment render without save changes (1.3s)
+  ✓  4 reborn-building-decor-rotate.spec.mjs:101:1 › prop PBR polish: materials render in the actual world at normal zoom with fixed registration (2.0s)
+  ✓  5 reborn-building-decor-rotate.spec.mjs:137:1 › prop PBR polish: exported GLBs decode embedded maps and UV transforms in Three.js (797ms)
+
+  5 passed (8.4s)

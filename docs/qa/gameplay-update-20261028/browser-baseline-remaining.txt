@@ -1,0 +1,141 @@
+
+> test
+> playwright test --config=reborn.config.mjs reborn.spec.mjs --grep campaign: real new-game|combat: approaching|vehicle art: the full|readable retro|unit portraits use --output=/tmp/sandforge-baseline-browser-artifacts
+
+
+Running 5 tests using 1 worker
+
+(node:56666) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 reborn.spec.mjs:408:1 › campaign: real new-game input generates a different reachable map and save/load restores the previous terrain and minimap (2.4s)
+  ✘  2 reborn.spec.mjs:423:1 › combat: approaching enemies receive immediate fire and a second attacker does not steal the first target (2.3s)
+(node:56722) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 reborn.spec.mjs:440:1 › vehicle art: the full roster has real faction materials, baked shadows, animated running gear and visible turret/barrel layers (2.4s)
+(node:56755) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  4 reborn.spec.mjs:514:1 › reborn: readable retro desert field HUD at the standard desktop viewport (2.7s)
+(node:56801) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  5 reborn.spec.mjs:565:1 › reborn: unit portraits use subtle desert texture, aligned single-line name and cost; minimap compass stays uncluttered (7.5s)
+
+
+  1) reborn.spec.mjs:423:1 › combat: approaching enemies receive immediate fire and a second attacker does not steal the first target 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 6
+    Received: null
+
+      430 |   return {blue:blue.id,first:a.id,second:b.id,target:blue.combatTarget,attacker:blue.lastAttacker,hp:[a.hp,b.hp]};
+      431 |  });
+    > 432 |  expect(first.target).toBe(first.first);expect(first.attacker).toBe(first.second);expect(first.hp).toEqual([60,100]);
+          |                       ^
+      433 |  await advance(page,.2);
+      434 |  const next=await page.evaluate(()=>{const g=window.__reborn.game;return {survivors:g.units.filter(u=>u.owner===1).map(u=>u.id),hp:g.units.find(u=>u.owner===1).hp,blue:g.units.find(u=>u.owner===0).hp,orders:g.units.find(u=>u.owner===0).orders.length};});
+      435 |  expect(next.survivors).toEqual([first.second]);expect(next.hp).toBe(100);expect(next.blue).toBeGreaterThan(0);expect(next.orders).toBe(2);
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:432:23
+
+    Error Context: ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-combat-approaching--0be78--not-steal-the-first-target/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-combat-approaching--0be78--not-steal-the-first-target/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-combat-approaching--0be78--not-steal-the-first-target/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) reborn.spec.mjs:440:1 › vehicle art: the full roster has real faction materials, baked shadows, animated running gear and visible turret/barrel layers 
+
+    Error: expect(received).toBeGreaterThan(expected)
+
+    Expected: > 60
+    Received:   0
+
+      449 |   return rows;
+      450 |  });
+    > 451 |  for(const row of result){expect(row.parts).toBeGreaterThan(20);expect(row.source).toBe('Atlas original vehicle geometry');expect(row.model).toBe(true);expect(row.base.solid).toBeGreaterThan(60);expect(row.base.shadow).toBeGreaterThan(10);if(row.kind!=='bomber')expect(row.phases.every(n=>n>=4)).toBe(true);if(row.turret){expect(row.turret.solid).toBeGreaterThan(15);expect(row.barrel.solid).toBeGreaterThan(3);expect(row.barrel.groundShadow).toBe(0);}}
+          |                                                                                                                                                                                ^
+      452 | });
+      453 |
+      454 | test('visual polish: fine sand relief and a quiet HUD preserve usable production and compact selection',async({page})=>{
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:451:176
+
+    Error Context: ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-vehicle-art-the-ful-d6774-isible-turret-barrel-layers/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-vehicle-art-the-ful-d6774-isible-turret-barrel-layers/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-vehicle-art-the-ful-d6774-isible-turret-barrel-layers/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) reborn.spec.mjs:514:1 › reborn: readable retro desert field HUD at the standard desktop viewport 
+
+    Error: expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 210
+    Received:    168
+
+      526 |  expect(values.sidebar.width).toBeGreaterThanOrEqual(335);
+      527 |  expect(values.command.width).toBeGreaterThanOrEqual(690);
+    > 528 |  expect(values.command.height).toBeGreaterThanOrEqual(210);
+          |                                ^
+      529 |  expect(values.command.right).toBeLessThan(values.sidebar.x);
+      530 |  expect(values.command.bottom).toBeLessThanOrEqual(900);
+      531 |  expect(values.tabs).toBeGreaterThanOrEqual(15);
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:528:32
+
+    Error Context: ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-reborn-readable-ret-cbc00-e-standard-desktop-viewport/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-reborn-readable-ret-cbc00-e-standard-desktop-viewport/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-reborn-readable-ret-cbc00-e-standard-desktop-viewport/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) reborn.spec.mjs:565:1 › reborn: unit portraits use subtle desert texture, aligned single-line name and cost; minimap compass stays uncluttered 
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('#catalog-units .catalog-card')
+    Expected: 10
+    Received: 9
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveCount" locator('#catalog-units .catalog-card') with timeout 5000ms
+      - waiting for locator('#catalog-units .catalog-card')
+        14 × locator resolved to 9 elements
+           - unexpected value "9"
+
+
+      566 |  for(const [width,height] of [[1200,900],[760,770]]){
+      567 |   await start(page,width,height);
+    > 568 |   await expect(page.locator('#catalog-units .catalog-card')).toHaveCount(10);
+          |                                                              ^
+      569 |   await expect(page.locator('.compass.north,.compass.south')).toHaveCount(0);
+      570 |   const report=await page.locator('#catalog-units .catalog-card').evaluateAll(cards=>cards.map(card=>{
+      571 |    const name=card.querySelector('.card-name'),cost=card.querySelector('.card-cost'),meta=card.querySelector('.card-meta');
+        at /Users/norbertfekete/Projects/sandforge-bastion-wars/tests/browser/reborn.spec.mjs:568:62
+
+    Error Context: ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-reborn-unit-portrai-9e0cf-p-compass-stays-uncluttered/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-reborn-unit-portrai-9e0cf-p-compass-stays-uncluttered/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../../tmp/sandforge-baseline-browser-artifacts/reborn-reborn-unit-portrai-9e0cf-p-compass-stays-uncluttered/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4 failed
+    reborn.spec.mjs:423:1 › combat: approaching enemies receive immediate fire and a second attacker does not steal the first target 
+    reborn.spec.mjs:440:1 › vehicle art: the full roster has real faction materials, baked shadows, animated running gear and visible turret/barrel layers 
+    reborn.spec.mjs:514:1 › reborn: readable retro desert field HUD at the standard desktop viewport 
+    reborn.spec.mjs:565:1 › reborn: unit portraits use subtle desert texture, aligned single-line name and cost; minimap compass stays uncluttered 
+  1 passed (24.9s)

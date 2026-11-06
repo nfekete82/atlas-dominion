@@ -1,16 +1,66 @@
-import { cpSync, mkdirSync } from 'node:fs';
+import { cpSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
+import {createHash} from 'node:crypto';
 mkdirSync('dist', { recursive: true });
-cpSync('index.html', 'dist/index.html');
+// Reversible WebGL-first release candidate. The old Canvas renderer is
+// preserved as /classic.html while it is still needed for migration tests.
+// G0 checks must pass before the standard build is switched to WebGL.
+const webglDefault=process.env.SANDFORGE_RENDERER==='webgl';
+cpSync('index.html','dist/classic.html');
+if(webglDefault){
+  const landing=readFileSync('webgl-preview.html','utf8')
+    .replace('<title>Sandforge: Bastion Wars · WebGL 3D Vorschau</title>',
+      '<title>Sandforge: Bastion Wars</title>')
+    .replace('SANDFORGE / THREE.JS PREVIEW','SANDFORGE / WEBGL 3D')
+    .replace('· <a href="/">KLASSISCHES RTS</a>',
+      '· <a href="/classic.html">KLASSISCHE VERSION</a>');
+  writeFileSync('dist/index.html',landing);
+}else cpSync('index.html','dist/index.html');
 cpSync('animation-lab.html','dist/animation-lab.html');
 cpSync('model-preview.html','dist/model-preview.html');
 cpSync('model-3d.html','dist/model-3d.html');
+cpSync('webgl-preview.html','dist/webgl-preview.html');
+cpSync('scripts/webgl-preview.js','dist/webgl-preview.js');
+cpSync('scripts/webgl-title-menu.js','dist/webgl-title-menu.js');
+cpSync('scripts/webgl-battlefield.js','dist/webgl-battlefield.js');
+cpSync('scripts/webgl-bastion-capture.js','dist/webgl-bastion-capture.js');
+cpSync('scripts/webgl-actor-presentation.js','dist/webgl-actor-presentation.js');
+cpSync('scripts/webgl-environment.js','dist/webgl-environment.js');
+cpSync('scripts/webgl-atmosphere-3d.js','dist/webgl-atmosphere-3d.js');
+cpSync('scripts/webgl-combat-vfx.js','dist/webgl-combat-vfx.js');
+// Keep the optional battle profiler deployable; an unresolved static import
+// prevents the entire WebGL preview from booting, even when perf=0.
+cpSync('scripts/webgl-perf-watch.js','dist/webgl-perf-watch.js');
+cpSync('scripts/webgl-classic-hud.js','dist/webgl-classic-hud.js');
+cpSync('scripts/webgl-portraits.js','dist/webgl-portraits.js');
+cpSync('scripts/webgl-perimeter.js','dist/webgl-perimeter.js');
+cpSync('scripts/webgl-edge-cliffs.js','dist/webgl-edge-cliffs.js');
+cpSync('scripts/webgl-grounding.js','dist/webgl-grounding.js');
+cpSync('scripts/webgl-ground-tracks.js','dist/webgl-ground-tracks.js');
+cpSync('scripts/webgl-building-yard.js','dist/webgl-building-yard.js');
+cpSync('scripts/webgl-construction.js','dist/webgl-construction.js');
+cpSync('scripts/webgl-construction-recovery.js','dist/webgl-construction-recovery.js');
+cpSync('scripts/webgl-scale.js','dist/webgl-scale.js');
+cpSync('scripts/webgl-health.js','dist/webgl-health.js');
+cpSync('src/reborn/webgl-classic-hud.css','dist/webgl-classic-hud.css');
 cpSync('scripts/animation/model-viewer.js','dist/model-viewer.js');
-// The isolated 3D model inspector uses these local modules; the game stays Canvas 2D.
-for(const file of ['build/three.module.js','build/three.core.js','examples/jsm/loaders/GLTFLoader.js','examples/jsm/controls/OrbitControls.js','examples/jsm/utils/BufferGeometryUtils.js']){
+// WebGL preview and 3D inspector share the same local Three.js modules.
+// Three.js assets are required by the 3D game and optional in classic mode.
+for(const file of ['build/three.module.js','build/three.core.js','examples/jsm/loaders/GLTFLoader.js','examples/jsm/controls/OrbitControls.js','examples/jsm/utils/BufferGeometryUtils.js','examples/jsm/utils/SkeletonUtils.js','examples/jsm/environments/RoomEnvironment.js']){
   const target='dist/vendor/three/'+file.replace('build/','').replace('examples/jsm/','addons/');mkdirSync(target.slice(0,target.lastIndexOf('/')),{recursive:true});cpSync('node_modules/three/'+file,target);
 }
 cpSync('node_modules/three/LICENSE','dist/vendor/three/LICENSE');
 cpSync('src/reborn/style.css', 'dist/style.css');
+cpSync('src/reborn/retro-desert.css', 'dist/retro-desert.css');
+cpSync('src/reborn/qwen-general.worker.js', 'dist/src/reborn/qwen-general.worker.js');
 cpSync('legacy', 'dist/legacy', {recursive:true});
 cpSync('src/assets', 'dist/src/assets', {recursive:true});
-console.log('Built ATLAS DOMINION in dist/');
+// Incremental local builds must also discard the retired aircraft assets.
+for(const team of [0,1])for(const extension of ['glb','png','json'])rmSync(`dist/src/assets/reborn/animation/gunship-${team}.${extension}`,{force:true});
+// A verifiable fingerprint of the *shipped* gameplay pixels, not the source GLB.
+const art={revision:'pbr-strong-20261027',files:{}};
+for(const kind of ['headquarters','factory','barracks','airfield','generator','turret','bastion']){
+ const path='dist/src/assets/reborn/buildings-3d/'+kind+'-0.png';
+ const bytes=readFileSync(path);art.files[kind]=createHash('sha256').update(bytes).digest('hex');
+}
+writeFileSync('dist/building-art-version.json',JSON.stringify(art,null,2)+'\n');
+console.log('Built SANDFORGE: BASTION WARS in dist/');

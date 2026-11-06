@@ -1,0 +1,164 @@
+{
+  "tower1": {
+    "before": {
+      "wins": 3,
+      "losses": 0,
+      "timeouts": 0,
+      "ownLosses": 20,
+      "realized": 3,
+      "counterattacks": 0
+    },
+    "after": {
+      "wins": 3,
+      "losses": 0,
+      "timeouts": 0,
+      "ownLosses": 7,
+      "realized": 3,
+      "counterattacks": 0
+    }
+  },
+  "tower3": {
+    "before": {
+      "wins": 3,
+      "losses": 0,
+      "timeouts": 0,
+      "ownLosses": 23,
+      "realized": 3,
+      "counterattacks": 0
+    },
+    "after": {
+      "wins": 3,
+      "losses": 0,
+      "timeouts": 0,
+      "ownLosses": 9,
+      "realized": 3,
+      "counterattacks": 0
+    }
+  },
+  "tower6": {
+    "before": {
+      "wins": 2,
+      "losses": 0,
+      "timeouts": 1,
+      "ownLosses": 13,
+      "realized": 3,
+      "counterattacks": 0
+    },
+    "after": {
+      "wins": 3,
+      "losses": 0,
+      "timeouts": 0,
+      "ownLosses": 11,
+      "realized": 3,
+      "counterattacks": 0
+    }
+  },
+  "infantry": {
+    "before": {
+      "wins": 0,
+      "losses": 3,
+      "timeouts": 0,
+      "ownLosses": 35,
+      "realized": 3,
+      "counterattacks": 0
+    },
+    "after": {
+      "wins": 2,
+      "losses": 1,
+      "timeouts": 0,
+      "ownLosses": 16,
+      "realized": 3,
+      "counterattacks": 1
+    }
+  },
+  "armor": {
+    "before": {
+      "wins": 3,
+      "losses": 0,
+      "timeouts": 0,
+      "ownLosses": 11,
+      "realized": 2,
+      "counterattacks": 0
+    },
+    "after": {
+      "wins": 3,
+      "losses": 0,
+      "timeouts": 0,
+      "ownLosses": 11,
+      "realized": 2,
+      "counterattacks": 0
+    }
+  },
+  "expansion": {
+    "before": {
+      "wins": 2,
+      "losses": 1,
+      "timeouts": 0,
+      "ownLosses": 20,
+      "realized": 3,
+      "counterattacks": 1
+    },
+    "after": {
+      "wins": 2,
+      "losses": 1,
+      "timeouts": 0,
+      "ownLosses": 15,
+      "realized": 3,
+      "counterattacks": 1
+    }
+  },
+  "fortress": {
+    "before": {
+      "wins": 2,
+      "losses": 0,
+      "timeouts": 1,
+      "ownLosses": 13,
+      "realized": 3,
+      "counterattacks": 0
+    },
+    "after": {
+      "wins": 2,
+      "losses": 0,
+      "timeouts": 1,
+      "ownLosses": 35,
+      "realized": 2,
+      "counterattacks": 0
+    }
+  },
+  "combined": {
+    "before": {
+      "wins": 3,
+      "losses": 0,
+      "timeouts": 0,
+      "ownLosses": 7,
+      "realized": 2,
+      "counterattacks": 0
+    },
+    "after": {
+      "wins": 3,
+      "losses": 0,
+      "timeouts": 0,
+      "ownLosses": 7,
+      "realized": 2,
+      "counterattacks": 1
+    }
+  },
+  "attrition": {
+    "before": {
+      "wins": 2,
+      "losses": 0,
+      "timeouts": 1,
+      "ownLosses": 19,
+      "realized": 3,
+      "counterattacks": 0
+    },
+    "after": {
+      "wins": 3,
+      "losses": 0,
+      "timeouts": 0,
+      "ownLosses": 15,
+      "realized": 3,
+      "counterattacks": 0
+    }
+  }
+}

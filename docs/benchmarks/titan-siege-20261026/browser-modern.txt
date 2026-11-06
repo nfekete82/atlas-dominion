@@ -1,0 +1,27 @@
+
+> test
+> playwright test --config=reborn.config.mjs reborn-layout.spec.mjs reborn-combined-arms.spec.mjs reborn-defense-map.spec.mjs reborn-tactical-ai.spec.mjs reborn-performance.spec.mjs
+
+[WebServer] (node:48217) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 14 tests using 1 worker
+
+(node:48218) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 reborn-combined-arms.spec.mjs:7:1 › combined arms: transport has real loading commands, lands for ten soldiers, saves during descent, unloads safely and takes off (2.3s)
+  ✓   2 reborn-combined-arms.spec.mjs:20:1 › combined arms: real rocket vehicle launches a visible travelling rocket from beyond turret range (1.1s)
+  ✓   3 reborn-defense-map.spec.mjs:9:1 › defense map: legacy maps load through the real save store and a new campaign uses the current medium map (2.9s)
+  ✓   4 reborn-defense-map.spec.mjs:31:1 › defense map: selected turret draws exactly 600 range and fights a unit beside a bastion at 500 while tracking through reload (1.1s)
+  ✓   5 reborn-defense-map.spec.mjs:50:1 › defense map: new campaign capture updates income, minimap ownership and the 16-sector counter (1.3s)
+  ✓   6 reborn-layout.spec.mjs:12:1 › layout: canvas and sidebar own disjoint columns at desktop, tablet and phone sizes, including fractional widths and layout-only resizing (1.4s)
+  ✓   7 reborn-layout.spec.mjs:23:1 › layout: real selection, right click, rectangle selection and captured gestures work at the visible right edge without HUD click-through (1.2s)
+  ✓   8 reborn-layout.spec.mjs:37:1 › layout: building placement, building selection and rally targets use the rightmost visible map area, and releases over the sidebar cannot build (1.1s)
+  ✓   9 reborn-layout.spec.mjs:50:1 › layout: right edge scroll reaches the full world boundary, stops in the sidebar, minimap still pans, and mouse-anchored zoom remains exact (1.5s)
+  ✓  10 reborn-layout.spec.mjs:60:1 › layout: Retina backing pixels match fractional viewport dimensions without changing CSS-coordinate input (2.0s)
+  ✓  11 reborn-performance.spec.mjs:3:1 › performance: profiler requires debug and perf; overlay reports and exports measurements (3.9s)
+  ✓  12 reborn-performance.spec.mjs:17:1 › performance: unchanged HUD text and queue DOM survive refresh, selection responds immediately (926ms)
+  ✓  13 reborn-performance.spec.mjs:30:1 › performance: optimized layered sprites match original Canvas pixels and preserve caller state (1.0s)
+  ✓  14 reborn-tactical-ai.spec.mjs:3:1 › tactical AI: a genuinely built blue turret kills two red infantry; the 16-sector AI gathers paid reinforcements, attacks together and saves its lessons (1.8s)
+
+  14 passed (24.5s)
