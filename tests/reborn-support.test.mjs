@@ -12,7 +12,7 @@ const site=(g,kind)=>{
  for(let y=2100;y<3450;y+=28)for(let x=220;x<1750;x+=28)if(!g.buildError(0,kind,{x,y}))return {x,y};
  throw Error('No legal site');
 };
-const workerAt=(g,p,kind='barracks')=>g.spawn(0,g.world.nearest({x:p.x+BUILDINGS[kind].radius+32,y:p.y},g.obstacles()),'engineer');
+const workerAt=(g,p,kind='barracks')=>g.spawn(0,g.world.nearest({x:p.x+BUILDINGS[kind].radius+52,y:p.y},g.obstacles()),'engineer');
 const near=(actual,expected)=>assert.ok(Math.abs(actual-expected)<1e-6,`${actual} != ${expected}`);
 
 test('support: exact catalog values and medic production price/time at the barracks',()=>{

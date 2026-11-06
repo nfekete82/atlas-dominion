@@ -15,7 +15,7 @@ function fixture(){
    if(!g.buildError(0,kind,{x,y}))return {x,y};
   throw Error('No legal site for construction test');
  }
- const first=position(),p=g.world.nearest({x:first.x+BUILDINGS.barracks.radius+32,y:first.y},g.obstacles());
+ const first=position(),p=g.world.nearest({x:first.x+BUILDINGS.barracks.radius+52,y:first.y},g.obstacles());
  assert.ok(p,'worker start must be passable');
  const worker=g.spawn(0,p,'engineer');
  return {g,worker,first,position};

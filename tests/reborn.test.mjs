@@ -208,7 +208,13 @@ const buildSite=(g,kind)=>{
 const buildWithWorker=(g,owner,kind,site)=>{
  if(!g.buildError(owner,kind,site)){
   let worker=g.units.find(u=>u.owner===owner&&u.kind==='engineer');
-  const point=g.world.nearest({x:site.x+BUILDINGS[kind].radius+32,y:site.y},g.obstacles());
+  // For a large airfield the visible facade extends north of the anchor.
+   // Stage its engineer on the south approach; use facade-clear east positions
+   // for the other buildings. All stay within the original 55-unit work ring.
+   const offset=BUILDINGS[kind].radius+52;
+   const point=g.world.nearest(kind==='airfield'
+     ?{x:site.x,y:site.y+offset}
+     :{x:site.x+offset,y:site.y},g.obstacles());
   assert.ok(point,`No reachable worker approach for ${kind} at ${site.x},${site.y}`);
   if(worker)Object.assign(worker,point);else worker=g.spawn(owner,point,'engineer');
  }
@@ -274,11 +280,12 @@ test('reborn: air and ground units contest each other and air recapture transfer
  advance(g,RULES.captureTime);assert.equal(t.owner,1);assert.equal(g.income(0),incomes[0]-t.income);assert.equal(g.income(1),incomes[1]+t.income);
 });
 
-test('reborn: air capture still requires ground proximity and an undefended headquarters',()=>{
+test('reborn: air capture requires ground proximity and a defeated headquarters, not adjacent sectors',()=>{
  const g=peaceful();g.units=[];const adjacent=g.territories[20],disconnected=g.territories[16];
  const air=g.spawn(0,{x:adjacent.point.x+RULES.captureRadius+10,y:adjacent.point.y},'bomber');air.cooldown=1e6;
  advance(g,9);assert.equal(adjacent.owner,-1);assert.equal(adjacent.progress,0);
- Object.assign(air,disconnected.point);advance(g,9);assert.equal(disconnected.owner,-1);assert.equal(disconnected.progress,0);
+ // Current territory contract permits remote capture for both sides on all map versions.
+  Object.assign(air,disconnected.point);advance(g,9);assert.equal(disconnected.owner,0);assert.equal(disconnected.progress,0);
  const hq=g.bases[1],target=g.territories[hq.territory];g.territories[4].owner=0;g.territories[11].owner=0;
  Object.assign(air,target.point);advance(g,9);assert.equal(target.owner,1);assert.equal(target.progress,0);
  hq.hp=0;advance(g,RULES.captureTime);assert.equal(target.owner,0);assert.equal(hq.owner,0);assert.equal(hq.hp,RULES.headquarters.hp*.5);

@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Simulation} from '../dist/src/reborn/simulation.js';
-import {UNITS,BUILDINGS} from '../dist/src/reborn/catalog.js';
+import {UNITS,BUILDINGS,weaponDamage} from '../dist/src/reborn/catalog.js';
 import {getVeterancyLevel,getVeterancyModifiers,gainUnitXp,sanitizeXp,XP_RULES} from '../dist/src/reborn/veterancy.js';
 const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-7,`${a} != ${b}`);
 const advance=(g,n)=>{for(let i=0;i<Math.round(n/.05);i++)g.step(.05);};
@@ -27,7 +27,11 @@ for(const owner of [0,1])test(`veterancy: faction ${owner} earns only applied da
 test('veterancy: real burst hits award XP, cooldown and damage use role bonuses once',()=>{
  for(const xp of [0,100,250,500]){
   const g=fixture(),u=g.spawn(0,{x:1900,y:2100}),t=g.spawn(1,{x:1980,y:2100},'tank');u.xp=xp;u.hold=true;t.cooldown=1e8;t.hold=true;g.command([u.id],{kind:'attack',x:t.x,y:t.y,target:t.id});g.updateVision();g.step();
-  const m=getVeterancyModifiers({kind:'infantry',xp}),applied=17*m.damage/3;near(t.hp,UNITS.tank.hp-applied);near(u.xp,xp+applied*.1);near(u.cooldown,.85/m.fireRate);advance(g,.2);near(t.hp,UNITS.tank.hp-17*m.damage);
+  const m=getVeterancyModifiers({kind:'infantry',xp}),baseDamage=weaponDamage(u,t);
+   assert.equal(baseDamage,UNITS.infantry.damage*.65,'rifle rounds retain their 35% anti-tank penalty');
+   const applied=baseDamage*m.damage/3;
+   near(t.hp,UNITS.tank.hp-applied);near(u.xp,xp+applied*.1);near(u.cooldown,.85/m.fireRate);
+   advance(g,.2);near(t.hp,UNITS.tank.hp-baseDamage*m.damage);
  }
  const g=fixture(),u=g.spawn(0,{x:1900,y:2100});advance(g,1);assert.equal(u.xp,0,'no shots/no hits give no XP');
 });
@@ -50,7 +54,8 @@ test('veterancy: elite medic has increased healing radius and rate; engineer rep
 test('veterancy: construction XP is proportional to applied work, completion shared once; pause/cancel give none',()=>{
  const g=fixture();g.explored[0].fill(1);g.credits[0]=5000;
  let p;for(let y=2100;y<3400&&!p;y+=40)for(let x=300;x<1700;x+=40)if(!g.buildError(0,'barracks',{x,y})){p={x,y};break;}
- const e=g.spawn(0,{x:p.x+85,y:p.y},'engineer'),b=g.build(0,'barracks',p,[e.id]);assert.ok(b);g.step();near(e.xp,.1);near(b.buildRemaining,11.95);
+ // Barracks have a wider visible footprint than their legacy interaction radius.
+ const e=g.spawn(0,{x:p.x+105,y:p.y},'engineer'),b=g.build(0,'barracks',p,[e.id]);assert.ok(b);g.step();near(e.xp,.1);near(b.buildRemaining,11.95);
  g.paused=true;advance(g,1);near(e.xp,.1);g.paused=false;
  b.buildRemaining=.025;g.step();near(e.xp,.15+20);const xp=e.xp;g.step();near(e.xp,xp);
  const other={...b,id:1900,kind:'generator',buildRemaining:5,hp:125,x:b.x+400};g.bases.push(other);e.workingTarget=null;g.cancelConstruction(other.id);near(e.xp,xp);
