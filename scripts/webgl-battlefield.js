@@ -10,6 +10,7 @@ import {SandforgeGroundingPass} from '/webgl-grounding.js';
 import {createBuildingYard} from '/webgl-building-yard.js';
 import {SandforgeConstructionPresentation} from '/webgl-construction.js';
 import {createBastionCaptureBar,updateBastionCaptureBar} from '/webgl-bastion-capture.js';
+import {snapToPlayableEdge,worldToMinimap} from '/webgl-map-edges.js';
 
 // Runtime adapter: game state, movement, combat, production and AI are owned
 // exclusively by the original Simulation. 3D nodes are presentation only.
@@ -1100,13 +1101,28 @@ export class SandforgeBattlefield {
   }
   this.selectedBase=null;this.drawInterface();
  }
- terrainPoint(event){
+ terrainPoint(event,{snapEdge=false}={}){
   const rect=this.renderer.domElement.getBoundingClientRect();
+  if(!rect.width||!rect.height||event.clientX<rect.left||event.clientX>rect.right||
+     event.clientY<rect.top||event.clientY>rect.bottom)return null;
   const ndc=new THREE.Vector2((event.clientX-rect.left)/rect.width*2-1,1-(event.clientY-rect.top)/rect.height*2);
+  this.camera.updateMatrixWorld(true);
   const ray=new THREE.Raycaster();ray.setFromCamera(ndc,this.camera);
   const hits=ray.intersectObjects(this.groundMeshes,false);
-  if(!hits.length)return null;
-  const p=hits[0].point;return {x:p.x+this.world.size*.5,y:p.z+this.world.size*.5};
+  if(hits.length){
+   const p=hits[0].point;return {x:p.x+this.world.size*.5,y:p.z+this.world.size*.5};
+  }
+  // With a tilted camera, a slightly off-map right click has no sand
+  // triangle to intersect. Use a local terrain plane and snap only within
+  // a narrow overscan; normal building/selection remains ground-mesh only.
+  if(!snapEdge)return null;
+  const half=this.world.size*.5,point=new THREE.Vector3();
+  if(!ray.ray.intersectPlane(new THREE.Plane(UP,-this.controls.target.y),point))return null;
+  const first=snapToPlayableEdge({x:point.x+half,y:point.z+half},this.world.size);
+  if(!first)return null;
+  const height=this.heightAt(first.x,first.y);
+  if(Number.isFinite(height))ray.ray.intersectPlane(new THREE.Plane(UP,-height),point);
+  return snapToPlayableEdge({x:point.x+half,y:point.z+half},this.world.size);
  }
  friendlyAtPointer(event){
   // Select the model under the cursor instead of a displaced terrain hit.
@@ -1261,7 +1277,7 @@ export class SandforgeBattlefield {
   // Right-click an enemy to attack; right-click the 3D bastion itself
   // (or its nearby capture ring) to issue a genuine capture approach order.
   const clickedEnemy=event.button===2&&this.selected.size?this.enemyAtPointer(event):null;
-  const groundPoint=clickedEnemy?null:this.terrainPoint(event);
+  const groundPoint=clickedEnemy?null:this.terrainPoint(event,{snapEdge:event.button===2||this.rallyMode});
   const clickedBastion=event.button===2&&this.selected.size&&!clickedEnemy
    ?this.bastionAtPointer(event,groundPoint):null;
   const p=clickedEnemy?{x:clickedEnemy.x,y:clickedEnemy.y}
