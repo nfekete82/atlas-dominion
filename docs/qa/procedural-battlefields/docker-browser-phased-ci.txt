@@ -1,0 +1,69 @@
+
+Running 61 tests using 1 worker
+
+(node:54702) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/61] tests/browser/webgl-procedural-battlefields.spec.mjs:36:2 › open full-detail terrain › authoritative height, collision, water, soil, fog and minimap
+[2/61] tests/browser/webgl-procedural-battlefields.spec.mjs:59:2 › open full-detail terrain › complete art streaming and full-resolution startup view
+[3/61] tests/browser/webgl-procedural-battlefields.spec.mjs:63:2 › open full-detail terrain › standard zoom
+[4/61] tests/browser/webgl-procedural-battlefields.spec.mjs:66:2 › open full-detail terrain › maximum zoom out
+[5/61] tests/browser/webgl-procedural-battlefields.spec.mjs:69:2 › open full-detail terrain › rotation control changes camera
+[6/61] tests/browser/webgl-procedural-battlefields.spec.mjs:75:2 › open full-detail terrain › rotated camera full-resolution view
+[7/61] tests/browser/webgl-procedural-battlefields.spec.mjs:78:2 › open full-detail terrain › central relief
+[8/61] tests/browser/webgl-procedural-battlefields.spec.mjs:83:2 › open full-detail terrain › matching minimap full-resolution view
+[9/61] tests/browser/webgl-procedural-battlefields.spec.mjs:86:2 › open full-detail terrain › camera clamp and black exterior
+[10/61] tests/browser/webgl-procedural-battlefields.spec.mjs:36:2 › dunes full-detail terrain › authoritative height, collision, water, soil, fog and minimap
+[11/61] tests/browser/webgl-procedural-battlefields.spec.mjs:59:2 › dunes full-detail terrain › complete art streaming and full-resolution startup view
+[12/61] tests/browser/webgl-procedural-battlefields.spec.mjs:63:2 › dunes full-detail terrain › standard zoom
+[13/61] tests/browser/webgl-procedural-battlefields.spec.mjs:66:2 › dunes full-detail terrain › maximum zoom out
+[14/61] tests/browser/webgl-procedural-battlefields.spec.mjs:69:2 › dunes full-detail terrain › rotation control changes camera
+[15/61] tests/browser/webgl-procedural-battlefields.spec.mjs:75:2 › dunes full-detail terrain › rotated camera full-resolution view
+[16/61] tests/browser/webgl-procedural-battlefields.spec.mjs:78:2 › dunes full-detail terrain › central relief
+[17/61] tests/browser/webgl-procedural-battlefields.spec.mjs:83:2 › dunes full-detail terrain › matching minimap full-resolution view
+[18/61] tests/browser/webgl-procedural-battlefields.spec.mjs:86:2 › dunes full-detail terrain › camera clamp and black exterior
+[19/61] tests/browser/webgl-procedural-battlefields.spec.mjs:36:2 › rocky full-detail terrain › authoritative height, collision, water, soil, fog and minimap
+[20/61] tests/browser/webgl-procedural-battlefields.spec.mjs:59:2 › rocky full-detail terrain › complete art streaming and full-resolution startup view
+[21/61] tests/browser/webgl-procedural-battlefields.spec.mjs:63:2 › rocky full-detail terrain › standard zoom
+[22/61] tests/browser/webgl-procedural-battlefields.spec.mjs:66:2 › rocky full-detail terrain › maximum zoom out
+[23/61] tests/browser/webgl-procedural-battlefields.spec.mjs:69:2 › rocky full-detail terrain › rotation control changes camera
+[24/61] tests/browser/webgl-procedural-battlefields.spec.mjs:75:2 › rocky full-detail terrain › rotated camera full-resolution view
+[25/61] tests/browser/webgl-procedural-battlefields.spec.mjs:78:2 › rocky full-detail terrain › central relief
+[26/61] tests/browser/webgl-procedural-battlefields.spec.mjs:83:2 › rocky full-detail terrain › matching minimap full-resolution view
+[27/61] tests/browser/webgl-procedural-battlefields.spec.mjs:86:2 › rocky full-detail terrain › camera clamp and black exterior
+[28/61] tests/browser/webgl-procedural-battlefields.spec.mjs:36:2 › oasis full-detail terrain › authoritative height, collision, water, soil, fog and minimap
+[29/61] tests/browser/webgl-procedural-battlefields.spec.mjs:59:2 › oasis full-detail terrain › complete art streaming and full-resolution startup view
+[30/61] tests/browser/webgl-procedural-battlefields.spec.mjs:63:2 › oasis full-detail terrain › standard zoom
+[31/61] tests/browser/webgl-procedural-battlefields.spec.mjs:66:2 › oasis full-detail terrain › maximum zoom out
+[32/61] tests/browser/webgl-procedural-battlefields.spec.mjs:69:2 › oasis full-detail terrain › rotation control changes camera
+[33/61] tests/browser/webgl-procedural-battlefields.spec.mjs:75:2 › oasis full-detail terrain › rotated camera full-resolution view
+[34/61] tests/browser/webgl-procedural-battlefields.spec.mjs:78:2 › oasis full-detail terrain › central relief
+[35/61] tests/browser/webgl-procedural-battlefields.spec.mjs:83:2 › oasis full-detail terrain › matching minimap full-resolution view
+[36/61] tests/browser/webgl-procedural-battlefields.spec.mjs:86:2 › oasis full-detail terrain › camera clamp and black exterior
+[37/61] tests/browser/webgl-procedural-battlefields.spec.mjs:95:23 › oasis full-detail terrain › fifth grove soil blend
+[38/61] tests/browser/webgl-procedural-battlefields.spec.mjs:36:2 › mixed full-detail terrain › authoritative height, collision, water, soil, fog and minimap
+[39/61] tests/browser/webgl-procedural-battlefields.spec.mjs:59:2 › mixed full-detail terrain › complete art streaming and full-resolution startup view
+[40/61] tests/browser/webgl-procedural-battlefields.spec.mjs:63:2 › mixed full-detail terrain › standard zoom
+[41/61] tests/browser/webgl-procedural-battlefields.spec.mjs:66:2 › mixed full-detail terrain › maximum zoom out
+[42/61] tests/browser/webgl-procedural-battlefields.spec.mjs:69:2 › mixed full-detail terrain › rotation control changes camera
+[43/61] tests/browser/webgl-procedural-battlefields.spec.mjs:75:2 › mixed full-detail terrain › rotated camera full-resolution view
+[44/61] tests/browser/webgl-procedural-battlefields.spec.mjs:78:2 › mixed full-detail terrain › central relief
+[45/61] tests/browser/webgl-procedural-battlefields.spec.mjs:83:2 › mixed full-detail terrain › matching minimap full-resolution view
+[46/61] tests/browser/webgl-procedural-battlefields.spec.mjs:86:2 › mixed full-detail terrain › camera clamp and black exterior
+[47/61] tests/browser/webgl-procedural-battlefields.spec.mjs:108:1 › campaign menu and saved metadata › menu offers all profiles and starts the explicitly seeded selection
+[48/61] tests/browser/webgl-procedural-battlefields.spec.mjs:116:1 › campaign menu and saved metadata › selected profile and complete geometry survive save and menu resume
+[49/61] tests/browser/webgl-procedural-battlefields.spec.mjs:123:1 › campaign menu and saved metadata › two real new menu games with blank seeds use different random seeds
+[50/61] tests/browser/webgl-procedural-battlefields.spec.mjs:131:46 › campaign menu and saved metadata › 4 bastions and start orientation 0 reach the browser
+[51/61] tests/browser/webgl-procedural-battlefields.spec.mjs:131:46 › campaign menu and saved metadata › 8 bastions and start orientation 1 reach the browser
+[52/61] tests/browser/webgl-procedural-battlefields.spec.mjs:131:46 › campaign menu and saved metadata › 12 bastions and start orientation 2 reach the browser
+[53/61] tests/browser/webgl-procedural-battlefields.spec.mjs:131:46 › campaign menu and saved metadata › 16 bastions and start orientation 3 reach the browser
+[54/61] tests/browser/webgl-procedural-battlefields.spec.mjs:137:62 › campaign menu and saved metadata › historical v19 save resumes with original geometry
+[55/61] tests/browser/webgl-procedural-battlefields.spec.mjs:137:62 › campaign menu and saved metadata › historical v20 save resumes with original geometry
+[56/61] tests/browser/webgl-procedural-battlefields.spec.mjs:137:62 › campaign menu and saved metadata › historical v21 save resumes with original geometry
+[57/61] tests/browser/webgl-procedural-battlefields.spec.mjs:137:62 › campaign menu and saved metadata › historical v22 save resumes with original geometry
+[58/61] tests/browser/webgl-procedural-battlefields.spec.mjs:150:3 › same-sized dune maps under identical cameras › seed 2074 generates its reproducible relief
+[59/61] tests/browser/webgl-procedural-battlefields.spec.mjs:155:3 › same-sized dune maps under identical cameras › seed 2074 completes art streaming and renders the identical full-resolution camera
+[60/61] tests/browser/webgl-procedural-battlefields.spec.mjs:150:3 › same-sized dune maps under identical cameras › seed 2075 generates its reproducible relief
+[61/61] tests/browser/webgl-procedural-battlefields.spec.mjs:155:3 › same-sized dune maps under identical cameras › seed 2075 completes art streaming and renders the identical full-resolution camera
+  61 passed (54.0s)

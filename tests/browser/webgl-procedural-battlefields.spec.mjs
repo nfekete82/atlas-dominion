@@ -66,17 +66,21 @@ for(const profile of profiles)test.describe(`${profile} full-detail terrain`,()=
  test('maximum zoom out',async()=>{
   await centerView(page,'min');await page.screenshot({path:test.info().outputPath(`${profile}-max-out.png`)});
  });
- test('rotated camera',async()=>{
+ test('rotation control changes camera',async()=>{
   await centerView(page,'min');
   const before=await page.evaluate(()=>window.__sandforgeWebGL.camera.position.toArray());
   await page.locator('#rotate-right').click();await page.waitForTimeout(200);
   expect(await page.evaluate(()=>window.__sandforgeWebGL.camera.position.toArray())).not.toEqual(before);
+ });
+ test('rotated camera full-resolution view',async()=>{
   await page.screenshot({path:test.info().outputPath(`${profile}-rotated.png`)});
  });
- test('central relief and matching minimap',async()=>{
+ test('central relief',async()=>{
   await centerView(page,.85,true);
   await page.evaluate(()=>window.__sandforgeWebGL.battlefield.drawMinimap());
   await page.screenshot({path:test.info().outputPath(`${profile}-central.png`)});
+ });
+ test('matching minimap full-resolution view',async()=>{
   await page.locator('#sf-map').screenshot({path:test.info().outputPath(`${profile}-minimap.png`)});
  });
  test('camera clamp and black exterior',async()=>{

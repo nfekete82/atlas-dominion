@@ -44,7 +44,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [legacy, procedural]
+        include:
+          - suite: legacy
+            pattern: unused
+          - suite: terrain-a
+            pattern: '(open|dunes|rocky) full-detail terrain'
+          - suite: terrain-b
+            pattern: '(oasis|mixed) full-detail terrain|same-sized dune maps'
+          - suite: metadata
+            pattern: 'campaign menu and saved metadata'
     env:
       CI: 'true'
       ATLAS_BROWSER_CHANNEL: chromium
@@ -82,12 +90,12 @@ jobs:
             tests/browser/webgl-title-menu.spec.mjs tests/browser/webgl-playable.spec.mjs \
             tests/browser/webgl-hud-responsive.spec.mjs --workers=1 --reporter=line
       - name: Full-detail terrain views, gameplay, metadata and historical saves
-        if: matrix.suite == 'procedural'
+        if: matrix.suite != 'legacy'
         env:
           ATLAS_BASE_URL: http://127.0.0.1:8132
         run: |
           tests/browser/node_modules/.bin/playwright test --config=tests/browser/playwright.config.mjs \
-            tests/browser/webgl-procedural-battlefields.spec.mjs --workers=1 --reporter=line
+            tests/browser/webgl-procedural-battlefields.spec.mjs --grep "${{ matrix.pattern }}" --workers=1 --reporter=line
       - uses: actions/upload-artifact@v4
         if: always()
         with:
