@@ -49,8 +49,8 @@ test('compact independent production panel aligns with the catalog on MacBook an
   await page.setViewportSize({width,height:900});
   const v=await measure();
   expect(v.parentId).toBe('sidebar');
-  expect(v.dock.height).toBeGreaterThanOrEqual(220);
-  expect(v.dock.height).toBeLessThanOrEqual(270);
+  expect(v.dock.height).toBeGreaterThanOrEqual(225);
+  expect(v.dock.height).toBeLessThanOrEqual(242); // compact Mac HUD: 232px target
   expect(v.radar.right).toBeLessThanOrEqual(v.catalog.x+2);
   expect(v.catalog.right).toBeLessThanOrEqual(v.production.x+2);
   expect(v.production.right).toBeLessThan(v.command.x);
