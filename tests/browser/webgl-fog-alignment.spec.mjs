@@ -213,3 +213,55 @@ test('minimap uses the exact 3D vision grid and a rotated ground-footprint outli
  expect(state.rotatedArea).toBeGreaterThan(1);
  expect(state.changed).toBeGreaterThan(1);
 });
+
+
+test('near-edge RMB ray fallback reaches all four playable sides of the tilted map',async({page})=>{
+ test.setTimeout(125000);
+ await page.setViewportSize({width:1440,height:900});
+ await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',
+  {waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,null,{timeout:95000});
+ const result=await page.evaluate(()=>{
+  const v=window.__sandforgeWebGL,b=v.battlefield,size=v.game.world.size,half=size/2;
+  const camera=v.camera,controls=v.controls;
+  const cameraOffset=camera.position.clone().sub(controls.target);
+  const original=b.groundMeshes;
+  const tested=[];
+  try{
+   // Force the "no sand triangle" branch without relying on the varied
+   // hillside's accidental ray intersections. Picking without overscan
+   // must remain strict; only a near-edge RMB-style request can succeed.
+   b.groundMeshes=[];
+   const candidates=[[-50,half],[size+50,half],[half,-50],[half,size+50]];
+   const clamp=n=>Math.max(80,Math.min(size-80,n));
+   const rect=b.renderer.domElement.getBoundingClientRect();
+   for(const [x,z] of candidates){
+    const focus=b.pos(clamp(x),clamp(z),v.heightAt(clamp(x),clamp(z))+42);
+    controls.target.copy(focus);
+    camera.position.copy(focus).add(cameraOffset);
+    camera.lookAt(focus);controls.update();camera.updateMatrixWorld(true);
+    const h=v.heightAt(clamp(x),clamp(z));
+    const ndc=b.pos(x,z,h).project(camera);
+    const event={clientX:rect.left+(ndc.x+1)*rect.width*.5,
+     clientY:rect.top+(1-ndc.y)*rect.height*.5};
+    const inside=event.clientX>rect.left&&event.clientX<rect.right&&
+     event.clientY>rect.top&&event.clientY<rect.bottom;
+    const strict=b.terrainPoint(event),near=b.terrainPoint(event,{snapEdge:true});
+    tested.push({inside,strict,near,borderDistance:near?
+     Math.min(near.x,near.y,size-near.x,size-near.y):Infinity});
+   }
+  }finally{b.groundMeshes=original;}
+  return {size,tested};
+ });
+ expect(result.tested).toHaveLength(4);
+ for(const side of result.tested){
+  expect(side.inside).toBe(true);
+  expect(side.strict).toBeNull();
+  expect(side.near).not.toBeNull();
+  expect(side.near.x).toBeGreaterThanOrEqual(12);
+  expect(side.near.y).toBeGreaterThanOrEqual(12);
+  expect(side.near.x).toBeLessThanOrEqual(result.size-12);
+  expect(side.near.y).toBeLessThanOrEqual(result.size-12);
+  expect(side.borderDistance).toBeLessThan(result.size*.05);
+ }
+});
