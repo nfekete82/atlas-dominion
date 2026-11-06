@@ -1,0 +1,88 @@
+name: Sandforge real rollout and barracks release
+
+on:
+  push:
+    branches:
+      - fix/webgl-authentic-rollout-barracks-idle-wheels-20261106
+  pull_request:
+    branches:
+      - feat/webgl-animated-production-gates-20261106
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sandforge-real-rollout-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  rally-and-models:
+    name: Production handoff, GLB door and full Node regressions
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Real rally, staged infantry and moving barracks door
+        run: |
+          node --test tests/webgl-rally-barracks-wheels.test.mjs tests/webgl-production-gates.test.mjs
+      - name: Full existing regression suite
+        run: npm test
+
+  browser-3d:
+    name: Real WebGL production + visible barracks release
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CI: 'true'
+      ATLAS_BROWSER_CHANNEL: chromium
+      LIBGL_ALWAYS_SOFTWARE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install Chromium fixture
+        run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix tests/browser --no-audit --no-fund
+          cd tests/browser
+          npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Check actual browser with both doors, real units and clips
+        run: |
+          set -euo pipefail
+          PORT=8148 HOST=127.0.0.1 node scripts/serve.mjs >/tmp/sandforge-rollout.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          READY=0
+          for i in $(seq 1 100); do
+            if curl -fsS http://127.0.0.1:8148/healthz >/dev/null 2>&1; then READY=1; break; fi
+            sleep 0.3
+          done
+          if [ "$READY" -ne 1 ]; then cat /tmp/sandforge-rollout.log; exit 1; fi
+          ATLAS_BASE_URL=http://127.0.0.1:8148 \
+            tests/browser/node_modules/.bin/playwright test \
+            --config=tests/browser/playwright.config.mjs \
+            tests/browser/webgl-production-gates.spec.mjs \
+            tests/browser/webgl-barracks-release.spec.mjs \
+            --workers=1 --reporter=line
+      - name: Save visual acceptance images
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandforge-real-rollout-${{ github.run_id }}
+          path: tests/browser/artifacts/
+          retention-days: 7
+          if-no-files-found: ignore

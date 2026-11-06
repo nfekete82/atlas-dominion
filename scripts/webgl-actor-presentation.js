@@ -256,7 +256,16 @@ export class SandforgeActorPresentation {
   if(type!=='unit')return;
   // Built-in glTF clips are preferred. The procedural pose is used only if
   // clips are absent/incomplete (or during asynchronous model loading).
-  const moving=entity.moving===true;
+  // Do not spin tires in an idle authored engine clip. Movement comes
+  // from actual simulation displacement (or the measured hall rollout).
+  const vehicle=['rover','tank','artillery'].includes(entity.kind);
+  const authoritativeDistance=Number.isFinite(entity.previousX)&&Number.isFinite(entity.previousY)
+   ?Math.hypot(entity.x-entity.previousX,entity.y-entity.previousY):0;
+  const travelSpeed=entry.productionMotion?.driveSpeed??(authoritativeDistance/.05);
+  const moving=vehicle
+   ?(entry.productionMotion?entry.productionMotion.moving===true&&travelSpeed>1
+     :entity.moving===true&&authoritativeDistance>.01)
+   :entity.moving===true;
   const shooting=state.shotPulse>0||entity.fire>0;
   if(moving&&visible)this.stats.walking++;
   if(shooting&&visible)this.stats.shooting++;
@@ -272,8 +281,14 @@ export class SandforgeActorPresentation {
    if(retrigger)state.lastClipTrigger=state.shotTrigger;
    if(visible&&active&&dt>0){
     const action=desired?clips.mixer.existingAction(desired):null;
-    if(action)action.setEffectiveTimeScale(entry.productionMotion&&moving
-     ?clamp((entity.driveSpeed??80)/80,.15,3):1);
+    if(action){
+     // Idle vehicle clips can include rotating wheel tracks. Pause these
+     // tracks while stationary, without suppressing combat/hit animations.
+     if(vehicle&&desired===clips.idle)action.setEffectiveTimeScale(0);
+     else if(vehicle&&moving&&desired===clips.walk)
+      action.setEffectiveTimeScale(clamp(travelSpeed/100,.10,3));
+     else action.setEffectiveTimeScale(1);
+    }
     clips.mixer.update(Math.min(.08,dt));
    }
   }

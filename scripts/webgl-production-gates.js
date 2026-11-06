@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {buildingFacingAngle} from './webgl-scale.js';
+import {prepareBarracksAirlock} from './webgl-barracks-airlock.js';
 
 export const GATE_TIMING=Object.freeze({warning:.25,opening:1,drive:3.6,closing:1});
 const clamp=v=>Math.max(0,Math.min(1,v));
@@ -28,6 +29,7 @@ export class SandforgeProductionGates {
  }
  prepare(entry){
   if(entry.gate||!entry.detail)return entry.gate;
+  if(entry.kind==='barracks')return prepareBarracksAirlock(entry,this.battlefield.renderer);
   const door=entry.detail.getObjectByName('FactoryRollupDoor');
   if(!door)return null;
   const root=door.parent,hall=new THREE.Group();hall.name='FactoryInterior';root.add(hall);
@@ -48,7 +50,7 @@ export class SandforgeProductionGates {
  }
  reset(entry){
   const gate=entry?.gate;if(!gate)return;
-  gate.door.position.y=0;gate.door.scale.y=1;gate.hall.visible=false;gate.lamp.visible=false;
+  gate.door.position.y=0;gate.door.scale.y=1;gate.hall.visible=false;gate.lamp.visible=false;gate.dust.visible=false;
  }
  update(active=true,alpha=1){
   const bf=this.battlefield,game=this.game;
@@ -64,21 +66,27 @@ export class SandforgeProductionGates {
    const base=bases.get(event.baseId),entry=bf.bases.get(event.baseId),unit=entities.get(event.unitId);
    // No delayed replay when streaming or loading; the authoritative actor
    // remains visible if its building asset is unavailable or hidden.
-   if(!base||base.kind!=='factory'||!unit||time-event.at>.15||!entry?.node.visible||!this.prepare(entry))continue;
+   if(!base||!['factory','barracks'].includes(base.kind)||!unit||time-event.at>.15||!entry?.node.visible||!this.prepare(entry))continue;
    if(this.active.has(base.id))continue;
    entry.node.updateWorldMatrix(true,true);
    const root=entry.gate.door.parent;
-   const exit=root.localToWorld(new THREE.Vector3(.18,0,2.9));
-   const start=root.localToWorld(new THREE.Vector3(.18,.265,-.03));
+   const personnel=base.kind==='barracks';
+   const x=personnel?-.18:.18;
+   const exit=root.localToWorld(new THREE.Vector3(x,0,personnel?1.85:2.9));
+   const start=root.localToWorld(new THREE.Vector3(x,.265,personnel?.85:-.03));
    const target=bf.entityPosition(unit),center=entry.node.position;
    const exitAngle=Math.atan2(exit.x-center.x,exit.z-center.z);
    const targetAngle=Math.atan2(target.x-center.x,target.z-center.z);
    const turn=Math.abs(Math.atan2(Math.sin(targetAngle-exitAngle),Math.cos(targetAngle-exitAngle)));
-   const radius=Math.max(160,Math.hypot(exit.x-center.x,exit.z-center.z));
+   const radius=Math.max(personnel?85:160,Math.hypot(exit.x-center.x,exit.z-center.z));
    const length=start.distanceTo(exit)+turn*radius+Math.abs(radius-Math.hypot(target.x-center.x,target.z-center.z));
    // Rear-facing exits need more travel time around the footprint, rather
    // than accelerating a tank to Humvee speed to meet a fixed deadline.
-   const duration=Math.max(GATE_TIMING.drive,length/95);
+   // The real unit remains at its spawn until the exterior walk reaches it.
+   // Subsequent rally movement therefore begins without positional teleport.
+   const duration=Number.isFinite(unit.productionExitUntil)
+    ?Math.max(.75,unit.productionExitUntil-event.at-GATE_TIMING.warning-GATE_TIMING.opening)
+    :Math.max(GATE_TIMING.drive,length/(personnel?105:95));
    this.active.set(base.id,{event,duration,orders:orderKey(unit),hp:unit.hp,baseHp:base.hp});
   }
   for(const [id,state] of this.active){
@@ -90,7 +98,8 @@ export class SandforgeProductionGates {
    }
    const gate=entry.gate;
    gate.door.scale.y=1-pose.open*.96;
-   gate.door.position.y=1.48*pose.open*.96;
+   gate.door.position.y=(base.kind==='barracks'?1.06:1.48)*pose.open*.96;
+   gate.updateClip?.();
    gate.hall.visible=age>=GATE_TIMING.warning;
    gate.lamp.visible=true;
    gate.lamp.material.emissiveIntensity=(Math.sin(age*22)>0?3:.25);
@@ -104,16 +113,18 @@ export class SandforgeProductionGates {
    entry.node.updateWorldMatrix(true,true);
    // First clear the entire hull and barrel past the real threshold. Only
    // outside the gate may the actor turn toward Simulation's actual exit.
-   const outside=new THREE.Vector3(.18,0,2.9);
+   const personnel=base.kind==='barracks';
+   const x=personnel?-.18:.18,startZ=personnel?.85:-.03,exitZ=personnel?1.85:2.9;
+   const outside=new THREE.Vector3(x,0,exitZ);
    const root=gate.door.parent;
    root.localToWorld(outside);
    const target=actor.node.position.clone();
-   const clearFraction=GATE_TIMING.drive*.62/state.duration;
+   const clearFraction=Math.min(.78,(personnel?1.12:GATE_TIMING.drive*.62)/state.duration);
    let p,yaw;
    const facing=buildingFacingAngle(base.facing);
    if(fraction<clearFraction){
-    const t=smooth(fraction/clearFraction),z=-.03+2.93*t;
-    p=root.localToWorld(new THREE.Vector3(.18,z<=1.5?.265:Math.max(0,.265*(2.9-z)/1.4),z));yaw=facing;
+    const t=smooth(fraction/clearFraction),z=startZ+(exitZ-startZ)*t;
+    p=root.localToWorld(new THREE.Vector3(x,z<=(personnel?1.40:1.5)?.265:Math.max(0,.265*(exitZ-z)/(.8+(exitZ-startZ)*.2)),z));yaw=facing;
    }else{
     // Route around the footprint for every cardinal facing. The simulation's
     // legacy spawn search is independent of building rotation, so a direct
@@ -125,7 +136,7 @@ export class SandforgeProductionGates {
     const turn=Math.atan2(Math.sin(endAngle-startAngle),Math.cos(endAngle-startAngle));
     const startRadius=Math.hypot(outside.x-center.x,outside.z-center.z);
     const endRadius=Math.hypot(target.x-center.x,target.z-center.z);
-    const radius=Math.max(startRadius,160);
+    const radius=Math.max(startRadius,personnel?85:160);
     const path=q=>{
      const angle=startAngle+turn*smooth(q/.76);
      const r=q<.76?startRadius+(radius-startRadius)*smooth(q/.22):radius+(endRadius-radius)*smooth((q-.76)/.24);
@@ -161,7 +172,11 @@ export class SandforgeProductionGates {
  }
  detach(entry){
   this.reset(entry);
-  if(entry?.gate){entry.gate.lamp.material.dispose();entry.gate.lamp.removeFromParent();entry.gate.ramp.removeFromParent();entry.gate.hall.removeFromParent();delete entry.gate;}
+  if(entry?.gate){
+   if(entry.gate.cleanup)entry.gate.cleanup();
+   else {entry.gate.lamp.material.dispose();entry.gate.lamp.removeFromParent();entry.gate.ramp.removeFromParent();entry.gate.hall.removeFromParent();}
+   delete entry.gate;
+  }
  }
  dispose(){
   for(const entry of this.battlefield.bases.values()){

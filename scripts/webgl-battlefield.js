@@ -351,7 +351,7 @@ export class SandforgeBattlefield {
     entry.visualBaseY=model.position.y;entry.visualBaseZ=model.position.z;
     if(type==='building'){
      this.attachBuildingMotion(entry,data);
-     if(entry.kind==='factory')this.productionGates.prepare(entry);
+     if(entry.kind==='factory'||entry.kind==='barracks')this.productionGates.prepare(entry);
     }
     if(type==='unit'&&['tank','artillery'].includes(entry.kind))this.installTankRig(entry,model);
     if(type==='unit'&&data.animations.length){

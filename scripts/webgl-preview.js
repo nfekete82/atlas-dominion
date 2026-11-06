@@ -953,10 +953,14 @@ function animate(now){
  if(running){
   accumulator=Math.min(accumulator+dt,.20);
   let steps=0;while(accumulator>=.05&&steps<4){game.step(.05);constructionRecovery.tick();accumulator-=.05;steps++;}
-  battlefield.sync(false,dt);
  }
- if(!running)battlefield.sync(false,dt);
+ // Report *only* authoritative simulation CPU time. Previously this metric
+ // included all actor/GLTF synchronization and obscured the true bottleneck.
  if(performanceWatch.enabled)performanceWatch.simulation(performance.now()-beforeSteps);
+ // The simulator stores previous/current 20 Hz positions. Blend them with the
+ // remaining accumulator for actual high-refresh interpolation; alpha=1
+ // previously caused every unit to visibly hop one physics tick per frame.
+ battlefield.sync(false,dt,running,running?Math.max(0,Math.min(1,accumulator/.05)):1);
  if(running)groundTracks.capture();
  groundTracks.update(dt,running);
  battlefield.updateCommandPulse(dt);
