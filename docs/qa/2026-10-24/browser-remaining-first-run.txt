@@ -1,0 +1,102 @@
+
+> test
+> playwright test --config=reborn.config.mjs --grep-invert combined arms:|layout:|radio:|polish:|defense map:|support HUD:|overhaul:|tactical AI:|campaign:|combat:|vehicle art:|combat presentation:|capture:|reborn: complete browser loop|reborn: minimap drag|reborn: readable translucent
+
+[WebServer] (node:91688) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 20 tests using 1 worker
+
+(node:91689) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 reborn.spec.mjs:86:1 › reborn: hidden enemies leave no main-map or minimap pixels, and terrain stays remembered (1.4s)
+  ✓   2 reborn.spec.mjs:101:1 › reborn: compact viewport, instructions, pause and new campaign preserve a usable playfield (1.7s)
+  ✓   3 reborn.spec.mjs:110:1 › reborn: sound unlocks on interaction, produces an audio signal and preserves volume/mute settings (2.0s)
+  ✓   4 reborn.spec.mjs:124:1 › reborn: finer terrain, directional animation, grounded drawing and automatic retaliation render in the browser (990ms)
+  ✓   5 reborn.spec.mjs:145:1 › reborn: the headquarters black spot and the ground beneath infantry remain visible on both maps (930ms)
+  ✓   6 reborn.spec.mjs:160:1 › reborn: detailed cliff artwork and navigation occupy the same terrain (844ms)
+  ✓   7 reborn.spec.mjs:169:1 › reborn: capture beacons emit white when neutral and saturated team colors after ownership changes (824ms)
+  ✓   8 reborn.spec.mjs:191:1 › reborn: infantry poses stay grounded without detached neighboring weapon fragments (855ms)
+  ✘   9 reborn.spec.mjs:224:1 › reborn: captured bastion keeps both maps lit after infantry leaves and marching guards initiate combat (2.2s)
+(node:91829) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  10 reborn.spec.mjs:249:1 › reborn: unit-focused HUD stays compact at bottom left and trains heavy infantry without construction (2.8s)
+  ✓  11 reborn.spec.mjs:269:1 › reborn: headquarters catalog produces all six vehicles and aircraft with distinct sprites and working movement (3.0s)
+  ✓  12 reborn.spec.mjs:285:1 › reborn: authored shadows, slow base activity and subtle sand drift stay grounded and pause with simulation time (1.2s)
+  ✓  13 reborn.spec.mjs:314:1 › reborn: animation laboratory visibly exercises all six scenarios with real state transitions and optional particles (4.5s)
+  ✓  14 reborn.spec.mjs:330:1 › model study: exported GLB loads real animated geometry, supports five clips, orbit controls and faction selection (4.1s)
+  ✓  15 reborn.spec.mjs:349:1 › model study: sprite comparison shows the adopted infantry in eight real directions and all five states (732ms)
+  ✓  16 reborn.spec.mjs:358:1 › atlas models: approved infantry and real building renders are active with fixed ground shadows (1.1s)
+  ✓  17 reborn.spec.mjs:372:1 › atlas models: refined headquarters preserves the edited surfaces and moves its added radar details in both factions (1.3s)
+  ✘  18 reborn.spec.mjs:387:1 › atlas models: all seven building models load in the gallery and radar motion keeps the foundation fixed (1.1s)
+(node:92020) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  19 reborn.spec.mjs:556:1 › model gallery: vehicles and aircraft are selectable as real 3D GLBs (587ms)
+  ✓  20 reborn.spec.mjs:587:1 › infantry: exported wrist sockets retain both grips through every clip and intermediate pose for both factions (620ms)
+
+
+  1) reborn.spec.mjs:224:1 › reborn: captured bastion keeps both maps lit after infantry leaves and marching guards initiate combat
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+        "blueHp": 100,
+        "firstAttacker": null,
+        "orders": 2,
+    -   "redHp": 83,
+    +   "redHp": 94.33333333333333,
+        "shots": 1,
+      }
+
+      243 |    return {blueHp:blue.hp,redHp:red.hp,firstAttacker:blue.lastAttacker,orders:blue.orders.length,shots:g.shots.filter(s=>s.owner===0).length};
+      244 |  });
+    > 245 |  expect(combat).toEqual({blueHp:100,redHp:83,firstAttacker:null,orders:2,shots:1});
+          |                 ^
+      246 | });
+      247 |
+      248 |
+        at <PROJECT>/tests/browser/reborn.spec.mjs:245:17
+
+    Error Context: artifacts/reborn/reborn-reborn-captured-bas-5d37c-hing-guards-initiate-combat/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    artifacts/reborn/reborn-reborn-captured-bas-5d37c-hing-guards-initiate-combat/trace.zip
+    Usage:
+
+        npx playwright show-trace artifacts/reborn/reborn-reborn-captured-bas-5d37c-hing-guards-initiate-combat/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) reborn.spec.mjs:387:1 › atlas models: all seven building models load in the gallery and radar motion keeps the foundation fixed
+
+    Error: expect(received).toContain(expected) // indexOf
+
+    Expected value: "BeaconPulse"
+    Received array: ["TurretTraverse"]
+
+      389 |  for(const kind of ['headquarters','bastion','barracks','factory','airfield','generator','turret']){
+      390 |   await page.locator('#model').selectOption(kind);await page.waitForFunction(kind=>window.__model3D?.current?.getObjectByName('Atlas_'+kind),kind);await expect(page.locator('#error')).toHaveText('');await expect(page.locator('#download')).toHaveAttribute('href','/src/assets/reborn/buildings-3d/'+kind+'-0.glb');
+    > 391 |   const info=await page.evaluate(()=>{const v=window.__model3D;return {clips:v.data.animations.map(c=>c.name),parts:(()=>{let n=0;v.current.traverse(p=>{if(p.isMesh)n++;});return n;})()};});expect(info.parts).toBeGreaterThanOrEqual(14);expect(info.clips).toContain('BeaconPulse');
+          |                                                                                                                                                                                                                                                                ^
+      392 |   if(['headquarters','bastion'].includes(kind)){
+      393 |    const motion=await page.evaluate(()=>{const v=window.__model3D;v.pause();v.play('Operation');v.mixer.setTime(0);v.current.updateMatrixWorld(true);const radar=v.current.getObjectByName('RadarDish'),fixed=v.current.getObjectByName('Atlas_'+v.kind),before=fixed.matrixWorld.toArray(),angle=radar.quaternion.toArray();v.mixer.setTime(12);v.current.updateMatrixWorld(true);v.render();return {before,after:fixed.matrixWorld.toArray(),angle,next:radar.quaternion.toArray()};});expect(motion.after).toEqual(motion.before);expect(motion.next).not.toEqual(motion.angle);
+      394 |    if(kind==='bastion'){await page.locator('#neutral').click();await expect(page.locator('#neutral')).toHaveAttribute('aria-pressed','true');const emission=await page.evaluate(()=>{const colors=[];window.__model3D.current.traverse(n=>{if(n.isMesh&&n.material.name==='Atlas faction emission')colors.push(n.material.emissive.toArray());});return colors;});expect(emission.length).toBeGreaterThan(0);expect(emission.every(c=>Math.abs(c[0]-c[1])<.001&&Math.abs(c[0]-c[2])<.001)).toBe(true);}
+        at <PROJECT>/tests/browser/reborn.spec.mjs:391:256
+
+    Error Context: artifacts/reborn/reborn-atlas-models-all-se-5195c--keeps-the-foundation-fixed/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    artifacts/reborn/reborn-atlas-models-all-se-5195c--keeps-the-foundation-fixed/trace.zip
+    Usage:
+
+        npx playwright show-trace artifacts/reborn/reborn-atlas-models-all-se-5195c--keeps-the-foundation-fixed/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    reborn.spec.mjs:224:1 › reborn: captured bastion keeps both maps lit after infantry leaves and marching guards initiate combat
+    reborn.spec.mjs:387:1 › atlas models: all seven building models load in the gallery and radar motion keeps the foundation fixed
+  18 passed (36.1s)

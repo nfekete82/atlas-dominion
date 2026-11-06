@@ -1,0 +1,82 @@
+name: Sandforge WebGL3D playable RTS
+on:
+  push:
+    branches: [feat/sandforge-webgl3d-gameplay-20261103]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: webgl-gameplay-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    name: Three.js runtime + gameplay and save tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - run: npm ci --no-audit --no-fund
+      - name: Validate all WebGL JavaScript syntax
+        run: |
+          node --check scripts/webgl-preview.js
+          node --check scripts/webgl-title-menu.js
+          node --check scripts/webgl-battlefield.js
+          node --check scripts/webgl-actor-presentation.js
+          node --check scripts/webgl-environment.js
+          node --check scripts/webgl-combat-vfx.js
+          node --check scripts/webgl-portraits.js
+          node --check scripts/webgl-perimeter.js
+          node --check scripts/webgl-edge-cliffs.js
+          node --check scripts/webgl-grounding.js
+          node --check scripts/webgl-construction.js
+          node --check scripts/webgl-construction-recovery.js
+          node --check scripts/webgl-scale.js
+          node --check scripts/webgl-health.js
+      - run: npm run build
+      - name: Validate actual 3D models, 2D simulation reuse and saved Canyon maps
+        run: >-
+          node --test
+          tests/sandforge-webgl-playable.test.mjs
+          tests/sandforge-webgl-preview.test.mjs
+          tests/sandforge-canyon-front.test.mjs
+          tests/sandforge-canyon-models.test.mjs
+          tests/sandforge-webgl-server.test.mjs
+          tests/sandforge-webgl-combat-vfx.test.mjs
+          tests/sandforge-webgl-visual-parity.test.mjs
+  visual:
+    name: Chromium · playable WebGL3D graphics and economy
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix tests/browser --no-audit --no-fund
+          cd tests/browser
+          npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Real live browser clicks, simulation, save/resume and screenshot
+        env:
+          ATLAS_BROWSER_CHANNEL: chromium
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: cd tests/browser && npx playwright test webgl-playable.spec.mjs webgl-combat-vfx.spec.mjs webgl-perimeter-navigation.spec.mjs webgl-actor-presentation.spec.mjs webgl-title-menu.spec.mjs webgl-visual-parity.spec.mjs webgl-classic-parity.spec.mjs webgl-fog-alignment.spec.mjs webgl-construction-audio.spec.mjs --config=playwright.config.mjs
+      - name: Store real WebGL screenshot and browser trace
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandforge-webgl-playable-screenshot
+          path: tests/browser/artifacts/
+          retention-days: 21

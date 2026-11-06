@@ -1,0 +1,76 @@
+name: Publish centered transparent Sandforge logo
+
+on:
+  push:
+    branches: [feat/sandforge-brand-recovery-20261027]
+    paths:
+      - .github/workflows/publish-centered-sandforge-logo.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  logo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install image tooling
+        run: python3 -m pip install --break-system-packages --quiet pillow numpy
+      - name: Extract clean alpha logo from the supplied Sandforge design
+        run: python3 scripts/make-transparent-sandforge-logo.py
+      - name: Build and verify no regression in game logic
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+          node --test tests/reborn-animation.test.mjs tests/reborn-premium-legionnaire.test.mjs
+      - name: Inspect actual shipped logo transparency
+        run: |
+          python3 - <<'PY'
+          from PIL import Image
+          import numpy as np
+          import os
+          path='dist/src/assets/reborn/sandforge-logo-transparent.webp'
+          assert os.path.exists(path)
+          image=Image.open(path).convert('RGBA')
+          pixels=np.array(image)
+          h,w=pixels.shape[:2]
+          alpha=pixels[:,:,3]
+          assert (alpha[0]==0).all() and (alpha[-1]==0).all()
+          assert (alpha[:,0]==0).all() and (alpha[:,-1]==0).all()
+          assert np.mean(alpha==0) > .08, 'Logo still has an opaque dark rectangle'
+          assert np.mean(alpha==255) > .08, 'Metallic title should remain opaque'
+          print('Transparent logo verified',w,h,'alpha-zero',round(float(np.mean(alpha==0)),3))
+          PY
+      - name: Install browser test dependencies
+        run: |
+          npm ci --prefix tests/browser --no-audit --no-fund
+          cd tests/browser && npx playwright install --with-deps chromium
+      - name: Test full-screen center layout and campaign entry
+        env:
+          CI: true
+          ATLAS_BROWSER_CHANNEL: chromium
+        run: cd tests/browser && npx playwright test --config playwright.config.mjs sandforge-title-menu.spec.mjs --reporter=line
+      - name: Commit true-alpha logo asset
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- src/assets/reborn/sandforge-logo-transparent.webp
+          if git diff --cached --quiet; then
+            echo 'Logo unchanged'
+            exit 0
+          fi
+          git diff --cached --check
+          git commit -m 'assets(brand): bake alpha-only floating Sandforge logo'
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

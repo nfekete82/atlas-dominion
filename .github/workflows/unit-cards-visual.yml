@@ -1,0 +1,30 @@
+name: Unit card visual regression
+on:
+  push:
+    branches: [feat/desert-unit-cards-clean-minimap-20261026]
+permissions:
+  contents: read
+jobs:
+  cards:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install game and browser tools
+        run: |
+          npm install --no-audit --no-fund
+          npm ci --prefix tests/browser --no-audit --no-fund
+          cd tests/browser
+          npx playwright install --with-deps chromium
+      - name: Build and run focused catalog/minimap browser test
+        env:
+          ATLAS_BROWSER_CHANNEL: chromium
+        run: |
+          npm run build
+          cd tests/browser
+          npx playwright test --config=reborn.config.mjs reborn.spec.mjs --grep "unit portraits use subtle desert texture"

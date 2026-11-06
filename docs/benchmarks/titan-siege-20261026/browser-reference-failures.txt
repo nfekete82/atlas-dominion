@@ -1,0 +1,213 @@
+
+Running 5 tests using 1 worker
+
+(node:40178) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 reborn-polish.spec.mjs:8:1 › polish: live rifle bursts use warm muzzle sockets and short travelling tracers, actual shot audio, pause and settings (47.2s)
+(node:40527) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 reborn.spec.mjs:127:1 › reborn: finer terrain, directional animation, grounded drawing and automatic retaliation render in the browser (2.1s)
+(node:40578) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 reborn.spec.mjs:227:1 › reborn: captured bastion keeps both maps lit after infantry leaves and marching guards initiate combat (2.5s)
+(node:40625) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  4 reborn.spec.mjs:408:1 › campaign: real new-game input generates a different reachable map and save/load restores the previous terrain and minimap (2.8s)
+(node:40705) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  5 reborn.spec.mjs:423:1 › combat: approaching enemies receive immediate fire and a second attacker does not steal the first target (2.0s)
+
+
+  1) reborn-polish.spec.mjs:8:1 › polish: live rifle bursts use warm muzzle sockets and short travelling tracers, actual shot audio, pause and settings 
+
+    Test timeout of 45000ms exceeded.
+
+    Error: locator.click: Test timeout of 45000ms exceeded.
+    Browser logs:
+
+    <launching> /Applications/Google Chrome.app/Contents/MacOS/Google Chrome --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,NetworkTimeServiceQuerying,AimEnabled,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/33/0q5pt4f53vsb1cxdgl0q__gc0000gn/T/playwright_chromiumdev_profile-6NR5wW --remote-debugging-pipe --no-startup-window
+    <launched> pid=40191
+    [pid=40191][err] Trying to load the allocator multiple times. This is *not* supported.
+    [pid=40191][err] [40197:12942494:1026/133628.931961:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=40191][err] [40197:12942563:1026/133628.932603:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=40191][err] [40197:12942494:1026/133628.933810:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=40191][err] [40197:12942563:1026/133628.933858:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=40191][err] [40197:12942494:1026/133628.934403:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=40191][err] [40197:12942563:1026/133628.934449:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=40191][err] [40197:12942494:1026/133628.934759:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=40191][err] [40197:12942563:1026/133628.934808:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=40191][err] [40197:12942494:1026/133628.934909:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=40191][err] [40197:12942563:1026/133628.934949:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+    [pid=40191][err] [40204:12942675:1026/133629.801462:ERROR:sandbox/mac/system_services.cc:31] SetApplicationIsDaemon: Error Domain=NSOSStatusErrorDomain Code=-50 "paramErr: error in user parameter list" (-50)
+    [pid=40191][err] [40191:12942477:1026/133631.195592:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: PHONE_REGISTRATION_ERROR
+    [pid=40191][err] [40191:12942477:1026/133631.317320:ERROR:google_apis/gcm/engine/mcs_client.cc:702]   Error code: 401  Error message: Authentication Failed: wrong_secret
+    [pid=40191][err] [40191:12942477:1026/133631.317329:ERROR:google_apis/gcm/engine/mcs_client.cc:704] Failed to log in to GCM, resetting connection.
+    [pid=40191][err] [40191:12942477:1026/133657.221516:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+    [pid=40191] <gracefully close start>
+    Call log:
+      - waiting for locator('#sound')
+        - locator resolved to <button id="sound" aria-expanded="false" title="Sound und Optionen" aria-controls="audio-panel" aria-label="Sound und Lautstärke">…</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div role="status" id="pause-label">…</div> intercepts pointer events
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div role="status" id="pause-label">…</div> intercepts pointer events
+        - retrying click action
+          - waiting 100ms
+        86 × waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - <div role="status" id="pause-label">…</div> intercepts pointer events
+         - retrying click action
+           - waiting 500ms
+        - waiting for element to be visible, enabled and stable
+
+
+      32 |  });
+      33 |  expect(new Set(Object.values(suppressed)).size).toBe(1);
+    > 34 |  await page.locator('#sound').click();await page.locator('#audio-volume').fill('25');await expect(page.locator('#audio-level')).toHaveText('25 %');await page.locator('#particles-enabled').uncheck();
+         |                               ^
+      35 |  expect(await page.evaluate(()=>({volume:window.__reborn.audio.volume,particles:window.__reborn.renderer.units.particles.enabled}))).toEqual({volume:.25,particles:false});expect(errors).toEqual([]);
+      36 | });
+      37 |
+        at /Users/norbertfekete/Projects/atlas-dominion/tests/browser/reborn-polish.spec.mjs:34:31
+
+    Error Context: artifacts/reborn/reborn-polish-polish-live--88b48-ot-audio-pause-and-settings/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    artifacts/reborn/reborn-polish-polish-live--88b48-ot-audio-pause-and-settings/trace.zip
+    Usage:
+
+        npx playwright show-trace artifacts/reborn/reborn-polish-polish-live--88b48-ot-audio-pause-and-settings/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) reborn.spec.mjs:127:1 › reborn: finer terrain, directional animation, grounded drawing and automatic retaliation render in the browser 
+
+    Error: expect(received).toBeLessThan(expected)
+
+    Expected: < 100
+    Received:   100
+
+      140 |   return {blueHp:blue.hp,redHp:red.hp,orders:blue.orders.length,angle:blue.angle,changed,groundFills,groundShadows,clear,opaque,pixels:atlas.width*atlas.height,terrain:r.terrain.src,grid:g.world.blocked.length};
+      141 |  });
+    > 142 |  expect(result.blueHp).toBeLessThan(100);expect(result.redHp).toBeLessThan(100);expect(result.orders).toBe(1);
+          |                                                               ^
+      143 |  expect(result.changed).toBeGreaterThan(100);expect(result.groundFills).toBe(0);expect(result.groundShadows).toBe(0);
+      144 |  expect(result.clear/result.pixels).toBeGreaterThan(.35);expect(result.opaque/result.pixels).toBeGreaterThan(.04);expect(result.terrain).toContain('desert-fine.png');expect(result.grid).toBe(240*240);
+      145 |  await page.screenshot({path:evidence+'polish-combat.png'});
+        at /Users/norbertfekete/Projects/atlas-dominion/tests/browser/reborn.spec.mjs:142:63
+
+    Error Context: artifacts/reborn/reborn-reborn-finer-terrai-0d3a4-ation-render-in-the-browser/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    artifacts/reborn/reborn-reborn-finer-terrai-0d3a4-ation-render-in-the-browser/trace.zip
+    Usage:
+
+        npx playwright show-trace artifacts/reborn/reborn-reborn-finer-terrai-0d3a4-ation-render-in-the-browser/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) reborn.spec.mjs:227:1 › reborn: captured bastion keeps both maps lit after infantry leaves and marching guards initiate combat 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 2
+
+      Object {
+        "blueHp": 100,
+        "firstAttacker": null,
+        "orders": 2,
+    -   "redHp": 94.33333333333333,
+    -   "shots": 1,
+    +   "redHp": 100,
+    +   "shots": 0,
+      }
+
+      246 |    return {blueHp:blue.hp,redHp:red.hp,firstAttacker:blue.lastAttacker,orders:blue.orders.length,shots:g.shots.filter(s=>s.owner===0).length};
+      247 |  });
+    > 248 |  expect(combat).toEqual({blueHp:100,redHp:100-17/3,firstAttacker:null,orders:2,shots:1});
+          |                 ^
+      249 |  await advance(page,.15);expect(await page.evaluate(()=>window.__reborn.game.units.find(u=>u.owner===1).hp)).toBeCloseTo(83,8);
+      250 | });
+      251 |
+        at /Users/norbertfekete/Projects/atlas-dominion/tests/browser/reborn.spec.mjs:248:17
+
+    Error Context: artifacts/reborn/reborn-reborn-captured-bas-5d37c-hing-guards-initiate-combat/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    artifacts/reborn/reborn-reborn-captured-bas-5d37c-hing-guards-initiate-combat/trace.zip
+    Usage:
+
+        npx playwright show-trace artifacts/reborn/reborn-reborn-captured-bas-5d37c-hing-guards-initiate-combat/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) reborn.spec.mjs:408:1 › campaign: real new-game input generates a different reachable map and save/load restores the previous terrain and minimap 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      416 |  await openMenu(page);await page.locator('#save').click();await expect(page.locator('#notices')).toContainText('Kampagne lokal gespeichert');
+      417 |  await newCampaign(page);await page.locator('#new-dialog [value="new"]').click();await expect.poll(()=>page.evaluate(()=>window.__reborn.game.seed)).not.toBe(before.seed);const after=await snapshot();
+    > 418 |  expect(after.seed).not.toBe(before.seed);expect(after.sites).not.toEqual(before.sites);expect(after.terrain).not.toBe(before.terrain);expect(after.mini).not.toBe(before.mini);expect(after.reachable).toBe(true);expect(after.spaced).toBe(true);
+          |                                                                                                                                                                                                                                         ^
+      419 |  await openMenu(page);await page.locator('#load').click();await expect(page.locator('#notices')).toContainText('Kampagne geladen');const restored=await snapshot();expect(restored).toEqual(before);
+      420 |  await page.screenshot({path:evidence+'random-campaign.png'});expect(errors).toEqual([]);
+      421 | });
+        at /Users/norbertfekete/Projects/atlas-dominion/tests/browser/reborn.spec.mjs:418:233
+
+    Error Context: artifacts/reborn/reborn-campaign-real-new-g-14820-revious-terrain-and-minimap/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    artifacts/reborn/reborn-campaign-real-new-g-14820-revious-terrain-and-minimap/trace.zip
+    Usage:
+
+        npx playwright show-trace artifacts/reborn/reborn-campaign-real-new-g-14820-revious-terrain-and-minimap/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) reborn.spec.mjs:423:1 › combat: approaching enemies receive immediate fire and a second attacker does not steal the first target 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 6
+    Received: null
+
+      430 |   return {blue:blue.id,first:a.id,second:b.id,target:blue.combatTarget,attacker:blue.lastAttacker,hp:[a.hp,b.hp]};
+      431 |  });
+    > 432 |  expect(first.target).toBe(first.first);expect(first.attacker).toBe(first.second);expect(first.hp).toEqual([60,100]);
+          |                       ^
+      433 |  await advance(page,.2);
+      434 |  const next=await page.evaluate(()=>{const g=window.__reborn.game;return {survivors:g.units.filter(u=>u.owner===1).map(u=>u.id),hp:g.units.find(u=>u.owner===1).hp,blue:g.units.find(u=>u.owner===0).hp,orders:g.units.find(u=>u.owner===0).orders.length};});
+      435 |  expect(next.survivors).toEqual([first.second]);expect(next.hp).toBe(100);expect(next.blue).toBeGreaterThan(0);expect(next.orders).toBe(2);
+        at /Users/norbertfekete/Projects/atlas-dominion/tests/browser/reborn.spec.mjs:432:23
+
+    Error Context: artifacts/reborn/reborn-combat-approaching--0be78--not-steal-the-first-target/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    artifacts/reborn/reborn-combat-approaching--0be78--not-steal-the-first-target/trace.zip
+    Usage:
+
+        npx playwright show-trace artifacts/reborn/reborn-combat-approaching--0be78--not-steal-the-first-target/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5 failed
+    reborn-polish.spec.mjs:8:1 › polish: live rifle bursts use warm muzzle sockets and short travelling tracers, actual shot audio, pause and settings 
+    reborn.spec.mjs:127:1 › reborn: finer terrain, directional animation, grounded drawing and automatic retaliation render in the browser 
+    reborn.spec.mjs:227:1 › reborn: captured bastion keeps both maps lit after infantry leaves and marching guards initiate combat 
+    reborn.spec.mjs:408:1 › campaign: real new-game input generates a different reachable map and save/load restores the previous terrain and minimap 
+    reborn.spec.mjs:423:1 › combat: approaching enemies receive immediate fire and a second attacker does not steal the first target 

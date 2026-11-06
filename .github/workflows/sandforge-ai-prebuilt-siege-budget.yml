@@ -1,0 +1,19 @@
+name: Sandforge AI prebuilt siege rocket budget
+on:
+  push:
+    branches:
+      - feat/sandforge-ai-prebuilt-siege-artillery-budget-20261102
+permissions:
+  contents: read
+jobs:
+  reservation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node --test tests/sandforge-ai-prebuilt-siege-reserve.test.mjs tests/reborn-tactical-ai-49-early-artillery.test.mjs tests/reborn-tactical-ai-42-siege.test.mjs tests/sandforge-ai-artillery-diagnostics.test.mjs

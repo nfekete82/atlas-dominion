@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-30",
+  "base": "fix/sandforge-static-props-stay-visible-20261030",
+  "baseCommit": "7d403e180a7b45478e272ce0077eb075b598b5d9",
+  "branch": "feat/sandforge-hq-bootstrap-radar-offline-20261030",
+  "build": "passed",
+  "targetedNode": {"passed": 61, "failed": 0},
+  "fullNode": {
+    "total": 945,
+    "passed": 943,
+    "failed": 1,
+    "skipped": 1,
+    "existingFailure": "reborn-palm-knockdown: occupied tree slots hide without collisions, falling silhouettes or movement changes",
+    "baselineConfirmed": true,
+    "skippedTest": "premium infantry binary version is unavailable in this checkout",
+    "httpTest": "passed with permission to bind a local server"
+  },
+  "playwright": {"passed": 13, "failed": 0},
+  "aiOpeningStress": {"scenarios": 100, "mapVersions": [11, 12, 13, 14], "headquartersCompletedWithin50Seconds": 100, "failures": []},
+  "headquarters": {"cost": 300, "buildTime": 20, "regionRadius": "min(600, world.size/6)", "usesOrdinaryConstruction": true},
+  "saveCompatibility": "Version 2 envelope preserved; optional bootstrapVersion:1 marks HQ-less campaigns; old saves retain legacy HQ/radar behavior",
+  "unchanged": ["GLB and sprite assets", "prop visibility around units", "navigation and collision rules", "terrain generation", "building facing controls"]
+}

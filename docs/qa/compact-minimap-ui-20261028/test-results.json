@@ -1,0 +1,69 @@
+{
+  "stats": {
+    "startTime": "2026-10-28T10:54:50.109Z",
+    "duration": 228530.69,
+    "expected": 71,
+    "skipped": 0,
+    "unexpected": 9,
+    "flaky": 0
+  },
+  "failures": [
+    {
+      "file": "reborn-overhaul.spec.mjs",
+      "test": "overhaul: compact real turret heads track and fire from their registered muzzles in both factions; all faction/role atlases load",
+      "error": "Error: tank/0 faction area\n\nexpect(received).toBeGreaterThan(expected)\n\nExpected: > 0.06\nReceived:   0.02144987382427162"
+    },
+    {
+      "file": "reborn-polish.spec.mjs",
+      "test": "polish: live rifle bursts use warm muzzle sockets and short travelling tracers, actual shot audio, pause and settings",
+      "error": "Test timeout of 45000ms exceeded."
+    },
+    {
+      "file": "reborn.spec.mjs",
+      "test": "reborn: finer terrain, directional animation, grounded drawing and automatic retaliation render in the browser",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 1\nReceived: 0"
+    },
+    {
+      "file": "reborn.spec.mjs",
+      "test": "reborn: infantry poses stay grounded without detached neighboring weapon fragments",
+      "error": "Error: expect(received).toBeGreaterThan(expected)\n\nExpected: > 70\nReceived:   62"
+    },
+    {
+      "file": "reborn.spec.mjs",
+      "test": "reborn: captured bastion keeps both maps lit after infantry leaves and marching guards initiate combat",
+      "error": "Error: expect(received).toEqual(expected) // deep equality\n\n- Expected  - 2\n+ Received  + 2\n\n  Object {\n    \"blueHp\": 100,\n    \"firstAttacker\": null,\n    \"orders\": 2,\n-   \"redHp\": 94.33333333333333,\n-   \"shots\": 1,\n+   \"redHp\": 100,\n+   \"shots\": 0,\n  }"
+    },
+    {
+      "file": "reborn.spec.mjs",
+      "test": "combat: approaching enemies receive immediate fire and a second attacker does not steal the first target",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 6\nReceived: null"
+    },
+    {
+      "file": "reborn.spec.mjs",
+      "test": "vehicle art: the full roster has real faction materials, baked shadows, animated running gear and visible turret/barrel layers",
+      "error": "Error: expect(received).toBeGreaterThan(expected)\n\nExpected: > 60\nReceived:   0"
+    },
+    {
+      "file": "reborn.spec.mjs",
+      "test": "reborn: readable retro desert field HUD at the standard desktop viewport",
+      "error": "Error: expect(received).toBeGreaterThanOrEqual(expected)\n\nExpected: >= 15\nReceived:    14"
+    },
+    {
+      "file": "reborn.spec.mjs",
+      "test": "reborn: unit portraits use subtle desert texture, aligned single-line name and cost; minimap compass stays uncluttered",
+      "error": "Error: expect(locator).toHaveCount(expected) failed\n\nLocator:  locator('#catalog-units .catalog-card')\nExpected: 10\nReceived: 9\nTimeout:  5000ms\n\nCall log:\n  - Expect \"toHaveCount\" locator('#catalog-units .catalog-card') with timeout 5000ms\n  - waiting for locator('#catalog-units .catalog-card')\n    14 × locator resolved to 9 elements\n       - unexpected value \"9\"\n"
+    }
+  ],
+  "previousFailureEvidence": "../transport-helicopter-20261028/test-results.json",
+  "note": "Desktop tab font restored to 15px. Final 22 targeted browser tests passed. Desktop HUD recheck now reaches the pre-existing repeating-linear-gradient expectation; see previous failure evidence.",
+  "finalTargetedBrowser": {
+    "passed": 22,
+    "failed": 0,
+    "server": "Docker http://127.0.0.1:8095/"
+  },
+  "finalDesktopHudRecheck": {
+    "test": "reborn: readable retro desert field HUD at the standard desktop viewport",
+    "status": "unexpected",
+    "error": "Error: expect(received).toContain(expected) // indexOf\n\nExpected substring: \"repeating-linear-gradient(\"\nReceived string:    \"linear-gradient(155deg, rgba(7, 25, 37, 0.69), rgba(4, 16, 26, 0.66))\""
+  }
+}

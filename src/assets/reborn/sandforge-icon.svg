@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Sandforge: Bastion Wars">
+<defs><linearGradient id="gold" x2=".15" y2="1"><stop stop-color="#ffe8a2"/><stop offset=".48" stop-color="#dfb765"/><stop offset="1" stop-color="#85602f"/></linearGradient></defs>
+<path d="M32 2 59 12v28L32 62 5 40V12Z" fill="#091925" stroke="url(#gold)" stroke-width="4"/>
+<path d="M13 18h38v7H13zM18 10h8v8h-8zm20 0h8v8h-8z" fill="#b99353"/>
+<path d="M13 33 24 24 32 32 40 24 51 33 51 39 32 51 13 39Z" fill="#173c5c" stroke="#d4ae6b" stroke-width="2"/>
+<path d="M32 21v22M21 32h22" stroke="#ffe1a0" stroke-width="3"/><path d="m32 19 3 13-3 13-3-13Z" fill="url(#gold)"/>
+</svg>

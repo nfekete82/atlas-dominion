@@ -1,0 +1,28 @@
+name: Sandforge Tactical AI 3.0 - learning and overrun
+on:
+  push:
+    branches:
+      - feat/sandforge-tactical-ai-30-*
+  pull_request:
+    paths:
+      - 'src/reborn/battle-learning.ts'
+      - 'src/reborn/tactical-ai.ts'
+      - 'tests/reborn-tactical-ai-30.test.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  learning:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Targeted AI 3.0 and AI 2.5 regression
+        run: node --test tests/reborn-tactical-ai-30.test.mjs tests/reborn-tactical-ai-25.test.mjs tests/reborn-tactical-ai-24.test.mjs tests/reborn-commander.test.mjs tests/reborn-combat-missions.test.mjs
+      - name: Full node suite
+        run: npm test

@@ -1,0 +1,32 @@
+{
+  "/": {
+    "status": 200
+  },
+  "/model-3d.html?model=artillery": {
+    "status": 200
+  },
+  "/src/assets/reborn/animation/artillery-0.glb": {
+    "status": 200,
+    "matchesSource": true
+  },
+  "/src/assets/reborn/animation/artillery-1.glb": {
+    "status": 200,
+    "matchesSource": true
+  },
+  "/src/assets/reborn/animation/artillery-0.png": {
+    "status": 200,
+    "matchesSource": true
+  },
+  "/src/assets/reborn/animation/artillery-1.png": {
+    "status": 200,
+    "matchesSource": true
+  },
+  "/src/assets/reborn/animation/artillery-0.json": {
+    "status": 200,
+    "matchesSource": true
+  },
+  "/src/assets/reborn/animation/artillery-1.json": {
+    "status": 200,
+    "matchesSource": true
+  }
+}

@@ -1,0 +1,493 @@
+{
+  "version": 1,
+  "language": "de-DE",
+  "format": "PCM signed 16-bit, mono, 24000 Hz",
+  "engine": "Qwen3-TTS-12Hz-1.7B-CustomVoice-6bit / MLX Audio",
+  "modelSnapshot": "1c6c0ff58c43afa8df571facde2efa077efd85e2",
+  "profiles": {
+    "soldier": {
+      "speaker": "Ryan",
+      "instruction": "Speak German naturally as a professional soldier over a radio: brief, firm, precise, slightly rough but clear. Normal pitch. Restrained, no theatrical shouting."
+    },
+    "crew": {
+      "speaker": "Aiden",
+      "instruction": "Speak German naturally as an experienced armored vehicle crew commander: steady, confident, a slightly lower natural register, clear and concise. No exaggerated bass, no shouting."
+    },
+    "support": {
+      "speaker": "Serena",
+      "instruction": "Speak German naturally as a calm professional field specialist: composed, decisive, concise and clearly articulated, never a computer announcement."
+    }
+  },
+  "clips": [
+    {
+      "id": "soldier-move-01",
+      "profile": "soldier",
+      "group": "move",
+      "text": "Verstanden!",
+      "file": "soldier-move-01.wav",
+      "duration": 0.7935,
+      "speaker": "Ryan",
+      "sha256": "04a3e34a81ab77caca07eaa90640ee18238886a7f8a50bb12a53ece32e4b21c1"
+    },
+    {
+      "id": "soldier-move-02",
+      "profile": "soldier",
+      "group": "move",
+      "text": "Bin unterwegs!",
+      "file": "soldier-move-02.wav",
+      "duration": 1.4343,
+      "speaker": "Ryan",
+      "sha256": "a03dc5332933ea0ece86cd7b3e7b84cd9f26ce5da745300c2fbbc006628a155e"
+    },
+    {
+      "id": "soldier-move-03",
+      "profile": "soldier",
+      "group": "move",
+      "text": "Aye, aye, Sir!",
+      "file": "soldier-move-03.wav",
+      "duration": 1.3413,
+      "speaker": "Ryan",
+      "sha256": "3ec26e1ab922e969c037fa4d2f66cdda20a836e1ff620775307fe4856e027e72"
+    },
+    {
+      "id": "soldier-move-04",
+      "profile": "soldier",
+      "group": "move",
+      "text": "Wird ausgeführt!",
+      "file": "soldier-move-04.wav",
+      "duration": 3.8342,
+      "speaker": "Ryan",
+      "sha256": "205fb03d642b391c9103e30945e92be20a160e0621294b3cca975f125a7a9af0"
+    },
+    {
+      "id": "soldier-move-05",
+      "profile": "soldier",
+      "group": "move",
+      "text": "Auf dem Weg!",
+      "file": "soldier-move-05.wav",
+      "duration": 2.0736,
+      "speaker": "Ryan",
+      "sha256": "cd30ea1cc3a5560125c3c7c52fa1e61f9d19f312971a7f2aaccbc5c5e9d6096c"
+    },
+    {
+      "id": "soldier-move-06",
+      "profile": "soldier",
+      "group": "move",
+      "text": "Jawohl!",
+      "file": "soldier-move-06.wav",
+      "duration": 0.8737,
+      "speaker": "Ryan",
+      "sha256": "d7903c86c3b459ff7a5e1a2383e07b965135b395c4e357293f444f04ffe3cec2"
+    },
+    {
+      "id": "soldier-move-07",
+      "profile": "soldier",
+      "group": "move",
+      "text": "Position wird angefahren!",
+      "file": "soldier-move-07.wav",
+      "duration": 2.9446,
+      "speaker": "Ryan",
+      "sha256": "b3464484acd56e71c99e29014056815a7d8786dc9140a70b29fb9603cab343c1"
+    },
+    {
+      "id": "soldier-move-08",
+      "profile": "soldier",
+      "group": "move",
+      "text": "Bestätigt!",
+      "file": "soldier-move-08.wav",
+      "duration": 1.2735,
+      "speaker": "Ryan",
+      "sha256": "586ee866f3d8018ba8575653826710949744c8d4db6694b6612dbc350865e046"
+    },
+    {
+      "id": "soldier-attack-01",
+      "profile": "soldier",
+      "group": "attack",
+      "text": "Ziel erfasst!",
+      "file": "soldier-attack-01.wav",
+      "duration": 1.2737,
+      "speaker": "Ryan",
+      "sha256": "67a7c875691967a7b45615c26c4c1af0f491b37887fc747e16928db8291d0a5a"
+    },
+    {
+      "id": "soldier-attack-02",
+      "profile": "soldier",
+      "group": "attack",
+      "text": "Angriff bestätigt!",
+      "file": "soldier-attack-02.wav",
+      "duration": 1.8193,
+      "speaker": "Ryan",
+      "sha256": "45b5a4f62fa481cd0c3fb9e8653bf754e19fdb4c7468711aa98a4ee8d8032e09"
+    },
+    {
+      "id": "soldier-attack-03",
+      "profile": "soldier",
+      "group": "attack",
+      "text": "Wir rücken vor!",
+      "file": "soldier-attack-03.wav",
+      "duration": 1.194,
+      "speaker": "Ryan",
+      "sha256": "8c81cbf08714cd8b448eb4a9d888d5c7a2b91b2dfa7c7734c72af22afc734d4d"
+    },
+    {
+      "id": "soldier-attack-04",
+      "profile": "soldier",
+      "group": "attack",
+      "text": "Feuer frei!",
+      "file": "soldier-attack-04.wav",
+      "duration": 1.1935,
+      "speaker": "Ryan",
+      "sha256": "de2d6e86cb54ca6add4b932327c7eef8483bfed27a33e65d929af424ecf2536e"
+    },
+    {
+      "id": "soldier-attack-05",
+      "profile": "soldier",
+      "group": "attack",
+      "text": "Feind wird bekämpft!",
+      "file": "soldier-attack-05.wav",
+      "duration": 1.514,
+      "speaker": "Ryan",
+      "sha256": "351219f3a23db0a6d06676e732156dcfcae7e732fd7ba54b3e1ff71ed4f2db00"
+    },
+    {
+      "id": "soldier-attack-06",
+      "profile": "soldier",
+      "group": "attack",
+      "text": "Jawohl, Kommandant!",
+      "file": "soldier-attack-06.wav",
+      "duration": 2.074,
+      "speaker": "Ryan",
+      "sha256": "c13685a37258dd4bf9bd8d642fe06181414d7f4e36a97f4d14b538e7c540443a"
+    },
+    {
+      "id": "crew-attack-01",
+      "profile": "crew",
+      "group": "attack",
+      "text": "Ziel erfasst!",
+      "file": "crew-attack-01.wav",
+      "duration": 1.0898,
+      "speaker": "Aiden",
+      "sha256": "553897d4a2b03fedbe878cc3d364bda898b58a3dbf6a0bddcca86addd6be9e08"
+    },
+    {
+      "id": "crew-attack-02",
+      "profile": "crew",
+      "group": "attack",
+      "text": "Angriff bestätigt!",
+      "file": "crew-attack-02.wav",
+      "duration": 1.1018,
+      "speaker": "Aiden",
+      "sha256": "20d89ba51d64e5bb00a7410f71dbe9a5d983d2501ff8c9b9f6529dfb4e2041ef"
+    },
+    {
+      "id": "crew-attack-03",
+      "profile": "crew",
+      "group": "attack",
+      "text": "Wir rücken vor!",
+      "file": "crew-attack-03.wav",
+      "duration": 1.0241,
+      "speaker": "Aiden",
+      "sha256": "4b54e1d6d6dc4e8fdd4a09ec9b612ac0f8e2e29413be76ce4ce39469322d6327"
+    },
+    {
+      "id": "crew-attack-04",
+      "profile": "crew",
+      "group": "attack",
+      "text": "Feuer frei!",
+      "file": "crew-attack-04.wav",
+      "duration": 1.1935,
+      "speaker": "Aiden",
+      "sha256": "5afbe3f1e1498cac09a79f68229b030ae8238d6ff1e75f7214789dd6f4224914"
+    },
+    {
+      "id": "crew-attack-05",
+      "profile": "crew",
+      "group": "attack",
+      "text": "Feind wird bekämpft!",
+      "file": "crew-attack-05.wav",
+      "duration": 1.1135,
+      "speaker": "Aiden",
+      "sha256": "1c0c8681e969e58f1c18dbb0818e7a0d573e5ecbe2144f2fb95580862bbcd65b"
+    },
+    {
+      "id": "crew-attack-06",
+      "profile": "crew",
+      "group": "attack",
+      "text": "Jawohl, Kommandant!",
+      "file": "crew-attack-06.wav",
+      "duration": 1.2691,
+      "speaker": "Aiden",
+      "sha256": "6ef11b97905b8db213675d2aea54e2facd09ff75e4156cec6dbee2b10854de92"
+    },
+    {
+      "id": "support-medic-01",
+      "profile": "support",
+      "group": "medic",
+      "text": "Sanitäter unterwegs!",
+      "file": "support-medic-01.wav",
+      "duration": 1.6738,
+      "speaker": "Serena",
+      "sha256": "ff090ee6c6bfd5f19c2e3f3691a46394e1b96ab22b986d7d7d58e130ab923c3a"
+    },
+    {
+      "id": "support-medic-02",
+      "profile": "support",
+      "group": "medic",
+      "text": "Ich kümmere mich darum!",
+      "file": "support-medic-02.wav",
+      "duration": 1.4174,
+      "speaker": "Serena",
+      "sha256": "87c6dfaee0e8f6257d110919a9022230848889126b840b4ba1fa4571e15bf896"
+    },
+    {
+      "id": "support-medic-03",
+      "profile": "support",
+      "group": "medic",
+      "text": "Medizinische Unterstützung!",
+      "file": "support-medic-03.wav",
+      "duration": 1.8194,
+      "speaker": "Serena",
+      "sha256": "4127d51955861be7365372835e646a1d39c186963283547877323ad712f48f0f"
+    },
+    {
+      "id": "support-medic-04",
+      "profile": "support",
+      "group": "medic",
+      "text": "Bin zur Stelle!",
+      "file": "support-medic-04.wav",
+      "duration": 1.0221,
+      "speaker": "Serena",
+      "sha256": "f2603a29566de234576e1e423fedd35301f3fe27a14cddd63d3e13b39d9501ba"
+    },
+    {
+      "id": "support-engineer-01",
+      "profile": "support",
+      "group": "engineer",
+      "text": "Auftrag erhalten!",
+      "file": "support-engineer-01.wav",
+      "duration": 1.4952,
+      "speaker": "Serena",
+      "sha256": "ed99f3e56c290709ffb4bbbb3976a98314cc2a0154e6ba8bf8be8e659cd219e3"
+    },
+    {
+      "id": "support-engineer-02",
+      "profile": "support",
+      "group": "engineer",
+      "text": "Wird erledigt!",
+      "file": "support-engineer-02.wav",
+      "duration": 1.106,
+      "speaker": "Serena",
+      "sha256": "41f2cf66c15e7bc29838a767e295bcfb8d236aac6f79e19392d10816a6f33d93"
+    },
+    {
+      "id": "support-repair-01",
+      "profile": "support",
+      "group": "repair",
+      "text": "Reparatur wird durchgeführt!",
+      "file": "support-repair-01.wav",
+      "duration": 2.3928,
+      "speaker": "Serena",
+      "sha256": "1ba2515c1c640ee66653149dcc419d489143c898882be1e4fc4d5333a47f0c13"
+    },
+    {
+      "id": "support-build-01",
+      "profile": "support",
+      "group": "build",
+      "text": "Baustelle wird angefahren!",
+      "file": "support-build-01.wav",
+      "duration": 1.6481,
+      "speaker": "Serena",
+      "sha256": "46cb25946c6b1498a84ebd53964cacd934bd2f45d04dbc61bb54c555c685b032"
+    },
+    {
+      "id": "crew-move-01",
+      "profile": "crew",
+      "group": "move",
+      "text": "Besatzung bereit!",
+      "file": "crew-move-01.wav",
+      "duration": 1.1129,
+      "speaker": "Aiden",
+      "sha256": "976397a78bc895e16ecf7df3be6e7801ddd13f302dd3bb9e84174c5476ee7e7b"
+    },
+    {
+      "id": "crew-move-02",
+      "profile": "crew",
+      "group": "move",
+      "text": "Rücken vor!",
+      "file": "crew-move-02.wav",
+      "duration": 1.1008,
+      "speaker": "Aiden",
+      "sha256": "ffde0dd30e3205e140f4e5f1851141dc17c7f1393d2ef8da651c4357e66eacda"
+    },
+    {
+      "id": "crew-move-03",
+      "profile": "crew",
+      "group": "move",
+      "text": "Zielkoordinaten bestätigt!",
+      "file": "crew-move-03.wav",
+      "duration": 1.4337,
+      "speaker": "Aiden",
+      "sha256": "80c28efb882fd0b4f5207cb1e2dade96b014666bd8942b60e76fabe544d7b298"
+    },
+    {
+      "id": "crew-move-04",
+      "profile": "crew",
+      "group": "move",
+      "text": "Verstanden, Kommandant!",
+      "file": "crew-move-04.wav",
+      "duration": 1.4338,
+      "speaker": "Aiden",
+      "sha256": "0ebf07a7f61b6cb00ec838fa4a96806fd8d50784401af16ff22b30ff598945c4"
+    },
+    {
+      "id": "soldier-air-01",
+      "profile": "soldier",
+      "group": "air",
+      "text": "Roger!",
+      "file": "soldier-air-01.wav",
+      "duration": 0.8742,
+      "speaker": "Ryan",
+      "sha256": "223d3226518f2a079593e0fe0247873d539d2b6752b6b1690dcc7cd7cc8ea3c5"
+    },
+    {
+      "id": "soldier-air-02",
+      "profile": "soldier",
+      "group": "air",
+      "text": "Kurs bestätigt!",
+      "file": "soldier-air-02.wav",
+      "duration": 1.1071,
+      "speaker": "Ryan",
+      "sha256": "e771f63599e434dc892ecf4fef0b8ebe69449226efdc46c259fe1b6d56077a6a"
+    },
+    {
+      "id": "soldier-air-03",
+      "profile": "soldier",
+      "group": "air",
+      "text": "Wir heben ab!",
+      "file": "soldier-air-03.wav",
+      "duration": 0.9539,
+      "speaker": "Ryan",
+      "sha256": "9177591c6aaff1fdf4f247b30a78234084532452ad7d2719e80c0e7b5c4a1f44"
+    },
+    {
+      "id": "soldier-air-04",
+      "profile": "soldier",
+      "group": "air",
+      "text": "Flugroute bestätigt!",
+      "file": "soldier-air-04.wav",
+      "duration": 1.4323,
+      "speaker": "Ryan",
+      "sha256": "44133fcd04fbc699d1c9553d718ef43a66cd5e3031a4c2632e0b997b9d3f0769"
+    },
+    {
+      "id": "soldier-load-01",
+      "profile": "soldier",
+      "group": "load",
+      "text": "Landezone bestätigt!",
+      "file": "soldier-load-01.wav",
+      "duration": 1.9861,
+      "speaker": "Ryan",
+      "sha256": "e4b0af8c80b4f26a3f97b0e34615753b7e0d656d2c32b05344e3d6a34dbfc183"
+    },
+    {
+      "id": "soldier-load-02",
+      "profile": "soldier",
+      "group": "load",
+      "text": "Bereit zur Aufnahme!",
+      "file": "soldier-load-02.wav",
+      "duration": 2.0737,
+      "speaker": "Ryan",
+      "sha256": "bdcc2b865aadd55c42b105185fd94c474f28a7f1742cf568c6eb8ca44a6b0f91"
+    },
+    {
+      "id": "soldier-unload-01",
+      "profile": "soldier",
+      "group": "unload",
+      "text": "Truppen werden abgesetzt!",
+      "file": "soldier-unload-01.wav",
+      "duration": 2.714,
+      "speaker": "Ryan",
+      "sha256": "8e6a3a62b1602bc6bcab21ffbd3638658b093b14ac0a52c802204f50aad0d8ad"
+    },
+    {
+      "id": "support-move-01",
+      "profile": "support",
+      "group": "move",
+      "text": "Verstanden!",
+      "file": "support-move-01.wav",
+      "duration": 0.7937,
+      "speaker": "Serena",
+      "sha256": "6a1aa365a46badda9a20d6c109797fad7ecb514de7dc02e35060070f0dca6e31"
+    },
+    {
+      "id": "support-move-02",
+      "profile": "support",
+      "group": "move",
+      "text": "Wird ausgeführt!",
+      "file": "support-move-02.wav",
+      "duration": 1.1008,
+      "speaker": "Serena",
+      "sha256": "1ec8867952fe5110c60497c0cec34cfcabb2e0e6e83e4967f32c78766f4864ce"
+    },
+    {
+      "id": "soldier-stop-01",
+      "profile": "soldier",
+      "group": "stop",
+      "text": "Position halten!",
+      "file": "soldier-stop-01.wav",
+      "duration": 1.5141,
+      "speaker": "Ryan",
+      "sha256": "d4b5bb3e6f929f8d3ee951d0a11bebb94cc95209660c17cbf09225d8fb265a56"
+    },
+    {
+      "id": "soldier-stop-02",
+      "profile": "soldier",
+      "group": "stop",
+      "text": "Bestätigt!",
+      "file": "soldier-stop-02.wav",
+      "duration": 1.6742,
+      "speaker": "Ryan",
+      "sha256": "5f8d381125e1373ba0d19165f3a5351d7bf85ef5dd3fa22c0be79b48d117bc61"
+    },
+    {
+      "id": "crew-stop-01",
+      "profile": "crew",
+      "group": "stop",
+      "text": "Position halten!",
+      "file": "crew-stop-01.wav",
+      "duration": 1.1125,
+      "speaker": "Aiden",
+      "sha256": "c6693c1caf714aa83327a8a17df219fa8c11ca57332874a65b2e7250f0e17b47"
+    },
+    {
+      "id": "crew-stop-02",
+      "profile": "crew",
+      "group": "stop",
+      "text": "Bestätigt!",
+      "file": "crew-stop-02.wav",
+      "duration": 0.5435,
+      "speaker": "Aiden",
+      "sha256": "427792e195c35b4420faee70fd3502a4161ac5ae7d583d3296a79d09e9351665"
+    },
+    {
+      "id": "support-stop-01",
+      "profile": "support",
+      "group": "stop",
+      "text": "Position halten!",
+      "file": "support-stop-01.wav",
+      "duration": 1.1935,
+      "speaker": "Serena",
+      "sha256": "f71427d91d478b695c0276813e71845fae4632e30731a0dac3ddba6cef62bd4b"
+    },
+    {
+      "id": "support-stop-02",
+      "profile": "support",
+      "group": "stop",
+      "text": "Bestätigt!",
+      "file": "support-stop-02.wav",
+      "duration": 0.9405,
+      "speaker": "Serena",
+      "sha256": "5c2c0bf23ab9ea1d027fdef3ceb091e945e9401fe35260d33ec6f4c2644e6431"
+    }
+  ]
+}

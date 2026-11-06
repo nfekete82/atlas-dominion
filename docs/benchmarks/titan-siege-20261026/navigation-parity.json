@@ -1,0 +1,940 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "scope": "Exact route parity and deterministic call counts only; no wall-clock CPU claim. Instrumentation is in memory and changes no source files.",
+  "inputs": {
+    "maps": [
+      3,
+      4,
+      5
+    ],
+    "seeds": [
+      2026,
+      2027
+    ],
+    "heldoutInputs": false,
+    "clearance": 10,
+    "obstacles": [],
+    "route": "First to last public territory control point, each projected with nearest(clearance=10)",
+    "riskVariants": [
+      "none",
+      "synthetic band: grid columns 100..139, every row, value 3; all other cells zero"
+    ]
+  },
+  "modules": {
+    "before": {
+      "path": "/tmp/atlas-titan-siege-release/dist/src/reborn/world.js",
+      "sourceHashes": {
+        "world.js": "e4a115b2bf3dafa2ee34d416e12773adefccfba04949e54710ef0468e672667d",
+        "navigation-line.js": "27fe8bd65d265de84f8a4e8a26e1d9b48172eb42a4f3f292016e2d0706b2b8aa",
+        "config.js": "06b44cb07c9f279d993b62462d6bf3acac0218f4a853e3f025d9cb9aaea4b72a",
+        "world-generation.js": "74ef552964edb9f4f2dece4ec948083cad76af1ba2794095db17e7ca34e2a36c",
+        "terrain-art.js": "30dd92356d9960fdab4f4e70b5782bb692615acd77d5e99a4653814f17457152",
+        "performance.js": "ec7f0b5d730b25f0e60b753d58a3f433aeaa7461dadf20ef3bf345e80b233619"
+      }
+    },
+    "after": {
+      "path": "/Users/norbertfekete/Projects/atlas-dominion/dist/src/reborn/world.js",
+      "sourceHashes": {
+        "world.js": "b5ad127d5d46d71e29d14cdf0fda87ab93876ecad8ef6a558c00417cc2cc20ed",
+        "navigation-line.js": "27fe8bd65d265de84f8a4e8a26e1d9b48172eb42a4f3f292016e2d0706b2b8aa",
+        "config.js": "06b44cb07c9f279d993b62462d6bf3acac0218f4a853e3f025d9cb9aaea4b72a",
+        "world-generation.js": "74ef552964edb9f4f2dece4ec948083cad76af1ba2794095db17e7ca34e2a36c",
+        "terrain-art.js": "30dd92356d9960fdab4f4e70b5782bb692615acd77d5e99a4653814f17457152",
+        "performance.js": "ec7f0b5d730b25f0e60b753d58a3f433aeaa7461dadf20ef3bf345e80b233619"
+      }
+    }
+  },
+  "observerHash": "801d508c11d9fed7c5691d2a19540f01da2021581770eba55caf98f1a07be9c2",
+  "expectedCases": 12,
+  "details": [
+    {
+      "map": 3,
+      "seed": 2026,
+      "weighted": false,
+      "start": {
+        "x": 527.4362958646379,
+        "y": 453.0990498745814
+      },
+      "end": {
+        "x": 1672.563704135362,
+        "y": 1746.9009501254186
+      },
+      "terrainHash": "ce58f1f03639fbc50e25ab582a809a4aad6549039725726864d735034b6bafdf",
+      "routesIdentical": true,
+      "before": {
+        "route": [
+          {
+            "x": 1058.75,
+            "y": 728.75
+          },
+          {
+            "x": 1333.75,
+            "y": 976.2499999999999
+          },
+          {
+            "x": 1443.75,
+            "y": 1205.4166666666665
+          },
+          {
+            "x": 1672.563704135362,
+            "y": 1746.9009501254186
+          }
+        ],
+        "routeHash": "cff9c2150af0145d9e994971c3da64d4ed5f961941121672344e2e6108a7137f",
+        "counts": {
+          "edgeChecks": 38569,
+          "navigationLineCalls": 38747
+        }
+      },
+      "after": {
+        "route": [
+          {
+            "x": 1058.75,
+            "y": 728.75
+          },
+          {
+            "x": 1333.75,
+            "y": 976.2499999999999
+          },
+          {
+            "x": 1443.75,
+            "y": 1205.4166666666665
+          },
+          {
+            "x": 1672.563704135362,
+            "y": 1746.9009501254186
+          }
+        ],
+        "routeHash": "cff9c2150af0145d9e994971c3da64d4ed5f961941121672344e2e6108a7137f",
+        "counts": {
+          "edgeChecks": 17342,
+          "navigationLineCalls": 17520
+        }
+      }
+    },
+    {
+      "map": 3,
+      "seed": 2026,
+      "weighted": true,
+      "start": {
+        "x": 527.4362958646379,
+        "y": 453.0990498745814
+      },
+      "end": {
+        "x": 1672.563704135362,
+        "y": 1746.9009501254186
+      },
+      "terrainHash": "ce58f1f03639fbc50e25ab582a809a4aad6549039725726864d735034b6bafdf",
+      "routesIdentical": true,
+      "before": {
+        "route": [
+          {
+            "x": 673.75,
+            "y": 847.9166666666666
+          },
+          {
+            "x": 857.0833333333333,
+            "y": 1086.25
+          },
+          {
+            "x": 1269.5833333333333,
+            "y": 1113.75
+          },
+          {
+            "x": 1297.0833333333333,
+            "y": 1113.75
+          },
+          {
+            "x": 1361.25,
+            "y": 1113.75
+          },
+          {
+            "x": 1443.75,
+            "y": 1196.25
+          },
+          {
+            "x": 1672.563704135362,
+            "y": 1746.9009501254186
+          }
+        ],
+        "routeHash": "5d5adb04eacc668d636e659899faf5c59ac430235f33aa6bf8f8331cb6e818dc",
+        "counts": {
+          "edgeChecks": 112856,
+          "navigationLineCalls": 113058
+        }
+      },
+      "after": {
+        "route": [
+          {
+            "x": 673.75,
+            "y": 847.9166666666666
+          },
+          {
+            "x": 857.0833333333333,
+            "y": 1086.25
+          },
+          {
+            "x": 1269.5833333333333,
+            "y": 1113.75
+          },
+          {
+            "x": 1297.0833333333333,
+            "y": 1113.75
+          },
+          {
+            "x": 1361.25,
+            "y": 1113.75
+          },
+          {
+            "x": 1443.75,
+            "y": 1196.25
+          },
+          {
+            "x": 1672.563704135362,
+            "y": 1746.9009501254186
+          }
+        ],
+        "routeHash": "5d5adb04eacc668d636e659899faf5c59ac430235f33aa6bf8f8331cb6e818dc",
+        "counts": {
+          "edgeChecks": 46655,
+          "navigationLineCalls": 46857
+        }
+      }
+    },
+    {
+      "map": 3,
+      "seed": 2027,
+      "weighted": false,
+      "start": {
+        "x": 796.9224700732157,
+        "y": 558.5835924125277
+      },
+      "end": {
+        "x": 1403.0775299267843,
+        "y": 1641.4164075874723
+      },
+      "terrainHash": "b8a61fe587500fd296070e63ea9ab4dbf15a7e1028fee4cbce19fba6ec0f2c89",
+      "routesIdentical": true,
+      "before": {
+        "route": [
+          {
+            "x": 866.25,
+            "y": 985.4166666666666
+          },
+          {
+            "x": 1067.9166666666665,
+            "y": 1333.75
+          },
+          {
+            "x": 1403.0775299267843,
+            "y": 1641.4164075874723
+          }
+        ],
+        "routeHash": "d289afeb6f2533e244015aa15dcfb028bcbd126ef6d8779a9029e946d5198bf3",
+        "counts": {
+          "edgeChecks": 14649,
+          "navigationLineCalls": 14775
+        }
+      },
+      "after": {
+        "route": [
+          {
+            "x": 866.25,
+            "y": 985.4166666666666
+          },
+          {
+            "x": 1067.9166666666665,
+            "y": 1333.75
+          },
+          {
+            "x": 1403.0775299267843,
+            "y": 1641.4164075874723
+          }
+        ],
+        "routeHash": "d289afeb6f2533e244015aa15dcfb028bcbd126ef6d8779a9029e946d5198bf3",
+        "counts": {
+          "edgeChecks": 6340,
+          "navigationLineCalls": 6466
+        }
+      }
+    },
+    {
+      "map": 3,
+      "seed": 2027,
+      "weighted": true,
+      "start": {
+        "x": 796.9224700732157,
+        "y": 558.5835924125277
+      },
+      "end": {
+        "x": 1403.0775299267843,
+        "y": 1641.4164075874723
+      },
+      "terrainHash": "b8a61fe587500fd296070e63ea9ab4dbf15a7e1028fee4cbce19fba6ec0f2c89",
+      "routesIdentical": true,
+      "before": {
+        "route": [
+          {
+            "x": 866.25,
+            "y": 985.4166666666666
+          },
+          {
+            "x": 912.0833333333333,
+            "y": 1370.4166666666665
+          },
+          {
+            "x": 921.2499999999999,
+            "y": 1370.4166666666665
+          },
+          {
+            "x": 1403.0775299267843,
+            "y": 1641.4164075874723
+          }
+        ],
+        "routeHash": "4503a22afa9a6761890a4372fc627ef72eb6d80c38a9d4ce63068341792f039f",
+        "counts": {
+          "edgeChecks": 96284,
+          "navigationLineCalls": 96448
+        }
+      },
+      "after": {
+        "route": [
+          {
+            "x": 866.25,
+            "y": 985.4166666666666
+          },
+          {
+            "x": 912.0833333333333,
+            "y": 1370.4166666666665
+          },
+          {
+            "x": 921.2499999999999,
+            "y": 1370.4166666666665
+          },
+          {
+            "x": 1403.0775299267843,
+            "y": 1641.4164075874723
+          }
+        ],
+        "routeHash": "4503a22afa9a6761890a4372fc627ef72eb6d80c38a9d4ce63068341792f039f",
+        "counts": {
+          "edgeChecks": 37547,
+          "navigationLineCalls": 37711
+        }
+      }
+    },
+    {
+      "map": 4,
+      "seed": 2026,
+      "weighted": false,
+      "start": {
+        "x": 359.61565627134405,
+        "y": 617.8623407380655
+      },
+      "end": {
+        "x": 2640.384343728656,
+        "y": 2382.1376592619345
+      },
+      "terrainHash": "c0d91761fae6f1d8f08adbda883da73011a3578c2c8b7eca018b87ee262a1130",
+      "routesIdentical": true,
+      "before": {
+        "route": [
+          {
+            "x": 1706.25,
+            "y": 1543.75
+          },
+          {
+            "x": 2281.25,
+            "y": 2218.75
+          },
+          {
+            "x": 2640.384343728656,
+            "y": 2382.1376592619345
+          }
+        ],
+        "routeHash": "388f9cf060ad7dbfb26e9de396bcd5493eb82c844e53a697cf0f54a33ba739a0",
+        "counts": {
+          "edgeChecks": 34028,
+          "navigationLineCalls": 34224
+        }
+      },
+      "after": {
+        "route": [
+          {
+            "x": 1706.25,
+            "y": 1543.75
+          },
+          {
+            "x": 2281.25,
+            "y": 2218.75
+          },
+          {
+            "x": 2640.384343728656,
+            "y": 2382.1376592619345
+          }
+        ],
+        "routeHash": "388f9cf060ad7dbfb26e9de396bcd5493eb82c844e53a697cf0f54a33ba739a0",
+        "counts": {
+          "edgeChecks": 16811,
+          "navigationLineCalls": 17007
+        }
+      }
+    },
+    {
+      "map": 4,
+      "seed": 2026,
+      "weighted": true,
+      "start": {
+        "x": 359.61565627134405,
+        "y": 617.8623407380655
+      },
+      "end": {
+        "x": 2640.384343728656,
+        "y": 2382.1376592619345
+      },
+      "terrainHash": "c0d91761fae6f1d8f08adbda883da73011a3578c2c8b7eca018b87ee262a1130",
+      "routesIdentical": true,
+      "before": {
+        "route": [
+          {
+            "x": 756.25,
+            "y": 1193.75
+          },
+          {
+            "x": 756.25,
+            "y": 1268.75
+          },
+          {
+            "x": 1318.75,
+            "y": 1743.75
+          },
+          {
+            "x": 1868.75,
+            "y": 1868.75
+          },
+          {
+            "x": 2331.25,
+            "y": 2243.75
+          },
+          {
+            "x": 2640.384343728656,
+            "y": 2382.1376592619345
+          }
+        ],
+        "routeHash": "3f42a76b4405bf6dcf932cb97c695668a4809ae8a4e4a2a37b52b868b27f4796",
+        "counts": {
+          "edgeChecks": 106289,
+          "navigationLineCalls": 106501
+        }
+      },
+      "after": {
+        "route": [
+          {
+            "x": 756.25,
+            "y": 1193.75
+          },
+          {
+            "x": 756.25,
+            "y": 1268.75
+          },
+          {
+            "x": 1318.75,
+            "y": 1743.75
+          },
+          {
+            "x": 1868.75,
+            "y": 1868.75
+          },
+          {
+            "x": 2331.25,
+            "y": 2243.75
+          },
+          {
+            "x": 2640.384343728656,
+            "y": 2382.1376592619345
+          }
+        ],
+        "routeHash": "3f42a76b4405bf6dcf932cb97c695668a4809ae8a4e4a2a37b52b868b27f4796",
+        "counts": {
+          "edgeChecks": 47554,
+          "navigationLineCalls": 47766
+        }
+      }
+    },
+    {
+      "map": 4,
+      "seed": 2027,
+      "weighted": false,
+      "start": {
+        "x": 543.3562295953743,
+        "y": 761.7048987443559
+      },
+      "end": {
+        "x": 2456.6437704046257,
+        "y": 2238.295101255644
+      },
+      "terrainHash": "31633c8ec9daff6deee52f7861f34d20b97281353b15ef10a8a60ace75f48622",
+      "routesIdentical": true,
+      "before": {
+        "route": [
+          {
+            "x": 1081.25,
+            "y": 956.25
+          },
+          {
+            "x": 1931.25,
+            "y": 1743.75
+          },
+          {
+            "x": 2131.25,
+            "y": 1768.75
+          },
+          {
+            "x": 2456.6437704046257,
+            "y": 2238.295101255644
+          }
+        ],
+        "routeHash": "efe746f516569b09c301f655da9894b6641670c429fd591bdba7a4b8a8ba33d0",
+        "counts": {
+          "edgeChecks": 22658,
+          "navigationLineCalls": 22829
+        }
+      },
+      "after": {
+        "route": [
+          {
+            "x": 1081.25,
+            "y": 956.25
+          },
+          {
+            "x": 1931.25,
+            "y": 1743.75
+          },
+          {
+            "x": 2131.25,
+            "y": 1768.75
+          },
+          {
+            "x": 2456.6437704046257,
+            "y": 2238.295101255644
+          }
+        ],
+        "routeHash": "efe746f516569b09c301f655da9894b6641670c429fd591bdba7a4b8a8ba33d0",
+        "counts": {
+          "edgeChecks": 11054,
+          "navigationLineCalls": 11225
+        }
+      }
+    },
+    {
+      "map": 4,
+      "seed": 2027,
+      "weighted": true,
+      "start": {
+        "x": 543.3562295953743,
+        "y": 761.7048987443559
+      },
+      "end": {
+        "x": 2456.6437704046257,
+        "y": 2238.295101255644
+      },
+      "terrainHash": "31633c8ec9daff6deee52f7861f34d20b97281353b15ef10a8a60ace75f48622",
+      "routesIdentical": true,
+      "before": {
+        "route": [
+          {
+            "x": 931.25,
+            "y": 906.25
+          },
+          {
+            "x": 1281.25,
+            "y": 1331.25
+          },
+          {
+            "x": 1893.75,
+            "y": 1481.25
+          },
+          {
+            "x": 2393.75,
+            "y": 2093.75
+          },
+          {
+            "x": 2456.6437704046257,
+            "y": 2238.295101255644
+          }
+        ],
+        "routeHash": "2452085a2611cc1265978637f0e4a38dc9df7db33e41d3680443589da0eccadb",
+        "counts": {
+          "edgeChecks": 95592,
+          "navigationLineCalls": 95776
+        }
+      },
+      "after": {
+        "route": [
+          {
+            "x": 931.25,
+            "y": 906.25
+          },
+          {
+            "x": 1281.25,
+            "y": 1331.25
+          },
+          {
+            "x": 1893.75,
+            "y": 1481.25
+          },
+          {
+            "x": 2393.75,
+            "y": 2093.75
+          },
+          {
+            "x": 2456.6437704046257,
+            "y": 2238.295101255644
+          }
+        ],
+        "routeHash": "2452085a2611cc1265978637f0e4a38dc9df7db33e41d3680443589da0eccadb",
+        "counts": {
+          "edgeChecks": 39939,
+          "navigationLineCalls": 40123
+        }
+      }
+    },
+    {
+      "map": 5,
+      "seed": 2026,
+      "weighted": false,
+      "start": {
+        "x": 450.95803296426544,
+        "y": 516.5329168570228
+      },
+      "end": {
+        "x": 3311.0419670357346,
+        "y": 3245.467083142977
+      },
+      "terrainHash": "a9dbb9b76ea30499a322ef6d3cedafc9874a25920f43c4691a5753e31517861b",
+      "routesIdentical": true,
+      "before": {
+        "route": [
+          {
+            "x": 948.3375000000001,
+            "y": 1058.0625
+          },
+          {
+            "x": 1058.0625,
+            "y": 1073.7375
+          },
+          {
+            "x": 1575.3375,
+            "y": 1747.7625
+          },
+          {
+            "x": 2280.7125,
+            "y": 2233.6875
+          },
+          {
+            "x": 2547.1875,
+            "y": 2594.2125
+          },
+          {
+            "x": 2766.6375000000003,
+            "y": 2656.9125
+          },
+          {
+            "x": 2970.4125,
+            "y": 2970.4125
+          },
+          {
+            "x": 3311.0419670357346,
+            "y": 3245.467083142977
+          }
+        ],
+        "routeHash": "b5e1cfb4653359d71743d05118ad763bf7583caf6385ac7c2b8fc13453590fa3",
+        "counts": {
+          "edgeChecks": 42558,
+          "navigationLineCalls": 42776
+        }
+      },
+      "after": {
+        "route": [
+          {
+            "x": 948.3375000000001,
+            "y": 1058.0625
+          },
+          {
+            "x": 1058.0625,
+            "y": 1073.7375
+          },
+          {
+            "x": 1575.3375,
+            "y": 1747.7625
+          },
+          {
+            "x": 2280.7125,
+            "y": 2233.6875
+          },
+          {
+            "x": 2547.1875,
+            "y": 2594.2125
+          },
+          {
+            "x": 2766.6375000000003,
+            "y": 2656.9125
+          },
+          {
+            "x": 2970.4125,
+            "y": 2970.4125
+          },
+          {
+            "x": 3311.0419670357346,
+            "y": 3245.467083142977
+          }
+        ],
+        "routeHash": "b5e1cfb4653359d71743d05118ad763bf7583caf6385ac7c2b8fc13453590fa3",
+        "counts": {
+          "edgeChecks": 20468,
+          "navigationLineCalls": 20686
+        }
+      }
+    },
+    {
+      "map": 5,
+      "seed": 2026,
+      "weighted": true,
+      "start": {
+        "x": 450.95803296426544,
+        "y": 516.5329168570228
+      },
+      "end": {
+        "x": 3311.0419670357346,
+        "y": 3245.467083142977
+      },
+      "terrainHash": "a9dbb9b76ea30499a322ef6d3cedafc9874a25920f43c4691a5753e31517861b",
+      "routesIdentical": true,
+      "before": {
+        "route": [
+          {
+            "x": 948.3375000000001,
+            "y": 1058.0625
+          },
+          {
+            "x": 1058.0625,
+            "y": 1073.7375
+          },
+          {
+            "x": 1575.3375,
+            "y": 1763.4375
+          },
+          {
+            "x": 2782.3125,
+            "y": 2327.7375
+          },
+          {
+            "x": 3111.4875,
+            "y": 2735.2875
+          },
+          {
+            "x": 3311.0419670357346,
+            "y": 3245.467083142977
+          }
+        ],
+        "routeHash": "45bbe7c362afa502791af1658b862695691b3b5a46c78fc6bbdf2600c352f655",
+        "counts": {
+          "edgeChecks": 107870,
+          "navigationLineCalls": 108100
+        }
+      },
+      "after": {
+        "route": [
+          {
+            "x": 948.3375000000001,
+            "y": 1058.0625
+          },
+          {
+            "x": 1058.0625,
+            "y": 1073.7375
+          },
+          {
+            "x": 1575.3375,
+            "y": 1763.4375
+          },
+          {
+            "x": 2782.3125,
+            "y": 2327.7375
+          },
+          {
+            "x": 3111.4875,
+            "y": 2735.2875
+          },
+          {
+            "x": 3311.0419670357346,
+            "y": 3245.467083142977
+          }
+        ],
+        "routeHash": "45bbe7c362afa502791af1658b862695691b3b5a46c78fc6bbdf2600c352f655",
+        "counts": {
+          "edgeChecks": 47112,
+          "navigationLineCalls": 47342
+        }
+      }
+    },
+    {
+      "map": 5,
+      "seed": 2027,
+      "weighted": false,
+      "start": {
+        "x": 681.3687119125995,
+        "y": 636.7852953502816
+      },
+      "end": {
+        "x": 3080.6312880874007,
+        "y": 3125.2147046497184
+      },
+      "terrainHash": "612a311a5b4ee38590644074503517a58cba2453ec7396b734c5653449b4634d",
+      "routesIdentical": true,
+      "before": {
+        "route": [
+          {
+            "x": 869.9625000000001,
+            "y": 995.3625000000001
+          },
+          {
+            "x": 1026.7125,
+            "y": 1073.7375
+          },
+          {
+            "x": 1199.1375,
+            "y": 1073.7375
+          },
+          {
+            "x": 2939.0625,
+            "y": 2813.6625
+          },
+          {
+            "x": 3080.6312880874007,
+            "y": 3125.2147046497184
+          }
+        ],
+        "routeHash": "fea9723d2f938ac75dbaf094b1deff9e3ac15132a25bf2b373e3c49f3a5fff3b",
+        "counts": {
+          "edgeChecks": 28814,
+          "navigationLineCalls": 28996
+        }
+      },
+      "after": {
+        "route": [
+          {
+            "x": 869.9625000000001,
+            "y": 995.3625000000001
+          },
+          {
+            "x": 1026.7125,
+            "y": 1073.7375
+          },
+          {
+            "x": 1199.1375,
+            "y": 1073.7375
+          },
+          {
+            "x": 2939.0625,
+            "y": 2813.6625
+          },
+          {
+            "x": 3080.6312880874007,
+            "y": 3125.2147046497184
+          }
+        ],
+        "routeHash": "fea9723d2f938ac75dbaf094b1deff9e3ac15132a25bf2b373e3c49f3a5fff3b",
+        "counts": {
+          "edgeChecks": 14188,
+          "navigationLineCalls": 14370
+        }
+      }
+    },
+    {
+      "map": 5,
+      "seed": 2027,
+      "weighted": true,
+      "start": {
+        "x": 681.3687119125995,
+        "y": 636.7852953502816
+      },
+      "end": {
+        "x": 3080.6312880874007,
+        "y": 3125.2147046497184
+      },
+      "terrainHash": "612a311a5b4ee38590644074503517a58cba2453ec7396b734c5653449b4634d",
+      "routesIdentical": true,
+      "before": {
+        "route": [
+          {
+            "x": 995.3625000000001,
+            "y": 1230.4875
+          },
+          {
+            "x": 1638.0375000000001,
+            "y": 1794.7875000000001
+          },
+          {
+            "x": 2703.9375,
+            "y": 2468.8125
+          },
+          {
+            "x": 2735.2875,
+            "y": 2531.5125000000003
+          },
+          {
+            "x": 3080.6312880874007,
+            "y": 3125.2147046497184
+          }
+        ],
+        "routeHash": "e3f1c493600449fd9a7e8aed43f8db5ae2c64afb07144d4773748f50aa472cf5",
+        "counts": {
+          "edgeChecks": 106414,
+          "navigationLineCalls": 106619
+        }
+      },
+      "after": {
+        "route": [
+          {
+            "x": 995.3625000000001,
+            "y": 1230.4875
+          },
+          {
+            "x": 1638.0375000000001,
+            "y": 1794.7875000000001
+          },
+          {
+            "x": 2703.9375,
+            "y": 2468.8125
+          },
+          {
+            "x": 2735.2875,
+            "y": 2531.5125000000003
+          },
+          {
+            "x": 3080.6312880874007,
+            "y": 3125.2147046497184
+          }
+        ],
+        "routeHash": "e3f1c493600449fd9a7e8aed43f8db5ae2c64afb07144d4773748f50aa472cf5",
+        "counts": {
+          "edgeChecks": 46469,
+          "navigationLineCalls": 46674
+        }
+      }
+    }
+  ],
+  "totals": {
+    "before": {
+      "edgeChecks": 806581,
+      "navigationLineCalls": 808849
+    },
+    "after": {
+      "edgeChecks": 351479,
+      "navigationLineCalls": 353747
+    }
+  },
+  "allRoutesIdentical": true,
+  "avoidedEdgeChecksPercent": 56.42359539835429
+}

@@ -1,0 +1,82 @@
+name: Rebuild polished buildings and vehicles
+on:
+  push:
+    branches: [feat/building-vehicle-finish-and-scale-20261027]
+    paths:
+      - .github/workflows/field-finish-assets.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: field-finish-assets-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  bake-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install asset pipeline and Chromium
+        run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix tests/browser --no-audit --no-fund
+          cd tests/browser
+          npx playwright install --with-deps chromium
+      - name: Render HQ and barracks from original 3D with weathered materials
+        env:
+          ATLAS_BROWSER_CHANNEL: chromium
+        run: npm run assets:buildings -- headquarters barracks
+      - name: Render HD vehicles and helicopters with corrected visual scale
+        env:
+          ATLAS_BROWSER_CHANNEL: chromium
+        run: npm run assets:animations:hd
+      - name: Validate geometry, animations, scale and unchanged mechanics
+        run: |
+          node scripts/check-hd-atlases.mjs
+          npm run build
+          node --test tests/reborn-buildings.test.mjs tests/reborn-animation.test.mjs tests/reborn-visual-finish.test.mjs
+      - name: Preserve generated source assets as a backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: atlas-desert-field-finish
+          retention-days: 14
+          compression-level: 3
+          path: |
+            src/assets/reborn/buildings-3d/headquarters-*.png
+            src/assets/reborn/buildings-3d/headquarters-*.glb
+            src/assets/reborn/buildings-3d/headquarters-*.json
+            src/assets/reborn/buildings-3d/barracks-*.png
+            src/assets/reborn/buildings-3d/barracks-*.glb
+            src/assets/reborn/buildings-3d/barracks-*.json
+            src/assets/reborn/animation/rover-*.png
+            src/assets/reborn/animation/tank-*.png
+            src/assets/reborn/animation/artillery-*.png
+            src/assets/reborn/animation/scout-*.png
+            src/assets/reborn/animation/gunship-*.png
+            src/assets/reborn/animation/bomber-*.png
+      - name: Commit generated images, GLBs and metadata
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/assets/reborn/buildings-3d/headquarters-* src/assets/reborn/buildings-3d/barracks-*
+          git add src/assets/reborn/animation/rover-*.png src/assets/reborn/animation/rover-*.json
+          git add src/assets/reborn/animation/tank-*.png src/assets/reborn/animation/tank-*.json
+          git add src/assets/reborn/animation/artillery-*.png src/assets/reborn/animation/artillery-*.json
+          git add src/assets/reborn/animation/scout-*.png src/assets/reborn/animation/scout-*.json
+          git add src/assets/reborn/animation/gunship-*.png src/assets/reborn/animation/gunship-*.json
+          git add src/assets/reborn/animation/bomber-*.png src/assets/reborn/animation/bomber-*.json
+          if git diff --cached --quiet; then
+            echo "No changed assets to commit."
+            exit 0
+          fi
+          git commit -m "assets(reborn): weathered HQ and barracks, refined HD vehicles at correct scale"
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

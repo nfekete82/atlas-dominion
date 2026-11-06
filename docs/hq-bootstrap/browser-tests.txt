@@ -1,0 +1,26 @@
+
+> test
+> playwright test --config=reborn.config.mjs --grep HQ opening|construction: R|production: worker|production: real factory|production: full queues|Atmosphere 1.0
+
+[WebServer] (node:55058) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 13 tests using 1 worker
+
+(node:55059) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 reborn-atmosphere-v1.spec.mjs:3:1 › Atmosphere 1.0: palms, ambient details and existing tracks render without touching campaign state (1.3s)
+  ✓   2 reborn-building-decor-rotate.spec.mjs:5:1 › construction: R and the HUD switch mirrored façade without changing terrain, then it is saved (1.5s)
+  ✓   3 reborn-hq-bootstrap.spec.mjs:24:1 › HQ opening: only two starting units, only HQ build menu, animated offline noise and inert minimap controls (1.6s)
+  ✓   4 reborn-hq-bootstrap.spec.mjs:42:1 › HQ opening: real mirrored placement stays offline through paused construction, then enables radar and all base functions once (1.5s)
+  ✓   5 reborn-hq-bootstrap.spec.mjs:55:1 › HQ opening: AI chooses and finishes its own HQ and continues paid Tactical AI construction (1.3s)
+  ✓   6 reborn-hq-bootstrap.spec.mjs:61:1 › HQ opening: IndexedDB saves before HQ and during construction reload without new units or premature radar (2.3s)
+  ✓   7 reborn-hq-bootstrap.spec.mjs:71:34 › HQ opening: no softlock when only pioneer dies before HQ (1.1s)
+  ✓   8 reborn-hq-bootstrap.spec.mjs:71:34 › HQ opening: no softlock when only pioneer dies during construction (1.2s)
+  ✓   9 reborn-hq-bootstrap.spec.mjs:76:1 › HQ opening: a legacy saved campaign with HQs loads with its normal radar and build menu (1.5s)
+  ✓  10 reborn-hq-bootstrap.spec.mjs:83:1 › HQ opening: compact layout keeps offline guidance over the receiver and preserves camera keyboard control (1.3s)
+  ✓  11 reborn-production.spec.mjs:22:1 › production: worker and soldier start; HQ trains only workers; actual barracks construction unlocks soldiers and durable queues (1.8s)
+  ✓  12 reborn-production.spec.mjs:34:1 › production: real factory and airfield unlock their own menus only after completion, destroyed facilities hide them again (1.6s)
+  ✓  13 reborn-production.spec.mjs:46:1 › production: full queues disable available cards without hiding their category; enemy buildings do not unlock it (1.4s)
+
+  13 passed (20.5s)

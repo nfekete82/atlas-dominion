@@ -1,0 +1,1501 @@
+{
+  "referenceCommit": "a877391",
+  "releaseCommit": "c946b06",
+  "validationSeed": 640519,
+  "cases": 27,
+  "initialWorldsEqual": true,
+  "catalogEqual": true,
+  "sameObserverAndPaidPolicies": true,
+  "cpuScope": "Partly parallel Node games; durations are observations of differing paid armies, not controlled FPS or single-state CPU claims.",
+  "modules": {
+    "before": {
+      "path": "/tmp/atlas-titan-siege-baseline/dist/src/reborn/simulation.js",
+      "simulation": "de808ae09477784a59074b3b4ef93927bbc86ff4c64f6acee4902a9d27566364",
+      "catalog": "5a7902af0044fce362a047b2ca0d2e316e6164c6d2448f62b647b9afc035524f",
+      "moduleGraph": "7f6c5b4ad7ad3bb4d65c7c82a45c9dd26bdb23e11acd3fbc681878c5b953690e"
+    },
+    "after": {
+      "path": "/tmp/atlas-titan-collision-release/dist/src/reborn/simulation.js",
+      "simulation": "da5eb8b098f30a14ed01a5986a13a082533ee433c4deaaa17db79386d20efa81",
+      "catalog": "5a7902af0044fce362a047b2ca0d2e316e6164c6d2448f62b647b9afc035524f",
+      "moduleGraph": "ae2c713128772e13d9a3785470178ecbb1cd76ce0e1aeddc1aa29fea69af3146"
+    }
+  },
+  "total": {
+    "before": {
+      "runs": 27,
+      "outcomes": {
+        "win": 19,
+        "loss": 6,
+        "timeout": 2
+      },
+      "strategyRealized": 26,
+      "elapsedSeconds": 12639.0,
+      "redUnitsLost": 192,
+      "blueUnitsLost": 297,
+      "captures": 135,
+      "territoriesLost": 38,
+      "enemyBuildingDamage": 110642.695,
+      "enemyBuildingsDestroyed": 133,
+      "enemyTowersDestroyed": 67,
+      "enemyHQDamage": 24505.133,
+      "enemyHQDestroyed": 19,
+      "battleReactions": 272,
+      "battleRetreats": 13,
+      "reinforcements": 345,
+      "counterattacks": 0,
+      "abortedMissions": 166,
+      "stalledMissions": 17,
+      "paidRecruitCredits": 98000,
+      "paidBuildCredits": 23850,
+      "meanWinSeconds": 453.329,
+      "medianHQSeenSeconds": 235.7,
+      "cpu": {
+        "ai": {
+          "weightedMeanMs": 2.709,
+          "medianMatchP95Ms": 6.385,
+          "medianMatchP99Ms": 44.845,
+          "maxMs": 104.029
+        },
+        "simulation": {
+          "weightedMeanMs": 2.09,
+          "medianMatchP95Ms": 5.342,
+          "medianMatchP99Ms": 9.152,
+          "maxMs": 191.947
+        },
+        "pathfinding": {
+          "weightedMeanMs": 2.113,
+          "medianMatchP95Ms": 3.202,
+          "medianMatchP99Ms": 9.005,
+          "maxMs": 36.677
+        },
+        "vision": {
+          "weightedMeanMs": 4.315,
+          "medianMatchP95Ms": 8.305,
+          "medianMatchP99Ms": 9.685,
+          "maxMs": 85.129
+        }
+      },
+      "producerSeconds": {
+        "barracks": {
+          "available": 11380.95,
+          "busy": 1812.35,
+          "idle": 9568.6
+        },
+        "factory": {
+          "available": 10696.4,
+          "busy": 1248,
+          "idle": 9448.4
+        },
+        "airfield": {
+          "available": 4065.1,
+          "busy": 374.6,
+          "idle": 3690.5
+        }
+      }
+    },
+    "after": {
+      "runs": 27,
+      "outcomes": {
+        "win": 20,
+        "loss": 6,
+        "timeout": 1
+      },
+      "strategyRealized": 26,
+      "elapsedSeconds": 12065.25,
+      "redUnitsLost": 152,
+      "blueUnitsLost": 285,
+      "captures": 124,
+      "territoriesLost": 27,
+      "enemyBuildingDamage": 117238.163,
+      "enemyBuildingsDestroyed": 144,
+      "enemyTowersDestroyed": 77,
+      "enemyHQDamage": 24608.4,
+      "enemyHQDestroyed": 20,
+      "battleReactions": 271,
+      "battleRetreats": 12,
+      "reinforcements": 266,
+      "counterattacks": 3,
+      "abortedMissions": 157,
+      "stalledMissions": 16,
+      "paidRecruitCredits": 89975,
+      "paidBuildCredits": 24050,
+      "meanWinSeconds": 456.715,
+      "medianHQSeenSeconds": 235.7,
+      "cpu": {
+        "ai": {
+          "weightedMeanMs": 2.662,
+          "medianMatchP95Ms": 6.882,
+          "medianMatchP99Ms": 44.367,
+          "maxMs": 94.796
+        },
+        "simulation": {
+          "weightedMeanMs": 1.863,
+          "medianMatchP95Ms": 5.519,
+          "medianMatchP99Ms": 11.328,
+          "maxMs": 244.84
+        },
+        "pathfinding": {
+          "weightedMeanMs": 2.071,
+          "medianMatchP95Ms": 3.902,
+          "medianMatchP99Ms": 8.734,
+          "maxMs": 124.432
+        },
+        "vision": {
+          "weightedMeanMs": 4.258,
+          "medianMatchP95Ms": 8.337,
+          "medianMatchP99Ms": 10.244,
+          "maxMs": 72.323
+        }
+      },
+      "producerSeconds": {
+        "barracks": {
+          "available": 10784.85,
+          "busy": 1617.75,
+          "idle": 9167.1
+        },
+        "factory": {
+          "available": 10127.15,
+          "busy": 1150.55,
+          "idle": 8976.6
+        },
+        "airfield": {
+          "available": 3354.6,
+          "busy": 373.9,
+          "idle": 2980.7
+        }
+      }
+    }
+  },
+  "profiles": {
+    "tower1": {
+      "before": {
+        "runs": 3,
+        "outcomes": {
+          "win": 3,
+          "loss": 0,
+          "timeout": 0
+        },
+        "strategyRealized": 3,
+        "elapsedSeconds": 1071.7,
+        "redUnitsLost": 10,
+        "blueUnitsLost": 28,
+        "captures": 12,
+        "territoriesLost": 0,
+        "enemyBuildingDamage": 13421.3,
+        "enemyBuildingsDestroyed": 15,
+        "enemyTowersDestroyed": 3,
+        "enemyHQDamage": 3600,
+        "enemyHQDestroyed": 3,
+        "battleReactions": 11,
+        "battleRetreats": 0,
+        "reinforcements": 18,
+        "counterattacks": 0,
+        "abortedMissions": 10,
+        "stalledMissions": 3,
+        "paidRecruitCredits": 7775,
+        "paidBuildCredits": 3000,
+        "meanWinSeconds": 357.233,
+        "medianHQSeenSeconds": 235.7,
+        "cpu": {
+          "ai": {
+            "weightedMeanMs": 1.708,
+            "medianMatchP95Ms": 4.274,
+            "medianMatchP99Ms": 36.943,
+            "maxMs": 58.002
+          },
+          "simulation": {
+            "weightedMeanMs": 0.534,
+            "medianMatchP95Ms": 1.829,
+            "medianMatchP99Ms": 6.22,
+            "maxMs": 58.054
+          },
+          "pathfinding": {
+            "weightedMeanMs": 0.374,
+            "medianMatchP95Ms": 1.476,
+            "medianMatchP99Ms": 5.649,
+            "maxMs": 19.809
+          },
+          "vision": {
+            "weightedMeanMs": 1.796,
+            "medianMatchP95Ms": 5.775,
+            "medianMatchP99Ms": 7.274,
+            "maxMs": 16.369
+          }
+        },
+        "producerSeconds": {
+          "barracks": {
+            "available": 960.85,
+            "busy": 117,
+            "idle": 843.85
+          },
+          "factory": {
+            "available": 869.3,
+            "busy": 129,
+            "idle": 740.3
+          },
+          "airfield": {
+            "available": 231.15,
+            "busy": 18,
+            "idle": 213.15
+          }
+        }
+      },
+      "after": {
+        "runs": 3,
+        "outcomes": {
+          "win": 3,
+          "loss": 0,
+          "timeout": 0
+        },
+        "strategyRealized": 3,
+        "elapsedSeconds": 1116.45,
+        "redUnitsLost": 11,
+        "blueUnitsLost": 29,
+        "captures": 13,
+        "territoriesLost": 0,
+        "enemyBuildingDamage": 13885.7,
+        "enemyBuildingsDestroyed": 15,
+        "enemyTowersDestroyed": 3,
+        "enemyHQDamage": 3600,
+        "enemyHQDestroyed": 3,
+        "battleReactions": 11,
+        "battleRetreats": 0,
+        "reinforcements": 18,
+        "counterattacks": 0,
+        "abortedMissions": 10,
+        "stalledMissions": 3,
+        "paidRecruitCredits": 8475,
+        "paidBuildCredits": 3000,
+        "meanWinSeconds": 372.15,
+        "medianHQSeenSeconds": 235.7,
+        "cpu": {
+          "ai": {
+            "weightedMeanMs": 1.697,
+            "medianMatchP95Ms": 3.817,
+            "medianMatchP99Ms": 23.829,
+            "maxMs": 61.644
+          },
+          "simulation": {
+            "weightedMeanMs": 0.654,
+            "medianMatchP95Ms": 5.046,
+            "medianMatchP99Ms": 8.981,
+            "maxMs": 61.726
+          },
+          "pathfinding": {
+            "weightedMeanMs": 0.527,
+            "medianMatchP95Ms": 3.072,
+            "medianMatchP99Ms": 9.499,
+            "maxMs": 24.285
+          },
+          "vision": {
+            "weightedMeanMs": 2.189,
+            "medianMatchP95Ms": 7.874,
+            "medianMatchP99Ms": 9.276,
+            "maxMs": 20.241
+          }
+        },
+        "producerSeconds": {
+          "barracks": {
+            "available": 1005.6,
+            "busy": 132,
+            "idle": 873.6
+          },
+          "factory": {
+            "available": 914.05,
+            "busy": 129,
+            "idle": 785.05
+          },
+          "airfield": {
+            "available": 274,
+            "busy": 32,
+            "idle": 242
+          }
+        }
+      }
+    },
+    "tower3": {
+      "before": {
+        "runs": 3,
+        "outcomes": {
+          "win": 3,
+          "loss": 0,
+          "timeout": 0
+        },
+        "strategyRealized": 3,
+        "elapsedSeconds": 1902.55,
+        "redUnitsLost": 6,
+        "blueUnitsLost": 23,
+        "captures": 16,
+        "territoriesLost": 0,
+        "enemyBuildingDamage": 15900.0,
+        "enemyBuildingsDestroyed": 18,
+        "enemyTowersDestroyed": 9,
+        "enemyHQDamage": 3600,
+        "enemyHQDestroyed": 3,
+        "battleReactions": 47,
+        "battleRetreats": 1,
+        "reinforcements": 101,
+        "counterattacks": 0,
+        "abortedMissions": 26,
+        "stalledMissions": 5,
+        "paidRecruitCredits": 18650,
+        "paidBuildCredits": 3000,
+        "meanWinSeconds": 634.183,
+        "medianHQSeenSeconds": 196.9,
+        "cpu": {
+          "ai": {
+            "weightedMeanMs": 3.228,
+            "medianMatchP95Ms": 12.568,
+            "medianMatchP99Ms": 64.362,
+            "maxMs": 73.65
+          },
+          "simulation": {
+            "weightedMeanMs": 1.962,
+            "medianMatchP95Ms": 13.495,
+            "medianMatchP99Ms": 20.657,
+            "maxMs": 139.438
+          },
+          "pathfinding": {
+            "weightedMeanMs": 0.875,
+            "medianMatchP95Ms": 3.202,
+            "medianMatchP99Ms": 17.72,
+            "maxMs": 26.324
+          },
+          "vision": {
+            "weightedMeanMs": 6.53,
+            "medianMatchP95Ms": 15.647,
+            "medianMatchP99Ms": 19.677,
+            "maxMs": 41.932
+          }
+        },
+        "producerSeconds": {
+          "barracks": {
+            "available": 1791.7,
+            "busy": 279.2,
+            "idle": 1512.5
+          },
+          "factory": {
+            "available": 1700.15,
+            "busy": 228,
+            "idle": 1472.15
+          },
+          "airfield": {
+            "available": 866.2,
+            "busy": 114,
+            "idle": 752.2
+          }
+        }
+      },
+      "after": {
+        "runs": 3,
+        "outcomes": {
+          "win": 3,
+          "loss": 0,
+          "timeout": 0
+        },
+        "strategyRealized": 3,
+        "elapsedSeconds": 1685.15,
+        "redUnitsLost": 5,
+        "blueUnitsLost": 23,
+        "captures": 16,
+        "territoriesLost": 0,
+        "enemyBuildingDamage": 15229.3,
+        "enemyBuildingsDestroyed": 18,
+        "enemyTowersDestroyed": 9,
+        "enemyHQDamage": 3600,
+        "enemyHQDestroyed": 3,
+        "battleReactions": 41,
+        "battleRetreats": 2,
+        "reinforcements": 62,
+        "counterattacks": 0,
+        "abortedMissions": 24,
+        "stalledMissions": 4,
+        "paidRecruitCredits": 16200,
+        "paidBuildCredits": 3000,
+        "meanWinSeconds": 561.717,
+        "medianHQSeenSeconds": 196.9,
+        "cpu": {
+          "ai": {
+            "weightedMeanMs": 3.428,
+            "medianMatchP95Ms": 7.478,
+            "medianMatchP99Ms": 66.148,
+            "maxMs": 84.353
+          },
+          "simulation": {
+            "weightedMeanMs": 2.319,
+            "medianMatchP95Ms": 12.281,
+            "medianMatchP99Ms": 18.887,
+            "maxMs": 194.219
+          },
+          "pathfinding": {
+            "weightedMeanMs": 1.699,
+            "medianMatchP95Ms": 3.48,
+            "medianMatchP99Ms": 6.278,
+            "maxMs": 65.653
+          },
+          "vision": {
+            "weightedMeanMs": 6.366,
+            "medianMatchP95Ms": 15.137,
+            "medianMatchP99Ms": 16.687,
+            "maxMs": 49.18
+          }
+        },
+        "producerSeconds": {
+          "barracks": {
+            "available": 1574.3,
+            "busy": 274.85,
+            "idle": 1299.45
+          },
+          "factory": {
+            "available": 1482.75,
+            "busy": 177,
+            "idle": 1305.75
+          },
+          "airfield": {
+            "available": 658.2,
+            "busy": 96,
+            "idle": 562.2
+          }
+        }
+      }
+    },
+    "tower6": {
+      "before": {
+        "runs": 3,
+        "outcomes": {
+          "win": 3,
+          "loss": 0,
+          "timeout": 0
+        },
+        "strategyRealized": 3,
+        "elapsedSeconds": 1646.1,
+        "redUnitsLost": 8,
+        "blueUnitsLost": 25,
+        "captures": 14,
+        "territoriesLost": 0,
+        "enemyBuildingDamage": 20118.9,
+        "enemyBuildingsDestroyed": 26,
+        "enemyTowersDestroyed": 18,
+        "enemyHQDamage": 3600,
+        "enemyHQDestroyed": 3,
+        "battleReactions": 84,
+        "battleRetreats": 0,
+        "reinforcements": 53,
+        "counterattacks": 0,
+        "abortedMissions": 30,
+        "stalledMissions": 2,
+        "paidRecruitCredits": 12500,
+        "paidBuildCredits": 3000,
+        "meanWinSeconds": 548.7,
+        "medianHQSeenSeconds": 460.95,
+        "cpu": {
+          "ai": {
+            "weightedMeanMs": 3.074,
+            "medianMatchP95Ms": 9.408,
+            "medianMatchP99Ms": 61.288,
+            "maxMs": 76.564
+          },
+          "simulation": {
+            "weightedMeanMs": 1.243,
+            "medianMatchP95Ms": 5.342,
+            "medianMatchP99Ms": 20.279,
+            "maxMs": 76.631
+          },
+          "pathfinding": {
+            "weightedMeanMs": 1.094,
+            "medianMatchP95Ms": 5.74,
+            "medianMatchP99Ms": 20.822,
+            "maxMs": 29.594
+          },
+          "vision": {
+            "weightedMeanMs": 3.232,
+            "medianMatchP95Ms": 11.463,
+            "medianMatchP99Ms": 14.671,
+            "maxMs": 35.059
+          }
+        },
+        "producerSeconds": {
+          "barracks": {
+            "available": 1535.25,
+            "busy": 173,
+            "idle": 1362.25
+          },
+          "factory": {
+            "available": 1443.7,
+            "busy": 195,
+            "idle": 1248.7
+          },
+          "airfield": {
+            "available": 672.55,
+            "busy": 42.6,
+            "idle": 629.95
+          }
+        }
+      },
+      "after": {
+        "runs": 3,
+        "outcomes": {
+          "win": 3,
+          "loss": 0,
+          "timeout": 0
+        },
+        "strategyRealized": 3,
+        "elapsedSeconds": 1537.5,
+        "redUnitsLost": 12,
+        "blueUnitsLost": 24,
+        "captures": 11,
+        "territoriesLost": 0,
+        "enemyBuildingDamage": 19139.6,
+        "enemyBuildingsDestroyed": 25,
+        "enemyTowersDestroyed": 18,
+        "enemyHQDamage": 3600,
+        "enemyHQDestroyed": 3,
+        "battleReactions": 64,
+        "battleRetreats": 0,
+        "reinforcements": 17,
+        "counterattacks": 0,
+        "abortedMissions": 30,
+        "stalledMissions": 3,
+        "paidRecruitCredits": 9975,
+        "paidBuildCredits": 3000,
+        "meanWinSeconds": 512.5,
+        "medianHQSeenSeconds": 397.65,
+        "cpu": {
+          "ai": {
+            "weightedMeanMs": 3.422,
+            "medianMatchP95Ms": 8.748,
+            "medianMatchP99Ms": 70.925,
+            "maxMs": 94.796
+          },
+          "simulation": {
+            "weightedMeanMs": 1.496,
+            "medianMatchP95Ms": 4.256,
+            "medianMatchP99Ms": 13.373,
+            "maxMs": 94.88
+          },
+          "pathfinding": {
+            "weightedMeanMs": 1.756,
+            "medianMatchP95Ms": 6.143,
+            "medianMatchP99Ms": 20.721,
+            "maxMs": 56.959
+          },
+          "vision": {
+            "weightedMeanMs": 3.198,
+            "medianMatchP95Ms": 10.626,
+            "medianMatchP99Ms": 14.013,
+            "maxMs": 42.855
+          }
+        },
+        "producerSeconds": {
+          "barracks": {
+            "available": 1426.65,
+            "busy": 132,
+            "idle": 1294.65
+          },
+          "factory": {
+            "available": 1335.1,
+            "busy": 147,
+            "idle": 1188.1
+          },
+          "airfield": {
+            "available": 548.1,
+            "busy": 49.9,
+            "idle": 498.2
+          }
+        }
+      }
+    },
+    "infantry": {
+      "before": {
+        "runs": 3,
+        "outcomes": {
+          "win": 0,
+          "loss": 3,
+          "timeout": 0
+        },
+        "strategyRealized": 3,
+        "elapsedSeconds": 767.5,
+        "redUnitsLost": 25,
+        "blueUnitsLost": 31,
+        "captures": 10,
+        "territoriesLost": 13,
+        "enemyBuildingDamage": 0,
+        "enemyBuildingsDestroyed": 0,
+        "enemyTowersDestroyed": 0,
+        "enemyHQDamage": 0,
+        "enemyHQDestroyed": 0,
+        "battleReactions": 0,
+        "battleRetreats": 2,
+        "reinforcements": 2,
+        "counterattacks": 0,
+        "abortedMissions": 4,
+        "stalledMissions": 0,
+        "paidRecruitCredits": 3950,
+        "paidBuildCredits": 1650,
+        "meanWinSeconds": null,
+        "medianHQSeenSeconds": 132.35,
+        "cpu": {
+          "ai": {
+            "weightedMeanMs": 1.156,
+            "medianMatchP95Ms": 7.447,
+            "medianMatchP99Ms": 8.318,
+            "maxMs": 17.002
+          },
+          "simulation": {
+            "weightedMeanMs": 0.869,
+            "medianMatchP95Ms": 2.98,
+            "medianMatchP99Ms": 4.599,
+            "maxMs": 35.435
+          },
+          "pathfinding": {
+            "weightedMeanMs": 1.138,
+            "medianMatchP95Ms": 2.863,
+            "medianMatchP99Ms": 5.252,
+            "maxMs": 17.703
+          },
+          "vision": {
+            "weightedMeanMs": 1.297,
+            "medianMatchP95Ms": 3.599,
+            "medianMatchP99Ms": 4.437,
+            "maxMs": 7.644
+          }
+        },
+        "producerSeconds": {
+          "barracks": {
+            "available": 556.15,
+            "busy": 124,
+            "idle": 432.15
+          },
+          "factory": {
+            "available": 513.2,
+            "busy": 35,
+            "idle": 478.2
+          },
+          "airfield": {
+            "available": 0,
+            "busy": 0,
+            "idle": 0
+          }
+        }
+      },
+      "after": {
+        "runs": 3,
+        "outcomes": {
+          "win": 0,
+          "loss": 3,
+          "timeout": 0
+        },
+        "strategyRealized": 3,
+        "elapsedSeconds": 767.5,
+        "redUnitsLost": 25,
+        "blueUnitsLost": 31,
+        "captures": 10,
+        "territoriesLost": 13,
+        "enemyBuildingDamage": 0,
+        "enemyBuildingsDestroyed": 0,
+        "enemyTowersDestroyed": 0,
+        "enemyHQDamage": 0,
+        "enemyHQDestroyed": 0,
+        "battleReactions": 0,
+        "battleRetreats": 2,
+        "reinforcements": 2,
+        "counterattacks": 0,
+        "abortedMissions": 4,
+        "stalledMissions": 0,
+        "paidRecruitCredits": 3950,
+        "paidBuildCredits": 1650,
+        "meanWinSeconds": null,
+        "medianHQSeenSeconds": 132.35,
+        "cpu": {
+          "ai": {
+            "weightedMeanMs": 1.17,
+            "medianMatchP95Ms": 8.16,
+            "medianMatchP99Ms": 8.792,
+            "maxMs": 18.061
+          },
+          "simulation": {
+            "weightedMeanMs": 0.882,
+            "medianMatchP95Ms": 3.012,
+            "medianMatchP99Ms": 4.661,
+            "maxMs": 35.708
+          },
+          "pathfinding": {
+            "weightedMeanMs": 1.159,
+            "medianMatchP95Ms": 2.987,
+            "medianMatchP99Ms": 5.369,
+            "maxMs": 18.059
+          },
+          "vision": {
+            "weightedMeanMs": 1.31,
+            "medianMatchP95Ms": 3.615,
+            "medianMatchP99Ms": 4.493,
+            "maxMs": 5.717
+          }
+        },
+        "producerSeconds": {
+          "barracks": {
+            "available": 556.15,
+            "busy": 124,
+            "idle": 432.15
+          },
+          "factory": {
+            "available": 513.2,
+            "busy": 35,
+            "idle": 478.2
+          },
+          "airfield": {
+            "available": 0,
+            "busy": 0,
+            "idle": 0
+          }
+        }
+      }
+    },
+    "armor": {
+      "before": {
+        "runs": 3,
+        "outcomes": {
+          "win": 3,
+          "loss": 0,
+          "timeout": 0
+        },
+        "strategyRealized": 3,
+        "elapsedSeconds": 1140.85,
+        "redUnitsLost": 19,
+        "blueUnitsLost": 35,
+        "captures": 20,
+        "territoriesLost": 4,
+        "enemyBuildingDamage": 11036.133,
+        "enemyBuildingsDestroyed": 9,
+        "enemyTowersDestroyed": 0,
+        "enemyHQDamage": 4713.933,
+        "enemyHQDestroyed": 3,
+        "battleReactions": 0,
+        "battleRetreats": 1,
+        "reinforcements": 18,
+        "counterattacks": 0,
+        "abortedMissions": 7,
+        "stalledMissions": 0,
+        "paidRecruitCredits": 11725,
+        "paidBuildCredits": 2550,
+        "meanWinSeconds": 380.283,
+        "medianHQSeenSeconds": 142.3,
+        "cpu": {
+          "ai": {
+            "weightedMeanMs": 1.356,
+            "medianMatchP95Ms": 4.214,
+            "medianMatchP99Ms": 20.703,
+            "maxMs": 33.874
+          },
+          "simulation": {
+            "weightedMeanMs": 1.906,
+            "medianMatchP95Ms": 7.932,
+            "medianMatchP99Ms": 14.108,
+            "maxMs": 58.183
+          },
+          "pathfinding": {
+            "weightedMeanMs": 1.432,
+            "medianMatchP95Ms": 2.111,
+            "medianMatchP99Ms": 8.607,
+            "maxMs": 34.724
+          },
+          "vision": {
+            "weightedMeanMs": 3.004,
+            "medianMatchP95Ms": 8.501,
+            "medianMatchP99Ms": 9.895,
+            "maxMs": 20.66
+          }
+        },
+        "producerSeconds": {
+          "barracks": {
+            "available": 1030.0,
+            "busy": 229.25,
+            "idle": 800.75
+          },
+          "factory": {
+            "available": 938.45,
+            "busy": 136,
+            "idle": 802.45
+          },
+          "airfield": {
+            "available": 351.65,
+            "busy": 50,
+            "idle": 301.65
+          }
+        }
+      },
+      "after": {
+        "runs": 3,
+        "outcomes": {
+          "win": 3,
+          "loss": 0,
+          "timeout": 0
+        },
+        "strategyRealized": 3,
+        "elapsedSeconds": 952.05,
+        "redUnitsLost": 12,
+        "blueUnitsLost": 24,
+        "captures": 19,
+        "territoriesLost": 0,
+        "enemyBuildingDamage": 10985.8,
+        "enemyBuildingsDestroyed": 10,
+        "enemyTowersDestroyed": 0,
+        "enemyHQDamage": 4033.2,
+        "enemyHQDestroyed": 3,
+        "battleReactions": 0,
+        "battleRetreats": 1,
+        "reinforcements": 11,
+        "counterattacks": 1,
+        "abortedMissions": 6,
+        "stalledMissions": 0,
+        "paidRecruitCredits": 9225,
+        "paidBuildCredits": 2550,
+        "meanWinSeconds": 317.35,
+        "medianHQSeenSeconds": 142.3,
+        "cpu": {
+          "ai": {
+            "weightedMeanMs": 1.417,
+            "medianMatchP95Ms": 4.22,
+            "medianMatchP99Ms": 19.4,
+            "maxMs": 34.304
+          },
+          "simulation": {
+            "weightedMeanMs": 0.903,
+            "medianMatchP95Ms": 5.724,
+            "medianMatchP99Ms": 10.084,
+            "maxMs": 147.359
+          },
+          "pathfinding": {
+            "weightedMeanMs": 1.763,
+            "medianMatchP95Ms": 2.013,
+            "medianMatchP99Ms": 8.734,
+            "maxMs": 116.83
+          },
+          "vision": {
+            "weightedMeanMs": 2.261,
+            "medianMatchP95Ms": 6.911,
+            "medianMatchP99Ms": 8.436,
+            "maxMs": 17.789
+          }
+        },
+        "producerSeconds": {
+          "barracks": {
+            "available": 841.2,
+            "busy": 177.25,
+            "idle": 663.95
+          },
+          "factory": {
+            "available": 749.65,
+            "busy": 126,
+            "idle": 623.65
+          },
+          "airfield": {
+            "available": 162.85,
+            "busy": 32,
+            "idle": 130.85
+          }
+        }
+      }
+    },
+    "expansion": {
+      "before": {
+        "runs": 3,
+        "outcomes": {
+          "win": 0,
+          "loss": 2,
+          "timeout": 1
+        },
+        "strategyRealized": 3,
+        "elapsedSeconds": 1470.65,
+        "redUnitsLost": 39,
+        "blueUnitsLost": 57,
+        "captures": 19,
+        "territoriesLost": 19,
+        "enemyBuildingDamage": 1716,
+        "enemyBuildingsDestroyed": 3,
+        "enemyTowersDestroyed": 2,
+        "enemyHQDamage": 416,
+        "enemyHQDestroyed": 0,
+        "battleReactions": 14,
+        "battleRetreats": 3,
+        "reinforcements": 9,
+        "counterattacks": 0,
+        "abortedMissions": 9,
+        "stalledMissions": 1,
+        "paidRecruitCredits": 8275,
+        "paidBuildCredits": 2100,
+        "meanWinSeconds": null,
+        "medianHQSeenSeconds": 159.95,
+        "cpu": {
+          "ai": {
+            "weightedMeanMs": 1.699,
+            "medianMatchP95Ms": 6.108,
+            "medianMatchP99Ms": 7.569,
+            "maxMs": 51.154
+          },
+          "simulation": {
+            "weightedMeanMs": 3.361,
+            "medianMatchP95Ms": 4.457,
+            "medianMatchP99Ms": 6.986,
+            "maxMs": 105.799
+          },
+          "pathfinding": {
+            "weightedMeanMs": 3.465,
+            "medianMatchP95Ms": 5.234,
+            "medianMatchP99Ms": 10.306,
+            "maxMs": 34.965
+          },
+          "vision": {
+            "weightedMeanMs": 2.712,
+            "medianMatchP95Ms": 2.63,
+            "medianMatchP99Ms": 3.2,
+            "maxMs": 17.366
+          }
+        },
+        "producerSeconds": {
+          "barracks": {
+            "available": 1252.65,
+            "busy": 202,
+            "idle": 1050.65
+          },
+          "factory": {
+            "available": 1234.95,
+            "busy": 113,
+            "idle": 1121.95
+          },
+          "airfield": {
+            "available": 570.2,
+            "busy": 0,
+            "idle": 570.2
+          }
+        }
+      },
+      "after": {
+        "runs": 3,
+        "outcomes": {
+          "win": 0,
+          "loss": 3,
+          "timeout": 0
+        },
+        "strategyRealized": 3,
+        "elapsedSeconds": 1263.45,
+        "redUnitsLost": 33,
+        "blueUnitsLost": 50,
+        "captures": 10,
+        "territoriesLost": 13,
+        "enemyBuildingDamage": 1100,
+        "enemyBuildingsDestroyed": 2,
+        "enemyTowersDestroyed": 2,
+        "enemyHQDamage": 0,
+        "enemyHQDestroyed": 0,
+        "battleReactions": 13,
+        "battleRetreats": 2,
+        "reinforcements": 10,
+        "counterattacks": 0,
+        "abortedMissions": 6,
+        "stalledMissions": 2,
+        "paidRecruitCredits": 5975,
+        "paidBuildCredits": 2300,
+        "meanWinSeconds": null,
+        "medianHQSeenSeconds": 159.95,
+        "cpu": {
+          "ai": {
+            "weightedMeanMs": 1.661,
+            "medianMatchP95Ms": 6.882,
+            "medianMatchP99Ms": 8.127,
+            "maxMs": 52.042
+          },
+          "simulation": {
+            "weightedMeanMs": 3.465,
+            "medianMatchP95Ms": 4.855,
+            "medianMatchP99Ms": 7.628,
+            "maxMs": 156.422
+          },
+          "pathfinding": {
+            "weightedMeanMs": 4.447,
+            "medianMatchP95Ms": 5.606,
+            "medianMatchP99Ms": 12.068,
+            "maxMs": 124.432
+          },
+          "vision": {
+            "weightedMeanMs": 2.281,
+            "medianMatchP95Ms": 2.918,
+            "medianMatchP99Ms": 3.521,
+            "maxMs": 13.013
+          }
+        },
+        "producerSeconds": {
+          "barracks": {
+            "available": 970.35,
+            "busy": 136,
+            "idle": 834.35
+          },
+          "factory": {
+            "available": 996.45,
+            "busy": 83,
+            "idle": 913.45
+          },
+          "airfield": {
+            "available": 317.65,
+            "busy": 0,
+            "idle": 317.65
+          }
+        }
+      }
+    },
+    "fortress": {
+      "before": {
+        "runs": 3,
+        "outcomes": {
+          "win": 3,
+          "loss": 0,
+          "timeout": 0
+        },
+        "strategyRealized": 3,
+        "elapsedSeconds": 1777.6,
+        "redUnitsLost": 8,
+        "blueUnitsLost": 31,
+        "captures": 14,
+        "territoriesLost": 0,
+        "enemyBuildingDamage": 27967.362,
+        "enemyBuildingsDestroyed": 37,
+        "enemyTowersDestroyed": 25,
+        "enemyHQDamage": 3600,
+        "enemyHQDestroyed": 3,
+        "battleReactions": 64,
+        "battleRetreats": 1,
+        "reinforcements": 92,
+        "counterattacks": 0,
+        "abortedMissions": 35,
+        "stalledMissions": 3,
+        "paidRecruitCredits": 13600,
+        "paidBuildCredits": 3000,
+        "meanWinSeconds": 592.533,
+        "medianHQSeenSeconds": 321.15,
+        "cpu": {
+          "ai": {
+            "weightedMeanMs": 3.315,
+            "medianMatchP95Ms": 7.241,
+            "medianMatchP99Ms": 73.755,
+            "maxMs": 104.029
+          },
+          "simulation": {
+            "weightedMeanMs": 1.626,
+            "medianMatchP95Ms": 12.632,
+            "medianMatchP99Ms": 19.966,
+            "maxMs": 141.54
+          },
+          "pathfinding": {
+            "weightedMeanMs": 0.677,
+            "medianMatchP95Ms": 1.628,
+            "medianMatchP99Ms": 14.618,
+            "maxMs": 36.677
+          },
+          "vision": {
+            "weightedMeanMs": 5.276,
+            "medianMatchP95Ms": 18.178,
+            "medianMatchP99Ms": 21.674,
+            "maxMs": 71.717
+          }
+        },
+        "producerSeconds": {
+          "barracks": {
+            "available": 1666.75,
+            "busy": 200.25,
+            "idle": 1466.5
+          },
+          "factory": {
+            "available": 1575.2,
+            "busy": 183,
+            "idle": 1392.2
+          },
+          "airfield": {
+            "available": 563.15,
+            "busy": 68,
+            "idle": 495.15
+          }
+        }
+      },
+      "after": {
+        "runs": 3,
+        "outcomes": {
+          "win": 3,
+          "loss": 0,
+          "timeout": 0
+        },
+        "strategyRealized": 3,
+        "elapsedSeconds": 1938.35,
+        "redUnitsLost": 8,
+        "blueUnitsLost": 34,
+        "captures": 15,
+        "territoriesLost": 0,
+        "enemyBuildingDamage": 28819.6,
+        "enemyBuildingsDestroyed": 39,
+        "enemyTowersDestroyed": 29,
+        "enemyHQDamage": 3600,
+        "enemyHQDestroyed": 3,
+        "battleReactions": 92,
+        "battleRetreats": 1,
+        "reinforcements": 79,
+        "counterattacks": 0,
+        "abortedMissions": 37,
+        "stalledMissions": 2,
+        "paidRecruitCredits": 15400,
+        "paidBuildCredits": 3000,
+        "meanWinSeconds": 646.117,
+        "medianHQSeenSeconds": 321.15,
+        "cpu": {
+          "ai": {
+            "weightedMeanMs": 3.262,
+            "medianMatchP95Ms": 8.759,
+            "medianMatchP99Ms": 74.783,
+            "maxMs": 89.471
+          },
+          "simulation": {
+            "weightedMeanMs": 1.922,
+            "medianMatchP95Ms": 11.492,
+            "medianMatchP99Ms": 22.68,
+            "maxMs": 244.84
+          },
+          "pathfinding": {
+            "weightedMeanMs": 1.51,
+            "medianMatchP95Ms": 3.374,
+            "medianMatchP99Ms": 24.33,
+            "maxMs": 123.52
+          },
+          "vision": {
+            "weightedMeanMs": 5.272,
+            "medianMatchP95Ms": 21.136,
+            "medianMatchP99Ms": 24.854,
+            "maxMs": 72.323
+          }
+        },
+        "producerSeconds": {
+          "barracks": {
+            "available": 1827.5,
+            "busy": 219,
+            "idle": 1608.5
+          },
+          "factory": {
+            "available": 1735.95,
+            "busy": 209.55,
+            "idle": 1526.4
+          },
+          "airfield": {
+            "available": 726.25,
+            "busy": 82,
+            "idle": 644.25
+          }
+        }
+      }
+    },
+    "combined": {
+      "before": {
+        "runs": 3,
+        "outcomes": {
+          "win": 3,
+          "loss": 0,
+          "timeout": 0
+        },
+        "strategyRealized": 2,
+        "elapsedSeconds": 625.0,
+        "redUnitsLost": 10,
+        "blueUnitsLost": 8,
+        "captures": 17,
+        "territoriesLost": 0,
+        "enemyBuildingDamage": 10853.05,
+        "enemyBuildingsDestroyed": 12,
+        "enemyTowersDestroyed": 0,
+        "enemyHQDamage": 3775.2,
+        "enemyHQDestroyed": 3,
+        "battleReactions": 0,
+        "battleRetreats": 0,
+        "reinforcements": 10,
+        "counterattacks": 0,
+        "abortedMissions": 3,
+        "stalledMissions": 0,
+        "paidRecruitCredits": 4450,
+        "paidBuildCredits": 2550,
+        "meanWinSeconds": 208.333,
+        "medianHQSeenSeconds": 121.45,
+        "cpu": {
+          "ai": {
+            "weightedMeanMs": 1.265,
+            "medianMatchP95Ms": 4.271,
+            "medianMatchP99Ms": 31.243,
+            "maxMs": 44.845
+          },
+          "simulation": {
+            "weightedMeanMs": 0.288,
+            "medianMatchP95Ms": 1.699,
+            "medianMatchP99Ms": 2.564,
+            "maxMs": 45.375
+          },
+          "pathfinding": {
+            "weightedMeanMs": 0.606,
+            "medianMatchP95Ms": 2.876,
+            "medianMatchP99Ms": 6.004,
+            "maxMs": 21.146
+          },
+          "vision": {
+            "weightedMeanMs": 0.804,
+            "medianMatchP95Ms": 2.237,
+            "medianMatchP99Ms": 2.626,
+            "maxMs": 3.89
+          }
+        },
+        "producerSeconds": {
+          "barracks": {
+            "available": 514.15,
+            "busy": 92,
+            "idle": 422.15
+          },
+          "factory": {
+            "available": 422.6,
+            "busy": 80,
+            "idle": 342.6
+          },
+          "airfield": {
+            "available": 14.6,
+            "busy": 0,
+            "idle": 14.6
+          }
+        }
+      },
+      "after": {
+        "runs": 3,
+        "outcomes": {
+          "win": 3,
+          "loss": 0,
+          "timeout": 0
+        },
+        "strategyRealized": 2,
+        "elapsedSeconds": 628.4,
+        "redUnitsLost": 10,
+        "blueUnitsLost": 8,
+        "captures": 17,
+        "territoriesLost": 0,
+        "enemyBuildingDamage": 10850.65,
+        "enemyBuildingsDestroyed": 12,
+        "enemyTowersDestroyed": 0,
+        "enemyHQDamage": 3775.2,
+        "enemyHQDestroyed": 3,
+        "battleReactions": 0,
+        "battleRetreats": 0,
+        "reinforcements": 9,
+        "counterattacks": 1,
+        "abortedMissions": 3,
+        "stalledMissions": 0,
+        "paidRecruitCredits": 4550,
+        "paidBuildCredits": 2550,
+        "meanWinSeconds": 209.467,
+        "medianHQSeenSeconds": 121.45,
+        "cpu": {
+          "ai": {
+            "weightedMeanMs": 1.317,
+            "medianMatchP95Ms": 4.041,
+            "medianMatchP99Ms": 32.839,
+            "maxMs": 44.367
+          },
+          "simulation": {
+            "weightedMeanMs": 0.325,
+            "medianMatchP95Ms": 1.719,
+            "medianMatchP99Ms": 3.033,
+            "maxMs": 53.952
+          },
+          "pathfinding": {
+            "weightedMeanMs": 0.875,
+            "medianMatchP95Ms": 4.881,
+            "medianMatchP99Ms": 7.525,
+            "maxMs": 20.698
+          },
+          "vision": {
+            "weightedMeanMs": 0.817,
+            "medianMatchP95Ms": 2.302,
+            "medianMatchP99Ms": 2.657,
+            "maxMs": 4.096
+          }
+        },
+        "producerSeconds": {
+          "barracks": {
+            "available": 517.55,
+            "busy": 97,
+            "idle": 420.55
+          },
+          "factory": {
+            "available": 426.0,
+            "busy": 80,
+            "idle": 346.0
+          },
+          "airfield": {
+            "available": 18.0,
+            "busy": 0,
+            "idle": 18.0
+          }
+        }
+      }
+    },
+    "attrition": {
+      "before": {
+        "runs": 3,
+        "outcomes": {
+          "win": 1,
+          "loss": 1,
+          "timeout": 1
+        },
+        "strategyRealized": 3,
+        "elapsedSeconds": 2237.05,
+        "redUnitsLost": 67,
+        "blueUnitsLost": 59,
+        "captures": 13,
+        "territoriesLost": 2,
+        "enemyBuildingDamage": 9629.95,
+        "enemyBuildingsDestroyed": 13,
+        "enemyTowersDestroyed": 10,
+        "enemyHQDamage": 1200,
+        "enemyHQDestroyed": 1,
+        "battleReactions": 52,
+        "battleRetreats": 5,
+        "reinforcements": 42,
+        "counterattacks": 0,
+        "abortedMissions": 42,
+        "stalledMissions": 3,
+        "paidRecruitCredits": 17075,
+        "paidBuildCredits": 3000,
+        "meanWinSeconds": 449.45,
+        "medianHQSeenSeconds": 306.05,
+        "cpu": {
+          "ai": {
+            "weightedMeanMs": 4.181,
+            "medianMatchP95Ms": 15.488,
+            "medianMatchP99Ms": 69.814,
+            "maxMs": 102.441
+          },
+          "simulation": {
+            "weightedMeanMs": 4.118,
+            "medianMatchP95Ms": 18.072,
+            "medianMatchP99Ms": 28.731,
+            "maxMs": 191.947
+          },
+          "pathfinding": {
+            "weightedMeanMs": 3.47,
+            "medianMatchP95Ms": 7.059,
+            "medianMatchP99Ms": 19.177,
+            "maxMs": 33.023
+          },
+          "vision": {
+            "weightedMeanMs": 7.422,
+            "medianMatchP95Ms": 15.79,
+            "medianMatchP99Ms": 20.181,
+            "maxMs": 85.129
+          }
+        },
+        "producerSeconds": {
+          "barracks": {
+            "available": 2073.45,
+            "busy": 395.65,
+            "idle": 1677.8
+          },
+          "factory": {
+            "available": 1998.85,
+            "busy": 149,
+            "idle": 1849.85
+          },
+          "airfield": {
+            "available": 795.6,
+            "busy": 82,
+            "idle": 713.6
+          }
+        }
+      },
+      "after": {
+        "runs": 3,
+        "outcomes": {
+          "win": 2,
+          "loss": 0,
+          "timeout": 1
+        },
+        "strategyRealized": 3,
+        "elapsedSeconds": 2176.4,
+        "redUnitsLost": 36,
+        "blueUnitsLost": 62,
+        "captures": 13,
+        "territoriesLost": 1,
+        "enemyBuildingDamage": 17227.513,
+        "enemyBuildingsDestroyed": 23,
+        "enemyTowersDestroyed": 16,
+        "enemyHQDamage": 2400,
+        "enemyHQDestroyed": 2,
+        "battleReactions": 50,
+        "battleRetreats": 4,
+        "reinforcements": 58,
+        "counterattacks": 1,
+        "abortedMissions": 37,
+        "stalledMissions": 2,
+        "paidRecruitCredits": 16225,
+        "paidBuildCredits": 3000,
+        "meanWinSeconds": 638.2,
+        "medianHQSeenSeconds": 306.05,
+        "cpu": {
+          "ai": {
+            "weightedMeanMs": 3.424,
+            "medianMatchP95Ms": 12.024,
+            "medianMatchP99Ms": 62.715,
+            "maxMs": 92.28
+          },
+          "simulation": {
+            "weightedMeanMs": 2.619,
+            "medianMatchP95Ms": 15.429,
+            "medianMatchP99Ms": 32.354,
+            "maxMs": 242.09
+          },
+          "pathfinding": {
+            "weightedMeanMs": 1.547,
+            "medianMatchP95Ms": 6.47,
+            "medianMatchP99Ms": 18.334,
+            "maxMs": 111.63
+          },
+          "vision": {
+            "weightedMeanMs": 7.598,
+            "medianMatchP95Ms": 20.151,
+            "medianMatchP99Ms": 28.664,
+            "maxMs": 65.901
+          }
+        },
+        "producerSeconds": {
+          "barracks": {
+            "available": 2065.55,
+            "busy": 325.65,
+            "idle": 1739.9
+          },
+          "factory": {
+            "available": 1974.0,
+            "busy": 164,
+            "idle": 1810.0
+          },
+          "airfield": {
+            "available": 649.55,
+            "busy": 82,
+            "idle": 567.55
+          }
+        }
+      }
+    }
+  },
+  "changedOutcomes": [
+    {
+      "profile": "expansion",
+      "map": 5,
+      "before": "timeout",
+      "after": "loss"
+    },
+    {
+      "profile": "attrition",
+      "map": 3,
+      "before": "loss",
+      "after": "win"
+    }
+  ],
+  "previousWinsRetained": true
+}

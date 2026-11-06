@@ -1,0 +1,70 @@
+{
+  "date": "2026-10-24",
+  "scope": "Tracked and untracked nonignored files; heuristic token/key patterns, not a guarantee against all secret formats",
+  "files": 932,
+  "suspiciousArtifacts": [],
+  "secretPatternMatches": [],
+  "largestFiles": [
+    {
+      "path": "src/assets/reborn/prototype/heavy-1.glb",
+      "bytes": 7911068
+    },
+    {
+      "path": "src/assets/reborn/prototype/heavy-0.glb",
+      "bytes": 7911064
+    },
+    {
+      "path": "src/assets/reborn/prototype/infantry-1.glb",
+      "bytes": 7332792
+    },
+    {
+      "path": "src/assets/reborn/prototype/infantry-0.glb",
+      "bytes": 7330120
+    },
+    {
+      "path": "src/assets/reborn/prototype/medic-1.glb",
+      "bytes": 6850800
+    },
+    {
+      "path": "src/assets/reborn/prototype/medic-0.glb",
+      "bytes": 6850800
+    },
+    {
+      "path": "src/assets/reborn/prototype/engineer-1.glb",
+      "bytes": 6724856
+    },
+    {
+      "path": "src/assets/reborn/prototype/engineer-0.glb",
+      "bytes": 6724856
+    },
+    {
+      "path": "src/assets/reborn/buildings-3d/barracks-1.glb",
+      "bytes": 5911720
+    },
+    {
+      "path": "src/assets/reborn/buildings-3d/barracks-0.glb",
+      "bytes": 5911716
+    },
+    {
+      "path": "src/assets/reborn/buildings-3d/turret-1.glb",
+      "bytes": 5476156
+    },
+    {
+      "path": "src/assets/reborn/buildings-3d/turret-0.glb",
+      "bytes": 5476152
+    },
+    {
+      "path": "docs/art-direction/reference.png",
+      "bytes": 4696032
+    },
+    {
+      "path": "src/assets/reborn/sandstone-detail.png",
+      "bytes": 3938398
+    },
+    {
+      "path": "src/assets/reborn/desert.png",
+      "bytes": 3733091
+    }
+  ],
+  "filesOver100MiB": []
+}

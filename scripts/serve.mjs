@@ -4,14 +4,19 @@ import { resolve, sep, extname } from 'node:path';
 const PORT = Number(process.env.PORT || 8095);
 const HOST = process.env.HOST || '127.0.0.1';
 const BASE = resolve('dist');
-const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.map': 'application/json', '.png': 'image/png' };
+const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.map': 'application/json', '.png': 'image/png', '.webp':'image/webp', '.svg':'image/svg+xml', '.wav':'audio/wav' };
 createServer(async (req, res) => {
   try {
     const path = decodeURIComponent(new URL(req.url ?? '/', 'http://localhost').pathname);
+    if (path === '/healthz') {
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify({ ok: true, service: 'sandforge' }));
+      return;
+    }
     const file = resolve(BASE, '.' + (path === '/' ? '/index.html' : path));
     if (!(file === BASE || file.startsWith(BASE + sep))) { res.writeHead(403).end(); return; }
     if (!(await stat(file)).isFile()) { res.writeHead(404).end(); return; }
     res.writeHead(200, { 'Content-Type': mime[extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff' });
     res.end(await readFile(file));
   } catch { res.writeHead(404).end('Not Found'); }
-}).listen(PORT, HOST, () => console.log(`ATLAS DOMINION → http://${HOST}:${PORT}`));
+}).listen(PORT, HOST, () => console.log(`SANDFORGE: BASTION WARS → http://${HOST}:${PORT}`));

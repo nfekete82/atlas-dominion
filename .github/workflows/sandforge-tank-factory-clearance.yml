@@ -1,0 +1,25 @@
+name: Sandforge tank factory clearance
+on:
+  push:
+    branches:
+      - fix/sandforge-vehicle-building-spawn-clearance-20261102
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  clearance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node --test tests/sandforge-vehicle-building-clearance.test.mjs tests/reborn-navigation-work-order-props.test.mjs

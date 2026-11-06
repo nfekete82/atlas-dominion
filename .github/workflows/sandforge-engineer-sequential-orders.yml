@@ -1,0 +1,21 @@
+name: Sandforge engineer sequential work orders
+on:
+  push:
+    branches:
+      - feat/sandforge-engineer-sequential-orders-20261102
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  engineer-queue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node --test tests/sandforge-engineer-sequential-orders.test.mjs tests/reborn-support.test.mjs

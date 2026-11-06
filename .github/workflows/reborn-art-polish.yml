@@ -1,0 +1,44 @@
+name: Validate Atlas Dominion art scale and production portraits
+
+on:
+  push:
+    branches: [feat/leopard-tank-flags-20261027]
+    paths:
+      - src/reborn/visual-scale.ts
+      - src/reborn/portrait-layout.ts
+      - src/reborn/renderer.ts
+      - src/reborn/input.ts
+      - src/reborn/unit-presentation.ts
+      - src/reborn/building-presentation.ts
+      - src/reborn/retro-desert.css
+      - tests/reborn-art-scale.test.mjs
+      - tests/browser/reborn-roster-polish.spec.mjs
+      - .github/workflows/reborn-art-polish.yml
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install and typecheck
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Validate PBR assets, scale helpers, and animation/building regression
+        run: node --test tests/reborn-art-scale.test.mjs tests/reborn-animation.test.mjs tests/reborn-buildings.test.mjs
+      - name: Install browser test runner
+        run: |
+          npm ci --prefix tests/browser --no-audit --no-fund
+          (cd tests/browser && npx playwright install --with-deps chromium)
+      - name: Verify responsive production-card layout in a real browser
+        env:
+          ATLAS_BROWSER_CHANNEL: chromium
+        run: |
+          cd tests/browser
+          npx playwright test --config playwright.config.mjs reborn-roster-polish.spec.mjs --reporter=line

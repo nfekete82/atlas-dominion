@@ -1,0 +1,2374 @@
+{
+  "label": "before",
+  "environment": {
+    "browser": "155.0.8059.85",
+    "cpuThrottle": 4,
+    "seconds": 6,
+    "viewport": "1440x1000",
+    "dpr": 1,
+    "seed": 2026
+  },
+  "scenarios": {
+    "A-start": {
+      "fixture": {
+        "units": 2,
+        "mapVersion": 2,
+        "seed": 2026
+      },
+      "frames": 362,
+      "windowSeconds": 6.033000000000008,
+      "fps": 60.003315100281704,
+      "low1Fps": 59.52380952380888,
+      "frameMs": {
+        "p50": 16.699999999999818,
+        "p95": 16.799999999999272,
+        "p99": 16.800000000000182,
+        "max": 16.800000000000182
+      },
+      "over33": 0,
+      "over50": 0,
+      "over100": 0,
+      "phases": {
+        "simulation": {
+          "calls": 120,
+          "totalMs": 192.7999999821186,
+          "meanMs": 1.606666666517655,
+          "maxMs": 10
+        },
+        "ai": {
+          "calls": 0,
+          "totalMs": 0,
+          "meanMs": 0,
+          "maxMs": 0
+        },
+        "pathfinding": {
+          "calls": 0,
+          "totalMs": 0,
+          "meanMs": 0,
+          "maxMs": 0
+        },
+        "vision": {
+          "calls": 30,
+          "totalMs": 182.69999998807907,
+          "meanMs": 6.089999999602636,
+          "maxMs": 9.900000005960464
+        },
+        "render": {
+          "calls": 363,
+          "totalMs": 297.80000004172325,
+          "meanMs": 0.8203856750460695,
+          "maxMs": 2
+        },
+        "minimap": {
+          "calls": 363,
+          "totalMs": 10.500000059604645,
+          "meanMs": 0.028925619998910867,
+          "maxMs": 0.800000011920929
+        },
+        "hud": {
+          "calls": 45,
+          "totalMs": 64.20000004768372,
+          "meanMs": 1.426666667726305,
+          "maxMs": 2.199999988079071
+        },
+        "audio": {
+          "calls": 363,
+          "totalMs": 6.599999904632568,
+          "meanMs": 0.018181817919097985,
+          "maxMs": 0.6000000238418579
+        },
+        "input": {
+          "calls": 363,
+          "totalMs": 10.50000011920929,
+          "meanMs": 0.02892562016311099,
+          "maxMs": 0.6000000238418579
+        },
+        "fog": {
+          "calls": 363,
+          "totalMs": 19.900000035762787,
+          "meanMs": 0.054820936737638534,
+          "maxMs": 1.2000000178813934
+        },
+        "radioDecode": {
+          "calls": 0,
+          "totalMs": 0,
+          "meanMs": 0,
+          "maxMs": 0
+        }
+      },
+      "pathfinding": {
+        "calls": 0,
+        "nodes": 0
+      },
+      "longTasks": {
+        "count": 0,
+        "maxMs": 0
+      },
+      "spikes": [],
+      "audio": {
+        "started": 0,
+        "dropped": 0,
+        "interrupted": 0,
+        "failed": 0,
+        "decoded": 47,
+        "active": 0,
+        "peakVoices": 1,
+        "limit": 20
+      },
+      "fixedTicks": {
+        "ticks": 120,
+        "stateHash": "e4d876bb73da049aa60a3be0bc76d90b115c95aa0e9b597c448bf7bc3df1f1f1",
+        "phases": {
+          "simulation": {
+            "calls": 120,
+            "totalMs": 191,
+            "meanMs": 1.5916666666666666,
+            "maxMs": 11.5
+          },
+          "ai": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "pathfinding": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "vision": {
+            "calls": 30,
+            "totalMs": 188.60000005364418,
+            "meanMs": 6.286666668454806,
+            "maxMs": 11.5
+          },
+          "render": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "minimap": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "hud": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "audio": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "input": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "fog": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "radioDecode": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          }
+        },
+        "pathfinding": {
+          "calls": 0,
+          "nodes": 0
+        }
+      }
+    },
+    "B-20-moving": {
+      "fixture": {
+        "units": 20,
+        "mapVersion": 2,
+        "seed": 2026
+      },
+      "frames": 346,
+      "windowSeconds": 6.033100000000011,
+      "fps": 57.350284265137226,
+      "low1Fps": 11.986814504045531,
+      "frameMs": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "max": 283.29999999999995
+      },
+      "over33": 1,
+      "over50": 1,
+      "over100": 1,
+      "phases": {
+        "simulation": {
+          "calls": 117,
+          "totalMs": 609.3000001013279,
+          "meanMs": 5.207692308558358,
+          "maxMs": 287.5
+        },
+        "ai": {
+          "calls": 0,
+          "totalMs": 0,
+          "meanMs": 0,
+          "maxMs": 0
+        },
+        "pathfinding": {
+          "calls": 44,
+          "totalMs": 282.80000004172325,
+          "meanMs": 6.427272728220983,
+          "maxMs": 70.7000000178814
+        },
+        "vision": {
+          "calls": 29,
+          "totalMs": 278.2000000476837,
+          "meanMs": 9.593103449920129,
+          "maxMs": 12.900000005960464
+        },
+        "render": {
+          "calls": 347,
+          "totalMs": 421.10000026226044,
+          "meanMs": 1.21354466934369,
+          "maxMs": 2.699999988079071
+        },
+        "minimap": {
+          "calls": 347,
+          "totalMs": 13.499999970197678,
+          "meanMs": 0.03890489904956103,
+          "maxMs": 0.7000000178813934
+        },
+        "hud": {
+          "calls": 45,
+          "totalMs": 69.40000003576279,
+          "meanMs": 1.5422222230169509,
+          "maxMs": 2
+        },
+        "audio": {
+          "calls": 347,
+          "totalMs": 29.299999862909317,
+          "meanMs": 0.0844380399507473,
+          "maxMs": 1
+        },
+        "input": {
+          "calls": 347,
+          "totalMs": 8.199999958276749,
+          "meanMs": 0.02363112379906844,
+          "maxMs": 0.5
+        },
+        "fog": {
+          "calls": 347,
+          "totalMs": 17.79999989271164,
+          "meanMs": 0.0512968296619932,
+          "maxMs": 1.2000000178813934
+        },
+        "radioDecode": {
+          "calls": 0,
+          "totalMs": 0,
+          "meanMs": 0,
+          "maxMs": 0
+        }
+      },
+      "pathfinding": {
+        "calls": 44,
+        "nodes": 40099
+      },
+      "longTasks": {
+        "count": 1,
+        "maxMs": 291
+      },
+      "spikes": [
+        {
+          "frameMs": 283.29999999999995,
+          "workMs": 4,
+          "previousWorkMs": 290,
+          "phases": {
+            "simulation": 1.9000000059604645,
+            "ai": 0,
+            "pathfinding": 0,
+            "vision": 0,
+            "render": 2.0999999940395355,
+            "minimap": 0,
+            "hud": 0,
+            "audio": 0,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "previousPhases": {
+            "simulation": 287.5,
+            "ai": 0,
+            "pathfinding": 282.2000000476837,
+            "vision": 0,
+            "render": 2.4000000059604645,
+            "minimap": 0.09999999403953552,
+            "hud": 0,
+            "audio": 0,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "paths": 0,
+          "nodes": 0
+        }
+      ],
+      "audio": {
+        "started": 0,
+        "dropped": 0,
+        "interrupted": 0,
+        "failed": 0,
+        "decoded": 47,
+        "active": 0,
+        "peakVoices": 20,
+        "limit": 20
+      },
+      "fixedTicks": {
+        "ticks": 120,
+        "stateHash": "a7dd31249c5575763f5b176b4f2bd982d4cdb605cfeb4f1ab4b5eb68d280cf84",
+        "phases": {
+          "simulation": {
+            "calls": 120,
+            "totalMs": 602,
+            "meanMs": 5.016666666666667,
+            "maxMs": 282.5
+          },
+          "ai": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "pathfinding": {
+            "calls": 44,
+            "totalMs": 278.7000000178814,
+            "meanMs": 6.334090909497305,
+            "maxMs": 70.10000002384186
+          },
+          "vision": {
+            "calls": 30,
+            "totalMs": 283.7000000476837,
+            "meanMs": 9.456666668256124,
+            "maxMs": 15
+          },
+          "render": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "minimap": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "hud": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "audio": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "input": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "fog": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "radioDecode": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          }
+        },
+        "pathfinding": {
+          "calls": 44,
+          "nodes": 40099
+        }
+      }
+    },
+    "C-50-moving": {
+      "fixture": {
+        "units": 50,
+        "mapVersion": 2,
+        "seed": 2026
+      },
+      "frames": 316,
+      "windowSeconds": 6.03320000000001,
+      "fps": 52.376848107140404,
+      "low1Fps": 4.797313504437511,
+      "frameMs": {
+        "p50": 16.699999999999818,
+        "p95": 16.799999999999272,
+        "p99": 16.800000000000182,
+        "max": 783.4000000000001
+      },
+      "over33": 1,
+      "over50": 1,
+      "over100": 1,
+      "phases": {
+        "simulation": {
+          "calls": 107,
+          "totalMs": 1235.8999998569489,
+          "meanMs": 11.5504672883827,
+          "maxMs": 781.5
+        },
+        "ai": {
+          "calls": 0,
+          "totalMs": 0,
+          "meanMs": 0,
+          "maxMs": 0
+        },
+        "pathfinding": {
+          "calls": 106,
+          "totalMs": 772.1999999582767,
+          "meanMs": 7.2849056599837425,
+          "maxMs": 91
+        },
+        "vision": {
+          "calls": 26,
+          "totalMs": 334,
+          "meanMs": 12.846153846153847,
+          "maxMs": 19
+        },
+        "render": {
+          "calls": 317,
+          "totalMs": 481.8000003397465,
+          "meanMs": 1.5198738181064557,
+          "maxMs": 2.800000011920929
+        },
+        "minimap": {
+          "calls": 317,
+          "totalMs": 19.799999952316284,
+          "meanMs": 0.06246056767292203,
+          "maxMs": 0.800000011920929
+        },
+        "hud": {
+          "calls": 41,
+          "totalMs": 62.99999997019768,
+          "meanMs": 1.5365853651267727,
+          "maxMs": 2.100000023841858
+        },
+        "audio": {
+          "calls": 317,
+          "totalMs": 25.39999994635582,
+          "meanMs": 0.08012618279607514,
+          "maxMs": 1.100000023841858
+        },
+        "input": {
+          "calls": 317,
+          "totalMs": 8.499999910593033,
+          "meanMs": 0.02681387984414206,
+          "maxMs": 0.7999999821186066
+        },
+        "fog": {
+          "calls": 317,
+          "totalMs": 15.600000023841858,
+          "meanMs": 0.04921135654208788,
+          "maxMs": 1.0999999940395355
+        },
+        "radioDecode": {
+          "calls": 0,
+          "totalMs": 0,
+          "meanMs": 0,
+          "maxMs": 0
+        }
+      },
+      "pathfinding": {
+        "calls": 106,
+        "nodes": 121982
+      },
+      "longTasks": {
+        "count": 1,
+        "maxMs": 784
+      },
+      "spikes": [
+        {
+          "frameMs": 783.4000000000001,
+          "workMs": 6.4000000059604645,
+          "previousWorkMs": 783.6999999880791,
+          "phases": {
+            "simulation": 4.199999988079071,
+            "ai": 0,
+            "pathfinding": 0,
+            "vision": 0,
+            "render": 2.2000000178813934,
+            "minimap": 0,
+            "hud": 0,
+            "audio": 0,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "previousPhases": {
+            "simulation": 781.5,
+            "ai": 0,
+            "pathfinding": 772.0999999642372,
+            "vision": 0,
+            "render": 2.199999988079071,
+            "minimap": 0,
+            "hud": 0,
+            "audio": 0,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "paths": 0,
+          "nodes": 0
+        }
+      ],
+      "audio": {
+        "started": 0,
+        "dropped": 0,
+        "interrupted": 0,
+        "failed": 0,
+        "decoded": 47,
+        "active": 0,
+        "peakVoices": 20,
+        "limit": 20
+      },
+      "fixedTicks": {
+        "ticks": 120,
+        "stateHash": "d42fee4a21d39df3983a4d6a624d7d078ab61b95335f50ffb6de6c5ee596d895",
+        "phases": {
+          "simulation": {
+            "calls": 120,
+            "totalMs": 1264,
+            "meanMs": 10.533333333333333,
+            "maxMs": 777.5
+          },
+          "ai": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "pathfinding": {
+            "calls": 114,
+            "totalMs": 769.8000000119209,
+            "meanMs": 6.752631579051938,
+            "maxMs": 91.40000000596046
+          },
+          "vision": {
+            "calls": 30,
+            "totalMs": 375.8999999463558,
+            "meanMs": 12.52999999821186,
+            "maxMs": 18.799999982118607
+          },
+          "render": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "minimap": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "hud": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "audio": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "input": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "fog": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "radioDecode": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          }
+        },
+        "pathfinding": {
+          "calls": 114,
+          "nodes": 121982
+        }
+      }
+    },
+    "D-turret-battle": {
+      "fixture": {
+        "units": 36,
+        "mapVersion": 2,
+        "seed": 2026
+      },
+      "frames": 122,
+      "windowSeconds": 6.4498,
+      "fps": 18.915315203572202,
+      "low1Fps": 3.2430679422733917,
+      "frameMs": {
+        "p50": 16.700000000000273,
+        "p95": 200,
+        "p99": 266.6999999999998,
+        "max": 350
+      },
+      "over33": 41,
+      "over50": 33,
+      "over100": 22,
+      "phases": {
+        "simulation": {
+          "calls": 94,
+          "totalMs": 1488.800000011921,
+          "meanMs": 15.838297872467244,
+          "maxMs": 113.2999999821186
+        },
+        "ai": {
+          "calls": 2,
+          "totalMs": 113.2999999821186,
+          "meanMs": 56.6499999910593,
+          "maxMs": 106.19999998807907
+        },
+        "pathfinding": {
+          "calls": 163,
+          "totalMs": 299.89999997615814,
+          "meanMs": 1.839877300467228,
+          "maxMs": 40.80000001192093
+        },
+        "vision": {
+          "calls": 23,
+          "totalMs": 1034.5,
+          "meanMs": 44.97826086956522,
+          "maxMs": 79
+        },
+        "render": {
+          "calls": 123,
+          "totalMs": 2892.9999999403954,
+          "meanMs": 23.52032520276744,
+          "maxMs": 265
+        },
+        "minimap": {
+          "calls": 123,
+          "totalMs": 11.199999868869781,
+          "meanMs": 0.09105690950300635,
+          "maxMs": 0.7999999821186066
+        },
+        "hud": {
+          "calls": 29,
+          "totalMs": 50.700000047683716,
+          "meanMs": 1.7482758637132316,
+          "maxMs": 2.300000011920929
+        },
+        "audio": {
+          "calls": 123,
+          "totalMs": 42.19999986886978,
+          "meanMs": 0.3430894298282096,
+          "maxMs": 1.5999999940395355
+        },
+        "input": {
+          "calls": 123,
+          "totalMs": 5.60000005364418,
+          "meanMs": 0.04552845572068439,
+          "maxMs": 0.7000000178813934
+        },
+        "fog": {
+          "calls": 123,
+          "totalMs": 14.499999970197678,
+          "meanMs": 0.11788617861949331,
+          "maxMs": 1.0999999940395355
+        },
+        "radioDecode": {
+          "calls": 0,
+          "totalMs": 0,
+          "meanMs": 0,
+          "maxMs": 0
+        }
+      },
+      "pathfinding": {
+        "calls": 163,
+        "nodes": 87364
+      },
+      "longTasks": {
+        "count": 32,
+        "maxMs": 266
+      },
+      "spikes": [
+        {
+          "frameMs": 350,
+          "workMs": 196.59999999403954,
+          "previousWorkMs": 0,
+          "phases": {
+            "simulation": 189.39999997615814,
+            "ai": 106.19999998807907,
+            "pathfinding": 167.2999999821186,
+            "vision": 0,
+            "render": 7.0999999940395355,
+            "minimap": 0,
+            "hud": 0,
+            "audio": 0.10000002384185791,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "previousPhases": {
+            "simulation": 0,
+            "ai": 0,
+            "pathfinding": 0,
+            "vision": 0,
+            "render": 0,
+            "minimap": 0,
+            "hud": 0,
+            "audio": 0,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "paths": 42,
+          "nodes": 37435
+        },
+        {
+          "frameMs": 266.6999999999998,
+          "workMs": 50.19999998807907,
+          "previousWorkMs": 265,
+          "phases": {
+            "simulation": 37.79999998211861,
+            "ai": 0,
+            "pathfinding": 0,
+            "vision": 35.599999994039536,
+            "render": 9.799999982118607,
+            "minimap": 0.09999999403953552,
+            "hud": 1.9000000059604645,
+            "audio": 0.7000000178813934,
+            "input": 0,
+            "fog": 0.09999999403953552,
+            "radioDecode": 0
+          },
+          "previousPhases": {
+            "simulation": 0,
+            "ai": 0,
+            "pathfinding": 0,
+            "vision": 0,
+            "render": 265,
+            "minimap": 0,
+            "hud": 0,
+            "audio": 0,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "paths": 1,
+          "nodes": 0
+        },
+        {
+          "frameMs": 250,
+          "workMs": 12.600000023841858,
+          "previousWorkMs": 202.90000000596046,
+          "phases": {
+            "simulation": 3.2000000178813934,
+            "ai": 0,
+            "pathfinding": 0.5999999940395355,
+            "vision": 0,
+            "render": 8.5,
+            "minimap": 0,
+            "hud": 0,
+            "audio": 0.9000000059604645,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "previousPhases": {
+            "simulation": 59.30000001192093,
+            "ai": 0,
+            "pathfinding": 0,
+            "vision": 56.29999998211861,
+            "render": 140.5,
+            "minimap": 0,
+            "hud": 1.5,
+            "audio": 1.5,
+            "input": 0.09999999403953552,
+            "fog": 0.8999999761581421,
+            "radioDecode": 0
+          },
+          "paths": 7,
+          "nodes": 1
+        },
+        {
+          "frameMs": 233.39999999999964,
+          "workMs": 13.300000011920929,
+          "previousWorkMs": 199.39999997615814,
+          "phases": {
+            "simulation": 2,
+            "ai": 0,
+            "pathfinding": 0,
+            "vision": 0,
+            "render": 8.400000005960464,
+            "minimap": 0,
+            "hud": 2,
+            "audio": 0.9000000059604645,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "previousPhases": {
+            "simulation": 57.19999998807907,
+            "ai": 0,
+            "pathfinding": 0,
+            "vision": 55.80000001192093,
+            "render": 142.09999999403954,
+            "minimap": 0.09999999403953552,
+            "hud": 0,
+            "audio": 0.09999999403953552,
+            "input": 0,
+            "fog": 1.0999999940395355,
+            "radioDecode": 0
+          },
+          "paths": 1,
+          "nodes": 0
+        },
+        {
+          "frameMs": 233.29999999999927,
+          "workMs": 13.299999982118607,
+          "previousWorkMs": 200.60000002384186,
+          "phases": {
+            "simulation": 2.2999999821186066,
+            "ai": 0,
+            "pathfinding": 0.09999999403953552,
+            "vision": 0,
+            "render": 8.699999988079071,
+            "minimap": 0.5,
+            "hud": 1.199999988079071,
+            "audio": 1,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "previousPhases": {
+            "simulation": 58.900000005960464,
+            "ai": 0,
+            "pathfinding": 1,
+            "vision": 57.79999998211861,
+            "render": 141.60000002384186,
+            "minimap": 0.5,
+            "hud": 0,
+            "audio": 0.09999999403953552,
+            "input": 0,
+            "fog": 0.10000002384185791,
+            "radioDecode": 0
+          },
+          "paths": 9,
+          "nodes": 1
+        },
+        {
+          "frameMs": 216.60000000000036,
+          "workMs": 14.200000017881393,
+          "previousWorkMs": 187.10000002384186,
+          "phases": {
+            "simulation": 2.9000000059604645,
+            "ai": 0,
+            "pathfinding": 0.800000011920929,
+            "vision": 0,
+            "render": 8.400000005960464,
+            "minimap": 0.19999998807907104,
+            "hud": 1.800000011920929,
+            "audio": 1.0999999940395355,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "previousPhases": {
+            "simulation": 45.69999998807907,
+            "ai": 0,
+            "pathfinding": 0.30000001192092896,
+            "vision": 44.19999998807907,
+            "render": 140.5,
+            "minimap": 0.10000002384185791,
+            "hud": 0,
+            "audio": 0.19999998807907104,
+            "input": 0.10000002384185791,
+            "fog": 0.5999999940395355,
+            "radioDecode": 0
+          },
+          "paths": 2,
+          "nodes": 2
+        },
+        {
+          "frameMs": 200,
+          "workMs": 46.70000001788139,
+          "previousWorkMs": 196.59999999403954,
+          "phases": {
+            "simulation": 40.900000005960464,
+            "ai": 0,
+            "pathfinding": 0,
+            "vision": 37.29999998211861,
+            "render": 4.100000023841858,
+            "minimap": 0.7000000178813934,
+            "hud": 0,
+            "audio": 1.5999999940395355,
+            "input": 0,
+            "fog": 0.800000011920929,
+            "radioDecode": 0
+          },
+          "previousPhases": {
+            "simulation": 189.39999997615814,
+            "ai": 106.19999998807907,
+            "pathfinding": 167.2999999821186,
+            "vision": 0,
+            "render": 7.0999999940395355,
+            "minimap": 0,
+            "hud": 0,
+            "audio": 0.10000002384185791,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "paths": 0,
+          "nodes": 0
+        },
+        {
+          "frameMs": 183.39999999999964,
+          "workMs": 69.7999999821186,
+          "previousWorkMs": 142.09999999403954,
+          "phases": {
+            "simulation": 58.39999997615814,
+            "ai": 0,
+            "pathfinding": 0.29999998211860657,
+            "vision": 56.30000001192093,
+            "render": 8.699999988079071,
+            "minimap": 0,
+            "hud": 1.9000000059604645,
+            "audio": 0.800000011920929,
+            "input": 0,
+            "fog": 0.5,
+            "radioDecode": 0
+          },
+          "previousPhases": {
+            "simulation": 1.4000000059604645,
+            "ai": 0,
+            "pathfinding": 0,
+            "vision": 0,
+            "render": 139.90000000596046,
+            "minimap": 0.5,
+            "hud": 0,
+            "audio": 0.699999988079071,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "paths": 2,
+          "nodes": 0
+        },
+        {
+          "frameMs": 183.30000000000018,
+          "workMs": 38.29999998211861,
+          "previousWorkMs": 144.5,
+          "phases": {
+            "simulation": 27.099999964237213,
+            "ai": 0,
+            "pathfinding": 0.09999999403953552,
+            "vision": 25.5,
+            "render": 8.800000011920929,
+            "minimap": 0,
+            "hud": 1.899999976158142,
+            "audio": 0.30000001192092896,
+            "input": 0,
+            "fog": 0.19999998807907104,
+            "radioDecode": 0
+          },
+          "previousPhases": {
+            "simulation": 3.100000023841858,
+            "ai": 0,
+            "pathfinding": 0,
+            "vision": 0,
+            "render": 141.2999999821186,
+            "minimap": 0,
+            "hud": 0,
+            "audio": 0.09999999403953552,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "paths": 1,
+          "nodes": 0
+        },
+        {
+          "frameMs": 183.30000000000018,
+          "workMs": 66,
+          "previousWorkMs": 142.7000000178814,
+          "phases": {
+            "simulation": 54.69999998807907,
+            "ai": 0,
+            "pathfinding": 0.30000001192092896,
+            "vision": 51.79999998211861,
+            "render": 8.900000005960464,
+            "minimap": 0.30000001192092896,
+            "hud": 1.5999999940395355,
+            "audio": 0.800000011920929,
+            "input": 0,
+            "fog": 0.09999999403953552,
+            "radioDecode": 0
+          },
+          "previousPhases": {
+            "simulation": 2.0999999940395355,
+            "ai": 0,
+            "pathfinding": 0.800000011920929,
+            "vision": 0,
+            "render": 139.80000001192093,
+            "minimap": 0,
+            "hud": 0,
+            "audio": 0.800000011920929,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "paths": 4,
+          "nodes": 2
+        },
+        {
+          "frameMs": 183.30000000000018,
+          "workMs": 202.90000000596046,
+          "previousWorkMs": 144.09999999403954,
+          "phases": {
+            "simulation": 59.30000001192093,
+            "ai": 0,
+            "pathfinding": 0,
+            "vision": 56.29999998211861,
+            "render": 140.5,
+            "minimap": 0,
+            "hud": 1.5,
+            "audio": 1.5,
+            "input": 0.09999999403953552,
+            "fog": 0.8999999761581421,
+            "radioDecode": 0
+          },
+          "previousPhases": {
+            "simulation": 1.7000000178813934,
+            "ai": 0,
+            "pathfinding": 0,
+            "vision": 0,
+            "render": 140.89999997615814,
+            "minimap": 0.09999999403953552,
+            "hud": 0,
+            "audio": 1.5,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "paths": 1,
+          "nodes": 0
+        },
+        {
+          "frameMs": 183.29999999999927,
+          "workMs": 94,
+          "previousWorkMs": 143.5,
+          "phases": {
+            "simulation": 81.59999999403954,
+            "ai": 0,
+            "pathfinding": 0,
+            "vision": 79,
+            "render": 9.100000023841858,
+            "minimap": 0,
+            "hud": 1.699999988079071,
+            "audio": 1.5999999940395355,
+            "input": 0,
+            "fog": 0.20000001788139343,
+            "radioDecode": 0
+          },
+          "previousPhases": {
+            "simulation": 2.0999999940395355,
+            "ai": 0,
+            "pathfinding": 0,
+            "vision": 0,
+            "render": 139.90000000596046,
+            "minimap": 0,
+            "hud": 0,
+            "audio": 1.5,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "paths": 0,
+          "nodes": 0
+        }
+      ],
+      "audio": {
+        "started": 0,
+        "dropped": 0,
+        "interrupted": 0,
+        "failed": 0,
+        "decoded": 47,
+        "active": 0,
+        "peakVoices": 20,
+        "limit": 20
+      },
+      "fixedTicks": {
+        "ticks": 120,
+        "stateHash": "d779b33ce5cc1c7f719de69f2f898c4916ec4d3ae295d49b72166686772d46d1",
+        "phases": {
+          "simulation": {
+            "calls": 120,
+            "totalMs": 1782.300000011921,
+            "meanMs": 14.852500000099342,
+            "maxMs": 107.10000002384186
+          },
+          "ai": {
+            "calls": 2,
+            "totalMs": 108.00000002980232,
+            "meanMs": 54.00000001490116,
+            "maxMs": 101.10000002384186
+          },
+          "pathfinding": {
+            "calls": 198,
+            "totalMs": 298.89999997615814,
+            "meanMs": 1.5095959594755461,
+            "maxMs": 40.5
+          },
+          "vision": {
+            "calls": 30,
+            "totalMs": 1356.4999999701977,
+            "meanMs": 45.21666666567326,
+            "maxMs": 61.80000001192093
+          },
+          "render": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "minimap": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "hud": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "audio": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "input": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "fog": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "radioDecode": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          }
+        },
+        "pathfinding": {
+          "calls": 198,
+          "nodes": 87381
+        }
+      }
+    },
+    "E-combined-ai": {
+      "fixture": {
+        "units": 36,
+        "mapVersion": 2,
+        "seed": 2026
+      },
+      "frames": 231,
+      "windowSeconds": 6.4498,
+      "fps": 35.81506403299327,
+      "low1Fps": 4.615384615384614,
+      "frameMs": {
+        "p50": 16.699999999999818,
+        "p95": 66.69999999999982,
+        "p99": 150,
+        "max": 333.29999999999995
+      },
+      "over33": 41,
+      "over50": 31,
+      "over100": 8,
+      "phases": {
+        "simulation": {
+          "calls": 120,
+          "totalMs": 2784.100000023842,
+          "meanMs": 23.200833333532014,
+          "maxMs": 124.7000000178814
+        },
+        "ai": {
+          "calls": 2,
+          "totalMs": 121.40000000596046,
+          "meanMs": 60.70000000298023,
+          "maxMs": 107.09999999403954
+        },
+        "pathfinding": {
+          "calls": 451,
+          "totalMs": 939.6000000834465,
+          "meanMs": 2.0833702884333625,
+          "maxMs": 49.39999997615814
+        },
+        "vision": {
+          "calls": 30,
+          "totalMs": 1648.7999999523163,
+          "meanMs": 54.959999998410545,
+          "maxMs": 63.900000005960464
+        },
+        "render": {
+          "calls": 232,
+          "totalMs": 892.8000001311302,
+          "meanMs": 3.848275862634182,
+          "maxMs": 111
+        },
+        "minimap": {
+          "calls": 232,
+          "totalMs": 14.300000011920929,
+          "meanMs": 0.06163793108586607,
+          "maxMs": 0.800000011920929
+        },
+        "hud": {
+          "calls": 42,
+          "totalMs": 65.10000005364418,
+          "meanMs": 1.5500000012772424,
+          "maxMs": 2.0999999940395355
+        },
+        "audio": {
+          "calls": 232,
+          "totalMs": 53.600000113248825,
+          "meanMs": 0.23103448324676218,
+          "maxMs": 1.800000011920929
+        },
+        "input": {
+          "calls": 232,
+          "totalMs": 8,
+          "meanMs": 0.034482758620689655,
+          "maxMs": 0.800000011920929
+        },
+        "fog": {
+          "calls": 232,
+          "totalMs": 17.299999982118607,
+          "meanMs": 0.0745689654401664,
+          "maxMs": 1.5
+        },
+        "radioDecode": {
+          "calls": 0,
+          "totalMs": 0,
+          "meanMs": 0,
+          "maxMs": 0
+        }
+      },
+      "pathfinding": {
+        "calls": 451,
+        "nodes": 61562
+      },
+      "longTasks": {
+        "count": 39,
+        "maxMs": 158
+      },
+      "spikes": [
+        {
+          "frameMs": 333.29999999999995,
+          "workMs": 157,
+          "previousWorkMs": 0,
+          "phases": {
+            "simulation": 147.30000001192093,
+            "ai": 107.09999999403954,
+            "pathfinding": 125.19999995827675,
+            "vision": 0,
+            "render": 7.899999976158142,
+            "minimap": 0.09999999403953552,
+            "hud": 0,
+            "audio": 1.800000011920929,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "previousPhases": {
+            "simulation": 0,
+            "ai": 0,
+            "pathfinding": 0,
+            "vision": 0,
+            "render": 0,
+            "minimap": 0,
+            "hud": 0,
+            "audio": 0,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "paths": 38,
+          "nodes": 8633
+        },
+        {
+          "frameMs": 166.70000000000027,
+          "workMs": 73,
+          "previousWorkMs": 157,
+          "phases": {
+            "simulation": 70,
+            "ai": 0,
+            "pathfinding": 14.300000041723251,
+            "vision": 51.5,
+            "render": 3,
+            "minimap": 0,
+            "hud": 0,
+            "audio": 0,
+            "input": 0,
+            "fog": 0.3999999761581421,
+            "radioDecode": 0
+          },
+          "previousPhases": {
+            "simulation": 147.30000001192093,
+            "ai": 107.09999999403954,
+            "pathfinding": 125.19999995827675,
+            "vision": 0,
+            "render": 7.899999976158142,
+            "minimap": 0.09999999403953552,
+            "hud": 0,
+            "audio": 1.800000011920929,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "paths": 6,
+          "nodes": 1026
+        },
+        {
+          "frameMs": 150,
+          "workMs": 84.60000002384186,
+          "previousWorkMs": 118.7000000178814,
+          "phases": {
+            "simulation": 75.2999999821186,
+            "ai": 0,
+            "pathfinding": 12.599999994039536,
+            "vision": 60.599999994039536,
+            "render": 6.9000000059604645,
+            "minimap": 0,
+            "hud": 1.5,
+            "audio": 0.800000011920929,
+            "input": 0.10000002384185791,
+            "fog": 0.5999999940395355,
+            "radioDecode": 0
+          },
+          "previousPhases": {
+            "simulation": 7.5,
+            "ai": 0,
+            "pathfinding": 6.5999999940395355,
+            "vision": 0,
+            "render": 111,
+            "minimap": 0,
+            "hud": 0,
+            "audio": 0.20000001788139343,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "paths": 9,
+          "nodes": 728
+        },
+        {
+          "frameMs": 133.30000000000018,
+          "workMs": 23.5,
+          "previousWorkMs": 82.90000000596046,
+          "phases": {
+            "simulation": 15.300000011920929,
+            "ai": 0,
+            "pathfinding": 12.800000011920929,
+            "vision": 0,
+            "render": 5.4000000059604645,
+            "minimap": 0,
+            "hud": 2.0999999940395355,
+            "audio": 0.5,
+            "input": 0.09999999403953552,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "previousPhases": {
+            "simulation": 75.80000001192093,
+            "ai": 0,
+            "pathfinding": 13.300000011920929,
+            "vision": 60.5,
+            "render": 6.4000000059604645,
+            "minimap": 0.09999999403953552,
+            "hud": 0,
+            "audio": 0.699999988079071,
+            "input": 0,
+            "fog": 0.20000001788139343,
+            "radioDecode": 0
+          },
+          "paths": 8,
+          "nodes": 728
+        },
+        {
+          "frameMs": 133.30000000000018,
+          "workMs": 21.400000005960464,
+          "previousWorkMs": 85.40000000596046,
+          "phases": {
+            "simulation": 14.900000005960464,
+            "ai": 0,
+            "pathfinding": 13.200000017881393,
+            "vision": 0,
+            "render": 5.800000011920929,
+            "minimap": 0.10000002384185791,
+            "hud": 0,
+            "audio": 0.699999988079071,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "previousPhases": {
+            "simulation": 75.69999998807907,
+            "ai": 0,
+            "pathfinding": 13.100000023841858,
+            "vision": 60.80000001192093,
+            "render": 7.199999988079071,
+            "minimap": 0.09999999403953552,
+            "hud": 1.5,
+            "audio": 0.7000000178813934,
+            "input": 0,
+            "fog": 0.5999999940395355,
+            "radioDecode": 0
+          },
+          "paths": 6,
+          "nodes": 728
+        },
+        {
+          "frameMs": 116.60000000000036,
+          "workMs": 23.700000017881393,
+          "previousWorkMs": 71.09999999403954,
+          "phases": {
+            "simulation": 14.899999976158142,
+            "ai": 0,
+            "pathfinding": 11.900000005960464,
+            "vision": 0,
+            "render": 6.300000011920929,
+            "minimap": 0,
+            "hud": 1.5999999940395355,
+            "audio": 0.30000001192092896,
+            "input": 0.6000000238418579,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "previousPhases": {
+            "simulation": 0,
+            "ai": 0,
+            "pathfinding": 0,
+            "vision": 0,
+            "render": 71.09999999403954,
+            "minimap": 0,
+            "hud": 0,
+            "audio": 0,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "paths": 5,
+          "nodes": 704
+        },
+        {
+          "frameMs": 116.59999999999945,
+          "workMs": 24.80000001192093,
+          "previousWorkMs": 83.7999999821186,
+          "phases": {
+            "simulation": 15.599999994039536,
+            "ai": 0,
+            "pathfinding": 13.599999994039536,
+            "vision": 0,
+            "render": 6.5,
+            "minimap": 0,
+            "hud": 1.9000000059604645,
+            "audio": 0.800000011920929,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "previousPhases": {
+            "simulation": 75.69999998807907,
+            "ai": 0,
+            "pathfinding": 12.900000005960464,
+            "vision": 60.69999998807907,
+            "render": 7.5,
+            "minimap": 0.09999999403953552,
+            "hud": 0,
+            "audio": 0.5,
+            "input": 0,
+            "fog": 0.800000011920929,
+            "radioDecode": 0
+          },
+          "paths": 6,
+          "nodes": 734
+        },
+        {
+          "frameMs": 116.59999999999945,
+          "workMs": 24.30000001192093,
+          "previousWorkMs": 77.60000002384186,
+          "phases": {
+            "simulation": 15.600000023841858,
+            "ai": 0,
+            "pathfinding": 12.700000017881393,
+            "vision": 0,
+            "render": 5.9000000059604645,
+            "minimap": 0,
+            "hud": 1.9000000059604645,
+            "audio": 0.8999999761581421,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "previousPhases": {
+            "simulation": 69.40000000596046,
+            "ai": 0,
+            "pathfinding": 7.299999982118607,
+            "vision": 61.79999998211861,
+            "render": 7.600000023841858,
+            "minimap": 0,
+            "hud": 0,
+            "audio": 0.5999999940395355,
+            "input": 0,
+            "fog": 0.10000002384185791,
+            "radioDecode": 0
+          },
+          "paths": 13,
+          "nodes": 734
+        },
+        {
+          "frameMs": 83.40000000000055,
+          "workMs": 77.60000002384186,
+          "previousWorkMs": 24.80000001192093,
+          "phases": {
+            "simulation": 69.40000000596046,
+            "ai": 0,
+            "pathfinding": 7.299999982118607,
+            "vision": 61.79999998211861,
+            "render": 7.600000023841858,
+            "minimap": 0,
+            "hud": 0,
+            "audio": 0.5999999940395355,
+            "input": 0,
+            "fog": 0.10000002384185791,
+            "radioDecode": 0
+          },
+          "previousPhases": {
+            "simulation": 15.599999994039536,
+            "ai": 0,
+            "pathfinding": 13.599999994039536,
+            "vision": 0,
+            "render": 6.5,
+            "minimap": 0,
+            "hud": 1.9000000059604645,
+            "audio": 0.800000011920929,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "paths": 3,
+          "nodes": 367
+        },
+        {
+          "frameMs": 66.80000000000018,
+          "workMs": 82.90000000596046,
+          "previousWorkMs": 24.30000001192093,
+          "phases": {
+            "simulation": 75.80000001192093,
+            "ai": 0,
+            "pathfinding": 13.300000011920929,
+            "vision": 60.5,
+            "render": 6.4000000059604645,
+            "minimap": 0.09999999403953552,
+            "hud": 0,
+            "audio": 0.699999988079071,
+            "input": 0,
+            "fog": 0.20000001788139343,
+            "radioDecode": 0
+          },
+          "previousPhases": {
+            "simulation": 15.600000023841858,
+            "ai": 0,
+            "pathfinding": 12.700000017881393,
+            "vision": 0,
+            "render": 5.9000000059604645,
+            "minimap": 0,
+            "hud": 1.9000000059604645,
+            "audio": 0.8999999761581421,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "paths": 6,
+          "nodes": 728
+        },
+        {
+          "frameMs": 66.69999999999982,
+          "workMs": 10.300000011920929,
+          "previousWorkMs": 73,
+          "phases": {
+            "simulation": 7.800000011920929,
+            "ai": 0,
+            "pathfinding": 6.300000011920929,
+            "vision": 0,
+            "render": 2.5,
+            "minimap": 0.09999999403953552,
+            "hud": 0,
+            "audio": 0,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "previousPhases": {
+            "simulation": 70,
+            "ai": 0,
+            "pathfinding": 14.300000041723251,
+            "vision": 51.5,
+            "render": 3,
+            "minimap": 0,
+            "hud": 0,
+            "audio": 0,
+            "input": 0,
+            "fog": 0.3999999761581421,
+            "radioDecode": 0
+          },
+          "paths": 3,
+          "nodes": 513
+        },
+        {
+          "frameMs": 66.69999999999982,
+          "workMs": 15.400000005960464,
+          "previousWorkMs": 69.09999999403954,
+          "phases": {
+            "simulation": 8.5,
+            "ai": 0,
+            "pathfinding": 7.5,
+            "vision": 0,
+            "render": 6.4000000059604645,
+            "minimap": 0,
+            "hud": 0,
+            "audio": 0.5,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "previousPhases": {
+            "simulation": 64.69999998807907,
+            "ai": 0,
+            "pathfinding": 8.400000005960464,
+            "vision": 55.80000001192093,
+            "render": 2.9000000059604645,
+            "minimap": 0.09999999403953552,
+            "hud": 1.0999999940395355,
+            "audio": 0.09999999403953552,
+            "input": 0,
+            "fog": 0.10000002384185791,
+            "radioDecode": 0
+          },
+          "paths": 3,
+          "nodes": 522
+        }
+      ],
+      "audio": {
+        "started": 0,
+        "dropped": 0,
+        "interrupted": 0,
+        "failed": 0,
+        "decoded": 47,
+        "active": 0,
+        "peakVoices": 20,
+        "limit": 20
+      },
+      "fixedTicks": {
+        "ticks": 120,
+        "stateHash": "d85664fa4df90be2a59b3ae8c15b76bc5faa69d7c0d9f5397ae4096330ce348c",
+        "phases": {
+          "simulation": {
+            "calls": 120,
+            "totalMs": 2709.9999999701977,
+            "meanMs": 22.58333333308498,
+            "maxMs": 123.2999999821186
+          },
+          "ai": {
+            "calls": 2,
+            "totalMs": 119.30000001192093,
+            "meanMs": 59.650000005960464,
+            "maxMs": 107
+          },
+          "pathfinding": {
+            "calls": 451,
+            "totalMs": 913.6000001430511,
+            "meanMs": 2.0257206211597585,
+            "maxMs": 49.099999994039536
+          },
+          "vision": {
+            "calls": 30,
+            "totalMs": 1636.5999999940395,
+            "meanMs": 54.55333333313465,
+            "maxMs": 64.59999999403954
+          },
+          "render": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "minimap": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "hud": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "audio": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "input": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "fog": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "radioDecode": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          }
+        },
+        "pathfinding": {
+          "calls": 451,
+          "nodes": 61562
+        }
+      }
+    },
+    "F-radio-events": {
+      "fixture": {
+        "units": 12,
+        "mapVersion": 2,
+        "seed": 2026
+      },
+      "frames": 361,
+      "windowSeconds": 6.016500000000006,
+      "fps": 60.00166209590287,
+      "low1Fps": 59.52380952380888,
+      "frameMs": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "max": 16.800000000000182
+      },
+      "over33": 0,
+      "over50": 0,
+      "over100": 0,
+      "phases": {
+        "simulation": {
+          "calls": 120,
+          "totalMs": 235.50000002980232,
+          "meanMs": 1.9625000002483526,
+          "maxMs": 12.199999988079071
+        },
+        "ai": {
+          "calls": 0,
+          "totalMs": 0,
+          "meanMs": 0,
+          "maxMs": 0
+        },
+        "pathfinding": {
+          "calls": 0,
+          "totalMs": 0,
+          "meanMs": 0,
+          "maxMs": 0
+        },
+        "vision": {
+          "calls": 30,
+          "totalMs": 216.09999990463257,
+          "meanMs": 7.203333330154419,
+          "maxMs": 12.099999994039536
+        },
+        "render": {
+          "calls": 362,
+          "totalMs": 366.900000333786,
+          "meanMs": 1.0135359125242707,
+          "maxMs": 2.2000000178813934
+        },
+        "minimap": {
+          "calls": 362,
+          "totalMs": 16.000000029802322,
+          "meanMs": 0.04419889510995117,
+          "maxMs": 0.800000011920929
+        },
+        "hud": {
+          "calls": 46,
+          "totalMs": 65.79999995231628,
+          "meanMs": 1.430434781572093,
+          "maxMs": 2.100000023841858
+        },
+        "audio": {
+          "calls": 362,
+          "totalMs": 6.999999940395355,
+          "meanMs": 0.01933701640993192,
+          "maxMs": 0.9000000059604645
+        },
+        "input": {
+          "calls": 362,
+          "totalMs": 8.799999982118607,
+          "meanMs": 0.024309392215797254,
+          "maxMs": 0.699999988079071
+        },
+        "fog": {
+          "calls": 362,
+          "totalMs": 18.80000016093254,
+          "meanMs": 0.051933702102023596,
+          "maxMs": 1.100000023841858
+        },
+        "radioDecode": {
+          "calls": 0,
+          "totalMs": 0,
+          "meanMs": 0,
+          "maxMs": 0
+        }
+      },
+      "pathfinding": {
+        "calls": 0,
+        "nodes": 0
+      },
+      "longTasks": {
+        "count": 0,
+        "maxMs": 0
+      },
+      "spikes": [],
+      "audio": {
+        "started": 10,
+        "dropped": 54,
+        "interrupted": 6,
+        "failed": 0,
+        "decoded": 47,
+        "active": 1,
+        "peakVoices": 20,
+        "limit": 20
+      },
+      "fixedTicks": {
+        "ticks": 120,
+        "stateHash": "f96f7a488c5783bfd7c9c51d79dcda27a0a1b45f9c962f4ac718b9f7cf2ce293",
+        "phases": {
+          "simulation": {
+            "calls": 120,
+            "totalMs": 242.2000000178814,
+            "meanMs": 2.018333333482345,
+            "maxMs": 11.900000005960464
+          },
+          "ai": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "pathfinding": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "vision": {
+            "calls": 30,
+            "totalMs": 231.60000002384186,
+            "meanMs": 7.7200000007947285,
+            "maxMs": 11.300000011920929
+          },
+          "render": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "minimap": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "hud": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "audio": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "input": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "fog": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "radioDecode": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          }
+        },
+        "pathfinding": {
+          "calls": 0,
+          "nodes": 0
+        }
+      }
+    },
+    "G-camera-zoom": {
+      "fixture": {
+        "units": 12,
+        "mapVersion": 2,
+        "seed": 2026
+      },
+      "frames": 362,
+      "windowSeconds": 6.033100000000012,
+      "fps": 60.00232053173316,
+      "low1Fps": 59.52380952380888,
+      "frameMs": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "max": 16.800000000000182
+      },
+      "over33": 0,
+      "over50": 0,
+      "over100": 0,
+      "phases": {
+        "simulation": {
+          "calls": 120,
+          "totalMs": 239.19999980926514,
+          "meanMs": 1.9933333317438762,
+          "maxMs": 11.199999988079071
+        },
+        "ai": {
+          "calls": 0,
+          "totalMs": 0,
+          "meanMs": 0,
+          "maxMs": 0
+        },
+        "pathfinding": {
+          "calls": 0,
+          "totalMs": 0,
+          "meanMs": 0,
+          "maxMs": 0
+        },
+        "vision": {
+          "calls": 30,
+          "totalMs": 217.19999998807907,
+          "meanMs": 7.239999999602635,
+          "maxMs": 11.199999988079071
+        },
+        "render": {
+          "calls": 363,
+          "totalMs": 871.6000000536442,
+          "meanMs": 2.401101928522436,
+          "maxMs": 3.9000000059604645
+        },
+        "minimap": {
+          "calls": 363,
+          "totalMs": 25.59999978542328,
+          "meanMs": 0.07052341538684098,
+          "maxMs": 0.800000011920929
+        },
+        "hud": {
+          "calls": 45,
+          "totalMs": 68.39999997615814,
+          "meanMs": 1.519999999470181,
+          "maxMs": 2.300000011920929
+        },
+        "audio": {
+          "calls": 363,
+          "totalMs": 13.300000011920929,
+          "meanMs": 0.0366391184901403,
+          "maxMs": 0.800000011920929
+        },
+        "input": {
+          "calls": 363,
+          "totalMs": 10.099999874830246,
+          "meanMs": 0.027823691115234837,
+          "maxMs": 0.9000000059604645
+        },
+        "fog": {
+          "calls": 363,
+          "totalMs": 17.899999886751175,
+          "meanMs": 0.04931129445385998,
+          "maxMs": 1.0999999940395355
+        },
+        "radioDecode": {
+          "calls": 0,
+          "totalMs": 0,
+          "meanMs": 0,
+          "maxMs": 0
+        }
+      },
+      "pathfinding": {
+        "calls": 0,
+        "nodes": 0
+      },
+      "longTasks": {
+        "count": 0,
+        "maxMs": 0
+      },
+      "spikes": [],
+      "audio": {
+        "started": 0,
+        "dropped": 0,
+        "interrupted": 0,
+        "failed": 0,
+        "decoded": 47,
+        "active": 0,
+        "peakVoices": 20,
+        "limit": 20
+      },
+      "fixedTicks": {
+        "ticks": 120,
+        "stateHash": "f96f7a488c5783bfd7c9c51d79dcda27a0a1b45f9c962f4ac718b9f7cf2ce293",
+        "phases": {
+          "simulation": {
+            "calls": 120,
+            "totalMs": 227.69999998807907,
+            "meanMs": 1.897499999900659,
+            "maxMs": 12.200000017881393
+          },
+          "ai": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "pathfinding": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "vision": {
+            "calls": 30,
+            "totalMs": 215.90000000596046,
+            "meanMs": 7.196666666865349,
+            "maxMs": 11.600000023841858
+          },
+          "render": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "minimap": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "hud": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "audio": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "input": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "fog": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "radioDecode": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          }
+        },
+        "pathfinding": {
+          "calls": 0,
+          "nodes": 0
+        }
+      }
+    },
+    "H-sidebar-production": {
+      "fixture": {
+        "units": 12,
+        "mapVersion": 2,
+        "seed": 2026
+      },
+      "frames": 362,
+      "windowSeconds": 6.04980000000001,
+      "fps": 59.83668881615911,
+      "low1Fps": 47.78972520908015,
+      "frameMs": {
+        "p50": 16.699999999999818,
+        "p95": 16.799999999999727,
+        "p99": 16.800000000000182,
+        "max": 33.29999999999927
+      },
+      "over33": 1,
+      "over50": 0,
+      "over100": 0,
+      "phases": {
+        "simulation": {
+          "calls": 121,
+          "totalMs": 262.80000004172325,
+          "meanMs": 2.1719008267911013,
+          "maxMs": 11.699999988079071
+        },
+        "ai": {
+          "calls": 0,
+          "totalMs": 0,
+          "meanMs": 0,
+          "maxMs": 0
+        },
+        "pathfinding": {
+          "calls": 0,
+          "totalMs": 0,
+          "meanMs": 0,
+          "maxMs": 0
+        },
+        "vision": {
+          "calls": 30,
+          "totalMs": 234.40000000596046,
+          "meanMs": 7.813333333532015,
+          "maxMs": 11.300000011920929
+        },
+        "render": {
+          "calls": 363,
+          "totalMs": 525.299999833107,
+          "meanMs": 1.4471074375567685,
+          "maxMs": 3
+        },
+        "minimap": {
+          "calls": 363,
+          "totalMs": 15.000000089406967,
+          "meanMs": 0.04132231429588696,
+          "maxMs": 0.800000011920929
+        },
+        "hud": {
+          "calls": 45,
+          "totalMs": 77.1999998986721,
+          "meanMs": 1.7155555533038245,
+          "maxMs": 2.2999999821186066
+        },
+        "audio": {
+          "calls": 363,
+          "totalMs": 13.400000005960464,
+          "meanMs": 0.0369146005673842,
+          "maxMs": 0.9000000059604645
+        },
+        "input": {
+          "calls": 363,
+          "totalMs": 16.999999970197678,
+          "meanMs": 0.04683195584076495,
+          "maxMs": 0.7000000178813934
+        },
+        "fog": {
+          "calls": 363,
+          "totalMs": 17.90000006556511,
+          "meanMs": 0.04931129494646035,
+          "maxMs": 1.300000011920929
+        },
+        "radioDecode": {
+          "calls": 0,
+          "totalMs": 0,
+          "meanMs": 0,
+          "maxMs": 0
+        }
+      },
+      "pathfinding": {
+        "calls": 0,
+        "nodes": 0
+      },
+      "longTasks": {
+        "count": 0,
+        "maxMs": 0
+      },
+      "spikes": [
+        {
+          "frameMs": 33.29999999999927,
+          "workMs": 1.7999999821186066,
+          "previousWorkMs": 12.700000017881393,
+          "phases": {
+            "simulation": 0,
+            "ai": 0,
+            "pathfinding": 0,
+            "vision": 0,
+            "render": 1.7999999821186066,
+            "minimap": 0,
+            "hud": 0,
+            "audio": 0,
+            "input": 0,
+            "fog": 0,
+            "radioDecode": 0
+          },
+          "previousPhases": {
+            "simulation": 8.600000023841858,
+            "ai": 0,
+            "pathfinding": 0,
+            "vision": 8.600000023841858,
+            "render": 2.2999999821186066,
+            "minimap": 0,
+            "hud": 1.800000011920929,
+            "audio": 0,
+            "input": 0,
+            "fog": 0.699999988079071,
+            "radioDecode": 0
+          },
+          "paths": 0,
+          "nodes": 0
+        }
+      ],
+      "audio": {
+        "started": 0,
+        "dropped": 0,
+        "interrupted": 0,
+        "failed": 0,
+        "decoded": 47,
+        "active": 0,
+        "peakVoices": 20,
+        "limit": 20
+      },
+      "fixedTicks": {
+        "ticks": 120,
+        "stateHash": "6620d861a21bbf7a04ffd3c859fb7a49a6efb8f39ecd77f32dc668fd75705970",
+        "phases": {
+          "simulation": {
+            "calls": 120,
+            "totalMs": 251.7999999821186,
+            "meanMs": 2.0983333331843217,
+            "maxMs": 12.899999976158142
+          },
+          "ai": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "pathfinding": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "vision": {
+            "calls": 30,
+            "totalMs": 238.5,
+            "meanMs": 7.95,
+            "maxMs": 12.899999976158142
+          },
+          "render": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "minimap": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "hud": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "audio": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "input": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "fog": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          },
+          "radioDecode": {
+            "calls": 0,
+            "totalMs": 0,
+            "meanMs": 0,
+            "maxMs": 0
+          }
+        },
+        "pathfinding": {
+          "calls": 0,
+          "nodes": 0
+        }
+      }
+    }
+  },
+  "errors": []
+}

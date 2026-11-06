@@ -1,0 +1,233 @@
+{
+  "version": 1,
+  "status": "approved-and-active",
+  "designModel": {
+    "repo": "mlx-community/Qwen3-TTS-12Hz-1.7B-VoiceDesign-6bit",
+    "revision": "ffc6545dc9cb086950aa46c6cd3db490e6ece3e1"
+  },
+  "baseModel": {
+    "repo": "mlx-community/Qwen3-TTS-12Hz-1.7B-Base-6bit",
+    "revision": "34ff5318365b59cba9c03ff729f2eee0814caf72"
+  },
+  "referenceText": "Verstanden! Bin unterwegs! Jawohl, Kommandant! Angriff bestätigt! Sanitäter unterwegs! Reparatur wird durchgeführt! Truppen werden abgesetzt!",
+  "profiles": {
+    "soldier": {
+      "name": "Atlas DE A – Infanterie",
+      "seed": 240101,
+      "description": "Ein muttersprachlicher Sprecher aus Deutschland mit akzentfreiem, natürlichem Hochdeutsch. Deutsche Vokale, klare deutsche Konsonanten und deutsche Satzmelodie. Kein englischer oder anderer fremdsprachiger Akzent. Knapp, bestimmt und glaubwürdig wie eine professionelle militärische Funkbestätigung. Kein Schreien, kein übertriebenes Schauspiel, keine künstliche Ansagerstimme. Ein erwachsener Mann Mitte dreißig, mittlere Stimmlage, leicht rauer Charakter, präzise und energisch."
+    },
+    "crew": {
+      "name": "Atlas DE B – Besatzung",
+      "seed": 240202,
+      "description": "Ein muttersprachlicher Sprecher aus Deutschland mit akzentfreiem, natürlichem Hochdeutsch. Deutsche Vokale, klare deutsche Konsonanten und deutsche Satzmelodie. Kein englischer oder anderer fremdsprachiger Akzent. Knapp, bestimmt und glaubwürdig wie eine professionelle militärische Funkbestätigung. Kein Schreien, kein übertriebenes Schauspiel, keine künstliche Ansagerstimme. Ein erwachsener Mann Mitte vierzig, natürlich tiefe kräftige Baritonstimme, ruhig autoritär. Keine übertrieben tiefe Monsterstimme."
+    },
+    "support": {
+      "name": "Atlas DE C – Unterstützung",
+      "seed": 240303,
+      "description": "Ein muttersprachlicher Sprecher aus Deutschland mit akzentfreiem, natürlichem Hochdeutsch. Deutsche Vokale, klare deutsche Konsonanten und deutsche Satzmelodie. Kein englischer oder anderer fremdsprachiger Akzent. Knapp, bestimmt und glaubwürdig wie eine professionelle militärische Funkbestätigung. Kein Schreien, kein übertriebenes Schauspiel, keine künstliche Ansagerstimme. Eine erwachsene Frau Mitte dreißig, ruhige freundliche und professionelle Stimme. Sehr gut verständlich, gelassen und zugewandt."
+    }
+  },
+  "samples": [
+    {
+      "profile": "soldier",
+      "name": "Atlas DE A – Infanterie",
+      "text": "Verstanden!",
+      "dry": "dry/soldier-01.wav",
+      "file": "samples/soldier-01.wav",
+      "duration": 0.785,
+      "sha256": "fe10baac1dc68b0b46be4e96aac14d69c713c5505e4edf212c1e2ec5d878b606"
+    },
+    {
+      "profile": "soldier",
+      "name": "Atlas DE A – Infanterie",
+      "text": "Bin unterwegs!",
+      "dry": "dry/soldier-02.wav",
+      "file": "samples/soldier-02.wav",
+      "duration": 1.04,
+      "sha256": "187bb6dcf498314f03d4c7cdb2de785569c9a797beda1ca94a66aeb517c776a3"
+    },
+    {
+      "profile": "soldier",
+      "name": "Atlas DE A – Infanterie",
+      "text": "Jawohl, Kommandant!",
+      "dry": "dry/soldier-03.wav",
+      "file": "samples/soldier-03.wav",
+      "duration": 1.35,
+      "sha256": "18c50a2791ae823c96c885ce5e3372ea7c31520b4f9dd8ef262e94a925de1eb2"
+    },
+    {
+      "profile": "soldier",
+      "name": "Atlas DE A – Infanterie",
+      "text": "Angriff bestätigt!",
+      "dry": "dry/soldier-04.wav",
+      "file": "samples/soldier-04.wav",
+      "duration": 1.54,
+      "sha256": "d8a73c4f5ad00ca15bd423f83b1b55f30c0afa1e68dd48920625ac3046ad6958"
+    },
+    {
+      "profile": "soldier",
+      "name": "Atlas DE A – Infanterie",
+      "text": "Sanitäter unterwegs!",
+      "dry": "dry/soldier-05.wav",
+      "file": "samples/soldier-05.wav",
+      "duration": 2.675,
+      "sha256": "1dfa8daef909f7927c361af43f882b0236c9d9503208af72d7552534cde20f0a"
+    },
+    {
+      "profile": "soldier",
+      "name": "Atlas DE A – Infanterie",
+      "text": "Reparatur wird durchgeführt!",
+      "dry": "dry/soldier-06.wav",
+      "file": "samples/soldier-06.wav",
+      "duration": 1.82,
+      "sha256": "57cbbc099617fe19c39cfdcf2eb0e055020a801eeb9f1affeb606d891b539923"
+    },
+    {
+      "profile": "soldier",
+      "name": "Atlas DE A – Infanterie",
+      "text": "Truppen werden abgesetzt!",
+      "dry": "dry/soldier-07.wav",
+      "file": "samples/soldier-07.wav",
+      "duration": 1.55,
+      "sha256": "10b1e030f214265c3364302f9456554fa9a0e77af39f0c74e8d73c5a3c2c5d3e"
+    },
+    {
+      "profile": "crew",
+      "name": "Atlas DE B – Besatzung",
+      "text": "Verstanden!",
+      "dry": "dry/crew-01.wav",
+      "file": "samples/crew-01.wav",
+      "duration": 0.81,
+      "sha256": "8d20c0d099f612a8f50458f6eb7c04ddf9207f424d9b0ad5f6fa788137010a74"
+    },
+    {
+      "profile": "crew",
+      "name": "Atlas DE B – Besatzung",
+      "text": "Bin unterwegs!",
+      "dry": "dry/crew-02.wav",
+      "file": "samples/crew-02.wav",
+      "duration": 0.855,
+      "sha256": "d8b26e34bc4afd1243c3475aaa84a1fcd2f3ba4899a1c6213216616815ed8d59"
+    },
+    {
+      "profile": "crew",
+      "name": "Atlas DE B – Besatzung",
+      "text": "Jawohl, Kommandant!",
+      "dry": "dry/crew-03.wav",
+      "file": "samples/crew-03.wav",
+      "duration": 1.52,
+      "sha256": "71abdb3479af9fc946fcdf4272e3cf8904fdcfbef03bc8466af415b1ca8667dc"
+    },
+    {
+      "profile": "crew",
+      "name": "Atlas DE B – Besatzung",
+      "text": "Angriff bestätigt!",
+      "dry": "dry/crew-04.wav",
+      "file": "samples/crew-04.wav",
+      "duration": 1.245,
+      "sha256": "7c827184378317368c105412f3e4072bd1af84fed0e09fd8158d2bfc0ef1db49"
+    },
+    {
+      "profile": "crew",
+      "name": "Atlas DE B – Besatzung",
+      "text": "Sanitäter unterwegs!",
+      "dry": "dry/crew-05.wav",
+      "file": "samples/crew-05.wav",
+      "duration": 1.295,
+      "sha256": "bb8a4d6f0321501df609e81c31ec7d18562665aa5858427ead7cf523dd9520a1"
+    },
+    {
+      "profile": "crew",
+      "name": "Atlas DE B – Besatzung",
+      "text": "Reparatur wird durchgeführt!",
+      "dry": "dry/crew-06.wav",
+      "file": "samples/crew-06.wav",
+      "duration": 1.585,
+      "sha256": "d2b4dab3ad8ed432b1c68bfa1f7479b3f59756a4afdeb19a364a3261d71604d1"
+    },
+    {
+      "profile": "crew",
+      "name": "Atlas DE B – Besatzung",
+      "text": "Truppen werden abgesetzt!",
+      "dry": "dry/crew-07.wav",
+      "file": "samples/crew-07.wav",
+      "duration": 1.325,
+      "sha256": "0ed0fead7107a33ac46b82ae1d77340b2444684efb6840949808f38d973693b9"
+    },
+    {
+      "profile": "support",
+      "name": "Atlas DE C – Unterstützung",
+      "text": "Verstanden!",
+      "dry": "dry/support-01.wav",
+      "file": "samples/support-01.wav",
+      "duration": 1.16,
+      "sha256": "552da3eda2b87fc7e5de7199f8ea3eef7d1007131bc43e02394b1304de510443"
+    },
+    {
+      "profile": "support",
+      "name": "Atlas DE C – Unterstützung",
+      "text": "Bin unterwegs!",
+      "dry": "dry/support-02.wav",
+      "file": "samples/support-02.wav",
+      "duration": 0.985,
+      "sha256": "4a4752265ab6dcb3ed36fc3c041c67023460dd012a27174cf0150af9a505e0a7"
+    },
+    {
+      "profile": "support",
+      "name": "Atlas DE C – Unterstützung",
+      "text": "Jawohl, Kommandant!",
+      "dry": "dry/support-03.wav",
+      "file": "samples/support-03.wav",
+      "duration": 1.72,
+      "sha256": "75af005b8c09a4520322d6114f84cc0bcdf5505f1e22a4d2afb74b58be0bf22f"
+    },
+    {
+      "profile": "support",
+      "name": "Atlas DE C – Unterstützung",
+      "text": "Angriff bestätigt!",
+      "dry": "dry/support-04.wav",
+      "file": "samples/support-04.wav",
+      "duration": 1.3,
+      "sha256": "e9a7d08105b3d1c83e594e4a786efb2299459244b5243f658e34e231f7a9c553"
+    },
+    {
+      "profile": "support",
+      "name": "Atlas DE C – Unterstützung",
+      "text": "Sanitäter unterwegs!",
+      "dry": "dry/support-05.wav",
+      "file": "samples/support-05.wav",
+      "duration": 1.43,
+      "sha256": "3e721f976794e2bed295a46ee4043fdc166f7c9e0b97af852e98e47507ca0353"
+    },
+    {
+      "profile": "support",
+      "name": "Atlas DE C – Unterstützung",
+      "text": "Reparatur wird durchgeführt!",
+      "dry": "dry/support-06.wav",
+      "file": "samples/support-06.wav",
+      "duration": 2.12,
+      "sha256": "27e7dfea8e453ea084c893317c9daad8439820863d1cf796791e4ee7272f510d"
+    },
+    {
+      "profile": "support",
+      "name": "Atlas DE C – Unterstützung",
+      "text": "Truppen werden abgesetzt!",
+      "dry": "dry/support-07.wav",
+      "file": "samples/support-07.wav",
+      "duration": 1.525,
+      "sha256": "0ab027c854b37cc5e854fe1fc5ed2be142af39d99bca600acac76cd1f2b93651"
+    }
+  ],
+  "listeningReview": {
+    "date": "2026-10-24",
+    "by": "project-owner",
+    "method": "human-listening-review",
+    "decision": "A, B und C überzeugen",
+    "profiles": [
+      "soldier",
+      "crew",
+      "support"
+    ],
+    "scope": "voice-identities-based-on-comparison-phrases"
+  }
+}

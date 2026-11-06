@@ -1,0 +1,301 @@
+{
+  "version": 1,
+  "profiles": {
+    "soldier": {
+      "speaker": "Ryan",
+      "instruction": "Speak German naturally as a professional soldier over a radio: brief, firm, precise, slightly rough but clear. Normal pitch. Restrained, no theatrical shouting."
+    },
+    "crew": {
+      "speaker": "Aiden",
+      "instruction": "Speak German naturally as an experienced armored vehicle crew commander: steady, confident, a slightly lower natural register, clear and concise. No exaggerated bass, no shouting."
+    },
+    "support": {
+      "speaker": "Serena",
+      "instruction": "Speak German naturally as a calm professional field specialist: composed, decisive, concise and clearly articulated, never a computer announcement."
+    }
+  },
+  "clips": [
+    {
+      "id": "soldier-move-01",
+      "profile": "soldier",
+      "group": "move",
+      "text": "Verstanden!"
+    },
+    {
+      "id": "soldier-move-02",
+      "profile": "soldier",
+      "group": "move",
+      "text": "Bin unterwegs!"
+    },
+    {
+      "id": "soldier-move-03",
+      "profile": "soldier",
+      "group": "move",
+      "text": "Aye, aye, Sir!"
+    },
+    {
+      "id": "soldier-move-04",
+      "profile": "soldier",
+      "group": "move",
+      "text": "Wird ausgeführt!"
+    },
+    {
+      "id": "soldier-move-05",
+      "profile": "soldier",
+      "group": "move",
+      "text": "Auf dem Weg!"
+    },
+    {
+      "id": "soldier-move-06",
+      "profile": "soldier",
+      "group": "move",
+      "text": "Jawohl!"
+    },
+    {
+      "id": "soldier-move-07",
+      "profile": "soldier",
+      "group": "move",
+      "text": "Position wird angefahren!"
+    },
+    {
+      "id": "soldier-move-08",
+      "profile": "soldier",
+      "group": "move",
+      "text": "Bestätigt!"
+    },
+    {
+      "id": "soldier-attack-01",
+      "profile": "soldier",
+      "group": "attack",
+      "text": "Ziel erfasst!"
+    },
+    {
+      "id": "soldier-attack-02",
+      "profile": "soldier",
+      "group": "attack",
+      "text": "Angriff bestätigt!"
+    },
+    {
+      "id": "soldier-attack-03",
+      "profile": "soldier",
+      "group": "attack",
+      "text": "Wir rücken vor!"
+    },
+    {
+      "id": "soldier-attack-04",
+      "profile": "soldier",
+      "group": "attack",
+      "text": "Feuer frei!"
+    },
+    {
+      "id": "soldier-attack-05",
+      "profile": "soldier",
+      "group": "attack",
+      "text": "Feind wird bekämpft!"
+    },
+    {
+      "id": "soldier-attack-06",
+      "profile": "soldier",
+      "group": "attack",
+      "text": "Jawohl, Kommandant!"
+    },
+    {
+      "id": "crew-attack-01",
+      "profile": "crew",
+      "group": "attack",
+      "text": "Ziel erfasst!"
+    },
+    {
+      "id": "crew-attack-02",
+      "profile": "crew",
+      "group": "attack",
+      "text": "Angriff bestätigt!"
+    },
+    {
+      "id": "crew-attack-03",
+      "profile": "crew",
+      "group": "attack",
+      "text": "Wir rücken vor!"
+    },
+    {
+      "id": "crew-attack-04",
+      "profile": "crew",
+      "group": "attack",
+      "text": "Feuer frei!"
+    },
+    {
+      "id": "crew-attack-05",
+      "profile": "crew",
+      "group": "attack",
+      "text": "Feind wird bekämpft!"
+    },
+    {
+      "id": "crew-attack-06",
+      "profile": "crew",
+      "group": "attack",
+      "text": "Jawohl, Kommandant!"
+    },
+    {
+      "id": "support-medic-01",
+      "profile": "support",
+      "group": "medic",
+      "text": "Sanitäter unterwegs!"
+    },
+    {
+      "id": "support-medic-02",
+      "profile": "support",
+      "group": "medic",
+      "text": "Ich kümmere mich darum!"
+    },
+    {
+      "id": "support-medic-03",
+      "profile": "support",
+      "group": "medic",
+      "text": "Medizinische Unterstützung!"
+    },
+    {
+      "id": "support-medic-04",
+      "profile": "support",
+      "group": "medic",
+      "text": "Bin zur Stelle!"
+    },
+    {
+      "id": "support-engineer-01",
+      "profile": "support",
+      "group": "engineer",
+      "text": "Auftrag erhalten!"
+    },
+    {
+      "id": "support-engineer-02",
+      "profile": "support",
+      "group": "engineer",
+      "text": "Wird erledigt!"
+    },
+    {
+      "id": "support-repair-01",
+      "profile": "support",
+      "group": "repair",
+      "text": "Reparatur wird durchgeführt!"
+    },
+    {
+      "id": "support-build-01",
+      "profile": "support",
+      "group": "build",
+      "text": "Baustelle wird angefahren!"
+    },
+    {
+      "id": "crew-move-01",
+      "profile": "crew",
+      "group": "move",
+      "text": "Besatzung bereit!"
+    },
+    {
+      "id": "crew-move-02",
+      "profile": "crew",
+      "group": "move",
+      "text": "Rücken vor!"
+    },
+    {
+      "id": "crew-move-03",
+      "profile": "crew",
+      "group": "move",
+      "text": "Zielkoordinaten bestätigt!"
+    },
+    {
+      "id": "crew-move-04",
+      "profile": "crew",
+      "group": "move",
+      "text": "Verstanden, Kommandant!"
+    },
+    {
+      "id": "soldier-air-01",
+      "profile": "soldier",
+      "group": "air",
+      "text": "Roger!"
+    },
+    {
+      "id": "soldier-air-02",
+      "profile": "soldier",
+      "group": "air",
+      "text": "Kurs bestätigt!"
+    },
+    {
+      "id": "soldier-air-03",
+      "profile": "soldier",
+      "group": "air",
+      "text": "Wir heben ab!"
+    },
+    {
+      "id": "soldier-air-04",
+      "profile": "soldier",
+      "group": "air",
+      "text": "Flugroute bestätigt!"
+    },
+    {
+      "id": "soldier-load-01",
+      "profile": "soldier",
+      "group": "load",
+      "text": "Landezone bestätigt!"
+    },
+    {
+      "id": "soldier-load-02",
+      "profile": "soldier",
+      "group": "load",
+      "text": "Bereit zur Aufnahme!"
+    },
+    {
+      "id": "soldier-unload-01",
+      "profile": "soldier",
+      "group": "unload",
+      "text": "Truppen werden abgesetzt!"
+    },
+    {
+      "id": "support-move-01",
+      "profile": "support",
+      "group": "move",
+      "text": "Verstanden!"
+    },
+    {
+      "id": "support-move-02",
+      "profile": "support",
+      "group": "move",
+      "text": "Wird ausgeführt!"
+    },
+    {
+      "id": "soldier-stop-01",
+      "profile": "soldier",
+      "group": "stop",
+      "text": "Position halten!"
+    },
+    {
+      "id": "soldier-stop-02",
+      "profile": "soldier",
+      "group": "stop",
+      "text": "Bestätigt!"
+    },
+    {
+      "id": "crew-stop-01",
+      "profile": "crew",
+      "group": "stop",
+      "text": "Position halten!"
+    },
+    {
+      "id": "crew-stop-02",
+      "profile": "crew",
+      "group": "stop",
+      "text": "Bestätigt!"
+    },
+    {
+      "id": "support-stop-01",
+      "profile": "support",
+      "group": "stop",
+      "text": "Position halten!"
+    },
+    {
+      "id": "support-stop-02",
+      "profile": "support",
+      "group": "stop",
+      "text": "Bestätigt!"
+    }
+  ]
+}

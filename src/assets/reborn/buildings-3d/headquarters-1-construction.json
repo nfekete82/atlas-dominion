@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "kind": "headquarters",
+  "team": 1,
+  "model": "headquarters-1.glb",
+  "parts": 199,
+  "stages": 6,
+  "layer": {
+    "image": "headquarters-1-construction.png",
+    "pivot": [
+      164,
+      235
+    ],
+    "frames": [
+      {
+        "x": 0,
+        "y": 0,
+        "w": 383,
+        "h": 326
+      },
+      {
+        "x": 383,
+        "y": 0,
+        "w": 383,
+        "h": 326
+      },
+      {
+        "x": 766,
+        "y": 0,
+        "w": 383,
+        "h": 326
+      },
+      {
+        "x": 1149,
+        "y": 0,
+        "w": 383,
+        "h": 326
+      },
+      {
+        "x": 1532,
+        "y": 0,
+        "w": 383,
+        "h": 326
+      },
+      {
+        "x": 1915,
+        "y": 0,
+        "w": 383,
+        "h": 326
+      }
+    ],
+    "period": 1,
+    "originalBounds": {
+      "x": 92,
+      "y": 147,
+      "w": 383,
+      "h": 326
+    }
+  }
+}

@@ -1,0 +1,39 @@
+name: Sandforge Illustrated Desert Title
+
+on:
+  push:
+    branches:
+      - feat/sandforge-new-desert-menu-art-*
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  illustrated-title:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build game
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Browser dependencies
+        run: |
+          npm --prefix tests/browser ci --no-audit --no-fund
+          cd tests/browser && npx playwright install --with-deps chromium
+      - name: Menu regression at tall, desktop and mobile
+        env:
+          ATLAS_BROWSER_CHANNEL: chromium
+          CI: 'true'
+        run: |
+          cd tests/browser
+          npx playwright test --config=cinematic.config.mjs \
+            sandforge-title-menu.spec.mjs \
+            sandforge-cinematic-framing.spec.mjs \
+            sandforge-illustrated-title.spec.mjs \
+            --reporter=line

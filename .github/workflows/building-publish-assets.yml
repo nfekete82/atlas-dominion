@@ -1,0 +1,48 @@
+name: Publish baked PBR buildings without browser dependency
+
+on:
+  push:
+    branches: [feat/pbr-buildings-overhaul-20261027-144413]
+    paths:
+      - .github/workflows/building-publish-assets.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install project dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Export all 15 3D buildings and runtime graphics
+        run: node scripts/export-atlas-buildings.mjs --cpu
+      - name: Validate graphics and simulation regressions
+        run: |
+          npm run build
+          node scripts/validate-building-assets.mjs
+          node --test tests/reborn-building-pbr.test.mjs tests/reborn-building-rigs.test.mjs tests/reborn-buildings.test.mjs
+      - name: Commit generated GLBs, sprites and animation pivots
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/assets/reborn/buildings-3d/ src/reborn/turret-rig.ts
+          if git diff --cached --quiet; then
+            echo 'Already up to date'
+            exit 0
+          fi
+          git commit -m 'assets(buildings): publish visually distinct armored facility sprites'
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

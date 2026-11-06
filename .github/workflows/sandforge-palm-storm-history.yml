@@ -1,0 +1,23 @@
+name: Sandforge palm, storm and battle reports
+on:
+  push:
+    branches:
+      - feat/sandforge-palms-storm-battle-history-20261029
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Targeted palm, weather and campaign history tests
+        run: node --test tests/reborn-campaign-history.test.mjs tests/reborn-weather.test.mjs tests/reborn-palm-knockdown.test.mjs
+      - name: Full regression
+        run: npm test

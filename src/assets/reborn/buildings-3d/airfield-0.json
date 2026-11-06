@@ -3,13 +3,47 @@
   "kind": "airfield",
   "team": 0,
   "design": {
+    "revision": 2,
     "name": "Flugfeld",
     "kind": "airfield",
     "team": 0,
-    "parts": 24,
-    "triangles": 13596,
+    "parts": 241,
+    "triangles": 131922,
     "geometry": "Atlas original ceramic / bronze building geometry",
-    "source": "Atlas Dominion / original procedural models"
+    "source": "Atlas Dominion / original procedural models",
+    "sourceGeometry": {
+      "parts": 236,
+      "triangles": 118032
+    },
+    "serviceDetails": 154,
+    "serviceFeatures": [
+      "HangarStructuralCrossBrace",
+      "HangarFieldRepairBolt",
+      "HangarRoofLongitudinalJoint",
+      "HangarHeavySill",
+      "IdentificationFrame",
+      "FactionIdentification",
+      "SafetyChevrons",
+      "SealedEquipmentCase",
+      "EquipmentLid",
+      "CaseStrap",
+      "ReplaceableArmour",
+      "HexFastener",
+      "AnnexEmergencyLight",
+      "FanHousing",
+      "FanRecess",
+      "FanHub",
+      "FanBlade",
+      "FanSafetyGrille",
+      "GrilleBolt",
+      "LadderRail",
+      "LadderRung",
+      "ApronInsetLight",
+      "FuelDeliveryPipe",
+      "FloodlightSupportBracket"
+    ],
+    "surfaceRevision": 4,
+    "finish": "Desert CARC camouflage / sand paint / worn steel / packed ORM / tangent normals"
   },
   "model": "airfield-0.glb",
   "body": {
@@ -21,34 +55,34 @@
       382
     ],
     "solidBounds": {
-      "x": 96,
-      "y": 253,
-      "w": 320,
-      "h": 217
+      "x": 49,
+      "y": 97,
+      "w": 414,
+      "h": 399
     },
-    "top": 244
+    "top": 90
   },
   "activity": null,
   "beacon": {
     "image": "airfield-0-beacon.png",
     "pivot": [
-      95,
-      138
+      2,
+      292
     ],
     "frames": [
       {
         "x": 0,
         "y": 0,
-        "w": 12,
-        "h": 16
+        "w": 10,
+        "h": 13
       }
     ],
     "period": 3.8,
     "originalBounds": {
-      "x": 161,
-      "y": 244,
-      "w": 12,
-      "h": 16
+      "x": 254,
+      "y": 90,
+      "w": 10,
+      "h": 13
     }
   },
   "clips": [
@@ -57,5 +91,6 @@
       "duration": 3.8
     }
   ],
-  "bakedShadow": true
+  "bakedShadow": true,
+  "baker": "cpu-pbr"
 }

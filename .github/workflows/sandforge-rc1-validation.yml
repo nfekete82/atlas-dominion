@@ -1,0 +1,49 @@
+name: Sandforge 1.0 RC - 102 AI matches
+
+on:
+  push:
+    branches:
+      - feat/sandforge-rc1-validation-20261101
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  arena-102:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - name: Build and arena smoke test
+        run: |
+          npm run build
+          node --test tests/ai-test-arena.test.mjs
+      - name: 102 deterministic matches (3 maps x 17 seeds x 2 strategies)
+        run: |
+          node scripts/ai-test-arena.mjs \
+            --maps 3,4,5 \
+            --seeds 2026,2027,2028,2029,2030,2031,2032,2033,2034,2035,2036,2037,2038,2039,2040,2041,2042 \
+            --modes baseline,director \
+            --seconds 420 \
+            --label rc1-validation \
+            --output ai-arena-results/rc1-102.json
+      - name: Check completeness
+        run: |
+          node --input-type=module -e "import fs from 'node:fs'; const r=JSON.parse(fs.readFileSync('ai-arena-results/rc1-102.json'));if(!r.complete||r.completedRuns!==102||r.expectedRuns!==102)process.exit(1);console.log('Validated '+r.completedRuns+' matches');"
+      - name: Archive raw data and report (including partial reports on failure)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandforge-rc1-ai-102
+          path: ai-arena-results/
+          if-no-files-found: warn
+          retention-days: 30

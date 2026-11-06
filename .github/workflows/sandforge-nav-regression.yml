@@ -1,0 +1,33 @@
+name: Sandforge navigation and work-order regression
+
+on:
+  push:
+    branches:
+      - fix/sandforge-navigation-props-work-orders-20261102
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Nav / prop / work-order regression
+        run: |
+          node --test \
+            tests/reborn-navigation-work-order-props.test.mjs \
+            tests/reborn-navigation-clearance.test.mjs \
+            tests/reborn-navigation-retry.test.mjs \
+            tests/reborn-building-decor.test.mjs \
+            tests/reborn-capture-feedback.test.mjs

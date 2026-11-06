@@ -1,0 +1,26 @@
+{
+  "artillery-0.glb": {
+    "sha256": "5988e63c410ad03ec0a66932dc37799b776af5cc3819730262ae2e4c14d7f482",
+    "identical": true
+  },
+  "artillery-0.json": {
+    "sha256": "9bce7bb225c025672efd4bc4f0a9adc0969c559083f2cf30f60603c49375006d",
+    "identical": true
+  },
+  "artillery-0.png": {
+    "sha256": "6ada334fbd5fa9a5ea286dd02e5176c8d45db49c114e7fae140dfdd010fa8d33",
+    "identical": true
+  },
+  "artillery-1.glb": {
+    "sha256": "76567146822b6c0b5d9c1ffafc188132513b4d0021fcd91719a200622397d99f",
+    "identical": true
+  },
+  "artillery-1.json": {
+    "sha256": "2bdb9ce252567b4444c80ebf0cc6bc338adfaf09d2a7e64f5c38e73322a6c706",
+    "identical": true
+  },
+  "artillery-1.png": {
+    "sha256": "1cc1bf09b0bf213cb03a27e1591cd622182c82fc639badd05d4de9e0eebaf038",
+    "identical": true
+  }
+}

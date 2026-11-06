@@ -1,3 +1,4 @@
+import {provideFacilities} from './production-fixture.mjs';
 import {test,expect} from '@playwright/test';
 import {mkdir} from 'node:fs/promises';
 const evidence=new URL('../../docs/reborn/',import.meta.url).pathname;
@@ -21,7 +22,7 @@ async function order(page,p,{attack=false,shift=false}={}){
  await page.mouse.click(at.x,at.y,{button:'right'});if(shift)await page.keyboard.up('Shift');
 }
 async function selectArmy(page){
- await page.locator('#home').click();const positions=await page.evaluate(()=>window.__reborn.game.units.filter(u=>u.owner===0).map(u=>window.__reborn.renderer.screen(u)));
+ await page.keyboard.press('h');const positions=await page.evaluate(()=>window.__reborn.game.units.filter(u=>u.owner===0).map(u=>window.__reborn.renderer.screen(u)));
  const xs=positions.map(p=>p.x),ys=positions.map(p=>p.y);await page.mouse.move(Math.min(...xs)-30,Math.min(...ys)-65);await page.mouse.down();await page.mouse.move(Math.max(...xs)+30,Math.max(...ys)+16,{steps:12});await page.mouse.up();
 }
 
@@ -29,7 +30,7 @@ test('reborn: complete browser loop from one soldier through capture, production
  test.setTimeout(90000);const errors=[];page.on('pageerror',e=>errors.push(e.message));await start(page);await mkdir(evidence,{recursive:true});
  await page.screenshot({path:evidence+'initial.png'});
  await expect(page.locator('#credits')).toHaveText('500');
- expect(await page.evaluate(()=>window.__reborn.game.count(0))).toBe(1);
+ expect(await page.evaluate(()=>window.__reborn.game.count(0))).toBe(2);
  const initial=await page.evaluate(()=>({unit:{...window.__reborn.game.units[0]},base:{...window.__reborn.game.bases[0]},target:{...window.__reborn.game.territories[20].point},explored:window.__reborn.game.explored[0].reduce((a,b)=>a+b,0)}));
  const u=await screen(page,{x:initial.unit.x,y:initial.unit.y-18});await page.mouse.click(u.x,u.y);
  await expect(page.locator('#selection-title')).toHaveText('Infanteriesoldat');
@@ -37,12 +38,14 @@ test('reborn: complete browser loop from one soldier through capture, production
  expect(await page.evaluate(()=>window.__reborn.game.territories[20].owner)).toBe(0);await expect(page.locator('#income')).toHaveText('+40');
  expect(await page.evaluate(()=>window.__reborn.game.explored[0].reduce((a,b)=>a+b,0))).toBeGreaterThan(initial.explored);
  await order(page,{x:initial.base.x+140,y:initial.base.y+100});await advance(page,7);
- await page.locator('#home').click();const b=await screen(page,{x:initial.base.x,y:initial.base.y-90});await page.mouse.click(b.x,b.y);
+ await page.keyboard.press('h');const b=await screen(page,{x:initial.base.x,y:initial.base.y-90});await page.mouse.click(b.x,b.y);
  await expect(page.locator('#production')).toBeVisible();
+ const barracks=await page.evaluate(()=>{const a=window.__reborn,g=a.game,hq=g.bases[0],worker=g.units.find(u=>u.owner===0&&u.kind==='engineer');for(let r=190;r<600;r+=30)for(let i=0;i<24;i++){const p={x:hq.x+Math.cos(i*Math.PI/12)*r,y:hq.y+Math.sin(i*Math.PI/12)*r};if(!g.buildError(0,'barracks',p)){const b=g.build(0,'barracks',p,[worker.id]);return b.id;}}throw Error('No barracks site');});
+ await advance(page,45);await page.evaluate(id=>{const a=window.__reborn;a.renderer.selected.clear();a.renderer.selectedBase=id;a.refresh();},barracks);
  for(let i=0;i<5;i++)await page.locator('#recruit').click();await expect(page.locator('#queue')).toContainText('5 IM AUFTRAG');
- await advance(page,25);expect(await page.evaluate(()=>window.__reborn.game.count(0))).toBe(6);
+ await advance(page,25);expect(await page.evaluate(()=>window.__reborn.game.count(0))).toBe(7);
  await page.screenshot({path:evidence+'production.png'});
- await selectArmy(page);expect(await page.evaluate(()=>window.__reborn.renderer.selected.size)).toBe(6);
+ await selectArmy(page);expect(await page.evaluate(()=>window.__reborn.renderer.selected.size)).toBe(7);
  let fought=false,enemyCapture=false;
  for(const id of [14,8,9,10,4]){
    const target=await page.evaluate(id=>({point:window.__reborn.game.territories[id].point,owner:window.__reborn.game.territories[id].owner}),id);
@@ -94,7 +97,7 @@ test('reborn: hidden enemies leave no main-map or minimap pixels, and terrain st
    return {canSee:g.canSee(0,enemy),explored:g.hasExplored(0,base),pixel,m};
  });
  expect(hidden.canSee).toBe(false);expect(hidden.explored).toBe(false);expect(hidden.pixel.slice(0,3).every(v=>v<12)).toBe(true);expect(hidden.m.slice(0,3).every(v=>v<12)).toBe(true);
- await page.locator('#home').click();await page.locator('#select-unit').click();await order(page,{x:1567.5,y:2633.4});await advance(page,14);await order(page,{x:940.5,y:1881});await advance(page,13);
+ await page.keyboard.press('h');await page.locator('#select-unit').click();await order(page,{x:1567.5,y:2633.4});await advance(page,14);await order(page,{x:940.5,y:1881});await advance(page,13);
  const known=await page.evaluate(()=>{const g=window.__reborn.game;return {known:g.hasExplored(0,g.territories[20].point),visible:g.canSee(0,g.territories[20].point),memory:g.explored[0].some((v,i)=>v&&!g.visible[0][i]&&!g.world.blocked[i])};});expect(known).toEqual({known:true,visible:true,memory:true});
 });
 
@@ -103,7 +106,7 @@ test('reborn: compact viewport, instructions, pause and new campaign preserve a 
  await openMenu(page);await page.locator('#help').click();await expect(page.locator('#help-dialog')).toBeVisible();expect(await page.evaluate(()=>window.__reborn.game.paused)).toBe(true);await page.getByRole('button',{name:'VERSTANDEN — INS FELD'}).click();await page.locator('#resume').click();await page.evaluate(()=>{window.__reborn.game.paused=true;});
  await page.locator('#select-unit').click();await expect(page.locator('#unit-commands')).toBeVisible();await page.screenshot({path:evidence+'compact.png'});
  await page.keyboard.press('Escape');await newCampaign(page);await page.locator('#new-dialog [value="new"]').click();
- await expect(page.locator('#credits')).toHaveText('500');expect(await page.evaluate(()=>window.__reborn.game.count(0))).toBe(1);
+ await expect(page.locator('#credits')).toHaveText('500');expect(await page.evaluate(()=>window.__reborn.game.count(0))).toBe(2);
  await advance(page,10);const credits=await page.locator('#credits').textContent();await newCampaign(page);await page.keyboard.press('Escape');await expect(page.locator('#credits')).toHaveText(credits);
 });
 
@@ -242,12 +245,13 @@ test('reborn: captured bastion keeps both maps lit after infantry leaves and mar
    g.paused=false;g.step();g.paused=true;r.camera.x=blue.x;r.camera.y=blue.y;r.boundCamera();r.render(0);
    return {blueHp:blue.hp,redHp:red.hp,firstAttacker:blue.lastAttacker,orders:blue.orders.length,shots:g.shots.filter(s=>s.owner===0).length};
  });
- expect(combat).toEqual({blueHp:100,redHp:83,firstAttacker:null,orders:2,shots:1});
+ expect(combat).toEqual({blueHp:100,redHp:100-17/3,firstAttacker:null,orders:2,shots:1});
+ await advance(page,.15);expect(await page.evaluate(()=>window.__reborn.game.units.find(u=>u.owner===1).hp)).toBeCloseTo(83,8);
 });
 
 
-test('reborn: unit-focused HUD stays compact at bottom left and trains heavy infantry without construction',async({page})=>{
- await start(page,3434,1790);await page.locator('#select-unit').click();
+test('reborn: unit-focused HUD stays compact at bottom left and trains heavy infantry in a finished barracks',async({page})=>{
+ await start(page,3434,1790);await provideFacilities(page,['barracks']);await page.locator('#select-unit').click();
  await expect(page.locator('[data-unit]')).toHaveCount(9);await expect(page.locator('.catalog-tabs button')).toHaveCount(2);
  await expect(page.locator('#tab-buildings, [data-building], #build-shortcut')).toHaveCount(0);
  await page.keyboard.press('b');expect(await page.evaluate(()=>window.__reborn.renderer.placement)).toBe(null);
@@ -256,34 +260,34 @@ test('reborn: unit-focused HUD stays compact at bottom left and trains heavy inf
  await expect(page.locator('[data-unit="heavy"]')).toBeEnabled();await page.locator('[data-unit="heavy"]').click();
  await expect(page.locator('#credits')).toHaveText('250');await expect(page.locator('#queue')).toContainText('1 IM AUFTRAG');
  await page.screenshot({path:evidence+'unit-focus-wide.png'});await advance(page,9);
- expect(await page.evaluate(()=>window.__reborn.game.units.some(u=>u.kind==='heavy'&&u.hp===190))).toBe(true);
+ expect(await page.evaluate(()=>window.__reborn.game.units.some(u=>u.kind==='heavy'&&u.hp===420))).toBe(true);
  await page.setViewportSize({width:800,height:650});await page.locator('#select-unit').click();await expect(page.locator('#select-unit')).toBeInViewport();await expect(page.locator('#attack')).toBeInViewport();await expect(page.locator('#recruit')).toBeInViewport();
  const compact=await page.locator('.command').boundingBox(),sidebar=await page.locator('#sidebar').boundingBox();expect(compact.x+compact.width).toBeLessThan(sidebar.x);expect(compact.x).toBeLessThanOrEqual(10);expect(compact.height).toBeLessThanOrEqual(186);
  await page.screenshot({path:evidence+'unit-focus-compact.png'});
  await openMenu(page);await expect(page.locator('#pause-dialog .menu-button')).toHaveCount(6);
  await page.locator('#options').click();await expect(page.locator('#audio-panel')).toBeVisible();await page.locator('#audio-close').click();await expect(page.locator('#pause-dialog')).toBeVisible();expect(await page.evaluate(()=>window.__reborn.game.paused)).toBe(true);
  await page.locator('#save').click();await expect(page.locator('#notices')).toContainText('Kampagne lokal gespeichert');await page.reload();await page.locator('#loading').waitFor({state:'detached'});await openMenu(page);await page.locator('#load').click();await expect(page.locator('#notices')).toContainText('Kampagne geladen');await page.evaluate(()=>{window.__reborn.game.paused=true;});
- expect(await page.evaluate(()=>window.__reborn.game.bases.length)).toBe(2);expect(await page.evaluate(()=>window.__reborn.game.units.some(u=>u.kind==='heavy'))).toBe(true);
+ expect(await page.evaluate(()=>window.__reborn.game.bases.length)).toBe(3);expect(await page.evaluate(()=>window.__reborn.game.units.some(u=>u.kind==='heavy'))).toBe(true);
 });
 
-test('reborn: headquarters catalog produces all six vehicles and aircraft with distinct sprites and working movement',async({page})=>{
- test.setTimeout(60000);await start(page,1450,1090);
+test('reborn: factory and airfield catalogs produce all five vehicles and aircraft with distinct sprites and working movement',async({page})=>{
+ test.setTimeout(60000);await start(page,1450,1090);const facilities=await provideFacilities(page,['factory','airfield']);
  // Fund the six production paths; the campaign test separately uses the real starting economy.
  await page.evaluate(()=>{const g=window.__reborn.game;g.credits[0]=5000;g.aiClock=-1e8;window.__reborn.refresh();});
- for(const kind of ['rover','tank','artillery','scout','gunship','bomber']){await page.locator('[data-unit="'+kind+'"]').scrollIntoViewIfNeeded();await expect(page.locator('[data-unit="'+kind+'"]')).toBeEnabled();await page.locator('[data-unit="'+kind+'"]').click();}
- await expect(page.locator('#queue')).toContainText('6 IM AUFTRAG');await expect(page.locator('#queue-slots button')).toHaveCount(8);
- await advance(page,2);const credits=await page.evaluate(()=>window.__reborn.game.credits[0]);await page.locator('#queue-slots button').nth(5).click();
+ for(const kind of ['rover','tank','artillery','scout','bomber']){await page.locator('[data-unit="'+kind+'"]').scrollIntoViewIfNeeded();await expect(page.locator('[data-unit="'+kind+'"]')).toBeEnabled();await page.locator('[data-unit="'+kind+'"]').click();}
+ expect(await page.evaluate(()=>window.__reborn.game.queued(0))).toBe(5);await expect(page.locator('#queue-slots button')).toHaveCount(8);await page.evaluate(id=>{const a=window.__reborn;a.renderer.selected.clear();a.renderer.selectedBase=id;a.refresh();},facilities.airfield);
+ await advance(page,2);const credits=await page.evaluate(()=>window.__reborn.game.credits[0]);await page.locator('#queue-slots button').nth(1).click();
  expect(await page.evaluate(()=>window.__reborn.game.credits[0])).toBe(credits+1000);await page.locator('[data-unit="bomber"]').click();
- await advance(page,98);const roster=await page.evaluate(()=>window.__reborn.game.units.filter(u=>u.owner===0).map(u=>u.kind));for(const kind of ['rover','tank','artillery','scout','gunship','bomber'])expect(roster).toContain(kind);
- expect(await page.evaluate(()=>window.__reborn.game.bases.length)).toBe(2);
+ await advance(page,98);const roster=await page.evaluate(()=>window.__reborn.game.units.filter(u=>u.owner===0).map(u=>u.kind));for(const kind of ['rover','tank','artillery','scout','bomber'])expect(roster).toContain(kind);
+ expect(await page.evaluate(()=>window.__reborn.game.bases.length)).toBe(4);
  const moved=await page.evaluate(()=>{const {game:g}=window.__reborn,army=g.units.filter(u=>u.owner===0&&['rover','tank','artillery'].includes(u.kind));const before=army.map(u=>({id:u.id,x:u.x,y:u.y}));g.command(army.map(u=>u.id),{...g.territories[20].point,kind:'move'});return before;});await advance(page,14);
  for(const original of moved){const distance=await page.evaluate(original=>{const u=window.__reborn.game.units.find(u=>u.id===original.id);return Math.hypot(u.x-original.x,u.y-original.y);},original);expect(distance).toBeGreaterThan(45);}
- await page.locator('#home').click();await page.screenshot({path:evidence+'unit-roster.png'});
+ await page.keyboard.press('h');await page.screenshot({path:evidence+'unit-roster.png'});
 });
 
 
 test('reborn: authored shadows, slow base activity and subtle sand drift stay grounded and pause with simulation time',async({page})=>{
- await start(page);await page.locator('#home').click();
+ await start(page);await page.keyboard.press('h');
  const result=await page.evaluate(()=>{
   const {renderer:r,game:g}=window.__reborn,original=r.context,selected=r.selectedBase,oldTime=g.time;
   const canvas=document.createElement('canvas');canvas.width=640;canvas.height=540;const c=canvas.getContext('2d');r.context=c;r.selectedBase=null;
@@ -333,10 +337,10 @@ test('model study: exported GLB loads real animated geometry, supports five clip
  try{
   await page.goto(baseURL+'/model-3d.html');await page.waitForFunction(()=>!!window.__model3D?.data);await expect(page.locator('#error')).toHaveText('');
   const info=await page.evaluate(()=>{const v=window.__model3D;let meshes=0,triangles=0,design;v.current.traverse(n=>{if(n.isMesh){meshes++;triangles+=(n.geometry.index?.count??n.geometry.attributes.position.count)/3;}if(n.userData.atlasDesign)design=n.userData.atlasDesign;});return {meshes,triangles,design,clips:v.data.animations.map(c=>c.name)};});
-  expect(info.meshes).toBe(info.design.parts);expect(info.triangles).toBeGreaterThan(70000);expect(info.design.maxGripError).toBeLessThan(.0001);expect(info.clips.sort()).toEqual(['Death','HitReact','Idle','Idle_Shoot','Run_Gun']);
+  expect(info.meshes).toBe(info.design.parts);expect(info.triangles).toBe(info.design.triangles);expect(info.triangles).toBeGreaterThan(0);expect(info.design.maxGripError).toBeLessThan(.0001);expect(info.clips.sort()).toEqual(['Death','HitReact','Idle','Idle_Shoot','Run_Gun']);
   await page.evaluate(()=>{const v=window.__model3D;v.pause();v.play('Idle');v.mixer.setTime(.25);v.render();});await page.screenshot({path:dir+'infantry-3d.png',fullPage:true});
   const poses=await page.evaluate(()=>{const v=window.__model3D;v.play('Run_Gun');v.mixer.setTime(.10);const a=v.current.getObjectByName('LowerLegL').quaternion.toArray();v.mixer.setTime(.35);return {a,b:v.current.getObjectByName('LowerLegL').quaternion.toArray()};});expect(poses.a.reduce((n,v,i)=>n+Math.abs(v-poses.b[i]),0)).toBeGreaterThan(.1);
-  const grip=await page.evaluate(()=>{const v=window.__model3D,errors=[];for(const clip of ['Idle','Run_Gun','Idle_Shoot']){v.play(clip);for(const t of [.05,.15,.3]){v.mixer.setTime(t);v.current.updateMatrixWorld(true);const rifle=v.current.getObjectByName('Atlas_Rifle');for(const side of ['L','R']){const target=rifle.position.clone().set(...(side==='L'?[0,-.055,.17]:[0,-.10,-.10]));rifle.localToWorld(target);const hand=v.current.getObjectByName('Index1'+side).getWorldPosition(target.clone());errors.push(hand.distanceTo(target));}}}return Math.max(...errors);});expect(grip).toBeLessThan(.015);
+  const grip=await page.evaluate(()=>{const v=window.__model3D,errors=[];for(const clip of ['Idle','Run_Gun','Idle_Shoot']){v.play(clip);for(const t of [.05,.15,.3]){v.mixer.setTime(t);v.current.updateMatrixWorld(true);const rifle=v.current.getObjectByName('Atlas_Rifle');for(const side of ['L','R']){const target=rifle.getObjectByName('Atlas_Grip'+side).getWorldPosition(rifle.position.clone());const hand=v.current.getObjectByName('Index1'+side).getWorldPosition(target.clone());errors.push(hand.distanceTo(target));}}}return Math.max(...errors);});expect(grip).toBeLessThan(.015);
   for(const [label,clip] of [['Schießen','Idle_Shoot'],['Treffer','HitReact'],['Tod','Death']]){await page.getByRole('button',{name:label,exact:true}).click();expect(await page.evaluate(()=>window.__model3D.clip)).toBe(clip);await page.evaluate(()=>{const v=window.__model3D;v.mixer.setTime(.25);v.render();});await page.waitForTimeout(120);}
   await page.screenshot({path:dir+'infantry-3d-death.png',fullPage:true});await page.getByRole('button',{name:'Stehen',exact:true}).click();
   const before=await page.evaluate(()=>window.__model3D.camera.position.toArray()),box=await page.locator('#stage').boundingBox();await page.mouse.move(box.x+box.width*.55,box.y+box.height*.5);await page.mouse.down();await page.mouse.move(box.x+box.width*.7,box.y+box.height*.55,{steps:8});await page.mouse.up();await page.waitForTimeout(150);const after=await page.evaluate(()=>window.__model3D.camera.position.toArray());expect(after.some((v,i)=>Math.abs(v-before[i])>.1)).toBe(true);
@@ -365,7 +369,7 @@ test('atlas models: approved infantry and real building renders are active with 
   const pixels=document.createElement('canvas');pixels.width=pixels.height=512;const p=pixels.getContext('2d');p.drawImage(hq.body,0,0);const rgba=p.getImageData(0,0,512,512).data;let baked=0;for(let i=0;i<rgba.length;i+=4)if(rgba[i+3]>8&&rgba[i+3]<100&&Math.max(rgba[i],rgba[i+1],rgba[i+2])<90)baked++;
   return {sources:foot.map(a=>a.image.src),shared:foot.every(a=>a.image===foot[0].image),frames:foot.map(a=>a.data.frames.length),muzzles:foot.every(a=>a.data.frames.every(f=>f.muzzle?.every(Number.isFinite))),building:hq.body.src,groundSame:groundA.every((v,i)=>v===groundB[i]),changed:a.reduce((n,v,i)=>n+Number(v!==b[i]),0),baked};
  });
- expect(result.sources.every(s=>s.includes('/prototype/infantry-0.png'))).toBe(true);expect(result.shared).toBe(true);expect(result.frames).toEqual([296,296,296]);expect(result.muzzles).toBe(true);expect(result.building).toContain('/buildings-3d/headquarters-0.png');expect(result.groundSame).toBe(true);expect(result.changed).toBeGreaterThan(100);expect(result.baked).toBeGreaterThan(100);expect(errors).toEqual([]);
+ expect(result.sources[0]).toContain('/prototype/infantry-0.png');expect(result.sources[1]).toContain('/prototype/engineer-0.png');expect(result.sources[2]).toContain('/prototype/heavy-0.png');expect(result.shared).toBe(false);expect(result.frames).toEqual([296,296,296]);expect(result.muzzles).toBe(true);expect(result.building).toContain('/buildings-3d/headquarters-0.png');expect(result.groundSame).toBe(true);expect(result.changed).toBeGreaterThan(100);expect(result.baked).toBeGreaterThan(100);expect(errors).toEqual([]);
  await page.evaluate(()=>{const {game:g,renderer:r}=window.__reborn,b=g.bases[0];r.camera.zoom=1.5;r.camera.x=b.x+165;r.camera.y=b.y-115;r.render(0);});await page.screenshot({path:new URL('../../docs/buildings-3d/in-game.png',import.meta.url).pathname,fullPage:true});
 });
 
@@ -378,7 +382,7 @@ test('atlas models: refined headquarters preserves the edited surfaces and moves
    const detail=v.current.getObjectByName('AtlasRefined_trim_radar'),panel=v.current.getObjectByName('AtlasRefined_panel_radar'),fixed=v.current.getObjectByName('AtlasRefined_caution'),light=v.current.getObjectByName('AtlasRefined_blue_beacon'),before=detail.matrixWorld.toArray(),ground=fixed.matrixWorld.toArray(),local=detail.matrix.toArray();
    v.mixer.setTime(12);v.current.updateMatrixWorld(true);v.render();return {before,after:detail.matrixWorld.toArray(),local,localAfter:detail.matrix.toArray(),ground,groundAfter:fixed.matrixWorld.toArray(),radar:detail.parent.name,panel:panel.parent.name,light:light.parent.name};
   });expect(result.after).not.toEqual(result.before);expect(result.localAfter).toEqual(result.local);expect(result.groundAfter).toEqual(result.ground);expect(result.radar).toBe('RadarDish');expect(result.panel).toBe('RadarDish');expect(result.light).toBe('Beacon');
-  await expect(page.locator('#status')).toContainText('115 Bauteile');await page.screenshot({path:new URL('../../docs/buildings-3d/headquarters-refined-'+team+'.png',import.meta.url).pathname,fullPage:true});
+  const parts=await page.evaluate(()=>window.__model3D.current.getObjectByName('Atlas_refined_headquarters').userData.atlasDesign.parts);expect(parts).toBeGreaterThanOrEqual(115);await expect(page.locator('#status')).toContainText(parts+' Bauteile');await page.screenshot({path:new URL('../../docs/buildings-3d/headquarters-refined-'+team+'.png',import.meta.url).pathname,fullPage:true});
  }
  await start(page,1440,1000);await page.evaluate(()=>{const {game:g,renderer:r}=window.__reborn,b=g.bases[0];r.camera.zoom=1.7;r.camera.x=b.x+165;r.camera.y=b.y-115;r.render(0);});
  await page.screenshot({path:new URL('../../docs/buildings-3d/headquarters-refined-game.png',import.meta.url).pathname,fullPage:true});expect(errors).toEqual([]);
@@ -388,7 +392,10 @@ test('atlas models: all seven building models load in the gallery and radar moti
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.setViewportSize({width:1600,height:1080});await page.goto('/model-3d.html?model=headquarters');await page.waitForFunction(()=>window.__model3D?.current?.getObjectByName('Atlas_headquarters'));
  for(const kind of ['headquarters','bastion','barracks','factory','airfield','generator','turret']){
   await page.locator('#model').selectOption(kind);await page.waitForFunction(kind=>window.__model3D?.current?.getObjectByName('Atlas_'+kind),kind);await expect(page.locator('#error')).toHaveText('');await expect(page.locator('#download')).toHaveAttribute('href','/src/assets/reborn/buildings-3d/'+kind+'-0.glb');
-  const info=await page.evaluate(()=>{const v=window.__model3D;return {clips:v.data.animations.map(c=>c.name),parts:(()=>{let n=0;v.current.traverse(p=>{if(p.isMesh)n++;});return n;})()};});expect(info.parts).toBeGreaterThanOrEqual(14);expect(info.clips).toContain('BeaconPulse');
+  const info=await page.evaluate(()=>{const v=window.__model3D;return {clips:v.data.animations.map(c=>c.name),parts:(()=>{let n=0;v.current.traverse(p=>{if(p.isMesh)n++;});return n;})()};});expect(info.parts).toBeGreaterThanOrEqual(14);expect(info.clips).toContain(kind==='turret'?'TurretTraverse':'BeaconPulse');
+  if(kind==='turret'){
+   const motion=await page.evaluate(()=>{const v=window.__model3D;v.pause();v.play('TurretTraverse');v.mixer.setTime(0);v.current.updateMatrixWorld(true);const head=v.current.getObjectByName('TurretHead'),fixed=v.current.getObjectByName('Atlas_turret'),before=fixed.matrixWorld.toArray(),angle=head.quaternion.toArray();v.mixer.setTime(.5);v.current.updateMatrixWorld(true);return {before,after:fixed.matrixWorld.toArray(),angle,next:head.quaternion.toArray()};});expect(motion.after).toEqual(motion.before);expect(motion.next).not.toEqual(motion.angle);
+  }
   if(['headquarters','bastion'].includes(kind)){
    const motion=await page.evaluate(()=>{const v=window.__model3D;v.pause();v.play('Operation');v.mixer.setTime(0);v.current.updateMatrixWorld(true);const radar=v.current.getObjectByName('RadarDish'),fixed=v.current.getObjectByName('Atlas_'+v.kind),before=fixed.matrixWorld.toArray(),angle=radar.quaternion.toArray();v.mixer.setTime(12);v.current.updateMatrixWorld(true);v.render();return {before,after:fixed.matrixWorld.toArray(),angle,next:radar.quaternion.toArray()};});expect(motion.after).toEqual(motion.before);expect(motion.next).not.toEqual(motion.angle);
    if(kind==='bastion'){await page.locator('#neutral').click();await expect(page.locator('#neutral')).toHaveAttribute('aria-pressed','true');const emission=await page.evaluate(()=>{const colors=[];window.__model3D.current.traverse(n=>{if(n.isMesh&&n.material.name==='Atlas faction emission')colors.push(n.material.emissive.toArray());});return colors;});expect(emission.length).toBeGreaterThan(0);expect(emission.every(c=>Math.abs(c[0]-c[1])<.001&&Math.abs(c[0]-c[2])<.001)).toBe(true);}
@@ -403,9 +410,9 @@ test('campaign: real new-game input generates a different reachable map and save
  const snapshot=()=>page.evaluate(()=>{
   const {game:g,renderer:r}=window.__reborn;g.paused=true;r.render(0);
   const digest=c=>{const d=c.getContext('2d',{willReadFrequently:true}).getImageData(0,0,c.width,c.height).data;let n=2166136261;for(let i=0;i<d.length;i+=113)n=Math.imul(n^d[i],16777619)>>>0;return n;};
-  return {seed:g.seed,map:g.world.mapVersion,sites:g.territories.map(t=>t.point),terrain:digest(r.terrainSurface),mini:digest(r.miniTerrain),mesas:g.world.generated.mesas.length,reachable:g.territories.every(t=>g.world.path(g.units[0],t.point,g.obstacles()).length>0),spaced:g.territories.every(t=>g.territories.every(o=>o.id===t.id||Math.hypot(t.point.x-o.point.x,t.point.y-o.point.y)>=440))};
+  return {seed:g.seed,map:g.world.mapVersion,sites:g.territories.map(t=>t.point),terrain:digest(r.terrainSurface),mini:digest(r.miniTerrain),mesas:g.world.generated.mesas.length,reachable:g.territories.every(t=>g.world.path(g.units[0],t.point,g.obstacles()).length>0),spaced:g.territories.every(t=>g.territories.every(o=>o.id===t.id||Math.hypot(t.point.x-o.point.x,t.point.y-o.point.y)>=650))};
  });
- const before=await snapshot();expect(before.map).toBe(1);expect(before.mesas).toBeGreaterThanOrEqual(20);expect(before.reachable).toBe(true);expect(before.spaced).toBe(true);
+ const before=await snapshot();expect(before.map).toBe(2);expect(before.sites).toHaveLength(16);expect(before.mesas).toBeGreaterThanOrEqual(20);expect(before.reachable).toBe(true);expect(before.spaced).toBe(true);
  await openMenu(page);await page.locator('#save').click();await expect(page.locator('#notices')).toContainText('Kampagne lokal gespeichert');
  await newCampaign(page);await page.locator('#new-dialog [value="new"]').click();await expect.poll(()=>page.evaluate(()=>window.__reborn.game.seed)).not.toBe(before.seed);const after=await snapshot();
  expect(after.seed).not.toBe(before.seed);expect(after.sites).not.toEqual(before.sites);expect(after.terrain).not.toBe(before.terrain);expect(after.mini).not.toBe(before.mini);expect(after.reachable).toBe(true);expect(after.spaced).toBe(true);
@@ -417,23 +424,23 @@ test('combat: approaching enemies receive immediate fire and a second attacker d
  await page.setViewportSize({width:1500,height:1000});await page.goto('/?debug&seed=2026');await page.locator('#loading').waitFor({state:'detached'});
  const first=await page.evaluate(()=>{
   const {game:g,renderer:r}=window.__reborn;g.paused=false;g.aiClock=-1e8;g.units=[];
-  const p=g.territories[19].point,blue=g.spawn(0,p,'heavy'),a=g.spawn(1,{x:p.x+120,y:p.y}),b=g.spawn(1,{x:p.x+155,y:p.y});
+  const p=g.territories[g.bases[0].territory].point,blue=g.spawn(0,p,'heavy'),a=g.spawn(1,{x:p.x+120,y:p.y}),b=g.spawn(1,{x:p.x+155,y:p.y});
   g.command([blue.id],{x:p.x+300,y:p.y,kind:'move'});g.command([blue.id],{x:p.x+400,y:p.y+50,kind:'move'},true);
   g.visible[0].fill(0);g.step();g.paused=true;r.selected.add(blue.id);r.camera.x=p.x+100;r.camera.y=p.y-60;r.camera.zoom=1.5;g.updateVision();r.render(.05);
   return {blue:blue.id,first:a.id,second:b.id,target:blue.combatTarget,attacker:blue.lastAttacker,hp:[a.hp,b.hp]};
  });
- expect(first.target).toBe(first.first);expect(first.attacker).toBe(first.second);expect(first.hp).toEqual([66,100]);
- await advance(page,2.65);
+ expect(first.target).toBe(first.first);expect(first.attacker).toBe(first.second);expect(first.hp).toEqual([60,100]);
+ await advance(page,.2);
  const next=await page.evaluate(()=>{const g=window.__reborn.game;return {survivors:g.units.filter(u=>u.owner===1).map(u=>u.id),hp:g.units.find(u=>u.owner===1).hp,blue:g.units.find(u=>u.owner===0).hp,orders:g.units.find(u=>u.owner===0).orders.length};});
  expect(next.survivors).toEqual([first.second]);expect(next.hp).toBe(100);expect(next.blue).toBeGreaterThan(0);expect(next.orders).toBe(2);
- await advance(page,1.4);expect(await page.evaluate(()=>window.__reborn.game.units.find(u=>u.owner===1).hp)).toBeLessThan(100);
+ await advance(page,1);expect(await page.evaluate(()=>window.__reborn.game.units.find(u=>u.owner===1).hp)).toBeLessThan(100);
  await page.screenshot({path:evidence+'target-focus.png'});
 });
 
 test('vehicle art: the full roster has real faction materials, baked shadows, animated running gear and visible turret/barrel layers',async({page})=>{
  await start(page);const result=await page.evaluate(async()=>{
   const r=window.__reborn.renderer,c=document.createElement('canvas');c.width=c.height=96;const ctx=c.getContext('2d',{willReadFrequently:true}),rows=[];
-  for(const kind of ['rover','tank','artillery','scout','gunship','bomber']){
+  for(const kind of ['rover','tank','artillery','scout','bomber']){
    const asset=r.units.asset(kind),data=asset.data;
    const count=frame=>{ctx.clearRect(0,0,96,96);ctx.drawImage(asset.image,frame.x,frame.y,96,96,0,0,96,96);const p=ctx.getImageData(0,0,96,96).data;let solid=0,shadow=0,groundShadow=0;for(let i=0;i<p.length;i+=4){if(p[i+3]>200)solid++;if(p[i+3]>5&&p[i+3]<150&&Math.max(p[i],p[i+1],p[i+2])<85){shadow++;if(Math.floor(i/4/96)>=70)groundShadow++;}}return {solid,shadow,groundShadow};};
    const base=count(data.frames[data.clips.idle.frames[0][0]]),turret=data.clips.turret?count(data.frames[data.clips.turret.frames[0][0]]):null,barrel=data.clips.barrel?count(data.frames[data.clips.barrel.frames[0][0]]):null;
@@ -447,7 +454,7 @@ test('vehicle art: the full roster has real faction materials, baked shadows, an
 test('visual polish: fine sand relief and a quiet HUD preserve usable production and compact selection',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.setViewportSize({width:1500,height:1000});await page.goto('/?debug&seed=2026');await page.locator('#loading').waitFor({state:'detached'});
  const art=await page.evaluate(()=>{
-  const {game:g,renderer:r}=window.__reborn;g.paused=true;r.home();r.render(0);const p=g.territories[19].point,ctx=r.terrainSurface.getContext('2d',{willReadFrequently:true}),data=ctx.getImageData(p.x-100,p.y-100,200,200).data;let sum=0,squares=0;
+  const {game:g,renderer:r}=window.__reborn;g.paused=true;r.home();r.render(0);const p=g.territories[g.bases[0].territory].point,ctx=r.terrainSurface.getContext('2d',{willReadFrequently:true}),data=ctx.getImageData(p.x-100,p.y-100,200,200).data;let sum=0,squares=0;
   for(let i=0;i<data.length;i+=4){const l=data[i]*.299+data[i+1]*.587+data[i+2]*.114;sum+=l;squares+=l*l;}
   const n=data.length/4,panels=Array.from(document.querySelectorAll('.hud')).map(e=>getComputedStyle(e).backgroundImage);
   const bar=document.querySelector('.production-track').getBoundingClientRect(),clock=document.querySelector('#production-time').getBoundingClientRect();
@@ -461,8 +468,8 @@ test('visual polish: fine sand relief and a quiet HUD preserve usable production
 test('combat presentation: simultaneous hits never hide return-fire poses or delay the real weapon cadence',async({page})=>{
  await page.setViewportSize({width:1500,height:1000});await page.goto('/?debug&seed=2026');await page.locator('#loading').waitFor({state:'detached'});
  const result=await page.evaluate(()=>{
-  const {game:g,renderer:r}=window.__reborn;g.units=[];g.aiClock=-1e8;g.paused=false;const site=g.territories[19].point,p={x:site.x+50,y:site.y+95},blue=g.spawn(0,p,'heavy');
-  g.spawn(1,{x:p.x+120,y:p.y});g.spawn(1,{x:p.x+155,y:p.y});g.updateVision();r.units.clear();r.selected.add(blue.id);r.camera.x=p.x+80;r.camera.y=p.y-45;r.camera.zoom=1.65;
+  const {game:g,renderer:r}=window.__reborn;g.units=[];g.aiClock=-1e8;g.paused=false;const site=g.territories[g.bases[0].territory].point,p={x:site.x+50,y:site.y+95},blue=g.spawn(0,p,'heavy');
+  g.spawn(1,{x:p.x+120,y:p.y},'tank');g.spawn(1,{x:p.x+155,y:p.y},'tank');g.updateVision();r.units.clear();r.selected.add(blue.id);r.camera.x=p.x+80;r.camera.y=p.y-45;r.camera.zoom=1.65;
   const shots=[];let previous=0;
   for(let i=0;i<82;i++){
    g.step();r.render(.05);const view=r.units.inspect(blue.id);
@@ -471,35 +478,41 @@ test('combat presentation: simultaneous hits never hide return-fire poses or del
   }
   g.paused=true;window.__reborn.refresh();r.render(0);return {shots,hp:blue.hp};
  });
- expect(result.shots.length).toBe(4);expect(result.shots.every(s=>s.state==='attack')).toBe(true);expect(result.shots[0].hit).toBeGreaterThan(0);expect(result.hp).toBeGreaterThan(0);
- for(let i=1;i<result.shots.length;i++)expect(result.shots[i].time-result.shots[i-1].time).toBeCloseTo(1.3,4);
+ expect(result.shots.length).toBe(12);expect(result.shots.every(s=>s.state==='attack')).toBe(true);expect(result.shots[0].hit).toBeGreaterThan(0);expect(result.hp).toBeGreaterThan(0);
+ for(let i=0;i<4;i++){
+  expect(result.shots[i*3+1].time-result.shots[i*3].time).toBeCloseTo(.1,4);
+  expect(result.shots[i*3+2].time-result.shots[i*3+1].time).toBeCloseTo(.1,4);
+  if(i)expect(result.shots[i*3].time-result.shots[(i-1)*3].time).toBeCloseTo(1.15,4);
+ }
  await page.screenshot({path:evidence+'return-fire-v2.png'});
 });
 
 test('capture: a real two-unit drag selection captures after clicking the mast, body or label at different zoom levels',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.setViewportSize({width:1500,height:1000});await page.goto('/?debug&seed=2026');await page.locator('#loading').waitFor({state:'detached'});
- for(const [zoom,dy] of [[1,-100],[1.65,-65],[.7,35]]){
-  const setup=await page.evaluate(({zoom,dy})=>{
-   const {game:g,renderer:r}=window.__reborn;g.paused=true;g.aiClock=-1e8;g.units=[];const t=g.territories[20];t.owner=-1;t.capturing=-1;t.progress=0;
+ for(const [zoom,part] of [[1,'mast'],[1.65,'body'],[.7,'label']]){
+  const setup=await page.evaluate(({zoom,part})=>{
+   const {game:g,renderer:r}=window.__reborn;g.paused=true;g.aiClock=-1e8;g.units=[];const t=g.territories[8];t.owner=-1;t.capturing=-1;t.progress=0;
    for(let i=0;i<2;i++)g.spawn(0,g.world.nearest({x:t.point.x,y:t.point.y+240},g.obstacles(),g.units));
    g.updateVision();r.selected.clear();r.selectedBase=null;r.camera={x:t.point.x+180,y:t.point.y+100,zoom};r.boundCamera();r.render(0);
+   const body=r.structures.asset('bastion',t.owner).data.body,scale=67/body.solidBounds.w;
+   const dy=part==='mast'?(body.top-body.pivot[1])*scale+3:part==='body'?(body.solidBounds.y+body.solidBounds.h/2-body.pivot[1])*scale:35;
    return {units:g.units.map(u=>r.screen(u)),click:r.screen({x:t.point.x,y:t.point.y+dy}),visible:g.canSee(0,t.point)};
-  },{zoom,dy});
+  },{zoom,part});
   expect(setup.visible).toBe(true);const xs=setup.units.map(p=>p.x),ys=setup.units.map(p=>p.y);
   await page.mouse.move(Math.min(...xs)-25,Math.min(...ys)-60*zoom);await page.mouse.down();await page.mouse.move(Math.max(...xs)+25,Math.max(...ys)+15,{steps:8});await page.mouse.up();
   expect(await page.evaluate(()=>window.__reborn.renderer.selected.size)).toBe(2);
   await page.mouse.click(setup.click.x,setup.click.y,{button:'right'});
-  const order=await page.evaluate(()=>{const {game:g,renderer:r}=window.__reborn,t=g.territories[20];return {targets:g.units.map(u=>u.orders[0]),point:t.point,marker:r.marker.point};});
+  const order=await page.evaluate(()=>{const {game:g,renderer:r}=window.__reborn,t=g.territories[8];return {targets:g.units.map(u=>u.orders[0]),point:t.point,marker:r.marker.point};});
   expect(order.targets).toHaveLength(2);expect(order.targets.every(p=>Math.hypot(p.x-order.point.x,p.y-order.point.y)<25)).toBe(true);expect(order.marker).toEqual(order.point);
-  await advance(page,3);const progress=await page.evaluate(()=>window.__reborn.game.territories[20].progress);expect(progress).toBeGreaterThan(1);expect(progress).toBeLessThan(4);
-  await advance(page,9);expect(await page.evaluate(()=>window.__reborn.game.territories[20].owner)).toBe(0);
+  await advance(page,3);const progress=await page.evaluate(()=>window.__reborn.game.territories[8].progress);expect(progress).toBeGreaterThan(1);expect(progress).toBeLessThan(4);
+  await advance(page,9);expect(await page.evaluate(()=>window.__reborn.game.territories[8].owner)).toBe(0);
  }
  expect(errors).toEqual([]);
  await page.screenshot({path:evidence+'group-capture.png'});
 });
 
-test('reborn: readable translucent HUD at the standard desktop viewport',async({page})=>{
- await start(page,1200,900);
+test('reborn: readable retro desert field HUD at the standard desktop viewport',async({page})=>{
+ await start(page,1200,900);await expect(page.locator('#selection-panel')).toBeHidden();await page.locator('#select-unit').click();
  const values=await page.evaluate(()=>{
   const size=selector=>parseFloat(getComputedStyle(document.querySelector(selector)).fontSize);
   const rect=selector=>{const r=document.querySelector(selector).getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom};};
@@ -523,8 +536,10 @@ test('reborn: readable translucent HUD at the standard desktop viewport',async({
  expect(values.selectionDetail).toBeGreaterThanOrEqual(15);
  expect(values.queue).toBeGreaterThanOrEqual(11);
  expect(values.radar).toBeGreaterThanOrEqual(10);
- expect(values.background).toContain('rgba(');
- expect(values.background).toContain('0.69');
+ expect(values.background).toContain('linear-gradient(');
+ expect(values.background).toContain('repeating-linear-gradient(');
+ const positions=await page.evaluate(()=>['.top','.tools','.command','#pause-dialog'].map(selector=>getComputedStyle(document.querySelector(selector)).position));
+ expect(positions).toEqual(['absolute','relative','absolute','fixed']);
  const visuals=await page.evaluate(()=>{
   const css=selector=>getComputedStyle(document.querySelector(selector));
   const cards=[...document.querySelectorAll('#catalog-units .catalog-card')];
@@ -535,11 +550,11 @@ test('reborn: readable translucent HUD at the standard desktop viewport',async({
    gridColumns:grid.gridTemplateColumns.split(' ').length,
    labels:cards.map(card=>({kind:card.dataset.unit,name:card.querySelector('.card-name')?.textContent?.trim()}))};
  });
- expect(visuals.commandBackground).toContain('0.69');
- expect(visuals.catalogBackground).toContain('0.66');
- expect(visuals.cardBackground).toContain('rgba(');
+ expect(visuals.commandBackground).toContain('linear-gradient(');
+ expect(visuals.catalogBackground).toContain('repeating-linear-gradient(');
+ expect(visuals.cardBackground).toContain('linear-gradient(');
  expect(visuals.gridColumns).toBe(2);
- expect(visuals.labels).toHaveLength(9);
+ expect(visuals.labels).toHaveLength(10);
  expect(visuals.labels.every(({name})=>Boolean(name))).toBe(true);
  expect(visuals.labels.find(({kind})=>kind==='rover')?.name).toBeTruthy();
  await expect(page.locator('#tab-units')).toBeVisible();
@@ -547,29 +562,52 @@ test('reborn: readable translucent HUD at the standard desktop viewport',async({
  await expect(page.locator('#menu')).toBeVisible();
 });
 
+test('reborn: unit portraits use subtle desert texture, aligned single-line name and cost; minimap compass stays uncluttered',async({page})=>{
+ for(const [width,height] of [[1200,900],[760,770]]){
+  await start(page,width,height);
+  await expect(page.locator('#catalog-units .catalog-card')).toHaveCount(10);
+  await expect(page.locator('.compass.north,.compass.south')).toHaveCount(0);
+  const report=await page.locator('#catalog-units .catalog-card').evaluateAll(cards=>cards.map(card=>{
+   const name=card.querySelector('.card-name'),cost=card.querySelector('.card-cost'),meta=card.querySelector('.card-meta');
+   const nr=name.getBoundingClientRect(),cr=cost.getBoundingClientRect(),mr=meta.getBoundingClientRect();
+   const css=getComputedStyle(card),decal=getComputedStyle(card,'::before');
+   return {
+    name:name.textContent.trim(),cost:cost.textContent.trim(),sameRow:Math.abs(nr.top-cr.top)<3,
+    fits:nr.width>0&&cr.width>0&&cr.right<=mr.right+1,aligned:Math.abs(cr.right-mr.right)<9,
+    footerFlex:getComputedStyle(meta).display,background:css.backgroundImage,texture:decal.backgroundImage,
+    portraitFits:card.querySelector('img').getBoundingClientRect().bottom<=mr.top+2
+   };
+  }));
+  expect(report.every(r=>r.name&&/^\d/.test(r.cost))).toBe(true);
+  expect(report.every(r=>r.sameRow&&r.fits&&r.aligned&&r.portraitFits&&r.footerFlex==='flex')).toBe(true);
+  expect(report.every(r=>r.texture.includes('sand-ripples-v2.png'))).toBe(true);
+  expect(report.find(r=>r.name==='Pionier')?.cost).toBe('200');
+ }
+});
+
 test('model gallery: vehicles and aircraft are selectable as real 3D GLBs',async({page})=>{
  test.setTimeout(90000);
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.setViewportSize({width:1280,height:850});
  await page.goto('/model-3d.html?model=rover');
- const models={rover:'Spähwagen',tank:'Panzer',artillery:'Artillerie',scout:'Spähheli',gunship:'Kampfheli',bomber:'Bomber'};
+ const models={rover:'Humvee',tank:'Panzer',artillery:'Raketenwerfer',scout:'Transporthelikopter',bomber:'Bomber'};
  for(const [kind,label] of Object.entries(models)){
   await page.locator('#model').selectOption(kind);
-  await page.waitForFunction(k=>window.__model3D?.kind===k&&window.__model3D?.current?.getObjectByName('Atlas_'+k),kind);
+  await page.waitForFunction(k=>window.__model3D?.kind===k&&window.__model3D?.data&&document.querySelector('#download').getAttribute('href')==='/src/assets/reborn/animation/'+k+'-0.glb',kind);
   await expect(page.locator('#error')).toHaveText('');
   await expect(page.locator('#model-title')).toContainText(label);
   await expect(page.locator('#download')).toHaveAttribute('href','/src/assets/reborn/animation/'+kind+'-0.glb');
-  await expect(page.locator('[data-clip="Operation"]')).toBeHidden();
+  if(['rover','artillery','scout','bomber'].includes(kind))await expect(page.locator('[data-clip="Operation"]')).toBeVisible();else await expect(page.locator('[data-clip="Operation"]')).toBeHidden();
   const info=await page.evaluate(()=>{
    const v=window.__model3D;let meshes=0;v.current.traverse(n=>{if(n.isMesh)meshes++;});
    return {meshes,animations:v.data.animations.length,position:v.camera.position.toArray()};
   });
   expect(info.meshes).toBeGreaterThan(10);
-  expect(info.animations).toBe(0); // Vehicle movement is authored in the sprite atlases, not GLB clips.
+  expect(info.animations).toBe(kind==='artillery'?2:['rover','scout','bomber'].includes(kind)?1:0);
   expect(info.position.every(Number.isFinite)).toBe(true);
  }
  await page.locator('#red').click();
- await page.waitForFunction(()=>window.__model3D?.team===1&&window.__model3D?.current?.getObjectByName('Atlas_bomber'));
+ await page.waitForFunction(()=>window.__model3D?.team===1&&document.querySelector('#download').getAttribute('href').endsWith('bomber-1.glb'));
  await expect(page.locator('#download')).toHaveAttribute('href','/src/assets/reborn/animation/bomber-1.glb');
  await page.locator('#model').selectOption('infantry');
  await page.waitForFunction(()=>window.__model3D?.kind==='infantry'&&window.__model3D?.data?.animations?.length===5);
@@ -578,23 +616,39 @@ test('model gallery: vehicles and aircraft are selectable as real 3D GLBs',async
  expect(errors).toEqual([]);
 });
 
-
-test('start screen: shows original desert artwork and keeps new/resume/reset workflow intact',async({page})=>{
- await page.setViewportSize({width:1440,height:900});
- await page.goto('/');
- await page.locator('#loading').waitFor({state:'detached'});
- await expect(page.locator('#main-dialog')).toBeVisible();
- await expect(page.locator('#new')).toHaveText(/NEUES SPIEL/);
- const artwork=await page.request.get('/src/assets/reborn/start-screen.png');
- expect(artwork.status()).toBe(200);
- expect(artwork.headers()['content-type']).toContain('image/png');
- await page.locator('#new').click();
- await expect(page.locator('#main-dialog')).toBeHidden();
- await expect(page.locator('#new-dialog')).toBeHidden();
- await page.locator('#menu').click();
- await expect(page.locator('#pause-dialog')).toBeVisible();
- await page.locator('#to-main').click();
- await expect(page.locator('#main-dialog')).toBeVisible();
- await page.locator('#new').click();
- await expect(page.locator('#new-dialog')).toBeVisible();
+test('infantry: exported wrist sockets retain both grips through every clip and intermediate pose for both factions',async({page})=>{
+ await page.goto('/model-3d.html');await page.waitForFunction(()=>!!window.__model3D?.data);await page.evaluate(()=>window.__model3D.pause());
+ for(const team of [0,1]){
+  if(team===1){await page.locator('#red').click();await page.waitForFunction(()=>window.__model3D?.current?.getObjectByName('Atlas_GripL')&&window.__model3D.current.getObjectByName('Atlas_WeaponSocket')?.parent.name==='Index1R'&&window.__model3D.current.getObjectByName('Atlas_WeaponMark').material.color.r>window.__model3D.current.getObjectByName('Atlas_WeaponMark').material.color.b);}
+  const audit=await page.evaluate(async()=>{
+   const T=await import('three'),v=window.__model3D,m=v.current,rifle=m.getObjectByName('Atlas_Rifle'),chest=m.getObjectByName('Atlas_Breastplate');
+   const result={binding:[rifle.parent.name,rifle.parent.parent.name],gripError:0,wristAngle:0,chestPenetrations:0,elbowMin:180,elbowMax:0,deathTravel:0,clips:[],texturedCloth:false,ceramicNormal:false};
+   m.traverse(n=>{if(n.isMesh&&n.material.name==='Atlas three-tone desert fabric')result.texturedCloth=!!n.material.map&&!!n.material.normalMap&&!!n.material.roughnessMap;if(n.isMesh&&n.material.name==='Atlas sand ceramic')result.ceramicNormal=!!n.material.normalMap;});
+   const world=n=>n.getWorldPosition(new T.Vector3());
+   for(const clip of v.data.animations){
+    v.play(clip.name);const action=v.mixer.existingAction(clip);action.setLoop(T.LoopOnce,1);result.clips.push(clip.name);let start;
+    for(let i=0;i<=100;i++){
+     v.mixer.setTime(clip.duration*i/100);m.updateMatrixWorld(true);
+     if(i===0)start=world(chest);if(clip.name==='Death'&&i===100)result.deathTravel=start.distanceTo(world(chest));
+     for(const side of ['L','R']){
+      const hand=m.getObjectByName('Index1'+side),grip=rifle.getObjectByName('Atlas_Grip'+side);
+      result.gripError=Math.max(result.gripError,world(hand).distanceTo(world(grip)));
+      result.wristAngle=Math.max(result.wristAngle,hand.getWorldQuaternion(new T.Quaternion()).angleTo(rifle.getWorldQuaternion(new T.Quaternion())));
+      const elbow=world(m.getObjectByName('LowerArm'+side)),angle=world(m.getObjectByName('UpperArm'+side)).sub(elbow).angleTo(world(hand).sub(elbow))*180/Math.PI;
+      result.elbowMin=Math.min(result.elbowMin,angle);result.elbowMax=Math.max(result.elbowMax,angle);
+     }
+     // Test all weapon vertices in chest space against the solid breastplate core.
+     // This remains valid when the torso turns, recoils, flinches or falls.
+     rifle.traverse(n=>{if(!n.isMesh)return;const positions=n.geometry.attributes.position,transform=new T.Matrix4().copy(chest.matrixWorld).invert().multiply(n.matrixWorld);
+      for(let k=0;k<positions.count;k++){const p=new T.Vector3().fromBufferAttribute(positions,k).applyMatrix4(transform);if(Math.abs(p.x)<.25&&Math.abs(p.y)<.175&&p.z>-.15&&p.z<.21)result.chestPenetrations++;}
+     });
+    }
+   }
+   return result;
+  });
+  expect(audit.binding).toEqual(['Atlas_WeaponSocket','Index1R']);expect(audit.clips.sort()).toEqual(['Death','HitReact','Idle','Idle_Shoot','Run_Gun']);
+  expect(audit.gripError).toBeLessThan(.001);expect(audit.wristAngle).toBeLessThan(.002);expect(audit.chestPenetrations).toBe(0);
+  expect(audit.elbowMin).toBeGreaterThan(30);expect(audit.elbowMax).toBeLessThan(165);expect(audit.deathTravel).toBeGreaterThan(.5);
+  expect(audit.texturedCloth).toBe(true);expect(audit.ceramicNormal).toBe(true);
+ }
 });

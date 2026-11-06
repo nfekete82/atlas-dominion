@@ -1,0 +1,1023 @@
+/* The classic Sandforge stylesheets are authoritative. Only WebGL-specific
+   adapters belong here; do not recreate the legacy palette or widget visuals. */
+.sf-rts{position:fixed;inset:0;z-index:9;pointer-events:none;font-family:var(--display)}
+.sf-rts :is(.top,.tools,#sidebar,.sf-command,.sf-game-settings){pointer-events:auto}
+.sf-rts .sf-assist-stats{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(100%);white-space:nowrap}
+#sf-classic-root #sidebar .catalog-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}
+.sf-rts .top{z-index:3}
+.sf-rts .tools{z-index:4;right:12px;top:10px;min-width:312px;justify-content:flex-end}
+.sf-rts .tools button{width:35px;height:33px;font:700 15px/1 var(--display)}
+.sf-rts .tools #simulation,.sf-rts .tools #sound{font-size:0}
+.sf-rts .tools #simulation::before{content:'Ⅱ';font:700 21px var(--display)}
+.sf-rts .tools #simulation[aria-pressed=false]::before{content:'▶';font-size:17px}
+.sf-rts .tools #sound::before{content:'♫';font:700 19px var(--display)}
+.sf-rts .tools #sound[aria-pressed=false]{color:#91816a}
+.sf-rts .tools #home{font-size:0}
+.sf-rts .tools #home::before{content:'⌂';font:700 22px var(--display)}
+.sf-rts .tools .sf-clock,.sf-rts .tools .sf-fps{font:700 12px var(--mono);padding:0 5px;color:#e4cb9c;white-space:nowrap}
+.sf-rts #sidebar{z-index:3;top:63px;bottom:14px;right:12px}
+.sf-rts .radar{position:relative}
+.sf-rts .radar #sf-map{display:block;width:61%;height:auto;aspect-ratio:1;border:2px solid #ad9261;outline:1px solid #121710;background:#b58c54;margin:2px auto 3px;cursor:crosshair}
+.sf-rts .radar .compass{top:45%}
+.sf-rts .radar .west{left:5px}.sf-rts .radar .east{right:5px}
+.sf-rts .radar-caption{position:static;display:flex;justify-content:space-between;gap:5px;margin:5px 0 0;font:10px var(--display);color:#d3bb91}
+.sf-rts .catalog{display:flex;flex-direction:column;min-height:0}
+.sf-rts .catalog-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}
+.sf-rts .catalog-tabs button{min-width:0;min-height:51px;height:52px;font:700 12px var(--display);padding:4px;text-align:center;line-height:1.1}
+.sf-rts .catalog-scroll{flex:1;overflow:auto;padding:4px 2px 10px}
+.sf-rts #sf-actions .sf-group{margin:1px 0 12px}
+.sf-rts #sf-actions .sf-group>h2{font:700 12px var(--display);color:#ead0a2;border-bottom:1px solid #806e4f;letter-spacing:.5px;padding:5px 1px}
+.sf-rts #sf-actions .catalog-card{width:auto;height:88px;padding:0}
+.sf-rts #sf-actions .catalog-card img{height:calc(100% - 22px);width:100%;padding:3px 5px;object-fit:contain}
+.sf-rts #sf-actions .catalog-card .card-meta{display:flex;align-items:center;justify-content:space-between;gap:2px;height:22px;min-height:22px;padding:0 4px;background:#181b15;border-top:1px solid #735d3e}
+.sf-rts #sf-actions .catalog-card .card-name{font:700 9px var(--display);color:#efdab4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:75%}
+.sf-rts #sf-actions .catalog-card .card-cost{font:700 10px var(--display);border:0;padding:0;color:#e1c187;background:transparent;white-space:nowrap}
+.sf-rts #sf-actions .catalog-card .card-cost::before{content:'◆ ';color:#d3a862}
+.sf-rts #sf-actions .catalog-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.sf-rts .catalog #sf-production{flex-shrink:0;display:flex;flex-direction:column;border:0;border-top:1px solid #796746;margin:0;padding:8px 4px}
+.sf-rts #sf-progress{height:100%;display:block;background:linear-gradient(#e6cc9b,#856a44);width:0}
+.sf-rts #sf-queue-count{float:right;font:9px var(--mono);color:#bea781;letter-spacing:0}
+.sf-rts #sf-catalog-detail{font:11px/1.35 var(--display);padding:6px 4px;color:#bfb197;border-top:1px solid #7b694a}
+.sf-rts .sf-command{display:grid;grid-template-columns:minmax(260px,1fr) 210px;gap:0;max-width:750px;min-height:145px;height:145px;left:13px;right:calc(var(--side) + 26px);bottom:15px;padding:10px 13px;z-index:3}
+.sf-rts .sf-command .selection{min-width:0;padding-right:11px;align-items:center;gap:13px}
+.sf-rts .sf-command .portrait{width:115px;flex:0 0 115px;height:96px}
+.sf-rts .sf-command .selection-copy{padding:0 0 2px;overflow:hidden}
+.sf-rts .sf-command .selection-copy strong{font-size:19px}
+.sf-rts .sf-command .selection-copy small{font-size:10px;color:#cfad7d}
+.sf-rts .sf-command .selection-copy p{margin:6px 0;color:#c5b99e;font:11px/1.35 var(--display)}
+.sf-rts .sf-command .selection-copy .sf-health{margin-top:5px;color:#a4c398;font:10px var(--mono)}
+.sf-rts .sf-command .commands{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+.sf-rts .sf-command .commands button{width:100%;height:39px;font:700 12px var(--display);letter-spacing:.3px}
+.sf-rts .sf-command .commands button[aria-pressed=true]{background:#67512f;color:#fff0ce}
+.sf-rts .sf-notice{position:fixed;bottom:171px;left:15px;max-width:min(570px,60vw);padding:8px 12px;background:#28271fe8;border:1px solid #98815a;border-left:3px solid #d1b078;color:#f3ddb4;box-shadow:0 4px 12px #0007;pointer-events:none;font:12px var(--display);z-index:4}
+.sf-rts .sf-notice:empty{display:none}
+.sf-rts .sf-game-settings{display:none;position:absolute;right:12px;top:57px;width:270px;padding:14px;background:#29281ff4;z-index:6}
+.sf-rts.sf-settings-open .sf-game-settings{display:block}
+.sf-rts .sf-settings-row{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.sf-rts .sf-settings-row :is(select,input,button){font:12px var(--display);color:#ecddbd;background:#3d392c;border:1px solid #8b7851;padding:6px;min-height:32px;min-width:0}
+.sf-rts .sf-settings-row input{width:77px}
+.sf-rts .sf-debug{position:fixed;left:12px;bottom:8px;z-index:2;max-width:55vw;pointer-events:none;font:10px var(--mono);color:#d9ba84;text-shadow:0 1px 4px #000}
+.sf-rts .sf-debug .sf-error{color:#ffb9a8;display:block}
+@media(max-width:1150px){.sf-rts .sf-command{height:133px;min-height:133px;grid-template-columns:minmax(200px,1fr) 170px}.sf-rts .sf-command .portrait{width:85px;flex-basis:85px;height:85px}.sf-rts .sf-command .selection-copy strong{font-size:15px}}
+@media(max-width:800px){.sf-rts .top{width:270px}.sf-rts .tools{top:66px;right:9px}.sf-rts #sidebar{top:120px;right:9px;bottom:12px}.sf-rts .sf-command{max-width:calc(100% - var(--side) - 24px);left:9px;right:auto;width:calc(100% - var(--side) - 29px);grid-template-columns:1fr;height:auto;max-height:36vh;overflow:auto}.sf-rts .sf-command .portrait{display:none}.sf-rts .sf-command .commands{grid-template-columns:repeat(4,1fr)}.sf-rts .sf-command .commands button{font-size:9px;height:29px}}
+@media(max-width:620px){.sf-rts .catalog-tabs button{font-size:9px}.sf-rts .catalog #sf-production{padding:5px}.sf-rts #sf-actions .catalog-grid{grid-template-columns:1fr 1fr}.sf-rts .sf-debug{display:none}}
+
+/* WebGL RTS menu v2 – real Sandforge production tabs, not three stacked
+   sections. Deliberately scoped: never change the original Canvas HUD. */
+#sf-classic-root {--side:310px}
+#sf-classic-root #sidebar {width:var(--side);gap:7px}
+#sf-classic-root #sidebar .radar {padding:10px 12px 12px;flex:0 0 auto}
+#sf-classic-root #sidebar #sf-map {width:176px;height:176px;max-width:100%;margin:4px auto}
+#sf-classic-root #sidebar .catalog {min-height:0;flex:1;padding:0 9px 8px}
+#sf-classic-root #sidebar .catalog-tabs button {height:43px;min-height:43px;font-size:11px}
+#sf-classic-root #sidebar .catalog-scroll {flex:1;min-height:0;overflow:auto;scrollbar-width:thin}
+#sf-classic-root #sf-actions .sf-group {display:none!important}
+#sf-classic-root[data-tab="units"] #sf-actions .sf-group[data-sf-group="units"],
+#sf-classic-root[data-tab="buildings"] #sf-actions .sf-group[data-sf-group="buildings"],
+#sf-classic-root[data-tab="territories"] #sf-actions .sf-group[data-sf-group="territories"] {display:block!important}
+#sf-classic-root #sf-actions .sf-roster-section {margin-bottom:11px}
+#sf-classic-root #sf-actions .sf-roster-section h2,
+#sf-classic-root #sf-actions .sf-group>h2 {margin:8px 2px 6px;padding-bottom:5px;font-size:11px;letter-spacing:.6px}
+#sf-classic-root #sf-actions .catalog-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;padding:0 2px}
+#sf-classic-root #sf-actions .catalog-card {display:flex;flex-direction:column;justify-content:space-between;min-width:0;min-height:109px;height:109px;padding:0;overflow:hidden;background:linear-gradient(152deg,#43402f,#242821 72%);border:1px solid #897451}
+#sf-classic-root #sf-actions .catalog-card.locked {opacity:.73;filter:none}
+#sf-classic-root #sf-actions .catalog-card.locked img {opacity:.75;filter:saturate(.8)}
+#sf-classic-root #sf-actions .catalog-card:disabled::after {content:none}
+#sf-classic-root #sf-actions .catalog-card.sf-selected-build {border:2px solid #f1c876;box-shadow:inset 0 0 0 1px #624727}
+#sf-classic-root #sf-actions .sf-card-image {position:relative;display:flex;flex:1;align-items:center;justify-content:center;min-height:0;overflow:hidden;background:radial-gradient(ellipse at 50% 77%,#796b5044 0%,#20282011 66%,#121a16a8 100%)}
+#sf-classic-root #sf-actions .sf-card-image img {display:block;width:100%;height:100%;max-width:100%;padding:2px 5px;object-fit:contain;object-position:center center;image-rendering:auto}
+#sf-classic-root #sf-actions .sf-card-image img[data-sf-icon-status="loading"] {opacity:.15}
+#sf-classic-root #sf-actions .card-meta {min-height:26px;height:26px;display:flex;align-items:center;justify-content:space-between;padding:0 5px;gap:4px;border-top:1px solid #806b4b;background:#191d19}
+#sf-classic-root #sf-actions .card-name {min-width:0;max-width:none;font:700 11px/1.1 var(--display);color:#f1e0bd;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+#sf-classic-root #sf-actions .card-cost {flex-shrink:0;font:700 10px var(--mono);white-space:nowrap;color:#d9be82}
+#sf-classic-root #sf-actions .territory-row {display:flex;align-items:center;gap:10px;width:100%;min-height:35px;margin:3px 0;padding:7px;border:1px solid #73644e;background:#353328}
+#sf-classic-root #sf-actions .territory-row strong {font-size:12px}
+#sf-classic-root #sf-actions .territory-row small {margin-left:auto}
+#sf-classic-root .catalog #sf-production {margin-top:auto;min-height:62px}
+#sf-classic-root .catalog #sf-catalog-detail {min-height:32px;font-size:11px;line-height:1.35}
+#sf-classic-root .sf-command {max-width:680px;right:calc(var(--side) + 24px);min-height:130px;height:130px;grid-template-columns:minmax(200px,1fr) 204px}
+#sf-classic-root .sf-command .selection-copy {min-width:0}
+#sf-classic-root .sf-command .selection-copy p {display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#sf-classic-root #sf-portrait {width:100%;height:100%;object-fit:contain;image-rendering:auto}
+#sf-classic-root #sf-selection-panel .commands button {height:34px}
+@media(max-width:1050px){
+ #sf-classic-root {--side:270px}
+ #sf-classic-root #sidebar #sf-map {width:148px;height:148px}
+ #sf-classic-root .sf-command {max-width:calc(100vw - var(--side) - 38px);grid-template-columns:minmax(140px,1fr) 140px}
+ #sf-classic-root #sf-selection-panel .commands button {font-size:10px}
+}
+@media(max-height:750px){
+ #sf-classic-root #sidebar #sf-map {width:130px;height:130px}
+ #sf-classic-root #sidebar .radar {padding:5px 10px 8px}
+ #sf-classic-root #sidebar .catalog-tabs button {height:35px;min-height:35px}
+ #sf-classic-root #sf-actions .catalog-card {height:94px;min-height:94px}
+ #sf-classic-root .catalog #sf-catalog-detail {display:none}
+}
+
+/* WebGL overlay is NOT inside #app's two-column grid. The original #sidebar
+   switches to position:relative in the classic app stylesheet: explicitly
+   override every grid/inset property, so it cannot drift to the left. */
+#sf-classic-root #sidebar {
+ position:fixed !important;
+ inset:58px 10px 10px auto !important;
+ left:auto !important;
+ right:10px !important;
+ top:58px !important;
+ bottom:10px !important;
+ width:var(--side) !important;
+ height:auto !important;
+ min-height:0 !important;
+ min-width:0 !important;
+ grid-column:auto !important;
+ grid-row:auto !important;
+ margin:0 !important;
+ padding:9px 8px 8px !important;
+ overflow:hidden !important;
+ display:flex !important;
+ flex-direction:column !important;
+ background:#101b20f2;
+ border:1px solid #776848;
+ z-index:12 !important;
+}
+#sf-classic-root #sidebar .radar {width:100%;flex:0 0 auto}
+#sf-classic-root #sidebar .catalog {flex:1 1 auto !important;min-height:0 !important;overflow:hidden !important}
+#sf-classic-root #sidebar .catalog-scroll {height:auto !important;overflow-x:hidden !important;overflow-y:auto !important}
+#sf-classic-root .sf-command {
+ position:fixed !important;
+ bottom:10px !important;
+ left:10px !important;
+ right:auto !important;
+ width:min(680px,calc(100vw - var(--side) - 45px)) !important;
+ height:132px !important;
+ min-height:132px !important;
+ max-width:calc(100vw - var(--side) - 45px) !important;
+ z-index:11;
+}
+#sf-classic-root .sf-command .selection-copy strong {display:block;font-size:17px;line-height:1.08;margin-top:4px}
+#sf-classic-root .sf-command .portrait {min-width:90px;align-self:center}
+#sf-classic-root #sf-actions .catalog-card.locked {opacity:1 !important;filter:none !important}
+#sf-classic-root #sf-actions .catalog-card:disabled {opacity:1 !important;filter:none !important;background:#363a30 !important}
+#sf-classic-root #sf-actions .catalog-card.locked .sf-card-image img {opacity:1 !important;filter:none !important}
+#sf-classic-root #sf-actions .catalog-card.locked .card-meta {color:#b0a18a;background:#292921}
+#sf-classic-root #sf-actions .catalog-card:not(:disabled):hover {background:#554734;border-color:#d8b47d}
+#sf-classic-root #sf-actions .catalog-card:not(:disabled):focus-visible {outline:2px solid #edca88;outline-offset:-2px}
+#sf-classic-root .sf-game-settings {position:fixed !important;left:auto !important;right:12px !important;top:55px !important;z-index:30}
+#sf-classic-root .sf-settings-close {cursor:pointer}
+@media(max-width:1050px) {
+ #sf-classic-root #sidebar {right:8px !important;top:96px !important;bottom:8px !important}
+ #sf-classic-root .sf-command {width:calc(100vw - var(--side) - 28px) !important;max-width:calc(100vw - var(--side) - 28px) !important}
+}
+@media(max-width:650px) {
+ #sf-classic-root {--side:192px}
+ #sf-classic-root #sidebar {top:100px !important;right:5px !important;bottom:6px !important}
+ #sf-classic-root .sf-command {left:5px !important;bottom:6px !important;width:calc(100vw - var(--side) - 15px) !important;max-width:calc(100vw - var(--side) - 15px) !important;height:auto !important;min-height:100px !important;grid-template-columns:1fr !important;padding:5px !important}
+ #sf-classic-root .sf-command .portrait {display:none}
+ #sf-classic-root .sf-command .commands {grid-template-columns:repeat(2,1fr)}
+ #sf-classic-root #sf-actions .catalog-grid {grid-template-columns:1fr 1fr;gap:3px}
+ #sf-classic-root #sf-actions .catalog-card {min-height:89px;height:89px}
+}
+
+/* Unit roster parity: reserve two FULL lines for names, rather than forcing
+   long classic names (Infanteriesoldat, Transporthelikopter) into ellipses. */
+#sf-classic-root #sf-actions .catalog-card {
+ min-height:133px!important;height:133px!important;
+}
+#sf-classic-root #sf-actions .card-meta {
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr) auto;
+ align-items:center;
+ min-height:43px!important;height:43px!important;
+ padding:3px 6px!important;
+ column-gap:6px;
+}
+#sf-classic-root #sf-actions .card-name {
+ font:700 11px/1.15 var(--display)!important;
+ max-width:none!important;
+ white-space:normal!important;
+ overflow:visible!important;
+ text-overflow:clip!important;
+ overflow-wrap:break-word;
+}
+#sf-classic-root #sf-actions .card-cost {
+ font:700 10px var(--mono)!important;
+ align-self:end;
+ padding-bottom:2px;
+}
+#sf-classic-root #sf-actions .sf-card-image {
+ min-height:76px!important;
+}
+#sf-classic-root #sf-actions .sf-card-image img {
+ image-rendering:auto;
+ object-position:center 85%;
+}
+@media(max-height:750px){
+ #sf-classic-root #sf-actions .catalog-card{min-height:115px!important;height:115px!important}
+ #sf-classic-root #sf-actions .sf-card-image{min-height:63px!important}
+}
+
+/* Locked tech-tree units/buildings: desaturate and softly blur the art, but
+   leave the name, price and prerequisites readable in German. Earlier menu
+   overrides set filter:none !important; this block intentionally comes last. */
+#sf-classic-root #sf-actions button.catalog-card:disabled,
+#sf-classic-root #sf-actions button.catalog-card.locked {
+  opacity:.78 !important;
+  filter:none !important;
+  background:linear-gradient(155deg,#343632,#171e1c 72%) !important;
+  border-color:#555b54 !important;
+  cursor:not-allowed;
+}
+#sf-classic-root #sf-actions button.catalog-card:disabled .sf-card-image img,
+#sf-classic-root #sf-actions button.catalog-card.locked .sf-card-image img {
+  filter:grayscale(1) blur(.85px) brightness(.55) !important;
+  opacity:.64 !important;
+}
+#sf-classic-root #sf-actions button.catalog-card:disabled .card-meta,
+#sf-classic-root #sf-actions button.catalog-card.locked .card-meta {
+  background:#202622 !important;
+  color:#a0aca6 !important;
+}
+#sf-classic-root #sf-actions button.catalog-card:disabled .card-name,
+#sf-classic-root #sf-actions button.catalog-card.locked .card-name {
+  color:#a9b1a9 !important;
+}
+#sf-classic-root #sf-actions button.catalog-card:disabled .card-cost,
+#sf-classic-root #sf-actions button.catalog-card.locked .card-cost {
+  color:#b8aa88 !important;
+}
+
+
+/* WebGL settings header integration */
+#sf-classic-root .sf-settings-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+#sf-classic-root .sf-settings-close {
+  appearance:none;
+  border:1px solid #a58b65;
+  border-radius:6px;
+  background:#243137;
+  color:#f7ebd4;
+  cursor:pointer;
+  min-width:32px;
+  min-height:32px;
+  font-size:18px;
+}
+#sf-classic-root .sf-settings-close:hover {
+  background:#43535a;
+}
+
+/* RTS parity: production rally point and ongoing bastion capture. */
+#sf-classic-root #sf-rally[hidden]{display:none!important}
+#sf-classic-root #sf-rally[aria-pressed="true"]{background:#73603e;color:#ffdda1;border-color:#e4bd6c}
+#sf-classic-root .territory-row small{font-size:10px;white-space:normal;text-align:right}
+
+/* Player-facing sector change cue, distinct from normal RTS command feedback. */
+.sf-rts .sf-notice[data-sector-event="secured"]{border-left-color:#62c6e9;color:#d2f2ff;background:#152d35f0}
+.sf-rts .sf-notice[data-sector-event="lost"]{border-left-color:#f19b73;color:#ffe4d5;background:#3b2323f0}
+
+#sf-classic-root .sf-building-status{font:10px var(--mono);color:#e8c992;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:4px}
+#sf-classic-root .sf-building-status[hidden]{display:none}
+
+/* Temporary in-game Three.js verification mode; regular RTS HUD unchanged. */
+#sf-classic-root .tools #sf3d-showcase{
+ width:auto;min-width:44px;padding:0 8px;
+ font:800 12px/1 var(--display);letter-spacing:.04em;color:#f1d097;
+ border-color:#a68b50;
+}
+#sf-classic-root .tools #sf3d-showcase[aria-pressed="true"]{
+ background:#315c5b;color:#e6fff7;border-color:#73d7bc;
+}
+#sf3d-showcase-hint{
+ position:fixed;z-index:14;top:54px;left:50%;transform:translateX(-50%);
+ max-width:min(92vw,680px);padding:9px 13px;
+ background:#142c31ed;color:#f5e3b8;border:1px solid #76b8b1;
+ box-shadow:0 5px 18px #000a;text-align:center;
+ font:700 12px/1.45 system-ui;pointer-events:none;
+}
+#sf3d-showcase-hint[hidden]{display:none}
+
+/* The existing Fog-of-War control is readable in both RTS and 3D views. */
+#sf-classic-root .tools button[data-action="fog"]{
+ width:auto;min-width:82px;padding:0 7px;
+ font:700 10px/1 var(--display);white-space:nowrap;
+}
+#sf-classic-root .tools button[data-action="fog"][aria-pressed="true"]{
+ border-color:#76b6b8;color:#d5f5e9;
+}
+
+/* Visual-only storm mode: clear feedback without changing the tactical HUD. */
+#sf-classic-root .tools #sf3d-storm{
+ width:auto;min-width:61px;padding:0 7px;
+ font:700 10px/1 var(--display);white-space:nowrap;
+ border-color:#9c815c;color:#efdab6;
+}
+#sf-classic-root .tools #sf3d-storm[aria-pressed="true"]{
+ color:#ffe4bb;background:#715036;border-color:#e8b177;
+}
+
+
+/* Zero Hour-inspired horizontal command dock (WebGL only). The original
+   event handlers, catalog groups, radar and queue remain the same DOM nodes.
+   Keep the battlefield full-width ABOVE the dock; no fixed right sidebar. */
+#sf-classic-root{
+ --sf-dock-height:310px;
+ --sf-dock-command:374px;
+ --sf-dock-radar:226px;
+}
+#sf-classic-root #sidebar{
+ position:fixed!important;
+ inset:auto auto 8px 8px!important;
+ left:8px!important;right:auto!important;top:auto!important;bottom:8px!important;
+ width:calc(100vw - var(--sf-dock-command) - 24px)!important;
+ max-width:none!important;
+ height:var(--sf-dock-height)!important;
+ min-height:0!important;
+ padding:7px!important;
+ display:grid!important;
+ grid-template-columns:var(--sf-dock-radar) minmax(0,1fr)!important;
+ grid-template-rows:minmax(0,1fr)!important;
+ flex-direction:row!important;
+ align-items:stretch!important;
+ gap:7px!important;
+ background:linear-gradient(180deg,#1a2830f4,#101b22fa)!important;
+ border:2px solid #786a4e!important;
+ box-shadow:0 -7px 32px #0009!important;
+}
+#sf-classic-root #sidebar .radar{
+ width:100%!important;min-width:0!important;height:100%!important;
+ padding:7px 8px 5px!important;overflow:hidden!important;
+ display:flex!important;flex-direction:column!important;justify-content:center!important;
+}
+#sf-classic-root #sidebar #sf-map{
+ display:block!important;width:min(190px,100%)!important;
+ height:auto!important;max-height:calc(var(--sf-dock-height) - 48px)!important;
+ aspect-ratio:1!important;object-fit:contain!important;
+ margin:1px auto!important;
+}
+#sf-classic-root #sidebar .radar-caption{
+ font-size:11px!important;margin-top:5px!important;white-space:nowrap!important;
+}
+#sf-classic-root #sidebar .catalog{
+ display:flex!important;flex-direction:column!important;
+ width:100%!important;min-width:0!important;height:100%!important;
+ padding:2px 7px 3px!important;overflow:hidden!important;
+}
+#sf-classic-root #sidebar .catalog-tabs{
+ display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+ gap:6px!important;flex:0 0 42px!important;margin-bottom:6px!important;
+}
+#sf-classic-root #sidebar .catalog-tabs button{
+ height:42px!important;min-height:42px!important;
+ padding:4px 8px!important;font-size:13px!important;font-weight:800!important;
+}
+#sf-classic-root #sidebar .catalog-scroll{
+ flex:1 1 auto!important;min-height:0!important;height:auto!important;
+ overflow-x:hidden!important;overflow-y:auto!important;
+ padding:1px 1px 2px!important;scrollbar-width:thin!important;
+}
+#sf-classic-root #sf-actions .sf-group{margin:0!important}
+#sf-classic-root #sf-actions .sf-roster-section{margin:0 0 7px!important}
+#sf-classic-root #sf-actions .sf-roster-section h2,
+#sf-classic-root #sf-actions .sf-group>h2{
+ margin:4px 0 8px!important;padding:0 2px 4px!important;
+ font-size:14px!important;font-weight:800!important;
+}
+#sf-classic-root #sf-actions .catalog-grid{
+ display:grid!important;
+ grid-template-columns:repeat(auto-fill,minmax(120px,1fr))!important;
+ gap:10px!important;padding:4px!important;
+}
+#sf-classic-root #sf-actions .catalog-card{
+ min-height:128px!important;height:128px!important;
+ border-width:1px!important;
+}
+#sf-classic-root #sf-actions .sf-card-image{
+ min-height:0!important;flex:1 1 auto!important;
+}
+#sf-classic-root #sf-actions .sf-card-image img{
+ width:100%!important;height:100%!important;
+ object-position:center 73%!important;
+}
+#sf-classic-root #sf-actions .card-meta{
+ min-height:42px!important;height:42px!important;
+ display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;
+ padding:4px 6px!important;gap:6px!important;
+}
+#sf-classic-root #sf-actions .card-name{
+ font-size:13px!important;line-height:1.15!important;font-weight:700!important;
+ max-height:32px!important;overflow:hidden!important;overflow-wrap:anywhere!important;
+}
+#sf-classic-root #sf-actions .card-cost{
+ font-size:13px!important;padding:0!important;font-weight:800!important;align-self:end!important;
+}
+#sf-classic-root .catalog #sf-production{
+ flex:0 0 48px!important;min-height:48px!important;
+ margin:4px 0 0!important;padding:5px 7px!important;
+ overflow:hidden!important;
+}
+#sf-classic-root #sf-catalog-detail{display:none!important}
+#sf-classic-root .sf-command{
+ position:fixed!important;
+ inset:auto 8px 8px auto!important;
+ left:auto!important;right:8px!important;top:auto!important;bottom:8px!important;
+ width:calc(var(--sf-dock-command) - 8px)!important;
+ max-width:none!important;
+ min-height:var(--sf-dock-height)!important;height:var(--sf-dock-height)!important;
+ padding:9px!important;
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr)!important;
+ grid-template-rows:minmax(0,1fr) auto!important;
+ gap:6px!important;overflow:hidden!important;
+ background:linear-gradient(180deg,#192831f6,#101b22fa)!important;
+ border:2px solid #786a4e!important;
+ box-shadow:0 -7px 32px #0009!important;
+ z-index:12!important;
+}
+#sf-classic-root .sf-command .selection{
+ display:flex!important;align-items:center!important;
+ min-width:0!important;min-height:0!important;padding:0!important;gap:8px!important;
+}
+#sf-classic-root .sf-command .portrait{
+ display:block!important;flex:0 0 96px!important;width:96px!important;
+ height:94px!important;min-width:0!important;margin:0!important;
+}
+#sf-classic-root .sf-command .selection-copy{
+ padding:0!important;min-width:0!important;overflow:hidden!important;
+}
+#sf-classic-root .sf-command .selection-copy strong{
+ font-size:16px!important;line-height:1.15!important;
+}
+#sf-classic-root .sf-command .selection-copy p{
+ font-size:12px!important;line-height:1.35!important;margin:5px 0!important;
+ display:-webkit-box!important;-webkit-line-clamp:3!important;
+ -webkit-box-orient:vertical!important;overflow:hidden!important;
+}
+#sf-classic-root .sf-command .command-group{
+ min-height:0!important;display:flex!important;flex-direction:column!important;
+}
+#sf-classic-root .sf-command .command-group .section-label{
+ font-size:13px!important;margin-bottom:5px!important;
+}
+#sf-classic-root #sf-selection-panel .commands{
+ display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+ gap:6px!important;
+}
+#sf-classic-root #sf-selection-panel .commands button{
+ width:100%!important;min-width:0!important;min-height:40px!important;
+ height:40px!important;padding:4px!important;font-size:13px!important;font-weight:800!important;
+}
+/* Use readable typography without sacrificing the six-column building row.
+   These overrides are scoped to the WebGL HUD; Canvas retains its own UI. */
+#sf-classic-root #sidebar .catalog #sf-production :is(.section-label,.queue-info){
+ font-size:12px!important;
+ line-height:1.35!important;
+}
+#sf-classic-root .sf-command .selection-copy small{
+ font-size:12px!important;line-height:1.25!important;
+}
+#sf-classic-root #sf-actions button.catalog-card:disabled .card-name,
+#sf-classic-root #sf-actions button.catalog-card.locked .card-name{
+ color:#d1ccc3!important;
+}
+#sf-classic-root #sf-actions button.catalog-card:disabled .sf-card-image img,
+#sf-classic-root #sf-actions button.catalog-card.locked .sf-card-image img{
+ filter:grayscale(1) blur(.65px) brightness(.70)!important;
+ opacity:.77!important;
+}
+#sf-classic-root .sf-notice{
+ bottom:calc(var(--sf-dock-height) + 17px)!important;
+ left:12px!important;max-width:min(560px,64vw)!important;
+}
+#sf-classic-root .sf-debug{bottom:calc(var(--sf-dock-height) + 12px)!important}
+@media(max-width:1000px){
+ #sf-classic-root{
+  --sf-dock-height:250px;--sf-dock-command:270px;--sf-dock-radar:170px;
+ }
+ #sf-classic-root #sidebar #sf-map{width:138px!important}
+ #sf-classic-root #sf-actions .catalog-grid{
+  grid-template-columns:repeat(auto-fill,minmax(110px,1fr))!important;
+ }
+ #sf-classic-root #sf-selection-panel .portrait{flex-basis:74px!important;width:74px!important;height:72px!important}
+ #sf-classic-root .sf-command .selection-copy strong{font-size:13px!important}
+}
+@media(max-width:680px){
+ #sf-classic-root{
+  --sf-dock-height:224px;--sf-dock-command:195px;--sf-dock-radar:106px;
+ }
+ #sf-classic-root #sidebar{gap:3px!important;padding:4px!important}
+ #sf-classic-root #sidebar .radar{padding:3px!important}
+ #sf-classic-root #sidebar #sf-map{width:88px!important}
+ #sf-classic-root #sidebar .radar-caption{font-size:8px!important}
+ #sf-classic-root #sidebar .catalog{padding:0 2px!important}
+ #sf-classic-root #sidebar .catalog-tabs button{font-size:10px!important;padding:2px!important}
+ #sf-classic-root #sf-actions .catalog-grid{grid-template-columns:repeat(2,minmax(78px,1fr))!important;gap:4px!important}
+ #sf-classic-root #sf-selection-panel .portrait{display:none!important}
+ #sf-classic-root .sf-command{padding:5px!important}
+ #sf-classic-root .sf-command .selection-copy p{display:none!important}
+ #sf-classic-root #sf-selection-panel .commands{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ #sf-classic-root #sf-selection-panel .commands button{font-size:10px!important;min-height:33px!important;height:33px!important}
+}
+
+/* Horizontal production catalog (2026-11-04)
+ * Each unit producer remains a real, accessible DOM section for test and
+ * entitlement parity, but their cards form ONE continuous horizontal row.
+ * The scroll container itself owns horizontal overflow; no nested rows. */
+#sf-classic-root[data-tab="units"] #sf-actions .sf-group[data-sf-group="units"]{
+ display:flex!important;
+ flex-direction:row!important;
+ flex-wrap:nowrap!important;
+ align-items:flex-start!important;
+ gap:8px!important;
+ width:100%!important;
+ min-width:0!important;
+ overflow-x:auto!important;
+ overflow-y:hidden!important;
+ padding:4px 4px 13px!important;
+ scrollbar-width:thin;
+ scrollbar-color:#ae8e56 #19232a;
+}
+#sf-classic-root #sf-actions .sf-group[data-sf-group="units"] > .sf-roster-section{
+ display:flex!important;
+ flex:0 0 auto!important;
+ width:max-content!important;
+ min-width:max-content!important;
+ margin:0!important;
+ padding:0!important;
+ align-items:flex-start!important;
+}
+#sf-classic-root #sf-actions .sf-group[data-sf-group="units"] .sf-roster-section > h2{
+ display:none!important;
+}
+#sf-classic-root #sf-actions .sf-group[data-sf-group="units"] .sf-roster-section > .catalog-grid{
+ display:flex!important;
+ flex:0 0 auto!important;
+ flex-direction:row!important;
+ flex-wrap:nowrap!important;
+ width:max-content!important;
+ min-width:max-content!important;
+ gap:8px!important;
+ overflow:visible!important;
+ padding:0!important;
+}
+/* Building cards are already one group; scroll within it. */
+#sf-classic-root #sf-actions .sf-group[data-sf-group="buildings"] > .catalog-grid{
+ display:flex!important;
+ flex-direction:row!important;
+ flex-wrap:nowrap!important;
+ gap:8px!important;
+ overflow-x:auto!important;
+ overflow-y:hidden!important;
+ padding:4px 4px 13px!important;
+ scrollbar-width:thin;
+ scrollbar-color:#ae8e56 #19232a;
+}
+#sf-classic-root #sf-actions .sf-group:is(
+ [data-sf-group="units"],[data-sf-group="buildings"]
+) .catalog-card{
+ flex:0 0 146px!important;
+ width:146px!important;
+ min-width:146px!important;
+ max-width:146px!important;
+}
+@media(max-width:1000px){
+ #sf-classic-root #sf-actions .sf-group:is(
+  [data-sf-group="units"],[data-sf-group="buildings"]
+ ) .catalog-card{
+  flex-basis:114px!important;
+  width:114px!important;
+  min-width:114px!important;
+  max-width:114px!important;
+ }
+}
+@media(max-width:680px){
+ #sf-classic-root #sf-actions .sf-group:is(
+  [data-sf-group="units"],[data-sf-group="buildings"]
+ ) .catalog-card{
+  flex-basis:96px!important;
+  width:96px!important;
+  min-width:96px!important;
+  max-width:96px!important;
+ }
+}
+
+/* Selection-driven WebGL RTS catalogue: original Canvas layout is untouched.
+   One live producer only; prevent hidden sections from claiming flex space. */
+#sf-classic-root #sf-tabs{
+ display:flex!important;
+ grid-template-columns:none!important;
+}
+#sf-classic-root #sf-tabs button{
+ flex:1 1 0!important;
+}
+#sf-classic-root #sf-tabs button[hidden]{
+ display:none!important;
+}
+/* Match the selector that forces production rows to display:flex!important.
+   [hidden] must win at every breakpoint, otherwise other producer types remain
+   visible even though JavaScript set section.hidden correctly. */
+#sf-classic-root #sf-actions .sf-group[data-sf-group="units"] > .sf-roster-section[hidden]{
+ display:none!important;
+}
+/* Give the PBR building renders the tile space, not an oversized footer. */
+#sf-classic-root #sf-actions .catalog-card{
+ height:163px!important;
+ min-height:163px!important;
+}
+#sf-classic-root #sf-actions .catalog-card[data-build] .sf-card-image{
+ flex:1 1 auto!important;
+ min-height:100px!important;
+ overflow:hidden!important;
+}
+#sf-classic-root #sf-actions .catalog-card[data-build] .sf-card-image img{
+ width:100%!important;
+ height:100%!important;
+ padding:0!important;
+ object-fit:contain!important;
+ object-position:center center!important;
+ transform:scale(1.55);
+ transform-origin:center center;
+}
+#sf-classic-root #sf-actions .catalog-card[data-build="headquarters"] .sf-card-image img{
+ transform:scale(1.65);
+}
+#sf-classic-root #sf-actions .catalog-card[data-build="airfield"] .sf-card-image img{
+ transform:scale(1.27);
+}
+#sf-classic-root #sf-actions .catalog-card[data-build] .card-meta{
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr)!important;
+ grid-template-rows:18px 18px!important;
+ align-content:center!important;
+ justify-items:start!important;
+ gap:1px!important;
+ height:46px!important;
+ min-height:46px!important;
+ padding:3px 7px!important;
+}
+#sf-classic-root #sf-actions .catalog-card[data-build] .card-name{
+ display:block!important;
+ width:100%!important;
+ max-width:100%!important;
+ font-size:12px!important;
+ line-height:17px!important;
+ white-space:nowrap!important;
+ overflow:hidden!important;
+ text-overflow:ellipsis!important;
+ overflow-wrap:normal!important;
+}
+#sf-classic-root #sf-actions .catalog-card[data-build] .card-cost{
+ display:block!important;
+ width:100%!important;
+ font-size:12px!important;
+ line-height:17px!important;
+ align-self:start!important;
+ padding:0!important;
+}
+@media(max-width:1000px){
+ #sf-classic-root #sf-actions .catalog-card{
+  min-height:151px!important;
+  height:151px!important;
+ }
+ #sf-classic-root #sf-actions .catalog-card[data-build] .sf-card-image{
+  min-height:85px!important;
+ }
+ #sf-classic-root #sf-actions .catalog-card[data-build] .card-name{
+  font-size:11px!important;
+ }
+}
+@media(max-width:680px){
+ #sf-classic-root #sf-actions .catalog-card{
+  min-height:130px!important;
+  height:130px!important;
+ }
+ #sf-classic-root #sf-actions .catalog-card[data-build] .sf-card-image{
+  min-height:70px!important;
+ }
+}
+
+/* Alpha-trimmed building renders already fill their 320×220 canvas; do not
+   enlarge those again (unprocessed fallback art retains the original zoom). */
+#sf-classic-root #sf-actions .catalog-card[data-build] .sf-card-image img[data-sf-icon-status="ready"]{
+ transform:scale(1.04)!important;
+}
+
+/* The existing original transparent Sandforge badge replaces the placeholder
+   "SF / SAND FORGE" lettering in the 3D RTS resource bar. No menu asset fork. */
+#sf-classic-root .top .wordmark{
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ flex:0 0 158px;
+ width:158px;
+ min-width:158px;
+ height:44px;
+ padding:2px 8px 2px 4px;
+ overflow:hidden;
+}
+#sf-classic-root .top .wordmark .sandforge-hud-logo{
+ display:block;
+ width:100%;
+ height:100%;
+ max-width:100%;
+ min-width:0;
+ object-fit:contain;
+ object-position:center;
+ mix-blend-mode:normal;
+ background:transparent;
+ filter:drop-shadow(0 1px 2px #000a);
+}
+@media(max-width:620px){
+ #sf-classic-root .top .wordmark{
+  flex-basis:125px;
+  width:125px;
+  min-width:125px;
+  height:40px;
+  padding:2px 5px;
+ }
+}
+
+/* WebGL unit tiles: long names (RAKETENWERFER etc.) and the price each
+   occupy precisely one separate line. Never wrap the label or Credits. */
+#sf-classic-root #sf-actions .catalog-card[data-unit] .card-meta{
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr)!important;
+ grid-template-rows:18px 18px!important;
+ align-content:center!important;
+ justify-items:start!important;
+ gap:1px!important;
+ min-height:45px!important;
+ height:45px!important;
+ padding:3px 5px!important;
+ overflow:hidden!important;
+}
+#sf-classic-root #sf-actions .catalog-card[data-unit] .card-name{
+ display:block!important;
+ width:100%!important;
+ max-width:100%!important;
+ min-width:0!important;
+ height:18px!important;
+ font-size:11px!important;
+ line-height:18px!important;
+ letter-spacing:-.22px!important;
+ white-space:nowrap!important;
+ overflow:hidden!important;
+ overflow-wrap:normal!important;
+ text-overflow:ellipsis!important;
+}
+#sf-classic-root #sf-actions .catalog-card[data-unit] .card-cost{
+ display:block!important;
+ width:100%!important;
+ max-width:100%!important;
+ min-width:0!important;
+ font-size:12px!important;
+ line-height:17px!important;
+ white-space:nowrap!important;
+ overflow:hidden!important;
+ overflow-wrap:normal!important;
+ text-overflow:clip!important;
+}
+
+/* Rocket artillery: full single-line name ABOVE its price. Preserve
+   horizontal roster scrolling even at the narrower responsive breakpoints. */
+#sf-classic-root #sf-actions .sf-group[data-sf-group="units"]
+ .catalog-card[data-unit="artillery"]{
+ flex:0 0 152px!important;
+ width:152px!important;
+ min-width:152px!important;
+ max-width:152px!important;
+}
+#sf-classic-root #sf-actions .catalog-card[data-unit="artillery"] .card-meta{
+ display:flex!important;
+ flex-direction:column!important;
+ justify-content:center!important;
+ align-items:stretch!important;
+ gap:0!important;
+ min-height:43px!important;
+ height:43px!important;
+ padding:3px 7px!important;
+}
+#sf-classic-root #sf-actions .catalog-card[data-unit="artillery"] .card-name{
+ display:block!important;
+ width:100%!important;
+ max-width:none!important;
+ white-space:nowrap!important;
+ overflow-wrap:normal!important;
+ word-break:normal!important;
+ overflow:hidden!important;
+ text-overflow:clip!important;
+ font-size:12px!important;
+ line-height:17px!important;
+ height:17px!important;
+}
+#sf-classic-root #sf-actions .catalog-card[data-unit="artillery"] .card-cost{
+ display:block!important;
+ align-self:flex-end!important;
+ white-space:nowrap!important;
+ line-height:17px!important;
+ height:17px!important;
+}
+
+/* WebGL tactical-pause layout; classic Canvas pause menu is unchanged. */
+#sf3d-pause-dialog.pause-menu{
+ width:min(342px,calc(100vw - 20px));
+ padding:16px 18px 0;
+ text-align:center;
+}
+#sf3d-pause-dialog .sf3d-pause-brand{
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ width:100%;
+ height:79px;
+ margin:0 auto 4px;
+}
+#sf3d-pause-dialog .sandforge-pause-logo{
+ display:block;
+ width:235px;
+ max-width:100%;
+ height:76px;
+ max-height:76px;
+ margin:auto;
+ object-fit:contain;
+ mix-blend-mode:normal;
+ filter:drop-shadow(0 3px 4px #000b);
+}
+#sf3d-pause-dialog .sf3d-pause-title{
+ margin:0 0 13px;
+ color:#f0d49b;
+ font-size:17px;
+ font-weight:800;
+ line-height:1.25;
+ letter-spacing:.12em;
+ text-align:center;
+ text-shadow:0 1px 2px #000a;
+}
+
+/* Multi-select uses the same cropped unit portraits, composed as a squad.
+   Single selected units and producer portraits keep their existing artwork. */
+#sf-classic-root #sf-selection-panel .portrait{position:relative!important;overflow:hidden}
+#sf-classic-root #sf-selection-panel #sf-portrait[hidden],
+#sf-classic-root #sf-selection-panel #sf-squad-portrait[hidden]{display:none!important}
+#sf-classic-root #sf-selection-panel .sf-squad-portrait{
+ position:absolute;inset:0;display:block;overflow:hidden;
+ background:radial-gradient(ellipse at 50% 72%,#485348b0,#18262fe8 79%);
+}
+#sf-classic-root #sf-selection-panel .sf-squad-member{
+ position:absolute;width:68%;height:80%;object-fit:contain;
+ bottom:6%;filter:drop-shadow(1px 3px 2px #000a);
+}
+#sf-classic-root #sf-selection-panel .sf-squad-member:nth-child(1){
+ left:-13%;z-index:1;transform:scale(.85);transform-origin:bottom center;
+}
+#sf-classic-root #sf-selection-panel .sf-squad-member:nth-child(2){
+ left:18%;z-index:3;transform:scale(1.04);transform-origin:bottom center;
+}
+#sf-classic-root #sf-selection-panel .sf-squad-member:nth-child(3){
+ left:48%;z-index:2;transform:scale(.88);transform-origin:bottom center;
+}
+#sf-classic-root #sf-selection-panel .sf-squad-count{
+ position:absolute;right:4px;bottom:3px;z-index:4;
+ padding:1px 4px;border:1px solid #c9ad72a0;border-radius:3px;
+ background:#101c24e8;color:#f2dfb7;font:800 12px/1.25 var(--mono,monospace);
+}
+
+/* Dedicated visible production compartment, not the old 48px footer.
+   The 3D dock gains height so the unit cards remain usable above it. */
+#sf-classic-root{--sf-dock-height:360px}
+#sf-classic-root #sidebar .catalog #sf-production.sf-production-panel{
+ display:flex!important;flex:0 0 132px!important;
+ box-sizing:border-box!important;
+ height:132px!important;min-height:132px!important;max-height:132px!important;
+ margin:6px 0 0!important;padding:7px 9px!important;
+ gap:2px!important;overflow:hidden!important;
+ border:2px solid #a1834e!important;border-radius:3px!important;
+ background:linear-gradient(180deg,#263238,#111c22 78%)!important;
+ box-shadow:inset 0 1px 0 #d5b47a29,0 2px 9px #0008!important;
+}
+#sf-classic-root #sf-production .sf-production-heading{
+ flex:0 0 19px;display:flex;align-items:center;justify-content:space-between;
+ min-height:0;gap:10px;white-space:nowrap;
+ border-bottom:1px solid #8a734b65;
+}
+#sf-classic-root #sf-production .sf-production-heading strong{
+ color:#efd19a;font:800 13px/1.2 var(--display,system-ui);
+ letter-spacing:.07em;
+}
+#sf-classic-root #sf-production #sf-queue-count{
+ float:none!important;color:#d4b784!important;
+ font:700 10px/1.2 var(--mono,monospace)!important;
+ white-space:nowrap!important;
+}
+#sf-classic-root #sf-production .sf-production-slots{
+ flex:0 0 48px;display:flex;flex-wrap:nowrap;align-items:stretch;gap:6px;
+ min-height:0;min-width:0;overflow-x:auto;overflow-y:hidden;
+ padding:1px 0 3px;scrollbar-width:thin;scrollbar-color:#b29560 #1b282e;
+}
+#sf-classic-root #sf-production .sf-production-slot{
+ position:relative;flex:0 0 156px;min-width:0;min-height:0;
+ display:flex;align-items:center;gap:6px;padding:2px 6px 5px 3px;
+ border:1px solid #665c48;background:#1d292e;
+ color:#f2dfbc;overflow:hidden;
+}
+#sf-classic-root #sf-production .sf-production-slot.is-active{
+ border-color:#d6ad60;background:#39382d;
+ box-shadow:inset 0 0 0 1px #e5c17829;
+}
+#sf-classic-root #sf-production .sf-production-slot.is-build{
+ border-color:#73999c;background:#203335;
+}
+#sf-classic-root #sf-production .sf-production-slot img{
+ display:block;flex:0 0 35px;width:35px;height:39px;
+ object-fit:contain;object-position:center;background:transparent;
+}
+#sf-classic-root #sf-production .sf-production-slot-copy{
+ display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;
+}
+#sf-classic-root #sf-production .sf-production-slot-copy strong{
+ display:block;color:#f2dfbc;font:700 10px/1.15 var(--display,system-ui);
+ overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+}
+#sf-classic-root #sf-production .sf-production-slot-copy small{
+ display:block;color:#b9c2b2;font:700 9px/1.2 var(--mono,monospace);
+ white-space:nowrap;
+}
+#sf-classic-root #sf-production .sf-slot-progress{
+ position:absolute;left:3px;right:3px;bottom:2px;height:3px;
+ background:#070f14;border-radius:1px;overflow:hidden;
+}
+#sf-classic-root #sf-production .sf-slot-progress i{
+ display:block;width:0;height:100%;background:#e7c079;
+}
+#sf-classic-root #sf-production .sf-production-empty,
+#sf-classic-root #sf-production .sf-production-more{
+ display:flex;align-items:center;justify-content:center;
+ flex:0 0 auto;padding:0 10px;min-height:0;
+ color:#c8b996;font:700 11px var(--display,system-ui);
+ border:1px dashed #655b48;background:#202a2d;
+}
+#sf-classic-root #sf-production .sf-production-empty{flex:1}
+#sf-classic-root #sf-production .sf-production-progressline{
+ display:grid;grid-template-columns:minmax(0,1fr) 42px;
+ gap:8px;align-items:center;min-height:12px;flex:0 0 12px;
+}
+#sf-classic-root #sf-production .production-track{
+ display:block;min-width:0;width:100%;height:9px!important;
+ min-height:9px!important;margin:0!important;overflow:hidden;
+ border:1px solid #af9060;background:#0b1318;
+}
+#sf-classic-root #sf-production #sf-progress{
+ display:block;height:100%;background:linear-gradient(90deg,#af8a50,#f0cf88);
+}
+#sf-classic-root #sf-production #sf-queue-time{
+ color:#f0d49b;font:800 11px/1.1 var(--mono,monospace);
+ white-space:nowrap;text-align:right;
+}
+#sf-classic-root #sf-production .queue-info{
+ display:block!important;min-height:13px;flex:0 0 13px;
+ padding:0!important;margin:0!important;overflow:hidden!important;
+ color:#c9c2a7!important;font:700 10px/1.3 var(--display,system-ui)!important;
+ white-space:nowrap;text-overflow:ellipsis;
+}
+#sf-classic-root #sf-production #sf-queue{
+ display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+}
+#sf-classic-root #sf-production #sf-building-status{
+ margin:0!important;min-height:12px;font-size:10px!important;
+}
+#sf-classic-root #sf-production #sf-building-status[hidden]{display:none!important}
+@media(max-width:1000px){
+ #sf-classic-root{--sf-dock-height:332px}
+ #sf-classic-root #sidebar .catalog #sf-production.sf-production-panel{
+  flex-basis:124px!important;height:124px!important;
+  min-height:124px!important;max-height:124px!important;
+ }
+ #sf-classic-root #sf-production .sf-production-slot{flex-basis:144px}
+ #sf-classic-root #sf-production .sf-production-slots{flex-basis:42px}
+}
+@media(max-width:680px){
+ #sf-classic-root{--sf-dock-height:292px}
+ #sf-classic-root #sidebar .catalog #sf-production.sf-production-panel{
+  flex-basis:112px!important;height:112px!important;
+  min-height:112px!important;max-height:112px!important;
+  padding:5px!important;
+ }
+ #sf-classic-root #sf-production .sf-production-slots{flex-basis:38px}
+ #sf-classic-root #sf-production #sf-building-status{display:none!important}
+ #sf-classic-root #sf-production .sf-production-slot{flex-basis:122px}
+ #sf-classic-root #sf-production .sf-production-slot img{width:26px;flex-basis:26px;height:30px}
+ #sf-classic-root #sf-production .sf-production-heading strong{font-size:11px}
+ #sf-classic-root #sf-production #sf-queue-count{font-size:8px!important}
+}
+/* Global production overview: each queue tile identifies its producer without
+   requiring any building selection. Keep three lines legible at tactical zoom. */
+#sf-classic-root #sf-production .sf-production-source{
+ display:block;max-width:100%;overflow:hidden;white-space:nowrap;
+ text-overflow:ellipsis;color:#c5ad83;
+ font:700 9px/1.12 var(--display,system-ui);
+}
+#sf-classic-root #sf-production .sf-production-slot.is-active .sf-production-source{
+ color:#efc886;
+}
+

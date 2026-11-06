@@ -1,0 +1,908 @@
+{
+  "complete": true,
+  "scope": "Chromium animation frames: rendered paid modern campaigns, including paid BLUE controller; excludes accelerated warmup",
+  "reference": "/tmp/atlas-titan-siege-baseline",
+  "environment": {
+    "seed": 2026,
+    "seconds": 8,
+    "warmup": 240,
+    "cpuThrottle": 4,
+    "viewport": "1440x1000",
+    "dpr": 1,
+    "browser": "155.0.8059.85"
+  },
+  "results": [
+    {
+      "label": "before",
+      "map": "small",
+      "towers": 1,
+      "initialStateHash": "7264e5dca7aa194a82ea815db05129de1bdbc02ac95f920a18de29fd3fa6296b",
+      "catalogHash": "bcb238d270a988ceedd447c92ab51568c41b793bc5a83ff4f6599426d1d61e64",
+      "stats": {
+        "frames": 480,
+        "windowSeconds": 7.999700000000001,
+        "fps": 60.00225008437816,
+        "low1Fps": 59.523809523799216,
+        "frameMs": {
+          "p50": 16.69999999999709,
+          "p95": 16.700000000000728,
+          "p99": 16.80000000000291,
+          "max": 16.80000000000291
+        },
+        "over33": 0,
+        "over50": 0,
+        "over100": 0,
+        "phases": {
+          "simulation": {
+            "calls": 160,
+            "totalMs": 572.3999999165535,
+            "meanMs": 3.5774999994784595,
+            "maxMs": 18.5
+          },
+          "ai": {
+            "calls": 3,
+            "totalMs": 9.300000071525574,
+            "meanMs": 3.100000023841858,
+            "maxMs": 3.5
+          },
+          "pathfinding": {
+            "calls": 10,
+            "totalMs": 7.699999988079071,
+            "meanMs": 0.7699999988079071,
+            "maxMs": 7.5
+          },
+          "vision": {
+            "calls": 40,
+            "totalMs": 531.9000001549721,
+            "meanMs": 13.297500003874301,
+            "maxMs": 17.69999998807907
+          },
+          "render": {
+            "calls": 481,
+            "totalMs": 294.80000054836273,
+            "meanMs": 0.6128898140298602,
+            "maxMs": 2.399999976158142
+          },
+          "minimap": {
+            "calls": 481,
+            "totalMs": 13.40000033378601,
+            "meanMs": 0.02785862855256967,
+            "maxMs": 0.800000011920929
+          },
+          "hud": {
+            "calls": 69,
+            "totalMs": 94.19999998807907,
+            "meanMs": 1.3652173911315808,
+            "maxMs": 2
+          },
+          "audio": {
+            "calls": 481,
+            "totalMs": 3.5999999046325684,
+            "meanMs": 0.007484407286138396,
+            "maxMs": 0.800000011920929
+          },
+          "input": {
+            "calls": 481,
+            "totalMs": 4.699999928474426,
+            "meanMs": 0.009771309622607955,
+            "maxMs": 0.7000000476837158
+          },
+          "fog": {
+            "calls": 481,
+            "totalMs": 21.799999952316284,
+            "meanMs": 0.04532224522311078,
+            "maxMs": 1.399999976158142
+          },
+          "sprites": {
+            "calls": 481,
+            "totalMs": 144.70000040531158,
+            "meanMs": 0.30083160167424444,
+            "maxMs": 1.2000000476837158
+          },
+          "corpses": {
+            "calls": 481,
+            "totalMs": 3.600000023841858,
+            "meanMs": 0.007484407533974757,
+            "maxMs": 0.800000011920929
+          },
+          "particles": {
+            "calls": 481,
+            "totalMs": 1.1999999284744263,
+            "meanMs": 0.0024948023461006785,
+            "maxMs": 0.5999999642372131
+          }
+        },
+        "pathfinding": {
+          "calls": 10,
+          "nodes": 1314
+        },
+        "longTasks": {
+          "count": 0,
+          "maxMs": 0
+        },
+        "spikes": []
+      },
+      "time": 248.00000000002214,
+      "status": "playing",
+      "units": 15,
+      "rush": {
+        "towersOrdered": 1,
+        "blueTowerCredits": 175,
+        "peakTowers": 1,
+        "allTowersReadyAt": 15,
+        "turretHits": 58,
+        "turretDamage": 344,
+        "immediateResponses": 4,
+        "responseLatency": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "initialized": true
+      }
+    },
+    {
+      "label": "before",
+      "map": "medium",
+      "towers": 1,
+      "initialStateHash": "8beefe27e2f513c2fce289afd11169d075f72751a81e72b404d5fdf3d7f8fa62",
+      "catalogHash": "bcb238d270a988ceedd447c92ab51568c41b793bc5a83ff4f6599426d1d61e64",
+      "stats": {
+        "frames": 480,
+        "windowSeconds": 7.999699999999999,
+        "fps": 60.002250084378176,
+        "low1Fps": 59.52380952380437,
+        "frameMs": {
+          "p50": 16.69999999999891,
+          "p95": 16.700000000000728,
+          "p99": 16.80000000000109,
+          "max": 16.80000000000291
+        },
+        "over33": 0,
+        "over50": 0,
+        "over100": 0,
+        "phases": {
+          "simulation": {
+            "calls": 160,
+            "totalMs": 858.8999994397163,
+            "meanMs": 5.368124996498227,
+            "maxMs": 13.5
+          },
+          "ai": {
+            "calls": 3,
+            "totalMs": 9.900000035762787,
+            "meanMs": 3.300000011920929,
+            "maxMs": 3.600000023841858
+          },
+          "pathfinding": {
+            "calls": 265,
+            "totalMs": 519.4999999403954,
+            "meanMs": 1.9603773582656427,
+            "maxMs": 4.5
+          },
+          "vision": {
+            "calls": 40,
+            "totalMs": 285.09999960660934,
+            "meanMs": 7.127499990165234,
+            "maxMs": 9.299999952316284
+          },
+          "render": {
+            "calls": 481,
+            "totalMs": 450.900001347065,
+            "meanMs": 0.9374220402225883,
+            "maxMs": 2.600000023841858
+          },
+          "minimap": {
+            "calls": 481,
+            "totalMs": 13.099999785423279,
+            "meanMs": 0.027234926788821785,
+            "maxMs": 0.800000011920929
+          },
+          "hud": {
+            "calls": 70,
+            "totalMs": 95.29999995231628,
+            "meanMs": 1.3614285707473754,
+            "maxMs": 2.199999988079071
+          },
+          "audio": {
+            "calls": 481,
+            "totalMs": 5.300000309944153,
+            "meanMs": 0.011018711663085557,
+            "maxMs": 0.699999988079071
+          },
+          "input": {
+            "calls": 481,
+            "totalMs": 6.799999892711639,
+            "meanMs": 0.014137213914161412,
+            "maxMs": 0.5
+          },
+          "fog": {
+            "calls": 481,
+            "totalMs": 22.800000250339508,
+            "meanMs": 0.047401247921703756,
+            "maxMs": 1.199999988079071
+          },
+          "sprites": {
+            "calls": 481,
+            "totalMs": 234.30000150203705,
+            "meanMs": 0.48711019023292523,
+            "maxMs": 1.399999976158142
+          },
+          "corpses": {
+            "calls": 481,
+            "totalMs": 2.0000001192092896,
+            "meanMs": 0.004158004405840519,
+            "maxMs": 0.6000000238418579
+          },
+          "particles": {
+            "calls": 481,
+            "totalMs": 0.699999988079071,
+            "meanMs": 0.0014553014305178193,
+            "maxMs": 0.5999999642372131
+          }
+        },
+        "pathfinding": {
+          "calls": 265,
+          "nodes": 286265
+        },
+        "longTasks": {
+          "count": 0,
+          "maxMs": 0
+        },
+        "spikes": []
+      },
+      "time": 248.00000000002214,
+      "status": "playing",
+      "units": 15,
+      "rush": {
+        "towersOrdered": 1,
+        "blueTowerCredits": 175,
+        "peakTowers": 1,
+        "allTowersReadyAt": 15,
+        "turretHits": 25,
+        "turretDamage": 150,
+        "immediateResponses": 2,
+        "responseLatency": [
+          0,
+          0.8999999999999488
+        ],
+        "initialized": true
+      }
+    },
+    {
+      "label": "before",
+      "map": "large",
+      "towers": 6,
+      "initialStateHash": "b09492e89cea1c35c1bfd16c9186792d60abbd13779fbcc2f0584a13d3054474",
+      "catalogHash": "bcb238d270a988ceedd447c92ab51568c41b793bc5a83ff4f6599426d1d61e64",
+      "stats": {
+        "frames": 479,
+        "windowSeconds": 7.9997,
+        "fps": 59.87724539670238,
+        "low1Fps": 49.751243781092725,
+        "frameMs": {
+          "p50": 16.69999999999891,
+          "p95": 16.700000000000728,
+          "p99": 16.80000000000109,
+          "max": 33.29999999999927
+        },
+        "over33": 1,
+        "over50": 0,
+        "over100": 0,
+        "phases": {
+          "simulation": {
+            "calls": 160,
+            "totalMs": 513.7000004649162,
+            "meanMs": 3.2106250029057266,
+            "maxMs": 31.099999964237213
+          },
+          "ai": {
+            "calls": 3,
+            "totalMs": 6.5,
+            "meanMs": 2.1666666666666665,
+            "maxMs": 2.399999976158142
+          },
+          "pathfinding": {
+            "calls": 11,
+            "totalMs": 47.80000001192093,
+            "meanMs": 4.345454546538266,
+            "maxMs": 14.100000023841858
+          },
+          "vision": {
+            "calls": 40,
+            "totalMs": 427.0999998450279,
+            "meanMs": 10.677499996125698,
+            "maxMs": 13.699999988079071
+          },
+          "render": {
+            "calls": 480,
+            "totalMs": 536.8999994397163,
+            "meanMs": 1.1185416654994091,
+            "maxMs": 2.900000035762787
+          },
+          "minimap": {
+            "calls": 480,
+            "totalMs": 24.30000013113022,
+            "meanMs": 0.050625000273187955,
+            "maxMs": 0.800000011920929
+          },
+          "hud": {
+            "calls": 71,
+            "totalMs": 100.90000009536743,
+            "meanMs": 1.4211267619065835,
+            "maxMs": 2.5
+          },
+          "audio": {
+            "calls": 480,
+            "totalMs": 4.699999928474426,
+            "meanMs": 0.009791666517655055,
+            "maxMs": 0.800000011920929
+          },
+          "input": {
+            "calls": 480,
+            "totalMs": 8.899999797344208,
+            "meanMs": 0.0185416662444671,
+            "maxMs": 0.699999988079071
+          },
+          "fog": {
+            "calls": 480,
+            "totalMs": 22.300000071525574,
+            "meanMs": 0.046458333482344946,
+            "maxMs": 1.300000011920929
+          },
+          "sprites": {
+            "calls": 480,
+            "totalMs": 209.29999899864197,
+            "meanMs": 0.4360416645805041,
+            "maxMs": 1.600000023841858
+          },
+          "corpses": {
+            "calls": 480,
+            "totalMs": 104.00000023841858,
+            "meanMs": 0.21666666716337205,
+            "maxMs": 1.4000000357627869
+          },
+          "particles": {
+            "calls": 480,
+            "totalMs": 0.7999999523162842,
+            "meanMs": 0.0016666665673255921,
+            "maxMs": 0.5
+          }
+        },
+        "pathfinding": {
+          "calls": 11,
+          "nodes": 28277
+        },
+        "longTasks": {
+          "count": 0,
+          "maxMs": 0
+        },
+        "spikes": [
+          {
+            "frameMs": 33.29999999999927,
+            "workMs": 1.199999988079071,
+            "previousWorkMs": 35,
+            "phases": {
+              "simulation": 0,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 0,
+              "render": 1.199999988079071,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0,
+              "sprites": 0.699999988079071,
+              "corpses": 0.10000002384185791,
+              "particles": 0
+            },
+            "previousPhases": {
+              "simulation": 31.099999964237213,
+              "ai": 0,
+              "pathfinding": 21.5,
+              "vision": 9.599999964237213,
+              "render": 2.5,
+              "minimap": 0,
+              "hud": 1.4000000357627869,
+              "audio": 0,
+              "input": 0,
+              "fog": 1.300000011920929,
+              "sprites": 0.7999999523162842,
+              "corpses": 0,
+              "particles": 0
+            },
+            "paths": 0,
+            "nodes": 0
+          }
+        ]
+      },
+      "time": 248.00000000002214,
+      "status": "playing",
+      "units": 13,
+      "rush": {
+        "towersOrdered": 6,
+        "blueTowerCredits": 1050,
+        "peakTowers": 6,
+        "allTowersReadyAt": 78,
+        "turretHits": 79,
+        "turretDamage": 470,
+        "immediateResponses": 4,
+        "responseLatency": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "initialized": true
+      }
+    },
+    {
+      "label": "after",
+      "map": "small",
+      "towers": 1,
+      "initialStateHash": "7264e5dca7aa194a82ea815db05129de1bdbc02ac95f920a18de29fd3fa6296b",
+      "catalogHash": "bcb238d270a988ceedd447c92ab51568c41b793bc5a83ff4f6599426d1d61e64",
+      "stats": {
+        "frames": 480,
+        "windowSeconds": 7.999600000000002,
+        "fps": 60.00300015000749,
+        "low1Fps": 59.523809523799216,
+        "frameMs": {
+          "p50": 16.700000000000728,
+          "p95": 16.799999999999272,
+          "p99": 16.80000000000291,
+          "max": 16.80000000000291
+        },
+        "over33": 0,
+        "over50": 0,
+        "over100": 0,
+        "phases": {
+          "simulation": {
+            "calls": 160,
+            "totalMs": 576.5999999046326,
+            "meanMs": 3.6037499994039535,
+            "maxMs": 19.80000001192093
+          },
+          "ai": {
+            "calls": 3,
+            "totalMs": 11.299999952316284,
+            "meanMs": 3.7666666507720947,
+            "maxMs": 4.199999988079071
+          },
+          "pathfinding": {
+            "calls": 7,
+            "totalMs": 6.200000047683716,
+            "meanMs": 0.8857142925262451,
+            "maxMs": 6.200000047683716
+          },
+          "vision": {
+            "calls": 40,
+            "totalMs": 527.8000001311302,
+            "meanMs": 13.195000003278256,
+            "maxMs": 19.80000001192093
+          },
+          "render": {
+            "calls": 481,
+            "totalMs": 475.70000010728836,
+            "meanMs": 0.9889812892043417,
+            "maxMs": 3.100000023841858
+          },
+          "minimap": {
+            "calls": 481,
+            "totalMs": 15.999999940395355,
+            "meanMs": 0.033264033140115085,
+            "maxMs": 0.800000011920929
+          },
+          "hud": {
+            "calls": 70,
+            "totalMs": 93.5,
+            "meanMs": 1.3357142857142856,
+            "maxMs": 2
+          },
+          "audio": {
+            "calls": 481,
+            "totalMs": 5.900000035762787,
+            "meanMs": 0.012266112340463174,
+            "maxMs": 0.800000011920929
+          },
+          "input": {
+            "calls": 481,
+            "totalMs": 7.400000035762787,
+            "meanMs": 0.015384615458966293,
+            "maxMs": 0.699999988079071
+          },
+          "fog": {
+            "calls": 481,
+            "totalMs": 28.59999990463257,
+            "meanMs": 0.059459459261190374,
+            "maxMs": 1.2000000476837158
+          },
+          "sprites": {
+            "calls": 481,
+            "totalMs": 245.70000040531158,
+            "meanMs": 0.5108108116534544,
+            "maxMs": 1.300000011920929
+          },
+          "corpses": {
+            "calls": 481,
+            "totalMs": 16.000000298023224,
+            "meanMs": 0.033264033883624165,
+            "maxMs": 0.7000000476837158
+          },
+          "particles": {
+            "calls": 481,
+            "totalMs": 2.8000001311302185,
+            "meanMs": 0.005821206093825818,
+            "maxMs": 0.699999988079071
+          }
+        },
+        "pathfinding": {
+          "calls": 7,
+          "nodes": 1294
+        },
+        "longTasks": {
+          "count": 0,
+          "maxMs": 0
+        },
+        "spikes": []
+      },
+      "time": 248.00000000002214,
+      "status": "playing",
+      "units": 15,
+      "rush": {
+        "towersOrdered": 1,
+        "blueTowerCredits": 175,
+        "peakTowers": 1,
+        "allTowersReadyAt": 15,
+        "turretHits": 58,
+        "turretDamage": 344,
+        "immediateResponses": 4,
+        "responseLatency": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "initialized": true
+      }
+    },
+    {
+      "label": "after",
+      "map": "medium",
+      "towers": 1,
+      "initialStateHash": "8beefe27e2f513c2fce289afd11169d075f72751a81e72b404d5fdf3d7f8fa62",
+      "catalogHash": "bcb238d270a988ceedd447c92ab51568c41b793bc5a83ff4f6599426d1d61e64",
+      "stats": {
+        "frames": 480,
+        "windowSeconds": 8.0163,
+        "fps": 59.877998577897536,
+        "low1Fps": 49.70178926441064,
+        "frameMs": {
+          "p50": 16.69999999999891,
+          "p95": 16.799999999999272,
+          "p99": 16.80000000000109,
+          "max": 33.400000000001455
+        },
+        "over33": 1,
+        "over50": 0,
+        "over100": 0,
+        "phases": {
+          "simulation": {
+            "calls": 160,
+            "totalMs": 582.9000004529953,
+            "meanMs": 3.6431250028312205,
+            "maxMs": 30.69999998807907
+          },
+          "ai": {
+            "calls": 3,
+            "totalMs": 14.100000023841858,
+            "meanMs": 4.700000007947286,
+            "maxMs": 8.699999988079071
+          },
+          "pathfinding": {
+            "calls": 10,
+            "totalMs": 58.80000001192093,
+            "meanMs": 5.8800000011920925,
+            "maxMs": 17.600000023841858
+          },
+          "vision": {
+            "calls": 40,
+            "totalMs": 487.3000002503395,
+            "meanMs": 12.182500006258488,
+            "maxMs": 18.099999964237213
+          },
+          "render": {
+            "calls": 481,
+            "totalMs": 543.4999995827675,
+            "meanMs": 1.1299376290702026,
+            "maxMs": 3.300000011920929
+          },
+          "minimap": {
+            "calls": 481,
+            "totalMs": 16.099999606609344,
+            "meanMs": 0.03347193265407348,
+            "maxMs": 0.800000011920929
+          },
+          "hud": {
+            "calls": 70,
+            "totalMs": 95.09999990463257,
+            "meanMs": 1.3585714272090368,
+            "maxMs": 2.100000023841858
+          },
+          "audio": {
+            "calls": 481,
+            "totalMs": 5.499999761581421,
+            "meanMs": 0.011434510938838714,
+            "maxMs": 0.699999988079071
+          },
+          "input": {
+            "calls": 481,
+            "totalMs": 8.899999916553497,
+            "meanMs": 0.01850311832963305,
+            "maxMs": 0.699999988079071
+          },
+          "fog": {
+            "calls": 481,
+            "totalMs": 23.799999594688416,
+            "meanMs": 0.049480248637605855,
+            "maxMs": 1.300000011920929
+          },
+          "sprites": {
+            "calls": 481,
+            "totalMs": 272.99999982118607,
+            "meanMs": 0.567567567195813,
+            "maxMs": 1.699999988079071
+          },
+          "corpses": {
+            "calls": 481,
+            "totalMs": 1,
+            "meanMs": 0.002079002079002079,
+            "maxMs": 0.3999999761581421
+          },
+          "particles": {
+            "calls": 481,
+            "totalMs": 2.899999976158142,
+            "meanMs": 0.006029105979538757,
+            "maxMs": 0.800000011920929
+          }
+        },
+        "pathfinding": {
+          "calls": 10,
+          "nodes": 20249
+        },
+        "longTasks": {
+          "count": 0,
+          "maxMs": 0
+        },
+        "spikes": [
+          {
+            "frameMs": 33.400000000001455,
+            "workMs": 2.599999964237213,
+            "previousWorkMs": 31.899999976158142,
+            "phases": {
+              "simulation": 0,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 0,
+              "render": 1,
+              "minimap": 0,
+              "hud": 1.5999999642372131,
+              "audio": 0,
+              "input": 0,
+              "fog": 0,
+              "sprites": 0,
+              "corpses": 0,
+              "particles": 0
+            },
+            "previousPhases": {
+              "simulation": 30.69999998807907,
+              "ai": 0,
+              "pathfinding": 29.5,
+              "vision": 0,
+              "render": 1.199999988079071,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0,
+              "sprites": 0.800000011920929,
+              "corpses": 0,
+              "particles": 0
+            },
+            "paths": 0,
+            "nodes": 0
+          }
+        ]
+      },
+      "time": 248.00000000002214,
+      "status": "playing",
+      "units": 15,
+      "rush": {
+        "towersOrdered": 1,
+        "blueTowerCredits": 175,
+        "peakTowers": 1,
+        "allTowersReadyAt": 15,
+        "turretHits": 28,
+        "turretDamage": 168,
+        "immediateResponses": 3,
+        "responseLatency": [
+          0,
+          0.8999999999999488,
+          0
+        ],
+        "initialized": true
+      }
+    },
+    {
+      "label": "after",
+      "map": "large",
+      "towers": 6,
+      "initialStateHash": "b09492e89cea1c35c1bfd16c9186792d60abbd13779fbcc2f0584a13d3054474",
+      "catalogHash": "bcb238d270a988ceedd447c92ab51568c41b793bc5a83ff4f6599426d1d61e64",
+      "stats": {
+        "frames": 480,
+        "windowSeconds": 8.0163,
+        "fps": 59.877998577897536,
+        "low1Fps": 49.75124378109182,
+        "frameMs": {
+          "p50": 16.69999999999891,
+          "p95": 16.799999999999272,
+          "p99": 16.80000000000109,
+          "max": 33.30000000000109
+        },
+        "over33": 1,
+        "over50": 0,
+        "over100": 0,
+        "phases": {
+          "simulation": {
+            "calls": 160,
+            "totalMs": 530.1000000238419,
+            "meanMs": 3.313125000149012,
+            "maxMs": 34.59999996423721
+          },
+          "ai": {
+            "calls": 3,
+            "totalMs": 6.300000011920929,
+            "meanMs": 2.100000003973643,
+            "maxMs": 2.300000011920929
+          },
+          "pathfinding": {
+            "calls": 11,
+            "totalMs": 52.69999998807907,
+            "meanMs": 4.79090908982537,
+            "maxMs": 16.5
+          },
+          "vision": {
+            "calls": 40,
+            "totalMs": 430.5000001192093,
+            "meanMs": 10.762500002980232,
+            "maxMs": 13.599999964237213
+          },
+          "render": {
+            "calls": 481,
+            "totalMs": 738.2999996542931,
+            "meanMs": 1.5349272342085094,
+            "maxMs": 3
+          },
+          "minimap": {
+            "calls": 481,
+            "totalMs": 24.99999988079071,
+            "meanMs": 0.051975051727215615,
+            "maxMs": 0.800000011920929
+          },
+          "hud": {
+            "calls": 70,
+            "totalMs": 106.39999985694885,
+            "meanMs": 1.5199999979564123,
+            "maxMs": 2.599999964237213
+          },
+          "audio": {
+            "calls": 481,
+            "totalMs": 7.200000047683716,
+            "meanMs": 0.014968815067949514,
+            "maxMs": 0.800000011920929
+          },
+          "input": {
+            "calls": 481,
+            "totalMs": 11.900000095367432,
+            "meanMs": 0.02474012493839383,
+            "maxMs": 0.6000000238418579
+          },
+          "fog": {
+            "calls": 481,
+            "totalMs": 25.19999998807907,
+            "meanMs": 0.05239085236606875,
+            "maxMs": 1.0999999642372131
+          },
+          "sprites": {
+            "calls": 481,
+            "totalMs": 260.40000027418137,
+            "meanMs": 0.541372141942165,
+            "maxMs": 1.5
+          },
+          "corpses": {
+            "calls": 481,
+            "totalMs": 162.59999924898148,
+            "meanMs": 0.338045736484369,
+            "maxMs": 1.300000011920929
+          },
+          "particles": {
+            "calls": 481,
+            "totalMs": 2.2999998331069946,
+            "meanMs": 0.004781704434733877,
+            "maxMs": 0.699999988079071
+          }
+        },
+        "pathfinding": {
+          "calls": 11,
+          "nodes": 28186
+        },
+        "longTasks": {
+          "count": 0,
+          "maxMs": 0
+        },
+        "spikes": [
+          {
+            "frameMs": 33.30000000000109,
+            "workMs": 1.300000011920929,
+            "previousWorkMs": 37.299999952316284,
+            "phases": {
+              "simulation": 0,
+              "ai": 0,
+              "pathfinding": 0,
+              "vision": 0,
+              "render": 1.199999988079071,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0.10000002384185791,
+              "fog": 0,
+              "sprites": 0.699999988079071,
+              "corpses": 0.10000002384185791,
+              "particles": 0
+            },
+            "previousPhases": {
+              "simulation": 34.59999996423721,
+              "ai": 0,
+              "pathfinding": 24.100000023841858,
+              "vision": 10.399999976158142,
+              "render": 2.699999988079071,
+              "minimap": 0,
+              "hud": 0,
+              "audio": 0,
+              "input": 0,
+              "fog": 0.9000000357627869,
+              "sprites": 0.699999988079071,
+              "corpses": 0.3999999761581421,
+              "particles": 0
+            },
+            "paths": 0,
+            "nodes": 0
+          }
+        ]
+      },
+      "time": 248.00000000002214,
+      "status": "playing",
+      "units": 13,
+      "rush": {
+        "towersOrdered": 6,
+        "blueTowerCredits": 1050,
+        "peakTowers": 6,
+        "allTowersReadyAt": 78,
+        "turretHits": 79,
+        "turretDamage": 470,
+        "immediateResponses": 4,
+        "responseLatency": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "initialized": true
+      }
+    }
+  ],
+  "errors": []
+}

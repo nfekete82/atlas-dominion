@@ -1,0 +1,377 @@
+{
+  "version": 1,
+  "image": "props.png",
+  "width": 1896,
+  "height": 2080,
+  "baker": "cpu-pbr",
+  "supersampling": 2,
+  "bakedShadow": true,
+  "camera": {
+    "position": [
+      0,
+      8,
+      12
+    ],
+    "turn": 0.7853981633974483,
+    "pivot": [
+      256,
+      382
+    ],
+    "frustum": 6.8
+  },
+  "atlasSHA256": "89ab1fc6f29e68d8d9817e7eccfbfaa83c40e7d0fd537bf0f5bb8fc83ac140fb",
+  "props": {
+    "military-crate": {
+      "model": "military-crate.glb",
+      "sha256": "4700adc6f70d0728d0714c9dae41b62c5a2bfdfee841a70ade43c00c2ab31dfa",
+      "version": 1,
+      "kind": "military-crate",
+      "parts": 30,
+      "triangles": 15420,
+      "visualOnly": true,
+      "style": "Sandforge desert / CARC sand / worn steel / bleached bone / date palm",
+      "embeddedPBR": true,
+      "surfaceRevision": 2,
+      "zoom": 3.1,
+      "solidWidth": 228,
+      "pivot": [
+        117,
+        167
+      ],
+      "frames": [
+        {
+          "x": 0,
+          "y": 0,
+          "w": 312,
+          "h": 226
+        },
+        {
+          "x": 312,
+          "y": 0,
+          "w": 312,
+          "h": 226
+        },
+        {
+          "x": 624,
+          "y": 0,
+          "w": 312,
+          "h": 226
+        },
+        {
+          "x": 936,
+          "y": 0,
+          "w": 312,
+          "h": 226
+        }
+      ]
+    },
+    "military-crate-stack": {
+      "model": "military-crate-stack.glb",
+      "sha256": "f9b7c04505c18689f0f35f8a21767dea61d68a8e0d8134ae8741e82f6582dcb9",
+      "version": 1,
+      "kind": "military-crate-stack",
+      "parts": 97,
+      "triangles": 50376,
+      "visualOnly": true,
+      "style": "Sandforge desert / CARC sand / worn steel / bleached bone / date palm",
+      "embeddedPBR": true,
+      "surfaceRevision": 2,
+      "zoom": 2.4,
+      "solidWidth": 280,
+      "pivot": [
+        143,
+        221
+      ],
+      "frames": [
+        {
+          "x": 0,
+          "y": 226,
+          "w": 369,
+          "h": 303
+        },
+        {
+          "x": 369,
+          "y": 226,
+          "w": 369,
+          "h": 303
+        },
+        {
+          "x": 738,
+          "y": 226,
+          "w": 369,
+          "h": 303
+        },
+        {
+          "x": 1107,
+          "y": 226,
+          "w": 369,
+          "h": 303
+        }
+      ]
+    },
+    "service-lamp": {
+      "model": "service-lamp.glb",
+      "sha256": "bbc7611974a6113dd92fabcb66f1c667afef43e1b73dd1fc33fe5312456d98a9",
+      "version": 1,
+      "kind": "service-lamp",
+      "parts": 18,
+      "triangles": 7380,
+      "visualOnly": true,
+      "style": "Sandforge desert / CARC sand / worn steel / bleached bone / date palm",
+      "embeddedPBR": true,
+      "surfaceRevision": 2,
+      "zoom": 1.65,
+      "solidWidth": 100,
+      "pivot": [
+        68,
+        271
+      ],
+      "frames": [
+        {
+          "x": 0,
+          "y": 529,
+          "w": 305,
+          "h": 295
+        },
+        {
+          "x": 305,
+          "y": 529,
+          "w": 305,
+          "h": 295
+        },
+        {
+          "x": 610,
+          "y": 529,
+          "w": 305,
+          "h": 295
+        },
+        {
+          "x": 915,
+          "y": 529,
+          "w": 305,
+          "h": 295
+        }
+      ]
+    },
+    "service-terminal": {
+      "model": "service-terminal.glb",
+      "sha256": "0ef624ffab2c4f49beb00ef28b84a9cda79f2e6eb0e2f4b5ee6d30ddd0e031d7",
+      "version": 1,
+      "kind": "service-terminal",
+      "parts": 15,
+      "triangles": 8076,
+      "visualOnly": true,
+      "style": "Sandforge desert / CARC sand / worn steel / bleached bone / date palm",
+      "embeddedPBR": true,
+      "surfaceRevision": 2,
+      "zoom": 3,
+      "solidWidth": 192,
+      "pivot": [
+        112,
+        206
+      ],
+      "frames": [
+        {
+          "x": 0,
+          "y": 824,
+          "w": 313,
+          "h": 269
+        },
+        {
+          "x": 313,
+          "y": 824,
+          "w": 313,
+          "h": 269
+        },
+        {
+          "x": 626,
+          "y": 824,
+          "w": 313,
+          "h": 269
+        },
+        {
+          "x": 939,
+          "y": 824,
+          "w": 313,
+          "h": 269
+        }
+      ]
+    },
+    "fuel-barrels": {
+      "model": "fuel-barrels.glb",
+      "sha256": "d59326e81ba6e856958bfb4dfcc6dbbf41501a6d8b3201f2201f4226f3f7f723",
+      "version": 1,
+      "kind": "fuel-barrels",
+      "parts": 20,
+      "triangles": 4872,
+      "visualOnly": true,
+      "style": "Sandforge desert / CARC sand / worn steel / bleached bone / date palm",
+      "embeddedPBR": true,
+      "surfaceRevision": 2,
+      "zoom": 2.9,
+      "solidWidth": 191,
+      "pivot": [
+        100,
+        175
+      ],
+      "frames": [
+        {
+          "x": 0,
+          "y": 1093,
+          "w": 290,
+          "h": 231
+        },
+        {
+          "x": 290,
+          "y": 1093,
+          "w": 290,
+          "h": 231
+        },
+        {
+          "x": 580,
+          "y": 1093,
+          "w": 290,
+          "h": 231
+        },
+        {
+          "x": 870,
+          "y": 1093,
+          "w": 290,
+          "h": 231
+        }
+      ]
+    },
+    "sandbags": {
+      "model": "sandbags.glb",
+      "sha256": "3db580c6e96800b9fa05fdb558e1ce65ad293abbb98b79c61ebda075d36354bf",
+      "version": 1,
+      "kind": "sandbags",
+      "parts": 15,
+      "triangles": 8120,
+      "visualOnly": true,
+      "style": "Sandforge desert / CARC sand / worn steel / bleached bone / date palm",
+      "embeddedPBR": true,
+      "surfaceRevision": 2,
+      "zoom": 2.8,
+      "solidWidth": 218,
+      "pivot": [
+        114,
+        117
+      ],
+      "frames": [
+        {
+          "x": 0,
+          "y": 1324,
+          "w": 250,
+          "h": 176
+        },
+        {
+          "x": 250,
+          "y": 1324,
+          "w": 250,
+          "h": 176
+        },
+        {
+          "x": 500,
+          "y": 1324,
+          "w": 250,
+          "h": 176
+        },
+        {
+          "x": 750,
+          "y": 1324,
+          "w": 250,
+          "h": 176
+        }
+      ]
+    },
+    "desert-skull": {
+      "model": "desert-skull.glb",
+      "sha256": "0f8ee5358ecfcc4e2f2e8b448840fd146c2edfeec34dfd95166e767a5fd52982",
+      "version": 1,
+      "kind": "desert-skull",
+      "parts": 25,
+      "triangles": 18620,
+      "visualOnly": true,
+      "style": "Sandforge desert / CARC sand / worn steel / bleached bone / date palm",
+      "embeddedPBR": true,
+      "surfaceRevision": 2,
+      "zoom": 3.1,
+      "solidWidth": 384,
+      "pivot": [
+        232,
+        165
+      ],
+      "frames": [
+        {
+          "x": 0,
+          "y": 1500,
+          "w": 474,
+          "h": 295
+        },
+        {
+          "x": 474,
+          "y": 1500,
+          "w": 474,
+          "h": 295
+        },
+        {
+          "x": 948,
+          "y": 1500,
+          "w": 474,
+          "h": 295
+        },
+        {
+          "x": 1422,
+          "y": 1500,
+          "w": 474,
+          "h": 295
+        }
+      ]
+    },
+    "palm-tree": {
+      "model": "palm-tree.glb",
+      "sha256": "b03b826fee79e974e152786bf8da3bf3a626470e7a131f980e18532aeaaf0ba0",
+      "version": 1,
+      "kind": "palm-tree",
+      "parts": 89,
+      "triangles": 37280,
+      "visualOnly": true,
+      "style": "Sandforge desert / CARC sand / worn steel / bleached bone / date palm",
+      "embeddedPBR": true,
+      "surfaceRevision": 2,
+      "zoom": 1.02,
+      "solidWidth": 227,
+      "pivot": [
+        130,
+        265
+      ],
+      "frames": [
+        {
+          "x": 0,
+          "y": 1795,
+          "w": 386,
+          "h": 285
+        },
+        {
+          "x": 386,
+          "y": 1795,
+          "w": 386,
+          "h": 285
+        },
+        {
+          "x": 772,
+          "y": 1795,
+          "w": 386,
+          "h": 285
+        },
+        {
+          "x": 1158,
+          "y": 1795,
+          "w": 386,
+          "h": 285
+        }
+      ]
+    }
+  }
+}

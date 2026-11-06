@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="de" class="sandforge-clean-title">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sandforge: Bastion Wars · WebGL 3D Vorschau</title>
+<link rel="icon" type="image/svg+xml" href="/src/assets/reborn/sandforge-icon.svg">
+<script type="importmap">{"imports":{"three":"/vendor/three/three.module.js","three/addons/":"/vendor/three/addons/"}}</script>
+<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/retro-desert.css">
+<style>
+:root{color-scheme:dark;--bg:#121a1b;--panel:#182528eb;--line:#40504c;--text:#f0e9dc;--muted:#b5b9ac;--gold:#efb86b}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;font:14px system-ui,-apple-system,BlinkMacSystemFont,sans-serif;color:var(--text);background:var(--bg)}
+#stage{width:100%;height:100%;display:block;position:absolute;inset:0}
+#stage canvas{display:block;width:100%;height:100%;outline:none}
+.header{z-index:2;position:absolute;left:20px;top:18px;right:20px;display:flex;gap:16px;align-items:flex-start;justify-content:space-between;pointer-events:none}
+.brand{pointer-events:auto;background:var(--panel);border:1px solid #ffffff24;backdrop-filter:blur(12px);border-radius:10px;padding:12px 17px 13px;box-shadow:0 12px 26px #0006}
+.brand .small{color:var(--gold);font-weight:700;letter-spacing:.19em;font-size:10px}
+.brand h1{margin:3px 0 1px;font-size:22px;letter-spacing:.07em}
+.brand p{margin:4px 0 0;font-size:12px;color:var(--muted)}
+.panel{pointer-events:auto;background:var(--panel);backdrop-filter:blur(12px);border:1px solid #ffffff24;border-radius:9px;padding:11px;display:flex;gap:9px;flex-wrap:wrap;align-items:end}
+label{font-size:11px;color:#ccd1bf;display:grid;gap:5px}
+button,select,input{font:inherit;color:var(--text);border:1px solid #72807877;border-radius:5px;background:#253335;min-height:34px;padding:7px 11px}
+button{cursor:pointer}button:hover{background:#3a4b4b}button[aria-pressed=true]{border-color:#deab64;background:#554535}
+input{width:92px}
+a{color:#f3cf8b;text-decoration:none}
+a:hover{text-decoration:underline}
+.footer{position:absolute;bottom:18px;left:20px;right:20px;display:flex;align-items:end;justify-content:space-between;gap:10px;z-index:2;pointer-events:none}
+.footer>*{pointer-events:auto}
+.info{background:var(--panel);backdrop-filter:blur(12px);border:1px solid #ffffff24;border-radius:9px;padding:12px 15px;max-width:660px;line-height:1.65}
+.info strong{color:#f4d39a}
+.info #status{color:#dee0cf;font-size:12px}
+.info #selection{color:#a6d8e2;font-size:12px}
+#error{color:#ffab9c}
+.toolbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;background:var(--panel);border:1px solid #ffffff24;border-radius:9px;padding:8px}
+.counter{font:600 12px ui-monospace,monospace;color:#e7d8ac;padding:5px 8px;white-space:nowrap}
+.note{font-size:11px;color:#bec7bd}
+@media(max-width:900px){
+ .header{left:8px;right:8px;top:8px;flex-direction:column}.footer{left:8px;right:8px;bottom:8px;flex-direction:column;align-items:start}
+ .brand h1{font-size:18px}.panel{max-width:100%;padding:8px}.info{max-width:100%;font-size:12px}
+}
+</style>
+<link rel="stylesheet" href="/webgl-classic-hud.css">
+<style>
+/* The original title CSS is shared with the Canvas game. Only IDs specific
+   to WebGL's settings/load dialog need these isolated adjustments. */
+#sf3d-new-dialog,#sf3d-options-dialog{width:min(480px,calc(100vw - 30px));max-width:480px;padding:28px;z-index:100}
+#sf3d-new-dialog .sf3d-field,#sf3d-options-dialog .sf3d-field{display:flex;flex-direction:column;gap:5px;margin:14px 0;color:#edd7b2;font:600 12px system-ui}
+#sf3d-new-dialog :is(select,input),#sf3d-options-dialog select{width:100%;background:#243137;border:1px solid #947f57;min-height:39px;padding:9px;color:#f7ebd4}
+#sf3d-options-dialog .sf3d-check{display:flex;align-items:center;gap:12px;margin:15px 0;font:13px system-ui}
+#sf3d-options-dialog .sf3d-check input{width:19px;height:19px;accent-color:#b99b6c}
+#sf3d-new-dialog .dialog-actions,#sf3d-options-dialog .dialog-actions{display:flex;justify-content:space-between;gap:8px}
+#sf3d-new-dialog .dialog-actions button,#sf3d-options-dialog .dialog-actions button{min-width:125px}
+#sf3d-boot{position:fixed;z-index:90;bottom:16px;left:16px;color:#f0c782;background:#172526d9;border:1px solid #92734e;padding:10px 14px}
+#sf3d-boot[hidden],#sf3d-fatal[hidden]{display:none}
+#sf3d-fatal{position:fixed;z-index:120;inset:0;background:#111c20f2;color:#f4dcc0;display:grid;place-items:center}
+#sf3d-fatal .sf3d-fatal-inner{max-width:650px;padding:40px;background:#243037;border:1px solid #987950}
+#sf3d-fatal pre{white-space:pre-wrap;overflow-wrap:anywhere;color:#f8ad9f}
+#main-dialog .sandforge-splash-logo{display:block;max-width:100%;object-fit:contain}
+#sf3d-pause-dialog .menu-buttons button{width:100%}
+</style>
+</head>
+<body>
+<div id="stage" aria-label="Echte Three.js WebGL 3D Wüstenlandschaft"></div>
+<div class="header">
+ <div class="brand"><div class="small">SANDFORGE / THREE.JS PREVIEW</div><h1>BASTION WARS <span style="color:var(--gold)">3D</span></h1>
+ <p>Operation Weite Wüste · spielbare WebGL-Kampagne</p></div>
+ <div class="panel" role="group" aria-label="3D-Kartensteuerung">
+  <label for="bastions">Bastionen<select id="bastions"><option value="4">4</option><option value="8">8</option><option value="12">12</option><option value="16">16</option></select></label>
+  <label for="seed">Karten-Seed<input id="seed" inputmode="numeric" type="number" min="0" max="4294967295" value="2026"></label>
+  <button id="load" title="Neue 3D-Karte laden">Karte laden</button>
+  <a href="/" style="padding:10px 6px;font-size:12px">Klassisches RTS</a>
+ </div>
+</div>
+<div class="footer">
+ <div class="info">
+  <div><strong>WebGL-Rendering</strong> <span class="note">· echte Höhengeometrie, GPU-Schatten und PBR-glTF-Assets</span></div>
+  <div id="status" role="status">Initialisiere WebGL-3D-Szene …</div>
+  <div id="selection" aria-live="polite">WASD/Pfeiltasten: Kamera · Rechtsklick: Befehl · F: Angriff · Q/E: Drehen · Mausrad: Zoom</div>
+  <div id="error" role="alert"></div>
+  <div class="note">3D-Kampagne mit Produktion, Bau, KI, Kampf und Speicherfunktion. Das klassische RTS bleibt separat.</div>
+ </div>
+ <div class="toolbar">
+  <button id="rotate-left" title="Kamera nach links drehen" aria-label="Kamera links">↶</button>
+  <button id="rotate-right" title="Kamera nach rechts drehen" aria-label="Kamera rechts">↷</button>
+  <button id="home">Ansicht zurücksetzen</button>
+  <button id="simulation" aria-pressed="false">Simulation starten</button>
+  <button id="sound" aria-pressed="false">Sound einschalten</button>
+  <span class="counter"><span id="fps">–</span> FPS · <span id="clock">0 s</span></span>
+ </div>
+</div>
+
+<dialog id="main-dialog" class="main-menu" aria-label="Sandforge: Bastion Wars Hauptmenü">
+ <div class="menu-brand"><img class="sandforge-splash-logo" src="/src/assets/reborn/sandforge-logo-transparent.webp" alt="Sandforge: Bastion Wars"></div>
+ <div class="menu-buttons">
+  <button id="sf3d-new" class="menu-button primary">NEUES SPIEL</button>
+  <button id="sf3d-continue" class="menu-button" hidden>KAMPAGNE FORTSETZEN</button>
+  <button id="sf3d-campaign" class="menu-button">KAMPAGNE WÄHLEN</button>
+  <button id="sf3d-main-load" class="menu-button">SPIELSTAND LADEN</button>
+  <button id="sf3d-main-options" class="menu-button">OPTIONEN</button>
+ </div>
+ <p id="sf3d-menu-status" role="status" aria-live="polite"></p>
+</dialog>
+<dialog id="sf3d-new-dialog" aria-label="Neue 3D-Kampagne">
+ <small>SANDFORGE / NEUE KAMPAGNE</small><h1>Schlachtfeld wählen</h1>
+ <p>OPERATION WEITE WÜSTE — 50 % größere Schlachtfelder, natürliche Felszonen und offene Manöverflächen.</p>
+ <label class="sf3d-field" for="sf3d-map-size">Kartengröße / Bastionen
+  <select id="sf3d-map-size"><option value="4">Klein · 4 Bastionen</option><option value="8" selected>Mittel · 8 Bastionen</option><option value="12">Groß · 12 Bastionen</option><option value="16">Sehr groß · 16 Bastionen</option></select>
+ </label>
+ <label class="sf3d-field" for="sf3d-seed">Karten-Seed (optional)
+  <input id="sf3d-seed" type="number" min="0" max="4294967295" placeholder="Zufällige Karte" autocomplete="off">
+ </label>
+ <p id="sf3d-new-status" role="status"></p>
+ <div class="dialog-actions">
+  <button type="button" data-sf3d-close>ABBRECHEN</button>
+  <button id="sf3d-new-confirm" class="primary" type="button">KAMPAGNE STARTEN</button>
+ </div>
+</dialog>
+<dialog id="sf3d-options-dialog" aria-label="3D-Grafik- und Soundoptionen">
+ <small>SANDFORGE / OPTIONEN</small><h1>Grafik und Sound</h1>
+ <label class="sf3d-field" for="sf3d-quality">Grafikprofil
+  <select id="sf3d-quality"><option value="high">Hohe Details / PBR-Modelle</option><option value="lite">Leistungsmodus / vereinfachte Modelle</option></select>
+ </label>
+ <label class="sf3d-check" for="sf3d-fog"><input id="sf3d-fog" type="checkbox" checked> Nebel des Krieges</label>
+ <label class="sf3d-check" for="sf3d-sound"><input id="sf3d-sound" type="checkbox" checked> Sounds erlauben (erst nach Klick aktiv)</label>
+ <button id="sf3d-audio-test" type="button" style="display:block;width:100%;margin:8px 0;border-color:#af9264">SOUND TESTEN</button>
+ <p id="sf3d-audio-status" role="status" style="font:12px system-ui;color:#ddc6a0;min-height:18px">Klickgeräusche, Befehle und Kampf-Sounds über WebAudio</p>
+ <p>Grafikqualität wird beim nächsten Start übernommen. Sound benötigt eine Benutzeraktion.</p>
+ <div class="dialog-actions"><button type="button" data-sf3d-close>ABBRECHEN</button><button id="sf3d-options-save" class="primary" type="button">SPEICHERN</button></div>
+</dialog>
+<dialog id="sf3d-pause-dialog" class="pause-menu frame" aria-label="Sandforge Spielmenü">
+ <div class="menu-brand sf3d-pause-brand"><img class="sandforge-logo sandforge-pause-logo" src="/src/assets/reborn/sandforge-logo-transparent.webp" alt="Sandforge: Bastion Wars" decoding="async"></div>
+ <h2 class="sf3d-pause-title">TAKTISCHE PAUSE</h2>
+ <div class="menu-buttons">
+  <button id="sf3d-pause-resume" class="menu-button primary">SPIEL FORTSETZEN</button>
+  <button id="sf3d-pause-save" class="menu-button">SPEICHERN</button>
+  <button id="sf3d-pause-load" class="menu-button">LADEN</button>
+  <button id="sf3d-pause-options" class="menu-button">OPTIONEN</button>
+  <button id="sf3d-pause-new" class="menu-button">NEUE KAMPAGNE</button>
+  <button id="sf3d-pause-main" class="menu-button">ZUM HAUPTMENÜ</button>
+ </div>
+ <div class="pause-scene" aria-hidden="true"><span>OPERATION CANYON FRONT<small>SIMULATION ANGEHALTEN</small></span></div>
+ <p role="status" id="sf3d-pause-status"></p>
+</dialog>
+<div id="sf3d-boot" role="status" hidden>Sandforge 3D wird geladen …</div>
+<div id="sf3d-fatal" role="alert" hidden>
+ <div class="sf3d-fatal-inner">
+  <h1 id="sf3d-fatal-title">3D konnte nicht geladen werden</h1>
+  <p>Der bisherige Sandforge-Modus ist weiterhin verfügbar.</p>
+  <pre id="sf3d-fatal-detail"></pre>
+  <p><a href="/webgl-preview.html">ZUM HAUPTMENÜ</a> · <a href="/classic.html">KLASSISCHE VERSION</a></p>
+ </div>
+</div>
+
+<script>
+(function(){
+ const show=(message)=>{
+  const error=document.getElementById('error'),status=document.getElementById('status');
+  if(error)error.textContent='3D-Startfehler: '+message;
+  if(status)status.textContent='Die 3D-Szene konnte nicht initialisiert werden.';
+ };
+ window.addEventListener('error',e=>show(e.message||'JavaScript-Modul konnte nicht geladen werden'));
+ window.addEventListener('unhandledrejection',e=>show(String(e.reason||'Unbehandelter Ladefehler')));
+})();
+</script>
+<script defer src="/webgl-title-menu.js"></script>
+</body></html>
