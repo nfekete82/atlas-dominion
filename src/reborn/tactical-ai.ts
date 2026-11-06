@@ -314,7 +314,20 @@ export class TacticalAI {
      const at=unitSpec(u).flying?p:g.world.nearest(p,this.obstacles(),[],u,Math.max(0,unitSpec(u).radius-10));if(at){o.x=at.x;o.y=at.y;}
     }
    }
-   if(o.formation&&front.length)o.formation.front=front.map(v=>v.id);
+   if(o.formation&&front.length){
+    // On legacy tactical assaults, medics protect the *whole paid combat
+    // line*, not just the armored vanguard chosen for collision-safe leading.
+    // Modern campaign escort behavior is intentionally unchanged.
+    if(g.world.mapVersion<=2&&u.kind==='medic'&&mode==='assault')
+     o.formation.front=units.filter(combat).map(v=>v.id);
+    else o.formation.front=front.map(v=>v.id);
+    // The standard 86/122-unit second rank leaves legacy mixed assaults
+    // hundreds of units behind the tank after several seconds. Keep the
+    // ground infantry behind the hull, but close enough to advance at the
+    // heavy-infantry pace rather than repeatedly chasing a stale rear slot.
+    if(g.world.mapVersion<=2&&mode==='assault'&&armor.length&&['infantry','heavy'].includes(u.kind))
+     o.formation.rear=32;
+   }
   }
   return true;
  }
@@ -1067,7 +1080,7 @@ export class TacticalAI {
   // objectives rather than near-absolute forbidden zones. The risk field still
   // applies, but the score reflects the weapon's standoff advantage.
   const siegeAvailable=selected.some(u=>u.kind==='artillery'&&u.hp>0);
-  const candidates=targets.map(t=>{
+  const ranked=targets.map(t=>{
    const loss=s.attempts.find(a=>a.sector===t.id),route=this.route(s.rally!,t.point),travel=this.sampleRoute(route,s.rally!);
    const towers=s.knownTurrets.filter(b=>distance(b,t.point)<b.range+85||route.some((p,i)=>segmentDistance(b,i?route[i-1]:s.rally!,p)<b.range+40));
    const defenders=g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)&&distance(u,t.point)<420).reduce((n,u)=>n+combatStrength(u),0);
@@ -1080,7 +1093,16 @@ export class TacticalAI {
    const pressure=owned>=(g.world.mapVersion>=3?Math.max(1,Math.floor(g.territories.length/4)):4)?(t.owner===0?2000:t.neighbors.some(i=>g.territories[i].owner===0)?1200:0):0;
    const siegeRoute=siegeAvailable&&towers.length>0;
    return {t,route,...travel,towers,knownHQ,knownIndustry,defenders,score:travel.length+travel.risk*(siegeRoute?40:75)+towers.length*(siegeRoute?260:700)+defenders*130+(loss&&loss.until>g.time?900+loss.losses*180:0)-t.income*16-t.neighbors.filter(i=>g.territories[i].owner!==1).length*45-pressure-(knownIndustry?300:0)};
-  }).filter(c=>c.route.length).sort((a,b)=>a.score-b.score||a.t.id-b.t.id);
+  }).filter(c=>c.route.length);
+  // Legacy maps still permit remote capture as a physical rule, but their
+  // tactical AI must attack a reachable connected front first. Otherwise a
+  // newly neutral pocket near its own HQ can replace the actual assault
+  // objective and prematurely trigger regrouping. If no connected route is
+  // available, keep the free-capture fallback rather than deadlocking.
+  const frontier=g.world.mapVersion<=2
+   ?ranked.filter(c=>c.t.neighbors.some(id=>g.territories[id]?.owner===1))
+   :[];
+  const candidates=(frontier.length?frontier:ranked).sort((a,b)=>a.score-b.score||a.t.id-b.t.id);
   if(!candidates.length){this.strategyOptions=[];this.setPhase('regroup');this.issue([...selected,...medics],s.rally,'safe');return;}
   this.strategyOptions=candidates.slice(0,4).map(c=>({sectorId:c.t.id,owner:c.t.owner===0?'enemy':'neutral',
    score:c.score,travel:c.length,routeRisk:c.risk,defenders:c.defenders,turrets:c.towers.length,income:c.t.income}));

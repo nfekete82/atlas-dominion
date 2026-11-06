@@ -418,9 +418,36 @@ export class Simulation {
          ?[...buildings,...infantryStructureColliders(buildings),...towers]
          :[...buildings,...vehicleStructureColliders(buildings),...this.vehicleDecorObstacles(),...towers];
        const target=this.world.nearest(destination,obstacles,[],u);
+      // A tank moves its rear escort point every tick. Keeping the old
+      // seven-tenths-second path to that moving point leaves legacy assault
+      // infantry trailing the armor even on clear terrain. Only refresh when
+      // its path endpoint is materially stale; modern campaign and manual
+      // formations retain their existing cadence and obstacle rules.
+      if(target&&fighter&&u.owner===1&&this.world.mapVersion<=2&&
+        order?.tactical?.mode==='assault'&&
+        (u.path.length
+          ? distance(u.path[u.path.length-1],target)>18
+          : distance(u,target)>12)){
+        // The escort point moves with the tank. Replan both a stale *live*
+        // route and an already-consumed route immediately; otherwise the
+        // normal 0.7s retry timer makes rear ranks stand still on open ground.
+        u.path=[];u.repath=0;
+      }
       if(target){const before={x:u.x,y:u.y},walk=u.walkDistance;// Pioneers match the squad pace even when a nearby vehicle needs repair;
         // an isolated pioneer (without formation) still uses its full catalog speed.
-        this.move(u,target,dt,medic&&patient?unitSpec(u).speed:Math.min(...front.map(v=>unitSpec(v).speed)));
+        // A legacy AI rifleman who fell behind the moving tank can use his
+        // real running speed to close the gap. Escort's forward-projection
+        // clamp still prevents crossing the armored front, and the standard
+        // shared pace resumes as soon as the intended rank gap is restored.
+        // Player, heavy infantry and modern map formations are unchanged.
+        const formationCatchUp=u.owner===1&&this.world.mapVersion<=2&&
+          u.kind==='infantry'&&order?.tactical?.mode==='assault'&&
+          progress-project(u)>rearDistance+16&&distance(u,target)>24;
+        this.move(u,target,dt,
+          medic&&patient||formationCatchUp
+            ?unitSpec(u).speed
+            :Math.min(...front.map(v=>unitSpec(v).speed)),
+          formationCatchUp);
         if(project(u)>progress-32&&project(u)>project(before)){u.x=before.x;u.y=before.y;u.walkDistance=walk;u.moving=false;u.path=[];}
       }
     }else{u.path=[];if(front.every(v=>!v.orders.length)&&distance(u,rear)<18)u.orders.shift();}
@@ -668,7 +695,7 @@ export class Simulation {
     u.combatTarget=best?.id??null;
     return best;
   }
-  private move(u:Unit,target:Point,dt:number,speedLimit=Infinity):void {
+  private move(u:Unit,target:Point,dt:number,speedLimit=Infinity,formationCatchUp=false):void {
     const spec=unitSpec(u),clearance=Math.max(0,spec.radius-10);
     const vehicle=spec.group==='Fahrzeuge'&&!spec.flying,ground=!spec.flying;
     const buildings=this.obstacles();
@@ -747,7 +774,11 @@ export class Simulation {
       }
     }
     const cohort=u.orders[0]?.march;
-    if(cohort){const allies=this.units.filter(v=>cohort.includes(v.id)&&v.owner===u.owner&&v.hp>0);if(allies.length){speedLimit=Math.min(speedLimit,...allies.map(v=>unitSpec(v).speed));
+    if(cohort){const allies=this.units.filter(v=>cohort.includes(v.id)&&v.owner===u.owner&&v.hp>0);if(allies.length){
+      // Escort already enforces the moving armor's front position. A lagging
+      // legacy AI rifleman must be allowed a short catch-up burst instead
+      // of being capped to tank speed by the redundant march metadata.
+      if(!formationCatchUp)speedLimit=Math.min(speedLimit,...allies.map(v=>unitSpec(v).speed));
       if(u.orders[0]?.rear&&!u.orders[0].target&&distance(u,target)<Math.max(...allies.map(v=>distance(v,v.orders[0]??target)))+u.orders[0].rear)speedLimit=0;
       // A straight-line distance cannot compare progress on opposite sides of
       // a rock. Let the column pass bends before enforcing its open-ground lead.

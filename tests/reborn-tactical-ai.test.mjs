@@ -53,6 +53,18 @@ test('tactical: a standard group launches together with shared pace, keeps a hom
  const before=members.map(u=>u.x);advance(g,.5);assert.ok(members.every((u,i)=>u.x>before[i]));
 });
 
+test('tactical: legacy AI prefers an accessible connected front but falls back to remote capture',()=>{
+ const local=fixture(),pocket=local.g.territories[13];
+ pocket.point={x:1250,y:1880};
+ assert.equal(pocket.neighbors.length,0,'fixture needs an unconnected sector close to home');
+ force(local.g);
+ assert.equal(local.g.tactical.state.target,local.target.id,'a nearby isolated neutral pocket must not divert the front');
+ const fallback=fixture();
+ fallback.own.neighbors=[];fallback.target.neighbors=[];
+ force(fallback.g);
+ assert.notEqual(fallback.g.tactical.state.target,null,'remote capture remains available when no connected route exists');
+});
+
 test('tactical: a defended bastion waits for six to ten real combat units and then concentrates on the registered tower before capture',()=>{
  const {g,u,target}=fixture();target.point={x:1900,y:1900};const b=tower(g);reveal(g,b);force(g);assert.notEqual(g.tactical.state.phase,'attack');
  for(let i=0;i<7;i++)g.spawn(1,{x:1110+(i%3)*30,y:1870+Math.floor(i/3)*30},i===0?'tank':i<3?'heavy':'infantry');
