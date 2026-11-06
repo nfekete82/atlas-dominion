@@ -1,9 +1,9 @@
 import {test,expect} from '@playwright/test';
 
-// The 3D root is opt-in during G0. CI builds with SANDFORGE_RENDERER=webgl
-// and exercises a real WebGL scene, not just HTML string replacement.
+// RC2: the ordinary build opens the 3D game at /. Legacy-only suites
+// explicitly set SANDFORGE_RENDERER=classic to test the Canvas reference.
 test('release candidate starts the actual WebGL game at / and keeps classic accessible',async({page,request})=>{
- test.skip(process.env.SANDFORGE_RENDERER!=='webgl',
+ test.skip(process.env.SANDFORGE_RENDERER==='classic',
   'Run with SANDFORGE_RENDERER=webgl after the 3D release candidate build');
  test.setTimeout(125000);
  const errors=[];
