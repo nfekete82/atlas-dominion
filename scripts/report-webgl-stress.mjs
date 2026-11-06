@@ -12,14 +12,14 @@ const rows=['# Sandforge WebGL 3D — automated stress evidence','',
  '',
  '## Authoritative simulation (synthetic opposing armies + regular AI)',
  '',
- '| Bastionen | Simulierte Sekunden | Kampfereignisse | Sim p95 (early / mid / late) | Heap MB | Status |',
- '|---:|---:|---:|---:|---:|---|'];
+ '| Bastionen | Simulierte Sekunden | Partien | Kampfereignisse | Sim p95 (early / mid / late) | Heap MB | Status |',
+ '|---:|---:|---:|---:|---:|---:|---|'];
 for(const n of [4,8,12,16]){
  const r=read('simulation-'+n+'.json');
- rows.push(r?'| '+n+' | '+r.secondsReached.toFixed(1)+' | '+r.combat.damageEvents+
+ rows.push(r?'| '+n+' | '+r.secondsReached.toFixed(1)+' | '+r.episodes.length+' | '+r.combat.damageEvents+
   ' | '+r.stages.map(s=>s.p95.toFixed(2)).join(' / ')+' ms | '+r.heapMB+
   ' | '+(r.errors.length?'FAIL: '+r.errors.join(', '):'PASS')+' |':
-  '| '+n+' | — | — | — | — | no report |');
+  '| '+n+' | — | — | — | — | — | no report |');
 }
 rows.push('','## Real Chromium/Three.js load (software GPU)',
  '',
