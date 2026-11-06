@@ -46,7 +46,7 @@ test('barracks doorway extracts authored merged mesh pieces and cuts the actual 
 async function fixture(kind,facing=0){
  const {Simulation}=await import('../dist/src/reborn/simulation.js');
  const {BUILDINGS,UNITS}=await import('../dist/src/reborn/catalog.js');
- const g=new Simulation(2074,4);g.aiClock=-1e9;
+ const g=new Simulation(2074,19);g.aiClock=-1e9;
  g.world.blocked.fill(0);g.world.opaque.fill(0);
  g.credits[0]=1e6;g.paused=false;g.status='playing';
  const unitKind=kind==='factory'?'rover':'infantry',spec=BUILDINGS[kind];
