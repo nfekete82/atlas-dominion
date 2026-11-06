@@ -70,6 +70,13 @@ jobs:
           npm ci --prefix tests/browser --no-audit --no-fund
           cd tests/browser
           npx playwright install --with-deps chromium
+      - name: Fast Mac-sized four-panel HUD layout without GPU load
+        run: |
+          npm run build
+          tests/browser/node_modules/.bin/playwright test \
+            --config=tests/browser/playwright.config.mjs \
+            tests/browser/webgl-hud-responsive.spec.mjs \
+            --workers=1 --reporter=line
       - name: Full WebGL game integration (17 Node + Chromium specs)
         run: npm run test:webgl-integration
       - name: Default root menu, save/restore and explicit classic URL
