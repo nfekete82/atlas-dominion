@@ -424,8 +424,15 @@ export class Simulation {
       // its path endpoint is materially stale; modern campaign and manual
       // formations retain their existing cadence and obstacle rules.
       if(target&&fighter&&u.owner===1&&this.world.mapVersion<=2&&
-        order?.tactical?.mode==='assault'&&u.path.length&&
-        distance(u.path[u.path.length-1],target)>18){u.path=[];u.repath=0;}
+        order?.tactical?.mode==='assault'&&
+        (u.path.length
+          ? distance(u.path[u.path.length-1],target)>18
+          : distance(u,target)>12)){
+        // The escort point moves with the tank. Replan both a stale *live*
+        // route and an already-consumed route immediately; otherwise the
+        // normal 0.7s retry timer makes rear ranks stand still on open ground.
+        u.path=[];u.repath=0;
+      }
       if(target){const before={x:u.x,y:u.y},walk=u.walkDistance;// Pioneers match the squad pace even when a nearby vehicle needs repair;
         // an isolated pioneer (without formation) still uses its full catalog speed.
         this.move(u,target,dt,medic&&patient?unitSpec(u).speed:Math.min(...front.map(v=>unitSpec(v).speed)));
