@@ -7,7 +7,7 @@ async function load(page){
  await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,null,{timeout:95000});
 }
 
-test('Zero Hour-inspired HUD has left minimap, horizontal middle catalog and right commands',async({page})=>{
+test('compact HUD separates radar, horizontal catalog, production and right-side commands',async({page})=>{
  test.setTimeout(115000);
  await load(page);
  const before=await page.evaluate(()=>{
@@ -20,6 +20,7 @@ test('Zero Hour-inspired HUD has left minimap, horizontal middle catalog and rig
    dock:rect('#sidebar'),
    radar:rect('#sidebar .radar'),
    catalog:rect('#sidebar .catalog'),
+   production:rect('#sf-production'),
    commands:rect('#sf-selection-panel'),
    map:rect('#sf-map'),
    zoom:window.__sandforgeWebGL.camera.zoom,
@@ -29,11 +30,13 @@ test('Zero Hour-inspired HUD has left minimap, horizontal middle catalog and rig
    rimHidden:window.__sandforgeWebGL.boundaryCliffs.cliffs.every(x=>!x.visible)
   };
  });
- expect(before.dock.top).toBeGreaterThan(510); // taller dock makes room for a dedicated production panel
+ expect(before.dock.top).toBeGreaterThan(625); // compact HUD leaves the battlefield visible on a 900px-tall Mac window
  expect(before.dock.bottom).toBeGreaterThan(875);
  expect(before.radar.left).toBeLessThan(before.catalog.left);
- expect(before.catalog.left).toBeLessThan(before.commands.left);
- expect(before.catalog.right).toBeLessThan(before.commands.left);
+ expect(before.catalog.left).toBeLessThan(before.production.left);
+ expect(before.catalog.right).toBeLessThanOrEqual(before.production.left+2);
+ expect(before.production.right).toBeLessThan(before.commands.left);
+ expect(before.production.height).toBeGreaterThanOrEqual(215);
  expect(before.commands.bottom).toBeGreaterThan(875);
  expect(before.map.width).toBeGreaterThan(100);
  expect(before.zoom).toBeCloseTo(.59,2);
@@ -70,13 +73,41 @@ test('Zero Hour-inspired HUD has left minimap, horizontal middle catalog and rig
  expect(after.tab).toBe('buildings');
  expect(after.cards).toBeGreaterThan(1);
  expect(after.second).toBeGreaterThan(after.first);
- expect(after.dockHeight).toBeGreaterThanOrEqual(265);
- expect(after.tabHeight).toBeGreaterThanOrEqual(40);
+ expect(after.dockHeight).toBeGreaterThanOrEqual(225);
+ expect(after.dockHeight).toBeLessThanOrEqual(270);
+ expect(after.tabHeight).toBeGreaterThanOrEqual(34);
  expect(after.tabFont).toBeGreaterThanOrEqual(12);
  expect(after.cardHeight).toBeGreaterThanOrEqual(120);
  expect(after.labelMin).toBeGreaterThanOrEqual(12);
  expect(after.commandFont).toBeGreaterThanOrEqual(12);
  expect(after.firstRow).toBe(true);
+ // Responsive reflow is CSS-only; check the 1600x900 Mac layout first,
+ // then verify a narrower browser still exposes a usable separate queue.
+ await page.setViewportSize({width:1600,height:900});
+ const mac=await page.evaluate(()=>{
+  const r=s=>document.querySelector(s).getBoundingClientRect();
+  const dock=r('#sidebar'),catalog=r('#sidebar .catalog'),
+   production=r('#sf-production'),command=r('#sf-selection-panel');
+  return {dockHeight:dock.height,productionHeight:production.height,
+   rightOf:production.left>=catalog.right-2,
+   beforeCommands:production.right<command.left};
+ });
+ expect(mac.dockHeight).toBeLessThanOrEqual(270);
+ expect(mac.productionHeight).toBeGreaterThanOrEqual(215);
+ expect(mac.rightOf&&mac.beforeCommands).toBe(true);
+ await page.setViewportSize({width:820,height:720});
+ const narrow=await page.evaluate(()=>{
+  const r=s=>document.querySelector(s).getBoundingClientRect();
+  const catalog=r('#sidebar .catalog'),production=r('#sf-production'),
+   command=r('#sf-selection-panel'),dock=r('#sidebar');
+  return {separate:document.querySelector('#sf-production').parentElement.id==='sidebar',
+   below:production.top>=catalog.bottom-2,
+   inside:production.bottom<=dock.bottom+1,
+   beforeCommands:production.right<command.left,
+   slotVisible:production.width>100};
+ });
+ expect(narrow.separate).toBe(true);
+ expect(narrow.below&&narrow.inside&&narrow.beforeCommands&&narrow.slotVisible).toBe(true);
 });
 
 test('lite infantry visual scale is reduced without changing unit collision radius',async({page})=>{
@@ -200,7 +231,8 @@ test('context menus expose builder construction and only the selected producer u
  expect(builder.row).toBe(true);
  expect(builder.name).toBe('nowrap');
  expect(builder.priceBelow).toBe(true);
- expect(builder.dockHeight).toBeGreaterThanOrEqual(300);
+ expect(builder.dockHeight).toBeGreaterThanOrEqual(225);
+ expect(builder.dockHeight).toBeLessThanOrEqual(270);
  expect(builder.unitTab).toBe(true);
  await page.waitForFunction(()=>{
   const icons=[...document.querySelectorAll('img[data-sf-building-icon]')];
@@ -367,13 +399,15 @@ test('production has a framed panel with live queue slots and building progress'
   const production=panel.getBoundingClientRect();
   const catalog=document.querySelector('#sf-actions').getBoundingClientRect();
   return {height:production.height,catalogHeight:catalog.height,
-   below:production.top>=catalog.bottom-2,inside:production.bottom<=dock.bottom,
+   beside:production.left>=catalog.right-2,inside:production.bottom<=dock.bottom,
+   separate:panel.parentElement?.id==='sidebar',
    border:getComputedStyle(panel).borderTopWidth,
    empty:document.querySelector('#sf-queue-slots').textContent};
  });
- expect(layout.height).toBeGreaterThanOrEqual(120);
+ expect(layout.height).toBeGreaterThanOrEqual(215);
  expect(layout.catalogHeight).toBeGreaterThan(100);
- expect(layout.below).toBe(true);
+ expect(layout.beside).toBe(true);
+ expect(layout.separate).toBe(true);
  expect(layout.inside).toBe(true);
  expect(layout.border).toBe('2px');
  expect(layout.empty).toContain('Noch keine Produktion aktiv');
