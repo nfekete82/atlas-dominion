@@ -7,8 +7,8 @@ import { profiler } from './performance.js';
 import { RULES, WEATHER_RULES, clamp, distance, type Faction, type Owner, type Point, type MapVersion, mapLayout, campaignLayout, mapWorldSize } from './config.js';
 import { World, inside, type Territory } from './world.js';
 import {visibleBasePropColliders} from './vehicle-decor-collision.js';
-import {vehicleStructureColliders} from './vehicle-structure-collision.js';
-import {infantryStructureColliders} from './infantry-structure-collision.js';
+import {vehicleStructureCollider,vehicleStructureColliders} from './vehicle-structure-collision.js';
+import {infantryStructureCollider,infantryStructureColliders} from './infantry-structure-collision.js';
 import {bastionStructureColliders} from './bastion-structure-collision.js';
 import {constructionVisualClearance} from './construction-spacing.js';
 import {segmentDistance} from './world-generation.js';
@@ -234,7 +234,15 @@ export class Simulation {
     for(let i=0;i<32;i++)if(!this.world.walkable({x:p.x+Math.cos(i*Math.PI/16)*spec.radius,y:p.y+Math.sin(i*Math.PI/16)*spec.radius}))return 'Die gesamte Grundfläche muss frei sein.';
     if(this.obstacles().some(b=>distance(b,p)<constructionVisualClearance(kind,b.kind)))return 'Zu nah an einem anderen Gebäude.';
     if(this.territories.some(t=>distance(t.point,p)<spec.radius+45))return 'Bastion und Kontrollpunkt müssen frei bleiben.';
-    if(this.units.some(u=>u.hp>0&&!u.carrier&&!unitSpec(u).flying&&distance(u,p)<spec.radius+unitSpec(u).radius))return 'Einheiten blockieren die Baustelle.';
+    // Placement and actual navigation must agree: the visible facade is wider
+    // and offset north of Base.radius. A worker can otherwise be inside the
+    // newly spawned factory wall before receiving its first build order.
+    const infantryFacade=infantryStructureCollider(kind,p),vehicleFacade=vehicleStructureCollider(kind,p);
+    if(this.units.some(u=>{
+      if(u.hp<=0||u.carrier||unitSpec(u).flying)return false;
+      const facade=unitSpec(u).group==='Fahrzeuge'?vehicleFacade:infantryFacade;
+      return distance(u,facade)<facade.radius+unitSpec(u).radius;
+    }))return 'Einheiten blockieren die Baustelle.';
     return null;
   }
   build(owner:Faction,kind:BuildingKind,p:Point,workerIds?:number[],facing:0|1|2|3=0,append=false):Base|null {
