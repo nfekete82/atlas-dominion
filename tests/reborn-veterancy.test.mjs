@@ -50,7 +50,8 @@ test('veterancy: elite medic has increased healing radius and rate; engineer rep
 test('veterancy: construction XP is proportional to applied work, completion shared once; pause/cancel give none',()=>{
  const g=fixture();g.explored[0].fill(1);g.credits[0]=5000;
  let p;for(let y=2100;y<3400&&!p;y+=40)for(let x=300;x<1700;x+=40)if(!g.buildError(0,'barracks',{x,y})){p={x,y};break;}
- const e=g.spawn(0,{x:p.x+85,y:p.y},'engineer'),b=g.build(0,'barracks',p,[e.id]);assert.ok(b);g.step();near(e.xp,.1);near(b.buildRemaining,11.95);
+ // Barracks have a wider visible footprint than their legacy interaction radius.
+ const e=g.spawn(0,{x:p.x+105,y:p.y},'engineer'),b=g.build(0,'barracks',p,[e.id]);assert.ok(b);g.step();near(e.xp,.1);near(b.buildRemaining,11.95);
  g.paused=true;advance(g,1);near(e.xp,.1);g.paused=false;
  b.buildRemaining=.025;g.step();near(e.xp,.15+20);const xp=e.xp;g.step();near(e.xp,xp);
  const other={...b,id:1900,kind:'generator',buildRemaining:5,hp:125,x:b.x+400};g.bases.push(other);e.workingTarget=null;g.cancelConstruction(other.id);near(e.xp,xp);
