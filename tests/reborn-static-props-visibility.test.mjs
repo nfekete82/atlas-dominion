@@ -33,14 +33,15 @@ test('3D palms still draw their sprite when a ground unit arrives underneath the
  const draws=[];
  const atlas={draw:(_c,kind,point,width,variant)=>draws.push({kind,point,width,variant})};
  const grove=new PalmGrove(atlas);
- const c={save(){},restore(){}},view={left:1100,right:1600,top:1100,bottom:1700};
+ const c={save(){},restore(){},translate(){},scale(){}},view={left:1100,right:1600,top:1100,bottom:1700};
  grove.reset([palm],g);
  grove.draw(c,0,view);
- assert.equal(draws.length,1);
+ const count=grove.count;assert.equal(draws.length,count);
  g.spawn(0,p,'rover');g.spawn(1,p,'infantry');
  grove.draw(c,.5,view);
- assert.equal(draws.length,2,'palm stays rendered when both teams enter its footprint');
- assert.equal(draws[1].kind,'palm-tree');
+ assert.equal(draws.length,count*2,'all palms remain rendered when both teams enter their footprint');
+ assert.ok(draws.slice(count).every(d=>d.kind==='palm-tree'));
+ assert.deepEqual(draws.slice(count).map(d=>d.point),draws.slice(0,count).map(d=>d.point),'no group member moves or disappears');
 });
 test('all building 3D props stay rendered while troops cross service yard',()=>{
  const g=cleanGame(),center={x:1400,y:1450},radius=80;

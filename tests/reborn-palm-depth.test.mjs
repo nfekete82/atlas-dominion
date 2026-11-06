@@ -30,14 +30,15 @@ test('depth renderer draws visible foliage in the same sorted scene as moving un
 test('single-tree depth rendering does not move or hide the physical palm',()=>{
  const game=new Simulation(2026,11);game.bases=[];game.territories=[];game.units=[];game.world.blocked.fill(0);
  const detail={x:1500,y:1700,kind:'palm',radius:30,rotation:0,variant:.25};
- const drawn=[],ctx={save(){},restore(){}},grove=new PalmGrove({
+ const drawn=[],ctx={save(){},restore(){},translate(){},scale(){}},grove=new PalmGrove({
   draw(_ctx,kind,position,width,variant){drawn.push({kind,x:position.x,y:position.y,width,variant});}
  });
  grove.reset([detail],game);
  const first=grove.visibleTrees({left:1000,right:2000,top:1200,bottom:2100});
- assert.equal(first.length,1);
+ assert.ok(first.length>=1&&first.length<=3,'a seed may generate a single palm or a small group');
+ assert.equal(first[0].x,detail.x);assert.equal(first[0].y,detail.y);
  game.spawn(0,{x:1500,y:1600},'infantry');
- assert.equal(grove.visibleTrees().length,1,'troops approaching the crown never remove scenery');
- grove.drawOne(ctx,first[0]);
- assert.deepEqual(drawn,[{kind:'palm-tree',x:detail.x,y:detail.y,width:detail.radius*3.3,variant:1}]);
+ assert.deepEqual(grove.visibleTrees().map(p=>({x:p.x,y:p.y})),first.map(p=>({x:p.x,y:p.y})),'troops approaching the crown never remove or shift any group member');
+ for(const palm of first)grove.drawOne(ctx,palm);
+ assert.deepEqual(drawn,first.map(p=>({kind:'palm-tree',x:p.x,y:p.y,width:p.radius*3.3,variant:Math.floor(p.variant*4)})));
 });

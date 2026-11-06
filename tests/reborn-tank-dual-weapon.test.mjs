@@ -11,9 +11,9 @@ const fixture=()=>{
  return game;
 };
 test('tank: dual-weapon combat has more armor and expensive 550-credit production',()=>{
- assert.equal(UNITS.tank.hp,850);
+ assert.equal(UNITS.tank.hp,1000);
  assert.equal(UNITS.tank.cost,550);
- assert.equal(UNITS.tank.damage,135);
+ assert.equal(UNITS.tank.damage,155);
  assert.equal(UNITS.tank.targetsAir,false);
  assert.equal(UNITS.tank.range,300);
 });

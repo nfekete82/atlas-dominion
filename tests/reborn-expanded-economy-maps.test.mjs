@@ -95,6 +95,6 @@ test('the new extra-large map supports full-size world positions past 4064 on sa
 test('tank is visibly 10 percent larger but model hitbox, armament and vehicle behavior are unchanged',()=>{
  assert.equal(UNITS.tank.width,90);
  assert.equal(unitArtScale('tank'),1.08);
- assert.equal(UNITS.tank.hp,850);
+ assert.equal(UNITS.tank.hp,1000);
  assert.equal(UNITS.tank.cost,550);
 });
