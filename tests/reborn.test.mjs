@@ -208,7 +208,13 @@ const buildSite=(g,kind)=>{
 const buildWithWorker=(g,owner,kind,site)=>{
  if(!g.buildError(owner,kind,site)){
   let worker=g.units.find(u=>u.owner===owner&&u.kind==='engineer');
-  const point=g.world.nearest({x:site.x+BUILDINGS[kind].radius+32,y:site.y},g.obstacles());
+  // For a large airfield the visible facade extends north of the anchor.
+   // Stage its engineer on the south approach; use facade-clear east positions
+   // for the other buildings. All stay within the original 55-unit work ring.
+   const offset=BUILDINGS[kind].radius+52;
+   const point=g.world.nearest(kind==='airfield'
+     ?{x:site.x,y:site.y+offset}
+     :{x:site.x+offset,y:site.y},g.obstacles());
   assert.ok(point,`No reachable worker approach for ${kind} at ${site.x},${site.y}`);
   if(worker)Object.assign(worker,point);else worker=g.spawn(owner,point,'engineer');
  }
