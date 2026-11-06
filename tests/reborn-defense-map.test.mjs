@@ -23,7 +23,15 @@ for(const owner of [0,1])for(const kind of ['infantry','tank','scout'])test(`def
 
 test('defense: a bastion is not a combat target; nearby enemy units are acquired at 500 and locks remain stable',()=>{
  const g=fixture(),t=g.territories[14],p={x:t.point.x,y:t.point.y+20},b=turret(g,0,{x:p.x-500,y:p.y}),a=opponent(g,0,p),c=opponent(g,0,{x:p.x+50,y:p.y});
- const snapshot=structuredClone(t);g.updateVision();g.step();assert.equal(b.turretTarget,a.id);Object.assign(c,{x:b.x+100,y:b.y+70});g.step();assert.equal(b.turretTarget,a.id);a.hp=0;g.step();assert.equal(b.turretTarget,c.id);assert.deepEqual(t,snapshot);
+ const snapshot=structuredClone(t);g.updateVision();g.step();assert.equal(b.turretTarget,a.id);Object.assign(c,{x:b.x+100,y:b.y+70});g.step();assert.equal(b.turretTarget,a.id);a.hp=0;g.step();assert.equal(b.turretTarget,c.id);
+ // A neutral bastion is not a damageable target, but ground units standing
+ // inside its capture circle legitimately advance the capture simulation.
+ // Pin static sector state and ownership while checking real capture progress.
+ const {capturing:previousCaptor,progress:previousProgress,...staticBefore}=snapshot;
+ const {capturing,progress,...staticAfter}=t;
+ assert.deepEqual(staticAfter,staticBefore,'turret targeting cannot mutate sector geometry, ownership or economy');
+ assert.equal(capturing,1,'real enemy infantry inside the neutral capture area must start taking it');
+ assert.ok(progress>previousProgress&&progress<RULES.captureTime,'capture advances without an instant territory flip');
 });
 
 test('defense: sight extends to 750 but weapon range ends at exactly 600',()=>{
