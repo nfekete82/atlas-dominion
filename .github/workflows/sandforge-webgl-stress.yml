@@ -1,0 +1,100 @@
+name: Sandforge WebGL 3D stress and post-combat recovery
+
+on:
+  push:
+    branches:
+      - test/webgl-rc1-ci-stress-20261106
+  pull_request:
+    branches:
+      - integration/sandforge-webgl3d-main-sync-20261106
+  workflow_dispatch:
+  # Scheduled runs become active only after this workflow reaches the default branch.
+  schedule:
+    - cron: '25 2 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: webgl-stress-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  simulation-and-webgl:
+    name: 4/8/12/16-bastion battle stress (simulation + Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CI: 'true'
+      SANDFORGE_RENDERER: webgl
+      ATLAS_BROWSER_CHANNEL: chromium
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      STRESS_OUTPUT_DIR: tests/browser/artifacts/stress
+      STRESS_SIM_SECONDS: '180'
+      STRESS_SEED: '2074'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install pinned Node and Chromium browser dependencies
+        run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix tests/browser --no-audit --no-fund
+          cd tests/browser
+          npx playwright install --with-deps chromium
+
+      - name: Validate stress scripts and build 3D root
+        run: |
+          node --check scripts/qa-webgl-stress.mjs
+          node --check scripts/report-webgl-stress.mjs
+          node --check tests/browser/webgl-stress.spec.mjs
+          npm run build:3d
+
+      - name: Deterministic 4/8/12/16-bastion simulated battles
+        run: node scripts/qa-webgl-stress.mjs
+
+      - name: Real browser graphics load and post-battle recovery
+        run: |
+          set -euo pipefail
+          PORT=8104 HOST=127.0.0.1 node scripts/serve.mjs > /tmp/sandforge-webgl-stress-server.log 2>&1 &
+          SF_PID=$!
+          trap 'kill "$SF_PID" 2>/dev/null || true' EXIT
+          READY=0
+          for i in $(seq 1 80); do
+            if curl -fsS http://127.0.0.1:8104/healthz >/dev/null 2>&1; then
+              READY=1
+              break
+            fi
+            sleep 0.25
+          done
+          if [ "$READY" -ne 1 ]; then
+            cat /tmp/sandforge-webgl-stress-server.log
+            exit 1
+          fi
+          ATLAS_BASE_URL=http://127.0.0.1:8104 \
+            tests/browser/node_modules/.bin/playwright test \
+              --config=tests/browser/playwright.config.mjs \
+              tests/browser/webgl-stress.spec.mjs \
+              --workers=1 --reporter=line
+
+      - name: Publish actual scenario metrics to job summary
+        if: always()
+        run: node scripts/report-webgl-stress.mjs
+
+      - name: Save complete JSON, screenshots and failure traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandforge-webgl-stress-${{ github.run_id }}
+          path: |
+            tests/browser/artifacts/stress/
+            tests/browser/artifacts/runs/
+            tests/browser/artifacts/report/
+          if-no-files-found: warn
+          retention-days: 14
