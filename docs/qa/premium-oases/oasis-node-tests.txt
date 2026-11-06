@@ -1,0 +1,14 @@
+✔ 4 bastions: deterministic, safe, finite, all three types (416.798542ms)
+✔ 8 bastions: deterministic, safe, finite, all three types (380.682875ms)
+✔ 12 bastions: deterministic, safe, finite, all three types (402.82175ms)
+✔ 16 bastions: deterministic, safe, finite, all three types (443.575167ms)
+✔ old maps and save round trips preserve map coordinates and generation (1540.893833ms)
+✔ no unsafe fallback on a fully blocked map (51.611042ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3313.195916

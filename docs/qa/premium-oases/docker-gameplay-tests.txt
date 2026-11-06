@@ -1,0 +1,14 @@
+
+Running 6 tests using 1 worker
+
+(node:10606) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/6] tests/browser/webgl-playable.spec.mjs:6:1 › Playable 3D: assets, terrain, fog, units, buildings, minimap and production UI
+[2/6] tests/browser/webgl-playable.spec.mjs:56:1 › Playable 3D: save and resume hold authoritative combat and economy state
+[3/6] tests/browser/webgl-playable.spec.mjs:76:1 › 3D RTS: mouse drag rectangle selects owned units without interfering with camera or HUD
+[4/6] tests/browser/webgl-playable.spec.mjs:105:1 › 3D RTS: original-style HUD starts live and a real right click moves selected units
+[5/6] tests/browser/webgl-playable.spec.mjs:172:1 › WebGL menu v2: every tab isolates its content and unit sprites become proper portraits
+[6/6] tests/browser/webgl-playable.spec.mjs:220:1 › WebGL terrain: landscape uses seamless original sand, never the building material atlas
+  6 passed (11.8s)

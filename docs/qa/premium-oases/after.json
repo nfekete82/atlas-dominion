@@ -1,0 +1,19 @@
+{
+  "render": {
+    "frame": 286,
+    "calls": 1323,
+    "triangles": 808551,
+    "points": 0,
+    "lines": 0
+  },
+  "memory": {
+    "geometries": 779,
+    "textures": 86
+  },
+  "programs": 43,
+  "frameMs": {
+    "median": 16.600000143051147,
+    "p95": 17.700000047683716
+  },
+  "renderer": "WebKit WebGL"
+}

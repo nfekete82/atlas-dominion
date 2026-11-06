@@ -5,6 +5,7 @@ import {Simulation} from '/src/reborn/simulation.js';
 import {rollingHillHeight} from '/src/reborn/rolling-hills.js';
 import {canyonGroundSampler,rampAtX,ridgeCenterY} from '/src/reborn/canyon-height.js';
 import {SandforgeBattlefield} from '/webgl-battlefield.js';
+import {DesertOases} from '/webgl-oases.js';
 import {DesertArtPass} from '/webgl-environment.js';
 import {SandforgeCombatEffects} from '/webgl-combat-vfx.js';
 import {SandforgePerformanceWatch} from '/webgl-perf-watch.js';
@@ -805,6 +806,14 @@ function setShowcase(enabled){
 showcaseButton.onclick=()=>setShowcase(!showcaseActive);
 if(query.get('showcase')==='1')setShowcase(true);
 const desertArt=new DesertArtPass({scene,world,terrain,heightAt,pos,loader,lowQuality:query.get('lite')==='1'});
+const oases=new DesertOases({scene,game,heightAt,groundMeshes,lowQuality:query.get('lite')==='1',enabled:query.get('oases')!=='off'});
+const oasisFocus=oases.layout.find(o=>o.type===query.get('oasis'));
+if(oasisFocus){
+ const target=pos(oasisFocus.x,oasisFocus.y);target.y+=24;
+ camera.position.add(target.clone().sub(controls.target));controls.target.copy(target);
+ camera.zoom=1.55;camera.updateProjectionMatrix();controls.update();
+}
+window.addEventListener('pagehide',event=>{if(!event.persisted)oases.dispose();});
 let desertArtReady=false;
 const effects=new SandforgeCombatEffects({scene,camera,game,world,heightAt,pos,battlefield,lowQuality:query.get('lite')==='1'});
 // Renderer-only weather preview: weather rules in Simulation are unchanged.
@@ -906,6 +915,7 @@ function animate(now){
  const shift=controls.target.clone().sub(sun.target.position);
  sun.position.add(shift);sun.target.position.add(shift);
  atmosphere.update(dt);
+ oases.update(now*.001);
  renderer.render(scene,camera);
  if(battlefield.buildPreview?.visible){
   // A second render pass guarantees the translucent construction silhouette
@@ -926,7 +936,7 @@ function animate(now){
  }
 }
 renderer.setAnimationLoop(animate);
-window.__sandforgeWebGL={renderer,scene,camera,controls,game,terrain,heightAt,battlefield,effects,atmosphere,sound,constructionRecovery,visualPerimeter,boundaryCliffs,panKeys,groundTracks,
+window.__sandforgeWebGL={renderer,scene,camera,controls,game,terrain,heightAt,battlefield,effects,atmosphere,sound,constructionRecovery,visualPerimeter,boundaryCliffs,panKeys,groundTracks,oases,
  performance:performanceWatch,
  setStormPreview,
  get showcaseActive(){return showcaseActive;},
