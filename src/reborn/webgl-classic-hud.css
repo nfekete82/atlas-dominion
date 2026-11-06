@@ -1021,3 +1021,179 @@
  color:#efc886;
 }
 
+
+/* RC2 compact four-panel dock: radar | catalog | production | commands.
+   Production is now its own DOM sibling and framed column; no queue handlers
+   or simulation behavior change. Preserve the tall-screen game UI style. */
+#sf-classic-root{
+ --sf-dock-height:280px;
+ --sf-dock-radar:194px;
+ --sf-dock-production:250px;
+ --sf-dock-command:314px;
+}
+#sf-classic-root #sidebar{
+ grid-template-columns:var(--sf-dock-radar) minmax(0,1fr) var(--sf-dock-production)!important;
+ grid-template-rows:minmax(0,1fr)!important;
+}
+#sf-classic-root #sidebar > .catalog{
+ grid-column:2;grid-row:1;
+ min-width:0!important;min-height:0!important;
+}
+#sf-classic-root #sidebar > #sf-production.sf-production-panel{
+ grid-column:3;grid-row:1;
+ position:relative!important;
+ display:flex!important;flex-direction:column!important;
+ box-sizing:border-box!important;
+ min-width:0!important;width:100%!important;
+ flex:none!important;height:100%!important;
+ min-height:0!important;max-height:100%!important;
+ margin:0!important;padding:7px 8px!important;
+ gap:5px!important;overflow:hidden!important;
+ border:2px solid #a1834e!important;border-radius:3px!important;
+ background:linear-gradient(180deg,#263238,#111c22 78%)!important;
+ box-shadow:inset 0 1px 0 #d5b47a29,0 2px 9px #0008!important;
+}
+#sf-classic-root #sidebar > #sf-production .sf-production-heading{
+ flex:0 0 22px!important;min-height:22px!important;
+ gap:5px!important;overflow:hidden;
+}
+#sf-classic-root #sidebar > #sf-production #sf-queue-count{
+ font-size:9px!important;letter-spacing:-.02em;
+}
+#sf-classic-root #sidebar > #sf-production .sf-production-slots{
+ flex:1 1 auto!important;min-width:0!important;min-height:0!important;
+ display:flex!important;flex-direction:column!important;flex-wrap:nowrap!important;
+ align-items:stretch!important;gap:5px!important;
+ overflow-x:hidden!important;overflow-y:auto!important;
+ scrollbar-width:thin;
+}
+#sf-classic-root #sidebar > #sf-production .sf-production-slot{
+ flex:0 0 47px!important;width:100%!important;
+ min-width:0!important;min-height:47px!important;max-height:47px!important;
+ padding:2px 5px 5px 2px!important;
+}
+#sf-classic-root #sidebar > #sf-production .sf-production-slot img{
+ flex:0 0 32px!important;width:32px!important;height:36px!important;
+}
+#sf-classic-root #sidebar > #sf-production .sf-production-empty{
+ flex:1 1 auto!important;min-height:35px!important;
+ padding:5px!important;text-align:center!important;
+}
+#sf-classic-root #sidebar > #sf-production .sf-production-progressline{
+ flex:0 0 14px!important;min-height:14px!important;
+}
+#sf-classic-root #sidebar > #sf-production .queue-info{
+ flex:0 0 13px!important;min-height:13px!important;
+}
+#sf-classic-root #sidebar > #sf-production #sf-building-status{
+ min-height:0!important;margin:0!important;
+ white-space:nowrap!important;overflow:hidden!important;
+ text-overflow:ellipsis!important;
+}
+@media(max-height:1000px){
+ #sf-classic-root{--sf-dock-height:248px;--sf-dock-radar:190px}
+ #sf-classic-root #sidebar .catalog-tabs{
+  flex-basis:36px!important;margin-bottom:3px!important;gap:4px!important;
+ }
+ #sf-classic-root #sidebar .catalog-tabs button{
+  height:36px!important;min-height:36px!important;
+  font-size:12px!important;
+ }
+ #sf-classic-root #sidebar .catalog{padding:2px 4px!important}
+ #sf-classic-root #sidebar #sf-map{
+  width:min(171px,100%)!important;max-height:180px!important;
+ }
+ #sf-classic-root #sf-actions .catalog-card{
+  height:145px!important;min-height:145px!important;
+ }
+ #sf-classic-root #sf-actions .catalog-card[data-build] .sf-card-image{
+  min-height:83px!important;
+ }
+ #sf-classic-root .sf-command .portrait{
+  flex-basis:78px!important;width:78px!important;height:82px!important;
+ }
+ #sf-classic-root #sf-selection-panel .commands button{
+  min-height:35px!important;height:35px!important;font-size:12px!important;
+ }
+}
+@media(max-width:1250px){
+ #sf-classic-root{
+  --sf-dock-command:268px;
+  --sf-dock-radar:154px;
+  --sf-dock-production:208px;
+ }
+ #sf-classic-root #sidebar{gap:4px!important;padding:4px!important}
+ #sf-classic-root #sidebar .radar{padding:4px!important}
+ #sf-classic-root #sidebar #sf-map{
+  width:min(135px,100%)!important;max-height:150px!important;
+ }
+ #sf-classic-root #sidebar .radar-caption{
+  font-size:9px!important;white-space:normal!important;
+ }
+ #sf-classic-root #sidebar > #sf-production.sf-production-panel{
+  padding:5px!important;
+ }
+ #sf-classic-root #sidebar > #sf-production .sf-production-heading strong{
+  font-size:12px!important;
+ }
+ #sf-classic-root #sf-actions .sf-group:is(
+  [data-sf-group="units"],[data-sf-group="buildings"]
+ ) .catalog-card{
+  flex-basis:124px!important;width:124px!important;
+  min-width:124px!important;max-width:124px!important;
+ }
+}
+/* Narrow windows: keep four independent sections, but move the production
+   panel below the catalog instead of squeezing the catalog to unusable width. */
+@media(max-width:900px){
+ #sf-classic-root{
+  --sf-dock-height:290px;
+  --sf-dock-command:218px;
+  --sf-dock-radar:112px;
+ }
+ #sf-classic-root #sidebar{
+  grid-template-columns:var(--sf-dock-radar) minmax(0,1fr)!important;
+  grid-template-rows:minmax(0,1fr) 94px!important;
+ }
+ #sf-classic-root #sidebar > .radar{
+  grid-column:1;grid-row:1 / span 2;
+ }
+ #sf-classic-root #sidebar > .catalog{
+  grid-column:2;grid-row:1;
+ }
+ #sf-classic-root #sidebar > #sf-production.sf-production-panel{
+  grid-column:2;grid-row:2;max-height:94px!important;
+  padding:3px 5px!important;gap:2px!important;
+ }
+ #sf-classic-root #sidebar > #sf-production .sf-production-heading{
+  flex-basis:15px!important;min-height:15px!important;
+ }
+ #sf-classic-root #sidebar > #sf-production .sf-production-slots{
+  flex-direction:row!important;overflow-x:auto!important;
+  overflow-y:hidden!important;gap:4px!important;
+ }
+ #sf-classic-root #sidebar > #sf-production .sf-production-slot{
+  flex:0 0 132px!important;width:132px!important;
+  min-height:36px!important;max-height:36px!important;
+ }
+ #sf-classic-root #sidebar > #sf-production .sf-production-slot img{
+  flex-basis:24px!important;width:24px!important;height:29px!important;
+ }
+ #sf-classic-root #sidebar > #sf-production .sf-production-progressline{
+  flex-basis:10px!important;min-height:10px!important;
+ }
+ #sf-classic-root #sidebar > #sf-production .queue-info{display:none!important}
+ #sf-classic-root #sidebar #sf-map{
+  width:min(95px,100%)!important;
+ }
+ #sf-classic-root #sidebar .radar-caption{
+  display:block!important;font-size:8px!important;
+ }
+ #sf-classic-root #sf-selection-panel .portrait{display:none!important}
+ #sf-classic-root #sf-selection-panel .commands{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+ }
+ #sf-classic-root #sf-selection-panel .commands button{
+  font-size:11px!important;
+ }
+}
