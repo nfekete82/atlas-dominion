@@ -13,13 +13,9 @@ concurrency:
   group: procedural-battlefields-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 jobs:
-  acceptance:
+  simulation:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      CI: 'true'
-      ATLAS_BROWSER_CHANNEL: chromium
-      LIBGL_ALWAYS_SOFTWARE: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -36,6 +32,30 @@ jobs:
         run: node scripts/stress-procedural-battlefields.mjs geometry
       - name: Paid AI bootstrap, production and expansion from all four corners
         run: node scripts/stress-procedural-battlefields.mjs ai
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: procedural-battlefields-simulation
+          path: docs/qa/procedural-battlefields/*.json
+          retention-days: 14
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [legacy, procedural]
+    env:
+      CI: 'true'
+      ATLAS_BROWSER_CHANNEL: chromium
+      LIBGL_ALWAYS_SOFTWARE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
       - run: npm ci --prefix tests/browser --no-audit --no-fund
       - run: cd tests/browser && npx playwright install --with-deps chromium
       - name: Build isolated Docker preview
@@ -46,22 +66,27 @@ jobs:
             if curl -fsS http://127.0.0.1:8132/healthz; then break; fi
             sleep 1
           done
-      - name: New terrain plus historical WebGL regressions in the shipped Docker image
+      - name: Existing WebGL regressions in the shipped Docker image
+        if: matrix.suite == 'legacy'
         env:
           ATLAS_BASE_URL: http://127.0.0.1:8132
         run: |
           tests/browser/node_modules/.bin/playwright test --config=tests/browser/playwright.config.mjs \
-            tests/browser/webgl-procedural-battlefields.spec.mjs tests/browser/webgl-oases.spec.mjs \
-            tests/browser/webgl-fog-alignment.spec.mjs tests/browser/webgl-title-menu.spec.mjs \
-            tests/browser/webgl-playable.spec.mjs tests/browser/webgl-hud-responsive.spec.mjs \
-            --workers=1 --reporter=line
+            tests/browser/webgl-oases.spec.mjs tests/browser/webgl-fog-alignment.spec.mjs \
+            tests/browser/webgl-title-menu.spec.mjs tests/browser/webgl-playable.spec.mjs \
+            tests/browser/webgl-hud-responsive.spec.mjs --workers=1 --reporter=line
+      - name: Full-detail terrain views, gameplay, metadata and historical saves
+        if: matrix.suite == 'procedural'
+        env:
+          ATLAS_BASE_URL: http://127.0.0.1:8132
+        run: |
+          tests/browser/node_modules/.bin/playwright test --config=tests/browser/playwright.config.mjs \
+            tests/browser/webgl-procedural-battlefields.spec.mjs --workers=1 --reporter=line
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: procedural-battlefields-acceptance
-          path: |
-            tests/browser/artifacts/
-            docs/qa/procedural-battlefields/*.json
+          name: procedural-battlefields-browser-${{ matrix.suite }}
+          path: tests/browser/artifacts/
           retention-days: 14
       - if: always()
         run: docker rm -f sandforge-battlefields-ci || true
