@@ -178,6 +178,22 @@ export class Soundscape {
     oscillator.connect(gain);gain.connect(this.effects??this.master);this.track(oscillator,[oscillator,gain],[],false);oscillator.start(at);oscillator.stop(at+duration+.01);
   }
   command(attack=false):void{this.played.commands++;this.tone(attack?570:780,.07,.09);this.tone(attack?380:1040,.085,.055,.055);}
+  productionGate():void{
+    const a=this.context;if(!a||!this.master||!this.enabled||this.volume<=0||a.state!=='running'||!this.room())return;
+    // Low filtered gear whine, followed by a brief diesel ignition. Both
+    // use the existing effects bus, voice limit and gameplay pause cleanup.
+    for(const [offset,duration,frequency,level] of [[0,.92,94,.024],[1,.62,48,.031]]){
+      const oscillator=a.createOscillator(),gain=a.createGain(),filter=a.createBiquadFilter(),at=a.currentTime+offset;
+      oscillator.type='sawtooth';oscillator.frequency.setValueAtTime(frequency,at);
+      oscillator.frequency.linearRampToValueAtTime(frequency*1.38,at+duration*.35);
+      oscillator.frequency.linearRampToValueAtTime(frequency*.8,at+duration);
+      filter.type='lowpass';filter.frequency.value=offset?220:390;filter.Q.value=.7;
+      gain.gain.setValueAtTime(0,at);gain.gain.linearRampToValueAtTime(level,at+.09);
+      gain.gain.setValueAtTime(level,at+duration*.72);gain.gain.linearRampToValueAtTime(0,at+duration);
+      oscillator.connect(filter);filter.connect(gain);gain.connect(this.effects??this.master);
+      this.track(oscillator,[oscillator,filter,gain]);oscillator.start(at);oscillator.stop(at+duration+.01);
+    }
+  }
   select():void{this.tone(1150,.035,.055);}
   private burst(p:Point,r:Renderer,duration:number,level:number,filterHz:number,type:BiquadFilterType='highpass'):void{
     const a=this.context;if(!a||!this.master||!this.noise||!this.enabled||this.volume<=0||a.state!=='running'||!this.room())return;

@@ -867,7 +867,7 @@ if(oasisFocus){
  camera.position.add(target.clone().sub(controls.target));controls.target.copy(target);
  camera.zoom=1.55;camera.updateProjectionMatrix();controls.update();
 }
-window.addEventListener('pagehide',event=>{if(!event.persisted)oases.dispose();});
+window.addEventListener('pagehide',event=>{if(!event.persisted){oases.dispose();battlefield.productionGates.dispose();}});
 let desertArtReady=false;
 const effects=new SandforgeCombatEffects({scene,camera,game,world,heightAt,pos,battlefield,lowQuality:query.get('lite')==='1'});
 // Renderer-only weather preview: weather rules in Simulation are unchanged.

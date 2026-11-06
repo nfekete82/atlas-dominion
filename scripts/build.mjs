@@ -44,6 +44,7 @@ cpSync('scripts/webgl-ground-tracks.js','dist/webgl-ground-tracks.js');
 cpSync('scripts/webgl-building-yard.js','dist/webgl-building-yard.js');
 cpSync('scripts/webgl-construction.js','dist/webgl-construction.js');
 cpSync('scripts/webgl-construction-recovery.js','dist/webgl-construction-recovery.js');
+cpSync('scripts/webgl-production-gates.js','dist/webgl-production-gates.js');
 cpSync('scripts/webgl-scale.js','dist/webgl-scale.js');
 cpSync('scripts/webgl-health.js','dist/webgl-health.js');
 cpSync('src/reborn/webgl-classic-hud.css','dist/webgl-classic-hud.css');

@@ -1,0 +1,18 @@
+{
+  "0": {
+    "embeddedPBRImagesIdentical": true,
+    "sha256": [
+      "c0e50fb16913f4577a0676effbd44e41104e666edc2d89251ea141fe4f3be9df",
+      "7b1b98c0c1d0ee0f7b484cc436a786356af5d5e072f7506f1ba8cc3ec2d6d35a",
+      "efdc7b85f6c8167c871fecb34413f94d9c40c7eb70f7eed7232c18d585826fb9"
+    ]
+  },
+  "1": {
+    "embeddedPBRImagesIdentical": true,
+    "sha256": [
+      "c0e50fb16913f4577a0676effbd44e41104e666edc2d89251ea141fe4f3be9df",
+      "7b1b98c0c1d0ee0f7b484cc436a786356af5d5e072f7506f1ba8cc3ec2d6d35a",
+      "efdc7b85f6c8167c871fecb34413f94d9c40c7eb70f7eed7232c18d585826fb9"
+    ]
+  }
+}

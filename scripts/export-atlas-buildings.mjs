@@ -36,3 +36,9 @@ if(args.includes('--cpu')){
   await page.evaluate(kinds=>window.exportBuildings(kinds),kinds);
  }finally{await browser?.close();if(server.listening)await new Promise(resolve=>server.close(resolve));}
 }
+
+// Preserve the animated opening after either CPU or GPU asset regeneration.
+if(!args.includes('--construction-only')&&(!kinds.length||kinds.includes('factory'))){
+ const {execFileSync}=await import('node:child_process');
+ execFileSync('python3',['scripts/prepare-factory-gates.py'],{stdio:'inherit'});
+}

@@ -1,0 +1,48 @@
+{
+  "pr240": {
+    "empty": {
+      "actors": 96,
+      "meanMs": 0.037333333492279054,
+      "p95Ms": 0.10000014305114746,
+      "drawCalls": 1414,
+      "triangles": 565936,
+      "geometries": 798
+    },
+    "closedFactory": {
+      "actors": 96,
+      "meanMs": 0.03899999976158142,
+      "p95Ms": 0.10000014305114746,
+      "drawCalls": 1510,
+      "triangles": 599634,
+      "geometries": 889
+    },
+    "active": null
+  },
+  "gates": {
+    "empty": {
+      "actors": 96,
+      "meanMs": 0.037833333412806196,
+      "p95Ms": 0.10000014305114746,
+      "drawCalls": 1414,
+      "triangles": 565936,
+      "geometries": 798
+    },
+    "closedFactory": {
+      "actors": 96,
+      "meanMs": 0.041833333174387616,
+      "p95Ms": 0.10000014305114746,
+      "drawCalls": 1509,
+      "triangles": 600514,
+      "geometries": 888
+    },
+    "active": {
+      "actors": 96,
+      "meanMs": 0.05,
+      "p95Ms": 0.10000014305114746,
+      "drawCalls": 1523,
+      "triangles": 600922,
+      "geometries": 896,
+      "active": 1
+    }
+  }
+}
