@@ -4,39 +4,43 @@ import {readFileSync} from 'node:fs';
 import * as THREE from 'three';
 import {prepareBarracksAirlock} from '../scripts/webgl-barracks-airlock.js';
 
-test('both real faction barracks expose authored blast door and stiffening panels',()=>{
+test('both original faction GLBs carry the real PBR door surfaces inside merged steel/sand geometry',()=>{
  for(const faction of [0,1]){
   const bytes=readFileSync(new URL(`../src/assets/reborn/buildings-3d/barracks-${faction}.glb`,import.meta.url));
-  const count=bytes.readUInt32LE(12);
-  const j=JSON.parse(bytes.subarray(20,20+count));
-  assert.ok(j.nodes.some(n=>/BarracksBlastDoor/.test(n.name??'')),JSON.stringify({faction,candidates:j.nodes.filter(n=>/door|barracks|airlock|entry|surface|batch/i.test(n.name??'')).map(n=>n.name).slice(0,140),initial:j.nodes.slice(0,45).map(n=>n.name)}));
-  assert.ok(j.nodes.some(n=>/BarracksDoorStiffener/.test(n.name??'')));
+  const length=bytes.readUInt32LE(12),j=JSON.parse(bytes.subarray(20,20+length));
+  assert.ok(j.nodes.some(n=>/AtlasUpgrade_barracks_steel/.test(n.name??'')));
+  assert.ok(j.nodes.some(n=>/AtlasUpgrade_barracks_sand/.test(n.name??'')));
  }
 });
 
-test('barracks doorway moves the original door and cuts an actual PBR portal',()=>{
+test('barracks doorway extracts authored merged mesh pieces and cuts the actual PBR wall',()=>{
  const root=new THREE.Group(),material=new THREE.MeshStandardMaterial({color:'#999988'});
  const body=new THREE.Mesh(new THREE.BoxGeometry(2.65,.98,1.95),material);
  body.name='Atlas_CeramicHull';body.position.y=.74;root.add(body);
- const door=new THREE.Mesh(new THREE.BoxGeometry(.74,.93,.11),material);
- door.name='Atlas_BarracksBlastDoor';door.position.set(-.18,.77,1.501);root.add(door);
- const stiffener=new THREE.Mesh(new THREE.BoxGeometry(.76,.05,.14),material);
- stiffener.name='Atlas_BarracksDoorStiffener';stiffener.position.set(-.18,.94,1.563);root.add(stiffener);
+ const steelGeometry=new THREE.BufferGeometry();
+ steelGeometry.setAttribute('position',new THREE.Float32BufferAttribute([
+  -.50,.40,1.50,.13,.40,1.50,-.15,1.10,1.50,
+  1.10,.40,.75,1.30,.40,.75,1.20,.85,.75
+ ],3));
+ const batch=new THREE.Mesh(steelGeometry,material);
+ batch.name='AtlasUpgrade_barracks_steel';root.add(batch);
  const renderer={localClippingEnabled:false},entry={kind:'barracks',detail:root};
  const gate=prepareBarracksAirlock(entry,renderer);
  assert.ok(gate);assert.equal(gate.kind,'barracks');
- assert.equal(door.parent,gate.door);
- assert.equal(stiffener.parent,gate.door);
+ assert.equal(gate.splits.length,1);
+ assert.equal(gate.splits[0].part.parent,gate.door);
+ assert.equal(gate.splits[0].part.geometry.getIndex().count,3);
+ assert.equal(batch.geometry.getIndex().count,3);
  assert.equal(renderer.localClippingEnabled,true);
  assert.notEqual(body.material,material);
  assert.equal(body.material.clipIntersection,true);
  assert.equal(body.material.clippingPlanes.length,6);
  assert.equal(gate.hall.visible,false);
- gate.door.position.y=1;
- gate.updateClip();
+ gate.door.position.y=1;gate.updateClip();
  assert.ok(gate.planes.every(p=>Number.isFinite(p.constant)));
  gate.cleanup();
  assert.equal(body.material,material);
+ assert.equal(batch.geometry,steelGeometry);
 });
 
 async function fixture(kind,facing=0){
