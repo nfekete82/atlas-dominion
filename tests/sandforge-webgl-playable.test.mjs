@@ -36,7 +36,7 @@ test('WebGL build exposes full gameplay adapter, all draw modules and skinned Th
   assert.ok(existsSync(path),path+' missing from runtime image');
  }
  assert.ok(existsSync('dist/webgl-actor-presentation.js'),'required 3D animation module must be shipped');
- assert.match(readFileSync('Dockerfile','utf8'),/COPY scripts\/webgl-actor-presentation\.js/);
+ assert.match(readFileSync('Dockerfile','utf8'),/COPY scripts(?: \.\/scripts|\/webgl-actor-presentation\.js)/);
  assert.match(readFileSync('scripts/build.mjs','utf8'),/cpSync\('scripts\/webgl-actor-presentation\.js'/);
  const main=readFileSync('dist/webgl-preview.js','utf8');
  const adapter=readFileSync('dist/webgl-battlefield.js','utf8');
@@ -56,8 +56,8 @@ test('WebGL build exposes full gameplay adapter, all draw modules and skinned Th
  assert.doesNotMatch(main,/textures\.load\('\/src\/assets\/reborn\/buildings-3d\/textures\/desert-basecolor/);
  assert.doesNotMatch(main,/textures\.load\('\/src\/assets\/reborn\/buildings-3d\/textures\/desert-normal/);
  const docker=readFileSync('Dockerfile','utf8');
- assert.match(docker,/COPY scripts\/webgl-battlefield\.js/);
- assert.match(docker,/COPY scripts\/webgl-environment\.js/);
+ assert.match(docker,/COPY scripts(?: \.\/scripts|\/webgl-battlefield\.js)/);
+ assert.match(docker,/COPY scripts(?: \.\/scripts|\/webgl-environment\.js)/);
 });
 
 test('Classic Sandforge WebGL HUD shares the original shipped CSS and starts live',()=>{
@@ -118,7 +118,7 @@ test('Decoration outside the map is packaged but is absent from AI, pathfinding 
  assert.match(preview,/stepCamera\(dt\)/);
  assert.match(battlefield,/KeyF/);
  assert.doesNotMatch(battlefield,/KeyA/);
- assert.match(docker,/COPY scripts\/webgl-perimeter\.js/);
+ assert.match(docker,/COPY scripts(?: \.\/scripts|\/webgl-perimeter\.js)/);
 });
 
 test('3D and classic campaign share HQ-first economy, save flags and unit producer rules',()=>{
