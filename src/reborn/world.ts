@@ -1,3 +1,5 @@
+import {battlefieldHeightAt,battlefieldSlopeAt,type TerrainProfile} from './battlefield-terrain.js';
+import {validateBattlefield,type BattlefieldValidation} from './battlefield-validation.js';
 import { profiler } from './performance.js';
 import { RULES, type Point, type Owner, type MapVersion, mapLayout, campaignLayout, mapWorldSize } from './config.js';
 import { TERRAIN_BLOCKED, TERRAIN_CLIFFS } from './terrain-art.js';
@@ -50,14 +52,15 @@ export class World {
   readonly components = new Int16Array(RULES.grid ** 2).fill(-1);
   readonly cliffCells:number[][]=[];
   readonly generated?:GeneratedMap;
-  constructor(readonly seed=2026,readonly mapVersion:MapVersion=0) {
+  readonly validation?:BattlefieldValidation;
+  constructor(readonly seed=2026,readonly mapVersion:MapVersion=0,profile?:TerrainProfile,candidate=0) {
     this.size=mapWorldSize(mapVersion);this.cell=this.size/RULES.grid;
     if(mapVersion===0&&navigationCache){
       this.blocked.set(navigationCache.blocked);this.opaque.set(navigationCache.opaque);this.cliffIds.set(navigationCache.cliffs);this.components.set(navigationCache.components);
       this.cliffIds.forEach((id,i)=>{if(id>=0)(this.cliffCells[id]??=[]).push(i);});return;
     }
     if(mapVersion!==0){
-      this.generated=generateMap(seed,mapVersion);
+      this.generated=generateMap(seed,mapVersion,profile,candidate);
       this.rocks=this.generated.mesas.map(m=>m.outline);
       for(const [id,mesa] of this.generated.mesas.entries()){
         this.cliffCells[id]=[];
@@ -106,7 +109,31 @@ export class World {
         }
       }component++;
     }
+    if(mapVersion>=23){
+      this.validation=validateBattlefield(this);
+      if(!this.validation.valid){
+        if(candidate>=3)throw new Error('Battlefield validation failed: '+this.validation.errors.join(', '));
+        const corrected=new World(seed,mapVersion,profile,candidate+1);
+        this.generated=corrected.generated;this.rocks=corrected.rocks;this.validation=corrected.validation;
+        this.blocked.set(corrected.blocked);this.opaque.set(corrected.opaque);this.cliffIds.set(corrected.cliffIds);this.components.set(corrected.components);
+        this.cliffCells.length=0;this.cliffCells.push(...corrected.cliffCells);
+      }
+    }
     if(mapVersion===0)navigationCache={blocked:this.blocked.slice(),opaque:this.opaque.slice(),cliffs:this.cliffIds.slice(),components:this.components.slice()};
+  }
+  /** New terrain authority. Old versions deliberately keep their old samplers. */
+  terrainHeight(x:number,y:number):number{return this.generated?.battlefield?battlefieldHeightAt(this.generated.battlefield,x,y):0;}
+  terrainSlope(x:number,y:number):number{return this.generated?.battlefield?battlefieldSlopeAt(this.generated.battlefield,x,y):0;}
+  buildable(p:Point,radius:number):boolean{
+    if(!this.walkable(p))return false;
+    let min=this.terrainHeight(p.x,p.y),max=min;
+    for(let i=0;i<16;i++){
+      const a=i*Math.PI/8,q={x:p.x+Math.cos(a)*radius,y:p.y+Math.sin(a)*radius};
+      if(!this.walkable(q))return false;
+      const h=this.terrainHeight(q.x,q.y);min=Math.min(min,h);max=Math.max(max,h);
+      if(this.generated?.battlefield&&this.terrainSlope(q.x,q.y)>.14)return false;
+    }
+    return !this.generated?.battlefield||(max-min<=10&&this.terrainSlope(p.x,p.y)<=.14);
   }
   index(p: Point): number {
     return this.indexXY(p.x,p.y);
@@ -140,7 +167,7 @@ export class World {
   }
   /** Place the complete building footprint on flat ground, away from a cliff. */
   clearSite(p:Point,radius:number):Point|null{
-    const clear=(q:Point)=>this.walkable(q)&&Array.from({length:16},(_,i)=>({x:q.x+Math.cos(i*Math.PI/8)*radius,y:q.y+Math.sin(i*Math.PI/8)*radius})).every(a=>this.walkable(a));
+    const clear=(q:Point)=>this.buildable(q,radius)&&Array.from({length:16},(_,i)=>({x:q.x+Math.cos(i*Math.PI/8)*radius,y:q.y+Math.sin(i*Math.PI/8)*radius})).every(a=>this.walkable(a));
     if(clear(p))return {...p};
     const cx=Math.floor(p.x/this.cell),cy=Math.floor(p.y/this.cell);
     for(let r=1;r<40;r++){

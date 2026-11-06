@@ -102,9 +102,12 @@ a:hover{text-decoration:underline}
 </dialog>
 <dialog id="sf3d-new-dialog" aria-label="Neue 3D-Kampagne">
  <small>SANDFORGE / NEUE KAMPAGNE</small><h1>Schlachtfeld wählen</h1>
- <p>OPERATION WEITE WÜSTE — 50 % größere Schlachtfelder, natürliche Felszonen und offene Manöverflächen.</p>
+ <p>Neue Landschaft, neue Wege. Ein gleicher Seed und ein gleiches Geländeprofil erzeugen dasselbe Schlachtfeld.</p>
  <label class="sf3d-field" for="sf3d-map-size">Kartengröße / Bastionen
   <select id="sf3d-map-size"><option value="4">Klein · 4 Bastionen</option><option value="8" selected>Mittel · 8 Bastionen</option><option value="12">Groß · 12 Bastionen</option><option value="16">Sehr groß · 16 Bastionen</option></select>
+ </label>
+ <label class="sf3d-field" for="sf3d-terrain">Landschaft
+  <select id="sf3d-terrain"><option value="random">Zufällig</option><option value="open">Offene Wüste</option><option value="dunes">Dünenlandschaft</option><option value="rocky">Felswüste</option><option value="oasis">Oasenwüste</option><option value="mixed">Gemischte Landschaft</option></select>
  </label>
  <label class="sf3d-field" for="sf3d-seed">Karten-Seed (optional)
   <input id="sf3d-seed" type="number" min="0" max="4294967295" placeholder="Zufällige Karte" autocomplete="off">

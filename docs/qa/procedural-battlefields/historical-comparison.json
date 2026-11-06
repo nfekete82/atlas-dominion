@@ -1,0 +1,9 @@
+{
+  "baseline": "d97da1a35adf020c85c8566ee54bf267aa2790bb",
+  "scope": "69 complete World geometry, blocked/opaque and territory/economy hashes per runtime, compared without rounding against the original PR #239 module. Cross-engine portable fixtures round geometry only to 0.000001 units; navigation bytes remain exact.",
+  "results": [
+    {"node":"v25.9.0","platform":"darwin","arch":"arm64","exactComparisons":69,"passed":true},
+    {"node":"v22.23.4","platform":"linux","arch":"arm64","exactComparisons":69,"crossEngineLastBits":0,"portableComparisons":69,"passed":true},
+    {"node":"v22.23.4","platform":"linux","arch":"x64","exactComparisons":69,"crossEngineLastBits":24,"portableComparisons":69,"passed":true}
+  ]
+}

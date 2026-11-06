@@ -10,7 +10,7 @@
  // (existing QA/deep links). Stay on the active entry during navigation.
  const gameRoute=()=>location.pathname==='/'||location.pathname==='/index.html'
   ?'/':'/webgl-preview.html';
- const modes={15:4,16:8,17:12,18:16,19:4,20:8,21:12,22:16};
+ const modes={15:4,16:8,17:12,18:16,19:4,20:8,21:12,22:16,23:4,24:8,25:12,26:16};
  const menu=$('main-dialog'),newDialog=$('sf3d-new-dialog');
  const optionsDialog=$('sf3d-options-dialog'),pauseDialog=$('sf3d-pause-dialog');
  const status=$('sf3d-menu-status');
@@ -23,13 +23,14 @@
  };
  let returnToGame=false;
  const saved=readSave();
- const play=(count,seed,{resume=false,legacy=false}={})=>{
+ const play=(count,seed,{resume=false,legacy=false,terrain='random'}={})=>{
   const params=new URLSearchParams({bastions:String(count),seed:String(seed>>>0),play:'1'});
   if(resume)params.set('resume','1');
   if(legacy)params.set('legacy','1');
   const options=readOptions();
   if(options.quality==='lite')params.set('lite','1');
   if(options.fog===false)params.set('fog','0');
+  if(!resume&&!legacy)params.set('terrain',terrain);
   location.assign(gameRoute()+'?'+params);
  };
  function continueSave(){
@@ -95,6 +96,7 @@
   const source=$('bastions');
   $('sf3d-map-size').value=source?.value??'8';
   $('sf3d-seed').value='';
+  $('sf3d-terrain').value='random';
   newDialog.showModal();
  });
  $('sf3d-campaign').addEventListener('click',()=>newDialog.showModal());
@@ -131,7 +133,7 @@
   if(!Number.isSafeInteger(n)||n<0||n>4294967295){
    $('sf3d-new-status').textContent='Seed muss zwischen 0 und 4294967295 liegen.';return;
   }
-  play(count,n);
+  play(count,n,{terrain:$('sf3d-terrain').value});
  });
  $('sf3d-pause-resume').addEventListener('click',resumeGame);
  $('sf3d-pause-save').addEventListener('click',()=>{

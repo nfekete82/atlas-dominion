@@ -1,0 +1,106 @@
+name: Sandforge procedural battlefields
+on:
+  push:
+    branches: [feat/webgl-procedural-battlefields-20261106]
+    paths-ignore: ['docs/**']
+  pull_request:
+    branches: [feat/webgl-premium-desert-oases-20261106]
+    paths-ignore: ['docs/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: procedural-battlefields-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  simulation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
+      - name: Byte-exact historical comparison with unmodified PR 239 on the same Node engine
+        run: |
+          git fetch --depth=1 origin d97da1a35adf020c85c8566ee54bf267aa2790bb
+          node scripts/check-historical-battlefields.mjs d97da1a35adf020c85c8566ee54bf267aa2790bb
+      - name: 1000 worlds, conservative tank clearance, HQ pads and oasis safety
+        run: node scripts/stress-procedural-battlefields.mjs geometry
+      - name: Paid AI bootstrap, production and expansion from all four corners
+        run: node scripts/stress-procedural-battlefields.mjs ai
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: procedural-battlefields-simulation
+          path: docs/qa/procedural-battlefields/*.json
+          retention-days: 14
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - suite: legacy
+            pattern: unused
+          - suite: terrain-a
+            pattern: '(open|dunes|rocky) full-detail terrain'
+          - suite: terrain-b
+            pattern: '(oasis|mixed) full-detail terrain|same-sized dune maps'
+          - suite: metadata
+            pattern: 'campaign menu and saved metadata'
+    env:
+      CI: 'true'
+      ATLAS_BROWSER_CHANNEL: chromium
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      # UI assertions use CSS pixels; only their software framebuffer is smaller.
+      # Procedural full-detail scenes explicitly retain DPR 1.
+      ATLAS_TEST_DPR: ${{ matrix.suite == 'legacy' && '0.5' || '1' }}
+      ATLAS_METADATA_DPR: '0.5'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Build host CSS and local fixture assets
+        run: npm run build
+      - run: npm ci --prefix tests/browser --no-audit --no-fund
+      - run: cd tests/browser && npx playwright install --with-deps chromium
+      - name: Build isolated Docker preview
+        run: |
+          docker build -t sandforge-battlefields-ci .
+          docker run -d --name sandforge-battlefields-ci -p 127.0.0.1:8132:8095 sandforge-battlefields-ci
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8132/healthz; then break; fi
+            sleep 1
+          done
+      - name: Existing WebGL regressions in the shipped Docker image
+        if: matrix.suite == 'legacy'
+        env:
+          ATLAS_BASE_URL: http://127.0.0.1:8132
+        run: |
+          tests/browser/node_modules/.bin/playwright test --config=tests/browser/playwright.config.mjs \
+            tests/browser/webgl-oases.spec.mjs tests/browser/webgl-fog-alignment.spec.mjs \
+            tests/browser/webgl-title-menu.spec.mjs tests/browser/webgl-playable.spec.mjs \
+            tests/browser/webgl-hud-responsive.spec.mjs --workers=1 --reporter=line
+      - name: Full-detail terrain views, gameplay, metadata and historical saves
+        if: matrix.suite != 'legacy'
+        env:
+          ATLAS_BASE_URL: http://127.0.0.1:8132
+        run: |
+          tests/browser/node_modules/.bin/playwright test --config=tests/browser/playwright.config.mjs \
+            tests/browser/webgl-procedural-battlefields.spec.mjs --grep "${{ matrix.pattern }}" --workers=1 --reporter=line
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: procedural-battlefields-browser-${{ matrix.suite }}
+          path: tests/browser/artifacts/
+          retention-days: 14
+      - if: always()
+        run: docker rm -f sandforge-battlefields-ci || true

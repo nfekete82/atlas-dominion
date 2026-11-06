@@ -1,0 +1,28 @@
+{
+  "rows": [
+    {
+      "version": 19,
+      "count": 4,
+      "terrain": null,
+      "seed": 4294967295,
+      "realBrowserRestart": true,
+      "geometryCollisionAndExplorationUnchanged": true
+    },
+    {
+      "version": 23,
+      "count": 4,
+      "terrain": "rocky",
+      "seed": 4294967295,
+      "realBrowserRestart": true,
+      "geometryCollisionAndExplorationUnchanged": true
+    },
+    {
+      "version": 26,
+      "count": 16,
+      "terrain": "oasis",
+      "seed": 4294967295,
+      "realBrowserRestart": true,
+      "geometryCollisionAndExplorationUnchanged": true
+    }
+  ]
+}

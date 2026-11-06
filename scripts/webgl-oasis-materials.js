@@ -2,23 +2,24 @@ import * as THREE from 'three';
 /** PBR layers applied directly to existing sand triangles. No overlay seams. */
 export function blendOasisTerrain(material,oases,half){
  const previous=material.onBeforeCompile,previousKey=material.customProgramCacheKey;
- const centers=Array.from({length:4},(_,i)=>{
+ const capacity=Math.max(4,oases.length);
+ const centers=Array.from({length:capacity},(_,i)=>{
   const o=oases[i];return new THREE.Vector4(o?o.x-half:1e8,o?o.y-half:1e8,o?.radius??1,o?.phase??0);
  });
  material.onBeforeCompile=shader=>{
   previous.call(material,shader);
   shader.uniforms.oasisCenters={value:centers};
-  shader.uniforms.oasisShapes={value:Array.from({length:4},(_,i)=>{
+  shader.uniforms.oasisShapes={value:Array.from({length:capacity},(_,i)=>{
    const o=oases[i];return new THREE.Vector3(o?.aspect??1,o?.rotation??0,o?.type==='dry'?0:o?.type==='semi'?.55:1);
   })};
   shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec2 vOasisXZ;')
    .replace('#include <begin_vertex>','#include <begin_vertex>\nvOasisXZ=position.xz;');
   shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
-   varying vec2 vOasisXZ;uniform vec4 oasisCenters[4];uniform vec3 oasisShapes[4];
+   varying vec2 vOasisXZ;uniform vec4 oasisCenters[${capacity}];uniform vec3 oasisShapes[${capacity}];
    float oasisWet=0.;float oasisSoil=0.;
    float sediment(vec2 p){return sin(p.x*.16+sin(p.y*.09))*sin(p.y*.19-p.x*.05);}`)
    .replace('#include <color_fragment>',`#include <color_fragment>
-   for(int i=0;i<4;i++){
+   for(int i=0;i<${capacity};i++){
     vec4 o=oasisCenters[i];vec3 shape=oasisShapes[i];vec2 d=vOasisXZ-o.xy;
     float c=cos(shape.y),s=sin(shape.y);vec2 q=vec2(d.x*c+d.y*s,(-d.x*s+d.y*c)/shape.x);
     float a=atan(q.y,q.x);
@@ -37,7 +38,7 @@ export function blendOasisTerrain(material,oases,half){
    diffuseColor.rgb*=1.-cracks*oasisSoil*(1.-oasisWet)*.11;`)
    .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,.49,oasisWet*.6);');
  };
- material.customProgramCacheKey=()=> 'sandforge-oasis-soil-v1';material.needsUpdate=true;
+ material.customProgramCacheKey=()=>capacity===4?'sandforge-oasis-soil-v1':'sandforge-oasis-soil-v1-'+capacity;material.needsUpdate=true;
  const restore=()=>{material.onBeforeCompile=previous;material.customProgramCacheKey=previousKey;material.needsUpdate=true;};
  restore.setHidden=ids=>centers.forEach((v,i)=>{v.x=ids.has(i)?1e8:(oases[i]?.x??1e8)-half;});
  return restore;

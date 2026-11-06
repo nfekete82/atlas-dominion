@@ -22,6 +22,8 @@
     "assets:hq-construction": "node scripts/export-atlas-buildings.mjs --cpu --construction-only headquarters",
     "assets:buildings:validate": "node scripts/validate-building-assets.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:battlefields": "npm run build && node --test tests/sandforge-procedural-battlefields.test.mjs",
+    "stress:battlefields": "npm run build && node scripts/stress-procedural-battlefields.mjs geometry",
     "test:performance": "npm run build && node scripts/benchmark-reborn-performance.mjs after",
     "test:ai-defense": "npm run build && node scripts/benchmark-ai-defense.mjs",
     "test:ai-director": "npm run build && node --test tests/reborn-ai-director.test.mjs tests/reborn-map-ai.test.mjs tests/reborn-control-retreat.test.mjs",
