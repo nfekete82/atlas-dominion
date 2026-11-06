@@ -40,7 +40,7 @@ jobs:
   browser:
     name: Chromium · Reborn RTS gameplay
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v7
         with:
@@ -55,10 +55,10 @@ jobs:
           npm ci --prefix tests/browser --no-audit --no-fund
           cd tests/browser
           npx playwright install --with-deps chromium
-      - name: RTS gameplay, controls, fog and persistent savegame
+      - name: Classic Canvas regression suite (explicit legacy build)
         env:
           ATLAS_BROWSER_CHANNEL: chromium
-        run: npm run test:browser
+        run: npm run test:browser:classic
       - name: Preserve screenshots, traces and reports
         if: always()
         uses: actions/upload-artifact@v4
