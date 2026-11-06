@@ -12,7 +12,7 @@ test('3D effects are included with the standalone OrbStack WebGL build',()=>{
  assert.ok(source.includes('export class SandforgeCombatEffects'));
  assert.ok(main.includes('new SandforgeCombatEffects'));
  assert.ok(main.includes('effects.update(dt,running,accumulator)'), 'rocket flight uses fractional simulation time for 3D interpolation');
- assert.ok(docker.includes('COPY scripts/webgl-combat-vfx.js'));
+ assert.ok(docker.includes('COPY scripts ./scripts')||docker.includes('COPY scripts/webgl-combat-vfx.js'),'Docker must include the VFX module either via complete scripts directory or explicit copy');
 });
 
 test('3D effects reuse authoritative combat events and do not mutate pathfinding or AI',()=>{
