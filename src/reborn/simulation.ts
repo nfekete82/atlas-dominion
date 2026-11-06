@@ -341,6 +341,22 @@ export class Simulation {
     const radius='queue' in target?target.radius+32:35,angle=Math.atan2(u.y-target.y,u.x-target.x),range='queue' in target?target.radius+55:u.kind==='engineer'?REPAIR_RADIUS:this.healRadius(u);
     const buildings=this.obstacles(),routeObstacles=[...buildings,...infantryStructureColliders(buildings)],
       obstacles=[...routeObstacles,...this.bastionColliders()];
+    if('queue' in target){
+      const gap=distance(u,target);
+      // A pioneer already in repair/build range needs no separate standing
+      // point. Otherwise a nearby building can hide every sampled approach
+      // even though the worker can legally build from the current position.
+      if(gap<=range&&this.world.line(u,target))return {x:u.x,y:u.y};
+      // A worker just outside range must only take a short, physically valid
+      // step inward. Snapping the endpoint to a coarse grid centre could put
+      // all of the candidate approaches outside the actual interaction ring.
+      if(gap>range&&gap<=range+this.world.cell*.5){
+        const p={x:target.x+(u.x-target.x)*(range-6)/gap,
+          y:target.y+(u.y-target.y)*(range-6)/gap};
+        if(this.world.walkable(p,obstacles)&&this.world.line(p,target)&&
+          (!requireReachable||this.world.path(u,p,routeObstacles).length>0))return p;
+      }
+    }
     for(let i=0;i<16;i++){
       const turn=angle+(i%2?1:-1)*Math.ceil(i/2)*Math.PI/8;
       const p=this.world.nearest({x:target.x+Math.cos(turn)*radius,y:target.y+Math.sin(turn)*radius},obstacles,[],u);
