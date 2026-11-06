@@ -1,4 +1,5 @@
 import {createServer} from 'node:net';
+import {existsSync} from 'node:fs';
 import {spawn} from 'node:child_process';
 import {setTimeout as delay} from 'node:timers/promises';
 import {fileURLToPath} from 'node:url';
@@ -32,7 +33,10 @@ function reservePort(){
   });
 }
 function waitForExit(child){
-  return new Promise(resolveExit=>child.once('exit',(code,signal)=>resolveExit({code,signal})));
+  return new Promise((resolveExit,rejectExit)=>{
+    child.once('error',rejectExit);
+    child.once('exit',(code,signal)=>resolveExit({code,signal}));
+  });
 }
 async function ready(port,server){
   const url='http://'+host+':'+port+'/healthz';
@@ -55,6 +59,7 @@ const shutdown=()=>{
 process.once('SIGINT',()=>{shutdown();process.exitCode=130;});
 process.once('SIGTERM',()=>{shutdown();process.exitCode=143;});
 try{
+  if(!existsSync(playwright))throw new Error('Playwright fehlt in tests/browser: zuerst npm ci --prefix tests/browser ausführen.');
   const port=await reservePort();
   const base='http://'+host+':'+port;
   console.log('Sandforge integration server:',base);

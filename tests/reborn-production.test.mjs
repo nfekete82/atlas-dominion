@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {Simulation} from '../dist/src/reborn/simulation.js';
 import {UNITS,BUILDINGS,unitKinds} from '../dist/src/reborn/catalog.js';
 import {distance} from '../dist/src/reborn/config.js';
+import {infantryStructureCollider,infantryStructureColliders} from '../dist/src/reborn/infantry-structure-collision.js';
 const advance=(g,seconds)=>{for(let i=0;i<Math.round(seconds/.05);i++)g.step();};
 function buildSite(g,kind,owner=0){
  const home=g.bases.find(b=>b.owner===owner&&b.kind==='headquarters');
@@ -27,7 +28,9 @@ test('production: every building rejects foreign roles without spending credits 
 test('production: real worker construction unlocks barracks, factory and airfield only on completion',()=>{
  const g=new Simulation(2026,2);g.aiClock=-1e8;g.credits[0]=10000;const worker=g.units.find(u=>u.owner===0&&u.kind==='engineer');
  for(const kind of ['barracks','factory','airfield']){
-  const site=buildSite(g,kind),b=g.build(0,kind,site,[worker.id]);assert.ok(b);const roles=unitKinds.filter(k=>UNITS[k].producers.includes(kind));assert.equal(roles.length,kind==='airfield'?2:3);
+  const site=buildSite(g,kind),b=g.build(0,kind,site,[worker.id]);
+  assert.ok(b,`${kind}: build rejected a legal site at ${JSON.stringify(site)} (worker ${JSON.stringify({x:worker.x,y:worker.y})}; ${g.notices.at(-1)??'no notice'})`);
+  const roles=unitKinds.filter(k=>UNITS[k].producers.includes(kind));assert.equal(roles.length,kind==='airfield'?2:3);
   for(const role of roles){assert.equal(g.producer(0,role),undefined);assert.equal(g.recruit(b.id,role),false);}
   for(let i=0;i<1800&&b.buildRemaining>0;i++)g.step();assert.equal(b.buildRemaining,0);
   for(const role of roles){assert.equal(g.producer(0,role).id,b.id);assert.ok(g.recruit(b.id,role));}
@@ -40,6 +43,75 @@ test('production: destroyed or enemy facilities do not unlock units, full queues
  for(let i=0;i<8;i++)assert.ok(g.recruit(b.id,'infantry'));assert.equal(g.recruit(b.id,'infantry'),false);b.queue=[];b.queueTypes=[];b.queueCosts=[];
  b.owner=1;assert.equal(g.producer(0,'infantry'),undefined);b.owner=0;b.hp=0;assert.equal(g.producer(0,'infantry'),undefined);
 });
+test('production: legal ground cannot spawn a factory facade over a nearby pioneer',()=>{
+ const g=new Simulation(2026,2);g.aiClock=-1e8;g.credits[0]=10000;
+ const site=buildSite(g,'factory'),worker=g.units.find(u=>u.owner===0&&u.kind==='engineer');
+ // Same offset as the sequential barracks->factory failure, where distance
+ // from the foundation is 125.36 (> physical collision radius of 80) but
+ // the feet are inside the north-shifted visible factory collider.
+ Object.assign(worker,{x:site.x+45.4840051359776,y:site.y-116.8123390393185});
+ const wall=infantryStructureCollider('factory',site);
+ assert.ok(distance(worker,site)>BUILDINGS.factory.radius+UNITS.engineer.radius);
+ assert.ok(distance(worker,wall)<wall.radius+UNITS.engineer.radius);
+ const money=g.credits[0],count=g.bases.length;
+ assert.equal(g.buildError(0,'factory',site),'Einheiten blockieren die Baustelle.');
+ assert.equal(g.build(0,'factory',site,[worker.id]),null);
+ assert.equal(g.credits[0],money);
+ assert.equal(g.bases.length,count);
+ // The unchanged ground becomes buildable again when the worker steps away.
+ Object.assign(worker,{x:site.x+400,y:site.y+400});
+ assert.equal(g.buildError(0,'factory',site),null);
+});
+
+test('production: a blocked first approach retries another side of a legal foundation without losing credits',()=>{
+ const g=new Simulation(2026,2);g.aiClock=-1e8;g.credits[0]=10000;
+ g.world.blocked.fill(0);g.world.opaque.fill(0);
+ const worker=g.units.find(u=>u.owner===0&&u.kind==='engineer'),site=buildSite(g,'generator');
+ Object.assign(worker,{x:site.x+400,y:site.y+160}); // force actual routing, even when the original worker spawned nearby
+ // Simulate a blocked first route, not an invalid building position. Other
+ // sides must still be considered, while commands remain physically routed.
+ const originalPath=g.world.path.bind(g.world);let attempts=0;
+ g.world.path=(...args)=>{attempts++;return attempts===1?[]:originalPath(...args);};
+ const before=g.credits[0],b=g.build(0,'generator',site,[worker.id]);
+ assert.ok(b,'the alternate reachable approach should allow construction');
+ assert.ok(attempts>=2,'pathfinder must retry after an obstructed first approach');
+ assert.equal(g.credits[0],before-BUILDINGS.generator.cost);
+ assert.equal(worker.orders[0]?.target,b.id);
+ const blocked=new Simulation(2026,2);blocked.aiClock=-1e8;blocked.credits[0]=10000;
+ blocked.world.blocked.fill(0);blocked.world.opaque.fill(0);
+ const worker2=blocked.units.find(u=>u.owner===0&&u.kind==='engineer'),site2=buildSite(blocked,'generator'),money=blocked.credits[0],bases=blocked.bases.length;
+ Object.assign(worker2,{x:site2.x+400,y:site2.y+160}); // failure case must also require a route
+ blocked.world.path=()=>[];
+ assert.equal(blocked.build(0,'generator',site2,[worker2.id]),null,'unreachable site must still be rejected');
+ assert.equal(blocked.credits[0],money,'failed construction never spends credits');
+ assert.equal(blocked.bases.length,bases,'failed construction leaves no ghost building');
+});
+
+test('production: pioneer a fraction beyond factory reach can take a collision-free short step and build',()=>{
+ const g=new Simulation(2026,2);g.aiClock=-1e8;g.credits[0]=10000;
+ g.world.blocked.fill(0);g.world.opaque.fill(0);
+ const worker=g.units.find(u=>u.owner===0&&u.kind==='engineer'),site=buildSite(g,'factory');
+ const radius=BUILDINGS.factory.radius,range=radius+55,gap=range+.5;
+ const mock={...g.bases[0],...site,kind:'factory',id:1999,radius,hp:BUILDINGS.factory.hp*.25};
+ const bases=[...g.bases,mock],obstacles=[...bases,...infantryStructureColliders(bases)];
+ let position=null;
+ for(let i=0;i<32&&!position;i++){
+  const a=i*Math.PI/16,p={x:site.x+Math.cos(a)*gap,y:site.y+Math.sin(a)*gap},
+   step={x:site.x+Math.cos(a)*(range-6),y:site.y+Math.sin(a)*(range-6)};
+  if(g.world.walkable(p,obstacles)&&g.world.walkable(step,obstacles)&&
+   g.world.line(step,site)&&g.world.path(p,step,obstacles).length)position=p;
+ }
+ assert.ok(position,'fixture requires at least one physically clear path into factory working range');
+ Object.assign(worker,position);
+ const before=g.credits[0],b=g.build(0,'factory',site,[worker.id]);
+ assert.ok(b,'a near-range pioneer must not be rejected by coarse grid-centre sampling');
+ assert.equal(g.credits[0],before-BUILDINGS.factory.cost);
+ assert.equal(worker.orders[0]?.target,b.id);
+ assert.ok(distance(worker.orders[0].approach,site)<=range);
+ for(let i=0;i<1800&&b.buildRemaining>0;i++)g.step();
+ assert.equal(b.buildRemaining,0,'pioneer actually walks the short approach and completes construction');
+});
+
 test('production: old mixed HQ queues refund unsupported orders once and retain paid workers and existing troops',()=>{
  const g=new Simulation(2026,2);g.aiClock=-1e8;const raw=g.save(),hq=raw.bases[0];delete raw.productionVersion;
  hq.queue=[UNITS.infantry.buildTime,UNITS.engineer.buildTime,UNITS.tank.buildTime];hq.queueTypes=['infantry','engineer','tank'];hq.queueCosts=[100,200,450];hq.production=2;raw.credits[0]=50;

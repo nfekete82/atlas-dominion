@@ -7,8 +7,8 @@ import { profiler } from './performance.js';
 import { RULES, WEATHER_RULES, clamp, distance, type Faction, type Owner, type Point, type MapVersion, mapLayout, campaignLayout, mapWorldSize } from './config.js';
 import { World, inside, type Territory } from './world.js';
 import {visibleBasePropColliders} from './vehicle-decor-collision.js';
-import {vehicleStructureColliders} from './vehicle-structure-collision.js';
-import {infantryStructureColliders} from './infantry-structure-collision.js';
+import {vehicleStructureCollider,vehicleStructureColliders} from './vehicle-structure-collision.js';
+import {infantryStructureCollider,infantryStructureColliders} from './infantry-structure-collision.js';
 import {bastionStructureColliders} from './bastion-structure-collision.js';
 import {constructionVisualClearance} from './construction-spacing.js';
 import {segmentDistance} from './world-generation.js';
@@ -234,7 +234,15 @@ export class Simulation {
     for(let i=0;i<32;i++)if(!this.world.walkable({x:p.x+Math.cos(i*Math.PI/16)*spec.radius,y:p.y+Math.sin(i*Math.PI/16)*spec.radius}))return 'Die gesamte Grundfläche muss frei sein.';
     if(this.obstacles().some(b=>distance(b,p)<constructionVisualClearance(kind,b.kind)))return 'Zu nah an einem anderen Gebäude.';
     if(this.territories.some(t=>distance(t.point,p)<spec.radius+45))return 'Bastion und Kontrollpunkt müssen frei bleiben.';
-    if(this.units.some(u=>u.hp>0&&!u.carrier&&!unitSpec(u).flying&&distance(u,p)<spec.radius+unitSpec(u).radius))return 'Einheiten blockieren die Baustelle.';
+    // Placement and actual navigation must agree: the visible facade is wider
+    // and offset north of Base.radius. A worker can otherwise be inside the
+    // newly spawned factory wall before receiving its first build order.
+    const infantryFacade=infantryStructureCollider(kind,p),vehicleFacade=vehicleStructureCollider(kind,p);
+    if(this.units.some(u=>{
+      if(u.hp<=0||u.carrier||unitSpec(u).flying)return false;
+      const facade=unitSpec(u).group==='Fahrzeuge'?vehicleFacade:infantryFacade;
+      return distance(u,facade)<facade.radius+unitSpec(u).radius;
+    }))return 'Einheiten blockieren die Baustelle.';
     return null;
   }
   build(owner:Faction,kind:BuildingKind,p:Point,workerIds?:number[],facing:0|1|2|3=0,append=false):Base|null {
@@ -277,8 +285,10 @@ export class Simulation {
       if(['heal','repair','build'].includes(order.kind)){
         const entity=order.kind==='heal'?this.units.find(t=>t.id===order.target):order.kind==='repair'?this.bases.find(t=>t.id===order.target)??this.units.find(t=>t.id===order.target):this.bases.find(t=>t.id===order.target);
         if(!entity||!this.supportEligible(u,entity,order.kind))return;
-        const approach=this.supportApproach(u,entity);if(!approach)return;
-        if('queue' in entity){const buildings=this.obstacles();const path=this.world.path(u,approach,[...buildings,...infantryStructureColliders(buildings)]);if(distance(u,entity)>entity.radius+55&&(!path.length||distance(path[path.length-1],entity)>entity.radius+55))return;}
+        // Buildings need a route to the worker's approach, not merely a free
+        // point beside the foundation. Try the other sides before rejecting
+        // a legal site because the first approach lies behind another building.
+        const approach=this.supportApproach(u,entity,'queue' in entity);if(!approach)return;
         const next:Order={...order,x:entity.x,y:entity.y,...('queue' in entity?{approach}:{healOrigin:{x:entity.x,y:entity.y}})};
         if(append){if(u.orders.length>=32)return;u.orders.push(next);}else{u.orders=[next];u.path=[];u.repath=0;delete u.burst;}
         // Enqueuing future maintenance must not interrupt the work in progress.
@@ -335,14 +345,35 @@ export class Simulation {
       return target.id!==u.id&&(unitSpec(target).group==='Fahrzeuge'||unitSpec(target).flying)&&target.hp<unitSpec(target).hp;
     return u.kind==='engineer'&&'queue' in target&&(kind==='build'?target.buildRemaining>0:target.buildRemaining<=0&&target.hp<buildingSpec(target).hp);
   }
-  private supportApproach(u:Unit,target:Unit|Base):Point|null {
+  private supportApproach(u:Unit,target:Unit|Base,requireReachable=false):Point|null {
     const radius='queue' in target?target.radius+32:35,angle=Math.atan2(u.y-target.y,u.x-target.x),range='queue' in target?target.radius+55:u.kind==='engineer'?REPAIR_RADIUS:this.healRadius(u);
-    const buildings=this.obstacles(),obstacles=[...buildings,
-      ...infantryStructureColliders(buildings),...this.bastionColliders()];
+    const buildings=this.obstacles(),routeObstacles=[...buildings,...infantryStructureColliders(buildings)],
+      obstacles=[...routeObstacles,...this.bastionColliders()];
+    if('queue' in target){
+      const gap=distance(u,target);
+      // A pioneer already in repair/build range needs no separate standing
+      // point. Otherwise a nearby building can hide every sampled approach
+      // even though the worker can legally build from the current position.
+      if(gap<=range&&this.world.line(u,target))return {x:u.x,y:u.y};
+      // A worker just outside range must only take a short, physically valid
+      // step inward. Snapping the endpoint to a coarse grid centre could put
+      // all of the candidate approaches outside the actual interaction ring.
+      if(gap>range&&gap<=range+this.world.cell*.5){
+        const p={x:target.x+(u.x-target.x)*(range-6)/gap,
+          y:target.y+(u.y-target.y)*(range-6)/gap};
+        if(this.world.walkable(p,obstacles)&&this.world.line(p,target)&&
+          (!requireReachable||this.world.path(u,p,routeObstacles).length>0))return p;
+      }
+    }
     for(let i=0;i<16;i++){
       const turn=angle+(i%2?1:-1)*Math.ceil(i/2)*Math.PI/8;
       const p=this.world.nearest({x:target.x+Math.cos(turn)*radius,y:target.y+Math.sin(turn)*radius},obstacles,[],u);
-      if(p&&distance(p,target)<=range&&this.world.line(p,target))return p;
+      if(!p||distance(p,target)>range||!this.world.line(p,target))continue;
+      if(requireReachable&&distance(u,target)>range){
+        const path=this.world.path(u,p,routeObstacles);
+        if(!path.length||distance(path[path.length-1],target)>range)continue;
+      }
+      return p;
     }
     return null;
   }
