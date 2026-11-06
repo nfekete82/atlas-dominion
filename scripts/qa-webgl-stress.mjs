@@ -48,14 +48,26 @@ function injectBattle(game,count){
 }
 
 for(const scenario of versions){
- const game=Simulation.campaign(seed,scenario.version);
- const injected=injectBattle(game,6+scenario.bastions);
- const runtimes=[[],[],[]],seenHp=new Map(),samples=[];
+ let episode=0,game=Simulation.campaign(seed,scenario.version);
+ let injected=injectBattle(game,6+scenario.bastions);
+ let totalSpawned=injected.spawned;
+ const episodes=[],runtimes=[[],[],[]],seenHp=new Map(),samples=[];
  let damageEvents=0,deaths=0,peakUnits=0,steps=0;
  for(const u of injected.units)seenHp.set(u.id,u.hp);
  const wallStart=performance.now();
  const totalTicks=Math.ceil(seconds/.05);
- for(let tick=0;tick<totalTicks&&game.status==='playing';tick++){
+ for(let tick=0;tick<totalTicks;tick++){
+  if(game.status!=='playing'){
+   // Do not force a finished game back to "playing": start the next
+   // deterministic match so every map receives the requested total load.
+   episodes.push({seed:seed+episode,endAt:+game.time.toFixed(2),status:game.status});
+   episode++;
+   game=Simulation.campaign((seed+episode)>>>0,scenario.version);
+   injected=injectBattle(game,6+scenario.bastions);
+   totalSpawned+=injected.spawned;
+   seenHp.clear();
+   for(const u of injected.units)seenHp.set(u.id,u.hp);
+  }
   const started=performance.now();
   game.step(.05);
   const duration=performance.now()-started;
@@ -69,7 +81,8 @@ for(const scenario of versions){
    seenHp.set(u.id,u.hp);
   }
   if(tick%400===0||tick===totalTicks-1)
-   samples.push({time:game.time,units:game.units.filter(u=>u.hp>0).length,
+   samples.push({time:+(steps*.05).toFixed(2),episode,episodeTime:game.time,
+    units:game.units.filter(u=>u.hp>0).length,
     heapMB:Math.round(process.memoryUsage().heapUsed/1048576),
     credits:game.credits.slice(),status:game.status});
  }
@@ -77,10 +90,12 @@ for(const scenario of versions){
   p95:+q(a,.95).toFixed(3),p99:+q(a,.99).toFixed(3),
   max:+Math.max(0,...a).toFixed(3)}));
  const heapMB=+(process.memoryUsage().heapUsed/1048576).toFixed(1);
+ episodes.push({seed:seed+episode,endAt:+game.time.toFixed(2),status:game.status});
  const report={...scenario,seed,mode:'deterministic synthetic battle + live AI',
-  secondsRequested:seconds,secondsReached:+game.time.toFixed(2),
+  secondsRequested:seconds,secondsReached:+(steps*.05).toFixed(2),
+  episodes,
   wallMs:+(performance.now()-wallStart).toFixed(1),
-  status:game.status,steps,peakUnits,combat:{spawned:injected.spawned,
+  status:game.status,steps,peakUnits,combat:{spawned:totalSpawned,
    damageEvents,deaths},stages,heapMB,samples,
   limits:{maxSimP95Ms:maxP95,maxHeapMB:maxHeap}};
  const risks=[];
@@ -90,7 +105,11 @@ for(const scenario of versions){
  if(heapMB>maxHeap)risks.push('heap watchdog exceeded');
  const start=stages[0].p95,end=stages[2].p95;
  const tailWarning=end>Math.max(25,start*3);
- report.warnings=[...(tailWarning?['late-phase simulation p95 substantially above initial phase']:[])];
+ report.warnings=[
+  ...(tailWarning?['late-phase simulation p95 substantially above initial phase']:[]),
+  ...(episodes.some(e=>e.status!=='playing')
+   ?['One or more matches ended naturally; continued in a fresh deterministic match to complete requested simulated time']:[])
+ ];
  report.errors=risks;
  if(risks.length)failures++;
  results.push(report);
@@ -98,7 +117,7 @@ for(const scenario of versions){
   JSON.stringify(report,null,2)+'\n');
  console.log('[stress]',scenario.bastions+' Bastionen',
   'ticks='+steps,'damage='+damageEvents,'p95='+stages.map(x=>x.p95).join('/'),
-  'heap='+heapMB+'MB','status='+game.status,
+  'heap='+heapMB+'MB','episodes='+episodes.length,'status='+game.status,
   risks.length?'FAIL '+risks.join('; '):'PASS');
 }
 writeFileSync(join(output,'simulation-summary.json'),
