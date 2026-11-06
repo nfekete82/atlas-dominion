@@ -167,3 +167,49 @@ test('legacy 3D preview links show original logo, dark Fog of War and black fadi
  expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.fogEnabled)).toBe(true);
  expect(pageErrors).toEqual([]);
 });
+
+
+test('minimap uses the exact 3D vision grid and a rotated ground-footprint outline',async({page})=>{
+ test.setTimeout(125000);
+ await page.setViewportSize({width:1440,height:900});
+ await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',
+  {waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,null,{timeout:95000});
+ const state=await page.evaluate(()=>{
+  const a=window.__sandforgeWebGL,g=a.game,b=a.battlefield;
+  g.updateVision();b.updateFog();b.drawMinimap();
+  const source=b.fogTexture.image.data,mini=b.miniFogPixels.data;
+  let different=0,visible=0,unknown=0;
+  for(let i=0;i<g.world.blocked.length;i++){
+   if(source[i*4+3]!==mini[i*4+3])different++;
+   if(source[i*4+3]===0)visible++;
+   if(source[i*4+3]===255)unknown++;
+  }
+  const soldier=g.units.find(u=>u.owner===0&&u.hp>0&&!u.carrier);
+  const index=g.world.index(soldier);
+  const polygon=b.miniViewportCorners.map(p=>({...p}));
+  const area=points=>Math.abs(points.reduce((total,p,i)=>{
+   const next=points[(i+1)%points.length];
+   return total+p.x*next.y-next.x*p.y;
+  },0))*.5;
+  const camera=a.camera,controls=a.controls;
+  const offset=camera.position.clone().sub(controls.target);
+  offset.applyAxisAngle(camera.up,Math.PI/6);
+  camera.position.copy(controls.target).add(offset);
+  camera.lookAt(controls.target);controls.update();b.drawMinimap();
+  const rotated=b.miniViewportCorners;
+  return {different,visible,unknown,sourceLen:source.length,miniLen:mini.length,
+   ownCellAlpha:mini[index*4+3],corners:polygon.length,
+   area:area(polygon),rotatedArea:area(rotated),
+   changed:Math.hypot(rotated[0].x-polygon[0].x,rotated[0].y-polygon[0].y)};
+ });
+ expect(state.sourceLen).toBe(state.miniLen);
+ expect(state.different).toBe(0);
+ expect(state.visible).toBeGreaterThan(0);
+ expect(state.unknown).toBeGreaterThan(0);
+ expect(state.ownCellAlpha).toBe(0);
+ expect(state.corners).toBe(4);
+ expect(state.area).toBeGreaterThan(1);
+ expect(state.rotatedArea).toBeGreaterThan(1);
+ expect(state.changed).toBeGreaterThan(1);
+});
