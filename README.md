@@ -47,7 +47,7 @@ npm ci
 npm run dev
 ```
 
-**http://127.0.0.1:8095** — alternativ `docker compose up --build -d`. Der Server bindet standardmäßig nur an Loopback. Keine Accounts oder TTS-Anfragen während des Spielens. Start: 500 Credits, ein Soldat, Hauptquartier und zwei eigene Sektoren. Neue Kampagnen erzeugen Gelände und erreichbare Bastionen aus einem neuen Seed; Laden stellt die gespeicherte Karte wieder her.
+**http://127.0.0.1:8095** — alternativ `docker compose up --build -d`. Der Server bindet standardmäßig nur an Loopback. Keine Accounts oder TTS-Anfragen während des Spielens. Start einer aktuellen WebGL-Kampagne: 950 Credits je Fraktion, ein Infanterist und ein Pionier, zunächst ohne Hauptquartier. Der Pionier errichtet zuerst das HQ; ältere Spielstände mit vorhandenen HQs bleiben im Classic-Modus erhalten. Neue Kampagnen erzeugen Gelände und erreichbare Bastionen aus einem neuen Seed; Laden stellt die gespeicherte Karte wieder her.
 
 ## Spielen
 
@@ -71,7 +71,7 @@ npm run dev
 | Pionier | 200 | Gebäude bauen und reparieren |
 | Schwere Infanterie | 250 | 420 LP, stark gegen Infanterie; weniger Schaden gegen Panzerung |
 | Humvee | 350 | Schnelle Aufklärung und Flanken |
-| Kampfpanzer | 450 | Gepanzerte Frontunterstützung |
+| Kampfpanzer | 550 | Gepanzerte Frontunterstützung |
 | Raketenwerfer | 600 | Schwerer 6×6-Lkw mit sechs Werferrohren, fliegenden Raketen und Flächenschaden |
 | Transporthelikopter | 600 | Aufklärung, zehn Passagiere und defensive Maschinengewehre |
 | Bomber | 1000 | Schwere Feuerkraft gegen Bodenziele |
