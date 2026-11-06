@@ -9,7 +9,7 @@ test('both real faction barracks expose authored blast door and stiffening panel
   const bytes=readFileSync(new URL(`../src/assets/reborn/buildings-3d/barracks-${faction}.glb`,import.meta.url));
   const count=bytes.readUInt32LE(12);
   const j=JSON.parse(bytes.subarray(20,20+count));
-  assert.ok(j.nodes.some(n=>/BarracksBlastDoor/.test(n.name??'')));
+  assert.ok(j.nodes.some(n=>/BarracksBlastDoor/.test(n.name??'')),JSON.stringify({faction,candidates:j.nodes.filter(n=>/door|barracks|airlock|entry|surface|batch/i.test(n.name??'')).map(n=>n.name).slice(0,140),initial:j.nodes.slice(0,45).map(n=>n.name)}));
   assert.ok(j.nodes.some(n=>/BarracksDoorStiffener/.test(n.name??'')));
  }
 });
