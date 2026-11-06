@@ -52,6 +52,7 @@ jobs:
       # UI assertions use CSS pixels; only their software framebuffer is smaller.
       # Procedural full-detail scenes explicitly retain DPR 1.
       ATLAS_TEST_DPR: ${{ matrix.suite == 'legacy' && '0.5' || '1' }}
+      ATLAS_METADATA_DPR: '0.5'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
