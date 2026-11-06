@@ -26,7 +26,7 @@ for(const profile of profiles)test.describe(`${profile} full-detail terrain`,()=
  test.describe.configure({mode:'serial'});
  let page,context;const errors=[];
  test.beforeAll(async({browser},info)=>{
-  context=await browser.newContext({baseURL:info.project.use.baseURL,viewport:{width:1440,height:900}});
+  context=await browser.newContext({baseURL:info.project.use.baseURL,deviceScaleFactor:1,viewport:{width:1440,height:900}});
   page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
   await ready(page,`/?bastions=16&seed=2074&terrain=${profile}&pause=1`);
  });
@@ -133,7 +133,7 @@ for(const [version,count] of [[19,4],[20,8],[21,12],[22,16]])test(`historical v$
 });
 test.describe('same-sized dune maps under identical cameras',()=>{
  test.describe.configure({mode:'serial'});let page,context;const fields=[];
- test.beforeAll(async({browser},info)=>{context=await browser.newContext({baseURL:info.project.use.baseURL,viewport:{width:1440,height:900}});page=await context.newPage();});
+ test.beforeAll(async({browser},info)=>{context=await browser.newContext({baseURL:info.project.use.baseURL,deviceScaleFactor:1,viewport:{width:1440,height:900}});page=await context.newPage();});
  test.afterAll(async()=>{await context?.close();});
  for(const seed of [2074,2075])test(`seed ${seed} has reproducible, distinct visible relief`,async()=>{
   await ready(page,`/?bastions=16&seed=${seed}&terrain=dunes&pause=1&fog=off`);

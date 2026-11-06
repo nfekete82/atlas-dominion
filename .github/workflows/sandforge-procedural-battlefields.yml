@@ -49,6 +49,9 @@ jobs:
       CI: 'true'
       ATLAS_BROWSER_CHANNEL: chromium
       LIBGL_ALWAYS_SOFTWARE: '1'
+      # UI assertions use CSS pixels; only their software framebuffer is smaller.
+      # Procedural full-detail scenes explicitly retain DPR 1.
+      ATLAS_TEST_DPR: ${{ matrix.suite == 'legacy' && '0.5' || '1' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -56,6 +59,8 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci --no-audit --no-fund
+      - name: Build host CSS and local fixture assets
+        run: npm run build
       - run: npm ci --prefix tests/browser --no-audit --no-fund
       - run: cd tests/browser && npx playwright install --with-deps chromium
       - name: Build isolated Docker preview
