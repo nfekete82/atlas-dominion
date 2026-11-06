@@ -200,8 +200,8 @@ export class SandforgeActorPresentation {
   const showBar=visible&&(this.showHealth==='all'||
    this.showHealth==='selected'&&selected||
    this.showHealth==='damaged'&&(selected||pct<.999));
-  bar.root.visible=showBar;
-  if(showBar)this.stats.visibleBars++;
+  bar.root.visible=showBar&&!entry.productionMotion?.hideHealth;
+  if(bar.root.visible)this.stats.visibleBars++;
   if(visible){
    bar.root.position.copy(entry.node.position);
    bar.root.position.y+=entry.modelHeight?Math.max(bar.altitude,entry.modelHeight+5):bar.altitude;
@@ -270,7 +270,12 @@ export class SandforgeActorPresentation {
    if(desired&&typeof entry.playAnimation==='function')
     entry.playAnimation(desired,retrigger);
    if(retrigger)state.lastClipTrigger=state.shotTrigger;
-   if(visible&&active&&dt>0)clips.mixer.update(Math.min(.08,dt));
+   if(visible&&active&&dt>0){
+    const action=desired?clips.mixer.existingAction(desired):null;
+    if(action)action.setEffectiveTimeScale(entry.productionMotion&&moving
+     ?clamp((entity.driveSpeed??80)/80,.15,3):1);
+    clips.mixer.update(Math.min(.08,dt));
+   }
   }
   const body=entry.detail??entry.placeholder;
   if(!body)return;

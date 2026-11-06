@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {SandforgeProductionGates} from '/webgl-production-gates.js';
 import {clone as cloneSkeleton} from 'three/addons/utils/SkeletonUtils.js';
 import {UNITS,BUILDINGS,MAX_GENERATORS_PER_FACTION,unitKinds,buildingKinds,unitSpec,buildingSpec} from '/src/reborn/catalog.js';
 import {TERRAIN_LABELS} from '/src/reborn/battlefield-terrain.js';
@@ -53,6 +54,7 @@ export class SandforgeBattlefield {
   this.miniLast=0;this.uiLast=0;this.fogLast=0;
   this.fogEnabled=true;this.selectedRings=new Map();this.animations=new Map();
   this.presentation=new SandforgeActorPresentation(scene,camera,game);
+  this.productionGates=new SandforgeProductionGates(this);
   this.grounding=new SandforgeGroundingPass(scene);
   this.construction=new SandforgeConstructionPresentation(renderer);
   // Dedicated second render pass: the building hologram must remain visible
@@ -347,7 +349,10 @@ export class SandforgeBattlefield {
     entry.modelHeight=dims.y*visualScale;
     entry.modelFootprint=Math.max(dims.x,dims.z)*visualScale;
     entry.visualBaseY=model.position.y;entry.visualBaseZ=model.position.z;
-    if(type==='building')this.attachBuildingMotion(entry,data);
+    if(type==='building'){
+     this.attachBuildingMotion(entry,data);
+     if(entry.kind==='factory')this.productionGates.prepare(entry);
+    }
     if(type==='unit'&&['tank','artillery'].includes(entry.kind))this.installTankRig(entry,model);
     if(type==='unit'&&data.animations.length){
      const mixer=new THREE.AnimationMixer(model);
@@ -482,6 +487,7 @@ export class SandforgeBattlefield {
   for(const u of this.game.units){
    if(u.hp<=0||u.carrier)continue;
    aliveUnits.add(u.id);
+   const oldEntry=this.units.get(u.id);if(oldEntry)oldEntry.productionMotion=null;
    let entry=this.units.get(u.id);
    if(!entry){entry=this.spawnNode(u,'unit');this.units.set(u.id,entry);}
    // Interpolate between authoritative 20 Hz snapshots for smooth 60–120 FPS
@@ -519,15 +525,17 @@ export class SandforgeBattlefield {
     if(b.owner===0&&this.sound?.enabled)this.sound.announceReady('building');
    }
   }
-  for(const [id,e] of this.bases)if(!aliveBases.has(id)){this.presentation.remove(e,this.game.bases.find(base=>base.id===id));this.construction.dispose(e);this.grounding.detachBuilding(id);this.scene.remove(e.node);this.bases.delete(id);if(this.selectedBase===id)this.selectedBase=null;}
+  for(const [id,e] of this.bases)if(!aliveBases.has(id)){this.presentation.remove(e,this.game.bases.find(base=>base.id===id));this.productionGates.detach(e);this.construction.dispose(e);this.grounding.detachBuilding(id);this.scene.remove(e.node);this.bases.delete(id);if(this.selectedBase===id)this.selectedBase=null;}
+  this.productionGates.update(active,blend);
   this.presentation.consumeShots(this.units,this.bases);
   for(const u of this.game.units){
    const entry=this.units.get(u.id);
    if(entry){
-    this.presentation.update(entry,u,'unit',dt,this.selected.has(u.id),active);
+    const visual=entry.productionMotion?{...u,...entry.productionMotion}:u;
+    this.presentation.update(entry,visual,'unit',dt,this.selected.has(u.id),active);
     // Authored vehicle clips can animate Turret/Gun quaternion and overwrite
     // our aim. Reapply authoritative heading AFTER AnimationMixer.update().
-    if(u.kind==='tank'||u.kind==='artillery')this.orientTankRig(entry,u);
+    if(u.kind==='tank'||u.kind==='artillery')this.orientTankRig(entry,visual);
    }
   }
   for(const b of this.game.bases){

@@ -1,0 +1,35 @@
+{
+  "baseCommit": "5e772faa16e4c0781de72d3ae53d97cba3633ef8",
+  "node": {
+    "total": 1210,
+    "passed": 1209,
+    "failed": 0,
+    "skipped": 1
+  },
+  "factoryNode": {
+    "passed": 24,
+    "failed": 0
+  },
+  "webglGameplayRegression": {
+    "total": 58,
+    "passed": 56,
+    "failed": 2,
+    "baselineReproducedFailures": [
+      "webgl-perimeter-navigation: expected map version 15, received 19",
+      "webgl-perimeter-navigation: camera test clicks the old map-settings button behind an open pause dialog"
+    ]
+  },
+  "focusedFinalBrowser": {
+    "passed": 2,
+    "failed": 0
+  },
+  "browserErrorsInFactoryAcceptance": [],
+  "dockerPreview": "http://127.0.0.1:8134",
+  "protectedPortsUnchanged": [
+    8095,
+    8116,
+    8128,
+    8132
+  ],
+  "scope": "Both faction factory GLBs and tank/Humvee/rocket-artillery rollout; barracks and airfield unchanged pending suitable model/trajectory preparation."
+}
