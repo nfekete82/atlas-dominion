@@ -1,3 +1,4 @@
+import {battlefieldStart,isTerrainProfile,type TerrainProfile} from './battlefield-terrain.js';
 import {Weather} from './weather.js';
 import {gainUnitXp,getVeterancyModifiers,sanitizeXp,XP_RULES} from './veterancy.js';
 import {migrateTransportRoster} from './roster-migration.js';
@@ -72,7 +73,7 @@ export interface Blast extends Point {at:number;id:number}
 export type CaptureReadiness='owned'|'no-unit'|'out-of-range'|'contested'|'enemy-hq'|'capturing';
 export interface Memory extends Point { id:number; owner:Faction; hp:number; territory:number; kind?:BuildingKind }
 export interface Save {
-  version:2; bootstrapVersion?:1; weatherVersion?:1; productionVersion?:1; supportVersion?:1;rosterVersion?:2;missiles?:Missile[]; seed:number; mapVersion?:MapVersion; time:number; nextId:number; credits:number[]; incomeClock:number;
+  version:2; terrainProfile?:TerrainProfile; generatorVersion?:1; bootstrapVersion?:1; weatherVersion?:1; productionVersion?:1; supportVersion?:1;rosterVersion?:2;missiles?:Missile[]; seed:number; mapVersion?:MapVersion; time:number; nextId:number; credits:number[]; incomeClock:number;
   units:Unit[]; bases:Base[]; territories:Territory[]; explored:number[][];
   memories:Memory[][]; aiClock:number; ai?:TacticalState; status:'playing'|'victory'|'defeat'; stats?:MatchStatistics;
 }
@@ -126,7 +127,12 @@ export class Simulation {
   infantryVisionBonus=1;
   readonly hills:RollingHill[]=[];
   highGroundEnabled=false; // opt-in only in the playable WebGL campaign
-  onHighGround(p:Point):boolean{return this.highGroundEnabled&&standsOnHill(this.hills,p);}
+  onHighGround(p:Point):boolean{
+    if(!this.highGroundEnabled)return false;
+    if(!this.world.generated?.battlefield)return standsOnHill(this.hills,p);
+    if(('kind' in p)&&unitSpec(p as Unit).flying)return false;
+    return this.world.walkable(p)&&this.world.terrainHeight(p.x,p.y)>=45&&this.world.terrainSlope(p.x,p.y)<=.20;
+  }
   sight(u:Unit):number{
     const infantry=['infantry','medic','engineer','heavy'].includes(u.kind);
     return unitSpec(u).sight*(infantry?this.infantryVisionBonus:1)*
@@ -148,15 +154,15 @@ export class Simulation {
   workEffects:WorkEffect[]=[];
   paused=false; revision=0; private fogClock=0; private visionCache=new VisionCache(); private spatial=new SpatialIndex();
   /** The original constructor remains a deterministic legacy fixture/save reader. */
-  constructor(seed=2026,mapVersion:MapVersion=0,weatherEnabled=false,bootstrap=false) {
-    this.bootstrapVersion=bootstrap?1:undefined;this.seed=seed;this.weather=new Weather(seed,weatherEnabled);this.world=new World(seed,mapVersion);this.territories=this.world.territories(seed);
+  constructor(seed=2026,mapVersion:MapVersion=0,weatherEnabled=false,bootstrap=false,profile?:TerrainProfile) {
+    this.bootstrapVersion=bootstrap?1:undefined;this.seed=seed;this.weather=new Weather(seed,weatherEnabled);this.world=new World(seed,mapVersion,profile);this.territories=this.world.territories(seed);
     if(mapVersion>=3)this.credits=[950,950];
-    this.hills=generateRollingHills(seed,mapVersion,this.world.size,
+    this.hills=mapVersion>=23?[]:generateRollingHills(seed,mapVersion,this.world.size,
       this.world.generated?.sites??[],this.world.generated?.ruins??[]);
     const layout=campaignLayout(mapVersion,seed);
     for(const owner of [0,1] as const){
       const territory=layout.headquarters[owner];
-      const t=this.territories[territory],site=mapVersion>=2?{x:t.point.x+(owner===0?-260:260),y:t.point.y+(owner===0?165:-165)}:mapVersion===1?{x:t.point.x-165,y:t.point.y+45}:t.point,p=this.world.clearSite(site,RULES.headquarters.radius)!;
+      const t=this.territories[territory],site=mapVersion>=23?battlefieldStart(t.point,this.world.size):mapVersion>=2?{x:t.point.x+(owner===0?-260:260),y:t.point.y+(owner===0?165:-165)}:mapVersion===1?{x:t.point.x-165,y:t.point.y+45}:t.point,p=this.world.clearSite(site,RULES.headquarters.radius)!;
       this.startRegions.push({center:{...p},radius:Math.min(600,this.world.size/6)});
       if(!bootstrap)this.bases.push({id:1000+owner,owner,kind:'headquarters',...p,hp:RULES.headquarters.hp,territory,queue:[],queueTypes:[],production:0,buildRemaining:0,cooldown:0,rally:null,radius:RULES.headquarters.radius});
       if(mapVersion===0)t.point=this.world.nearest({x:p.x+165,y:p.y-45},this.obstacles())!;
@@ -171,7 +177,7 @@ export class Simulation {
     }
     this.spatial.rebuild(this.units);this.updateVision();
   }
-  static campaign(seed=randomMapSeed(),version:MapVersion=MAP_VERSION):Simulation {return new Simulation(seed,version,false,true);}
+  static campaign(seed=randomMapSeed(),version:MapVersion=MAP_VERSION,profile?:TerrainProfile):Simulation {return new Simulation(seed,version,false,true,profile);}
   obstacles():Base[]{return this.bases.filter(b=>b.hp>0);}
   /** Tower footprints are immutable for a match; reuse across AI and ticks. */
   private bastionNavigationCache?:{x:number;y:number;radius:number}[];
@@ -222,6 +228,7 @@ export class Simulation {
     if(this.credits[owner]<spec.cost)return 'Zu wenig Credits.';
     if(kind!=='headquarters'&&!this.hasExplored(owner,p))return 'Dieser Bauplatz ist noch nicht erforscht.';
     if(!this.world.walkable(p))return 'Felsen blockieren die Baustelle.';
+    if(this.world.generated?.battlefield&&!this.world.buildable(p,spec.radius))return 'Die Grundfläche ist zu steil oder uneben.';
     // Every terrain tile intersecting the circular footprint must have been explored.
     const cell=this.world.cell;
     for(let y=Math.floor((p.y-spec.radius)/cell);y<=Math.floor((p.y+spec.radius)/cell);y++)for(let x=Math.floor((p.x-spec.radius)/cell);x<=Math.floor((p.x+spec.radius)/cell);x++){
@@ -1077,7 +1084,7 @@ export class Simulation {
   }
   private think():void {this.tactical.plan();}
   save():Save {
-    return structuredClone({version:2,...(this.bootstrapVersion?{bootstrapVersion:this.bootstrapVersion}:{}),weatherVersion:1,productionVersion:1,supportVersion:1,rosterVersion:2,missiles:this.missiles,seed:this.seed,mapVersion:this.world.mapVersion,time:this.time,nextId:this.nextId,credits:this.credits,incomeClock:this.incomeClock,
+    return structuredClone({version:2,...(this.world.generated?.battlefield?{terrainProfile:this.world.generated.battlefield.profile,generatorVersion:1 as const}:{}),...(this.bootstrapVersion?{bootstrapVersion:this.bootstrapVersion}:{}),weatherVersion:1,productionVersion:1,supportVersion:1,rosterVersion:2,missiles:this.missiles,seed:this.seed,mapVersion:this.world.mapVersion,time:this.time,nextId:this.nextId,credits:this.credits,incomeClock:this.incomeClock,
       units:this.units,bases:this.bases,territories:this.territories,explored:this.explored.map(a=>Array.from(a)),memories:this.memories,aiClock:this.aiClock,ai:this.tactical.state,status:this.status,stats:this.stats});
   }
   static load(raw:unknown,weatherEnabled=false):Simulation {
@@ -1086,7 +1093,7 @@ export class Simulation {
     const validMatchStatisticsOrLegacy=(data:unknown)=>data===undefined||validMatchStatistics(data);
     const point=(p:Point)=>p&&finite(p.x)&&finite(p.y)&&p.x>=0&&p.y>=0&&p.x<=mapWorldSize(s?.mapVersion??0)&&p.y<=mapWorldSize(s?.mapVersion??0);
     const burst=(b:Burst|undefined,rounds:number)=>b===undefined||(b!==null&&Number.isInteger(b.target)&&Number.isInteger(b.remaining)&&b.remaining>0&&b.remaining<=rounds&&b.remaining+b.index===rounds&&Number.isInteger(b.index)&&b.index>=0&&b.index<4&&finite(b.at)&&b.at>=s.time-.11&&b.at<=s.time+.11);
-    if(!s||s.version!==2||(s.bootstrapVersion!==undefined&&s.bootstrapVersion!==1)||(s.weatherVersion!==undefined&&s.weatherVersion!==1)||(s.productionVersion!==undefined&&s.productionVersion!==1)||(s.mapVersion!==undefined&&![0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22].includes(s.mapVersion))||!TacticalAI.valid(s.ai,s.time,point,mapLayout(s.mapVersion??0).columns*mapLayout(s.mapVersion??0).rows)||!finite(s.seed)||!finite(s.time)||s.time<0||!finite(s.incomeClock)||s.incomeClock<0||s.incomeClock>=10||
+    if(!s||s.version!==2||((s.mapVersion??0)>=23&&(!isTerrainProfile(s.terrainProfile)||s.generatorVersion!==1))||((s.mapVersion??0)<23&&(s.terrainProfile!==undefined||s.generatorVersion!==undefined))||(s.bootstrapVersion!==undefined&&s.bootstrapVersion!==1)||(s.weatherVersion!==undefined&&s.weatherVersion!==1)||(s.productionVersion!==undefined&&s.productionVersion!==1)||(s.mapVersion!==undefined&&![0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26].includes(s.mapVersion))||!TacticalAI.valid(s.ai,s.time,point,mapLayout(s.mapVersion??0).columns*mapLayout(s.mapVersion??0).rows)||!finite(s.seed)||!finite(s.time)||s.time<0||!finite(s.incomeClock)||s.incomeClock<0||s.incomeClock>=10||
       !validMatchStatisticsOrLegacy(s.stats)||!Array.isArray(s.units)||s.units.length>96||!Array.isArray(s.bases)||s.bases.length<(s.bootstrapVersion===1?0:2)||s.bases.length>64||
       s.units.some(u=>u.exactPath!==undefined&&typeof u.exactPath!=='boolean')||
       !Array.isArray(s.territories)||s.territories.length!==mapLayout(s.mapVersion??0).columns*mapLayout(s.mapVersion??0).rows||!Array.isArray(s.explored)||s.explored.length!==2||
@@ -1099,7 +1106,7 @@ export class Simulation {
         (b.queueCosts!==undefined&&(!Array.isArray(b.queueCosts)||b.queueCosts.length!==b.queue.length||b.queueCosts.some(v=>!finite(v)||v<0)))||
         (b.buildRemaining!==undefined&&(!finite(b.buildRemaining)||b.buildRemaining<0||b.buildRemaining>(BUILDINGS[b.kind??'headquarters']?.buildTime??0)))||!finite(b.production)||b.production<0||b.production>(b.queue[0]??0))||
       s.territories.some((t,i)=>t.id!==i||![-1,0,1].includes(t.owner)||!finite(t.progress)||t.progress<0||t.progress>8))throw new Error('Dieser Spielstand ist beschädigt oder gehört zu einer anderen Version.');
-    const game=new Simulation(s.seed,s.mapVersion??0,weatherEnabled,s.bootstrapVersion===1);
+    const game=new Simulation(s.seed,s.mapVersion??0,weatherEnabled,s.bootstrapVersion===1,s.terrainProfile);
     game.time=s.time;
     game.stats=s.stats?structuredClone(s.stats):newMatchStatistics();
     if(!s.stats){game.stats.partial=true;for(const u of s.units){if(u.hp>0){const f=game.stats.factions[u.owner];f.deployedUnits[u.kind??'infantry']++;f.peakArmy+=0;}}for(const owner of [0,1] as const)game.stats.factions[owner].peakArmy=s.units.filter(u=>u.owner===owner&&u.hp>0).length;}

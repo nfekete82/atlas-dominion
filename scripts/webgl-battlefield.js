@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {clone as cloneSkeleton} from 'three/addons/utils/SkeletonUtils.js';
 import {UNITS,BUILDINGS,MAX_GENERATORS_PER_FACTION,unitKinds,buildingKinds,unitSpec,buildingSpec} from '/src/reborn/catalog.js';
+import {TERRAIN_LABELS} from '/src/reborn/battlefield-terrain.js';
 import {RULES} from '/src/reborn/config.js';
 import {installClassicHud} from '/webgl-classic-hud.js';
 import {hydrateUnitIcons,hydrateBuildingIcons,unitIcon,buildingIconUrl} from '/webgl-portraits.js';
@@ -1061,9 +1062,27 @@ export class SandforgeBattlefield {
   const width=this.mini.width,height=this.mini.height,map=this.world;
   const scale=width/map.size,grid=RULES.grid;
   ctx.fillStyle='#c9a576';ctx.fillRect(0,0,width,height);
+  if(map.generated?.battlefield){
+   // Bake the shared heightfield once; fog and unit markers remain dynamic.
+   if(!this.miniTerrainCanvas){
+    this.miniTerrainCanvas=document.createElement('canvas');this.miniTerrainCanvas.width=grid;this.miniTerrainCanvas.height=grid;
+    const c=this.miniTerrainCanvas.getContext('2d'),image=c.createImageData(grid,grid);
+    for(let i=0;i<grid*grid;i++){
+     const p=map.center(i),h=map.terrainHeight(p.x,p.y),s=map.terrainSlope(p.x,p.y),shade=Math.min(65,h*.18+s*95),k=i*4;
+     image.data[k]=205-shade;image.data[k+1]=174-shade;image.data[k+2]=127-shade*.8;image.data[k+3]=255;
+     if(map.blocked[i]){image.data[k]=104;image.data[k+1]=85;image.data[k+2]=66;}
+    }
+    c.putImageData(image,0,0);
+    this.mini.title=TERRAIN_LABELS[map.generated.battlefield.profile]+' · Seed '+this.game.seed+' · v'+map.mapVersion;
+   }
+   ctx.drawImage(this.miniTerrainCanvas,0,0,width,height);
+   for(const o of this.oases?.layout??[]){
+    ctx.fillStyle=o.type==='dry'?'#88834e':'#63877a';ctx.beginPath();ctx.ellipse(o.x*scale,o.y*scale,o.radius*scale,o.radius*o.aspect*scale,o.rotation,0,Math.PI*2);ctx.fill();
+   }
+  }
   ctx.fillStyle='#705741';
   for(let iy=0;iy<grid;iy+=3)for(let ix=0;ix<grid;ix+=3){
-   if(map.blocked[iy*grid+ix])
+   if(!map.generated?.battlefield&&map.blocked[iy*grid+ix])
     ctx.fillRect(ix/grid*width,iy/grid*height,3*width/grid,3*height/grid);
   }
   // The strategic control points are drawn below fog; unexplored ownership

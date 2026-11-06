@@ -29,11 +29,14 @@ export function generateOases(options){
  const {world,seed=world.seed}=options;
  if(!world.generated||world.mapVersion<15)return [];
  const r=oasisRandom(seed^0x729bad31),result=[];
- const target=world.generated.sites.length===4?3:Math.min(4,2+Math.floor(world.size**2/60000000));
+ const profile=world.generated.battlefield?.profile;
+ const target=profile?{open:1,dunes:2,rocky:1,oasis:5,mixed:3}[profile]:world.generated.sites.length===4?3:Math.min(4,2+Math.floor(world.size**2/60000000));
  for(let trial=0;trial<2400&&result.length<target;trial++){
   const p={id:result.length,x:world.size*(.07+r()*.86),y:world.size*(.07+r()*.86),
    radius:105+r()*45,type:['water','dry','semi'][result.length%3],phase:r()*Math.PI*2,
    aspect:.62+r()*.23,rotation:r()*Math.PI,seed:Math.floor(r()*4294967296)};
+  const basin=world.generated.battlefield?.basins[trial];
+  if(basin){p.x=basin.x;p.y=basin.y;}
   if(safeOasis(p,options,result))result.push(p);
  }
  return result;

@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {Simulation} from '/src/reborn/simulation.js';
+import {isTerrainProfile,TERRAIN_LABELS} from '/src/reborn/battlefield-terrain.js';
+import {randomMapSeed} from '/src/reborn/world-generation.js';
 import {rollingHillHeight} from '/src/reborn/rolling-hills.js';
 import {canyonGroundSampler,rampAtX,ridgeCenterY} from '/src/reborn/canyon-height.js';
 import {SandforgeBattlefield} from '/webgl-battlefield.js';
@@ -26,24 +28,25 @@ const $=id=>document.getElementById(id);
 const query=new URLSearchParams(location.search);
 // Brand-new 50%-larger WebGL battlefields. Earlier Canyon v15-v18 saves
 // remain available via legacy=1 and are never silently migrated.
-const sizes=query.get('legacy')==='1'?{4:15,8:16,12:17,16:18}:{4:19,8:20,12:21,16:22};
+// Keep pre-generator seeded bookmarks on their historical v19–22 maps.
+// The new-game menu always supplies terrain=random (or a chosen profile).
+const procedural=query.has('terrain')||query.has('play')||!query.has('seed');
+const sizes=query.get('legacy')==='1'?{4:15,8:16,12:17,16:18}:procedural?{4:23,8:24,12:25,16:26}:{4:19,8:20,12:21,16:22};
 const bastions=Object.hasOwn(sizes,query.get('bastions'))?Number(query.get('bastions')):8;
 const inputSeed=query.get('seed');
-const seed=inputSeed!==null&&Number.isSafeInteger(Number(inputSeed))&&Number(inputSeed)>=0
-  ?Number(inputSeed)>>>0:2026;
+const seed=inputSeed!==null&&inputSeed.trim()!==''&&Number.isSafeInteger(Number(inputSeed))&&Number(inputSeed)>=0&&Number(inputSeed)<=4294967295
+  ?Number(inputSeed):randomMapSeed();
 $('bastions').value=String(bastions);$('seed').value=String(seed);
-// Preview uses the same authoritative save/load envelope as the 2D game.
+const profile=isTerrainProfile(query.get('terrain'))?query.get('terrain'):undefined;
+// A saved game chooses its own original geometry, never the current defaults.
 const session=query.get('resume')==='1'?(()=>{
- try{
-  const saved=localStorage.getItem('sandforge:webgl:v1');
-  if(!saved)return null;
-  const restored=Simulation.load(JSON.parse(saved));
-  return restored.seed===seed&&restored.world.mapVersion===sizes[bastions]?restored:null;
- }catch(error){console.warn('Saved 3D game could not be loaded:',error);return null;}
+ const saved=localStorage.getItem('sandforge:webgl:v1');
+ if(!saved)throw Error('Kein gespeichertes Spiel gefunden.');
+ const restored=Simulation.load(JSON.parse(saved));
+ if(restored.seed!==seed||restored.territories.length!==bastions)throw Error('Spielstand passt nicht zur angeforderten Partie.');
+ return restored;
 })():null;
-// Exactly the classic Sandforge campaign bootstrap: both factions start
-// with an engineer and infantry, NOT with a free completed headquarters.
-const game=session??Simulation.campaign(seed,sizes[bastions]);
+const game=session??(profile?Simulation.campaign(seed,sizes[bastions],profile):Simulation.campaign(seed,sizes[bastions]));
 // Only this WebGL campaign gets a modest vision bonus; classic/headless
 // benchmarks retain exactly their original LOS and balance.
 // Optional visual comparison; classic gameplay remains unchanged.
@@ -53,6 +56,7 @@ game.infantryVisionBonus=1.15; // modest +15% infantry sight in 3D only
 game.highGroundEnabled=true; // tactical +20% outgoing / -10% incoming only in 3D
 game.updateVision();
 const world=game.world,terrain=world.generated,size=world.size,half=size/2;
+if(terrain.battlefield)document.title='Sandforge · '+TERRAIN_LABELS[terrain.battlefield.profile]+' · '+seed;
 const spacious=world.mapVersion>=19;
 const status=$('status'),errorNode=$('error'),stage=$('stage');
 $('simulation').textContent=query.get('pause')==='1'?'Simulation starten':'Simulation pausieren';
@@ -65,7 +69,7 @@ const random=rnd(seed^0xb6aa3371),ridge=terrain.ridges[0];
 // Gentle hills follow the same authoritative coordinates used for the
 // high-ground combat advantage, without creating any blocking grid cells.
 const canyonHeightAt=canyonGroundSampler(seed,terrain.ridges);
-const heightAt=(x,z)=>canyonHeightAt(x,z)+rollingHillHeight(game.hills,x,z);
+const heightAt=terrain.battlefield?(x,z)=>world.terrainHeight(x,z):(x,z)=>canyonHeightAt(x,z)+rollingHillHeight(game.hills,x,z);
 const rampAt=x=>ridge?rampAtX(ridge,x):false;
 const pos=(x,z,y=heightAt(x,z))=>new THREE.Vector3(x-half,y,z-half);
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance',alpha:false});
@@ -208,6 +212,12 @@ function buildTerrain(){
    const context=canvas.getContext('2d');
    context.fillStyle=fineSandPattern(context,source);
    context.fillRect(0,0,canvas.width,canvas.height);
+   if(terrain.battlefield){
+    // The historical artwork contains painted dune lighting. Keep its fine
+    // grain and palette, but let actual 3D normals describe the new relief.
+    context.globalAlpha=.76;context.fillStyle='#d2ad77';
+    context.fillRect(0,0,canvas.width,canvas.height);context.globalAlpha=1;
+   }
    const sand=new THREE.CanvasTexture(canvas);
    sand.colorSpace=THREE.SRGBColorSpace;
    sand.wrapS=sand.wrapT=THREE.RepeatWrapping;
@@ -231,8 +241,8 @@ function buildTerrain(){
    const x=(cx+i/segments)*patch,z=(cy+j/segments)*patch;
    const h=heightAt(x,z),k=j*(segments+1)+i,n=k*3;
    vertices[n]=x-half;vertices[n+1]=h;vertices[n+2]=z-half;
-   const slope=Math.abs(heightAt(x,z-24)-heightAt(x,z+24))/48;
-   const rocky=smooth((slope-.20)/.9);
+   const slope=terrain.battlefield?world.terrainSlope(x,z):Math.abs(heightAt(x,z-24)-heightAt(x,z+24))/48;
+   const rocky=terrain.battlefield?smooth((slope-.10)/.25)*(terrain.battlefield.profile==='rocky'?.7:.3):smooth((slope-.20)/.9);
    const nval=.96+.055*Math.sin(x*.013+z*.009)+.025*Math.cos(x*.071-z*.032);
    const bands=(Math.sin(h*.19+x*.003+z*.002)*.5+.5)*rocky;
    const col=new THREE.Color(spacious?'#e9dcc6':'#faf1e0')
@@ -269,6 +279,47 @@ function buildTerrain(){
 visualPerimeter=addVisualPerimeter({scene,size,heightAt,material,
  ringTiles:query.get('lite')==='1'?2:3,segments:22,textureScale:spacious?2200:1500});
  return chunks*chunks;
+}
+/** One merged rock mesh, built from the exact physical footprints. Basal
+ * skirts fill the complete solid hull: no blocked ground under empty air. */
+function addBattlefieldRocks(material){
+ const vertices=[],colors=[],uv=[];
+ const baseColor=new THREE.Color('#b7a083'),dark=new THREE.Color('#77634f');
+ for(const [id,mesa] of terrain.mesas.entries()){
+  const poly=mesa.outline,cx=poly.reduce((n,p)=>n+p.x,0)/poly.length,cz=poly.reduce((n,p)=>n+p.y,0)/poly.length;
+  const peak=mesa.columns.reduce((n,c)=>n+c.height,0)/mesa.columns.length*(terrain.battlefield.profile==='rocky'?1.55:1.05);
+  const r=rnd((seed^id*0x9e3779b9^0x536fa1)>>>0),rotation=r()*6.28;
+  const rings=[1,.92,.78,.64,.44],levels=[-.8,.16,.56,.84,1],points=[];
+  for(let k=0;k<rings.length;k++){
+   points[k]=poly.map((p,i)=>{
+    const erosion=k===0?1:1+Math.sin(i*2.37+rotation+k*.7)*.075;
+    const x=cx+(p.x-cx)*rings[k]*erosion,z=cz+(p.y-cz)*rings[k]*erosion;
+    return [x-half,heightAt(x,z)+peak*levels[k]*(k===0?1:1+Math.sin(i*1.9+rotation)*.12),z-half];
+   });
+  }
+  const tri=(a,b,c,band)=>{
+   for(const p of [a,b,c]){
+    vertices.push(...p);const color=baseColor.clone().lerp(dark,band);
+    colors.push(color.r,color.g,color.b);uv.push((p[0]+half)/150,p[1]/120);
+   }
+  };
+  for(let k=0;k<rings.length-1;k++)for(let i=0;i<poly.length;i++){
+   const j=(i+1)%poly.length,a=points[k][i],b=points[k][j],c=points[k+1][i],d=points[k+1][j];
+   tri(a,c,b,.08+(k%2)*.15+r()*.07);tri(b,c,d,.08+(k%2)*.15+r()*.07);
+  }
+  const top=[cx-half,heightAt(cx,cz)+peak*1.02,cz-half];
+  for(let i=0;i<poly.length;i++)tri(points.at(-1)[i],top,points.at(-1)[(i+1)%poly.length],.02+r()*.06);
+ }
+ const geometry=new THREE.BufferGeometry();
+ geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+ geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
+ geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));geometry.computeVertexNormals();geometry.computeBoundingSphere();
+ const mat=material.clone();mat.color.set('#ffffff');mat.vertexColors=true;mat.side=THREE.DoubleSide;
+ // The asynchronously loaded shared sandstone map is copied on first render.
+ const mesh=new THREE.Mesh(geometry,mat);mesh.name='physical-battlefield-rocks';
+ mesh.onBeforeRender=()=>{if(mat.map!==material.map){mat.map=material.map;mat.needsUpdate=true;}};
+ mesh.castShadow=true;mesh.receiveShadow=true;scene.add(mesh);
+ return mesh;
 }
 const pbr=(color,roughness=1,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness,flatShading:true});
 function instancedStone(){
@@ -327,7 +378,8 @@ function instancedStone(){
    }
   }
  }
- for(const mesa of terrain.mesas)for(const col of mesa.columns){
+ if(terrain.battlefield)addBattlefieldRocks(materials[0]);
+ for(const mesa of terrain.battlefield?[]:terrain.mesas)for(const col of mesa.columns){
   const x=col.base.reduce((n,p)=>n+p.x,0)/col.base.length;
   const z=col.base.reduce((n,p)=>n+p.y,0)/col.base.length;
   put(x,z,spacious?23+r()*29:20+r()*28,
@@ -605,7 +657,8 @@ $('home').onclick=()=>{
  camera.zoom=.59;camera.updateProjectionMatrix();controls.update();
 };
 $('load').onclick=()=>{
- const q=new URLSearchParams({bastions:$('bastions').value,seed:String(Number($('seed').value)>>>0)});
+ const text=$('seed').value.trim();
+ const q=new URLSearchParams({bastions:$('bastions').value,seed:String(text===''?randomMapSeed():Number(text)>>>0),terrain:terrain.battlefield?.profile??'random'});
  location.href=(window.Sandforge3DMenu?.gameRoute?.()??'/webgl-preview.html')+'?'+q;
 };
 // Camera navigation is independent of the simulation. WASD and cursor keys
@@ -807,6 +860,7 @@ showcaseButton.onclick=()=>setShowcase(!showcaseActive);
 if(query.get('showcase')==='1')setShowcase(true);
 const desertArt=new DesertArtPass({scene,world,terrain,heightAt,pos,loader,lowQuality:query.get('lite')==='1'});
 const oases=new DesertOases({scene,game,heightAt,groundMeshes,lowQuality:query.get('lite')==='1',enabled:query.get('oases')!=='off'});
+battlefield.oases=oases;
 const oasisFocus=oases.layout.find(o=>o.type===query.get('oasis'));
 if(oasisFocus){
  const target=pos(oasisFocus.x,oasisFocus.y);target.y+=24;
@@ -957,7 +1011,7 @@ async function main(){
   // The 3D battlefield is live immediately; heavyweight PBR assets stream in.
   battlefield.sync(true);
   status.dataset.ready='true';
-  setStatus('WebGL2 aktiv · '+chunks+' Terrain-Chunks · '+stones+' Felsen · '+ruins+' glTF-Ruinen · 3D-Spielmechanik aktiv.');
+  setStatus((terrain.battlefield?TERRAIN_LABELS[terrain.battlefield.profile]+' · Seed '+seed+' · ':'')+'WebGL2 aktiv · '+chunks+' Terrain-Chunks · '+stones+' Felsen · '+ruins+' glTF-Ruinen · 3D-Spielmechanik aktiv.');
  }catch(error){
   console.error(error);errorNode.textContent='3D-Assets konnten nicht geladen werden: '+String(error);
   status.dataset.ready='false';setStatus('WebGL-Szene verfügbar; Asset-Ladevorgang fehlgeschlagen');

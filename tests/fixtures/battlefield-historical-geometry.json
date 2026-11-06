@@ -1,0 +1,347 @@
+[
+  {
+    "version": 0,
+    "seed": 0,
+    "hash": "283b233543b429d939feb8d4f8f1bc20ebe59cb8ec145e236c595c4102eb6339"
+  },
+  {
+    "version": 0,
+    "seed": 2074,
+    "hash": "283b233543b429d939feb8d4f8f1bc20ebe59cb8ec145e236c595c4102eb6339"
+  },
+  {
+    "version": 0,
+    "seed": 4294967295,
+    "hash": "283b233543b429d939feb8d4f8f1bc20ebe59cb8ec145e236c595c4102eb6339"
+  },
+  {
+    "version": 1,
+    "seed": 0,
+    "hash": "21a65d9f5c2a4bcf3f2bdd01c8426c8977bd14de1c267d6ef8f1f456547b7c74"
+  },
+  {
+    "version": 1,
+    "seed": 2074,
+    "hash": "825bc2bbe867a200e07346148780bd302f886a114652beee267e18aec9621569"
+  },
+  {
+    "version": 1,
+    "seed": 4294967295,
+    "hash": "ed90322aa3762576735d6b0e137b014423ca93447cc09860808d35e2955517d9"
+  },
+  {
+    "version": 2,
+    "seed": 0,
+    "hash": "09cbba4b3c7b86da2c830eb64c2d9eeddf22307319867bdf46d856411fe8ce1a"
+  },
+  {
+    "version": 2,
+    "seed": 2074,
+    "hash": "ec55c2b4d26ae82eb397b65908f6d2e195dc7eedb25a663a9338c711629aa672"
+  },
+  {
+    "version": 2,
+    "seed": 4294967295,
+    "hash": "0c75ba0ea7ae2422a4a2188dd36b1cb2102e4f466e0b82813639ab0dd607eabb"
+  },
+  {
+    "version": 3,
+    "seed": 0,
+    "hash": "06b7694b1f8321ddae480ae2bdedeb0135909741eedd9066cb87a5cbb33657a2"
+  },
+  {
+    "version": 3,
+    "seed": 2074,
+    "hash": "b0f3dbb54637816a17e88664ef5808ee03c28ac5f1df1be74ce501c7a169ed7a"
+  },
+  {
+    "version": 3,
+    "seed": 4294967295,
+    "hash": "abab80aea0a4d6ed4d52927c262f5356ddba83e90ae16c34216e213ebae50180"
+  },
+  {
+    "version": 4,
+    "seed": 0,
+    "hash": "84fc4ed502d799abcdf6324913d0074d8c1c01dd273dc80b14ebbc3df5feda30"
+  },
+  {
+    "version": 4,
+    "seed": 2074,
+    "hash": "09e68d06f361586b1ce0dceb148528e86c64cc245e8777361a16ae71a9e105e3"
+  },
+  {
+    "version": 4,
+    "seed": 4294967295,
+    "hash": "eac8a4547f3f93742300f8dbf7806fa88a763b1b2520a62b1921417270627c8e"
+  },
+  {
+    "version": 5,
+    "seed": 0,
+    "hash": "0d92249aa3e4f0604ad0371d2d7c6edce3acfd672b3ca12f610534373a364df2"
+  },
+  {
+    "version": 5,
+    "seed": 2074,
+    "hash": "a037db84c143bb0916553f86b1d9c35bfa10a6a795b9f0a856e1e2c104fda82f"
+  },
+  {
+    "version": 5,
+    "seed": 4294967295,
+    "hash": "9ece9a2a1b86f3112b1c31567dfb9738df03dc292e28ecf69250a9e7fccdaf4a"
+  },
+  {
+    "version": 6,
+    "seed": 0,
+    "hash": "cdf2f2b8a24ea5e07e440a2f038b482a96810936bf5a8541e3ae7e54bd5b6e65"
+  },
+  {
+    "version": 6,
+    "seed": 2074,
+    "hash": "98fdf136b349b89446e4e9e378074b7645f67b9d016b7aa9d5e8c6d6b6c21e7d"
+  },
+  {
+    "version": 6,
+    "seed": 4294967295,
+    "hash": "358b8ddfd7f03ef23b125092a207d131ea1059adb26b4b68170292c38a777b31"
+  },
+  {
+    "version": 7,
+    "seed": 0,
+    "hash": "d9aee25bf58f19763e31b15a9f8e0d1b4a429f05e0285cc102c113fd40a120d1"
+  },
+  {
+    "version": 7,
+    "seed": 2074,
+    "hash": "206989cb67fa4766b0c1a302607414b2edb8c9869dbee19ef358e93236006116"
+  },
+  {
+    "version": 7,
+    "seed": 4294967295,
+    "hash": "c6026abf72447dc29adeb8c9248683359062251a325bddab1ddbfbdea8323131"
+  },
+  {
+    "version": 8,
+    "seed": 0,
+    "hash": "5a808ba7889d4c6fa6a6a2195387177ae604b25f42e9df732a43850cfdbca7ab"
+  },
+  {
+    "version": 8,
+    "seed": 2074,
+    "hash": "f40eea80aa6e7fc0dc07780003fc95e715c2c58aa3829546cd385a00c542b18f"
+  },
+  {
+    "version": 8,
+    "seed": 4294967295,
+    "hash": "a70bf0a05b25196c1dc4308be9d97741860b1ed163079f240fad762c759a539b"
+  },
+  {
+    "version": 9,
+    "seed": 0,
+    "hash": "6fae342de0a3c77a6e5d3d546b7f581f2657aa27962020c2e5005564e963e45c"
+  },
+  {
+    "version": 9,
+    "seed": 2074,
+    "hash": "77d50bc4449e89054aa9677dc2eef2c34ccf653d1670e312bd7b0812c95b73e0"
+  },
+  {
+    "version": 9,
+    "seed": 4294967295,
+    "hash": "0775b040bb18a9f6090d00268ccecfa2d5cb5c80c9f5f306aaede298e95f2c5c"
+  },
+  {
+    "version": 10,
+    "seed": 0,
+    "hash": "75e8aa04eb5329d237ee4097a6c8cdcd495266c3e19e8fc7ebdfd067f4d68825"
+  },
+  {
+    "version": 10,
+    "seed": 2074,
+    "hash": "1c669d2c60174c9d43626cd9650909aaec2f6bc16913c2bad1ca795681943d76"
+  },
+  {
+    "version": 10,
+    "seed": 4294967295,
+    "hash": "4d6a15cf1467804e7af62c61175d79ca867656d97137c4fd8f24a1157a14a6f2"
+  },
+  {
+    "version": 11,
+    "seed": 0,
+    "hash": "79b6f725e9dd12b796389aae82f840254326ce8adfae581eba5c4462c523f837"
+  },
+  {
+    "version": 11,
+    "seed": 2074,
+    "hash": "ec63f707cf5f2880854db6cb2437884890c14765793bb5ad1571b514ee88b5dd"
+  },
+  {
+    "version": 11,
+    "seed": 4294967295,
+    "hash": "ab2cccb8dc72128814470c300b0ee23ed87862cb92d0e11407b34ec08ce270b6"
+  },
+  {
+    "version": 12,
+    "seed": 0,
+    "hash": "e1d87c78c088dd4afd186036f08ed6e3c0004d07d3fe64c80e44d933dd9c550d"
+  },
+  {
+    "version": 12,
+    "seed": 2074,
+    "hash": "b7a6cc672fd1e906980d1d1ffbb04cbebbd841d206f655fa9af922a9657c485c"
+  },
+  {
+    "version": 12,
+    "seed": 4294967295,
+    "hash": "315f0d335b478916c65dce1a675acebf2b5b9a2eba91a74c3a5443daeb0bf306"
+  },
+  {
+    "version": 13,
+    "seed": 0,
+    "hash": "8075997510a8c6656cc7e98f15964737bbe7f247f714a0b7166d34948d2bcacb"
+  },
+  {
+    "version": 13,
+    "seed": 2074,
+    "hash": "ce6ceb070793bfc3579b7dedefed6204a5db4fd0278e521200337793643f6920"
+  },
+  {
+    "version": 13,
+    "seed": 4294967295,
+    "hash": "89351d9e9718fb846cadb1010db2bac43efdd81c7db407d17f8edb431862d6ba"
+  },
+  {
+    "version": 14,
+    "seed": 0,
+    "hash": "f5dfcb7f70d9f4d064017d69848d15fa161f44f291bbab3f611e065a8bb5bd84"
+  },
+  {
+    "version": 14,
+    "seed": 2074,
+    "hash": "544f9fabfc25b880f3e030ea57c095a60519cef76a621448450fb94f59ebfbd4"
+  },
+  {
+    "version": 14,
+    "seed": 4294967295,
+    "hash": "7245fb3b211a39b0dd5fc03cedbcf7e38a9976ec6bb060e0899da18d7d8d3615"
+  },
+  {
+    "version": 15,
+    "seed": 0,
+    "hash": "b6b472d849ea8b0b1a8978d9eebad8ce74e7279ab60ae2025826ebe0b2e28259"
+  },
+  {
+    "version": 15,
+    "seed": 2074,
+    "hash": "05d3af8066ae64dc29c44f31d7e1a1ad3860a2eab48058ef8a1babe62f5d41cb"
+  },
+  {
+    "version": 15,
+    "seed": 4294967295,
+    "hash": "10b596a4fcf37d294aad8d28473d5f5be9b4b3a402806d9f7b4af186e67e7910"
+  },
+  {
+    "version": 16,
+    "seed": 0,
+    "hash": "7a851b80a9e0328b4255cd26940f42aa140f242cc2752d017033eee391d7088d"
+  },
+  {
+    "version": 16,
+    "seed": 2074,
+    "hash": "68c46b1c5e2fea404ca9dda052f54020289c93ec384af94473edc44e3e15fbef"
+  },
+  {
+    "version": 16,
+    "seed": 4294967295,
+    "hash": "a64976e889916addb7f2906201f6f3e8d65dec4d83fb02e8b13c3f7987c9efee"
+  },
+  {
+    "version": 17,
+    "seed": 0,
+    "hash": "c7353beb2762066002d52f73eff6172bfb73ab519af049953fec0f33087f9d61"
+  },
+  {
+    "version": 17,
+    "seed": 2074,
+    "hash": "2211b48c65df3032aaedb0d70949366003821ae4ba5f12c17405bfe6f141bcad"
+  },
+  {
+    "version": 17,
+    "seed": 4294967295,
+    "hash": "d7f71c0279dca10020813d42670ef6473d004f97a439b51dceaaf34f18a6c96c"
+  },
+  {
+    "version": 18,
+    "seed": 0,
+    "hash": "60638bb82a1ee4933241ada6d38eafdd26086358a3f8338bf386e51bb7dc13e8"
+  },
+  {
+    "version": 18,
+    "seed": 2074,
+    "hash": "835da1d4093b09ef65506a3f640844040c633c66115ba2c84bd62509085ac1c9"
+  },
+  {
+    "version": 18,
+    "seed": 4294967295,
+    "hash": "a9528c11040dbced6d186bceee00ac5ada1c7855e0f6645869cf5c3e2cbc6a56"
+  },
+  {
+    "version": 19,
+    "seed": 0,
+    "hash": "3e48097bffe211cde87474bb19379dda5a435c09e4003b5c381a7eddfeb26773"
+  },
+  {
+    "version": 19,
+    "seed": 2074,
+    "hash": "28dbd3646a4b1c235e0824f5144227c6fa42de3f72ea6be8f5352c9f2c8ea54c"
+  },
+  {
+    "version": 19,
+    "seed": 4294967295,
+    "hash": "ffd3c4744b9868e34b469dda4fa9b8e9284ee346a9e72b1bddc08e70288ce819"
+  },
+  {
+    "version": 20,
+    "seed": 0,
+    "hash": "a7948d70f4aa25c1c08127103ec2908275171c6911465ba426418fc289f83cb9"
+  },
+  {
+    "version": 20,
+    "seed": 2074,
+    "hash": "55f65010edeced2c39f594781b5185a9138f1d92679fea93ba3a3b5d12ed8a88"
+  },
+  {
+    "version": 20,
+    "seed": 4294967295,
+    "hash": "9d22f6bbe26a2d548a761f574531417d7e9ac41a3162edbec9c81dd9d8aa71e3"
+  },
+  {
+    "version": 21,
+    "seed": 0,
+    "hash": "9c444eb9aa9dc11b5a590ddf4a6254fb61f02c92066949f89bda729a213774f0"
+  },
+  {
+    "version": 21,
+    "seed": 2074,
+    "hash": "d31087ecb6d40fd81b2ff74fa6261fc9ee419727e5dc91b06249382a1bfad814"
+  },
+  {
+    "version": 21,
+    "seed": 4294967295,
+    "hash": "b6d149394d63e7b1b143b63313646a45435ec3f953b3daf73478a94e85a5217a"
+  },
+  {
+    "version": 22,
+    "seed": 0,
+    "hash": "2c91812fe100bddc3187bbb3841c820378183470ddb95963cf698c36af526d7b"
+  },
+  {
+    "version": 22,
+    "seed": 2074,
+    "hash": "aa005446db54df317b176cbb531d1fbab82663d2abd3dd413f0327fe984ff812"
+  },
+  {
+    "version": 22,
+    "seed": 4294967295,
+    "hash": "455e19b50c9ecd68a256bd8d9d4304441951dbbd90aa89c2f4e9692ff07f4c22"
+  }
+]

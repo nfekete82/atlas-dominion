@@ -1,0 +1,1158 @@
+{
+  "referenceModule": "file:///private/tmp/sandforge-premium-oases/dist/src/reborn/simulation.js",
+  "scope": "48 real 180-second paid AI bootstrap runs. Same settings and seeds for v19/22 reference generation and all five v23/26 profiles. Process CPU excludes external suspension; trajectories differ with geometry, so this is not an identical-state microbenchmark.",
+  "rows": [
+    {
+      "count": 4,
+      "seed": 0,
+      "profile": "reference",
+      "version": 19,
+      "seconds": 180.00000000000668,
+      "wallMs": 1125.663,
+      "cpuMs": 1845.655,
+      "tickMedianMs": 0.02112499999998363,
+      "tickP95Ms": 0.4949170000001004,
+      "tickMaxMs": 22.701541999999904,
+      "ai": {
+        "calls": 58,
+        "totalMs": 53.86074499999998,
+        "meanMs": 0.9286335344827583,
+        "maxMs": 14.250624999999957
+      },
+      "pathfinding": {
+        "calls": 319,
+        "nodes": 409528
+      },
+      "units": 11,
+      "sectors": 2
+    },
+    {
+      "count": 4,
+      "seed": 0,
+      "profile": "open",
+      "version": 23,
+      "seconds": 122.54999999999518,
+      "wallMs": 381.805791,
+      "cpuMs": 938.842,
+      "tickMedianMs": 0.018791999999848485,
+      "tickP95Ms": 0.4472089999999298,
+      "tickMaxMs": 9.354583000000048,
+      "ai": {
+        "calls": 39,
+        "totalMs": 30.914539000000104,
+        "meanMs": 0.7926804871794898,
+        "maxMs": 7.67779100000007
+      },
+      "pathfinding": {
+        "calls": 112,
+        "nodes": 18424
+      },
+      "units": 9,
+      "sectors": 4
+    },
+    {
+      "count": 4,
+      "seed": 0,
+      "profile": "dunes",
+      "version": 23,
+      "seconds": 122.54999999999518,
+      "wallMs": 319.461417,
+      "cpuMs": 580.943,
+      "tickMedianMs": 0.015124999999898137,
+      "tickP95Ms": 0.37512500000002547,
+      "tickMaxMs": 4.711166000000048,
+      "ai": {
+        "calls": 39,
+        "totalMs": 14.913458000000219,
+        "meanMs": 0.3823963589743646,
+        "maxMs": 3.1107500000000528
+      },
+      "pathfinding": {
+        "calls": 112,
+        "nodes": 18424
+      },
+      "units": 9,
+      "sectors": 4
+    },
+    {
+      "count": 4,
+      "seed": 0,
+      "profile": "rocky",
+      "version": 23,
+      "seconds": 128.649999999995,
+      "wallMs": 352.6601660000001,
+      "cpuMs": 414.782,
+      "tickMedianMs": 0.013791999999739346,
+      "tickP95Ms": 0.469749999999749,
+      "tickMaxMs": 4.907583000000159,
+      "ai": {
+        "calls": 41,
+        "totalMs": 13.688669000000118,
+        "meanMs": 0.33386997560975895,
+        "maxMs": 2.0093329999999696
+      },
+      "pathfinding": {
+        "calls": 149,
+        "nodes": 29332
+      },
+      "units": 9,
+      "sectors": 4
+    },
+    {
+      "count": 4,
+      "seed": 0,
+      "profile": "oasis",
+      "version": 23,
+      "seconds": 122.54999999999518,
+      "wallMs": 294.8187499999999,
+      "cpuMs": 333.573,
+      "tickMedianMs": 0.012416999999913969,
+      "tickP95Ms": 0.3744579999997768,
+      "tickMaxMs": 4.838958000000275,
+      "ai": {
+        "calls": 39,
+        "totalMs": 11.620916000000761,
+        "meanMs": 0.29797220512822464,
+        "maxMs": 2.4335000000000946
+      },
+      "pathfinding": {
+        "calls": 112,
+        "nodes": 18424
+      },
+      "units": 9,
+      "sectors": 4
+    },
+    {
+      "count": 4,
+      "seed": 0,
+      "profile": "mixed",
+      "version": 23,
+      "seconds": 122.54999999999518,
+      "wallMs": 329.5020419999996,
+      "cpuMs": 537.702,
+      "tickMedianMs": 0.012999999999919964,
+      "tickP95Ms": 0.41345799999999144,
+      "tickMaxMs": 8.232500000000073,
+      "ai": {
+        "calls": 39,
+        "totalMs": 12.374293999997917,
+        "meanMs": 0.3172895897435363,
+        "maxMs": 3.0141249999996944
+      },
+      "pathfinding": {
+        "calls": 112,
+        "nodes": 32007
+      },
+      "units": 9,
+      "sectors": 4
+    },
+    {
+      "count": 4,
+      "seed": 1,
+      "profile": "reference",
+      "version": 19,
+      "seconds": 150.70000000000002,
+      "wallMs": 743.7149589999999,
+      "cpuMs": 1089.772,
+      "tickMedianMs": 0.021875000000363798,
+      "tickP95Ms": 0.504207999999835,
+      "tickMaxMs": 14.777000000000044,
+      "ai": {
+        "calls": 49,
+        "totalMs": 48.18341599999803,
+        "meanMs": 0.9833350204081232,
+        "maxMs": 9.827582999999777
+      },
+      "pathfinding": {
+        "calls": 303,
+        "nodes": 181851
+      },
+      "units": 9,
+      "sectors": 2
+    },
+    {
+      "count": 4,
+      "seed": 1,
+      "profile": "open",
+      "version": 23,
+      "seconds": 147.5499999999993,
+      "wallMs": 436.50925000000007,
+      "cpuMs": 588.747,
+      "tickMedianMs": 0.01912499999980355,
+      "tickP95Ms": 0.4130000000000109,
+      "tickMaxMs": 6.209957999999915,
+      "ai": {
+        "calls": 48,
+        "totalMs": 26.062581000002865,
+        "meanMs": 0.5429704375000597,
+        "maxMs": 5.407500000000255
+      },
+      "pathfinding": {
+        "calls": 284,
+        "nodes": 56116
+      },
+      "units": 10,
+      "sectors": 4
+    },
+    {
+      "count": 4,
+      "seed": 1,
+      "profile": "dunes",
+      "version": 23,
+      "seconds": 147.5499999999993,
+      "wallMs": 429.35300000000007,
+      "cpuMs": 499.41,
+      "tickMedianMs": 0.018709000000853848,
+      "tickP95Ms": 0.4343330000001515,
+      "tickMaxMs": 6.037499999999454,
+      "ai": {
+        "calls": 48,
+        "totalMs": 26.34083499999997,
+        "meanMs": 0.5487673958333327,
+        "maxMs": 5.055374999999913
+      },
+      "pathfinding": {
+        "calls": 283,
+        "nodes": 68402
+      },
+      "units": 10,
+      "sectors": 4
+    },
+    {
+      "count": 4,
+      "seed": 1,
+      "profile": "rocky",
+      "version": 23,
+      "seconds": 146.99999999999918,
+      "wallMs": 464.44729199999983,
+      "cpuMs": 648.006,
+      "tickMedianMs": 0.018541000000368513,
+      "tickP95Ms": 0.5484580000002097,
+      "tickMaxMs": 7.662791999999172,
+      "ai": {
+        "calls": 48,
+        "totalMs": 23.31570300000203,
+        "meanMs": 0.48574381250004234,
+        "maxMs": 4.766000000000531
+      },
+      "pathfinding": {
+        "calls": 256,
+        "nodes": 77576
+      },
+      "units": 10,
+      "sectors": 4
+    },
+    {
+      "count": 4,
+      "seed": 1,
+      "profile": "oasis",
+      "version": 23,
+      "seconds": 147.5499999999993,
+      "wallMs": 402.5353330000007,
+      "cpuMs": 523.193,
+      "tickMedianMs": 0.01695800000015879,
+      "tickP95Ms": 0.39562499999919964,
+      "tickMaxMs": 5.57183299999997,
+      "ai": {
+        "calls": 48,
+        "totalMs": 24.746542999999292,
+        "meanMs": 0.5155529791666519,
+        "maxMs": 5.440292000000227
+      },
+      "pathfinding": {
+        "calls": 283,
+        "nodes": 68402
+      },
+      "units": 10,
+      "sectors": 4
+    },
+    {
+      "count": 4,
+      "seed": 1,
+      "profile": "mixed",
+      "version": 23,
+      "seconds": 147.84999999999937,
+      "wallMs": 578.0766659999999,
+      "cpuMs": 774.66,
+      "tickMedianMs": 0.017042000000401458,
+      "tickP95Ms": 0.5470409999998083,
+      "tickMaxMs": 12.629291000000194,
+      "ai": {
+        "calls": 48,
+        "totalMs": 23.625249999998232,
+        "meanMs": 0.4921927083332965,
+        "maxMs": 4.994333999999981
+      },
+      "pathfinding": {
+        "calls": 278,
+        "nodes": 120997
+      },
+      "units": 10,
+      "sectors": 4
+    },
+    {
+      "count": 4,
+      "seed": 2,
+      "profile": "reference",
+      "version": 19,
+      "seconds": 140.84999999999778,
+      "wallMs": 494.5342090000004,
+      "cpuMs": 606.118,
+      "tickMedianMs": 0.01900000000023283,
+      "tickP95Ms": 0.5727910000005068,
+      "tickMaxMs": 12.405917000000045,
+      "ai": {
+        "calls": 45,
+        "totalMs": 27.69629100000293,
+        "meanMs": 0.6154731333333985,
+        "maxMs": 9.156874999999673
+      },
+      "pathfinding": {
+        "calls": 175,
+        "nodes": 48010
+      },
+      "units": 10,
+      "sectors": 4
+    },
+    {
+      "count": 4,
+      "seed": 2,
+      "profile": "open",
+      "version": 23,
+      "seconds": 137.99999999999713,
+      "wallMs": 926.4300830000002,
+      "cpuMs": 1201.88,
+      "tickMedianMs": 0.020166999999673862,
+      "tickP95Ms": 0.4050420000003214,
+      "tickMaxMs": 93.61891699999978,
+      "ai": {
+        "calls": 45,
+        "totalMs": 23.661415000002307,
+        "meanMs": 0.5258092222222734,
+        "maxMs": 7.051708999999391
+      },
+      "pathfinding": {
+        "calls": 220,
+        "nodes": 494789
+      },
+      "units": 8,
+      "sectors": 2
+    },
+    {
+      "count": 4,
+      "seed": 2,
+      "profile": "dunes",
+      "version": 23,
+      "seconds": 137.99999999999713,
+      "wallMs": 929.8912919999993,
+      "cpuMs": 1036.123,
+      "tickMedianMs": 0.01883300000008603,
+      "tickP95Ms": 0.3982500000001892,
+      "tickMaxMs": 92.38683299999957,
+      "ai": {
+        "calls": 45,
+        "totalMs": 21.854544000001624,
+        "meanMs": 0.48565653333336944,
+        "maxMs": 7.225832999999511
+      },
+      "pathfinding": {
+        "calls": 220,
+        "nodes": 493160
+      },
+      "units": 8,
+      "sectors": 2
+    },
+    {
+      "count": 4,
+      "seed": 2,
+      "profile": "rocky",
+      "version": 23,
+      "seconds": 180.00000000000668,
+      "wallMs": 855.3145829999994,
+      "cpuMs": 1024.54,
+      "tickMedianMs": 0.022208999998838408,
+      "tickP95Ms": 0.8595829999994749,
+      "tickMaxMs": 13.04358300000058,
+      "ai": {
+        "calls": 58,
+        "totalMs": 36.74366399999781,
+        "meanMs": 0.6335114482758243,
+        "maxMs": 5.6053329999995185
+      },
+      "pathfinding": {
+        "calls": 452,
+        "nodes": 160499
+      },
+      "units": 14,
+      "sectors": 2
+    },
+    {
+      "count": 4,
+      "seed": 2,
+      "profile": "oasis",
+      "version": 23,
+      "seconds": 132.04999999999578,
+      "wallMs": 403.0905409999996,
+      "cpuMs": 440.397,
+      "tickMedianMs": 0.01600000000144064,
+      "tickP95Ms": 0.5560420000001614,
+      "tickMaxMs": 6.943875000000844,
+      "ai": {
+        "calls": 43,
+        "totalMs": 21.939455000005182,
+        "meanMs": 0.5102198837210508,
+        "maxMs": 6.931542000000263
+      },
+      "pathfinding": {
+        "calls": 178,
+        "nodes": 50926
+      },
+      "units": 8,
+      "sectors": 2
+    },
+    {
+      "count": 4,
+      "seed": 2,
+      "profile": "mixed",
+      "version": 23,
+      "seconds": 180.00000000000668,
+      "wallMs": 601.1782919999987,
+      "cpuMs": 799.603,
+      "tickMedianMs": 0.019416999999521067,
+      "tickP95Ms": 0.5794579999983398,
+      "tickMaxMs": 12.105000000001382,
+      "ai": {
+        "calls": 58,
+        "totalMs": 28.542918000004647,
+        "meanMs": 0.4921192758621491,
+        "maxMs": 5.489166999999725
+      },
+      "pathfinding": {
+        "calls": 372,
+        "nodes": 103757
+      },
+      "units": 13,
+      "sectors": 2
+    },
+    {
+      "count": 4,
+      "seed": 3,
+      "profile": "reference",
+      "version": 19,
+      "seconds": 148.4499999999995,
+      "wallMs": 581.649875000001,
+      "cpuMs": 742.858,
+      "tickMedianMs": 0.019249999999374268,
+      "tickP95Ms": 0.6052500000005239,
+      "tickMaxMs": 13.99041699999907,
+      "ai": {
+        "calls": 48,
+        "totalMs": 31.935247999999774,
+        "meanMs": 0.6653176666666619,
+        "maxMs": 11.293749999998909
+      },
+      "pathfinding": {
+        "calls": 161,
+        "nodes": 80742
+      },
+      "units": 10,
+      "sectors": 3
+    },
+    {
+      "count": 4,
+      "seed": 3,
+      "profile": "open",
+      "version": 23,
+      "seconds": 144.59999999999863,
+      "wallMs": 342.06012499999997,
+      "cpuMs": 371.885,
+      "tickMedianMs": 0.014915999998265761,
+      "tickP95Ms": 0.3850000000002183,
+      "tickMaxMs": 5.6635000000005675,
+      "ai": {
+        "calls": 47,
+        "totalMs": 17.215334000002258,
+        "meanMs": 0.3662837021277076,
+        "maxMs": 5.337875000001077
+      },
+      "pathfinding": {
+        "calls": 163,
+        "nodes": 22855
+      },
+      "units": 9,
+      "sectors": 4
+    },
+    {
+      "count": 4,
+      "seed": 3,
+      "profile": "dunes",
+      "version": 23,
+      "seconds": 144.59999999999863,
+      "wallMs": 356.2369170000002,
+      "cpuMs": 378.894,
+      "tickMedianMs": 0.01691699999901175,
+      "tickP95Ms": 0.464417000001049,
+      "tickMaxMs": 5.835791999999856,
+      "ai": {
+        "calls": 47,
+        "totalMs": 16.089247999998406,
+        "meanMs": 0.34232442553188097,
+        "maxMs": 4.837417000000642
+      },
+      "pathfinding": {
+        "calls": 163,
+        "nodes": 23774
+      },
+      "units": 9,
+      "sectors": 4
+    },
+    {
+      "count": 4,
+      "seed": 3,
+      "profile": "rocky",
+      "version": 23,
+      "seconds": 144.59999999999863,
+      "wallMs": 501.1215420000008,
+      "cpuMs": 666.677,
+      "tickMedianMs": 0.015917000000627013,
+      "tickP95Ms": 0.7299999999995634,
+      "tickMaxMs": 9.258125000000291,
+      "ai": {
+        "calls": 47,
+        "totalMs": 19.64991799999916,
+        "meanMs": 0.4180833617021098,
+        "maxMs": 4.343791999999667
+      },
+      "pathfinding": {
+        "calls": 160,
+        "nodes": 60179
+      },
+      "units": 9,
+      "sectors": 4
+    },
+    {
+      "count": 4,
+      "seed": 3,
+      "profile": "oasis",
+      "version": 23,
+      "seconds": 144.59999999999863,
+      "wallMs": 359.5801670000001,
+      "cpuMs": 366.304,
+      "tickMedianMs": 0.015499999999519787,
+      "tickP95Ms": 0.45166700000118,
+      "tickMaxMs": 5.785041999999521,
+      "ai": {
+        "calls": 47,
+        "totalMs": 15.003711999997904,
+        "meanMs": 0.31922791489357244,
+        "maxMs": 5.009165999999823
+      },
+      "pathfinding": {
+        "calls": 163,
+        "nodes": 23774
+      },
+      "units": 9,
+      "sectors": 4
+    },
+    {
+      "count": 4,
+      "seed": 3,
+      "profile": "mixed",
+      "version": 23,
+      "seconds": 144.59999999999863,
+      "wallMs": 397.640707999999,
+      "cpuMs": 414.64,
+      "tickMedianMs": 0.0157920000001468,
+      "tickP95Ms": 0.5685409999987314,
+      "tickMaxMs": 4.6200840000001335,
+      "ai": {
+        "calls": 47,
+        "totalMs": 15.131998000000749,
+        "meanMs": 0.3219574042553351,
+        "maxMs": 4.411583999999493
+      },
+      "pathfinding": {
+        "calls": 163,
+        "nodes": 24682
+      },
+      "units": 9,
+      "sectors": 4
+    },
+    {
+      "count": 16,
+      "seed": 0,
+      "profile": "reference",
+      "version": 22,
+      "seconds": 180.00000000000668,
+      "wallMs": 643.5075829999987,
+      "cpuMs": 848.65,
+      "tickMedianMs": 0.031957999999576714,
+      "tickP95Ms": 0.37429100000008475,
+      "tickMaxMs": 15.608291000000463,
+      "ai": {
+        "calls": 58,
+        "totalMs": 39.963918999997986,
+        "meanMs": 0.6890330862068619,
+        "maxMs": 10.833166999998866
+      },
+      "pathfinding": {
+        "calls": 323,
+        "nodes": 66177
+      },
+      "units": 14,
+      "sectors": 6
+    },
+    {
+      "count": 16,
+      "seed": 0,
+      "profile": "open",
+      "version": 26,
+      "seconds": 180.00000000000668,
+      "wallMs": 493.58133299999827,
+      "cpuMs": 672.596,
+      "tickMedianMs": 0.021958000001177425,
+      "tickP95Ms": 0.3318749999998545,
+      "tickMaxMs": 8.609333000000333,
+      "ai": {
+        "calls": 58,
+        "totalMs": 21.443540999996912,
+        "meanMs": 0.3697162241378778,
+        "maxMs": 3.257332999999562
+      },
+      "pathfinding": {
+        "calls": 311,
+        "nodes": 15029
+      },
+      "units": 12,
+      "sectors": 6
+    },
+    {
+      "count": 16,
+      "seed": 0,
+      "profile": "dunes",
+      "version": 26,
+      "seconds": 180.00000000000668,
+      "wallMs": 489.8346669999992,
+      "cpuMs": 702.049,
+      "tickMedianMs": 0.025583000000551692,
+      "tickP95Ms": 0.33699999999953434,
+      "tickMaxMs": 8.741167000000132,
+      "ai": {
+        "calls": 58,
+        "totalMs": 19.049581999996008,
+        "meanMs": 0.3284410689654484,
+        "maxMs": 2.3064160000012635
+      },
+      "pathfinding": {
+        "calls": 311,
+        "nodes": 15029
+      },
+      "units": 12,
+      "sectors": 6
+    },
+    {
+      "count": 16,
+      "seed": 0,
+      "profile": "rocky",
+      "version": 26,
+      "seconds": 180.00000000000668,
+      "wallMs": 579.3649159999986,
+      "cpuMs": 682.235,
+      "tickMedianMs": 0.027000000000043656,
+      "tickP95Ms": 0.47804200000064156,
+      "tickMaxMs": 17.393332999999984,
+      "ai": {
+        "calls": 58,
+        "totalMs": 26.254790000002686,
+        "meanMs": 0.45266879310349456,
+        "maxMs": 3.758665999999721
+      },
+      "pathfinding": {
+        "calls": 312,
+        "nodes": 23724
+      },
+      "units": 12,
+      "sectors": 6
+    },
+    {
+      "count": 16,
+      "seed": 0,
+      "profile": "oasis",
+      "version": 26,
+      "seconds": 180.00000000000668,
+      "wallMs": 497.3088750000006,
+      "cpuMs": 495.673,
+      "tickMedianMs": 0.025125000000116415,
+      "tickP95Ms": 0.3533340000012686,
+      "tickMaxMs": 8.760833000000275,
+      "ai": {
+        "calls": 58,
+        "totalMs": 22.949337000003652,
+        "meanMs": 0.39567822413799403,
+        "maxMs": 2.4700419999990118
+      },
+      "pathfinding": {
+        "calls": 311,
+        "nodes": 15029
+      },
+      "units": 12,
+      "sectors": 6
+    },
+    {
+      "count": 16,
+      "seed": 0,
+      "profile": "mixed",
+      "version": 26,
+      "seconds": 180.00000000000668,
+      "wallMs": 533.3429169999999,
+      "cpuMs": 518.531,
+      "tickMedianMs": 0.025416000000404892,
+      "tickP95Ms": 0.38508399999955145,
+      "tickMaxMs": 11.045374999999694,
+      "ai": {
+        "calls": 58,
+        "totalMs": 25.126454999997804,
+        "meanMs": 0.4332147413792725,
+        "maxMs": 2.467540999999983
+      },
+      "pathfinding": {
+        "calls": 311,
+        "nodes": 14847
+      },
+      "units": 12,
+      "sectors": 6
+    },
+    {
+      "count": 16,
+      "seed": 1,
+      "profile": "reference",
+      "version": 22,
+      "seconds": 180.00000000000668,
+      "wallMs": 823.832292000001,
+      "cpuMs": 1082.148,
+      "tickMedianMs": 0.029042000000117696,
+      "tickP95Ms": 0.48654199999873526,
+      "tickMaxMs": 25.06395799999882,
+      "ai": {
+        "calls": 58,
+        "totalMs": 80.55000300000938,
+        "meanMs": 1.3887931551725756,
+        "maxMs": 25.004417000000103
+      },
+      "pathfinding": {
+        "calls": 334,
+        "nodes": 152794
+      },
+      "units": 12,
+      "sectors": 6
+    },
+    {
+      "count": 16,
+      "seed": 1,
+      "profile": "open",
+      "version": 26,
+      "seconds": 180.00000000000668,
+      "wallMs": 524.6264580000025,
+      "cpuMs": 532.798,
+      "tickMedianMs": 0.02337499999703141,
+      "tickP95Ms": 0.32795899999837275,
+      "tickMaxMs": 33.39549999999872,
+      "ai": {
+        "calls": 58,
+        "totalMs": 83.43308099998103,
+        "meanMs": 1.438501396551397,
+        "maxMs": 33.374582999997074
+      },
+      "pathfinding": {
+        "calls": 323,
+        "nodes": 244865
+      },
+      "units": 12,
+      "sectors": 6
+    },
+    {
+      "count": 16,
+      "seed": 1,
+      "profile": "dunes",
+      "version": 26,
+      "seconds": 180.00000000000668,
+      "wallMs": 525.7468750000007,
+      "cpuMs": 547.958,
+      "tickMedianMs": 0.023584000002301764,
+      "tickP95Ms": 0.3317079999978887,
+      "tickMaxMs": 31.228041999998823,
+      "ai": {
+        "calls": 58,
+        "totalMs": 83.51703999999518,
+        "meanMs": 1.4399489655171582,
+        "maxMs": 31.206458000000566
+      },
+      "pathfinding": {
+        "calls": 323,
+        "nodes": 243653
+      },
+      "units": 12,
+      "sectors": 6
+    },
+    {
+      "count": 16,
+      "seed": 1,
+      "profile": "rocky",
+      "version": 26,
+      "seconds": 180.00000000000668,
+      "wallMs": 584.6889170000031,
+      "cpuMs": 634.552,
+      "tickMedianMs": 0.02337499999703141,
+      "tickP95Ms": 0.392334000000119,
+      "tickMaxMs": 30.059958000001643,
+      "ai": {
+        "calls": 58,
+        "totalMs": 81.38307899999563,
+        "meanMs": 1.4031565344826833,
+        "maxMs": 30.03779200000281
+      },
+      "pathfinding": {
+        "calls": 324,
+        "nodes": 240001
+      },
+      "units": 12,
+      "sectors": 6
+    },
+    {
+      "count": 16,
+      "seed": 1,
+      "profile": "oasis",
+      "version": 26,
+      "seconds": 180.00000000000668,
+      "wallMs": 510.66187499999796,
+      "cpuMs": 517.367,
+      "tickMedianMs": 0.02270900000075926,
+      "tickP95Ms": 0.3196250000000873,
+      "tickMaxMs": 29.682042000000365,
+      "ai": {
+        "calls": 58,
+        "totalMs": 77.68933800000013,
+        "meanMs": 1.3394713448275886,
+        "maxMs": 29.66045899999881
+      },
+      "pathfinding": {
+        "calls": 323,
+        "nodes": 244169
+      },
+      "units": 12,
+      "sectors": 6
+    },
+    {
+      "count": 16,
+      "seed": 1,
+      "profile": "mixed",
+      "version": 26,
+      "seconds": 180.00000000000668,
+      "wallMs": 549.1964159999989,
+      "cpuMs": 553.416,
+      "tickMedianMs": 0.02579200000036508,
+      "tickP95Ms": 0.3961249999993015,
+      "tickMaxMs": 30.707707999998092,
+      "ai": {
+        "calls": 58,
+        "totalMs": 83.07204000000638,
+        "meanMs": 1.432276551724248,
+        "maxMs": 30.688125000000582
+      },
+      "pathfinding": {
+        "calls": 323,
+        "nodes": 242852
+      },
+      "units": 12,
+      "sectors": 6
+    },
+    {
+      "count": 16,
+      "seed": 2,
+      "profile": "reference",
+      "version": 22,
+      "seconds": 180.00000000000668,
+      "wallMs": 853.9471669999984,
+      "cpuMs": 971.632,
+      "tickMedianMs": 0.03366699999969569,
+      "tickP95Ms": 0.48708299999998417,
+      "tickMaxMs": 24.016875000001164,
+      "ai": {
+        "calls": 58,
+        "totalMs": 54.104996000005485,
+        "meanMs": 0.9328447586207842,
+        "maxMs": 9.57708300000013
+      },
+      "pathfinding": {
+        "calls": 267,
+        "nodes": 95618
+      },
+      "units": 12,
+      "sectors": 7
+    },
+    {
+      "count": 16,
+      "seed": 2,
+      "profile": "open",
+      "version": 26,
+      "seconds": 180.00000000000668,
+      "wallMs": 574.039249999998,
+      "cpuMs": 573.161,
+      "tickMedianMs": 0.02670899999793619,
+      "tickP95Ms": 0.4208749999997963,
+      "tickMaxMs": 15.096541999999317,
+      "ai": {
+        "calls": 58,
+        "totalMs": 26.80666700000438,
+        "meanMs": 0.46218391379317897,
+        "maxMs": 3.951500000002852
+      },
+      "pathfinding": {
+        "calls": 333,
+        "nodes": 43192
+      },
+      "units": 13,
+      "sectors": 7
+    },
+    {
+      "count": 16,
+      "seed": 2,
+      "profile": "dunes",
+      "version": 26,
+      "seconds": 180.00000000000668,
+      "wallMs": 583.4141670000026,
+      "cpuMs": 586.641,
+      "tickMedianMs": 0.027875000003405148,
+      "tickP95Ms": 0.43862499999886495,
+      "tickMaxMs": 15.464125000002241,
+      "ai": {
+        "calls": 58,
+        "totalMs": 27.481500000001688,
+        "meanMs": 0.4738189655172705,
+        "maxMs": 3.088208000001032
+      },
+      "pathfinding": {
+        "calls": 333,
+        "nodes": 42876
+      },
+      "units": 13,
+      "sectors": 7
+    },
+    {
+      "count": 16,
+      "seed": 2,
+      "profile": "rocky",
+      "version": 26,
+      "seconds": 180.00000000000668,
+      "wallMs": 594.4135419999984,
+      "cpuMs": 598.734,
+      "tickMedianMs": 0.025417000000743428,
+      "tickP95Ms": 0.4842080000016722,
+      "tickMaxMs": 12.786040999999386,
+      "ai": {
+        "calls": 58,
+        "totalMs": 30.71008200000142,
+        "meanMs": 0.5294841724138176,
+        "maxMs": 4.241708000001381
+      },
+      "pathfinding": {
+        "calls": 336,
+        "nodes": 56618
+      },
+      "units": 13,
+      "sectors": 7
+    },
+    {
+      "count": 16,
+      "seed": 2,
+      "profile": "oasis",
+      "version": 26,
+      "seconds": 180.00000000000668,
+      "wallMs": 558.2541249999995,
+      "cpuMs": 572.085,
+      "tickMedianMs": 0.025959000002330868,
+      "tickP95Ms": 0.4147919999995793,
+      "tickMaxMs": 15.933333000000857,
+      "ai": {
+        "calls": 58,
+        "totalMs": 23.786834000016825,
+        "meanMs": 0.41011782758649695,
+        "maxMs": 3.537917000001471
+      },
+      "pathfinding": {
+        "calls": 333,
+        "nodes": 42876
+      },
+      "units": 13,
+      "sectors": 7
+    },
+    {
+      "count": 16,
+      "seed": 2,
+      "profile": "mixed",
+      "version": 26,
+      "seconds": 180.00000000000668,
+      "wallMs": 584.5995000000003,
+      "cpuMs": 642.862,
+      "tickMedianMs": 0.026083999997354113,
+      "tickP95Ms": 0.4510410000002594,
+      "tickMaxMs": 13.47058399999878,
+      "ai": {
+        "calls": 58,
+        "totalMs": 23.290292000005138,
+        "meanMs": 0.4015567586207782,
+        "maxMs": 2.8877919999977166
+      },
+      "pathfinding": {
+        "calls": 331,
+        "nodes": 49180
+      },
+      "units": 13,
+      "sectors": 7
+    },
+    {
+      "count": 16,
+      "seed": 3,
+      "profile": "reference",
+      "version": 22,
+      "seconds": 180.00000000000668,
+      "wallMs": 548.6700829999972,
+      "cpuMs": 758.055,
+      "tickMedianMs": 0.02500000000145519,
+      "tickP95Ms": 0.35141700000167475,
+      "tickMaxMs": 13.85791700000118,
+      "ai": {
+        "calls": 58,
+        "totalMs": 44.49037699998735,
+        "meanMs": 0.7670754655170232,
+        "maxMs": 13.823833999998897
+      },
+      "pathfinding": {
+        "calls": 312,
+        "nodes": 36647
+      },
+      "units": 12,
+      "sectors": 5
+    },
+    {
+      "count": 16,
+      "seed": 3,
+      "profile": "open",
+      "version": 26,
+      "seconds": 180.00000000000668,
+      "wallMs": 592.8758329999982,
+      "cpuMs": 822.555,
+      "tickMedianMs": 0.027458000000478933,
+      "tickP95Ms": 0.384291000002122,
+      "tickMaxMs": 21.467083999999886,
+      "ai": {
+        "calls": 58,
+        "totalMs": 34.87008099999002,
+        "meanMs": 0.6012082931032763,
+        "maxMs": 9.991707999997743
+      },
+      "pathfinding": {
+        "calls": 282,
+        "nodes": 33457
+      },
+      "units": 11,
+      "sectors": 5
+    },
+    {
+      "count": 16,
+      "seed": 3,
+      "profile": "dunes",
+      "version": 26,
+      "seconds": 180.00000000000668,
+      "wallMs": 583.463208000001,
+      "cpuMs": 583.061,
+      "tickMedianMs": 0.0236670000012964,
+      "tickP95Ms": 0.35504199999923003,
+      "tickMaxMs": 20.847750000000815,
+      "ai": {
+        "calls": 58,
+        "totalMs": 37.581288999994285,
+        "meanMs": 0.6479532586205912,
+        "maxMs": 11.602167000000918
+      },
+      "pathfinding": {
+        "calls": 282,
+        "nodes": 37240
+      },
+      "units": 11,
+      "sectors": 5
+    },
+    {
+      "count": 16,
+      "seed": 3,
+      "profile": "rocky",
+      "version": 26,
+      "seconds": 180.00000000000668,
+      "wallMs": 632.6697920000006,
+      "cpuMs": 641.702,
+      "tickMedianMs": 0.0244170000005397,
+      "tickP95Ms": 0.3992920000018785,
+      "tickMaxMs": 22.708291999999346,
+      "ai": {
+        "calls": 58,
+        "totalMs": 33.63983499997994,
+        "meanMs": 0.579997155172068,
+        "maxMs": 8.761958999999479
+      },
+      "pathfinding": {
+        "calls": 282,
+        "nodes": 51973
+      },
+      "units": 11,
+      "sectors": 5
+    },
+    {
+      "count": 16,
+      "seed": 3,
+      "profile": "oasis",
+      "version": 26,
+      "seconds": 180.00000000000668,
+      "wallMs": 555.5092909999985,
+      "cpuMs": 560.284,
+      "tickMedianMs": 0.02387500000259024,
+      "tickP95Ms": 0.37391699999716366,
+      "tickMaxMs": 21.64274999999907,
+      "ai": {
+        "calls": 58,
+        "totalMs": 34.134705999997095,
+        "meanMs": 0.5885294137930533,
+        "maxMs": 9.890250000000378
+      },
+      "pathfinding": {
+        "calls": 282,
+        "nodes": 35413
+      },
+      "units": 11,
+      "sectors": 5
+    },
+    {
+      "count": 16,
+      "seed": 3,
+      "profile": "mixed",
+      "version": 26,
+      "seconds": 180.00000000000668,
+      "wallMs": 558.7556250000016,
+      "cpuMs": 574.861,
+      "tickMedianMs": 0.023249999998370185,
+      "tickP95Ms": 0.3586670000004233,
+      "tickMaxMs": 20.618458000000828,
+      "ai": {
+        "calls": 58,
+        "totalMs": 41.41966299998603,
+        "meanMs": 0.7141321206894143,
+        "maxMs": 10.767707999999402
+      },
+      "pathfinding": {
+        "calls": 282,
+        "nodes": 43303
+      },
+      "units": 11,
+      "sectors": 5
+    }
+  ]
+}
