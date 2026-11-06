@@ -127,37 +127,8 @@ export class DesertArtPass {
    group.add(palm);
    this.scene.add(group);this.items.push(group);
   }
-  // The larger maps use small coherent oases near old outposts rather than
-  // scattering palms uniformly through otherwise open military terrain.
-  let oasisCount=0;
-  if(spacious){
-   let oasisState=((this.world.seed??0)^0x52a73b29)>>>0;
-   const roll=()=>{oasisState=(Math.imul(oasisState,1664525)+1013904223)>>>0;
-    return oasisState/4294967296;};
-   for(const ruin of this.terrain.ruins.slice(0,this.lowQuality?5:9)){
-    const direction=roll()*Math.PI*2;
-    const center={x:ruin.x+Math.cos(direction)*260,y:ruin.y+Math.sin(direction)*260};
-    if(!this.world.walkable(center)||this.terrain.sites.some(s=>
-      Math.hypot(center.x-s.x,center.y-s.y)<340))continue;
-    const grove=new THREE.Group();grove.name='visual-desert-oasis';
-    grove.userData={visualOnly:true,nonPlayable:true,oasis:true};
-    for(let k=0;k<(this.lowQuality?3:4);k++){
-     const angle=k*(Math.PI*2/(this.lowQuality?3:4))+roll()*.32;
-     const radius=15+roll()*42;
-     const x=center.x+Math.cos(angle)*radius,z=center.y+Math.sin(angle)*radius;
-     if(!this.world.walkable({x,y:z}))continue;
-     const palm=this.normalize(gltf.scene.clone(true),(58+roll()*32)*1.12);
-     const instance=new THREE.Group();
-     instance.position.set(x-center.x,this.heightAt(x,z)-this.heightAt(center.x,center.y),z-center.y);
-     instance.rotation.y=roll()*Math.PI*2;
-     instance.add(palm);grove.add(instance);oasisCount++;
-    }
-    if(grove.children.length){
-     grove.position.copy(this.pos(center.x,center.y));
-     this.scene.add(grove);this.items.push(grove);
-    }
-   }
-  }
+  // Premium oases now own the safe, deterministic interior groves.
+  let borderPalms=0;
   // Zero Hour-style outer void on the spacious 3D maps: NO palm groves
   // outside the playable boundary. Those tall 3D meshes previously poked
   // through the black soil fade when viewed from the low/zoomed-out camera.
@@ -166,7 +137,6 @@ export class DesertArtPass {
   let state=((this.world.seed??0)^0x3ac719d5)>>>0;
   const rand=()=>{state=(Math.imul(state,1664525)+1013904223)>>>0;return state/4294967296;};
   const groves=this.lowQuality?4:9;
-  let borderPalms=0;
   for(let grove=0;grove<groves;grove++){
    const edge=Math.floor(rand()*4),center=.09+rand()*.82;
    const number=this.lowQuality?3:3+Math.floor(rand()*3);
@@ -190,7 +160,7 @@ export class DesertArtPass {
    }
   }
   }
-  return palms.length+borderPalms+oasisCount;
+  return palms.length+borderPalms;
  }
  async loadProps(){
   // Place authored PBR supply hardware beside derelict compounds. The old

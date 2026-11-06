@@ -1,0 +1,50 @@
+name: Sandforge premium desert oases
+on:
+  push:
+    branches: [feat/webgl-premium-desert-oases-20261106]
+  pull_request:
+    branches: [feat/webgl-default-rc2-20261106, fix/webgl-edge-vision-minimap-sync-20261106]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI: 'true'
+      ATLAS_BROWSER_CHANNEL: chromium
+      LIBGL_ALWAYS_SOFTWARE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
+      - run: npm ci --prefix tests/browser --no-audit --no-fund
+      - run: cd tests/browser && npx playwright install --with-deps chromium
+      - name: Build isolated Docker preview
+        run: |
+          docker build -t sandforge-oases-ci .
+          docker run -d --name sandforge-oases-ci -p 127.0.0.1:8127:8095 sandforge-oases-ci
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8127/healthz; then break; fi
+            sleep 1
+          done
+      - name: Oases, movement, fog, minimap and HUD in shipped Docker build
+        env:
+          ATLAS_BASE_URL: http://127.0.0.1:8127
+        run: |
+          tests/browser/node_modules/.bin/playwright test --config=tests/browser/playwright.config.mjs \
+            tests/browser/webgl-oases.spec.mjs tests/browser/webgl-fog-alignment.spec.mjs \
+            tests/browser/webgl-hud-responsive.spec.mjs --workers=1 --reporter=line
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: premium-oases-browser
+          path: tests/browser/artifacts/
+          retention-days: 7
+      - if: always()
+        run: docker rm -f sandforge-oases-ci || true
