@@ -46,6 +46,7 @@ test('production: a blocked first approach retries another side of a legal found
  const g=new Simulation(2026,2);g.aiClock=-1e8;g.credits[0]=10000;
  g.world.blocked.fill(0);g.world.opaque.fill(0);
  const worker=g.units.find(u=>u.owner===0&&u.kind==='engineer'),site=buildSite(g,'generator');
+ Object.assign(worker,{x:site.x+400,y:site.y+160}); // force actual routing, even when the original worker spawned nearby
  // Simulate a blocked first route, not an invalid building position. Other
  // sides must still be considered, while commands remain physically routed.
  const originalPath=g.world.path.bind(g.world);let attempts=0;
@@ -58,6 +59,7 @@ test('production: a blocked first approach retries another side of a legal found
  const blocked=new Simulation(2026,2);blocked.aiClock=-1e8;blocked.credits[0]=10000;
  blocked.world.blocked.fill(0);blocked.world.opaque.fill(0);
  const worker2=blocked.units.find(u=>u.owner===0&&u.kind==='engineer'),site2=buildSite(blocked,'generator'),money=blocked.credits[0],bases=blocked.bases.length;
+ Object.assign(worker2,{x:site2.x+400,y:site2.y+160}); // failure case must also require a route
  blocked.world.path=()=>[];
  assert.equal(blocked.build(0,'generator',site2,[worker2.id]),null,'unreachable site must still be rejected');
  assert.equal(blocked.credits[0],money,'failed construction never spends credits');
