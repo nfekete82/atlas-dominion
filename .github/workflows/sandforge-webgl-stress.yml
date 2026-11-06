@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: webgl-stress-${{ github.ref }}
+  group: webgl-stress-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
