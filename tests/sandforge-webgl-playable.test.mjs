@@ -147,7 +147,7 @@ test('3D Fog is black until discovery and zoom is constrained like the classic R
  assert.match(preview,/cameraGroundPlane/);
  assert.match(preview,/const correction=\(low,high\)/);
  assert.match(adapter,/visible\[0\]\[i\]\?0:explored\[0\]\[i\]\?215:255/);
- assert.match(adapter,/visible\[0\]\[index\]\?0:this\.game\.explored\[0\]\[index\]\?\.82:1/);
+ assert.match(adapter,/pixels\[k\+3\]=visible\[i\]\?0:explored\[i\]\?215:255/,'mini-map must use the exact per-cell visibility alpha of the real WebGL fog');
  assert.ok(adapter.includes('p.y+=3.0'),'fog overlay should follow ground height');
  assert.ok(!adapter.includes('p.y+=420.0'),'old elevated fog causes parallax');
  assert.match(adapter,/depthTest:false,depthWrite:false/);

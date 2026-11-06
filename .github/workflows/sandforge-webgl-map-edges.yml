@@ -1,0 +1,90 @@
+name: Sandforge WebGL edge, fog and minimap regression
+
+on:
+  push:
+    branches:
+      - fix/webgl-edge-vision-minimap-sync-20261106
+  pull_request:
+    branches:
+      - feat/webgl-default-rc2-20261106
+  workflow_dispatch:
+
+permissions:
+  contents: read
+concurrency:
+  group: sandforge-edges-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  authoritative-bounds:
+    name: Game bounds, 3D static imports and movement regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install source and compile WebGL default
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Exact edge and current 3D integration Node fixtures
+        run: |
+          node --test tests/webgl-map-edges.test.mjs tests/sandforge-webgl-entry.test.mjs tests/sandforge-bastion-navigation.test.mjs
+      - name: Full Node regression suite
+        run: npm test
+
+  fog-camera-chromium:
+    name: Real Chromium fog grid, rotated footprint and map-edge verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI: 'true'
+      ATLAS_BROWSER_CHANNEL: chromium
+      LIBGL_ALWAYS_SOFTWARE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install browser dependencies
+        run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix tests/browser --no-audit --no-fund
+          cd tests/browser
+          npx playwright install --with-deps chromium
+      - name: Compile and serve full WebGL root
+        run: npm run build
+      - name: Test fog, minimap and camera on real Three.js scene
+        run: |
+          set -euo pipefail
+          PORT=8118 HOST=127.0.0.1 node scripts/serve.mjs > /tmp/sandforge-edge-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          READY=0
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:8118/healthz >/dev/null 2>&1; then READY=1; break; fi
+            sleep 0.25
+          done
+          if [ "$READY" -ne 1 ]; then cat /tmp/sandforge-edge-server.log; exit 1; fi
+          ATLAS_BASE_URL=http://127.0.0.1:8118 \
+            tests/browser/node_modules/.bin/playwright test \
+            --config=tests/browser/playwright.config.mjs \
+            tests/browser/webgl-hud-responsive.spec.mjs \
+            tests/browser/webgl-fog-alignment.spec.mjs \
+            --workers=1 --reporter=line
+      - name: Store browser error traces and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandforge-edge-fog-${{ github.run_id }}
+          path: tests/browser/artifacts/
+          retention-days: 7
+          if-no-files-found: ignore

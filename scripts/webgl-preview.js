@@ -11,6 +11,7 @@ import {SandforgePerformanceWatch} from '/webgl-perf-watch.js';
 import {SandforgeAtmosphere3D} from '/webgl-atmosphere-3d.js';
 import {addVisualPerimeter} from '/webgl-perimeter.js';
 import {addBoundaryCliffs} from '/webgl-edge-cliffs.js';
+import {cameraEdgeReach} from '/webgl-map-edges.js';
 import {groundContactMaterial} from '/webgl-grounding.js';
 import {SandforgeConstructionRecovery} from '/webgl-construction-recovery.js';
 import {SandforgeGroundTracks} from '/webgl-ground-tracks.js';
@@ -648,8 +649,9 @@ function stepCamera(dt){
  // Decorative landscape ends far outside the actual 4160+ unit world; keep
  // the viewing footprint within the cliff/fog transition so no beige void
  // or mesh edge appears, including on wide screens and after camera rotation.
-// Let the player reach the last playable edge, but never reveal the mesh end.
- const focusLimit=half-45;
+// Permit a small overscan beyond the playable border. The frustum clamp
+ // below still keeps decorative mesh endings out of view.
+ const focusLimit=half+cameraEdgeReach(size);
  const nx=Math.max(-focusLimit,Math.min(focusLimit,controls.target.x));
  const nz=Math.max(-focusLimit,Math.min(focusLimit,controls.target.z));
  if(nx!==controls.target.x||nz!==controls.target.z){
@@ -659,7 +661,12 @@ function stepCamera(dt){
  // Keep the visible corners inside the textured erosion apron, not at
  // the far outer mesh edge where the black scene background is exposed.
  // The authored perimeter stays decorative; no playable bounds change.
- const border=half+Math.min(320,Math.max(180,(visualPerimeter?.margin??size*.5)*.15)),
+ // The exterior ring already fades to solid black within 18 world units.
+ // Its far mesh boundary is much further out than the old 320-unit camera
+ // cutoff, which prevented reaching the last playable edge on tilted views.
+ // Leave 280 world units of black ring beyond the viewport as a safety margin.
+ const perimeterMargin=visualPerimeter?.margin??size*.5;
+ const border=half+Math.max(320,Math.min(2000,perimeterMargin-280)),
   groundY=heightAt(controls.target.x+half,controls.target.z+half);
  cameraGroundPlane.constant=-groundY;
  camera.updateMatrixWorld(true);
