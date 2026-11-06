@@ -73,3 +73,16 @@ test('3D root menu keeps all new games and saves on / instead of returning to pr
  expect(resumed).toEqual({seed:2074,model:true,route:'/'});
  expect(errors).toEqual([]);
 });
+
+test('RC2: a failed WebGL import displays a usable Classic escape hatch',async({page})=>{
+ test.skip(process.env.SANDFORGE_RENDERER==='classic','Classic override does not load WebGL at /');
+ test.setTimeout(35000);
+ await page.route('**/webgl-preview.js',route=>route.abort('failed'));
+ await page.goto('/?bastions=4&seed=2074&lite=1',{waitUntil:'domcontentloaded'});
+ await expect(page.locator('#sf3d-fatal')).toBeVisible({timeout:15000});
+ await expect(page.locator('#sf3d-fatal-detail')).not.toBeEmpty();
+ await expect(page.locator('#sf3d-fatal a[href="/classic.html"]')).toBeVisible();
+ await page.locator('#sf3d-fatal a[href="/classic.html"]').click();
+ await expect(page).toHaveURL(/\/classic\.html$/);
+ await expect(page.locator('canvas#world')).toBeVisible();
+});
