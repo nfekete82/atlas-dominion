@@ -74,16 +74,16 @@ Same camera: [dune seed 2074](screenshots/dunes-seed-2074.png), [dune seed 2075]
 
 Browser: Chrome / ANGLE Metal **Apple M5 Max**, 1440×900, same seed 2074, .59 zoom, fog off, paused, terrain-centered or 96 visible mixed units at the start. Reference is the existing PR #239 Docker container on 8128. [Initial complete 24-scene comparison](browser-performance.json). Normal terrain medians are 16.7 ms in all profiles and both sizes. The intentionally dense 96-unit full-model scene exposes the inherited tens of thousands of model draw calls and roughly 12–15 FPS; it must not be presented as a 60-FPS large-battle result. [Three repeated final Docker measurements per 16-bastion profile/scene](browser-performance-repeat.json) ran after all other browser tests finished and waited for model loading to settle.
 
-The new terrain uses the same 16 chunks and normal/base-color resources; one merged mesh renders all physical rock formations. Static 16-bastion draw calls in the initial comparison are 220 reference versus 234–236 procedural (about 6–7% more); triangle counts depend on visible profile/oasis geometry. Instanced oasis frequency naturally changes submitted palm triangles. The single-pass reference/new 96-unit medians vary with VSync scheduling, including one 83.3 ms mixed sample; the repeated measurement puts all profile medians at 66.6–66.7 ms. Oasis p95 still reaches 83.3 ms; that tail variability is a measured limitation, not hidden by the median. RAF times are display-synchronized, not uncapped GPU times; Three.js counts do not measure total GPU memory.
+The new terrain uses the same 16 chunks and normal/base-color resources; one merged mesh renders all physical rock formations. Static 16-bastion draw calls in the initial comparison are 220 reference versus 234–236 procedural (about 6–7% more); triangle counts depend on visible profile/oasis geometry. Instanced oasis frequency naturally changes submitted palm triangles. The single-pass reference/new 96-unit medians vary with VSync scheduling, including one 83.3 ms mixed sample; the final repeated measurement with the corrected five-grove shader puts all profile medians at 66.6–66.7 ms and p95 at 66.7–66.8 ms. The initial single-pass variability is retained in the raw report, not hidden by the repeated medians. RAF times are display-synchronized, not uncapped GPU times; Three.js counts do not measure total GPU memory.
 
 Final 16-bastion results (median across three runs, all 96 detail models loaded):
 
 | Scene | Reference | Open | Dunes | Rocky | Oasis | Mixed |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Terrain median frame, ms | 16.7 | 16.7 | 16.7 | 16.7 | 16.7 | 16.7 |
-| Terrain calls | 220 | 233 | 235 | 234 | 236 | 234 |
-| 96-unit median frame, ms | 66.6 | 66.7 | 66.6 | 66.7 | 66.7 | 66.7 |
-| 96-unit p95 frame, ms | 66.8 | 66.7 | 66.7 | 66.7 | 83.3 | 66.8 |
+| Terrain calls | 220 | 234 | 235 | 234 | 235 | 234 |
+| 96-unit median frame, ms | 66.7 | 66.7 | 66.6 | 66.7 | 66.7 | 66.7 |
+| 96-unit p95 frame, ms | 66.7 | 66.7 | 66.7 | 66.7 | 66.8 | 66.7 |
 | 96-unit calls | 33,709 | 32,822 | 32,829 | 33,000 | 32,921 | 32,823 |
 
 [48 CPU simulation comparisons](simulation-performance.json) use the **actual unmodified PR #239 module** against the feature, with matching seeds/settings and four starting orientations. Mean AI planning and process CPU did not regress in the 180-second sample. On 16 bastions, average CPU per match was 915 ms reference versus 536–650 ms across profiles; average tick p95 was 0.425 ms versus 0.365–0.438 ms. Different maps produce different trajectories, so this is a gameplay workload comparison, not identical-state proof. Long sessions, other GPUs and competitive win-rate balance are not established by this acceptance.
