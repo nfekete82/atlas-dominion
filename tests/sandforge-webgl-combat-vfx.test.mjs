@@ -11,7 +11,7 @@ test('3D effects are included with the standalone OrbStack WebGL build',()=>{
  const docker=readFileSync('Dockerfile','utf8');
  assert.ok(source.includes('export class SandforgeCombatEffects'));
  assert.ok(main.includes('new SandforgeCombatEffects'));
- assert.ok(main.includes('effects.update(dt,running)'));
+ assert.ok(main.includes('effects.update(dt,running,accumulator)'), 'rocket flight uses fractional simulation time for 3D interpolation');
  assert.ok(docker.includes('COPY scripts/webgl-combat-vfx.js'));
 });
 

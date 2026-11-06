@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {Simulation} from '../dist/src/reborn/simulation.js';
 import {campaignLayout,CAMPAIGN_SIZES,mapWorldSize} from '../dist/src/reborn/config.js';
 test('randomized campaigns offer exactly 4, 8, 12, 16 bastions with spacious small maps',()=>{
- assert.deepEqual(Object.values(CAMPAIGN_SIZES),[11,12,13,14]);
- for(const [count,version] of [[4,11],[8,12],[12,13],[16,14]]){
+ assert.deepEqual(Object.values(CAMPAIGN_SIZES),[15,16,17,18]);
+ for(const [count,version] of [[4,11],[8,12],[12,13],[16,14],[4,15],[8,16],[12,17],[16,18]]){
   const g=new Simulation(2026,version);
   assert.equal(g.territories.length,count);
   assert.ok(mapWorldSize(version)>=3000);

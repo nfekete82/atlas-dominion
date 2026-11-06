@@ -23,7 +23,15 @@ for(const owner of [0,1])for(const kind of ['infantry','tank','scout'])test(`def
 
 test('defense: a bastion is not a combat target; nearby enemy units are acquired at 500 and locks remain stable',()=>{
  const g=fixture(),t=g.territories[14],p={x:t.point.x,y:t.point.y+20},b=turret(g,0,{x:p.x-500,y:p.y}),a=opponent(g,0,p),c=opponent(g,0,{x:p.x+50,y:p.y});
- const snapshot=structuredClone(t);g.updateVision();g.step();assert.equal(b.turretTarget,a.id);Object.assign(c,{x:b.x+100,y:b.y+70});g.step();assert.equal(b.turretTarget,a.id);a.hp=0;g.step();assert.equal(b.turretTarget,c.id);assert.deepEqual(t,snapshot);
+ const snapshot=structuredClone(t);g.updateVision();g.step();assert.equal(b.turretTarget,a.id);Object.assign(c,{x:b.x+100,y:b.y+70});g.step();assert.equal(b.turretTarget,a.id);a.hp=0;g.step();assert.equal(b.turretTarget,c.id);
+ // A neutral bastion is not a damageable target, but ground units standing
+ // inside its capture circle legitimately advance the capture simulation.
+ // Pin static sector state and ownership while checking real capture progress.
+ const {capturing:previousCaptor,progress:previousProgress,...staticBefore}=snapshot;
+ const {capturing,progress,...staticAfter}=t;
+ assert.deepEqual(staticAfter,staticBefore,'turret targeting cannot mutate sector geometry, ownership or economy');
+ assert.equal(capturing,1,'real enemy infantry inside the neutral capture area must start taking it');
+ assert.ok(progress>previousProgress&&progress<RULES.captureTime,'capture advances without an instant territory flip');
 });
 
 test('defense: sight extends to 750 but weapon range ends at exactly 600',()=>{
@@ -66,7 +74,21 @@ test('maps: original geometry fingerprints for both 30-sector versions stay iden
  // Retain the terrain, structures and original soldiers in the reference hash;
  // the new starting builders are independently verified by the progression tests.
  // Experience is save metadata; verify zero XP separately from the pinned geometry.
- for(const {version,seed,hash,linuxHash} of baselines){const g=new Simulation(seed,version),geometry={generated:g.world.generated,blocked:Array.from(g.world.blocked),territories:g.territories,bases:g.bases,units:g.units.filter(u=>u.kind==='infantry').map(({xp,...geometry})=>{assert.equal(xp,0,'new recruits have no experience');return geometry;})};
+ for(const {version,seed,hash,linuxHash} of baselines){
+  const g=new Simulation(seed,version),generated=g.world.generated;
+  // Canyon v15+ added two explicit optional collections. They must remain
+  // empty on v0/v1; hash the unchanged historical terrain payload only.
+  // v0 uses the original static terrain and has no generated payload.
+  // v1 generates terrain; compare only the historic fields, while requiring
+  // new Canyon-only collections to remain absent of actual geometry.
+  if(version===0)assert.equal(generated,undefined,'original static map must not generate new terrain');
+  if(generated){
+   assert.deepEqual(generated.ridges??[],[],'legacy maps cannot gain canyon ridges');
+   assert.deepEqual(generated.ruins??[],[],'legacy maps cannot gain canyon ruins');
+  }
+  const originalGenerated=generated===undefined?undefined:
+   {sites:generated.sites,mesas:generated.mesas,corridors:generated.corridors};
+  const geometry={generated:originalGenerated,blocked:Array.from(g.world.blocked),territories:g.territories,bases:g.bases,units:g.units.filter(u=>u.kind==='infantry').map(({xp,...geometry})=>{assert.equal(xp,0,'new recruits have no experience');return geometry;})};
   // Legacy map v1/seed=0 has two confirmed exact JSON fingerprints across macOS and Linux.
   // Every other legacy seed retains its single strictly pinned reference hash.
   const actual=createHash('sha256').update(JSON.stringify(geometry)).digest('hex');

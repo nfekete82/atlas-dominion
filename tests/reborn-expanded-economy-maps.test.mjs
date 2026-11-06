@@ -12,9 +12,15 @@ const cases=[
  {size:'large',legacy:9,modern:13,bastions:12,oldWidth:3888,newWidth:4277,spacing:701},
  {size:'extraLarge',legacy:10,modern:14,bastions:16,oldWidth:4064,newWidth:4470,spacing:701}
 ];
-test('campaign selector uses versions with 10 percent more side length; all earlier sizes remain frozen',()=>{
+test('campaign selector uses Canyon v15-v18 while prior v11-v14 remain frozen',()=>{
  for(const c of cases){
-  assert.equal(CAMPAIGN_SIZES[c.size],c.modern);
+  const latest={small:{version:15,width:4160,spacing:715},medium:{version:16,width:4600,spacing:740},large:{version:17,width:4960,spacing:800},extraLarge:{version:18,width:5260,spacing:830}}[c.size];
+  // The selector has advanced to Canyon versions; keep testing v11-v14
+  // explicitly as frozen historical map geometry, not as active menu IDs.
+  assert.equal(CAMPAIGN_SIZES[c.size],latest.version);
+  assert.equal(mapWorldSize(latest.version),latest.width);
+  assert.equal(mapLayout(latest.version).spacing,latest.spacing);
+  assert.equal(mapLayout(latest.version).rows*mapLayout(latest.version).columns,c.bastions);
   assert.equal(mapWorldSize(c.legacy),c.oldWidth);
   assert.equal(mapWorldSize(c.modern),c.newWidth);
   assert.ok(mapWorldSize(c.modern)/mapWorldSize(c.legacy)>1.099);
