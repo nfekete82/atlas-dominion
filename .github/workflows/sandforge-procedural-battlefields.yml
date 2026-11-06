@@ -2,11 +2,16 @@ name: Sandforge procedural battlefields
 on:
   push:
     branches: [feat/webgl-procedural-battlefields-20261106]
+    paths-ignore: ['docs/**']
   pull_request:
     branches: [feat/webgl-premium-desert-oases-20261106]
+    paths-ignore: ['docs/**']
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: procedural-battlefields-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
 jobs:
   acceptance:
     runs-on: ubuntu-latest
