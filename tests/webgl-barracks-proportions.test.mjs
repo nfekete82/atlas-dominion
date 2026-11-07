@@ -13,6 +13,8 @@ test('barracks equipment is human-scaled instead of building-scaled',()=>{
  group.traverse(obj=>{if(obj.isMesh)names.add(obj.name);});
  for(const expected of ['InfantryHelmet','HelmetRim','RifleBarrel','WeaponRack','EquipmentPallet','AmmunitionCrate'])
   assert.ok(names.has(expected),'missing '+expected);
+ // World-space geometry bounds require updating parent transforms first.
+ yard.updateMatrixWorld(true);
  const helmet=group.getObjectByName('InfantryHelmet');
  const rifle=group.getObjectByName('InfantryWeaponRackRifle');
  const headDiameter=new THREE.Box3().setFromObject(helmet).getSize(new THREE.Vector3()).x;
