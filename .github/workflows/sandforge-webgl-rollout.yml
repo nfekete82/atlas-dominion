@@ -86,6 +86,7 @@ jobs:
             --config=tests/browser/playwright.config.mjs \
             --output=tests/browser/artifacts/production-gate-review \
             tests/browser/webgl-production-gates.spec.mjs \
+            tests/browser/webgl-barracks-portal.spec.mjs \
             --workers=1 --reporter=line
       - name: Publish browser evidence
         if: always()
