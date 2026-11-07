@@ -1065,7 +1065,7 @@ export class Simulation {
           this.productionReleases.push({unitId:u.id,baseId:b.id,kind,owner:b.owner,at:this.time,from:{x:b.x,y:b.y},to:{...spawn}});
           if(this.productionReleases.length>24)this.productionReleases.shift();
           countProduced(this.stats,b.owner);if(b.owner===0)this.notices.push(`Einheit bereit: ${spec.name}.`);b.queue.shift();b.queueTypes.shift();b.queueCosts?.shift();b.production=0;if(b.rally)this.command([u.id],{...b.rally,kind:'attackMove'});
-           if(this.stageWebGLProduction&&b.kind==='factory'){
+           if(this.stageWebGLProduction&&(b.kind==='factory'||b.kind==='barracks')){
              // Minimum until the door is fully open and the real vehicle has
              // cleared the hall. The 3D presenter extends this for longer
              // exit routes (backward facings) before the next simulation tick.
