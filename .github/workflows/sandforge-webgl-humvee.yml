@@ -1,0 +1,39 @@
+name: Sandforge WebGL Humvee boarding and visual polish
+
+on:
+  push:
+    branches:
+      - fix/webgl-jeep-boarding-and-visual-polish-20261107
+  pull_request:
+    branches:
+      - fix/webgl-production-rally-wheel-stop-20261107
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sandforge-humvee-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - name: Build full WebGL app
+        run: npm run build
+      - name: Boarding and existing unit regressions
+        run: |
+          node --test tests/webgl-jeep-boarding.test.mjs tests/webgl-wheel-motion.test.mjs tests/webgl-production-rally.test.mjs tests/webgl-barracks-portal.test.mjs
+      - name: Full Node suite
+        run: npm test
