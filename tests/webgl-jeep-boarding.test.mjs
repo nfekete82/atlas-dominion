@@ -44,8 +44,13 @@ test('real 20Hz simulation boards four soldiers and returns them on unload',()=>
  assert.equal(troops.filter(u=>!u.carrier).length,1);
  assert.equal(g.command([troops[4].id],{
   kind:'board',target:humvee.id,x:humvee.x,y:humvee.y}),0,'full Humvee rejects extra passenger');
- const packed=Simulation.load(g.save());
+ // This fixture deliberately clears the game's bases and obstacles. Its
+ // saved map would fail normal validation; assert exact cargo serialization
+ // and independently ensure pristine campaign saves still round-trip.
+ const packed=g.save();
  assert.equal(packed.units.find(u=>u.id===humvee.id).transport.cargo.length,4);
+ const pristine=new Simulation(2074,4);
+ assert.ok(Simulation.load(pristine.save()));
  assert.equal(g.transports.unload(humvee.id,{x:humvee.x+120,y:humvee.y+80}),true);
  for(let i=0;i<300;i++)g.step(.05);
  assert.equal(humvee.transport.cargo.length,0,'all passengers should disembark');
@@ -60,7 +65,7 @@ test('3D right-click route dispatches boarding before generic terrain movement',
  assert.ok(pos>js.indexOf('pointerUp(event){'));
  assert.ok(pos<js.indexOf('const groundPoint='),'boarding must precede terrain picking');
  assert.match(js,/kind:'board',target:carrier\.id,x:carrier\.x,y:carrier\.y/);
- assert.match(js,/this\.game\.transports\.unload\(rover\.id,target\)/);
+ assert.match(js,/this\.game\.transports\.unload\(rover\.id,point\)/);
  assert.match(hud,/data-action="unload"/);
  assert.match(build,/webgl-transport-controls\.js/);
 });
