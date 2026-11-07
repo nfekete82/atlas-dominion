@@ -1,0 +1,97 @@
+name: Sandforge factory + barracks rollout and stationary wheels
+
+on:
+  push:
+    branches:
+      - fix/webgl-production-rally-wheel-stop-20261107
+  pull_request:
+    branches:
+      - feat/webgl-animated-production-gates-20261106
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sandforge-rollout-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  unit-and-build:
+    name: Simulation, 3D gate geometry and all Node regressions
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Check new runtime modules
+        run: |
+          node --check scripts/webgl-production-gates.js
+          node --check scripts/webgl-barracks-portal.js
+          node --check scripts/webgl-wheel-motion.js
+          node --check scripts/webgl-battlefield.js
+          node --check scripts/webgl-actor-presentation.js
+      - run: npm run build
+      - name: Focused release and rendering tests
+        run: |
+          node --test \
+            tests/webgl-wheel-motion.test.mjs \
+            tests/webgl-barracks-portal.test.mjs \
+            tests/webgl-production-rally.test.mjs \
+            tests/webgl-production-gates.test.mjs
+      - name: Full Node regression
+        run: npm test
+
+  real-webgl:
+    name: Chromium production gate + barracks visual checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI: 'true'
+      LIBGL_ALWAYS_SOFTWARE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix tests/browser --no-audit --no-fund
+          cd tests/browser
+          npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Test live WebGL with real production release events
+        run: |
+          set -euo pipefail
+          PORT=8140 HOST=127.0.0.1 node scripts/serve.mjs >/tmp/sandforge-rollout-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          READY=0
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:8140/healthz >/dev/null 2>&1; then READY=1;break;fi
+            sleep .25
+          done
+          if [ "$READY" -ne 1 ]; then cat /tmp/sandforge-rollout-server.log; exit 1; fi
+          ATLAS_BASE_URL=http://127.0.0.1:8140 \
+            tests/browser/node_modules/.bin/playwright test \
+            --config=tests/browser/playwright.config.mjs \
+            --output=tests/browser/artifacts/production-gate-review \
+            tests/browser/webgl-production-gates.spec.mjs \
+            --workers=1 --reporter=line
+      - name: Publish browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandforge-rollout-${{ github.run_id }}
+          path: tests/browser/artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
