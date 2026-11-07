@@ -155,7 +155,10 @@ export class SandforgeProductionGates {
    const elapsed=time-(state.motionTime??time);
    const speed=elapsed>0&&state.position?p.distanceTo(state.position)/elapsed:0;
    state.distance=distance;state.position=p;state.motionTime=time;
-   actor.productionMotion={moving,hideHealth:fraction<clearFraction*.64,driveSpeed:speed,walkDistance:distance,angle:Math.PI/2-yaw,hullAngle:Math.PI/2-yaw};
+   // The shutter may still be animating while the vehicle is motionless.
+   // Gate state does not imply physical wheel rotation.
+   const actuallyRolling=moving&&speed>.25;
+   actor.productionMotion={moving:actuallyRolling,hideHealth:fraction<clearFraction*.64,driveSpeed:speed,walkDistance:distance,angle:Math.PI/2-yaw,hullAngle:Math.PI/2-yaw};
    if(age<GATE_TIMING.warning)actor.node.visible=false; // hidden by the closed shutter
   }
  }
