@@ -23,18 +23,24 @@ function wheel(parent,x,z,n){
    steel,x,5.5+i*5.8,z);
  }
 }
+// The authored infantry stands ~36 world units high after visual scaling.
+// Props should match a soldier's *head and rifle*, not the full body height.
+export const INFANTRY_YARD_PROP_SCALE=.55;
 function helmet(parent,x,z){
- const shell=mesh(parent,'InfantryHelmet',new THREE.SphereGeometry(
-  9,16,9,0,Math.PI*2,0,Math.PI*.55),olive,x,19,z);
+ const g=new THREE.Group();
+ g.name='InfantryHelmetAssembly';g.position.set(x,14,z);
+ g.scale.setScalar(INFANTRY_YARD_PROP_SCALE);parent.add(g);
+ const shell=mesh(g,'InfantryHelmet',new THREE.SphereGeometry(
+  9,16,9,0,Math.PI*2,0,Math.PI*.55),olive,0,4.8,0);
  shell.rotation.y=.2;
- const brim=mesh(parent,'HelmetRim',new THREE.CylinderGeometry(9.5,9.5,1.8,16),
-  dark,x,19,z);
+ const brim=mesh(g,'HelmetRim',new THREE.CylinderGeometry(9.5,9.5,1.8,16),
+  dark,0,0,0);
  brim.rotation.y=.15;
 }
 function rifle(parent,x,z){
  const g=new THREE.Group();
  g.name='InfantryWeaponRackRifle';g.position.set(x,13,z);g.rotation.y=-.28;
- parent.add(g);
+ g.scale.setScalar(INFANTRY_YARD_PROP_SCALE);parent.add(g);
  box(g,'RifleReceiver',[4.6,4.3,14],dark,0,0,0);
  box(g,'RifleBarrel',[2.0,2.0,28],steel,0,0,19);
  box(g,'RifleStock',[5,3.8,11],wood,0,0,-12);
