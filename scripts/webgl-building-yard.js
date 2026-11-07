@@ -64,7 +64,12 @@ export function createBuildingYard(kind,width=160){
   box(g,'ToolCaseHandle',[9,2,2],dark,31,13,-21);
  }else{
   const g=new THREE.Group();g.name='InfantryEquipment';
-  g.position.set(width*.45,0,width*.34);root.add(g);
+  // Geometry was authored at building scale: 19-unit helmets and ~53-unit
+  // rifles looked as large as a human next to the 3D infantry (~36 units).
+  // Keep all individual assets and their spacing proportional, without
+  // changing collision, unit models, or the garage/barracks portal.
+  g.scale.setScalar(.48);
+  g.position.set(width*.43,0,width*.34);root.add(g);
   box(g,'EquipmentPallet',[79,4,46],wood,0,2,0);
   box(g,'HelmetRack',[75,4,13],steel,-1,12,-10);
   for(const x of [-24,0,24])helmet(g,x,-10);
