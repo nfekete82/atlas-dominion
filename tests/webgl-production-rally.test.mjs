@@ -12,7 +12,8 @@ function freshFactory(kind='factory',unitKind='rover'){
   queueTypes:[unitKind],queueCosts:[UNITS[unitKind].cost],
   production:UNITS[unitKind].buildTime-.05,rally:{x:2200,y:2070}};
  g.bases.push(b);g.step(.05);
- const u=g.units.find(x=>x.kind===unitKind&&x.id>1700)||g.units.find(x=>x.kind===unitKind);
+ const release=g.productionReleases.at(-1);
+ const u=g.units.find(x=>x.id===release?.unitId&&x.kind===unitKind);
  assert.ok(u,'unit produced from '+kind);
  return {g,b,u};
 }
