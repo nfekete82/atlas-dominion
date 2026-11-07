@@ -956,7 +956,10 @@ function animate(now){
  if(running){
   accumulator=Math.min(accumulator+dt,.20);
   let steps=0;while(accumulator>=.05&&steps<4){game.step(.05);constructionRecovery.tick();accumulator-=.05;steps++;}
-  battlefield.sync(false,dt);
+  // Render between the last two authoritative 20-Hz snapshots rather than
+  // jumping to each new simulation position. The extra interpolation is
+  // presentation-only and preserves deterministic orders/pathfinding.
+  battlefield.sync(false,dt,true,Math.min(1,Math.max(0,accumulator/.05)));
  }
  if(!running)battlefield.sync(false,dt);
  if(performanceWatch.enabled)performanceWatch.simulation(performance.now()-beforeSteps);
