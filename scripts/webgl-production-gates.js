@@ -83,7 +83,10 @@ export class SandforgeProductionGates {
     game.cancelProductionDeparture?.(event.unitId);
     continue;
    }
-   if(this.active.has(base.id))continue;
+   if(this.active.has(base.id)){
+    game.cancelProductionDeparture?.(event.unitId);
+    continue;
+   }
    entry.node.updateWorldMatrix(true,true);
    const barracks=base.kind==='barracks',root=entry.gate.root;
    const exit=root.localToWorld(barracks?new THREE.Vector3(-.18,0,2.10):new THREE.Vector3(.18,0,2.9));
@@ -143,8 +146,8 @@ export class SandforgeProductionGates {
    const facing=buildingFacingAngle(base.facing);
    if(fraction<clearFraction){
     const t=smooth(fraction/clearFraction);
-    const z=infantry?.9+1.20*t:-.03+2.93*t;
-    const y=infantry?.275*(1-t):z<=1.5?.265:Math.max(0,.265*(2.9-z)/1.4);
+    const z=infantry ? .9+1.20*t : -.03+2.93*t;
+    const y=infantry ? .275*(1-t) : z<=1.5 ? .265 : Math.max(0,.265*(2.9-z)/1.4);
     p=root.localToWorld(new THREE.Vector3(infantry?-.18:.18,y,z));yaw=facing;
    }else{
     // Route around the footprint for every cardinal facing. The simulation's
