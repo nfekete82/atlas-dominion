@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {buildingFacingAngle} from './webgl-scale.js';
+import {rolloutWheelsShouldRoll} from './webgl-wheel-motion.js';
 
 export const GATE_TIMING=Object.freeze({warning:.25,opening:1,drive:3.6,closing:1});
 const clamp=v=>Math.max(0,Math.min(1,v));
@@ -157,7 +158,7 @@ export class SandforgeProductionGates {
    state.distance=distance;state.position=p;state.motionTime=time;
    // The shutter may still be animating while the vehicle is motionless.
    // Gate state does not imply physical wheel rotation.
-   const actuallyRolling=moving&&speed>.25;
+   const actuallyRolling=rolloutWheelsShouldRoll(moving,speed);
    actor.productionMotion={moving:actuallyRolling,hideHealth:fraction<clearFraction*.64,driveSpeed:speed,walkDistance:distance,angle:Math.PI/2-yaw,hullAngle:Math.PI/2-yaw};
    if(age<GATE_TIMING.warning)actor.node.visible=false; // hidden by the closed shutter
   }
