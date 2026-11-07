@@ -961,7 +961,7 @@ function animate(now){
   // presentation-only and preserves deterministic orders/pathfinding.
   battlefield.sync(false,dt,true,Math.min(1,Math.max(0,accumulator/.05)));
  }
- if(!running)battlefield.sync(false,dt);
+ if(!running)battlefield.sync(false,0,false,1); // freeze authored drive/wheel clips during tactical pause
  if(performanceWatch.enabled)performanceWatch.simulation(performance.now()-beforeSteps);
  if(running)groundTracks.capture();
  groundTracks.update(dt,running);
