@@ -707,7 +707,13 @@ export class SandforgeBattlefield {
  }
  updateSelectionRings(){
   for(const [id,ring] of this.selectedRings)if(!this.selected.has(id)||!this.units.has(id)){
-   this.scene.remove(ring);this.selectedRings.delete(id);
+   this.scene.remove(ring);
+   // THREE.Scene.remove() does not free WebGL buffers/program resources.
+   // Selection toggles over a five-minute match must never accumulate
+   // orphaned ring geometries or materials on the GPU.
+   ring.geometry.dispose();
+   ring.material.dispose();
+   this.selectedRings.delete(id);
   }
   for(const id of this.selected){
    const unit=this.game.units.find(u=>u.id===id);
