@@ -360,7 +360,7 @@ export class Simulation {
     if(this.bases.some(b=>b.kind==='headquarters'&&b.territory===t.id&&b.owner!==owner&&b.hp>0))return 'enemy-hq';
     return 'capturing';
   }
-  stop(ids:number[],hold=false):void {for(const u of this.units)if(ids.includes(u.id)){this.transports.cancel(u);u.orders=[];u.path=[];u.repath=0;u.moving=false;if(u.kind==='tank')u.driveSpeed=0;u.pursuitOrigin=null;u.combatTarget=null;u.hold=hold;u.supportPaused=false;u.workingTarget=null;delete u.burst;}}
+  stop(ids:number[],hold=false):void {for(const u of this.units)if(ids.includes(u.id)){this.cancelProductionDeparture(u.id);this.transports.cancel(u);u.orders=[];u.path=[];u.repath=0;u.moving=false;if(u.kind==='tank')u.driveSpeed=0;u.pursuitOrigin=null;u.combatTarget=null;u.hold=hold;u.supportPaused=false;u.workingTarget=null;delete u.burst;}}
   private supportEligible(u:Unit,target:Unit|Base,kind:string):boolean {
     if(target.hp<=0||('orders' in target&&target.carrier)||target.owner!==u.owner)return false;
     if(kind==='heal')return u.kind==='medic'&&'orders' in target&&unitSpec(target).group==='Infanterie'&&target.hp<unitSpec(target).hp;
@@ -851,6 +851,10 @@ export class Simulation {
     // One fixed tick only: callers accumulate elapsed time; no wall-clock economy.
     dt=Math.min(dt,.1);this.time+=dt;this.incomeClock+=dt;this.fogClock+=dt;
     this.unitById=new Map(this.units.map(u=>[u.id,u]));
+    // An actor killed/removed during production must not retain a detached
+    // visual departure hold after its entity no longer exists.
+    for(const [id,until] of this.productionDepartureHolds)
+      if(until<=this.time||!this.unitById.has(id))this.productionDepartureHolds.delete(id);
     const wasStorm=this.weather.storm;
     for(const phase of this.weather.update(this.time)){
       if(phase==='WARNING')this.notices.push('ACHTUNG: Sandsturm nähert sich!');
