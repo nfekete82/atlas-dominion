@@ -10,7 +10,8 @@ import {hydrateUnitIcons,hydrateBuildingIcons,unitIcon,buildingIconUrl} from '/w
 import {SandforgeActorPresentation} from '/webgl-actor-presentation.js';
 import {calibratedScale,visualUnitScale,buildingFacingAngle,nextBuildingFacing,buildingFacingDegrees,turretAimLocalYaw} from '/webgl-scale.js';
 import {SandforgeGroundingPass} from '/webgl-grounding.js';
-import {createBuildingYard} from '/webgl-building-yard.js';
+import {createBuildingYard,disposeBuildingYard} from '/webgl-building-yard.js';
+import {disposeOwnedMeshes,disposeTaggedMaterials} from '/webgl-resource-lifecycle.js';
 import {selectedInfantryForTransport,selectedLoadedRovers} from '/webgl-transport-controls.js';
 import {SandforgeConstructionPresentation} from '/webgl-construction.js';
 import {createBastionCaptureBar,updateBastionCaptureBar} from '/webgl-bastion-capture.js';
@@ -345,7 +346,14 @@ export class SandforgeBattlefield {
     });
     // Visual normalization is independent of collision/pathfinding. Re-ground
     // imported GLBs against the same heightfield sample as their placeholder.
-    entry.node.remove(entry.placeholder);entry.node.add(model);entry.detail=model;
+    // Each procedural fallback owns unique geometries/materials. Once its
+    // cached authored GLB is ready, reclaim those GPU resources immediately.
+    if(entry.placeholder){
+     entry.node.remove(entry.placeholder);
+     disposeOwnedMeshes(entry.placeholder);
+     entry.placeholder=null;
+    }
+    entry.node.add(model);entry.detail=model;
     const visualScale=calibratedScale(entry.kind,type,dims,desired)*
       (type==='unit'?visualUnitScale(entry.kind):1);
     entry.modelHeight=dims.y*visualScale;
@@ -509,7 +517,15 @@ export class SandforgeBattlefield {
    if(u.kind==='tank'||u.kind==='artillery')this.orientTankRig(entry,u);
    entry.node.visible=u.owner===0||this.game.canSee(0,u);
   }
-  for(const [id,e] of this.units)if(!aliveUnits.has(id)){this.presentation.remove(e,this.game.units.find(u=>u.id===id));this.scene.remove(e.node);this.units.delete(id);this.selected.delete(id);}
+  for(const [id,e] of this.units)if(!aliveUnits.has(id)){
+    this.presentation.remove(e,this.game.units.find(u=>u.id===id));
+    if(e.animation?.mixer){
+     e.animation.mixer.stopAllAction();
+     if(e.detail)e.animation.mixer.uncacheRoot(e.detail);
+    }
+    if(e.placeholder){disposeOwnedMeshes(e.placeholder);e.placeholder=null;}
+    this.scene.remove(e.node);this.units.delete(id);this.selected.delete(id);
+   }
   for(const b of this.game.bases){
    if(b.hp<=0)continue;
    aliveBases.add(b.id);
@@ -532,7 +548,22 @@ export class SandforgeBattlefield {
     if(b.owner===0&&this.sound?.enabled)this.sound.announceReady('building');
    }
   }
-  for(const [id,e] of this.bases)if(!aliveBases.has(id)){this.presentation.remove(e,this.game.bases.find(base=>base.id===id));this.productionGates.detach(e);this.construction.dispose(e);this.grounding.detachBuilding(id);this.scene.remove(e.node);this.bases.delete(id);if(this.selectedBase===id)this.selectedBase=null;}
+  for(const [id,e] of this.bases)if(!aliveBases.has(id)){
+    this.presentation.remove(e,this.game.bases.find(base=>base.id===id));
+    this.productionGates.detach(e);this.construction.dispose(e);
+    this.grounding.detachBuilding(id);
+    if(e.yard){disposeBuildingYard(e.yard);e.yard=null;}
+    if(e.placeholder){disposeOwnedMeshes(e.placeholder);e.placeholder=null;}
+    if(e.detail)disposeTaggedMaterials(e.detail,'sandforgeBuildingFill');
+    if(e.motion?.mixer){
+     e.motion.mixer.stopAllAction();
+     if(e.detail)e.motion.mixer.uncacheRoot(e.detail);
+    }
+    if(e.motion?.mode==='fallback'&&e.motion.rotor)disposeOwnedMeshes(e.motion.rotor);
+    this.scene.remove(e.node);this.bases.delete(id);
+    this.announcedBuildings.delete(id);
+    if(this.selectedBase===id)this.selectedBase=null;
+   }
   this.productionGates.update(active,blend);
   this.presentation.consumeShots(this.units,this.bases);
   for(const u of this.game.units){
