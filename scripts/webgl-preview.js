@@ -47,6 +47,9 @@ const session=query.get('resume')==='1'?(()=>{
  return restored;
 })():null;
 const game=session??(profile?Simulation.campaign(seed,sizes[bastions],profile):Simulation.campaign(seed,sizes[bastions]));
+// The WebGL renderer stages a single authoritative factory actor while its
+// real 3D gate is opening. Classic, tests and old saves keep normal rules.
+game.stageWebGLProduction=true;
 // Only this WebGL campaign gets a modest vision bonus; classic/headless
 // benchmarks retain exactly their original LOS and balance.
 // Optional visual comparison; classic gameplay remains unchanged.
@@ -953,9 +956,12 @@ function animate(now){
  if(running){
   accumulator=Math.min(accumulator+dt,.20);
   let steps=0;while(accumulator>=.05&&steps<4){game.step(.05);constructionRecovery.tick();accumulator-=.05;steps++;}
-  battlefield.sync(false,dt);
+  // Render between the last two authoritative 20-Hz snapshots rather than
+  // jumping to each new simulation position. The extra interpolation is
+  // presentation-only and preserves deterministic orders/pathfinding.
+  battlefield.sync(false,dt,true,Math.min(1,Math.max(0,accumulator/.05)));
  }
- if(!running)battlefield.sync(false,dt);
+ if(!running)battlefield.sync(false,0,false,1); // freeze authored drive/wheel clips during tactical pause
  if(performanceWatch.enabled)performanceWatch.simulation(performance.now()-beforeSteps);
  if(running)groundTracks.capture();
  groundTracks.update(dt,running);

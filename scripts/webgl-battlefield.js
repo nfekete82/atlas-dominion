@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {SandforgeProductionGates} from '/webgl-production-gates.js';
+import {wheelsShouldRoll} from '/webgl-wheel-motion.js';
 import {clone as cloneSkeleton} from 'three/addons/utils/SkeletonUtils.js';
 import {UNITS,BUILDINGS,MAX_GENERATORS_PER_FACTION,unitKinds,buildingKinds,unitSpec,buildingSpec} from '/src/reborn/catalog.js';
 import {TERRAIN_LABELS} from '/src/reborn/battlefield-terrain.js';
@@ -351,7 +352,7 @@ export class SandforgeBattlefield {
     entry.visualBaseY=model.position.y;entry.visualBaseZ=model.position.z;
     if(type==='building'){
      this.attachBuildingMotion(entry,data);
-     if(entry.kind==='factory')this.productionGates.prepare(entry);
+     if(entry.kind==='factory'||entry.kind==='barracks')this.productionGates.prepare(entry);
     }
     if(type==='unit'&&['tank','artillery'].includes(entry.kind))this.installTankRig(entry,model);
     if(type==='unit'&&data.animations.length){
@@ -493,6 +494,11 @@ export class SandforgeBattlefield {
    // Interpolate between authoritative 20 Hz snapshots for smooth 60–120 FPS
    // visuals. Simulation, pathfinding and orders use true u.x/u.y only.
    const travel=Math.hypot(u.x-u.previousX,u.y-u.previousY);
+   // AI orders, path retries and the rally hand-off can report moving=true
+   // while an actor has made no actual progress. Never rotate rover tyres
+   // from the command flag alone; use authoritative 20-Hz displacement.
+   if(u.kind==='rover')entry.groundedWheelMotion=
+    wheelsShouldRoll(u.kind,travel);
    const lerp=Number.isFinite(travel)&&travel<180?blend:1;
    const x=Number.isFinite(u.previousX)?u.previousX+(u.x-u.previousX)*lerp:u.x;
    const z=Number.isFinite(u.previousY)?u.previousY+(u.y-u.previousY)*lerp:u.y;
@@ -531,7 +537,8 @@ export class SandforgeBattlefield {
   for(const u of this.game.units){
    const entry=this.units.get(u.id);
    if(entry){
-    const visual=entry.productionMotion?{...u,...entry.productionMotion}:u;
+    const visual=entry.productionMotion?{...u,...entry.productionMotion}:
+     u.kind==='rover'?{...u,moving:entry.groundedWheelMotion===true}:u;
     this.presentation.update(entry,visual,'unit',dt,this.selected.has(u.id),active);
     // Authored vehicle clips can animate Turret/Gun quaternion and overwrite
     // our aim. Reapply authoritative heading AFTER AnimationMixer.update().
