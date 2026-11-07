@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {disposeOwnedMeshes} from '/webgl-resource-lifecycle.js';
 import {BUILDINGS} from '/src/reborn/catalog.js';
 
 /** Render-only construction states driven by the classic Simulation's
@@ -103,9 +104,8 @@ export class SandforgeConstructionPresentation{
   const state=entry.construction;if(!state)return;
   for(const mat of state.materials){mat.clippingPlanes=[];mat.needsUpdate=true;}
   entry.node.remove(state.frame);
-  state.frame.traverse(o=>{
-   if(o.isMesh){o.geometry.dispose();}
-  });
+  // Scaffolding owns its temporary materials as well as geometries.
+  disposeOwnedMeshes(state.frame);
   state.texture.dispose();state.label.material.dispose();
   entry.construction=null;
  }
