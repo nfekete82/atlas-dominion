@@ -431,24 +431,31 @@ export class SandforgeBattlefield {
   const spec=BUILDINGS[kind],group=new THREE.Group();
   group.name='ghost-building-'+kind;group.userData={buildGhost:true,nonPlayable:true};
   const placeholder=this.createFallback(kind,0,'building');
-  const tint=(root)=>{
+  const tint=(root,ownSource=false)=>{
+   const oldMats=new Set();
    root.traverse(obj=>{
     if(!obj.isMesh)return;
     const make=mat=>{
      const m=mat.clone();m.color?.lerp(new THREE.Color('#8ad6b3'),.32);
      m.transparent=true;m.opacity=.72;m.depthWrite=false;
      m.depthTest=false;m.side=THREE.DoubleSide;
+     m.userData={...m.userData,sandforgePreviewMaterial:true};
+     if(ownSource)oldMats.add(mat);
      return m;
     };
     obj.material=Array.isArray(obj.material)?obj.material.map(make):make(obj.material);
     obj.renderOrder=1010;obj.castShadow=false;obj.receiveShadow=false;
    });
+   for(const mat of oldMats)mat.dispose();
   };
-  tint(placeholder);group.add(placeholder);
+  tint(placeholder,true);
+  group.userData.previewPlaceholder=placeholder;
+  group.add(placeholder);
   const circle=new THREE.Mesh(
    new THREE.RingGeometry(spec.radius-2.5,spec.radius+1.5,48),
    new THREE.MeshBasicMaterial({color:'#80efae',transparent:true,opacity:.92,depthTest:false,depthWrite:false,side:THREE.DoubleSide}));
-  circle.rotation.x=-Math.PI/2;circle.position.y=2;circle.renderOrder=1009;group.add(circle);
+  circle.rotation.x=-Math.PI/2;circle.position.y=2;circle.renderOrder=1009;
+  group.userData.previewCircle=circle;group.add(circle);
   this.buildPreviewScene.add(group);
   this.buildPreview=group;group.visible=false;
   this.getModel(this.asset(kind,0,'building')).then(data=>{
@@ -461,12 +468,23 @@ export class SandforgeBattlefield {
     model.position.set(-bounds.getCenter(new THREE.Vector3()).x*scale,
       -bounds.min.y*scale,-bounds.getCenter(new THREE.Vector3()).z*scale);
    }
-   tint(model);group.remove(placeholder);group.add(model);
+   tint(model);
+   group.remove(placeholder);disposeOwnedMeshes(placeholder);
+   group.userData.previewPlaceholder=null;group.userData.previewDetail=model;
+   group.add(model);
   }).catch(error=>console.warn('Baupreview: vereinfachtes 3D-Modell',error));
  }
  clearPlacement(){
   this.buildKind=null;this.previewKind=null;
-  if(this.buildPreview){this.buildPreviewScene.remove(this.buildPreview);this.buildPreview=null;}
+  if(this.buildPreview){
+   const preview=this.buildPreview;
+   this.buildPreviewScene.remove(preview);
+   if(preview.userData.previewPlaceholder)disposeOwnedMeshes(preview.userData.previewPlaceholder);
+   if(preview.userData.previewCircle)disposeOwnedMeshes(preview.userData.previewCircle);
+   if(preview.userData.previewDetail)
+    disposeTaggedMaterials(preview.userData.previewDetail,'sandforgePreviewMaterial');
+   this.buildPreview=null;
+  }
   if(this.buildHint)this.buildHint.style.display='none';
  }
  updatePlacementPreview(event){
