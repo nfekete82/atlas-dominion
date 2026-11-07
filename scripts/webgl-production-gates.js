@@ -65,7 +65,10 @@ export class SandforgeProductionGates {
    const base=bases.get(event.baseId),entry=bf.bases.get(event.baseId),unit=entities.get(event.unitId);
    // No delayed replay when streaming or loading; the authoritative actor
    // remains visible if its building asset is unavailable or hidden.
-   if(!base||base.kind!=='factory'||!unit||time-event.at>.15||!entry?.node.visible||!this.prepare(entry))continue;
+   if(!base||base.kind!=='factory'||!unit||time-event.at>.15||!entry?.node.visible||!this.prepare(entry)){
+    game.cancelProductionDeparture?.(event.unitId);
+    continue;
+   }
    if(this.active.has(base.id))continue;
    entry.node.updateWorldMatrix(true,true);
    const root=entry.gate.door.parent;
@@ -80,6 +83,10 @@ export class SandforgeProductionGates {
    // Rear-facing exits need more travel time around the footprint, rather
    // than accelerating a tank to Humvee speed to meet a fixed deadline.
    const duration=Math.max(GATE_TIMING.drive,length/95);
+   // Freeze only the real simulation actor's departure, NOT production or
+   // its paid rally order. At the exact portal hand-off it resumes ordinary
+   // 20 Hz movement from the same lawful spawn with no visual teleport.
+   game.extendProductionDeparture?.(unit.id,event.at+GATE_TIMING.warning+GATE_TIMING.opening+duration+.05);
    this.active.set(base.id,{event,duration,orders:orderKey(unit),hp:unit.hp,baseHp:base.hp});
   }
   for(const [id,state] of this.active){
@@ -87,7 +94,9 @@ export class SandforgeProductionGates {
    const age=Math.max(0,time-event.at),pose=productionGatePose(age,state.duration);
    if(!base||base.hp<=0||!u||u.hp<=0||!actor||!entry?.node.visible||!actor.node.visible||
       u.hp<state.hp||base.hp<state.baseHp||u.fire>0||u.combatTarget||orderKey(u)!==state.orders||pose.done){
-    this.reset(entry);if(actor)actor.productionMotion=null;this.active.delete(id);continue;
+    this.reset(entry);if(actor)actor.productionMotion=null;
+    game.cancelProductionDeparture?.(event.unitId);
+    this.active.delete(id);continue;
    }
    const gate=entry.gate;
    gate.door.scale.y=1-pose.open*.96;
@@ -149,7 +158,11 @@ export class SandforgeProductionGates {
     if(otherId===u.id||!other.node.visible)continue;
     if(Math.hypot(p.x-other.node.position.x,p.z-other.node.position.z)<48){blocked=true;break;}
    }
-   if(blocked){this.reset(entry);actor.productionMotion=null;this.active.delete(id);continue;}
+   if(blocked){
+    this.reset(entry);actor.productionMotion=null;
+    game.cancelProductionDeparture?.(event.unitId);
+    this.active.delete(id);continue;
+   }
    actor.node.position.copy(p);actor.node.rotation.y=yaw;
    const moving=pose.moving;
    const distance=(state.distance??0)+(state.position?p.distanceTo(state.position):0);
