@@ -47,6 +47,9 @@ const session=query.get('resume')==='1'?(()=>{
  return restored;
 })():null;
 const game=session??(profile?Simulation.campaign(seed,sizes[bastions],profile):Simulation.campaign(seed,sizes[bastions]));
+// The WebGL renderer stages a single authoritative factory actor while its
+// real 3D gate is opening. Classic, tests and old saves keep normal rules.
+game.stageWebGLProduction=true;
 // Only this WebGL campaign gets a modest vision bonus; classic/headless
 // benchmarks retain exactly their original LOS and balance.
 // Optional visual comparison; classic gameplay remains unchanged.
