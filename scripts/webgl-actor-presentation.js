@@ -272,8 +272,10 @@ export class SandforgeActorPresentation {
    if(retrigger)state.lastClipTrigger=state.shotTrigger;
    if(visible&&active&&dt>0){
     const action=desired?clips.mixer.existingAction(desired):null;
-    if(action)action.setEffectiveTimeScale(entry.productionMotion&&moving
-     ?clamp((entity.driveSpeed??80)/80,.15,3):1);
+    if(action)action.setEffectiveTimeScale(
+     ['rover','tank','artillery'].includes(entity.kind)&&!moving&&desired===clips.idle
+      ?0:entry.productionMotion&&moving
+       ?clamp((entity.driveSpeed??80)/80,.15,3):1);
     clips.mixer.update(Math.min(.08,dt));
    }
   }
