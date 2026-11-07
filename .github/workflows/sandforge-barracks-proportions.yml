@@ -1,0 +1,30 @@
+name: Sandforge barracks prop scale
+
+on:
+  push:
+    branches:
+      - fix/webgl-barracks-prop-proportions-20261107
+  pull_request:
+    branches:
+      - fix/webgl-production-rally-wheel-stop-20261107
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prop-proportions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node --test tests/webgl-barracks-proportions.test.mjs
+      - run: node --test tests/webgl-production-gates.test.mjs tests/webgl-barracks-portal.test.mjs tests/webgl-wheel-motion.test.mjs
