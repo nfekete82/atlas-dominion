@@ -41,7 +41,8 @@ export class SandforgeConstructionPresentation{
   const canvas=document.createElement('canvas');canvas.width=256;canvas.height=64;
   const texture=new THREE.CanvasTexture(canvas);
   const label=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,opacity:.86,depthTest:false,depthWrite:false}));
-  label.scale.set(83,21,1);label.position.set(0,height+23,0);frame.add(label);
+  // Move the BAU label up without moving the green progress/health bar.
+  label.scale.set(83,21,1);label.position.set(0,height+38,0);frame.add(label);
   entry.node.add(frame);
   const construction={frame,columns,rails,slab,roof,canvas,texture,label,
    height,clip:new THREE.Plane(new THREE.Vector3(0,-1,0),0),
