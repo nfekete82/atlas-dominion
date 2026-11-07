@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {disposeOwnedMeshes} from '/webgl-resource-lifecycle.js';
 
 // Decorative props live next to authored buildings, independently of glTF
 // loading and without altering building collision, navigation or saves.
@@ -82,4 +83,12 @@ export function createBuildingYard(kind,width=160){
   }
  }
  return root;
+}
+
+/** Mesh geometries are unique to each service yard; PBR materials are
+ * module-shared and must remain alive for other factories and barracks. */
+export function disposeBuildingYard(yard){
+ if(!yard)return;
+ disposeOwnedMeshes(yard,{materials:false});
+ yard.removeFromParent();
 }
