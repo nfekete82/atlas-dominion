@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {SandforgeProductionGates} from '/webgl-production-gates.js';
+import {wheelsShouldRoll} from '/webgl-wheel-motion.js';
 import {clone as cloneSkeleton} from 'three/addons/utils/SkeletonUtils.js';
 import {UNITS,BUILDINGS,MAX_GENERATORS_PER_FACTION,unitKinds,buildingKinds,unitSpec,buildingSpec} from '/src/reborn/catalog.js';
 import {TERRAIN_LABELS} from '/src/reborn/battlefield-terrain.js';
@@ -497,7 +498,7 @@ export class SandforgeBattlefield {
    // while an actor has made no actual progress. Never rotate rover tyres
    // from the command flag alone; use authoritative 20-Hz displacement.
    if(u.kind==='rover')entry.groundedWheelMotion=
-    Number.isFinite(travel)&&travel>.15&&travel<180;
+    wheelsShouldRoll(u.kind,travel);
    const lerp=Number.isFinite(travel)&&travel<180?blend:1;
    const x=Number.isFinite(u.previousX)?u.previousX+(u.x-u.previousX)*lerp:u.x;
    const z=Number.isFinite(u.previousY)?u.previousY+(u.y-u.previousY)*lerp:u.y;
