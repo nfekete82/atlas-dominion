@@ -74,6 +74,10 @@ test('stalled tank reroutes toward a legal flank without adding live vehicles to
  // Force a genuine no-progress interval (the path used during normal
  // movement remains legal). This exercises the watchdog and detour.
  moving.path=[{x:1450,y:1000}];
+ // Mirror a fixed simulation tick: index contains both active vehicles,
+ // and the tank has already completed its normal gun/hull startup turn.
+ g.spatial.rebuild(g.units);
+ moving.angle=0;moving.hullAngle=0;moving.driveSpeed=3;
  g.vehicleProgress.set(moving,{x:moving.x,y:moving.y,since:g.time-5,retryAt:-10});
  const before=moving.x;
  g.move(moving,moving.orders[0],.05);
