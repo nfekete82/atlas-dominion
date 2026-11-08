@@ -1483,7 +1483,7 @@ export class SandforgeBattlefield {
     const accepted=this.game.command(ids,{
      kind:'board',target:carrier.id,x:carrier.x,y:carrier.y
     });
-    this.message(accepted?accepted+' Soldat(en): Zum Humvee einsteigen':
+    this.message(accepted?accepted+' Soldat(en): Zum '+(carrier.kind==='scout'?'Hubschrauber':'Humvee')+' einsteigen':
      'Einsteigen nicht möglich · Plätze, Entfernung und Weg prüfen');
     if(accepted){this.sound?.command?.();this.showCommandPulse({x:carrier.x,y:carrier.y});}
     this.drawInterface();return;
