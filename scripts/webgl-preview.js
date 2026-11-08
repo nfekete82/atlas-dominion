@@ -1014,6 +1014,12 @@ function animate(now){
   accumulator=Math.min(accumulator+dt,.20);
   let steps=0;while(accumulator>=.05&&steps<4){game.step(.05);constructionRecovery.tick();accumulator-=.05;steps++;}
  }
+ // Losses are tracked independently of the mute state. A disembarking
+ // passenger stays in Simulation.units and is never reported as killed.
+ // Short local voice + radio fallback; visible HUD notice even when muted.
+ const lost=running?sound.reportUnitLosses(game):0;
+ if(lost)battlefield.message(lost===1?'Einheit verloren':
+  'Einheit verloren · '+lost+' Einheiten');
  // Show the end-of-match banner on the same frame that the final unit or
  // building falls, instead of waiting for the twice-a-second HUD refresh.
  if(game.status!==lastOutcome){lastOutcome=game.status;updateSimulationBanner();}
