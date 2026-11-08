@@ -1292,6 +1292,39 @@ export class SandforgeBattlefield {
    ctx.closePath();ctx.stroke();
   }
  }
+ /** Double-click on one friendly actor chooses all same-class actors on the
+  * current camera screen, not every matching unit in the world or fog.
+  * Shift+double click adds the visible class to the existing selection.
+  * The native dblclick event comes AFTER the normal second pointerup. */
+ selectSameKindOnScreen(event){
+  if(event.button!==0||this.buildKind||this.rallyMode||this.attackMode)return 0;
+  const hit=this.friendlyAtPointer(event);
+  if(!hit||hit.type!=='unit'||hit.entity.owner!==0||hit.entity.hp<=0||
+   hit.entity.carrier)return 0;
+  const canvas=this.renderer.domElement,rect=canvas.getBoundingClientRect();
+  if(rect.width<=0||rect.height<=0)return 0;
+  this.camera.updateMatrixWorld(true);
+  const projected=new THREE.Vector3();
+  const ids=sameKindVisibleUnits(this.game.units,this.units,hit.entity.kind,{
+   project:node=>projected.copy(node.position).project(this.camera),
+   isVisible:ndc=>{
+    const x=rect.left+(ndc.x+1)*rect.width*.5;
+    const y=rect.top+(1-ndc.y)*rect.height*.5;
+    // Skip units physically under HUD panels even when their 3D points
+    // are technically within the renderer's fullscreen viewport.
+    const front=document.elementFromPoint?.(x,y);
+    return !front||front===canvas||canvas.contains(front);
+   }
+  });
+  if(!ids.length)return 0;
+  this.selected=event.shiftKey?new Set([...this.selected,...ids]):new Set(ids);
+  this.selectedBase=null;
+  this.rallyMode=false;
+  this.sound?.select?.();
+  this.message(ids.length+'× '+UNITS[hit.entity.kind].name+' auf dem Bildschirm markiert');
+  this.drawInterface();
+  return ids.length;
+ }
  selectBoxUnits(x0,y0,x1,y1,append=false){
   const rect=this.renderer.domElement.getBoundingClientRect();
   const left=Math.min(x0,x1),right=Math.max(x0,x1);
