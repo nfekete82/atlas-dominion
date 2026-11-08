@@ -24,6 +24,7 @@ import { MAP_VERSION, randomMapSeed } from './world-generation.js';
 import {beginBomberOrbit,advanceBomberOrbit,validBomberOrbit,BOMBER_ORBIT_SPEED,preservesCaptureBoundary,safeOrbitApproach,isOnBomberOrbit,type BomberOrbit} from './bomber-orbit.js';
 import {bomberAttackWaypoints,BOMBER_BOMB_RELEASE_DISTANCE,BOMBER_RUN_WAYPOINT_DISTANCE,BOMBER_BOMB_FALL_SECONDS,type BomberAttackRun} from './bomber-attack.js';
 import {AttackAlerts} from './attack-alerts.js';
+import {eliminationOutcome} from './match-outcome.js';
 import {formationSlotPitch,vehicleSpacingGap,preservesVehicleProgress,vehicleYieldWaypoint} from './vehicle-spacing.js';
 
 export interface Formation {front:number[];fallback?:number[];heading:Point;origin:Point;goal:Point;lane:number;rear:number}
@@ -107,7 +108,6 @@ export class Simulation {
     }
     return points;
   }
-  private bootstrapLost(owner:Faction):boolean{return this.needsHeadquarters(owner)&&!this.units.some(u=>u.owner===owner&&u.kind==='engineer'&&u.hp>0);}
 
   readonly weather:Weather;
   private unitById=new Map<number,Unit>();
@@ -1278,8 +1278,11 @@ export class Simulation {
       if(fullPlan)this.think();else this.tactical.openingEconomy();
     }
     if(this.fogClock>=.2||ownershipChanged){this.fogClock=0;this.updateVision();}
-    if((this.bootstrapLost(1)||this.bases.filter(b=>b.kind==='headquarters').length>=2&&this.bases.filter(b=>b.kind==='headquarters').every(b=>b.owner===0&&b.hp>0)&&campaignLayout(this.world.mapVersion,this.seed).starts[1].every(i=>this.territories[i].owner===0)))this.status='victory';
-    if(this.bootstrapLost(0)||!this.bases.some(b=>b.owner===0&&b.hp>0&&['headquarters','barracks','factory','airfield'].includes(b.kind))&&this.count(0)===0)this.status='defeat';
+    // A faction is defeated only when absolutely no living forces remain.
+    // Boarding passengers, active units, small defensive structures and
+    // unfinished sites all prevent a premature match end.
+    // A destroyed HQ retained for sector capture has hp=0 and is ignored.
+    this.status=eliminationOutcome(this.units,this.bases);
   }
   // The tactical director runs every three simulated seconds and can be the
   // source of frame spikes even when GPU rendering is smooth. Record only
@@ -1352,6 +1355,11 @@ export class Simulation {
     game.missiles=structuredClone(s.missiles??[]);game.nextId=Math.max(game.nextId,...game.missiles.map(m=>m.id+1));
     game.weather.update(game.time);game.unitById=new Map(game.units.map(u=>[u.id,u]));
     game.tactical.restore(s.ai);
-    game.status=['playing','victory','defeat'].includes(s.status)?s.status:'playing';game.spatial.rebuild(game.units);game.updateVision();return game;
+    game.status=['playing','victory','defeat'].includes(s.status)?s.status:'playing';
+    // Old saves may contain an incorrectly triggered end state. Restore the
+    // unfinished battle rather than trapping the player in a false victory.
+    if(game.status!=='playing'&&eliminationOutcome(game.units,game.bases)==='playing')
+      game.status='playing';
+    game.spatial.rebuild(game.units);game.updateVision();return game;
   }
 }
