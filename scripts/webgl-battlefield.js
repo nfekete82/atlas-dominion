@@ -571,10 +571,7 @@ export class SandforgeBattlefield {
    aliveBases.add(b.id);
    let entry=this.bases.get(b.id);
    if(!entry){entry=this.spawnNode(b,'building');this.bases.set(b.id,entry);this.grounding.attachBuilding(entry,b);}
-   if(entry.factionAccents?.userData.owner!==b.owner)
-    applyFactionAccents(entry,b,'building',entry.modelFootprint??BUILDINGS[b.kind].width,
-     entry.modelHeight??Math.max(65,BUILDINGS[b.kind].width*.55));
-   if(entry.factionAccents)entry.factionAccents.visible=b.buildRemaining<=0;
+   if(entry.factionOwner!==b.owner)applyFactionAccents(entry,b,'building');
    entry.node.position.copy(this.entityPosition(b));
    entry.node.visible=b.owner===0||this.game.canSee(0,b);
    entry.node.scale.y=1;
