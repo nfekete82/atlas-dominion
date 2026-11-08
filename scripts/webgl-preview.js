@@ -14,7 +14,7 @@ import {SandforgePerformanceWatch} from '/webgl-perf-watch.js';
 import {SandforgeAtmosphere3D} from '/webgl-atmosphere-3d.js';
 import {addVisualPerimeter} from '/webgl-perimeter.js';
 import {addBoundaryCliffs} from '/webgl-edge-cliffs.js';
-import {cameraEdgeReach} from '/webgl-map-edges.js';
+import {cameraEdgeReach,cameraBlackOverscan} from '/webgl-map-edges.js';
 import {groundContactMaterial} from '/webgl-grounding.js';
 import {SandforgeConstructionRecovery} from '/webgl-construction-recovery.js';
 import {SandforgeGroundTracks} from '/webgl-ground-tracks.js';
