@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - perf/webgl-battle-hitch-collision-cache-20261108
+  pull_request:
+    branches:
+      - feat/webgl-bomber-turns-vehicle-spacing-build-limits-20261108
   workflow_dispatch:
 
 permissions:
