@@ -31,7 +31,7 @@ jobs:
           node --test \
             tests/webgl-vehicle-yield-spacing-stuck-20261108.test.mjs \
             tests/webgl-battle-hitch-collision-cache-20261108.test.mjs \
-            tests/webgl-selected-squad-shared-pace-20261108.test.mjs
+            tests/webgl-jeep-boarding.test.mjs
   full-node-regressions:
     runs-on: ubuntu-latest
     timeout-minutes: 30
