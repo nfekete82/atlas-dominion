@@ -1415,7 +1415,7 @@ export class SandforgeBattlefield {
   if(t>=1)this.commandPulse.visible=false;
  }
  transportAtPointer(event){
-  // Pick the friendly 3D Humvee rather than the terrain behind its roof.
+  // Pick the friendly Humvee or transport helicopter model before ground terrain.
   const rect=this.renderer.domElement.getBoundingClientRect();
   if(!rect.width||!rect.height)return null;
   const candidates=this.game.units.filter(u=>u.kind==='rover'&&u.owner===0&&u.hp>0&&
