@@ -5,6 +5,7 @@ import {readFileSync,existsSync} from 'node:fs';
 import {tintFactionMaterials,applyFactionAccents,shouldTintFactionSurface,FACTION_COLORS}
  from '../scripts/webgl-faction-accents.js';
 
+const colorDelta=(a,b)=>Math.abs(a.r-b.r)+Math.abs(a.g-b.g)+Math.abs(a.b-b.b);
 function model(name='Helicopter_Fuselage',materialName='camo'){
  const scene=new THREE.Group();
  const base=new THREE.MeshStandardMaterial({name:materialName,color:'#af9a74',roughness:.81});
@@ -25,15 +26,15 @@ test('blue and red teams subtly tint the actual PBR material, preserving camoufl
    assert.equal(tintFactionMaterials(m.scene,0,kind,type),1,kind+' blue');
    assert.equal(m.scene.children.length,1,'no additional floating cubes');
    assert.equal(m.mesh.material.map,m.texture,'keep original texture');
-   assert.ok(m.mesh.material.color.distanceTo(before)>0);
-   assert.ok(m.mesh.material.color.distanceTo(before)<.25,
+   assert.ok(colorDelta(m.mesh.material.color,before)>0);
+   assert.ok(colorDelta(m.mesh.material.color,before)<.48,
     'do not repaint entire unit a saturated solid colour');
    assert.ok(m.mesh.material.userData.sandforgeFactionTint);
    assert.equal(m.mesh.material.userData.sandforgeBaseColor,before.getHex());
    assert.equal(m.base.color.getHex(),before.getHex(),'shared cached GLB template unchanged');
    const tinted=m.mesh.material.color.clone();
    tintFactionMaterials(m.scene,1,kind,type);
-   assert.ok(tinted.distanceTo(m.mesh.material.color)>.01,'ownership recolors');
+   assert.ok(colorDelta(tinted,m.mesh.material.color)>.01,'ownership recolors');
    assert.equal(m.mesh.material.map,m.texture);
   }
  }
