@@ -4,7 +4,11 @@ import * as THREE from 'three';
  * They begin OUTSIDE the authoritative World, so no cells are opened,
  * no unit/pathfinding bounds change and projectiles do not hit them.
  */
-export function addBoundaryCliffs({scene,size,heightAt,seed=0,lowQuality=false,softRim=false}){
+export function addBoundaryCliffs({scene,size,heightAt,seed=0,lowQuality=false,softRim=false,hardVoid=false}){
+ // On modern WebGL maps the backdrop is literally empty. Don't even
+ // allocate hidden cliff meshes, scree instances or monoliths there.
+ if(hardVoid)return {cliffs:[],scree:[],monoliths:null,
+  height:0,margin:0,collisionChanged:false,hardVoid:true};
  const half=size*.5,rows=[0,38,80,130,196,286];
  // Stepped erosion rather than a 300-unit tall foreground mountain.
  // The boundary belongs to the background, not the player camera.
