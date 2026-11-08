@@ -1,7 +1,7 @@
 import { RULES } from './config.js';
 
 export type UnitKind='infantry'|'medic'|'engineer'|'heavy'|'rover'|'tank'|'artillery'|'scout'|'bomber';
-export type BuildingKind='headquarters'|'barracks'|'factory'|'airfield'|'generator'|'turret';
+export type BuildingKind='headquarters'|'barracks'|'factory'|'airfield'|'generator'|'turret'|'research'|'silo'|'interceptor';
 /** Both factions may operate the same maximum number of recurring-income generators. */
 export const MAX_GENERATORS_PER_FACTION=3;
 export interface UnitSpec {
@@ -29,6 +29,9 @@ export const BUILDINGS:Record<BuildingKind,BuildingSpec>={
  airfield:{name:'Flugfeld',cost:450,buildTime:22,hp:1200,sight:410,radius:116,width:320,income:0,description:'Großer Wüstenflugplatz mit Flugzeughangar, Kontrollturm, Rollfeld und Landebahn. Produziert Transporthelikopter und Bomber.'},
  generator:{name:'Energiekern',cost:150,buildTime:9,hp:500,sight:230,radius:38,width:112,income:10,description:'Versorgt die Basis und liefert zusätzliche 10 Credits alle 10 Sekunden.'},
  turret:{name:'Geschützturm',cost:175,buildTime:10,hp:650,sight:RULES.turret.sight,radius:30,width:72,income:0,description:`Automatische Fernverteidigung. ${RULES.turret.range} M Reichweite, ${RULES.turret.sight} M Sicht, ${RULES.turret.damage} Schaden.`},
+ research:{name:'Forschungszentrum',cost:950,buildTime:48,hp:950,sight:350,radius:59,width:175,income:0,description:'Erforscht neun globale Technologien in 35–90 Sekunden. Forschung verbessert bereits gebaute und neue Einheiten.'},
+ silo:{name:'Langstrecken-Raketensilo',cost:5000,buildTime:100,hp:1900,sight:360,radius:91,width:265,income:0,description:'Strategische Rakete: 10 Minuten Ladezeit, 25 Sekunden Angriffswarnung und großer Einschlag. Maximal ein Silo pro Fraktion.'},
+ interceptor:{name:'Raketenabwehr',cost:2500,buildTime:62,hp:1150,sight:420,radius:56,width:172,income:0,description:'Fängt strategische Langstreckenraketen im Umkreis von 920 M ab. Drei Abwehrraketen, danach für 650 Credits nachladen.'},
 };
 export const unitSpec=(u:{kind?:UnitKind}):UnitSpec=>UNITS[u.kind??'infantry'];
 export const buildingSpec=(b:{kind?:BuildingKind}):BuildingSpec=>BUILDINGS[b.kind??'headquarters'];
