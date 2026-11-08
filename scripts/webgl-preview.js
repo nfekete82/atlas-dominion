@@ -202,7 +202,7 @@ function sandMicroNormalTexture(){
 function buildTerrain(){
  const texture=sandTexture(),normalMap=sandMicroNormalTexture();
  const material=new THREE.MeshStandardMaterial({
-  color:spacious?'#e7dbca':'#f5eadb',map:texture,normalMap,normalScale:new THREE.Vector2(.45,.45),
+  color:spacious?'#fff0db':'#f5eadb',map:texture,normalMap,normalScale:new THREE.Vector2(spacious?.77:.45,spacious?.77:.45),
   vertexColors:true,roughness:.99,metalness:0
  });
  // The buildings-3d/desert-basecolor.png is a *model material atlas*,
