@@ -163,6 +163,17 @@ export class SandforgeCombatEffects {
    item.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
    item.count=0;item.frustumCulled=false;scene.add(item);
   }
+  // One cheap pooled mesh per simultaneously falling bomb: the authoritative
+  // simulation missile supplies trajectory, timing, ground impact and damage.
+  this.bombBodies=new THREE.InstancedMesh(
+   new THREE.CylinderGeometry(4.2,4.4,16,12),
+   new THREE.MeshStandardMaterial({color:'#373d3c',metalness:.58,roughness:.51}),24
+  );
+  this.bombBodies.name='visual-3d-falling-bombs';
+  this.bombBodies.userData={visualOnly:true,nonPlayable:true,projectile:true};
+  this.bombBodies.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  this.bombBodies.count=0;this.bombBodies.frustumCulled=false;
+  scene.add(this.bombBodies);
   this.rocketOrigins=new Map();this.rocketTrailAt=new Map();
   this.statsRocket={launched:0,visible:0};
   this.wreckCount=0;this.emitters=[];this.seenBlasts=new Set();this.seenShots=new WeakSet();
@@ -312,6 +323,7 @@ export class SandforgeCombatEffects {
   const up=new THREE.Vector3(0,1,0);
   let count=0;
   for(const missile of this.game.missiles){
+   if(missile.type==='bomb')continue;
    live.add(missile.id);
    if(!this.rocketOrigins.has(missile.id)){
     this.rocketOrigins.set(missile.id,this.rocketLaunchWorld(missile));
@@ -361,6 +373,29 @@ export class SandforgeCombatEffects {
    this.rocketOrigins.delete(id);this.rocketTrailAt.delete(id);
   }
  }
+ updateFallingBombs(active=true,subTick=0){
+  let count=0;
+  for(const missile of this.game.missiles){
+   if(missile.type!=='bomb')continue;
+   const duration=Math.max(.01,missile.impactAt-missile.at);
+   const progress=clamp((this.game.time+(active?subTick:0)-missile.at)/duration,0,.999);
+   const x=missile.from.x+(missile.to.x-missile.from.x)*progress;
+   const z=missile.from.y+(missile.to.y-missile.from.y)*progress;
+   if(!this.game.canSee(0,{x,y:z}))continue;
+   if(count>=this.bombBodies.instanceMatrix.count)break;
+   const from=this.pos(missile.from.x,missile.from.y,
+    this.heightAt(missile.from.x,missile.from.y)+170);
+   const to=this.pos(missile.to.x,missile.to.y,
+    this.heightAt(missile.to.x,missile.to.y)+8);
+   dummy.position.copy(from).lerp(to,progress);
+   const fall=to.clone().sub(from).normalize();
+   dummy.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),fall);
+   dummy.scale.setScalar(1);dummy.updateMatrix();
+   this.bombBodies.setMatrixAt(count++,dummy.matrix);
+  }
+  this.bombBodies.count=count;
+  if(count)this.bombBodies.instanceMatrix.needsUpdate=true;
+ }
  pollSimulation(){
   for(const blast of this.game.blasts){
    const key=String(blast.id)+'@'+String(blast.at);
@@ -400,6 +435,7 @@ export class SandforgeCombatEffects {
  update(dt,active=true,subTick=0){
   this.pollSimulation();
   this.updateRockets(active,subTick);
+  this.updateFallingBombs(active,subTick);
   if(!active)return;
   this.frame++;
   for(const emitter of this.emitters){
