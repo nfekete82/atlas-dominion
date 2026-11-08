@@ -78,3 +78,16 @@ test('HUD and minimap show the exact warning, with voice respecting the player a
  assert.match(audio,/speechSynthesis/);
  assert.match(audio,/Captain, wir werden angegriffen!/);
 });
+
+test('WebGL uses the authoritative classic warning with red impact beacon, no enemy-location leak',()=>{
+ const preview=readFileSync('scripts/webgl-preview.js','utf8');
+ const battlefield=readFileSync('scripts/webgl-battlefield.js','utf8');
+ assert.match(preview,/game\.attackAlerts\.sequence/);
+ assert.match(preview,/battlefield\.message\('Captain, wir werden angegriffen!'\)/);
+ assert.match(preview,/sound\.announceAttack\(\)/);
+ assert.match(preview,/battlefield\.drawMinimap\(\)/);
+ assert.match(battlefield,/this\.game\.attackAlerts\.visible\(this\.game\.time\)/);
+ assert.match(battlefield,/attackBlinkAlpha\(/);
+ assert.match(battlefield,/#ff3d35/);
+ assert.match(battlefield,/alert\.x\*scale,y=alert\.y\*scale/);
+});
