@@ -12,13 +12,14 @@ test('IDDQD typed in actual 3D tactical pause dialog gives 1000 credits, repeats
   const game={credits:[400,300],status:'playing'};
   window.__sandforgeWebGL={loaded:true,simulationRunning:true,game,
    battlefield:{drawInterface(){window.__cheatUIUpdates=(window.__cheatUIUpdates??0)+1;}}};
-  const simulation=document.createElement('button');
-  simulation.id='simulation';
+  // The HTML already includes the simulation toggle. Bind that existing
+  // button, or the pause menu would click it instead of a duplicate ID.
+  const simulation=document.getElementById('simulation');
+  if(!simulation)throw Error('Missing existing simulation pause toggle');
   simulation.addEventListener('click',()=>{
    const view=window.__sandforgeWebGL;
    view.simulationRunning=!view.simulationRunning;
   });
-  document.body.append(simulation);
  });
  await page.keyboard.type('iddqd');
  expect(await page.evaluate(()=>window.__sandforgeWebGL.game.credits)).toEqual([400,300]);
