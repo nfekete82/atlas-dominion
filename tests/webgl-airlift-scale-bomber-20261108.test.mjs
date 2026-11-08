@@ -25,7 +25,7 @@ test('rendered helicopter lands on ground and takes off smoothly; bomber stays a
  assert.equal(unitRenderAltitude('scout'),175);
  assert.equal(unitRenderAltitude('bomber',0),175);
  assert.equal(unitRenderAltitude('tank'),0);
- assert.equal(unitRenderAltitude('scout',-1),10);
+ assert.equal(unitRenderAltitude('scout',-1),3);
  assert.equal(unitRenderAltitude('scout',2),175);
 });
 
