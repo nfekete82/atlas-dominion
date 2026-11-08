@@ -31,3 +31,5 @@ jobs:
         run: node --test tests/reborn-selected-squad-pace.test.mjs
       - name: Existing formation, transport and attack regressions
         run: node --test tests/webgl-jeep-boarding.test.mjs tests/reborn-attack-alerts.test.mjs
+      - name: Full Node regression suite
+        run: npm test
