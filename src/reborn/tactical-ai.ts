@@ -167,9 +167,28 @@ export class TacticalAI {
  }
  private field():Float32Array{
   if(this.risk&&this.riskAt===this.g.time)return this.risk;
-  const g=this.g,w=g.world,field=new Float32Array(RULES.grid**2);
-  for(const z of this.zones())for(let y=Math.max(0,Math.floor((z.y-z.radius)/w.cell));y<=Math.min(RULES.grid-1,Math.floor((z.y+z.radius)/w.cell));y++)for(let x=Math.max(0,Math.floor((z.x-z.radius)/w.cell));x<=Math.min(RULES.grid-1,Math.floor((z.x+z.radius)/w.cell));x++){
-   const i=y*RULES.grid+x,p=w.center(i),d=distance(p,z);if(d<=z.radius)field[i]+=z.cost*(.65+.35*(1-d/z.radius));
+  const g=this.g,w=g.world,grid=RULES.grid,cell=w.cell;
+  const field=new Float32Array(grid*grid);
+  // The tactical planner runs every three seconds. Evaluate the same
+  // circular threat samples without allocating one {x,y} object per cell,
+  // which previously generated thousands of short-lived GC allocations.
+  const centers=Float64Array.from({length:grid},(_,i)=>(i+.5)*cell);
+  for(const z of this.zones()){
+   const minY=Math.max(0,Math.floor((z.y-z.radius)/cell));
+   const maxY=Math.min(grid-1,Math.floor((z.y+z.radius)/cell));
+   const minX=Math.max(0,Math.floor((z.x-z.radius)/cell));
+   const maxX=Math.min(grid-1,Math.floor((z.x+z.radius)/cell));
+   const r2=z.radius*z.radius;
+   for(let y=minY;y<=maxY;y++){
+    const dy=centers[y]-z.y,dy2=dy*dy,offset=y*grid;
+    if(dy2>r2)continue;
+    for(let x=minX;x<=maxX;x++){
+     const dx=centers[x]-z.x;
+     if(dx*dx+dy2>r2)continue;
+     const d=Math.hypot(dx,dy);
+     if(d<=z.radius)field[offset+x]+=z.cost*(.65+.35*(1-d/z.radius));
+    }
+   }
   }
   this.risk=field;this.riskAt=g.time;return field;
  }
