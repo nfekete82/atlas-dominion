@@ -947,7 +947,7 @@ soundButton.onclick=async()=>{
  updateSoundButton();
 };
 
-const performanceWatch=new SandforgePerformanceWatch({game,renderer,effects,groundTracks});
+const performanceWatch=new SandforgePerformanceWatch({game,renderer,effects,groundTracks,battlefield});
 let lastFrame=performance.now(),frames=0;
 function animate(now){
  performanceWatch.begin(now);
@@ -956,13 +956,18 @@ function animate(now){
  if(running){
   accumulator=Math.min(accumulator+dt,.20);
   let steps=0;while(accumulator>=.05&&steps<4){game.step(.05);constructionRecovery.tick();accumulator-=.05;steps++;}
-  // Render between the last two authoritative 20-Hz snapshots rather than
-  // jumping to each new simulation position. The extra interpolation is
-  // presentation-only and preserves deterministic orders/pathfinding.
-  battlefield.sync(false,dt,true,Math.min(1,Math.max(0,accumulator/.05)));
  }
- if(!running)battlefield.sync(false,0,false,1); // freeze authored drive/wheel clips during tactical pause
+ // Measure simulation and 3D/DOM presentation separately. The former
+ // monitor reported their *sum* as 'simulation' and hid late-game UI costs.
  if(performanceWatch.enabled)performanceWatch.simulation(performance.now()-beforeSteps);
+ const beforeSync=performanceWatch.enabled?performance.now():0;
+ if(running){
+  // Render between the last two authoritative 20-Hz snapshots.
+  battlefield.sync(false,dt,true,Math.min(1,Math.max(0,accumulator/.05)));
+ }else{
+  battlefield.sync(false,0,false,1); // freeze clips during tactical pause
+ }
+ if(performanceWatch.enabled)performanceWatch.presentation(performance.now()-beforeSync);
  if(running)groundTracks.capture();
  groundTracks.update(dt,running);
  battlefield.updateCommandPulse(dt);
@@ -976,6 +981,7 @@ function animate(now){
  sun.position.add(shift);sun.target.position.add(shift);
  atmosphere.update(dt);
  oases.update(now*.001);
+ const beforeRender=performanceWatch.enabled?performance.now():0;
  renderer.render(scene,camera);
  if(battlefield.buildPreview?.visible){
   // A second render pass guarantees the translucent construction silhouette
@@ -987,6 +993,7 @@ function animate(now){
   renderer.render(battlefield.buildPreviewScene,camera);
   renderer.autoClear=autoClear;
  }
+ if(performanceWatch.enabled)performanceWatch.render(performance.now()-beforeRender);
  performanceWatch.end(now);
  frames++;elapsed+=dt;
  if(elapsed>=.5){

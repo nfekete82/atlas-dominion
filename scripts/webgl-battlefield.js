@@ -10,7 +10,9 @@ import {hydrateUnitIcons,hydrateBuildingIcons,unitIcon,buildingIconUrl} from '/w
 import {SandforgeActorPresentation} from '/webgl-actor-presentation.js';
 import {calibratedScale,visualUnitScale,buildingFacingAngle,nextBuildingFacing,buildingFacingDegrees,turretAimLocalYaw} from '/webgl-scale.js';
 import {SandforgeGroundingPass} from '/webgl-grounding.js';
-import {createBuildingYard} from '/webgl-building-yard.js';
+import {createBuildingYard,disposeBuildingYard} from '/webgl-building-yard.js';
+import {disposeOwnedMeshes,disposeTaggedMaterials} from '/webgl-resource-lifecycle.js';
+import {selectedInfantryForTransport,selectedLoadedRovers} from '/webgl-transport-controls.js';
 import {SandforgeConstructionPresentation} from '/webgl-construction.js';
 import {createBastionCaptureBar,updateBastionCaptureBar} from '/webgl-bastion-capture.js';
 import {snapToPlayableEdge,worldToMinimap} from '/webgl-map-edges.js';
@@ -344,7 +346,14 @@ export class SandforgeBattlefield {
     });
     // Visual normalization is independent of collision/pathfinding. Re-ground
     // imported GLBs against the same heightfield sample as their placeholder.
-    entry.node.remove(entry.placeholder);entry.node.add(model);entry.detail=model;
+    // Each procedural fallback owns unique geometries/materials. Once its
+    // cached authored GLB is ready, reclaim those GPU resources immediately.
+    if(entry.placeholder){
+     entry.node.remove(entry.placeholder);
+     disposeOwnedMeshes(entry.placeholder);
+     entry.placeholder=null;
+    }
+    entry.node.add(model);entry.detail=model;
     const visualScale=calibratedScale(entry.kind,type,dims,desired)*
       (type==='unit'?visualUnitScale(entry.kind):1);
     entry.modelHeight=dims.y*visualScale;
@@ -422,24 +431,31 @@ export class SandforgeBattlefield {
   const spec=BUILDINGS[kind],group=new THREE.Group();
   group.name='ghost-building-'+kind;group.userData={buildGhost:true,nonPlayable:true};
   const placeholder=this.createFallback(kind,0,'building');
-  const tint=(root)=>{
+  const tint=(root,ownSource=false)=>{
+   const oldMats=new Set();
    root.traverse(obj=>{
     if(!obj.isMesh)return;
     const make=mat=>{
      const m=mat.clone();m.color?.lerp(new THREE.Color('#8ad6b3'),.32);
      m.transparent=true;m.opacity=.72;m.depthWrite=false;
      m.depthTest=false;m.side=THREE.DoubleSide;
+     m.userData={...m.userData,sandforgePreviewMaterial:true};
+     if(ownSource)oldMats.add(mat);
      return m;
     };
     obj.material=Array.isArray(obj.material)?obj.material.map(make):make(obj.material);
     obj.renderOrder=1010;obj.castShadow=false;obj.receiveShadow=false;
    });
+   for(const mat of oldMats)mat.dispose();
   };
-  tint(placeholder);group.add(placeholder);
+  tint(placeholder,true);
+  group.userData.previewPlaceholder=placeholder;
+  group.add(placeholder);
   const circle=new THREE.Mesh(
    new THREE.RingGeometry(spec.radius-2.5,spec.radius+1.5,48),
    new THREE.MeshBasicMaterial({color:'#80efae',transparent:true,opacity:.92,depthTest:false,depthWrite:false,side:THREE.DoubleSide}));
-  circle.rotation.x=-Math.PI/2;circle.position.y=2;circle.renderOrder=1009;group.add(circle);
+  circle.rotation.x=-Math.PI/2;circle.position.y=2;circle.renderOrder=1009;
+  group.userData.previewCircle=circle;group.add(circle);
   this.buildPreviewScene.add(group);
   this.buildPreview=group;group.visible=false;
   this.getModel(this.asset(kind,0,'building')).then(data=>{
@@ -452,12 +468,23 @@ export class SandforgeBattlefield {
     model.position.set(-bounds.getCenter(new THREE.Vector3()).x*scale,
       -bounds.min.y*scale,-bounds.getCenter(new THREE.Vector3()).z*scale);
    }
-   tint(model);group.remove(placeholder);group.add(model);
+   tint(model);
+   group.remove(placeholder);disposeOwnedMeshes(placeholder);
+   group.userData.previewPlaceholder=null;group.userData.previewDetail=model;
+   group.add(model);
   }).catch(error=>console.warn('Baupreview: vereinfachtes 3D-Modell',error));
  }
  clearPlacement(){
   this.buildKind=null;this.previewKind=null;
-  if(this.buildPreview){this.buildPreviewScene.remove(this.buildPreview);this.buildPreview=null;}
+  if(this.buildPreview){
+   const preview=this.buildPreview;
+   this.buildPreviewScene.remove(preview);
+   if(preview.userData.previewPlaceholder)disposeOwnedMeshes(preview.userData.previewPlaceholder);
+   if(preview.userData.previewCircle)disposeOwnedMeshes(preview.userData.previewCircle);
+   if(preview.userData.previewDetail)
+    disposeTaggedMaterials(preview.userData.previewDetail,'sandforgePreviewMaterial');
+   this.buildPreview=null;
+  }
   if(this.buildHint)this.buildHint.style.display='none';
  }
  updatePlacementPreview(event){
@@ -508,7 +535,15 @@ export class SandforgeBattlefield {
    if(u.kind==='tank'||u.kind==='artillery')this.orientTankRig(entry,u);
    entry.node.visible=u.owner===0||this.game.canSee(0,u);
   }
-  for(const [id,e] of this.units)if(!aliveUnits.has(id)){this.presentation.remove(e,this.game.units.find(u=>u.id===id));this.scene.remove(e.node);this.units.delete(id);this.selected.delete(id);}
+  for(const [id,e] of this.units)if(!aliveUnits.has(id)){
+    this.presentation.remove(e,this.game.units.find(u=>u.id===id));
+    if(e.animation?.mixer){
+     e.animation.mixer.stopAllAction();
+     if(e.detail)e.animation.mixer.uncacheRoot(e.detail);
+    }
+    if(e.placeholder){disposeOwnedMeshes(e.placeholder);e.placeholder=null;}
+    this.scene.remove(e.node);this.units.delete(id);this.selected.delete(id);
+   }
   for(const b of this.game.bases){
    if(b.hp<=0)continue;
    aliveBases.add(b.id);
@@ -531,7 +566,22 @@ export class SandforgeBattlefield {
     if(b.owner===0&&this.sound?.enabled)this.sound.announceReady('building');
    }
   }
-  for(const [id,e] of this.bases)if(!aliveBases.has(id)){this.presentation.remove(e,this.game.bases.find(base=>base.id===id));this.productionGates.detach(e);this.construction.dispose(e);this.grounding.detachBuilding(id);this.scene.remove(e.node);this.bases.delete(id);if(this.selectedBase===id)this.selectedBase=null;}
+  for(const [id,e] of this.bases)if(!aliveBases.has(id)){
+    this.presentation.remove(e,this.game.bases.find(base=>base.id===id));
+    this.productionGates.detach(e);this.construction.dispose(e);
+    this.grounding.detachBuilding(id);
+    if(e.yard){disposeBuildingYard(e.yard);e.yard=null;}
+    if(e.placeholder){disposeOwnedMeshes(e.placeholder);e.placeholder=null;}
+    if(e.detail)disposeTaggedMaterials(e.detail,'sandforgeBuildingFill');
+    if(e.motion?.mixer){
+     e.motion.mixer.stopAllAction();
+     if(e.detail)e.motion.mixer.uncacheRoot(e.detail);
+    }
+    if(e.motion?.mode==='fallback'&&e.motion.rotor)disposeOwnedMeshes(e.motion.rotor);
+    this.scene.remove(e.node);this.bases.delete(id);
+    this.announcedBuildings.delete(id);
+    if(this.selectedBase===id)this.selectedBase=null;
+   }
   this.productionGates.update(active,blend);
   this.presentation.consumeShots(this.units,this.bases);
   for(const u of this.game.units){
@@ -706,7 +756,13 @@ export class SandforgeBattlefield {
  }
  updateSelectionRings(){
   for(const [id,ring] of this.selectedRings)if(!this.selected.has(id)||!this.units.has(id)){
-   this.scene.remove(ring);this.selectedRings.delete(id);
+   this.scene.remove(ring);
+   // THREE.Scene.remove() does not free WebGL buffers/program resources.
+   // Selection toggles over a five-minute match must never accumulate
+   // orphaned ring geometries or materials on the GPU.
+   ring.geometry.dispose();
+   ring.material.dispose();
+   this.selectedRings.delete(id);
   }
   for(const id of this.selected){
    const unit=this.game.units.find(u=>u.id===id);
@@ -775,6 +831,7 @@ export class SandforgeBattlefield {
    if(action==='save')this.saveGame();
    if(action==='load'){this.loadSave();}
    if(action==='attack'){this.attackMode=!this.attackMode;this.clearPlacement();this.drawInterface();this.message(this.attackMode?'Angriffsbewegung: Rechtsklick auf Ziel':'Angriffsbewegung beendet');}
+   if(action==='unload')this.unloadSelectedTransport();
    if(action==='stop'){
     const count=this.selected.size;
     this.game.stop([...this.selected],false);
@@ -1067,6 +1124,8 @@ export class SandforgeBattlefield {
     }else portrait.src=buildingIconUrl(item?.kind??'headquarters');
    }
   }
+  const unloadButton=view.querySelector('[data-action="unload"]');
+  if(unloadButton)unloadButton.hidden=!selectedLoadedRovers(g.units,this.selected).length;
   view.querySelector('[data-action="attack"]').setAttribute('aria-pressed',String(this.attackMode));
   view.querySelector('#sf-catalog-detail').textContent=
    spec?.description??'Einheiten auswählen · Rechtsklick bewegen · Pionier für Gebäude erforderlich.';
@@ -1331,6 +1390,52 @@ export class SandforgeBattlefield {
   this.commandPulse.material.opacity=.9*(1-t)*(1-t);
   if(t>=1)this.commandPulse.visible=false;
  }
+ transportAtPointer(event){
+  // Pick the friendly 3D Humvee rather than the terrain behind its roof.
+  const rect=this.renderer.domElement.getBoundingClientRect();
+  if(!rect.width||!rect.height)return null;
+  const candidates=this.game.units.filter(u=>u.kind==='rover'&&u.owner===0&&u.hp>0&&
+   !u.carrier&&this.units.get(u.id)?.node.visible);
+  if(!candidates.length)return null;
+  const ndc=new THREE.Vector2(
+   (event.clientX-rect.left)/rect.width*2-1,
+   1-(event.clientY-rect.top)/rect.height*2);
+  this.camera.updateMatrixWorld(true);
+  const ray=new THREE.Raycaster();ray.setFromCamera(ndc,this.camera);
+  const targets=new Map(candidates.map(u=>[this.units.get(u.id).node,u]));
+  for(const hit of ray.intersectObjects([...targets.keys()],true)){
+   let node=hit.object;
+   while(node&&!targets.has(node))node=node.parent;
+   if(node)return targets.get(node);
+  }
+  // Small fallback while an asset loads or at a high tactical zoom.
+  const projection=new THREE.Vector3();
+  let best=null,bestDistance=Infinity;
+  for(const u of candidates){
+   const node=this.units.get(u.id).node;
+   projection.copy(node.position);projection.y+=Math.min(28,(unitSpec(u).width??76)*.22);
+   projection.project(this.camera);
+   if(projection.z<-1||projection.z>1)continue;
+   const dx=rect.left+(projection.x+1)*rect.width*.5-event.clientX;
+   const dy=rect.top+(1-projection.y)*rect.height*.5-event.clientY;
+   const distance=Math.hypot(dx,dy);
+   const radius=Math.max(15,Math.min(36,19*this.camera.zoom));
+   if(distance<radius&&distance<bestDistance){best=u;bestDistance=distance;}
+  }
+  return best;
+ }
+ unloadSelectedTransport(){
+  const rovers=selectedLoadedRovers(this.game.units,this.selected);
+  if(!rovers.length){this.message('Zum Aussteigen einen besetzten Humvee auswählen');return 0;}
+  let done=0;
+  for(const rover of rovers){
+   const point=this.world.nearest({x:rover.x+105,y:rover.y+75},this.game.obstacles());
+   if(point&&this.game.transports.unload(rover.id,point))done++;
+  }
+  this.message(done?done+' Humvee(s): Soldaten steigen aus':
+   'Aussteigen hier nicht möglich · Freie Fläche suchen');
+  this.drawInterface();return done;
+ }
  pointerUp(event){
   if(!this.clickStart||event.button!==this.clickStart.button)return;
   const start=this.clickStart;
@@ -1342,6 +1447,22 @@ export class SandforgeBattlefield {
   }
   if(event.button===2&&this.buildKind){
    this.clearPlacement();this.message('Bauplatzwahl abgebrochen');this.drawInterface();return;
+  }
+  // Classic simulation already supports 4 Jeep seats, but WebGL previously
+  // interpreted RMB on an owned vehicle as a generic ground movement.
+  // Board BEFORE the terrain ray and other click commands.
+  if(event.button===2&&this.selected.size&&!this.attackMode&&this.selectedBase===null){
+   const carrier=this.transportAtPointer(event);
+   const ids=selectedInfantryForTransport(this.game.units,this.selected,carrier);
+   if(ids.length){
+    const accepted=this.game.command(ids,{
+     kind:'board',target:carrier.id,x:carrier.x,y:carrier.y
+    });
+    this.message(accepted?accepted+' Soldat(en): Zum Humvee einsteigen':
+     'Einsteigen nicht möglich · Plätze, Entfernung und Weg prüfen');
+    if(accepted){this.sound?.command?.();this.showCommandPulse({x:carrier.x,y:carrier.y});}
+    this.drawInterface();return;
+   }
   }
   // Right-click an enemy to attack; right-click the 3D bastion itself
   // (or its nearby capture ring) to issue a genuine capture approach order.
@@ -1512,6 +1633,7 @@ export class SandforgeBattlefield {
     this.sound?.select?.();this.message('Gebäudeausrichtung '+degrees+'° · R für nächste Richtung');
    }
    if(event.code==='KeyF'){this.attackMode=true;this.message('Angriffsbewegung: Rechtsklick auf Ziel');}
+   if(event.code==='KeyU'){event.preventDefault();this.unloadSelectedTransport();}
    if(event.code==='KeyH'){this.selected=new Set(this.game.units.filter(u=>u.hp>0&&u.owner===0&&!u.carrier).map(u=>u.id));this.drawInterface();}
    const number=Number(event.code.replace('Digit',''));
    if(event.code.startsWith('Digit')&&number>=1&&number<=5){

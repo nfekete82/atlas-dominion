@@ -42,6 +42,8 @@ cpSync('scripts/webgl-edge-cliffs.js','dist/webgl-edge-cliffs.js');
 cpSync('scripts/webgl-grounding.js','dist/webgl-grounding.js');
 cpSync('scripts/webgl-ground-tracks.js','dist/webgl-ground-tracks.js');
 cpSync('scripts/webgl-building-yard.js','dist/webgl-building-yard.js');
+cpSync('scripts/webgl-transport-controls.js','dist/webgl-transport-controls.js');
+cpSync('scripts/webgl-resource-lifecycle.js','dist/webgl-resource-lifecycle.js');
 cpSync('scripts/webgl-construction.js','dist/webgl-construction.js');
 cpSync('scripts/webgl-construction-recovery.js','dist/webgl-construction-recovery.js');
 cpSync('scripts/webgl-production-gates.js','dist/webgl-production-gates.js');
