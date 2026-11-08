@@ -27,6 +27,7 @@ for(const module of ['webgl-oases','webgl-oasis-generation','webgl-oasis-materia
 cpSync('scripts/webgl-map-edges.js','dist/webgl-map-edges.js');
 cpSync('scripts/webgl-title-menu.js','dist/webgl-title-menu.js');
 cpSync('scripts/webgl-battlefield.js','dist/webgl-battlefield.js');
+cpSync('scripts/webgl-frame-scheduling.js','dist/webgl-frame-scheduling.js');
 cpSync('scripts/webgl-bastion-capture.js','dist/webgl-bastion-capture.js');
 cpSync('scripts/webgl-actor-presentation.js','dist/webgl-actor-presentation.js');
 cpSync('scripts/webgl-faction-accents.js','dist/webgl-faction-accents.js');
