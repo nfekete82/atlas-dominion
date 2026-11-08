@@ -14,6 +14,9 @@ export class SandforgePerformanceWatch{
   this.cursor=0;this.length=0;this.lastRender=performance.now();
   this.lastReport=0;this.simMs=0;this.syncMs=0;this.renderMs=0;this.lastSnapshot=null;
   this.checkpoints=[];this.lastCheckpoint=0;
+  // Keep only recent numeric measurements. Never retain scene nodes,
+  // entities, canvases, or screenshots in the diagnostics ring.
+  this.hitches=[];this.lastObservedAiPlanAt=-1;this.maxAiPlanMs=0;
   if(this.enabled){
    const element=document.createElement('pre');
    element.id='sf-webgl-performance';
@@ -39,6 +42,25 @@ export class SandforgePerformanceWatch{
   this.renderSamples[this.cursor]=this.renderMs;
   this.cursor=(this.cursor+1)%this.samples.length;
   this.length=Math.min(this.length+1,this.samples.length);
+  const workMs=performance.now()-this.started;
+  const aiAt=this.game.aiPlanCompletedAt??-1;
+  const aiRan=aiAt>=0&&aiAt!==this.lastObservedAiPlanAt;
+  if(aiRan){
+   this.lastObservedAiPlanAt=aiAt;
+   this.maxAiPlanMs=Math.max(this.maxAiPlanMs,this.game.aiPlanDurationMs??0);
+  }
+  if(workMs>=30||this.frameInterval>=50){
+   this.hitches.push({
+    gameTime:Math.round(this.game.time*10)/10,
+    frameMs:Math.round(this.frameInterval*10)/10,
+    workMs:Math.round(workMs*10)/10,
+    simulationMs:Math.round(this.simMs*10)/10,
+    presentationMs:Math.round(this.syncMs*10)/10,
+    renderMs:Math.round(this.renderMs*10)/10,
+    aiPlanMs:aiRan?Math.round((this.game.aiPlanDurationMs??0)*10)/10:0
+   });
+   if(this.hitches.length>32)this.hitches.shift();
+  }
   if(now-this.lastReport<1000)return;
   this.lastReport=now;const report=this.snapshot();
   this.lastSnapshot=report;
@@ -58,6 +80,8 @@ export class SandforgePerformanceWatch{
    '\nSim-Zeit '+report.clock.toFixed(1)+' s · '+report.gameStatus+
    '\nFrame p95 '+report.frameP95.toFixed(1)+'ms · Sim p95 '+report.simP95.toFixed(1)+'ms'+
    '\nUI/3D Sync p95 '+report.syncP95.toFixed(1)+'ms · Render CPU p95 '+report.renderP95.toFixed(1)+'ms'+
+   '\nKI-Planung zuletzt '+report.lastAiPlanMs.toFixed(1)+'ms · Max '+report.maxAiPlanMs.toFixed(1)+'ms'+
+   '\nHänger im Verlauf '+report.hitchCount+' · Letzter '+(report.lastHitch?.workMs??0).toFixed(1)+'ms'+
    '\nDraw calls '+report.drawCalls+' · Triangles '+report.triangles+
    '\nUnits '+report.units+' · Moving '+report.moving+' · Orders '+report.orders+
    '\nParticles '+report.particles+
@@ -80,6 +104,10 @@ export class SandforgePerformanceWatch{
    syncP95:p(sync,.95),renderP95:p(render,.95),
    drawCalls:info.render.calls,triangles:info.render.triangles,
    geometries:info.memory.geometries,textures:info.memory.textures,
+   lastAiPlanMs:this.game.aiPlanDurationMs??0,
+   maxAiPlanMs:this.maxAiPlanMs,
+   hitchCount:this.hitches.length,
+   lastHitch:this.hitches.at(-1)??null,
    jsHeapMB:typeof performance.memory?.usedJSHeapSize==='number'?
     Math.round(performance.memory.usedJSHeapSize/1048576):null,
    sceneChildren:this.battlefield?.scene?.children?.length??null,
@@ -97,4 +125,5 @@ export class SandforgePerformanceWatch{
   };
  }
  history(){return this.checkpoints.map(x=>({...x}));}
+ spikeHistory(){return this.hitches.map(x=>({...x}));}
 }
