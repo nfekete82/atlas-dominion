@@ -15,6 +15,7 @@ import {createBuildingYard,disposeBuildingYard} from '/webgl-building-yard.js';
 import {disposeOwnedMeshes,disposeTaggedMaterials} from '/webgl-resource-lifecycle.js';
 import {selectedInfantryForTransport,selectedLoadedTransports,selectedTransportManifest} from '/webgl-transport-controls.js';
 import {sameKindVisibleUnits} from '/webgl-double-click-select.js';
+import {tracerWindow} from '/webgl-hit-response.js';
 import {applyFactionAccents} from '/webgl-faction-accents.js';
 import {SandforgeConstructionPresentation} from '/webgl-construction.js';
 import {createBastionCaptureBar,updateBastionCaptureBar} from '/webgl-bastion-capture.js';
@@ -777,7 +778,8 @@ export class SandforgeBattlefield {
   const shots=this.game.shots;
   for(let i=Math.max(0,shots.length-this.maxTracerShots);i<shots.length;i++){
    const shot=shots[i];
-   if(shot.weapon==='rocket')continue;
+   const streak=tracerWindow(shot);
+   if(!streak)continue;
    if(!this.game.canSee(0,shot.from)&&!this.game.canSee(0,shot.to))continue;
    if(shot.weapon==='turret'&&shot.source&&!this.turretTracerOrigins.has(shot)){
     const barrel=shot.barrel===1?1:0;
@@ -788,9 +790,16 @@ export class SandforgeBattlefield {
     this.pos(shot.from.x,shot.from.y,this.heightAt(shot.from.x,shot.from.y)+27);
    const b=this.pos(shot.to.x,shot.to.y,this.heightAt(shot.to.x,shot.to.y)+27);
    const offset=n*6;
-   positions[offset]=a.x;positions[offset+1]=a.y;positions[offset+2]=a.z;
-   positions[offset+3]=b.x;positions[offset+4]=b.y;positions[offset+5]=b.z;
-   const c=shot.weapon==='cannon'?[1,.58,.17]:shot.owner===0?[.55,.89,1]:[1,.47,.25];
+   // Moving golden tracer, not a permanent full-screen team-colored laser.
+   // Endpoint calculations reuse the two authoritative shot locations.
+   positions[offset]=a.x+(b.x-a.x)*streak.from;
+   positions[offset+1]=a.y+(b.y-a.y)*streak.from;
+   positions[offset+2]=a.z+(b.z-a.z)*streak.from;
+   positions[offset+3]=a.x+(b.x-a.x)*streak.to;
+   positions[offset+4]=a.y+(b.y-a.y)*streak.to;
+   positions[offset+5]=a.z+(b.z-a.z)*streak.to;
+   const c=shot.weapon==='cannon'?[1,.72,.29]:
+    shot.weapon==='heavy'?[1,.85,.55]:[1,.89,.67];
    colors[offset]=c[0];colors[offset+1]=c[1];colors[offset+2]=c[2];
    colors[offset+3]=c[0];colors[offset+4]=c[1];colors[offset+5]=c[2];
    n++;
