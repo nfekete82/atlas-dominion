@@ -37,6 +37,7 @@ cpSync('scripts/webgl-faction-accents.js','dist/webgl-faction-accents.js');
 cpSync('scripts/webgl-environment.js','dist/webgl-environment.js');
 cpSync('scripts/webgl-atmosphere-3d.js','dist/webgl-atmosphere-3d.js');
 cpSync('scripts/webgl-combat-vfx.js','dist/webgl-combat-vfx.js');
+cpSync('scripts/webgl-hit-response.js','dist/webgl-hit-response.js');
 cpSync('scripts/webgl-wreck-lifecycle.js','dist/webgl-wreck-lifecycle.js');
 // Keep the optional battle profiler deployable; an unresolved static import
 // prevents the entire WebGL preview from booting, even when perf=0.
