@@ -539,9 +539,7 @@ export class SandforgeBattlefield {
    const oldEntry=this.units.get(u.id);if(oldEntry)oldEntry.productionMotion=null;
    let entry=this.units.get(u.id);
    if(!entry){entry=this.spawnNode(u,'unit');this.units.set(u.id,entry);}
-   if(entry.factionAccents?.userData.owner!==u.owner)
-    applyFactionAccents(entry,u,'unit',entry.modelFootprint??
-     UNITS[u.kind].width*visualUnitScale(u.kind),entry.modelHeight??45);
+   if(entry.factionOwner!==u.owner)applyFactionAccents(entry,u,'unit');
    // Interpolate between authoritative 20 Hz snapshots for smooth 60–120 FPS
    // visuals. Simulation, pathfinding and orders use true u.x/u.y only.
    const travel=Math.hypot(u.x-u.previousX,u.y-u.previousY);
