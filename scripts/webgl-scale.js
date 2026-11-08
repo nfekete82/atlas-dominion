@@ -62,6 +62,15 @@ export function visualUnitScale(kind){
 export function unitVisualYaw(kind,heading){
  return Math.PI*.5-heading+(kind==='bomber'?Math.PI:0);
 }
+
+/** Authoritative flightHeight [0..1] drives visible altitude. The helicopter
+ * really touches the ground at 0, rather than hovering 75 world units above it.
+ * The bomber remains in continuous flight at the existing cruise height. */
+export function unitRenderAltitude(kind,flightHeight=1){
+ if(kind==='scout')return 10+165*Math.max(0,Math.min(1,flightHeight));
+ if(kind==='bomber')return 175;
+ return 0;
+}
 const infantry=new Set(['infantry','medic','engineer','heavy']);
 const valid=n=>typeof n==='number'&&Number.isFinite(n)&&n>.00001;
 export function calibratedScale(kind,type,bounds,targetWidth){
