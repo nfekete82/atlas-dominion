@@ -564,6 +564,9 @@ export class SandforgeBattlefield {
      if(e.detail)e.animation.mixer.uncacheRoot(e.detail);
     }
     if(e.placeholder){disposeOwnedMeshes(e.placeholder);e.placeholder=null;}
+    // Authored model geometries are shared, but team-tinted materials are
+    // actor-owned. Release only our owned PBR clones on death/despawn.
+    if(e.detail)disposeTaggedMaterials(e.detail,'sandforgeFactionTint');
     this.scene.remove(e.node);this.units.delete(id);this.selected.delete(id);
    }
   for(const b of this.game.bases){
