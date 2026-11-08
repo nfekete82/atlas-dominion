@@ -3,6 +3,7 @@ import { Renderer } from './renderer.js';
 import { Simulation, type Weapon } from './simulation.js';
 import {UnitRadio,type PlayerOrder} from './unit-radio.js';
 import {UnitLossMonitor} from './unit-loss-monitor.js';
+import {TacticalMusic,musicCombatLevel} from './tactical-music.js';
 import {unitSpec} from './catalog.js';
 import {ENGINE_KINDS,ENGINE_PROFILES,vehicleSoundMix,type EngineKind} from './vehicle-soundscape.js';
 
@@ -40,9 +41,17 @@ export function ambientActivity(g:Simulation,center:Point,visible:(p:Point)=>boo
 /** Local sound design: synthesized effects and a separate pre-authored speech channel. */
 export class Soundscape {
   context:AudioContext|null=null;
+  musicEnabled=true;musicVolume=.30;effectsVolume=.85;
+  private music:TacticalMusic|null=null;
+  private radioDucking=false;
   analyser:AnalyserNode|null=null;
   enabled=true; volume=.6; ambience=true;
-  readonly radio=new UnitRadio(()=>this.enabled&&this.volume>0&&!document.hidden,active=>{if(this.context&&this.effects)this.effects.gain.setTargetAtTime(active?.55:1,this.context.currentTime,.045);});
+  readonly radio=new UnitRadio(()=>this.enabled&&this.volume>0&&!document.hidden,active=>{
+    this.radioDucking=Boolean(active);
+    if(this.context&&this.effects)
+      this.effects.gain.setTargetAtTime(this.effectsVolume*(active?.55:1),this.context.currentTime,.045);
+    this.music?.setDucking(Boolean(active));
+  });
   readonly played={shots:0,steps:0,commands:0,captures:0,production:0,losses:0,rifle:0,heavy:0,pistol:0,turret:0,cannon:0,rocket:0,machinegun:0,bomb:0};
   readonly voiceLimit=20;peakVoices=0;droppedVoices=0;
   private voices=new Map<AudioScheduledSourceNode,{stop:()=>void;gameplay:boolean}>();
@@ -59,7 +68,11 @@ export class Soundscape {
   async unlock():Promise<void>{
     if(!this.context){
       const a=this.context=new AudioContext();this.master=a.createGain();this.master.gain.value=this.enabled?this.volume:0;
-      this.effects=a.createGain();this.effects.connect(this.master);this.radio.attach(a,this.master);
+      this.effects=a.createGain();this.effects.gain.value=this.effectsVolume;
+      this.effects.connect(this.master);
+      this.music=new TacticalMusic(a,this.master);
+      this.music.setEnabled(this.musicEnabled);this.music.setVolume(this.musicVolume);
+      this.radio.attach(a,this.master);
       this.analyser=a.createAnalyser();this.analyser.fftSize=256;const limiter=a.createDynamicsCompressor();limiter.threshold.value=-14;limiter.knee.value=8;limiter.ratio.value=8;limiter.attack.value=.003;limiter.release.value=.13;this.master.connect(limiter);limiter.connect(this.analyser);this.analyser.connect(a.destination);
       this.noise=a.createBuffer(1,a.sampleRate*3,a.sampleRate);const channel=this.noise.getChannelData(0);let seed=91821;
       for(let i=0;i<channel.length;i++){seed=(Math.imul(seed,1664525)+1013904223)>>>0;channel[i]=seed/2147483648-1;}
@@ -106,7 +119,18 @@ export class Soundscape {
     if(this.context.state==='suspended')await this.context.resume();
     this.radio.flush();
   }
-  setEnabled(enabled:boolean):void{this.enabled=enabled;if(!enabled){this.silence();this.radio.stop();}this.applyVolume();}
+  setEnabled(enabled:boolean):void{this.enabled=enabled;if(!enabled){this.silence();this.radio.stop();this.music?.pause();}this.applyVolume();}
+  setEffectsVolume(value:number):void{
+    this.effectsVolume=clamp(value,0,1);
+    if(this.context&&this.effects)
+      this.effects.gain.setTargetAtTime(this.effectsVolume*(this.radioDucking?.55:1),this.context.currentTime,.035);
+  }
+  setMusicEnabled(value:boolean):void{
+    this.musicEnabled=Boolean(value);this.music?.setEnabled(this.musicEnabled);
+  }
+  setMusicVolume(value:number):void{
+    this.musicVolume=clamp(value,0,1);this.music?.setVolume(this.musicVolume);
+  }
   setVolume(volume:number):void{this.volume=clamp(volume,0,1);if(this.volume===0){this.silence();this.radio.stop();}this.applyVolume();}
   acknowledge(order:PlayerOrder,g:Simulation):void{
     if(g.paused||g.status!=='playing'||!g.units.some(u=>u.id===order.unitId&&u.kind===order.unit&&u.owner===0&&u.hp>0&&!u.carrier))return;
@@ -192,11 +216,11 @@ export class Soundscape {
     window.speechSynthesis.speak(announcement);
   }
   pause():void{
-    this.silence(true);this.radio.pause();
+    this.silence(true);this.radio.pause();this.music?.pause();
     if(typeof window!=='undefined'&&'speechSynthesis' in window)window.speechSynthesis.cancel();
   }
   silenceScene():void{
-    this.silence();this.radio.stop();
+    this.silence();this.radio.stop();this.music?.pause();
     if(typeof window!=='undefined'&&'speechSynthesis' in window)window.speechSynthesis.cancel();
     if(this.context){
       for(const gain of [this.wind,this.motorGain,this.generatorGain])gain?.gain.setTargetAtTime(0,this.context.currentTime,.025);
@@ -265,15 +289,18 @@ export class Soundscape {
   update(g:Simulation,r:Renderer):void{
     this.bindGame(g);
     if(this.context){
-      const sounding=this.enabled&&this.volume>0&&this.ambience&&!document.hidden&&!g.paused&&g.status==='playing';
-      this.wind?.gain.setTargetAtTime(sounding?1+g.weather.intensity*1.25:0,this.context.currentTime,.2);
-      const levels=sounding?ambientActivity(g,r.camera,p=>g.canSee(0,p)):{motors:0,generator:0};
+      const sounding=this.enabled&&this.volume>0&&!document.hidden&&!g.paused&&g.status==='playing';
+      this.music?.update(g.time,musicCombatLevel(g.shots.length,
+       g.attackAlerts.sequence>0&&g.time-g.attackAlerts.lastTime<5),sounding);
+      const ambientSounding=sounding&&this.ambience;
+      this.wind?.gain.setTargetAtTime(ambientSounding?1+g.weather.intensity*1.25:0,this.context.currentTime,.2);
+      const levels=ambientSounding?ambientActivity(g,r.camera,p=>g.canSee(0,p)):{motors:0,generator:0};
       // Old generic engine bed remains extremely quiet; distinctive vehicle layers lead.
       this.motorGain?.gain.setTargetAtTime(levels.motors*.003,this.context.currentTime,.25);
       this.generatorGain?.gain.setTargetAtTime(levels.generator*.015,this.context.currentTime,.35);
       if(this.motorTone)this.motorTone.frequency.setTargetAtTime(53+Math.sin(g.time*1.8)*3+Math.min(8,levels.motors*3),this.context.currentTime,.12);
       const audibleRadius=Math.max(240,Math.min(880,Math.max(r.width,r.height)/r.camera.zoom*.72));
-      const mix=sounding?vehicleSoundMix(g,r.camera,p=>g.canSee(0,p),audibleRadius):null;
+      const mix=ambientSounding?vehicleSoundMix(g,r.camera,p=>g.canSee(0,p),audibleRadius):null;
       for(const kind of ENGINE_KINDS){
         const voice=this.engineVoices.get(kind);if(!voice)continue;
         const profile=ENGINE_PROFILES[kind],state=mix?.[kind];
