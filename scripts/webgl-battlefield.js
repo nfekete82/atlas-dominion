@@ -804,6 +804,10 @@ export class SandforgeBattlefield {
    const button=e.target.closest('button');if(!button)return;
    if(this.sound?.enabled)this.sound.select();
    const kind=button.dataset.build,unit=button.dataset.unit,action=button.dataset.action;
+   if(button.dataset.passengerId!==undefined){
+    this.unloadPassenger(Number(button.dataset.carrierId),Number(button.dataset.passengerId));
+    return;
+   }
    if(kind){
     if(!this.catalogContext().engineer){this.message('Zum Bauen zuerst einen Pionier auswählen');return;}
     this.beginPlacement(kind);this.attackMode=false;this.sound?.select?.();
