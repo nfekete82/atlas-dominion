@@ -807,7 +807,8 @@ export class Simulation {
     if(cohort){const allies=this.units.filter(v=>cohort.includes(v.id)&&v.owner===u.owner&&v.hp>0&&
         (u.owner!==0||v.id===u.id||v.orders[0]?.march?.includes(u.id)));
       // A separately redirected/stopped soldier immediately leaves the
-      // cohort; remaining units no longer inherit its former slow speed.if(allies.length){
+      // cohort; remaining units no longer inherit its former slow speed.
+      if(allies.length){
       // Escort already enforces the moving armor's front position. A lagging
       // legacy AI rifleman must be allowed a short catch-up burst instead
       // of being capped to tank speed by the redundant march metadata.
