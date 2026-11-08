@@ -121,5 +121,5 @@ test('real WebGL invokes loss reporting after simulation and writes a HUD notice
  assert.match(audio,/this\.unitLosses\.reset\(g\.units,g\.time\)/);
  assert.match(audio,/new SpeechSynthesisUtterance\('Einheit verloren'\)/);
  assert.match(audio,/a\.currentTime-this\.lastLossSignal<2\.8/);
- assert.match(audio,/voice\.localService&&v\.lang/);
+ assert.match(audio,/v\.localService&&v\.lang/);
 });
