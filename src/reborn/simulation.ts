@@ -1358,8 +1358,8 @@ export class Simulation {
     game.status=['playing','victory','defeat'].includes(s.status)?s.status:'playing';
     // Old saves may contain an incorrectly triggered end state. Restore the
     // unfinished battle rather than trapping the player in a false victory.
-    if(game.status!=='playing'&&eliminationOutcome(game.units,game.bases)==='playing')
-      game.status='playing';
+    if(game.status!=='playing')
+      game.status=eliminationOutcome(game.units,game.bases);
     game.spatial.rebuild(game.units);game.updateVision();return game;
   }
 }
