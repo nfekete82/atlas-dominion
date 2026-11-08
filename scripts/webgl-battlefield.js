@@ -1700,6 +1700,7 @@ export class SandforgeBattlefield {
    });
   });
   canvas.addEventListener('pointerup',e=>this.pointerUp(e));
+  canvas.addEventListener('dblclick',e=>{if(e.button===0&&this.selectSameKindOnScreen(e))e.preventDefault();});
   window.addEventListener('pointerup',e=>{if(this.clickStart)this.pointerUp(e);});
   canvas.addEventListener('pointerleave',()=>{if(this.buildPreview)this.buildPreview.visible=false;this.buildHint.style.display='none';});
   const resetPointerGesture=()=>{
