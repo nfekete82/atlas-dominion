@@ -317,7 +317,6 @@ export class SandforgeCombatEffects {
   if(!addWreckRecord(this.wrecks,u,this.wreckHull.instanceMatrix.count))return;
   this.wreckCount=this.wrecks.length;
   this.stats.wrecks++;
-  this.placeScorch(u.x,u.y,u.kind==='bomber'?130:90);
   this.blastAt(u.x,u.y,true);
   this.drawWrecks();
  }
