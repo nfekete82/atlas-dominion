@@ -86,7 +86,7 @@ renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.65));
 stage.append(renderer.domElement);
 const scene=new THREE.Scene();
-// The playable desert ends in a mountain rim and a dark C&C-style void.
+// The 3D playable desert ends directly against a completely black map void.
 // A beige background would still reveal a bright square beyond the terrain.
 scene.background=new THREE.Color('#000000');
 scene.fog=new THREE.FogExp2('#080605',.00008);
