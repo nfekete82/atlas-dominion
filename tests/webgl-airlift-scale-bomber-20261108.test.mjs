@@ -19,8 +19,8 @@ test('3D scale and bomber orientation are presentation-only',()=>{
 });
 
 test('rendered helicopter lands on ground and takes off smoothly; bomber stays airborne',()=>{
- assert.equal(unitRenderAltitude('scout',0),10);
- assert.equal(unitRenderAltitude('scout',.5),92.5);
+ assert.equal(unitRenderAltitude('scout',0),3);
+ assert.equal(unitRenderAltitude('scout',.5),89);
  assert.equal(unitRenderAltitude('scout',1),175);
  assert.equal(unitRenderAltitude('scout'),175);
  assert.equal(unitRenderAltitude('bomber',0),175);
