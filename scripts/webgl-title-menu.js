@@ -17,6 +17,34 @@
  const readSave=()=>{try{const raw=localStorage.getItem(savedKey);return raw?JSON.parse(raw):null;}catch{return null;}};
  const readOptions=()=>{try{return JSON.parse(localStorage.getItem(optionKey)||'{}');}catch{return {};}};
  const notify=(message)=>{status.textContent=message;};
+ const volume=(key,fallback)=>Math.max(0,Math.min(100,
+  Number.isFinite(Number(readOptions()[key]))&&readOptions()[key]!=null?
+   Number(readOptions()[key]):fallback));
+ const renderAudioSliders=()=>{
+  const options=readOptions();
+  for(const [id,key,defaultValue] of [
+   ['sf3d-master-volume','masterVolume',85],
+   ['sf3d-effects-volume','effectsVolume',85],
+   ['sf3d-music-volume','musicVolume',30]
+  ]){
+   const value=options[key];
+   $(id).value=String(value==null?defaultValue:Math.max(0,Math.min(100,Number(value))));
+   $(id.replace('-volume','-value')).textContent=$(id).value+' %';
+  }
+  $('sf3d-music-enabled').checked=options.musicEnabled!==false;
+ };
+ function applyLiveAudio(){
+  const a=window.__sandforgeWebGL?.sound;
+  for(const id of ['sf3d-master','sf3d-effects','sf3d-music']){
+   const value=$(id+'-volume').value;
+   $(id+'-value').textContent=value+' %';
+  }
+  if(!a)return;
+  a.setVolume(Number($('sf3d-master-volume').value)/100);
+  a.setEffectsVolume(Number($('sf3d-effects-volume').value)/100);
+  a.setMusicVolume(Number($('sf3d-music-volume').value)/100);
+  a.setMusicEnabled($('sf3d-music-enabled').checked);
+ }
  const running=()=>Boolean(window.__sandforgeWebGL?.simulationRunning);
  const changePause=(shouldRun)=>{
   if(running()!==shouldRun)$('simulation')?.click();
@@ -55,6 +83,7 @@
   $('sf3d-quality').value=opts.quality==='lite'?'lite':'high';
   $('sf3d-fog').checked=opts.fog!==false;
   $('sf3d-sound').checked=opts.sound!==false;
+  renderAudioSliders();
   optionsDialog.showModal();
  }
  function saveOptions(){
@@ -62,7 +91,11 @@
    localStorage.setItem(optionKey,JSON.stringify({
     quality:$('sf3d-quality').value,
     fog:$('sf3d-fog').checked,
-    sound:$('sf3d-sound').checked
+    sound:$('sf3d-sound').checked,
+    musicEnabled:$('sf3d-music-enabled').checked,
+    masterVolume:Number($('sf3d-master-volume').value),
+    effectsVolume:Number($('sf3d-effects-volume').value),
+    musicVolume:Number($('sf3d-music-volume').value)
    }));
   }catch(error){console.warn('Could not save local graphics options:',error);}
   optionsDialog.close();
@@ -75,6 +108,7 @@
    const shouldEnable=$('sf3d-sound').checked;
    soundButton.disabled=false;
    active.sound.setEnabled(shouldEnable);
+   applyLiveAudio();
    soundButton.setAttribute('aria-pressed',String(shouldEnable));
    soundButton.textContent=shouldEnable?'Sound ausschalten':'Sound einschalten';
    soundButton.title=shouldEnable?'Audio freigegeben (Klick zum Ausschalten)':'Audio deaktiviert (Klick zum Einschalten)';
@@ -111,6 +145,10 @@
  $('sf3d-main-load').addEventListener('click',continueSave);
  $('sf3d-main-options').addEventListener('click',openOptions);
  $('sf3d-options-save').addEventListener('click',saveOptions);
+ for(const id of ['sf3d-master-volume','sf3d-effects-volume','sf3d-music-volume']){
+  $(id).addEventListener('input',applyLiveAudio);
+ }
+ $('sf3d-music-enabled').addEventListener('change',applyLiveAudio);
  $('sf3d-audio-test').addEventListener('click',async()=>{
   const status=$('sf3d-audio-status');
   const runtime=window.__sandforgeWebGL;
@@ -122,7 +160,9 @@
   const sound=runtime.sound;
   $('sf3d-sound').checked=true;
   sound.setEnabled(true);
-  sound.setVolume(Math.max(sound.volume,.85));
+  // The sound test obeys the user's three audio sliders and should not
+  // suddenly turn the overall volume up to 85 percent.
+  applyLiveAudio();
   try{
    await sound.unlock();
    if(sound.context?.state!=='running')throw new Error('AudioContext '+(sound.context?.state??'unbekannt'));
