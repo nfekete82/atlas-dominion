@@ -21,6 +21,10 @@
  const changePause=(shouldRun)=>{
   if(running()!==shouldRun)$('simulation')?.click();
  };
+ // Typed only in the actual tactical-pause modal. No visible debug controls.
+ // The sequence may be entered again to grant another 1,000 credits.
+ const pauseCheat='iddqd';
+ let pauseCheatProgress=0;
  let returnToGame=false;
  const saved=readSave();
  const play=(count,seed,{resume=false,legacy=false,terrain='random'}={})=>{
@@ -82,10 +86,13 @@
   if(!window.__sandforgeWebGL?.loaded)return;
   if(pauseDialog.open)return;
   returnToGame=running();
+  pauseCheatProgress=0;
+  $('sf3d-pause-status').textContent='';
   if(returnToGame)changePause(false);
   pauseDialog.showModal();
  }
  function resumeGame(){
+  pauseCheatProgress=0;
   pauseDialog.close();
   if(returnToGame)changePause(true);
  }
@@ -154,9 +161,31 @@
  }
  menu.addEventListener('cancel',e=>e.preventDefault());
  pauseDialog.addEventListener('cancel',e=>{e.preventDefault();resumeGame();});
+ pauseDialog.addEventListener('close',()=>{pauseCheatProgress=0;});
  document.addEventListener('keydown',e=>{
   if(e.repeat||e.ctrlKey||e.metaKey||e.altKey||
    (e.target instanceof Element&&e.target.matches('input,select,textarea,[contenteditable]')))return;
+  if(pauseDialog.open&&!menu.open&&!newDialog.open&&!optionsDialog.open){
+   if(typeof e.key==='string'&&/^[a-z]$/i.test(e.key)){
+    // Do not pan the camera or trigger normal game shortcuts behind the modal.
+    e.preventDefault();e.stopImmediatePropagation();
+    const key=e.key.toLowerCase();
+    pauseCheatProgress=key===pauseCheat[pauseCheatProgress]
+     ?pauseCheatProgress+1:key===pauseCheat[0]?1:0;
+    if(pauseCheatProgress===pauseCheat.length){
+     pauseCheatProgress=0;
+     const active=window.__sandforgeWebGL,g=active?.game;
+     if(active?.loaded&&g?.status==='playing'&&Number.isFinite(g.credits?.[0])){
+      g.credits[0]+=1000;
+      active.battlefield?.drawInterface?.();
+      $('sf3d-pause-status').textContent='TESTCODE AKTIV · +1.000 CREDITS';
+     }
+    }
+    return;
+   }
+   // Every non-letter breaks the sequence, including unrelated shortcuts.
+   pauseCheatProgress=0;
+  }
   if(e.code==='Space'){
    if(menu.open||newDialog.open||optionsDialog.open)return;
    if(!window.__sandforgeWebGL?.loaded)return;
