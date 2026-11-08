@@ -27,7 +27,7 @@ import {AttackAlerts} from './attack-alerts.js';
 
 export interface Formation {front:number[];fallback?:number[];heading:Point;origin:Point;goal:Point;lane:number;rear:number}
 export interface Order extends Point { kind:'move'|'attackMove'|'attack'|'heal'|'repair'|'build'|'board'; target?:number; approach?:Point; healOrigin?:Point; formation?:Formation; march?:number[]; rear?:number; tactical?:TacticalOrder }
-export type Weapon='rifle'|'heavy'|'pistol'|'turret'|'cannon'|'rocket'|'machinegun';
+export type Weapon='rifle'|'heavy'|'pistol'|'turret'|'cannon'|'rocket'|'machinegun'|'bomb';
 export interface Burst {target:number;remaining:number;at:number;index:number}
 export interface WorkEffect {kind:'heal'|'repair'|'build'|'board';target:number;source:number;sources:number[];at:number;amount:number}
 export const HEAL_RADIUS=70;
@@ -946,7 +946,7 @@ export class Simulation {
             run.leg++;u.path=[];u.repath=0;
           }else this.move(u,waypoint,dt);
           continue;
-        }else delete u.bomberRun;
+        }
       }
       if(order?.kind==='move'&&(u.owner===0||this.world.mapVersion>=3&&this.tactical.mode==='director'||this.tactical.state.phase!=='attack')){
         delete u.burst;u.combatTarget=null;u.pursuitOrigin=null;
@@ -954,7 +954,13 @@ export class Simulation {
         else this.move(u,order,dt);
         continue;
       }
-      const enemy=this.acquire(u);
+      const acquired=this.acquire(u);
+      // Preserve a visible target through the wide return leg even when the
+      // bomber briefly travels beyond the automatic engagement radius.
+      const returning=u.kind==='bomber'&&u.bomberRun?.leg===3?
+        this.combatEntity(u.bomberRun.target):undefined;
+      const enemy=acquired??(returning&&returning.hp>0&&returning.owner!==u.owner&&
+        this.canSee(u.owner,returning)?returning:undefined);
       const spec=unitSpec(u);
       if(u.kind==='bomber'&&enemy&&!u.hold){
         // A bomber never hangs motionless in attack range firing a cannon.
