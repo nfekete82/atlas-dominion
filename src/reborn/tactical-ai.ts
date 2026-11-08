@@ -7,7 +7,7 @@ import {assaultDecision,abortAssault} from './ai-director.js';
 import {selectiveRaidAllowed} from './selective-raids.js';
 import {newCampaign,campaignPhase,refreshIntelligence,chooseMission,reconGoal,validCampaign,knownBuildings,type CampaignState} from './campaign-commander.js';
 import {segmentDistance} from './world-generation.js';
-import {newBattle,assessBattle,fightingPower,recordFailure,retryFront,validBattle,type BattleState} from './battle-response.js';
+import {newBattle,assessBattle,fightingPower,hasDecisiveLocalAdvantage,recordFailure,retryFront,validBattle,type BattleState} from './battle-response.js';
 import {newAdaptive,updateAdaptive,validAdaptive,type AdaptiveState} from './adaptive-strategy.js';
 import {newExperience,validExperience,finishExperience,canOverrun,observeOwnedLosses,lessonScore,type Experience} from './battle-learning.js';
 import {rankLegacyFrontiers} from './legacy-campaign.js';
@@ -201,7 +201,14 @@ export class TacticalAI {
   const army=g.units.filter(v=>v.owner===1&&v.hp>0&&!v.carrier),near=army.filter(v=>distance(v,u)<450&&!s.recovering?.includes(v.id));
   const towers=s.knownTurrets.filter(t=>distance(t,u)<t.range+220),enemies=g.units.filter(v=>v.owner===0&&v.hp>0&&!v.carrier&&g.canSee(1,v)&&distance(v,u)<600);
   const assessment=assessBattle(near,enemies,towers,g.time,true);
-  if(towers.length&&assessment.stance==='attack'&&u.hp>unitSpec(u).hp*.65)return;
+  // A full-strength squad must not run home when a single unit takes one
+  // turret hit. Keep a successful attack/siege engaged until genuinely hurt.
+  if(u.hp>=unitSpec(u).hp*.38&&
+   (assessment.stance==='attack'||assessment.stance==='siege'||
+    hasDecisiveLocalAdvantage(near,enemies,towers)))return;
+  // A hit reveals damage, NOT the gun's fogged position. A healthy battalion
+  // must not flee into the HQ just because the shooter isn't identified yet.
+  if(!towers.length&&!enemies.length&&u.hp>=unitSpec(u).hp*.48)return;
   // A rocket already firing from range may continue; a short-range screen
   // under fire must move beyond the guns instead of waiting for 67% HP.
   if(u.kind==='artillery'&&towers.length&&towers.every(t=>distance(t,u)>t.range+15)&&u.hp>unitSpec(u).hp*.75)return;
@@ -434,6 +441,20 @@ export class TacticalAI {
   }
   return new Set(explorers.map(u=>u.id));
  }
+ /** Decisions use only the red faction's own observed nearby opponents.
+  * Never infer strength from hidden enemies or off-screen player production.
+  * A real close-range numerical overmatch lets the damaged armored screen
+  * finish its battle instead of an automatic 67% HP retreat. */
+ private dominatingLocalFight(u:Unit):boolean{
+  if(u.hp<unitSpec(u).hp*.30)return false;
+  const g=this.g,r=450;
+  const allies=g.units.filter(v=>v.owner===1&&v.hp>0&&!v.carrier&&
+   distance(v,u)<=r);
+  const observed=g.units.filter(v=>v.owner===0&&v.hp>0&&!v.carrier&&
+   distance(v,u)<=r+110&&g.canSee(1,v));
+  const guns=this.state.knownTurrets.filter(t=>distance(t,u)<=t.range+180);
+  return hasDecisiveLocalAdvantage(allies,observed,guns);
+ }
  /** Wounded infantry recover at a safe rally instead of being sent straight into the next assault. */
  /** Fire-and-forget combat extraction at the instant of an actual enemy hit.
   * The 3-second macro tick alone is too slow to save a 220-HP rover.
@@ -443,6 +464,8 @@ export class TacticalAI {
   if(this.mode!=='director'||g.world.mapVersion<3||u.owner!==1||u.hp<=0
     ||!['tank','rover','artillery'].includes(u.kind)||u.hp>=unitSpec(u).hp*.67
     ||s.recovering?.includes(u.id))return;
+  // Preserve a winning local engagement unless the vehicle is critical.
+  if(this.dominatingLocalFight(u))return;
   const hq=g.bases.find(b=>b.owner===1&&b.kind==='headquarters'&&b.hp>0);
   if(!hq)return;
   const edge={x:clamp(hq.x+(hq.x>=g.world.size/2?165:-165),85,g.world.size-85),
@@ -462,7 +485,12 @@ export class TacticalAI {
    // Vehicles survive sustained campaigns when they can break contact,
    // travel back to a real engineer, then return above 80% health.
    if(g.world.mapVersion>=3&&this.mode==='director'
-     &&['tank','rover','artillery'].includes(u.kind)&&u.hp<unitSpec(u).hp*.67)ids.add(u.id);
+     &&['tank','rover','artillery'].includes(u.kind)){
+     // Routine repairs are lower priority than a decisive active battle.
+     // Reevaluate earlier evacuation decisions every strategic tick.
+     if(this.dominatingLocalFight(u))ids.delete(u.id);
+     else if(u.hp<unitSpec(u).hp*.67)ids.add(u.id);
+   }
   }
   s.recovering=army.filter(u=>ids.has(u.id)&&u.hp<unitSpec(u).hp*(['tank','rover','artillery'].includes(u.kind)?.9:.8)).map(u=>u.id);
   const resting=army.filter(u=>s.recovering!.includes(u.id)),reserved=new Set(s.recovering);
