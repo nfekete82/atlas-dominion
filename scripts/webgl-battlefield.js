@@ -1418,7 +1418,7 @@ export class SandforgeBattlefield {
   // Pick the friendly Humvee or transport helicopter model before ground terrain.
   const rect=this.renderer.domElement.getBoundingClientRect();
   if(!rect.width||!rect.height)return null;
-  const candidates=this.game.units.filter(u=>u.kind==='rover'&&u.owner===0&&u.hp>0&&
+  const candidates=this.game.units.filter(u=>['rover','scout'].includes(u.kind)&&u.owner===0&&u.hp>0&&
    !u.carrier&&this.units.get(u.id)?.node.visible);
   if(!candidates.length)return null;
   const ndc=new THREE.Vector2(
