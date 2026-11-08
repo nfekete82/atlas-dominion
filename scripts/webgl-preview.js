@@ -220,7 +220,7 @@ function buildTerrain(){
    if(terrain.battlefield){
     // The historical artwork contains painted dune lighting. Keep its fine
     // grain and palette, but let actual 3D normals describe the new relief.
-    context.globalAlpha=.76;context.fillStyle='#d2ad77';
+    context.globalAlpha=.27;context.fillStyle='#e0b57c';
     context.fillRect(0,0,canvas.width,canvas.height);context.globalAlpha=1;
    }
    const sand=new THREE.CanvasTexture(canvas);
