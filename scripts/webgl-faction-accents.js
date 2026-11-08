@@ -66,6 +66,6 @@ export function applyFactionAccents(entry,entity,type){
  if(entry.factionOwner===entity.owner&&entry.factionPaintedDetail===entry.detail)return null;
  tintFactionMaterials(entry.detail??entry.placeholder??entry.node,entity.owner,entity.kind,type);
  entry.factionOwner=entity.owner;
- entry.factionPaintedDetail=entry.detail??null;
+ entry.factionPaintedDetail=entry.detail;
  return null;
 }
