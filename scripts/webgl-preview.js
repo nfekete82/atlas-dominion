@@ -353,6 +353,9 @@ function instancedStone(){
  const contactDummy=new THREE.Object3D();let contactCount=0;
  const counts=[0,0,0],r=rnd(seed^0x73c02f4b);
  const put=(x,z,wide,tall,depth)=>{
+  // No decorative stones overhanging the black void or touching its edge.
+  // Real collision rocks on playable terrain are independent of this pass.
+  if(spacious&&(x<90||z<90||x>size-90||z>size-90))return;
   const k=Math.floor(r()*3);if(counts[k]>=1750)return;
   const y=heightAt(x,z);
   // Bury the lower half of the rock instead of standing it on the terrain.
