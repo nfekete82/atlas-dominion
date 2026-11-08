@@ -1114,7 +1114,7 @@ export class SandforgeBattlefield {
   const selectedMarkup='<small>'+meta+'</small><strong>'+plain(heading)+'</strong>'+
    (item?'<div class="health-track"><i style="width:'+Math.min(100,hp/maxHp*100)+'%"></i></div>'+
    '<div class="sf-health">'+hp+' / '+maxHp+' LP</div>':'')+
-   '<p>'+plain(description)+'</p>';
+   '<p>'+plain(description)+'</p>'+passengerMarkup;
   if(this.previousSelectionMarkup!==selectedMarkup){
    el.innerHTML=selectedMarkup;this.previousSelectionMarkup=selectedMarkup;
   }
