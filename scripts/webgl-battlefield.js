@@ -1465,6 +1465,17 @@ export class SandforgeBattlefield {
   }
   return best;
  }
+ unloadPassenger(carrierId,passengerId){
+  const carrier=this.game.units.find(u=>u.id===carrierId&&u.owner===0&&u.hp>0&&
+   ['rover','scout'].includes(u.kind)&&this.selected.has(u.id));
+  const passenger=this.game.units.find(u=>u.id===passengerId&&u.carrier===carrierId);
+  if(!carrier||!passenger||!carrier.transport?.cargo.includes(passengerId))return false;
+  const point=this.world.nearest({x:carrier.x+105,y:carrier.y+75},this.game.obstacles());
+  const done=Boolean(point&&this.game.transports.unload(carrier.id,point,passenger.id));
+  this.message(done?(UNITS[passenger.kind]?.name??'Soldat')+' wird einzeln ausgeladen':
+   'Einzeln ausladen derzeit nicht möglich · Freie Fläche suchen');
+  this.drawInterface();return done;
+ }
  unloadSelectedTransport(){
   const transports=selectedLoadedTransports(this.game.units,this.selected);
   if(!transports.length){this.message('Zum Aussteigen einen besetzten Transporter auswählen');return 0;}
