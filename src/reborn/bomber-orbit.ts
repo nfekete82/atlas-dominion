@@ -23,7 +23,7 @@ export function beginBomberOrbit(position:Point&{id:number;angle:number;hullAngl
  return null;
 }
 
-/** A small flight path (~14 s per circle) rather than a stationary animation. */
+/** A fast holding circle (~7 s at the largest radius) rather than a stationary animation. */
 export function advanceBomberOrbit(orbit:BomberOrbit,dt:number):Point&{heading:number;arc:number}{
  orbit.phase=(orbit.phase+orbit.direction*BOMBER_ORBIT_SPEED*dt/orbit.radius)%(Math.PI*2);
  return {x:orbit.cx+Math.cos(orbit.phase)*orbit.radius,
