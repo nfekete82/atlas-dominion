@@ -97,7 +97,7 @@ export class SandforgeBattlefield {
   this.buildInterface();this.addFog();this.createBastions();
   this.attachInput();this.sync(true);
  }
- entityPosition(p){return this.pos(p.x,p.y,this.heightAt(p.x,p.y)+(UNITS[p.kind]?.flying?75+100*(p.flightHeight??1):0));}
+ entityPosition(p){return this.pos(p.x,p.y,this.heightAt(p.x,p.y)+unitRenderAltitude(p.kind,p.flightHeight??1));}
  createFallback(kind,owner,type){
   const group=new THREE.Group(),team=owner===0?'#397f9d':'#9f5541',metal=new THREE.MeshStandardMaterial({color:team,metalness:.55,roughness:.53}),
    dark=new THREE.MeshStandardMaterial({color:'#444743',metalness:.45,roughness:.7});
