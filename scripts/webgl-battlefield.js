@@ -13,6 +13,7 @@ import {SandforgeGroundingPass} from '/webgl-grounding.js';
 import {createBuildingYard,disposeBuildingYard} from '/webgl-building-yard.js';
 import {disposeOwnedMeshes,disposeTaggedMaterials} from '/webgl-resource-lifecycle.js';
 import {selectedInfantryForTransport,selectedLoadedTransports,selectedTransportManifest} from '/webgl-transport-controls.js';
+import {applyFactionAccents} from '/webgl-faction-accents.js';
 import {SandforgeConstructionPresentation} from '/webgl-construction.js';
 import {createBastionCaptureBar,updateBastionCaptureBar} from '/webgl-bastion-capture.js';
 import {snapToPlayableEdge,worldToMinimap} from '/webgl-map-edges.js';
@@ -359,6 +360,8 @@ export class SandforgeBattlefield {
       (type==='unit'?visualUnitScale(entry.kind):1);
     entry.modelHeight=dims.y*visualScale;
     entry.modelFootprint=Math.max(dims.x,dims.z)*visualScale;
+    applyFactionAccents(entry,{kind:entry.kind,owner:entry.owner},type,
+     entry.modelFootprint,entry.modelHeight);
     entry.visualBaseY=model.position.y;entry.visualBaseZ=model.position.z;
     if(type==='building'){
      this.attachBuildingMotion(entry,data);
@@ -433,6 +436,12 @@ export class SandforgeBattlefield {
   node.add(placeholder);node.position.copy(this.entityPosition(entity));
   this.scene.add(node);
   const entry={node,placeholder,kind:entity.kind,owner:entity.owner,requested:false};
+  const unit=type==='unit';
+  const footprint=unit?(UNITS[entity.kind]?.width??44)*visualUnitScale(entity.kind):
+   BUILDINGS[entity.kind]?.width??130;
+  const height=unit?(['infantry','medic','engineer','heavy'].includes(entity.kind)?43:55)*visualUnitScale(entity.kind):
+   Math.max(65,footprint*.55);
+  applyFactionAccents(entry,entity,type,footprint,height);
   if(type==='unit'&&['tank','artillery'].includes(entity.kind))this.installTankRig(entry,placeholder);
   this.scheduleDetail(entry,entity,type);return entry;
  }
@@ -529,6 +538,9 @@ export class SandforgeBattlefield {
    const oldEntry=this.units.get(u.id);if(oldEntry)oldEntry.productionMotion=null;
    let entry=this.units.get(u.id);
    if(!entry){entry=this.spawnNode(u,'unit');this.units.set(u.id,entry);}
+   if(entry.factionAccents?.userData.owner!==u.owner)
+    applyFactionAccents(entry,u,'unit',entry.modelFootprint??
+     UNITS[u.kind].width*visualUnitScale(u.kind),entry.modelHeight??45);
    // Interpolate between authoritative 20 Hz snapshots for smooth 60–120 FPS
    // visuals. Simulation, pathfinding and orders use true u.x/u.y only.
    const travel=Math.hypot(u.x-u.previousX,u.y-u.previousY);
@@ -560,6 +572,10 @@ export class SandforgeBattlefield {
    aliveBases.add(b.id);
    let entry=this.bases.get(b.id);
    if(!entry){entry=this.spawnNode(b,'building');this.bases.set(b.id,entry);this.grounding.attachBuilding(entry,b);}
+   if(entry.factionAccents?.userData.owner!==b.owner)
+    applyFactionAccents(entry,b,'building',entry.modelFootprint??BUILDINGS[b.kind].width,
+     entry.modelHeight??Math.max(65,BUILDINGS[b.kind].width*.55));
+   if(entry.factionAccents)entry.factionAccents.visible=b.buildRemaining<=0;
    entry.node.position.copy(this.entityPosition(b));
    entry.node.visible=b.owner===0||this.game.canSee(0,b);
    entry.node.scale.y=1;
