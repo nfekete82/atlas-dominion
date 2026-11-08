@@ -1005,7 +1005,7 @@ export class SandforgeBattlefield {
     ?!correctProducer||g.needsHeadquarters(0)||context.producer.queue.length>=8||
       g.credits[0]<spec.cost||g.count(0)+g.queued(0)>=RULES.capacity
     :!context.engineer||g.credits[0]<spec.cost||!g.hasHeadquarters(0)&&kind!=='headquarters'||
-      kind==='generator'&&generatorLimitReached;
+      kind==='generator'&&generatorLimitReached||ownedUnique;
    const requirement=button.dataset.unit
     ?(!context.producer?'Produktionsgebäude auswählen':
        !correctProducer?'Dieses Gebäude produziert diese Einheit nicht':
