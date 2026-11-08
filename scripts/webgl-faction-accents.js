@@ -78,6 +78,9 @@ export function makeFactionAccents(kind,owner,type){
 export function applyFactionAccents(entry,entity,type,footprint,height){
  if(!entry?.node||!entity)return null;
  let group=entry.factionAccents;
+ if(group&&group.userData.owner!==entity.owner){
+  entry.node.remove(group);entry.factionAccents=null;group=null;
+ }
  if(!group){
   group=makeFactionAccents(entity.kind,entity.owner,type);
   if(!group)return null;
