@@ -253,11 +253,17 @@ function buildTerrain(){
    const slope=terrain.battlefield?world.terrainSlope(x,z):Math.abs(heightAt(x,z-24)-heightAt(x,z+24))/48;
    const rocky=terrain.battlefield?smooth((slope-.10)/.25)*(terrain.battlefield.profile==='rocky'?.7:.3):smooth((slope-.20)/.9);
    const nval=.96+.055*Math.sin(x*.013+z*.009)+.025*Math.cos(x*.071-z*.032);
-   const bands=(Math.sin(h*.19+x*.003+z*.002)*.5+.5)*rocky;
-   const col=new THREE.Color(spacious?'#e9dcc6':'#faf1e0')
-     .lerp(new THREE.Color(spacious?'#9f8160':'#b58b63'),rocky*.65+bands*.12);
-   col.multiplyScalar(nval);
-   colors[n]=col.r;colors[n+1]=col.g;colors[n+2]=col.b;
+   if(spacious&&terrain.battlefield){
+    const art=cinematicSandSample({x,z,size,seed,profile:terrain.battlefield.profile,slope,height:h});
+    vertexColor.copy(sandGold).lerp(sandLight,(art.dune+1)*.28)
+      .lerp(sandstone,Math.min(.82,art.strata*.72))
+      .lerp(riverSediment,art.wadi*.49).multiplyScalar(art.shade);
+   }else{
+    const bands=(Math.sin(h*.19+x*.003+z*.002)*.5+.5)*rocky;
+    vertexColor.set(spacious?'#e9dcc6':'#faf1e0')
+      .lerp(sandstone,rocky*.65+bands*.12).multiplyScalar(nval);
+   }
+   colors[n]=vertexColor.r;colors[n+1]=vertexColor.g;colors[n+2]=vertexColor.b;
    uv[k*2]=x/(spacious?2200:1500);uv[k*2+1]=z/(spacious?2200:1500);
    // Sample normals from the continuous field, not triangle tessellation:
    // border ring and playable terrain now have identical lighting at seams.
