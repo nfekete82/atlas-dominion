@@ -67,7 +67,7 @@ export function unitVisualYaw(kind,heading){
  * really touches the ground at 0, rather than hovering 75 world units above it.
  * The bomber remains in continuous flight at the existing cruise height. */
 export function unitRenderAltitude(kind,flightHeight=1){
- if(kind==='scout')return 10+165*Math.max(0,Math.min(1,flightHeight));
+ if(kind==='scout')return 3+172*Math.max(0,Math.min(1,flightHeight));
  if(kind==='bomber')return 175;
  return 0;
 }
