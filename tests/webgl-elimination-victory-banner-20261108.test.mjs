@@ -116,6 +116,10 @@ test('saved false terminal states resume; genuine terminal states survive round 
  assert.equal(won.status,'victory');
  const restored=Simulation.load(won.save());
  assert.equal(restored.status,'victory','real finished victory remains terminal');
+ const wrong=won.save();
+ wrong.status='defeat';
+ assert.equal(Simulation.load(wrong).status,'victory',
+  'old contradictory terminal save is reconciled with actual living factions');
 });
 
 test('large central outcome has distinct text for each side and no pause duplication',()=>{
