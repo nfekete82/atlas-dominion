@@ -8,11 +8,11 @@ import {RULES} from '/src/reborn/config.js';
 import {installClassicHud} from '/webgl-classic-hud.js';
 import {hydrateUnitIcons,hydrateBuildingIcons,unitIcon,buildingIconUrl} from '/webgl-portraits.js';
 import {SandforgeActorPresentation} from '/webgl-actor-presentation.js';
-import {calibratedScale,visualUnitScale,buildingFacingAngle,nextBuildingFacing,buildingFacingDegrees,turretAimLocalYaw} from '/webgl-scale.js';
+import {calibratedScale,visualUnitScale,unitVisualYaw,unitRenderAltitude,buildingFacingAngle,nextBuildingFacing,buildingFacingDegrees,turretAimLocalYaw} from '/webgl-scale.js';
 import {SandforgeGroundingPass} from '/webgl-grounding.js';
 import {createBuildingYard,disposeBuildingYard} from '/webgl-building-yard.js';
 import {disposeOwnedMeshes,disposeTaggedMaterials} from '/webgl-resource-lifecycle.js';
-import {selectedInfantryForTransport,selectedLoadedRovers} from '/webgl-transport-controls.js';
+import {selectedInfantryForTransport,selectedLoadedTransports} from '/webgl-transport-controls.js';
 import {SandforgeConstructionPresentation} from '/webgl-construction.js';
 import {createBastionCaptureBar,updateBastionCaptureBar} from '/webgl-bastion-capture.js';
 import {snapToPlayableEdge,worldToMinimap} from '/webgl-map-edges.js';
@@ -97,7 +97,7 @@ export class SandforgeBattlefield {
   this.buildInterface();this.addFog();this.createBastions();
   this.attachInput();this.sync(true);
  }
- entityPosition(p){return this.pos(p.x,p.y,this.heightAt(p.x,p.y)+(UNITS[p.kind]?.flying?75+100*(p.flightHeight??1):0));}
+ entityPosition(p){return this.pos(p.x,p.y,this.heightAt(p.x,p.y)+unitRenderAltitude(p.kind,p.flightHeight??1));}
  createFallback(kind,owner,type){
   const group=new THREE.Group(),team=owner===0?'#397f9d':'#9f5541',metal=new THREE.MeshStandardMaterial({color:team,metalness:.55,roughness:.53}),
    dark=new THREE.MeshStandardMaterial({color:'#444743',metalness:.45,roughness:.7});
@@ -540,9 +540,9 @@ export class SandforgeBattlefield {
    const lerp=Number.isFinite(travel)&&travel<180?blend:1;
    const x=Number.isFinite(u.previousX)?u.previousX+(u.x-u.previousX)*lerp:u.x;
    const z=Number.isFinite(u.previousY)?u.previousY+(u.y-u.previousY)*lerp:u.y;
-   entry.node.position.copy(this.pos(x,z,this.heightAt(x,z)+(UNITS[u.kind]?.flying?75+100*(u.flightHeight??1):0)));
+   entry.node.position.copy(this.pos(x,z,this.heightAt(x,z)+unitRenderAltitude(u.kind,u.flightHeight??1)));
    const hullAngle=['tank','artillery'].includes(u.kind)&&Number.isFinite(u.hullAngle)?u.hullAngle:u.angle;
-   entry.node.rotation.y=Math.PI*.5-hullAngle;
+   entry.node.rotation.y=unitVisualYaw(u.kind,hullAngle);
    if(u.kind==='tank'||u.kind==='artillery')this.orientTankRig(entry,u);
    entry.node.visible=u.owner===0||this.game.canSee(0,u);
   }
@@ -1136,7 +1136,7 @@ export class SandforgeBattlefield {
    }
   }
   const unloadButton=view.querySelector('[data-action="unload"]');
-  if(unloadButton)unloadButton.hidden=!selectedLoadedRovers(g.units,this.selected).length;
+  if(unloadButton)unloadButton.hidden=!selectedLoadedTransports(g.units,this.selected).length;
   view.querySelector('[data-action="attack"]').setAttribute('aria-pressed',String(this.attackMode));
   view.querySelector('#sf-catalog-detail').textContent=
    spec?.description??'Einheiten auswählen · Rechtsklick bewegen · Pionier für Gebäude erforderlich.';
@@ -1415,10 +1415,10 @@ export class SandforgeBattlefield {
   if(t>=1)this.commandPulse.visible=false;
  }
  transportAtPointer(event){
-  // Pick the friendly 3D Humvee rather than the terrain behind its roof.
+  // Pick the friendly Humvee or transport helicopter model before ground terrain.
   const rect=this.renderer.domElement.getBoundingClientRect();
   if(!rect.width||!rect.height)return null;
-  const candidates=this.game.units.filter(u=>u.kind==='rover'&&u.owner===0&&u.hp>0&&
+  const candidates=this.game.units.filter(u=>['rover','scout'].includes(u.kind)&&u.owner===0&&u.hp>0&&
    !u.carrier&&this.units.get(u.id)?.node.visible);
   if(!candidates.length)return null;
   const ndc=new THREE.Vector2(
@@ -1449,14 +1449,15 @@ export class SandforgeBattlefield {
   return best;
  }
  unloadSelectedTransport(){
-  const rovers=selectedLoadedRovers(this.game.units,this.selected);
-  if(!rovers.length){this.message('Zum Aussteigen einen besetzten Humvee auswählen');return 0;}
+  const transports=selectedLoadedTransports(this.game.units,this.selected);
+  if(!transports.length){this.message('Zum Aussteigen einen besetzten Transporter auswählen');return 0;}
   let done=0;
-  for(const rover of rovers){
-   const point=this.world.nearest({x:rover.x+105,y:rover.y+75},this.game.obstacles());
-   if(point&&this.game.transports.unload(rover.id,point))done++;
+  for(const carrier of transports){
+   // The helicopter lands at a clear site; Humvee occupants step out nearby.
+   const point=this.world.nearest({x:carrier.x+105,y:carrier.y+75},this.game.obstacles());
+   if(point&&this.game.transports.unload(carrier.id,point))done++;
   }
-  this.message(done?done+' Humvee(s): Soldaten steigen aus':
+  this.message(done?done+' Transporter: Soldaten werden ausgeladen':
    'Aussteigen hier nicht möglich · Freie Fläche suchen');
   this.drawInterface();return done;
  }
@@ -1472,8 +1473,8 @@ export class SandforgeBattlefield {
   if(event.button===2&&this.buildKind){
    this.clearPlacement();this.message('Bauplatzwahl abgebrochen');this.drawInterface();return;
   }
-  // Classic simulation already supports 4 Jeep seats, but WebGL previously
-  // interpreted RMB on an owned vehicle as a generic ground movement.
+  // Simulation supports four Humvee seats and ten helicopter seats.
+  // An RMB hit on either owned carrier boards selected infantry before terrain movement.
   // Board BEFORE the terrain ray and other click commands.
   if(event.button===2&&this.selected.size&&!this.attackMode&&this.selectedBase===null){
    const carrier=this.transportAtPointer(event);
@@ -1482,7 +1483,7 @@ export class SandforgeBattlefield {
     const accepted=this.game.command(ids,{
      kind:'board',target:carrier.id,x:carrier.x,y:carrier.y
     });
-    this.message(accepted?accepted+' Soldat(en): Zum Humvee einsteigen':
+    this.message(accepted?accepted+' Soldat(en): Zum '+(carrier.kind==='scout'?'Hubschrauber':'Humvee')+' einsteigen':
      'Einsteigen nicht möglich · Plätze, Entfernung und Weg prüfen');
     if(accepted){this.sound?.command?.();this.showCommandPulse({x:carrier.x,y:carrier.y});}
     this.drawInterface();return;

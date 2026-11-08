@@ -1,0 +1,48 @@
+name: Sandforge airlift landing, bomber and unit scale
+
+on:
+  push:
+    branches:
+      - fix/webgl-airlift-scale-bomber-20261108
+  pull_request:
+    branches:
+      - fix/webgl-rc2-qa-stabilization-20261108
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  airlift-focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Build all production assets and typecheck
+        run: npm run build
+      - name: Helicopter 20Hz board/land/unload + bomber + sizing regressions
+        run: |
+          node --test \
+            tests/webgl-airlift-scale-bomber-20261108.test.mjs \
+            tests/webgl-jeep-boarding.test.mjs
+
+  node-complete:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm test

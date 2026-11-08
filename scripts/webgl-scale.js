@@ -46,14 +46,30 @@ export function turretMuzzleOffset(angle,barrel){
 export function visualUnitScale(kind){
  // Align all four foot soldiers with larger rocket artillery and Humvee.
  // This is a render-only factor: no change to move, weapon or capture radius.
- if(['infantry','medic','engineer'].includes(kind))return .59;
- if(kind==='heavy')return .61;
+ if(['infantry','medic','engineer'].includes(kind))return .56;
+ if(kind==='heavy')return .58;
  // Humvee needs a substantial visual presence beside full-scale buildings.
  // Only the rendered mesh changes; navigation/collision/save width stays 76.
  if(kind==='rover')return 1.34;
  if(kind==='artillery')return 1.32;
- if(kind==='tank')return 1.36;
+ if(kind==='tank')return 1.44;
+ if(kind==='scout')return .89;
  return .94;
+}
+
+/** The imported bomber GLB faces the opposite local longitudinal axis.
+ * Flip only its visual node; world movement, heading, combat and saves remain untouched. */
+export function unitVisualYaw(kind,heading){
+ return Math.PI*.5-heading+(kind==='bomber'?Math.PI:0);
+}
+
+/** Authoritative flightHeight [0..1] drives visible altitude. The helicopter
+ * really touches the ground at 0, rather than hovering 75 world units above it.
+ * The bomber remains in continuous flight at the existing cruise height. */
+export function unitRenderAltitude(kind,flightHeight=1){
+ if(kind==='scout')return 3+172*Math.max(0,Math.min(1,flightHeight));
+ if(kind==='bomber')return 175;
+ return 0;
 }
 const infantry=new Set(['infantry','medic','engineer','heavy']);
 const valid=n=>typeof n==='number'&&Number.isFinite(n)&&n>.00001;

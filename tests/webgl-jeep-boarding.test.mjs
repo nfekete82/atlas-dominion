@@ -65,7 +65,7 @@ test('3D right-click route dispatches boarding before generic terrain movement',
  assert.ok(pos>js.indexOf('pointerUp(event){'));
  assert.ok(pos<js.indexOf('const groundPoint='),'boarding must precede terrain picking');
  assert.match(js,/kind:'board',target:carrier\.id,x:carrier\.x,y:carrier\.y/);
- assert.match(js,/this\.game\.transports\.unload\(rover\.id,point\)/);
+ assert.match(js,/this\.game\.transports\.unload\(carrier\.id,point\)/);
  assert.match(hud,/data-action="unload"/);
  assert.match(build,/webgl-transport-controls\.js/);
 });

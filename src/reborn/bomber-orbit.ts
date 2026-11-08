@@ -3,7 +3,7 @@ import {type Point} from './config.js';
 /** A deterministic, genuine in-world holding circle for idle fixed-wing bombers.
  * Never issues an order, consumes randomness, or reads enemy locations. */
 export interface BomberOrbit {cx:number;cy:number;radius:number;phase:number;direction:-1|1}
-export const BOMBER_ORBIT_SPEED=36;
+export const BOMBER_ORBIT_SPEED=72;
 export const BOMBER_ORBIT_RADII=[78,56,36,20,12,8] as const;
 
 /** Start tangent to the current heading without snapping the aircraft. */
@@ -23,7 +23,7 @@ export function beginBomberOrbit(position:Point&{id:number;angle:number;hullAngl
  return null;
 }
 
-/** A small flight path (~14 s per circle) rather than a stationary animation. */
+/** A fast holding circle (~7 s at the largest radius) rather than a stationary animation. */
 export function advanceBomberOrbit(orbit:BomberOrbit,dt:number):Point&{heading:number;arc:number}{
  orbit.phase=(orbit.phase+orbit.direction*BOMBER_ORBIT_SPEED*dt/orbit.radius)%(Math.PI*2);
  return {x:orbit.cx+Math.cos(orbit.phase)*orbit.radius,

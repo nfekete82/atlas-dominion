@@ -70,7 +70,7 @@ export function installClassicHud(){
    <button data-action="attack" title="Angriffsbewegung (F)">ANGRIFF</button>
    <button data-action="rally" id="sf-rally" title="Sammelpunkt für neue Einheiten setzen">SAMMELPUNKT</button>
    <button data-action="stop" title="Einheiten anhalten (X)">STOPP</button>
-   <button data-action="unload" title="Soldaten aus dem Humvee aussteigen lassen (U)" hidden>AUSSTEIGEN</button>
+   <button data-action="unload" title="Infanterie aus Humvee oder Transporthubschrauber ausladen (U)" hidden>AUSSTEIGEN</button>
    <button data-action="cancel" title="Auswahl oder Bauplatz abbrechen (Esc)">ZURÜCK</button>
   </div>
  </div>
