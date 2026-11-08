@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {generateOases,oasisRandom,oasisContour,oasisPoint} from './webgl-oasis-generation.js';
 import {blendOasisTerrain,waterMaterial} from './webgl-oasis-materials.js';
+import {stoneMaterial,weatheredStoneGeometry} from './webgl-rock-materials.js';
 
 // Triangular, tapered, curved leaf ribbons; no rectangular foliage cards.
 function ribbon(points,width){
@@ -136,9 +137,8 @@ export class DesertOases {
   this.batch('oasis-dry-grasses',tuftGeometry(),this.own(new THREE.MeshStandardMaterial({color:'#9d925e',roughness:1,side:THREE.DoubleSide})),grasses);
   this.batch('oasis-shore-reeds',tuftGeometry(true),foliage,reeds);
   const shrub=tuftGeometry();shrub.scale(1.7,.65,1.7);this.batch('oasis-sparse-shrubs',shrub,foliage,shrubs);
-  const rock=new THREE.DodecahedronGeometry(1,1),p=rock.attributes.position;
-  for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i),s=1+Math.sin(x*17+y*13+z*9)*.14;p.setXYZ(i,x*s*1.4,y*s*.65,z*s);}
-  rock.computeVertexNormals();this.batch('oasis-weathered-stones',rock,this.own(new THREE.MeshStandardMaterial({color:'#ab9877',roughness:1})),stones);
+  const rock=weatheredStoneGeometry(lowQuality);rock.scale(1.4,.65,1);
+  this.batch('oasis-weathered-stones',rock,this.own(stoneMaterial('#b8a184',{lowQuality,normalScale:.56})),stones);
  }
  update(time){
   if(this.disposed)return;

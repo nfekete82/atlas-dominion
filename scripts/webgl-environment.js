@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {createGroundDetails} from '/src/reborn/battlefield-atmosphere.js';
+import {stoneMaterial,weatheredStoneGeometry} from '/webgl-rock-materials.js';
 
 // Environmental set dressing mirrors deterministic Canyon sites but has no
 // influence on gameplay or collision. Every asset is a true GPU 3D mesh.
@@ -51,9 +52,8 @@ export class DesertArtPass {
   this.scene.add(mesh);this.items.push(mesh);
  }
  addDebris(){
-  const dust=new THREE.MeshStandardMaterial({color:'#a98259',roughness:1,metalness:0});
-  const material=new THREE.MeshStandardMaterial({color:'#bba178',roughness:.97,metalness:0});
-  const geometry=new THREE.DodecahedronGeometry(1,0);
+  const dust=stoneMaterial('#b69a7c',{lowQuality:this.lowQuality});
+  const geometry=weatheredStoneGeometry(this.lowQuality);
   const spacious=this.world.mapVersion>=19;
   const mesh=new THREE.InstancedMesh(geometry,dust,
     spacious?(this.lowQuality?160:500):(this.lowQuality?240:850));
@@ -89,10 +89,10 @@ export class DesertArtPass {
   const rubblePerRuin=spacious?(this.lowQuality?5:13):(this.lowQuality?8:27);
   const count=this.terrain.ruins.length*rubblePerRuin;
   if(!count)return;
-  const geometry=new THREE.DodecahedronGeometry(1,0);
+  const geometry=weatheredStoneGeometry(this.lowQuality);
   const materials=[
-   new THREE.MeshStandardMaterial({color:'#d8bd98',roughness:1}),
-   new THREE.MeshStandardMaterial({color:'#9f8060',roughness:1})
+   stoneMaterial('#debe98',{lowQuality:this.lowQuality}),
+   stoneMaterial('#aa8e70',{lowQuality:this.lowQuality})
   ];
   const meshes=materials.map(material=>new THREE.InstancedMesh(geometry,material,count));
   const counters=[0,0],dummy=new THREE.Object3D();
