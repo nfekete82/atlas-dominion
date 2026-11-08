@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import {UNITS} from '/src/reborn/catalog.js';
+import {hitResponseFor,impactHeight,damagedVehicleIntensity} from '/webgl-hit-response.js';
 import {addWreckRecord,advanceWreckRecords,wreckSink,WRECK_CAP,
  WRECK_CAP_LITE,CRASH_CAP,CRASH_LIFETIME_SECONDS,isWreckableUnit,
  isAircraftWreck} from '/webgl-wreck-lifecycle.js';
@@ -211,6 +213,7 @@ export class SandforgeCombatEffects {
   this.seed=game.seed>>>0;this.frame=0;
   this.stats={blasts:0,impacts:0,scorch:0,tracks:0,wrecks:0,rockets:0};
   this.lastUnitPollTime=NaN;
+  this.lastDamageSmoke=new Map();this.lastDamageSmokeSweep=0;
   this.activeParticles=0;
   for(const u of game.units)if(u.hp>0&&!u.carrier)this.lastUnits.set(u.id,{x:u.x,y:u.y,kind:u.kind,owner:u.owner,angle:u.angle,flightHeight:u.flightHeight??1});
  }
@@ -222,6 +225,46 @@ export class SandforgeCombatEffects {
  particle(pool,x,z,y,size,life,vx=0,vz=0,vy=0){
   if(pool.particles.length>=pool.max)pool.particles.shift();
   pool.particles.push({x,z,y,size,life,ttl:life,vx,vz,vy,angle:(this.rand()-.5)*.45});
+ }
+ impactAt(shot){
+  const p=shot.groundTo??shot.to;
+  if(!this.game.canSee(0,{x:p.x,y:p.y}))return;
+  const response=hitResponseFor(shot);
+  if(response.kind==='explosion'){
+   this.blastAt(p.x,p.y,false);
+   return;
+  }
+  this.stats.impacts++;
+  const from=shot.groundFrom??shot.from;
+  const dirX=p.x-from.x,dirZ=p.y-from.y,len=Math.max(1,Math.hypot(dirX,dirZ));
+  const nx=dirX/len,nz=dirZ/len;
+  const armored=response.kind==='armor';
+  const height=this.heightAt(p.x,p.y)+(armored?impactHeight(shot):7);
+  // Metal makes sharp bright ricochets and flying chips. Sand kicks up
+  // low ochre dust. Infantry hits never create a giant fireball or splat.
+  for(let i=0;i<response.sparkCount;i++){
+   const a=this.rand()*Math.PI*2;
+   const side=armored?22:8;
+   const vx=Math.cos(a)*(18+this.rand()*side)+nx*(armored?17:5);
+   const vz=Math.sin(a)*(18+this.rand()*side)+nz*(armored?17:5);
+   this.particle(this.sparks,p.x+(this.rand()-.5)*7,
+    p.y+(this.rand()-.5)*7,height+this.rand()*6,
+    armored?2.9+this.rand()*4:2.4+this.rand()*2.3,
+    .08+this.rand()*(armored?.17:.07),vx,vz,armored?27+this.rand()*46:15);
+  }
+  for(let i=0;i<response.chipCount;i++){
+   const a=this.rand()*Math.PI*2;
+   this.particle(this.debris,p.x,p.y,height+2,
+    2+this.rand()*3,.23+this.rand()*.27,
+    Math.cos(a)*(23+this.rand()*38)+nx*17,
+    Math.sin(a)*(23+this.rand()*38)+nz*17,25+this.rand()*40);
+  }
+  for(let i=0;i<response.dustCount;i++){
+   const a=this.rand()*Math.PI*2;
+   this.particle(this.dust,p.x+(this.rand()-.5)*9,p.y+(this.rand()-.5)*9,
+    this.heightAt(p.x,p.y)+3,armored?8+this.rand()*7:11+this.rand()*15,
+    .20+this.rand()*.20,Math.cos(a)*18,Math.sin(a)*18,4+this.rand()*9);
+  }
  }
  sparkAt(x,z,armored=false){
   if(!this.game.canSee(0,{x,y:z}))return;
@@ -515,9 +558,8 @@ export class SandforgeCombatEffects {
    this.seenShots.add(shot);
    if(!shot.hit)continue;
    const p=shot.groundTo??shot.to;
-   if(['cannon','rocket'].includes(shot.weapon))this.blastAt(p.x,p.y,false);
-   else if(['turret','machinegun','rifle','heavy','pistol'].includes(shot.weapon))
-    this.sparkAt(p.x,p.y,Boolean(shot.armored));
+   if(['cannon','rocket','turret','machinegun','rifle','heavy','pistol'].includes(shot.weapon))
+    this.impactAt(shot);
   }
   // Expensive per-unit visual history only changes on a fixed simulation
   // tick (20 Hz), not every 60–120 FPS rendering frame.
@@ -540,6 +582,34 @@ export class SandforgeCombatEffects {
    else if(isWreckableUnit(old.kind))this.addWreck(old);
   }
   this.lastUnits=next;
+  this.damagedVehicleSmoke(this.game.units);
+ }
+ damagedVehicleSmoke(units){
+  let emitted=0;
+  const live=new Set();
+  for(const u of units){
+   if(!u.hp||u.carrier)continue;
+   live.add(u.id);
+   const intensity=damagedVehicleIntensity(u,UNITS[u.kind]?.hp);
+   if(intensity<=0||!this.game.canSee(0,u))continue;
+   const last=this.lastDamageSmoke.get(u.id)??-Infinity;
+   if(this.game.time-last<(.76-intensity*.36))continue;
+   this.lastDamageSmoke.set(u.id,this.game.time);
+   this.particle(this.smoke,u.x,u.y,this.heightAt(u.x,u.y)+34,
+    13+intensity*22,1.1+intensity*1.6,
+    (this.rand()-.5)*8,(this.rand()-.5)*8,12+intensity*20);
+   if(intensity>.91&&this.rand()>.75)
+    this.particle(this.flames,u.x,u.y,this.heightAt(u.x,u.y)+27,
+     8+this.rand()*8,.18+this.rand()*.22,0,0,16);
+   if(++emitted>=6)break;
+  }
+  // Remove dead vehicles from the small cooldown table every ~1.5 s;
+  // rebuilding once per frame would create more work than these effects.
+  if(this.game.time-this.lastDamageSmokeSweep>=1.5){
+   this.lastDamageSmokeSweep=this.game.time;
+   for(const id of this.lastDamageSmoke.keys())
+    if(!units.some(u=>u.id===id&&u.hp>0&&!u.carrier))this.lastDamageSmoke.delete(id);
+  }
  }
  update(dt,active=true,subTick=0){
   this.pollSimulation();
