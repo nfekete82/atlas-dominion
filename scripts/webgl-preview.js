@@ -782,6 +782,10 @@ new ResizeObserver(resize).observe(stage);resize();
 const chunks=buildTerrain();
 boundaryCliffs=addBoundaryCliffs({scene,size,heightAt,seed,lowQuality:query.get('lite')==='1',softRim:spacious,hardVoid:spacious});
 const stones=instancedStone();sandRoads();
+// Small ground-level stones accent the winding dry wash from the reference.
+// One visual-only instanced draw call; no gameplay pathing or collision edits.
+const washStones=spacious?addDesertWashStones({scene,world,size,seed,heightAt,
+ sites:terrain.sites,lowQuality:query.get('lite')==='1'}):null;
 const battlefield=new SandforgeBattlefield({
  game,world,terrain,scene,renderer,camera,controls,loader,groundMeshes,heightAt,pos,
  lite:query.get('lite')==='1'
