@@ -3,8 +3,10 @@ import {type Point} from './config.js';
 /** A deterministic, genuine in-world holding circle for idle fixed-wing bombers.
  * Never issues an order, consumes randomness, or reads enemy locations. */
 export interface BomberOrbit {cx:number;cy:number;radius:number;phase:number;direction:-1|1}
-export const BOMBER_ORBIT_SPEED=72;
-export const BOMBER_ORBIT_RADII=[78,56,36,20,12,8] as const;
+export const BOMBER_ORBIT_SPEED=145;
+// Wide, natural fixed-wing holding patterns; smaller circles only where
+// the playable map edge or a sector capture boundary leaves no alternative.
+export const BOMBER_ORBIT_RADII=[230,190,150,115,78,56,36,20,12,8] as const;
 
 /** Start tangent to the current heading without snapping the aircraft. */
 export function beginBomberOrbit(position:Point&{id:number;angle:number;hullAngle?:number},size:number,
@@ -23,7 +25,7 @@ export function beginBomberOrbit(position:Point&{id:number;angle:number;hullAngl
  return null;
 }
 
-/** A fast holding circle (~7 s at the largest radius) rather than a stationary animation. */
+/** Wide moving patrol (~10 s for the 230-unit circle), never stationary. */
 export function advanceBomberOrbit(orbit:BomberOrbit,dt:number):Point&{heading:number;arc:number}{
  orbit.phase=(orbit.phase+orbit.direction*BOMBER_ORBIT_SPEED*dt/orbit.radius)%(Math.PI*2);
  return {x:orbit.cx+Math.cos(orbit.phase)*orbit.radius,
@@ -62,7 +64,7 @@ export function safeOrbitApproach(position:Point,
  captureRadius:number,size:number,dt:number):Point|null{
  const candidates=sectors.filter(t=>t.owner!==owner)
   .map(t=>({sector:t,d:Math.hypot(position.x-t.point.x,position.y-t.point.y)}))
-  .filter(o=>Math.abs(o.d-captureRadius)<2*78+12)
+  .filter(o=>Math.abs(o.d-captureRadius)<2*BOMBER_ORBIT_RADII[0]+12)
   .sort((a,b)=>Math.abs(a.d-captureRadius)-Math.abs(b.d-captureRadius));
  const candidate=candidates[0];if(!candidate)return null;
  const {sector,d}=candidate;

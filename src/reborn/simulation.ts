@@ -22,11 +22,12 @@ import {Transports,type TransportState} from './transports.js';
 import {TacticalAI,type TacticalState,type TacticalOrder} from './tactical-ai.js';
 import { MAP_VERSION, randomMapSeed } from './world-generation.js';
 import {beginBomberOrbit,advanceBomberOrbit,validBomberOrbit,BOMBER_ORBIT_SPEED,preservesCaptureBoundary,safeOrbitApproach,isOnBomberOrbit,type BomberOrbit} from './bomber-orbit.js';
+import {bomberAttackWaypoints,BOMBER_BOMB_RELEASE_DISTANCE,BOMBER_RUN_WAYPOINT_DISTANCE,BOMBER_BOMB_FALL_SECONDS,type BomberAttackRun} from './bomber-attack.js';
 import {AttackAlerts} from './attack-alerts.js';
 
 export interface Formation {front:number[];fallback?:number[];heading:Point;origin:Point;goal:Point;lane:number;rear:number}
 export interface Order extends Point { kind:'move'|'attackMove'|'attack'|'heal'|'repair'|'build'|'board'; target?:number; approach?:Point; healOrigin?:Point; formation?:Formation; march?:number[]; rear?:number; tactical?:TacticalOrder }
-export type Weapon='rifle'|'heavy'|'pistol'|'turret'|'cannon'|'rocket'|'machinegun';
+export type Weapon='rifle'|'heavy'|'pistol'|'turret'|'cannon'|'rocket'|'machinegun'|'bomb';
 export interface Burst {target:number;remaining:number;at:number;index:number}
 export interface WorkEffect {kind:'heal'|'repair'|'build'|'board';target:number;source:number;sources:number[];at:number;amount:number}
 export const HEAL_RADIUS=70;
@@ -41,6 +42,8 @@ export interface Unit extends Point {
   driveSpeed?:number; hullAngle?:number; combatTarget?:number|null;
   /** Optional true-position orbit for idle bombers; round-trips with older saves. */
   idleOrbit?:BomberOrbit;
+  /** Deterministic flyover / wide-loop state for repeated ground bombing runs. */
+  bomberRun?:BomberAttackRun;
   /** A real collision enabled complete clearance checks for future routes. */
   exactPath?:boolean;
   /** Active only when a strict visual-clearance route genuinely cannot be found. */
@@ -68,7 +71,7 @@ export interface Base extends Point {
 /** Transient on-screen release cue. Never serialized or used for collisions. */
 export interface ProductionRelease {unitId:number;baseId:number;kind:UnitKind;owner:Faction;at:number;from:Point;to:Point}
 export interface Shot { from:Point; to:Point; owner:Faction; life:number; hit:boolean; projected?:boolean; source?:number; weapon?:Weapon; barrel?:number; at?:number; groundFrom?:Point; groundTo?:Point; armored?:boolean; kind?:UnitKind; angle?:number;flightHeight?:number }
-export interface Missile {id:number;source:number;owner:Faction;from:Point;to:Point;angle:number;at:number;impactAt:number;damage:number;type?:'antiArmor'}
+export interface Missile {id:number;source:number;owner:Faction;from:Point;to:Point;angle:number;at:number;impactAt:number;damage:number;type?:'antiArmor'|'bomb'}
 export interface Blast extends Point {at:number;id:number}
 export type CaptureReadiness='owned'|'no-unit'|'out-of-range'|'contested'|'enemy-hq'|'capturing';
 export interface Memory extends Point { id:number; owner:Faction; hp:number; territory:number; kind?:BuildingKind }
@@ -286,6 +289,7 @@ export class Simulation {
     if(order.kind==='board')return this.transports.board(order.target??-1,ids);
     if(!Number.isFinite(order.x)||!Number.isFinite(order.y))return 0;
     const members=this.units.filter(u=>ids.includes(u.id)&&u.hp>0&&!u.carrier);
+    if(!append)for(const u of members)if(u.kind==='bomber')delete u.bomberRun;
     // A direct player or AI override interrupts any staged garage departure.
     // Initial automatic rally is issued before its hold is registered.
     for(const u of members)this.cancelProductionDeparture(u.id);
@@ -367,7 +371,7 @@ export class Simulation {
     if(this.bases.some(b=>b.kind==='headquarters'&&b.territory===t.id&&b.owner!==owner&&b.hp>0))return 'enemy-hq';
     return 'capturing';
   }
-  stop(ids:number[],hold=false):void {for(const u of this.units)if(ids.includes(u.id)){this.cancelProductionDeparture(u.id);this.transports.cancel(u);u.orders=[];u.path=[];u.repath=0;u.moving=false;if(u.kind==='tank')u.driveSpeed=0;u.pursuitOrigin=null;u.combatTarget=null;u.hold=hold;u.supportPaused=false;u.workingTarget=null;delete u.burst;}}
+  stop(ids:number[],hold=false):void {for(const u of this.units)if(ids.includes(u.id)){if(u.kind==='bomber')delete u.bomberRun;this.cancelProductionDeparture(u.id);this.transports.cancel(u);u.orders=[];u.path=[];u.repath=0;u.moving=false;if(u.kind==='tank')u.driveSpeed=0;u.pursuitOrigin=null;u.combatTarget=null;u.hold=hold;u.supportPaused=false;u.workingTarget=null;delete u.burst;}}
   private supportEligible(u:Unit,target:Unit|Base,kind:string):boolean {
     if(target.hp<=0||('orders' in target&&target.carrier)||target.owner!==u.owner)return false;
     if(kind==='heal')return u.kind==='medic'&&'orders' in target&&unitSpec(target).group==='Infanterie'&&target.hp<unitSpec(target).hp;
@@ -626,6 +630,26 @@ export class Simulation {
     u.mgCooldown=TANK_MG.cooldown/getVeterancyModifiers(u).fireRate;
     this.damage(u,target,TANK_MG.damage*getVeterancyModifiers(u).damage,'machinegun',{x:u.x,y:u.y-34});
   }
+  /** A bomb is a real delayed projectile: visible fall and impact damage
+   * derive from the same persisted missile, including after save/load. */
+  private releaseBomb(u:Unit,target:Unit|Base):void{
+    const from={x:u.x,y:u.y},to={x:target.x,y:target.y};
+    this.missiles.push({
+      id:this.nextId++,source:u.id,owner:u.owner,from,to,angle:u.angle,
+      at:this.time,impactAt:this.time+BOMBER_BOMB_FALL_SECONDS,
+      damage:unitSpec(u).damage*getVeterancyModifiers(u).damage,type:'bomb'
+    });
+    this.shots.push({
+      from,to,owner:u.owner,life:.45,hit:false,weapon:'bomb',source:u.id,
+      kind:'bomber',angle:u.angle,at:this.time,groundFrom:from,groundTo:to
+    });
+    u.fire=.25;
+    u.cooldown=unitSpec(u).cooldown/getVeterancyModifiers(u).fireRate;
+    delete u.idleOrbit;
+    u.bomberRun={target:target.id,leg:0,
+      waypoints:bomberAttackWaypoints(u,to,this.world.size,u.id%2===0?1:-1)};
+    u.path=[];u.repath=0;
+  }
   private launch(u:Unit,target:Unit|Base):void{
     const id=this.nextId++,antiArmor=u.kind==='tank',offset=antiArmor?{x:0,y:0}:this.weather.artilleryOffset(id,u.id),from={x:u.x,y:u.y},
       to={x:clamp(target.x+offset.x,0,this.world.size),y:clamp(target.y+offset.y,0,this.world.size)},
@@ -833,8 +857,8 @@ export class Simulation {
       // Otherwise a helicopter ordered to retreat in the opposite direction
       // stays virtually motionless until its hull has turned ~90 degrees.
       // Preserve the existing turning/braking model for ground vehicles.
-      const traction=spec.flying&&u.orders[0]?.kind==='move'
-        ?Math.max(.45,Math.cos(error)):Math.max(0,Math.cos(error));
+      const traction=spec.flying&&(u.kind==='bomber'||u.orders[0]?.kind==='move')
+        ?Math.max(.65,Math.cos(error)):Math.max(0,Math.cos(error));
       const targetSpeed=Math.min(spec.speed,Math.sqrt(2*braking*remaining))*traction;
       u.driveSpeed=(u.driveSpeed??0)+clamp(targetSpeed-(u.driveSpeed??0),-braking*dt,spec.speed*1.9*dt);
       velocity=Math.min(u.driveSpeed,speedLimit);
@@ -876,7 +900,7 @@ export class Simulation {
     if(this.incomeClock+1e-8>=RULES.incomeInterval){this.incomeClock=Math.max(0,this.incomeClock-RULES.incomeInterval);for(const owner of [0,1] as const){const earned=this.income(owner);this.credits[owner]+=earned;countIncome(this.stats,owner,earned);}}
     this.blasts=this.blasts.filter(b=>this.time-b.at<.5);
     for(const missile of this.missiles)if(missile.impactAt<=this.time){
-      const antiArmor=missile.type==='antiArmor',radius=antiArmor?44:60;
+      const antiArmor=missile.type==='antiArmor',radius=antiArmor?44:missile.type==='bomb'?94:60;
       for(const target of [...this.units,...this.bases])if(target.owner!==missile.owner&&target.hp>0&&!('orders' in target&&(target.carrier||unitSpec(target).flying))&&distance(target,missile.to)<=radius){
         const armored='queue' in target||unitSpec(target).group!=='Infanterie';
         const amount=missile.damage*(1-.5*distance(target,missile.to)/radius)*(antiArmor&&!armored?.28:1);
@@ -910,14 +934,50 @@ export class Simulation {
       // Boarding/takeoff animations finish before movement resumes.
       if(transportBusy){delete u.burst;continue;}
       if(u.kind==='bomber'&&(u.orders.length>0||u.hold||u.pursuitOrigin))delete u.idleOrbit;
+      // Complete a wide physical escape/turn/return route after a bomb release.
+      // The waypoint array is fixed at launch: no unseen target tracking.
+      if(u.kind==='bomber'&&u.bomberRun&&(order?.kind!=='move')&&!u.hold){
+        const run=u.bomberRun;
+        const target=this.combatEntity(run.target);
+        if(!target||target.hp<=0||target.owner===u.owner){delete u.bomberRun;}
+        else if(run.leg<run.waypoints.length){
+          const waypoint=run.waypoints[run.leg];
+          if(distance(u,waypoint)<=BOMBER_RUN_WAYPOINT_DISTANCE){
+            run.leg++;u.path=[];u.repath=0;
+          }else this.move(u,waypoint,dt);
+          continue;
+        }
+      }
       if(order?.kind==='move'&&(u.owner===0||this.world.mapVersion>=3&&this.tactical.mode==='director'||this.tactical.state.phase!=='attack')){
         delete u.burst;u.combatTarget=null;u.pursuitOrigin=null;
         if(distance(u,order)<18){u.orders.shift();u.path=[];u.repath=0;if(u.kind==='tank')u.driveSpeed=0;}
         else this.move(u,order,dt);
         continue;
       }
-      const enemy=this.acquire(u);
+      const acquired=this.acquire(u);
+      // Preserve a visible target through the wide return leg even when the
+      // bomber briefly travels beyond the automatic engagement radius.
+      const returning=u.kind==='bomber'&&u.bomberRun?.leg===3?
+        this.combatEntity(u.bomberRun.target):undefined;
+      const enemy=acquired??(returning&&returning.hp>0&&returning.owner!==u.owner&&
+        this.canSee(u.owner,returning)?returning:undefined);
       const spec=unitSpec(u);
+      if(u.kind==='bomber'&&enemy&&!u.hold){
+        // A bomber never hangs motionless in attack range firing a cannon.
+        // It must fly across the actual target, drop one bomb, make a wide
+        // physical loop and return for the next pass.
+        if(distance(u,enemy)<=BOMBER_BOMB_RELEASE_DISTANCE&&u.cooldown<=0){
+          this.releaseBomb(u,enemy);
+        }else{
+          const forward=distance(u,enemy)<BOMBER_BOMB_RELEASE_DISTANCE+25;
+          const heading=u.angle,point=forward?{
+            x:clamp(u.x+Math.cos(heading)*320,8,this.world.size-8),
+            y:clamp(u.y+Math.sin(heading)*320,8,this.world.size-8)
+          }:enemy;
+          this.move(u,point,dt);
+        }
+        continue;
+      }
       if(u.kind==='tank'){u.mgCooldown=Math.max(0,(u.mgCooldown??0)-dt);this.tankMachinegun(u);}
       const engagementRange=u.kind==='tank'&&enemy&&'orders' in enemy&&unitSpec(enemy).group==='Infanterie'?TANK_MG.range:spec.range;
       if(enemy&&distance(u,enemy)<=engagementRange&&(spec.flying||('orders' in enemy&&unitSpec(enemy).flying)||this.world.line(u,enemy,this.obstacles().filter(b=>b.id!==enemy.id)))){
@@ -1145,7 +1205,7 @@ export class Simulation {
       !Array.isArray(s.territories)||s.territories.length!==mapLayout(s.mapVersion??0).columns*mapLayout(s.mapVersion??0).rows||!Array.isArray(s.explored)||s.explored.length!==2||
       s.explored.some(a=>!Array.isArray(a)||![120**2,RULES.grid**2].includes(a.length)||a.some(v=>v!==0&&v!==1))||
       !Array.isArray(s.credits)||s.credits.length!==2||s.credits.some(v=>!finite(v)||v<0)||
-      s.units.some(u=>(u.mgCooldown!==undefined&&(!finite(u.mgCooldown)||u.mgCooldown<0||u.mgCooldown>1))||!burst(u.burst,u.kind==='infantry'||u.kind==='heavy'||u.kind==='scout'||u.kind==='rover'||u.kind===undefined?3:1)||!point(u)||![0,1].includes(u.owner)||(u.kind!==undefined&&!Object.hasOwn(UNITS,u.kind))||(u.driveSpeed!==undefined&&(!finite(u.driveSpeed)||u.driveSpeed<0||u.driveSpeed>unitSpec(u).speed))||!validBomberOrbit(u.idleOrbit,u.kind??'infantry',mapWorldSize(s.mapVersion??0))||(u.hullAngle!==undefined&&!finite(u.hullAngle))||(u.pursuitOrigin!==undefined&&u.pursuitOrigin!==null&&!point(u.pursuitOrigin))||!finite(u.hp)||u.hp<=0||u.hp>(UNITS[u.kind??'infantry']?.hp??0)||!Array.isArray(u.orders)||u.orders.length>32||u.orders.some(o=>!point(o)||(o.rear!==undefined&&(!finite(o.rear)||o.rear<0||o.rear>400))||(o.tactical!==undefined&&((o.tactical.goal!==undefined&&!point(o.tactical.goal))||!Number.isInteger(o.tactical.group)||!['safe','assault','defend'].includes(o.tactical.mode)))||(o.march!==undefined&&(!Array.isArray(o.march)||o.march.length>96||o.march.some(id=>!Number.isInteger(id))))||(o.approach!==undefined&&!point(o.approach))||(o.healOrigin!==undefined&&!point(o.healOrigin))||(o.formation!==undefined&&(!Array.isArray(o.formation.front)||o.formation.front.length>96||o.formation.front.some(id=>!Number.isInteger(id))||!point(o.formation.origin)||!point(o.formation.goal)||!finite(o.formation.heading?.x)||!finite(o.formation.heading?.y)||Math.hypot(o.formation.heading.x,o.formation.heading.y)>1.001||!finite(o.formation.lane)||!finite(o.formation.rear)))||!['move','attackMove','attack','heal','repair','build','board'].includes(o.kind)||(['heal','repair','build','board'].includes(o.kind)&&!Number.isInteger(o.target))))||
+      s.units.some(u=>(u.mgCooldown!==undefined&&(!finite(u.mgCooldown)||u.mgCooldown<0||u.mgCooldown>1))||!burst(u.burst,u.kind==='infantry'||u.kind==='heavy'||u.kind==='scout'||u.kind==='rover'||u.kind===undefined?3:1)||!point(u)||![0,1].includes(u.owner)||(u.kind!==undefined&&!Object.hasOwn(UNITS,u.kind))||(u.driveSpeed!==undefined&&(!finite(u.driveSpeed)||u.driveSpeed<0||u.driveSpeed>unitSpec(u).speed))||!validBomberOrbit(u.idleOrbit,u.kind??'infantry',mapWorldSize(s.mapVersion??0))||(u.bomberRun!==undefined&&((u.kind??'infantry')!=='bomber'||!u.bomberRun||!Number.isInteger(u.bomberRun.target)||!Number.isInteger(u.bomberRun.leg)||u.bomberRun.leg<0||u.bomberRun.leg>3||!Array.isArray(u.bomberRun.waypoints)||u.bomberRun.waypoints.length!==3||u.bomberRun.waypoints.some(p=>!point(p))))||(u.hullAngle!==undefined&&!finite(u.hullAngle))||(u.pursuitOrigin!==undefined&&u.pursuitOrigin!==null&&!point(u.pursuitOrigin))||!finite(u.hp)||u.hp<=0||u.hp>(UNITS[u.kind??'infantry']?.hp??0)||!Array.isArray(u.orders)||u.orders.length>32||u.orders.some(o=>!point(o)||(o.rear!==undefined&&(!finite(o.rear)||o.rear<0||o.rear>400))||(o.tactical!==undefined&&((o.tactical.goal!==undefined&&!point(o.tactical.goal))||!Number.isInteger(o.tactical.group)||!['safe','assault','defend'].includes(o.tactical.mode)))||(o.march!==undefined&&(!Array.isArray(o.march)||o.march.length>96||o.march.some(id=>!Number.isInteger(id))))||(o.approach!==undefined&&!point(o.approach))||(o.healOrigin!==undefined&&!point(o.healOrigin))||(o.formation!==undefined&&(!Array.isArray(o.formation.front)||o.formation.front.length>96||o.formation.front.some(id=>!Number.isInteger(id))||!point(o.formation.origin)||!point(o.formation.goal)||!finite(o.formation.heading?.x)||!finite(o.formation.heading?.y)||Math.hypot(o.formation.heading.x,o.formation.heading.y)>1.001||!finite(o.formation.lane)||!finite(o.formation.rear)))||!['move','attackMove','attack','heal','repair','build','board'].includes(o.kind)||(['heal','repair','build','board'].includes(o.kind)&&!Number.isInteger(o.target))))||
       s.bases.some(b=>(b.facing!==undefined&&![0,1,2,3].includes(b.facing))||!burst(b.burst,b.kind==='turret'?4:1)||!point(b)||![0,1].includes(b.owner)||(b.kind!==undefined&&!Object.hasOwn(BUILDINGS,b.kind))||(b.turretAngle!==undefined&&!finite(b.turretAngle))||!finite(b.hp)||b.hp<0||b.hp>(BUILDINGS[b.kind??'headquarters']?.hp??0)||!Array.isArray(b.queue)||b.queue.length>8||b.queue.some((v,i)=>!finite(v)||v!==UNITS[b.queueTypes?.[i]??'infantry']?.buildTime)||
         (b.queueTypes!==undefined&&(!Array.isArray(b.queueTypes)||b.queueTypes.length!==b.queue.length||b.queueTypes.some(k=>!Object.hasOwn(UNITS,k))))||
         (s.productionVersion===1&&b.queue.some((_,i)=>!UNITS[b.queueTypes?.[i]??'infantry']?.producers.includes(b.kind??'headquarters')))||
@@ -1185,7 +1245,7 @@ export class Simulation {
       return Uint8Array.from({length:RULES.grid**2},(_,i)=>a[Math.floor(Math.floor(i/RULES.grid)*oldGrid/RULES.grid)*oldGrid+Math.floor((i%RULES.grid)*oldGrid/RULES.grid)]);
     });game.memories=structuredClone(s.memories??[[],[]]);game.aiClock=clamp(s.aiClock||0,0,RULES.aiInterval);
     if(!Transports.valid(game))throw Error('Ungültiger Transportzustand im Spielstand.');
-    if(s.missiles!==undefined&&(!Array.isArray(s.missiles)||s.missiles.length>96||s.missiles.some(m=>!Number.isSafeInteger(m.id)||!Number.isSafeInteger(m.source)||![0,1].includes(m.owner)||!point(m.from)||!point(m.to)||!finite(m.at)||m.at>s.time||!finite(m.impactAt)||m.impactAt<=s.time||m.impactAt>s.time+12||!finite(m.damage)||m.damage<=0||m.damage>Math.max(UNITS.artillery.damage,UNITS.tank.damage)*getVeterancyModifiers({kind:'tank',xp:500}).damage||(m.type!==undefined&&m.type!=='antiArmor')||!finite(m.angle))))throw Error('Ungültige Raketen im Spielstand.');
+    if(s.missiles!==undefined&&(!Array.isArray(s.missiles)||s.missiles.length>96||s.missiles.some(m=>!Number.isSafeInteger(m.id)||!Number.isSafeInteger(m.source)||![0,1].includes(m.owner)||!point(m.from)||!point(m.to)||!finite(m.at)||m.at>s.time||!finite(m.impactAt)||m.impactAt<=s.time||m.impactAt>s.time+12||!finite(m.damage)||m.damage<=0||m.damage>Math.max(UNITS.artillery.damage,UNITS.tank.damage)*getVeterancyModifiers({kind:'tank',xp:500}).damage||(m.type!==undefined&&!['antiArmor','bomb'].includes(m.type))||!finite(m.angle))))throw Error('Ungültige Raketen im Spielstand.');
     game.missiles=structuredClone(s.missiles??[]);game.nextId=Math.max(game.nextId,...game.missiles.map(m=>m.id+1));
     game.weather.update(game.time);game.unitById=new Map(game.units.map(u=>[u.id,u]));
     game.tactical.restore(s.ai);

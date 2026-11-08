@@ -1,0 +1,47 @@
+name: Sandforge carrier slots and physical bomber passes
+
+on:
+  push:
+    branches:
+      - feat/webgl-transport-roster-bomber-runs-20261108
+  pull_request:
+    branches:
+      - feat/webgl-pause-iddqd-credits-20261108
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  transport-bomber-focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Passenger UI / individual unloading / bomber physical flight
+        run: |
+          node --test \
+            tests/webgl-transport-roster-bomber-runs-20261108.test.mjs \
+            tests/webgl-airlift-scale-bomber-20261108.test.mjs \
+            tests/webgl-jeep-boarding.test.mjs
+  full-node-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm test

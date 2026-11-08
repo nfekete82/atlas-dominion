@@ -9,10 +9,10 @@ import {visualUnitScale,unitVisualYaw,unitRenderAltitude} from '../scripts/webgl
 
 test('3D scale and bomber orientation are presentation-only',()=>{
  assert.equal(visualUnitScale('tank'),1.44);
- assert.equal(visualUnitScale('scout'),.89);
+ assert.equal(visualUnitScale('scout'),1.28);
  for(const kind of ['infantry','medic','engineer'])assert.equal(visualUnitScale(kind),.56);
  assert.equal(visualUnitScale('heavy'),.58);
- assert.equal(visualUnitScale('bomber'),.94);
+ assert.equal(visualUnitScale('bomber'),1.03);
  for(const angle of [0,Math.PI/3,Math.PI,Math.PI*1.5]){
   assert.ok(Math.abs(unitVisualYaw('bomber',angle)-unitVisualYaw('scout',angle)-Math.PI)<1e-9);
  }
@@ -30,11 +30,11 @@ test('rendered helicopter lands on ground and takes off smoothly; bomber stays a
 });
 
 test('bomber has much higher commanded speed and twice as fast an idle orbit',()=>{
- assert.equal(UNITS.bomber.speed,225);
- assert.equal(BOMBER_ORBIT_SPEED,72);
+ assert.equal(UNITS.bomber.speed,350);
+ assert.equal(BOMBER_ORBIT_SPEED,145);
  const orbit={cx:2000,cy:2000,radius:78,phase:0,direction:1};
  const next=advanceBomberOrbit(orbit,.05);
- assert.ok(Math.abs(next.arc-3.6)<1e-8);
+ assert.ok(Math.abs(next.arc-7.25)<1e-8);
  assert.ok(Math.abs(Math.hypot(next.x-orbit.cx,next.y-orbit.cy)-78)<1e-8);
 });
 

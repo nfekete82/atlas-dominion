@@ -12,7 +12,7 @@ import {calibratedScale,visualUnitScale,unitVisualYaw,unitRenderAltitude,buildin
 import {SandforgeGroundingPass} from '/webgl-grounding.js';
 import {createBuildingYard,disposeBuildingYard} from '/webgl-building-yard.js';
 import {disposeOwnedMeshes,disposeTaggedMaterials} from '/webgl-resource-lifecycle.js';
-import {selectedInfantryForTransport,selectedLoadedTransports} from '/webgl-transport-controls.js';
+import {selectedInfantryForTransport,selectedLoadedTransports,selectedTransportManifest} from '/webgl-transport-controls.js';
 import {SandforgeConstructionPresentation} from '/webgl-construction.js';
 import {createBastionCaptureBar,updateBastionCaptureBar} from '/webgl-bastion-capture.js';
 import {snapToPlayableEdge,worldToMinimap} from '/webgl-map-edges.js';
@@ -804,6 +804,10 @@ export class SandforgeBattlefield {
    const button=e.target.closest('button');if(!button)return;
    if(this.sound?.enabled)this.sound.select();
    const kind=button.dataset.build,unit=button.dataset.unit,action=button.dataset.action;
+   if(button.dataset.passengerId!==undefined){
+    this.unloadPassenger(Number(button.dataset.carrierId),Number(button.dataset.passengerId));
+    return;
+   }
    if(kind){
     if(!this.catalogContext().engineer){this.message('Zum Bauen zuerst einen Pionier auswählen');return;}
     this.beginPlacement(kind);this.attackMode=false;this.sound?.select?.();
@@ -1094,10 +1098,23 @@ export class SandforgeBattlefield {
   const description=base?.rally
    ?'Sammelpunkt aktiv · Neue Einheiten marschieren automatisch zum markierten Ziel.'
    :spec?.description??'Wähle eine Einheit oder ein Gebäude. Rechtsklick: Marsch oder Zielbefehl.';
+  const manifest=selectedTransportManifest(g.units,this.selected);
+  const roleNames={infantry:'INF',medic:'SAN',engineer:'PIO',heavy:'MG'};
+  const passengerMarkup=manifest
+   ?'<div class="sf-passenger-manifest"><div class="sf-passenger-heading"><span>PASSAGIERE '+manifest.occupied+' / '+manifest.capacity+'</span><span>Klick: einzeln ausladen</span></div>'+
+    '<div class="sf-passenger-slots">'+manifest.slots.map((passenger,i)=>
+     passenger?'<button type="button" class="sf-passenger-slot" data-carrier-id="'+manifest.carrier.id+
+      '" data-passenger-id="'+passenger.id+'" title="'+plain(UNITS[passenger.kind]?.name??passenger.kind)+
+      ' einzeln ausladen" aria-label="Platz '+(i+1)+': '+plain(UNITS[passenger.kind]?.name??passenger.kind)+
+      ' ausladen"><span>'+plain(roleNames[passenger.kind]??'INF')+'</span></button>'
+      :'<span class="sf-passenger-slot sf-passenger-empty" title="Platz '+(i+1)+' frei" aria-label="Platz '+(i+1)+' frei">–</span>'
+     ).join('')+'</div></div>'
+   :'';
+  view.querySelector('#sf-selection-panel')?.classList.toggle('sf-transport-selected',Boolean(manifest));
   const selectedMarkup='<small>'+meta+'</small><strong>'+plain(heading)+'</strong>'+
    (item?'<div class="health-track"><i style="width:'+Math.min(100,hp/maxHp*100)+'%"></i></div>'+
    '<div class="sf-health">'+hp+' / '+maxHp+' LP</div>':'')+
-   '<p>'+plain(description)+'</p>';
+   '<p>'+plain(description)+'</p>'+passengerMarkup;
   if(this.previousSelectionMarkup!==selectedMarkup){
    el.innerHTML=selectedMarkup;this.previousSelectionMarkup=selectedMarkup;
   }
@@ -1447,6 +1464,17 @@ export class SandforgeBattlefield {
    if(distance<radius&&distance<bestDistance){best=u;bestDistance=distance;}
   }
   return best;
+ }
+ unloadPassenger(carrierId,passengerId){
+  const carrier=this.game.units.find(u=>u.id===carrierId&&u.owner===0&&u.hp>0&&
+   ['rover','scout'].includes(u.kind)&&this.selected.has(u.id));
+  const passenger=this.game.units.find(u=>u.id===passengerId&&u.carrier===carrierId);
+  if(!carrier||!passenger||!carrier.transport?.cargo.includes(passengerId))return false;
+  const point=this.world.nearest({x:carrier.x+105,y:carrier.y+75},this.game.obstacles());
+  const done=Boolean(point&&this.game.transports.unload(carrier.id,point,passenger.id));
+  this.message(done?(UNITS[passenger.kind]?.name??'Soldat')+' wird einzeln ausgeladen':
+   'Einzeln ausladen derzeit nicht möglich · Freie Fläche suchen');
+  this.drawInterface();return done;
  }
  unloadSelectedTransport(){
   const transports=selectedLoadedTransports(this.game.units,this.selected);
