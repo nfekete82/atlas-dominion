@@ -540,7 +540,7 @@ export class SandforgeBattlefield {
    const lerp=Number.isFinite(travel)&&travel<180?blend:1;
    const x=Number.isFinite(u.previousX)?u.previousX+(u.x-u.previousX)*lerp:u.x;
    const z=Number.isFinite(u.previousY)?u.previousY+(u.y-u.previousY)*lerp:u.y;
-   entry.node.position.copy(this.pos(x,z,this.heightAt(x,z)+(UNITS[u.kind]?.flying?75+100*(u.flightHeight??1):0)));
+   entry.node.position.copy(this.pos(x,z,this.heightAt(x,z)+unitRenderAltitude(u.kind,u.flightHeight??1)));
    const hullAngle=['tank','artillery'].includes(u.kind)&&Number.isFinite(u.hullAngle)?u.hullAngle:u.angle;
    entry.node.rotation.y=unitVisualYaw(u.kind,hullAngle);
    if(u.kind==='tank'||u.kind==='artillery')this.orientTankRig(entry,u);
