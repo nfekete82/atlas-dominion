@@ -948,6 +948,27 @@ soundButton.onclick=async()=>{
 };
 
 const performanceWatch=new SandforgePerformanceWatch({game,renderer,effects,groundTracks,battlefield});
+// The 3D preview reuses the authoritative, player-only classic attack alerts.
+let lastAttackSequence=game.attackAlerts.sequence;
+let lastAttackBannerUntil=-Infinity;
+function updateAttackWarning(){
+ const sequence=game.attackAlerts.sequence;
+ const notice=battlefield.panel.querySelector('#sf-message');
+ if(running&&game.status==='playing'&&sequence>lastAttackSequence){
+  lastAttackSequence=sequence;
+  battlefield.message('Captain, wir werden angegriffen!');
+  notice.dataset.attackAlert='true';
+  notice.style.color='#ff6b60';
+  lastAttackBannerUntil=game.time+5.5;
+  sound.announceAttack();
+  // Do not delay the red minimap beacon until the next 700ms refresh.
+  battlefield.drawMinimap();
+ }
+ if(game.time>=lastAttackBannerUntil&&notice.dataset.attackAlert==='true'){
+  delete notice.dataset.attackAlert;
+  notice.style.removeProperty('color');
+ }
+}
 let lastFrame=performance.now(),frames=0;
 function animate(now){
  performanceWatch.begin(now);
@@ -959,6 +980,7 @@ function animate(now){
  }
  // Measure simulation and 3D/DOM presentation separately. The former
  // monitor reported their *sum* as 'simulation' and hid late-game UI costs.
+ updateAttackWarning();
  if(performanceWatch.enabled)performanceWatch.simulation(performance.now()-beforeSteps);
  const beforeSync=performanceWatch.enabled?performance.now():0;
  if(running){

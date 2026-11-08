@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {disposeOwnedMeshes} from '/webgl-resource-lifecycle.js';
+import {disposeOwnedMeshes} from './webgl-resource-lifecycle.js';
 
 // Decorative props live next to authored buildings, independently of glTF
 // loading and without altering building collision, navigation or saves.
