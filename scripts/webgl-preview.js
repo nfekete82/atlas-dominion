@@ -316,7 +316,9 @@ function addBattlefieldRocks(material){
   }
   const tri=(a,b,c,band)=>{
    for(const p of [a,b,c]){
-    vertices.push(...p);const color=baseColor.clone().lerp(dark,band);
+    vertices.push(...p);
+    const s=Math.sin(p[1]*.165+(p[0]+half)*.009)*.09;
+    const color=baseColor.clone().lerp(dark,Math.max(0,Math.min(.85,band+s)));
     colors.push(color.r,color.g,color.b);uv.push((p[0]+half)/150,p[1]/120);
    }
   };
