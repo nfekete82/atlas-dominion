@@ -26,6 +26,12 @@ import {bomberAttackWaypoints,BOMBER_BOMB_RELEASE_DISTANCE,BOMBER_RUN_WAYPOINT_D
 import {AttackAlerts} from './attack-alerts.js';
 import {eliminationOutcome} from './match-outcome.js';
 import {formationSlotPitch,vehicleSpacingGap,preservesVehicleProgress,vehicleYieldWaypoint} from './vehicle-spacing.js';
+import {UPGRADES,UPGRADE_KINDS,newResearchState,canResearchUpgrade,researchModifiers,
+ validResearchState,strategicBlastDamage,validStrategicMissile,
+ SILO_CHARGE_SECONDS,STRATEGIC_WARNING_SECONDS,STRATEGIC_BLAST_RADIUS,
+ INTERCEPTOR_MAX_AMMO,INTERCEPTOR_REARM_COST,INTERCEPTOR_RANGE,
+ type UpgradeKind,type ResearchState,type StrategicMissile,type StrategicEvent}
+ from './strategic-tech.js';
 
 export interface Formation {front:number[];fallback?:number[];heading:Point;origin:Point;goal:Point;lane:number;rear:number}
 export interface Order extends Point { kind:'move'|'attackMove'|'attack'|'heal'|'repair'|'build'|'board'; target?:number; approach?:Point; healOrigin?:Point; formation?:Formation; march?:number[]; rear?:number; tactical?:TacticalOrder }
@@ -69,6 +75,9 @@ export interface Base extends Point {
   burst?:Burst;
   queueCosts?:number[];
   turretAngle?:number; previousTurretAngle?:number; turretTarget?:number|null;
+  /** Optional new special building state; absent in old saves. */
+  siloCharge?:number;
+  interceptorAmmo?:number;
 }
 /** Transient on-screen release cue. Never serialized or used for collisions. */
 export interface ProductionRelease {unitId:number;baseId:number;kind:UnitKind;owner:Faction;at:number;from:Point;to:Point}
@@ -81,6 +90,8 @@ export interface Save {
   version:2; terrainProfile?:TerrainProfile; generatorVersion?:1; bootstrapVersion?:1; weatherVersion?:1; productionVersion?:1; supportVersion?:1;rosterVersion?:2;missiles?:Missile[]; seed:number; mapVersion?:MapVersion; time:number; nextId:number; credits:number[]; incomeClock:number;
   units:Unit[]; bases:Base[]; territories:Territory[]; explored:number[][];
   memories:Memory[][]; aiClock:number; ai?:TacticalState; status:'playing'|'victory'|'defeat'; stats?:MatchStatistics;
+  research?:[ResearchState,ResearchState];
+  strategicMissiles?:StrategicMissile[];
 }
 
 /** Uniform buckets keep combat/vision queries independent of total army size. */
@@ -143,9 +154,161 @@ export class Simulation {
       (this.weather.storm&&!unitSpec(u).flying?WEATHER_RULES.groundSight:1);
   }
   healRadius(u:Unit):number{return HEAL_RADIUS*getVeterancyModifiers(u).healRange;}
+  /** Authoritative upgrade-aware stats, applied to new AND existing units. */
+  maxUnitHp(u:{kind:UnitKind;owner:Faction}):number{
+    return unitSpec(u).hp*researchModifiers(this.research[u.owner],u.kind).hp;
+  }
+  speed(u:Unit):number{
+    return unitSpec(u).speed*researchModifiers(this.research[u.owner],u.kind).speed;
+  }
+  range(u:Unit):number{
+    return unitSpec(u).range*researchModifiers(this.research[u.owner],u.kind).range;
+  }
+  startResearch(owner:Faction,kind:UpgradeKind):boolean{
+    const state=this.research[owner],upgrade=UPGRADES[kind];
+    if(!upgrade||this.status!=='playing'||!canResearchUpgrade(state,kind)||
+       !this.bases.some(b=>b.owner===owner&&b.kind==='research'&&b.hp>0&&b.buildRemaining<=0)||
+       this.credits[owner]<upgrade.cost)return false;
+    this.credits[owner]-=upgrade.cost;
+    state.active=kind;state.remaining=upgrade.seconds;
+    if(owner===0)this.notices.push('Forschung begonnen: '+upgrade.name);
+    return true;
+  }
+  private completeResearch(owner:Faction,kind:UpgradeKind):void{
+    const state=this.research[owner];
+    const oldHp=new Map(this.units.filter(u=>u.owner===owner&&u.hp>0)
+      .map(u=>[u.id,this.maxUnitHp(u)]));
+    state.completed.push(kind);state.active=null;state.remaining=0;
+    for(const u of this.units)if(u.owner===owner&&u.hp>0){
+      // Restore absolute additional hitpoints, without healing prior damage.
+      const bonus=this.maxUnitHp(u)-(oldHp.get(u.id)??this.maxUnitHp(u));
+      if(bonus>0)u.hp=Math.min(this.maxUnitHp(u),u.hp+bonus);
+    }
+    if(owner===0)this.notices.push('Forschung abgeschlossen: '+UPGRADES[kind].name);
+  }
+  /** Launch an actual slow-moving strategic projectile. */
+  launchStrategicMissile(owner:Faction,p:Point):boolean{
+    if(this.status!=='playing'||!Number.isFinite(p.x)||!Number.isFinite(p.y)||
+       !this.world.index(p)&&this.world.index(p)!==0)return false;
+    if(p.x<8||p.y<8||p.x>this.world.size-8||p.y>this.world.size-8||
+       !this.hasExplored(owner,p))return false;
+    const silo=this.bases.find(b=>b.owner===owner&&b.kind==='silo'&&
+      b.hp>0&&b.buildRemaining<=0&&(b.siloCharge??SILO_CHARGE_SECONDS)<=0);
+    if(!silo)return false;
+    silo.siloCharge=SILO_CHARGE_SECONDS;
+    const missile:StrategicMissile={
+      id:this.nextId++,owner,from:{x:silo.x,y:silo.y},to:{x:p.x,y:p.y},
+      at:this.time,impactAt:this.time+STRATEGIC_WARNING_SECONDS
+    };
+    this.strategicMissiles.push(missile);
+    this.strategicEvents.push({...missile,kind:'launch'});
+    this.notices.push(owner===1?'FEINDLICHER RAKETENSTART ERKANNT!':
+     'Langstreckenrakete gestartet · Einschlag in 25 Sekunden.');
+    return true;
+  }
+  rearmInterceptor(id:number):boolean{
+    const base=this.bases.find(b=>b.id===id&&b.kind==='interceptor'&&
+      b.hp>0&&b.buildRemaining<=0);
+    if(!base||this.status!=='playing'||(base.interceptorAmmo??0)>=INTERCEPTOR_MAX_AMMO||
+       this.credits[base.owner]<INTERCEPTOR_REARM_COST)return false;
+    this.credits[base.owner]-=INTERCEPTOR_REARM_COST;
+    base.interceptorAmmo=INTERCEPTOR_MAX_AMMO;
+    return true;
+  }
+  private stepStrategy(dt:number):void{
+    for(const owner of [0,1] as const){
+      const state=this.research[owner];
+      const lab=this.bases.some(b=>b.owner===owner&&b.kind==='research'&&
+        b.hp>0&&b.buildRemaining<=0);
+      if(lab&&state.active){
+        state.remaining=Math.max(0,state.remaining-dt);
+        if(state.remaining<=1e-8)this.completeResearch(owner,state.active);
+      }
+    }
+    for(const silo of this.bases)if(silo.kind==='silo'&&silo.hp>0&&
+      silo.buildRemaining<=0&&silo.siloCharge!==undefined&&silo.siloCharge>0)
+      silo.siloCharge=Math.max(0,silo.siloCharge-dt);
+    for(const m of this.strategicMissiles)if(m.impactAt<=this.time+1e-8){
+      // A completed nearby interceptor automatically reacts to the global
+      // warning. One rocket per intercepted strike; no infinite ammo.
+      const defense=this.bases.filter(b=>b.owner!==m.owner&&b.kind==='interceptor'&&
+        b.hp>0&&b.buildRemaining<=0&&(b.interceptorAmmo??0)>0&&
+        distance(b,m.to)<=INTERCEPTOR_RANGE)
+        .sort((a,b)=>distance(a,m.to)-distance(b,m.to)||a.id-b.id)[0];
+      if(defense){
+        defense.interceptorAmmo!--;
+        this.strategicEvents.push({...m,kind:'intercept',at:this.time});
+        if(defense.owner===0)this.notices.push('Raketenabwehr erfolgreich · Einschlag verhindert.');
+        continue;
+      }
+      for(const entity of [...this.units,...this.bases])if(entity.hp>0&&
+        entity.owner!==m.owner&&(!('orders' in entity)||!entity.carrier)){
+        const d=distance(entity,m.to);
+        if(d>STRATEGIC_BLAST_RADIUS)continue;
+        const isBuilding='queue' in entity;
+        const maxHp=isBuilding?buildingSpec(entity).hp:this.maxUnitHp(entity);
+        const damage=strategicBlastDamage(d,maxHp,isBuilding);
+        const source=this.bases.find(b=>b.owner===m.owner&&b.kind==='silo'&&b.hp>0);
+        this.strike(source??m.id,entity,damage);
+        if(entity.owner===0&&m.owner===1)this.attackAlerts.record(m.to,this.time);
+      }
+      this.blasts.push({...m.to,id:m.id,at:this.time});
+      this.strategicEvents.push({...m,kind:'impact',at:this.time});
+      this.notices.push(m.owner===1?'FEINDLICHE LANGSTRECKENRAKETE EINGESCHLAGEN!':
+       'Langstreckenrakete eingeschlagen.');
+    }
+    this.strategicMissiles=this.strategicMissiles.filter(m=>m.impactAt>this.time);
+    this.strategicEvents=this.strategicEvents.filter(e=>this.time-e.at<1.6).slice(-16);
+    // Enemy strategy runs only once every 7 seconds, not inside per-unit loops.
+    if(this.time-this.strategicAiAt>=7){
+      this.strategicAiAt=this.time;
+      this.planStrategicAi();
+    }
+  }
+  private planStrategicAi():void{
+    if(this.status!=='playing'||!this.hasHeadquarters(1))return;
+    const ai=1;
+    const engineer=this.units.find(u=>u.owner===ai&&u.kind==='engineer'&&u.hp>0&&!u.carrier);
+    const has=(kind:BuildingKind)=>this.bases.some(b=>b.owner===ai&&b.kind===kind&&b.hp>0);
+    const needed:BuildingKind|null=!has('research')&&this.credits[ai]>=1450&&this.time>140?'research':
+      !has('interceptor')&&this.bases.some(b=>b.owner===0&&b.kind==='silo'&&b.hp>0&&
+        this.canSee(ai,b))&&this.credits[ai]>=3100?'interceptor':
+      !has('silo')&&has('research')&&this.credits[ai]>=6300&&this.time>520?'silo':null;
+    if(needed&&engineer&&!engineer.orders.some(o=>o.kind==='build')){
+      const hq=this.bases.find(b=>b.owner===ai&&b.kind==='headquarters'&&b.hp>0);
+      if(hq){
+        for(let i=0;i<18;i++){
+          const angle=i*Math.PI*2/18;
+          const radius=BUILDINGS[needed].radius+hq.radius+75+(i%3)*85;
+          const p={x:hq.x+Math.cos(angle)*radius,y:hq.y+Math.sin(angle)*radius};
+          if(!this.buildError(ai,needed,p)&&this.build(ai,needed,p,[engineer.id]))break;
+        }
+      }
+    }
+    if(has('research')&&!this.research[ai].active){
+      for(const k of ['armor1','precision','engines','radar','armor2',
+        'rocketDevelopment','infantryTraining','tankMobility'] as UpgradeKind[])
+        if(this.startResearch(ai,k))break;
+    }
+    const silo=this.bases.find(b=>b.owner===ai&&b.kind==='silo'&&b.hp>0&&
+      b.buildRemaining<=0&&(b.siloCharge??SILO_CHARGE_SECONDS)===0);
+    if(silo){
+      // Choose an OBSERVED enemy building only. No omniscient targeting.
+      const seen=this.bases.filter(b=>b.owner===0&&b.hp>0&&this.canSee(ai,b))
+        .sort((a,b)=>(b.kind==='headquarters'?1:0)-(a.kind==='headquarters'?1:0)||
+          b.hp-a.hp||a.id-b.id)[0];
+      if(seen)this.launchStrategicMissile(ai,seen);
+    }
+  }
   readonly tactical=new TacticalAI(this);
   readonly transports=new Transports(this,(u,p,dt)=>this.move(u,p,dt));
   missiles:Missile[]=[];blasts:Blast[]=[];
+  /** Persistent research and missiles; transient event visuals never serialized. */
+  research:[ResearchState,ResearchState]=[newResearchState(),newResearchState()];
+  strategicMissiles:StrategicMissile[]=[];
+  strategicEvents:StrategicEvent[]=[];
+  private strategicAiAt=-Infinity;
+  private seenEnemySilos=new Set<number>();
   seed:number; time=0; nextId=1; credits=[RULES.initialCredits as number,RULES.initialCredits as number];
   incomeClock=0; aiClock=0; status:'playing'|'victory'|'defeat'='playing';
   stats:MatchStatistics=newMatchStatistics();
