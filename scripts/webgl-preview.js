@@ -21,6 +21,7 @@ import {SandforgeGroundTracks} from '/webgl-ground-tracks.js';
 import {Soundscape} from '/src/reborn/audio.js';
 import {fineSandPattern} from '/src/reborn/fine-sand.js';
 import {cinematicSandSample,addDesertWashStones} from '/webgl-desert-art.js';
+import {installMatchResultOverlay} from '/webgl-match-result.js';
 
 /** Opt-in WebGL scene using the real authoritative Sandforge map and simulation.
  * This page is isolated from the production Canvas renderer, save format and AI
@@ -143,11 +144,12 @@ simulationBanner.setAttribute('role','status');
 simulationBanner.hidden=true;
 simulationBanner.style.cssText='position:fixed;top:71px;left:50%;transform:translateX(-50%);z-index:15;pointer-events:none;background:#111d23ea;border:1px solid #c5a570;color:#f6dfa9;font:800 12px/1.3 system-ui;padding:7px 13px;letter-spacing:.04em;text-align:center;box-shadow:0 5px 18px #0008';
 document.body.append(simulationBanner);
+const matchResultOverlay=installMatchResultOverlay(document);
 function updateSimulationBanner(){
- const reason=!running?'SIMULATION PAUSIERT · ▶ zum Fortsetzen':
-  game.paused?'SIMULATION INTERN PAUSIERT':
-  game.status==='victory'?'SIEG · Gefecht beendet':
-  game.status==='defeat'?'NIEDERLAGE · Gefecht beendet':'';
+ matchResultOverlay.render(game.status);
+ const reason=game.status!=='playing'?'':!running?
+  'SIMULATION PAUSIERT · ▶ zum Fortsetzen':
+  game.paused?'SIMULATION INTERN PAUSIERT':'';
  simulationBanner.hidden=!reason;
  if(reason&&simulationBanner.textContent!==reason)simulationBanner.textContent=reason;
 }
@@ -1003,7 +1005,7 @@ function updateAttackWarning(){
   notice.style.removeProperty('color');
  }
 }
-let lastFrame=performance.now(),frames=0;
+let lastFrame=performance.now(),frames=0,lastOutcome=game.status;
 function animate(now){
  performanceWatch.begin(now);
  const dt=Math.min(.08,(now-lastFrame)/1000);lastFrame=now;
@@ -1012,6 +1014,9 @@ function animate(now){
   accumulator=Math.min(accumulator+dt,.20);
   let steps=0;while(accumulator>=.05&&steps<4){game.step(.05);constructionRecovery.tick();accumulator-=.05;steps++;}
  }
+ // Show the end-of-match banner on the same frame that the final unit or
+ // building falls, instead of waiting for the twice-a-second HUD refresh.
+ if(game.status!==lastOutcome){lastOutcome=game.status;updateSimulationBanner();}
  // Measure simulation and 3D/DOM presentation separately. The former
  // monitor reported their *sum* as 'simulation' and hid late-game UI costs.
  updateAttackWarning();

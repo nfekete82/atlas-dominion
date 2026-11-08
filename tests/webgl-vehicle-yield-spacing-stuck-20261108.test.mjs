@@ -11,6 +11,9 @@ const fixture=()=>{
  const g=new Simulation(2074,23);
  g.units=[];g.bases=[];g.world.blocked.fill(0);g.world.opaque.fill(0);
  g.aiClock=1e8;g.tactical.plan=()=>{};g.status='playing';g.paused=false;
+ // Real elimination semantics end a game with zero red assets. Keep one
+ // harmless distant red actor so vehicle-navigation tests stay in combat.
+ g.spawn(1,{x:g.world.size-180,y:g.world.size-190},'infantry');
  return g;
 };
 test('3 tanks receive physically separated slots rather than 27-unit overlaps',()=>{
