@@ -86,7 +86,7 @@ renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.65));
 stage.append(renderer.domElement);
 const scene=new THREE.Scene();
-// The playable desert ends in a mountain rim and a dark C&C-style void.
+// The 3D playable desert ends directly against a completely black map void.
 // A beige background would still reveal a bright square beyond the terrain.
 scene.background=new THREE.Color('#000000');
 scene.fog=new THREE.FogExp2('#080605',.00008);
@@ -274,13 +274,12 @@ function buildTerrain(){
   mesh.receiveShadow=true;mesh.userData.terrain=true;
   scene.add(mesh);groundMeshes.push(mesh);
  }
- // A ring of lower-detail sand continues beyond all four visible edges.
- // Only the 16 central tiles feed fog, unit movement or clicking. The extra
- // 48 tiles are decorative and share the same texture and height sampler.
- // Extend decorative geometry further for low-angle 3D camera shots.
-// These tiles are visual-only and never enter the simulation or raycaster.
-visualPerimeter=addVisualPerimeter({scene,size,heightAt,material,
- ringTiles:query.get('lite')==='1'?2:3,segments:22,textureScale:spacious?2200:1500});
+ // No decorative terrain, apron, cliff, or fade outside the modern playable
+ // boundary. The 16 real tiles end at the black scene background exactly.
+ // Legacy maps preserve their old visual perimeter.
+ visualPerimeter=addVisualPerimeter({scene,size,heightAt,material,
+  ringTiles:query.get('lite')==='1'?2:3,segments:22,
+  textureScale:spacious?2200:1500,hardVoid:spacious});
  return chunks*chunks;
 }
 /** One merged rock mesh, built from the exact physical footprints. Basal
@@ -354,6 +353,9 @@ function instancedStone(){
  const contactDummy=new THREE.Object3D();let contactCount=0;
  const counts=[0,0,0],r=rnd(seed^0x73c02f4b);
  const put=(x,z,wide,tall,depth)=>{
+  // No decorative stones overhanging the black void or touching its edge.
+  // Real collision rocks on playable terrain are independent of this pass.
+  if(spacious&&(x<90||z<90||x>size-90||z>size-90))return;
   const k=Math.floor(r()*3);if(counts[k]>=1750)return;
   const y=heightAt(x,z);
   // Bury the lower half of the rock instead of standing it on the terrain.
@@ -402,8 +404,8 @@ function instancedStone(){
  // Continue weathered stones across the *visual* perimeter. This scatter
  // uses a different RNG stream so existing battlefield stones stay unchanged.
  const extra=rnd(seed^0xb487c7e1),margin=visualPerimeter?.margin??size*.5;
- for(let i=0;i<(spacious?200:2100);i++){
-  // Never allow decorative stones to float over the black void. Scatter
+ for(let i=0;i<(spacious?0:2100);i++){
+  // Only legacy maps retain the decorative exterior scatter. Scatter
   // only in the first narrow erosion apron adjacent to the playfield.
   const x=spacious?-95+extra()*(size+190):-margin+extra()*(size+2*margin);
   const z=spacious?-95+extra()*(size+190):-margin+extra()*(size+2*margin);
@@ -761,7 +763,7 @@ function resize(){
 }
 new ResizeObserver(resize).observe(stage);resize();
 const chunks=buildTerrain();
-boundaryCliffs=addBoundaryCliffs({scene,size,heightAt,seed,lowQuality:query.get('lite')==='1',softRim:spacious});
+boundaryCliffs=addBoundaryCliffs({scene,size,heightAt,seed,lowQuality:query.get('lite')==='1',softRim:spacious,hardVoid:spacious});
 const stones=instancedStone();sandRoads();
 const battlefield=new SandforgeBattlefield({
  game,world,terrain,scene,renderer,camera,controls,loader,groundMeshes,heightAt,pos,
