@@ -1,0 +1,81 @@
+name: Sandforge hard black map edge
+
+on:
+  push:
+    branches:
+      - fix/webgl-hard-black-edge-20261108
+  pull_request:
+    branches:
+      - feat/webgl-faction-accents-20261108
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  edge-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 13
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node --test tests/webgl-hard-black-edge-20261108.test.mjs
+
+  edge-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      CI: 'true'
+      ATLAS_BROWSER_CHANNEL: chromium
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix tests/browser --no-audit --no-fund
+          cd tests/browser
+          npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Browser edge/black void rendering
+        run: |
+          set -euo pipefail
+          PORT=8157 HOST=127.0.0.1 node scripts/serve.mjs >/tmp/sandforge-map-void.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          READY=0
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:8157/healthz >/dev/null 2>&1; then READY=1; break; fi
+            sleep .25
+          done
+          if [ "$READY" -ne 1 ]; then cat /tmp/sandforge-map-void.log; exit 1; fi
+          ATLAS_BASE_URL=http://127.0.0.1:8157 \
+            tests/browser/node_modules/.bin/playwright test \
+            --config=tests/browser/playwright.config.mjs \
+            tests/browser/webgl-hard-black-edge-20261108.spec.mjs \
+            --workers=1 --reporter=line
+
+  full-node-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
