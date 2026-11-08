@@ -1197,3 +1197,17 @@
   font-size:11px!important;
  }
 }
+
+/* Fixed 5-column passenger roster: four Humvee slots or ten helicopter slots. */
+#sf-classic-root #sf-selection-panel.sf-transport-selected{height:191px;min-height:191px}
+#sf-classic-root .sf-transport-selected .selection-copy{overflow:visible;align-self:stretch;width:100%;min-width:0}
+#sf-classic-root .sf-transport-selected #sf-selection p{display:none}
+#sf-classic-root .sf-passenger-manifest{margin-top:5px;width:100%}
+#sf-classic-root .sf-passenger-heading{display:flex;justify-content:space-between;gap:7px;font:700 9px/1.1 var(--display);color:#dbc698;margin:2px 0 5px}
+#sf-classic-root .sf-passenger-heading span:last-child{font-size:9px;font-weight:500;color:#b2b3a1}
+#sf-classic-root .sf-passenger-slots{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;max-width:285px}
+#sf-classic-root .sf-passenger-slot{display:flex;align-items:center;justify-content:center;height:29px;min-width:0;border:1px solid #a38a56;border-radius:3px;background:linear-gradient(145deg,#455b50,#25372e);color:#f0dfb4;font:700 10px var(--mono);padding:0;cursor:pointer}
+#sf-classic-root button.sf-passenger-slot:hover,#sf-classic-root button.sf-passenger-slot:focus-visible{outline:2px solid #e9ce7e;background:#62715a}
+#sf-classic-root .sf-passenger-empty{border-color:#4d5a4d;color:#667469;background:#1b2925;cursor:default}
+@media(max-width:1050px){#sf-classic-root .sf-passenger-slot{height:24px;font-size:9px}}
+@media(max-width:800px){#sf-classic-root #sf-selection-panel.sf-transport-selected{height:auto;min-height:190px}}
