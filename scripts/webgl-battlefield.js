@@ -990,6 +990,10 @@ export class SandforgeBattlefield {
   for(const section of actions.querySelectorAll('[data-sf-producer]'))
    section.hidden=!context.producer||section.dataset.sfProducer!==context.producer.kind;
   const generatorLimitReached=g.bases.filter(b=>b.owner===0&&b.kind==='generator'&&b.hp>0).length>=MAX_GENERATORS_PER_FACTION;
+  const constructed=new Map(g.bases.filter(b=>b.owner===0&&b.hp>0).map(b=>[b.kind,b]));
+  // The simulation already rejects duplicate HQ, barracks, factory and
+  // airfield construction; reflect that rule in the catalogue immediately,
+  // including buildings that still have buildRemaining > 0.
   for(const button of actions.querySelectorAll('button[data-unit],button[data-build]')){
    const kind=button.dataset.unit??button.dataset.build;
    const spec=button.dataset.unit?UNITS[kind]:BUILDINGS[kind];
