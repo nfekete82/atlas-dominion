@@ -1211,3 +1211,62 @@
 #sf-classic-root .sf-passenger-empty{border-color:#4d5a4d;color:#667469;background:#1b2925;cursor:default}
 @media(max-width:1050px){#sf-classic-root .sf-passenger-slot{height:24px;font-size:9px}}
 @media(max-width:800px){#sf-classic-root #sf-selection-panel.sf-transport-selected{height:auto;min-height:190px}}
+
+
+/* End of battle: central, deliberately readable at tactical zoom. No blur
+   or interaction interception; the player can still inspect the map. */
+#sf3d-match-result.sf3d-match-result{
+ position:fixed;inset:0;z-index:35;display:grid;place-items:center;
+ pointer-events:none;
+ background:radial-gradient(ellipse at center,#070c0db3 0%,#080e0d58 37%,transparent 71%);
+ font-family:var(--display,system-ui),system-ui,sans-serif;
+}
+#sf3d-match-result[hidden]{display:none!important}
+#sf3d-match-result .sf3d-match-result-panel{
+ width:min(720px,calc(100vw - 42px));max-width:100%;
+ padding:clamp(26px,4vw,50px) clamp(24px,5vw,66px);
+ text-align:center;color:#ffe6ad;
+ border:2px solid #d9ac61;
+ background:linear-gradient(158deg,#14262bea,#111a21f3 63%,#101b1ef5);
+ box-shadow:0 0 0 5px #060e10b0,0 14px 90px #000d,
+  inset 0 1px 0 #fff4ce54,inset 0 0 38px #dda75515;
+ animation:sf3d-result-enter .38s ease-out both;
+}
+#sf3d-match-result .sf3d-match-result-lines{
+ height:4px;max-width:310px;margin:0 auto clamp(15px,3vh,28px);
+ background:linear-gradient(90deg,transparent,#f2d69b,transparent);
+}
+#sf3d-match-result .sf3d-match-result-heading{
+ display:block;font-weight:900;
+ font-size:clamp(72px,10vw,138px);line-height:.98;
+ letter-spacing:.09em;color:#ffdc84;
+ text-shadow:0 3px 0 #68491f,0 0 32px #f5b94266,0 8px 24px #000b;
+}
+#sf3d-match-result .sf3d-match-result-subheading{
+ display:block;margin-top:15px;
+ font-size:clamp(19px,2.5vw,31px);font-weight:800;
+ letter-spacing:.16em;text-transform:uppercase;color:#f6e7c7;
+}
+#sf3d-match-result .sf3d-match-result-detail{
+ margin:18px auto 0;max-width:520px;
+ font:500 clamp(12px,1.2vw,16px)/1.5 system-ui,sans-serif;
+ color:#e6d8bd;
+}
+#sf3d-match-result[data-result=defeat] .sf3d-match-result-panel{
+ border-color:#c96858;box-shadow:0 0 0 5px #100c0bb0,0 14px 90px #000d,inset 0 0 38px #ca45381a;
+}
+#sf3d-match-result[data-result=defeat] .sf3d-match-result-heading{
+ color:#f4a18f;text-shadow:0 3px 0 #6c302e,0 0 30px #d44f3f55,0 8px 24px #000b;
+}
+@keyframes sf3d-result-enter{
+ from{opacity:0;transform:translateY(16px) scale(.96)}
+ to{opacity:1;transform:translateY(0) scale(1)}
+}
+@media(max-height:580px){
+ #sf3d-match-result .sf3d-match-result-panel{padding:18px}
+ #sf3d-match-result .sf3d-match-result-heading{font-size:clamp(54px,12vh,100px)}
+ #sf3d-match-result .sf3d-match-result-detail{margin-top:9px}
+}
+@media(prefers-reduced-motion:reduce){
+ #sf3d-match-result .sf3d-match-result-panel{animation:none}
+}
