@@ -1473,8 +1473,8 @@ export class SandforgeBattlefield {
   if(event.button===2&&this.buildKind){
    this.clearPlacement();this.message('Bauplatzwahl abgebrochen');this.drawInterface();return;
   }
-  // Classic simulation already supports 4 Jeep seats, but WebGL previously
-  // interpreted RMB on an owned vehicle as a generic ground movement.
+  // Simulation supports four Humvee seats and ten helicopter seats.
+  // An RMB hit on either owned carrier boards selected infantry before terrain movement.
   // Board BEFORE the terrain ray and other click commands.
   if(event.button===2&&this.selected.size&&!this.attackMode&&this.selectedBase===null){
    const carrier=this.transportAtPointer(event);
