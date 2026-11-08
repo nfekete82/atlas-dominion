@@ -1,0 +1,92 @@
+name: Sandforge real elimination outcome and centered battle end
+
+on:
+  push:
+    branches:
+      - fix/sandforge-elimination-victory-center-overlay-20261108
+  pull_request:
+    branches:
+      - fix/sandforge-vehicle-yield-spacing-stuck-20261108
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  elimination-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Win/loss, live passengers, buildings, saves and interface tests
+        run: |
+          node --test \
+            tests/webgl-elimination-victory-banner-20261108.test.mjs \
+            tests/webgl-vehicle-yield-spacing-stuck-20261108.test.mjs
+
+  elimination-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 19
+    env:
+      CI: 'true'
+      ATLAS_BROWSER_CHANNEL: chromium
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix tests/browser --no-audit --no-fund
+          cd tests/browser
+          npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Browser win/loss transition and centered results
+        run: |
+          set -euo pipefail
+          PORT=8161 HOST=127.0.0.1 node scripts/serve.mjs >/tmp/sandforge-match-outcome.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          READY=0
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:8161/healthz >/dev/null 2>&1; then READY=1; break; fi
+            sleep .25
+          done
+          if [ "$READY" -ne 1 ]; then cat /tmp/sandforge-match-outcome.log; exit 1; fi
+          ATLAS_BASE_URL=http://127.0.0.1:8161 \
+            tests/browser/node_modules/.bin/playwright test \
+            --config=tests/browser/playwright.config.mjs \
+            tests/browser/webgl-elimination-victory-banner-20261108.spec.mjs \
+            --workers=1 --reporter=line
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: sandforge-elimination-chromium
+          path: tests/browser/artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  full-node-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
