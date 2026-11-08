@@ -1,0 +1,47 @@
+name: Sandforge vehicle minimum spacing and stuck recovery
+
+on:
+  push:
+    branches:
+      - fix/sandforge-vehicle-yield-spacing-stuck-20261108
+  pull_request:
+    branches:
+      - fix/webgl-fallen-soldiers-wreck-shapes-20261108
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  vehicle-unstick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Tank formation, soft spacing, deadlock escape and determinism
+        run: |
+          node --test \
+            tests/webgl-vehicle-yield-spacing-stuck-20261108.test.mjs \
+            tests/webgl-battle-hitch-collision-cache-20261108.test.mjs \
+            tests/webgl-jeep-boarding.test.mjs
+  full-node-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
