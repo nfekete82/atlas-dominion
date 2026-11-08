@@ -54,6 +54,7 @@ export function visualUnitScale(kind){
  if(kind==='artillery')return 1.32;
  if(kind==='tank')return 1.44;
  if(kind==='scout')return 1.28;
+ if(kind==='bomber')return 1.03;
  return .94;
 }
 
