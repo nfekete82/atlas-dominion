@@ -350,7 +350,7 @@ const pbr=(color,roughness=1,metalness=0)=>new THREE.MeshStandardMaterial({color
 function instancedStone(){
  // More irregular weathered sandstone, fewer identical round orange pebbles.
  const geometry=new THREE.DodecahedronGeometry(1,1),materials=spacious?
-   [pbr('#ac987d'),pbr('#9a8770'),pbr('#c0aa8b')]:
+   [pbr('#b48d68'),pbr('#906b52'),pbr('#d1ab7f')]:
    [pbr('#bfa889'),pbr('#ab9478'),pbr('#d0b89b')];
  // Irregular weathering breaks the obvious smooth polygon-egg silhouettes.
  // It operates once on the shared instanced mesh, not per boulder or frame.
