@@ -7,8 +7,10 @@ export function selectedInfantryForTransport(units,selected,carrier){
  return units.filter(u=>chosen.has(u.id)&&u.id!==carrier.id&&u.owner===carrier.owner&&
   u.hp>0&&!u.carrier&&BOARDABLE_INFANTRY.has(u.kind)).map(u=>u.id);
 }
-export function selectedLoadedRovers(units,selected){
+export function selectedLoadedTransports(units,selected){
  const chosen=selected instanceof Set?selected:new Set(selected??[]);
- return units.filter(u=>chosen.has(u.id)&&u.kind==='rover'&&u.owner===0&&u.hp>0&&
+ return units.filter(u=>chosen.has(u.id)&&['rover','scout'].includes(u.kind)&&u.owner===0&&u.hp>0&&
   !u.carrier&&(u.transport?.cargo?.length??0)>0);
 }
+// Backwards-compatible alias for existing Humvee acceptance tests.
+export const selectedLoadedRovers=selectedLoadedTransports;
