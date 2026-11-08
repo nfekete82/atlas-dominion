@@ -291,7 +291,7 @@ export class Soundscape {
     if(this.context){
       const sounding=this.enabled&&this.volume>0&&!document.hidden&&!g.paused&&g.status==='playing';
       this.music?.update(g.time,musicCombatLevel(g.shots.length,
-       g.attackAlerts.sequence>0&&g.time-g.attackAlerts.lastTime<5),sounding);
+       g.attackAlerts.lastAlert!==null&&g.time-g.attackAlerts.lastAlert.at<5),sounding);
       const ambientSounding=sounding&&this.ambience;
       this.wind?.gain.setTargetAtTime(ambientSounding?1+g.weather.intensity*1.25:0,this.context.currentTime,.2);
       const levels=ambientSounding?ambientActivity(g,r.camera,p=>g.canSee(0,p)):{motors:0,generator:0};
