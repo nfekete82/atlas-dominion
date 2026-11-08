@@ -150,6 +150,19 @@ export class Simulation {
   explored=[new Uint8Array(RULES.grid**2),new Uint8Array(RULES.grid**2)];
   memories:Memory[][]=[[],[]]; shots:Shot[]=[]; notices:string[]=[];
   readonly productionReleases:ProductionRelease[]=[];
+  /** Only enabled by WebGL. Never serialized; old saves and headless/Canvas
+   * simulation retain the original immediate production semantics. */
+  stageWebGLProduction=false;
+  private readonly productionDepartureHolds=new Map<number,number>();
+  extendProductionDeparture(unitId:number,until:number):void {
+    if(!this.stageWebGLProduction||!Number.isFinite(until))return;
+    const previous=this.productionDepartureHolds.get(unitId);
+    if(previous!==undefined&&until>previous)this.productionDepartureHolds.set(unitId,until);
+  }
+  cancelProductionDeparture(unitId:number):void{this.productionDepartureHolds.delete(unitId);}
+  isProductionDepartureHeld(unitId:number):boolean {
+    return (this.productionDepartureHolds.get(unitId)??-Infinity)>this.time;
+  }
   readonly attackAlerts=new AttackAlerts();
   workEffects:WorkEffect[]=[];
   paused=false; revision=0; private fogClock=0; private visionCache=new VisionCache(); private spatial=new SpatialIndex();
@@ -273,6 +286,9 @@ export class Simulation {
     if(order.kind==='board')return this.transports.board(order.target??-1,ids);
     if(!Number.isFinite(order.x)||!Number.isFinite(order.y))return 0;
     const members=this.units.filter(u=>ids.includes(u.id)&&u.hp>0&&!u.carrier);
+    // A direct player or AI override interrupts any staged garage departure.
+    // Initial automatic rally is issued before its hold is registered.
+    for(const u of members)this.cancelProductionDeparture(u.id);
     const armoredFront=members.filter(u=>u.kind==='tank'||u.kind==='rover');
     const fighters=members.filter(u=>u.kind!=='medic'&&u.kind!=='engineer'&&!unitSpec(u).flying);
     const front=armoredFront.length?armoredFront:fighters;
@@ -344,7 +360,7 @@ export class Simulation {
     if(this.bases.some(b=>b.kind==='headquarters'&&b.territory===t.id&&b.owner!==owner&&b.hp>0))return 'enemy-hq';
     return 'capturing';
   }
-  stop(ids:number[],hold=false):void {for(const u of this.units)if(ids.includes(u.id)){this.transports.cancel(u);u.orders=[];u.path=[];u.repath=0;u.moving=false;if(u.kind==='tank')u.driveSpeed=0;u.pursuitOrigin=null;u.combatTarget=null;u.hold=hold;u.supportPaused=false;u.workingTarget=null;delete u.burst;}}
+  stop(ids:number[],hold=false):void {for(const u of this.units)if(ids.includes(u.id)){this.cancelProductionDeparture(u.id);this.transports.cancel(u);u.orders=[];u.path=[];u.repath=0;u.moving=false;if(u.kind==='tank')u.driveSpeed=0;u.pursuitOrigin=null;u.combatTarget=null;u.hold=hold;u.supportPaused=false;u.workingTarget=null;delete u.burst;}}
   private supportEligible(u:Unit,target:Unit|Base,kind:string):boolean {
     if(target.hp<=0||('orders' in target&&target.carrier)||target.owner!==u.owner)return false;
     if(kind==='heal')return u.kind==='medic'&&'orders' in target&&unitSpec(target).group==='Infanterie'&&target.hp<unitSpec(target).hp;
@@ -835,6 +851,10 @@ export class Simulation {
     // One fixed tick only: callers accumulate elapsed time; no wall-clock economy.
     dt=Math.min(dt,.1);this.time+=dt;this.incomeClock+=dt;this.fogClock+=dt;
     this.unitById=new Map(this.units.map(u=>[u.id,u]));
+    // An actor killed/removed during production must not retain a detached
+    // visual departure hold after its entity no longer exists.
+    for(const [id,until] of this.productionDepartureHolds)
+      if(until<=this.time||!this.unitById.has(id))this.productionDepartureHolds.delete(id);
     const wasStorm=this.weather.storm;
     for(const phase of this.weather.update(this.time)){
       if(phase==='WARNING')this.notices.push('ACHTUNG: Sandsturm nähert sich!');
@@ -859,6 +879,14 @@ export class Simulation {
     this.spatial.rebuild(this.units);
     for(const u of this.units){
       if(u.hp<=0||u.carrier)continue;u.previousX=u.x;u.previousY=u.y;u.cooldown-=dt;u.repath-=dt;u.hit=Math.max(0,u.hit-dt);u.fire=Math.max(0,u.fire-dt);u.moving=false;
+      // The single real unit remains at its legal exterior spawn while the
+      // visual garage rollout catches up. Once finished, ordinary pathfinding
+      // drives it from exactly this position to its existing rally order.
+      const departureUntil=this.productionDepartureHolds.get(u.id);
+      if(departureUntil!==undefined){
+        if(this.time<departureUntil)continue;
+        this.productionDepartureHolds.delete(u.id);
+      }
       const transportBusy=this.transports.step(u,dt);
       if(this.transports.boarding(u,dt))continue;
       if(this.escort(u,dt)||this.support(u,dt)){delete u.burst;continue;}
@@ -1040,7 +1068,14 @@ export class Simulation {
           // short exterior arrival fade. Never fake an opening in the baked facade.
           this.productionReleases.push({unitId:u.id,baseId:b.id,kind,owner:b.owner,at:this.time,from:{x:b.x,y:b.y},to:{...spawn}});
           if(this.productionReleases.length>24)this.productionReleases.shift();
-          countProduced(this.stats,b.owner);if(b.owner===0)this.notices.push(`Einheit bereit: ${spec.name}.`);b.queue.shift();b.queueTypes.shift();b.queueCosts?.shift();b.production=0;if(b.rally)this.command([u.id],{...b.rally,kind:'attackMove'});}
+          countProduced(this.stats,b.owner);if(b.owner===0)this.notices.push(`Einheit bereit: ${spec.name}.`);b.queue.shift();b.queueTypes.shift();b.queueCosts?.shift();b.production=0;if(b.rally)this.command([u.id],{...b.rally,kind:'attackMove'});
+           if(this.stageWebGLProduction&&(b.kind==='factory'||b.kind==='barracks')){
+             // Minimum until the door is fully open and the real vehicle has
+             // cleared the hall. The 3D presenter extends this for longer
+             // exit routes (backward facings) before the next simulation tick.
+             this.productionDepartureHolds.set(u.id,this.time+4.85);
+           }
+         }
       }
     }
     this.spatial.rebuild(this.units);

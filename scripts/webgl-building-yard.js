@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {disposeOwnedMeshes} from '/webgl-resource-lifecycle.js';
 
 // Decorative props live next to authored buildings, independently of glTF
 // loading and without altering building collision, navigation or saves.
@@ -23,18 +24,24 @@ function wheel(parent,x,z,n){
    steel,x,5.5+i*5.8,z);
  }
 }
+// The authored infantry stands ~36 world units high after visual scaling.
+// Props should match a soldier's *head and rifle*, not the full body height.
+export const INFANTRY_YARD_PROP_SCALE=.55;
 function helmet(parent,x,z){
- const shell=mesh(parent,'InfantryHelmet',new THREE.SphereGeometry(
-  9,16,9,0,Math.PI*2,0,Math.PI*.55),olive,x,19,z);
+ const g=new THREE.Group();
+ g.name='InfantryHelmetAssembly';g.position.set(x,14,z);
+ g.scale.setScalar(INFANTRY_YARD_PROP_SCALE);parent.add(g);
+ const shell=mesh(g,'InfantryHelmet',new THREE.SphereGeometry(
+  9,16,9,0,Math.PI*2,0,Math.PI*.55),olive,0,4.8,0);
  shell.rotation.y=.2;
- const brim=mesh(parent,'HelmetRim',new THREE.CylinderGeometry(9.5,9.5,1.8,16),
-  dark,x,19,z);
+ const brim=mesh(g,'HelmetRim',new THREE.CylinderGeometry(9.5,9.5,1.8,16),
+  dark,0,0,0);
  brim.rotation.y=.15;
 }
 function rifle(parent,x,z){
  const g=new THREE.Group();
  g.name='InfantryWeaponRackRifle';g.position.set(x,13,z);g.rotation.y=-.28;
- parent.add(g);
+ g.scale.setScalar(INFANTRY_YARD_PROP_SCALE);parent.add(g);
  box(g,'RifleReceiver',[4.6,4.3,14],dark,0,0,0);
  box(g,'RifleBarrel',[2.0,2.0,28],steel,0,0,19);
  box(g,'RifleStock',[5,3.8,11],wood,0,0,-12);
@@ -64,7 +71,12 @@ export function createBuildingYard(kind,width=160){
   box(g,'ToolCaseHandle',[9,2,2],dark,31,13,-21);
  }else{
   const g=new THREE.Group();g.name='InfantryEquipment';
-  g.position.set(width*.45,0,width*.34);root.add(g);
+  // Geometry was authored at building scale: 19-unit helmets and ~53-unit
+  // rifles looked as large as a human next to the 3D infantry (~36 units).
+  // Keep all individual assets and their spacing proportional, without
+  // changing collision, unit models, or the garage/barracks portal.
+  g.scale.setScalar(.48);
+  g.position.set(width*.43,0,width*.34);root.add(g);
   box(g,'EquipmentPallet',[79,4,46],wood,0,2,0);
   box(g,'HelmetRack',[75,4,13],steel,-1,12,-10);
   for(const x of [-24,0,24])helmet(g,x,-10);
@@ -76,4 +88,12 @@ export function createBuildingYard(kind,width=160){
   }
  }
  return root;
+}
+
+/** Mesh geometries are unique to each service yard; PBR materials are
+ * module-shared and must remain alive for other factories and barracks. */
+export function disposeBuildingYard(yard){
+ if(!yard)return;
+ disposeOwnedMeshes(yard,{materials:false});
+ yard.removeFromParent();
 }

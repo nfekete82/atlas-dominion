@@ -47,6 +47,9 @@ const session=query.get('resume')==='1'?(()=>{
  return restored;
 })():null;
 const game=session??(profile?Simulation.campaign(seed,sizes[bastions],profile):Simulation.campaign(seed,sizes[bastions]));
+// The WebGL renderer stages a single authoritative factory actor while its
+// real 3D gate is opening. Classic, tests and old saves keep normal rules.
+game.stageWebGLProduction=true;
 // Only this WebGL campaign gets a modest vision bonus; classic/headless
 // benchmarks retain exactly their original LOS and balance.
 // Optional visual comparison; classic gameplay remains unchanged.
@@ -944,7 +947,7 @@ soundButton.onclick=async()=>{
  updateSoundButton();
 };
 
-const performanceWatch=new SandforgePerformanceWatch({game,renderer,effects,groundTracks});
+const performanceWatch=new SandforgePerformanceWatch({game,renderer,effects,groundTracks,battlefield});
 let lastFrame=performance.now(),frames=0;
 function animate(now){
  performanceWatch.begin(now);
@@ -953,10 +956,18 @@ function animate(now){
  if(running){
   accumulator=Math.min(accumulator+dt,.20);
   let steps=0;while(accumulator>=.05&&steps<4){game.step(.05);constructionRecovery.tick();accumulator-=.05;steps++;}
-  battlefield.sync(false,dt);
  }
- if(!running)battlefield.sync(false,dt);
+ // Measure simulation and 3D/DOM presentation separately. The former
+ // monitor reported their *sum* as 'simulation' and hid late-game UI costs.
  if(performanceWatch.enabled)performanceWatch.simulation(performance.now()-beforeSteps);
+ const beforeSync=performanceWatch.enabled?performance.now():0;
+ if(running){
+  // Render between the last two authoritative 20-Hz snapshots.
+  battlefield.sync(false,dt,true,Math.min(1,Math.max(0,accumulator/.05)));
+ }else{
+  battlefield.sync(false,0,false,1); // freeze clips during tactical pause
+ }
+ if(performanceWatch.enabled)performanceWatch.presentation(performance.now()-beforeSync);
  if(running)groundTracks.capture();
  groundTracks.update(dt,running);
  battlefield.updateCommandPulse(dt);
@@ -970,6 +981,7 @@ function animate(now){
  sun.position.add(shift);sun.target.position.add(shift);
  atmosphere.update(dt);
  oases.update(now*.001);
+ const beforeRender=performanceWatch.enabled?performance.now():0;
  renderer.render(scene,camera);
  if(battlefield.buildPreview?.visible){
   // A second render pass guarantees the translucent construction silhouette
@@ -981,6 +993,7 @@ function animate(now){
   renderer.render(battlefield.buildPreviewScene,camera);
   renderer.autoClear=autoClear;
  }
+ if(performanceWatch.enabled)performanceWatch.render(performance.now()-beforeRender);
  performanceWatch.end(now);
  frames++;elapsed+=dt;
  if(elapsed>=.5){
