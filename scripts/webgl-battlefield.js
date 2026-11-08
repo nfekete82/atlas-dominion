@@ -16,6 +16,7 @@ import {selectedInfantryForTransport,selectedLoadedRovers} from '/webgl-transpor
 import {SandforgeConstructionPresentation} from '/webgl-construction.js';
 import {createBastionCaptureBar,updateBastionCaptureBar} from '/webgl-bastion-capture.js';
 import {snapToPlayableEdge,worldToMinimap} from '/webgl-map-edges.js';
+import {attackBlinkAlpha} from '/src/reborn/attack-alerts.js';
 
 // Runtime adapter: game state, movement, combat, production and AI are owned
 // exclusively by the original Simulation. 3D nodes are presentation only.
@@ -1196,6 +1197,19 @@ export class SandforgeBattlefield {
   for(const u of this.game.units)if(u.hp>0&&(u.owner===0||this.game.canSee(0,u))){
    ctx.fillStyle=u.owner===0?'#53f4e2':'#ff7151';
    ctx.fillRect(u.x*scale-1.3,u.y*scale-1.3,3,3);
+  }
+  // Player-only impact positions are known from actual damage, not enemy sightings.
+  // Keep the classic red beacon above fog and units, even at unexplored edges.
+  for(const alert of this.game.attackAlerts.visible(this.game.time)){
+   const alpha=attackBlinkAlpha(this.game.time,alert.at,
+    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches??false);
+   if(alpha<=0)continue;
+   const x=alert.x*scale,y=alert.y*scale;
+   ctx.save();ctx.globalAlpha=alpha;
+   ctx.fillStyle='#fc2929';ctx.strokeStyle='#ff3d35';ctx.lineWidth=2.6;
+   ctx.beginPath();ctx.arc(x,y,7.2,0,Math.PI*2);ctx.fill();
+   ctx.beginPath();ctx.arc(x,y,11.5+(1-alpha)*2,0,Math.PI*2);ctx.stroke();
+   ctx.restore();
   }
   // A fixed 22x22 square cannot represent the rotated, tilted orthographic
   // camera. Project its four actual ground-plane screen corners instead.
