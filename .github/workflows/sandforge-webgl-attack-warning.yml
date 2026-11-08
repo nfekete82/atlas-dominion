@@ -1,0 +1,29 @@
+name: Sandforge WebGL attack warning
+
+on:
+  push:
+    branches:
+      - fix/webgl-attack-warning-minimap-20261108
+  pull_request:
+    branches:
+      - fix/webgl-production-rally-wheel-stop-20261107
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  warning-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node --test tests/reborn-attack-alerts.test.mjs
