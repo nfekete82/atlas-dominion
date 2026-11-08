@@ -24,6 +24,7 @@ import { MAP_VERSION, randomMapSeed } from './world-generation.js';
 import {beginBomberOrbit,advanceBomberOrbit,validBomberOrbit,BOMBER_ORBIT_SPEED,preservesCaptureBoundary,safeOrbitApproach,isOnBomberOrbit,type BomberOrbit} from './bomber-orbit.js';
 import {bomberAttackWaypoints,BOMBER_BOMB_RELEASE_DISTANCE,BOMBER_RUN_WAYPOINT_DISTANCE,BOMBER_BOMB_FALL_SECONDS,type BomberAttackRun} from './bomber-attack.js';
 import {AttackAlerts} from './attack-alerts.js';
+import {formationSlotPitch,vehicleSpacingGap,preservesVehicleProgress,vehicleYieldWaypoint} from './vehicle-spacing.js';
 
 export interface Formation {front:number[];fallback?:number[];heading:Point;origin:Point;goal:Point;lane:number;rear:number}
 export interface Order extends Point { kind:'move'|'attackMove'|'attack'|'heal'|'repair'|'build'|'board'; target?:number; approach?:Point; healOrigin?:Point; formation?:Formation; march?:number[]; rear?:number; tactical?:TacticalOrder }
@@ -199,6 +200,8 @@ export class Simulation {
    * the same 20 Hz tick. Reusing them cuts repeated map/filter and array
    * allocations in large vehicle battles without changing pathfinding.
    * Invalidate on any structure destruction or new simulation tick. */
+  /** Short-lived drive watchdog. New saves and the fixed-step logic are unchanged. */
+  private readonly vehicleProgress=new WeakMap<Unit,{x:number;y:number;since:number;retryAt:number}>();
   private movementCollision?:{
     at:number;
     buildings:Base[];
@@ -337,7 +340,8 @@ export class Simulation {
     const heading={x:(order.x-origin.x)/length,y:(order.y-origin.y)/length};
     if(mixed){const priority=(u:Unit)=>u.kind==='tank'?0:u.kind==='rover'?1:u.kind==='infantry'||u.kind==='heavy'?2:u.kind==='artillery'?3:4;
       members.sort((a,b)=>priority(a)-priority(b)||a.id-b.id);}
-    const width=Math.ceil(Math.sqrt(members.length)),slots=members.map((_,i)=>({x:i%width*27,y:Math.floor(i/width)*27}));
+    const width=Math.ceil(Math.sqrt(members.length)),pitch=formationSlotPitch(members);
+    const slots=members.map((_,i)=>({x:i%width*pitch,y:Math.floor(i/width)*pitch}));
     // Centre the actual occupied slots, including a short last row. Using the
     // column count for both axes shifted a two-unit group north of its target.
     const center={x:slots.reduce((n,p)=>n+p.x,0)/Math.max(1,members.length),y:slots.reduce((n,p)=>n+p.y,0)/Math.max(1,members.length)};
@@ -365,7 +369,12 @@ export class Simulation {
           const rear=(armoredFront.length?(helper?200:u.kind==='artillery'?150:86):72)+Math.floor(index/columns)*36;
           formation={front:front.map(v=>v.id),...(armoredFront.length?{fallback:rearFighters.filter(v=>v.kind==='infantry'||v.kind==='heavy').map(v=>v.id)}:{}),heading,origin,goal:{x:order.x,y:order.y},lane,rear};
           offset={x:-heading.x*rear-heading.y*lane,y:-heading.y*rear+heading.x*lane};
-        }else{const index=front.indexOf(u),columns=Math.ceil(Math.sqrt(front.length)),lane=(index%columns-(columns-1)/2)*34,depth=-Math.floor(index/columns)*34;offset={x:heading.x*depth-heading.y*lane,y:heading.y*depth+heading.x*lane};}
+        }else{
+          const index=front.indexOf(u),columns=Math.ceil(Math.sqrt(front.length));
+          const spacing=formationSlotPitch(front);
+          const lane=(index%columns-(columns-1)/2)*spacing,depth=-Math.floor(index/columns)*spacing;
+          offset={x:heading.x*depth-heading.y*lane,y:heading.y*depth+heading.x*lane};
+        }
       }
       // Bastion right-clicks are capture orders: even a 48-unit formation must
       // stop INSIDE the capture circle, not in decorative slots beyond it.
@@ -828,6 +837,36 @@ export class Simulation {
       u.repath=u.path.length?.7:1.4;
     }
     let next=u.path[0];if(!next)return;
+    // A vehicle wedged behind another vehicle must not wait forever.
+    // Try a collision-checked side step only after an actual 3.3-second stall.
+    if(vehicle){
+      const state=this.vehicleProgress.get(u);
+      if(!state)this.vehicleProgress.set(u,{x:u.x,y:u.y,since:this.time,retryAt:-1});
+      else if(distance(u,state)>=8){state.x=u.x;state.y=u.y;state.since=this.time;}
+      else if(this.time-state.since>3.3&&this.time-state.retryAt>3.3){
+        const direction=Math.atan2(next.y-u.y,next.x-u.x);
+        const turning=u.kind==='tank'&&(u.driveSpeed??0)<2&&
+         Math.abs(angleDifference(u.hullAngle??u.angle,direction))>.22;
+        if(!turning){
+          state.retryAt=this.time;state.since=this.time;
+          const nearby=this.spatial.query(u,125).filter(v=>v!==u&&v.hp>0&&!v.carrier&&
+           !unitSpec(v).flying&&unitSpec(v).group==='Fahrzeuge'&&distance(u,v)<110);
+          const blocker=nearby.sort((a,b)=>distance(u,a)-distance(u,b))[0];
+          const gap=blocker?vehicleSpacingGap(u,blocker).comfortable:0;
+          const detour=blocker?vehicleYieldWaypoint(u,next,blocker,gap,p=>
+           this.world.walkable(p,collisionObstacles,clearance)&&
+           this.world.line(u,p,collisionObstacles,clearance)):null;
+          if(detour){
+            u.path.unshift(detour);
+            u.repath=.7;
+            u.exactPath=true;
+          }else{
+            u.path=[];u.repath=0;u.exactPath=true;
+          }
+          return;
+        }
+      }
+    }
     let d=distance(u,next);if(d<(spec.group==='Infanterie'?5:.4)){u.path.shift();next=u.path[0];if(!next)return;d=distance(u,next);}
     const dx=(next.x-u.x)/d,dy=(next.y-u.y)/d;
     // Heavy tanks have a deliberate turn-in-place departure:
@@ -1103,7 +1142,11 @@ export class Simulation {
       }
     }
     for(const u of this.units)if(!u.moving&&u.driveSpeed!==undefined)u.driveSpeed=Math.max(0,u.driveSpeed-unitSpec(u).speed*2.8*dt);
-    // Symmetric separation: units can pass one another without permanent deadlocks.
+    // Rebuild the spatial index after the drive pass, not from stale
+    // pre-movement positions, before resolving overlaps.
+    this.spatial.rebuild(this.units);
+    // Comfort separation yields to a legitimate drive route in tight spots.
+    // Only the original physical radius constitutes a hard collision.
     const separationBuildings=this.obstacles(),separationVisual=vehicleStructureColliders(separationBuildings);
     const separationDecor=this.vehicleDecorObstacles(),separationTowers=this.bastionColliders();
     // Avoid rebuilding infantry facades and four concatenated obstacle arrays
@@ -1111,14 +1154,28 @@ export class Simulation {
     const separationInfantryFacade=infantryStructureColliders(separationBuildings);
     const separationInfantry=[...separationBuildings,...separationInfantryFacade,...separationTowers];
     const separationVehicles=[...separationBuildings,...separationVisual,...separationDecor,...separationTowers];
-    for(const u of this.units)if(u.hp>0&&!u.carrier)for(const v of this.spatial.query(u,unitSpec(u).radius+26)){
-      if(v.id<=u.id||v.hp<=0||unitSpec(u).flying!==unitSpec(v).flying)continue;const gap=unitSpec(u).radius+unitSpec(v).radius+1;let d=distance(u,v);if(d>=gap)continue;
-      const dx=d>.01?(u.x-v.x)/d:(u.id%2?1:-1),dy=d>.01?(u.y-v.y)/d:.25,push=Math.min(3,(gap-d)*.5);
-      for(const [a,sign] of [[u,1],[v,-1]] as const){const p={x:a.x+dx*push*sign,y:a.y+dy*push*sign};
-        const colliders=unitSpec(a).group==='Fahrzeuge'?separationVehicles:
-          unitSpec(a).flying?separationBuildings:separationInfantry;
-        if(unitSpec(a).flying||this.world.walkable(p,colliders,Math.max(0,unitSpec(a).radius-10))){a.x=p.x;a.y=p.y;}}
-    }
+    for(const u of this.units)if(u.hp>0&&!u.carrier)
+      for(const v of this.spatial.query(u,unitSpec(u).radius+105)){
+        if(v.id<=u.id||v.hp<=0||unitSpec(u).flying!==unitSpec(v).flying)continue;
+        const spacing=vehicleSpacingGap(u,v);
+        const d=distance(u,v);
+        if(d>=spacing.comfortable)continue;
+        const softOnly=d>=spacing.hard;
+        const dx=d>.01?(u.x-v.x)/d:(u.id%2?1:-1);
+        const dy=d>.01?(u.y-v.y)/d:.25;
+        const push=Math.min(softOnly?2.0:3,(spacing.comfortable-d)*.5);
+        for(const [a,sign] of [[u,1],[v,-1]] as const){
+          const delta={x:dx*push*sign,y:dy*push*sign};
+          if(softOnly&&!preservesVehicleProgress(a,delta))continue;
+          const p={x:a.x+delta.x,y:a.y+delta.y};
+          const colliders=unitSpec(a).group==='Fahrzeuge'?separationVehicles:
+           unitSpec(a).flying?separationBuildings:separationInfantry;
+          if(unitSpec(a).flying||
+           this.world.walkable(p,colliders,Math.max(0,unitSpec(a).radius-10))){
+            a.x=p.x;a.y=p.y;
+          }
+        }
+      }
     this.transports.cleanup();
     for(const u of this.units)if(u.hp<=0)this.tactical.loss(u);
     this.units=this.units.filter(u=>u.hp>0);
