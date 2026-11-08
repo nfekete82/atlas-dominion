@@ -1013,7 +1013,7 @@ export class SandforgeBattlefield {
        context.producer.queue.length>=8?'Warteschlange voll':
        g.credits[0]<spec.cost?'Zu wenig Credits':
        g.count(0)+g.queued(0)>=RULES.capacity?'Einheitenlimit erreicht':'')
-    :(kind==='generator'&&generatorLimitReached?'Maximal '+MAX_GENERATORS_PER_FACTION+' Energiekerne pro Fraktion':
+    :(ownedReason?ownedReason:kind==='generator'&&generatorLimitReached?'Maximal '+MAX_GENERATORS_PER_FACTION+' Energiekerne pro Fraktion':
        !context.engineer?'Pionier auswählen':
        !g.hasHeadquarters(0)&&kind!=='headquarters'?'Hauptquartier zuerst fertigstellen':
        g.credits[0]<spec.cost?'Zu wenig Credits':
