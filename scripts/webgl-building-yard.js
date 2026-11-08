@@ -24,9 +24,10 @@ function wheel(parent,x,z,n){
    steel,x,5.5+i*5.8,z);
  }
 }
-// The authored infantry stands ~36 world units high after visual scaling.
-// Props should match a soldier's *head and rifle*, not the full body height.
-export const INFANTRY_YARD_PROP_SCALE=.55;
+// All infantry yard props already inherit the 0.48 building-yard scale.
+// Scaling helmet and rifle assemblies a second time made them ~0.264 of
+// the authored dimensions, smaller than the soldiers' head and weapon.
+export const INFANTRY_YARD_PROP_SCALE=1;
 function helmet(parent,x,z){
  const g=new THREE.Group();
  g.name='InfantryHelmetAssembly';g.position.set(x,14,z);

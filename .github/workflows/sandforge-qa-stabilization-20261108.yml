@@ -1,0 +1,123 @@
+name: Sandforge WebGL RC2 QA stabilization
+
+on:
+  push:
+    branches:
+      - fix/webgl-rc2-qa-stabilization-20261108
+  pull_request:
+    branches:
+      - fix/webgl-selected-squad-shared-pace-20261108
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  node-release-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Complete Node and geometry regressions
+        run: npm test
+
+  attack-warning-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: 'true'
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      ATLAS_BROWSER_CHANNEL: chromium
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix tests/browser --no-audit --no-fund
+          cd tests/browser
+          npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Verify real rendered minimap alert, voice and expiry
+        run: |
+          set -euo pipefail
+          PORT=8152 HOST=127.0.0.1 node scripts/serve.mjs >/tmp/sandforge-alert-ci.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          READY=0
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:8152/healthz >/dev/null 2>&1; then READY=1; break; fi
+            sleep .25
+          done
+          if [ "$READY" -ne 1 ]; then cat /tmp/sandforge-alert-ci.log; exit 1; fi
+          ATLAS_BASE_URL=http://127.0.0.1:8152 \
+            tests/browser/node_modules/.bin/playwright test \
+            --config=tests/browser/playwright.config.mjs \
+            tests/browser/webgl-attack-alerts.spec.mjs \
+            --workers=1 --reporter=line
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: sandforge-rc2-alert-artifacts
+          path: tests/browser/artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  production-portal-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI: 'true'
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      ATLAS_BROWSER_CHANNEL: chromium
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix tests/browser --no-audit --no-fund
+          cd tests/browser
+          npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Real 3D factory and barracks exit animation verification
+        run: |
+          set -euo pipefail
+          PORT=8153 HOST=127.0.0.1 node scripts/serve.mjs >/tmp/sandforge-production-ci.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          READY=0
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:8153/healthz >/dev/null 2>&1; then READY=1; break; fi
+            sleep .25
+          done
+          if [ "$READY" -ne 1 ]; then cat /tmp/sandforge-production-ci.log; exit 1; fi
+          ATLAS_BASE_URL=http://127.0.0.1:8153 \
+            tests/browser/node_modules/.bin/playwright test \
+            --config=tests/browser/playwright.config.mjs \
+            --output=tests/browser/artifacts/rc2-production-review \
+            tests/browser/webgl-production-gates.spec.mjs \
+            tests/browser/webgl-barracks-portal.spec.mjs \
+            --workers=1 --reporter=line
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sandforge-rc2-production-artifacts
+          path: tests/browser/artifacts/
+          if-no-files-found: ignore
+          retention-days: 7

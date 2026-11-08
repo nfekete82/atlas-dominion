@@ -31,8 +31,12 @@ test('WebGL enemy hit displays Captain warning and red minimap beacon without di
  expect(await page.locator('#sf-message').textContent()).toContain('Captain, wir werden angegriffen!');
  const check=await page.evaluate(()=>{
   const view=window.__sandforgeWebGL,g=view.game;
-  view.battlefield.drawMinimap();
   const marker=g.attackAlerts.visible(g.time)[0];
+  // Pixel sampling at the random trough of the 14-rad/s alert pulse
+  // can appear cyan over an existing friendly marker even while working.
+  // Verify the red beacon at its deterministic peak, not a random frame.
+  g.time=marker.at+Math.PI/(2*14);
+  view.battlefield.drawMinimap();
   const canvas=view.battlefield.mini,scale=canvas.width/g.world.size;
   const color=canvas.getContext('2d').getImageData(
    Math.round(marker.x*scale),Math.round(marker.y*scale),1,1).data;

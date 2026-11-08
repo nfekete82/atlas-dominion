@@ -381,8 +381,18 @@ export class SandforgeBattlefield {
     console.warn('3D asset fallback:',task.url,err.message);
    }).finally(()=>{
     this.loadingCount--;this.pumpModelQueue();
-    // Avoid permanent primitives after a mass deployment fills the queue.
+    // Recover actor detail omitted while the model queue was saturated.
+    // Buildings must be retried too: without this pass a newly completed
+    // barracks/factory can stay a fallback indefinitely and never gain its
+    // real 3D door, even after the cache and queue have cleared.
     if(this.loadingCount+this.modelQueue.length>=4)return;
+    for(const base of this.game.bases){
+     if(base.hp<=0)continue;
+     const pending=this.bases.get(base.id);
+     if(!pending||pending.requested||pending.detail)continue;
+     this.scheduleDetail(pending,base,'building');
+     if(this.loadingCount+this.modelQueue.length>=4)break;
+    }
     for(const unit of this.game.units){
      if(unit.hp<=0||unit.carrier)continue;
      const pending=this.units.get(unit.id);
