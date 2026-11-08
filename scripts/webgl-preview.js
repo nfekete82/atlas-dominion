@@ -22,6 +22,7 @@ import {Soundscape} from '/src/reborn/audio.js';
 import {fineSandPattern} from '/src/reborn/fine-sand.js';
 import {cinematicSandSample,addDesertWashStones} from '/webgl-desert-art.js';
 import {installMatchResultOverlay} from '/webgl-match-result.js';
+import {stoneMaterial,sharedStoneMaps,weatheredStoneGeometry} from '/webgl-rock-materials.js';
 
 /** Opt-in WebGL scene using the real authoritative Sandforge map and simulation.
  * This page is isolated from the production Canvas renderer, save format and AI
@@ -337,8 +338,11 @@ function addBattlefieldRocks(material){
  geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));geometry.computeVertexNormals();geometry.computeBoundingSphere();
  // Do not project sandy dune artwork onto vertical cliffs. Use the
  // existing authored sandstone stratum atlas with world-space UV mapping.
+ const rockMaps=sharedStoneMaps(query.get('lite')==='1');
  const mat=new THREE.MeshStandardMaterial({color:'#ffffff',vertexColors:true,
-  roughness:.96,metalness:0,side:THREE.DoubleSide,flatShading:true});
+  roughness:.96,roughnessMap:rockMaps.roughnessMap,
+  normalMap:rockMaps.normalMap,normalScale:new THREE.Vector2(.34,.34),
+  metalness:0,side:THREE.DoubleSide,flatShading:true});
  new THREE.TextureLoader().load('/src/assets/reborn/sandstone-strata-v1.png',map=>{
   map.wrapS=map.wrapT=THREE.RepeatWrapping;map.colorSpace=THREE.SRGBColorSpace;
   map.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
@@ -351,27 +355,13 @@ function addBattlefieldRocks(material){
 const pbr=(color,roughness=1,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness,flatShading:true});
 function instancedStone(){
  // More irregular weathered sandstone, fewer identical round orange pebbles.
- const geometry=new THREE.DodecahedronGeometry(1,1),materials=spacious?
-   [pbr('#b48d68'),pbr('#906b52'),pbr('#d1ab7f')]:
-   [pbr('#bfa889'),pbr('#ab9478'),pbr('#d0b89b')];
- // Irregular weathering breaks the obvious smooth polygon-egg silhouettes.
- // It operates once on the shared instanced mesh, not per boulder or frame.
- const positions=geometry.getAttribute('position');
- for(let i=0;i<positions.count;i++){
-  const x=positions.getX(i),y=positions.getY(i),z=positions.getZ(i);
-  const noise=Math.sin(x*11.1+z*7.7)*Math.cos(y*8.9-z*3.4)*.065+
-   Math.sin(x*23.2-y*5.6+z*13.3)*.024;
-  const width=1+noise;
-  positions.setXYZ(i,x*width,y*(1+noise*.57),z*width);
- }
- positions.needsUpdate=true;geometry.computeVertexNormals();
- const sandstone=new THREE.TextureLoader();
- sandstone.load('/src/assets/reborn/sandstone-detail.png',image=>{
-  image.wrapS=image.wrapT=THREE.RepeatWrapping;
-  image.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
-  image.colorSpace=THREE.SRGBColorSpace;
-  for(const mat of materials){mat.map=image;mat.needsUpdate=true;}
- },undefined,error=>console.warn('Rock detail unavailable; solid sandstone fallback',error));
+ const geometry=weatheredStoneGeometry(query.get('lite')==='1');
+ // PBR albedo, sculpted normal and mineral roughness are shared with the
+ // riverbed, ruins and oasis rocks. Three instanced palette groups remain
+ // three draw calls; never create a material for each stone.
+ const materials=(spacious?
+  ['#ccb091','#9e8267','#e1c19c']:['#bfa889','#a18c73','#d3bca0'])
+  .map(color=>stoneMaterial(color,{lowQuality:query.get('lite')==='1'}));
  const dummy=new THREE.Object3D(),groups=materials.map(mat=>new THREE.InstancedMesh(geometry,mat,1750));
  const contactGeometry=new THREE.PlaneGeometry(1,1);contactGeometry.rotateX(-Math.PI/2);
  const contacts=new THREE.InstancedMesh(contactGeometry,groundContactMaterial(),5250);
