@@ -659,9 +659,22 @@ export class SandforgeBattlefield {
   this.updateSelectionRings();
   this.updateShots();
   const now=performance.now();
-  if(force||now-this.fogLast>350){this.updateFog();this.fogLast=now;}
-  if(force||now-this.uiLast>280){this.drawInterface();this.uiLast=now;}
-  if(force||now-this.miniLast>700){this.drawMinimap();this.miniLast=now;}
+  // A periodic triple-refresh (fog/upload + complete HTML catalogue +
+  // minimap raster) used to coincide every ~1.4 s, producing visible hitches.
+  // Spread expensive periodic refreshes over successive RAF frames. Immediate
+  // input/force updates still refresh everything synchronously.
+  if(force){
+   this.updateFog();this.fogLast=now;
+   this.drawInterface();this.uiLast=now;
+   this.drawMinimap();this.miniLast=now;
+  }else{
+   const due=nextPeriodicRefresh(now,{
+    fog:this.fogLast,ui:this.uiLast,minimap:this.miniLast
+   });
+   if(due==='fog'){this.updateFog();this.fogLast=now;}
+   else if(due==='ui'){this.drawInterface();this.uiLast=now;}
+   else if(due==='minimap'){this.drawMinimap();this.miniLast=now;}
+  }
  }
  async loadBastionModel(entry,owner){
   const version=(entry.version??0)+1;entry.version=version;
