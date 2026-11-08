@@ -1449,14 +1449,15 @@ export class SandforgeBattlefield {
   return best;
  }
  unloadSelectedTransport(){
-  const rovers=selectedLoadedRovers(this.game.units,this.selected);
-  if(!rovers.length){this.message('Zum Aussteigen einen besetzten Humvee auswählen');return 0;}
+  const transports=selectedLoadedTransports(this.game.units,this.selected);
+  if(!transports.length){this.message('Zum Aussteigen einen besetzten Transporter auswählen');return 0;}
   let done=0;
-  for(const rover of rovers){
-   const point=this.world.nearest({x:rover.x+105,y:rover.y+75},this.game.obstacles());
-   if(point&&this.game.transports.unload(rover.id,point))done++;
+  for(const carrier of transports){
+   // The helicopter lands at a clear site; Humvee occupants step out nearby.
+   const point=this.world.nearest({x:carrier.x+105,y:carrier.y+75},this.game.obstacles());
+   if(point&&this.game.transports.unload(carrier.id,point))done++;
   }
-  this.message(done?done+' Humvee(s): Soldaten steigen aus':
+  this.message(done?done+' Transporter: Soldaten werden ausgeladen':
    'Aussteigen hier nicht möglich · Freie Fläche suchen');
   this.drawInterface();return done;
  }
