@@ -1,4 +1,7 @@
 import * as THREE from 'three';
+import {addWreckRecord,advanceWreckRecords,wreckSink,WRECK_CAP,
+ WRECK_CAP_LITE,CRASH_CAP,CRASH_LIFETIME_SECONDS,isWreckableUnit,
+ isAircraftWreck} from '/webgl-wreck-lifecycle.js';
 
 const vehicleKinds=new Set(['tank','rover','artillery']);
 const trackedKinds=new Set(['tank','artillery']);
@@ -118,12 +121,39 @@ export class SandforgeCombatEffects {
   this.track.count=0;this.track.frustumCulled=false;this.track.renderOrder=3;
   scene.add(this.track);
   this.trackCount=0;
-  const wreckMat=new THREE.MeshStandardMaterial({color:'#3d3d39',roughness:.92,metalness:.38});
-  this.wreckHull=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),wreckMat,90);
-  this.wreckTurret=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),wreckMat,90);
-  for(const mesh of [this.wreckHull,this.wreckTurret]){
-   mesh.count=0;mesh.castShadow=false;mesh.receiveShadow=true;scene.add(mesh);
+  // The former black rectangular "wrecks" were permanently retained
+  // BoxGeometry slabs with no clean-up. Build identifiable charred hulls,
+  // turrets and broken barrels from a capped instanced 3D pool instead.
+  const wreckLimit=lowQuality?WRECK_CAP_LITE:WRECK_CAP;
+  this.wreckMat=new THREE.MeshStandardMaterial({
+   color:'#5a5047',roughness:.94,metalness:.17,flatShading:true
+  });
+  this.wreckMetal=new THREE.MeshStandardMaterial({
+   color:'#373c3a',roughness:.88,metalness:.30,flatShading:true
+  });
+  this.wreckHull=new THREE.InstancedMesh(
+   new THREE.CylinderGeometry(.86,1,1,10,1),this.wreckMat,wreckLimit);
+  this.wreckTurret=new THREE.InstancedMesh(
+   new THREE.DodecahedronGeometry(1,0),this.wreckMetal,wreckLimit);
+  this.wreckBarrel=new THREE.InstancedMesh(
+   new THREE.CylinderGeometry(1,1,1,7),this.wreckMetal,wreckLimit);
+  for(const mesh of [this.wreckHull,this.wreckTurret,this.wreckBarrel]){
+   mesh.name='visual-burned-vehicle-'+
+    (mesh===this.wreckHull?'hull':mesh===this.wreckTurret?'turret':'barrel');
+   mesh.userData={visualOnly:true,nonPlayable:true,wreck:true};
+   mesh.raycast=()=>{};
+   mesh.count=0;mesh.frustumCulled=false;mesh.castShadow=false;
+   mesh.receiveShadow=true;
+   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+   scene.add(mesh);
   }
+  this.wrecks=[];
+  this.wreckSync=0;
+  this.crashes=[];
+  // Aircraft crash renderers reuse a handful of materials and shapes.
+  this.crashFuselage=new THREE.CapsuleGeometry(1,2,4,8);
+  this.crashWing=new THREE.BoxGeometry(1,1,1);
+  this.crashMast=new THREE.CylinderGeometry(1,1,1,7);
   // Actual 3D torus shockwaves complement the existing GPU smoke and debris.
   this.shockwave=new THREE.InstancedMesh(
    new THREE.TorusGeometry(1,.075,6,42),
@@ -182,7 +212,7 @@ export class SandforgeCombatEffects {
   this.stats={blasts:0,impacts:0,scorch:0,tracks:0,wrecks:0,rockets:0};
   this.lastUnitPollTime=NaN;
   this.activeParticles=0;
-  for(const u of game.units)if(u.hp>0&&!u.carrier)this.lastUnits.set(u.id,{x:u.x,y:u.y,kind:u.kind,owner:u.owner,angle:u.angle});
+  for(const u of game.units)if(u.hp>0&&!u.carrier)this.lastUnits.set(u.id,{x:u.x,y:u.y,kind:u.kind,owner:u.owner,angle:u.angle,flightHeight:u.flightHeight??1});
  }
  rand(){
   let n=this.seed=(this.seed+0x6d2b79f5)>>>0;
@@ -284,18 +314,95 @@ export class SandforgeCombatEffects {
   }
  }
  addWreck(u){
-  if(!vehicleKinds.has(u.kind))return;
-  if(this.wreckCount>=this.wreckHull.instanceMatrix.count)return;
-  const at=this.wreckCount++,p=this.pos(u.x,u.y),yaw=u.angle||0;
-  dummy.position.copy(p);dummy.position.y+=6;dummy.rotation.set(0,yaw,.06);
-  dummy.scale.set(45,13,u.kind==='rover'?56:76);dummy.updateMatrix();
-  this.wreckHull.setMatrixAt(at,dummy.matrix);
-  dummy.position.copy(p);dummy.position.y+=16;dummy.rotation.set(0,yaw+.17,.19);
-  dummy.scale.set(25,9,25);dummy.updateMatrix();
-  this.wreckTurret.setMatrixAt(at,dummy.matrix);
-  for(const mesh of [this.wreckHull,this.wreckTurret]){mesh.count=at+1;mesh.instanceMatrix.needsUpdate=true;}
+  if(!addWreckRecord(this.wrecks,u,this.wreckHull.instanceMatrix.count))return;
+  this.wreckCount=this.wrecks.length;
   this.stats.wrecks++;
+  this.placeScorch(u.x,u.y,u.kind==='bomber'?130:90);
   this.blastAt(u.x,u.y,true);
+  this.drawWrecks();
+ }
+ drawWrecks(){
+  let i=0;
+  for(const w of this.wrecks){
+   const ground=this.pos(w.x,w.y),yaw=w.yaw;
+   const sink=wreckSink(w);
+   const aircraft=isAircraftWreck(w.kind);
+   const rover=w.kind==='rover',bomber=w.kind==='bomber';
+   dummy.position.copy(ground);dummy.position.y+=8-sink;
+   dummy.rotation.set(0,yaw,.08);
+   dummy.scale.set(aircraft?(bomber?38:20):rover?21:29,
+    aircraft?8:rover?9:12,aircraft?(bomber?31:42):rover?32:39);
+   dummy.updateMatrix();this.wreckHull.setMatrixAt(i,dummy.matrix);
+   dummy.position.copy(ground);dummy.position.y+=aircraft?11-sink:19-sink;
+   dummy.rotation.set(.12,yaw+.21,-.16);
+   dummy.scale.set(aircraft?(bomber?21:12):rover?12:17,
+    aircraft?4:rover?7:9,aircraft?(bomber?11:15):rover?12:17);
+   dummy.updateMatrix();this.wreckTurret.setMatrixAt(i,dummy.matrix);
+   dummy.position.copy(ground);
+   dummy.position.y+=(aircraft?11:21)-sink;
+   dummy.rotation.set(aircraft?0:Math.PI/2,yaw+.20,aircraft?Math.PI/2:0);
+   dummy.scale.set(aircraft?1.7:rover?1.8:2.5,
+    aircraft?(bomber?64:45):rover?24:38,aircraft?1.7:rover?1.8:2.5);
+   dummy.updateMatrix();this.wreckBarrel.setMatrixAt(i,dummy.matrix);
+   i++;
+  }
+  for(const mesh of [this.wreckHull,this.wreckTurret,this.wreckBarrel]){
+   mesh.count=i;
+   if(i)mesh.instanceMatrix.needsUpdate=true;
+  }
+ }
+ spawnAircraftCrash(u){
+  if(this.crashes.length>=CRASH_CAP){
+   const oldest=this.crashes.shift();
+   this.scene.remove(oldest.mesh);
+  }
+  const bomber=u.kind==='bomber',mesh=new THREE.Group();
+  mesh.name='visual-crashing-'+u.kind;
+  mesh.userData={visualOnly:true,nonPlayable:true,crashing:true};
+  const shell=new THREE.Mesh(this.crashFuselage,this.wreckMat);
+  shell.rotation.x=Math.PI/2;
+  shell.scale.set(bomber?16:12,bomber?22:17,bomber?11:9);
+  mesh.add(shell);
+  const wings=new THREE.Mesh(this.crashWing,this.wreckMetal);
+  wings.position.y=3;
+  wings.scale.set(bomber?86:64,2.7,bomber?15:7);
+  mesh.add(wings);
+  const tail=new THREE.Mesh(this.crashWing,this.wreckMetal);
+  tail.position.set(0,4,-28);tail.scale.set(20,3,9);mesh.add(tail);
+  if(!bomber){
+   const rotor=new THREE.Mesh(this.crashWing,this.wreckMetal);
+   rotor.position.y=17;rotor.scale.set(78,1.5,5);rotor.rotation.y=.38;mesh.add(rotor);
+  }
+  mesh.traverse(child=>{if(child.isMesh){child.raycast=()=>{};child.castShadow=false;}});
+  const start=Math.max(14,u.kind==='scout'?3+172*(u.flightHeight??1):185);
+  mesh.position.copy(this.pos(u.x,u.y));mesh.position.y+=start;
+  mesh.rotation.y=u.angle??0;
+  this.scene.add(mesh);
+  this.crashes.push({mesh,x:u.x,y:u.y,angle:u.angle??0,
+   age:0,start,duration:CRASH_LIFETIME_SECONDS,kind:u.kind});
+ }
+ updateAircraftCrashes(dt){
+  if(!dt)return;
+  for(let i=this.crashes.length-1;i>=0;i--){
+   const c=this.crashes[i];
+   c.age+=dt;
+   const t=Math.min(1,c.age/c.duration);
+   const travel=(c.kind==='bomber'?105:63)*t;
+   const x=clamp(c.x+Math.cos(c.angle)*travel,8,this.world.size-8);
+   const z=clamp(c.y+Math.sin(c.angle)*travel,8,this.world.size-8);
+   const point=this.pos(x,z);
+   c.mesh.position.copy(point);
+   c.mesh.position.y+=c.start*Math.pow(1-t,1.25);
+   c.mesh.rotation.z=-t*.77;
+   c.mesh.rotation.x=t*.47;
+   if(t<1&&this.frame%10===0)
+    this.particle(this.smoke,x,z,c.mesh.position.y,17+this.rand()*12,.9);
+   if(t>=1){
+    this.scene.remove(c.mesh);
+    this.crashes.splice(i,1);
+    this.addWreck({...c,x,y:z});
+   }
+  }
  }
  // The simulation already supplies authoritative missiles and impact times.
  // This renderer interpolates their 3D trajectory without altering damage.
@@ -420,7 +527,7 @@ export class SandforgeCombatEffects {
   const next=new Map();
   for(const u of this.game.units){
    if(u.hp<=0||u.carrier)continue;
-   const old=this.lastUnits.get(u.id),current={x:u.x,y:u.y,angle:u.angle,kind:u.kind,owner:u.owner};
+   const old=this.lastUnits.get(u.id),current={x:u.x,y:u.y,angle:u.angle,kind:u.kind,owner:u.owner,flightHeight:u.flightHeight??1};
    if(old)this.tracksFor(u,old);
    next.set(u.id,current);
   }
@@ -428,7 +535,10 @@ export class SandforgeCombatEffects {
    if(next.has(id))continue;
    const found=this.game.units.find(u=>u.id===id);
    if(found?.carrier)continue; // boarding a transport is not a death
-   if(this.game.canSee(0,{x:old.x,y:old.y}))this.addWreck(old);
+   if(!this.game.canSee(0,{x:old.x,y:old.y}))continue;
+   if(isAircraftWreck(old.kind)&&(old.kind==='bomber'||old.flightHeight>.15))
+    this.spawnAircraftCrash(old);
+   else if(isWreckableUnit(old.kind))this.addWreck(old);
   }
   this.lastUnits=next;
  }
@@ -438,6 +548,15 @@ export class SandforgeCombatEffects {
   this.updateFallingBombs(active,subTick);
   if(!active)return;
   this.frame++;
+  this.updateAircraftCrashes(dt);
+  this.wreckSync+=dt;
+  if(advanceWreckRecords(this.wrecks,dt)){
+   this.wreckCount=this.wrecks.length;
+   if(this.wreckSync>=.20){
+    this.wreckSync=0;
+    this.drawWrecks();
+   }
+  }
   for(const emitter of this.emitters){
    emitter.life-=dt;emitter.clock+=dt;
    while(emitter.clock>=emitter.frequency&&emitter.life>0){
