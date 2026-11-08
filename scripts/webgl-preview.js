@@ -238,6 +238,10 @@ function buildTerrain(){
  source.onerror=()=>console.warn('Sand source unavailable; keeping procedural sand');
  source.src='/src/assets/reborn/sand-ripples-v2.png';
  const chunks=4,segments=56,patch=size/chunks;
+ // Reuse palette objects across 50k baked vertices: no per-frame cost.
+ const sandGold=new THREE.Color('#e8b47b'),sandLight=new THREE.Color('#f3cf9d'),
+  sandstone=new THREE.Color('#a97952'),riverSediment=new THREE.Color('#b79470');
+ const vertexColor=new THREE.Color();
  for(let cy=0;cy<chunks;cy++)for(let cx=0;cx<chunks;cx++){
   const count=(segments+1)**2,vertices=new Float32Array(count*3),
    colors=new Float32Array(count*3),uv=new Float32Array(count*2),
