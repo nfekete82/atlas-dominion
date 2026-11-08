@@ -1,0 +1,47 @@
+name: Sandforge periodic frame-hitch regression
+
+on:
+  push:
+    branches:
+      - fix/webgl-periodic-frame-hitches-20261108
+  pull_request:
+    branches:
+      - fix/ai-hold-superior-positions-20261108
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  periodic-frame-focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Same AI decisions and bounded periodic UI schedule
+        run: |
+          node --test \
+            tests/webgl-periodic-frame-hitches-20261108.test.mjs \
+            tests/webgl-hard-black-edge-20261108.test.mjs \
+            tests/webgl-faction-accents-20261108.test.mjs
+  all-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
