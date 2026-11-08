@@ -539,9 +539,7 @@ export class SandforgeBattlefield {
    const oldEntry=this.units.get(u.id);if(oldEntry)oldEntry.productionMotion=null;
    let entry=this.units.get(u.id);
    if(!entry){entry=this.spawnNode(u,'unit');this.units.set(u.id,entry);}
-   if(entry.factionAccents?.userData.owner!==u.owner)
-    applyFactionAccents(entry,u,'unit',entry.modelFootprint??
-     UNITS[u.kind].width*visualUnitScale(u.kind),entry.modelHeight??45);
+   if(entry.factionOwner!==u.owner)applyFactionAccents(entry,u,'unit');
    // Interpolate between authoritative 20 Hz snapshots for smooth 60–120 FPS
    // visuals. Simulation, pathfinding and orders use true u.x/u.y only.
    const travel=Math.hypot(u.x-u.previousX,u.y-u.previousY);
@@ -566,6 +564,9 @@ export class SandforgeBattlefield {
      if(e.detail)e.animation.mixer.uncacheRoot(e.detail);
     }
     if(e.placeholder){disposeOwnedMeshes(e.placeholder);e.placeholder=null;}
+    // Authored model geometries are shared, but team-tinted materials are
+    // actor-owned. Release only our owned PBR clones on death/despawn.
+    if(e.detail)disposeTaggedMaterials(e.detail,'sandforgeFactionTint');
     this.scene.remove(e.node);this.units.delete(id);this.selected.delete(id);
    }
   for(const b of this.game.bases){
@@ -573,10 +574,7 @@ export class SandforgeBattlefield {
    aliveBases.add(b.id);
    let entry=this.bases.get(b.id);
    if(!entry){entry=this.spawnNode(b,'building');this.bases.set(b.id,entry);this.grounding.attachBuilding(entry,b);}
-   if(entry.factionAccents?.userData.owner!==b.owner)
-    applyFactionAccents(entry,b,'building',entry.modelFootprint??BUILDINGS[b.kind].width,
-     entry.modelHeight??Math.max(65,BUILDINGS[b.kind].width*.55));
-   if(entry.factionAccents)entry.factionAccents.visible=b.buildRemaining<=0;
+   if(entry.factionOwner!==b.owner)applyFactionAccents(entry,b,'building');
    entry.node.position.copy(this.entityPosition(b));
    entry.node.visible=b.owner===0||this.game.canSee(0,b);
    entry.node.scale.y=1;

@@ -14,12 +14,13 @@ import {SandforgePerformanceWatch} from '/webgl-perf-watch.js';
 import {SandforgeAtmosphere3D} from '/webgl-atmosphere-3d.js';
 import {addVisualPerimeter} from '/webgl-perimeter.js';
 import {addBoundaryCliffs} from '/webgl-edge-cliffs.js';
-import {cameraEdgeReach} from '/webgl-map-edges.js';
+import {cameraEdgeReach,cameraBlackOverscan} from '/webgl-map-edges.js';
 import {groundContactMaterial} from '/webgl-grounding.js';
 import {SandforgeConstructionRecovery} from '/webgl-construction-recovery.js';
 import {SandforgeGroundTracks} from '/webgl-ground-tracks.js';
 import {Soundscape} from '/src/reborn/audio.js';
 import {fineSandPattern} from '/src/reborn/fine-sand.js';
+import {cinematicSandSample,addDesertWashStones} from '/webgl-desert-art.js';
 
 /** Opt-in WebGL scene using the real authoritative Sandforge map and simulation.
  * This page is isolated from the production Canvas renderer, save format and AI
@@ -200,8 +201,9 @@ function sandMicroNormalTexture(){
 }
 function buildTerrain(){
  const texture=sandTexture(),normalMap=sandMicroNormalTexture();
+ if(spacious)normalMap.repeat.set(2.2,2.2);
  const material=new THREE.MeshStandardMaterial({
-  color:spacious?'#e7dbca':'#f5eadb',map:texture,normalMap,normalScale:new THREE.Vector2(.45,.45),
+  color:spacious?'#fff0db':'#f5eadb',map:texture,normalMap,normalScale:new THREE.Vector2(spacious?.77:.45,spacious?.77:.45),
   vertexColors:true,roughness:.99,metalness:0
  });
  // The buildings-3d/desert-basecolor.png is a *model material atlas*,
@@ -218,7 +220,7 @@ function buildTerrain(){
    if(terrain.battlefield){
     // The historical artwork contains painted dune lighting. Keep its fine
     // grain and palette, but let actual 3D normals describe the new relief.
-    context.globalAlpha=.76;context.fillStyle='#d2ad77';
+    context.globalAlpha=.27;context.fillStyle='#e0b57c';
     context.fillRect(0,0,canvas.width,canvas.height);context.globalAlpha=1;
    }
    const sand=new THREE.CanvasTexture(canvas);
@@ -236,6 +238,10 @@ function buildTerrain(){
  source.onerror=()=>console.warn('Sand source unavailable; keeping procedural sand');
  source.src='/src/assets/reborn/sand-ripples-v2.png';
  const chunks=4,segments=56,patch=size/chunks;
+ // Reuse palette objects across 50k baked vertices: no per-frame cost.
+ const sandGold=new THREE.Color('#e8b47b'),sandLight=new THREE.Color('#f3cf9d'),
+  sandstone=new THREE.Color('#a97952'),riverSediment=new THREE.Color('#b79470');
+ const vertexColor=new THREE.Color();
  for(let cy=0;cy<chunks;cy++)for(let cx=0;cx<chunks;cx++){
   const count=(segments+1)**2,vertices=new Float32Array(count*3),
    colors=new Float32Array(count*3),uv=new Float32Array(count*2),
@@ -247,11 +253,17 @@ function buildTerrain(){
    const slope=terrain.battlefield?world.terrainSlope(x,z):Math.abs(heightAt(x,z-24)-heightAt(x,z+24))/48;
    const rocky=terrain.battlefield?smooth((slope-.10)/.25)*(terrain.battlefield.profile==='rocky'?.7:.3):smooth((slope-.20)/.9);
    const nval=.96+.055*Math.sin(x*.013+z*.009)+.025*Math.cos(x*.071-z*.032);
-   const bands=(Math.sin(h*.19+x*.003+z*.002)*.5+.5)*rocky;
-   const col=new THREE.Color(spacious?'#e9dcc6':'#faf1e0')
-     .lerp(new THREE.Color(spacious?'#9f8160':'#b58b63'),rocky*.65+bands*.12);
-   col.multiplyScalar(nval);
-   colors[n]=col.r;colors[n+1]=col.g;colors[n+2]=col.b;
+   if(spacious&&terrain.battlefield){
+    const art=cinematicSandSample({x,z,size,seed,profile:terrain.battlefield.profile,slope,height:h});
+    vertexColor.copy(sandGold).lerp(sandLight,(art.dune+1)*.28)
+      .lerp(sandstone,Math.min(.82,art.strata*.72))
+      .lerp(riverSediment,art.wadi*.49).multiplyScalar(art.shade);
+   }else{
+    const bands=(Math.sin(h*.19+x*.003+z*.002)*.5+.5)*rocky;
+    vertexColor.set(spacious?'#e9dcc6':'#faf1e0')
+      .lerp(sandstone,rocky*.65+bands*.12).multiplyScalar(nval);
+   }
+   colors[n]=vertexColor.r;colors[n+1]=vertexColor.g;colors[n+2]=vertexColor.b;
    uv[k*2]=x/(spacious?2200:1500);uv[k*2+1]=z/(spacious?2200:1500);
    // Sample normals from the continuous field, not triangle tessellation:
    // border ring and playable terrain now have identical lighting at seams.
@@ -286,12 +298,15 @@ function buildTerrain(){
  * skirts fill the complete solid hull: no blocked ground under empty air. */
 function addBattlefieldRocks(material){
  const vertices=[],colors=[],uv=[];
- const baseColor=new THREE.Color('#b7a083'),dark=new THREE.Color('#77634f');
+ const baseColor=new THREE.Color('#c69a6e'),dark=new THREE.Color('#75503b');
  for(const [id,mesa] of terrain.mesas.entries()){
   const poly=mesa.outline,cx=poly.reduce((n,p)=>n+p.x,0)/poly.length,cz=poly.reduce((n,p)=>n+p.y,0)/poly.length;
   const peak=mesa.columns.reduce((n,c)=>n+c.height,0)/mesa.columns.length*(terrain.battlefield.profile==='rocky'?1.55:1.05);
   const r=rnd((seed^id*0x9e3779b9^0x536fa1)>>>0),rotation=r()*6.28;
-  const rings=[1,.92,.78,.64,.44],levels=[-.8,.16,.56,.84,1],points=[];
+  // Fine stepped strata and weathered shelves avoid monolithic orange boulders.
+  // Still one merged visual mesh over the authoritative collision polygon.
+  const rings=[1.02,.985,.94,.88,.82,.75,.67,.56,.41],
+   levels=[-.8,.13,.23,.37,.54,.70,.84,.94,1],points=[];
   for(let k=0;k<rings.length;k++){
    points[k]=poly.map((p,i)=>{
     const erosion=k===0?1:1+Math.sin(i*2.37+rotation+k*.7)*.075;
@@ -301,7 +316,9 @@ function addBattlefieldRocks(material){
   }
   const tri=(a,b,c,band)=>{
    for(const p of [a,b,c]){
-    vertices.push(...p);const color=baseColor.clone().lerp(dark,band);
+    vertices.push(...p);
+    const s=Math.sin(p[1]*.165+(p[0]+half)*.009)*.09;
+    const color=baseColor.clone().lerp(dark,Math.max(0,Math.min(.85,band+s)));
     colors.push(color.r,color.g,color.b);uv.push((p[0]+half)/150,p[1]/120);
    }
   };
@@ -316,10 +333,16 @@ function addBattlefieldRocks(material){
  geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
  geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
  geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));geometry.computeVertexNormals();geometry.computeBoundingSphere();
- const mat=material.clone();mat.color.set('#ffffff');mat.vertexColors=true;mat.side=THREE.DoubleSide;
- // The asynchronously loaded shared sandstone map is copied on first render.
+ // Do not project sandy dune artwork onto vertical cliffs. Use the
+ // existing authored sandstone stratum atlas with world-space UV mapping.
+ const mat=new THREE.MeshStandardMaterial({color:'#ffffff',vertexColors:true,
+  roughness:.96,metalness:0,side:THREE.DoubleSide,flatShading:true});
+ new THREE.TextureLoader().load('/src/assets/reborn/sandstone-strata-v1.png',map=>{
+  map.wrapS=map.wrapT=THREE.RepeatWrapping;map.colorSpace=THREE.SRGBColorSpace;
+  map.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+  mat.map=map;mat.needsUpdate=true;
+ },undefined,error=>console.warn('Sandstone strata unavailable; vertex colors retained',error));
  const mesh=new THREE.Mesh(geometry,mat);mesh.name='physical-battlefield-rocks';
- mesh.onBeforeRender=()=>{if(mat.map!==material.map){mat.map=material.map;mat.needsUpdate=true;}};
  mesh.castShadow=true;mesh.receiveShadow=true;scene.add(mesh);
  return mesh;
 }
@@ -327,7 +350,7 @@ const pbr=(color,roughness=1,metalness=0)=>new THREE.MeshStandardMaterial({color
 function instancedStone(){
  // More irregular weathered sandstone, fewer identical round orange pebbles.
  const geometry=new THREE.DodecahedronGeometry(1,1),materials=spacious?
-   [pbr('#ac987d'),pbr('#9a8770'),pbr('#c0aa8b')]:
+   [pbr('#b48d68'),pbr('#906b52'),pbr('#d1ab7f')]:
    [pbr('#bfa889'),pbr('#ab9478'),pbr('#d0b89b')];
  // Irregular weathering breaks the obvious smooth polygon-egg silhouettes.
  // It operates once on the shared instanced mesh, not per boulder or frame.
@@ -710,13 +733,18 @@ function stepCamera(dt){
  // or mesh edge appears, including on wide screens and after camera rotation.
 // Permit a small overscan beyond the playable border. The frustum clamp
  // below still keeps decorative mesh endings out of view.
- const focusLimit=half+cameraEdgeReach(size);
+ const focusLimit=half+(spacious?cameraBlackOverscan(size):cameraEdgeReach(size));
  const nx=Math.max(-focusLimit,Math.min(focusLimit,controls.target.x));
  const nz=Math.max(-focusLimit,Math.min(focusLimit,controls.target.z));
  if(nx!==controls.target.x||nz!==controls.target.z){
   camera.position.x+=nx-controls.target.x;camera.position.z+=nz-controls.target.z;
   controls.target.x=nx;controls.target.z=nz;
  }
+ // Modern maps intentionally have NO geometry outside the boundary.
+ // Allow the frustum to show clean black there, instead of pushing the
+ // camera back into the playable map or zooming in unexpectedly.
+ if(spacious)return;
+ // Legacy maps retain the old apron/corner protection unchanged.
  // Keep the visible corners inside the textured erosion apron, not at
  // the far outer mesh edge where the black scene background is exposed.
  // The authored perimeter stays decorative; no playable bounds change.
@@ -765,6 +793,10 @@ new ResizeObserver(resize).observe(stage);resize();
 const chunks=buildTerrain();
 boundaryCliffs=addBoundaryCliffs({scene,size,heightAt,seed,lowQuality:query.get('lite')==='1',softRim:spacious,hardVoid:spacious});
 const stones=instancedStone();sandRoads();
+// Small ground-level stones accent the winding dry wash from the reference.
+// One visual-only instanced draw call; no gameplay pathing or collision edits.
+const washStones=spacious?addDesertWashStones({scene,world,size,seed,heightAt,
+ sites:terrain.sites,lowQuality:query.get('lite')==='1'}):null;
 const battlefield=new SandforgeBattlefield({
  game,world,terrain,scene,renderer,camera,controls,loader,groundMeshes,heightAt,pos,
  lite:query.get('lite')==='1'

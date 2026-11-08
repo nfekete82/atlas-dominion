@@ -1,6 +1,10 @@
 /** Shared camera/terrain-edge policy for the 3D renderer; never changes simulation bounds. */
 export const edgeOverscan=size=>Math.min(160,Math.max(80,size*.025));
 export const cameraEdgeReach=size=>Math.min(140,Math.max(70,size*.022));
+/** For hard-black WebGL maps, let the CAMERA centre travel over the void.
+ * Unit movement, minimap orders and the actual playable square stay fixed.
+ * Capped so the user cannot lose the entire map through excessive panning. */
+export const cameraBlackOverscan=size=>Math.min(750,Math.max(350,size*.145));
 
 /** A right-click slightly beyond the visible sand should still select a legal
  * destination. Far-out clicks stay invalid, as do nonfinite intersections.
