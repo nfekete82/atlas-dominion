@@ -298,7 +298,7 @@ function buildTerrain(){
  * skirts fill the complete solid hull: no blocked ground under empty air. */
 function addBattlefieldRocks(material){
  const vertices=[],colors=[],uv=[];
- const baseColor=new THREE.Color('#b7a083'),dark=new THREE.Color('#77634f');
+ const baseColor=new THREE.Color('#c69a6e'),dark=new THREE.Color('#75503b');
  for(const [id,mesa] of terrain.mesas.entries()){
   const poly=mesa.outline,cx=poly.reduce((n,p)=>n+p.x,0)/poly.length,cz=poly.reduce((n,p)=>n+p.y,0)/poly.length;
   const peak=mesa.columns.reduce((n,c)=>n+c.height,0)/mesa.columns.length*(terrain.battlefield.profile==='rocky'?1.55:1.05);
