@@ -195,6 +195,33 @@ export class Simulation {
   }
   static campaign(seed=randomMapSeed(),version:MapVersion=MAP_VERSION,profile?:TerrainProfile):Simulation {return new Simulation(seed,version,false,true,profile);}
   obstacles():Base[]{return this.bases.filter(b=>b.hp>0);}
+  /** Static structure/facade colliders are identical for every actor during
+   * the same 20 Hz tick. Reusing them cuts repeated map/filter and array
+   * allocations in large vehicle battles without changing pathfinding.
+   * Invalidate on any structure destruction or new simulation tick. */
+  private movementCollision?:{
+    at:number;
+    buildings:Base[];
+    towers:{x:number;y:number;radius:number}[];
+    decor:{x:number;y:number;radius:number}[];
+    infantryFacades:{x:number;y:number;radius:number}[];
+    vehicleFacades:{x:number;y:number;radius:number}[];
+    infantry:{x:number;y:number;radius:number}[];
+    vehicle:{x:number;y:number;radius:number}[];
+  };
+  private movingColliders(){
+    const current=this.movementCollision;
+    if(current?.at===this.time)return current;
+    const buildings=this.obstacles(),towers=this.bastionColliders(),
+      decor=this.vehicleDecorObstacles();
+    const infantryFacades=infantryStructureColliders(buildings),
+      vehicleFacades=vehicleStructureColliders(buildings);
+    const result={at:this.time,buildings,towers,decor,infantryFacades,
+      vehicleFacades,infantry:[...buildings,...infantryFacades,...towers],
+      vehicle:[...buildings,...vehicleFacades,...decor,...towers]};
+    this.movementCollision=result;
+    return result;
+  }
   /** Tower footprints are immutable for a match; reuse across AI and ticks. */
   private bastionNavigationCache?:{x:number;y:number;radius:number}[];
   bastionColliders():{x:number;y:number;radius:number}[]{
@@ -614,7 +641,7 @@ export class Simulation {
         delete target.burst;
       }
     }
-    if(target.hp<=0&&'queue' in target){target.hp=0;target.queue=[];target.queueTypes=[];target.queueCosts=[];target.production=0;this.notices.push(`${buildingSpec(target).name} ${target.owner===0?'verloren':'ausgeschaltet'}!`);}
+    if(target.hp<=0&&'queue' in target){this.movementCollision=undefined;target.hp=0;target.queue=[];target.queueTypes=[];target.queueCosts=[];target.production=0;this.notices.push(`${buildingSpec(target).name} ${target.owner===0?'verloren':'ausgeschaltet'}!`);}
   }
   /** Secondary roof MG has its own clock and can suppress infantry even while a rocket targets armor. */
   private tankMachinegun(u:Unit):void {
@@ -752,12 +779,14 @@ export class Simulation {
   private move(u:Unit,target:Point,dt:number,speedLimit=Infinity,formationCatchUp=false):void {
     const spec=unitSpec(u),clearance=Math.max(0,spec.radius-10);
     const vehicle=spec.group==='Fahrzeuge'&&!spec.flying,ground=!spec.flying;
-    const buildings=this.obstacles();
-    const towers=ground?this.bastionColliders():[];
-    const decor=vehicle?this.vehicleDecorObstacles():[];
-    const visualBuildings=vehicle?vehicleStructureColliders(buildings):
-      ground?infantryStructureColliders(buildings):[];
-    const collisionObstacles=ground?[...buildings,...visualBuildings,...decor,...towers]:buildings;
+    const cached=this.movingColliders();
+    const {buildings}=cached;
+    const towers=ground?cached.towers:[];
+    const decor=vehicle?cached.decor:[];
+    const visualBuildings=vehicle?cached.vehicleFacades:
+      ground?cached.infantryFacades:[];
+    const collisionObstacles=ground?
+      (vehicle?cached.vehicle:cached.infantry):buildings;
     // Older savegames can contain vehicles standing within the newly enlarged
     // visual clearance. Allow only a proven escape route out, then route normally.
     if(ground&&u.vehicleEscape==='exit'&&this.world.walkable(u,collisionObstacles,clearance)){
@@ -883,6 +912,7 @@ export class Simulation {
   }
   private stepMeasured(dt=RULES.tick):void {
     if(this.paused||this.status!=='playing'||dt<=0)return;
+    this.movementCollision=undefined;
     // One fixed tick only: callers accumulate elapsed time; no wall-clock economy.
     dt=Math.min(dt,.1);this.time+=dt;this.incomeClock+=dt;this.fogClock+=dt;
     this.unitById=new Map(this.units.map(u=>[u.id,u]));
@@ -1076,11 +1106,17 @@ export class Simulation {
     // Symmetric separation: units can pass one another without permanent deadlocks.
     const separationBuildings=this.obstacles(),separationVisual=vehicleStructureColliders(separationBuildings);
     const separationDecor=this.vehicleDecorObstacles(),separationTowers=this.bastionColliders();
+    // Avoid rebuilding infantry facades and four concatenated obstacle arrays
+    // for every close-contact pair in the separation pass.
+    const separationInfantryFacade=infantryStructureColliders(separationBuildings);
+    const separationInfantry=[...separationBuildings,...separationInfantryFacade,...separationTowers];
+    const separationVehicles=[...separationBuildings,...separationVisual,...separationDecor,...separationTowers];
     for(const u of this.units)if(u.hp>0&&!u.carrier)for(const v of this.spatial.query(u,unitSpec(u).radius+26)){
       if(v.id<=u.id||v.hp<=0||unitSpec(u).flying!==unitSpec(v).flying)continue;const gap=unitSpec(u).radius+unitSpec(v).radius+1;let d=distance(u,v);if(d>=gap)continue;
       const dx=d>.01?(u.x-v.x)/d:(u.id%2?1:-1),dy=d>.01?(u.y-v.y)/d:.25,push=Math.min(3,(gap-d)*.5);
       for(const [a,sign] of [[u,1],[v,-1]] as const){const p={x:a.x+dx*push*sign,y:a.y+dy*push*sign};
-        const colliders=unitSpec(a).group==='Fahrzeuge'?[...separationBuildings,...separationVisual,...separationDecor,...separationTowers]:unitSpec(a).flying?separationBuildings:[...separationBuildings,...infantryStructureColliders(separationBuildings),...separationTowers];
+        const colliders=unitSpec(a).group==='Fahrzeuge'?separationVehicles:
+          unitSpec(a).flying?separationBuildings:separationInfantry;
         if(unitSpec(a).flying||this.world.walkable(p,colliders,Math.max(0,unitSpec(a).radius-10))){a.x=p.x;a.y=p.y;}}
     }
     this.transports.cleanup();
