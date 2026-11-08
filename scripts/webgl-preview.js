@@ -333,10 +333,16 @@ function addBattlefieldRocks(material){
  geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
  geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
  geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));geometry.computeVertexNormals();geometry.computeBoundingSphere();
- const mat=material.clone();mat.color.set('#ffffff');mat.vertexColors=true;mat.side=THREE.DoubleSide;
- // The asynchronously loaded shared sandstone map is copied on first render.
+ // Do not project sandy dune artwork onto vertical cliffs. Use the
+ // existing authored sandstone stratum atlas with world-space UV mapping.
+ const mat=new THREE.MeshStandardMaterial({color:'#ffffff',vertexColors:true,
+  roughness:.96,metalness:0,side:THREE.DoubleSide,flatShading:true});
+ new THREE.TextureLoader().load('/src/assets/reborn/sandstone-strata-v1.png',map=>{
+  map.wrapS=map.wrapT=THREE.RepeatWrapping;map.colorSpace=THREE.SRGBColorSpace;
+  map.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+  mat.map=map;mat.needsUpdate=true;
+ },undefined,error=>console.warn('Sandstone strata unavailable; vertex colors retained',error));
  const mesh=new THREE.Mesh(geometry,mat);mesh.name='physical-battlefield-rocks';
- mesh.onBeforeRender=()=>{if(mat.map!==material.map){mat.map=material.map;mat.needsUpdate=true;}};
  mesh.castShadow=true;mesh.receiveShadow=true;scene.add(mesh);
  return mesh;
 }
