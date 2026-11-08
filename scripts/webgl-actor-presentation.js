@@ -96,11 +96,12 @@ export class SandforgeActorPresentation {
   // HUD health must remain visible for every currently seen unit by default.
   // A pre-existing damaged-only preset hid full-HP soldiers and vehicles.
   this.showHealth='all';
+  // Keep the actual rendered infantry model briefly after death, prone on
+  // the sand. No dark rectangular "death decal" or new polygon geometry.
+  // Move, don't clone, the existing model: bounded and GPU-cheap.
   this.remnants=[];
-  this.remnantMaterial=new THREE.MeshBasicMaterial({
-   color:'#4e4337',transparent:true,opacity:.64,depthWrite:false,side:THREE.DoubleSide
-  });
-  this.remnantGeometry=new THREE.PlaneGeometry(1,1);
+  this.maxRemnants=24;
+  this.remnantSeconds=6;
  }
  attach(entry,entity,type){
   const bar=statusBar(this.scene,entity,type);
@@ -128,18 +129,41 @@ export class SandforgeActorPresentation {
  remove(entry,entity=null){
   const state=entry?.presentation;
   if(!state)return;
-  // Preserve a short, visually grounded fall/wreck shadow without retaining
-  // a skinned model or influencing World collision/pathfinding.
-  if(entity?.hp<=0&&entry.node.visible){
-   const size=infantry.has(entity.kind)?23:air.has(entity.kind)?43:42;
-   const remnant=new THREE.Mesh(this.remnantGeometry,this.remnantMaterial.clone());
-   remnant.name='fallen-'+entity.kind+'-'+entity.id;
-   remnant.userData={deathEffect:true,nonPlayable:true};
-   remnant.rotation.x=-Math.PI/2;
-   remnant.scale.set(size,size*.6,1);
-   remnant.position.copy(entry.node.position);
-   remnant.position.y=Math.max(2,entry.node.position.y-(air.has(entity.kind)?170:0))+2;
-   this.scene.add(remnant);this.remnants.push({mesh:remnant,time:2.8,total:2.8});
+  // Soldiers must remain recognizable, not a flat dark rectangle.
+  // The GLB or fallback mesh is reused at the last known position, posed
+  // on its side. Release ONLY actor-owned resources on expiry.
+  if(entity?.hp<=0&&infantry.has(entity.kind)&&entry.node.visible){
+   const detail=entry.detail??entry.placeholder;
+   if(detail){
+    const wasFallback=detail===entry.placeholder;
+    if(entry.animation?.mixer){
+     entry.animation.mixer.stopAllAction();
+     if(entry.detail)entry.animation.mixer.uncacheRoot(entry.detail);
+     entry.animation=null;
+    }
+    entry.node.remove(detail);
+    if(wasFallback)entry.placeholder=null;
+    else entry.detail=null;
+    const fallen=new THREE.Group(),pose=new THREE.Group();
+    fallen.name='fallen-soldier-'+entity.kind+'-'+entity.id;
+    fallen.userData={deathEffect:true,nonPlayable:true,corpse:true};
+    fallen.position.copy(entry.node.position);
+    fallen.rotation.y=entry.node.rotation.y;
+    pose.position.y=3;
+    pose.rotation.x=Math.PI/2;
+    pose.rotation.z=(entity.id%2?1:-1)*.13;
+    pose.add(detail);fallen.add(pose);
+    detail.traverse(mesh=>{
+     if(mesh.isMesh)mesh.raycast=()=>{};
+    });
+    this.scene.add(fallen);
+    this.remnants.push({
+     mesh:fallen,model:detail,wasFallback,
+     time:this.remnantSeconds,total:this.remnantSeconds
+    });
+    while(this.remnants.length>this.maxRemnants)
+     this.removeRemnant(this.remnants.shift());
+   }
   }
   this.scene.remove(state.bar.root);
   state.bar.fillMaterial.dispose();
@@ -153,16 +177,33 @@ export class SandforgeActorPresentation {
   this.status.delete(state.type+':'+state.unitId);
   entry.presentation=null;
  }
+ removeRemnant(r){
+  if(!r)return;
+  this.scene.remove(r.mesh);
+  const geometries=new Set(),materials=new Set();
+  r.model?.traverse(node=>{
+   if(!node.isMesh)return;
+   if(r.wasFallback&&node.geometry)geometries.add(node.geometry);
+   for(const mat of Array.isArray(node.material)?node.material:[node.material]){
+    if(mat&&(r.wasFallback||mat.userData?.sandforgeFactionTint))
+     materials.add(mat);
+   }
+  });
+  for(const material of materials)material.dispose();
+  for(const geometry of geometries)geometry.dispose();
+  r.mesh.clear();
+ }
  stepRemnants(dt=0,active=true){
   if(!active)return;
-  for(const r of this.remnants){
-   r.time-=dt;
-   r.mesh.material.opacity=.64*Math.min(1,Math.max(0,r.time)/.9);
-   r.mesh.scale.multiplyScalar(1+.035*dt);
-  }
   this.remnants=this.remnants.filter(r=>{
-   if(r.time>0)return true;
-   this.scene.remove(r.mesh);r.mesh.material.dispose();return false;
+   r.time-=dt;
+   if(r.time>0){
+    // After 4.5 seconds sink gently into the sand, not a sudden pop.
+    if(r.time<1.5)r.mesh.position.y-=dt*3.4;
+    return true;
+   }
+   this.removeRemnant(r);
+   return false;
   });
  }
  setHealthMode(mode){
