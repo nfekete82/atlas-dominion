@@ -72,7 +72,7 @@ export interface Base extends Point {
 }
 /** Transient on-screen release cue. Never serialized or used for collisions. */
 export interface ProductionRelease {unitId:number;baseId:number;kind:UnitKind;owner:Faction;at:number;from:Point;to:Point}
-export interface Shot { from:Point; to:Point; owner:Faction; life:number; hit:boolean; projected?:boolean; source?:number; weapon?:Weapon; barrel?:number; at?:number; groundFrom?:Point; groundTo?:Point; armored?:boolean; kind?:UnitKind; angle?:number;flightHeight?:number }
+export interface Shot { from:Point; to:Point; owner:Faction; life:number; hit:boolean; projected?:boolean; source?:number; weapon?:Weapon; barrel?:number; at?:number; groundFrom?:Point; groundTo?:Point; armored?:boolean; targetClass?:'armor'|'infantry'|'air'|'structure'; impactElevation?:number; kind?:UnitKind; angle?:number;flightHeight?:number }
 export interface Missile {id:number;source:number;owner:Faction;from:Point;to:Point;angle:number;at:number;impactAt:number;damage:number;type?:'antiArmor'|'bomb'}
 export interface Blast extends Point {at:number;id:number}
 export type CaptureReadiness='owned'|'no-unit'|'out-of-range'|'contested'|'enemy-hq'|'capturing';
@@ -608,7 +608,13 @@ export class Simulation {
     if(weapon==='turret'&&'orders' in target&&target.hp>0)this.tactical.underTowerFire(target);
     const flying='orders' in target&&unitSpec(target).flying;
     this.shots.push({from,to:{x:target.x,y:target.y-(flying?(target.kind==='scout'?34+77*((target as Unit).flightHeight??1):111):23)},owner:source.owner,life:.65,hit:true,projected:'queue' in source,source:source.id,weapon,barrel,at:this.time,
-      ...('orders' in source?{kind:source.kind,angle:source.angle,flightHeight:source.flightHeight}:{}),groundFrom:{x:source.x,y:source.y},groundTo:{x:target.x,y:target.y},armored:'queue' in target||unitSpec(target as Unit).group!=='Infanterie'});
+      ...('orders' in source?{kind:source.kind,angle:source.angle,flightHeight:source.flightHeight}:{}),groundFrom:{x:source.x,y:source.y},groundTo:{x:target.x,y:target.y},
+      armored:'queue' in target||unitSpec(target as Unit).group!=='Infanterie',
+      targetClass:'queue' in target?'structure':unitSpec(target as Unit).flying?'air':
+        unitSpec(target as Unit).group==='Infanterie'?'infantry':'armor',
+      impactElevation:'queue' in target?Math.min(90,buildingSpec(target).width*.32):
+        unitSpec(target as Unit).flying?125:
+        unitSpec(target as Unit).group==='Fahrzeuge'?40:23});
   }
   private strike(source:Unit|Base|number,target:Unit|Base,amount:number):void{
     if(!Number.isFinite(amount)||amount<=0||target.hp<=0)return;
