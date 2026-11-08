@@ -1,0 +1,95 @@
+name: Sandforge cinematic desert, surface colours and free-look edges
+
+on:
+  push:
+    branches:
+      - feat/webgl-cinematic-desert-art-20261108
+  pull_request:
+    branches:
+      - fix/webgl-periodic-frame-hitches-20261108
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  desert-focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Deterministic art, camera overscan, and PBR material tints
+        run: |
+          node --test \
+            tests/webgl-cinematic-desert-art-20261108.test.mjs \
+            tests/webgl-faction-accents-20261108.test.mjs \
+            tests/webgl-hard-black-edge-20261108.test.mjs \
+            tests/webgl-periodic-frame-hitches-20261108.test.mjs
+
+  desert-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 21
+    env:
+      CI: 'true'
+      ATLAS_BROWSER_CHANNEL: chromium
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix tests/browser --no-audit --no-fund
+          cd tests/browser
+          npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: WebGL material colours and black-border camera overscan
+        run: |
+          set -euo pipefail
+          PORT=8158 HOST=127.0.0.1 node scripts/serve.mjs >/tmp/sandforge-cinematic-desert.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          READY=0
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:8158/healthz >/dev/null 2>&1; then READY=1; break; fi
+            sleep .25
+          done
+          if [ "$READY" -ne 1 ]; then cat /tmp/sandforge-cinematic-desert.log; exit 1; fi
+          ATLAS_BASE_URL=http://127.0.0.1:8158 \
+            tests/browser/node_modules/.bin/playwright test \
+            --config=tests/browser/playwright.config.mjs \
+            tests/browser/webgl-cinematic-desert-art-20261108.spec.mjs \
+            tests/browser/webgl-faction-accents-20261108.spec.mjs \
+            --workers=1 --reporter=line
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: sandforge-desert-chromium
+          path: tests/browser/artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  full-node-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
