@@ -1136,7 +1136,7 @@ export class SandforgeBattlefield {
    }
   }
   const unloadButton=view.querySelector('[data-action="unload"]');
-  if(unloadButton)unloadButton.hidden=!selectedLoadedRovers(g.units,this.selected).length;
+  if(unloadButton)unloadButton.hidden=!selectedLoadedTransports(g.units,this.selected).length;
   view.querySelector('[data-action="attack"]').setAttribute('aria-pressed',String(this.attackMode));
   view.querySelector('#sf-catalog-detail').textContent=
    spec?.description??'Einheiten auswählen · Rechtsklick bewegen · Pionier für Gebäude erforderlich.';
