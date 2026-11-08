@@ -5,7 +5,13 @@ import * as THREE from 'three';
  * World. Camera can see continuous desert beyond the playable boundary.
  * Exact world-space UVs and height samples match the real terrain edges.
  */
-export function addVisualPerimeter({scene,size,heightAt,material,ringTiles=2,segments=24,textureScale=1500}){
+export function addVisualPerimeter({scene,size,heightAt,material,ringTiles=2,segments=24,textureScale=1500,hardVoid=false}){
+ // Spacious WebGL maps have no decorative ground beyond their playable
+ // square. Empty geometry reveals the scene's solid-black background
+ // immediately at the terrain edge, without fade, rocks or another strip.
+ // Legacy map callers keep the original visual apron unless opted in.
+ if(hardVoid)return {meshes:[],voidCover:[],margin:0,
+  minX:0,maxX:size,minZ:0,maxZ:size,hardVoid:true};
  const playableChunks=4,patch=size/playableChunks,half=size*.5;
  const out=[],voidCover=[],normal=new THREE.Vector3();
  // This is NOT the gameplay Fog of War. Always mask the far, decorative
