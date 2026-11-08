@@ -43,6 +43,24 @@ export function assessBattle(units:readonly Unit[],enemies:readonly Unit[],tower
  const stance=towers.length&&canSiege?'siege':own>=required&&own>0?'attack':engaged&&own<enemy*.8?'withdraw':'reinforce';
  return {at,own,enemy,deficit,towers:towers.length,neededSiege,stance};
 }
+/** A large observed local overmatch should not be thrown away merely
+ * because one tank falls below the routine repair HP threshold.
+ * Only what faction 1 can currently see (plus previously observed guns)
+ * may be supplied. This is deliberately NOT a global hidden-army estimate.
+ * A gun line needs a stronger margin than a mobile-only engagement.
+ */
+export function hasDecisiveLocalAdvantage(
+ allies:readonly Unit[],observedEnemies:readonly Unit[],towers:readonly ObservedTower[]=[]
+):boolean{
+ const force=allies.filter(fighting),visible=observedEnemies.filter(fighting);
+ if(force.length<3||!visible.length)return false;
+ const assessment=assessBattle(force,visible,towers,0,true);
+ const ratio=towers.length?2.25:1.65;
+ // Never call two scouts or an unsupported infantry rush overwhelming.
+ if(towers.length&&!force.some(u=>u.kind==='artillery')&&force.length<9)return false;
+ return assessment.own>=Math.max(4,assessment.enemy*ratio);
+}
+
 /** Remember the actual failed front, not a seed or a hard-coded bastion ID. */
 export function recordFailure(s:BattleState,sector:number,p:Point,power:number,towers:number,time:number):void{
  const old=s.fronts.find(f=>f.sector===sector&&distance(f,p)<400),failures=(old?.failures??0)+1;
