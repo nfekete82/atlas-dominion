@@ -541,6 +541,7 @@ export class SandforgeBattlefield {
    let entry=this.units.get(u.id);
    if(!entry){entry=this.spawnNode(u,'unit');this.units.set(u.id,entry);}
    if(entry.factionOwner!==u.owner)applyFactionAccents(entry,u,'unit');
+   entry.lastAliveAt=this.game.time;
    // Interpolate between authoritative 20 Hz snapshots for smooth 60–120 FPS
    // visuals. Simulation, pathfinding and orders use true u.x/u.y only.
    const travel=Math.hypot(u.x-u.previousX,u.y-u.previousY);
@@ -559,7 +560,14 @@ export class SandforgeBattlefield {
    entry.node.visible=u.owner===0||this.game.canSee(0,u);
   }
   for(const [id,e] of this.units)if(!aliveUnits.has(id)){
-    this.presentation.remove(e,this.game.units.find(u=>u.id===id));
+    const stillPresent=this.game.units.find(u=>u.id===id);
+    // Boarding units still exist with carrier ID. Actual casualties were
+    // removed by Simulation at the fixed tick and must be identified from
+    // their last visible actor snapshot. Saves/reset must not create corpses.
+    const recentDeath=!stillPresent&&e.lastAliveAt!==undefined&&
+     this.game.time>=e.lastAliveAt&&this.game.time-e.lastAliveAt<=.20;
+    const removal=recentDeath?{id,kind:e.kind,owner:e.owner,hp:0}:stillPresent;
+    this.presentation.remove(e,removal);
     if(e.animation?.mixer){
      e.animation.mixer.stopAllAction();
      if(e.detail)e.animation.mixer.uncacheRoot(e.detail);
