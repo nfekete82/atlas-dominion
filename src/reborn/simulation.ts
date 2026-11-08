@@ -168,7 +168,7 @@ export class Simulation {
   }
   readonly attackAlerts=new AttackAlerts();
   workEffects:WorkEffect[]=[];
-  paused=false; revision=0; private fogClock=0; private visionCache=new VisionCache(); private spatial=new SpatialIndex();
+  paused=false; revision=0; aiPlanDurationMs=0; aiPlanCompletedAt=-1; private fogClock=0; private visionCache=new VisionCache(); private spatial=new SpatialIndex();
   /** The original constructor remains a deterministic legacy fixture/save reader. */
   constructor(seed=2026,mapVersion:MapVersion=0,weatherEnabled=false,bootstrap=false,profile?:TerrainProfile) {
     this.bootstrapVersion=bootstrap?1:undefined;this.seed=seed;this.weather=new Weather(seed,weatherEnabled);this.world=new World(seed,mapVersion,profile);this.territories=this.world.territories(seed);
@@ -1188,7 +1188,17 @@ export class Simulation {
     if((this.bootstrapLost(1)||this.bases.filter(b=>b.kind==='headquarters').length>=2&&this.bases.filter(b=>b.kind==='headquarters').every(b=>b.owner===0&&b.hp>0)&&campaignLayout(this.world.mapVersion,this.seed).starts[1].every(i=>this.territories[i].owner===0)))this.status='victory';
     if(this.bootstrapLost(0)||!this.bases.some(b=>b.owner===0&&b.hp>0&&['headquarters','barracks','factory','airfield'].includes(b.kind))&&this.count(0)===0)this.status='defeat';
   }
-  private think():void {this.tactical.plan();}
+  // The tactical director runs every three simulated seconds and can be the
+  // source of frame spikes even when GPU rendering is smooth. Record only
+  // performance metadata; do not change deterministic orders or save schema.
+  private think():void {
+    const start=performance.now();
+    try{this.tactical.plan();}
+    finally{
+      this.aiPlanDurationMs=performance.now()-start;
+      this.aiPlanCompletedAt=this.time;
+    }
+  }
   save():Save {
     return structuredClone({version:2,...(this.world.generated?.battlefield?{terrainProfile:this.world.generated.battlefield.profile,generatorVersion:1 as const}:{}),...(this.bootstrapVersion?{bootstrapVersion:this.bootstrapVersion}:{}),weatherVersion:1,productionVersion:1,supportVersion:1,rosterVersion:2,missiles:this.missiles,seed:this.seed,mapVersion:this.world.mapVersion,time:this.time,nextId:this.nextId,credits:this.credits,incomeClock:this.incomeClock,
       units:this.units,bases:this.bases,territories:this.territories,explored:this.explored.map(a=>Array.from(a)),memories:this.memories,aiClock:this.aiClock,ai:this.tactical.state,status:this.status,stats:this.stats});
