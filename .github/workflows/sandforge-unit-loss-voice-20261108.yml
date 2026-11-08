@@ -1,0 +1,42 @@
+name: Sandforge unit loss radio warning
+
+on:
+  push:
+    branches:
+      - feat/webgl-player-unit-lost-voice-20261108
+  pull_request:
+    branches:
+      - fix/sandforge-elimination-victory-center-overlay-20261108
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  voice-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node --test tests/webgl-unit-lost-announcement-20261108.test.mjs tests/webgl-elimination-victory-banner-20261108.test.mjs
+  full-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
