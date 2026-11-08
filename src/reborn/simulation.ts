@@ -295,6 +295,13 @@ export class Simulation {
     const support=members.filter(u=>u.kind==='medic'||u.kind==='engineer');
     const rearFighters=armoredFront.length?members.filter(u=>['infantry','heavy','artillery'].includes(u.kind)):[];
     const mixed=front.length>0&&(support.length>0||rearFighters.length>0)&&['move','attackMove','attack'].includes(order.kind);
+    // A player-selected ground squad marches at the pace of its slowest
+    // surviving member. The existing march metadata makes this deterministic,
+    // supports mixed tanks/infantry/support and avoids new save fields.
+    // AI, single-unit orders and aircraft retain their established speeds.
+    const playerGround=members.filter(u=>u.owner===0&&!unitSpec(u).flying);
+    const playerMarch=['move','attackMove'].includes(order.kind)&&playerGround.length>1
+      ?playerGround.map(u=>u.id):null;
     const origin={x:front.reduce((n,u)=>n+u.x,0)/Math.max(1,front.length),y:front.reduce((n,u)=>n+u.y,0)/Math.max(1,front.length)},length=distance(origin,order)||1;
     const heading={x:(order.x-origin.x)/length,y:(order.y-origin.y)/length};
     if(mixed){const priority=(u:Unit)=>u.kind==='tank'?0:u.kind==='rover'?1:u.kind==='infantry'||u.kind==='heavy'?2:u.kind==='artillery'?3:4;
@@ -340,7 +347,7 @@ export class Simulation {
          ?[...buildings,...infantryStructureColliders(buildings),...towers]
          :[...buildings,...vehicleStructureColliders(buildings),...this.vehicleDecorObstacles(),...towers];
        const target=spec.flying?{x:clamp(p.x,8,this.world.size-8),y:clamp(p.y,8,this.world.size-8)}:this.world.nearest(p,obstacles,[],u,Math.max(0,spec.radius-10));if(!target)return;
-      const next:Order={...order,...target,...(mixed&&front.includes(u)?{march:(armoredFront.length?members.filter(v=>!unitSpec(v).flying):front).map(v=>v.id)}:{}),...(formation?{formation,...(support.includes(u)?{kind:order.kind==='attack'?'attackMove':order.kind,target:undefined}:{})}:{})};u.hold=false;u.supportPaused=false;u.workingTarget=null;
+      const next:Order={...order,...target,...(playerMarch&&u.owner===0&&!spec.flying?{march:playerMarch}:mixed&&front.includes(u)?{march:(armoredFront.length?members.filter(v=>!unitSpec(v).flying):front).map(v=>v.id)}:{}),...(formation?{formation,...(support.includes(u)?{kind:order.kind==='attack'?'attackMove':order.kind,target:undefined}:{})}:{})};u.hold=false;u.supportPaused=false;u.workingTarget=null;
       if(append){if(u.orders.length<32)u.orders.push(next);else return;}
       else {this.transports.cancel(u);delete u.burst;u.orders=formation&&u.orders[0]?.kind==='heal'?[u.orders[0],next]:[next];u.path=[];u.repath=0;u.combatTarget=null;u.pursuitOrigin=null;
         if(u.kind==='tank'&&!u.moving)u.driveSpeed=0;}
@@ -797,7 +804,11 @@ export class Simulation {
       }
     }
     const cohort=u.orders[0]?.march;
-    if(cohort){const allies=this.units.filter(v=>cohort.includes(v.id)&&v.owner===u.owner&&v.hp>0);if(allies.length){
+    if(cohort){const allies=this.units.filter(v=>cohort.includes(v.id)&&v.owner===u.owner&&v.hp>0&&
+        (u.owner!==0||v.id===u.id||v.orders[0]?.march?.includes(u.id)));
+      // A separately redirected/stopped soldier immediately leaves the
+      // cohort; remaining units no longer inherit its former slow speed.
+      if(allies.length){
       // Escort already enforces the moving armor's front position. A lagging
       // legacy AI rifleman must be allowed a short catch-up burst instead
       // of being capped to tank speed by the redundant march metadata.

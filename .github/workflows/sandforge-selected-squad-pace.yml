@@ -1,0 +1,35 @@
+name: Sandforge selected squad shared pace
+
+on:
+  push:
+    branches:
+      - fix/webgl-selected-squad-shared-pace-20261108
+  pull_request:
+    branches:
+      - fix/webgl-attack-warning-minimap-20261108
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-squad-pace:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Typecheck and build complete RTS
+        run: npm run build
+      - name: Verify real 20Hz group movement and command isolation
+        run: node --test tests/reborn-selected-squad-pace.test.mjs
+      - name: Existing formation, transport and attack regressions
+        run: node --test tests/webgl-jeep-boarding.test.mjs tests/reborn-attack-alerts.test.mjs
+      - name: Full Node regression suite
+        run: npm test
