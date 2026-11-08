@@ -1,0 +1,92 @@
+name: Sandforge blue-red faction accents
+
+on:
+  push:
+    branches:
+      - feat/webgl-faction-accents-20261108
+  pull_request:
+    branches:
+      - feat/webgl-transport-roster-bomber-runs-20261108
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  faction-colors:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: |
+          node --test \
+            tests/webgl-faction-accents-20261108.test.mjs \
+            tests/webgl-transport-roster-bomber-runs-20261108.test.mjs \
+            tests/webgl-airlift-scale-bomber-20261108.test.mjs
+
+  faction-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    env:
+      CI: 'true'
+      ATLAS_BROWSER_CHANNEL: chromium
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix tests/browser --no-audit --no-fund
+          cd tests/browser
+          npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Verify rendered blue/red actor marks
+        run: |
+          set -euo pipefail
+          PORT=8156 HOST=127.0.0.1 node scripts/serve.mjs >/tmp/sandforge-faction-accent.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          READY=0
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:8156/healthz >/dev/null 2>&1; then READY=1; break; fi
+            sleep .25
+          done
+          if [ "$READY" -ne 1 ]; then cat /tmp/sandforge-faction-accent.log; exit 1; fi
+          ATLAS_BASE_URL=http://127.0.0.1:8156 \
+            tests/browser/node_modules/.bin/playwright test \
+            --config=tests/browser/playwright.config.mjs \
+            tests/browser/webgl-faction-accents-20261108.spec.mjs \
+            --workers=1 --reporter=line
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: sandforge-faction-accent-chromium
+          path: tests/browser/artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  full-node-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm test

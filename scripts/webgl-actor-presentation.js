@@ -10,9 +10,12 @@ const barGeo=new THREE.PlaneGeometry(1,1);
 const bgMat=new THREE.MeshBasicMaterial({
  color:'#101c21',transparent:true,opacity:.93,depthTest:false,depthWrite:false,side:THREE.DoubleSide
 });
-const outlineMat=new THREE.MeshBasicMaterial({
- color:'#d8c6a3',transparent:true,opacity:.84,depthTest:false,depthWrite:false,side:THREE.DoubleSide
-});
+// Small blue/red outline around the existing green HP bar. Health fraction
+// stays green/yellow/red: only the owner border indicates the faction.
+const outlineMats=[0,1].map(owner=>new THREE.MeshBasicMaterial({
+ color:owner===0?'#64bfe3':'#ed8b77',transparent:true,opacity:.93,
+ depthTest:false,depthWrite:false,side:THREE.DoubleSide,toneMapped:false
+}));
 
 function muzzleTexture(){
  const canvas=document.createElement('canvas');
@@ -44,7 +47,7 @@ function statusBar(scene,entity,type){
  const root=new THREE.Group();
  root.name='hp-'+type+'-'+entity.id;
  root.userData={type,id:entity.id,healthBar:true};
- const surround=new THREE.Mesh(barGeo,outlineMat);
+ const surround=new THREE.Mesh(barGeo,outlineMats[entity.owner===1?1:0]);
  surround.scale.set(width+1.8,4.8,1);surround.position.z=0;surround.renderOrder=1016;
  root.add(surround);
  const back=new THREE.Mesh(barGeo,bgMat);
@@ -201,6 +204,8 @@ export class SandforgeActorPresentation {
    this.showHealth==='selected'&&selected||
    this.showHealth==='damaged'&&(selected||pct<.999));
   bar.root.visible=showBar&&!entry.productionMotion?.hideHealth;
+  // Headquarters may be captured and switch faction without respawning.
+  bar.root.children[0].material=outlineMats[entity.owner===1?1:0];
   if(bar.root.visible)this.stats.visibleBars++;
   if(visible){
    bar.root.position.copy(entry.node.position);
