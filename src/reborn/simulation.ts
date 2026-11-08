@@ -150,7 +150,7 @@ export class Simulation {
   }
   sight(u:Unit):number{
     const infantry=['infantry','medic','engineer','heavy'].includes(u.kind);
-    return unitSpec(u).sight*(infantry?this.infantryVisionBonus:1)*
+    return unitSpec(u).sight*researchModifiers(this.research[u.owner],u.kind).sight*(infantry?this.infantryVisionBonus:1)*
       (this.weather.storm&&!unitSpec(u).flying?WEATHER_RULES.groundSight:1);
   }
   healRadius(u:Unit):number{return HEAL_RADIUS*getVeterancyModifiers(u).healRange;}
@@ -396,7 +396,7 @@ export class Simulation {
   }
   spawn(owner:Faction,p:Point,kind:UnitKind='infantry'):Unit {
     while(this.bases.some(b=>b.id===this.nextId))this.nextId++;
-    const u:Unit={id:this.nextId++,owner,kind,xp:0,x:p.x,y:p.y,hp:UNITS[kind].hp,orders:[],path:[],cooldown:0,facing:1,moving:false,hit:0,repath:0,
+    const u:Unit={id:this.nextId++,owner,kind,xp:0,x:p.x,y:p.y,hp:this.maxUnitHp({kind,owner}),orders:[],path:[],cooldown:0,facing:1,moving:false,hit:0,repath:0,
       angle:Math.PI/4,walkDistance:0,fire:0,previousX:p.x,previousY:p.y,lastAttacker:null,defendUntil:0};
     this.units.push(u);this.unitById.set(u.id,u);
     countDeployed(this.stats,owner,kind,this.count(owner));return u;
@@ -429,7 +429,11 @@ export class Simulation {
     if(this.bases.filter(b=>b.hp>0).length>=40)return 'Gebäudelimit erreicht.';
     if(kind==='generator'&&this.bases.filter(b=>b.owner===owner&&b.kind==='generator'&&b.hp>0).length>=MAX_GENERATORS_PER_FACTION)
       return `Maximal ${MAX_GENERATORS_PER_FACTION} Energiekerne pro Fraktion.`;
-    if(['barracks','factory','airfield'].includes(kind)&&this.bases.some(b=>b.owner===owner&&b.kind===kind&&b.hp>0))return 'Dieses Produktionsgebäude existiert bereits.';
+    if(['barracks','factory','airfield','research','silo'].includes(kind)&&
+       this.bases.some(b=>b.owner===owner&&b.kind===kind&&b.hp>0))
+      return 'Dieses Gebäude oder seine Baustelle existiert bereits.';
+    if(kind==='interceptor'&&this.bases.filter(b=>b.owner===owner&&b.kind===kind&&b.hp>0).length>=2)
+      return 'Maximal zwei Raketenabwehr-Anlagen pro Fraktion.';
     if(kind==='headquarters'){
       if(this.bootstrapVersion!==1)return 'Dieses Gebäude kann hier nicht errichtet werden.';
       if(this.bases.some(b=>b.owner===owner&&b.kind==='headquarters'&&b.hp>0))return 'Ein Hauptquartier oder seine Baustelle existiert bereits.';
@@ -467,7 +471,10 @@ export class Simulation {
     if(!workers.length)return null;
     const spec=BUILDINGS[kind],territory=this.territories.find(t=>inside(p,t.polygon))!;
     let id=1000;while(this.bases.some(b=>b.id===id)||this.units.some(u=>u.id===id))id++;
-    const b:Base={id,owner,kind,...p,hp:spec.hp*.25,territory:territory.id,radius:spec.radius,queue:[],queueTypes:[],production:0,buildRemaining:spec.buildTime,cooldown:0,rally:null,...(facing!==0?{facing}:{})};
+    const b:Base={id,owner,kind,...p,hp:spec.hp*.25,territory:territory.id,radius:spec.radius,queue:[],queueTypes:[],production:0,buildRemaining:spec.buildTime,cooldown:0,rally:null,
+      ...(kind==='silo'?{siloCharge:SILO_CHARGE_SECONDS}:{}),
+      ...(kind==='interceptor'?{interceptorAmmo:INTERCEPTOR_MAX_AMMO}:{}),
+      ...(facing!==0?{facing}:{})};
     this.bases.push(b);
     if(!this.command(workers.map(u=>u.id),{...p,kind:'build',target:id},append)){this.bases.pop();this.notices.push('Kein ausgewählter Pionier kann diese Baustelle erreichen.');return null;}
     this.credits[owner]-=spec.cost;this.updateVision();return b;
@@ -735,7 +742,7 @@ export class Simulation {
     for(const vehicle of vehicles){
       const share=(vehicle.hp/unitSpec(vehicle).hp<.5?2:1)/total;
       const before=vehicle.hp;
-      vehicle.hp=Math.min(unitSpec(vehicle).hp,before+REPAIR_RATE*getVeterancyModifiers(u).repairRate*share*dt);
+      vehicle.hp=Math.min(this.maxUnitHp(vehicle),before+REPAIR_RATE*getVeterancyModifiers(u).repairRate*share*dt);
       if(vehicle.hp>before){
         gainUnitXp(u,(vehicle.hp-before)*XP_RULES.repair,'repair');
         this.work('repair',u.id,vehicle.id,vehicle.hp-before);
@@ -755,7 +762,7 @@ export class Simulation {
     const weight=(t:Unit)=>t.id===u.id?.25:t.hp/unitSpec(t).hp<.5?2:1;
     const sum=targets.reduce((n,t)=>n+weight(t),0);let healed=false;
     for(const target of targets){const before=target.hp,rate=target.id===u.id?Math.min(3,12*weight(target)/sum):12*weight(target)/sum;
-      target.hp=Math.min(unitSpec(target).hp,target.hp+rate*getVeterancyModifiers(u).healRate*dt);
+      target.hp=Math.min(this.maxUnitHp(target),target.hp+rate*getVeterancyModifiers(u).healRate*dt);
       if(target.hp>before){if(target.id!==u.id)gainUnitXp(u,(target.hp-before)*XP_RULES.heal,'heal');this.work('heal',u.id,target.id,target.hp-before);healed=true;u.workingTarget??=target.id;}
     }
     return healed;
@@ -788,7 +795,8 @@ export class Simulation {
     // the original combat math. Applies equally to hits and rocket splash.
     const groundUnit=(entity:Unit|Base|undefined):entity is Unit=>
       Boolean(entity&&'orders' in entity&&!unitSpec(entity).flying);
-    const outgoing=groundUnit(attacker)&&this.onHighGround(attacker)?1.2:1;
+    const outgoing=(groundUnit(attacker)&&this.onHighGround(attacker)?1.2:1)*
+      (attacker?researchModifiers(this.research[attacker.owner],attacker.kind).damage:1);
     const incoming=groundUnit(target)&&this.onHighGround(target)?.9:1;
     const adjusted=amount*outgoing*incoming;
     const alive=target.hp>0,applied=Math.min(target.hp,adjusted);target.hp=Math.max(0,target.hp-applied);
@@ -901,14 +909,15 @@ export class Simulation {
     // Engineers on guard duty stay near their work instead of abandoning repairs.
     const support=u.kind==='engineer'||u.kind==='medic'||u.kind==='scout'||(u.kind==='rover'&&!!u.transport?.cargo.length);
     const proactive=!u.hold&&order?.kind!=='move'&&!support;
-    const engageRadius=proactive?Math.max(spec.range,Math.min(this.sight(u),spec.range+120)):spec.range;
+    const range=this.range(u);
+    const engageRadius=proactive?Math.max(range,Math.min(this.sight(u),range+120)):range;
     const visible=(e:Unit|Base)=>this.canSee(u.owner,e)||(distance(u,e)<=this.sight(u)&&(spec.flying||this.world.sightLine(u,e)));
     const eligible=(e:Unit|Base)=>{
       if(e.hp<=0||('orders' in e&&e.carrier)||e.owner===u.owner||!canAttack(u,e))return false;
       const d=distance(u,e);
       if(d>engageRadius||!visible(e))return false;
       return spec.flying||('orders' in e&&unitSpec(e).flying)||
-        (d<=spec.range?this.world.line(u,e):this.world.sightLine(u,e));
+        (d<=range?this.world.line(u,e):this.world.sightLine(u,e));
     };
     // Position halten is defensive fire ONLY. Normal auto-acquisition must
     // never choose nearby enemy units or buildings: fire at the actual, still
@@ -1079,7 +1088,7 @@ export class Simulation {
       // a rock. Let the column pass bends before enforcing its open-ground lead.
       if(u.orders[0]?.tactical&&distance(u,target)>spec.range+30&&allies.every(v=>v.path.length===1)){const remaining=(v:Unit)=>Math.max(0,distance(v,v.orders[0]??target)-(v.orders[0]?.tactical?.mode==='assault'?unitSpec(v).range:0));const lead=Math.max(...allies.map(remaining))-remaining(u);if(lead>110)speedLimit=0;}
     }}
-    let velocity=Math.min(spec.speed,speedLimit);
+    let velocity=Math.min(this.speed(u),speedLimit);
     if(spec.group!=='Infanterie'){
       const desired=Math.atan2(dy,dx),current=u.hullAngle??u.angle,error=Math.atan2(Math.sin(desired-current),Math.cos(desired-current));
       const turnRate=spec.flying?1.8:u.kind==='tank'?1.05:2.5;
@@ -1089,15 +1098,15 @@ export class Simulation {
       // Once driving, this shared steering pass handles route bends normally.
       if(u.kind!=='tank'||(u.driveSpeed??0)>=2)
         u.hullAngle=current+clamp(error,-turnRate*dt,turnRate*dt);
-      const remaining=Math.max(0,distance(u,target)-14),braking=spec.speed*2.8;
+      const remaining=Math.max(0,distance(u,target)-14),braking=this.speed(u)*2.8;
       // Aircraft can translate while banking/turning during a direct move.
       // Otherwise a helicopter ordered to retreat in the opposite direction
       // stays virtually motionless until its hull has turned ~90 degrees.
       // Preserve the existing turning/braking model for ground vehicles.
       const traction=spec.flying&&(u.kind==='bomber'||u.orders[0]?.kind==='move')
         ?Math.max(.65,Math.cos(error)):Math.max(0,Math.cos(error));
-      const targetSpeed=Math.min(spec.speed,Math.sqrt(2*braking*remaining))*traction;
-      u.driveSpeed=(u.driveSpeed??0)+clamp(targetSpeed-(u.driveSpeed??0),-braking*dt,spec.speed*1.9*dt);
+      const targetSpeed=Math.min(this.speed(u),Math.sqrt(2*braking*remaining))*traction;
+      u.driveSpeed=(u.driveSpeed??0)+clamp(targetSpeed-(u.driveSpeed??0),-braking*dt,this.speed(u)*1.9*dt);
       velocity=Math.min(u.driveSpeed,speedLimit);
     }
     const speed=velocity*(spec.flying&&this.weather.storm?WEATHER_RULES.airSpeed:1)*dt,step=Math.min(speed,d);
@@ -1137,6 +1146,7 @@ export class Simulation {
     if(wasStorm!==this.weather.storm){this.visionCache.invalidate();this.updateVision();this.fogClock=0;}
     if(this.incomeClock+1e-8>=RULES.incomeInterval){this.incomeClock=Math.max(0,this.incomeClock-RULES.incomeInterval);for(const owner of [0,1] as const){const earned=this.income(owner);this.credits[owner]+=earned;countIncome(this.stats,owner,earned);}}
     this.blasts=this.blasts.filter(b=>this.time-b.at<.5);
+    this.stepStrategy(dt);
     for(const missile of this.missiles)if(missile.impactAt<=this.time){
       const antiArmor=missile.type==='antiArmor',radius=antiArmor?44:missile.type==='bomb'?94:60;
       for(const target of [...this.units,...this.bases])if(target.owner!==missile.owner&&target.hp>0&&!('orders' in target&&(target.carrier||unitSpec(target).flying))&&distance(target,missile.to)<=radius){
@@ -1217,7 +1227,7 @@ export class Simulation {
         continue;
       }
       if(u.kind==='tank'){u.mgCooldown=Math.max(0,(u.mgCooldown??0)-dt);this.tankMachinegun(u);}
-      const engagementRange=u.kind==='tank'&&enemy&&'orders' in enemy&&unitSpec(enemy).group==='Infanterie'?TANK_MG.range:spec.range;
+      const engagementRange=u.kind==='tank'&&enemy&&'orders' in enemy&&unitSpec(enemy).group==='Infanterie'?TANK_MG.range:this.range(u);
       if(enemy&&distance(u,enemy)<=engagementRange&&(spec.flying||('orders' in enemy&&unitSpec(enemy).flying)||this.world.line(u,enemy,this.obstacles().filter(b=>b.id!==enemy.id)))){
         u.facing=enemy.x<u.x?-1:1;u.angle=Math.atan2(enemy.y-u.y,enemy.x-u.x);
         // Tank's main guided rocket is anti-armor only; infantry is handled by the independent roof MG.
