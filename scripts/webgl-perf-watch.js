@@ -11,6 +11,8 @@ export class SandforgePerformanceWatch{
   this.simSamples=new Float32Array(180);
   this.syncSamples=new Float32Array(180);
   this.renderSamples=new Float32Array(180);
+  this.auxSamples=new Float32Array(180);
+  this.effectsSamples=new Float32Array(180);
   this.cursor=0;this.length=0;this.lastRender=performance.now();
   this.lastReport=0;this.simMs=0;this.syncMs=0;this.renderMs=0;this.lastSnapshot=null;
   this.checkpoints=[];this.lastCheckpoint=0;
@@ -28,18 +30,22 @@ export class SandforgePerformanceWatch{
  begin(now){
   if(!this.enabled)return;
   this.started=performance.now();
-  this.simMs=0;this.syncMs=0;this.renderMs=0;
+  this.simMs=0;this.syncMs=0;this.renderMs=0;this.auxMs=0;this.effectsMs=0;
   this.frameInterval=now-this.lastRender;this.lastRender=now;
  }
  simulation(ms){if(this.enabled)this.simMs=ms;}
  presentation(ms){if(this.enabled)this.syncMs=ms;}
  render(ms){if(this.enabled)this.renderMs=ms;}
+ auxiliary(ms){if(this.enabled)this.auxMs=ms;}
+ effectsCost(ms){if(this.enabled)this.effectsMs=ms;}
  end(now){
   if(!this.enabled)return;
   this.samples[this.cursor]=this.frameInterval;
   this.simSamples[this.cursor]=this.simMs;
   this.syncSamples[this.cursor]=this.syncMs;
   this.renderSamples[this.cursor]=this.renderMs;
+  this.auxSamples[this.cursor]=this.auxMs;
+  this.effectsSamples[this.cursor]=this.effectsMs;
   this.cursor=(this.cursor+1)%this.samples.length;
   this.length=Math.min(this.length+1,this.samples.length);
   const workMs=performance.now()-this.started;
@@ -56,6 +62,8 @@ export class SandforgePerformanceWatch{
     workMs:Math.round(workMs*10)/10,
     simulationMs:Math.round(this.simMs*10)/10,
     presentationMs:Math.round(this.syncMs*10)/10,
+    auxiliaryMs:Math.round(this.auxMs*10)/10,
+    effectsMs:Math.round(this.effectsMs*10)/10,
     renderMs:Math.round(this.renderMs*10)/10,
     aiPlanMs:aiRan?Math.round((this.game.aiPlanDurationMs??0)*10)/10:0
    });
@@ -80,6 +88,7 @@ export class SandforgePerformanceWatch{
    '\nSim-Zeit '+report.clock.toFixed(1)+' s · '+report.gameStatus+
    '\nFrame p95 '+report.frameP95.toFixed(1)+'ms · Sim p95 '+report.simP95.toFixed(1)+'ms'+
    '\nUI/3D Sync p95 '+report.syncP95.toFixed(1)+'ms · Render CPU p95 '+report.renderP95.toFixed(1)+'ms'+
+   '\nNebenarbeiten p95 '+report.auxP95.toFixed(1)+'ms · Effekte '+report.effectsP95.toFixed(1)+'ms'+
    '\nKI-Planung zuletzt '+report.lastAiPlanMs.toFixed(1)+'ms · Max '+report.maxAiPlanMs.toFixed(1)+'ms'+
    '\nHänger im Verlauf '+report.hitchCount+' · Letzter '+(report.lastHitch?.workMs??0).toFixed(1)+'ms'+
    '\nDraw calls '+report.drawCalls+' · Triangles '+report.triangles+
@@ -93,6 +102,8 @@ export class SandforgePerformanceWatch{
   const sim=Array.from(this.simSamples.subarray(0,this.length)).sort((a,b)=>a-b);
   const sync=Array.from(this.syncSamples.subarray(0,this.length)).sort((a,b)=>a-b);
   const render=Array.from(this.renderSamples.subarray(0,this.length)).sort((a,b)=>a-b);
+  const auxiliary=Array.from(this.auxSamples.subarray(0,this.length)).sort((a,b)=>a-b);
+  const effects=Array.from(this.effectsSamples.subarray(0,this.length)).sort((a,b)=>a-b);
   const p=(v,part)=>v[Math.max(0,Math.ceil(v.length*part)-1)]||0;
   const mean=frames.reduce((a,b)=>a+b,0)/Math.max(1,frames.length);
   const slow=frames.slice(-Math.max(1,Math.ceil(frames.length*.01)));
@@ -102,6 +113,7 @@ export class SandforgePerformanceWatch{
    fps:mean>0?1000/mean:0,lowFps:low>0?1000/low:0,
    frameP95:p(frames,.95),simP95:p(sim,.95),
    syncP95:p(sync,.95),renderP95:p(render,.95),
+   auxP95:p(auxiliary,.95),effectsP95:p(effects,.95),
    drawCalls:info.render.calls,triangles:info.render.triangles,
    geometries:info.memory.geometries,textures:info.memory.textures,
    lastAiPlanMs:this.game.aiPlanDurationMs??0,

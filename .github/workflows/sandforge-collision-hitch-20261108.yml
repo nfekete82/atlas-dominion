@@ -1,0 +1,47 @@
+name: Sandforge collision and post-render hitch regression
+
+on:
+  push:
+    branches:
+      - perf/webgl-battle-hitch-collision-cache-20261108
+  pull_request:
+    branches:
+      - feat/webgl-bomber-turns-vehicle-spacing-build-limits-20261108
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Regression for deterministic movement and 3D bottleneck measurements
+        run: |
+          node --test \
+            tests/webgl-battle-hitch-collision-cache-20261108.test.mjs \
+            tests/webgl-periodic-frame-hitches-20261108.test.mjs \
+            tests/webgl-double-click-select-20261108.test.mjs
+  full-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm test

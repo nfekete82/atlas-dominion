@@ -1024,10 +1024,13 @@ function animate(now){
   battlefield.sync(false,0,false,1); // freeze clips during tactical pause
  }
  if(performanceWatch.enabled)performanceWatch.presentation(performance.now()-beforeSync);
+ const beforeAux=performanceWatch.enabled?performance.now():0;
  if(running)groundTracks.capture();
  groundTracks.update(dt,running);
  battlefield.updateCommandPulse(dt);
+ const beforeEffects=performanceWatch.enabled?performance.now():0;
  effects.update(dt,running,accumulator);
+ if(performanceWatch.enabled)performanceWatch.effectsCost(performance.now()-beforeEffects);
  if(running&&sound.enabled)sound.update(game,soundView);
  controls.update();
  stepCamera(dt);
@@ -1037,6 +1040,7 @@ function animate(now){
  sun.position.add(shift);sun.target.position.add(shift);
  atmosphere.update(dt);
  oases.update(now*.001);
+ if(performanceWatch.enabled)performanceWatch.auxiliary(performance.now()-beforeAux);
  const beforeRender=performanceWatch.enabled?performance.now():0;
  renderer.render(scene,camera);
  if(battlefield.buildPreview?.visible){
