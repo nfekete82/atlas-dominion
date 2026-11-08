@@ -127,6 +127,41 @@ export class DesertArtPass {
    group.add(palm);
    this.scene.add(group);this.items.push(group);
   }
+  // Small natural palm clusters enhance the original desert art without
+  // growing any geometry in the black void or on blocked/strategic tiles.
+  // Only extra visual trees: no pathfinding, economy or save schema changes.
+  if(spacious){
+   let state=((this.world.seed??0)^0x63b98e21)>>>0;
+   const rand=()=>{state=(Math.imul(state,1664525)+1013904223)>>>0;
+    return state/4294967296;};
+   const clusters=this.lowQuality?2:4;
+   const groups=[];
+   for(let attempt=0;attempt<90&&groups.length<clusters;attempt++){
+    const x=this.world.size*(.12+rand()*.76);
+    const y=this.world.size*(.12+rand()*.76);
+    if(this.terrain.sites.some(p=>Math.hypot(p.x-x,p.y-y)<340)||
+      this.terrain.ruins.some(p=>Math.hypot(p.x-x,p.y-y)<240)||
+      groups.some(p=>Math.hypot(p.x-x,p.y-y)<530)||
+      !this.world.walkable({x,y}))continue;
+    groups.push({x,y});
+   }
+   for(const [groupIndex,center] of groups.entries()){
+    const stems=this.lowQuality?2:3+groupIndex%2;
+    for(let i=0;i<stems;i++){
+     const angle=rand()*Math.PI*2,dist=i===0?0:18+rand()*52;
+     const x=center.x+Math.cos(angle)*dist,y=center.y+Math.sin(angle)*dist;
+     if(x<100||y<100||x>this.world.size-100||y>this.world.size-100||
+        !this.world.walkable({x,y}))continue;
+     const tree=this.normalize(gltf.scene.clone(true),67+rand()*34);
+     const group=new THREE.Group();
+     group.name='visual-inland-palm-grove';
+     group.userData={visualOnly:true,nonPlayable:true,inlandGrove:true};
+     group.position.copy(this.pos(x,y));group.rotation.y=rand()*Math.PI*2;
+     group.scale.setScalar(.80+rand()*.32);group.add(tree);
+     this.scene.add(group);this.items.push(group);
+    }
+   }
+  }
   // Premium oases now own the safe, deterministic interior groves.
   let borderPalms=0;
   // Zero Hour-style outer void on the spacious 3D maps: NO palm groves
