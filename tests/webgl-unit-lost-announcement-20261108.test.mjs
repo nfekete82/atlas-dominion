@@ -87,7 +87,7 @@ test('a new soundscape tracks only own losses, including outside camera',()=>{
  const oldDocument=globalThis.document;
  try{
   globalThis.document={hidden:false};
-  const g={time:0,paused:false,units:[unit(1),unit(2,1),unit(3)]};
+  const g={time:0,paused:false,territories:[],units:[unit(1),unit(2,1),unit(3)]};
   const sound=new Soundscape();
   sound.bindGame(g);
   let warnings=0;
