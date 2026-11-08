@@ -64,7 +64,7 @@ export function safeOrbitApproach(position:Point,
  captureRadius:number,size:number,dt:number):Point|null{
  const candidates=sectors.filter(t=>t.owner!==owner)
   .map(t=>({sector:t,d:Math.hypot(position.x-t.point.x,position.y-t.point.y)}))
-  .filter(o=>Math.abs(o.d-captureRadius)<2*78+12)
+  .filter(o=>Math.abs(o.d-captureRadius)<2*BOMBER_ORBIT_RADII[0]+12)
   .sort((a,b)=>Math.abs(a.d-captureRadius)-Math.abs(b.d-captureRadius));
  const candidate=candidates[0];if(!candidate)return null;
  const {sector,d}=candidate;
