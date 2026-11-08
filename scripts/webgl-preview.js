@@ -710,7 +710,7 @@ function stepCamera(dt){
  // or mesh edge appears, including on wide screens and after camera rotation.
 // Permit a small overscan beyond the playable border. The frustum clamp
  // below still keeps decorative mesh endings out of view.
- const focusLimit=half+cameraEdgeReach(size);
+ const focusLimit=half+(spacious?cameraBlackOverscan(size):cameraEdgeReach(size));
  const nx=Math.max(-focusLimit,Math.min(focusLimit,controls.target.x));
  const nz=Math.max(-focusLimit,Math.min(focusLimit,controls.target.z));
  if(nx!==controls.target.x||nz!==controls.target.z){
