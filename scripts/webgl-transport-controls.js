@@ -14,3 +14,21 @@ export function selectedLoadedTransports(units,selected){
 }
 // Backwards-compatible alias for existing Humvee acceptance tests.
 export const selectedLoadedRovers=selectedLoadedTransports;
+
+/** Passenger slots reflect the actual authoritative cargo array, never
+ * proximity on the ground or pending pickup orders. Stable IDs survive
+ * boarding, an individual unload and save/load. */
+export function selectedTransportManifest(units,selected){
+ const chosen=selected instanceof Set?selected:new Set(selected??[]);
+ if(chosen.size!==1)return null;
+ const carrier=units.find(u=>chosen.has(u.id)&&u.owner===0&&u.hp>0&&
+  !u.carrier&&['rover','scout'].includes(u.kind));
+ if(!carrier)return null;
+ const capacity=carrier.kind==='scout'?10:4;
+ const ids=carrier.transport?.cargo??[];
+ const slots=Array.from({length:capacity},(_,i)=>{
+  const passenger=units.find(u=>u.id===ids[i]&&u.carrier===carrier.id&&u.hp>0);
+  return passenger?{id:passenger.id,kind:passenger.kind,hp:passenger.hp}:null;
+ });
+ return {carrier,capacity,occupied:slots.filter(Boolean).length,slots};
+}
