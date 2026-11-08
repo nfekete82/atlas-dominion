@@ -916,10 +916,16 @@ stormButton.onclick=()=>setStormPreview(!atmosphere.stormPreview);
 setStormPreview(query.get('storm')==='1');
 const constructionRecovery=new SandforgeConstructionRecovery(game);
 const sound=new Soundscape();
-// Louder RTS feedback than the subdued classic soundtrack; independent of
-// local OS/browser volume, without changing the original Canvas audio defaults.
-sound.setVolume(.85);
+// Original adaptive ambient music is quieter than the cinematic weapon and
+// local German radio. All mixer buses load user settings before unlocking.
 const bootOptions=window.Sandforge3DMenu?.readOptions?.()??{};
+const savedVolume=(field,fallback)=>Number.isFinite(Number(bootOptions[field]))&&
+ bootOptions[field]!==null&&bootOptions[field]!==undefined?
+ Math.max(0,Math.min(1,Number(bootOptions[field])/100)):fallback;
+sound.setVolume(savedVolume('masterVolume',.85));
+sound.setEffectsVolume(savedVolume('effectsVolume',.85));
+sound.setMusicVolume(savedVolume('musicVolume',.30));
+sound.setMusicEnabled(bootOptions.musicEnabled!==false);
 sound.setEnabled(bootOptions.sound!==false);
 sound.bindGame(game);
 const soundButton=$('sound');

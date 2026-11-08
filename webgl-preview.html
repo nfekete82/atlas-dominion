@@ -48,6 +48,10 @@ a:hover{text-decoration:underline}
 #sf3d-new-dialog :is(select,input),#sf3d-options-dialog select{width:100%;background:#243137;border:1px solid #947f57;min-height:39px;padding:9px;color:#f7ebd4}
 #sf3d-options-dialog .sf3d-check{display:flex;align-items:center;gap:12px;margin:15px 0;font:13px system-ui}
 #sf3d-options-dialog .sf3d-check input{width:19px;height:19px;accent-color:#b99b6c}
+#sf3d-options-dialog .sf3d-slider{margin:8px 0;display:block}
+#sf3d-options-dialog .sf3d-slider span{display:flex;justify-content:space-between;align-items:center;margin:0 0 5px}
+#sf3d-options-dialog .sf3d-slider input{display:block;width:100%;height:25px;min-height:25px;padding:0;accent-color:#d3ab66;border:0;background:transparent}
+#sf3d-options-dialog .sf3d-slider output{font:700 12px ui-monospace,monospace;color:#f1d39f}
 #sf3d-new-dialog .dialog-actions,#sf3d-options-dialog .dialog-actions{display:flex;justify-content:space-between;gap:8px}
 #sf3d-new-dialog .dialog-actions button,#sf3d-options-dialog .dialog-actions button{min-width:125px}
 #sf3d-boot{position:fixed;z-index:90;bottom:16px;left:16px;color:#f0c782;background:#172526d9;border:1px solid #92734e;padding:10px 14px}
@@ -124,10 +128,14 @@ a:hover{text-decoration:underline}
   <select id="sf3d-quality"><option value="high">Hohe Details / PBR-Modelle</option><option value="lite">Leistungsmodus / vereinfachte Modelle</option></select>
  </label>
  <label class="sf3d-check" for="sf3d-fog"><input id="sf3d-fog" type="checkbox" checked> Nebel des Krieges</label>
- <label class="sf3d-check" for="sf3d-sound"><input id="sf3d-sound" type="checkbox" checked> Sounds erlauben (erst nach Klick aktiv)</label>
+ <label class="sf3d-check" for="sf3d-sound"><input id="sf3d-sound" type="checkbox" checked> Audio aktivieren (nach Klick)</label>
+ <label class="sf3d-check" for="sf3d-music-enabled"><input id="sf3d-music-enabled" type="checkbox" checked> Dezente Hintergrundmusik</label>
+ <label class="sf3d-slider" for="sf3d-master-volume"><span>Gesamtlautstärke <output id="sf3d-master-value">85 %</output></span><input id="sf3d-master-volume" type="range" min="0" max="100" step="1" value="85" aria-label="Gesamtlautstärke"></label>
+ <label class="sf3d-slider" for="sf3d-effects-volume"><span>Effekte und Motoren <output id="sf3d-effects-value">85 %</output></span><input id="sf3d-effects-volume" type="range" min="0" max="100" step="1" value="85" aria-label="Effektlautstärke"></label>
+ <label class="sf3d-slider" for="sf3d-music-volume"><span>Musik <output id="sf3d-music-value">30 %</output></span><input id="sf3d-music-volume" type="range" min="0" max="100" step="1" value="30" aria-label="Musiklautstärke"></label>
  <button id="sf3d-audio-test" type="button" style="display:block;width:100%;margin:8px 0;border-color:#af9264">SOUND TESTEN</button>
  <p id="sf3d-audio-status" role="status" style="font:12px system-ui;color:#ddc6a0;min-height:18px">Klickgeräusche, Befehle und Kampf-Sounds über WebAudio</p>
- <p>Grafikqualität wird beim nächsten Start übernommen. Sound benötigt eine Benutzeraktion.</p>
+ <p>Musik, Effekte und Lautstärke gelten sofort und werden lokal gespeichert. Grafikqualität gilt beim nächsten Start. Audio benötigt eine Benutzeraktion.</p>
  <div class="dialog-actions"><button type="button" data-sf3d-close>ABBRECHEN</button><button id="sf3d-options-save" class="primary" type="button">SPEICHERN</button></div>
 </dialog>
 <dialog id="sf3d-pause-dialog" class="pause-menu frame" aria-label="Sandforge Spielmenü">

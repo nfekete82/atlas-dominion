@@ -1,0 +1,21 @@
+name: Sandforge ambient music and audio mixing
+on:
+  push:
+    branches: [feat/webgl-ambient-battle-music-controls-20261108]
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  music-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22', cache: npm}
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: |
+          node --test tests/webgl-ambient-music-20261108.test.mjs \
+            tests/webgl-premium-stone-materials-20261108.test.mjs \
+            tests/webgl-unit-lost-announcement-20261108.test.mjs
