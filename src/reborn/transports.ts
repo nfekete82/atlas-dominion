@@ -41,7 +41,14 @@ export class Transports {
   const order=u.orders[0];if(order?.kind!=='board')return false;
   const h=this.g.units.find(h=>h.id===order.target&&h.hp>0&&h.owner===u.owner),t=h?.transport;
   if(!h||!t||!t.pickup.includes(u.id)||t.task!=='load'){u.orders.shift();u.path=[];return true;}
-  const index=t.pickup.indexOf(u.id),door=h.kind==='rover'?{x:t.site.x+26+(index%2)*19,y:t.site.y+25+Math.floor(index/2)*19}:{x:t.site.x+38+(index%2)*24,y:t.site.y+38+Math.floor(index/2)*25};
+  const index=t.pickup.indexOf(u.id);
+  // All ten helicopter approach positions must fit the 65-unit pickup radius.
+  // The previous 2x5 grid reached over 130 units from the landing site,
+  // leaving passengers outside transfer range even after reaching their slot.
+  const angle=((u.id%10+10)%10)*Math.PI*2/10;
+  const door=h.kind==='rover'
+   ?{x:t.site.x+26+(index%2)*19,y:t.site.y+25+Math.floor(index/2)*19}
+   :{x:t.site.x+Math.cos(angle)*43,y:t.site.y+Math.sin(angle)*43};
   if(distance(u,door)>10){if(u.path.length&&u.repath<=0)u.path=[];this.move(u,door,dt);}else{u.path=[];u.angle=Math.atan2(h.y-u.y,h.x-u.x);}
   return true;
  }
