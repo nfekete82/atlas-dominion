@@ -998,6 +998,9 @@ export class SandforgeBattlefield {
    const kind=button.dataset.unit??button.dataset.build;
    const spec=button.dataset.unit?UNITS[kind]:BUILDINGS[kind];
    const correctProducer=context.producer&&UNITS[kind]?.producers.includes(context.producer.kind);
+   const ownedUnique=Boolean(button.dataset.build&&['headquarters','barracks','factory','airfield'].includes(kind)&&constructed.has(kind));
+   const ownedSite=constructed.get(kind);
+   const ownedReason=ownedUnique?(ownedSite.buildRemaining>0?'Bereits im Bau':'Bereits gebaut'):'';
    const unavailable=button.dataset.unit
     ?!correctProducer||g.needsHeadquarters(0)||context.producer.queue.length>=8||
       g.credits[0]<spec.cost||g.count(0)+g.queued(0)>=RULES.capacity
