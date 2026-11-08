@@ -303,7 +303,10 @@ function addBattlefieldRocks(material){
   const poly=mesa.outline,cx=poly.reduce((n,p)=>n+p.x,0)/poly.length,cz=poly.reduce((n,p)=>n+p.y,0)/poly.length;
   const peak=mesa.columns.reduce((n,c)=>n+c.height,0)/mesa.columns.length*(terrain.battlefield.profile==='rocky'?1.55:1.05);
   const r=rnd((seed^id*0x9e3779b9^0x536fa1)>>>0),rotation=r()*6.28;
-  const rings=[1,.92,.78,.64,.44],levels=[-.8,.16,.56,.84,1],points=[];
+  // Fine stepped strata and weathered shelves avoid monolithic orange boulders.
+  // Still one merged visual mesh over the authoritative collision polygon.
+  const rings=[1.02,.985,.94,.88,.82,.75,.67,.56,.41],
+   levels=[-.8,.13,.23,.37,.54,.70,.84,.94,1],points=[];
   for(let k=0;k<rings.length;k++){
    points[k]=poly.map((p,i)=>{
     const erosion=k===0?1:1+Math.sin(i*2.37+rotation+k*.7)*.075;
