@@ -404,8 +404,8 @@ function instancedStone(){
  // Continue weathered stones across the *visual* perimeter. This scatter
  // uses a different RNG stream so existing battlefield stones stay unchanged.
  const extra=rnd(seed^0xb487c7e1),margin=visualPerimeter?.margin??size*.5;
- for(let i=0;i<(spacious?200:2100);i++){
-  // Never allow decorative stones to float over the black void. Scatter
+ for(let i=0;i<(spacious?0:2100);i++){
+  // Only legacy maps retain the decorative exterior scatter. Scatter
   // only in the first narrow erosion apron adjacent to the playfield.
   const x=spacious?-95+extra()*(size+190):-margin+extra()*(size+2*margin);
   const z=spacious?-95+extra()*(size+190):-margin+extra()*(size+2*margin);
