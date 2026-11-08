@@ -274,13 +274,12 @@ function buildTerrain(){
   mesh.receiveShadow=true;mesh.userData.terrain=true;
   scene.add(mesh);groundMeshes.push(mesh);
  }
- // A ring of lower-detail sand continues beyond all four visible edges.
- // Only the 16 central tiles feed fog, unit movement or clicking. The extra
- // 48 tiles are decorative and share the same texture and height sampler.
- // Extend decorative geometry further for low-angle 3D camera shots.
-// These tiles are visual-only and never enter the simulation or raycaster.
-visualPerimeter=addVisualPerimeter({scene,size,heightAt,material,
- ringTiles:query.get('lite')==='1'?2:3,segments:22,textureScale:spacious?2200:1500});
+ // No decorative terrain, apron, cliff, or fade outside the modern playable
+ // boundary. The 16 real tiles end at the black scene background exactly.
+ // Legacy maps preserve their old visual perimeter.
+ visualPerimeter=addVisualPerimeter({scene,size,heightAt,material,
+  ringTiles:query.get('lite')==='1'?2:3,segments:22,
+  textureScale:spacious?2200:1500,hardVoid:spacious});
  return chunks*chunks;
 }
 /** One merged rock mesh, built from the exact physical footprints. Basal
