@@ -2,6 +2,7 @@ import { clamp, distance, type Point } from './config.js';
 import { Renderer } from './renderer.js';
 import { Simulation, type Weapon } from './simulation.js';
 import {UnitRadio,type PlayerOrder} from './unit-radio.js';
+import {UnitLossMonitor} from './unit-loss-monitor.js';
 import {unitSpec} from './catalog.js';
 import {ENGINE_KINDS,ENGINE_PROFILES,vehicleSoundMix,type EngineKind} from './vehicle-soundscape.js';
 
@@ -42,7 +43,7 @@ export class Soundscape {
   analyser:AnalyserNode|null=null;
   enabled=true; volume=.6; ambience=true;
   readonly radio=new UnitRadio(()=>this.enabled&&this.volume>0&&!document.hidden,active=>{if(this.context&&this.effects)this.effects.gain.setTargetAtTime(active?.55:1,this.context.currentTime,.045);});
-  readonly played={shots:0,steps:0,commands:0,captures:0,production:0,rifle:0,heavy:0,pistol:0,turret:0,cannon:0,rocket:0,machinegun:0,bomb:0};
+  readonly played={shots:0,steps:0,commands:0,captures:0,production:0,losses:0,rifle:0,heavy:0,pistol:0,turret:0,cannon:0,rocket:0,machinegun:0,bomb:0};
   readonly voiceLimit=20;peakVoices=0;droppedVoices=0;
   private voices=new Map<AudioScheduledSourceNode,{stop:()=>void;gameplay:boolean}>();
   get activeVoices():number{return this.voices.size;}
@@ -53,6 +54,8 @@ export class Soundscape {
   private noise:AudioBuffer|null=null;private seenShots=new WeakSet<object>();
   private owners:number[]=[];private unitIds=new Set<number>();private footsteps=new Map<number,number>();
   private game:Simulation|null=null;private lastStep=0;
+  private readonly unitLosses=new UnitLossMonitor();
+  private lastLossSignal=-Infinity;
   async unlock():Promise<void>{
     if(!this.context){
       const a=this.context=new AudioContext();this.master=a.createGain();this.master.gain.value=this.enabled?this.volume:0;
@@ -126,6 +129,44 @@ export class Soundscape {
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
   }
+  /** Audible player-only loss report, at most once per 2.8 seconds, even
+   * when a single blast kills many units. Uses the same LOCAL German system
+   * voice as the attack warning; never contacts a cloud speech service.
+   * When no local voice is installed, play the two-tone radio fallback.
+   */
+  announceUnitLost():void {
+    const a=this.context;
+    if(!this.enabled||this.volume<=0||!a||a.state!=='running'||
+       (typeof document!=='undefined'&&document.hidden))return;
+    if(a.currentTime-this.lastLossSignal<2.8)return;
+    this.lastLossSignal=a.currentTime;
+    this.played.losses++;
+    this.tone(525,.12,.095);
+    this.tone(360,.22,.075,.14);
+    if(!this.radio.enabled||this.radio.volume<=0||
+       typeof window==='undefined'||!('speechSynthesis' in window)||
+       typeof SpeechSynthesisUtterance==='undefined')return;
+    const voice=window.speechSynthesis.getVoices().find(v=>
+      v.localService&&v.lang.toLowerCase().startsWith('de'));
+    if(!voice)return;
+    // A casualty report has priority over an ordinary order confirmation;
+    // reusing the existing radio channel avoids overlapping announcements.
+    this.radio.stop();
+    const utterance=new SpeechSynthesisUtterance('Einheit verloren');
+    utterance.voice=voice;utterance.lang='de-DE';
+    utterance.rate=1.03;utterance.pitch=.86;
+    utterance.volume=Math.min(.70,this.volume*this.radio.volume*.95);
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  }
+  /** Called regardless of the mute state, so unmuting never replays old
+   * casualties. Returns a count for the HUD; it never announces enemies. */
+  reportUnitLosses(g:Simulation):number {
+    if(this.game!==g){this.bindGame(g);return 0;}
+    const count=this.unitLosses.poll(g.units,g.time);
+    if(count>0&&!g.paused)this.announceUnitLost();
+    return count;
+  }
   private lastReadySignal=-Infinity;
   /** Player-only construction/production cue, with no external TTS service.
    * Every completion is logged in the HUD; busy production lines share a short
@@ -163,7 +204,7 @@ export class Soundscape {
     }
   }
   bindGame(g:Simulation):void{
-    if(this.game===g)return;this.silence();this.radio.reset();this.lastStep=g.time;this.game=g;this.owners=g.territories.map(t=>t.owner);this.unitIds=new Set(g.units.map(u=>u.id));this.footsteps.clear();this.seenShots=new WeakSet();
+    if(this.game===g)return;this.silence();this.radio.reset();this.lastStep=g.time;this.game=g;this.owners=g.territories.map(t=>t.owner);this.unitIds=new Set(g.units.map(u=>u.id));this.unitLosses.reset(g.units,g.time);this.lastLossSignal=-Infinity;this.footsteps.clear();this.seenShots=new WeakSet();
   }
   private applyVolume():void{if(this.context&&this.master)this.master.gain.setTargetAtTime(this.enabled?this.volume:0,this.context.currentTime,.035);}
   private silence(gameplayOnly=false):void{for(const v of this.voices.values())if(!gameplayOnly||v.gameplay)v.stop();}
