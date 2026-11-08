@@ -20,6 +20,7 @@ import {SandforgeConstructionRecovery} from '/webgl-construction-recovery.js';
 import {SandforgeGroundTracks} from '/webgl-ground-tracks.js';
 import {Soundscape} from '/src/reborn/audio.js';
 import {fineSandPattern} from '/src/reborn/fine-sand.js';
+import {cinematicSandSample,addDesertWashStones} from '/webgl-desert-art.js';
 
 /** Opt-in WebGL scene using the real authoritative Sandforge map and simulation.
  * This page is isolated from the production Canvas renderer, save format and AI
