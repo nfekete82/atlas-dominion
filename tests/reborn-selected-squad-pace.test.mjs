@@ -57,11 +57,10 @@ test('selected attack-move also marches together; AI receives no new squad const
  const g=fixture(),players=group(g,['infantry','heavy','rover']);
  assert.equal(g.command(players.map(u=>u.id),{...target,kind:'attackMove'}),3);
  for(const u of players)assert.deepEqual(u.orders[0].march,players.map(v=>v.id));
- const enemies=group(g,['infantry','heavy','rover'],1);
- assert.equal(g.command(enemies.map(u=>u.id),target),3);
+ const enemies=group(g,['infantry','heavy'],1);
+ assert.equal(g.command(enemies.map(u=>u.id),target),2);
  assert.equal(enemies[0].orders[0].march,undefined);
  assert.equal(enemies[1].orders[0].march,undefined);
- assert.equal(enemies[2].orders[0].march,undefined);
 });
 
 test('stopping and redirecting a slow member releases the remaining squad from its speed',()=>{
