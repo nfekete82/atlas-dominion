@@ -201,6 +201,7 @@ function sandMicroNormalTexture(){
 }
 function buildTerrain(){
  const texture=sandTexture(),normalMap=sandMicroNormalTexture();
+ if(spacious)normalMap.repeat.set(2.2,2.2);
  const material=new THREE.MeshStandardMaterial({
   color:spacious?'#fff0db':'#f5eadb',map:texture,normalMap,normalScale:new THREE.Vector2(spacious?.77:.45,spacious?.77:.45),
   vertexColors:true,roughness:.99,metalness:0
