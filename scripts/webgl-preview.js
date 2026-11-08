@@ -717,6 +717,11 @@ function stepCamera(dt){
   camera.position.x+=nx-controls.target.x;camera.position.z+=nz-controls.target.z;
   controls.target.x=nx;controls.target.z=nz;
  }
+ // Modern maps intentionally have NO geometry outside the boundary.
+ // Allow the frustum to show clean black there, instead of pushing the
+ // camera back into the playable map or zooming in unexpectedly.
+ if(spacious)return;
+ // Legacy maps retain the old apron/corner protection unchanged.
  // Keep the visible corners inside the textured erosion apron, not at
  // the far outer mesh edge where the black scene background is exposed.
  // The authored perimeter stays decorative; no playable bounds change.
