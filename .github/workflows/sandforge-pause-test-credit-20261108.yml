@@ -1,0 +1,45 @@
+name: Sandforge tactical pause test credit
+
+on:
+  push:
+    branches:
+      - feat/webgl-pause-iddqd-credits-20261108
+  pull_request:
+    branches:
+      - fix/webgl-airlift-scale-bomber-20261108
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pause-code:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Build complete WebGL game
+        run: npm run build
+      - name: Keyboard, pause scoping, credit and HUD regression
+        run: node --test tests/webgl-pause-iddqd-credits.test.mjs
+
+  node-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
