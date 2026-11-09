@@ -7,7 +7,7 @@ import {UNITS,BUILDINGS,MAX_GENERATORS_PER_FACTION,unitKinds,buildingKinds,unitS
 import {TERRAIN_LABELS} from '/src/reborn/battlefield-terrain.js';
 import {RULES} from '/src/reborn/config.js';
 import {installClassicHud} from '/webgl-classic-hud.js';
-import {hydrateUnitIcons,hydrateBuildingIcons,unitIcon,buildingIconUrl,researchIconMarkup,researchEffectLabel} from '/webgl-portraits.js';
+import {hydrateUnitIcons,hydrateBuildingIcons,unitIcon,buildingIconUrl,researchIconMarkup,researchEffectLabel,hydrateResearchArtworks} from '/webgl-portraits.js';
 import {SandforgeActorPresentation} from '/webgl-actor-presentation.js';
 import {calibratedScale,visualUnitScale,unitVisualYaw,unitRenderAltitude,buildingFacingAngle,nextBuildingFacing,buildingFacingDegrees,turretAimLocalYaw} from '/webgl-scale.js';
 import {SandforgeGroundingPass} from '/webgl-grounding.js';
@@ -1033,11 +1033,14 @@ export class SandforgeBattlefield {
    return '<button type="button" class="sf-research-card" data-upgrade="'+kind+
     '" title="'+plain(tech.description)+'" aria-label="'+plain(tech.name)+
     ' – '+tech.cost+' Credits – '+tech.seconds+' Sekunden">'+
-    '<span class="sf-tech-symbol" aria-hidden="true">'+researchIconMarkup(kind)+'</span>'+
-    '<span class="sf-tech-info"><strong>'+plain(tech.name)+'</strong>'+
+    '<span class="sf-tech-art" aria-hidden="true">'+
+    '<span class="sf-tech-art-fallback">'+researchIconMarkup(kind)+'</span>'+
+    '<img data-sf-research-artwork="'+kind+'" alt="" loading="lazy" decoding="async">'+
+    '</span>'+
+    '<span class="sf-tech-info sf-tech-body"><strong>'+plain(tech.name)+'</strong>'+
     '<span class="sf-tech-effect">'+plain(researchEffectLabel[kind]??tech.description)+'</span>'+
-    '<small>'+tech.cost+' ◆ · '+tech.seconds+' s</small></span>'+
-    '<span class="sf-tech-progress" aria-hidden="true"></span></button>';
+    '<small class="sf-tech-meta">'+tech.cost+' ◆ · '+tech.seconds+' s</small>'+
+    '<span class="sf-tech-progress" aria-hidden="true"></span></span></button>';
   }).join('');
   const markup='<div class="sf-group" data-sf-group="units">'+roster+'</div>'+
    '<div class="sf-group" data-sf-group="buildings"><div class="catalog-grid">'+
@@ -1113,6 +1116,9 @@ export class SandforgeBattlefield {
   }
   hydrateUnitIcons(actions);
   hydrateBuildingIcons(actions,this.renderer);
+  // Nine real 3D upgrade models: rasterize only after the research deck is
+  // opened. Offscreen 3D readback never runs during ordinary frame rendering.
+  if(view.dataset.tab==='research')hydrateResearchArtworks(actions,this.renderer);
   // The bottom production panel is GLOBAL: every producer and every build
   // site stays visible regardless of which unit or structure is selected.
   const queuedBases=g.bases.filter(b=>b.owner===0&&b.hp>0&&b.queue?.length);
