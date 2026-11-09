@@ -1052,10 +1052,21 @@ export class SandforgeBattlefield {
     '<small>'+tech.cost+' ◆ · '+tech.seconds+' s</small></span>'+
     '<span class="sf-tech-progress" aria-hidden="true"></span></button>';
   }).join('');
+  const powers=GENERAL_ABILITY_KINDS.map(kind=>{
+   const tech=GENERAL_ABILITIES[kind],symbol={recon:'◉',repair:'✚',artillery:'✹'}[kind];
+   return '<button type="button" class="sf-general-card" data-general="'+kind+
+    '" title="'+plain(tech.description)+'" aria-label="'+plain(tech.name)+
+    ' – '+tech.cost+' Kommandopunkte">'+
+    '<span class="sf-general-icon" aria-hidden="true">'+symbol+'</span>'+
+    '<span class="sf-general-copy"><strong>'+plain(tech.name)+'</strong>'+
+    '<small>'+tech.cost+' KP · '+tech.cooldown+' s Abklingzeit</small></span>'+
+    '<span class="sf-general-state"></span></button>';
+  }).join('');
   const markup='<div class="sf-group" data-sf-group="units">'+roster+'</div>'+
    '<div class="sf-group" data-sf-group="buildings"><div class="catalog-grid">'+
    cards(buildingKinds,'building')+'</div></div>'+
    '<div class="sf-group" data-sf-group="research"><div class="sf-research-grid">'+upgrades+'</div></div>'+
+   '<div class="sf-group" data-sf-group="powers"><div class="sf-general-grid">'+powers+'</div></div>'+ 
    '<div class="sf-group" data-sf-group="territories"><h2>KONTROLLPUNKTE</h2>'+tiles+'</div></div>';
   if(this.previousActionsMarkup!==markup){
    const scroll=actions.scrollTop;
@@ -1082,6 +1093,20 @@ export class SandforgeBattlefield {
     inProgress?' · Noch '+Math.ceil(techState.remaining)+' Sekunden':
     tech.requires&&!techState.completed.includes(tech.requires)?
     ' · Benötigt '+UPGRADES[tech.requires].name:'');
+  }
+  const general=g.generals[0];
+  for(const button of actions.querySelectorAll('[data-general]')){
+   const kind=button.dataset.general,ability=GENERAL_ABILITIES[kind];
+   const ready=canUseGeneralPower(general,kind,g.time);
+   const remaining=Math.max(0,Math.ceil(general.cooldowns[kind]-g.time));
+   button.disabled=!ready;
+   button.classList.toggle('sf-general-ready',ready);
+   button.querySelector('.sf-general-state').textContent=
+    remaining>0?Math.floor(remaining/60)+':'+String(remaining%60).padStart(2,'0'):
+    general.points<ability.cost?'NOCH '+(ability.cost-general.points)+' KP':'BEREIT';
+   button.setAttribute('aria-description',ready?
+    'Zielgebiet auf der Karte auswählen':remaining>0?'Noch '+remaining+' Sekunden Abklingzeit':
+    'Nicht genügend Kommandopunkte');
   }
   const generatorLimitReached=g.bases.filter(b=>b.owner===0&&b.kind==='generator'&&b.hp>0).length>=MAX_GENERATORS_PER_FACTION;
   const constructed=new Map(g.bases.filter(b=>b.owner===0&&b.hp>0).map(b=>[b.kind,b]));
