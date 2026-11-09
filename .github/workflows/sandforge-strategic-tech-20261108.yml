@@ -1,0 +1,31 @@
+name: Sandforge research and strategic missile regression
+on:
+  push:
+    branches: [feat/webgl-strategic-research-missile-silo-20261108]
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  strategy-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22', cache: npm}
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: |
+          node --test tests/webgl-strategy-research-missiles-20261108.test.mjs \
+            tests/webgl-ambient-music-20261108.test.mjs \
+            tests/webgl-premium-stone-materials-20261108.test.mjs
+  full-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22', cache: npm}
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
