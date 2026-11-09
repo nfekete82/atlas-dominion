@@ -235,7 +235,7 @@ test('new strategy HUD, original 3D buildings and missile visuals all ship in We
  assert.match(hud,/data-action="missile-target"/);
  assert.match(hud,/data-action="interceptor-rearm"/);
  assert.match(icons,/strategicBuildingIcon/);
- assert.match(model,/Strategic_\'+kind/);
+ assert.match(model,/root\.name='Strategic_'\+kind/);
  assert.match(animation,/Strategic_Missile_/);
  assert.match(animation,/Strategic_Scorched_Ground/);
  assert.match(animation,/this\.sound\?\.announceStrategicLaunch/);
