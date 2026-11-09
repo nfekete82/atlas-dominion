@@ -1156,9 +1156,13 @@ export class SandforgeBattlefield {
   view.querySelector('#sf-progress').style.width=progress.toFixed(1)+'%';
   view.querySelector('#sf-production .production-track')
    .setAttribute('aria-valuenow',String(Math.round(progress)));
-  view.querySelector('#sf-queue-count').textContent=(queues+constructionSites.length+
-   (activeResearch?1:0))+' AKTIV · '+(activeResearch?'1 FORSCHUNG':'')+
-   (constructionSites.length?' · '+constructionSites.length+' BAU':'');
+  // Build the status from actual queue, research and construction state.
+  // Joining only present parts avoids duplicate separators ("AKTIV ·  · BAU").
+  const activeCount=queues+constructionSites.length+(activeResearch?1:0);
+  const summary=[activeCount+' AKTIV'];
+  if(activeResearch)summary.push('1 FORSCHUNG');
+  if(constructionSites.length)summary.push(constructionSites.length+' BAU');
+  view.querySelector('#sf-queue-count').textContent=summary.join(' · ');
   view.querySelector('#sf-queue').textContent=primary
    ?queuedBases.length+' Produktionsgebäude · '+queues+' Aufträge'
    :activeResearch?'FORSCHUNG: '+activeResearch.name
