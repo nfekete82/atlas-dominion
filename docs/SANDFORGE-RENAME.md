@@ -4,18 +4,16 @@
 
 - **Offizieller Spieltitel:** Sandforge: Bastion Wars.
 - **Technischer Projektname:** `sandforge` (npm-Metadaten und primärer Docker-Compose-Service).
-- **Geplanter GitHub-Name:** `nfekete82/sandforge`, aktuell noch `nfekete82/atlas-dominion`.
+- **GitHub-Repository (bereits umbenannt):** `nfekete82/sandforge` (zuvor `nfekete82/atlas-dominion`).
 - **Lokaler Ordner:** `~/Projects/sandforge-bastion-wars` ist bereits korrekt; nicht notwendig, ihn umzubenennen.
 - WebGL/Three.js läuft bei aktuellen Builds unter `/`, Canvas weiterhin unter `/classic.html`.
 - Der Uberspace-Deploy bleibt für ungeprüfte WebGL-Releases gesperrt. Der bestehende Produktivcontainer auf Port 8095 bleibt unverändert.
 
-## GitHub-Repository (ein manueller Admin-Schritt)
+## GitHub-Repository (Umbenennung bestätigt)
 
-Die bestehende Repository-ID, Git-Historie, PRs und Issues sollen erhalten bleiben. **Kein neues Repository anlegen und nicht spiegeln.**
+Am 09.11.2026 wurde der bestehende GitHub-Repository-Name bereits von `nfekete82/atlas-dominion` auf **`nfekete82/sandforge`** geändert. Die GitHub-Repository-ID, Historie, PR-Nummern und Issues sind erhalten geblieben.
 
-1. Als Inhaber unter `https://github.com/nfekete82/atlas-dominion/settings` anmelden.
-2. **General → Repository name** von `atlas-dominion` auf `sandforge` ändern und bestätigen.
-3. Im bestehenden lokalen Projekt anschließend die Remote-URL überprüfen und aktualisieren:
+In der bestehenden lokalen Projektkopie den Origin-Remote umstellen:
 
 ```sh
 cd "$HOME/Projects/sandforge-bastion-wars"
@@ -25,9 +23,7 @@ git fetch origin --prune
 git remote -v
 ```
 
-Bei SSH-Zugängen stattdessen `git@github.com:nfekete82/sandforge.git` verwenden. Alte GitHub-Links werden üblicherweise umgeleitet; Integrationen, Webhooks, CI-Regeln und fest verdrahtete Links trotzdem gezielt prüfen.
-
-**Wichtig:** Das Repo lässt sich mit den hier verfügbaren Code-Aktionen nicht administrativ umbenennen; dieser Schritt ist separat vorzunehmen.
+Bei SSH-Zugängen stattdessen `git@github.com:nfekete82/sandforge.git` verwenden. Ältere GitHub-Links werden von GitHub normalerweise umgeleitet; CI-Konfigurationen, Webhooks, Umgebungsvariablen und fest verdrahtete Links dennoch separat prüfen. **Kein neues Repository klonen oder die Git-Historie umschreiben, um nur den Namen zu ändern.**
 
 ## Kompatibilität und ältere Kennungen
 
