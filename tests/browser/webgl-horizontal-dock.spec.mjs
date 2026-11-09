@@ -727,5 +727,5 @@ test('perf overlay separates bomber sight computation from simulation, VFX and r
  const ready=page.waitForEvent('download');
  await page.keyboard.press('Shift+P');
  const download=await ready;
- expect(download.suggestedFilename()).toMatch(/^sandforge-performance-\\d+s\\.json$/);
+ expect(download.suggestedFilename()).toMatch(/^sandforge-performance-\d+s\.json$/);
 });
