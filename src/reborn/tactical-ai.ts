@@ -826,7 +826,12 @@ export class TacticalAI {
   if(changed){s.target=mission.sector;s.objective=mission.objective;s.route=[];s.rally=null;}
   const intel=mission.objective===null?undefined:knownBuildings(g).find(b=>b.id===mission.objective);
   const towers=s.knownTurrets.filter(t=>distance(t,mission)<t.range+200);
-  const visible=g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)&&distance(u,mission)<450);
+  // Fighting units can encounter a player ambush *before* reaching their
+  // strategic objective. Count only currently observed opponents, but also
+  // include actual nearby contacts along the moving assault column.
+  const visible=g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)&&
+   (distance(u,mission)<450||(s.phase==='attack'&&fighters.some(v=>
+    s.group.includes(v.id)&&distance(v,u)<450))));
   const defended=mission.kind!=='capture'||g.territories[mission.sector].owner===0||towers.length>0||visible.reduce((n,u)=>n+combatStrength(u),0)>3;
   if(!s.rally){
    const rear=g.territories.filter(t=>t.owner===1).sort((a,b)=>distance(a.point,mission)-distance(b.point,mission)||a.id-b.id)[0]?.point??home;
