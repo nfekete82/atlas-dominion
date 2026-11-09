@@ -926,9 +926,6 @@ const savedVolume=(field,fallback)=>Number.isFinite(Number(bootOptions[field]))&
 sound.setVolume(savedVolume('masterVolume',.85));
 sound.setEffectsVolume(savedVolume('effectsVolume',.85));
 sound.setEngineSoundsEnabled(bootOptions.engineSoundsEnabled!==false);
-// A continuous bandpass-noise bed sounded like a hum on some speakers.
-// Keep weapon, speech and motion-based engine audio independent of desert wind.
-sound.setWindEnabled(bootOptions.windEnabled===true);
 sound.setMusicVolume(savedVolume('musicVolume',.30));
 // Four sustained synth voices sound like an electrical drone on some speakers.
  // Keep all effects/radio enabled, but start the optional score only after opt-in.
