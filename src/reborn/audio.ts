@@ -28,7 +28,7 @@ export function ambientActivity(g:Simulation,center:Point,visible:(p:Point)=>boo
  for(const u of g.units){
   if(u.hp<=0||u.carrier||unitSpec(u).flying||unitSpec(u).group!=='Fahrzeuge'||!visible(u))continue;
   const falloff=Math.max(0,1-distance(u,center)/670);
-  motors+=falloff*(u.moving?1:.40);
+  if(u.moving&&(u.driveSpeed??unitSpec(u).speed*.72)>=2)motors+=falloff;
  }
  for(const b of g.bases){
   if(b.hp<=0||b.buildRemaining>0||!visible(b))continue;
@@ -58,7 +58,6 @@ export class Soundscape {
   get activeVoices():number{return this.voices.size;}
   get activeGameplayVoices():number{let count=0;for(const v of this.voices.values())if(v.gameplay)count++;return count;}
   private master:GainNode|null=null;private effects:GainNode|null=null;private wind:GainNode|null=null;
-  private motorGain:GainNode|null=null;private generatorGain:GainNode|null=null;private motorTone:OscillatorNode|null=null;
   private readonly engineVoices=new Map<EngineKind,EngineVoice>();
   private noise:AudioBuffer|null=null;private seenShots=new WeakSet<object>();
   private owners:number[]=[];private unitIds=new Set<number>();private footsteps=new Map<number,number>();
@@ -81,15 +80,9 @@ export class Soundscape {
       const windLevel=a.createGain();windLevel.gain.value=.055;this.wind=a.createGain();this.wind.gain.value=1;
       source.connect(filter);filter.connect(windLevel);windLevel.connect(this.wind);this.wind.connect(this.effects);source.start();
       const lfo=a.createOscillator(),swell=a.createGain();lfo.frequency.value=.08;swell.gain.value=.025;lfo.connect(swell);swell.connect(windLevel.gain);lfo.start();
-      // Two perpetually running but silent-by-default filtered oscillators; no per-frame voice allocations.
-      const motor=a.createOscillator(),motorLow=a.createBiquadFilter(),motorGain=a.createGain();
-      motor.type='sawtooth';motor.frequency.value=55;motorLow.type='lowpass';motorLow.frequency.value=195;motorGain.gain.value=0;
-      motor.connect(motorLow);motorLow.connect(motorGain);motorGain.connect(this.effects);motor.start();
-      this.motorGain=motorGain;this.motorTone=motor;
-      const plant=a.createOscillator(),plantLow=a.createBiquadFilter(),plantGain=a.createGain();
-      plant.type='triangle';plant.frequency.value=71;plantLow.type='lowpass';plantLow.frequency.value=145;plantGain.gain.value=0;
-      plant.connect(plantLow);plantLow.connect(plantGain);plantGain.connect(this.effects);plant.start();
-      this.generatorGain=plantGain;
+      // No permanent generic motor/generator oscillators. The only engine
+      // audio comes from real moving, visible units below; no continuous
+      // hum in the base or whenever all vehicles are parked.
       // Persistent, silent-by-default voices for each engine family.
       // No new audio nodes per moving unit or frame; five bounded composite voices.
       for(const kind of ENGINE_KINDS){
@@ -251,7 +244,7 @@ export class Soundscape {
     this.silence();this.radio.stop();this.music?.pause();
     if(typeof window!=='undefined'&&'speechSynthesis' in window)window.speechSynthesis.cancel();
     if(this.context){
-      for(const gain of [this.wind,this.motorGain,this.generatorGain])gain?.gain.setTargetAtTime(0,this.context.currentTime,.025);
+      this.wind?.gain.setTargetAtTime(0,this.context.currentTime,.025);
       for(const voice of this.engineVoices.values()){voice.gain.gain.setTargetAtTime(0,this.context.currentTime,.035);voice.previousMotion=0;}
     }
   }
@@ -322,12 +315,7 @@ export class Soundscape {
        g.attackAlerts.lastAlert!==null&&g.time-g.attackAlerts.lastAlert.at<5),sounding);
       const ambientSounding=sounding&&this.ambience;
       this.wind?.gain.setTargetAtTime(ambientSounding?1+g.weather.intensity*1.25:0,this.context.currentTime,.2);
-      const levels=ambientSounding?ambientActivity(g,r.camera,p=>g.canSee(0,p)):{motors:0,generator:0};
-      // Old generic engine bed remains extremely quiet; distinctive vehicle layers lead.
-      this.motorGain?.gain.setTargetAtTime(levels.motors*.003,this.context.currentTime,.25);
-      this.generatorGain?.gain.setTargetAtTime(levels.generator*.015,this.context.currentTime,.35);
-      if(this.motorTone)this.motorTone.frequency.setTargetAtTime(53+Math.sin(g.time*1.8)*3+Math.min(8,levels.motors*3),this.context.currentTime,.12);
-      const audibleRadius=Math.max(240,Math.min(880,Math.max(r.width,r.height)/r.camera.zoom*.72));
+      const audibleRadius=Math.max(180,Math.min(560,Math.max(r.width,r.height)/r.camera.zoom*.55));
       const mix=ambientSounding?vehicleSoundMix(g,r.camera,p=>g.canSee(0,p),audibleRadius):null;
       for(const kind of ENGINE_KINDS){
         const voice=this.engineVoices.get(kind);if(!voice)continue;
@@ -349,7 +337,7 @@ export class Soundscape {
         voice.pulseDepth.gain.setTargetAtTime(
           profile.pulse>0?profile.texture*(kind==='tank'?.13:.20)*(.25+.75*throttle):0,now,.26);
         voice.gain.gain.setTargetAtTime(
-          level*profile.volume,now,level>voice.gain.gain.value ? .14 : .30);
+          level*profile.volume*.50,now,level>voice.gain.gain.value ? .20 : .35);
         voice.previousMotion=level>.02?moving:0;
       }
     }
