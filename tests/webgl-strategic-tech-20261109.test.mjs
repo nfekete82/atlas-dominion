@@ -103,7 +103,8 @@ test('armor affects both existing and future vehicles; infantry and specialist p
  finish(g,0,'tankArmor');
  assert.ok(Math.abs(g.maxUnitHp(tank)-1350)<1e-9,'combined armor modifiers retain expected vehicle HP');
  assert.equal(researchModifiers(g.research[0],'tank').hp,1.35);
- assert.equal(researchModifiers(g.research[0],'rover').hp,1.2);
+ assert.ok(Math.abs(researchModifiers(g.research[0],'rover').hp-1.2)<1e-12,
+  'rover armor multiplier is 1.2 within JavaScript floating point precision');
  assert.equal(g.startResearch(0,'tankMobility'),false,'mutually exclusive tank upgrade');
  finish(g,0,'infantryTraining');
  assert.equal(g.maxUnitHp(soldier),UNITS.infantry.hp*1.15);
