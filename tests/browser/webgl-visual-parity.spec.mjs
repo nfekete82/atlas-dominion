@@ -132,7 +132,11 @@ test('3D buildings receive texture-based fill without brightening sand or soldie
   base.buildRemaining=0;base.hp=1200;
   b.sync(true,.06,false,1);
   return {id:base.id,exposure:v.renderer.toneMappingExposure,
-   fallbackLit:fallbackMaterials.every(m=>m.emissiveIntensity===.22),
+   // The procedural placeholder deliberately has a subtle .065 fill.
+   // Loaded PBR building meshes use the stronger textured .22 lift below.
+   fallbackLit:fallbackMaterials.length>0&&fallbackMaterials.every(m=>
+    m.isMeshStandardMaterial&&m.emissiveIntensity===.065&&
+    m.emissive.getHex()===m.color.getHex()),
    soldierUnchanged:unitMaterials.every(m=>m.emissiveIntensity===1&&m.emissive.getHex()===0),
    terrainUnchanged:sandMeshes.length>0&&sandMeshes.every(mesh=>
     !mesh.material?.userData?.sandforgeBuildingFill&&
