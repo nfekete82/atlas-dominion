@@ -4,7 +4,7 @@ import { Simulation, type Weapon } from './simulation.js';
 import {UnitRadio,type PlayerOrder} from './unit-radio.js';
 import {UnitLossMonitor} from './unit-loss-monitor.js';
 import {TacticalMusic,musicCombatLevel} from './tactical-music.js';
-import {unitSpec} from './catalog.js';
+import {unitSpec,type UnitKind} from './catalog.js';
 import {ENGINE_KINDS,ENGINE_PROFILES,measuredEngineSpeed,vehicleSoundMix,type EngineKind} from './vehicle-soundscape.js';
 
 interface EngineVoice {
@@ -37,6 +37,14 @@ export function ambientActivity(g:Simulation,center:Point,visible:(p:Point)=>boo
   generator+=falloff*(b.kind==='generator'?1:b.kind==='headquarters'?.5:.65);
  }
  return {motors:clamp(motors,0,2.4),generator:clamp(generator,0,1.8)};
+}
+/** Footsteps are exclusively for *walking* infantry, never mechanized units.
+ * No engine channel is involved even when a soldier gets a move order.
+ */
+export function shouldPlayFootstep(u:{
+ kind:UnitKind;hp:number;moving:boolean;carrier?:number|null
+}):boolean{
+ return u.hp>0&&!u.carrier&&u.moving&&unitSpec(u).group==='Infanterie';
 }
 /** Local sound design: synthesized effects and a separate pre-authored speech channel. */
 export class Soundscape {
@@ -76,10 +84,12 @@ export class Soundscape {
       this.noise=a.createBuffer(1,a.sampleRate*3,a.sampleRate);const channel=this.noise.getChannelData(0);let seed=91821;
       for(let i=0;i<channel.length;i++){seed=(Math.imul(seed,1664525)+1013904223)>>>0;channel[i]=seed/2147483648-1;}
       const source=a.createBufferSource(),filter=a.createBiquadFilter();source.buffer=this.noise;source.loop=true;
-      filter.type='lowpass';filter.frequency.value=500;filter.Q.value=.4;
-      const windLevel=a.createGain();windLevel.gain.value=.055;this.wind=a.createGain();this.wind.gain.value=1;
+      // Wind is airy filtered noise, NOT the old low-pass 500 Hz bass drone
+      // that sounded like a diesel motor whenever WebAudio unlocked.
+      filter.type='bandpass';filter.frequency.value=1850;filter.Q.value=.48;
+      const windLevel=a.createGain();windLevel.gain.value=.020;this.wind=a.createGain();this.wind.gain.value=1;
       source.connect(filter);filter.connect(windLevel);windLevel.connect(this.wind);this.wind.connect(this.effects);source.start();
-      const lfo=a.createOscillator(),swell=a.createGain();lfo.frequency.value=.08;swell.gain.value=.025;lfo.connect(swell);swell.connect(windLevel.gain);lfo.start();
+      const lfo=a.createOscillator(),swell=a.createGain();lfo.frequency.value=.08;swell.gain.value=.006;lfo.connect(swell);swell.connect(windLevel.gain);lfo.start();
       // No permanent generic motor/generator oscillators. The only engine
       // audio comes from real moving, visible units below; no continuous
       // hum in the base or whenever all vehicles are parked.
@@ -368,9 +378,12 @@ export class Soundscape {
     for(const u of g.units){
       if(!this.unitIds.has(u.id)){this.unitIds.add(u.id);if(u.owner===0&&active){this.played.production++;this.tone(660,.13,.075);this.tone(990,.2,.065,.1);}}
       const walked=this.footsteps.get(u.id)??u.walkDistance;this.footsteps.set(u.id,u.walkDistance);
-      if(!active||g.paused||!u.moving||Math.floor(walked/32)===Math.floor(u.walkDistance/32)||!g.canSee(0,u))continue;
+      if(!active||g.paused||!shouldPlayFootstep(u)||
+         Math.floor(walked/32)===Math.floor(u.walkDistance/32)||!g.canSee(0,u))continue;
       const p=r.screen(u);if(p.x<0||p.y<0||p.x>r.width||p.y>r.height||g.time-this.lastStep<.05)continue;
-      this.lastStep=g.time;this.played.steps++;this.burst(u,r,.06,.045,1100,'lowpass');
+      // Boots on sand: brief soft, high-frequency grit. A low-pass footstep
+      // pulse used to sound like a small idling engine when a soldier walked.
+      this.lastStep=g.time;this.played.steps++;this.burst(u,r,.037,.018,1900,'highpass');
     }
   }
 }
