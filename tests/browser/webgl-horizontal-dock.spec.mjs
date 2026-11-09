@@ -124,7 +124,7 @@ test('lite infantry visual scale is reduced without changing unit collision radi
  expect(result.kind).toBe('infantry');
  // Deliberately downsized infantry in 3D: the engine collision footprint
  // and authoritative movement remain unchanged.
- expect(result.scale).toBeCloseTo(.59,3);
+ expect(result.scale).toBeCloseTo(.56,3);
  expect(result.sameUnit).toBe(true);
  expect(result.radius).toBe(true);
 });
@@ -220,6 +220,7 @@ test('context menus expose builder construction and only the selected producer u
   const cards=[...group.querySelectorAll('.catalog-card')];
   const boxes=cards.map(el=>el.getBoundingClientRect());
   return {tab:battlefield.panel.dataset.tab,count:cards.length,
+   buildingKinds:cards.map(card=>card.dataset.build),
    row:boxes.every(box=>Math.abs(box.y-boxes[0].y)<5),
    name:getComputedStyle(cards[0].querySelector('.card-name')).whiteSpace,
    priceBelow:cards[0].querySelector('.card-cost').getBoundingClientRect().y>
@@ -228,7 +229,10 @@ test('context menus expose builder construction and only the selected producer u
    unitTab:battlefield.panel.querySelector('[data-tab="units"]').hidden};
  });
  expect(builder.tab).toBe('buildings');
- expect(builder.count).toBe(6);
+ expect(builder.count).toBe(8);
+ expect(builder.buildingKinds).toEqual([
+  'headquarters','barracks','factory','airfield','generator','turret','research','silo'
+ ]); // The interceptor is intentionally disabled, but research and silo are visible.
  expect(builder.row).toBe(true);
  expect(builder.name).toBe('nowrap');
  expect(builder.priceBelow).toBe(true);
@@ -237,7 +241,7 @@ test('context menus expose builder construction and only the selected producer u
  expect(builder.unitTab).toBe(true);
  await page.waitForFunction(()=>{
   const icons=[...document.querySelectorAll('img[data-sf-building-icon]')];
-  return icons.length===6&&icons.every(img=>img.dataset.sfIconStatus==='ready'&&
+  return icons.length===8&&icons.every(img=>img.dataset.sfIconStatus==='ready'&&
    img.naturalWidth===320&&img.naturalHeight===220);
  },null,{timeout:45000});
 
@@ -383,11 +387,14 @@ test('a medic in lite 3D mode is a detailed soldier instead of a blue capsule',a
   medicId,{timeout:70000});
  const state=await page.evaluate(id=>{
   const e=window.__sandforgeWebGL.battlefield.units.get(id);
-  return {kind:e.kind,detail:!!e.detail,removed:!e.placeholder.parent,meshes:e.detail.children.length};
+  return {kind:e.kind,detail:!!e.detail,
+   removed:e.placeholder===null,attached:e.detail?.parent===e.node,
+   meshes:e.detail?.children.length??0};
  },medicId);
  expect(state.kind).toBe('medic');
  expect(state.detail).toBe(true);
  expect(state.removed).toBe(true);
+ expect(state.attached).toBe(true);
  expect(state.meshes).toBeGreaterThan(0);
 });
 
@@ -410,7 +417,7 @@ test('production has a framed panel with live queue slots and building progress'
  expect(layout.beside).toBe(true);
  expect(layout.separate).toBe(true);
  expect(layout.inside).toBe(true);
- expect(layout.border).toBe('2px');
+ expect(layout.border).toBe('0px'); // Production belongs to one continuous dock, not a separate frame.
  expect(layout.empty).toContain('Noch keine Produktion aktiv');
 
  const queue=await page.evaluate(()=>{
