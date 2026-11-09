@@ -67,6 +67,7 @@ export function installClassicHud(){
  <div class="command-group">
   <div class="section-label">KOMMANDOS</div>
   <div class="commands" id="sf-command-buttons">
+   <button data-action="select-engineer" title="Lebenden Pionier auswählen (P)">PIONIER</button>
    <button data-action="select-all" title="Alle Truppen auswählen">ALLE</button>
    <button data-action="attack" title="Angriffsbewegung (F)">ANGRIFF</button>
    <button data-action="rally" id="sf-rally" title="Sammelpunkt für neue Einheiten setzen">SAMMELPUNKT</button>
