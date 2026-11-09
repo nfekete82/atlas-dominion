@@ -1,0 +1,76 @@
+name: Sandforge strategic R&D and superweapon verification
+on:
+  push:
+    branches: [feat/webgl-strategic-research-missile-silo-20261108]
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  strategy-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22', cache: npm}
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: |
+          node --test \
+            tests/webgl-strategic-tech-20261109.test.mjs \
+            tests/webgl-ambient-music-20261108.test.mjs \
+            tests/webgl-premium-stone-materials-20261108.test.mjs \
+            tests/webgl-generals-combat-impacts-20261108.test.mjs \
+            tests/webgl-unit-lost-announcement-20261108.test.mjs \
+            tests/webgl-elimination-victory-banner-20261108.test.mjs
+  strategy-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: 'true'
+      ATLAS_BROWSER_CHANNEL: chromium
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22', cache: npm}
+      - run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix tests/browser --no-audit --no-fund
+          cd tests/browser
+          npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Real 3D strategy and flight controls
+        run: |
+          set -euo pipefail
+          PORT=8163 HOST=127.0.0.1 node scripts/serve.mjs > /tmp/sandforge-strategy.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          READY=0
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:8163/healthz >/dev/null 2>&1; then READY=1; break; fi
+            sleep .25
+          done
+          if [ "$READY" -ne 1 ]; then cat /tmp/sandforge-strategy.log; exit 1; fi
+          ATLAS_BASE_URL=http://127.0.0.1:8163 \
+            tests/browser/node_modules/.bin/playwright test \
+            --config=tests/browser/playwright.config.mjs \
+            tests/browser/webgl-strategy-20261109.spec.mjs \
+            --workers=1 --reporter=line
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: sandforge-strategic-browser
+          path: tests/browser/artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
+  full-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22', cache: npm}
+      - run: npm ci --no-audit --no-fund
+      - run: npm test

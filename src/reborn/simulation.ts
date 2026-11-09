@@ -26,6 +26,12 @@ import {bomberAttackWaypoints,BOMBER_BOMB_RELEASE_DISTANCE,BOMBER_RUN_WAYPOINT_D
 import {AttackAlerts} from './attack-alerts.js';
 import {eliminationOutcome} from './match-outcome.js';
 import {formationSlotPitch,vehicleSpacingGap,preservesVehicleProgress,vehicleYieldWaypoint} from './vehicle-spacing.js';
+import {UPGRADES,UPGRADE_KINDS,newResearchState,canResearchUpgrade,researchModifiers,
+ validResearchState,strategicBlastDamage,validStrategicMissile,
+ SILO_CHARGE_SECONDS,STRATEGIC_WARNING_SECONDS,STRATEGIC_BLAST_RADIUS,
+ INTERCEPTOR_MAX_AMMO,INTERCEPTOR_REARM_COST,INTERCEPTOR_RANGE,
+ type UpgradeKind,type ResearchState,type StrategicMissile,type StrategicEvent}
+ from './strategic-tech.js';
 
 export interface Formation {front:number[];fallback?:number[];heading:Point;origin:Point;goal:Point;lane:number;rear:number}
 export interface Order extends Point { kind:'move'|'attackMove'|'attack'|'heal'|'repair'|'build'|'board'; target?:number; approach?:Point; healOrigin?:Point; formation?:Formation; march?:number[]; rear?:number; tactical?:TacticalOrder }
@@ -69,6 +75,9 @@ export interface Base extends Point {
   burst?:Burst;
   queueCosts?:number[];
   turretAngle?:number; previousTurretAngle?:number; turretTarget?:number|null;
+  /** Optional new special building state; absent in old saves. */
+  siloCharge?:number;
+  interceptorAmmo?:number;
 }
 /** Transient on-screen release cue. Never serialized or used for collisions. */
 export interface ProductionRelease {unitId:number;baseId:number;kind:UnitKind;owner:Faction;at:number;from:Point;to:Point}
@@ -81,6 +90,8 @@ export interface Save {
   version:2; terrainProfile?:TerrainProfile; generatorVersion?:1; bootstrapVersion?:1; weatherVersion?:1; productionVersion?:1; supportVersion?:1;rosterVersion?:2;missiles?:Missile[]; seed:number; mapVersion?:MapVersion; time:number; nextId:number; credits:number[]; incomeClock:number;
   units:Unit[]; bases:Base[]; territories:Territory[]; explored:number[][];
   memories:Memory[][]; aiClock:number; ai?:TacticalState; status:'playing'|'victory'|'defeat'; stats?:MatchStatistics;
+  research?:[ResearchState,ResearchState];
+  strategicMissiles?:StrategicMissile[];
 }
 
 /** Uniform buckets keep combat/vision queries independent of total army size. */
@@ -139,13 +150,169 @@ export class Simulation {
   }
   sight(u:Unit):number{
     const infantry=['infantry','medic','engineer','heavy'].includes(u.kind);
-    return unitSpec(u).sight*(infantry?this.infantryVisionBonus:1)*
+    return unitSpec(u).sight*researchModifiers(this.research[u.owner],u.kind).sight*(infantry?this.infantryVisionBonus:1)*
       (this.weather.storm&&!unitSpec(u).flying?WEATHER_RULES.groundSight:1);
   }
   healRadius(u:Unit):number{return HEAL_RADIUS*getVeterancyModifiers(u).healRange;}
+  /** Authoritative upgrade-aware stats, applied to new AND existing units. */
+  maxUnitHp(u:{kind:UnitKind;owner:Faction}):number{
+    return unitSpec(u).hp*researchModifiers(this.research[u.owner],u.kind).hp;
+  }
+  speed(u:Unit):number{
+    return unitSpec(u).speed*researchModifiers(this.research[u.owner],u.kind).speed;
+  }
+  range(u:Unit):number{
+    return unitSpec(u).range*researchModifiers(this.research[u.owner],u.kind).range;
+  }
+  startResearch(owner:Faction,kind:UpgradeKind):boolean{
+    const state=this.research[owner],upgrade=UPGRADES[kind];
+    if(!upgrade||this.status!=='playing'||!canResearchUpgrade(state,kind)||
+       !this.bases.some(b=>b.owner===owner&&b.kind==='research'&&b.hp>0&&b.buildRemaining<=0)||
+       this.credits[owner]<upgrade.cost)return false;
+    this.credits[owner]-=upgrade.cost;
+    state.active=kind;state.remaining=upgrade.seconds;
+    if(owner===0)this.notices.push('Forschung begonnen: '+upgrade.name);
+    return true;
+  }
+  private completeResearch(owner:Faction,kind:UpgradeKind):void{
+    const state=this.research[owner];
+    const oldHp=new Map(this.units.filter(u=>u.owner===owner&&u.hp>0)
+      .map(u=>[u.id,this.maxUnitHp(u)]));
+    state.completed.push(kind);state.active=null;state.remaining=0;
+    for(const u of this.units)if(u.owner===owner&&u.hp>0){
+      // Restore absolute additional hitpoints, without healing prior damage.
+      const bonus=this.maxUnitHp(u)-(oldHp.get(u.id)??this.maxUnitHp(u));
+      if(bonus>0)u.hp=Math.min(this.maxUnitHp(u),u.hp+bonus);
+    }
+    if(owner===0)this.notices.push('Forschung abgeschlossen: '+UPGRADES[kind].name);
+  }
+  /** Launch an actual slow-moving strategic projectile. */
+  launchStrategicMissile(owner:Faction,p:Point):boolean{
+    if(this.status!=='playing'||!Number.isFinite(p.x)||!Number.isFinite(p.y)||
+       this.world.index(p)<0)return false;
+    if(p.x<8||p.y<8||p.x>this.world.size-8||p.y>this.world.size-8||
+       !this.hasExplored(owner,p))return false;
+    const silo=this.bases.find(b=>b.owner===owner&&b.kind==='silo'&&
+      b.hp>0&&b.buildRemaining<=0&&(b.siloCharge??SILO_CHARGE_SECONDS)<=0);
+    if(!silo)return false;
+    silo.siloCharge=SILO_CHARGE_SECONDS;
+    const missile:StrategicMissile={
+      id:this.nextId++,owner,from:{x:silo.x,y:silo.y},to:{x:p.x,y:p.y},
+      at:this.time,impactAt:this.time+STRATEGIC_WARNING_SECONDS
+    };
+    this.strategicMissiles.push(missile);
+    this.strategicEvents.push({...missile,kind:'launch'});
+    this.notices.push(owner===1?'FEINDLICHER RAKETENSTART ERKANNT!':
+     'Langstreckenrakete gestartet · Einschlag in 25 Sekunden.');
+    return true;
+  }
+  rearmInterceptor(id:number):boolean{
+    const base=this.bases.find(b=>b.id===id&&b.kind==='interceptor'&&
+      b.hp>0&&b.buildRemaining<=0);
+    if(!base||this.status!=='playing'||(base.interceptorAmmo??0)>=INTERCEPTOR_MAX_AMMO||
+       this.credits[base.owner]<INTERCEPTOR_REARM_COST)return false;
+    this.credits[base.owner]-=INTERCEPTOR_REARM_COST;
+    base.interceptorAmmo=INTERCEPTOR_MAX_AMMO;
+    return true;
+  }
+  private stepStrategy(dt:number):void{
+    for(const owner of [0,1] as const){
+      const state=this.research[owner];
+      const lab=this.bases.some(b=>b.owner===owner&&b.kind==='research'&&
+        b.hp>0&&b.buildRemaining<=0);
+      if(lab&&state.active){
+        state.remaining=Math.max(0,state.remaining-dt);
+        if(state.remaining<=1e-8)this.completeResearch(owner,state.active);
+      }
+    }
+    for(const silo of this.bases)if(silo.kind==='silo'&&silo.hp>0&&
+      silo.buildRemaining<=0&&silo.siloCharge!==undefined&&silo.siloCharge>0)
+      silo.siloCharge=Math.max(0,silo.siloCharge-dt);
+    for(const m of this.strategicMissiles)if(m.impactAt<=this.time+1e-8){
+      // A completed nearby interceptor automatically reacts to the global
+      // warning. One rocket per intercepted strike; no infinite ammo.
+      const defense=this.bases.filter(b=>b.owner!==m.owner&&b.kind==='interceptor'&&
+        b.hp>0&&b.buildRemaining<=0&&(b.interceptorAmmo??0)>0&&
+        distance(b,m.to)<=INTERCEPTOR_RANGE)
+        .sort((a,b)=>distance(a,m.to)-distance(b,m.to)||a.id-b.id)[0];
+      if(defense){
+        defense.interceptorAmmo!--;
+        this.strategicEvents.push({...m,kind:'intercept',at:this.time});
+        if(defense.owner===0)this.notices.push('Raketenabwehr erfolgreich · Einschlag verhindert.');
+        continue;
+      }
+      for(const entity of [...this.units,...this.bases])if(entity.hp>0&&
+        entity.owner!==m.owner&&(!('orders' in entity)||!entity.carrier)){
+        const d=distance(entity,m.to);
+        if(d>STRATEGIC_BLAST_RADIUS)continue;
+        const isBuilding='queue' in entity;
+        const maxHp=isBuilding?buildingSpec(entity).hp:this.maxUnitHp(entity);
+        const damage=strategicBlastDamage(d,maxHp,isBuilding);
+        const source=this.bases.find(b=>b.owner===m.owner&&b.kind==='silo'&&b.hp>0);
+        this.strike(source??m.id,entity,damage);
+        if(entity.owner===0&&m.owner===1)this.attackAlerts.record(m.to,this.time);
+      }
+      this.blasts.push({...m.to,id:m.id,at:this.time});
+      this.strategicEvents.push({...m,kind:'impact',at:this.time});
+      this.notices.push(m.owner===1?'FEINDLICHE LANGSTRECKENRAKETE EINGESCHLAGEN!':
+       'Langstreckenrakete eingeschlagen.');
+    }
+    this.strategicMissiles=this.strategicMissiles.filter(m=>m.impactAt>this.time);
+    this.strategicEvents=this.strategicEvents.filter(e=>this.time-e.at<1.6).slice(-16);
+    // Enemy strategy runs only once every 7 seconds, not inside per-unit loops.
+    if(this.time-this.strategicAiAt>=7){
+      this.strategicAiAt=this.time;
+      this.planStrategicAi();
+    }
+  }
+  private planStrategicAi():void{
+    if(this.status!=='playing'||!this.hasHeadquarters(1))return;
+    const ai=1;
+    const engineer=this.units.find(u=>u.owner===ai&&u.kind==='engineer'&&u.hp>0&&!u.carrier);
+    const has=(kind:BuildingKind)=>this.bases.some(b=>b.owner===ai&&b.kind===kind&&b.hp>0);
+    const needed:BuildingKind|null=!has('research')&&this.credits[ai]>=1450&&this.time>140?'research':
+      !has('interceptor')&&this.memories[ai].some(b=>b.owner===0&&b.kind==='silo'&&b.hp>0)&&
+        this.credits[ai]>=3100?'interceptor':
+      !has('silo')&&has('research')&&this.credits[ai]>=6300&&this.time>520?'silo':null;
+    if(needed&&engineer&&!engineer.orders.some(o=>o.kind==='build')){
+      const hq=this.bases.find(b=>b.owner===ai&&b.kind==='headquarters'&&b.hp>0);
+      if(hq){
+        for(let i=0;i<18;i++){
+          const angle=i*Math.PI*2/18;
+          const radius=BUILDINGS[needed].radius+hq.radius+75+(i%3)*85;
+          const p={x:hq.x+Math.cos(angle)*radius,y:hq.y+Math.sin(angle)*radius};
+          if(!this.buildError(ai,needed,p)&&this.build(ai,needed,p,[engineer.id]))break;
+        }
+      }
+    }
+    if(has('research')&&!this.research[ai].active){
+      for(const k of ['armor1','precision','engines','radar','armor2',
+        'rocketDevelopment','infantryTraining','tankMobility'] as UpgradeKind[])
+        if(this.startResearch(ai,k))break;
+    }
+    const defender=this.bases.find(b=>b.owner===ai&&b.kind==='interceptor'&&
+      b.hp>0&&b.buildRemaining<=0&&(b.interceptorAmmo??0)<INTERCEPTOR_MAX_AMMO);
+    if(defender&&this.credits[ai]>=INTERCEPTOR_REARM_COST+850)
+      this.rearmInterceptor(defender.id);
+    const silo=this.bases.find(b=>b.owner===ai&&b.kind==='silo'&&b.hp>0&&
+      b.buildRemaining<=0&&(b.siloCharge??SILO_CHARGE_SECONDS)===0);
+    if(silo){
+      // Choose an OBSERVED enemy building only. No omniscient targeting.
+      const seen=this.bases.filter(b=>b.owner===0&&b.hp>0&&this.canSee(ai,b))
+        .sort((a,b)=>(b.kind==='headquarters'?1:0)-(a.kind==='headquarters'?1:0)||
+          b.hp-a.hp||a.id-b.id)[0];
+      if(seen)this.launchStrategicMissile(ai,seen);
+    }
+  }
   readonly tactical=new TacticalAI(this);
   readonly transports=new Transports(this,(u,p,dt)=>this.move(u,p,dt));
   missiles:Missile[]=[];blasts:Blast[]=[];
+  /** Persistent research and missiles; transient event visuals never serialized. */
+  research:[ResearchState,ResearchState]=[newResearchState(),newResearchState()];
+  strategicMissiles:StrategicMissile[]=[];
+  strategicEvents:StrategicEvent[]=[];
+  private strategicAiAt=-Infinity;
+  private seenEnemySilos=new Set<number>();
   seed:number; time=0; nextId=1; credits=[RULES.initialCredits as number,RULES.initialCredits as number];
   incomeClock=0; aiClock=0; status:'playing'|'victory'|'defeat'='playing';
   stats:MatchStatistics=newMatchStatistics();
@@ -233,7 +400,7 @@ export class Simulation {
   }
   spawn(owner:Faction,p:Point,kind:UnitKind='infantry'):Unit {
     while(this.bases.some(b=>b.id===this.nextId))this.nextId++;
-    const u:Unit={id:this.nextId++,owner,kind,xp:0,x:p.x,y:p.y,hp:UNITS[kind].hp,orders:[],path:[],cooldown:0,facing:1,moving:false,hit:0,repath:0,
+    const u:Unit={id:this.nextId++,owner,kind,xp:0,x:p.x,y:p.y,hp:this.maxUnitHp({kind,owner}),orders:[],path:[],cooldown:0,facing:1,moving:false,hit:0,repath:0,
       angle:Math.PI/4,walkDistance:0,fire:0,previousX:p.x,previousY:p.y,lastAttacker:null,defendUntil:0};
     this.units.push(u);this.unitById.set(u.id,u);
     countDeployed(this.stats,owner,kind,this.count(owner));return u;
@@ -266,7 +433,11 @@ export class Simulation {
     if(this.bases.filter(b=>b.hp>0).length>=40)return 'Gebäudelimit erreicht.';
     if(kind==='generator'&&this.bases.filter(b=>b.owner===owner&&b.kind==='generator'&&b.hp>0).length>=MAX_GENERATORS_PER_FACTION)
       return `Maximal ${MAX_GENERATORS_PER_FACTION} Energiekerne pro Fraktion.`;
-    if(['barracks','factory','airfield'].includes(kind)&&this.bases.some(b=>b.owner===owner&&b.kind===kind&&b.hp>0))return 'Dieses Produktionsgebäude existiert bereits.';
+    if(['barracks','factory','airfield','research','silo'].includes(kind)&&
+       this.bases.some(b=>b.owner===owner&&b.kind===kind&&b.hp>0))
+      return 'Dieses Gebäude oder seine Baustelle existiert bereits.';
+    if(kind==='interceptor'&&this.bases.filter(b=>b.owner===owner&&b.kind===kind&&b.hp>0).length>=2)
+      return 'Maximal zwei Raketenabwehr-Anlagen pro Fraktion.';
     if(kind==='headquarters'){
       if(this.bootstrapVersion!==1)return 'Dieses Gebäude kann hier nicht errichtet werden.';
       if(this.bases.some(b=>b.owner===owner&&b.kind==='headquarters'&&b.hp>0))return 'Ein Hauptquartier oder seine Baustelle existiert bereits.';
@@ -304,7 +475,10 @@ export class Simulation {
     if(!workers.length)return null;
     const spec=BUILDINGS[kind],territory=this.territories.find(t=>inside(p,t.polygon))!;
     let id=1000;while(this.bases.some(b=>b.id===id)||this.units.some(u=>u.id===id))id++;
-    const b:Base={id,owner,kind,...p,hp:spec.hp*.25,territory:territory.id,radius:spec.radius,queue:[],queueTypes:[],production:0,buildRemaining:spec.buildTime,cooldown:0,rally:null,...(facing!==0?{facing}:{})};
+    const b:Base={id,owner,kind,...p,hp:spec.hp*.25,territory:territory.id,radius:spec.radius,queue:[],queueTypes:[],production:0,buildRemaining:spec.buildTime,cooldown:0,rally:null,
+      ...(kind==='silo'?{siloCharge:SILO_CHARGE_SECONDS}:{}),
+      ...(kind==='interceptor'?{interceptorAmmo:INTERCEPTOR_MAX_AMMO}:{}),
+      ...(facing!==0?{facing}:{})};
     this.bases.push(b);
     if(!this.command(workers.map(u=>u.id),{...p,kind:'build',target:id},append)){this.bases.pop();this.notices.push('Kein ausgewählter Pionier kann diese Baustelle erreichen.');return null;}
     this.credits[owner]-=spec.cost;this.updateVision();return b;
@@ -410,9 +584,9 @@ export class Simulation {
   stop(ids:number[],hold=false):void {for(const u of this.units)if(ids.includes(u.id)){if(u.kind==='bomber')delete u.bomberRun;this.cancelProductionDeparture(u.id);this.transports.cancel(u);u.orders=[];u.path=[];u.repath=0;u.moving=false;if(u.kind==='tank')u.driveSpeed=0;u.pursuitOrigin=null;u.combatTarget=null;u.hold=hold;u.supportPaused=false;u.workingTarget=null;delete u.burst;}}
   private supportEligible(u:Unit,target:Unit|Base,kind:string):boolean {
     if(target.hp<=0||('orders' in target&&target.carrier)||target.owner!==u.owner)return false;
-    if(kind==='heal')return u.kind==='medic'&&'orders' in target&&unitSpec(target).group==='Infanterie'&&target.hp<unitSpec(target).hp;
+    if(kind==='heal')return u.kind==='medic'&&'orders' in target&&unitSpec(target).group==='Infanterie'&&target.hp<this.maxUnitHp(target);
     if(kind==='repair'&&u.kind==='engineer'&&'orders' in target)
-      return target.id!==u.id&&(unitSpec(target).group==='Fahrzeuge'||unitSpec(target).flying)&&target.hp<unitSpec(target).hp;
+      return target.id!==u.id&&(unitSpec(target).group==='Fahrzeuge'||unitSpec(target).flying)&&target.hp<this.maxUnitHp(target);
     return u.kind==='engineer'&&'queue' in target&&(kind==='build'?target.buildRemaining>0:target.buildRemaining<=0&&target.hp<buildingSpec(target).hp);
   }
   private supportApproach(u:Unit,target:Unit|Base,requireReachable=false):Point|null {
@@ -567,12 +741,12 @@ export class Simulation {
     const vehicles=this.spatial.query(u,REPAIR_RADIUS).filter(v=>
       (onlyTarget===undefined||v.id===onlyTarget)&&this.supportEligible(u,v,'repair')&&distance(u,v)<=REPAIR_RADIUS&&this.world.line(u,v));
     if(!vehicles.length)return false;
-    const total=vehicles.reduce((sum,v)=>sum+(v.hp/unitSpec(v).hp<.5?2:1),0);
+    const total=vehicles.reduce((sum,v)=>sum+(v.hp/this.maxUnitHp(v)<.5?2:1),0);
     let repaired=false;
     for(const vehicle of vehicles){
-      const share=(vehicle.hp/unitSpec(vehicle).hp<.5?2:1)/total;
+      const share=(vehicle.hp/this.maxUnitHp(vehicle)<.5?2:1)/total;
       const before=vehicle.hp;
-      vehicle.hp=Math.min(unitSpec(vehicle).hp,before+REPAIR_RATE*getVeterancyModifiers(u).repairRate*share*dt);
+      vehicle.hp=Math.min(this.maxUnitHp(vehicle),before+REPAIR_RATE*getVeterancyModifiers(u).repairRate*share*dt);
       if(vehicle.hp>before){
         gainUnitXp(u,(vehicle.hp-before)*XP_RULES.repair,'repair');
         this.work('repair',u.id,vehicle.id,vehicle.hp-before);
@@ -585,14 +759,14 @@ export class Simulation {
   /** A shared 12 HP/s budget; self care is capped at 3 HP/s and waits after damage. */
   private healNearby(u:Unit,dt:number):boolean {
     const patients=this.spatial.query(u,this.healRadius(u)).filter(t=>this.supportEligible(u,t,'heal')&&this.world.line(u,t)&&(t.id!==u.id||u.defendUntil<=this.time));
-    const others=patients.filter(t=>t.id!==u.id),urgent=others.some(t=>t.hp/unitSpec(t).hp<.5);
+    const others=patients.filter(t=>t.id!==u.id),urgent=others.some(t=>t.hp/this.maxUnitHp(t)<.5);
     const targets=patients.filter(t=>t.id!==u.id||!urgent);
     if(!targets.length)return false;
     // Weighted sharing treats the wounded together, with the most urgent receiving more.
-    const weight=(t:Unit)=>t.id===u.id?.25:t.hp/unitSpec(t).hp<.5?2:1;
+    const weight=(t:Unit)=>t.id===u.id?.25:t.hp/this.maxUnitHp(t)<.5?2:1;
     const sum=targets.reduce((n,t)=>n+weight(t),0);let healed=false;
     for(const target of targets){const before=target.hp,rate=target.id===u.id?Math.min(3,12*weight(target)/sum):12*weight(target)/sum;
-      target.hp=Math.min(unitSpec(target).hp,target.hp+rate*getVeterancyModifiers(u).healRate*dt);
+      target.hp=Math.min(this.maxUnitHp(target),target.hp+rate*getVeterancyModifiers(u).healRate*dt);
       if(target.hp>before){if(target.id!==u.id)gainUnitXp(u,(target.hp-before)*XP_RULES.heal,'heal');this.work('heal',u.id,target.id,target.hp-before);healed=true;u.workingTarget??=target.id;}
     }
     return healed;
@@ -625,7 +799,8 @@ export class Simulation {
     // the original combat math. Applies equally to hits and rocket splash.
     const groundUnit=(entity:Unit|Base|undefined):entity is Unit=>
       Boolean(entity&&'orders' in entity&&!unitSpec(entity).flying);
-    const outgoing=groundUnit(attacker)&&this.onHighGround(attacker)?1.2:1;
+    const outgoing=(groundUnit(attacker)&&this.onHighGround(attacker)?1.2:1)*
+      (attacker?researchModifiers(this.research[attacker.owner],attacker.kind).damage:1);
     const incoming=groundUnit(target)&&this.onHighGround(target)?.9:1;
     const adjusted=amount*outgoing*incoming;
     const alive=target.hp>0,applied=Math.min(target.hp,adjusted);target.hp=Math.max(0,target.hp-applied);
@@ -717,6 +892,12 @@ export class Simulation {
       // interior stays remembered terrain, rather than an impossible black hole.
       // This never grants current visibility to enemies behind the cliff.
       for(const id of discovered)for(const cell of this.world.cliffCells[id])this.explored[owner][cell]=1;
+      if(owner===0)for(const b of this.bases){
+        if(b.owner!==1||b.kind!=='silo'||b.hp<=0||
+           !this.canSee(0,b)||this.seenEnemySilos.has(b.id))continue;
+        this.seenEnemySilos.add(b.id);
+        this.notices.push('ACHTUNG: Feindliches Raketensilo entdeckt!');
+      }
       for(const b of this.bases)if(this.canSee(owner,b)){
         const memory={id:b.id,owner:b.owner,x:b.x,y:b.y,hp:b.hp,territory:b.territory,kind:b.kind};
         const i=this.memories[owner].findIndex(m=>m.id===b.id);if(i<0)this.memories[owner].push(memory);else this.memories[owner][i]=memory;
@@ -738,14 +919,15 @@ export class Simulation {
     // Engineers on guard duty stay near their work instead of abandoning repairs.
     const support=u.kind==='engineer'||u.kind==='medic'||u.kind==='scout'||(u.kind==='rover'&&!!u.transport?.cargo.length);
     const proactive=!u.hold&&order?.kind!=='move'&&!support;
-    const engageRadius=proactive?Math.max(spec.range,Math.min(this.sight(u),spec.range+120)):spec.range;
+    const range=this.range(u);
+    const engageRadius=proactive?Math.max(range,Math.min(this.sight(u),range+120)):range;
     const visible=(e:Unit|Base)=>this.canSee(u.owner,e)||(distance(u,e)<=this.sight(u)&&(spec.flying||this.world.sightLine(u,e)));
     const eligible=(e:Unit|Base)=>{
       if(e.hp<=0||('orders' in e&&e.carrier)||e.owner===u.owner||!canAttack(u,e))return false;
       const d=distance(u,e);
       if(d>engageRadius||!visible(e))return false;
       return spec.flying||('orders' in e&&unitSpec(e).flying)||
-        (d<=spec.range?this.world.line(u,e):this.world.sightLine(u,e));
+        (d<=range?this.world.line(u,e):this.world.sightLine(u,e));
     };
     // Position halten is defensive fire ONLY. Normal auto-acquisition must
     // never choose nearby enemy units or buildings: fire at the actual, still
@@ -916,7 +1098,7 @@ export class Simulation {
       // a rock. Let the column pass bends before enforcing its open-ground lead.
       if(u.orders[0]?.tactical&&distance(u,target)>spec.range+30&&allies.every(v=>v.path.length===1)){const remaining=(v:Unit)=>Math.max(0,distance(v,v.orders[0]??target)-(v.orders[0]?.tactical?.mode==='assault'?unitSpec(v).range:0));const lead=Math.max(...allies.map(remaining))-remaining(u);if(lead>110)speedLimit=0;}
     }}
-    let velocity=Math.min(spec.speed,speedLimit);
+    let velocity=Math.min(this.speed(u),speedLimit);
     if(spec.group!=='Infanterie'){
       const desired=Math.atan2(dy,dx),current=u.hullAngle??u.angle,error=Math.atan2(Math.sin(desired-current),Math.cos(desired-current));
       const turnRate=spec.flying?1.8:u.kind==='tank'?1.05:2.5;
@@ -926,15 +1108,15 @@ export class Simulation {
       // Once driving, this shared steering pass handles route bends normally.
       if(u.kind!=='tank'||(u.driveSpeed??0)>=2)
         u.hullAngle=current+clamp(error,-turnRate*dt,turnRate*dt);
-      const remaining=Math.max(0,distance(u,target)-14),braking=spec.speed*2.8;
+      const remaining=Math.max(0,distance(u,target)-14),braking=this.speed(u)*2.8;
       // Aircraft can translate while banking/turning during a direct move.
       // Otherwise a helicopter ordered to retreat in the opposite direction
       // stays virtually motionless until its hull has turned ~90 degrees.
       // Preserve the existing turning/braking model for ground vehicles.
       const traction=spec.flying&&(u.kind==='bomber'||u.orders[0]?.kind==='move')
         ?Math.max(.65,Math.cos(error)):Math.max(0,Math.cos(error));
-      const targetSpeed=Math.min(spec.speed,Math.sqrt(2*braking*remaining))*traction;
-      u.driveSpeed=(u.driveSpeed??0)+clamp(targetSpeed-(u.driveSpeed??0),-braking*dt,spec.speed*1.9*dt);
+      const targetSpeed=Math.min(this.speed(u),Math.sqrt(2*braking*remaining))*traction;
+      u.driveSpeed=(u.driveSpeed??0)+clamp(targetSpeed-(u.driveSpeed??0),-braking*dt,this.speed(u)*1.9*dt);
       velocity=Math.min(u.driveSpeed,speedLimit);
     }
     const speed=velocity*(spec.flying&&this.weather.storm?WEATHER_RULES.airSpeed:1)*dt,step=Math.min(speed,d);
@@ -974,6 +1156,7 @@ export class Simulation {
     if(wasStorm!==this.weather.storm){this.visionCache.invalidate();this.updateVision();this.fogClock=0;}
     if(this.incomeClock+1e-8>=RULES.incomeInterval){this.incomeClock=Math.max(0,this.incomeClock-RULES.incomeInterval);for(const owner of [0,1] as const){const earned=this.income(owner);this.credits[owner]+=earned;countIncome(this.stats,owner,earned);}}
     this.blasts=this.blasts.filter(b=>this.time-b.at<.5);
+    this.stepStrategy(dt);
     for(const missile of this.missiles)if(missile.impactAt<=this.time){
       const antiArmor=missile.type==='antiArmor',radius=antiArmor?44:missile.type==='bomb'?94:60;
       for(const target of [...this.units,...this.bases])if(target.owner!==missile.owner&&target.hp>0&&!('orders' in target&&(target.carrier||unitSpec(target).flying))&&distance(target,missile.to)<=radius){
@@ -1054,7 +1237,7 @@ export class Simulation {
         continue;
       }
       if(u.kind==='tank'){u.mgCooldown=Math.max(0,(u.mgCooldown??0)-dt);this.tankMachinegun(u);}
-      const engagementRange=u.kind==='tank'&&enemy&&'orders' in enemy&&unitSpec(enemy).group==='Infanterie'?TANK_MG.range:spec.range;
+      const engagementRange=u.kind==='tank'&&enemy&&'orders' in enemy&&unitSpec(enemy).group==='Infanterie'?TANK_MG.range:this.range(u);
       if(enemy&&distance(u,enemy)<=engagementRange&&(spec.flying||('orders' in enemy&&unitSpec(enemy).flying)||this.world.line(u,enemy,this.obstacles().filter(b=>b.id!==enemy.id)))){
         u.facing=enemy.x<u.x?-1:1;u.angle=Math.atan2(enemy.y-u.y,enemy.x-u.x);
         // Tank's main guided rocket is anti-armor only; infantry is handled by the independent roof MG.
@@ -1303,22 +1486,36 @@ export class Simulation {
   }
   save():Save {
     return structuredClone({version:2,...(this.world.generated?.battlefield?{terrainProfile:this.world.generated.battlefield.profile,generatorVersion:1 as const}:{}),...(this.bootstrapVersion?{bootstrapVersion:this.bootstrapVersion}:{}),weatherVersion:1,productionVersion:1,supportVersion:1,rosterVersion:2,missiles:this.missiles,seed:this.seed,mapVersion:this.world.mapVersion,time:this.time,nextId:this.nextId,credits:this.credits,incomeClock:this.incomeClock,
-      units:this.units,bases:this.bases,territories:this.territories,explored:this.explored.map(a=>Array.from(a)),memories:this.memories,aiClock:this.aiClock,ai:this.tactical.state,status:this.status,stats:this.stats});
+      units:this.units,bases:this.bases,territories:this.territories,explored:this.explored.map(a=>Array.from(a)),memories:this.memories,aiClock:this.aiClock,ai:this.tactical.state,status:this.status,stats:this.stats,
+      research:this.research,strategicMissiles:this.strategicMissiles});
   }
   static load(raw:unknown,weatherEnabled=false):Simulation {
     const s=migrateTransportRoster(raw) as Save;
     const finite=(n:unknown)=>typeof n==='number'&&Number.isFinite(n);
     const validMatchStatisticsOrLegacy=(data:unknown)=>data===undefined||validMatchStatistics(data);
     const point=(p:Point)=>p&&finite(p.x)&&finite(p.y)&&p.x>=0&&p.y>=0&&p.x<=mapWorldSize(s?.mapVersion??0)&&p.y<=mapWorldSize(s?.mapVersion??0);
+    const research= s?.research??[newResearchState(),newResearchState()];
+    if(!Array.isArray(research)||research.length!==2||research.some(s=>!validResearchState(s)))
+      throw new Error('Ungültiger Forschungsstand im Spielstand.');
+    const researchFor=(u:{owner:Faction;kind?:UnitKind})=>
+      researchModifiers(research[u.owner],u.kind??'infantry');
     const burst=(b:Burst|undefined,rounds:number)=>b===undefined||(b!==null&&Number.isInteger(b.target)&&Number.isInteger(b.remaining)&&b.remaining>0&&b.remaining<=rounds&&b.remaining+b.index===rounds&&Number.isInteger(b.index)&&b.index>=0&&b.index<4&&finite(b.at)&&b.at>=s.time-.11&&b.at<=s.time+.11);
     if(!s||s.version!==2||((s.mapVersion??0)>=23&&(!isTerrainProfile(s.terrainProfile)||s.generatorVersion!==1))||((s.mapVersion??0)<23&&(s.terrainProfile!==undefined||s.generatorVersion!==undefined))||(s.bootstrapVersion!==undefined&&s.bootstrapVersion!==1)||(s.weatherVersion!==undefined&&s.weatherVersion!==1)||(s.productionVersion!==undefined&&s.productionVersion!==1)||(s.mapVersion!==undefined&&![0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26].includes(s.mapVersion))||!TacticalAI.valid(s.ai,s.time,point,mapLayout(s.mapVersion??0).columns*mapLayout(s.mapVersion??0).rows)||!finite(s.seed)||!finite(s.time)||s.time<0||!finite(s.incomeClock)||s.incomeClock<0||s.incomeClock>=10||
-      !validMatchStatisticsOrLegacy(s.stats)||!Array.isArray(s.units)||s.units.length>96||!Array.isArray(s.bases)||s.bases.length<(s.bootstrapVersion===1?0:2)||s.bases.length>64||
+      (s.strategicMissiles!==undefined&&(!Array.isArray(s.strategicMissiles)||
+        s.strategicMissiles.length>12||
+        s.strategicMissiles.some(m=>!validStrategicMissile(m,mapWorldSize(s.mapVersion??0),s.time))))||
+       !validMatchStatisticsOrLegacy(s.stats)||!Array.isArray(s.units)||s.units.length>96||!Array.isArray(s.bases)||s.bases.length<(s.bootstrapVersion===1?0:2)||s.bases.length>64||
       s.units.some(u=>u.exactPath!==undefined&&typeof u.exactPath!=='boolean')||
       !Array.isArray(s.territories)||s.territories.length!==mapLayout(s.mapVersion??0).columns*mapLayout(s.mapVersion??0).rows||!Array.isArray(s.explored)||s.explored.length!==2||
       s.explored.some(a=>!Array.isArray(a)||![120**2,RULES.grid**2].includes(a.length)||a.some(v=>v!==0&&v!==1))||
       !Array.isArray(s.credits)||s.credits.length!==2||s.credits.some(v=>!finite(v)||v<0)||
-      s.units.some(u=>(u.mgCooldown!==undefined&&(!finite(u.mgCooldown)||u.mgCooldown<0||u.mgCooldown>1))||!burst(u.burst,u.kind==='infantry'||u.kind==='heavy'||u.kind==='scout'||u.kind==='rover'||u.kind===undefined?3:1)||!point(u)||![0,1].includes(u.owner)||(u.kind!==undefined&&!Object.hasOwn(UNITS,u.kind))||(u.driveSpeed!==undefined&&(!finite(u.driveSpeed)||u.driveSpeed<0||u.driveSpeed>unitSpec(u).speed))||!validBomberOrbit(u.idleOrbit,u.kind??'infantry',mapWorldSize(s.mapVersion??0))||(u.bomberRun!==undefined&&((u.kind??'infantry')!=='bomber'||!u.bomberRun||!Number.isInteger(u.bomberRun.target)||!Number.isInteger(u.bomberRun.leg)||u.bomberRun.leg<0||u.bomberRun.leg>3||!Array.isArray(u.bomberRun.waypoints)||u.bomberRun.waypoints.length!==3||u.bomberRun.waypoints.some(p=>!point(p))))||(u.hullAngle!==undefined&&!finite(u.hullAngle))||(u.pursuitOrigin!==undefined&&u.pursuitOrigin!==null&&!point(u.pursuitOrigin))||!finite(u.hp)||u.hp<=0||u.hp>(UNITS[u.kind??'infantry']?.hp??0)||!Array.isArray(u.orders)||u.orders.length>32||u.orders.some(o=>!point(o)||(o.rear!==undefined&&(!finite(o.rear)||o.rear<0||o.rear>400))||(o.tactical!==undefined&&((o.tactical.goal!==undefined&&!point(o.tactical.goal))||!Number.isInteger(o.tactical.group)||!['safe','assault','defend'].includes(o.tactical.mode)))||(o.march!==undefined&&(!Array.isArray(o.march)||o.march.length>96||o.march.some(id=>!Number.isInteger(id))))||(o.approach!==undefined&&!point(o.approach))||(o.healOrigin!==undefined&&!point(o.healOrigin))||(o.formation!==undefined&&(!Array.isArray(o.formation.front)||o.formation.front.length>96||o.formation.front.some(id=>!Number.isInteger(id))||!point(o.formation.origin)||!point(o.formation.goal)||!finite(o.formation.heading?.x)||!finite(o.formation.heading?.y)||Math.hypot(o.formation.heading.x,o.formation.heading.y)>1.001||!finite(o.formation.lane)||!finite(o.formation.rear)))||!['move','attackMove','attack','heal','repair','build','board'].includes(o.kind)||(['heal','repair','build','board'].includes(o.kind)&&!Number.isInteger(o.target))))||
-      s.bases.some(b=>(b.facing!==undefined&&![0,1,2,3].includes(b.facing))||!burst(b.burst,b.kind==='turret'?4:1)||!point(b)||![0,1].includes(b.owner)||(b.kind!==undefined&&!Object.hasOwn(BUILDINGS,b.kind))||(b.turretAngle!==undefined&&!finite(b.turretAngle))||!finite(b.hp)||b.hp<0||b.hp>(BUILDINGS[b.kind??'headquarters']?.hp??0)||!Array.isArray(b.queue)||b.queue.length>8||b.queue.some((v,i)=>!finite(v)||v!==UNITS[b.queueTypes?.[i]??'infantry']?.buildTime)||
+      s.units.some(u=>(u.mgCooldown!==undefined&&(!finite(u.mgCooldown)||u.mgCooldown<0||u.mgCooldown>1))||!burst(u.burst,u.kind==='infantry'||u.kind==='heavy'||u.kind==='scout'||u.kind==='rover'||u.kind===undefined?3:1)||!point(u)||![0,1].includes(u.owner)||(u.kind!==undefined&&!Object.hasOwn(UNITS,u.kind))||(u.driveSpeed!==undefined&&(!finite(u.driveSpeed)||u.driveSpeed<0||u.driveSpeed>unitSpec(u).speed*researchFor(u).speed))||!validBomberOrbit(u.idleOrbit,u.kind??'infantry',mapWorldSize(s.mapVersion??0))||(u.bomberRun!==undefined&&((u.kind??'infantry')!=='bomber'||!u.bomberRun||!Number.isInteger(u.bomberRun.target)||!Number.isInteger(u.bomberRun.leg)||u.bomberRun.leg<0||u.bomberRun.leg>3||!Array.isArray(u.bomberRun.waypoints)||u.bomberRun.waypoints.length!==3||u.bomberRun.waypoints.some(p=>!point(p))))||(u.hullAngle!==undefined&&!finite(u.hullAngle))||(u.pursuitOrigin!==undefined&&u.pursuitOrigin!==null&&!point(u.pursuitOrigin))||!finite(u.hp)||u.hp<=0||u.hp>(UNITS[u.kind??'infantry']?.hp??0)*researchFor(u).hp+1e-5||!Array.isArray(u.orders)||u.orders.length>32||u.orders.some(o=>!point(o)||(o.rear!==undefined&&(!finite(o.rear)||o.rear<0||o.rear>400))||(o.tactical!==undefined&&((o.tactical.goal!==undefined&&!point(o.tactical.goal))||!Number.isInteger(o.tactical.group)||!['safe','assault','defend'].includes(o.tactical.mode)))||(o.march!==undefined&&(!Array.isArray(o.march)||o.march.length>96||o.march.some(id=>!Number.isInteger(id))))||(o.approach!==undefined&&!point(o.approach))||(o.healOrigin!==undefined&&!point(o.healOrigin))||(o.formation!==undefined&&(!Array.isArray(o.formation.front)||o.formation.front.length>96||o.formation.front.some(id=>!Number.isInteger(id))||!point(o.formation.origin)||!point(o.formation.goal)||!finite(o.formation.heading?.x)||!finite(o.formation.heading?.y)||Math.hypot(o.formation.heading.x,o.formation.heading.y)>1.001||!finite(o.formation.lane)||!finite(o.formation.rear)))||!['move','attackMove','attack','heal','repair','build','board'].includes(o.kind)||(['heal','repair','build','board'].includes(o.kind)&&!Number.isInteger(o.target))))||
+      s.bases.some(b=>(b.facing!==undefined&&![0,1,2,3].includes(b.facing))||!burst(b.burst,b.kind==='turret'?4:1)||!point(b)||![0,1].includes(b.owner)||(b.kind!==undefined&&!Object.hasOwn(BUILDINGS,b.kind))||(b.turretAngle!==undefined&&!finite(b.turretAngle))||
+        (b.siloCharge!==undefined&&(!finite(b.siloCharge)||b.siloCharge<0||
+          b.siloCharge>SILO_CHARGE_SECONDS||b.kind!=='silo'))||
+        (b.interceptorAmmo!==undefined&&(!Number.isInteger(b.interceptorAmmo)||
+          b.interceptorAmmo<0||b.interceptorAmmo>INTERCEPTOR_MAX_AMMO||
+          b.kind!=='interceptor'))||!finite(b.hp)||b.hp<0||b.hp>(BUILDINGS[b.kind??'headquarters']?.hp??0)||!Array.isArray(b.queue)||b.queue.length>8||b.queue.some((v,i)=>!finite(v)||v!==UNITS[b.queueTypes?.[i]??'infantry']?.buildTime)||
         (b.queueTypes!==undefined&&(!Array.isArray(b.queueTypes)||b.queueTypes.length!==b.queue.length||b.queueTypes.some(k=>!Object.hasOwn(UNITS,k))))||
         (s.productionVersion===1&&b.queue.some((_,i)=>!UNITS[b.queueTypes?.[i]??'infantry']?.producers.includes(b.kind??'headquarters')))||
         (b.queueCosts!==undefined&&(!Array.isArray(b.queueCosts)||b.queueCosts.length!==b.queue.length||b.queueCosts.some(v=>!finite(v)||v<0)))||
@@ -1326,10 +1523,13 @@ export class Simulation {
       s.territories.some((t,i)=>t.id!==i||![-1,0,1].includes(t.owner)||!finite(t.progress)||t.progress<0||t.progress>8))throw new Error('Dieser Spielstand ist beschädigt oder gehört zu einer anderen Version.');
     const game=new Simulation(s.seed,s.mapVersion??0,weatherEnabled,s.bootstrapVersion===1,s.terrainProfile);
     game.time=s.time;
+    game.research=structuredClone(research) as [ResearchState,ResearchState];
     game.stats=s.stats?structuredClone(s.stats):newMatchStatistics();
     if(!s.stats){game.stats.partial=true;for(const u of s.units){if(u.hp>0){const f=game.stats.factions[u.owner];f.deployedUnits[u.kind??'infantry']++;f.peakArmy+=0;}}for(const owner of [0,1] as const)game.stats.factions[owner].peakArmy=s.units.filter(u=>u.owner===owner&&u.hp>0).length;}
     game.nextId=Math.max(1,Number.isSafeInteger(s.nextId)?s.nextId:1,...s.units.map(u=>u.id+1),...(s.ai?.losses??[]).map(l=>l.id+1));game.credits=[...s.credits];game.incomeClock=s.incomeClock;
-    game.bases=structuredClone(s.bases).map(b=>({...b,kind:b.kind??'headquarters',...game.world.clearSite(b,buildingSpec(b).radius),radius:buildingSpec(b).radius,...(b.queueCosts?{}:b.queue.length?{queueCosts:b.queue.map((_,i)=>{const k=b.queueTypes?.[i]??'infantry';return !s.supportVersion&&k==='engineer'?150:UNITS[k].cost;})}:{}),queueTypes:b.queueTypes??b.queue.map(()=>'infantry'),buildRemaining:b.buildRemaining??0,cooldown:b.cooldown??0}));
+    game.bases=structuredClone(s.bases).map(b=>({...b,kind:b.kind??'headquarters',...game.world.clearSite(b,buildingSpec(b).radius),radius:buildingSpec(b).radius,...(b.queueCosts?{}:b.queue.length?{queueCosts:b.queue.map((_,i)=>{const k=b.queueTypes?.[i]??'infantry';return !s.supportVersion&&k==='engineer'?150:UNITS[k].cost;})}:{}),queueTypes:b.queueTypes??b.queue.map(()=>'infantry'),buildRemaining:b.buildRemaining??0,cooldown:b.cooldown??0,
+      ...(b.kind==='silo'?{siloCharge:b.siloCharge??SILO_CHARGE_SECONDS}:{}),
+      ...(b.kind==='interceptor'?{interceptorAmmo:b.interceptorAmmo??INTERCEPTOR_MAX_AMMO}:{})}));
     // Old HQs could queue the entire roster. Refund now-incompatible paid
     // orders once, while preserving valid orders and their active progress.
     let playerRefund=0;
@@ -1357,8 +1557,11 @@ export class Simulation {
       return Uint8Array.from({length:RULES.grid**2},(_,i)=>a[Math.floor(Math.floor(i/RULES.grid)*oldGrid/RULES.grid)*oldGrid+Math.floor((i%RULES.grid)*oldGrid/RULES.grid)]);
     });game.memories=structuredClone(s.memories??[[],[]]);game.aiClock=clamp(s.aiClock||0,0,RULES.aiInterval);
     if(!Transports.valid(game))throw Error('Ungültiger Transportzustand im Spielstand.');
-    if(s.missiles!==undefined&&(!Array.isArray(s.missiles)||s.missiles.length>96||s.missiles.some(m=>!Number.isSafeInteger(m.id)||!Number.isSafeInteger(m.source)||![0,1].includes(m.owner)||!point(m.from)||!point(m.to)||!finite(m.at)||m.at>s.time||!finite(m.impactAt)||m.impactAt<=s.time||m.impactAt>s.time+12||!finite(m.damage)||m.damage<=0||m.damage>Math.max(UNITS.artillery.damage,UNITS.tank.damage)*getVeterancyModifiers({kind:'tank',xp:500}).damage||(m.type!==undefined&&!['antiArmor','bomb'].includes(m.type))||!finite(m.angle))))throw Error('Ungültige Raketen im Spielstand.');
-    game.missiles=structuredClone(s.missiles??[]);game.nextId=Math.max(game.nextId,...game.missiles.map(m=>m.id+1));
+    if(s.missiles!==undefined&&(!Array.isArray(s.missiles)||s.missiles.length>96||s.missiles.some(m=>!Number.isSafeInteger(m.id)||!Number.isSafeInteger(m.source)||![0,1].includes(m.owner)||!point(m.from)||!point(m.to)||!finite(m.at)||m.at>s.time||!finite(m.impactAt)||m.impactAt<=s.time||m.impactAt>s.time+12||!finite(m.damage)||m.damage<=0||m.damage>Math.max(UNITS.artillery.damage,UNITS.tank.damage)*getVeterancyModifiers({kind:'tank',xp:500}).damage*1.151||(m.type!==undefined&&!['antiArmor','bomb'].includes(m.type))||!finite(m.angle))))throw Error('Ungültige Raketen im Spielstand.');
+    game.missiles=structuredClone(s.missiles??[]);
+    game.strategicMissiles=structuredClone(s.strategicMissiles??[]);
+    game.nextId=Math.max(game.nextId,...game.missiles.map(m=>m.id+1),
+      ...game.strategicMissiles.map(m=>m.id+1));
     game.weather.update(game.time);game.unitById=new Map(game.units.map(u=>[u.id,u]));
     game.tactical.restore(s.ai);
     game.status=['playing','victory','defeat'].includes(s.status)?s.status:'playing';

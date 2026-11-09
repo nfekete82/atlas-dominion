@@ -10,6 +10,7 @@ import {SandforgeBattlefield} from '/webgl-battlefield.js';
 import {DesertOases} from '/webgl-oases.js';
 import {DesertArtPass} from '/webgl-environment.js';
 import {SandforgeCombatEffects} from '/webgl-combat-vfx.js';
+import {SandforgeStrategicEffects} from '/webgl-strategic-effects.js';
 import {SandforgePerformanceWatch} from '/webgl-perf-watch.js';
 import {SandforgeAtmosphere3D} from '/webgl-atmosphere-3d.js';
 import {addVisualPerimeter} from '/webgl-perimeter.js';
@@ -928,6 +929,13 @@ sound.setMusicVolume(savedVolume('musicVolume',.30));
 sound.setMusicEnabled(bootOptions.musicEnabled!==false);
 sound.setEnabled(bootOptions.sound!==false);
 sound.bindGame(game);
+battlefield.effects=effects;
+const strategicEffects=new SandforgeStrategicEffects({
+ scene,game,heightAt,pos,battlefield,sound
+});
+window.addEventListener('pagehide',event=>{
+ if(!event.persisted)strategicEffects.dispose();
+});
 const soundButton=$('sound');
 function updateSoundButton(){
  soundButton.textContent=sound.enabled?'Sound ausschalten':'Sound einschalten';
@@ -1037,6 +1045,7 @@ function animate(now){
  battlefield.updateCommandPulse(dt);
  const beforeEffects=performanceWatch.enabled?performance.now():0;
  effects.update(dt,running,accumulator);
+ strategicEffects.update(running);
  if(performanceWatch.enabled)performanceWatch.effectsCost(performance.now()-beforeEffects);
  if(running&&sound.enabled)sound.update(game,soundView);
  controls.update();

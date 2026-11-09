@@ -21,6 +21,8 @@ import {SandforgeConstructionPresentation} from '/webgl-construction.js';
 import {createBastionCaptureBar,updateBastionCaptureBar} from '/webgl-bastion-capture.js';
 import {snapToPlayableEdge,worldToMinimap} from '/webgl-map-edges.js';
 import {attackBlinkAlpha} from '/src/reborn/attack-alerts.js';
+import {UPGRADES,UPGRADE_KINDS,canResearchUpgrade,SILO_CHARGE_SECONDS,INTERCEPTOR_MAX_AMMO,INTERCEPTOR_REARM_COST} from '/src/reborn/strategic-tech.js';
+import {createStrategicBuilding,isStrategicBuilding} from '/webgl-strategic-buildings.js';
 
 // Runtime adapter: game state, movement, combat, production and AI are owned
 // exclusively by the original Simulation. 3D nodes are presentation only.
@@ -38,6 +40,7 @@ export class SandforgeBattlefield {
   this.announcedBuildings=new Set(game.bases.filter(b=>b.buildRemaining<=0).map(b=>b.id));
   this.models=new Map();this.pending=new Set();this.selected=new Set();
   this.selectedBase=null;this.buildKind=null;this.attackMode=false;
+  this.strategicTargetMode=false;
   this.rallyMode=false;
   this.rallyMarker=new THREE.Mesh(
    new THREE.RingGeometry(19,25,32),
@@ -103,6 +106,7 @@ export class SandforgeBattlefield {
  }
  entityPosition(p){return this.pos(p.x,p.y,this.heightAt(p.x,p.y)+unitRenderAltitude(p.kind,p.flightHeight??1));}
  createFallback(kind,owner,type){
+  if(type==='building'&&isStrategicBuilding(kind))return createStrategicBuilding(kind,owner);
   const group=new THREE.Group(),team=owner===0?'#397f9d':'#9f5541',metal=new THREE.MeshStandardMaterial({color:team,metalness:.55,roughness:.53}),
    dark=new THREE.MeshStandardMaterial({color:'#444743',metalness:.45,roughness:.7});
   // Placeholder structures use the same gentle ambient lift as detailed GLBs.
@@ -193,7 +197,8 @@ export class SandforgeBattlefield {
   // still appear. Falling back to primitive grey cubes would make the actual
   // player's base look markedly worse than the 2D game.
   // Medics always load their authored 3D soldier, even in lite mode.
-  if((this.lite&&type!=='building'&&entity.kind!=='medic')||entry.requested||
+  if((this.lite&&type!=='building'&&entity.kind!=='medic')||
+     type==='building'&&isStrategicBuilding(entity.kind)||entry.requested||
      this.loadingCount+this.modelQueue.length>=this.maxModels)return;
   entry.requested=true;
   const url=this.asset(entity.kind,entity.owner,type);
@@ -481,6 +486,7 @@ export class SandforgeBattlefield {
   group.userData.previewCircle=circle;group.add(circle);
   this.buildPreviewScene.add(group);
   this.buildPreview=group;group.visible=false;
+  if(isStrategicBuilding(kind))return;
   this.getModel(this.asset(kind,0,'building')).then(data=>{
    if(this.buildPreview!==group||this.buildKind!==kind)return;
    const model=cloneSkeleton(data.scene),bounds=new THREE.Box3().setFromObject(model);
@@ -841,7 +847,8 @@ export class SandforgeBattlefield {
   const engineer=game.units.some(u=>this.selected.has(u.id)&&u.owner===0&&u.hp>0&&!u.carrier&&u.kind==='engineer');
   const base=game.bases.find(b=>b.id===this.selectedBase&&b.owner===0&&b.hp>0&&b.buildRemaining<=0);
   const producer=base&&unitKinds.some(kind=>UNITS[kind].producers.includes(base.kind))?base:null;
-  return {engineer,producer,preferred:engineer?'buildings':producer?'units':'territories'};
+  const research=Boolean(base&&base.kind==='research');
+  return {engineer,producer,research,preferred:engineer?'buildings':producer?'units':research?'research':'territories'};
  }
  buildInterface(){
   this.panel=installClassicHud();
@@ -853,6 +860,31 @@ export class SandforgeBattlefield {
    if(button.dataset.passengerId!==undefined){
     this.unloadPassenger(Number(button.dataset.carrierId),Number(button.dataset.passengerId));
     return;
+   }
+   if(button.dataset.upgrade){
+    const upgrade=button.dataset.upgrade;
+    if(this.game.startResearch(0,upgrade))
+      this.message('Forschung begonnen: '+UPGRADES[upgrade].name);
+    else this.message('Forschung nicht möglich: Credits, Voraussetzung oder laufendes Projekt prüfen');
+    this.drawInterface();return;
+   }
+   if(action==='missile-target'){
+    const silo=this.game.bases.find(b=>b.id===this.selectedBase&&b.owner===0&&
+      b.kind==='silo'&&b.hp>0&&b.buildRemaining<=0);
+    if(!silo||silo.siloCharge>0){
+      this.message('Raketensilo noch nicht bereit');return;
+    }
+    this.clearPlacement();this.rallyMode=false;this.attackMode=false;
+    this.strategicTargetMode=!this.strategicTargetMode;
+    this.message(this.strategicTargetMode?'Langstreckenrakete: Linksklick auf ein erkundetes Kartenziel · Esc: Abbruch':
+      'Raketenziel-Modus beendet');
+    this.drawInterface();return;
+   }
+   if(action==='interceptor-rearm'){
+    this.message(this.game.rearmInterceptor(this.selectedBase)?
+      'Raketenabwehr nachgeladen: '+INTERCEPTOR_MAX_AMMO+' Raketen':
+      'Nachladen nicht möglich: maximal bestückt oder '+INTERCEPTOR_REARM_COST+' Credits benötigt');
+    this.drawInterface();return;
    }
    if(kind){
     if(!this.catalogContext().engineer){this.message('Zum Bauen zuerst einen Pionier auswählen');return;}
@@ -898,15 +930,16 @@ export class SandforgeBattlefield {
     this.game.stop([...this.selected],false);
     this.message(count?count+' Einheiten angehalten':'Keine Einheiten gewählt');
    }
-   if(action==='cancel'){this.clearPlacement();this.attackMode=false;this.selected.clear();this.selectedBase=null;this.drawInterface();}
+   if(action==='cancel'){this.clearPlacement();this.attackMode=false;this.strategicTargetMode=false;this.selected.clear();this.selectedBase=null;this.drawInterface();}
    if(action==='select-all'){this.selected=new Set(this.game.units.filter(u=>u.hp>0&&u.owner===0&&!u.carrier).map(u=>u.id));this.selectedBase=null;this.drawInterface();}
   });
   this.panel.addEventListener('sandforge-tabchange',event=>{
-   const available={buildings:this.catalogContext().engineer,units:Boolean(this.catalogContext().producer),territories:true};
+   const available={buildings:this.catalogContext().engineer,units:Boolean(this.catalogContext().producer),territories:true,research:this.catalogContext().research};
    if(!available[event.detail.tab])return;
    this.panel.querySelector('#sf-actions').scrollTop=0;
    const descriptions={units:'Wähle einen Produktionsauftrag. Gebäude schalten neue Einheiten frei.',
     buildings:'Gebäude auswählen und einen freien Bauplatz auf der Karte anklicken.',
+    research:'Forschungstechnologie wählen. Neue Boni gelten auch für bereits vorhandene Truppen.',
     territories:'Kontrollpunkt wählen, um die Kamera zum Sektor zu bewegen.'};
    this.panel.querySelector('#sf-catalog-detail').textContent=descriptions[event.detail.tab]??'';
   });
@@ -949,7 +982,7 @@ export class SandforgeBattlefield {
   const g=this.game,view=this.panel,actions=view.querySelector('#sf-actions');
   const context=this.catalogContext();
   const selectionKey=[...this.selected].sort((a,b)=>a-b).join(',')+'|'+String(this.selectedBase)+'|'+Boolean(context.producer);
-  const available={units:Boolean(context.producer),buildings:context.engineer,territories:true};
+  const available={units:Boolean(context.producer),buildings:context.engineer,territories:true,research:context.research};
   if(this.catalogSelectionKey!==selectionKey||!available[view.dataset.tab]){
    view.dataset.tab=context.preferred;
    this.catalogSelectionKey=selectionKey;
@@ -994,9 +1027,20 @@ export class SandforgeBattlefield {
    return '<button class="territory-row '+cls+'" data-territory="'+t.id+'" aria-label="Sektor '+(t.id+1)+' zentrieren">'+
     '<i></i><strong>SEKTOR '+(t.id+1)+'</strong><small>'+label+capture+'</small></button>';
   }).join('');
+  const upgrades=UPGRADE_KINDS.map(kind=>{
+   const tech=UPGRADES[kind];
+   return '<button type="button" class="sf-research-card" data-upgrade="'+kind+
+    '" title="'+plain(tech.description)+'" aria-label="'+plain(tech.name)+
+    ' – '+tech.cost+' Credits – '+tech.seconds+' Sekunden">'+
+    '<span class="sf-tech-symbol" aria-hidden="true">⚙</span>'+
+    '<span class="sf-tech-info"><strong>'+plain(tech.name)+'</strong>'+
+    '<small>'+tech.cost+' ◆ · '+tech.seconds+' s</small></span>'+
+    '<span class="sf-tech-progress" aria-hidden="true"></span></button>';
+  }).join('');
   const markup='<div class="sf-group" data-sf-group="units">'+roster+'</div>'+
    '<div class="sf-group" data-sf-group="buildings"><div class="catalog-grid">'+
    cards(buildingKinds,'building')+'</div></div>'+
+   '<div class="sf-group" data-sf-group="research"><div class="sf-research-grid">'+upgrades+'</div></div>'+
    '<div class="sf-group" data-sf-group="territories"><h2>KONTROLLPUNKTE</h2>'+tiles+'</div></div>';
   if(this.previousActionsMarkup!==markup){
    const scroll=actions.scrollTop;
@@ -1007,6 +1051,23 @@ export class SandforgeBattlefield {
   // but only the selected producer's section can be viewed or activated.
   for(const section of actions.querySelectorAll('[data-sf-producer]'))
    section.hidden=!context.producer||section.dataset.sfProducer!==context.producer.kind;
+  const techState=g.research[0];
+  for(const button of actions.querySelectorAll('[data-upgrade]')){
+   const kind=button.dataset.upgrade,tech=UPGRADES[kind];
+   const researched=techState.completed.includes(kind);
+   const inProgress=techState.active===kind;
+   const mayStart=canResearchUpgrade(techState,kind)&&g.credits[0]>=tech.cost;
+   button.disabled=researched||inProgress||!mayStart;
+   button.classList.toggle('sf-tech-done',researched);
+   button.classList.toggle('sf-tech-active',inProgress);
+   button.querySelector('.sf-tech-progress').textContent=researched?'✓':inProgress?
+    Math.ceil(techState.remaining)+'s':tech.requires&&!techState.completed.includes(tech.requires)?
+    'VORAUSSETZUNG':!mayStart?'GESPERRT':'START';
+   button.title=tech.description+(researched?' · Erforschung abgeschlossen':
+    inProgress?' · Noch '+Math.ceil(techState.remaining)+' Sekunden':
+    tech.requires&&!techState.completed.includes(tech.requires)?
+    ' · Benötigt '+UPGRADES[tech.requires].name:'');
+  }
   const generatorLimitReached=g.bases.filter(b=>b.owner===0&&b.kind==='generator'&&b.hp>0).length>=MAX_GENERATORS_PER_FACTION;
   const constructed=new Map(g.bases.filter(b=>b.owner===0&&b.hp>0).map(b=>[b.kind,b]));
   // The simulation already rejects duplicate HQ, barracks, factory and
@@ -1016,14 +1077,15 @@ export class SandforgeBattlefield {
    const kind=button.dataset.unit??button.dataset.build;
    const spec=button.dataset.unit?UNITS[kind]:BUILDINGS[kind];
    const correctProducer=context.producer&&UNITS[kind]?.producers.includes(context.producer.kind);
-   const ownedUnique=Boolean(button.dataset.build&&['headquarters','barracks','factory','airfield'].includes(kind)&&constructed.has(kind));
+   const ownedUnique=Boolean(button.dataset.build&&['headquarters','barracks','factory','airfield','research','silo'].includes(kind)&&constructed.has(kind));
    const ownedSite=constructed.get(kind);
+   const interceptorLimit=kind==='interceptor'&&g.bases.filter(b=>b.owner===0&&b.kind==='interceptor'&&b.hp>0).length>=2;
    const ownedReason=ownedUnique?(ownedSite.buildRemaining>0?'Bereits im Bau':'Bereits gebaut'):'';
    const unavailable=button.dataset.unit
     ?!correctProducer||g.needsHeadquarters(0)||context.producer.queue.length>=8||
       g.credits[0]<spec.cost||g.count(0)+g.queued(0)>=RULES.capacity
     :!context.engineer||g.credits[0]<spec.cost||!g.hasHeadquarters(0)&&kind!=='headquarters'||
-      kind==='generator'&&generatorLimitReached||ownedUnique;
+      kind==='generator'&&generatorLimitReached||ownedUnique||interceptorLimit;
    const requirement=button.dataset.unit
     ?(!context.producer?'Produktionsgebäude auswählen':
        !correctProducer?'Dieses Gebäude produziert diese Einheit nicht':
@@ -1032,6 +1094,7 @@ export class SandforgeBattlefield {
        g.credits[0]<spec.cost?'Zu wenig Credits':
        g.count(0)+g.queued(0)>=RULES.capacity?'Einheitenlimit erreicht':'')
     :(ownedReason?ownedReason:kind==='generator'&&generatorLimitReached?'Maximal '+MAX_GENERATORS_PER_FACTION+' Energiekerne pro Fraktion':
+       interceptorLimit?'Maximal zwei Raketenabwehr-Anlagen pro Fraktion':
        !context.engineer?'Pionier auswählen':
        !g.hasHeadquarters(0)&&kind!=='headquarters'?'Hauptquartier zuerst fertigstellen':
        g.credits[0]<spec.cost?'Zu wenig Credits':
@@ -1146,7 +1209,7 @@ export class SandforgeBattlefield {
   const spec=item?(item.queue?BUILDINGS[kind]:UNITS[kind]):null;
   const heading=chosen.length>1?chosen.length+' Einheiten ausgewählt':spec?.name??'Keine Auswahl';
   const hp=item?Math.max(0,Math.ceil(item.hp)):0;
-  const maxHp=spec?.hp??1;
+  const maxHp=item&&'orders' in item?g.maxUnitHp(item):spec?.hp??1;
   const meta=chosen.length?'BLAUE LEGION / TRUPP':'BLAUE LEGION / STÜTZPUNKT';
   const description=base?.rally
    ?'Sammelpunkt aktiv · Neue Einheiten marschieren automatisch zum markierten Ziel.'
@@ -1164,10 +1227,23 @@ export class SandforgeBattlefield {
      ).join('')+'</div></div>'
    :'';
   view.querySelector('#sf-selection-panel')?.classList.toggle('sf-transport-selected',Boolean(manifest));
+  const strategicStatus=base?.kind==='silo'
+    ?'<div class="sf-strategic-meter">🚀 '+(base.buildRemaining>0?'Silo im Bau':
+      (base.siloCharge??SILO_CHARGE_SECONDS)>0?
+      'Ladezeit '+Math.floor((base.siloCharge??SILO_CHARGE_SECONDS)/60)+':'+
+       String(Math.ceil((base.siloCharge??SILO_CHARGE_SECONDS)%60)).padStart(2,'0'):
+      'RAKETE BEREIT')+'</div>'
+    :base?.kind==='interceptor'
+     ?'<div class="sf-strategic-meter">🛡 Abwehrmunition: '+
+      (base.interceptorAmmo??INTERCEPTOR_MAX_AMMO)+' / '+INTERCEPTOR_MAX_AMMO+'</div>'
+    :base?.kind==='research'
+     ?'<div class="sf-strategic-meter">⚙ '+
+      (techState.active?UPGRADES[techState.active].name+' · '+Math.ceil(techState.remaining)+' s':
+       techState.completed.length+' / '+UPGRADE_KINDS.length+' Technologien')+'</div>':'';
   const selectedMarkup='<small>'+meta+'</small><strong>'+plain(heading)+'</strong>'+
    (item?'<div class="health-track"><i style="width:'+Math.min(100,hp/maxHp*100)+'%"></i></div>'+
    '<div class="sf-health">'+hp+' / '+maxHp+' LP</div>':'')+
-   '<p>'+plain(description)+'</p>'+passengerMarkup;
+   '<p>'+plain(description)+'</p>'+strategicStatus+passengerMarkup;
   if(this.previousSelectionMarkup!==selectedMarkup){
    el.innerHTML=selectedMarkup;this.previousSelectionMarkup=selectedMarkup;
   }
@@ -1204,6 +1280,19 @@ export class SandforgeBattlefield {
      portrait.src='/src/assets/reborn/infantry-grounded-v3.png';
     }else portrait.src=buildingIconUrl(item?.kind??'headquarters');
    }
+  }
+  const launchButton=view.querySelector('#sf-strategic-fire');
+  if(launchButton){
+   launchButton.hidden=!base||base.owner!==0||base.kind!=='silo'||base.buildRemaining>0;
+   launchButton.disabled=!base||base.kind!=='silo'||(base.siloCharge??SILO_CHARGE_SECONDS)>0;
+   launchButton.setAttribute('aria-pressed',String(this.strategicTargetMode));
+  }
+  const rearmButton=view.querySelector('#sf-interceptor-rearm');
+  if(rearmButton){
+   rearmButton.hidden=!base||base.owner!==0||base.kind!=='interceptor'||base.buildRemaining>0;
+   rearmButton.disabled=!base||base.kind!=='interceptor'||
+    (base.interceptorAmmo??INTERCEPTOR_MAX_AMMO)>=INTERCEPTOR_MAX_AMMO||
+    g.credits[0]<INTERCEPTOR_REARM_COST;
   }
   const unloadButton=view.querySelector('[data-action="unload"]');
   if(unloadButton)unloadButton.hidden=!selectedLoadedTransports(g.units,this.selected).length;
@@ -1581,8 +1670,14 @@ export class SandforgeBattlefield {
   const moved=Math.hypot(event.clientX-start.x,event.clientY-start.y);
   this.clickStart=null;this.selectionBox.style.display='none';
   if(moved>7){
-   if(event.button===0)this.selectBoxUnits(start.x,start.y,event.clientX,event.clientY,event.shiftKey);
+   if(event.button===0&&!this.strategicTargetMode)
+    this.selectBoxUnits(start.x,start.y,event.clientX,event.clientY,event.shiftKey);
    return;
+  }
+  if(event.button===2&&this.strategicTargetMode){
+   this.strategicTargetMode=false;
+   this.message('Raketenziel-Modus beendet');
+   this.drawInterface();return;
   }
   if(event.button===2&&this.buildKind){
    this.clearPlacement();this.message('Bauplatzwahl abgebrochen');this.drawInterface();return;
@@ -1612,8 +1707,18 @@ export class SandforgeBattlefield {
   const p=clickedEnemy?{x:clickedEnemy.x,y:clickedEnemy.y}
    :clickedBastion?{...clickedBastion.point}:groundPoint;
   if(!p){
+   if(this.strategicTargetMode)this.message('Raketen-Ziel außerhalb der Karte');
    if(event.button===2&&this.selected.size)this.message('Marschziel außerhalb der Karte');
    return;
+  }
+  if(this.strategicTargetMode&&event.button===0){
+   const launched=this.game.launchStrategicMissile(0,p);
+   if(launched){
+    this.strategicTargetMode=false;
+    this.showCommandPulse(p,true);
+    this.message('RAKETE GESTARTET · Einschlag in 25 Sekunden');
+   }else this.message('Ziel ungültig: Silo bereit und Ziel erkundet?');
+   this.drawInterface();return;
   }
   // Immediate acknowledgment, including an unselected RMB click; no pulse
   // for clicks outside the terrain or for a right-button drag.
@@ -1751,7 +1856,7 @@ export class SandforgeBattlefield {
   // consumes Escape first when that dialog is open.
   window.addEventListener('keydown',event=>{
    if(event.code!=='Escape'||['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;
-   if(!this.rallyMode&&!this.buildKind&&!this.attackMode)return;
+   if(!this.rallyMode&&!this.buildKind&&!this.attackMode&&!this.strategicTargetMode)return;
    event.preventDefault();
    this.clearPlacement();
    this.attackMode=false;

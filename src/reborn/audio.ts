@@ -153,6 +153,33 @@ export class Soundscape {
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
   }
+  /** Strategic warning uses only a LOCAL German voice and existing radio tone.
+   * The alert is a key countermeasure opportunity, never soundtrack noise.
+   */
+  announceStrategicLaunch():void{
+    const a=this.context;
+    if(!this.enabled||this.volume<=0||!a||a.state!=='running'||
+       (typeof document!=='undefined'&&document.hidden))return;
+    if(a.currentTime-this.lastStrategicWarning<12)return;
+    this.lastStrategicWarning=a.currentTime;
+    this.tone(940,.17,.11);
+    this.tone(620,.20,.095,.19);
+    this.tone(790,.26,.10,.4);
+    if(!this.radio.enabled||this.radio.volume<=0||
+       typeof window==='undefined'||!('speechSynthesis' in window)||
+       typeof SpeechSynthesisUtterance==='undefined')return;
+    const voice=window.speechSynthesis.getVoices().find(v=>
+      v.localService&&v.lang.toLowerCase().startsWith('de'));
+    if(!voice)return;
+    this.radio.stop();
+    const u=new SpeechSynthesisUtterance('Feindlicher Raketenstart erkannt!');
+    u.voice=voice;u.lang='de-DE';u.rate=1.02;u.pitch=.88;
+    u.volume=Math.min(.76,this.volume*this.radio.volume*.97);
+    u.onend=()=>this.music?.setDucking(false);
+    u.onerror=()=>this.music?.setDucking(false);
+    this.music?.setDucking(true);
+    window.speechSynthesis.cancel();window.speechSynthesis.speak(u);
+  }
   /** Audible player-only loss report, at most once per 2.8 seconds, even
    * when a single blast kills many units. Uses the same LOCAL German system
    * voice as the attack warning; never contacts a cloud speech service.
@@ -191,6 +218,7 @@ export class Soundscape {
     if(count>0&&!g.paused)this.announceUnitLost();
     return count;
   }
+  private lastStrategicWarning=-Infinity;
   private lastReadySignal=-Infinity;
   /** Player-only construction/production cue, with no external TTS service.
    * Every completion is logged in the HUD; busy production lines share a short

@@ -57,3 +57,16 @@ test('all map-ground stone and rubble types reuse the atlas without new draw cal
  assert.match(build,/cpSync\('scripts\/webgl-rock-materials\.js','dist\/webgl-rock-materials\.js'\)/);
  assert.ok(existsSync('dist/webgl-rock-materials.js'));
 });
+
+
+test('oasis stone construction uses its scoped lite parameter in both quality modes',()=>{
+ const source=readFileSync('scripts/webgl-oases.js','utf8');
+ const start=source.indexOf(' build(lite){');
+ const end=source.indexOf('\n update(time){',start);
+ assert.ok(start>=0&&end>start,'expected oasis build(lite) method');
+ const body=source.slice(start,end);
+ assert.match(body,/weatheredStoneGeometry\(lite\)/);
+ assert.match(body,/stoneMaterial\('#b8a184',\{lowQuality:lite,normalScale:\.56\}\)/);
+ assert.doesNotMatch(body,/weatheredStoneGeometry\(lowQuality\)/);
+ assert.doesNotMatch(body,/\{lowQuality,normalScale:/);
+});

@@ -137,8 +137,11 @@ export class DesertOases {
   this.batch('oasis-dry-grasses',tuftGeometry(),this.own(new THREE.MeshStandardMaterial({color:'#9d925e',roughness:1,side:THREE.DoubleSide})),grasses);
   this.batch('oasis-shore-reeds',tuftGeometry(true),foliage,reeds);
   const shrub=tuftGeometry();shrub.scale(1.7,.65,1.7);this.batch('oasis-sparse-shrubs',shrub,foliage,shrubs);
-  const rock=weatheredStoneGeometry(lowQuality);rock.scale(1.4,.65,1);
-  this.batch('oasis-weathered-stones',rock,this.own(stoneMaterial('#b8a184',{lowQuality,normalScale:.56})),stones);
+  // build(lite) receives the quality setting. There is no lowQuality
+  // binding in this method; using it caused a ReferenceError on 3D startup
+  // when an oasis created its stone batch.
+  const rock=weatheredStoneGeometry(lite);rock.scale(1.4,.65,1);
+  this.batch('oasis-weathered-stones',rock,this.own(stoneMaterial('#b8a184',{lowQuality:lite,normalScale:.56})),stones);
  }
  update(time){
   if(this.disposed)return;
