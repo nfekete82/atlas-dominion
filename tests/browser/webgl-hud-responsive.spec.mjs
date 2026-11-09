@@ -6,7 +6,7 @@ import {installClassicHud} from '../../scripts/webgl-classic-hud.js';
  * Layout contract: use the actual production HUD installer and shipped CSS,
  * but no WebGL renderer. CI's software GPU cannot distort these measurements.
  */
-test('compact independent production panel aligns with the catalog on MacBook and narrow windows',async({page})=>{
+test('one full-width tactical dock contains minimap, catalog, production and commands',async({page})=>{
  test.setTimeout(30000);
  const dummy=['rotate-left','rotate-right','home','sound','simulation',
   'clock','fps','bastions','seed','load','status','error'];
@@ -39,6 +39,7 @@ test('compact independent production panel aligns with the catalog on MacBook an
    catalog:rect('#sidebar .catalog'),production:rect('#sf-production'),
    command:rect('#sf-selection-panel'),queueScroller:rect('#sf-queue-slots'),
    parentId:prod.parentElement.id,
+   commandParentId:document.querySelector('#sf-selection-panel').parentElement.id,
    queueOverflowY:getComputedStyle(scroller).overflowY,
    queueOverflowX:getComputedStyle(scroller).overflowX,
    queueAxis:getComputedStyle(scroller).flexDirection,
@@ -49,11 +50,15 @@ test('compact independent production panel aligns with the catalog on MacBook an
   await page.setViewportSize({width,height:900});
   const v=await measure();
   expect(v.parentId).toBe('sidebar');
-  expect(v.dock.height).toBeGreaterThanOrEqual(225);
-  expect(v.dock.height).toBeLessThanOrEqual(242); // compact Mac HUD: 232px target
+  expect(v.dock.height).toBeGreaterThanOrEqual(260);
+  expect(v.dock.height).toBeLessThanOrEqual(282);
+  expect(v.dock.x).toBeLessThanOrEqual(10);
+  expect(v.dock.right).toBeGreaterThanOrEqual(width-10);
+  expect(v.commandParentId).toBe('sidebar');
   expect(v.radar.right).toBeLessThanOrEqual(v.catalog.x+2);
   expect(v.catalog.right).toBeLessThanOrEqual(v.production.x+2);
-  expect(v.production.right).toBeLessThan(v.command.x);
+  expect(v.production.right).toBeLessThanOrEqual(v.command.x+2);
+  expect(v.command.right).toBeLessThanOrEqual(v.dock.right+2);
   expect(v.production.bottom).toBeLessThanOrEqual(v.dock.bottom+1);
   expect(v.queueAxis).toBe('column');
   expect(v.queueOverflowY).toBe('auto');
@@ -64,9 +69,11 @@ test('compact independent production panel aligns with the catalog on MacBook an
  await page.setViewportSize({width:820,height:720});
  const narrow=await measure();
  expect(narrow.parentId).toBe('sidebar');
- expect(narrow.production.y).toBeGreaterThanOrEqual(narrow.catalog.bottom-2);
+ expect(narrow.commandParentId).toBe('sidebar');
+ expect(narrow.production.y).toBeGreaterThanOrEqual(narrow.catalog.y-2);
  expect(narrow.production.bottom).toBeLessThanOrEqual(narrow.dock.bottom+1);
- expect(narrow.production.right).toBeLessThan(narrow.command.x);
- expect(narrow.queueAxis).toBe('row');
- expect(narrow.queueOverflowX).toBe('auto');
+ expect(narrow.production.right).toBeLessThanOrEqual(narrow.command.x+2);
+ expect(narrow.command.right).toBeLessThanOrEqual(narrow.dock.right+2);
+ expect(narrow.queueAxis).toBe('column');
+ expect(narrow.queueOverflowY).toBe('auto');
 });
