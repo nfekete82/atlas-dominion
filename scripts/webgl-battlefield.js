@@ -1665,9 +1665,14 @@ export class SandforgeBattlefield {
   const start=this.clickStart;
   const moved=Math.hypot(event.clientX-start.x,event.clientY-start.y);
   this.clickStart=null;this.selectionBox.style.display='none';
-  if(moved>7){
+  if(moved>7&&!this.strategicTargetMode){
    if(event.button===0)this.selectBoxUnits(start.x,start.y,event.clientX,event.clientY,event.shiftKey);
    return;
+  }
+  if(event.button===2&&this.strategicTargetMode){
+   this.strategicTargetMode=false;
+   this.message('Raketenziel-Modus beendet');
+   this.drawInterface();return;
   }
   if(event.button===2&&this.buildKind){
    this.clearPlacement();this.message('Bauplatzwahl abgebrochen');this.drawInterface();return;
@@ -1697,8 +1702,18 @@ export class SandforgeBattlefield {
   const p=clickedEnemy?{x:clickedEnemy.x,y:clickedEnemy.y}
    :clickedBastion?{...clickedBastion.point}:groundPoint;
   if(!p){
+   if(this.strategicTargetMode)this.message('Raketen-Ziel außerhalb der Karte');
    if(event.button===2&&this.selected.size)this.message('Marschziel außerhalb der Karte');
    return;
+  }
+  if(this.strategicTargetMode&&event.button===0){
+   const launched=this.game.launchStrategicMissile(0,p);
+   if(launched){
+    this.strategicTargetMode=false;
+    this.showCommandPulse(p,true);
+    this.message('RAKETE GESTARTET · Einschlag in 25 Sekunden');
+   }else this.message('Ziel ungültig: Silo bereit und Ziel erkundet?');
+   this.drawInterface();return;
   }
   // Immediate acknowledgment, including an unselected RMB click; no pulse
   // for clicks outside the terrain or for a right-button drag.
@@ -1836,7 +1851,7 @@ export class SandforgeBattlefield {
   // consumes Escape first when that dialog is open.
   window.addEventListener('keydown',event=>{
    if(event.code!=='Escape'||['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;
-   if(!this.rallyMode&&!this.buildKind&&!this.attackMode)return;
+   if(!this.rallyMode&&!this.buildKind&&!this.attackMode&&!this.strategicTargetMode)return;
    event.preventDefault();
    this.clearPlacement();
    this.attackMode=false;
