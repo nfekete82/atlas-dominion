@@ -39,7 +39,7 @@ test('stalled and turning tanks stay silent even if movement flag and driveSpeed
 
 test('only measured displacement of nearby visible vehicles generates motor audio',()=>{
  const tank=physical('tank',1,27);
- assert.equal(measuredEngineSpeed(tank),27);
+ assert.ok(Math.abs(measuredEngineSpeed(tank)-27)<1e-9,'physical speed should be 27 within floating-point tolerance');
  const nearby=mix([tank]);
  assert.ok(nearby.tank.level>0&&nearby.tank.level<1);
  assert.equal(mix([tank],{x:1100,y:1100}).tank.level,0);
@@ -80,7 +80,8 @@ test('engine layers never start from opening a production gate or clicking infan
  const vehicle=readFileSync('src/reborn/vehicle-soundscape.ts','utf8');
  const production=audio.split("  productionGate(kind:")[1]?.split("  select():void")[0];
  assert.ok(production);
- assert.doesNotMatch(production,/sawtooth|94|diesel ignition|createOscillator/);
+ assert.doesNotMatch(production,/\bcreateOscillator\s*\(|\bsawtooth\b|frequency\.setValueAtTime/,
+  'opening the production gate must not synthesize an engine oscillator');
  assert.match(production,/short mechanical latch/);
  assert.match(audio,/ambientSounding&&this.engineSoundsEnabled\?vehicleSoundMix/);
  assert.match(audio,/measuredEngineSpeed\(u\)>=2/);
