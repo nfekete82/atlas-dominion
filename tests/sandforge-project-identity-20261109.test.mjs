@@ -36,6 +36,11 @@ test('browser config has canonical SANDFORGE settings with legacy ATLAS aliases'
   assert.ok(config.includes("'SANDFORGE_"+key+"'"));
   assert.ok(config.includes("'ATLAS_"+key+"'"));
  }
+ const classic=read('tests/browser/reborn.config.mjs');
+ for(const key of ['BASE_URL','BROWSER_CHANNEL']){
+  assert.ok(classic.includes("'SANDFORGE_"+key+"'"));
+  assert.ok(classic.includes("'ATLAS_"+key+"'"));
+ }
  assert.match(read('scripts/test-webgl-integration.mjs'),/SANDFORGE_BASE_URL:base/);
 });
 
