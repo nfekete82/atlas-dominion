@@ -1,5 +1,14 @@
+<div align="center">
+
+<img src="src/assets/reborn/sandforge-logo-transparent.webp" alt="Sandforge: Bastion Wars" width="520">
+
 # SANDFORGE: BASTION WARS
 
+**Taktisches 3D-Wüsten-RTS · Basenbau · KI · Bastionen · Forschung · Langstreckenraketen**
+
+</div>
+
+> **Entwicklungsversion:** Dieser Branch enthält die aktuelle WebGL-Codebasis, ist aber noch nicht in `main` integriert oder produktiv freigegeben. Im GitHub-Default-Branch `main` liegt derzeit ein älterer Canvas-Snapshot. Tests, Gameplay- und Audio-Abnahme vor Release erforderlich.
 
 ## WebGL 3D RC2 — Standard-Spieloberfläche (Entwicklung)
 
@@ -33,14 +42,14 @@ weiterhin verfügbar; **kein ungeprüfter 3D-Upload auf Uberspace**.
 
 [RC2-Abnahme und Checkliste](docs/releases/webgl-rc2-20261106.md) ·
 [WebGL-Migrationshistorie](docs/webgl-3d-release-plan.md) ·
-[CI-Stresstests](https://github.com/nfekete82/atlas-dominion/pull/236).
+[CI-Stresstests](https://github.com/nfekete82/sandforge/pull/236).
 
 
 Lokales Wüsten-RTS mit zehn Einheitentypen, eroberbaren Bastionen und einer gegnerischen Armee aus Infanterie, Fahrzeugen und Luftunterstützung. Neue Kampagnen haben 16 Bastionen und je zwei blaue und rote Startsektoren. Alte Spielstände mit 30 Bastionen und ihren ursprünglichen Startgebieten bleiben ladbar.
 
 Der lokale Entwicklungsstand trägt weiterhin **1.8.0**; als nächste Version ist **1.9.0** vorgeschlagen. [Release-Entwurf](docs/releases/v1.9.0-de.md), [Prüfbericht](docs/qa/release-2026-10-24.md) und [sichere Veröffentlichungsschritte](docs/releases/RELEASE.md). Die deutschen Stimmen A, B und C wurden anhand der Hörproben vom Eigentümer freigegeben und für alle 47 Meldungen aktiviert.
 
-**Projektidentität:** Das Spiel heißt **Sandforge: Bastion Wars**, npm-Paket und Docker-Service heißen `sandforge`. Das Repository wird separat über GitHub von `nfekete82/atlas-dominion` auf `nfekete82/sandforge` umbenannt; bis zu diesem administrativen Schritt bleibt die alte URL gültig. Die Anleitung [Sandforge-Projektumbenennung](docs/SANDFORGE-RENAME.md) enthält sichere Umstellung, Befehle und Kompatibilitätsregeln. Spielstandskennungen bleiben unverändert.
+**Projektidentität:** Das Spiel heißt **Sandforge: Bastion Wars**, npm-Paket und Docker-Service heißen `sandforge`. Das GitHub-Repository wurde inzwischen zu `nfekete82/sandforge` umbenannt; alle bestehenden Pull Requests und die Projekt-Historie bleiben erhalten. Die Anleitung [Sandforge-Projektumbenennung](docs/SANDFORGE-RENAME.md) enthält sichere Umstellung, Befehle und Kompatibilitätsregeln. Spielstandskennungen bleiben unverändert.
 
 ## Starten
 
