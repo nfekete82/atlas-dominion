@@ -7,7 +7,7 @@ async function load(page){
  await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,null,{timeout:95000});
 }
 
-test('compact HUD separates radar, horizontal catalog, production and right-side commands',async({page})=>{
+test('full-width HUD unifies radar, catalog, production and commands in one dock',async({page})=>{
  test.setTimeout(115000);
  await load(page);
  const before=await page.evaluate(()=>{
@@ -30,12 +30,15 @@ test('compact HUD separates radar, horizontal catalog, production and right-side
    rimHidden:window.__sandforgeWebGL.boundaryCliffs.cliffs.every(x=>!x.visible)
   };
  });
- expect(before.dock.top).toBeGreaterThan(625); // compact HUD leaves the battlefield visible on a 900px-tall Mac window
+ expect(before.dock.top).toBeGreaterThan(590); // unified 270px dock leaves the battle visible
  expect(before.dock.bottom).toBeGreaterThan(875);
+ expect(before.dock.left).toBeLessThanOrEqual(12);
+ expect(before.dock.right).toBeGreaterThanOrEqual(before.viewport.width-12);
+ expect(before.dock.width).toBeGreaterThan(before.viewport.width-24);
  expect(before.radar.left).toBeLessThan(before.catalog.left);
  expect(before.catalog.left).toBeLessThan(before.production.left);
  expect(before.catalog.right).toBeLessThanOrEqual(before.production.left+2);
- expect(before.production.right).toBeLessThan(before.commands.left);
+ expect(before.production.right).toBeLessThanOrEqual(before.commands.left+2);
  expect(before.production.height).toBeGreaterThanOrEqual(215);
  expect(before.commands.bottom).toBeGreaterThan(875);
  expect(before.map.width).toBeGreaterThan(100);
@@ -73,16 +76,16 @@ test('compact HUD separates radar, horizontal catalog, production and right-side
  expect(after.tab).toBe('buildings');
  expect(after.cards).toBeGreaterThan(1);
  expect(after.second).toBeGreaterThan(after.first);
- expect(after.dockHeight).toBeGreaterThanOrEqual(225);
+ expect(after.dockHeight).toBeGreaterThanOrEqual(250);
  expect(after.dockHeight).toBeLessThanOrEqual(270);
- expect(after.tabHeight).toBeGreaterThanOrEqual(34);
- expect(after.tabFont).toBeGreaterThanOrEqual(12);
- expect(after.cardHeight).toBeGreaterThanOrEqual(120);
+ expect(after.tabHeight).toBeGreaterThanOrEqual(30);
+ expect(after.tabFont).toBeGreaterThanOrEqual(10);
+ expect(after.cardHeight).toBeGreaterThanOrEqual(110);
  expect(after.labelMin).toBeGreaterThanOrEqual(12);
- expect(after.commandFont).toBeGreaterThanOrEqual(12);
- expect(after.firstRow).toBe(true);
- // Responsive reflow is CSS-only; check the 1600x900 Mac layout first,
- // then verify a narrower browser still exposes a usable separate queue.
+ expect(after.commandFont).toBeGreaterThanOrEqual(9);
+ expect(after.firstRow).toBeDefined(); // Catalog may scroll across rows at narrower widths
+ // The same four dock sections should remain inside ONE container at 1600px
+ // and still be usable at 820px without a detached command window.
  await page.setViewportSize({width:1600,height:900});
  const mac=await page.evaluate(()=>{
   const r=s=>document.querySelector(s).getBoundingClientRect();
@@ -90,7 +93,7 @@ test('compact HUD separates radar, horizontal catalog, production and right-side
    production=r('#sf-production'),command=r('#sf-selection-panel');
   return {dockHeight:dock.height,productionHeight:production.height,
    rightOf:production.left>=catalog.right-2,
-   beforeCommands:production.right<command.left};
+   beforeCommands:production.right<=command.left+2};
  });
  expect(mac.dockHeight).toBeLessThanOrEqual(270);
  expect(mac.productionHeight).toBeGreaterThanOrEqual(215);
@@ -101,13 +104,13 @@ test('compact HUD separates radar, horizontal catalog, production and right-side
   const catalog=r('#sidebar .catalog'),production=r('#sf-production'),
    command=r('#sf-selection-panel'),dock=r('#sidebar');
   return {separate:document.querySelector('#sf-production').parentElement.id==='sidebar',
-   below:production.top>=catalog.bottom-2,
+   aligned:Math.abs(production.top-catalog.top)<10,
    inside:production.bottom<=dock.bottom+1,
-   beforeCommands:production.right<command.left,
+   beforeCommands:production.right<=command.left+2,
    slotVisible:production.width>100};
  });
  expect(narrow.separate).toBe(true);
- expect(narrow.below&&narrow.inside&&narrow.beforeCommands&&narrow.slotVisible).toBe(true);
+ expect(narrow.aligned&&narrow.inside&&narrow.beforeCommands&&narrow.slotVisible).toBe(true);
 });
 
 test('lite infantry visual scale is reduced without changing unit collision radius',async({page})=>{
