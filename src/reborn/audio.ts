@@ -45,7 +45,7 @@ export class Soundscape {
   private music:TacticalMusic|null=null;
   private radioDucking=false;
   analyser:AnalyserNode|null=null;
-  enabled=true; volume=.6; ambience=true;
+  enabled=true; volume=.6; ambience=true; engineSoundsEnabled=false;
   readonly radio=new UnitRadio(()=>this.enabled&&this.volume>0&&!document.hidden,active=>{
     this.radioDucking=Boolean(active);
     if(this.context&&this.effects)
@@ -113,6 +113,17 @@ export class Soundscape {
     this.radio.flush();
   }
   setEnabled(enabled:boolean):void{this.enabled=enabled;if(!enabled){this.silence();this.radio.stop();this.music?.pause();}this.applyVolume();}
+  /** Vehicle motors have their own opt-in: infantry clicks never unlock a diesel bed. */
+  setEngineSoundsEnabled(value:boolean):void{
+    this.engineSoundsEnabled=Boolean(value);
+    if(!this.engineSoundsEnabled&&this.context){
+      for(const voice of this.engineVoices.values()){
+        voice.gain.gain.cancelScheduledValues(this.context.currentTime);
+        voice.gain.gain.setTargetAtTime(0,this.context.currentTime,.025);
+        voice.previousMotion=0;
+      }
+    }
+  }
   setEffectsVolume(value:number):void{
     this.effectsVolume=clamp(value,0,1);
     if(this.context&&this.effects)
@@ -265,7 +276,13 @@ export class Soundscape {
     oscillator.connect(gain);gain.connect(this.effects??this.master);this.track(oscillator,[oscillator,gain],[],false);oscillator.start(at);oscillator.stop(at+duration+.01);
   }
   command(attack=false):void{this.played.commands++;this.tone(attack?570:780,.07,.09);this.tone(attack?380:1040,.085,.055,.055);}
-  productionGate():void{
+  productionGate(kind:'barracks'|'factory'='factory'):void{
+    if(kind==='barracks'){
+      // Short metal-door cue for foot soldiers: absolutely no diesel ignition.
+      this.tone(500,.075,.025);
+      this.tone(660,.09,.020,.08);
+      return;
+    }
     const a=this.context;if(!a||!this.master||!this.enabled||this.volume<=0||a.state!=='running'||!this.room())return;
     // Low filtered gear whine, followed by a brief diesel ignition. Both
     // use the existing effects bus, voice limit and gameplay pause cleanup.
@@ -316,7 +333,7 @@ export class Soundscape {
       const ambientSounding=sounding&&this.ambience;
       this.wind?.gain.setTargetAtTime(ambientSounding?1+g.weather.intensity*1.25:0,this.context.currentTime,.2);
       const audibleRadius=Math.max(180,Math.min(560,Math.max(r.width,r.height)/r.camera.zoom*.55));
-      const mix=ambientSounding?vehicleSoundMix(g,r.camera,p=>g.canSee(0,p),audibleRadius):null;
+      const mix=ambientSounding&&this.engineSoundsEnabled?vehicleSoundMix(g,r.camera,p=>g.canSee(0,p),audibleRadius):null;
       for(const kind of ENGINE_KINDS){
         const voice=this.engineVoices.get(kind);if(!voice)continue;
         const profile=ENGINE_PROFILES[kind],state=mix?.[kind];
