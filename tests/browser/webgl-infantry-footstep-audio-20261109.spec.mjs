@@ -15,17 +15,18 @@ test('a walking infantry soldier has footsteps but never activates any motor voi
   const soldier=g.units.find(u=>u.kind==='infantry'&&u.owner===0&&u.hp>0);
   if(!soldier)throw Error('Starting infantry missing');
   sound.bindGame(g);
-  // Real one-tick on-foot displacement, not a driveSpeed guess.
-  soldier.previousX=soldier.x;
-  soldier.previousY=soldier.y;
-  soldier.x+=5;soldier.moving=true;
-  soldier.walkDistance+=64;
-  g.time+=.1;
   const view={
    width:1440,height:900,
    camera:{x:soldier.x,y:soldier.y,zoom:1},
    screen:()=>({x:720,y:400})
   };
+  // Prime the footsteps ledger before motion, then simulate one step.
+  sound.update(g,view);
+  soldier.previousX=soldier.x;
+  soldier.previousY=soldier.y;
+  soldier.x+=5;soldier.moving=true;
+  soldier.walkDistance+=64;
+  g.time+=.1;
   sound.update(g,view);
   const engineVoices=[...sound.engineVoices.entries()].map(([kind,voice])=>({
    kind,value:voice.gain.gain.value,previousMotion:voice.previousMotion
