@@ -1125,30 +1125,36 @@ export class SandforgeBattlefield {
   const queues=queuedBases.reduce((sum,b)=>sum+b.queue.length,0);
   const constructionSites=g.bases.filter(b=>b.owner===0&&b.hp>0&&b.buildRemaining>0);
   const primary=queuedBases[0],firstSite=constructionSites[0];
+  const activeResearch=techState.active?UPGRADES[techState.active]:null;
+  const researchPct=activeResearch?Math.max(0,Math.min(100,
+   100*(1-techState.remaining/Math.max(.001,activeResearch.seconds)))):0;
   const sitePct=b=>Math.max(0,Math.min(100,
    100*(1-b.buildRemaining/Math.max(.001,BUILDINGS[b.kind]?.buildTime??1))));
   const unitPct=b=>Math.max(0,Math.min(100,
    100*b.production/Math.max(.001,b.queue[0]??1)));
-  const progress=primary?unitPct(primary):firstSite?sitePct(firstSite):0;
+  const progress=primary?unitPct(primary):activeResearch?researchPct:firstSite?sitePct(firstSite):0;
   view.querySelector('#sf-progress').style.width=progress.toFixed(1)+'%';
   view.querySelector('#sf-production .production-track')
    .setAttribute('aria-valuenow',String(Math.round(progress)));
-  view.querySelector('#sf-queue-count').textContent=queues+' '+
-   (queues===1?'AUFTRAG':'AUFTRÄGE')+' · '+constructionSites.length+' BAU';
+  view.querySelector('#sf-queue-count').textContent=(queues+constructionSites.length+
+   (activeResearch?1:0))+' AKTIV · '+(activeResearch?'1 FORSCHUNG':'')+
+   (constructionSites.length?' · '+constructionSites.length+' BAU':'');
   view.querySelector('#sf-queue').textContent=primary
-   ?queuedBases.length+' Produktionsgebäude aktiv · '+queues+' Aufträge'
+   ?queuedBases.length+' Produktionsgebäude · '+queues+' Aufträge'
+   :activeResearch?'FORSCHUNG: '+activeResearch.name
    :constructionSites.length?constructionSites.map(b=>BUILDINGS[b.kind].name+' (im Bau)').join(' · ')
    :'WARTESCHLANGE LEER';
   const remaining=primary?Math.max(0,(primary.queue[0]??0)-primary.production)
-   :firstSite?.buildRemaining??0;
-  view.querySelector('#sf-queue-time').textContent=primary||firstSite?Math.ceil(remaining)+' s':'--:--';
+   :activeResearch?techState.remaining:firstSite?.buildRemaining??0;
+  view.querySelector('#sf-queue-time').textContent=primary||firstSite||activeResearch?Math.ceil(remaining)+' s':'--:--';
 
   // Rebuild on actual global queue / construction changes, never on selection.
   // All orders fit into a single horizontally scrollable strip. Nothing is
   // hidden behind a per-building tab or a capped preview of five items.
   const slots=view.querySelector('#sf-queue-slots');
   const slotKey=queuedBases.map(b=>b.id+':'+b.kind+':'+b.queueTypes.join(',')).join('|')+
-   '|B|'+constructionSites.map(b=>b.id+':'+b.kind).join('|');
+   '|B|'+constructionSites.map(b=>b.id+':'+b.kind).join('|')+
+   '|R|'+(techState.active??'');
   if(this.previousProductionSlotsKey!==slotKey){
    const scroll=slots.scrollLeft,items=[];
    for(const b of queuedBases)for(let i=0;i<b.queueTypes.length;i++){
@@ -1161,6 +1167,17 @@ export class SandforgeBattlefield {
      '<div class="sf-production-slot-copy"><strong>'+plain(name)+'</strong>'+
      '<small>'+(i===0?'IN ARBEIT':'WARTET')+'</small>'+
      '<span class="sf-production-source">'+plain(source)+'</span></div>'+
+     '<span class="sf-slot-progress"><i></i></span></div>');
+   }
+   if(activeResearch){
+    const kind=techState.active;
+    items.push('<div role="listitem" class="sf-production-slot is-research is-active" data-research-kind="'+kind+
+     '" title="Forschung: '+plain(activeResearch.name)+' · '+plain(activeResearch.description)+'">'+
+     '<span class="sf-queue-research-art" aria-hidden="true">'+
+     '<span class="sf-queue-research-fallback">'+researchIconMarkup(kind)+'</span>'+
+     '<img data-sf-research-artwork="'+kind+'" alt="" decoding="async"></span>'+
+     '<div class="sf-production-slot-copy"><strong>'+plain(activeResearch.name)+'</strong>'+
+     '<small>FORSCHUNG</small><span class="sf-production-source">FORSCHUNGSZENTRUM</span></div>'+
      '<span class="sf-slot-progress"><i></i></span></div>');
    }
    for(const b of constructionSites){
@@ -1176,6 +1193,12 @@ export class SandforgeBattlefield {
    slots.scrollLeft=scroll;
    hydrateUnitIcons(slots);
    hydrateBuildingIcons(slots,this.renderer);
+   if(activeResearch)hydrateResearchArtworks(slots,this.renderer);
+  }
+  for(const tile of slots.querySelectorAll('[data-research-kind]')){
+   if(!activeResearch)continue;
+   tile.querySelector('.sf-slot-progress i').style.width=researchPct.toFixed(1)+'%';
+   tile.querySelector('small').textContent='FORSCHUNG · '+Math.round(researchPct)+'% · '+Math.ceil(techState.remaining)+' s';
   }
   for(const tile of slots.querySelectorAll('[data-queue-base]')){
    const producer=queuedBases.find(b=>b.id===Number(tile.dataset.queueBase));
@@ -1236,6 +1259,7 @@ export class SandforgeBattlefield {
      ).join('')+'</div></div>'
    :'';
   view.querySelector('#sf-selection-panel')?.classList.toggle('sf-transport-selected',Boolean(manifest));
+  view.querySelector('#sf-selection-panel')?.classList.toggle('sf-engineer-selected',kind==='engineer'&&chosen.length===1);
   const strategicStatus=base?.kind==='silo'
     ?'<div class="sf-strategic-meter">🚀 '+(base.buildRemaining>0?'Silo im Bau':
       (base.siloCharge??SILO_CHARGE_SECONDS)>0?
@@ -1252,7 +1276,9 @@ export class SandforgeBattlefield {
   const selectedMarkup='<small>'+meta+'</small><strong>'+plain(heading)+'</strong>'+
    (item?'<div class="health-track"><i style="width:'+Math.min(100,hp/maxHp*100)+'%"></i></div>'+
    '<div class="sf-health">'+hp+' / '+maxHp+' LP</div>':'')+
-   '<p>'+plain(description)+'</p>'+strategicStatus+passengerMarkup;
+   '<p title="'+plain(description)+'">'+plain(kind==='engineer'&&chosen.length===1
+     ?'Baut und repariert Gebäude sowie Fahrzeuge. Gebäude im Baumenü wählen, dann Bauplatz auf der Karte anklicken.'
+     :description)+'</p>'+strategicStatus+passengerMarkup;
   if(this.previousSelectionMarkup!==selectedMarkup){
    el.innerHTML=selectedMarkup;this.previousSelectionMarkup=selectedMarkup;
   }
