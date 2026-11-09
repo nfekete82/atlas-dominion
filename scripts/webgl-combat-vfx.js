@@ -128,10 +128,10 @@ export class SandforgeCombatEffects {
   // turrets and broken barrels from a capped instanced 3D pool instead.
   const wreckLimit=lowQuality?WRECK_CAP_LITE:WRECK_CAP;
   this.wreckMat=new THREE.MeshStandardMaterial({
-   color:'#5a5047',roughness:.94,metalness:.17,flatShading:true
+   color:'#85745d',roughness:.94,metalness:.17,flatShading:true
   });
   this.wreckMetal=new THREE.MeshStandardMaterial({
-   color:'#373c3a',roughness:.88,metalness:.30,flatShading:true
+   color:'#494b42',roughness:.88,metalness:.30,flatShading:true
   });
   this.wreckHull=new THREE.InstancedMesh(
    new THREE.CylinderGeometry(.86,1,1,10,1),this.wreckMat,wreckLimit);
@@ -368,23 +368,31 @@ export class SandforgeCombatEffects {
   for(const w of this.wrecks){
    const ground=this.pos(w.x,w.y),yaw=w.yaw;
    const sink=wreckSink(w);
-   const aircraft=isAircraftWreck(w.kind);
-   const rover=w.kind==='rover',bomber=w.kind==='bomber';
-   dummy.position.copy(ground);dummy.position.y+=8-sink;
-   dummy.rotation.set(0,yaw,.08);
-   dummy.scale.set(aircraft?(bomber?38:20):rover?21:29,
-    aircraft?8:rover?9:12,aircraft?(bomber?31:42):rover?32:39);
+   // Three small sparse parts, not a full fake vehicle silhouette.
+   const scale=w.kind==='bomber'?1.30:w.kind==='scout'?.95:
+    w.kind==='rover'?.85:1;
+   const forwardX=Math.sin(yaw),forwardZ=Math.cos(yaw);
+   const sideX=Math.cos(yaw),sideZ=-Math.sin(yaw);
+   const offset=(forward,side,height)=>{
+    dummy.position.copy(ground);
+    dummy.position.x+=forwardX*forward+sideX*side;
+    dummy.position.z+=forwardZ*forward+sideZ*side;
+    dummy.position.y+=height-sink;
+   };
+   // One battered armor plate partly buried in the sand.
+   offset(-8*scale,-6*scale,2.3*scale);
+   dummy.rotation.set(.29,yaw+.26,.41);
+   dummy.scale.set(8*scale,2.5*scale,10*scale);
    dummy.updateMatrix();this.wreckHull.setMatrixAt(i,dummy.matrix);
-   dummy.position.copy(ground);dummy.position.y+=aircraft?11-sink:19-sink;
-   dummy.rotation.set(.12,yaw+.21,-.16);
-   dummy.scale.set(aircraft?(bomber?21:12):rover?12:17,
-    aircraft?4:rover?7:9,aircraft?(bomber?11:15):rover?12:17);
+   // One loose metal machinery chunk / wheel assembly.
+   offset(8*scale,8*scale,3.3*scale);
+   dummy.rotation.set(.52,yaw-.7,.66);
+   dummy.scale.set(4.4*scale,3.3*scale,5.3*scale);
    dummy.updateMatrix();this.wreckTurret.setMatrixAt(i,dummy.matrix);
-   dummy.position.copy(ground);
-   dummy.position.y+=(aircraft?11:21)-sink;
-   dummy.rotation.set(aircraft?0:Math.PI/2,yaw+.20,aircraft?Math.PI/2:0);
-   dummy.scale.set(aircraft?1.7:rover?1.8:2.5,
-    aircraft?(bomber?64:45):rover?24:38,aircraft?1.7:rover?1.8:2.5);
+   // One short broken axle, gun barrel or wing spar.
+   offset(0,-12*scale,1.7*scale);
+   dummy.rotation.set(Math.PI/2-.19,yaw+.84,.11);
+   dummy.scale.set(1.1*scale,10*scale,1.2*scale);
    dummy.updateMatrix();this.wreckBarrel.setMatrixAt(i,dummy.matrix);
    i++;
   }
