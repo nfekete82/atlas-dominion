@@ -1912,6 +1912,8 @@ export class SandforgeBattlefield {
    this.clearPlacement();
    this.attackMode=false;
    this.rallyMode=false;
+   this.strategicTargetMode=false;
+   this.generalTargetKind=null;
    this.drawInterface();
   },true);
   document.addEventListener('keydown',event=>{
