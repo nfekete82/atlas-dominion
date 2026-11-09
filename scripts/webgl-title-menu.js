@@ -32,7 +32,7 @@
    $(id.replace('-volume','-value')).textContent=$(id).value+' %';
   }
   $('sf3d-music-enabled').checked=options.musicEnabled!==false;
-  $('sf3d-engine-sounds').checked=options.engineSoundsEnabled===true;
+  $('sf3d-engine-sounds').checked=options.engineSoundsEnabled!==false;
  };
  function applyLiveAudio(){
   const a=window.__sandforgeWebGL?.sound;
