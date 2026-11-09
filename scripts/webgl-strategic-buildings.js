@@ -4,6 +4,32 @@ import * as THREE from 'three';
  * avoiding missing GLB placeholders. Created ONCE per building, NOT per frame.
  * Geometry and material lifetime belongs to the existing fallback disposal.
  */
+/** A single shared, deterministic sandstone/paint grain provides subtle PBR
+ * surface detail instead of the old flat-color primitives. The same texture is
+ * used for world models and their 3D roster snapshots; no external asset fetch.
+ * Kept for the lifetime of the WebGL module (material disposal doesn't own it).
+ */
+const materialGrain=(()=>{
+ const width=128,height=128,rgba=new Uint8Array(width*height*4);
+ for(let y=0;y<height;y++)for(let x=0;x<width;x++){
+  const hash=Math.imul(x+117,374761393)^Math.imul(y+61,668265263);
+  const fine=((hash^(hash>>>13))&31)-15;
+  const broad=5*Math.sin(x*.17+y*.09)+5*Math.cos(y*.11-x*.07);
+  const tone=Math.max(204,Math.min(254,237+fine*.54+broad));
+  const index=(y*width+x)*4;
+  rgba[index]=tone;rgba[index+1]=tone-2;rgba[index+2]=tone-4;rgba[index+3]=255;
+ }
+ const texture=new THREE.DataTexture(rgba,width,height,THREE.RGBAFormat);
+ texture.colorSpace=THREE.SRGBColorSpace;
+ texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
+ texture.repeat.set(2,2);
+ texture.magFilter=THREE.LinearFilter;
+ texture.minFilter=THREE.LinearMipmapLinearFilter;
+ texture.generateMipmaps=true;
+ texture.needsUpdate=true;
+ return texture;
+})();
+
 export const STRATEGIC_BUILDING_KINDS=Object.freeze(['research','silo','interceptor']);
 export const isStrategicBuilding=kind=>STRATEGIC_BUILDING_KINDS.includes(kind);
 export function createStrategicBuilding(kind,owner=0){
@@ -13,11 +39,16 @@ export function createStrategicBuilding(kind,owner=0){
  root.userData.visualOnly=true;
  const faction=owner===0?'#487488':'#91594b';
  const mats={
-  base:new THREE.MeshStandardMaterial({color:'#807b68',roughness:.83,metalness:.17}),
-  panel:new THREE.MeshStandardMaterial({color:faction,roughness:.58,metalness:.44}),
-  metal:new THREE.MeshStandardMaterial({color:'#4c5554',roughness:.44,metalness:.62}),
-  stone:new THREE.MeshStandardMaterial({color:'#b3a080',roughness:.92}),
-  black:new THREE.MeshStandardMaterial({color:'#1b2526',roughness:.60,metalness:.44}),
+  base:new THREE.MeshStandardMaterial({color:'#968b73',map:materialGrain,
+   bumpMap:materialGrain,bumpScale:.32,roughness:.84,metalness:.11}),
+  panel:new THREE.MeshStandardMaterial({color:faction,map:materialGrain,
+   bumpMap:materialGrain,bumpScale:.14,roughness:.56,metalness:.39}),
+  metal:new THREE.MeshStandardMaterial({color:'#626b69',map:materialGrain,
+   bumpMap:materialGrain,bumpScale:.09,roughness:.48,metalness:.57}),
+  stone:new THREE.MeshStandardMaterial({color:'#c0ab89',map:materialGrain,
+   bumpMap:materialGrain,bumpScale:.48,roughness:.91,metalness:.02}),
+  black:new THREE.MeshStandardMaterial({color:'#252b29',map:materialGrain,
+   bumpMap:materialGrain,bumpScale:.07,roughness:.68,metalness:.38}),
   glow:new THREE.MeshStandardMaterial({color:owner===0?'#63b9de':'#ffab79',
    emissive:owner===0?'#2d95c4':'#e96436',emissiveIntensity:.74,metalness:.25,roughness:.4})
  };
