@@ -34,7 +34,6 @@
   // Synthesized sustained chords are an opt-in feature, never autoplay on a fresh install.
   $('sf3d-music-enabled').checked=options.musicEnabled===true;
   $('sf3d-engine-sounds').checked=options.engineSoundsEnabled!==false;
-  $('sf3d-wind-enabled').checked=options.windEnabled===true;
  };
  function applyLiveAudio(){
   const a=window.__sandforgeWebGL?.sound;
@@ -48,7 +47,6 @@
   a.setMusicVolume(Number($('sf3d-music-volume').value)/100);
   a.setMusicEnabled($('sf3d-music-enabled').checked);
   a.setEngineSoundsEnabled($('sf3d-engine-sounds').checked);
-  a.setWindEnabled($('sf3d-wind-enabled').checked);
  }
  const running=()=>Boolean(window.__sandforgeWebGL?.simulationRunning);
  const changePause=(shouldRun)=>{
@@ -99,7 +97,6 @@
     sound:$('sf3d-sound').checked,
     musicEnabled:$('sf3d-music-enabled').checked,
     engineSoundsEnabled:$('sf3d-engine-sounds').checked,
-    windEnabled:$('sf3d-wind-enabled').checked,
     masterVolume:Number($('sf3d-master-volume').value),
     effectsVolume:Number($('sf3d-effects-volume').value),
     musicVolume:Number($('sf3d-music-volume').value)
@@ -157,7 +154,6 @@
  }
  $('sf3d-music-enabled').addEventListener('change',applyLiveAudio);
  $('sf3d-engine-sounds').addEventListener('change',applyLiveAudio);
-  $('sf3d-wind-enabled').addEventListener('change',applyLiveAudio);
  $('sf3d-audio-test').addEventListener('click',async()=>{
   const status=$('sf3d-audio-status');
   const runtime=window.__sandforgeWebGL;
