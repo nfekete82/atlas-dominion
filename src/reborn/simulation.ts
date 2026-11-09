@@ -339,6 +339,9 @@ export class Simulation {
   paused=false; revision=0; aiPlanDurationMs=0; aiPlanCompletedAt=-1;
   /** Opt-in timing for bomber/fog diagnosis, never serialized or authoritative. */
   profileVision=false; visionDurationMs=0; visionCompletedAt=-1; maxVisionMs=0;
+  /** Opt-in CPU time of all unit orders/movement and collision separation. */
+  profileSquadWork=false; squadUnitMs=0; squadCollisionMs=0;
+  resetSquadProfile():void{this.squadUnitMs=0;this.squadCollisionMs=0;}
   private fogClock=0; private visionCache=new VisionCache(); private spatial=new SpatialIndex();
   /** The original constructor remains a deterministic legacy fixture/save reader. */
   constructor(seed=2026,mapVersion:MapVersion=0,weatherEnabled=false,bootstrap=false,profile?:TerrainProfile) {
@@ -1101,7 +1104,7 @@ export class Simulation {
       }
     }
     const cohort=u.orders[0]?.march;
-    if(cohort){const allies=this.units.filter(v=>cohort.includes(v.id)&&v.owner===u.owner&&v.hp>0&&
+    if(cohort){const allies=cohort.map(id=>this.unitById.get(id)).filter((v):v is Unit=>Boolean(v)&&v!.owner===u.owner&&v!.hp>0&&
         (u.owner!==0||v.id===u.id||v.orders[0]?.march?.includes(u.id)));
       // A separately redirected/stopped soldier immediately leaves the
       // cohort; remaining units no longer inherit its former slow speed.
@@ -1187,6 +1190,7 @@ export class Simulation {
     this.shots=this.shots.filter(s=>(s.life-=dt)>0);
     this.workEffects=this.workEffects.filter(e=>this.time-e.at<.45);
     this.spatial.rebuild(this.units);
+    const squadMoveAt=this.profileSquadWork?performance.now():0;
     for(const u of this.units){
       if(u.hp<=0||u.carrier)continue;u.previousX=u.x;u.previousY=u.y;u.cooldown-=dt;u.repath-=dt;u.hit=Math.max(0,u.hit-dt);u.fire=Math.max(0,u.fire-dt);u.moving=false;
       // The single real unit remains at its legal exterior spawn while the
@@ -1347,6 +1351,8 @@ export class Simulation {
         }
       }
     }
+    if(this.profileSquadWork)this.squadUnitMs+=performance.now()-squadMoveAt;
+    const squadCollisionAt=this.profileSquadWork?performance.now():0;
     for(const u of this.units)if(!u.moving&&u.driveSpeed!==undefined)u.driveSpeed=Math.max(0,u.driveSpeed-unitSpec(u).speed*2.8*dt);
     // Rebuild the spatial index after the drive pass, not from stale
     // pre-movement positions, before resolving overlaps.
@@ -1381,7 +1387,7 @@ export class Simulation {
           if(softOnly&&a.owner===0&&a.orders[0]?.march?.includes(a.id)&&
              Number.isFinite(a.previousX)&&Number.isFinite(a.previousY)){
             const march=a.orders[0].march!;
-            const peers=this.units.filter(v=>march.includes(v.id)&&v.owner===a.owner&&
+            const peers=march.map(id=>this.unitById.get(id)).filter((v):v is Unit=>Boolean(v)&&v!.owner===a.owner&&
               v.hp>0&&v.orders[0]?.march?.includes(a.id));
             if(peers.length){
               const pace=Math.min(...peers.map(v=>unitSpec(v).speed));
@@ -1396,6 +1402,7 @@ export class Simulation {
           }
         }
       }
+    if(this.profileSquadWork)this.squadCollisionMs+=performance.now()-squadCollisionAt;
     this.transports.cleanup();
     for(const u of this.units)if(u.hp<=0)this.tactical.loss(u);
     this.units=this.units.filter(u=>u.hp>0);
