@@ -1293,9 +1293,11 @@ export class SandforgeBattlefield {
      ?'<div class="sf-strategic-meter">⚙ '+
       (techState.active?UPGRADES[techState.active].name+' · '+Math.ceil(techState.remaining)+' s':
        techState.completed.length+' / '+UPGRADE_KINDS.length+' Technologien')+'</div>':'';
+  const healthPct=item?Math.max(0,Math.min(100,100*hp/Math.max(1,maxHp))):0;
   const selectedMarkup='<small>'+meta+'</small><strong>'+plain(heading)+'</strong>'+
-   (item?'<div class="health-track"><i style="width:'+Math.min(100,hp/maxHp*100)+'%"></i></div>'+
-   '<div class="sf-health">'+hp+' / '+maxHp+' LP</div>':'')+
+   (item?'<div class="sf-health-row" aria-label="Lebenspunkte '+hp+' von '+maxHp+'">'+
+   '<span class="sf-health-label">LP</span><div class="health-track"><i style="width:'+healthPct.toFixed(1)+'%"></i></div>'+
+   '<span class="sf-health">'+hp+' / '+maxHp+'</span></div>':'')+
    '<p title="'+plain(description)+'">'+plain(kind==='engineer'&&chosen.length===1
      ?'Baut und repariert Gebäude sowie Fahrzeuge. Gebäude im Baumenü wählen, dann Bauplatz auf der Karte anklicken.'
      :description)+'</p>'+strategicStatus+passengerMarkup;
