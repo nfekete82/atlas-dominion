@@ -113,11 +113,35 @@ function instanceBoxes(group,name,paint,parts){
  instances.receiveShadow=true;
  group.add(instances);
 }
+function instanceFenceWires(group,parts){
+ if(!parts.length)return;
+ // Cross-bracing reads like a light wire fence at strategic camera distance.
+ const wires=new THREE.InstancedMesh(new THREE.CylinderGeometry(.42,.42,1,5),
+  fenceRail,parts.length);
+ wires.name='YardFenceMesh';
+ wires.userData={visualOnly:true,nonPlayable:true,siteDecor:true};
+ const helper=new THREE.Object3D(),up=new THREE.Vector3(0,1,0);
+ const direction=new THREE.Vector3();
+ for(let i=0;i<parts.length;i++){
+  const p=parts[i];
+  direction.set(p.dx,p.dy,p.dz);
+  const length=direction.length();
+  helper.position.set(p.x,p.y,p.z);
+  helper.quaternion.setFromUnitVectors(up,direction.normalize());
+  helper.scale.set(1,length,1);
+  helper.updateMatrix();
+  wires.setMatrixAt(i,helper.matrix);
+ }
+ wires.instanceMatrix.needsUpdate=true;
+ wires.computeBoundingSphere();
+ wires.castShadow=false;wires.receiveShadow=true;
+ group.add(wires);
+}
 function perimeterFence(group,width){
  // Three sides only: rear and flanks; the front remains a wide OPEN gateway.
- // Posts and rails are instanced: two draw calls for the whole perimeter.
+ // Posts, rails and chainlink-style X-bracing: three batched draw calls.
  const x=width*.65,rear=-width*.53,front=width*.28;
- const posts=[],rails=[],seen=new Set();
+ const posts=[],rails=[],wires=[],seen=new Set();
  function line(x0,z0,x1,z1){
   const dx=x1-x0,dz=z1-z0,dist=Math.hypot(dx,dz);
   const steps=Math.max(2,Math.ceil(dist/26));
@@ -133,6 +157,9 @@ function perimeterFence(group,width){
    const mx=x0+dx*u,mz=z0+dz*u;
    for(const y of [7,16.5])
     rails.push({x:mx,y,z:mz,w:2.5,h:2,d:dist/steps+.8,yaw});
+   const sx=dx/steps,sz=dz/steps;
+   wires.push({x:mx,y:11.5,z:mz,dx:sx,dy:13,dz:sz});
+   wires.push({x:mx,y:11.5,z:mz,dx:sx,dy:-13,dz:sz});
   }
  }
  line(-x,rear,x,rear);
@@ -140,8 +167,10 @@ function perimeterFence(group,width){
  line(x,rear,x,front);
  instanceBoxes(group,'YardFencePosts',fencePost,posts);
  instanceBoxes(group,'YardFenceRails',fenceRail,rails);
+ instanceFenceWires(group,wires);
  group.userData.fencePosts=posts.length;
  group.userData.fenceRails=rails.length;
+ group.userData.fenceWires=wires.length;
 }
 function addSiteDecor(root,kind,width){
  // Dedicated grouping avoids changing the legacy barracks/factory prop names
