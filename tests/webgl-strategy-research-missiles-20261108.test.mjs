@@ -176,3 +176,19 @@ test('3D HUD, real missile renderer and AI integration are present',()=>{
  const audio=readFileSync('src/reborn/audio.ts','utf8');
  assert.match(audio,/new SpeechSynthesisUtterance\('Feindlicher Raketenstart erkannt!'\)/);
 });
+
+
+test('new strategic buildings have deterministic service props and one rocket announcer',async()=>{
+ const {buildingProps,DECOR_PROP_COUNTS}=await import('../dist/src/reborn/building-decor.js');
+ for(const kind of ['research','silo','interceptor']){
+  assert.ok(DECOR_PROP_COUNTS[kind]>=1,kind+' must have a complete decor layout');
+  const props=buildingProps(kind,{x:500,y:500},BUILDINGS[kind].radius,51,2074);
+  assert.equal(props.length,DECOR_PROP_COUNTS[kind]);
+  assert.deepEqual(props,buildingProps(kind,{x:500,y:500},BUILDINGS[kind].radius,51,2074));
+  assert.ok(props.every(prop=>prop.layer==='behind'),kind+' has a clear front entrance');
+ }
+ const audio=readFileSync('src/reborn/audio.ts','utf8');
+ assert.equal(audio.split('announceStrategicLaunch():void').length-1,1,
+  'TypeScript must have one rocket-warning implementation');
+ assert.match(audio,/lastStrategicWarning<12/);
+});
