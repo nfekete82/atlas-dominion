@@ -43,6 +43,21 @@ export function assessBattle(units:readonly Unit[],enemies:readonly Unit[],tower
  const stance=towers.length&&canSiege?'siege':own>=required&&own>0?'attack':engaged&&own<enemy*.8?'withdraw':'reinforce';
  return {at,own,enemy,deficit,towers:towers.length,neededSiege,stance};
 }
+/** A real skirmish is not a strategic retreat order. Retreating while
+ * taking fire hands free shots to the pursuer. Only actually OBSERVED enemies
+ * and living paid combatants may authorize a short fight commitment.
+ * An overwhelming enemy or a known unsupported hostile turret remains a
+ * reason to disengage when a safe route exists. */
+export function shouldCommitFirefight(x:{
+  own:number;enemy:number;visible:number;inRange:number;
+  healthy:number;knownTowers:number;time:number;commitUntil:number;
+}):boolean{
+ if(x.visible<=0||x.inRange<=0||x.healthy<=0)return false;
+ if(x.enemy<=0)return true;
+ const ratio=x.own/x.enemy;
+ if(x.knownTowers>0&&ratio<.85)return false;
+ return ratio>=.48||(x.time<x.commitUntil&&ratio>=.32);
+}
 /** A large observed local overmatch should not be thrown away merely
  * because one tank falls below the routine repair HP threshold.
  * Only what faction 1 can currently see (plus previously observed guns)
