@@ -34,5 +34,5 @@ export function validMatchStatistics(s:unknown):s is MatchStatistics{
  data.factions.every(f=>f&&safe(f.earnedCredits)&&safe(f.peakIncome)&&safe(f.producedUnits)&&safe(f.peakArmy)&&
    f.peakArmy<=96&&f.peakIncome<=f.earnedCredits&&f.deployedUnits&&typeof f.deployedUnits==='object'&&
    unitKinds.every(k=>k==='rocket'&&f.deployedUnits[k]===undefined||safe(f.deployedUnits[k]))&&
-   f.producedUnits<=unitKinds.reduce((n,k)=>n+f.deployedUnits[k],0));
+   f.producedUnits<=unitKinds.reduce((n,k)=>n+(f.deployedUnits[k]??0),0));
 }
