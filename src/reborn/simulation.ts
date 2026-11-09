@@ -579,9 +579,9 @@ export class Simulation {
   stop(ids:number[],hold=false):void {for(const u of this.units)if(ids.includes(u.id)){if(u.kind==='bomber')delete u.bomberRun;this.cancelProductionDeparture(u.id);this.transports.cancel(u);u.orders=[];u.path=[];u.repath=0;u.moving=false;if(u.kind==='tank')u.driveSpeed=0;u.pursuitOrigin=null;u.combatTarget=null;u.hold=hold;u.supportPaused=false;u.workingTarget=null;delete u.burst;}}
   private supportEligible(u:Unit,target:Unit|Base,kind:string):boolean {
     if(target.hp<=0||('orders' in target&&target.carrier)||target.owner!==u.owner)return false;
-    if(kind==='heal')return u.kind==='medic'&&'orders' in target&&unitSpec(target).group==='Infanterie'&&target.hp<unitSpec(target).hp;
+    if(kind==='heal')return u.kind==='medic'&&'orders' in target&&unitSpec(target).group==='Infanterie'&&target.hp<this.maxUnitHp(target);
     if(kind==='repair'&&u.kind==='engineer'&&'orders' in target)
-      return target.id!==u.id&&(unitSpec(target).group==='Fahrzeuge'||unitSpec(target).flying)&&target.hp<unitSpec(target).hp;
+      return target.id!==u.id&&(unitSpec(target).group==='Fahrzeuge'||unitSpec(target).flying)&&target.hp<this.maxUnitHp(target);
     return u.kind==='engineer'&&'queue' in target&&(kind==='build'?target.buildRemaining>0:target.buildRemaining<=0&&target.hp<buildingSpec(target).hp);
   }
   private supportApproach(u:Unit,target:Unit|Base,requireReachable=false):Point|null {
@@ -736,10 +736,10 @@ export class Simulation {
     const vehicles=this.spatial.query(u,REPAIR_RADIUS).filter(v=>
       (onlyTarget===undefined||v.id===onlyTarget)&&this.supportEligible(u,v,'repair')&&distance(u,v)<=REPAIR_RADIUS&&this.world.line(u,v));
     if(!vehicles.length)return false;
-    const total=vehicles.reduce((sum,v)=>sum+(v.hp/unitSpec(v).hp<.5?2:1),0);
+    const total=vehicles.reduce((sum,v)=>sum+(v.hp/this.maxUnitHp(v)<.5?2:1),0);
     let repaired=false;
     for(const vehicle of vehicles){
-      const share=(vehicle.hp/unitSpec(vehicle).hp<.5?2:1)/total;
+      const share=(vehicle.hp/this.maxUnitHp(vehicle)<.5?2:1)/total;
       const before=vehicle.hp;
       vehicle.hp=Math.min(this.maxUnitHp(vehicle),before+REPAIR_RATE*getVeterancyModifiers(u).repairRate*share*dt);
       if(vehicle.hp>before){
@@ -754,11 +754,11 @@ export class Simulation {
   /** A shared 12 HP/s budget; self care is capped at 3 HP/s and waits after damage. */
   private healNearby(u:Unit,dt:number):boolean {
     const patients=this.spatial.query(u,this.healRadius(u)).filter(t=>this.supportEligible(u,t,'heal')&&this.world.line(u,t)&&(t.id!==u.id||u.defendUntil<=this.time));
-    const others=patients.filter(t=>t.id!==u.id),urgent=others.some(t=>t.hp/unitSpec(t).hp<.5);
+    const others=patients.filter(t=>t.id!==u.id),urgent=others.some(t=>t.hp/this.maxUnitHp(t)<.5);
     const targets=patients.filter(t=>t.id!==u.id||!urgent);
     if(!targets.length)return false;
     // Weighted sharing treats the wounded together, with the most urgent receiving more.
-    const weight=(t:Unit)=>t.id===u.id?.25:t.hp/unitSpec(t).hp<.5?2:1;
+    const weight=(t:Unit)=>t.id===u.id?.25:t.hp/this.maxUnitHp(t)<.5?2:1;
     const sum=targets.reduce((n,t)=>n+weight(t),0);let healed=false;
     for(const target of targets){const before=target.hp,rate=target.id===u.id?Math.min(3,12*weight(target)/sum):12*weight(target)/sum;
       target.hp=Math.min(this.maxUnitHp(target),target.hp+rate*getVeterancyModifiers(u).healRate*dt);
