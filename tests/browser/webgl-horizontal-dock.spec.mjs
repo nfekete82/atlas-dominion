@@ -723,4 +723,9 @@ test('perf overlay separates bomber sight computation from simulation, VFX and r
  expect(diagnostics.maxVisionMs).toBeGreaterThanOrEqual(diagnostics.visionDurationMs);
  expect(diagnostics.overlay).toBe(true);
  expect(diagnostics.hasPhases).toBe(true);
+ // Export without DevTools: keyboard focus stays on the game viewport.
+ const ready=page.waitForEvent('download');
+ await page.keyboard.press('Shift+P');
+ const download=await ready;
+ expect(download.suggestedFilename()).toMatch(/^sandforge-performance-\\d+s\\.json$/);
 });
