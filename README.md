@@ -8,7 +8,7 @@
 
 </div>
 
-> **Entwicklungsversion:** Dieser Branch enthält die aktuelle WebGL-Codebasis, ist aber noch nicht in `main` integriert oder produktiv freigegeben. Im GitHub-Default-Branch `main` liegt derzeit ein älterer Canvas-Snapshot. Tests, Gameplay- und Audio-Abnahme vor Release erforderlich.
+> **Entwicklungsversion:** Der WebGL-Integrationslauf auf Commit [`3f30e379`](https://github.com/nfekete82/sandforge/commit/3f30e379cdf864a53fde96fce97a7d4790fdc7d6) ist am **09.11.2026 mit 17/17 Node- und 72/72 Chromium-Tests bestanden**. Die aktuelle 3D-Codebasis liegt weiter auf gestapelten Draft-PRs und ist **noch nicht in `main` integriert oder produktiv freigegeben**. Weitere Gesamt-, Classic-, Langzeit- und Deployment-Abnahmen bleiben offen. [Prüfprotokoll](docs/qa/webgl-integration-20261109-3f30e379.md).
 
 ## WebGL 3D RC2 — Standard-Spieloberfläche (Entwicklung)
 
@@ -105,13 +105,13 @@ Die drei fiktiven deutschen Stimmen A, B und C aus Qwen3-TTS VoiceDesign und Bas
 npm run build
 npm test                    # vollständige Node-Suite, einschließlich Archiv und HTTP
 npm ci --prefix tests/browser
-npm run test:browser         # 52 Browserfälle: Spiel, HUD, Audio und Modellwerkzeuge
+npm run test:browser         # WebGL-Integration: 17 Node- + 72 Chromium-Fälle (Stand 09.11.2026)
 python3 scripts/audit-radio-bank.py src/assets/reborn/voices
 ```
 
 Chrome ist voreingestellt; `SANDFORGE_BROWSER_CHANNEL=chromium` verwendet Playwright Chromium. `SANDFORGE_BASE_URL` prüft einen bereits laufenden Server. `SANDFORGE_TEST_DPR` steuert die Test-Pixeldichte. Die alten `ATLAS_*`-Variablen bleiben als Kompatibilitäts-Fallbacks nutzbar. Zusätzlich verfügbar: `npm run typecheck`, `npm run test:reborn`, `npm run test:animation`, `npm run assets:animation-audit` und `npm run test:ai-defense`.
 
-[Aktueller Release-Prüfbericht](docs/qa/release-2026-10-24.md) · [Ältere Prüfungen und Bilder](docs/reborn/QA.md) · [Änderungsprotokoll](CHANGELOG.md)
+[WebGL-Integration 09.11.2026: 17/17 + 72/72 PASS](docs/qa/webgl-integration-20261109-3f30e379.md) · [Älterer Release-Prüfbericht](docs/qa/release-2026-10-24.md) · [Ältere Prüfungen und Bilder](docs/reborn/QA.md) · [Änderungsprotokoll](CHANGELOG.md)
 
 ## Technik, Grafik und Quellen
 
