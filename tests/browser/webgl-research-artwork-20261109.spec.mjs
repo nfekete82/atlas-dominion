@@ -42,7 +42,7 @@ test('research HUD displays nine full 3D miniatures left of the upgrade data',as
    artWidth:a.width,artRight:a.right,textLeft:b.left,
    text:Boolean(title?.textContent?.trim()&&effect?.textContent?.trim()&&meta?.textContent?.trim()&&progress?.textContent?.trim())
   };
- })));
+ }));
  expect(result.map(x=>x.kind)).toEqual([
   'armor1','armor2','precision','engines','infantryTraining',
   'rocketDevelopment','radar','tankArmor','tankMobility'
