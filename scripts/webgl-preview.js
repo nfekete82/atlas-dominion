@@ -927,7 +927,9 @@ sound.setVolume(savedVolume('masterVolume',.85));
 sound.setEffectsVolume(savedVolume('effectsVolume',.85));
 sound.setEngineSoundsEnabled(bootOptions.engineSoundsEnabled!==false);
 sound.setMusicVolume(savedVolume('musicVolume',.30));
-sound.setMusicEnabled(bootOptions.musicEnabled!==false);
+// Four sustained synth voices sound like an electrical drone on some speakers.
+ // Keep all effects/radio enabled, but start the optional score only after opt-in.
+ sound.setMusicEnabled(bootOptions.musicEnabled===true);
 sound.setEnabled(bootOptions.sound!==false);
 sound.bindGame(game);
 battlefield.effects=effects;

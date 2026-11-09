@@ -31,7 +31,8 @@
    $(id).value=String(value==null?defaultValue:Math.max(0,Math.min(100,Number(value))));
    $(id.replace('-volume','-value')).textContent=$(id).value+' %';
   }
-  $('sf3d-music-enabled').checked=options.musicEnabled!==false;
+  // Synthesized sustained chords are an opt-in feature, never autoplay on a fresh install.
+  $('sf3d-music-enabled').checked=options.musicEnabled===true;
   $('sf3d-engine-sounds').checked=options.engineSoundsEnabled!==false;
  };
  function applyLiveAudio(){

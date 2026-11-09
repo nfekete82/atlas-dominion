@@ -68,6 +68,18 @@ test('web audio music only allocates four long-lived synthesizer voices, no per-
  assert.equal(calls.stops,4,'dispose stops and disconnects all audio voices');
 });
 
+test('fresh WebGL starts without sustained synth music; saved explicit opt-in still works',()=>{
+ const menu=readFileSync('scripts/webgl-title-menu.js','utf8');
+ const preview=readFileSync('scripts/webgl-preview.js','utf8');
+ const html=readFileSync('webgl-preview.html','utf8');
+ assert.match(menu,/\$\('sf3d-music-enabled'\)\.checked=options\.musicEnabled===true/);
+ assert.match(preview,/sound\.setMusicEnabled\(bootOptions\.musicEnabled===true\)/);
+ assert.match(html,/<input id="sf3d-music-enabled" type="checkbox">/);
+ assert.doesNotMatch(html,/<input id="sf3d-music-enabled" type="checkbox" checked>/);
+ assert.match(preview,/sound\.setEngineSoundsEnabled\(bootOptions\.engineSoundsEnabled!==false\)/);
+ assert.match(preview,/sound\.setEffectsVolume\(savedVolume\('effectsVolume',\.85\)\)/);
+});
+
 test('music and effects have independent persistent sliders and are silent when paused',()=>{
  const audio=readFileSync('src/reborn/audio.ts','utf8');
  const menu=readFileSync('scripts/webgl-title-menu.js','utf8');
