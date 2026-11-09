@@ -77,6 +77,12 @@ export function createStrategicBuilding(kind,owner=0){
   mats.steel=new THREE.MeshStandardMaterial({color:'#8d8770',map:materialGrain,
    bumpMap:materialGrain,bumpScale:.1,roughness:.6,metalness:.4});
   mats.warning=new THREE.MeshStandardMaterial({color:'#cda956',roughness:.62,metalness:.18});
+  mats.rocketBody=new THREE.MeshStandardMaterial({color:'#787b66',map:materialGrain,
+   bumpMap:materialGrain,bumpScale:.09,roughness:.71,metalness:.25});
+  mats.rocketPanel=new THREE.MeshStandardMaterial({color:'#bab497',map:materialGrain,
+   bumpMap:materialGrain,bumpScale:.08,roughness:.66,metalness:.27});
+  mats.rocketNose=new THREE.MeshStandardMaterial({color:'#363e3c',roughness:.51,metalness:.44});
+  mats.rocketAccent=new THREE.MeshStandardMaterial({color:'#b38a4e',roughness:.66,metalness:.2});
  }
  // Names allow one shared camouflage pass while leaving service glass,
  // signal beacons and recessed dark vents in their original PBR material.
@@ -238,18 +244,59 @@ export function createStrategicBuilding(kind,owner=0){
    box(10,22,12,'black',-17+Math.cos(a)*76,80,Math.sin(a)*76,0,-a);
    box(8,3,9,'trim',-17+Math.cos(a)*77,92,Math.sin(a)*77,0,-a);
   }
-  // Full-size missile with pressure vessel, aerodynamic ogive and clamps.
-  cyl(20,22,80,'armor',-17,130,0,24);
-  cyl(21,21,10,'panel',-17,151,0,24);
-  cyl(22,22,7,'metal',-17,102,0,24);
-  cyl(21,21,5,'black',-17,179,0,24);
-  add(new THREE.ConeGeometry(21,35,24),'stone',-17,200,0);
-  cyl(5,5,6,'trim',-17,221,0,16);
-  for(const y of [112,160,176]){
-   add(new THREE.TorusGeometry(21,2.1,10,32),'trim',-17,y,0,-Math.PI/2);
+  // Purpose-built stylized strategic missile, designed to read clearly at
+  // RTS camera distance: muted olive lower stage, warm-sand upper shroud,
+  // dark faceted ogive, sectional seams, canards and tail fins. It remains
+  // *render-only* and static; the authoritative strategic launch is unchanged.
+  const rocketX=-17;
+  const hull=cyl(22.5,23.5,72,'rocketBody',rocketX,128,0,24);
+  hull.name='Silo_RocketBody';
+  cyl(21.5,22.5,31,'rocketPanel',rocketX,179,0,24);
+  cyl(22,22.5,8,'rocketNose',rocketX,164.5,0,24);
+  cyl(18.8,21.5,9,'rocketPanel',rocketX,201,0,24);
+  const ogive=add(new THREE.ConeGeometry(18.8,42,24),'rocketNose',
+   rocketX,226,0);
+  ogive.name='Silo_RocketNose';
+  // High-contrast stage boundaries stay visible from a distant zoom.
+  for(const [y,radius,width,material] of [
+   [94,22.5,3.2,'rocketNose'],[106,23.2,1.6,'rocketAccent'],
+   [148,22.6,1.8,'trim'],[162,23.1,2.5,'rocketNose'],
+   [194,21.4,2.2,'rocketAccent'],[206,18.8,1.8,'rocketNose']
+  ]){
+   const seam=add(new THREE.TorusGeometry(radius,width,8,32),
+    material,rocketX,y,0,-Math.PI/2);
+   if(y===162)seam.name='Silo_RocketStageSeam';
   }
-  for(const x of [-1,1])for(const z of [-1,1]){
-   box(6,8,21,'steel',-17+x*21,116,z*10,0,0,z*.18);
+  // Small raised thermal-panel details; intentionally restrained rather
+  // than an oversized toy checkerboard or bright candy stripes.
+  for(let n=0;n<8;n++){
+   const angle=n*Math.PI/4;
+   const x=rocketX+Math.cos(angle)*22.8,z=Math.sin(angle)*22.8;
+   const p=add(new THREE.BoxGeometry(3,21,1.8),'rocketPanel',
+    x,133,z,0,-angle,0);
+   p.castShadow=false;
+  }
+  // Wedge-shaped stabilizing fins, grouped by material and GPU-batched.
+  for(let n=0;n<4;n++){
+   const angle=n*Math.PI/2;
+   const shape=new THREE.Shape();
+   shape.moveTo(18,-18);
+   shape.lineTo(36,-19);
+   shape.lineTo(32,-10);
+   shape.lineTo(22,16);
+   shape.lineTo(18,16);
+   shape.closePath();
+   const fin=add(new THREE.ExtrudeGeometry(shape,{
+    depth:3,bevelEnabled:false,curveSegments:2
+   }),'rocketBody',rocketX,112,0,0,-angle);
+   fin.position.z-=1.5;
+  }
+  // Matching service clamps and a recessed nozzle silhouette.
+  cyl(14,18,8,'rocketNose',rocketX,87.5,0,20);
+  cyl(12.5,12.5,2,'rocketAccent',rocketX,83,0,20);
+  for(const n of [-1,1])for(const side of [-1,1]){
+   box(5,12,9,'steel',rocketX+n*23,111,side*7);
+   box(8,3,11,'trim',rocketX+n*26,115,side*7);
   }
   // Distinct service block: matching HQ windows, roof and shaded entrance.
   box(67,46,81,'base',74,42,-2);
