@@ -1369,3 +1369,96 @@
 @media(max-width:680px){
  #sf3d-strategic-warning{white-space:normal;top:12%;padding:9px 13px}
 }
+
+
+/* 2026-11-09: Detailed building artwork stays recognizable even while locked.
+ * A disabled construction option is communicated by the border and cursor,
+ * not by throwing away its actual PBR texture and silhouette. */
+#sf-classic-root #sf-actions button.catalog-card[data-build]:disabled,
+#sf-classic-root #sf-actions button.catalog-card[data-build].locked{
+ opacity:1!important;
+ background:linear-gradient(150deg,#343b37,#232b29)!important;
+ border-color:#65665a!important;
+}
+#sf-classic-root #sf-actions button.catalog-card[data-build]:disabled .sf-card-image img,
+#sf-classic-root #sf-actions button.catalog-card[data-build].locked .sf-card-image img{
+ filter:grayscale(.32) brightness(.98) contrast(1.05)!important;
+ opacity:.92!important;
+}
+#sf-classic-root #sf-actions button.catalog-card[data-build]:disabled .card-meta,
+#sf-classic-root #sf-actions button.catalog-card[data-build].locked .card-meta{
+ background:#222924!important;
+}
+#sf-classic-root #sf-actions button.catalog-card[data-build] .sf-card-image img[data-sf-icon-status="ready"]{
+ transform:scale(1.06)!important;
+}
+/* The research deck uses one original pictogram and the actual bonus
+ * for every technology. All nine icons remain legible without hover. */
+#sf-classic-root #sf-actions button.sf-research-card{
+ min-height:123px;
+ padding:8px 7px 7px;
+ gap:4px;
+ justify-content:flex-start;
+}
+#sf-classic-root #sf-actions button.sf-research-card .sf-tech-symbol{
+ display:grid;
+ place-items:center;
+ flex:0 0 38px;
+ width:42px;
+ height:38px;
+ border:1px solid #ad986455;
+ border-radius:3px;
+ background:linear-gradient(135deg,#3b4743,#232d2c);
+ color:#e6c98e;
+ text-shadow:none;
+}
+#sf-classic-root #sf-actions button.sf-research-card .sf-tech-symbol svg{
+ width:31px;
+ height:31px;
+ stroke:currentColor;
+ fill:none;
+ filter:drop-shadow(0 1px 2px #0009);
+}
+#sf-classic-root #sf-actions button.sf-research-card .sf-tech-info{
+ gap:3px;
+ min-height:0;
+ justify-content:flex-start;
+}
+#sf-classic-root #sf-actions button.sf-research-card strong{
+ font-size:11px;
+ line-height:1.2;
+}
+#sf-classic-root #sf-actions button.sf-research-card .sf-tech-effect{
+ display:block;
+ color:#a8d0c8;
+ font:700 10px/1.2 var(--display);
+ letter-spacing:.1px;
+}
+#sf-classic-root #sf-actions button.sf-research-card small{
+ font-size:9px;
+}
+#sf-classic-root #sf-actions button.sf-research-card .sf-tech-progress{
+ margin-top:auto;
+}
+#sf-classic-root #sf-actions button.sf-research-card[data-upgrade="precision"] .sf-tech-symbol,
+#sf-classic-root #sf-actions button.sf-research-card[data-upgrade="rocketDevelopment"] .sf-tech-symbol{
+ color:#ecc18a;
+ border-color:#b38b5666;
+}
+#sf-classic-root #sf-actions button.sf-research-card[data-upgrade="radar"] .sf-tech-symbol,
+#sf-classic-root #sf-actions button.sf-research-card[data-upgrade="engines"] .sf-tech-symbol,
+#sf-classic-root #sf-actions button.sf-research-card[data-upgrade="tankMobility"] .sf-tech-symbol{
+ color:#9ed5da;
+ border-color:#659e9e66;
+}
+#sf-classic-root #sf-actions button.sf-research-card:disabled:not(.sf-tech-done){
+ opacity:.81;
+ filter:none;
+}
+#sf-classic-root #sf-actions button.sf-research-card.sf-tech-done .sf-tech-effect{
+ color:#82dbb4;
+}
+@media(max-width:820px){
+ #sf-classic-root #sf-actions button.sf-research-card{min-height:117px}
+ #sf-classic-root #sf-actions button.sf-research-card strong{font-size:10px}
+}
