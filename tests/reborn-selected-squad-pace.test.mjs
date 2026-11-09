@@ -9,6 +9,10 @@ function fixture(){
  g.units=[];g.bases=[];
  g.world.blocked.fill(0);g.world.opaque.fill(0);
  g.status='playing';g.paused=false;
+ // An isolated movement fixture still needs one remote opposing survivor:
+ // the current elimination rule stops the match once a faction is extinct.
+ const observer=g.spawn(1,{x:300,y:300},'infantry');g.stop([observer.id],true);
+ g.tactical.plan=()=>{};
  return g;
 }
 function group(g,kinds,owner=0){
