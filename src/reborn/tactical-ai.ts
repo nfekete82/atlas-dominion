@@ -103,6 +103,14 @@ export function infantryRecoveryThreshold(endgame:boolean,medicAvailable:boolean
 export function cleanupReserveSize(endgame:boolean,fighters:number):number{
  return endgame&&fighters>=9?1:!endgame&&fighters>=7?1:0;
 }
+/** Keep a *paid* home guard while a modern army advances. An unobserved
+ * transport may flank a base, so do not commit every combat unit to one front.
+ * A legitimate ten-man landing can still win if it defeats the real garrison.
+ * Existing endgame cleanup and legacy AI reserve policy stay unchanged. */
+export function homeGarrisonSize(fighters:number,endgame:boolean):number{
+ if(endgame)return cleanupReserveSize(true,fighters);
+ return fighters>=14?3:fighters>=8?2:fighters>=6?1:0;
+}
 const fresh=():TacticalState=>({version:1,phase:'gather',phaseAt:0,lastPlan:-3,target:null,rally:null,route:[],savingSince:null,savingFor:null,group:[],groupId:0,launchSize:0,launchedAt:0,objective:null,knownTurrets:[],losses:[],attempts:[],productionSerial:0,lastProgress:0,progressAt:0});
 /** Knowledge, plans and production use simulated time and the red faction's own observations. */
 export class TacticalAI {
@@ -269,17 +277,36 @@ export class TacticalAI {
    if(old)g.stop(old.ids.filter(id=>!s.recovering?.includes(id)&&!b.withdrawals.some(w=>w.unit===id)));
    b.squads=b.squads.filter(q=>q.role!=='defense');return new Set();
   }
-  const target=intruders.slice().sort((a,v)=>distance(a,home)-(a.kind==='artillery'?250:0)-distance(v,home)+(v.kind==='artillery'?250:0)||a.id-v.id)[0];
+  // Evaluate the *nearest owned structure*, not only the HQ: a landing on
+  // the rear side of the factory/research yard is a base invasion too.
+  // Only currently visible hostile units reached this branch; no fog leaks.
+  const protectedBases=g.bases.filter(base=>base.owner===1&&base.hp>0);
+  const threatScore=(u:Unit)=>Math.min(...protectedBases.map(base=>distance(u,base)))-
+   (u.kind==='artillery'?250:u.kind==='heavy'?100:u.kind==='bomber'?120:0);
+  const target=intruders.slice().sort((a,v)=>threatScore(a)-threatScore(v)||a.id-v.id)[0];
   const nearby=intruders.filter(u=>distance(u,target)<400),needed=fightingPower(nearby)*1.2;
   const available=fighters.slice().sort((a,v)=>Number(old?.ids.includes(v.id))-Number(old?.ids.includes(a.id))||distance(a,target)-distance(v,target)||a.id-v.id);
   const defenders:Unit[]=[];for(const u of available){defenders.push(u);if(fightingPower(defenders)>=needed)break;}
-  const medic=medics.slice().sort((a,v)=>distance(a,target)-distance(v,target))[0];if(medic)defenders.push(medic);
-  const ids=new Set(defenders.map(u=>u.id));
+  const medic=medics.slice().sort((a,v)=>distance(a,target)-distance(v,target))[0];
+  const ids=new Set([...defenders.map(u=>u.id),...(medic?[medic.id]:[])]);
   b.squads=[...b.squads.filter(q=>q.role!=='defense').map(q=>({...q,ids:q.ids.filter(id=>!ids.has(id))})),{role:'defense',ids:[...ids],target:target.id,since:old?.target===target.id?old.since:g.time}];
-  const enough=fightingPower(defenders)>=fightingPower(nearby)*.85;
-  if(enough)this.issue(defenders,target,'defend',target.id,false,false);
-  else this.issue(defenders,this.withdrawPoint(target,home),'safe',undefined,false,false);
-  return new Set(defenders.map(u=>u.id));
+  // Previous doctrine RETREATED if a player unloaded a stronger squad
+  // behind the HQ, handing them the buildings with no resistance. This
+  // emergency explicitly protects the site: every available *real* combat
+  // defender confronts the observed drop, even when outnumbered.
+  // No reinforcements are spawned and no enemy is revealed through fog.
+  this.issue(defenders,target,'defend',target.id,false,false);
+  // The medic escorts from cover, not from a suicidal attack order.
+  if(medic){
+   const shelter=protectedBases.slice().sort((a,v)=>distance(a,target)-distance(v,target))[0]??home;
+   const separation=distance(shelter,target)||1;
+   const standoff=Math.max(120,('radius' in shelter?shelter.radius:83)+45);
+   const behind={x:shelter.x+(shelter.x-target.x)/separation*standoff,
+    y:shelter.y+(shelter.y-target.y)/separation*standoff};
+   const cover=g.world.nearest(behind,this.obstacles(),[],medic,0)??home;
+   this.issue([medic],cover,'safe',undefined,false,false);
+  }
+  return ids;
  }
  /** A small, separately owned expansion task finances the siege instead of
   * leaving the entire army idle at an unaffordable fortified objective. */
@@ -805,7 +832,7 @@ export class TacticalAI {
  // a secondary neutral bastion while enemy production is still standing.
  const raidUnits=c.enemyHQEliminatedAt===undefined?this.secondaryPressure(fighters,mission,home):new Set<number>();
   const mainFighters=fighters.filter(u=>!raidUnits.has(u.id));
-  const reserve=cleanupReserveSize(c.enemyHQEliminatedAt!==undefined,mainFighters.length);
+  const reserve=homeGarrisonSize(mainFighters.length,c.enemyHQEliminatedAt!==undefined);
   const guards=new Set(mainFighters.filter(u=>!s.group.includes(u.id)).sort((a,b)=>distance(a,home)-distance(b,home)||a.id-b.id).slice(0,reserve).map(u=>u.id));
   const selected=mainFighters.filter(u=>!guards.has(u.id)).sort((a,b)=>Number(s.group.includes(b.id))-Number(s.group.includes(a.id))||distance(a,s.rally!)-distance(b,s.rally!)||a.id-b.id).slice(0,18);
   let members=selected.filter(u=>s.group.includes(u.id));
