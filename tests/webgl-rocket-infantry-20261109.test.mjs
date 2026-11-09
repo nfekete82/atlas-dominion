@@ -86,7 +86,7 @@ test('older saved matches load without an explicit rocket deployment counter',()
  assert.equal(loaded.save().stats.factions[0].deployedUnits.rocket,0);
 });
 
-test('rocket specialist receives infantry training and rocket range research',()=>{
+test('rocket specialist receives infantry training and rocket range research',async()=>{
  const {researchModifiers}=await import('../dist/src/reborn/strategic-tech.js');
  const research={completed:['rocketDevelopment','infantryTraining'],active:null,remaining:0};
  const modifiers=researchModifiers(research,'rocket');
