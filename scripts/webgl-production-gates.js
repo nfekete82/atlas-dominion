@@ -128,7 +128,7 @@ export class SandforgeProductionGates {
    gate.lamp.material.emissiveIntensity=(Math.sin(age*22)>0?3:.25);
    if(gate.dust){gate.dust.visible=pose.moving;gate.dust.scale.x=1.2+pose.drive*.4;}
    if(!state.sounded&&age>=GATE_TIMING.warning){
-    if(entry.node.visible)bf.sound?.productionGate?.();state.sounded=true;
+    if(entry.node.visible)bf.sound?.productionGate?.(gate.kind);state.sounded=true;
    }
    const driveStart=GATE_TIMING.warning+GATE_TIMING.opening;
    const fraction=clamp((age-driveStart)/state.duration);
