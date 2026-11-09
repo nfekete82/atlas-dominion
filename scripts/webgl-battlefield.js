@@ -23,6 +23,7 @@ import {snapToPlayableEdge,worldToMinimap} from '/webgl-map-edges.js';
 import {attackBlinkAlpha} from '/src/reborn/attack-alerts.js';
 import {UPGRADES,UPGRADE_KINDS,canResearchUpgrade,SILO_CHARGE_SECONDS,INTERCEPTOR_MAX_AMMO,INTERCEPTOR_REARM_COST} from '/src/reborn/strategic-tech.js';
 import {createStrategicBuilding,isStrategicBuilding} from '/webgl-strategic-buildings.js';
+import {GENERAL_ABILITIES,GENERAL_ABILITY_KINDS,canUseGeneralPower} from '/src/reborn/general-powers.js';
 
 // Runtime adapter: game state, movement, combat, production and AI are owned
 // exclusively by the original Simulation. 3D nodes are presentation only.
@@ -40,7 +41,7 @@ export class SandforgeBattlefield {
   this.announcedBuildings=new Set(game.bases.filter(b=>b.buildRemaining<=0).map(b=>b.id));
   this.models=new Map();this.pending=new Set();this.selected=new Set();
   this.selectedBase=null;this.buildKind=null;this.attackMode=false;
-  this.strategicTargetMode=false;
+  this.strategicTargetMode=false;this.generalTargetKind=null;
   this.rallyMode=false;
   this.rallyMarker=new THREE.Mesh(
    new THREE.RingGeometry(19,25,32),
@@ -861,6 +862,18 @@ export class SandforgeBattlefield {
     this.unloadPassenger(Number(button.dataset.carrierId),Number(button.dataset.passengerId));
     return;
    }
+   if(button.dataset.general){
+    const kind=button.dataset.general,tech=GENERAL_ABILITIES[kind];
+    if(!canUseGeneralPower(this.game.generals[0],kind,this.game.time)){
+      this.message('Fähigkeit noch nicht bereit oder zu wenig Kommandopunkte');
+      return;
+    }
+    this.generalTargetKind=kind;
+    this.strategicTargetMode=false;this.rallyMode=false;this.attackMode=false;
+    this.clearPlacement();
+    this.message(tech.name+': Linksklick auf Zielgebiet · Esc: Abbruch');
+    this.drawInterface();return;
+   }
    if(button.dataset.upgrade){
     const upgrade=button.dataset.upgrade;
     if(this.game.startResearch(0,upgrade))
@@ -930,16 +943,17 @@ export class SandforgeBattlefield {
     this.game.stop([...this.selected],false);
     this.message(count?count+' Einheiten angehalten':'Keine Einheiten gewählt');
    }
-   if(action==='cancel'){this.clearPlacement();this.attackMode=false;this.strategicTargetMode=false;this.selected.clear();this.selectedBase=null;this.drawInterface();}
+   if(action==='cancel'){this.clearPlacement();this.attackMode=false;this.strategicTargetMode=false;this.generalTargetKind=null;this.selected.clear();this.selectedBase=null;this.drawInterface();}
    if(action==='select-all'){this.selected=new Set(this.game.units.filter(u=>u.hp>0&&u.owner===0&&!u.carrier).map(u=>u.id));this.selectedBase=null;this.drawInterface();}
   });
   this.panel.addEventListener('sandforge-tabchange',event=>{
-   const available={buildings:this.catalogContext().engineer,units:Boolean(this.catalogContext().producer),territories:true,research:this.catalogContext().research};
+   const available={buildings:this.catalogContext().engineer,units:Boolean(this.catalogContext().producer),territories:true,research:this.catalogContext().research,powers:true};
    if(!available[event.detail.tab])return;
    this.panel.querySelector('#sf-actions').scrollTop=0;
    const descriptions={units:'Wähle einen Produktionsauftrag. Gebäude schalten neue Einheiten frei.',
     buildings:'Gebäude auswählen und einen freien Bauplatz auf der Karte anklicken.',
     research:'Forschungstechnologie wählen. Neue Boni gelten auch für bereits vorhandene Truppen.',
+    powers:'Kommandopunkte durch Kampf verdienen. Fähigkeit wählen und Zielgebiet auf der Karte anklicken.',
     territories:'Kontrollpunkt wählen, um die Kamera zum Sektor zu bewegen.'};
    this.panel.querySelector('#sf-catalog-detail').textContent=descriptions[event.detail.tab]??'';
   });
@@ -982,7 +996,7 @@ export class SandforgeBattlefield {
   const g=this.game,view=this.panel,actions=view.querySelector('#sf-actions');
   const context=this.catalogContext();
   const selectionKey=[...this.selected].sort((a,b)=>a-b).join(',')+'|'+String(this.selectedBase)+'|'+Boolean(context.producer);
-  const available={units:Boolean(context.producer),buildings:context.engineer,territories:true,research:context.research};
+  const available={units:Boolean(context.producer),buildings:context.engineer,territories:true,research:context.research,powers:true};
   if(this.catalogSelectionKey!==selectionKey||!available[view.dataset.tab]){
    view.dataset.tab=context.preferred;
    this.catalogSelectionKey=selectionKey;
@@ -996,6 +1010,7 @@ export class SandforgeBattlefield {
    tab.setAttribute('aria-pressed',String(view.dataset.tab===tab.dataset.tab));
   }
   view.querySelector('#sf-credits').textContent=format(g.credits[0]);
+  view.querySelector('#sf-general-points').textContent=String(g.generals[0].points);
   view.querySelector('#sf-income').textContent='+ '+format(g.income(0));
   view.querySelector('#sf-capacity').innerHTML=g.count(0)+' <em>/ '+RULES.capacity+'</em>';
   view.querySelector('#sf-stats').textContent='Credits '+format(g.credits[0])+' · '+g.count(0)+'/'+RULES.capacity;
