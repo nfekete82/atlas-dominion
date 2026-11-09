@@ -617,3 +617,51 @@ test('vehicle factory and barracks have recognizable physical equipment beside t
  expect(state.factoryTurn).toBeCloseTo(Math.PI/2,5);
  expect(state.barracksTurn).toBeCloseTo(Math.PI*1.5,5);
 });
+
+
+test('completed field command receives an open-front perimeter, supply cache and lamps only once',async({page})=>{
+ test.setTimeout(115000);
+ await load(page);
+ const result=await page.evaluate(()=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  game.credits[0]=10000;
+  const site=game.headquartersCandidates(0).find(p=>game.buildError(0,'headquarters',p)===null);
+  if(!site)throw Error('No valid HQ yard location');
+  const hq=game.build(0,'headquarters',site);
+  if(!hq)throw Error('HQ build rejected');
+  hq.buildRemaining=0;hq.hp=1200;
+  battlefield.sync(true,0,false,1);
+  const entry=battlefield.bases.get(hq.id),yard=entry?.yard;
+  const decor=yard?.getObjectByName('BasePerimeter_headquarters');
+  const fence=decor?.getObjectByName('YardFencePosts');
+  const first=yard;
+  battlefield.sync(false,0,false,1);
+  const second=battlefield.bases.get(hq.id)?.yard;
+  const count=name=>{
+   let total=0;yard?.traverse(obj=>{if(obj.name===name)total++;});
+   return total;
+  };
+  hq.facing=2;battlefield.sync(false,0,false,1);
+  return {
+   yard:yard?.name,attached:yard?.parent===entry?.node,
+   singleton:first===second,
+   visualOnly:yard?.userData?.nonPlayable&&decor?.userData?.nonPlayable,
+   fenceInstance:fence?.isInstancedMesh,posts:fence?.count,
+   lamps:count('SecurityLamp'),crates:count('SupplyCrate'),
+   lampDiffusers:count('LampDiffuser'),
+   rotated:entry?.node.rotation.y,
+   gameSaveHasYard:Object.keys(hq).some(key=>/yard|perimeter|fence|lamp|crate/i.test(key))
+  };
+ });
+ expect(result.yard).toBe('sf-yard-headquarters');
+ expect(result.attached).toBe(true);
+ expect(result.singleton).toBe(true);
+ expect(result.visualOnly).toBe(true);
+ expect(result.fenceInstance).toBe(true);
+ expect(result.posts).toBeGreaterThanOrEqual(12);
+ expect(result.lamps).toBeGreaterThanOrEqual(2);
+ expect(result.crates).toBeGreaterThanOrEqual(2);
+ expect(result.lampDiffusers).toBe(result.lamps);
+ expect(result.rotated).toBeCloseTo(Math.PI/2,5);
+ expect(result.gameSaveHasYard).toBe(false);
+});
