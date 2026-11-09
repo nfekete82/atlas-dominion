@@ -87,7 +87,7 @@ Die zuvor gemeldeten 34 Fehler sind bis auf zwei beseitigt. Die verbleibenden Pu
 ```sh
 npm run build
 node --test tests/reborn-selected-squad-pace.test.mjs tests/webgl-strategic-tech-20261109.test.mjs \
- tests/sandforge-vehicle-building-clearance.test.mjs tests/webgl-vehicle-spacing-recovery-20261108.test.mjs
+ tests/sandforge-vehicle-building-clearance.test.mjs
 npm test
 SANDFORGE_TEST_MAX_FAILURES=0 SANDFORGE_BROWSER_CHANNEL=chromium npm run test:webgl-integration
 ```
