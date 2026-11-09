@@ -1104,7 +1104,7 @@ export class Simulation {
       }
     }
     const cohort=u.orders[0]?.march;
-    if(cohort){const allies=cohort.map(id=>this.unitById.get(id)).filter((v):v is Unit=>Boolean(v)&&v!.owner===u.owner&&v!.hp>0&&
+    if(cohort){const allies=cohort.map(id=>this.unitById.get(id)).filter((v):v is Unit=>v!==undefined&&v.owner===u.owner&&v.hp>0&&
         (u.owner!==0||v.id===u.id||v.orders[0]?.march?.includes(u.id)));
       // A separately redirected/stopped soldier immediately leaves the
       // cohort; remaining units no longer inherit its former slow speed.
@@ -1387,7 +1387,7 @@ export class Simulation {
           if(softOnly&&a.owner===0&&a.orders[0]?.march?.includes(a.id)&&
              Number.isFinite(a.previousX)&&Number.isFinite(a.previousY)){
             const march=a.orders[0].march!;
-            const peers=march.map(id=>this.unitById.get(id)).filter((v):v is Unit=>Boolean(v)&&v!.owner===a.owner&&
+            const peers=march.map(id=>this.unitById.get(id)).filter((v):v is Unit=>v!==undefined&&v.owner===a.owner&&
               v.hp>0&&v.orders[0]?.march?.includes(a.id));
             if(peers.length){
               const pace=Math.min(...peers.map(v=>unitSpec(v).speed));
