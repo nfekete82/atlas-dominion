@@ -14,6 +14,14 @@ test('canonical project identity is Sandforge; package and lockfile match',()=>{
  assert.equal(pkg.scripts.build,'tsc -p tsconfig.json && node scripts/build.mjs');
 });
 
+test('Playwright package and lockfile also use the Sandforge project identity',()=>{
+ const browser=JSON.parse(read('tests/browser/package.json'));
+ const lock=JSON.parse(read('tests/browser/package-lock.json'));
+ assert.equal(browser.name,'sandforge-browser-tests');
+ assert.equal(lock.name,browser.name);
+ assert.equal(lock.packages[''].name,browser.name);
+});
+
 test('new Docker Compose service does not alter the live port and preview remains isolated',()=>{
  const compose=read('compose.yaml'),preview=read('compose.rc2-preview.yaml');
  assert.match(compose,/^  sandforge:\s*$/m);
