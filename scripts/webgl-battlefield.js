@@ -7,7 +7,7 @@ import {UNITS,BUILDINGS,MAX_GENERATORS_PER_FACTION,unitKinds,buildingKinds,unitS
 import {TERRAIN_LABELS} from '/src/reborn/battlefield-terrain.js';
 import {RULES} from '/src/reborn/config.js';
 import {installClassicHud} from '/webgl-classic-hud.js';
-import {hydrateUnitIcons,hydrateBuildingIcons,unitIcon,buildingIconUrl,researchIconMarkup,researchEffectLabel,hydrateResearchArtworks} from '/webgl-portraits.js';
+import {hydrateUnitIcons,hydrateBuildingIcons,unitIcon,buildingIcon,buildingIconUrl,researchIconMarkup,researchEffectLabel,hydrateResearchArtworks} from '/webgl-portraits.js';
 import {SandforgeActorPresentation} from '/webgl-actor-presentation.js';
 import {calibratedScale,visualUnitScale,unitVisualYaw,unitRenderAltitude,buildingFacingAngle,nextBuildingFacing,buildingFacingDegrees,turretAimLocalYaw} from '/webgl-scale.js';
 import {SandforgeGroundingPass} from '/webgl-grounding.js';
@@ -1166,7 +1166,7 @@ export class SandforgeBattlefield {
    for(const b of constructionSites){
     items.push('<div role="listitem" class="sf-production-slot is-build" data-build-id="'+
      b.id+'" title="'+plain(BUILDINGS[b.kind].name)+' im Bau">'+
-     '<img src="'+buildingIconUrl(b.kind)+'" alt="" loading="lazy" decoding="async">'+
+     '<img data-sf-building-icon="'+b.kind+'" src="'+buildingIconUrl(b.kind)+'" alt="" loading="lazy" decoding="async">'+
      '<div class="sf-production-slot-copy"><strong>'+plain(BUILDINGS[b.kind].name)+'</strong>'+
      '<small>BAU</small></div><span class="sf-slot-progress"><i></i></span></div>');
    }
@@ -1175,6 +1175,7 @@ export class SandforgeBattlefield {
    this.previousProductionSlotsKey=slotKey;
    slots.scrollLeft=scroll;
    hydrateUnitIcons(slots);
+   hydrateBuildingIcons(slots,this.renderer);
   }
   for(const tile of slots.querySelectorAll('[data-queue-base]')){
    const producer=queuedBases.find(b=>b.id===Number(tile.dataset.queueBase));
@@ -1286,7 +1287,13 @@ export class SandforgeBattlefield {
       if(this.previousPortraitKey===portraitKey)portrait.src=url;
      }).catch(error=>console.warn('Portrait fallback',error));
      portrait.src='/src/assets/reborn/infantry-grounded-v3.png';
-    }else portrait.src=buildingIconUrl(item?.kind??'headquarters');
+    }else{
+     const buildingKind=item?.kind??'headquarters';
+     portrait.src=buildingIconUrl(buildingKind);
+     buildingIcon(buildingKind,this.renderer).then(url=>{
+      if(this.previousPortraitKey===portraitKey&&portrait.isConnected)portrait.src=url;
+     }).catch(error=>console.warn('Building portrait fallback:',buildingKind,error));
+    }
    }
   }
   const launchButton=view.querySelector('#sf-strategic-fire');
