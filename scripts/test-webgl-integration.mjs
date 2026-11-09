@@ -9,6 +9,11 @@ const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const host='127.0.0.1';
 const playwright=resolve(root,'tests/browser/node_modules/.bin/playwright');
 const config='tests/browser/playwright.config.mjs';
+// Use SANDFORGE_TEST_MAX_FAILURES=0 to collect all browser failures in one run.
+// The fast feedback default remains 3; zero disables Playwright's early stop.
+const maxFailures=process.env.SANDFORGE_TEST_MAX_FAILURES??'3';
+if(!/^(0|[1-9][0-9]*)$/.test(maxFailures))
+ throw new Error('SANDFORGE_TEST_MAX_FAILURES must be an integer >= 0');
 const specs=[
   'tests/browser/webgl-fog-alignment.spec.mjs',
   'tests/browser/webgl-territory-rally-cliffs.spec.mjs',
@@ -68,9 +73,9 @@ try{
     stdio:['ignore','inherit','inherit']
   });
   await ready(port,server);
-  tests=spawn(playwright,['test','--config='+config,...specs,'--workers=2','--max-failures=3','--reporter=line'],{
+  tests=spawn(playwright,['test','--config='+config,...specs,'--workers=2','--max-failures='+maxFailures,'--reporter=line'],{
     cwd:root,
-    env:{...process.env,ATLAS_BASE_URL:base},
+    env:{...process.env,SANDFORGE_BASE_URL:base,ATLAS_BASE_URL:base},
     stdio:'inherit'
   });
   const outcome=await waitForExit(tests);

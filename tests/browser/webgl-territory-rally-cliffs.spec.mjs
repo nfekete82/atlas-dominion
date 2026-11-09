@@ -7,36 +7,21 @@ async function load(page){
   await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:95000});
 }
 
-test('3D canyon monoliths are decorative, outside the playable world and do not alter collision',async({page})=>{
-  await load(page);
-  const state=await page.evaluate(()=>{
-    const a=window.__sandforgeWebGL;
-    const mesh=a.boundaryCliffs?.monoliths;
-    const worldSize=a.game.world.size;
-    const center=worldSize*.5;
-    const matrix=mesh?.instanceMatrix;
-    const positions=[];
-    if(mesh&&matrix){
-      const data=matrix.array;
-      for(let i=0;i<mesh.count;i++){
-        const x=data[i*16+12]+center;
-        const z=data[i*16+14]+center;
-        positions.push({x,z});
-      }
-    }
-    return {
-      count:mesh?.count??0,
-      visual:mesh?.userData?.visualBoundary===true,
-      nonPlayable:mesh?.userData?.nonPlayable===true,
-      collisionChanged:a.boundaryCliffs?.collisionChanged,
-      outside:positions.length>0&&positions.every(p=>p.x<0||p.x>worldSize||p.z<0||p.z>worldSize)
-    };
-  });
-  expect(state.count).toBeGreaterThanOrEqual(40);
-  expect(state.visual).toBe(true);
-  expect(state.nonPlayable).toBe(true);
-  expect(state.collisionChanged).toBe(false);
-  expect(state.outside).toBe(true);
+test('modern desert has no exterior monoliths and retains gameplay collision',async({page})=>{
+ await load(page);
+ const state=await page.evaluate(()=>{
+  const a=window.__sandforgeWebGL,cliffs=a.boundaryCliffs,world=a.game.world,size=world.size;
+  return {hardVoid:cliffs.hardVoid,monoliths:cliffs.monoliths,
+   cliffs:cliffs.cliffs.length,scree:cliffs.scree.length,
+   collisionChanged:cliffs.collisionChanged,
+   blocked:[world.walkable({x:-2,y:size/2}),world.walkable({x:size+2,y:size/2})]};
+ });
+ expect(state.hardVoid).toBe(true);
+ expect(state.monoliths).toBeNull();
+ expect(state.cliffs).toBe(0);
+ expect(state.scree).toBe(0);
+ expect(state.collisionChanged).toBe(false);
+ expect(state.blocked).toEqual([false,false]);
 });
 
 test('bastion capture timer in the sector list reflects authoritative simulation progress',async({page})=>{
@@ -181,8 +166,8 @@ test('production percentage increases with elapsed time and construction is visi
   expect(parseFloat(info.bar)).toBeCloseTo(50,5);
   expect(info.eta).toBe('3 s');
   expect(info.construction).toContain('50%');
-  expect(info.count).toContain('1 AUFTRAG');
-  expect(info.count).toContain('1 BAU');
+  // One queued pioneer plus one active HQ building site.
+  expect(info.count).toBe('2 AKTIV · 1 BAU');
 });
 
 test('visual depth preview keeps an angled 3D RTS camera and desert fog',async({page})=>{
@@ -460,25 +445,28 @@ test('Fog-of-War shader softens the visible-side border without uncovering hidde
   expect(state.unexploredOpacity).toBe(true);
 });
 
-test('decorative 3D desert tapers into the horizon instead of ending as a hard cliff',async({page})=>{
-  await load(page);
-  const state=await page.evaluate(()=>{
-    const perimeter=window.__sandforgeWebGL.visualPerimeter;
-    const leftmost=Math.min(...perimeter.meshes.map(m=>m.userData.tileX));
-    const edge=perimeter.meshes.find(m=>m.userData.tileX===leftmost&&m.userData.tileY===0);
-    return {
-      edgeHeight:edge?.geometry.getAttribute('position').getY(0),
-      tileCount:perimeter.meshes.length,
-      decorativeOnly:edge?.userData.nonPlayable,
-      worldSize:window.__sandforgeWebGL.game.world.size
-    };
-  });
-  expect(state.tileCount).toBeGreaterThan(10);
-  expect(state.decorativeOnly).toBe(true);
-  expect(state.edgeHeight).toBeCloseTo(0,3);
-  expect(state.worldSize).toBeGreaterThan(0);
+test('3D map ends at pure black without decorative desert beyond the playable border',async({page})=>{
+ await load(page);
+ const state=await page.evaluate(()=>{
+  const view=window.__sandforgeWebGL,perimeter=view.visualPerimeter;
+  return {
+   hardVoid:perimeter.hardVoid,
+   tileCount:perimeter.meshes.length,
+   coverCount:perimeter.voidCover.length,
+   margin:perimeter.margin,
+   cliffs:view.boundaryCliffs.cliffs.length,
+   background:view.scene.background.getHexString(),
+   worldSize:view.game.world.size
+  };
+ });
+ expect(state.hardVoid).toBe(true);
+ expect(state.tileCount).toBe(0);
+ expect(state.coverCount).toBe(0);
+ expect(state.margin).toBe(0);
+ expect(state.cliffs).toBe(0);
+ expect(state.background).toBe('000000');
+ expect(state.worldSize).toBeGreaterThan(0);
 });
-
 
 test('3D parity: click a completed base and right-click the map to set rally immediately',async({page})=>{
   test.setTimeout(115000);

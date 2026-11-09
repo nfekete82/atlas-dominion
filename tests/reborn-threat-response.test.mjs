@@ -10,24 +10,37 @@ function scene(){
  const unit=g.spawn(1,{x:1950,y:1500},'infantry');g.updateVision();return {g,tower,unit};
 }
 test('tower response: first actual hit triggers an authoritative retreat within the same fixed tick',()=>{
- const {g,tower,unit}=scene();g.command([unit.id],{x:1300,y:1500,kind:'attackMove'});g.step(.05);
+ const {g,tower,unit}=scene();unit.hp=40;
+ g.command([unit.id],{x:1300,y:1500,kind:'attackMove'});g.step(.05);
  assert.ok(unit.hp<100);assert.equal(unit.orders[0]?.kind,'move');assert.equal(unit.orders[0]?.tactical?.mode,'safe');
  assert.ok(g.tactical.state.battle.withdrawals.some(w=>w.unit===unit.id));
  assert.ok(distance(unit.orders[0],tower)>RULES.turret.range);
  const before={x:unit.x,y:unit.y};g.step(.05);assert.ok(distance(unit,before)>0);
 });
 test('tower response: a fogged shooter grants no enemy building ID, position or HP',()=>{
- const {g,tower,unit}=scene();assert.equal(g.canSee(1,tower),false);g.step(.05);
+ const {g,tower,unit}=scene();unit.hp=40;
+ assert.equal(g.canSee(1,tower),false);g.step(.05);
  assert.equal(g.tactical.state.knownTurrets.length,0);assert.equal(g.memories[1].some(m=>m.id===tower.id),false);
  const b=g.tactical.state.battle;assert.ok(b.withdrawals.length);assert.equal(JSON.stringify(b).includes('1900'),false);
 });
 test('tower response: macro gathering cannot overwrite the immediate retreat',()=>{
- const {g,unit}=scene();g.step(.05);const first={...unit.orders[0]};g.time+=3;g.tactical.plan();
+ const {g,unit}=scene();unit.hp=40;
+ g.step(.05);const first={...unit.orders[0]};g.time+=3;g.tactical.plan();
  assert.equal(unit.orders[0]?.kind,'move');assert.equal(unit.orders[0]?.tactical?.mode,'safe');assert.equal(unit.orders[0].x,first.x);assert.equal(unit.orders[0].y,first.y);
 });
 test('tower response: burst damage coalesces commands instead of replanning each round',()=>{
- const {g,unit}=scene();let commands=0;const command=g.command.bind(g);g.command=(...a)=>{commands++;return command(...a);};
+ const {g,unit}=scene();unit.hp=40;
+ let commands=0;const command=g.command.bind(g);g.command=(...a)=>{commands++;return command(...a);};
  for(let i=0;i<8;i++)g.step(.05);assert.ok(unit.hp<100);assert.equal(commands,1);
+});
+test('healthy AI soldiers do not abandon a supported attack after one turret hit',()=>{
+ const {g,unit}=scene();
+ g.command([unit.id],{x:1300,y:1500,kind:'attackMove'});
+ g.step(.05);
+ assert.ok(unit.hp>48,'a single turret burst has not critically wounded the soldier');
+ assert.equal(unit.orders[0]?.kind,'attackMove','healthy soldier continues the assigned assault');
+ assert.equal(g.tactical.state.battle?.withdrawals.length??0,0,
+  'the new advantage-aware retreat policy must not force a full-health withdrawal');
 });
 test('tower response: player, legacy maps and explicit baseline retain existing controls',()=>{
  for(const label of ['player','legacy','baseline']){
@@ -49,7 +62,8 @@ test('failed front: same weak wave is held; real reinforcement, siege or cooldow
  assert.equal(retryFront(b,2,100,3,1,11),true);assert.equal(retryFront(b,2,100,3,0,31),true);
 });
 test('battle state: saves round-trip without changing old-save requirements; malformed fields fail validation',()=>{
- const {g}=scene();g.step(.05);const raw=g.save(),loaded=Simulation.load(raw);assert.deepEqual(loaded.tactical.state.battle,g.tactical.state.battle);
+ const {g,unit}=scene();unit.hp=40;
+ g.step(.05);const raw=g.save(),loaded=Simulation.load(raw);assert.deepEqual(loaded.tactical.state.battle,g.tactical.state.battle);
  const invalid=structuredClone(raw);invalid.ai.battle.withdrawals[0].x=-1;assert.throws(()=>Simulation.load(invalid));
  delete raw.ai.battle;assert.ok(Simulation.load(raw));
 });

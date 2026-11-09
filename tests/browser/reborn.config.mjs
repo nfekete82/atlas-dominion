@@ -1,7 +1,10 @@
 import {defineConfig} from '@playwright/test';
+// Prefer the Sandforge variables while preserving older local test scripts.
+const env=(name,legacy)=>process.env[name]??process.env[legacy];
+const baseURL=env('SANDFORGE_BASE_URL','ATLAS_BASE_URL');
 export default defineConfig({
  testDir:'.',testMatch:['reborn-hq-bootstrap.spec.mjs','reborn-ai-early-barracks-preview.spec.mjs','reborn-desert-visual-polish.spec.mjs','reborn-armored-vanguard.spec.mjs','reborn-infantry-building-clearance.spec.mjs','reborn-clean-production-exit.spec.mjs','reborn-visible-cliff-faces.spec.mjs','reborn-building-decor-rotate.spec.mjs','reborn-attack-alerts.spec.mjs','reborn-rocket-kinematics-v2.spec.mjs','reborn-atmosphere-v1.spec.mjs','reborn-endgame-controls.spec.mjs','reborn-wasd-hotkeys.spec.mjs','reborn-no-sandstorms.spec.mjs','reborn-three-column-catalog.spec.mjs','reborn-map-sizes.spec.mjs','reborn-humvee-roster.spec.mjs','reborn-bomber-shadow.spec.mjs','reborn-gameplay-update.spec.mjs','reborn-compact-ui.spec.mjs','reborn-rocket-pbr.spec.mjs','reborn-transport-pbr.spec.mjs','reborn-production.spec.mjs','reborn-tactics-visuals.spec.mjs','reborn-performance.spec.mjs','reborn.spec.mjs','reborn-building-pbr.spec.mjs','reborn-support.spec.mjs','reborn-overhaul.spec.mjs','reborn-defense-map.spec.mjs','reborn-polish.spec.mjs','reborn-tactical-ai.spec.mjs','reborn-combined-arms.spec.mjs','reborn-radio.spec.mjs','reborn-layout.spec.mjs'],timeout:45000,workers:1,
  reporter:[['list'],['json',{outputFile:'artifacts/reborn-results.json'}]],outputDir:'artifacts/reborn',
- webServer:process.env.ATLAS_BASE_URL?undefined:{command:'node scripts/serve.mjs',cwd:new URL('../../',import.meta.url).pathname,url:'http://127.0.0.1:8097',env:{PORT:'8097'},reuseExistingServer:!process.env.CI},
- use:{baseURL:process.env.ATLAS_BASE_URL??'http://127.0.0.1:8097',channel:process.env.ATLAS_BROWSER_CHANNEL??'chrome',headless:true,trace:'retain-on-failure'},
+ webServer:baseURL?undefined:{command:'node scripts/serve.mjs',cwd:new URL('../../',import.meta.url).pathname,url:'http://127.0.0.1:8097',env:{PORT:'8097'},reuseExistingServer:!process.env.CI},
+ use:{baseURL:baseURL??'http://127.0.0.1:8097',channel:env('SANDFORGE_BROWSER_CHANNEL','ATLAS_BROWSER_CHANNEL')??'chrome',headless:true,trace:'retain-on-failure'},
 });

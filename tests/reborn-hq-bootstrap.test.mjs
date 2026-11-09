@@ -87,16 +87,32 @@ test('HQ bootstrap: cancellation is refundable and restartable; unfinished saves
  assert.equal(g.radarOnline(0),false);assert.doesNotThrow(()=>placeHQ(g));
  const a=Simulation.load(saved),b=Simulation.load(saved);advance(a,30);advance(b,30);assert.deepEqual(a.save(),b.save());assert.equal(a.radarOnline(0),true);
 });
-test('HQ bootstrap: loss of the only pioneer before or during HQ construction ends the match without a softlock',()=>{
+test('HQ bootstrap: loss of the only pioneer never invents defeat while other forces survive',()=>{
  for(const during of [false,true]){
-  const g=campaign();if(during)placeHQ(g);g.units=g.units.filter(u=>u.id!==worker(g).id);g.step();
-  assert.equal(g.status,'defeat');assert.ok(g.count(0)>0,'soldier survives');assert.equal(g.radarOnline(0),false);
-  assert.equal(Simulation.load(g.save()).status,'defeat');
+  const g=campaign();if(during)placeHQ(g);
+  g.units=g.units.filter(u=>u.id!==worker(g).id);g.step();
+  assert.equal(g.status,'playing','a living soldier or building prevents premature defeat');
+  assert.ok(g.count(0)>0,'soldier survives');
+  assert.equal(g.radarOnline(0),false);
+  assert.equal(Simulation.load(g.save()).status,'playing');
+  // Real final elimination does trigger defeat, even if a damaged
+  // unfinished foundation remains in the map for visual continuity.
+  g.units=g.units.filter(u=>u.owner!==0);
+  for(const b of g.bases)if(b.owner===0)b.hp=0;
+  g.step();assert.equal(g.status,'defeat');
  }
- const complete=campaign(),hq=finishHQ(complete);complete.units=complete.units.filter(u=>u.id!==worker(complete).id);complete.step();
- assert.equal(complete.status,'playing');assert.ok(complete.recruit(hq.id,'engineer'),'completed HQ can replace a pioneer');
- const enemy=campaign();enemy.units=enemy.units.filter(u=>u.id!==worker(enemy,1).id);enemy.step();assert.equal(enemy.status,'victory');
+ const complete=campaign(),hq=finishHQ(complete);
+ complete.units=complete.units.filter(u=>u.id!==worker(complete).id);
+ complete.step();assert.equal(complete.status,'playing');
+ assert.ok(complete.recruit(hq.id,'engineer'),'completed HQ can replace a pioneer');
+ const enemy=campaign();
+ enemy.units=enemy.units.filter(u=>u.id!==worker(enemy,1).id);
+ enemy.step();assert.equal(enemy.status,'playing','remaining red soldier prevents false victory');
+ enemy.units=enemy.units.filter(u=>u.owner!==1);
+ for(const b of enemy.bases)if(b.owner===1)b.hp=0;
+ enemy.step();assert.equal(enemy.status,'victory');
 });
+
 test('HQ bootstrap: AI uses paid real construction on varied maps, resumes work and then hands off to Tactical AI',()=>{
  for(const version of [2,11,12,13,14])for(const seed of [0,2026,75310]){
   const g=Simulation.campaign(seed,version),built=[],original=g.build.bind(g);

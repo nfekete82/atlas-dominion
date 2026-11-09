@@ -45,7 +45,8 @@ test('Atmosphere 1.0: dust whirls and flags are deterministic, reduced-motion sa
  assert.deepEqual(g.save(),save,'ambient rendering cannot change authoritative simulation');
 });
 test('Atmosphere 1.0: sound proximity honors visible vehicles only, never hidden enemies',()=>{
- const vehicle=(owner,x,y,moving)=>({owner,x,y,moving,hp:280,kind:'rover'});
+ const vehicle=(owner,x,y,moving)=>({owner,x,y,moving,hp:280,kind:'rover',
+  previousX:moving?x-5:x,previousY:y});
  const generator=(owner,x,y)=>({owner,x,y,hp:600,kind:'generator',buildRemaining:0});
  const g={units:[vehicle(0,100,100,true),vehicle(1,120,100,true),vehicle(0,4000,4000,true)],
   bases:[generator(0,150,100),generator(1,3000,3000)]};
@@ -69,8 +70,10 @@ test('Atmosphere 1.0: renderer hooks coexist with built-in sweep, dynamic tracks
  assert.match(renderer,/this\.battlefield\.drawTracks/);
  assert.match(renderer,/this\.structures\.drawActivity/);
  assert.doesNotMatch(renderer,/paintDesertInfrastructure/);
- assert.match(audio,/this\.motorGain.*setTargetAtTime/);
- assert.match(audio,/this\.generatorGain.*setTargetAtTime/);
+ assert.match(audio,/vehicleSoundMix\(g,r\.camera/);
+ assert.match(audio,/this\.engineVoices/);
+ assert.doesNotMatch(audio,/this\.motorGain.*setTargetAtTime/);
+ assert.doesNotMatch(audio,/this\.generatorGain.*setTargetAtTime/);
  const game=new Simulation(2026,14);
  assert.equal(game.weather.enabled,false);
 });

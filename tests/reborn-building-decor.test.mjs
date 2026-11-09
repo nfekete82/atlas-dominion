@@ -10,7 +10,7 @@ import {buildingArtWidth} from '../dist/src/reborn/visual-scale.js';
 const kinds=['headquarters','barracks','factory','airfield','generator','turret','bastion'];
 const center={x:1850,y:2000};
 test('3D base props: restrained, fixed service yards for every building',()=>{
- assert.deepEqual(DECOR_PROP_COUNTS,{headquarters:5,barracks:3,factory:4,airfield:3,generator:1,turret:1,bastion:1});
+ assert.deepEqual(DECOR_PROP_COUNTS,{headquarters:5,barracks:3,factory:4,airfield:3,generator:1,turret:1,research:2,silo:2,interceptor:2,bastion:1});
  const propKinds=new Set();
  for(const kind of kinds){
   const r=kind==='bastion'?42:BUILDINGS[kind].radius,props=buildingProps(kind,center,r,1003,2026);

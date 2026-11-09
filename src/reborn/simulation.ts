@@ -1358,6 +1358,20 @@ export class Simulation {
           const delta={x:dx*push*sign,y:dy*push*sign};
           if(softOnly&&!preservesVehicleProgress(a,delta))continue;
           const p={x:a.x+delta.x,y:a.y+delta.y};
+          // Soft spacing is cosmetic; it must not accelerate a selected player
+          // squad past its slowest active reciprocal march member. The actual
+          // path movement above already enforces that pace. Keep hard overlap
+          // resolution unrestricted so units can never become physically stuck.
+          if(softOnly&&a.owner===0&&a.orders[0]?.march?.includes(a.id)&&
+             Number.isFinite(a.previousX)&&Number.isFinite(a.previousY)){
+            const march=a.orders[0].march!;
+            const peers=this.units.filter(v=>march.includes(v.id)&&v.owner===a.owner&&
+              v.hp>0&&v.orders[0]?.march?.includes(a.id));
+            if(peers.length){
+              const pace=Math.min(...peers.map(v=>unitSpec(v).speed));
+              if(Math.hypot(p.x-a.previousX!,p.y-a.previousY!)>pace*dt+1e-8)continue;
+            }
+          }
           const colliders=unitSpec(a).group==='Fahrzeuge'?separationVehicles:
            unitSpec(a).flying?separationBuildings:separationInfantry;
           if(unitSpec(a).flying||

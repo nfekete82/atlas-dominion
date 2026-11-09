@@ -18,7 +18,9 @@ for(const kind of ['scout','bomber','heavy']){
   const enemy=g.spawn(1,{x:1900+Math.min(175,UNITS[kind].range-25),y:2100},'heavy');
   g.stop([enemy.id],false);g.updateVision();
   advance(g,.5);
-  assert.ok(enemy.hp<UNITS.heavy.hp,`${kind} should have fired before retreat`);
+  // Bombers release a single bomb on a timed flyover rather than firing an
+  // immediate conventional shot. Their manual retreat must still override it.
+  if(kind!=='bomber')assert.ok(enemy.hp<UNITS.heavy.hp,`${kind} should have fired before retreat`);
   const before=pilot.x,enemyHp=enemy.hp;
   assert.equal(g.command([pilot.id],{kind:'move',x:1500,y:2100}),1);
   assert.equal(pilot.orders[0].kind,'move');

@@ -1,5 +1,14 @@
+<div align="center">
+
+<img src="src/assets/reborn/sandforge-logo-transparent.webp" alt="Sandforge: Bastion Wars" width="520">
+
 # SANDFORGE: BASTION WARS
 
+**Taktisches 3D-Wüsten-RTS · Basenbau · KI · Bastionen · Forschung · Langstreckenraketen**
+
+</div>
+
+> **Entwicklungsversion:** Der WebGL-Integrationslauf auf Commit [`3f30e379`](https://github.com/nfekete82/sandforge/commit/3f30e379cdf864a53fde96fce97a7d4790fdc7d6) ist am **09.11.2026 mit 17/17 Node- und 72/72 Chromium-Tests bestanden**. Die aktuelle 3D-Codebasis liegt weiter auf gestapelten Draft-PRs und ist **noch nicht in `main` integriert oder produktiv freigegeben**. Nach dem Formations-/Kollisionsfix wurden auf Commit [`36419e1b`](https://github.com/nfekete82/sandforge/commit/36419e1b4b9fb14f42a8de7e0437f4c9e9a0ea7a) **1.356/1.357 Node-Tests bestanden (0 Fehler, 1 Skip)** sowie nochmals **17/17 WebGL-Node- und 72/72 Chromium-Tests**. Der übersprungene Test benötigt optionale lokale Premium-Binärassets. Separate Classic-, Langzeit-, CI- und Deployment-Abnahmen bleiben offen. [WebGL-Prüfprotokoll](docs/qa/webgl-integration-20261109-3f30e379.md) · [Node-Regressionsbericht](docs/qa/full-node-regression-20261109.md).
 
 ## WebGL 3D RC2 — Standard-Spieloberfläche (Entwicklung)
 
@@ -33,14 +42,16 @@ weiterhin verfügbar; **kein ungeprüfter 3D-Upload auf Uberspace**.
 
 [RC2-Abnahme und Checkliste](docs/releases/webgl-rc2-20261106.md) ·
 [WebGL-Migrationshistorie](docs/webgl-3d-release-plan.md) ·
-[CI-Stresstests](https://github.com/nfekete82/atlas-dominion/pull/236).
+[CI-Stresstests](https://github.com/nfekete82/sandforge/pull/236).
 
 
 Lokales Wüsten-RTS mit zehn Einheitentypen, eroberbaren Bastionen und einer gegnerischen Armee aus Infanterie, Fahrzeugen und Luftunterstützung. Neue Kampagnen haben 16 Bastionen und je zwei blaue und rote Startsektoren. Alte Spielstände mit 30 Bastionen und ihren ursprünglichen Startgebieten bleiben ladbar.
 
 Der lokale Entwicklungsstand trägt weiterhin **1.8.0**; als nächste Version ist **1.9.0** vorgeschlagen. [Release-Entwurf](docs/releases/v1.9.0-de.md), [Prüfbericht](docs/qa/release-2026-10-24.md) und [sichere Veröffentlichungsschritte](docs/releases/RELEASE.md). Die deutschen Stimmen A, B und C wurden anhand der Hörproben vom Eigentümer freigegeben und für alle 47 Meldungen aktiviert.
 
-Sandforge ist der aktuelle Spielname. Das GitHub-Repository ist aus historischen Gründen noch unter `nfekete82/atlas-dominion` erreichbar; interne Kennungen des Spielstands bleiben aus Kompatibilitätsgründen erhalten.\n\n## Starten
+**Projektidentität:** Das Spiel heißt **Sandforge: Bastion Wars**, npm-Paket und Docker-Service heißen `sandforge`. Das GitHub-Repository wurde inzwischen zu `nfekete82/sandforge` umbenannt; alle bestehenden Pull Requests und die Projekt-Historie bleiben erhalten. Die Anleitung [Sandforge-Projektumbenennung](docs/SANDFORGE-RENAME.md) enthält sichere Umstellung, Befehle und Kompatibilitätsregeln. Spielstandskennungen bleiben unverändert.
+
+## Starten
 
 ```sh
 npm ci
@@ -54,8 +65,8 @@ npm run dev
 - Linksklick wählt Einheiten oder Gebäude, Ziehen markiert eine Gruppe. Doppelklick markiert sichtbare eigene Truppen.
 - Rechtsklick bewegt oder greift sichtbare Gegner an. Shift hängt Befehle an. **A** aktiviert Angriffsbewegung, **S** hält die Position. Nach einem Gefecht setzen Einheiten ihren Auftrag fort.
 - WASD/Pfeile und der Spielfeldrand bewegen die Kamera. Mausrad zoomt am Zeiger; Radar klicken/ziehen verschiebt den Ausschnitt. **H** zeigt das Hauptquartier, **T** die Sektorgrenzen.
-- Das Spielfeld liegt links, die Sidebar in einer eigenen CSS-Grid-Spalte rechts. Der gesamte sichtbare Kartenrand bleibt für Auswahl, Befehle und Bau erreichbar, auch nach Resize und auf Retina-Displays.
-- Jede Fraktion startet mit einem Pionier und einem Infanteriesoldaten. Das Hauptquartier bildet ausschließlich Pioniere aus. Erst eine fertiggestellte Kaserne schaltet Infanteriesoldaten, Sanitäter und schwere Infanterie frei; Fahrzeugfabrik und Flugfeld schalten Fahrzeuge beziehungsweise Luftunterstützung frei. Der rechte Einheitenkatalog zeigt nur die durch vorhandene fertige Gebäude verfügbaren Typen. Kosten, Produktionszeit, Warteschlange und Kapazität gelten weiterhin. Ein Klick auf einen belegten Produktionsplatz storniert genau diesen Auftrag mit Kostenerstattung. Details zu Freischaltung und alten Spielständen: [Produktionsgebäude](docs/reborn-production.md).
+- Im 3D-Spiel verbindet das untere, bildschirmbreite HUD Minikarte, Einheiten-/Gebäudekatalog, Forschung, Produktion und Befehle. Die klassische Canvas-Version nutzt weiter ihre bisherige Seitenleiste. Der Kartenrand bleibt für Befehle und Bau erreichbar.
+- Jede Fraktion startet mit einem Pionier und einem Infanteriesoldaten. Das Hauptquartier bildet ausschließlich Pioniere aus. Erst eine fertiggestellte Kaserne schaltet Infanteriesoldaten, Sanitäter und schwere Infanterie frei; Fahrzeugfabrik und Flugfeld schalten Fahrzeuge beziehungsweise Luftunterstützung frei. Der Einheitenkatalog zeigt nur die durch vorhandene fertige Gebäude verfügbaren Typen. Kosten, Produktionszeit, Warteschlange und Kapazität gelten weiterhin. Ein Klick auf einen belegten Produktionsplatz storniert genau diesen Auftrag mit Kostenerstattung. Details zu Freischaltung und alten Spielständen: [Produktionsgebäude](docs/reborn-production.md).
 - Pionier auswählen und im Baukatalog eine Anlage platzieren. Sie muss in erkundetem, freiem und erreichbarem Gebiet liegen; der Arbeiter muss sie tatsächlich erreichen und errichten. Rechtsklick auf eine eigene beschädigte Anlage repariert sie.
 - Sanitäter heilen verletzte eigene Infanterie in 70 M Umkreis mit insgesamt 12 LP/s, auf mehrere Patienten verteilt. Ohne Beschuss regenerieren sie sich nach einer Wartezeit langsam selbst. Gruppenbefehle halten sie hinter der Front.
 - Soldaten auswählen und den Transporthelikopter rechtsklicken, oder den Heli auswählen und eine eigene Infanteriegruppe rechtsklicken. Er landet zur Aufnahme von höchstens zehn Infanteristen und startet anschließend. **Ausladen** wählt einen sicheren Landeplatz; danach hebt er wieder ab. Passagiere und laufende Transportphasen werden gespeichert.
@@ -94,17 +105,17 @@ Die drei fiktiven deutschen Stimmen A, B und C aus Qwen3-TTS VoiceDesign und Bas
 npm run build
 npm test                    # vollständige Node-Suite, einschließlich Archiv und HTTP
 npm ci --prefix tests/browser
-npm run test:browser         # 52 Browserfälle: Spiel, HUD, Audio und Modellwerkzeuge
+npm run test:browser         # WebGL-Integration: 17 Node- + 72 Chromium-Fälle (Stand 09.11.2026)
 python3 scripts/audit-radio-bank.py src/assets/reborn/voices
 ```
 
-Chrome ist voreingestellt; `ATLAS_BROWSER_CHANNEL=chromium` verwendet Playwright Chromium. `ATLAS_BASE_URL` prüft einen bereits laufenden Server. Zusätzlich verfügbar: `npm run typecheck`, `npm run test:reborn`, `npm run test:animation`, `npm run assets:animation-audit` und `npm run test:ai-defense`.
+Chrome ist voreingestellt; `SANDFORGE_BROWSER_CHANNEL=chromium` verwendet Playwright Chromium. `SANDFORGE_BASE_URL` prüft einen bereits laufenden Server. `SANDFORGE_TEST_DPR` steuert die Test-Pixeldichte. Die alten `ATLAS_*`-Variablen bleiben als Kompatibilitäts-Fallbacks nutzbar. Zusätzlich verfügbar: `npm run typecheck`, `npm run test:reborn`, `npm run test:animation`, `npm run assets:animation-audit` und `npm run test:ai-defense`.
 
-[Aktueller Release-Prüfbericht](docs/qa/release-2026-10-24.md) · [Ältere Prüfungen und Bilder](docs/reborn/QA.md) · [Änderungsprotokoll](CHANGELOG.md)
+[WebGL-Integration 09.11.2026: 17/17 + 72/72 PASS](docs/qa/webgl-integration-20261109-3f30e379.md) · [Älterer Release-Prüfbericht](docs/qa/release-2026-10-24.md) · [Ältere Prüfungen und Bilder](docs/reborn/QA.md) · [Änderungsprotokoll](CHANGELOG.md)
 
 ## Technik, Grafik und Quellen
 
-TypeScript, Canvas 2D, 20 Simulationsschritte pro Sekunde, A*, räumliche Buckets und IndexedDB. Spielwerte stehen in `src/reborn/config.ts` und `src/reborn/catalog.ts`. Das Hauptspiel benötigt keine zusätzliche Laufzeitbibliothek. Three.js dient dem Offline-Export und der separaten 3D-Galerie.
+TypeScript, Canvas 2D, 20 Simulationsschritte pro Sekunde, A*, räumliche Buckets und IndexedDB. Spielwerte stehen in `src/reborn/config.ts` und `src/reborn/catalog.ts`. Das Hauptspiel benötigt keine zusätzliche Laufzeitbibliothek. Three.js rendert das aktuelle WebGL-Spiel und die 3D-Galerie; die klassische Canvas-Variante bleibt separat verfügbar.
 
 Die vier Infanterierollen teilen die freigegebene Legionär-Grundrüstung mit eigenen Details und echten Idle-/Walk-/Attack-/Hit-/Death-Clips. Sechs Fahrzeugmodelle besitzen Fraktionsmaterialien, Schatten und Rad-/Ketten-/Rotorphasen. Geschütztürme verwenden eine feste Basis und einen unabhängig drehbaren Kopf mit zwei Mündungen. Die überarbeiteten HQ- und Bastion-Quelldateien sind unter `tools/building-sources/` mit Prüfsummen dokumentiert.
 

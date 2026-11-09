@@ -1,5 +1,5 @@
 services:
-  sandforge-bastion-wars:
+  sandforge:
     build: .
     restart: unless-stopped
     ports:

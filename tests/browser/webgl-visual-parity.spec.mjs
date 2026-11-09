@@ -45,128 +45,65 @@ test('3D HP bar is bright green at 100%, decreases smoothly and turns yellow/red
  expect(errors).toEqual([]);
 });
 
-test('4 contiguous rocky outer walls mark map boundary and do not change collision',async({page})=>{
+test('modern WebGL desert has no exterior cliffs and preserves hard gameplay boundaries',async({page})=>{
  test.setTimeout(115000);
  await page.setViewportSize({width:1440,height:900});
  await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:90000});
  const state=await page.evaluate(()=>{
-  const a=window.__sandforgeWebGL,g=a.game,cliffs=a.boundaryCliffs;
-  if(!cliffs)throw Error('Missing boundary cliffs');
-  const walls=cliffs.cliffs;
-  const sample=(mesh,band,last)=>{
-   const arr=mesh.geometry.getAttribute('position');
-   const tiles=arr.count/6-1;
-   const idx=band*(tiles+1)+(last?tiles:0);
-   return [arr.getX(idx),arr.getY(idx),arr.getZ(idx)];
-  };
-  const cornerGaps=[];
-  for(let wall=0;wall<4;wall++){
-   for(let band=0;band<6;band++){
-    const last=sample(walls[wall],band,true);
-    const first=sample(walls[(wall+1)%4],band,false);
-    cornerGaps.push(Math.hypot(...last.map((v,i)=>v-first[i])));
-   }
-  }
-  const size=g.world.size;
-  return {walls:walls.length,scree:cliffs.scree.length,
-   nonPlayable:walls.every(w=>w.userData.visualBoundary&&w.userData.nonPlayable),
-   maxCornerGap:Math.max(...cornerGaps),
+  const a=window.__sandforgeWebGL,g=a.game,cliffs=a.boundaryCliffs,size=g.world.size;
+  return {hardVoid:cliffs.hardVoid,walls:cliffs.cliffs.length,scree:cliffs.scree.length,
+   monoliths:cliffs.monoliths,collisionChanged:cliffs.collisionChanged,
    blocked:[g.world.walkable({x:-10,y:size/2}),g.world.walkable({x:size+10,y:size/2})],
-   render:a.renderer.capabilities.isWebGL2};
+   render:a.renderer.capabilities.isWebGL2,background:a.scene.background.getHexString()};
  });
  expect(state.render).toBe(true);
- expect(state.walls).toBe(4);
- expect(state.scree).toBe(1);
- expect(state.nonPlayable).toBe(true);
- expect(state.maxCornerGap).toBeLessThan(.02);
+ expect(state.hardVoid).toBe(true);
+ expect(state.walls).toBe(0);
+ expect(state.scree).toBe(0);
+ expect(state.monoliths).toBeNull();
+ expect(state.collisionChanged).toBe(false);
  expect(state.blocked).toEqual([false,false]);
+ expect(state.background).toBe('000000');
  const out=fileURLToPath(new URL('./artifacts/',import.meta.url));
  await mkdir(out,{recursive:true});
- await page.screenshot({path:out+'webgl-canyon-boundary-hp.png',fullPage:true});
+ await page.screenshot({path:out+'webgl-hard-black-boundary-hp.png',fullPage:true});
 });
 
-test('dark natural map rim has no off-map foliage or reappearing bright exterior',async({page})=>{
+test('hard-black desert edge contains no off-map geometry, palms or fog leaks',async({page})=>{
  test.setTimeout(115000);
  await page.setViewportSize({width:1440,height:900});
  await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:90000});
- // Wait for asynchronous decorations: exterior should remain empty even
- // after all in-world palm trees finish loading.
- await page.waitForFunction(()=>window.__sandforgeWebGL?.desertArtReady===true,
-  null,{timeout:30000});
+ // Decorations load asynchronously; the final scene must stay free of
+ // visible non-playable rim meshes after palm and rock placement completes.
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.desertArtReady===true,null,{timeout:30000});
  const state=await page.evaluate(()=>{
-  const v=window.__sandforgeWebGL,size=v.game.world.size,half=size*.5;
-  const edgeColor=[],voidColor=[];
-  for(const tile of v.visualPerimeter.meshes){
-   const p=tile.geometry.getAttribute('position');
-   const c=tile.geometry.getAttribute('color');
-   for(let i=0;i<p.count;i++){
-    const x=p.getX(i)+half,z=p.getZ(i)+half;
-    const beyond=Math.max(0,-x,x-size,-z,z-size);
-    const brightness=(c.getX(i)+c.getY(i)+c.getZ(i))/3;
-    if(beyond<.01)edgeColor.push(brightness);
-    if(beyond>1000)voidColor.push(brightness);
-   }
-  }
+  const v=window.__sandforgeWebGL,b=v.battlefield,perimeter=v.visualPerimeter;
   const palms=v.scene.children.filter(node=>node.name==='visual-boundary-palm');
-  return {
-   edge:edgeColor.reduce((a,b)=>a+b,0)/edgeColor.length,
-   beyond:voidColor.reduce((a,b)=>a+b,0)/voidColor.length,
-   samples:[edgeColor.length,voidColor.length],
-   background:'#'+v.scene.background.getHexString(),
-   palmCount:palms.length,
-   allOutside:palms.every(node=>{
-    const x=node.position.x+half,z=node.position.z+half;
-    return x<0||x>size||z<0||z>size;
-   }),
-   cosmetic:palms.every(node=>node.userData.visualBoundary&&node.userData.nonPlayable),
-   voidCover:v.visualPerimeter.voidCover.length,
-   coveredGeometry:v.visualPerimeter.voidCover.every((overlay,i)=>
-    overlay.geometry===v.visualPerimeter.meshes[i].geometry),
-   // Validate the *behavior* of the shader, rather than pinning it to
-   // an old hard-coded fade length. A Zero-Hour-style exterior must reach
-   // fully opaque black no farther than 24 world units from the boundary.
-   fadeStops:(()=>{
-    const shader=v.visualPerimeter.voidCover[0].material.fragmentShader;
-    const match=shader.match(/float\s+darkness\s*=\s*smoothstep\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*,\s*outside\s*\)/);
-    return match?[Number(match[1]),Number(match[2])]:null;
-   })(),
-   permanentlyBlack:v.visualPerimeter.voidCover.every(overlay=>
-    overlay.visible&&overlay.renderOrder===980&&
-    overlay.material.depthTest===true&&overlay.material.depthWrite===false&&
-    overlay.material.fragmentShader.includes('vec4(0.0,0.0,0.0,darkness)'))
-  };
+  return {hardVoid:perimeter.hardVoid,perimeterMeshes:perimeter.meshes.length,
+   voidCover:perimeter.voidCover.length,margin:perimeter.margin,
+   hardCliffs:v.boundaryCliffs.hardVoid,cliffs:v.boundaryCliffs.cliffs.length,
+   scree:v.boundaryCliffs.scree.length,monoliths:v.boundaryCliffs.monoliths,
+   background:'#'+v.scene.background.getHexString(),palmCount:palms.length,
+   fogLayers:b.fogNodes.length,
+   fogOnPlayableTerrain:b.fogNodes.every(n=>n.userData?.fogOverlay===true),
+   unknown:b.fogTexture.image.data.some((n,i)=>i%4===3&&n===255)};
  });
- expect(state.samples[0]).toBeGreaterThan(0);
- expect(state.samples[1]).toBeGreaterThan(0);
- expect(state.beyond).toBeLessThan(state.edge*.15);
+ expect(state.hardVoid).toBe(true);
+ expect(state.perimeterMeshes).toBe(0);
+ expect(state.voidCover).toBe(0);
+ expect(state.margin).toBe(0);
+ expect(state.hardCliffs).toBe(true);
+ expect(state.cliffs).toBe(0);
+ expect(state.scree).toBe(0);
+ expect(state.monoliths).toBeNull();
  expect(state.background).toBe('#000000');
  expect(state.palmCount).toBe(0);
- expect(state.allOutside).toBe(true);
- expect(state.cosmetic).toBe(true);
- expect(state.voidCover).toBe(48);
- expect(state.coveredGeometry).toBe(true);
- expect(state.permanentlyBlack).toBe(true);
- expect(state.fadeStops).not.toBeNull();
- expect(state.fadeStops[0]).toBeLessThanOrEqual(0);
- expect(state.fadeStops[1]).toBeGreaterThan(state.fadeStops[0]);
- expect(state.fadeStops[1]).toBeLessThanOrEqual(24);
- expect(state.fadeStops[1]-state.fadeStops[0]).toBeLessThanOrEqual(26);
- // Render-only border never receives fog-of-war overlays: dense unknown
- // terrain is still hidden inside the 16 authoritative map chunks only.
- const fogState=await page.evaluate(()=>{
-   const v=window.__sandforgeWebGL;
-   return {count:v.battlefield.fogNodes.length,
-     decorative:v.battlefield.fogNodes.filter(
-       m=>v.visualPerimeter.meshes.some(p=>p.geometry===m.geometry)).length,
-     unknown:v.battlefield.fogTexture.image.data.some((n,i)=>i%4===3&&n===255)};
- });
- expect(fogState.count).toBe(16);
- expect(fogState.decorative).toBe(0);
- expect(fogState.unknown).toBe(true);
+ expect(state.fogLayers).toBe(16);
+ expect(state.fogOnPlayableTerrain).toBe(true);
+ expect(state.unknown).toBe(true);
 });
-
 
 test('3D buildings receive texture-based fill without brightening sand or soldier materials',async({page})=>{
  test.setTimeout(125000);
@@ -195,7 +132,11 @@ test('3D buildings receive texture-based fill without brightening sand or soldie
   base.buildRemaining=0;base.hp=1200;
   b.sync(true,.06,false,1);
   return {id:base.id,exposure:v.renderer.toneMappingExposure,
-   fallbackLit:fallbackMaterials.every(m=>m.emissiveIntensity===.22),
+   // The procedural placeholder deliberately has a subtle .065 fill.
+   // Loaded PBR building meshes use the stronger textured .22 lift below.
+   fallbackLit:fallbackMaterials.length>0&&fallbackMaterials.every(m=>
+    m.isMeshStandardMaterial&&m.emissiveIntensity===.065&&
+    m.emissive.getHex()===m.color.getHex()),
    soldierUnchanged:unitMaterials.every(m=>m.emissiveIntensity===1&&m.emissive.getHex()===0),
    terrainUnchanged:sandMeshes.length>0&&sandMeshes.every(mesh=>
     !mesh.material?.userData?.sandforgeBuildingFill&&

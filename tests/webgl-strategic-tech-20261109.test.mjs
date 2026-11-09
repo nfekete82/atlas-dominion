@@ -99,15 +99,16 @@ test('armor affects both existing and future vehicles; infantry and specialist p
  assert.equal(g.spawn(0,{x:680,y:800},'tank').hp,1100);
  assert.equal(soldier.hp,UNITS.infantry.hp);
  finish(g,0,'armor2');
- assert.equal(g.maxUnitHp(tank),1200);
+ assert.ok(Math.abs(g.maxUnitHp(tank)-1200)<1e-9,'research applies exact gameplay capacity within floating point precision');
  finish(g,0,'tankArmor');
- assert.equal(g.maxUnitHp(tank),1350);
+ assert.ok(Math.abs(g.maxUnitHp(tank)-1350)<1e-9,'combined armor modifiers retain expected vehicle HP');
  assert.equal(researchModifiers(g.research[0],'tank').hp,1.35);
- assert.equal(researchModifiers(g.research[0],'rover').hp,1.2);
+ assert.ok(Math.abs(researchModifiers(g.research[0],'rover').hp-1.2)<1e-12,
+  'rover armor multiplier is 1.2 within JavaScript floating point precision');
  assert.equal(g.startResearch(0,'tankMobility'),false,'mutually exclusive tank upgrade');
  finish(g,0,'infantryTraining');
  assert.equal(g.maxUnitHp(soldier),UNITS.infantry.hp*1.15);
- assert.equal(g.maxUnitHp(tank),1350);
+ assert.ok(Math.abs(g.maxUnitHp(tank)-1350)<1e-9,'combined armor modifiers retain expected vehicle HP');
 });
 
 test('precision, motors, optics and rockets modify actual Simulation stat reads',()=>{
@@ -208,7 +209,7 @@ test('saved research in-progress and missile charge restore; legacy saves remain
  const saved=g.save();
  const restored=Simulation.load(saved);
  assert.deepEqual(restored.research[0],g.research[0]);
- assert.equal(restored.bases.find(b=>b.id===silo.id).siloCharge,130);
+ assert.equal(restored.bases.find(b=>b.id===silo.id).siloCharge,silo.siloCharge,'save/load preserves actual charge after simulation ticks');
  assert.equal(restored.research[1].completed.length,0);
  assert.equal(restored.startResearch(0,'engines'),false,'in-progress project restored');
  const legacy=structuredClone(saved);

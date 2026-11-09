@@ -108,6 +108,9 @@ for(const kind of ['medic','engineer'])test(`support: ${kind} also identifies an
 test('support: engineers share an 18 HP/s area budget between wounded ground vehicles and aircraft',()=>{
  const g=peaceful();g.units=[];const e=g.spawn(0,{x:1900,y:2100},'engineer');
  const tank=g.spawn(0,{x:1940,y:2100},'tank'),heli=g.spawn(0,{x:1870,y:2120},'bomber');
+ // A free bomber now flies real holding circles; hold it for this fixed
+ // within-90m repair test instead of letting it leave the service range.
+ g.stop([heli.id],true);
  const farther=g.spawn(0,{x:2150,y:2100},'rover'),enemy=g.spawn(1,{x:1930,y:2110},'tank');
  for(const u of [tank,heli,farther,enemy]){u.hp=100;u.cooldown=1e8;}
  e.cooldown=1e8;advance(g,1);

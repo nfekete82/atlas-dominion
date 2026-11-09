@@ -44,14 +44,21 @@ test('large desert generation stays deterministic, spacious and navigable for al
  }
 });
 
-test('visual scaling keeps soldiers smaller than trucks without changing gameplay radii',()=>{
- for(const kind of ['infantry','medic','engineer'])
-  assert.equal(visualUnitScale(kind),.59);
- assert.equal(visualUnitScale('heavy'),.61);
- assert.equal(visualUnitScale('rover'),1.34);
- assert.equal(visualUnitScale('artillery'),1.32);
- assert.equal(visualUnitScale('tank'),1.36);
- assert.ok(visualUnitScale('bomber')>0&&visualUnitScale('bomber')<=1);
+test('visual scaling keeps infantry smaller than vehicles with current render-only ratios',()=>{
+ // Current deliberately smaller infantry and larger tanks/bombers.
+ // These constants are renderer presentation values, not gameplay radii.
+ const expected={
+  infantry:0.56,medic:0.56,engineer:0.56,
+  heavy:0.58,rover:1.34,
+  artillery:1.32,tank:1.44,bomber:1.03
+ };
+ for(const [kind,scale] of Object.entries(expected))
+  assert.equal(visualUnitScale(kind),scale,kind+' visual scale changed');
+ for(const soldier of ['infantry','medic','engineer','heavy'])
+  for(const vehicle of ['rover','artillery','tank'])
+   assert.ok(visualUnitScale(soldier)<visualUnitScale(vehicle),
+    soldier+' must stay visually smaller than '+vehicle);
+ assert.ok(visualUnitScale('bomber')>0,'bomber must render at nonzero size');
 });
 
 test('v19-v22 games can build HQ, save and reload with original simulation state',()=>{

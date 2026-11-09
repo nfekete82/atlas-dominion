@@ -3,9 +3,14 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {ENGINE_KINDS,ENGINE_PROFILES,vehicleSoundMix} from '../dist/src/reborn/vehicle-soundscape.js';
 import {Simulation} from '../dist/src/reborn/simulation.js';
+import {UNITS} from '../dist/src/reborn/catalog.js';
+import {RULES} from '../dist/src/reborn/config.js';
 
 const at=(kind,x,y,moving=true,owner=0)=>({
-  id:11+Math.floor(x),kind,x,y,moving,owner,hp:200,driveSpeed:moving?65:0
+  id:11+Math.floor(x),kind,x,y,moving,owner,hp:200,
+  // Motor audio depends on actual measured displacement, never an order flag.
+  previousX:moving?x-UNITS[kind].speed*RULES.tick*.7:x,previousY:y,
+  driveSpeed:moving?65:0
 });
 test('five distinct vehicle and aircraft synth families have their own safe profiles',()=>{
  assert.deepEqual(ENGINE_KINDS,['rover','tank','artillery','scout','bomber']);
@@ -45,15 +50,15 @@ test('driving starts louder than idle and vehicles fade with distance and stop a
  assert.equal(beyond.level,0);
  assert.equal(beyond.count,0);
  assert.equal(parked.moving,0);
- assert.ok(parked.level>0,'quiet idling should remain present');
+ assert.equal(parked.level,0,'parked engines must remain fully silent');
 });
-test('helicopter rotor keeps its quiet hover, bomber turbines keep an audible flight idle',()=>{
+test('stationary helicopter and bomber are silent; only moving aircraft have audible channels',()=>{
  const cam={x:100,y:100};
  for(const kind of ['scout','bomber']){
   const parked=vehicleSoundMix({units:[at(kind,100,100,false)]},cam,()=>true)[kind];
   const moving=vehicleSoundMix({units:[at(kind,100,100,true)]},cam,()=>true)[kind];
-  assert.ok(parked.level>.3);
-  assert.ok(moving.level>=parked.level);
+  assert.equal(parked.level,0);
+  assert.ok(moving.level>0);
  }
 });
 test('no enemy sound leaks through unexplored terrain, and carried/destroyed units are silent',()=>{

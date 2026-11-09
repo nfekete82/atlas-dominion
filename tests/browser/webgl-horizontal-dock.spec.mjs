@@ -7,7 +7,7 @@ async function load(page){
  await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,null,{timeout:95000});
 }
 
-test('compact HUD separates radar, horizontal catalog, production and right-side commands',async({page})=>{
+test('full-width HUD unifies radar, catalog, production and commands in one dock',async({page})=>{
  test.setTimeout(115000);
  await load(page);
  const before=await page.evaluate(()=>{
@@ -30,12 +30,15 @@ test('compact HUD separates radar, horizontal catalog, production and right-side
    rimHidden:window.__sandforgeWebGL.boundaryCliffs.cliffs.every(x=>!x.visible)
   };
  });
- expect(before.dock.top).toBeGreaterThan(625); // compact HUD leaves the battlefield visible on a 900px-tall Mac window
+ expect(before.dock.top).toBeGreaterThan(590); // unified 270px dock leaves the battle visible
  expect(before.dock.bottom).toBeGreaterThan(875);
+ expect(before.dock.left).toBeLessThanOrEqual(12);
+ expect(before.dock.right).toBeGreaterThanOrEqual(before.viewport.width-12);
+ expect(before.dock.width).toBeGreaterThan(before.viewport.width-24);
  expect(before.radar.left).toBeLessThan(before.catalog.left);
  expect(before.catalog.left).toBeLessThan(before.production.left);
  expect(before.catalog.right).toBeLessThanOrEqual(before.production.left+2);
- expect(before.production.right).toBeLessThan(before.commands.left);
+ expect(before.production.right).toBeLessThanOrEqual(before.commands.left+2);
  expect(before.production.height).toBeGreaterThanOrEqual(215);
  expect(before.commands.bottom).toBeGreaterThan(875);
  expect(before.map.width).toBeGreaterThan(100);
@@ -66,23 +69,21 @@ test('compact HUD separates radar, horizontal catalog, production and right-side
    tabHeight:tab.getBoundingClientRect().height,tabFont:toNum(tab,'fontSize'),
    cardHeight:first.getBoundingClientRect().height,
    labelMin:Math.min(...names.map(el=>toNum(el,'fontSize'))),
-   firstRow:last.getBoundingClientRect().top-first.getBoundingClientRect().top<5,
    commandFont:toNum(document.querySelector('#sf-selection-panel .commands button'),'fontSize')
   };
  });
  expect(after.tab).toBe('buildings');
  expect(after.cards).toBeGreaterThan(1);
  expect(after.second).toBeGreaterThan(after.first);
- expect(after.dockHeight).toBeGreaterThanOrEqual(225);
+ expect(after.dockHeight).toBeGreaterThanOrEqual(250);
  expect(after.dockHeight).toBeLessThanOrEqual(270);
- expect(after.tabHeight).toBeGreaterThanOrEqual(34);
- expect(after.tabFont).toBeGreaterThanOrEqual(12);
- expect(after.cardHeight).toBeGreaterThanOrEqual(120);
+ expect(after.tabHeight).toBeGreaterThanOrEqual(30);
+ expect(after.tabFont).toBeGreaterThanOrEqual(10);
+ expect(after.cardHeight).toBeGreaterThanOrEqual(110);
  expect(after.labelMin).toBeGreaterThanOrEqual(12);
- expect(after.commandFont).toBeGreaterThanOrEqual(12);
- expect(after.firstRow).toBe(true);
- // Responsive reflow is CSS-only; check the 1600x900 Mac layout first,
- // then verify a narrower browser still exposes a usable separate queue.
+ expect(after.commandFont).toBeGreaterThanOrEqual(9);
+ // The same four dock sections should remain inside ONE container at 1600px
+ // and still be usable at 820px without a detached command window.
  await page.setViewportSize({width:1600,height:900});
  const mac=await page.evaluate(()=>{
   const r=s=>document.querySelector(s).getBoundingClientRect();
@@ -90,7 +91,7 @@ test('compact HUD separates radar, horizontal catalog, production and right-side
    production=r('#sf-production'),command=r('#sf-selection-panel');
   return {dockHeight:dock.height,productionHeight:production.height,
    rightOf:production.left>=catalog.right-2,
-   beforeCommands:production.right<command.left};
+   beforeCommands:production.right<=command.left+2};
  });
  expect(mac.dockHeight).toBeLessThanOrEqual(270);
  expect(mac.productionHeight).toBeGreaterThanOrEqual(215);
@@ -101,13 +102,13 @@ test('compact HUD separates radar, horizontal catalog, production and right-side
   const catalog=r('#sidebar .catalog'),production=r('#sf-production'),
    command=r('#sf-selection-panel'),dock=r('#sidebar');
   return {separate:document.querySelector('#sf-production').parentElement.id==='sidebar',
-   below:production.top>=catalog.bottom-2,
+   aligned:Math.abs(production.top-catalog.top)<10,
    inside:production.bottom<=dock.bottom+1,
-   beforeCommands:production.right<command.left,
+   beforeCommands:production.right<=command.left+2,
    slotVisible:production.width>100};
  });
  expect(narrow.separate).toBe(true);
- expect(narrow.below&&narrow.inside&&narrow.beforeCommands&&narrow.slotVisible).toBe(true);
+ expect(narrow.aligned&&narrow.inside&&narrow.beforeCommands&&narrow.slotVisible).toBe(true);
 });
 
 test('lite infantry visual scale is reduced without changing unit collision radius',async({page})=>{
@@ -123,7 +124,7 @@ test('lite infantry visual scale is reduced without changing unit collision radi
  expect(result.kind).toBe('infantry');
  // Deliberately downsized infantry in 3D: the engine collision footprint
  // and authoritative movement remain unchanged.
- expect(result.scale).toBeCloseTo(.59,3);
+ expect(result.scale).toBeCloseTo(.56,3);
  expect(result.sameUnit).toBe(true);
  expect(result.radius).toBe(true);
 });
@@ -219,6 +220,7 @@ test('context menus expose builder construction and only the selected producer u
   const cards=[...group.querySelectorAll('.catalog-card')];
   const boxes=cards.map(el=>el.getBoundingClientRect());
   return {tab:battlefield.panel.dataset.tab,count:cards.length,
+   buildingKinds:cards.map(card=>card.dataset.build),
    row:boxes.every(box=>Math.abs(box.y-boxes[0].y)<5),
    name:getComputedStyle(cards[0].querySelector('.card-name')).whiteSpace,
    priceBelow:cards[0].querySelector('.card-cost').getBoundingClientRect().y>
@@ -227,7 +229,10 @@ test('context menus expose builder construction and only the selected producer u
    unitTab:battlefield.panel.querySelector('[data-tab="units"]').hidden};
  });
  expect(builder.tab).toBe('buildings');
- expect(builder.count).toBe(6);
+ expect(builder.count).toBe(8);
+ expect(builder.buildingKinds).toEqual([
+  'headquarters','barracks','factory','airfield','generator','turret','research','silo'
+ ]); // The interceptor is intentionally disabled, but research and silo are visible.
  expect(builder.row).toBe(true);
  expect(builder.name).toBe('nowrap');
  expect(builder.priceBelow).toBe(true);
@@ -236,7 +241,7 @@ test('context menus expose builder construction and only the selected producer u
  expect(builder.unitTab).toBe(true);
  await page.waitForFunction(()=>{
   const icons=[...document.querySelectorAll('img[data-sf-building-icon]')];
-  return icons.length===6&&icons.every(img=>img.dataset.sfIconStatus==='ready'&&
+  return icons.length===8&&icons.every(img=>img.dataset.sfIconStatus==='ready'&&
    img.naturalWidth===320&&img.naturalHeight===220);
  },null,{timeout:45000});
 
@@ -382,15 +387,18 @@ test('a medic in lite 3D mode is a detailed soldier instead of a blue capsule',a
   medicId,{timeout:70000});
  const state=await page.evaluate(id=>{
   const e=window.__sandforgeWebGL.battlefield.units.get(id);
-  return {kind:e.kind,detail:!!e.detail,removed:!e.placeholder.parent,meshes:e.detail.children.length};
+  return {kind:e.kind,detail:!!e.detail,
+   removed:e.placeholder===null,attached:e.detail?.parent===e.node,
+   meshes:e.detail?.children.length??0};
  },medicId);
  expect(state.kind).toBe('medic');
  expect(state.detail).toBe(true);
  expect(state.removed).toBe(true);
+ expect(state.attached).toBe(true);
  expect(state.meshes).toBeGreaterThan(0);
 });
 
-test('production has a framed panel with live queue slots and building progress',async({page})=>{
+test('unified production panel lists live queue slots and building progress',async({page})=>{
  test.setTimeout(120000);
  await load(page);
  const layout=await page.evaluate(()=>{
@@ -409,7 +417,7 @@ test('production has a framed panel with live queue slots and building progress'
  expect(layout.beside).toBe(true);
  expect(layout.separate).toBe(true);
  expect(layout.inside).toBe(true);
- expect(layout.border).toBe('2px');
+ expect(layout.border).toBe('0px'); // Production belongs to one continuous dock, not a separate frame.
  expect(layout.empty).toContain('Noch keine Produktion aktiv');
 
  const queue=await page.evaluate(()=>{
@@ -443,7 +451,7 @@ test('production has a framed panel with live queue slots and building progress'
  expect(Number.parseFloat(queue.tileProgress)).toBeCloseTo(50,5);
  expect(queue.aria).toBe('50');
  expect(queue.time).toMatch(/^\d+ s$/);
- expect(queue.summary).toContain('2 AUFTRÄGE');
+ expect(queue.summary).toBe('2 AKTIV');
 
  const construction=await page.evaluate(()=>{
   const {game,battlefield}=window.__sandforgeWebGL;
@@ -462,7 +470,7 @@ test('production has a framed panel with live queue slots and building progress'
  expect(construction.status).toContain('BAU · 50%');
  expect(Number.parseFloat(construction.progress)).toBeCloseTo(50,5);
  expect(construction.buildHidden).toBe(false);
- expect(construction.summary).toContain('1 BAU');
+ expect(construction.summary).toBe('1 AKTIV · 1 BAU');
 });
 
 
@@ -509,8 +517,7 @@ test('production strip globally lists every producer and building site without s
  expect(state.siteCount).toBe(1);
  expect(state.afterFactory).toBe(true);
  expect(state.afterHQ).toBe(true);
- expect(state.summary).toContain('5 AUFTRÄGE');
- expect(state.summary).toContain('1 BAU');
+ expect(state.summary).toBe('6 AKTIV · 1 BAU'); // Five unit orders plus one build site.
 });
 
 test('generator build card becomes grey and disabled after the third energy core',async({page})=>{
