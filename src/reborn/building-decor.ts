@@ -37,6 +37,21 @@ const layouts:Record<DecoratedStructure,readonly Slot[]>={
  ],
  generator:[{kind:'service-terminal',x:-2.30,y:-.85,layer:'behind'}],
  turret:[{kind:'military-crate',x:-2.40,y:-.90,layer:'behind'}],
+ // The new facilities share the same deterministic, collidable service-yard
+ // decor as the existing buildings. Keep props clear of the entrance/launch
+ // area, especially the silos' central rocket exhaust.
+ research:[
+  {kind:'service-terminal',x:-2.30,y:-.90,layer:'behind'},
+  {kind:'service-lamp',x:2.20,y:-1.20,layer:'behind'}
+ ],
+ silo:[
+  {kind:'service-lamp',x:-2.20,y:-.95,layer:'behind'},
+  {kind:'fuel-barrels',x:2.25,y:-1.15,layer:'behind'}
+ ],
+ interceptor:[
+  {kind:'service-terminal',x:-2.30,y:-1.00,layer:'behind'},
+  {kind:'military-crate-stack',x:2.25,y:-.90,layer:'behind'}
+ ],
  bastion:[{kind:'sandbags',x:-2.20,y:-.90,layer:'behind'}]
 };
 const visualSize:Record<BasePropKind,number>={
