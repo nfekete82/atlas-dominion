@@ -1,3 +1,6 @@
+import * as THREE from 'three';
+import {createStrategicBuilding,isStrategicBuilding} from './webgl-strategic-buildings.js';
+
 /** Sprite-sheet portrait extraction shared by the WebGL HUD.
  * The classic game crops one idle frame rather than scaling down the entire
  * 8/16-direction animation atlas (which looks like tiny dots). */
@@ -32,6 +35,102 @@ export const strategicBuildingIcon=kind=>{
 };
 export const buildingIconUrl=kind=>strategicBuildingIcon(kind)??
  '/src/assets/reborn/buildings-3d/'+kind+'-0.png';
+
+
+/** Recognizable, original tactical pictograms; no font-dependent emoji/glyphs. */
+const researchPaths=Object.freeze({
+ armor1:'<path d="M12 2 4 5v6c0 5 3.3 8.6 8 11 4.7-2.4 8-6 8-11V5Z"/><path d="M8 12h8"/>',
+ armor2:'<path d="M12 2 4 5v6c0 5 3.3 8.6 8 11 4.7-2.4 8-6 8-11V5Z"/><path d="M12 7v10M7 12h10"/><path d="M7 4 5 7m12-3 2 3"/>',
+ precision:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 1v5m0 12v5M1 12h5m12 0h5"/>',
+ engines:'<circle cx="8" cy="14" r="5"/><circle cx="8" cy="14" r="2"/><path d="m13 6 4-3m-2 7 7-4m-6 10 6-2M3 5l3 3"/>',
+ infantryTraining:'<path d="M4 12a8 8 0 0 1 16 0v2H4Z"/><path d="M2 14h20M7 14v5l5 3 5-3v-5M10 8h4"/>',
+ rocketDevelopment:'<path d="m5 17 5-5c0-5 4-9 10-10 0 6-4 10-9 10l-5 5Z"/><circle cx="15" cy="8" r="2"/><path d="M5 12 2 14l1 5 5-2M12 19l-2 3-5-1 2-5M3 22l4-4"/>',
+ radar:'<path d="M3 20h18M12 20V9l7-5M12 13l-6-4"/><path d="M13 4a9 9 0 0 1 7 9M16 7a5 5 0 0 1 2 5"/><circle cx="12" cy="12" r="2"/>',
+ tankArmor:'<path d="M3 16h18l-2 4H5Z"/><path d="M6 16v-5h12v5M9 11V8h6v3M12 4l-5 2v2M12 4l5 2v2"/><path d="M8 18h8"/>',
+ tankMobility:'<path d="M3 14h18l-2 4H5Z"/><path d="M6 14V9h12v5M9 9V6h6v3"/><path d="M3 21h18M17 3h5m-3-2 3 2-3 2"/>'
+});
+export const researchEffectLabel=Object.freeze({
+ armor1:'+10 % Fahrzeug-LP',
+ armor2:'Weitere +10 % Fahrzeug-LP',
+ precision:'+15 % Waffenschaden',
+ engines:'+12 % Fahrzeugtempo',
+ infantryTraining:'+15 % Infanterie-LP',
+ rocketDevelopment:'+20 % Raketenreichweite',
+ radar:'+20 % Sichtweite',
+ tankArmor:'+15 % Kampfpanzer-LP',
+ tankMobility:'+15 % Kampfpanzertempo'
+});
+export function researchIconMarkup(kind){
+ const paths=researchPaths[kind]??researchPaths.armor1;
+ return '<svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">'+paths+'</svg>';
+}
+
+/** Render the exact strategic battlefield mesh for the construction cards.
+ * This uses the EXISTING WebGL context and leaves its render target, clear color
+ * and alpha unchanged. Old vector icons remain an immediate fallback.
+ */
+function renderStrategicPortrait(kind,renderer){
+ const model=createStrategicBuilding(kind,0);
+ if(!model)return strategicBuildingIcon(kind);
+ const scene=new THREE.Scene();scene.add(model);
+ scene.add(new THREE.HemisphereLight('#fff1d9','#53676b',2.0));
+ const key=new THREE.DirectionalLight('#ffe7c3',2.9);
+ key.position.set(200,400,280);scene.add(key);
+ const fill=new THREE.DirectionalLight('#c8e1ea',.9);
+ fill.position.set(-260,190,-180);scene.add(fill);
+ const bounds=new THREE.Box3().setFromObject(model);
+ const center=bounds.getCenter(new THREE.Vector3());
+ const size=bounds.getSize(new THREE.Vector3());
+ const aspect=320/220;
+ const span=Math.max(size.y*1.8,(size.x+size.z)*.95);
+ const camera=new THREE.OrthographicCamera(-span*aspect/2,span*aspect/2,span/2,-span/2,.1,2000);
+ camera.position.copy(center).add(new THREE.Vector3(350,310,380));
+ camera.lookAt(center);
+ camera.updateMatrixWorld();
+ const target=new THREE.WebGLRenderTarget(320,220,{format:THREE.RGBAFormat,depthBuffer:true});
+ const oldTarget=renderer.getRenderTarget();
+ const oldColor=renderer.getClearColor(new THREE.Color()).clone();
+ const oldAlpha=renderer.getClearAlpha();
+ try{
+  renderer.setRenderTarget(target);
+  renderer.setClearColor('#000000',0);
+  renderer.clear(true,true,true);
+  renderer.render(scene,camera);
+  const pixels=new Uint8Array(320*220*4);
+  renderer.readRenderTargetPixels(target,0,0,320,220,pixels);
+  const result=document.createElement('canvas');result.width=320;result.height=220;
+  const ctx=result.getContext('2d'),rgba=ctx.createImageData(320,220);
+  let left=320,top=220,right=-1,bottom=-1;
+  for(let y=0;y<220;y++){
+   const row=(219-y)*320*4;
+   for(let x=0;x<320;x++){
+    const i=(y*320+x)*4,j=row+x*4;
+    rgba.data[i]=pixels[j];rgba.data[i+1]=pixels[j+1];
+    rgba.data[i+2]=pixels[j+2];rgba.data[i+3]=pixels[j+3];
+    if(pixels[j+3]>28){
+     left=Math.min(left,x);right=Math.max(right,x);
+     top=Math.min(top,y);bottom=Math.max(bottom,y);
+    }
+   }
+  }
+  if(right<left)throw new Error('Empty strategic mesh render: '+kind);
+  const raw=document.createElement('canvas');raw.width=320;raw.height=220;
+  raw.getContext('2d').putImageData(rgba,0,0);
+  const w=right-left+1,h=bottom-top+1,scale=Math.min(298/w,203/h);
+  ctx.clearRect(0,0,320,220);
+  ctx.drawImage(raw,left,top,w,h,(320-w*scale)/2,(220-h*scale)/2,w*scale,h*scale);
+  return result.toDataURL('image/png');
+ }finally{
+  renderer.setRenderTarget(oldTarget);
+  renderer.setClearColor(oldColor,oldAlpha);
+  target.dispose();
+  model.traverse(node=>{
+   if(!node.isMesh)return;
+   node.geometry?.dispose();
+   for(const material of (Array.isArray(node.material)?node.material:[node.material]))material?.dispose();
+  });
+ }
+}
 
 function loadImage(src){
  return new Promise((resolve,reject)=>{
@@ -96,8 +195,12 @@ export function unitIcon(kind){
 // look tiny. Trim alpha bounds at low resolution and draw the whole building
 // into a consistent wide tile without clipping its silhouette.
 const buildingIconCache=new Map();
-async function rasterizeBuildingIcon(kind){
- if(strategicBuildingIcon(kind))return buildingIconUrl(kind);
+async function rasterizeBuildingIcon(kind,renderer){
+ if(isStrategicBuilding(kind)){
+  if(!renderer)return buildingIconUrl(kind);
+  try{return renderStrategicPortrait(kind,renderer);}
+  catch(error){console.warn('Strategic portrait fallback:',kind,error);return buildingIconUrl(kind);}
+ }
  const image=await loadImage(buildingIconUrl(kind));
  let source=image;
  if(kind==='turret'){
@@ -148,19 +251,19 @@ async function rasterizeBuildingIcon(kind){
  ctx.drawImage(source,sx,sy,w,h,(320-dw)/2,(220-dh)/2,dw,dh);
  return target.toDataURL('image/png');
 }
-export function buildingIcon(kind){
+export function buildingIcon(kind,renderer){
  if(!buildingIconCache.has(kind))
-  buildingIconCache.set(kind,rasterizeBuildingIcon(kind).catch(error=>{
+  buildingIconCache.set(kind,rasterizeBuildingIcon(kind,renderer).catch(error=>{
    buildingIconCache.delete(kind);throw error;
   }));
  return buildingIconCache.get(kind);
 }
-export function hydrateBuildingIcons(root){
+export function hydrateBuildingIcons(root,renderer){
  for(const img of root.querySelectorAll('img[data-sf-building-icon]')){
   const kind=img.dataset.sfBuildingIcon;
   if(!kind||img.dataset.sfIconStatus)return;
   img.dataset.sfIconStatus='loading';
-  buildingIcon(kind).then(url=>{
+  buildingIcon(kind,renderer).then(url=>{
    if(img.isConnected&&img.dataset.sfBuildingIcon===kind){
     img.src=url;img.dataset.sfIconStatus='ready';
    }
