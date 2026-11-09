@@ -43,7 +43,7 @@ test('strategic construction cards derive 3D portraits from the same world meshe
  assert.match(portraits,/createStrategicBuilding\(kind,0\)/);
  assert.match(portraits,/renderer\.readRenderTargetPixels\(/);
  const meshes=source('scripts/webgl-strategic-buildings.js');
- assert.match(meshes,/new THREE\\.DataTexture\\(/);
+ assert.match(meshes,/new THREE\.DataTexture\(/);
  assert.match(meshes,/map:materialGrain/);
  assert.match(portraits,/renderer\.setRenderTarget\(oldTarget\)/);
  assert.match(portraits,/return buildingIconUrl\(kind\)/,
