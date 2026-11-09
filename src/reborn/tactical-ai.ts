@@ -7,7 +7,7 @@ import {assaultDecision,abortAssault} from './ai-director.js';
 import {selectiveRaidAllowed} from './selective-raids.js';
 import {newCampaign,campaignPhase,refreshIntelligence,chooseMission,reconGoal,validCampaign,knownBuildings,type CampaignState} from './campaign-commander.js';
 import {segmentDistance} from './world-generation.js';
-import {newBattle,assessBattle,fightingPower,hasDecisiveLocalAdvantage,recordFailure,retryFront,validBattle,type BattleState} from './battle-response.js';
+import {newBattle,assessBattle,fightingPower,hasDecisiveLocalAdvantage,shouldCommitFirefight,recordFailure,retryFront,validBattle,type BattleState} from './battle-response.js';
 import {newAdaptive,updateAdaptive,validAdaptive,type AdaptiveState} from './adaptive-strategy.js';
 import {newExperience,validExperience,finishExperience,canOverrun,observeOwnedLosses,lessonScore,type Experience} from './battle-learning.js';
 import {rankLegacyFrontiers} from './legacy-campaign.js';
@@ -923,19 +923,30 @@ export class TacticalAI {
   }
   if(towers.length||visible.length){
    const artillery=readyForce.filter(u=>u.kind==='artillery').length;
-   // A mostly intact force already trading shots should not give the
-   // opponent free pursuit damage by turning its back. If a visible mobile
-   // threat is at actual weapon range and we have a realistic chance, fight
-   // the engagement locally instead of issuing a long safe-move retreat.
-   const localFight=!towers.length&&members.length>0&&visible.length>0&&
-    assessment.own>=assessment.enemy*.60&&
-    visible.some(v=>members.some(u=>canAttack(u,v)&&
-     distance(u,v)<=Math.max(g.range(u),unitSpec(v).range)+40));
-   if(localFight&&assessment.stance!=='attack'&&assessment.stance!=='siege'){
+   // A visible, nearby opponent must be met with fire, not repeated
+   // long-haul retreat orders. Existing order ownership and damage remain
+   // authoritative; this never reveals enemies behind fog.
+   const engageable=visible.filter(v=>members.some(u=>canAttack(u,v)&&
+    distance(u,v)<=Math.max(g.range(u),unitSpec(v).range)+40));
+   const inRange=members.filter(u=>engageable.some(v=>canAttack(u,v)&&
+    distance(u,v)<=Math.max(g.range(u),unitSpec(v).range)+40));
+   const healthy=inRange.filter(u=>u.hp>=unitSpec(u).hp*.26).length;
+   const holdLine=shouldCommitFirefight({
+    own:assessment.own,enemy:assessment.enemy,visible:visible.length,
+    inRange:inRange.length,healthy,knownTowers:towers.length,
+    time:g.time,commitUntil:battle.commitUntil??0
+   });
+   if(holdLine&&assessment.stance!=='siege'){
+    // Commit for at least 6 seconds after an actual contact. A collapse
+    // below 32% of observed opposing power still permits disengagement.
+    if(assessment.own>=assessment.enemy*.48)
+     battle.commitUntil=Math.max(battle.commitUntil??0,g.time+6);
     for(const u of members){
-     const target=visible.filter(v=>canAttack(u,v)).sort(
-      (a,b)=>distance(u,a)-distance(u,b)||a.id-b.id)[0];
-     if(target)this.issue([u],target,'assault',target.id,false,false);
+     const candidates=visible.filter(v=>canAttack(u,v));
+     const target=candidates.sort((a,b)=>distance(u,a)-distance(u,b)||a.id-b.id)[0];
+     if(!target)continue;
+     if(u.orders[0]?.target===target.id&&u.orders[0]?.tactical?.mode==='assault')continue;
+     this.issue([u],target,'assault',target.id,false,false);
     }
     return;
    }
