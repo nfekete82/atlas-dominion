@@ -48,7 +48,7 @@ test('sound design removes both permanent motor and power plant tone, limits mov
  assert.doesNotMatch(audio,/motorGain\?\.gain\.setTargetAtTime/);
  assert.doesNotMatch(audio,/generatorGain\?\.gain\.setTargetAtTime/);
  assert.match(vehicle,/if\(u\.hp<=0\|\|u\.carrier\|\|!u\.moving/);
- assert.match(vehicle,/if\(physicalSpeed<2\)return/);
+ assert.match(vehicle,/if\(physicalSpeed<2\)continue/);
  assert.match(audio,/Math\.min\(560,Math\.max\(r\.width,r\.height\)/);
  assert.match(audio,/level\*profile\.volume\*\.50/);
  assert.match(audio,/this\.music\?\.update/);
