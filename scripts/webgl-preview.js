@@ -716,6 +716,28 @@ addEventListener('keydown',event=>{
    ' · '+affected+' Gebäude (Performancevergleich)');
   return;
  }
+ // Download bounded numeric diagnostics without stealing keyboard focus.
+ // Shift+P is active only in explicit ?perf=1 review sessions.
+ if(query.get('perf')==='1'&&event.shiftKey&&event.code==='KeyP'){
+  event.preventDefault();
+  const report={
+   version:'sandforge-webgl-performance-v1',
+   gameTime:game.time,
+   units:game.units.filter(u=>u.hp>0&&!u.carrier).length,
+   scene:performanceWatch.snapshot(),
+   hitches:performanceWatch.spikeHistory(),
+   checkpoints:performanceWatch.history()
+  };
+  const objectUrl=URL.createObjectURL(new Blob(
+   [JSON.stringify(report,null,2)],{type:'application/json'}));
+  const link=document.createElement('a');
+  link.href=objectUrl;
+  link.download='sandforge-performance-'+Math.floor(game.time)+'s.json';
+  document.body.append(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);
+  battlefield.message('Performancebericht gespeichert · '+report.hitches.length+' Hänger');
+  return;
+ }
  if(event.code==='KeyQ'){event.preventDefault();spin(-Math.PI/8);}
  if(event.code==='KeyE'){event.preventDefault();spin(Math.PI/8);}
  if(event.code==='Space'){event.preventDefault();$('simulation').click();}
