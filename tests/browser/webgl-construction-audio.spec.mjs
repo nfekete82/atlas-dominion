@@ -143,9 +143,13 @@ test('Audio resumes after suspension; locked production stays legible; interrupt
  await expect(page.locator('[data-build="barracks"]')).toBeDisabled();
  const filter=await page.locator('[data-build="barracks"] .sf-card-image img')
    .evaluate(el=>({filter:getComputedStyle(el).filter,opacity:getComputedStyle(el).opacity}));
- expect(filter.filter).toContain('grayscale(1)');
- expect(filter.filter).toContain('blur(');
- expect(Number(filter.opacity)).toBeLessThan(1);
+ // Locked building art stays legible: no blur, only modest desaturation.
+ const muted=filter.filter.match(/grayscale\(([0-9.]+)\)/);
+ expect(muted).not.toBeNull();
+ expect(Number(muted[1])).toBeGreaterThanOrEqual(0);
+ expect(Number(muted[1])).toBeLessThan(.5);
+ expect(filter.filter).not.toContain('blur(');
+ expect(Number(filter.opacity)).toBeGreaterThanOrEqual(.85);
  await page.waitForFunction(()=>window.__sandforgeWebGL?.sound?.context?.state==='running',{timeout:20000});
  await page.evaluate(()=>window.__sandforgeWebGL.sound.context.suspend());
  await page.waitForFunction(()=>window.__sandforgeWebGL.sound.context.state==='suspended');
