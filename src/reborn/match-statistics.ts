@@ -33,6 +33,6 @@ export function validMatchStatistics(s:unknown):s is MatchStatistics{
  return data.version===1&&(data.partial===undefined||typeof data.partial==='boolean')&&Array.isArray(data.factions)&&data.factions.length===2&&
  data.factions.every(f=>f&&safe(f.earnedCredits)&&safe(f.peakIncome)&&safe(f.producedUnits)&&safe(f.peakArmy)&&
    f.peakArmy<=96&&f.peakIncome<=f.earnedCredits&&f.deployedUnits&&typeof f.deployedUnits==='object'&&
-   unitKinds.every(k=>safe(f.deployedUnits[k]))&&
+   unitKinds.every(k=>k==='rocket'&&f.deployedUnits[k]===undefined||safe(f.deployedUnits[k]))&&
    f.producedUnits<=unitKinds.reduce((n,k)=>n+f.deployedUnits[k],0));
 }
