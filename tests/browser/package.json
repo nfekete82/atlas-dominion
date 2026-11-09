@@ -1,5 +1,5 @@
 {
-  "name": "atlas-dominion-browser-tests",
+  "name": "sandforge-browser-tests",
   "private": true,
   "type": "module",
   "scripts": { "test": "playwright test --config=reborn.config.mjs" },
