@@ -101,7 +101,8 @@ export class SandforgePerformanceWatch{
    '\nFrame p95 '+report.frameP95.toFixed(1)+'ms · Sim p95 '+report.simP95.toFixed(1)+'ms'+
    '\nUI/3D Sync p95 '+report.syncP95.toFixed(1)+'ms · Render CPU p95 '+report.renderP95.toFixed(1)+'ms'+
    '\nNebenarbeiten p95 '+report.auxP95.toFixed(1)+'ms · Effekte '+report.effectsP95.toFixed(1)+'ms'+
-   '\nSichtberechnung p95 '+report.visionP95.toFixed(1)+'ms · Max '+report.maxVisionMs.toFixed(1)+'ms'+\n   '\nKI-Planung zuletzt '+report.lastAiPlanMs.toFixed(1)+'ms · Max '+report.maxAiPlanMs.toFixed(1)+'ms'+
+   '\nSichtberechnung p95 '+report.visionP95.toFixed(1)+'ms · Max '+report.maxVisionMs.toFixed(1)+'ms'+
+   '\nKI-Planung zuletzt '+report.lastAiPlanMs.toFixed(1)+'ms · Max '+report.maxAiPlanMs.toFixed(1)+'ms'+
    '\nHänger im Verlauf '+report.hitchCount+' · Letzter '+(report.lastHitch?.workMs??0).toFixed(1)+'ms'+
    '\nDraw calls '+report.drawCalls+' · Triangles '+report.triangles+
    '\nUnits '+report.units+' · Moving '+report.moving+' · Orders '+report.orders+
