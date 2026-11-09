@@ -33,13 +33,16 @@ test('selected infantry, heavy, support and armor share one ground march roster'
  // 20 Hz: group movement may turn/brake or follow rear slots, but cannot
  // exceed the slowest member's movement speed on level unobstructed terrain.
  for(let i=0;i<40;i++){
-  const previous=new Map(squad.map(u=>[u.id,{x:u.x,y:u.y}]));
+  const previous=new Map(squad.map(u=>[u.id,{x:u.x,y:u.y,walk:u.walkDistance}]));
   g.step(.05);
   for(const u of squad){
    const p=previous.get(u.id);
    const displacement=Math.hypot(u.x-p.x,u.y-p.y);
+   const driven=u.walkDistance-p.walk;
+   assert.ok(driven<=65*.05+1e-6,
+    `${u.kind} drove above shared march speed at tick ${i+1}: ${driven.toFixed(3)}`);
    assert.ok(displacement<=65*.05+.12,
-    `${u.kind} exceeded slowest member: ${displacement.toFixed(3)}`);
+    `${u.kind} exceeded shared world pace at tick ${i+1}: ${displacement.toFixed(3)} (path ${driven.toFixed(3)}, separation ${(displacement-driven).toFixed(3)})`);
   }
  }
  assert.ok(squad.some(u=>Math.hypot(u.x-before.get(u.id).x,u.y-before.get(u.id).y)>15),
