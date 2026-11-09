@@ -1710,13 +1710,13 @@ export class SandforgeBattlefield {
   const moved=Math.hypot(event.clientX-start.x,event.clientY-start.y);
   this.clickStart=null;this.selectionBox.style.display='none';
   if(moved>7){
-   if(event.button===0&&!this.strategicTargetMode)
+   if(event.button===0&&!this.strategicTargetMode&&!this.generalTargetKind)
     this.selectBoxUnits(start.x,start.y,event.clientX,event.clientY,event.shiftKey);
    return;
   }
-  if(event.button===2&&this.strategicTargetMode){
-   this.strategicTargetMode=false;
-   this.message('Raketenziel-Modus beendet');
+  if(event.button===2&&(this.strategicTargetMode||this.generalTargetKind)){
+   this.strategicTargetMode=false;this.generalTargetKind=null;
+   this.message('Zielauswahl beendet');
    this.drawInterface();return;
   }
   if(event.button===2&&this.buildKind){
@@ -1747,9 +1747,20 @@ export class SandforgeBattlefield {
   const p=clickedEnemy?{x:clickedEnemy.x,y:clickedEnemy.y}
    :clickedBastion?{...clickedBastion.point}:groundPoint;
   if(!p){
-   if(this.strategicTargetMode)this.message('Raketen-Ziel außerhalb der Karte');
+   if(this.strategicTargetMode||this.generalTargetKind)this.message('Ziel außerhalb der Karte');
    if(event.button===2&&this.selected.size)this.message('Marschziel außerhalb der Karte');
    return;
+  }
+  if(this.generalTargetKind&&event.button===0){
+   const ability=this.generalTargetKind;
+   const accepted=this.game.useGeneralPower(0,ability,p);
+   if(accepted){
+    this.generalTargetKind=null;
+    this.showCommandPulse(p,ability==='artillery');
+    this.message(GENERAL_ABILITIES[ability].name+' angefordert');
+    this.sound?.command?.(ability==='artillery');
+   }else this.message('Fähigkeit derzeit nicht möglich: Ziel, Punkte oder Abklingzeit prüfen');
+   this.drawInterface();return;
   }
   if(this.strategicTargetMode&&event.button===0){
    const launched=this.game.launchStrategicMissile(0,p);
@@ -1896,7 +1907,7 @@ export class SandforgeBattlefield {
   // consumes Escape first when that dialog is open.
   window.addEventListener('keydown',event=>{
    if(event.code!=='Escape'||['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;
-   if(!this.rallyMode&&!this.buildKind&&!this.attackMode&&!this.strategicTargetMode)return;
+   if(!this.rallyMode&&!this.buildKind&&!this.attackMode&&!this.strategicTargetMode&&!this.generalTargetKind)return;
    event.preventDefault();
    this.clearPlacement();
    this.attackMode=false;
