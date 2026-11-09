@@ -1158,7 +1158,7 @@ export class SandforgeBattlefield {
     Boolean(button.dataset.build&&button.dataset.build===this.buildKind&&!blocked));
    if(button.dataset.build)button.dataset.lockReason=blocked?explanation:'';
   }
-  hydrateUnitIcons(actions);
+  hydrateUnitIcons(actions,this.renderer);
   hydrateBuildingIcons(actions,this.renderer);
   // Nine real 3D upgrade models: rasterize only after the research deck is
   // opened. Offscreen 3D readback never runs during ordinary frame rendering.
@@ -1239,7 +1239,7 @@ export class SandforgeBattlefield {
     '<div class="sf-production-empty">Noch keine Produktion aktiv</div>';
    this.previousProductionSlotsKey=slotKey;
    slots.scrollLeft=scroll;
-   hydrateUnitIcons(slots);
+   hydrateUnitIcons(slots,this.renderer);
    hydrateBuildingIcons(slots,this.renderer);
    if(activeResearch)hydrateResearchArtworks(slots,this.renderer);
   }
