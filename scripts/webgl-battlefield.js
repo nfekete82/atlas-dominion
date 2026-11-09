@@ -638,7 +638,10 @@ export class SandforgeBattlefield {
   this.presentation.consumeShots(this.units,this.bases);
   for(const u of this.game.units){
    const entry=this.units.get(u.id);
-   if(entry){
+   if(entry&&entry.node.visible){
+    // A bomber can leave dozens of red actors outside player fog. Do not
+    // advance their GLB animation mixers, health bars or recoil every RAF;
+    // authoritative physics/combat continue at the regular fixed tick.
     const visual=entry.productionMotion?{...u,...entry.productionMotion}:
      u.kind==='rover'?{...u,moving:entry.groundedWheelMotion===true}:u;
     this.presentation.update(entry,visual,'unit',dt,this.selected.has(u.id),active);
@@ -649,7 +652,7 @@ export class SandforgeBattlefield {
   }
   for(const b of this.game.bases){
    const entry=this.bases.get(b.id);
-   if(entry)this.presentation.update(entry,b,'building',dt,this.selectedBase===b.id,active);
+   if(entry?.node.visible)this.presentation.update(entry,b,'building',dt,this.selectedBase===b.id,active);
   }
   const known=new Set(this.game.territories.map(t=>t.id));
   for(const [id,entry] of this.bastions)if(!known.has(id)){this.scene.remove(entry.node);this.bastions.delete(id);}
