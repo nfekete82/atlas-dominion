@@ -4,7 +4,8 @@
 export const POINTER_CLICK_SLOP=12;
 export const PLACEMENT_CLICK_SLOP=24;
 export function pointerGestureIntent({distance,button,building=false,rally=false,strategic=false}){
- if(button!==0||distance<=POINTER_CLICK_SLOP)return 'click';
+ if(button!==0)return distance<=POINTER_CLICK_SLOP?'click':'ignore-drag';
+ if(distance<=POINTER_CLICK_SLOP)return 'click';
  if(building||rally||strategic)
   return distance<=PLACEMENT_CLICK_SLOP?'click':'ignore-drag';
  return 'selection-box';
