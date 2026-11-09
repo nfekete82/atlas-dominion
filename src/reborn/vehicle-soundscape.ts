@@ -40,7 +40,7 @@ export function vehicleSoundMix(
   if(dist>=maxRange)continue;
   const fraction=Math.max(0,1-dist/maxRange);
   const weight=fraction*fraction; // No sharp sound boundary and natural distance roll-off
-  const profile=unitSpec(u),flying=profile.flying;
+  const profile=unitSpec(u);
   const physicalSpeed=u.driveSpeed??profile.speed*.72;
   if(physicalSpeed<2)return;
   const throttle=clamp(physicalSpeed/Math.max(1,profile.speed),0,1);
