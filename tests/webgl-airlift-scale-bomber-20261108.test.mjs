@@ -68,6 +68,9 @@ test('3D can board and unload both Humvee and ten-seat helicopter',()=>{
 test('real 20Hz ten-seat helicopter lands, loads, lifts off, lands and unloads',()=>{
  const g=new Simulation(2074,4);g.aiClock=1e8;g.units=[];g.bases=[];
  g.world.blocked.fill(0);g.world.opaque.fill(0);g.status='playing';g.paused=false;
+ // The simulation now stops when every opposing unit/building is gone.
+ const observer=g.spawn(1,{x:300,y:300},'infantry');g.stop([observer.id],true);
+ g.tactical.plan=()=>{};
  const heli=g.spawn(0,{x:1800,y:2000},'scout');
  const troops=Array.from({length:10},(_,i)=>g.spawn(0,{
   x:1720+(i%5)*32,y:1910+Math.floor(i/5)*32
