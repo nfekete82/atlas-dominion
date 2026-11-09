@@ -356,6 +356,26 @@ export class Simulation {
           b.hp-a.hp||a.id-b.id)[0];
       if(seen)this.launchStrategicMissile(ai,seen);
     }
+    const state=this.generals[ai];
+    if(state.points>0){
+      // Apply useful support before offensive spending. Only OBSERVED
+      // opponents can be targeted; powers never reveal fogged unit positions.
+      const wounded=this.units.filter(u=>u.owner===ai&&u.hp>0&&!u.carrier&&
+        u.hp<this.maxUnitHp(u)*.55)
+        .sort((a,b)=>a.hp/this.maxUnitHp(a)-b.hp/this.maxUnitHp(b))[0];
+      if(wounded&&this.useGeneralPower(ai,'repair',wounded))return;
+      const enemy=this.bases.filter(b=>b.owner===0&&b.hp>0&&this.canSee(ai,b))
+        .sort((a,b)=>(b.kind==='headquarters'?1:0)-(a.kind==='headquarters'?1:0)||
+          b.hp-a.hp)[0]??
+        this.units.find(u=>u.owner===0&&u.hp>0&&!u.carrier&&this.canSee(ai,u));
+      if(enemy&&this.useGeneralPower(ai,'artillery',enemy))return;
+      if(!enemy){
+        const front=this.territories.filter(t=>t.owner!==ai)
+          .sort((a,b)=>distance(a.point,this.startRegions[ai].center)-
+            distance(b.point,this.startRegions[ai].center))[0];
+        if(front)this.useGeneralPower(ai,'recon',front.point);
+      }
+    }
   }
   readonly tactical=new TacticalAI(this);
   readonly transports=new Transports(this,(u,p,dt)=>this.move(u,p,dt));
