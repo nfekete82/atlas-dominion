@@ -235,11 +235,12 @@ export class SandforgeCombatEffects {
    return;
   }
   this.stats.impacts++;
+  const impactGround=this.heightAt(p.x,p.y);
   const from=shot.groundFrom??shot.from;
   const dirX=p.x-from.x,dirZ=p.y-from.y,len=Math.max(1,Math.hypot(dirX,dirZ));
   const nx=dirX/len,nz=dirZ/len;
   const armored=response.kind==='armor';
-  const height=this.heightAt(p.x,p.y)+(armored?impactHeight(shot):7);
+  const height=impactGround+(armored?impactHeight(shot):7);
   // Metal makes sharp bright ricochets and flying chips. Sand kicks up
   // low ochre dust. Infantry hits never create a giant fireball or splat.
   for(let i=0;i<response.sparkCount;i++){
@@ -262,7 +263,7 @@ export class SandforgeCombatEffects {
   for(let i=0;i<response.dustCount;i++){
    const a=this.rand()*Math.PI*2;
    this.particle(this.dust,p.x+(this.rand()-.5)*9,p.y+(this.rand()-.5)*9,
-    this.heightAt(p.x,p.y)+3,armored?8+this.rand()*7:11+this.rand()*15,
+    impactGround+3,armored?8+this.rand()*7:11+this.rand()*15,
     .20+this.rand()*.20,Math.cos(a)*18,Math.sin(a)*18,4+this.rand()*9);
   }
  }
@@ -282,6 +283,10 @@ export class SandforgeCombatEffects {
  blastAt(x,z,strong=true){
   if(!this.game.canSee(0,{x,y:z}))return;
   this.stats.blasts++;
+  // A single precise terrain sample is sufficient for a 25-unit visual
+  // particle burst. Previously a bombing run triggered 50+ expensive
+  // procedural terrain samples synchronously on the impact frame.
+  const impactGround=this.heightAt(x,z);
   const size=strong?115:65;
   // Real blast stages: short hot core, outward dirt ring, dark buoyant
   // combustion clouds, and thrown fragments. Everything is pooled,
@@ -293,7 +298,7 @@ export class SandforgeCombatEffects {
   for(let i=0;i<fires;i++){
    const a=this.rand()*Math.PI*2,r=Math.sqrt(this.rand())*(strong?25:13);
    const fx=x+Math.cos(a)*r,fz=z+Math.sin(a)*r;
-   this.particle(this.flames,fx,fz,this.heightAt(fx,fz)+5,
+   this.particle(this.flames,fx,fz,impactGround+5,
     12+this.rand()*22,.19+this.rand()*.38,
     Math.cos(a)*(8+this.rand()*16),Math.sin(a)*(8+this.rand()*16),
     26+this.rand()*35);
@@ -301,7 +306,7 @@ export class SandforgeCombatEffects {
   for(let i=0;i<smokes;i++){
    const a=this.rand()*Math.PI*2,r=this.rand()*(strong?27:15);
    const fx=x+Math.cos(a)*r,fz=z+Math.sin(a)*r;
-   this.particle(this.smoke,fx,fz,this.heightAt(fx,fz)+14,
+   this.particle(this.smoke,fx,fz,impactGround+14,
     14+this.rand()*28,1.45+this.rand()*2.15,
     Math.cos(a)*(5+this.rand()*18),Math.sin(a)*(5+this.rand()*18),
     21+this.rand()*33);
@@ -309,7 +314,7 @@ export class SandforgeCombatEffects {
   for(let i=0;i<dust;i++){
    const a=i*Math.PI*2/dust+(this.rand()-.5)*.25;
    const speed=strong?90:55,fx=x+Math.cos(a)*6,fz=z+Math.sin(a)*6;
-   this.particle(this.dust,fx,fz,this.heightAt(fx,fz)+5,
+   this.particle(this.dust,fx,fz,impactGround+5,
     10+this.rand()*23,.48+this.rand()*.55,
     Math.cos(a)*(speed+this.rand()*35),
     Math.sin(a)*(speed+this.rand()*35),4+this.rand()*9);
@@ -317,7 +322,7 @@ export class SandforgeCombatEffects {
   const fragments=strong?12:6;
   for(let i=0;i<fragments;i++){
    const a=this.rand()*Math.PI*2,speed=38+this.rand()*80;
-   this.particle(this.debris,x,z,this.heightAt(x,z)+7,
+   this.particle(this.debris,x,z,impactGround+7,
     3+this.rand()*5,.35+this.rand()*.55,
     Math.cos(a)*speed,Math.sin(a)*speed,32+this.rand()*95);
   }
