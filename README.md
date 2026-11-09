@@ -8,7 +8,7 @@
 
 </div>
 
-> **Entwicklungsversion:** Der WebGL-Integrationslauf auf Commit [`3f30e379`](https://github.com/nfekete82/sandforge/commit/3f30e379cdf864a53fde96fce97a7d4790fdc7d6) ist am **09.11.2026 mit 17/17 Node- und 72/72 Chromium-Tests bestanden**. Die aktuelle 3D-Codebasis liegt weiter auf gestapelten Draft-PRs und ist **noch nicht in `main` integriert oder produktiv freigegeben**. Weitere Gesamt-, Classic-, Langzeit- und Deployment-Abnahmen bleiben offen. [Prüfprotokoll](docs/qa/webgl-integration-20261109-3f30e379.md).
+> **Entwicklungsversion:** Der WebGL-Integrationslauf auf Commit [`3f30e379`](https://github.com/nfekete82/sandforge/commit/3f30e379cdf864a53fde96fce97a7d4790fdc7d6) ist am **09.11.2026 mit 17/17 Node- und 72/72 Chromium-Tests bestanden**. Die aktuelle 3D-Codebasis liegt weiter auf gestapelten Draft-PRs und ist **noch nicht in `main` integriert oder produktiv freigegeben**. Die vollständige Node-Suite erreichte danach **1.354/1.357 bestandene Tests** (2 Fehler, 1 Skip) auf `f85bfdf4`. Zwei gezielte Korrekturen für Formationsgeschwindigkeit und Fließkommapräzision liegen vor, müssen aber erneut getestet werden. Classic-, Langzeit- und Deployment-Abnahmen bleiben offen. [WebGL-Prüfprotokoll](docs/qa/webgl-integration-20261109-3f30e379.md) · [Node-Regressionsbericht](docs/qa/full-node-regression-20261109.md).
 
 ## WebGL 3D RC2 — Standard-Spieloberfläche (Entwicklung)
 
