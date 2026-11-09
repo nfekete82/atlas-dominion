@@ -90,21 +90,25 @@ test('reborn: fog, AI, partial capture and production survive a deterministic sa
  assert.throws(()=>Simulation.load({version:1}));const corrupt=g.save();corrupt.credits[0]=-20;assert.throws(()=>Simulation.load(corrupt));
 });
 
-test('reborn: victory requires headquarters capture plus enemy start territories; defeat requires losing all production and infantry',()=>{
- const g=peaceful();g.bases[1].owner=0;g.step();assert.equal(g.status,'playing');for(const id of [4,5,11])g.territories[id].owner=0;g.step();assert.equal(g.status,'victory');
+test('reborn: captured HQ/sectors do not end a battle until all enemy units and buildings are gone',()=>{
+ const g=peaceful();g.bases[1].owner=0;g.step();assert.equal(g.status,'playing');for(const id of [4,5,11])g.territories[id].owner=0;g.step();assert.equal(g.status,'playing');
+ g.units=g.units.filter(u=>u.owner!==1);g.step();assert.equal(g.status,'victory');
  const lost=peaceful();lost.bases[0].hp=0;lost.step();assert.equal(lost.status,'playing');lost.units=lost.units.filter(u=>u.owner!==0);lost.step();assert.equal(lost.status,'defeat');
 });
 
-test('reborn: an intact enemy headquarters prevents capture; real siege damage and relay capture produce victory',()=>{
+test('reborn: HQ siege and capture remain playable until the last enemy soldier is eliminated',()=>{
  const g=peaceful();g.credits[1]=0;g.units=[];const b=g.bases[1],t=g.territories[5];
  for(const id of [4,11])g.territories[id].owner=0;
  const scout=g.spawn(0,{...t.point});advance(g,9);assert.equal(t.owner,1);assert.equal(t.progress,0);
  g.units=[];
  for(let i=0;i<4;i++)g.spawn(0,g.world.nearest({x:b.x-145-i*25,y:b.y-70},g.obstacles(),g.units));
- g.updateVision();g.command(g.units.map(u=>u.id),{...b,kind:'attack',target:b.id});advance(g,50);
+ const survivor=g.spawn(1,{x:300,y:300},'infantry');g.stop([survivor.id],true);
+ g.updateVision();g.command(g.units.filter(u=>u.owner===0).map(u=>u.id),{...b,kind:'attack',target:b.id});advance(g,50);
  assert.equal(b.hp,0);assert.equal(t.owner,1);assert.equal(g.status,'playing');
- g.command(g.units.map(u=>u.id),{...t.point,kind:'move'});advance(g,30);
- assert.equal(b.owner,0);assert.equal(b.hp,600);assert.equal(t.owner,0);assert.equal(g.status,'victory');
+ g.command(g.units.filter(u=>u.owner===0).map(u=>u.id),{...t.point,kind:'move'});advance(g,30);
+ assert.equal(b.owner,0);assert.equal(b.hp,600);assert.equal(t.owner,0);
+ assert.equal(g.status,'playing','one surviving opponent prevents early victory');
+ survivor.hp=0;g.step();assert.equal(g.status,'victory');
 });
 
 test('reborn: AI decisions do not depend on player infantry hidden by its fog',()=>{
@@ -271,18 +275,22 @@ test('reborn: air and ground units contest each other and air recapture transfer
   const g=peaceful();g.units=[];const t=g.territories[20],blue=g.spawn(0,{x:t.point.x-20,y:t.point.y},blueKind);blue.cooldown=1e6;
   advance(g,3);const progress=t.progress;assert.ok(progress>0);
   const red=g.spawn(1,{x:t.point.x+20,y:t.point.y},redKind);red.cooldown=1e6;
+ if(redKind==='bomber')g.stop([red.id],true); // Keep fixed-wing contesting inside the capture ring.
   advance(g,3);assert.equal(t.progress,progress);assert.equal(t.owner,-1);
   g.units=[blue];advance(g,5);assert.equal(t.owner,0);
  }
  const g=peaceful();g.units=[];const t=g.territories[20];t.owner=0;
  g.territories[t.neighbors.find(i=>g.territories[i].owner===-1)].owner=1;
  const incomes=[g.income(0),g.income(1)],red=g.spawn(1,t.point,'bomber');red.cooldown=1e6;
+ g.stop([red.id],true);
  advance(g,RULES.captureTime);assert.equal(t.owner,1);assert.equal(g.income(0),incomes[0]-t.income);assert.equal(g.income(1),incomes[1]+t.income);
 });
 
 test('reborn: air capture requires ground proximity and a defeated headquarters, not adjacent sectors',()=>{
  const g=peaceful();g.units=[];const adjacent=g.territories[20],disconnected=g.territories[16];
  const air=g.spawn(0,{x:adjacent.point.x+RULES.captureRadius+10,y:adjacent.point.y},'bomber');air.cooldown=1e6;
+ g.stop([air.id],true); // No idle holding circle drifting into/out of a capture-test fixture.
+ const observer=g.spawn(1,{x:300,y:300},'infantry');g.stop([observer.id],true);
  advance(g,9);assert.equal(adjacent.owner,-1);assert.equal(adjacent.progress,0);
  // Current territory contract permits remote capture for both sides on all map versions.
   Object.assign(air,disconnected.point);advance(g,9);assert.equal(disconnected.owner,0);assert.equal(disconnected.progress,0);
