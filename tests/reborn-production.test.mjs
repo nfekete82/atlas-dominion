@@ -28,8 +28,21 @@ test('production: every building rejects foreign roles without spending credits 
 test('production: real worker construction unlocks barracks, factory and airfield only on completion',()=>{
  const g=new Simulation(2026,2);g.aiClock=-1e8;g.credits[0]=10000;const worker=g.units.find(u=>u.owner===0&&u.kind==='engineer');
  for(const kind of ['barracks','factory','airfield']){
-  const site=buildSite(g,kind),b=g.build(0,kind,site,[worker.id]);
-  assert.ok(b,`${kind}: build rejected a legal site at ${JSON.stringify(site)} (worker ${JSON.stringify({x:worker.x,y:worker.y})}; ${g.notices.at(-1)??'no notice'})`);
+  // Geometry-valid plots can still be unreachable once other factory/HQ
+  // facades are built. Exercise a truly reachable legal pioneer construction
+  // site instead of assuming the first legal geometric candidate has a path.
+  let site,b=null;
+  const home=g.bases.find(base=>base.owner===0&&base.kind==='headquarters');
+  for(let radius=180;radius<=800&&!b;radius+=25){
+   for(let i=0;i<32&&!b;i++){
+    const candidate={x:home.x+Math.cos(i*Math.PI/16)*radius,
+     y:home.y+Math.sin(i*Math.PI/16)*radius};
+    if(g.buildError(0,kind,candidate)!==null)continue;
+    const built=g.build(0,kind,candidate,[worker.id]);
+    if(built){site=candidate;b=built;}
+   }
+  }
+  assert.ok(b,`${kind}: no site is both legal and reachable by the selected pioneer at ${JSON.stringify({x:worker.x,y:worker.y})}`);
   const roles=unitKinds.filter(k=>UNITS[k].producers.includes(kind));assert.equal(roles.length,kind==='airfield'?2:3);
   for(const role of roles){assert.equal(g.producer(0,role),undefined);assert.equal(g.recruit(b.id,role),false);}
   for(let i=0;i<1800&&b.buildRemaining>0;i++)g.step();assert.equal(b.buildRemaining,0);
