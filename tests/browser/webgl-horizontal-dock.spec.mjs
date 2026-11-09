@@ -68,6 +68,17 @@ test('full-width HUD unifies radar, catalog, production and commands in one dock
    dockHeight:document.querySelector('#sidebar').getBoundingClientRect().height,
    tabHeight:tab.getBoundingClientRect().height,tabFont:toNum(tab,'fontSize'),
    cardHeight:first.getBoundingClientRect().height,
+   cardBottom:first.getBoundingClientRect().bottom,
+   catalogBottom:document.querySelector('#sf-actions').getBoundingClientRect().bottom,
+   cardImageHeight:first.querySelector('.sf-card-image').getBoundingClientRect().height,
+   cardMetaHeight:first.querySelector('.card-meta').getBoundingClientRect().height,
+   longNameLayout:visible.filter(card=>['research','silo'].includes(card.dataset.build))
+    .map(card=>{
+     const label=card.querySelector('.card-name');
+     return {kind:card.dataset.build,whiteSpace:getComputedStyle(label).whiteSpace,
+      clipped:label.scrollHeight>label.clientHeight+1,
+      lines:Math.round(label.getBoundingClientRect().height/toNum(label,'lineHeight'))};
+    }),
    labelMin:Math.min(...names.map(el=>toNum(el,'fontSize'))),
    commandFont:toNum(document.querySelector('#sf-selection-panel .commands button'),'fontSize')
   };
@@ -79,7 +90,13 @@ test('full-width HUD unifies radar, catalog, production and commands in one dock
  expect(after.dockHeight).toBeLessThanOrEqual(270);
  expect(after.tabHeight).toBeGreaterThanOrEqual(30);
  expect(after.tabFont).toBeGreaterThanOrEqual(10);
- expect(after.cardHeight).toBeGreaterThanOrEqual(110);
+ expect(after.cardHeight).toBeGreaterThanOrEqual(175);
+ expect(after.cardBottom).toBeLessThanOrEqual(after.catalogBottom+2);
+ expect(after.cardImageHeight).toBeGreaterThan(92);
+ expect(after.cardMetaHeight).toBeGreaterThanOrEqual(56);
+ expect(after.longNameLayout).toHaveLength(2);
+ expect(after.longNameLayout.every(label=>label.whiteSpace==='normal'&&
+  !label.clipped&&label.lines<=2)).toBe(true);
  expect(after.labelMin).toBeGreaterThanOrEqual(12);
  expect(after.commandFont).toBeGreaterThanOrEqual(9);
  // The same four dock sections should remain inside ONE container at 1600px
@@ -234,7 +251,7 @@ test('context menus expose builder construction and only the selected producer u
   'headquarters','barracks','factory','airfield','generator','turret','research','silo'
  ]); // The interceptor is intentionally disabled, but research and silo are visible.
  expect(builder.row).toBe(true);
- expect(builder.name).toBe('nowrap');
+ expect(builder.name).toBe('normal');
  expect(builder.priceBelow).toBe(true);
  expect(builder.dockHeight).toBeGreaterThanOrEqual(225);
  expect(builder.dockHeight).toBeLessThanOrEqual(270);
