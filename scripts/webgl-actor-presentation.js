@@ -229,7 +229,7 @@ export class SandforgeActorPresentation {
   const state=entry.presentation??this.attach(entry,entity,type);
   const bar=state.bar;
   const hp=Math.max(0,entity.hp);
-  const maxHp=(type==='unit'?UNITS[entity.kind]:BUILDINGS[entity.kind])?.hp??hp;
+  const maxHp=type==='unit'?this.game.maxUnitHp(entity):(BUILDINGS[entity.kind]?.hp??hp);
   const pct=healthFraction(hp,maxHp);
   if(hp<bar.previousHp-.001){
    bar.hitPulse=.26;
