@@ -15,6 +15,16 @@ test('music is an original deterministic four-chord ambient score',()=>{
  assert.ok(musicCombatLevel(600,true)<=1);
 });
 
+test('ambient music has no sustained diesel-frequency bass after infantry unlocks audio',()=>{
+ const notes=MUSIC_SCORE.flat();
+ assert.ok(Math.min(...notes)>=190,'the soundtrack must not drone in the 40-150 Hz engine band');
+ const score=readFileSync('src/reborn/tactical-music.ts','utf8');
+ assert.match(score,/this\.rumbleCut\.type='highpass'/);
+ assert.match(score,/this\.rumbleCut\.frequency\.value=250/);
+ assert.match(score,/gain\.connect\(this\.rumbleCut\)/);
+ assert.match(score,/this\.rumbleCut\.disconnect\(\)/);
+});
+
 function mockAudio(){
  const calls={oscillators:0,stops:0,targets:[],connections:0};
  const param=()=>({
