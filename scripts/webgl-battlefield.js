@@ -22,6 +22,7 @@ import {createBastionCaptureBar,updateBastionCaptureBar} from '/webgl-bastion-ca
 import {snapToPlayableEdge,worldToMinimap} from '/webgl-map-edges.js';
 import {attackBlinkAlpha} from '/src/reborn/attack-alerts.js';
 import {UPGRADES,UPGRADE_KINDS,canResearchUpgrade,SILO_CHARGE_SECONDS,INTERCEPTOR_MAX_AMMO,INTERCEPTOR_REARM_COST} from '/src/reborn/strategic-tech.js';
+import {createStrategicBuilding,isStrategicBuilding} from '/webgl-strategic-buildings.js';
 
 // Runtime adapter: game state, movement, combat, production and AI are owned
 // exclusively by the original Simulation. 3D nodes are presentation only.
@@ -105,6 +106,7 @@ export class SandforgeBattlefield {
  }
  entityPosition(p){return this.pos(p.x,p.y,this.heightAt(p.x,p.y)+unitRenderAltitude(p.kind,p.flightHeight??1));}
  createFallback(kind,owner,type){
+  if(type==='building'&&isStrategicBuilding(kind))return createStrategicBuilding(kind,owner);
   const group=new THREE.Group(),team=owner===0?'#397f9d':'#9f5541',metal=new THREE.MeshStandardMaterial({color:team,metalness:.55,roughness:.53}),
    dark=new THREE.MeshStandardMaterial({color:'#444743',metalness:.45,roughness:.7});
   // Placeholder structures use the same gentle ambient lift as detailed GLBs.
@@ -195,7 +197,8 @@ export class SandforgeBattlefield {
   // still appear. Falling back to primitive grey cubes would make the actual
   // player's base look markedly worse than the 2D game.
   // Medics always load their authored 3D soldier, even in lite mode.
-  if((this.lite&&type!=='building'&&entity.kind!=='medic')||entry.requested||
+  if((this.lite&&type!=='building'&&entity.kind!=='medic')||
+     type==='building'&&isStrategicBuilding(entity.kind)||entry.requested||
      this.loadingCount+this.modelQueue.length>=this.maxModels)return;
   entry.requested=true;
   const url=this.asset(entity.kind,entity.owner,type);
@@ -483,6 +486,7 @@ export class SandforgeBattlefield {
   group.userData.previewCircle=circle;group.add(circle);
   this.buildPreviewScene.add(group);
   this.buildPreview=group;group.visible=false;
+  if(isStrategicBuilding(kind))return;
   this.getModel(this.asset(kind,0,'building')).then(data=>{
    if(this.buildPreview!==group||this.buildKind!==kind)return;
    const model=cloneSkeleton(data.scene),bounds=new THREE.Box3().setFromObject(model);
