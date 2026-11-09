@@ -67,7 +67,7 @@ node --test tests/sandforge-project-identity-20261109.test.mjs
 SANDFORGE_BROWSER_CHANNEL=chromium npm run test:webgl-integration
 ```
 
-Die **17 gezielten Projekt-/Pionier-/Audiotests** liefen am 09.11.2026 lokal erfolgreich. Beim ersten umfassenderen Lauf war eine alte visuelle Größen-Assertion nicht mehr aktuell; sie wurde auf dem Entwicklungsbranch korrigiert. Der erneute vollständige Browserlauf steht noch aus. Ein grüner Build allein ist keine Produktionsfreigabe.
+**Bestätigte WebGL-Integration (09.11.2026):** Der Entwicklungsstand auf Commit [`3f30e379`](https://github.com/nfekete82/sandforge/commit/3f30e379cdf864a53fde96fce97a7d4790fdc7d6) bestand auf dem Mac **17/17 Node-Tests und 72/72 Chromium-Browsertests**. [Abnahmeprotokoll des Entwicklungsbranches](https://github.com/nfekete82/sandforge/blob/chore/sandforge-project-identity-20261109/docs/qa/webgl-integration-20261109-3f30e379.md). Dieser Nachweis betrifft **nicht den alten `main`-Code**. Gesamte Node-Suite, separates Canvas-Browserpaket und ein produktiver Release sind weiterhin nicht freigegeben.
 
 **Stack:** TypeScript, JavaScript, Three.js/WebGL, Node.js, CSS, HTML, Playwright, Docker.
 
