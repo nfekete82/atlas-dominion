@@ -4,6 +4,7 @@ import {existsSync,readFileSync} from 'node:fs';
 import {Simulation} from '../dist/src/reborn/simulation.js';
 import {BUILDINGS,UNITS} from '../dist/src/reborn/catalog.js';
 import {SandforgeConstructionRecovery} from '../dist/webgl-construction-recovery.js';
+import {createStrategicBuilding,isStrategicBuilding,STRATEGIC_BUILDING_KINDS} from '../scripts/webgl-strategic-buildings.js';
 
 test('Canyon v15-v18: 3D campaign saves remain reloadable without changing simulation',()=>{
  for(const version of [15,16,17,18]){
@@ -19,15 +20,22 @@ test('Canyon v15-v18: 3D campaign saves remain reloadable without changing simul
  }
 });
 
-test('All 9 combat unit kinds and 6 structures have original authored 3D models',()=>{
+test('all combat GLBs and standard structures exist; strategic facilities use actual procedural 3D models',()=>{
  for(const kind of Object.keys(UNITS))for(const team of [0,1]){
   const folder=['tank','rover','artillery','scout','bomber'].includes(kind)?'animation':'prototype';
   const path='dist/src/assets/reborn/'+folder+'/'+kind+'-'+team+'.glb';
   assert.ok(existsSync(path),'missing 3D unit model '+path);
  }
  for(const kind of Object.keys(BUILDINGS))for(const team of [0,1]){
-  const path='dist/src/assets/reborn/buildings-3d/'+kind+'-'+team+'.glb';
-  assert.ok(existsSync(path),'missing 3D structure model '+path);
+  if(isStrategicBuilding(kind)){
+   assert.ok(STRATEGIC_BUILDING_KINDS.includes(kind),kind+' registered as 3D strategic building');
+   const model=createStrategicBuilding(kind,team);
+   assert.ok(model&&model.isGroup&&model.children.length>0,kind+' must render real 3D meshes');
+   assert.ok(model.children.some(child=>child.isMesh),kind+' needs geometric detail, not a flat icon');
+  }else{
+   const path='dist/src/assets/reborn/buildings-3d/'+kind+'-'+team+'.glb';
+   assert.ok(existsSync(path),'missing 3D structure model '+path);
+  }
  }
 });
 
