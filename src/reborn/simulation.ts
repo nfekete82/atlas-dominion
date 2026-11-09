@@ -25,6 +25,10 @@ import {beginBomberOrbit,advanceBomberOrbit,validBomberOrbit,BOMBER_ORBIT_SPEED,
 import {bomberAttackWaypoints,BOMBER_BOMB_RELEASE_DISTANCE,BOMBER_RUN_WAYPOINT_DISTANCE,BOMBER_BOMB_FALL_SECONDS,type BomberAttackRun} from './bomber-attack.js';
 import {AttackAlerts} from './attack-alerts.js';
 import {eliminationOutcome} from './match-outcome.js';
+import {GENERAL_ABILITIES,newGeneralState,earnGeneralExperience,
+ canUseGeneralPower,spendGeneralPower,validGeneralState,validGeneralBeacon,
+ generalArtilleryOffsets,type GeneralAbility,type GeneralState,
+ type GeneralBeacon,type GeneralEvent} from './general-powers.js';
 import {formationSlotPitch,vehicleSpacingGap,preservesVehicleProgress,vehicleYieldWaypoint} from './vehicle-spacing.js';
 import {UPGRADES,UPGRADE_KINDS,newResearchState,canResearchUpgrade,researchModifiers,
  validResearchState,strategicBlastDamage,validStrategicMissile,
@@ -92,6 +96,8 @@ export interface Save {
   memories:Memory[][]; aiClock:number; ai?:TacticalState; status:'playing'|'victory'|'defeat'; stats?:MatchStatistics;
   research?:[ResearchState,ResearchState];
   strategicMissiles?:StrategicMissile[];
+  generals?:[GeneralState,GeneralState];
+  generalBeacons?:GeneralBeacon[];
 }
 
 /** Uniform buckets keep combat/vision queries independent of total army size. */
@@ -215,6 +221,53 @@ export class Simulation {
     base.interceptorAmmo=INTERCEPTOR_MAX_AMMO;
     return true;
   }
+  /** Commander powers are player actions with deterministic damage/vision.
+   * They do not create units and do not count toward victory conditions.
+   */
+  useGeneralPower(owner:Faction,kind:GeneralAbility,p:Point):boolean{
+    if(this.status!=='playing'||this.world.index(p)<0||
+       !Number.isFinite(p.x)||!Number.isFinite(p.y)||
+       (kind!=='recon'&&!this.hasExplored(owner,p))||
+       !canUseGeneralPower(this.generals[owner],kind,this.time))return false;
+    if(kind==='repair'&&![...this.units,...this.bases].some(u=>
+      u.owner===owner&&u.hp>0&&(!('orders' in u)||!u.carrier)&&
+      distance(u,p)<=GENERAL_ABILITIES.repair.radius&&
+      u.hp<('orders' in u?this.maxUnitHp(u):buildingSpec(u).hp)-.01))return false;
+    if(!spendGeneralPower(this.generals[owner],kind,this.time))return false;
+    const id=this.nextId++;
+    if(kind==='recon'){
+      this.generalBeacons.push({id,owner,x:p.x,y:p.y,until:this.time+30});
+      this.updateVision();
+    }else if(kind==='repair'){
+      for(const unit of this.units)if(unit.owner===owner&&unit.hp>0&&!unit.carrier&&
+        distance(unit,p)<=GENERAL_ABILITIES.repair.radius)
+        unit.hp=Math.min(this.maxUnitHp(unit),unit.hp+this.maxUnitHp(unit)*.25);
+      for(const base of this.bases)if(base.owner===owner&&base.hp>0&&
+        distance(base,p)<=GENERAL_ABILITIES.repair.radius)
+        base.hp=Math.min(buildingSpec(base).hp,base.hp+buildingSpec(base).hp*.25);
+    }else if(kind==='artillery'){
+      for(const [i,offset] of generalArtilleryOffsets(this.seed,id).entries()){
+        const to={x:clamp(p.x+offset.x,4,this.world.size-4),
+         y:clamp(p.y+offset.y,4,this.world.size-4)};
+        this.missiles.push({
+          id:this.nextId++,source:-1,owner,
+          from:{x:clamp(to.x-65,4,this.world.size-4),y:clamp(to.y-45,4,this.world.size-4)},
+          to,angle:0,at:this.time,impactAt:this.time+1.2+i*.57,
+          damage:160,type:'bomb'
+        });
+      }
+      if(owner===1)this.attackAlerts.record(p,this.time);
+    }
+    this.generalEvents.push({id,owner,kind,x:p.x,y:p.y,at:this.time});
+    if(owner===0)this.notices.push(GENERAL_ABILITIES[kind].name+' aktiviert.');
+    return true;
+  }
+  private stepGeneral():void{
+    if(this.generalBeacons.length)
+      this.generalBeacons=this.generalBeacons.filter(b=>b.until>this.time);
+    if(this.generalEvents.length)
+      this.generalEvents=this.generalEvents.filter(e=>this.time-e.at<2);
+  }
   private stepStrategy(dt:number):void{
     for(const owner of [0,1] as const){
       const state=this.research[owner];
@@ -311,6 +364,9 @@ export class Simulation {
   research:[ResearchState,ResearchState]=[newResearchState(),newResearchState()];
   strategicMissiles:StrategicMissile[]=[];
   strategicEvents:StrategicEvent[]=[];
+  generals:[GeneralState,GeneralState]=[newGeneralState(),newGeneralState()];
+  generalBeacons:GeneralBeacon[]=[];
+  generalEvents:GeneralEvent[]=[];
   private strategicAiAt=-Infinity;
   private seenEnemySilos=new Set<number>();
   seed:number; time=0; nextId=1; credits=[RULES.initialCredits as number,RULES.initialCredits as number];
@@ -811,6 +867,11 @@ export class Simulation {
       this.attackAlerts.record({x:target.x,y:target.y},this.time);
     }
     if(attacker&&attacker.hp>0&&attacker.owner!==target.owner){gainUnitXp(attacker,applied*XP_RULES.damage,'damage');if(target.hp===0)gainUnitXp(attacker,XP_RULES.kill,'kill');}
+    if(hostile&&hostile.owner!==target.owner&&applied>0){
+      const earned=earnGeneralExperience(this.generals[hostile.owner],applied,
+        alive&&target.hp===0);
+      if(hostile.owner===0&&earned)this.notices.push('Kommandopunkt verdient! +'+earned);
+    }
     if(alive&&target.hp<=0&&'orders' in target)this.tactical.loss(target);
     // Fast damage-driven retreat: the tactical planner runs only every 3 s,
     // longer than the time a low-HP rover can survive under enemy fire.
@@ -1142,6 +1203,7 @@ export class Simulation {
     this.movementCollision=undefined;
     // One fixed tick only: callers accumulate elapsed time; no wall-clock economy.
     dt=Math.min(dt,.1);this.time+=dt;this.incomeClock+=dt;this.fogClock+=dt;
+    this.stepGeneral();
     this.unitById=new Map(this.units.map(u=>[u.id,u]));
     // An actor killed/removed during production must not retain a detached
     // visual departure hold after its entity no longer exists.
