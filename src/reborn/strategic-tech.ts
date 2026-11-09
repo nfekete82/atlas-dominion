@@ -64,6 +64,8 @@ export function validResearchState(value:unknown):value is ResearchState{
 export const SILO_CHARGE_SECONDS=600;
 export const STRATEGIC_WARNING_SECONDS=25;
 export const STRATEGIC_BLAST_RADIUS=350;
+/** Temporary feature gate. Keep save schema and existing defenses intact. */
+export const INTERCEPTOR_ENABLED=false;
 export const INTERCEPTOR_COST=2500;
 export const INTERCEPTOR_MAX_AMMO=3;
 export const INTERCEPTOR_REARM_COST=650;
