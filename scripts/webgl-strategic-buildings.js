@@ -69,6 +69,15 @@ export function createStrategicBuilding(kind,owner=0){
   mats.camoSand=new THREE.MeshStandardMaterial({color:'#d1bd93',map:materialGrain,
    bumpMap:materialGrain,bumpScale:.16,roughness:.88,metalness:.05});
  }
+ // The silo should be a recognisable armoured launch complex, not a
+ // generic box with a lone tower. Both skins share faction ID colours.
+ if(kind==='silo'){
+  mats.armor=new THREE.MeshStandardMaterial({color:'#b3a581',map:materialGrain,
+   bumpMap:materialGrain,bumpScale:.23,roughness:.72,metalness:.22});
+  mats.steel=new THREE.MeshStandardMaterial({color:'#8d8770',map:materialGrain,
+   bumpMap:materialGrain,bumpScale:.1,roughness:.6,metalness:.4});
+  mats.warning=new THREE.MeshStandardMaterial({color:'#cda956',roughness:.62,metalness:.18});
+ }
  // Names allow one shared camouflage pass while leaving service glass,
  // signal beacons and recessed dark vents in their original PBR material.
  for(const [name,material] of Object.entries(mats))material.name='SF_'+name;
@@ -189,6 +198,31 @@ export function createStrategicBuilding(kind,owner=0){
    cyl(3,4,8,'black',x,85,z);
    cyl(4,4,2,'glow',x,89.5,z);
   }
+  // Reference-inspired field laboratory: raised segmented observation deck,
+  // protected data centre, slanted sensor modules and rooftop service rails.
+  // Every static piece is merged by material below into a few PBR batches.
+  box(47,26,39,'camoSand',-49,29,-38);
+  box(50,4,42,'trim',-49,44,-38);
+  for(const z of [-54,-38,-22])grille(-73,29,z,22);
+  for(const x of [-56,-20,18,55]){
+   box(21,4,16,'steel',x,86,43);
+   box(18,2.8,13,'camoOlive',x,89,43);
+  }
+  // Large articulated side array signals scientific purpose at RTS zoom.
+  const array=add(new THREE.BoxGeometry(44,3,29),'panel',
+   45,108,-11,-.40,0,.08);
+  array.name='Research_SensorArray';
+  for(const x of [28,42,56,70])box(3.2,7,26,'trim',x,109,-11);
+  for(const z of [-47,43]){
+   box(68,2.2,2.5,'trim',38,112,z);
+   for(const x of [6,40,71])box(2.5,20,2.5,'metal',x,102,z);
+  }
+  // Exterior pipes and roof access ladder: depth and believable engineering.
+  for(const y of [28,37,46,55])box(3,1.7,54,'steel',81,y,-3);
+  for(const z of [-47,-12,23]){
+   box(5,6,3,'metal',82,56,z);
+   box(3.1,3,3,'glow',82,59,z);
+  }
  }else if(kind==='silo'){
   foundation(230,207);
   box(205,43,184,'base',0,37,0);
@@ -243,6 +277,25 @@ export function createStrategicBuilding(kind,owner=0){
   for(const x of [-90,-75,72,88]){
    cyl(4,5,38,'metal',x,94,72,12);
    cyl(6,6,4,'glow',x,115,72);
+  }
+  // Sand-worn maintenance galleries, hatch slide machinery and hazard
+  // guides make the giant strategic launch site read like a functional silo.
+  for(const z of [-84,84]){
+   for(const x of [-80,-53,-26,1,28]){
+    box(17,4,19,'armor',x,94,z);
+    box(16,1,2,'warning',x,97,z);
+   }
+  }
+  for(const x of [-83,37]){
+   box(5,23,5,'steel',x,106,-61);
+   box(11,7,14,'metal',x,120,-61);
+   box(8,2,12,'glow',x,125,-61);
+  }
+  // Two thick retracting bay doors park on both flanks of the open shaft.
+  for(const x of [-89,53]){
+   box(29,7,117,'armor',x,102,0);
+   box(24,2,110,'steel',x,107,0);
+   for(const z of [-45,0,45])box(27,3,5,'black',x,110,z);
   }
   // Small service vents and fueling junctions along the industrial annex.
   for(const x of [55,72,89]){
