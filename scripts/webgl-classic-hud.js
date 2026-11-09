@@ -17,6 +17,7 @@ export function installClassicHud(){
   <span id="sf-stats" class="sf-assist-stats">Credits / Kapazität</span>
   <div class="credit-resource"><span class="credit-cube" aria-hidden="true">◆</span><div><strong id="sf-credits">500</strong><small><span id="sf-income">+35</span> / 10 S</small></div></div>
   <div class="capacity-resource"><span aria-hidden="true">♙</span><strong id="sf-capacity">2 <em>/ 48</em></strong></div>
+  <div class="sf-general-resource" title="Kommandopunkte aus Kampfhandlungen"><span aria-hidden="true">★</span><strong id="sf-general-points">0</strong><small>KP</small></div>
  </div>
 </header>
 <nav class="tools hud frame sf-tools" id="sf-tools" aria-label="Spielmenü"></nav>
@@ -31,6 +32,7 @@ export function installClassicHud(){
    <button data-tab="units" aria-pressed="true">EINHEITEN</button>
    <button data-tab="buildings" aria-pressed="false">GEBÄUDE</button>
    <button data-tab="territories" aria-pressed="false">SEKTOREN</button>
+   <button data-tab="powers" aria-pressed="false">FÄHIGKEITEN</button>
    <button data-tab="research" aria-pressed="false" hidden>FORSCHUNG</button>
   </nav>
   <div class="catalog-scroll" id="sf-actions" aria-label="Einheiten, Gebäude und Territorien"></div>
