@@ -459,7 +459,11 @@ export class SandforgeCombatEffects {
  rocketLaunchWorld(missile){
   const entry=this.battlefield?.units?.get(missile.source);
   const barrel=missile.id%6;
-  const muzzle=missile.type==='antiArmor'
+  // The procedural camouflaged shoulder launcher has its own real muzzle
+  // node. Never fall back to the tank's offset for a human-sized rocket.
+  const muzzle=entry?.kind==='rocket'
+   ?entry?.placeholder?.getObjectByName('RocketMuzzle_0')??entry?.detail?.getObjectByName('RocketMuzzle_0')
+   :missile.type==='antiArmor'
    ?entry?.detail?.getObjectByName('AtlasMuzzleTip')
    :entry?.rocketMuzzles?.[barrel]??
     entry?.detail?.getObjectByName('RocketMuzzle_'+barrel);
