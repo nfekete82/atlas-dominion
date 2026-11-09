@@ -58,6 +58,9 @@ export function createStrategicBuilding(kind,owner=0){
   glass:new THREE.MeshStandardMaterial({color:owner===0?'#33677c':'#844e43',
    emissive:owner===0?'#184c64':'#61352d',emissiveIntensity:.4,metalness:.26,roughness:.34})
  };
+ // Names allow one shared camouflage pass while leaving service glass,
+ // signal beacons and recessed dark vents in their original PBR material.
+ for(const [name,material] of Object.entries(mats))material.name='SF_'+name;
  function add(geometry,material,x,y,z,rx=0,ry=0,rz=0){
   const mesh=new THREE.Mesh(geometry,typeof material==='string'?mats[material]??mats.metal:material);
   mesh.position.set(x,y,z);mesh.rotation.set(rx,ry,rz);
