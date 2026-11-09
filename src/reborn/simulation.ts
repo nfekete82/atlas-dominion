@@ -1278,7 +1278,7 @@ export class Simulation {
           if(u.burst?.target!==enemy.id)delete u.burst;
           if(!u.burst&&u.cooldown<=1e-8){u.cooldown=spec.cooldown/getVeterancyModifiers(u).fireRate;u.burst={target:enemy.id,remaining:rounds,at:this.time,index:0};}
           while(u.burst&&u.burst.at<=this.time+1e-8&&enemy.hp>0){
-            u.fire=.18;if(u.kind==='artillery'||u.kind==='tank')this.launch(u,enemy);else this.damage(u,enemy,weaponDamage(u,enemy)*getVeterancyModifiers(u).damage/rounds,weapon,{x:u.x,y:u.y-18});
+            u.fire=.18;if(u.kind==='artillery'||u.kind==='tank'||u.kind==='rocket')this.launch(u,enemy);else this.damage(u,enemy,weaponDamage(u,enemy)*getVeterancyModifiers(u).damage/rounds,weapon,{x:u.x,y:u.y-18});
             u.burst.remaining--;u.burst.index++;u.burst.at+=u.kind==='heavy'?.1:.075;
             if(!u.burst.remaining)delete u.burst;
           }
