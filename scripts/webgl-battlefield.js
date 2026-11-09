@@ -114,7 +114,7 @@ export class SandforgeBattlefield {
   if(type==='building'){
    for(const material of [metal,dark]){
     material.emissive.copy(material.color);
-    material.emissiveIntensity=.22;
+    material.emissiveIntensity=.065;
    }
   }
   const make=(geo,mat,x,y,z)=>{const mesh=new THREE.Mesh(geo,mat);mesh.position.set(x,y,z);mesh.castShadow=true;mesh.receiveShadow=true;group.add(mesh);return mesh;};
