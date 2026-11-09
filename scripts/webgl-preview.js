@@ -608,6 +608,51 @@ function weatherRuinMeshes(node){
   mesh.castShadow=mesh.receiveShadow=true;
  });
 }
+// Dust-buried remnants of a service road by each ruined settlement.
+// Deterministic, non-collidable and instanced: two draw calls per ruin,
+// no shadows, no per-frame updates and most of each slab hidden under sand.
+function addBuriedRuinRoad(anchor,ruin,index){
+ const random=rnd((seed^(index*0x51f15e5d)^0x927acdef)>>>0);
+ const spot=[],drift=[];
+ const c=Math.cos(ruin.rotation),sn=Math.sin(ruin.rotation);
+ const baseHeight=heightAt(ruin.x,ruin.y);
+ const offset=(x,z)=>heightAt(ruin.x+c*x+sn*z,ruin.y-sn*x+c*z)-baseHeight;
+ for(let i=0;i<4;i++){
+  const x=ruin.width*(.54+i*.18);
+  const z=ruin.depth*(.29+(random()-.5)*.18);
+  const w=ruin.width*(.13+random()*.04);
+  const d=ruin.depth*(.13+random()*.05);
+  const rotation=(random()-.5)*.23;
+  const y=offset(x,z)+.08;
+  spot.push({x,y,z,w,h:.25,d,rotation});
+  drift.push({x:x+1.7+random()*4,y:y+.23,z:z+(random()-.5)*4,
+   w:w*(.63+random()*.13),h:.30,d:d*(.66+random()*.12),
+   rotation:rotation+.04});
+ }
+ for(const [parts,color,opacity,name] of [
+  [spot,'#968676',.46,'BuriedRuinRoad'],
+  [drift,'#ba8d57',.90,'WindblownRoadSand']
+ ]){
+  const material=new THREE.MeshStandardMaterial({
+   color,roughness:1,metalness:0,transparent:true,
+   opacity,depthWrite:false
+  });
+  const mesh=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),
+   material,parts.length);
+  mesh.name=name;mesh.userData={visualOnly:true,nonPlayable:true,roadFragment:true};
+  mesh.castShadow=false;mesh.receiveShadow=false;mesh.raycast=()=>{};
+  const dummy=new THREE.Object3D();
+  parts.forEach((part,i)=>{
+   dummy.position.set(part.x,part.y,part.z);
+   dummy.rotation.set(0,part.rotation,0);
+   dummy.scale.set(part.w,part.h,part.d);
+   dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
+  });
+  mesh.instanceMatrix.needsUpdate=true;
+  mesh.computeBoundingSphere();
+  anchor.add(mesh);
+ }
+}
 // A few hand-shaped, collapsed remnants make the two real ruin GLBs
 // appear differently destroyed across the map. They are separate VISUAL-ONLY
 // child meshes, never additional World obstacles or save fields.
@@ -661,7 +706,7 @@ async function addRuins(){
   anchor.position.copy(pos(ruin.x,ruin.y));
   anchor.rotation.y=ruin.rotation;
   anchor.add(source);
-  if(spacious)dressRuinDamage(anchor,ruin,i);
+  if(spacious){dressRuinDamage(anchor,ruin,i);addBuriedRuinRoad(anchor,ruin,i);}
   scene.add(anchor);ruinMeshes.push(anchor);
  }
  return ruinMeshes.length;
