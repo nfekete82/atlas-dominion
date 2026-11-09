@@ -13,7 +13,7 @@ const sim=()=>{const g=new Simulation(2074,4);g.aiClock=1e8;
  g.status='playing';g.paused=false;g.tactical.plan=()=>{};return g;};
 
 test('model-only helicopter grows substantially and bomber grows slightly; movement and collision untouched',()=>{
- assert.equal(visualUnitScale('scout'),1.28);
+ assert.equal(visualUnitScale('scout'),1.34);
  assert.equal(visualUnitScale('bomber'),1.03);
  assert.equal(UNITS.bomber.speed,350);
  assert.equal(BOMBER_ORBIT_SPEED,145);
