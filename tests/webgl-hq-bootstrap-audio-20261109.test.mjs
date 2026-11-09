@@ -36,18 +36,20 @@ test('3D HUD retains the existing pioneer-driven manual HQ construction',()=>{
  assert.doesNotMatch(ui,/data-action="hq-bootstrap"/);
 });
 
-test('engine sounds are explicitly opted into; clicking infantry cannot unlock engine ambience',()=>{
+test('engines only play when units physically travel, never for clicking infantry or opening a gate',()=>{
  const audio=read('src/reborn/audio.ts');
  const preview=read('scripts/webgl-preview.js');
  const options=read('scripts/webgl-title-menu.js');
  const html=read('webgl-preview.html');
  const gates=read('scripts/webgl-production-gates.js');
- assert.match(audio,/engineSoundsEnabled=false/);
+ assert.match(audio,/engineSoundsEnabled=true/);
  assert.match(audio,/setEngineSoundsEnabled\(value:boolean\)/);
  assert.match(audio,/ambientSounding&&this\.engineSoundsEnabled\?vehicleSoundMix\(/);
  assert.match(audio,/productionGate\(kind:'barracks'\|'factory'='factory'\)/);
  assert.match(gates,/productionGate\?\.\(gate\.kind\)/);
- assert.match(preview,/bootOptions\.engineSoundsEnabled===true/);
+ assert.match(preview,/bootOptions\.engineSoundsEnabled!==false/);
  assert.match(options,/engineSoundsEnabled:\$\('sf3d-engine-sounds'\)\.checked/);
  assert.match(html,/sf3d-engine-sounds/);
+ assert.match(audio,/measuredEngineSpeed\(u\)>=2/);
+ assert.match(audio,/short mechanical latch/);
 });
