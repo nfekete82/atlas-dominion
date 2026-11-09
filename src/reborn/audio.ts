@@ -247,20 +247,32 @@ export class Soundscape {
     announcement.pitch=.92;announcement.volume=Math.min(.58,this.volume*this.radio.volume*.8);
     window.speechSynthesis.speak(announcement);
   }
+  /** Persistent oscillators outlive transient gameplay samples. Explicitly
+   * shut their output on pause/menu/save-load; do not wait for the next tick.
+   */
+  private silenceAmbientNodes():void{
+    if(!this.context)return;
+    const now=this.context.currentTime;
+    this.wind?.gain.cancelScheduledValues(now);
+    this.wind?.gain.setTargetAtTime(0,now,.018);
+    for(const voice of this.engineVoices.values()){
+      voice.gain.gain.cancelScheduledValues(now);
+      voice.gain.gain.setTargetAtTime(0,now,.018);
+      voice.previousMotion=0;
+    }
+  }
   pause():void{
     this.silence(true);this.radio.pause();this.music?.pause();
+    this.silenceAmbientNodes();
     if(typeof window!=='undefined'&&'speechSynthesis' in window)window.speechSynthesis.cancel();
   }
   silenceScene():void{
     this.silence();this.radio.stop();this.music?.pause();
+    this.silenceAmbientNodes();
     if(typeof window!=='undefined'&&'speechSynthesis' in window)window.speechSynthesis.cancel();
-    if(this.context){
-      this.wind?.gain.setTargetAtTime(0,this.context.currentTime,.025);
-      for(const voice of this.engineVoices.values()){voice.gain.gain.setTargetAtTime(0,this.context.currentTime,.035);voice.previousMotion=0;}
-    }
   }
   bindGame(g:Simulation):void{
-    if(this.game===g)return;this.silence();this.radio.reset();this.lastStep=g.time;this.game=g;this.owners=g.territories.map(t=>t.owner);this.unitIds=new Set(g.units.map(u=>u.id));this.unitLosses.reset(g.units,g.time);this.lastLossSignal=-Infinity;this.footsteps.clear();this.seenShots=new WeakSet();
+    if(this.game===g)return;this.silence();this.silenceAmbientNodes();this.radio.reset();this.lastStep=g.time;this.game=g;this.owners=g.territories.map(t=>t.owner);this.unitIds=new Set(g.units.map(u=>u.id));this.unitLosses.reset(g.units,g.time);this.lastLossSignal=-Infinity;this.footsteps.clear();this.seenShots=new WeakSet();
   }
   private applyVolume():void{if(this.context&&this.master)this.master.gain.setTargetAtTime(this.enabled?this.volume:0,this.context.currentTime,.035);}
   private silence(gameplayOnly=false):void{for(const v of this.voices.values())if(!gameplayOnly||v.gameplay)v.stop();}
