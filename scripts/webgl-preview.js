@@ -925,6 +925,7 @@ const savedVolume=(field,fallback)=>Number.isFinite(Number(bootOptions[field]))&
  Math.max(0,Math.min(1,Number(bootOptions[field])/100)):fallback;
 sound.setVolume(savedVolume('masterVolume',.85));
 sound.setEffectsVolume(savedVolume('effectsVolume',.85));
+sound.setEngineSoundsEnabled(bootOptions.engineSoundsEnabled===true);
 sound.setMusicVolume(savedVolume('musicVolume',.30));
 sound.setMusicEnabled(bootOptions.musicEnabled!==false);
 sound.setEnabled(bootOptions.sound!==false);
