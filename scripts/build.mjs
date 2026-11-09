@@ -32,6 +32,7 @@ cpSync('scripts/webgl-title-menu.js','dist/webgl-title-menu.js');
 cpSync('scripts/webgl-battlefield.js','dist/webgl-battlefield.js');
 cpSync('scripts/webgl-strategic-buildings.js','dist/webgl-strategic-buildings.js');
 cpSync('scripts/webgl-strategic-effects.js','dist/webgl-strategic-effects.js');
+cpSync('scripts/webgl-generals-effects.js','dist/webgl-generals-effects.js');
 cpSync('scripts/webgl-double-click-select.js','dist/webgl-double-click-select.js');
 cpSync('scripts/webgl-frame-scheduling.js','dist/webgl-frame-scheduling.js');
 cpSync('scripts/webgl-bastion-capture.js','dist/webgl-bastion-capture.js');
