@@ -57,6 +57,10 @@ game.stageWebGLProduction=true;
 // Measure moving-bomber sight passes separately from AI and particle rendering.
 // Read-only timing; normal sessions have zero instrumentation overhead.
 game.profileVision=query.get('perf')==='1';
+// Break multi-unit spikes into unit orders, collision separation and A* cost.
+// Instrumentation stays off in ordinary gameplay and never enters save data.
+game.profileSquadWork=query.get('perf')==='1';
+game.world.profilePaths=query.get('perf')==='1';
 // Only this WebGL campaign gets a modest vision bonus; classic/headless
 // benchmarks retain exactly their original LOS and balance.
 // Optional visual comparison; classic gameplay remains unchanged.
