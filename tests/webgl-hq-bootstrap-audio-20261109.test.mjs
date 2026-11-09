@@ -28,17 +28,12 @@ test('dunes bootstrap: a first HQ is buildable with real credits and a pioneer',
  assert.match(g.buildError(0,'barracks',g.startRegions[0].center),/fertiggestelltes Hauptquartier/);
 });
 
-test('3D HUD exposes the first HQ without preselecting a pioneer and preserves manual placement',()=>{
+test('3D HUD retains the existing pioneer-driven manual HQ construction',()=>{
  const ui=read('scripts/webgl-battlefield.js');
- const css=read('src/reborn/webgl-classic-hud.css');
- assert.match(ui,/startHeadquarters\(\)/);
- assert.match(ui,/data-action="hq-bootstrap"/);
- assert.match(ui,/g\.headquartersCandidates\(0\)/);
- assert.match(ui,/g\.build\(0,'headquarters',p,\[worker\.id\]\)/);
- assert.match(ui,/buildings:context\.engineer\|\|g\.needsHeadquarters\(0\)/);
+ assert.match(ui,/this\.catalogContext\(\)\.engineer/);
  assert.match(ui,/this\.beginPlacement\(kind\)/);
- assert.match(ui,/starterWorker/);
- assert.match(css,/\.sf-hq-bootstrap button/);
+ assert.match(ui,/this\.game\.build\(0,kind,p,workerIds/);
+ assert.doesNotMatch(ui,/data-action="hq-bootstrap"/);
 });
 
 test('engine sounds are explicitly opted into; clicking infantry cannot unlock engine ambience',()=>{
