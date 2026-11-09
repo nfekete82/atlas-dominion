@@ -9,7 +9,7 @@ import {visualUnitScale,unitVisualYaw,unitRenderAltitude} from '../scripts/webgl
 
 test('3D scale and bomber orientation are presentation-only',()=>{
  assert.equal(visualUnitScale('tank'),1.44);
- assert.equal(visualUnitScale('scout'),1.28);
+ assert.equal(visualUnitScale('scout'),1.34);
  for(const kind of ['infantry','medic','engineer'])assert.equal(visualUnitScale(kind),.56);
  assert.equal(visualUnitScale('heavy'),.58);
  assert.equal(visualUnitScale('bomber'),1.03);
