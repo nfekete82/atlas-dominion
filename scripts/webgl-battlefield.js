@@ -848,7 +848,40 @@ export class SandforgeBattlefield {
   const base=game.bases.find(b=>b.id===this.selectedBase&&b.owner===0&&b.hp>0&&b.buildRemaining<=0);
   const producer=base&&unitKinds.some(kind=>UNITS[kind].producers.includes(base.kind))?base:null;
   const research=Boolean(base&&base.kind==='research');
-  return {engineer,producer,research,preferred:engineer?'buildings':producer?'units':research?'research':'territories'};
+  // First-campaign HQ is the only available production route. Do not require
+  // selecting a tiny pioneer before a player can even discover how to begin.
+  return {engineer,producer,research,preferred:game.needsHeadquarters(0)?'buildings':engineer?'buildings':producer?'units':research?'research':'territories'};
+ }
+ /** Optional one-click start; uses the same paid, engineer-driven construction
+  * and legal placement rules as manual HQ building. No free or instant HQ.
+  */
+ startHeadquarters(){
+  const g=this.game;
+  const existing=g.bases.find(b=>b.owner===0&&b.kind==='headquarters'&&b.hp>0);
+  if(existing){
+   this.selectedBase=existing.id;this.selected.clear();
+   this.message(existing.buildRemaining>0?'Feldkommando wird bereits gebaut':'Feldkommando fertiggestellt');
+   this.drawInterface();return;
+  }
+  if(!g.needsHeadquarters(0)){this.message('Ein Feldkommando ist bereits vorhanden');return;}
+  const workers=g.units.filter(u=>u.owner===0&&u.hp>0&&u.kind==='engineer'&&!u.carrier);
+  if(!workers.length){this.message('Kein Pionier für das Feldkommando verfügbar');return;}
+  let lastError='Kein geeigneter Bauplatz gefunden';
+  for(const p of g.headquartersCandidates(0)){
+   const failure=g.buildError(0,'headquarters',p);
+   if(failure){lastError=failure;continue;}
+   for(const worker of workers){
+    const site=g.build(0,'headquarters',p,[worker.id]);
+    if(!site)continue;
+    this.clearPlacement();
+    this.selected=new Set([worker.id]);this.selectedBase=null;
+    this.message('Feldkommando beauftragt · Pionier baut am markierten Standort');
+    this.sync(true);
+    return;
+   }
+  }
+  this.message('Feldkommando nicht gebaut: '+lastError+' · Bauplatz manuell wählen');
+  this.drawInterface();
  }
  buildInterface(){
   this.panel=installClassicHud();
@@ -880,6 +913,9 @@ export class SandforgeBattlefield {
       'Raketenziel-Modus beendet');
     this.drawInterface();return;
    }
+   if(action==='hq-bootstrap'){
+    this.startHeadquarters();return;
+   }
    if(action==='interceptor-rearm'){
     this.message(this.game.rearmInterceptor(this.selectedBase)?
       'Raketenabwehr nachgeladen: '+INTERCEPTOR_MAX_AMMO+' Raketen':
@@ -888,7 +924,13 @@ export class SandforgeBattlefield {
    }
    if(kind){
     if(kind==='interceptor'&&!INTERCEPTOR_ENABLED){this.message('Raketenabwehr derzeit deaktiviert');return;}
-    if(!this.catalogContext().engineer){this.message('Zum Bauen zuerst einen Pionier auswählen');return;}
+    if(!this.catalogContext().engineer){
+     // A first HQ is always accessible even when the soldier was selected.
+     const worker=kind==='headquarters'&&this.game.needsHeadquarters(0)
+      ?this.game.units.find(u=>u.owner===0&&u.kind==='engineer'&&u.hp>0&&!u.carrier):null;
+     if(!worker){this.message('Zum Bauen zuerst einen Pionier auswählen');return;}
+     this.selected=new Set([worker.id]);this.selectedBase=null;
+    }
     this.beginPlacement(kind);this.attackMode=false;this.sound?.select?.();
     this.message('Bauplatz wählen: '+BUILDINGS[kind].name+' · R: drehen · Shift: Aufträge anhängen');this.drawInterface();
    }
@@ -935,7 +977,7 @@ export class SandforgeBattlefield {
    if(action==='select-all'){this.selected=new Set(this.game.units.filter(u=>u.hp>0&&u.owner===0&&!u.carrier).map(u=>u.id));this.selectedBase=null;this.drawInterface();}
   });
   this.panel.addEventListener('sandforge-tabchange',event=>{
-   const available={buildings:this.catalogContext().engineer,units:Boolean(this.catalogContext().producer),territories:true,research:this.catalogContext().research};
+   const available={buildings:this.catalogContext().engineer||this.game.needsHeadquarters(0),units:Boolean(this.catalogContext().producer),territories:true,research:this.catalogContext().research};
    if(!available[event.detail.tab])return;
    this.panel.querySelector('#sf-actions').scrollTop=0;
    const descriptions={units:'Wähle einen Produktionsauftrag. Gebäude schalten neue Einheiten frei.',
@@ -983,7 +1025,7 @@ export class SandforgeBattlefield {
   const g=this.game,view=this.panel,actions=view.querySelector('#sf-actions');
   const context=this.catalogContext();
   const selectionKey=[...this.selected].sort((a,b)=>a-b).join(',')+'|'+String(this.selectedBase)+'|'+Boolean(context.producer);
-  const available={units:Boolean(context.producer),buildings:context.engineer,territories:true,research:context.research};
+  const available={units:Boolean(context.producer),buildings:context.engineer||g.needsHeadquarters(0),territories:true,research:context.research};
   if(this.catalogSelectionKey!==selectionKey||!available[view.dataset.tab]){
    view.dataset.tab=context.preferred;
    this.catalogSelectionKey=selectionKey;
@@ -1039,7 +1081,10 @@ export class SandforgeBattlefield {
     '<small>'+tech.cost+' ◆ · '+tech.seconds+' s</small></span>'+
     '<span class="sf-tech-progress" aria-hidden="true"></span></button>';
   }).join('');
-  const markup='<div class="sf-group" data-sf-group="units">'+roster+'</div>'+
+  const hqStarter=g.needsHeadquarters(0)?
+   '<div class="sf-hq-bootstrap"><button type="button" data-action="hq-bootstrap" aria-label="Feldkommando automatisch mit dem Pionier errichten">'+
+   'FELDKOMMANDO ERRICHTEN · 300 ◆</button><small>Alternativ: Feldkommando-Karte wählen und Bauplatz anklicken</small></div>':'';
+  const markup=hqStarter+'<div class="sf-group" data-sf-group="units">'+roster+'</div>'+
    '<div class="sf-group" data-sf-group="buildings"><div class="catalog-grid">'+
    cards(buildingKinds.filter(kind=>kind!=='interceptor'||INTERCEPTOR_ENABLED),'building')+'</div></div>'+
    '<div class="sf-group" data-sf-group="research"><div class="sf-research-grid">'+upgrades+'</div></div>'+
@@ -1083,10 +1128,12 @@ export class SandforgeBattlefield {
    const ownedSite=constructed.get(kind);
    const interceptorLimit=kind==='interceptor'&&g.bases.filter(b=>b.owner===0&&b.kind==='interceptor'&&b.hp>0).length>=2;
    const ownedReason=ownedUnique?(ownedSite.buildRemaining>0?'Bereits im Bau':'Bereits gebaut'):'';
+   const starterWorker=kind==='headquarters'&&g.needsHeadquarters(0)&&
+    g.units.some(u=>u.owner===0&&u.kind==='engineer'&&u.hp>0&&!u.carrier);
    const unavailable=button.dataset.unit
     ?!correctProducer||g.needsHeadquarters(0)||context.producer.queue.length>=8||
       g.credits[0]<spec.cost||g.count(0)+g.queued(0)>=RULES.capacity
-    :!context.engineer||g.credits[0]<spec.cost||!g.hasHeadquarters(0)&&kind!=='headquarters'||
+    :(!context.engineer&&!starterWorker)||g.credits[0]<spec.cost||!g.hasHeadquarters(0)&&kind!=='headquarters'||
       kind==='generator'&&generatorLimitReached||ownedUnique||interceptorLimit;
    const requirement=button.dataset.unit
     ?(!context.producer?'Produktionsgebäude auswählen':
@@ -1097,7 +1144,7 @@ export class SandforgeBattlefield {
        g.count(0)+g.queued(0)>=RULES.capacity?'Einheitenlimit erreicht':'')
     :(ownedReason?ownedReason:kind==='generator'&&generatorLimitReached?'Maximal '+MAX_GENERATORS_PER_FACTION+' Energiekerne pro Fraktion':
        interceptorLimit?'Maximal zwei Raketenabwehr-Anlagen pro Fraktion':
-       !context.engineer?'Pionier auswählen':
+       !context.engineer&&!starterWorker?'Pionier auswählen':
        !g.hasHeadquarters(0)&&kind!=='headquarters'?'Hauptquartier zuerst fertigstellen':
        g.credits[0]<spec.cost?'Zu wenig Credits':
        kind==='headquarters'&&!g.needsHeadquarters(0)?'Hauptquartier bereits vorhanden':'');
@@ -1110,6 +1157,14 @@ export class SandforgeBattlefield {
    if(blocked)button.setAttribute('aria-description',explanation);
    else button.removeAttribute('aria-description');
    button.classList.toggle('sf-selected-build',button.dataset.build===this.buildKind);
+  }
+  const hqAction=actions.querySelector('[data-action="hq-bootstrap"]');
+  if(hqAction){
+   const site=g.bases.find(b=>b.owner===0&&b.kind==='headquarters'&&b.hp>0);
+   const hasPioneer=g.units.some(u=>u.owner===0&&u.kind==='engineer'&&u.hp>0&&!u.carrier);
+   hqAction.disabled=Boolean(site)||!hasPioneer||g.credits[0]<BUILDINGS.headquarters.cost;
+   hqAction.textContent=site?'FELDKOMMANDO IM BAU · '+Math.ceil(site.buildRemaining)+' s':
+    'FELDKOMMANDO ERRICHTEN · '+BUILDINGS.headquarters.cost+' ◆';
   }
   hydrateUnitIcons(actions);
   hydrateBuildingIcons(actions,this.renderer);
