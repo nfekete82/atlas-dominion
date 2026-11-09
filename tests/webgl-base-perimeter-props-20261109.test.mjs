@@ -99,3 +99,22 @@ test('yard remains presentation-only, built once, with existing safe teardown an
  assert.match(yard,/instanceFenceWires\(group,wires\)/);
  assert.doesNotMatch(yard,/localStorage|\.save\(|\.buildError\(|\.pathfind\(/);
 });
+
+
+test('site dressing does not cast shadow or participate in recursive selection raycasts',()=>{
+ const yard=createBuildingYard('headquarters',225);
+ const decor=yard.getObjectByName('BasePerimeter_headquarters');
+ let checked=0;
+ decor.traverse(object=>{
+  if(!object.isMesh)return;
+  checked++;
+  assert.equal(object.castShadow,false,object.name);
+  assert.equal(object.receiveShadow,false,object.name);
+  // A cast ray from the top should never select the decorative mesh.
+  const raycastCalls=[];
+  object.raycast({ray:{}},raycastCalls);
+  assert.equal(raycastCalls.length,0);
+ });
+ assert.ok(checked>15,'actual lights/crates/fence meshes checked');
+ disposeBuildingYard(yard);
+});

@@ -643,6 +643,7 @@ test('completed field command receives an open-front perimeter, supply cache and
   };
   hq.facing=2;battlefield.sync(false,0,false,1);
   return {
+   hqId:hq.id,
    yard:yard?.name,attached:yard?.parent===entry?.node,
    singleton:first===second,
    visualOnly:yard?.userData?.nonPlayable&&decor?.userData?.nonPlayable,
@@ -664,4 +665,20 @@ test('completed field command receives an open-front perimeter, supply cache and
  expect(result.lampDiffusers).toBe(result.lamps);
  expect(result.rotated).toBeCloseTo(Math.PI/2,5);
  expect(result.gameSaveHasYard).toBe(false);
+ // Toggle only the new perimeter props live to isolate render cost without
+ // reloading or changing simulation time, unit orders or existing equipment.
+ const toggle=await page.evaluate(hqId=>{
+  const app=window.__sandforgeWebGL;
+  const before=app.game.time;
+  const countOff=app.setSiteDecorEnabled(false);
+  const decor=app.battlefield.bases.get(hqId)?.yard
+   ?.getObjectByName('BasePerimeter_headquarters');
+  const invisible=decor?.visible===false;
+  const countOn=app.setSiteDecorEnabled(true);
+  return {countOff,countOn,invisible,visible:decor?.visible===true,
+   unchangedClock:app.game.time===before};
+ },result.hqId);
+ expect(toggle.countOff).toBeGreaterThanOrEqual(1);
+ expect(toggle.countOn).toBe(toggle.countOff);
+ expect(toggle.invisible&&toggle.visible&&toggle.unchangedClock).toBe(true);
 });

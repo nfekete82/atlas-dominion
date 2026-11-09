@@ -699,6 +699,16 @@ addEventListener('keydown',event=>{
   event.preventDefault();panKeys.add(event.code);return;
  }
  if(event.repeat)return;
+ // Perf diagnostic without DevTools focus (which swallows WASD and R).
+ // Only available during ?perf=1, never a gameplay production hotkey.
+ if(query.get('perf')==='1'&&event.shiftKey&&event.code==='KeyB'){
+  event.preventDefault();
+  const enabled=!battlefield.siteDecorEnabled;
+  const affected=battlefield.setSiteDecorEnabled(enabled);
+  battlefield.message('Basis-Dekoration '+(enabled?'eingeblendet':'ausgeblendet')+
+   ' · '+affected+' Gebäude (Performancevergleich)');
+  return;
+ }
  if(event.code==='KeyQ'){event.preventDefault();spin(-Math.PI/8);}
  if(event.code==='KeyE'){event.preventDefault();spin(Math.PI/8);}
  if(event.code==='Space'){event.preventDefault();$('simulation').click();}
@@ -1084,6 +1094,8 @@ function animate(now){
 renderer.setAnimationLoop(animate);
 window.__sandforgeWebGL={renderer,scene,camera,controls,game,terrain,heightAt,battlefield,effects,atmosphere,sound,constructionRecovery,visualPerimeter,boundaryCliffs,panKeys,groundTracks,oases,
  performance:performanceWatch,
+ // Console diagnostic: compare FPS/draw calls with site props on/off live.
+ setSiteDecorEnabled:enabled=>battlefield.setSiteDecorEnabled(enabled),
  setStormPreview,
  get showcaseActive(){return showcaseActive;},
  setShowcase,

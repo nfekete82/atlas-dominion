@@ -38,6 +38,8 @@ export class SandforgeBattlefield {
  constructor({game,world,terrain,scene,renderer,camera,controls,loader,groundMeshes,heightAt,pos,lite=false}){
   Object.assign(this,{game,world,terrain,scene,renderer,camera,controls,loader,groundMeshes,heightAt,pos,lite});
   this.units=new Map();this.bases=new Map();this.bastions=new Map();
+  // Toggle just the NEW site dressing, not the original production props.
+  this.siteDecorEnabled=new URLSearchParams(location.search).get('siteDecor')!=='0';
   this.announcedBuildings=new Set(game.bases.filter(b=>b.buildRemaining<=0).map(b=>b.id));
   this.models=new Map();this.pending=new Set();this.selected=new Set();
   this.selectedBase=null;this.buildKind=null;this.attackMode=false;
@@ -601,7 +603,11 @@ export class SandforgeBattlefield {
    // even at tactical zoom. Purely visual, and built only once on completion.
    if(b.buildRemaining<=0&&!entry.yard){
     entry.yard=createBuildingYard(b.kind,BUILDINGS[b.kind]?.width);
-    if(entry.yard)entry.node.add(entry.yard);
+    if(entry.yard){
+     entry.node.add(entry.yard);
+     const decor=entry.yard.getObjectByName('BasePerimeter_'+b.kind);
+     if(decor)decor.visible=this.siteDecorEnabled;
+    }
    }
    this.animateBuildingMotion(entry,b,dt,active);
    if(b.buildRemaining<=0&&!this.announcedBuildings.has(b.id)){
@@ -856,6 +862,17 @@ export class SandforgeBattlefield {
   this.drawInterface();
   this.message('Pionier ausgewählt · Gebäude wählen, Bauplatz anklicken · P: Pionier wählen');
   return worker;
+ }
+ setSiteDecorEnabled(enabled){
+  this.siteDecorEnabled=Boolean(enabled);
+  let affected=0;
+  for(const entry of this.bases.values()){
+   const decor=entry.yard?.getObjectByName('BasePerimeter_'+entry.kind);
+   if(!decor)continue;
+   decor.visible=this.siteDecorEnabled;
+   affected++;
+  }
+  return affected;
  }
  catalogContext(){
   const game=this.game;
