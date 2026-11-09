@@ -216,6 +216,34 @@ export class Soundscape {
     if(count>0&&!g.paused)this.announceUnitLost();
     return count;
   }
+  private lastStrategicWarning=-Infinity;
+  /** The in-game enemy rocket alarm is spoken only once per launch.
+   * Respects mute, active audio context, radio volume and tab visibility.
+   * Requires a LOCAL German system voice; tones remain the fallback.
+   */
+  announceStrategicLaunch():void {
+    const a=this.context;
+    if(!this.enabled||this.volume<=0||!a||a.state!=='running'||
+       (typeof document!=='undefined'&&document.hidden))return;
+    if(a.currentTime-this.lastStrategicWarning<12)return;
+    this.lastStrategicWarning=a.currentTime;
+    this.tone(680,.14,.13);
+    this.tone(510,.14,.13,.18);
+    this.tone(680,.24,.12,.36);
+    if(!this.radio.enabled||this.radio.volume<=0||
+       typeof window==='undefined'||!('speechSynthesis' in window)||
+       typeof SpeechSynthesisUtterance==='undefined')return;
+    const voice=window.speechSynthesis.getVoices().find(v=>
+      v.localService&&v.lang.toLowerCase().startsWith('de'));
+    if(!voice)return;
+    this.radio.stop();
+    const utterance=new SpeechSynthesisUtterance('Feindlicher Raketenstart erkannt!');
+    utterance.voice=voice;utterance.lang='de-DE';
+    utterance.rate=1.03;utterance.pitch=.82;
+    utterance.volume=Math.min(.78,this.volume*this.radio.volume);
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  }
   private lastReadySignal=-Infinity;
   /** Player-only construction/production cue, with no external TTS service.
    * Every completion is logged in the HUD; busy production lines share a short
