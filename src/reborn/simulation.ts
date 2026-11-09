@@ -189,7 +189,7 @@ export class Simulation {
   /** Launch an actual slow-moving strategic projectile. */
   launchStrategicMissile(owner:Faction,p:Point):boolean{
     if(this.status!=='playing'||!Number.isFinite(p.x)||!Number.isFinite(p.y)||
-       !this.world.index(p)&&this.world.index(p)!==0)return false;
+       this.world.index(p)<0)return false;
     if(p.x<8||p.y<8||p.x>this.world.size-8||p.y>this.world.size-8||
        !this.hasExplored(owner,p))return false;
     const silo=this.bases.find(b=>b.owner===owner&&b.kind==='silo'&&
@@ -308,7 +308,6 @@ export class Simulation {
   strategicMissiles:StrategicMissile[]=[];
   strategicEvents:StrategicEvent[]=[];
   private strategicAiAt=-Infinity;
-  private seenEnemySilos=new Set<number>();
   seed:number; time=0; nextId=1; credits=[RULES.initialCredits as number,RULES.initialCredits as number];
   incomeClock=0; aiClock=0; status:'playing'|'victory'|'defeat'='playing';
   stats:MatchStatistics=newMatchStatistics();
