@@ -121,6 +121,12 @@ export class World {
     }
     if(mapVersion===0)navigationCache={blocked:this.blocked.slice(),opaque:this.opaque.slice(),cliffs:this.cliffIds.slice(),components:this.components.slice()};
   }
+  /** Opt-in per-frame A* diagnostics: no new save fields or path caching. */
+  profilePaths=false;
+  pathCalls=0;pathCostMs=0;pathMaxMs=0;pathVisitedNodes=0;
+  resetPathProfile():void{
+    this.pathCalls=0;this.pathCostMs=0;this.pathMaxMs=0;this.pathVisitedNodes=0;
+  }
   /** New terrain authority. Old versions deliberately keep their old samplers. */
   terrainHeight(x:number,y:number):number{return this.generated?.battlefield?battlefieldHeightAt(this.generated.battlefield,x,y):0;}
   terrainSlope(x:number,y:number):number{return this.generated?.battlefield?battlefieldSlopeAt(this.generated.battlefield,x,y):0;}
@@ -196,8 +202,18 @@ export class World {
     return true;
   }
   path(start: Point, target: Point, obstacles: {x:number;y:number;radius:number}[]=[],clearance=0,risk?:Float32Array,air=false,exact=false): Point[] {
-    if(!profiler)return this.findPath(start,target,obstacles,clearance,risk,air,exact);
-    const at=performance.now();this.pathNodes=0;try{return this.findPath(start,target,obstacles,clearance,risk,air,exact);}finally{profiler.record('pathfinding',performance.now()-at,this.pathNodes);}
+    if(!profiler&&!this.profilePaths)return this.findPath(start,target,obstacles,clearance,risk,air,exact);
+    const at=performance.now();this.pathNodes=0;
+    try{return this.findPath(start,target,obstacles,clearance,risk,air,exact);}
+    finally{
+      const ms=performance.now()-at;
+      if(this.profilePaths){
+        this.pathCalls++;this.pathCostMs+=ms;
+        this.pathMaxMs=Math.max(this.pathMaxMs,ms);
+        this.pathVisitedNodes+=this.pathNodes;
+      }
+      profiler?.record('pathfinding',ms,this.pathNodes);
+    }
   }
   private pathNodes=0;
   // Searches are synchronous; reuse workspace, resetting traversal for every search.
@@ -224,7 +240,7 @@ export class World {
     const pop=()=>{const top=heap[0],last=heap.pop()!;if(heap.length){let k=0;while(k*2+1<heap.length){let c=k*2+1;if(c+1<heap.length&&heap[c+1].f<heap[c].f)c++;if(heap[c].f>=last.f)break;heap[k]=heap[c];k=c;}heap[k]=last;}return top.i;};
     costs[s]=0;push({i:s,f:h(s)});
     while(heap.length) {
-      const i=pop();if(closed[i])continue;closed[i]=1;if(profiler)this.pathNodes++;
+      const i=pop();if(closed[i])continue;closed[i]=1;if(profiler||this.profilePaths)this.pathNodes++;
       if(i===goal){const route:Point[]=[end];let at=goal;while(at!==s&&at>=0){route.push(precise&&at===goal?end:this.center(at));at=prev[at];}route.reverse();
         const prefix=[0];for(let j=0;j<route.length;j++)prefix.push(prefix[j]+(risk?cost(j?route[j-1]:start,route[j]):0));
         const smooth:Point[]=[];let anchor=start;for(let k=0;k<route.length;){let next=k;while(next+1<route.length&&line(anchor,route[next+1])&&(!risk||cost(anchor,route[next+1])<=(prefix[next+2]-prefix[k])*1.04))next++;if(precise&&!line(anchor,route[next]))return [];smooth.push(route[next]);anchor=route[next];k=next+1;}return smooth;}
