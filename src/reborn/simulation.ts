@@ -1550,7 +1550,8 @@ export class Simulation {
   save():Save {
     return structuredClone({version:2,...(this.world.generated?.battlefield?{terrainProfile:this.world.generated.battlefield.profile,generatorVersion:1 as const}:{}),...(this.bootstrapVersion?{bootstrapVersion:this.bootstrapVersion}:{}),weatherVersion:1,productionVersion:1,supportVersion:1,rosterVersion:2,missiles:this.missiles,seed:this.seed,mapVersion:this.world.mapVersion,time:this.time,nextId:this.nextId,credits:this.credits,incomeClock:this.incomeClock,
       units:this.units,bases:this.bases,territories:this.territories,explored:this.explored.map(a=>Array.from(a)),memories:this.memories,aiClock:this.aiClock,ai:this.tactical.state,status:this.status,stats:this.stats,
-      research:this.research,strategicMissiles:this.strategicMissiles});
+      research:this.research,strategicMissiles:this.strategicMissiles,
+      generals:this.generals,generalBeacons:this.generalBeacons});
   }
   static load(raw:unknown,weatherEnabled=false):Simulation {
     const s=migrateTransportRoster(raw) as Save;
@@ -1562,6 +1563,14 @@ export class Simulation {
       throw new Error('Ungültiger Forschungsstand im Spielstand.');
     const researchFor=(u:{owner:Faction;kind?:UnitKind})=>
       researchModifiers(research[u.owner],u.kind??'infantry');
+    const generals=s?.generals??[newGeneralState(),newGeneralState()];
+    if(!Array.isArray(generals)||generals.length!==2||
+       generals.some(state=>!validGeneralState(state,s?.time??0)))
+      throw new Error('Ungültige Kommandopunkte im Spielstand.');
+    const beacons=s?.generalBeacons??[];
+    if(!Array.isArray(beacons)||beacons.length>8||
+       beacons.some(b=>!validGeneralBeacon(b,mapWorldSize(s?.mapVersion??0),s?.time??0)))
+      throw new Error('Ungültige Aufklärungsdrohne im Spielstand.');
     const burst=(b:Burst|undefined,rounds:number)=>b===undefined||(b!==null&&Number.isInteger(b.target)&&Number.isInteger(b.remaining)&&b.remaining>0&&b.remaining<=rounds&&b.remaining+b.index===rounds&&Number.isInteger(b.index)&&b.index>=0&&b.index<4&&finite(b.at)&&b.at>=s.time-.11&&b.at<=s.time+.11);
     if(!s||s.version!==2||((s.mapVersion??0)>=23&&(!isTerrainProfile(s.terrainProfile)||s.generatorVersion!==1))||((s.mapVersion??0)<23&&(s.terrainProfile!==undefined||s.generatorVersion!==undefined))||(s.bootstrapVersion!==undefined&&s.bootstrapVersion!==1)||(s.weatherVersion!==undefined&&s.weatherVersion!==1)||(s.productionVersion!==undefined&&s.productionVersion!==1)||(s.mapVersion!==undefined&&![0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26].includes(s.mapVersion))||!TacticalAI.valid(s.ai,s.time,point,mapLayout(s.mapVersion??0).columns*mapLayout(s.mapVersion??0).rows)||!finite(s.seed)||!finite(s.time)||s.time<0||!finite(s.incomeClock)||s.incomeClock<0||s.incomeClock>=10||
       (s.strategicMissiles!==undefined&&(!Array.isArray(s.strategicMissiles)||
@@ -1587,6 +1596,8 @@ export class Simulation {
     const game=new Simulation(s.seed,s.mapVersion??0,weatherEnabled,s.bootstrapVersion===1,s.terrainProfile);
     game.time=s.time;
     game.research=structuredClone(research) as [ResearchState,ResearchState];
+    game.generals=structuredClone(generals) as [GeneralState,GeneralState];
+    game.generalBeacons=structuredClone(beacons) as GeneralBeacon[];
     game.stats=s.stats?structuredClone(s.stats):newMatchStatistics();
     if(!s.stats){game.stats.partial=true;for(const u of s.units){if(u.hp>0){const f=game.stats.factions[u.owner];f.deployedUnits[u.kind??'infantry']++;f.peakArmy+=0;}}for(const owner of [0,1] as const)game.stats.factions[owner].peakArmy=s.units.filter(u=>u.owner===owner&&u.hp>0).length;}
     game.nextId=Math.max(1,Number.isSafeInteger(s.nextId)?s.nextId:1,...s.units.map(u=>u.id+1),...(s.ai?.losses??[]).map(l=>l.id+1));game.credits=[...s.credits];game.incomeClock=s.incomeClock;
@@ -1624,7 +1635,8 @@ export class Simulation {
     game.missiles=structuredClone(s.missiles??[]);
     game.strategicMissiles=structuredClone(s.strategicMissiles??[]);
     game.nextId=Math.max(game.nextId,...game.missiles.map(m=>m.id+1),
-      ...game.strategicMissiles.map(m=>m.id+1));
+      ...game.strategicMissiles.map(m=>m.id+1),
+      ...game.generalBeacons.map(b=>b.id+1));
     game.weather.update(game.time);game.unitById=new Map(game.units.map(u=>[u.id,u]));
     game.tactical.restore(s.ai);
     game.status=['playing','victory','defeat'].includes(s.status)?s.status:'playing';
