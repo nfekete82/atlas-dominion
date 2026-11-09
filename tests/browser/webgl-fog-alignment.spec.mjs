@@ -1,6 +1,7 @@
 import {test,expect} from '@playwright/test';
 import {mkdir} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
+import {cameraBlackOverscan} from '../../scripts/webgl-map-edges.js';
 
 test('Fog-of-war follows actual 3D soldiers without projected parallax, including movement',async({page})=>{
  test.setTimeout(120000);
@@ -33,8 +34,9 @@ test('Fog-of-war follows actual 3D soldiers without projected parallax, includin
    fogMaterial:{
     depthTest:b.fogNodes[0].material.depthTest,
     order:b.fogNodes[0].renderOrder,
-    perimeter:b.fogNodes.filter(n=>n.geometry===a.visualPerimeter.meshes[0].geometry).length
+    exteriorOverlays:b.fogNodes.filter(n=>n.userData?.visualPerimeter||n.userData?.visualBoundary).length
    },
+   perimeter:{hardVoid:a.visualPerimeter?.hardVoid,meshCount:a.visualPerimeter?.meshes?.length},
    fogEnabled:b.fogEnabled
   };
  });
@@ -48,7 +50,8 @@ test('Fog-of-war follows actual 3D soldiers without projected parallax, includin
  expect(initial.fogGroundHeight).toBe(true);
  expect(initial.fogMaterial.depthTest).toBe(false);
  expect(initial.fogMaterial.order).toBeGreaterThan(100);
- expect(initial.fogMaterial.perimeter).toBe(0);
+ expect(initial.fogMaterial.exteriorOverlays).toBe(0);
+ expect(initial.perimeter).toEqual({hardVoid:true,meshCount:0});
  expect(initial.fogEnabled).toBe(true);
  const movement=await page.evaluate(()=>{
   const a=window.__sandforgeWebGL,g=a.game,b=a.battlefield,w=g.world;
@@ -93,18 +96,22 @@ test('Camera clamps a forced off-map pan before revealing the flat scene boundar
  await page.waitForTimeout(550);
  const state=await page.evaluate(()=>{
   const a=window.__sandforgeWebGL,w=a.game.world;
-  const bound=w.size/2+280;
-  return {x:a.controls.target.x,z:a.controls.target.z,limit:bound,
+  return {x:a.controls.target.x,z:a.controls.target.z,size:w.size,
    zoom:a.camera.zoom,min:a.controls.minZoom,max:a.controls.maxZoom};
  });
- expect(Math.abs(state.x)).toBeLessThan(state.limit);
- expect(Math.abs(state.z)).toBeLessThan(state.limit);
+ // Modern 3D maps deliberately expose a bounded BLACK void, not a beige apron.
+ // This must agree with the same shared overscan policy used by the renderer.
+ const limit=state.size/2+cameraBlackOverscan(state.size);
+ expect(Math.abs(state.x)).toBeLessThanOrEqual(limit+.01);
+ expect(Math.abs(state.z)).toBeLessThanOrEqual(limit+.01);
+ expect(Math.abs(state.x)).toBeGreaterThan(state.size/2);
+ expect(Math.abs(state.z)).toBeGreaterThan(state.size/2);
  expect(state.zoom).toBeGreaterThanOrEqual(state.min);
  expect(state.zoom).toBeLessThanOrEqual(state.max);
 });
 
 
-test('legacy 3D preview links show original logo, dark Fog of War and black fading map rim',async({page})=>{
+test('legacy 3D preview URLs retain Sandforge logo, true Fog of War and empty black map perimeter',async({page})=>{
  test.setTimeout(125000);
  const pageErrors=[];page.on('pageerror',e=>pageErrors.push(e.message));
  await page.setViewportSize({width:1440,height:900});
@@ -118,20 +125,8 @@ test('legacy 3D preview links show original logo, dark Fog of War and black fadi
  const state=await page.evaluate(()=>{
   const v=window.__sandforgeWebGL,b=v.battlefield;
   const logo=document.querySelector('#sf-classic-root .top .sandforge-hud-logo');
-  const near=[],far=[],half=v.game.world.size/2,size=v.game.world.size;
-  for(const mesh of v.visualPerimeter.meshes){
-   const pos=mesh.geometry.getAttribute('position');
-   const colors=mesh.geometry.getAttribute('color');
-   for(let i=0;i<pos.count;i++){
-    const x=pos.getX(i)+half,z=pos.getZ(i)+half;
-    const outside=Math.max(0,-x,x-size,-z,z-size);
-    const light=(colors.getX(i)+colors.getY(i)+colors.getZ(i))/3;
-    // New narrow border: sample its actual inner seam and first apron.
-    if(outside>=0&&outside<=80)near.push(light);
-    if(outside>=550)far.push(light);
-   }
-  }
-  const average=values=>values.reduce((a,n)=>a+n,0)/values.length;
+  // Current spacious maps intentionally contain NO exterior meshes, cover
+  // tiles, rock aprons or cliff rings. The scene's solid black is the border.
   const undiscovered=v.game.visible[0].filter(i=>!i).length;
   return {
    logo:{
@@ -143,7 +138,12 @@ test('legacy 3D preview links show original logo, dark Fog of War and black fadi
    fogTint:b.fogNodes[0].material.fragmentShader.includes('vec4(0.018,0.023,0.026,a)'),
    darkBackground:v.scene.background.getHexString(),
    unexploredCells:undiscovered,
-   samples:{near:near.length,far:far.length,nearLight:average(near),farLight:average(far)},
+   void:{hardVoid:v.visualPerimeter?.hardVoid,
+    perimeterMeshes:v.visualPerimeter?.meshes?.length,
+    perimeterCover:v.visualPerimeter?.voidCover?.length,
+    hardCliffs:v.boundaryCliffs?.hardVoid,
+    cliffs:v.boundaryCliffs?.cliffs?.length,
+    scree:v.boundaryCliffs?.scree?.length},
    button:b.panel.querySelector('button[data-action="fog"]')?.textContent
   };
  });
@@ -157,9 +157,8 @@ test('legacy 3D preview links show original logo, dark Fog of War and black fadi
  expect(state.button).toContain('NEBEL AN');
  expect(state.darkBackground).toBe('000000');
  expect(state.unexploredCells).toBeGreaterThan(100);
- expect(state.samples.near).toBeGreaterThan(0);
- expect(state.samples.far).toBeGreaterThan(0);
- expect(state.samples.nearLight).toBeGreaterThan(state.samples.farLight+.06);
+ expect(state.void).toEqual({hardVoid:true,perimeterMeshes:0,perimeterCover:0,
+  hardCliffs:true,cliffs:0,scree:0});
  await page.locator('button[data-action="fog"]').click();
  expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.fogEnabled)).toBe(false);
  expect(await page.evaluate(()=>window.__sandforgeWebGL.battlefield.fogNodes.every(n=>!n.visible))).toBe(true);
