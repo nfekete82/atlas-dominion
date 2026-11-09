@@ -336,7 +336,10 @@ export class Simulation {
   }
   readonly attackAlerts=new AttackAlerts();
   workEffects:WorkEffect[]=[];
-  paused=false; revision=0; aiPlanDurationMs=0; aiPlanCompletedAt=-1; private fogClock=0; private visionCache=new VisionCache(); private spatial=new SpatialIndex();
+  paused=false; revision=0; aiPlanDurationMs=0; aiPlanCompletedAt=-1;
+  /** Opt-in timing for bomber/fog diagnosis, never serialized or authoritative. */
+  profileVision=false; visionDurationMs=0; visionCompletedAt=-1; maxVisionMs=0;
+  private fogClock=0; private visionCache=new VisionCache(); private spatial=new SpatialIndex();
   /** The original constructor remains a deterministic legacy fixture/save reader. */
   constructor(seed=2026,mapVersion:MapVersion=0,weatherEnabled=false,bootstrap=false,profile?:TerrainProfile) {
     this.bootstrapVersion=bootstrap?1:undefined;this.seed=seed;this.weather=new Weather(seed,weatherEnabled);this.world=new World(seed,mapVersion,profile);this.territories=this.world.territories(seed);
@@ -878,7 +881,20 @@ export class Simulation {
   canSee(owner:Faction,p:Point):boolean {const i=this.world.index(p);return i>=0&&this.visible[owner][i]===1;}
   hasExplored(owner:Faction,p:Point):boolean {const i=this.world.index(p);return i>=0&&this.explored[owner][i]===1;}
   updateVision():void {
-    if(!profiler)return this.updateVisionMeasured();const at=performance.now();try{this.updateVisionMeasured();}finally{profiler.record('vision',performance.now()-at);}
+    // Keep normal gameplay untouched: no timing overhead unless the WebGL
+    // profiler or the existing performance recorder has been explicitly enabled.
+    if(!profiler&&!this.profileVision)return this.updateVisionMeasured();
+    const at=performance.now();
+    try{this.updateVisionMeasured();}
+    finally{
+      const ms=performance.now()-at;
+      if(this.profileVision){
+        this.visionDurationMs=ms;
+        this.visionCompletedAt=this.time;
+        this.maxVisionMs=Math.max(this.maxVisionMs,ms);
+      }
+      profiler?.record('vision',ms);
+    }
   }
   private updateVisionMeasured():void {
     for(const owner of [0,1] as const){

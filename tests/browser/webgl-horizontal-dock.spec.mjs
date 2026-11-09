@@ -682,3 +682,34 @@ test('completed field command receives an open-front perimeter, supply cache and
  expect(toggle.countOn).toBe(toggle.countOff);
  expect(toggle.invisible&&toggle.visible&&toggle.unchangedClock).toBe(true);
 });
+
+
+test('perf overlay separates bomber sight computation from simulation, VFX and renderer costs',async({page})=>{
+ test.setTimeout(115000);
+ await page.setViewportSize({width:1440,height:900});
+ await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&pause=1&perf=1',
+  {waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,null,{timeout:95000});
+ const diagnostics=await page.evaluate(()=>{
+  const app=window.__sandforgeWebGL;
+  const game=app.game;
+  game.updateVision(); // simulate a real visible-state pass while paused
+  const result=app.performance.snapshot();
+  return {
+   enabled:app.performance.enabled,profileVision:game.profileVision,
+   visionCompletedAt:game.visionCompletedAt,visionDurationMs:game.visionDurationMs,
+   visionP95:result.visionP95,maxVisionMs:result.maxVisionMs,
+   overlay:document.querySelector('#sf-webgl-performance')!==null,
+   hasPhases:['simP95','syncP95','effectsP95','renderP95','lastAiPlanMs']
+    .every(field=>Number.isFinite(result[field]))
+  };
+ });
+ expect(diagnostics.enabled).toBe(true);
+ expect(diagnostics.profileVision).toBe(true);
+ expect(diagnostics.visionCompletedAt).toBeGreaterThanOrEqual(0);
+ expect(diagnostics.visionDurationMs).toBeGreaterThanOrEqual(0);
+ expect(diagnostics.visionP95).toBeGreaterThanOrEqual(0);
+ expect(diagnostics.maxVisionMs).toBeGreaterThanOrEqual(diagnostics.visionDurationMs);
+ expect(diagnostics.overlay).toBe(true);
+ expect(diagnostics.hasPhases).toBe(true);
+});

@@ -54,6 +54,9 @@ const game=session??(profile?Simulation.campaign(seed,sizes[bastions],profile):S
 // The WebGL renderer stages a single authoritative factory actor while its
 // real 3D gate is opening. Classic, tests and old saves keep normal rules.
 game.stageWebGLProduction=true;
+// Measure moving-bomber sight passes separately from AI and particle rendering.
+// Read-only timing; normal sessions have zero instrumentation overhead.
+game.profileVision=query.get('perf')==='1';
 // Only this WebGL campaign gets a modest vision bonus; classic/headless
 // benchmarks retain exactly their original LOS and balance.
 // Optional visual comparison; classic gameplay remains unchanged.
