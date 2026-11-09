@@ -208,6 +208,18 @@ function addSiteDecor(root,kind,width){
  }
  g.userData.lamps=g.children.filter(child=>child.name==='SecurityLamp').length;
  g.userData.supplyCrates=supplies.children.filter(child=>child.name==='SupplyCrate').length;
+ // Tiny decorative details are already lit by sunlight/ambient PBR. Casting
+ // and receiving a 2048px shadow map for every crate strap, wire and lamp
+ // adds whole render passes while barely changing the image at RTS zoom.
+ // Keep shadows on the building and original production-yard props.
+ g.traverse(object=>{
+  if(!object.isMesh)return;
+  object.castShadow=false;
+  object.receiveShadow=false;
+  // Decorative meshes must not compete with the building model when
+  // recursive unit/building raycasts resolve game selection.
+  object.raycast=()=>{};
+ });
  return g;
 }
 
