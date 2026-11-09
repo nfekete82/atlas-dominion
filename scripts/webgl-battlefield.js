@@ -1023,9 +1023,20 @@ export class SandforgeBattlefield {
    return '<button class="territory-row '+cls+'" data-territory="'+t.id+'" aria-label="Sektor '+(t.id+1)+' zentrieren">'+
     '<i></i><strong>SEKTOR '+(t.id+1)+'</strong><small>'+label+capture+'</small></button>';
   }).join('');
+  const upgrades=UPGRADE_KINDS.map(kind=>{
+   const tech=UPGRADES[kind];
+   return '<button type="button" class="sf-research-card" data-upgrade="'+kind+
+    '" title="'+plain(tech.description)+'" aria-label="'+plain(tech.name)+
+    ' – '+tech.cost+' Credits – '+tech.seconds+' Sekunden">'+
+    '<span class="sf-tech-symbol" aria-hidden="true">⚙</span>'+
+    '<span class="sf-tech-info"><strong>'+plain(tech.name)+'</strong>'+
+    '<small>'+tech.cost+' ◆ · '+tech.seconds+' s</small></span>'+
+    '<span class="sf-tech-progress" aria-hidden="true"></span></button>';
+  }).join('');
   const markup='<div class="sf-group" data-sf-group="units">'+roster+'</div>'+
    '<div class="sf-group" data-sf-group="buildings"><div class="catalog-grid">'+
    cards(buildingKinds,'building')+'</div></div>'+
+   '<div class="sf-group" data-sf-group="research"><div class="sf-research-grid">'+upgrades+'</div></div>'+
    '<div class="sf-group" data-sf-group="territories"><h2>KONTROLLPUNKTE</h2>'+tiles+'</div></div>';
   if(this.previousActionsMarkup!==markup){
    const scroll=actions.scrollTop;
@@ -1036,6 +1047,23 @@ export class SandforgeBattlefield {
   // but only the selected producer's section can be viewed or activated.
   for(const section of actions.querySelectorAll('[data-sf-producer]'))
    section.hidden=!context.producer||section.dataset.sfProducer!==context.producer.kind;
+  const techState=g.research[0];
+  for(const button of actions.querySelectorAll('[data-upgrade]')){
+   const kind=button.dataset.upgrade,tech=UPGRADES[kind];
+   const researched=techState.completed.includes(kind);
+   const inProgress=techState.active===kind;
+   const mayStart=canResearchUpgrade(techState,kind)&&g.credits[0]>=tech.cost;
+   button.disabled=researched||inProgress||!mayStart;
+   button.classList.toggle('sf-tech-done',researched);
+   button.classList.toggle('sf-tech-active',inProgress);
+   button.querySelector('.sf-tech-progress').textContent=researched?'✓':inProgress?
+    Math.ceil(techState.remaining)+'s':tech.requires&&!techState.completed.includes(tech.requires)?
+    'VORAUSSETZUNG':!mayStart?'GESPERRT':'START';
+   button.title=tech.description+(researched?' · Erforschung abgeschlossen':
+    inProgress?' · Noch '+Math.ceil(techState.remaining)+' Sekunden':
+    tech.requires&&!techState.completed.includes(tech.requires)?
+    ' · Benötigt '+UPGRADES[tech.requires].name:'');
+  }
   const generatorLimitReached=g.bases.filter(b=>b.owner===0&&b.kind==='generator'&&b.hp>0).length>=MAX_GENERATORS_PER_FACTION;
   const constructed=new Map(g.bases.filter(b=>b.owner===0&&b.hp>0).map(b=>[b.kind,b]));
   // The simulation already rejects duplicate HQ, barracks, factory and
@@ -1045,14 +1073,15 @@ export class SandforgeBattlefield {
    const kind=button.dataset.unit??button.dataset.build;
    const spec=button.dataset.unit?UNITS[kind]:BUILDINGS[kind];
    const correctProducer=context.producer&&UNITS[kind]?.producers.includes(context.producer.kind);
-   const ownedUnique=Boolean(button.dataset.build&&['headquarters','barracks','factory','airfield'].includes(kind)&&constructed.has(kind));
+   const ownedUnique=Boolean(button.dataset.build&&['headquarters','barracks','factory','airfield','research','silo'].includes(kind)&&constructed.has(kind));
    const ownedSite=constructed.get(kind);
+   const interceptorLimit=kind==='interceptor'&&g.bases.filter(b=>b.owner===0&&b.kind==='interceptor'&&b.hp>0).length>=2;
    const ownedReason=ownedUnique?(ownedSite.buildRemaining>0?'Bereits im Bau':'Bereits gebaut'):'';
    const unavailable=button.dataset.unit
     ?!correctProducer||g.needsHeadquarters(0)||context.producer.queue.length>=8||
       g.credits[0]<spec.cost||g.count(0)+g.queued(0)>=RULES.capacity
     :!context.engineer||g.credits[0]<spec.cost||!g.hasHeadquarters(0)&&kind!=='headquarters'||
-      kind==='generator'&&generatorLimitReached||ownedUnique;
+      kind==='generator'&&generatorLimitReached||ownedUnique||interceptorLimit;
    const requirement=button.dataset.unit
     ?(!context.producer?'Produktionsgebäude auswählen':
        !correctProducer?'Dieses Gebäude produziert diese Einheit nicht':
@@ -1061,6 +1090,7 @@ export class SandforgeBattlefield {
        g.credits[0]<spec.cost?'Zu wenig Credits':
        g.count(0)+g.queued(0)>=RULES.capacity?'Einheitenlimit erreicht':'')
     :(ownedReason?ownedReason:kind==='generator'&&generatorLimitReached?'Maximal '+MAX_GENERATORS_PER_FACTION+' Energiekerne pro Fraktion':
+       interceptorLimit?'Maximal zwei Raketenabwehr-Anlagen pro Fraktion':
        !context.engineer?'Pionier auswählen':
        !g.hasHeadquarters(0)&&kind!=='headquarters'?'Hauptquartier zuerst fertigstellen':
        g.credits[0]<spec.cost?'Zu wenig Credits':
@@ -1193,10 +1223,23 @@ export class SandforgeBattlefield {
      ).join('')+'</div></div>'
    :'';
   view.querySelector('#sf-selection-panel')?.classList.toggle('sf-transport-selected',Boolean(manifest));
+  const strategicStatus=base?.kind==='silo'
+    ?'<div class="sf-strategic-meter">🚀 '+(base.buildRemaining>0?'Silo im Bau':
+      (base.siloCharge??SILO_CHARGE_SECONDS)>0?
+      'Ladezeit '+Math.floor((base.siloCharge??SILO_CHARGE_SECONDS)/60)+':'+
+       String(Math.ceil((base.siloCharge??SILO_CHARGE_SECONDS)%60)).padStart(2,'0'):
+      'RAKETE BEREIT')+'</div>'
+    :base?.kind==='interceptor'
+     ?'<div class="sf-strategic-meter">🛡 Abwehrmunition: '+
+      (base.interceptorAmmo??INTERCEPTOR_MAX_AMMO)+' / '+INTERCEPTOR_MAX_AMMO+'</div>'
+    :base?.kind==='research'
+     ?'<div class="sf-strategic-meter">⚙ '+
+      (techState.active?UPGRADES[techState.active].name+' · '+Math.ceil(techState.remaining)+' s':
+       techState.completed.length+' / '+UPGRADE_KINDS.length+' Technologien')+'</div>':'';
   const selectedMarkup='<small>'+meta+'</small><strong>'+plain(heading)+'</strong>'+
    (item?'<div class="health-track"><i style="width:'+Math.min(100,hp/maxHp*100)+'%"></i></div>'+
    '<div class="sf-health">'+hp+' / '+maxHp+' LP</div>':'')+
-   '<p>'+plain(description)+'</p>'+passengerMarkup;
+   '<p>'+plain(description)+'</p>'+strategicStatus+passengerMarkup;
   if(this.previousSelectionMarkup!==selectedMarkup){
    el.innerHTML=selectedMarkup;this.previousSelectionMarkup=selectedMarkup;
   }
@@ -1233,6 +1276,19 @@ export class SandforgeBattlefield {
      portrait.src='/src/assets/reborn/infantry-grounded-v3.png';
     }else portrait.src=buildingIconUrl(item?.kind??'headquarters');
    }
+  }
+  const launchButton=view.querySelector('#sf-strategic-fire');
+  if(launchButton){
+   launchButton.hidden=!base||base.owner!==0||base.kind!=='silo'||base.buildRemaining>0;
+   launchButton.disabled=!base||base.kind!=='silo'||(base.siloCharge??SILO_CHARGE_SECONDS)>0;
+   launchButton.setAttribute('aria-pressed',String(this.strategicTargetMode));
+  }
+  const rearmButton=view.querySelector('#sf-interceptor-rearm');
+  if(rearmButton){
+   rearmButton.hidden=!base||base.owner!==0||base.kind!=='interceptor'||base.buildRemaining>0;
+   rearmButton.disabled=!base||base.kind!=='interceptor'||
+    (base.interceptorAmmo??INTERCEPTOR_MAX_AMMO)>=INTERCEPTOR_MAX_AMMO||
+    g.credits[0]<INTERCEPTOR_REARM_COST;
   }
   const unloadButton=view.querySelector('[data-action="unload"]');
   if(unloadButton)unloadButton.hidden=!selectedLoadedTransports(g.units,this.selected).length;
