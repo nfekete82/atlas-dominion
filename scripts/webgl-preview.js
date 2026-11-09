@@ -1084,6 +1084,8 @@ function animate(now){
 renderer.setAnimationLoop(animate);
 window.__sandforgeWebGL={renderer,scene,camera,controls,game,terrain,heightAt,battlefield,effects,atmosphere,sound,constructionRecovery,visualPerimeter,boundaryCliffs,panKeys,groundTracks,oases,
  performance:performanceWatch,
+ // Console diagnostic: compare FPS/draw calls with site props on/off live.
+ setSiteDecorEnabled:enabled=>battlefield.setSiteDecorEnabled(enabled),
  setStormPreview,
  get showcaseActive(){return showcaseActive;},
  setShowcase,
