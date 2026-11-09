@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
 /** Zero-Hour-style recognizable strategic structures. Procedural originals,
  * avoiding missing GLB placeholders. Created ONCE per building, NOT per frame.
@@ -237,6 +238,45 @@ export function createStrategicBuilding(kind,owner=0){
   cyl(5,5,11,'glow',0,145,-47);
   for(const x of [-67,67])for(const z of [-55,55])
    box(10,11,10,'glow',x,66,z);
+ }
+ return batchStaticParts(root,kind);
+}
+
+/** Static roof details, window ribs and facade panels are aggressively merged
+ * by PBR material after placement, so the more detailed facilities do not
+ * cost hundreds of WebGL draw calls. Named mechanical/animation parts remain
+ * individually addressable. If a geometry cannot be combined, retain it.
+ */
+function batchStaticParts(root,kind){
+ const groups=new Map();
+ for(const mesh of [...root.children]){
+  if(!mesh.isMesh||mesh.name)continue;
+  const items=groups.get(mesh.material)??[];
+  items.push(mesh);
+  groups.set(mesh.material,items);
+ }
+ let batch=0;
+ for(const [material,items] of groups){
+  if(items.length<2)continue;
+  const geometries=items.map(mesh=>{
+   mesh.updateMatrix();
+   const geometry=mesh.geometry.clone();
+   geometry.applyMatrix4(mesh.matrix);
+   return geometry;
+  });
+  let merged=null;
+  try{merged=mergeGeometries(geometries,false);}
+  catch(error){console.warn('Strategic static mesh batch fallback',kind,error);}
+  finally{for(const geometry of geometries)geometry.dispose();}
+  if(!merged)continue;
+  const combined=new THREE.Mesh(merged,material);
+  combined.name='SF_StaticBatch_'+kind+'_'+batch++;
+  combined.castShadow=true;combined.receiveShadow=true;
+  for(const mesh of items){
+   root.remove(mesh);
+   mesh.geometry.dispose();
+  }
+  root.add(combined);
  }
  return root;
 }
