@@ -4,7 +4,7 @@ Dies ist ein **WebGL-3D-RTS**, kein geografisches Atlas-Dominion-Spiel. Der best
 
 ## Projekt
 - Offizieller Spieltitel: **Sandforge: Bastion Wars**; Projekt-, npm- und Docker-Name: **sandforge**.
-- Historische GitHub-URL bis zur administrativen Umbenennung: `nfekete82/atlas-dominion`; Ziel: `nfekete82/sandforge`.
+- GitHub-Repository: `nfekete82/sandforge` (früher `nfekete82/atlas-dominion`, bereits umbenannt).
 - Lokaler Arbeitsordner auf dem Eigentümer-Mac: `~/Projects/sandforge-bastion-wars`. Nicht ohne Aufforderung umbenennen.
 - Rendering: Three.js/WebGL 3D auf `/`; alte Canvas-Version auf `/classic.html`.
 - Quellcode: `src/reborn/` (Simulation), `scripts/webgl-*.js` (3D und UI), `src/reborn/webgl-classic-hud.css`.
