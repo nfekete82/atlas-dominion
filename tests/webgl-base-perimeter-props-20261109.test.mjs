@@ -34,17 +34,21 @@ test('all major bases get supply crates and visible security lamps; small turret
  assert.equal(createBuildingYard('turret',72),null);
 });
 
-test('large sites use only two instanced decorative fence meshes with a full open frontage',()=>{
+test('large sites use three batched fence meshes, with wire bracing and an open frontage',()=>{
  for(const kind of ['headquarters','barracks','factory','research','silo','interceptor']){
   const width=220,yard=createBuildingYard(kind,width);
   const site=yard.getObjectByName('BasePerimeter_'+kind);
   const posts=site.getObjectByName('YardFencePosts');
   const rails=site.getObjectByName('YardFenceRails');
+  const wires=site.getObjectByName('YardFenceMesh');
   assert.equal(posts?.isInstancedMesh,true,kind+' has a single batched post draw call');
   assert.equal(rails?.isInstancedMesh,true,kind+' has a single batched rail draw call');
+  assert.equal(wires?.isInstancedMesh,true,kind+' has a single batched wire draw call');
   assert.equal(posts.count,site.userData.fencePosts);
   assert.equal(rails.count,site.userData.fenceRails);
+  assert.equal(wires.count,site.userData.fenceWires);
   assert.ok(posts.count>=12&&rails.count>=posts.count);
+  assert.ok(wires.count>=2*posts.count-4);
   // No fence sections span the positive-Z doorway/spawn passage.
   const matrix=posts.matrix.clone();
   for(let i=0;i<posts.count;i++){
@@ -66,6 +70,7 @@ test('large sites use only two instanced decorative fence meshes with a full ope
   assert.equal(count(site,'YardFencePosts'),0,
    'runway and small energy-core work areas must remain open');
   assert.equal(count(site,'YardFenceRails'),0);
+  assert.equal(count(site,'YardFenceMesh'),0);
   disposeBuildingYard(site);
  }
 });
@@ -91,5 +96,6 @@ test('yard remains presentation-only, built once, with existing safe teardown an
  assert.match(yard,/nonPlayable:true/);
  assert.match(yard,/instanceBoxes\(group,'YardFencePosts'/);
  assert.match(yard,/instanceBoxes\(group,'YardFenceRails'/);
+ assert.match(yard,/instanceFenceWires\(group,wires\)/);
  assert.doesNotMatch(yard,/localStorage|\.save\(|\.buildError\(|\.pathfind\(/);
 });
