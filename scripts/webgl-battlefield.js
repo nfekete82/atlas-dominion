@@ -1669,8 +1669,9 @@ export class SandforgeBattlefield {
   const start=this.clickStart;
   const moved=Math.hypot(event.clientX-start.x,event.clientY-start.y);
   this.clickStart=null;this.selectionBox.style.display='none';
-  if(moved>7&&!this.strategicTargetMode){
-   if(event.button===0)this.selectBoxUnits(start.x,start.y,event.clientX,event.clientY,event.shiftKey);
+  if(moved>7){
+   if(event.button===0&&!this.strategicTargetMode)
+    this.selectBoxUnits(start.x,start.y,event.clientX,event.clientY,event.shiftKey);
    return;
   }
   if(event.button===2&&this.strategicTargetMode){
