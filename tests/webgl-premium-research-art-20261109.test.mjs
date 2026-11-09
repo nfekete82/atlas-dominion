@@ -49,7 +49,9 @@ test('research center and missile silo use full-size detailed industrial 3D mesh
   const root=createStrategicBuilding(kind,0);
   assert.ok(root?.isGroup);
   const parts=meshes(root);
-  assert.ok(parts.length>=45,kind+' must not appear as one flat office box');
+  assert.ok(parts.length<=20,kind+' must batch heavy static geometry for real-time performance');
+  const vertices=parts.reduce((count,item)=>count+(item.geometry.getAttribute('position')?.count??0),0);
+  assert.ok(vertices>1500,kind+' should retain highly detailed facade and roof geometry');
   assert.ok(parts.some(item=>item.material.map?.isDataTexture),
    kind+' shares textured concrete/metal with the HQ design language');
   assert.ok(parts.some(item=>item.material.emissiveIntensity>.1),
@@ -89,5 +91,7 @@ test('strategic launcher remains available; interceptor feature gate and initial
  assert.match(ui,/action==='missile-target'/);
  assert.match(ui,/INTERCEPTOR_ENABLED/);
  assert.match(ui,/this\.beginPlacement\(kind\)/);
+ assert.match(ui,/hydrateBuildingIcons\(slots,this\.renderer\)/);
+ assert.match(ui,/buildingIcon\(buildingKind,this\.renderer\)/);
  assert.doesNotMatch(ui,/data-action="hq-bootstrap"/);
 });
