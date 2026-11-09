@@ -1,0 +1,34 @@
+name: Sandforge quiet vehicle audio
+on:
+  push:
+    branches: [fix/webgl-no-constant-engine-hum-20261109]
+  pull_request:
+    branches: [feat/webgl-strategic-research-missile-silo-20261108]
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  audio-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22', cache: npm}
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: |
+          node --test \
+            tests/webgl-no-constant-engine-hum-20261109.test.mjs \
+            tests/webgl-ambient-music-20261108.test.mjs \
+            tests/webgl-unit-lost-announcement-20261108.test.mjs
+  full-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22', cache: npm}
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
