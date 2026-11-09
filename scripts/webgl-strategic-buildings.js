@@ -279,17 +279,13 @@ export function createStrategicBuilding(kind,owner=0){
   // Wedge-shaped stabilizing fins, grouped by material and GPU-batched.
   for(let n=0;n<4;n++){
    const angle=n*Math.PI/2;
-   const shape=new THREE.Shape();
-   shape.moveTo(18,-18);
-   shape.lineTo(36,-19);
-   shape.lineTo(32,-10);
-   shape.lineTo(22,16);
-   shape.lineTo(18,16);
-   shape.closePath();
-   const fin=add(new THREE.ExtrudeGeometry(shape,{
-    depth:3,bevelEnabled:false,curveSegments:2
-   }),'rocketBody',rocketX,112,0,0,-angle);
-   fin.position.z-=1.5;
+   // Indexed geometry matches the other rocket-body meshes so the normal
+   // static PBR batch still merges into one draw call.
+   const radial=24;
+   const fin=add(new THREE.BoxGeometry(19,30,3.3),'rocketBody',
+    rocketX+Math.cos(angle)*radial,111,Math.sin(angle)*radial,
+    0,-angle,-.31);
+   fin.name='';
   }
   // Matching service clamps and a recessed nozzle silhouette.
   cyl(14,18,8,'rocketNose',rocketX,87.5,0,20);
