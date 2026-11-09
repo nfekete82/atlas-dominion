@@ -92,3 +92,29 @@ npm test
 SANDFORGE_TEST_MAX_FAILURES=0 SANDFORGE_BROWSER_CHANNEL=chromium npm run test:webgl-integration
 ```
 
+## Finale lokale Node- und Chromium-Abnahme auf `36419e1b` (09.11.2026)
+
+**Mac-Protokoll, nach dem echten Formations-Kollisionsfix (`c028006c`) und IEEE754-Testfix (`2f554d0d`):**
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| `npm run build` | **PASS** |
+| Fokustests (Formation, Fahrzeuge, Forschung) | **17/17 PASS**, 0 Fail |
+| `npm test` (vollständige Node-Suite) | **1.357 gesamt; 1.356 PASS, 0 FAIL, 1 SKIP** |
+| `test:webgl-integration` Node-Untergruppe | **17/17 PASS**, 0 Fail |
+| Chromium Playwright (2 Worker, 72 Szenarien) | **72/72 PASS**, 0 Fail |
+| Node-Gesamtlauf | 80,1 s |
+| Chromium-Lauf | ungefähr 1,3 min |
+
+Der eine Skip ist **`premium legionnaire: actual game atlases, faction distinction and GLB motion metadata`**: die optionalen, lokal installierten Premium-Binärassets wurden nicht in dieses isolierte Review-Verzeichnis kopiert. Kein fehlerhaftes Testergebnis. Ohne die Assets ist dieser einzelne Test nicht validiert.
+
+Die vorherigen 34 Node-Fehler sind damit geschlossen. Besonders wichtig: Die finale Abnahme wurde **nach** der tatsächlichen Anpassung der weichen Fahrzeug-Separation vorgenommen, also nicht nur nach geänderten Assertions. Die WebGL-Testfälle wurden ebenfalls nach der Simulationsänderung erneut vollständig ausgeführt.
+
+**Code-Stand:** `36419e1b4b9fb14f42a8de7e0437f4c9e9a0ea7a` (einschließlich vorangegangener Dokumentation). Nach diesem Commit neu entstehende Dokumentationsänderungen ändern die getestete Game-Logik nicht; für weitere Runtime-Änderungen ist eine neue Abnahme erforderlich.
+
+### Verbleibende Freigabeschritte
+
+- Die **separate Legacy-Canvas-Browser-Suite** (`npm run test:browser:classic`) wurde in diesem Lauf **nicht** ausgeführt.
+- GitHub-CI-Status, umfangreiche KI-/Performance-Langzeitsimulation, reale Spiel-/Audiobetrachtung und isoliertes Docker-/Uberspace-Release inkl. Rollback sind nicht durch die grüne Node-/WebGL-Suite ersetzt.
+- `main` ist noch der ältere Canvas-Stand; der Code liegt gestapelt auf Draft-PRs. Keine automatische Übernahme nach `main`.
+
