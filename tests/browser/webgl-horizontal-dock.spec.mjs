@@ -69,7 +69,6 @@ test('full-width HUD unifies radar, catalog, production and commands in one dock
    tabHeight:tab.getBoundingClientRect().height,tabFont:toNum(tab,'fontSize'),
    cardHeight:first.getBoundingClientRect().height,
    labelMin:Math.min(...names.map(el=>toNum(el,'fontSize'))),
-   firstRow:last.getBoundingClientRect().top-first.getBoundingClientRect().top<5,
    commandFont:toNum(document.querySelector('#sf-selection-panel .commands button'),'fontSize')
   };
  });
@@ -83,7 +82,6 @@ test('full-width HUD unifies radar, catalog, production and commands in one dock
  expect(after.cardHeight).toBeGreaterThanOrEqual(110);
  expect(after.labelMin).toBeGreaterThanOrEqual(12);
  expect(after.commandFont).toBeGreaterThanOrEqual(9);
- expect(after.firstRow).toBeDefined(); // Catalog may scroll across rows at narrower widths
  // The same four dock sections should remain inside ONE container at 1600px
  // and still be usable at 820px without a detached command window.
  await page.setViewportSize({width:1600,height:900});
