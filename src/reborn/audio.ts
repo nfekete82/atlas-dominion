@@ -5,7 +5,7 @@ import {UnitRadio,type PlayerOrder} from './unit-radio.js';
 import {UnitLossMonitor} from './unit-loss-monitor.js';
 import {TacticalMusic,musicCombatLevel} from './tactical-music.js';
 import {unitSpec} from './catalog.js';
-import {ENGINE_KINDS,ENGINE_PROFILES,vehicleSoundMix,type EngineKind} from './vehicle-soundscape.js';
+import {ENGINE_KINDS,ENGINE_PROFILES,measuredEngineSpeed,vehicleSoundMix,type EngineKind} from './vehicle-soundscape.js';
 
 interface EngineVoice {
   gain:GainNode;pan:StereoPannerNode;engine:OscillatorNode;harmonic:OscillatorNode;
@@ -28,7 +28,7 @@ export function ambientActivity(g:Simulation,center:Point,visible:(p:Point)=>boo
  for(const u of g.units){
   if(u.hp<=0||u.carrier||unitSpec(u).flying||unitSpec(u).group!=='Fahrzeuge'||!visible(u))continue;
   const falloff=Math.max(0,1-distance(u,center)/670);
-  if(u.moving&&(u.driveSpeed??unitSpec(u).speed*.72)>=2)motors+=falloff;
+  if(measuredEngineSpeed(u)>=2)motors+=falloff;
  }
  for(const b of g.bases){
   if(b.hp<=0||b.buildRemaining>0||!visible(b))continue;
@@ -45,7 +45,7 @@ export class Soundscape {
   private music:TacticalMusic|null=null;
   private radioDucking=false;
   analyser:AnalyserNode|null=null;
-  enabled=true; volume=.6; ambience=true; engineSoundsEnabled=false;
+  enabled=true; volume=.6; ambience=true; engineSoundsEnabled=true;
   readonly radio=new UnitRadio(()=>this.enabled&&this.volume>0&&!document.hidden,active=>{
     this.radioDucking=Boolean(active);
     if(this.context&&this.effects)
@@ -113,7 +113,7 @@ export class Soundscape {
     this.radio.flush();
   }
   setEnabled(enabled:boolean):void{this.enabled=enabled;if(!enabled){this.silence();this.radio.stop();this.music?.pause();}this.applyVolume();}
-  /** Vehicle motors have their own opt-in: infantry clicks never unlock a diesel bed. */
+  /** Vehicle motors may be disabled independently; movement is always measured, not inferred. */
   setEngineSoundsEnabled(value:boolean):void{
     this.engineSoundsEnabled=Boolean(value);
     if(!this.engineSoundsEnabled&&this.context){
@@ -277,26 +277,10 @@ export class Soundscape {
   }
   command(attack=false):void{this.played.commands++;this.tone(attack?570:780,.07,.09);this.tone(attack?380:1040,.085,.055,.055);}
   productionGate(kind:'barracks'|'factory'='factory'):void{
-    if(kind==='barracks'){
-      // Short metal-door cue for foot soldiers: absolutely no diesel ignition.
-      this.tone(500,.075,.025);
-      this.tone(660,.09,.020,.08);
-      return;
-    }
-    const a=this.context;if(!a||!this.master||!this.enabled||this.volume<=0||a.state!=='running'||!this.room())return;
-    // Low filtered gear whine, followed by a brief diesel ignition. Both
-    // use the existing effects bus, voice limit and gameplay pause cleanup.
-    for(const [offset,duration,frequency,level] of [[0,.92,94,.024],[1,.62,48,.031]]){
-      const oscillator=a.createOscillator(),gain=a.createGain(),filter=a.createBiquadFilter(),at=a.currentTime+offset;
-      oscillator.type='sawtooth';oscillator.frequency.setValueAtTime(frequency,at);
-      oscillator.frequency.linearRampToValueAtTime(frequency*1.38,at+duration*.35);
-      oscillator.frequency.linearRampToValueAtTime(frequency*.8,at+duration);
-      filter.type='lowpass';filter.frequency.value=offset?220:390;filter.Q.value=.7;
-      gain.gain.setValueAtTime(0,at);gain.gain.linearRampToValueAtTime(level,at+.09);
-      gain.gain.setValueAtTime(level,at+duration*.72);gain.gain.linearRampToValueAtTime(0,at+duration);
-      oscillator.connect(filter);filter.connect(gain);gain.connect(this.effects??this.master);
-      this.track(oscillator,[oscillator,filter,gain]);oscillator.start(at);oscillator.stop(at+duration+.01);
-    }
+    // The gate opening is a short mechanical latch, NOT a diesel ignition.
+    // An actual motor is controlled solely by measured vehicle displacement.
+    this.tone(kind==='barracks'?620:590,.055,.022);
+    this.tone(kind==='barracks'?810:760,.09,.019,.065);
   }
   select():void{this.tone(1150,.035,.055);}
   private burst(p:Point,r:Renderer,duration:number,level:number,filterHz:number,type:BiquadFilterType='highpass'):void{
@@ -354,7 +338,7 @@ export class Soundscape {
         voice.pulseDepth.gain.setTargetAtTime(
           profile.pulse>0?profile.texture*(kind==='tank'?.13:.20)*(.25+.75*throttle):0,now,.26);
         voice.gain.gain.setTargetAtTime(
-          level*profile.volume*.50,now,level>voice.gain.gain.value ? .20 : .35);
+          level*profile.volume*.50,now,level>voice.gain.gain.value ? .13 : .023);
         voice.previousMotion=level>.02?moving:0;
       }
     }
