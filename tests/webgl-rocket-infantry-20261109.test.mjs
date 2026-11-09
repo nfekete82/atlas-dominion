@@ -74,3 +74,22 @@ test('redesigned lab and silo maintain a recognisable radar and layered missile 
   }
  }
 });
+
+
+test('older saved matches load without an explicit rocket deployment counter',()=>{
+ const original=new Simulation(2074,11);
+ const prior=original.save();
+ for(const faction of prior.stats.factions)delete faction.deployedUnits.rocket;
+ const loaded=Simulation.load(prior);
+ assert.equal(loaded.stats.factions[0].deployedUnits.rocket,0);
+ assert.equal(loaded.stats.factions[1].deployedUnits.rocket,0);
+ assert.equal(loaded.save().stats.factions[0].deployedUnits.rocket,0);
+});
+
+test('rocket specialist receives infantry training and rocket range research',()=>{
+ const {researchModifiers}=await import('../dist/src/reborn/strategic-tech.js');
+ const research={completed:['rocketDevelopment','infantryTraining'],active:null,remaining:0};
+ const modifiers=researchModifiers(research,'rocket');
+ assert.equal(modifiers.hp,1.15);
+ assert.equal(modifiers.range,1.2);
+});
