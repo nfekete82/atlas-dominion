@@ -29,7 +29,7 @@ import {formationSlotPitch,vehicleSpacingGap,preservesVehicleProgress,vehicleYie
 import {UPGRADES,UPGRADE_KINDS,newResearchState,canResearchUpgrade,researchModifiers,
  validResearchState,strategicBlastDamage,validStrategicMissile,
  SILO_CHARGE_SECONDS,STRATEGIC_WARNING_SECONDS,STRATEGIC_BLAST_RADIUS,
- INTERCEPTOR_MAX_AMMO,INTERCEPTOR_REARM_COST,INTERCEPTOR_RANGE,
+ INTERCEPTOR_ENABLED,INTERCEPTOR_MAX_AMMO,INTERCEPTOR_REARM_COST,INTERCEPTOR_RANGE,
  type UpgradeKind,type ResearchState,type StrategicMissile,type StrategicEvent}
  from './strategic-tech.js';
 
@@ -271,7 +271,7 @@ export class Simulation {
     const engineer=this.units.find(u=>u.owner===ai&&u.kind==='engineer'&&u.hp>0&&!u.carrier);
     const has=(kind:BuildingKind)=>this.bases.some(b=>b.owner===ai&&b.kind===kind&&b.hp>0);
     const needed:BuildingKind|null=!has('research')&&this.credits[ai]>=1450&&this.time>140?'research':
-      !has('interceptor')&&this.memories[ai].some(b=>b.owner===0&&b.kind==='silo'&&b.hp>0)&&
+      INTERCEPTOR_ENABLED&&!has('interceptor')&&this.memories[ai].some(b=>b.owner===0&&b.kind==='silo'&&b.hp>0)&&
         this.credits[ai]>=3100?'interceptor':
       !has('silo')&&has('research')&&this.credits[ai]>=6300&&this.time>520?'silo':null;
     if(needed&&engineer&&!engineer.orders.some(o=>o.kind==='build')){
@@ -430,6 +430,7 @@ export class Simulation {
     const spec=BUILDINGS[kind];
     if(!Number.isFinite(p.x)||!Number.isFinite(p.y))return 'Ungültiger Kartenbereich.';
     if(!spec||this.status!=='playing')return 'Dieses Gebäude kann hier nicht errichtet werden.';
+    if(kind==='interceptor'&&!INTERCEPTOR_ENABLED)return 'Raketenabwehr derzeit deaktiviert.';
     if(this.bases.filter(b=>b.hp>0).length>=40)return 'Gebäudelimit erreicht.';
     if(kind==='generator'&&this.bases.filter(b=>b.owner===owner&&b.kind==='generator'&&b.hp>0).length>=MAX_GENERATORS_PER_FACTION)
       return `Maximal ${MAX_GENERATORS_PER_FACTION} Energiekerne pro Fraktion.`;
