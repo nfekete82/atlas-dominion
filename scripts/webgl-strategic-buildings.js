@@ -22,7 +22,7 @@ export function createStrategicBuilding(kind,owner=0){
    emissive:owner===0?'#2d95c4':'#e96436',emissiveIntensity:.74,metalness:.25,roughness:.4})
  };
  function add(geometry,material,x,y,z,rx=0,ry=0,rz=0){
-  const mesh=new THREE.Mesh(geometry,mats[material]??mats.metal);
+  const mesh=new THREE.Mesh(geometry,typeof material==='string'?mats[material]??mats.metal:material);
   mesh.position.set(x,y,z);mesh.rotation.set(rx,ry,rz);
   mesh.castShadow=true;mesh.receiveShadow=true;root.add(mesh);
   return mesh;
