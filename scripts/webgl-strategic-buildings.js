@@ -39,25 +39,36 @@ export function createStrategicBuilding(kind,owner=0){
  root.name='Strategic_'+kind;
  root.userData.visualOnly=true;
  const faction=owner===0?'#487488':'#91594b';
+ const researchCamo=kind==='research';
  const mats={
-  base:new THREE.MeshStandardMaterial({color:'#968b73',map:materialGrain,
+  base:new THREE.MeshStandardMaterial({color:researchCamo?'#bba882':'#968b73',map:materialGrain,
    bumpMap:materialGrain,bumpScale:.32,roughness:.84,metalness:.11}),
-  panel:new THREE.MeshStandardMaterial({color:faction,map:materialGrain,
+  panel:new THREE.MeshStandardMaterial({color:researchCamo?'#999477':faction,map:materialGrain,
    bumpMap:materialGrain,bumpScale:.14,roughness:.56,metalness:.39}),
-  metal:new THREE.MeshStandardMaterial({color:'#626b69',map:materialGrain,
+  metal:new THREE.MeshStandardMaterial({color:researchCamo?'#766f5b':'#626b69',map:materialGrain,
    bumpMap:materialGrain,bumpScale:.09,roughness:.48,metalness:.57}),
-  stone:new THREE.MeshStandardMaterial({color:'#c0ab89',map:materialGrain,
+  stone:new THREE.MeshStandardMaterial({color:researchCamo?'#d5c297':'#c0ab89',map:materialGrain,
    bumpMap:materialGrain,bumpScale:.48,roughness:.91,metalness:.02}),
-  black:new THREE.MeshStandardMaterial({color:'#252b29',map:materialGrain,
+  black:new THREE.MeshStandardMaterial({color:researchCamo?'#585345':'#252b29',map:materialGrain,
    bumpMap:materialGrain,bumpScale:.07,roughness:.68,metalness:.38}),
   glow:new THREE.MeshStandardMaterial({color:owner===0?'#63b9de':'#ffab79',
    emissive:owner===0?'#2d95c4':'#e96436',emissiveIntensity:.74,metalness:.25,roughness:.4}),
-  trim:new THREE.MeshStandardMaterial({color:'#c2ac84',map:materialGrain,
+  trim:new THREE.MeshStandardMaterial({color:researchCamo?'#d3bd91':'#c2ac84',map:materialGrain,
    bumpMap:materialGrain,bumpScale:.12,roughness:.62,metalness:.36}),
-  vent:new THREE.MeshStandardMaterial({color:'#343c3b',roughness:.77,metalness:.35}),
+  vent:new THREE.MeshStandardMaterial({color:researchCamo?'#505249':'#343c3b',roughness:.77,metalness:.35}),
   glass:new THREE.MeshStandardMaterial({color:owner===0?'#33677c':'#844e43',
    emissive:owner===0?'#184c64':'#61352d',emissiveIntensity:.4,metalness:.26,roughness:.34})
  };
+ // Only the research lab receives the warm desert camouflage palette.
+ // Silo and interceptor keep their established materials and faction colors.
+ if(researchCamo){
+  mats.steel=new THREE.MeshStandardMaterial({color:'#aaa082',map:materialGrain,
+   bumpMap:materialGrain,bumpScale:.12,roughness:.75,metalness:.18});
+  mats.camoOlive=new THREE.MeshStandardMaterial({color:'#7f846b',map:materialGrain,
+   bumpMap:materialGrain,bumpScale:.14,roughness:.9,metalness:.04});
+  mats.camoSand=new THREE.MeshStandardMaterial({color:'#d1bd93',map:materialGrain,
+   bumpMap:materialGrain,bumpScale:.16,roughness:.88,metalness:.05});
+ }
  // Names allow one shared camouflage pass while leaving service glass,
  // signal beacons and recessed dark vents in their original PBR material.
  for(const [name,material] of Object.entries(mats))material.name='SF_'+name;
@@ -97,6 +108,27 @@ export function createStrategicBuilding(kind,owner=0){
    box(5,50,8,'metal',-82,42,z);
    box(5,50,8,'metal',82,42,z);
   }
+  // Purposeful three-tone desert camouflage on large structural surfaces,
+  // not on the radar dish, glass, signal beacons or service vents.
+  // Thin raised plates stay outside the collision footprint and are batched
+  // with the other static PBR details (no per-frame geometry or draw calls).
+  for(const side of [-1,1]){
+   for(const [z,y,length,height,paint] of [
+    [-38,36,21,17,'camoOlive'],
+    [-8,56,24,13,'camoSand'],
+    [27,39,19,21,'camoOlive']
+   ])box(1.2,height,length,paint,side*80.4,y,z);
+  }
+  for(const [x,width,paint] of [
+   [-65,20,'camoOlive'],[-20,27,'camoSand'],
+   [28,23,'camoOlive'],[66,15,'camoSand']
+  ])box(width,7,1.2,paint,x,66,62.8);
+  for(const [x,z,width,depth,paint] of [
+   [-62,-41,20,19,'camoOlive'],
+   [-64,39,27,16,'camoSand'],
+   [58,48,24,16,'camoOlive'],
+   [70,-39,14,23,'camoSand']
+  ])box(width,1.2,depth,paint,x,84.4,z);
   // The facade is not a blank box: entrance, framed windows and shutters.
   box(41,49,5,'black',0,42,65);
   box(34,42,5.8,'metal',0,40,68);

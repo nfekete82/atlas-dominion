@@ -91,10 +91,13 @@ test('walking infantry produces zero engine sound even with real displacement',(
  assert.equal(shouldPlayFootstep(physical('infantry',302,78,{carrier:201})),false);
 });
 
-test('footsteps and atmospheric wind contain no low-frequency motor-like rumble',()=>{
+test('no looping atmospheric wind remains; infantry steps retain brief high-pass grit',()=>{
  const source=readFileSync('src/reborn/audio.ts','utf8');
- assert.match(source,/filter\.type='bandpass';filter\.frequency\.value=1850/);
- assert.match(source,/windLevel\.gain\.value=\.020/);
+ // Wind was intentionally removed, rather than merely filtered or muted.
+ assert.doesNotMatch(source,/windLevel|this\.wind|windEnabled|setWindEnabled/);
+ assert.doesNotMatch(source,/filter\.type='bandpass';filter\.frequency\.value=1850/);
+ assert.match(source,/this\.noise=a\.createBuffer\(/,
+  'shared noise buffer must remain for transient weapon and footstep effects');
  assert.match(source,/shouldPlayFootstep\(u\)/);
  assert.match(source,/this\.burst\(u,r,\.037,\.018,1900,'highpass'\)/);
  assert.doesNotMatch(source,/filter\.type='lowpass';filter\.frequency\.value=500/);
