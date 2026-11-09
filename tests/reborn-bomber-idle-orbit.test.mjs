@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Simulation} from '../dist/src/reborn/simulation.js';
-import {beginBomberOrbit,advanceBomberOrbit,validBomberOrbit,BOMBER_ORBIT_SPEED} from '../dist/src/reborn/bomber-orbit.js';
+import {beginBomberOrbit,advanceBomberOrbit,validBomberOrbit,BOMBER_ORBIT_SPEED,BOMBER_ORBIT_RADII} from '../dist/src/reborn/bomber-orbit.js';
 import {unitArtScale} from '../dist/src/reborn/visual-scale.js';
 import {unitSpec} from '../dist/src/reborn/catalog.js';
 import {distance} from '../dist/src/reborn/config.js';
@@ -22,7 +22,7 @@ test('aircraft art grows visually without altering authoritative world size or f
  assert.equal(unitArtScale('infantry'),.73);
  assert.equal(unitSpec({kind:'bomber'}).width,107);
  assert.equal(unitSpec({kind:'scout'}).width,106);
- assert.equal(unitSpec({kind:'bomber'}).speed,125);
+ assert.equal(unitSpec({kind:'bomber'}).speed,350);
 });
 test('idle bomber travels a bounded real circle and remains tangent to its previous heading',()=>{
  const {game,bomber}=setup(),start={x:bomber.x,y:bomber.y};
@@ -32,10 +32,11 @@ test('idle bomber travels a bounded real circle and remains tangent to its previ
  assert.ok(bomber.moving&&bomber.walkDistance>0,'actual position and animation move');
  assert.ok(distance(start,bomber)>0,'not a hover-only drawing trick');
  assert.ok(Math.abs(distance(bomber,{x:orbit.cx,y:orbit.cy})-orbit.radius)<1e-8);
- assert.ok(Math.abs(orbit.radius-78)<1e-8);
+ assert.ok(BOMBER_ORBIT_RADII.includes(orbit.radius),'holding radius is one of the safe, wide supported circles');
  assert.ok(Math.abs(bomber.driveSpeed-BOMBER_ORBIT_SPEED)<1e-8);
- advance(game,14);
- assert.ok(distance(bomber,start)<40,'a full holding turn remains near its anchor');
+ // A complete true circle uses the selected radius and the real 145-unit/s speed.
+ advance(game,Math.PI*2*orbit.radius/BOMBER_ORBIT_SPEED);
+ assert.ok(distance(bomber,start)<20,'a complete orbit returns near its anchor');
  assert.ok(bomber.x>=8&&bomber.y>=8&&bomber.x<=game.world.size-8&&bomber.y<=game.world.size-8);
 });
 test('manual move and Hold interrupt the holding circle immediately; no autopilot orders are created',()=>{
