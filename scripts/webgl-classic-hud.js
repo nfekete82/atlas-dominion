@@ -31,6 +31,7 @@ export function installClassicHud(){
    <button data-tab="units" aria-pressed="true">EINHEITEN</button>
    <button data-tab="buildings" aria-pressed="false">GEBÄUDE</button>
    <button data-tab="territories" aria-pressed="false">SEKTOREN</button>
+   <button data-tab="research" aria-pressed="false" hidden>FORSCHUNG</button>
   </nav>
   <div class="catalog-scroll" id="sf-actions" aria-label="Einheiten, Gebäude und Territorien"></div>
   <section class="production hud frame sf-production-panel" id="sf-production" aria-label="Produktion und Warteschlange">
@@ -71,6 +72,8 @@ export function installClassicHud(){
    <button data-action="rally" id="sf-rally" title="Sammelpunkt für neue Einheiten setzen">SAMMELPUNKT</button>
    <button data-action="stop" title="Einheiten anhalten (X)">STOPP</button>
    <button data-action="unload" title="Alle Passagiere aus Humvee oder Transporthubschrauber ausladen (U)" hidden>ALLE AUSLADEN</button>
+   <button data-action="missile-target" id="sf-strategic-fire" title="Langstreckenrakete: Ziel auf der Karte markieren" hidden>RAKETE STARTEN</button>
+   <button data-action="interceptor-rearm" id="sf-interceptor-rearm" title="Drei Abwehrraketen für 650 Credits nachladen" hidden>ABWEHR LADEN</button>
    <button data-action="cancel" title="Auswahl oder Bauplatz abbrechen (Esc)">ZURÜCK</button>
   </div>
  </div>
