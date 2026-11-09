@@ -697,6 +697,10 @@ test('perf overlay separates bomber sight computation from simulation, VFX and r
   const result=app.performance.snapshot();
   return {
    enabled:app.performance.enabled,profileVision:game.profileVision,
+   profileSquadWork:game.profileSquadWork,profilePaths:game.world.profilePaths,
+   unitWorkP95:result.unitWorkP95,collisionP95:result.collisionP95,
+   pathWorkP95:result.pathWorkP95,maxPathCallMs:result.maxPathCallMs,
+   pathCalls:result.pathCalls,
    visionCompletedAt:game.visionCompletedAt,visionDurationMs:game.visionDurationMs,
    visionP95:result.visionP95,maxVisionMs:result.maxVisionMs,
    overlay:document.querySelector('#sf-webgl-performance')!==null,
@@ -706,6 +710,13 @@ test('perf overlay separates bomber sight computation from simulation, VFX and r
  });
  expect(diagnostics.enabled).toBe(true);
  expect(diagnostics.profileVision).toBe(true);
+ expect(diagnostics.profileSquadWork).toBe(true);
+ expect(diagnostics.profilePaths).toBe(true);
+ expect(diagnostics.unitWorkP95).toBeGreaterThanOrEqual(0);
+ expect(diagnostics.collisionP95).toBeGreaterThanOrEqual(0);
+ expect(diagnostics.pathWorkP95).toBeGreaterThanOrEqual(0);
+ expect(diagnostics.maxPathCallMs).toBeGreaterThanOrEqual(0);
+ expect(diagnostics.pathCalls).toBeGreaterThanOrEqual(0);
  expect(diagnostics.visionCompletedAt).toBeGreaterThanOrEqual(0);
  expect(diagnostics.visionDurationMs).toBeGreaterThanOrEqual(0);
  expect(diagnostics.visionP95).toBeGreaterThanOrEqual(0);
