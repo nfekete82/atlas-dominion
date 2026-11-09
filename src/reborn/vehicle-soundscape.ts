@@ -1,5 +1,5 @@
 import type {Point} from './config.js';
-import {distance,clamp} from './config.js';
+import {distance,clamp,RULES} from './config.js';
 import {unitSpec,type UnitKind} from './catalog.js';
 import type {Simulation} from './simulation.js';
 
@@ -19,6 +19,20 @@ export const ENGINE_PROFILES:Readonly<Record<EngineKind,{
  bomber:{low:123,high:185,cutoff:580,noiseHz:1900,noiseQ:.55,type:'sine',secondary:'sawtooth',volume:.075,texture:.48,pulse:0}
 };
 const empty=():EngineMix=>({level:0,throttle:0,pan:0,moving:0,count:0});
+/** Audible motors require an actual change in authoritative world position
+ * over the last 20 Hz simulation tick. An order, turning in place and
+ * driveSpeed (which can remain nonzero while blocked) are NOT movement.
+ * No persisted fields or WebAudio / render-frame timing are involved.
+ */
+export function measuredEngineSpeed(u:{
+ x:number;y:number;previousX?:number;previousY?:number;moving?:boolean
+}):number {
+ if(!u.moving||!Number.isFinite(u.previousX)||!Number.isFinite(u.previousY))return 0;
+ const dx=u.x-u.previousX!,dy=u.y-u.previousY!;
+ if(!Number.isFinite(dx)||!Number.isFinite(dy))return 0;
+ const speed=Math.hypot(dx,dy)/RULES.tick;
+ return Number.isFinite(speed)?speed:0;
+}
 /** Visibility and camera radius are enforced *before* mixing.
  * Unknown enemies cannot be heard behind fog, even when they drive nearby.
  * The pure mixer never touches RNG, state, engine commands or WebAudio. */
@@ -30,9 +44,8 @@ export function vehicleSoundMix(
  const sums:Record<EngineKind,number>={rover:0,tank:0,artillery:0,scout:0,bomber:0};
  const maxRange=Math.max(120,Number.isFinite(radius)?radius:730);
  for(const u of g.units){
-  // A parked vehicle (including a hovering helicopter) must never sustain
-  // an audible motor drone. Starting an order is not enough: wait until the
-  // model actually starts moving. This also silences stalled tanks.
+  // Only actual measured physical motion is audible; moving=true alone,
+  // a standing tank turning its hull, or a blocked driver is silent.
   if(u.hp<=0||u.carrier||!u.moving||
      !ENGINE_KINDS.includes(u.kind as EngineKind)||!visible(u))continue;
   const kind=u.kind as EngineKind;
@@ -41,8 +54,9 @@ export function vehicleSoundMix(
   const fraction=Math.max(0,1-dist/maxRange);
   const weight=fraction*fraction; // No sharp sound boundary and natural distance roll-off
   const profile=unitSpec(u);
-  const physicalSpeed=u.driveSpeed??profile.speed*.72;
-  if(physicalSpeed<2)continue;
+  const physicalSpeed=measuredEngineSpeed(u);
+  // Reject positional snaps/spawn corrections as well as stopped vehicles.
+  if(physicalSpeed<2||physicalSpeed>profile.speed*3)continue;
   const throttle=clamp(physicalSpeed/Math.max(1,profile.speed),0,1);
   const motion=1;
   // No idle level and no baseline hum; volume depends on real vehicle

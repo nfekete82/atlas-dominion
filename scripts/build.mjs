@@ -30,6 +30,7 @@ for(const module of ['webgl-oases','webgl-oasis-generation','webgl-oasis-materia
 cpSync('scripts/webgl-map-edges.js','dist/webgl-map-edges.js');
 cpSync('scripts/webgl-title-menu.js','dist/webgl-title-menu.js');
 cpSync('scripts/webgl-battlefield.js','dist/webgl-battlefield.js');
+cpSync('scripts/webgl-builder-input.js','dist/webgl-builder-input.js');
 cpSync('scripts/webgl-strategic-buildings.js','dist/webgl-strategic-buildings.js');
 cpSync('scripts/webgl-strategic-effects.js','dist/webgl-strategic-effects.js');
 cpSync('scripts/webgl-double-click-select.js','dist/webgl-double-click-select.js');
@@ -47,6 +48,7 @@ cpSync('scripts/webgl-wreck-lifecycle.js','dist/webgl-wreck-lifecycle.js');
 cpSync('scripts/webgl-perf-watch.js','dist/webgl-perf-watch.js');
 cpSync('scripts/webgl-classic-hud.js','dist/webgl-classic-hud.js');
 cpSync('scripts/webgl-portraits.js','dist/webgl-portraits.js');
+cpSync('scripts/webgl-research-artworks.js','dist/webgl-research-artworks.js');
 cpSync('scripts/webgl-perimeter.js','dist/webgl-perimeter.js');
 cpSync('scripts/webgl-edge-cliffs.js','dist/webgl-edge-cliffs.js');
 cpSync('scripts/webgl-grounding.js','dist/webgl-grounding.js');

@@ -32,6 +32,7 @@
    $(id.replace('-volume','-value')).textContent=$(id).value+' %';
   }
   $('sf3d-music-enabled').checked=options.musicEnabled!==false;
+  $('sf3d-engine-sounds').checked=options.engineSoundsEnabled!==false;
  };
  function applyLiveAudio(){
   const a=window.__sandforgeWebGL?.sound;
@@ -44,6 +45,7 @@
   a.setEffectsVolume(Number($('sf3d-effects-volume').value)/100);
   a.setMusicVolume(Number($('sf3d-music-volume').value)/100);
   a.setMusicEnabled($('sf3d-music-enabled').checked);
+  a.setEngineSoundsEnabled($('sf3d-engine-sounds').checked);
  }
  const running=()=>Boolean(window.__sandforgeWebGL?.simulationRunning);
  const changePause=(shouldRun)=>{
@@ -93,6 +95,7 @@
     fog:$('sf3d-fog').checked,
     sound:$('sf3d-sound').checked,
     musicEnabled:$('sf3d-music-enabled').checked,
+    engineSoundsEnabled:$('sf3d-engine-sounds').checked,
     masterVolume:Number($('sf3d-master-volume').value),
     effectsVolume:Number($('sf3d-effects-volume').value),
     musicVolume:Number($('sf3d-music-volume').value)
@@ -149,6 +152,7 @@
   $(id).addEventListener('input',applyLiveAudio);
  }
  $('sf3d-music-enabled').addEventListener('change',applyLiveAudio);
+ $('sf3d-engine-sounds').addEventListener('change',applyLiveAudio);
  $('sf3d-audio-test').addEventListener('click',async()=>{
   const status=$('sf3d-audio-status');
   const runtime=window.__sandforgeWebGL;

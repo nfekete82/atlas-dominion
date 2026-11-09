@@ -67,6 +67,7 @@ export function installClassicHud(){
  <div class="command-group">
   <div class="section-label">KOMMANDOS</div>
   <div class="commands" id="sf-command-buttons">
+   <button data-action="select-engineer" title="Lebenden Pionier auswählen (P)">PIONIER</button>
    <button data-action="select-all" title="Alle Truppen auswählen">ALLE</button>
    <button data-action="attack" title="Angriffsbewegung (F)">ANGRIFF</button>
    <button data-action="rally" id="sf-rally" title="Sammelpunkt für neue Einheiten setzen">SAMMELPUNKT</button>
@@ -85,9 +86,12 @@ export function installClassicHud(){
 <div class="sf-debug" id="sf-debug"><span id="sf-debug-status"></span><span id="sf-debug-error"></span></div>
 `;
  document.body.append(panel);
- // Give production its own framed column next to radar and catalog.
- // Move the EXISTING node so all queue/cancel handlers and IDs stay intact.
- panel.querySelector('#sidebar').append(panel.querySelector('#sf-production'));
+ // One full-width tactical dock. Move the existing nodes rather than
+ // cloning them, preserving all click/keyboard handlers and accessible IDs.
+ const dock=panel.querySelector('#sidebar');
+ dock.append(panel.querySelector('#sf-production'));
+ dock.append(panel.querySelector('#sf-selection-panel'));
+ dock.setAttribute('aria-label','Minikarte, Einheiten, Gebäude, Forschung, Produktion und Befehle');
  const tools=panel.querySelector('#sf-tools');
  const move=(id,parent)=>{
   const el=document.getElementById(id);if(!el)throw new Error('Missing existing WebGL control '+id);

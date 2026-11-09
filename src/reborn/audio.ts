@@ -4,8 +4,8 @@ import { Simulation, type Weapon } from './simulation.js';
 import {UnitRadio,type PlayerOrder} from './unit-radio.js';
 import {UnitLossMonitor} from './unit-loss-monitor.js';
 import {TacticalMusic,musicCombatLevel} from './tactical-music.js';
-import {unitSpec} from './catalog.js';
-import {ENGINE_KINDS,ENGINE_PROFILES,vehicleSoundMix,type EngineKind} from './vehicle-soundscape.js';
+import {unitSpec,type UnitKind} from './catalog.js';
+import {ENGINE_KINDS,ENGINE_PROFILES,measuredEngineSpeed,vehicleSoundMix,type EngineKind} from './vehicle-soundscape.js';
 
 interface EngineVoice {
   gain:GainNode;pan:StereoPannerNode;engine:OscillatorNode;harmonic:OscillatorNode;
@@ -28,7 +28,7 @@ export function ambientActivity(g:Simulation,center:Point,visible:(p:Point)=>boo
  for(const u of g.units){
   if(u.hp<=0||u.carrier||unitSpec(u).flying||unitSpec(u).group!=='Fahrzeuge'||!visible(u))continue;
   const falloff=Math.max(0,1-distance(u,center)/670);
-  if(u.moving&&(u.driveSpeed??unitSpec(u).speed*.72)>=2)motors+=falloff;
+  if(measuredEngineSpeed(u)>=2)motors+=falloff;
  }
  for(const b of g.bases){
   if(b.hp<=0||b.buildRemaining>0||!visible(b))continue;
@@ -38,6 +38,14 @@ export function ambientActivity(g:Simulation,center:Point,visible:(p:Point)=>boo
  }
  return {motors:clamp(motors,0,2.4),generator:clamp(generator,0,1.8)};
 }
+/** Footsteps are exclusively for *walking* infantry, never mechanized units.
+ * No engine channel is involved even when a soldier gets a move order.
+ */
+export function shouldPlayFootstep(u:{
+ kind:UnitKind;hp:number;moving:boolean;carrier?:number|null
+}):boolean{
+ return u.hp>0&&!u.carrier&&u.moving&&unitSpec(u).group==='Infanterie';
+}
 /** Local sound design: synthesized effects and a separate pre-authored speech channel. */
 export class Soundscape {
   context:AudioContext|null=null;
@@ -45,7 +53,7 @@ export class Soundscape {
   private music:TacticalMusic|null=null;
   private radioDucking=false;
   analyser:AnalyserNode|null=null;
-  enabled=true; volume=.6; ambience=true;
+  enabled=true; volume=.6; ambience=true; engineSoundsEnabled=true;
   readonly radio=new UnitRadio(()=>this.enabled&&this.volume>0&&!document.hidden,active=>{
     this.radioDucking=Boolean(active);
     if(this.context&&this.effects)
@@ -76,10 +84,12 @@ export class Soundscape {
       this.noise=a.createBuffer(1,a.sampleRate*3,a.sampleRate);const channel=this.noise.getChannelData(0);let seed=91821;
       for(let i=0;i<channel.length;i++){seed=(Math.imul(seed,1664525)+1013904223)>>>0;channel[i]=seed/2147483648-1;}
       const source=a.createBufferSource(),filter=a.createBiquadFilter();source.buffer=this.noise;source.loop=true;
-      filter.type='lowpass';filter.frequency.value=500;filter.Q.value=.4;
-      const windLevel=a.createGain();windLevel.gain.value=.055;this.wind=a.createGain();this.wind.gain.value=1;
+      // Wind is airy filtered noise, NOT the old low-pass 500 Hz bass drone
+      // that sounded like a diesel motor whenever WebAudio unlocked.
+      filter.type='bandpass';filter.frequency.value=1850;filter.Q.value=.48;
+      const windLevel=a.createGain();windLevel.gain.value=.020;this.wind=a.createGain();this.wind.gain.value=1;
       source.connect(filter);filter.connect(windLevel);windLevel.connect(this.wind);this.wind.connect(this.effects);source.start();
-      const lfo=a.createOscillator(),swell=a.createGain();lfo.frequency.value=.08;swell.gain.value=.025;lfo.connect(swell);swell.connect(windLevel.gain);lfo.start();
+      const lfo=a.createOscillator(),swell=a.createGain();lfo.frequency.value=.08;swell.gain.value=.006;lfo.connect(swell);swell.connect(windLevel.gain);lfo.start();
       // No permanent generic motor/generator oscillators. The only engine
       // audio comes from real moving, visible units below; no continuous
       // hum in the base or whenever all vehicles are parked.
@@ -113,6 +123,17 @@ export class Soundscape {
     this.radio.flush();
   }
   setEnabled(enabled:boolean):void{this.enabled=enabled;if(!enabled){this.silence();this.radio.stop();this.music?.pause();}this.applyVolume();}
+  /** Vehicle motors may be disabled independently; movement is always measured, not inferred. */
+  setEngineSoundsEnabled(value:boolean):void{
+    this.engineSoundsEnabled=Boolean(value);
+    if(!this.engineSoundsEnabled&&this.context){
+      for(const voice of this.engineVoices.values()){
+        voice.gain.gain.cancelScheduledValues(this.context.currentTime);
+        voice.gain.gain.setTargetAtTime(0,this.context.currentTime,.025);
+        voice.previousMotion=0;
+      }
+    }
+  }
   setEffectsVolume(value:number):void{
     this.effectsVolume=clamp(value,0,1);
     if(this.context&&this.effects)
@@ -236,20 +257,32 @@ export class Soundscape {
     announcement.pitch=.92;announcement.volume=Math.min(.58,this.volume*this.radio.volume*.8);
     window.speechSynthesis.speak(announcement);
   }
+  /** Persistent oscillators outlive transient gameplay samples. Explicitly
+   * shut their output on pause/menu/save-load; do not wait for the next tick.
+   */
+  private silenceAmbientNodes():void{
+    if(!this.context)return;
+    const now=this.context.currentTime;
+    this.wind?.gain.cancelScheduledValues(now);
+    this.wind?.gain.setTargetAtTime(0,now,.018);
+    for(const voice of this.engineVoices.values()){
+      voice.gain.gain.cancelScheduledValues(now);
+      voice.gain.gain.setTargetAtTime(0,now,.018);
+      voice.previousMotion=0;
+    }
+  }
   pause():void{
     this.silence(true);this.radio.pause();this.music?.pause();
+    this.silenceAmbientNodes();
     if(typeof window!=='undefined'&&'speechSynthesis' in window)window.speechSynthesis.cancel();
   }
   silenceScene():void{
     this.silence();this.radio.stop();this.music?.pause();
+    this.silenceAmbientNodes();
     if(typeof window!=='undefined'&&'speechSynthesis' in window)window.speechSynthesis.cancel();
-    if(this.context){
-      this.wind?.gain.setTargetAtTime(0,this.context.currentTime,.025);
-      for(const voice of this.engineVoices.values()){voice.gain.gain.setTargetAtTime(0,this.context.currentTime,.035);voice.previousMotion=0;}
-    }
   }
   bindGame(g:Simulation):void{
-    if(this.game===g)return;this.silence();this.radio.reset();this.lastStep=g.time;this.game=g;this.owners=g.territories.map(t=>t.owner);this.unitIds=new Set(g.units.map(u=>u.id));this.unitLosses.reset(g.units,g.time);this.lastLossSignal=-Infinity;this.footsteps.clear();this.seenShots=new WeakSet();
+    if(this.game===g)return;this.silence();this.silenceAmbientNodes();this.radio.reset();this.lastStep=g.time;this.game=g;this.owners=g.territories.map(t=>t.owner);this.unitIds=new Set(g.units.map(u=>u.id));this.unitLosses.reset(g.units,g.time);this.lastLossSignal=-Infinity;this.footsteps.clear();this.seenShots=new WeakSet();
   }
   private applyVolume():void{if(this.context&&this.master)this.master.gain.setTargetAtTime(this.enabled?this.volume:0,this.context.currentTime,.035);}
   private silence(gameplayOnly=false):void{for(const v of this.voices.values())if(!gameplayOnly||v.gameplay)v.stop();}
@@ -265,21 +298,11 @@ export class Soundscape {
     oscillator.connect(gain);gain.connect(this.effects??this.master);this.track(oscillator,[oscillator,gain],[],false);oscillator.start(at);oscillator.stop(at+duration+.01);
   }
   command(attack=false):void{this.played.commands++;this.tone(attack?570:780,.07,.09);this.tone(attack?380:1040,.085,.055,.055);}
-  productionGate():void{
-    const a=this.context;if(!a||!this.master||!this.enabled||this.volume<=0||a.state!=='running'||!this.room())return;
-    // Low filtered gear whine, followed by a brief diesel ignition. Both
-    // use the existing effects bus, voice limit and gameplay pause cleanup.
-    for(const [offset,duration,frequency,level] of [[0,.92,94,.024],[1,.62,48,.031]]){
-      const oscillator=a.createOscillator(),gain=a.createGain(),filter=a.createBiquadFilter(),at=a.currentTime+offset;
-      oscillator.type='sawtooth';oscillator.frequency.setValueAtTime(frequency,at);
-      oscillator.frequency.linearRampToValueAtTime(frequency*1.38,at+duration*.35);
-      oscillator.frequency.linearRampToValueAtTime(frequency*.8,at+duration);
-      filter.type='lowpass';filter.frequency.value=offset?220:390;filter.Q.value=.7;
-      gain.gain.setValueAtTime(0,at);gain.gain.linearRampToValueAtTime(level,at+.09);
-      gain.gain.setValueAtTime(level,at+duration*.72);gain.gain.linearRampToValueAtTime(0,at+duration);
-      oscillator.connect(filter);filter.connect(gain);gain.connect(this.effects??this.master);
-      this.track(oscillator,[oscillator,filter,gain]);oscillator.start(at);oscillator.stop(at+duration+.01);
-    }
+  productionGate(kind:'barracks'|'factory'='factory'):void{
+    // The gate opening is a short mechanical latch, NOT a diesel ignition.
+    // An actual motor is controlled solely by measured vehicle displacement.
+    this.tone(kind==='barracks'?620:590,.055,.022);
+    this.tone(kind==='barracks'?810:760,.09,.019,.065);
   }
   select():void{this.tone(1150,.035,.055);}
   private burst(p:Point,r:Renderer,duration:number,level:number,filterHz:number,type:BiquadFilterType='highpass'):void{
@@ -316,7 +339,7 @@ export class Soundscape {
       const ambientSounding=sounding&&this.ambience;
       this.wind?.gain.setTargetAtTime(ambientSounding?1+g.weather.intensity*1.25:0,this.context.currentTime,.2);
       const audibleRadius=Math.max(180,Math.min(560,Math.max(r.width,r.height)/r.camera.zoom*.55));
-      const mix=ambientSounding?vehicleSoundMix(g,r.camera,p=>g.canSee(0,p),audibleRadius):null;
+      const mix=ambientSounding&&this.engineSoundsEnabled?vehicleSoundMix(g,r.camera,p=>g.canSee(0,p),audibleRadius):null;
       for(const kind of ENGINE_KINDS){
         const voice=this.engineVoices.get(kind);if(!voice)continue;
         const profile=ENGINE_PROFILES[kind],state=mix?.[kind];
@@ -337,7 +360,7 @@ export class Soundscape {
         voice.pulseDepth.gain.setTargetAtTime(
           profile.pulse>0?profile.texture*(kind==='tank'?.13:.20)*(.25+.75*throttle):0,now,.26);
         voice.gain.gain.setTargetAtTime(
-          level*profile.volume*.50,now,level>voice.gain.gain.value ? .20 : .35);
+          level*profile.volume*.50,now,level>voice.gain.gain.value ? .13 : .023);
         voice.previousMotion=level>.02?moving:0;
       }
     }
@@ -355,9 +378,12 @@ export class Soundscape {
     for(const u of g.units){
       if(!this.unitIds.has(u.id)){this.unitIds.add(u.id);if(u.owner===0&&active){this.played.production++;this.tone(660,.13,.075);this.tone(990,.2,.065,.1);}}
       const walked=this.footsteps.get(u.id)??u.walkDistance;this.footsteps.set(u.id,u.walkDistance);
-      if(!active||g.paused||!u.moving||Math.floor(walked/32)===Math.floor(u.walkDistance/32)||!g.canSee(0,u))continue;
+      if(!active||g.paused||!shouldPlayFootstep(u)||
+         Math.floor(walked/32)===Math.floor(u.walkDistance/32)||!g.canSee(0,u))continue;
       const p=r.screen(u);if(p.x<0||p.y<0||p.x>r.width||p.y>r.height||g.time-this.lastStep<.05)continue;
-      this.lastStep=g.time;this.played.steps++;this.burst(u,r,.06,.045,1100,'lowpass');
+      // Boots on sand: brief soft, high-frequency grit. A low-pass footstep
+      // pulse used to sound like a small idling engine when a soldier walked.
+      this.lastStep=g.time;this.played.steps++;this.burst(u,r,.037,.018,1900,'highpass');
     }
   }
 }
