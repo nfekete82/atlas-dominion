@@ -14,6 +14,7 @@ import {SandforgeGroundingPass} from '/webgl-grounding.js';
 import {createBuildingYard,disposeBuildingYard} from '/webgl-building-yard.js';
 import {disposeOwnedMeshes,disposeTaggedMaterials} from '/webgl-resource-lifecycle.js';
 import {selectedInfantryForTransport,selectedLoadedTransports,selectedTransportManifest} from '/webgl-transport-controls.js';
+import {pointerGestureIntent,availableEngineers,shouldAppendBuild,nearestEngineer,POINTER_CLICK_SLOP} from '/webgl-builder-input.js';
 import {sameKindVisibleUnits} from '/webgl-double-click-select.js';
 import {tracerWindow} from '/webgl-hit-response.js';
 import {applyFactionAccents} from '/webgl-faction-accents.js';
@@ -842,6 +843,20 @@ export class SandforgeBattlefield {
  // Selection is the source of truth for the production catalogue.
  // A builder exposes construction; a completed, selected producer exposes
  // ONLY its own unit roster. Global tech unlocks never reveal unrelated tabs.
+ /** One-click recovery for builders accidentally deselected while placing.
+  * Never spawns a unit or bypasses the usual cost/placement/navigation rules.
+  */
+ selectEngineer(){
+  const cameraCenter={x:this.controls.target.x+this.world.size*.5,
+   y:this.controls.target.z+this.world.size*.5};
+  const worker=nearestEngineer(this.game.units,cameraCenter);
+  if(!worker){this.message('Kein Pionier verfügbar · im Feldkommando ausbilden');return null;}
+  this.selected=new Set([worker.id]);this.selectedBase=null;
+  this.rallyMode=false;this.attackMode=false;
+  this.drawInterface();
+  this.message('Pionier ausgewählt · Gebäude wählen, Bauplatz anklicken · P: Pionier wählen');
+  return worker;
+ }
  catalogContext(){
   const game=this.game;
   const engineer=game.units.some(u=>this.selected.has(u.id)&&u.owner===0&&u.hp>0&&!u.carrier&&u.kind==='engineer');
@@ -880,6 +895,9 @@ export class SandforgeBattlefield {
       'Raketenziel-Modus beendet');
     this.drawInterface();return;
    }
+   if(action==='select-engineer'){
+    this.selectEngineer();return;
+   }
    if(action==='interceptor-rearm'){
     this.message(this.game.rearmInterceptor(this.selectedBase)?
       'Raketenabwehr nachgeladen: '+INTERCEPTOR_MAX_AMMO+' Raketen':
@@ -888,7 +906,9 @@ export class SandforgeBattlefield {
    }
    if(kind){
     if(kind==='interceptor'&&!INTERCEPTOR_ENABLED){this.message('Raketenabwehr derzeit deaktiviert');return;}
-    if(!this.catalogContext().engineer){this.message('Zum Bauen zuerst einen Pionier auswählen');return;}
+    if(!this.catalogContext().engineer){
+     if(!this.selectEngineer())return;
+    }
     this.beginPlacement(kind);this.attackMode=false;this.sound?.select?.();
     this.message('Bauplatz wählen: '+BUILDINGS[kind].name+' · R: drehen · Shift: Aufträge anhängen');this.drawInterface();
    }
@@ -1710,9 +1730,14 @@ export class SandforgeBattlefield {
   const start=this.clickStart;
   const moved=Math.hypot(event.clientX-start.x,event.clientY-start.y);
   this.clickStart=null;this.selectionBox.style.display='none';
-  if(moved>7){
-   if(event.button===0&&!this.strategicTargetMode)
-    this.selectBoxUnits(start.x,start.y,event.clientX,event.clientY,event.shiftKey);
+  const gesture=pointerGestureIntent({distance:moved,button:event.button,
+   building:Boolean(this.buildKind),rally:this.rallyMode,strategic:this.strategicTargetMode});
+  if(gesture==='selection-box'){
+   this.selectBoxUnits(start.x,start.y,event.clientX,event.clientY,event.shiftKey);
+   return;
+  }
+  if(gesture==='ignore-drag'){
+   if(this.buildKind)this.message('Bauplatz weiterhin aktiv · kurz klicken statt ziehen');
    return;
   }
   if(event.button===2&&this.strategicTargetMode){
@@ -1737,6 +1762,23 @@ export class SandforgeBattlefield {
      'Einsteigen nicht möglich · Plätze, Entfernung und Weg prüfen');
     if(accepted){this.sound?.command?.();this.showCommandPulse({x:carrier.x,y:carrier.y});}
     this.drawInterface();return;
+   }
+  }
+  // Select the actual 3D unit model BEFORE terrain raycasting.
+  // A small engineer can be clicked on its upper body even when the sand
+  // behind it is outside the terrain collider, or under a building edge.
+  if(event.button===0&&!this.buildKind&&!this.rallyMode&&!this.strategicTargetMode){
+   const hit=this.friendlyAtPointer(event);
+   if(hit){
+    if(hit.type==='unit'){
+     if(!event.shiftKey)this.selected.clear();
+     if(event.shiftKey&&this.selected.has(hit.entity.id))this.selected.delete(hit.entity.id);
+     else this.selected.add(hit.entity.id);
+     this.selectedBase=null;
+    }else{
+     this.selected.clear();this.selectedBase=hit.entity.id;
+    }
+    this.sound?.select?.();this.drawInterface();return;
    }
   }
   // Right-click an enemy to attack; right-click the 3D bastion itself
@@ -1765,20 +1807,6 @@ export class SandforgeBattlefield {
   // for clicks outside the terrain or for a right-button drag.
   if(event.button===2)this.showCommandPulse(p,Boolean(clickedEnemy)||this.attackMode);
   if(event.button===0){
-   if(!this.rallyMode&&!this.buildKind){
-    const hit=this.friendlyAtPointer(event);
-    if(hit){
-     if(hit.type==='unit'){
-      if(!event.shiftKey)this.selected.clear();
-      if(event.shiftKey&&this.selected.has(hit.entity.id))this.selected.delete(hit.entity.id);
-      else this.selected.add(hit.entity.id);
-      this.selectedBase=null;
-     }else{
-      this.selected.clear();this.selectedBase=hit.entity.id;
-     }
-     this.rallyMode=false;this.sound?.select?.();this.drawInterface();return;
-    }
-   }
    if(this.rallyMode){
     const base=this.game.bases.find(b=>b.id===this.selectedBase&&b.owner===0&&b.hp>0&&b.buildRemaining<=0);
     this.rallyMode=false;
@@ -1787,15 +1815,30 @@ export class SandforgeBattlefield {
     this.drawInterface();return;
    }
    if(this.buildKind){
-    const kind=this.buildKind,workerIds=this.game.units.filter(u=>this.selected.has(u.id)&&u.kind==='engineer'&&u.owner===0).map(u=>u.id);
+    const kind=this.buildKind;
+    let workers=availableEngineers(this.game.units,this.selected);
+    if(!workers.length){
+     // A previous mis-click or camera/HUD interaction must not permanently
+     // strand placement mode; recover a living pioneer automatically.
+     const center={x:p.x,y:p.y},worker=nearestEngineer(this.game.units,center);
+     if(worker){
+      workers=[worker];this.selected=new Set([worker.id]);this.selectedBase=null;
+     }
+    }
+    if(!workers.length){
+     this.message('Kein Pionier verfügbar · im Feldkommando ausbilden');return;
+    }
     const blocked=this.game.buildError(0,kind,p);
-    if(blocked){this.message(blocked);return;}
-    const result=this.game.build(0,kind,p,workerIds.length?workerIds:undefined,this.placementFacing,event.shiftKey);
+    if(blocked){this.message(blocked+' · Pionier bleibt ausgewählt');return;}
+    const append=shouldAppendBuild(workers,event.shiftKey);
+    const result=this.game.build(0,kind,p,workers.map(u=>u.id),this.placementFacing,append);
     if(result){
-     this.sound?.command?.();this.message(BUILDINGS[kind].name+' beauftragt');
+     this.sound?.command?.();
+     this.message(BUILDINGS[kind].name+(append?' zur Pionier-Baufolge hinzugefügt':' beauftragt')+
+      ' · Pionier bleibt ausgewählt');
      if(!event.shiftKey)this.clearPlacement();
      this.sync(true);
-    }else this.message('Kein verfügbarer Pionier oder keine Route zum Bauplatz');
+    }else this.message('Pionier kann Bauplatz nicht erreichen · Standort ändern (Pionier bleibt ausgewählt)');
     return;
    }
    const near=this.game.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier).map(u=>({u,d:dist(u,p)})).sort((a,b)=>a.d-b.d)[0];
@@ -1854,7 +1897,8 @@ export class SandforgeBattlefield {
    if(this.buildKind)this.updatePlacementPreview(e);
    const start=this.clickStart;
    if(!start||start.button!==0||!(e.buttons&1))return;
-   if(Math.hypot(e.clientX-start.x,e.clientY-start.y)<7)return;
+   if(this.buildKind||this.rallyMode||this.strategicTargetMode)return;
+   if(Math.hypot(e.clientX-start.x,e.clientY-start.y)<POINTER_CLICK_SLOP)return;
    Object.assign(this.selectionBox.style,{
     display:'block',left:Math.min(start.x,e.clientX)+'px',
     top:Math.min(start.y,e.clientY)+'px',
@@ -1921,6 +1965,7 @@ export class SandforgeBattlefield {
    if(event.code==='KeyF'){this.attackMode=true;this.message('Angriffsbewegung: Rechtsklick auf Ziel');}
    if(event.code==='KeyU'){event.preventDefault();this.unloadSelectedTransport();}
    if(event.code==='KeyH'){this.selected=new Set(this.game.units.filter(u=>u.hp>0&&u.owner===0&&!u.carrier).map(u=>u.id));this.drawInterface();}
+   if(event.code==='KeyP'&&!event.repeat){event.preventDefault();this.selectEngineer();}
    const number=Number(event.code.replace('Digit',''));
    if(event.code.startsWith('Digit')&&number>=1&&number<=5){
     if(event.ctrlKey||event.metaKey){event.preventDefault();this.groups.set(number,new Set(this.selected));this.message('Gruppe '+number+' gespeichert');}
