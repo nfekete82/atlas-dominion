@@ -77,11 +77,11 @@ test('mutually exclusive tank tech paths and precise multiplication of existing 
  const state=newResearchState();
  state.completed=['armor1','armor2','precision','engines','radar','rocketDevelopment','tankArmor'];
  assert.equal(canResearchUpgrade(state,'tankMobility'),false);
- assert.equal(researchModifiers(state,'tank').hp,1.35);
+ assert.ok(Math.abs(researchModifiers(state,'tank').hp-1.35)<1e-9);
  assert.equal(researchModifiers(state,'tank').damage,1.15);
  assert.equal(researchModifiers(state,'tank').range,1.2);
  assert.equal(researchModifiers(state,'tank').sight,1.2);
- assert.equal(researchModifiers(state,'tank').speed,1.12);
+ assert.ok(Math.abs(researchModifiers(state,'tank').speed-1.12)<1e-9);
  assert.equal(researchModifiers(state,'infantry').hp,1);
  assert.equal(UPGRADE_KINDS.length,9);
  assert.equal(Object.values(UPGRADES).every(u=>u.seconds>=30&&u.seconds<=90),true);
@@ -171,4 +171,8 @@ test('3D HUD, real missile renderer and AI integration are present',()=>{
  assert.match(vfx,/intercept/);
  assert.match(game,/private planStrategicAi\(\)/);
  assert.match(build,/webgl-strategic-effects/);
+ const actor=readFileSync('scripts/webgl-actor-presentation.js','utf8');
+ assert.match(actor,/this\.game\.maxUnitHp\(entity\)/);
+ const audio=readFileSync('src/reborn/audio.ts','utf8');
+ assert.match(audio,/new SpeechSynthesisUtterance\('Feindlicher Raketenstart erkannt!'\)/);
 });
