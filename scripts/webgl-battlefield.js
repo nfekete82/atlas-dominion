@@ -1209,7 +1209,7 @@ export class SandforgeBattlefield {
   const spec=item?(item.queue?BUILDINGS[kind]:UNITS[kind]):null;
   const heading=chosen.length>1?chosen.length+' Einheiten ausgewählt':spec?.name??'Keine Auswahl';
   const hp=item?Math.max(0,Math.ceil(item.hp)):0;
-  const maxHp=spec?.hp??1;
+  const maxHp=item&&'orders' in item?g.maxUnitHp(item):spec?.hp??1;
   const meta=chosen.length?'BLAUE LEGION / TRUPP':'BLAUE LEGION / STÜTZPUNKT';
   const description=base?.rally
    ?'Sammelpunkt aktiv · Neue Einheiten marschieren automatisch zum markierten Ziel.'
