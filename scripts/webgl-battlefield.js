@@ -1149,7 +1149,11 @@ export class SandforgeBattlefield {
    if(button.title!==explanation)button.title=explanation;
    if(blocked)button.setAttribute('aria-description',explanation);
    else button.removeAttribute('aria-description');
-   button.classList.toggle('sf-selected-build',button.dataset.build===this.buildKind);
+   // A disabled building must never look selected. Keep its real reason on
+   // the element for keyboard/assistive interaction and tooltip tests.
+   button.classList.toggle('sf-selected-build',
+    Boolean(button.dataset.build&&button.dataset.build===this.buildKind&&!blocked));
+   if(button.dataset.build)button.dataset.lockReason=blocked?explanation:'';
   }
   hydrateUnitIcons(actions);
   hydrateBuildingIcons(actions,this.renderer);
