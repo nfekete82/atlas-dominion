@@ -65,7 +65,7 @@ export class Soundscape {
   private voices=new Map<AudioScheduledSourceNode,{stop:()=>void;gameplay:boolean}>();
   get activeVoices():number{return this.voices.size;}
   get activeGameplayVoices():number{let count=0;for(const v of this.voices.values())if(v.gameplay)count++;return count;}
-  private master:GainNode|null=null;private effects:GainNode|null=null;private wind:GainNode|null=null;
+  private master:GainNode|null=null;private effects:GainNode|null=null;
   private readonly engineVoices=new Map<EngineKind,EngineVoice>();
   private noise:AudioBuffer|null=null;private seenShots=new WeakSet<object>();
   private owners:number[]=[];private unitIds=new Set<number>();private footsteps=new Map<number,number>();
@@ -83,13 +83,8 @@ export class Soundscape {
       this.analyser=a.createAnalyser();this.analyser.fftSize=256;const limiter=a.createDynamicsCompressor();limiter.threshold.value=-14;limiter.knee.value=8;limiter.ratio.value=8;limiter.attack.value=.003;limiter.release.value=.13;this.master.connect(limiter);limiter.connect(this.analyser);this.analyser.connect(a.destination);
       this.noise=a.createBuffer(1,a.sampleRate*3,a.sampleRate);const channel=this.noise.getChannelData(0);let seed=91821;
       for(let i=0;i<channel.length;i++){seed=(Math.imul(seed,1664525)+1013904223)>>>0;channel[i]=seed/2147483648-1;}
-      const source=a.createBufferSource(),filter=a.createBiquadFilter();source.buffer=this.noise;source.loop=true;
-      // Wind is airy filtered noise, NOT the old low-pass 500 Hz bass drone
-      // that sounded like a diesel motor whenever WebAudio unlocked.
-      filter.type='bandpass';filter.frequency.value=1850;filter.Q.value=.48;
-      const windLevel=a.createGain();windLevel.gain.value=.020;this.wind=a.createGain();this.wind.gain.value=1;
-      source.connect(filter);filter.connect(windLevel);windLevel.connect(this.wind);this.wind.connect(this.effects);source.start();
-      const lfo=a.createOscillator(),swell=a.createGain();lfo.frequency.value=.08;swell.gain.value=.006;lfo.connect(swell);swell.connect(windLevel.gain);lfo.start();
+      // Do not allocate or loop any continuous ambient wind audio source.
+      // Keep the noise buffer for short effects and moving vehicle texture.
       // No permanent generic motor/generator oscillators. The only engine
       // audio comes from real moving, visible units below; no continuous
       // hum in the base or whenever all vehicles are parked.
@@ -263,8 +258,6 @@ export class Soundscape {
   private silenceAmbientNodes():void{
     if(!this.context)return;
     const now=this.context.currentTime;
-    this.wind?.gain.cancelScheduledValues(now);
-    this.wind?.gain.setTargetAtTime(0,now,.018);
     for(const voice of this.engineVoices.values()){
       voice.gain.gain.cancelScheduledValues(now);
       voice.gain.gain.setTargetAtTime(0,now,.018);
@@ -337,7 +330,6 @@ export class Soundscape {
       this.music?.update(g.time,musicCombatLevel(g.shots.length,
        g.attackAlerts.lastAlert!==null&&g.time-g.attackAlerts.lastAlert.at<5),sounding);
       const ambientSounding=sounding&&this.ambience;
-      this.wind?.gain.setTargetAtTime(ambientSounding?1+g.weather.intensity*1.25:0,this.context.currentTime,.2);
       const audibleRadius=Math.max(180,Math.min(560,Math.max(r.width,r.height)/r.camera.zoom*.55));
       const mix=ambientSounding&&this.engineSoundsEnabled?vehicleSoundMix(g,r.camera,p=>g.canSee(0,p),audibleRadius):null;
       for(const kind of ENGINE_KINDS){

@@ -80,6 +80,20 @@ test('fresh WebGL starts without sustained synth music; saved explicit opt-in st
  assert.match(preview,/sound\.setEffectsVolume\(savedVolume\('effectsVolume',\.85\)\)/);
 });
 
+test('WebGL has no continuous wind drone; effects and moving engines remain intact',()=>{
+ const audio=readFileSync('src/reborn/audio.ts','utf8');
+ const menu=readFileSync('scripts/webgl-title-menu.js','utf8');
+ const html=readFileSync('webgl-preview.html','utf8');
+ const preview=readFileSync('scripts/webgl-preview.js','utf8');
+ assert.doesNotMatch(audio,/windLevel|this\.wind|setWindEnabled|windEnabled/);
+ assert.doesNotMatch(menu,/windEnabled|sf3d-wind-enabled|setWindEnabled/);
+ assert.doesNotMatch(html,/sf3d-wind-enabled/);
+ assert.doesNotMatch(preview,/setWindEnabled|windEnabled/);
+ assert.match(audio,/this\.noise=a\.createBuffer\(/,'short bursts and vehicle texture retain the shared noise buffer');
+ assert.match(audio,/const mix=ambientSounding&&this\.engineSoundsEnabled\?/,'moving vehicles retain their independent sound gate');
+ assert.match(audio,/this\.tone\(attack\?570:780/,'short UI feedback remains');
+});
+
 test('music and effects have independent persistent sliders and are silent when paused',()=>{
  const audio=readFileSync('src/reborn/audio.ts','utf8');
  const menu=readFileSync('scripts/webgl-title-menu.js','utf8');
