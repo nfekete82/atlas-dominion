@@ -67,7 +67,7 @@ node --test tests/sandforge-project-identity-20261109.test.mjs
 SANDFORGE_BROWSER_CHANNEL=chromium npm run test:webgl-integration
 ```
 
-**Bestätigte WebGL-Integration (09.11.2026):** Der Entwicklungsstand auf Commit [`3f30e379`](https://github.com/nfekete82/sandforge/commit/3f30e379cdf864a53fde96fce97a7d4790fdc7d6) bestand auf dem Mac **17/17 Node-Tests und 72/72 Chromium-Browsertests**. [Abnahmeprotokoll des Entwicklungsbranches](https://github.com/nfekete82/sandforge/blob/chore/sandforge-project-identity-20261109/docs/qa/webgl-integration-20261109-3f30e379.md). Dieser Nachweis betrifft **nicht den alten `main`-Code**. Gesamte Node-Suite, separates Canvas-Browserpaket und ein produktiver Release sind weiterhin nicht freigegeben.
+**Bestätigte WebGL-Regression (09.11.2026):** Der Entwicklungsstand auf Commit [`36419e1b`](https://github.com/nfekete82/sandforge/commit/36419e1b4b9fb14f42a8de7e0437f4c9e9a0ea7a) bestand den **vollständigen Build**, **1.356/1.357 Node-Tests (0 Fehler, 1 Skip wegen fehlender optionaler Premium-Binärassets)** sowie **17/17 WebGL-Node- und 72/72 Chromium-Browsertests**. [Aktueller Node-Abnahmebericht](https://github.com/nfekete82/sandforge/blob/chore/sandforge-project-identity-20261109/docs/qa/full-node-regression-20261109.md) · [WebGL-Browserprüfungen](https://github.com/nfekete82/sandforge/blob/chore/sandforge-project-identity-20261109/docs/qa/webgl-integration-20261109-3f30e379.md). Dieser Nachweis betrifft **den Entwicklungsbranch, nicht den älteren `main`-Code**. Separate Classic-Browser-Regression, CI und produktiver Release bleiben offen.
 
 **Stack:** TypeScript, JavaScript, Three.js/WebGL, Node.js, CSS, HTML, Playwright, Docker.
 
