@@ -271,8 +271,8 @@ export class Simulation {
     const engineer=this.units.find(u=>u.owner===ai&&u.kind==='engineer'&&u.hp>0&&!u.carrier);
     const has=(kind:BuildingKind)=>this.bases.some(b=>b.owner===ai&&b.kind===kind&&b.hp>0);
     const needed:BuildingKind|null=!has('research')&&this.credits[ai]>=1450&&this.time>140?'research':
-      !has('interceptor')&&this.bases.some(b=>b.owner===0&&b.kind==='silo'&&b.hp>0&&
-        this.canSee(ai,b))&&this.credits[ai]>=3100?'interceptor':
+      !has('interceptor')&&this.memories[ai].some(b=>b.owner===0&&b.kind==='silo'&&b.hp>0)&&
+        this.credits[ai]>=3100?'interceptor':
       !has('silo')&&has('research')&&this.credits[ai]>=6300&&this.time>520?'silo':null;
     if(needed&&engineer&&!engineer.orders.some(o=>o.kind==='build')){
       const hq=this.bases.find(b=>b.owner===ai&&b.kind==='headquarters'&&b.hp>0);
@@ -290,6 +290,10 @@ export class Simulation {
         'rocketDevelopment','infantryTraining','tankMobility'] as UpgradeKind[])
         if(this.startResearch(ai,k))break;
     }
+    const defender=this.bases.find(b=>b.owner===ai&&b.kind==='interceptor'&&
+      b.hp>0&&b.buildRemaining<=0&&(b.interceptorAmmo??0)<INTERCEPTOR_MAX_AMMO);
+    if(defender&&this.credits[ai]>=INTERCEPTOR_REARM_COST+850)
+      this.rearmInterceptor(defender.id);
     const silo=this.bases.find(b=>b.owner===ai&&b.kind==='silo'&&b.hp>0&&
       b.buildRemaining<=0&&(b.siloCharge??SILO_CHARGE_SECONDS)===0);
     if(silo){
@@ -308,6 +312,7 @@ export class Simulation {
   strategicMissiles:StrategicMissile[]=[];
   strategicEvents:StrategicEvent[]=[];
   private strategicAiAt=-Infinity;
+  private seenEnemySilos=new Set<number>();
   seed:number; time=0; nextId=1; credits=[RULES.initialCredits as number,RULES.initialCredits as number];
   incomeClock=0; aiClock=0; status:'playing'|'victory'|'defeat'='playing';
   stats:MatchStatistics=newMatchStatistics();
@@ -887,6 +892,12 @@ export class Simulation {
       // interior stays remembered terrain, rather than an impossible black hole.
       // This never grants current visibility to enemies behind the cliff.
       for(const id of discovered)for(const cell of this.world.cliffCells[id])this.explored[owner][cell]=1;
+      if(owner===0)for(const b of this.bases){
+        if(b.owner!==1||b.kind!=='silo'||b.hp<=0||
+           !this.canSee(0,b)||this.seenEnemySilos.has(b.id))continue;
+        this.seenEnemySilos.add(b.id);
+        this.notices.push('ACHTUNG: Feindliches Raketensilo entdeckt!');
+      }
       for(const b of this.bases)if(this.canSee(owner,b)){
         const memory={id:b.id,owner:b.owner,x:b.x,y:b.y,hp:b.hp,territory:b.territory,kind:b.kind};
         const i=this.memories[owner].findIndex(m=>m.id===b.id);if(i<0)this.memories[owner].push(memory);else this.memories[owner][i]=memory;
