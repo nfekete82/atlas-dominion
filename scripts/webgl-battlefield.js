@@ -1349,7 +1349,7 @@ export class SandforgeBattlefield {
     for(let i=0;i<images.length;i++){
      const img=images[i],unit=squadKinds[i];
      img.src='/src/assets/reborn/infantry-grounded-v3.png';
-     unitIcon(unit).then(url=>{
+     unitIcon(unit,this.renderer).then(url=>{
       if(this.previousPortraitKey===portraitKey&&img.isConnected)img.src=url;
      }).catch(error=>console.warn('Squad portrait fallback:',unit,error));
     }
@@ -1359,7 +1359,7 @@ export class SandforgeBattlefield {
    if(this.previousPortraitKey!==portraitKey){
     this.previousPortraitKey=portraitKey;
     if(item&&!item.queue){
-     unitIcon(kind).then(url=>{
+     unitIcon(kind,this.renderer).then(url=>{
       if(this.previousPortraitKey===portraitKey)portrait.src=url;
      }).catch(error=>console.warn('Portrait fallback',error));
      portrait.src='/src/assets/reborn/infantry-grounded-v3.png';
