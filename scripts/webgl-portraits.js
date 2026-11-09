@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {createStrategicBuilding,isStrategicBuilding} from './webgl-strategic-buildings.js';
+import {createResearchArtwork,RESEARCH_ARTWORK_KINDS} from './webgl-research-artworks.js';
 
 /** Sprite-sheet portrait extraction shared by the WebGL HUD.
  * The classic game crops one idle frame rather than scaling down the entire
@@ -65,69 +66,118 @@ export function researchIconMarkup(kind){
  return '<svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">'+paths+'</svg>';
 }
 
-/** Render the exact strategic battlefield mesh for the construction cards.
- * This uses the EXISTING WebGL context and leaves its render target, clear color
- * and alpha unchanged. Old vector icons remain an immediate fallback.
+/** Same physically-lit 3D render pipeline for strategic buildings and
+ * research objects, using the actual scene meshes. PNG generation happens
+ * once per kind and never on the animation/render loop.
  */
-function renderStrategicPortrait(kind,renderer){
- const model=createStrategicBuilding(kind,0);
- if(!model)return strategicBuildingIcon(kind);
- const scene=new THREE.Scene();scene.add(model);
- scene.add(new THREE.HemisphereLight('#fff1d9','#53676b',2.0));
- const key=new THREE.DirectionalLight('#ffe7c3',2.9);
- key.position.set(200,400,280);scene.add(key);
- const fill=new THREE.DirectionalLight('#c8e1ea',.9);
- fill.position.set(-260,190,-180);scene.add(fill);
+function renderModelPortrait(model,renderer,{width=320,height=220,research=false}={}){
+ const scene=new THREE.Scene();
+ scene.add(model);
+ const hemi=new THREE.HemisphereLight('#fff3e2','#576e73',research?2.15:2.0);
+ scene.add(hemi);
+ const key=new THREE.DirectionalLight('#ffedcd',research?2.9:2.6);
+ key.position.set(210,390,290);scene.add(key);
+ const fill=new THREE.DirectionalLight('#b6dce5',.95);
+ fill.position.set(-280,170,-170);scene.add(fill);
  const bounds=new THREE.Box3().setFromObject(model);
- const center=bounds.getCenter(new THREE.Vector3());
- const size=bounds.getSize(new THREE.Vector3());
- const aspect=320/220;
- const span=Math.max(size.y*1.8,(size.x+size.z)*.95);
+ const center=bounds.getCenter(new THREE.Vector3()),size=bounds.getSize(new THREE.Vector3());
+ const aspect=width/height;
+ const span=Math.max(size.y*(research?1.9:1.8),(size.x+size.z)*(research?1.03:.95),1);
  const camera=new THREE.OrthographicCamera(-span*aspect/2,span*aspect/2,span/2,-span/2,.1,2000);
- camera.position.copy(center).add(new THREE.Vector3(350,310,380));
- camera.lookAt(center);
- camera.updateMatrixWorld();
- const target=new THREE.WebGLRenderTarget(320,220,{format:THREE.RGBAFormat,depthBuffer:true});
- const oldTarget=renderer.getRenderTarget();
- const oldColor=renderer.getClearColor(new THREE.Color()).clone();
+ camera.position.copy(center).add(new THREE.Vector3(research?115:350,research?115:310,research?170:380));
+ camera.lookAt(center);camera.updateMatrixWorld();
+ const target=new THREE.WebGLRenderTarget(width,height,{format:THREE.RGBAFormat,depthBuffer:true});
+ const oldTarget=renderer.getRenderTarget(),oldColor=renderer.getClearColor(new THREE.Color()).clone();
  const oldAlpha=renderer.getClearAlpha();
+ const oldViewport=renderer.getViewport(new THREE.Vector4()).clone();
+ const oldScissor=renderer.getScissor(new THREE.Vector4()).clone();
+ const oldScissorTest=renderer.getScissorTest();
  try{
   renderer.setRenderTarget(target);
+  renderer.setScissorTest(false);
   renderer.setClearColor('#000000',0);
   renderer.clear(true,true,true);
   renderer.render(scene,camera);
-  const pixels=new Uint8Array(320*220*4);
-  renderer.readRenderTargetPixels(target,0,0,320,220,pixels);
-  const result=document.createElement('canvas');result.width=320;result.height=220;
-  const ctx=result.getContext('2d'),rgba=ctx.createImageData(320,220);
-  let left=320,top=220,right=-1,bottom=-1;
-  for(let y=0;y<220;y++){
-   const row=(219-y)*320*4;
-   for(let x=0;x<320;x++){
-    const i=(y*320+x)*4,j=row+x*4;
+  const pixels=new Uint8Array(width*height*4);
+  renderer.readRenderTargetPixels(target,0,0,width,height,pixels);
+  const output=document.createElement('canvas');output.width=width;output.height=height;
+  const ctx=output.getContext('2d'),rgba=ctx.createImageData(width,height);
+  let left=width,top=height,right=-1,bottom=-1;
+  for(let y=0;y<height;y++){
+   const sourceRow=(height-1-y)*width*4;
+   for(let x=0;x<width;x++){
+    const i=(y*width+x)*4,j=sourceRow+x*4;
     rgba.data[i]=pixels[j];rgba.data[i+1]=pixels[j+1];
     rgba.data[i+2]=pixels[j+2];rgba.data[i+3]=pixels[j+3];
-    if(pixels[j+3]>28){
-     left=Math.min(left,x);right=Math.max(right,x);
-     top=Math.min(top,y);bottom=Math.max(bottom,y);
+    if(pixels[j+3]>25){
+     left=Math.min(left,x);top=Math.min(top,y);
+     right=Math.max(right,x);bottom=Math.max(bottom,y);
     }
    }
   }
-  if(right<left)throw new Error('Empty strategic mesh render: '+kind);
-  const raw=document.createElement('canvas');raw.width=320;raw.height=220;
+  if(right<left)throw new Error('3D portrait is empty: '+model.name);
+  const raw=document.createElement('canvas');raw.width=width;raw.height=height;
   raw.getContext('2d').putImageData(rgba,0,0);
-  const w=right-left+1,h=bottom-top+1,scale=Math.min(298/w,203/h);
-  ctx.clearRect(0,0,320,220);
-  ctx.drawImage(raw,left,top,w,h,(320-w*scale)/2,(220-h*scale)/2,w*scale,h*scale);
-  return result.toDataURL('image/png');
+  const w=right-left+1,h=bottom-top+1;
+  const scale=Math.min(width*(research?.89:.93)/w,height*(research?.89:.92)/h);
+  ctx.clearRect(0,0,width,height);
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+  ctx.drawImage(raw,left,top,w,h,(width-w*scale)/2,(height-h*scale)/2,w*scale,h*scale);
+  return output.toDataURL('image/png');
  }finally{
   renderer.setRenderTarget(oldTarget);
+  renderer.setViewport(oldViewport);
+  renderer.setScissor(oldScissor);
+  renderer.setScissorTest(oldScissorTest);
   renderer.setClearColor(oldColor,oldAlpha);
   target.dispose();
+  const geometries=new Set(),materials=new Set();
   model.traverse(node=>{
    if(!node.isMesh)return;
-   node.geometry?.dispose();
-   for(const material of (Array.isArray(node.material)?node.material:[node.material]))material?.dispose();
+   if(node.geometry)geometries.add(node.geometry);
+   for(const m of (Array.isArray(node.material)?node.material:[node.material]))if(m)materials.add(m);
+  });
+  for(const geometry of geometries)geometry.dispose();
+  for(const material of materials)material.dispose();
+ }
+}
+function renderStrategicPortrait(kind,renderer){
+ const model=createStrategicBuilding(kind,0);
+ return model?renderModelPortrait(model,renderer):strategicBuildingIcon(kind);
+}
+const researchArtworkCache=new Map();
+export function researchArtwork(kind,renderer){
+ if(!RESEARCH_ARTWORK_KINDS.includes(kind))return Promise.reject(new Error('Unknown research artwork '+kind));
+ if(!researchArtworkCache.has(kind))
+  researchArtworkCache.set(kind,new Promise((resolve,reject)=>{
+   // Render each card after the current UI frame; avoids blocking the first
+   // battlefield paint and keeps the same synchronous WebGL context.
+   requestAnimationFrame(()=>{
+    try{
+     const model=createResearchArtwork(kind);
+     if(!model||!renderer)throw new Error('Research renderer unavailable');
+     resolve(renderModelPortrait(model,renderer,{width:256,height:256,research:true}));
+    }catch(error){reject(error);}
+   });
+  }).catch(error=>{researchArtworkCache.delete(kind);throw error;}));
+ return researchArtworkCache.get(kind);
+}
+/** Large authored miniature on the left; the original vector is always a
+ * readable fallback if WebGL or canvas readback is unavailable.
+ */
+export function hydrateResearchArtworks(root,renderer){
+ for(const img of root.querySelectorAll('img[data-sf-research-artwork]')){
+  const kind=img.dataset.sfResearchArtwork;
+  if(!kind||img.dataset.sfArtStatus)return;
+  img.dataset.sfArtStatus='loading';
+  researchArtwork(kind,renderer).then(url=>{
+   if(img.isConnected&&img.dataset.sfResearchArtwork===kind){
+    img.src=url;
+    img.dataset.sfArtStatus='ready';
+   }
+  }).catch(error=>{
+   if(img.isConnected)img.dataset.sfArtStatus='error';
+   console.warn('Research 3D icon fallback:',kind,error);
   });
  }
 }
