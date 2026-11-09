@@ -13,6 +13,10 @@ export class SandforgePerformanceWatch{
   this.renderSamples=new Float32Array(180);
   this.auxSamples=new Float32Array(180);
   this.effectsSamples=new Float32Array(180);
+  this.unitWorkSamples=new Float32Array(180);
+  this.collisionSamples=new Float32Array(180);
+  this.pathWorkSamples=new Float32Array(180);
+  this.maxPathCallMs=0;
   // Collect only actual vision passes, not zero-duration idle RAF frames.
   this.visionSamples=new Float32Array(180);
   this.visionCursor=0;this.visionLength=0;this.lastObservedVisionAt=-1;
@@ -33,6 +37,8 @@ export class SandforgePerformanceWatch{
  begin(now){
   if(!this.enabled)return;
   this.started=performance.now();
+  this.game.resetSquadProfile?.();
+  this.game.world?.resetPathProfile?.();
   this.simMs=0;this.syncMs=0;this.renderMs=0;this.auxMs=0;this.effectsMs=0;
   this.frameInterval=now-this.lastRender;this.lastRender=now;
  }
@@ -49,6 +55,10 @@ export class SandforgePerformanceWatch{
   this.renderSamples[this.cursor]=this.renderMs;
   this.auxSamples[this.cursor]=this.auxMs;
   this.effectsSamples[this.cursor]=this.effectsMs;
+  this.unitWorkSamples[this.cursor]=this.game.squadUnitMs??0;
+  this.collisionSamples[this.cursor]=this.game.squadCollisionMs??0;
+  this.pathWorkSamples[this.cursor]=this.game.world?.pathCostMs??0;
+  this.maxPathCallMs=Math.max(this.maxPathCallMs,this.game.world?.pathMaxMs??0);
   this.cursor=(this.cursor+1)%this.samples.length;
   this.length=Math.min(this.length+1,this.samples.length);
   const workMs=performance.now()-this.started;
@@ -77,7 +87,12 @@ export class SandforgePerformanceWatch{
     effectsMs:Math.round(this.effectsMs*10)/10,
     renderMs:Math.round(this.renderMs*10)/10,
     aiPlanMs:aiRan?Math.round((this.game.aiPlanDurationMs??0)*10)/10:0,
-    visionMs:visionRan?Math.round((this.game.visionDurationMs??0)*10)/10:0
+    visionMs:visionRan?Math.round((this.game.visionDurationMs??0)*10)/10:0,
+    unitWorkMs:Math.round((this.game.squadUnitMs??0)*10)/10,
+    collisionMs:Math.round((this.game.squadCollisionMs??0)*10)/10,
+    pathMs:Math.round((this.game.world?.pathCostMs??0)*10)/10,
+    pathCalls:this.game.world?.pathCalls??0,
+    pathVisitedNodes:this.game.world?.pathVisitedNodes??0
    });
    if(this.hitches.length>32)this.hitches.shift();
   }
@@ -101,6 +116,8 @@ export class SandforgePerformanceWatch{
    '\nFrame p95 '+report.frameP95.toFixed(1)+'ms · Sim p95 '+report.simP95.toFixed(1)+'ms'+
    '\nUI/3D Sync p95 '+report.syncP95.toFixed(1)+'ms · Render CPU p95 '+report.renderP95.toFixed(1)+'ms'+
    '\nNebenarbeiten p95 '+report.auxP95.toFixed(1)+'ms · Effekte '+report.effectsP95.toFixed(1)+'ms'+
+   '\nUnit-Bewegung p95 '+report.unitWorkP95.toFixed(1)+'ms · Kollision p95 '+report.collisionP95.toFixed(1)+'ms'+
+   '\nA*-Suche p95 '+report.pathWorkP95.toFixed(1)+'ms · Einzelsuche Max '+report.maxPathCallMs.toFixed(1)+'ms'+
    '\nSichtberechnung p95 '+report.visionP95.toFixed(1)+'ms · Max '+report.maxVisionMs.toFixed(1)+'ms'+
    '\nKI-Planung zuletzt '+report.lastAiPlanMs.toFixed(1)+'ms · Max '+report.maxAiPlanMs.toFixed(1)+'ms'+
    '\nHänger im Verlauf '+report.hitchCount+' · Letzter '+(report.lastHitch?.workMs??0).toFixed(1)+'ms'+
@@ -118,6 +135,9 @@ export class SandforgePerformanceWatch{
   const auxiliary=Array.from(this.auxSamples.subarray(0,this.length)).sort((a,b)=>a-b);
   const effects=Array.from(this.effectsSamples.subarray(0,this.length)).sort((a,b)=>a-b);
   const vision=Array.from(this.visionSamples.subarray(0,this.visionLength)).sort((a,b)=>a-b);
+  const unitWork=Array.from(this.unitWorkSamples.subarray(0,this.length)).sort((a,b)=>a-b);
+  const collisionWork=Array.from(this.collisionSamples.subarray(0,this.length)).sort((a,b)=>a-b);
+  const pathWork=Array.from(this.pathWorkSamples.subarray(0,this.length)).sort((a,b)=>a-b);
   const p=(v,part)=>v[Math.max(0,Math.ceil(v.length*part)-1)]||0;
   const mean=frames.reduce((a,b)=>a+b,0)/Math.max(1,frames.length);
   const slow=frames.slice(-Math.max(1,Math.ceil(frames.length*.01)));
@@ -128,6 +148,10 @@ export class SandforgePerformanceWatch{
    frameP95:p(frames,.95),simP95:p(sim,.95),
    syncP95:p(sync,.95),renderP95:p(render,.95),
    auxP95:p(auxiliary,.95),effectsP95:p(effects,.95),
+   unitWorkP95:p(unitWork,.95),collisionP95:p(collisionWork,.95),
+   pathWorkP95:p(pathWork,.95),
+   pathCalls:this.game.world?.pathCalls??0,pathVisitedNodes:this.game.world?.pathVisitedNodes??0,
+   maxPathCallMs:this.maxPathCallMs,
    visionP95:p(vision,.95),lastVisionMs:this.game.visionDurationMs??0,
    maxVisionMs:this.game.maxVisionMs??0,
    drawCalls:info.render.calls,triangles:info.render.triangles,

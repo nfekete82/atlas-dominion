@@ -833,7 +833,18 @@ export class TacticalAI {
  const raidUnits=c.enemyHQEliminatedAt===undefined?this.secondaryPressure(fighters,mission,home):new Set<number>();
   const mainFighters=fighters.filter(u=>!raidUnits.has(u.id));
   const reserve=homeGarrisonSize(mainFighters.length,c.enemyHQEliminatedAt!==undefined);
-  const guards=new Set(mainFighters.filter(u=>!s.group.includes(u.id)).sort((a,b)=>distance(a,home)-distance(b,home)||a.id-b.id).slice(0,reserve).map(u=>u.id));
+  // Home guards are drawn from available infantry first. Reserving a fully
+  // staged tank while distant infantry are still assembling used to reduce a
+  // combat-ready four-tank vanguard to three and delay a proven early wave.
+  // This does not create extra units: the paid infantry stay available for
+  // emergency localDefense(), while armor can keep the attack on schedule.
+  const homeGuardPriority=(u:Unit)=>u.kind==='infantry'?0:
+   u.kind==='heavy'?1:u.kind==='rover'?2:u.kind==='tank'?3:
+   u.kind==='artillery'?4:2;
+  const guards=new Set(mainFighters.filter(u=>!s.group.includes(u.id))
+   .sort((a,b)=>homeGuardPriority(a)-homeGuardPriority(b)||
+    distance(a,home)-distance(b,home)||a.id-b.id)
+   .slice(0,reserve).map(u=>u.id));
   const selected=mainFighters.filter(u=>!guards.has(u.id)).sort((a,b)=>Number(s.group.includes(b.id))-Number(s.group.includes(a.id))||distance(a,s.rally!)-distance(b,s.rally!)||a.id-b.id).slice(0,18);
   let members=selected.filter(u=>s.group.includes(u.id));
   if(s.phase==='attack'&&members.length<Math.max(1,Math.ceil(s.launchSize*.4))){g.stop(s.group.filter(id=>fighters.some(u=>u.id===id)));s.group=[];members=[];s.launchSize=0;this.setPhase('regroup');c.aborted++;}

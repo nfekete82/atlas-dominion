@@ -57,6 +57,10 @@ game.stageWebGLProduction=true;
 // Measure moving-bomber sight passes separately from AI and particle rendering.
 // Read-only timing; normal sessions have zero instrumentation overhead.
 game.profileVision=query.get('perf')==='1';
+// Break multi-unit spikes into unit orders, collision separation and A* cost.
+// Instrumentation stays off in ordinary gameplay and never enters save data.
+game.profileSquadWork=query.get('perf')==='1';
+game.world.profilePaths=query.get('perf')==='1';
 // Only this WebGL campaign gets a modest vision bonus; classic/headless
 // benchmarks retain exactly their original LOS and balance.
 // Optional visual comparison; classic gameplay remains unchanged.
@@ -710,6 +714,28 @@ addEventListener('keydown',event=>{
   const affected=battlefield.setSiteDecorEnabled(enabled);
   battlefield.message('Basis-Dekoration '+(enabled?'eingeblendet':'ausgeblendet')+
    ' · '+affected+' Gebäude (Performancevergleich)');
+  return;
+ }
+ // Download bounded numeric diagnostics without stealing keyboard focus.
+ // Shift+P is active only in explicit ?perf=1 review sessions.
+ if(query.get('perf')==='1'&&event.shiftKey&&event.code==='KeyP'){
+  event.preventDefault();
+  const report={
+   version:'sandforge-webgl-performance-v1',
+   gameTime:game.time,
+   units:game.units.filter(u=>u.hp>0&&!u.carrier).length,
+   scene:performanceWatch.snapshot(),
+   hitches:performanceWatch.spikeHistory(),
+   checkpoints:performanceWatch.history()
+  };
+  const objectUrl=URL.createObjectURL(new Blob(
+   [JSON.stringify(report,null,2)],{type:'application/json'}));
+  const link=document.createElement('a');
+  link.href=objectUrl;
+  link.download='sandforge-performance-'+Math.floor(game.time)+'s.json';
+  document.body.append(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);
+  battlefield.message('Performancebericht gespeichert · '+report.hitches.length+' Hänger');
   return;
  }
  if(event.code==='KeyQ'){event.preventDefault();spin(-Math.PI/8);}
