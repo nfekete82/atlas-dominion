@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {createStrategicBuilding,isStrategicBuilding} from './webgl-strategic-buildings.js';
 import {createResearchArtwork,RESEARCH_ARTWORK_KINDS} from './webgl-research-artworks.js';
+import {tintFactionMaterials} from './webgl-faction-accents.js';
 
 /** Sprite-sheet portrait extraction shared by the WebGL HUD.
  * The classic game crops one idle frame rather than scaling down the entire
@@ -143,7 +144,9 @@ function renderModelPortrait(model,renderer,{width=320,height=220,research=false
 }
 function renderStrategicPortrait(kind,renderer){
  const model=createStrategicBuilding(kind,0);
- return model?renderModelPortrait(model,renderer):strategicBuildingIcon(kind);
+ if(!model)return strategicBuildingIcon(kind);
+ tintFactionMaterials(model,0,kind,'building');
+ return renderModelPortrait(model,renderer);
 }
 const researchArtworkCache=new Map();
 export function researchArtwork(kind,renderer){
