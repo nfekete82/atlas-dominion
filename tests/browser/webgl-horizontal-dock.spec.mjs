@@ -398,7 +398,7 @@ test('a medic in lite 3D mode is a detailed soldier instead of a blue capsule',a
  expect(state.meshes).toBeGreaterThan(0);
 });
 
-test('production has a framed panel with live queue slots and building progress',async({page})=>{
+test('unified production panel lists live queue slots and building progress',async({page})=>{
  test.setTimeout(120000);
  await load(page);
  const layout=await page.evaluate(()=>{
@@ -451,7 +451,7 @@ test('production has a framed panel with live queue slots and building progress'
  expect(Number.parseFloat(queue.tileProgress)).toBeCloseTo(50,5);
  expect(queue.aria).toBe('50');
  expect(queue.time).toMatch(/^\d+ s$/);
- expect(queue.summary).toContain('2 AUFTRÄGE');
+ expect(queue.summary).toBe('2 AKTIV');
 
  const construction=await page.evaluate(()=>{
   const {game,battlefield}=window.__sandforgeWebGL;
@@ -470,7 +470,7 @@ test('production has a framed panel with live queue slots and building progress'
  expect(construction.status).toContain('BAU · 50%');
  expect(Number.parseFloat(construction.progress)).toBeCloseTo(50,5);
  expect(construction.buildHidden).toBe(false);
- expect(construction.summary).toContain('1 BAU');
+ expect(construction.summary).toBe('1 AKTIV · 1 BAU');
 });
 
 
@@ -517,8 +517,7 @@ test('production strip globally lists every producer and building site without s
  expect(state.siteCount).toBe(1);
  expect(state.afterFactory).toBe(true);
  expect(state.afterHQ).toBe(true);
- expect(state.summary).toContain('5 AUFTRÄGE');
- expect(state.summary).toContain('1 BAU');
+ expect(state.summary).toBe('6 AKTIV · 1 BAU'); // Five unit orders plus one build site.
 });
 
 test('generator build card becomes grey and disabled after the third energy core',async({page})=>{
