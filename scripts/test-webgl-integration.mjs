@@ -70,7 +70,7 @@ try{
   await ready(port,server);
   tests=spawn(playwright,['test','--config='+config,...specs,'--workers=2','--max-failures=3','--reporter=line'],{
     cwd:root,
-    env:{...process.env,ATLAS_BASE_URL:base},
+    env:{...process.env,SANDFORGE_BASE_URL:base,ATLAS_BASE_URL:base},
     stdio:'inherit'
   });
   const outcome=await waitForExit(tests);
