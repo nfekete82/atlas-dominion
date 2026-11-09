@@ -37,8 +37,8 @@ export class SandforgePerformanceWatch{
  begin(now){
   if(!this.enabled)return;
   this.started=performance.now();
-  this.game.resetSquadProfile();
-  this.game.world.resetPathProfile();
+  this.game.resetSquadProfile?.();
+  this.game.world?.resetPathProfile?.();
   this.simMs=0;this.syncMs=0;this.renderMs=0;this.auxMs=0;this.effectsMs=0;
   this.frameInterval=now-this.lastRender;this.lastRender=now;
  }
@@ -55,10 +55,10 @@ export class SandforgePerformanceWatch{
   this.renderSamples[this.cursor]=this.renderMs;
   this.auxSamples[this.cursor]=this.auxMs;
   this.effectsSamples[this.cursor]=this.effectsMs;
-  this.unitWorkSamples[this.cursor]=this.game.squadUnitMs;
-  this.collisionSamples[this.cursor]=this.game.squadCollisionMs;
-  this.pathWorkSamples[this.cursor]=this.game.world.pathCostMs;
-  this.maxPathCallMs=Math.max(this.maxPathCallMs,this.game.world.pathMaxMs);
+  this.unitWorkSamples[this.cursor]=this.game.squadUnitMs??0;
+  this.collisionSamples[this.cursor]=this.game.squadCollisionMs??0;
+  this.pathWorkSamples[this.cursor]=this.game.world?.pathCostMs??0;
+  this.maxPathCallMs=Math.max(this.maxPathCallMs,this.game.world?.pathMaxMs??0);
   this.cursor=(this.cursor+1)%this.samples.length;
   this.length=Math.min(this.length+1,this.samples.length);
   const workMs=performance.now()-this.started;
@@ -88,11 +88,11 @@ export class SandforgePerformanceWatch{
     renderMs:Math.round(this.renderMs*10)/10,
     aiPlanMs:aiRan?Math.round((this.game.aiPlanDurationMs??0)*10)/10:0,
     visionMs:visionRan?Math.round((this.game.visionDurationMs??0)*10)/10:0,
-    unitWorkMs:Math.round(this.game.squadUnitMs*10)/10,
-    collisionMs:Math.round(this.game.squadCollisionMs*10)/10,
-    pathMs:Math.round(this.game.world.pathCostMs*10)/10,
-    pathCalls:this.game.world.pathCalls,
-    pathVisitedNodes:this.game.world.pathVisitedNodes
+    unitWorkMs:Math.round((this.game.squadUnitMs??0)*10)/10,
+    collisionMs:Math.round((this.game.squadCollisionMs??0)*10)/10,
+    pathMs:Math.round((this.game.world?.pathCostMs??0)*10)/10,
+    pathCalls:this.game.world?.pathCalls??0,
+    pathVisitedNodes:this.game.world?.pathVisitedNodes??0
    });
    if(this.hitches.length>32)this.hitches.shift();
   }
@@ -150,7 +150,7 @@ export class SandforgePerformanceWatch{
    auxP95:p(auxiliary,.95),effectsP95:p(effects,.95),
    unitWorkP95:p(unitWork,.95),collisionP95:p(collisionWork,.95),
    pathWorkP95:p(pathWork,.95),
-   pathCalls:this.game.world.pathCalls,pathVisitedNodes:this.game.world.pathVisitedNodes,
+   pathCalls:this.game.world?.pathCalls??0,pathVisitedNodes:this.game.world?.pathVisitedNodes??0,
    maxPathCallMs:this.maxPathCallMs,
    visionP95:p(vision,.95),lastVisionMs:this.game.visionDurationMs??0,
    maxVisionMs:this.game.maxVisionMs??0,
