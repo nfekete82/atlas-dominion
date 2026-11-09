@@ -24,6 +24,7 @@ import {snapToPlayableEdge,worldToMinimap} from '/webgl-map-edges.js';
 import {attackBlinkAlpha} from '/src/reborn/attack-alerts.js';
 import {UPGRADES,UPGRADE_KINDS,canResearchUpgrade,INTERCEPTOR_ENABLED,SILO_CHARGE_SECONDS,INTERCEPTOR_MAX_AMMO,INTERCEPTOR_REARM_COST} from '/src/reborn/strategic-tech.js';
 import {createStrategicBuilding,isStrategicBuilding} from '/webgl-strategic-buildings.js';
+import {createRocketInfantry} from '/webgl-rocket-infantry.js';
 
 // Runtime adapter: game state, movement, combat, production and AI are owned
 // exclusively by the original Simulation. 3D nodes are presentation only.
@@ -110,6 +111,7 @@ export class SandforgeBattlefield {
  entityPosition(p){return this.pos(p.x,p.y,this.heightAt(p.x,p.y)+unitRenderAltitude(p.kind,p.flightHeight??1));}
  createFallback(kind,owner,type){
   if(type==='building'&&isStrategicBuilding(kind))return createStrategicBuilding(kind,owner);
+  if(type==='unit'&&kind==='rocket')return createRocketInfantry(owner);
   const group=new THREE.Group(),team=owner===0?'#397f9d':'#9f5541',metal=new THREE.MeshStandardMaterial({color:team,metalness:.55,roughness:.53}),
    dark=new THREE.MeshStandardMaterial({color:'#444743',metalness:.45,roughness:.7});
   // Placeholder structures use the same gentle ambient lift as detailed GLBs.
@@ -201,7 +203,8 @@ export class SandforgeBattlefield {
   // player's base look markedly worse than the 2D game.
   // Medics always load their authored 3D soldier, even in lite mode.
   if((this.lite&&type!=='building'&&entity.kind!=='medic')||
-     type==='building'&&isStrategicBuilding(entity.kind)||entry.requested||
+     (type==='building'&&isStrategicBuilding(entity.kind))||
+     (type==='unit'&&entity.kind==='rocket')||entry.requested||
      this.loadingCount+this.modelQueue.length>=this.maxModels)return;
   entry.requested=true;
   const url=this.asset(entity.kind,entity.owner,type);
@@ -450,7 +453,7 @@ export class SandforgeBattlefield {
   const unit=type==='unit';
   const footprint=unit?(UNITS[entity.kind]?.width??44)*visualUnitScale(entity.kind):
    BUILDINGS[entity.kind]?.width??130;
-  const height=unit?(['infantry','medic','engineer','heavy'].includes(entity.kind)?43:55)*visualUnitScale(entity.kind):
+  const height=unit?(['infantry','medic','engineer','heavy','rocket'].includes(entity.kind)?43:55)*visualUnitScale(entity.kind):
    Math.max(65,footprint*.55);
   applyFactionAccents(entry,entity,type,footprint,height);
   if(type==='unit'&&['tank','artillery'].includes(entity.kind))this.installTankRig(entry,placeholder);
