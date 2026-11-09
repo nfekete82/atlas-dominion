@@ -42,7 +42,7 @@ export function vehicleSoundMix(
   const weight=fraction*fraction; // No sharp sound boundary and natural distance roll-off
   const profile=unitSpec(u);
   const physicalSpeed=u.driveSpeed??profile.speed*.72;
-  if(physicalSpeed<2)return;
+  if(physicalSpeed<2)continue;
   const throttle=clamp(physicalSpeed/Math.max(1,profile.speed),0,1);
   const motion=1;
   // No idle level and no baseline hum; volume depends on real vehicle
