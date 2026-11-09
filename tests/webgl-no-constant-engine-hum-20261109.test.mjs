@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {vehicleSoundMix,measuredEngineSpeed,ENGINE_KINDS} from '../dist/src/reborn/vehicle-soundscape.js';
-import {ambientActivity} from '../dist/src/reborn/audio.js';
+import {ambientActivity,shouldPlayFootstep} from '../dist/src/reborn/audio.js';
 import {RULES} from '../dist/src/reborn/config.js';
 
 const u=(kind,id,extras={})=>({
@@ -71,6 +71,34 @@ test('ambientActivity uses exactly the same measured ground vehicle movement',()
  assert.equal(ambientActivity({units:[tank],bases:[]},{x:100,y:100},()=>true).motors,0);
  tank.x+=30*RULES.tick;
  assert.ok(ambientActivity({units:[tank],bases:[]},{x:100,y:100},()=>true).motors>0);
+});
+
+test('walking infantry produces zero engine sound even with real displacement',()=>{
+ for(const kind of ['infantry','engineer','medic','heavy']){
+  const foot=physical(kind,100,78,{walkDistance:128,hp:100});
+  assert.equal(shouldPlayFootstep(foot),true,kind+' should have footstep audio');
+  const vehicleMix=mix([foot]);
+  for(const engine of ENGINE_KINDS){
+   assert.equal(vehicleMix[engine].level,0,kind+' walking must never play a '+engine+' motor');
+   assert.equal(vehicleMix[engine].count,0);
+  }
+ }
+ for(const kind of ENGINE_KINDS){
+  const moving=physical(kind,200,20,{walkDistance:128,hp:100});
+  assert.equal(shouldPlayFootstep(moving),false,kind+' must not trigger boots-on-sand audio');
+ }
+ assert.equal(shouldPlayFootstep(physical('infantry',301,78,{moving:false})),false);
+ assert.equal(shouldPlayFootstep(physical('infantry',302,78,{carrier:201})),false);
+});
+
+test('footsteps and atmospheric wind contain no low-frequency motor-like rumble',()=>{
+ const source=readFileSync('src/reborn/audio.ts','utf8');
+ assert.match(source,/filter\.type='bandpass';filter\.frequency\.value=1850/);
+ assert.match(source,/windLevel\.gain\.value=\.020/);
+ assert.match(source,/shouldPlayFootstep\(u\)/);
+ assert.match(source,/this\.burst\(u,r,\.037,\.018,1900,'highpass'\)/);
+ assert.doesNotMatch(source,/filter\.type='lowpass';filter\.frequency\.value=500/);
+ assert.doesNotMatch(source,/this\.burst\(u,r,\.06,\.045,1100,'lowpass'\)/);
 });
 
 test('engine layers never start from opening a production gate or clicking infantry',()=>{
