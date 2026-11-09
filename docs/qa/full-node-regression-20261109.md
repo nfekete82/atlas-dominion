@@ -62,3 +62,33 @@ Für die Canvas-Suite den klassischen Build nur im isolierten Worktree erzeugen.
 ## Noch offene Integrationsrisiken
 
 Der GitHub-Default-Branch `main` ist weiterhin ein älterer Canvas-Stand; der aktuelle WebGL-Branch ist auf viele Draft-PRs gestapelt und gegenüber `main` stark divergent. Auch bei vollständig grüner Node-Suite erfordern Produktion und Release separate Stack-Konsolidierung, CI, KI-/Performance-Abnahme und kontrollierte Rollback-Vorbereitung.
+## Verifizierter Nachlauf auf `f85bfdf4` (09.11.2026)
+
+Erneuter vollständiger lokaler `npm test`-Lauf:
+
+| Ergebnis | Wert |
+| --- | ---: |
+| Build | PASS |
+| Gesamte Tests | 1.357 |
+| Bestanden | **1.354** |
+| Fehlgeschlagen | **2** |
+| Übersprungen | 1 |
+| Laufzeit | ca. 70,8 s |
+
+Die zuvor gemeldeten 34 Fehler sind bis auf zwei beseitigt. Die verbleibenden Punkte:
+
+1. **Formationstempo:** Der eigentliche Bewegungsbefehl ist auf das langsamste Gruppenmitglied begrenzt, aber eine nachfolgende **weiche Abstandskorrektur** konnte den Panzer im selben Simulationsschritt zusätzlich vorwärts schieben (`3.544` statt erlaubter `3.25+0.12` Einheiten bei 20 Hz). Der Simulationscode begrenzt jetzt *nur diese kosmetische weiche Abstandskorrektur*, sofern die Einheit Teil eines aktiven, wechselseitig zugeordneten Spieler-Marschverbands ist. Harte Kollisionsauflösung bleibt unbeschränkt. Der Test unterscheidet nun Wegstrecke aus dem Bewegungsbefehl und resultierende Gesamtverschiebung einschließlich Kollisionskorrektur.
+2. **Rüstungsforschung:** `researchModifiers(...,'rover').hp` ergibt IEEE754-bedingt `1.2000000000000002` statt exakt `1.2`. Test nutzt Toleranz `1e-12`, der Spielwert und seine Berechnung bleiben unverändert.
+
+**Nachlauf auf diesen neuesten Korrekturen steht noch aus.** Insbesondere weil die erste Korrektur die Simulations-Kollisionsroutine betrifft, müssen sowohl `npm test` als auch die WebGL-Browserintegration auf dem neuen Commit nochmals vollständig laufen. Keine automatische Release-Freigabe.
+
+### Wiederholung
+
+```sh
+npm run build
+node --test tests/reborn-selected-squad-pace.test.mjs tests/webgl-strategic-tech-20261109.test.mjs \
+ tests/sandforge-vehicle-building-clearance.test.mjs tests/webgl-vehicle-spacing-recovery-20261108.test.mjs
+npm test
+SANDFORGE_TEST_MAX_FAILURES=0 SANDFORGE_BROWSER_CHANNEL=chromium npm run test:webgl-integration
+```
+
