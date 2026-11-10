@@ -631,6 +631,12 @@ export class Simulation {
     if(this.credits[owner]<spec.cost)return 'Zu wenig Credits.';
     if(kind!=='headquarters'&&!this.hasExplored(owner,p))return 'Dieser Bauplatz ist noch nicht erforscht.';
     if(!this.world.walkable(p))return 'Felsen blockieren die Baustelle.';
+    // build() later resolves the containing territory. A valid-looking
+    // terrain tile outside all sector polygons previously caused an
+    // unhandled TypeError at territory.id and could leave the entire WebGL
+    // input/render loop unusable after trying to build farther from an airfield.
+    if(!this.territories.some(t=>inside(p,t.polygon)))
+      return 'Außerhalb eines bebaubaren Sektors.';
     if(this.world.generated?.battlefield&&!this.world.buildable(p,spec.radius))return 'Die Grundfläche ist zu steil oder uneben.';
     // Every terrain tile intersecting the circular footprint must have been explored.
     const cell=this.world.cell;
@@ -674,7 +680,8 @@ export class Simulation {
     if(this.buildError(owner,kind,p,facing))return null;
     const workers=this.units.filter(u=>u.owner===owner&&u.kind==='engineer'&&u.hp>0&&!u.carrier&&(!workerIds||workerIds.includes(u.id)));
     if(!workers.length)return null;
-    const spec=BUILDINGS[kind],territory=this.territories.find(t=>inside(p,t.polygon))!;
+    const spec=BUILDINGS[kind],territory=this.territories.find(t=>inside(p,t.polygon));
+    if(!territory){this.notices.push('Bauplatz liegt außerhalb eines Sektors.');return null;}
     let id=1000;while(this.bases.some(b=>b.id===id)||this.units.some(u=>u.id===id))id++;
     const b:Base={id,owner,kind,...p,hp:spec.hp*.25,territory:territory.id,radius:spec.radius,queue:[],queueTypes:[],production:0,buildRemaining:spec.buildTime,cooldown:0,rally:null,
       ...(kind==='silo'?{siloCharge:SILO_CHARGE_SECONDS}:{}),
