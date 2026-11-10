@@ -192,20 +192,24 @@ test('orders cancel vehicle maintenance but aircraft take off rather than telepo
  const {g,garage,airport}=setup();
  const rover=g.spawn(0,{x:2680,y:2390},'rover');rover.hp=180;
  assert.equal(g.requestFactoryRepair([rover.id]),1);
+ g.setAutoFactoryRepair([rover.id],true);
  rover.factoryService.phase='repair';Object.assign(rover,factoryRepairPoint(garage,0));
  const before={x:rover.x,y:rover.y};
  assert.equal(g.command([rover.id],{x:2590,y:2370,kind:'move'}),1);
  assert.equal(rover.factoryService,undefined);
+ assert.equal(rover.autoFactoryRepair,false,'manual order must suppress immediate automatic return');
  assert.deepEqual({x:rover.x,y:rover.y},before,'no garage teleport when redirected');
  assert.equal(rover.orders[0]?.kind,'move');
 
  const bomber=g.spawn(0,{x:1640,y:2050},'bomber');bomber.hp=500;
  assert.equal(g.requestAirfieldRepair([bomber.id]),1);
+ g.setAutoAirfieldRepair([bomber.id],true);
  bomber.airfieldService.phase='repair';Object.assign(bomber,airfieldPoint(airport,'dock',0));
  bomber.flightHeight=0;
  const dock={x:bomber.x,y:bomber.y};
  assert.equal(g.command([bomber.id],{x:2300,y:2380,kind:'move'}),1);
  assert.equal(bomber.airfieldService.phase,'takeoff');
+ assert.equal(bomber.autoAirfieldRepair,false);
  assert.deepEqual({x:bomber.x,y:bomber.y},dock);
  assert.equal(bomber.flightHeight,0,'manual override cannot jump straight to flight altitude');
  assert.equal(bomber.orders[0]?.kind,'move');
@@ -272,4 +276,14 @@ test('workshop provides actual raised hydraulic service decks and ramps',()=>{
  assert.equal(mesh.position.y+mesh.geometry.parameters.height/2,FACTORY_LIFT_HEIGHT);
  const entry={factoryServiceYard:factory};
  disposeFactoryServiceYard(entry);
+});
+
+test('garage and airfield selected-building HUD can recover unclickable parked aircraft',()=>{
+ const source=readFileSync(new URL('../scripts/webgl-battlefield.js',import.meta.url),'utf8');
+ for(const command of ['hangar-repair-all','hangar-launch-ready',
+  'factory-repair-all','factory-release-ready']){
+  assert.match(source,new RegExp(command));
+ }
+ assert.match(source,/WARTUNGSPLÄTZE/);
+ assert.match(source,/ALLE ZURÜCK/);
 });
