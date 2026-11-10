@@ -38,14 +38,6 @@ export function ambientActivity(g:Simulation,center:Point,visible:(p:Point)=>boo
  }
  return {motors:clamp(motors,0,2.4),generator:clamp(generator,0,1.8)};
 }
-/** Footsteps are exclusively for *walking* infantry, never mechanized units.
- * No engine channel is involved even when a soldier gets a move order.
- */
-export function shouldPlayFootstep(u:{
- kind:UnitKind;hp:number;moving:boolean;carrier?:number|null
-}):boolean{
- return u.hp>0&&!u.carrier&&u.moving&&unitSpec(u).group==='Infanterie';
-}
 /** Local sound design: synthesized effects and a separate pre-authored speech channel. */
 export class Soundscape {
   context:AudioContext|null=null;
@@ -68,8 +60,8 @@ export class Soundscape {
   private master:GainNode|null=null;private effects:GainNode|null=null;
   private readonly engineVoices=new Map<EngineKind,EngineVoice>();
   private noise:AudioBuffer|null=null;private seenShots=new WeakSet<object>();
-  private owners:number[]=[];private unitIds=new Set<number>();private footsteps=new Map<number,number>();
-  private game:Simulation|null=null;private lastStep=0;
+  private owners:number[]=[];private unitIds=new Set<number>();
+  private game:Simulation|null=null;
   private readonly unitLosses=new UnitLossMonitor();
   private lastLossSignal=-Infinity;
   async unlock():Promise<void>{
@@ -275,7 +267,7 @@ export class Soundscape {
     if(typeof window!=='undefined'&&'speechSynthesis' in window)window.speechSynthesis.cancel();
   }
   bindGame(g:Simulation):void{
-    if(this.game===g)return;this.silence();this.silenceAmbientNodes();this.radio.reset();this.lastStep=g.time;this.game=g;this.owners=g.territories.map(t=>t.owner);this.unitIds=new Set(g.units.map(u=>u.id));this.unitLosses.reset(g.units,g.time);this.lastLossSignal=-Infinity;this.footsteps.clear();this.seenShots=new WeakSet();
+    if(this.game===g)return;this.silence();this.silenceAmbientNodes();this.radio.reset();this.game=g;this.owners=g.territories.map(t=>t.owner);this.unitIds=new Set(g.units.map(u=>u.id));this.unitLosses.reset(g.units,g.time);this.lastLossSignal=-Infinity;this.seenShots=new WeakSet();
   }
   private applyVolume():void{if(this.context&&this.master)this.master.gain.setTargetAtTime(this.enabled?this.volume:0,this.context.currentTime,.035);}
   private silence(gameplayOnly=false):void{for(const v of this.voices.values())if(!gameplayOnly||v.gameplay)v.stop();}
@@ -366,16 +358,14 @@ export class Soundscape {
 
     }
     for(const t of g.territories){if(t.owner===0&&this.owners[t.id]!==0&&active){this.played.captures++;this.tone(523,.18,.1);this.tone(659,.2,.08,.12);this.tone(784,.35,.08,.25);}this.owners[t.id]=t.owner;}
-    for(const id of this.footsteps.keys())if(!g.units.some(u=>u.id===id)){this.footsteps.delete(id);this.unitIds.delete(id);}
+    // Only production announcements need unit tracking. Infantry movement
+    // intentionally has no step sounds, buffers or periodic audio triggers.
+    for(const id of this.unitIds)if(!g.units.some(u=>u.id===id))this.unitIds.delete(id);
     for(const u of g.units){
-      if(!this.unitIds.has(u.id)){this.unitIds.add(u.id);if(u.owner===0&&active){this.played.production++;this.tone(660,.13,.075);this.tone(990,.2,.065,.1);}}
-      const walked=this.footsteps.get(u.id)??u.walkDistance;this.footsteps.set(u.id,u.walkDistance);
-      if(!active||g.paused||!shouldPlayFootstep(u)||
-         Math.floor(walked/32)===Math.floor(u.walkDistance/32)||!g.canSee(0,u))continue;
-      const p=r.screen(u);if(p.x<0||p.y<0||p.x>r.width||p.y>r.height||g.time-this.lastStep<.05)continue;
-      // Boots on sand: brief soft, high-frequency grit. A low-pass footstep
-      // pulse used to sound like a small idling engine when a soldier walked.
-      this.lastStep=g.time;this.played.steps++;this.burst(u,r,.037,.018,1900,'highpass');
+      if(!this.unitIds.has(u.id)){
+        this.unitIds.add(u.id);
+        if(u.owner===0&&active){this.played.production++;this.tone(660,.13,.075);this.tone(990,.2,.065,.1);}
+      }
     }
   }
 }
