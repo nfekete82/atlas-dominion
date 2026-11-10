@@ -11,7 +11,7 @@ import {visibleBasePropColliders} from './vehicle-decor-collision.js';
 import {vehicleStructureCollider,vehicleStructureColliders} from './vehicle-structure-collision.js';
 import {infantryStructureCollider,infantryStructureColliders} from './infantry-structure-collision.js';
 import {bastionStructureColliders} from './bastion-structure-collision.js';
-import {sitesVisuallyOverlap,siteNearBastion,siteExceedsMap,type SiteFacing} from './construction-spacing.js';
+import {constructionVisualClearance,sitesVisuallyOverlap,siteNearBastion,siteExceedsMap,type SiteFacing} from './construction-spacing.js';
 import {segmentDistance} from './world-generation.js';
 import {canCaptureSector,captureSeconds} from './territory-warfare.js';
 import { UNITS, BUILDINGS, TANK_MG, canAttack, weaponDamage, unitSpec, buildingSpec, unitKinds, MAX_GENERATORS_PER_FACTION, type UnitKind, type BuildingKind } from './catalog.js';
@@ -640,10 +640,19 @@ export class Simulation {
     // Authoritative faction-neutral ART clearance: the old radius ignored
     // extended runways, repair garages and bastion tower silhouettes. AI and
     // human players now share the same rotated site checks.
-    if(siteExceedsMap(kind,p,facing,this.world.size))return 'Gebäude oder Landebahn ragen über den Kartenrand.';
-    if(this.obstacles().some(b=>sitesVisuallyOverlap(kind,p,facing,b.kind,b,b.facing??0)))
+    // New WebGL maps have the 980-unit runway and external repair halls.
+    // Legacy v0-v18 maintain their historic placement radius so old campaign
+    // saves and compact classic maps remain fully playable/constructible.
+    const expandedSites=this.world.mapVersion>=19;
+    if(expandedSites&&siteExceedsMap(kind,p,facing,this.world.size))
+      return 'Gebäude oder Landebahn ragen über den Kartenrand.';
+    if(this.obstacles().some(b=>expandedSites
+      ?sitesVisuallyOverlap(kind,p,facing,b.kind,b,b.facing??0)
+      :distance(b,p)<constructionVisualClearance(kind,b.kind)))
       return 'Zu nah an einem anderen Gebäude.';
-    if(this.territories.some(t=>siteNearBastion(kind,p,facing,t.point)))
+    if(this.territories.some(t=>expandedSites
+      ?siteNearBastion(kind,p,facing,t.point)
+      :distance(t.point,p)<spec.radius+45))
       return 'Bastion und Kontrollpunkt brauchen mehr Abstand.';
     // Placement and actual navigation must agree: the visible facade is wider
     // and offset north of Base.radius. A worker can otherwise be inside the
