@@ -34,13 +34,26 @@ test('research lab uses authored beige/olive three-tone PBR camouflage for both 
  }
 });
 
-test('research camouflage does not recolor silo or interceptor strategic assets',()=>{
- for(const kind of ['silo','interceptor']){
-  const material=colors(createStrategicBuilding(kind,0));
-  assert.equal(material.get('SF_base'),'#968b73');
-  assert.equal(material.get('SF_metal'),'#626b69');
-  assert.equal(material.get('SF_black'),'#252b29');
-  assert.equal(material.has('SF_camoOlive'),false);
-  assert.equal(material.has('SF_camoSand'),false);
- }
+test('silo retains its actual three-tone camouflage texture while interceptor stays unchanged',()=>{
+ const silo=createStrategicBuilding('silo',0),material=colors(silo);
+ assert.equal(material.get('SF_base'),'#f3efe3',
+  'near-white binder must preserve actual khaki/sand/olive albedo colors');
+ assert.equal(material.get('SF_metal'),'#626b69');
+ assert.equal(material.get('SF_black'),'#252b29');
+ assert.equal(material.get('SF_camoOlive'),'#7f846b');
+ assert.equal(material.has('SF_camoSand'),false);
+ const base=silo.getObjectByName('SF_StaticBatch_silo_base');
+ let camoMap=null;
+ silo.traverse(o=>{if(!o.isMesh)return;
+  const mats=Array.isArray(o.material)?o.material:[o.material];
+  for(const mat of mats)if(mat.name==='SF_base')camoMap=mat.map;
+ });
+ assert.ok(camoMap,'silo must use an actual camouflage albedo map');
+ assert.equal(camoMap.name,'Sandforge silo desert khaki olive camouflage');
+ const interceptor=colors(createStrategicBuilding('interceptor',0));
+ assert.equal(interceptor.get('SF_base'),'#968b73');
+ assert.equal(interceptor.get('SF_metal'),'#626b69');
+ assert.equal(interceptor.get('SF_black'),'#252b29');
+ assert.equal(interceptor.has('SF_camoOlive'),false);
+ assert.equal(interceptor.has('SF_camoSand'),false);
 });
