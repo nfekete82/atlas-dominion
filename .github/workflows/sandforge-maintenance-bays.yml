@@ -11,6 +11,7 @@ on:
       - 'src/reborn/catalog.ts'
       - 'scripts/webgl-airfield-service.js'
       - 'scripts/webgl-factory-service.js'
+      - 'scripts/webgl-service-grounding.js'
       - 'scripts/webgl-battlefield.js'
       - 'scripts/webgl-scale.js'
       - 'scripts/build.mjs'
@@ -48,6 +49,7 @@ jobs:
         run: |
           node --check scripts/webgl-airfield-service.js
           node --check scripts/webgl-factory-service.js
+          node --check scripts/webgl-service-grounding.js
           node --check scripts/webgl-battlefield.js
       - name: Compile TypeScript / build WebGL distribution
         run: npm run build
