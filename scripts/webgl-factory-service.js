@@ -42,6 +42,13 @@ export function createFactoryServiceYard(){
   for(const z of [119,231])
    block(root,'RepairBayFrontStripe_'+index,[118,.25,3],[cx,2.18,z],yellow);
   block(root,'RepairBayCenterline_'+index,[3,.23,82],[cx,2.25,176],yellow);
+  // Actual elevated hydraulic platform plus a drive-on ramp. Its upper deck
+  // matches the simulation's dedicated visual grounding during repair.
+  block(root,'VehicleLiftPlatform_'+index,[88,3,96],[cx,8,175],steel);
+  const driveRamp=block(root,'VehicleDriveOnRamp_'+index,[88,2,46],[cx,5.5,242],steel);
+  driveRamp.rotation.x=.18;
+  for(const strip of [-38,38])
+   block(root,'VehiclePlatformSafetyStrip_'+index,[4,.35,96],[cx+strip,9.8,175],yellow);
   // Vehicle enters nose-forward between the twin lowerable jacks.
   for(const rail of [-27,27]){
    block(root,'HydraulicVehicleLiftRail_'+index,[12,5,85],[cx+rail,4.5,176],steel);
