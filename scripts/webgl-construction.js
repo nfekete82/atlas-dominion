@@ -5,8 +5,8 @@ import {BUILDINGS} from '/src/reborn/catalog.js';
 /** Render-only construction states driven by the classic Simulation's
  * buildRemaining / buildTime. No new gameplay timers or construction rules.
  *
- * Keep the actual final model intact and overlay assembly stages.
- * The builder preview and completed structure must have the same silhouette.
+ * Progressively reveal facade, walls and roof over animated scaffolding.
+ * Construction uses the same components as the finished structure, not a prefab.
  */
 export class SandforgeConstructionPresentation{
  constructor(renderer){this.renderer=renderer;renderer.localClippingEnabled=true;}
@@ -75,12 +75,42 @@ export class SandforgeConstructionPresentation{
   for(const rail of state.rails)
    for(const beam of rail.meshes)beam.visible=progress>=rail.threshold;
   state.roof.visible=progress>=.77;
-  // Keep the COMPLETE final building visible throughout construction.
-  // Cropping it with an animated horizontal clip plane left half a factory
-  // or hangar missing, while only the support frame remained visible.
-  // Foundation, beams and construction text still animate independently.
+  // The previous regression made the finished GLB fully visible at 0%,
+  // with only scaffolding layered on top. Instead assemble REAL building
+  // components in stages. No clipping planes: no bisected or floating facades.
   const model=entry.detail??entry.placeholder;
-  if(model)model.visible=true;
+  const stageMesh=(mesh,threshold)=>{
+   if(!mesh?.isMesh)return;
+   if(mesh.userData.constructionOriginalVisible===undefined)
+    mesh.userData.constructionOriginalVisible=mesh.visible;
+   const originallyVisible=mesh.userData.constructionOriginalVisible;
+   mesh.visible=originallyVisible&&progress>=threshold;
+  };
+  const stageGroup=(root,mode)=>{
+   if(!root)return;
+   root.traverse(mesh=>{
+    if(!mesh.isMesh)return;
+    const name=mesh.name.toLowerCase();
+    // Airfield legacy components were permanently hidden by the renderer:
+    // never resurrect an old crossing, duplicate tower or hangar.
+    if(mesh.userData.airfieldLegacyHidden)return;
+    let threshold;
+    if(mode==='yard')threshold=/perimeter|lamp|wheel|pallet|crat|barrel|decor|equipment/.test(name)?.86:.23;
+    else if(mode==='service'){
+     threshold=/runway|apron|taxis|parkingpad|bayfloor|platform|ramp|foundation|surface|centerline|edge|joint|threshold|stripe|track/.test(name)?.16:
+      /roof|antenna|vent|glass|tower|duct|signal|floodlight/.test(name)?.88:
+      /door|wall|column|arch|fascia|buttress|gate|garage|structure/.test(name)?.62:.75;
+    }else{
+     threshold=/roof|antenna|turret|vent|dish|top/.test(name)?.89:
+      /foundation|floor|pad|plinth|base/.test(name)?.22:
+      /wall|hull|frame|panel|armor|armour|door|pillar|column|body|facade/.test(name)?.58:.76;
+    }
+    stageMesh(mesh,threshold);
+   });
+  };
+  stageGroup(model,'building');
+  stageGroup(entry.yard,'yard');
+  stageGroup(entry.airfieldServiceYard??entry.factoryServiceYard,'service');
   const tick=Math.floor(progress*20),working=base.constructionActive!==false;
   if(tick!==state.lastLabel||state.lastWorking!==working){
    state.lastLabel=tick;state.lastWorking=working;
@@ -97,6 +127,19 @@ export class SandforgeConstructionPresentation{
  }
  finish(entry){
   const state=entry.construction;if(!state)return;
+  // Restore the original mesh visibility (including permanent GLB-hidden
+  // obsolete airfield parts) only after actual build completion.
+  for(const root of [entry.detail,entry.placeholder,entry.yard,
+   entry.airfieldServiceYard,entry.factoryServiceYard]){
+   root?.traverse(mesh=>{
+    if(!mesh.isMesh)return;
+    const original=mesh.userData.constructionOriginalVisible;
+    if(original!==undefined){
+     mesh.visible=original&&!mesh.userData.airfieldLegacyHidden;
+     delete mesh.userData.constructionOriginalVisible;
+    }
+   });
+  }
   entry.node.remove(state.frame);
   // Scaffolding owns its temporary materials as well as geometries.
   disposeOwnedMeshes(state.frame);
