@@ -22,13 +22,26 @@ for(const kind of ['scout','bomber','heavy']){
   // immediate conventional shot. Their manual retreat must still override it.
   if(kind!=='bomber')assert.ok(enemy.hp<UNITS.heavy.hp,`${kind} should have fired before retreat`);
   const before=pilot.x,enemyHp=enemy.hp;
+  const startWalk=pilot.walkDistance,startHeading=pilot.hullAngle??pilot.angle;
   assert.equal(g.command([pilot.id],{kind:'move',x:1500,y:2100}),1);
   assert.equal(pilot.orders[0].kind,'move');
   advance(g,.5);
-  assert.ok(pilot.x<before-4,`${kind} must move immediately instead of freezing to fire`);
+  if(kind==='bomber'){
+   // A fixed-wing aircraft cannot instantly reverse its x velocity:
+   // the new command must be accepted immediately, then it flies a real arc.
+   assert.ok(pilot.walkDistance>startWalk+8,'bomber keeps physically flying while turning');
+   const delta=Math.atan2(Math.sin(pilot.angle-startHeading),Math.cos(pilot.angle-startHeading));
+   assert.ok(Math.abs(delta)<=.5*1.25+1e-4,'bomber cannot snap to a new heading');
+  }else{
+   assert.ok(pilot.x<before-4,`${kind} must retreat without freezing`);
+  }
   assert.equal(enemy.hp,enemyHp,'move order must suppress further auto-fire until destination');
   assert.equal(pilot.combatTarget,null);
   assert.equal(pilot.pursuitOrigin,null);
+  if(kind==='bomber'){
+   advance(g,4);
+   assert.ok(pilot.x<before-4,'bomber eventually flies west after its continuous turn');
+  }
  });
 }
 
@@ -37,8 +50,8 @@ test('control: queued movement orders advance even if a combat target remains vi
  enemy.cooldown=100;g.stop([enemy.id],true);g.updateVision();
  assert.equal(g.command([h.id],{kind:'move',x:1860,y:2100}),1);
  assert.equal(g.command([h.id],{kind:'move',x:1750,y:2100},true),1);
- advance(g,1.2);
- assert.ok(h.x<1865);
+ advance(g,2.5);
+ assert.ok(h.x<1865,'continuous turn followed by queued westward orders');
  assert.ok(h.orders.length<=1,'queued orders must progress rather than being blocked by combat');
 });
 
