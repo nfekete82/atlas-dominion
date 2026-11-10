@@ -481,7 +481,7 @@ export class SandforgeBattlefield {
   const placeholder=this.createFallback(kind,0,'building');
   // Keep the actual geometry identical to the finished building; the ghost
   // is only a faint holographic overlay, including fences and service pads.
-  const tint=(root,ownSource=false,opacity=.12)=>{
+  const tint=(root,ownSource=false,opacity=.045)=>{
    // Cache the same clone for reused paint: a camouflaged hangar otherwise
    // produces hundreds of redundant PBR shader/material instances.
    const clones=new Map();
@@ -501,8 +501,30 @@ export class SandforgeBattlefield {
    if(ownSource)for(const mat of clones.keys())mat.dispose();
   };
   tint(placeholder,true);
+  placeholder.visible=false;
   group.userData.previewPlaceholder=placeholder;
   group.add(placeholder);
+  // The build cursor shows ONLY a faint footprint and schematic wireframe.
+  // Never render the final authored building in the placement overlay.
+  const guides=new THREE.Group();guides.name='ConstructionPlacementGuides';
+  const groundMat=new THREE.MeshBasicMaterial({color:'#75d4b8',
+   transparent:true,opacity:.055,depthWrite:false,depthTest:false,
+   side:THREE.DoubleSide});
+  const lineMat=new THREE.LineBasicMaterial({color:'#7fe7ce',
+   transparent:true,opacity:.18,depthWrite:false,depthTest:false});
+  const guideBox=(w,h,d,x=0,z=0)=>{
+   const ground=new THREE.Mesh(new THREE.PlaneGeometry(w,d),groundMat);
+   ground.position.set(x,2,z);ground.rotation.x=-Math.PI/2;
+   ground.renderOrder=1009;guides.add(ground);
+   const lines=new THREE.LineSegments(
+    new THREE.EdgesGeometry(new THREE.BoxGeometry(w,h,d)),lineMat);
+   lines.position.set(x,h*.5,z);lines.renderOrder=1010;guides.add(lines);
+  };
+  if(kind==='airfield'){
+   guideBox(116,95,185,-151,-77);guideBox(116,95,185,-26,-77);
+  }else guideBox(spec.width*.72,Math.max(30,spec.width*.46),
+    spec.width*.57);
+  group.add(guides);group.userData.previewGuides=guides;
   // Ghost and completed building use the exact same site dressing and
   // functional service meshes, including the runway and hydraulic lifts.
   // Nothing is re-scaled or regenerated differently upon completion.
@@ -510,16 +532,23 @@ export class SandforgeBattlefield {
   if(yard){
    const decor=yard.getObjectByName('BasePerimeter_'+kind);
    if(decor)decor.visible=this.siteDecorEnabled;
-   tint(yard,false,.08);group.add(yard);group.userData.previewYard=yard;
+   tint(yard,false,.04);
+   yard.traverse(mesh=>{if(mesh.isMesh&&mesh.geometry?.parameters?.height>4)mesh.visible=false;});
+   group.add(yard);group.userData.previewYard=yard;
   }
   const service=kind==='airfield'?createAirfieldServiceYard():
    kind==='factory'?createFactoryServiceYard():null;
   if(service){
-   tint(service,true,.10);group.add(service);group.userData.previewService=service;
+   tint(service,true,.045);
+   // Show only outlines of the paved footprint, not a finished factory,
+   // control tower, repair equipment or hangar before construction starts.
+   service.traverse(mesh=>{if(mesh.isMesh&&
+    (mesh.position.y>5||mesh.geometry?.parameters?.height>7))mesh.visible=false;});
+   group.add(service);group.userData.previewService=service;
   }
   const circle=new THREE.Mesh(
    new THREE.RingGeometry(spec.radius-2.5,spec.radius+1.5,48),
-   new THREE.MeshBasicMaterial({color:'#80efae',transparent:true,opacity:.34,depthTest:false,depthWrite:false,side:THREE.DoubleSide}));
+   new THREE.MeshBasicMaterial({color:'#80efae',transparent:true,opacity:.21,depthTest:false,depthWrite:false,side:THREE.DoubleSide}));
   circle.rotation.x=-Math.PI/2;circle.position.y=2;circle.renderOrder=1009;
   group.userData.previewCircle=circle;group.add(circle);
   this.buildPreviewScene.add(group);
@@ -537,6 +566,7 @@ export class SandforgeBattlefield {
    }
    if(kind==='airfield')hideOldAirfieldHangar({detail:model});
    tint(model);
+   model.visible=false; // ghost guides show placement, not the completed GLB
    group.remove(placeholder);disposeOwnedMeshes(placeholder);
    group.userData.previewPlaceholder=null;group.userData.previewDetail=model;
    group.add(model);
@@ -556,6 +586,7 @@ export class SandforgeBattlefield {
    }
    if(preview.userData.previewDetail)
     disposeTaggedMaterials(preview.userData.previewDetail,'sandforgePreviewMaterial');
+   if(preview.userData.previewGuides)disposeOwnedMeshes(preview.userData.previewGuides);
    this.buildPreview=null;
   }
   if(this.buildHint)this.buildHint.style.display='none';
@@ -1174,11 +1205,15 @@ export class SandforgeBattlefield {
   const context=this.catalogContext();
   const selectionKey=[...this.selected].sort((a,b)=>a-b).join(',')+'|'+String(this.selectedBase)+'|'+Boolean(context.producer);
   const available={units:Boolean(context.producer),buildings:context.canBuild,territories:true,research:context.research};
-  if(this.catalogSelectionKey!==selectionKey||!available[view.dataset.tab]){
+  // Never jump from manually selected "Gebäude" back to "Einheiten"
+  // simply because a factory or airfield becomes selected/completes.
+  // Preserve the player's tab until it is genuinely unavailable.
+  if(!this.catalogSelectionKey||!available[view.dataset.tab]||
+    (context.engineer&&view.dataset.tab==='units')){
    view.dataset.tab=context.preferred;
-   this.catalogSelectionKey=selectionKey;
    actions.scrollTop=0;actions.scrollLeft=0;
   }
+  this.catalogSelectionKey=selectionKey;
   view.dataset.catalogContext=context.preferred;
   for(const tab of view.querySelectorAll('#sf-tabs [data-tab]')){
    const allowed=available[tab.dataset.tab];
