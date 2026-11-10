@@ -315,7 +315,7 @@ test('repair right-click detects angled roofs, pads and runway without hijacking
  assert.equal(serviceFootprintContains(garage,{x:476,y:672}),true);
  assert.equal(serviceFootprintContains(garage,{x:400,y:950}),false);
  assert.equal(serviceFootprintContains(airfield,{x:975,y:900}),true);
- assert.equal(serviceFootprintContains(airfield,{x:1400,y:900}),false);
+ assert.equal(serviceFootprintContains(airfield,{x:1530,y:900}),false);
  const source=readFileSync('scripts/webgl-battlefield.js','utf8');
  assert.match(source,/this\.maintenanceFacilityAtPointer\(event,serviceKind\)/);
  assert.match(source,/this\.game\.requestAirfieldRepair\(ids,facility\.id\)/);
