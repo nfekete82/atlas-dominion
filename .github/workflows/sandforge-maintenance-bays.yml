@@ -14,6 +14,7 @@ on:
       - 'scripts/webgl-service-grounding.js'
       - 'scripts/webgl-battlefield.js'
       - 'scripts/webgl-scale.js'
+      - 'tests/webgl-selection-rings.test.mjs'
       - 'scripts/build.mjs'
       - 'tests/webgl-hangar-factory-maintenance-20261110.test.mjs'
       - 'scripts/webgl-environment.js'
@@ -62,8 +63,8 @@ jobs:
           node --check scripts/webgl-battlefield.js
       - name: Compile TypeScript / build WebGL distribution
         run: npm run build
-      - name: Test hangar and factory repair states and Three.js visuals
-        run: node --test tests/webgl-hangar-factory-maintenance-20261110.test.mjs
+      - name: Test hangar and factory repair states, selection rings and Three.js visuals
+        run: node --test tests/webgl-hangar-factory-maintenance-20261110.test.mjs tests/webgl-selection-rings.test.mjs
       - name: Regressions - bomber course, weather, capture, craters, infantry and strategic camouflage
         run: |
           node --test tests/reborn-control-retreat.test.mjs \

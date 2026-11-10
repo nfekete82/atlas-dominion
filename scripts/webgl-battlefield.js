@@ -9,7 +9,7 @@ import {RULES} from '/src/reborn/config.js';
 import {installClassicHud} from '/webgl-classic-hud.js';
 import {hydrateUnitIcons,hydrateBuildingIcons,unitIcon,buildingIcon,buildingIconUrl,researchIconMarkup,researchEffectLabel,hydrateResearchArtworks} from '/webgl-portraits.js';
 import {SandforgeActorPresentation} from '/webgl-actor-presentation.js';
-import {calibratedScale,visualUnitScale,unitVisualYaw,unitRenderAltitude,buildingFacingAngle,nextBuildingFacing,buildingFacingDegrees,turretAimLocalYaw} from '/webgl-scale.js';
+import {calibratedScale,visualUnitScale,unitVisualYaw,unitRenderAltitude,buildingFacingAngle,nextBuildingFacing,buildingFacingDegrees,turretAimLocalYaw,selectionRingRadius} from '/webgl-scale.js';
 import {SandforgeGroundingPass} from '/webgl-grounding.js';
 import {createBuildingYard,disposeBuildingYard} from '/webgl-building-yard.js';
 import {createAirfieldServiceYard,updateAirfieldServiceYard,hideOldAirfieldHangar,disposeAirfieldServiceYard} from '/webgl-airfield-service.js';
@@ -889,11 +889,16 @@ export class SandforgeBattlefield {
    if(!unit||unit.hp<=0)continue;
    let ring=this.selectedRings.get(id);
    if(!ring){
-    ring=new THREE.Mesh(new THREE.TorusGeometry((unitSpec(unit).radius||12)+11,1.8,5,40),new THREE.MeshBasicMaterial({color:colors.blue,depthWrite:false,transparent:true,opacity:.9}));
+    // Wider selectable silhouette without another draw call.
+    ring=new THREE.Mesh(new THREE.TorusGeometry(selectionRingRadius(unitSpec(unit)),2.6,6,56),
+     new THREE.MeshBasicMaterial({color:'#79ecf9',depthWrite:false,transparent:true,opacity:.97}));
     ring.rotation.x=-Math.PI/2;ring.renderOrder=9;this.scene.add(ring);
     this.selectedRings.set(id,ring);
    }
-   ring.position.copy(this.units.get(id)?.node.position??this.entityPosition(unit));ring.position.y+=3;
+   // Aircraft rings follow their ground projection instead of floating
+   // above the terrain; service-platform rings remain on the lift.
+   ring.position.copy(this.units.get(id)?.node.position??this.entityPosition(unit));
+   ring.position.y+=3-unitRenderAltitude(unit.kind,unit.flightHeight??1);
   }
  }
  // Selection is the source of truth for the production catalogue.
