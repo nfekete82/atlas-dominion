@@ -89,7 +89,7 @@ test('desert starts by default and staged blast particles retire independently o
 });
 
 
-test('desert uses eroded crater rims and faceted stones without affecting terrain',async({page})=>{
+test('desert uses terrain-hugging crater decals and solid faceted rocks',async({page})=>{
  test.setTimeout(120000);
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/webgl-preview.html?bastions=4&seed=2074&terrain=dunes&biome=desert&play=1&pause=1&lite=1',
@@ -100,24 +100,30 @@ test('desert uses eroded crater rims and faceted stones without affecting terrai
   const craters=scene.getObjectByName('visual-desert-craters');
   const rims=scene.getObjectByName('visual-crater-eroded-rims');
   const stones=scene.children.filter(n=>n.isInstancedMesh&&n.geometry?.userData?.sedimentaryLedges);
-  if(!craters||!rims)throw Error('Crater layers were not rendered');
+  if(!craters)throw Error('Conforming crater terrain decals were not rendered');
   const canvas=craters.material.map.image;
   const image=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
   const alpha=(x,y)=>image[(y*canvas.width+x)*4+3];
   return {
-   craterCount:craters.count,rimCount:rims.count,
+   craterCount:craters.userData.craterCount,rimsRemoved:!rims,
+   groundConforming:craters.userData.groundConforming&&craters.geometry.userData.groundConforming,
+   craterVertices:craters.geometry.getAttribute('position').count,
+   indexed:!!craters.geometry.index,
    width:canvas.width,height:canvas.height,
    centerAlpha:alpha(128,128),cornerAlpha:alpha(0,0),
    textured:craters.material.map.isCanvasTexture,
-   raycastIgnored:craters.raycast.toString()==='()=>{}'&&rims.raycast.toString()==='()=>{}',
-   cosmetic:craters.userData.nonPlayable&&rims.userData.nonPlayable,
+   raycastIgnored:craters.raycast.toString()==='()=>{}',
+   cosmetic:craters.userData.nonPlayable&&craters.userData.visualOnly,
    stoneBatches:stones.length,
    stoneVertices:stones[0]?.geometry.getAttribute('position').count??0,
    terrainCount:scene.children.filter(n=>n.userData?.terrain).length
   };
  });
  expect(state.craterCount).toBeGreaterThan(0);
- expect(state.rimCount).toBe(state.craterCount);
+ expect(state.rimsRemoved).toBe(true);
+ expect(state.groundConforming).toBe(true);
+ expect(state.craterVertices).toBeGreaterThan(state.craterCount*60);
+ expect(state.indexed).toBe(true);
  expect(state.textured).toBe(true);
  expect(state.width).toBe(256);
  expect(state.height).toBe(256);
