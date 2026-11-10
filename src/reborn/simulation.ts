@@ -423,7 +423,12 @@ export class Simulation {
     if(!b){delete u.factoryService;u.path=[];u.repath=0;return;}
     if(state.phase==='approach'||state.phase==='parking'){
       const goal=factoryRepairPoint(b,state.bay,state.phase==='approach');
-      if(distance(u,goal)<12){
+      // Heavy hulls must not get stuck 12.01 units from a waypoint because
+      // navigation stops at its collision-adjusted safe endpoint. The final
+      // drive-on platform is much wider than a tank; 14.5 units is still
+      // inside its lift rails and the exterior approach accepts 23 units.
+      const tolerance=state.phase==='approach'?23:14.5;
+      if(distance(u,goal)<tolerance){
         if(state.phase==='approach'){state.phase='parking';u.path=[];u.repath=0;}
         else {state.phase='repair';u.path=[];u.repath=0;u.driveSpeed=0;}
       }else this.move(u,goal,dt);
