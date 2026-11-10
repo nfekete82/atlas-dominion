@@ -747,7 +747,7 @@ $('home').onclick=()=>{
 };
 $('load').onclick=()=>{
  const text=$('seed').value.trim();
- const q=new URLSearchParams({bastions:$('bastions').value,seed:String(text===''?randomMapSeed():Number(text)>>>0),terrain:terrain.battlefield?.profile??'random'});
+ const q=new URLSearchParams({bastions:$('bastions').value,seed:String(text===''?randomMapSeed():Number(text)>>>0),terrain:terrain.battlefield?.profile??'random',biome});
  location.href=(window.Sandforge3DMenu?.gameRoute?.()??'/webgl-preview.html')+'?'+q;
 };
 // Camera navigation is independent of the simulation. WASD and cursor keys
@@ -1008,12 +1008,13 @@ const stormButton=document.createElement('button');
 stormButton.id='sf3d-storm';
 stormButton.type='button';
 stormButton.className='sf-tool-button';
-stormButton.setAttribute('aria-label','Dreidimensionalen Sandsturm zu Testzwecken umschalten');
-stormButton.title='GPU-Sandsturm demonstrieren (ändert keine Spielregeln)';
+const stormLabel=biome==='snow'?'SCHNEESTURM':biome==='jungle'?'REGENNEBEL':'SANDSTURM';
+stormButton.setAttribute('aria-label','Dreidimensionalen '+stormLabel+' zu Testzwecken umschalten');
+stormButton.title='GPU-'+stormLabel+' demonstrieren (ändert keine Spielregeln)';
 battlefield.panel.querySelector('#sf-tools').prepend(stormButton);
 function setStormPreview(enabled){
  atmosphere.setStormPreview(enabled);
- stormButton.textContent=enabled?'STURM AN':'STURM';
+ stormButton.textContent=enabled?stormLabel+' AN':stormLabel;
  stormButton.setAttribute('aria-pressed',String(Boolean(enabled)));
 }
 stormButton.onclick=()=>setStormPreview(!atmosphere.stormPreview);
