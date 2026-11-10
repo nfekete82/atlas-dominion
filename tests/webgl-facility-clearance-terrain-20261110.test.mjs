@@ -26,7 +26,7 @@ test('new and finished airfield footprints cannot overlap neighbors or bastions'
 });
 
 test('authoritative building validation blocks factories and runways for both owners',()=>{
- const game=new Simulation(2074,4);
+ const game=new Simulation(2074,19);
  game.world.blocked.fill(0);
  game.world.opaque.fill(0);
  game.explored[0].fill(1);game.explored[1].fill(1);
