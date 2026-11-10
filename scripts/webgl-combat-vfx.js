@@ -16,7 +16,15 @@ function radialTexture({inner='#ffffff',outer='#ffffff',mode='smoke',biome='dese
  const canvas=document.createElement('canvas');canvas.width=canvas.height=128;
  const ctx=canvas.getContext('2d');
  const g=ctx.createRadialGradient(64,64,0,64,64,63);
- if(mode==='smoke'){
+ if(mode==='flash'){
+  // The blinding detonation core is deliberately brief; smoke and terrain
+  // dust supply the long-lived shape, rather than one oversized fireball.
+  g.addColorStop(0,'rgba(255,255,246,1)');
+  g.addColorStop(.19,'rgba(255,250,205,.98)');
+  g.addColorStop(.40,'rgba(255,197,91,.78)');
+  g.addColorStop(.68,'rgba(251,106,28,.29)');
+  g.addColorStop(1,'rgba(255,101,27,0)');
+ }else if(mode==='smoke'){
   // Charcoal combustion smoke, not the former flat white circles.
   g.addColorStop(0,'rgba(30,33,32,.82)');
   g.addColorStop(.29,'rgba(56,57,53,.79)');
@@ -84,13 +92,16 @@ function materialFor(mode,opacity,biome='desert'){
  return new THREE.MeshBasicMaterial({
   map:radialTexture({mode,biome}),transparent:true,opacity,depthWrite:false,
   alphaTest:.015,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-1,
-  toneMapped:mode!=='flame'&&mode!=='spark'
+  toneMapped:mode!=='flame'&&mode!=='spark'&&mode!=='flash'
  });
 }
 function makePool(scene,mode,max,opacity,biome='desert'){
  const mesh=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),materialFor(mode,opacity,biome),max);
  mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
- mesh.frustumCulled=false;mesh.renderOrder=mode==='spark'?18:mode==='flame'?16:mode==='dust'?10:14;mesh.count=0;
+ mesh.frustumCulled=false;mesh.renderOrder=mode==='flash'?19:mode==='spark'?18:mode==='flame'?16:mode==='dust'?10:14;mesh.count=0;
+ mesh.name='visual-combat-'+mode;
+ mesh.userData={visualOnly:true,nonPlayable:true,combatParticles:true,mode};
+ mesh.raycast=()=>{};
  scene.add(mesh);
  return {mesh,particles:[],max,mode};
 }
@@ -108,11 +119,12 @@ export class SandforgeCombatEffects {
  constructor({scene,camera,game,world,heightAt,pos,battlefield=null,lowQuality=false,biome='desert'}){
   Object.assign(this,{scene,camera,game,world,heightAt,pos,battlefield,lowQuality});
   this.smoke=makePool(scene,'smoke',lowQuality?70:260,.68);
+  this.flash=makePool(scene,'flash',lowQuality?16:48,.86);
   this.flames=makePool(scene,'flame',lowQuality?28:120,.94);
   this.dust=makePool(scene,'dust',lowQuality?40:170,.50,biome);
   this.sparks=makePool(scene,'spark',lowQuality?90:300,.96);
   this.debris=makePool(scene,'debris',lowQuality?42:120,.84);
-  for(const pool of [this.smoke,this.flames,this.dust,this.sparks,this.debris])clearInstances(pool);
+  for(const pool of [this.smoke,this.flash,this.flames,this.dust,this.sparks,this.debris])clearInstances(pool);
   this.scorch=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),materialFor('scorch',.93),lowQuality?70:210);
   this.scorch.geometry.rotateX(-Math.PI*.5);
   this.scorch.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -228,7 +240,8 @@ export class SandforgeCombatEffects {
  }
  particle(pool,x,z,y,size,life,vx=0,vz=0,vy=0){
   if(pool.particles.length>=pool.max)pool.particles.shift();
-  pool.particles.push({x,z,y,size,life,ttl:life,vx,vz,vy,angle:(this.rand()-.5)*.45});
+  pool.particles.push({x,z,y,size,life,ttl:life,vx,vz,vy,
+   floor:pool.mode==='debris'?y-7:undefined,angle:(this.rand()-.5)*.45});
  }
  impactAt(shot){
   const p=shot.groundTo??shot.to;
@@ -295,9 +308,15 @@ export class SandforgeCombatEffects {
   // Real blast stages: short hot core, outward dirt ring, dark buoyant
   // combustion clouds, and thrown fragments. Everything is pooled,
   // visual-only and disappears; it cannot grow per simulated minute.
-  this.shocks.push({x,z,life:.49,ttl:.49,max:strong?110:59});
+  // Cache the impact's ground height: the shockwave must not re-sample
+  // procedural terrain every animation frame during a bomber carpet strike.
+  this.shocks.push({x,z,y:impactGround+3,life:.49,ttl:.49,max:strong?110:59});
   if(this.shocks.length>this.shockwave.instanceMatrix.count)this.shocks.shift();
   this.placeScorch(x,z,size);
+  // First 120 ms: bright ignition front. Subsequent frames are dust,
+  // airborne fragments and rolling dark combustion smoke.
+  this.particle(this.flash,x,z,impactGround+(strong?31:21),
+   strong?96:58,.12,0,0,0);
   const fires=strong?11:6,smokes=strong?16:9,dust=strong?15:8;
   for(let i=0;i<fires;i++){
    const a=this.rand()*Math.PI*2,r=Math.sqrt(this.rand())*(strong?25:13);
@@ -663,7 +682,7 @@ export class SandforgeCombatEffects {
   for(const shock of this.shocks){
    const progress=1-shock.life/shock.ttl;
    const radius=Math.max(1,shock.max*(.16+.84*progress));
-   dummy.position.set(shock.x-this.world.size*.5,this.heightAt(shock.x,shock.z)+3,
+   dummy.position.set(shock.x-this.world.size*.5,shock.y,
     shock.z-this.world.size*.5);
    dummy.rotation.set(0,0,0);
    dummy.scale.setScalar(radius);
@@ -671,17 +690,29 @@ export class SandforgeCombatEffects {
   }
   this.shockwave.count=shockIndex;
   if(shockIndex)this.shockwave.instanceMatrix.needsUpdate=true;
-  for(const pool of [this.smoke,this.flames,this.dust,this.sparks,this.debris]){
+  for(const pool of [this.smoke,this.flash,this.flames,this.dust,this.sparks,this.debris]){
    const alive=[];let k=0;
    for(const p of pool.particles){
     p.life-=dt;
     if(p.life<=0)continue;
-    p.x+=p.vx*dt;p.z+=p.vz*dt;p.y+=p.vy*dt;
+    p.x+=p.vx*dt;p.z+=p.vz*dt;
+    if(pool.mode==='debris')p.vy-=230*dt;
+    p.y+=p.vy*dt;
+    if(pool.mode==='debris')p.y=Math.max(p.floor,p.y);
+    // Slow irregular smoke advection avoids a stationary stack of identical
+    // circular sprites; deterministic elapsed time, no frame RNG or gameplay.
+    if(pool.mode==='smoke'){
+     const age=p.ttl-p.life;
+     p.x+=Math.sin(age*2.2+p.angle*15)*dt*5;
+     p.z+=Math.cos(age*1.7+p.angle*13)*dt*4;
+    }
     const progress=clamp(p.life/p.ttl,0,1);
     const scale=p.size*(.65+(1-progress)*1.25)*Math.min(1,progress*4);
     dummy.position.set(p.x-this.world.size*.5,p.y,p.z-this.world.size*.5);
     dummy.quaternion.copy(this.camera.quaternion);
-    dummy.scale.set(scale,scale,1);dummy.updateMatrix();
+    const width=scale*(pool.mode==='spark'?.45:pool.mode==='smoke'?1.13:1);
+    const height=scale*(pool.mode==='dust'?.57:pool.mode==='flame'?1.27:pool.mode==='debris'?.66:1);
+    dummy.scale.set(width,height,1);dummy.updateMatrix();
     pool.mesh.setMatrixAt(k++,dummy.matrix);alive.push(p);
    }
    pool.particles=alive;
@@ -691,6 +722,6 @@ export class SandforgeCombatEffects {
   }
   this.activeParticles=this.particleCount;
  }
- get particleCount(){return this.smoke.particles.length+this.flames.particles.length+this.dust.particles.length+this.sparks.particles.length+this.debris.particles.length;}
+ get particleCount(){return this.smoke.particles.length+this.flash.particles.length+this.flames.particles.length+this.dust.particles.length+this.sparks.particles.length+this.debris.particles.length;}
 }
 const worldIndex=(world,x,z)=>world.index({x,y:z});
