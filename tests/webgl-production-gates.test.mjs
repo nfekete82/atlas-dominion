@@ -136,3 +136,44 @@ test('authoritative capacity and blocked exits retain the paid queue without rel
   assert.equal(restored.units.filter(u=>u.id===release.unitId).length,1);
  }
 });
+
+test('production waits for delayed factory GLB and drives through the real garage door',()=>{
+ const f=fixture();f.game.stageWebGLProduction=true;
+ let held=0,cancelled=0;
+ f.game.extendProductionDeparture=(id,until)=>{assert.equal(id,2);held=Math.max(held,until);};
+ f.game.cancelProductionDeparture=()=>cancelled++;
+ f.entry.detail=null;
+ f.tick(0);assert.equal(f.controller.active.size,0);
+ assert.equal(f.actor.node.visible,false);
+ f.tick(.65);assert.equal(f.controller.active.size,0);
+ assert.ok(held>10.65);
+ const detail=new THREE.Group(),door=new THREE.Group();door.name='FactoryRollupDoor';
+ detail.scale.setScalar(57);detail.add(door);f.entry.node.add(detail);f.entry.detail=detail;
+ f.tick(.70);
+ assert.equal(f.controller.active.size,1);
+ assert.ok(Math.abs(f.controller.active.get(1).visualAt-10.7)<.00001);
+ assert.equal(f.actor.node.visible,false);
+ f.tick(1.45);assert.ok(f.entry.gate.door.scale.y<1);
+ assert.equal(cancelled,0);
+ f.tick(3.5);assert.equal(f.controller.active.size,1);
+ assert.ok(f.actor.node.position.distanceTo(new THREE.Vector3(112,0,82))>5);
+ f.controller.dispose();
+});
+test('missing streaming factory GLB never leaves invisible or frozen vehicles',()=>{
+ const f=fixture();f.game.stageWebGLProduction=true;
+ let cancelled=0;
+ f.game.extendProductionDeparture=()=>{};
+ f.game.cancelProductionDeparture=()=>cancelled++;
+ f.entry.detail=null;
+ f.tick(0);assert.equal(f.actor.node.visible,false);
+ f.tick(5.6);assert.equal(f.actor.node.visible,true);
+ assert.equal(cancelled,1);
+ assert.equal(f.controller.active.size,0);
+});
+test('factory interior is a valid visual drive route, not a normal public path',()=>{
+ const f=fixture();f.game.stageWebGLProduction=true;
+ f.controller.battlefield.world.walkable=()=>false;
+ f.tick(0);assert.equal(f.controller.active.size,1);
+ f.tick(2);assert.equal(f.controller.active.size,1);
+ f.controller.dispose();
+});

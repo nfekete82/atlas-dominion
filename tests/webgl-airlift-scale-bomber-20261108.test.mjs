@@ -18,12 +18,14 @@ test('3D scale and bomber orientation are presentation-only',()=>{
  }
 });
 
-test('rendered helicopter lands on ground and takes off smoothly; bomber stays airborne',()=>{
+test('rendered helicopter can land; bomber remains airborne except during a real hangar repair',()=>{
  assert.equal(unitRenderAltitude('scout',0),3);
  assert.equal(unitRenderAltitude('scout',.5),89);
  assert.equal(unitRenderAltitude('scout',1),175);
  assert.equal(unitRenderAltitude('scout'),175);
- assert.equal(unitRenderAltitude('bomber',0),175);
+ assert.equal(unitRenderAltitude('bomber',0),0);
+ assert.equal(unitRenderAltitude('bomber',.5),87.5);
+ assert.equal(unitRenderAltitude('bomber',1),175);
  assert.equal(unitRenderAltitude('tank'),0);
  assert.equal(unitRenderAltitude('scout',-1),3);
  assert.equal(unitRenderAltitude('scout',2),175);

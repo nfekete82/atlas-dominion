@@ -4,6 +4,7 @@ import {hitResponseFor,impactHeight,damagedVehicleIntensity} from '/webgl-hit-re
 import {addWreckRecord,advanceWreckRecords,wreckSink,WRECK_CAP,
  WRECK_CAP_LITE,CRASH_CAP,CRASH_LIFETIME_SECONDS,isWreckableUnit,
  isAircraftWreck} from '/webgl-wreck-lifecycle.js';
+import {guidedRocketAimY,aircraftAimOffsetY,adoptAircraftForCrash,disposeAircraftCrash} from '/webgl-aircraft-effects.js';
 
 const vehicleKinds=new Set(['tank','rover','artillery']);
 const trackedKinds=new Set(['tank','artillery']);
@@ -183,10 +184,8 @@ export class SandforgeCombatEffects {
   this.wrecks=[];
   this.wreckSync=0;
   this.crashes=[];
-  // Aircraft crash renderers reuse a handful of materials and shapes.
-  this.crashFuselage=new THREE.CapsuleGeometry(1,2,4,8);
-  this.crashWing=new THREE.BoxGeometry(1,1,1);
-  this.crashMast=new THREE.CylinderGeometry(1,1,1,7);
+  // Crashes reuse the real textured aircraft actor; no gray proxy meshes.
+  this.capturedAircraftIds=new Set();
   // Actual 3D torus shockwaves complement the existing GPU smoke and debris.
   this.shockwave=new THREE.InstancedMesh(
    new THREE.TorusGeometry(1,.075,6,42),
@@ -444,35 +443,30 @@ export class SandforgeCombatEffects {
    if(i)mesh.instanceMatrix.needsUpdate=true;
   }
  }
- spawnAircraftCrash(u){
-  if(this.crashes.length>=CRASH_CAP){
-   const oldest=this.crashes.shift();
-   this.scene.remove(oldest.mesh);
-  }
-  const bomber=u.kind==='bomber',mesh=new THREE.Group();
-  mesh.name='visual-crashing-'+u.kind;
-  mesh.userData={visualOnly:true,nonPlayable:true,crashing:true};
-  const shell=new THREE.Mesh(this.crashFuselage,this.wreckMat);
-  shell.rotation.x=Math.PI/2;
-  shell.scale.set(bomber?16:12,bomber?22:17,bomber?11:9);
-  mesh.add(shell);
-  const wings=new THREE.Mesh(this.crashWing,this.wreckMetal);
-  wings.position.y=3;
-  wings.scale.set(bomber?86:64,2.7,bomber?15:7);
-  mesh.add(wings);
-  const tail=new THREE.Mesh(this.crashWing,this.wreckMetal);
-  tail.position.set(0,4,-28);tail.scale.set(20,3,9);mesh.add(tail);
-  if(!bomber){
-   const rotor=new THREE.Mesh(this.crashWing,this.wreckMetal);
-   rotor.position.y=17;rotor.scale.set(78,1.5,5);rotor.rotation.y=.38;mesh.add(rotor);
-  }
-  mesh.traverse(child=>{if(child.isMesh){child.raycast=()=>{};child.castShadow=false;}});
-  const start=Math.max(14,u.kind==='scout'?3+172*(u.flightHeight??1):185);
-  mesh.position.copy(this.pos(u.x,u.y));mesh.position.y+=start;
-  mesh.rotation.y=u.angle??0;
-  this.scene.add(mesh);
-  this.crashes.push({mesh,x:u.x,y:u.y,angle:u.angle??0,
-   age:0,start,duration:CRASH_LIFETIME_SECONDS,kind:u.kind});
+ captureAircraftCrash(entry,u){
+  if(!entry?.node?.visible||!isAircraftWreck(u.kind))return false;
+  const captured=adoptAircraftForCrash(entry);
+  if(!captured)return false;
+  if(this.crashes.length>=CRASH_CAP)this.releaseAircraftCrash(this.crashes.shift());
+  // The Simulation removes dead units before sync(); the provided death
+  // record may therefore contain only id/kind/hp. Recover the last 20-Hz
+  // position captured by CombatEffects, never animate NaN world coordinates.
+  const snapshot=this.lastUnits.get(u.id);
+  const x=Number.isFinite(snapshot?.x)?snapshot.x:
+   captured.root.position.x+this.world.size*.5;
+  const y=Number.isFinite(snapshot?.y)?snapshot.y:
+   captured.root.position.z+this.world.size*.5;
+  const ground=this.pos(x,y);
+  const start=Math.max(0,captured.root.position.y-ground.y);
+  this.scene.add(captured.root);
+  this.crashes.push({...captured,mesh:captured.root,id:u.id,
+   x,y,angle:snapshot?.angle??u.angle??0,age:0,start,
+   duration:CRASH_LIFETIME_SECONDS,kind:u.kind});
+  if(this.lastUnits.has(u.id))this.capturedAircraftIds.add(u.id);
+  return true;
+ }
+ releaseAircraftCrash(record){
+  disposeAircraftCrash(record);
  }
  updateAircraftCrashes(dt){
   if(!dt)return;
@@ -491,8 +485,8 @@ export class SandforgeCombatEffects {
    if(t<1&&this.frame%10===0)
     this.particle(this.smoke,x,z,c.mesh.position.y,17+this.rand()*12,.9);
    if(t>=1){
-    this.scene.remove(c.mesh);
     this.crashes.splice(i,1);
+    this.releaseAircraftCrash(c);
     this.addWreck({...c,x,y:z});
    }
   }
@@ -536,8 +530,15 @@ export class SandforgeCombatEffects {
    const duration=Math.max(.01,missile.impactAt-missile.at);
    const progress=clamp((this.game.time+(active?subTick:0)-missile.at)/duration,0,.999);
    const origin=this.rocketOrigins.get(missile.id);
-   const target=this.pos(missile.to.x,missile.to.y,
-    this.heightAt(missile.to.x,missile.to.y)+15);
+   const targetUnit=missile.target===undefined?null:
+    this.game.units.find(u=>u.id===missile.target&&u.hp>0);
+   const targetEntry=targetUnit?this.battlefield?.units?.get(targetUnit.id):null;
+   const terrainY=this.heightAt(missile.to.x,missile.to.y);
+   const actualY=targetUnit&&targetEntry?.node?.visible&&
+    (targetUnit.kind==='scout'||targetUnit.kind==='bomber')
+    ?targetEntry.node.position.y+aircraftAimOffsetY(targetUnit.kind,targetEntry.modelHeight)
+    :guidedRocketAimY(missile,targetUnit,terrainY,targetEntry?.modelHeight);
+   const target=this.pos(missile.to.x,missile.to.y,actualY);
    const displacement=target.clone().sub(origin);
    const arc=Math.min(120,Math.max(35,
     Math.hypot(missile.to.x-missile.from.x,missile.to.y-missile.from.y)*.14));
@@ -632,8 +633,8 @@ export class SandforgeCombatEffects {
    const found=this.game.units.find(u=>u.id===id);
    if(found?.carrier)continue; // boarding a transport is not a death
    if(!this.game.canSee(0,{x:old.x,y:old.y}))continue;
-   if(isAircraftWreck(old.kind)&&(old.kind==='bomber'||old.flightHeight>.15))
-    this.spawnAircraftCrash(old);
+   if(this.capturedAircraftIds.delete(id))continue; // already flying as its authored textured GLB
+   if(isAircraftWreck(old.kind))this.addWreck(old); // no model loaded: explode, never show a gray dummy
    else if(isWreckableUnit(old.kind))this.addWreck(old);
   }
   this.lastUnits=next;

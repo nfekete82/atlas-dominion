@@ -38,9 +38,13 @@ jobs:
           npm run assets:animation-audit
 
   browser:
-    name: Chromium · Reborn RTS gameplay
+    name: Chromium · Classic gameplay (shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v7
         with:
@@ -58,11 +62,15 @@ jobs:
       - name: Classic Canvas regression suite (explicit legacy build)
         env:
           ATLAS_BROWSER_CHANNEL: chromium
-        run: npm run test:browser:classic
-      - name: Preserve screenshots, traces and reports
-        if: always()
+        run: |
+          # One worker per runner. Four independent shards prevent the old
+          # serial 45-second browser tests from exhausting a single 40m job.
+          npm run build:classic
+          npm --prefix tests/browser test -- --shard=${{ matrix.shard }}/4
+      - name: Preserve failure screenshots and traces
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: reborn-browser-evidence
+          name: reborn-browser-evidence-shard-${{ matrix.shard }}
           path: tests/browser/artifacts/
-          retention-days: 14
+          retention-days: 7

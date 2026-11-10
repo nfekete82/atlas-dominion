@@ -45,6 +45,7 @@ cpSync('scripts/webgl-atmosphere-3d.js','dist/webgl-atmosphere-3d.js');
 cpSync('scripts/webgl-combat-vfx.js','dist/webgl-combat-vfx.js');
 cpSync('scripts/webgl-hit-response.js','dist/webgl-hit-response.js');
 cpSync('scripts/webgl-wreck-lifecycle.js','dist/webgl-wreck-lifecycle.js');
+cpSync('scripts/webgl-aircraft-effects.js','dist/webgl-aircraft-effects.js');
 // Keep the optional battle profiler deployable; an unresolved static import
 // prevents the entire WebGL preview from booting, even when perf=0.
 cpSync('scripts/webgl-perf-watch.js','dist/webgl-perf-watch.js');
@@ -56,6 +57,11 @@ cpSync('scripts/webgl-edge-cliffs.js','dist/webgl-edge-cliffs.js');
 cpSync('scripts/webgl-grounding.js','dist/webgl-grounding.js');
 cpSync('scripts/webgl-ground-tracks.js','dist/webgl-ground-tracks.js');
 cpSync('scripts/webgl-building-yard.js','dist/webgl-building-yard.js');
+cpSync('scripts/webgl-airfield-service.js','dist/webgl-airfield-service.js');
+cpSync('scripts/webgl-factory-service.js','dist/webgl-factory-service.js');
+cpSync('scripts/webgl-service-materials.js','dist/webgl-service-materials.js');
+cpSync('scripts/webgl-maintenance-input.js','dist/webgl-maintenance-input.js');
+cpSync('scripts/webgl-service-grounding.js','dist/webgl-service-grounding.js');
 cpSync('scripts/webgl-transport-controls.js','dist/webgl-transport-controls.js');
 cpSync('scripts/webgl-resource-lifecycle.js','dist/webgl-resource-lifecycle.js');
 cpSync('scripts/webgl-construction.js','dist/webgl-construction.js');

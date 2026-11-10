@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {ENGINE_KINDS,ENGINE_PROFILES,vehicleSoundMix} from '../dist/src/reborn/vehicle-soundscape.js';
+import {ENGINE_KINDS,ENGINE_PROFILES,vehicleSoundMix,engineAudibleGain,engineAudibleRadius} from '../dist/src/reborn/vehicle-soundscape.js';
 import {Simulation} from '../dist/src/reborn/simulation.js';
 import {UNITS} from '../dist/src/reborn/catalog.js';
 import {RULES} from '../dist/src/reborn/config.js';
@@ -85,5 +85,24 @@ test('audio is presentation-only: listening creates no saved state, and the play
  assert.match(audio,/document\.hidden/);
  assert.match(audio,/this\.effects\)/,'engine voices duck with the existing radio and effect bus');
  assert.match(audio,/this\.engineVoices/);
- assert.match(audio,/level\*profile\.volume/);
+ assert.ok(audio.includes('engineAudibleGain(level,profile.volume)'),
+  'move gain is now normalized by the shared audible-gain helper');
+});
+
+test('motor/rotor levels are audible when physically moving at tactical camera distance',()=>{
+ const units=[at('tank',270,100),at('scout',115,190),at('rover',190,160)];
+ const camera={x:100,y:100};
+ const radius=engineAudibleRadius(1440,900,.59);
+ assert.equal(radius,880,'wide tactical zoom has a useful movement-audio radius');
+ const levels=vehicleSoundMix({units},camera,()=>true,radius);
+ for(const kind of ['tank','scout','rover']){
+  assert.ok(levels[kind].level>0,kind+' must have positive moving mix');
+  assert.ok(engineAudibleGain(levels[kind].level,ENGINE_PROFILES[kind].volume)>.018,
+   kind+' must stay audible after camera attenuation');
+  assert.equal(engineAudibleGain(0,ENGINE_PROFILES[kind].volume),0,'parked engines stay silent');
+ }
+ const paused=vehicleSoundMix({units:units.map(u=>({...u,moving:false}))},camera,()=>true,radius);
+ assert.ok(ENGINE_KINDS.every(kind=>engineAudibleGain(paused[kind].level,ENGINE_PROFILES[kind].volume)===0));
+ assert.ok(ENGINE_KINDS.every(kind=>vehicleSoundMix({units},camera,()=>false,radius)[kind].level===0));
+ assert.equal(engineAudibleRadius(1440,900,3.5)>=300,true);
 });

@@ -12,6 +12,15 @@ export const MODEL_HEIGHTS=Object.freeze({
 });
 export const DIMENSIONS_VERSION=3;
 
+/** Wider selection footprint at tactical zoom. Render-only: never changes
+ * unit collision, targeting, squad formation or the saved simulation state.
+ * Keep rings outside visual hulls for tanks, helicopters and infantry. */
+export function selectionRingRadius(spec){
+ const collision=Number.isFinite(spec?.radius)?spec.radius:12;
+ const width=Number.isFinite(spec?.width)?spec.width:36;
+ return Math.max(collision*1.55+13,width*.39);
+}
+
 // Historically facing=1 meant 180 degrees. Preserve that meaning in old
 // saves while allowing all four cardinal orientations in the WebGL builder:
 // R cycles 0 -> 90 -> 180 -> 270 -> 0 degrees (stored as 0,2,1,3).
@@ -69,7 +78,7 @@ export function unitVisualYaw(kind,heading){
  * The bomber remains in continuous flight at the existing cruise height. */
 export function unitRenderAltitude(kind,flightHeight=1){
  if(kind==='scout')return 3+172*Math.max(0,Math.min(1,flightHeight));
- if(kind==='bomber')return 175;
+ if(kind==='bomber')return 175*Math.max(0,Math.min(1,flightHeight));
  return 0;
 }
 const infantry=new Set(['infantry','medic','engineer','heavy','rocket']);

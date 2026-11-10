@@ -15,7 +15,7 @@ export const UNITS:Record<UnitKind,UnitSpec>={
  medic:{...foot,name:'Sanitäter',cost:175,buildTime:8,hp:100,damage:4,range:110,cooldown:1.8,speed:105,description:'Versorgt eigene Infanterie im Umkreis von 70 M mit zusammen 12 LP/s. Langsame Selbstheilung nach einer Feuerpause.'},
  engineer:{...foot,producers:['headquarters'],name:'Pionier',cost:200,buildTime:7,hp:110,damage:4,range:110,cooldown:1.8,speed:105,description:'Errichtet Gebäude und repariert mehrere beschädigte Boden- und Luftfahrzeuge im Umkreis von 90 M mit insgesamt 18 LP/s. Repariert auch Anlagen und Baustellen per Rechtsklick.'},
  heavy:{...foot,name:'Schwere Infanterie',cost:250,buildTime:9,hp:420,speed:78,damage:120,range:220,cooldown:1.15,width:44,producers:['barracks'],description:'Überlegener Infanteriekämpfer mit 420 LP und schwerem automatischem Gewehr. Gegen Panzerung verringerter Schaden.'},
- rocket:{...foot,name:'Raketenwerfer-Soldat',cost:325,buildTime:14,hp:95,speed:92,sight:510,range:420,damage:205,cooldown:3.45,radius:11,width:40,targetsAir:true,producers:['barracks'],description:'Getarnter Panzer- und Flugabwehrschütze mit gelenkter Schulterrakete. Vernichtend gegen Fahrzeuge und Luftziele, aber verwundbar durch MG und schwach gegen Fußsoldaten.'},
+ rocket:{...foot,name:'Raketenwerfer-Soldat',cost:375,buildTime:16,hp:95,speed:92,sight:465,range:365,damage:145,cooldown:4.1,radius:11,width:40,targetsAir:true,producers:['barracks'],description:'Getarnter Panzer- und Flugabwehrschütze mit gelenkter Schulterrakete. Stark gegen einzelne Fahrzeuge und Luftziele, aber langsame Nachladezeit, geringer Flächenschaden, verwundbar gegen MG und schwach gegen Infanterie.'},
  rover:{name:'Humvee',group:'Fahrzeuge',cost:350,buildTime:11,hp:295,speed:235,sight:465,range:240,damage:13,cooldown:.68,radius:18,width:76,producers:['factory'],flying:false,description:'Schneller Humvee mit schwerem Dach-MG, animierten Geländereifen und vier Sitzplätzen. Eigene Infanterie per Rechtsklick einladen und am Ziel ausladen.'},
  tank:{name:'Kampfpanzer',group:'Fahrzeuge',cost:550,buildTime:18,hp:1000,speed:80,sight:390,range:300,damage:155,cooldown:2.35,targetsAir:false,radius:22,width:90,producers:['factory'],flying:false,description:'Schwerer Kampfpanzer mit 1.000 LP: gelenkte Panzerabwehrraketen gegen Fahrzeuge und Gebäude (300 M), unabhängiges starkes Dach-MG gegen Infanterie. Widerstandsfähig gegen normale Gewehre.'},
  artillery:{name:'Raketenwerfer',group:'Fahrzeuge',cost:600,buildTime:18,hp:340,speed:65,sight:RULES.turret.sight+80,range:RULES.turret.range+80,damage:120,cooldown:3.8,targetsAir:false,radius:20,width:94,producers:['factory'],flying:false,description:'Schwerer 6×6-Raketenwerfer mit sechs Werferrohren. 680 M Reichweite und 830 M Sicht: bekämpft Bodenziele außerhalb der Turmreichweite.'},
@@ -26,8 +26,8 @@ export interface BuildingSpec {name:string;cost:number;buildTime:number;hp:numbe
 export const BUILDINGS:Record<BuildingKind,BuildingSpec>={
  headquarters:{...RULES.headquarters,name:'Feldkommando',cost:300,buildTime:20,width:225,income:10,description:'Hauptquartier der Blauen Legion. Bildet Pioniere aus. Errichte Kaserne, Fahrzeugfabrik und Flugfeld für weitere Einheiten.'},
  barracks:{name:'Kaserne',cost:200,buildTime:12,hp:800,sight:300,radius:53,width:158,income:0,description:'Bildet Infanterie, Sanitäter, schwere Infanterie und Raketenwerfer-Soldaten aus.'},
- factory:{name:'Fahrzeugfabrik',cost:350,buildTime:18,hp:1100,sight:310,radius:70,width:200,income:0,description:'Produziert Humvees, Kampfpanzer und Raketenwerfer.'},
- airfield:{name:'Flugfeld',cost:450,buildTime:22,hp:1200,sight:410,radius:116,width:320,income:0,description:'Großer Wüstenflugplatz mit Flugzeughangar, Kontrollturm, Rollfeld und Landebahn. Produziert Transporthelikopter und Bomber.'},
+ factory:{name:'Fahrzeugfabrik',cost:350,buildTime:18,hp:1100,sight:310,radius:70,width:200,income:0,description:'Große Fahrzeugfabrik mit zwei Außenwerkstattplätzen. Produziert Humvees, Kampfpanzer und Raketenwerfer. Reparatur per Einheit für Credits.'},
+ airfield:{name:'Flugfeld',cost:450,buildTime:22,hp:1200,sight:410,radius:116,width:320,income:0,description:'Großes Flugfeld mit Startbahn und zwei Wartungshangars. Bomber und Transporthelikopter können dort landen und für Credits reparieren.'},
  generator:{name:'Energiekern',cost:150,buildTime:9,hp:500,sight:230,radius:38,width:112,income:10,description:'Versorgt die Basis und liefert zusätzliche 10 Credits alle 10 Sekunden.'},
  turret:{name:'Geschützturm',cost:175,buildTime:10,hp:650,sight:RULES.turret.sight,radius:30,width:72,income:0,description:`Automatische Fernverteidigung. ${RULES.turret.range} M Reichweite, ${RULES.turret.sight} M Sicht, ${RULES.turret.damage} Schaden.`},
  research:{name:'Forschungszentrum',cost:950,buildTime:48,hp:950,sight:350,radius:59,width:175,income:0,description:'Erforscht neun globale Technologien in 35–90 Sekunden. Forschung verbessert bereits gebaute und neue Einheiten.'},
@@ -50,7 +50,7 @@ export const weaponDamage=(u:{kind?:UnitKind},target:{kind?:UnitKind|BuildingKin
  u.kind==='rover'&&('queue' in target||unitSpec(target as {kind?:UnitKind}).group!=='Infanterie')?.35:
  u.kind==='rocket'&&'queue' in target?.7:
  u.kind==='rocket'&&unitSpec(target as {kind?:UnitKind}).group==='Infanterie'?.10:
- u.kind==='rocket'&&unitSpec(target as {kind?:UnitKind}).flying?1.24:1);
+ u.kind==='rocket'&&unitSpec(target as {kind?:UnitKind}).flying?1.2:1);
 /** Expected sustained DPS for a valid single target (before veteran bonuses).
  * Tank main gun intentionally does NOT fire at infantry; its MG does.
  */

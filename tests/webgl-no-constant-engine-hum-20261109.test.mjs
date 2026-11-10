@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {vehicleSoundMix,measuredEngineSpeed,ENGINE_KINDS} from '../dist/src/reborn/vehicle-soundscape.js';
-import {ambientActivity,shouldPlayFootstep} from '../dist/src/reborn/audio.js';
+import {ambientActivity} from '../dist/src/reborn/audio.js';
 import {RULES} from '../dist/src/reborn/config.js';
 
 const u=(kind,id,extras={})=>({
@@ -73,35 +73,32 @@ test('ambientActivity uses exactly the same measured ground vehicle movement',()
  assert.ok(ambientActivity({units:[tank],bases:[]},{x:100,y:100},()=>true).motors>0);
 });
 
-test('walking infantry produces zero engine sound even with real displacement',()=>{
- for(const kind of ['infantry','engineer','medic','heavy']){
-  const foot=physical(kind,100,78,{walkDistance:128,hp:100});
-  assert.equal(shouldPlayFootstep(foot),true,kind+' should have footstep audio');
-  const vehicleMix=mix([foot]);
+test('walking infantry is silent and never activates vehicle motors',()=>{
+ for(const kind of ['infantry','engineer','medic','heavy','rocket']){
+  const soldier=physical(kind,100,78,{walkDistance:128,hp:100});
   for(const engine of ENGINE_KINDS){
-   assert.equal(vehicleMix[engine].level,0,kind+' walking must never play a '+engine+' motor');
-   assert.equal(vehicleMix[engine].count,0);
+   const channel=mix([soldier])[engine];
+   assert.equal(channel.level,0,kind+' cannot trigger '+engine);
+   assert.equal(channel.count,0);
   }
  }
- for(const kind of ENGINE_KINDS){
-  const moving=physical(kind,200,20,{walkDistance:128,hp:100});
-  assert.equal(shouldPlayFootstep(moving),false,kind+' must not trigger boots-on-sand audio');
+ const source=readFileSync('src/reborn/audio.ts','utf8');
+ for(const deprecated of ['shouldPlayFootstep','this.footsteps','this.played.steps++',
+   "this.burst(u,r,.037,.018,1900"]){
+  assert.equal(source.includes(deprecated),false,'no synthetic infantry step event: '+deprecated);
  }
- assert.equal(shouldPlayFootstep(physical('infantry',301,78,{moving:false})),false);
- assert.equal(shouldPlayFootstep(physical('infantry',302,78,{carrier:201})),false);
+ assert.ok(source.includes('this.played.production++'),'production cue stays enabled');
+ assert.ok(source.includes('this.weapon(kind,from,r)'),'weapon sound stays enabled');
 });
 
-test('no looping atmospheric wind remains; infantry steps retain brief high-pass grit',()=>{
+test('atmospheric wind is no longer a looping ambient motor-like sound',()=>{
  const source=readFileSync('src/reborn/audio.ts','utf8');
- // Wind was intentionally removed, rather than merely filtered or muted.
- assert.doesNotMatch(source,/windLevel|this\.wind|windEnabled|setWindEnabled/);
- assert.doesNotMatch(source,/filter\.type='bandpass';filter\.frequency\.value=1850/);
- assert.match(source,/this\.noise=a\.createBuffer\(/,
-  'shared noise buffer must remain for transient weapon and footstep effects');
- assert.match(source,/shouldPlayFootstep\(u\)/);
- assert.match(source,/this\.burst\(u,r,\.037,\.018,1900,'highpass'\)/);
- assert.doesNotMatch(source,/filter\.type='lowpass';filter\.frequency\.value=500/);
- assert.doesNotMatch(source,/this\.burst\(u,r,\.06,\.045,1100,'lowpass'\)/);
+ for(const removed of ['windLevel','this.wind','windEnabled','setWindEnabled',
+  "this.burst(u,r,.037,.018,1900",'filter.type=\'bandpass\';filter.frequency.value=1850',
+  "this.burst(u,r,.06,.045,1100"]){
+  assert.equal(source.includes(removed),false,'deprecated constant ambiance: '+removed);
+ }
+ assert.ok(source.includes('this.noise=a.createBuffer('),'combat noise generator remains');
 });
 
 test('engine layers never start from opening a production gate or clicking infantry',()=>{
@@ -117,6 +114,7 @@ test('engine layers never start from opening a production gate or clicking infan
  assert.match(audio,/ambientSounding&&this.engineSoundsEnabled\?vehicleSoundMix/);
  assert.match(audio,/measuredEngineSpeed\(u\)>=2/);
  assert.match(audio,/level>voice.gain.gain.value \? \.13 : \.023/);
+ assert.match(audio,/engineAudibleGain\(level,profile.volume\)/);
  assert.match(audio,/pause\(\):void\{[\s\S]*?this\.silenceAmbientNodes\(\)/);
  assert.match(audio,/silenceScene\(\):void\{[\s\S]*?this\.silenceAmbientNodes\(\)/);
  assert.match(audio,/if\(this\.game===g\)return;this\.silence\(\);this\.silenceAmbientNodes\(\)/);

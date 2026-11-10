@@ -1,6 +1,14 @@
 import * as THREE from 'three';
-import {createGroundDetails} from '/src/reborn/battlefield-atmosphere.js';
-import {stoneMaterial,weatheredStoneGeometry} from '/webgl-rock-materials.js';
+import {stoneMaterial,weatheredStoneGeometry} from './webgl-rock-materials.js';
+// Browser production serves this file from /dist, alongside compiled /src.
+// The Node geometry tests import its source directly from /scripts, where
+// absolute browser import paths are invalid. Resolve the *same* compiled
+// atmosphere implementation relative to each environment, not a stub.
+const {createGroundDetails}=await import(
+ typeof window==='undefined'?
+ '../dist/src/reborn/battlefield-atmosphere.js':
+ './src/reborn/battlefield-atmosphere.js'
+);
 
 /** Reproduce the exact heights of the 4x4 × 56-segment rendered terrain.
  * Sampling the mathematical heightfield alone is insufficient: the ground

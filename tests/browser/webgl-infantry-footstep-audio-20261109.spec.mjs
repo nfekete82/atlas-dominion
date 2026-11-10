@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 
-test('a walking infantry soldier has footsteps but never activates any motor voice',async({page})=>{
+test('walking infantry stays silent without footsteps or motor voices',async({page})=>{
  test.setTimeout(120000);
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/webgl-preview.html?bastions=4&seed=2074&terrain=dunes&play=1&lite=1&pause=1',
@@ -20,7 +20,7 @@ test('a walking infantry soldier has footsteps but never activates any motor voi
    camera:{x:soldier.x,y:soldier.y,zoom:1},
    screen:()=>({x:720,y:400})
   };
-  // Prime the footsteps ledger before motion, then simulate one step.
+  // Move the infantry unit without scheduling any synthetic footstep effect.
   sound.update(g,view);
   soldier.previousX=soldier.x;
   soldier.previousY=soldier.y;
@@ -34,7 +34,7 @@ test('a walking infantry soldier has footsteps but never activates any motor voi
   return {unit:soldier.kind,steps:sound.played.steps,engines:engineVoices};
  });
  expect(result.unit).toBe('infantry');
- expect(result.steps).toBeGreaterThanOrEqual(1);
+ expect(result.steps).toBe(0);
  expect(result.engines).toHaveLength(5);
  for(const motor of result.engines){
   expect(motor.value).toBe(0);

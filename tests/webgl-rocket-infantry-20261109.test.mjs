@@ -14,12 +14,14 @@ test('barracks rocket soldier has specialist anti-vehicle/air role and clear MG 
  assert.ok(spec.hp<=100,'MG should defeat a rocket soldier quickly');
  const targetTank={kind:'tank'},targetFlyer={kind:'scout'};
  assert.equal(canAttack({kind:'rocket'},targetFlyer),true);
- assert.ok(weaponDamage({kind:'rocket'},targetTank)>=180);
- assert.ok(weaponDamage({kind:'rocket'},targetFlyer)>=240);
+ assert.equal(weaponDamage({kind:'rocket'},targetTank),145);
+ assert.equal(weaponDamage({kind:'rocket'},targetFlyer),174);
  assert.ok(weaponDamage({kind:'rocket'},{kind:'infantry'})<=25);
  assert.ok(weaponDamage({kind:'rocket'},{kind:'infantry'})<
   weaponDamage({kind:'rocket'},targetTank)*.13);
- assert.ok(spec.cooldown>3,'launch weapon requires an actual reload');
+ assert.ok(spec.cooldown>=4,'launch weapon requires an actual reload');
+ assert.ok(spec.range<=365,'single shoulder rockets must not dominate the battlefield');
+ assert.ok(spec.cost>=375,'a squad of rockets must require meaningful investment');
 });
 
 test('the 3D shoulder soldier has PBR camouflage, a physical launcher and batched geometry',()=>{
@@ -36,7 +38,7 @@ test('the 3D shoulder soldier has PBR camouflage, a physical launcher and batche
  }
  const files=readFileSync('scripts/webgl-battlefield.js','utf8');
  assert.match(files,/kind==='rocket'\)return createRocketInfantry\(owner\)/);
- assert.match(files,/entity\.kind==='rocket'/);
+ assert.match(files,/entry\.kind==='rocket'/,'authored-GLB loading uses the current actor entry when attaching the physical launcher');
 });
 
 test('shoulder rocket launches a real guided missile that follows a moving air target',()=>{
@@ -50,7 +52,7 @@ test('shoulder rocket launches a real guided missile that follows a moving air t
  assert.ok(shot);
  assert.equal(shot.type,'antiArmor');
  assert.equal(shot.target,aircraft.id);
- assert.ok(shot.damage>200);
+ assert.equal(shot.damage,174);
  aircraft.x+=37;aircraft.y+=24;
  g.step(.05);
  const live=g.missiles.find(m=>m.id===shot.id);
@@ -118,4 +120,32 @@ test('rocket specialist reuses animated Atlas infantry and the real launcher in 
  assert.match(portraits,/infantryCard\?105\/h/);
  assert.match(portraits,/getObjectByName\('Atlas_Breastplate'\)/);
  assert.match(portraits,/infantryCard\?119-dh/);
+});
+
+test('rocket soldier cannot one-volley tanks and has sharply reduced splash against nearby armor',()=>{
+ const g=new Simulation(2074,11);g.units=[];g.tactical.plan=()=>{};g.aiClock=1e8;
+ g.world.blocked.fill(0);g.world.opaque.fill(0);
+ const x=1500,y=1550;
+ const soldier=g.spawn(0,{x,y},'rocket');
+ const primary=g.spawn(1,{x:x+160,y},'tank');
+ const adjacent=g.spawn(1,{x:x+178,y},'tank');
+ const outside=g.spawn(1,{x:x+201,y},'tank');
+ for(const u of [soldier,primary,adjacent,outside]){u.cooldown=1e6;u.hold=true;}
+ const hp0=primary.hp,hp1=adjacent.hp,hp2=outside.hp;
+ g.launch(soldier,primary);
+ for(let i=0;i<12;i++)g.step(.05);
+ const direct=hp0-primary.hp,secondary=hp1-adjacent.hp;
+ assert.ok(direct>=130&&direct<=175,'tracked tank must take substantial direct damage');
+ assert.ok(secondary>=0&&secondary<direct*.35,'secondary tank receives at most minor splash; separation can move it out of radius');
+ assert.equal(outside.hp,hp2,'armor outside small rocket blast is unharmed');
+ assert.equal(g.missiles.length,0,'rocket resolves exactly once');
+});
+test('rocket damage per credit and time to defeat armor allow counterplay',()=>{
+ const rocket=UNITS.rocket,tank=UNITS.tank,humvee=UNITS.rover,helicopter=UNITS.scout;
+ assert.ok(Math.ceil(tank.hp/weaponDamage({kind:'rocket'},{kind:'tank'}))>=7);
+ assert.ok(Math.ceil(humvee.hp/weaponDamage({kind:'rocket'},{kind:'rover'}))>=3);
+ assert.ok(Math.ceil(helicopter.hp/weaponDamage({kind:'rocket'},{kind:'scout'}))>=3);
+ assert.ok(rocket.cooldown>tank.cooldown);
+ assert.ok(rocket.range>tank.range,'still outranges tank main gun');
+ assert.ok(rocket.hp<humvee.hp/3,'light infantry stays vulnerable to vehicle MG');
 });

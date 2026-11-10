@@ -713,7 +713,9 @@
  width:158px;
  min-width:158px;
  height:44px;
- padding:2px 8px 2px 4px;
+ padding:2px 7px;
+ align-self:center;
+ box-sizing:border-box;
  overflow:hidden;
 }
 #sf-classic-root .top .wordmark .sandforge-hud-logo{
@@ -723,7 +725,8 @@
  max-width:100%;
  min-width:0;
  object-fit:contain;
- object-position:center;
+ object-position:50% 50%;
+ margin-inline:auto;
  mix-blend-mode:normal;
  background:transparent;
  filter:drop-shadow(0 1px 2px #000a);
@@ -2211,4 +2214,25 @@
  border-color:#525c57!important;
  outline:0!important;
  box-shadow:none!important;
+}
+
+/* Maintenance controls appear in the selected aircraft/vehicle detail,
+   without claiming extra space in the narrow lower tactical dock. */
+#sf-classic-root .sf-service-controls{
+ display:flex;flex-wrap:wrap;gap:4px;margin:5px 0 2px;
+}
+#sf-classic-root .sf-service-controls button{
+ border:1px solid #76806b;border-radius:3px;
+ background:linear-gradient(180deg,#39453d,#27322c);
+ color:#e3d9b7;padding:5px 6px;font:700 10px/1.25 var(--display,system-ui);
+ min-height:29px;cursor:pointer;
+}
+#sf-classic-root .sf-service-controls button:hover:not(:disabled){
+ background:#536352;border-color:#b6c397;color:#fff5d4;
+}
+#sf-classic-root .sf-service-controls button[aria-pressed="true"]{
+ background:#345b47;border-color:#72b38b;color:#e8f9e8;
+}
+#sf-classic-root .sf-service-controls button:disabled{
+ opacity:.4;filter:grayscale(.4);cursor:default;
 }

@@ -15,10 +15,26 @@ export const ENGINE_PROFILES:Readonly<Record<EngineKind,{
  rover:{low:67,high:117,cutoff:310,noiseHz:680,noiseQ:.5,type:'sawtooth',secondary:'triangle',volume:.075,texture:.17,pulse:0},
  tank:{low:44,high:70,cutoff:180,noiseHz:480,noiseQ:.9,type:'sawtooth',secondary:'square',volume:.095,texture:.37,pulse:11},
  artillery:{low:50,high:82,cutoff:225,noiseHz:510,noiseQ:.65,type:'sawtooth',secondary:'triangle',volume:.085,texture:.24,pulse:0},
- scout:{low:37,high:66,cutoff:330,noiseHz:760,noiseQ:.6,type:'triangle',secondary:'sawtooth',volume:.075,texture:.40,pulse:17},
+ scout:{low:37,high:66,cutoff:330,noiseHz:760,noiseQ:.6,type:'triangle',secondary:'sawtooth',volume:.095,texture:.40,pulse:17},
  bomber:{low:123,high:185,cutoff:580,noiseHz:1900,noiseQ:.55,type:'sine',secondary:'sawtooth',volume:.075,texture:.48,pulse:0}
 };
-const empty=():EngineMix=>({level:0,throttle:0,pan:0,moving:0,count:0});
+/** Only the mixer is allowed to make movement audible. No movement means
+ * zero output, even with an active (but silent) persistent WebAudio oscillator.
+ * The old 0.50 multiplier was nearly inaudible after master, FX and distance.
+ */
+export function engineAudibleGain(level:number,profileVolume:number):number{
+ return clamp(Number.isFinite(level)?level:0,0,1)*
+  clamp(Number.isFinite(profileVolume)?profileVolume:0,0,.1)*1.6;
+}
+/** A wider but softly attenuated field makes nearby moving vehicles audible
+ * at the normal tactical zoom. It never expands visibility through fog.
+ */
+export function engineAudibleRadius(width:number,height:number,zoom:number):number{
+ const viewport=Math.max(Number.isFinite(width)?width:0,Number.isFinite(height)?height:0);
+ const safeZoom=Number.isFinite(zoom)&&zoom>.01?zoom:1;
+ return clamp(viewport/safeZoom*.65,300,880);
+}
+const empty=():EngineMix=>({level:0,throttle:0,pan:0,count:0,moving:0});
 /** Audible motors require an actual change in authoritative world position
  * over the last 20 Hz simulation tick. An order, turning in place and
  * driveSpeed (which can remain nonzero while blocked) are NOT movement.

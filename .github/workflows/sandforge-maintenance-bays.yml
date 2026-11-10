@@ -1,0 +1,86 @@
+name: Airfield and factory repair bays
+
+on:
+  push:
+    branches: [main, 'feat/sandforge-*']
+    paths:
+      - '.github/workflows/sandforge-maintenance-bays.yml'
+      - 'src/reborn/airfield-maintenance.ts'
+      - 'src/reborn/factory-maintenance.ts'
+      - 'src/reborn/simulation.ts'
+      - 'src/reborn/catalog.ts'
+      - 'scripts/webgl-airfield-service.js'
+      - 'scripts/webgl-factory-service.js'
+      - 'scripts/webgl-service-materials.js'
+      - 'scripts/webgl-production-gates.js'
+      - 'tests/webgl-production-gates.test.mjs'
+      - 'scripts/webgl-service-grounding.js'
+      - 'scripts/webgl-aircraft-effects.js'
+      - 'scripts/webgl-combat-vfx.js'
+      - 'tests/webgl-aircraft-effects-20261110.test.mjs'
+      - 'scripts/webgl-battlefield.js'
+      - 'scripts/webgl-scale.js'
+      - 'tests/webgl-selection-rings.test.mjs'
+      - 'scripts/build.mjs'
+      - 'tests/webgl-hangar-factory-maintenance-20261110.test.mjs'
+      - 'scripts/webgl-environment.js'
+      - 'scripts/webgl-strategic-buildings.js'
+      - 'tests/reborn-control-retreat.test.mjs'
+      - 'tests/reborn-weather.test.mjs'
+      - 'tests/reborn.test.mjs'
+      - 'tests/webgl-desert-rock-crater-polish-20261110.test.mjs'
+      - 'tests/webgl-research-camouflage-20261109.test.mjs'
+      - 'tests/webgl-rocket-infantry-20261109.test.mjs'
+      - 'tests/webgl-airlift-scale-bomber-20261108.test.mjs'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/reborn/airfield-maintenance.ts'
+      - 'src/reborn/factory-maintenance.ts'
+      - 'src/reborn/simulation.ts'
+      - 'tests/webgl-hangar-factory-maintenance-20261110.test.mjs'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maintenance-bays-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  maintenance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - name: Check new Three.js modules
+        run: |
+          node --check scripts/webgl-airfield-service.js
+          node --check scripts/webgl-factory-service.js
+          node --check scripts/webgl-service-materials.js
+          node --check scripts/webgl-production-gates.js
+          node --check scripts/webgl-service-grounding.js
+          node --check scripts/webgl-aircraft-effects.js
+          node --check scripts/webgl-combat-vfx.js
+          node --check scripts/webgl-battlefield.js
+      - name: Compile TypeScript / build WebGL distribution
+        run: npm run build
+      - name: Test hangar and factory repair states, selection rings and Three.js visuals
+        run: node --test tests/webgl-hangar-factory-maintenance-20261110.test.mjs tests/webgl-selection-rings.test.mjs tests/webgl-aircraft-effects-20261110.test.mjs tests/webgl-production-gates.test.mjs
+      - name: Regressions - bomber course, weather, capture, craters, infantry and strategic camouflage
+        run: |
+          node --test tests/reborn-control-retreat.test.mjs \
+            tests/reborn-weather.test.mjs \
+            tests/reborn.test.mjs \
+            tests/webgl-desert-rock-crater-polish-20261110.test.mjs \
+            tests/webgl-research-camouflage-20261109.test.mjs \
+            tests/webgl-rocket-infantry-20261109.test.mjs \
+            tests/webgl-airlift-scale-bomber-20261108.test.mjs

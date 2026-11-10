@@ -75,18 +75,33 @@ export class SandforgeProductionGates {
   const entities=new Map(game.units.map(u=>[u.id,u]));
   const bases=new Map(game.bases.map(b=>[b.id,b]));
   for(const event of game.productionReleases){
-   if(this.seen.has(event))continue;this.seen.add(event);
+   if(this.seen.has(event))continue;
    const base=bases.get(event.baseId),entry=bf.bases.get(event.baseId),unit=entities.get(event.unitId);
-   // No delayed replay when streaming or loading; the authoritative actor
-   // remains visible if its building asset is unavailable or hidden.
-   if(!base||!['factory','barracks'].includes(base.kind)||!unit||time-event.at>.15||!entry?.node.visible||!this.prepare(entry)){
+   const actor=bf.units.get(event.unitId);
+   const age=time-event.at;
+   // A factory GLB can finish streaming after the real unit was produced.
+   // Briefly hold that single authoritative unit while its actual shutter
+   // loads, rather than letting it materialize outside the closed door.
+   const eligible=Boolean(base&&['factory','barracks'].includes(base.kind)&&
+    unit&&unit.hp>0&&entry?.node.visible&&actor);
+   const ready=eligible&&this.prepare(entry)&&!this.active.has(base.id);
+   if(!ready){
+    if(eligible&&game.stageWebGLProduction===true&&age>=0&&age<5.5){
+     game.extendProductionDeparture?.(event.unitId,game.time+.2);
+     actor.node.visible=false;
+     continue;
+    }
+    this.seen.add(event);
     game.cancelProductionDeparture?.(event.unitId);
+    if(actor)actor.node.visible=true;
     continue;
    }
-   if(this.active.has(base.id)){
-    game.cancelProductionDeparture?.(event.unitId);
+   // The classic presentation still ignores events that arrive late.
+   if(age>.15&&game.stageWebGLProduction!==true){
+    this.seen.add(event);game.cancelProductionDeparture?.(event.unitId);
     continue;
    }
+   this.seen.add(event);
    entry.node.updateWorldMatrix(true,true);
    const barracks=base.kind==='barracks',root=entry.gate.root;
    const exit=root.localToWorld(barracks?new THREE.Vector3(-.18,0,2.10):new THREE.Vector3(.18,0,2.9));
@@ -103,12 +118,13 @@ export class SandforgeProductionGates {
    // Freeze only the real simulation actor's departure, NOT production or
    // its paid rally order. At the exact portal hand-off it resumes ordinary
    // 20 Hz movement from the same lawful spawn with no visual teleport.
-   game.extendProductionDeparture?.(unit.id,event.at+GATE_TIMING.warning+GATE_TIMING.opening+duration+.05);
-   this.active.set(base.id,{event,duration,orders:orderKey(unit),hp:unit.hp,baseHp:base.hp});
+   const visualAt=age>.15&&game.stageWebGLProduction===true?game.time:event.at;
+   game.extendProductionDeparture?.(unit.id,visualAt+GATE_TIMING.warning+GATE_TIMING.opening+duration+.05);
+   this.active.set(base.id,{event,visualAt,duration,orders:orderKey(unit),hp:unit.hp,baseHp:base.hp});
   }
   for(const [id,state] of this.active){
    const {event}=state,base=bases.get(id),entry=bf.bases.get(id),u=entities.get(event.unitId),actor=bf.units.get(event.unitId);
-   const age=Math.max(0,time-event.at),pose=productionGatePose(age,state.duration);
+   const age=Math.max(0,time-(state.visualAt??event.at)),pose=productionGatePose(age,state.duration);
    if(!base||base.hp<=0||!u||u.hp<=0||!actor||!entry?.node.visible||!actor.node.visible||
       u.hp<state.hp||base.hp<state.baseHp||u.fire>0||u.combatTarget||orderKey(u)!==state.orders||pose.done){
     this.reset(entry);if(actor)actor.productionMotion=null;
@@ -178,7 +194,11 @@ export class SandforgeProductionGates {
    // An interrupted rollout reveals the real node at its real position.
    const worldPoint={x:p.x+bf.world.size/2,y:p.z+bf.world.size/2};
    const obstacles=game.obstacles?.().filter(b=>b.id!==id)??[];
-   let blocked=pose.moving&&bf.world.walkable?.(worldPoint,obstacles,24)===false;
+   // The door starts INSIDE its own collision footprint. Check ordinary
+   // walkability only after the unit's hull clears the threshold; player
+   // actors blocking the visible route remain genuine abort conditions.
+   let blocked=pose.moving&&fraction>=clearFraction&&
+    bf.world.walkable?.(worldPoint,obstacles,24)===false;
    if(pose.moving)for(const [otherId,other] of bf.units){
     if(otherId===u.id||!other.node.visible)continue;
     if(Math.hypot(p.x-other.node.position.x,p.z-other.node.position.z)<48){blocked=true;break;}
