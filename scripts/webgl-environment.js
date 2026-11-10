@@ -2,20 +2,52 @@ import * as THREE from 'three';
 import {createGroundDetails} from '/src/reborn/battlefield-atmosphere.js';
 import {stoneMaterial,weatheredStoneGeometry} from '/webgl-rock-materials.js';
 
+/** Reproduce the exact heights of the 4x4 × 56-segment rendered terrain.
+ * Sampling the mathematical heightfield alone is insufficient: the ground
+ * GPU mesh linearly interpolates between vertices, and decals can clip into
+ * steep dunes if that interpolation is ignored. Cache sampled grid corners.
+ */
+export function renderGroundHeightSampler(heightAt,size,segments=224){
+ const spacing=size/segments,cache=new Map();
+ const corner=(i,j)=>{
+  const key=j*(segments+1)+i;
+  if(!cache.has(key))cache.set(key,heightAt(i*spacing,j*spacing));
+  return cache.get(key);
+ };
+ return (x,z)=>{
+  const gx=Math.max(0,Math.min(segments,x/spacing));
+  const gz=Math.max(0,Math.min(segments,z/spacing));
+  const i=Math.min(segments-1,Math.floor(gx));
+  const j=Math.min(segments-1,Math.floor(gz));
+  const tx=gx-i,tz=gz-j;
+  const a=corner(i,j),b=corner(i+1,j),
+   c=corner(i,j+1),d=corner(i+1,j+1);
+  // Same diagonal and barycentric weights as buildTerrain() in preview.
+  return tx+tz<=1?
+   a*(1-tx-tz)+b*tx+c*tz:
+   b*(1-tz)+c*(1-tx)+d*(tx+tz-1);
+ };
+}
+
 /** Pre-bake every crater into one terrain-following, textured decal mesh.
  * Each vertex samples the *existing* render heightfield, so no part of a
  * crater punches through a dune or floats as a bright geometric tire ring.
  * The only geometry is a flat surface offset above terrain: zero collision,
  * zero per-frame height samples, no changes to saves or simulation.
  */
-export function createConformingCraterGeometry(craters,{pos,lowQuality=false,spacious=true}){
+export function createConformingCraterGeometry(craters,{
+ pos,lowQuality=false,spacious=true,heightAt=null,worldSize=0
+}){
+ const sampleGround=heightAt&&worldSize>0?
+  renderGroundHeightSampler(heightAt,worldSize):null;
  const segments=lowQuality?18:28;
  const radii=[.18,.38,.59,.77,.91,1];
  const positions=[],uvs=[],indices=[];
  const half=spacious?.60:1;
  const emit=(x,z,u,v)=>{
   const point=pos(x,z);
-  positions.push(point.x,point.y+.32,point.z);
+  const ground=sampleGround?sampleGround(x,z):point.y;
+  positions.push(point.x,ground+.24,point.z);
   uvs.push(u,v);
   return positions.length/3-1;
  };
@@ -127,7 +159,8 @@ export class DesertArtPass {
   // One shared mesh, and one draw call, in both standard and lite modes.
   // Replaces the old unsupported flat instanced quads + raised ring meshes.
   const geometry=createConformingCraterGeometry(crater,{
-   pos:this.pos,lowQuality:this.lowQuality,spacious
+   pos:this.pos,lowQuality:this.lowQuality,spacious,
+   heightAt:this.heightAt,worldSize:this.world.size
   });
   const mesh=new THREE.Mesh(geometry,
    new THREE.MeshBasicMaterial({map:this.makeCraterTexture(),transparent:true,
