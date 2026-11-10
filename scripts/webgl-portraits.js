@@ -1,6 +1,8 @@
 import * as THREE from 'three';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {clone as cloneSkeleton} from 'three/addons/utils/SkeletonUtils.js';
 import {createStrategicBuilding,isStrategicBuilding} from './webgl-strategic-buildings.js';
-import {createRocketInfantry} from './webgl-rocket-infantry.js';
+import {createRocketInfantry,attachRocketLauncherToInfantry} from './webgl-rocket-infantry.js';
 import {createResearchArtwork,RESEARCH_ARTWORK_KINDS} from './webgl-research-artworks.js';
 import {tintFactionMaterials} from './webgl-faction-accents.js';
 
@@ -255,11 +257,30 @@ export function unitIcon(kind,renderer){
  if(kind==='rocket'&&!renderer)return Promise.resolve(rocketUnitIconFallback());
  if(kind==='rocket'&&!iconCache.has(kind)){
   iconCache.set(kind,new Promise((resolve,reject)=>{
-   requestAnimationFrame(()=>{
-    try{resolve(renderModelPortrait(createRocketInfantry(0),renderer,{width:192,height:132}));}
-    catch(error){reject(error);}
+   requestAnimationFrame(async()=>{
+    try{
+     // The catalog uses the SAME animated Atlas body and physical launcher
+     // as the battle. Do not crop a static, unrelated toy-like placeholder.
+     const data=await new GLTFLoader().loadAsync('/src/assets/reborn/prototype/infantry-0.glb');
+     const model=cloneSkeleton(data.scene);
+     // renderModelPortrait disposes temporary geometry/materials: clone them
+     // so the loader's cached GLB assets never become unusable in gameplay.
+     model.traverse(node=>{
+      if(!node.isMesh)return;
+      node.geometry=node.geometry.clone();
+      node.material=Array.isArray(node.material)?
+       node.material.map(m=>m.clone()):node.material.clone();
+     });
+     attachRocketLauncherToInfantry(model,0);
+     resolve(renderModelPortrait(model,renderer,{width:192,height:132}));
+    }catch(error){reject(error);}
    });
-  }).catch(error=>{iconCache.delete(kind);console.warn('Rocket 3D portrait fallback:',error);return rocketUnitIconFallback();}));
+  }).catch(error=>{
+   iconCache.delete(kind);
+   console.warn('Animated rocket 3D portrait fallback:',error);
+   try{return renderModelPortrait(createRocketInfantry(0),renderer,{width:192,height:132});}
+   catch{return rocketUnitIconFallback();}
+  }));
  }
  if(!iconCache.has(kind))iconCache.set(kind,rasterizeUnitIcon(kind).catch(error=>{
   iconCache.delete(kind);throw error;
