@@ -11,7 +11,7 @@ import {visibleBasePropColliders} from './vehicle-decor-collision.js';
 import {vehicleStructureCollider,vehicleStructureColliders} from './vehicle-structure-collision.js';
 import {infantryStructureCollider,infantryStructureColliders} from './infantry-structure-collision.js';
 import {bastionStructureColliders} from './bastion-structure-collision.js';
-import {constructionVisualClearance} from './construction-spacing.js';
+import {sitesVisuallyOverlap,siteNearBastion,siteExceedsMap,type SiteFacing} from './construction-spacing.js';
 import {segmentDistance} from './world-generation.js';
 import {canCaptureSector,captureSeconds} from './territory-warfare.js';
 import { UNITS, BUILDINGS, TANK_MG, canAttack, weaponDamage, unitSpec, buildingSpec, unitKinds, MAX_GENERATORS_PER_FACTION, type UnitKind, type BuildingKind } from './catalog.js';
@@ -606,7 +606,7 @@ export class Simulation {
     const at=index===undefined?b.queue.length-1:index;if(at<0||at>=b.queue.length)return;
     b.queue.splice(at,1);const kind=b.queueTypes.splice(at,1)[0]??'infantry';this.credits[b.owner]+=b.queueCosts?.splice(at,1)[0]??UNITS[kind].cost;if(at===0||!b.queue.length)b.production=0;
   }
-  buildError(owner:Faction,kind:BuildingKind,p:Point):string|null {
+  buildError(owner:Faction,kind:BuildingKind,p:Point,facing:SiteFacing=0):string|null {
     const spec=BUILDINGS[kind];
     if(!Number.isFinite(p.x)||!Number.isFinite(p.y))return 'Ungültiger Kartenbereich.';
     if(!spec||this.status!=='playing')return 'Dieses Gebäude kann hier nicht errichtet werden.';
@@ -637,21 +637,27 @@ export class Simulation {
       if(!this.world.walkable(q))return 'Felsen oder Kartenrand blockieren die Grundfläche.';
     }
     for(let i=0;i<32;i++)if(!this.world.walkable({x:p.x+Math.cos(i*Math.PI/16)*spec.radius,y:p.y+Math.sin(i*Math.PI/16)*spec.radius}))return 'Die gesamte Grundfläche muss frei sein.';
-    if(this.obstacles().some(b=>distance(b,p)<constructionVisualClearance(kind,b.kind)))return 'Zu nah an einem anderen Gebäude.';
-    if(this.territories.some(t=>distance(t.point,p)<spec.radius+45))return 'Bastion und Kontrollpunkt müssen frei bleiben.';
+    // Authoritative faction-neutral ART clearance: the old radius ignored
+    // extended runways, repair garages and bastion tower silhouettes. AI and
+    // human players now share the same rotated site checks.
+    if(siteExceedsMap(kind,p,facing,this.world.size))return 'Gebäude oder Landebahn ragen über den Kartenrand.';
+    if(this.obstacles().some(b=>sitesVisuallyOverlap(kind,p,facing,b.kind,b,b.facing??0)))
+      return 'Zu nah an einem anderen Gebäude.';
+    if(this.territories.some(t=>siteNearBastion(kind,p,facing,t.point)))
+      return 'Bastion und Kontrollpunkt brauchen mehr Abstand.';
     // Placement and actual navigation must agree: the visible facade is wider
     // and offset north of Base.radius. A worker can otherwise be inside the
     // newly spawned factory wall before receiving its first build order.
     const infantryFacade=infantryStructureCollider(kind,p),vehicleFacade=vehicleStructureCollider(kind,p);
     if(this.units.some(u=>{
-      if(u.hp<=0||u.carrier||unitSpec(u).flying)return false;
+      if(u.hp<=0||u.carrier||unitSpec(u).flying||u.owner===owner&&u.kind==='engineer')return false;
       const facade=unitSpec(u).group==='Fahrzeuge'?vehicleFacade:infantryFacade;
       return distance(u,facade)<facade.radius+unitSpec(u).radius;
     }))return 'Einheiten blockieren die Baustelle.';
     return null;
   }
   build(owner:Faction,kind:BuildingKind,p:Point,workerIds?:number[],facing:0|1|2|3=0,append=false):Base|null {
-    if(this.buildError(owner,kind,p))return null;
+    if(this.buildError(owner,kind,p,facing))return null;
     const workers=this.units.filter(u=>u.owner===owner&&u.kind==='engineer'&&u.hp>0&&!u.carrier&&(!workerIds||workerIds.includes(u.id)));
     if(!workers.length)return null;
     const spec=BUILDINGS[kind],territory=this.territories.find(t=>inside(p,t.polygon))!;
