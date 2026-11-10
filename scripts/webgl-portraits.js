@@ -129,13 +129,25 @@ function renderModelPortrait(model,renderer,{width=320,height=220,research=false
   const w=right-left+1,h=bottom-top+1;
   // Same pixel bounds and bottom alignment as rasterizeUnitIcon('heavy').
   // This prevents the shoulder launcher from altering the soldier's apparent size.
-  const scale=infantryCard?
-   Math.min(144/w,105/h):
+  // Scale infantry by body height, NOT by the shoulder launcher's width.
+  // Otherwise the longer weapon makes the entire rocket soldier appear tiny.
+  const scale=infantryCard?105/h:
    Math.min(width*(research?.89:.93)/w,height*(research?.89:.92)/h);
   const dw=w*scale,dh=h*scale;
+  let drawX=(width-dw)/2;
+  if(infantryCard){
+   // Frame on the armored torso, not on the launcher protruding to one side.
+   // Heavy infantry's atlas similarly centers the soldier rather than the gun.
+   const torso=model.getObjectByName('Atlas_Breastplate');
+   if(torso){
+    const projected=torso.getWorldPosition(new THREE.Vector3()).project(camera);
+    const pixelX=(projected.x*.5+.5)*width;
+    drawX=width*.5-(pixelX-left)*scale;
+   }
+  }
   ctx.clearRect(0,0,width,height);
   ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
-  ctx.drawImage(raw,left,top,w,h,(width-dw)/2,infantryCard?119-dh:(height-dh)/2,dw,dh);
+  ctx.drawImage(raw,left,top,w,h,drawX,infantryCard?119-dh:(height-dh)/2,dw,dh);
   return output.toDataURL('image/png');
  }finally{
   renderer.setRenderTarget(oldTarget);
