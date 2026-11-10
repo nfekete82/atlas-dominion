@@ -165,9 +165,40 @@ export function createAirfieldServiceYard(){
   box(group,'HangarSecurityLampMast',5,60,5,x,32,32,steel);
   box(group,'HangarSecurityLamp',18,7,12,x,64,32,yellow);
  }
- box(group,'AirfieldMaintenancePlant',32,18,47,-207,12,-147,camo);
- box(group,'AirfieldMaintenanceAirDuct',12,4,28,-206,24,-150,steel);
- box(group,'AirfieldFuelServiceContainer',36,24,48,205,13,-110,camo);
+ // Keep both aircraft door approaches fully empty. The control tower,
+ // fuel tanks and ancillary equipment occupy the outside LEFT service strip.
+ // The right maintenance bay is as unobstructed as the first.
+ const towerX=-298,towerZ=-89;
+ box(group,'AirfieldLeftControlTowerFoundation',88,9,86,towerX,5,towerZ,wornPaving);
+ const shaft=box(group,'AirfieldLeftControlTowerShaft',61,111,58,towerX,62,towerZ,wallCamo);
+ for(const y of [26,54,83,110])
+  box(group,'AirfieldLeftControlTowerArmorBand',67,4,64,towerX,y,towerZ,ribbedSteel);
+ for(const side of [-1,1]){
+  box(group,'AirfieldLeftControlTowerRecess',6,67,17,towerX+side*32,71,towerZ,roofCamo);
+  for(const y of [38,64,90])
+   box(group,'AirfieldLeftControlTowerVent',7,3,23,towerX+side*35,y,towerZ,steel);
+ }
+ box(group,'AirfieldLeftControlTowerDeck',110,11,102,towerX,125,towerZ,ribbedSteel);
+ box(group,'AirfieldLeftControlTowerGlazing',102,35,94,towerX,148,towerZ,glass);
+ for(const x of [-36,-12,12,36])for(const z of [-48,48])
+  box(group,'AirfieldLeftControlTowerMullion',3,33,4,towerX+x,148,towerZ+z,steel);
+ for(const z of [-31,0,31])for(const x of [-53,53])
+  box(group,'AirfieldLeftControlTowerSideMullion',4,32,3,towerX+x,148,towerZ+z,steel);
+ box(group,'AirfieldLeftControlTowerRoof',118,9,108,towerX,170,towerZ,roofCamo);
+ box(group,'AirfieldLeftControlTowerAntenna',3,42,3,towerX+39,196,towerZ-26,steel);
+ box(group,'AirfieldLeftControlTowerSignalLamp',10,5,10,towerX+39,220,towerZ-26,yellow);
+ for(const x of [towerX-48,towerX+48])for(const z of [towerZ-47,towerZ+47])
+  box(group,'AirfieldLeftControlTowerRoofPost',3,13,3,x,182,z,steel);
+ // Reposition the gas infrastructure to the far-left outer service strip,
+ // never across the left or right aircraft arrival/repair corridors.
+ box(group,'AirfieldMaintenancePlant',32,18,47,-347,12,-166,camo);
+ box(group,'AirfieldMaintenanceAirDuct',12,4,28,-346,24,-166,steel);
+ box(group,'AirfieldFuelServiceContainer',36,24,48,-310,13,75,camo);
+ for(const z of [41,109]){
+  box(group,'AirfieldFuelServiceTank',21,19,46,-342,15,z,sand);
+  box(group,'AirfieldFuelServicePipe',5,4,44,-321,11,z,steel);
+ }
+ box(group,'AirfieldFuelServicePump',18,24,18,-306,13,136,dark);
  for(const x of [-169,-134,-44,-8])
   box(group,'HangarSafetyChevron',8,.15,5,x,3.5,42,yellow);
  group.traverse(mesh=>{if(mesh.isMesh){mesh.castShadow=false;mesh.receiveShadow=false;mesh.raycast=()=>{};}});
@@ -271,7 +302,7 @@ export function updateAirfieldServiceYard(entry,base,units,time,dt){
 export function hideOldAirfieldHangar(entry){
  if(!entry.detail||entry.airfieldOldHidden)return;
  entry.detail.traverse(child=>{
-  if(/^(Hangar|ParkedJet|JetWheel|AirfieldRunway|AirfieldConcreteApron|TaxiwayFromHangar|Runway|ApronStopLine|SecurityPerimeter)/.test(child.name))
+  if(//^(Hangar|ParkedJet|JetWheel|AirfieldRunway|AirfieldConcreteApron|TaxiwayFromHangar|Runway|ApronStopLine|SecurityPerimeter|ControlTower|Tower|MaintenanceServiceBlock|ServiceFlatRoof|ServiceRollerDoor|ServiceDoorLouvre|RoofCoolingUnit|AntennaEquipmentPad|FuelStorageTank|FuelTankSteelBand|FuelTankSupport|FuelPipingMain|FuelPipeTap|CargoContainer|AirbaseFloodlightMast|AirbaseFloodlightTop|AirbaseFloodlightLens)//.test(child.name))
    child.visible=false;
  });
  entry.airfieldOldHidden=true;
