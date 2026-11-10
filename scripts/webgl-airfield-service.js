@@ -82,9 +82,6 @@ export function createAirfieldServiceYard(){
   box(group,'HangarRearVent_'+bay,45,17,3,cx,45,rear-5,dark);
   for(const y of [39,45,51])
    box(group,'HangarRearVentRib_'+bay,42,2,4,cx,y,rear-7,ribbedSteel);
-  { // existing loop below handles the two large hangar doors
-   const noop=0;void noop;
-  }
   box(group,'HangarEntryLintel_'+bay,124,7,9,cx,80,front,steel);
   box(group,'HangarBayNumber_'+bay,23,3,4,cx,82,front+5,yellow);
   for(const side of [-1,1])
