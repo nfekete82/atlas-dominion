@@ -303,7 +303,7 @@ export function hideOldAirfieldHangar(entry){
  if(!entry.detail||entry.airfieldOldHidden)return;
  entry.detail.traverse(child=>{
   if(/^(?:Atlas_)?(?:Hangar|ParkedJet|JetWheel|AirfieldRunway|AirfieldConcreteApron|TaxiwayFromHangar|Runway|ApronStopLine|SecurityPerimeter|ControlTower|Tower|MaintenanceServiceBlock|ServiceFlatRoof|ServiceRollerDoor|ServiceDoorLouvre|RoofCoolingUnit|AntennaEquipmentPad|AntennaStem|Beacon|FuelStorageTank|FuelTankSteelBand|FuelTankSupport|FuelPipingMain|FuelPipeTap|CargoContainer|AirbaseFloodlightMast|AirbaseFloodlightTop|AirbaseFloodlightLens|GroundPlinth|CeramicFoundation)/.test(child.name))
-   child.visible=false;
+   {child.visible=false;child.userData.airfieldLegacyHidden=true;}
  });
  entry.airfieldOldHidden=true;
 }
