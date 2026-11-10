@@ -173,6 +173,75 @@ export function createAirfieldServiceYard(){
  group.traverse(mesh=>{if(mesh.isMesh){mesh.castShadow=false;mesh.receiveShadow=false;mesh.raycast=()=>{};}});
  return group;
 }
+/** Terrain-following surface mesh used by both the construction ghost and
+ * the final airfield. The runway previously sank into dune crests because
+ * its entire 980-unit length was fixed to the building-center elevation.
+ * Render-only: no terrain edits, building collisions or aircraft state changes.
+ *
+ * The long paving is remeshed once with 16-unit subdivisions. Subsequent
+ * mouse moves update the existing vertex buffer, without allocating meshes.
+ * The same function is called for the ghost at its prospective location and
+ * for the built site, including every cardinal facing.
+ */
+const AIRFIELD_GROUND_SURFACE=/^(AirfieldExpandedConcreteApron|AirfieldRunwaySandShoulder|AirfieldExtendedRunway|AirfieldAircraftParking|AirfieldRunwayCenterDash|AirfieldRunwayEdgeLine|AirfieldRunwayThreshold|AirfieldRunwayLandingBars|AirfieldTouchdownRubber|AirfieldTaxiCrossGuide|AirfieldTaxiGuideDash|HangarCenterGuide|HangarApronStop|HangarSafetyChevron|AirfieldApronExpansionJoint)$/;
+const AIRFIELD_GROUND_PROPS=/^(AirfieldRunwayLamp|AirfieldAircraftParkingChock)$/;
+export function conformAirfieldSurface(group,base,heightAt,{force=false}={}){
+ if(!group||typeof heightAt!=='function'||!Number.isFinite(base?.x)||!Number.isFinite(base?.y))return 0;
+ const yaw=[0,Math.PI,Math.PI/2,Math.PI*1.5][base.facing??0]??0;
+ const cs=Math.cos(yaw),sn=Math.sin(yaw);
+ const origin=heightAt(base.x,base.y);
+ if(!Number.isFinite(origin))return 0;
+ let changed=0;
+ group.traverse(mesh=>{
+  if(!mesh.isMesh||!mesh.geometry?.parameters)return;
+  const name=mesh.name;
+  if(!AIRFIELD_GROUND_SURFACE.test(name)&&!AIRFIELD_GROUND_PROPS.test(name))return;
+  const old=mesh.geometry;
+  if(AIRFIELD_GROUND_PROPS.test(name)){
+   // Lamps/chocks stand on the same draped pavement, rather than becoming
+   // buried below the surrounding sand.
+   const y0=mesh.userData.airfieldBaseY??mesh.position.y;
+   mesh.userData.airfieldBaseY=y0;
+   const wx=base.x+mesh.position.x*cs+mesh.position.z*sn;
+   const wz=base.y-mesh.position.x*sn+mesh.position.z*cs;
+   const rise=heightAt(wx,wz)-origin;
+   if(Number.isFinite(rise))mesh.position.y=y0+rise;
+   changed++;return;
+  }
+  const {width:w,height:h,depth:d}=old.parameters;
+  if(!Number.isFinite(w)||!Number.isFinite(d))return;
+  let data=mesh.userData.airfieldTerrainData;
+  if(!data){
+   // No excessive tessellation for 2-unit stripes; the long central paving
+   // gets a proper grid that matches the 3D heightfield, including crests.
+   const nx=Math.max(1,Math.min(34,Math.ceil(w/18)));
+   const nz=Math.max(1,Math.min(64,Math.ceil(d/18)));
+   const geometry=new THREE.BoxGeometry(w,h,d,nx,1,nz);
+   const verts=geometry.getAttribute('position');
+   data={original:Float32Array.from(verts.array),geometry};
+   mesh.geometry=geometry;mesh.userData.airfieldTerrainData=data;
+   old.dispose();
+  }
+  const verts=data.geometry.getAttribute('position');
+  const source=data.original;
+  for(let i=0;i<verts.count;i++){
+   const at=i*3;
+   const x=mesh.position.x+source[at],z=mesh.position.z+source[at+2];
+   const wx=base.x+x*cs+z*sn,wz=base.y-x*sn+z*cs;
+   const sampled=heightAt(wx,wz);
+   // Three.js samples the same terrain used for unit grounding. An
+   // extra two world units avoids microscopic z fighting at steep edges.
+   const rise=Number.isFinite(sampled)?sampled-origin+2:0;
+   verts.setY(i,source[at+1]+rise);
+  }
+  verts.needsUpdate=true;
+  data.geometry.computeVertexNormals();
+  data.geometry.computeBoundingSphere();
+  changed++;
+ });
+ return changed;
+}
+
 export function updateAirfieldServiceYard(entry,base,units,time,dt){
  const group=entry.airfieldServiceYard;if(!group)return;
  for(const bay of [0,1]){
