@@ -16,6 +16,15 @@ on:
       - 'scripts/webgl-scale.js'
       - 'scripts/build.mjs'
       - 'tests/webgl-hangar-factory-maintenance-20261110.test.mjs'
+      - 'scripts/webgl-environment.js'
+      - 'scripts/webgl-strategic-buildings.js'
+      - 'tests/reborn-control-retreat.test.mjs'
+      - 'tests/reborn-weather.test.mjs'
+      - 'tests/reborn.test.mjs'
+      - 'tests/webgl-desert-rock-crater-polish-20261110.test.mjs'
+      - 'tests/webgl-research-camouflage-20261109.test.mjs'
+      - 'tests/webgl-rocket-infantry-20261109.test.mjs'
+      - 'tests/webgl-airlift-scale-bomber-20261108.test.mjs'
   pull_request:
     branches: [main]
     paths:
@@ -55,3 +64,12 @@ jobs:
         run: npm run build
       - name: Test hangar and factory repair states and Three.js visuals
         run: node --test tests/webgl-hangar-factory-maintenance-20261110.test.mjs
+      - name: Regressions - bomber course, weather, capture, craters, infantry and strategic camouflage
+        run: |
+          node --test tests/reborn-control-retreat.test.mjs \
+            tests/reborn-weather.test.mjs \
+            tests/reborn.test.mjs \
+            tests/webgl-desert-rock-crater-polish-20261110.test.mjs \
+            tests/webgl-research-camouflage-20261109.test.mjs \
+            tests/webgl-rocket-infantry-20261109.test.mjs \
+            tests/webgl-airlift-scale-bomber-20261108.test.mjs
