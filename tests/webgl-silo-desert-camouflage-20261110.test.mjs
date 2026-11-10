@@ -42,12 +42,13 @@ test('missile silo and research center share desert khaki and olive PBR paint',(
    colors.add(`${p[i] >> 4}:${p[i+1] >> 4}:${p[i+2] >> 4}`);
   }
   assert.ok(colors.size>3,'camouflage must contain visible varied three-tone paint');
-  for(const materialName of ['SF_camoOlive','SF_camoSand']){
-   assert.ok(meshes(silo).some(n=>n.material.name===materialName),
-    materialName+' paint accents must be present');
+  assert.ok(meshes(silo).some(n=>n.material.name==='SF_camoOlive'),
+   'olive accent panels must remain visible on the silo');
+  assert.ok(meshes(silo).some(n=>n.material.name==='SF_armor'),
+   'sand accents reuse the real three-tone armoured camouflage atlas');
+  for(const materialName of ['SF_camoOlive','SF_camoSand'])
    assert.ok(meshes(research).some(n=>n.material.name===materialName),
     'research lab camouflage must remain available');
-  }
   assert.ok(meshes(silo).length<=20,'static wall patches must remain batched');
   assert.ok(silo.getObjectByName('Silo_RocketBody'));
   assert.ok(silo.getObjectByName('Silo_RocketNose'));
