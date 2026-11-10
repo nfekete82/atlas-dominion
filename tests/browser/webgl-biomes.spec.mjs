@@ -51,3 +51,39 @@ test('WebGL new-game menu offers desert, snow and jungle',async({page})=>{
  await page.locator('#sf3d-new-confirm').click();
  await expect(page).toHaveURL(/biome=jungle/);
 });
+
+
+test('desert starts by default and staged blast particles retire independently of simulation',async({page})=>{
+ test.setTimeout(120000);
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/webgl-preview.html?bastions=4&seed=2074&terrain=open&play=1&pause=1&lite=1',
+  {waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:100000});
+ const state=await page.evaluate(()=>{
+  const scene=window.__sandforgeWebGL,fx=scene.effects,game=scene.game;
+  const unit=game.units.find(u=>u.owner===0&&u.hp>0&&!u.carrier);
+  const timeBefore=game.time;
+  if(!game.canSee(0,{x:unit.x,y:unit.y}))throw new Error('Player spawn must be visible');
+  fx.blastAt(unit.x,unit.y,true);
+  const impactHeight=scene.heightAt(unit.x,unit.y);
+  const cached=fx.shocks.at(-1)?.y;
+  fx.update(.06,true);
+  const active={flash:fx.flash.mesh.count,smoke:fx.smoke.mesh.count,
+   shock:fx.shockwave.count,scorch:fx.scorch.count};
+  fx.update(.30,true);
+  return {biome:scene.biome,cached,impactHeight,active,
+   flashAfter:fx.flash.mesh.count,simulationTime:game.time,timeBefore,
+   particleBudget:fx.flash.max,flashName:fx.flash.mesh.name};
+ });
+ expect(state.biome).toBe('desert');
+ expect(state.cached).toBeCloseTo(state.impactHeight+3,4);
+ expect(state.active.flash).toBeGreaterThan(0);
+ expect(state.active.flash).toBeLessThanOrEqual(state.particleBudget);
+ expect(state.active.smoke).toBeGreaterThan(0);
+ expect(state.active.shock).toBeGreaterThan(0);
+ expect(state.active.scorch).toBeGreaterThan(0);
+ expect(state.flashAfter).toBe(0);
+ expect(state.flashName).toBe('visual-combat-flash');
+ expect(state.simulationTime).toBe(state.timeBefore);
+ expect(errors).toEqual([]);
+});
