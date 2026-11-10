@@ -48,7 +48,11 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
  // counter deficit. Queue counts make this stable across successive pulses.
  const counter=():UnitKind|null=>{
   if(observed.air){
-   if(available('rocket')&&count('rocket')<Math.min(3,Math.max(1,observed.air)))return 'rocket';
+   // A 250-credit heavy can defend immediately while we cannot yet fund a
+   // 325-credit guided launcher. Upgrade the observed-air counter to a paid
+   // rocket specialist as soon as the guarded budget actually allows it.
+   if(available('rocket')&&count('rocket')<Math.min(3,Math.max(1,observed.air))&&
+      g.credits[1]-c.reserve>=UNITS.rocket.cost)return 'rocket';
    if(available('heavy')&&count('heavy')<Math.min(3,Math.ceil(observed.air/2)))return 'heavy';
   }
   if(observed.armor>=2&&available('tank')&&count('tank')<Math.min(4,Math.ceil(observed.armor/2)))return 'tank';
