@@ -22,6 +22,8 @@ on:
       - 'scripts/webgl-scale.js'
       - 'scripts/webgl-selection-ring.js'
       - 'tests/webgl-facility-preview-smallarms-20261110.test.mjs'
+      - 'tests/webgl-facility-clearance-terrain-20261110.test.mjs'
+      - 'src/reborn/construction-spacing.ts'
       - 'tests/sandforge-tank-balance.test.mjs'
       - 'tests/webgl-selection-rings.test.mjs'
       - 'scripts/build.mjs'
@@ -75,10 +77,12 @@ jobs:
           node --check scripts/webgl-combat-vfx.js
           node --check scripts/webgl-battlefield.js
           node --check scripts/webgl-selection-ring.js
+          node --check scripts/webgl-airfield-service.js
+          node --check scripts/webgl-builder-input.js
       - name: Compile TypeScript / build WebGL distribution
         run: npm run build
       - name: Test hangar and factory repair states, selection rings and Three.js visuals
-        run: node --test tests/webgl-hangar-factory-maintenance-20261110.test.mjs tests/webgl-selection-rings.test.mjs tests/webgl-facility-preview-smallarms-20261110.test.mjs tests/sandforge-tank-balance.test.mjs tests/webgl-aircraft-effects-20261110.test.mjs tests/webgl-production-gates.test.mjs
+        run: node --test tests/webgl-hangar-factory-maintenance-20261110.test.mjs tests/webgl-selection-rings.test.mjs tests/webgl-facility-preview-smallarms-20261110.test.mjs tests/webgl-facility-clearance-terrain-20261110.test.mjs tests/sandforge-tank-balance.test.mjs tests/webgl-aircraft-effects-20261110.test.mjs tests/webgl-production-gates.test.mjs
       - name: Regressions - bomber course, weather, capture, craters, infantry and strategic camouflage
         run: |
           node --test tests/reborn-control-retreat.test.mjs \
