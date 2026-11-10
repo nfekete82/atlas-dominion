@@ -99,6 +99,10 @@ test('build ghost and completed buildings use identical 3D asset and site genera
  assert.ok(begin.includes('placeholder.visible=false'));
  assert.ok(begin.includes('model.visible=false'));
  assert.ok(begin.includes('ConstructionPlacementGuides'));
+ assert.match(begin,/opacity:\.234,depthWrite:false,depthTest:false/,
+  'guide wireframe is 30% stronger, but still transparent');
+ assert.match(begin,/opacity:\.0715,depthWrite:false,depthTest:false/,
+  'ground blueprint has matching subtle 30% increase');
  assert.ok(begin.includes('if(mesh.isMesh&&'));
  assert.ok(!begin.includes('placeholder.visible=true'));
 
@@ -110,10 +114,10 @@ test('build ghost and completed buildings use identical 3D asset and site genera
 
  assert.ok(begin.includes('calibratedScale('));
  assert.ok(battlefield.includes('disposeServicePaint(preview.userData.previewService)'));
- assert.match(begin,/const tint=\(root,ownSource=false,opacity=\.045\)/,'buildings are faint holograms');
+ assert.match(begin,/const tint=\(root,ownSource=false,opacity=\.0585\)/,'buildings are faint holograms');
  assert.match(begin,/m\.opacity=Math\.min\(mat\.opacity\?\?1,opacity\)/);
- assert.match(begin,/tint\(yard,false,\.04\)/,'fences and courtyard props remain faint');
- assert.match(begin,/tint\(service,true,\.045\)/,'runway and service stations remain faint');
+ assert.match(begin,/tint\(yard,false,\.052\)/,'fences and courtyard props remain faint');
+ assert.match(begin,/tint\(service,true,\.0585\)/,'runway and service stations remain faint');
  assert.match(begin,/opacity:\.21,depthTest:false/,'placement circle does not dominate ghost');
 });
 
