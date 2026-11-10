@@ -1400,10 +1400,16 @@ export class Simulation {
         missile.to={x:guided.x,y:guided.y};
     }
     for(const missile of this.missiles)if(missile.impactAt<=this.time){
-      const antiArmor=missile.type==='antiArmor',radius=antiArmor?44:missile.type==='bomb'?94:60;
+      const antiArmor=missile.type==='antiArmor',guidedRocket=antiArmor&&missile.target!==undefined;
+      const radius=guidedRocket?32:antiArmor?44:missile.type==='bomb'?94:60;
       for(const target of [...this.units,...this.bases])if(target.owner!==missile.owner&&target.hp>0&&!('orders' in target&&(target.carrier||(unitSpec(target).flying&&missile.target===undefined)))&&distance(target,missile.to)<=radius){
         const armored='queue' in target||unitSpec(target).group!=='Infanterie';
-        const amount=missile.damage*(1-.5*distance(target,missile.to)/radius)*(antiArmor&&!armored?(missile.target!==undefined?.10:.28):1);
+        // A shoulder rocket is precision anti-armor, not a cheap cluster weapon:
+        // the tracked primary receives full damage, adjacent targets only
+        // 32% and a smaller 32m blast. Tank/artillery payloads are unchanged.
+        const secondary=guidedRocket&&target.id!==missile.target?.32:1;
+        const amount=missile.damage*(1-.5*distance(target,missile.to)/radius)*secondary*
+          (antiArmor&&!armored?(guidedRocket?.10:.28):1);
         this.strike(missile.source,target,amount);
       }
       this.blasts.push({...missile.to,id:missile.id,at:this.time});
