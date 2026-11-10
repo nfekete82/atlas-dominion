@@ -128,7 +128,9 @@ export function createStrategicBuilding(kind,owner=0){
   // machinery and team-colored glass keep their own original materials.
   for(const role of ['base','armor']){
    mats[role].map=siloDesertCamo;
-   mats[role].color.set('#ffffff');
+   // Near-white warm binder keeps the albedo colors true while remaining
+   // eligible for the same subtle blue/red ownership tint as other walls.
+   mats[role].color.set('#f3efe3');
    mats[role].userData={...mats[role].userData,sandforgeColorMapCamo:true};
   }
  }
