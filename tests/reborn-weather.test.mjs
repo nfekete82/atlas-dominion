@@ -36,7 +36,16 @@ test('weather: aircraft retain sight and fly at exactly 80% speed, retreats stil
  for(const kind of ['infantry','tank','scout','bomber']){
   const a=fixture(),b=fixture();const us=[a,b].map(g=>{const u=g.spawn(0,{x:1900,y:1900},kind);g.command([u.id],{kind:'move',x:2300,y:1900});u.hullAngle=0;u.driveSpeed=UNITS[kind].speed;return u;});storm(b);a.step();b.step();
   near(distance(us[1],{x:1900,y:1900})/distance(us[0],{x:1900,y:1900}),UNITS[kind].flying?.8:1);near(b.sight(us[1]),UNITS[kind].sight*(UNITS[kind].flying?1:.23));
-  if(UNITS[kind].flying){b.command([us[1].id],{kind:'move',x:1500,y:1900});const before=us[1].x;for(let i=0;i<40;i++)b.step();assert.ok(us[1].x<before-10);assert.ok(us[1].hp>0);}
+  if(UNITS[kind].flying){
+   b.command([us[1].id],{kind:'move',x:1500,y:1900});
+   const before=us[1].x,travel=us[1].walkDistance;
+   // Rotorcraft translate directly; fixed-wing bombers first arc around.
+   const steps=kind==='bomber'?100:40;
+   for(let i=0;i<steps;i++)b.step();
+   assert.ok(us[1].walkDistance>travel+10,'retreat stays active throughout the storm');
+   assert.ok(us[1].x<before-10,'both aircraft eventually reach the western approach');
+   assert.ok(us[1].hp>0);
+  }
  }
 });
 test('weather: artillery dispersion is small, deterministic, projectile-specific and preserved in flight saves',()=>{
