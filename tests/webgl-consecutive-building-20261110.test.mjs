@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Simulation} from '../dist/src/reborn/simulation.js';
-import {availableEngineers,chooseConstructionCrew,nearestEngineer}
+import {availableEngineers,chooseConstructionCrew,nearestEngineer,submitConstruction}
  from '../scripts/webgl-builder-input.js';
 
 /** Reproduce the actual click path:
@@ -76,4 +76,75 @@ test('reselect an idle engineer when selected builder is still assigned to compl
  assert.deepEqual(chooseConstructionCrew(availableEngineers([chosen,idle],selection)),
   {workers:[chosen],append:true});
  assert.equal(nearestEngineer([chosen,idle],{x:0,y:0}).id,17);
+});
+
+test('after a completed airfield: stale pioneer order is replaced, not queued',()=>{
+ const previous={id:67,kind:'airfield',owner:0,hp:1200,buildRemaining:0};
+ const pioneer={id:9,owner:0,kind:'engineer',hp:110,x:100,y:100,
+  orders:[{kind:'build',target:previous.id}]};
+ const calls=[];
+ const game={units:[pioneer],bases:[previous],build(owner,kind,p,ids,facing,append){
+  calls.push({kind,ids,append});
+  return {id:68,kind,owner,x:p.x,y:p.y,buildRemaining:9};
+ }};
+ const result=submitConstruction(game,'generator',{x:450,y:400},
+  new Set([pioneer.id]),0);
+ assert.ok(result.base);
+ assert.equal(result.append,false,'old completed build order must be interrupted');
+ assert.deepEqual(calls,[{kind:'generator',ids:[9],append:false}]);
+});
+
+test('after airfield the fallback uses a free pioneer even when a busy one is selected',()=>{
+ const active={id:69,kind:'airfield',owner:0,hp:1200,buildRemaining:4};
+ const busy={id:9,owner:0,kind:'engineer',hp:110,x:0,y:0,
+  orders:[{kind:'build',target:active.id}]};
+ const free={id:10,owner:0,kind:'engineer',hp:110,x:400,y:400,orders:[]};
+ const calls=[];
+ const game={units:[busy,free],bases:[active],
+  build(owner,kind,p,ids,facing,append){
+   calls.push({ids,append});
+   return ids.includes(free.id)?{id:70,kind,owner,buildRemaining:9}:null;
+  }
+ };
+ const result=submitConstruction(game,'generator',{x:430,y:420},new Set([busy.id]));
+ assert.ok(result.base);
+ assert.deepEqual(result.workers.map(u=>u.id),[free.id]);
+ assert.deepEqual(calls,[{ids:[10],append:false}]);
+});
+
+test('if the selected pioneer is trapped behind a factory, retry another reachable builder',()=>{
+ const selected={id:19,owner:0,kind:'engineer',hp:110,x:250,y:150,orders:[]};
+ const alternative={id:22,owner:0,kind:'engineer',hp:110,x:550,y:400,orders:[]};
+ const calls=[];
+ const game={units:[selected,alternative],bases:[],
+  build(owner,kind,p,ids,facing,append){
+   calls.push({ids,append});
+   return ids.includes(alternative.id)?{id:71,kind,owner,buildRemaining:10}:null;
+  }
+ };
+ const result=submitConstruction(game,'generator',{x:500,y:500},new Set([selected.id]));
+ assert.ok(result.base);
+ assert.equal(result.append,false);
+ assert.deepEqual(calls.map(t=>t.ids),[[19],[19],[22]],
+  'retry with an unselected pioneer after the first route was blocked');
+});
+
+test('shift explicitly preserves selected pioneer queue rather than stealing another worker',()=>{
+ const busy={id:31,owner:0,kind:'engineer',hp:100,x:25,y:25,orders:[]};
+ const free={id:32,owner:0,kind:'engineer',hp:100,x:26,y:26,orders:[]};
+ const calls=[];
+ const game={units:[busy,free],bases:[],build(owner,kind,p,ids,facing,append){
+  calls.push({ids,append});return {id:80,kind,buildRemaining:10};
+ }};
+ const result=submitConstruction(game,'generator',{x:600,y:600},
+  new Set([busy.id]),0,true);
+ assert.ok(result.base);
+ assert.deepEqual(calls,[{ids:[31],append:true}]);
+});
+
+test('missing pioneers yields actionable explanation without constructing phantom bases',()=>{
+ const game={units:[],bases:[],build(){throw Error('should not build')}};
+ const result=submitConstruction(game,'generator',{x:1,y:1},new Set());
+ assert.equal(result.base,null);
+ assert.match(result.reason,/Kein lebender Pionier/);
 });
