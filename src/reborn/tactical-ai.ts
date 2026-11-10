@@ -941,7 +941,9 @@ export class TacticalAI {
     inRange:inRange.length,healthy,knownTowers:towers.length,
     time:g.time,commitUntil:battle.commitUntil??0
    });
-   if(holdLine&&assessment.stance!=='siege'){
+   // Keep the tactical director's screening/flanking decisions when an
+   // assault is already favoured; intercept only unwanted macro withdrawals.
+   if(holdLine&&(assessment.stance==='withdraw'||assessment.stance==='reinforce')){
     // Commit for at least 6 seconds after an actual contact. A collapse
     // below 32% of observed opposing power still permits disengagement.
     if(assessment.own>=assessment.enemy*.48)
