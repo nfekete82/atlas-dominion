@@ -44,6 +44,14 @@ test('runway is significantly longer than hangars and landing positions stay unc
   'remove the old short cross runway');
  assert.ok(airport.getObjectByName('AirfieldAircraftParkingPad_0'));
  assert.ok(airport.getObjectByName('AirfieldAircraftParkingPad_1'));
+ const tower=airport.getObjectByName('AirfieldLeftControlTowerShaft');
+ const fuel=airport.getObjectByName('AirfieldFuelServiceContainer');
+ assert.ok(tower&&fuel);
+ assert.ok(tower.position.x<-250&&fuel.position.x<-250,
+  'tower and gas infrastructure must be outside the left hangar, not by the right entrance');
+ assert.ok(airport.getObjectByName('AirfieldLeftControlTowerGlazing'));
+ assert.ok(!airport.getObjectByName('AirfieldRightControlTowerShaft'));
+
  const base={x:2000,y:2000,facing:0};
  assert.ok(airfieldPoint(base,'approach').y>2400);
  assert.ok(airfieldPoint(base,'touchdown').y>2150);
@@ -97,13 +105,19 @@ test('build ghost and completed buildings use identical 3D asset and site genera
  assert.ok(begin.includes('createAirfieldServiceYard()'));
  assert.ok(begin.includes('createFactoryServiceYard()'));
  assert.ok(begin.includes("hideOldAirfieldHangar({detail:model})"));
+ assert.ok(begin.includes('conformAirfieldSurface')===false,
+  'runway terrain fitting runs from updatePlacementPreview, not from loading');
+ assert.ok(battlefield.includes('conformAirfieldSurface(ghost.userData.previewService'));
+ assert.ok(battlefield.includes('conformAirfieldSurface(entry.airfieldServiceYard'));
+ assert.ok(battlefield.includes("if(b.kind==='airfield'){"),'full airfield exists while being built');
+
  assert.ok(begin.includes('calibratedScale('));
  assert.ok(battlefield.includes('disposeServicePaint(preview.userData.previewService)'));
- assert.match(begin,/const tint=\(root,ownSource=false,opacity=\.22\)/,'buildings are faint holograms');
+ assert.match(begin,/const tint=\(root,ownSource=false,opacity=\.12\)/,'buildings are faint holograms');
  assert.match(begin,/m\.opacity=Math\.min\(mat\.opacity\?\?1,opacity\)/);
- assert.match(begin,/tint\(yard,false,\.14\)/,'fences and courtyard props remain faint');
- assert.match(begin,/tint\(service,true,\.18\)/,'runway and service stations remain faint');
- assert.match(begin,/opacity:\.48,depthTest:false/,'placement circle does not dominate ghost');
+ assert.match(begin,/tint\(yard,false,\.08\)/,'fences and courtyard props remain faint');
+ assert.match(begin,/tint\(service,true,\.10\)/,'runway and service stations remain faint');
+ assert.match(begin,/opacity:\.34,depthTest:false/,'placement circle does not dominate ghost');
 });
 
 test('construction keeps complete final building visible instead of cropping its upper floors',()=>{
