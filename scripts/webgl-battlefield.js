@@ -14,6 +14,7 @@ import {SandforgeGroundingPass} from '/webgl-grounding.js';
 import {createBuildingYard,disposeBuildingYard} from '/webgl-building-yard.js';
 import {createAirfieldServiceYard,updateAirfieldServiceYard,hideOldAirfieldHangar,disposeAirfieldServiceYard} from '/webgl-airfield-service.js';
 import {createFactoryServiceYard,updateFactoryServiceYard,disposeFactoryServiceYard} from '/webgl-factory-service.js';
+import {disposeServicePaint} from '/webgl-service-materials.js';
 import {serviceVisualGround,approachGroundHeight} from '/webgl-service-grounding.js';
 import {factoryRepairPoint} from '/src/reborn/factory-maintenance.js';
 import {selectedMaintenanceKind,serviceFootprintContains} from '/webgl-maintenance-input.js';
@@ -478,25 +479,41 @@ export class SandforgeBattlefield {
   group.name='ghost-building-'+kind;group.userData={buildGhost:true,nonPlayable:true};
   const placeholder=this.createFallback(kind,0,'building');
   const tint=(root,ownSource=false)=>{
-   const oldMats=new Set();
+   // Cache the same clone for reused paint: a camouflaged hangar otherwise
+   // produces hundreds of redundant PBR shader/material instances.
+   const clones=new Map();
    root.traverse(obj=>{
     if(!obj.isMesh)return;
     const make=mat=>{
+     if(clones.has(mat))return clones.get(mat);
      const m=mat.clone();m.color?.lerp(new THREE.Color('#8ad6b3'),.32);
      m.transparent=true;m.opacity=.72;m.depthWrite=false;
      m.depthTest=false;m.side=THREE.DoubleSide;
      m.userData={...m.userData,sandforgePreviewMaterial:true};
-     if(ownSource)oldMats.add(mat);
-     return m;
+     clones.set(mat,m);return m;
     };
     obj.material=Array.isArray(obj.material)?obj.material.map(make):make(obj.material);
     obj.renderOrder=1010;obj.castShadow=false;obj.receiveShadow=false;
    });
-   for(const mat of oldMats)mat.dispose();
+   if(ownSource)for(const mat of clones.keys())mat.dispose();
   };
   tint(placeholder,true);
   group.userData.previewPlaceholder=placeholder;
   group.add(placeholder);
+  // Ghost and completed building use the exact same site dressing and
+  // functional service meshes, including the runway and hydraulic lifts.
+  // Nothing is re-scaled or regenerated differently upon completion.
+  const yard=createBuildingYard(kind,spec.width);
+  if(yard){
+   const decor=yard.getObjectByName('BasePerimeter_'+kind);
+   if(decor)decor.visible=this.siteDecorEnabled;
+   tint(yard);group.add(yard);group.userData.previewYard=yard;
+  }
+  const service=kind==='airfield'?createAirfieldServiceYard():
+   kind==='factory'?createFactoryServiceYard():null;
+  if(service){
+   tint(service,true);group.add(service);group.userData.previewService=service;
+  }
   const circle=new THREE.Mesh(
    new THREE.RingGeometry(spec.radius-2.5,spec.radius+1.5,48),
    new THREE.MeshBasicMaterial({color:'#80efae',transparent:true,opacity:.92,depthTest:false,depthWrite:false,side:THREE.DoubleSide}));
@@ -515,6 +532,7 @@ export class SandforgeBattlefield {
     model.position.set(-bounds.getCenter(new THREE.Vector3()).x*scale,
       -bounds.min.y*scale,-bounds.getCenter(new THREE.Vector3()).z*scale);
    }
+   if(kind==='airfield')hideOldAirfieldHangar({detail:model});
    tint(model);
    group.remove(placeholder);disposeOwnedMeshes(placeholder);
    group.userData.previewPlaceholder=null;group.userData.previewDetail=model;
@@ -528,6 +546,11 @@ export class SandforgeBattlefield {
    this.buildPreviewScene.remove(preview);
    if(preview.userData.previewPlaceholder)disposeOwnedMeshes(preview.userData.previewPlaceholder);
    if(preview.userData.previewCircle)disposeOwnedMeshes(preview.userData.previewCircle);
+   if(preview.userData.previewYard)disposeOwnedMeshes(preview.userData.previewYard);
+   if(preview.userData.previewService){
+    disposeServicePaint(preview.userData.previewService);
+    disposeOwnedMeshes(preview.userData.previewService);
+   }
    if(preview.userData.previewDetail)
     disposeTaggedMaterials(preview.userData.previewDetail,'sandforgePreviewMaterial');
    this.buildPreview=null;
