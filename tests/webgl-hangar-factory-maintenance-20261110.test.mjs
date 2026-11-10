@@ -21,9 +21,12 @@ function setup(){
  g.aiClock=1e8;g.tactical.plan=()=>{};
  g.world.blocked.fill(0);g.world.opaque.fill(0);
  g.credits[0]=10000;
- // This suite tests repair movement/economy, not incoming enemy gunfire.
- // Hostile bullets can otherwise knock 0.3 HP off a just-finished tank.
- for(const hostile of g.units)if(hostile.owner===1)hostile.hp=0;
+ // Isolate repair movement from enemy gunfire without serializing dead
+ // units: a save/load regression below requires a valid living unit roster.
+ const hostile=g.units.filter(u=>u.owner===1);
+ for(const u of hostile)g.unitById.delete(u.id);
+ g.units=g.units.filter(u=>u.owner===0);
+ g.spatial.rebuild(g.units);
  const airport=base(g,'airfield',31110,2000,2000);
  // Keep the compact annex well clear of the enemy HQ collider. Real
  // modern-map placement rejects overlapping service sites automatically.
