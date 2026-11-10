@@ -12,7 +12,7 @@ test('guided shoulder rocket climbs to the airborne helicopter and bomber fusela
  assert.equal(guidedRocketAimY({},{id:44,kind:'scout'},ground,48),ground+15,
   'non-guided rockets still target their original ground endpoint');
  assert.equal(guidedRocketAimY(launch,{kind:'tank'},ground,48),ground+15);
- assert.equal(aircraftAimOffsetY('scout',48),17.76);
+ assert.ok(Math.abs(aircraftAimOffsetY('scout',48)-17.76)<1e-8);
  const vfx=readFileSync('scripts/webgl-combat-vfx.js','utf8');
  assert.match(vfx,/const targetUnit=missile.target===undefined/);
  assert.match(vfx,/targetEntry.node.position.y/);

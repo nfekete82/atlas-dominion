@@ -462,7 +462,7 @@ export class SandforgeCombatEffects {
   this.crashes.push({...captured,mesh:captured.root,id:u.id,
    x,y,angle:snapshot?.angle??u.angle??0,age:0,start,
    duration:CRASH_LIFETIME_SECONDS,kind:u.kind});
-  this.capturedAircraftIds.add(u.id);
+  if(this.lastUnits.has(u.id))this.capturedAircraftIds.add(u.id);
   return true;
  }
  releaseAircraftCrash(record){
