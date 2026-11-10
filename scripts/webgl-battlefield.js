@@ -215,7 +215,9 @@ export class SandforgeBattlefield {
      this.loadingCount+this.modelQueue.length>=this.maxModels)return;
   entry.requested=true;
   const url=this.asset(entity.kind,entity.owner,type);
-  if(type==='unit'&&entity.kind==='medic')this.modelQueue.unshift({url,entry,type});
+  if(type==='building'&&['factory','barracks'].includes(entity.kind))
+   this.modelQueue.unshift({url,entry,type});
+  else if(type==='unit'&&entity.kind==='medic')this.modelQueue.unshift({url,entry,type});
   else this.modelQueue.push({url,entry,type});
   this.pumpModelQueue();
  }

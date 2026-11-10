@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {disposeOwnedMeshes} from './webgl-resource-lifecycle.js';
+import {servicePaint,disposeServicePaint} from './webgl-service-materials.js';
 
 // Outdoor repair apron joins the existing vehicle factory: two drive-in spots,
 // lifting jacks, mobile gantries, realistic machinery and blinking work lamps.
@@ -18,21 +19,41 @@ export function createFactoryServiceYard(){
  olive=mat('#777d60'),sand=mat('#b7ab88'),dark=mat('#283331'),
  steel=mat('#697572',.62,.39),glass=mat('#374e4d',.23,.34),
  rubber=mat('#272d2a'),red=mat('#bf644e');
+ const desertCamo=servicePaint(['#a1916e','#c1ad86','#777b5e'],{seed:4,repeat:3}),
+  oliveCamo=servicePaint(['#6b795f','#a09b79','#c9b189'],{seed:22,repeat:3}),
+  workSteel=servicePaint(['#47554d','#68766e','#848a7d'],{pattern:'metal',seed:19,repeat:3,metalness:.62,roughness:.43}),
+  grittyConcrete=servicePaint(['#757067','#9c9481','#b0a48e'],{pattern:'concrete',seed:39,repeat:4,roughness:.97});
  // Extend the factory's footprint with side workshop wings, avoiding the
  // existing central production door and its garage rollout animation.
  for(const side of [-1,1]){
   const x=side*131;
-  block(root,'FactoryServiceWing', [55,54,126],[x,28,-28],side>0?sand:olive);
-  block(root,'FactoryWingCamoRoof',[61,6,134],[x,57,-28],side>0?olive:sand);
+  block(root,'FactoryServiceWing', [55,54,126],[x,28,-28],side>0?desertCamo:oliveCamo);
+  block(root,'FactoryWingCamoRoof',[61,6,134],[x,57,-28],side>0?oliveCamo:desertCamo);
   for(const z of [-71,-37,-3]){
    block(root,'FactoryRib',[5,56,6],[x+side*26,29,z],steel);
   }
   for(let n=0;n<3;n++)
    block(root,'FactoryWorkshopWindow',[12,15,3],[x-side*29,37,-65+n*34],glass);
   block(root,'FactoryVentilator',[24,9,19],[x,66,-26],dark);
+  block(root,'FactoryWeatheredFront_'+side,[52,48,2],[x,28,36.5],side>0?desertCamo:oliveCamo);
+  for(const seam of [-19,0,19]){
+   block(root,'FactoryFacadePanelSeam_'+side,[2,49,2.8],[x+seam,29,39],workSteel);
+   for(const h of [12,30,46])
+    block(root,'FactoryFacadeRivet_'+side,[3,2,2],[x+seam,h,40],steel);
+  }
+  block(root,'FactorySideVentHousing_'+side,[29,18,4],[x,39,41],dark);
+  for(let n=0;n<5;n++)
+   block(root,'FactorySideVentLouvre_'+side,[26,2,5],[x,33+n*3,43],workSteel);
+  block(root,'FactoryRoofAirDuct_'+side,[24,12,43],[x,73,-22],workSteel);
+  block(root,'FactoryRoofAirDuctCap_'+side,[30,3,49],[x,81,-22],dark);
+  for(const z of [-65,-25,16]){
+   block(root,'FactoryRoofPBRRib_'+side,[62,3,3],[x,61,z],steel);
+   block(root,'FactoryCamoArmorPatch_'+side,[21,1.6,24],
+    [x+(z===-25?12:-12),62,z+8],side>0?oliveCamo:desertCamo);
+  }
  }
  // The repair area sits in front (+Z) of the existing front gate.
- block(root,'FactoryVehicleRepairApron',[322,1.7,201],[0,.85,171],concrete);
+ block(root,'FactoryVehicleRepairApron',[322,1.7,201],[0,.85,171],grittyConcrete);
  block(root,'FactoryMaintenanceDriveInLane',[52,.18,200],[0,1.8,160],asphalt);
  for(const side of [-1,1]){
   const cx=side*76,index=side<0?0:1;
@@ -42,9 +63,14 @@ export function createFactoryServiceYard(){
   for(const z of [119,231])
    block(root,'RepairBayFrontStripe_'+index,[118,.25,3],[cx,2.18,z],yellow);
   block(root,'RepairBayCenterline_'+index,[3,.23,82],[cx,2.25,176],yellow);
+  for(const z of [135,163,190,216]){
+   block(root,'FactoryExpansionJoint_'+index,[111,.24,1.5],[cx,2.27,z],dark);
+   for(const sx of [-44,44])
+    block(root,'FactoryApronPlateBolt_'+index,[3,.48,3],[cx+sx,2.58,z],steel);
+  }
   // Actual elevated hydraulic platform plus a drive-on ramp. Its upper deck
   // matches the simulation's dedicated visual grounding during repair.
-  block(root,'VehicleLiftPlatform_'+index,[88,3,96],[cx,8,175],steel);
+  block(root,'VehicleLiftPlatform_'+index,[88,3,96],[cx,8,175],workSteel);
   const driveRamp=block(root,'VehicleDriveOnRamp_'+index,[88,2,46],[cx,5.5,242],steel);
   driveRamp.rotation.x=.18;
   for(const strip of [-38,38])
@@ -65,6 +91,13 @@ export function createFactoryServiceYard(){
   block(root,'RepairGantryCrossbeam_'+index,[123,8,9],[cx,79,161],steel);
   block(root,'RepairWarningBeam_'+index,[95,3,5],[cx,82,161],red);
   block(root,'ServiceControlConsole_'+index,[19,24,18],[cx-59,14,227],dark);
+  for(const side of [-1,1]){
+   block(root,'FactoryHydraulicLine_'+index,[3,17,3],[cx+side*44,14,177],steel);
+   block(root,'FactoryLiftCable_'+index,[2,2,50],[cx+side*47,3,182],rubber);
+  }
+  block(root,'FactoryToolChest_'+index,[24,19,18],[cx+57,12,241],red);
+  for(const h of [10,16,22])
+   block(root,'FactoryToolChestDrawer_'+index,[20,1.5,2],[cx+57,h,251],workSteel);
   block(root,'ControlPanelGlass_'+index,[15,8,2],[cx-59,22,237],glass);
   const indicator=block(root,'RepairStatusIndicator_'+index,[9,7,5],[cx-59,34,225],yellow);
   const glow=block(root,'VehicleWeldingFlash_'+index,[6,7,6],[cx+28,27,170],yellow);
@@ -103,7 +136,7 @@ export function createFactoryServiceYard(){
  }
  // Crates / machinery are pushed off the driving area.
  for(const x of [-174,174]){
-  block(root,'VehiclePartsDepot',[26,25,31],[x,13,145],olive);
+  block(root,'VehiclePartsDepot',[26,25,31],[x,13,145],oliveCamo);
   block(root,'VehiclePartsDepotLid',[30,4,35],[x,27,145],steel);
   for(let z=0;z<2;z++){
    const wheel=new THREE.Mesh(new THREE.TorusGeometry(13,4,7,16),rubber);
@@ -144,5 +177,5 @@ export function updateFactoryServiceYard(entry,base,units,time){
 export function disposeFactoryServiceYard(entry){
  const group=entry?.factoryServiceYard;
  if(!group)return;
- group.removeFromParent();disposeOwnedMeshes(group);entry.factoryServiceYard=null;
+ group.removeFromParent();disposeServicePaint(group);disposeOwnedMeshes(group);entry.factoryServiceYard=null;
 }

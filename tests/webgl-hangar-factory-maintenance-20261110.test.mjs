@@ -350,3 +350,26 @@ test('damaged vehicles display a distinct service cross and animated welding spa
  assert.equal(state.sparks.visible,false);
  disposeFactoryServiceYard(entry);
 });
+
+test('factory and airfield use real PBR camouflage/data textures, roof details and weathering',async()=>{
+ const {servicePaint}=await import('../scripts/webgl-service-materials.js');
+ const material=servicePaint(['#727a5e','#a79976','#bdac88'],{seed:7});
+ assert.ok(material.map?.isDataTexture);
+ assert.equal(material.map.image.data.length,96*96*4);
+ assert.equal(material.map.colorSpace,'srgb');
+ material.map.dispose();material.dispose();
+ const yard=createFactoryServiceYard(),hangar=createAirfieldServiceYard();
+ for(const name of ['FactoryFacadeRivet_1','FactorySideVentLouvre_1',
+   'FactoryRoofAirDuct_1','FactoryToolChest_0'])
+  assert.ok(yard.getObjectByName(name),name);
+ for(const name of ['HangarRoofVent_0','HangarDoorCorrugation_0_0',
+   'HangarRearVent_0','AirfieldTouchdownRubber'])
+  assert.ok(hangar.getObjectByName(name),name);
+ for(const root of [yard,hangar]){
+  let textureCount=0;
+  root.traverse(mesh=>{if(mesh.isMesh&&mesh.material.map?.isDataTexture)textureCount++;});
+  assert.ok(textureCount>10,'camouflage and steel surfaces must be textured');
+ }
+ disposeFactoryServiceYard({factoryServiceYard:yard});
+ disposeAirfieldServiceYard({airfieldServiceYard:hangar});
+});

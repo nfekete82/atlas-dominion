@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {disposeOwnedMeshes} from './webgl-resource-lifecycle.js';
+import {servicePaint,disposeServicePaint} from './webgl-service-materials.js';
 
 // Explicit, two-bay 3D service hangar on the simulation's local flightline.
 // All meshes are presentation-only; the actual bomber remains one Simulation unit.
@@ -25,12 +26,16 @@ export function createAirfieldServiceYard(){
   steel=material(paint.steel),sand=material(paint.sand),
   camo=material(paint.olive),dark=material(paint.dark),
   glass=material(paint.glass,{metalness:.32,roughness:.29});
- const roofSand=material(paint.sand,{transparent:true,opacity:.84,side:THREE.DoubleSide});
- const roofCamo=material(paint.olive,{transparent:true,opacity:.84,side:THREE.DoubleSide});
+ const roofSand=servicePaint(['#a8946c','#c5af87','#72765c'],{seed:7,repeat:4});
+ const roofCamo=servicePaint(['#657258','#aa9c78','#c1ab86'],{seed:31,repeat:4});
+ const wallCamo=servicePaint(['#918467','#b4a17d','#70765d'],{seed:15,repeat:3});
+ const ribbedSteel=servicePaint(['#45514a','#69776e','#899083'],{pattern:'metal',seed:45,repeat:2,metalness:.57,roughness:.52});
+ const wornPaving=servicePaint(['#77736b','#a49c86','#b3a892'],{pattern:'concrete',seed:39,repeat:5,roughness:.96});
+ const runwayWear=servicePaint(['#3d4542','#515752','#64665e'],{pattern:'concrete',seed:49,repeat:5,roughness:.96});
  const glow=new THREE.MeshBasicMaterial({color:paint.repair,transparent:true,opacity:.9});
  // Broad apron, runway, centerline, safe taxi crossing and threshold stripes.
- box(group,'AirfieldExpandedConcreteApron',462,1.5,372,0,.75,0,concrete);
- box(group,'AirfieldExtendedRunway',133,1.6,380,130,1.8,0,runway);
+ box(group,'AirfieldExpandedConcreteApron',462,1.5,372,0,.75,0,wornPaving);
+ box(group,'AirfieldExtendedRunway',133,1.6,380,130,1.8,0,runwayWear);
  box(group,'AirfieldCrossTaxiLane',345,.8,38,-38,2.7,17,runway);
  for(let z=-154;z<=156;z+=48)
   box(group,'AirfieldRunwayCenterDash',3,.12,24,130,2.75,z,markings);
@@ -46,12 +51,12 @@ export function createAirfieldServiceYard(){
   const cx=bay===0?-151:-26,half=59,front=18,rear=-171;
   // The bay is sized for the actual bomber wings, not a miniature parked prop.
   box(group,'HangarBayFloor_'+bay,116,.35,185,cx,3.0,-77,dark);
-  box(group,'HangarBayBackWall_'+bay,120,63,8,cx,34,rear,sand);
+  box(group,'HangarBayBackWall_'+bay,120,63,8,cx,34,rear,wallCamo);
   for(const side of [-1,1]){
    const edge=cx+side*half;
-   box(group,'HangarBaySideWall_'+bay,6,68,184,edge,36,-77,sand);
+   box(group,'HangarBaySideWall_'+bay,6,68,184,edge,36,-77,wallCamo);
    for(const z of [-149,-108,-67,-26]){
-    box(group,'HangarVerticalRib_'+bay,9,71,8,edge,39,z,steel);
+    box(group,'HangarVerticalRib_'+bay,9,71,8,edge,39,z,ribbedSteel);
    }
   }
   // Barrel-shaped camouflaged roof with an opening below its center arch.
@@ -63,6 +68,23 @@ export function createAirfieldServiceYard(){
     cx+(x0+x1)/2,(arc(x0)+arc(x1))/2,-76,j%3===0?roofCamo:roofSand);
    panel.rotation.z=Math.atan2(dy,dx);
   }
+  for(const z of [-147,-100,-55,-11]){
+   box(group,'HangarRoofReinforcement_'+bay,116,2,3,cx,98,z,ribbedSteel);
+  }
+  for(const side of [-1,1]){
+   const x=cx+side*42;
+   box(group,'HangarRoofVent_'+bay,17,10,22,x,107,-97,ribbedSteel);
+   box(group,'HangarRoofVentCap_'+bay,22,3,27,x,113,-97,dark);
+   box(group,'HangarSideCamouflagePanel_'+bay,3,29,55,cx+side*62,47,-83,roofCamo);
+   for(const z of [-112,-93,-74,-55])
+    box(group,'HangarSideVentLouvre_'+bay,4,2.1,23,cx+side*64,45,z,steel);
+  }
+  box(group,'HangarRearVent_'+bay,45,17,3,cx,45,rear-5,dark);
+  for(const y of [39,45,51])
+   box(group,'HangarRearVentRib_'+bay,42,2,4,cx,y,rear-7,ribbedSteel);
+  { // existing loop below handles the two large hangar doors
+   const noop=0;void noop;
+  }
   box(group,'HangarEntryLintel_'+bay,124,7,9,cx,80,front,steel);
   box(group,'HangarBayNumber_'+bay,23,3,4,cx,82,front+5,yellow);
   for(const side of [-1,1])
@@ -70,8 +92,17 @@ export function createAirfieldServiceYard(){
   box(group,'HangarCenterGuide_'+bay,3,.18,135,cx,3.4,-61,yellow);
   box(group,'HangarApronStop_'+bay,106,.18,4,cx,3.45,32,yellow);
   // Two working shutters per bay, separated at the middle when opened.
-  const left=box(group,'HangarDoorLeft_'+bay,52,64,5,cx-27,36,front+5,steel);
-  const right=box(group,'HangarDoorRight_'+bay,52,64,5,cx+27,36,front+5,steel);
+  const left=box(group,'HangarDoorLeft_'+bay,52,64,5,cx-27,36,front+5,ribbedSteel);
+  const right=box(group,'HangarDoorRight_'+bay,52,64,5,cx+27,36,front+5,ribbedSteel);
+  for(const [half,door] of [left,right].entries()){
+   for(const yy of [-22,-11,0,11,22]){
+    box(door,'HangarDoorCorrugation_'+bay+'_'+half,48,1.8,2,0,yy,3.4,steel);
+   }
+  }
+  for(const side of [-1,1]){
+   box(group,'HangarDoorGuideRail_'+bay,5,69,8,cx+side*59,39,front+8,ribbedSteel);
+   box(group,'HangarHazardChevron_'+bay,5,4,10,cx+side*59,17,front+13,yellow);
+  }
   const sparkGroup=new THREE.Group();
   sparkGroup.name='HangarRepairSparks_'+bay;
   sparkGroup.position.set(cx,19,-85);
@@ -80,6 +111,16 @@ export function createAirfieldServiceYard(){
    -21+i*14,i%2?7:0,0,glow);
   sparkGroup.visible=false;
   group.userData['bay'+bay]={left,right,cx,open:0,sparks:sparkGroup};
+ }
+ // Scuffed touchdown marks and pavement expansion joints.
+ for(const x of [111,151])for(const z of [-126,-53,81,146])
+  box(group,'AirfieldTouchdownRubber',4,.12,18,x,2.76,z,dark);
+ for(const x of [-195,-110,-45,29])for(const z of [-143,-72,8])
+  box(group,'AirfieldApronExpansionJoint',24,.11,1.5,x,1.65,z,steel);
+ for(const x of [-216,45]){
+  box(group,'HangarMaintenanceToolCabinet',15,26,19,x,14,-109,ribbedSteel);
+  for(const yy of [11,18,25])
+   box(group,'HangarCabinetDrawer',12,1.4,2,x,yy,-98,dark);
  }
  // Wartime workshop details that read at tactical camera distance.
  for(const x of [-204,28]){
@@ -125,5 +166,5 @@ export function hideOldAirfieldHangar(entry){
 export function disposeAirfieldServiceYard(entry){
  if(!entry?.airfieldServiceYard)return;
  const root=entry.airfieldServiceYard;root.removeFromParent();
- disposeOwnedMeshes(root);entry.airfieldServiceYard=null;
+ disposeServicePaint(root);disposeOwnedMeshes(root);entry.airfieldServiceYard=null;
 }

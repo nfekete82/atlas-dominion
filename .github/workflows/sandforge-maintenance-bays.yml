@@ -11,6 +11,9 @@ on:
       - 'src/reborn/catalog.ts'
       - 'scripts/webgl-airfield-service.js'
       - 'scripts/webgl-factory-service.js'
+      - 'scripts/webgl-service-materials.js'
+      - 'scripts/webgl-production-gates.js'
+      - 'tests/webgl-production-gates.test.mjs'
       - 'scripts/webgl-service-grounding.js'
       - 'scripts/webgl-aircraft-effects.js'
       - 'scripts/webgl-combat-vfx.js'
@@ -62,6 +65,8 @@ jobs:
         run: |
           node --check scripts/webgl-airfield-service.js
           node --check scripts/webgl-factory-service.js
+          node --check scripts/webgl-service-materials.js
+          node --check scripts/webgl-production-gates.js
           node --check scripts/webgl-service-grounding.js
           node --check scripts/webgl-aircraft-effects.js
           node --check scripts/webgl-combat-vfx.js
@@ -69,7 +74,7 @@ jobs:
       - name: Compile TypeScript / build WebGL distribution
         run: npm run build
       - name: Test hangar and factory repair states, selection rings and Three.js visuals
-        run: node --test tests/webgl-hangar-factory-maintenance-20261110.test.mjs tests/webgl-selection-rings.test.mjs tests/webgl-aircraft-effects-20261110.test.mjs
+        run: node --test tests/webgl-hangar-factory-maintenance-20261110.test.mjs tests/webgl-selection-rings.test.mjs tests/webgl-aircraft-effects-20261110.test.mjs tests/webgl-production-gates.test.mjs
       - name: Regressions - bomber course, weather, capture, craters, infantry and strategic camouflage
         run: |
           node --test tests/reborn-control-retreat.test.mjs \
