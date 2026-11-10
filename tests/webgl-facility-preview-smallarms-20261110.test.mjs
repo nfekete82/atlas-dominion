@@ -69,7 +69,7 @@ test('factory restores original main building with ONE compact side garage',()=>
  const roof=factory.getObjectByName('FactoryRepairGarageRoof_0');
  const left=factory.getObjectByName('FactorySideWorkshopWallLeft');
  assert.ok(deck&&roof&&left);
- assert.ok(deck.position.x < -140,'repair bay sits left of main factory');
+ assert.ok(deck.position.x > 140,'repair bay sits right of main factory');
  assert.ok(roof.geometry.parameters.width<145,'side garage stays compact');
  assert.ok(roof.geometry.parameters.depth<140,'no extended front double garages');
  assert.equal(factory.getObjectByName('VehicleLiftPlatform_1'),undefined);
