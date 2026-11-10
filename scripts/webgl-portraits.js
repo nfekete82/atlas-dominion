@@ -74,7 +74,10 @@ export function researchIconMarkup(kind){
  * research objects, using the actual scene meshes. PNG generation happens
  * once per kind and never on the animation/render loop.
  */
-function renderModelPortrait(model,renderer,{width=320,height=220,research=false}={}){
+function renderModelPortrait(model,renderer,{width=320,height=220,research=false,infantryCard=false}={}){
+ // Atlas heavy infantry uses direction index 1: yaw PI/4 with camera (0,8,12).
+ // Apply that exact view to the rocket portrait only, never to its game model.
+ if(infantryCard)model.rotation.y+=Math.PI/4;
  const scene=new THREE.Scene();
  scene.add(model);
  const hemi=new THREE.HemisphereLight('#fff3e2','#576e73',research?2.15:2.0);
@@ -88,7 +91,8 @@ function renderModelPortrait(model,renderer,{width=320,height=220,research=false
  const aspect=width/height;
  const span=Math.max(size.y*(research?1.9:1.8),(size.x+size.z)*(research?1.03:.95),1);
  const camera=new THREE.OrthographicCamera(-span*aspect/2,span*aspect/2,span/2,-span/2,.1,2000);
- camera.position.copy(center).add(new THREE.Vector3(research?115:350,research?115:310,research?170:380));
+ camera.position.copy(center).add(infantryCard?
+  new THREE.Vector3(0,8,12):new THREE.Vector3(research?115:350,research?115:310,research?170:380));
  camera.lookAt(center);camera.updateMatrixWorld();
  const target=new THREE.WebGLRenderTarget(width,height,{format:THREE.RGBAFormat,depthBuffer:true});
  const oldTarget=renderer.getRenderTarget(),oldColor=renderer.getClearColor(new THREE.Color()).clone();
@@ -123,10 +127,15 @@ function renderModelPortrait(model,renderer,{width=320,height=220,research=false
   const raw=document.createElement('canvas');raw.width=width;raw.height=height;
   raw.getContext('2d').putImageData(rgba,0,0);
   const w=right-left+1,h=bottom-top+1;
-  const scale=Math.min(width*(research?.89:.93)/w,height*(research?.89:.92)/h);
+  // Same pixel bounds and bottom alignment as rasterizeUnitIcon('heavy').
+  // This prevents the shoulder launcher from altering the soldier's apparent size.
+  const scale=infantryCard?
+   Math.min(144/w,105/h):
+   Math.min(width*(research?.89:.93)/w,height*(research?.89:.92)/h);
+  const dw=w*scale,dh=h*scale;
   ctx.clearRect(0,0,width,height);
   ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
-  ctx.drawImage(raw,left,top,w,h,(width-w*scale)/2,(height-h*scale)/2,w*scale,h*scale);
+  ctx.drawImage(raw,left,top,w,h,(width-dw)/2,infantryCard?119-dh:(height-dh)/2,dw,dh);
   return output.toDataURL('image/png');
  }finally{
   renderer.setRenderTarget(oldTarget);
@@ -272,13 +281,13 @@ export function unitIcon(kind,renderer){
        node.material.map(m=>m.clone()):node.material.clone();
      });
      attachRocketLauncherToInfantry(model,0);
-     resolve(renderModelPortrait(model,renderer,{width:192,height:132}));
+     resolve(renderModelPortrait(model,renderer,{width:192,height:132,infantryCard:true}));
     }catch(error){reject(error);}
    });
   }).catch(error=>{
    iconCache.delete(kind);
    console.warn('Animated rocket 3D portrait fallback:',error);
-   try{return renderModelPortrait(createRocketInfantry(0),renderer,{width:192,height:132});}
+   try{return renderModelPortrait(createRocketInfantry(0),renderer,{width:192,height:132,infantryCard:true});}
    catch{return rocketUnitIconFallback();}
   }));
  }
