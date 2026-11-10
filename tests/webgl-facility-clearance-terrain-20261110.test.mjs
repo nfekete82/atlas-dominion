@@ -90,3 +90,33 @@ test('Atlas-prefixed old GLB tower and taxiway are hidden in both build modes',(
  assert.equal(entry.airfieldOldHidden,true);
  for(const part of parts){part.geometry.dispose();part.material.dispose();}
 });
+
+test('building remains possible after a vehicle factory or airfield is completed',()=>{
+ // Same constructor/map generation as the modern WebGL match. Previously an
+ // outsize front garage or 980-unit runway invalidated virtually every site.
+ for(const kind of ['factory','airfield']){
+  const g=new Simulation(2074,19);
+  g.world.blocked.fill(0);g.world.opaque.fill(0);
+  g.world.buildable=()=>true;g.explored[0].fill(1);g.credits[0]=25000;
+  const find=(type)=>{
+   for(let x=800;x<g.world.size-550;x+=185)
+    for(let y=800;y<g.world.size-550;y+=185){
+     const p={x,y};
+     if(g.buildError(0,type,p)===null)return p;
+    }
+   return null;
+  };
+  const first=find(kind);
+  assert.ok(first,'must be able to place '+kind);
+  g.bases.push({id:310012,kind,owner:0,...first,hp:1200,
+   radius:kind==='airfield'?116:70,buildRemaining:0,territory:0,
+   queue:[],queueTypes:[],production:0,cooldown:0,rally:null});
+  const second=find('generator');
+  assert.ok(second,'generator must remain buildable after '+kind);
+  assert.equal(g.buildError(0,'generator',second),null);
+ }
+ const ui=readFileSync(new URL('../scripts/webgl-battlefield.js',import.meta.url),'utf8');
+ assert.match(ui,/Preserve the player's tab until it is genuinely unavailable/);
+ assert.match(ui,/this\.catalogSelectionKey=selectionKey/);
+ assert.match(ui,/if\(!workers\.length\)/,'must recover an unselected pioneer');
+});
