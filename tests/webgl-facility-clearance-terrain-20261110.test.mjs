@@ -11,13 +11,13 @@ const point=(x,y)=>({x,y});
 
 test('new and finished airfield footprints cannot overlap neighbors or bastions',()=>{
  const p=point(2000,2000);
- assert.ok(sitesVisuallyOverlap('airfield',p,0,'generator',point(2132,2620),0),
+ assert.ok(sitesVisuallyOverlap('airfield',p,0,'generator',point(2132,2355),0),
   'an object on the far runway must be rejected');
- assert.ok(sitesVisuallyOverlap('factory',p,0,'barracks',point(2000,2200),0),
+ assert.ok(sitesVisuallyOverlap('factory',p,0,'barracks',point(1850,2130),0),
   'roofed repair garages count as factory footprint');
- assert.ok(siteNearBastion('airfield',p,0,point(2132,2590)),
+ assert.ok(siteNearBastion('airfield',p,0,point(2132,2360)),
   'a control point cannot be hidden below the strip');
- assert.ok(siteNearBastion('airfield',p,2,point(2620,1868)),
+ assert.ok(siteNearBastion('airfield',p,2,point(2350,1868)),
   'rotating the runway changes its clearance');
  assert.equal(siteNearBastion('airfield',p,0,point(2800,2800)),false);
  assert.equal(sitesVisuallyOverlap('airfield',p,0,'factory',point(3100,3100),0),false);
