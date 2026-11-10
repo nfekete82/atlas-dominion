@@ -31,6 +31,41 @@ const materialGrain=(()=>{
  return texture;
 })();
 
+/** Baked, repeating desert camouflage for the silo's largest concrete
+ * surfaces. Unlike tiny colored boxes, this is genuine albedo detail on the
+ * bunker walls and armoured hatch doors. A single GPU texture is shared by
+ * all silo meshes and the matching 3D construction-card portrait.
+ */
+const siloDesertCamo=(()=>{
+ const n=256,rgba=new Uint8Array(n*n*4);
+ const colors=[[205,184,139],[165,153,116],[117,123,91],[187,167,125]];
+ for(let y=0;y<n;y++)for(let x=0;x<n;x++){
+  const u=x*Math.PI*2/n,v=y*Math.PI*2/n;
+  // Periodic field: irregular organic sand/khaki/olive patches, seamless
+  // at the wrap boundary, with subtle dusty micrograin and worn edges.
+  const field=.75*Math.sin(2*u+.82*Math.sin(3*v))+
+   .61*Math.cos(3*v-.58*Math.sin(2*u))+
+   .35*Math.sin(4*u-3*v+.4)+.17*Math.cos(5*v+4*u);
+  const band=field>.73?2:field>.08?1:field<-.75?3:0;
+  const hash=(Math.imul(x+97,73856093)^Math.imul(y+31,19349663))>>>0;
+  const dust=(hash%23)-11,grain=dust*.48;
+  const pos=(y*n+x)*4;
+  for(let c=0;c<3;c++)rgba[pos+c]=Math.max(0,Math.min(255,
+   Math.round(colors[band][c]+grain)));
+  rgba[pos+3]=255;
+ }
+ const t=new THREE.DataTexture(rgba,n,n,THREE.RGBAFormat);
+ t.name='Sandforge silo desert khaki olive camouflage';
+ t.colorSpace=THREE.SRGBColorSpace;
+ t.wrapS=t.wrapT=THREE.RepeatWrapping;
+ t.repeat.set(3,3);
+ t.magFilter=THREE.LinearFilter;
+ t.minFilter=THREE.LinearMipmapLinearFilter;
+ t.generateMipmaps=true;
+ t.needsUpdate=true;
+ return t;
+})();
+
 export const STRATEGIC_BUILDING_KINDS=Object.freeze(['research','silo','interceptor']);
 export const isStrategicBuilding=kind=>STRATEGIC_BUILDING_KINDS.includes(kind);
 export function createStrategicBuilding(kind,owner=0){
@@ -85,6 +120,14 @@ export function createStrategicBuilding(kind,owner=0){
    bumpMap:materialGrain,bumpScale:.08,roughness:.66,metalness:.27});
   mats.rocketNose=new THREE.MeshStandardMaterial({color:'#363e3c',roughness:.51,metalness:.44});
   mats.rocketAccent=new THREE.MeshStandardMaterial({color:'#b38a4e',roughness:.66,metalness:.2});
+  // Give the large bunker and hatch faces a real tiled camouflage albedo.
+  // Keep fine concrete grain as bump; rocket, hatches' dark iron, metallic
+  // machinery and team-colored glass keep their own original materials.
+  for(const role of ['base','armor']){
+   mats[role].map=siloDesertCamo;
+   mats[role].color.set('#ffffff');
+   mats[role].userData={...mats[role].userData,sandforgeColorMapCamo:true};
+  }
  }
  // Names allow one shared camouflage pass while leaving service glass,
  // signal beacons and recessed dark vents in their original PBR material.
