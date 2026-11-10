@@ -481,7 +481,7 @@ export class SandforgeBattlefield {
   const placeholder=this.createFallback(kind,0,'building');
   // Keep the actual geometry identical to the finished building; the ghost
   // is only a faint holographic overlay, including fences and service pads.
-  const tint=(root,ownSource=false,opacity=.045)=>{
+  const tint=(root,ownSource=false,opacity=.0585)=>{
    // Cache the same clone for reused paint: a camouflaged hangar otherwise
    // produces hundreds of redundant PBR shader/material instances.
    const clones=new Map();
@@ -508,10 +508,10 @@ export class SandforgeBattlefield {
   // Never render the final authored building in the placement overlay.
   const guides=new THREE.Group();guides.name='ConstructionPlacementGuides';
   const groundMat=new THREE.MeshBasicMaterial({color:'#75d4b8',
-   transparent:true,opacity:.055,depthWrite:false,depthTest:false,
+   transparent:true,opacity:.0715,depthWrite:false,depthTest:false,
    side:THREE.DoubleSide});
   const lineMat=new THREE.LineBasicMaterial({color:'#7fe7ce',
-   transparent:true,opacity:.18,depthWrite:false,depthTest:false});
+   transparent:true,opacity:.234,depthWrite:false,depthTest:false});
   const guideBox=(w,h,d,x=0,z=0)=>{
    const ground=new THREE.Mesh(new THREE.PlaneGeometry(w,d),groundMat);
    ground.position.set(x,2,z);ground.rotation.x=-Math.PI/2;
@@ -532,14 +532,14 @@ export class SandforgeBattlefield {
   if(yard){
    const decor=yard.getObjectByName('BasePerimeter_'+kind);
    if(decor)decor.visible=this.siteDecorEnabled;
-   tint(yard,false,.04);
+   tint(yard,false,.052);
    yard.traverse(mesh=>{if(mesh.isMesh&&mesh.geometry?.parameters?.height>4)mesh.visible=false;});
    group.add(yard);group.userData.previewYard=yard;
   }
   const service=kind==='airfield'?createAirfieldServiceYard():
    kind==='factory'?createFactoryServiceYard():null;
   if(service){
-   tint(service,true,.045);
+   tint(service,true,.0585);
    // Show only outlines of the paved footprint, not a finished factory,
    // control tower, repair equipment or hangar before construction starts.
    service.traverse(mesh=>{if(mesh.isMesh&&
