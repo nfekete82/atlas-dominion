@@ -12,7 +12,7 @@ import {SandforgeActorPresentation} from '/webgl-actor-presentation.js';
 import {calibratedScale,visualUnitScale,unitVisualYaw,unitRenderAltitude,buildingFacingAngle,nextBuildingFacing,buildingFacingDegrees,turretAimLocalYaw,selectionRingRadius} from '/webgl-scale.js';
 import {SandforgeGroundingPass} from '/webgl-grounding.js';
 import {createBuildingYard,disposeBuildingYard} from '/webgl-building-yard.js';
-import {createAirfieldServiceYard,updateAirfieldServiceYard,hideOldAirfieldHangar,disposeAirfieldServiceYard} from '/webgl-airfield-service.js';
+import {createAirfieldServiceYard,conformAirfieldSurface,updateAirfieldServiceYard,hideOldAirfieldHangar,disposeAirfieldServiceYard} from '/webgl-airfield-service.js';
 import {createFactoryServiceYard,updateFactoryServiceYard,disposeFactoryServiceYard} from '/webgl-factory-service.js';
 import {disposeServicePaint} from '/webgl-service-materials.js';
 import {createVehicleSelectionRing} from '/webgl-selection-ring.js';
@@ -481,7 +481,7 @@ export class SandforgeBattlefield {
   const placeholder=this.createFallback(kind,0,'building');
   // Keep the actual geometry identical to the finished building; the ghost
   // is only a faint holographic overlay, including fences and service pads.
-  const tint=(root,ownSource=false,opacity=.22)=>{
+  const tint=(root,ownSource=false,opacity=.12)=>{
    // Cache the same clone for reused paint: a camouflaged hangar otherwise
    // produces hundreds of redundant PBR shader/material instances.
    const clones=new Map();
@@ -490,8 +490,8 @@ export class SandforgeBattlefield {
     const make=mat=>{
      if(clones.has(mat))return clones.get(mat);
      const m=mat.clone();m.color?.lerp(new THREE.Color('#8ad6b3'),.32);
-     m.transparent=true;m.opacity=Math.min(mat.opacity??1,opacity);m.depthWrite=false;
-     m.depthTest=false;m.side=THREE.DoubleSide;
+     m.transparent=true;m.opacity=Math.min(mat.opacity??1,opacity);m.depthWrite=true;
+     m.depthTest=true;m.side=THREE.DoubleSide;
      m.userData={...m.userData,sandforgePreviewMaterial:true};
      clones.set(mat,m);return m;
     };
@@ -510,16 +510,16 @@ export class SandforgeBattlefield {
   if(yard){
    const decor=yard.getObjectByName('BasePerimeter_'+kind);
    if(decor)decor.visible=this.siteDecorEnabled;
-   tint(yard,false,.14);group.add(yard);group.userData.previewYard=yard;
+   tint(yard,false,.08);group.add(yard);group.userData.previewYard=yard;
   }
   const service=kind==='airfield'?createAirfieldServiceYard():
    kind==='factory'?createFactoryServiceYard():null;
   if(service){
-   tint(service,true,.18);group.add(service);group.userData.previewService=service;
+   tint(service,true,.10);group.add(service);group.userData.previewService=service;
   }
   const circle=new THREE.Mesh(
    new THREE.RingGeometry(spec.radius-2.5,spec.radius+1.5,48),
-   new THREE.MeshBasicMaterial({color:'#80efae',transparent:true,opacity:.48,depthTest:false,depthWrite:false,side:THREE.DoubleSide}));
+   new THREE.MeshBasicMaterial({color:'#80efae',transparent:true,opacity:.34,depthTest:false,depthWrite:false,side:THREE.DoubleSide}));
   circle.rotation.x=-Math.PI/2;circle.position.y=2;circle.renderOrder=1009;
   group.userData.previewCircle=circle;group.add(circle);
   this.buildPreviewScene.add(group);
@@ -567,6 +567,9 @@ export class SandforgeBattlefield {
   if(!p){this.buildHint.style.display='none';return;}
   ghost.position.copy(this.pos(p.x,p.y));
   ghost.rotation.y=buildingFacingAngle(this.placementFacing);
+  if(this.buildKind==='airfield'&&ghost.userData.previewService)
+   conformAirfieldSurface(ghost.userData.previewService,
+    {...p,facing:this.placementFacing},(x,z)=>this.heightAt(x,z));
   const error=this.game.buildError(0,this.buildKind,p);
   const engineer=this.game.units.some(u=>u.owner===0&&u.kind==='engineer'&&u.hp>0&&!u.carrier);
   const valid=!error&&engineer;
@@ -663,9 +666,10 @@ export class SandforgeBattlefield {
    entry.node.scale.y=1;
    entry.node.rotation.y=buildingFacingAngle(b.facing);
    this.construction.update(entry,b);
-   // Recognizable physical inventory identifies each production building
-   // even at tactical zoom. Purely visual, and built only once on completion.
-   if(b.buildRemaining<=0&&!entry.yard){
+   // Site dressing and the FULL facility footprint are present from the
+   // first construction tick. Construction scaffolding overlays them, rather
+   // than making an incomplete hangar suddenly pop in on completion.
+   if(!entry.yard){
     entry.yard=createBuildingYard(b.kind,BUILDINGS[b.kind]?.width);
     if(entry.yard){
      entry.node.add(entry.yard);
@@ -673,18 +677,19 @@ export class SandforgeBattlefield {
      if(decor)decor.visible=this.siteDecorEnabled;
     }
    }
-   if(b.buildRemaining<=0&&b.kind==='airfield'){
+   if(b.kind==='airfield'){
     if(!entry.airfieldServiceYard){
      entry.airfieldServiceYard=createAirfieldServiceYard();entry.node.add(entry.airfieldServiceYard);
+     conformAirfieldSurface(entry.airfieldServiceYard,b,(x,z)=>this.heightAt(x,z));
     }
     hideOldAirfieldHangar(entry);
-    updateAirfieldServiceYard(entry,b,this.game.units,this.game.time,dt);
+    if(b.buildRemaining<=0)updateAirfieldServiceYard(entry,b,this.game.units,this.game.time,dt);
    }
-   if(b.buildRemaining<=0&&b.kind==='factory'){
+   if(b.kind==='factory'){
     if(!entry.factoryServiceYard){
      entry.factoryServiceYard=createFactoryServiceYard();entry.node.add(entry.factoryServiceYard);
     }
-    updateFactoryServiceYard(entry,b,this.game.units,this.game.time);
+    if(b.buildRemaining<=0)updateFactoryServiceYard(entry,b,this.game.units,this.game.time);
    }
    this.animateBuildingMotion(entry,b,dt,active);
    if(b.buildRemaining<=0&&!this.announcedBuildings.has(b.id)){
