@@ -103,7 +103,10 @@ export function createStrategicBuilding(kind,owner=0){
    bumpMap:materialGrain,bumpScale:.12,roughness:.75,metalness:.18});
   mats.camoOlive=new THREE.MeshStandardMaterial({color:'#7f846b',map:materialGrain,
    bumpMap:materialGrain,bumpScale:.14,roughness:.9,metalness:.04});
-  mats.camoSand=new THREE.MeshStandardMaterial({color:'#d1bd93',map:materialGrain,
+  // Silo sand-tone panels reuse its three-tone armoured albedo.
+  // Research retains an independent sand highlight; this saves the silo
+  // one draw call and maintains the original <=20 mesh budget.
+  if(researchCamo)mats.camoSand=new THREE.MeshStandardMaterial({color:'#d1bd93',map:materialGrain,
    bumpMap:materialGrain,bumpScale:.16,roughness:.88,metalness:.05});
  }
  // The silo should be a recognisable armoured launch complex, not a
@@ -284,14 +287,14 @@ export function createStrategicBuilding(kind,owner=0){
   for(const side of [-1,1]){
    for(const [x,y,width,height,paint] of [
     [-78,37,33,15,'camoOlive'],
-    [-35,45,28,12,'camoSand'],
+    [-35,45,28,12,'armor'],
     [16,33,34,18,'camoOlive'],
-    [72,45,26,11,'camoSand']
+    [72,45,26,11,'armor']
    ])box(width,height,1.15,paint,x,y,side*92.8);
    for(const [z,y,length,height,paint] of [
-    [-58,37,32,16,'camoSand'],
+    [-58,37,32,16,'armor'],
     [-8,45,42,13,'camoOlive'],
-    [48,33,31,17,'camoSand']
+    [48,33,31,17,'armor']
    ])box(1.15,height,length,paint,side*103.1,y,z);
   }
   box(222,5,195,'black',0,15,0);
@@ -362,10 +365,10 @@ export function createStrategicBuilding(kind,owner=0){
   // Keep the entrance and blue/red instrumentation glass clear.
   for(const [x,y,width,height,paint] of [
    [53,37,17,17,'camoOlive'],
-   [89,49,20,13,'camoSand']
+   [89,49,20,13,'armor']
   ])box(width,height,1.25,paint,x,y,-43.1);
   for(const [z,y,length,height,paint] of [
-   [-24,32,17,16,'camoSand'],
+   [-24,32,17,16,'armor'],
    [17,43,18,14,'camoOlive']
   ])box(1.25,height,length,paint,40.0,y,z);
   box(76,5,90,'metal',74,67,-2);
@@ -396,8 +399,8 @@ export function createStrategicBuilding(kind,owner=0){
   // Sand-worn maintenance galleries, hatch slide machinery and hazard
   // guides make the giant strategic launch site read like a functional silo.
   for(const [x,z,w,d,paint] of [
-   [-67,-78,19,13,'camoOlive'],[9,-78,25,12,'camoSand'],
-   [-52,79,23,12,'camoSand'],[18,79,19,13,'camoOlive']
+   [-67,-78,19,13,'camoOlive'],[9,-78,25,12,'armor'],
+   [-52,79,23,12,'armor'],[18,79,19,13,'camoOlive']
   ])box(w,1.15,d,paint,x,99,z);
   for(const z of [-84,84]){
    for(const x of [-80,-53,-26,1,28]){
