@@ -64,4 +64,9 @@ test('build ghost and completed buildings use identical 3D asset and site genera
  assert.ok(begin.includes("hideOldAirfieldHangar({detail:model})"));
  assert.ok(begin.includes('calibratedScale('));
  assert.ok(battlefield.includes('disposeServicePaint(preview.userData.previewService)'));
+ assert.match(begin,/const tint=\(root,ownSource=false,opacity=\.22\)/,'buildings are faint holograms');
+ assert.match(begin,/m\.opacity=Math\.min\(mat\.opacity\?\?1,opacity\)/);
+ assert.match(begin,/tint\(yard,false,\.14\)/,'fences and courtyard props remain faint');
+ assert.match(begin,/tint\(service,true,\.18\)/,'runway and service stations remain faint');
+ assert.match(begin,/opacity:\.48,depthTest:false/,'placement circle does not dominate ghost');
 });
