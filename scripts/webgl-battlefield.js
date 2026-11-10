@@ -14,6 +14,8 @@ import {SandforgeGroundingPass} from '/webgl-grounding.js';
 import {createBuildingYard,disposeBuildingYard} from '/webgl-building-yard.js';
 import {createAirfieldServiceYard,updateAirfieldServiceYard,hideOldAirfieldHangar,disposeAirfieldServiceYard} from '/webgl-airfield-service.js';
 import {createFactoryServiceYard,updateFactoryServiceYard,disposeFactoryServiceYard} from '/webgl-factory-service.js';
+import {serviceVisualGround,approachGroundHeight} from '/webgl-service-grounding.js';
+import {factoryRepairPoint} from '/src/reborn/factory-maintenance.js';
 import {disposeOwnedMeshes,disposeTaggedMaterials} from '/webgl-resource-lifecycle.js';
 import {selectedInfantryForTransport,selectedLoadedTransports,selectedTransportManifest} from '/webgl-transport-controls.js';
 import {pointerGestureIntent,availableEngineers,shouldAppendBuild,nearestEngineer,POINTER_CLICK_SLOP} from '/webgl-builder-input.js';
@@ -573,7 +575,22 @@ export class SandforgeBattlefield {
    const lerp=Number.isFinite(travel)&&travel<180?blend:1;
    const x=Number.isFinite(u.previousX)?u.previousX+(u.x-u.previousX)*lerp:u.x;
    const z=Number.isFinite(u.previousY)?u.previousY+(u.y-u.previousY)*lerp:u.y;
-   entry.node.position.copy(this.pos(x,z,this.heightAt(x,z)+unitRenderAltitude(u.kind,u.flightHeight??1)));
+   const terrainGround=this.heightAt(x,z);
+   const siteId=u.airfieldService?.baseId??u.factoryService?.baseId;
+   const serviceBase=siteId===undefined?null:this.game.bases.find(base=>base.id===siteId&&base.hp>0);
+   let visualGround=terrainGround;
+   if(serviceBase){
+    const serviceLevel=this.heightAt(serviceBase.x,serviceBase.y);
+    const serviceDock=u.factoryService?factoryRepairPoint(serviceBase,u.factoryService.bay):null;
+    const distanceToDock=serviceDock?Math.hypot(x-serviceDock.x,z-serviceDock.y):0;
+    visualGround=serviceVisualGround(u,terrainGround,serviceLevel,distanceToDock);
+    entry.previousServiceGround=visualGround;
+   }else if(Number.isFinite(entry.previousServiceGround)){
+    visualGround=approachGroundHeight(entry.previousServiceGround,terrainGround,dt);
+    entry.previousServiceGround=visualGround;
+    if(Math.abs(visualGround-terrainGround)<.03)delete entry.previousServiceGround;
+   }
+   entry.node.position.copy(this.pos(x,z,visualGround+unitRenderAltitude(u.kind,u.flightHeight??1)));
    const hullAngle=['tank','artillery'].includes(u.kind)&&Number.isFinite(u.hullAngle)?u.hullAngle:u.angle;
    entry.node.rotation.y=unitVisualYaw(u.kind,hullAngle);
    if(u.kind==='tank'||u.kind==='artillery')this.orientTankRig(entry,u);
