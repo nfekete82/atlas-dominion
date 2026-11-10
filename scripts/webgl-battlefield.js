@@ -15,6 +15,7 @@ import {createBuildingYard,disposeBuildingYard} from '/webgl-building-yard.js';
 import {createAirfieldServiceYard,updateAirfieldServiceYard,hideOldAirfieldHangar,disposeAirfieldServiceYard} from '/webgl-airfield-service.js';
 import {createFactoryServiceYard,updateFactoryServiceYard,disposeFactoryServiceYard} from '/webgl-factory-service.js';
 import {disposeServicePaint} from '/webgl-service-materials.js';
+import {createVehicleSelectionRing} from '/webgl-selection-ring.js';
 import {serviceVisualGround,approachGroundHeight} from '/webgl-service-grounding.js';
 import {factoryRepairPoint} from '/src/reborn/factory-maintenance.js';
 import {selectedMaintenanceKind,serviceFootprintContains} from '/webgl-maintenance-input.js';
@@ -920,9 +921,13 @@ export class SandforgeBattlefield {
    if(!unit||unit.hp<=0)continue;
    let ring=this.selectedRings.get(id);
    if(!ring){
-    // Wider selectable silhouette without another draw call.
-    ring=new THREE.Mesh(new THREE.TorusGeometry(selectionRingRadius(unitSpec(unit)),2.6,6,56),
-     new THREE.MeshBasicMaterial({color:'#79ecf9',depthWrite:false,transparent:true,opacity:.97}));
+    // Ground vehicles: chunkier, semitransparent segmented marker with real
+    // empty gaps; infantry and aircraft retain their continuous ring.
+    const radius=selectionRingRadius(unitSpec(unit));
+    ring=unitSpec(unit).group==='Fahrzeuge'
+     ?createVehicleSelectionRing(radius)
+     :new THREE.Mesh(new THREE.TorusGeometry(radius,2.6,6,56),
+      new THREE.MeshBasicMaterial({color:'#79ecf9',depthWrite:false,transparent:true,opacity:.97}));
     ring.rotation.x=-Math.PI/2;ring.renderOrder=9;this.scene.add(ring);
     this.selectedRings.set(id,ring);
    }
