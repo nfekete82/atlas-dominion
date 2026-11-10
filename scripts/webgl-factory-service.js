@@ -85,7 +85,7 @@ export function createFactoryServiceYard(){
    block(root,'FactoryGarageExternalBrace_'+index,[9,58,6],
     [cx+(index?1:-1)*69,42,z],workSteel);
   // Two independently animated garage openings. Each opening has two
-  // split sliding leaves; they're opened for the arriving real vehicle.
+  // split roller shutters; they lift for the arriving real vehicle.
   block(root,'FactoryServiceGarageHeader_'+index,[134,10,12],[cx,69,243],workSteel);
   block(root,'FactoryServiceGarageNumber_'+index,[24,3,4],[cx,77,250],yellow);
   for(const sx of [-1,1])
@@ -126,25 +126,23 @@ export function createFactoryServiceYard(){
    for(const z of [143,209])
     block(root,'RepairLiftFoot_'+index,[24,3,21],[cx+rail,3.9,z],dark);
   }
-  // One lateral maintenance gantry per bay so even the big main battle tank
-  // can drive under the open middle without colliding with a rendered prop.
-  for(const sx of [-1,1]){
-   const x=cx+sx*59;
-   block(root,'VehicleServiceCranePost_'+index,[7,49,8],[x,26,108],olive);
-   block(root,'RepairLamp_'+index,[13,5,11],[x,52,116],yellow);
-  }
+  // Roof-hung gantry with an OUTER support only. The main factory's central
+  // rollout lane stays open to the full width of a tank or rocket truck.
+  const outer=cx+(index===0?-1:1)*59;
+  block(root,'VehicleServiceCranePost_'+index,[7,49,8],[outer,26,108],olive);
+  block(root,'RepairLamp_'+index,[13,5,11],[outer,52,116],yellow);
   block(root,'RepairGantryCrossbeam_'+index,[123,6,9],[cx,55,108],steel);
   block(root,'RepairWarningBeam_'+index,[95,2.5,5],[cx,59,108],red);
-  block(root,'ServiceControlConsole_'+index,[19,24,18],[cx-59,14,227],dark);
-  for(const side of [-1,1]){
-   block(root,'FactoryHydraulicLine_'+index,[3,17,3],[cx+side*44,14,177],steel);
-   block(root,'FactoryLiftCable_'+index,[2,2,50],[cx+side*47,3,182],rubber);
-  }
-  block(root,'FactoryToolChest_'+index,[24,19,18],[cx+57,12,241],red);
+  block(root,'ServiceControlConsole_'+index,[19,24,18],[cx+(index===0?-59:59),14,227],dark);
+  block(root,'FactoryHydraulicLine_'+index,[3,17,3],
+   [cx+(index===0?-44:44),14,177],steel);
+  block(root,'FactoryLiftCable_'+index,[2,2,50],
+   [cx+(index===0?-47:47),3,182],rubber);
+  block(root,'FactoryToolChest_'+index,[24,19,18],[cx+(index===0?-57:57),12,241],red);
   for(const h of [10,16,22])
-   block(root,'FactoryToolChestDrawer_'+index,[20,1.5,2],[cx+57,h,251],workSteel);
-  block(root,'ControlPanelGlass_'+index,[15,8,2],[cx-59,22,237],glass);
-  const indicator=block(root,'RepairStatusIndicator_'+index,[9,7,5],[cx-59,34,225],yellow);
+   block(root,'FactoryToolChestDrawer_'+index,[20,1.5,2],[cx+(index===0?-57:57),h,251],workSteel);
+  block(root,'ControlPanelGlass_'+index,[15,8,2],[cx+(index===0?-59:59),22,237],glass);
+  const indicator=block(root,'RepairStatusIndicator_'+index,[9,7,5],[cx+(index===0?-59:59),34,225],yellow);
   const glow=block(root,'VehicleWeldingFlash_'+index,[6,7,6],[cx+28,27,170],yellow);
   glow.material=mat('#f0d575',0,.6);
   indicator.visible=false;glow.visible=false;
@@ -212,8 +210,11 @@ export function updateFactoryServiceYard(entry,base,units,time){
    Math.max(0,Math.min(.2,time-state.lastDoorTime));
   state.lastDoorTime=time;
   state.doorOpen+=(targetOpen-state.doorOpen)*Math.min(1,elapsed*3.8);
-  state.doorLeft.position.x=state.doorCenter-34-34*state.doorOpen;
-  state.doorRight.position.x=state.doorCenter+34+34*state.doorOpen;
+  // Roller shutters move UP, never sideways into the factory's central lane.
+  for(const door of [state.doorLeft,state.doorRight]){
+   door.position.y=36+32*state.doorOpen;
+   door.scale.y=1-.94*state.doorOpen;
+  }
   const repairing=phase==='repair';
   state.glow.visible=repairing&&Math.sin(time*20+bay*1.5)>-.2;
   state.icon.visible=repairing||phase==='ready';
