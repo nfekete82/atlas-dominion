@@ -241,15 +241,15 @@ async function rasterizeUnitIcon(kind){
 }
 /** Offline vector backup for the original 3D portrait (no asset fetch). */
 function rocketUnitIconFallback(){
- const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 190">'+
- '<rect width="192" height="190" fill="#28322d"/>'+
+ const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 132"><rect width="192" height="132" fill="#28322d"/><g transform="translate(30 0) scale(.69)">'+
+ ' '+
  '<path fill="#8d987c" d="M62 68h67v75H62z"/>'+
  '<path fill="#baa882" d="M60 145h28v32H60zm49 0h28v32h-28z"/>'+
  '<circle cx="96" cy="51" r="25" fill="#aca787"/>'+
  '<rect x="69" y="27" width="64" height="10" fill="#516757"/>'+
  '<rect x="102" y="60" width="17" height="81" rx="6" transform="rotate(-75 110 105)" fill="#39453f"/>'+
  '<path stroke="#dcbe83" stroke-width="5" d="m147 57 23 17-25 11"/>'+
- '</svg>';
+ '</g></svg>';
  return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
 }
 export function unitIcon(kind,renderer){
@@ -257,7 +257,7 @@ export function unitIcon(kind,renderer){
  if(kind==='rocket'&&!iconCache.has(kind)){
   iconCache.set(kind,new Promise((resolve,reject)=>{
    requestAnimationFrame(()=>{
-    try{resolve(renderModelPortrait(createRocketInfantry(0),renderer,{width:192,height:190}));}
+    try{resolve(renderModelPortrait(createRocketInfantry(0),renderer,{width:192,height:132}));}
     catch(error){reject(error);}
    });
   }).catch(error=>{iconCache.delete(kind);console.warn('Rocket 3D portrait fallback:',error);return rocketUnitIconFallback();}));
