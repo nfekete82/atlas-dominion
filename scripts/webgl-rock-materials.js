@@ -106,17 +106,51 @@ export function stoneMaterial(color='#c9ad8d',options={}){
  * Higher-detail geometry is selected once; thousands of stones still
  * require exactly one instanced draw call per palette group. */
 export function weatheredStoneGeometry(lowQuality=false){
- const geometry=new THREE.DodecahedronGeometry(1,lowQuality?0:1);
- const p=geometry.getAttribute('position');
- for(let i=0;i<p.count;i++){
-  const x=p.getX(i),y=p.getY(i),z=p.getZ(i);
-  const fracture=.13*Math.sin(x*12.7+y*3.9+z*7.8)+
-   .075*Math.cos(x*23.2-y*11.4+z*9.1);
-  const r=1+fracture;
-  p.setXYZ(i,x*r,y*r*(y<-.05?.79:.91),z*r*(1-.07*Math.sin(y*7.2)));
+ // Sedimentary sandstone fragments are built as fractured ledges, not
+ // deformed near-spheres. Shared across thousands of instanced stones.
+ // Faceted caps and offset shelves break up the repeated "potato" outline.
+ const segments=lowQuality?9:13;
+ const rings=lowQuality?
+  [[-.88,.54],[-.67,.90],[-.15,1.0],[.42,.75],[.78,.24]]:
+  [[-.91,.55],[-.73,.88],[-.47,1.0],[-.19,.94],[.17,.99],
+   [.43,.78],[.70,.56],[.84,.20]];
+ const positions=[],uvs=[];
+ const ringPoint=(index,i)=>{
+  const a=i/segments*Math.PI*2;
+  const [baseY,baseRadius]=rings[index];
+  // Periodic angular warps add chipped corners and asymmetric stratum lips.
+  const chip=1+.12*Math.sin(a*3+.3)+.065*Math.cos(a*7-1.4)+
+   .045*Math.sin(a*11+index*.56);
+  const radial=baseRadius*chip;
+  const banding=.045*Math.sin(a*4+index*.9)+
+   .023*Math.cos(a*9-index*.75);
+  return [
+   Math.cos(a)*radial+.045*Math.sin(index*2.31),
+   baseY+banding,
+   Math.sin(a)*radial*(.94+.05*Math.cos(a*2))+.04*Math.cos(index*1.61)
+  ];
+ };
+ const vertex=point=>{
+  positions.push(...point);
+  // Roughly planar rock-space UVs: the shared mineral atlas supplies
+  // micro-strata/normal relief without introducing per-rock textures.
+  uvs.push(point[0]*.44+point[1]*.10+.5,point[2]*.39+point[1]*.28+.5);
+ };
+ const triangle=(a,b,c)=>{vertex(a);vertex(b);vertex(c);};
+ for(let k=0;k<rings.length-1;k++)for(let j=0;j<segments;j++){
+  const a=ringPoint(k,j),b=ringPoint(k,j+1);
+  const c=ringPoint(k+1,j),d=ringPoint(k+1,j+1);
+  triangle(a,c,b);triangle(b,c,d);
  }
- p.needsUpdate=true;
- geometry.computeVertexNormals();
- geometry.computeBoundingSphere();
+ for(let i=0;i<segments;i++){
+  triangle([.02,rings.at(-1)[0]+.025,-.02],
+   ringPoint(rings.length-1,i),ringPoint(rings.length-1,i+1));
+  triangle([0,rings[0][0]-.04,0],ringPoint(0,i+1),ringPoint(0,i));
+ }
+ const geometry=new THREE.BufferGeometry();
+ geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+ geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
+ geometry.computeVertexNormals();geometry.computeBoundingSphere();
+ geometry.userData={sedimentaryLedges:true,segments,strata:rings.length};
  return geometry;
 }
