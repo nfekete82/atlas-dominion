@@ -102,7 +102,7 @@ export function updateFactoryServiceYard(entry,base,units,time){
  const yard=entry.factoryServiceYard;if(!yard)return;
  const state=yard.userData.bay0;
  const vehicle=units.find(u=>u.hp>0&&u.factoryService?.baseId===base.id&&
-  u.factoryService?.bay===0);
+  (u.factoryService?.bay===0||u.factoryService?.bay===1));
  state.indicator.visible=Boolean(vehicle);
  const phase=vehicle?.factoryService?.phase;
  const targetOpen=phase==='approach'||phase==='parking'?1:
