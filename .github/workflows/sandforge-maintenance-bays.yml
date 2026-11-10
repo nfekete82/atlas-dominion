@@ -1,0 +1,55 @@
+name: Airfield and factory repair bays
+
+on:
+  push:
+    branches: [main, 'feat/sandforge-*']
+    paths:
+      - '.github/workflows/sandforge-maintenance-bays.yml'
+      - 'src/reborn/airfield-maintenance.ts'
+      - 'src/reborn/factory-maintenance.ts'
+      - 'src/reborn/simulation.ts'
+      - 'src/reborn/catalog.ts'
+      - 'scripts/webgl-airfield-service.js'
+      - 'scripts/webgl-factory-service.js'
+      - 'scripts/webgl-battlefield.js'
+      - 'scripts/webgl-scale.js'
+      - 'scripts/build.mjs'
+      - 'tests/webgl-hangar-factory-maintenance-20261110.test.mjs'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/reborn/airfield-maintenance.ts'
+      - 'src/reborn/factory-maintenance.ts'
+      - 'src/reborn/simulation.ts'
+      - 'tests/webgl-hangar-factory-maintenance-20261110.test.mjs'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maintenance-bays-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  maintenance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - name: Check new Three.js modules
+        run: |
+          node --check scripts/webgl-airfield-service.js
+          node --check scripts/webgl-factory-service.js
+          node --check scripts/webgl-battlefield.js
+      - name: Compile TypeScript / build WebGL distribution
+        run: npm run build
+      - name: Test hangar and factory repair states and Three.js visuals
+        run: node --test tests/webgl-hangar-factory-maintenance-20261110.test.mjs
