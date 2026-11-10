@@ -5,7 +5,7 @@ import {UnitRadio,type PlayerOrder} from './unit-radio.js';
 import {UnitLossMonitor} from './unit-loss-monitor.js';
 import {TacticalMusic,musicCombatLevel} from './tactical-music.js';
 import {unitSpec} from './catalog.js';
-import {ENGINE_KINDS,ENGINE_PROFILES,measuredEngineSpeed,vehicleSoundMix,type EngineKind} from './vehicle-soundscape.js';
+import {ENGINE_KINDS,ENGINE_PROFILES,measuredEngineSpeed,vehicleSoundMix,engineAudibleGain,engineAudibleRadius,type EngineKind} from './vehicle-soundscape.js';
 
 interface EngineVoice {
   gain:GainNode;pan:StereoPannerNode;engine:OscillatorNode;harmonic:OscillatorNode;
@@ -322,7 +322,7 @@ export class Soundscape {
       this.music?.update(g.time,musicCombatLevel(g.shots.length,
        g.attackAlerts.lastAlert!==null&&g.time-g.attackAlerts.lastAlert.at<5),sounding);
       const ambientSounding=sounding&&this.ambience;
-      const audibleRadius=Math.max(180,Math.min(560,Math.max(r.width,r.height)/r.camera.zoom*.55));
+      const audibleRadius=engineAudibleRadius(r.width,r.height,r.camera.zoom);
       const mix=ambientSounding&&this.engineSoundsEnabled?vehicleSoundMix(g,r.camera,p=>g.canSee(0,p),audibleRadius):null;
       for(const kind of ENGINE_KINDS){
         const voice=this.engineVoices.get(kind);if(!voice)continue;
@@ -344,7 +344,7 @@ export class Soundscape {
         voice.pulseDepth.gain.setTargetAtTime(
           profile.pulse>0?profile.texture*(kind==='tank'?.13:.20)*(.25+.75*throttle):0,now,.26);
         voice.gain.gain.setTargetAtTime(
-          level*profile.volume*.50,now,level>voice.gain.gain.value ? .13 : .023);
+          engineAudibleGain(level,profile.volume),now,level>voice.gain.gain.value ? .13 : .023);
         voice.previousMotion=level>.02?moving:0;
       }
     }

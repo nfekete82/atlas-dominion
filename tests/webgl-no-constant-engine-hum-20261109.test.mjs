@@ -111,6 +111,7 @@ test('engine layers never start from opening a production gate or clicking infan
  assert.match(audio,/ambientSounding&&this.engineSoundsEnabled\?vehicleSoundMix/);
  assert.match(audio,/measuredEngineSpeed\(u\)>=2/);
  assert.match(audio,/level>voice.gain.gain.value \? \.13 : \.023/);
+ assert.match(audio,/engineAudibleGain\(level,profile.volume\)/);
  assert.match(audio,/pause\(\):void\{[\s\S]*?this\.silenceAmbientNodes\(\)/);
  assert.match(audio,/silenceScene\(\):void\{[\s\S]*?this\.silenceAmbientNodes\(\)/);
  assert.match(audio,/if\(this\.game===g\)return;this\.silence\(\);this\.silenceAmbientNodes\(\)/);
