@@ -894,7 +894,7 @@ const biomeVegetation=addBiomeVegetation({THREE,scene,world,terrain,game,heightA
 const washStones=spacious&&biome==='desert'?addDesertWashStones({scene,world,size,seed,heightAt,
  sites:terrain.sites,lowQuality:query.get('lite')==='1'}):null;
 const battlefield=new SandforgeBattlefield({
- game,world,terrain,scene,renderer,camera,controls,loader,groundMeshes,heightAt,pos,
+ game,world,terrain,scene,renderer,camera,controls,loader,groundMeshes,heightAt,pos,biome,
  lite:query.get('lite')==='1'
 });
 const groundTracks=new SandforgeGroundTracks({
@@ -902,7 +902,7 @@ const groundTracks=new SandforgeGroundTracks({
 });
 groundTracks.capture();
 const atmosphere=new SandforgeAtmosphere3D({
- scene,game,world,heightAt,camera,controls,lowQuality:query.get('lite')==='1'
+ scene,game,world,heightAt,camera,controls,biome,lowQuality:query.get('lite')==='1'
 });
 battlefield.fogAtmosphere=atmosphere;
 atmosphere.setFogEnabled(battlefield.fogEnabled);
