@@ -70,6 +70,21 @@ function radialTexture({inner='#ffffff',outer='#ffffff',mode='smoke',biome='dese
   g.addColorStop(1,'rgba(104,73,44,0)');
  }
  ctx.fillStyle=g;ctx.fillRect(0,0,128,128);
+ if(mode==='scorch'){
+  // Eroded char and displaced sand should never read as a perfectly round
+  // black sticker. This deterministic alpha relief is generated only once.
+  const pixels=ctx.getImageData(0,0,128,128);
+  for(let y=0;y<128;y++)for(let x=0;x<128;x++){
+   const dx=x-64,dy=y-64,theta=Math.atan2(dy,dx);
+   const radius=Math.hypot(dx,dy);
+   const edge=52+4*Math.sin(theta*7+.6)+3*Math.sin(theta*13-1.3);
+   const erosion=Math.max(0,Math.min(1,(edge-radius)/7));
+   const grit=.78+.12*Math.sin(x*.83+y*.39)+.10*Math.cos(x*.47-y*.62);
+   const a=(y*128+x)*4+3;
+   pixels.data[a]=Math.round(pixels.data[a]*erosion*Math.max(.35,grit));
+  }
+  ctx.putImageData(pixels,0,0);
+ }
  // Stable, generated-once irregular wisps break up the radial-sprite look.
  // Texture-space only; no RNG consumed by gameplay or added frame draws.
  if(mode==='smoke'||mode==='dust'){
