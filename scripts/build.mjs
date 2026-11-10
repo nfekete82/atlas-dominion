@@ -23,6 +23,7 @@ cpSync('model-preview.html','dist/model-preview.html');
 cpSync('model-3d.html','dist/model-3d.html');
 cpSync('webgl-preview.html','dist/webgl-preview.html');
 cpSync('scripts/webgl-preview.js','dist/webgl-preview.js');
+cpSync('scripts/webgl-biomes.js','dist/webgl-biomes.js');
 cpSync('scripts/webgl-match-result.js','dist/webgl-match-result.js');
 cpSync('scripts/webgl-desert-art.js','dist/webgl-desert-art.js');
 cpSync('scripts/webgl-rock-materials.js','dist/webgl-rock-materials.js');
