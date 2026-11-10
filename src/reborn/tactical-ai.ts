@@ -234,8 +234,13 @@ export class TacticalAI {
   // protect an engaged screen until critically damaged unless its retreat
   // route is clearly free. A 40-65% HP tank must not flee immediately.
   if(u.hp>=unitSpec(u).hp*.26)return;
-  if(assessment.stance==='attack'||assessment.stance==='siege'||
-    hasDecisiveLocalAdvantage(near,enemies,towers))return;
+  // A shot from an unseen turret supplies damage information, not a
+  // guessed turret position. With zero OBSERVED enemies the generic battle
+  // assessor calls our force 'attack' against an empty threat set: that is
+  // not evidence that a critically injured unit can safely hold its ground.
+  if((towers.length||enemies.length)&&
+    (assessment.stance==='attack'||assessment.stance==='siege'||
+     hasDecisiveLocalAdvantage(near,enemies,towers)))return;
   // A hit reveals damage, NOT the gun's fogged position. A healthy battalion
   // must not flee into the HQ just because the shooter isn't identified yet.
   if(!towers.length&&!enemies.length&&u.hp>=unitSpec(u).hp*.48)return;
