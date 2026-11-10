@@ -60,7 +60,7 @@ export function visualUnitScale(kind){
  // Humvee needs a substantial visual presence beside full-scale buildings.
  // Only the rendered mesh changes; navigation/collision/save width stays 76.
  if(kind==='rover')return 1.34;
- if(kind==='artillery')return 1.32;
+ if(kind==='artillery')return 1.42; // +7.6% for the 6x6 rocket launcher, render-only
  if(kind==='tank')return 1.44;
  if(kind==='scout')return 1.34;
  if(kind==='bomber')return 1.03;
