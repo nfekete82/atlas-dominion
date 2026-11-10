@@ -1002,9 +1002,7 @@ if(oasisFocus){
 }
 window.addEventListener('pagehide',event=>{if(!event.persisted){oases.dispose();battlefield.productionGates.dispose();}});
 let desertArtReady=false;
-const effects=new SandforgeCombatEffects({scene,camera,game,world,heightAt,pos,battlefield,lowQuality:query.get('lite')==='1'});
-// Reuse the existing bounded VFX pools; no new particles per explosion.
-if(biome!=='desert')effects.dust.mesh.material.color.set(biomeStyle.dust);
+const effects=new SandforgeCombatEffects({scene,camera,game,world,heightAt,pos,battlefield,biome,lowQuality:query.get('lite')==='1'});
 // Renderer-only weather preview: weather rules in Simulation are unchanged.
 const stormButton=document.createElement('button');
 stormButton.id='sf3d-storm';
