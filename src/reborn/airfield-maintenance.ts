@@ -25,9 +25,9 @@ export function airfieldPoint(base:AirfieldSite,waypoint:AirfieldWaypoint,bay:Ai
  const local={
   // The visible asphalt continues well beyond the hangars, so aircraft
   // land on the long strip before taxiing onto the side apron.
-  approach:{x:132,z:505},touchdown:{x:132,z:212},
+  approach:{x:132,z:313},touchdown:{x:132,z:123},
   taxi:{x:132,z:24},door:{x:dockX(bay),z:24},
-  dock:{x:dockX(bay),z:-88},departure:{x:132,z:505}
+  dock:{x:dockX(bay),z:-88},departure:{x:132,z:313}
  }[waypoint];
  const yaw=headings[base.facing??0],c=Math.cos(yaw),s=Math.sin(yaw);
  return {x:base.x+local.x*c+local.z*s,y:base.y-local.x*s+local.z*c};
