@@ -32,8 +32,8 @@ test('two distinct rotated airfield bays and runway/landing points',()=>{
  assert.notDeepEqual(airfieldPoint(b,'dock',0),airfieldPoint(b,'dock',1));
  assert.deepEqual(airfieldTaxiPoint(b,0,0),airfieldPoint(b,'touchdown',0));
  assert.deepEqual(airfieldTaxiPoint(b,1,1),airfieldPoint(b,'dock',1));
- assert.deepEqual(factoryRepairPoint(b,0),{x:2172,y:2176});
- assert.deepEqual(factoryRepairPoint(b,1),{x:2172,y:2024});
+ assert.deepEqual(factoryRepairPoint(b,0),{x:2045,y:2292});
+ assert.deepEqual(factoryRepairPoint(b,1),{x:2045,y:2292},'legacy service bay shares new platform');
  assert.equal(unitRenderAltitude('bomber',1),175);
  assert.equal(unitRenderAltitude('bomber',0),0);
 });
@@ -71,14 +71,15 @@ test('finished bomber remains docked until an explicit launch, then actually tak
  assert.ok(Math.hypot(plane.x-stationary.x,plane.y-stationary.y)>100);
 });
 
-test('factory maintenance accepts tanks, Humvees and artillery; refuses third slot',()=>{
+test('factory maintenance accepts one vehicle at a time, then reuses its single slot',()=>{
  const {g,garage}=setup(),roster=['tank','rover','artillery'].map((kind,i)=>g.spawn(0,
    {x:2560+i*10,y:2310},kind));
  for(const u of roster)u.hp=g.maxUnitHp(u)*.4;
- assert.equal(g.requestFactoryRepair(roster.map(u=>u.id)),2);
- assert.deepEqual(roster.slice(0,2).map(u=>u.factoryService.bay),[0,1]);
+ assert.equal(g.requestFactoryRepair(roster.map(u=>u.id)),1);
+ assert.deepEqual(roster.slice(0,1).map(u=>u.factoryService.bay),[0]);
+ assert.equal(roster[1].factoryService,undefined);
  assert.equal(roster[2].factoryService,undefined);
- assert.notDeepEqual(factoryRepairPoint(garage,0),factoryRepairPoint(garage,1));
+ assert.deepEqual(factoryRepairPoint(garage,0),factoryRepairPoint(garage,1),'legacy bay maps to same physical lift');
  roster[0].factoryService.phase='repair';
  Object.assign(roster[0],factoryRepairPoint(garage,0));
  const initial=roster[0].hp,credits=g.credits[0];advance(g,1);
@@ -119,7 +120,7 @@ test('3D maintenance assets are wired into build and battlefield lifecycle',()=>
    'createFactoryServiceYard','updateFactoryServiceYard','disposeFactoryServiceYard',
    'hangar-repair','factory-repair','hangar-auto','factory-auto'])assert.ok(battlefield.includes(phrase),phrase);
  for(const phrase of ['HangarDoorLeft_','AirfieldExtendedRunway','HangarCamoArch_'])assert.ok(airfield.includes(phrase));
- for(const phrase of ['FactoryVehicleRepairApron','HydraulicVehicleLiftRail_','FactoryServiceWing'])assert.ok(factory.includes(phrase));
+ for(const phrase of ['FactoryVehicleRepairApron','HydraulicVehicleLiftRail_','FactorySideWorkshopWallLeft'])assert.ok(factory.includes(phrase));
 });
 
 test('Three.js service yards create, animate and dispose with no DOM or WebGL context',()=>{
@@ -138,15 +139,15 @@ test('Three.js service yards create, animate and dispose with no DOM or WebGL co
  assert.equal(airEntry.airfieldServiceYard,null);
 
  const factory=createFactoryServiceYard();
- assert.ok(factory.getObjectByName('FactoryServiceWing'));
+ assert.ok(factory.getObjectByName('FactorySideWorkshopWallLeft'));
  assert.ok(factory.getObjectByName('VehicleRepairBaySurface_0'));
- assert.ok(factory.getObjectByName('VehicleRepairBaySurface_1'));
- const truck={id:81,hp:100,factoryService:{baseId:901,bay:1,phase:'repair'}};
+ assert.equal(factory.getObjectByName('VehicleRepairBaySurface_1'),undefined);
+ const truck={id:81,hp:100,factoryService:{baseId:901,bay:0,phase:'repair'}};
  const garageEntry={factoryServiceYard:factory};
  updateFactoryServiceYard(garageEntry,{id:901},[truck],Math.PI/2);
- assert.equal(factory.userData.bay1.indicator.visible,true);
+ assert.equal(factory.userData.bay0.indicator.visible,true);
  updateFactoryServiceYard(garageEntry,{id:901},[],0);
- assert.equal(factory.userData.bay1.indicator.visible,false);
+ assert.equal(factory.userData.bay0.indicator.visible,false);
  disposeFactoryServiceYard(garageEntry);
  assert.equal(garageEntry.factoryServiceYard,null);
 });
