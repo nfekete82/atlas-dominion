@@ -91,6 +91,7 @@ export function createAirfieldServiceYard(){
  box(group,'AirfieldFuelServiceContainer',36,24,48,205,13,-110,camo);
  for(const x of [-169,-134,-44,-8])
   box(group,'HangarSafetyChevron',8,.15,5,x,3.5,42,yellow);
+ group.traverse(mesh=>{if(mesh.isMesh){mesh.castShadow=false;mesh.receiveShadow=false;mesh.raycast=()=>{};}});
  return group;
 }
 export function updateAirfieldServiceYard(entry,base,units,time,dt){
