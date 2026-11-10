@@ -291,7 +291,7 @@ test('context menus expose builder construction and only the selected producer u
  });
  expect(roster.tab).toBe('units');
  expect(roster.hq).toEqual([{kind:'headquarters',units:['engineer']}]);
- expect(roster.variants.barracks[0].units).toEqual(['infantry','medic','heavy']);
+ expect(roster.variants.barracks[0].units).toEqual(['infantry','medic','heavy','rocket']);
  expect(roster.variants.factory[0].units).toEqual(['rover','tank','artillery']);
  expect(roster.variants.airfield[0].units).toEqual(['scout','bomber']);
  expect(roster.tabs).toEqual(['units','territories']);
