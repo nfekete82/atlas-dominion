@@ -21,7 +21,7 @@ import {factoryRepairPoint} from '/src/reborn/factory-maintenance.js';
 import {selectedMaintenanceKind,serviceFootprintContains} from '/webgl-maintenance-input.js';
 import {disposeOwnedMeshes,disposeTaggedMaterials} from '/webgl-resource-lifecycle.js';
 import {selectedInfantryForTransport,selectedLoadedTransports,selectedTransportManifest} from '/webgl-transport-controls.js';
-import {pointerGestureIntent,availableEngineers,chooseConstructionCrew,nearestEngineer,POINTER_CLICK_SLOP} from '/webgl-builder-input.js';
+import {pointerGestureIntent,submitConstruction,nearestEngineer,POINTER_CLICK_SLOP} from '/webgl-builder-input.js';
 import {sameKindVisibleUnits} from '/webgl-double-click-select.js';
 import {tracerWindow} from '/webgl-hit-response.js';
 import {applyFactionAccents} from '/webgl-faction-accents.js';
@@ -2135,30 +2135,33 @@ export class SandforgeBattlefield {
    }
    if(this.buildKind){
     const kind=this.buildKind;
-    let workers=availableEngineers(this.game.units,this.selected);
-    if(!workers.length){
-     // A previous mis-click or camera/HUD interaction must not permanently
-     // strand placement mode; recover a living pioneer automatically.
-     const center={x:p.x,y:p.y},worker=nearestEngineer(this.game.units,center);
-     if(worker){
-      workers=[worker];this.selected=new Set([worker.id]);this.selectedBase=null;
-     }
-    }
-    if(!workers.length){
-     this.message('Kein Pionier verfügbar · im Feldkommando ausbilden');return;
-    }
     const blocked=this.game.buildError(0,kind,p,this.placementFacing);
-    if(blocked){this.message(blocked+' · Pionier bleibt ausgewählt');return;}
-    const crew=chooseConstructionCrew(workers,event.shiftKey);
-    const {append}=crew;
-    const result=this.game.build(0,kind,p,crew.workers.map(u=>u.id),this.placementFacing,append);
-    if(result){
+    if(blocked){
+     this.message(blocked+' · Bauplatz oder Ausrichtung ändern');
+     return;
+    }
+    // The previous flow used only the currently selected pioneer. After an
+    // airfield/factory he may still carry the old construction order or be
+    // trapped behind its facade. Retry other FREE pioneers before queueing.
+    const order=submitConstruction(this.game,kind,p,this.selected,
+     this.placementFacing,event.shiftKey);
+    if(order.base){
+     // Keep the builder catalogue actionable for the NEXT building, even
+     // if a production structure was automatically selected in between.
+     this.selected=new Set(order.workers.map(u=>u.id));
+     this.selectedBase=null;
+     this.panel.dataset.tab='buildings';
      this.sound?.command?.();
-     this.message(BUILDINGS[kind].name+(append?' zur Pionier-Baufolge hinzugefügt':' beauftragt')+
-      ' · Pionier bleibt ausgewählt');
      if(!event.shiftKey)this.clearPlacement();
      this.sync(true);
-    }else this.message('Pionier kann Bauplatz nicht erreichen · Standort ändern (Pionier bleibt ausgewählt)');
+     this.message(BUILDINGS[kind].name+
+      (order.append?' in Baufolge eingereiht':' beauftragt')+
+      ' · Nächstes Gebäude direkt im Baumenü auswählen');
+    }else{
+     this.message(order.reason+
+      ' · '+(order.tried??0)+' Pionier-Zuweisung(en) geprüft');
+     this.drawInterface();
+    }
     return;
    }
    const near=this.game.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier).map(u=>({u,d:dist(u,p)})).sort((a,b)=>a.d-b.d)[0];
