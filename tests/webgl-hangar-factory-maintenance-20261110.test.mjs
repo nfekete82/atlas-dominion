@@ -322,3 +322,31 @@ test('repair right-click detects angled roofs, pads and runway without hijacking
  assert.match(source,/this\.game\.requestFactoryRepair\(ids,facility\.id\)/);
  assert.match(readFileSync('scripts/build.mjs','utf8'),/webgl-maintenance-input\.js/);
 });
+
+test('damaged vehicles display a distinct service cross and animated welding sparks',()=>{
+ const yard=createFactoryServiceYard();
+ const base={id:910,kind:'factory',x:1200,y:1200,facing:0};
+ const entry={factoryServiceYard:yard};
+ const state=yard.userData.bay0;
+ assert.ok(yard.getObjectByName('FactoryRepairIcon_0'));
+ assert.ok(yard.getObjectByName('FactoryRepairCircle_0'));
+ assert.ok(yard.getObjectByName('FactoryWeldingSparks_0'));
+ assert.equal(state.icon.visible,false);
+ assert.equal(state.sparks.visible,false);
+ const vehicle={id:8,hp:500,factoryService:{baseId:910,bay:0,phase:'repair'}};
+ updateFactoryServiceYard(entry,base,[vehicle],1.8);
+ assert.equal(state.icon.visible,true);
+ assert.equal(state.sparks.visible,true);
+ assert.equal(state.indicator.visible,true);
+ const before=state.sparks.rotation.y;
+ updateFactoryServiceYard(entry,base,[vehicle],2.2);
+ assert.notEqual(state.sparks.rotation.y,before);
+ vehicle.factoryService.phase='ready';
+ updateFactoryServiceYard(entry,base,[vehicle],3);
+ assert.equal(state.icon.visible,true);
+ assert.equal(state.sparks.visible,false);
+ updateFactoryServiceYard(entry,base,[],4);
+ assert.equal(state.icon.visible,false);
+ assert.equal(state.sparks.visible,false);
+ disposeFactoryServiceYard(entry);
+});

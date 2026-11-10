@@ -70,7 +70,31 @@ export function createFactoryServiceYard(){
   const glow=block(root,'VehicleWeldingFlash_'+index,[6,7,6],[cx+28,27,170],yellow);
   glow.material=mat('#f0d575',0,.6);
   indicator.visible=false;glow.visible=false;
-  root.userData['bay'+index]={indicator,glow};
+  // Floating maintenance cross is readable from the isometric tactical
+  // camera while keeping the unit's HP bar and selection ring unobstructed.
+  const icon=new THREE.Group();icon.name='FactoryRepairIcon_'+index;
+  icon.position.set(cx,112,174);icon.visible=false;root.add(icon);
+  const iconMat=new THREE.MeshBasicMaterial({
+   color:'#95ffd0',transparent:true,opacity:.95,depthTest:false,depthWrite:false
+  });
+  const circle=new THREE.Mesh(new THREE.TorusGeometry(13.5,2,8,28),iconMat);
+  circle.name='FactoryRepairCircle_'+index;circle.rotation.x=-Math.PI/2;
+  circle.raycast=()=>{};icon.add(circle);
+  block(icon,'FactoryRepairCrossHorizontal_'+index,[16,1.5,4],[0,0,0],iconMat);
+  block(icon,'FactoryRepairCrossVertical_'+index,[4,1.5,16],[0,0,0],iconMat);
+  const sparks=new THREE.Group();sparks.name='FactoryWeldingSparks_'+index;
+  sparks.position.set(cx+24,25,169);sparks.visible=false;root.add(sparks);
+  const sparkMaterial=new THREE.MeshBasicMaterial({
+   color:'#ffe19a',transparent:true,opacity:.97,depthTest:false,depthWrite:false
+  });
+  for(let n=0;n<9;n++){
+   const shard=new THREE.Mesh(new THREE.ConeGeometry(1.6,9+(n%3)*3,4),sparkMaterial);
+   shard.name='FactoryWeldingSpark_'+index+'_'+n;
+   shard.position.set(Math.cos(n*2.4)*6,(n%4)*2,Math.sin(n*2.4)*6);
+   shard.rotation.set(Math.sin(n*2.1)*.75,0,Math.cos(n*1.7)*.85);
+   shard.raycast=()=>{};sparks.add(shard);
+  }
+  root.userData['bay'+index]={indicator,glow,icon,sparks};
  }
  // Sand-scoured red-white warning stripes at the apron entry.
  for(let i=0;i<14;i++){
@@ -96,7 +120,22 @@ export function updateFactoryServiceYard(entry,base,units,time){
   const state=yard.userData['bay'+bay];
   const vehicle=units.find(u=>u.hp>0&&u.factoryService?.baseId===base.id&&u.factoryService?.bay===bay);
   state.indicator.visible=Boolean(vehicle);
-  state.glow.visible=vehicle?.factoryService?.phase==='repair'&&Math.sin(time*20+bay*1.5)>-.2;
+  const phase=vehicle?.factoryService?.phase;
+  const repairing=phase==='repair';
+  state.glow.visible=repairing&&Math.sin(time*20+bay*1.5)>-.2;
+  state.icon.visible=repairing||phase==='ready';
+  state.sparks.visible=repairing;
+  if(state.icon.visible){
+   state.icon.position.y=112+Math.sin(time*3+bay)*3;
+   state.icon.rotation.y=time*.32;
+  }
+  if(repairing){
+   state.sparks.rotation.y=time*5+bay;
+   state.sparks.children.forEach((spark,n)=>{
+    spark.visible=Math.sin(time*29+n*3.1+bay)>.05;
+    spark.position.y=(n%4)*2+Math.max(0,Math.sin(time*12+n*1.9))*7;
+   });
+  }
   if(state.indicator.visible){
    state.indicator.scale.y=1+.22*Math.sin(time*4+bay);
   }
