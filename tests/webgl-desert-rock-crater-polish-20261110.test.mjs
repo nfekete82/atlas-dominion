@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {weatheredStoneGeometry,sharedStoneMaps}
  from '../scripts/webgl-rock-materials.js';
-import {createConformingCraterGeometry} from '../scripts/webgl-environment.js';
+import {createConformingCraterGeometry,renderGroundHeightSampler}
+ from '../scripts/webgl-environment.js';
 import * as THREE from 'three';
 
 test('sedimentary rocks have real faceted ledges at both quality levels',()=>{
@@ -86,7 +87,7 @@ test('crater decals follow sampled dunes and use one geometry with no raised rin
  assert.ok(p.count>150&&g.index.count>700);
  for(let i=0;i<p.count;i++){
   const x=p.getX(i)+2000,z=p.getZ(i)+2000;
-  assert.ok(Math.abs(p.getY(i)-(sampler(x,z).y+.32))<.001,
+  assert.ok(Math.abs(p.getY(i)-(sampler(x,z).y+.24))<.001,
    'every vertex must follow ground height, with a tiny decal offset');
  }
  const first=new THREE.Vector3().fromBufferAttribute(p,g.index.getX(0));
@@ -101,4 +102,35 @@ test('crater decals follow sampled dunes and use one geometry with no raised rin
  assert.ok(lite.getAttribute('position').count<p.count);
  assert.equal(JSON.stringify(details),original,'visuals must not mutate map');
  g.dispose();g2.dispose();lite.dispose();
+});
+
+
+test('decal sampler matches the exact triangulated 4x4 terrain height, not a curved heightfield',()=>{
+ const size=4160,segments=224,step=size/segments;
+ const heightAt=(x,z)=>11+Math.sin(x*.031)*5+
+  Math.cos(z*.049)*3+.00001*x*z;
+ const sample=renderGroundHeightSampler(heightAt,size,segments);
+ for(const [cx,cz,tx,tz] of [[14,32,.24,.42],[52,41,.79,.65],[120,155,.4,.6]]){
+  const x=(cx+tx)*step,z=(cz+tz)*step;
+  const a=heightAt(cx*step,cz*step);
+  const b=heightAt((cx+1)*step,cz*step);
+  const c=heightAt(cx*step,(cz+1)*step);
+  const d=heightAt((cx+1)*step,(cz+1)*step);
+  const expected=tx+tz<=1?
+   a*(1-tx-tz)+b*tx+c*tz:
+   b*(1-tz)+c*(1-tx)+d*(tx+tz-1);
+  assert.ok(Math.abs(sample(x,z)-expected)<1e-8);
+ }
+ const craters=[{x:1250,y:1550,radius:43,rotation:.71}];
+ const pos=(x,z)=>new THREE.Vector3(x-size/2,heightAt(x,z),z-size/2);
+ const geo=createConformingCraterGeometry(craters,{
+  pos,heightAt,worldSize:size,spacious:true
+ });
+ const positions=geo.getAttribute('position');
+ for(let i=0;i<positions.count;i++){
+  const x=positions.getX(i)+size/2,z=positions.getZ(i)+size/2;
+  assert.ok(Math.abs(positions.getY(i)-(sample(x,z)+.24))<1e-3,
+   'crater decal rests just above the rendered triangle, never inside the dune');
+ }
+ geo.dispose();
 });
