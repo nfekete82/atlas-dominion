@@ -153,6 +153,7 @@ export function attachRocketLauncherToInfantry(model,owner=0){
   node.position.set(x,y,z);
   node.rotation.x=rx;
   node.castShadow=true;node.receiveShadow=true;
+  node.userData.sandforgeOwnedRocketPart=true;
   launcher.add(node);return node;
  };
  // 1.05 m launcher, correctly sized for the original Atlas soldier.
@@ -178,4 +179,22 @@ export function attachRocketLauncherToInfantry(model,owner=0){
  model.userData={...model.userData,animatedRocketInfantry:true,
   launcherUsesAtlasRig:true,role:'antiArmorAntiAir'};
  return model;
+}
+
+/** Release only rocket-specific mesh resources. The original GLB skeleton,
+ * authored infantry geometry, textures and AnimationMixer are owned by their
+ * own lifecycle and must NEVER be disposed by this helper.
+ */
+export function disposeRocketLauncher(root){
+ const launcher=root?.getObjectByName('Atlas_ShoulderLauncher');
+ if(!launcher)return;
+ const geometries=new Set(),materials=new Set();
+ launcher.traverse(node=>{
+  if(!node.isMesh||!node.userData.sandforgeOwnedRocketPart)return;
+  if(node.geometry)geometries.add(node.geometry);
+  for(const material of (Array.isArray(node.material)?node.material:[node.material]))
+   if(material)materials.add(material);
+ });
+ for(const geometry of geometries)geometry.dispose();
+ for(const material of materials)material.dispose();
 }
