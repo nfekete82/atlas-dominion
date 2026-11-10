@@ -341,14 +341,15 @@ export class Simulation {
   }
   cancelProductionDeparture(unitId:number):void{this.productionDepartureHolds.delete(unitId);}
   /** Manual repair orders never create phantom aircraft or extra building slots. */
-  requestAirfieldRepair(ids:number[]):number {
+  requestAirfieldRepair(ids:number[],preferredBaseId?:number):number {
     if(this.status!=='playing')return 0;
     let accepted=0;
     for(const u of this.units){
       if(!ids.includes(u.id)||u.hp<=0||u.carrier||!['bomber','scout'].includes(u.kind)||
         u.airfieldService||u.transport?.cargo.length||u.transport?.phase&&u.transport.phase!=='cruise'||
         u.hp>=this.maxUnitHp(u)-1e-6)continue;
-      const airfield=this.bases.find(b=>b.owner===u.owner&&b.kind==='airfield'&&b.hp>0&&b.buildRemaining<=0);
+      const airfield=this.bases.find(b=>b.owner===u.owner&&b.kind==='airfield'&&b.hp>0&&b.buildRemaining<=0&&
+        (preferredBaseId===undefined||b.id===preferredBaseId));
       if(!airfield)continue;
       const occupied=new Set(this.units.filter(other=>other.hp>0&&other.airfieldService?.baseId===airfield.id)
         .map(other=>other.airfieldService!.bay));
@@ -380,14 +381,15 @@ export class Simulation {
     return changed;
   }
   /** Two outdoor repair platforms serve only ground vehicles. */
-  requestFactoryRepair(ids:number[]):number {
+  requestFactoryRepair(ids:number[],preferredBaseId?:number):number {
     if(this.status!=='playing')return 0;
     let accepted=0;
     for(const u of this.units){
       if(!ids.includes(u.id)||u.hp<=0||u.carrier||
         !['rover','tank','artillery'].includes(u.kind)||u.factoryService||
         u.hp>=this.maxUnitHp(u)-1e-6)continue;
-      const factory=this.bases.find(b=>b.owner===u.owner&&b.kind==='factory'&&b.hp>0&&b.buildRemaining<=0);
+      const factory=this.bases.find(b=>b.owner===u.owner&&b.kind==='factory'&&b.hp>0&&b.buildRemaining<=0&&
+        (preferredBaseId===undefined||b.id===preferredBaseId));
       if(!factory)continue;
       const occupied=new Set(this.units.filter(other=>other.hp>0&&other.factoryService?.baseId===factory.id)
         .map(other=>other.factoryService!.bay));

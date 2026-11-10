@@ -8,6 +8,7 @@ import {unitRenderAltitude} from '../scripts/webgl-scale.js';
 import {createAirfieldServiceYard,updateAirfieldServiceYard,disposeAirfieldServiceYard} from '../scripts/webgl-airfield-service.js';
 import {createFactoryServiceYard,updateFactoryServiceYard,disposeFactoryServiceYard} from '../scripts/webgl-factory-service.js';
 import {serviceVisualGround,approachGroundHeight,AIRFIELD_HANGAR_FLOOR_HEIGHT,FACTORY_LIFT_HEIGHT} from '../scripts/webgl-service-grounding.js';
+import {selectedMaintenanceKind,serviceFootprintContains} from '../scripts/webgl-maintenance-input.js';
 
 const base=(game,kind,id,x,y,facing=0)=>{
  const b={id,kind,owner:0,x,y,facing,territory:0,hp:kind==='airfield'?1200:1100,
@@ -286,4 +287,38 @@ test('garage and airfield selected-building HUD can recover unclickable parked a
  }
  assert.match(source,/WARTUNGSPLÄTZE/);
  assert.match(source,/ALLE ZURÜCK/);
+});
+
+test('manual right-click routes a tank and bomber to the clicked, not another, service building',()=>{
+ const {g,airport,garage}=setup();
+ const tank=g.spawn(0,{x:2530,y:2110},'tank');
+ const bomber=g.spawn(0,{x:1850,y:2020},'bomber');
+ tank.hp=600;bomber.hp=400;
+ assert.equal(g.requestFactoryRepair([tank.id],airport.id),0);
+ assert.equal(g.requestAirfieldRepair([bomber.id],garage.id),0);
+ assert.equal(g.requestFactoryRepair([tank.id],garage.id),1);
+ assert.equal(g.requestAirfieldRepair([bomber.id],airport.id),1);
+ assert.equal(tank.factoryService.baseId,garage.id);
+ assert.equal(bomber.airfieldService.baseId,airport.id);
+ assert.equal(tank.factoryService.phase,'approach');
+ assert.equal(bomber.airfieldService.phase,'approach');
+});
+test('repair right-click detects angled roofs, pads and runway without hijacking soldiers',()=>{
+ const units=[{id:1,kind:'tank',owner:0,hp:300},
+  {id:2,kind:'scout',owner:0,hp:100},{id:3,kind:'infantry',owner:0,hp:50}];
+ assert.equal(selectedMaintenanceKind(units,new Set([1])),'factory');
+ assert.equal(selectedMaintenanceKind(units,new Set([2])),'airfield');
+ assert.equal(selectedMaintenanceKind(units,new Set([3])),null);
+ assert.equal(selectedMaintenanceKind(units,new Set([1,2])),null);
+ const garage={kind:'factory',x:400,y:500,facing:0};
+ const airfield={kind:'airfield',x:800,y:900,facing:2};
+ assert.equal(serviceFootprintContains(garage,{x:476,y:672}),true);
+ assert.equal(serviceFootprintContains(garage,{x:400,y:950}),false);
+ assert.equal(serviceFootprintContains(airfield,{x:975,y:900}),true);
+ assert.equal(serviceFootprintContains(airfield,{x:1400,y:900}),false);
+ const source=readFileSync('scripts/webgl-battlefield.js','utf8');
+ assert.match(source,/this\.maintenanceFacilityAtPointer\(event,serviceKind\)/);
+ assert.match(source,/this\.game\.requestAirfieldRepair\(ids,facility\.id\)/);
+ assert.match(source,/this\.game\.requestFactoryRepair\(ids,facility\.id\)/);
+ assert.match(readFileSync('scripts/build.mjs','utf8'),/webgl-maintenance-input\.js/);
 });

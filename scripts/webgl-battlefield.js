@@ -16,6 +16,7 @@ import {createAirfieldServiceYard,updateAirfieldServiceYard,hideOldAirfieldHanga
 import {createFactoryServiceYard,updateFactoryServiceYard,disposeFactoryServiceYard} from '/webgl-factory-service.js';
 import {serviceVisualGround,approachGroundHeight} from '/webgl-service-grounding.js';
 import {factoryRepairPoint} from '/src/reborn/factory-maintenance.js';
+import {selectedMaintenanceKind,serviceFootprintContains} from '/webgl-maintenance-input.js';
 import {disposeOwnedMeshes,disposeTaggedMaterials} from '/webgl-resource-lifecycle.js';
 import {selectedInfantryForTransport,selectedLoadedTransports,selectedTransportManifest} from '/webgl-transport-controls.js';
 import {pointerGestureIntent,availableEngineers,shouldAppendBuild,nearestEngineer,POINTER_CLICK_SLOP} from '/webgl-builder-input.js';
@@ -994,8 +995,8 @@ export class SandforgeBattlefield {
     const units=this.game.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&
       (aircraft?['bomber','scout']:['rover','tank','artillery']).includes(u.kind)&&
       u.hp<this.game.maxUnitHp(u));
-    const count=aircraft?this.game.requestAirfieldRepair(units.map(u=>u.id)):
-      this.game.requestFactoryRepair(units.map(u=>u.id));
+    const count=aircraft?this.game.requestAirfieldRepair(units.map(u=>u.id),facility.id):
+      this.game.requestFactoryRepair(units.map(u=>u.id),facility.id);
     this.message(count?count+' beschädigte Einheiten zur Wartung zurückgerufen':
       'Keine freien Wartungsplätze oder keine passenden beschädigten Einheiten');
     this.drawInterface();return;
@@ -1904,6 +1905,32 @@ export class SandforgeBattlefield {
    'Aussteigen hier nicht möglich · Freie Fläche suchen');
   this.drawInterface();return done;
  }
+ maintenanceFacilityAtPointer(event,kind){
+  const candidates=this.game.bases.filter(b=>b.owner===0&&b.hp>0&&
+   b.buildRemaining<=0&&b.kind===kind&&this.bases.get(b.id)?.node.visible);
+  if(!candidates.length)return null;
+  const rect=this.renderer.domElement.getBoundingClientRect();
+  if(!rect.width||!rect.height||event.clientX<rect.left||event.clientX>rect.right||
+     event.clientY<rect.top||event.clientY>rect.bottom)return null;
+  const ndc=new THREE.Vector2(
+   (event.clientX-rect.left)/rect.width*2-1,
+   1-(event.clientY-rect.top)/rect.height*2);
+  this.camera.updateMatrixWorld(true);
+  const ray=new THREE.Raycaster();ray.setFromCamera(ndc,this.camera);
+  // A service-yard mesh deliberately has raycast disabled to preserve
+  // regular RTS selection; for this specific right-click use its bounds.
+  const hits=[];
+  for(const base of candidates){
+   const entry=this.bases.get(base.id),bounds=new THREE.Box3().setFromObject(entry.node);
+   if(bounds.isEmpty())continue;
+   const intersection=ray.ray.intersectBox(bounds,new THREE.Vector3());
+   if(intersection)hits.push({base,d:intersection.distanceTo(ray.ray.origin)});
+  }
+  if(hits.length)return hits.sort((a,b)=>a.d-b.d)[0].base;
+  const point=this.terrainPoint(event);
+  if(!point)return null;
+  return candidates.find(b=>serviceFootprintContains(b,point))??null;
+ }
  pointerUp(event){
   if(!this.clickStart||event.button!==this.clickStart.button)return;
   const start=this.clickStart;
@@ -1941,6 +1968,32 @@ export class SandforgeBattlefield {
      'Einsteigen nicht möglich · Plätze, Entfernung und Weg prüfen');
     if(accepted){this.sound?.command?.();this.showCommandPulse({x:carrier.x,y:carrier.y});}
     this.drawInterface();return;
+   }
+  }
+  // Right-click on a friendly factory/airfield routes selected vehicles
+  // or aircraft into a reserved repair slot instead of marching at the wall.
+  // Soldiers, attack-move, strategic targeting and transport boarding retain
+  // their existing right-click semantics.
+  if(event.button===2&&this.selected.size&&this.selectedBase===null&&
+     !this.attackMode&&!this.rallyMode&&!this.strategicTargetMode&&!this.buildKind){
+   const serviceKind=selectedMaintenanceKind(this.game.units,this.selected);
+   if(serviceKind){
+    const facility=this.maintenanceFacilityAtPointer(event,serviceKind);
+    if(facility){
+     const ids=[...this.selected];
+     const count=serviceKind==='airfield'
+      ?this.game.requestAirfieldRepair(ids,facility.id)
+      :this.game.requestFactoryRepair(ids,facility.id);
+     const damaged=this.game.units.some(u=>ids.includes(u.id)&&u.owner===0&&
+      u.hp>0&&!u.carrier&&u.hp<this.game.maxUnitHp(u));
+     const noun=serviceKind==='airfield'?'Hangar':'Fahrzeugwerkstatt';
+     this.message(count
+      ?count+' Einheit(en): '+noun+' · Reparaturplatz reserviert'
+      :damaged?noun+' belegt oder Wartung bereits beauftragt':
+       'Einheit unbeschädigt · keine Reparatur nötig');
+     if(count){this.sound?.command?.();this.showCommandPulse({x:facility.x,y:facility.y});}
+     this.drawInterface();return;
+    }
    }
   }
   // Select the actual 3D unit model BEFORE terrain raycasting.
