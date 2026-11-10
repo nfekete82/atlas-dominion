@@ -260,6 +260,12 @@ for(const kind of ['scout','bomber'])for(const owner of [0,1])test(`reborn: ${ki
  const g=peaceful();g.units=[];
  const t=g.territories.find(t=>t.owner===-1&&t.neighbors.some(i=>g.territories[i].owner===owner)),income=g.income(owner);
  const air=g.spawn(owner,{x:t.point.x,y:t.point.y+240},kind);
+ if(kind==='bomber'){
+  // This test measures sector capture, not the duration of a 180° turn.
+  // An arriving fixed-wing aircraft is already heading at the sector.
+  air.angle=Math.atan2(t.point.y-air.y,t.point.x-air.x);
+  air.hullAngle=air.angle;
+ }
  assert.equal(g.command([air.id],{...t.point,kind:'move'}),1);advance(g,3);
  assert.ok(distance(air,t.point)<RULES.captureRadius);assert.equal(t.owner,-1);assert.equal(t.capturing,owner);assert.ok(t.progress>0&&t.progress<RULES.captureTime);
  const restored=Simulation.load(g.save());restored.aiClock=-1e8;advance(restored,RULES.captureTime-t.progress-RULES.tick);
