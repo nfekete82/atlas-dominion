@@ -69,7 +69,7 @@ export function unitVisualYaw(kind,heading){
  * The bomber remains in continuous flight at the existing cruise height. */
 export function unitRenderAltitude(kind,flightHeight=1){
  if(kind==='scout')return 3+172*Math.max(0,Math.min(1,flightHeight));
- if(kind==='bomber')return 175;
+ if(kind==='bomber')return 175*Math.max(0,Math.min(1,flightHeight));
  return 0;
 }
 const infantry=new Set(['infantry','medic','engineer','heavy','rocket']);
