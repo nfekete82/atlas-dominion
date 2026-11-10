@@ -21,7 +21,7 @@ import {factoryRepairPoint} from '/src/reborn/factory-maintenance.js';
 import {selectedMaintenanceKind,serviceFootprintContains} from '/webgl-maintenance-input.js';
 import {disposeOwnedMeshes,disposeTaggedMaterials} from '/webgl-resource-lifecycle.js';
 import {selectedInfantryForTransport,selectedLoadedTransports,selectedTransportManifest} from '/webgl-transport-controls.js';
-import {pointerGestureIntent,availableEngineers,shouldAppendBuild,nearestEngineer,POINTER_CLICK_SLOP} from '/webgl-builder-input.js';
+import {pointerGestureIntent,availableEngineers,chooseConstructionCrew,airfieldRunwayPlacementError,nearestEngineer,POINTER_CLICK_SLOP} from '/webgl-builder-input.js';
 import {sameKindVisibleUnits} from '/webgl-double-click-select.js';
 import {tracerWindow} from '/webgl-hit-response.js';
 import {applyFactionAccents} from '/webgl-faction-accents.js';
@@ -570,7 +570,8 @@ export class SandforgeBattlefield {
   if(this.buildKind==='airfield'&&ghost.userData.previewService)
    conformAirfieldSurface(ghost.userData.previewService,
     {...p,facing:this.placementFacing},(x,z)=>this.heightAt(x,z));
-  const error=this.game.buildError(0,this.buildKind,p);
+  const error=(this.buildKind==='airfield'?airfieldRunwayPlacementError(p,this.placementFacing,this.world.size):null)??
+   this.game.buildError(0,this.buildKind,p);
   const engineer=this.game.units.some(u=>u.owner===0&&u.kind==='engineer'&&u.hp>0&&!u.carrier);
   const valid=!error&&engineer;
   const ring=ghost.children.find(x=>x.geometry?.type==='RingGeometry');
@@ -2101,10 +2102,12 @@ export class SandforgeBattlefield {
     if(!workers.length){
      this.message('Kein Pionier verfügbar · im Feldkommando ausbilden');return;
     }
-    const blocked=this.game.buildError(0,kind,p);
+    const blocked=(kind==='airfield'?airfieldRunwayPlacementError(p,this.placementFacing,this.world.size):null)??
+     this.game.buildError(0,kind,p);
     if(blocked){this.message(blocked+' · Pionier bleibt ausgewählt');return;}
-    const append=shouldAppendBuild(workers,event.shiftKey);
-    const result=this.game.build(0,kind,p,workers.map(u=>u.id),this.placementFacing,append);
+    const crew=chooseConstructionCrew(workers,event.shiftKey);
+    const {append}=crew;
+    const result=this.game.build(0,kind,p,crew.workers.map(u=>u.id),this.placementFacing,append);
     if(result){
      this.sound?.command?.();
      this.message(BUILDINGS[kind].name+(append?' zur Pionier-Baufolge hinzugefügt':' beauftragt')+
