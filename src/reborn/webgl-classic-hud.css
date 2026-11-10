@@ -2212,3 +2212,24 @@
  outline:0!important;
  box-shadow:none!important;
 }
+
+/* Maintenance controls appear in the selected aircraft/vehicle detail,
+   without claiming extra space in the narrow lower tactical dock. */
+#sf-classic-root .sf-service-controls{
+ display:flex;flex-wrap:wrap;gap:4px;margin:5px 0 2px;
+}
+#sf-classic-root .sf-service-controls button{
+ border:1px solid #76806b;border-radius:3px;
+ background:linear-gradient(180deg,#39453d,#27322c);
+ color:#e3d9b7;padding:5px 6px;font:700 10px/1.25 var(--display,system-ui);
+ min-height:29px;cursor:pointer;
+}
+#sf-classic-root .sf-service-controls button:hover:not(:disabled){
+ background:#536352;border-color:#b6c397;color:#fff5d4;
+}
+#sf-classic-root .sf-service-controls button[aria-pressed="true"]{
+ background:#345b47;border-color:#72b38b;color:#e8f9e8;
+}
+#sf-classic-root .sf-service-controls button:disabled{
+ opacity:.4;filter:grayscale(.4);cursor:default;
+}
