@@ -31,7 +31,7 @@ const localShapes=(kind:BuildingKind):Shape[]=>{
   {type:'rect',x:132,z:105,hx:79,hz:310}, // compact 600-unit runway + lamps
   {type:'rect',x:-145,z:-5,hx:235,hz:198}); // hangars, left tower and fuel area
  if(kind==='factory')s.push(
-  {type:'rect',x:-192,z:56,hx:72,hz:116}); // one small side repair garage
+  {type:'rect',x:192,z:56,hx:72,hz:116}); // one small side repair garage
  return s;
 };
 const yaw=(f:SiteFacing=0)=>[0,Math.PI,Math.PI/2,Math.PI*1.5][f];
