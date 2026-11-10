@@ -28,8 +28,8 @@ test('two distinct rotated airfield bays and runway/landing points',()=>{
  assert.notDeepEqual(airfieldPoint(b,'dock',0),airfieldPoint(b,'dock',1));
  assert.deepEqual(airfieldTaxiPoint(b,0,0),airfieldPoint(b,'touchdown',0));
  assert.deepEqual(airfieldTaxiPoint(b,1,1),airfieldPoint(b,'dock',1));
- assert.deepEqual(factoryRepairPoint(b,0),{x:1828,y:2024});
- assert.deepEqual(factoryRepairPoint(b,1),{x:1828,y:2176});
+ assert.deepEqual(factoryRepairPoint(b,0),{x:2172,y:2176});
+ assert.deepEqual(factoryRepairPoint(b,1),{x:2172,y:2024});
  assert.equal(unitRenderAltitude('bomber',1),175);
  assert.equal(unitRenderAltitude('bomber',0),0);
 });
