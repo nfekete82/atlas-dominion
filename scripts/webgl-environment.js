@@ -14,16 +14,90 @@ export class DesertArtPass {
   this.addRuinRubble();
  }
  makeCraterTexture(){
-  const canvas=document.createElement('canvas');canvas.width=canvas.height=128;
-  const ctx=canvas.getContext('2d'),g=ctx.createRadialGradient(64,64,6,64,64,61);
-  g.addColorStop(0,'rgba(72,47,26,.53)');
-  g.addColorStop(.46,'rgba(88,57,31,.7)');
-  g.addColorStop(.64,'rgba(129,92,51,.58)');
-  g.addColorStop(.80,'rgba(239,196,125,.29)');
-  g.addColorStop(1,'rgba(232,188,119,0)');
-  ctx.fillStyle=g;ctx.fillRect(0,0,128,128);
-  const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
+  // Procedural, biome-aware excavation with an eroded rim and granular
+  // ejecta. The old static crater.png was a circular brown stamp (and even
+  // appeared on snow maps); this atlas stays local, deterministic and only
+  // needs to be generated once per biome, not during gameplay.
+  const size=256,canvas=document.createElement('canvas');
+  canvas.width=canvas.height=size;
+  const ctx=canvas.getContext('2d'),pixels=ctx.createImageData(size,size);
+  const cold=this.biome==='snow',green=this.biome==='jungle';
+  const shade=cold?[76,91,103]:green?[39,37,30]:[79,53,37];
+  const lip=cold?[191,201,204]:green?[127,112,82]:[206,157,105];
+  const dust=cold?[211,220,226]:green?[109,105,82]:[226,180,122];
+  const smooth=(a,b,t)=>{
+   const v=Math.max(0,Math.min(1,(t-a)/(b-a)));
+   return v*v*(3-2*v);
+  };
+  for(let y=0;y<size;y++)for(let x=0;x<size;x++){
+   const dx=(x+0.5-size/2)/110,dy=(y+0.5-size/2)/110;
+   const angle=Math.atan2(dy,dx);
+   // Different angular frequencies prevent a regular bullseye or ring.
+   const edge=1+.095*Math.sin(angle*7+.8)+.053*Math.sin(angle*13-1.5)+
+    .025*Math.cos(angle*19+.6);
+   const r=Math.hypot(dx,dy*1.065)/edge;
+   const coarse=Math.sin(x*.175+y*.081)*Math.cos(y*.139-x*.045);
+   const micro=(Math.imul(x+19,73856093)^Math.imul(y+53,19349663))>>>0;
+   const grit=(micro%997)/996-.5;
+   const depression=Math.exp(-Math.pow(r/.49,4));
+   const raised=Math.exp(-Math.pow((r-.69)/.12,2));
+   const scattered=Math.exp(-Math.pow((r-.84)/.22,2));
+   const fade=1-smooth(.82,1.10,r);
+   const inside=(.34+.47*depression+.13*raised+.11*scattered)*fade;
+   const k=(y*size+x)*4;
+   const scatter=.065*coarse+.08*grit;
+   const darkWeight=Math.min(.86,Math.max(0,(.69*depression+.12*raised+scatter)));
+   const rimWeight=Math.min(.78,raised*(.58+.17*coarse));
+   const color=[0,1,2].map(i=>
+    shade[i]*darkWeight+lip[i]*rimWeight+
+    dust[i]*(1-darkWeight-rimWeight)*.94);
+   for(let i=0;i<3;i++)
+    pixels.data[k+i]=Math.max(0,Math.min(255,Math.round(color[i]+grit*15+coarse*6)));
+   // Fade over a wide, irregular apron to merge with surrounding sand.
+   pixels.data[k+3]=Math.round(255*Math.max(0,Math.min(.92,inside)));
+  }
+  ctx.putImageData(pixels,0,0);
+  const texture=new THREE.CanvasTexture(canvas);
+  texture.colorSpace=THREE.SRGBColorSpace;
+  texture.magFilter=THREE.LinearFilter;
+  texture.minFilter=THREE.LinearMipmapLinearFilter;
+  texture.generateMipmaps=true;
+  texture.anisotropy=4;
   return texture;
+ }
+ makeCraterLipGeometry(){
+  // A shallow sculpted lip (one shared mesh, instanced). It is purely
+  // cosmetic; terrain, raycasting and crater hitboxes remain untouched.
+  const segments=this.lowQuality?20:32,rings=[.25,.33,.40,.49];
+  const levels=[-.18,.70,.23,-.09],positions=[],colors=[];
+  const light=new THREE.Color(this.biome==='snow'?'#d4dee0':
+   this.biome==='jungle'?'#99896d':'#dec099');
+  const shadow=new THREE.Color(this.biome==='snow'?'#97a9ae':
+   this.biome==='jungle'?'#585443':'#916845');
+  const vertex=(band,index)=>{
+   const a=index/segments*Math.PI*2;
+   const irregular=1+.09*Math.sin(a*7+.8)+.045*Math.sin(a*13-1.5);
+   const radius=rings[band]*irregular;
+   return [Math.cos(a)*radius,levels[band],Math.sin(a)*radius];
+  };
+  const face=(p,q,r,band)=>{
+   for(const point of [p,q,r]){
+    positions.push(...point);
+    const c=light.clone().lerp(shadow,band===0?.74:band===1?.22:band===2?.45:.62);
+    colors.push(c.r,c.g,c.b);
+   }
+  };
+  for(let band=0;band<rings.length-1;band++)
+   for(let i=0;i<segments;i++){
+    const a=vertex(band,i),b=vertex(band,i+1),
+     c=vertex(band+1,i),d=vertex(band+1,i+1);
+    face(a,c,b,band);face(b,c,d,band);
+   }
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+  geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
+  geometry.computeVertexNormals();geometry.computeBoundingSphere();
+  return geometry;
  }
  addCraters(){
   const spacious=this.world.mapVersion>=19;
@@ -32,24 +106,39 @@ export class DesertArtPass {
   const mesh=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),
    new THREE.MeshBasicMaterial({map:this.makeCraterTexture(),transparent:true,
     opacity:spacious?.74:1,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1}),crater.length);
-  // Detailed authored crater decal takes priority when available, with the
-  // procedural crater as an offline-safe fallback.
-  const craterMaterial=mesh.material;
-  new THREE.TextureLoader().load('/src/assets/reborn/battlefield/crater.png',texture=>{
-   texture.colorSpace=THREE.SRGBColorSpace;craterMaterial.map=texture;craterMaterial.needsUpdate=true;
-  },undefined,error=>console.warn('Crater art fallback',error));
+  // Keep the new deterministic texture; do not overwrite it with the
+  // legacy circular yellow crater.png after an async image load.
   const dummy=new THREE.Object3D();
+  const lip=new THREE.InstancedMesh(this.makeCraterLipGeometry(),
+   new THREE.MeshStandardMaterial({
+    color:'#ffffff',vertexColors:true,roughness:1,metalness:0,
+    transparent:true,opacity:this.lowQuality?.72:.84,side:THREE.DoubleSide,
+    depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1
+   }),crater.length);
+  const lipDummy=new THREE.Object3D();
   crater.forEach((d,i)=>{
-   dummy.position.copy(this.pos(d.x,d.y));dummy.position.y+=.9;
+   const p=this.pos(d.x,d.y),scale=spacious?.60:1;
+   const wide=d.radius*3.1*scale,deep=d.radius*2.3*scale;
+   dummy.position.copy(p);dummy.position.y+=.9;
    dummy.rotation.set(-Math.PI*.5,0,d.rotation);
-   const scale=spacious?.60:1;
-   dummy.scale.set(d.radius*3.1*scale,d.radius*2.3*scale,1);
+   dummy.scale.set(wide,deep,1);
    dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
+   // Broken sandstone edges are partially buried under the terrain, not
+   // floating above the decal as a hard perfectly circular torus.
+   lipDummy.position.copy(p);lipDummy.position.y+=.45;
+   lipDummy.rotation.set(0,d.rotation,0);
+   lipDummy.scale.set(wide,Math.min(3.5,Math.max(1.1,d.radius*.15)),deep);
+   lipDummy.updateMatrix();lip.setMatrixAt(i,lipDummy.matrix);
   });
   mesh.instanceMatrix.needsUpdate=true;mesh.frustumCulled=false;mesh.renderOrder=2;
   mesh.name='visual-desert-craters';
   mesh.userData={visualOnly:true,nonPlayable:true,craterDecals:true};
-  this.scene.add(mesh);this.items.push(mesh);
+  mesh.raycast=()=>{};
+  lip.count=crater.length;lip.instanceMatrix.needsUpdate=true;
+  lip.name='visual-crater-eroded-rims';
+  lip.userData={visualOnly:true,nonPlayable:true,craterRims:true};
+  lip.raycast=()=>{};lip.castShadow=false;lip.receiveShadow=true;
+  this.scene.add(mesh,lip);this.items.push(mesh,lip);
  }
  addDebris(){
   const dust=stoneMaterial(this.biome==='snow'?'#a1abb4':this.biome==='jungle'?'#6f7662':'#b69a7c',
