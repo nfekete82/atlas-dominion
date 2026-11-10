@@ -2,6 +2,61 @@ import * as THREE from 'three';
 import {createGroundDetails} from '/src/reborn/battlefield-atmosphere.js';
 import {stoneMaterial,weatheredStoneGeometry} from '/webgl-rock-materials.js';
 
+/** Pre-bake every crater into one terrain-following, textured decal mesh.
+ * Each vertex samples the *existing* render heightfield, so no part of a
+ * crater punches through a dune or floats as a bright geometric tire ring.
+ * The only geometry is a flat surface offset above terrain: zero collision,
+ * zero per-frame height samples, no changes to saves or simulation.
+ */
+export function createConformingCraterGeometry(craters,{pos,lowQuality=false,spacious=true}){
+ const segments=lowQuality?18:28;
+ const radii=[.18,.38,.59,.77,.91,1];
+ const positions=[],uvs=[],indices=[];
+ const half=spacious?.60:1;
+ const emit=(x,z,u,v)=>{
+  const point=pos(x,z);
+  positions.push(point.x,point.y+.32,point.z);
+  uvs.push(u,v);
+  return positions.length/3-1;
+ };
+ for(const d of craters){
+  const center=emit(d.x,d.y,.5,.5);
+  const sizeX=d.radius*3.1*half*.5;
+  const sizeZ=d.radius*2.3*half*.5;
+  const cs=Math.cos(d.rotation),sn=Math.sin(d.rotation);
+  const rings=[];
+  for(const r of radii){
+   const ring=[];
+   for(let i=0;i<segments;i++){
+    const a=i*Math.PI*2/segments;
+    const ux=Math.cos(a)*r,uz=Math.sin(a)*r;
+    const dx=ux*sizeX,dz=uz*sizeZ;
+    ring.push(emit(d.x+dx*cs-dz*sn,d.y+dx*sn+dz*cs,
+     .5+ux*.5,.5+uz*.5));
+   }
+   rings.push(ring);
+  }
+  for(let i=0;i<segments;i++){
+   const j=(i+1)%segments;
+   // Counterclockwise as seen from above (+Y); no back-face holes.
+   indices.push(center,rings[0][j],rings[0][i]);
+   for(let k=0;k<rings.length-1;k++){
+    const inner=rings[k],outer=rings[k+1];
+    indices.push(inner[i],inner[j],outer[i],
+     inner[j],outer[j],outer[i]);
+   }
+  }
+ }
+ const geometry=new THREE.BufferGeometry();
+ geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+ geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
+ geometry.setIndex(indices);
+ geometry.computeBoundingSphere();
+ geometry.userData={groundConforming:true,visualOnly:true,
+  craterCount:craters.length,segments,terrainSampledOnce:true};
+ return geometry;
+}
+
 // Environmental set dressing mirrors deterministic Canyon sites but has no
 // influence on gameplay or collision. Every asset is a true GPU 3D mesh.
 export class DesertArtPass {
@@ -22,9 +77,9 @@ export class DesertArtPass {
   canvas.width=canvas.height=size;
   const ctx=canvas.getContext('2d'),pixels=ctx.createImageData(size,size);
   const cold=this.biome==='snow',green=this.biome==='jungle';
-  const shade=cold?[76,91,103]:green?[39,37,30]:[79,53,37];
-  const lip=cold?[191,201,204]:green?[127,112,82]:[206,157,105];
-  const dust=cold?[211,220,226]:green?[109,105,82]:[226,180,122];
+  const shade=cold?[87,98,109]:green?[56,46,36]:[109,72,45];
+  const lip=cold?[173,183,190]:green?[109,96,72]:[184,132,84];
+  const dust=cold?[195,205,212]:green?[99,93,70]:[201,148,94];
   const smooth=(a,b,t)=>{
    const v=Math.max(0,Math.min(1,(t-a)/(b-a)));
    return v*v*(3-2*v);
@@ -43,7 +98,7 @@ export class DesertArtPass {
    const raised=Math.exp(-Math.pow((r-.69)/.12,2));
    const scattered=Math.exp(-Math.pow((r-.84)/.22,2));
    const fade=1-smooth(.82,1.10,r);
-   const inside=(.34+.47*depression+.13*raised+.11*scattered)*fade;
+   const inside=(.19+.40*depression+.12*raised+.06*scattered)*fade;
    const k=(y*size+x)*4;
    const scatter=.065*coarse+.08*grit;
    const darkWeight=Math.min(.86,Math.max(0,(.69*depression+.12*raised+scatter)));
@@ -65,80 +120,25 @@ export class DesertArtPass {
   texture.anisotropy=4;
   return texture;
  }
- makeCraterLipGeometry(){
-  // A shallow sculpted lip (one shared mesh, instanced). It is purely
-  // cosmetic; terrain, raycasting and crater hitboxes remain untouched.
-  const segments=this.lowQuality?20:32,rings=[.25,.33,.40,.49];
-  const levels=[-.18,.70,.23,-.09],positions=[],colors=[];
-  const light=new THREE.Color(this.biome==='snow'?'#d4dee0':
-   this.biome==='jungle'?'#99896d':'#dec099');
-  const shadow=new THREE.Color(this.biome==='snow'?'#97a9ae':
-   this.biome==='jungle'?'#585443':'#916845');
-  const vertex=(band,index)=>{
-   const a=index/segments*Math.PI*2;
-   const irregular=1+.09*Math.sin(a*7+.8)+.045*Math.sin(a*13-1.5);
-   const radius=rings[band]*irregular;
-   return [Math.cos(a)*radius,levels[band],Math.sin(a)*radius];
-  };
-  const face=(p,q,r,band)=>{
-   for(const point of [p,q,r]){
-    positions.push(...point);
-    const c=light.clone().lerp(shadow,band===0?.74:band===1?.22:band===2?.45:.62);
-    colors.push(c.r,c.g,c.b);
-   }
-  };
-  for(let band=0;band<rings.length-1;band++)
-   for(let i=0;i<segments;i++){
-    const a=vertex(band,i),b=vertex(band,i+1),
-     c=vertex(band+1,i),d=vertex(band+1,i+1);
-    face(a,c,b,band);face(b,c,d,band);
-   }
-  const geometry=new THREE.BufferGeometry();
-  geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
-  geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
-  geometry.computeVertexNormals();geometry.computeBoundingSphere();
-  return geometry;
- }
  addCraters(){
   const spacious=this.world.mapVersion>=19;
   const crater=this.details.filter(d=>d.kind==='crater')
-    .slice(0,spacious?(this.lowQuality?30:110):(this.lowQuality?55:230));
-  const mesh=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),
-   new THREE.MeshBasicMaterial({map:this.makeCraterTexture(),transparent:true,
-    opacity:spacious?.74:1,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1}),crater.length);
-  // Keep the new deterministic texture; do not overwrite it with the
-  // legacy circular yellow crater.png after an async image load.
-  const dummy=new THREE.Object3D();
-  const lip=new THREE.InstancedMesh(this.makeCraterLipGeometry(),
-   new THREE.MeshStandardMaterial({
-    color:'#ffffff',vertexColors:true,roughness:1,metalness:0,
-    transparent:true,opacity:this.lowQuality ? .72 : .84,side:THREE.DoubleSide,
-    depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1
-   }),crater.length);
-  const lipDummy=new THREE.Object3D();
-  crater.forEach((d,i)=>{
-   const p=this.pos(d.x,d.y),scale=spacious ? .60 : 1;
-   const wide=d.radius*3.1*scale,deep=d.radius*2.3*scale;
-   dummy.position.copy(p);dummy.position.y+=.9;
-   dummy.rotation.set(-Math.PI*.5,0,d.rotation);
-   dummy.scale.set(wide,deep,1);
-   dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
-   // Broken sandstone edges are partially buried under the terrain, not
-   // floating above the decal as a hard perfectly circular torus.
-   lipDummy.position.copy(p);lipDummy.position.y+=.45;
-   lipDummy.rotation.set(0,d.rotation,0);
-   lipDummy.scale.set(wide,Math.min(3.5,Math.max(1.1,d.radius*.15)),deep);
-   lipDummy.updateMatrix();lip.setMatrixAt(i,lipDummy.matrix);
+   .slice(0,spacious?(this.lowQuality?30:110):(this.lowQuality?55:230));
+  // One shared mesh, and one draw call, in both standard and lite modes.
+  // Replaces the old unsupported flat instanced quads + raised ring meshes.
+  const geometry=createConformingCraterGeometry(crater,{
+   pos:this.pos,lowQuality:this.lowQuality,spacious
   });
-  mesh.instanceMatrix.needsUpdate=true;mesh.frustumCulled=false;mesh.renderOrder=2;
+  const mesh=new THREE.Mesh(geometry,
+   new THREE.MeshBasicMaterial({map:this.makeCraterTexture(),transparent:true,
+    opacity:spacious?.76:.86,depthWrite:false,side:THREE.FrontSide,
+    polygonOffset:true,polygonOffsetFactor:-1}));
+  mesh.renderOrder=2;
   mesh.name='visual-desert-craters';
-  mesh.userData={visualOnly:true,nonPlayable:true,craterDecals:true};
+  mesh.userData={visualOnly:true,nonPlayable:true,craterDecals:true,
+   groundConforming:true,craterCount:crater.length};
   mesh.raycast=()=>{};
-  lip.count=crater.length;lip.instanceMatrix.needsUpdate=true;
-  lip.name='visual-crater-eroded-rims';
-  lip.userData={visualOnly:true,nonPlayable:true,craterRims:true};
-  lip.raycast=()=>{};lip.castShadow=false;lip.receiveShadow=true;
-  this.scene.add(mesh,lip);this.items.push(mesh,lip);
+  this.scene.add(mesh);this.items.push(mesh);
  }
  addDebris(){
   const dust=stoneMaterial(this.biome==='snow'?'#a1abb4':this.biome==='jungle'?'#6f7662':'#b69a7c',
