@@ -970,10 +970,14 @@ export class SandforgeBattlefield {
  catalogContext(){
   const game=this.game;
   const engineer=game.units.some(u=>this.selected.has(u.id)&&u.owner===0&&u.hp>0&&!u.carrier&&u.kind==='engineer');
+  // A completed hangar/factory can become selected automatically. Keep the
+  // Buildings tab available while ANY living pioneer exists, and select the
+  // nearest one only when a new build order is actually started.
+  const canBuild=game.units.some(u=>u.owner===0&&u.kind==='engineer'&&u.hp>0&&!u.carrier);
   const base=game.bases.find(b=>b.id===this.selectedBase&&b.owner===0&&b.hp>0&&b.buildRemaining<=0);
   const producer=base&&unitKinds.some(kind=>UNITS[kind].producers.includes(base.kind))?base:null;
   const research=Boolean(base&&base.kind==='research');
-  return {engineer,producer,research,preferred:engineer?'buildings':producer?'units':research?'research':'territories'};
+  return {engineer,canBuild,producer,research,preferred:engineer?'buildings':producer?'units':research?'research':'territories'};
  }
  buildInterface(){
   this.panel=installClassicHud();
@@ -1116,7 +1120,7 @@ export class SandforgeBattlefield {
    if(action==='select-all'){this.selected=new Set(this.game.units.filter(u=>u.hp>0&&u.owner===0&&!u.carrier).map(u=>u.id));this.selectedBase=null;this.drawInterface();}
   });
   this.panel.addEventListener('sandforge-tabchange',event=>{
-   const available={buildings:this.catalogContext().engineer,units:Boolean(this.catalogContext().producer),territories:true,research:this.catalogContext().research};
+   const available={buildings:this.catalogContext().canBuild,units:Boolean(this.catalogContext().producer),territories:true,research:this.catalogContext().research};
    if(!available[event.detail.tab])return;
    this.panel.querySelector('#sf-actions').scrollTop=0;
    const descriptions={units:'Wähle einen Produktionsauftrag. Gebäude schalten neue Einheiten frei.',
@@ -1164,7 +1168,7 @@ export class SandforgeBattlefield {
   const g=this.game,view=this.panel,actions=view.querySelector('#sf-actions');
   const context=this.catalogContext();
   const selectionKey=[...this.selected].sort((a,b)=>a-b).join(',')+'|'+String(this.selectedBase)+'|'+Boolean(context.producer);
-  const available={units:Boolean(context.producer),buildings:context.engineer,territories:true,research:context.research};
+  const available={units:Boolean(context.producer),buildings:context.canBuild,territories:true,research:context.research};
   if(this.catalogSelectionKey!==selectionKey||!available[view.dataset.tab]){
    view.dataset.tab=context.preferred;
    this.catalogSelectionKey=selectionKey;
@@ -1270,7 +1274,7 @@ export class SandforgeBattlefield {
    const unavailable=button.dataset.unit
     ?!correctProducer||g.needsHeadquarters(0)||context.producer.queue.length>=8||
       g.credits[0]<spec.cost||g.count(0)+g.queued(0)>=RULES.capacity
-    :!context.engineer||g.credits[0]<spec.cost||!g.hasHeadquarters(0)&&kind!=='headquarters'||
+    :!context.canBuild||g.credits[0]<spec.cost||!g.hasHeadquarters(0)&&kind!=='headquarters'||
       kind==='generator'&&generatorLimitReached||ownedUnique||interceptorLimit;
    const requirement=button.dataset.unit
     ?(!context.producer?'Produktionsgebäude auswählen':
@@ -1281,7 +1285,7 @@ export class SandforgeBattlefield {
        g.count(0)+g.queued(0)>=RULES.capacity?'Einheitenlimit erreicht':'')
     :(ownedReason?ownedReason:kind==='generator'&&generatorLimitReached?'Maximal '+MAX_GENERATORS_PER_FACTION+' Energiekerne pro Fraktion':
        interceptorLimit?'Maximal zwei Raketenabwehr-Anlagen pro Fraktion':
-       !context.engineer?'Pionier auswählen':
+       !context.canBuild?'Pionier erforderlich':
        !g.hasHeadquarters(0)&&kind!=='headquarters'?'Hauptquartier zuerst fertigstellen':
        g.credits[0]<spec.cost?'Zu wenig Credits':
        kind==='headquarters'&&!g.needsHeadquarters(0)?'Hauptquartier bereits vorhanden':'');
