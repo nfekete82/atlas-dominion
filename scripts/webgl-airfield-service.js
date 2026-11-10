@@ -36,9 +36,9 @@ export function createAirfieldServiceYard(){
  // Long military runway: one uninterrupted strip extends far past the
  // hangars; the old short cross-runway ahead of the building is gone.
  // Painted taxi directions are not a second black asphalt runway.
- box(group,'AirfieldExpandedConcreteApron',445,1.5,420,-115,.75,0,wornPaving);
- box(group,'AirfieldRunwaySandShoulder',172,.7,1000,132,1.05,175,wornPaving);
- box(group,'AirfieldExtendedRunway',146,1.6,980,132,1.85,175,runwayWear);
+ box(group,'AirfieldExpandedConcreteApron',424,1.5,309,-115,.75,-14,wornPaving);
+ box(group,'AirfieldRunwaySandShoulder',165,.7,614,132,1.05,105,wornPaving);
+ box(group,'AirfieldExtendedRunway',141,1.6,600,132,1.85,105,runwayWear);
  // Two generously sized clear exterior aircraft stands beside hangars.
  for(const bay of [0,1]){
   const cx=bay===0?-151:-26;
@@ -51,17 +51,17 @@ export function createAirfieldServiceYard(){
   box(group,'AirfieldAircraftParkingStop_'+bay,93,.15,3,cx,1.96,54,yellow);
   box(group,'AirfieldAircraftParkingNumber_'+bay,14,.12,8,cx,1.98,184,markings);
  }
- for(let z=-292;z<=647;z+=55)
+ for(let z=-180;z<=382;z+=42)
   box(group,'AirfieldRunwayCenterDash',3,.12,30,132,2.80,z,markings);
  for(const x of [64,200]){
-  box(group,'AirfieldRunwayEdgeLine',2,.12,960,x,2.80,175,markings);
-  for(let z=-295;z<=653;z+=54)
+  box(group,'AirfieldRunwayEdgeLine',2,.12,589,x,2.80,105,markings);
+  for(let z=-184;z<=388;z+=42)
    box(group,'AirfieldRunwayLamp',5,2,8,x,4.0,z,yellow);
  }
  // Clear runway thresholds and staggered military landing-zone stripes.
- for(const z of [-291,-278,-265])for(const x of [88,107,157,176])
+ for(const z of [-184,-174,-164])for(const x of [88,107,157,176])
   box(group,'AirfieldRunwayThreshold',11,.16,5,x,2.83,z,markings);
- for(const z of [580,594,608,622])for(const x of [89,175])
+ for(const z of [340,352,364,376])for(const x of [89,175])
   box(group,'AirfieldRunwayLandingBars',19,.15,7,x,2.84,z,markings);
  // One simple taxi guideline connects the wide stands with the long runway.
  // It does not cover the apron as the old short black runway did.
@@ -151,7 +151,7 @@ export function createAirfieldServiceYard(){
   group.userData['bay'+bay]={left,right,cx,open:0,sparks:sparkGroup};
  }
  // Scuffed touchdown marks and pavement expansion joints.
- for(const x of [110,154])for(const z of [-136,42,264,440])
+ for(const x of [110,154])for(const z of [-136,42,195,313])
   box(group,'AirfieldTouchdownRubber',4,.12,18,x,2.76,z,dark);
  for(const x of [-195,-110,-45,29])for(const z of [-143,-72,8])
   box(group,'AirfieldApronExpansionJoint',24,.11,1.5,x,1.65,z,steel);
@@ -206,10 +206,10 @@ export function createAirfieldServiceYard(){
 }
 /** Terrain-following surface mesh used by both the construction ghost and
  * the final airfield. The runway previously sank into dune crests because
- * its entire 980-unit length was fixed to the building-center elevation.
+ * its former 980-unit length was fixed to the building-center elevation.
  * Render-only: no terrain edits, building collisions or aircraft state changes.
  *
- * The long paving is remeshed once with 16-unit subdivisions. Subsequent
+ * The paving is remeshed once with adaptive 18-unit subdivisions. Subsequent
  * mouse moves update the existing vertex buffer, without allocating meshes.
  * The same function is called for the ghost at its prospective location and
  * for the built site, including every cardinal facing.
