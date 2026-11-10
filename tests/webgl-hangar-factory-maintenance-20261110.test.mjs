@@ -270,10 +270,11 @@ test('uneven terrain: maintenance altitude meets flat workshop floors without vi
 
 test('workshop provides actual raised hydraulic service decks and ramps',()=>{
  const factory=createFactoryServiceYard();
- for(const bay of [0,1]){
+ for(const bay of [0]){
   assert.ok(factory.getObjectByName('VehicleLiftPlatform_'+bay));
   assert.ok(factory.getObjectByName('VehicleDriveOnRamp_'+bay));
  }
+ assert.equal(factory.getObjectByName('VehicleLiftPlatform_1'),undefined);
  const mesh=factory.getObjectByName('VehicleLiftPlatform_0');
  assert.equal(mesh.position.y+mesh.geometry.parameters.height/2,FACTORY_LIFT_HEIGHT);
  const entry={factoryServiceYard:factory};
@@ -360,8 +361,8 @@ test('factory and airfield use real PBR camouflage/data textures, roof details a
  assert.equal(material.map.colorSpace,'srgb');
  material.map.dispose();material.dispose();
  const yard=createFactoryServiceYard(),hangar=createAirfieldServiceYard();
- for(const name of ['FactoryFacadeRivet_1','FactorySideVentLouvre_1',
-   'FactoryRoofAirDuct_1','FactoryToolChest_0'])
+ for(const name of ['FactoryCamoVerticalRib_0','FactorySideVentLouvre_0',
+   'FactoryRoofAirDuct_0','FactoryToolChest_0'])
   assert.ok(yard.getObjectByName(name),name);
  for(const name of ['HangarRoofVent_0','HangarDoorCorrugation_0_0',
    'HangarRearVent_0','AirfieldTouchdownRubber'])
