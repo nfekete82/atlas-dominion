@@ -403,9 +403,11 @@ function instancedStone(){
   dummy.rotation.set((r()-.5)*.18,r()*6.28,(r()-.5)*.20);
   dummy.updateMatrix();groups[k].setMatrixAt(counts[k]++,dummy.matrix);
   if(contactCount<contacts.instanceMatrix.count){
-   contactDummy.position.set(x-half,y+.53,z-half);
+   // A tight, faint contact patch grounds faceted sandstone without
+   // leaving a giant round dark "sticker" around every small rock.
+   contactDummy.position.set(x-half,y+.35,z-half);
    contactDummy.rotation.set(0,0,0);
-   contactDummy.scale.set(wide*2.55,1,depth*2.45);
+   contactDummy.scale.set(wide*1.82,1,depth*1.75);
    contactDummy.updateMatrix();contacts.setMatrixAt(contactCount++,contactDummy.matrix);
   }
  };
