@@ -186,3 +186,51 @@ test('end-to-end: ground tank drives to factory apron and enters service',()=>{
  const dock=factoryRepairPoint(garage,0);
  assert.ok(Math.hypot(dock.x-tank.x,dock.y-tank.y)<15);
 });
+
+test('orders cancel vehicle maintenance but aircraft take off rather than teleporting',()=>{
+ const {g,garage,airport}=setup();
+ const rover=g.spawn(0,{x:2680,y:2390},'rover');rover.hp=180;
+ assert.equal(g.requestFactoryRepair([rover.id]),1);
+ rover.factoryService.phase='repair';Object.assign(rover,factoryRepairPoint(garage,0));
+ const before={x:rover.x,y:rover.y};
+ assert.equal(g.command([rover.id],{x:2590,y:2370,kind:'move'}),1);
+ assert.equal(rover.factoryService,undefined);
+ assert.deepEqual({x:rover.x,y:rover.y},before,'no garage teleport when redirected');
+ assert.equal(rover.orders[0]?.kind,'move');
+
+ const bomber=g.spawn(0,{x:1640,y:2050},'bomber');bomber.hp=500;
+ assert.equal(g.requestAirfieldRepair([bomber.id]),1);
+ bomber.airfieldService.phase='repair';Object.assign(bomber,airfieldPoint(airport,'dock',0));
+ bomber.flightHeight=0;
+ const dock={x:bomber.x,y:bomber.y};
+ assert.equal(g.command([bomber.id],{x:2300,y:2380,kind:'move'}),1);
+ assert.equal(bomber.airfieldService.phase,'takeoff');
+ assert.deepEqual({x:bomber.x,y:bomber.y},dock);
+ assert.equal(bomber.flightHeight,0,'manual override cannot jump straight to flight altitude');
+ assert.equal(bomber.orders[0]?.kind,'move');
+ advance(g,6.05);
+ assert.equal(bomber.airfieldService,undefined);
+ assert.equal(bomber.flightHeight,1);
+});
+
+test('aircraft diverted before landing can change orders immediately and release the bay',()=>{
+ const {g}=setup(),bomber=g.spawn(0,{x:1800,y:2000},'bomber');bomber.hp=400;
+ assert.equal(g.requestAirfieldRepair([bomber.id]),1);
+ assert.equal(bomber.airfieldService?.phase,'approach');
+ assert.equal(g.command([bomber.id],{x:1600,y:1900,kind:'move'}),1);
+ assert.equal(bomber.airfieldService,undefined);
+ assert.equal(bomber.orders[0]?.kind,'move');
+ assert.equal(bomber.flightHeight,1);
+ assert.equal(g.requestAirfieldRepair([bomber.id]),1,'slot is no longer occupied');
+});
+
+test('finished vehicle in a workshop stays at the exact saved 3D platform position',()=>{
+ const {g,garage}=setup(),vehicle=g.spawn(0,{x:2690,y:2360},'tank');
+ vehicle.hp=600;assert.equal(g.requestFactoryRepair([vehicle.id]),1);
+ vehicle.factoryService.phase='repair';Object.assign(vehicle,factoryRepairPoint(garage,0));
+ const saved=g.save(),restored=Simulation.load(saved);
+ const restoredVehicle=restored.units.find(u=>u.id===vehicle.id);
+ assert.equal(restoredVehicle.x,vehicle.x);
+ assert.equal(restoredVehicle.y,vehicle.y);
+ assert.deepEqual(restoredVehicle.factoryService,vehicle.factoryService);
+});
