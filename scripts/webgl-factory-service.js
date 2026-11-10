@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import {disposeOwnedMeshes} from './webgl-resource-lifecycle.js';
 import {servicePaint,disposeServicePaint} from './webgl-service-materials.js';
 
-// Outdoor repair apron joins the existing vehicle factory: two drive-in spots,
-// lifting jacks, mobile gantries, realistic machinery and blinking work lamps.
+// Two roofed vehicle workshop entrances with real drive-in repair lifts,
+// sliding sectional doors, industrial camo and separate maintenance lights.
 // Entirely visual. Simulation remains the owner of vehicles and repair credits.
 const mat=(color,metalness=.18,roughness=.81)=>new THREE.MeshStandardMaterial({color,metalness,roughness});
 function block(root,name,size,at,material){
@@ -68,6 +68,51 @@ export function createFactoryServiceYard(){
    for(const sx of [-44,44])
     block(root,'FactoryApronPlateBolt_'+index,[3,.48,3],[cx+sx,2.58,z],steel);
   }
+  // The real tank drives from local +Z through a dedicated garage opening
+  // onto its own indoor hydraulic lift. Do not put posts across the approach
+  // centerline: tank hulls and rocket-launcher trucks need the full width.
+  const roof=block(root,'FactoryRepairGarageRoof_'+index,[133,6,173],[cx,82,158],
+    index?oliveCamo:desertCamo);
+  for(const z of [97,140,181,220])
+   block(root,'FactoryGarageRoofRib_'+index,[132,2.6,4],[cx,87,z],workSteel);
+  // Rear maintenance wall and an OUTER side wall, never an inner wall in
+  // the factory's middle production rollout lane.
+  block(root,'FactoryRepairGarageBack_'+index,[132,68,5],[cx,43,71],
+    index?desertCamo:oliveCamo);
+  block(root,'FactoryRepairGarageOuterWall_'+index,[5,70,171],
+    [cx+(index?1:-1)*67,43,155],desertCamo);
+  for(const z of [106,157,207])
+   block(root,'FactoryGarageExternalBrace_'+index,[9,58,6],
+    [cx+(index?1:-1)*69,42,z],workSteel);
+  // Two independently animated garage openings. Each opening has two
+  // split sliding leaves; they're opened for the arriving real vehicle.
+  block(root,'FactoryServiceGarageHeader_'+index,[134,10,12],[cx,69,243],workSteel);
+  block(root,'FactoryServiceGarageNumber_'+index,[24,3,4],[cx,77,250],yellow);
+  for(const sx of [-1,1])
+   block(root,'FactoryServiceGarageUpperSide_'+index,[7,15,11],
+    [cx+sx*67,66,243],steel);
+  const doorLeft=block(root,'FactoryServiceDoorLeft_'+index,[57,55,4],
+    [cx-34,36,246],workSteel);
+  const doorRight=block(root,'FactoryServiceDoorRight_'+index,[57,55,4],
+    [cx+34,36,246],workSteel);
+  for(const [j,door] of [doorLeft,doorRight].entries())
+   for(let stripe=0;stripe<5;stripe++)
+    block(door,'FactorySlidingDoorRib_'+index+'_'+j,[55,1.6,2],
+      [0,-21+stripe*10,3.5],steel);
+  for(const sx of [-1,1]){
+   block(root,'FactoryServiceDoorHazard_'+index,[3,6,5],
+    [cx+sx*65,14,249],yellow);
+   block(root,'FactoryServiceGarageLight_'+index,[11,5,9],
+    [cx+sx*49,63,254],yellow);
+  }
+  // A genuine clear drive-in path from z=254 to the repair deck at z=175.
+  // Position and rotation match factoryRepairPoint() in simulation.
+  for(const wheel of [-37,37])
+   block(root,'FactoryGarageWheelGuide_'+index,[3,.18,111],
+    [cx+wheel,2.15,196],yellow);
+  for(const xOffset of [-35,35])
+   block(root,'FactoryGarageVentilator_'+index,[18,6,24],
+    [cx+xOffset,90,137],dark);
   // Actual elevated hydraulic platform plus a drive-on ramp. Its upper deck
   // matches the simulation's dedicated visual grounding during repair.
   block(root,'VehicleLiftPlatform_'+index,[88,3,96],[cx,8,175],workSteel);
@@ -127,7 +172,11 @@ export function createFactoryServiceYard(){
    shard.rotation.set(Math.sin(n*2.1)*.75,0,Math.cos(n*1.7)*.85);
    shard.raycast=()=>{};sparks.add(shard);
   }
-  root.userData['bay'+index]={indicator,glow,icon,sparks};
+  // Keep both portals mostly open at rest for unobstructed central rollout.
+  // Service vehicles trigger full opening on approach and a partial close
+  // while parked; animation changes only visual meshes, never navigation.
+  root.userData['bay'+index]={indicator,glow,icon,sparks,doorLeft,doorRight,
+   doorCenter:cx,doorOpen:.78,lastDoorTime:null};
  }
  // Tire tracks and service grime reinforce the smaller industrial silhouette.
  for(const x of [-101,-51,51,101])
@@ -157,6 +206,14 @@ export function updateFactoryServiceYard(entry,base,units,time){
   const vehicle=units.find(u=>u.hp>0&&u.factoryService?.baseId===base.id&&u.factoryService?.bay===bay);
   state.indicator.visible=Boolean(vehicle);
   const phase=vehicle?.factoryService?.phase;
+  const targetOpen=phase==='approach'||phase==='parking'?1:
+   phase==='repair'||phase==='ready'?.28:.78;
+  const elapsed=state.lastDoorTime===null?.05:
+   Math.max(0,Math.min(.2,time-state.lastDoorTime));
+  state.lastDoorTime=time;
+  state.doorOpen+=(targetOpen-state.doorOpen)*Math.min(1,elapsed*3.8);
+  state.doorLeft.position.x=state.doorCenter-34-34*state.doorOpen;
+  state.doorRight.position.x=state.doorCenter+34+34*state.doorOpen;
   const repairing=phase==='repair';
   state.glow.visible=repairing&&Math.sin(time*20+bay*1.5)>-.2;
   state.icon.visible=repairing||phase==='ready';
