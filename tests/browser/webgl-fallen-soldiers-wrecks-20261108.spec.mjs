@@ -41,8 +41,21 @@ test('a dead soldier lies as its real 3D model; burned wrecks and crashes are te
    barrels:effects.wreckBarrel.count,
    cap:effects.wreckHull.instanceMatrix.count
   };
-  effects.spawnAircraftCrash({kind:'scout',x:unit.x+235,y:unit.y+110,
-   angle:.32,flightHeight:1});
+  // A loaded aircraft transfers its actual textured mesh into the crash;
+  // the old opaque capsule-and-wings proxy must never be spawned.
+  const source=field.units.get(g.units.find(u=>u.kind==='scout'&&u.owner===0)?.id)?.detail;
+  // A real loaded glTF is preferred; when lite mode skips that asset, the
+  // group can still verify that crash ownership transfers model identity.
+  const aircraft=effects.scene.clone(false);
+  aircraft.name='authored-scout-for-death-test';
+  const model=source?.clone(true)??effects.scene.clone(false);
+  const spawned={kind:'scout',node:aircraft,detail:model};
+  const tx=unit.x+235,tz=unit.y+110;
+  aircraft.position.copy(effects.pos(tx,tz));aircraft.position.y+=175;
+  aircraft.add(model);
+  const captured=effects.captureAircraftCrash(spawned,{id:987654,kind:'scout',hp:0});
+  wreck.realCrash=captured&&effects.crashes.at(-1)?.model===model;
+  wreck.usesPlaceholderGeometry=Boolean(effects.crashFuselage||effects.crashWing);
   wreck.crashing=effects.crashes.length;
   effects.updateAircraftCrashes(1.5);
   wreck.crashesAfterImpact=effects.crashes.length;
@@ -62,6 +75,8 @@ test('a dead soldier lies as its real 3D model; burned wrecks and crashes are te
  expect(result.wreck.barrels).toBeGreaterThan(0);
  expect(result.wreck.cap).toBeLessThanOrEqual(24);
  expect(result.wreck.crashing).toBeGreaterThan(0);
+ expect(result.wreck.realCrash).toBe(true);
+ expect(result.wreck.usesPlaceholderGeometry).toBe(false);
  expect(result.wreck.crashesAfterImpact).toBe(0);
  expect(result.wreck.afterHelicopter).toBe(result.wreck.after+1);
  expect(result.wreck.afterLifetime).toBe(0);

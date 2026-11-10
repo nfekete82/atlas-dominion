@@ -4,7 +4,7 @@ import {hitResponseFor,impactHeight,damagedVehicleIntensity} from '/webgl-hit-re
 import {addWreckRecord,advanceWreckRecords,wreckSink,WRECK_CAP,
  WRECK_CAP_LITE,CRASH_CAP,CRASH_LIFETIME_SECONDS,isWreckableUnit,
  isAircraftWreck} from '/webgl-wreck-lifecycle.js';
-import {guidedRocketAimY,adoptAircraftForCrash,disposeAircraftCrash} from '/webgl-aircraft-effects.js';
+import {guidedRocketAimY,aircraftAimOffsetY,adoptAircraftForCrash,disposeAircraftCrash} from '/webgl-aircraft-effects.js';
 
 const vehicleKinds=new Set(['tank','rover','artillery']);
 const trackedKinds=new Set(['tank','artillery']);
@@ -448,11 +448,19 @@ export class SandforgeCombatEffects {
   const captured=adoptAircraftForCrash(entry);
   if(!captured)return false;
   if(this.crashes.length>=CRASH_CAP)this.releaseAircraftCrash(this.crashes.shift());
-  const ground=this.pos(u.x,u.y);
+  // The Simulation removes dead units before sync(); the provided death
+  // record may therefore contain only id/kind/hp. Recover the last 20-Hz
+  // position captured by CombatEffects, never animate NaN world coordinates.
+  const snapshot=this.lastUnits.get(u.id);
+  const x=Number.isFinite(snapshot?.x)?snapshot.x:
+   captured.root.position.x+this.world.size*.5;
+  const y=Number.isFinite(snapshot?.y)?snapshot.y:
+   captured.root.position.z+this.world.size*.5;
+  const ground=this.pos(x,y);
   const start=Math.max(0,captured.root.position.y-ground.y);
   this.scene.add(captured.root);
   this.crashes.push({...captured,mesh:captured.root,id:u.id,
-   x:u.x,y:u.y,angle:u.angle??0,age:0,start,
+   x,y,angle:snapshot?.angle??u.angle??0,age:0,start,
    duration:CRASH_LIFETIME_SECONDS,kind:u.kind});
   this.capturedAircraftIds.add(u.id);
   return true;
@@ -528,10 +536,7 @@ export class SandforgeCombatEffects {
    const terrainY=this.heightAt(missile.to.x,missile.to.y);
    const actualY=targetUnit&&targetEntry?.node?.visible&&
     (targetUnit.kind==='scout'||targetUnit.kind==='bomber')
-    ?targetEntry.node.position.y+
-      (guidedRocketAimY(missile,targetUnit,0,targetEntry.modelHeight)-0-
-       (targetUnit.kind==='scout'?3+172*Math.max(0,Math.min(1,targetUnit.flightHeight??1)):
-        175*Math.max(0,Math.min(1,targetUnit.flightHeight??1))))
+    ?targetEntry.node.position.y+aircraftAimOffsetY(targetUnit.kind,targetEntry.modelHeight)
     :guidedRocketAimY(missile,targetUnit,terrainY,targetEntry?.modelHeight);
    const target=this.pos(missile.to.x,missile.to.y,actualY);
    const displacement=target.clone().sub(origin);

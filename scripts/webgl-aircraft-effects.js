@@ -4,16 +4,18 @@ import {disposeOwnedMeshes,disposeTaggedMaterials} from './webgl-resource-lifecy
 
 export const aircraftModelKind=kind=>kind==='scout'||kind==='bomber';
 
+export function aircraftAimOffsetY(kind,modelHeight=0){
+ const height=Number.isFinite(modelHeight)&&modelHeight>0?modelHeight:(MODEL_HEIGHTS[kind]??48);
+ return Math.max(12,Math.min(29,height*.37));
+}
 /** Rockets are simulated in map X/Z; their rendered endpoint must hit the
  * airborne 3D actor, rather than the sand fifteen units above its ground X/Z.
  * For other missiles/ground targets retain the original visual altitude.
  */
 export function guidedRocketAimY(missile,unit,terrainY,modelHeight=0){
  if(missile?.target===undefined||!unit||!aircraftModelKind(unit.kind))return terrainY+15;
- const height=Number.isFinite(modelHeight)&&modelHeight>0
-  ?modelHeight:MODEL_HEIGHTS[unit.kind];
- const body=Math.max(12,Math.min(29,height*.37));
- return terrainY+unitRenderAltitude(unit.kind,unit.flightHeight??1)+body;
+ return terrainY+unitRenderAltitude(unit.kind,unit.flightHeight??1)+
+  aircraftAimOffsetY(unit.kind,modelHeight);
 }
 
 /** Model's authored geometry, UV, texture maps and per-actor camouflage stay
