@@ -9,6 +9,7 @@ import {canyonGroundSampler,rampAtX,ridgeCenterY} from '/src/reborn/canyon-heigh
 import {SandforgeBattlefield} from '/webgl-battlefield.js';
 import {DesertOases} from '/webgl-oases.js';
 import {DesertArtPass} from '/webgl-environment.js';
+import {BIOME_STYLES,normalizeBiome,createBiomeGroundTexture,addBiomeVegetation} from '/webgl-biomes.js';
 import {SandforgeCombatEffects} from '/webgl-combat-vfx.js';
 import {SandforgeStrategicEffects} from '/webgl-strategic-effects.js';
 import {SandforgePerformanceWatch} from '/webgl-perf-watch.js';
@@ -30,6 +31,8 @@ import {stoneMaterial,sharedStoneMaps,weatheredStoneGeometry} from '/webgl-rock-
  * benchmarks. The 3D camera never changes the simulation's map coordinates. */
 const $=id=>document.getElementById(id);
 const query=new URLSearchParams(location.search);
+const biome=normalizeBiome(query.get('biome'));
+const biomeStyle=BIOME_STYLES[biome];
 // Brand-new 50%-larger WebGL battlefields. Earlier Canyon v15-v18 saves
 // remain available via legacy=1 and are never silently migrated.
 // Keep pre-generator seeded bookmarks on their historical v19–22 maps.
@@ -70,7 +73,7 @@ game.infantryVisionBonus=1.15; // modest +15% infantry sight in 3D only
 game.highGroundEnabled=true; // tactical +20% outgoing / -10% incoming only in 3D
 game.updateVision();
 const world=game.world,terrain=world.generated,size=world.size,half=size/2;
-if(terrain.battlefield)document.title='Sandforge · '+TERRAIN_LABELS[terrain.battlefield.profile]+' · '+seed;
+if(terrain.battlefield)document.title='Sandforge · '+biomeStyle.label+' · '+TERRAIN_LABELS[terrain.battlefield.profile]+' · '+seed;
 const spacious=world.mapVersion>=19;
 const status=$('status'),errorNode=$('error'),stage=$('stage');
 $('simulation').textContent=query.get('pause')==='1'?'Simulation starten':'Simulation pausieren';
@@ -91,7 +94,7 @@ renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
 // Lower the hot highlights of the preview: original sandstone and buildings
 // share one warm daylight exposure instead of glowing in different palettes.
-renderer.toneMappingExposure=spacious?.96:1.00;
+renderer.toneMappingExposure=biome==='desert'?(spacious?.96:1.00):biomeStyle.exposure;
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.65));
@@ -100,9 +103,9 @@ const scene=new THREE.Scene();
 // The 3D playable desert ends directly against a completely black map void.
 // A beige background would still reveal a bright square beyond the terrain.
 scene.background=new THREE.Color('#000000');
-scene.fog=new THREE.FogExp2('#080605',.00008);
-scene.add(new THREE.HemisphereLight('#fff1dd','#675246',1.20));
-const sun=new THREE.DirectionalLight('#fff0d4',spacious?2.85:3.05);
+scene.fog=new THREE.FogExp2(biomeStyle.fog,.00008);
+scene.add(new THREE.HemisphereLight(biomeStyle.sky,biomeStyle.bounce,1.20));
+const sun=new THREE.DirectionalLight(biomeStyle.sunlight,spacious?2.85:3.05);
 sun.position.set(-700,1100,420);
 sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
 sun.shadow.camera.left=-1250;sun.shadow.camera.right=1250;
@@ -110,7 +113,7 @@ sun.shadow.camera.top=1250;sun.shadow.camera.bottom=-1250;
 sun.shadow.camera.near=1;sun.shadow.camera.far=3000;
 sun.shadow.bias=-.00006;sun.shadow.normalBias=.038;
 sun.target.position.set(0,0,0);scene.add(sun,sun.target);
-const fill=new THREE.DirectionalLight('#c2d7df',.40);
+const fill=new THREE.DirectionalLight(biomeStyle.fill,.40);
 fill.position.set(650,500,-450);scene.add(fill);
 const camera=new THREE.OrthographicCamera(-680,680,410,-410,10,12000);
 // Initial framing presents a real ruin and the adjacent ridge in one view,
@@ -211,16 +214,19 @@ function sandMicroNormalTexture(){
  return map;
 }
 function buildTerrain(){
- const texture=sandTexture(),normalMap=sandMicroNormalTexture();
- if(spacious)normalMap.repeat.set(2.2,2.2);
+ const texture=biome==='desert'?sandTexture():createBiomeGroundTexture(THREE,biome,seed);
+ const normalMap=biome==='desert'?sandMicroNormalTexture():null;
+ if(spacious&&normalMap)normalMap.repeat.set(2.2,2.2);
  const material=new THREE.MeshStandardMaterial({
-  color:spacious?'#fff0db':'#f5eadb',map:texture,normalMap,normalScale:new THREE.Vector2(spacious?.77:.45,spacious?.77:.45),
+  color:biome==='desert'?(spacious?'#fff0db':'#f5eadb'):biomeStyle.terrain,
+  map:texture,normalMap,normalScale:new THREE.Vector2(spacious?.77:.45,spacious?.77:.45),
   vertexColors:true,roughness:.99,metalness:0
  });
  // The buildings-3d/desert-basecolor.png is a *model material atlas*,
  // with hazard stripes, blue and red panels! Tiling it over the world caused
  // the obvious checkerboard terrain. Reuse the original Sandforge 2K sand
  // artwork, edge-blended with the SAME fineSandPattern as the Canvas RTS.
+ if(biome==='desert'){
  const source=new Image();
  source.onload=()=>{
   try{
@@ -248,11 +254,15 @@ function buildTerrain(){
  };
  source.onerror=()=>console.warn('Sand source unavailable; keeping procedural sand');
  source.src='/src/assets/reborn/sand-ripples-v2.png';
+ }
  const chunks=4,segments=56,patch=size/chunks;
  // Reuse palette objects across 50k baked vertices: no per-frame cost.
  const sandGold=new THREE.Color('#e8b47b'),sandLight=new THREE.Color('#f3cf9d'),
   sandstone=new THREE.Color('#a97952'),riverSediment=new THREE.Color('#b79470');
  const vertexColor=new THREE.Color();
+ const biomeGroundBase=new THREE.Color(biomeStyle.groundBase);
+ const biomeGroundLight=new THREE.Color(biomeStyle.groundLight);
+ const biomeGroundRock=new THREE.Color(biomeStyle.groundRock);
  for(let cy=0;cy<chunks;cy++)for(let cx=0;cx<chunks;cx++){
   const count=(segments+1)**2,vertices=new Float32Array(count*3),
    colors=new Float32Array(count*3),uv=new Float32Array(count*2),
@@ -273,6 +283,11 @@ function buildTerrain(){
     const bands=(Math.sin(h*.19+x*.003+z*.002)*.5+.5)*rocky;
     vertexColor.set(spacious?'#e9dcc6':'#faf1e0')
       .lerp(sandstone,rocky*.65+bands*.12).multiplyScalar(nval);
+   }
+   if(biome!=='desert'){
+    const vegetationNoise=Math.sin(x*.007+z*.009)*.5+.5;
+    vertexColor.copy(biomeGroundBase).lerp(biomeGroundLight,.16+vegetationNoise*.25)
+     .lerp(biomeGroundRock,Math.min(.72,rocky*.58));
    }
    colors[n]=vertexColor.r;colors[n+1]=vertexColor.g;colors[n+2]=vertexColor.b;
    uv[k*2]=x/(spacious?2200:1500);uv[k*2+1]=z/(spacious?2200:1500);
@@ -309,7 +324,8 @@ function buildTerrain(){
  * skirts fill the complete solid hull: no blocked ground under empty air. */
 function addBattlefieldRocks(material){
  const vertices=[],colors=[],uv=[];
- const baseColor=new THREE.Color('#c69a6e'),dark=new THREE.Color('#75503b');
+ const baseColor=new THREE.Color(biome==='desert'?'#c69a6e':biomeStyle.rocks[0]);
+ const dark=new THREE.Color(biome==='desert'?'#75503b':biomeStyle.rocks[1]);
  for(const [id,mesa] of terrain.mesas.entries()){
   const poly=mesa.outline,cx=poly.reduce((n,p)=>n+p.x,0)/poly.length,cz=poly.reduce((n,p)=>n+p.y,0)/poly.length;
   const peak=mesa.columns.reduce((n,c)=>n+c.height,0)/mesa.columns.length*(terrain.battlefield.profile==='rocky'?1.55:1.05);
@@ -367,8 +383,8 @@ function instancedStone(){
  // PBR albedo, sculpted normal and mineral roughness are shared with the
  // riverbed, ruins and oasis rocks. Three instanced palette groups remain
  // three draw calls; never create a material for each stone.
- const materials=(spacious?
-  ['#ccb091','#9e8267','#e1c19c']:['#bfa889','#a18c73','#d3bca0'])
+ const materials=(biome==='desert'?(spacious?
+  ['#ccb091','#9e8267','#e1c19c']:['#bfa889','#a18c73','#d3bca0']):biomeStyle.rocks)
   .map(color=>stoneMaterial(color,{lowQuality:query.get('lite')==='1'}));
  const dummy=new THREE.Object3D(),groups=materials.map(mat=>new THREE.InstancedMesh(geometry,mat,1750));
  const contactGeometry=new THREE.PlaneGeometry(1,1);contactGeometry.rotateX(-Math.PI/2);
@@ -731,7 +747,7 @@ $('home').onclick=()=>{
 };
 $('load').onclick=()=>{
  const text=$('seed').value.trim();
- const q=new URLSearchParams({bastions:$('bastions').value,seed:String(text===''?randomMapSeed():Number(text)>>>0),terrain:terrain.battlefield?.profile??'random'});
+ const q=new URLSearchParams({bastions:$('bastions').value,seed:String(text===''?randomMapSeed():Number(text)>>>0),terrain:terrain.battlefield?.profile??'random',biome});
  location.href=(window.Sandforge3DMenu?.gameRoute?.()??'/webgl-preview.html')+'?'+q;
 };
 // Camera navigation is independent of the simulation. WASD and cursor keys
@@ -869,13 +885,16 @@ function resize(){
 new ResizeObserver(resize).observe(stage);resize();
 const chunks=buildTerrain();
 boundaryCliffs=addBoundaryCliffs({scene,size,heightAt,seed,lowQuality:query.get('lite')==='1',softRim:spacious,hardVoid:spacious});
-const stones=instancedStone();sandRoads();
+const stones=instancedStone();
+if(biome==='desert')sandRoads();
+const biomeVegetation=addBiomeVegetation({THREE,scene,world,terrain,game,heightAt,seed,biome,
+ lowQuality:query.get('lite')==='1'});
 // Small ground-level stones accent the winding dry wash from the reference.
 // One visual-only instanced draw call; no gameplay pathing or collision edits.
-const washStones=spacious?addDesertWashStones({scene,world,size,seed,heightAt,
+const washStones=spacious&&biome==='desert'?addDesertWashStones({scene,world,size,seed,heightAt,
  sites:terrain.sites,lowQuality:query.get('lite')==='1'}):null;
 const battlefield=new SandforgeBattlefield({
- game,world,terrain,scene,renderer,camera,controls,loader,groundMeshes,heightAt,pos,
+ game,world,terrain,scene,renderer,camera,controls,loader,groundMeshes,heightAt,pos,biome,
  lite:query.get('lite')==='1'
 });
 const groundTracks=new SandforgeGroundTracks({
@@ -883,7 +902,7 @@ const groundTracks=new SandforgeGroundTracks({
 });
 groundTracks.capture();
 const atmosphere=new SandforgeAtmosphere3D({
- scene,game,world,heightAt,camera,controls,lowQuality:query.get('lite')==='1'
+ scene,game,world,heightAt,camera,controls,biome,lowQuality:query.get('lite')==='1'
 });
 battlefield.fogAtmosphere=atmosphere;
 atmosphere.setFogEnabled(battlefield.fogEnabled);
@@ -972,8 +991,8 @@ function setShowcase(enabled){
 }
 showcaseButton.onclick=()=>setShowcase(!showcaseActive);
 if(query.get('showcase')==='1')setShowcase(true);
-const desertArt=new DesertArtPass({scene,world,terrain,heightAt,pos,loader,lowQuality:query.get('lite')==='1'});
-const oases=new DesertOases({scene,game,heightAt,groundMeshes,lowQuality:query.get('lite')==='1',enabled:query.get('oases')!=='off'});
+const desertArt=new DesertArtPass({scene,world,terrain,heightAt,pos,loader,biome,lowQuality:query.get('lite')==='1'});
+const oases=new DesertOases({scene,game,heightAt,groundMeshes,lowQuality:query.get('lite')==='1',enabled:biome==='desert'&&query.get('oases')!=='off'});
 battlefield.oases=oases;
 const oasisFocus=oases.layout.find(o=>o.type===query.get('oasis'));
 if(oasisFocus){
@@ -983,18 +1002,19 @@ if(oasisFocus){
 }
 window.addEventListener('pagehide',event=>{if(!event.persisted){oases.dispose();battlefield.productionGates.dispose();}});
 let desertArtReady=false;
-const effects=new SandforgeCombatEffects({scene,camera,game,world,heightAt,pos,battlefield,lowQuality:query.get('lite')==='1'});
+const effects=new SandforgeCombatEffects({scene,camera,game,world,heightAt,pos,battlefield,biome,lowQuality:query.get('lite')==='1'});
 // Renderer-only weather preview: weather rules in Simulation are unchanged.
 const stormButton=document.createElement('button');
 stormButton.id='sf3d-storm';
 stormButton.type='button';
 stormButton.className='sf-tool-button';
-stormButton.setAttribute('aria-label','Dreidimensionalen Sandsturm zu Testzwecken umschalten');
-stormButton.title='GPU-Sandsturm demonstrieren (ändert keine Spielregeln)';
+const stormLabel=biome==='snow'?'SCHNEESTURM':biome==='jungle'?'REGENNEBEL':'SANDSTURM';
+stormButton.setAttribute('aria-label','Dreidimensionalen '+stormLabel+' zu Testzwecken umschalten');
+stormButton.title='GPU-'+stormLabel+' demonstrieren (ändert keine Spielregeln)';
 battlefield.panel.querySelector('#sf-tools').prepend(stormButton);
 function setStormPreview(enabled){
  atmosphere.setStormPreview(enabled);
- stormButton.textContent=enabled?'STURM AN':'STURM';
+ stormButton.textContent=enabled?stormLabel+' AN':stormLabel;
  stormButton.setAttribute('aria-pressed',String(Boolean(enabled)));
 }
 stormButton.onclick=()=>setStormPreview(!atmosphere.stormPreview);
@@ -1166,7 +1186,7 @@ function animate(now){
  }
 }
 renderer.setAnimationLoop(animate);
-window.__sandforgeWebGL={renderer,scene,camera,controls,game,terrain,heightAt,battlefield,effects,atmosphere,sound,constructionRecovery,visualPerimeter,boundaryCliffs,panKeys,groundTracks,oases,
+window.__sandforgeWebGL={renderer,scene,camera,controls,game,terrain,heightAt,battlefield,effects,atmosphere,sound,constructionRecovery,visualPerimeter,boundaryCliffs,panKeys,groundTracks,oases,biome,biomeVegetation,
  performance:performanceWatch,
  // Console diagnostic: compare FPS/draw calls with site props on/off live.
  setSiteDecorEnabled:enabled=>battlefield.setSiteDecorEnabled(enabled),

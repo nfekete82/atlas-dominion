@@ -64,10 +64,10 @@ a:hover{text-decoration:underline}
 </style>
 </head>
 <body>
-<div id="stage" aria-label="Echte Three.js WebGL 3D Wüstenlandschaft"></div>
+<div id="stage" aria-label="Echte Three.js WebGL 3D Landschaft"></div>
 <div class="header">
  <div class="brand"><div class="small">SANDFORGE / THREE.JS PREVIEW</div><h1>BASTION WARS <span style="color:var(--gold)">3D</span></h1>
- <p>Operation Weite Wüste · spielbare WebGL-Kampagne</p></div>
+ <p>Drei Biome · spielbare WebGL-Kampagne</p></div>
  <div class="panel" role="group" aria-label="3D-Kartensteuerung">
   <label for="bastions">Bastionen<select id="bastions"><option value="4">4</option><option value="8">8</option><option value="12">12</option><option value="16">16</option></select></label>
   <label for="seed">Karten-Seed<input id="seed" inputmode="numeric" type="number" min="0" max="4294967295" value="2026"></label>
@@ -110,8 +110,11 @@ a:hover{text-decoration:underline}
  <label class="sf3d-field" for="sf3d-map-size">Kartengröße / Bastionen
   <select id="sf3d-map-size"><option value="4">Klein · 4 Bastionen</option><option value="8" selected>Mittel · 8 Bastionen</option><option value="12">Groß · 12 Bastionen</option><option value="16">Sehr groß · 16 Bastionen</option></select>
  </label>
- <label class="sf3d-field" for="sf3d-terrain">Landschaft
-  <select id="sf3d-terrain"><option value="random">Zufällig</option><option value="open">Offene Wüste</option><option value="dunes">Dünenlandschaft</option><option value="rocky">Felswüste</option><option value="oasis">Oasenwüste</option><option value="mixed">Gemischte Landschaft</option></select>
+ <label class="sf3d-field" for="sf3d-biome">Umgebung / Biom
+  <select id="sf3d-biome"><option value="desert">Wüste · Sand &amp; Ruinen</option><option value="snow">Schnee · Kiefern &amp; Eis</option><option value="jungle">Dschungel · Wald &amp; Felsen</option></select>
+ </label>
+ <label class="sf3d-field" for="sf3d-terrain">Geländeprofil
+  <select id="sf3d-terrain"><option value="random">Zufällig</option><option value="open">Offenes Gelände</option><option value="dunes">Dünen / sanfte Hügel</option><option value="rocky">Felsiges Gelände</option><option value="oasis">Oasenprofil (Wüste)</option><option value="mixed">Gemischtes Gelände</option></select>
  </label>
  <label class="sf3d-field" for="sf3d-seed">Karten-Seed (optional)
   <input id="sf3d-seed" type="number" min="0" max="4294967295" placeholder="Zufällige Karte" autocomplete="off">

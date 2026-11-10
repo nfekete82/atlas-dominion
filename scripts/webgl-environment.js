@@ -5,8 +5,8 @@ import {stoneMaterial,weatheredStoneGeometry} from '/webgl-rock-materials.js';
 // Environmental set dressing mirrors deterministic Canyon sites but has no
 // influence on gameplay or collision. Every asset is a true GPU 3D mesh.
 export class DesertArtPass {
- constructor({scene,world,terrain,heightAt,pos,loader,lowQuality=false}){
-  Object.assign(this,{scene,world,terrain,heightAt,pos,loader,lowQuality});
+ constructor({scene,world,terrain,heightAt,pos,loader,lowQuality=false,biome='desert'}){
+  Object.assign(this,{scene,world,terrain,heightAt,pos,loader,lowQuality,biome});
   this.details=createGroundDetails(world,terrain.sites);
   this.items=[];this.animations=[];
   this.addCraters();
@@ -52,7 +52,8 @@ export class DesertArtPass {
   this.scene.add(mesh);this.items.push(mesh);
  }
  addDebris(){
-  const dust=stoneMaterial('#b69a7c',{lowQuality:this.lowQuality});
+  const dust=stoneMaterial(this.biome==='snow'?'#a1abb4':this.biome==='jungle'?'#6f7662':'#b69a7c',
+   {lowQuality:this.lowQuality});
   const geometry=weatheredStoneGeometry(this.lowQuality);
   const spacious=this.world.mapVersion>=19;
   const mesh=new THREE.InstancedMesh(geometry,dust,
@@ -91,8 +92,8 @@ export class DesertArtPass {
   if(!count)return;
   const geometry=weatheredStoneGeometry(this.lowQuality);
   const materials=[
-   stoneMaterial('#debe98',{lowQuality:this.lowQuality}),
-   stoneMaterial('#aa8e70',{lowQuality:this.lowQuality})
+   stoneMaterial(this.biome==='snow'?'#c7d0d7':this.biome==='jungle'?'#94947e':'#debe98',{lowQuality:this.lowQuality}),
+   stoneMaterial(this.biome==='snow'?'#83919d':this.biome==='jungle'?'#5d6656':'#aa8e70',{lowQuality:this.lowQuality})
   ];
   const meshes=materials.map(material=>new THREE.InstancedMesh(geometry,material,count));
   const counters=[0,0],dummy=new THREE.Object3D();
@@ -113,6 +114,8 @@ export class DesertArtPass {
   }
  }
  async loadPalmGroves(){
+  // No tropical palms on a snowfield; jungle keeps the existing groves.
+  if(this.biome==='snow')return 0;
   const spacious=this.world.mapVersion>=19;
   const palms=this.details.filter(d=>d.kind==='palm'&&
    !this.terrain.ridges.some(r=>r.spine.some(p=>Math.hypot(d.x-p.x,d.y-p.y)<140)))

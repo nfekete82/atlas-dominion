@@ -6,6 +6,8 @@
  const query=new URLSearchParams(location.search);
  const savedKey='sandforge:webgl:v1';
  const optionKey='sandforge:webgl:options';
+ const savedBiomeKey='sandforge:webgl:save-biome';
+ const validBiome=value=>['desert','snow','jungle'].includes(value)?value:'desert';
  // The 3D game may run at / (release candidate) or /webgl-preview.html
  // (existing QA/deep links). Stay on the active entry during navigation.
  const gameRoute=()=>location.pathname==='/'||location.pathname==='/index.html'
@@ -58,7 +60,7 @@
  let pauseCheatProgress=0;
  let returnToGame=false;
  const saved=readSave();
- const play=(count,seed,{resume=false,legacy=false,terrain='random'}={})=>{
+ const play=(count,seed,{resume=false,legacy=false,terrain='random',biome='desert'}={})=>{
   const params=new URLSearchParams({bastions:String(count),seed:String(seed>>>0),play:'1'});
   if(resume)params.set('resume','1');
   if(legacy)params.set('legacy','1');
@@ -66,6 +68,7 @@
   if(options.quality==='lite')params.set('lite','1');
   if(options.fog===false)params.set('fog','0');
   if(!resume&&!legacy)params.set('terrain',terrain);
+  if(!legacy)params.set('biome',validBiome(biome));
   location.assign(gameRoute()+'?'+params);
  };
  function continueSave(){
@@ -73,7 +76,13 @@
   if(!data||!bastions||!Number.isSafeInteger(data.seed)){
    notify('Kein kompatibler 3D-Spielstand gefunden.');return;
   }
-  play(bastions,data.seed,{resume:true,legacy:data.mapVersion<=18});
+  // Cosmetic biome metadata is stored separately: the validated game-save
+  // schema and its deterministic gameplay state remain untouched.
+  let visual=null;
+  try{visual=JSON.parse(localStorage.getItem(savedBiomeKey)||'null');}catch{}
+  const biome=visual?.seed===data.seed&&visual?.mapVersion===data.mapVersion
+   ?validBiome(visual.biome):'desert';
+  play(bastions,data.seed,{resume:true,legacy:data.mapVersion<=18,biome});
  }
  function randomSeed(){
   if(window.crypto?.getRandomValues){
@@ -142,6 +151,7 @@
   $('sf3d-map-size').value=source?.value??'8';
   $('sf3d-seed').value='';
   $('sf3d-terrain').value='random';
+  $('sf3d-biome').value='desert';
   newDialog.showModal();
  });
  $('sf3d-campaign').addEventListener('click',()=>newDialog.showModal());
@@ -185,12 +195,18 @@
   if(!Number.isSafeInteger(n)||n<0||n>4294967295){
    $('sf3d-new-status').textContent='Seed muss zwischen 0 und 4294967295 liegen.';return;
   }
-  play(count,n,{terrain:$('sf3d-terrain').value});
+  play(count,n,{terrain:$('sf3d-terrain').value,biome:$('sf3d-biome').value});
  });
  $('sf3d-pause-resume').addEventListener('click',resumeGame);
  $('sf3d-pause-save').addEventListener('click',()=>{
   const game=window.__sandforgeWebGL?.battlefield;
   const saved=game?.saveGame?.()===true;
+  if(saved)try{
+   localStorage.setItem(savedBiomeKey,JSON.stringify({
+    seed:game.game.seed,mapVersion:game.world.mapVersion,
+    biome:validBiome(window.__sandforgeWebGL?.biome)
+   }));
+  }catch(error){console.warn('Biom-Einstellung konnte nicht gespeichert werden:',error);}
   $('sf3d-pause-status').textContent=saved
    ?'Kampagne lokal gespeichert.'
    :'Speichern fehlgeschlagen. Bitte Speicherplatz und Browser-Einstellungen prüfen.';

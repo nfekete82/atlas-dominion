@@ -12,7 +12,7 @@ const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 
 // Static canvas-generated textures are copied to the GPU once, not rebuilt
 // during battle. No gameplay RNG, navigation cells or saved state are touched.
-function radialTexture({inner='#ffffff',outer='#ffffff',mode='smoke'}){
+function radialTexture({inner='#ffffff',outer='#ffffff',mode='smoke',biome='desert'}){
  const canvas=document.createElement('canvas');canvas.width=canvas.height=128;
  const ctx=canvas.getContext('2d');
  const g=ctx.createRadialGradient(64,64,0,64,64,63);
@@ -37,10 +37,14 @@ function radialTexture({inner='#ffffff',outer='#ffffff',mode='smoke'}){
   g.addColorStop(.65,'rgba(255,171,62,.48)');
   g.addColorStop(1,'rgba(255,145,34,0)');
  }else if(mode==='dust'){
-  g.addColorStop(0,'rgba(187,147,105,.55)');
-  g.addColorStop(.39,'rgba(163,123,83,.41)');
-  g.addColorStop(.72,'rgba(137,104,71,.17)');
-  g.addColorStop(1,'rgba(120,92,65,0)');
+  // Impact dust is snow powder or humid dark soil, not desert sand.
+  const tones=biome==='snow'
+   ?['rgba(243,249,253,.60)','rgba(211,226,238,.44)','rgba(172,190,205,.17)','rgba(156,171,184,0)']
+   :biome==='jungle'
+    ?['rgba(158,149,103,.60)','rgba(121,116,80,.44)','rgba(89,93,66,.17)','rgba(74,83,59,0)']
+    :['rgba(187,147,105,.55)','rgba(163,123,83,.41)','rgba(137,104,71,.17)','rgba(120,92,65,0)'];
+  g.addColorStop(0,tones[0]);g.addColorStop(.39,tones[1]);
+  g.addColorStop(.72,tones[2]);g.addColorStop(1,tones[3]);
  }else if(mode==='debris'){
   g.addColorStop(0,'rgba(54,50,44,.98)');
   g.addColorStop(.57,'rgba(45,41,35,.96)');
@@ -76,15 +80,15 @@ function radialTexture({inner='#ffffff',outer='#ffffff',mode='smoke'}){
  texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=4;
  return texture;
 }
-function materialFor(mode,opacity){
+function materialFor(mode,opacity,biome='desert'){
  return new THREE.MeshBasicMaterial({
-  map:radialTexture({mode}),transparent:true,opacity,depthWrite:false,
+  map:radialTexture({mode,biome}),transparent:true,opacity,depthWrite:false,
   alphaTest:.015,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-1,
   toneMapped:mode!=='flame'&&mode!=='spark'
  });
 }
-function makePool(scene,mode,max,opacity){
- const mesh=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),materialFor(mode,opacity),max);
+function makePool(scene,mode,max,opacity,biome='desert'){
+ const mesh=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),materialFor(mode,opacity,biome),max);
  mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
  mesh.frustumCulled=false;mesh.renderOrder=mode==='spark'?18:mode==='flame'?16:mode==='dust'?10:14;mesh.count=0;
  scene.add(mesh);
@@ -101,11 +105,11 @@ function clearInstances(pool){
  mesh.count=0; // zero particles must not draw the full inactive GPU pool
 }
 export class SandforgeCombatEffects {
- constructor({scene,camera,game,world,heightAt,pos,battlefield=null,lowQuality=false}){
+ constructor({scene,camera,game,world,heightAt,pos,battlefield=null,lowQuality=false,biome='desert'}){
   Object.assign(this,{scene,camera,game,world,heightAt,pos,battlefield,lowQuality});
   this.smoke=makePool(scene,'smoke',lowQuality?70:260,.68);
   this.flames=makePool(scene,'flame',lowQuality?28:120,.94);
-  this.dust=makePool(scene,'dust',lowQuality?40:170,.50);
+  this.dust=makePool(scene,'dust',lowQuality?40:170,.50,biome);
   this.sparks=makePool(scene,'spark',lowQuality?90:300,.96);
   this.debris=makePool(scene,'debris',lowQuality?42:120,.84);
   for(const pool of [this.smoke,this.flames,this.dust,this.sparks,this.debris])clearInstances(pool);

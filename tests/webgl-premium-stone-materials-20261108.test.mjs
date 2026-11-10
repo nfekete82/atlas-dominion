@@ -48,8 +48,11 @@ test('all map-ground stone and rubble types reuse the atlas without new draw cal
  assert.match(preview,/\.map\(color=>stoneMaterial\(color/);
  assert.match(preview,/rockMaps\.normalMap/);
  assert.match(art,/stoneMaterial\('#ead5b9'/);
- assert.match(decor,/stoneMaterial\('#b69a7c'/);
- assert.match(decor,/stoneMaterial\('#debe98'/);
+ // Three biomes still use the shared PBR stone atlas; default desert hues
+ // are preserved while snow and jungle choose their own material tints.
+ assert.match(decor,/stoneMaterial\(this\.biome==='snow'\?'#a1abb4':this\.biome==='jungle'\?'#6f7662':'#b69a7c'/);
+ assert.match(decor,/stoneMaterial\(this\.biome==='snow'\?'#c7d0d7':this\.biome==='jungle'\?'#94947e':'#debe98'/);
+ assert.match(decor,/stoneMaterial\(this\.biome==='snow'\?'#83919d':this\.biome==='jungle'\?'#5d6656':'#aa8e70'/);
  assert.match(oasis,/stoneMaterial\('#b8a184'/);
  assert.match(preview,/new THREE\.InstancedMesh\(geometry,mat,1750\)/);
  assert.match(decor,/new THREE\.InstancedMesh\(geometry,dust,/);

@@ -36,8 +36,8 @@ const format=(n)=>Math.round(n).toLocaleString('de-DE');
 const plain=(value)=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 export class SandforgeBattlefield {
- constructor({game,world,terrain,scene,renderer,camera,controls,loader,groundMeshes,heightAt,pos,lite=false}){
-  Object.assign(this,{game,world,terrain,scene,renderer,camera,controls,loader,groundMeshes,heightAt,pos,lite});
+ constructor({game,world,terrain,scene,renderer,camera,controls,loader,groundMeshes,heightAt,pos,lite=false,biome='desert'}){
+  Object.assign(this,{game,world,terrain,scene,renderer,camera,controls,loader,groundMeshes,heightAt,pos,lite,biome});
   this.units=new Map();this.bases=new Map();this.bastions=new Map();
   // Toggle just the NEW site dressing, not the original production props.
   this.siteDecorEnabled=new URLSearchParams(location.search).get('siteDecor')!=='0';
@@ -1402,7 +1402,8 @@ export class SandforgeBattlefield {
   const ctx=this.mini.getContext('2d');if(!ctx)return;
   const width=this.mini.width,height=this.mini.height,map=this.world;
   const scale=width/map.size,grid=RULES.grid;
-  ctx.fillStyle='#c9a576';ctx.fillRect(0,0,width,height);
+  ctx.fillStyle=this.biome==='snow'?'#c6d9e7':this.biome==='jungle'?'#748960':'#c9a576';
+  ctx.fillRect(0,0,width,height);
   if(map.generated?.battlefield){
    // Bake the shared heightfield once; fog and unit markers remain dynamic.
    if(!this.miniTerrainCanvas){
@@ -1410,8 +1411,11 @@ export class SandforgeBattlefield {
     const c=this.miniTerrainCanvas.getContext('2d'),image=c.createImageData(grid,grid);
     for(let i=0;i<grid*grid;i++){
      const p=map.center(i),h=map.terrainHeight(p.x,p.y),s=map.terrainSlope(p.x,p.y),shade=Math.min(65,h*.18+s*95),k=i*4;
-     image.data[k]=205-shade;image.data[k+1]=174-shade;image.data[k+2]=127-shade*.8;image.data[k+3]=255;
-     if(map.blocked[i]){image.data[k]=104;image.data[k+1]=85;image.data[k+2]=66;}
+     const ground=this.biome==='snow'?[224,234,240]:this.biome==='jungle'?[120,146,101]:[205,174,127];
+     const rock=this.biome==='snow'?[104,120,134]:this.biome==='jungle'?[71,84,62]:[104,85,66];
+     image.data[k]=ground[0]-shade;image.data[k+1]=ground[1]-shade;
+     image.data[k+2]=ground[2]-shade*.8;image.data[k+3]=255;
+     if(map.blocked[i]){image.data[k]=rock[0];image.data[k+1]=rock[1];image.data[k+2]=rock[2];}
     }
     c.putImageData(image,0,0);
     this.mini.title=TERRAIN_LABELS[map.generated.battlefield.profile]+' · Seed '+this.game.seed+' · v'+map.mapVersion;
