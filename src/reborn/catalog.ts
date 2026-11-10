@@ -42,15 +42,33 @@ export const buildingKinds=Object.keys(BUILDINGS) as BuildingKind[];
 export const canAttack=(u:{kind?:UnitKind},target:{kind?:UnitKind|BuildingKind;queue?:unknown}):boolean=>'queue' in target||unitSpec(u).targetsAir!==false||!unitSpec(target as {kind?:UnitKind}).flying;
 /** Balanced separately from the anti-armor main gun; both are independent weapon clocks. */
 export const TANK_MG={damage:18,cooldown:.55,range:230} as const;
-/** Ordinary rifle rounds should not be as effective on an MBT as on a person.
- * Dedicated heavy anti-armor fire retains its existing 0.45 factor. */
-export const weaponDamage=(u:{kind?:UnitKind},target:{kind?:UnitKind|BuildingKind;queue?:unknown}):number=>
- unitSpec(u).damage*(u.kind==='infantry'&&target.kind==='tank'?.65:
- u.kind==='heavy'&&('queue' in target||unitSpec(target as {kind?:UnitKind}).group!=='Infanterie')?.45:
- u.kind==='rover'&&('queue' in target||unitSpec(target as {kind?:UnitKind}).group!=='Infanterie')?.35:
- u.kind==='rocket'&&'queue' in target?.7:
- u.kind==='rocket'&&unitSpec(target as {kind?:UnitKind}).group==='Infanterie'?.10:
- u.kind==='rocket'&&unitSpec(target as {kind?:UnitKind}).flying?1.2:1);
+/** Conventional small arms and roof MGs excel against infantry, not armor or aircraft.
+ * Ratios are deliberately separate for ground armor and airframes: a cheap
+ * rifle squad must not shred bombers while dedicated rockets stay valuable. */
+export const SMALL_ARMS_VS_ARMOR=Object.freeze({
+ infantry:.16,medic:.12,engineer:.12,heavy:.20,rover:.17,scout:.18
+});
+export const SMALL_ARMS_VS_AIR=Object.freeze({
+ infantry:.08,medic:.07,engineer:.07,heavy:.10,rover:.09,scout:.12
+});
+export const weaponDamage=(u:{kind?:UnitKind},target:{kind?:UnitKind|BuildingKind;queue?:unknown}):number=>{
+ const base=unitSpec(u).damage,building='queue' in target;
+ const kind=u.kind??'infantry';
+ if(!building){
+  const defender=unitSpec(target as {kind?:UnitKind});
+  if(defender.flying&&kind in SMALL_ARMS_VS_AIR)
+   return base*SMALL_ARMS_VS_AIR[kind as keyof typeof SMALL_ARMS_VS_AIR];
+  if(defender.group==='Fahrzeuge'&&kind in SMALL_ARMS_VS_ARMOR)
+   return base*SMALL_ARMS_VS_ARMOR[kind as keyof typeof SMALL_ARMS_VS_ARMOR];
+ }
+ // Maintain existing heavy-gun vs structure tuning and guided anti-armor
+ // specialist strengths. Tank MG exclusively targets infantry.
+ return base*(kind==='heavy'&&building?.45:
+  kind==='rover'&&building?.35:
+  kind==='rocket'&&building?.7:
+  kind==='rocket'&&unitSpec(target as {kind?:UnitKind}).group==='Infanterie'?.10:
+  kind==='rocket'&&unitSpec(target as {kind?:UnitKind}).flying?1.2:1);
+};
 /** Expected sustained DPS for a valid single target (before veteran bonuses).
  * Tank main gun intentionally does NOT fire at infantry; its MG does.
  */
