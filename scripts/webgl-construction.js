@@ -42,8 +42,9 @@ export class SandforgeConstructionPresentation{
   const canvas=document.createElement('canvas');canvas.width=256;canvas.height=64;
   const texture=new THREE.CanvasTexture(canvas);
   const label=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,opacity:.86,depthTest:false,depthWrite:false}));
-  // Move the BAU label up without moving the green progress/health bar.
-  label.scale.set(83,21,1);label.position.set(0,height+38,0);frame.add(label);
+  // The construction text is a separate billboard ABOVE the building HP bar.
+  // Its final altitude is recalculated when the authored building model loads.
+  label.scale.set(83,21,1);label.position.set(0,height+65,0);frame.add(label);
   entry.node.add(frame);
   const construction={frame,columns,rails,slab,roof,canvas,texture,label,
    height,clip:new THREE.Plane(new THREE.Vector3(0,-1,0),0),
@@ -57,6 +58,14 @@ export class SandforgeConstructionPresentation{
    return;
   }
   const state=this.ensure(entry,base);
+  // The HP bar is world-space and can move upward after the detailed GLB
+  // streams in. Keep the BAU/PAUSIERT billboard CLEARLY above it rather
+  // than using a fixed height that overlaps at tactical camera angles.
+  const healthAltitude=entry.presentation?.bar?.altitude??
+   Math.max(65,Math.min(144,(spec.width??130)*.55));
+  const healthY=entry.modelHeight?
+   Math.max(healthAltitude,entry.modelHeight+5):healthAltitude;
+  state.label.position.y=Math.max(state.height+65,healthY+45);
   const progress=THREE.MathUtils.clamp(1-base.buildRemaining/spec.buildTime,0,1);
   state.frame.visible=true;
   state.slab.visible=progress>=.015;
