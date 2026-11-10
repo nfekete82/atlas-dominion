@@ -2,15 +2,18 @@ import * as THREE from 'three';
 
 // A GPU-only visual layer. The authoritative Simulation still decides which
 // tiles are visible, which units can be targeted, and the real weather rules.
-function cloudTexture(){
+function cloudTexture(biome='desert'){
  const canvas=document.createElement('canvas');
  canvas.width=canvas.height=128;
  const ctx=canvas.getContext('2d');
  const gradient=ctx.createRadialGradient(64,64,8,64,64,63);
- gradient.addColorStop(0,'rgba(247,219,172,.70)');
- gradient.addColorStop(.35,'rgba(223,191,149,.40)');
- gradient.addColorStop(.72,'rgba(179,146,110,.10)');
- gradient.addColorStop(1,'rgba(179,146,110,0)');
+ const colors=biome==='snow'
+  ?['rgba(247,251,255,.70)','rgba(209,226,241,.40)','rgba(170,193,211,.10)','rgba(161,181,197,0)']
+  :biome==='jungle'
+   ?['rgba(199,207,177,.65)','rgba(139,160,127,.40)','rgba(83,111,85,.10)','rgba(74,103,81,0)']
+   :['rgba(247,219,172,.70)','rgba(223,191,149,.40)','rgba(179,146,110,.10)','rgba(179,146,110,0)'];
+ gradient.addColorStop(0,colors[0]);gradient.addColorStop(.35,colors[1]);
+ gradient.addColorStop(.72,colors[2]);gradient.addColorStop(1,colors[3]);
  ctx.fillStyle=gradient;ctx.fillRect(0,0,128,128);
  const texture=new THREE.CanvasTexture(canvas);
  texture.colorSpace=THREE.SRGBColorSpace;
@@ -33,9 +36,9 @@ function createCloudMesh(scene,texture,max,opacity,order,name){
  return mesh;
 }
 export class SandforgeAtmosphere3D {
- constructor({scene,game,world,heightAt,camera,controls,lowQuality=false}){
+ constructor({scene,game,world,heightAt,camera,controls,lowQuality=false,biome='desert'}){
   Object.assign(this,{scene,game,world,heightAt,camera,controls,lowQuality});
-  this.texture=cloudTexture();
+  this.texture=cloudTexture(biome);
   this.fogMax=lowQuality?100:300;
   this.dustMax=lowQuality?48:170;
   this.fogMesh=createCloudMesh(scene,this.texture,this.fogMax,.46,16,'fow-3d-frontier');
