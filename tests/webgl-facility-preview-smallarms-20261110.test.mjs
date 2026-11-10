@@ -64,37 +64,27 @@ test('runway is significantly longer than hangars and landing positions stay unc
  disposeAirfieldServiceYard({airfieldServiceYard:airport});
 });
 
-test('factory architecture is compact and the repair gantry does not block approach',()=>{
- const factory=createFactoryServiceYard();
- const wing=factory.getObjectByName('FactoryServiceWing');
- const crane=factory.getObjectByName('RepairGantryCrossbeam_0');
- const dock=factory.getObjectByName('VehicleLiftPlatform_0');
- assert.ok(wing.geometry.parameters.height<50);
- assert.ok(crane.position.z<dock.position.z-45);
- assert.ok(factory.getObjectByName('VehicleDriveOnRamp_1'));
- const portals=[0,1].map(i=>factory.getObjectByName('FactoryServiceGarageHeader_'+i));
- const leaves=[0,1].map(i=>factory.getObjectByName('FactoryServiceDoorLeft_'+i));
- const roofs=[0,1].map(i=>factory.getObjectByName('FactoryRepairGarageRoof_'+i));
- assert.ok(portals.every(Boolean)&&leaves.every(Boolean)&&roofs.every(Boolean),
-  'both service bays have roofed, independent garage entrances');
- assert.ok(portals[1].position.x-portals[0].position.x>140,
-  'the two doorways must be distinct');
- assert.ok(factory.getObjectByName('FactoryServiceDoorRight_0'));
+test('factory restores original main building with ONE compact side garage',()=>{
+ const factory=createFactoryServiceYard(),deck=factory.getObjectByName('VehicleLiftPlatform_0');
+ const roof=factory.getObjectByName('FactoryRepairGarageRoof_0');
+ const left=factory.getObjectByName('FactorySideWorkshopWallLeft');
+ assert.ok(deck&&roof&&left);
+ assert.ok(deck.position.x < -140,'repair bay sits left of main factory');
+ assert.ok(roof.geometry.parameters.width<145,'side garage stays compact');
+ assert.ok(roof.geometry.parameters.depth<140,'no extended front double garages');
+ assert.equal(factory.getObjectByName('VehicleLiftPlatform_1'),undefined);
+ assert.equal(factory.getObjectByName('FactoryServiceWing'),undefined);
+ assert.ok(factory.getObjectByName('VehicleDriveOnRamp_0'));
  const entry={factoryServiceYard:factory};
  const vehicle={id:901,hp:700,factoryService:{baseId:1,bay:0,phase:'parking'}};
  updateFactoryServiceYard(entry,{id:1},[vehicle],1);
  const opened=factory.userData.bay0.doorOpen;
- assert.ok(opened>.78,'garage opens for a tank driving in');
- assert.ok(leaves[0].position.y>36,'garage roller shutter lifts above tank roof');
- assert.ok(leaves[0].scale.y<.4,'shutter retracts instead of blocking tank');
- const centerPosts=factory.getObjectsByProperty('name','VehicleServiceCranePost_0');
- assert.ok(centerPosts.every(post=>Math.abs(post.position.x)>80),
-  'workshop gantry supports must not cross central tank production lane');
+ assert.ok(opened>.85);
+ assert.ok(factory.getObjectByName('FactoryServiceDoorLeft_0').position.y>30);
  vehicle.factoryService.phase='repair';
  updateFactoryServiceYard(entry,{id:1},[vehicle],1.2);
- assert.ok(factory.userData.bay0.doorOpen<opened,'garage closes partly during repair');
- assert.equal(factory.getObjectByName('VehicleLiftPlatform_0').position.z,175,
-  'real repair target stays inside garage');
+ assert.ok(factory.userData.bay0.doorOpen<opened);
+ assert.equal(deck.position.y+deck.geometry.parameters.height/2,9.5);
  disposeFactoryServiceYard({factoryServiceYard:factory});
 });
 
@@ -106,6 +96,12 @@ test('build ghost and completed buildings use identical 3D asset and site genera
  assert.ok(begin.includes('createAirfieldServiceYard()'));
  assert.ok(begin.includes('createFactoryServiceYard()'));
  assert.ok(begin.includes("hideOldAirfieldHangar({detail:model})"));
+ assert.ok(begin.includes('placeholder.visible=false'));
+ assert.ok(begin.includes('model.visible=false'));
+ assert.ok(begin.includes('ConstructionPlacementGuides'));
+ assert.ok(begin.includes('if(mesh.isMesh&&'));
+ assert.ok(!begin.includes('placeholder.visible=true'));
+
  assert.ok(begin.includes('conformAirfieldSurface')===false,
   'runway terrain fitting runs from updatePlacementPreview, not from loading');
  assert.ok(battlefield.includes('conformAirfieldSurface(ghost.userData.previewService'));
@@ -114,17 +110,22 @@ test('build ghost and completed buildings use identical 3D asset and site genera
 
  assert.ok(begin.includes('calibratedScale('));
  assert.ok(battlefield.includes('disposeServicePaint(preview.userData.previewService)'));
- assert.match(begin,/const tint=\(root,ownSource=false,opacity=\.12\)/,'buildings are faint holograms');
+ assert.match(begin,/const tint=\(root,ownSource=false,opacity=\.045\)/,'buildings are faint holograms');
  assert.match(begin,/m\.opacity=Math\.min\(mat\.opacity\?\?1,opacity\)/);
- assert.match(begin,/tint\(yard,false,\.08\)/,'fences and courtyard props remain faint');
- assert.match(begin,/tint\(service,true,\.10\)/,'runway and service stations remain faint');
- assert.match(begin,/opacity:\.34,depthTest:false/,'placement circle does not dominate ghost');
+ assert.match(begin,/tint\(yard,false,\.04\)/,'fences and courtyard props remain faint');
+ assert.match(begin,/tint\(service,true,\.045\)/,'runway and service stations remain faint');
+ assert.match(begin,/opacity:\.21,depthTest:false/,'placement circle does not dominate ghost');
 });
 
-test('construction keeps complete final building visible instead of cropping its upper floors',()=>{
+test('construction progressively reveals the real building instead of displaying a complete prefab',()=>{
  const construction=source('scripts/webgl-construction.js');
  assert.ok(!construction.includes('if(model)model.visible=true'));
  assert.ok(construction.includes("stageGroup(model,'building')"));
+ assert.ok(construction.includes('constructionOriginalVisible'));
+ assert.ok(construction.includes("stageGroup(entry.yard,'yard')"));
+ assert.ok(construction.includes("stageGroup(entry.airfieldServiceYard??entry.factoryServiceYard,'service')"));
+ assert.ok(!construction.includes('model.visible=true'));
+
  assert.ok(construction.includes("stageGroup(entry.yard,'yard')"));
  assert.ok(construction.includes("stageGroup(entry.airfieldServiceYard??entry.factoryServiceYard,'service')"));
  assert.ok(!construction.includes('model.traverse(obj=>{'),
@@ -138,6 +139,7 @@ test('airfield selection no longer hides the building catalogue if a pioneer sur
  const src=source('scripts/webgl-battlefield.js');
  assert.match(src,/const canBuild=game\.units\.some\(u=>u\.owner===0&&u\.kind==='engineer'/);
  assert.match(src,/buildings:context\.canBuild/);
+ assert.match(src,/Preserve the player's tab until it is genuinely unavailable/);
  assert.match(src,/buildings:this\.catalogContext\(\)\.canBuild/);
  // The compact 600-unit strip has a matching rotated construction footprint.
  const game=new Simulation(2074,4);
