@@ -586,7 +586,18 @@ export class SandforgeBattlefield {
    }
    if(preview.userData.previewDetail)
     disposeTaggedMaterials(preview.userData.previewDetail,'sandforgePreviewMaterial');
-   if(preview.userData.previewGuides)disposeOwnedMeshes(preview.userData.previewGuides);
+   if(preview.userData.previewGuides){
+    // EdgesGeometry uses LineSegments, not Mesh. Release its buffers too.
+    const lines=new Set(),paints=new Set();
+    preview.userData.previewGuides.traverse(obj=>{
+     if(!obj.isLineSegments)return;
+     if(obj.geometry)lines.add(obj.geometry);
+     if(obj.material)paints.add(obj.material);
+    });
+    for(const geometry of lines)geometry.dispose();
+    for(const material of paints)material.dispose();
+    disposeOwnedMeshes(preview.userData.previewGuides);
+   }
    this.buildPreview=null;
   }
   if(this.buildHint)this.buildHint.style.display='none';
