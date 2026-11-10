@@ -36,7 +36,7 @@ test('the 3D shoulder soldier has PBR camouflage, a physical launcher and batche
  }
  const files=readFileSync('scripts/webgl-battlefield.js','utf8');
  assert.match(files,/kind==='rocket'\)return createRocketInfantry\(owner\)/);
- assert.match(files,/entity\.kind==='rocket'/);
+ assert.match(files,/entry\.kind==='rocket'/,'authored-GLB loading uses the current actor entry when attaching the physical launcher');
 });
 
 test('shoulder rocket launches a real guided missile that follows a moving air target',()=>{
