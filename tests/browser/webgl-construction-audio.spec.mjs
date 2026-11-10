@@ -77,7 +77,11 @@ test('3D construction: foundations, columns, rails and roof appear by actual bui
     rail1:c.rails[1].meshes[0].visible,
     clipped:c.materials.length>0&&c.materials.every(m=>m.clippingPlanes?.[0]===c.clip),
     label:c.lastLabel,labelWidth:c.label.scale.x,labelHeight:c.label.scale.y,
-    labelOpacity:c.label.material.opacity};
+    labelOpacity:c.label.material.opacity,
+    // Compare identical world-space altitudes: billboard must float ABOVE
+    // the HP bar, not overlap it when the authored GLB is swapped in.
+    clearance:c.label.position.y-(e.modelHeight?
+     Math.max(e.presentation.bar.altitude,e.modelHeight+5):e.presentation.bar.altitude)};
   };
   const phases=[.1,.42,.82].map(capture);
   building.buildRemaining=0;building.hp=1200;b.sync(true,.06,false,1);
@@ -90,6 +94,8 @@ test('3D construction: foundations, columns, rails and roof appear by actual bui
  expect(early.labelWidth).toBeLessThanOrEqual(85);
  expect(early.labelHeight).toBeLessThanOrEqual(22);
  expect(early.labelOpacity).toBeLessThanOrEqual(.9);
+ for(const phase of [early,middle,late])
+  expect(phase.clearance).toBeGreaterThanOrEqual(44);
  expect(early.top).toBe(false);
  expect(early.rail0).toBe(false);
  expect(middle.post).toBeGreaterThan(early.post);
