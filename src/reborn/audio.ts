@@ -4,7 +4,7 @@ import { Simulation, type Weapon } from './simulation.js';
 import {UnitRadio,type PlayerOrder} from './unit-radio.js';
 import {UnitLossMonitor} from './unit-loss-monitor.js';
 import {TacticalMusic,musicCombatLevel} from './tactical-music.js';
-import {unitSpec,type UnitKind} from './catalog.js';
+import {unitSpec} from './catalog.js';
 import {ENGINE_KINDS,ENGINE_PROFILES,measuredEngineSpeed,vehicleSoundMix,type EngineKind} from './vehicle-soundscape.js';
 
 interface EngineVoice {
