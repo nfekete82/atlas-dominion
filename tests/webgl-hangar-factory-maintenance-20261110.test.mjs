@@ -21,8 +21,13 @@ function setup(){
  g.aiClock=1e8;g.tactical.plan=()=>{};
  g.world.blocked.fill(0);g.world.opaque.fill(0);
  g.credits[0]=10000;
+ // This suite tests repair movement/economy, not incoming enemy gunfire.
+ // Hostile bullets can otherwise knock 0.3 HP off a just-finished tank.
+ for(const hostile of g.units)if(hostile.owner===1)hostile.hp=0;
  const airport=base(g,'airfield',31110,2000,2000);
- const garage=base(g,'factory',31111,2700,2000);
+ // Keep the compact annex well clear of the enemy HQ collider. Real
+ // modern-map placement rejects overlapping service sites automatically.
+ const garage=base(g,'factory',31111,2400,2000);
  return {g,airport,garage};
 }
 const advance=(game,seconds)=>{for(let n=0;n<Math.round(seconds/.05);n++)game.step(.05);};
@@ -174,7 +179,7 @@ test('end-to-end: real bomber lands and taxis into its assigned hangar',()=>{
 });
 
 test('end-to-end: ground tank drives to factory apron and enters service',()=>{
- const {g,garage}=setup(),tank=g.spawn(0,{x:2890,y:2320},'tank');
+ const {g,garage}=setup(),tank=g.spawn(0,{x:2592,y:2320},'tank');
  tank.hp=700;
  assert.equal(g.requestFactoryRepair([tank.id]),1);
  let startedParking=false,servicing=false;
