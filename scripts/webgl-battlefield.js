@@ -24,7 +24,7 @@ import {snapToPlayableEdge,worldToMinimap} from '/webgl-map-edges.js';
 import {attackBlinkAlpha} from '/src/reborn/attack-alerts.js';
 import {UPGRADES,UPGRADE_KINDS,canResearchUpgrade,INTERCEPTOR_ENABLED,SILO_CHARGE_SECONDS,INTERCEPTOR_MAX_AMMO,INTERCEPTOR_REARM_COST} from '/src/reborn/strategic-tech.js';
 import {createStrategicBuilding,isStrategicBuilding} from '/webgl-strategic-buildings.js';
-import {createRocketInfantry} from '/webgl-rocket-infantry.js';
+import {createRocketInfantry,attachRocketLauncherToInfantry} from '/webgl-rocket-infantry.js';
 
 // Runtime adapter: game state, movement, combat, production and AI are owned
 // exclusively by the original Simulation. 3D nodes are presentation only.
@@ -194,6 +194,9 @@ export class SandforgeBattlefield {
  asset(kind,owner,type){
   const prefix='/src/assets/reborn/';
   if(type==='building')return prefix+'buildings-3d/'+kind+'-'+owner+'.glb';
+  // Rocket specialists share the fully animated Atlas infantry skeleton.
+  // Keep the original prototype rig and clips, replace only its rifle mesh.
+  if(type==='unit'&&kind==='rocket')return prefix+'prototype/infantry-'+owner+'.glb';
   return prefix+(['rover','tank','artillery','scout','bomber'].includes(kind)?'animation/':'prototype/')+kind+'-'+owner+'.glb';
  }
  // Do not download every 15–25 MB faction model on the first frame.
@@ -202,9 +205,8 @@ export class SandforgeBattlefield {
   // still appear. Falling back to primitive grey cubes would make the actual
   // player's base look markedly worse than the 2D game.
   // Medics always load their authored 3D soldier, even in lite mode.
-  if((this.lite&&type!=='building'&&entity.kind!=='medic')||
-     (type==='building'&&isStrategicBuilding(entity.kind))||
-     (type==='unit'&&entity.kind==='rocket')||entry.requested||
+  if((this.lite&&type!=='building'&&entity.kind!=='medic'&&entity.kind!=='rocket')||
+     (type==='building'&&isStrategicBuilding(entity.kind))||entry.requested||
      this.loadingCount+this.modelQueue.length>=this.maxModels)return;
   entry.requested=true;
   const url=this.asset(entity.kind,entity.owner,type);
@@ -345,7 +347,10 @@ export class SandforgeBattlefield {
    this.getModel(task.url).then(data=>{
     const {entry,type}=task;
     if(!entry.node.parent)return;
-    const model=cloneSkeleton(data.scene),box0=new THREE.Box3().setFromObject(model);
+    const model=cloneSkeleton(data.scene);
+    if(type==='unit'&&entry.kind==='rocket')
+     attachRocketLauncherToInfantry(model,entry.owner);
+    const box0=new THREE.Box3().setFromObject(model);
     const dims=box0.getSize(new THREE.Vector3());
     const desired=type==='unit'?UNITS[entry.kind].width:BUILDINGS[entry.kind].width;
     const extent=Math.max(dims.x,dims.z);
@@ -414,7 +419,7 @@ export class SandforgeBattlefield {
      if(unit.hp<=0||unit.carrier)continue;
      const pending=this.units.get(unit.id);
      if(!pending||pending.requested||pending.detail)continue;
-     if(this.lite&&unit.kind!=='medic')continue;
+     if(this.lite&&unit.kind!=='medic'&&unit.kind!=='rocket')continue;
      this.scheduleDetail(pending,unit,'unit');
      if(this.loadingCount+this.modelQueue.length>=4)break;
     }
