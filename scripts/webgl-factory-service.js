@@ -3,7 +3,7 @@ import {disposeOwnedMeshes} from './webgl-resource-lifecycle.js';
 import {servicePaint,disposeServicePaint} from './webgl-service-materials.js';
 
 // The original factory GLB remains the entire production building. Only a
-// small SINGLE-bay repair garage stands beside its LEFT wall, never in front
+// small SINGLE-bay repair garage stands beside its RIGHT wall, never in front
 // of the central vehicle production door. No unit collision is attached.
 const mat=(color,metalness=.18,roughness=.81)=>
  new THREE.MeshStandardMaterial({color,metalness,roughness});
@@ -24,7 +24,7 @@ export function createFactoryServiceYard(){
   {pattern:'metal',seed:19,repeat:3,metalness:.62,roughness:.43});
  const concrete=servicePaint(['#757067','#9c9481','#b0a48e'],
   {pattern:'concrete',seed:39,repeat:4,roughness:.97});
- const cx=-192,cz=45,front=121;
+ const cx=192,cz=45,front=121;
  // Small side apron and one actual drive-on lift. The original central
  // factory exit x=0 is untouched, including its animated doors.
  block(root,'FactoryVehicleRepairApron',[139,1.3,191],[cx,.7,75],concrete);
