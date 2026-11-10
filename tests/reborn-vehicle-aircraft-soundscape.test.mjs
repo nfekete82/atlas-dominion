@@ -85,7 +85,8 @@ test('audio is presentation-only: listening creates no saved state, and the play
  assert.match(audio,/document\.hidden/);
  assert.match(audio,/this\.effects\)/,'engine voices duck with the existing radio and effect bus');
  assert.match(audio,/this\.engineVoices/);
- assert.match(audio,/level\*profile\.volume/);
+ assert.ok(audio.includes('engineAudibleGain(level,profile.volume)'),
+  'move gain is now normalized by the shared audible-gain helper');
 });
 
 test('motor/rotor levels are audible when physically moving at tactical camera distance',()=>{

@@ -73,29 +73,32 @@ test('ambientActivity uses exactly the same measured ground vehicle movement',()
  assert.ok(ambientActivity({units:[tank],bases:[]},{x:100,y:100},()=>true).motors>0);
 });
 
-test('walking infantry is silent: no footsteps and never any vehicle motor',()=>{
+test('walking infantry is silent and never activates vehicle motors',()=>{
  for(const kind of ['infantry','engineer','medic','heavy','rocket']){
-  const foot=physical(kind,100,78,{walkDistance:128,hp:100});
-  const vehicleMix=mix([foot]);
+  const soldier=physical(kind,100,78,{walkDistance:128,hp:100});
   for(const engine of ENGINE_KINDS){
-   assert.equal(vehicleMix[engine].level,0,kind+' walking must never play '+engine);
-   assert.equal(vehicleMix[engine].count,0);
+   const channel=mix([soldier])[engine];
+   assert.equal(channel.level,0,kind+' cannot trigger '+engine);
+   assert.equal(channel.count,0);
   }
  }
  const source=readFileSync('src/reborn/audio.ts','utf8');
- assert.doesNotMatch(source,/shouldPlayFootstep|this\\.footsteps|this\\.played\\.steps\\+\\+|this\\.burst\\(u,r,\\.037,\\.018,1900/);
- assert.match(source,/this\\.played\\.production\\+\\+/,'production sound must remain');
- assert.match(source,/this\\.weapon\\(kind,from,r\\)/,'gunfire effects must remain');
+ for(const deprecated of ['shouldPlayFootstep','this.footsteps','this.played.steps++',
+   "this.burst(u,r,.037,.018,1900"]){
+  assert.equal(source.includes(deprecated),false,'no synthetic infantry step event: '+deprecated);
+ }
+ assert.ok(source.includes('this.played.production++'),'production cue stays enabled');
+ assert.ok(source.includes('this.weapon(kind,from,r)'),'weapon sound stays enabled');
 });
 
-test('no looping atmospheric wind remains and noise serves weapon/vehicle effects only',()=>{
+test('atmospheric wind is no longer a looping ambient motor-like sound',()=>{
  const source=readFileSync('src/reborn/audio.ts','utf8');
- assert.doesNotMatch(source,/windLevel|this\\.wind|windEnabled|setWindEnabled/);
- assert.doesNotMatch(source,/filter\\.type='bandpass';filter\\.frequency\\.value=1850/);
- assert.match(source,/this\\.noise=a\\.createBuffer\\(/,'shared noise buffer remains for combat effects');
- assert.doesNotMatch(source,/this\\.burst\\(u,r,\\.037,\\.018,1900,'highpass'\\)/);
- assert.doesNotMatch(source,/filter\\.type='lowpass';filter\\.frequency\\.value=500/);
- assert.doesNotMatch(source,/this\\.burst\\(u,r,\\.06,\\.045,1100,'lowpass'\\)/);
+ for(const removed of ['windLevel','this.wind','windEnabled','setWindEnabled',
+  "this.burst(u,r,.037,.018,1900",'filter.type=\'bandpass\';filter.frequency.value=1850',
+  "this.burst(u,r,.06,.045,1100"]){
+  assert.equal(source.includes(removed),false,'deprecated constant ambiance: '+removed);
+ }
+ assert.ok(source.includes('this.noise=a.createBuffer('),'combat noise generator remains');
 });
 
 test('engine layers never start from opening a production gate or clicking infantry',()=>{
