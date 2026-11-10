@@ -25,6 +25,7 @@ import {beginBomberOrbit,advanceBomberOrbit,validBomberOrbit,BOMBER_ORBIT_SPEED,
 import {bomberAttackWaypoints,BOMBER_BOMB_RELEASE_DISTANCE,BOMBER_RUN_WAYPOINT_DISTANCE,BOMBER_BOMB_FALL_SECONDS,steerBomberArc,type BomberAttackRun} from './bomber-attack.js';
 import {AttackAlerts} from './attack-alerts.js';
 import {airfieldPoint,airfieldLerp,airfieldTaxiPoint,validAirfieldService,AIRFIELD_BAYS,AIRFIELD_REPAIR_HP_PER_CREDIT,AIRFIELD_REPAIR_FRACTION_PER_SECOND,AIRFIELD_LANDING_SECONDS,AIRFIELD_TAXI_SECONDS,AIRFIELD_TAKEOFF_SECONDS,type AirfieldService} from './airfield-maintenance.js';
+import {factoryRepairPoint,validFactoryService,FACTORY_REPAIR_BAYS,FACTORY_REPAIR_HP_PER_CREDIT,FACTORY_REPAIR_FRACTION_PER_SECOND,type FactoryService} from './factory-maintenance.js';
 import {eliminationOutcome} from './match-outcome.js';
 import {formationSlotPitch,vehicleSpacingGap,preservesVehicleProgress,vehicleYieldWaypoint} from './vehicle-spacing.js';
 import {UPGRADES,UPGRADE_KINDS,newResearchState,canResearchUpgrade,researchModifiers,
@@ -57,6 +58,9 @@ export interface Unit extends Point {
   airfieldService?:AirfieldService;
   /** Opt-in automatic return below 30% HP. */
   autoAirfieldRepair?:boolean;
+  /** Physical front-apron maintenance; independently serialized. */
+  factoryService?:FactoryService;
+  autoFactoryRepair?:boolean;
   /** A real collision enabled complete clearance checks for future routes. */
   exactPath?:boolean;
   /** Active only when a strict visual-clearance route genuinely cannot be found. */
@@ -375,6 +379,70 @@ export class Simulation {
     }
     return changed;
   }
+  /** Two outdoor repair platforms serve only ground vehicles. */
+  requestFactoryRepair(ids:number[]):number {
+    if(this.status!=='playing')return 0;
+    let accepted=0;
+    for(const u of this.units){
+      if(!ids.includes(u.id)||u.hp<=0||u.carrier||
+        !['rover','tank','artillery'].includes(u.kind)||u.factoryService||
+        u.hp>=this.maxUnitHp(u)-1e-6)continue;
+      const factory=this.bases.find(b=>b.owner===u.owner&&b.kind==='factory'&&b.hp>0&&b.buildRemaining<=0);
+      if(!factory)continue;
+      const occupied=new Set(this.units.filter(other=>other.hp>0&&other.factoryService?.baseId===factory.id)
+        .map(other=>other.factoryService!.bay));
+      const bay=([0,1] as const).find(n=>!occupied.has(n));
+      if(bay===undefined||occupied.size>=FACTORY_REPAIR_BAYS)continue;
+      u.factoryService={baseId:factory.id,bay,phase:'approach',paidHp:0};
+      u.orders=[];u.path=[];u.repath=0;u.hold=false;u.pursuitOrigin=null;u.combatTarget=null;
+      this.cancelProductionDeparture(u.id);
+      if(u.owner===0)this.notices.push(`${unitSpec(u).name}: Werkstattplatz ${bay+1} zugeteilt.`);
+      accepted++;
+    }
+    return accepted;
+  }
+  releaseFactoryRepair(ids:number[]):number {
+    let released=0;
+    for(const u of this.units)if(ids.includes(u.id)&&u.hp>0&&u.factoryService?.phase==='ready'){
+      delete u.factoryService;u.path=[];u.repath=0;released++;
+    }
+    return released;
+  }
+  setAutoFactoryRepair(ids:number[],enabled:boolean):number {
+    let changed=0;
+    for(const u of this.units)if(ids.includes(u.id)&&u.owner===0&&u.hp>0&&
+      ['rover','tank','artillery'].includes(u.kind)){u.autoFactoryRepair=enabled;changed++;}
+    return changed;
+  }
+  private advanceFactoryService(u:Unit,dt:number):void {
+    const state=u.factoryService;if(!state)return;
+    const b=this.bases.find(site=>site.id===state.baseId&&site.kind==='factory'&&
+      site.owner===u.owner&&site.hp>0&&site.buildRemaining<=0);
+    if(!b){delete u.factoryService;u.path=[];u.repath=0;return;}
+    if(state.phase==='approach'||state.phase==='parking'){
+      const goal=factoryRepairPoint(b,state.bay,state.phase==='approach');
+      if(distance(u,goal)<12){
+        if(state.phase==='approach'){state.phase='parking';u.path=[];u.repath=0;}
+        else {state.phase='repair';u.path=[];u.repath=0;u.driveSpeed=0;}
+      }else this.move(u,goal,dt);
+      return;
+    }
+    u.path=[];u.repath=0;u.driveSpeed=0;
+    if(state.phase==='ready')return;
+    const remaining=Math.max(0,this.maxUnitHp(u)-u.hp);
+    if(remaining<1e-5){u.hp=this.maxUnitHp(u);state.phase='ready';return;}
+    const desired=Math.min(remaining,this.maxUnitHp(u)*FACTORY_REPAIR_FRACTION_PER_SECOND*dt);
+    while(state.paidHp+1e-8<desired&&this.credits[u.owner]>=1){
+      this.credits[u.owner]--;state.paidHp+=FACTORY_REPAIR_HP_PER_CREDIT;
+    }
+    const actual=Math.min(desired,state.paidHp);
+    u.hp=Math.min(this.maxUnitHp(u),u.hp+actual);
+    state.paidHp=Math.max(0,state.paidHp-actual);
+    if(this.maxUnitHp(u)-u.hp<1e-5){
+      u.hp=this.maxUnitHp(u);state.phase='ready';
+      if(u.owner===0)this.notices.push(`${unitSpec(u).name}: Werkstattreparatur abgeschlossen.`);
+    }
+  }
   /** Called once per fixed tick; docking aircraft remain targetable and consume credits. */
   private advanceAirfieldService(u:Unit,dt:number):void {
     const s=u.airfieldService;if(!s)return;
@@ -606,10 +674,13 @@ export class Simulation {
     const candidates=this.units.filter(u=>ids.includes(u.id)&&u.hp>0&&!u.carrier);
     // An order to a parked aircraft becomes a launch order, never a teleport.
     let launched=0;
+    if(!append)for(const u of candidates)if(u.factoryService?.phase==='ready'){
+      delete u.factoryService;u.path=[];u.repath=0;
+    }
     if(!append)for(const u of candidates)if(u.airfieldService?.phase==='ready'){
       u.orders=[{...order}];u.airfieldService.phase='takeoff';u.airfieldService.elapsed=0;launched++;
     }
-    const members=candidates.filter(u=>!u.airfieldService);
+    const members=candidates.filter(u=>!u.airfieldService&&!u.factoryService);
     if(!append)for(const u of members)if(u.kind==='bomber')delete u.bomberRun;
     // A direct player or AI override interrupts any staged garage departure.
     // Initial automatic rally is issued before its hold is registered.
@@ -1323,6 +1394,9 @@ export class Simulation {
     this.shots=this.shots.filter(s=>(s.life-=dt)>0);
     this.workEffects=this.workEffects.filter(e=>this.time-e.at<.45);
     this.spatial.rebuild(this.units);
+    for(const u of this.units)if(u.hp>0&&!u.airfieldService&&!u.factoryService&&u.autoFactoryRepair&&
+      ['rover','tank','artillery'].includes(u.kind)&&u.hp/this.maxUnitHp(u)<=.30)
+      this.requestFactoryRepair([u.id]);
     for(const u of this.units)if(u.hp>0&&!u.airfieldService&&u.autoAirfieldRepair&&
       ['bomber','scout'].includes(u.kind)&&u.hp/this.maxUnitHp(u)<=.30)
       this.requestAirfieldRepair([u.id]);
@@ -1338,6 +1412,7 @@ export class Simulation {
         this.productionDepartureHolds.delete(u.id);
       }
       if(u.airfieldService){this.advanceAirfieldService(u,dt);continue;}
+      if(u.factoryService){this.advanceFactoryService(u,dt);continue;}
       const transportBusy=this.transports.step(u,dt);
       if(this.transports.boarding(u,dt))continue;
       if(this.escort(u,dt)||this.support(u,dt)){delete u.burst;continue;}
@@ -1505,7 +1580,7 @@ export class Simulation {
     const separationVehicles=[...separationBuildings,...separationVisual,...separationDecor,...separationTowers];
     for(const u of this.units)if(u.hp>0&&!u.carrier)
       for(const v of this.spatial.query(u,unitSpec(u).radius+105)){
-        if(v.id<=u.id||v.hp<=0||u.airfieldService||v.airfieldService||unitSpec(u).flying!==unitSpec(v).flying)continue;
+        if(v.id<=u.id||v.hp<=0||u.airfieldService||v.airfieldService||u.factoryService||v.factoryService||unitSpec(u).flying!==unitSpec(v).flying)continue;
         const spacing=vehicleSpacingGap(u,v);
         const d=distance(u,v);
         if(d>=spacing.comfortable)continue;
@@ -1684,7 +1759,10 @@ export class Simulation {
       !Array.isArray(s.territories)||s.territories.length!==mapLayout(s.mapVersion??0).columns*mapLayout(s.mapVersion??0).rows||!Array.isArray(s.explored)||s.explored.length!==2||
       s.explored.some(a=>!Array.isArray(a)||![120**2,RULES.grid**2].includes(a.length)||a.some(v=>v!==0&&v!==1))||
       !Array.isArray(s.credits)||s.credits.length!==2||s.credits.some(v=>!finite(v)||v<0)||
-      s.units.some(u=>(u.autoAirfieldRepair!==undefined&&typeof u.autoAirfieldRepair!=='boolean')||
+      s.units.some(u=>(u.autoFactoryRepair!==undefined&&typeof u.autoFactoryRepair!=='boolean')||
+        (u.factoryService!==undefined&&(!validFactoryService(u.factoryService)||
+          !['rover','tank','artillery'].includes(u.kind)))||
+        (u.autoAirfieldRepair!==undefined&&typeof u.autoAirfieldRepair!=='boolean')||
         (u.airfieldService!==undefined&&!validAirfieldService(u.airfieldService,mapWorldSize(s.mapVersion??0)))||
         (u.mgCooldown!==undefined&&(!finite(u.mgCooldown)||u.mgCooldown<0||u.mgCooldown>1))||!burst(u.burst,u.kind==='infantry'||u.kind==='heavy'||u.kind==='scout'||u.kind==='rover'||u.kind===undefined?3:1)||!point(u)||![0,1].includes(u.owner)||(u.kind!==undefined&&!Object.hasOwn(UNITS,u.kind))||(u.driveSpeed!==undefined&&(!finite(u.driveSpeed)||u.driveSpeed<0||u.driveSpeed>unitSpec(u).speed*researchFor(u).speed))||!validBomberOrbit(u.idleOrbit,u.kind??'infantry',mapWorldSize(s.mapVersion??0))||(u.bomberRun!==undefined&&((u.kind??'infantry')!=='bomber'||!u.bomberRun||!Number.isInteger(u.bomberRun.target)||!Number.isInteger(u.bomberRun.leg)||u.bomberRun.leg<0||u.bomberRun.leg>3||!Array.isArray(u.bomberRun.waypoints)||u.bomberRun.waypoints.length!==3||u.bomberRun.waypoints.some(p=>!point(p))))||(u.hullAngle!==undefined&&!finite(u.hullAngle))||(u.pursuitOrigin!==undefined&&u.pursuitOrigin!==null&&!point(u.pursuitOrigin))||!finite(u.hp)||u.hp<=0||u.hp>(UNITS[u.kind??'infantry']?.hp??0)*researchFor(u).hp+1e-5||!Array.isArray(u.orders)||u.orders.length>32||u.orders.some(o=>!point(o)||(o.rear!==undefined&&(!finite(o.rear)||o.rear<0||o.rear>400))||(o.tactical!==undefined&&((o.tactical.goal!==undefined&&!point(o.tactical.goal))||!Number.isInteger(o.tactical.group)||!['safe','assault','defend'].includes(o.tactical.mode)))||(o.march!==undefined&&(!Array.isArray(o.march)||o.march.length>96||o.march.some(id=>!Number.isInteger(id))))||(o.approach!==undefined&&!point(o.approach))||(o.healOrigin!==undefined&&!point(o.healOrigin))||(o.formation!==undefined&&(!Array.isArray(o.formation.front)||o.formation.front.length>96||o.formation.front.some(id=>!Number.isInteger(id))||!point(o.formation.origin)||!point(o.formation.goal)||!finite(o.formation.heading?.x)||!finite(o.formation.heading?.y)||Math.hypot(o.formation.heading.x,o.formation.heading.y)>1.001||!finite(o.formation.lane)||!finite(o.formation.rear)))||!['move','attackMove','attack','heal','repair','build','board'].includes(o.kind)||(['heal','repair','build','board'].includes(o.kind)&&!Number.isInteger(o.target))))||
       s.bases.some(b=>(b.facing!==undefined&&![0,1,2,3].includes(b.facing))||!burst(b.burst,b.kind==='turret'?4:1)||!point(b)||![0,1].includes(b.owner)||(b.kind!==undefined&&!Object.hasOwn(BUILDINGS,b.kind))||(b.turretAngle!==undefined&&!finite(b.turretAngle))||
