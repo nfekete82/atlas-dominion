@@ -57,3 +57,16 @@ test('crash path never constructs gray aircraft proxies or consumes gameplay ass
  assert.match(battlefield,/this\.effects\?\.captureAircraftCrash\?\.\(e,removal\)/);
  assert.match(readFileSync('scripts/build.mjs','utf8'),/webgl-aircraft-effects\.js/);
 });
+
+test('untextured lite-mode aircraft fallback is never turned into a flying gray proxy',()=>{
+ for(const kind of ['scout','bomber']){
+  const node=new THREE.Group();
+  const placeholder=new THREE.Mesh(new THREE.BoxGeometry(2,2,5),
+   new THREE.MeshStandardMaterial({color:'#777777'}));
+  node.add(placeholder);
+  const entry={kind,node,detail:null,placeholder};
+  assert.equal(adoptAircraftForCrash(entry),null);
+  assert.equal(placeholder.parent,node,'fallback is kept for normal source actor cleanup');
+  placeholder.geometry.dispose();placeholder.material.dispose();
+ }
+});

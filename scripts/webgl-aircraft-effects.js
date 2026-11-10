@@ -23,9 +23,12 @@ export function guidedRocketAimY(missile,unit,terrainY,modelHeight=0){
  * capsule or dispose a glTF cache asset.
  */
 export function adoptAircraftForCrash(entry){
- const model=entry?.detail??entry?.placeholder;
+ // A lite-mode fallback has no authored camouflage/albedo maps.
+ // Never carry that primitive into a conspicuous airborne crash animation.
+ // CombatEffects will instead spawn an explosion and small burnt fragments.
+ const model=entry?.detail;
  if(!entry?.node||!model)return null;
- const wasFallback=model===entry.placeholder;
+ const wasFallback=false;
  if(entry.animation?.mixer){
   entry.animation.mixer.stopAllAction();
   if(entry.detail)entry.animation.mixer.uncacheRoot(entry.detail);
