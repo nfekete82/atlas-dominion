@@ -479,7 +479,9 @@ export class SandforgeBattlefield {
   const spec=BUILDINGS[kind],group=new THREE.Group();
   group.name='ghost-building-'+kind;group.userData={buildGhost:true,nonPlayable:true};
   const placeholder=this.createFallback(kind,0,'building');
-  const tint=(root,ownSource=false)=>{
+  // Keep the actual geometry identical to the finished building; the ghost
+  // is only a faint holographic overlay, including fences and service pads.
+  const tint=(root,ownSource=false,opacity=.22)=>{
    // Cache the same clone for reused paint: a camouflaged hangar otherwise
    // produces hundreds of redundant PBR shader/material instances.
    const clones=new Map();
@@ -488,7 +490,7 @@ export class SandforgeBattlefield {
     const make=mat=>{
      if(clones.has(mat))return clones.get(mat);
      const m=mat.clone();m.color?.lerp(new THREE.Color('#8ad6b3'),.32);
-     m.transparent=true;m.opacity=.72;m.depthWrite=false;
+     m.transparent=true;m.opacity=Math.min(mat.opacity??1,opacity);m.depthWrite=false;
      m.depthTest=false;m.side=THREE.DoubleSide;
      m.userData={...m.userData,sandforgePreviewMaterial:true};
      clones.set(mat,m);return m;
@@ -508,16 +510,16 @@ export class SandforgeBattlefield {
   if(yard){
    const decor=yard.getObjectByName('BasePerimeter_'+kind);
    if(decor)decor.visible=this.siteDecorEnabled;
-   tint(yard);group.add(yard);group.userData.previewYard=yard;
+   tint(yard,false,.14);group.add(yard);group.userData.previewYard=yard;
   }
   const service=kind==='airfield'?createAirfieldServiceYard():
    kind==='factory'?createFactoryServiceYard():null;
   if(service){
-   tint(service,true);group.add(service);group.userData.previewService=service;
+   tint(service,true,.18);group.add(service);group.userData.previewService=service;
   }
   const circle=new THREE.Mesh(
    new THREE.RingGeometry(spec.radius-2.5,spec.radius+1.5,48),
-   new THREE.MeshBasicMaterial({color:'#80efae',transparent:true,opacity:.92,depthTest:false,depthWrite:false,side:THREE.DoubleSide}));
+   new THREE.MeshBasicMaterial({color:'#80efae',transparent:true,opacity:.48,depthTest:false,depthWrite:false,side:THREE.DoubleSide}));
   circle.rotation.x=-Math.PI/2;circle.position.y=2;circle.renderOrder=1009;
   group.userData.previewCircle=circle;group.add(circle);
   this.buildPreviewScene.add(group);
