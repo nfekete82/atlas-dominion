@@ -7,6 +7,7 @@ import {factoryRepairPoint,FACTORY_REPAIR_HP_PER_CREDIT} from '../dist/src/rebor
 import {unitRenderAltitude} from '../scripts/webgl-scale.js';
 import {createAirfieldServiceYard,updateAirfieldServiceYard,disposeAirfieldServiceYard} from '../scripts/webgl-airfield-service.js';
 import {createFactoryServiceYard,updateFactoryServiceYard,disposeFactoryServiceYard} from '../scripts/webgl-factory-service.js';
+import {serviceVisualGround,approachGroundHeight,AIRFIELD_HANGAR_FLOOR_HEIGHT,FACTORY_LIFT_HEIGHT} from '../scripts/webgl-service-grounding.js';
 
 const base=(game,kind,id,x,y,facing=0)=>{
  const b={id,kind,owner:0,x,y,facing,territory:0,hp:kind==='airfield'?1200:1100,
@@ -233,4 +234,42 @@ test('finished vehicle in a workshop stays at the exact saved 3D platform positi
  assert.equal(restoredVehicle.x,vehicle.x);
  assert.equal(restoredVehicle.y,vehicle.y);
  assert.deepEqual(restoredVehicle.factoryService,vehicle.factoryService);
+});
+
+test('uneven terrain: maintenance altitude meets flat workshop floors without visual popping',()=>{
+ const ground=24,building=12;
+ const plane={flightHeight:1,airfieldService:{phase:'approach'}};
+ assert.equal(serviceVisualGround(plane,ground,building),ground);
+ plane.airfieldService.phase='landing';plane.flightHeight=.5;
+ assert.equal(serviceVisualGround(plane,ground,building),
+  (ground+building+AIRFIELD_HANGAR_FLOOR_HEIGHT)/2);
+ plane.airfieldService.phase='repair';plane.flightHeight=0;
+ assert.equal(serviceVisualGround(plane,ground,building),
+  building+AIRFIELD_HANGAR_FLOOR_HEIGHT);
+ plane.airfieldService.phase='takeoff';plane.flightHeight=1;
+ assert.equal(serviceVisualGround(plane,ground,building),ground);
+
+ const tank={factoryService:{phase:'approach'}};
+ assert.equal(serviceVisualGround(tank,ground,building),ground);
+ tank.factoryService.phase='parking';
+ assert.equal(serviceVisualGround(tank,ground,building,85),ground);
+ assert.equal(serviceVisualGround(tank,ground,building,42.5),
+  (ground+building+FACTORY_LIFT_HEIGHT)/2);
+ tank.factoryService.phase='repair';
+ assert.equal(serviceVisualGround(tank,ground,building),
+  building+FACTORY_LIFT_HEIGHT);
+ assert.equal(approachGroundHeight(24,12,.1),20.4);
+ assert.equal(approachGroundHeight(24,12,0),24);
+});
+
+test('workshop provides actual raised hydraulic service decks and ramps',()=>{
+ const factory=createFactoryServiceYard();
+ for(const bay of [0,1]){
+  assert.ok(factory.getObjectByName('VehicleLiftPlatform_'+bay));
+  assert.ok(factory.getObjectByName('VehicleDriveOnRamp_'+bay));
+ }
+ const mesh=factory.getObjectByName('VehicleLiftPlatform_0');
+ assert.equal(mesh.position.y+mesh.geometry.parameters.height/2,FACTORY_LIFT_HEIGHT);
+ const entry={factoryServiceYard:factory};
+ disposeFactoryServiceYard(entry);
 });
