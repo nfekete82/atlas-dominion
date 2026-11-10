@@ -35,17 +35,19 @@ export function createAirfieldServiceYard(){
  const glow=new THREE.MeshBasicMaterial({color:paint.repair,transparent:true,opacity:.9});
  // Broad apron, runway, centerline, safe taxi crossing and threshold stripes.
  box(group,'AirfieldExpandedConcreteApron',462,1.5,372,0,.75,0,wornPaving);
- box(group,'AirfieldExtendedRunway',133,1.6,380,130,1.8,0,runwayWear);
+ // The runway extends well beyond the actual 2-bay hangar silhouette.
+ box(group,'AirfieldRunwaySandShoulder',155,.6,594,130,1.12,72,wornPaving);
+ box(group,'AirfieldExtendedRunway',133,1.6,580,130,1.8,70,runwayWear);
  box(group,'AirfieldCrossTaxiLane',345,.8,38,-38,2.7,17,runway);
- for(let z=-154;z<=156;z+=48)
+ for(let z=-204;z<=342;z+=48)
   box(group,'AirfieldRunwayCenterDash',3,.12,24,130,2.75,z,markings);
  for(const x of [73,187]){
-  box(group,'AirfieldRunwayEdgeLine',2,.12,364,x,2.75,0,markings);
-  for(let z=-160;z<=160;z+=42){
+  box(group,'AirfieldRunwayEdgeLine',2,.12,568,x,2.75,70,markings);
+  for(let z=-204;z<=344;z+=46){
    box(group,'AirfieldRunwayLamp',5,2,8,x,4.0,z,yellow);
   }
  }
- for(const z of [-164,-155,-146])for(const x of [95,112,148,165])
+ for(const z of [-206,-195,-184])for(const x of [95,112,148,165])
   box(group,'AirfieldRunwayThreshold',8,.14,4,x,2.8,z,markings);
  for(const bay of [0,1]){
   const cx=bay===0?-151:-26,half=59,front=18,rear=-171;
@@ -100,6 +102,26 @@ export function createAirfieldServiceYard(){
    box(group,'HangarDoorGuideRail_'+bay,5,69,8,cx+side*59,39,front+8,ribbedSteel);
    box(group,'HangarHazardChevron_'+bay,5,4,10,cx+side*59,17,front+13,yellow);
   }
+  // Armored hangar fascia, flush service lights and tapered upper cladding.
+  // Preserve the unobstructed x±59 doorway for real bomber taxiing.
+  box(group,'HangarRecessedFascia_'+bay,112,8,11,cx,77,front+10,roofCamo);
+  for(const side of [-1,1]){
+   box(group,'HangarCamoButtress_'+bay,11,43,21,cx+side*66,29,front-29,wallCamo);
+   box(group,'HangarRoofSpine_'+bay,7,3,143,cx+side*37,100,-75,ribbedSteel);
+   for(const z of [-138,-91,-44]){
+    const fairing=box(group,'HangarAngledRoofPlate_'+bay,27,2.5,29,cx+side*29,102,z,
+     (z===-91?roofCamo:roofSand));
+    fairing.rotation.z=side*.15;
+   }
+  }
+  for(const x of [-39,-13,13,39]){
+   box(group,'HangarRoofVentSlit_'+bay,9,1.8,27,cx+x,103,-107,dark);
+   box(group,'HangarServiceFloodlight_'+bay,9,3.5,5,cx+x,76,front+17,yellow);
+  }
+  for(const z of [-132,-88,-44]){
+   box(group,'HangarSideArmorRib_'+bay,4,24,3,cx-64,46,z,steel);
+   box(group,'HangarSideArmorRib_'+bay,4,24,3,cx+64,46,z,steel);
+  }
   const sparkGroup=new THREE.Group();
   sparkGroup.name='HangarRepairSparks_'+bay;
   sparkGroup.position.set(cx,19,-85);
@@ -109,6 +131,12 @@ export function createAirfieldServiceYard(){
   sparkGroup.visible=false;
   group.userData['bay'+bay]={left,right,cx,open:0,sparks:sparkGroup};
  }
+ // Runway threshold / displaced touchdown paint; generated from real Three.js
+ // meshes and shared identically by placement preview and the live building.
+ for(const z of [288,304,320,336])for(const x of [101,159])
+  box(group,'AirfieldRunwayLandingBars',16,.17,6,x,2.81,z,markings);
+ for(const z of [262,272,282])
+  box(group,'AirfieldApproachChevron',43,.13,3,130,2.82,z,yellow);
  // Scuffed touchdown marks and pavement expansion joints.
  for(const x of [111,151])for(const z of [-126,-53,81,146])
   box(group,'AirfieldTouchdownRubber',4,.12,18,x,2.76,z,dark);
