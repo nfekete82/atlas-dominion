@@ -95,7 +95,11 @@ export function tintFactionMaterials(root,owner,kind,type){
    mat.color.copy(base);
    if(eligible){
     mat.color.lerp(team[owner],weight);
+    // Authored three-tone camouflage albedo (silo bunker/hatch) already
+    // carries real sand/olive paint. Do not overwrite 94% of that texture
+    // with the generic world-space patch shader.
     if(type==='building'&&mat.metalness<.9&&
+       !mat.userData?.sandforgeColorMapCamo&&
        !(mat.emissiveIntensity>.29&&mat.emissive?.getHex?.()!==0))
       applyDesertBuildingCamo(mat);
     tinted++;
