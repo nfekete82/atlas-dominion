@@ -4,6 +4,8 @@ import {readFileSync} from 'node:fs';
 import * as THREE from 'three';
 import {UNITS} from '../dist/src/reborn/catalog.js';
 import {selectionRingRadius,unitRenderAltitude} from '../scripts/webgl-scale.js';
+import {createVehicleSelectionRing,createVehicleSelectionRingGeometry,VEHICLE_SELECTION_RING} from '../scripts/webgl-selection-ring.js';
+import {visualUnitScale} from '../scripts/webgl-scale.js';
 
 test('selection footprint visibly encloses infantry, heavy armor and aircraft',()=>{
  for(const kind of ['infantry','engineer','heavy','rocket','rover','tank','artillery','scout','bomber']){
@@ -26,6 +28,38 @@ test('aircraft selection projects to its ground (or service floor) height',()=>{
  assert.match(source,/ring\.position\.y\+=3-unitRenderAltitude\(unit\.kind,unit\.flightHeight\?\?1\)/);
  assert.match(source,/ring\.geometry\.dispose\(\)/,'released selection rings free GPU memory');
 });
+
+test('ground vehicle marker has thick translucent strokes with actual empty gaps',()=>{
+ const radius=selectionRingRadius(UNITS.artillery);
+ const ring=createVehicleSelectionRing(radius);
+ assert.equal(ring.name,'VehicleDashedSelectionRing');
+ assert.ok(VEHICLE_SELECTION_RING.width>5.2,'vehicle ring is thicker than the original torus');
+ assert.ok(VEHICLE_SELECTION_RING.opacity<.8,'vehicle ring is visibly more translucent');
+ assert.equal(ring.material.opacity,VEHICLE_SELECTION_RING.opacity);
+ assert.equal(ring.material.depthWrite,false);
+ assert.ok(VEHICLE_SELECTION_RING.fill<.85,'dash-to-gap ratio leaves distinct negative space');
+ const array=ring.geometry.attributes.position.array;
+ assert.equal(array.length,VEHICLE_SELECTION_RING.dashes*VEHICLE_SELECTION_RING.stepsPerDash*18);
+ const firstAngle=Math.atan2(array[1],array[0]);
+ const endOfFirstDash=(VEHICLE_SELECTION_RING.stepsPerDash-1)*18;
+ const endAngle=Math.atan2(array[endOfFirstDash+16],array[endOfFirstDash+15]);
+ assert.ok(endAngle>firstAngle);
+ assert.ok(endAngle<2*Math.PI/VEHICLE_SELECTION_RING.dashes,
+  'the last vertex of a dash stops before the next one starts');
+ assert.ok(visualUnitScale('artillery')>visualUnitScale('rover'),
+  'rocket launcher is a little larger than the Humvee');
+ assert.equal(visualUnitScale('artillery'),1.42);
+ ring.geometry.dispose();ring.material.dispose();
+ const custom=createVehicleSelectionRingGeometry(55);
+ assert.equal(custom.getAttribute('position').count,VEHICLE_SELECTION_RING.dashes*VEHICLE_SELECTION_RING.stepsPerDash*6);
+ custom.dispose();
+ const source=readFileSync('scripts/webgl-battlefield.js','utf8');
+ assert.match(source,/createVehicleSelectionRing\(radius\)/);
+ assert.match(source,/unitSpec\(unit\)\.group==='Fahrzeuge'/);
+ const build=readFileSync('scripts/build.mjs','utf8');
+ assert.match(build,/webgl-selection-ring\.js/);
+});
+
 test('HUD logo is centered within the resource header across breakpoints',()=>{
  const css=readFileSync('src/reborn/webgl-classic-hud.css','utf8');
  const start=css.indexOf('#sf-classic-root .top .wordmark{');
