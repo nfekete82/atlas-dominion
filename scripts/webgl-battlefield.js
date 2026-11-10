@@ -976,6 +976,33 @@ export class SandforgeBattlefield {
     this.message(count?count+' Einheit(en) wieder einsatzbereit':'Reparatur noch nicht abgeschlossen.');
     this.drawInterface();return;
    }
+   if(action==='hangar-repair-all'||action==='factory-repair-all'){
+    const aircraft=action==='hangar-repair-all';
+    const facility=this.game.bases.find(b=>b.id===this.selectedBase&&b.owner===0&&b.hp>0&&
+      b.buildRemaining<=0&&b.kind===(aircraft?'airfield':'factory'));
+    if(!facility)return;
+    const units=this.game.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&
+      (aircraft?['bomber','scout']:['rover','tank','artillery']).includes(u.kind)&&
+      u.hp<this.game.maxUnitHp(u));
+    const count=aircraft?this.game.requestAirfieldRepair(units.map(u=>u.id)):
+      this.game.requestFactoryRepair(units.map(u=>u.id));
+    this.message(count?count+' beschädigte Einheiten zur Wartung zurückgerufen':
+      'Keine freien Wartungsplätze oder keine passenden beschädigten Einheiten');
+    this.drawInterface();return;
+   }
+   if(action==='hangar-launch-ready'||action==='factory-release-ready'){
+    const aircraft=action==='hangar-launch-ready';
+    const facility=this.game.bases.find(b=>b.id===this.selectedBase&&b.owner===0&&b.hp>0&&
+      b.buildRemaining<=0&&b.kind===(aircraft?'airfield':'factory'));
+    if(!facility)return;
+    const units=this.game.units.filter(u=>u.owner===0&&u.hp>0&&
+      (aircraft?u.airfieldService?.baseId===facility.id&&u.airfieldService.phase==='ready':
+       u.factoryService?.baseId===facility.id&&u.factoryService.phase==='ready'));
+    const count=aircraft?this.game.launchRepairedAircraft(units.map(u=>u.id)):
+      this.game.releaseFactoryRepair(units.map(u=>u.id));
+    this.message(count?count+' reparierte Einheiten freigegeben':'Noch kein Flugzeug oder Fahrzeug einsatzbereit');
+    this.drawInterface();return;
+   }
    if(action==='hangar-auto'||action==='factory-auto'){
     const aircraft=action==='hangar-auto';
     const selected=this.game.units.filter(u=>this.selected.has(u.id)&&u.owner===0&&u.hp>0&&
@@ -1407,6 +1434,12 @@ export class SandforgeBattlefield {
   const servicingFacility=base&&['airfield','factory'].includes(base.kind);
   const occupancy=servicingFacility?g.units.filter(u=>u.hp>0&&
     (base.kind==='airfield'?u.airfieldService?.baseId===base.id:u.factoryService?.baseId===base.id)).length:0;
+  const readyAtBase=servicingFacility?g.units.filter(u=>u.hp>0&&
+    (base.kind==='airfield'?u.airfieldService?.baseId===base.id&&u.airfieldService.phase==='ready':
+      u.factoryService?.baseId===base.id&&u.factoryService.phase==='ready')).length:0;
+  const damagedAtBase=servicingFacility?g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&
+    (base.kind==='airfield'?['bomber','scout']:['rover','tank','artillery']).includes(u.kind)&&
+    u.hp<g.maxUnitHp(u)&&!(base.kind==='airfield'?u.airfieldService:u.factoryService)).length:0;
   const serviceMarkup=serviceGroup?
    '<div class="sf-strategic-meter">⚙ '+(serviceState?
      'PLATZ '+(serviceState.bay+1)+' · '+statusNames[serviceState.phase]: 'WARTUNG / '+serviceGroup.toUpperCase())+
@@ -1416,7 +1449,13 @@ export class SandforgeBattlefield {
      '" '+(!ready.length?'disabled':'')+'>↑ '+(serviceGroup==='hangar'?'STARTEN':'FREIGEBEN')+'</button>'+
    '<button type="button" data-action="'+serviceGroup+'-auto" aria-pressed="'+Boolean(auto)+'">'+
    'AUTO &lt;30 % '+(auto?'AN':'AUS')+'</button></div>':
-   servicingFacility?'<div class="sf-strategic-meter">⚙ WARTUNGSPLÄTZE '+occupancy+' / 2</div>':'';
+   servicingFacility?'<div class="sf-strategic-meter">⚙ WARTUNGSPLÄTZE '+occupancy+' / 2</div>'+
+    '<div class="sf-service-controls">'+
+    '<button type="button" data-action="'+(base.kind==='airfield'?'hangar-repair-all':'factory-repair-all')+
+     '" '+(!damagedAtBase||occupancy>=2?'disabled':'')+'>⬇ ALLE ZURÜCK</button>'+
+    '<button type="button" data-action="'+(base.kind==='airfield'?'hangar-launch-ready':'factory-release-ready')+
+     '" '+(!readyAtBase?'disabled':'')+'>↑ '+(base.kind==='airfield'?'STARTEN':'FREIGEBEN')+
+     ' ('+readyAtBase+')</button></div>':'';
   const healthPct=item?Math.max(0,Math.min(100,100*hp/Math.max(1,maxHp))):0;
   const selectedMarkup='<small>'+meta+'</small><strong>'+plain(heading)+'</strong>'+
    (item?'<div class="sf-health-row" aria-label="Lebenspunkte '+hp+' von '+maxHp+'">'+
