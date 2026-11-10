@@ -678,10 +678,14 @@ export class Simulation {
     let launched=0;
     if(!append)for(const u of candidates){
       if(u.factoryService){
+        // The player explicitly took control; otherwise the 30 % autopilot
+        // would immediately grab the unit again on the following fixed tick.
+        u.autoFactoryRepair=false;
         delete u.factoryService;u.path=[];u.repath=0;
       }
       const service=u.airfieldService;
       if(!service)continue;
+      u.autoAirfieldRepair=false; // explicit pilot order overrides automatic return
       if(service.phase==='approach'){
         delete u.airfieldService;u.flightHeight=1;u.path=[];u.repath=0;
       }else{
