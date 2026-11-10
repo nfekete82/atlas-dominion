@@ -183,10 +183,15 @@ export function createAirfieldServiceYard(){
  * The same function is called for the ghost at its prospective location and
  * for the built site, including every cardinal facing.
  */
-const AIRFIELD_GROUND_SURFACE=/^(AirfieldExpandedConcreteApron|AirfieldRunwaySandShoulder|AirfieldExtendedRunway|AirfieldAircraftParking|AirfieldRunwayCenterDash|AirfieldRunwayEdgeLine|AirfieldRunwayThreshold|AirfieldRunwayLandingBars|AirfieldTouchdownRubber|AirfieldTaxiCrossGuide|AirfieldTaxiGuideDash|HangarCenterGuide|HangarApronStop|HangarSafetyChevron|AirfieldApronExpansionJoint)$/;
+const AIRFIELD_GROUND_SURFACE=/^(AirfieldExpandedConcreteApron|AirfieldRunwaySandShoulder|AirfieldExtendedRunway|AirfieldAircraftParking(?:Pad|Centerline|Edge|Stop|Number)|AirfieldRunwayCenterDash|AirfieldRunwayEdgeLine|AirfieldRunwayThreshold|AirfieldRunwayLandingBars|AirfieldTouchdownRubber|AirfieldTaxiCrossGuide|AirfieldTaxiGuideDash|HangarCenterGuide|HangarApronStop|HangarSafetyChevron|AirfieldApronExpansionJoint)/;
 const AIRFIELD_GROUND_PROPS=/^(AirfieldRunwayLamp|AirfieldAircraftParkingChock)$/;
 export function conformAirfieldSurface(group,base,heightAt,{force=false}={}){
  if(!group||typeof heightAt!=='function'||!Number.isFinite(base?.x)||!Number.isFinite(base?.y))return 0;
+ // Moving a construction ghost by a few pixels must not resample tens of
+ // thousands of vertices every pointer frame. Finished sites are baked once.
+ const key=[Math.round(base.x/12),Math.round(base.y/12),base.facing??0].join(':');
+ if(!force&&group.userData.airfieldTerrainKey===key)return 0;
+ group.userData.airfieldTerrainKey=key;
  const yaw=[0,Math.PI,Math.PI/2,Math.PI*1.5][base.facing??0]??0;
  const cs=Math.cos(yaw),sn=Math.sin(yaw);
  const origin=heightAt(base.x,base.y);
