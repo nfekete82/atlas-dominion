@@ -26,30 +26,30 @@ export function createFactoryServiceYard(){
  // Extend the factory's footprint with side workshop wings, avoiding the
  // existing central production door and its garage rollout animation.
  for(const side of [-1,1]){
-  const x=side*131;
-  block(root,'FactoryServiceWing', [55,54,126],[x,28,-28],side>0?desertCamo:oliveCamo);
-  block(root,'FactoryWingCamoRoof',[61,6,134],[x,57,-28],side>0?oliveCamo:desertCamo);
+  const x=side*119;
+  block(root,'FactoryServiceWing', [46,42,112],[x,22,-30],side>0?desertCamo:oliveCamo);
+  block(root,'FactoryWingCamoRoof',[52,5,121],[x,46,-30],side>0?oliveCamo:desertCamo);
   for(const z of [-71,-37,-3]){
-   block(root,'FactoryRib',[5,56,6],[x+side*26,29,z],steel);
+   block(root,'FactoryRib',[5,43,6],[x+side*23,23,z],steel);
   }
   for(let n=0;n<3;n++)
-   block(root,'FactoryWorkshopWindow',[12,15,3],[x-side*29,37,-65+n*34],glass);
-  block(root,'FactoryVentilator',[24,9,19],[x,66,-26],dark);
-  block(root,'FactoryWeatheredFront_'+side,[52,48,2],[x,28,36.5],side>0?desertCamo:oliveCamo);
+   block(root,'FactoryWorkshopWindow',[11,12,3],[x-side*24,29,-65+n*34],glass);
+  block(root,'FactoryVentilator',[21,8,19],[x,56,-26],dark);
+  block(root,'FactoryWeatheredFront_'+side,[43,36,2],[x,22,27.5],side>0?desertCamo:oliveCamo);
   for(const seam of [-19,0,19]){
-   block(root,'FactoryFacadePanelSeam_'+side,[2,49,2.8],[x+seam,29,39],workSteel);
+   block(root,'FactoryFacadePanelSeam_'+side,[2,37,2.8],[x+seam,22,30],workSteel);
    for(const h of [12,30,46])
-    block(root,'FactoryFacadeRivet_'+side,[3,2,2],[x+seam,h,40],steel);
+    block(root,'FactoryFacadeRivet_'+side,[3,2,2],[x+seam,h*.72,31],steel);
   }
-  block(root,'FactorySideVentHousing_'+side,[29,18,4],[x,39,41],dark);
+  block(root,'FactorySideVentHousing_'+side,[29,15,4],[x,28,32],dark);
   for(let n=0;n<5;n++)
-   block(root,'FactorySideVentLouvre_'+side,[26,2,5],[x,33+n*3,43],workSteel);
-  block(root,'FactoryRoofAirDuct_'+side,[24,12,43],[x,73,-22],workSteel);
-  block(root,'FactoryRoofAirDuctCap_'+side,[30,3,49],[x,81,-22],dark);
+   block(root,'FactorySideVentLouvre_'+side,[26,2,5],[x,23+n*3,34],workSteel);
+  block(root,'FactoryRoofAirDuct_'+side,[21,9,39],[x,57,-22],workSteel);
+  block(root,'FactoryRoofAirDuctCap_'+side,[27,3,45],[x,63,-22],dark);
   for(const z of [-65,-25,16]){
-   block(root,'FactoryRoofPBRRib_'+side,[62,3,3],[x,61,z],steel);
-   block(root,'FactoryCamoArmorPatch_'+side,[21,1.6,24],
-    [x+(z===-25?12:-12),62,z+8],side>0?oliveCamo:desertCamo);
+   block(root,'FactoryRoofPBRRib_'+side,[52,3,3],[x,50,z],steel);
+   block(root,'FactoryCamoArmorPatch_'+side,[25,1.6,23],
+    [x+(z===-25?9:-9),51,z+8],side>0?oliveCamo:desertCamo);
   }
  }
  // The repair area sits in front (+Z) of the existing front gate.
@@ -85,11 +85,11 @@ export function createFactoryServiceYard(){
   // can drive under the open middle without colliding with a rendered prop.
   for(const sx of [-1,1]){
    const x=cx+sx*59;
-   block(root,'VehicleServiceCranePost_'+index,[7,77,8],[x,39,161],olive);
-   block(root,'RepairLamp_'+index,[13,7,11],[x,73,168],yellow);
+   block(root,'VehicleServiceCranePost_'+index,[7,49,8],[x,26,108],olive);
+   block(root,'RepairLamp_'+index,[13,5,11],[x,52,116],yellow);
   }
-  block(root,'RepairGantryCrossbeam_'+index,[123,8,9],[cx,79,161],steel);
-  block(root,'RepairWarningBeam_'+index,[95,3,5],[cx,82,161],red);
+  block(root,'RepairGantryCrossbeam_'+index,[123,6,9],[cx,55,108],steel);
+  block(root,'RepairWarningBeam_'+index,[95,2.5,5],[cx,59,108],red);
   block(root,'ServiceControlConsole_'+index,[19,24,18],[cx-59,14,227],dark);
   for(const side of [-1,1]){
    block(root,'FactoryHydraulicLine_'+index,[3,17,3],[cx+side*44,14,177],steel);
@@ -129,6 +129,9 @@ export function createFactoryServiceYard(){
   }
   root.userData['bay'+index]={indicator,glow,icon,sparks};
  }
+ // Tire tracks and service grime reinforce the smaller industrial silhouette.
+ for(const x of [-101,-51,51,101])
+  block(root,'VehicleServiceTireTrack',[3,.19,72],[x,2.12,221],dark);
  // Sand-scoured red-white warning stripes at the apron entry.
  for(let i=0;i<14;i++){
   const stripe=block(root,'FactoryApronChevron',[13,.2,4],[-146+i*22,2.3,264],i%2?yellow:red);
