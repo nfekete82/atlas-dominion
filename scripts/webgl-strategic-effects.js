@@ -22,6 +22,7 @@ export class SandforgeStrategicEffects{
  constructor({scene,game,heightAt,pos,battlefield,sound}){
   Object.assign(this,{scene,game,heightAt,pos,battlefield,sound});
   this.rockets=new Map();this.seenEvents=new Set();this.scars=[];
+  this.flightVelocity=new THREE.Vector3();this.flightUp=new THREE.Vector3(0,1,0);
   this.shared={
    cone:new THREE.ConeGeometry(13,34,14),
    hull:new THREE.CylinderGeometry(13,14,76,14),
@@ -31,7 +32,18 @@ export class SandforgeStrategicEffects{
    metal:new THREE.MeshStandardMaterial({color:'#c1c7be',metalness:.63,roughness:.4}),
    stripeBlue:new THREE.MeshStandardMaterial({color:'#458aac',metalness:.5,roughness:.5}),
    stripeRed:new THREE.MeshStandardMaterial({color:'#bc6449',metalness:.5,roughness:.5}),
-   flame:new THREE.MeshBasicMaterial({color:'#ffb34b',transparent:true,opacity:.85,depthWrite:false})
+   flame:new THREE.MeshBasicMaterial({color:'#ffb34b',transparent:true,opacity:.85,depthWrite:false}),
+   stage:new THREE.CylinderGeometry(12,13,27,16),
+   nozzle:new THREE.CylinderGeometry(8,12,8,12),
+   fin:new THREE.BoxGeometry(3,23,17),
+   bandGeometry:new THREE.CylinderGeometry(13.3,13.3,3.8,16),
+   upperHull:new THREE.CylinderGeometry(12,13,69,16),
+   rocketNose:new THREE.ConeGeometry(12,30,16),
+   sharedFlame:new THREE.ConeGeometry(10,34,12),
+   olive:new THREE.MeshStandardMaterial({color:'#7b816a',metalness:.34,roughness:.65}),
+   sand:new THREE.MeshStandardMaterial({color:'#beb49a',metalness:.29,roughness:.68}),
+   graphite:new THREE.MeshStandardMaterial({color:'#343c3b',metalness:.49,roughness:.48}),
+   accent:new THREE.MeshStandardMaterial({color:'#c5a15e',metalness:.22,roughness:.62})
   };
   this.banner=document.createElement('div');
   this.banner.id='sf3d-strategic-warning';
@@ -41,41 +53,42 @@ export class SandforgeStrategicEffects{
   document.body.append(this.banner);
  }
  createRocket(m){
-  const root=new THREE.Group();
-  root.name='Strategic_Missile_'+m.id;
-  const s=this.shared,warhead=new THREE.Mesh(s.cone,s.metal);
-  warhead.position.y=55;root.add(warhead);
-  const hull=new THREE.Mesh(s.hull,s.metal);
-  root.add(hull);
-  const band=new THREE.Mesh(new THREE.CylinderGeometry(14,14,9,12),
-   m.owner===0?s.stripeBlue:s.stripeRed);
-  band.name='Strategic_Band';band.position.y=-18;root.add(band);
-  const flame=new THREE.Mesh(new THREE.ConeGeometry(11,36,10),s.flame);
-  flame.name='Strategic_Engine';flame.rotation.z=Math.PI;
-  flame.position.y=-56;root.add(flame);
+  // Same muted, layered strategic missile silhouette as the facility model.
+  // All geometries/materials are shared. No per-flight GPU allocations,
+  // even if strategic missiles are launched repeatedly in a long match.
+  const root=new THREE.Group();root.name='Strategic_Missile_'+m.id;
+  const s=this.shared;
+  const add=(geometry,material,x=0,y=0,z=0,rx=0,ry=0,rz=0)=>{
+   const mesh=new THREE.Mesh(geometry,material);
+   mesh.position.set(x,y,z);mesh.rotation.set(rx,ry,rz);
+   mesh.castShadow=true;mesh.receiveShadow=true;
+   root.add(mesh);return mesh;
+  };
+  add(s.upperHull,s.olive,0,-1,0);
+  add(s.stage,s.sand,0,46,0);
+  const nose=add(s.rocketNose,s.graphite,0,74,0);
+  nose.name='Strategic_Nose';
+  add(s.nozzle,s.graphite,0,-40,0);
+  for(const y of [-26,17,32,58])
+   add(s.bandGeometry,y===17?s.accent:s.graphite,0,y,0);
+  const band=add(s.bandGeometry,m.owner===0?s.stripeBlue:s.stripeRed,0,39,0);
+  band.name='Strategic_Band';
   for(let i=0;i<4;i++){
-   const fin=new THREE.Mesh(new THREE.BoxGeometry(4,29,28),s.metal);
-   fin.rotation.y=i*Math.PI/2;fin.position.y=-34;root.add(fin);
+   const angle=i*Math.PI/2;
+   add(s.fin,s.olive,Math.cos(angle)*14,-27,Math.sin(angle)*14,
+    0,-angle,-.23);
   }
+  const flame=add(s.sharedFlame,s.flame,0,-60,0,0,0,Math.PI);
+  flame.name='Strategic_Engine';
   root.scale.setScalar(.8);
   root.userData={visualOnly:true,nonPlayable:true,strategicMissile:true,flame,band};
-  this.scene.add(root);
-  this.rockets.set(m.id,root);
+  this.scene.add(root);this.rockets.set(m.id,root);
   return root;
  }
  removeRocket(id){
-  const mesh=this.rockets.get(id);
-  if(!mesh)return;
-  // Only the two per-instance primitives are owned here. Shared material and
-  // geometry allocations stay until global dispose.
-  mesh.userData.flame.geometry.dispose();
-  mesh.userData.band.geometry.dispose();
-  for(const item of mesh.children)if(item.geometry&&
-   item!==mesh.userData.flame&&item!==mesh.userData.band&&
-   item.geometry!==this.shared.cone&&item.geometry!==this.shared.hull)
-    item.geometry.dispose();
-  mesh.removeFromParent();
-  this.rockets.delete(id);
+  const rocket=this.rockets.get(id);
+  if(!rocket)return;
+  rocket.removeFromParent();this.rockets.delete(id);
  }
  createImpact(event,intercept=false){
   if(!this.game.canSee(0,event.to))return;
@@ -130,8 +143,8 @@ export class SandforgeStrategicEffects{
    const rocket=this.rockets.get(m.id)??this.createRocket(m);
    rocket.position.copy(this.pos(p.x,p.y,this.heightAt(p.x,p.y)+p.altitude));
    // The projectile points along the actual ascending/parabolic trajectory.
-   const velocity=new THREE.Vector3(p.dx,p.vertical,p.dz).normalize();
-   rocket.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),velocity);
+   this.flightVelocity.set(p.dx,p.vertical,p.dz).normalize();
+   rocket.quaternion.setFromUnitVectors(this.flightUp,this.flightVelocity);
    rocket.visible=g.canSee(0,{x:p.x,y:p.y});
    rocket.userData.flame.scale.y=.80+.22*Math.sin(g.time*18);
   }

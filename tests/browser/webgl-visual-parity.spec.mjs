@@ -280,16 +280,26 @@ test('live HP stays visible above FOW for full-health friendlies without leaking
   const hostile=game.units.find(u=>u.owner===1&&u.hp>0);
   const hostileEntry=battlefield.units.get(hostile?.id);
   const unseen=hostileEntry&&!game.canSee(0,hostile)
-   ?hostileEntry.presentation.bar.root.visible:false;
+   ?(hostileEntry.presentation?.bar?.root?.visible??false):false;
+  // An enemy who was revealed earlier can carry a scene-root HP bar even
+  // after its 3D node is culled. Fog must hide the bar without re-running
+  // the entire costly animation presentation.
+  entry.node.visible=false;
+  battlefield.presentation.hideWhenCulled(entry);
+  const culled=entry.presentation.bar.root.visible;
+  battlefield.sync(true,0,false,1);
+  const restored=entry.presentation.bar.root.visible;
   battlefield.presentation.setHealthMode('off');
   battlefield.sync(true,0,false,1);
-  return {initial,unseen,off:entry.presentation.bar.root.visible};
+  return {initial,unseen,culled,restored,off:entry.presentation.bar.root.visible};
  });
  expect(result.initial.mode).toBe('all');
  expect(result.initial.visible).toBe(true);
  expect(result.initial.depthTest).toBe(false);
  expect(result.initial.barOrder).toBeGreaterThan(result.initial.fogOrder);
  expect(result.unseen).toBe(false);
+ expect(result.culled).toBe(false);
+ expect(result.restored).toBe(true);
  expect(result.off).toBe(false);
 });
 

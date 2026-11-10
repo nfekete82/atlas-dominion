@@ -82,7 +82,7 @@ export interface Base extends Point {
 /** Transient on-screen release cue. Never serialized or used for collisions. */
 export interface ProductionRelease {unitId:number;baseId:number;kind:UnitKind;owner:Faction;at:number;from:Point;to:Point}
 export interface Shot { from:Point; to:Point; owner:Faction; life:number; hit:boolean; projected?:boolean; source?:number; weapon?:Weapon; barrel?:number; at?:number; groundFrom?:Point; groundTo?:Point; armored?:boolean; targetClass?:'armor'|'infantry'|'air'|'structure'; impactElevation?:number; kind?:UnitKind; angle?:number;flightHeight?:number }
-export interface Missile {id:number;source:number;owner:Faction;from:Point;to:Point;angle:number;at:number;impactAt:number;damage:number;type?:'antiArmor'|'bomb'}
+export interface Missile {id:number;source:number;owner:Faction;from:Point;to:Point;angle:number;at:number;impactAt:number;damage:number;type?:'antiArmor'|'bomb';target?:number}
 export interface Blast extends Point {at:number;id:number}
 export type CaptureReadiness='owned'|'no-unit'|'out-of-range'|'contested'|'enemy-hq'|'capturing';
 export interface Memory extends Point { id:number; owner:Faction; hp:number; territory:number; kind?:BuildingKind }
@@ -149,7 +149,7 @@ export class Simulation {
     return this.world.walkable(p)&&this.world.terrainHeight(p.x,p.y)>=45&&this.world.terrainSlope(p.x,p.y)<=.20;
   }
   sight(u:Unit):number{
-    const infantry=['infantry','medic','engineer','heavy'].includes(u.kind);
+    const infantry=['infantry','medic','engineer','heavy','rocket'].includes(u.kind);
     return unitSpec(u).sight*researchModifiers(this.research[u.owner],u.kind).sight*(infantry?this.infantryVisionBonus:1)*
       (this.weather.storm&&!unitSpec(u).flying?WEATHER_RULES.groundSight:1);
   }
@@ -508,7 +508,7 @@ export class Simulation {
     const fighters=members.filter(u=>u.kind!=='medic'&&u.kind!=='engineer'&&!unitSpec(u).flying);
     const front=armoredFront.length?armoredFront:fighters;
     const support=members.filter(u=>u.kind==='medic'||u.kind==='engineer');
-    const rearFighters=armoredFront.length?members.filter(u=>['infantry','heavy','artillery'].includes(u.kind)):[];
+    const rearFighters=armoredFront.length?members.filter(u=>['infantry','heavy','rocket','artillery'].includes(u.kind)):[];
     const mixed=front.length>0&&(support.length>0||rearFighters.length>0)&&['move','attackMove','attack'].includes(order.kind);
     // A player-selected ground squad marches at the pace of its slowest
     // surviving member. The existing march metadata makes this deterministic,
@@ -519,7 +519,7 @@ export class Simulation {
       ?playerGround.map(u=>u.id):null;
     const origin={x:front.reduce((n,u)=>n+u.x,0)/Math.max(1,front.length),y:front.reduce((n,u)=>n+u.y,0)/Math.max(1,front.length)},length=distance(origin,order)||1;
     const heading={x:(order.x-origin.x)/length,y:(order.y-origin.y)/length};
-    if(mixed){const priority=(u:Unit)=>u.kind==='tank'?0:u.kind==='rover'?1:u.kind==='infantry'||u.kind==='heavy'?2:u.kind==='artillery'?3:4;
+    if(mixed){const priority=(u:Unit)=>u.kind==='tank'?0:u.kind==='rover'?1:u.kind==='infantry'||u.kind==='heavy'?2:u.kind==='rocket'?3:u.kind==='artillery'?4:5;
       members.sort((a,b)=>priority(a)-priority(b)||a.id-b.id);}
     const width=Math.ceil(Math.sqrt(members.length)),pitch=formationSlotPitch(members);
     const slots=members.map((_,i)=>({x:i%width*pitch,y:Math.floor(i/width)*pitch}));
@@ -548,7 +548,7 @@ export class Simulation {
           const helper=support.includes(u),group=helper?support:rearFighters;
           const index=group.indexOf(u),columns=Math.min(3,group.length),lane=(index%columns-(columns-1)/2)*34;
           const rear=(armoredFront.length?(helper?200:u.kind==='artillery'?150:86):72)+Math.floor(index/columns)*36;
-          formation={front:front.map(v=>v.id),...(armoredFront.length?{fallback:rearFighters.filter(v=>v.kind==='infantry'||v.kind==='heavy').map(v=>v.id)}:{}),heading,origin,goal:{x:order.x,y:order.y},lane,rear};
+          formation={front:front.map(v=>v.id),...(armoredFront.length?{fallback:rearFighters.filter(v=>v.kind==='infantry'||v.kind==='heavy'||v.kind==='rocket').map(v=>v.id)}:{}),heading,origin,goal:{x:order.x,y:order.y},lane,rear};
           offset={x:-heading.x*rear-heading.y*lane,y:-heading.y*rear+heading.x*lane};
         }else{
           const index=front.indexOf(u),columns=Math.ceil(Math.sqrt(front.length));
@@ -631,7 +631,7 @@ export class Simulation {
   /** Rear support follows the slowest surviving front rank, rather than racing to the destination. */
   private escort(u:Unit,dt:number):boolean {
     const order=u.orders[0],formation=order?.formation;
-    if(!formation||!['medic','engineer','infantry','heavy','artillery'].includes(u.kind))return false;
+    if(!formation||!['medic','engineer','infantry','heavy','rocket','artillery'].includes(u.kind))return false;
     const recovering=u.owner===1&&this.world.mapVersion>=3&&this.tactical.mode==='director'
       ?this.tactical.state.recovering:undefined;
     let front=this.units.filter(v=>formation.front.includes(v.id)&&v.owner===u.owner&&v.hp>0&&!recovering?.includes(v.id));
@@ -643,7 +643,7 @@ export class Simulation {
     const progress=Math.min(...front.map(project)),lateral=front.reduce((n,v)=>n+(v.x-formation.origin.x)*-h.y+(v.y-formation.origin.y)*h.x,0)/front.length;
     const rearDistance=armorStillLeading?formation.rear:Math.min(formation.rear,72);
     const rear={x:formation.origin.x+h.x*(progress-rearDistance)-h.y*(lateral+formation.lane),y:formation.origin.y+h.y*(progress-rearDistance)+h.x*(lateral+formation.lane)};
-    const fighter=u.kind==='infantry'||u.kind==='heavy'||u.kind==='artillery';
+    const fighter=u.kind==='infantry'||u.kind==='heavy'||u.kind==='rocket'||u.kind==='artillery';
     // Attack-move ranks may fire while remaining behind the vehicles.
     if(fighter&&order?.kind!=='move'&&this.acquire(u))return false;
     u.workingTarget=null;u.combatTarget=null;u.pursuitOrigin=null;
@@ -832,7 +832,7 @@ export class Simulation {
         target.orders[0].kind==='move'||target.orders[0].kind==='attackMove'||
         (target.orders[0].kind==='attack'&&target.moving));
       if(target.hp>0&&target.owner===0&&!target.carrier&&
-        (target.kind==='infantry'||target.kind==='heavy')&&marching){
+        (target.kind==='infantry'||target.kind==='heavy'||target.kind==='rocket')&&marching){
         target.orders=[];target.path=[];target.repath=0;target.moving=false;
         target.pursuitOrigin=null;target.combatTarget=null;target.hold=true;
         delete target.burst;
@@ -875,10 +875,10 @@ export class Simulation {
     u.path=[];u.repath=0;
   }
   private launch(u:Unit,target:Unit|Base):void{
-    const id=this.nextId++,antiArmor=u.kind==='tank',offset=antiArmor?{x:0,y:0}:this.weather.artilleryOffset(id,u.id),from={x:u.x,y:u.y},
+    const id=this.nextId++,antiArmor=u.kind==='tank'||u.kind==='rocket',offset=antiArmor?{x:0,y:0}:this.weather.artilleryOffset(id,u.id),from={x:u.x,y:u.y},
       to={x:clamp(target.x+offset.x,0,this.world.size),y:clamp(target.y+offset.y,0,this.world.size)},
       duration=Math.max(.24,distance(from,to)/(antiArmor?650:400));
-    this.missiles.push({id,source:u.id,owner:u.owner,from,to,angle:u.angle,at:this.time,impactAt:this.time+duration,damage:unitSpec(u).damage*getVeterancyModifiers(u).damage,...(antiArmor?{type:'antiArmor' as const}:{})});
+    this.missiles.push({id,source:u.id,owner:u.owner,from,to,angle:u.angle,at:this.time,impactAt:this.time+duration,damage:(u.kind==='rocket'?weaponDamage(u,target):unitSpec(u).damage)*getVeterancyModifiers(u).damage,...(antiArmor?{type:'antiArmor' as const}:{}),...(u.kind==='rocket'?{target:target.id}:{})});
     this.shots.push({from:{x:u.x,y:u.y-18},to:{x:target.x,y:target.y-23},owner:u.owner,life:.65,hit:false,weapon:'rocket',source:u.id,kind:u.kind,barrel:antiArmor?0:id%6,angle:u.angle,at:this.time,groundFrom:from,groundTo:to});
   }
   canSee(owner:Faction,p:Point):boolean {const i=this.world.index(p);return i>=0&&this.visible[owner][i]===1;}
@@ -986,7 +986,8 @@ export class Simulation {
       // Player units retain the original closest-target behavior.
       const priority=u.owner===1&&'orders' in e
         ?(e.kind==='artillery'?-95:e.kind==='medic'?-65:e.kind==='bomber'?-45:0):0;
-      const armorPreference=u.kind==='tank'&&('queue' in e||unitSpec(e).group==='Fahrzeuge')?-105:0;
+      const armorPreference=u.kind==='tank'&&('queue' in e||unitSpec(e).group==='Fahrzeuge')?-105:
+       u.kind==='rocket'&&('queue' in e||unitSpec(e).group!=='Infanterie')?-165:0;
       const score=d+priority+armorPreference;
       if(score<bestScore){best=e;bestScore=score;}
     }
@@ -1177,11 +1178,19 @@ export class Simulation {
     if(this.incomeClock+1e-8>=RULES.incomeInterval){this.incomeClock=Math.max(0,this.incomeClock-RULES.incomeInterval);for(const owner of [0,1] as const){const earned=this.income(owner);this.credits[owner]+=earned;countIncome(this.stats,owner,earned);}}
     this.blasts=this.blasts.filter(b=>this.time-b.at<.5);
     this.stepStrategy(dt);
+    // Optically guided infantry rockets keep tracking the *observed* target
+    // they were fired at. Existing tank and artillery missiles stay unchanged.
+    for(const missile of this.missiles)if(missile.target!==undefined){
+      const guided=this.combatEntity(missile.target);
+      if(guided&&guided.hp>0&&guided.owner!==missile.owner&&
+         !('orders' in guided&&guided.carrier))
+        missile.to={x:guided.x,y:guided.y};
+    }
     for(const missile of this.missiles)if(missile.impactAt<=this.time){
       const antiArmor=missile.type==='antiArmor',radius=antiArmor?44:missile.type==='bomb'?94:60;
-      for(const target of [...this.units,...this.bases])if(target.owner!==missile.owner&&target.hp>0&&!('orders' in target&&(target.carrier||unitSpec(target).flying))&&distance(target,missile.to)<=radius){
+      for(const target of [...this.units,...this.bases])if(target.owner!==missile.owner&&target.hp>0&&!('orders' in target&&(target.carrier||(unitSpec(target).flying&&missile.target===undefined)))&&distance(target,missile.to)<=radius){
         const armored='queue' in target||unitSpec(target).group!=='Infanterie';
-        const amount=missile.damage*(1-.5*distance(target,missile.to)/radius)*(antiArmor&&!armored?.28:1);
+        const amount=missile.damage*(1-.5*distance(target,missile.to)/radius)*(antiArmor&&!armored?(missile.target!==undefined?.10:.28):1);
         this.strike(missile.source,target,amount);
       }
       this.blasts.push({...missile.to,id:missile.id,at:this.time});
@@ -1269,7 +1278,7 @@ export class Simulation {
           if(u.burst?.target!==enemy.id)delete u.burst;
           if(!u.burst&&u.cooldown<=1e-8){u.cooldown=spec.cooldown/getVeterancyModifiers(u).fireRate;u.burst={target:enemy.id,remaining:rounds,at:this.time,index:0};}
           while(u.burst&&u.burst.at<=this.time+1e-8&&enemy.hp>0){
-            u.fire=.18;if(u.kind==='artillery'||u.kind==='tank')this.launch(u,enemy);else this.damage(u,enemy,weaponDamage(u,enemy)*getVeterancyModifiers(u).damage/rounds,weapon,{x:u.x,y:u.y-18});
+            u.fire=.18;if(u.kind==='artillery'||u.kind==='tank'||u.kind==='rocket')this.launch(u,enemy);else this.damage(u,enemy,weaponDamage(u,enemy)*getVeterancyModifiers(u).damage/rounds,weapon,{x:u.x,y:u.y-18});
             u.burst.remaining--;u.burst.index++;u.burst.at+=u.kind==='heavy'?.1:.075;
             if(!u.burst.remaining)delete u.burst;
           }
@@ -1563,6 +1572,10 @@ export class Simulation {
     game.time=s.time;
     game.research=structuredClone(research) as [ResearchState,ResearchState];
     game.stats=s.stats?structuredClone(s.stats):newMatchStatistics();
+    // v1 match statistics predate the rocket specialist. Supply its zero count
+    // once when loading a legitimate old save, or subsequent production would
+    // increment undefined and corrupt the score counter.
+    for(const faction of game.stats.factions)faction.deployedUnits.rocket??=0;
     if(!s.stats){game.stats.partial=true;for(const u of s.units){if(u.hp>0){const f=game.stats.factions[u.owner];f.deployedUnits[u.kind??'infantry']++;f.peakArmy+=0;}}for(const owner of [0,1] as const)game.stats.factions[owner].peakArmy=s.units.filter(u=>u.owner===owner&&u.hp>0).length;}
     game.nextId=Math.max(1,Number.isSafeInteger(s.nextId)?s.nextId:1,...s.units.map(u=>u.id+1),...(s.ai?.losses??[]).map(l=>l.id+1));game.credits=[...s.credits];game.incomeClock=s.incomeClock;
     game.bases=structuredClone(s.bases).map(b=>({...b,kind:b.kind??'headquarters',...game.world.clearSite(b,buildingSpec(b).radius),radius:buildingSpec(b).radius,...(b.queueCosts?{}:b.queue.length?{queueCosts:b.queue.map((_,i)=>{const k=b.queueTypes?.[i]??'infantry';return !s.supportVersion&&k==='engineer'?150:UNITS[k].cost;})}:{}),queueTypes:b.queueTypes??b.queue.map(()=>'infantry'),buildRemaining:b.buildRemaining??0,cooldown:b.cooldown??0,
@@ -1595,7 +1608,7 @@ export class Simulation {
       return Uint8Array.from({length:RULES.grid**2},(_,i)=>a[Math.floor(Math.floor(i/RULES.grid)*oldGrid/RULES.grid)*oldGrid+Math.floor((i%RULES.grid)*oldGrid/RULES.grid)]);
     });game.memories=structuredClone(s.memories??[[],[]]);game.aiClock=clamp(s.aiClock||0,0,RULES.aiInterval);
     if(!Transports.valid(game))throw Error('Ungültiger Transportzustand im Spielstand.');
-    if(s.missiles!==undefined&&(!Array.isArray(s.missiles)||s.missiles.length>96||s.missiles.some(m=>!Number.isSafeInteger(m.id)||!Number.isSafeInteger(m.source)||![0,1].includes(m.owner)||!point(m.from)||!point(m.to)||!finite(m.at)||m.at>s.time||!finite(m.impactAt)||m.impactAt<=s.time||m.impactAt>s.time+12||!finite(m.damage)||m.damage<=0||m.damage>Math.max(UNITS.artillery.damage,UNITS.tank.damage)*getVeterancyModifiers({kind:'tank',xp:500}).damage*1.151||(m.type!==undefined&&!['antiArmor','bomb'].includes(m.type))||!finite(m.angle))))throw Error('Ungültige Raketen im Spielstand.');
+    if(s.missiles!==undefined&&(!Array.isArray(s.missiles)||s.missiles.length>96||s.missiles.some(m=>!Number.isSafeInteger(m.id)||!Number.isSafeInteger(m.source)||![0,1].includes(m.owner)||!point(m.from)||!point(m.to)||!finite(m.at)||m.at>s.time||!finite(m.impactAt)||m.impactAt<=s.time||m.impactAt>s.time+12||!finite(m.damage)||m.damage<=0||m.damage>Math.max(UNITS.artillery.damage,UNITS.tank.damage,UNITS.rocket.damage*1.24)*getVeterancyModifiers({kind:'tank',xp:500}).damage*1.151||(m.type!==undefined&&!['antiArmor','bomb'].includes(m.type))||(m.target!==undefined&&(!Number.isSafeInteger(m.target)||m.target<0))||!finite(m.angle))))throw Error('Ungültige Raketen im Spielstand.');
     game.missiles=structuredClone(s.missiles??[]);
     game.strategicMissiles=structuredClone(s.strategicMissiles??[]);
     game.nextId=Math.max(game.nextId,...game.missiles.map(m=>m.id+1),

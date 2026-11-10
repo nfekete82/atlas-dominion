@@ -13,7 +13,7 @@ export const UPGRADES:Record<UpgradeKind,UpgradeSpec>={
  precision:{name:'Präzisionswaffen',cost:1200,seconds:55,description:'+15 % Schaden.'},
  engines:{name:'Motorenoptimierung',cost:900,seconds:40,description:'+12 % Tempo für Bodenfahrzeuge.'},
  infantryTraining:{name:'Infanterieausbildung',cost:700,seconds:35,description:'+15 % Infanterie-LP.'},
- rocketDevelopment:{name:'Raketenentwicklung',cost:1800,seconds:90,description:'+20 % Reichweite für Kampfpanzer und Raketenwerfer.'},
+ rocketDevelopment:{name:'Raketenentwicklung',cost:1800,seconds:90,description:'+20 % Reichweite für Kampfpanzer, Raketenartillerie und Raketenwerfer-Soldaten.'},
  radar:{name:'Radaroptimierung',cost:1000,seconds:50,description:'+20 % Sichtweite.'},
  tankArmor:{name:'Panzer-Spezialisierung',cost:1700,seconds:75,exclusive:'tankPath',
   description:'+15 % weitere LP für Kampfpanzer. Unvereinbar mit schneller Panzerung.'},
@@ -28,7 +28,7 @@ export interface ResearchState{
 }
 export const newResearchState=():ResearchState=>({completed:[],active:null,remaining:0});
 const groundVehicle=(kind:UnitKind)=>['rover','tank','artillery'].includes(kind);
-const infantry=(kind:UnitKind)=>['infantry','medic','engineer','heavy'].includes(kind);
+const infantry=(kind:UnitKind)=>['infantry','medic','engineer','heavy','rocket'].includes(kind);
 export function canResearchUpgrade(s:ResearchState,kind:UpgradeKind):boolean{
  const spec=UPGRADES[kind];
  if(!spec||s.active||s.completed.includes(kind))return false;
@@ -45,7 +45,7 @@ export function researchModifiers(s:ResearchState,kind:UnitKind){
   damage:done('precision')?1.15:1,
   speed:groundVehicle(kind)?1+(done('engines')?.12:0)+
      (kind==='tank'&&done('tankMobility')?.15:0):1,
-  range:kind==='tank'||kind==='artillery'?(done('rocketDevelopment')?1.20:1):1,
+  range:kind==='tank'||kind==='artillery'||kind==='rocket'?(done('rocketDevelopment')?1.20:1):1,
   sight:done('radar')?1.20:1
  };
 }

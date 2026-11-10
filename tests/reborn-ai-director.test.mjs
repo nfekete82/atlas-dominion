@@ -187,20 +187,34 @@ test('director: damaged armored unit withdraws and is excluded from the active a
 });
 
 
-test('director: enemy damage triggers emergency armored extraction without waiting for next AI tick',()=>{
+test('director: a moderately hurt armored unit does not suicide-retreat at 50% HP',()=>{
  const g=new Simulation(2026,4);
  g.aiClock=-1e8;
  g.world.blocked.fill(0);g.world.opaque.fill(0);g.world.components.fill(0);
  g.units=[];
  const rover=g.spawn(1,{x:1890,y:2050},'rover'),enemy=g.spawn(0,{x:1980,y:2050},'heavy');
- rover.hp=150;
- enemy.cooldown=0;
+ rover.hp=150;enemy.cooldown=0;
+ g.updateVision();
+ for(let i=0;i<12;i++)g.step(.05);
+ assert.ok(rover.hp<150,'visible enemy must really hit the rover');
+ assert.ok(rover.hp>0,'the test rover must remain able to fight');
+ assert.equal(g.tactical.state.recovering?.includes(rover.id)??false,false,
+  'noncritical armor keeps fighting when attacked, not emergency extracting');
+ assert.notEqual(rover.orders[0]?.tactical?.mode,'safe');
+});
+
+test('director: a genuinely critical rover still extracts during a real damage tick',()=>{
+ const g=new Simulation(2026,4);
+ g.aiClock=-1e8;
+ g.world.blocked.fill(0);g.world.opaque.fill(0);g.world.components.fill(0);
+ g.units=[];
+ const rover=g.spawn(1,{x:1890,y:2050},'rover'),enemy=g.spawn(0,{x:1980,y:2050},'heavy');
+ rover.hp=80;enemy.cooldown=0;
  g.updateVision();
  for(let i=0;i<12&&!g.tactical.state.recovering?.includes(rover.id);i++)g.step(.05);
- assert.ok(rover.hp<150,'enemy must actually wound the rover');
- assert.ok(rover.hp>0,'retreat order must be issued before the rover dies');
- assert.ok(g.tactical.state.recovering?.includes(rover.id),'damage event starts extraction immediately');
- assert.equal(rover.orders[0]?.kind,'move','rover must disengage without stopping to return fire');
+ assert.ok(rover.hp<80&&rover.hp>0,'damage event must arrive while the rover survives');
+ assert.ok(g.tactical.state.recovering?.includes(rover.id),'critical damage starts immediate extraction');
+ assert.equal(rover.orders[0]?.kind,'move');
  assert.equal(rover.orders[0]?.tactical?.mode,'safe');
 });
 

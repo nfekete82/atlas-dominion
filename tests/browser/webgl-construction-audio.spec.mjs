@@ -143,13 +143,26 @@ test('Audio resumes after suspension; locked production stays legible; interrupt
  await expect(page.locator('[data-build="barracks"]')).toBeDisabled();
  const filter=await page.locator('[data-build="barracks"] .sf-card-image img')
    .evaluate(el=>({filter:getComputedStyle(el).filter,opacity:getComputedStyle(el).opacity}));
- // Locked building art stays legible: no blur, only modest desaturation.
+ // Unavailable building thumbnails are intentionally dimmed and softly
+ // blurred. Text and costs stay sharp and the button must not look selected.
  const muted=filter.filter.match(/grayscale\(([0-9.]+)\)/);
+ const blur=filter.filter.match(/blur\(([0-9.]+)px\)/);
  expect(muted).not.toBeNull();
- expect(Number(muted[1])).toBeGreaterThanOrEqual(0);
- expect(Number(muted[1])).toBeLessThan(.5);
- expect(filter.filter).not.toContain('blur(');
- expect(Number(filter.opacity)).toBeGreaterThanOrEqual(.85);
+ expect(Number(muted[1])).toBeGreaterThanOrEqual(.65);
+ expect(blur).not.toBeNull();
+ expect(Number(blur[1])).toBeGreaterThan(0);
+ expect(Number(blur[1])).toBeLessThanOrEqual(1);
+ expect(Number(filter.opacity)).toBeGreaterThanOrEqual(.65);
+ const locked=await page.locator('[data-build="barracks"]').evaluate(el=>({
+  selected:el.classList.contains('sf-selected-build'),
+  name:getComputedStyle(el.querySelector('.card-name')).filter,
+  price:getComputedStyle(el.querySelector('.card-cost')).filter,
+  reason:el.getAttribute('aria-description')||el.title
+ }));
+ expect(locked.selected).toBe(false);
+ expect(locked.name).toBe('none');
+ expect(locked.price).toBe('none');
+ expect(locked.reason.length).toBeGreaterThan(0);
  await page.waitForFunction(()=>window.__sandforgeWebGL?.sound?.context?.state==='running',{timeout:20000});
  await page.evaluate(()=>window.__sandforgeWebGL.sound.context.suspend());
  await page.waitForFunction(()=>window.__sandforgeWebGL.sound.context.state==='suspended');

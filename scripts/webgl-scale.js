@@ -6,7 +6,7 @@
  * rifle/helmet width, so all four roles occupy the same apparent human scale.
  */
 export const MODEL_HEIGHTS=Object.freeze({
- infantry:61,medic:61,engineer:61,heavy:65,
+ infantry:61,medic:61,engineer:61,heavy:65,rocket:61,
  rover:42,tank:46,artillery:51,scout:48,bomber:51,
  headquarters:158,barracks:119,factory:125,airfield:137,generator:92,turret:95
 });
@@ -46,7 +46,7 @@ export function turretMuzzleOffset(angle,barrel){
 export function visualUnitScale(kind){
  // Align all four foot soldiers with larger rocket artillery and Humvee.
  // This is a render-only factor: no change to move, weapon or capture radius.
- if(['infantry','medic','engineer'].includes(kind))return .56;
+ if(['infantry','medic','engineer','rocket'].includes(kind))return .56;
  if(kind==='heavy')return .58;
  // Humvee needs a substantial visual presence beside full-scale buildings.
  // Only the rendered mesh changes; navigation/collision/save width stays 76.
@@ -72,7 +72,7 @@ export function unitRenderAltitude(kind,flightHeight=1){
  if(kind==='bomber')return 175;
  return 0;
 }
-const infantry=new Set(['infantry','medic','engineer','heavy']);
+const infantry=new Set(['infantry','medic','engineer','heavy','rocket']);
 const valid=n=>typeof n==='number'&&Number.isFinite(n)&&n>.00001;
 export function calibratedScale(kind,type,bounds,targetWidth){
  const width=Math.max(bounds?.x??0,bounds?.z??0);

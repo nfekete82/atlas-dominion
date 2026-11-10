@@ -7,7 +7,7 @@ import {assaultDecision,abortAssault} from './ai-director.js';
 import {selectiveRaidAllowed} from './selective-raids.js';
 import {newCampaign,campaignPhase,refreshIntelligence,chooseMission,reconGoal,validCampaign,knownBuildings,type CampaignState} from './campaign-commander.js';
 import {segmentDistance} from './world-generation.js';
-import {newBattle,assessBattle,fightingPower,hasDecisiveLocalAdvantage,recordFailure,retryFront,validBattle,type BattleState} from './battle-response.js';
+import {newBattle,assessBattle,fightingPower,hasDecisiveLocalAdvantage,shouldCommitFirefight,recordFailure,retryFront,validBattle,type BattleState} from './battle-response.js';
 import {newAdaptive,updateAdaptive,validAdaptive,type AdaptiveState} from './adaptive-strategy.js';
 import {newExperience,validExperience,finishExperience,canOverrun,observeOwnedLosses,lessonScore,type Experience} from './battle-learning.js';
 import {rankLegacyFrontiers} from './legacy-campaign.js';
@@ -228,11 +228,23 @@ export class TacticalAI {
   const army=g.units.filter(v=>v.owner===1&&v.hp>0&&!v.carrier),near=army.filter(v=>distance(v,u)<450&&!s.recovering?.includes(v.id));
   const towers=s.knownTurrets.filter(t=>distance(t,u)<t.range+220),enemies=g.units.filter(v=>v.owner===0&&v.hp>0&&!v.carrier&&g.canSee(1,v)&&distance(v,u)<600);
   const assessment=assessBattle(near,enemies,towers,g.time,true);
-  // A full-strength squad must not run home when a single unit takes one
-  // turret hit. Keep a successful attack/siege engaged until genuinely hurt.
-  if(u.hp>=unitSpec(u).hp*.38&&
-   (assessment.stance==='attack'||assessment.stance==='siege'||
-    hasDecisiveLocalAdvantage(near,enemies,towers)))return;
+  // A real battle group must not all turn their backs on the first hit.
+  // Alone under a turret, however, a 34%-HP infantryman lacks any fighting
+  // screen: withdrawing immediately is sensible, while waiting for 26% HP
+  // would hand the gun several free shots. Keep tanks/supported units at
+  // the much lower threshold that prevents suicidal mid-battle retreats.
+  const supported=near.some(v=>v.id!==u.id&&
+    !['engineer','medic','scout'].includes(v.kind));
+  const criticalFraction=supported ? .26 :
+   ['infantry','heavy','rocket'].includes(u.kind) ? .40 : .26;
+  if(u.hp>=unitSpec(u).hp*criticalFraction)return;
+  // A shot from an unseen turret supplies damage information, not a
+  // guessed turret position. With zero OBSERVED enemies the generic battle
+  // assessor calls our force 'attack' against an empty threat set: that is
+  // not evidence that a critically injured unit can safely hold its ground.
+  if((towers.length||enemies.length)&&
+    (assessment.stance==='attack'||assessment.stance==='siege'||
+     hasDecisiveLocalAdvantage(near,enemies,towers)))return;
   // A hit reveals damage, NOT the gun's fogged position. A healthy battalion
   // must not flee into the HQ just because the shooter isn't identified yet.
   if(!towers.length&&!enemies.length&&u.hp>=unitSpec(u).hp*.48)return;
@@ -508,8 +520,8 @@ export class TacticalAI {
  evacuateVehicle(u:Unit):void{
   const g=this.g,s=this.state;
   if(this.mode!=='director'||g.world.mapVersion<3||u.owner!==1||u.hp<=0
-    ||!['tank','rover','artillery'].includes(u.kind)||u.hp>=unitSpec(u).hp*.67
-    ||s.recovering?.includes(u.id))return;
+    ||!['tank','rover','artillery'].includes(u.kind)||
+    u.hp>=unitSpec(u).hp*.24||s.recovering?.includes(u.id))return;
   // Preserve a winning local engagement unless the vehicle is critical.
   if(this.dominatingLocalFight(u))return;
   const hq=g.bases.find(b=>b.owner===1&&b.kind==='headquarters'&&b.hp>0);
@@ -526,16 +538,19 @@ export class TacticalAI {
   const threshold=infantryRecoveryThreshold(
    g.world.mapVersion>=3&&this.mode==='director'&&s.commander?.enemyHQEliminatedAt!==undefined,
    army.some(v=>v.kind==='medic'&&v.hp>unitSpec(v).hp*.45));
+  const availableRepairer=army.some(v=>v.kind==='engineer'&&
+    v.hp>0&&!v.carrier&&!v.orders.some(o=>o.kind==='build'));
   for(const u of army){
-   if(['infantry','heavy'].includes(u.kind)&&u.hp<unitSpec(u).hp*threshold)ids.add(u.id);
-   // Vehicles survive sustained campaigns when they can break contact,
-   // travel back to a real engineer, then return above 80% health.
+   if(['infantry','heavy','rocket'].includes(u.kind)&&u.hp<unitSpec(u).hp*threshold)ids.add(u.id);
+   // Repair only behind the front. Routine 67%-HP extraction used to cause
+   // suicidal retreats while tanks were still in range of enemy guns.
    if(g.world.mapVersion>=3&&this.mode==='director'
      &&['tank','rover','artillery'].includes(u.kind)){
-     // Routine repairs are lower priority than a decisive active battle.
-     // Reevaluate earlier evacuation decisions every strategic tick.
-     if(this.dominatingLocalFight(u))ids.delete(u.id);
-     else if(u.hp<unitSpec(u).hp*.67)ids.add(u.id);
+     const activeFire=u.defendUntil>g.time;
+     const ratio=u.hp/unitSpec(u).hp;
+     if(this.dominatingLocalFight(u)||
+       activeFire&&ratio>=.24||ratio>=.90)ids.delete(u.id);
+     else if(!activeFire&&availableRepairer&&ratio<.52)ids.add(u.id);
    }
   }
   s.recovering=army.filter(u=>ids.has(u.id)&&u.hp<unitSpec(u).hp*(['tank','rover','artillery'].includes(u.kind)?.9:.8)).map(u=>u.id);
@@ -820,7 +835,12 @@ export class TacticalAI {
   if(changed){s.target=mission.sector;s.objective=mission.objective;s.route=[];s.rally=null;}
   const intel=mission.objective===null?undefined:knownBuildings(g).find(b=>b.id===mission.objective);
   const towers=s.knownTurrets.filter(t=>distance(t,mission)<t.range+200);
-  const visible=g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)&&distance(u,mission)<450);
+  // Fighting units can encounter a player ambush *before* reaching their
+  // strategic objective. Count only currently observed opponents, but also
+  // include actual nearby contacts along the moving assault column.
+  const visible=g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)&&
+   (distance(u,mission)<450||(s.phase==='attack'&&fighters.some(v=>
+    s.group.includes(v.id)&&distance(v,u)<450))));
   const defended=mission.kind!=='capture'||g.territories[mission.sector].owner===0||towers.length>0||visible.reduce((n,u)=>n+combatStrength(u),0)>3;
   if(!s.rally){
    const rear=g.territories.filter(t=>t.owner===1).sort((a,b)=>distance(a.point,mission)-distance(b.point,mission)||a.id-b.id)[0]?.point??home;
@@ -917,6 +937,35 @@ export class TacticalAI {
   }
   if(towers.length||visible.length){
    const artillery=readyForce.filter(u=>u.kind==='artillery').length;
+   // A visible, nearby opponent must be met with fire, not repeated
+   // long-haul retreat orders. Existing order ownership and damage remain
+   // authoritative; this never reveals enemies behind fog.
+   const engageable=visible.filter(v=>members.some(u=>canAttack(u,v)&&
+    distance(u,v)<=Math.max(g.range(u),unitSpec(v).range)+40));
+   const inRange=members.filter(u=>engageable.some(v=>canAttack(u,v)&&
+    distance(u,v)<=Math.max(g.range(u),unitSpec(v).range)+40));
+   const healthy=inRange.filter(u=>u.hp>=unitSpec(u).hp*.26).length;
+   const holdLine=shouldCommitFirefight({
+    own:assessment.own,enemy:assessment.enemy,visible:visible.length,
+    inRange:inRange.length,healthy,knownTowers:towers.length,
+    time:g.time,commitUntil:battle.commitUntil??0
+   });
+   // Keep the tactical director's screening/flanking decisions when an
+   // assault is already favoured; intercept only unwanted macro withdrawals.
+   if(holdLine&&(assessment.stance==='withdraw'||assessment.stance==='reinforce')){
+    // Commit for at least 6 seconds after an actual contact. A collapse
+    // below 32% of observed opposing power still permits disengagement.
+    if(assessment.own>=assessment.enemy*.48)
+     battle.commitUntil=Math.max(battle.commitUntil??0,g.time+6);
+    for(const u of members){
+     const candidates=visible.filter(v=>canAttack(u,v));
+     const target=candidates.sort((a,b)=>distance(u,a)-distance(u,b)||a.id-b.id)[0];
+     if(!target)continue;
+     if(u.orders[0]?.target===target.id&&u.orders[0]?.tactical?.mode==='assault')continue;
+     this.issue([u],target,'assault',target.id,false,false);
+    }
+    return;
+   }
    if(assessment.stance==='withdraw'&&!overrun){
     const at=this.withdrawPoint(centroid(members),home,towers);
     recordFailure(battle,mission.sector,mission,assessment.own,towers.length,g.time);battle.retreats++;

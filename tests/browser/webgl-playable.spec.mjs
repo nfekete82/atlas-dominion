@@ -188,10 +188,14 @@ test('WebGL menu v2: every tab isolates its content and unit sprites become prop
  await expect(page.locator('#sf-tabs button[data-tab="buildings"]')).toBeVisible();
  await page.waitForFunction(()=>{
   const icons=[...document.querySelectorAll('img[data-sf-unit-icon]')];
-  return icons.length===9&&icons.every(i=>i.dataset.sfIconStatus==='ready'&&i.naturalWidth===192&&i.naturalHeight===132);
+  return icons.length===10&&icons.every(i=>i.dataset.sfIconStatus==='ready'&&i.naturalWidth===192&&i.naturalHeight===132);
  },{timeout:60000});
  const icon=await page.locator('img[data-sf-unit-icon="infantry"]').getAttribute('src');
  expect(icon).toMatch(/^data:image\/png;base64,/);
+ // The new shoulder rocket specialist also uses a real, fully rendered 3D
+ // thumbnail instead of a broken atlas request or a mismatched tall tile.
+ const rocketIcon=page.locator('img[data-sf-unit-icon="rocket"]');
+ expect(await rocketIcon.getAttribute('src')).toMatch(/^data:image\/png;base64,/);
  await expect(page.locator('[data-build="headquarters"]')).toBeVisible();
  await page.locator('#sf-tabs button[data-tab="territories"]').click();
  await expect(page.locator('[data-sf-group="buildings"]')).toBeHidden();

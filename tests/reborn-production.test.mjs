@@ -43,7 +43,7 @@ test('production: real worker construction unlocks barracks, factory and airfiel
    }
   }
   assert.ok(b,`${kind}: no site is both legal and reachable by the selected pioneer at ${JSON.stringify({x:worker.x,y:worker.y})}`);
-  const roles=unitKinds.filter(k=>UNITS[k].producers.includes(kind));assert.equal(roles.length,kind==='airfield'?2:3);
+  const roles=unitKinds.filter(k=>UNITS[k].producers.includes(kind));assert.equal(roles.length,kind==='airfield'?2:kind==='barracks'?4:3);
   for(const role of roles){assert.equal(g.producer(0,role),undefined);assert.equal(g.recruit(b.id,role),false);}
   for(let i=0;i<1800&&b.buildRemaining>0;i++)g.step();assert.equal(b.buildRemaining,0);
   for(const role of roles){assert.equal(g.producer(0,role).id,b.id);assert.ok(g.recruit(b.id,role));}

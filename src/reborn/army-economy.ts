@@ -156,6 +156,7 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
  const scores:Record<UnitKind,number>={
   infantry:Math.max(1,22-count('infantry')*5)+(fighters.length<4?18:0),
   heavy:14+(known?20+known*10:0)+armor*5+(fighters.length>=3?9:0)-count('heavy')*11,
+  rocket:(air>0?46+air*9:armor>=2?22+armor*7:0)-count('rocket')*22,
   medic:(wounded>=2?30:Math.max(0,fighters.length-2)*4)-count('medic')*20,
   engineer:count('engineer')===0?(!complete('barracks')?80:fighters.length>=2?38:0):own.length>=4&&count('engineer')<2?15:0,
   rover:complete('factory')?35+(g.explored[1].reduce((n,v)=>n+v,0)/g.explored[1].length<.4?6:0)-count('rover')*17:0,

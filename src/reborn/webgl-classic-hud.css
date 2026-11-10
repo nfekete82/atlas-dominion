@@ -2166,3 +2166,49 @@
   max-width:146px!important;
  }
 }
+
+
+/* Final WebGL catalogue state: unaffordable and tech-locked cards are muted,
+ * gently defocused, never blue/selected. The actual title/cost stay sharp. */
+#sf-classic-root #sf-actions button.catalog-card[data-build]:disabled,
+#sf-classic-root #sf-actions button.catalog-card[data-build].locked{
+ position:relative!important;
+ opacity:.72!important;
+ filter:grayscale(.38)!important;
+ background:linear-gradient(145deg,#3c403c,#272d2b)!important;
+ border:1px solid #525c57!important;
+ box-shadow:none!important;
+ cursor:not-allowed!important;
+ outline:0!important;
+}
+#sf-classic-root #sf-actions button.catalog-card[data-build]:disabled .sf-card-image,
+#sf-classic-root #sf-actions button.catalog-card[data-build].locked .sf-card-image{
+ background:linear-gradient(140deg,#4b514e,#303835)!important;
+}
+#sf-classic-root #sf-actions button.catalog-card[data-build]:disabled .sf-card-image img,
+#sf-classic-root #sf-actions button.catalog-card[data-build].locked .sf-card-image img,
+#sf-classic-root #sf-actions button.catalog-card[data-build]:disabled .sf-card-image img[data-sf-icon-status="ready"],
+#sf-classic-root #sf-actions button.catalog-card[data-build].locked .sf-card-image img[data-sf-icon-status="ready"]{
+ filter:grayscale(.78) saturate(.42) brightness(.68) blur(.75px)!important;
+ opacity:.72!important;
+ transform:scale(1)!important;
+}
+#sf-classic-root #sf-actions button.catalog-card[data-build]:disabled .card-meta,
+#sf-classic-root #sf-actions button.catalog-card[data-build].locked .card-meta{
+ background:#292f2d!important;
+ border-top-color:#52605c!important;
+}
+#sf-classic-root #sf-actions button.catalog-card[data-build]:disabled .card-name,
+#sf-classic-root #sf-actions button.catalog-card[data-build].locked .card-name,
+#sf-classic-root #sf-actions button.catalog-card[data-build]:disabled .card-cost,
+#sf-classic-root #sf-actions button.catalog-card[data-build].locked .card-cost{
+ color:#b5b6ab!important;
+ text-shadow:none!important;
+ filter:none!important;
+}
+#sf-classic-root #sf-actions button.catalog-card[data-build]:disabled.sf-selected-build,
+#sf-classic-root #sf-actions button.catalog-card[data-build].locked.sf-selected-build{
+ border-color:#525c57!important;
+ outline:0!important;
+ box-shadow:none!important;
+}

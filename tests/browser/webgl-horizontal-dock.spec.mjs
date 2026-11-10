@@ -291,7 +291,7 @@ test('context menus expose builder construction and only the selected producer u
  });
  expect(roster.tab).toBe('units');
  expect(roster.hq).toEqual([{kind:'headquarters',units:['engineer']}]);
- expect(roster.variants.barracks[0].units).toEqual(['infantry','medic','heavy']);
+ expect(roster.variants.barracks[0].units).toEqual(['infantry','medic','heavy','rocket']);
  expect(roster.variants.factory[0].units).toEqual(['rover','tank','artillery']);
  expect(roster.variants.airfield[0].units).toEqual(['scout','bomber']);
  expect(roster.tabs).toEqual(['units','territories']);
@@ -729,4 +729,44 @@ test('perf overlay separates bomber sight computation from simulation, VFX and r
  await page.keyboard.press('Shift+P');
  const download=await ready;
  expect(download.suggestedFilename()).toMatch(/^sandforge-performance-\d+s\.json$/);
+});
+
+
+test('locked silo is dimmed and mildly blurred, never blue-selected, until affordable',async({page})=>{
+ test.setTimeout(115000);
+ await load(page);
+ const states=await page.evaluate(()=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  const location=game.headquartersCandidates(0).find(p=>game.buildError(0,'headquarters',p)===null);
+  const hq=game.build(0,'headquarters',location);
+  if(!hq)throw Error('Could not create base prerequisite');
+  hq.buildRemaining=0;
+  const engineer=game.units.find(u=>u.owner===0&&u.kind==='engineer');
+  battlefield.selected=new Set([engineer.id]);
+  battlefield.selectedBase=null;
+  game.credits[0]=400;
+  battlefield.buildKind='silo';
+  battlefield.drawInterface();
+  const card=()=>document.querySelector('#sf-actions button.catalog-card[data-build="silo"]');
+  const state=()=>({
+   disabled:card().disabled,
+   selected:card().classList.contains('sf-selected-build'),
+   locked:card().classList.contains('locked'),
+   imageFilter:getComputedStyle(card().querySelector('.sf-card-image img')).filter,
+   reason:card().dataset.lockReason
+  });
+  const locked=state();
+  game.credits[0]=9000;battlefield.drawInterface();
+  const available=state();
+  return {locked,available};
+ });
+ expect(states.locked.disabled).toBe(true);
+ expect(states.locked.selected).toBe(false);
+ expect(states.locked.locked).toBe(true);
+ expect(states.locked.imageFilter).toMatch(/grayscale/);
+ expect(states.locked.imageFilter).toMatch(/blur/);
+ expect(states.locked.reason).toContain('Zu wenig Credits');
+ expect(states.available.disabled).toBe(false);
+ expect(states.available.selected).toBe(true);
+ expect(states.available.locked).toBe(false);
 });

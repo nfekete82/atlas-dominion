@@ -27,10 +27,24 @@ export class VisionCache {
    // Moving sources retain the original overlap-skipping ray cast.
    const cells:number[]|undefined=same?[]:undefined;
    const gx=Math.floor(s.x/world.cell),gy=Math.floor(s.y/world.cell),r=Math.ceil(s.sight/world.cell);
-   for(let y=Math.max(0,gy-r);y<=Math.min(RULES.grid-1,gy+r);y++)for(let x=Math.max(0,gx-r);x<=Math.min(RULES.grid-1,gx+r);x++){
+   // Aircraft are pure radial visibility sources. The old generic loop
+   // allocated a Point for every terrain cell and used a ground LOS branch
+   // that an aircraft never needs. Preserve the exact Math.hypot boundary
+   // while avoiding thousands of transient allocations on bomber flyovers.
+   if(s.air){
+    for(let y=Math.max(0,gy-r);y<=Math.min(RULES.grid-1,gy+r);y++){
+     const dy=s.y-(y+.5)*world.cell;
+     for(let x=Math.max(0,gx-r);x<=Math.min(RULES.grid-1,gx+r);x++){
+      const i=y*RULES.grid+x;
+      if(!cells&&visible[i])continue;
+      const dx=s.x-(x+.5)*world.cell;
+      if(Math.hypot(dx,dy)<=s.sight){visible[i]=1;cells?.push(i);}
+     }
+    }
+   }else for(let y=Math.max(0,gy-r);y<=Math.min(RULES.grid-1,gy+r);y++)for(let x=Math.max(0,gx-r);x<=Math.min(RULES.grid-1,gx+r);x++){
     const i=y*RULES.grid+x;if(!cells&&visible[i])continue;
     const p=world.center(i),d=distance(s,p);
-    if(d<=s.sight&&(s.air||d<=s.close||this.clearRectangle(gx,gy,x,y)||world.sightLine(s,p))){visible[i]=1;cells?.push(i);}
+    if(d<=s.sight&&(d<=s.close||this.clearRectangle(gx,gy,x,y)||world.sightLine(s,p))){visible[i]=1;cells?.push(i);}
    }
    const own=world.index(s);if(own>=0){visible[own]=1;cells?.push(own);}
    cache.set(s.key,{source:{...s},...(cells?{cells:Uint16Array.from(cells)}:{})});

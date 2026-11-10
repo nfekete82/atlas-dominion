@@ -48,6 +48,11 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
  // counter deficit. Queue counts make this stable across successive pulses.
  const counter=():UnitKind|null=>{
   if(observed.air){
+   // A 250-credit heavy can defend immediately while we cannot yet fund a
+   // 325-credit guided launcher. Upgrade the observed-air counter to a paid
+   // rocket specialist as soon as the guarded budget actually allows it.
+   if(available('rocket')&&count('rocket')<Math.min(3,Math.max(1,observed.air))&&
+      g.credits[1]-c.reserve>=UNITS.rocket.cost)return 'rocket';
    if(available('heavy')&&count('heavy')<Math.min(3,Math.ceil(observed.air/2)))return 'heavy';
   }
   if(observed.armor>=2&&available('tank')&&count('tank')<Math.min(4,Math.ceil(observed.armor/2)))return 'tank';
@@ -107,7 +112,7 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
   return null;
  };
  const ceiling=(kind:UnitKind):number=>({
-  infantry:8,heavy:c.income>=65?4:3,medic:Math.min(2,Math.ceil((count('infantry')+count('heavy'))/5)),
+  infantry:8,heavy:c.income>=65?4:3,rocket:observed.air?Math.min(3,Math.max(1,observed.air)):observed.armor>=2?2:0,medic:Math.min(2,Math.ceil((count('infantry')+count('heavy'))/5)),
   engineer:c.defenseNeedsWorker||c.own.length>=4&&(s.recovering?.length??0)>0?2:1,rover:1,tank:c.income>=65||observed.armor>=3?4:2,
   artillery:c.knownTurrets>1?3:c.knownEnemyHQ||c.knownTurrets?2:1,
   scout:1,bomber:c.income>=65?1:0,

@@ -24,6 +24,7 @@ import {snapToPlayableEdge,worldToMinimap} from '/webgl-map-edges.js';
 import {attackBlinkAlpha} from '/src/reborn/attack-alerts.js';
 import {UPGRADES,UPGRADE_KINDS,canResearchUpgrade,INTERCEPTOR_ENABLED,SILO_CHARGE_SECONDS,INTERCEPTOR_MAX_AMMO,INTERCEPTOR_REARM_COST} from '/src/reborn/strategic-tech.js';
 import {createStrategicBuilding,isStrategicBuilding} from '/webgl-strategic-buildings.js';
+import {createRocketInfantry} from '/webgl-rocket-infantry.js';
 
 // Runtime adapter: game state, movement, combat, production and AI are owned
 // exclusively by the original Simulation. 3D nodes are presentation only.
@@ -110,6 +111,7 @@ export class SandforgeBattlefield {
  entityPosition(p){return this.pos(p.x,p.y,this.heightAt(p.x,p.y)+unitRenderAltitude(p.kind,p.flightHeight??1));}
  createFallback(kind,owner,type){
   if(type==='building'&&isStrategicBuilding(kind))return createStrategicBuilding(kind,owner);
+  if(type==='unit'&&kind==='rocket')return createRocketInfantry(owner);
   const group=new THREE.Group(),team=owner===0?'#397f9d':'#9f5541',metal=new THREE.MeshStandardMaterial({color:team,metalness:.55,roughness:.53}),
    dark=new THREE.MeshStandardMaterial({color:'#444743',metalness:.45,roughness:.7});
   // Placeholder structures use the same gentle ambient lift as detailed GLBs.
@@ -201,7 +203,8 @@ export class SandforgeBattlefield {
   // player's base look markedly worse than the 2D game.
   // Medics always load their authored 3D soldier, even in lite mode.
   if((this.lite&&type!=='building'&&entity.kind!=='medic')||
-     type==='building'&&isStrategicBuilding(entity.kind)||entry.requested||
+     (type==='building'&&isStrategicBuilding(entity.kind))||
+     (type==='unit'&&entity.kind==='rocket')||entry.requested||
      this.loadingCount+this.modelQueue.length>=this.maxModels)return;
   entry.requested=true;
   const url=this.asset(entity.kind,entity.owner,type);
@@ -450,7 +453,7 @@ export class SandforgeBattlefield {
   const unit=type==='unit';
   const footprint=unit?(UNITS[entity.kind]?.width??44)*visualUnitScale(entity.kind):
    BUILDINGS[entity.kind]?.width??130;
-  const height=unit?(['infantry','medic','engineer','heavy'].includes(entity.kind)?43:55)*visualUnitScale(entity.kind):
+  const height=unit?(['infantry','medic','engineer','heavy','rocket'].includes(entity.kind)?43:55)*visualUnitScale(entity.kind):
    Math.max(65,footprint*.55);
   applyFactionAccents(entry,entity,type,footprint,height);
   if(type==='unit'&&['tank','artillery'].includes(entity.kind))this.installTankRig(entry,placeholder);
@@ -635,18 +638,24 @@ export class SandforgeBattlefield {
   this.presentation.consumeShots(this.units,this.bases);
   for(const u of this.game.units){
    const entry=this.units.get(u.id);
-   if(entry){
+   if(entry&&entry.node.visible){
+    // A bomber can leave dozens of red actors outside player fog. Do not
+    // advance their GLB animation mixers, health bars or recoil every RAF;
+    // authoritative physics/combat continue at the regular fixed tick.
     const visual=entry.productionMotion?{...u,...entry.productionMotion}:
      u.kind==='rover'?{...u,moving:entry.groundedWheelMotion===true}:u;
     this.presentation.update(entry,visual,'unit',dt,this.selected.has(u.id),active);
     // Authored vehicle clips can animate Turret/Gun quaternion and overwrite
     // our aim. Reapply authoritative heading AFTER AnimationMixer.update().
     if(u.kind==='tank'||u.kind==='artillery')this.orientTankRig(entry,visual);
+   }else if(entry){
+    this.presentation.hideWhenCulled(entry);
    }
   }
   for(const b of this.game.bases){
    const entry=this.bases.get(b.id);
-   if(entry)this.presentation.update(entry,b,'building',dt,this.selectedBase===b.id,active);
+   if(entry?.node.visible)this.presentation.update(entry,b,'building',dt,this.selectedBase===b.id,active);
+   else if(entry)this.presentation.hideWhenCulled(entry);
   }
   const known=new Set(this.game.territories.map(t=>t.id));
   for(const [id,entry] of this.bastions)if(!known.has(id)){this.scene.remove(entry.node);this.bastions.delete(id);}
@@ -1149,9 +1158,13 @@ export class SandforgeBattlefield {
    if(button.title!==explanation)button.title=explanation;
    if(blocked)button.setAttribute('aria-description',explanation);
    else button.removeAttribute('aria-description');
-   button.classList.toggle('sf-selected-build',button.dataset.build===this.buildKind);
+   // A disabled building must never look selected. Keep its real reason on
+   // the element for keyboard/assistive interaction and tooltip tests.
+   button.classList.toggle('sf-selected-build',
+    Boolean(button.dataset.build&&button.dataset.build===this.buildKind&&!blocked));
+   if(button.dataset.build)button.dataset.lockReason=blocked?explanation:'';
   }
-  hydrateUnitIcons(actions);
+  hydrateUnitIcons(actions,this.renderer);
   hydrateBuildingIcons(actions,this.renderer);
   // Nine real 3D upgrade models: rasterize only after the research deck is
   // opened. Offscreen 3D readback never runs during ordinary frame rendering.
@@ -1232,7 +1245,7 @@ export class SandforgeBattlefield {
     '<div class="sf-production-empty">Noch keine Produktion aktiv</div>';
    this.previousProductionSlotsKey=slotKey;
    slots.scrollLeft=scroll;
-   hydrateUnitIcons(slots);
+   hydrateUnitIcons(slots,this.renderer);
    hydrateBuildingIcons(slots,this.renderer);
    if(activeResearch)hydrateResearchArtworks(slots,this.renderer);
   }
@@ -1342,7 +1355,7 @@ export class SandforgeBattlefield {
     for(let i=0;i<images.length;i++){
      const img=images[i],unit=squadKinds[i];
      img.src='/src/assets/reborn/infantry-grounded-v3.png';
-     unitIcon(unit).then(url=>{
+     unitIcon(unit,this.renderer).then(url=>{
       if(this.previousPortraitKey===portraitKey&&img.isConnected)img.src=url;
      }).catch(error=>console.warn('Squad portrait fallback:',unit,error));
     }
@@ -1352,7 +1365,7 @@ export class SandforgeBattlefield {
    if(this.previousPortraitKey!==portraitKey){
     this.previousPortraitKey=portraitKey;
     if(item&&!item.queue){
-     unitIcon(kind).then(url=>{
+     unitIcon(kind,this.renderer).then(url=>{
       if(this.previousPortraitKey===portraitKey)portrait.src=url;
      }).catch(error=>console.warn('Portrait fallback',error));
      portrait.src='/src/assets/reborn/infantry-grounded-v3.png';

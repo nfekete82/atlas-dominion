@@ -9,7 +9,7 @@ export interface BattleAssessment {at:number;own:number;enemy:number;deficit:num
 export interface Withdrawal extends Point {unit:number;since:number;until:number}
 export interface FailedFront extends Point {sector:number;at:number;until:number;power:number;towers:number;failures:number}
 export interface BattleSquad {role:'assault'|'defense'|'raid';ids:number[];target:number|null;since:number}
-export interface BattleState {version:1;withdrawals:Withdrawal[];fronts:FailedFront[];squads:BattleSquad[];assessment?:BattleAssessment;reactions:number;retreats:number}
+export interface BattleState {version:1;withdrawals:Withdrawal[];fronts:FailedFront[];squads:BattleSquad[];assessment?:BattleAssessment;commitUntil?:number;reactions:number;retreats:number}
 export const newBattle=():BattleState=>({version:1,withdrawals:[],fronts:[],squads:[],reactions:0,retreats:0});
 const fighting=(u:Unit)=>u.hp>0&&!u.carrier&&!['engineer','medic','scout'].includes(u.kind);
 export function fightingPower(units:readonly Unit[],armored=false):number{
@@ -43,6 +43,21 @@ export function assessBattle(units:readonly Unit[],enemies:readonly Unit[],tower
  const stance=towers.length&&canSiege?'siege':own>=required&&own>0?'attack':engaged&&own<enemy*.8?'withdraw':'reinforce';
  return {at,own,enemy,deficit,towers:towers.length,neededSiege,stance};
 }
+/** A real skirmish is not a strategic retreat order. Retreating while
+ * taking fire hands free shots to the pursuer. Only actually OBSERVED enemies
+ * and living paid combatants may authorize a short fight commitment.
+ * An overwhelming enemy or a known unsupported hostile turret remains a
+ * reason to disengage when a safe route exists. */
+export function shouldCommitFirefight(x:{
+  own:number;enemy:number;visible:number;inRange:number;
+  healthy:number;knownTowers:number;time:number;commitUntil:number;
+}):boolean{
+ if(x.visible<=0||x.inRange<=0||x.healthy<=0)return false;
+ if(x.enemy<=0)return true;
+ const ratio=x.own/x.enemy;
+ if(x.knownTowers>0&&ratio<.85)return false;
+ return ratio>=.48||(x.time<x.commitUntil&&ratio>=.32);
+}
 /** A large observed local overmatch should not be thrown away merely
  * because one tank falls below the routine repair HP threshold.
  * Only what faction 1 can currently see (plus previously observed guns)
@@ -75,7 +90,7 @@ export function retryFront(s:BattleState,sector:number,power:number,towers:numbe
 export function validBattle(raw:unknown,time:number,point:(p:Point)=>boolean,sectors:number):boolean{
  if(raw===undefined)return true;const s=raw as BattleState,id=(n:unknown)=>Number.isSafeInteger(n)&&(n as number)>=0;
  const num=(n:unknown)=>typeof n==='number'&&Number.isFinite(n)&&n>=0,at=(n:unknown)=>num(n)&&(n as number)<=time+.001;
- return !!s&&s.version===1&&id(s.reactions)&&id(s.retreats)
+ return !!s&&s.version===1&&id(s.reactions)&&id(s.retreats)&&(s.commitUntil===undefined||(num(s.commitUntil)&&s.commitUntil<=time+12))
   &&Array.isArray(s.withdrawals)&&s.withdrawals.length<=RULES.capacity&&s.withdrawals.every(w=>point(w)&&id(w.unit)&&at(w.since)&&num(w.until)&&w.until>=w.since&&w.until<=time+120)
   &&Array.isArray(s.fronts)&&s.fronts.length<=16&&s.fronts.every(f=>point(f)&&id(f.sector)&&f.sector<sectors&&at(f.at)&&num(f.until)&&f.until>=f.at&&f.until<=time+120&&num(f.power)&&id(f.towers)&&id(f.failures))
   &&Array.isArray(s.squads)&&s.squads.length<=3&&s.squads.every(q=>['assault','defense','raid'].includes(q.role)&&at(q.since)&&(q.target===null||id(q.target))&&Array.isArray(q.ids)&&q.ids.length<=RULES.capacity&&new Set(q.ids).size===q.ids.length&&q.ids.every(id))

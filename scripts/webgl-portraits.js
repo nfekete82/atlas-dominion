@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {createStrategicBuilding,isStrategicBuilding} from './webgl-strategic-buildings.js';
+import {createRocketInfantry} from './webgl-rocket-infantry.js';
 import {createResearchArtwork,RESEARCH_ARTWORK_KINDS} from './webgl-research-artworks.js';
 import {tintFactionMaterials} from './webgl-faction-accents.js';
 
@@ -238,7 +239,28 @@ async function rasterizeUnitIcon(kind){
  ctx.drawImage(tile,left,top,w,h,(192-dw)/2,infantry?119-dh:(132-dh)/2,dw,dh);
  return target.toDataURL('image/png');
 }
-export function unitIcon(kind){
+/** Offline vector backup for the original 3D portrait (no asset fetch). */
+function rocketUnitIconFallback(){
+ const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 132"><rect width="192" height="132" fill="#28322d"/><g transform="translate(30 0) scale(.69)">'+
+ '<path fill="#8d987c" d="M62 68h67v75H62z"/>'+
+ '<path fill="#baa882" d="M60 145h28v32H60zm49 0h28v32h-28z"/>'+
+ '<circle cx="96" cy="51" r="25" fill="#aca787"/>'+
+ '<rect x="69" y="27" width="64" height="10" fill="#516757"/>'+
+ '<rect x="102" y="60" width="17" height="81" rx="6" transform="rotate(-75 110 105)" fill="#39453f"/>'+
+ '<path stroke="#dcbe83" stroke-width="5" d="m147 57 23 17-25 11"/>'+
+ '</g></svg>';
+ return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
+}
+export function unitIcon(kind,renderer){
+ if(kind==='rocket'&&!renderer)return Promise.resolve(rocketUnitIconFallback());
+ if(kind==='rocket'&&!iconCache.has(kind)){
+  iconCache.set(kind,new Promise((resolve,reject)=>{
+   requestAnimationFrame(()=>{
+    try{resolve(renderModelPortrait(createRocketInfantry(0),renderer,{width:192,height:132}));}
+    catch(error){reject(error);}
+   });
+  }).catch(error=>{iconCache.delete(kind);console.warn('Rocket 3D portrait fallback:',error);return rocketUnitIconFallback();}));
+ }
  if(!iconCache.has(kind))iconCache.set(kind,rasterizeUnitIcon(kind).catch(error=>{
   iconCache.delete(kind);throw error;
  }));
@@ -327,12 +349,12 @@ export function hydrateBuildingIcons(root,renderer){
  }
 }
 
-export function hydrateUnitIcons(root){
+export function hydrateUnitIcons(root,renderer){
  for(const img of root.querySelectorAll('img[data-sf-unit-icon]')){
   const kind=img.dataset.sfUnitIcon;
   if(!kind||img.dataset.sfIconStatus)return;
   img.dataset.sfIconStatus='loading';
-  unitIcon(kind).then(url=>{
+  unitIcon(kind,renderer).then(url=>{
    if(img.isConnected&&img.dataset.sfUnitIcon===kind){img.src=url;img.dataset.sfIconStatus='ready';}
   }).catch(error=>{
    if(img.isConnected){img.dataset.sfIconStatus='error';img.alt=kind;}
