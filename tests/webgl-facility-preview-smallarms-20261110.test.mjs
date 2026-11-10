@@ -39,7 +39,8 @@ test('runway is significantly longer than hangars and landing positions stay unc
  assert.ok(runway&&hangar);
  assert.ok(runway.geometry.parameters.depth>=hangar.geometry.parameters.depth*2.5);
  assert.ok(runway.position.z+runway.geometry.parameters.depth/2>340);
- assert.ok(runway.geometry.parameters.depth>=950,'runway must extend well past hangars');
+ assert.ok(runway.geometry.parameters.depth>=550&&runway.geometry.parameters.depth<=650,
+  'runway must be long enough for the bomber but fit the actual map');
  assert.equal(airport.getObjectByName('AirfieldCrossTaxiLane'),undefined,
   'remove the old short cross runway');
  assert.ok(airport.getObjectByName('AirfieldAircraftParkingPad_0'));
@@ -53,10 +54,10 @@ test('runway is significantly longer than hangars and landing positions stay unc
  assert.ok(!airport.getObjectByName('AirfieldRightControlTowerShaft'));
 
  const base={x:2000,y:2000,facing:0};
- assert.ok(airfieldPoint(base,'approach').y>2400);
- assert.ok(airfieldPoint(base,'touchdown').y>2150);
+ assert.ok(airfieldPoint(base,'approach').y>2250);
+ assert.ok(airfieldPoint(base,'touchdown').y>2100);
  assert.ok(serviceFootprintContains({kind:'airfield',facing:0,x:1200,y:1400},
-  {x:1330,y:2040}),'runway right-click extends to far end');
+  {x:1330,y:1775}),'runway right-click extends to far end');
  assert.ok(airport.getObjectByName('HangarRoofSpine_0'));
  assert.ok(airport.getObjectByName('HangarAngledRoofPlate_1'));
  assert.ok(serviceFootprintContains({kind:'airfield',facing:0,x:1200,y:1400},{x:1330,y:1740}));
@@ -122,11 +123,15 @@ test('build ghost and completed buildings use identical 3D asset and site genera
 
 test('construction keeps complete final building visible instead of cropping its upper floors',()=>{
  const construction=source('scripts/webgl-construction.js');
- assert.ok(construction.includes('if(model)model.visible=true'));
+ assert.ok(!construction.includes('if(model)model.visible=true'));
+ assert.ok(construction.includes("stageGroup(model,'building')"));
+ assert.ok(construction.includes("stageGroup(entry.yard,'yard')"));
+ assert.ok(construction.includes("stageGroup(entry.airfieldServiceYard??entry.factoryServiceYard,'service')"));
  assert.ok(!construction.includes('model.traverse(obj=>{'),
   'construction must no longer clip authored GLB materials');
  assert.ok(!construction.includes('state.clip.constant='));
  assert.ok(construction.includes('state.roof.visible=progress>=.77'));
+ assert.ok(construction.includes("threshold=/roof|antenna"));
 });
 
 test('airfield selection no longer hides the building catalogue if a pioneer survives',()=>{
@@ -134,8 +139,7 @@ test('airfield selection no longer hides the building catalogue if a pioneer sur
  assert.match(src,/const canBuild=game\.units\.some\(u=>u\.owner===0&&u\.kind==='engineer'/);
  assert.match(src,/buildings:context\.canBuild/);
  assert.match(src,/buildings:this\.catalogContext\(\)\.canBuild/);
- // The simulation's 116-radius building collision must not inherit the
- // 980-unit purely visual runway footprint.
+ // The compact 600-unit strip has a matching rotated construction footprint.
  const game=new Simulation(2074,4);
  game.aiClock=1e8;game.credits[0]=10000;game.explored[0].fill(1);
  const air={id:31110,kind:'airfield',owner:0,x:2000,y:2000,hp:1200,
