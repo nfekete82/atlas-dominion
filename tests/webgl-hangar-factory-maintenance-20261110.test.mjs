@@ -32,8 +32,8 @@ test('two distinct rotated airfield bays and runway/landing points',()=>{
  assert.notDeepEqual(airfieldPoint(b,'dock',0),airfieldPoint(b,'dock',1));
  assert.deepEqual(airfieldTaxiPoint(b,0,0),airfieldPoint(b,'touchdown',0));
  assert.deepEqual(airfieldTaxiPoint(b,1,1),airfieldPoint(b,'dock',1));
- assert.deepEqual(factoryRepairPoint(b,0),{x:2045,y:2292});
- assert.deepEqual(factoryRepairPoint(b,1),{x:2045,y:2292},'legacy service bay shares new platform');
+ assert.deepEqual(factoryRepairPoint(b,0),{x:2045,y:1908});
+ assert.deepEqual(factoryRepairPoint(b,1),{x:2045,y:1908},'legacy service bay shares new platform');
  assert.equal(unitRenderAltitude('bomber',1),175);
  assert.equal(unitRenderAltitude('bomber',0),0);
 });
@@ -174,7 +174,7 @@ test('end-to-end: real bomber lands and taxis into its assigned hangar',()=>{
 });
 
 test('end-to-end: ground tank drives to factory apron and enters service',()=>{
- const {g,garage}=setup(),tank=g.spawn(0,{x:2510,y:2320},'tank');
+ const {g,garage}=setup(),tank=g.spawn(0,{x:2890,y:2320},'tank');
  tank.hp=700;
  assert.equal(g.requestFactoryRepair([tank.id]),1);
  let startedParking=false,servicing=false;
