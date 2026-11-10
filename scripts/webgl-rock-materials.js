@@ -142,10 +142,13 @@ export function weatheredStoneGeometry(lowQuality=false){
   const c=ringPoint(k+1,j),d=ringPoint(k+1,j+1);
   triangle(a,c,b);triangle(b,c,d);
  }
+ // Top and underside must have outward-facing winding. Previously the
+ // top cap was reversed and disappeared under normal back-face culling,
+ // making solid sandstone read like hollow donuts from the RTS camera.
  for(let i=0;i<segments;i++){
   triangle([.02,rings.at(-1)[0]+.025,-.02],
-   ringPoint(rings.length-1,i),ringPoint(rings.length-1,i+1));
-  triangle([0,rings[0][0]-.04,0],ringPoint(0,i+1),ringPoint(0,i));
+   ringPoint(rings.length-1,i+1),ringPoint(rings.length-1,i));
+  triangle([0,rings[0][0]-.04,0],ringPoint(0,i),ringPoint(0,i+1));
  }
  const geometry=new THREE.BufferGeometry();
  geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
