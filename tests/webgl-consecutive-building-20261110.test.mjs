@@ -160,3 +160,65 @@ test('missing pioneers yields actionable explanation without constructing phanto
  assert.equal(result.base,null);
  assert.match(result.reason,/Kein lebender Pionier/);
 });
+
+test('REAL default 8-bastion WebGL v24: HQ -> airfield -> generator all finish',()=>{
+ const g=Simulation.campaign(2074,24);
+ g.aiClock=1e9;g.tactical.plan=()=>{};
+ g.credits[0]=25000;g.explored[0].fill(1);
+ const pioneer=g.units.find(u=>u.owner===0&&u.kind==='engineer'&&u.hp>0);
+ assert.ok(pioneer,'campaign starts with a real pioneer');
+ const selection=new Set([pioneer.id]);
+ const start={x:pioneer.x,y:pioneer.y};
+ function findAndPlace(kind,anchor){
+  const all=[anchor];
+  for(let r=45;r<=1050;r+=75)for(let i=0;i<32;i++){
+   const a=2*Math.PI*i/32;
+   all.push({x:Math.round(anchor.x+r*Math.cos(a)),
+    y:Math.round(anchor.y+r*Math.sin(a))});
+  }
+  let valid=0,last=null;
+  for(const p of all){
+   const error=g.buildError(0,kind,p,0);
+   if(error){last=error;continue;}
+   valid++;
+   const order=submitConstruction(g,kind,p,selection,0,false);
+   if(order.base){
+    selection.clear();for(const u of order.workers)selection.add(u.id);
+    return order.base;
+   }
+   last=order.reason;
+  }
+  assert.fail('could not place '+kind+' in real v24 campaign, valid '+valid+
+   ', last error: '+last+', pioneer '+JSON.stringify({x:pioneer.x,y:pioneer.y,
+    orders:pioneer.orders,status:g.status,credits:g.credits[0]}));
+ }
+ const finish=site=>{
+  for(let n=0;site.buildRemaining>0&&n<3600&&g.status==='playing';n++)g.step(.05);
+  assert.equal(site.buildRemaining,0,
+   site.kind+' must finish in v24: '+JSON.stringify({
+    pos:{x:site.x,y:site.y},pioneer:{
+     x:pioneer.x,y:pioneer.y,orders:pioneer.orders,workingTarget:pioneer.workingTarget
+    },status:g.status,rem:site.buildRemaining
+   }));
+ };
+ const hq=findAndPlace('headquarters',start);finish(hq);
+ assert.equal(g.needsHeadquarters(0),false);
+ const airfield=findAndPlace('airfield',hq);finish(airfield);
+ const generator=findAndPlace('generator',hq);finish(generator);
+ assert.ok(g.bases.includes(generator));
+ assert.equal(generator.buildRemaining,0);
+});
+
+test('click outside the sector cannot throw or permanently break later builds',()=>{
+ const g=new Simulation(2074,19);
+ g.credits[0]=5000;g.explored[0].fill(1);
+ const worker=g.units.find(u=>u.owner===0&&u.kind==='engineer');
+ const old=g.territories;
+ g.territories=[];
+ const p={x:worker.x,y:worker.y};
+ const reason=g.buildError(0,'generator',p);
+ assert.match(reason,/Sektor/);
+ assert.equal(g.build(0,'generator',p,[worker.id]),null);
+ g.territories=old;
+ assert.equal(g.status,'playing');
+});
