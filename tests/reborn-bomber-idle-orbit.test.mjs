@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Simulation} from '../dist/src/reborn/simulation.js';
 import {beginBomberOrbit,advanceBomberOrbit,validBomberOrbit,BOMBER_ORBIT_SPEED,BOMBER_ORBIT_RADII} from '../dist/src/reborn/bomber-orbit.js';
+import {steerBomberArc,BOMBER_MAX_TURN_RATE} from '../dist/src/reborn/bomber-attack.js';
 import {unitArtScale} from '../dist/src/reborn/visual-scale.js';
 import {unitSpec} from '../dist/src/reborn/catalog.js';
 import {distance} from '../dist/src/reborn/config.js';
@@ -96,4 +97,54 @@ test('the pure orbital advance is deterministic and consumes no simulated random
   assert.deepEqual(x,y);
  }
  assert.deepEqual(a,b);
+});
+
+
+test('180-degree bomber redirect flies a physical circle, never snaps or slides sideways',()=>{
+ const target={x:1200,y:2000};
+ let plane={x:1600,y:2000,angle:0,hullAngle:0};
+ const first=steerBomberArc(plane,target,.05,350,4160);
+ assert.ok(first.x>plane.x,'jet initially flies forward, not west toward the cursor');
+ assert.ok(first.y>plane.y,'real curved path has lateral displacement');
+ assert.ok(Math.abs(first.heading-plane.angle)<=BOMBER_MAX_TURN_RATE*.05+1e-9,
+  'instantaneous 180-degree turning is forbidden');
+ let total=0,min=Infinity,travel=0,turns=0;
+ for(let i=0;i<400;i++){
+  const p=steerBomberArc(plane,target,.05,350,4160);
+  const actual=Math.hypot(p.x-plane.x,p.y-plane.y);
+  const angular=Math.atan2(Math.sin(p.heading-plane.angle),
+   Math.cos(p.heading-plane.angle));
+  assert.ok(Math.abs(angular)<=3.15*.05+1e-9,
+   'maximum steering angle is rate-limited at 20 Hz');
+  if(Math.abs(angular)>.001)turns++;
+  travel+=actual;total+=.05;
+  assert.ok(actual<=350*.05+1e-6);
+  plane={x:p.x,y:p.y,angle:p.heading,hullAngle:p.heading};
+  min=Math.min(min,Math.hypot(plane.x-target.x,plane.y-target.y));
+  if(min<35)break;
+ }
+ assert.ok(turns>=15,'large turn needs many physical flight ticks');
+ assert.ok(total>2,'the bomber actually performs a sweeping arc');
+ assert.ok(travel>420,'it travels around, not through, its pivot');
+ assert.ok(min<35,'the turn still converges to the ordered destination');
+});
+
+test('simulation bomber and 3D heading follow the same curved path',()=>{
+ const {game,bomber}=setup();
+ bomber.angle=0;bomber.hullAngle=0;
+ const before={x:bomber.x,y:bomber.y};
+ assert.equal(game.command([bomber.id],{kind:'move',x:before.x-430,y:before.y}),1);
+ game.step(.05);
+ assert.ok(bomber.x>before.x,'physical movement must remain initially forward');
+ assert.ok(bomber.y>before.y,'flight must bank into a loop');
+ assert.ok(Math.abs(bomber.angle)<.07);
+ assert.ok(Math.abs(bomber.hullAngle-bomber.angle)<1e-8,
+  'WebGL model heading and authoritative movement must match');
+ assert.equal(bomber.idleOrbit,undefined);
+ let near=Infinity;
+ for(let i=0;i<260&&bomber.orders.length;i++){
+  game.step(.05);
+  near=Math.min(near,Math.hypot(bomber.x-(before.x-430),bomber.y-before.y));
+ }
+ assert.ok(near<40,'curved bomber movement reaches its direct move destination');
 });

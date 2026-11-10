@@ -2,6 +2,93 @@ import * as THREE from 'three';
 import {createGroundDetails} from '/src/reborn/battlefield-atmosphere.js';
 import {stoneMaterial,weatheredStoneGeometry} from '/webgl-rock-materials.js';
 
+/** Reproduce the exact heights of the 4x4 × 56-segment rendered terrain.
+ * Sampling the mathematical heightfield alone is insufficient: the ground
+ * GPU mesh linearly interpolates between vertices, and decals can clip into
+ * steep dunes if that interpolation is ignored. Cache sampled grid corners.
+ */
+export function renderGroundHeightSampler(heightAt,size,segments=224){
+ const spacing=size/segments,cache=new Map();
+ const corner=(i,j)=>{
+  const key=j*(segments+1)+i;
+  if(!cache.has(key))cache.set(key,heightAt(i*spacing,j*spacing));
+  return cache.get(key);
+ };
+ return (x,z)=>{
+  const gx=Math.max(0,Math.min(segments,x/spacing));
+  const gz=Math.max(0,Math.min(segments,z/spacing));
+  const i=Math.min(segments-1,Math.floor(gx));
+  const j=Math.min(segments-1,Math.floor(gz));
+  const tx=gx-i,tz=gz-j;
+  const a=corner(i,j),b=corner(i+1,j),
+   c=corner(i,j+1),d=corner(i+1,j+1);
+  // Same diagonal and barycentric weights as buildTerrain() in preview.
+  return tx+tz<=1?
+   a*(1-tx-tz)+b*tx+c*tz:
+   b*(1-tz)+c*(1-tx)+d*(tx+tz-1);
+ };
+}
+
+/** Pre-bake every crater into one terrain-following, textured decal mesh.
+ * Each vertex samples the *existing* render heightfield, so no part of a
+ * crater punches through a dune or floats as a bright geometric tire ring.
+ * The only geometry is a flat surface offset above terrain: zero collision,
+ * zero per-frame height samples, no changes to saves or simulation.
+ */
+export function createConformingCraterGeometry(craters,{
+ pos,lowQuality=false,spacious=true,heightAt=null,worldSize=0
+}){
+ const sampleGround=heightAt&&worldSize>0?
+  renderGroundHeightSampler(heightAt,worldSize):null;
+ const segments=lowQuality?18:28;
+ const radii=[.18,.38,.59,.77,.91,1];
+ const positions=[],uvs=[],indices=[];
+ const half=spacious?.60:1;
+ const emit=(x,z,u,v)=>{
+  const point=pos(x,z);
+  const ground=sampleGround?sampleGround(x,z):point.y;
+  positions.push(point.x,ground+.24,point.z);
+  uvs.push(u,v);
+  return positions.length/3-1;
+ };
+ for(const d of craters){
+  const center=emit(d.x,d.y,.5,.5);
+  const sizeX=d.radius*3.1*half*.5;
+  const sizeZ=d.radius*2.3*half*.5;
+  const cs=Math.cos(d.rotation),sn=Math.sin(d.rotation);
+  const rings=[];
+  for(const r of radii){
+   const ring=[];
+   for(let i=0;i<segments;i++){
+    const a=i*Math.PI*2/segments;
+    const ux=Math.cos(a)*r,uz=Math.sin(a)*r;
+    const dx=ux*sizeX,dz=uz*sizeZ;
+    ring.push(emit(d.x+dx*cs-dz*sn,d.y+dx*sn+dz*cs,
+     .5+ux*.5,.5+uz*.5));
+   }
+   rings.push(ring);
+  }
+  for(let i=0;i<segments;i++){
+   const j=(i+1)%segments;
+   // Counterclockwise as seen from above (+Y); no back-face holes.
+   indices.push(center,rings[0][j],rings[0][i]);
+   for(let k=0;k<rings.length-1;k++){
+    const inner=rings[k],outer=rings[k+1];
+    indices.push(inner[i],inner[j],outer[i],
+     inner[j],outer[j],outer[i]);
+   }
+  }
+ }
+ const geometry=new THREE.BufferGeometry();
+ geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+ geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
+ geometry.setIndex(indices);
+ geometry.computeBoundingSphere();
+ geometry.userData={groundConforming:true,visualOnly:true,
+  craterCount:craters.length,segments,terrainSampledOnce:true};
+ return geometry;
+}
+
 // Environmental set dressing mirrors deterministic Canyon sites but has no
 // influence on gameplay or collision. Every asset is a true GPU 3D mesh.
 export class DesertArtPass {
@@ -14,41 +101,76 @@ export class DesertArtPass {
   this.addRuinRubble();
  }
  makeCraterTexture(){
-  const canvas=document.createElement('canvas');canvas.width=canvas.height=128;
-  const ctx=canvas.getContext('2d'),g=ctx.createRadialGradient(64,64,6,64,64,61);
-  g.addColorStop(0,'rgba(72,47,26,.53)');
-  g.addColorStop(.46,'rgba(88,57,31,.7)');
-  g.addColorStop(.64,'rgba(129,92,51,.58)');
-  g.addColorStop(.80,'rgba(239,196,125,.29)');
-  g.addColorStop(1,'rgba(232,188,119,0)');
-  ctx.fillStyle=g;ctx.fillRect(0,0,128,128);
-  const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
+  // Procedural, biome-aware excavation with an eroded rim and granular
+  // ejecta. The old static crater.png was a circular brown stamp (and even
+  // appeared on snow maps); this atlas stays local, deterministic and only
+  // needs to be generated once per biome, not during gameplay.
+  const size=256,canvas=document.createElement('canvas');
+  canvas.width=canvas.height=size;
+  const ctx=canvas.getContext('2d'),pixels=ctx.createImageData(size,size);
+  const cold=this.biome==='snow',green=this.biome==='jungle';
+  const shade=cold?[87,98,109]:green?[56,46,36]:[109,72,45];
+  const lip=cold?[173,183,190]:green?[109,96,72]:[184,132,84];
+  const dust=cold?[195,205,212]:green?[99,93,70]:[201,148,94];
+  const smooth=(a,b,t)=>{
+   const v=Math.max(0,Math.min(1,(t-a)/(b-a)));
+   return v*v*(3-2*v);
+  };
+  for(let y=0;y<size;y++)for(let x=0;x<size;x++){
+   const dx=(x+0.5-size/2)/110,dy=(y+0.5-size/2)/110;
+   const angle=Math.atan2(dy,dx);
+   // Different angular frequencies prevent a regular bullseye or ring.
+   const edge=1+.095*Math.sin(angle*7+.8)+.053*Math.sin(angle*13-1.5)+
+    .025*Math.cos(angle*19+.6);
+   const r=Math.hypot(dx,dy*1.065)/edge;
+   const coarse=Math.sin(x*.175+y*.081)*Math.cos(y*.139-x*.045);
+   const micro=(Math.imul(x+19,73856093)^Math.imul(y+53,19349663))>>>0;
+   const grit=(micro%997)/996-.5;
+   const depression=Math.exp(-Math.pow(r/.49,4));
+   const raised=Math.exp(-Math.pow((r-.69)/.12,2));
+   const scattered=Math.exp(-Math.pow((r-.84)/.22,2));
+   const fade=1-smooth(.82,1.10,r);
+   const inside=(.19+.40*depression+.12*raised+.06*scattered)*fade;
+   const k=(y*size+x)*4;
+   const scatter=.065*coarse+.08*grit;
+   const darkWeight=Math.min(.86,Math.max(0,(.69*depression+.12*raised+scatter)));
+   const rimWeight=Math.min(1-darkWeight,Math.max(0,raised*(.58+.17*coarse)));
+   const color=[0,1,2].map(i=>
+    shade[i]*darkWeight+lip[i]*rimWeight+
+    dust[i]*(1-darkWeight-rimWeight)*.94);
+   for(let i=0;i<3;i++)
+    pixels.data[k+i]=Math.max(0,Math.min(255,Math.round(color[i]+grit*15+coarse*6)));
+   // Fade over a wide, irregular apron to merge with surrounding sand.
+   pixels.data[k+3]=Math.round(255*Math.max(0,Math.min(.92,inside)));
+  }
+  ctx.putImageData(pixels,0,0);
+  const texture=new THREE.CanvasTexture(canvas);
+  texture.colorSpace=THREE.SRGBColorSpace;
+  texture.magFilter=THREE.LinearFilter;
+  texture.minFilter=THREE.LinearMipmapLinearFilter;
+  texture.generateMipmaps=true;
+  texture.anisotropy=4;
   return texture;
  }
  addCraters(){
   const spacious=this.world.mapVersion>=19;
   const crater=this.details.filter(d=>d.kind==='crater')
-    .slice(0,spacious?(this.lowQuality?30:110):(this.lowQuality?55:230));
-  const mesh=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),
-   new THREE.MeshBasicMaterial({map:this.makeCraterTexture(),transparent:true,
-    opacity:spacious?.74:1,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1}),crater.length);
-  // Detailed authored crater decal takes priority when available, with the
-  // procedural crater as an offline-safe fallback.
-  const craterMaterial=mesh.material;
-  new THREE.TextureLoader().load('/src/assets/reborn/battlefield/crater.png',texture=>{
-   texture.colorSpace=THREE.SRGBColorSpace;craterMaterial.map=texture;craterMaterial.needsUpdate=true;
-  },undefined,error=>console.warn('Crater art fallback',error));
-  const dummy=new THREE.Object3D();
-  crater.forEach((d,i)=>{
-   dummy.position.copy(this.pos(d.x,d.y));dummy.position.y+=.9;
-   dummy.rotation.set(-Math.PI*.5,0,d.rotation);
-   const scale=spacious?.60:1;
-   dummy.scale.set(d.radius*3.1*scale,d.radius*2.3*scale,1);
-   dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
+   .slice(0,spacious?(this.lowQuality?30:110):(this.lowQuality?55:230));
+  // One shared mesh, and one draw call, in both standard and lite modes.
+  // Replaces the old unsupported flat instanced quads + raised ring meshes.
+  const geometry=createConformingCraterGeometry(crater,{
+   pos:this.pos,lowQuality:this.lowQuality,spacious,
+   heightAt:this.heightAt,worldSize:this.world.size
   });
-  mesh.instanceMatrix.needsUpdate=true;mesh.frustumCulled=false;mesh.renderOrder=2;
+  const mesh=new THREE.Mesh(geometry,
+   new THREE.MeshBasicMaterial({map:this.makeCraterTexture(),transparent:true,
+    opacity:spacious?.76:.86,depthWrite:false,side:THREE.FrontSide,
+    polygonOffset:true,polygonOffsetFactor:-1}));
+  mesh.renderOrder=2;
   mesh.name='visual-desert-craters';
-  mesh.userData={visualOnly:true,nonPlayable:true,craterDecals:true};
+  mesh.userData={visualOnly:true,nonPlayable:true,craterDecals:true,
+   groundConforming:true,craterCount:crater.length};
+  mesh.raycast=()=>{};
   this.scene.add(mesh);this.items.push(mesh);
  }
  addDebris(){

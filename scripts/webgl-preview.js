@@ -324,8 +324,8 @@ function buildTerrain(){
  * skirts fill the complete solid hull: no blocked ground under empty air. */
 function addBattlefieldRocks(material){
  const vertices=[],colors=[],uv=[];
- const baseColor=new THREE.Color(biome==='desert'?'#c69a6e':biomeStyle.rocks[0]);
- const dark=new THREE.Color(biome==='desert'?'#75503b':biomeStyle.rocks[1]);
+ const baseColor=new THREE.Color(biome==='desert'?'#c9ae8b':biomeStyle.rocks[0]);
+ const dark=new THREE.Color(biome==='desert'?'#80664f':biomeStyle.rocks[1]);
  for(const [id,mesa] of terrain.mesas.entries()){
   const poly=mesa.outline,cx=poly.reduce((n,p)=>n+p.x,0)/poly.length,cz=poly.reduce((n,p)=>n+p.y,0)/poly.length;
   const peak=mesa.columns.reduce((n,c)=>n+c.height,0)/mesa.columns.length*(terrain.battlefield.profile==='rocky'?1.55:1.05);
@@ -336,7 +336,8 @@ function addBattlefieldRocks(material){
    levels=[-.8,.13,.23,.37,.54,.70,.84,.94,1],points=[];
   for(let k=0;k<rings.length;k++){
    points[k]=poly.map((p,i)=>{
-    const erosion=k===0?1:1+Math.sin(i*2.37+rotation+k*.7)*.075;
+    const erosion=k===0?1:1+Math.sin(i*2.37+rotation+k*.7)*.12+
+     Math.sin(i*4.13+k*.53+rotation)*.035;
     const x=cx+(p.x-cx)*rings[k]*erosion,z=cz+(p.y-cz)*rings[k]*erosion;
     return [x-half,heightAt(x,z)+peak*levels[k]*(k===0?1:1+Math.sin(i*1.9+rotation)*.12),z-half];
    });
@@ -353,7 +354,8 @@ function addBattlefieldRocks(material){
    const j=(i+1)%poly.length,a=points[k][i],b=points[k][j],c=points[k+1][i],d=points[k+1][j];
    tri(a,c,b,.08+(k%2)*.15+r()*.07);tri(b,c,d,.08+(k%2)*.15+r()*.07);
   }
-  const top=[cx-half,heightAt(cx,cz)+peak*1.02,cz-half];
+  const top=[cx-half+Math.sin(rotation)*peak*.09,
+   heightAt(cx,cz)+peak*1.02,cz-half+Math.cos(rotation)*peak*.08];
   for(let i=0;i<poly.length;i++)tri(points.at(-1)[i],top,points.at(-1)[(i+1)%poly.length],.02+r()*.06);
  }
  const geometry=new THREE.BufferGeometry();
@@ -403,9 +405,11 @@ function instancedStone(){
   dummy.rotation.set((r()-.5)*.18,r()*6.28,(r()-.5)*.20);
   dummy.updateMatrix();groups[k].setMatrixAt(counts[k]++,dummy.matrix);
   if(contactCount<contacts.instanceMatrix.count){
-   contactDummy.position.set(x-half,y+.53,z-half);
+   // A tight, faint contact patch grounds faceted sandstone without
+   // leaving a giant round dark "sticker" around every small rock.
+   contactDummy.position.set(x-half,y+.35,z-half);
    contactDummy.rotation.set(0,0,0);
-   contactDummy.scale.set(wide*2.55,1,depth*2.45);
+   contactDummy.scale.set(wide*1.82,1,depth*1.75);
    contactDummy.updateMatrix();contacts.setMatrixAt(contactCount++,contactDummy.matrix);
   }
  };

@@ -22,7 +22,7 @@ import {Transports,type TransportState} from './transports.js';
 import {TacticalAI,type TacticalState,type TacticalOrder} from './tactical-ai.js';
 import { MAP_VERSION, randomMapSeed } from './world-generation.js';
 import {beginBomberOrbit,advanceBomberOrbit,validBomberOrbit,BOMBER_ORBIT_SPEED,preservesCaptureBoundary,safeOrbitApproach,isOnBomberOrbit,type BomberOrbit} from './bomber-orbit.js';
-import {bomberAttackWaypoints,BOMBER_BOMB_RELEASE_DISTANCE,BOMBER_RUN_WAYPOINT_DISTANCE,BOMBER_BOMB_FALL_SECONDS,type BomberAttackRun} from './bomber-attack.js';
+import {bomberAttackWaypoints,BOMBER_BOMB_RELEASE_DISTANCE,BOMBER_RUN_WAYPOINT_DISTANCE,BOMBER_BOMB_FALL_SECONDS,steerBomberArc,type BomberAttackRun} from './bomber-attack.js';
 import {AttackAlerts} from './attack-alerts.js';
 import {eliminationOutcome} from './match-outcome.js';
 import {formationSlotPitch,vehicleSpacingGap,preservesVehicleProgress,vehicleYieldWaypoint} from './vehicle-spacing.js';
@@ -1078,6 +1078,20 @@ export class Simulation {
     }
     let d=distance(u,next);if(d<(spec.group==='Infanterie'?5:.4)){u.path.shift();next=u.path[0];if(!next)return;d=distance(u,next);}
     const dx=(next.x-u.x)/d,dy=(next.y-u.y)/d;
+    if(u.kind==='bomber'){
+      // A fixed-wing bomber must physically FLY a short circle when given an
+      // opposite heading. No lateral translation, abrupt 180-degree yaw or
+      // visual-only correction; attacks, manual move orders and return legs
+      // use exactly the same deterministic turning flight.
+      const arc=steerBomberArc(u,next,dt,Math.min(this.speed(u),speedLimit),
+        this.world.size,this.weather.storm?WEATHER_RULES.airSpeed:1);
+      u.x=arc.x;u.y=arc.y;u.angle=arc.heading;u.hullAngle=arc.heading;
+      u.driveSpeed=arc.speed;u.walkDistance+=arc.distance;
+      u.facing=Math.cos(arc.heading)<-.05?-1:
+       Math.cos(arc.heading)>.05?1:u.facing;
+      u.moving=arc.distance>.001;
+      return;
+    }
     // Heavy tanks have a deliberate turn-in-place departure:
     // 1. aim the separate gun towards the next waypoint,
     // 2. slew the tracked hull more slowly,

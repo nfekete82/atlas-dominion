@@ -31,6 +31,41 @@ const materialGrain=(()=>{
  return texture;
 })();
 
+/** Baked, repeating desert camouflage for the silo's largest concrete
+ * surfaces. Unlike tiny colored boxes, this is genuine albedo detail on the
+ * bunker walls and armoured hatch doors. A single GPU texture is shared by
+ * all silo meshes and the matching 3D construction-card portrait.
+ */
+const siloDesertCamo=(()=>{
+ const n=256,rgba=new Uint8Array(n*n*4);
+ const colors=[[205,184,139],[165,153,116],[117,123,91],[187,167,125]];
+ for(let y=0;y<n;y++)for(let x=0;x<n;x++){
+  const u=x*Math.PI*2/n,v=y*Math.PI*2/n;
+  // Periodic field: irregular organic sand/khaki/olive patches, seamless
+  // at the wrap boundary, with subtle dusty micrograin and worn edges.
+  const field=.75*Math.sin(2*u+.82*Math.sin(3*v))+
+   .61*Math.cos(3*v-.58*Math.sin(2*u))+
+   .35*Math.sin(4*u-3*v+.4)+.17*Math.cos(5*v+4*u);
+  const band=field>.73?2:field>.08?1:field<-.75?3:0;
+  const hash=(Math.imul(x+97,73856093)^Math.imul(y+31,19349663))>>>0;
+  const dust=(hash%23)-11,grain=dust*.48;
+  const pos=(y*n+x)*4;
+  for(let c=0;c<3;c++)rgba[pos+c]=Math.max(0,Math.min(255,
+   Math.round(colors[band][c]+grain)));
+  rgba[pos+3]=255;
+ }
+ const t=new THREE.DataTexture(rgba,n,n,THREE.RGBAFormat);
+ t.name='Sandforge silo desert khaki olive camouflage';
+ t.colorSpace=THREE.SRGBColorSpace;
+ t.wrapS=t.wrapT=THREE.RepeatWrapping;
+ t.repeat.set(3,3);
+ t.magFilter=THREE.LinearFilter;
+ t.minFilter=THREE.LinearMipmapLinearFilter;
+ t.generateMipmaps=true;
+ t.needsUpdate=true;
+ return t;
+})();
+
 export const STRATEGIC_BUILDING_KINDS=Object.freeze(['research','silo','interceptor']);
 export const isStrategicBuilding=kind=>STRATEGIC_BUILDING_KINDS.includes(kind);
 export function createStrategicBuilding(kind,owner=0){
@@ -40,33 +75,38 @@ export function createStrategicBuilding(kind,owner=0){
  root.userData.visualOnly=true;
  const faction=owner===0?'#487488':'#91594b';
  const researchCamo=kind==='research';
+ const siloCamo=kind==='silo';
+ const structuralCamo=researchCamo||siloCamo;
  const mats={
-  base:new THREE.MeshStandardMaterial({color:researchCamo?'#bba882':'#968b73',map:materialGrain,
+  base:new THREE.MeshStandardMaterial({color:structuralCamo?'#bba882':'#968b73',map:materialGrain,
    bumpMap:materialGrain,bumpScale:.32,roughness:.84,metalness:.11}),
   panel:new THREE.MeshStandardMaterial({color:researchCamo?'#999477':faction,map:materialGrain,
    bumpMap:materialGrain,bumpScale:.14,roughness:.56,metalness:.39}),
   metal:new THREE.MeshStandardMaterial({color:researchCamo?'#766f5b':'#626b69',map:materialGrain,
    bumpMap:materialGrain,bumpScale:.09,roughness:.48,metalness:.57}),
-  stone:new THREE.MeshStandardMaterial({color:researchCamo?'#d5c297':'#c0ab89',map:materialGrain,
+  stone:new THREE.MeshStandardMaterial({color:structuralCamo?'#d5c297':'#c0ab89',map:materialGrain,
    bumpMap:materialGrain,bumpScale:.48,roughness:.91,metalness:.02}),
   black:new THREE.MeshStandardMaterial({color:researchCamo?'#585345':'#252b29',map:materialGrain,
    bumpMap:materialGrain,bumpScale:.07,roughness:.68,metalness:.38}),
   glow:new THREE.MeshStandardMaterial({color:owner===0?'#63b9de':'#ffab79',
    emissive:owner===0?'#2d95c4':'#e96436',emissiveIntensity:.74,metalness:.25,roughness:.4}),
-  trim:new THREE.MeshStandardMaterial({color:researchCamo?'#d3bd91':'#c2ac84',map:materialGrain,
+  trim:new THREE.MeshStandardMaterial({color:structuralCamo?'#d3bd91':'#c2ac84',map:materialGrain,
    bumpMap:materialGrain,bumpScale:.12,roughness:.62,metalness:.36}),
   vent:new THREE.MeshStandardMaterial({color:researchCamo?'#505249':'#343c3b',roughness:.77,metalness:.35}),
   glass:new THREE.MeshStandardMaterial({color:owner===0?'#33677c':'#844e43',
    emissive:owner===0?'#184c64':'#61352d',emissiveIntensity:.4,metalness:.26,roughness:.34})
  };
- // Only the research lab receives the warm desert camouflage palette.
- // Silo and interceptor keep their established materials and faction colors.
- if(researchCamo){
+ // Shared khaki/sand/olive PBR camouflage for research and missile silo.
+ // Interceptor, dark metal, windows and faction signal beacons are untouched.
+ if(structuralCamo){
   mats.steel=new THREE.MeshStandardMaterial({color:'#aaa082',map:materialGrain,
    bumpMap:materialGrain,bumpScale:.12,roughness:.75,metalness:.18});
   mats.camoOlive=new THREE.MeshStandardMaterial({color:'#7f846b',map:materialGrain,
    bumpMap:materialGrain,bumpScale:.14,roughness:.9,metalness:.04});
-  mats.camoSand=new THREE.MeshStandardMaterial({color:'#d1bd93',map:materialGrain,
+  // Silo sand-tone panels reuse its three-tone armoured albedo.
+  // Research retains an independent sand highlight; this saves the silo
+  // one draw call and maintains the original <=20 mesh budget.
+  if(researchCamo)mats.camoSand=new THREE.MeshStandardMaterial({color:'#d1bd93',map:materialGrain,
    bumpMap:materialGrain,bumpScale:.16,roughness:.88,metalness:.05});
  }
  // The silo should be a recognisable armoured launch complex, not a
@@ -83,6 +123,16 @@ export function createStrategicBuilding(kind,owner=0){
    bumpMap:materialGrain,bumpScale:.08,roughness:.66,metalness:.27});
   mats.rocketNose=new THREE.MeshStandardMaterial({color:'#363e3c',roughness:.51,metalness:.44});
   mats.rocketAccent=new THREE.MeshStandardMaterial({color:'#b38a4e',roughness:.66,metalness:.2});
+  // Give the large bunker and hatch faces a real tiled camouflage albedo.
+  // Keep fine concrete grain as bump; rocket, hatches' dark iron, metallic
+  // machinery and team-colored glass keep their own original materials.
+  for(const role of ['base','armor']){
+   mats[role].map=siloDesertCamo;
+   // Near-white warm binder keeps the albedo colors true while remaining
+   // eligible for the same subtle blue/red ownership tint as other walls.
+   mats[role].color.set('#f3efe3');
+   mats[role].userData={...mats[role].userData,sandforgeColorMapCamo:true};
+  }
  }
  // Names allow one shared camouflage pass while leaving service glass,
  // signal beacons and recessed dark vents in their original PBR material.
@@ -232,6 +282,23 @@ export function createStrategicBuilding(kind,owner=0){
  }else if(kind==='silo'){
   foundation(230,207);
   box(205,43,184,'base',0,37,0);
+  // Subtle recessed desert paint panels on the exposed concrete bunker.
+  // These share research lab's actual sand/olive material grains; each
+  // material is batched below, so there are no per-frame draw calls.
+  // Coordinates are just beyond the wall faces, never in the rocket bay.
+  for(const side of [-1,1]){
+   for(const [x,y,width,height,paint] of [
+    [-78,37,33,15,'camoOlive'],
+    [-35,45,28,12,'armor'],
+    [16,33,34,18,'camoOlive'],
+    [72,45,26,11,'armor']
+   ])box(width,height,1.15,paint,x,y,side*92.8);
+   for(const [z,y,length,height,paint] of [
+    [-58,37,32,16,'armor'],
+    [-8,45,42,13,'camoOlive'],
+    [48,33,31,17,'armor']
+   ])box(1.15,height,length,paint,side*103.1,y,z);
+  }
   box(222,5,195,'black',0,15,0);
   for(const x of [-100,100])for(const z of [-83,83])support(x,z,45);
   // Heavy ring assembly and the large, obvious open rocket bay.
@@ -296,6 +363,16 @@ export function createStrategicBuilding(kind,owner=0){
   }
   // Distinct service block: matching HQ windows, roof and shaded entrance.
   box(67,46,81,'base',74,42,-2);
+  // The service annex inherits the same camouflage as the main bunker.
+  // Keep the entrance and blue/red instrumentation glass clear.
+  for(const [x,y,width,height,paint] of [
+   [53,37,17,17,'camoOlive'],
+   [89,49,20,13,'armor']
+  ])box(width,height,1.25,paint,x,y,-43.1);
+  for(const [z,y,length,height,paint] of [
+   [-24,32,17,16,'armor'],
+   [17,43,18,14,'camoOlive']
+  ])box(1.25,height,length,paint,40.0,y,z);
   box(76,5,90,'metal',74,67,-2);
   box(81,8,95,'black',74,73,-2);
   box(77,2,92,'trim',74,77,-2);
@@ -323,6 +400,10 @@ export function createStrategicBuilding(kind,owner=0){
   }
   // Sand-worn maintenance galleries, hatch slide machinery and hazard
   // guides make the giant strategic launch site read like a functional silo.
+  for(const [x,z,w,d,paint] of [
+   [-67,-78,19,13,'camoOlive'],[9,-78,25,12,'armor'],
+   [-52,79,23,12,'armor'],[18,79,19,13,'camoOlive']
+  ])box(w,1.15,d,paint,x,99,z);
   for(const z of [-84,84]){
    for(const x of [-80,-53,-26,1,28]){
     box(17,4,19,'armor',x,94,z);

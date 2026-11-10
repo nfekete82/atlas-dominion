@@ -77,7 +77,11 @@ test('3D construction: foundations, columns, rails and roof appear by actual bui
     rail1:c.rails[1].meshes[0].visible,
     clipped:c.materials.length>0&&c.materials.every(m=>m.clippingPlanes?.[0]===c.clip),
     label:c.lastLabel,labelWidth:c.label.scale.x,labelHeight:c.label.scale.y,
-    labelOpacity:c.label.material.opacity};
+    labelOpacity:c.label.material.opacity,
+    // Compare identical world-space altitudes: billboard must float ABOVE
+    // the HP bar, not overlap it when the authored GLB is swapped in.
+    clearance:c.label.position.y-(e.modelHeight?
+     Math.max(e.presentation.bar.altitude,e.modelHeight+5):e.presentation.bar.altitude)};
   };
   const phases=[.1,.42,.82].map(capture);
   building.buildRemaining=0;building.hp=1200;b.sync(true,.06,false,1);
@@ -90,6 +94,8 @@ test('3D construction: foundations, columns, rails and roof appear by actual bui
  expect(early.labelWidth).toBeLessThanOrEqual(85);
  expect(early.labelHeight).toBeLessThanOrEqual(22);
  expect(early.labelOpacity).toBeLessThanOrEqual(.9);
+ for(const phase of [early,middle,late])
+  expect(phase.clearance).toBeGreaterThanOrEqual(44);
  expect(early.top).toBe(false);
  expect(early.rail0).toBe(false);
  expect(middle.post).toBeGreaterThan(early.post);
@@ -306,5 +312,64 @@ test('R cycles through all four cardinal placements for every 3D building type',
  expect(state.savedFacing).toBe(2);
  expect(state.sceneFacing).toBeCloseTo(Math.PI/2,5);
  expect(state.recoveredFacing).toBe(2);
+ expect(errors).toEqual([]);
+});
+
+
+test('3D rocket specialist walks with real Atlas leg clips and a weapon attached to the wrist',async({page})=>{
+ test.setTimeout(130000);
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto('/webgl-preview.html?bastions=4&seed=2074&biome=desert&lite=1&pause=1&play=1',
+  {waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:100000});
+ const id=await page.evaluate(()=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  const base=game.units.find(u=>u.owner===0&&u.hp>0);
+  if(!base)throw new Error('No starting unit');
+  let rocket=null;
+  for(const [dx,dy] of [[55,0],[75,25],[-55,0],[0,75]]){
+   rocket=game.spawn(0,{x:base.x+dx,y:base.y+dy},'rocket');
+   if(rocket)break;
+  }
+  if(!rocket)throw new Error('Could not spawn rocket soldier');
+  battlefield.sync(true,.016,false,1);
+  return rocket.id;
+ });
+ await page.waitForFunction(id=>{
+  const e=window.__sandforgeWebGL.battlefield.units.get(id);
+  return Boolean(e?.detail&&e?.animation?.walk&&e?.animation?.idle);
+ },id,{timeout:95000});
+ const result=await page.evaluate(id=>{
+  const {game,battlefield}=window.__sandforgeWebGL;
+  const entry=battlefield.units.get(id);
+  const soldier=game.units.find(u=>u.id===id);
+  const leg=entry.detail.getObjectByName('UpperLegL');
+  const muzzle=entry.detail.getObjectByName('RocketMuzzle_0');
+  if(!leg||!muzzle)throw Error('Missing animated leg or rocket muzzle');
+  const savedTime=game.time;
+  soldier.moving=true;soldier.fire=0;
+  battlefield.presentation.update(entry,soldier,'unit',.15,true,true);
+  const first=leg.quaternion.toArray();
+  battlefield.presentation.update(entry,soldier,'unit',.18,true,true);
+  const second=leg.quaternion.toArray();
+  const displacement=first.reduce((sum,x,i)=>sum+Math.abs(x-second[i]),0);
+  const group=entry.detail.getObjectByName('Atlas_ShoulderLauncher');
+  const rifle=entry.detail.getObjectByName('Atlas_Rifle');
+  return {animated:entry.animation.walk!==entry.animation.idle,
+   playing:entry.animation.playing?.name,
+   hasRig:!!entry.detail.getObjectByName('Atlas_WeaponSocket'),
+   attached:group?.parent===rifle,walkDisplacement:displacement,
+   muzzleAttached:muzzle.parent===group,
+   originalRifleHidden:rifle.children.filter(n=>n.isMesh).every(n=>!n.visible),
+   timeUntouched:game.time===savedTime};
+ },id);
+ expect(result.animated).toBe(true);
+ expect(result.playing).toMatch(/run|walk/i);
+ expect(result.hasRig).toBe(true);
+ expect(result.attached).toBe(true);
+ expect(result.muzzleAttached).toBe(true);
+ expect(result.originalRifleHidden).toBe(true);
+ expect(result.walkDisplacement).toBeGreaterThan(1e-5);
+ expect(result.timeUntouched).toBe(true);
  expect(errors).toEqual([]);
 });

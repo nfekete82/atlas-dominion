@@ -1,6 +1,8 @@
 import * as THREE from 'three';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {clone as cloneSkeleton} from 'three/addons/utils/SkeletonUtils.js';
 import {createStrategicBuilding,isStrategicBuilding} from './webgl-strategic-buildings.js';
-import {createRocketInfantry} from './webgl-rocket-infantry.js';
+import {createRocketInfantry,attachRocketLauncherToInfantry} from './webgl-rocket-infantry.js';
 import {createResearchArtwork,RESEARCH_ARTWORK_KINDS} from './webgl-research-artworks.js';
 import {tintFactionMaterials} from './webgl-faction-accents.js';
 
@@ -72,7 +74,10 @@ export function researchIconMarkup(kind){
  * research objects, using the actual scene meshes. PNG generation happens
  * once per kind and never on the animation/render loop.
  */
-function renderModelPortrait(model,renderer,{width=320,height=220,research=false}={}){
+function renderModelPortrait(model,renderer,{width=320,height=220,research=false,infantryCard=false}={}){
+ // Atlas heavy infantry uses direction index 1: yaw PI/4 with camera (0,8,12).
+ // Apply that exact view to the rocket portrait only, never to its game model.
+ if(infantryCard)model.rotation.y+=Math.PI/4;
  const scene=new THREE.Scene();
  scene.add(model);
  const hemi=new THREE.HemisphereLight('#fff3e2','#576e73',research?2.15:2.0);
@@ -86,7 +91,8 @@ function renderModelPortrait(model,renderer,{width=320,height=220,research=false
  const aspect=width/height;
  const span=Math.max(size.y*(research?1.9:1.8),(size.x+size.z)*(research?1.03:.95),1);
  const camera=new THREE.OrthographicCamera(-span*aspect/2,span*aspect/2,span/2,-span/2,.1,2000);
- camera.position.copy(center).add(new THREE.Vector3(research?115:350,research?115:310,research?170:380));
+ camera.position.copy(center).add(infantryCard?
+  new THREE.Vector3(0,8,12):new THREE.Vector3(research?115:350,research?115:310,research?170:380));
  camera.lookAt(center);camera.updateMatrixWorld();
  const target=new THREE.WebGLRenderTarget(width,height,{format:THREE.RGBAFormat,depthBuffer:true});
  const oldTarget=renderer.getRenderTarget(),oldColor=renderer.getClearColor(new THREE.Color()).clone();
@@ -121,10 +127,27 @@ function renderModelPortrait(model,renderer,{width=320,height=220,research=false
   const raw=document.createElement('canvas');raw.width=width;raw.height=height;
   raw.getContext('2d').putImageData(rgba,0,0);
   const w=right-left+1,h=bottom-top+1;
-  const scale=Math.min(width*(research?.89:.93)/w,height*(research?.89:.92)/h);
+  // Same pixel bounds and bottom alignment as rasterizeUnitIcon('heavy').
+  // This prevents the shoulder launcher from altering the soldier's apparent size.
+  // Scale infantry by body height, NOT by the shoulder launcher's width.
+  // Otherwise the longer weapon makes the entire rocket soldier appear tiny.
+  const scale=infantryCard?105/h:
+   Math.min(width*(research?.89:.93)/w,height*(research?.89:.92)/h);
+  const dw=w*scale,dh=h*scale;
+  let drawX=(width-dw)/2;
+  if(infantryCard){
+   // Frame on the armored torso, not on the launcher protruding to one side.
+   // Heavy infantry's atlas similarly centers the soldier rather than the gun.
+   const torso=model.getObjectByName('Atlas_Breastplate');
+   if(torso){
+    const projected=torso.getWorldPosition(new THREE.Vector3()).project(camera);
+    const pixelX=(projected.x*.5+.5)*width;
+    drawX=width*.5-(pixelX-left)*scale;
+   }
+  }
   ctx.clearRect(0,0,width,height);
   ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
-  ctx.drawImage(raw,left,top,w,h,(width-w*scale)/2,(height-h*scale)/2,w*scale,h*scale);
+  ctx.drawImage(raw,left,top,w,h,drawX,infantryCard?119-dh:(height-dh)/2,dw,dh);
   return output.toDataURL('image/png');
  }finally{
   renderer.setRenderTarget(oldTarget);
@@ -255,11 +278,30 @@ export function unitIcon(kind,renderer){
  if(kind==='rocket'&&!renderer)return Promise.resolve(rocketUnitIconFallback());
  if(kind==='rocket'&&!iconCache.has(kind)){
   iconCache.set(kind,new Promise((resolve,reject)=>{
-   requestAnimationFrame(()=>{
-    try{resolve(renderModelPortrait(createRocketInfantry(0),renderer,{width:192,height:132}));}
-    catch(error){reject(error);}
+   requestAnimationFrame(async()=>{
+    try{
+     // The catalog uses the SAME animated Atlas body and physical launcher
+     // as the battle. Do not crop a static, unrelated toy-like placeholder.
+     const data=await new GLTFLoader().loadAsync('/src/assets/reborn/prototype/infantry-0.glb');
+     const model=cloneSkeleton(data.scene);
+     // renderModelPortrait disposes temporary geometry/materials: clone them
+     // so the loader's cached GLB assets never become unusable in gameplay.
+     model.traverse(node=>{
+      if(!node.isMesh)return;
+      node.geometry=node.geometry.clone();
+      node.material=Array.isArray(node.material)?
+       node.material.map(m=>m.clone()):node.material.clone();
+     });
+     attachRocketLauncherToInfantry(model,0);
+     resolve(renderModelPortrait(model,renderer,{width:192,height:132,infantryCard:true}));
+    }catch(error){reject(error);}
    });
-  }).catch(error=>{iconCache.delete(kind);console.warn('Rocket 3D portrait fallback:',error);return rocketUnitIconFallback();}));
+  }).catch(error=>{
+   iconCache.delete(kind);
+   console.warn('Animated rocket 3D portrait fallback:',error);
+   try{return renderModelPortrait(createRocketInfantry(0),renderer,{width:192,height:132,infantryCard:true});}
+   catch{return rocketUnitIconFallback();}
+  }));
  }
  if(!iconCache.has(kind))iconCache.set(kind,rasterizeUnitIcon(kind).catch(error=>{
   iconCache.delete(kind);throw error;

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {disposeRocketLauncher} from '/webgl-rocket-infantry.js';
 import {UNITS,BUILDINGS} from '/src/reborn/catalog.js';
 import {healthFraction,healthColor} from '/webgl-health.js';
 import {turretMuzzleOffset} from '/webgl-scale.js';
@@ -180,6 +181,7 @@ export class SandforgeActorPresentation {
  removeRemnant(r){
   if(!r)return;
   this.scene.remove(r.mesh);
+  if(!r.wasFallback)disposeRocketLauncher(r.model);
   const geometries=new Set(),materials=new Set();
   r.model?.traverse(node=>{
    if(!node.isMesh)return;

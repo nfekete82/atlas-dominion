@@ -114,3 +114,87 @@ export function createRocketInfantry(owner=0){
  }
  return root;
 }
+
+
+/**
+ * Promote the static shoulder gunner to the existing Atlas infantry skeleton.
+ * The parent rifle socket is already part of all five authored GLB clips
+ * (Idle, Run_Gun, Idle_Shoot, HitReact, Death). Hide only the rifle graphics:
+ * keep the wrist socket, grip frames and skeleton completely intact.
+ *
+ * Geometries use the rig's native metre scale, BEFORE battlefield scaling.
+ * +Z remains muzzle-forward. The projectile socket follows the animation.
+ */
+export function attachRocketLauncherToInfantry(model,owner=0){
+ const rifle=model.getObjectByName('Atlas_Rifle');
+ if(!rifle||!model.getObjectByName('Atlas_WeaponSocket'))
+  throw new Error('Rocket infantry requires the authored Atlas weapon rig');
+ // The GLB must remain alive for SkeletonUtils + AnimationMixer. Never
+ // suppress the rifle group itself: its wrist-driven transform is essential.
+ rifle.traverse(node=>{if(node.isMesh)node.visible=false;});
+ const launcher=new THREE.Group();
+ launcher.name='Atlas_ShoulderLauncher';
+ // Slightly above the forearms: the tube reads over the shoulder instead
+ // of looking like an oversized rifle or a floating vehicle weapon.
+ const tubeMat=new THREE.MeshStandardMaterial({
+  color:'#4e5349',metalness:.48,roughness:.62
+ });
+ const oliveMat=new THREE.MeshStandardMaterial({
+  color:'#8c9275',metalness:.19,roughness:.83
+ });
+ const rimMat=new THREE.MeshStandardMaterial({
+  color:'#282e2c',metalness:.57,roughness:.48
+ });
+ const camoMat=new THREE.MeshStandardMaterial({
+  color:'#ffffff',map:camoTexture,roughness:.92,metalness:.05
+ });
+ const make=(geo,material,x,y,z,rx=0)=>{
+  const node=new THREE.Mesh(geo,material);
+  node.position.set(x,y,z);
+  node.rotation.x=rx;
+  node.castShadow=true;node.receiveShadow=true;
+  node.userData.sandforgeOwnedRocketPart=true;
+  launcher.add(node);return node;
+ };
+ // 1.05 m launcher, correctly sized for the original Atlas soldier.
+ make(new THREE.CylinderGeometry(.072,.078,.94,12),tubeMat,
+  .025,.145,.13,Math.PI/2);
+ make(new THREE.CylinderGeometry(.090,.090,.10,12),rimMat,
+  .025,.145,.605,Math.PI/2);
+ make(new THREE.CylinderGeometry(.086,.086,.075,12),rimMat,
+  .025,.145,-.345,Math.PI/2);
+ make(new THREE.CylinderGeometry(.079,.079,.42,12),camoMat,
+  .025,.145,.012,Math.PI/2);
+ // Angular field optics and sling: camo, steel, dark visor and a shoulder
+ // support. Coherent with the other detailed military infantry.
+ make(new THREE.BoxGeometry(.15,.072,.18),oliveMat,-.075,.235,.19);
+ make(new THREE.BoxGeometry(.11,.046,.10),rimMat,-.075,.282,.20);
+ make(new THREE.BoxGeometry(.10,.035,.25),oliveMat,.026,.040,-.03);
+ make(new THREE.BoxGeometry(.050,.16,.08),tubeMat,.026,-.075,-.13);
+ const muzzle=new THREE.Object3D();
+ muzzle.name='RocketMuzzle_0';
+ muzzle.position.set(.025,.145,.67);
+ launcher.add(muzzle);
+ rifle.add(launcher);
+ model.userData={...model.userData,animatedRocketInfantry:true,
+  launcherUsesAtlasRig:true,role:'antiArmorAntiAir'};
+ return model;
+}
+
+/** Release only rocket-specific mesh resources. The original GLB skeleton,
+ * authored infantry geometry, textures and AnimationMixer are owned by their
+ * own lifecycle and must NEVER be disposed by this helper.
+ */
+export function disposeRocketLauncher(root){
+ const launcher=root?.getObjectByName('Atlas_ShoulderLauncher');
+ if(!launcher)return;
+ const geometries=new Set(),materials=new Set();
+ launcher.traverse(node=>{
+  if(!node.isMesh||!node.userData.sandforgeOwnedRocketPart)return;
+  if(node.geometry)geometries.add(node.geometry);
+  for(const material of (Array.isArray(node.material)?node.material:[node.material]))
+   if(material)materials.add(material);
+ });
+ for(const geometry of geometries)geometry.dispose();
+ for(const material of materials)material.dispose();
+}
