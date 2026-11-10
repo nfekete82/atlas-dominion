@@ -1329,7 +1329,7 @@ export class Simulation {
       // Otherwise a helicopter ordered to retreat in the opposite direction
       // stays virtually motionless until its hull has turned ~90 degrees.
       // Preserve the existing turning/braking model for ground vehicles.
-      const traction=spec.flying&&(u.kind==='bomber'||u.orders[0]?.kind==='move')
+      const traction=spec.flying&&u.orders[0]?.kind==='move'
         ?Math.max(.65,Math.cos(error)):Math.max(0,Math.cos(error));
       const targetSpeed=Math.min(this.speed(u),Math.sqrt(2*braking*remaining))*traction;
       u.driveSpeed=(u.driveSpeed??0)+clamp(targetSpeed-(u.driveSpeed??0),-braking*dt,this.speed(u)*1.9*dt);
