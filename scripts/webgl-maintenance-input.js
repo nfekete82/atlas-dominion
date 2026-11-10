@@ -19,6 +19,6 @@ export function serviceFootprintContains(base,point){
  const localX=dx*c-dz*s,localZ=dx*s+dz*c;
  // Includes central hall and each outdoor service bay; not the nearby desert.
  return base.kind==='factory'
-  ?localX>=-274&&localX<=133&&localZ>=-74&&localZ<=181
+  ?localX>=-133&&localX<=274&&localZ>=-74&&localZ<=181
   :localX>=-380&&localX<=220&&localZ>=-205&&localZ<=412;
 }
