@@ -5,9 +5,8 @@ import {BUILDINGS} from '/src/reborn/catalog.js';
 /** Render-only construction states driven by the classic Simulation's
  * buildRemaining / buildTime. No new gameplay timers or construction rules.
  *
- * Unlike simply scaling a complete model to 58%, we reveal the actual GLB
- * from its foundation upward and assemble a segmented structural frame,
- * scaffolding posts and the roof sequentially.
+ * Keep the actual final model intact and overlay assembly stages.
+ * The builder preview and completed structure must have the same silhouette.
  */
 export class SandforgeConstructionPresentation{
  constructor(renderer){this.renderer=renderer;renderer.localClippingEnabled=true;}
@@ -47,8 +46,7 @@ export class SandforgeConstructionPresentation{
   label.scale.set(83,21,1);label.position.set(0,height+65,0);frame.add(label);
   entry.node.add(frame);
   const construction={frame,columns,rails,slab,roof,canvas,texture,label,
-   height,clip:new THREE.Plane(new THREE.Vector3(0,-1,0),0),
-   model:null,materials:[],lastLabel:-1,finished:false};
+   height,lastLabel:-1,finished:false};
   entry.construction=construction;return construction;
  }
  update(entry,base){
@@ -77,24 +75,12 @@ export class SandforgeConstructionPresentation{
   for(const rail of state.rails)
    for(const beam of rail.meshes)beam.visible=progress>=rail.threshold;
   state.roof.visible=progress>=.77;
-  // Clip a construction model at the current built height, not the entire
-  // entry.node: healthbars, labels, and scaffolding must remain readable.
+  // Keep the COMPLETE final building visible throughout construction.
+  // Cropping it with an animated horizontal clip plane left half a factory
+  // or hangar missing, while only the support frame remained visible.
+  // Foundation, beams and construction text still animate independently.
   const model=entry.detail??entry.placeholder;
-  if(state.model!==model){
-   for(const mat of state.materials){mat.clippingPlanes=[];mat.needsUpdate=true;}
-   state.materials=[];
-   model.traverse(obj=>{
-    if(!obj.isMesh)return;
-    const convert=mat=>{
-     const copy=mat.clone();copy.clippingPlanes=[state.clip];copy.clipShadows=true;
-     copy.needsUpdate=true;state.materials.push(copy);return copy;
-    };
-    obj.material=Array.isArray(obj.material)?obj.material.map(convert):convert(obj.material);
-   });
-   state.model=model;
-  }
-  const realHeight=entry.modelHeight??state.height;
-  state.clip.constant=entry.node.position.y+Math.max(1.5,realHeight*progress);
+  if(model)model.visible=true;
   const tick=Math.floor(progress*20),working=base.constructionActive!==false;
   if(tick!==state.lastLabel||state.lastWorking!==working){
    state.lastLabel=tick;state.lastWorking=working;
@@ -111,7 +97,6 @@ export class SandforgeConstructionPresentation{
  }
  finish(entry){
   const state=entry.construction;if(!state)return;
-  for(const mat of state.materials){mat.clippingPlanes=[];mat.needsUpdate=true;}
   entry.node.remove(state.frame);
   // Scaffolding owns its temporary materials as well as geometries.
   disposeOwnedMeshes(state.frame);
