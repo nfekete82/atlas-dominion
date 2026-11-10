@@ -228,12 +228,15 @@ export class TacticalAI {
   const army=g.units.filter(v=>v.owner===1&&v.hp>0&&!v.carrier),near=army.filter(v=>distance(v,u)<450&&!s.recovering?.includes(v.id));
   const towers=s.knownTurrets.filter(t=>distance(t,u)<t.range+220),enemies=g.units.filter(v=>v.owner===0&&v.hp>0&&!v.carrier&&g.canSee(1,v)&&distance(v,u)<600);
   const assessment=assessBattle(near,enemies,towers,g.time,true);
-  // A full-strength squad must not run home when a single unit takes one
-  // turret hit. Keep a successful attack/siege engaged until genuinely hurt.
-  // Running under direct fire is usually deadlier than returning shots:
-  // protect an engaged screen until critically damaged unless its retreat
-  // route is clearly free. A 40-65% HP tank must not flee immediately.
-  if(u.hp>=unitSpec(u).hp*.26)return;
+  // A real battle group must not all turn their backs on the first hit.
+  // Alone under a turret, however, a 34%-HP infantryman lacks any fighting
+  // screen: withdrawing immediately is sensible, while waiting for 26% HP
+  // would hand the gun several free shots. Keep tanks/supported units at
+  // the much lower threshold that prevents suicidal mid-battle retreats.
+  const supported=near.some(v=>v.id!==u.id&&
+    !['engineer','medic','scout'].includes(v.kind));
+  const criticalFraction=supported?.26:u.kind==='infantry'||u.kind==='heavy'||u.kind==='rocket'?.40:.26;
+  if(u.hp>=unitSpec(u).hp*criticalFraction)return;
   // A shot from an unseen turret supplies damage information, not a
   // guessed turret position. With zero OBSERVED enemies the generic battle
   // assessor calls our force 'attack' against an empty threat set: that is
