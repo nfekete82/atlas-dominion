@@ -113,5 +113,8 @@ test('rocket specialist reuses animated Atlas infantry and the real launcher in 
  assert.match(weapon,/muzzle\.name='RocketMuzzle_0'/);
  assert.match(portraits,/cloneSkeleton\(data\.scene\)/);
  assert.match(portraits,/attachRocketLauncherToInfantry\(model,0\)/);
- assert.match(portraits,/renderModelPortrait\(model,renderer,\{width:192,height:132\}\)/);
+ assert.match(portraits,/renderModelPortrait\(model,renderer,\{width:192,height:132,infantryCard:true\}\)/);
+ assert.match(portraits,/if\(infantryCard\)model\.rotation\.y\+=Math\.PI\/4/);
+ assert.match(portraits,/Math\.min\(144\/w,105\/h\)/);
+ assert.match(portraits,/infantryCard\?119-dh/);
 });
