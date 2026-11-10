@@ -115,6 +115,7 @@ test('rocket specialist reuses animated Atlas infantry and the real launcher in 
  assert.match(portraits,/attachRocketLauncherToInfantry\(model,0\)/);
  assert.match(portraits,/renderModelPortrait\(model,renderer,\{width:192,height:132,infantryCard:true\}\)/);
  assert.match(portraits,/if\(infantryCard\)model\.rotation\.y\+=Math\.PI\/4/);
- assert.match(portraits,/Math\.min\(144\/w,105\/h\)/);
+ assert.match(portraits,/infantryCard\?105\/h/);
+ assert.match(portraits,/getObjectByName\('Atlas_Breastplate'\)/);
  assert.match(portraits,/infantryCard\?119-dh/);
 });
