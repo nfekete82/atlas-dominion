@@ -66,6 +66,18 @@ for(const kind of ['airfield','factory']){
   assert.ok(started.buildRemaining>0);
   assert.ok(pioneer.orders.some(o=>o.kind==='build'&&o.target===started.id),
    'second real construction must be assigned to the same pioneer');
+  // Assigning an order alone is insufficient. A pioneer left beside the
+  // airfield must actually MOVE to the new foundation and FINISH it.
+  for(let tick=0;started.buildRemaining>0&&tick<3200&&g.status==='playing';tick++)
+   g.step(.05);
+  assert.equal(started.buildRemaining,0,
+   'second building must really COMPLETE after '+kind+': '+JSON.stringify({
+    status:g.status,remain:started.buildRemaining,pioneer:{
+     x:pioneer.x,y:pioneer.y,orders:pioneer.orders,workingTarget:pioneer.workingTarget,
+     pathLength:pioneer.path?.length,repath:pioneer.repath,hold:pioneer.hold},
+    from:{x:site.x,y:site.y},to:{x:started.x,y:started.y},
+    notices:g.notices.slice(-4)
+   }));
  });
 }
 
