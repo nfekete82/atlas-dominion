@@ -197,7 +197,8 @@ export function updateAirfieldServiceYard(entry,base,units,time,dt){
 export function hideOldAirfieldHangar(entry){
  if(!entry.detail||entry.airfieldOldHidden)return;
  entry.detail.traverse(child=>{
-  if(/^(Hangar|ParkedJet|JetWheel)/.test(child.name))child.visible=false;
+  if(/^(Hangar|ParkedJet|JetWheel|AirfieldRunway|AirfieldConcreteApron|TaxiwayFromHangar|Runway|ApronStopLine|SecurityPerimeter)/.test(child.name))
+   child.visible=false;
  });
  entry.airfieldOldHidden=true;
 }
