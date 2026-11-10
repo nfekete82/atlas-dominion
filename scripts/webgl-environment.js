@@ -47,7 +47,7 @@ export class DesertArtPass {
    const k=(y*size+x)*4;
    const scatter=.065*coarse+.08*grit;
    const darkWeight=Math.min(.86,Math.max(0,(.69*depression+.12*raised+scatter)));
-   const rimWeight=Math.min(.78,raised*(.58+.17*coarse));
+   const rimWeight=Math.min(1-darkWeight,Math.max(0,raised*(.58+.17*coarse)));
    const color=[0,1,2].map(i=>
     shade[i]*darkWeight+lip[i]*rimWeight+
     dust[i]*(1-darkWeight-rimWeight)*.94);
@@ -112,12 +112,12 @@ export class DesertArtPass {
   const lip=new THREE.InstancedMesh(this.makeCraterLipGeometry(),
    new THREE.MeshStandardMaterial({
     color:'#ffffff',vertexColors:true,roughness:1,metalness:0,
-    transparent:true,opacity:this.lowQuality?.72:.84,side:THREE.DoubleSide,
+    transparent:true,opacity:this.lowQuality ? .72 : .84,side:THREE.DoubleSide,
     depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1
    }),crater.length);
   const lipDummy=new THREE.Object3D();
   crater.forEach((d,i)=>{
-   const p=this.pos(d.x,d.y),scale=spacious?.60:1;
+   const p=this.pos(d.x,d.y),scale=spacious ? .60 : 1;
    const wide=d.radius*3.1*scale,deep=d.radius*2.3*scale;
    dummy.position.copy(p);dummy.position.y+=.9;
    dummy.rotation.set(-Math.PI*.5,0,d.rotation);
