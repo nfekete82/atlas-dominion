@@ -93,3 +93,25 @@ test('rocket specialist receives infantry training and rocket range research',as
  assert.equal(modifiers.hp,1.15);
  assert.equal(modifiers.range,1.2);
 });
+
+
+test('rocket specialist reuses animated Atlas infantry and the real launcher in its catalog portrait',()=>{
+ const battlefield=readFileSync('scripts/webgl-battlefield.js','utf8');
+ const weapon=readFileSync('scripts/webgl-rocket-infantry.js','utf8');
+ const portraits=readFileSync('scripts/webgl-portraits.js','utf8');
+ const infantryMeta=JSON.parse(readFileSync('src/assets/reborn/prototype/infantry-0.json','utf8'));
+ assert.ok(infantryMeta.clips.walk.frames.length===8);
+ assert.ok(infantryMeta.clips.walk.duration>0);
+ assert.match(battlefield,/kind==='rocket'\)return prefix\+'prototype\/infantry-'\+owner\+'\.glb'/);
+ assert.match(battlefield,/attachRocketLauncherToInfantry\(model,entry\.owner\)/);
+ assert.match(battlefield,/entity\.kind!=='medic'&&entity\.kind!=='rocket'/,
+  'rocket infantry must animate even with lite-mode enabled');
+ assert.doesNotMatch(battlefield,/\(type==='unit'&&entity\.kind==='rocket'\)\|\|entry\.requested/,
+  'old forced-static rocket exception must not return');
+ assert.match(weapon,/export function attachRocketLauncherToInfantry\(model,owner=0\)/);
+ assert.match(weapon,/getObjectByName\('Atlas_Rifle'\)/);
+ assert.match(weapon,/muzzle\.name='RocketMuzzle_0'/);
+ assert.match(portraits,/cloneSkeleton\(data\.scene\)/);
+ assert.match(portraits,/attachRocketLauncherToInfantry\(model,0\)/);
+ assert.match(portraits,/renderModelPortrait\(model,renderer,\{width:192,height:132\}\)/);
+});
