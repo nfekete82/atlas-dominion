@@ -4,7 +4,7 @@ import {healthFraction,healthColor} from '/webgl-health.js';
 import {turretMuzzleOffset} from '/webgl-scale.js';
 
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
-const infantry=new Set(['infantry','medic','engineer','heavy']);
+const infantry=new Set(['infantry','medic','engineer','heavy','rocket']);
 const air=new Set(['scout','bomber']);
 const barGeo=new THREE.PlaneGeometry(1,1);
 const bgMat=new THREE.MeshBasicMaterial({
@@ -224,6 +224,19 @@ export class SandforgeActorPresentation {
    state.shotTrigger++;
    this.stats.shots++;
   }
+ }
+ // Health bars and turret muzzle sprites live directly in the scene, not
+ // beneath entry.node. Hiding an enemy's 3D model alone can otherwise leak
+ // its old HP bar after a bomber reveals and then leaves the sector.
+ // This cheap path skips animation/HP calculations when culled under fog.
+ hideWhenCulled(entry){
+  const state=entry?.presentation;
+  if(!state)return;
+  state.bar.root.visible=false;
+  if(state.flash)state.flash.visible=false;
+  for(const sprite of state.turretFlashes??[])sprite.visible=false;
+  state.shotPulse=0;
+  if(state.turretPulses)state.turretPulses.fill(0);
  }
  update(entry,entity,type,dt=0,selected=false,active=true){
   const state=entry.presentation??this.attach(entry,entity,type);
