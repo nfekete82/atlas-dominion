@@ -58,6 +58,10 @@ test('rendered wrecks have rounded metallic geometry, no persistent black box sl
  assert.match(vfx,/this\.updateAircraftCrashes\(dt\)/);
  assert.match(vfx,/advanceWreckRecords\(this\.wrecks,dt\)/);
  assert.match(vfx,/else if\(isWreckableUnit\(old\.kind\)\)this\.addWreck\(old\)/);
+ assert.match(vfx,/adoptAircraftForCrash\(entry\)/);
+ assert.match(vfx,/guidedRocketAimY\(missile,targetUnit/);
+ assert.doesNotMatch(vfx,/new THREE\.CapsuleGeometry\(1,2,4,8\)/);
+ assert.match(battlefield,/this\.effects\?\.captureAircraftCrash\?\.\(e,removal\)/);
  assert.doesNotMatch(vfx,/new THREE\.BoxGeometry\(1,1,1\),wreckMat,90/);
  assert.match(actor,/this\.remnantSeconds=6/);
  assert.match(actor,/this\.maxRemnants=24/);

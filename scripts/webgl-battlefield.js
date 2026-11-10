@@ -605,6 +605,11 @@ export class SandforgeBattlefield {
      this.game.time>=e.lastAliveAt&&this.game.time-e.lastAliveAt<=.20;
     const removal=recentDeath?{id,kind:e.kind,owner:e.owner,hp:0}:stillPresent;
     this.presentation.remove(e,removal);
+    // Transfer the actual PBR aircraft asset BEFORE the actor node is freed.
+    // Ownership moves to CombatEffects, which disposes only actor-owned
+    // materials after the crash. Never substitute untextured crash geometry.
+    if(recentDeath&&['scout','bomber'].includes(e.kind)&&e.node.visible)
+     this.effects?.captureAircraftCrash?.(e,removal);
     if(e.animation?.mixer){
      e.animation.mixer.stopAllAction();
      if(e.detail)e.animation.mixer.uncacheRoot(e.detail);
