@@ -24,7 +24,7 @@ import {snapToPlayableEdge,worldToMinimap} from '/webgl-map-edges.js';
 import {attackBlinkAlpha} from '/src/reborn/attack-alerts.js';
 import {UPGRADES,UPGRADE_KINDS,canResearchUpgrade,INTERCEPTOR_ENABLED,SILO_CHARGE_SECONDS,INTERCEPTOR_MAX_AMMO,INTERCEPTOR_REARM_COST} from '/src/reborn/strategic-tech.js';
 import {createStrategicBuilding,isStrategicBuilding} from '/webgl-strategic-buildings.js';
-import {createRocketInfantry,attachRocketLauncherToInfantry} from '/webgl-rocket-infantry.js';
+import {createRocketInfantry,attachRocketLauncherToInfantry,disposeRocketLauncher} from '/webgl-rocket-infantry.js';
 
 // Runtime adapter: game state, movement, combat, production and AI are owned
 // exclusively by the original Simulation. 3D nodes are presentation only.
@@ -593,7 +593,10 @@ export class SandforgeBattlefield {
     if(e.placeholder){disposeOwnedMeshes(e.placeholder);e.placeholder=null;}
     // Authored model geometries are shared, but team-tinted materials are
     // actor-owned. Release only our owned PBR clones on death/despawn.
-    if(e.detail)disposeTaggedMaterials(e.detail,'sandforgeFactionTint');
+    if(e.detail){
+     disposeTaggedMaterials(e.detail,'sandforgeFactionTint');
+     if(e.kind==='rocket')disposeRocketLauncher(e.detail);
+    }
     this.scene.remove(e.node);this.units.delete(id);this.selected.delete(id);
    }
   for(const b of this.game.bases){
