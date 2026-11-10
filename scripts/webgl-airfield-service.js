@@ -33,22 +33,41 @@ export function createAirfieldServiceYard(){
  const wornPaving=servicePaint(['#77736b','#a49c86','#b3a892'],{pattern:'concrete',seed:39,repeat:5,roughness:.96});
  const runwayWear=servicePaint(['#3d4542','#515752','#64665e'],{pattern:'concrete',seed:49,repeat:5,roughness:.96});
  const glow=new THREE.MeshBasicMaterial({color:paint.repair,transparent:true,opacity:.9});
- // Broad apron, runway, centerline, safe taxi crossing and threshold stripes.
- box(group,'AirfieldExpandedConcreteApron',462,1.5,372,0,.75,0,wornPaving);
- // The runway extends well beyond the actual 2-bay hangar silhouette.
- box(group,'AirfieldRunwaySandShoulder',155,.6,594,130,1.12,72,wornPaving);
- box(group,'AirfieldExtendedRunway',133,1.6,580,130,1.8,70,runwayWear);
- box(group,'AirfieldCrossTaxiLane',345,.8,38,-38,2.7,17,runway);
- for(let z=-204;z<=342;z+=48)
-  box(group,'AirfieldRunwayCenterDash',3,.12,24,130,2.75,z,markings);
- for(const x of [73,187]){
-  box(group,'AirfieldRunwayEdgeLine',2,.12,568,x,2.75,70,markings);
-  for(let z=-204;z<=344;z+=46){
-   box(group,'AirfieldRunwayLamp',5,2,8,x,4.0,z,yellow);
+ // Long military runway: one uninterrupted strip extends far past the
+ // hangars; the old short cross-runway ahead of the building is gone.
+ // Painted taxi directions are not a second black asphalt runway.
+ box(group,'AirfieldExpandedConcreteApron',445,1.5,420,-115,.75,0,wornPaving);
+ box(group,'AirfieldRunwaySandShoulder',172,.7,1000,132,1.05,175,wornPaving);
+ box(group,'AirfieldExtendedRunway',146,1.6,980,132,1.85,175,runwayWear);
+ // Two generously sized clear exterior aircraft stands beside hangars.
+ for(const bay of [0,1]){
+  const cx=bay===0?-151:-26;
+  box(group,'AirfieldAircraftParkingPad_'+bay,115,.32,156,cx,1.68,120,wornPaving);
+  box(group,'AirfieldAircraftParkingCenterline_'+bay,3,.16,111,cx,1.96,119,yellow);
+  for(const side of [-1,1]){
+   box(group,'AirfieldAircraftParkingEdge_'+bay,2,.16,125,cx+side*54,1.95,120,markings);
+   box(group,'AirfieldAircraftParkingChock_'+bay,18,2,5,cx+side*34,3.1,154,dark);
   }
+  box(group,'AirfieldAircraftParkingStop_'+bay,93,.15,3,cx,1.96,54,yellow);
+  box(group,'AirfieldAircraftParkingNumber_'+bay,14,.12,8,cx,1.98,184,markings);
  }
- for(const z of [-206,-195,-184])for(const x of [95,112,148,165])
-  box(group,'AirfieldRunwayThreshold',8,.14,4,x,2.8,z,markings);
+ for(let z=-292;z<=647;z+=55)
+  box(group,'AirfieldRunwayCenterDash',3,.12,30,132,2.80,z,markings);
+ for(const x of [64,200]){
+  box(group,'AirfieldRunwayEdgeLine',2,.12,960,x,2.80,175,markings);
+  for(let z=-295;z<=653;z+=54)
+   box(group,'AirfieldRunwayLamp',5,2,8,x,4.0,z,yellow);
+ }
+ // Clear runway thresholds and staggered military landing-zone stripes.
+ for(const z of [-291,-278,-265])for(const x of [88,107,157,176])
+  box(group,'AirfieldRunwayThreshold',11,.16,5,x,2.83,z,markings);
+ for(const z of [580,594,608,622])for(const x of [89,175])
+  box(group,'AirfieldRunwayLandingBars',19,.15,7,x,2.84,z,markings);
+ // One simple taxi guideline connects the wide stands with the long runway.
+ // It does not cover the apron as the old short black runway did.
+ box(group,'AirfieldTaxiCrossGuide',302,.16,2.6,-18,2.03,24,yellow);
+ for(const x of [-193,-151,-109,-66,-24,18])
+  box(group,'AirfieldTaxiGuideDash',16,.14,3,x,2.08,24,markings);
  for(const bay of [0,1]){
   const cx=bay===0?-151:-26,half=59,front=18,rear=-171;
   // The bay is sized for the actual bomber wings, not a miniature parked prop.
@@ -131,14 +150,8 @@ export function createAirfieldServiceYard(){
   sparkGroup.visible=false;
   group.userData['bay'+bay]={left,right,cx,open:0,sparks:sparkGroup};
  }
- // Runway threshold / displaced touchdown paint; generated from real Three.js
- // meshes and shared identically by placement preview and the live building.
- for(const z of [288,304,320,336])for(const x of [101,159])
-  box(group,'AirfieldRunwayLandingBars',16,.17,6,x,2.81,z,markings);
- for(const z of [262,272,282])
-  box(group,'AirfieldApproachChevron',43,.13,3,130,2.82,z,yellow);
  // Scuffed touchdown marks and pavement expansion joints.
- for(const x of [111,151])for(const z of [-126,-53,81,146])
+ for(const x of [110,154])for(const z of [-136,42,264,440])
   box(group,'AirfieldTouchdownRubber',4,.12,18,x,2.76,z,dark);
  for(const x of [-195,-110,-45,29])for(const z of [-143,-72,8])
   box(group,'AirfieldApronExpansionJoint',24,.11,1.5,x,1.65,z,steel);
