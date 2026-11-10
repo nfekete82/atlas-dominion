@@ -76,6 +76,11 @@ test('factory architecture is compact and the repair gantry does not block appro
  updateFactoryServiceYard(entry,{id:1},[vehicle],1);
  const opened=factory.userData.bay0.doorOpen;
  assert.ok(opened>.78,'garage opens for a tank driving in');
+ assert.ok(leaves[0].position.y>36,'garage roller shutter lifts above tank roof');
+ assert.ok(leaves[0].scale.y<.4,'shutter retracts instead of blocking tank');
+ const centerPosts=factory.getObjectsByProperty('name','VehicleServiceCranePost_0');
+ assert.ok(centerPosts.every(post=>Math.abs(post.position.x)>80),
+  'workshop gantry supports must not cross central tank production lane');
  vehicle.factoryService.phase='repair';
  updateFactoryServiceYard(entry,{id:1},[vehicle],1.2);
  assert.ok(factory.userData.bay0.doorOpen<opened,'garage closes partly during repair');
