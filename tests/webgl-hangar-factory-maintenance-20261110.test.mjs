@@ -88,7 +88,7 @@ test('factory maintenance accepts one vehicle at a time, then reuses its single 
  assert.ok((roster[0].hp-initial)<=g.maxUnitHp(roster[0])*.012+.01);
  assert.ok(g.credits[0]>=credits-Math.ceil((roster[0].hp-initial)/FACTORY_REPAIR_HP_PER_CREDIT)-1);
  roster[0].hp=g.maxUnitHp(roster[0]);advance(g,.05);
- assert.equal(roster[0].factoryService.phase,'ready');
+ assert.equal(roster[0].factoryService.phase,'ready','repair still active at HP '+roster[0].hp+' / max '+g.maxUnitHp(roster[0])+' game='+g.status);
  assert.equal(g.releaseFactoryRepair([roster[0].id]),1);
  assert.equal(roster[0].factoryService,undefined);
  assert.equal(g.requestFactoryRepair([roster[2].id]),1,'freed bay is reused');
@@ -184,7 +184,14 @@ test('end-to-end: ground tank drives to factory apron and enters service',()=>{
   if(tank.factoryService.phase==='parking')startedParking=true;
   if(tank.factoryService.phase==='repair'){servicing=true;break;}
  }
- assert.equal(startedParking,true,'tank must reach the approach lane');
+ const goal=factoryRepairPoint(garage,0,true);
+ const blockers=g.movingColliders();
+ const obstacles=[...blockers.buildings,...blockers.vehicleFacades,...blockers.decor,...blockers.towers];
+ const targetWalkable=g.world.walkable(goal,obstacles,12);
+ assert.equal(startedParking,true,
+  'tank must reach the approach lane | position='+JSON.stringify({x:tank.x,y:tank.y,hp:tank.hp,phase:tank.factoryService?.phase,driveSpeed:tank.driveSpeed,
+   path:tank.path.length,goal,walkable:targetWalkable,game:g.status,
+   colliders:obstacles.filter(o=>Math.hypot(o.x-goal.x,o.y-goal.y)<200).slice(0,10)}));
  assert.equal(servicing,true,'tank must actually park at workshop bay');
  const dock=factoryRepairPoint(garage,0);
  assert.ok(Math.hypot(dock.x-tank.x,dock.y-tank.y)<15);
