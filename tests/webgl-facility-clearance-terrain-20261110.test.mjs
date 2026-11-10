@@ -50,7 +50,7 @@ test('two pioneers build in parallel instead of queuing behind a busy builder',(
  assert.deepEqual(chooseConstructionCrew([alsoBusy,busy]),
   {workers:[busy],append:true});
  const src=readFileSync(new URL('../scripts/webgl-battlefield.js',import.meta.url),'utf8');
- assert.match(src,/chooseConstructionCrew\(workers,event\.shiftKey\)/);
+ assert.match(src,/submitConstruction\(this\.game,kind,p,this\.selected/);
  assert.match(src,/this\.game\.buildError\(0,this\.buildKind,p,this\.placementFacing\)/);
 });
 
@@ -118,5 +118,8 @@ test('building remains possible after a vehicle factory or airfield is completed
  const ui=readFileSync(new URL('../scripts/webgl-battlefield.js',import.meta.url),'utf8');
  assert.match(ui,/Preserve the player's tab until it is genuinely unavailable/);
  assert.match(ui,/this\.catalogSelectionKey=selectionKey/);
- assert.match(ui,/if\(!workers\.length\)/,'must recover an unselected pioneer');
+ assert.match(ui,/submitConstruction\(this\.game,kind,p,this\.selected/,
+  'live build click must use fallback construction crew');
+ assert.match(ui,/this\.panel\.dataset\.tab='buildings'/,
+  'after airfield build the user stays on the buildings tab');
 });
