@@ -174,7 +174,7 @@ test('end-to-end: real bomber lands and taxis into its assigned hangar',()=>{
 });
 
 test('end-to-end: ground tank drives to factory apron and enters service',()=>{
- const {g,garage}=setup(),tank=g.spawn(0,{x:2740,y:2510},'tank');
+ const {g,garage}=setup(),tank=g.spawn(0,{x:2510,y:2320},'tank');
  tank.hp=700;
  assert.equal(g.requestFactoryRepair([tank.id]),1);
  let startedParking=false,servicing=false;
