@@ -475,7 +475,7 @@ export class Simulation {
     if(s.phase==='taxi'){
       s.elapsed=Math.min(AIRFIELD_TAXI_SECONDS,s.elapsed+dt);
       advance(airfieldTaxiPoint(base,s.bay,s.elapsed/AIRFIELD_TAXI_SECONDS),0);
-      if(s.elapsed>=AIRFIELD_TAXI_SECONDS){s.phase='repair';s.elapsed=0;}
+      if(s.elapsed>=AIRFIELD_TAXI_SECONDS){s.phase=u.orders.length?'takeoff':'repair';s.elapsed=0;}
       return;
     }
     if(s.phase==='repair'){
@@ -672,13 +672,27 @@ export class Simulation {
     if(order.kind==='board')return this.transports.board(order.target??-1,ids);
     if(!Number.isFinite(order.x)||!Number.isFinite(order.y))return 0;
     const candidates=this.units.filter(u=>ids.includes(u.id)&&u.hp>0&&!u.carrier);
-    // An order to a parked aircraft becomes a launch order, never a teleport.
+    // A manual reposition always wins over workshop autopilot. Ground vehicles
+    // can leave even before full repair; planes must physically take off first.
+    // Never teleport a landed bomber back to cruise altitude on order.
     let launched=0;
-    if(!append)for(const u of candidates)if(u.factoryService?.phase==='ready'){
-      delete u.factoryService;u.path=[];u.repath=0;
-    }
-    if(!append)for(const u of candidates)if(u.airfieldService?.phase==='ready'){
-      u.orders=[{...order}];u.airfieldService.phase='takeoff';u.airfieldService.elapsed=0;launched++;
+    if(!append)for(const u of candidates){
+      if(u.factoryService){
+        delete u.factoryService;u.path=[];u.repath=0;
+      }
+      const service=u.airfieldService;
+      if(!service)continue;
+      if(service.phase==='approach'){
+        delete u.airfieldService;u.flightHeight=1;u.path=[];u.repath=0;
+      }else{
+        u.orders=[{...order}];u.path=[];u.repath=0;u.hold=false;
+        if(service.phase==='repair'||service.phase==='ready'){
+          service.phase='takeoff';service.elapsed=0;
+        }
+        // Landing/taxi continue safely; start the departure as soon as
+        // the real unit reaches the hangar instead of jumping to the runway.
+        launched++;
+      }
     }
     const members=candidates.filter(u=>!u.airfieldService&&!u.factoryService);
     if(!append)for(const u of members)if(u.kind==='bomber')delete u.bomberRun;
