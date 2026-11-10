@@ -242,7 +242,6 @@ async function rasterizeUnitIcon(kind){
 /** Offline vector backup for the original 3D portrait (no asset fetch). */
 function rocketUnitIconFallback(){
  const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 132"><rect width="192" height="132" fill="#28322d"/><g transform="translate(30 0) scale(.69)">'+
- ' '+
  '<path fill="#8d987c" d="M62 68h67v75H62z"/>'+
  '<path fill="#baa882" d="M60 145h28v32H60zm49 0h28v32h-28z"/>'+
  '<circle cx="96" cy="51" r="25" fill="#aca787"/>'+
