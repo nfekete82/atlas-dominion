@@ -5,6 +5,8 @@ import {Simulation} from '../dist/src/reborn/simulation.js';
 import {airfieldPoint,airfieldTaxiPoint,AIRFIELD_REPAIR_HP_PER_CREDIT} from '../dist/src/reborn/airfield-maintenance.js';
 import {factoryRepairPoint,FACTORY_REPAIR_HP_PER_CREDIT} from '../dist/src/reborn/factory-maintenance.js';
 import {unitRenderAltitude} from '../scripts/webgl-scale.js';
+import {createAirfieldServiceYard,updateAirfieldServiceYard,disposeAirfieldServiceYard} from '../scripts/webgl-airfield-service.js';
+import {createFactoryServiceYard,updateFactoryServiceYard,disposeFactoryServiceYard} from '../scripts/webgl-factory-service.js';
 
 const base=(game,kind,id,x,y,facing=0)=>{
  const b={id,kind,owner:0,x,y,facing,territory:0,hp:kind==='airfield'?1200:1100,
@@ -116,4 +118,33 @@ test('3D maintenance assets are wired into build and battlefield lifecycle',()=>
    'hangar-repair','factory-repair','hangar-auto','factory-auto'])assert.ok(battlefield.includes(phrase),phrase);
  for(const phrase of ['HangarDoorLeft_','AirfieldExtendedRunway','HangarCamoArch_'])assert.ok(airfield.includes(phrase));
  for(const phrase of ['FactoryVehicleRepairApron','HydraulicVehicleLiftRail_','FactoryServiceWing'])assert.ok(factory.includes(phrase));
+});
+
+test('Three.js service yards create, animate and dispose with no DOM or WebGL context',()=>{
+ const airfield=createAirfieldServiceYard();
+ assert.ok(airfield.getObjectByName('AirfieldExtendedRunway'));
+ assert.ok(airfield.getObjectByName('HangarDoorLeft_0'));
+ assert.ok(airfield.getObjectByName('HangarDoorRight_1'));
+ const aircraft={id:80,hp:200,airfieldService:{baseId:900,bay:0,phase:'repair'}};
+ const airEntry={airfieldServiceYard:airfield};
+ updateAirfieldServiceYard(airEntry,{id:900},[aircraft],2,.2);
+ assert.equal(airfield.userData.bay0.sparks.visible,true);
+ assert.ok(airfield.userData.bay0.open>0);
+ updateAirfieldServiceYard(airEntry,{id:900},[],3,.2);
+ assert.equal(airfield.userData.bay0.sparks.visible,false);
+ disposeAirfieldServiceYard(airEntry);
+ assert.equal(airEntry.airfieldServiceYard,null);
+
+ const factory=createFactoryServiceYard();
+ assert.ok(factory.getObjectByName('FactoryServiceWing'));
+ assert.ok(factory.getObjectByName('VehicleRepairBaySurface_0'));
+ assert.ok(factory.getObjectByName('VehicleRepairBaySurface_1'));
+ const truck={id:81,hp:100,factoryService:{baseId:901,bay:1,phase:'repair'}};
+ const garageEntry={factoryServiceYard:factory};
+ updateFactoryServiceYard(garageEntry,{id:901},[truck],Math.PI/2);
+ assert.equal(factory.userData.bay1.indicator.visible,true);
+ updateFactoryServiceYard(garageEntry,{id:901},[],0);
+ assert.equal(factory.userData.bay1.indicator.visible,false);
+ disposeFactoryServiceYard(garageEntry);
+ assert.equal(garageEntry.factoryServiceYard,null);
 });
