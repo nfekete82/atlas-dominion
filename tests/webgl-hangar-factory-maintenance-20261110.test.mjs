@@ -148,3 +148,41 @@ test('Three.js service yards create, animate and dispose with no DOM or WebGL co
  disposeFactoryServiceYard(garageEntry);
  assert.equal(garageEntry.factoryServiceYard,null);
 });
+
+test('end-to-end: real bomber lands and taxis into its assigned hangar',()=>{
+ const {g,airport}=setup();
+ const bomber=g.spawn(0,{x:1680,y:1900},'bomber');
+ bomber.hp=600;
+ assert.equal(g.requestAirfieldRepair([bomber.id]),1);
+ let touchedDown=false,enteredTaxi=false,repaired=false;
+ for(let i=0;i<1000;i++){
+  g.step(.05);
+  if(!bomber.airfieldService)break;
+  if(bomber.airfieldService.phase==='landing')touchedDown=true;
+  if(bomber.airfieldService.phase==='taxi')enteredTaxi=true;
+  if(bomber.airfieldService.phase==='repair'){repaired=true;break;}
+ }
+ assert.ok(touchedDown,'bomber must reach approach waypoint without teleport');
+ assert.ok(enteredTaxi,'real bomber must land, not switch straight to repair');
+ assert.ok(repaired,'real bomber must drive to hangar');
+ assert.ok(Math.hypot(bomber.x-airfieldPoint(airport,'dock',0).x,
+  bomber.y-airfieldPoint(airport,'dock',0).y)<3,'hangar station must be at actual final taxi position');
+ assert.equal(bomber.flightHeight,0,'bomber must actually touch ground');
+});
+
+test('end-to-end: ground tank drives to factory apron and enters service',()=>{
+ const {g,garage}=setup(),tank=g.spawn(0,{x:2740,y:2510},'tank');
+ tank.hp=700;
+ assert.equal(g.requestFactoryRepair([tank.id]),1);
+ let startedParking=false,servicing=false;
+ for(let i=0;i<2200;i++){
+  g.step(.05);
+  if(!tank.factoryService)break;
+  if(tank.factoryService.phase==='parking')startedParking=true;
+  if(tank.factoryService.phase==='repair'){servicing=true;break;}
+ }
+ assert.equal(startedParking,true,'tank must reach the approach lane');
+ assert.equal(servicing,true,'tank must actually park at workshop bay');
+ const dock=factoryRepairPoint(garage,0);
+ assert.ok(Math.hypot(dock.x-tank.x,dock.y-tank.y)<15);
+});
