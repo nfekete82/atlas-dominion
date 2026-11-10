@@ -353,7 +353,7 @@ export class Simulation {
       if(!airfield)continue;
       const occupied=new Set(this.units.filter(other=>other.hp>0&&other.airfieldService?.baseId===airfield.id)
         .map(other=>other.airfieldService!.bay));
-      const bay=([0] as const).find(n=>!occupied.has(n));
+      const bay=([0,1] as const).find(n=>!occupied.has(n));
       if(bay===undefined||occupied.size>=AIRFIELD_BAYS)continue;
       u.airfieldService={baseId:airfield.id,bay,phase:'approach',elapsed:0,paidHp:0};
       u.orders=[];u.path=[];u.repath=0;u.hold=false;u.pursuitOrigin=null;u.combatTarget=null;
@@ -393,7 +393,7 @@ export class Simulation {
       if(!factory)continue;
       const occupied=new Set(this.units.filter(other=>other.hp>0&&other.factoryService?.baseId===factory.id)
         .map(other=>other.factoryService!.bay));
-      const bay=([0,1] as const).find(n=>!occupied.has(n));
+      const bay=([0] as const).find(n=>!occupied.has(n));
       if(bay===undefined||occupied.size>=FACTORY_REPAIR_BAYS)continue;
       u.factoryService={baseId:factory.id,bay,phase:'approach',paidHp:0};
       u.orders=[];u.path=[];u.repath=0;u.hold=false;u.pursuitOrigin=null;u.combatTarget=null;
