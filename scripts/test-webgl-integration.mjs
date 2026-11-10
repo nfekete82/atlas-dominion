@@ -24,7 +24,8 @@ const specs=[
   'tests/browser/webgl-horizontal-dock.spec.mjs',
   'tests/browser/webgl-movement-feedback.spec.mjs',
   'tests/browser/webgl-settings-close.spec.mjs',
-  'tests/browser/webgl-title-menu.spec.mjs'
+  'tests/browser/webgl-title-menu.spec.mjs',
+  'tests/browser/webgl-biomes.spec.mjs'
 ];
 
 function reservePort(){
