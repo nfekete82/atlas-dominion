@@ -5,6 +5,7 @@ import {Simulation} from '../dist/src/reborn/simulation.js';
 import {BUILDINGS,UNITS} from '../dist/src/reborn/catalog.js';
 import {SandforgeConstructionRecovery} from '../dist/webgl-construction-recovery.js';
 import {createStrategicBuilding,isStrategicBuilding,STRATEGIC_BUILDING_KINDS} from '../scripts/webgl-strategic-buildings.js';
+import {createRocketInfantry} from '../scripts/webgl-rocket-infantry.js';
 
 test('Canyon v15-v18: 3D campaign saves remain reloadable without changing simulation',()=>{
  for(const version of [15,16,17,18]){
@@ -22,6 +23,13 @@ test('Canyon v15-v18: 3D campaign saves remain reloadable without changing simul
 
 test('all combat GLBs and standard structures exist; strategic facilities use actual procedural 3D models',()=>{
  for(const kind of Object.keys(UNITS))for(const team of [0,1]){
+  // The rocket soldier is a real authored Three.js mesh, not a GLB file.
+  if(kind==='rocket'){
+   const model=createRocketInfantry(team);
+   assert.ok(model.getObjectByName('RocketMuzzle_0'));
+   assert.ok(model.children.some(child=>child.isMesh));
+   continue;
+  }
   const folder=['tank','rover','artillery','scout','bomber'].includes(kind)?'animation':'prototype';
   const path='dist/src/assets/reborn/'+folder+'/'+kind+'-'+team+'.glb';
   assert.ok(existsSync(path),'missing 3D unit model '+path);
@@ -96,13 +104,18 @@ test('WebGL RTS menu v2: isolated tabs and real 192x132 unit sprite portraits',(
  assert.match(js,/const frameIndex=directions\[/);
  assert.match(js,/target.width=192;target.height=132/);
  assert.match(js,/sfIconStatus/);
- assert.match(battlefield,/hydrateUnitIcons\(actions\)/);
+ assert.match(battlefield,/hydrateUnitIcons\(actions,this\.renderer\)/);
  assert.match(battlefield,/data-sf-producer/);
  assert.match(battlefield,/button\.dataset\.unit/);
  assert.match(css,/data-tab="units"/);
  assert.match(css,/data-tab="buildings"/);
  assert.match(css,/data-tab="territories"/);
  for(const kind of Object.keys(UNITS)){
+  // Rocket HUD art is generated from the same PBR 3D soldier at runtime.
+  if(kind==='rocket'){
+   assert.match(js,/createRocketInfantry\(0\)/);
+   continue;
+  }
   const folder=kind==='medic'?'prototype':'animation';
   const root='dist/src/assets/reborn/'+folder+'/'+kind+'-0';
   assert.ok(existsSync(root+'.png'),kind+' sprite missing');
