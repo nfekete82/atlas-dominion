@@ -235,7 +235,8 @@ export class TacticalAI {
   // the much lower threshold that prevents suicidal mid-battle retreats.
   const supported=near.some(v=>v.id!==u.id&&
     !['engineer','medic','scout'].includes(v.kind));
-  const criticalFraction=supported?.26:u.kind==='infantry'||u.kind==='heavy'||u.kind==='rocket'?.40:.26;
+  const criticalFraction=supported ? .26 :
+   ['infantry','heavy','rocket'].includes(u.kind) ? .40 : .26;
   if(u.hp>=unitSpec(u).hp*criticalFraction)return;
   // A shot from an unseen turret supplies damage information, not a
   // guessed turret position. With zero OBSERVED enemies the generic battle
