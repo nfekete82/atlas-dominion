@@ -98,9 +98,9 @@ test('placement ghost displays actual finished building at 50% with visible door
  assert.ok(begin.includes('createFactoryServiceYard()'));
  assert.ok(begin.includes("hideOldAirfieldHangar({detail:model})"),
   'legacy overlapping airfield structures are still hidden');
- assert.match(begin,/const tint=\\(root,ownSource=false,opacity=\\.50\\)/);
- assert.match(begin,/m\\.opacity=Math\\.min\\(mat\\.opacity\\?\\?1,opacity\\)/);
- assert.match(begin,/m\\.depthWrite=false;m\\.depthTest=true/);
+ assert.ok(begin.includes('const tint=(root,ownSource=false,opacity=.50)'),'the actual building ghost uses 50% transparency');
+ assert.ok(begin.includes('m.opacity=Math.min(mat.opacity??1,opacity)'));
+ assert.ok(begin.includes('m.depthWrite=false;m.depthTest=true'));
  assert.ok(begin.includes('placeholder.visible=true'),
   'temporary model is a 50%-opaque ghost until the GLB resolves');
  assert.ok(begin.includes('model.visible=true'),
