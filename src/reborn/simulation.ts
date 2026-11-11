@@ -728,7 +728,7 @@ export class Simulation {
     // newly spawned factory wall before receiving its first build order.
     const infantryFacade=infantryStructureCollider(kind,p),vehicleFacade=vehicleStructureCollider(kind,p);
     if(this.units.some(u=>{
-      if(u.hp<=0||u.carrier||unitSpec(u).flying||u.owner===owner&&u.kind==='engineer')return false;
+      if(u.hp<=0||u.carrier||unitSpec(u).flying)return false;
       const facade=unitSpec(u).group==='Fahrzeuge'?vehicleFacade:infantryFacade;
       return distance(u,facade)<facade.radius+unitSpec(u).radius;
     }))return 'Einheiten blockieren die Baustelle.';
@@ -874,7 +874,7 @@ export class Simulation {
     if(this.bases.some(b=>b.kind==='headquarters'&&b.territory===t.id&&b.owner!==owner&&b.hp>0))return 'enemy-hq';
     return 'capturing';
   }
-  stop(ids:number[],hold=false):void {for(const u of this.units)if(ids.includes(u.id)){if(u.kind==='bomber')delete u.bomberRun;this.cancelProductionDeparture(u.id);this.transports.cancel(u);u.orders=[];u.path=[];u.repath=0;u.moving=false;if(u.kind==='tank')u.driveSpeed=0;u.pursuitOrigin=null;u.combatTarget=null;u.hold=hold;u.supportPaused=false;u.workingTarget=null;delete u.burst;}}
+  stop(ids:number[],hold=false):void {for(const u of this.units)if(ids.includes(u.id)){if(u.kind==='bomber')delete u.bomberRun;this.cancelProductionDeparture(u.id);this.transports.cancel(u);u.orders=[];u.path=[];u.repath=0;u.moving=false;if(u.kind==='tank')u.driveSpeed=0;u.pursuitOrigin=null;u.combatTarget=null;u.hold=hold||u.kind==='engineer';u.supportPaused=false;u.workingTarget=null;delete u.burst;}}
   private supportEligible(u:Unit,target:Unit|Base,kind:string):boolean {
     if(target.hp<=0||('orders' in target&&target.carrier)||target.owner!==u.owner)return false;
     if(kind==='heal')return u.kind==='medic'&&'orders' in target&&unitSpec(target).group==='Infanterie'&&target.hp<this.maxUnitHp(target);

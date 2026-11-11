@@ -123,11 +123,11 @@ test('high ground uses the real walkable heightfield, excludes low ground, cliff
 test('v23–26 save/load preserves the actual selected profile, seed, geometry, collision, fog and start ownership',()=>{
  for(const version of [23,24,25,26])for(const profile of TERRAIN_PROFILES){
   const g=Simulation.campaign(4294967295,version,profile),raw=JSON.parse(JSON.stringify(g.save())),copy=Simulation.load(raw);
-  assert.equal(raw.generatorVersion,1);assert.equal(raw.terrainProfile,profile);assert.equal(raw.seed,4294967295);
+  assert.equal(raw.generatorVersion,2);assert.equal(raw.terrainProfile,profile);assert.equal(raw.seed,4294967295);
   assert.equal(hash(g.world),hash(copy.world));assert.deepEqual(g.startRegions,copy.startRegions);assert.deepEqual(g.explored,copy.explored);
   assert.deepEqual(g.territories.map(t=>t.owner),copy.territories.map(t=>t.owner));
   assert.throws(()=>Simulation.load({...raw,terrainProfile:'invalid'}),/beschädigt/);
-  assert.throws(()=>Simulation.load({...raw,generatorVersion:2}),/beschädigt/);
+  assert.throws(()=>Simulation.load({...raw,generatorVersion:99}),/beschädigt/);
   assert.throws(()=>Simulation.load({...raw,terrainProfile:undefined}),/beschädigt/);
  }
 });

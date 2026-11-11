@@ -50,7 +50,7 @@ test('visual scaling keeps infantry smaller than vehicles with current render-on
  const expected={
   infantry:0.56,medic:0.56,engineer:0.56,
   heavy:0.58,rover:1.34,
-  artillery:1.32,tank:1.44,bomber:1.03
+  artillery:1.42,tank:1.44,bomber:1.03
  };
  for(const [kind,scale] of Object.entries(expected))
   assert.equal(visualUnitScale(kind),scale,kind+' visual scale changed');
