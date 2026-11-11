@@ -522,6 +522,39 @@ export class Simulation {
   profileSquadWork=false; squadUnitMs=0; squadCollisionMs=0;
   resetSquadProfile():void{this.squadUnitMs=0;this.squadCollisionMs=0;}
   private fogClock=0; private visionCache=new VisionCache(); private spatial=new SpatialIndex();
+  private nextCooperativeBuilderAt=0;
+  /** Every idle friendly pioneer helps on real, reachable construction sites.
+   * Two pioneers speed up one building; if two sites exist they split, and
+   * after either finishes the freed engineer helps the remaining site.
+   * Never override player movement/repair, other orders or queued jobs.
+   * Work and credits remain authoritative, with the 1.5x shared speed cap.
+   */
+  private assignIdlePioneersToConstruction():void {
+    const sites=this.bases.filter(b=>b.owner===0&&b.hp>0&&b.buildRemaining>0);
+    if(!sites.length)return;
+    const workers=this.units.filter(u=>u.owner===0&&u.kind==='engineer'&&
+      u.hp>0&&!u.carrier);
+    if(workers.length<2)return;
+    const count=new Map(sites.map(b=>[b.id,0]));
+    for(const u of workers){
+      const assigned=u.orders[0];
+      if(assigned?.kind==='build'&&count.has(assigned.target!))
+        count.set(assigned.target!,count.get(assigned.target!)!+1);
+    }
+    for(const u of workers){
+      if(u.hold||u.defendUntil>this.time||u.orders.length||u.workingTarget!==null)
+        continue;
+      const targets=sites.filter(b=>(count.get(b.id)??0)<2).sort((a,b)=>
+        (count.get(a.id)!-count.get(b.id)!)||
+        distance(u,a)-distance(u,b)||a.id-b.id);
+      for(const site of targets){
+        if(!this.command([u.id],{kind:'build',x:site.x,y:site.y,target:site.id}))
+          continue;
+        count.set(site.id,count.get(site.id)!+1);
+        break;
+      }
+    }
+  }
   /** The original constructor remains a deterministic legacy fixture/save reader. */
   constructor(seed=2026,mapVersion:MapVersion=0,weatherEnabled=false,bootstrap=false,profile?:TerrainProfile) {
     this.bootstrapVersion=bootstrap?1:undefined;this.seed=seed;this.weather=new Weather(seed,weatherEnabled);this.world=new World(seed,mapVersion,profile);this.territories=this.world.territories(seed);
@@ -1413,6 +1446,12 @@ export class Simulation {
     // One fixed tick only: callers accumulate elapsed time; no wall-clock economy.
     dt=Math.min(dt,.1);this.time+=dt;this.incomeClock+=dt;this.fogClock+=dt;
     this.unitById=new Map(this.units.map(u=>[u.id,u]));
+    // Scheduling is bounded (once every 1.2 simulated seconds) and only
+    // assigns genuinely idle pioneers, never stealing manual orders.
+    if(this.time>=this.nextCooperativeBuilderAt){
+      this.nextCooperativeBuilderAt=this.time+1.2;
+      this.assignIdlePioneersToConstruction();
+    }
     // An actor killed/removed during production must not retain a detached
     // visual departure hold after its entity no longer exists.
     for(const [id,until] of this.productionDepartureHolds)
