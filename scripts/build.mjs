@@ -57,6 +57,7 @@ cpSync('scripts/webgl-perimeter.js','dist/webgl-perimeter.js');
 cpSync('scripts/webgl-edge-cliffs.js','dist/webgl-edge-cliffs.js');
 cpSync('scripts/webgl-grounding.js','dist/webgl-grounding.js');
 cpSync('scripts/webgl-ground-tracks.js','dist/webgl-ground-tracks.js');
+cpSync('scripts/webgl-vehicle-dust.js','dist/webgl-vehicle-dust.js');
 cpSync('scripts/webgl-building-yard.js','dist/webgl-building-yard.js');
 cpSync('scripts/webgl-airfield-service.js','dist/webgl-airfield-service.js');
 cpSync('scripts/webgl-factory-service.js','dist/webgl-factory-service.js');
