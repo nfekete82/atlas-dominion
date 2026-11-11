@@ -32,11 +32,11 @@ export function chooseConstructionCrew(workers,shift=false){
  return {workers:[waiting[0]],append:true};
 }
 
-/** Cooperative RTS construction: all free pioneers automatically help
- * at the first building. If a second foundation is ordered, one helper
- * transfers to it so both build in parallel. If every foundation already
- * has one active builder, later orders are queued. Retains safe retries
- * across alternate engineers when supportApproach rejects a route.
+/** Nonblocking RTS construction: assign only one available pioneer per
+ * new foundation. Other pioneers remain free to accept a different site.
+ * An older double-assigned site can donate a spare engineer. Once every
+ * site has a sole builder, additional orders queue safely. Retains
+ * reachability retries when supportApproach rejects a route.
  *
  * The authoritative Simulation.build()/buildError() remains in control of
  * credits, uniqueness, terrain, rotation, collision and map borders. No
@@ -65,11 +65,11 @@ export function submitConstruction(game,kind,point,selection,facing=0,shift=fals
  }else{
   const freeSelected=ordered(selected.filter(free));
   const freeOthers=ordered(all.filter(u=>!selection.has(u.id)&&free(u)));
-  // One active site: ALL available engineers collaborate automatically.
-  // A second site can later pull ONE of them away, leaving an engineer
-  // behind. Support/build progress already caps the joint rate at 1.5x.
+  // Assign exactly ONE available pioneer to each newly placed building.
+  // Sending the whole crew to a single foundation creates pathing jams:
+  // they converge on the same approach point and obstruct one another.
+  // Keep all other pioneers idle for the next construction request.
   const freeWorkers=[...freeSelected,...freeOthers];
-  if(freeWorkers.length>1)plans.push({workers:freeWorkers,append:false});
   for(const u of freeWorkers)plans.push({workers:[u],append:false});
   // No idle pioneer? Redistribute a worker from a site that currently has
   // two or more ACTIVE builders. The older site retains its other engineer,
