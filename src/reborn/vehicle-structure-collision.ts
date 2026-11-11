@@ -17,5 +17,5 @@ export function vehicleStructureCollider(kind:BuildingKind,point:{x:number;y:num
  * buildings extend mostly upwards from their feet in the RTS sprite. */
 export function vehicleStructureColliders(bases:readonly Base[]):{x:number;y:number;radius:number}[]{
   return bases.filter(b=>b.hp>0).flatMap(b=>b.kind==='wall'?
-   wallColliderSamples(b,25):[vehicleStructureCollider(b.kind,b,b.radius)]);
+   wallColliderSamples(b,b.facing??0,25):[vehicleStructureCollider(b.kind,b,b.radius)]);
 }
