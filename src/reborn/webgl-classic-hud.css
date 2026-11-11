@@ -2467,3 +2467,17 @@
   min-width:96px!important;max-width:96px!important;
  }
 }
+
+/* Walls are compact utility pieces, not the same visual priority as an HQ. */
+#sf-classic-root #sf-actions button.catalog-card[data-build="wall"]{
+ min-height:74px!important;height:74px!important;align-self:start;
+}
+#sf-classic-root #sf-actions button.catalog-card[data-build="wall"] .sf-card-image{
+ min-height:38px!important;max-height:47px!important;
+}
+#sf-classic-root #sf-actions button.catalog-card[data-build="wall"] .sf-card-image img{
+ height:100%!important;width:80%!important;padding:2px!important;
+}
+#sf-classic-root #sf-actions button.catalog-card[data-build="wall"] .card-meta{
+ height:23px;min-height:23px;
+}

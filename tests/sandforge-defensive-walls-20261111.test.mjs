@@ -9,7 +9,7 @@ import {sitesVisuallyOverlap,siteExceedsMap} from '../dist/src/reborn/constructi
 import {createStrategicBuilding,isStrategicBuilding} from '../scripts/webgl-strategic-buildings.js';
 test('real paid wall entity is available in the pioneer catalogue',()=>{
  assert.ok(buildingKinds.includes('wall'));
- assert.equal(BUILDINGS.wall.cost,120);
+ assert.equal(BUILDINGS.wall.cost,60);
  assert.ok(BUILDINGS.wall.hp>500);
  assert.ok(isStrategicBuilding('wall'));
  const ui=readFileSync('scripts/webgl-battlefield.js','utf8');
@@ -39,6 +39,8 @@ test('rockets and artillery break concrete more effectively than rifle fire',()=
 test('wall appearance uses one procedural model, also for translucent building preview',()=>{
  const wall=createStrategicBuilding('wall',0);
  assert.ok(wall.getObjectByName('WallArmoredPanel'));
+ assert.ok(wall.getObjectByName('WallCamoStoneFace'));
+ assert.equal(wall.getObjectByName('WallCamoStoneFace').material.map.isDataTexture,true);
  assert.ok(wall.getObjectByName('WallFactionBand'));
  assert.equal(wall.userData.defensiveWall,true);
  const other=createStrategicBuilding('wall',1);

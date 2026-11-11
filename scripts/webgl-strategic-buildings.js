@@ -70,25 +70,38 @@ const siloDesertCamo=(()=>{
 function createDefensiveWall(owner){
  const root=new THREE.Group();root.name='Strategic_wall';
  root.userData={visualOnly:true,defensiveWall:true};
- const concrete=new THREE.MeshStandardMaterial({color:'#b7ab8a',roughness:.94,metalness:.08,
-  map:materialGrain,bumpMap:materialGrain,bumpScale:.28});
- const cap=new THREE.MeshStandardMaterial({color:'#827b67',roughness:.81,metalness:.26,
-  map:materialGrain});
- const stripe=new THREE.MeshStandardMaterial({color:owner===0?'#3179a2':'#b35f4a',
-  roughness:.6,metalness:.25});
+ const concrete=new THREE.MeshStandardMaterial({
+  color:'#b5a887',roughness:.99,metalness:.01,map:materialGrain,
+  bumpMap:materialGrain,bumpScale:.82});
+ const camo=new THREE.MeshStandardMaterial({
+  color:'#f4efe2',roughness:.96,metalness:.025,map:siloDesertCamo,
+  bumpMap:materialGrain,bumpScale:.38});
+ const cap=new THREE.MeshStandardMaterial({color:'#777562',roughness:.92,
+  metalness:.10,map:materialGrain,bumpMap:materialGrain,bumpScale:.36});
+ const stripe=new THREE.MeshStandardMaterial({
+  color:owner===0?'#277fbe':'#c65043',roughness:.85,metalness:.05});
  const add=(w,h,d,x,y,z,mat,name)=>{
   const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
   m.position.set(x,y,z);m.name=name;m.castShadow=true;m.receiveShadow=true;
   root.add(m);
  };
- add(109,7,30,0,4,0,cap,'WallFooting');
+ // Three visible concrete blocks, separated by mortar joints. The large
+ // facing plates use the real textured khaki/olive camouflage atlas.
+ add(110,6.5,30,0,3.25,0,cap,'WallFooting');
  for(const x of [-35,0,35]){
-  add(33,32,18,x,24,0,concrete,'WallArmoredPanel');
-  add(33,5,21,x,42,0,cap,'WallCoping');
-  add(27,2,22,x,46,0,stripe,'WallFactionBand');
+  add(33,34,22,x,24,0,concrete,'WallArmoredPanel');
+  add(30,27,1.7,x,25,11.6,camo,'WallCamoStoneFace');
+  add(30,27,1.7,x,25,-11.6,camo,'WallCamoStoneRear');
+  add(32,5.5,25,x,44,0,cap,'WallCoping');
+  add(27,2.1,21,x,48.2,0,stripe,'WallFactionBand');
+  // Rough mortar lines and minor chips are static, not GPU particles.
+  for(const z of [-12.7,12.7]){
+   add(27,.9,1.1,x,22,z,concrete,'WallStoneMortar');
+   add(6,2,1.3,x+8,34,z,cap,'WallStoneChip');
+  }
  }
  for(const x of [-52,52]){
-  add(8,47,25,x,26,0,cap,'WallPillar');
+  add(8,48,27,x,26,0,cap,'WallPillar');
   add(10,5,28,x,51,0,concrete,'WallPillarTop');
  }
  return root;
