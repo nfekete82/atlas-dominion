@@ -3,7 +3,8 @@ import { Renderer } from './renderer.js';
 import { Simulation, type Weapon } from './simulation.js';
 import {UnitRadio,type PlayerOrder} from './unit-radio.js';
 import {UnitLossMonitor} from './unit-loss-monitor.js';
-import {TacticalMusic,musicCombatLevel} from './tactical-music.js';
+import {musicCombatLevel} from './tactical-music.js';
+import {RecordedSoundtrack} from './recorded-soundtrack.js';
 import {unitSpec} from './catalog.js';
 import {ENGINE_KINDS,ENGINE_PROFILES,measuredEngineSpeed,vehicleSoundMix,engineAudibleGain,engineAudibleRadius,type EngineKind} from './vehicle-soundscape.js';
 
@@ -49,8 +50,8 @@ export function preferredGermanVoice(voices:readonly SpeechSynthesisVoice[]):Spe
 /** Local sound design: synthesized effects and a separate pre-authored speech channel. */
 export class Soundscape {
   context:AudioContext|null=null;
-  musicEnabled=true;musicVolume=.30;effectsVolume=.85;
-  private music:TacticalMusic|null=null;
+  musicEnabled=true;musicVolume=.22;effectsVolume=.85;
+  private music:RecordedSoundtrack|null=null;
   private radioDucking=false;
   analyser:AnalyserNode|null=null;
   enabled=true; volume=.6; ambience=true; engineSoundsEnabled=true;
@@ -77,7 +78,7 @@ export class Soundscape {
       const a=this.context=new AudioContext();this.master=a.createGain();this.master.gain.value=this.enabled?this.volume:0;
       this.effects=a.createGain();this.effects.gain.value=this.effectsVolume;
       this.effects.connect(this.master);
-      this.music=new TacticalMusic(a,this.master);
+      this.music=new RecordedSoundtrack(a,this.master);
       this.music.setEnabled(this.musicEnabled);this.music.setVolume(this.musicVolume);
       this.radio.attach(a,this.master);
       this.analyser=a.createAnalyser();this.analyser.fftSize=256;const limiter=a.createDynamicsCompressor();limiter.threshold.value=-14;limiter.knee.value=8;limiter.ratio.value=8;limiter.attack.value=.003;limiter.release.value=.13;this.master.connect(limiter);limiter.connect(this.analyser);this.analyser.connect(a.destination);
@@ -114,6 +115,12 @@ export class Soundscape {
         this.engineVoices.set(kind,{gain,pan,engine,harmonic,noise,pulseDepth,previousMotion:0});
       }
     }
+    // The music element must receive play() from the SAME user gesture that
+    // unlocks WebAudio. Calling it only after the asynchronous resume may
+    // lose transient user activation in Chromium/Safari.
+    this.music?.update(this.game?.time??0,0,
+      this.musicEnabled&&this.enabled&&this.volume>0&&!this.game?.paused&&
+      (typeof document==='undefined'||!document.hidden));
     if(this.context.state==='suspended')await this.context.resume();
     this.radio.flush();
   }
