@@ -21,25 +21,25 @@ test('all four rotations use open apron before aligning along hangar entrance',(
  assert.equal(AIRFIELD_TAKEOFF_SECONDS,8);
  for(let facing=0;facing<4;facing++){
   const base={x:2500,y:2600,facing};
-  for(const bay of [0,1]){
-   const cx=bay===0?-151:-26;
+  for(const bay of [0]){
+   const cx=42-151*.90;
    const lineup=local(base,airfieldPoint(base,'lineup',bay));
    const door=local(base,airfieldPoint(base,'door',bay));
    const dock=local(base,airfieldPoint(base,'dock',bay));
    assert.ok(Math.abs(lineup.x-cx)<1e-6);
-   assert.ok(Math.abs(lineup.z-95)<1e-6,'turn 77 units outside the front wall at z=18');
-   assert.ok(Math.abs(door.z-20)<1e-6);
-   assert.ok(dock.z<=-115,'service stop must be deep in the building');
-   assert.ok(dock.z>-165,'parked fuselage must not intersect the back wall');
+   assert.ok(Math.abs(lineup.z-95*.82)<1e-6,'turn 77 units outside the front wall at z=18');
+   assert.ok(Math.abs(door.z-20*.82)<1e-6);
+   assert.ok(dock.z<=-95,'service stop must be deep in the building');
+   assert.ok(dock.z>-140,'parked fuselage must not intersect the back wall');
    assert.ok(Math.abs(door.x-lineup.x)<1e-6,'straight-in approach must have no wall-side turn');
    assert.ok(Math.abs(dock.x-door.x)<1e-6);
    for(let i=0;i<=200;i++){
     const p=local(base,airfieldTaxiPoint(base,bay,i/200));
     // A full-size bomber's fuselage projects ~50 units beyond its centre:
     // the aircraft MUST turn BEFORE entering the 18-unit front wall.
-    if(p.z<=69)assert.ok(Math.abs(p.x-cx)<1e-6,
+    if(p.z<=69*.82)assert.ok(Math.abs(p.x-cx)<1e-6,
       'near hangar wall the bomber may only move on its bay centerline');
-    if(p.z<18)assert.ok(p.z>=-118,
+    if(p.z<18*.82)assert.ok(p.z>=-118*.82,
       'taxi remains within physical hangar floor and back bulkhead');
    }
    assert.deepEqual(airfieldTaxiPoint(base,bay,0),
@@ -53,19 +53,19 @@ test('all four rotations use open apron before aligning along hangar entrance',(
    // Departure follows exact reverse centerline, not a shortcut through wall.
    for(let i=0;i<=200;i++){
     const p=local(base,airfieldTaxiPoint(base,bay,i/200,true));
-    if(p.z<=69)assert.ok(Math.abs(p.x-cx)<1e-6);
+    if(p.z<=69*.82)assert.ok(Math.abs(p.x-cx)<1e-6);
    }
   }
  }
 });
 
-test('both roller shutters open DURING landing and retract above actual wing clearance',()=>{
+test('single hangar shutters open DURING landing and retract above wing clearance',()=>{
  const yard=createAirfieldServiceYard(),entry={airfieldServiceYard:yard},base={id:909};
  try{
-  const planes=[0,1].map(bay=>({id:100+bay,hp:400,
+  const planes=[0].map(bay=>({id:100+bay,hp:400,
    airfieldService:{baseId:909,bay,phase:'landing'}}));
   for(let i=0;i<90;i++)updateAirfieldServiceYard(entry,base,planes,i*.05,.05);
-  for(const bay of [0,1]){
+  for(const bay of [0]){
    const gate=yard.userData['bay'+bay];
    assert.ok(gate.open>.99,
     'both bays must open before the bomber starts ground taxi');

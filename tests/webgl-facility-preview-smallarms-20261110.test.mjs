@@ -35,19 +35,19 @@ test('small arms remain lethal to infantry but weak against vehicles and airfram
   'retain pre-existing building balance');
 });
 
-test('runway is significantly longer than hangars and landing positions stay unchanged',()=>{
+test('single hangar and shorter runway preserve aligned landing positions',()=>{
  const airport=createAirfieldServiceYard();
  const runway=airport.getObjectByName('AirfieldExtendedRunway');
  const hangar=airport.getObjectByName('HangarBayFloor_0');
  assert.ok(runway&&hangar);
  assert.ok(runway.geometry.parameters.depth>=hangar.geometry.parameters.depth*2.5);
- assert.ok(runway.position.z+runway.geometry.parameters.depth/2>340);
- assert.ok(runway.geometry.parameters.depth>=550&&runway.geometry.parameters.depth<=650,
+ assert.ok(airport.scale.z*(runway.position.z+runway.geometry.parameters.depth/2)>300);
+ assert.ok(runway.geometry.parameters.depth*airport.scale.z>=470&&runway.geometry.parameters.depth*airport.scale.z<=510,
   'runway must be long enough for the bomber but fit the actual map');
  assert.equal(airport.getObjectByName('AirfieldCrossTaxiLane'),undefined,
   'remove the old short cross runway');
  assert.ok(airport.getObjectByName('AirfieldAircraftParkingPad_0'));
- assert.ok(airport.getObjectByName('AirfieldAircraftParkingPad_1'));
+ assert.equal(airport.getObjectByName('AirfieldAircraftParkingPad_1'),undefined);
  const tower=airport.getObjectByName('AirfieldLeftControlTowerShaft');
  const fuel=airport.getObjectByName('AirfieldFuelServiceContainer');
  assert.ok(tower&&fuel);
@@ -60,9 +60,9 @@ test('runway is significantly longer than hangars and landing positions stay unc
  assert.ok(airfieldPoint(base,'approach').y>2250);
  assert.ok(airfieldPoint(base,'touchdown').y>2100);
  assert.ok(serviceFootprintContains({kind:'airfield',facing:0,x:1200,y:1400},
-  {x:1330,y:1775}),'runway right-click extends to far end');
+  {x:1330,y:1718}),'runway right-click extends to shortened end');
  assert.ok(airport.getObjectByName('HangarRoofSpine_0'));
- assert.ok(airport.getObjectByName('HangarAngledRoofPlate_1'));
+ assert.equal(airport.getObjectByName('HangarAngledRoofPlate_1'),undefined);
  assert.ok(serviceFootprintContains({kind:'airfield',facing:0,x:1200,y:1400},{x:1330,y:1740}));
  disposeAirfieldServiceYard({airfieldServiceYard:airport});
 });

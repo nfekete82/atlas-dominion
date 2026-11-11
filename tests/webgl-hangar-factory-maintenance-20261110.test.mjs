@@ -35,9 +35,9 @@ function setup(){
 }
 const advance=(game,seconds)=>{for(let n=0;n<Math.round(seconds/.05);n++)game.step(.05);};
 
-test('two distinct rotated airfield bays and runway/landing points',()=>{
+test('compact airfield with single hangar and runway/landing points',()=>{
  const b={x:2000,y:2100,facing:2};
- assert.notDeepEqual(airfieldPoint(b,'dock',0),airfieldPoint(b,'dock',1));
+ assert.deepEqual(airfieldPoint(b,'dock',0),airfieldPoint(b,'dock',1),'legacy bay maps to one physical hangar');
  assert.deepEqual(airfieldTaxiPoint(b,0,0),airfieldPoint(b,'touchdown',0));
  assert.deepEqual(airfieldTaxiPoint(b,1,1),airfieldPoint(b,'dock',1));
  assert.deepEqual(factoryRepairPoint(b,0),{x:2045,y:1908});
@@ -46,11 +46,12 @@ test('two distinct rotated airfield bays and runway/landing points',()=>{
  assert.equal(unitRenderAltitude('bomber',0),0);
 });
 
-test('aircraft can reserve exactly two bays and must pay for hangar repair',()=>{
+test('aircraft can reserve exactly one bay and must pay for hangar repair',()=>{
  const {g,airport}=setup(),planes=[0,1,2].map(n=>g.spawn(0,{x:1750+n*14,y:1990},'bomber'));
  for(const p of planes)p.hp=350;
- assert.equal(g.requestAirfieldRepair(planes.map(p=>p.id)),2);
- assert.deepEqual(planes.slice(0,2).map(p=>p.airfieldService.bay),[0,1]);
+ assert.equal(g.requestAirfieldRepair(planes.map(p=>p.id)),1);
+ assert.deepEqual(planes.slice(0,1).map(p=>p.airfieldService.bay),[0]);
+ assert.equal(planes[1].airfieldService,undefined);
  assert.equal(planes[2].airfieldService,undefined);
  assert.equal(g.requestAirfieldRepair([planes[0].id]),0,'service cannot be reserved twice');
  const aircraft=planes[0];
@@ -135,7 +136,8 @@ test('Three.js service yards create, animate and dispose with no DOM or WebGL co
  const airfield=createAirfieldServiceYard();
  assert.ok(airfield.getObjectByName('AirfieldExtendedRunway'));
  assert.ok(airfield.getObjectByName('HangarDoorLeft_0'));
- assert.ok(airfield.getObjectByName('HangarDoorRight_1'));
+ assert.ok(airfield.getObjectByName('HangarDoorRight_0'));
+ assert.equal(airfield.getObjectByName('HangarDoorRight_1'),undefined);
  const aircraft={id:80,hp:200,airfieldService:{baseId:900,bay:0,phase:'repair'}};
  const airEntry={airfieldServiceYard:airfield};
  updateAirfieldServiceYard(airEntry,{id:900},[aircraft],2,.2);

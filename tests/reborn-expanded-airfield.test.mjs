@@ -25,7 +25,7 @@ test('expanded airfield has an actual longer 3D footprint, arched hangar, ATC an
 
 test('enlarged airfield graphics are baked and the simulation footprint matches',()=>{
  const source=fs.readFileSync(new URL('../src/reborn/catalog.ts',import.meta.url),'utf8');
- assert.match(source,/airfield:\{name:'Flugfeld'.*radius:116,width:320,/);
+ assert.match(source,/airfield:\{name:'Flugfeld'.*radius:105,width:280,/);
  for(const team of [0,1]){
   const meta=JSON.parse(fs.readFileSync(new URL('../src/assets/reborn/buildings-3d/airfield-'+team+'.json',import.meta.url)));
   assert.ok(meta.design.sourceGeometry.parts>100,'airfield GLB must be rebuilt from expanded source');

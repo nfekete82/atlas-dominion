@@ -74,6 +74,8 @@ test('infantry never says vehicle-only driving phrase, even when the forbidden r
   assert.ok(clips.every(c=>!(/angefahren/i).test(c.text)),action+' offered a vehicle phrase');
   assert.ok(clips.every(c=>c.id!==forbidden.id));
  }
+ assert.ok(radioChoices(manifest.clips,'move','rocket').every(c=>!c.text.includes('angefahren')),
+  'rocket infantry may not announce driving');
  // Exercise real policy selection over a long sequence including deterministic tail values.
  const policy=new RadioPolicy(manifest.clips,()=>.999999);
  for(let n=0;n<45;n++){
