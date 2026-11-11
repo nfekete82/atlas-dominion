@@ -12,9 +12,9 @@ export const FACTORY_REPAIR_HP_PER_CREDIT=5;
 export const FACTORY_REPAIR_FRACTION_PER_SECOND=.012;
 export function factoryRepairPoint(site:FactorySite,bay:FactoryRepairBay,approach=false){
  const angle=[0,Math.PI,Math.PI/2,Math.PI*1.5][site.facing??0]??0;
- // Both historical bay values resolve to the same compact side workshop;
+ // Both historical bay values resolve to the same open outdoor repair platform;
  // only bay 0 can be reserved for new repairs.
- const x=192,z=approach?160:45,c=Math.cos(angle),s=Math.sin(angle);
+ const x=164,z=approach?128:36,c=Math.cos(angle),s=Math.sin(angle);
  return {x:site.x+x*c+z*s,y:site.y-x*s+z*c};
 }
 export function validFactoryService(input:unknown):input is FactoryService {

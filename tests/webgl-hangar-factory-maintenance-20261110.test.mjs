@@ -40,8 +40,8 @@ test('compact airfield with single hangar and runway/landing points',()=>{
  assert.deepEqual(airfieldPoint(b,'dock',0),airfieldPoint(b,'dock',1),'legacy bay maps to one physical hangar');
  assert.deepEqual(airfieldTaxiPoint(b,0,0),airfieldPoint(b,'touchdown',0));
  assert.deepEqual(airfieldTaxiPoint(b,1,1),airfieldPoint(b,'dock',1));
- assert.deepEqual(factoryRepairPoint(b,0),{x:2045,y:1908});
- assert.deepEqual(factoryRepairPoint(b,1),{x:2045,y:1908},'legacy service bay shares new platform');
+ assert.deepEqual(factoryRepairPoint(b,0),{x:2036,y:1936});
+ assert.deepEqual(factoryRepairPoint(b,1),{x:2036,y:1936},'legacy service bay shares new platform');
  assert.equal(unitRenderAltitude('bomber',1),175);
  assert.equal(unitRenderAltitude('bomber',0),0);
 });
@@ -129,7 +129,7 @@ test('3D maintenance assets are wired into build and battlefield lifecycle',()=>
    'createFactoryServiceYard','updateFactoryServiceYard','disposeFactoryServiceYard',
    'hangar-repair','factory-repair','hangar-auto','factory-auto'])assert.ok(battlefield.includes(phrase),phrase);
  for(const phrase of ['HangarDoorLeft_','AirfieldExtendedRunway','HangarCamoArch_'])assert.ok(airfield.includes(phrase));
- for(const phrase of ['FactoryVehicleRepairApron','HydraulicVehicleLiftRail_','FactorySideWorkshopWallLeft'])assert.ok(factory.includes(phrase));
+ for(const phrase of ['FactoryVehicleRepairApron','HydraulicVehicleLiftRail_','RepairPadBollard_0'])assert.ok(factory.includes(phrase));
 });
 
 test('Three.js service yards create, animate and dispose with no DOM or WebGL context',()=>{
@@ -149,7 +149,7 @@ test('Three.js service yards create, animate and dispose with no DOM or WebGL co
  assert.equal(airEntry.airfieldServiceYard,null);
 
  const factory=createFactoryServiceYard();
- assert.ok(factory.getObjectByName('FactorySideWorkshopWallLeft'));
+ assert.ok(factory.getObjectByName('RepairPadBollard_0'));
  assert.ok(factory.getObjectByName('VehicleRepairBaySurface_0'));
  assert.equal(factory.getObjectByName('VehicleRepairBaySurface_1'),undefined);
  const truck={id:81,hp:100,factoryService:{baseId:901,bay:0,phase:'repair'}};
@@ -378,8 +378,8 @@ test('factory and airfield use real PBR camouflage/data textures, roof details a
  assert.equal(material.map.colorSpace,'srgb');
  material.map.dispose();material.dispose();
  const yard=createFactoryServiceYard(),hangar=createAirfieldServiceYard();
- for(const name of ['FactoryCamoVerticalRib_0','FactorySideVentLouvre_0',
-   'FactoryRoofAirDuct_0','FactoryToolChest_0'])
+ for(const name of ['RepairPadBollard_0','RepairPadDrain_0',
+   'FactoryRepairConsole_0','FactoryToolChest_0'])
   assert.ok(yard.getObjectByName(name),name);
  for(const name of ['HangarRoofVent_0','HangarDoorCorrugation_0_0',
    'HangarRearVent_0','AirfieldTouchdownRubber'])

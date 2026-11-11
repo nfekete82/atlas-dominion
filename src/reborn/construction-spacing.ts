@@ -34,7 +34,7 @@ const localShapes=(kind:BuildingKind):Shape[]=>{
  if(kind==='research')s.push(
   {type:'rect',x:0,z:0,hx:70,hz:60}); // actual compact research foundation
  if(kind==='factory')s.push(
-  {type:'rect',x:192,z:56,hx:72,hz:116}); // one small side repair garage
+  {type:'rect',x:164,z:48,hx:55,hz:76}); // small open, roofless repair pad
  return s;
 };
 const yaw=(f:SiteFacing=0)=>[0,Math.PI,Math.PI/2,Math.PI*1.5][f];
@@ -115,7 +115,7 @@ export function siteTerrainCompatible(
  };
  if(kind==='wall'&&!sampleRect(0,0,53,14))return false;
  if(kind==='research'&&!sampleRect(0,0,70,60))return false;
- if(kind==='factory'&&!sampleRect(192,56,72,116))return false;
+ if(kind==='factory'&&!sampleRect(164,48,55,76))return false;
  if(kind==='airfield'&&(
   !sampleRect(-41,-62,58,79)||!sampleRect(-127,-73,29,35)))return false;
  return true;

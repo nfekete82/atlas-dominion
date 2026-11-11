@@ -576,7 +576,7 @@ export class SandforgeBattlefield {
   }else{
    guideBox(spec.width*.72,Math.max(30,spec.width*.46),
     spec.width*.57);
-   if(kind==='factory')guideBox(118,54,125,192,45);
+   if(kind==='factory')guidePad(106,122,164,49);
   }
   group.add(guides);group.userData.previewGuides=guides;
   // A small directional ground arrow marks the REAL building entrance.
