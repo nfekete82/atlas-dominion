@@ -3,6 +3,7 @@ import type { SectorChoice, StrategicBrief } from './qwen-plan.js';
 import {RULES,distance,clamp,type Point} from './config.js';
 import {UNITS,unitSpec,buildingSpec,canAttack,type UnitKind} from './catalog.js';
 import {developArmy,validEconomy,type EconomyState} from './army-economy.js';
+import {selectObservedCounterTarget} from './ai-counter-doctrine.js';
 import {assaultDecision,abortAssault} from './ai-director.js';
 import {selectiveRaidAllowed} from './selective-raids.js';
 import {newCampaign,campaignPhase,refreshIntelligence,chooseMission,reconGoal,validCampaign,knownBuildings,type CampaignState} from './campaign-commander.js';
@@ -308,6 +309,13 @@ export class TacticalAI {
   // defender confronts the observed drop, even when outnumbered.
   // No reinforcements are spawned and no enemy is revealed through fog.
   this.issue(defenders,target,'defend',target.id,false,false);
+  // Give actual paid missile soldiers the observed aircraft/tank in the
+  // invasion, rather than forcing them to waste rockets on a nearby rifleman.
+  for(const rocket of defenders.filter(u=>u.kind==='rocket')){
+   const counter=selectObservedCounterTarget('rocket',rocket,intruders,750,target);
+   if(counter&&rocket.orders[0]?.target!==counter.id)
+    this.issue([rocket],counter,'defend',counter.id,false,false);
+  }
   // The medic escorts from cover, not from a suicidal attack order.
   if(medic){
    const shelter=protectedBases.slice().sort((a,v)=>distance(a,target)-distance(v,target))[0]??home;
@@ -706,15 +714,55 @@ export class TacticalAI {
   return true;
  }
  private airSupport(members:Unit[],goal:Point,targetId:number|null):void{
-  const g=this.g,s=this.state,front=members.filter(frontRole),anchor=s.rally??members[0],d=distance(anchor,goal)||1,h={x:(goal.x-anchor.x)/d,y:(goal.y-anchor.y)/d};
-  for(const [index,u] of members.filter(u=>u.kind==='bomber').entries()){
-   const target=targetId===null?undefined:g.bases.find(b=>b.id===targetId&&b.hp>0&&g.canSee(1,b))??g.memories[1].find(b=>b.id===targetId&&b.hp>0)??g.units.find(v=>v.id===targetId&&v.hp>0&&!v.carrier&&g.canSee(1,v));
-   if(u.kind==='bomber'&&!target){this.issue([u],anchor,'safe');continue;}
-   if(u.orders.length>1)continue;
-   if(u.orders[0]?.target===targetId&&target)continue;
-   const flank={x:clamp(goal.x-h.y*(index%2?-340:340)-h.x*220,30,g.world.size-30),y:clamp(goal.y+h.x*(index%2?-340:340)-h.y*220,30,g.world.size-30)};
-   g.command([u.id],{...flank,kind:'move'});g.command([u.id],{x:goal.x,y:goal.y,kind:target?'attack':'attackMove',target:target?.id},true);
-   for(const o of u.orders){o.tactical={group:s.groupId,mode:'assault'};if(front.length&&(g.world.mapVersion<=2||this.mode==='baseline'))o.march=front.map(v=>v.id);}
+  const g=this.g,s=this.state,front=members.filter(frontRole),
+   anchor=s.rally??members[0],d=distance(anchor,goal)||1,
+   h={x:(goal.x-anchor.x)/d,y:(goal.y-anchor.y)/d};
+  // Real current RED vision only. Bomber strike decisions must NEVER
+  // consult unobserved units even though Simulation stores all of them.
+  const visibleArmor=g.units.filter(v=>v.owner===0&&v.hp>0&&!v.carrier&&
+   g.canSee(1,v)&&!unitSpec(v).flying&&unitSpec(v).group==='Fahrzeuge');
+  for(const [index,u] of members.filter(u=>u.kind==='bomber'&&!u.airfieldService).entries()){
+   // A bomber can make useful anti-tank bombing runs even if no ground
+   // building has been selected as the strategic assault objective.
+   const armor=selectObservedCounterTarget('bomber',u,visibleArmor,1200,goal);
+   const objective=targetId===null?undefined:g.bases.find(b=>b.id===targetId&&b.hp>0&&g.canSee(1,b))??
+    g.units.find(v=>v.id===targetId&&v.hp>0&&!v.carrier&&g.canSee(1,v))??
+    g.memories[1].find(b=>b.id===targetId&&b.hp>0);
+   const target=armor??objective;
+   if(!target){
+    if(!u.orders.length)this.issue([u],anchor,'safe');
+    continue;
+   }
+   // Finish an ongoing genuine bomb/turn/return loop before reassignment.
+   if(u.bomberRun)continue;
+   const selectedTarget=target.id;
+   if(u.orders.some(o=>o.kind==='attack'&&o.target===selectedTarget))continue;
+   // An obsolete two-leg queue may be replaced for freshly observed armor,
+   // but ordinary high-priority tower mission queues remain stable.
+   if(u.orders.length>1&&!armor)continue;
+   const strike=armor??goal;
+   const flank={
+    x:clamp(strike.x-h.y*(index%2?-340:340)-h.x*220,30,g.world.size-30),
+    y:clamp(strike.y+h.x*(index%2?-340:340)-h.y*220,30,g.world.size-30)
+   };
+   g.command([u.id],{...flank,kind:'move'});
+   g.command([u.id],{x:target.x,y:target.y,kind:'attack',target:selectedTarget},true);
+   for(const o of u.orders){
+    o.tactical={group:s.groupId,mode:'assault'};
+    if(front.length&&(g.world.mapVersion<=2||this.mode==='baseline'))
+      o.march=front.map(v=>v.id);
+   }
+  }
+ }
+ /** Observed anti-air/anti-tank interception overrides generic attack-move
+  * only for shoulder-rocket troops in the actual offensive squad.
+  * Uses no unseen opponents and does not repurpose recovery/engineer orders. */
+ private counterMissileScreen(members:Unit[],visible:Unit[],goal:Point):void{
+  for(const u of members.filter(u=>u.kind==='rocket'&&u.hp>0&&!u.carrier)){
+   const target=selectObservedCounterTarget('rocket',u,visible,
+    unitSpec(u).sight+120,goal);
+   if(!target||u.orders[0]?.target===target.id)continue;
+   this.issue([u],target,'assault',target.id,false,false);
   }
  }
  /** A cheap second axis of pressure: mobile reserves capture an unguarded adjacent
@@ -1111,6 +1159,7 @@ export class TacticalAI {
   if(tacticalEnabled)for(const medic of escorts)if(!medic.orders.length)
     this.issue([medic],s.rally??anchor,'safe',undefined,false,false);
   this.airSupport(members,closeThreat??mission,closeThreat?.id??mission.objective);
+  this.counterMissileScreen(members,visible,mission);
   // Aircraft that have finished their flank route can keep the same mission.
   for(const u of members.filter(u=>unitSpec(u).flying&&!u.orders.length))this.issue([u],mission,'assault',mission.objective??undefined);
  }
