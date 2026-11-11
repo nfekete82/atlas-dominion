@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {
- RecordedSoundtrack,SANDFORGE_SOUNDTRACK_URL,soundtrackGain
+ RecordedSoundtrack,SANDFORGE_SOUNDTRACK_URL,SANDFORGE_AMBIENT_URL,SANDFORGE_SOUNDTRACK_URLS,soundtrackGain
 } from '../dist/src/reborn/recorded-soundtrack.js';
 
 const source=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
@@ -36,7 +36,7 @@ test('soundtrack is quiet by default, ducks for voice and does not alter effects
  assert.ok(soundtrackGain(1,false,0)<=.35);
 });
 
-test('one streamed HTMLAudioElement loops and respects live volume, pause, resume, mute',async()=>{
+test('one streamed HTMLAudioElement rotates tracks and respects live volume, pause, resume, mute',async()=>{
  const oldAudio=globalThis.Audio;
  class FakeAudio{
   static objects=[];
@@ -67,7 +67,7 @@ test('one streamed HTMLAudioElement loops and respects live volume, pause, resum
   assert.equal(FakeAudio.objects.length,1,'not one audio element per frame');
   assert.equal(tracks.length,1,'only one WebAudio decode/stream source');
   assert.equal(tracks[0].src,SANDFORGE_SOUNDTRACK_URL);
-  assert.equal(tracks[0].loop,true);
+  assert.equal(tracks[0].loop,false,'playlist advances at track end instead of looping one song');
   assert.equal(tracks[0].volume,1,'volume lives on independent WebAudio gain');
   track.update(0,0,true);
   assert.equal(track.isPlaying,true);
@@ -119,6 +119,50 @@ test('absent MP3 fails gracefully; the rest of game and effects continue',()=>{
   t.audio; // no network in this test
   assert.equal(t.missing,false);
   t.dispose();
+ }finally{
+  if(oldAudio===undefined)delete globalThis.Audio;else globalThis.Audio=oldAudio;
+ }
+});
+
+test('additional atmospheric MP3 follows the original and loops the playlist',async()=>{
+ assert.deepEqual([...SANDFORGE_SOUNDTRACK_URLS],
+  [SANDFORGE_SOUNDTRACK_URL,SANDFORGE_AMBIENT_URL]);
+ const oldAudio=globalThis.Audio;
+ class FakeAudio{
+  paused=true;currentTime=0;listeners={};loop=true;src='';volume=0;
+  constructor(){FakeAudio.instances.push(this)}
+  static instances=[];
+  addEventListener(event,fn){this.listeners[event]=fn}
+  play(){this.paused=false;return Promise.resolve()}
+  pause(){this.paused=true}
+  load(){this.paused=true}
+  removeAttribute(name){if(name==='src')this.src=''}
+ }
+ globalThis.Audio=FakeAudio;
+ const ctx={currentTime:0,
+  createGain:()=>({gain:{setTargetAtTime(){}},connect(){},disconnect(){}}),
+  createMediaElementSource:()=>({connect(){},disconnect(){}})
+ };
+ try{
+  const music=new RecordedSoundtrack(ctx,{});
+  const player=FakeAudio.instances[0];
+  music.update(0,0,true);
+  await Promise.resolve();
+  assert.equal(player.src,SANDFORGE_SOUNDTRACK_URL);
+  assert.equal(player.loop,false);
+  player.paused=true;player.listeners.ended();
+  assert.equal(player.src,SANDFORGE_AMBIENT_URL);
+  await Promise.resolve();
+  player.paused=true;player.listeners.ended();
+  assert.equal(player.src,SANDFORGE_SOUNDTRACK_URL);
+  assert.equal(FakeAudio.instances.length,1,'rotation must keep one WebAudio media source');
+  // Optional second asset missing: return to the original theme, not silence.
+  player.paused=true;player.listeners.ended();
+  assert.equal(player.src,SANDFORGE_AMBIENT_URL);
+  player.listeners.error();
+  assert.equal(player.src,SANDFORGE_SOUNDTRACK_URL);
+  assert.equal(music.missing,false);
+  music.dispose();
  }finally{
   if(oldAudio===undefined)delete globalThis.Audio;else globalThis.Audio=oldAudio;
  }
