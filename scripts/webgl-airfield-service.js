@@ -247,7 +247,7 @@ export function createAirfieldServiceYard(){
   for(const offset of [-8,8])
    box(group,'AirfieldFuelTankSaddle',4,6,9,-342+offset,6.2,z,steel);
   // Pipe elbows follow the outside edge rather than blocking taxi lanes.
-  cylinder(group,'AirfieldFuelValve',4.1,9,-319,14,z,steel);
+  cylinder(group,'AirfieldFuelValve',4.1,9,-319,14,z,fuelMetal);
   box(group,'AirfieldFuelPipeManifold',5,4,42,-320,10,z,ribbedSteel);
   box(group,'AirfieldFuelServicePipe',4.8,4,30,-317,11,z,fuelMetal);
   cylinder(group,'AirfieldFuelValveWheel',5,2.2,-318,20,z,yellow);
