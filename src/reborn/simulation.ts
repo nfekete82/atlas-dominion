@@ -11,7 +11,7 @@ import {visibleBasePropColliders} from './vehicle-decor-collision.js';
 import {vehicleStructureCollider,vehicleStructureColliders} from './vehicle-structure-collision.js';
 import {infantryStructureCollider,infantryStructureColliders} from './infantry-structure-collision.js';
 import {bastionStructureColliders} from './bastion-structure-collision.js';
-import {constructionVisualClearance,sitesVisuallyOverlap,siteNearBastion,siteExceedsMap,type SiteFacing} from './construction-spacing.js';
+import {constructionVisualClearance,sitesVisuallyOverlap,siteNearBastion,siteExceedsMap,siteTerrainCompatible,type SiteFacing} from './construction-spacing.js';
 import {segmentDistance} from './world-generation.js';
 import {canCaptureSector,captureSeconds} from './territory-warfare.js';
 import { UNITS, BUILDINGS, TANK_MG, canAttack, weaponDamage, unitSpec, buildingSpec, unitKinds, MAX_GENERATORS_PER_FACTION, type UnitKind, type BuildingKind } from './catalog.js';
@@ -657,6 +657,13 @@ export class Simulation {
     const expandedSites=this.world.mapVersion>=19;
     if(expandedSites&&siteExceedsMap(kind,p,facing,this.world.size))
       return 'Gebäude oder Landebahn ragen über den Kartenrand.';
+    // The factory's SIDE garage and other rigid art extend far past their
+    // collision circles: reject slopes/cliffs under the entire real mesh,
+    // including after rotation. Prevent roofs embedded in dunes or suspended
+    // above the desert while allowing the airfield's deformable runway.
+    if(expandedSites&&this.world.generated?.battlefield&&
+      !siteTerrainCompatible(kind,p,facing,this.world))
+      return 'Bauplatz zu hügelig: Gebäude, Werkstatt oder Hangar benötigt ebenen Boden.';
     if(this.obstacles().some(b=>expandedSites
       ?sitesVisuallyOverlap(kind,p,facing,b.kind,b,b.facing??0)
       :distance(b,p)<constructionVisualClearance(kind,b.kind)))
