@@ -79,7 +79,10 @@ test('AI funds bombers to destroy observed tanks, without requiring a transport 
  assert.equal(quota,2);
  pulse(x.g);
  assert.ok(x.airfield.queueTypes.includes('bomber'),
-  'airfield must build bomber for tank strike without scout prerequisite');
+  'airfield must build bomber for tank strike without scout prerequisite: '+
+  JSON.stringify({queues:[x.barracks,x.factory,x.airfield].map(b=>[b.kind,b.queueTypes]),
+   income:x.g.income(1),credits:x.g.credits[1],observed:enemy.map(v=>x.g.canSee(1,v)),
+   economy:x.g.tactical.state.economy,finishing:x.g.tactical.state.commander?.enemyHQEliminatedAt}));
  assert.equal(x.airfield.queueCosts[0],UNITS.bomber.cost);
 });
 
