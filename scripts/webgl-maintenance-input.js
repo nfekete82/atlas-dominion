@@ -22,3 +22,14 @@ export function serviceFootprintContains(base,point){
   ?localX>=-133&&localX<=274&&localZ>=-74&&localZ<=181
   :localX>=-380&&localX<=220&&localZ>=-205&&localZ<=412;
 }
+
+/** Right-click targeting precedence. Ground-based enemies standing on a
+ * friendly airport runway/factory apron are still ATTACK TARGETS, not repair
+ * facility clicks. This decision only routes input; Simulation.command()
+ * authoritatively validates ownership, weapon and attack range. */
+export function maintenanceClickAllowed({enemy=null,attackMode=false,rallyMode=false,
+ strategicTargetMode=false,building=false,hasSelectedUnits=false,
+ hasSelectedBase=false}={}){
+ return !enemy&&!attackMode&&!rallyMode&&!strategicTargetMode&&
+  !building&&hasSelectedUnits&&!hasSelectedBase;
+}
