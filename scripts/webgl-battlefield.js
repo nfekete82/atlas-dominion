@@ -19,7 +19,7 @@ import {disposeServicePaint,previewServiceMaterial} from '/webgl-service-materia
 import {createSegmentedSelectionRing} from '/webgl-selection-ring.js';
 import {serviceVisualGround,approachGroundHeight} from '/webgl-service-grounding.js';
 import {factoryRepairPoint} from '/src/reborn/factory-maintenance.js';
-import {selectedMaintenanceKind,serviceFootprintContains} from '/webgl-maintenance-input.js';
+import {selectedMaintenanceKind,serviceFootprintContains,maintenanceClickAllowed} from '/webgl-maintenance-input.js';
 import {disposeOwnedMeshes,disposeTaggedMaterials} from '/webgl-resource-lifecycle.js';
 import {selectedInfantryForTransport,selectedLoadedTransports,selectedTransportManifest} from '/webgl-transport-controls.js';
 import {pointerGestureIntent,submitConstruction,nearestEngineer,POINTER_CLICK_SLOP} from '/webgl-builder-input.js';
@@ -2205,12 +2205,22 @@ export class SandforgeBattlefield {
     this.drawInterface();return;
    }
   }
+  // TARGET PRIORITY: the old code inspected the whole airport/factory
+  // maintenance footprint BEFORE raycasting enemies. A hostile tank or
+  // infantry unit standing on our runway therefore triggered a LAND/REPAIR
+  // order and intercepted the ATTACK click. Resolve a visible enemy FIRST.
+  // Only enemy-free clicks may be interpreted as hangar/workshop requests.
+  const clickedEnemy=event.button===2&&this.selected.size
+   ?this.enemyAtPointer(event):null;
   // Right-click on a friendly factory/airfield routes selected vehicles
   // or aircraft into a reserved repair slot instead of marching at the wall.
   // Soldiers, attack-move, strategic targeting and transport boarding retain
   // their existing right-click semantics.
-  if(event.button===2&&this.selected.size&&this.selectedBase===null&&
-     !this.attackMode&&!this.rallyMode&&!this.strategicTargetMode&&!this.buildKind){
+  if(event.button===2&&maintenanceClickAllowed({
+     enemy:clickedEnemy,attackMode:this.attackMode,rallyMode:this.rallyMode,
+     strategicTargetMode:this.strategicTargetMode,building:Boolean(this.buildKind),
+     hasSelectedUnits:this.selected.size>0,hasSelectedBase:this.selectedBase!==null
+    })){
    const serviceKind=selectedMaintenanceKind(this.game.units,this.selected);
    if(serviceKind){
     const facility=this.maintenanceFacilityAtPointer(event,serviceKind);
@@ -2250,7 +2260,7 @@ export class SandforgeBattlefield {
   }
   // Right-click an enemy to attack; right-click the 3D bastion itself
   // (or its nearby capture ring) to issue a genuine capture approach order.
-  const clickedEnemy=event.button===2&&this.selected.size?this.enemyAtPointer(event):null;
+  // Enemy target was already resolved before the overlapping service hitbox.
   const groundPoint=clickedEnemy?null:this.terrainPoint(event,{snapEdge:event.button===2||this.rallyMode});
   const clickedBastion=event.button===2&&this.selected.size&&!clickedEnemy
    ?this.bastionAtPointer(event,groundPoint):null;
