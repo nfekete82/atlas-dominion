@@ -8,9 +8,13 @@ export function rocketInfantryQuota(input:{
  barracksReady:boolean;underAttack:boolean;
 }):number{
  if(!input.barracksReady)return 0;
- const baseline=!input.underAttack&&input.fighters>=5&&input.time>=85?1:0;
- const armor=input.vehicles>=1?Math.min(3,1+Math.ceil(input.vehicles/2)):0;
- const aa=input.air>=1?Math.min(4,1+input.air):0;
+ // One token anti-air squad is ineffective once a real armored/air force
+ // arrives. Maintain a *paid*, bounded specialist screen (including queues).
+ // Only currently sighted or recently sighted threats may raise the quota.
+ const baseline=input.fighters>=6&&input.time>=100?2:
+  input.fighters>=4&&input.time>=65?1:0;
+ const armor=input.vehicles>0?Math.min(4,1+input.vehicles):0;
+ const aa=input.air>0?Math.min(4,1+input.air):0;
  return Math.max(baseline,armor,aa);
 }
 
@@ -21,9 +25,12 @@ export function bomberAntiArmorQuota(input:{
  airfieldReady:boolean;income:number;fighters:number;groundVehicles:number;
  enemyArmor:number;enemyAir:number;underAttack:boolean;finishing:boolean;
 }):number{
- if(!input.airfieldReady||input.income<45||input.fighters<5||
-    input.groundVehicles<2||input.enemyAir>0||input.underAttack)return 0;
- if(input.enemyArmor>=3)return 2;
+ if(!input.airfieldReady||input.income<40||input.fighters<5||
+    input.groundVehicles<2||input.underAttack)return 0;
+ // Bombers are expensive and defenseless against enemy fixed-wing fighters;
+ // a single transport helicopter does NOT invalidate the anti-tank mission.
+ if(input.enemyAir>=2)return 0;
+ if(input.enemyArmor>=3)return input.enemyAir?1:2;
  if(input.enemyArmor>=1)return 1;
  return 0;
 }
