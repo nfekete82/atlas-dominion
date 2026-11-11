@@ -11,7 +11,7 @@ const src=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 
 test('new bastion terrain pads are genuinely wider, smooth and shared by ground and AI',()=>{
  assert.equal(BATTLEFIELD_GENERATOR,2);
- assert.equal(TERRAIN_GRADING_V2.bastionFlatRadius,480);
+ assert.equal(TERRAIN_GRADING_V2.bastionFlatRadius,540);
  for(const [seed,profile] of [[2074,'dunes'],[3035439572,'mixed']]){
   const world=new World(seed,24,profile);
   const t=world.generated.battlefield;
