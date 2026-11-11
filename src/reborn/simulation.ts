@@ -3,7 +3,7 @@ import {Weather} from './weather.js';
 import {gainUnitXp,getVeterancyModifiers,sanitizeXp,XP_RULES} from './veterancy.js';
 import {migrateTransportRoster} from './roster-migration.js';
 import {VisionCache} from './vision-cache.js';
-import {generateRollingHills,standsOnHill,type RollingHill} from './rolling-hills.js';
+import {generateRollingHills,standsOnHill,HIGH_GROUND_SIGHT_MULTIPLIER,type RollingHill} from './rolling-hills.js';
 import { profiler } from './performance.js';
 import { RULES, WEATHER_RULES, clamp, distance, type Faction, type Owner, type Point, type MapVersion, mapLayout, campaignLayout, mapWorldSize } from './config.js';
 import { World, inside, type Territory } from './world.js';
@@ -161,8 +161,14 @@ export class Simulation {
   }
   sight(u:Unit):number{
     const infantry=['infantry','medic','engineer','heavy','rocket'].includes(u.kind);
+    // Ground forces on real high ground see 16% farther. This uses the same
+    // authoritative high-ground criterion as the existing combat bonus.
+    // Both factions benefit; aircraft, flat ground and classic games do not.
+    // No fog bypass: VisionCache still applies the usual terrain sightLine.
+    const heightBonus=!unitSpec(u).flying&&this.onHighGround(u)?
+      HIGH_GROUND_SIGHT_MULTIPLIER:1;
     return unitSpec(u).sight*researchModifiers(this.research[u.owner],u.kind).sight*(infantry?this.infantryVisionBonus:1)*
-      (this.weather.storm&&!unitSpec(u).flying?WEATHER_RULES.groundSight:1);
+      (this.weather.storm&&!unitSpec(u).flying?WEATHER_RULES.groundSight:1)*heightBonus;
   }
   healRadius(u:Unit):number{return HEAL_RADIUS*getVeterancyModifiers(u).healRange;}
   /** Authoritative upgrade-aware stats, applied to new AND existing units. */

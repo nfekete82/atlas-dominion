@@ -4,6 +4,11 @@ import type {CanyonRuin} from './canyon-front.js';
 /** Navigable, gentle 3D-only high ground. Visual height and gameplay bonuses
  * share the same deterministic field; no World.blocked or path grid mutation. */
 export interface RollingHill extends Point { radius:number; peak:number }
+/** Modest, symmetric ground-unit sight bonus on actual elevated positions.
+ * A source still needs unobstructed line of sight: never reveals through cliffs.
+ * Enabled only for the WebGL campaign's high-ground rules.
+ */
+export const HIGH_GROUND_SIGHT_MULTIPLIER=1.16;
 const randomFor=(seed:number)=>{
  let state=(seed^0x67b9e517)>>>0;
  return ()=>{state=(Math.imul(state,1664525)+1013904223)>>>0;return state/4294967296;};
