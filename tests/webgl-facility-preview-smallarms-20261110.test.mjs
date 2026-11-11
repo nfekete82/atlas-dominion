@@ -148,9 +148,9 @@ test('construction progressively reveals the real building instead of displaying
 test('airfield selection no longer hides the building catalogue if a pioneer survives',()=>{
  const src=source('scripts/webgl-battlefield.js');
  assert.match(src,/const canBuild=game\.units\.some\(u=>u\.owner===0&&u\.kind==='engineer'/);
- assert.match(src,/buildings:context\.canBuild/);
+ assert.match(src,/buildings:true,territories:true/);
  assert.match(src,/Preserve the player's tab until it is genuinely unavailable/);
- assert.match(src,/buildings:this\.catalogContext\(\)\.canBuild/);
+ assert.ok(src.includes('const available={buildings:true,units:Boolean(this.catalogContext().producer)'));
  // The compact 600-unit strip has a matching rotated construction footprint.
  const game=new Simulation(2074,4);
  game.aiClock=1e8;game.credits[0]=10000;game.explored[0].fill(1);
