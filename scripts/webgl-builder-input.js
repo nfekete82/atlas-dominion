@@ -99,7 +99,15 @@ export function submitConstruction(game,kind,point,selection,facing=0,shift=fals
   tried++;
   const base=game.build(owner,kind,point,plan.workers.map(u=>u.id),
    facing,plan.append);
-  if(base)return {...plan,base,reason:null,tried};
+  if(base){
+   // A shared command can be accepted by only the workers whose approach
+   // paths are genuinely reachable. Report exactly those who got this
+   // construction order, so subsequent selections and parallel dispatch work.
+   const accepted=plan.workers.filter(u=>u.orders?.some(o=>
+    o.kind==='build'&&o.target===base.id));
+   return {...plan,workers:accepted.length?accepted:plan.workers,
+    base,reason:null,tried};
+  }
  }
  return {base:null,workers:[],append:false,tried,
   reason:'Kein Pionier kann diesen Bauplatz erreichen – anderen Standort versuchen'};
