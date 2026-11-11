@@ -226,7 +226,7 @@ test('click outside the sector cannot throw or permanently break later builds',(
  assert.equal(g.status,'playing');
 });
 
-test('two idle pioneers collaborate first, then split automatically across two parallel sites',()=>{
+test('two idle pioneers never converge on the same construction; second is assigned to next site',()=>{
  const original={id:41,owner:0,kind:'engineer',hp:110,x:100,y:100,orders:[]};
  const other={id:42,owner:0,kind:'engineer',hp:110,x:160,y:120,orders:[]};
  const bases=[];
@@ -245,15 +245,17 @@ test('two idle pioneers collaborate first, then split automatically across two p
  const selected=new Set([41,42]);
  const first=submitConstruction(game,'barracks',{x:200,y:200},selected);
  assert.ok(first.base);
- assert.deepEqual(first.workers.map(u=>u.id).sort(),[41,42],
-  'both free pioneers must receive the same first construction order');
- assert.equal(original.orders[0].target,first.base.id);
- assert.equal(other.orders[0].target,first.base.id);
+ assert.equal(first.workers.length,1,
+  'a single foundation receives exactly one pioneer to avoid congestion');
+ const assigned=first.workers[0];
+ const available=game.units.find(u=>u.id!==assigned.id);
+ assert.equal(assigned.orders[0].target,first.base.id);
+ assert.equal(available.orders.length,0,
+  'unassigned pioneer stays free for the next construction');
  const second=submitConstruction(game,'generator',{x:550,y:550},
-  new Set([first.workers[0].id]));
+  new Set([assigned.id]));
  assert.ok(second.base);
- assert.equal(second.workers.length,1,
-  'one pioneer transfers to new site, rather than both abandoning the old');
+ assert.deepEqual(second.workers.map(u=>u.id),[available.id]);
  assert.equal(second.append,false,'new site must begin immediately');
  assert.deepEqual(game.units.map(u=>u.orders[0].target).sort(),
   [first.base.id,second.base.id].sort(),
@@ -323,9 +325,10 @@ test('REAL v24 campaign: two living engineers make simultaneous construction pro
  const one=tryBuild('barracks');
  assert.ok(one.workers.length>=1);
  assert.equal(one.base.buildRemaining>0,true);
- // Give a second pionier time to reach and join when he was unable to
- // accept the grouped approach on the original click.
+ // The second engineer is kept idle instead of crowding the barracks.
  for(let n=0;n<24&&g.status==='playing';n++)g.step(.05);
+ assert.ok([first,second].some(u=>u.orders.length===0),
+  'a free engineer must not crowd an already staffed site');
  const two=tryBuild('generator');
  assert.equal(two.workers.length,1,'new building needs one pioneer');
  assert.equal(two.append,false,'parallel building must not be queued');
