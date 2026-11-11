@@ -287,9 +287,20 @@ test('REAL v24 campaign: two living engineers make simultaneous construction pro
  g.aiClock=1e9;g.tactical.plan=()=>{};
  g.credits[0]=25000;g.explored[0].fill(1);
  const first=g.units.find(u=>u.owner===0&&u.kind==='engineer'&&u.hp>0);
- const hq=g.bases.find(b=>b.owner===0&&b.kind==='headquarters');
- assert.ok(first&&hq);
- const second=g.spawn(0,{x:first.x+90,y:first.y+70},'engineer');
+ assert.ok(first,'real v24 game must start with a pioneer');
+ // v24 starts WITHOUT an HQ. Construct it before attempting other bases.
+ let hq=null;
+ for(const p of candidates(g,'headquarters',first)){
+  hq=g.build(0,'headquarters',p,[first.id]);
+  if(hq)break;
+ }
+ assert.ok(hq,'the pioneer can place initial field headquarters');
+ for(let n=0;hq.buildRemaining>0&&n<3600&&g.status==='playing';n++)
+  g.step(.05);
+ assert.equal(hq.buildRemaining,0,'HQ must be truly built before parallel jobs');
+ const spawnAt=g.world.nearest({x:first.x+190,y:first.y+90},g.obstacles())??
+  {x:first.x+190,y:first.y+90};
+ const second=g.spawn(0,spawnAt,'engineer');
  const selected=new Set([first.id,second.id]);
  const tryBuild=(kind)=>{
   for(let r=290;r<=970;r+=95)for(let j=0;j<32;j++){
@@ -308,7 +319,7 @@ test('REAL v24 campaign: two living engineers make simultaneous construction pro
  const one=tryBuild('barracks');
  assert.equal(one.workers.length,1);
  const busy=one.workers[0];
- const idle=g.units.find(u=>u.id!==busy.id&&u.id===second.id||u.id===first.id&&u.id!==busy.id);
+ const idle=[first,second].find(u=>u.id!==busy.id);
  assert.ok(idle);
  assert.equal(idle.orders.some(o=>o.kind==='build'),false,
   'the second engineer must remain available for parallel construction');
