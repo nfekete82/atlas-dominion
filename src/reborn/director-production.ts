@@ -34,7 +34,7 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
  const enemyAir=c.seen.find(u=>UNITS[u.kind].flying);
  const observed={infantry:c.seen.filter(u=>UNITS[u.kind].group==='Infanterie'&&!['engineer','medic'].includes(u.kind)).length,
   armor:c.seen.filter(u=>UNITS[u.kind].group==='Fahrzeuge'&&!UNITS[u.kind].flying).length,
-  air:c.seen.filter(u=>UNITS[u.kind].flying&&u.kind!=='scout').length};
+  air:c.seen.filter(u=>UNITS[u.kind].flying).length};
  const belief=s.adaptive;
  if(belief&&belief.confidence>=.55&&g.time-belief.updatedAt<=30){
   // Briefly losing sight of a force should not immediately restart a siege
@@ -144,6 +144,9 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
   // A second worker is useful once repairs and construction can overlap.
   if(producer.kind==='headquarters')result=['engineer'];
   if(producer.kind==='barracks'&&n.infantry+n.heavy>=5&&n.heavy>=1&&n.medic<ceiling('medic'))result=['medic',...result.filter(k=>k!=='medic')];
+  // Factory production must not monopolize a second, otherwise free,
+  // barracks or airfield. Every producer can queue its own affordable
+  // counter as long as the relevant paid quota is unfilled.
   if(producer.kind==='barracks'&&n.rocket<rocketQuota)
    result=['rocket',...result.filter(k=>k!=='rocket')];
   if(producer.kind==='airfield'&&n.bomber<bomberQuota)
@@ -168,6 +171,15 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
    ?Math.max(0,c.reserve-(c.siegeReserve??0)):c.reserve;
   const budget=g.credits[1]-(workerLost?0:committedReserve)-protection;
   let choices=isPlanned?[need!,...ranks(producer).filter(k=>k!==need)]:ranks(producer);
+  // Barracks and airfields are independent production facilities. A high
+  // priority tank/artillery saving goal from the factory must not erase a
+  // REAL rocket or bomber shortfall in another completed producer. This
+  // remains fully paid and honors global reserve, queue and army limits.
+  const ownCounter=producer.kind==='barracks'&&count('rocket')<rocketQuota
+   ?'rocket':producer.kind==='airfield'&&count('bomber')<bomberQuota
+   ?'bomber':null;
+  if(ownCounter&&!choices.includes(ownCounter))
+   choices=[ownCounter,...choices];
   // Saving for tank/artillery/aircraft must not quietly turn into a cheap
   // substitute on the next AI pulse. The first affordable rover is deliberate.
   if(isPlanned)choices=[need!];
