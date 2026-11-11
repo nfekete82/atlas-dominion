@@ -51,25 +51,32 @@ export function submitConstruction(game,kind,point,selection,facing=0,shift=fals
  const selected=all.filter(u=>selection.has(u.id));
  const inProgress=new Set((game.bases??[]).filter(b=>b.hp>0&&b.buildRemaining>0)
   .map(b=>b.id));
- const busy=u=>(u.orders??[]).some(o=>o.kind==='build'&&inProgress.has(o.target));
- const ordered=(units)=>[...units].sort((a,b)=>
-  (a.x-point.x)**2+(a.y-point.y)**2-
-  ((b.x-point.x)**2+(b.y-point.y)**2)||a.id-b.id);
+ // An order assigned to a finished building is stale. It may be replaced;
+ // an active building order must NEVER be interrupted by a second build.
+ const activeBuild=u=>(u.orders??[]).some(o=>o.kind==='build'&&inProgress.has(o.target));
+ const otherWork=u=>(u.orders??[]).some(o=>o.kind!=='build');
+ const free=u=>!activeBuild(u)&&!otherWork(u);
+ const dist=u=>(u.x-point.x)**2+(u.y-point.y)**2;
+ const ordered=units=>[...units].sort((a,b)=>dist(a)-dist(b)||a.id-b.id);
  const plans=[];
  if(shift){
+  // Explicit shift means "queue on these selected pioneers".
   const chosen=selected.length?selected:ordered(all).slice(0,1);
   plans.push({workers:chosen,append:true});
  }else{
-  const freeSelected=ordered(selected.filter(u=>!busy(u)));
-  const freeOthers=ordered(all.filter(u=>!selection.has(u.id)&&!busy(u)));
-  if(freeSelected.length)plans.push({workers:freeSelected,append:false});
-  for(const u of freeSelected)plans.push({workers:[u],append:false});
-  for(const u of freeOthers)plans.push({workers:[u],append:false});
-  // If all pioneers are already building, CREATE the next site with a
-  // queued order instead of making the UI look permanently disabled.
-  for(const u of ordered(selected.filter(busy)))plans.push({workers:[u],append:true});
-  for(const u of ordered(all.filter(u=>!selection.has(u.id)&&busy(u))))
-   plans.push({workers:[u],append:true});
+  const freeSelected=ordered(selected.filter(free));
+  const freeOthers=ordered(all.filter(u=>!selection.has(u.id)&&free(u)));
+  // Assign ONE free pioneer to EACH new construction site. Otherwise, when
+  // two pioneers are selected, both were sent to the first building,
+  // leaving no free builder for the second parallel building.
+  for(const u of [...freeSelected,...freeOthers])
+   plans.push({workers:[u],append:false});
+  // If all pioneers are busy, keep the active site intact. Choose the
+  // shortest available real queue rather than interrupting construction.
+  const busy=[...all].filter(u=>!free(u)).sort((a,b)=>
+   (a.orders?.length??0)-(b.orders?.length??0)||
+   dist(a)-dist(b)||a.id-b.id);
+  for(const u of busy)plans.push({workers:[u],append:true});
  }
  let tried=0;
  for(const plan of plans){
