@@ -42,6 +42,47 @@ export function validBomberOrbit(raw:unknown,kind:string,worldSize:number):boole
   o.cx-o.radius>=8&&o.cy-o.radius>=8&&o.cx+o.radius<=worldSize-8&&o.cy+o.radius<=worldSize-8;
 }
 
+/** A bomber CAPTURING a bastion should circle the actual bastion, rather
+ * than flying a tiny tangent circle around its own current position. The
+ * authoritative capture range is 95: a centered 78-unit orbit leaves a
+ * 17-unit safety margin and keeps the bomber inside on EVERY simulation tick.
+ * It must not change capture rules, use a proxy aircraft or teleport.
+ * Available radii are already save-validated by BOMBER_ORBIT_RADII.
+ */
+export function bastionCaptureOrbit(position:Point&{id:number;angle:number;hullAngle?:number},
+ center:Point,captureRadius:number,size:number):BomberOrbit|null{
+ const radius=Math.min(78,captureRadius-17);
+ if(radius<8||Math.hypot(position.x-center.x,position.y-center.y)>captureRadius-3||
+    center.x-radius<8||center.y-radius<8||
+    center.x+radius>size-8||center.y+radius>size-8)return null;
+ const direction:1|-1=position.id%2===0?1:-1;
+ const d=Math.hypot(position.x-center.x,position.y-center.y);
+ const phase=d>.01?Math.atan2(position.y-center.y,position.x-center.x):
+  (position.hullAngle??position.angle)-direction*Math.PI/2;
+ return {cx:center.x,cy:center.y,radius,phase,direction};
+}
+
+/** Enter the enlarged centered circle as a REAL spiral on the same physical
+ * bomber: a gentle radial adjustment plus a sweeping tangential turn.
+ * Never exceeds the existing sector capture radius. When the desired
+ * radius is reached, the normal exact circular integrator takes over.
+ */
+export function approachBastionCaptureOrbit(position:Point,
+ orbit:BomberOrbit,dt:number):Point&{heading:number;arc:number}{
+ const dx=position.x-orbit.cx,dy=position.y-orbit.cy;
+ const d=Math.hypot(dx,dy),phase=d>.01?Math.atan2(dy,dx):orbit.phase;
+ const signed=Math.min(Math.abs(orbit.radius-d),BOMBER_ORBIT_SPEED*.34*dt)*
+  Math.sign(orbit.radius-d);
+ const radius=Math.max(.01,d+signed);
+ const nextPhase=phase+orbit.direction*BOMBER_ORBIT_SPEED*.82*dt/
+  Math.max(orbit.radius,20);
+ const next={x:orbit.cx+Math.cos(nextPhase)*radius,
+  y:orbit.cy+Math.sin(nextPhase)*radius};
+ const travelled=Math.hypot(next.x-position.x,next.y-position.y);
+ return {...next,heading:Math.atan2(next.y-position.y,next.x-position.x),
+  arc:travelled};
+}
+
 /** An idle plane's orbit may not abandon an ongoing sector capture or
  * accidentally capture an adjacent sector while loitering outside it. */
 export function preservesCaptureBoundary(position:Point,orbit:BomberOrbit,
