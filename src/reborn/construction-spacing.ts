@@ -28,8 +28,8 @@ const round=30; // keep a useful walkable/safety strip between painted surfaces
 const localShapes=(kind:BuildingKind):Shape[]=>{
  const s:Shape[]=[{type:'circle',x:0,z:0,r:buildingVisualRadius(kind)}];
  if(kind==='airfield')s.push(
-  {type:'rect',x:132,z:105,hx:79,hz:310}, // compact 600-unit runway + lamps
-  {type:'rect',x:-145,z:-5,hx:235,hz:198}); // hangars, left tower and fuel area
+  {type:'rect',x:161,z:86,hx:72,hz:254}, // compact runway plus lamps
+  {type:'rect',x:-87,z:-4,hx:212,hz:162}); // one hangar, tower and fuel area
  if(kind==='factory')s.push(
   {type:'rect',x:192,z:56,hx:72,hz:116}); // one small side repair garage
  return s;
@@ -112,7 +112,7 @@ export function siteTerrainCompatible(
  };
  if(kind==='factory'&&!sampleRect(192,56,72,116))return false;
  if(kind==='airfield'&&(
-  !sampleRect(-145,-5,235,198)))return false;
+  !sampleRect(-94,-62,70,90)||!sampleRect(-226,-73,36,45)))return false;
  return true;
 }
 

@@ -566,11 +566,10 @@ export class SandforgeBattlefield {
     beam(t,t,d,x+sx*(w*.5-t),3+h*.61,z);
   };
   if(kind==='airfield'){
-   guideBox(116,95,185,-151,-77);
-   guideBox(116,95,185,-26,-77);
-   guidePad(141,600,132,105);
-   // The control tower is visible as an unfinished narrow frame on the left.
-   guideBox(48,74,52,-298,-89);
+   guideBox(104,78,152,-94,-63);
+   guidePad(127,492,161,86);
+   // One small control tower.
+   guideBox(28,45,30,-226,-73);
   }else{
    guideBox(spec.width*.72,Math.max(30,spec.width*.46),
     spec.width*.57);

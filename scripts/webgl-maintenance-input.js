@@ -20,7 +20,7 @@ export function serviceFootprintContains(base,point){
  // Includes central hall and each outdoor service bay; not the nearby desert.
  return base.kind==='factory'
   ?localX>=-133&&localX<=274&&localZ>=-74&&localZ<=181
-  :localX>=-380&&localX<=220&&localZ>=-205&&localZ<=412;
+  :localX>=-300&&localX<=235&&localZ>=-170&&localZ<=344;
 }
 
 /** Right-click targeting precedence. Ground-based enemies standing on a

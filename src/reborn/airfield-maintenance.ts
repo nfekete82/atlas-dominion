@@ -1,4 +1,4 @@
-/** Deterministic, simulation-owned flightline and two-bay hangar geometry.
+/** Deterministic, simulation-owned flightline and single-hangar geometry.
  * Local +Z is the apron/front of the hangar, matching buildingFacingAngle.
  * No Three.js dependency: saved aircraft retain their exact docking positions. */
 export type AirfieldBay=0|1;
@@ -12,14 +12,16 @@ export interface AirfieldService {
   /** Previously paid-for HP remaining; no free repairs between credits. */
   paidHp:number;
 }
-export const AIRFIELD_BAYS=2;
+// One new service bay; legacy bay 1 remains loadable.
+export const AIRFIELD_BAYS=1;
+export const AIRFIELD_COMPACT_X=.90,AIRFIELD_COMPACT_Z=.82,AIRFIELD_COMPACT_OFFSET_X=42;
 export const AIRFIELD_REPAIR_HP_PER_CREDIT=4;
 export const AIRFIELD_REPAIR_FRACTION_PER_SECOND=.01;
 export const AIRFIELD_LANDING_SECONDS=3.4;
 export const AIRFIELD_TAXI_SECONDS=8;
 export const AIRFIELD_TAKEOFF_SECONDS=8;
 const headings=[0,Math.PI,Math.PI/2,Math.PI*1.5] as const;
-const dockX=(bay:AirfieldBay)=>bay===0?-151:-26;
+const dockX=(_bay:AirfieldBay)=>-151;
 export type AirfieldWaypoint='approach'|'touchdown'|'taxi'|'lineup'|'door'|'dock'|'departure';
 export function airfieldPoint(base:AirfieldSite,waypoint:AirfieldWaypoint,bay:AirfieldBay=0):AirfieldPoint {
  const local={
@@ -36,7 +38,8 @@ export function airfieldPoint(base:AirfieldSite,waypoint:AirfieldWaypoint,bay:Ai
   dock:{x:dockX(bay),z:-117},departure:{x:132,z:313}
  }[waypoint];
  const yaw=headings[base.facing??0],c=Math.cos(yaw),s=Math.sin(yaw);
- return {x:base.x+local.x*c+local.z*s,y:base.y-local.x*s+local.z*c};
+ const x=AIRFIELD_COMPACT_OFFSET_X+local.x*AIRFIELD_COMPACT_X,z=local.z*AIRFIELD_COMPACT_Z;
+ return {x:base.x+x*c+z*s,y:base.y-x*s+z*c};
 }
 export function airfieldLerp(a:AirfieldPoint,b:AirfieldPoint,t:number):AirfieldPoint {
  const f=Math.max(0,Math.min(1,t));

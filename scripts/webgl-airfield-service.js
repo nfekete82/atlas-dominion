@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {disposeOwnedMeshes} from './webgl-resource-lifecycle.js';
 import {servicePaint,disposeServicePaint} from './webgl-service-materials.js';
 
-// Explicit, two-bay 3D service hangar on the simulation's local flightline.
+// Explicit, single-bay 3D service hangar on the simulation's local flightline.
 // All meshes are presentation-only; the actual bomber remains one Simulation unit.
 const paint={
  concrete:'#9a9180',runway:'#444a46',white:'#ddd3bd',yellow:'#e7bd64',
@@ -26,7 +26,7 @@ function cylinder(parent,name,radius,height,x,y,z,mat,axis='y'){
 }
 export function createAirfieldServiceYard(){
  const group=new THREE.Group();
- group.name='AirfieldTwoBayMaintenanceHangar';
+ group.name='AirfieldSingleMaintenanceHangar';
  group.userData={visualOnly:true,nonPlayable:true,hangarService:true};
  const concrete=material(paint.concrete),runway=material(paint.runway),
   markings=material(paint.white),yellow=material(paint.yellow),
@@ -56,8 +56,8 @@ export function createAirfieldServiceYard(){
  box(group,'AirfieldExpandedConcreteApron',424,1.5,309,-115,.75,-14,wornPaving);
  box(group,'AirfieldRunwaySandShoulder',165,.7,614,132,1.05,105,wornPaving);
  box(group,'AirfieldExtendedRunway',141,1.6,600,132,1.85,105,runwayWear);
- // Two generously sized clear exterior aircraft stands beside hangars.
- for(const bay of [0,1]){
+ // One aircraft stand outside the single hangar.
+ for(const bay of [0]){
   const cx=bay===0?-151:-26;
   box(group,'AirfieldAircraftParkingPad_'+bay,115,.32,156,cx,1.68,120,apronWear);
   // Textured anti-slip loading ramp, continuous with the two aircraft
@@ -100,8 +100,8 @@ export function createAirfieldServiceYard(){
  box(group,'AirfieldTaxiCrossGuide',302,.16,2.6,-18,2.03,24,yellow);
  for(const x of [-193,-151,-109,-66,-24,18])
   box(group,'AirfieldTaxiGuideDash',16,.14,3,x,2.08,24,markings);
- for(const bay of [0,1]){
-  const cx=bay===0?-151:-26,half=59,front=18,rear=-171;
+ for(const bay of [0]){
+  const cx=-151,half=59,front=18,rear=-171;
   // The bay is sized for the actual bomber wings, not a miniature parked prop.
   box(group,'HangarBayFloor_'+bay,116,.35,185,cx,3.0,-77,dark);
   box(group,'HangarBayBackWall_'+bay,120,63,8,cx,34,rear,wallCamo);
@@ -260,6 +260,14 @@ export function createAirfieldServiceYard(){
  box(group,'AirfieldFuelPumpRoof',24,3,23,-306,27,136,roofSand);
  for(const x of [-169,-134,-44,-8])
   box(group,'HangarSafetyChevron',8,.15,5,x,3.5,42,yellow);
+ // Reduce site, runway and tower without changing the shared building anchor.
+ const towerScale=.65,towerX=-298,towerZ=-89;
+ for(const part of group.children)if(part.isMesh&&part.name.startsWith('AirfieldLeftControlTower')){
+  part.position.x=towerX+(part.position.x-towerX)*towerScale;
+  part.position.z=towerZ+(part.position.z-towerZ)*towerScale;
+  part.position.y*=towerScale;part.scale.multiplyScalar(towerScale);
+ }
+ group.scale.set(.90,.84,.82);group.position.x=42;
  group.traverse(mesh=>{if(mesh.isMesh){mesh.castShadow=false;mesh.receiveShadow=false;mesh.raycast=()=>{};}});
  return group;
 }
@@ -297,10 +305,12 @@ export function conformAirfieldSurface(group,base,heightAt,{force=false}={}){
    // buried below the surrounding sand.
    const y0=mesh.userData.airfieldBaseY??mesh.position.y;
    mesh.userData.airfieldBaseY=y0;
-   const wx=base.x+mesh.position.x*cs+mesh.position.z*sn;
-   const wz=base.y-mesh.position.x*sn+mesh.position.z*cs;
+   const x=group.position.x+mesh.position.x*group.scale.x;
+   const z=group.position.z+mesh.position.z*group.scale.z;
+   const wx=base.x+x*cs+z*sn;
+   const wz=base.y-x*sn+z*cs;
    const rise=heightAt(wx,wz)-origin;
-   if(Number.isFinite(rise))mesh.position.y=y0+rise;
+   if(Number.isFinite(rise))mesh.position.y=y0+rise/group.scale.y;
    changed++;return;
   }
   const {width:w,height:h,depth:d}=old.parameters;
@@ -321,13 +331,14 @@ export function conformAirfieldSurface(group,base,heightAt,{force=false}={}){
   const source=data.original;
   for(let i=0;i<verts.count;i++){
    const at=i*3;
-   const x=mesh.position.x+source[at],z=mesh.position.z+source[at+2];
+   const x=group.position.x+group.scale.x*(mesh.position.x+source[at]*mesh.scale.x);
+   const z=group.position.z+group.scale.z*(mesh.position.z+source[at+2]*mesh.scale.z);
    const wx=base.x+x*cs+z*sn,wz=base.y-x*sn+z*cs;
    const sampled=heightAt(wx,wz);
    // Three.js samples the same terrain used for unit grounding. An
    // extra two world units avoids microscopic z fighting at steep edges.
    const rise=Number.isFinite(sampled)?sampled-origin+2:0;
-   verts.setY(i,source[at+1]+rise);
+   verts.setY(i,source[at+1]+rise/(group.scale.y*mesh.scale.y));
   }
   verts.needsUpdate=true;
   data.geometry.computeVertexNormals();
@@ -339,9 +350,10 @@ export function conformAirfieldSurface(group,base,heightAt,{force=false}={}){
 
 export function updateAirfieldServiceYard(entry,base,units,time,dt){
  const group=entry.airfieldServiceYard;if(!group)return;
- for(const bay of [0,1]){
+ for(const bay of [0]){
   const gate=group.userData['bay'+bay];
-  const aircraft=units.find(u=>u.hp>0&&u.airfieldService?.baseId===base.id&&u.airfieldService?.bay===bay);
+  // Historic saves with bay 1 also use the only visible door.
+  const aircraft=units.find(u=>u.hp>0&&u.airfieldService?.baseId===base.id);
   const phase=aircraft?.airfieldService?.phase;
   // Start opening while the bomber is still landing. The shutters must
   // be fully clear before ground taxi reaches the entrance.
