@@ -21,7 +21,7 @@ import {turretPivot,turretMuzzles} from './turret.js';
 import {Transports,type TransportState} from './transports.js';
 import {TacticalAI,type TacticalState,type TacticalOrder} from './tactical-ai.js';
 import { MAP_VERSION, randomMapSeed } from './world-generation.js';
-import {beginBomberOrbit,advanceBomberOrbit,validBomberOrbit,BOMBER_ORBIT_SPEED,preservesCaptureBoundary,safeOrbitApproach,isOnBomberOrbit,type BomberOrbit} from './bomber-orbit.js';
+import {beginBomberOrbit,advanceBomberOrbit,validBomberOrbit,BOMBER_ORBIT_SPEED,preservesCaptureBoundary,safeOrbitApproach,isOnBomberOrbit,bastionCaptureOrbit,approachBastionCaptureOrbit,type BomberOrbit} from './bomber-orbit.js';
 import {bomberAttackWaypoints,BOMBER_BOMB_RELEASE_DISTANCE,BOMBER_RUN_WAYPOINT_DISTANCE,BOMBER_BOMB_FALL_SECONDS,steerBomberArc,type BomberAttackRun} from './bomber-attack.js';
 import {AttackAlerts} from './attack-alerts.js';
 import {airfieldPoint,airfieldLerp,airfieldTaxiPoint,validAirfieldService,AIRFIELD_BAYS,AIRFIELD_REPAIR_HP_PER_CREDIT,AIRFIELD_REPAIR_FRACTION_PER_SECOND,AIRFIELD_LANDING_SECONDS,AIRFIELD_TAXI_SECONDS,AIRFIELD_TAKEOFF_SECONDS,type AirfieldService} from './airfield-maintenance.js';
@@ -1654,9 +1654,38 @@ export class Simulation {
       // Fixed-wing bombers must keep flying while idle. Hold/retreat, explicit
       // routes and pursuit always take priority; the helicopter is unchanged.
       if(u.kind==='bomber'&&!u.orders.length&&!u.hold&&!u.pursuitOrigin){
+        // While capturing, orbit the BASTION itself with a wide ~78-unit
+        // centered radius, not an accidental 8–20-unit tangent holding loop.
+        // Keep the complete aircraft INSIDE the original 95-unit game
+        // capture range, so the real ongoing capture is never interrupted.
+        const capturing=this.territories.filter(t=>t.owner!==u.owner&&
+          distance(u,t.point)<RULES.captureRadius-3)
+          .sort((a,b)=>distance(u,a.point)-distance(u,b.point))[0];
+        const sectorOrbit=capturing?bastionCaptureOrbit(u,capturing.point,
+          RULES.captureRadius,this.world.size):null;
+        const safeSectorOrbit=sectorOrbit&&preservesCaptureBoundary(u,sectorOrbit,
+          this.territories,u.owner,RULES.captureRadius)?sectorOrbit:null;
+        if(safeSectorOrbit&&u.idleOrbit&&
+           (u.idleOrbit.cx!==safeSectorOrbit.cx||
+            u.idleOrbit.cy!==safeSectorOrbit.cy||
+            u.idleOrbit.radius!==safeSectorOrbit.radius))
+          delete u.idleOrbit;
         // A scripted position change (or an older save) must not teleport
         // the bomber back to its stale orbit in another sector.
         if(u.idleOrbit&&!isOnBomberOrbit(u,u.idleOrbit))delete u.idleOrbit;
+        if(!u.idleOrbit&&safeSectorOrbit){
+          // Spiral out to the centered capture circle BEFORE taking over.
+          // The path is continuous; no setPosition/teleport or extra units.
+          if(Math.abs(distance(u,capturing!.point)-safeSectorOrbit.radius)>.01){
+            const next=approachBastionCaptureOrbit(u,safeSectorOrbit,dt);
+            u.x=next.x;u.y=next.y;u.angle=next.heading;
+            u.hullAngle=next.heading;u.walkDistance+=next.arc;
+            u.driveSpeed=next.arc/dt;u.moving=next.arc>.001;
+            continue;
+          }
+          u.idleOrbit=safeSectorOrbit;
+          u.path=[];u.repath=0;
+        }
         if(!u.idleOrbit){
           const safe=(orbit:BomberOrbit)=>preservesCaptureBoundary(u,orbit,
             this.territories,u.owner,RULES.captureRadius);
