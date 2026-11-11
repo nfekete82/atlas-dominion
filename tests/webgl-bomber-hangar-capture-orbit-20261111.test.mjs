@@ -27,12 +27,12 @@ test('all four rotations use open apron before aligning along hangar entrance',(
    const door=local(base,airfieldPoint(base,'door',bay));
    const dock=local(base,airfieldPoint(base,'dock',bay));
    assert.ok(Math.abs(lineup.x-cx)<1e-6);
-   assert.equal(lineup.z,95,'turn 77 units outside the front wall at z=18');
-   assert.equal(door.z,20);
+   assert.ok(Math.abs(lineup.z-95)<1e-6,'turn 77 units outside the front wall at z=18');
+   assert.ok(Math.abs(door.z-20)<1e-6);
    assert.ok(dock.z<=-115,'service stop must be deep in the building');
    assert.ok(dock.z>-165,'parked fuselage must not intersect the back wall');
-   assert.equal(door.x,lineup.x,'straight-in approach must have no wall-side turn');
-   assert.equal(dock.x,door.x);
+   assert.ok(Math.abs(door.x-lineup.x)<1e-6,'straight-in approach must have no wall-side turn');
+   assert.ok(Math.abs(dock.x-door.x)<1e-6);
    for(let i=0;i<=200;i++){
     const p=local(base,airfieldTaxiPoint(base,bay,i/200));
     // A full-size bomber's fuselage projects ~50 units beyond its centre:
