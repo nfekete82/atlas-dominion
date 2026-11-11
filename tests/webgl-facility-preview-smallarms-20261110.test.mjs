@@ -7,6 +7,7 @@ import {createFactoryServiceYard,updateFactoryServiceYard,disposeFactoryServiceY
 import {serviceFootprintContains} from '../scripts/webgl-maintenance-input.js';
 import {airfieldPoint} from '../dist/src/reborn/airfield-maintenance.js';
 import {Simulation} from '../dist/src/reborn/simulation.js';
+import {globalCatalogAvailability} from '../scripts/webgl-global-catalog.js';
 import * as THREE from 'three';
 import {servicePaint,previewServiceMaterial,disposeServicePaint} from '../scripts/webgl-service-materials.js';
 
@@ -214,8 +215,9 @@ test('actual HUD factory selection cannot prevent later building card clicks',()
   }};
  const BUILDINGS={barracks:{name:'Kaserne'},generator:{name:'Energiekern'}};
  const fakeCtor=new Function('installClassicHud','BUILDINGS','INTERCEPTOR_ENABLED',
+  'globalCatalogAvailability',
   'return class TestHUD {'+src.slice(start,end)+'}');
- const Fake=fakeCtor(()=>panel,BUILDINGS,true);
+ const Fake=fakeCtor(()=>panel,BUILDINGS,true,globalCatalogAvailability);
  const ui=new Fake();
  const calls=[];
  ui.sound={enabled:false,select(){}};
