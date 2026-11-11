@@ -29,8 +29,8 @@ const localShapes=(kind:BuildingKind):Shape[]=>{
  const s:Shape[]=kind==='wall'?[{type:'rect',x:0,z:0,hx:54,hz:16}]:
   [{type:'circle',x:0,z:0,r:buildingVisualRadius(kind)}];
  if(kind==='airfield')s.push(
-  {type:'rect',x:161,z:86,hx:72,hz:254}, // compact runway plus lamps
-  {type:'rect',x:-87,z:-4,hx:212,hz:162}); // one hangar, tower and fuel area
+  {type:'rect',x:106,z:29,hx:71,hz:181}, // short runway directly beside hangar
+  {type:'rect',x:-81,z:-3,hx:119,hz:174}); // one hangar, tower and fuel
  if(kind==='factory')s.push(
   {type:'rect',x:192,z:56,hx:72,hz:116}); // one small side repair garage
  return s;
@@ -114,7 +114,7 @@ export function siteTerrainCompatible(
  if(kind==='wall'&&!sampleRect(0,0,53,14))return false;
  if(kind==='factory'&&!sampleRect(192,56,72,116))return false;
  if(kind==='airfield'&&(
-  !sampleRect(-94,-62,70,90)||!sampleRect(-226,-73,36,45)))return false;
+  !sampleRect(-41,-62,58,79)||!sampleRect(-127,-73,29,35)))return false;
  return true;
 }
 

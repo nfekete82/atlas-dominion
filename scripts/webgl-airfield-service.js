@@ -53,9 +53,9 @@ export function createAirfieldServiceYard(){
  // Long military runway: one uninterrupted strip extends far past the
  // hangars; the old short cross-runway ahead of the building is gone.
  // Painted taxi directions are not a second black asphalt runway.
- box(group,'AirfieldExpandedConcreteApron',424,1.5,309,-115,.75,-14,wornPaving);
- box(group,'AirfieldRunwaySandShoulder',165,.7,614,132,1.05,105,wornPaving);
- box(group,'AirfieldExtendedRunway',141,1.6,600,132,1.85,105,runwayWear);
+ box(group,'AirfieldExpandedConcreteApron',255,1.5,260,-145,.75,-5,wornPaving);
+ box(group,'AirfieldRunwaySandShoulder',154,.7,438,12,1.05,35,wornPaving);
+ box(group,'AirfieldExtendedRunway',141,1.6,420,12,1.85,35,runwayWear);
  // One aircraft stand outside the single hangar.
  for(const bay of [0]){
   const cx=bay===0?-151:-26;
@@ -83,22 +83,22 @@ export function createAirfieldServiceYard(){
   box(group,'AirfieldAircraftParkingStop_'+bay,93,.15,3,cx,1.96,54,yellow);
   box(group,'AirfieldAircraftParkingNumber_'+bay,14,.12,8,cx,1.98,184,markings);
  }
- for(let z=-180;z<=382;z+=42)
-  box(group,'AirfieldRunwayCenterDash',3,.12,30,132,2.80,z,markings);
- for(const x of [64,200]){
-  box(group,'AirfieldRunwayEdgeLine',2,.12,589,x,2.80,105,markings);
-  for(let z=-184;z<=388;z+=42)
+ for(let z=-154;z<=232;z+=42)
+  box(group,'AirfieldRunwayCenterDash',3,.12,27,12,2.80,z,markings);
+ for(const x of [-56,80]){
+  box(group,'AirfieldRunwayEdgeLine',2,.12,416,x,2.80,35,markings);
+  for(let z=-164;z<=236;z+=42)
    box(group,'AirfieldRunwayLamp',5,2,8,x,4.0,z,yellow);
  }
  // Clear runway thresholds and staggered military landing-zone stripes.
- for(const z of [-184,-174,-164])for(const x of [88,107,157,176])
+ for(const z of [-161,-150,-139])for(const x of [-32,-13,37,56])
   box(group,'AirfieldRunwayThreshold',11,.16,5,x,2.83,z,markings);
- for(const z of [340,352,364,376])for(const x of [89,175])
+ for(const z of [190,202,214,226])for(const x of [-33,57])
   box(group,'AirfieldRunwayLandingBars',19,.15,7,x,2.84,z,markings);
  // One simple taxi guideline connects the wide stands with the long runway.
  // It does not cover the apron as the old short black runway did.
- box(group,'AirfieldTaxiCrossGuide',302,.16,2.6,-18,2.03,24,yellow);
- for(const x of [-193,-151,-109,-66,-24,18])
+ box(group,'AirfieldTaxiCrossGuide',188,.16,2.6,-82,2.03,24,yellow);
+ for(const x of [-158,-126,-94,-62,-30,2])
   box(group,'AirfieldTaxiGuideDash',16,.14,3,x,2.08,24,markings);
  for(const bay of [0]){
   const cx=-151,half=59,front=18,rear=-171;
@@ -184,7 +184,7 @@ export function createAirfieldServiceYard(){
   group.userData['bay'+bay]={left,right,cx,open:0,sparks:sparkGroup};
  }
  // Scuffed touchdown marks and pavement expansion joints.
- for(const x of [110,154])for(const z of [-136,42,195,313])
+ for(const x of [-11,33])for(const z of [-116,24,128,201])
   box(group,'AirfieldTouchdownRubber',4,.12,18,x,2.76,z,dark);
  for(const x of [-195,-110,-45,29])for(const z of [-143,-72,8])
   box(group,'AirfieldApronExpansionJoint',24,.11,1.5,x,1.65,z,steel);
@@ -261,13 +261,18 @@ export function createAirfieldServiceYard(){
  for(const x of [-169,-134,-44,-8])
   box(group,'HangarSafetyChevron',8,.15,5,x,3.5,42,yellow);
  // Reduce site, runway and tower without changing the shared building anchor.
- const towerScale=.65; // reuse the existing towerX/towerZ coordinates
+ const towerScale=.60; // reuse the existing towerX/towerZ coordinates
  for(const part of group.children)if(part.isMesh&&part.name.startsWith('AirfieldLeftControlTower')){
   part.position.x=towerX+(part.position.x-towerX)*towerScale;
   part.position.z=towerZ+(part.position.z-towerZ)*towerScale;
   part.position.y*=towerScale;part.scale.multiplyScalar(towerScale);
+  part.position.x+=51;
  }
- group.scale.set(.90,.84,.82);group.position.x=42;
+ // Fold fuel storage against the hangar to shrink the real occupied ground.
+ for(const part of group.children)if(part.isMesh&&
+  /^(AirfieldFuel|AirfieldMaintenancePlant|AirfieldMaintenanceAirDuct)/.test(part.name))
+  part.position.x+=57;
+ group.scale.set(.90,.84,.82);group.position.x=95;
  group.traverse(mesh=>{if(mesh.isMesh){mesh.castShadow=false;mesh.receiveShadow=false;mesh.raycast=()=>{};}});
  return group;
 }

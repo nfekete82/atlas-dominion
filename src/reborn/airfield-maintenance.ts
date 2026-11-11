@@ -14,7 +14,7 @@ export interface AirfieldService {
 }
 // One new service bay; legacy bay 1 remains loadable.
 export const AIRFIELD_BAYS=1;
-export const AIRFIELD_COMPACT_X=.90,AIRFIELD_COMPACT_Z=.82,AIRFIELD_COMPACT_OFFSET_X=42;
+export const AIRFIELD_COMPACT_X=.90,AIRFIELD_COMPACT_Z=.82,AIRFIELD_COMPACT_OFFSET_X=95;
 export const AIRFIELD_REPAIR_HP_PER_CREDIT=4;
 export const AIRFIELD_REPAIR_FRACTION_PER_SECOND=.01;
 export const AIRFIELD_LANDING_SECONDS=3.4;
@@ -27,15 +27,15 @@ export function airfieldPoint(base:AirfieldSite,waypoint:AirfieldWaypoint,bay:Ai
  const local={
   // The visible asphalt continues well beyond the hangars, so aircraft
   // land on the long strip before taxiing onto the side apron.
-  approach:{x:132,z:313},touchdown:{x:132,z:123},
+  approach:{x:12,z:225},touchdown:{x:12,z:130},
   // First turn OUTSIDE the hangar: an aircraft that rotates at z=24
   // sweeps its wing and tail through the entrance column/wall at z=18.
   // Align on the apron (z=95) before driving straight through the door.
-  taxi:{x:132,z:95},lineup:{x:dockX(bay),z:95},
+  taxi:{x:12,z:95},lineup:{x:dockX(bay),z:95},
   door:{x:dockX(bay),z:20},
   // Drive the whole fuselage deeper into the actual hangar, beyond the
   // doorway; rear bulkhead stays at z=-171 with ~54 units clearance.
-  dock:{x:dockX(bay),z:-117},departure:{x:132,z:313}
+  dock:{x:dockX(bay),z:-117},departure:{x:12,z:225}
  }[waypoint];
  const yaw=headings[base.facing??0],c=Math.cos(yaw),s=Math.sin(yaw);
  const x=AIRFIELD_COMPACT_OFFSET_X+local.x*AIRFIELD_COMPACT_X,z=local.z*AIRFIELD_COMPACT_Z;
