@@ -1,7 +1,14 @@
 import {campaignLayout, type MapVersion, type Point} from './config.js';
 
-/** Map v23–26, generator revision 1. Changing gameplay output requires new IDs. */
-export const BATTLEFIELD_GENERATOR = 1;
+/** Revision 2: roomier buildable pads around bastions / headquarters.
+ * Revision 1 remains reproducible for existing saves. */
+export const BATTLEFIELD_GENERATOR = 2;
+export type BattlefieldGeneratorVersion=1|2;
+export const TERRAIN_GRADING_V2={
+ bastionFlatRadius:480,bastionShoulder:360,
+ homeFlatRadius:775,homeShoulder:460,
+ rockSafetyMargin:110
+} as const;
 export const TERRAIN_PROFILES = ['open','dunes','rocky','oasis','mixed'] as const;
 export type TerrainProfile = typeof TERRAIN_PROFILES[number];
 export const TERRAIN_LABELS:Record<TerrainProfile,string> = {
@@ -36,14 +43,14 @@ export function battlefieldStart(site:Point,size:number):Point{
  return {x:site.x+(site.x<size/2?-260:260),y:site.y+(site.y<size/2?-165:165)};
 }
 export interface BattlefieldTerrain {
- generatorVersion:1; profile:TerrainProfile; candidate:number; segments:number; size:number;
+ generatorVersion:BattlefieldGeneratorVersion; profile:TerrainProfile; candidate:number; segments:number; size:number;
  heights:Float32Array; basins:Point[]; minHeight:number; maxHeight:number;
 }
 /** Connected warped dune crests, broad eroded plateaus and low basin masks.
  * All expensive noise work runs once. Movement, art and combat sample these
  * same triangles, with an explicit conservative maximum walkable gradient. */
 export function generateBattlefieldTerrain(seed:number,version:MapVersion,size:number,sites:readonly Point[],
- profile:TerrainProfile,candidate=0,basins:Point[]=[]):BattlefieldTerrain{
+ profile:TerrainProfile,candidate=0,basins:Point[]=[],generatorVersion:BattlefieldGeneratorVersion=BATTLEFIELD_GENERATOR):BattlefieldTerrain{
  const segments=TERRAIN_SEGMENTS,n=segments+1,step=size/segments,heights=new Float32Array(n*n);
  const s=streamSeed(seed,'terrain',candidate),angle=hash(s,7,s)*Math.PI*2,c=Math.cos(angle),d=Math.sin(angle);
  const homes=campaignLayout(version,seed).headquarters.map(i=>battlefieldStart(sites[i],size));
@@ -66,11 +73,22 @@ export function generateBattlefieldTerrain(seed:number,version:MapVersion,size:n
   const mixed=open*(1-smooth((zone-.18)/.25))+dunes*smooth((zone-.18)/.25)*(1-smooth((zone-.52)/.25))+
    rocky*smooth((zone-.52)/.25);
   let h=profile==='open'?open:profile==='dunes'?dunes:profile==='rocky'?rocky:profile==='oasis'?oasis:mixed;
-  // Flat tactical pads have identical area/elevation for both factions.
-  // Smooth shoulders connect the pads to the natural asymmetric relief.
+  // Grade the actual authoritative terrain used by rendering, navigation
+  // and placement – no floating decorative mesh and no run-time deformation.
+  // Wider pads preserve the same profile on all v2 maps; in-between dunes
+  // remain rugged. Saved revision-1 maps retain their original exact mask.
   let mask=1;
-  for(const home of homes)mask=Math.min(mask,smooth((Math.hypot(x-home.x,y-home.y)-650)/480));
-  for(const site of sites)mask=Math.min(mask,smooth((Math.hypot(x-site.x,y-site.y)-230)/360));
+  if(generatorVersion===1){
+   for(const home of homes)mask=Math.min(mask,smooth((Math.hypot(x-home.x,y-home.y)-650)/480));
+   for(const site of sites)mask=Math.min(mask,smooth((Math.hypot(x-site.x,y-site.y)-230)/360));
+  }else{
+   for(const home of homes)mask=Math.min(mask,smooth(
+    (Math.hypot(x-home.x,y-home.y)-TERRAIN_GRADING_V2.homeFlatRadius)/
+     TERRAIN_GRADING_V2.homeShoulder));
+   for(const site of sites)mask=Math.min(mask,smooth(
+    (Math.hypot(x-site.x,y-site.y)-TERRAIN_GRADING_V2.bastionFlatRadius)/
+     TERRAIN_GRADING_V2.bastionShoulder));
+  }
   h*=mask;
   for(const basin of basins){
    const blend=smooth((Math.hypot(x-basin.x,y-basin.y)-235)/290);
@@ -90,8 +108,27 @@ export function generateBattlefieldTerrain(seed:number,version:MapVersion,size:n
  }
  let minHeight=Infinity,maxHeight=-Infinity;
  for(const h of heights){minHeight=Math.min(minHeight,h);maxHeight=Math.max(maxHeight,h);}
- return {generatorVersion:1,profile,candidate,segments,size,heights,basins,minHeight,maxHeight};
+ return {generatorVersion,profile,candidate,segments,size,heights,basins,minHeight,maxHeight};
 }
+/** Subtle exposed-earth band on graded shoulders (visual colour only).
+ * All values are deterministic and baked into existing mesh vertex colours. */
+export function terrainGradingEdge(x:number,y:number,sites:readonly Point[],
+ homes:readonly Point[],version:BattlefieldGeneratorVersion):number{
+ if(version<2)return 0;
+ let strongest=0;
+ for(const [positions,flat] of [
+  [sites,TERRAIN_GRADING_V2.bastionFlatRadius] as const,
+  [homes,TERRAIN_GRADING_V2.homeFlatRadius] as const
+ ]){
+  for(const p of positions){
+   const offset=Math.hypot(x-p.x,y-p.y)-flat;
+   const band=smooth(offset/46)*(1-smooth((offset-78)/200));
+   strongest=Math.max(strongest,band);
+  }
+ }
+ return strongest;
+}
+
 /** Exact barycentric interpolation, including the b–c diagonal used by WebGL.
  * Clamped outside the playfield only for the existing decorative edge apron. */
 export function battlefieldHeightAt(t:BattlefieldTerrain,x:number,y:number):number{
