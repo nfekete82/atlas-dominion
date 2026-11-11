@@ -26,6 +26,8 @@ on:
       - 'tests/webgl-consecutive-building-20261110.test.mjs'
       - 'tests/webgl-global-production-20261111.test.mjs'
       - 'tests/webgl-late-match-combat-input-20261111.test.mjs'
+      - 'tests/webgl-radio-voice-builders-20261111.test.mjs'
+      - 'src/reborn/audio.ts'
       - 'scripts/webgl-bastion-lifecycle.js'
       - 'scripts/webgl-maintenance-input.js'
       - 'scripts/webgl-classic-hud.js'
@@ -91,7 +93,7 @@ jobs:
       - name: Compile TypeScript / build WebGL distribution
         run: npm run build
       - name: Test hangar and factory repair states, selection rings and Three.js visuals
-        run: node --test tests/webgl-hangar-factory-maintenance-20261110.test.mjs tests/webgl-selection-rings.test.mjs tests/webgl-facility-preview-smallarms-20261110.test.mjs tests/webgl-facility-clearance-terrain-20261110.test.mjs tests/webgl-consecutive-building-20261110.test.mjs tests/webgl-global-production-20261111.test.mjs tests/webgl-late-match-combat-input-20261111.test.mjs tests/sandforge-tank-balance.test.mjs tests/webgl-aircraft-effects-20261110.test.mjs tests/webgl-production-gates.test.mjs
+        run: node --test tests/webgl-hangar-factory-maintenance-20261110.test.mjs tests/webgl-selection-rings.test.mjs tests/webgl-facility-preview-smallarms-20261110.test.mjs tests/webgl-facility-clearance-terrain-20261110.test.mjs tests/webgl-consecutive-building-20261110.test.mjs tests/webgl-global-production-20261111.test.mjs tests/webgl-late-match-combat-input-20261111.test.mjs tests/webgl-radio-voice-builders-20261111.test.mjs tests/sandforge-tank-balance.test.mjs tests/webgl-aircraft-effects-20261110.test.mjs tests/webgl-production-gates.test.mjs
       - name: Regressions - bomber course, weather, capture, craters, infantry and strategic camouflage
         run: |
           node --test tests/reborn-control-retreat.test.mjs \
