@@ -26,7 +26,8 @@ type Rect={type:'rect';x:number;z:number;hx:number;hz:number};
 type Shape=Circle|Rect;
 const round=30; // keep a useful walkable/safety strip between painted surfaces
 const localShapes=(kind:BuildingKind):Shape[]=>{
- const s:Shape[]=[{type:'circle',x:0,z:0,r:buildingVisualRadius(kind)}];
+ const s:Shape[]=kind==='wall'?[{type:'rect',x:0,z:0,hx:54,hz:16}]:
+  [{type:'circle',x:0,z:0,r:buildingVisualRadius(kind)}];
  if(kind==='airfield')s.push(
   {type:'rect',x:161,z:86,hx:72,hz:254}, // compact runway plus lamps
   {type:'rect',x:-87,z:-4,hx:212,hz:162}); // one hangar, tower and fuel area
@@ -110,6 +111,7 @@ export function siteTerrainCompatible(
   }
   return true;
  };
+ if(kind==='wall'&&!sampleRect(0,0,53,14))return false;
  if(kind==='factory'&&!sampleRect(192,56,72,116))return false;
  if(kind==='airfield'&&(
   !sampleRect(-94,-62,70,90)||!sampleRect(-226,-73,36,45)))return false;
@@ -120,9 +122,10 @@ export function siteTerrainCompatible(
 export function sitesVisuallyOverlap(a:BuildingKind,pa:Point,fa:SiteFacing,
  b:BuildingKind,pb:Point,fb:SiteFacing=0):boolean{
  // Preserve the calibrated legacy separation for ordinary buildings.
- if(a!=='airfield'&&b!=='airfield'&&a!=='factory'&&b!=='factory')
+ if(a!=='wall'&&b!=='wall'&&a!=='airfield'&&b!=='airfield'&&a!=='factory'&&b!=='factory')
   return distance(pa,pb)<constructionVisualClearance(a,b);
- return localShapes(a).some(sa=>localShapes(b).some(sb=>overlaps(sa,pa,fa,sb,pb,fb)));
+ const pad=a==='wall'&&b==='wall'?3:a==='wall'||b==='wall'?15:round;
+ return localShapes(a).some(sa=>localShapes(b).some(sb=>overlaps(sa,pa,fa,sb,pb,fb,pad)));
 }
 /** Static bastions and capture points retain a larger clear perimeter. */
 export function siteNearBastion(kind:BuildingKind,p:Point,f:SiteFacing,t:Point):boolean{
@@ -132,7 +135,7 @@ export function siteNearBastion(kind:BuildingKind,p:Point,f:SiteFacing,t:Point):
 }
 /** For very long airstrips verify the real four corners, not just the anchor. */
 export function siteExceedsMap(kind:BuildingKind,p:Point,f:SiteFacing,size:number):boolean{
- if(kind!=='airfield'&&kind!=='factory')return false;
+ if(kind!=='airfield'&&kind!=='factory'&&kind!=='wall')return false;
  for(const rect of localShapes(kind))if(rect.type==='rect'){
   for(const x of [-rect.hx,rect.hx])for(const z of [-rect.hz,rect.hz]){
    const world=sitePoint(p,f,rect.x+x,rect.z+z);

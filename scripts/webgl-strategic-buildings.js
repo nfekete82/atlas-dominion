@@ -66,10 +66,38 @@ const siloDesertCamo=(()=>{
  return t;
 })();
 
-export const STRATEGIC_BUILDING_KINDS=Object.freeze(['research','silo','interceptor']);
+/** Static destructible base wall, rendered once and shared by preview and game. */
+function createDefensiveWall(owner){
+ const root=new THREE.Group();root.name='Strategic_wall';
+ root.userData={visualOnly:true,defensiveWall:true};
+ const concrete=new THREE.MeshStandardMaterial({color:'#b7ab8a',roughness:.94,metalness:.08,
+  map:materialGrain,bumpMap:materialGrain,bumpScale:.28});
+ const cap=new THREE.MeshStandardMaterial({color:'#827b67',roughness:.81,metalness:.26,
+  map:materialGrain});
+ const stripe=new THREE.MeshStandardMaterial({color:owner===0?'#3179a2':'#b35f4a',
+  roughness:.6,metalness:.25});
+ const add=(w,h,d,x,y,z,mat,name)=>{
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
+  m.position.set(x,y,z);m.name=name;m.castShadow=true;m.receiveShadow=true;
+  root.add(m);
+ };
+ add(109,7,30,0,4,0,cap,'WallFooting');
+ for(const x of [-35,0,35]){
+  add(33,32,18,x,24,0,concrete,'WallArmoredPanel');
+  add(33,5,21,x,42,0,cap,'WallCoping');
+  add(27,2,22,x,46,0,stripe,'WallFactionBand');
+ }
+ for(const x of [-52,52]){
+  add(8,47,25,x,26,0,cap,'WallPillar');
+  add(10,5,28,x,51,0,concrete,'WallPillarTop');
+ }
+ return root;
+}
+export const STRATEGIC_BUILDING_KINDS=Object.freeze(['research','silo','interceptor','wall']);
 export const isStrategicBuilding=kind=>STRATEGIC_BUILDING_KINDS.includes(kind);
 export function createStrategicBuilding(kind,owner=0){
  if(!isStrategicBuilding(kind))return null;
+ if(kind==='wall')return createDefensiveWall(owner);
  const root=new THREE.Group();
  root.name='Strategic_'+kind;
  root.userData.visualOnly=true;

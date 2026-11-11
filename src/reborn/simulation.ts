@@ -10,6 +10,7 @@ import { World, inside, type Territory } from './world.js';
 import {visibleBasePropColliders} from './vehicle-decor-collision.js';
 import {vehicleStructureCollider,vehicleStructureColliders} from './vehicle-structure-collision.js';
 import {infantryStructureCollider,infantryStructureColliders} from './infantry-structure-collision.js';
+import {wallColliderSamples} from './defensive-wall.js';
 import {bastionStructureColliders} from './bastion-structure-collision.js';
 import {constructionVisualClearance,sitesVisuallyOverlap,siteNearBastion,siteExceedsMap,siteTerrainCompatible,type SiteFacing} from './construction-spacing.js';
 import {segmentDistance} from './world-generation.js';
@@ -731,7 +732,8 @@ export class Simulation {
     if(this.units.some(u=>{
       if(u.hp<=0||u.carrier||unitSpec(u).flying)return false;
       const facade=unitSpec(u).group==='Fahrzeuge'?vehicleFacade:infantryFacade;
-      return distance(u,facade)<facade.radius+unitSpec(u).radius;
+      const colliders=kind==='wall'?wallColliderSamples(p,facing,facade.radius):[facade];
+      return colliders.some(c=>distance(u,c)<c.radius+unitSpec(u).radius);
     }))return 'Einheiten blockieren die Baustelle.';
     return null;
   }

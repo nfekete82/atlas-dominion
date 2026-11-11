@@ -15,6 +15,19 @@ export const unitAtlasUrl=kind=>'/src/assets/reborn/'+folders(kind)+'/'+kind+'-0
 /** Local original vector icons for the new strategic facilities; existing
  * buildings retain their authored PNGs. No missing-file fetches or tracking. */
 export const strategicBuildingIcon=kind=>{
+ if(kind==='wall'){
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 190">'+
+   '<rect width="192" height="190" rx="13" fill="#222a2a"/>'+
+   '<path d="M14 140 L35 115 L158 115 L177 140 L177 162 L14 162Z" fill="#656456"/>'+
+   '<path d="M21 70 H171 V133 H21Z" fill="#bbab87" stroke="#6e6a58" stroke-width="5"/>'+
+   '<path d="M71 73 V135 M121 73 V135" stroke="#827966" stroke-width="4"/>'+
+   '<path d="M18 69 H174 V79 H18Z" fill="#3c819e"/>'+
+   '<path d="M21 102 H171" stroke="#a3997b" stroke-width="3"/>'+
+   '<rect x="12" y="60" width="14" height="84" fill="#777665"/>'+
+   '<rect x="166" y="60" width="14" height="84" fill="#777665"/>'+
+   '</svg>';
+  return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
+ }
  if(!['research','silo','interceptor'].includes(kind))return null;
  const pict=kind==='research'?
   '<rect x="40" y="65" width="112" height="86" rx="6" fill="#a9997c"/>'+
