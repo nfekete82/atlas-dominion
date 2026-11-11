@@ -26,6 +26,7 @@ import {bomberAttackWaypoints,BOMBER_BOMB_RELEASE_DISTANCE,BOMBER_RUN_WAYPOINT_D
 import {AttackAlerts} from './attack-alerts.js';
 import {airfieldPoint,airfieldLerp,airfieldTaxiPoint,validAirfieldService,AIRFIELD_BAYS,AIRFIELD_REPAIR_HP_PER_CREDIT,AIRFIELD_REPAIR_FRACTION_PER_SECOND,AIRFIELD_LANDING_SECONDS,AIRFIELD_TAXI_SECONDS,AIRFIELD_TAKEOFF_SECONDS,type AirfieldService} from './airfield-maintenance.js';
 import {factoryRepairPoint,validFactoryService,FACTORY_REPAIR_BAYS,FACTORY_REPAIR_HP_PER_CREDIT,FACTORY_REPAIR_FRACTION_PER_SECOND,type FactoryService} from './factory-maintenance.js';
+import {factoryDoorExitCandidates} from './production-exit.js';
 import {eliminationOutcome} from './match-outcome.js';
 import {formationSlotPitch,vehicleSpacingGap,preservesVehicleProgress,vehicleYieldWaypoint} from './vehicle-spacing.js';
 import {UPGRADES,UPGRADE_KINDS,newResearchState,canResearchUpgrade,researchModifiers,
@@ -1831,7 +1832,23 @@ export class Simulation {
         const spawnObstacles=vehicle?[...buildings,...vehicleStructureColliders(buildings),...this.vehicleDecorObstacles(),...this.bastionColliders()]:spec.flying?buildings:[...buildings,...infantryStructureColliders(buildings),...this.bastionColliders()];
         // A factory exit must be clear of the painted building silhouettes,
         // not merely outside their smaller construction footprint circles.
-        const spawn=spec.flying?exit:this.world.nearest(exit,spawnObstacles,this.units,undefined,Math.max(0,spec.radius-10));
+        const clearance=Math.max(0,spec.radius-10);
+        // The WebGL shutter faces local +Z. The old fixed diagonal spawn
+        // ignored building rotation and sent tanks behind their own factory
+        // after the door animation, before they could head for the rally.
+        // Hand off in front of the REAL door, on collision-safe ground.
+        // Classic (and non-staged) production retains its original spawn.
+        let spawn:Point|null=null;
+        if(this.stageWebGLProduction&&b.kind==='factory'&&vehicle){
+          for(const candidate of factoryDoorExitCandidates(b)){
+            if(!this.world.walkable(candidate,spawnObstacles,clearance))continue;
+            // nearest() additionally validates occupied cells; require the
+            // exact forward candidate, never a surprise rear-side fallback.
+            const clear=this.world.nearest(candidate,spawnObstacles,this.units,undefined,clearance);
+            if(clear&&distance(clear,candidate)<1){spawn=clear;break;}
+          }
+        }
+        if(!spawn)spawn=spec.flying?exit:this.world.nearest(exit,spawnObstacles,this.units,undefined,clearance);
         if(spawn&&this.count(b.owner)<RULES.capacity){const u=this.spawn(b.owner,spawn,kind);
           // The actual spawn remains authoritative; the renderer performs only a
           // short exterior arrival fade. Never fake an opening in the baked facade.
