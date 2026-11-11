@@ -21,6 +21,7 @@ import {serviceVisualGround,approachGroundHeight} from '/webgl-service-grounding
 import {factoryRepairPoint} from '/src/reborn/factory-maintenance.js';
 import {selectedMaintenanceKind,serviceFootprintContains,maintenanceClickAllowed} from '/webgl-maintenance-input.js';
 import {disposeOwnedMeshes,disposeTaggedMaterials} from '/webgl-resource-lifecycle.js';
+import {releaseBastionRevision} from '/webgl-bastion-lifecycle.js';
 import {selectedInfantryForTransport,selectedLoadedTransports,selectedTransportManifest} from '/webgl-transport-controls.js';
 import {pointerGestureIntent,submitConstruction,nearestEngineer,POINTER_CLICK_SLOP} from '/webgl-builder-input.js';
 import {sameKindVisibleUnits} from '/webgl-double-click-select.js';
@@ -941,7 +942,9 @@ export class SandforgeBattlefield {
    detail.scale.multiplyScalar(factor);
    detail.position.set(-center.x*factor,-box.min.y*factor,-center.z*factor);
    this.lightBuildingMeshes(detail);
-   if(entry.detail)entry.node.remove(entry.detail);
+   // Release per-bastion materials, clips and fallback rotors after each
+   // ownership change. GLB source geometries/textures remain cached.
+   releaseBastionRevision(entry);
    entry.detail=detail;entry.node.add(detail);
    // Bastions also have the RadarSpin animation in their authored assets.
    const radarClip=data.animations?.find(c=>c.name==='RadarSpin');
