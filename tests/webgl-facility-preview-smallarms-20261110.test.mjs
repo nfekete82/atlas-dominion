@@ -99,10 +99,19 @@ test('build ghost and completed buildings use identical 3D asset and site genera
  assert.ok(begin.includes('placeholder.visible=false'));
  assert.ok(begin.includes('model.visible=false'));
  assert.ok(begin.includes('ConstructionPlacementGuides'));
- assert.match(begin,/opacity:\.234,depthWrite:false,depthTest:false/,
-  'guide wireframe is 30% stronger, but still transparent');
- assert.match(begin,/opacity:\.0715,depthWrite:false,depthTest:false/,
-  'ground blueprint has matching subtle 30% increase');
+ assert.match(begin,/opacity:\.43,depthWrite:false,depthTest:false/,
+  'solid scaffold posts must be visible even at tactical camera zoom');
+ assert.ok(begin.includes('beam(t,h,t,'),'blueprint contains real vertical scaffold poles');
+ assert.ok(begin.includes('guidePad(141,600,132,105)'),
+  'airport preview shows the compact full runway footprint');
+ assert.ok(begin.includes("if(kind==='factory')guideBox(118,54,125,192,45)"),
+  'factory preview shows the compact one-bay service annex');
+ assert.ok(begin.includes('group.userData.previewGuideMaterials='),
+  'blueprints can show invalid location in amber/red');
+ assert.match(begin,/opacity:\.46,depthWrite:false,depthTest:false/,
+  'guide wireframe is now readable on sandy terrain');
+ assert.match(begin,/opacity:\.15,depthWrite:false,depthTest:false/,
+  'construction footprint stays translucent but visible');
  assert.ok(begin.includes('if(mesh.isMesh&&'));
  assert.ok(!begin.includes('placeholder.visible=true'));
 
