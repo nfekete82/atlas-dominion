@@ -1,4 +1,4 @@
-import {battlefieldHeightAt,battlefieldSlopeAt,type TerrainProfile} from './battlefield-terrain.js';
+import {BATTLEFIELD_GENERATOR,battlefieldHeightAt,battlefieldSlopeAt,type TerrainProfile,type BattlefieldGeneratorVersion} from './battlefield-terrain.js';
 import {validateBattlefield,type BattlefieldValidation} from './battlefield-validation.js';
 import { profiler } from './performance.js';
 import { RULES, type Point, type Owner, type MapVersion, mapLayout, campaignLayout, mapWorldSize } from './config.js';
@@ -53,14 +53,14 @@ export class World {
   readonly cliffCells:number[][]=[];
   readonly generated?:GeneratedMap;
   readonly validation?:BattlefieldValidation;
-  constructor(readonly seed=2026,readonly mapVersion:MapVersion=0,profile?:TerrainProfile,candidate=0) {
+  constructor(readonly seed=2026,readonly mapVersion:MapVersion=0,profile?:TerrainProfile,candidate=0,readonly generatorVersion:BattlefieldGeneratorVersion=BATTLEFIELD_GENERATOR) {
     this.size=mapWorldSize(mapVersion);this.cell=this.size/RULES.grid;
     if(mapVersion===0&&navigationCache){
       this.blocked.set(navigationCache.blocked);this.opaque.set(navigationCache.opaque);this.cliffIds.set(navigationCache.cliffs);this.components.set(navigationCache.components);
       this.cliffIds.forEach((id,i)=>{if(id>=0)(this.cliffCells[id]??=[]).push(i);});return;
     }
     if(mapVersion!==0){
-      this.generated=generateMap(seed,mapVersion,profile,candidate);
+      this.generated=generateMap(seed,mapVersion,profile,candidate,generatorVersion);
       this.rocks=this.generated.mesas.map(m=>m.outline);
       for(const [id,mesa] of this.generated.mesas.entries()){
         this.cliffCells[id]=[];
@@ -113,7 +113,7 @@ export class World {
       this.validation=validateBattlefield(this);
       if(!this.validation.valid){
         if(candidate>=3)throw new Error('Battlefield validation failed: '+this.validation.errors.join(', '));
-        const corrected=new World(seed,mapVersion,profile,candidate+1);
+        const corrected=new World(seed,mapVersion,profile,candidate+1,generatorVersion);
         this.generated=corrected.generated;this.rocks=corrected.rocks;this.validation=corrected.validation;
         this.blocked.set(corrected.blocked);this.opaque.set(corrected.opaque);this.cliffIds.set(corrected.cliffIds);this.components.set(corrected.components);
         this.cliffCells.length=0;this.cliffCells.push(...corrected.cliffCells);
