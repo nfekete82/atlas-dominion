@@ -31,7 +31,7 @@ export const BUILDINGS:Record<BuildingKind,BuildingSpec>={
  generator:{name:'Energiekern',cost:150,buildTime:9,hp:500,sight:230,radius:38,width:112,income:10,description:'Versorgt die Basis und liefert zusätzliche 10 Credits alle 10 Sekunden.'},
  wall:{name:'Sperrmauer',cost:120,buildTime:8,hp:750,sight:80,radius:24,width:108,income:0,description:'Massive, drehbare Betonsperre. Blockiert Infanterie und Fahrzeuge. Gegen Raketen und Panzerbeschuss zerstörbar.'},
  turret:{name:'Geschützturm',cost:175,buildTime:10,hp:650,sight:RULES.turret.sight,radius:30,width:72,income:0,description:`Automatische Fernverteidigung. ${RULES.turret.range} M Reichweite, ${RULES.turret.sight} M Sicht, ${RULES.turret.damage} Schaden.`},
- research:{name:'Forschungszentrum',cost:950,buildTime:48,hp:950,sight:350,radius:59,width:175,income:0,description:'Erforscht neun globale Technologien in 35–90 Sekunden. Forschung verbessert bereits gebaute und neue Einheiten.'},
+ research:{name:'Forschungszentrum',cost:950,buildTime:48,hp:950,sight:350,radius:46,width:145,income:0,description:'Kompaktes Forschungszentrum mit Sand-Oliv-Tarnung, Radar, Sensoranlage und Dachtechnik. Erforscht neun Technologien in 35–90 Sekunden.'},
  silo:{name:'Langstrecken-Raketensilo',cost:5000,buildTime:100,hp:1900,sight:360,radius:91,width:265,income:0,description:'Strategische Rakete: 10 Minuten Ladezeit, 25 Sekunden Angriffswarnung und großer Einschlag. Maximal ein Silo pro Fraktion.'},
  interceptor:{name:'Raketenabwehr',cost:2500,buildTime:62,hp:1150,sight:420,radius:56,width:172,income:0,description:'Fängt strategische Langstreckenraketen im Umkreis von 920 M ab. Drei Abwehrraketen, danach für 650 Credits nachladen.'},
 };

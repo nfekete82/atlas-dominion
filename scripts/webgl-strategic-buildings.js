@@ -134,8 +134,17 @@ export function createStrategicBuilding(kind,owner=0){
   // Silo sand-tone panels reuse its three-tone armoured albedo.
   // Research retains an independent sand highlight; this saves the silo
   // one draw call and maintains the original <=20 mesh budget.
-  if(researchCamo)mats.camoSand=new THREE.MeshStandardMaterial({color:'#d1bd93',map:materialGrain,
-   bumpMap:materialGrain,bumpScale:.16,roughness:.88,metalness:.05});
+  if(researchCamo){
+   mats.camoSand=new THREE.MeshStandardMaterial({color:'#d1bd93',map:materialGrain,
+    bumpMap:materialGrain,bumpScale:.16,roughness:.88,metalness:.05});
+   // Actual baked albedo across the LAB WALLS and ROOF, not just painted
+   // accessory boxes. Reuse the shared 256px, seam-free desert texture.
+   // Own material but no extra texture allocation or frame-time shader cost.
+   mats.researchArmor=new THREE.MeshStandardMaterial({
+    color:'#f3efe3',map:siloDesertCamo,bumpMap:materialGrain,bumpScale:.22,
+    roughness:.88,metalness:.07});
+   mats.researchArmor.userData={sandforgeColorMapCamo:true};
+  }
  }
  // The silo should be a recognisable armoured launch complex, not a
  // generic box with a lone tower. Both skins share faction ID colours.
@@ -190,8 +199,18 @@ export function createStrategicBuilding(kind,owner=0){
   for(let i=0;i<5;i++)box(w-3,.85,2.8,'trim',x,y-6+i*3,z+.3);
  };
  if(kind==='research'){
+  // All authored dimensions below remain in native model units for the
+  // 3D portrait and construction ghost. The shared visual root is reduced
+  // once AFTER batching, so the ghost and finished structure match exactly.
   foundation(178,149);
   box(159,60,124,'base',0,43,0);
+  // Thin armored cladding carries the THREE-TONE texture on the real walls.
+  // Keep front windows, louvers and entrance in front of the camo plates.
+  box(157,53,1.8,'researchArmor',0,42,-62.5);
+  box(157,53,1.8,'researchArmor',0,42,62.5);
+  for(const side of [-1,1])
+   box(1.8,53,121,'researchArmor',side*80.1,42,0);
+  box(149,1.8,115,'researchArmor',0,84,0);
   box(164,5,130,'metal',0,15,0);
   box(170,9,136,'black',0,77,0);
   box(159,2,129,'trim',0,82,0);
@@ -234,6 +253,12 @@ export function createStrategicBuilding(kind,owner=0){
    box(3.2,24,5,'black',x,48,69);
    box(37,3,5,'black',x,35,68);
    for(let i=0;i<3;i++)box(8,2.3,4,'steel',x-12+i*12,32,67);
+  }
+  // Protective roof ribs and low raised instrument pods create a compact
+  // laboratory silhouette like the reference instead of a blank cuboid.
+  for(const x of [-58,58])for(const z of [-42,42]){
+   box(22,5,23,'camoOlive',x,87,z);
+   box(17,2,19,'metal',x,90,z);
   }
   for(const x of [-52,0,52]){
    box(30,20,4,'vent',x,45,-64);
@@ -297,6 +322,7 @@ export function createStrategicBuilding(kind,owner=0){
    45,108,-11,-.40,0,.08);
   array.name='Research_SensorArray';
   for(const x of [28,42,56,70])box(3.2,7,26,'trim',x,109,-11);
+  // Armored, slanted antenna panel and perimeter cable trays stay distinct.
   for(const z of [-47,43]){
    box(68,2.2,2.5,'trim',38,112,z);
    for(const x of [6,40,71])box(2.5,20,2.5,'metal',x,102,z);
@@ -479,7 +505,15 @@ export function createStrategicBuilding(kind,owner=0){
   for(const x of [-67,67])for(const z of [-55,55])
    box(10,11,10,'glow',x,66,z);
  }
- return batchStaticParts(root,kind);
+ const batched=batchStaticParts(root,kind);
+ // Compact lab: ~27% smaller horizontally and ~24% shorter. These scale
+ // factors are for the STRATEGIC model only, not hit points or research.
+ if(kind==='research'){
+  batched.scale.set(.73,.76,.73);
+  batched.userData.compactResearch=true;
+  batched.userData.referenceInspiredCamo=true;
+ }
+ return batched;
 }
 
 /** Static roof details, window ribs and facade panels are aggressively merged

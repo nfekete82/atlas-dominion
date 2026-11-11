@@ -31,6 +31,8 @@ const localShapes=(kind:BuildingKind):Shape[]=>{
  if(kind==='airfield')s.push(
   {type:'rect',x:106,z:29,hx:71,hz:181}, // short runway directly beside hangar
   {type:'rect',x:-81,z:-3,hx:119,hz:174}); // one hangar, tower and fuel
+ if(kind==='research')s.push(
+  {type:'rect',x:0,z:0,hx:70,hz:60}); // actual compact research foundation
  if(kind==='factory')s.push(
   {type:'rect',x:192,z:56,hx:72,hz:116}); // one small side repair garage
  return s;
@@ -112,6 +114,7 @@ export function siteTerrainCompatible(
   return true;
  };
  if(kind==='wall'&&!sampleRect(0,0,53,14))return false;
+ if(kind==='research'&&!sampleRect(0,0,70,60))return false;
  if(kind==='factory'&&!sampleRect(192,56,72,116))return false;
  if(kind==='airfield'&&(
   !sampleRect(-41,-62,58,79)||!sampleRect(-127,-73,29,35)))return false;
@@ -122,7 +125,7 @@ export function siteTerrainCompatible(
 export function sitesVisuallyOverlap(a:BuildingKind,pa:Point,fa:SiteFacing,
  b:BuildingKind,pb:Point,fb:SiteFacing=0):boolean{
  // Preserve the calibrated legacy separation for ordinary buildings.
- if(a!=='wall'&&b!=='wall'&&a!=='airfield'&&b!=='airfield'&&a!=='factory'&&b!=='factory')
+ if(a!=='wall'&&b!=='wall'&&a!=='research'&&b!=='research'&&a!=='airfield'&&b!=='airfield'&&a!=='factory'&&b!=='factory')
   return distance(pa,pb)<constructionVisualClearance(a,b);
  const pad=a==='wall'&&b==='wall'?3:a==='wall'||b==='wall'?15:round;
  return localShapes(a).some(sa=>localShapes(b).some(sb=>overlaps(sa,pa,fa,sb,pb,fb,pad)));

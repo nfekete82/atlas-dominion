@@ -20,6 +20,14 @@ test('research lab uses authored beige/olive three-tone PBR camouflage for both 
   assert.ok(model?.isGroup);
   assert.equal(model.name,'Strategic_research');
   assert.ok(model.getObjectByName('Research_Radar'),'radar silhouette must remain');
+  assert.equal(model.userData.compactResearch,true);
+  assert.ok(model.scale.x<.76&&model.scale.z<.76&&model.scale.y<.80,
+   'research lab should occupy a clearly smaller area');
+  const skins=[];
+  model.traverse(o=>{if(o.isMesh&&o.material?.userData?.sandforgeColorMapCamo)
+   skins.push(o.material)});
+  assert.ok(skins.some(m=>m.name==='SF_researchArmor'&&m.map?.isDataTexture),
+   'large research walls and roof must use baked sand/khaki/olive albedo');
   const material=colors(model);
   assert.equal(material.get('SF_base'),'#bba882');
   assert.equal(material.get('SF_panel'),'#999477');
