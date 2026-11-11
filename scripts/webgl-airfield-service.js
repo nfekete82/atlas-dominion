@@ -261,7 +261,7 @@ export function createAirfieldServiceYard(){
  for(const x of [-169,-134,-44,-8])
   box(group,'HangarSafetyChevron',8,.15,5,x,3.5,42,yellow);
  // Reduce site, runway and tower without changing the shared building anchor.
- const towerScale=.65,towerX=-298,towerZ=-89;
+ const towerScale=.65; // reuse the existing towerX/towerZ coordinates
  for(const part of group.children)if(part.isMesh&&part.name.startsWith('AirfieldLeftControlTower')){
   part.position.x=towerX+(part.position.x-towerX)*towerScale;
   part.position.z=towerZ+(part.position.z-towerZ)*towerScale;
