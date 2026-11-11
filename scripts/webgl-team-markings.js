@@ -7,8 +7,7 @@ export const TEAM_MARKING_COLORS=Object.freeze({0:'#198fe0',1:'#e34e43'});
 const kinds=new Set(['infantry','medic','engineer','heavy','rocket','tank','rover','artillery','scout','bomber']);
 const materials=new Map();
 const quad=new THREE.PlaneGeometry(1,1);
-const poleGeo=new THREE.CylinderGeometry(.72,.72,1,7);
-const poleMat=new THREE.MeshBasicMaterial({color:'#7e725f'});
+// Grounded model-space decals replace the old floating flagpoles.
 function mat(owner){
  if(materials.has(owner))return materials.get(owner);
  const n=64,rgba=new Uint8Array(n*n*4),color=new THREE.Color(TEAM_MARKING_COLORS[owner]);
@@ -34,44 +33,107 @@ function patch(group,name,owner,x,y,z,w,h,rx=0,ry=0){
  mesh.raycast=()=>{};mesh.userData={visualOnly:true,teamMarking:true,nonPlayable:true};
  group.add(mesh);
 }
-/** Attach once when created/model size changes; never allocate each RAF. */
+/** Place a real textured marking on the model surface at construction time.
+ * Top-down raycasts find the actual GLB wing/turret/roof elevation; no
+ * floating signboards or oversized pole meshes. Decals rotate with the unit.
+ */
+function surfacePatch(group,meshes,root,owner,name,u,v,width,height,side=null){
+ if(!meshes.length)return false;
+ root.updateMatrixWorld(true);
+ const bounds=new THREE.Box3();
+ for(const mesh of meshes)bounds.expandByObject(mesh);
+ if(bounds.isEmpty())return false;
+ const center=bounds.getCenter(new THREE.Vector3()),size=bounds.getSize(new THREE.Vector3());
+ const origin=center.clone(),direction=new THREE.Vector3(0,-1,0);
+ if(side===-1||side===1){
+  origin.set(side<0?bounds.min.x-30:bounds.max.x+30,
+   center.y+size.y*u,center.z+size.z*v);
+  direction.set(side<0?1:-1,0,0);
+ }else{
+  origin.set(center.x+size.x*u,bounds.max.y+Math.max(25,size.y*.65),
+   center.z+size.z*v);
+ }
+ const ray=new THREE.Raycaster(origin,direction,0,Math.max(100,size.y*3));
+ const hits=ray.intersectObjects(meshes,false);
+ const hit=hits.find(h=>h.face&&h.object.isMesh);
+ if(!hit)return false;
+ const normal=hit.face.normal.clone().transformDirection(hit.object.matrixWorld).normalize();
+ // Surface normal is used for real planes with sloped armor or wings.
+ const quat=root.getWorldQuaternion(new THREE.Quaternion()).invert();
+ const localNormal=normal.clone().applyQuaternion(quat).normalize();
+ const p=hit.point.clone().addScaledVector(normal,.55);
+ root.worldToLocal(p);
+ const mesh=new THREE.Mesh(quad,mat(owner));
+ mesh.name=name;
+ mesh.position.copy(p);
+ mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),localNormal);
+ mesh.scale.set(width,height,1);
+ mesh.castShadow=false;mesh.receiveShadow=false;mesh.raycast=()=>{};
+ mesh.renderOrder=4;
+ mesh.userData={visualOnly:true,teamMarking:true,nonPlayable:true,
+  attachedToSurface:true,owner,sourceMesh:hit.object.name};
+ group.add(mesh);
+ return true;
+}
+/** Allocated only on model creation/change, never in a render-frame callback. */
 export function attachTeamMarkings(entry,owner,kind,footprint=90,height=44){
  if(!entry?.node||!kinds.has(kind)||(owner!==0&&owner!==1))return null;
  const h=Math.max(16,Number.isFinite(height)?height:44);
  const w=Math.max(20,Number.isFinite(footprint)?footprint:90);
- const signature=[owner,kind,Math.round(h),Math.round(w)].join(':');
+ const model=entry.detail??entry.placeholder;
+ const signature=[owner,kind,Math.round(h),Math.round(w),
+  entry.detail?'authored':'placeholder'].join(':');
  if(entry.teamMarkings?.userData.signature===signature)return entry.teamMarkings;
  detachTeamMarkings(entry);
  const group=new THREE.Group();
- group.name='SandforgeTeamUniformAndFlags';
+ group.name='SandforgeTeamSurfaceMarkings';
  group.userData={signature,owner,kind,visualOnly:true,nonPlayable:true,teamMarkings:true};
+ entry.node.add(group);
  if(['infantry','medic','engineer','heavy','rocket'].includes(kind)){
   const shoulder=Math.min(13,h*.23);
   for(const side of [-1,1])
    patch(group,'TeamArmband_'+(side<0?'Left':'Right'),owner,
     side*shoulder,h*.60,0,Math.max(5,h*.16),Math.max(4,h*.11),0,side*Math.PI/2);
   patch(group,'TeamChestPatch',owner,0,h*.66,h*.18,Math.max(6,h*.20),Math.max(5,h*.14));
- }else if(kind==='tank'||kind==='artillery'){
-  const x=-w*.29,z=-w*.18;
-  const pole=new THREE.Mesh(poleGeo,poleMat);
-  pole.name='TeamFlagpole';pole.position.set(x,h*.86+7,z);
-  pole.scale.set(1,15,1);pole.castShadow=false;pole.receiveShadow=false;
-  pole.raycast=()=>{};pole.userData={visualOnly:true,teamMarking:true,nonPlayable:true};group.add(pole);
-  patch(group,'TeamArmourFlag',owner,x+10,h*.86+12,z,Math.max(20,w*.21),12);
-  patch(group,'TeamTurretRoofMark',owner,w*.1,h*.88,0,w*.27,Math.max(12,w*.13),-Math.PI/2);
- }else if(kind==='rover'){
-  patch(group,'TeamHumveeRoof',owner,0,h*.77,-w*.09,w*.34,w*.24,-Math.PI/2);
-  for(const side of [-1,1])
-   patch(group,'TeamDoor_'+side,owner,side*w*.30,h*.46,0,w*.21,Math.max(8,h*.24),0,side*Math.PI/2);
- }else{
-  for(const side of [-1,1])
-   patch(group,'TeamAircraftWing_'+side,owner,side*w*.27,h*.40,0,
-    Math.max(14,w*.23),Math.max(11,w*.15),-Math.PI/2);
-  patch(group,'TeamAircraftTail',owner,0,h*.6,-w*.23,w*.16,Math.max(9,h*.23),-Math.PI/2);
+ }else if(model){
+  // Project the colored faction emblems onto the REAL outer model surface.
+  // A hit is required: no fallback floating geometry when a wing is narrow.
+  const meshes=[];model.traverse(o=>{
+   if(o.isMesh&&o.geometry&&!o.userData.teamMarking)meshes.push(o);
+  });
+  if(kind==='tank'||kind==='artillery'){
+   surfacePatch(group,meshes,entry.node,owner,'TeamTurretRoofMark',.0,-.12,
+    w*.24,w*.15);
+   surfacePatch(group,meshes,entry.node,owner,'TeamArmourSideMark',.16,0,
+    w*.20,Math.max(7,h*.23),-1);
+  }else if(kind==='rover'){
+   surfacePatch(group,meshes,entry.node,owner,'TeamHumveeRoof',0,-.12,
+    w*.28,w*.20);
+   surfacePatch(group,meshes,entry.node,owner,'TeamDoor_1',.10,0,
+    w*.18,h*.23,1);
+   surfacePatch(group,meshes,entry.node,owner,'TeamDoor_-1',.10,0,
+    w*.18,h*.23,-1);
+  }else if(kind==='bomber'){
+   // Wings get two flush color-texture decals, one on each side.
+   surfacePatch(group,meshes,entry.node,owner,'TeamAircraftWing_-1',-.31,0,
+    w*.19,w*.14);
+   surfacePatch(group,meshes,entry.node,owner,'TeamAircraftWing_1',.31,0,
+    w*.19,w*.14);
+  }else if(kind==='scout'){
+   // The helicopter uses its solid upper cabin and sides, never its rotor.
+   surfacePatch(group,meshes,entry.node,owner,'TeamHelicopterRoof',0,.08,
+    w*.23,w*.18);
+   surfacePatch(group,meshes,entry.node,owner,'TeamHelicopterSide_-1',.08,-.03,
+    w*.18,Math.max(7,h*.21),-1);
+   surfacePatch(group,meshes,entry.node,owner,'TeamHelicopterSide_1',.08,-.03,
+    w*.18,Math.max(7,h*.21),1);
+  }
  }
- entry.node.add(group);entry.teamMarkings=group;return group;
+ entry.teamMarkings=group;return group;
 }
 export function detachTeamMarkings(entry){
  if(!entry?.teamMarkings)return;
- entry.teamMarkings.removeFromParent();entry.teamMarkings.clear();entry.teamMarkings=null;
+ entry.teamMarkings.removeFromParent();
+ // Shared emblem material and shared quad belong to this module, not actor.
+ entry.teamMarkings.clear();entry.teamMarkings=null;
 }

@@ -8,7 +8,7 @@ export const unitArtScale=(kind:UnitKind):number=>
   kind==='tank'?1.08:
   kind==='artillery'?1.22:
   kind==='scout'?1.52:
-  kind==='bomber'?1.40:1;
+  kind==='bomber'?1.57:1; // +12% visual size, gameplay dimensions unchanged
 
 /** Give industrial buildings the visual weight of a real base beside the infantry. */
 export const buildingArtScale=(kind:BuildingKind):number=>
