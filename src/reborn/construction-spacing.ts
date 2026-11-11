@@ -69,6 +69,53 @@ function overlaps(a:Shape,pa:Point,fa:SiteFacing,b:Shape,pb:Point,fb:SiteFacing,
  }
  return true;
 }
+/** Verify *every actual building part* rests on suitable ground. The
+ * simulation historically sampled only the center/circular collision radius
+ * (factory: 70), while the newer service bay extends to local x=264 and
+ * could float over a cliff or disappear inside a dune. This uses the same
+ * facing as the renderer and never edits heightfield, collision or nav data.
+ *
+ * The long airstrip is terrain-conforming; only its rigid hangars/tower and
+ * parking equipment require a level foundation. Regular buildings still
+ * validate their full visible foundation, not just the smaller hit circle.
+ */
+export function siteTerrainCompatible(
+ kind:BuildingKind,p:Point,f:SiteFacing,
+ terrain:{
+  walkable(point:Point):boolean;
+  terrainHeight(x:number,y:number):number;
+  terrainSlope(x:number,y:number):number;
+ }):boolean{
+ const origin=terrain.terrainHeight(p.x,p.y);
+ if(!Number.isFinite(origin))return false;
+ let min=origin,max=origin;
+ const check=(x:number,z:number)=>{
+  const point=sitePoint(p,f,x,z);
+  if(!terrain.walkable(point))return false;
+  const height=terrain.terrainHeight(point.x,point.y);
+  if(!Number.isFinite(height)||terrain.terrainSlope(point.x,point.y)>.14)return false;
+  min=Math.min(min,height);max=Math.max(max,height);
+  return Math.abs(height-origin)<=12&&max-min<=16;
+ };
+ // Sample the facade footprint at multiple interior locations, including
+ // corners and center. Edge-only checks missed narrow ridges within the slab.
+ const radius=buildingVisualRadius(kind)*.87;
+ for(let ix=-2;ix<=2;ix++)for(let iz=-2;iz<=2;iz++){
+  const x=ix*radius/2,z=iz*radius/2;
+  if(x*x+z*z<=(radius*1.42)**2&&!check(x,z))return false;
+ }
+ const sampleRect=(cx:number,cz:number,hx:number,hz:number)=>{
+  for(let ix=-2;ix<=2;ix++)for(let iz=-2;iz<=2;iz++){
+   if(!check(cx+ix*hx/2,cz+iz*hz/2))return false;
+  }
+  return true;
+ };
+ if(kind==='factory'&&!sampleRect(192,56,72,116))return false;
+ if(kind==='airfield'&&(
+  !sampleRect(-145,-5,235,198)))return false;
+ return true;
+}
+
 /** Same spacing for human/AI, construction in progress and finished sites. */
 export function sitesVisuallyOverlap(a:BuildingKind,pa:Point,fa:SiteFacing,
  b:BuildingKind,pb:Point,fb:SiteFacing=0):boolean{
