@@ -1302,12 +1302,12 @@ export class Simulation {
       const baseObstacles=tactical?this.tactical.navigationObstacles():buildings;
       const routeObstacles=ground?[...baseObstacles,...visualBuildings,...decor,...towers]:baseObstacles;
       const risk=this.tactical.costs(u);
-      u.path=spec.flying&&!risk?[target]:this.world.path(u,target,routeObstacles,clearance,risk,spec.flying,u.exactPath);
+      u.path=spec.flying&&!risk?[target]:this.world.path(u,target,routeObstacles,clearance,risk,spec.flying,u.exactPath,true);
       // A coarse cliff route may graze blocked terrain. Retry with exact
       // cell traversal immediately, even for infantry with zero extra clearance.
       if(!u.path.length&&!spec.flying&&this.world.mapVersion>=3&&!u.exactPath){
         u.exactPath=true;
-        u.path=this.world.path(u,target,routeObstacles,clearance,risk,false,true);
+        u.path=this.world.path(u,target,routeObstacles,clearance,risk,false,true,true);
       }
       if(ground&&!u.path.length){
         // LAST RESORT: only after normal and exact visual-clearance routes have
@@ -1325,11 +1325,13 @@ export class Simulation {
         if(trapped||(vehicle&&this.world.mapVersion<19)){
           const safeExit=trapped?this.world.nearest(u,collisionObstacles,[],undefined,clearance):null;
           const escapeTarget=safeExit??target;
-          u.path=this.world.path(u,escapeTarget,legacyObstacles,clearance,risk,false,true);
+          u.path=this.world.path(u,escapeTarget,legacyObstacles,clearance,risk,false,true,true);
           if(u.path.length)u.vehicleEscape=safeExit?'exit':'last-resort';
         }
       }
-      u.repath=u.path.length?.7:1.4;
+      // Failed reachability no longer hammers the same blocked goal every
+      // 1.4 seconds while many units fight beside a factory/airfield.
+      u.repath=u.path.length?.7:this.world.mapVersion>=23?2.8:1.4;
     }
     let next=u.path[0];if(!next)return;
     // A vehicle wedged behind another vehicle must not wait forever.
