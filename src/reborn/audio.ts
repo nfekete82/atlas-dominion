@@ -397,7 +397,7 @@ export class Soundscape {
     for(const u of g.units){
       if(!this.unitIds.has(u.id)){
         this.unitIds.add(u.id);
-        if(u.owner===0&&active){this.played.production++;this.tone(660,.13,.075);this.tone(990,.2,.065,.1);}
+        if(u.owner===0&&active){this.played.production++;this.announceReady('unit');}
       }
     }
   }
