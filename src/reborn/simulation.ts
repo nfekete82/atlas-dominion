@@ -1,4 +1,4 @@
-import {battlefieldStart,isTerrainProfile,type TerrainProfile} from './battlefield-terrain.js';
+import {BATTLEFIELD_GENERATOR,battlefieldStart,isTerrainProfile,type TerrainProfile,type BattlefieldGeneratorVersion} from './battlefield-terrain.js';
 import {Weather} from './weather.js';
 import {gainUnitXp,getVeterancyModifiers,sanitizeXp,XP_RULES} from './veterancy.js';
 import {migrateTransportRoster} from './roster-migration.js';
@@ -96,7 +96,7 @@ export interface Blast extends Point {at:number;id:number}
 export type CaptureReadiness='owned'|'no-unit'|'out-of-range'|'contested'|'enemy-hq'|'capturing';
 export interface Memory extends Point { id:number; owner:Faction; hp:number; territory:number; kind?:BuildingKind }
 export interface Save {
-  version:2; terrainProfile?:TerrainProfile; generatorVersion?:1; bootstrapVersion?:1; weatherVersion?:1; productionVersion?:1; supportVersion?:1;rosterVersion?:2;missiles?:Missile[]; seed:number; mapVersion?:MapVersion; time:number; nextId:number; credits:number[]; incomeClock:number;
+  version:2; terrainProfile?:TerrainProfile; generatorVersion?:BattlefieldGeneratorVersion; bootstrapVersion?:1; weatherVersion?:1; productionVersion?:1; supportVersion?:1;rosterVersion?:2;missiles?:Missile[]; seed:number; mapVersion?:MapVersion; time:number; nextId:number; credits:number[]; incomeClock:number;
   units:Unit[]; bases:Base[]; territories:Territory[]; explored:number[][];
   memories:Memory[][]; aiClock:number; ai?:TacticalState; status:'playing'|'victory'|'defeat'; stats?:MatchStatistics;
   research?:[ResearchState,ResearchState];
@@ -574,8 +574,8 @@ export class Simulation {
     }
   }
   /** The original constructor remains a deterministic legacy fixture/save reader. */
-  constructor(seed=2026,mapVersion:MapVersion=0,weatherEnabled=false,bootstrap=false,profile?:TerrainProfile) {
-    this.bootstrapVersion=bootstrap?1:undefined;this.seed=seed;this.weather=new Weather(seed,weatherEnabled);this.world=new World(seed,mapVersion,profile);this.territories=this.world.territories(seed);
+  constructor(seed=2026,mapVersion:MapVersion=0,weatherEnabled=false,bootstrap=false,profile?:TerrainProfile,generatorVersion:BattlefieldGeneratorVersion=BATTLEFIELD_GENERATOR) {
+    this.bootstrapVersion=bootstrap?1:undefined;this.seed=seed;this.weather=new Weather(seed,weatherEnabled);this.world=new World(seed,mapVersion,profile,0,generatorVersion);this.territories=this.world.territories(seed);
     if(mapVersion>=3)this.credits=[950,950];
     this.hills=mapVersion>=23?[]:generateRollingHills(seed,mapVersion,this.world.size,
       this.world.generated?.sites??[],this.world.generated?.ruins??[]);
@@ -1852,7 +1852,7 @@ export class Simulation {
     }
   }
   save():Save {
-    return structuredClone({version:2,...(this.world.generated?.battlefield?{terrainProfile:this.world.generated.battlefield.profile,generatorVersion:1 as const}:{}),...(this.bootstrapVersion?{bootstrapVersion:this.bootstrapVersion}:{}),weatherVersion:1,productionVersion:1,supportVersion:1,rosterVersion:2,missiles:this.missiles,seed:this.seed,mapVersion:this.world.mapVersion,time:this.time,nextId:this.nextId,credits:this.credits,incomeClock:this.incomeClock,
+    return structuredClone({version:2,...(this.world.generated?.battlefield?{terrainProfile:this.world.generated.battlefield.profile,generatorVersion:this.world.generated.battlefield.generatorVersion}:{}),...(this.bootstrapVersion?{bootstrapVersion:this.bootstrapVersion}:{}),weatherVersion:1,productionVersion:1,supportVersion:1,rosterVersion:2,missiles:this.missiles,seed:this.seed,mapVersion:this.world.mapVersion,time:this.time,nextId:this.nextId,credits:this.credits,incomeClock:this.incomeClock,
       units:this.units,bases:this.bases,territories:this.territories,explored:this.explored.map(a=>Array.from(a)),memories:this.memories,aiClock:this.aiClock,ai:this.tactical.state,status:this.status,stats:this.stats,
       research:this.research,strategicMissiles:this.strategicMissiles});
   }
@@ -1867,7 +1867,7 @@ export class Simulation {
     const researchFor=(u:{owner:Faction;kind?:UnitKind})=>
       researchModifiers(research[u.owner],u.kind??'infantry');
     const burst=(b:Burst|undefined,rounds:number)=>b===undefined||(b!==null&&Number.isInteger(b.target)&&Number.isInteger(b.remaining)&&b.remaining>0&&b.remaining<=rounds&&b.remaining+b.index===rounds&&Number.isInteger(b.index)&&b.index>=0&&b.index<4&&finite(b.at)&&b.at>=s.time-.11&&b.at<=s.time+.11);
-    if(!s||s.version!==2||((s.mapVersion??0)>=23&&(!isTerrainProfile(s.terrainProfile)||s.generatorVersion!==1))||((s.mapVersion??0)<23&&(s.terrainProfile!==undefined||s.generatorVersion!==undefined))||(s.bootstrapVersion!==undefined&&s.bootstrapVersion!==1)||(s.weatherVersion!==undefined&&s.weatherVersion!==1)||(s.productionVersion!==undefined&&s.productionVersion!==1)||(s.mapVersion!==undefined&&![0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26].includes(s.mapVersion))||!TacticalAI.valid(s.ai,s.time,point,mapLayout(s.mapVersion??0).columns*mapLayout(s.mapVersion??0).rows)||!finite(s.seed)||!finite(s.time)||s.time<0||!finite(s.incomeClock)||s.incomeClock<0||s.incomeClock>=10||
+    if(!s||s.version!==2||((s.mapVersion??0)>=23&&(!isTerrainProfile(s.terrainProfile)||![1,2].includes(s.generatorVersion as number)))||((s.mapVersion??0)<23&&(s.terrainProfile!==undefined||s.generatorVersion!==undefined))||(s.bootstrapVersion!==undefined&&s.bootstrapVersion!==1)||(s.weatherVersion!==undefined&&s.weatherVersion!==1)||(s.productionVersion!==undefined&&s.productionVersion!==1)||(s.mapVersion!==undefined&&![0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26].includes(s.mapVersion))||!TacticalAI.valid(s.ai,s.time,point,mapLayout(s.mapVersion??0).columns*mapLayout(s.mapVersion??0).rows)||!finite(s.seed)||!finite(s.time)||s.time<0||!finite(s.incomeClock)||s.incomeClock<0||s.incomeClock>=10||
       (s.strategicMissiles!==undefined&&(!Array.isArray(s.strategicMissiles)||
         s.strategicMissiles.length>12||
         s.strategicMissiles.some(m=>!validStrategicMissile(m,mapWorldSize(s.mapVersion??0),s.time))))||
@@ -1893,7 +1893,7 @@ export class Simulation {
         (b.queueCosts!==undefined&&(!Array.isArray(b.queueCosts)||b.queueCosts.length!==b.queue.length||b.queueCosts.some(v=>!finite(v)||v<0)))||
         (b.buildRemaining!==undefined&&(!finite(b.buildRemaining)||b.buildRemaining<0||b.buildRemaining>(BUILDINGS[b.kind??'headquarters']?.buildTime??0)))||!finite(b.production)||b.production<0||b.production>(b.queue[0]??0))||
       s.territories.some((t,i)=>t.id!==i||![-1,0,1].includes(t.owner)||!finite(t.progress)||t.progress<0||t.progress>8))throw new Error('Dieser Spielstand ist beschädigt oder gehört zu einer anderen Version.');
-    const game=new Simulation(s.seed,s.mapVersion??0,weatherEnabled,s.bootstrapVersion===1,s.terrainProfile);
+    const game=new Simulation(s.seed,s.mapVersion??0,weatherEnabled,s.bootstrapVersion===1,s.terrainProfile,s.generatorVersion??1);
     game.time=s.time;
     game.research=structuredClone(research) as [ResearchState,ResearchState];
     game.stats=s.stats?structuredClone(s.stats):newMatchStatistics();
