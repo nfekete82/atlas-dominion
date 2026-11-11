@@ -50,6 +50,7 @@ cpSync('scripts/webgl-aircraft-effects.js','dist/webgl-aircraft-effects.js');
 // prevents the entire WebGL preview from booting, even when perf=0.
 cpSync('scripts/webgl-perf-watch.js','dist/webgl-perf-watch.js');
 cpSync('scripts/webgl-classic-hud.js','dist/webgl-classic-hud.js');
+cpSync('scripts/webgl-global-catalog.js','dist/webgl-global-catalog.js');
 cpSync('scripts/webgl-portraits.js','dist/webgl-portraits.js');
 cpSync('scripts/webgl-research-artworks.js','dist/webgl-research-artworks.js');
 cpSync('scripts/webgl-perimeter.js','dist/webgl-perimeter.js');
