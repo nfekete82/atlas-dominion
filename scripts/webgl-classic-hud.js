@@ -29,9 +29,10 @@ export function installClassicHud(){
  <section class="catalog hud frame" aria-label="Einheiten und Gebäude">
   <nav class="catalog-tabs" id="sf-tabs" aria-label="Katalog">
    <button data-tab="buildings" aria-pressed="true">GEBÄUDE</button>
-   <button data-tab="infantry" aria-pressed="false">INFANTERIE</button>
-   <button data-tab="vehicles" aria-pressed="false">FAHRZEUGE</button>
-   <button data-tab="research" aria-pressed="false">FORSCHUNG</button>
+   <button data-tab="infantry" aria-pressed="false" hidden>INFANTERIE</button>
+   <button data-tab="vehicles" aria-pressed="false" hidden>FAHRZEUGE</button>
+   <button data-tab="aircraft" aria-pressed="false" hidden>FLUGZEUGE</button>
+   <button data-tab="research" aria-pressed="false" hidden>FORSCHUNG</button>
   </nav>
   <div class="catalog-scroll" id="sf-actions" aria-label="Einheiten, Gebäude und Territorien"></div>
   <section class="production hud frame sf-production-panel" id="sf-production" aria-label="Produktion und Warteschlange">
