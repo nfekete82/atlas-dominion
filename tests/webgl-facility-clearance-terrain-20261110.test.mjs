@@ -154,7 +154,7 @@ test('rigid hangars and regular foundations reject steep ridges under any corner
  const flat={walkable:()=>true,terrainHeight:()=>0,terrainSlope:()=>0};
  assert.equal(siteTerrainCompatible('airfield',p,0,flat),true);
  assert.equal(siteTerrainCompatible('barracks',p,0,flat),true);
- const hill={...flat,terrainHeight:(x,z)=>x<p.x-280?39:0};
+ const hill={...flat,terrainHeight:(x,z)=>x<p.x-235?39:0};
  assert.equal(siteTerrainCompatible('airfield',p,0,hill),false,
   'control tower / left hangar may not be sunk in a cliff');
  const blocked={...flat,walkable:q=>q.x>p.x+50};
