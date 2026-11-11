@@ -30,8 +30,19 @@ test('balance: conventional machine guns are weak against armor and aircraft',()
   close(weaponDamage({kind:'infantry'},{kind:'heavy'}),UNITS.infantry.damage);
   close(weaponDamage({kind:'heavy'},{kind:'tank'}),UNITS.heavy.damage*.20);
   close(weaponDamage({kind:'rover'},{kind:'tank'}),UNITS.rover.damage*.17);
-  close(weaponDamage({kind:'heavy'},{kind:'bomber'}),UNITS.heavy.damage*.10);
-  close(weaponDamage({kind:'scout'},{kind:'scout'}),UNITS.scout.damage*.12);
+  close(weaponDamage({kind:'heavy'},{kind:'bomber'}),UNITS.heavy.damage*.125);
+  close(weaponDamage({kind:'scout'},{kind:'scout'}),UNITS.scout.damage*.15);
+});
+
+test('airborne machinegun damage rises exactly 25% without changing land targets or AA rockets',()=>{
+ const old={infantry:.08,medic:.07,engineer:.07,heavy:.10,rover:.09,scout:.12};
+ for(const [kind,oldScalar] of Object.entries(old)){
+  for(const plane of ['scout','bomber'])
+   close(weaponDamage({kind},{kind:plane}),UNITS[kind].damage*oldScalar*1.25);
+ }
+ close(weaponDamage({kind:'rover'},{kind:'tank'}),UNITS.rover.damage*.17);
+ close(weaponDamage({kind:'heavy'},{kind:'infantry'}),UNITS.heavy.damage);
+ close(weaponDamage({kind:'rocket'},{kind:'bomber'}),UNITS.rocket.damage*1.2);
 });
 
 test('balance: strategic power uses the actual MG DPS, not MBT rockets against infantry',()=>{
