@@ -93,11 +93,11 @@ test('actual HUD click queues from auto-detected producer even if nothing is sel
    throw Error('Unexpected selector '+selector);
   }};
  const constructor=new Function('installClassicHud','BUILDINGS','UNITS','UPGRADES',
-  'INTERCEPTOR_ENABLED','return class TestUI {'+
+  'INTERCEPTOR_ENABLED','globalCatalogAvailability','return class TestUI {'+
   battlefield.slice(battlefield.indexOf(' buildInterface(){'),
    battlefield.indexOf('\n saveGame(){',battlefield.indexOf(' buildInterface(){')))+
   '}');
- const UI=constructor(()=>panel,BUILDINGS,UNITS,UPGRADES,true);
+ const UI=constructor(()=>panel,BUILDINGS,UNITS,UPGRADES,true,globalCatalogAvailability);
  const ui=new UI();
  ui.game=g;ui.selected=new Set();ui.selectedBase=null;
  ui.sound={enabled:false};
