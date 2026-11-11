@@ -17,6 +17,13 @@ function box(parent,name,w,h,d,x,y,z,mat){
  o.name=name;o.position.set(x,y,z);o.castShadow=h>5;o.receiveShadow=true;
  parent.add(o);return o;
 }
+function cylinder(parent,name,radius,height,x,y,z,mat,axis='y'){
+ const mesh=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius,height,16),mat);
+ mesh.name=name;mesh.position.set(x,y,z);
+ if(axis==='z')mesh.rotation.x=Math.PI/2;
+ mesh.castShadow=false;mesh.receiveShadow=true;
+ parent.add(mesh);return mesh;
+}
 export function createAirfieldServiceYard(){
  const group=new THREE.Group();
  group.name='AirfieldTwoBayMaintenanceHangar';
@@ -32,6 +39,16 @@ export function createAirfieldServiceYard(){
  const ribbedSteel=servicePaint(['#45514a','#69776e','#899083'],{pattern:'metal',seed:45,repeat:2,metalness:.57,roughness:.52});
  const wornPaving=servicePaint(['#77736b','#a49c86','#b3a892'],{pattern:'concrete',seed:39,repeat:5,roughness:.96});
  const runwayWear=servicePaint(['#3d4542','#515752','#64665e'],{pattern:'concrete',seed:49,repeat:5,roughness:.96});
+ // True weathered textures on the ramps and fuel depot. The old plain
+ // tan/olive cubes read like missing-material placeholders at RTS zoom.
+ const apronWear=servicePaint(['#918b7b','#aaa18e','#777a6d'],
+  {pattern:'concrete',seed:67,repeat:6,roughness:.94});
+ const rampGrip=servicePaint(['#626b64','#454e4b','#929080'],
+  {pattern:'metal',seed:25,repeat:4,metalness:.3,roughness:.84});
+ const fuelPaint=servicePaint(['#788371','#aba68b','#626b64'],
+  {pattern:'metal',seed:61,repeat:3,metalness:.42,roughness:.65});
+ const fuelMetal=servicePaint(['#444f4d','#92998e','#65716c'],
+  {pattern:'metal',seed:63,repeat:3,metalness:.64,roughness:.46});
  const glow=new THREE.MeshBasicMaterial({color:paint.repair,transparent:true,opacity:.9});
  // Long military runway: one uninterrupted strip extends far past the
  // hangars; the old short cross-runway ahead of the building is gone.
@@ -42,7 +59,22 @@ export function createAirfieldServiceYard(){
  // Two generously sized clear exterior aircraft stands beside hangars.
  for(const bay of [0,1]){
   const cx=bay===0?-151:-26;
-  box(group,'AirfieldAircraftParkingPad_'+bay,115,.32,156,cx,1.68,120,wornPaving);
+  box(group,'AirfieldAircraftParkingPad_'+bay,115,.32,156,cx,1.68,120,apronWear);
+  // Textured anti-slip loading ramp, continuous with the two aircraft
+  // parking lanes. These are thin visual meshes, not collidable obstacles.
+  box(group,'AirfieldParkingRampGrip_'+bay,112,.28,33,cx,2.04,192,rampGrip);
+  for(const side of [-1,1]){
+   box(group,'AirfieldParkingRampEdge_'+bay,3,.25,36,cx+side*54,2.25,192,yellow);
+  }
+  for(let n=0;n<7;n++){
+   box(group,'AirfieldParkingRampTread_'+bay,103,.18,1.7,cx,2.28,176+n*4.8,fuelMetal);
+  }
+  for(const z of [82,123,163]){
+   box(group,'AirfieldConcreteJoint_'+bay,111,.14,1.8,cx,2.04,z,steel);
+  }
+  for(const x of [-40,-20,20,40]){
+   box(group,'AirfieldParkingWearMark_'+bay,4,.12,19,cx+x,2.08,147,runwayWear);
+  }
   box(group,'AirfieldAircraftParkingCenterline_'+bay,3,.16,111,cx,1.96,119,yellow);
   for(const side of [-1,1]){
    box(group,'AirfieldAircraftParkingEdge_'+bay,2,.16,125,cx+side*54,1.95,120,markings);
@@ -191,14 +223,40 @@ export function createAirfieldServiceYard(){
   box(group,'AirfieldLeftControlTowerRoofPost',3,13,3,x,182,z,steel);
  // Reposition the gas infrastructure to the far-left outer service strip,
  // never across the left or right aircraft arrival/repair corridors.
- box(group,'AirfieldMaintenancePlant',32,18,47,-347,12,-166,camo);
- box(group,'AirfieldMaintenanceAirDuct',12,4,28,-346,24,-166,steel);
- box(group,'AirfieldFuelServiceContainer',36,24,48,-310,13,75,camo);
+ // Compact weathered fuel compound: textured asphalt slab, corrugated
+ // khaki tank shells, cylindrical caps, metallic bands, valves and piping.
+ // No unfinished flat cuboid "barrel" placeholders beside the hangar.
+ box(group,'AirfieldFuelServicePad',85,1.25,234,-333,1.35,15,apronWear);
+ for(const z of [-70,-12,47,105])
+  box(group,'AirfieldFuelConcreteJoint',81,.14,1.6,-333,2.25,z,fuelMetal);
+ box(group,'AirfieldMaintenancePlant',32,18,47,-347,12,-166,wallCamo);
+ box(group,'AirfieldMaintenanceAirDuct',12,4,28,-346,24,-166,ribbedSteel);
+ box(group,'AirfieldFuelServiceContainer',36,24,48,-310,13,75,wallCamo);
+ for(const x of [-326,-310,-294])
+  box(group,'AirfieldFuelContainerRib',2.3,23,49,x,13.6,75,ribbedSteel);
  for(const z of [41,109]){
-  box(group,'AirfieldFuelServiceTank',21,19,46,-342,15,z,sand);
-  box(group,'AirfieldFuelServicePipe',5,4,44,-321,11,z,steel);
+  // Real horizontal drums, not tan box primitives. The axial direction is
+  // +Z; dark end caps and steel straps remain visible at tactical zoom.
+  cylinder(group,'AirfieldFuelServiceTank',11,44,-342,17,z,fuelPaint,'z');
+  for(const band of [-16,0,16])
+   cylinder(group,'AirfieldFuelTankSteelBand',11.8,2.5,-342,17,z+band,fuelMetal,'z');
+  for(const side of [-1,1]){
+   cylinder(group,'AirfieldFuelTankEndCap',10.4,1.6,-342,17,z+side*22.8,ribbedSteel,'z');
+   cylinder(group,'AirfieldFuelTankEndPlate',4.2,2.1,-342,17,z+side*24.2,dark,'z');
+  }
+  for(const offset of [-8,8])
+   box(group,'AirfieldFuelTankSaddle',4,6,9,-342+offset,6.2,z,steel);
+  // Pipe elbows follow the outside edge rather than blocking taxi lanes.
+  cylinder(group,'AirfieldFuelValve',4.1,9,-319,14,z,steel);
+  box(group,'AirfieldFuelPipeManifold',5,4,42,-320,10,z,ribbedSteel);
+  box(group,'AirfieldFuelServicePipe',4.8,4,30,-317,11,z,fuelMetal);
+  cylinder(group,'AirfieldFuelValveWheel',5,2.2,-318,20,z,yellow);
  }
- box(group,'AirfieldFuelServicePump',18,24,18,-306,13,136,dark);
+ box(group,'AirfieldFuelSupplyMain',3.4,3.4,116,-319,9.8,78,fuelMetal);
+ box(group,'AirfieldFuelServicePump',18,24,18,-306,13,136,ribbedSteel);
+ box(group,'AirfieldFuelPumpDisplay',12,9,1.7,-306,21,146,glass);
+ box(group,'AirfieldFuelPumpControl',5.5,3.2,2,-301,12,146,yellow);
+ box(group,'AirfieldFuelPumpRoof',24,3,23,-306,27,136,roofSand);
  for(const x of [-169,-134,-44,-8])
   box(group,'HangarSafetyChevron',8,.15,5,x,3.5,42,yellow);
  group.traverse(mesh=>{if(mesh.isMesh){mesh.castShadow=false;mesh.receiveShadow=false;mesh.raycast=()=>{};}});
@@ -214,7 +272,7 @@ export function createAirfieldServiceYard(){
  * The same function is called for the ghost at its prospective location and
  * for the built site, including every cardinal facing.
  */
-const AIRFIELD_GROUND_SURFACE=/^(AirfieldExpandedConcreteApron|AirfieldRunwaySandShoulder|AirfieldExtendedRunway|AirfieldAircraftParking(?:Pad|Centerline|Edge|Stop|Number)|AirfieldRunwayCenterDash|AirfieldRunwayEdgeLine|AirfieldRunwayThreshold|AirfieldRunwayLandingBars|AirfieldTouchdownRubber|AirfieldTaxiCrossGuide|AirfieldTaxiGuideDash|HangarCenterGuide|HangarApronStop|HangarSafetyChevron|AirfieldApronExpansionJoint)/;
+const AIRFIELD_GROUND_SURFACE=/^(AirfieldFuelServicePad|AirfieldFuelConcreteJoint|AirfieldParkingRampGrip|AirfieldParkingRampEdge|AirfieldParkingRampTread|AirfieldConcreteJoint|AirfieldParkingWearMark|AirfieldExpandedConcreteApron|AirfieldRunwaySandShoulder|AirfieldExtendedRunway|AirfieldAircraftParking(?:Pad|Centerline|Edge|Stop|Number)|AirfieldRunwayCenterDash|AirfieldRunwayEdgeLine|AirfieldRunwayThreshold|AirfieldRunwayLandingBars|AirfieldTouchdownRubber|AirfieldTaxiCrossGuide|AirfieldTaxiGuideDash|HangarCenterGuide|HangarApronStop|HangarSafetyChevron|AirfieldApronExpansionJoint)/;
 const AIRFIELD_GROUND_PROPS=/^(AirfieldRunwayLamp|AirfieldAircraftParkingChock)$/;
 export function conformAirfieldSurface(group,base,heightAt,{force=false}={}){
  if(!group||typeof heightAt!=='function'||!Number.isFinite(base?.x)||!Number.isFinite(base?.y))return 0;
