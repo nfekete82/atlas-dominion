@@ -14,7 +14,7 @@ import {SandforgeGroundingPass} from '/webgl-grounding.js';
 import {createBuildingYard,disposeBuildingYard} from '/webgl-building-yard.js';
 import {createAirfieldServiceYard,conformAirfieldSurface,updateAirfieldServiceYard,hideOldAirfieldHangar,disposeAirfieldServiceYard} from '/webgl-airfield-service.js';
 import {createFactoryServiceYard,updateFactoryServiceYard,disposeFactoryServiceYard} from '/webgl-factory-service.js';
-import {disposeServicePaint} from '/webgl-service-materials.js';
+import {disposeServicePaint,previewServiceMaterial} from '/webgl-service-materials.js';
 import {createSegmentedSelectionRing} from '/webgl-selection-ring.js';
 import {serviceVisualGround,approachGroundHeight} from '/webgl-service-grounding.js';
 import {factoryRepairPoint} from '/src/reborn/factory-maintenance.js';
@@ -483,6 +483,7 @@ export class SandforgeBattlefield {
   // hangar openings and production exits are identifiable before clicking.
   // Construction remains a separate, progressive state after placement.
   group.userData.previewTintMaterials=[];
+  group.userData.previewOwnedTextures=new Set();
   group.userData.previewSiteValid=true;
   const tint=(root,ownSource=false,opacity=.50)=>{
    // Cache the same clone for reused paint: a camouflaged hangar otherwise
@@ -492,12 +493,17 @@ export class SandforgeBattlefield {
     if(!obj.isMesh)return;
     const make=mat=>{
      if(clones.has(mat))return clones.get(mat);
-     const m=mat.clone();m.color?.lerp(new THREE.Color('#a7e4cc'),.14);
-     m.transparent=true;m.opacity=Math.min(mat.opacity??1,opacity);
-     m.depthWrite=false;m.depthTest=true;
-     m.userData={...m.userData,sandforgePreviewMaterial:true,
-      sandforgePreviewValidColor:m.color?.clone(),
-      sandforgePreviewInvalidColor:m.color?.clone().lerp(new THREE.Color('#f1786d'),.66)};
+     const m=previewServiceMaterial(mat,{opacity});
+     // Source materials from procedural factory/airfield service yards own
+     // their real PBR maps. Cache those before replacing their material:
+     // Material.clone() serializes userData and otherwise yields a fake
+     // "sandforgeServiceTexture" object without dispose(), crashing the
+     // next preview teardown and freezing all building-card clicks.
+     if(ownSource){
+      const texture=mat.userData?.sandforgeServiceTexture;
+      if(texture?.isTexture&&typeof texture.dispose==='function')
+       group.userData.previewOwnedTextures.add(texture);
+     }
      if(group.userData.previewSiteValid===false&&m.userData.sandforgePreviewInvalidColor)
       m.color.copy(m.userData.sandforgePreviewInvalidColor);
      group.userData.previewTintMaterials.push(m);
@@ -654,6 +660,12 @@ export class SandforgeBattlefield {
     disposeTaggedMaterials(preview.userData.previewDetail,'sandforgePreviewMaterial');
    if(preview.userData.previewFrontMarker)
     disposeOwnedMeshes(preview.userData.previewFrontMarker);
+   // Clones deliberately have no service-texture ownership metadata.
+   // These real DataTextures came from disposable, per-preview originals.
+   for(const texture of preview.userData.previewOwnedTextures??[]){
+    if(texture?.isTexture&&typeof texture.dispose==='function')texture.dispose();
+   }
+   preview.userData.previewOwnedTextures?.clear();
    if(preview.userData.previewGuides){
     // EdgesGeometry uses LineSegments, not Mesh. Release its buffers too.
     const lines=new Set(),paints=new Set();
