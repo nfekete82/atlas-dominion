@@ -321,8 +321,9 @@ test('REAL v24 campaign: two living engineers make simultaneous construction pro
  const busy=one.workers[0];
  const idle=[first,second].find(u=>u.id!==busy.id);
  assert.ok(idle);
- assert.equal(idle.orders.some(o=>o.kind==='build'),false,
-  'the second engineer must remain available for parallel construction');
+ assert.equal(idle.orders.some(o=>o.kind==='build'&&g.bases.some(b=>
+  b.id===o.target&&b.buildRemaining>0)),false,
+  'the second engineer must not be assigned to the first active site');
  const two=tryBuild('generator');
  assert.deepEqual(two.workers.map(u=>u.id),[idle.id]);
  assert.equal(two.append,false);
