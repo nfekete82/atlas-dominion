@@ -32,12 +32,11 @@ export function chooseConstructionCrew(workers,shift=false){
  return {workers:[waiting[0]],append:true};
 }
 
-/** Reliable WebGL build commit. A pioneer can be inside the newly finished
- * airfield/factory, have an obsolete 'build' order, or be unable to reach a
- * particular side of the next building. Never lock the whole building menu
- * to that one worker. Prefer currently selected idle pioneers, then any
- * other free friendly pioneer, then queue on a busy one. Retry a different
- * real worker if the simulation's supportApproach rejects the first.
+/** Cooperative RTS construction: all free pioneers automatically help
+ * at the first building. If a second foundation is ordered, one helper
+ * transfers to it so both build in parallel. If every foundation already
+ * has one active builder, later orders are queued. Retains safe retries
+ * across alternate engineers when supportApproach rejects a route.
  *
  * The authoritative Simulation.build()/buildError() remains in control of
  * credits, uniqueness, terrain, rotation, collision and map borders. No
@@ -66,13 +65,30 @@ export function submitConstruction(game,kind,point,selection,facing=0,shift=fals
  }else{
   const freeSelected=ordered(selected.filter(free));
   const freeOthers=ordered(all.filter(u=>!selection.has(u.id)&&free(u)));
-  // Assign ONE free pioneer to EACH new construction site. Otherwise, when
-  // two pioneers are selected, both were sent to the first building,
-  // leaving no free builder for the second parallel building.
-  for(const u of [...freeSelected,...freeOthers])
-   plans.push({workers:[u],append:false});
-  // If all pioneers are busy, keep the active site intact. Choose the
-  // shortest available real queue rather than interrupting construction.
+  // One active site: ALL available engineers collaborate automatically.
+  // A second site can later pull ONE of them away, leaving an engineer
+  // behind. Support/build progress already caps the joint rate at 1.5x.
+  const freeWorkers=[...freeSelected,...freeOthers];
+  if(freeWorkers.length>1)plans.push({workers:freeWorkers,append:false});
+  for(const u of freeWorkers)plans.push({workers:[u],append:false});
+  // No idle pioneer? Redistribute a worker from a site that currently has
+  // two or more ACTIVE builders. The older site retains its other engineer,
+  // and both buildings can advance concurrently. Do not preempt a sole
+  // builder on an existing site.
+  if(!freeWorkers.length){
+   const assigned=new Map();
+   for(const u of all){
+    const order=u.orders?.[0];
+    if(order?.kind!=='build'||!inProgress.has(order.target))continue;
+    const crew=assigned.get(order.target)??[];
+    crew.push(u);assigned.set(order.target,crew);
+   }
+   const shared=[...assigned.values()].filter(crew=>crew.length>1)
+    .flatMap(crew=>ordered(crew).slice(0,crew.length-1));
+   for(const u of ordered(shared))plans.push({workers:[u],append:false});
+  }
+  // Only if every site has one builder, queue on the shortest REAL order
+  // list without interrupting any ongoing construction or explicit order.
   const busy=[...all].filter(u=>!free(u)).sort((a,b)=>
    (a.orders?.length??0)-(b.orders?.length??0)||
    dist(a)-dist(b)||a.id-b.id);
