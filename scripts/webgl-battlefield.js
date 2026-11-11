@@ -479,9 +479,12 @@ export class SandforgeBattlefield {
   const spec=BUILDINGS[kind],group=new THREE.Group();
   group.name='ghost-building-'+kind;group.userData={buildGhost:true,nonPlayable:true};
   const placeholder=this.createFallback(kind,0,'building');
-  // Keep the actual geometry identical to the finished building; the ghost
-  // is only a faint holographic overlay, including fences and service pads.
-  const tint=(root,ownSource=false,opacity=.0585)=>{
+  // Render the REAL finished 3D shape as a 50%-opaque ghost, so doors,
+  // hangar openings and production exits are identifiable before clicking.
+  // Construction remains a separate, progressive state after placement.
+  group.userData.previewTintMaterials=[];
+  group.userData.previewSiteValid=true;
+  const tint=(root,ownSource=false,opacity=.50)=>{
    // Cache the same clone for reused paint: a camouflaged hangar otherwise
    // produces hundreds of redundant PBR shader/material instances.
    const clones=new Map();
@@ -489,10 +492,15 @@ export class SandforgeBattlefield {
     if(!obj.isMesh)return;
     const make=mat=>{
      if(clones.has(mat))return clones.get(mat);
-     const m=mat.clone();m.color?.lerp(new THREE.Color('#8ad6b3'),.32);
-     m.transparent=true;m.opacity=Math.min(mat.opacity??1,opacity);m.depthWrite=true;
-     m.depthTest=true;m.side=THREE.DoubleSide;
-     m.userData={...m.userData,sandforgePreviewMaterial:true};
+     const m=mat.clone();m.color?.lerp(new THREE.Color('#a7e4cc'),.14);
+     m.transparent=true;m.opacity=Math.min(mat.opacity??1,opacity);
+     m.depthWrite=false;m.depthTest=true;
+     m.userData={...m.userData,sandforgePreviewMaterial:true,
+      sandforgePreviewValidColor:m.color?.clone(),
+      sandforgePreviewInvalidColor:m.color?.clone().lerp(new THREE.Color('#f1786d'),.66)};
+     if(group.userData.previewSiteValid===false&&m.userData.sandforgePreviewInvalidColor)
+      m.color.copy(m.userData.sandforgePreviewInvalidColor);
+     group.userData.previewTintMaterials.push(m);
      clones.set(mat,m);return m;
     };
     obj.material=Array.isArray(obj.material)?obj.material.map(make):make(obj.material);
@@ -500,8 +508,8 @@ export class SandforgeBattlefield {
    });
    if(ownSource)for(const mat of clones.keys())mat.dispose();
   };
-  tint(placeholder,true);
-  placeholder.visible=false;
+  tint(placeholder,true,.50);
+  placeholder.visible=true; // realistic fallback until the authored GLB is ready
   group.userData.previewPlaceholder=placeholder;
   group.add(placeholder);
   // Schematic FOUNDATION + SCAFFOLD, never a finished building. The
@@ -509,12 +517,12 @@ export class SandforgeBattlefield {
   // Real, translucent 3D beams remain legible at tactical camera zoom.
   const guides=new THREE.Group();guides.name='ConstructionPlacementGuides';
   const groundMat=new THREE.MeshBasicMaterial({color:'#92e4cd',
-   transparent:true,opacity:.15,depthWrite:false,depthTest:false,
+   transparent:true,opacity:.07,depthWrite:false,depthTest:false,
    side:THREE.DoubleSide});
   const lineMat=new THREE.LineBasicMaterial({color:'#a8f6e6',
-   transparent:true,opacity:.46,depthWrite:false,depthTest:false});
+   transparent:true,opacity:.16,depthWrite:false,depthTest:false});
   const frameMat=new THREE.MeshBasicMaterial({color:'#b3ffe6',
-   transparent:true,opacity:.43,depthWrite:false,depthTest:false,
+   transparent:true,opacity:.12,depthWrite:false,depthTest:false,
    side:THREE.DoubleSide});
   group.userData.previewGuideMaterials={groundMat,lineMat,frameMat};
   const beam=(w,h,d,x,y,z)=>{
@@ -561,6 +569,31 @@ export class SandforgeBattlefield {
    if(kind==='factory')guideBox(118,54,125,192,45);
   }
   group.add(guides);group.userData.previewGuides=guides;
+  // A small directional ground arrow marks the REAL building entrance.
+  // The authored barracks/HQ/factory fronts point toward local +Z, so it
+  // rotates naturally when R changes the building facing.
+  const frontMarker=new THREE.Group();
+  frontMarker.name='BuildPreviewFrontDirection';
+  const frontWidth=Math.min(22,Math.max(12,spec.width*.12));
+  const arrowShape=new THREE.Shape();
+  arrowShape.moveTo(-frontWidth*.5,0);
+  arrowShape.lineTo(frontWidth*.5,0);
+  arrowShape.lineTo(0,-frontWidth*1.05);
+  arrowShape.closePath();
+  const frontMaterial=new THREE.MeshBasicMaterial({color:'#9ef5d9',
+   transparent:true,opacity:.68,depthWrite:false,depthTest:false,
+   side:THREE.DoubleSide});
+  const arrow=new THREE.Mesh(new THREE.ShapeGeometry(arrowShape),frontMaterial);
+  arrow.name='BuildingFrontArrow';
+  arrow.rotation.x=-Math.PI/2;
+  arrow.position.set(kind==='airfield'?-90:kind==='barracks'?spec.width*.12:0,
+   4.2,kind==='airfield'?65:spec.width*.48+9);
+  arrow.renderOrder=1014;arrow.raycast=()=>{};
+  frontMarker.add(arrow);group.add(frontMarker);
+  group.userData.previewFrontMarker=frontMarker;
+  // The actual translucent building supplies silhouette and door details;
+  // the old tall scaffolding must not hide the building's front.
+  guides.visible=false;
   // Ghost and completed building use the exact same site dressing and
   // functional service meshes, including the runway and hydraulic lifts.
   // Nothing is re-scaled or regenerated differently upon completion.
@@ -568,18 +601,15 @@ export class SandforgeBattlefield {
   if(yard){
    const decor=yard.getObjectByName('BasePerimeter_'+kind);
    if(decor)decor.visible=this.siteDecorEnabled;
-   tint(yard,false,.052);
-   yard.traverse(mesh=>{if(mesh.isMesh&&mesh.geometry?.parameters?.height>4)mesh.visible=false;});
+   tint(yard,false,.34);
    group.add(yard);group.userData.previewYard=yard;
   }
   const service=kind==='airfield'?createAirfieldServiceYard():
    kind==='factory'?createFactoryServiceYard():null;
   if(service){
-   tint(service,true,.0585);
-   // Show only outlines of the paved footprint, not a finished factory,
-   // control tower, repair equipment or hangar before construction starts.
-   service.traverse(mesh=>{if(mesh.isMesh&&
-    (mesh.position.y>5||mesh.geometry?.parameters?.height>7))mesh.visible=false;});
+   tint(service,true,.38);
+   // Both hangar doors, the service lift and the complete apron are
+   // visible in ghost mode, not just faint foundation silhouettes.
    group.add(service);group.userData.previewService=service;
   }
   const circle=new THREE.Mesh(
@@ -589,7 +619,7 @@ export class SandforgeBattlefield {
   group.userData.previewCircle=circle;group.add(circle);
   this.buildPreviewScene.add(group);
   this.buildPreview=group;group.visible=false;
-  if(isStrategicBuilding(kind))return;
+  if(isStrategicBuilding(kind))return; // detailed procedural fallback is already ghosted
   this.getModel(this.asset(kind,0,'building')).then(data=>{
    if(this.buildPreview!==group||this.buildKind!==kind)return;
    const model=cloneSkeleton(data.scene),bounds=new THREE.Box3().setFromObject(model);
@@ -601,8 +631,8 @@ export class SandforgeBattlefield {
       -bounds.min.y*scale,-bounds.getCenter(new THREE.Vector3()).z*scale);
    }
    if(kind==='airfield')hideOldAirfieldHangar({detail:model});
-   tint(model);
-   model.visible=false; // ghost guides show placement, not the completed GLB
+   tint(model,false,.50);
+   model.visible=true; // final authored shape and its actual entrances
    group.remove(placeholder);disposeOwnedMeshes(placeholder);
    group.userData.previewPlaceholder=null;group.userData.previewDetail=model;
    group.add(model);
@@ -622,6 +652,8 @@ export class SandforgeBattlefield {
    }
    if(preview.userData.previewDetail)
     disposeTaggedMaterials(preview.userData.previewDetail,'sandforgePreviewMaterial');
+   if(preview.userData.previewFrontMarker)
+    disposeOwnedMeshes(preview.userData.previewFrontMarker);
    if(preview.userData.previewGuides){
     // EdgesGeometry uses LineSegments, not Mesh. Release its buffers too.
     const lines=new Set(),paints=new Set();
@@ -651,6 +683,18 @@ export class SandforgeBattlefield {
   const error=this.game.buildError(0,this.buildKind,p,this.placementFacing);
   const engineer=this.game.units.some(u=>u.owner===0&&u.kind==='engineer'&&u.hp>0&&!u.carrier);
   const valid=!error&&engineer;
+  // Recolor owned cloned materials only when validity changes. This is
+  // stable even if the GLB loads while a red/unbuildable spot is selected.
+  if(ghost.userData.previewSiteValid!==valid){
+   ghost.userData.previewSiteValid=valid;
+   for(const material of ghost.userData.previewTintMaterials??[]){
+    const paint=valid?material.userData.sandforgePreviewValidColor:
+     material.userData.sandforgePreviewInvalidColor;
+    if(paint&&material.color)material.color.copy(paint);
+   }
+  }
+  const frontArrow=ghost.userData.previewFrontMarker?.getObjectByName('BuildingFrontArrow');
+  if(frontArrow)frontArrow.material.color.set(valid?'#9ef5d9':'#ff9a87');
   const ring=ghost.children.find(x=>x.geometry?.type==='RingGeometry');
   if(ring)ring.material.color.set(valid?'#87efb5':'#ff796b');
   // Mark invalid site scaffolds, not just the small footprint circle.
