@@ -135,7 +135,7 @@ test('FULL 3D building foundation rejects hills under the side garage, not only 
  assert.equal(siteTerrainCompatible('factory',center,2,fake),true);
  // The garage starts x>120 world units from the factory center. Previous
  // buildable(radius=70) sampled only the central facade and accepted this.
- const hill={...fake,terrainHeight:(x,z)=>x>center.x+148?29:0};
+ const hill={...fake,terrainHeight:(x,z)=>x>center.x+225?29:0};
  assert.equal(siteTerrainCompatible('factory',center,0,hill),false,
   'factory annex would be floating above the rising dune');
  assert.equal(siteTerrainCompatible('factory',center,2,hill),true,
