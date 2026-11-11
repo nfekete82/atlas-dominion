@@ -152,9 +152,12 @@ test('construction progressively reveals the real building instead of displaying
 test('airfield selection no longer hides the building catalogue if a pioneer survives',()=>{
  const src=source('scripts/webgl-battlefield.js');
  assert.match(src,/const canBuild=game\.units\.some\(u=>u\.owner===0&&u\.kind==='engineer'/);
- assert.match(src,/const available=\{buildings:true,infantry:true,vehicles:true,research:true,territories:true\}/);
- assert.match(src,/Choosing a unit,/,'player tab selection remains independent of selected unit');
- assert.ok(src.includes('const available={buildings:true,infantry:true,vehicles:true,research:true,territories:true}'));
+ assert.match(src,/const available=globalCatalogAvailability\(g\)/,
+  'real completed player buildings determine available production tabs');
+ assert.match(src,/Unit\/structure selection has NO effect/,
+  'a selected unit does not hide unlocked menus');
+ assert.ok(src.includes('const available=globalCatalogAvailability(this.game)'));
+ assert.ok(src.includes('const available=globalCatalogAvailability(g)'));
  // The compact 600-unit strip has a matching rotated construction footprint.
  const game=new Simulation(2074,4);
  game.aiClock=1e8;game.credits[0]=10000;game.explored[0].fill(1);
@@ -245,7 +248,8 @@ test('actual HUD factory selection cannot prevent later building card clicks',()
  assert.equal(ui.buildKind,'barracks');
  assert.equal(panel.dataset.tab,'buildings');
  assert.ok(calls.includes('placement:barracks'));
- assert.match(src,/const available=\{buildings:true,infantry:true,vehicles:true,research:true,territories:true\}/);
+ assert.match(src,/const available=globalCatalogAvailability\(g\)/,
+  'real completed player buildings determine available production tabs');
  assert.ok(!src.includes(':!context.canBuild||g.credits[0]<spec.cost'),
   'missing pioneer must never disable every building tile');
 });
