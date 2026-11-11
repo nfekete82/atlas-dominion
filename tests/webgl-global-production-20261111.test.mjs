@@ -4,23 +4,26 @@ import {readFileSync} from 'node:fs';
 import {Simulation} from '../dist/src/reborn/simulation.js';
 import {UNITS,BUILDINGS} from '../dist/src/reborn/catalog.js';
 import {UPGRADES,UPGRADE_KINDS} from '../dist/src/reborn/strategic-tech.js';
+import {globalCatalogAvailability,GLOBAL_PRODUCTION_TABS} from '../scripts/webgl-global-catalog.js';
 
 const source=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 const battlefield=source('scripts/webgl-battlefield.js');
 const hud=source('scripts/webgl-classic-hud.js');
 const css=source('src/reborn/webgl-classic-hud.css');
 
-test('the global dock has four stable category tabs, no production-building selection needed',()=>{
+test('the global dock has five separate categories, tabs hidden until their building is finished',()=>{
  for(const [tab,name] of [
   ['buildings','GEBÄUDE'],['infantry','INFANTERIE'],
-  ['vehicles','FAHRZEUGE'],['research','FORSCHUNG']]){
+  ['vehicles','FAHRZEUGE'],['aircraft','FLUGZEUGE'],['research','FORSCHUNG']]){
   assert.match(hud,new RegExp('data-tab="'+tab+'"[^>]*>'+name+'</button>'));
   assert.ok(battlefield.includes('data-sf-group="'+tab+'"')||
    battlefield.includes("data-sf-group=\\\""+tab+"\\\""));
   assert.ok(css.includes('[data-tab="'+tab+'"]'),
    'missing CSS for category '+tab);
  }
- assert.equal((hud.match(/<button data-tab=/g)||[]).length,4);
+ assert.equal((hud.match(/<button data-tab=/g)||[]).length,5);
+ assert.deepEqual(GLOBAL_PRODUCTION_TABS,['buildings','infantry','vehicles','aircraft','research']);
+ assert.match(hud,/data-tab="aircraft"[^>]*hidden>FLUGZEUGE<\/button>/);
  assert.ok(hud.includes('panel.dataset.tab=\'buildings\''),'building tab initially shown');
  assert.ok(hud.includes('data-action="sectors"'),'sector navigation remains accessible');
  assert.ok(battlefield.includes('g.producer(0,unit)')||
@@ -29,6 +32,13 @@ test('the global dock has four stable category tabs, no production-building sele
  assert.ok(!battlefield.includes("section.hidden=!context.producer"),
   'selectedBase must never hide another production building');
  assert.ok(battlefield.includes('const researchOnline=g.bases.some('));
+ assert.match(battlefield,/const available=globalCatalogAvailability\(g\)/);
+ assert.match(battlefield,/const aircraftRoster=roster\(\[\['airfield','FLUGFELD'\]\]\)/);
+ assert.match(battlefield,/const vehicleRoster=roster\(\[\['factory','FAHRZEUGFABRIK'\]\]\)/);
+ assert.ok(battlefield.includes('if(!ready)return'),
+  'no gray unbuilt production groups may be rendered');
+ assert.ok(css.includes('button[hidden]'),'hidden tabs must never occupy room');
+
 });
 
 const setup=()=>{
@@ -149,4 +159,50 @@ test('more than one producer sends work to the shortest available queue',()=>{
  assert.equal(g.producer(0,'tank')?.id,second.id);
  assert.ok(g.recruit(second.id,'tank'));
  assert.equal(second.queueTypes[0],'tank');
+});
+
+test('only finished player-owned source buildings unlock their relevant production menus',()=>{
+ const {g,add}=setup();
+ const available=()=>globalCatalogAvailability(g);
+ assert.deepEqual(available(),{
+  buildings:true,infantry:true,vehicles:false,aircraft:false,
+  research:false,territories:true
+ },'starting HQ unlocks pioneer production only');
+ const barracks=add('barracks');
+ barracks.buildRemaining=4;
+ assert.equal(available().infantry,true);
+ const factory=add('factory');
+ factory.buildRemaining=3;
+ assert.equal(available().vehicles,false,'construction in progress is NOT unlocked');
+ factory.buildRemaining=0;
+ assert.equal(available().vehicles,true);
+ assert.equal(available().aircraft,false);
+ const airfield=add('airfield');
+ airfield.buildRemaining=1;
+ assert.equal(available().aircraft,false);
+ airfield.buildRemaining=0;
+ assert.equal(available().aircraft,true,'airfield unlocks ONLY aircraft tab');
+ const lab=add('research');
+ lab.buildRemaining=0;
+ assert.equal(available().research,true);
+ lab.hp=0;
+ assert.equal(available().research,false,'destroyed lab hides research tab again');
+ airfield.owner=1;
+ assert.equal(available().aircraft,false,'enemy-owned airfield does not unlock air tab');
+ // Current tab disappears gracefully when the last factory is destroyed.
+ factory.hp=0;
+ assert.equal(available().vehicles,false);
+ assert.equal(available().buildings,true);
+});
+
+test('unit types are split into independent factory and aircraft menus',()=>{
+ const units=Object.keys(UNITS);
+ const ground=units.filter(u=>UNITS[u].producers.includes('factory'));
+ const airborne=units.filter(u=>UNITS[u].producers.includes('airfield'));
+ assert.deepEqual(ground,['rover','tank','artillery']);
+ assert.deepEqual(airborne,['scout','bomber']);
+ for(const u of airborne)assert.ok(!ground.includes(u));
+ const {g,add}=setup();add('factory');add('airfield');
+ assert.equal(g.producer(0,'rover')?.kind,'factory');
+ assert.equal(g.producer(0,'scout')?.kind,'airfield');
 });
