@@ -111,13 +111,13 @@ test('REAL game: idle engineer automatically seeks a DIFFERENT unattended site',
  const pioneer=g.units.find(u=>u.kind==='engineer'&&u.owner===0);
  const hq=g.bases.find(b=>b.owner===0&&b.kind==='headquarters');
  const first=placeSite(g,'barracks',hq,[pioneer]);
+ // Queue construction on the first engineer before the second one exists.
+ // This deliberately creates a second, otherwise unattended foundation.
+ const extra=placeSite(g,'generator',hq,[pioneer]);
+ assert.ok(extra.base);
  const location=g.world.nearest({x:pioneer.x+160,y:pioneer.y+60},g.obstacles())??
   {x:pioneer.x+160,y:pioneer.y+60};
  const second=g.spawn(0,location,'engineer');
- // Intentionally queue site two on the busy first worker, leaving site two
- // with zero active builders. The idle second pioneer must pick it up.
- const extra=placeSite(g,'generator',hq,[pioneer]);
- assert.ok(extra.base);
  assert.equal(second.orders.length,0);
  for(let n=0;n<85&&g.status==='playing'&&
   second.orders[0]?.target!==extra.base.id;n++)g.step(.05);
