@@ -7,6 +7,8 @@ import {createFactoryServiceYard,updateFactoryServiceYard,disposeFactoryServiceY
 import {serviceFootprintContains} from '../scripts/webgl-maintenance-input.js';
 import {airfieldPoint} from '../dist/src/reborn/airfield-maintenance.js';
 import {Simulation} from '../dist/src/reborn/simulation.js';
+import * as THREE from 'three';
+import {servicePaint,previewServiceMaterial,disposeServicePaint} from '../scripts/webgl-service-materials.js';
 
 const unit=kind=>({kind});
 const source=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
@@ -99,8 +101,10 @@ test('placement ghost displays actual finished building at 50% with visible door
  assert.ok(begin.includes("hideOldAirfieldHangar({detail:model})"),
   'legacy overlapping airfield structures are still hidden');
  assert.ok(begin.includes('const tint=(root,ownSource=false,opacity=.50)'),'the actual building ghost uses 50% transparency');
- assert.ok(begin.includes('m.opacity=Math.min(mat.opacity??1,opacity)'));
- assert.ok(begin.includes('m.depthWrite=false;m.depthTest=true'));
+ assert.ok(begin.includes('previewServiceMaterial(mat,{opacity})'));
+ const materialHelper=source('scripts/webgl-service-materials.js');
+ assert.ok(materialHelper.includes('clone.opacity=Math.min(source.opacity??1,opacity)'));
+ assert.ok(materialHelper.includes('clone.depthWrite=false;clone.depthTest=true'));
  assert.ok(begin.includes('placeholder.visible=true'),
   'temporary model is a 50%-opaque ghost until the GLB resolves');
  assert.ok(begin.includes('model.visible=true'),
@@ -244,4 +248,37 @@ test('actual HUD factory selection cannot prevent later building card clicks',()
  assert.match(src,/const available=\{units:Boolean\(context\.producer\),buildings:true/);
  assert.ok(!src.includes(':!context.canBuild||g.credits[0]<spec.cost'),
   'missing pioneer must never disable every building tile');
+});
+
+
+test('ACTUAL REGRESSION: after factory/airfield preview, next building selection never crashes on map.dispose',()=>{
+ for(const site of [createFactoryServiceYard(),createAirfieldServiceYard()]){
+  const original=site.getObjectByName(site.name==='FactoryCompactSideRepairShop'
+   ?'FactoryRepairGarageRoof_0':'AirfieldExtendedRunway');
+  assert.ok(original?.material?.map?.isTexture,'real service material owns DataTexture');
+  const ownedTexture=original.material.userData.sandforgeServiceTexture;
+  assert.ok(ownedTexture?.isTexture);
+  const preview=previewServiceMaterial(original.material,{opacity:.5});
+  const view=new THREE.Group();
+  const mesh=new THREE.Mesh(new THREE.BoxGeometry(2,2,2),preview);
+  view.add(mesh);
+  assert.ok(preview.map?.isTexture,'transparent building retains real image texture');
+  assert.equal(preview.userData.sandforgeServiceTexture,undefined,
+   'ghost materials must NOT inherit serialized DataTexture ownership metadata');
+  assert.doesNotThrow(()=>disposeServicePaint(view),
+   'the prior browser crash was map.dispose is not a function');
+  // Reproduce old, already-cloned material metadata from an existing preview;
+  // cleanup must ignore the object, rather than breaking ALL subsequent clicks.
+  const obsolete=original.material.clone();
+  const legacyPreview=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),obsolete);
+  view.add(legacyPreview);
+  assert.ok(obsolete.userData.sandforgeServiceTexture);
+  assert.equal(typeof obsolete.userData.sandforgeServiceTexture.dispose,'undefined');
+  assert.doesNotThrow(()=>disposeServicePaint(view));
+  preview.dispose();mesh.geometry.dispose();
+  obsolete.dispose();legacyPreview.geometry.dispose();
+  if(site.name==='FactoryCompactSideRepairShop')
+   disposeFactoryServiceYard({factoryServiceYard:site});
+  else disposeAirfieldServiceYard({airfieldServiceYard:site});
+ }
 });
