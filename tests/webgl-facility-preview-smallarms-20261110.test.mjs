@@ -88,46 +88,43 @@ test('factory restores original main building with ONE compact side garage',()=>
  disposeFactoryServiceYard({factoryServiceYard:factory});
 });
 
-test('build ghost and completed buildings use identical 3D asset and site generators',()=>{
+test('placement ghost displays actual finished building at 50% with visible door and facing marker',()=>{
  const battlefield=source('scripts/webgl-battlefield.js');
- const begin=battlefield.slice(battlefield.indexOf(' beginPlacement(kind){'),battlefield.indexOf(' clearPlacement(){'));
+ const begin=battlefield.slice(battlefield.indexOf(' beginPlacement(kind){'),
+  battlefield.indexOf(' clearPlacement(){'));
  assert.ok(begin.includes("this.getModel(this.asset(kind,0,'building'))"));
  assert.ok(begin.includes('createBuildingYard(kind,spec.width)'));
  assert.ok(begin.includes('createAirfieldServiceYard()'));
  assert.ok(begin.includes('createFactoryServiceYard()'));
- assert.ok(begin.includes("hideOldAirfieldHangar({detail:model})"));
- assert.ok(begin.includes('placeholder.visible=false'));
- assert.ok(begin.includes('model.visible=false'));
- assert.ok(begin.includes('ConstructionPlacementGuides'));
- assert.match(begin,/opacity:\.43,depthWrite:false,depthTest:false/,
-  'solid scaffold posts must be visible even at tactical camera zoom');
- assert.ok(begin.includes('beam(t,h,t,'),'blueprint contains real vertical scaffold poles');
- assert.ok(begin.includes('guidePad(141,600,132,105)'),
-  'airport preview shows the compact full runway footprint');
- assert.ok(begin.includes("if(kind==='factory')guideBox(118,54,125,192,45)"),
-  'factory preview shows the compact one-bay service annex');
- assert.ok(begin.includes('group.userData.previewGuideMaterials='),
-  'blueprints can show invalid location in amber/red');
- assert.match(begin,/opacity:\.46,depthWrite:false,depthTest:false/,
-  'guide wireframe is now readable on sandy terrain');
- assert.match(begin,/opacity:\.15,depthWrite:false,depthTest:false/,
-  'construction footprint stays translucent but visible');
- assert.ok(begin.includes('if(mesh.isMesh&&'));
- assert.ok(!begin.includes('placeholder.visible=true'));
-
- assert.ok(begin.includes('conformAirfieldSurface')===false,
-  'runway terrain fitting runs from updatePlacementPreview, not from loading');
+ assert.ok(begin.includes("hideOldAirfieldHangar({detail:model})"),
+  'legacy overlapping airfield structures are still hidden');
+ assert.match(begin,/const tint=\\(root,ownSource=false,opacity=\\.50\\)/);
+ assert.match(begin,/m\\.opacity=Math\\.min\\(mat\\.opacity\\?\\?1,opacity\\)/);
+ assert.match(begin,/m\\.depthWrite=false;m\\.depthTest=true/);
+ assert.ok(begin.includes('placeholder.visible=true'),
+  'temporary model is a 50%-opaque ghost until the GLB resolves');
+ assert.ok(begin.includes('model.visible=true'),
+  'finished GLB shape is visible as ghost, including door and hangar openings');
+ assert.ok(!begin.includes('model.visible=false'),
+  'the complete building cannot remain hidden after asynchronous load');
+ assert.ok(begin.includes('tint(yard,false,.34)'));
+ assert.ok(begin.includes('tint(service,true,.38)'));
+ assert.ok(!begin.includes('mesh.position.y>5||mesh.geometry?.parameters?.height>7'),
+  'the hangar service model is now shown instead of hiding every visible wall');
+ assert.ok(begin.includes('BuildingFrontArrow'));
+ assert.ok(begin.includes("kind==='barracks'?spec.width*.12:0"),
+  'front arrow aligns with offset barracks entrance');
+ assert.ok(begin.includes('guides.visible=false'),
+  'the old tall scaffold must not obscure the entrance');
+ assert.ok(begin.includes('group.userData.previewFrontMarker=frontMarker'));
+ assert.ok(battlefield.includes("disposeOwnedMeshes(preview.userData.previewFrontMarker)"));
+ assert.ok(battlefield.includes('sandforgePreviewInvalidColor'));
+ assert.ok(battlefield.includes('sandforgePreviewValidColor'));
+ assert.ok(battlefield.includes("frontArrow.material.color.set(valid?'#9ef5d9':'#ff9a87')"));
  assert.ok(battlefield.includes('conformAirfieldSurface(ghost.userData.previewService'));
  assert.ok(battlefield.includes('conformAirfieldSurface(entry.airfieldServiceYard'));
- assert.ok(battlefield.includes("if(b.kind==='airfield'){"),'full airfield exists while being built');
-
- assert.ok(begin.includes('calibratedScale('));
- assert.ok(battlefield.includes('disposeServicePaint(preview.userData.previewService)'));
- assert.match(begin,/const tint=\(root,ownSource=false,opacity=\.0585\)/,'buildings are faint holograms');
- assert.match(begin,/m\.opacity=Math\.min\(mat\.opacity\?\?1,opacity\)/);
- assert.match(begin,/tint\(yard,false,\.052\)/,'fences and courtyard props remain faint');
- assert.match(begin,/tint\(service,true,\.0585\)/,'runway and service stations remain faint');
- assert.match(begin,/opacity:\.21,depthTest:false/,'placement circle does not dominate ghost');
+ assert.ok(battlefield.includes("if(b.kind==='airfield'){"),
+  'finished construction still uses the genuine airfield 3D geometry');
 });
 
 test('construction progressively reveals the real building instead of displaying a complete prefab',()=>{
