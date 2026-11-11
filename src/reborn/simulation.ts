@@ -542,7 +542,7 @@ export class Simulation {
         count.set(assigned.target!,count.get(assigned.target!)!+1);
     }
     for(const u of workers){
-      if(u.hold||u.defendUntil>this.time||u.orders.length||u.workingTarget!==null)
+      if(u.hold||u.defendUntil>this.time||u.orders.length||u.workingTarget!=null)
         continue;
       const targets=sites.filter(b=>(count.get(b.id)??0)<2).sort((a,b)=>
         (count.get(a.id)!-count.get(b.id)!)||
