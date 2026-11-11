@@ -57,7 +57,9 @@ export function generateMap(seed:number,version:Exclude<MapVersion,0>=MAP_VERSIO
   if(modern){
     // Ruins keep their own stream and inherit the established road/site exclusions.
     canyon.ruins=generateCanyonFeatures(streamSeed(seed,'ruins',candidate),size,cols,rows,sites,corridors).ruins
-      .filter(r=>layout.headquarters.every(id=>Math.hypot(r.x-battlefieldStart(sites[id],size).x,r.y-battlefieldStart(sites[id],size).y)>870));
+      .filter(r=>layout.headquarters.every(id=>Math.hypot(r.x-battlefieldStart(sites[id],size).x,r.y-battlefieldStart(sites[id],size).y)>870)&&
+       (generatorVersion===1||sites.every(s=>Math.hypot(r.x-s.x,r.y-s.y)>
+        TERRAIN_GRADING_V2.bastionFlatRadius+TERRAIN_GRADING_V2.rockSafetyMargin)));
     rand=seededRandom(streamSeed(seed,'rocks',candidate));
   }
   const basins:Point[]=[];
