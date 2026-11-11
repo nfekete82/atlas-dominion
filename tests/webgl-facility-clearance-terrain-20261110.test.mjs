@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as THREE from 'three';
 import {Simulation} from '../dist/src/reborn/simulation.js';
-import {sitesVisuallyOverlap,siteNearBastion,siteExceedsMap} from '../dist/src/reborn/construction-spacing.js';
+import {sitesVisuallyOverlap,siteNearBastion,siteExceedsMap,siteTerrainCompatible} from '../dist/src/reborn/construction-spacing.js';
 import {chooseConstructionCrew} from '../scripts/webgl-builder-input.js';
 import {createAirfieldServiceYard,conformAirfieldSurface,hideOldAirfieldHangar,disposeAirfieldServiceYard} from '../scripts/webgl-airfield-service.js';
 
@@ -122,4 +122,41 @@ test('building remains possible after a vehicle factory or airfield is completed
   'live build click must use fallback construction crew');
  assert.match(ui,/this\.panel\.dataset\.tab='buildings'/,
   'after airfield build the user stays on the buildings tab');
+});
+
+test('FULL 3D building foundation rejects hills under the side garage, not only the factory center',()=>{
+ const center={x:2200,y:2200};
+ const fake={
+  walkable:()=>true,
+  terrainHeight:()=>0,
+  terrainSlope:()=>0
+ };
+ assert.equal(siteTerrainCompatible('factory',center,0,fake),true);
+ assert.equal(siteTerrainCompatible('factory',center,2,fake),true);
+ // The garage starts x>120 world units from the factory center. Previous
+ // buildable(radius=70) sampled only the central facade and accepted this.
+ const hill={...fake,terrainHeight:(x,z)=>x>center.x+148?29:0};
+ assert.equal(siteTerrainCompatible('factory',center,0,hill),false,
+  'factory annex would be floating above the rising dune');
+ assert.equal(siteTerrainCompatible('factory',center,2,hill),true,
+  'rotating 90 degrees should move the garage away from the local hill');
+ const cliff={...fake,terrainSlope:(x,z)=>z<center.y-155?.29:0};
+ assert.equal(siteTerrainCompatible('factory',center,2,cliff),false,
+  'rotation must check the actual new garage footprint');
+ const nearbyFlat={...fake,terrainHeight:(x,z)=>6*Math.sin(x/90)+3*Math.sin(z/80)};
+ assert.equal(siteTerrainCompatible('factory',center,0,nearbyFlat),true,
+  'normal gentle dunes should still permit practical factory placement');
+});
+
+test('rigid hangars and regular foundations reject steep ridges under any corner',()=>{
+ const p={x:2000,y:2000};
+ const flat={walkable:()=>true,terrainHeight:()=>0,terrainSlope:()=>0};
+ assert.equal(siteTerrainCompatible('airfield',p,0,flat),true);
+ assert.equal(siteTerrainCompatible('barracks',p,0,flat),true);
+ const hill={...flat,terrainHeight:(x,z)=>x<p.x-280?39:0};
+ assert.equal(siteTerrainCompatible('airfield',p,0,hill),false,
+  'control tower / left hangar may not be sunk in a cliff');
+ const blocked={...flat,walkable:q=>q.x>p.x+50};
+ assert.equal(siteTerrainCompatible('barracks',p,0,blocked),false,
+  'corners outside the playable terrain must be rejected');
 });
