@@ -1255,7 +1255,16 @@ export class Simulation {
       if(manual&&manual.owner!==u.owner&&manual.hp>0&&!('orders' in manual&&manual.carrier)&&canAttack(u,manual)&&visible(manual)){u.combatTarget=manual.id;return manual;}
     }
     const locked=this.combatEntity(u.combatTarget);
-    if(!support&&locked&&eligible(locked))return locked;
+    // Red's missile infantry and bombers may switch away from a low-value
+    // rifleman when observed enemy aircraft or armor enters their area.
+    // Ordinary units and explicit ATTACK orders keep their existing locks.
+    const counterSpecialist=u.owner===1&&(u.kind==='rocket'||u.kind==='bomber');
+    const counterValue=(e:Unit|Base)=>'orders' in e&&
+      (u.kind==='rocket'
+        ?(unitSpec(e).flying||unitSpec(e).group==='Fahrzeuge')
+        :(!unitSpec(e).flying&&unitSpec(e).group==='Fahrzeuge'));
+    if(!support&&locked&&eligible(locked)&&
+       (!counterSpecialist||counterValue(locked)))return locked;
     u.combatTarget=null;
     if(u.lastAttacker!==null&&u.defendUntil>this.time){
       const attacker=this.combatEntity(u.lastAttacker);
@@ -1274,7 +1283,16 @@ export class Simulation {
         ?(e.kind==='artillery'?-95:e.kind==='medic'?-65:e.kind==='bomber'?-45:0):0;
       const armorPreference=u.kind==='tank'&&('queue' in e||unitSpec(e).group==='Fahrzeuge')?-105:
        u.kind==='rocket'&&('queue' in e||unitSpec(e).group!=='Infanterie')?-165:0;
-      const score=d+priority+armorPreference;
+      // AI counters prioritize the targets their weapons are designed for.
+      // No omniscient target lookup: eligible() already confirms real vision,
+      // range, line-of-sight and air-attack permission for this unit.
+      const specialist=u.owner===1&&'orders' in e
+       ?u.kind==='rocket'
+        ?(unitSpec(e).flying?-350:unitSpec(e).group==='Fahrzeuge'?-260:0)
+        :u.kind==='bomber'&&!unitSpec(e).flying&&unitSpec(e).group==='Fahrzeuge'
+         ?(e.kind==='tank'?-320:-230):0
+       :0;
+      const score=d+priority+armorPreference+specialist;
       if(score<bestScore){best=e;bestScore=score;}
     }
     u.combatTarget=best?.id??null;
