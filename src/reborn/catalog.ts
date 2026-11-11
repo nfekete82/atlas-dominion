@@ -42,14 +42,14 @@ export const buildingKinds=Object.keys(BUILDINGS) as BuildingKind[];
 export const canAttack=(u:{kind?:UnitKind},target:{kind?:UnitKind|BuildingKind;queue?:unknown}):boolean=>'queue' in target||unitSpec(u).targetsAir!==false||!unitSpec(target as {kind?:UnitKind}).flying;
 /** Balanced separately from the anti-armor main gun; both are independent weapon clocks. */
 export const TANK_MG={damage:18,cooldown:.55,range:230} as const;
-/** Conventional small arms and roof MGs excel against infantry, not armor or aircraft.
- * Ratios are deliberately separate for ground armor and airframes: a cheap
- * rifle squad must not shred bombers while dedicated rockets stay valuable. */
+/** Conventional small arms and roof MGs still excel against infantry.
+ * Aircraft damage is 25% higher than the previous overly weak coefficients;
+ * ground-armor, structure and specialist anti-air rocket tuning is unchanged. */
 export const SMALL_ARMS_VS_ARMOR=Object.freeze({
  infantry:.16,medic:.12,engineer:.12,heavy:.20,rover:.17,scout:.18
 });
 export const SMALL_ARMS_VS_AIR=Object.freeze({
- infantry:.08,medic:.07,engineer:.07,heavy:.10,rover:.09,scout:.12
+ infantry:.10,medic:.0875,engineer:.0875,heavy:.125,rover:.1125,scout:.15
 });
 export const weaponDamage=(u:{kind?:UnitKind},target:{kind?:UnitKind|BuildingKind;queue?:unknown}):number=>{
  const base=unitSpec(u).damage,building='queue' in target;
