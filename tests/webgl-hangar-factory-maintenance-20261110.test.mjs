@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {Simulation} from '../dist/src/reborn/simulation.js';
-import {airfieldPoint,airfieldTaxiPoint,AIRFIELD_REPAIR_HP_PER_CREDIT} from '../dist/src/reborn/airfield-maintenance.js';
+import {airfieldPoint,airfieldTaxiPoint,AIRFIELD_REPAIR_HP_PER_CREDIT,AIRFIELD_TAKEOFF_SECONDS} from '../dist/src/reborn/airfield-maintenance.js';
 import {factoryRepairPoint,FACTORY_REPAIR_HP_PER_CREDIT} from '../dist/src/reborn/factory-maintenance.js';
 import {unitRenderAltitude} from '../scripts/webgl-scale.js';
 import {createAirfieldServiceYard,updateAirfieldServiceYard,disposeAirfieldServiceYard} from '../scripts/webgl-airfield-service.js';
@@ -73,7 +73,7 @@ test('finished bomber remains docked until an explicit launch, then actually tak
  const stationary={x:plane.x,y:plane.y};advance(g,.5);
  assert.deepEqual({x:plane.x,y:plane.y},stationary);
  assert.equal(g.launchRepairedAircraft([plane.id]),1);
- advance(g,6.1);
+ advance(g,AIRFIELD_TAKEOFF_SECONDS+.1);
  assert.equal(plane.airfieldService,undefined);
  assert.equal(plane.flightHeight,1);
  assert.ok(Math.hypot(plane.x-stationary.x,plane.y-stationary.y)>100);
@@ -230,7 +230,7 @@ test('orders cancel vehicle maintenance but aircraft take off rather than telepo
  assert.deepEqual({x:bomber.x,y:bomber.y},dock);
  assert.equal(bomber.flightHeight,0,'manual override cannot jump straight to flight altitude');
  assert.equal(bomber.orders[0]?.kind,'move');
- advance(g,6.05);
+ advance(g,AIRFIELD_TAKEOFF_SECONDS+.05);
  assert.equal(bomber.airfieldService,undefined);
  assert.equal(bomber.flightHeight,1);
 });
