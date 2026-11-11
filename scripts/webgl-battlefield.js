@@ -7,6 +7,7 @@ import {UNITS,BUILDINGS,MAX_GENERATORS_PER_FACTION,unitKinds,buildingKinds,unitS
 import {TERRAIN_LABELS} from '/src/reborn/battlefield-terrain.js';
 import {RULES} from '/src/reborn/config.js';
 import {installClassicHud} from '/webgl-classic-hud.js';
+import {globalCatalogAvailability} from '/webgl-global-catalog.js';
 import {hydrateUnitIcons,hydrateBuildingIcons,unitIcon,buildingIcon,buildingIconUrl,researchIconMarkup,researchEffectLabel,hydrateResearchArtworks} from '/webgl-portraits.js';
 import {SandforgeActorPresentation} from '/webgl-actor-presentation.js';
 import {calibratedScale,visualUnitScale,unitVisualYaw,unitRenderAltitude,buildingFacingAngle,nextBuildingFacing,buildingFacingDegrees,turretAimLocalYaw,selectionRingRadius} from '/webgl-scale.js';
@@ -1293,14 +1294,15 @@ export class SandforgeBattlefield {
    if(action==='select-all'){this.selected=new Set(this.game.units.filter(u=>u.hp>0&&u.owner===0&&!u.carrier).map(u=>u.id));this.selectedBase=null;this.drawInterface();}
   });
   this.panel.addEventListener('sandforge-tabchange',event=>{
-   const available={buildings:true,infantry:true,vehicles:true,research:true,territories:true};
+   const available=globalCatalogAvailability(this.game);
    if(!available[event.detail.tab])return;
    this.panel.querySelector('#sf-actions').scrollTop=0;
    const descriptions={
     buildings:'Gebäude auswählen und einen freien Bauplatz auf der Karte anklicken.',
     infantry:'Soldaten und Pioniere direkt aus dem globalen Menü ausbilden.',
-    vehicles:'Fahrzeuge und Luftunterstützung direkt produzieren.',
-    research:'Globale Technologien erforschen, sobald das Forschungszentrum fertig ist.',
+    vehicles:'Bodenfahrzeuge direkt in der Fahrzeugfabrik produzieren.',
+    aircraft:'Flugzeuge und Transporthelikopter direkt am Flugfeld produzieren.',
+    research:'Globale Technologien im Forschungszentrum erforschen.',
     territories:'Kontrollpunkt wählen, um die Kamera zum Sektor zu bewegen.'};
    this.panel.querySelector('#sf-catalog-detail').textContent=descriptions[event.detail.tab]??'';
    // Tab clicks update the rendered actions NOW, even when a factory is
@@ -1346,10 +1348,11 @@ export class SandforgeBattlefield {
   const g=this.game,view=this.panel,actions=view.querySelector('#sf-actions');
   const context=this.catalogContext();
   const selectionKey=[...this.selected].sort((a,b)=>a-b).join(',')+'|'+String(this.selectedBase)+'|'+Boolean(context.producer);
-  // The global HUD always has the same four tabs. Choosing a unit,
-  // factory, airfield or research building NEVER changes the current tab.
-  // The sector list is additionally reachable via the radar shortcut.
-  const available={buildings:true,infantry:true,vehicles:true,research:true,territories:true};
+  // Unlock global menu tabs when their actual production building finishes;
+  // hide them again if the last relevant structure is destroyed. A barracks
+  // unlocks soldiers and a headquarters unlocks pioneers; the airfield has
+  // its own independent aircraft tab. Unit/structure selection has NO effect.
+  const available=globalCatalogAvailability(g);
   if(!available[view.dataset.tab]){
    view.dataset.tab='buildings';
    actions.scrollTop=0;actions.scrollLeft=0;
@@ -1382,18 +1385,19 @@ export class SandforgeBattlefield {
     '</span><span class="card-cost">'+spec.cost+'</span></span></button>';
   }).join('');
   const roster=(producers)=>producers.map(([kind,label])=>{
-   const matching=g.bases.filter(b=>b.owner===0&&b.kind===kind&&b.hp>0);
-   const ready=matching.some(b=>b.buildRemaining<=0);
-   const state=ready?'BEREIT':matching.length?'IM BAU':'NICHT GEBAUT';
+   const ready=g.bases.some(b=>b.owner===0&&b.kind===kind&&b.hp>0&&b.buildRemaining<=0);
+   // Never list any unbuilt or in-progress production facility: its tab
+   // remains absent or its producer's cards are hidden until completion.
+   if(!ready)return '';
    return '<section class="sf-roster-section" data-sf-producer="'+kind+
-    '" data-sf-ready="'+ready+'"><h2>'+label+
-    '<small class="sf-source-state">'+state+'</small></h2><div class="catalog-grid">'+
+    '" data-sf-ready="true"><h2>'+label+
+    '</h2><div class="catalog-grid">'+
     cards(unitKinds.filter(k=>UNITS[k].producers.includes(kind)),'unit')+'</div></section>';
   }).join('');
   const infantryRoster=roster([['headquarters','FELDKOMMANDO · PIONIERE'],
    ['barracks','KASERNE · INFANTERIE']]);
-  const vehicleRoster=roster([['factory','FAHRZEUGFABRIK'],
-   ['airfield','FLUGFELD · LUFTUNTERSTÜTZUNG']]);
+  const vehicleRoster=roster([['factory','FAHRZEUGFABRIK']]);
+  const aircraftRoster=roster([['airfield','FLUGFELD']]);
   const tiles=this.game.territories.map(t=>{
    const label=t.owner===0?'BLAU':t.owner===1?'ROT':'NEUTRAL';
    const cls=t.owner===0?'blue':t.owner===1?'red':'unknown';
@@ -1421,6 +1425,7 @@ export class SandforgeBattlefield {
    cards(buildingKinds.filter(kind=>kind!=='interceptor'||INTERCEPTOR_ENABLED),'building')+'</div></div>'+
    '<div class="sf-group" data-sf-group="infantry">'+infantryRoster+'</div>'+
    '<div class="sf-group" data-sf-group="vehicles">'+vehicleRoster+'</div>'+
+   '<div class="sf-group" data-sf-group="aircraft">'+aircraftRoster+'</div>'+
    '<div class="sf-group" data-sf-group="research"><div class="sf-research-grid">'+upgrades+'</div></div>'+
    '<div class="sf-group" data-sf-group="territories"><h2>KONTROLLPUNKTE</h2>'+tiles+'</div></div>';
   if(this.previousActionsMarkup!==markup){
@@ -1428,9 +1433,8 @@ export class SandforgeBattlefield {
    actions.innerHTML=markup;this.previousActionsMarkup=markup;
    actions.scrollTop=scroll;
   }
-  // All owned production facilities are accessible at once. Unbuilt ones
-  // retain visible grey cards so their unlock condition is discoverable.
-  // Neither unit selection nor selectedBase hides any production section.
+  // Only finished sources are rendered. Selection never hides a finished
+  // production source; the roster updates on every construction completion.
   const techState=g.research[0];
   const researchOnline=g.bases.some(b=>b.owner===0&&b.kind==='research'&&
    b.hp>0&&b.buildRemaining<=0);
