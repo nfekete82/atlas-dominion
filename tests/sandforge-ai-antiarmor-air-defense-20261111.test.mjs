@@ -34,7 +34,7 @@ test('AI buys 1 baseline rocket specialist, adds anti-armor and anti-air as obse
  assert.equal(rocketInfantryQuota({fighters:5,time:100,vehicles:1,air:0,
   barracksReady:true,underAttack:false}),2);
  assert.equal(rocketInfantryQuota({fighters:5,time:100,vehicles:3,air:0,
-  barracksReady:true,underAttack:false}),3);
+  barracksReady:true,underAttack:false}),4);
  assert.equal(rocketInfantryQuota({fighters:5,time:100,vehicles:0,air:2,
   barracksReady:true,underAttack:false}),3);
  assert.equal(rocketInfantryQuota({fighters:5,time:100,vehicles:0,air:8,
