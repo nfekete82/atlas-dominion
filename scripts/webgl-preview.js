@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {Simulation} from '/src/reborn/simulation.js';
-import {isTerrainProfile,TERRAIN_LABELS} from '/src/reborn/battlefield-terrain.js';
+import {isTerrainProfile,TERRAIN_LABELS,battlefieldStart,terrainGradingEdge} from '/src/reborn/battlefield-terrain.js';
+import {campaignLayout} from '/src/reborn/config.js';
 import {randomMapSeed} from '/src/reborn/world-generation.js';
 import {rollingHillHeight} from '/src/reborn/rolling-hills.js';
 import {canyonGroundSampler,rampAtX,ridgeCenterY} from '/src/reborn/canyon-height.js';
@@ -73,6 +74,9 @@ game.infantryVisionBonus=1.15; // modest +15% infantry sight in 3D only
 game.highGroundEnabled=true; // tactical +20% outgoing / -10% incoming only in 3D
 game.updateVision();
 const world=game.world,terrain=world.generated,size=world.size,half=size/2;
+const gradingHomes=terrain.battlefield?.generatorVersion===2
+ ?campaignLayout(world.mapVersion,seed).headquarters.map(i=>battlefieldStart(terrain.sites[i],size))
+ :[];
 if(terrain.battlefield)document.title='Sandforge · '+biomeStyle.label+' · '+TERRAIN_LABELS[terrain.battlefield.profile]+' · '+seed;
 const spacious=world.mapVersion>=19;
 const status=$('status'),errorNode=$('error'),stage=$('stage');
@@ -288,6 +292,12 @@ function buildTerrain(){
     const vegetationNoise=Math.sin(x*.007+z*.009)*.5+.5;
     vertexColor.copy(biomeGroundBase).lerp(biomeGroundLight,.16+vegetationNoise*.25)
      .lerp(biomeGroundRock,Math.min(.72,rocky*.58));
+   }
+   if(terrain.battlefield?.generatorVersion===2){
+    // Baked, subtle cut-and-fill earth at graded bastion edges. Same terrain
+    // height field, no additional draw call or changing ground mesh.
+    const earth=terrainGradingEdge(x,z,terrain.sites,gradingHomes,2);
+    vertexColor.lerp(sandstone,earth*.16);
    }
    colors[n]=vertexColor.r;colors[n+1]=vertexColor.g;colors[n+2]=vertexColor.b;
    uv[k*2]=x/(spacious?2200:1500);uv[k*2+1]=z/(spacious?2200:1500);
