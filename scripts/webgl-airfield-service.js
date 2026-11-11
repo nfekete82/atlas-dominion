@@ -175,7 +175,8 @@ export function createAirfieldServiceYard(){
   }
   const sparkGroup=new THREE.Group();
   sparkGroup.name='HangarRepairSparks_'+bay;
-  sparkGroup.position.set(cx,19,-85);
+  // Repair sparks follow the real bomber's new deeper dock at z=-117.
+  sparkGroup.position.set(cx,19,-115);
   group.add(sparkGroup);
   for(let i=0;i<4;i++)box(sparkGroup,'MaintenanceSpark_'+i,2.1,2.1,2.1,
    -21+i*14,i%2?7:0,0,glow);
