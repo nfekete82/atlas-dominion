@@ -774,8 +774,10 @@ export class TacticalAI {
       u.transport&&u.transport.phase!=='cruise')continue;
    const target=selectObservedCounterTarget(u.kind as 'rocket'|'bomber',
     u,visible,u.kind==='rocket'?unitSpec(u).sight+120:1100);
-   if(!target||u.orders[0]?.kind==='attack'&&
-      u.orders[0].target===target.id)continue;
+   // Retain the bomber's existing move→attack flank queue. Replacing it
+   // every macro pulse would prevent him from ever reaching the tank.
+   if(!target||u.orders.some(o=>o.kind==='attack'&&o.target===target.id))
+    continue;
    g.command([u.id],{kind:'attack',x:target.x,y:target.y,target:target.id});
   }
  }
