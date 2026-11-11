@@ -1204,11 +1204,19 @@ export class SandforgeBattlefield {
    }
    if(kind){
     if(kind==='interceptor'&&!INTERCEPTOR_ENABLED){this.message('Raketenabwehr derzeit deaktiviert');return;}
+    // The factory/airfield production context must never intercept a new
+    // BUILDING card click. Explicit building choice always wins.
+    this.panel.dataset.tab='buildings';
     if(!this.catalogContext().engineer){
-     if(!this.selectEngineer())return;
+     if(!this.selectEngineer()){
+      this.message('Kein Pionier verfügbar · im Feldkommando einen Pionier ausbilden');
+      this.drawInterface();return;
+     }
     }
+    this.selectedBase=null;
     this.beginPlacement(kind);this.attackMode=false;this.sound?.select?.();
-    this.message('Bauplatz wählen: '+BUILDINGS[kind].name+' · R: drehen · Shift: Aufträge anhängen');this.drawInterface();
+    this.message('Bauplatz wählen: '+BUILDINGS[kind].name+' · R: drehen · Shift: Aufträge anhängen');
+    this.drawInterface();return;
    }
    if(unit){
     const producer=this.catalogContext().producer;
@@ -1253,7 +1261,7 @@ export class SandforgeBattlefield {
    if(action==='select-all'){this.selected=new Set(this.game.units.filter(u=>u.hp>0&&u.owner===0&&!u.carrier).map(u=>u.id));this.selectedBase=null;this.drawInterface();}
   });
   this.panel.addEventListener('sandforge-tabchange',event=>{
-   const available={buildings:this.catalogContext().canBuild,units:Boolean(this.catalogContext().producer),territories:true,research:this.catalogContext().research};
+   const available={buildings:true,units:Boolean(this.catalogContext().producer),territories:true,research:this.catalogContext().research};
    if(!available[event.detail.tab])return;
    this.panel.querySelector('#sf-actions').scrollTop=0;
    const descriptions={units:'Wähle einen Produktionsauftrag. Gebäude schalten neue Einheiten frei.',
@@ -1261,6 +1269,9 @@ export class SandforgeBattlefield {
     research:'Forschungstechnologie wählen. Neue Boni gelten auch für bereits vorhandene Truppen.',
     territories:'Kontrollpunkt wählen, um die Kamera zum Sektor zu bewegen.'};
    this.panel.querySelector('#sf-catalog-detail').textContent=descriptions[event.detail.tab]??'';
+   // Tab clicks update the rendered actions NOW, even when a factory is
+   // selected and a periodic producer-menu refresh is pending.
+   this.drawInterface();
   });
   this.mini.addEventListener('click',e=>{
    const rect=this.mini.getBoundingClientRect();
@@ -1301,7 +1312,9 @@ export class SandforgeBattlefield {
   const g=this.game,view=this.panel,actions=view.querySelector('#sf-actions');
   const context=this.catalogContext();
   const selectionKey=[...this.selected].sort((a,b)=>a-b).join(',')+'|'+String(this.selectedBase)+'|'+Boolean(context.producer);
-  const available={units:Boolean(context.producer),buildings:context.canBuild,territories:true,research:context.research};
+  // The building tab never vanishes while a factory/airfield is selected.
+  // If no engineer survives, clicking a building explains how to recruit one.
+  const available={units:Boolean(context.producer),buildings:true,territories:true,research:context.research};
   // Never jump from manually selected "Gebäude" back to "Einheiten"
   // simply because a factory or airfield becomes selected/completes.
   // Preserve the player's tab until it is genuinely unavailable.
@@ -1411,7 +1424,7 @@ export class SandforgeBattlefield {
    const unavailable=button.dataset.unit
     ?!correctProducer||g.needsHeadquarters(0)||context.producer.queue.length>=8||
       g.credits[0]<spec.cost||g.count(0)+g.queued(0)>=RULES.capacity
-    :!context.canBuild||g.credits[0]<spec.cost||!g.hasHeadquarters(0)&&kind!=='headquarters'||
+    :g.credits[0]<spec.cost||!g.hasHeadquarters(0)&&kind!=='headquarters'||
       kind==='generator'&&generatorLimitReached||ownedUnique||interceptorLimit;
    const requirement=button.dataset.unit
     ?(!context.producer?'Produktionsgebäude auswählen':
