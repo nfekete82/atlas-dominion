@@ -116,7 +116,8 @@ test('building remains possible after a vehicle factory or airfield is completed
   assert.equal(g.buildError(0,'generator',second),null);
  }
  const ui=readFileSync(new URL('../scripts/webgl-battlefield.js',import.meta.url),'utf8');
- assert.match(ui,/Choosing a unit,/,'selected actors may no longer force the catalog tab');
+ assert.match(ui,/const available=globalCatalogAvailability\(g\)/,
+  'selected actors do not control global tab unlocks');
  assert.match(ui,/this\.catalogSelectionKey=selectionKey/);
  assert.match(ui,/submitConstruction\(this\.game,kind,p,this\.selected/,
   'live build click must use fallback construction crew');
