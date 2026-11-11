@@ -5,7 +5,7 @@ import {campaignLayout, type MapVersion, type Point} from './config.js';
 export const BATTLEFIELD_GENERATOR = 2;
 export type BattlefieldGeneratorVersion=1|2;
 export const TERRAIN_GRADING_V2={
- bastionFlatRadius:480,bastionShoulder:360,
+ bastionFlatRadius:540,bastionShoulder:360,
  homeFlatRadius:775,homeShoulder:460,
  rockSafetyMargin:110
 } as const;
