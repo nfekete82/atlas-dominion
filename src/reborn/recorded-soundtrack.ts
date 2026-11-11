@@ -18,6 +18,8 @@ export class RecordedSoundtrack {
  private playing=false;
  private unavailable=false;
  private retryAt=0;
+ private pendingPlay=false;
+ private lastGain=-1;
  enabled=true;
  volume=.22;
  constructor(private readonly context:AudioContext,destination:AudioNode){
@@ -59,6 +61,10 @@ export class RecordedSoundtrack {
  private applyGain():void{
   const target=this.playing&&this.enabled&&this.volume>0&&!this.unavailable
    ?soundtrackGain(this.volume,this.ducked,this.combat):0;
+  // Do not schedule identical AudioParam automations at 60 FPS for hours.
+  // Changes happen only on combat intensity/voice/slider/pause transitions.
+  if(Math.abs(target-this.lastGain)<.0001)return;
+  this.lastGain=target;
   this.bus.gain.setTargetAtTime(target,this.context.currentTime,.25);
  }
  /** Call on the player's first pointer/keyboard action for autoplay policy. */
@@ -66,10 +72,14 @@ export class RecordedSoundtrack {
   if(!this.audio||this.unavailable||!this.enabled||this.volume<=0)return;
   if(!this.audio.paused)return;
   // The update loop does not repeatedly issue rejected play promises.
-  if(this.context.currentTime<this.retryAt)return;
-  this.retryAt=this.context.currentTime+3;
-  void this.audio.play().catch(error=>{
+  if(this.pendingPlay||this.context.currentTime<this.retryAt)return;
+  this.pendingPlay=true;
+  void this.audio.play().then(()=>{
+   this.pendingPlay=false;this.retryAt=0;
+  }).catch(error=>{
+   this.pendingPlay=false;
    if(error?.name==='AbortError')return; // pause during pending play()
+   this.retryAt=this.context.currentTime+3;
    if(error?.name!=='NotAllowedError')
     console.warn('Sandforge Musik konnte nicht gestartet werden',error);
   });
