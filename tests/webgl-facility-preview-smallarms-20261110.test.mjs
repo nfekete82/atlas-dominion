@@ -220,6 +220,7 @@ test('actual HUD factory selection cannot prevent later building card clicks',()
  const Fake=fakeCtor(()=>panel,BUILDINGS,true,globalCatalogAvailability);
  const ui=new Fake();
  const calls=[];
+ ui.game={bases:[]};
  ui.sound={enabled:false,select(){}};
  ui.selectedBase=100; // The user has selected the completed factory.
  ui.selected=new Set();
