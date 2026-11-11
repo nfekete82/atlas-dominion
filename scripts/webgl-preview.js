@@ -1025,8 +1025,9 @@ stormButton.onclick=()=>setStormPreview(!atmosphere.stormPreview);
 setStormPreview(query.get('storm')==='1');
 const constructionRecovery=new SandforgeConstructionRecovery(game);
 const sound=new Soundscape();
-// Original adaptive ambient music is quieter than the cinematic weapon and
-// local German radio. All mixer buses load user settings before unlocking.
+// The user's original cinematic MP3 is streamed quietly through its own
+// music gain bus, with ducking for local German alerts and weapon effects.
+// Unlike the old 4-oscillator ambient synth it needs no continuous voices.
 const bootOptions=window.Sandforge3DMenu?.readOptions?.()??{};
 const savedVolume=(field,fallback)=>Number.isFinite(Number(bootOptions[field]))&&
  bootOptions[field]!==null&&bootOptions[field]!==undefined?
@@ -1034,10 +1035,8 @@ const savedVolume=(field,fallback)=>Number.isFinite(Number(bootOptions[field]))&
 sound.setVolume(savedVolume('masterVolume',.85));
 sound.setEffectsVolume(savedVolume('effectsVolume',.85));
 sound.setEngineSoundsEnabled(bootOptions.engineSoundsEnabled!==false);
-sound.setMusicVolume(savedVolume('musicVolume',.30));
-// Four sustained synth voices sound like an electrical drone on some speakers.
- // Keep all effects/radio enabled, but start the optional score only after opt-in.
- sound.setMusicEnabled(bootOptions.musicEnabled===true);
+sound.setMusicVolume(savedVolume('musicVolume',.22));
+sound.setMusicEnabled(bootOptions.musicEnabled!==false);
 sound.setEnabled(bootOptions.sound!==false);
 sound.bindGame(game);
 battlefield.effects=effects;
