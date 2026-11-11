@@ -497,7 +497,12 @@ export class TacticalAI {
   const g=this.g,s=this.state,c=s.commander??=newCampaign();refreshIntelligence(g,c);
   c.recon=c.recon.filter(t=>army.some(u=>u.id===t.unit));
   const recovering=new Set(s.recovering??[]),explorers=army.filter(u=>u.kind==='scout'&&u.id!==s.airlift?.heli);
-  if(!explorers.length&&army.filter(combat).length>=4){
+  // Large modern deserts use dedicated aircraft for reconnaissance. A lone
+  // Humvee was previously drafted after just four paid fighters, then driven
+  // deep into the player's base by fog-frontier exploration and ordered out
+  // at the next danger pulse. Keep mobile ground combat with the assault
+  // group and the home garrison; legacy maps retain their old scouting rules.
+  if(g.world.mapVersion<19&&!explorers.length&&army.filter(combat).length>=4){
    const rover=army.find(u=>u.kind==='rover'&&!s.group.includes(u.id)&&!recovering.has(u.id));if(rover)explorers.push(rover);
   }
   for(const u of explorers){
