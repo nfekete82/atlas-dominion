@@ -754,6 +754,31 @@ export class TacticalAI {
    }
   }
  }
+ /** Send paid counter specialists after the main campaign has assigned
+  * orders. Formerly an AA rocket only reacted in the offensive squad or once
+  * our headquarters was already invaded. A reserve soldier or bomber could
+  * stay idle despite a visibly hostile aircraft/tank.
+  * Only currently observable red-vision enemies, never hidden targets.
+  * Preserve recovering, withdrawn, parked and mid-bombing-run aircraft.
+  */
+ private dispatchObservedSpecialists(army:Unit[]):void{
+  const g=this.g,recovering=new Set(this.state.recovering??[]),
+   withdrawals=new Set(this.state.battle?.withdrawals.map(w=>w.unit)??[]);
+  const visible=g.units.filter(v=>v.owner===0&&v.hp>0&&!v.carrier&&
+   g.canSee(1,v)&&(unitSpec(v).flying||unitSpec(v).group==='Fahrzeuge'));
+  if(!visible.length)return;
+  for(const u of army){
+   if(!['rocket','bomber'].includes(u.kind)||u.hp<=0||u.carrier||
+      recovering.has(u.id)||withdrawals.has(u.id)||u.hold||
+      u.airfieldService||u.factoryService||u.bomberRun||
+      u.transport&&u.transport.phase!=='cruise')continue;
+   const target=selectObservedCounterTarget(u.kind as 'rocket'|'bomber',
+    u,visible,u.kind==='rocket'?unitSpec(u).sight+120:1100);
+   if(!target||u.orders[0]?.kind==='attack'&&
+      u.orders[0].target===target.id)continue;
+   g.command([u.id],{kind:'attack',x:target.x,y:target.y,target:target.id});
+  }
+ }
  /** Observed anti-air/anti-tank interception overrides generic attack-move
   * only for shoulder-rocket troops in the actual offensive squad.
   * Uses no unseen opponents and does not repurpose recovery/engineer orders. */
@@ -1212,6 +1237,7 @@ export class TacticalAI {
    const defense=this.localDefense(fighters,medics,intruders,home);
    const raiders=this.expansionRaid(fighters.filter(u=>!defense.has(u.id)),home);
    this.campaign(army,fighters.filter(u=>!defense.has(u.id)&&!raiders.has(u.id)),medics.filter(u=>!defense.has(u.id)),home);
+   this.dispatchObservedSpecialists(army);
    if(defense.size)campaignPhase(s.commander??=newCampaign(),'emergencyDefense',g.time);
    return;
   }
