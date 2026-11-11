@@ -22,11 +22,32 @@ export function servicePaint(palette,{seed=1,pattern='camo',repeat=3,metalness=.
  const mat=new THREE.MeshStandardMaterial({color:'#ffffff',map,metalness,roughness,side:THREE.DoubleSide});
  mat.userData.sandforgeServiceTexture=map;return mat;
 }
+/** A Three.js material.clone() JSON-serializes userData. Storing a live
+ * DataTexture there therefore creates a PLAIN OBJECT in the clone, not a
+ * disposable GPU texture. That previously crashed clearPlacement() with
+ * "map.dispose is not a function" after selecting a factory/airfield ghost,
+ * leaving every later building card unable to start placement.
+ * Ghosts share their source material.map ONLY until their original owned
+ * textures are explicitly disposed, never copy the ownership metadata. */
+export function previewServiceMaterial(source,{opacity=.5,color='#a7e4cc'}={}){
+ const clone=source.clone();
+ clone.color?.lerp(new THREE.Color(color),.14);
+ clone.transparent=true;clone.opacity=Math.min(source.opacity??1,opacity);
+ clone.depthWrite=false;clone.depthTest=true;
+ // Intentionally DO NOT copy source.userData.sandforgeServiceTexture.
+ clone.userData={sandforgePreviewMaterial:true,
+  sandforgePreviewValidColor:clone.color?.clone(),
+  sandforgePreviewInvalidColor:clone.color?.clone().lerp(new THREE.Color('#f1786d'),.66)};
+ return clone;
+}
 export function disposeServicePaint(root){
  const maps=new Set();
  root?.traverse?.(mesh=>{if(!mesh.isMesh)return;
-  for(const m of Array.isArray(mesh.material)?mesh.material:[mesh.material])
-   if(m?.userData?.sandforgeServiceTexture)maps.add(m.userData.sandforgeServiceTexture);
+  for(const m of Array.isArray(mesh.material)?mesh.material:[mesh.material]){
+   const texture=m?.userData?.sandforgeServiceTexture;
+   // Also tolerate older/cloned preview materials from existing game state.
+   if(texture?.isTexture&&typeof texture.dispose==='function')maps.add(texture);
+  }
  });
  for(const map of maps)map.dispose();
  return maps.size;
