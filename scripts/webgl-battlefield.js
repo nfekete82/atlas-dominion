@@ -23,7 +23,8 @@ import {selectedMaintenanceKind,serviceFootprintContains,maintenanceClickAllowed
 import {disposeOwnedMeshes,disposeTaggedMaterials} from '/webgl-resource-lifecycle.js';
 import {releaseBastionRevision} from '/webgl-bastion-lifecycle.js';
 import {selectedInfantryForTransport,selectedLoadedTransports,selectedTransportManifest} from '/webgl-transport-controls.js';
-import {pointerGestureIntent,submitConstruction,nearestEngineer,POINTER_CLICK_SLOP} from '/webgl-builder-input.js';
+import {pointerGestureIntent,submitConstruction,nearestEngineer,POINTER_CLICK_SLOP,PLACEMENT_CLICK_SLOP} from '/webgl-builder-input.js';
+import {wallLinePlacements,WALL_DRAG_MAX_SEGMENTS} from '/webgl-wall-line.js';
 import {sameKindVisibleUnits} from '/webgl-double-click-select.js';
 import {tracerWindow} from '/webgl-hit-response.js';
 import {applyFactionAccents} from '/webgl-faction-accents.js';
@@ -90,6 +91,7 @@ export class SandforgeBattlefield {
   const hologramSun=new THREE.DirectionalLight('#fff6e2',2.1);
   hologramSun.position.set(420,750,310);this.buildPreviewScene.add(hologramSun);
   this.buildPreview=null;this.previewKind=null;this.placementFacing=0;
+  this.wallLinePreview=null;
   this.buildHint=document.createElement('div');
   this.buildHint.id='sf3d-build-hint';this.buildHint.setAttribute('role','status');
   this.buildHint.style.cssText='position:fixed;z-index:18;pointer-events:none;display:none;min-width:156px;max-width:250px;padding:7px 10px;background:#14221ef0;border:1px solid #b5a177;color:#e7dbb7;font:bold 12px system-ui;box-shadow:0 5px 16px #0008';
@@ -649,6 +651,7 @@ export class SandforgeBattlefield {
   }).catch(error=>console.warn('Baupreview: vereinfachtes 3D-Modell',error));
  }
  clearPlacement(){
+  this.clearWallLinePreview();
   this.buildKind=null;this.previewKind=null;
   if(this.buildPreview){
    const preview=this.buildPreview;
@@ -685,6 +688,75 @@ export class SandforgeBattlefield {
    this.buildPreview=null;
   }
   if(this.buildHint)this.buildHint.style.display='none';
+ }
+ /** One InstancedMesh previews every wall segment: one draw call, hard capped. */
+ clearWallLinePreview(){
+  if(!this.wallLinePreview)return;
+  const mesh=this.wallLinePreview;
+  this.buildPreviewScene.remove(mesh);
+  mesh.geometry.dispose();mesh.material.dispose();
+  this.wallLinePreview=null;
+ }
+ wallLineAtPointer(startEvent,endEvent){
+  const start=this.terrainPoint(startEvent),end=this.terrainPoint(endEvent);
+  return wallLinePlacements(start,end);
+ }
+ updateWallLinePreview(start,endEvent){
+  const positions=this.wallLineAtPointer(start,endEvent);
+  if(!positions.length){this.clearWallLinePreview();return;}
+  if(!this.wallLinePreview){
+   const geometry=new THREE.BoxGeometry(108,37,31);
+   const material=new THREE.MeshBasicMaterial({
+    color:'#ffffff',transparent:true,opacity:.34,depthTest:false,depthWrite:false});
+   const mesh=new THREE.InstancedMesh(geometry,material,WALL_DRAG_MAX_SEGMENTS);
+   mesh.name='WallLinePlacementGhost';mesh.raycast=()=>{};
+   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+   this.wallLinePreview=mesh;this.buildPreviewScene.add(mesh);
+  }
+  const mesh=this.wallLinePreview,dummy=new THREE.Object3D();
+  let valid=0;
+  positions.forEach(({point,facing},i)=>{
+   const height=this.heightAt(point.x,point.y);
+   dummy.position.copy(this.pos(point.x,point.y,(Number.isFinite(height)?height:0)+24));
+   dummy.rotation.y=buildingFacingAngle(facing);dummy.updateMatrix();
+   mesh.setMatrixAt(i,dummy.matrix);
+   const affordable=this.game.credits[0]>=BUILDINGS.wall.cost*(i+1);
+   const ok=affordable&&!this.game.buildError(0,'wall',point,facing);
+   if(ok)valid++;
+   mesh.setColorAt(i,new THREE.Color(ok?'#75e5a8':'#fc7462'));
+  });
+  mesh.count=positions.length;mesh.instanceMatrix.needsUpdate=true;
+  if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;
+  if(this.buildPreview)this.buildPreview.visible=false;
+  this.buildHint.style.display='block';
+  this.buildHint.style.left=Math.min(endEvent.clientX+17,window.innerWidth-260)+'px';
+  this.buildHint.style.top=Math.min(endEvent.clientY+15,window.innerHeight-85)+'px';
+  this.buildHint.textContent='Sperrmauer: '+positions.length+' Segmente · '+
+   positions.length*BUILDINGS.wall.cost+' Credits · '+valid+' grün / '+
+   (positions.length-valid)+' rot · Loslassen zum Bauen';
+ }
+ buildWallLine(startEvent,endEvent,shift=false){
+  const positions=this.wallLineAtPointer(startEvent,endEvent);
+  this.clearWallLinePreview();
+  if(!positions.length){this.message('Mauerlinie außerhalb der Karte');return;}
+  const first=this.game.credits[0];
+  let built=0,failed=0,crew=[];
+  for(const site of positions){
+   const error=this.game.buildError(0,'wall',site.point,site.facing);
+   if(error){failed++;continue;}
+   const out=submitConstruction(this.game,'wall',site.point,this.selected,
+    site.facing,true);
+   if(out.base){built++;crew=out.workers;}else failed++;
+  }
+  if(built){
+   if(crew.length)this.selected=new Set(crew.map(u=>u.id));
+   this.selectedBase=null;this.panel.dataset.tab='buildings';
+   this.sound?.command?.();this.sync(true);
+   this.message(built+' Sperrmauer-Segmente beauftragt · '+
+    (first-this.game.credits[0])+' Credits'+
+    (failed?' · '+failed+' nicht baubar':''));
+  }else this.message('Keine Mauer baubar · Credits, Pioniere oder Gelände prüfen');
+  if(!shift)this.clearPlacement();
  }
  updatePlacementPreview(event){
   const ghost=this.buildPreview;if(!this.buildKind||!ghost)return;
@@ -1245,7 +1317,8 @@ export class SandforgeBattlefield {
     }
     this.selectedBase=null;
     this.beginPlacement(kind);this.attackMode=false;this.sound?.select?.();
-    this.message('Bauplatz wählen: '+BUILDINGS[kind].name+' · R: drehen · Shift: Aufträge anhängen');
+    this.message('Bauplatz wählen: '+BUILDINGS[kind].name+
+     (kind==='wall'?' · Linksklick oder Linie ziehen (60 pro Segment)':' · R: drehen · Shift: Aufträge anhängen'));
     this.drawInterface();return;
    }
    if(unit){
@@ -2195,6 +2268,12 @@ export class SandforgeBattlefield {
   if(!this.clickStart||event.button!==this.clickStart.button)return;
   const start=this.clickStart;
   const moved=Math.hypot(event.clientX-start.x,event.clientY-start.y);
+  if(event.button===0&&this.buildKind==='wall'&&moved>PLACEMENT_CLICK_SLOP){
+   this.clickStart=null;this.selectionBox.style.display='none';
+   this.buildWallLine({clientX:start.x,clientY:start.y},event,event.shiftKey);
+   return;
+  }
+  if(this.wallLinePreview)this.clearWallLinePreview();
   this.clickStart=null;this.selectionBox.style.display='none';
   const gesture=pointerGestureIntent({distance:moved,button:event.button,
    building:Boolean(this.buildKind),rally:this.rallyMode,strategic:this.strategicTargetMode});
@@ -2403,6 +2482,11 @@ export class SandforgeBattlefield {
    if(this.buildKind)this.updatePlacementPreview(e);
    const start=this.clickStart;
    if(!start||start.button!==0||!(e.buttons&1))return;
+   if(this.buildKind==='wall'&&
+     Math.hypot(e.clientX-start.x,e.clientY-start.y)>PLACEMENT_CLICK_SLOP){
+    this.updateWallLinePreview({clientX:start.x,clientY:start.y},e);
+    return;
+   }
    if(this.buildKind||this.rallyMode||this.strategicTargetMode)return;
    if(Math.hypot(e.clientX-start.x,e.clientY-start.y)<POINTER_CLICK_SLOP)return;
    Object.assign(this.selectionBox.style,{
@@ -2419,6 +2503,7 @@ export class SandforgeBattlefield {
   const resetPointerGesture=()=>{
    this.clickStart=null;
    this.selectionBox.style.display='none';
+   this.clearWallLinePreview();
    if(this.buildPreview)this.buildPreview.visible=false;
    this.buildHint.style.display='none';
   };
