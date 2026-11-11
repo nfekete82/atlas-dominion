@@ -24,14 +24,14 @@ export function installClassicHud(){
  <section class="radar hud frame" aria-label="Minikarte">
   <span class="compass west">W</span><span class="compass east">E</span>
   <canvas id="sf-map" width="224" height="224" aria-label="Minikarte – Klicken verschiebt die Kamera"></canvas>
-  <div class="radar-caption"><span id="sf-exploration">WÜSTENFRONT / 3D</span><span id="sf-sectors">0 SEKTOREN</span></div>
+  <div class="radar-caption"><span id="sf-exploration">WÜSTENFRONT / 3D</span><button type="button" class="sf-sector-shortcut" data-action="sectors" title="Sektorenübersicht öffnen"><span id="sf-sectors">0 SEKTOREN</span></button></div>
  </section>
  <section class="catalog hud frame" aria-label="Einheiten und Gebäude">
   <nav class="catalog-tabs" id="sf-tabs" aria-label="Katalog">
-   <button data-tab="units" aria-pressed="true">EINHEITEN</button>
-   <button data-tab="buildings" aria-pressed="false">GEBÄUDE</button>
-   <button data-tab="territories" aria-pressed="false">SEKTOREN</button>
-   <button data-tab="research" aria-pressed="false" hidden>FORSCHUNG</button>
+   <button data-tab="buildings" aria-pressed="true">GEBÄUDE</button>
+   <button data-tab="infantry" aria-pressed="false">INFANTERIE</button>
+   <button data-tab="vehicles" aria-pressed="false">FAHRZEUGE</button>
+   <button data-tab="research" aria-pressed="false">FORSCHUNG</button>
   </nav>
   <div class="catalog-scroll" id="sf-actions" aria-label="Einheiten, Gebäude und Territorien"></div>
   <section class="production hud frame sf-production-panel" id="sf-production" aria-label="Produktion und Warteschlange">
@@ -157,6 +157,6 @@ export function installClassicHud(){
   panel.dataset.tab=button.dataset.tab;
   panel.dispatchEvent(new CustomEvent('sandforge-tabchange',{detail:{tab:button.dataset.tab}}));
  }));
- panel.dataset.tab='units';
+ panel.dataset.tab='buildings';
  return panel;
 }
