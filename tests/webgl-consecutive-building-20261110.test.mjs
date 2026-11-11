@@ -140,8 +140,8 @@ test('if the selected pioneer is trapped behind a factory, retry another reachab
  const result=submitConstruction(game,'generator',{x:500,y:500},new Set([selected.id]));
  assert.ok(result.base);
  assert.equal(result.append,false);
- assert.deepEqual(calls.map(t=>t.ids),[[19,22],[19],[22]],
-  'shared crew tries first, then individual paths when the group is blocked');
+ assert.deepEqual(calls.map(t=>t.ids),[[19],[22]],
+  'retry another pioneer when the first cannot approach without grouping them');
 });
 
 test('shift explicitly preserves selected pioneer queue rather than stealing another worker',()=>{
