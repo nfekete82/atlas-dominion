@@ -27,6 +27,7 @@ import {pointerGestureIntent,submitConstruction,nearestEngineer,POINTER_CLICK_SL
 import {sameKindVisibleUnits} from '/webgl-double-click-select.js';
 import {tracerWindow} from '/webgl-hit-response.js';
 import {applyFactionAccents} from '/webgl-faction-accents.js';
+import {attachTeamMarkings,detachTeamMarkings} from '/webgl-team-markings.js';
 import {SandforgeConstructionPresentation} from '/webgl-construction.js';
 import {createBastionCaptureBar,updateBastionCaptureBar} from '/webgl-bastion-capture.js';
 import {snapToPlayableEdge,worldToMinimap} from '/webgl-map-edges.js';
@@ -392,6 +393,7 @@ export class SandforgeBattlefield {
     entry.modelFootprint=Math.max(dims.x,dims.z)*visualScale;
     applyFactionAccents(entry,{kind:entry.kind,owner:entry.owner},type,
      entry.modelFootprint,entry.modelHeight);
+    if(type==='unit')attachTeamMarkings(entry,entry.owner,entry.kind,entry.modelFootprint,entry.modelHeight);
     entry.visualBaseY=model.position.y;entry.visualBaseZ=model.position.z;
     if(type==='building'){
      this.attachBuildingMotion(entry,data);
@@ -472,6 +474,7 @@ export class SandforgeBattlefield {
   const height=unit?(['infantry','medic','engineer','heavy','rocket'].includes(entity.kind)?43:55)*visualUnitScale(entity.kind):
    Math.max(65,footprint*.55);
   applyFactionAccents(entry,entity,type,footprint,height);
+  if(unit)attachTeamMarkings(entry,entity.owner,entity.kind,footprint,height);
   if(type==='unit'&&['tank','artillery'].includes(entity.kind))this.installTankRig(entry,placeholder);
   this.scheduleDetail(entry,entity,type);return entry;
  }
@@ -737,7 +740,10 @@ export class SandforgeBattlefield {
    const oldEntry=this.units.get(u.id);if(oldEntry)oldEntry.productionMotion=null;
    let entry=this.units.get(u.id);
    if(!entry){entry=this.spawnNode(u,'unit');this.units.set(u.id,entry);}
-   if(entry.factionOwner!==u.owner)applyFactionAccents(entry,u,'unit');
+   if(entry.factionOwner!==u.owner){
+    applyFactionAccents(entry,u,'unit');
+    attachTeamMarkings(entry,u.owner,u.kind,entry.modelFootprint??(UNITS[u.kind]?.width??60),entry.modelHeight??42);
+   }
    entry.lastAliveAt=this.game.time;
    // Interpolate between authoritative 20 Hz snapshots for smooth 60–120 FPS
    // visuals. Simulation, pathfinding and orders use true u.x/u.y only.
@@ -780,6 +786,7 @@ export class SandforgeBattlefield {
      this.game.time>=e.lastAliveAt&&this.game.time-e.lastAliveAt<=.20;
     const removal=recentDeath?{id,kind:e.kind,owner:e.owner,hp:0}:stillPresent;
     this.presentation.remove(e,removal);
+    detachTeamMarkings(e);
     // Transfer the actual PBR aircraft asset BEFORE the actor node is freed.
     // Ownership moves to CombatEffects, which disposes only actor-owned
     // materials after the crash. Never substitute untextured crash geometry.
