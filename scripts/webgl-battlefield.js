@@ -1122,7 +1122,9 @@ export class SandforgeBattlefield {
   const base=game.bases.find(b=>b.id===this.selectedBase&&b.owner===0&&b.hp>0&&b.buildRemaining<=0);
   const producer=base&&unitKinds.some(kind=>UNITS[kind].producers.includes(base.kind))?base:null;
   const research=Boolean(base&&base.kind==='research');
-  return {engineer,canBuild,producer,research,preferred:engineer?'buildings':producer?'units':research?'research':'territories'};
+  // Selection affects command buttons and the unit portrait, never the
+  // global production catalogue. Four permanent tabs follow player intent.
+  return {engineer,canBuild,producer,research,preferred:'buildings'};
  }
  buildInterface(){
   this.panel=installClassicHud();
@@ -1208,6 +1210,12 @@ export class SandforgeBattlefield {
    if(action==='select-engineer'){
     this.selectEngineer();return;
    }
+   if(action==='sectors'){
+    // Sectors remain available from the radar caption, without taking
+    // space from the four production tabs.
+    this.panel.dataset.tab='territories';
+    this.drawInterface();return;
+   }
    if(action==='interceptor-rearm'){
     this.message(this.game.rearmInterceptor(this.selectedBase)?
       'Raketenabwehr nachgeladen: '+INTERCEPTOR_MAX_AMMO+' Raketen':
@@ -1231,13 +1239,25 @@ export class SandforgeBattlefield {
     this.drawInterface();return;
    }
    if(unit){
-    const producer=this.catalogContext().producer;
-    if(!producer||!UNITS[unit].producers.includes(producer.kind)){
-     this.message('Zum Ausbilden das passende Produktionsgebäude auswählen');return;
+    // Global production: the selected actor might be a tank, engineer,
+    // factory or nothing. The simulation chooses the correct completed
+    // structure with the shortest real queue. Never select a building merely
+    // to produce a soldier, vehicle, helicopter or bomber.
+    const producer=this.game.producer(0,unit);
+    if(!producer){
+     const source=UNITS[unit].producers;
+     const existing=this.game.bases.filter(b=>b.owner===0&&b.hp>0&&
+      source.includes(b.kind));
+     const complete=existing.some(b=>b.buildRemaining<=0);
+     this.message(complete?'Produktionswarteschlange voll oder Feldkommando fehlt':
+      existing.length?'Produktionsgebäude noch im Bau':
+      'Benötigt '+source.map(k=>BUILDINGS[k].name).join(' oder '));
+     this.drawInterface();return;
     }
-    if(this.game.recruit(producer.id,unit))this.message(UNITS[unit].name+' in Auftrag');
-    else this.message('Nicht möglich: Gebäude, Kapazität oder Credits prüfen');
-    this.drawInterface();
+    if(this.game.recruit(producer.id,unit))
+     this.message(UNITS[unit].name+' in '+BUILDINGS[producer.kind].name+' in Auftrag');
+    else this.message('Nicht möglich: Kapazität, Warteschlange oder Credits prüfen');
+    this.drawInterface();return;
    }
    if(button.dataset.territory!==undefined){
     const t=this.game.territories.find(t=>t.id===Number(button.dataset.territory));
@@ -1273,12 +1293,14 @@ export class SandforgeBattlefield {
    if(action==='select-all'){this.selected=new Set(this.game.units.filter(u=>u.hp>0&&u.owner===0&&!u.carrier).map(u=>u.id));this.selectedBase=null;this.drawInterface();}
   });
   this.panel.addEventListener('sandforge-tabchange',event=>{
-   const available={buildings:true,units:Boolean(this.catalogContext().producer),territories:true,research:this.catalogContext().research};
+   const available={buildings:true,infantry:true,vehicles:true,research:true,territories:true};
    if(!available[event.detail.tab])return;
    this.panel.querySelector('#sf-actions').scrollTop=0;
-   const descriptions={units:'Wähle einen Produktionsauftrag. Gebäude schalten neue Einheiten frei.',
+   const descriptions={
     buildings:'Gebäude auswählen und einen freien Bauplatz auf der Karte anklicken.',
-    research:'Forschungstechnologie wählen. Neue Boni gelten auch für bereits vorhandene Truppen.',
+    infantry:'Soldaten und Pioniere direkt aus dem globalen Menü ausbilden.',
+    vehicles:'Fahrzeuge und Luftunterstützung direkt produzieren.',
+    research:'Globale Technologien erforschen, sobald das Forschungszentrum fertig ist.',
     territories:'Kontrollpunkt wählen, um die Kamera zum Sektor zu bewegen.'};
    this.panel.querySelector('#sf-catalog-detail').textContent=descriptions[event.detail.tab]??'';
    // Tab clicks update the rendered actions NOW, even when a factory is
@@ -1324,15 +1346,12 @@ export class SandforgeBattlefield {
   const g=this.game,view=this.panel,actions=view.querySelector('#sf-actions');
   const context=this.catalogContext();
   const selectionKey=[...this.selected].sort((a,b)=>a-b).join(',')+'|'+String(this.selectedBase)+'|'+Boolean(context.producer);
-  // The building tab never vanishes while a factory/airfield is selected.
-  // If no engineer survives, clicking a building explains how to recruit one.
-  const available={units:Boolean(context.producer),buildings:true,territories:true,research:context.research};
-  // Never jump from manually selected "Gebäude" back to "Einheiten"
-  // simply because a factory or airfield becomes selected/completes.
-  // Preserve the player's tab until it is genuinely unavailable.
-  if(!this.catalogSelectionKey||!available[view.dataset.tab]||
-    (context.engineer&&view.dataset.tab==='units')){
-   view.dataset.tab=context.preferred;
+  // The global HUD always has the same four tabs. Choosing a unit,
+  // factory, airfield or research building NEVER changes the current tab.
+  // The sector list is additionally reachable via the radar shortcut.
+  const available={buildings:true,infantry:true,vehicles:true,research:true,territories:true};
+  if(!available[view.dataset.tab]){
+   view.dataset.tab='buildings';
    actions.scrollTop=0;actions.scrollLeft=0;
   }
   this.catalogSelectionKey=selectionKey;
@@ -1362,10 +1381,19 @@ export class SandforgeBattlefield {
     '<span class="card-meta"><span class="card-name">'+plain(spec.name)+
     '</span><span class="card-cost">'+spec.cost+'</span></span></button>';
   }).join('');
-  const producers=[['headquarters','HAUPTQUARTIER'],['barracks','KASERNE'],['factory','FAHRZEUGFABRIK'],['airfield','FLUGFELD']];
-  const roster=producers.map(([kind,label])=>
-   '<section class="sf-roster-section" data-sf-producer="'+kind+'"><h2>'+label+'</h2><div class="catalog-grid">'+
-   cards(unitKinds.filter(k=>UNITS[k].producers.includes(kind)),'unit')+'</div></section>').join('');
+  const roster=(producers)=>producers.map(([kind,label])=>{
+   const matching=g.bases.filter(b=>b.owner===0&&b.kind===kind&&b.hp>0);
+   const ready=matching.some(b=>b.buildRemaining<=0);
+   const state=ready?'BEREIT':matching.length?'IM BAU':'NICHT GEBAUT';
+   return '<section class="sf-roster-section" data-sf-producer="'+kind+
+    '" data-sf-ready="'+ready+'"><h2>'+label+
+    '<small class="sf-source-state">'+state+'</small></h2><div class="catalog-grid">'+
+    cards(unitKinds.filter(k=>UNITS[k].producers.includes(kind)),'unit')+'</div></section>';
+  }).join('');
+  const infantryRoster=roster([['headquarters','FELDKOMMANDO · PIONIERE'],
+   ['barracks','KASERNE · INFANTERIE']]);
+  const vehicleRoster=roster([['factory','FAHRZEUGFABRIK'],
+   ['airfield','FLUGFELD · LUFTUNTERSTÜTZUNG']]);
   const tiles=this.game.territories.map(t=>{
    const label=t.owner===0?'BLAU':t.owner===1?'ROT':'NEUTRAL';
    const cls=t.owner===0?'blue':t.owner===1?'red':'unknown';
@@ -1389,9 +1417,10 @@ export class SandforgeBattlefield {
     '<small class="sf-tech-meta">'+tech.cost+' ◆ · '+tech.seconds+' s</small>'+
     '<span class="sf-tech-progress" aria-hidden="true"></span></span></button>';
   }).join('');
-  const markup='<div class="sf-group" data-sf-group="units">'+roster+'</div>'+
-   '<div class="sf-group" data-sf-group="buildings"><div class="catalog-grid">'+
+  const markup='<div class="sf-group" data-sf-group="buildings"><div class="catalog-grid">'+
    cards(buildingKinds.filter(kind=>kind!=='interceptor'||INTERCEPTOR_ENABLED),'building')+'</div></div>'+
+   '<div class="sf-group" data-sf-group="infantry">'+infantryRoster+'</div>'+
+   '<div class="sf-group" data-sf-group="vehicles">'+vehicleRoster+'</div>'+
    '<div class="sf-group" data-sf-group="research"><div class="sf-research-grid">'+upgrades+'</div></div>'+
    '<div class="sf-group" data-sf-group="territories"><h2>KONTROLLPUNKTE</h2>'+tiles+'</div></div>';
   if(this.previousActionsMarkup!==markup){
@@ -1399,16 +1428,18 @@ export class SandforgeBattlefield {
    actions.innerHTML=markup;this.previousActionsMarkup=markup;
    actions.scrollTop=scroll;
   }
-  // The DOM keeps the complete catalogue for fast updates and icon caching,
-  // but only the selected producer's section can be viewed or activated.
-  for(const section of actions.querySelectorAll('[data-sf-producer]'))
-   section.hidden=!context.producer||section.dataset.sfProducer!==context.producer.kind;
+  // All owned production facilities are accessible at once. Unbuilt ones
+  // retain visible grey cards so their unlock condition is discoverable.
+  // Neither unit selection nor selectedBase hides any production section.
   const techState=g.research[0];
+  const researchOnline=g.bases.some(b=>b.owner===0&&b.kind==='research'&&
+   b.hp>0&&b.buildRemaining<=0);
   for(const button of actions.querySelectorAll('[data-upgrade]')){
    const kind=button.dataset.upgrade,tech=UPGRADES[kind];
    const researched=techState.completed.includes(kind);
    const inProgress=techState.active===kind;
-   const mayStart=canResearchUpgrade(techState,kind)&&g.credits[0]>=tech.cost;
+   const mayStart=researchOnline&&canResearchUpgrade(techState,kind)&&
+    g.credits[0]>=tech.cost;
    button.disabled=researched||inProgress||!mayStart;
    button.classList.toggle('sf-tech-done',researched);
    button.classList.toggle('sf-tech-active',inProgress);
@@ -1418,7 +1449,8 @@ export class SandforgeBattlefield {
    button.title=tech.description+(researched?' · Erforschung abgeschlossen':
     inProgress?' · Noch '+Math.ceil(techState.remaining)+' Sekunden':
     tech.requires&&!techState.completed.includes(tech.requires)?
-    ' · Benötigt '+UPGRADES[tech.requires].name:'');
+    ' · Benötigt '+UPGRADES[tech.requires].name:
+    !researchOnline?' · Forschungszentrum erforderlich':'');
   }
   const generatorLimitReached=g.bases.filter(b=>b.owner===0&&b.kind==='generator'&&b.hp>0).length>=MAX_GENERATORS_PER_FACTION;
   const constructed=new Map(g.bases.filter(b=>b.owner===0&&b.hp>0).map(b=>[b.kind,b]));
@@ -1428,21 +1460,22 @@ export class SandforgeBattlefield {
   for(const button of actions.querySelectorAll('button[data-unit],button[data-build]')){
    const kind=button.dataset.unit??button.dataset.build;
    const spec=button.dataset.unit?UNITS[kind]:BUILDINGS[kind];
-   const correctProducer=context.producer&&UNITS[kind]?.producers.includes(context.producer.kind);
+   const producer=button.dataset.unit?g.producer(0,kind):null;
+   const validProductionSite=button.dataset.unit&&g.bases.some(b=>b.owner===0&&
+    b.hp>0&&b.buildRemaining<=0&&UNITS[kind].producers.includes(b.kind));
    const ownedUnique=Boolean(button.dataset.build&&['headquarters','barracks','factory','airfield','research','silo'].includes(kind)&&constructed.has(kind));
    const ownedSite=constructed.get(kind);
    const interceptorLimit=kind==='interceptor'&&g.bases.filter(b=>b.owner===0&&b.kind==='interceptor'&&b.hp>0).length>=2;
    const ownedReason=ownedUnique?(ownedSite.buildRemaining>0?'Bereits im Bau':'Bereits gebaut'):'';
    const unavailable=button.dataset.unit
-    ?!correctProducer||g.needsHeadquarters(0)||context.producer.queue.length>=8||
-      g.credits[0]<spec.cost||g.count(0)+g.queued(0)>=RULES.capacity
+    ?!producer||g.credits[0]<spec.cost||
+      g.count(0)+g.queued(0)>=RULES.capacity
     :g.credits[0]<spec.cost||!g.hasHeadquarters(0)&&kind!=='headquarters'||
       kind==='generator'&&generatorLimitReached||ownedUnique||interceptorLimit;
    const requirement=button.dataset.unit
-    ?(!context.producer?'Produktionsgebäude auswählen':
-       !correctProducer?'Dieses Gebäude produziert diese Einheit nicht':
-       g.needsHeadquarters(0)?'Feldkommando erforderlich':
-       context.producer.queue.length>=8?'Warteschlange voll':
+    ?(g.needsHeadquarters(0)?'Feldkommando erforderlich':
+       !validProductionSite?'Benötigt '+UNITS[kind].producers.map(k=>BUILDINGS[k].name).join(' oder '):
+       !producer?'Warteschlange voll':
        g.credits[0]<spec.cost?'Zu wenig Credits':
        g.count(0)+g.queued(0)>=RULES.capacity?'Einheitenlimit erreicht':'')
     :(ownedReason?ownedReason:kind==='generator'&&generatorLimitReached?'Maximal '+MAX_GENERATORS_PER_FACTION+' Energiekerne pro Fraktion':
