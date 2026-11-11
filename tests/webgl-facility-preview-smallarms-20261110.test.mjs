@@ -163,3 +163,85 @@ test('airfield selection no longer hides the building catalogue if a pioneer sur
    if(game.buildError(0,'generator',{x,y})===null)spot={x,y};
  assert.ok(spot,'a generator remains buildable after constructing an airfield');
 });
+
+
+test('fuel drums, loading ramps and desert service paving use modeled geometry and real albedo',()=>{
+ const airport=createAirfieldServiceYard();
+ const expected=[
+  ['AirfieldFuelServiceTank','CylinderGeometry'],
+  ['AirfieldFuelTankSteelBand','CylinderGeometry'],
+  ['AirfieldFuelValve','CylinderGeometry'],
+  ['AirfieldFuelServiceContainer','BoxGeometry'],
+  ['AirfieldFuelServicePad','BoxGeometry'],
+  ['AirfieldParkingRampGrip_0','BoxGeometry'],
+  ['AirfieldParkingRampTread_0','BoxGeometry'],
+  ['AirfieldParkingRampGrip_1','BoxGeometry'],
+  ['AirfieldAircraftParkingPad_0','BoxGeometry']
+ ];
+ for(const [name,type] of expected){
+  const mesh=airport.getObjectByName(name);
+  assert.ok(mesh,'missing textured fuel/apron detail: '+name);
+  assert.equal(mesh.geometry.type,type,name+' needs actual modeled geometry');
+  assert.ok(mesh.material.map?.isDataTexture,name+' still has placeholder solid paint');
+  assert.ok(mesh.material.userData.sandforgeServiceTexture,
+   name+' texture must be tracked for GPU cleanup');
+ }
+ assert.ok(airport.getObjectByName('AirfieldFuelTankEndCap'));
+ assert.ok(airport.getObjectByName('AirfieldFuelPumpDisplay'));
+ assert.ok(airport.getObjectByName('AirfieldFuelPipeManifold'));
+ disposeAirfieldServiceYard({airfieldServiceYard:airport});
+});
+
+test('actual HUD factory selection cannot prevent later building card clicks',()=>{
+ const src=source('scripts/webgl-battlefield.js');
+ const start=src.indexOf(' buildInterface(){'),end=src.indexOf('\n saveGame(){',start);
+ assert.ok(start>0&&end>start);
+ const listeners=new Map(),actions={scrollTop:40},detail={textContent:''};
+ const mini={addEventListener(){}};
+ const panel={dataset:{tab:'units'},addEventListener:(name,fn)=>listeners.set(name,fn),
+  querySelector(selector){
+   if(selector==='#sf-map')return mini;
+   if(selector==='#sf-actions')return actions;
+   if(selector==='#sf-catalog-detail')return detail;
+   throw Error('unexpected HUD selector '+selector);
+  }};
+ const BUILDINGS={barracks:{name:'Kaserne'},generator:{name:'Energiekern'}};
+ const fakeCtor=new Function('installClassicHud','BUILDINGS','INTERCEPTOR_ENABLED',
+  'return class TestHUD {'+src.slice(start,end)+'}');
+ const Fake=fakeCtor(()=>panel,BUILDINGS,true);
+ const ui=new Fake();
+ const calls=[];
+ ui.sound={enabled:false,select(){}};
+ ui.selectedBase=100; // The user has selected the completed factory.
+ ui.selected=new Set();
+ ui.catalogContext=()=>({engineer:false,canBuild:true,producer:{id:100,kind:'factory'}});
+ ui.selectEngineer=()=>{calls.push('engineer');ui.selectedBase=null;return {id:12}};
+ ui.beginPlacement=kind=>{calls.push('placement:'+kind);ui.buildKind=kind};
+ ui.drawInterface=()=>{calls.push('draw')};
+ ui.message=message=>{calls.push('message:'+message)};
+ ui.buildInterface();
+ assert.ok(listeners.has('sandforge-tabchange'));
+ assert.ok(listeners.has('click'));
+ panel.dataset.tab='buildings';
+ listeners.get('sandforge-tabchange')({detail:{tab:'buildings'}});
+ assert.ok(calls.includes('draw'),'tab switch must repaint immediately');
+ assert.equal(actions.scrollTop,0);
+ const click=kind=>listeners.get('click')({
+  target:{closest:()=>({dataset:{build:kind}})}
+ });
+ click('generator');
+ assert.equal(ui.buildKind,'generator');
+ assert.equal(panel.dataset.tab,'buildings');
+ assert.equal(ui.selectedBase,null);
+ assert.ok(calls.includes('engineer'));
+ assert.ok(calls.includes('placement:generator'));
+ // The second card must replace the first placement, even if a factory was
+ // reselected in between. No change to the producer's unit queue.
+ ui.selectedBase=100;click('barracks');
+ assert.equal(ui.buildKind,'barracks');
+ assert.equal(panel.dataset.tab,'buildings');
+ assert.ok(calls.includes('placement:barracks'));
+ assert.match(src,/const available=\{units:Boolean\(context\.producer\),buildings:true/);
+ assert.ok(!src.includes(':!context.canBuild||g.credits[0]<spec.cost'),
+  'missing pioneer must never disable every building tile');
+});
