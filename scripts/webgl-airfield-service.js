@@ -342,11 +342,18 @@ export function updateAirfieldServiceYard(entry,base,units,time,dt){
   const gate=group.userData['bay'+bay];
   const aircraft=units.find(u=>u.hp>0&&u.airfieldService?.baseId===base.id&&u.airfieldService?.bay===bay);
   const phase=aircraft?.airfieldService?.phase;
-  const target=phase&&phase!=='approach'&&phase!=='landing'?1:0;
+  // Start opening while the bomber is still landing. The shutters must
+  // be fully clear before ground taxi reaches the entrance.
+  const target=phase&&phase!=='approach'?1:0;
   gate.open+=(target-gate.open)*Math.min(1,Math.max(0,dt)*2.5);
   // The two halves physically slide sideways into reinforced wall pockets.
   gate.left.position.x=gate.cx-27-28*gate.open;
   gate.right.position.x=gate.cx+27+28*gate.open;
+  // A sideways split alone leaves only a 58-unit slot, narrower than
+  // the bomber's 107-unit wings. Retract both corrugated doors up into
+  // the fascia so the FULL physical entrance becomes unobstructed.
+  gate.left.scale.y=gate.right.scale.y=1-.94*gate.open;
+  gate.left.position.y=gate.right.position.y=36+42*gate.open;
   gate.sparks.visible=phase==='repair';
   if(gate.sparks.visible){
    gate.sparks.children.forEach((spark,i)=>{
