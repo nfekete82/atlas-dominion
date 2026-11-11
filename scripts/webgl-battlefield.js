@@ -15,7 +15,7 @@ import {createBuildingYard,disposeBuildingYard} from '/webgl-building-yard.js';
 import {createAirfieldServiceYard,conformAirfieldSurface,updateAirfieldServiceYard,hideOldAirfieldHangar,disposeAirfieldServiceYard} from '/webgl-airfield-service.js';
 import {createFactoryServiceYard,updateFactoryServiceYard,disposeFactoryServiceYard} from '/webgl-factory-service.js';
 import {disposeServicePaint} from '/webgl-service-materials.js';
-import {createVehicleSelectionRing} from '/webgl-selection-ring.js';
+import {createSegmentedSelectionRing} from '/webgl-selection-ring.js';
 import {serviceVisualGround,approachGroundHeight} from '/webgl-service-grounding.js';
 import {factoryRepairPoint} from '/src/reborn/factory-maintenance.js';
 import {selectedMaintenanceKind,serviceFootprintContains} from '/webgl-maintenance-input.js';
@@ -504,26 +504,62 @@ export class SandforgeBattlefield {
   placeholder.visible=false;
   group.userData.previewPlaceholder=placeholder;
   group.add(placeholder);
-  // The build cursor shows ONLY a faint footprint and schematic wireframe.
-  // Never render the final authored building in the placement overlay.
+  // Schematic FOUNDATION + SCAFFOLD, never a finished building. The
+  // old faint 1px box was almost invisible against orange desert dunes.
+  // Real, translucent 3D beams remain legible at tactical camera zoom.
   const guides=new THREE.Group();guides.name='ConstructionPlacementGuides';
-  const groundMat=new THREE.MeshBasicMaterial({color:'#75d4b8',
-   transparent:true,opacity:.0715,depthWrite:false,depthTest:false,
+  const groundMat=new THREE.MeshBasicMaterial({color:'#92e4cd',
+   transparent:true,opacity:.15,depthWrite:false,depthTest:false,
    side:THREE.DoubleSide});
-  const lineMat=new THREE.LineBasicMaterial({color:'#7fe7ce',
-   transparent:true,opacity:.234,depthWrite:false,depthTest:false});
-  const guideBox=(w,h,d,x=0,z=0)=>{
+  const lineMat=new THREE.LineBasicMaterial({color:'#a8f6e6',
+   transparent:true,opacity:.46,depthWrite:false,depthTest:false});
+  const frameMat=new THREE.MeshBasicMaterial({color:'#b3ffe6',
+   transparent:true,opacity:.43,depthWrite:false,depthTest:false,
+   side:THREE.DoubleSide});
+  group.userData.previewGuideMaterials={groundMat,lineMat,frameMat};
+  const beam=(w,h,d,x,y,z)=>{
+   const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),frameMat);
+   mesh.position.set(x,y,z);mesh.renderOrder=1011;
+   mesh.castShadow=false;mesh.receiveShadow=false;mesh.raycast=()=>{};
+   guides.add(mesh);return mesh;
+  };
+  const guidePad=(w,d,x=0,z=0)=>{
    const ground=new THREE.Mesh(new THREE.PlaneGeometry(w,d),groundMat);
-   ground.position.set(x,2,z);ground.rotation.x=-Math.PI/2;
-   ground.renderOrder=1009;guides.add(ground);
+   ground.position.set(x,2.4,z);ground.rotation.x=-Math.PI/2;
+   ground.renderOrder=1009;ground.raycast=()=>{};guides.add(ground);
+   const margin=1.4;
+   beam(w,2.8,3,x,3,z-d*.5+margin);
+   beam(w,2.8,3,x,3,z+d*.5-margin);
+   beam(3,2.8,d,x-w*.5+margin,3,z);
+   beam(3,2.8,d,x+w*.5-margin,3,z);
+  };
+  const guideBox=(w,h,d,x=0,z=0)=>{
+   guidePad(w,d,x,z);
    const lines=new THREE.LineSegments(
     new THREE.EdgesGeometry(new THREE.BoxGeometry(w,h,d)),lineMat);
-   lines.position.set(x,h*.5,z);lines.renderOrder=1010;guides.add(lines);
+   lines.position.set(x,h*.5+3,z);lines.renderOrder=1010;
+   lines.raycast=()=>{};guides.add(lines);
+   // Four scaffold poles plus a partial middle-level cross-beam outline.
+   // No finished roof, doors or machinery in the pre-build hologram.
+   const t=Math.max(2.8,Math.min(5.2,w*.028));
+   for(const sx of [-1,1])for(const sz of [-1,1])
+    beam(t,h,t,x+sx*(w*.5-t),h*.5+3,z+sz*(d*.5-t));
+   for(const sz of [-1,1])
+    beam(w,t,t,x,3+h*.61,z+sz*(d*.5-t));
+   for(const sx of [-1,1])
+    beam(t,t,d,x+sx*(w*.5-t),3+h*.61,z);
   };
   if(kind==='airfield'){
-   guideBox(116,95,185,-151,-77);guideBox(116,95,185,-26,-77);
-  }else guideBox(spec.width*.72,Math.max(30,spec.width*.46),
+   guideBox(116,95,185,-151,-77);
+   guideBox(116,95,185,-26,-77);
+   guidePad(141,600,132,105);
+   // The control tower is visible as an unfinished narrow frame on the left.
+   guideBox(48,74,52,-298,-89);
+  }else{
+   guideBox(spec.width*.72,Math.max(30,spec.width*.46),
     spec.width*.57);
+   if(kind==='factory')guideBox(118,54,125,192,45);
+  }
   group.add(guides);group.userData.previewGuides=guides;
   // Ghost and completed building use the exact same site dressing and
   // functional service meshes, including the runway and hydraulic lifts.
@@ -617,6 +653,14 @@ export class SandforgeBattlefield {
   const valid=!error&&engineer;
   const ring=ghost.children.find(x=>x.geometry?.type==='RingGeometry');
   if(ring)ring.material.color.set(valid?'#87efb5':'#ff796b');
+  // Mark invalid site scaffolds, not just the small footprint circle.
+  const guideMaterials=ghost.userData.previewGuideMaterials;
+  if(guideMaterials){
+   const color=valid?'#a8f6e6':'#ffad99';
+   guideMaterials.frameMat.color.set(color);
+   guideMaterials.lineMat.color.set(color);
+   guideMaterials.groundMat.color.set(valid?'#92e4cd':'#ff937c');
+  }
   this.buildHint.style.display='block';
   this.buildHint.style.left=Math.max(4,Math.min(event.clientX+17,window.innerWidth-265))+'px';
   this.buildHint.style.top=Math.max(4,Math.min(event.clientY+15,window.innerHeight-85))+'px';
@@ -970,13 +1014,11 @@ export class SandforgeBattlefield {
    if(!unit||unit.hp<=0)continue;
    let ring=this.selectedRings.get(id);
    if(!ring){
-    // Ground vehicles: chunkier, semitransparent segmented marker with real
-    // empty gaps; infantry and aircraft retain their continuous ring.
+    // Same subtle segmented selection marker for infantry, armor and
+    // aircraft. The dashes are actual separated rectangles, not a solid
+    // torus; the ground texture remains visible through the 27%-opaque ring.
     const radius=selectionRingRadius(unitSpec(unit));
-    ring=unitSpec(unit).group==='Fahrzeuge'
-     ?createVehicleSelectionRing(radius)
-     :new THREE.Mesh(new THREE.TorusGeometry(radius,2.6,6,56),
-      new THREE.MeshBasicMaterial({color:'#79ecf9',depthWrite:false,transparent:true,opacity:.97}));
+    ring=createSegmentedSelectionRing(radius);
     ring.rotation.x=-Math.PI/2;ring.renderOrder=9;this.scene.add(ring);
     this.selectedRings.set(id,ring);
    }
