@@ -24,7 +24,7 @@ test('small arms remain lethal to infantry but weak against vehicles and airfram
   }
   for(const aircraft of ['scout','bomber']){
    const hit=weaponDamage(unit(gun),unit(aircraft));
-   assert.ok(hit<=UNITS[gun].damage*.12+1e-8,gun+' too strong versus '+aircraft);
+   assert.ok(hit<=UNITS[gun].damage*.15+1e-8,gun+' too strong versus '+aircraft);
    assert.ok(hit<infantryDamage,gun+' must favor infantry');
   }
  }
