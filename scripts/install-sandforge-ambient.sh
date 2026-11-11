@@ -6,6 +6,10 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BRANCH='feat/webgl-facilities-preview-smallarms-20261110'
 TARGET='src/assets/reborn/music/sandforge-ambient-patrol.mp3'
 SOURCE="${1:-$HOME/Downloads/sandforge-ambient-patrol.mp3}"
+# The original ElevenLabs upload may already exist in ~/Downloads.
+if [[ -z "${1:-}" && ! -f "$SOURCE" ]]; then
+ SOURCE="$HOME/Downloads/ElevenLabs_audio_elevenlabs-music-v2-5_Atmospheric mil_2026-11-11T17_02_41.mp3"
+fi
 if [[ ! -f "$SOURCE" ]]; then
  echo "MP3 nicht gefunden: $SOURCE" >&2
  echo 'Lade die MP3 aus ChatGPT herunter und übergib den vollständigen Pfad.' >&2
