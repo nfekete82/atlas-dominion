@@ -569,10 +569,10 @@ export class SandforgeBattlefield {
     beam(t,t,d,x+sx*(w*.5-t),3+h*.61,z);
   };
   if(kind==='airfield'){
-   guideBox(104,78,152,-94,-63);
-   guidePad(127,492,161,86);
-   // One small control tower.
-   guideBox(28,45,30,-226,-73);
+   guideBox(104,78,152,-41,-63);
+   guidePad(127,344,106,29);
+   // Low tower beside the single service hangar.
+   guideBox(26,33,27,-126,-73);
   }else{
    guideBox(spec.width*.72,Math.max(30,spec.width*.46),
     spec.width*.57);
@@ -596,7 +596,7 @@ export class SandforgeBattlefield {
   const arrow=new THREE.Mesh(new THREE.ShapeGeometry(arrowShape),frontMaterial);
   arrow.name='BuildingFrontArrow';
   arrow.rotation.x=-Math.PI/2;
-  arrow.position.set(kind==='airfield'?-90:kind==='barracks'?spec.width*.12:0,
+  arrow.position.set(kind==='airfield'?-41:kind==='barracks'?spec.width*.12:0,
    4.2,kind==='airfield'?65:spec.width*.48+9);
   arrow.renderOrder=1014;arrow.raycast=()=>{};
   frontMarker.add(arrow);group.add(frontMarker);

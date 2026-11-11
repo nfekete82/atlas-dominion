@@ -123,7 +123,7 @@ export function airfieldRunwayPlacementError(point,facing,size){
  if(!point||!Number.isFinite(size)||size<=0)return null;
  const angle=[0,Math.PI,Math.PI/2,Math.PI*1.5][facing??0]??0;
  const cs=Math.cos(angle),sn=Math.sin(angle);
- for(const x of [-299,233])for(const z of [-166,340]){
+ for(const x of [-198,181])for(const z of [-155,209]){
   const wx=point.x+x*cs+z*sn;
   const wz=point.y-x*sn+z*cs;
   if(wx<12||wz<12||wx>size-12||wz>size-12)
