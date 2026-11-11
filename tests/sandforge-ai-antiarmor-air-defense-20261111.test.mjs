@@ -69,9 +69,14 @@ test('AI funds bombers to destroy observed tanks, without requiring a transport 
  // Already paid missile infantry satisfy counter quota: next expensive
  // anti-armor response is the airfield bomber, not more cheap transports.
  for(let i=0;i<3;i++)x.g.spawn(1,{x:h.x+220+i*20,y:h.y+300},'rocket');
+ // Red HQ can be at either map corner depending on seed. Place the
+ // observed tank column TOWARD map center, never outside the playable map.
+ const sx=h.x<x.g.world.size/2?1:-1,sy=h.y<x.g.world.size/2?1:-1;
  const enemy=[0,1,2].map(i=>x.g.spawn(0,{
-  x:h.x+900+i*44,y:h.y+450+i*10},i===2?'artillery':'tank'));
+  x:h.x+sx*(900+i*44),y:h.y+sy*(450+i*10)},i===2?'artillery':'tank'));
  observe(x.g,enemy);
+ assert.ok(enemy.every(v=>x.g.canSee(1,v)),
+  'real counter-production requires live, valid, in-map enemy sightings');
  assert.ok(x.g.income(1)>=45);
  const quota=bomberAntiArmorQuota({airfieldReady:true,income:x.g.income(1),
   fighters:10,groundVehicles:2,enemyArmor:3,enemyAir:0,
