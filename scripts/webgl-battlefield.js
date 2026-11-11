@@ -1398,15 +1398,15 @@ export class SandforgeBattlefield {
    ['barracks','KASERNE · INFANTERIE']]);
   const vehicleRoster=roster([['factory','FAHRZEUGFABRIK']]);
   const aircraftRoster=roster([['airfield','FLUGFELD']]);
-  const tiles=this.game.territories.map(t=>{
-   const label=t.owner===0?'BLAU':t.owner===1?'ROT':'NEUTRAL';
-   const cls=t.owner===0?'blue':t.owner===1?'red':'unknown';
-   const capture=t.progress>0&&t.capturing>=0
-    ?' · EROBERUNG '+Math.floor(t.progress*10)/10+' s '+(t.capturing===0?'BLAU':'ROT')
-    :'';
-   return '<button class="territory-row '+cls+'" data-territory="'+t.id+'" aria-label="Sektor '+(t.id+1)+' zentrieren">'+
-    '<i></i><strong>SEKTOR '+(t.id+1)+'</strong><small>'+label+capture+'</small></button>';
-  }).join('');
+  // The original markup embedded a changing capture timer. Every 280 ms
+  // during a late-game sector contest it changed the ENTIRE catalogue HTML,
+  // destroyed all image elements and caused new 3D portrait uploads/readbacks.
+  // Use static sector cards and update their <small> labels in place instead.
+  const tiles=this.game.territories.map(t=>
+   '<button class="territory-row" data-territory="'+t.id+
+   '" aria-label="Sektor '+(t.id+1)+' zentrieren">'+
+   '<i></i><strong>SEKTOR '+(t.id+1)+'</strong><small></small></button>'
+  ).join('');
   const upgrades=UPGRADE_KINDS.map(kind=>{
    const tech=UPGRADES[kind];
    return '<button type="button" class="sf-research-card" data-upgrade="'+kind+
@@ -1432,6 +1432,22 @@ export class SandforgeBattlefield {
    const scroll=actions.scrollTop;
    actions.innerHTML=markup;this.previousActionsMarkup=markup;
    actions.scrollTop=scroll;
+  }
+  // Tiny dynamic updates never invalidate catalogue icons or reset scroll.
+  for(const tile of actions.querySelectorAll('[data-territory]')){
+   const t=g.territories.find(item=>String(item.id)===tile.dataset.territory);
+   if(!t)continue;
+   const owner=t.owner===0?'blue':t.owner===1?'red':'unknown';
+   const label=t.owner===0?'BLAU':t.owner===1?'ROT':'NEUTRAL';
+   const capture=t.progress>0&&t.capturing>=0
+    ?' · EROBERUNG '+Math.floor(t.progress*10)/10+' s '+(t.capturing===0?'BLAU':'ROT')
+    :'';
+   tile.classList.toggle('blue',owner==='blue');
+   tile.classList.toggle('red',owner==='red');
+   tile.classList.toggle('unknown',owner==='unknown');
+   const caption=label+capture;
+   if(tile.querySelector('small')?.textContent!==caption)
+    tile.querySelector('small').textContent=caption;
   }
   // Only finished sources are rendered. Selection never hides a finished
   // production source; the roster updates on every construction completion.
