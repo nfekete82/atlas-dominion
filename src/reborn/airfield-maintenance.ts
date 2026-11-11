@@ -16,18 +16,24 @@ export const AIRFIELD_BAYS=2;
 export const AIRFIELD_REPAIR_HP_PER_CREDIT=4;
 export const AIRFIELD_REPAIR_FRACTION_PER_SECOND=.01;
 export const AIRFIELD_LANDING_SECONDS=3.4;
-export const AIRFIELD_TAXI_SECONDS=6;
-export const AIRFIELD_TAKEOFF_SECONDS=6;
+export const AIRFIELD_TAXI_SECONDS=8;
+export const AIRFIELD_TAKEOFF_SECONDS=8;
 const headings=[0,Math.PI,Math.PI/2,Math.PI*1.5] as const;
 const dockX=(bay:AirfieldBay)=>bay===0?-151:-26;
-export type AirfieldWaypoint='approach'|'touchdown'|'taxi'|'door'|'dock'|'departure';
+export type AirfieldWaypoint='approach'|'touchdown'|'taxi'|'lineup'|'door'|'dock'|'departure';
 export function airfieldPoint(base:AirfieldSite,waypoint:AirfieldWaypoint,bay:AirfieldBay=0):AirfieldPoint {
  const local={
   // The visible asphalt continues well beyond the hangars, so aircraft
   // land on the long strip before taxiing onto the side apron.
   approach:{x:132,z:313},touchdown:{x:132,z:123},
-  taxi:{x:132,z:24},door:{x:dockX(bay),z:24},
-  dock:{x:dockX(bay),z:-88},departure:{x:132,z:313}
+  // First turn OUTSIDE the hangar: an aircraft that rotates at z=24
+  // sweeps its wing and tail through the entrance column/wall at z=18.
+  // Align on the apron (z=95) before driving straight through the door.
+  taxi:{x:132,z:95},lineup:{x:dockX(bay),z:95},
+  door:{x:dockX(bay),z:20},
+  // Drive the whole fuselage deeper into the actual hangar, beyond the
+  // doorway; rear bulkhead stays at z=-171 with ~54 units clearance.
+  dock:{x:dockX(bay),z:-117},departure:{x:132,z:313}
  }[waypoint];
  const yaw=headings[base.facing??0],c=Math.cos(yaw),s=Math.sin(yaw);
  return {x:base.x+local.x*c+local.z*s,y:base.y-local.x*s+local.z*c};
@@ -39,9 +45,13 @@ export function airfieldLerp(a:AirfieldPoint,b:AirfieldPoint,t:number):AirfieldP
 export function airfieldTaxiPoint(base:AirfieldSite,bay:AirfieldBay,fraction:number,depart=false):AirfieldPoint {
  const t=Math.max(0,Math.min(1,fraction));
  const sections:AirfieldWaypoint[]=depart
-  ?['dock','door','taxi','departure']:['touchdown','taxi','door','dock'];
- const stops=[0,.34,.70,1];
- const i=t<stops[1]?0:t<stops[2]?1:2;
+  ?['dock','door','lineup','taxi','departure']
+  :['touchdown','taxi','lineup','door','dock'];
+ // Four continuous segments: descend runway, turn across an OPEN apron,
+ // align while clear of both wall columns, then enter/leave along the
+ // exact door centerline. Departure reverses the identical safe geometry.
+ const stops=[0,.18,.51,.69,1];
+ const i=t<stops[1]?0:t<stops[2]?1:t<stops[3]?2:3;
  return airfieldLerp(airfieldPoint(base,sections[i],bay),
   airfieldPoint(base,sections[i+1],bay),(t-stops[i])/(stops[i+1]-stops[i]));
 }
