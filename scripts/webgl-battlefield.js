@@ -314,7 +314,12 @@ export class SandforgeBattlefield {
   return root;
  }
  attachBuildingMotion(entry,data){
-  if(!['turret','headquarters'].includes(entry.kind))return;
+  if(!['turret','headquarters','research'].includes(entry.kind))return;
+  if(entry.kind==='research'){
+   const rotor=(entry.detail??entry.placeholder)?.getObjectByName('ResearchDishPivot');
+   if(rotor)entry.motion={kind:'research',rotor,mode:'procedural-dish'};
+   return;
+  }
   // Read the actual glTF hierarchy instead of sampling an animation by
   // elapsed time: the two visible imported barrels face local +Z, while
   // the old animation sampling assumed local +X and drifted by 90 degrees.
@@ -352,7 +357,7 @@ export class SandforgeBattlefield {
    if(motion.rotor)motion.rotor.rotation.y=turretAimLocalYaw(angle,base.facing,motion.mode==='fallback');
   }else if(active){
    if(motion.mixer)motion.mixer.update(dt);
-   else if(motion.rotor)motion.rotor.rotation.y+=dt*.52;
+   else if(motion.rotor)motion.rotor.rotation.y+=dt*(motion.kind==='research'?.20:.52);
   }
  }
  pumpModelQueue(){
@@ -478,6 +483,9 @@ export class SandforgeBattlefield {
   applyFactionAccents(entry,entity,type,footprint,height);
   if(unit)attachTeamMarkings(entry,entity.owner,entity.kind,footprint,height);
   if(type==='unit'&&['tank','artillery'].includes(entity.kind))this.installTankRig(entry,placeholder);
+  // Procedural strategic buildings never join the GLB loading queue.
+  // Initialize their mechanical radar directly on the real fallback model.
+  if(type==='building'&&entity.kind==='research')this.attachBuildingMotion(entry,{animations:[]});
   this.scheduleDetail(entry,entity,type);return entry;
  }
  beginPlacement(kind){
