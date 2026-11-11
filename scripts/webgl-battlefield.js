@@ -753,7 +753,7 @@ export class SandforgeBattlefield {
    const error=this.game.buildError(0,'wall',site.point,site.facing);
    if(error){failed++;continue;}
    const out=submitConstruction(this.game,'wall',site.point,this.selected,
-    site.facing,true);
+    site.facing,shift);
    if(out.base){built++;crew=out.workers;}else failed++;
   }
   if(built){

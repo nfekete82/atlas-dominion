@@ -99,7 +99,15 @@ export function attachTeamMarkings(entry,owner,kind,footprint=90,height=44){
   // Project the colored faction emblems onto the REAL outer model surface.
   // A hit is required: no fallback floating geometry when a wing is narrow.
   const meshes=[];model.traverse(o=>{
-   if(o.isMesh&&o.geometry&&!o.userData.teamMarking)meshes.push(o);
+   if(!o.isMesh||!o.geometry||o.userData.teamMarking)return;
+   // Helicopter rotors and tail-rotor blades spin ABOVE the fuselage.
+   // A paint decal on a rotor would look like a floating team flag.
+   if(kind==='scout'){
+    for(let part=o;part&&part!==model;part=part.parent){
+     if(/rotor|blade|propeller|spinner|fan/i.test(part.name??''))return;
+    }
+   }
+   meshes.push(o);
   });
   if(kind==='tank'||kind==='artillery'){
    surfacePatch(group,meshes,entry.node,owner,'TeamTurretRoofMark',.0,-.12,

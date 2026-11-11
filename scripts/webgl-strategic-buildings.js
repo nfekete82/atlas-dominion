@@ -216,6 +216,7 @@ export function createStrategicBuilding(kind,owner=0){
   // but faceted masonry keeps the same low-cost PBR batching.
   cyl(92,94,7,'black',0,4,0,8);
   cyl(85,87,6,'stone',0,10,0,8);
+  cyl(77,80,4,'base',0,16,0,8); // retain original khaki PBR material in the round bunker
   cyl(79,83,68,'researchArmor',0,48,0,8);
   cyl(85,85,6,'black',0,81,0,8);
   cyl(81,81,3,'camoOlive',0,85,0,8);
