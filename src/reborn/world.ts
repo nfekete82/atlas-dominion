@@ -251,7 +251,9 @@ export class World {
       ?(precise?1600:allowPartial?2600:4200):Infinity;
     const startH=h(s);let closest=s,closestH=startH,expanded=0;
     const reconstruct=(finish:number,complete:boolean):Point[]=>{
-      const route:Point[]=[complete?end:this.center(finish)];
+      // The partial endpoint is already included by walking the predecessor
+      // chain. Adding it here too would duplicate the last waypoint.
+      const route:Point[]=complete?[end]:[];
       let at=finish;
       while(at!==s&&at>=0){
         route.push(precise&&complete&&at===goal?end:this.center(at));
