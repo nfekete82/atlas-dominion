@@ -27,14 +27,15 @@
   for(const [id,key,defaultValue] of [
    ['sf3d-master-volume','masterVolume',85],
    ['sf3d-effects-volume','effectsVolume',85],
-   ['sf3d-music-volume','musicVolume',30]
+   ['sf3d-music-volume','musicVolume',22]
   ]){
    const value=options[key];
    $(id).value=String(value==null?defaultValue:Math.max(0,Math.min(100,Number(value))));
    $(id.replace('-volume','-value')).textContent=$(id).value+' %';
   }
-  // Synthesized sustained chords are an opt-in feature, never autoplay on a fresh install.
-  $('sf3d-music-enabled').checked=options.musicEnabled===true;
+  // The user's original cinematic MP3 is the default. Explicit mute or
+  // previously saved musicEnabled=false remains fully respected.
+  $('sf3d-music-enabled').checked=options.musicEnabled!==false;
   $('sf3d-engine-sounds').checked=options.engineSoundsEnabled!==false;
  };
  function applyLiveAudio(){
@@ -127,7 +128,7 @@
    soundButton.title=shouldEnable?'Audio freigegeben (Klick zum Ausschalten)':'Audio deaktiviert (Klick zum Einschalten)';
    if(shouldEnable)void active.sound.unlock().catch(error=>console.warn('WebAudio activation requires a gesture',error));
   }
-  notify('Optionen gespeichert. Grafikqualität gilt beim nächsten Spielstart.');
+  notify('Optionen gespeichert. Musiklautstärke und Sound wirken sofort.');
  }
  function openPause(){
   if(!window.__sandforgeWebGL?.loaded)return;
