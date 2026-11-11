@@ -137,7 +137,7 @@ test('if the selected pioneer is trapped behind a factory, retry another reachab
  const result=submitConstruction(game,'generator',{x:500,y:500},new Set([selected.id]));
  assert.ok(result.base);
  assert.equal(result.append,false);
- assert.deepEqual(calls.map(t=>t.ids),[[19],[19],[22]],
+ assert.deepEqual(calls.map(t=>t.ids),[[19],[22]],
   'retry with an unselected pioneer after the first route was blocked');
 });
 
@@ -221,4 +221,110 @@ test('click outside the sector cannot throw or permanently break later builds',(
  assert.equal(g.build(0,'generator',p,[worker.id]),null);
  g.territories=old;
  assert.equal(g.status,'playing');
+});
+
+test('two selected idle pioneers split over two parallel sites, not both assigned to the first',()=>{
+ const original={id:41,owner:0,kind:'engineer',hp:110,x:100,y:100,orders:[]};
+ const other={id:42,owner:0,kind:'engineer',hp:110,x:160,y:120,orders:[]};
+ const bases=[];
+ const game={units:[original,other],bases,
+  build(owner,kind,p,ids,facing,append){
+   const site={id:200+bases.length,kind,owner,x:p.x,y:p.y,hp:100,
+    buildRemaining:12};
+   bases.push(site);
+   for(const u of this.units.filter(u=>ids.includes(u.id))){
+    const order={kind:'build',target:site.id,x:p.x,y:p.y};
+    if(append)u.orders.push(order);else u.orders=[order];
+   }
+   return site;
+  }
+ };
+ const selected=new Set([41,42]);
+ const first=submitConstruction(game,'barracks',{x:200,y:200},selected);
+ assert.ok(first.base);
+ assert.equal(first.workers.length,1,
+  'single site must not commandeer both available pioneers');
+ const firstWorker=first.workers[0];
+ const idle=game.units.find(u=>u.id!==firstWorker.id);
+ assert.deepEqual(idle.orders,[]);
+ const second=submitConstruction(game,'generator',{x:550,y:550},
+  new Set([firstWorker.id]));
+ assert.ok(second.base);
+ assert.deepEqual(second.workers.map(u=>u.id),[idle.id]);
+ assert.equal(second.append,false);
+ assert.equal(firstWorker.orders[0].target,first.base.id);
+ assert.equal(idle.orders[0].target,second.base.id);
+ assert.equal(bases.length,2);
+});
+
+test('when both pioneers are constructing, a third site is queued without interrupting either job',()=>{
+ const sites=[{id:201,kind:'barracks',hp:800,buildRemaining:9},
+  {id:202,kind:'factory',hp:800,buildRemaining:6}];
+ const original={id:41,owner:0,kind:'engineer',hp:110,x:100,y:100,
+  orders:[{kind:'build',target:201}]};
+ const other={id:42,owner:0,kind:'engineer',hp:110,x:200,y:200,
+  orders:[{kind:'build',target:202}]};
+ const game={units:[original,other],bases:sites,
+  build(owner,kind,p,ids,facing,append){
+   assert.equal(append,true,'active builders must not be interrupted');
+   for(const u of this.units.filter(u=>ids.includes(u.id)))
+    u.orders.push({kind:'build',target:203});
+   return {id:203,kind,buildRemaining:10};
+  }
+ };
+ const result=submitConstruction(game,'generator',{x:400,y:400},
+  new Set([41]));
+ assert.ok(result.base);
+ assert.equal(result.append,true);
+ assert.equal(result.workers.length,1);
+ assert.equal(original.orders[0].target,201);
+ assert.equal(other.orders[0].target,202);
+ assert.equal(original.orders.length+other.orders.length,3);
+});
+
+test('REAL v24 campaign: two living engineers make simultaneous construction progress',()=>{
+ const g=Simulation.campaign(20261111,24);
+ g.aiClock=1e9;g.tactical.plan=()=>{};
+ g.credits[0]=25000;g.explored[0].fill(1);
+ const first=g.units.find(u=>u.owner===0&&u.kind==='engineer'&&u.hp>0);
+ const hq=g.bases.find(b=>b.owner===0&&b.kind==='headquarters');
+ assert.ok(first&&hq);
+ const second=g.spawn(0,{x:first.x+90,y:first.y+70},'engineer');
+ const selected=new Set([first.id,second.id]);
+ const tryBuild=(kind)=>{
+  for(let r=290;r<=970;r+=95)for(let j=0;j<32;j++){
+   const theta=j*Math.PI/16;
+   const p={x:Math.round(hq.x+r*Math.cos(theta)),
+    y:Math.round(hq.y+r*Math.sin(theta))};
+   if(g.buildError(0,kind,p)!==null)continue;
+   const order=submitConstruction(g,kind,p,selected);
+   if(order.base){
+    selected.clear();for(const u of order.workers)selected.add(u.id);
+    return order;
+   }
+  }
+  assert.fail('no actual accessible place for '+kind);
+ };
+ const one=tryBuild('barracks');
+ assert.equal(one.workers.length,1);
+ const busy=one.workers[0];
+ const idle=g.units.find(u=>u.id!==busy.id&&u.id===second.id||u.id===first.id&&u.id!==busy.id);
+ assert.ok(idle);
+ assert.equal(idle.orders.some(o=>o.kind==='build'),false,
+  'the second engineer must remain available for parallel construction');
+ const two=tryBuild('generator');
+ assert.deepEqual(two.workers.map(u=>u.id),[idle.id]);
+ assert.equal(two.append,false);
+ assert.equal(one.base.buildRemaining>0,true);
+ assert.equal(two.base.buildRemaining>0,true);
+ assert.equal(busy.orders[0].target,one.base.id);
+ assert.equal(idle.orders[0].target,two.base.id);
+ const before=[one.base.buildRemaining,two.base.buildRemaining];
+ for(let n=0;n<1000&&g.status==='playing'&&
+  (one.base.buildRemaining>=before[0]||two.base.buildRemaining>=before[1]);n++)
+  g.step(.05);
+ assert.ok(one.base.buildRemaining<before[0],
+  'first pioneer should progress on his first site');
+ assert.ok(two.base.buildRemaining<before[1],
+  'second free pioneer should reach and build the parallel site');
 });
