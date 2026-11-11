@@ -331,7 +331,7 @@ test('repair right-click detects angled roofs, pads and runway without hijacking
  assert.equal(selectedMaintenanceKind(units,new Set([1,2])),null);
  const garage={kind:'factory',x:400,y:500,facing:0};
  const airfield={kind:'airfield',x:800,y:900,facing:2};
- assert.equal(serviceFootprintContains(garage,{x:476,y:672}),true);
+ assert.equal(serviceFootprintContains(garage,{x:560,y:625}),true);
  assert.equal(serviceFootprintContains(garage,{x:400,y:950}),false);
  assert.equal(serviceFootprintContains(airfield,{x:975,y:900}),true);
  assert.equal(serviceFootprintContains(airfield,{x:1530,y:900}),false);

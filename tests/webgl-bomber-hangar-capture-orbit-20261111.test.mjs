@@ -22,7 +22,7 @@ test('all four rotations use open apron before aligning along hangar entrance',(
  for(let facing=0;facing<4;facing++){
   const base={x:2500,y:2600,facing};
   for(const bay of [0]){
-   const cx=42-151*.90;
+   const cx=95-151*.90;
    const lineup=local(base,airfieldPoint(base,'lineup',bay));
    const door=local(base,airfieldPoint(base,'door',bay));
    const dock=local(base,airfieldPoint(base,'dock',bay));

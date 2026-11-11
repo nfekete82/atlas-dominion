@@ -11,17 +11,17 @@ const point=(x,y)=>({x,y});
 
 test('new and finished airfield footprints cannot overlap neighbors or bastions',()=>{
  const p=point(2000,2000);
- assert.ok(sitesVisuallyOverlap('airfield',p,0,'generator',point(2132,2355),0),
+ assert.ok(sitesVisuallyOverlap('airfield',p,0,'generator',point(2110,2175),0),
   'an object on the far runway must be rejected');
  assert.ok(sitesVisuallyOverlap('factory',p,0,'barracks',point(1850,2130),0),
-  'roofed repair garages count as factory footprint');
- assert.ok(siteNearBastion('airfield',p,0,point(2132,2360)),
+  'open hydraulic repair pads count as factory footprint');
+ assert.ok(siteNearBastion('airfield',p,0,point(2110,2185)),
   'a control point cannot be hidden below the strip');
- assert.ok(siteNearBastion('airfield',p,2,point(2350,1868)),
+ assert.ok(siteNearBastion('airfield',p,2,point(2160,1892)),
   'rotating the runway changes its clearance');
  assert.equal(siteNearBastion('airfield',p,0,point(2800,2800)),false);
  assert.equal(sitesVisuallyOverlap('airfield',p,0,'factory',point(3100,3100),0),false);
- assert.ok(siteExceedsMap('airfield',point(200,200),0,3500));
+ assert.ok(siteExceedsMap('airfield',point(50,50),0,3500));
  assert.equal(siteExceedsMap('airfield',point(1900,1800),2,3500),false);
 });
 
@@ -125,7 +125,7 @@ test('building remains possible after a vehicle factory or airfield is completed
   'after airfield build the user stays on the buildings tab');
 });
 
-test('FULL 3D building foundation rejects hills under the side garage, not only the factory center',()=>{
+test('FULL 3D building foundation rejects hills under the compact outdoor lift, not only the factory center',()=>{
  const center={x:2200,y:2200};
  const fake={
   walkable:()=>true,
@@ -136,14 +136,14 @@ test('FULL 3D building foundation rejects hills under the side garage, not only 
  assert.equal(siteTerrainCompatible('factory',center,2,fake),true);
  // The garage starts x>120 world units from the factory center. Previous
  // buildable(radius=70) sampled only the central facade and accepted this.
- const hill={...fake,terrainHeight:(x,z)=>x>center.x+225?29:0};
+ const hill={...fake,terrainHeight:(x,z)=>x>center.x+205?29:0};
  assert.equal(siteTerrainCompatible('factory',center,0,hill),false,
-  'factory annex would be floating above the rising dune');
+  'outdoor lift would be floating above the rising dune');
  assert.equal(siteTerrainCompatible('factory',center,2,hill),true,
   'rotating 90 degrees should move the garage away from the local hill');
- const cliff={...fake,terrainSlope:(x,z)=>z<center.y-155?.29:0};
+ const cliff={...fake,terrainSlope:(x,z)=>z<center.y-195?.29:0};
  assert.equal(siteTerrainCompatible('factory',center,2,cliff),false,
-  'rotation must check the actual new garage footprint');
+  'rotation must check the actual new open repair footprint');
  const nearbyFlat={...fake,terrainHeight:(x,z)=>6*Math.sin(x/90)+3*Math.sin(z/80)};
  assert.equal(siteTerrainCompatible('factory',center,0,nearbyFlat),true,
   'normal gentle dunes should still permit practical factory placement');
@@ -154,7 +154,7 @@ test('rigid hangars and regular foundations reject steep ridges under any corner
  const flat={walkable:()=>true,terrainHeight:()=>0,terrainSlope:()=>0};
  assert.equal(siteTerrainCompatible('airfield',p,0,flat),true);
  assert.equal(siteTerrainCompatible('barracks',p,0,flat),true);
- const hill={...flat,terrainHeight:(x,z)=>x<p.x-235?39:0};
+ const hill={...flat,terrainHeight:(x,z)=>x<p.x-118?39:0};
  assert.equal(siteTerrainCompatible('airfield',p,0,hill),false,
   'control tower / left hangar may not be sunk in a cliff');
  const blocked={...flat,walkable:q=>q.x>p.x+50};
