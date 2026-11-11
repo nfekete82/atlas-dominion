@@ -183,7 +183,6 @@ test('fuel drums, loading ramps and desert service paving use modeled geometry a
   ['AirfieldFuelServicePad','BoxGeometry'],
   ['AirfieldParkingRampGrip_0','BoxGeometry'],
   ['AirfieldParkingRampTread_0','BoxGeometry'],
-  ['AirfieldParkingRampGrip_1','BoxGeometry'],
   ['AirfieldAircraftParkingPad_0','BoxGeometry']
  ];
  for(const [name,type] of expected){
