@@ -71,6 +71,7 @@ cpSync('scripts/webgl-transport-controls.js','dist/webgl-transport-controls.js')
 cpSync('scripts/webgl-resource-lifecycle.js','dist/webgl-resource-lifecycle.js');
 cpSync('scripts/webgl-bastion-lifecycle.js','dist/webgl-bastion-lifecycle.js');
 cpSync('scripts/webgl-construction.js','dist/webgl-construction.js');
+cpSync('scripts/webgl-construction-assembly.js','dist/webgl-construction-assembly.js');
 cpSync('scripts/webgl-construction-recovery.js','dist/webgl-construction-recovery.js');
 cpSync('scripts/webgl-production-gates.js','dist/webgl-production-gates.js');
 cpSync('scripts/webgl-wheel-motion.js','dist/webgl-wheel-motion.js');

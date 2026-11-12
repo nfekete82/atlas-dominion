@@ -139,12 +139,14 @@ function instanceFenceWires(group,parts){
  group.add(wires);
 }
 function perimeterFence(group,width,kind){
- // The original research GLB entrance/ramp faces -Z, unlike other facilities
- // (+Z): move the cross-fence behind it and leave the real entrance open.
- // Three instanced draw calls for posts, rails and wire X-bracing.
+ // The research lab, original field command and replacement barracks have
+ // their main entrances on local -Z. Leave that facade fully open: fence
+ // the opposite (+Z) side. Other facilities retain their existing entrance.
+ // Three instanced draw calls for posts, rails and cross-bracing.
  const x=width*.65;
- const rear=kind==='research'?width*.53:-width*.53;
- const front=kind==='research'?-width*.28:width*.28;
+ const reverseFront=['research','headquarters','barracks'].includes(kind);
+ const rear=reverseFront?width*.53:-width*.53;
+ const front=reverseFront?-width*.28:width*.28;
  const posts=[],rails=[],wires=[],seen=new Set();
  function line(x0,z0,x1,z1){
   const dx=x1-x0,dz=z1-z0,dist=Math.hypot(dx,dz);

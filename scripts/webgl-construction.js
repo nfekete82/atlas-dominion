@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import {disposeOwnedMeshes} from '/webgl-resource-lifecycle.js';
 import {BUILDINGS} from '/src/reborn/catalog.js';
+import {AUTHORED_ASSEMBLY_KINDS,prepareAuthoredAssembly,
+ updateAuthoredAssembly,releaseAuthoredAssembly} from '/webgl-construction-assembly.js';
 
 /** Render-only construction states driven by the classic Simulation's
  * buildRemaining / buildTime. No new gameplay timers or construction rules.
@@ -46,7 +48,7 @@ export class SandforgeConstructionPresentation{
   label.scale.set(83,21,1);label.position.set(0,height+65,0);frame.add(label);
   entry.node.add(frame);
   const construction={frame,columns,rails,slab,roof,canvas,texture,label,
-   height,lastLabel:-1,finished:false};
+   height,lastLabel:-1,finished:false,authoredAssembly:null};
   entry.construction=construction;return construction;
  }
  update(entry,base){
@@ -79,6 +81,17 @@ export class SandforgeConstructionPresentation{
   // with only scaffolding layered on top. Instead assemble REAL building
   // components in stages. No clipping planes: no bisected or floating facades.
   const model=entry.detail??entry.placeholder;
+  const authored=AUTHORED_ASSEMBLY_KINDS.includes(base.kind)&&
+   Boolean(entry.detail&&entry.variantDetail);
+  // The closed authored GLB is the visible construction state for both
+  // Kaserne and Feldkommando. Previously only entry.detail was staged,
+  // while the closed entry.variantDetail remained completely visible.
+  const authoredModel=authored?entry.variantDetail:null;
+  if(authoredModel&&state.authoredAssembly?.root!==authoredModel){
+   releaseAuthoredAssembly(state.authoredAssembly);
+   state.authoredAssembly=prepareAuthoredAssembly(authoredModel);
+  }
+  updateAuthoredAssembly(state.authoredAssembly,progress);
   const stageMesh=(mesh,threshold)=>{
    if(!mesh?.isMesh)return;
    if(mesh.userData.constructionOriginalVisible===undefined)
@@ -95,7 +108,7 @@ export class SandforgeConstructionPresentation{
     // never resurrect an old crossing, duplicate tower or hangar.
     if(mesh.userData.airfieldLegacyHidden)return;
     let threshold;
-    if(mode==='yard')threshold=/perimeter|lamp|wheel|pallet|crat|barrel|decor|equipment/.test(name)?.86:.23;
+    if(mode==='yard')threshold=/perimeter|fence|lamp|wheel|pallet|crat|barrel|decor|equipment/.test(name)?.86:.23;
     else if(mode==='service'){
      threshold=/runway|apron|taxis|parkingpad|bayfloor|platform|ramp|foundation|surface|centerline|edge|joint|threshold|stripe|track/.test(name)?.16:
       /roof|antenna|vent|glass|tower|duct|signal|floodlight/.test(name)?.88:
@@ -108,7 +121,7 @@ export class SandforgeConstructionPresentation{
     stageMesh(mesh,threshold);
    });
   };
-  stageGroup(model,'building');
+  if(!authored)stageGroup(model,'building');
   stageGroup(entry.yard,'yard');
   stageGroup(entry.airfieldServiceYard??entry.factoryServiceYard,'service');
   const tick=Math.floor(progress*20),working=base.constructionActive!==false;
@@ -127,9 +140,11 @@ export class SandforgeConstructionPresentation{
  }
  finish(entry){
   const state=entry.construction;if(!state)return;
+  releaseAuthoredAssembly(state.authoredAssembly);
+  state.authoredAssembly=null;
   // Restore the original mesh visibility (including permanent GLB-hidden
   // obsolete airfield parts) only after actual build completion.
-  for(const root of [entry.detail,entry.placeholder,entry.yard,
+  for(const root of [entry.detail,entry.variantDetail,entry.placeholder,entry.yard,
    entry.airfieldServiceYard,entry.factoryServiceYard]){
    root?.traverse(mesh=>{
     if(!mesh.isMesh)return;
