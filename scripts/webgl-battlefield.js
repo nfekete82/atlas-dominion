@@ -25,7 +25,7 @@ import {disposeOwnedMeshes,disposeTaggedMaterials} from '/webgl-resource-lifecyc
 import {releaseBastionRevision} from '/webgl-bastion-lifecycle.js';
 import {selectedInfantryForTransport,selectedLoadedTransports,selectedTransportManifest} from '/webgl-transport-controls.js';
 import {pointerGestureIntent,submitConstruction,nearestEngineer,POINTER_CLICK_SLOP,PLACEMENT_CLICK_SLOP} from '/webgl-builder-input.js';
-import {wallLinePlacements,WALL_DRAG_MAX_SEGMENTS,WALL_DRAG_SLOP} from '/webgl-wall-line.js';
+import {wallLinePlacements,wallLineFromTurret,wallLineToTurret,wallLineBetweenTurrets,WALL_DRAG_MAX_SEGMENTS,WALL_DRAG_SLOP} from '/webgl-wall-line.js';
 import {sameKindVisibleUnits} from '/webgl-double-click-select.js';
 import {tracerWindow} from '/webgl-hit-response.js';
 import {applyFactionAccents,tintFactionMaterials} from '/webgl-faction-accents.js';
@@ -94,6 +94,7 @@ export class SandforgeBattlefield {
   hologramSun.position.set(420,750,310);this.buildPreviewScene.add(hologramSun);
   this.buildPreview=null;this.previewKind=null;this.placementFacing=0;
   this.wallLinePreview=null;
+  this.wallDragSource=null;this.wallAnchorTower=null;
   this.buildHint=document.createElement('div');
   this.buildHint.id='sf3d-build-hint';this.buildHint.setAttribute('role','status');
   this.buildHint.style.cssText='position:fixed;z-index:18;pointer-events:none;display:none;min-width:156px;max-width:250px;padding:7px 10px;background:#14221ef0;border:1px solid #b5a177;color:#e7dbb7;font:bold 12px system-ui;box-shadow:0 5px 16px #0008';
@@ -696,6 +697,7 @@ export class SandforgeBattlefield {
   }).catch(error=>console.warn('Baupreview: vereinfachtes 3D-Modell',error));
  }
  clearPlacement(){
+  this.wallAnchorTower=null;this.wallDragSource=null;
   this.clearWallLinePreview();
   this.buildKind=null;this.previewKind=null;
   if(this.buildPreview){
@@ -764,8 +766,61 @@ export class SandforgeBattlefield {
   mesh.geometry.dispose();mesh.material.dispose();
   this.wallLinePreview=null;
  }
+ /** Only our living defensive turrets can anchor a wall, not enemy towers
+  * or decorative bastions. Raycast the turret model first; also accept a
+  * generous screen-space target for the tower's narrow roof at far zoom.
+  */
+ wallTurretAtPointer(event){
+  const rect=this.renderer.domElement.getBoundingClientRect();
+  if(!rect.width||!rect.height)return null;
+  const bases=this.game.bases.filter(b=>b.kind==='turret'&&b.owner===0&&b.hp>0);
+  if(!bases.length)return null;
+  const ndc=new THREE.Vector2(
+   (event.clientX-rect.left)/rect.width*2-1,
+   1-(event.clientY-rect.top)/rect.height*2);
+  this.camera.updateMatrixWorld(true);
+  const ray=new THREE.Raycaster();ray.setFromCamera(ndc,this.camera);
+  const nodes=new Map();
+  for(const b of bases){
+   const node=this.bases.get(b.id)?.node;
+   if(node?.visible)nodes.set(node,b);
+  }
+  if(nodes.size){
+   const hits=ray.intersectObjects([...nodes.keys()],true);
+   for(const hit of hits){
+    let node=hit.object;
+    while(node&&!nodes.has(node))node=node.parent;
+    if(node)return nodes.get(node);
+   }
+  }
+  let best=null,bestDistance=Infinity;
+  const projected=new THREE.Vector3();
+  for(const b of bases){
+   const node=this.bases.get(b.id)?.node;
+   if(!node?.visible)continue;
+   projected.copy(node.position);
+   projected.y+=Math.min(65,this.bases.get(b.id)?.modelHeight*.55||46);
+   projected.project(this.camera);
+   if(projected.z<-1||projected.z>1)continue;
+   const x=rect.left+(projected.x+1)*rect.width*.5;
+   const y=rect.top+(1-projected.y)*rect.height*.5;
+   const distance=Math.hypot(event.clientX-x,event.clientY-y);
+   if(distance<Math.max(28,Math.min(52,38*this.camera.zoom))&&distance<bestDistance){
+    best=b;bestDistance=distance;
+   }
+  }
+  return best;
+ }
  wallLineAtPointer(startEvent,endEvent){
-  const start=this.terrainPoint(startEvent),end=this.terrainPoint(endEvent);
+  const startTower=startEvent.tower??this.wallAnchorTower??this.wallDragSource;
+  const endTower=this.wallTurretAtPointer(endEvent);
+  const start=startTower?{x:startTower.x,y:startTower.y}:this.terrainPoint(startEvent);
+  const end=endTower?{x:endTower.x,y:endTower.y}:this.terrainPoint(endEvent);
+  if(!start||!end)return [];
+  if(startTower&&endTower&&startTower.id!==endTower.id)
+   return wallLineBetweenTurrets(startTower,endTower);
+  if(startTower)return wallLineFromTurret(startTower,end);
+  if(endTower)return wallLineToTurret(start,endTower);
   return wallLinePlacements(start,end);
  }
  updateWallLinePreview(start,endEvent){
@@ -800,9 +855,14 @@ export class SandforgeBattlefield {
   this.buildHint.style.display='block';
   this.buildHint.style.left=Math.min(endEvent.clientX+17,window.innerWidth-260)+'px';
   this.buildHint.style.top=Math.min(endEvent.clientY+15,window.innerHeight-85)+'px';
-  this.buildHint.textContent='Sperrmauer: '+positions.length+' Segmente · '+
+  const fromTower=start.tower??this.wallAnchorTower??this.wallDragSource;
+  const toTower=this.wallTurretAtPointer(endEvent);
+  const connection=fromTower&&toTower&&fromTower.id!==toTower.id;
+  this.buildHint.textContent=(connection?'Turm zu Turm · ':'Sperrmauer · ')+
+   positions.length+' Segmente · '+
    positions.length*BUILDINGS.wall.cost+' Credits · '+valid+' grün / '+
-   (positions.length-valid)+' rot · Loslassen zum Bauen';
+   (positions.length-valid)+' rot · '+
+   (this.wallAnchorTower?'Klicken zum Bauen':'Loslassen zum Bauen');
  }
  buildWallLine(startEvent,endEvent,shift=false){
   const positions=this.wallLineAtPointer(startEvent,endEvent);
@@ -2347,9 +2407,35 @@ export class SandforgeBattlefield {
   const start=this.clickStart;
   const moved=Math.hypot(event.clientX-start.x,event.clientY-start.y);
   if(event.button===0&&this.buildKind==='wall'&&moved>WALL_DRAG_SLOP){
-   this.clickStart=null;this.selectionBox.style.display='none';
-   this.buildWallLine({clientX:start.x,clientY:start.y},event,event.shiftKey);
+   const tower=this.wallAnchorTower??this.wallDragSource;
+   this.clickStart=null;this.wallDragSource=null;this.wallAnchorTower=null;
+   this.selectionBox.style.display='none';
+   this.buildWallLine({clientX:start.x,clientY:start.y,...(tower?{tower}:{})},
+    event,event.shiftKey);
    return;
+  }
+  // A click on turret A fixes the wall origin; click turret B (or open
+  // terrain) to build. Mouse-dragging from A to B works as before.
+  if(event.button===0&&this.buildKind==='wall'){
+   const tower=this.wallTurretAtPointer(event);
+   const anchor=this.wallAnchorTower;
+   this.clickStart=null;this.wallDragSource=null;
+   if(anchor){
+    if(tower?.id===anchor.id){
+     this.message('Startturm gewählt · anderen Turm oder Bauende anklicken');
+     return;
+    }
+    this.wallAnchorTower=null;
+    this.buildWallLine({tower:anchor},event,event.shiftKey);
+    return;
+   }
+   if(tower){
+    this.wallAnchorTower=tower;
+    if(this.buildPreview)this.buildPreview.visible=false;
+    this.clearWallLinePreview();
+    this.message('Startturm gewählt · zweiten Turm anklicken oder Mauer ziehen');
+    return;
+   }
   }
   if(this.wallLinePreview)this.clearWallLinePreview();
   this.clickStart=null;this.selectionBox.style.display='none';
@@ -2552,6 +2638,8 @@ export class SandforgeBattlefield {
   const canvas=this.renderer.domElement;
   canvas.addEventListener('pointerdown',e=>{
    this.clickStart={x:e.clientX,y:e.clientY,button:e.button};
+   this.wallDragSource=e.button===0&&this.buildKind==='wall'
+    ?this.wallAnchorTower??this.wallTurretAtPointer(e):null;
    // Keep receiving pointermove/up while drawing a long wall beyond the
    // WebGL canvas. This also makes macOS trackpad dragging reliable.
    if(e.button===0&&this.buildKind==='wall'&&canvas.setPointerCapture)
@@ -2562,6 +2650,10 @@ export class SandforgeBattlefield {
   });
   canvas.addEventListener('pointermove',e=>{
    if(this.buildKind)this.updatePlacementPreview(e);
+   if(this.buildKind==='wall'&&this.wallAnchorTower&&!(e.buttons&1)){
+    this.updateWallLinePreview({tower:this.wallAnchorTower},e);
+    return;
+   }
    const start=this.clickStart;
    if(!start||start.button!==0||!(e.buttons&1))return;
    if(this.buildKind==='wall'&&
@@ -2583,7 +2675,8 @@ export class SandforgeBattlefield {
   window.addEventListener('pointerup',e=>{if(this.clickStart)this.pointerUp(e);});
   canvas.addEventListener('pointerleave',()=>{if(this.buildPreview)this.buildPreview.visible=false;this.buildHint.style.display='none';});
   const resetPointerGesture=()=>{
-   this.clickStart=null;
+   this.clickStart=null;this.wallDragSource=null;
+   this.wallAnchorTower=null;
    this.selectionBox.style.display='none';
    this.clearWallLinePreview();
    if(this.buildPreview)this.buildPreview.visible=false;
