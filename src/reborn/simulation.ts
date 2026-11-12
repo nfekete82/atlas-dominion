@@ -531,45 +531,23 @@ export class Simulation {
   resetSquadProfile():void{this.squadUnitMs=0;this.squadCollisionMs=0;}
   private fogClock=0; private visionCache=new VisionCache(); private spatial=new SpatialIndex();
   private nextCooperativeBuilderAt=0;
-  /** One working pioneer per construction site avoids shared approach-point
-   * collisions. Idle engineers automatically seek a DIFFERENT, unattended
-   * foundation; with no other construction they stay available.
-   * If a saved game or previous version double-assigns a site, transfer
-   * surplus workers to unattended sites while leaving one active builder.
-   * Manual move, combat, repair and explicitly queued orders remain intact.
+  /** Assign idle pioneers only to UNSTAFFED foundations. An explicitly
+   * selected construction crew stays together and builds at additive speed.
+   * Manual repair, move, combat and queued orders are never stolen.
    */
   private assignIdlePioneersToConstruction():void {
     const sites=this.bases.filter(b=>b.owner===0&&b.hp>0&&b.buildRemaining>0);
     if(!sites.length)return;
     const workers=this.units.filter(u=>u.owner===0&&u.kind==='engineer'&&
       u.hp>0&&!u.carrier);
-    if(!workers.length)return;
     const count=new Map(sites.map(b=>[b.id,0]));
     for(const u of workers){
       const o=u.orders[0];
       if(o?.kind==='build'&&count.has(o.target!))
         count.set(o.target!,count.get(o.target!)!+1);
     }
-    const activeOn=(u:Unit)=>u.orders[0]?.kind==='build'&&
-      count.has(u.orders[0].target!)?u.orders[0].target:null;
     const available=workers.filter(u=>!u.hold&&
       !(u.defendUntil>this.time)&&u.orders.length===0&&u.workingTarget==null);
-    // Redistribute any old double-assignments only if a second actual site
-    // exists, without interrupting the sole pioneer on the first.
-    for(const u of workers){
-      if(!sites.some(b=>count.get(b.id)===0))break;
-      const target=activeOn(u);
-      if(target==null||count.get(target)!<=1||u.orders.length!==1||
-         u.workingTarget!=null||u.hold)continue;
-      const unattended=sites.filter(b=>count.get(b.id)===0)
-       .sort((a,b)=>distance(u,a)-distance(u,b)||a.id-b.id);
-      for(const b of unattended){
-        if(!this.command([u.id],{kind:'build',x:b.x,y:b.y,target:b.id}))continue;
-        count.set(target,count.get(target)!-1);
-        count.set(b.id,1);
-        break;
-      }
-    }
     for(const u of available){
       const unattended=sites.filter(b=>count.get(b.id)===0)
        .sort((a,b)=>distance(u,a)-distance(u,b)||a.id-b.id);
@@ -912,7 +890,10 @@ export class Simulation {
       }
     }
     for(let i=0;i<16;i++){
-      const turn=angle+(i%2?1:-1)*Math.ceil(i/2)*Math.PI/8;
+      // Spread engineers around the perimeter instead of stacking all
+      // crew members on one path endpoint (also applies to vehicle repairs).
+      const preferred=angle+(u.kind==='engineer'?(u.id%5-2)*Math.PI/10:0);
+      const turn=preferred+(i%2?1:-1)*Math.ceil(i/2)*Math.PI/8;
       const p=this.world.nearest({x:target.x+Math.cos(turn)*radius,y:target.y+Math.sin(turn)*radius},obstacles,[],u);
       if(!p||distance(p,target)>range||!this.world.line(p,target))continue;
       if(requireReachable&&distance(u,target)>range){
@@ -1799,7 +1780,7 @@ export class Simulation {
         const workers=this.units.filter(u=>u.hp>0&&u.owner===b.owner&&u.kind==='engineer'&&u.workingTarget===b.id&&u.orders[0]?.kind==='build'&&u.defendUntil<=this.time&&distance(u,b)<=b.radius+55);
         b.constructionActive=workers.length>0;
         const rates=workers.map(u=>getVeterancyModifiers(u).buildRate),total=rates.reduce((n,v)=>n+v,0);
-        const work=Math.min(b.buildRemaining,dt*Math.min(1.5,total));
+        const work=Math.min(b.buildRemaining,dt*total);
         if(work>0)workers.forEach((u,i)=>{const share=rates[i]/total;gainUnitXp(u,work*share*XP_RULES.build,'build');if(b.buildRemaining-work<1e-8)gainUnitXp(u,XP_RULES.completion*share,'completion');});
         if(work>0)this.work('build',workers[0].id,b.id,work);
         b.buildRemaining=Math.max(0,b.buildRemaining-work);if(b.buildRemaining<1e-8)b.buildRemaining=0;

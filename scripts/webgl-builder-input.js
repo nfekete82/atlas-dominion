@@ -32,11 +32,9 @@ export function chooseConstructionCrew(workers,shift=false){
  return {workers:[waiting[0]],append:true};
 }
 
-/** Nonblocking RTS construction: assign only one available pioneer per
- * new foundation. Other pioneers remain free to accept a different site.
- * An older double-assigned site can donate a spare engineer. Once every
- * site has a sole builder, additional orders queue safely. Retains
- * reachability retries when supportApproach rejects a route.
+/** Cooperating RTS construction: explicitly selected free pioneers work
+ * together on a foundation, while other idle pioneers remain available to
+ * start the next one. Keep real route retries and queue fallback.
  *
  * The authoritative Simulation.build()/buildError() remains in control of
  * credits, uniqueness, terrain, rotation, collision and map borders. No
@@ -65,10 +63,9 @@ export function submitConstruction(game,kind,point,selection,facing=0,shift=fals
  }else{
   const freeSelected=ordered(selected.filter(free));
   const freeOthers=ordered(all.filter(u=>!selection.has(u.id)&&free(u)));
-  // Assign exactly ONE available pioneer to each newly placed building.
-  // Sending the whole crew to a single foundation creates pathing jams:
-  // they converge on the same approach point and obstruct one another.
-  // Keep all other pioneers idle for the next construction request.
+  // Explicitly selected groups can build together, not just one pioneer.
+  // If one member has no route, retry individual reachable engineers below.
+  if(freeSelected.length>1)plans.push({workers:freeSelected,append:false});
   const freeWorkers=[...freeSelected,...freeOthers];
   for(const u of freeWorkers)plans.push({workers:[u],append:false});
   // No idle pioneer? Redistribute a worker from a site that currently has
@@ -105,6 +102,13 @@ export function submitConstruction(game,kind,point,selection,facing=0,shift=fals
    // construction order, so subsequent selections and parallel dispatch work.
    const accepted=plan.workers.filter(u=>u.orders?.some(o=>
     o.kind==='build'&&o.target===base.id));
+   // Real paths can accept a partial group. Help the remaining pioneers
+   // find their OWN approach to this existing site, without paying twice.
+   for(const u of plan.workers){
+    if(accepted.includes(u)||typeof game.command!=='function')continue;
+    if(game.command([u.id],{kind:'build',x:point.x,y:point.y,target:base.id},
+     plan.append))accepted.push(u);
+   }
    return {...plan,workers:accepted.length?accepted:plan.workers,
     base,reason:null,tried};
   }

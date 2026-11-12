@@ -226,11 +226,12 @@ test('click outside the sector cannot throw or permanently break later builds',(
  assert.equal(g.status,'playing');
 });
 
-test('two idle pioneers never converge on the same construction; second is assigned to next site',()=>{
+test('selected pioneers cooperate while an unselected worker can start another site',()=>{
  const original={id:41,owner:0,kind:'engineer',hp:110,x:100,y:100,orders:[]};
  const other={id:42,owner:0,kind:'engineer',hp:110,x:160,y:120,orders:[]};
+ const reserve={id:43,owner:0,kind:'engineer',hp:110,x:240,y:140,orders:[]};
  const bases=[];
- const game={units:[original,other],bases,
+ const game={units:[original,other,reserve],bases,
   build(owner,kind,p,ids,facing,append){
    const site={id:200+bases.length,kind,owner,x:p.x,y:p.y,hp:100,
     buildRemaining:12};
@@ -245,21 +246,17 @@ test('two idle pioneers never converge on the same construction; second is assig
  const selected=new Set([41,42]);
  const first=submitConstruction(game,'barracks',{x:200,y:200},selected);
  assert.ok(first.base);
- assert.equal(first.workers.length,1,
-  'a single foundation receives exactly one pioneer to avoid congestion');
- const assigned=first.workers[0];
- const available=game.units.find(u=>u.id!==assigned.id);
- assert.equal(assigned.orders[0].target,first.base.id);
- assert.equal(available.orders.length,0,
-  'unassigned pioneer stays free for the next construction');
+ assert.deepEqual(first.workers.map(u=>u.id),[41,42],
+  'both explicitly selected pioneers get the construction order');
+ assert.ok(game.units.slice(0,2).every(u=>u.orders[0].target===first.base.id));
+ assert.equal(reserve.orders.length,0,'unselected pioneer remains free');
  const second=submitConstruction(game,'generator',{x:550,y:550},
-  new Set([assigned.id]));
+  new Set([original.id]));
  assert.ok(second.base);
- assert.deepEqual(second.workers.map(u=>u.id),[available.id]);
- assert.equal(second.append,false,'new site must begin immediately');
+ assert.deepEqual(second.workers.map(u=>u.id),[reserve.id]);
+ assert.equal(second.append,false,'reserve immediately starts a second site');
  assert.deepEqual(game.units.map(u=>u.orders[0].target).sort(),
-  [first.base.id,second.base.id].sort(),
-  'one active engineer must remain at EACH foundation');
+  [first.base.id,first.base.id,second.base.id].sort());
  assert.equal(bases.length,2);
 });
 
@@ -307,7 +304,7 @@ test('REAL v24 campaign: two living engineers make simultaneous construction pro
  const spawnAt=g.world.nearest({x:first.x+190,y:first.y+90},g.obstacles())??
   {x:first.x+190,y:first.y+90};
  const second=g.spawn(0,spawnAt,'engineer');
- const selected=new Set([first.id,second.id]);
+ const selected=new Set([first.id]);
  const tryBuild=(kind)=>{
   for(let r=290;r<=970;r+=95)for(let j=0;j<32;j++){
    const theta=j*Math.PI/16;
@@ -325,7 +322,7 @@ test('REAL v24 campaign: two living engineers make simultaneous construction pro
  const one=tryBuild('barracks');
  assert.ok(one.workers.length>=1);
  assert.equal(one.base.buildRemaining>0,true);
- // The second engineer is kept idle instead of crowding the barracks.
+ // The second engineer is unselected and remains idle for the next site.
  for(let n=0;n<24&&g.status==='playing';n++)g.step(.05);
  assert.ok([first,second].some(u=>u.orders.length===0),
   'a free engineer must not crowd an already staffed site');

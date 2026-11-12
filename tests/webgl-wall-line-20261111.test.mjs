@@ -26,6 +26,10 @@ test('line builder caps the number of preview instances and never creates phanto
  const ui=readFileSync('scripts/webgl-battlefield.js','utf8');
  assert.ok(ui.includes("this.buildWallLine({clientX:start.x,clientY:start.y},event,event.shiftKey)"));
  assert.ok(ui.includes("new THREE.InstancedMesh(geometry,material,WALL_DRAG_MAX_SEGMENTS)"));
+ assert.ok(ui.includes("createWallPreviewGeometry()"));
+ assert.ok(ui.includes("mergeGeometries(parts,false)"));
+ assert.ok(!ui.includes("new THREE.BoxGeometry(108,37,31)"));
+ assert.ok(ui.includes("mesh.frustumCulled=false"));
  assert.ok(ui.includes("this.game.buildError(0,'wall',point,facing)"));
  assert.ok(ui.includes("submitConstruction(this.game,'wall',site.point,this.selected"));
  assert.ok(ui.includes("this.clearWallLinePreview()"));
