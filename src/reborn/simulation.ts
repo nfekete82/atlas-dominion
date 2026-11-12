@@ -44,6 +44,9 @@ export interface Burst {target:number;remaining:number;at:number;index:number}
 export interface WorkEffect {kind:'heal'|'repair'|'build'|'board';target:number;source:number;sources:number[];at:number;amount:number}
 export const HEAL_RADIUS=70;
 export const REPAIR_RADIUS=90;
+// The pathfinding snap/clearance can stop a pioneer a few units outside the
+// nominal construction circle. Keep working and accounting ranges in sync.
+const BUILDER_SITE_REACH_TOLERANCE=8;
 export const REPAIR_RATE=18;
 export interface Unit extends Point {
   id:number; owner:Faction; kind:UnitKind; xp?:number; hp:number; orders:Order[]; path:Point[];
@@ -1004,7 +1007,9 @@ export class Simulation {
     if(!target)return false;
     // A recently attacked worker pauses construction/repair to defend itself.
     if(u.kind==='engineer'&&u.defendUntil>this.time)return false;
-    const range='queue' in target?target.radius+55:u.kind==='engineer'?REPAIR_RADIUS:this.healRadius(u);
+    const range='queue' in target?target.radius+55+
+      (u.kind==='engineer'?BUILDER_SITE_REACH_TOLERANCE:0):
+      u.kind==='engineer'?REPAIR_RADIUS:this.healRadius(u);
     if(distance(u,target)>range||!this.world.line(u,target)){
       if(explicit&&!u.hold){if(u.repath<=0)u.path=[];const buildings=this.obstacles();const p=order?.approach&&this.world.walkable(order.approach,[...buildings,...infantryStructureColliders(buildings),...this.bastionColliders()])?order.approach:this.supportApproach(u,target);if(p)this.move(u,p,dt);}
       return true;
@@ -1777,7 +1782,7 @@ export class Simulation {
     for(const b of this.bases){
       if(b.hp<=0)continue;
       if(b.buildRemaining>0){
-        const workers=this.units.filter(u=>u.hp>0&&u.owner===b.owner&&u.kind==='engineer'&&u.workingTarget===b.id&&u.orders[0]?.kind==='build'&&u.defendUntil<=this.time&&distance(u,b)<=b.radius+55);
+        const workers=this.units.filter(u=>u.hp>0&&u.owner===b.owner&&u.kind==='engineer'&&u.workingTarget===b.id&&u.orders[0]?.kind==='build'&&u.defendUntil<=this.time&&distance(u,b)<=b.radius+55+BUILDER_SITE_REACH_TOLERANCE);
         b.constructionActive=workers.length>0;
         const rates=workers.map(u=>getVeterancyModifiers(u).buildRate),total=rates.reduce((n,v)=>n+v,0);
         const work=Math.min(b.buildRemaining,dt*total);
