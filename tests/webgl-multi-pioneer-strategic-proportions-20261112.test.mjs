@@ -22,8 +22,11 @@ function fixture(count=1){
   // Stand completely outside the painted facade. The old +/- (radius+30)
   // spawn overlapped the real infantry collision clearance and caused
   // buildError() to reject the foundation before construction could start.
-  const x=place.x+BUILDINGS.barracks.radius+95;
-  const y=place.y+(i===0?-28:28);
+  // Approach from opposite sides, as two independent RTS builders should.
+  // Stacking both units on the same side creates physical separation that
+  // invalidates a throughput benchmark and masks their independent rates.
+  const x=place.x+(i===0?1:-1)*(BUILDINGS.barracks.radius+95);
+  const y=place.y;
   const p=g.world.nearest({x,y},g.obstacles());
   assert.ok(p,'reachable support point');
   workers.push(g.spawn(0,p,'engineer'));
