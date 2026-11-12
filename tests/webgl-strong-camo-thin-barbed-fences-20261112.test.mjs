@@ -27,8 +27,8 @@ test('all grey/white imported GLB armour and concrete receive three-tone biome c
     assert.ok(p.mesh.material.roughness>=.84);
     assert.ok(p.mesh.material.metalness<=.26);
     const shader={
-     vertexShader:'#include <common>\\n#include <begin_vertex>',
-     fragmentShader:'#include <common>\\n#include <color_fragment>'
+     vertexShader:'#include <common>\n#include <begin_vertex>',
+     fragmentShader:'#include <common>\n#include <color_fragment>'
     };
     p.mesh.material.onBeforeCompile(shader,null);
     assert.ok(shader.fragmentShader.includes('sfPaint=mix('));
