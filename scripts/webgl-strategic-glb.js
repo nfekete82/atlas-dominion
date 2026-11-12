@@ -7,7 +7,7 @@ import * as THREE from 'three';
 export const STRATEGIC_GLB_MODELS=Object.freeze({
  headquarters:Object.freeze({
   inactive:'/src/assets/reborn/buildings-3d/sandforge_feldkommando_offline.glb',
-  active:'/src/assets/reborn/buildings-3d/sandforge_feldkommando_textured_plus.glb'
+  active:'/src/assets/reborn/buildings-3d/sandforge_funkzentrale_hq3_game_ready.glb'
  }),
  barracks:Object.freeze({
   inactive:'/src/assets/reborn/buildings-3d/sandforge_kaserne_geschlossen.glb',
@@ -40,10 +40,9 @@ export function strategicGlbActive(kind,base,game){
  return (game?.research?.[base.owner]?.active??null)!==null;
 }
 
-/** Dusty sand/khaki/olive finish. The new textured-plus headquarters has
- * real 1024/2048 UV-mapped PBR artwork, so preserve its authored camouflage
- * on desert maps; snow and jungle still use the world-specific palette.
- */
+/** Dusty sand/khaki/olive finish. The authored HQ3 keeps its detailed
+ * 1024/1536px baked PBR desert camouflage on desert maps, with snow/jungle
+ * procedural repaint only on those biome variants. */
 const finish=Object.freeze({
  SF_olive:'#ab9872',
  SF_olive_dark:'#474d43',
@@ -82,7 +81,7 @@ export function applyStrategicGlbFinish(root){
  root.traverse(node=>{
   if(!node.isMesh)return;
   const list=Array.isArray(node.material)?node.material:[node.material];
-  if(list.some(mat=>mat?.name==='Desert_Camouflage_PBR'&&mat.map))
+  if(list.some(mat=>/^(Desert_Camouflage_PBR|Desert_Camouflage_Weathered)$/.test(mat?.name??'')&&mat.map))
    authoredTexturedHQ=true;
  });
  const materials=new Map();let changed=0;

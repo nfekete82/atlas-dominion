@@ -8,13 +8,14 @@ import {setWorldCamouflageBiome,tintFactionMaterials,shouldTintFactionSurface} f
 
 const path='src/assets/reborn/buildings-3d/sandforge_feldkommando_textured_plus.glb';
 test('new textured-plus Feldkommando has intact geometry, authored PBR artwork and animated radar pivot',()=>{
- assert.ok(strategicGlbUrl('headquarters','active').endsWith('sandforge_feldkommando_textured_plus.glb'));
+ assert.ok(strategicGlbUrl('headquarters','active').endsWith('sandforge_funkzentrale_hq3_game_ready.glb'));
+ // Keep the previous textured-plus asset available without loading it as HQ.
  const bytes=readFileSync(path);
- assert.equal(bytes.length,21736680);
+ assert.equal(bytes.length,7783052);
  assert.equal(bytes.toString('ascii',0,4),'glTF');
  assert.equal(bytes.readUInt32LE(8),bytes.length);
  assert.equal(createHash('sha256').update(bytes).digest('hex'),
-  '374c7dfaeca58b99b92790c714004af007298616415a1f085e5ab9f12f101ca6');
+  'dc9985641126bae0581257185632ea8993ccf0ce121373ab320937a41272dc2e');
  const gltf=JSON.parse(bytes.toString('utf8',20,20+bytes.readUInt32LE(12)));
  assert.equal(gltf.images.length,26);
  assert.equal(gltf.materials.length,29);
