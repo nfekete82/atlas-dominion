@@ -7,7 +7,7 @@ import * as THREE from 'three';
 export const STRATEGIC_GLB_MODELS=Object.freeze({
  headquarters:Object.freeze({
   inactive:'/src/assets/reborn/buildings-3d/sandforge_feldkommando_offline.glb',
-  active:'/src/assets/reborn/buildings-3d/sandforge_feldkommando_betriebsbereit.glb'
+  active:'/src/assets/reborn/buildings-3d/sandforge_feldkommando_textured_plus.glb'
  }),
  barracks:Object.freeze({
   inactive:'/src/assets/reborn/buildings-3d/sandforge_kaserne_geschlossen.glb',
@@ -40,10 +40,9 @@ export function strategicGlbActive(kind,base,game){
  return (game?.research?.[base.owner]?.active??null)!==null;
 }
 
-/** Dusty sand, khaki and olive paint on the real GLB PBR surfaces.
- * The source files contain per-part colours but no texture UVs. Sandforge's
- * existing building-shader adds the subtle procedural camouflage pattern
- * to these surfaces after the material colours are prepared.
+/** Dusty sand/khaki/olive finish. The new textured-plus headquarters has
+ * real 1024/2048 UV-mapped PBR artwork, so preserve its authored camouflage
+ * on desert maps; snow and jungle still use the world-specific palette.
  */
 const finish=Object.freeze({
  SF_olive:'#ab9872',
@@ -77,6 +76,15 @@ const structural=/^SF_(olive|concrete_high|foundation|deck|steel|missile|white|B
 /** Reuse cloned material per exported GLB material; never mutate cached asset. */
 export function applyStrategicGlbFinish(root){
  if(!root)return 0;
+ // Unique to the new user's fully textured HQ; do not flatten its real
+ // camouflage maps with a 94%-opaque generic desert procedural shader.
+ let authoredTexturedHQ=false;
+ root.traverse(node=>{
+  if(!node.isMesh)return;
+  const list=Array.isArray(node.material)?node.material:[node.material];
+  if(list.some(mat=>mat?.name==='Desert_Camouflage_PBR'&&mat.map))
+   authoredTexturedHQ=true;
+ });
  const materials=new Map();let changed=0;
  root.traverse(mesh=>{
   if(!mesh.isMesh)return;
@@ -97,6 +105,7 @@ export function applyStrategicGlbFinish(root){
    }
    material.userData={...material.userData,
     sandforgeOriginalStrategicGLB:true,
+    sandforgePreserveHQDesertTextures:authoredTexturedHQ&&Boolean(material.map),
     sandforgePbrFinish:'sandforge-3-biomes-matte-20261112'};
    material.needsUpdate=true;
    materials.set(source,material);return material;

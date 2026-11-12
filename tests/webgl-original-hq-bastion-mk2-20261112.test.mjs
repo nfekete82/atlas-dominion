@@ -32,7 +32,7 @@ test('all four ORIGINAL user-uploaded GLBs are committed unchanged',()=>{
 });
 test('HQ switches from offline to ready on completion, not on research',()=>{
  assert.ok(strategicGlbUrl('headquarters','inactive').endsWith('feldkommando_offline.glb'));
- assert.ok(strategicGlbUrl('headquarters','active').endsWith('feldkommando_betriebsbereit.glb'));
+ assert.ok(strategicGlbUrl('headquarters','active').endsWith('feldkommando_textured_plus.glb'));
  assert.equal(strategicGlbActive('headquarters',{hp:1500,owner:0,buildRemaining:8},{}),true);
  assert.equal(strategicGlbActive('headquarters',{hp:1500,owner:0,buildRemaining:0},{}),false);
  const battlefield=readFileSync('scripts/webgl-battlefield.js','utf8');

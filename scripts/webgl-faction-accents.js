@@ -131,9 +131,17 @@ export function tintFactionMaterials(root,owner,kind,type){
     // excluded before this point, not recoloured.
     if(['building','unit'].includes(type)&&
        !(mat.emissiveIntensity>.29&&mat.emissive?.getHex?.()!==0)){
-      mat.roughness=Math.max(type==='building'?.84:.72,mat.roughness);
-      mat.metalness=Math.min(type==='building'?.26:.48,mat.metalness);
-      applyDesertBuildingCamo(mat);
+      // The uploaded textured-plus HQ already contains high-detail real
+      // desert camouflage, UV maps, scratches and normal variation.
+      // Keep its authored pixels in desert while recolouring all other
+      // buildings and switching this HQ to snow/jungle on those maps.
+      const keepNative=selectedCamouflageBiome==='desert'&&
+       mat.userData?.sandforgePreserveHQDesertTextures;
+      if(!keepNative){
+       mat.roughness=Math.max(type==='building'?.84:.72,mat.roughness);
+       mat.metalness=Math.min(type==='building'?.26:.48,mat.metalness);
+       applyDesertBuildingCamo(mat);
+      }
     }
     tinted++;
    }
