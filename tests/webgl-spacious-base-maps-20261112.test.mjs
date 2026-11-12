@@ -35,3 +35,17 @@ test('old v23 start and map remain stable',()=>{
  assert.equal(g.world.size,6240);
  assert.ok(g.startRegions.every(r=>r.radius===600));
 });
+
+test('new map versions survive the existing v2 save envelope without rewriting old saves',()=>{
+ for(const version of [27,28,29,30]){
+  const original=Simulation.campaign(42,version,'open');
+  const save=original.save();
+  assert.equal(save.version,2);
+  assert.equal(save.mapVersion,version);
+  const restored=Simulation.load(save);
+  assert.equal(restored.world.size,mapWorldSize(version));
+  assert.equal(restored.world.mapVersion,version);
+  assert.equal(restored.territories.length,original.territories.length);
+  assert.equal(restored.world.generated.battlefield.generatorVersion,2);
+ }
+});
