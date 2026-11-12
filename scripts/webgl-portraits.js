@@ -5,6 +5,7 @@ import {createStrategicBuilding,isStrategicBuilding} from './webgl-strategic-bui
 import {createRocketInfantry,attachRocketLauncherToInfantry} from './webgl-rocket-infantry.js';
 import {createResearchArtwork,RESEARCH_ARTWORK_KINDS} from './webgl-research-artworks.js';
 import {tintFactionMaterials} from './webgl-faction-accents.js';
+import {isStrategicGlbKind,strategicGlbUrl,applyStrategicGlbFinish} from './webgl-strategic-glb.js';
 
 /** Sprite-sheet portrait extraction shared by the WebGL HUD.
  * The classic game crops one idle frame rather than scaling down the entire
@@ -179,7 +180,29 @@ function renderModelPortrait(model,renderer,{width=320,height=220,research=false
   for(const material of materials)material.dispose();
  }
 }
-function renderStrategicPortrait(kind,renderer){
+async function renderStrategicPortrait(kind,renderer){
+ if(isStrategicGlbKind(kind)){
+  // The build-menu thumbnail should show the exact SAME original 3D model
+  // as the placed building, not the obsolete procedural research/silo art.
+  try{
+   const url=strategicGlbUrl(kind,'active');
+   const data=await new GLTFLoader().loadAsync(url);
+   const model=cloneSkeleton(data.scene);
+   // Portrait render disposes temporary GPU resources; never release the
+   // loader's cached GLB geometries or shared materials.
+   model.traverse(node=>{
+    if(!node.isMesh)return;
+    node.geometry=node.geometry.clone();
+    node.material=Array.isArray(node.material)?
+     node.material.map(m=>m.clone()):node.material.clone();
+   });
+   applyStrategicGlbFinish(model);
+   tintFactionMaterials(model,0,kind,'building');
+   return renderModelPortrait(model,renderer);
+  }catch(error){
+   console.warn('Original strategic GLB thumbnail fallback:',kind,error);
+  }
+ }
  const model=createStrategicBuilding(kind,0);
  if(!model)return strategicBuildingIcon(kind);
  tintFactionMaterials(model,0,kind,'building');
@@ -328,7 +351,7 @@ const buildingIconCache=new Map();
 async function rasterizeBuildingIcon(kind,renderer){
  if(isStrategicBuilding(kind)){
   if(!renderer)return buildingIconUrl(kind);
-  try{return renderStrategicPortrait(kind,renderer);}
+  try{return await renderStrategicPortrait(kind,renderer);}
   catch(error){console.warn('Strategic portrait fallback:',kind,error);return buildingIconUrl(kind);}
  }
  const image=await loadImage(buildingIconUrl(kind));

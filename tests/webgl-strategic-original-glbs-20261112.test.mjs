@@ -61,3 +61,11 @@ test('battlefield, runtime variants, preview and build all use the GLBs',()=>{
  assert.ok(source.includes('isStrategicGlbKind(kind)'));
  assert.ok(build.includes("webgl-strategic-glb.js"));
 });
+
+test('building cards render thumbnails of actual original strategic GLBs',()=>{
+ const portrait=readFileSync('scripts/webgl-portraits.js','utf8');
+ assert.ok(portrait.includes("strategicGlbUrl(kind,'active')"));
+ assert.ok(portrait.includes('applyStrategicGlbFinish(model)'));
+ assert.ok(portrait.includes('return await renderStrategicPortrait(kind,renderer)'));
+ assert.ok(portrait.includes('node.geometry=node.geometry.clone()'));
+});
