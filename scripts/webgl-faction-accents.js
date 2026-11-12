@@ -16,10 +16,30 @@ const team={0:new THREE.Color(FACTION_COLORS[0]),1:new THREE.Color(FACTION_COLOR
 export const DESERT_BUILDING_PALETTE=Object.freeze({
  sand:'#cbb68a',khaki:'#99946e',olive:'#747958',metal:'#61665d'
 });
-export const DESERT_FINISH_REVISION='desert-camouflage-v3-20261109';
+// These three stylized uniforms follow the player's reference photos:
+// winter greys/white, sandy khaki desert, and olive forest/jungle.
+// This is render-only: weapons, collision, factions and navigation stay intact.
+export const CAMOUFLAGE_PALETTES=Object.freeze({
+ desert:Object.freeze({name:'Sand/Khaki',base:'#c7b089',middle:'#ab9872',dark:'#6f755d',
+  rgb:['.78,.69,.54','.63,.56,.42','.39,.44,.34']}),
+ snow:Object.freeze({name:'Winter White/Grey',base:'#e1e5e4',middle:'#a8b1b6',dark:'#616d75',
+  rgb:['.90,.92,.92','.66,.71,.73','.36,.43,.46']}),
+ jungle:Object.freeze({name:'Olive/Forest',base:'#87936e',middle:'#526b45',dark:'#2e4936',
+  rgb:['.53,.58,.41','.32,.43,.29','.18,.31,.22']})
+});
+export const DESERT_FINISH_REVISION='biome-camouflage-v4-20261112';
+let selectedCamouflageBiome='desert';
+export function setWorldCamouflageBiome(value){
+ selectedCamouflageBiome=Object.hasOwn(CAMOUFLAGE_PALETTES,value)?value:'desert';
+ return selectedCamouflageBiome;
+}
+export const worldCamouflageBiome=()=>selectedCamouflageBiome;
 function applyDesertBuildingCamo(material){
- if(material.userData?.sandforgeDesertFinish===DESERT_FINISH_REVISION)return;
+ const biome=selectedCamouflageBiome;
+ const revision=DESERT_FINISH_REVISION+'-'+biome;
+ if(material.userData?.sandforgeDesertFinish===revision)return;
  const oldCompile=material.onBeforeCompile;
+ const colors=CAMOUFLAGE_PALETTES[biome].rgb;
  material.onBeforeCompile=function(shader,renderer){
   oldCompile?.call(this,shader,renderer);
   const varying='varying vec3 sfDesertWorld;';
@@ -36,21 +56,22 @@ function applyDesertBuildingCamo(material){
    ' +.27*sin((sfDesertWorld.x+sfDesertWorld.z)*.19);',
    'float sfOlive=smoothstep(.67,1.17,sfPatch);',
    'float sfKhaki=smoothstep(-.56,.12,sfPatch);',
-   'vec3 sfPaint=mix(vec3(.68,.57,.39),vec3(.46,.46,.32),sfKhaki*.79);',
-   'sfPaint=mix(sfPaint,vec3(.30,.34,.23),sfOlive*.55);',
+   'vec3 sfPaint=mix(vec3('+colors[0]+'),vec3('+colors[1]+'),sfKhaki*.79);',
+   'sfPaint=mix(sfPaint,vec3('+colors[2]+'),sfOlive*.66);',
    'float sfSurface=dot(diffuseColor.rgb,vec3(.2126,.7152,.0722));',
-   'float sfRelief=clamp(.57+sfSurface*.72,.28,1.12);',
-   'float sfCoverage=smoothstep(.018,.12,sfSurface)*.94;',
+   'float sfRelief=clamp(.55+sfSurface*.67,.30,1.12);',
+   'float sfCoverage=smoothstep(.018,.12,sfSurface)*.89;',
    'diffuseColor.rgb=mix(diffuseColor.rgb,clamp(sfPaint*sfRelief*1.34,0.0,1.0),sfCoverage);'
   ].join('\n');
   shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>',paint);
  };
- material.customProgramCacheKey=()=>DESERT_FINISH_REVISION;
- material.userData={...material.userData,sandforgeDesertFinish:DESERT_FINISH_REVISION};
+ material.customProgramCacheKey=()=>revision;
+ material.userData={...material.userData,sandforgeDesertFinish:revision,
+  sandforgeCamouflageBiome:biome};
  material.needsUpdate=true;
 }
 
-const skip=/weapon|gun|rifle|barrel|muzzle|rocket|rotor|propeller|blade|glass|window|canopy|windshield|visor|eye|skin|face|hand|tyre|tire|wheel|track|exhaust|smoke|lightbulb|lamp|emission|transparent|glow|engine|shadow|invisible/i;
+const skip=/weapon|gun|rifle|barrel|muzzle|rocket|rotor|propeller|blade|glass|window|canopy|windshield|visor|eye|skin|face|hand|tyre|tire|wheel|track|exhaust|smoke|lightbulb|lamp|emission|transparent|glow|engine|shadow|invisible|flag/i;
 const priority=/cloth|uniform|armor|armour|vest|shoulder|chest|helmet|body|hull|fuselage|camo|camouflage|panel|paint|metal|frame|side|roof|wall|tower|base|concrete|plaster|sandstone|trim|structure/i;
 /** This function is testable with the asset's actual glTF material names,
  * but safely handles exports with generic numbered materials as well. */
@@ -87,8 +108,14 @@ export function tintFactionMaterials(root,owner,kind,type){
     }
    }
    const base=new THREE.Color(mat.userData.sandforgeBaseColor);
+   const teamFlag=/^SF_team_blue$/i.test(mat.name);
+   if(teamFlag){
+    mat.color.copy(team[owner]);
+    tinted++;
+    return mat;
+   }
    const eligible=shouldTintFactionSurface(kind,type,mat.name,mesh.name,mat);
-   // Existing beige, charcoal, camouflage and texture detail remain.
+   // Existing texture detail, team marks and metalwork remain.
    const weight=type==='building'?.025:
     ['infantry','medic','engineer','heavy'].includes(kind)?.25:
     ['scout','bomber'].includes(kind)?.23:.17;
@@ -98,8 +125,8 @@ export function tintFactionMaterials(root,owner,kind,type){
     // Authored three-tone camouflage albedo (silo bunker/hatch) already
     // carries real sand/olive paint. Do not overwrite 94% of that texture
     // with the generic world-space patch shader.
-    if(type==='building'&&mat.metalness<.9&&
-       !mat.userData?.sandforgeColorMapCamo&&
+    if(['building','unit'].includes(type)&&mat.metalness<.9&&
+       (selectedCamouflageBiome!=='desert'||!mat.userData?.sandforgeColorMapCamo)&&
        !(mat.emissiveIntensity>.29&&mat.emissive?.getHex?.()!==0))
       applyDesertBuildingCamo(mat);
     tinted++;

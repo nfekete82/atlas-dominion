@@ -11,6 +11,7 @@ import {SandforgeBattlefield} from '/webgl-battlefield.js';
 import {DesertOases} from '/webgl-oases.js';
 import {DesertArtPass} from '/webgl-environment.js';
 import {BIOME_STYLES,normalizeBiome,createBiomeGroundTexture,addBiomeVegetation} from '/webgl-biomes.js';
+import {setWorldCamouflageBiome} from '/webgl-faction-accents.js';
 import {SandforgeCombatEffects} from '/webgl-combat-vfx.js';
 import {SandforgeStrategicEffects} from '/webgl-strategic-effects.js';
 import {SandforgePerformanceWatch} from '/webgl-perf-watch.js';
@@ -33,6 +34,7 @@ import {stoneMaterial,sharedStoneMaps,weatheredStoneGeometry} from '/webgl-rock-
 const $=id=>document.getElementById(id);
 const query=new URLSearchParams(location.search);
 const biome=normalizeBiome(query.get('biome'));
+setWorldCamouflageBiome(biome);
 const biomeStyle=BIOME_STYLES[biome];
 // Brand-new 50%-larger WebGL battlefields. Earlier Canyon v15-v18 saves
 // remain available via legacy=1 and are never silently migrated.

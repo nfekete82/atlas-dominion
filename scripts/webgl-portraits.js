@@ -352,7 +352,7 @@ export function unitIcon(kind,renderer){
 // into a consistent wide tile without clipping its silhouette.
 const buildingIconCache=new Map();
 async function rasterizeBuildingIcon(kind,renderer){
- if(isStrategicBuilding(kind)){
+ if(isStrategicBuilding(kind)||isStrategicGlbKind(kind)){
   if(!renderer)return buildingIconUrl(kind);
   try{return await renderStrategicPortrait(kind,renderer);}
   catch(error){console.warn('Strategic portrait fallback:',kind,error);return buildingIconUrl(kind);}
