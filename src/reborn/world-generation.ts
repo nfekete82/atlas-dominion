@@ -70,7 +70,7 @@ export function generateMap(seed:number,version:Exclude<MapVersion,0>=MAP_VERSIO
     const target={open:1,dunes:2,rocky:1,oasis:5,mixed:3}[profile];
     for(let trial=0;trial<2400&&basins.length<target;trial++){
       const p={x:650+oasisRandom()*(size-1300),y:650+oasisRandom()*(size-1300)};
-      if(sites.some(s=>Math.hypot(p.x-s.x,p.y-s.y)<(generatorVersion===1?650:TERRAIN_GRADING_V2.bastionFlatRadius+585))||
+      if(sites.some(s=>Math.hypot(p.x-s.x,p.y-s.y)<(generatorVersion===1?650:grading.bastionFlatRadius+585))||
          corridors.some(([a,b])=>segmentDistance(p,a,b)<410)||
          layout.headquarters.some(id=>Math.hypot(p.x-battlefieldStart(sites[id],size).x,p.y-battlefieldStart(sites[id],size).y)<(generatorVersion===1?1250:grading.homeFlatRadius+650))||
          canyon.ruins.some(r=>Math.hypot(p.x-r.x,p.y-r.y)<450)||
