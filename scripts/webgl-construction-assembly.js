@@ -64,6 +64,9 @@ export function updateAuthoredAssembly(assembly,progress){
  const fraction=p<=.15?0:THREE.MathUtils.clamp((p-.15)/.80,0,1);
  const height=assembly.minY+(assembly.maxY-assembly.minY)*fraction;
  for(const {geometry,bounds} of assembly.meshes){
+  // At 0–15% the construction crew is still excavating/founding the site:
+  // even triangles exactly on the source's minimum Y must remain invisible.
+  if(fraction<=0){geometry.setDrawRange(0,0);continue;}
   let left=0,right=bounds.length;
   while(left<right){
    const mid=(left+right)>>1;
