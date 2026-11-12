@@ -6,6 +6,7 @@ import {createRocketInfantry,attachRocketLauncherToInfantry} from './webgl-rocke
 import {createResearchArtwork,RESEARCH_ARTWORK_KINDS} from './webgl-research-artworks.js';
 import {tintFactionMaterials} from './webgl-faction-accents.js';
 import {isStrategicGlbKind,strategicGlbUrl,applyStrategicGlbFinish} from './webgl-strategic-glb.js';
+import {strategicBuildingHeightScale} from './webgl-scale.js';
 
 /** Sprite-sheet portrait extraction shared by the WebGL HUD.
  * The classic game crops one idle frame rather than scaling down the entire
@@ -197,6 +198,8 @@ async function renderStrategicPortrait(kind,renderer){
      node.material.map(m=>m.clone()):node.material.clone();
    });
    applyStrategicGlbFinish(model);
+   // Build-menu portrait must preserve the taller in-game strategic silhouette.
+   model.scale.y*=strategicBuildingHeightScale(kind);
    tintFactionMaterials(model,0,kind,'building');
    return renderModelPortrait(model,renderer);
   }catch(error){
