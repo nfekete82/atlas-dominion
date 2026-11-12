@@ -208,7 +208,7 @@ export class SandforgeBattlefield {
  }
  asset(kind,owner,type){
   const prefix='/src/assets/reborn/';
-  if(type==='building')return (kind==='barracks'?
+  if(type==='building')return (['barracks','headquarters'].includes(kind)?
     strategicGlbUrl(kind,'active'):strategicGlbUrl(kind))??
     prefix+'buildings-3d/'+kind+'-'+owner+'.glb';
   // Rocket specialists share the fully animated Atlas infantry skeleton.
@@ -385,7 +385,8 @@ export class SandforgeBattlefield {
   while(this.loadingCount<2&&this.modelQueue.length){
    const task=this.modelQueue.shift();this.loadingCount++;
    const variantUrl=task.type==='building'?
-    strategicGlbUrl(task.entry.kind,task.entry.kind==='barracks'?'inactive':'active'):null;
+    strategicGlbUrl(task.entry.kind,
+     ['barracks','headquarters'].includes(task.entry.kind)?'inactive':'active'):null;
    const promise=variantUrl?
     Promise.all([this.getModel(task.url),this.getModel(variantUrl)]):
     this.getModel(task.url).then(data=>[data,null]);

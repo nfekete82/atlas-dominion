@@ -32,9 +32,9 @@ export function strategicGlbActive(kind,base,game){
  // Primary barracks uses READY model; alternate CLOSED model is shown
  // during construction; the production gates animate pivot nodes.
  if(kind==='barracks')return base.buildRemaining>0;
- // Feldkommando is offline while the engineer builds and operational when
- // completed. No connection to the unrelated research upgrade state.
- if(kind==='headquarters')return base.buildRemaining<=0;
+ // Main HQ mesh is READY; its alternate offline asset is visible
+ // only during construction, analogous to the barracks.
+ if(kind==='headquarters')return base.buildRemaining>0;
  if(base.buildRemaining>0)return false;
  if(kind==='silo')return (base.siloCharge??600)<=0;
  return (game?.research?.[base.owner]?.active??null)!==null;

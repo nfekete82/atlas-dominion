@@ -33,8 +33,11 @@ test('all four ORIGINAL user-uploaded GLBs are committed unchanged',()=>{
 test('HQ switches from offline to ready on completion, not on research',()=>{
  assert.ok(strategicGlbUrl('headquarters','inactive').endsWith('feldkommando_offline.glb'));
  assert.ok(strategicGlbUrl('headquarters','active').endsWith('feldkommando_betriebsbereit.glb'));
- assert.equal(strategicGlbActive('headquarters',{hp:1500,owner:0,buildRemaining:8},{}),false);
- assert.equal(strategicGlbActive('headquarters',{hp:1500,owner:0,buildRemaining:0},{}),true);
+ assert.equal(strategicGlbActive('headquarters',{hp:1500,owner:0,buildRemaining:8},{}),true);
+ assert.equal(strategicGlbActive('headquarters',{hp:1500,owner:0,buildRemaining:0},{}),false);
+ const battlefield=readFileSync('scripts/webgl-battlefield.js','utf8');
+ assert.ok(battlefield.includes("['barracks','headquarters'].includes(kind)?"));
+ assert.ok(battlefield.includes("['barracks','headquarters'].includes(task.entry.kind)?"));
 });
 test('Bastion model swaps on ownership and animates authored radar without fallback',()=>{
  const code=readFileSync('scripts/webgl-battlefield.js','utf8');
