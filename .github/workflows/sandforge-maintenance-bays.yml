@@ -25,6 +25,8 @@ on:
       - 'scripts/webgl-combat-vfx.js'
       - 'tests/webgl-aircraft-effects-20261110.test.mjs'
       - 'scripts/webgl-battlefield.js'
+      - 'scripts/webgl-wall-line.js'
+      - 'tests/webgl-wall-line-20261111.test.mjs'
       - 'scripts/webgl-scale.js'
       - 'scripts/webgl-selection-ring.js'
       - 'tests/webgl-facility-preview-smallarms-20261110.test.mjs'
