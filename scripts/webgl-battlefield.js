@@ -3,6 +3,7 @@ import {SandforgeProductionGates} from '/webgl-production-gates.js';
 import {nextPeriodicRefresh} from '/webgl-frame-scheduling.js';
 import {wheelsShouldRoll} from '/webgl-wheel-motion.js';
 import {clone as cloneSkeleton} from 'three/addons/utils/SkeletonUtils.js';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {UNITS,BUILDINGS,MAX_GENERATORS_PER_FACTION,unitKinds,buildingKinds,unitSpec,buildingSpec} from '/src/reborn/catalog.js';
 import {TERRAIN_LABELS} from '/src/reborn/battlefield-terrain.js';
 import {RULES} from '/src/reborn/config.js';
@@ -10,7 +11,7 @@ import {installClassicHud} from '/webgl-classic-hud.js';
 import {globalCatalogAvailability} from '/webgl-global-catalog.js';
 import {hydrateUnitIcons,hydrateBuildingIcons,unitIcon,buildingIcon,buildingIconUrl,researchIconMarkup,researchEffectLabel,hydrateResearchArtworks} from '/webgl-portraits.js';
 import {SandforgeActorPresentation} from '/webgl-actor-presentation.js';
-import {calibratedScale,visualUnitScale,unitVisualYaw,unitRenderAltitude,buildingFacingAngle,nextBuildingFacing,buildingFacingDegrees,turretAimLocalYaw,selectionRingRadius} from '/webgl-scale.js';
+import {calibratedScale,visualUnitScale,unitVisualYaw,unitRenderAltitude,buildingFacingAngle,nextBuildingFacing,buildingFacingDegrees,turretAimLocalYaw,selectionRingRadius,strategicBuildingHeightScale} from '/webgl-scale.js';
 import {SandforgeGroundingPass} from '/webgl-grounding.js';
 import {createBuildingYard,disposeBuildingYard} from '/webgl-building-yard.js';
 import {createAirfieldServiceYard,conformAirfieldSurface,updateAirfieldServiceYard,hideOldAirfieldHangar,disposeAirfieldServiceYard} from '/webgl-airfield-service.js';
@@ -384,9 +385,10 @@ export class SandforgeBattlefield {
     if(extent>.0001){
      const scale=calibratedScale(entry.kind,type,dims,desired)*
        (type==='unit'?visualUnitScale(entry.kind):1);
-     model.scale.multiplyScalar(scale);
+     const heightScale=type==='building'?strategicBuildingHeightScale(entry.kind):1;
+     model.scale.multiplyScalar(scale);model.scale.y*=heightScale;
      model.position.set(-box0.getCenter(new THREE.Vector3()).x*scale,
-      -box0.min.y*scale,-box0.getCenter(new THREE.Vector3()).z*scale);
+      -box0.min.y*scale*heightScale,-box0.getCenter(new THREE.Vector3()).z*scale);
     }
     if(type==='building'){
      this.lightBuildingMeshes(model);
@@ -411,10 +413,11 @@ export class SandforgeBattlefield {
      const altBounds=new THREE.Box3().setFromObject(alternate);
      const altDims=altBounds.getSize(new THREE.Vector3());
      const altScale=calibratedScale(entry.kind,'building',altDims,desired);
-     alternate.scale.multiplyScalar(altScale);
+     const altHeightScale=strategicBuildingHeightScale(entry.kind);
+     alternate.scale.multiplyScalar(altScale);alternate.scale.y*=altHeightScale;
      alternate.position.set(
       -altBounds.getCenter(new THREE.Vector3()).x*altScale,
-      -altBounds.min.y*altScale,
+      -altBounds.min.y*altScale*altHeightScale,
       -altBounds.getCenter(new THREE.Vector3()).z*altScale);
      this.lightBuildingMeshes(alternate);
      applyStrategicGlbFinish(alternate);
@@ -422,11 +425,12 @@ export class SandforgeBattlefield {
      alternate.visible=false;
      entry.node.add(alternate);
      entry.variantDetail=alternate;
-     entry.variantHeight=altDims.y*altScale;
+     entry.variantHeight=altDims.y*altScale*altHeightScale;
     }
     const visualScale=calibratedScale(entry.kind,type,dims,desired)*
       (type==='unit'?visualUnitScale(entry.kind):1);
-    entry.modelHeight=Math.max(dims.y*visualScale,entry.variantHeight??0);
+    entry.modelHeight=Math.max(dims.y*visualScale*
+     (type==='building'?strategicBuildingHeightScale(entry.kind):1),entry.variantHeight??0);
     entry.modelFootprint=Math.max(dims.x,dims.z)*visualScale;
     applyFactionAccents(entry,{kind:entry.kind,owner:entry.owner},type,
      entry.modelFootprint,entry.modelHeight);
@@ -519,7 +523,9 @@ export class SandforgeBattlefield {
  }
  beginPlacement(kind){
   this.clearPlacement();
-  this.buildKind=kind;this.previewKind=kind;this.placementFacing=0;
+  this.buildKind=kind;this.previewKind=kind;
+  // The research GLB has its front ramp at local -Z, unlike the HQ.
+  this.placementFacing=kind==='research'?1:0;
   const spec=BUILDINGS[kind],group=new THREE.Group();
   group.name='ghost-building-'+kind;group.userData={buildGhost:true,nonPlayable:true};
   const placeholder=this.createFallback(kind,0,'building');
@@ -636,7 +642,7 @@ export class SandforgeBattlefield {
   arrow.name='BuildingFrontArrow';
   arrow.rotation.x=-Math.PI/2;
   arrow.position.set(kind==='airfield'?-41:kind==='barracks'?spec.width*.12:0,
-   4.2,kind==='airfield'?65:spec.width*.48+9);
+   4.2,kind==='airfield'?65:kind==='research'?-spec.width*.48-9:spec.width*.48+9);
   arrow.renderOrder=1014;arrow.raycast=()=>{};
   frontMarker.add(arrow);group.add(frontMarker);
   group.userData.previewFrontMarker=frontMarker;
@@ -675,9 +681,10 @@ export class SandforgeBattlefield {
    const size=bounds.getSize(new THREE.Vector3());
    if(size.y>0&&Math.max(size.x,size.z)>0){
     const scale=calibratedScale(kind,'building',size,spec.width);
-    model.scale.multiplyScalar(scale);
+    const heightScale=strategicBuildingHeightScale(kind);
+    model.scale.multiplyScalar(scale);model.scale.y*=heightScale;
     model.position.set(-bounds.getCenter(new THREE.Vector3()).x*scale,
-      -bounds.min.y*scale,-bounds.getCenter(new THREE.Vector3()).z*scale);
+      -bounds.min.y*scale*heightScale,-bounds.getCenter(new THREE.Vector3()).z*scale);
    }
    if(kind==='airfield')hideOldAirfieldHangar({detail:model});
    if(isStrategicGlbKind(kind))applyStrategicGlbFinish(model);
@@ -727,7 +734,29 @@ export class SandforgeBattlefield {
   }
   if(this.buildHint)this.buildHint.style.display='none';
  }
- /** One InstancedMesh previews every wall segment: one draw call, hard capped. */
+ /** Show REAL wall panels, coping and pillars before the drag is released.
+  * Geometry is merged only once, then drawn as one InstancedMesh.
+  */
+ createWallPreviewGeometry(){
+  const authored=createStrategicBuilding('wall',0);
+  if(!authored)return new THREE.BoxGeometry(110,48,30);
+  authored.updateMatrixWorld(true);
+  const parts=[],geometries=new Set(),materials=new Set();
+  authored.traverse(obj=>{
+   if(!obj.isMesh)return;
+   const geometry=obj.geometry.clone();
+   geometry.applyMatrix4(obj.matrixWorld);
+   parts.push(geometry);geometries.add(obj.geometry);
+   for(const material of (Array.isArray(obj.material)?obj.material:[obj.material]))
+    if(material)materials.add(material);
+  });
+  const geometry=mergeGeometries(parts,false);
+  for(const part of parts)part.dispose();
+  for(const source of geometries)source.dispose();
+  // Do not dispose shared PBR textures referenced by the source materials.
+  for(const material of materials)material.dispose();
+  return geometry??new THREE.BoxGeometry(110,48,30);
+ }
  clearWallLinePreview(){
   if(!this.wallLinePreview)return;
   const mesh=this.wallLinePreview;
@@ -743,11 +772,13 @@ export class SandforgeBattlefield {
   const positions=this.wallLineAtPointer(start,endEvent);
   if(!positions.length){this.clearWallLinePreview();return;}
   if(!this.wallLinePreview){
-   const geometry=new THREE.BoxGeometry(108,37,31);
+   const geometry=this.createWallPreviewGeometry();
    const material=new THREE.MeshBasicMaterial({
-    color:'#ffffff',transparent:true,opacity:.34,depthTest:false,depthWrite:false});
+    color:'#ffffff',transparent:true,opacity:.62,depthTest:false,
+    depthWrite:false,side:THREE.DoubleSide});
    const mesh=new THREE.InstancedMesh(geometry,material,WALL_DRAG_MAX_SEGMENTS);
    mesh.name='WallLinePlacementGhost';mesh.raycast=()=>{};
+   mesh.renderOrder=1013;mesh.frustumCulled=false;
    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
    this.wallLinePreview=mesh;this.buildPreviewScene.add(mesh);
   }
@@ -755,7 +786,7 @@ export class SandforgeBattlefield {
   let valid=0;
   positions.forEach(({point,facing},i)=>{
    const height=this.heightAt(point.x,point.y);
-   dummy.position.copy(this.pos(point.x,point.y,(Number.isFinite(height)?height:0)+24));
+   dummy.position.copy(this.pos(point.x,point.y,(Number.isFinite(height)?height:0)+.8));
    dummy.rotation.y=buildingFacingAngle(facing);dummy.updateMatrix();
    mesh.setMatrixAt(i,dummy.matrix);
    const affordable=this.game.credits[0]>=BUILDINGS.wall.cost*(i+1);

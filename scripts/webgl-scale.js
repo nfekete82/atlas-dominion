@@ -13,6 +13,9 @@ export const MODEL_HEIGHTS=Object.freeze({
 export const DIMENSIONS_VERSION=3;
 // Visual-only size changes: gameplay footprint and persisted data stay intact.
 export const STRATEGIC_BUILDING_VISUAL_SCALE=Object.freeze({research:.88,silo:.90});
+/** Taller research/silo geometry without changing footprint, collision or saves. */
+export const STRATEGIC_BUILDING_HEIGHT_SCALE=Object.freeze({research:1.75,silo:1.60});
+export const strategicBuildingHeightScale=kind=>STRATEGIC_BUILDING_HEIGHT_SCALE[kind]??1;
 
 /** Wider selection footprint at tactical zoom. Render-only: never changes
  * unit collision, targeting, squad formation or the saved simulation state.
