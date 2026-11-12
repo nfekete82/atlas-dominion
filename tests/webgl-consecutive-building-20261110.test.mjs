@@ -246,7 +246,7 @@ test('selected pioneers cooperate while an unselected worker can start another s
  const selected=new Set([41,42]);
  const first=submitConstruction(game,'barracks',{x:200,y:200},selected);
  assert.ok(first.base);
- assert.deepEqual(first.workers.map(u=>u.id),[41,42],
+ assert.deepEqual(first.workers.map(u=>u.id).sort(),[41,42],
   'both explicitly selected pioneers get the construction order');
  assert.ok(game.units.slice(0,2).every(u=>u.orders[0].target===first.base.id));
  assert.equal(reserve.orders.length,0,'unselected pioneer remains free');
