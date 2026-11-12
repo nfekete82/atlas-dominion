@@ -27,7 +27,8 @@ test('click creates one wall, horizontal/vertical drags create aligned sections'
 test('line builder caps the number of preview instances and never creates phantom walls',()=>{
  assert.equal(wallLinePlacements({x:100,y:100},{x:100000,y:100}).length,WALL_DRAG_MAX_SEGMENTS);
  const ui=readFileSync('scripts/webgl-battlefield.js','utf8');
- assert.ok(ui.includes("this.buildWallLine({clientX:start.x,clientY:start.y},event,event.shiftKey)"));
+ assert.ok(ui.includes("this.buildWallLine({clientX:start.x,clientY:start.y,...(tower?{tower}:{})}"));
+ assert.ok(ui.includes("event,event.shiftKey)"));
  assert.ok(ui.includes("new THREE.InstancedMesh(geometry,material,WALL_DRAG_MAX_SEGMENTS)"));
  assert.ok(ui.includes("createWallPreviewGeometry()"));
  assert.ok(ui.includes("mergeGeometries(parts,false)"));
