@@ -34,6 +34,7 @@ cpSync('scripts/webgl-battlefield.js','dist/webgl-battlefield.js');
 cpSync('scripts/webgl-builder-input.js','dist/webgl-builder-input.js');
 cpSync('scripts/webgl-wall-line.js','dist/webgl-wall-line.js');
 cpSync('scripts/webgl-strategic-buildings.js','dist/webgl-strategic-buildings.js');
+cpSync('scripts/webgl-strategic-glb.js','dist/webgl-strategic-glb.js');
 cpSync('scripts/webgl-rocket-infantry.js','dist/webgl-rocket-infantry.js');
 cpSync('scripts/webgl-strategic-effects.js','dist/webgl-strategic-effects.js');
 cpSync('scripts/webgl-double-click-select.js','dist/webgl-double-click-select.js');

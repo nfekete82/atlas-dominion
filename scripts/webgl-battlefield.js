@@ -27,7 +27,8 @@ import {pointerGestureIntent,submitConstruction,nearestEngineer,POINTER_CLICK_SL
 import {wallLinePlacements,WALL_DRAG_MAX_SEGMENTS,WALL_DRAG_SLOP} from '/webgl-wall-line.js';
 import {sameKindVisibleUnits} from '/webgl-double-click-select.js';
 import {tracerWindow} from '/webgl-hit-response.js';
-import {applyFactionAccents} from '/webgl-faction-accents.js';
+import {applyFactionAccents,tintFactionMaterials} from '/webgl-faction-accents.js';
+import {STRATEGIC_GLB_MODELS,isStrategicGlbKind,strategicGlbUrl,strategicGlbActive,applyStrategicGlbFinish} from '/webgl-strategic-glb.js';
 import {attachTeamMarkings,detachTeamMarkings} from '/webgl-team-markings.js';
 import {SandforgeConstructionPresentation} from '/webgl-construction.js';
 import {createBastionCaptureBar,updateBastionCaptureBar} from '/webgl-bastion-capture.js';
@@ -205,7 +206,7 @@ export class SandforgeBattlefield {
  }
  asset(kind,owner,type){
   const prefix='/src/assets/reborn/';
-  if(type==='building')return prefix+'buildings-3d/'+kind+'-'+owner+'.glb';
+  if(type==='building')return strategicGlbUrl(kind)??prefix+'buildings-3d/'+kind+'-'+owner+'.glb';
   // Rocket specialists share the fully animated Atlas infantry skeleton.
   // Keep the original prototype rig and clips, replace only its rifle mesh.
   if(type==='unit'&&kind==='rocket')return prefix+'prototype/infantry-'+owner+'.glb';
@@ -218,7 +219,7 @@ export class SandforgeBattlefield {
   // player's base look markedly worse than the 2D game.
   // Medics always load their authored 3D soldier, even in lite mode.
   if((this.lite&&type!=='building'&&entity.kind!=='medic'&&entity.kind!=='rocket')||
-     (type==='building'&&isStrategicBuilding(entity.kind))||entry.requested||
+     (type==='building'&&isStrategicBuilding(entity.kind)&&!isStrategicGlbKind(entity.kind))||entry.requested||
      this.loadingCount+this.modelQueue.length>=this.maxModels)return;
   entry.requested=true;
   const url=this.asset(entity.kind,entity.owner,type);
@@ -316,8 +317,10 @@ export class SandforgeBattlefield {
  attachBuildingMotion(entry,data){
   if(!['turret','headquarters','research'].includes(entry.kind))return;
   if(entry.kind==='research'){
-   const rotor=(entry.detail??entry.placeholder)?.getObjectByName('ResearchDishPivot');
-   if(rotor)entry.motion={kind:'research',rotor,mode:'procedural-dish'};
+   const rotor=entry.variantDetail?.getObjectByName('radar_assembly_PIVOT')??
+    (entry.detail??entry.placeholder)?.getObjectByName('ResearchDishPivot');
+   if(rotor)entry.motion={kind:'research',rotor,
+    mode:entry.variantDetail?'original-glb-radar':'procedural-dish'};
    return;
   }
   // Read the actual glTF hierarchy instead of sampling an animation by
@@ -363,7 +366,12 @@ export class SandforgeBattlefield {
  pumpModelQueue(){
   while(this.loadingCount<2&&this.modelQueue.length){
    const task=this.modelQueue.shift();this.loadingCount++;
-   this.getModel(task.url).then(data=>{
+   const variantUrl=task.type==='building'?
+    strategicGlbUrl(task.entry.kind,'active'):null;
+   const promise=variantUrl?
+    Promise.all([this.getModel(task.url),this.getModel(variantUrl)]):
+    this.getModel(task.url).then(data=>[data,null]);
+   promise.then(([data,variantData])=>{
     const {entry,type}=task;
     if(!entry.node.parent)return;
     const model=cloneSkeleton(data.scene);
@@ -380,8 +388,10 @@ export class SandforgeBattlefield {
      model.position.set(-box0.getCenter(new THREE.Vector3()).x*scale,
       -box0.min.y*scale,-box0.getCenter(new THREE.Vector3()).z*scale);
     }
-    if(type==='building')this.lightBuildingMeshes(model);
-    else model.traverse(o=>{
+    if(type==='building'){
+     this.lightBuildingMeshes(model);
+     if(isStrategicGlbKind(entry.kind))applyStrategicGlbFinish(model);
+    }else model.traverse(o=>{
      if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}
     });
     // Visual normalization is independent of collision/pathfinding. Re-ground
@@ -394,9 +404,29 @@ export class SandforgeBattlefield {
      entry.placeholder=null;
     }
     entry.node.add(model);entry.detail=model;
+    if(variantData){
+     // Closed/ready silo and idle/working lab are distinct original GLBs.
+     // Same authoring bounds and scale/grounding as the primary asset.
+     const alternate=cloneSkeleton(variantData.scene);
+     const altBounds=new THREE.Box3().setFromObject(alternate);
+     const altDims=altBounds.getSize(new THREE.Vector3());
+     const altScale=calibratedScale(entry.kind,'building',altDims,desired);
+     alternate.scale.multiplyScalar(altScale);
+     alternate.position.set(
+      -altBounds.getCenter(new THREE.Vector3()).x*altScale,
+      -altBounds.min.y*altScale,
+      -altBounds.getCenter(new THREE.Vector3()).z*altScale);
+     this.lightBuildingMeshes(alternate);
+     applyStrategicGlbFinish(alternate);
+     tintFactionMaterials(alternate,entry.owner,entry.kind,'building');
+     alternate.visible=false;
+     entry.node.add(alternate);
+     entry.variantDetail=alternate;
+     entry.variantHeight=altDims.y*altScale;
+    }
     const visualScale=calibratedScale(entry.kind,type,dims,desired)*
       (type==='unit'?visualUnitScale(entry.kind):1);
-    entry.modelHeight=dims.y*visualScale;
+    entry.modelHeight=Math.max(dims.y*visualScale,entry.variantHeight??0);
     entry.modelFootprint=Math.max(dims.x,dims.z)*visualScale;
     applyFactionAccents(entry,{kind:entry.kind,owner:entry.owner},type,
      entry.modelFootprint,entry.modelHeight);
@@ -483,8 +513,7 @@ export class SandforgeBattlefield {
   applyFactionAccents(entry,entity,type,footprint,height);
   if(unit)attachTeamMarkings(entry,entity.owner,entity.kind,footprint,height);
   if(type==='unit'&&['tank','artillery'].includes(entity.kind))this.installTankRig(entry,placeholder);
-  // Procedural strategic buildings never join the GLB loading queue.
-  // Initialize their mechanical radar directly on the real fallback model.
+  // During the short GLB load show the old strategic mesh as a fallback.
   if(type==='building'&&entity.kind==='research')this.attachBuildingMotion(entry,{animations:[]});
   this.scheduleDetail(entry,entity,type);return entry;
  }
@@ -639,7 +668,7 @@ export class SandforgeBattlefield {
   group.userData.previewCircle=circle;group.add(circle);
   this.buildPreviewScene.add(group);
   this.buildPreview=group;group.visible=false;
-  if(isStrategicBuilding(kind))return; // detailed procedural fallback is already ghosted
+  if(isStrategicBuilding(kind)&&!isStrategicGlbKind(kind))return; // other strategic types use procedural preview
   this.getModel(this.asset(kind,0,'building')).then(data=>{
    if(this.buildPreview!==group||this.buildKind!==kind)return;
    const model=cloneSkeleton(data.scene),bounds=new THREE.Box3().setFromObject(model);
@@ -651,6 +680,7 @@ export class SandforgeBattlefield {
       -bounds.min.y*scale,-bounds.getCenter(new THREE.Vector3()).z*scale);
    }
    if(kind==='airfield')hideOldAirfieldHangar({detail:model});
+   if(isStrategicGlbKind(kind))applyStrategicGlbFinish(model);
    tint(model,false,.50);
    model.visible=true; // final authored shape and its actual entrances
    group.remove(placeholder);disposeOwnedMeshes(placeholder);
@@ -890,11 +920,19 @@ export class SandforgeBattlefield {
    aliveBases.add(b.id);
    let entry=this.bases.get(b.id);
    if(!entry){entry=this.spawnNode(b,'building');this.bases.set(b.id,entry);this.grounding.attachBuilding(entry,b);}
-   if(entry.factionOwner!==b.owner)applyFactionAccents(entry,b,'building');
+   if(entry.factionOwner!==b.owner){
+    applyFactionAccents(entry,b,'building');
+    if(entry.variantDetail)tintFactionMaterials(entry.variantDetail,b.owner,b.kind,'building');
+   }
    entry.node.position.copy(this.entityPosition(b));
    entry.node.visible=b.owner===0||this.game.canSee(0,b);
    entry.node.scale.y=1;
    entry.node.rotation.y=buildingFacingAngle(b.facing);
+   if(entry.variantDetail){
+    const activeVariant=strategicGlbActive(b.kind,b,this.game);
+    entry.detail.visible=!activeVariant;
+    entry.variantDetail.visible=activeVariant;
+   }
    this.construction.update(entry,b);
    // Site dressing and the FULL facility footprint are present from the
    // first construction tick. Construction scaffolding overlays them, rather
@@ -935,6 +973,7 @@ export class SandforgeBattlefield {
     disposeAirfieldServiceYard(e);disposeFactoryServiceYard(e);
     if(e.placeholder){disposeOwnedMeshes(e.placeholder);e.placeholder=null;}
     if(e.detail)disposeTaggedMaterials(e.detail,'sandforgeBuildingFill');
+    if(e.variantDetail)disposeTaggedMaterials(e.variantDetail,'sandforgeBuildingFill');
     if(e.motion?.mixer){
      e.motion.mixer.stopAllAction();
      if(e.detail)e.motion.mixer.uncacheRoot(e.detail);
