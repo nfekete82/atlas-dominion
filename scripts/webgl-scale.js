@@ -11,6 +11,8 @@ export const MODEL_HEIGHTS=Object.freeze({
  headquarters:158,barracks:119,factory:125,airfield:137,generator:92,turret:95
 });
 export const DIMENSIONS_VERSION=3;
+// Visual-only size changes: gameplay footprint and persisted data stay intact.
+export const STRATEGIC_BUILDING_VISUAL_SCALE=Object.freeze({research:.88,silo:.90});
 
 /** Wider selection footprint at tactical zoom. Render-only: never changes
  * unit collision, targeting, squad formation or the saved simulation state.
@@ -97,5 +99,6 @@ export function calibratedScale(kind,type,bounds,targetWidth){
  if(type==='unit')return Math.min(byWidth,(MODEL_HEIGHTS[kind]??50)/height);
  // Footprint stays aligned with the original building collision width;
  // huge roofs, towers and dish antennas must not dwarf nearby units.
- return Math.min(byWidth,(MODEL_HEIGHTS[kind]??135)/height);
+ return Math.min(byWidth,(MODEL_HEIGHTS[kind]??135)/height)*
+  (STRATEGIC_BUILDING_VISUAL_SCALE[kind]??1);
 }

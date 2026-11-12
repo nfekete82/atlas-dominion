@@ -32,20 +32,20 @@ export function strategicGlbActive(kind,base,game){
  * to these surfaces after the material colours are prepared.
  */
 const finish=Object.freeze({
- SF_olive:'#787d5b',
- SF_olive_dark:'#505841',
- SF_olive_light:'#a8a487',
- SF_concrete_high:'#c2b28f',
- SF_foundation:'#ae9a76',
- SF_deck:'#5f6254',
- SF_deck_light:'#848574',
- SF_steel:'#81887c',
- SF_steel_dark:'#343c37',
- SF_steel_light:'#bbbca8',
- SF_missile:'#b3b1a0',
- SF_missile_dark:'#424b44',
- SF_missile_white:'#d6cfb7',
- SF_white:'#ded3b9'
+ SF_olive:'#74775a',
+ SF_olive_dark:'#4b5240',
+ SF_olive_light:'#98977d',
+ SF_concrete_high:'#ad9e80',
+ SF_foundation:'#a18e70',
+ SF_deck:'#535a50',
+ SF_deck_light:'#777a6a',
+ SF_steel:'#777d70',
+ SF_steel_dark:'#303934',
+ SF_steel_light:'#a8ac98',
+ SF_missile:'#a6a393',
+ SF_missile_dark:'#414a42',
+ SF_missile_white:'#c1b59c',
+ SF_white:'#c3b69a'
 });
 const structural=/^SF_(olive|concrete_high|foundation|deck|steel|missile|white)/;
 /** Reuse cloned material per exported GLB material; never mutate cached asset. */
@@ -64,12 +64,12 @@ export function applyStrategicGlbFinish(root){
    const material=source.clone(),hex=finish[material.name];
    if(hex){material.color.set(hex);changed++;}
    if(structural.test(material.name)){
-    material.roughness=Math.max(.68,material.roughness);
-    material.metalness=Math.min(.42,material.metalness);
+    material.roughness=Math.max(.78,material.roughness);
+    material.metalness=Math.min(.34,material.metalness);
    }
    material.userData={...material.userData,
     sandforgeOriginalStrategicGLB:true,
-    sandforgePbrFinish:'khaki-sand-olive-20261112'};
+    sandforgePbrFinish:'khaki-sand-olive-warm-20261112'};
    material.needsUpdate=true;
    materials.set(source,material);return material;
   };

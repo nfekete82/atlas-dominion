@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {disposeOwnedMeshes} from './webgl-resource-lifecycle.js';
+import {STRATEGIC_BUILDING_VISUAL_SCALE} from './webgl-scale.js';
 
 // Decorative props live next to authored buildings, independently of glTF
 // loading and without altering building collision, navigation or saves.
@@ -137,10 +138,13 @@ function instanceFenceWires(group,parts){
  wires.castShadow=false;wires.receiveShadow=true;
  group.add(wires);
 }
-function perimeterFence(group,width){
- // Three sides only: rear and flanks; the front remains a wide OPEN gateway.
- // Posts, rails and chainlink-style X-bracing: three batched draw calls.
- const x=width*.65,rear=-width*.53,front=width*.28;
+function perimeterFence(group,width,kind){
+ // The original research GLB entrance/ramp faces -Z, unlike other facilities
+ // (+Z): move the cross-fence behind it and leave the real entrance open.
+ // Three instanced draw calls for posts, rails and wire X-bracing.
+ const x=width*.65;
+ const rear=kind==='research'?width*.53:-width*.53;
+ const front=kind==='research'?-width*.28:width*.28;
  const posts=[],rails=[],wires=[],seen=new Set();
  function line(x0,z0,x1,z1){
   const dx=x1-x0,dz=z1-z0,dist=Math.hypot(dx,dz);
@@ -150,16 +154,16 @@ function perimeterFence(group,width){
    const t=i/steps,px=x0+dx*t,pz=z0+dz*t;
    const key=px.toFixed(3)+':'+pz.toFixed(3);
    if(!seen.has(key)){
-    seen.add(key);posts.push({x:px,y:10.5,z:pz,w:3.3,h:21,d:3.3});
+    seen.add(key);posts.push({x:px,y:9,z:pz,w:3,h:18,d:3});
    }
    if(i===steps)continue;
    const u=(i+.5)/steps;
    const mx=x0+dx*u,mz=z0+dz*u;
-   for(const y of [7,16.5])
-    rails.push({x:mx,y,z:mz,w:2.5,h:2,d:dist/steps+.8,yaw});
+   for(const y of [6,14.3])
+    rails.push({x:mx,y,z:mz,w:2.2,h:1.8,d:dist/steps+.8,yaw});
    const sx=dx/steps,sz=dz/steps;
-   wires.push({x:mx,y:11.5,z:mz,dx:sx,dy:13,dz:sz});
-   wires.push({x:mx,y:11.5,z:mz,dx:sx,dy:-13,dz:sz});
+   wires.push({x:mx,y:10,z:mz,dx:sx,dy:11,dz:sz});
+   wires.push({x:mx,y:10,z:mz,dx:sx,dy:-11,dz:sz});
   }
  }
  line(-x,rear,x,rear);
@@ -180,7 +184,7 @@ function addSiteDecor(root,kind,width){
  g.userData={visualOnly:true,nonPlayable:true,siteDecor:true};
  root.add(g);
  const large=width>=155;
- if(fencedSites.has(kind))perimeterFence(g,width);
+ if(fencedSites.has(kind))perimeterFence(g,width,kind);
  const supplies=new THREE.Group();
  supplies.name='BaseSupplyCache';supplies.position.set(width*.55,0,-width*.2);
  g.add(supplies);
@@ -228,6 +232,8 @@ export function createBuildingYard(kind,width=160){
  const root=new THREE.Group();
  root.name='sf-yard-'+kind;
  root.userData={visualOnly:true,nonPlayable:true,buildingContext:kind};
+ // Match placed facility and construction preview without touching collision.
+ root.scale.setScalar(STRATEGIC_BUILDING_VISUAL_SCALE[kind]??1);
  // Place recognizable outdoor inventory at the flanks, not over the
  // doors or spawn lanes. Parent rotation follows the placed building.
  if(kind==='factory'){
