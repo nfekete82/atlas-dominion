@@ -64,7 +64,7 @@ function applyDesertBuildingCamo(material){
    'float sfSurface=dot(diffuseColor.rgb,vec3(.2126,.7152,.0722));',
    'float sfRelief=clamp(.82+sfSurface*.24,.77,1.07);',
    'diffuseColor.rgb=mix(diffuseColor.rgb,clamp(sfPaint*sfRelief,0.0,1.0),.94);'
-  ].join('\\n');
+  ].join('\n');
   shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>',paint);
  };
  material.customProgramCacheKey=()=>revision;
