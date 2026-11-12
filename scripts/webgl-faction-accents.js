@@ -73,7 +73,7 @@ function applyDesertBuildingCamo(material){
  material.needsUpdate=true;
 }
 
-const skip=/weapon|gun|rifle|barrel|muzzle|rocket|rotor|propeller|blade|glass|window|canopy|windshield|visor|eye|skin|face|hand|tyre|tire|wheel|track|exhaust|smoke|lightbulb|lamp|emission|transparent|glow|engine|shadow|invisible|flag|beacon|sensor|screen|recess|warning|indicator|bastion_light|yellow|copper|team/i;
+const skip=/weapon|gun|rifle|barrel|muzzle|rocket|rotor|propeller|blade|glass|window|canopy|windshield|visor|eye|skin|face|hand|tyre|tire|wheel|track|exhaust|smoke|lightbulb|lamp|emission|transparent|glow|engine|shadow|invisible|(?:^|[_\\s])flag(?:[_\\s]|$)|beacon|sensor|screen|recess|warning|indicator|bastion_light|yellow|copper|team/i;
 const priority=/cloth|uniform|armor|armour|vest|shoulder|chest|helmet|body|hull|fuselage|camo|camouflage|panel|paint|metal|frame|side|roof|wall|tower|base|concrete|plaster|sandstone|trim|structure/i;
 /** This function is testable with the asset's actual glTF material names,
  * but safely handles exports with generic numbered materials as well. */

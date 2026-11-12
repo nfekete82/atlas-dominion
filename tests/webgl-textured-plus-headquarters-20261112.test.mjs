@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import * as THREE from 'three';
 import {strategicGlbUrl,applyStrategicGlbFinish} from '../scripts/webgl-strategic-glb.js';
-import {setWorldCamouflageBiome,tintFactionMaterials} from '../scripts/webgl-faction-accents.js';
+import {setWorldCamouflageBiome,tintFactionMaterials,shouldTintFactionSurface} from '../scripts/webgl-faction-accents.js';
 
 const path='src/assets/reborn/buildings-3d/sandforge_feldkommando_textured_plus.glb';
 test('new textured-plus Feldkommando has intact geometry, authored PBR artwork and animated radar pivot',()=>{
@@ -42,6 +42,9 @@ test('preserve authored 2048px desert textures while supporting snow and jungle 
  assert.equal(meshed.material.userData.sandforgeCamouflageBiome,undefined);
  assert.equal(plus.material.userData.sandforgeCamouflageBiome,undefined);
  setWorldCamouflageBiome('snow');
+ assert.equal(shouldTintFactionSurface('headquarters','building',
+  'Desert_Camouflage_PBR','Desert_Camouflage_PBR'),true,
+  'camouflage is not a flag even though it contains the substring flag');
  const clean=new THREE.Group();
  const snowMesh=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),
   new THREE.MeshStandardMaterial({name:'Desert_Camouflage_PBR',map:texture}));
