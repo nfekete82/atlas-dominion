@@ -32,7 +32,7 @@ test('all four ORIGINAL user-uploaded GLBs are committed unchanged',()=>{
 });
 test('HQ switches from offline to ready on completion, not on research',()=>{
  assert.ok(strategicGlbUrl('headquarters','inactive').endsWith('feldkommando_offline.glb'));
- assert.ok(strategicGlbUrl('headquarters','active').endsWith('feldkommando_textured_plus.glb'));
+ assert.ok(strategicGlbUrl('headquarters','active').endsWith('sandforge_funkzentrale_hq3_game_ready.glb'));
  assert.equal(strategicGlbActive('headquarters',{hp:1500,owner:0,buildRemaining:8},{}),true);
  assert.equal(strategicGlbActive('headquarters',{hp:1500,owner:0,buildRemaining:0},{}),false);
  const battlefield=readFileSync('scripts/webgl-battlefield.js','utf8');
@@ -85,7 +85,10 @@ test('user-authored radar pivots rotate in place for HQ and Bastion',()=>{
  pivot.rotation.y=Math.PI/2;
  assert.equal(centerAuthoredRadarPivot(pivot),pivot,'centering is idempotent');
  const battlefield=readFileSync('scripts/webgl-battlefield.js','utf8');
- assert.ok(battlefield.includes("entry.variantDetail?.getObjectByName('RADAR_DISH_PIVOT')"));
+ assert.ok(battlefield.includes('ensureTexturedHqRadarPivot(entry.variantDetail)'));
+ assert.ok(battlefield.includes('ensureTexturedHqRadarPivot(entry.detail)'));
+ assert.ok(battlefield.includes('centerAuthoredRadarPivot(authoredRadar)'));
+ assert.ok(battlefield.includes('centerAuthoredRadarPivot(activeRadar)'));
  assert.ok(battlefield.includes('motion.activeRotor.rotation.y+=step'));
  dish.geometry.dispose();dish.material.dispose();
 });
