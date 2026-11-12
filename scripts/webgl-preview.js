@@ -1182,7 +1182,9 @@ function animate(now){
  if(performanceWatch.enabled)performanceWatch.auxiliary(performance.now()-beforeAux);
  const beforeRender=performanceWatch.enabled?performance.now():0;
  renderer.render(scene,camera);
- if(battlefield.buildPreview?.visible){
+ // The wall-line ghost deliberately hides the single-building hologram. A
+ // separate instanced ghost still needs the overlay render pass while dragging.
+ if(battlefield.buildPreview?.visible||battlefield.wallLinePreview?.visible){
   // A second render pass guarantees the translucent construction silhouette
   // is always visible even behind rocks, soldiers, the black fog or buildings.
   // The first pass already cleared the frame. Clear only depth for the overlay.
