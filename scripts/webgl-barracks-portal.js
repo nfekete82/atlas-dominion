@@ -21,6 +21,19 @@ export function prepareBarracksPortal(entry,renderer){
  if(entry?.barracksPortal)return entry.barracksPortal;
  const root=entry?.detail;
  if(!root)return null;
+ // Original ready Kaserne contains dedicated door pivots; never carve its facade.
+ const left=root.getObjectByName('GATE_LEFT_PIVOT');
+ const right=root.getObjectByName('GATE_RIGHT_PIVOT');
+ if(left&&right){
+  const hall=new THREE.Group();hall.name='BarracksInterior';
+  root.add(hall);
+  const portal={kind:'barracks',authored:true,root,hall,left,right,
+   leftX:left.position.x,rightX:right.position.x,doorPanels:[],
+   materials:[],planes:[],box:[],transform:null};
+  entry.barracksPortal=portal;
+  setBarracksDoorOpen(portal,1);
+  return portal;
+ }
  const doorPanels=[],materials=[];
  const planes=localDoorBox.map(()=>new THREE.Plane());
  root.traverse(obj=>{
@@ -58,6 +71,7 @@ export function prepareBarracksPortal(entry,renderer){
  return portal;
 }
 export function updateBarracksPortalPlanes(portal,force=false){
+ if(portal.authored)return;
  portal.root.updateWorldMatrix(true,false);
  const matrix=portal.root.matrixWorld;
  if(!force&&portal.transform?.equals(matrix))return;
@@ -68,6 +82,13 @@ export function updateBarracksPortalPlanes(portal,force=false){
  }
 }
 export function setBarracksDoorOpen(portal,open){
+ if(portal.authored){
+  const t=Math.max(0,Math.min(1,open));
+  portal.left.position.x=portal.leftX+(1-t)*1.1;
+  portal.right.position.x=portal.rightX-(1-t)*1.1;
+  portal.hall.visible=t>.03;
+  return;
+ }
  for(const panel of portal.doorPanels){
   panel.mesh.position.y=panel.y+open*.66;
   panel.mesh.scale.y=panel.scaleY*(1-open*.97);
@@ -76,7 +97,7 @@ export function setBarracksDoorOpen(portal,open){
 }
 export function disposeBarracksPortal(entry){
  const p=entry?.barracksPortal;if(!p)return;
- setBarracksDoorOpen(p,0);
+ setBarracksDoorOpen(p,p.authored?1:0);
  for(const m of p.materials)m.dispose();
  p.hall.removeFromParent();
  delete entry.barracksPortal;
