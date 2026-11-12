@@ -9,6 +9,12 @@ export const TERRAIN_GRADING_V2={
  homeFlatRadius:775,homeShoulder:460,
  rockSafetyMargin:110
 } as const;
+export const TERRAIN_GRADING_SPACIOUS={
+ ...TERRAIN_GRADING_V2,homeFlatRadius:1050,homeShoulder:480
+} as const;
+/** Applied only to new v27-v30 map geometry; legacy saves are unchanged. */
+export const terrainGradingForMap=(version:MapVersion,generatorVersion:BattlefieldGeneratorVersion)=>
+ generatorVersion===2&&version>=27?TERRAIN_GRADING_SPACIOUS:TERRAIN_GRADING_V2;
 export const TERRAIN_PROFILES = ['open','dunes','rocky','oasis','mixed'] as const;
 export type TerrainProfile = typeof TERRAIN_PROFILES[number];
 export const TERRAIN_LABELS:Record<TerrainProfile,string> = {
@@ -54,6 +60,7 @@ export function generateBattlefieldTerrain(seed:number,version:MapVersion,size:n
  const segments=TERRAIN_SEGMENTS,n=segments+1,step=size/segments,heights=new Float32Array(n*n);
  const s=streamSeed(seed,'terrain',candidate),angle=hash(s,7,s)*Math.PI*2,c=Math.cos(angle),d=Math.sin(angle);
  const homes=campaignLayout(version,seed).headquarters.map(i=>battlefieldStart(sites[i],size));
+ const grading=terrainGradingForMap(version,generatorVersion);
  for(let j=0;j<n;j++)for(let i=0;i<n;i++){
   const x=i*step,y=j*step;
   const wx=x+(fbm(x/1700,y/1700,s^13)-.5)*720;
@@ -83,11 +90,11 @@ export function generateBattlefieldTerrain(seed:number,version:MapVersion,size:n
    for(const site of sites)mask=Math.min(mask,smooth((Math.hypot(x-site.x,y-site.y)-230)/360));
   }else{
    for(const home of homes)mask=Math.min(mask,smooth(
-    (Math.hypot(x-home.x,y-home.y)-TERRAIN_GRADING_V2.homeFlatRadius)/
-     TERRAIN_GRADING_V2.homeShoulder));
+    (Math.hypot(x-home.x,y-home.y)-grading.homeFlatRadius)/
+     grading.homeShoulder));
    for(const site of sites)mask=Math.min(mask,smooth(
-    (Math.hypot(x-site.x,y-site.y)-TERRAIN_GRADING_V2.bastionFlatRadius)/
-     TERRAIN_GRADING_V2.bastionShoulder));
+    (Math.hypot(x-site.x,y-site.y)-grading.bastionFlatRadius)/
+     grading.bastionShoulder));
   }
   h*=mask;
   for(const basin of basins){
@@ -113,12 +120,13 @@ export function generateBattlefieldTerrain(seed:number,version:MapVersion,size:n
 /** Subtle exposed-earth band on graded shoulders (visual colour only).
  * All values are deterministic and baked into existing mesh vertex colours. */
 export function terrainGradingEdge(x:number,y:number,sites:readonly Point[],
- homes:readonly Point[],version:BattlefieldGeneratorVersion):number{
+ homes:readonly Point[],version:BattlefieldGeneratorVersion,mapVersion:MapVersion=26):number{
  if(version<2)return 0;
+ const grading=terrainGradingForMap(mapVersion,version);
  let strongest=0;
  for(const [positions,flat] of [
-  [sites,TERRAIN_GRADING_V2.bastionFlatRadius] as const,
-  [homes,TERRAIN_GRADING_V2.homeFlatRadius] as const
+  [sites,grading.bastionFlatRadius] as const,
+  [homes,grading.homeFlatRadius] as const
  ]){
   for(const p of positions){
    const offset=Math.hypot(x-p.x,y-p.y)-flat;

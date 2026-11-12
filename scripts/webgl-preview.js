@@ -39,7 +39,9 @@ const biomeStyle=BIOME_STYLES[biome];
 // Keep pre-generator seeded bookmarks on their historical v19–22 maps.
 // The new-game menu always supplies terrain=random (or a chosen profile).
 const procedural=query.has('terrain')||query.has('play')||!query.has('seed');
-const sizes=query.get('legacy')==='1'?{4:15,8:16,12:17,16:18}:procedural?{4:23,8:24,12:25,16:26}:{4:19,8:20,12:21,16:22};
+const sizes=query.get('legacy')==='1'?{4:15,8:16,12:17,16:18}:
+ query.get('map')==='previous'?{4:23,8:24,12:25,16:26}:
+ procedural?{4:27,8:28,12:29,16:30}:{4:19,8:20,12:21,16:22};
 const bastions=Object.hasOwn(sizes,query.get('bastions'))?Number(query.get('bastions')):8;
 const inputSeed=query.get('seed');
 const seed=inputSeed!==null&&inputSeed.trim()!==''&&Number.isSafeInteger(Number(inputSeed))&&Number(inputSeed)>=0&&Number(inputSeed)<=4294967295
@@ -296,7 +298,7 @@ function buildTerrain(){
    if(terrain.battlefield?.generatorVersion===2){
     // Baked, subtle cut-and-fill earth at graded bastion edges. Same terrain
     // height field, no additional draw call or changing ground mesh.
-    const earth=terrainGradingEdge(x,z,terrain.sites,gradingHomes,2);
+    const earth=terrainGradingEdge(x,z,terrain.sites,gradingHomes,2,world.mapVersion);
     vertexColor.lerp(sandstone,earth*.16);
    }
    colors[n]=vertexColor.r;colors[n+1]=vertexColor.g;colors[n+2]=vertexColor.b;
@@ -449,7 +451,8 @@ function instancedStone(){
  }
  for(let i=0;i<(spacious?420:1600);i++){
   const x=75+r()*(size-150),z=75+r()*(size-150),index=world.index({x,y:z});
-  if(index<0||world.blocked[index]||terrain.sites.some(p=>Math.hypot(x-p.x,z-p.y)<160))continue;
+  if(index<0||world.blocked[index]||terrain.sites.some(p=>Math.hypot(x-p.x,z-p.y)<160)||
+   (world.mapVersion>=27&&gradingHomes.some(p=>Math.hypot(x-p.x,z-p.y)<1190)))continue;
   put(x,z,spacious?1.4+r()*3.6:2+r()*5,
    spacious?.8+r()*2.7:1+r()*4,
    spacious?1.5+r()*4.2:2+r()*6);

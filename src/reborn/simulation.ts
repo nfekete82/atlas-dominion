@@ -591,7 +591,7 @@ export class Simulation {
     for(const owner of [0,1] as const){
       const territory=layout.headquarters[owner];
       const t=this.territories[territory],site=mapVersion>=23?battlefieldStart(t.point,this.world.size):mapVersion>=2?{x:t.point.x+(owner===0?-260:260),y:t.point.y+(owner===0?165:-165)}:mapVersion===1?{x:t.point.x-165,y:t.point.y+45}:t.point,p=this.world.clearSite(site,RULES.headquarters.radius)!;
-      this.startRegions.push({center:{...p},radius:Math.min(600,this.world.size/6)});
+      this.startRegions.push({center:{...p},radius:mapVersion>=27?850:Math.min(600,this.world.size/6)});
       if(!bootstrap)this.bases.push({id:1000+owner,owner,kind:'headquarters',...p,hp:RULES.headquarters.hp,territory,queue:[],queueTypes:[],production:0,buildRemaining:0,cooldown:0,rally:null,radius:RULES.headquarters.radius});
       if(mapVersion===0)t.point=this.world.nearest({x:p.x+165,y:p.y-45},this.obstacles())!;
       const sign=mapVersion>=2&&owner===1?-1:1;
