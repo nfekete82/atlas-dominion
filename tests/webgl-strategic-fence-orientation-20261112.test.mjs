@@ -31,7 +31,7 @@ test('HQ, barracks and research keep the -Z entrance open behind the fence',()=>
    assert.equal(yard.scale.x,factor);
    const m=new THREE.Matrix4(),scale=new THREE.Vector3();
    mesh.getMatrixAt(0,m);scale.setFromMatrixScale(m);
-   assert.equal(scale.y,18);
+   assert.equal(scale.y,16.8);
    assert.equal(mesh.userData.nonPlayable,true);
   }finally{disposeBuildingYard(yard);}
  }

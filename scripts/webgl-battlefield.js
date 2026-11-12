@@ -244,11 +244,12 @@ export class SandforgeBattlefield {
    if(!original?.isMeshStandardMaterial)return original;
    if(materials.has(original))return materials.get(original);
    const material=original.clone();
-   if(material.map){
-    material.emissive.setRGB(1,1,1);
-    material.emissiveMap=material.map;
-   }else material.emissive.copy(material.color);
-   material.emissiveIntensity=.22;
+   // The old artificial WHITE emissive fill washed out camouflage and made
+   // roofs/concrete look grey regardless of their base colour. Use the real
+   // authored emission only; world sunlight and ambient light illuminate PBR.
+   material.emissive.copy(original.emissive);
+   material.emissiveMap=original.emissiveMap;
+   material.emissiveIntensity=Math.min(.12,original.emissiveIntensity??1);
    material.userData={...material.userData,sandforgeBuildingFill:true};
    material.needsUpdate=true;
    materials.set(original,material);
@@ -1181,8 +1182,9 @@ export class SandforgeBattlefield {
    detail.position.set(-center.x*factor,-box.min.y*factor,-center.z*factor);
    this.lightBuildingMeshes(detail);
    applyStrategicGlbFinish(detail);
-   // Neutral GLB must stay neutral (faction material code requires 0/1).
-   if(activated)tintFactionMaterials(detail,owner,'bastion','building');
+   // Neutral MK2 also uses desert/snow/jungle armour camouflage; it
+   // simply receives no ownership tint until captured.
+   tintFactionMaterials(detail,owner,'bastion','building');
    tintBastionCaptureSignals(detail,owner);
    // Release per-bastion materials, clips and fallback rotors after each
    // ownership change. GLB source geometries/textures remain cached.

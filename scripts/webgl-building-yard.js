@@ -60,8 +60,10 @@ export const YARD_DECOR_KINDS=Object.freeze([
 const fencedSites=new Set([
  'headquarters','barracks','factory','research','silo','interceptor'
 ]);
-const fencePost=mat('#716d58',.22,.72);
-const fenceRail=mat('#99967b',.34,.64);
+// Light military perimeter fence: thin powder-coated posts, hairline mesh
+// and barbed concertina strands instead of bulky decorative timber rails.
+const fencePost=mat('#555e55',.26,.83);
+const fenceRail=mat('#737b6f',.32,.78);
 const lampGlass=new THREE.MeshStandardMaterial({
  color:'#d7e8da',emissive:'#b3e5df',emissiveIntensity:.72,
  metalness:.08,roughness:.4
@@ -117,10 +119,11 @@ function instanceBoxes(group,name,paint,parts){
 function instanceFenceWires(group,parts){
  if(!parts.length)return;
  // Cross-bracing reads like a light wire fence at strategic camera distance.
- const wires=new THREE.InstancedMesh(new THREE.CylinderGeometry(.42,.42,1,5),
+ const wires=new THREE.InstancedMesh(new THREE.CylinderGeometry(.17,.17,1,5),
   fenceRail,parts.length);
  wires.name='YardFenceMesh';
- wires.userData={visualOnly:true,nonPlayable:true,siteDecor:true};
+ wires.userData={visualOnly:true,nonPlayable:true,siteDecor:true,
+  containsBarbedWire:true};
  const helper=new THREE.Object3D(),up=new THREE.Vector3(0,1,0);
  const direction=new THREE.Vector3();
  for(let i=0;i<parts.length;i++){
@@ -148,6 +151,7 @@ function perimeterFence(group,width,kind){
  const rear=reverseFront?width*.53:-width*.53;
  const front=reverseFront?-width*.28:width*.28;
  const posts=[],rails=[],wires=[],seen=new Set();
+ let barbedWirePieces=0;
  function line(x0,z0,x1,z1){
   const dx=x1-x0,dz=z1-z0,dist=Math.hypot(dx,dz);
   const steps=Math.max(2,Math.ceil(dist/26));
@@ -156,16 +160,35 @@ function perimeterFence(group,width,kind){
    const t=i/steps,px=x0+dx*t,pz=z0+dz*t;
    const key=px.toFixed(3)+':'+pz.toFixed(3);
    if(!seen.has(key)){
-    seen.add(key);posts.push({x:px,y:9,z:pz,w:3,h:18,d:3});
+    seen.add(key);
+    posts.push({x:px,y:8.4,z:pz,w:1.15,h:16.8,d:1.15});
+    // Fine upward outriggers keep the double concertina strand above posts.
+    wires.push({x:px,y:17.15,z:pz,dx:0,dy:1.65,dz:0});
+    barbedWirePieces++;
    }
    if(i===steps)continue;
    const u=(i+.5)/steps;
    const mx=x0+dx*u,mz=z0+dz*u;
-   for(const y of [6,14.3])
-    rails.push({x:mx,y,z:mz,w:2.2,h:1.8,d:dist/steps+.8,yaw});
+   for(const y of [5.3,12.7])
+    rails.push({x:mx,y,z:mz,w:.76,h:.82,d:dist/steps+.45,yaw});
    const sx=dx/steps,sz=dz/steps;
-   wires.push({x:mx,y:10,z:mz,dx:sx,dy:11,dz:sz});
-   wires.push({x:mx,y:10,z:mz,dx:sx,dy:-11,dz:sz});
+   // Fine diamond mesh uses lightweight instancing, not a solid fence panel.
+   wires.push({x:mx,y:8.75,z:mz,dx:sx,dy:9.7,dz:sz});
+   wires.push({x:mx,y:8.75,z:mz,dx:sx,dy:-9.7,dz:sz});
+   for(const height of [16.45,17.55]){
+    wires.push({x:mx,y:height,z:mz,dx:sx,dy:0,dz:sz});
+    barbedWirePieces++;
+   }
+   // Two crossed steel spikes at regular intervals identify the top as
+   // barbed wire even at low RTS zoom. All share the same draw call.
+   const length=Math.hypot(sx,sz);
+   if(length>.01)for(const offset of [.3,.7]){
+    const bx=x0+dx*(i+offset)/steps,bz=z0+dz*(i+offset)/steps;
+    const nx=-sz/length,nz=sx/length;
+    wires.push({x:bx,y:17.0,z:bz,dx:nx*2.7,dy:1.8,dz:nz*2.7});
+    wires.push({x:bx,y:17.0,z:bz,dx:-nx*2.7,dy:1.8,dz:-nz*2.7});
+    barbedWirePieces+=2;
+   }
   }
  }
  line(-x,rear,x,rear);
@@ -177,6 +200,7 @@ function perimeterFence(group,width,kind){
  group.userData.fencePosts=posts.length;
  group.userData.fenceRails=rails.length;
  group.userData.fenceWires=wires.length;
+ group.userData.barbedWirePieces=barbedWirePieces;
 }
 function addSiteDecor(root,kind,width){
  // Dedicated grouping avoids changing the legacy barracks/factory prop names

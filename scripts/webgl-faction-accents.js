@@ -27,7 +27,7 @@ export const CAMOUFLAGE_PALETTES=Object.freeze({
  jungle:Object.freeze({name:'Olive/Forest',base:'#87936e',middle:'#526b45',dark:'#2e4936',
   rgb:['.53,.58,.41','.32,.43,.29','.18,.31,.22']})
 });
-export const DESERT_FINISH_REVISION='biome-camouflage-v4-20261112';
+export const DESERT_FINISH_REVISION='biome-camouflage-strong-v5-20261112';
 let selectedCamouflageBiome='desert';
 export function setWorldCamouflageBiome(value){
  selectedCamouflageBiome=Object.hasOwn(CAMOUFLAGE_PALETTES,value)?value:'desert';
@@ -49,20 +49,22 @@ function applyDesertBuildingCamo(material){
    '#include <begin_vertex>\nsfDesertWorld=(modelMatrix*vec4(transformed,1.0)).xyz;');
   shader.fragmentShader=shader.fragmentShader.replace('#include <common>',
    '#include <common>\n'+varying);
+  // Three clearly separated irregular patches; do not merely colour a few
+  // already-khaki surfaces. Flat white/grey roofs and wall albedo are painted
+  // as well, while original PBR normals, AO and subtle relief remain.
   const paint=[
    '#include <color_fragment>',
-   'float sfPatch=sin(sfDesertWorld.x*.067+sin(sfDesertWorld.z*.054)*1.8)',
-   ' +cos(sfDesertWorld.z*.075-sfDesertWorld.y*.031)',
-   ' +.27*sin((sfDesertWorld.x+sfDesertWorld.z)*.19);',
-   'float sfOlive=smoothstep(.67,1.17,sfPatch);',
-   'float sfKhaki=smoothstep(-.56,.12,sfPatch);',
-   'vec3 sfPaint=mix(vec3('+colors[0]+'),vec3('+colors[1]+'),sfKhaki*.79);',
-   'sfPaint=mix(sfPaint,vec3('+colors[2]+'),sfOlive*.66);',
+   'float sfPatch=sin(sfDesertWorld.x*.071+sin(sfDesertWorld.z*.044)*1.8)',
+   ' +cos(sfDesertWorld.z*.084-sin(sfDesertWorld.x*.057)*1.6)',
+   ' +.39*sin((sfDesertWorld.x-sfDesertWorld.z)*.16);',
+   'float sfKhaki=smoothstep(-.42,-.16,sfPatch);',
+   'float sfOlive=smoothstep(.42,.70,sfPatch);',
+   'vec3 sfPaint=mix(vec3('+colors[0]+'),vec3('+colors[1]+'),sfKhaki);',
+   'sfPaint=mix(sfPaint,vec3('+colors[2]+'),sfOlive);',
    'float sfSurface=dot(diffuseColor.rgb,vec3(.2126,.7152,.0722));',
-   'float sfRelief=clamp(.55+sfSurface*.67,.30,1.12);',
-   'float sfCoverage=smoothstep(.018,.12,sfSurface)*.89;',
-   'diffuseColor.rgb=mix(diffuseColor.rgb,clamp(sfPaint*sfRelief*1.34,0.0,1.0),sfCoverage);'
-  ].join('\n');
+   'float sfRelief=clamp(.82+sfSurface*.24,.77,1.07);',
+   'diffuseColor.rgb=mix(diffuseColor.rgb,clamp(sfPaint*sfRelief,0.0,1.0),.94);'
+  ].join('\\n');
   shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>',paint);
  };
  material.customProgramCacheKey=()=>revision;
@@ -71,7 +73,7 @@ function applyDesertBuildingCamo(material){
  material.needsUpdate=true;
 }
 
-const skip=/weapon|gun|rifle|barrel|muzzle|rocket|rotor|propeller|blade|glass|window|canopy|windshield|visor|eye|skin|face|hand|tyre|tire|wheel|track|exhaust|smoke|lightbulb|lamp|emission|transparent|glow|engine|shadow|invisible|flag/i;
+const skip=/weapon|gun|rifle|barrel|muzzle|rocket|rotor|propeller|blade|glass|window|canopy|windshield|visor|eye|skin|face|hand|tyre|tire|wheel|track|exhaust|smoke|lightbulb|lamp|emission|transparent|glow|engine|shadow|invisible|flag|beacon|sensor|screen|recess|warning|indicator|bastion_light|yellow|copper/i;
 const priority=/cloth|uniform|armor|armour|vest|shoulder|chest|helmet|body|hull|fuselage|camo|camouflage|panel|paint|metal|frame|side|roof|wall|tower|base|concrete|plaster|sandstone|trim|structure/i;
 /** This function is testable with the asset's actual glTF material names,
  * but safely handles exports with generic numbered materials as well. */
@@ -79,10 +81,9 @@ export function shouldTintFactionSurface(kind,type,materialName='',meshName='',m
  const name=(materialName+' '+meshName).toLowerCase();
  if(skip.test(name))return false;
  if(mat?.transparent&&mat.opacity<.95)return false;
- if(mat?.color&&mat.color.getHSL){
-  const hsl={h:0,s:0,l:0};mat.color.getHSL(hsl);
-  if(hsl.l<.11||hsl.l>.96)return false;
- }
+ // Never exclude structural paint solely because it was authored in pure
+ // white, light-grey or near-black. Those colours caused most new GLB facades
+ // to bypass the camouflage entirely. Protected glass/lamps use names above.
  if(priority.test(name))return true;
  return type==='building'||['infantry','medic','engineer','heavy',
   'scout','bomber','tank','rover','artillery'].includes(kind);
@@ -91,7 +92,9 @@ export function shouldTintFactionSurface(kind,type,materialName='',meshName='',m
 /** Only once per actor/material. A captured base can change owner without
  * cloning again, and the cached glTF template is never mutated. */
 export function tintFactionMaterials(root,owner,kind,type){
- if(!root||!team[owner])return 0;
+ if(!root)return 0;
+ // Neutral Bastion MK2 also receives biome paint, without a faction tint.
+ const teamColor=team[owner]??null;
  const owned=new Map();let tinted=0;
  root.traverse(mesh=>{
   if(!mesh.isMesh||mesh.userData?.factionAccent)return;
@@ -110,7 +113,7 @@ export function tintFactionMaterials(root,owner,kind,type){
    const base=new THREE.Color(mat.userData.sandforgeBaseColor);
    const teamFlag=/^SF_team_blue$/i.test(mat.name);
    if(teamFlag){
-    mat.color.copy(team[owner]);
+    if(teamColor)mat.color.copy(teamColor);
     tinted++;
     return mat;
    }
@@ -121,14 +124,17 @@ export function tintFactionMaterials(root,owner,kind,type){
     ['scout','bomber'].includes(kind)?.23:.17;
    mat.color.copy(base);
    if(eligible){
-    mat.color.lerp(team[owner],weight);
-    // Authored three-tone camouflage albedo (silo bunker/hatch) already
-    // carries real sand/olive paint. Do not overwrite 94% of that texture
-    // with the generic world-space patch shader.
-    if(['building','unit'].includes(type)&&mat.metalness<.9&&
-       (selectedCamouflageBiome!=='desert'||!mat.userData?.sandforgeColorMapCamo)&&
-       !(mat.emissiveIntensity>.29&&mat.emissive?.getHex?.()!==0))
+    if(teamColor)mat.color.lerp(teamColor,weight);
+    // Apply the terrain palette to every eligible building/unit material,
+    // including imported grey/white GLBs and already-textured camouflage.
+    // The shader preserves texture relief; glass and emissive signals are
+    // excluded before this point, not recoloured.
+    if(['building','unit'].includes(type)&&
+       !(mat.emissiveIntensity>.29&&mat.emissive?.getHex?.()!==0)){
+      mat.roughness=Math.max(type==='building'?.84:.72,mat.roughness);
+      mat.metalness=Math.min(type==='building'?.26:.48,mat.metalness);
       applyDesertBuildingCamo(mat);
+    }
     tinted++;
    }
    return mat;
