@@ -70,7 +70,7 @@ test('all building fences are slim and have raised barbed strands without blocki
     q=new THREE.Quaternion(),matrix=new THREE.Matrix4();
    posts.getMatrixAt(0,matrix);matrix.decompose(p,q,size);
    assert.ok(size.x<=1.2&&size.z<=1.2);
-   assert.equal(size.y,16.8);
+   assert.ok(Math.abs(size.y-16.8)<1e-4);
    rails.getMatrixAt(0,matrix);matrix.decompose(p,q,size);
    assert.ok(Math.min(size.x,size.y,size.z)<1);
    const meta=yard.getObjectByName('BasePerimeter_'+kind).userData;
