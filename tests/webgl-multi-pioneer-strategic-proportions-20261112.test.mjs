@@ -84,14 +84,14 @@ test('building and vehicle repairs add each pioneer contribution',()=>{
  }
 });
 test('research and silo height corrections remain display-only',()=>{
- assert.equal(STRATEGIC_BUILDING_VISUAL_SCALE.research,.88);
- assert.equal(STRATEGIC_BUILDING_VISUAL_SCALE.silo,.9);
- assert.equal(strategicBuildingHeightScale('research'),1.75);
- assert.equal(strategicBuildingHeightScale('silo'),1.60);
+ assert.equal(STRATEGIC_BUILDING_VISUAL_SCALE.research,1.04);
+ assert.equal(STRATEGIC_BUILDING_VISUAL_SCALE.silo,1.02);
+ assert.equal(strategicBuildingHeightScale('research'),2.05);
+ assert.equal(strategicBuildingHeightScale('silo'),1.82);
  assert.equal(strategicBuildingHeightScale('headquarters'),1);
  assert.equal(buildingFacingAngle(1),Math.PI);
  const source=readFileSync('scripts/webgl-battlefield.js','utf8');
- assert.ok(source.includes("this.placementFacing=kind==='research'?1:0"));
+ assert.ok(source.includes("this.placementFacing=kind==='research'?1:kind==='barracks'?1:0"));
  assert.ok(source.includes('model.scale.y*=heightScale'));
  assert.ok(source.includes('alternate.scale.y*=altHeightScale'));
  assert.ok(source.includes('this.createWallPreviewGeometry()'));

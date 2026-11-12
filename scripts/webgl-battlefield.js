@@ -208,7 +208,9 @@ export class SandforgeBattlefield {
  }
  asset(kind,owner,type){
   const prefix='/src/assets/reborn/';
-  if(type==='building')return strategicGlbUrl(kind)??prefix+'buildings-3d/'+kind+'-'+owner+'.glb';
+  if(type==='building')return (kind==='barracks'?
+    strategicGlbUrl(kind,'active'):strategicGlbUrl(kind))??
+    prefix+'buildings-3d/'+kind+'-'+owner+'.glb';
   // Rocket specialists share the fully animated Atlas infantry skeleton.
   // Keep the original prototype rig and clips, replace only its rifle mesh.
   if(type==='unit'&&kind==='rocket')return prefix+'prototype/infantry-'+owner+'.glb';
@@ -369,7 +371,7 @@ export class SandforgeBattlefield {
   while(this.loadingCount<2&&this.modelQueue.length){
    const task=this.modelQueue.shift();this.loadingCount++;
    const variantUrl=task.type==='building'?
-    strategicGlbUrl(task.entry.kind,'active'):null;
+    strategicGlbUrl(task.entry.kind,task.entry.kind==='barracks'?'inactive':'active'):null;
    const promise=variantUrl?
     Promise.all([this.getModel(task.url),this.getModel(variantUrl)]):
     this.getModel(task.url).then(data=>[data,null]);
@@ -526,7 +528,7 @@ export class SandforgeBattlefield {
   this.clearPlacement();
   this.buildKind=kind;this.previewKind=kind;
   // The research GLB has its front ramp at local -Z, unlike the HQ.
-  this.placementFacing=kind==='research'?1:0;
+  this.placementFacing=kind==='research'?1:kind==='barracks'?1:0;
   const spec=BUILDINGS[kind],group=new THREE.Group();
   group.name='ghost-building-'+kind;group.userData={buildGhost:true,nonPlayable:true};
   const placeholder=this.createFallback(kind,0,'building');
@@ -643,7 +645,7 @@ export class SandforgeBattlefield {
   arrow.name='BuildingFrontArrow';
   arrow.rotation.x=-Math.PI/2;
   arrow.position.set(kind==='airfield'?-41:kind==='barracks'?spec.width*.12:0,
-   4.2,kind==='airfield'?65:kind==='research'?-spec.width*.48-9:spec.width*.48+9);
+   4.2,kind==='airfield'?65:['research','barracks'].includes(kind)?-spec.width*.48-9:spec.width*.48+9);
   arrow.renderOrder=1014;arrow.raycast=()=>{};
   frontMarker.add(arrow);group.add(frontMarker);
   group.userData.previewFrontMarker=frontMarker;
