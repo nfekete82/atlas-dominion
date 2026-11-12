@@ -29,7 +29,7 @@ import {wallLinePlacements,wallLineFromTurret,wallLineToTurret,wallLineBetweenTu
 import {sameKindVisibleUnits} from '/webgl-double-click-select.js';
 import {tracerWindow} from '/webgl-hit-response.js';
 import {applyFactionAccents,tintFactionMaterials} from '/webgl-faction-accents.js';
-import {STRATEGIC_GLB_MODELS,isStrategicGlbKind,strategicGlbUrl,strategicGlbActive,applyStrategicGlbFinish,tintBastionCaptureSignals} from '/webgl-strategic-glb.js';
+import {STRATEGIC_GLB_MODELS,isStrategicGlbKind,strategicGlbUrl,strategicGlbActive,applyStrategicGlbFinish,tintBastionCaptureSignals,centerAuthoredRadarPivot} from '/webgl-strategic-glb.js';
 import {attachTeamMarkings,detachTeamMarkings} from '/webgl-team-markings.js';
 import {SandforgeConstructionPresentation} from '/webgl-construction.js';
 import {createBastionCaptureBar,updateBastionCaptureBar} from '/webgl-bastion-capture.js';
@@ -342,8 +342,12 @@ export class SandforgeBattlefield {
   }
   if(entry.kind==='headquarters'){
    const authoredRadar=entry.detail?.getObjectByName('RADAR_DISH_PIVOT');
-   if(authoredRadar){
-    entry.motion={kind:'headquarters',rotor:authoredRadar,mode:'authored-hq'};
+   const activeRadar=entry.variantDetail?.getObjectByName('RADAR_DISH_PIVOT');
+   if(authoredRadar||activeRadar){
+    centerAuthoredRadarPivot(authoredRadar);
+    centerAuthoredRadarPivot(activeRadar);
+    entry.motion={kind:'headquarters',rotor:authoredRadar??activeRadar,
+     activeRotor:activeRadar,mode:'authored-hq'};
     return;
    }
    const clip=data.animations?.find(c=>c.name==='RadarSpin');
@@ -369,7 +373,12 @@ export class SandforgeBattlefield {
    if(motion.rotor)motion.rotor.rotation.y=turretAimLocalYaw(angle,base.facing,motion.mode==='fallback');
   }else if(active){
    if(motion.mixer)motion.mixer.update(dt);
-   else if(motion.rotor)motion.rotor.rotation.y+=dt*(motion.kind==='research'?.20:.52);
+   else if(motion.rotor){
+    const step=dt*(motion.kind==='research'?.20:.52);
+    motion.rotor.rotation.y+=step;
+    if(motion.activeRotor&&motion.activeRotor!==motion.rotor)
+     motion.activeRotor.rotation.y+=step;
+   }
   }
  }
  pumpModelQueue(){
@@ -1180,7 +1189,7 @@ export class SandforgeBattlefield {
    entry.detail=detail;entry.node.add(detail);
    // MK2 ships the native Radar_Dish_Pivot; it is the ONLY radar we animate.
    // A clip is still supported for independently authored future revisions.
-   const pivot=detail.getObjectByName('Radar_Dish_Pivot');
+   const pivot=centerAuthoredRadarPivot(detail.getObjectByName('Radar_Dish_Pivot'));
    const radarClip=data.animations?.find(c=>c.name==='RadarSpin');
    if(radarClip?.tracks?.length){
     const mixer=new THREE.AnimationMixer(detail),action=mixer.clipAction(radarClip);

@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import * as THREE from 'three';
 import {STRATEGIC_GLB_MODELS,strategicGlbUrl,strategicGlbActive,
- applyStrategicGlbFinish,tintBastionCaptureSignals}
+ applyStrategicGlbFinish,tintBastionCaptureSignals,centerAuthoredRadarPivot}
  from '../scripts/webgl-strategic-glb.js';
 
 const dir='src/assets/reborn/buildings-3d/';
@@ -64,4 +64,25 @@ test('MK2 materials retain geometry but change desert armour and faction signals
  assert.equal(light.material.color.getHexString(),'af5449');
  for(const o of [wall,light]){o.geometry.dispose();o.material.dispose();}
  source.dispose();
+});
+
+test('user-authored radar pivots rotate in place for HQ and Bastion',()=>{
+ const root=new THREE.Group();
+ const pivot=new THREE.Group();pivot.name='RADAR_DISH_PIVOT';
+ root.add(pivot);
+ const dish=new THREE.Mesh(new THREE.BoxGeometry(2,1,3),
+  new THREE.MeshStandardMaterial());
+ dish.position.set(10,5,7);pivot.add(dish);
+ const before=new THREE.Box3().setFromObject(root);
+ centerAuthoredRadarPivot(pivot);
+ const after=new THREE.Box3().setFromObject(root);
+ assert.deepEqual(after.min.toArray(),before.min.toArray());
+ assert.deepEqual(after.max.toArray(),before.max.toArray());
+ assert.ok(pivot.position.x>9&&pivot.position.z>6);
+ pivot.rotation.y=Math.PI/2;
+ assert.equal(centerAuthoredRadarPivot(pivot),pivot,'centering is idempotent');
+ const battlefield=readFileSync('scripts/webgl-battlefield.js','utf8');
+ assert.ok(battlefield.includes("entry.variantDetail?.getObjectByName('RADAR_DISH_PIVOT')"));
+ assert.ok(battlefield.includes('motion.activeRotor.rotation.y+=step'));
+ dish.geometry.dispose();dish.material.dispose();
 });

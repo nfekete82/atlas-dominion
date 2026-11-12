@@ -127,3 +127,22 @@ export function tintBastionCaptureSignals(root,owner){
  });
  return count;
 }
+
+/** Recenter source GLB radar assemblies without altering visual placement.
+ * Some user-exported meshes carry coordinates in their vertices, even though
+ * their named PIVOT has translation (0,0,0). Rotating that node would otherwise
+ * orbit the entire dish around the building origin. This adjustment keeps the
+ * initial geometry in precisely the same world-space position.
+ */
+export function centerAuthoredRadarPivot(pivot){
+ if(!pivot?.parent||pivot.userData.sandforgeRadarPivotCentered)return pivot;
+ pivot.updateWorldMatrix(true,true);
+ const box=new THREE.Box3().setFromObject(pivot);
+ if(box.isEmpty())return pivot;
+ const center=pivot.parent.worldToLocal(box.getCenter(new THREE.Vector3()));
+ const delta=center.clone().sub(pivot.position);
+ for(const child of pivot.children)child.position.sub(delta);
+ pivot.position.copy(center);
+ pivot.userData.sandforgeRadarPivotCentered=true;
+ return pivot;
+}
