@@ -19,21 +19,39 @@ function fixture(count=1){
  assert.ok(place,'valid construction site exists');
  const workers=[];
  for(let i=0;i<count;i++){
-  const x=place.x+(i%2===0?1:-1)*(BUILDINGS.barracks.radius+30);
-  const y=place.y;
+  // Stand completely outside the painted facade. The old +/- (radius+30)
+  // spawn overlapped the real infantry collision clearance and caused
+  // buildError() to reject the foundation before construction could start.
+  const x=place.x+BUILDINGS.barracks.radius+95;
+  const y=place.y+(i===0?-28:28);
   const p=g.world.nearest({x,y},g.obstacles());
   assert.ok(p,'reachable support point');
   workers.push(g.spawn(0,p,'engineer'));
  }
+ const placementError=g.buildError(0,'barracks',place);
+ assert.equal(placementError,null,
+  'engineers must spawn outside the actual foundation: '+placementError);
  return {g,place,workers};
+}
+function waitForCrew(g,workers,target){
+ // Walking and pathfinding times are not a construction or repair-rate test.
+ // Begin comparing HP/progress only after all assigned engineers are in range.
+ for(let tick=0;tick<180&&workers.some(u=>u.workingTarget!==target.id);tick++)
+  g.step(.05);
+ assert.ok(workers.every(u=>u.workingTarget===target.id),
+  'every engineer must reach target '+target.id+': '+JSON.stringify(
+   workers.map(u=>({id:u.id,x:u.x,y:u.y,workingTarget:u.workingTarget,
+    order:u.orders[0],pathLength:u.path?.length}))));
 }
 test('two pioneers build one foundation at twice the solo rate',()=>{
  const run=count=>{
   const {g,place,workers}=fixture(count);
   const site=g.build(0,'barracks',place,workers.map(u=>u.id));
-  assert.ok(site,'actual simulation accepts cooperative build');
-  step(g,2.5);
-  return BUILDINGS.barracks.buildTime-site.buildRemaining;
+  assert.ok(site,'actual simulation accepts cooperative build: '+g.notices.slice(-3));
+  waitForCrew(g,workers,site);
+  const before=site.buildRemaining;
+  step(g,.5);
+  return before-site.buildRemaining;
  };
  const one=run(1),two=run(2);
  assert.ok(one>.4,'solo progress '+one);
@@ -52,7 +70,9 @@ test('building and vehicle repairs add each pioneer contribution',()=>{
    }
    const ids=workers.map(u=>u.id);
    assert.equal(g.command(ids,{kind:'repair',target:target.id,x:target.x,y:target.y}),count);
-   const before=target.hp;step(g,1);
+   waitForCrew(g,workers,target);
+   const before=target.hp;
+   step(g,.4);
    return target.hp-before;
   };
   const one=run(1),two=run(2);
