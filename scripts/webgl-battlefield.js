@@ -24,7 +24,7 @@ import {disposeOwnedMeshes,disposeTaggedMaterials} from '/webgl-resource-lifecyc
 import {releaseBastionRevision} from '/webgl-bastion-lifecycle.js';
 import {selectedInfantryForTransport,selectedLoadedTransports,selectedTransportManifest} from '/webgl-transport-controls.js';
 import {pointerGestureIntent,submitConstruction,nearestEngineer,POINTER_CLICK_SLOP,PLACEMENT_CLICK_SLOP} from '/webgl-builder-input.js';
-import {wallLinePlacements,WALL_DRAG_MAX_SEGMENTS} from '/webgl-wall-line.js';
+import {wallLinePlacements,WALL_DRAG_MAX_SEGMENTS,WALL_DRAG_SLOP} from '/webgl-wall-line.js';
 import {sameKindVisibleUnits} from '/webgl-double-click-select.js';
 import {tracerWindow} from '/webgl-hit-response.js';
 import {applyFactionAccents} from '/webgl-faction-accents.js';
@@ -2276,7 +2276,7 @@ export class SandforgeBattlefield {
   if(!this.clickStart||event.button!==this.clickStart.button)return;
   const start=this.clickStart;
   const moved=Math.hypot(event.clientX-start.x,event.clientY-start.y);
-  if(event.button===0&&this.buildKind==='wall'&&moved>PLACEMENT_CLICK_SLOP){
+  if(event.button===0&&this.buildKind==='wall'&&moved>WALL_DRAG_SLOP){
    this.clickStart=null;this.selectionBox.style.display='none';
    this.buildWallLine({clientX:start.x,clientY:start.y},event,event.shiftKey);
    return;
@@ -2482,6 +2482,10 @@ export class SandforgeBattlefield {
   const canvas=this.renderer.domElement;
   canvas.addEventListener('pointerdown',e=>{
    this.clickStart={x:e.clientX,y:e.clientY,button:e.button};
+   // Keep receiving pointermove/up while drawing a long wall beyond the
+   // WebGL canvas. This also makes macOS trackpad dragging reliable.
+   if(e.button===0&&this.buildKind==='wall'&&canvas.setPointerCapture)
+    canvas.setPointerCapture(e.pointerId);
    // The Canvas RTS issues right-click commands on press, not release.
    // With RMB rotation disabled this also supports Mac trackpad clicks.
    if(e.button===2){e.preventDefault();this.pointerUp(e);}
@@ -2491,7 +2495,7 @@ export class SandforgeBattlefield {
    const start=this.clickStart;
    if(!start||start.button!==0||!(e.buttons&1))return;
    if(this.buildKind==='wall'&&
-     Math.hypot(e.clientX-start.x,e.clientY-start.y)>PLACEMENT_CLICK_SLOP){
+     Math.hypot(e.clientX-start.x,e.clientY-start.y)>WALL_DRAG_SLOP){
     this.updateWallLinePreview({clientX:start.x,clientY:start.y},e);
     return;
    }

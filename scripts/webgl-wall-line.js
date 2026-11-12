@@ -5,6 +5,8 @@
  */
 export const WALL_SEGMENT_SPACING=112;
 export const WALL_DRAG_MAX_SEGMENTS=18;
+/** Pixel motion to switch from one-wall click to a multi-wall drag. */
+export const WALL_DRAG_SLOP=9;
 export function wallLinePlacements(start,end,max=WALL_DRAG_MAX_SEGMENTS){
  if(!start||!end||!Number.isFinite(start.x)||!Number.isFinite(start.y)||
     !Number.isFinite(end.x)||!Number.isFinite(end.y))return [];
