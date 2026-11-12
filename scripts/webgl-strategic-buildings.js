@@ -104,6 +104,62 @@ function createDefensiveWall(owner){
   add(8,48,27,x,26,0,cap,'WallPillar');
   add(10,5,28,x,51,0,concrete,'WallPillarTop');
  }
+ // Coiled concertina wire follows the wall crest, not the ground.
+ // Geometry is static; the placement-preview instancing merges it with the
+ // real concrete silhouette so players see exactly what they are building.
+ // A single merged mesh keeps all wire/barbs in one draw call per segment.
+ const wireMat=new THREE.MeshStandardMaterial({
+  name:'SF_WallBarbedWire',color:'#727771',roughness:.59,metalness:.96,
+  side:THREE.DoubleSide
+ });
+ const wireParts=[];
+ const addWire=(from,to,radius=.56)=>{
+  const a=new THREE.Vector3(...from),b=new THREE.Vector3(...to);
+  const direction=b.clone().sub(a),length=direction.length();
+  if(length<.01)return;
+  const part=new THREE.CylinderGeometry(radius,radius,length,5);
+  part.applyMatrix4(new THREE.Matrix4().compose(
+   a.add(b).multiplyScalar(.5),
+   new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),
+    direction.normalize()),new THREE.Vector3(1,1,1)));
+  wireParts.push(part);
+ };
+ // Four clamped, backward-leaning steel brackets hold the barbed coils up.
+ for(const x of [-47,-16,16,47]){
+  for(const z of [-6.6,6.6]){
+   addWire([x,50,z],[x,60,z*1.14],.85);
+  }
+ }
+ // One visibly recognizable helix instead of floating saw teeth.
+ const coils=9,steps=216,pts=[];
+ for(let i=0;i<=steps;i++){
+  const t=i/steps,theta=t*coils*Math.PI*2;
+  pts.push(new THREE.Vector3(-49+98*t,
+   59+5.7*Math.cos(theta),5.8*Math.sin(theta)));
+ }
+ // TubeGeometry remains supported by the shared ghost merger.
+ wireParts.push(new THREE.TubeGeometry(
+  new THREE.CatmullRomCurve3(pts,false,'centripetal'),steps,.61,5,false));
+ for(let i=0;i<32;i++){
+  const t=(i+.5)/32,theta=t*coils*Math.PI*2;
+  const x=-49+98*t,y=59+5.7*Math.cos(theta),z=5.8*Math.sin(theta);
+  const outward=new THREE.Vector3(0,Math.cos(theta),Math.sin(theta));
+  for(const sign of [-1,1]){
+   const arm=outward.clone().multiplyScalar(sign*3.1);
+   addWire([x-arm.x,y-arm.y,z-arm.z],
+    [x+arm.x,y+arm.y,z+arm.z],.35);
+  }
+ }
+ const wireGeometry=mergeGeometries(wireParts,false);
+ for(const part of wireParts)part.dispose();
+ if(wireGeometry){
+  const wire=new THREE.Mesh(wireGeometry,wireMat);
+  wire.name='WallConcertinaBarbedWire';
+  wire.castShadow=false;wire.receiveShadow=true;
+  wire.raycast=()=>{};
+  wire.userData={decorative:true,nonPlayable:true,barbedWire:true};
+  root.add(wire);
+ }else wireMat.dispose();
  return root;
 }
 export const STRATEGIC_BUILDING_KINDS=Object.freeze(['research','silo','interceptor','wall']);
