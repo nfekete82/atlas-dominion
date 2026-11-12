@@ -53,6 +53,11 @@ test('vehicle emblems are actually PBR paint with zero separate meshes/draw call
   const updated=attachTeamMarkings(entry,1-owner,kind,100,40);
   assert.equal(updated.children.length,0);
   assert.equal(body.material.userData.sandforgeVehiclePaintOwner,1-owner);
+  const shader={vertexShader:'#include <common>\n#include <begin_vertex>',
+   fragmentShader:'#include <common>\n#include <color_fragment>'};
+  body.material.onBeforeCompile(shader,{});
+  assert.notEqual(shader.fragmentShader,s.fragmentShader,
+   'captured paint color must change when a vehicle changes faction');
  }
 });
 test('standard materials retain the original camouflage texture and map',()=>{

@@ -98,9 +98,10 @@ function paintMaterial(source,owner,kind,geometry){
  original.userData={...original.userData,
   sandforgeVehiclePaintRevision:VEHICLE_PAINT_REVISION,
   sandforgeVehiclePaintOwner:owner,vehiclePaintKind:kind};
- const c=new THREE.Color(TEAM_MARKING_COLORS[owner]);
  const glsl=(n)=>Number(n).toFixed(6);
  original.onBeforeCompile=function(shader,renderer){
+  // Faction can change while a vehicle survives; recompile from current owner.
+  const c=new THREE.Color(TEAM_MARKING_COLORS[this.userData.sandforgeVehiclePaintOwner]);
   oldCompile?.call(this,shader,renderer);
   const decl='varying vec3 sfMarkPos; varying vec3 sfMarkNormal;';
   shader.vertexShader=shader.vertexShader.replace('#include <common>',
