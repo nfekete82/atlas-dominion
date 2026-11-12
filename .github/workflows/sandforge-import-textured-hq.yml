@@ -1,0 +1,31 @@
+name: Import textured Sandforge Feldkommando
+on:
+  push:
+    branches:
+      - feat/webgl-facilities-preview-smallarms-20261110
+    paths:
+      - '.sandforge-import-hq/**'
+      - '.github/workflows/sandforge-import-textured-hq.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  import-hq:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Reconstruct original textured HQ model with SHA256 verification
+        run: python tools/sandforge-import-textured-hq.py
+      - name: Commit complete GLB and remove transient chunks
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/assets/reborn/buildings-3d/sandforge_feldkommando_textured_plus.glb
+          git rm -r .sandforge-import-hq
+          git commit -m 'asset(webgl): add textured plus Feldkommando with verified radar and PBR textures'
+          git push origin HEAD:feat/webgl-facilities-preview-smallarms-20261110
