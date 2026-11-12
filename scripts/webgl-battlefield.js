@@ -341,6 +341,11 @@ export class SandforgeBattlefield {
    }
   }
   if(entry.kind==='headquarters'){
+   const authoredRadar=entry.detail?.getObjectByName('HQ_RADAR_PIVOT');
+   if(authoredRadar){
+    entry.motion={kind:'headquarters',rotor:authoredRadar,mode:'authored-hq'};
+    return;
+   }
    const clip=data.animations?.find(c=>c.name==='RadarSpin');
    if(clip?.tracks?.length){
     const mixer=new THREE.AnimationMixer(entry.detail),action=mixer.clipAction(clip);
@@ -527,8 +532,8 @@ export class SandforgeBattlefield {
  beginPlacement(kind){
   this.clearPlacement();
   this.buildKind=kind;this.previewKind=kind;
-  // The research GLB has its front ramp at local -Z, unlike the HQ.
-  this.placementFacing=kind==='research'?1:kind==='barracks'?1:0;
+  // New barracks, field HQ and original research front all point to -Z.
+  this.placementFacing=['research','barracks','headquarters'].includes(kind)?1:0;
   const spec=BUILDINGS[kind],group=new THREE.Group();
   group.name='ghost-building-'+kind;group.userData={buildGhost:true,nonPlayable:true};
   const placeholder=this.createFallback(kind,0,'building');
@@ -645,7 +650,7 @@ export class SandforgeBattlefield {
   arrow.name='BuildingFrontArrow';
   arrow.rotation.x=-Math.PI/2;
   arrow.position.set(kind==='airfield'?-41:kind==='barracks'?spec.width*.12:0,
-   4.2,kind==='airfield'?65:['research','barracks'].includes(kind)?-spec.width*.48-9:spec.width*.48+9);
+   4.2,kind==='airfield'?65:['research','barracks','headquarters'].includes(kind)?-spec.width*.48-9:spec.width*.48+9);
   arrow.renderOrder=1014;arrow.raycast=()=>{};
   frontMarker.add(arrow);group.add(frontMarker);
   group.userData.previewFrontMarker=frontMarker;

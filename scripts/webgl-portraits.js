@@ -186,7 +186,7 @@ async function renderStrategicPortrait(kind,renderer){
   // The build-menu thumbnail should show the exact SAME original 3D model
   // as the placed building, not the obsolete procedural research/silo art.
   try{
-   const url=strategicGlbUrl(kind,'active');
+   const url=strategicGlbUrl(kind,'active')??strategicGlbUrl(kind,'inactive');
    const data=await new GLTFLoader().loadAsync(url);
    const model=cloneSkeleton(data.scene);
    // Portrait render disposes temporary GPU resources; never release the

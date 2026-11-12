@@ -17,6 +17,8 @@ test('original four binary GLBs are shipped with required author nodes',()=>{
    const json=JSON.parse(buffer.toString('utf8',20,20+buffer.readUInt32LE(12)));
    const nodes=json.nodes.map(x=>x.name);
    if(kind==='research')assert.ok(nodes.includes('radar_assembly_PIVOT'));
+   else if(kind==='barracks')assert.ok(nodes.includes('GATE_LEFT_PIVOT')&&nodes.includes('GATE_RIGHT_PIVOT'));
+   else if(kind==='headquarters')assert.ok(nodes.includes('HQ_RADAR_PIVOT'));
    else if(variant==='active')assert.ok(nodes.some(x=>x.startsWith('missile__')));
    else assert.ok(nodes.some(x=>x.startsWith('blast_door_L__')));
   }

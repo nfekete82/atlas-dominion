@@ -91,7 +91,7 @@ test('research and silo height corrections remain display-only',()=>{
  assert.equal(strategicBuildingHeightScale('headquarters'),1);
  assert.equal(buildingFacingAngle(1),Math.PI);
  const source=readFileSync('scripts/webgl-battlefield.js','utf8');
- assert.ok(source.includes("this.placementFacing=kind==='research'?1:kind==='barracks'?1:0"));
+ assert.ok(source.includes("['research','barracks','headquarters'].includes(kind)?1:0"));
  assert.ok(source.includes('model.scale.y*=heightScale'));
  assert.ok(source.includes('alternate.scale.y*=altHeightScale'));
  assert.ok(source.includes('this.createWallPreviewGeometry()'));

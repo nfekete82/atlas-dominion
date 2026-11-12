@@ -5,6 +5,9 @@ import * as THREE from 'three';
  * No 3D replacement primitives or animated meshes are added.
  */
 export const STRATEGIC_GLB_MODELS=Object.freeze({
+ headquarters:Object.freeze({
+  inactive:'/src/assets/reborn/buildings-3d/sandforge_feldkommando.glb'
+ }),
  barracks:Object.freeze({
   inactive:'/src/assets/reborn/buildings-3d/sandforge_kaserne_geschlossen.glb',
   active:'/src/assets/reborn/buildings-3d/sandforge_kaserne_betriebsbereit.glb'
