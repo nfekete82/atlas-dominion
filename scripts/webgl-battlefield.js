@@ -29,7 +29,7 @@ import {wallLinePlacements,wallLineFromTurret,wallLineToTurret,wallLineBetweenTu
 import {sameKindVisibleUnits} from '/webgl-double-click-select.js';
 import {tracerWindow} from '/webgl-hit-response.js';
 import {applyFactionAccents,tintFactionMaterials} from '/webgl-faction-accents.js';
-import {STRATEGIC_GLB_MODELS,isStrategicGlbKind,strategicGlbUrl,strategicGlbActive,applyStrategicGlbFinish,tintBastionCaptureSignals,centerAuthoredRadarPivot} from '/webgl-strategic-glb.js';
+import {STRATEGIC_GLB_MODELS,isStrategicGlbKind,strategicGlbUrl,strategicGlbActive,applyStrategicGlbFinish,tintBastionCaptureSignals,centerAuthoredRadarPivot,ensureTexturedHqRadarPivot} from '/webgl-strategic-glb.js';
 import {attachTeamMarkings,detachTeamMarkings} from '/webgl-team-markings.js';
 import {SandforgeConstructionPresentation} from '/webgl-construction.js';
 import {createBastionCaptureBar,updateBastionCaptureBar} from '/webgl-bastion-capture.js';
@@ -342,8 +342,8 @@ export class SandforgeBattlefield {
    }
   }
   if(entry.kind==='headquarters'){
-   const authoredRadar=entry.detail?.getObjectByName('RADAR_DISH_PIVOT');
-   const activeRadar=entry.variantDetail?.getObjectByName('RADAR_DISH_PIVOT');
+   const authoredRadar=ensureTexturedHqRadarPivot(entry.detail);
+   const activeRadar=ensureTexturedHqRadarPivot(entry.variantDetail);
    if(authoredRadar||activeRadar){
     centerAuthoredRadarPivot(authoredRadar);
     centerAuthoredRadarPivot(activeRadar);

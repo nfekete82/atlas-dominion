@@ -155,3 +155,30 @@ export function centerAuthoredRadarPivot(pivot){
  pivot.userData.sandforgeRadarPivotCentered=true;
  return pivot;
 }
+
+/** Texture-plus exports independent DISH_* nodes without a pivot. Group the
+ * original meshes without changing their world transforms, so the radar
+ * rotates in place instead of adding a fake dish to the command building.
+ */
+export function ensureTexturedHqRadarPivot(root){
+ if(!root)return null;
+ const existing=root.getObjectByName('RADAR_DISH_PIVOT');
+ if(existing)return existing;
+ const components=[];
+ root.traverse(node=>{
+  if(node.isMesh&&/^DISH_/.test(node.name))components.push(node);
+ });
+ if(!components.length)return null;
+ const parent=components[0].parent;
+ if(!parent||!components.every(node=>node.parent===parent))return null;
+ parent.updateWorldMatrix(true,true);
+ const bounds=new THREE.Box3();
+ for(const component of components)bounds.expandByObject(component);
+ const center=parent.worldToLocal(bounds.getCenter(new THREE.Vector3()));
+ const pivot=new THREE.Group();
+ pivot.name='RADAR_DISH_PIVOT';pivot.position.copy(center);
+ parent.add(pivot);pivot.updateWorldMatrix(true,false);
+ for(const component of components)pivot.attach(component);
+ pivot.userData.sandforgeRadarPivotCentered=true;
+ return pivot;
+}
