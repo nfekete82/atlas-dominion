@@ -13,6 +13,17 @@ test('compact circular silo matches reference silhouette without changing missil
   assert.ok(model.getObjectByName(name),name);
  const ring=model.getObjectByName('Silo_ArmoredLaunchRing');
  assert.equal(ring.geometry.type,'TorusGeometry');
+ const body=model.getObjectByName('Silo_RocketBody');
+ const nose=model.getObjectByName('Silo_RocketNose');
+ assert.ok(body.geometry.type==='CylinderGeometry');
+ assert.ok(body.geometry.parameters.height>=95);
+ assert.ok(nose.geometry.type==='ConeGeometry');
+ assert.ok(nose.position.y-nose.geometry.parameters.height/2
+  <=body.position.y+body.geometry.parameters.height/2+1,
+  'missile tip physically overlaps its body');
+ assert.ok(body.position.y-body.geometry.parameters.height/2<=62,
+  'missile is seated in launch shaft, not floating above its ring');
+
  const dims=new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3());
  assert.ok(dims.x<205&&dims.z<180,'silo has a small footprint');
  assert.ok(dims.y<165,'missile is not a towering oversized landmark');

@@ -11,6 +11,14 @@ test('eight-sided camouflaged research centre has rotating physical radar dish',
   const dish=model.getObjectByName('ResearchDishPivot');
   assert.ok(dish?.isGroup);
   assert.ok(dish.getObjectByName('Research_Radar')?.isMesh);
+  const reflector=dish.getObjectByName('Research_Radar');
+  assert.equal(reflector.geometry.type,'LatheGeometry','shallow parabolic dish, not a sphere');
+  assert.ok(dish.getObjectByName('ResearchDishGimbal'));
+  assert.ok(dish.getObjectByName('ResearchDishPedestal'));
+  assert.ok(dish.getObjectByName('ResearchDishFeed'));
+  assert.ok(dish.getObjectByName('ResearchDishReflectorRim'));
+  assert.ok(reflector.geometry.parameters.points.length>=5);
+
   assert.ok(model.getObjectByName('Research_SensorArray')?.isMesh);
   const mats=[];
   model.traverse(o=>{if(o.isMesh)mats.push(o.material)});

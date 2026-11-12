@@ -266,28 +266,63 @@ export function createStrategicBuilding(kind,owner=0){
    cyl(3,3,28,'steel',x,107,34);
    cyl(4.5,4.5,3,'glow',x,123,34);
   }
-  // Persistent roof radar: separate group survives static mesh batching and
-  // spins smoothly while the authoritative simulation remains untouched.
+  // Low, sturdy tracking dish in the same military hardware language as
+  // the bastion radar: a SHALLOW parabolic reflector on a real gimbal,
+  // not a floating spherical cap or exposed circular hoop.
   const pivot=new THREE.Group();
   pivot.name='ResearchDishPivot';pivot.position.set(0,113,0);
   pivot.userData={visualOnly:true,animatedDish:true};
   root.add(pivot);
-  const dishMat=mats.stone,metalMat=mats.metal;
-  const dishMesh=new THREE.Mesh(
-   new THREE.SphereGeometry(32,28,13,0,Math.PI*2,0,Math.PI*.42),dishMat);
-  dishMesh.name='Research_Radar';
-  dishMesh.position.set(0,17,0);dishMesh.rotation.x=-.55;
-  dishMesh.castShadow=true;pivot.add(dishMesh);
-  const rim=new THREE.Mesh(new THREE.TorusGeometry(30,1.8,9,32),mats.trim);
-  rim.position.set(0,26,10);rim.rotation.x=-.55;pivot.add(rim);
-  const yoke=new THREE.Mesh(new THREE.CylinderGeometry(4,7,22,12),metalMat);
-  yoke.position.set(0,7,0);pivot.add(yoke);
-  const feed=new THREE.Mesh(new THREE.CylinderGeometry(1.9,2.5,31,8),metalMat);
-  feed.rotation.x=.62;feed.position.set(0,28,12);pivot.add(feed);
-  const receiver=new THREE.Mesh(new THREE.SphereGeometry(4,9,7),mats.glow);
-  receiver.position.set(0,37,22);pivot.add(receiver);
-  for(const part of pivot.children)if(part.isMesh)
-   {part.castShadow=false;part.receiveShadow=true;part.raycast=()=>{};}
+  const dishIron=new THREE.MeshStandardMaterial({
+   color:'#a9b6ad',map:materialGrain,bumpMap:materialGrain,
+   bumpScale:.10,metalness:.52,roughness:.56,side:THREE.DoubleSide});
+  dishIron.name='SF_radarReflector';
+  const dishFrame=mats.metal,antennaMetal=mats.black;
+  const addDishPart=(geometry,material,name,x=0,y=0,z=0)=>{
+   const mesh=new THREE.Mesh(geometry,material);
+   mesh.name=name;mesh.position.set(x,y,z);
+   mesh.castShadow=false;mesh.receiveShadow=true;mesh.raycast=()=>{};
+   pivot.add(mesh);return mesh;
+  };
+  // The platform reaches into the roof: no disconnected antenna pole.
+  addDishPart(new THREE.CylinderGeometry(15,18,13,12),mats.metal,
+   'ResearchDishPedestal',0,-6,0);
+  addDishPart(new THREE.CylinderGeometry(12,14,5,16),mats.black,
+   'ResearchDishTurntable',0,3,0);
+  for(const x of [-12,12])
+   addDishPart(new THREE.BoxGeometry(5,21,6),dishFrame,
+    'ResearchDishYoke',x,13,0);
+  const head=new THREE.Group();
+  head.name='ResearchDishGimbal';head.position.set(0,23,0);
+  head.rotation.x=.43;pivot.add(head);
+  const parabola=new THREE.LatheGeometry([
+   new THREE.Vector2(0,-6),new THREE.Vector2(5,-5.5),
+   new THREE.Vector2(11,-4),new THREE.Vector2(17,-1.5),
+   new THREE.Vector2(23,2),new THREE.Vector2(27,5.3)
+  ],32);
+  const reflector=new THREE.Mesh(parabola,dishIron);
+  reflector.name='Research_Radar';
+  reflector.castShadow=false;reflector.receiveShadow=true;
+  reflector.raycast=()=>{};head.add(reflector);
+  const rim=new THREE.Mesh(new THREE.TorusGeometry(27,1.45,8,36),mats.trim);
+  rim.name='ResearchDishReflectorRim';rim.rotation.x=-Math.PI/2;
+  rim.position.y=5.3;rim.raycast=()=>{};head.add(rim);
+  const hub=new THREE.Mesh(new THREE.CylinderGeometry(4,6,7,12),antennaMetal);
+  hub.name='ResearchDishHub';hub.position.y=-7;hub.raycast=()=>{};head.add(hub);
+  // Three legs hold the feed horn over the shallow reflector; attachment
+  // points end inside the actual dish rim instead of floating in the air.
+  for(let i=0;i<3;i++){
+   const a=i*Math.PI*2/3,dx=Math.cos(a)*17,dz=Math.sin(a)*17;
+   const support=new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.2,22,6),dishFrame);
+   const from=new THREE.Vector3(dx,-1,dz),to=new THREE.Vector3(0,17,0);
+   support.position.copy(from).add(to).multiplyScalar(.5);
+   support.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),
+    to.clone().sub(from).normalize());support.raycast=()=>{};head.add(support);
+  }
+  const feed=new THREE.Mesh(new THREE.CylinderGeometry(3,5,10,12),antennaMetal);
+  feed.name='ResearchDishFeed';feed.position.y=19;feed.raycast=()=>{};head.add(feed);
+  const tip=new THREE.Mesh(new THREE.CylinderGeometry(1.5,2,4,9),mats.glow);
+  tip.position.y=26;tip.raycast=()=>{};head.add(tip);
  }else if(kind==='silo'){
   // Round, compact Zero-Hour-style launch silo. The armored circular bay,
   // exposed missile and attached service cabin form its RTS silhouette.
@@ -316,34 +351,43 @@ export function createStrategicBuilding(kind,owner=0){
   // Two sand-painted segmented hydraulic shutters are parked outside
   // the open ring; their edges are visible, not a giant garage roof.
   for(const side of [-1,1]){
-   const x=-17+side*87;
+   const x=-17+side*80;
+   // Hydraulic beams connect each parked shutter to the bunker roof.
+   for(const z of [-27,27])box(8,29,13,'metal',x,54,z);
    box(17,7,81,'armor',x,72,0);
    box(18,2,72,'steel',x,76,0);
    for(const z of [-31,0,31])box(14,2.4,4,'black',x,78,z);
   }
-  // A two-stage rocket remains visible in the launch well.
-  // No gameplay alteration: timing and projectile simulation are unchanged.
+  // A continuous missile rooted inside the dark shaft, not a stack of
+  // disconnected floating cylinders. The dark well top is at y=60;
+  // the missile's lower hull begins at y=58, visibly emerging from it.
   const rx=-17;
-  const body=cyl(19,20,65,'rocketBody',rx,112,0,24);
-  body.name='Silo_RocketBody';
-  cyl(18,18,32,'rocketPanel',rx,159,0,24);
-  cyl(18,19,7,'rocketNose',rx,180,0,24);
-  const nose=add(new THREE.ConeGeometry(17,38,24),
-   'rocketNose',rx,202,0);
-  nose.name='Silo_RocketNose';
-  for(const [y,r,paint] of [[84,20,'rocketAccent'],[146,19,'trim'],
-    [179,19,'rocketAccent'],[187,17,'rocketPanel']]){
-   const seam=add(new THREE.TorusGeometry(r,2.2,8,28),paint,
+  const body=cyl(15.5,17,98,'rocketBody',rx,107,0,28);
+  body.name='Silo_RocketBody'; // 58..156: continuous rocket silhouette
+  const shoulder=cyl(16,16,9,'rocketPanel',rx,142,0,28);
+  shoulder.name='Silo_RocketShoulder'; // body-mounted panel; no gap
+  const nose=add(new THREE.ConeGeometry(15.5,34,28),
+   'rocketNose',rx,171,0);
+  nose.name='Silo_RocketNose'; // 154..188, joins the continuous fuselage
+  // Closely wrapped body bands; torus radius reaches the actual missile.
+  for(const [y,r,paint] of [[79,17,'rocketAccent'],[147,16.2,'trim'],
+    [154,15.6,'rocketPanel']]){
+   const seam=add(new THREE.TorusGeometry(r,1.1,8,28),paint,
     rx,y,0,-Math.PI/2);
-   if(y===146)seam.name='Silo_RocketStageSeam';
+   if(y===147)seam.name='Silo_RocketStageSeam';
   }
+  // Lower stabilizers have 5 units of intersection with the missile's
+  // cylinder; no fins, exhaust plates or decorative rings suspended in air.
   for(let i=0;i<4;i++){
-   const angle=i*Math.PI/2;
-   box(12,25,4,'rocketBody',rx+Math.cos(angle)*20,105,
-    Math.sin(angle)*20);
+   const a=i*Math.PI/2;
+   const fin=add(new THREE.BoxGeometry(14,21,3),'rocketBody',
+    rx+Math.cos(a)*19,77,Math.sin(a)*19,0,-a);
+   fin.name='Silo_RocketFin';
   }
-  cyl(11,13,5,'rocketNose',rx,78,0,18);
+  const nozzle=cyl(11,13,9,'rocketNose',rx,61,0,20);
+  nozzle.name='Silo_RocketNozzle';
   // Small offset control house and signal electronics, never a whole annex.
+  box(66,10,67,'black',77,5,-43); // real foundation under overhanging control cabin
   const cabin=box(53,39,48,'base',81,27,-41);
   cabin.name='Silo_ControlHut';
   box(58,6,53,'metal',81,50,-41);
