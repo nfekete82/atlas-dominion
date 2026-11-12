@@ -18,7 +18,7 @@ test('original four binary GLBs are shipped with required author nodes',()=>{
    const nodes=json.nodes.map(x=>x.name);
    if(kind==='research')assert.ok(nodes.includes('radar_assembly_PIVOT'));
    else if(kind==='barracks')assert.ok(nodes.includes('GATE_LEFT_PIVOT')&&nodes.includes('GATE_RIGHT_PIVOT'));
-   else if(kind==='headquarters')assert.ok(nodes.includes('HQ_RADAR_PIVOT'));
+   else if(kind==='headquarters')assert.ok(nodes.includes('RADAR_DISH_PIVOT'));
    else if(variant==='active')assert.ok(nodes.some(x=>x.startsWith('missile__')));
    else assert.ok(nodes.some(x=>x.startsWith('blast_door_L__')));
   }
@@ -34,6 +34,8 @@ test('visual state uses actual research progress and silo charge',()=>{
  game.research[0].active='precision';
  assert.equal(strategicGlbActive('research',built,game),true);
  assert.equal(strategicGlbActive('research',{...built,hp:0},game),false);
+ assert.equal(strategicGlbActive('headquarters',built,game),true);
+ assert.equal(strategicGlbActive('headquarters',{...built,buildRemaining:5},game),false);
 });
 test('PBR recolouring preserves user-authored geometry, glow and trim',()=>{
  const root=new THREE.Group(),geometry=new THREE.BoxGeometry(7,4,3);

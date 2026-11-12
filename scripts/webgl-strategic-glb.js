@@ -6,7 +6,8 @@ import * as THREE from 'three';
  */
 export const STRATEGIC_GLB_MODELS=Object.freeze({
  headquarters:Object.freeze({
-  inactive:'/src/assets/reborn/buildings-3d/sandforge_feldkommando.glb'
+  inactive:'/src/assets/reborn/buildings-3d/sandforge_feldkommando_offline.glb',
+  active:'/src/assets/reborn/buildings-3d/sandforge_feldkommando_betriebsbereit.glb'
  }),
  barracks:Object.freeze({
   inactive:'/src/assets/reborn/buildings-3d/sandforge_kaserne_geschlossen.glb',
@@ -31,6 +32,9 @@ export function strategicGlbActive(kind,base,game){
  // Primary barracks uses READY model; alternate CLOSED model is shown
  // during construction; the production gates animate pivot nodes.
  if(kind==='barracks')return base.buildRemaining>0;
+ // Feldkommando is offline while the engineer builds and operational when
+ // completed. No connection to the unrelated research upgrade state.
+ if(kind==='headquarters')return base.buildRemaining<=0;
  if(base.buildRemaining>0)return false;
  if(kind==='silo')return (base.siloCharge??600)<=0;
  return (game?.research?.[base.owner]?.active??null)!==null;
@@ -55,9 +59,21 @@ const finish=Object.freeze({
  SF_missile:'#ab9872',
  SF_missile_dark:'#474d43',
  SF_missile_white:'#c7b089',
- SF_white:'#d4c2a2'
+ SF_white:'#d4c2a2',
+ // User-supplied Bastion MK2 has distinct PBR material names. Only exposed
+ // armour/concrete receive desert paint: window glass, warning lights,
+ // capture identifiers and the radar feed remain legible.
+ SF_Bastion_concrete:'#b7a181',
+ SF_Bastion_sandplate:'#c7b089',
+ SF_Bastion_armor:'#6f755d',
+ SF_Bastion_edge:'#ab9872',
+ SF_Bastion_steel:'#474d43',
+ SF_Bastion_bolt:'#9f9c83',
+ SF_Bastion_frame:'#2f342f',
+ SF_Bastion_dish:'#b7a181',
+ SF_Bastion_dishshade:'#474d43'
 });
-const structural=/^SF_(olive|concrete_high|foundation|deck|steel|missile|white)/;
+const structural=/^SF_(olive|concrete_high|foundation|deck|steel|missile|white|Bastion_(concrete|sandplate|armor|edge|steel|bolt|frame|dish))/;
 /** Reuse cloned material per exported GLB material; never mutate cached asset. */
 export function applyStrategicGlbFinish(root){
  if(!root)return 0;
@@ -89,4 +105,25 @@ export function applyStrategicGlbFinish(root){
    mesh.material.map(style):style(mesh.material);
  });
  return changed;
+}
+
+// The neutral bastion keeps its idle warning lamps. Only the small authored
+// capture beacon changes team, not the wall/floor camouflage or GLB geometry.
+// applyStrategicGlbFinish() has already cloned the PBR materials, so the
+// cached GLTF template remains immutable across owner changes.
+export function tintBastionCaptureSignals(root,owner){
+ if(!root)return 0;
+ let count=0;
+ root.traverse(node=>{
+  if(!node.isMesh)return;
+  for(const mat of (Array.isArray(node.material)?node.material:[node.material])){
+   if(!mat?.isMeshStandardMaterial)continue;
+   if(!/^SF_Bastion_(red|light)$/.test(mat.name))continue;
+   const tone=owner===0?'#347c9c':owner===1?'#af5449':'#96866e';
+   mat.color.set(tone);
+   if(mat.emissive)mat.emissive.set(owner===0?'#12405c':owner===1?'#5c201c':'#241e16');
+   count++;
+  }
+ });
+ return count;
 }

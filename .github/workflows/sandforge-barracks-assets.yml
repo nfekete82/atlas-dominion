@@ -5,8 +5,7 @@ on:
       - feat/webgl-facilities-preview-smallarms-20261110
     paths:
       - tools/build_sandforge_kaserne.py
-      - tools/build_sandforge_feldkommando.py
-      - .github/workflows/sandforge-barracks-assets.yml
+       - .github/workflows/sandforge-barracks-assets.yml
   workflow_dispatch:
 permissions:
   contents: write
@@ -24,9 +23,7 @@ jobs:
         run: python -m pip install 'numpy>=1.26,<3' 'trimesh>=4.5,<5'
       - name: Reproduce original uploaded barracks models
         run: python tools/build_sandforge_kaserne.py
-      - name: Generate distinct Sandforge field command HQ model
-        run: python tools/build_sandforge_feldkommando.py
-      - name: Validate original uploaded binary checksums
+       - name: Validate original uploaded binary checksums
         run: |
           echo '514cc84546b2e8f7df0855d4896bd5fdd9c7310b5f3d83ca859b5d9529783749  src/assets/reborn/buildings-3d/sandforge_kaserne_betriebsbereit.glb' | sha256sum -c -
           echo '1b95aa12a7b3350432773fefb1680829b9806747b2fd8c48e371d01516f274ef  src/assets/reborn/buildings-3d/sandforge_kaserne_geschlossen.glb' | sha256sum -c -
@@ -34,7 +31,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add src/assets/reborn/buildings-3d/sandforge_kaserne_betriebsbereit.glb src/assets/reborn/buildings-3d/sandforge_kaserne_geschlossen.glb src/assets/reborn/buildings-3d/sandforge_feldkommando.glb
+          git add src/assets/reborn/buildings-3d/sandforge_kaserne_betriebsbereit.glb src/assets/reborn/buildings-3d/sandforge_kaserne_geschlossen.glb 
           if ! git diff --cached --quiet; then
             git commit -m 'asset(webgl): include original uploaded barracks open and closed GLBs [skip ci]'
             git push origin HEAD:feat/webgl-facilities-preview-smallarms-20261110

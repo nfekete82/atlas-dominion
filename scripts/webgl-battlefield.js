@@ -29,7 +29,7 @@ import {wallLinePlacements,wallLineFromTurret,wallLineToTurret,wallLineBetweenTu
 import {sameKindVisibleUnits} from '/webgl-double-click-select.js';
 import {tracerWindow} from '/webgl-hit-response.js';
 import {applyFactionAccents,tintFactionMaterials} from '/webgl-faction-accents.js';
-import {STRATEGIC_GLB_MODELS,isStrategicGlbKind,strategicGlbUrl,strategicGlbActive,applyStrategicGlbFinish} from '/webgl-strategic-glb.js';
+import {STRATEGIC_GLB_MODELS,isStrategicGlbKind,strategicGlbUrl,strategicGlbActive,applyStrategicGlbFinish,tintBastionCaptureSignals} from '/webgl-strategic-glb.js';
 import {attachTeamMarkings,detachTeamMarkings} from '/webgl-team-markings.js';
 import {SandforgeConstructionPresentation} from '/webgl-construction.js';
 import {createBastionCaptureBar,updateBastionCaptureBar} from '/webgl-bastion-capture.js';
@@ -341,7 +341,7 @@ export class SandforgeBattlefield {
    }
   }
   if(entry.kind==='headquarters'){
-   const authoredRadar=entry.detail?.getObjectByName('HQ_RADAR_PIVOT');
+   const authoredRadar=entry.detail?.getObjectByName('RADAR_DISH_PIVOT');
    if(authoredRadar){
     entry.motion={kind:'headquarters',rotor:authoredRadar,mode:'authored-hq'};
     return;
@@ -1113,7 +1113,7 @@ export class SandforgeBattlefield {
     entry.owner=territory.owner;
     entry.core.material.color.set(territory.owner===0?colors.blue:territory.owner===1?colors.red:colors.neutral);
     entry.halo.material.color.set(territory.owner===0?colors.blue:territory.owner===1?colors.red:colors.neutral);
-    if(!this.lite)this.loadBastionModel(entry,territory.owner);
+    this.loadBastionModel(entry,territory.owner);
     // Only announce ownership changes involving the local faction. Unknown
     // battles between other factions must never leak through Fog of War.
     if(territory.owner===0){
@@ -1129,6 +1129,7 @@ export class SandforgeBattlefield {
     updateBastionCaptureBar(entry.captureBar,territory,this.game,this.fogEnabled);
     if(active&&entry.motion){
      if(entry.motion.mixer)entry.motion.mixer.update(dt);
+     else if(entry.motion.pivot)entry.motion.pivot.rotation.y+=dt*.35;
      else if(entry.motion.rotor)entry.motion.rotor.rotation.y+=dt*.35;
     }
    }
@@ -1156,7 +1157,11 @@ export class SandforgeBattlefield {
  async loadBastionModel(entry,owner){
   const version=(entry.version??0)+1;entry.version=version;
   try{
-   const modelPath='/src/assets/reborn/buildings-3d/bastion-'+owner+'.glb';
+   // Neutral points display the offline MK2; owned points activate doors,
+   // radar and faction signals. One model per revision, with cached geometry.
+   const activated=owner===0||owner===1;
+   const modelPath='/src/assets/reborn/buildings-3d/sandforge_bastion_mk2_'+
+    (activated?'aktiv':'offline')+'.glb';
    const data=await this.getModel(modelPath);
    if(version!==entry.version||!entry.node.parent)return;
    const detail=cloneSkeleton(data.scene);
@@ -1165,16 +1170,24 @@ export class SandforgeBattlefield {
    detail.scale.multiplyScalar(factor);
    detail.position.set(-center.x*factor,-box.min.y*factor,-center.z*factor);
    this.lightBuildingMeshes(detail);
+   applyStrategicGlbFinish(detail);
+   // Neutral GLB must stay neutral (faction material code requires 0/1).
+   if(activated)tintFactionMaterials(detail,owner,'bastion','building');
+   tintBastionCaptureSignals(detail,owner);
    // Release per-bastion materials, clips and fallback rotors after each
    // ownership change. GLB source geometries/textures remain cached.
    releaseBastionRevision(entry);
    entry.detail=detail;entry.node.add(detail);
-   // Bastions also have the RadarSpin animation in their authored assets.
+   // MK2 ships the native Radar_Dish_Pivot; it is the ONLY radar we animate.
+   // A clip is still supported for independently authored future revisions.
+   const pivot=detail.getObjectByName('Radar_Dish_Pivot');
    const radarClip=data.animations?.find(c=>c.name==='RadarSpin');
    if(radarClip?.tracks?.length){
     const mixer=new THREE.AnimationMixer(detail),action=mixer.clipAction(radarClip);
     action.setLoop(THREE.LoopRepeat,Infinity);action.play();
     entry.motion={kind:'headquarters',mixer,action,mode:'authored'};
+   }else if(pivot){
+    entry.motion={kind:'bastion',pivot,mode:'authored-mk2'};
    }else{
     const rotor=this.createMechanicalRotor('headquarters',115,116);
     entry.node.add(rotor);entry.motion={kind:'headquarters',rotor,mode:'fallback'};
@@ -1197,7 +1210,7 @@ export class SandforgeBattlefield {
    this.scene.add(node);
    const entry={node,core,pad,owner:t.owner,halo,captureBar};
    this.bastions.set(t.id,entry);
-   if(!this.lite)this.loadBastionModel(entry,t.owner);
+   this.loadBastionModel(entry,t.owner);
   }
  }
  addFog(){
