@@ -142,14 +142,20 @@ export function tintFactionMaterials(root,owner,kind,type){
   if(!mesh.isMesh||mesh.userData?.factionAccent)return;
   const paint=source=>{
    if(!source?.isMeshStandardMaterial)return source;
+   // Split a shared glTF material when one mesh is uniform armour and
+   // another is a rifle/visor. A single paint clone for both would cause
+   // the weapon or face to inherit the camouflage shader.
+   const eligible=shouldTintFactionSurface(kind,type,source.name,mesh.name,source);
    let mat=source;
    if(!source.userData?.sandforgeFactionTint){
-    if(owned.has(source))mat=owned.get(source);
+    let variants=owned.get(source);
+    if(!variants){variants=new Map();owned.set(source,variants);}
+    if(variants.has(eligible))mat=variants.get(eligible);
     else{
      mat=source.clone();
      mat.userData={...source.userData,sandforgeFactionTint:true,
       sandforgeBaseColor:source.color.getHex()};
-     owned.set(source,mat);
+     variants.set(eligible,mat);
     }
    }
    const base=new THREE.Color(mat.userData.sandforgeBaseColor);
@@ -159,7 +165,6 @@ export function tintFactionMaterials(root,owner,kind,type){
     tinted++;
     return mat;
    }
-   const eligible=shouldTintFactionSurface(kind,type,mat.name,mesh.name,mat);
    // Existing texture detail, team marks and metalwork remain.
    const weight=type==='building'?.025:
     SOLDIER_KINDS.has(kind)?.10:
