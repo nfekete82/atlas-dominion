@@ -41,6 +41,9 @@ test('low-poly HUD has right-side resources and a full-width bottom deck',async(
  await expect(page.locator('#sf-tools')).toBeVisible();
  await page.locator('#sf-hud-tools-toggle').click();
  await expect(page.locator('#sf-tools')).toBeHidden();
+ await expect(page.locator('.sf-modern-side-actions > button')).toHaveCount(3);
+ await page.locator('#sf-modern-selection').click();
+ await expect(page.locator('#sf-selection-panel')).toBeVisible();
  await page.locator('#sf-modern-queue').click();
  await expect(page.locator('#sf-production')).toBeVisible();
  await page.locator('#sf-modern-selection').click();
