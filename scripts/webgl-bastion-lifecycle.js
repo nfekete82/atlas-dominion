@@ -8,7 +8,7 @@ import {disposeOwnedMeshes,disposeTaggedMaterials} from './webgl-resource-lifecy
  */
 export function releaseBastionRevision(entry){
  if(!entry?.node)return {materials:0,rotors:0};
- const motion=entry.motion;
+ if(entry.bastionController){entry.bastionController.dispose();entry.bastionController=null;}\n const motion=entry.motion;
  if(motion?.mixer){
   motion.mixer.stopAllAction();
   if(entry.detail)motion.mixer.uncacheRoot(entry.detail);
