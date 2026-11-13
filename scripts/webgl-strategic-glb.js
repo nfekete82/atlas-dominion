@@ -138,23 +138,102 @@ export function tintBastionCaptureSignals(root,owner){
  return count;
 }
 
-/** Recenter source GLB radar assemblies without altering visual placement.
- * Some user-exported meshes carry coordinates in their vertices, even though
- * their named PIVOT has translation (0,0,0). Rotating that node would otherwise
- * orbit the entire dish around the building origin. This adjustment keeps the
- * initial geometry in precisely the same world-space position.
+/** An independent HQ3 dish rotates around its SUPPORT, not the bowl.
+ * Recentring at the dish bounding-box midpoint made the support orbit
+ * outside its rooftop plinth and look as if it floated in midair.
  */
+function hq3DishSupports(pivot){
+ const box=new THREE.Box3();
+ pivot?.traverse(part=>{
+  if(part.isMesh&&/^Independent_Satellite_Dish_Support_/.test(part.name))
+   box.expandByObject(part);
+ });
+ return box.isEmpty()?null:box;
+}
 export function centerAuthoredRadarPivot(pivot){
  if(!pivot?.parent||pivot.userData.sandforgeRadarPivotCentered)return pivot;
  pivot.updateWorldMatrix(true,true);
- const box=new THREE.Box3().setFromObject(pivot);
+ const support=hq3DishSupports(pivot);
+ const box=support??new THREE.Box3().setFromObject(pivot);
  if(box.isEmpty())return pivot;
- const center=pivot.parent.worldToLocal(box.getCenter(new THREE.Vector3()));
+ const anchor=box.getCenter(new THREE.Vector3());
+ if(support)anchor.y=support.min.y;
+ const center=pivot.parent.worldToLocal(anchor);
  const delta=center.clone().sub(pivot.position);
+ // Preserve every authored glTF vertex in precisely its original world pose.
  for(const child of pivot.children)child.position.sub(delta);
  pivot.position.copy(center);
  pivot.userData.sandforgeRadarPivotCentered=true;
  return pivot;
+}
+
+/** Fixed, dark metal roof mount for the genuine rotating HQ3 satellite.
+ * The pedestal is a sibling of RADAR_DISH_PIVOT, never its child, so only
+ * the dish rotates. It sits directly under the imported support geometry.
+ * Generated once per instance; the original authored GLB is unchanged.
+ */
+export function ensureHeadquartersSatelliteMount(pivot){
+ if(!pivot?.parent)return null;
+ const parent=pivot.parent;
+ const old=parent.getObjectByName('HQ3FixedSatelliteMount');
+ if(old)return old;
+ pivot.updateWorldMatrix(true,true);
+ const support=hq3DishSupports(pivot);
+ if(!support)return null;
+ const world=support.getCenter(new THREE.Vector3());
+ world.y=support.min.y;
+ const anchor=parent.worldToLocal(world);
+ let floorY=anchor.y-.85;
+ // Sample the ACTUAL rooftop below the dish when the authored geometry
+ // is available: this avoids a floating foot on differing GLB revisions.
+ let roof=parent;
+ while(roof?.parent&&roof.name!=='Scene')roof=roof.parent;
+ const roofMesh=roof?.getObjectByName?.('Static_Dark_Weathered_Roof')??
+  parent.getObjectByName('Static_Dark_Weathered_Roof');
+ if(roofMesh?.isMesh){
+  const source=support.getCenter(new THREE.Vector3());
+  source.y=support.max.y+10;
+  const rays=new THREE.Raycaster(source,new THREE.Vector3(0,-1,0),0,100);
+  const hit=rays.intersectObject(roofMesh,false)[0];
+  if(hit){
+   const level=parent.worldToLocal(hit.point.clone()).y;
+   if(anchor.y-level>.20&&anchor.y-level<2.4)floorY=level+.02;
+  }
+ }
+ const rise=Math.max(.20,anchor.y-floorY);
+ const group=new THREE.Group();
+ group.name='HQ3FixedSatelliteMount';
+ group.userData={visualOnly:true,nonPlayable:true,fixedSatelliteMount:true};
+ group.position.set(anchor.x,floorY,anchor.z);
+ const metal=new THREE.MeshStandardMaterial({name:'HQ3SatelliteMountSteel',
+  color:'#333b36',roughness:.74,metalness:.57});
+ const footing=new THREE.MeshStandardMaterial({name:'HQ3SatelliteMountBase',
+  color:'#444943',roughness:.88,metalness:.32});
+ function add(geometry,material,name,x,y,z){
+  const part=new THREE.Mesh(geometry,material);
+  part.name=name;part.position.set(x,y,z);
+  part.castShadow=true;part.receiveShadow=true;
+  part.raycast=()=>{};
+  group.add(part);return part;
+ }
+ add(new THREE.CylinderGeometry(.32,.40,.13,12),footing,
+  'HQ3SatelliteAnchorPlate',0,.07,0);
+ add(new THREE.CylinderGeometry(.07,.10,rise,10),metal,
+  'HQ3SatelliteFixedMast',0,rise*.5,0);
+ add(new THREE.CylinderGeometry(.18,.18,.15,12),footing,
+  'HQ3SatelliteBearing',0,rise,0);
+ const up=new THREE.Vector3(0,1,0);
+ for(const [i,angle] of [0,Math.PI*2/3,Math.PI*4/3].entries()){
+  const start=new THREE.Vector3(Math.cos(angle)*.29,.14,Math.sin(angle)*.29);
+  const end=new THREE.Vector3(0,rise*.82,0);
+  const direction=end.clone().sub(start);
+  const brace=add(new THREE.CylinderGeometry(.027,.038,direction.length(),6),
+   metal,'HQ3SatelliteBrace'+i,0,0,0);
+  brace.position.copy(start.add(end).multiplyScalar(.5));
+  brace.quaternion.setFromUnitVectors(up,direction.normalize());
+ }
+ parent.add(group);
+ return group;
 }
 
 /** Texture-plus exports independent DISH_* nodes without a pivot. Group the
