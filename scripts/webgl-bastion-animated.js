@@ -40,8 +40,12 @@ export function createAnimatedBastionController(root,animations,initialOwner=-1)
   part.material=Array.isArray(part.material)?part.material.map(clone):clone(part.material);
  });
  let owner='neutral',progress=0,capturer='blue',elapsed=0,closed=false;
+ let lastSegmentCount=-1,lastAccent=null;
+ const visibility=new WeakMap();
  let finishedListener=null;
  function show(group,visible){
+  if(visibility.get(group)===visible)return;
+  visibility.set(group,visible);
   group.visible=visible;
   if(!visible)return;
   group.traverse(part=>{
@@ -58,9 +62,15 @@ export function createAnimatedBastionController(root,animations,initialOwner=-1)
   for(const k of [...owners,'capturing'])
    show(rings[k],k===(progress>0?'capturing':owner));
   const visibleCount=Math.ceil(progress*segments.length);
-  for(let i=0;i<segments.length;i++)segments[i].visible=i<visibleCount;
+  if(visibleCount!==lastSegmentCount){
+   for(let i=0;i<segments.length;i++)segments[i].visible=i<visibleCount;
+   lastSegmentCount=visibleCount;
+  }
   const accent=progress>0?0xff9a24:owner==='blue'?0x397cf7:owner==='red'?0xf43d48:0xffa94c;
-  for(const mat of accents){mat.emissive?.setHex(accent);mat.needsUpdate=true;}
+  if(accent!==lastAccent){
+   for(const mat of accents){mat.emissive?.setHex(accent);mat.needsUpdate=true;}
+   lastAccent=accent;
+  }
  }
  function loop(name){
   actions[name]?.reset().setLoop(THREE.LoopRepeat,Infinity).play();
@@ -97,9 +107,10 @@ export function createAnimatedBastionController(root,animations,initialOwner=-1)
  }
  function setCaptureProgress(value,team){
   if(closed)return;
-  capturer=faction(team);
-  progress=Math.max(0,Math.min(1,Number(value)||0));
-  if(capturer==='neutral')progress=0;
+  const nextCapturer=faction(team);
+  const nextProgress=nextCapturer==='neutral'?0:Math.max(0,Math.min(1,Number(value)||0));
+  if(nextCapturer===capturer&&Math.abs(nextProgress-progress)<0.00001)return;
+  capturer=nextCapturer;progress=nextProgress;
   showState();
  }
  function update(dt){
