@@ -29,6 +29,26 @@ export function prepareHeadquartersPortal(entry){
  if(entry?.headquartersPortal)return entry.headquartersPortal;
  const model=entry?.detail;
  if(!model)return null;
+ // MK2's two main doors and two fence gates expose real sliding GLB pivots.
+ const mainL=model.getObjectByName('Door_Left_Pivot');
+ const mainR=model.getObjectByName('Door_Right_Pivot');
+ const fenceL=model.getObjectByName('Fence_Gate_Left_Pivot');
+ const fenceR=model.getObjectByName('Fence_Gate_Right_Pivot');
+ if(mainL&&mainR&&fenceL&&fenceR){
+  model.updateWorldMatrix(true,true);
+  const door=model.worldToLocal(mainL.getWorldPosition(new THREE.Vector3()));
+  const fence=model.worldToLocal(fenceL.getWorldPosition(new THREE.Vector3()));
+  model.userData.portal={lamp:[0,3.5,door.z+.05],
+   inside:[0,.8,door.z-1.2],outside:[0,.2,fence.z+2.0]};
+  const portal={root:model,hall:new THREE.Group(),leaves:[
+   {leaf:mainL,baseX:mainL.position.x,side:-1,travel:1.36},
+   {leaf:mainR,baseX:mainR.position.x,side:1,travel:1.36},
+   {leaf:fenceL,baseX:fenceL.position.x,side:-1,travel:2.45},
+   {leaf:fenceR,baseX:fenceR.position.x,side:1,travel:2.45}
+  ],materials:[],open:0,authored:true};
+  entry.headquartersPortal=portal;
+  return portal;
+ }
  // For the original low-poly headquarters reuse its real sliding doors,
  // metre-space pivot and passage. Old HQ3 still uses the overlay below.
  if(model.userData?.sandforgeStylized&&model.userData?.portal){
@@ -83,8 +103,8 @@ export function setHeadquartersDoorOpen(portal,amount){
  if(!portal)return;
  const t=smooth(amount);
  portal.open=t;
- for(const {leaf,baseX,side} of portal.leaves)
-  leaf.position.x=baseX+side*(portal.travel??1.29)*t;
+ for(const {leaf,baseX,side,travel} of portal.leaves)
+  leaf.position.x=baseX+side*(travel??portal.travel??1.29)*t;
 }
 export function disposeHeadquartersPortal(entry){
  const portal=entry?.headquartersPortal;
@@ -270,10 +290,10 @@ export class SandforgeProductionGates {
    const infantry=gate.kind==='barracks'||hq;
    const authored=!hq&&infantry&&gate.portal.authored;
    const lane=!hq&&infantry?barracksExitLane(gate.portal):null;
+   const root=gate.root;
    const outside=hq?(root.userData?.portal?
     new THREE.Vector3(...root.userData.portal.outside):new THREE.Vector3(0,-.40,2.85)):
     infantry?lane.outside:new THREE.Vector3(.18,0,2.9);
-   const root=gate.root;
    root.localToWorld(outside);
    const target=actor.node.position.clone();
    const clearFraction=(infantry?1.65:GATE_TIMING.drive*.62)/state.duration;
