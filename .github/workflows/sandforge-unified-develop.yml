@@ -1,0 +1,45 @@
+name: Sandforge unified development QA
+on:
+  push:
+    branches: [develop]
+  pull_request:
+    branches: [develop]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unified:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build unified WebGL game
+        run: npm run build:3d
+      - name: Validate HUD, Bastion, Meshy fallback, title and assets
+        run: node --test tests/webgl-hud-showcase.test.mjs tests/webgl-animated-bastion-reference-20261113.test.mjs tests/meshy-import.test.mjs tests/sandforge-webgl-entry.test.mjs tests/stylized-pack.test.mjs
+      - name: Install Playwright
+        run: npm --prefix tests/browser install --no-audit --no-fund
+      - name: Install Chromium
+        run: cd tests/browser && npx playwright install --with-deps chromium
+      - name: Test live HUD and start menu
+        env:
+          SANDFORGE_BROWSER_CHANNEL: chromium
+          SANDFORGE_TEST_PORT: '8199'
+        run: node tests/browser/node_modules/playwright/cli.js test --config=tests/browser/playwright.config.mjs webgl-hud-layout-fixture.spec.mjs webgl-hud-showcase.spec.mjs webgl-title-menu.spec.mjs
+      - name: Save screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandforge-develop-webgl-screenshots
+          path: |
+            tests/browser/artifacts/webgl-hud-*.png
+            tests/browser/artifacts/report
+            tests/browser/artifacts/runs
+          if-no-files-found: ignore
+          retention-days: 7

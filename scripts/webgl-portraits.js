@@ -8,6 +8,7 @@ import {tintFactionMaterials} from './webgl-faction-accents.js';
 import {isStrategicGlbKind,strategicGlbUrl,applyStrategicGlbFinish} from './webgl-strategic-glb.js';
 import {strategicBuildingHeightScale} from './webgl-scale.js';
 import {stylizedAsset} from './webgl-stylized-pack.js';
+import {meshyAsset,meshyModelYaw} from './webgl-meshy-assets.js';
 
 /** Sprite-sheet portrait extraction shared by the WebGL HUD.
  * The classic game crops one idle frame rather than scaling down the entire
@@ -183,10 +184,11 @@ function renderModelPortrait(model,renderer,{width=320,height=220,research=false
  }
 }
 async function renderStylizedPortrait(kind,renderer,{width=320,height=220,infantryCard=false}={}){
- const url=stylizedAsset(kind,0);
- if(!url)throw Error('Unknown stylized portrait '+kind);
+ const url=meshyAsset(kind,0)??stylizedAsset(kind,0);
+ if(!url)throw Error('Unknown authored portrait '+kind);
  const data=await new GLTFLoader().loadAsync(url);
  const model=cloneSkeleton(data.scene);
+ if(meshyAsset(kind,0))model.rotation.y+=meshyModelYaw(kind);
  // Isolated clones: the portrait compositor disposes its temporary GPU
  // resources and must never invalidate the live game's shared GLB cache.
  model.traverse(node=>{
@@ -330,7 +332,7 @@ function rocketUnitIconFallback(){
  return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
 }
 export function unitIcon(kind,renderer){
- if(renderer&&stylizedAsset(kind,0)){
+ if(renderer&&(meshyAsset(kind,0)||stylizedAsset(kind,0))){
   if(!iconCache.has(kind))iconCache.set(kind,
    renderStylizedPortrait(kind,renderer,{width:192,height:132,infantryCard:true})
     .catch(error=>{console.warn('Low-poly unit portrait fallback',kind,error);return rasterizeUnitIcon(kind);}));
@@ -374,7 +376,7 @@ export function unitIcon(kind,renderer){
 // into a consistent wide tile without clipping its silhouette.
 const buildingIconCache=new Map();
 async function rasterizeBuildingIcon(kind,renderer){
- if(renderer&&stylizedAsset(kind,0)){
+ if(renderer&&(meshyAsset(kind,0)||stylizedAsset(kind,0))){
   try{return await renderStylizedPortrait(kind,renderer);}
   catch(error){console.warn('Low-poly building portrait fallback',kind,error);}
  }

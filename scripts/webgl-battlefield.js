@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {stylizedAsset,isStylizedAsset,stylizedProfile} from './webgl-stylized-pack.js';
+import {meshyAsset,isMeshyAsset,meshyModelYaw} from './webgl-meshy-assets.js';
 import {SandforgeProductionGates} from '/webgl-production-gates.js';
 import {updateBarracksPortalPlanes} from '/webgl-barracks-portal.js';
 import {nextPeriodicRefresh} from '/webgl-frame-scheduling.js';
@@ -27,6 +28,7 @@ import {factoryRepairPoint} from '/src/reborn/factory-maintenance.js';
 import {selectedMaintenanceKind,serviceFootprintContains,maintenanceClickAllowed} from '/webgl-maintenance-input.js';
 import {disposeOwnedMeshes,disposeTaggedMaterials} from '/webgl-resource-lifecycle.js';
 import {releaseBastionRevision} from '/webgl-bastion-lifecycle.js';
+import {ANIMATED_BASTION_GLB_URL,createAnimatedBastionController} from '/webgl-bastion-animated.js';
 import {selectedInfantryForTransport,selectedLoadedTransports,selectedTransportManifest} from '/webgl-transport-controls.js';
 import {pointerGestureIntent,submitConstruction,nearestEngineer,POINTER_CLICK_SLOP,PLACEMENT_CLICK_SLOP} from '/webgl-builder-input.js';
 import {wallLinePlacements,wallLineFromTurret,wallLineToTurret,wallLineBetweenTurrets,WALL_DRAG_MAX_SEGMENTS,WALL_DRAG_SLOP} from '/webgl-wall-line.js';
@@ -212,6 +214,9 @@ export class SandforgeBattlefield {
  }
  asset(kind,owner,type){
   const prefix='/src/assets/reborn/';
+  // The Meshy replacement is opt-in and only activates after installation.
+  const replacement=meshyAsset(kind,owner);
+  if(replacement)return replacement;
   if(new URLSearchParams(location.search).get('art')!=='legacy'){
    const authored=stylizedAsset(kind,owner);
    if(authored)return authored;
@@ -230,7 +235,7 @@ export class SandforgeBattlefield {
   // still appear. Falling back to primitive grey cubes would make the actual
   // player's base look markedly worse than the 2D game.
   // Medics always load their authored 3D soldier, even in lite mode.
-  if((this.lite&&type!=='building'&&entity.kind!=='medic'&&entity.kind!=='rocket'&&!stylizedAsset(entity.kind,entity.owner))||
+  if((this.lite&&type!=='building'&&entity.kind!=='medic'&&entity.kind!=='rocket'&&!stylizedAsset(entity.kind,entity.owner)&&!meshyAsset(entity.kind,entity.owner))||
      (type==='building'&&isStrategicBuilding(entity.kind)&&!isStrategicGlbKind(entity.kind))||entry.requested||
      this.loadingCount+this.modelQueue.length>=this.maxModels)return;
   entry.requested=true;
@@ -402,29 +407,38 @@ export class SandforgeBattlefield {
    // HQ3 builds in place from the finished authored mesh: loading its
    // old "inactive" variant was showing an entirely different Feldkommando.
    // Barracks, silo and research still keep their legitimate variants.
-   const variantUrl=task.type==='building'&&task.entry.kind!=='headquarters'&&!isStylizedAsset(task.url)?
+   const variantUrl=task.type==='building'&&task.entry.kind!=='headquarters'&&!isStylizedAsset(task.url)&&!isMeshyAsset(task.url)?
     strategicGlbUrl(task.entry.kind,
      task.entry.kind==='barracks'?'inactive':'active'):null;
    const promise=variantUrl?
     Promise.all([this.getModel(task.url),this.getModel(variantUrl)]):
     this.getModel(task.url).catch(error=>{
-     if(!isStylizedAsset(task.url))throw error;
-     // Keep original authored assets as a genuine loading fallback.
+     if(!isStylizedAsset(task.url)&&!isMeshyAsset(task.url))throw error;
+     // If an optional Meshy file has not yet been installed, load the
+     // original authored rig and preserve the game. Tank and artillery
+     // were previously wrongly mapped to prototype/ on fallback.
      const e=task.entry;
-     const old=task.type==='building'?strategicGlbUrl(e.kind,'active'):
-      '/src/assets/reborn/'+(e.kind==='rover'?'animation/':'prototype/')+e.kind+'-'+e.owner+'.glb';
-     console.warn('Stylized pack unavailable; loading original:',old);
+     const authored=stylizedAsset(e.kind,e.owner);
+     const old=isMeshyAsset(task.url)&&authored ? authored:
+      task.type==='building' ? strategicGlbUrl(e.kind,'active'):
+      '/src/assets/reborn/'+
+       (e.kind==='rocket'?'prototype/infantry-':
+        (['rover','tank','artillery','scout','bomber'].includes(e.kind)?'animation/':'prototype/')+e.kind+'-')+
+       e.owner+'.glb';
+     console.warn('Optional art unavailable; loading original:',old,error);
+     task.entry.meshyFallback=true;
      return this.getModel(old);
     }).then(data=>[data,null]);
    promise.then(([data,variantData])=>{
     const {entry,type}=task;
     if(!entry.node.parent)return;
     const model=cloneSkeleton(data.scene);
+    if(isMeshyAsset(task.url)&&!entry.meshyFallback)model.rotation.y+=meshyModelYaw(entry.kind);
     const authoredStyle=stylizedProfile(model);
     if(authoredStyle)model.userData={...model.userData,...authoredStyle};
     if(type==='building'&&entry.kind==='barracks'&&!authoredStyle)
      simplifyBarracksSilhouette(model);
-    if(type==='unit'&&entry.kind==='rocket')
+    if(type==='unit'&&entry.kind==='rocket'&&(!isMeshyAsset(task.url)||entry.meshyFallback))
      attachRocketLauncherToInfantry(model,entry.owner);
     const box0=new THREE.Box3().setFromObject(model);
     const dims=box0.getSize(new THREE.Vector3());
@@ -1158,7 +1172,11 @@ export class SandforgeBattlefield {
    else if(entry)this.presentation.hideWhenCulled(entry);
   }
   const known=new Set(this.game.territories.map(t=>t.id));
-  for(const [id,entry] of this.bastions)if(!known.has(id)){this.scene.remove(entry.node);this.bastions.delete(id);}
+  for(const [id,entry] of this.bastions)if(!known.has(id)){
+   entry.version=(entry.version??0)+1;
+   releaseBastionRevision(entry);
+   this.scene.remove(entry.node);this.bastions.delete(id);
+  }
   for(const territory of this.game.territories){
    const entry=this.bastions.get(territory.id);
    if(entry&&entry.owner!==territory.owner){
@@ -1166,7 +1184,8 @@ export class SandforgeBattlefield {
     entry.owner=territory.owner;
     entry.core.material.color.set(territory.owner===0?colors.blue:territory.owner===1?colors.red:colors.neutral);
     entry.halo.material.color.set(territory.owner===0?colors.blue:territory.owner===1?colors.red:colors.neutral);
-    this.loadBastionModel(entry,territory.owner);
+    if(entry.bastionController)entry.bastionController.setOwner(territory.owner,{animate:true});
+    else this.loadBastionModel(entry,territory.owner);
     // Only announce ownership changes involving the local faction. Unknown
     // battles between other factions must never leak through Fog of War.
     if(territory.owner===0){
@@ -1180,8 +1199,14 @@ export class SandforgeBattlefield {
    }
    if(entry){
     updateBastionCaptureBar(entry.captureBar,territory,this.game,this.fogEnabled);
+    if(entry.bastionController){
+     // A capture is cosmetic: only the Simulation may change territory.owner.
+     entry.bastionController.setCaptureProgress(entry.captureBar.visible?
+      entry.captureBar.userData.captureFraction:0,territory.capturing);
+    }
     if(active&&entry.motion){
-     if(entry.motion.mixer)entry.motion.mixer.update(dt);
+     if(entry.motion.controller)entry.motion.controller.update(dt);
+     else if(entry.motion.mixer)entry.motion.mixer.update(dt);
      else if(entry.motion.pivot)entry.motion.pivot.rotation.y+=dt*.35;
      else if(entry.motion.rotor)entry.motion.rotor.rotation.y+=dt*.35;
     }
@@ -1209,6 +1234,30 @@ export class SandforgeBattlefield {
  }
  async loadBastionModel(entry,owner){
   const version=(entry.version??0)+1;entry.version=version;
+  try{
+   const data=await this.getModel(ANIMATED_BASTION_GLB_URL);
+   if(version!==entry.version||!entry.node.parent)return;
+   const detail=cloneSkeleton(data.scene);
+   const bounds=new THREE.Box3().setFromObject(detail);
+   const size=bounds.getSize(new THREE.Vector3());
+   if(!Number.isFinite(size.y)||size.y<1||!data.animations?.length)
+    throw new Error('Animated Bastion GLB invalid');
+   const factor=116/Math.max(.0001,size.x,size.z);
+   const center=bounds.getCenter(new THREE.Vector3());
+   detail.scale.multiplyScalar(factor);
+   detail.position.set(-center.x*factor,-bounds.min.y*factor,-center.z*factor);
+   const controller=createAnimatedBastionController(detail,data.animations,owner);
+   // Keep textures, alpha variants and baked emissive PBR unchanged.
+   // The old MK2 and all fallback mechanical rotors are released once.
+   releaseBastionRevision(entry);
+   entry.detail=detail;entry.node.add(detail);
+   entry.bastionController=controller;
+   entry.motion={kind:'bastion',controller,mode:'animated-reference'};
+   entry.pad.visible=false;entry.core.visible=false;entry.halo.visible=false;
+   entry.captureBar.position.y=Math.max(128,size.y*factor+13);
+   return;
+  }catch(error){console.warn('Animated Bastion asset unavailable; MK2 fallback:',error);}
+  if(version!==entry.version||!entry.node.parent)return;
   try{
    // Neutral points display the offline MK2; owned points activate doors,
    // radar and faction signals. One model per revision, with cached geometry.

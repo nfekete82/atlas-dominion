@@ -90,6 +90,13 @@ export function installClassicHud(){
 <div class="sf-debug" id="sf-debug"><span id="sf-debug-status"></span><span id="sf-debug-error"></span></div>
 `;
  document.body.append(panel);
+ // Match the exact centered title artwork. Keep the existing badge as a
+ // fallback until the transparent cropped artwork has loaded successfully.
+ const logo=panel.querySelector('.sandforge-hud-logo');
+ const hudBadge='/src/assets/reborn/sandforge-bastion-logo.webp';
+ const badgePreload=new Image();
+ badgePreload.onload=()=>{if(logo?.isConnected)logo.src=hudBadge;};
+ badgePreload.src=hudBadge;
  // The screenshot-like HUD changes only view layout: keep the original
  // production IDs, click handlers, and authoritative gameplay state.
  const svg=(contents)=>'<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round">'+contents+'</svg>';
