@@ -557,3 +557,302 @@
 
 /* Direct child of .sf-rts (pointer-events:none): restore actual clickability. */
 #sf-classic-root #sf-hud-tools-toggle{pointer-events:auto!important;/* detached settings */}
+
+/* Sandforge HUD v2 — directly matches the supplied 1670 × 238 lower-strip
+   reference. Only affects the real 3D HUD; all actions/IDs are intact.
+   Older WebGL dock rules are intentionally superseded here. */
+#sf-classic-root{
+ --sf-hud-h:clamp(204px,25.1vh,232px);
+ --sf-hud-map:clamp(184px,15.6vw,258px);
+ --sf-hud-actions:clamp(54px,4.22vw,72px);
+}
+#sf-classic-root #sidebar{
+ grid-template-columns:var(--sf-hud-map) var(--sf-hud-actions) minmax(0,1fr)!important;
+ gap:3px!important;
+ left:8px!important;right:8px!important;bottom:9px!important;
+ width:calc(100vw - 16px)!important;
+}
+#sf-classic-root #sidebar > .radar{
+ padding:4px!important;
+ border:3px solid #6b7890!important;
+ border-radius:17px!important;
+ background:linear-gradient(145deg,#30394e,#1b2434)!important;
+ box-shadow:0 0 0 2px #18243be6,inset 0 0 0 2px #4454719c,0 5px 12px #0007!important;
+}
+#sf-classic-root #sidebar #sf-map{
+ width:100%!important;height:100%!important;
+ max-width:100%!important;max-height:100%!important;
+ aspect-ratio:auto!important;object-fit:fill!important;
+ border:0!important;border-radius:10px!important;
+ margin:0!important;padding:0!important;
+ background:#a77854!important;
+}
+#sf-classic-root #sidebar > .sf-modern-side-actions{
+ display:flex!important;flex-direction:column!important;
+ align-items:stretch!important;justify-content:space-between!important;
+ gap:3px!important;
+ border:3px solid #566177!important;
+ background:linear-gradient(165deg,#353b51,#252d40)!important;
+ border-radius:15px!important;
+ padding:3px!important;overflow:hidden!important;
+ box-shadow:0 0 0 1px #202b3d,0 5px 10px #0005!important;
+}
+#sf-classic-root .sf-modern-side-actions > button{
+ border:0!important;border-radius:10px!important;
+ background:linear-gradient(155deg,#3b455c,#2a3247)!important;
+ color:#f5f1e8!important;
+ box-shadow:none!important;
+ min-height:0!important;flex:1 1 0!important;
+}
+#sf-classic-root .sf-modern-side-actions > button+button{
+ border-top:1px solid #5962769a!important;
+}
+#sf-classic-root .sf-modern-side-actions > button svg{
+ display:block!important;width:clamp(26px,2.3vw,38px)!important;
+ height:clamp(26px,2.3vw,38px)!important;
+}
+#sf-classic-root .sf-modern-side-actions > button:hover,
+#sf-classic-root .sf-modern-side-actions > button[aria-expanded="true"]{
+ background:linear-gradient(155deg,#386cad,#28518a)!important;
+}
+/* Dark navy shared deck with angular blue-selected tabs. */
+#sf-classic-root #sidebar > .catalog{
+ padding:0!important;margin:0!important;
+ min-height:0!important;min-width:0!important;
+ background:transparent!important;border:0!important;
+ display:flex!important;flex-direction:column!important;
+}
+#sf-classic-root #sidebar #sf-tabs{
+ flex:0 0 50px!important;height:50px!important;min-height:50px!important;
+ justify-content:flex-start!important;gap:1px!important;
+ align-items:stretch!important;
+ padding:0!important;margin:0!important;
+ overflow:visible!important;
+}
+#sf-classic-root #sidebar #sf-tabs > button{
+ flex:0 0 clamp(157px,14.4vw,244px)!important;
+ min-width:0!important;max-width:none!important;
+ height:50px!important;min-height:50px!important;
+ border:0!important;
+ border-radius:0!important;
+ clip-path:polygon(8% 0,92% 0,100% 100%,0 100%)!important;
+ padding:0 17px!important;margin:0!important;
+ background:linear-gradient(170deg,#303b50,#252c3d)!important;
+ color:#ece8e6!important;
+ gap:10px!important;
+ font:800 clamp(16px,1.2vw,20px)/1 system-ui!important;
+ text-shadow:0 1px 2px #0005!important;
+ box-shadow:none!important;
+}
+#sf-classic-root #sidebar #sf-tabs > button[aria-pressed="true"]{
+ background:linear-gradient(125deg,#378df3,#2262c4)!important;
+ color:#fff!important;
+}
+#sf-classic-root #sidebar #sf-tabs .sf-tab-symbol{
+ flex:0 0 29px!important;
+ width:29px!important;height:29px!important;
+ font-size:29px!important;
+}
+#sf-classic-root #sidebar #sf-tabs > button:disabled{
+ opacity:.8!important;background:#303849!important;
+ color:#e3dfd9!important;
+}
+#sf-classic-root #sidebar #sf-actions.catalog-scroll{
+ flex:1 1 auto!important;
+ width:100%!important;height:auto!important;min-height:0!important;
+ margin:0!important;padding:0!important;
+ border-radius:0 15px 15px 15px!important;
+ border:2px solid #66768f!important;
+ background:linear-gradient(170deg,#2d3448ed,#202838f5)!important;
+ box-shadow:inset 0 2px 0 #8290a72a,0 4px 11px #0007!important;
+ overflow-x:auto!important;overflow-y:hidden!important;
+ scroll-snap-type:x proximity!important;
+ scrollbar-width:thin!important;
+ scrollbar-color:#627c9e #1f2635!important;
+}
+/* A SINGLE continuous panel. Cards are columns separated by 1px strokes,
+   not little rounded boxes. 8 building cards fill the available width. */
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ .sf-group[data-sf-group="buildings"] > .catalog-grid{
+ display:grid!important;
+ grid-template-columns:repeat(8,minmax(0,1fr))!important;
+ grid-auto-flow:row!important;
+ width:max(100%,1000px)!important;
+ min-width:1000px!important;
+ max-width:none!important;
+ height:100%!important;min-height:0!important;
+ gap:0!important;
+ margin:0!important;padding:7px 2px 9px!important;
+ overflow:visible!important;
+ box-sizing:border-box!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ .sf-group[data-sf-group="buildings"] button.catalog-card[data-build]{
+ position:relative!important;
+ display:flex!important;flex-direction:column!important;
+ align-items:center!important;justify-content:stretch!important;
+ grid-column:auto!important;flex:none!important;
+ width:100%!important;max-width:none!important;min-width:0!important;
+ height:100%!important;min-height:0!important;max-height:none!important;
+ padding:0 6px!important;margin:0!important;
+ border:0!important;border-radius:0!important;
+ box-shadow:none!important;outline-offset:-2px!important;
+ background:transparent!important;
+ scroll-snap-align:start!important;
+ overflow:visible!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ .sf-group[data-sf-group="buildings"] button.catalog-card[data-build]:not(:first-child):before{
+ content:''!important;position:absolute!important;
+ left:0!important;top:8px!important;bottom:8px!important;
+ width:1px!important;background:#7b8a9c95!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ .sf-group[data-sf-group="buildings"] button.catalog-card[data-build]:hover:not(:disabled){
+ background:#42629c32!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ .sf-group[data-sf-group="buildings"] button.catalog-card[data-build] .sf-card-image{
+ flex:1 1 auto!important;
+ min-height:0!important;height:0!important;width:100%!important;
+ border:0!important;border-radius:0!important;
+ box-shadow:none!important;
+ background:transparent!important;
+ padding:0!important;margin:0!important;
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ overflow:hidden!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build] .sf-card-image img{
+ display:block!important;
+ width:100%!important;height:100%!important;
+ padding:0!important;margin:0!important;
+ transform:scale(1.32)!important;transform-origin:center center!important;
+ object-fit:contain!important;object-position:center center!important;
+ filter:drop-shadow(0 5px 4px #0b12208c)!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build] .card-meta{
+ display:flex!important;flex-direction:column!important;
+ align-items:center!important;justify-content:flex-end!important;
+ flex:0 0 51px!important;
+ height:51px!important;min-height:51px!important;max-height:51px!important;
+ padding:0 1px 1px!important;margin:0!important;gap:4px!important;
+ background:transparent!important;border:0!important;
+ box-shadow:none!important;
+ overflow:hidden!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build] .card-name{
+ display:block!important;
+ width:100%!important;min-height:19px!important;height:auto!important;
+ max-height:24px!important;
+ overflow:hidden!important;white-space:nowrap!important;
+ text-align:center!important;text-overflow:ellipsis!important;
+ word-break:normal!important;overflow-wrap:normal!important;
+ font:850 clamp(12px,1.04vw,18px)/1.14 system-ui!important;
+ color:#f8f8f5!important;
+ text-shadow:0 1px 3px #090f1d98!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build] .card-cost{
+ display:flex!important;flex:0 0 19px!important;
+ justify-content:center!important;align-items:center!important;gap:6px!important;
+ min-height:19px!important;height:19px!important;line-height:19px!important;
+ width:100%!important;
+ color:#f3f2ed!important;
+ font:900 clamp(14px,1.16vw,20px)/1 system-ui!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build]:disabled,
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build].locked{
+ opacity:.58!important;filter:none!important;
+ background:transparent!important;border:0!important;
+ box-shadow:none!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build]:disabled .sf-card-image,
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build].locked .sf-card-image{
+ background:transparent!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build]:disabled .sf-card-image img,
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build].locked .sf-card-image img{
+ filter:grayscale(.5) saturate(.5) brightness(.72)!important;
+ opacity:.9!important;transform:scale(1.32)!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build]:disabled .card-meta,
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build].locked .card-meta{
+ background:transparent!important;border:0!important;
+}
+/* Queue button is inside the selectable unit commands overlay to preserve
+   every action without introducing a fourth sidebar icon. */
+#sf-classic-root #sf-modern-queue.sf-production-drawer-link{
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ gap:9px!important;
+ position:relative!important;flex:0 0 auto!important;
+ width:100%!important;min-height:38px!important;height:38px!important;
+ margin:0 0 8px!important;padding:4px 9px!important;
+ border:1px solid #8794a9!important;border-radius:7px!important;
+ background:#314660!important;color:#f8e4c1!important;
+ font:800 12px/1.1 system-ui!important;
+ cursor:pointer!important;
+}
+#sf-classic-root #sf-modern-queue svg{width:20px!important;height:20px!important}
+#sf-classic-root #sf-modern-queue-count{
+ position:static!important;display:inline-flex!important;
+ align-items:center!important;justify-content:center!important;
+ min-width:19px!important;height:19px!important;
+ background:#f6c15b!important;border-radius:10px!important;
+ color:#222e40!important;
+ font:900 12px/1 system-ui!important;
+}
+#sf-classic-root #sf-modern-queue-count[hidden]{display:none!important}
+#sf-classic-root[data-drawer="selection"] #sidebar > #sf-selection-panel{
+ overflow-y:auto!important;
+}
+@media(max-width:1190px){
+ #sf-classic-root{
+  --sf-hud-map:clamp(148px,16vw,185px);
+  --sf-hud-actions:55px;
+ }
+ #sf-classic-root #sidebar #sf-tabs > button{
+  flex-basis:clamp(128px,16vw,181px)!important;
+  font-size:clamp(12px,1.33vw,16px)!important;
+ }
+ #sf-classic-root #sidebar #sf-tabs .sf-tab-symbol{
+  width:25px!important;height:25px!important;flex-basis:25px!important;
+ }
+ #sf-classic-root[data-tab="buildings"] #sf-actions
+  .sf-group[data-sf-group="buildings"] > .catalog-grid{
+  width:max(100%,1000px)!important;min-width:1000px!important;
+ }
+}
+@media(max-width:740px){
+ #sf-classic-root{--sf-hud-h:clamp(175px,30vh,205px);--sf-hud-map:106px;--sf-hud-actions:44px}
+ #sf-classic-root #sidebar{left:5px!important;right:5px!important;width:calc(100vw - 10px)!important;gap:2px!important}
+ #sf-classic-root #sidebar > .radar{border-width:2px!important;border-radius:10px!important}
+ #sf-classic-root #sidebar > .sf-modern-side-actions{border-width:2px!important;border-radius:9px!important;padding:2px!important}
+ #sf-classic-root #sidebar #sf-tabs{flex-basis:40px!important;min-height:40px!important;height:40px!important}
+ #sf-classic-root #sidebar #sf-tabs > button{
+  height:40px!important;min-height:40px!important;
+  flex-basis:33.33%!important;max-width:none!important;
+  font-size:11px!important;gap:3px!important;padding:0 4px!important;
+ }
+ #sf-classic-root #sidebar #sf-tabs .sf-tab-symbol{
+  width:18px!important;height:18px!important;flex-basis:18px!important;
+ }
+ #sf-classic-root[data-tab="buildings"] #sf-actions
+  .sf-group[data-sf-group="buildings"] > .catalog-grid{
+  width:960px!important;min-width:960px!important;
+ }
+ #sf-classic-root[data-tab="buildings"] #sf-actions
+  button.catalog-card[data-build] .card-name{font-size:11px!important}
+ #sf-classic-root[data-tab="buildings"] #sf-actions
+  button.catalog-card[data-build] .card-cost{font-size:13px!important}
+}
