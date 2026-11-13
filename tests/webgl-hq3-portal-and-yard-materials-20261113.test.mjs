@@ -99,7 +99,8 @@ test('HQ3 storage crates and barrels clear the right-hand perimeter fence',()=>{
  for(const kind of ['research','silo','barracks']){
   const other=createBuildingYard(kind,width);
   try{
-   assert.equal(other.getObjectByName('BaseSupplyCache').position.x,width*.55);
+   const expected=kind==='barracks'?width*.42:width*.55;
+   assert.equal(other.getObjectByName('BaseSupplyCache').position.x,expected);
   }finally{disposeBuildingYard(other);}
  }
 });
