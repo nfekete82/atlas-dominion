@@ -44,6 +44,12 @@ test('shared glTF materials do not carry soldier camouflage onto rifle, visor or
  assert.equal(shouldTintFactionSurface('engineer','unit',
   'Human_Skin','SkinnedMesh'),false,
   'actual exposed skin stays protected');
+ assert.equal(shouldTintFactionSurface('rocket','unit',
+  'Camo_Armor','Rocket_Infantry_SkinnedMesh'),true,
+  'rocket specialists wear camouflage despite the word rocket in their rig');
+ assert.equal(shouldTintFactionSurface('rocket','unit',
+  'Launcher_Metal','RocketLauncher'),false,
+  'the actual launcher remains dark metal');
  const source=new THREE.MeshStandardMaterial({name:'Generic_Metal',color:'#c6c2b6'});
  const root=new THREE.Group();
  const meshes=[];
