@@ -10,15 +10,15 @@ async function fixture(page,width,height){
  await page.evaluate(()=>document.getElementById('main-dialog')?.close());
  await page.addScriptTag({content:'('+installClassicHud.toString()+')()'});
  await page.evaluate(()=>{
-  const kinds=['headquarters','barracks','factory','airfield','research','silo','turret','wall'];
-  const names=['Feldkommando','Kaserne','Fahrzeugfabrik','Flugfeld','Forschungsstation','Raketensilo','Turm','Mauer'];
-  const prices=[300,200,350,450,950,5000,750,60];
+  const kinds=['headquarters','barracks','factory','airfield','generator','wall','turret','research','silo'];
+  const names=['Feldkommando','Kaserne','Fahrzeugfabrik','Flugfeld','Energiekern','Sperrmauer','Geschützturm','Forschungszentrum','Langstrecken-Raketensilo'];
+  const prices=[300,200,350,450,150,60,175,950,5000];
   // A lightweight genuine building preview fixture; the shipping game
   // populates identical card markup with the real GLB portrait loader.
   const cards=kinds.map((kind,i)=>'<button type="button" class="catalog-card" data-build="'+kind+'">'+
    '<span class="sf-card-image"><img src="/src/assets/reborn/buildings-3d/'+kind+'-0.png" alt=""></span>'+
    '<span class="card-meta"><span class="card-name">'+names[i]+'</span><span class="card-cost">'+prices[i]+'</span></span></button>').join('');
-  document.querySelector('#sf-actions').innerHTML='<div class="sf-group" data-sf-group="buildings"><div class="catalog-grid">'+cards+'</div></div>'+
+  document.querySelector('#sf-actions').innerHTML='<div class="sf-group" data-sf-group="buildings"><div class="catalog-grid" style="--sf-building-count:9">'+cards+'</div></div>'+
    '<div class="sf-group" data-sf-group="infantry"><div class="sf-roster-section"><h2>KASERNE</h2><div class="catalog-grid">'+cards+'</div></div></div>'+
    '<div class="sf-group" data-sf-group="vehicles"><div class="sf-roster-section"><h2>FAHRZEUGFABRIK</h2><div class="catalog-grid">'+cards+'</div></div></div>'+
    '<div class="sf-group" data-sf-group="aircraft"><div class="sf-roster-section"><h2>FLUGFELD</h2><div class="catalog-grid">'+cards+'</div></div></div>'+
@@ -57,7 +57,7 @@ test('shipping HUD occupies reference screenshot positions at 1600×900',async({
  expect(state.deck.width).toBeGreaterThan(900);
  expect(state.resource.x).toBeGreaterThan(900);
  expect(state.brand.right).toBeLessThan(state.resource.x);
- expect(state.cards).toHaveLength(8);
+ expect(state.cards).toHaveLength(9);
  await expect(page.locator('.sf-modern-side-actions > button')).toHaveCount(3);
  const style=await page.evaluate(()=>{
   const grid=document.querySelector('[data-sf-group="buildings"] > .catalog-grid');
@@ -70,11 +70,22 @@ test('shipping HUD occupies reference screenshot positions at 1600×900',async({
    secondWidth:second.getBoundingClientRect().width};
  });
  expect(style.display).toBe('grid');
- expect(style.columns).toBe(8);
+ expect(style.columns).toBe(1); /* explicit tracks are none; all cards are implicit columns */
  expect(style.firstBorder).toBe('0px');
- expect(style.firstWidth).toBeGreaterThan(135);
+ expect(style.firstWidth).toBeGreaterThan(130);
  expect(Math.abs(style.firstWidth-style.secondWidth)).toBeLessThan(2);
  expect(state.cards[1].x).toBeGreaterThan(state.cards[0].x);
+ expect(state.cards[8].x).toBeGreaterThan(state.cards[7].x);
+ // The ninth building MUST NOT wrap under the first eight.
+ expect(Math.abs(state.cards[8].y-state.cards[0].y)).toBeLessThan(2);
+ expect(Math.abs(state.cards[8].h-state.cards[0].h)).toBeLessThan(2);
+ const panelStyle=await page.evaluate(()=>{
+  const el=document.querySelector('#sf-actions');
+  const bg=getComputedStyle(el).backgroundColor;
+  return {background:bg,border:getComputedStyle(el).borderTopWidth};
+ });
+ expect(panelStyle.border).toBe('0px');
+ expect(panelStyle.background).toMatch(/^rgba\(/);
  expect(state.cards[0].h).toBeGreaterThan(120);
  expect(state.scrollWidth).toBeLessThanOrEqual(1605);
  await expect(page.locator('#sf-tools')).toBeHidden();
@@ -112,6 +123,15 @@ test('responsive HUD fits the viewport and retains drawer access at 820px',async
  expect(result.radar.width).toBeGreaterThan(90);
  expect(result.quick.right).toBeLessThanOrEqual(result.deck.x+5);
  expect(result.deck.width).toBeGreaterThan(350);
+ const scroll=await page.evaluate(()=>{
+  const el=document.querySelector('#sf-actions'),cards=[...document.querySelectorAll('[data-sf-group="buildings"] .catalog-card')];
+  return {scrollWidth:el.scrollWidth,clientWidth:el.clientWidth,
+   firstY:cards[0].getBoundingClientRect().top,lastY:cards.at(-1).getBoundingClientRect().top,
+   firstX:cards[0].getBoundingClientRect().x,lastX:cards.at(-1).getBoundingClientRect().x};
+ });
+ expect(scroll.scrollWidth).toBeGreaterThan(scroll.clientWidth);
+ expect(Math.abs(scroll.firstY-scroll.lastY)).toBeLessThan(2);
+ expect(scroll.lastX).toBeGreaterThan(scroll.firstX);
  await page.locator('#sf-modern-selection').click();
  await expect(page.locator('#sf-selection-panel')).toBeVisible();
  await page.locator('#sf-modern-selection').click();
