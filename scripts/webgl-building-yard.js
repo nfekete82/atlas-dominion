@@ -71,6 +71,52 @@ const lampGlass=new THREE.MeshStandardMaterial({
 const crateBand=mat('#998b6a',.22,.77);
 const barrelPaint=mat('#606f67',.27,.7);
 
+// Deterministic dirt, painted wood grain, chipped olive steel and brushed
+// barrel metal. Small shared RGBA PBR albedo textures are generated once,
+// work in Node tests (no canvas/document), require zero image downloads and
+// add no new yard meshes or draw calls. Only cosmetic authored prop materials.
+function yardSurfaceTexture(style){
+ const side=64,data=new Uint8Array(side*side*4);
+ const hash=(x,y)=>{let h=Math.imul(x+71,374761393)^Math.imul(y+17,668265263);
+  h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0)/4294967295;};
+ for(let y=0;y<side;y++)for(let x=0;x<side;x++){
+  const noise=hash(x,y),scratch=hash((x/4)|0,y);
+  const grain=style==='wood'?
+    10*Math.sin(y*.87)+8*Math.sin(y*.19)+12*(noise-.5):
+    style==='barrel'?
+    7*Math.sin(x*.6)+16*(noise-.5):
+    7*Math.sin(x*.13+y*.32)+15*(noise-.5);
+  const chip=style==='olive'&&noise>.964?-36:
+   style==='barrel'&&noise>.975?-46:0;
+  const dust=style==='sand'?9*Math.sin(x*.13+y*.24):0;
+  const v=Math.max(115,Math.min(255,229+grain+chip+dust+7*(scratch-.5)));
+  const i=(y*side+x)*4;
+  data[i]=v;
+  data[i+1]=Math.min(255,v+(style==='wood'?2:0));
+  data[i+2]=Math.min(255,v+(style==='barrel'?4:0));
+  data[i+3]=255;
+ }
+ const texture=new THREE.DataTexture(data,side,side,THREE.RGBAFormat);
+ texture.name='YardPropSurface_'+style;
+ texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
+ texture.magFilter=THREE.LinearFilter;
+ texture.minFilter=THREE.LinearMipmapLinearFilter;
+ texture.generateMipmaps=true;
+ texture.colorSpace=THREE.SRGBColorSpace;
+ texture.needsUpdate=true;
+ return texture;
+}
+wood.map=yardSurfaceTexture('wood');
+olive.map=yardSurfaceTexture('olive');
+sand.map=yardSurfaceTexture('sand');
+crateBand.map=yardSurfaceTexture('metal');
+barrelPaint.map=yardSurfaceTexture('barrel');
+
+// Taller, lighter military-grade perimeter: thinner posts, finer bracing,
+// concertina above eye level. Collision and capture geometry are untouched.
+export const YARD_FENCE_HEIGHT=19.2;
+export const YARD_FENCE_POST_WIDTH=.82;
+
 function storageCrate(group,x,z,size=16,paint=olive){
  const g=new THREE.Group();g.name='SupplyCrate';g.position.set(x,0,z);group.add(g);
  box(g,'CrateBody',[size,size*.73,size*.84],paint,0,size*.365,0);
@@ -119,7 +165,7 @@ function instanceBoxes(group,name,paint,parts){
 function instanceFenceWires(group,parts){
  if(!parts.length)return;
  // Cross-bracing reads like a light wire fence at strategic camera distance.
- const wires=new THREE.InstancedMesh(new THREE.CylinderGeometry(.17,.17,1,5),
+ const wires=new THREE.InstancedMesh(new THREE.CylinderGeometry(.12,.12,1,5),
   fenceRail,parts.length);
  wires.name='YardFenceMesh';
  wires.userData={visualOnly:true,nonPlayable:true,siteDecor:true,
@@ -162,21 +208,22 @@ function perimeterFence(group,width,kind){
    const key=px.toFixed(3)+':'+pz.toFixed(3);
    if(!seen.has(key)){
     seen.add(key);
-    posts.push({x:px,y:8.4,z:pz,w:1.15,h:16.8,d:1.15});
+    posts.push({x:px,y:YARD_FENCE_HEIGHT*.5,z:pz,
+     w:YARD_FENCE_POST_WIDTH,h:YARD_FENCE_HEIGHT,d:YARD_FENCE_POST_WIDTH});
     // Fine upward outriggers keep the double concertina strand above posts.
-    wires.push({x:px,y:17.15,z:pz,dx:0,dy:1.65,dz:0});
+    wires.push({x:px,y:YARD_FENCE_HEIGHT+.35,z:pz,dx:0,dy:1.5,dz:0});
     barbedWirePieces++;
    }
    if(i===steps)continue;
    const u=(i+.5)/steps;
    const mx=x0+dx*u,mz=z0+dz*u;
-   for(const y of [5.3,12.7])
-    rails.push({x:mx,y,z:mz,w:.76,h:.82,d:dist/steps+.45,yaw});
+   for(const y of [5.7,YARD_FENCE_HEIGHT*.78])
+    rails.push({x:mx,y,z:mz,w:.52,h:.56,d:dist/steps+.35,yaw});
    const sx=dx/steps,sz=dz/steps;
    // Fine diamond mesh uses lightweight instancing, not a solid fence panel.
-   wires.push({x:mx,y:8.75,z:mz,dx:sx,dy:9.7,dz:sz});
-   wires.push({x:mx,y:8.75,z:mz,dx:sx,dy:-9.7,dz:sz});
-   for(const height of [16.45,17.55]){
+   wires.push({x:mx,y:YARD_FENCE_HEIGHT*.52,z:mz,dx:sx,dy:11.0,dz:sz});
+   wires.push({x:mx,y:YARD_FENCE_HEIGHT*.52,z:mz,dx:sx,dy:-11.0,dz:sz});
+   for(const height of [YARD_FENCE_HEIGHT-.35,YARD_FENCE_HEIGHT+.75]){
     wires.push({x:mx,y:height,z:mz,dx:sx,dy:0,dz:sz});
     barbedWirePieces++;
    }
@@ -186,8 +233,8 @@ function perimeterFence(group,width,kind){
    if(length>.01)for(const offset of [.3,.7]){
     const bx=x0+dx*(i+offset)/steps,bz=z0+dz*(i+offset)/steps;
     const nx=-sz/length,nz=sx/length;
-    wires.push({x:bx,y:17.0,z:bz,dx:nx*2.7,dy:1.8,dz:nz*2.7});
-    wires.push({x:bx,y:17.0,z:bz,dx:-nx*2.7,dy:1.8,dz:-nz*2.7});
+    wires.push({x:bx,y:YARD_FENCE_HEIGHT+.2,z:bz,dx:nx*2.2,dy:1.6,dz:nz*2.2});
+    wires.push({x:bx,y:YARD_FENCE_HEIGHT+.2,z:bz,dx:-nx*2.2,dy:1.6,dz:-nz*2.2});
     barbedWirePieces+=2;
    }
   }
