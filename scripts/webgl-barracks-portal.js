@@ -59,8 +59,16 @@ export function prepareBarracksPortal(entry,renderer){
   const hall=new THREE.Group();hall.name='BarracksInterior';
   root.add(hall);
   const lane=authoredBarracksExitLane(root,left,right);
+  const a=root.worldToLocal(new THREE.Box3().setFromObject(left)
+   .getCenter(new THREE.Vector3())).x;
+  const b=root.worldToLocal(new THREE.Box3().setFromObject(right)
+   .getCenter(new THREE.Vector3())).x;
+  // Some imported GLBs bake absolute vertex positions into pivots at 0,0,0.
+  // Choose outward travel by visible panel locations, not pivot names.
+  const leftSide=a<=b?-1:1;
   const portal={kind:'barracks',authored:true,root,hall,left,right,lane,
-   leftX:left.position.x,rightX:right.position.x,doorPanels:[],
+   leftX:left.position.x,rightX:right.position.x,
+   leftSide,rightSide:-leftSide,doorPanels:[],
    materials:[],planes:[],box:[],transform:null};
   entry.barracksPortal=portal;
   setBarracksDoorOpen(portal,1);
@@ -116,9 +124,9 @@ export function updateBarracksPortalPlanes(portal,force=false){
 export function setBarracksDoorOpen(portal,open){
  if(portal.authored){
   const t=Math.max(0,Math.min(1,open));
-  portal.left.position.x=portal.leftX+(1-t)*1.1;
-  portal.right.position.x=portal.rightX-(1-t)*1.1;
-  portal.hall.visible=t>.03;
+  portal.left.position.x=portal.leftX+(1-t)*portal.leftSide*1.1;
+  portal.right.position.x=portal.rightX+(1-t)*portal.rightSide*1.1;
+  portal.hall.visible=t<.97;
   return;
  }
  for(const panel of portal.doorPanels){
