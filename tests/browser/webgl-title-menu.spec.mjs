@@ -41,9 +41,12 @@ test('3D starts with the original Sandforge title and enters a real playable cam
  expect(state.hasHud).toBe(true);
  const hudLogoAsset=await page.request.get(new URL('/src/assets/reborn/sandforge-bastion-logo.webp',page.url()).href);
  if(hudLogoAsset.ok()){
-  await expect(page.locator('#sf-classic-root .sandforge-hud-logo')).toHaveAttribute('src',/sandforge-title-hud-logo\.webp/);
+  await expect(page.locator('#sf-classic-root .sandforge-hud-logo')).toHaveAttribute('src',/sandforge-bastion-logo\.webp/);
  }
- await page.locator('[data-action="menu"]').click();
+ // The modern tactical HUD intentionally hides the legacy toolbar by default.
+ await page.locator('#sf-hud-menu-toggle').click();
+ await expect(page.locator('#sf-tools')).toBeVisible();
+ await page.locator('#sf-tools [data-action="menu"]').click();
  await expect(page.locator('#sf3d-pause-dialog')).toBeVisible();
  await page.locator('#sf3d-pause-save').click();
  expect(await page.evaluate(()=>Boolean(localStorage.getItem('sandforge:webgl:v1')))).toBe(true);
