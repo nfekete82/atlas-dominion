@@ -221,8 +221,8 @@ function perimeterFence(group,width,kind){
     rails.push({x:mx,y,z:mz,w:.52,h:.56,d:dist/steps+.35,yaw});
    const sx=dx/steps,sz=dz/steps;
    // Fine diamond mesh uses lightweight instancing, not a solid fence panel.
-   wires.push({x:mx,y:YARD_FENCE_HEIGHT*.52,z:mz,dx:sx,dy:11.0,dz:sz});
-   wires.push({x:mx,y:YARD_FENCE_HEIGHT*.52,z:mz,dx:sx,dy:-11.0,dz:sz});
+   wires.push({x:mx,y:YARD_FENCE_HEIGHT*.52,z:mz,dx:sx,dy:9.4,dz:sz});
+   wires.push({x:mx,y:YARD_FENCE_HEIGHT*.52,z:mz,dx:sx,dy:-9.4,dz:sz});
    for(const height of [YARD_FENCE_HEIGHT-.35,YARD_FENCE_HEIGHT+.75]){
     wires.push({x:mx,y:height,z:mz,dx:sx,dy:0,dz:sz});
     barbedWirePieces++;
