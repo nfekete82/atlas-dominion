@@ -8,7 +8,7 @@ test('3D starts with the original Sandforge title and enters a real playable cam
  await expect(page.locator('#main-dialog')).toBeVisible();
  await expect(page.locator('html')).toHaveClass(/sandforge-clean-title/);
  await expect(page.locator('#main-dialog .sandforge-splash-logo')).toBeVisible();
- const background=await page.request.get(new URL('/src/assets/reborn/sandforge-start-background.webp',page.url()).href);
+ const background=await page.request.get(new URL('/src/assets/reborn/sandforge-start-background.png',page.url()).href);
  if(background.ok())await page.waitForFunction(()=>document.documentElement.classList.contains('sf-bastion-bg-ready'));
  await expect(page.locator('#sf3d-new')).toBeVisible();
  await expect(page.locator('#sf3d-main-options')).toBeVisible();
