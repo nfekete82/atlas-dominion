@@ -8,6 +8,10 @@ the PR therefore targets that branch to keep this change independently reviewabl
 
 ![Three original reference models](qa/reference-blue.png)
 
+The reference pack has been approved for game integration. The full local 3D
+game is available at **http://127.0.0.1:8106/** with these visuals enabled by
+default. [Integration and Docker verification](INTEGRATION.md).
+
 ## Implemented assets
 
 All geometry, colour layouts, materials and clips in `src/assets/stylized/`
