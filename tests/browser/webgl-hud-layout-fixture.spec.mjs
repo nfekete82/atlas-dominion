@@ -86,6 +86,29 @@ test('shipping HUD occupies reference screenshot positions at 1600×900',async({
  });
  expect(panelStyle.border).toBe('0px');
  expect(panelStyle.background).toMatch(/^rgba\(/);
+ // New visual tuning: the CSS must remove the legacy .frame::after gold
+ // stripe and keep the thumbnail/text comfortably below their old size.
+ const compact=await page.evaluate(()=>{
+  const card=document.querySelector('[data-sf-group="buildings"] .catalog-card');
+  const img=card.querySelector('.sf-card-image img');
+  const name=card.querySelector('.card-name');
+  const price=card.querySelector('.card-cost');
+  const meta=card.querySelector('.card-meta');
+  return {
+   lineContent:getComputedStyle(document.querySelector('#sidebar > .catalog'),'::after').content,
+   lineDisplay:getComputedStyle(document.querySelector('#sidebar > .catalog'),'::after').display,
+   imageScale:new DOMMatrixReadOnly(getComputedStyle(img).transform).a,
+   nameFont:parseFloat(getComputedStyle(name).fontSize),
+   priceFont:parseFloat(getComputedStyle(price).fontSize),
+   metaHeight:meta.getBoundingClientRect().height
+  };
+ });
+ expect(compact.lineDisplay).toBe('none');
+ expect(compact.lineContent).toBe('none');
+ expect(compact.imageScale).toBeLessThanOrEqual(1.11);
+ expect(compact.nameFont).toBeLessThanOrEqual(11);
+ expect(compact.priceFont).toBeLessThanOrEqual(14);
+ expect(compact.metaHeight).toBeLessThanOrEqual(45);
  const labels=await page.evaluate(()=>[...document.querySelectorAll('[data-sf-group="buildings"] .card-name')].map(el=>{
   const rect=el.getBoundingClientRect();
   const tile=el.closest('.catalog-card').getBoundingClientRect();
