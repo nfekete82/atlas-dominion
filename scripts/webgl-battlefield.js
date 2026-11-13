@@ -35,7 +35,7 @@ import {wallLinePlacements,wallLineFromTurret,wallLineToTurret,wallLineBetweenTu
 import {sameKindVisibleUnits} from '/webgl-double-click-select.js';
 import {tracerWindow} from '/webgl-hit-response.js';
 import {applyFactionAccents,tintFactionMaterials} from '/webgl-faction-accents.js';
-import {STRATEGIC_GLB_MODELS,isStrategicGlbKind,strategicGlbUrl,strategicGlbActive,applyStrategicGlbFinish,tintBastionCaptureSignals,centerAuthoredRadarPivot,ensureTexturedHqRadarPivot,ensureHeadquartersSatelliteMount} from '/webgl-strategic-glb.js';
+import {STRATEGIC_GLB_MODELS,HQ3_FALLBACK_URL,isStrategicGlbKind,strategicGlbUrl,strategicGlbActive,applyStrategicGlbFinish,tintBastionCaptureSignals,centerAuthoredRadarPivot,ensureTexturedHqRadarPivot,ensureHeadquartersSatelliteMount} from '/webgl-strategic-glb.js';
 import {attachTeamMarkings,detachTeamMarkings} from '/webgl-team-markings.js';
 import {SandforgeConstructionPresentation} from '/webgl-construction.js';
 import {createBastionCaptureBar,updateBastionCaptureBar} from '/webgl-bastion-capture.js';
@@ -364,6 +364,14 @@ export class SandforgeBattlefield {
    }
   }
   if(entry.kind==='headquarters'){
+   // MK2 uses its own authored radar animation, not a procedural second dish.
+   const mk2Radar=data.animations?.find(c=>c.name==='Radar_Scan');
+   if(mk2Radar?.tracks?.length&&entry.detail?.getObjectByName('Radar_Dish_Pivot')){
+    const mixer=new THREE.AnimationMixer(entry.detail),action=mixer.clipAction(mk2Radar);
+    action.setLoop(THREE.LoopRepeat,Infinity);action.play();
+    entry.motion={kind:'headquarters',mixer,clip:mk2Radar,action,mode:'mk2-radar'};
+    return;
+   }
    const stylizedRadar=entry.detail?.getObjectByName('HQ_RADAR_PIVOT');
    if(stylizedRadar){
     entry.motion={kind:'headquarters',rotor:stylizedRadar,mode:'stylized-radar'};
@@ -422,21 +430,28 @@ export class SandforgeBattlefield {
    const promise=variantUrl?
     Promise.all([this.getModel(task.url),this.getModel(variantUrl)]):
     this.getModel(task.url).catch(error=>{
-     if(!isStylizedAsset(task.url)&&!isMeshyAsset(task.url))throw error;
+     const missingMk2=task.type==='building'&&task.entry.kind==='headquarters'&&
+      task.url===strategicGlbUrl('headquarters','active');
+     if(!missingMk2&&!isStylizedAsset(task.url)&&!isMeshyAsset(task.url))throw error;
      // If an optional Meshy file has not yet been installed, load the
      // original authored rig and preserve the game. Tank and artillery
      // were previously wrongly mapped to prototype/ on fallback.
      const e=task.entry;
      const authored=stylizedAsset(e.kind,e.owner);
-     const old=isMeshyAsset(task.url)&&authored ? authored:
+     const old=missingMk2?HQ3_FALLBACK_URL:isMeshyAsset(task.url)&&authored ? authored:
       task.type==='building' ? strategicGlbUrl(e.kind,'active'):
       '/src/assets/reborn/'+
        (e.kind==='rocket'?'prototype/infantry-':
         (['rover','tank','artillery','scout','bomber'].includes(e.kind)?'animation/':'prototype/')+e.kind+'-')+
        e.owner+'.glb';
      console.warn('Optional art unavailable; loading original:',old,error);
-     task.entry.meshyFallback=true;
-     return this.getModel(old);
+     task.entry.meshyFallback=isMeshyAsset(task.url);
+     task.entry.mk2Fallback=missingMk2;
+     return this.getModel(old).catch(fallbackError=>{
+      if(task.type==='building'&&task.entry.kind==='headquarters'&&old!==HQ3_FALLBACK_URL)
+       return this.getModel(HQ3_FALLBACK_URL);
+      throw fallbackError;
+     });
     }).then(data=>[data,null]);
    promise.then(([data,variantData])=>{
     const {entry,type}=task;
