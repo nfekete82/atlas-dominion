@@ -61,10 +61,20 @@ test('HQ3 satellite rotates around its support on a fixed metal pedestal, not th
  assert.equal(mount.children.filter(o=>/^HQ3SatelliteBrace/.test(o.name)).length,3);
  assert.equal(ensureHeadquartersSatelliteMount(pivot),mount,'one pedestal per building');
  const basePosition=mount.getWorldPosition(new THREE.Vector3()).clone();
+ const fixedSupport=new THREE.Box3().setFromObject(support);
+ assert.equal(support.parent,root,
+  'original HQ3 support meshes belong to the static roof, not the rotor');
+ assert.equal(pivot.getObjectByName(support.name),undefined,
+  'an authored support must not continue orbiting with the dish');
+ const initialBowl=new THREE.Box3().setFromObject(dish);
  pivot.rotation.y=Math.PI/2;
  root.updateWorldMatrix(true,true);
  assert.ok(mount.getWorldPosition(new THREE.Vector3()).distanceTo(basePosition)<1e-5,
   'roof pedestal must remain still while the dish turns');
+ assert.ok(new THREE.Box3().setFromObject(support).min.distanceTo(fixedSupport.min)<1e-5,
+  'the imported support must remain in place while the reflector rotates');
+ assert.ok(new THREE.Box3().setFromObject(dish).min.distanceTo(initialBowl.min)>.05,
+  'only the reflector should visibly rotate');
  mount.traverse(mesh=>{if(mesh.isMesh){mesh.geometry.dispose();mesh.material.dispose();}});
  support.geometry.dispose();support.material.dispose();
  dish.geometry.dispose();dish.material.dispose();
