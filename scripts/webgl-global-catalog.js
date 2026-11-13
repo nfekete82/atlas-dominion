@@ -1,8 +1,8 @@
-/** Global production-category unlocks.
- * Show tabs only when the player owns the corresponding FINISHED facility.
- * The headquarters unlocks pioneers (Infanterie tab), the barracks expands
- * that same tab. A selected unit or building never changes tab visibility.
- * Recalculate from live bases for construction, capture, loss and save/load.
+/** Global production-category unlocks for the 3D HUD.
+ * The three main tabs remain visible, but unavailable producers disable
+ * the matching category. The aggregate Units tab exposes only unit subtypes
+ * backed by a FINISHED headquarters, barracks, factory or airfield.
+ * Always recalculate from actual game state, including after save/load.
  */
 export function globalCatalogAvailability(game,owner=0){
  const finished=kind=>game.bases.some(b=>b.owner===owner&&b.kind===kind&&
@@ -19,5 +19,5 @@ export function globalCatalogAvailability(game,owner=0){
 }
 
 export const GLOBAL_PRODUCTION_TABS=Object.freeze([
- 'buildings','infantry','vehicles','aircraft','research'
+ 'buildings','units','research'
 ]);
