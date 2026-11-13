@@ -155,76 +155,121 @@ html.sandforge-clean-title #main-dialog #sf3d-menu-status{
  html.sandforge-clean-title #main-dialog .sf3d-hero-button{transition:none}
 }
 </style>
-<style id="sf-centered-cinematic-title">
-/* Art already includes the full logo and menu: transparent hotspots only. */
-html.sf-centered-art-ready.sandforge-clean-title #main-dialog{
- --sf-title-scale:max(calc(100vw / 1672),calc(100dvh / 941));
- background:#e7af86 url('/src/assets/reborn/sandforge-title-centered.webp') center / cover no-repeat;
+<style id="sf-bastion-premium-title">
+/* Separate, interactive controls: the background never contains clickable hotspots. */
+html.sandforge-clean-title #main-dialog{
+ background-color:#0b131b;
+ background-image:linear-gradient(180deg,#09101777 0%,#0b141f33 36%,#070c16b8 100%),
+  url('/src/assets/stylized/title-hero.svg');
+ background-position:center; background-size:cover;
 }
-html.sf-centered-art-ready.sandforge-clean-title #main-dialog .menu-brand{display:none!important}
-@media(min-width:721px) and (min-aspect-ratio:3/2){
- html.sf-centered-art-ready.sandforge-clean-title #main-dialog .menu-buttons{
-  display:flex;position:absolute;transform:none;
-  left:calc(50% - 191 * var(--sf-title-scale));
-  top:calc(50% - 143 * var(--sf-title-scale));
-  right:auto;bottom:auto;
-  width:calc(368 * var(--sf-title-scale));max-width:none;
-  margin:0;padding:0;gap:calc(6 * var(--sf-title-scale));
-  background:transparent;border:0;border-radius:0;box-shadow:none;
- }
- html.sf-centered-art-ready.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button{
-  position:relative;box-sizing:border-box;flex:none;
-  width:100%;height:calc(62 * var(--sf-title-scale));
-  min-height:0;margin:0;padding:0;border:0;border-radius:0;clip-path:none;
-  background:transparent!important;box-shadow:none!important;
-  transform:none!important;filter:none!important;
-  color:transparent;font-size:0;letter-spacing:0;text-shadow:none;outline:0;
- }
- html.sf-centered-art-ready.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button:first-child{
-  height:calc(68 * var(--sf-title-scale));
- }
- html.sf-centered-art-ready.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button:not(:first-child){
-  width:calc(340 * var(--sf-title-scale));margin-left:calc(14 * var(--sf-title-scale));
- }
- html.sf-centered-art-ready.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button svg{display:none}
- html.sf-centered-art-ready.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button span{opacity:0}
- html.sf-centered-art-ready.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button:hover,
- html.sf-centered-art-ready.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button:focus-visible{
-  outline:2px solid #ffdf8f;outline-offset:-3px;background:#fff1bd11!important;
- }
- html.sf-centered-art-ready.sandforge-clean-title #main-dialog #sf3d-menu-status{display:none}
+html.sf-bastion-bg-ready.sandforge-clean-title #main-dialog{
+ background-image:linear-gradient(180deg,#08101954 0%,#111b2844 38%,#060b15ba 100%),
+  url('/src/assets/reborn/sandforge-start-background.png');
 }
-/* Narrow/tall screens need visible controls because cover crops the art. */
-@media(max-width:720px), (max-aspect-ratio:3/2){
- html.sf-centered-art-ready.sandforge-clean-title #main-dialog{background-position:center}
- html.sf-centered-art-ready.sandforge-clean-title #main-dialog .menu-buttons{
-  position:absolute;left:50%;top:auto;right:auto;bottom:12px;transform:translateX(-50%);
-  width:min(350px,89vw);max-width:89vw;margin:0;padding:8px;gap:5px;
-  background:#1b2430c0;border-radius:10px;
+html.sandforge-clean-title #main-dialog .menu-brand{
+ position:absolute;z-index:2;top:clamp(8px,1.7dvh,28px);left:50%;
+ transform:translateX(-50%);margin:0;width:min(730px,67vw);height:auto;
+ pointer-events:none;
+}
+html.sandforge-clean-title #main-dialog .sandforge-splash-logo{
+ display:block;width:100%;height:auto;max-height:min(36dvh,360px);object-fit:contain;
+ filter:drop-shadow(0 12px 20px #05060bee);
+}
+html.sandforge-clean-title #main-dialog .menu-buttons{
+ position:absolute;z-index:3;left:50%;top:62%;right:auto;bottom:auto;
+ transform:translate(-50%,-50%);margin:0;
+ width:min(390px,calc(100vw - 36px));max-width:none;box-sizing:border-box;
+ display:flex;flex-direction:column;gap:9px;padding:0;
+ background:none;border:0;border-radius:0;box-shadow:none;
+}
+html.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button,
+html.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button.primary{
+ flex:none;position:relative;box-sizing:border-box;display:flex;align-items:center;
+ justify-content:flex-start;width:100%;height:clamp(48px,6dvh,66px);min-height:0;
+ padding:0 25px;gap:16px;border:2px solid #bd8f46;border-radius:0;
+ clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 12px,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0 calc(100% - 12px),0 12px);
+ background:linear-gradient(180deg,#36404be8 0%,#141b27f5 42%,#090e16f8 100%);
+ box-shadow:inset 0 1px #ffffff4d,inset 0 -3px #0008,0 8px 23px #0009;
+ color:#f6e8c9;font-family:Impact,'Arial Narrow','Arial Black',sans-serif;
+ font-size:clamp(17px,1.6vw,23px);font-weight:850;letter-spacing:.09em;
+ text-align:left;text-shadow:0 2px 3px #000d;
+ transition:filter .14s ease,transform .14s ease,border-color .14s ease,background .14s ease;
+}
+html.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button.primary{
+ border-color:#f2b85e;background:linear-gradient(180deg,#985c2096,#56300cde 52%,#25180cfc);
+ color:#ffefd0;
+}
+html.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button svg{
+ display:block;flex:0 0 32px;width:32px;height:32px;color:#f8ba55;
+ filter:drop-shadow(0 2px 3px #000b);
+}
+html.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button.primary svg{color:#ffe0a0}
+html.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button:hover,
+html.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button.primary:hover{
+ filter:brightness(1.2);transform:scale(1.025);
+ background:linear-gradient(180deg,#66502eeb,#28202af7 55%,#15131afc);
+ border-color:#ffce74;
+}
+html.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button:focus-visible{
+ outline:3px solid #fff4be;outline-offset:4px;filter:brightness(1.17);
+}
+html.sandforge-clean-title #main-dialog #sf3d-menu-status{
+ position:absolute;z-index:2;left:50%;top:calc(62% + 5 * clamp(48px,6dvh,66px) / 2 + 23px);
+ transform:translateX(-50%);width:min(390px,calc(100vw - 36px));max-width:none;
+ margin:0;color:#f8dcb5;text-align:center;font-size:11px;letter-spacing:.07em;
+ text-shadow:0 2px 7px #050810;
+}
+@media(max-width:720px){
+ html.sandforge-clean-title #main-dialog{background-position:center}
+ html.sandforge-clean-title #main-dialog .menu-brand{
+  top:2dvh;width:min(94vw,540px);
  }
- html.sf-centered-art-ready.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button{
-  width:100%;height:clamp(42px,8vh,55px);min-height:0;font-size:clamp(16px,4.2vw,20px);
+ html.sandforge-clean-title #main-dialog .sandforge-splash-logo{max-height:27dvh}
+ html.sandforge-clean-title #main-dialog .menu-buttons{
+  left:50%;top:62%;right:auto;bottom:auto;transform:translate(-50%,-50%);
+  width:min(360px,88vw);padding:0;gap:6px;background:none;border:0;
  }
+ html.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button,
+ html.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button.primary{
+  height:clamp(40px,7dvh,54px);padding:0 17px;gap:12px;font-size:clamp(16px,4.1vw,20px);
+ }
+ html.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button svg{
+  width:25px;height:25px;flex-basis:25px;
+ }
+ html.sandforge-clean-title #main-dialog #sf3d-menu-status{display:none}
+}
+@media(max-height:620px) and (min-width:721px){
+ html.sandforge-clean-title #main-dialog .menu-brand{width:min(450px,44vw);top:1dvh}
+ html.sandforge-clean-title #main-dialog .menu-buttons{top:57%;gap:5px}
+ html.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button,
+ html.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button.primary{height:clamp(39px,8dvh,49px)}
+ html.sandforge-clean-title #main-dialog #sf3d-menu-status{display:none}
 }
 @media(min-width:901px){
  #sf-classic-root .top.hud{width:max-content;max-width:min(99vw,510px);height:73px;min-height:73px}
- #sf-classic-root .top .wordmark{
-  width:165px;min-width:165px;max-width:165px;flex:0 0 165px;height:66px;
- }
+ #sf-classic-root .top .wordmark{width:165px;min-width:165px;max-width:165px;flex:0 0 165px;height:66px}
  #sf-classic-root .top .sandforge-hud-logo{width:100%;height:64px;max-height:64px;object-fit:contain}
 }
 @media(max-width:900px){#sf-classic-root .top .sandforge-hud-logo{object-fit:contain}}
+@media(prefers-reduced-motion:reduce){
+ html.sandforge-clean-title #main-dialog .sf3d-hero-button{transition:none}
+}
 </style>
 <script>
-/* Only activate the baked image after it loaded; missing assets keep the
-   previous working title, without a duplicated badge. */
-(()=>{const image=new Image();
- image.onload=()=>{
-  if(image.naturalWidth===1672&&image.naturalHeight===941)
-   document.documentElement.classList.add('sf-centered-art-ready');
- };
- image.src='/src/assets/reborn/sandforge-title-centered.webp';
-})();
+/* Image uploads are optional for a safe preview; the original artwork remains
+   visible when missing. Menu actions are real DOM controls in every case. */
+document.addEventListener('DOMContentLoaded',()=>{
+ const background=new Image();
+ background.onload=()=>document.documentElement.classList.add('sf-bastion-bg-ready');
+ background.src='/src/assets/reborn/sandforge-start-background.png';
+ const logo=document.querySelector('#main-dialog .sandforge-splash-logo');
+ if(logo){
+  const image=new Image();
+  image.onload=()=>{logo.src=image.src};
+  image.src='/src/assets/reborn/sandforge-bastion-logo.webp';
+ }
+});
 </script>
 </head>
 <body>

@@ -90,7 +90,7 @@ export function installClassicHud(){
  // Match the exact centered title artwork. Keep the existing badge as a
  // fallback until the transparent cropped artwork has loaded successfully.
  const logo=panel.querySelector('.sandforge-hud-logo');
- const hudBadge='/src/assets/reborn/sandforge-title-hud-logo.webp';
+ const hudBadge='/src/assets/reborn/sandforge-bastion-logo.webp';
  const badgePreload=new Image();
  badgePreload.onload=()=>{if(logo?.isConnected)logo.src=hudBadge;};
  badgePreload.src=hudBadge;
