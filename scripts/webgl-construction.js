@@ -81,12 +81,13 @@ export class SandforgeConstructionPresentation{
   // with only scaffolding layered on top. Instead assemble REAL building
   // components in stages. No clipping planes: no bisected or floating facades.
   const model=entry.detail??entry.placeholder;
+  // HQ3 must be constructed from the very same model visible when
+  // complete. Only the barracks has a distinct authored closed variant.
+  // Both models use height-ordered triangles, never a fully built prefab.
   const authored=AUTHORED_ASSEMBLY_KINDS.includes(base.kind)&&
-   Boolean(entry.detail&&entry.variantDetail);
-  // The closed authored GLB is the visible construction state for both
-  // Kaserne and Feldkommando. Previously only entry.detail was staged,
-  // while the closed entry.variantDetail remained completely visible.
-  const authoredModel=authored?entry.variantDetail:null;
+   Boolean(entry.detail&&(base.kind==='headquarters'||entry.variantDetail));
+  const authoredModel=authored?
+   (base.kind==='headquarters'?entry.detail:entry.variantDetail):null;
   if(authoredModel&&state.authoredAssembly?.root!==authoredModel){
    releaseAuthoredAssembly(state.authoredAssembly);
    state.authoredAssembly=prepareAuthoredAssembly(authoredModel);
