@@ -260,7 +260,12 @@ function addSiteDecor(root,kind,width){
  const large=width>=155;
  if(fencedSites.has(kind))perimeterFence(g,width,kind);
  const supplies=new THREE.Group();
- supplies.name='BaseSupplyCache';supplies.position.set(width*.55,0,-width*.2);
+ // The HQ3 supply pallet used to overlap the right fence: its outer edge
+ // reached x=width*.55+30.5 while the fence stands at x=width*.65.
+ // Shift the entire crate/barrel/pallet cluster inward without changing
+ // the entrance, fence or other facility yards.
+ const supplyX=kind==='headquarters'?width*.38:width*.55;
+ supplies.name='BaseSupplyCache';supplies.position.set(supplyX,0,-width*.2);
  g.add(supplies);
  // Different silhouettes per facility, all deterministic and inexpensive.
  storageCrate(supplies,0,0,large?19:13);
