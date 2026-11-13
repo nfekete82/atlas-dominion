@@ -27,14 +27,14 @@ export const CAMOUFLAGE_PALETTES=Object.freeze({
  jungle:Object.freeze({name:'Olive/Forest',base:'#87936e',middle:'#526b45',dark:'#2e4936',
   rgb:['.53,.58,.41','.32,.43,.29','.18,.31,.22']})
 });
-// The imported Kaserne has no authored camouflage texture. Use the HQ3's
-// dark olive/khaki character on its existing PBR geometry (no GLB edits).
-// The steep roof is intentionally charcoal instead of light sandstone.
-export const BARRACKS_HQ3_PALETTE=Object.freeze({
+// Unlike the textured HQ3, the original Kaserne and Bastion MK2 have no
+// baked desert camo. Match HQ3's dark khaki/olive with a charcoal roof
+// without editing their authored GLBs or hiding lights and insignia.
+export const HQ3_MATCHED_DESERT_PALETTE=Object.freeze({
  wall:Object.freeze(['.57,.52,.40','.39,.42,.32','.20,.27,.22']),
  roof:Object.freeze(['.24,.27,.24','.21,.24,.21','.13,.17,.15'])
 });
-export const DESERT_FINISH_REVISION='biome-camouflage-hq-barracks-v6-20261113';
+export const DESERT_FINISH_REVISION='biome-camouflage-hq-barracks-bastion-v7-20261113';
 let selectedCamouflageBiome='desert';
 export function setWorldCamouflageBiome(value){
  selectedCamouflageBiome=Object.hasOwn(CAMOUFLAGE_PALETTES,value)?value:'desert';
@@ -43,12 +43,18 @@ export function setWorldCamouflageBiome(value){
 export const worldCamouflageBiome=()=>selectedCamouflageBiome;
 function applyDesertBuildingCamo(material,style='standard'){
  const biome=selectedCamouflageBiome;
- const barracksDesert=biome==='desert'&&style==='barracks';
- const roof=barracksDesert&&/^SF_(?:olive|steel)(?:_dark|_light)?$/.test(material.name);
+ const matchedDesert=biome==='desert'&&(style==='barracks'||style==='bastion');
+ // Barracks roof panels and the Bastion's massive upper armour use the
+ // HQ3's dark charcoal; only upward-facing polygon surfaces are darkened.
+ // Radar dishes, capture lamps, doors and glass retain their PBR identities.
+ const roof=matchedDesert&&(
+  (style==='barracks'&&/^SF_(?:olive|steel)(?:_dark|_light)?$/.test(material.name))||
+  (style==='bastion'&&/^SF_Bastion_(?:concrete|sandplate|armor)$/.test(material.name))
+ );
  const revision=DESERT_FINISH_REVISION+'-'+biome+'-'+style+(roof?'-roof':'');
  if(material.userData?.sandforgeDesertFinish===revision)return;
  const oldCompile=material.onBeforeCompile;
- const colors=barracksDesert?BARRACKS_HQ3_PALETTE.wall:CAMOUFLAGE_PALETTES[biome].rgb;
+ const colors=matchedDesert?HQ3_MATCHED_DESERT_PALETTE.wall:CAMOUFLAGE_PALETTES[biome].rgb;
  material.onBeforeCompile=function(shader,renderer){
   oldCompile?.call(this,shader,renderer);
   const varying='varying vec3 sfDesertWorld;'+(roof?'\nvarying vec3 sfDesertUp;':'');
@@ -71,12 +77,12 @@ function applyDesertBuildingCamo(material,style='standard'){
    'float sfOlive=smoothstep(.42,.70,sfPatch);',
    'vec3 sfPaint=mix(vec3('+colors[0]+'),vec3('+colors[1]+'),sfKhaki);',
    'sfPaint=mix(sfPaint,vec3('+colors[2]+'),sfOlive);',
-   // Only upward-facing barracks armour gets the HQ's charcoal roof. The
-   // original door/window trim and wall silhouettes remain untouched.
+   // The HQ-like dark roof is limited to upward-facing surfaces.
+   // Real wall geometry, doors, glass, radar and team markers are untouched.
    ...(roof?[
     'float sfRoof=smoothstep(.50,.78,max(sfDesertUp.y,0.0));',
-    'vec3 sfRoofPaint=mix(vec3('+BARRACKS_HQ3_PALETTE.roof[0]+'),vec3('+BARRACKS_HQ3_PALETTE.roof[1]+'),sfKhaki);',
-    'sfRoofPaint=mix(sfRoofPaint,vec3('+BARRACKS_HQ3_PALETTE.roof[2]+'),sfOlive);',
+    'vec3 sfRoofPaint=mix(vec3('+HQ3_MATCHED_DESERT_PALETTE.roof[0]+'),vec3('+HQ3_MATCHED_DESERT_PALETTE.roof[1]+'),sfKhaki);',
+    'sfRoofPaint=mix(sfRoofPaint,vec3('+HQ3_MATCHED_DESERT_PALETTE.roof[2]+'),sfOlive);',
     'sfPaint=mix(sfPaint,sfRoofPaint,sfRoof*.97);'
    ]:[]),
    'float sfSurface=dot(diffuseColor.rgb,vec3(.2126,.7152,.0722));',
@@ -158,7 +164,8 @@ export function tintFactionMaterials(root,owner,kind,type){
       if(!keepNative){
        mat.roughness=Math.max(type==='building'?.84:.72,mat.roughness);
        mat.metalness=Math.min(type==='building'?.26:.48,mat.metalness);
-       applyDesertBuildingCamo(mat,kind==='barracks'?'barracks':'standard');
+       applyDesertBuildingCamo(mat,
+        kind==='barracks'||kind==='bastion'?kind:'standard');
       }
     }
     tinted++;
