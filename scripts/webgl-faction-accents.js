@@ -40,7 +40,7 @@ export const HQ3_MATCHED_DESERT_PALETTE=Object.freeze({
 export const SOLDIER_HQ3_DESERT_PALETTE=Object.freeze({
  rgb:Object.freeze(['.72,.63,.47','.38,.43,.29','.19,.27,.18'])
 });
-export const DESERT_FINISH_REVISION='biome-camouflage-hq3-soldiers-v9-20261113';
+export const DESERT_FINISH_REVISION='biome-camouflage-hq3-barracks-refinish-v10-20261113';
 const SOLDIER_KINDS=new Set(['infantry','medic','engineer','heavy','rocket']);
 let selectedCamouflageBiome='desert';
 export function setWorldCamouflageBiome(value){
@@ -56,7 +56,7 @@ function applyDesertBuildingCamo(material,style='standard'){
  // HQ3's dark charcoal; only upward-facing polygon surfaces are darkened.
  // Radar dishes, capture lamps, doors and glass retain their PBR identities.
  const roof=matchedDesert&&(
-  (style==='barracks'&&/^SF_(?:olive|steel)(?:_dark|_light)?$/.test(material.name))||
+  (style==='barracks'&&/^SF_(?:(?:olive|steel|deck)(?:_dark|_light)?|white|concrete_high)$/.test(material.name))||
   (style==='bastion'&&/^SF_Bastion_(?:concrete|sandplate|armor)$/.test(material.name))
  );
  const revision=DESERT_FINISH_REVISION+'-'+biome+'-'+style+(roof?'-roof':'');
@@ -103,11 +103,21 @@ function applyDesertBuildingCamo(material,style='standard'){
     'float sfRoof=smoothstep(.50,.78,max(sfDesertUp.y,0.0));',
     'vec3 sfRoofPaint=mix(vec3('+HQ3_MATCHED_DESERT_PALETTE.roof[0]+'),vec3('+HQ3_MATCHED_DESERT_PALETTE.roof[1]+'),sfKhaki);',
     'sfRoofPaint=mix(sfRoofPaint,vec3('+HQ3_MATCHED_DESERT_PALETTE.roof[2]+'),sfOlive);',
-    'sfPaint=mix(sfPaint,sfRoofPaint,sfRoof*.97);'
+    'sfPaint=mix(sfPaint,sfRoofPaint,sfRoof*.99);'
+   ]:[]),
+   // The original Kaserne's pale plates need real-looking mottled painted
+   // wear and sharper organic camo, not just a flat recoloured material.
+   ...(style==='barracks'&&biome==='desert'?[
+    'float sfGrain=sin(sfDesertWorld.x*.67+sfDesertWorld.z*.47)*',
+    ' sin(sfDesertWorld.y*.73-sfDesertWorld.z*.36);',
+    'float sfWear=sin(sfDesertWorld.x*2.35+sfDesertWorld.y*.71)*',
+    ' sin(sfDesertWorld.z*2.07-sfDesertWorld.y*1.11);',
+    'sfPaint*=clamp(.92+sfGrain*.085+sfWear*.025,.78,1.03);'
    ]:[]),
    'float sfSurface=dot(diffuseColor.rgb,vec3(.2126,.7152,.0722));',
    'float sfRelief=clamp(.82+sfSurface*.24,.77,1.07);',
-   'diffuseColor.rgb=mix(diffuseColor.rgb,clamp(sfPaint*sfRelief,0.0,1.0),.94);'
+   'diffuseColor.rgb=mix(diffuseColor.rgb,clamp(sfPaint*sfRelief,0.0,1.0),'+
+    (style==='barracks'&&biome==='desert'?'.985':'.94')+');'
   ].join('\n');
   shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>',paint);
  };
@@ -199,8 +209,9 @@ export function tintFactionMaterials(root,owner,kind,type){
        // The original soldier model's bright metallic grey finish previously
        // flattened the camouflage. Cloth/armour read matte like HQ3 paint.
        const uniform=type==='unit'&&SOLDIER_KINDS.has(kind);
-       mat.roughness=Math.max(type==='building'?.84:uniform?.89:.72,mat.roughness);
-       mat.metalness=Math.min(type==='building'?.26:uniform?.16:.48,mat.metalness);
+       const kazerne=type==='building'&&kind==='barracks'&&selectedCamouflageBiome==='desert';
+       mat.roughness=Math.max(kazerne?.91:type==='building'?.84:uniform?.89:.72,mat.roughness);
+       mat.metalness=Math.min(kazerne?.15:type==='building'?.26:uniform?.16:.48,mat.metalness);
        applyDesertBuildingCamo(mat,
         type==='unit'&&SOLDIER_KINDS.has(kind)?'soldier':
          kind==='barracks'||kind==='bastion'?kind:'standard');
