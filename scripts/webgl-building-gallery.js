@@ -3,7 +3,7 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {clone as cloneSkeleton} from 'three/addons/utils/SkeletonUtils.js';
 import {BUILDINGS,UNITS} from '/src/reborn/catalog.js';
-import {calibratedScale,strategicBuildingHeightScale,visualUnitScale,buildingFacingAngle,nextBuildingFacing} from './webgl-scale.js';
+import {calibratedScale,strategicBuildingHeightScale,visualUnitScale,buildingFacingAngle,nextBuildingFacing,authoredBuildingGroundY} from './webgl-scale.js';
 import {strategicGlbUrl,applyStrategicGlbFinish,centerAuthoredRadarPivot,ensureHeadquartersSatelliteMount} from './webgl-strategic-glb.js';
 import {setWorldCamouflageBiome,tintFactionMaterials} from './webgl-faction-accents.js';
 import {BUILDING_DESIGN_REVISION} from './webgl-building-design.js';
@@ -104,7 +104,7 @@ function normalizeModel(model,kind){
  const scale=kind==='bastion'?116/Math.max(size.x,size.z):calibratedScale(kind,'building',size,BUILDINGS[kind].width);
  const ys=strategicBuildingHeightScale(kind);
  model.scale.multiplyScalar(scale);model.scale.y*=ys;
- model.position.set(-center.x*scale,-box.min.y*scale*ys,-center.z*scale);
+ model.position.set(-center.x*scale,-authoredBuildingGroundY(kind,box)*scale*ys,-center.z*scale);
  model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
  if(['headquarters','barracks','research','silo','bastion'].includes(kind))applyStrategicGlbFinish(model);
  tintFactionMaterials(model,0,kind,'building');

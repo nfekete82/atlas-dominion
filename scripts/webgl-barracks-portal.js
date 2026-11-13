@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {BARRACKS_ARCHITECTURE} from './webgl-building-profiles.js';
 
 // The shipped barracks facade consists of separate textured airlock panels and
 // solid hull volumes. Build an actual portal by clipping ONLY the handful of
@@ -34,11 +35,11 @@ export function authoredBarracksExitLane(root,left,right){
  const center=root.worldToLocal(bounds.getCenter(new THREE.Vector3()));
  const floorPoint=root.worldToLocal(new THREE.Vector3(
   bounds.min.x,bounds.min.y,bounds.min.z));
- const y=Math.max(0,floorPoint.y+.08);
- const buildingBounds=new THREE.Box3().setFromObject(root);
- const ground=root.worldToLocal(new THREE.Vector3(0,buildingBounds.min.y,0)).y;
- // The authored Kaserne fronts local -Z. Step from inside the building
- // across its door threshold, then clear the front steps before turning.
+ // The old exit descended into the removed platform (source Y=-.085).
+ // Actual door sill is source Y=1.37, now flush with the terrain.
+ const ground=BARRACKS_ARCHITECTURE.sourceGroundY;
+ const y=Math.max(ground+.02,floorPoint.y+.02);
+ // Walk through the airlock at ground height before turning to the rally.
  return {
   inside:new THREE.Vector3(center.x,y,center.z+.70),
   threshold:new THREE.Vector3(center.x,y,center.z-.20),
@@ -51,8 +52,7 @@ export function barracksExitLane(portal){
   {inside:new THREE.Vector3(-.18,.275,.9),
    outside:new THREE.Vector3(-.18,0,2.10)};
 }
-/** Walk level through the lintel, then descend the actual raised entrance
- * to the ground. A constant threshold Y made troops hover beyond the stairs. */
+/** Walk across the ground-level door sill without an external staircase. */
 export function barracksDeparturePoint(portal,fraction){
  const lane=barracksExitLane(portal),t=THREE.MathUtils.clamp(fraction,0,1);
  if(!lane.threshold)return lane.inside.lerp(lane.outside,t);

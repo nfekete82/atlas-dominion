@@ -12,7 +12,7 @@ import {installClassicHud} from '/webgl-classic-hud.js';
 import {globalCatalogAvailability} from '/webgl-global-catalog.js';
 import {hydrateUnitIcons,hydrateBuildingIcons,unitIcon,buildingIcon,buildingIconUrl,researchIconMarkup,researchEffectLabel,hydrateResearchArtworks} from '/webgl-portraits.js';
 import {SandforgeActorPresentation} from '/webgl-actor-presentation.js';
-import {calibratedScale,visualUnitScale,unitVisualYaw,unitRenderAltitude,buildingFacingAngle,nextBuildingFacing,buildingFacingDegrees,turretAimLocalYaw,selectionRingRadius,strategicBuildingHeightScale} from '/webgl-scale.js';
+import {calibratedScale,visualUnitScale,unitVisualYaw,unitRenderAltitude,buildingFacingAngle,nextBuildingFacing,buildingFacingDegrees,turretAimLocalYaw,selectionRingRadius,strategicBuildingHeightScale,authoredBuildingGroundY} from '/webgl-scale.js';
 import {SandforgeGroundingPass} from '/webgl-grounding.js';
 import {createBuildingYard,disposeBuildingYard} from '/webgl-building-yard.js';
 import {simplifyBarracksSilhouette} from '/webgl-barracks-silhouette.js';
@@ -416,7 +416,7 @@ export class SandforgeBattlefield {
      const heightScale=type==='building'?strategicBuildingHeightScale(entry.kind):1;
      model.scale.multiplyScalar(scale);model.scale.y*=heightScale;
      model.position.set(-box0.getCenter(new THREE.Vector3()).x*scale,
-      -box0.min.y*scale*heightScale,-box0.getCenter(new THREE.Vector3()).z*scale);
+      -authoredBuildingGroundY(entry.kind,box0)*scale*heightScale,-box0.getCenter(new THREE.Vector3()).z*scale);
     }
     if(type==='building'){
      this.lightBuildingMeshes(model);
@@ -446,7 +446,7 @@ export class SandforgeBattlefield {
      alternate.scale.multiplyScalar(altScale);alternate.scale.y*=altHeightScale;
      alternate.position.set(
       -altBounds.getCenter(new THREE.Vector3()).x*altScale,
-      -altBounds.min.y*altScale*altHeightScale,
+      -authoredBuildingGroundY(entry.kind,altBounds)*altScale*altHeightScale,
       -altBounds.getCenter(new THREE.Vector3()).z*altScale);
      this.lightBuildingMeshes(alternate);
      applyStrategicGlbFinish(alternate);
@@ -718,7 +718,7 @@ export class SandforgeBattlefield {
     const heightScale=strategicBuildingHeightScale(kind);
     model.scale.multiplyScalar(scale);model.scale.y*=heightScale;
     model.position.set(-bounds.getCenter(new THREE.Vector3()).x*scale,
-      -bounds.min.y*scale*heightScale,-bounds.getCenter(new THREE.Vector3()).z*scale);
+      -authoredBuildingGroundY(kind,bounds)*scale*heightScale,-bounds.getCenter(new THREE.Vector3()).z*scale);
    }
    if(kind==='airfield')hideOldAirfieldHangar({detail:model});
    if(isStrategicGlbKind(kind))applyStrategicGlbFinish(model);

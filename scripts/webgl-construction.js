@@ -69,7 +69,8 @@ export class SandforgeConstructionPresentation{
   state.label.position.y=Math.max(state.height+65,healthY+45);
   const progress=THREE.MathUtils.clamp(1-base.buildRemaining/spec.buildTime,0,1);
   state.frame.visible=true;
-  state.slab.visible=progress>=.015;
+  // No generic concrete foundation slab during Kaserne construction.
+  state.slab.visible=base.kind!=='barracks'&&progress>=.015;
   const postGrowth=THREE.MathUtils.clamp((progress-.06)/.53,0,1);
   for(const post of state.columns){
    post.scale.y=Math.max(.025,postGrowth);

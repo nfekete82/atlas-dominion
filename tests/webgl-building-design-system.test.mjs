@@ -107,7 +107,7 @@ test('actual ready GLB doors close across the entrance, clear a standing soldier
   assert.ok(Math.abs(rightCenter.x-.94)<1e-5);
   const sourceDoor=BARRACKS_ARCHITECTURE.sourceDoorHeight;
   const actual=sourceDoor*root.scale.y;
-  assert.ok(Math.abs(actual-BARRACKS_ARCHITECTURE.soldierHeight*1.10)<1e-5);
+  assert.ok(Math.abs(actual-BARRACKS_ARCHITECTURE.soldierHeight*BARRACKS_ARCHITECTURE.doorClearanceRatio)<1e-5);
   const closed=portal.left.position.x;setBarracksDoorOpen(portal,0);assert.ok(portal.left.position.x<closed-1);
   const lane=barracksExitLane(portal),delta=root.localToWorld(lane.outside).sub(root.localToWorld(lane.inside));delta.y=0;delta.normalize();
   assert.ok(Math.abs(delta.x+Math.sin(buildingFacingAngle(facing)))<1e-5);
@@ -157,7 +157,7 @@ test('rendered bounds ignore removed accessories and unused vertices',async()=>{
  assert.ok(after.x>150&&after.z>150,'main military hull remains intact');
 });
 
-test('actual barracks backing is cut only inside the doorway and troops descend to the ground',async()=>{
+test('actual barracks backing is cut and troops leave at terrain height',async()=>{
  const {barracksDeparturePoint,updateBarracksPortalPlanes,disposeBarracksPortal}=await import('../scripts/webgl-barracks-portal.js');
  for(const facing of [0,2,1,3]){
   const root=await model('barracks'),entry={detail:root};
@@ -172,8 +172,10 @@ test('actual barracks backing is cut only inside the doorway and troops descend 
   assert.ok(portal.planes.some(p=>p.distanceToPoint(frame)<0),'adjacent frame stays solid');
   assert.equal(source.clippingPlanes,null,'cached PBR material not changed');
   const a=barracksDeparturePoint(portal,0),b=barracksDeparturePoint(portal,.08),c=barracksDeparturePoint(portal,1);
-  assert.equal(a.y,b.y,'level while crossing the door');assert.ok(c.y<a.y-1,'descend stairs');
-  assert.ok(Math.abs(c.y+.065)<1e-5,'ground matches the GLB foundation');
+  assert.equal(a.y,b.y,'level while crossing the door');
+  assert.ok(Math.abs(c.y-a.y)<.15,'no descent across retired raised platform');
+  assert.ok(Math.abs(c.y-(BARRACKS_ARCHITECTURE.sourceGroundY+.02))<1e-4,
+   'soldier leaves at the actual authored sill, not inside the old foundation');
   disposeBarracksPortal(entry);assert.equal(root.getObjectByName('static__steel_dark').material,source);
  }
 });
@@ -190,6 +192,36 @@ test('compact supply caches clear the shared perimeter at all four orientations'
   }
   if(kind!=='headquarters'&&kind!=='barracks')assert.equal(yard.getObjectByName('SupplyPallet'),undefined,'remove oversized redundant pallets');
   disposeBuildingYard(yard);
+ }
+});
+
+test('both real barracks GLBs lose the external plate but keep wall foundations',async()=>{
+ for(const file of ['sandforge_kaserne_betriebsbereit.glb','sandforge_kaserne_geschlossen.glb']){
+  const {scene}=await geometryScene(path+file),foundation=scene.getObjectByName('static__foundation');
+  const walls=scene.getObjectByName('static__olive'),wallIndexCount=walls.geometry.index.count;
+  assert.equal(foundation.geometry.index.count,420,'original five foundation blocks');
+  simplifyBarracksSilhouette(scene);
+  assert.equal(foundation.geometry.index.count,252,'only the three internal foundation blocks remain');
+  for(const name of ['static__concrete_high','static__deck','static__deck_light',
+   'static__dust','static__yellow'])
+   assert.equal(scene.getObjectByName(name).visible,false,name+' platform removed');
+  assert.equal(walls.geometry.index.count,wallIndexCount,'building facade preserved');
+  assert.equal(scene.getObjectByName('GATE_LEFT_PIVOT').visible,true,'animated door preserved');
+ }
+});
+
+test('four barracks orientations send soldiers directly onto terrain',async()=>{
+ const {barracksDeparturePoint}=await import('../scripts/webgl-barracks-portal.js');
+ const {authoredBuildingGroundY}=await import('../scripts/webgl-scale.js');
+ for(const facing of [0,2,1,3]){
+  const root=await model('barracks');simplifyBarracksSilhouette(root);
+  root.position.y=-authoredBuildingGroundY('barracks',new THREE.Box3().setFromObject(root))*root.scale.y;
+  root.rotation.y=buildingFacingAngle(facing);
+  const portal=prepareBarracksPortal({detail:root},{localClippingEnabled:true});
+  for(const t of [0,.1,.5,.9,1]){
+   const point=root.localToWorld(barracksDeparturePoint(portal,t));
+   assert.ok(Math.abs(point.y)<.6,'soldier feet at terrain, facing '+facing+' t='+t+': '+point.y);
+  }
  }
 });
 
