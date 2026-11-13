@@ -29,6 +29,19 @@ export function prepareHeadquartersPortal(entry){
  if(entry?.headquartersPortal)return entry.headquartersPortal;
  const model=entry?.detail;
  if(!model)return null;
+ // For the original low-poly headquarters reuse its real sliding doors,
+ // metre-space pivot and passage. Old HQ3 still uses the overlay below.
+ if(model.userData?.sandforgeStylized&&model.userData?.portal){
+  const left=model.getObjectByName('HQ_GATE_LEFT'),right=model.getObjectByName('HQ_GATE_RIGHT');
+  if(left&&right){
+   const portal={root:model,hall:new THREE.Group(),leaves:[
+    {leaf:left,baseX:left.position.x,side:-1},
+    {leaf:right,baseX:right.position.x,side:1}
+   ],materials:[],open:0,authored:true,travel:model.userData.portal.travel??1.25};
+   entry.headquartersPortal=portal;
+   return portal;
+  }
+ }
  const root=new THREE.Group();root.name='HQ3FrontEntrancePortal';
  root.position.set(-2.08,.75,5.58);
  model.add(root);
@@ -71,11 +84,15 @@ export function setHeadquartersDoorOpen(portal,amount){
  const t=smooth(amount);
  portal.open=t;
  for(const {leaf,baseX,side} of portal.leaves)
-  leaf.position.x=baseX+side*1.29*t;
+  leaf.position.x=baseX+side*(portal.travel??1.29)*t;
 }
 export function disposeHeadquartersPortal(entry){
  const portal=entry?.headquartersPortal;
  if(!portal)return;
+ if(portal.authored){
+  delete entry.headquartersPortal;
+  return;
+ }
  portal.root.removeFromParent();
  portal.root.traverse(object=>{
   // The warning bulb uses one shared module geometry across all buildings.
@@ -116,7 +133,9 @@ export class SandforgeProductionGates {
    const lampMaterial=new THREE.MeshStandardMaterial({color:'#725638',
     emissive:'#ffa333',emissiveIntensity:0});
    const lamp=new THREE.Mesh(bulbGeometry,lampMaterial);
-   lamp.position.set(-1.2,3.26,.26);lamp.visible=false;portal.root.add(lamp);
+   lamp.position.set(...(portal.authored?
+     (portal.root.userData.portal?.lamp??[0,2.9,4.4]):[-1.2,3.26,.26]));
+   lamp.visible=false;portal.root.add(lamp);
    entry.gate={kind:'headquarters',root:portal.root,portal,door:null,
     hall:portal.hall,lamp,dust:null,ramp:null};
    return entry.gate;
@@ -197,9 +216,10 @@ export class SandforgeProductionGates {
    entry.node.updateWorldMatrix(true,true);
    const hq=base.kind==='headquarters',barracks=base.kind==='barracks',root=entry.gate.root;
    const lane=barracks?barracksExitLane(entry.gate.portal):null;
-   const exit=root.localToWorld(hq?new THREE.Vector3(0,-.40,2.85):
+   const hqLane=hq&&root.userData?.portal?root.userData.portal:null;
+   const exit=root.localToWorld(hq?(hqLane?new THREE.Vector3(...hqLane.outside):new THREE.Vector3(0,-.40,2.85)):
     barracks?lane.outside:new THREE.Vector3(.18,0,2.9));
-   const start=root.localToWorld(hq?new THREE.Vector3(0,.60,-.48):
+   const start=root.localToWorld(hq?(hqLane?new THREE.Vector3(...hqLane.inside):new THREE.Vector3(0,.60,-.48)):
     barracks?lane.inside:new THREE.Vector3(.18,.265,-.03));
    const target=bf.entityPosition(unit),center=entry.node.position;
    const exitAngle=Math.atan2(exit.x-center.x,exit.z-center.z);
@@ -250,7 +270,8 @@ export class SandforgeProductionGates {
    const infantry=gate.kind==='barracks'||hq;
    const authored=!hq&&infantry&&gate.portal.authored;
    const lane=!hq&&infantry?barracksExitLane(gate.portal):null;
-   const outside=hq?new THREE.Vector3(0,-.40,2.85):
+   const outside=hq?(root.userData?.portal?
+    new THREE.Vector3(...root.userData.portal.outside):new THREE.Vector3(0,-.40,2.85)):
     infantry?lane.outside:new THREE.Vector3(.18,0,2.9);
    const root=gate.root;
    root.localToWorld(outside);
@@ -260,7 +281,11 @@ export class SandforgeProductionGates {
    const facing=buildingFacingAngle(base.facing);
    if(fraction<clearFraction){
     const t=smooth(fraction/clearFraction);
-    if(hq)p=root.localToWorld(new THREE.Vector3(0,.60-t,-.48+3.33*t));
+    if(hq){
+     const lane=root.userData?.portal;
+     p=lane?root.localToWorld(new THREE.Vector3(...lane.inside).lerp(new THREE.Vector3(...lane.outside),t)):
+      root.localToWorld(new THREE.Vector3(0,.60-t,-.48+3.33*t));
+    }
     else if(infantry)p=root.localToWorld(barracksDeparturePoint(gate.portal,t));
     else{
      const z=-.03+2.93*t;
