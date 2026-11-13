@@ -214,7 +214,7 @@ export class SandforgeBattlefield {
  }
  asset(kind,owner,type){
   const prefix='/src/assets/reborn/';
-  // The Meshy replacement is opt-in and only activates after installation.
+  // User-selected HQ defaults to Meshy; other Meshy assets stay opt-in.
   const replacement=meshyAsset(kind,owner);
   if(replacement)return replacement;
   // HQ3 is the author's completed Feldkommando with real baked camouflage,
@@ -343,6 +343,8 @@ export class SandforgeBattlefield {
  }
  attachBuildingMotion(entry,data){
   if(!['turret','headquarters','research'].includes(entry.kind))return;
+  // Meshy HQ has a baked dish in one mesh. Do not overlay a fake rotor.
+  if(entry.kind==='headquarters'&&entry.meshyStaticHQ){entry.motion=null;return;}
   if(entry.kind==='research'){
    const rotor=entry.variantDetail?.getObjectByName('radar_assembly_PIVOT')??
     (entry.detail??entry.placeholder)?.getObjectByName('ResearchDishPivot');
@@ -428,7 +430,9 @@ export class SandforgeBattlefield {
      // were previously wrongly mapped to prototype/ on fallback.
      const e=task.entry;
      const authored=stylizedAsset(e.kind,e.owner);
-     const old=isMeshyAsset(task.url)&&authored ? authored:
+     const old=isMeshyAsset(task.url)&&e.kind==='headquarters'?
+      strategicGlbUrl('headquarters','active'):
+      isMeshyAsset(task.url)&&authored ? authored:
       task.type==='building' ? strategicGlbUrl(e.kind,'active'):
       '/src/assets/reborn/'+
        (e.kind==='rocket'?'prototype/infantry-':
@@ -442,6 +446,10 @@ export class SandforgeBattlefield {
     const {entry,type}=task;
     if(!entry.node.parent)return;
     const model=cloneSkeleton(data.scene);
+    entry.meshyStaticHQ=type==='building'&&entry.kind==='headquarters'&&
+     isMeshyAsset(task.url)&&!entry.meshyFallback&&
+     !model.getObjectByName('RADAR_DISH_PIVOT')&&
+     !(data.animations??[]).some(c=>c.name==='RadarSpin');
     if(isMeshyAsset(task.url)&&!entry.meshyFallback)model.rotation.y+=meshyModelYaw(entry.kind);
     const authoredStyle=stylizedProfile(model);
     if(authoredStyle)model.userData={...model.userData,...authoredStyle};

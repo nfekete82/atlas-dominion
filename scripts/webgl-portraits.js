@@ -376,9 +376,8 @@ export function unitIcon(kind,renderer){
 // into a consistent wide tile without clipping its silhouette.
 const buildingIconCache=new Map();
 async function rasterizeBuildingIcon(kind,renderer){
- // Match the actual placed HQ3 Funkzentrale instead of displaying the
- // older stylized headquarters on the construction tile. Meshy remains
- // explicitly opt-in; the stylized HQ is available via ?hq=stylized.
+ // Show the default Meshy HQ icon; if its binary is absent use the same
+ // original HQ3 as the in-game fallback.
  if(kind==='headquarters'&&!meshyAsset(kind,0)&&
     (typeof location==='undefined'||new URLSearchParams(location.search).get('hq')!=='stylized')){
   if(!renderer)return buildingIconUrl(kind);
