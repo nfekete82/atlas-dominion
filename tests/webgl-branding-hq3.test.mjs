@@ -6,10 +6,10 @@ const read=p=>readFileSync(p,'utf8');
 test('Bastion title, pause and in-game logo all use the final paths',()=>{
  const html=read('webgl-preview.html'),hud=read('scripts/webgl-classic-hud.js'),
   menu=read('scripts/webgl-title-menu.js');
- assert.match(html,/sandforge-start-background\\.png/);
- assert.match(html,/sandforge-bastion-logo\\.webp/);
- assert.match(hud,/sandforge-bastion-logo\\.webp/);
- assert.match(menu,/sandforge-bastion-logo\\.webp/);
+ assert.ok(html.includes('sandforge-start-background.png'));
+ assert.ok(html.includes('sandforge-bastion-logo.webp'));
+ assert.ok(hud.includes('sandforge-bastion-logo.webp'));
+ assert.ok(menu.includes('sandforge-bastion-logo.webp'));
  assert.match(html,/sf-bastion-bg-ready/);
  assert.match(html,/sf3d-main-stats/);
 });
