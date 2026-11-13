@@ -3,13 +3,14 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as THREE from 'three';
 import {tintFactionMaterials,setWorldCamouflageBiome,
- shouldTintFactionSurface,HQ3_MATCHED_DESERT_PALETTE}
+ shouldTintFactionSurface,SOLDIER_HQ3_DESERT_PALETTE}
  from '../scripts/webgl-faction-accents.js';
 import {prepareHeadquartersPortal,disposeHeadquartersPortal}
  from '../scripts/webgl-production-gates.js';
 import {prepareAuthoredAssembly,updateAuthoredAssembly,
  releaseAuthoredAssembly} from '../scripts/webgl-construction-assembly.js';
 import {createBuildingYard,disposeBuildingYard} from '../scripts/webgl-building-yard.js';
+import {attachTeamMarkings,detachTeamMarkings} from '../scripts/webgl-team-markings.js';
 
 const shader=()=>({
  vertexShader:'#include <common>\n#include <begin_vertex>',
@@ -29,8 +30,10 @@ test('infantry, pioneers and rocket infantry use fine, locally fixed HQ3 olive c
   const compiled=shader();mat.onBeforeCompile(compiled,null);
   assert.ok(compiled.vertexShader.includes('sfDesertWorld=transformed;'),
    'uniform pattern must follow the soldier instead of world coordinates');
-  assert.ok(compiled.fragmentShader.includes(HQ3_MATCHED_DESERT_PALETTE.wall[1]));
-  assert.ok(compiled.fragmentShader.includes('sfDesertWorld.x*1.12'));
+  assert.ok(compiled.fragmentShader.includes(SOLDIER_HQ3_DESERT_PALETTE.rgb[1]));
+  assert.ok(compiled.fragmentShader.includes('sfDesertWorld.x*8.6'));
+  assert.ok(mat.roughness>=.89&&mat.metalness<=.16,
+   'army uniform must be matte rather than silver-grey');
   uniform.geometry.dispose();mat.dispose();source.dispose();
  }
  setWorldCamouflageBiome('desert');
@@ -67,6 +70,27 @@ test('shared glTF materials do not carry soldier camouflage onto rifle, visor or
  for(const mat of new Set(meshes.map(x=>x.material)))mat.dispose();
  for(const mesh of meshes)mesh.geometry.dispose();
  source.dispose();
+});
+
+test('infantry owner marks are armour paint, not floating black rectangular quads',()=>{
+ for(const owner of [0,1]){
+  const model=new THREE.Group();
+  const armour=new THREE.Mesh(new THREE.BoxGeometry(1,2,.8),
+   new THREE.MeshStandardMaterial({name:'Soldier_Armour'}));
+  model.add(armour);
+  const entry={node:new THREE.Group(),detail:model};
+  entry.node.add(model);
+  const marker=attachTeamMarkings(entry,owner,'engineer',25,43);
+  assert.ok(marker);
+  assert.equal(marker.children.length,0,
+   'free-standing wrist/chest billboards must not appear beside the soldier');
+  assert.equal(marker.userData.paintedMeshCount,0);
+  assert.equal(attachTeamMarkings(entry,owner,'engineer',25,43),marker,
+   'same owner reuses the existing marker without creating overlays');
+  detachTeamMarkings(entry);
+  assert.equal(entry.teamMarkings,null);
+  armour.geometry.dispose();armour.material.dispose();
+ }
 });
 
 test('HQ3 roof, portal doors, and side building meshes share bottom-up construction',()=>{
