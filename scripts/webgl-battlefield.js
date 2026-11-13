@@ -14,6 +14,7 @@ import {SandforgeActorPresentation} from '/webgl-actor-presentation.js';
 import {calibratedScale,visualUnitScale,unitVisualYaw,unitRenderAltitude,buildingFacingAngle,nextBuildingFacing,buildingFacingDegrees,turretAimLocalYaw,selectionRingRadius,strategicBuildingHeightScale} from '/webgl-scale.js';
 import {SandforgeGroundingPass} from '/webgl-grounding.js';
 import {createBuildingYard,disposeBuildingYard} from '/webgl-building-yard.js';
+import {simplifyBarracksSilhouette} from '/webgl-barracks-silhouette.js';
 import {createAirfieldServiceYard,conformAirfieldSurface,updateAirfieldServiceYard,hideOldAirfieldHangar,disposeAirfieldServiceYard} from '/webgl-airfield-service.js';
 import {createFactoryServiceYard,updateFactoryServiceYard,disposeFactoryServiceYard} from '/webgl-factory-service.js';
 import {disposeServicePaint,previewServiceMaterial} from '/webgl-service-materials.js';
@@ -399,6 +400,8 @@ export class SandforgeBattlefield {
     const {entry,type}=task;
     if(!entry.node.parent)return;
     const model=cloneSkeleton(data.scene);
+    if(type==='building'&&entry.kind==='barracks')
+     simplifyBarracksSilhouette(model);
     if(type==='unit'&&entry.kind==='rocket')
      attachRocketLauncherToInfantry(model,entry.owner);
     const box0=new THREE.Box3().setFromObject(model);
@@ -433,6 +436,7 @@ export class SandforgeBattlefield {
      // Closed/ready silo and idle/working lab are distinct original GLBs.
      // Same authoring bounds and scale/grounding as the primary asset.
      const alternate=cloneSkeleton(variantData.scene);
+     if(entry.kind==='barracks')simplifyBarracksSilhouette(alternate);
      const altBounds=new THREE.Box3().setFromObject(alternate);
      const altDims=altBounds.getSize(new THREE.Vector3());
      const altScale=calibratedScale(entry.kind,'building',altDims,desired);
@@ -703,7 +707,9 @@ export class SandforgeBattlefield {
   if(isStrategicBuilding(kind)&&!isStrategicGlbKind(kind))return; // other strategic types use procedural preview
   this.getModel(this.asset(kind,0,'building')).then(data=>{
    if(this.buildPreview!==group||this.buildKind!==kind)return;
-   const model=cloneSkeleton(data.scene),bounds=new THREE.Box3().setFromObject(model);
+   const model=cloneSkeleton(data.scene);
+   if(kind==='barracks')simplifyBarracksSilhouette(model);
+   const bounds=new THREE.Box3().setFromObject(model);
    const size=bounds.getSize(new THREE.Vector3());
    if(size.y>0&&Math.max(size.x,size.z)>0){
     const scale=calibratedScale(kind,'building',size,spec.width);
