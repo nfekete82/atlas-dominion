@@ -1,0 +1,288 @@
+{
+  "version": "sandforge-stylized-v1",
+  "originalArtwork": true,
+  "authoring": "Original scripted polygon geometry; Three.js GLTFExporter",
+  "metresToWorld": 18,
+  "axes": "Y up; +Z forward; barracks exit -Z",
+  "palette": {
+    "sand": "#bd985b",
+    "sandLight": "#dfbd80",
+    "sandShade": "#907342",
+    "olive": "#666c40",
+    "oliveLight": "#828650",
+    "roof": "#303e35",
+    "recess": "#192a2b",
+    "metal": "#45534a",
+    "rubber": "#222e2e",
+    "tread": "#34413a",
+    "glass": "#28545b",
+    "glassLight": "#5c9292",
+    "skin": "#c58d5e",
+    "skinLight": "#e2ad7a",
+    "leather": "#4e4631",
+    "blue": "#278ac7",
+    "red": "#c94c38",
+    "lamp": "#f6d28a",
+    "amber": "#e69c35"
+  },
+  "models": [
+    {
+      "kind": "rover",
+      "owner": 0,
+      "file": "rover-0.glb",
+      "bytes": 480860,
+      "triangles": 6355,
+      "primitives": 12,
+      "sizeMetres": [
+        2.440000057220459,
+        2.6649736952781677,
+        4.710000038146973
+      ],
+      "bounds": {
+        "min": [
+          -1.2200000286102295,
+          -0.02579804182052614,
+          -2.305000066757202
+        ],
+        "max": [
+          1.2200000286102295,
+          2.6391756534576416,
+          2.4049999713897705
+        ]
+      },
+      "clips": [
+        {
+          "name": "Idle",
+          "duration": 2,
+          "tracks": 1
+        },
+        {
+          "name": "Drive",
+          "duration": 1,
+          "tracks": 4
+        },
+        {
+          "name": "Shoot",
+          "duration": 0.24,
+          "tracks": 1
+        }
+      ],
+      "sha256": "7375a450fd769d2ec955752b7d599d0c00d333d36b07c46fe5011e86396c4de9"
+    },
+    {
+      "kind": "rover",
+      "owner": 1,
+      "file": "rover-1.glb",
+      "bytes": 480860,
+      "triangles": 6355,
+      "primitives": 12,
+      "sizeMetres": [
+        2.440000057220459,
+        2.6649736952781677,
+        4.710000038146973
+      ],
+      "bounds": {
+        "min": [
+          -1.2200000286102295,
+          -0.02579804182052614,
+          -2.305000066757202
+        ],
+        "max": [
+          1.2200000286102295,
+          2.6391756534576416,
+          2.4049999713897705
+        ]
+      },
+      "clips": [
+        {
+          "name": "Idle",
+          "duration": 2,
+          "tracks": 1
+        },
+        {
+          "name": "Drive",
+          "duration": 1,
+          "tracks": 4
+        },
+        {
+          "name": "Shoot",
+          "duration": 0.24,
+          "tracks": 1
+        }
+      ],
+      "sha256": "cecf08d8ebe914b46b4129a36990e9091e516fab9904b5c742f80269b6d4033d"
+    },
+    {
+      "kind": "barracks",
+      "owner": 0,
+      "file": "barracks-0.glb",
+      "bytes": 401892,
+      "triangles": 5412,
+      "primitives": 4,
+      "sizeMetres": [
+        8.479999542236328,
+        4.264999899864197,
+        6.382499933242798
+      ],
+      "bounds": {
+        "min": [
+          -4.239999771118164,
+          -3.33786012163273e-8,
+          -3.6624999046325684
+        ],
+        "max": [
+          4.239999771118164,
+          4.264999866485596,
+          2.7200000286102295
+        ]
+      },
+      "clips": [
+        {
+          "name": "ProductionDoor",
+          "duration": 3.1,
+          "tracks": 2
+        }
+      ],
+      "sha256": "96cfda4d67cef46415fb294ca72a97980868a1480440ad1e766e478355798ad9"
+    },
+    {
+      "kind": "barracks",
+      "owner": 1,
+      "file": "barracks-1.glb",
+      "bytes": 401888,
+      "triangles": 5412,
+      "primitives": 4,
+      "sizeMetres": [
+        8.479999542236328,
+        4.264999899864197,
+        6.382499933242798
+      ],
+      "bounds": {
+        "min": [
+          -4.239999771118164,
+          -3.33786012163273e-8,
+          -3.6624999046325684
+        ],
+        "max": [
+          4.239999771118164,
+          4.264999866485596,
+          2.7200000286102295
+        ]
+      },
+      "clips": [
+        {
+          "name": "ProductionDoor",
+          "duration": 3.1,
+          "tracks": 2
+        }
+      ],
+      "sha256": "3551563a5f275405f2ca9448a08c103d54b53439aa7f43564f27a59a2b70b410"
+    },
+    {
+      "kind": "infantry",
+      "owner": 0,
+      "file": "infantry-0.glb",
+      "bytes": 445052,
+      "triangles": 3620,
+      "primitives": 1,
+      "sizeMetres": [
+        0.746999979019165,
+        2.067499933298677,
+        1.3104999959468842
+      ],
+      "bounds": {
+        "min": [
+          -0.3734999895095825,
+          0.0024999999441206455,
+          -0.3605000078678131
+        ],
+        "max": [
+          0.3734999895095825,
+          2.069999933242798,
+          0.949999988079071
+        ]
+      },
+      "clips": [
+        {
+          "name": "Walk",
+          "duration": 1,
+          "tracks": 8
+        },
+        {
+          "name": "Run",
+          "duration": 0.64,
+          "tracks": 8
+        },
+        {
+          "name": "Idle",
+          "duration": 2.4,
+          "tracks": 2
+        },
+        {
+          "name": "Shoot",
+          "duration": 0.28,
+          "tracks": 2
+        },
+        {
+          "name": "Death",
+          "duration": 0.85,
+          "tracks": 4
+        }
+      ],
+      "sha256": "293ab4f29e001272193fc1f2d155ff0d52b9ac1e4a4284dca3f0743a4460b4b5"
+    },
+    {
+      "kind": "infantry",
+      "owner": 1,
+      "file": "infantry-1.glb",
+      "bytes": 445052,
+      "triangles": 3620,
+      "primitives": 1,
+      "sizeMetres": [
+        0.746999979019165,
+        2.067499933298677,
+        1.3104999959468842
+      ],
+      "bounds": {
+        "min": [
+          -0.3734999895095825,
+          0.0024999999441206455,
+          -0.3605000078678131
+        ],
+        "max": [
+          0.3734999895095825,
+          2.069999933242798,
+          0.949999988079071
+        ]
+      },
+      "clips": [
+        {
+          "name": "Walk",
+          "duration": 1,
+          "tracks": 8
+        },
+        {
+          "name": "Run",
+          "duration": 0.64,
+          "tracks": 8
+        },
+        {
+          "name": "Idle",
+          "duration": 2.4,
+          "tracks": 2
+        },
+        {
+          "name": "Shoot",
+          "duration": 0.28,
+          "tracks": 2
+        },
+        {
+          "name": "Death",
+          "duration": 0.85,
+          "tracks": 4
+        }
+      ],
+      "sha256": "65b06457c83a8b6e36838ceea4a2fc96e2ca06ed21e49d3b0de2d67123d2896b"
+    }
+  ]
+}

@@ -91,6 +91,17 @@ export function prepareBarracksPortal(entry,renderer){
  if(entry?.barracksPortal)return entry.barracksPortal;
  const root=entry?.detail;
  if(!root)return null;
+ const spec=root.userData?.portal;
+ if(spec){
+  const left=root.getObjectByName('GATE_LEFT_PIVOT'),right=root.getObjectByName('GATE_RIGHT_PIVOT');
+  if(!left||!right)return null;
+  const hall=new THREE.Group();hall.name='BarracksInterior';root.add(hall);
+  const portal={kind:'barracks',authored:true,stylized:true,root,hall,left,right,
+   leftX:left.position.x,rightX:right.position.x,leftSide:-1,rightSide:1,travel:spec.travel,
+   lane:{inside:new THREE.Vector3(...spec.inside),threshold:new THREE.Vector3(...spec.threshold),outside:new THREE.Vector3(...spec.outside)},
+   materials:[],planes:[],replaced:[],doorPanels:[]};
+  entry.barracksPortal=portal;setBarracksDoorOpen(portal,1);return portal;
+ }
  // Original ready Kaserne contains dedicated door pivots; never carve its facade.
  const left=root.getObjectByName('GATE_LEFT_PIVOT');
  const right=root.getObjectByName('GATE_RIGHT_PIVOT');
@@ -168,8 +179,8 @@ export function updateBarracksPortalPlanes(portal,force=false){
 export function setBarracksDoorOpen(portal,open){
  if(portal.authored){
   const t=Math.max(0,Math.min(1,open));
-  portal.left.position.x=portal.leftX+(1-t)*portal.leftSide*1.1;
-  portal.right.position.x=portal.rightX+(1-t)*portal.rightSide*1.1;
+  portal.left.position.x=portal.leftX+(1-t)*portal.leftSide*(portal.travel??1.1);
+  portal.right.position.x=portal.rightX+(1-t)*portal.rightSide*(portal.travel??1.1);
   portal.hall.visible=t<.97;
   return;
  }

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {tintStylizedTeam} from './webgl-stylized-pack.js';
 import {applyBuildingDesign} from './webgl-building-design.js';
 
 /** Painted ownership belongs INSIDE the authored PBR surfaces.
@@ -179,6 +180,9 @@ export function shouldTintFactionSurface(kind,type,materialName='',meshName='',m
  * cloning again, and the cached glTF template is never mutated. */
 export function tintFactionMaterials(root,owner,kind,type){
  if(!root)return 0;
+ // Original reference assets contain authored vertex colour camouflage and
+ // faction panels. Legacy world-space repainting would erase the art direction.
+ if(tintStylizedTeam(root,owner))return 0;
  // Neutral Bastion MK2 also receives biome paint, without a faction tint.
  const teamColor=team[owner]??null;
  const owned=new Map();let tinted=0;

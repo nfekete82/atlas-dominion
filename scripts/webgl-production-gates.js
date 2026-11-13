@@ -127,7 +127,7 @@ export class SandforgeProductionGates {
    const root=portal.root;
    const lampMaterial=new THREE.MeshStandardMaterial({color:'#7d3913',emissive:'#ff9f2a',emissiveIntensity:0});
    const lamp=new THREE.Mesh(bulbGeometry,lampMaterial);
-   lamp.position.set(...(portal.authored?[0,3.9,-4.25]:[-.18,1.42,1.65]));lamp.visible=false;root.add(lamp);
+   lamp.position.set(...(root.userData?.portal?.lamp??(portal.authored?[0,3.9,-4.25]:[-.18,1.42,1.65])));lamp.visible=false;root.add(lamp);
    entry.gate={kind:'barracks',root,portal,door:null,hall:portal.hall,lamp,dust:null,ramp:null};
    setBarracksDoorOpen(portal,portal.authored?1:0);
    return entry.gate;

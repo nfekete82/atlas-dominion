@@ -92,7 +92,7 @@ export class SandforgeConstructionPresentation{
   const authored=AUTHORED_ASSEMBLY_KINDS.includes(base.kind)&&
    Boolean(entry.detail??entry.placeholder);
   const authoredModel=authored?
-   ((base.kind==='barracks'?entry.variantDetail:entry.detail)??entry.placeholder):null;
+   ((base.kind==='barracks'?(entry.variantDetail??entry.detail):entry.detail)??entry.placeholder):null;
   // The HQ3 sliding door is added after the GLB streams in. A construction
   // started before the portal existed must rescan the same model to include
   // door leaves, trim and side panels in the vertical triangle reveal.

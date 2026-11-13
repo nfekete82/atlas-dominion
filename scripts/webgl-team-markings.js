@@ -105,6 +105,7 @@ diffuseColor.rgb=mix(diffuseColor.rgb,vec3(${rgb}),sfPaint);
 }
 /** Intentionally returns a detached zero-mesh group for vehicles. */
 export function attachTeamMarkings(entry,owner,kind,footprint=90,height=44){
+ if(entry?.detail?.userData?.sandforgeStylized)return null;
  if(!entry?.node||(owner!==0&&owner!==1)||(!vehicles.has(kind)&&!infantry.has(kind)))
   return null;
  const model=entry.detail??entry.placeholder;
