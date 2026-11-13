@@ -3,13 +3,44 @@ import {mkdir,writeFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 
 const artifacts=fileURLToPath(new URL('../../docs/building-design-system/qa',import.meta.url));
+
+/** Preserve the actual boot error instead of reporting only a two-minute timeout.
+ * Both entrypoints can fail before their public readiness hooks are created. */
+async function openAndWaitForReady(page,url,predicate){
+ const browserErrors=[];
+ page.on('pageerror',error=>browserErrors.push('pageerror: '+error.message));
+ page.on('console',message=>{if(message.type()==='error')browserErrors.push('console: '+message.text());});
+ page.on('requestfailed',request=>browserErrors.push('request: '+request.url()+' '+(request.failure()?.errorText??'')));
+ page.on('response',response=>{if(response.status()>=400)browserErrors.push('HTTP '+response.status()+' '+response.url());});
+ const response=await page.goto(url);
+ try{
+  if(response&&response.status()>=400)throw Error('Entry returned HTTP '+response.status());
+  await page.waitForFunction(predicate,null,{timeout:120000});
+ }catch(error){
+  const state=await page.evaluate(()=>({
+   href:location.href,title:document.title,readyState:document.readyState,
+   gallery:window.__sandforgeBuildingGallery
+    ?{ready:window.__sandforgeBuildingGallery.ready,errors:window.__sandforgeBuildingGallery.errors,
+      entries:window.__sandforgeBuildingGallery.entries?.length}:null,
+   game:window.__sandforgeWebGL
+    ?{loaded:window.__sandforgeWebGL.loaded}:null,
+   visibleError:document.querySelector('#error')?.textContent,
+   fatal:document.querySelector('#sf3d-fatal-detail')?.textContent,
+   performance:document.querySelector('#performance')?.textContent,
+   status:document.querySelector('#status')?.textContent,
+  })).catch(e=>({inspectionError:String(e)}));
+  throw new Error('Sandforge did not boot: '+error.message
+   +'\nBrowser errors: '+JSON.stringify(browserErrors.slice(0,25))
+   +'\nPage status: '+JSON.stringify(state));
+ }
+}
+
 test('gallery compiles real building PBR, compares sizes, animates doors and supports all biomes',async({page})=>{
  test.setTimeout(180000);const errors=[];
  page.on('pageerror',e=>errors.push(e.message));
  page.on('console',m=>{if(m.type()==='error'&&/shader|gltf|webgl/i.test(m.text()))errors.push(m.text());});
  await page.setViewportSize({width:1600,height:1100});
- await page.goto('/building-gallery.html');
- await page.waitForFunction(()=>window.__sandforgeBuildingGallery?.ready,null,{timeout:120000});
+ await openAndWaitForReady(page,'/building-gallery.html',()=>window.__sandforgeBuildingGallery?.ready);
  expect(await page.evaluate(()=>__sandforgeBuildingGallery.errors)).toEqual([]);
  await expect(page.locator('.card')).toHaveCount(11);
  await page.selectOption('#filter','pair');
@@ -77,8 +108,7 @@ test('live game constructs every facility from zero and releases real infantry t
  page.on('pageerror',e=>errors.push(e.message));
  page.on('console',m=>{if(m.type()==='error'&&/shader|gltf|webgl/i.test(m.text()))errors.push(m.text());});
  await page.setViewportSize({width:1440,height:1000});
- await page.goto('/?bastions=4&seed=2074&pause=1&lite=1');
- await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded,null,{timeout:120000});
+ await openAndWaitForReady(page,'/?bastions=4&seed=2074&pause=1&lite=1',()=>window.__sandforgeWebGL?.loaded);
  await page.evaluate(async()=>{
   const w=__sandforgeWebGL,g=w.game,bf=w.battlefield;g.paused=true;g.aiClock=-1e8;g.canSee=()=>true;
   const origin=g.units[0];window.designOrigin={x:origin.x,y:origin.y};
