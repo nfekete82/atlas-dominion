@@ -185,6 +185,18 @@ export function ensureHeadquartersSatelliteMount(pivot){
  pivot.updateWorldMatrix(true,true);
  const support=hq3DishSupports(pivot);
  if(!support)return null;
+ // The authored support/hinge meshes were originally children of the
+ // rotating dish group. Even with a fixed generated mast, they orbited
+ // around it as the dish tracked targets. Detach ONLY the structural
+ // support meshes to the static parent, preserving their world transforms.
+ // The dish bowl, feed arms and reflector stay on the rotating pivot.
+ const staticParts=[];
+ pivot.traverse(part=>{
+  if(part.isMesh&&/^Independent_Satellite_Dish_Support_/.test(part.name))
+   staticParts.push(part);
+ });
+ for(const part of staticParts)parent.attach(part);
+ parent.updateWorldMatrix(true,true);
  const world=support.getCenter(new THREE.Vector3());
  world.y=support.min.y;
  const anchor=parent.worldToLocal(world);
