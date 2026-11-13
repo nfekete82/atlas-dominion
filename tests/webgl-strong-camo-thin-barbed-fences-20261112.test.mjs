@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 import {createBuildingYard,disposeBuildingYard,YARD_FENCE_HEIGHT,YARD_FENCE_POST_WIDTH}
  from '../scripts/webgl-building-yard.js';
 import {setWorldCamouflageBiome,tintFactionMaterials,shouldTintFactionSurface,
- HQ3_MATCHED_DESERT_PALETTE,CAMOUFLAGE_PALETTES}
+ HQ3_MATCHED_DESERT_PALETTE,BARRACKS_HQ3_CHARCOAL_ROOF,CAMOUFLAGE_PALETTES}
  from '../scripts/webgl-faction-accents.js';
 
 function testMaterial(name,hex,owner=0,type='building',kind='headquarters'){
@@ -76,7 +76,8 @@ test('HQ3-style desert paint darkens barracks and Bastion MK2 without hiding sig
     fragmentShader:'#include <common>\n#include <color_fragment>'};
    p.mesh.material.onBeforeCompile(shader,null);
    assert.ok(shader.fragmentShader.includes(HQ3_MATCHED_DESERT_PALETTE.wall[1]));
-   assert.ok(shader.fragmentShader.includes(HQ3_MATCHED_DESERT_PALETTE.roof[1]));
+   assert.ok(shader.fragmentShader.includes(
+    kind==='barracks'?BARRACKS_HQ3_CHARCOAL_ROOF[1]:HQ3_MATCHED_DESERT_PALETTE.roof[1]));
    assert.ok(shader.fragmentShader.includes('sfRoofPaint'));
    assert.ok(shader.vertexShader.includes('sfDesertUp'));
   }finally{p.dispose();}
@@ -92,6 +93,26 @@ test('HQ3-style desert paint darkens barracks and Bastion MK2 without hiding sig
   assert.equal(signal.mesh.material.userData.sandforgeCamouflageBiome,undefined);
  }finally{signal.dispose();}
 });
+test('every desert facility inherits HQ3 dark olive camouflage while protected details stay legible',()=>{
+ setWorldCamouflageBiome('desert');
+ for(const kind of ['factory','research','silo','generator','interceptor','airfield','headquarters']){
+  const p=testMaterial('SF_olive','#dfd9c7',0,'building',kind);
+  try{
+   assert.equal(p.count,1,kind);
+   const shader={vertexShader:'#include <common>\n#include <begin_vertex>',
+    fragmentShader:'#include <common>\n#include <color_fragment>'};
+   p.mesh.material.onBeforeCompile(shader,null);
+   assert.ok(shader.fragmentShader.includes(HQ3_MATCHED_DESERT_PALETTE.wall[1]),
+    kind+' should share HQ3 olive wall paint');
+   assert.equal(p.mesh.material.userData.sandforgeCamouflageBiome,'desert');
+  }finally{p.dispose();}
+ }
+ for(const name of ['SF_glass','Radar_Dish','SF_blue_glow','Door_Shutter','Warning_Lamp']){
+  assert.equal(shouldTintFactionSurface('factory','building',name,'static__'+name),
+   false,name+' detail should not be painted');
+ }
+});
+
 test('snow/jungle Bastion and barracks use the original per-biome palettes',()=>{
  for(const biome of ['snow','jungle']){
   setWorldCamouflageBiome(biome);
