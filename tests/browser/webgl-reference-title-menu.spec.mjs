@@ -25,7 +25,7 @@ for(const {width,height} of [{width:1648,height:928},{width:390,height:844}]){
     buttonBorder:css.borderTopWidth,buttonText:css.color,
     buttonVisible:css.visibility==='visible'&&css.display!=='none'};
   });
-  expect(layout.background).toMatch(/title-hero\.svg|sandforge-start-background\.webp/);
+  expect(layout.background).toMatch(/title-hero\.svg|sandforge-start-background\.png/);
   expect(layout.direction).toBe('column');
   expect(Math.abs(layout.midX-width/2)).toBeLessThan(12);
   expect(Math.abs(layout.midY-height*.62)).toBeLessThan(width>720?24:34);
