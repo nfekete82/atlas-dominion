@@ -7,9 +7,9 @@ import {strategicGlbUrl,applyStrategicGlbFinish} from '../scripts/webgl-strategi
 import {setWorldCamouflageBiome,tintFactionMaterials,shouldTintFactionSurface} from '../scripts/webgl-faction-accents.js';
 
 const file='src/assets/reborn/buildings-3d/sandforge_funkzentrale_hq3_game_ready.glb';
-test('HQ3 Funkzentrale is the ACTIVE HQ, preserving its original 32 meshes and nine textures',()=>{
+test('HQ3 Funkzentrale is used during building and after completion with original meshes and textures',()=>{
  assert.ok(strategicGlbUrl('headquarters','active').endsWith('sandforge_funkzentrale_hq3_game_ready.glb'));
- assert.ok(strategicGlbUrl('headquarters','inactive').endsWith('sandforge_feldkommando_offline.glb'));
+ assert.equal(strategicGlbUrl('headquarters','inactive'),strategicGlbUrl('headquarters','active'));
  const bytes=readFileSync(file);
  assert.equal(bytes.length,2805328);
  assert.equal(bytes.toString('ascii',0,4),'glTF');
@@ -63,6 +63,9 @@ test('authored stencil, insignia and warning beacons are exempt from broad camou
  const construction=readFileSync('scripts/webgl-construction-assembly.js','utf8');
  assert.ok(code.includes("ensureTexturedHqRadarPivot(entry.detail)"));
  assert.ok(code.includes("['barracks','headquarters'].includes(kind)?"));
+ assert.ok(code.includes("this.placementFacing=['research','barracks'].includes(kind)?1:0"));
+ assert.ok(!code.includes("['research','barracks','headquarters'].includes(kind)?1:0"));
+ assert.ok(code.includes("task.entry.kind!=='headquarters'"));
  assert.ok(portraits.includes("strategicGlbUrl(kind,'active')"));
  assert.ok(construction.includes("'headquarters'"));
 });
