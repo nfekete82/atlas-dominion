@@ -350,6 +350,11 @@ export class SandforgeBattlefield {
    }
   }
   if(entry.kind==='headquarters'){
+   const stylizedRadar=entry.detail?.getObjectByName('HQ_RADAR_PIVOT');
+   if(stylizedRadar){
+    entry.motion={kind:'headquarters',rotor:stylizedRadar,mode:'stylized-radar'};
+    return;
+   }
    const authoredRadar=ensureTexturedHqRadarPivot(entry.detail);
    const activeRadar=ensureTexturedHqRadarPivot(entry.variantDetail);
    if(authoredRadar||activeRadar){
