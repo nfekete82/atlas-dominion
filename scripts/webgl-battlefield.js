@@ -217,6 +217,13 @@ export class SandforgeBattlefield {
   // The Meshy replacement is opt-in and only activates after installation.
   const replacement=meshyAsset(kind,owner);
   if(replacement)return replacement;
+  // HQ3 is the author's completed Feldkommando with real baked camouflage,
+  // doors and satellite. The low-poly stylized HQ is an explicit opt-in only.
+  // Returning the same strategic GLB for both factions preserves team coloring,
+  // construction, doorway and repair behavior handled further downstream.
+  if(type==='building'&&kind==='headquarters'&&
+     new URLSearchParams(location.search).get('hq')!=='stylized')
+   return strategicGlbUrl('headquarters','active');
   if(new URLSearchParams(location.search).get('art')!=='legacy'){
    const authored=stylizedAsset(kind,owner);
    if(authored)return authored;
