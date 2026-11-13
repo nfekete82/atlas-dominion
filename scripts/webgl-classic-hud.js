@@ -121,7 +121,9 @@ export function installClassicHud(){
  toolsToggle.setAttribute('aria-label','Spielwerkzeuge und Optionen');
  toolsToggle.setAttribute('aria-controls','sf-tools');toolsToggle.setAttribute('aria-expanded','false');
  toolsToggle.innerHTML=svg('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.2 2.2M16.9 16.9l2.2 2.2M4.9 19.1l2.2-2.2M16.9 7.1l2.2-2.2"/>');
- top.append(toolsToggle);
+ // Keep the gear outside the transformed resource header. Otherwise
+ // position:fixed uses that header as its containing block on some layouts.
+ panel.append(toolsToggle);
  const sideActions=document.createElement('nav');
  sideActions.className='sf-modern-side-actions';
  sideActions.setAttribute('aria-label','Taktische Schnellaktionen');
