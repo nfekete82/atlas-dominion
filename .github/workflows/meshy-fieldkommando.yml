@@ -1,0 +1,43 @@
+name: Meshy Feldkommando QA
+
+on:
+  push:
+    branches: [feat/meshy-fieldkommando-20261114]
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'scripts/webgl-meshy-assets.js'
+      - 'scripts/webgl-battlefield.js'
+      - 'scripts/webgl-portraits.js'
+      - 'scripts/install-meshy-headquarters.mjs'
+      - 'tests/meshy-import.test.mjs'
+      - 'src/assets/meshy/headquarters.glb'
+      - '.github/workflows/meshy-fieldkommando.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fieldkommando:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Verify routing and no-regression fallback
+        run: node --test tests/meshy-import.test.mjs
+      - name: Build WebGL game
+        run: npm run build:3d
+      - name: Verify model included whenever imported
+        shell: bash
+        run: |
+          if test -s src/assets/meshy/headquarters.glb; then
+            cmp src/assets/meshy/headquarters.glb dist/src/assets/meshy/headquarters.glb
+          else
+            echo "NOTE: owner-approved HQ asset still awaiting binary commit"
+          fi

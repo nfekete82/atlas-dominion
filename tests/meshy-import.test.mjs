@@ -3,9 +3,13 @@ import assert from 'node:assert/strict';
 import {readFileSync,existsSync} from 'node:fs';
 import {meshyAsset,meshyEnabled,isMeshyAsset,meshyModelYaw} from '../scripts/webgl-meshy-assets.js';
 
-test('Meshy model replacement is opt-in and cannot surprise existing saves',()=>{
+test('Owner-selected Meshy HQ is default; other model swaps remain opt-in',()=>{
  assert.equal(meshyEnabled(''),false);
- assert.equal(meshyAsset('headquarters',0),null);
+ assert.equal(meshyAsset('headquarters',0),'/src/assets/meshy/headquarters.glb');
+ assert.equal(meshyAsset('headquarters',0,'?hq=hq3'),null);
+ assert.equal(meshyAsset('headquarters',0,'?hq=stylized'),null);
+ assert.equal(meshyAsset('headquarters',0,'?hq=original'),null);
+ assert.equal(meshyAsset('tank',0),null);
  assert.equal(meshyEnabled('?models=meshy'),true);
  assert.equal(meshyEnabled('?meshy=1'),true);
  assert.equal(meshyAsset('headquarters',0,'?models=meshy'),'/src/assets/meshy/headquarters.glb');
@@ -49,4 +53,12 @@ test('Optional rocket GLB must be independently authored rather than reusing the
  assert.equal(file.readUInt32LE(4),2);
  const tank='src/assets/meshy/tank.glb';
  if(existsSync(tank))assert.notDeepEqual(file,readFileSync(tank));
+});
+
+test('Missing Meshy HQ keeps HQ3 and never duplicates its baked radar',()=>{
+ const battlefield=readFileSync('scripts/webgl-battlefield.js','utf8');
+ assert.match(battlefield,/isMeshyAsset\(task\.url\)\&\&e\.kind==='headquarters'/);
+ assert.match(battlefield,/strategicGlbUrl\('headquarters','active'\)/);
+ assert.match(battlefield,/entry\.meshyStaticHQ/);
+ assert.match(battlefield,/entry\.motion=null;return/);
 });
