@@ -27,26 +27,36 @@ export const CAMOUFLAGE_PALETTES=Object.freeze({
  jungle:Object.freeze({name:'Olive/Forest',base:'#87936e',middle:'#526b45',dark:'#2e4936',
   rgb:['.53,.58,.41','.32,.43,.29','.18,.31,.22']})
 });
-export const DESERT_FINISH_REVISION='biome-camouflage-strong-v5-20261112';
+// The imported Kaserne has no authored camouflage texture. Use the HQ3's
+// dark olive/khaki character on its existing PBR geometry (no GLB edits).
+// The steep roof is intentionally charcoal instead of light sandstone.
+export const BARRACKS_HQ3_PALETTE=Object.freeze({
+ wall:Object.freeze(['.57,.52,.40','.39,.42,.32','.20,.27,.22']),
+ roof:Object.freeze(['.24,.27,.24','.21,.24,.21','.13,.17,.15'])
+});
+export const DESERT_FINISH_REVISION='biome-camouflage-hq-barracks-v6-20261113';
 let selectedCamouflageBiome='desert';
 export function setWorldCamouflageBiome(value){
  selectedCamouflageBiome=Object.hasOwn(CAMOUFLAGE_PALETTES,value)?value:'desert';
  return selectedCamouflageBiome;
 }
 export const worldCamouflageBiome=()=>selectedCamouflageBiome;
-function applyDesertBuildingCamo(material){
+function applyDesertBuildingCamo(material,style='standard'){
  const biome=selectedCamouflageBiome;
- const revision=DESERT_FINISH_REVISION+'-'+biome;
+ const barracksDesert=biome==='desert'&&style==='barracks';
+ const roof=barracksDesert&&/^SF_(?:olive|steel)(?:_dark|_light)?$/.test(material.name);
+ const revision=DESERT_FINISH_REVISION+'-'+biome+'-'+style+(roof?'-roof':'');
  if(material.userData?.sandforgeDesertFinish===revision)return;
  const oldCompile=material.onBeforeCompile;
- const colors=CAMOUFLAGE_PALETTES[biome].rgb;
+ const colors=barracksDesert?BARRACKS_HQ3_PALETTE.wall:CAMOUFLAGE_PALETTES[biome].rgb;
  material.onBeforeCompile=function(shader,renderer){
   oldCompile?.call(this,shader,renderer);
-  const varying='varying vec3 sfDesertWorld;';
+  const varying='varying vec3 sfDesertWorld;'+(roof?'\nvarying vec3 sfDesertUp;':'');
   shader.vertexShader=shader.vertexShader.replace('#include <common>',
    '#include <common>\n'+varying);
   shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',
-   '#include <begin_vertex>\nsfDesertWorld=(modelMatrix*vec4(transformed,1.0)).xyz;');
+   '#include <begin_vertex>\nsfDesertWorld=(modelMatrix*vec4(transformed,1.0)).xyz;'+
+   (roof?'\nsfDesertUp=normalize(mat3(modelMatrix)*normal);':''));
   shader.fragmentShader=shader.fragmentShader.replace('#include <common>',
    '#include <common>\n'+varying);
   // Three clearly separated irregular patches; do not merely colour a few
@@ -61,6 +71,14 @@ function applyDesertBuildingCamo(material){
    'float sfOlive=smoothstep(.42,.70,sfPatch);',
    'vec3 sfPaint=mix(vec3('+colors[0]+'),vec3('+colors[1]+'),sfKhaki);',
    'sfPaint=mix(sfPaint,vec3('+colors[2]+'),sfOlive);',
+   // Only upward-facing barracks armour gets the HQ's charcoal roof. The
+   // original door/window trim and wall silhouettes remain untouched.
+   ...(roof?[
+    'float sfRoof=smoothstep(.50,.78,max(sfDesertUp.y,0.0));',
+    'vec3 sfRoofPaint=mix(vec3('+BARRACKS_HQ3_PALETTE.roof[0]+'),vec3('+BARRACKS_HQ3_PALETTE.roof[1]+'),sfKhaki);',
+    'sfRoofPaint=mix(sfRoofPaint,vec3('+BARRACKS_HQ3_PALETTE.roof[2]+'),sfOlive);',
+    'sfPaint=mix(sfPaint,sfRoofPaint,sfRoof*.97);'
+   ]:[]),
    'float sfSurface=dot(diffuseColor.rgb,vec3(.2126,.7152,.0722));',
    'float sfRelief=clamp(.82+sfSurface*.24,.77,1.07);',
    'diffuseColor.rgb=mix(diffuseColor.rgb,clamp(sfPaint*sfRelief,0.0,1.0),.94);'
@@ -140,7 +158,7 @@ export function tintFactionMaterials(root,owner,kind,type){
       if(!keepNative){
        mat.roughness=Math.max(type==='building'?.84:.72,mat.roughness);
        mat.metalness=Math.min(type==='building'?.26:.48,mat.metalness);
-       applyDesertBuildingCamo(mat);
+       applyDesertBuildingCamo(mat,kind==='barracks'?'barracks':'standard');
       }
     }
     tinted++;
