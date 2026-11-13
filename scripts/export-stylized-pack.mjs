@@ -7,12 +7,14 @@ import {canonicalizeGlb} from './animation/canonical-glb.mjs';
 import {buildRover} from './art/stylized-rover.mjs';
 import {buildBarracks} from './art/stylized-barracks.mjs';
 import {buildSoldier} from './art/stylized-soldier.mjs';
+import {buildEngineer} from './art/stylized-engineer.mjs';
+import {buildHeadquarters} from './art/stylized-headquarters.mjs';
 import {ART_VERSION,PALETTE,METRES_TO_WORLD} from './art/stylized-kit.mjs';
 
 installOfflineCanvas();
 const directory=new URL('../src/assets/stylized/',import.meta.url);await mkdir(directory,{recursive:true});
 const check=process.argv.includes('--check'),models=[];
-for(const [kind,build] of [['rover',buildRover],['barracks',buildBarracks],['infantry',buildSoldier]])for(const owner of [0,1]){
+for(const [kind,build] of [['rover',buildRover],['barracks',buildBarracks],['infantry',buildSoldier],['engineer',buildEngineer],['headquarters',buildHeadquarters]])for(const owner of [0,1]){
  const model=build(owner);model.updateMatrixWorld(true);
  const bounds=new T.Box3().setFromObject(model),size=bounds.getSize(new T.Vector3());
  let triangles=0,primitives=0;model.traverse(n=>{if(n.isMesh){triangles+=(n.geometry.index?.count??n.geometry.attributes.position.count)/3;primitives++;}});
