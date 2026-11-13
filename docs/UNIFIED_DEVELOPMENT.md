@@ -67,3 +67,23 @@ Material-/Tür-/Satelliten-Verhalten. Das Baumenu rendert exakt dieses Modell.
 Zum Vergleichen kann optional `?hq=stylized` verwendet werden.
 Der optionale Meshy-HQ-Pfad `?models=meshy` hat weiterhin Vorrang
 und funktioniert nur, wenn das separate Meshy-Bündel installiert wurde.
+
+## Neues Feldkommando: Meshy LowPoly Military HQ (13.11.2026)
+**Verbindliches Standardmodell:** `sandforge_feldkommando_meshy.glb`, exakt
+aus dem vom Nutzer bereitgestellten Original
+`Meshy_AI_LowPoly_Military_HQ_1113224548_texture(1).glb`.
+- Größe: 7.258.044 Bytes, SHA-256
+  `3cd32f7845dcf64707d71c682a0a3985e929ab18a42d76684ba5937153f63bf3`
+- Ein zusammenhängendes Mesh, 20.899 Vertices, 13.766 Dreiecke,
+  drei eingebettete JPEG-Texturen, **keine** Animationen/door pivots.
+- Ingame, Bauvorschau und Gebäude-Kachel verwenden dasselbe Mesh.
+- Geometrie und PBR-Texturen bleiben erhalten; Bau-/Einheiten-/Save-Logik
+  unverändert. Die Produktions-Schiebetür ist ein **separates visuelles Overlay**,
+  keine nachträglich behauptete native GLB-Animation.
+- Das Modell selbst ist nicht in der Git-Quellcodeintegration enthalten,
+  sondern im herunterladbaren Original-Asset-Paket. Installation erfolgt
+  lokal über das mitgelieferte Installationsskript und anschließend über
+  einen normalen Git-Push des GLB.
+- Ohne GLB bleibt die bisherige HQ3 Funkzentrale ein funktionierender
+  Rückfall. Vergleich: `?hq=hq3`, `?hq=stylized`; Tür bei
+  falscher Frontseite testweise `?hqEntrance=rear`.

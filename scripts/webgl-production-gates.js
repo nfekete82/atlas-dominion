@@ -42,6 +42,60 @@ export function prepareHeadquartersPortal(entry){
    return portal;
   }
  }
+ // The Meshy GLB has one textured mesh, not independently animatable doors.
+ // Build a harmless visual entrance in normalized world-space units, instead
+ // of using the legacy HQ3 source coordinates (-2.08,.75,5.58 metres).
+ // Simulation and savegame production timing stay authoritative.
+ if(model.userData?.sandforgeMeshyHeadquarters){
+  const footprint=Math.max(90,entry.modelFootprint||160);
+  const height=Math.max(95,entry.modelHeight||140);
+  const width=THREE.MathUtils.clamp(footprint*.20,24,43);
+  const doorHeight=THREE.MathUtils.clamp(height*.29,33,53);
+  const facadeZ=footprint*.41;
+  const root=new THREE.Group();
+  root.name='MeshyHQ_AnimatedEntrance';
+  const rear=new URLSearchParams(location.search).get('hqEntrance')==='rear';
+  root.position.set(0,.4,(rear?-1:1)*facadeZ);
+  if(rear)root.rotation.y=Math.PI;
+  root.userData.portal={
+   inside:[0,doorHeight*.32,-Math.max(22,width*.65)],
+   outside:[0,0,Math.max(36,width*1.15)],
+   lamp:[0,doorHeight*.87,.7]
+  };
+  entry.node.add(root);
+  const dark=new THREE.MeshStandardMaterial({
+   name:'MeshyHQ_DoorRecess',color:'#090f13',roughness:.96,side:THREE.DoubleSide
+  });
+  const panel=new THREE.MeshStandardMaterial({
+   name:'MeshyHQ_DoorSteel',color:'#43473c',metalness:.32,roughness:.72
+  });
+  const edging=new THREE.MeshStandardMaterial({
+   name:'MeshyHQ_DoorEdge',color:'#9d956c',metalness:.48,roughness:.46
+  });
+  const hall=new THREE.Mesh(new THREE.BoxGeometry(width+1,doorHeight,.26),dark);
+  hall.position.set(0,doorHeight*.50,.12);
+  hall.name='MeshyHQ_DoorInterior';root.add(hall);
+  const leaves=[];
+  for(const side of [-1,1]){
+   const leaf=new THREE.Group();
+   leaf.name=side<0?'MeshyHQ_DoorL':'MeshyHQ_DoorR';
+   leaf.position.x=side*width*.25;
+   const slab=new THREE.Mesh(
+    new THREE.BoxGeometry(width*.50,doorHeight*.96,.22),panel);
+   slab.position.set(0,doorHeight*.5,.31);leaf.add(slab);
+   const band=new THREE.Mesh(
+    new THREE.BoxGeometry(.52,doorHeight*.85,.30),edging);
+   band.position.set(-side*width*.19,doorHeight*.5,.48);leaf.add(band);
+   root.add(leaf);
+   leaves.push({leaf,baseX:side*width*.25,side});
+  }
+  root.traverse(part=>{
+   if(part.isMesh){part.castShadow=true;part.receiveShadow=true;part.raycast=()=>{};}
+  });
+  const portal={root,hall,leaves,materials:[dark,panel,edging],open:0,
+   travel:width*.36};
+  entry.headquartersPortal=portal;return portal;
+ }
  const root=new THREE.Group();root.name='HQ3FrontEntrancePortal';
  root.position.set(-2.08,.75,5.58);
  model.add(root);
@@ -133,8 +187,8 @@ export class SandforgeProductionGates {
    const lampMaterial=new THREE.MeshStandardMaterial({color:'#725638',
     emissive:'#ffa333',emissiveIntensity:0});
    const lamp=new THREE.Mesh(bulbGeometry,lampMaterial);
-   lamp.position.set(...(portal.authored?
-     (portal.root.userData.portal?.lamp??[0,2.9,4.4]):[-1.2,3.26,.26]));
+   lamp.position.set(...(portal.root.userData.portal?.lamp??
+     (portal.authored?[0,2.9,4.4]:[-1.2,3.26,.26])));
    lamp.visible=false;portal.root.add(lamp);
    entry.gate={kind:'headquarters',root:portal.root,portal,door:null,
     hall:portal.hall,lamp,dust:null,ramp:null};

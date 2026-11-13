@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {stylizedAsset,isStylizedAsset,stylizedProfile} from './webgl-stylized-pack.js';
-import {meshyAsset,isMeshyAsset,meshyModelYaw} from './webgl-meshy-assets.js';
+import {meshyAsset,isMeshyAsset,meshyModelYaw,SANDFORGE_DEFAULT_FELDKOMMANDO_URL,isDefaultFeldkommandoAsset} from './webgl-meshy-assets.js';
 import {SandforgeProductionGates} from '/webgl-production-gates.js';
 import {updateBarracksPortalPlanes} from '/webgl-barracks-portal.js';
 import {nextPeriodicRefresh} from '/webgl-frame-scheduling.js';
@@ -217,13 +217,14 @@ export class SandforgeBattlefield {
   // The Meshy replacement is opt-in and only activates after installation.
   const replacement=meshyAsset(kind,owner);
   if(replacement)return replacement;
-  // HQ3 is the author's completed Feldkommando with real baked camouflage,
-  // doors and satellite. The low-poly stylized HQ is an explicit opt-in only.
-  // Returning the same strategic GLB for both factions preserves team coloring,
-  // construction, doorway and repair behavior handled further downstream.
-  if(type==='building'&&kind==='headquarters'&&
-     new URLSearchParams(location.search).get('hq')!=='stylized')
-   return strategicGlbUrl('headquarters','active');
+  // Primary Feldkommando: the user's newly uploaded Meshy HQ with embedded
+  // PBR textures. Legacy variants remain selectable for comparison.
+  if(type==='building'&&kind==='headquarters'){
+   const hq=new URLSearchParams(location.search).get('hq');
+   if(hq!=='stylized'&&hq!=='hq3'&&hq!=='legacy')
+    return SANDFORGE_DEFAULT_FELDKOMMANDO_URL;
+   if(hq!=='stylized')return strategicGlbUrl('headquarters','active');
+  }
   if(new URLSearchParams(location.search).get('art')!=='legacy'){
    const authored=stylizedAsset(kind,owner);
    if(authored)return authored;
@@ -362,6 +363,9 @@ export class SandforgeBattlefield {
    }
   }
   if(entry.kind==='headquarters'){
+   // The imported Meshy export is one mesh without a rotating radar pivot.
+   // A generic rotor would float above its textured roof: do not add one.
+   if(entry.detail?.userData.sandforgeMeshyHeadquarters)return;
    const stylizedRadar=entry.detail?.getObjectByName('HQ_RADAR_PIVOT');
    if(stylizedRadar){
     entry.motion={kind:'headquarters',rotor:stylizedRadar,mode:'stylized-radar'};
@@ -420,13 +424,16 @@ export class SandforgeBattlefield {
    const promise=variantUrl?
     Promise.all([this.getModel(task.url),this.getModel(variantUrl)]):
     this.getModel(task.url).catch(error=>{
-     if(!isStylizedAsset(task.url)&&!isMeshyAsset(task.url))throw error;
+     if(!isStylizedAsset(task.url)&&!isMeshyAsset(task.url)&&
+        !isDefaultFeldkommandoAsset(task.url))throw error;
      // If an optional Meshy file has not yet been installed, load the
      // original authored rig and preserve the game. Tank and artillery
      // were previously wrongly mapped to prototype/ on fallback.
      const e=task.entry;
      const authored=stylizedAsset(e.kind,e.owner);
-     const old=isMeshyAsset(task.url)&&authored ? authored:
+     const old=isDefaultFeldkommandoAsset(task.url)?
+      strategicGlbUrl('headquarters','active'):
+      isMeshyAsset(task.url)&&authored ? authored:
       task.type==='building' ? strategicGlbUrl(e.kind,'active'):
       '/src/assets/reborn/'+
        (e.kind==='rocket'?'prototype/infantry-':
@@ -440,6 +447,8 @@ export class SandforgeBattlefield {
     const {entry,type}=task;
     if(!entry.node.parent)return;
     const model=cloneSkeleton(data.scene);
+    if(isDefaultFeldkommandoAsset(task.url)&&!entry.meshyFallback)
+     model.userData.sandforgeMeshyHeadquarters=true;
     if(isMeshyAsset(task.url)&&!entry.meshyFallback)model.rotation.y+=meshyModelYaw(entry.kind);
     const authoredStyle=stylizedProfile(model);
     if(authoredStyle)model.userData={...model.userData,...authoredStyle};
@@ -752,7 +761,10 @@ export class SandforgeBattlefield {
   this.buildPreviewScene.add(group);
   this.buildPreview=group;group.visible=false;
   if(isStrategicBuilding(kind)&&!isStrategicGlbKind(kind))return; // other strategic types use procedural preview
-  this.getModel(this.asset(kind,0,'building')).then(data=>{
+  this.getModel(this.asset(kind,0,'building')).catch(error=>{
+   if(kind!=='headquarters')throw error;
+   return this.getModel(strategicGlbUrl('headquarters','active'));
+  }).then(data=>{
    if(this.buildPreview!==group||this.buildKind!==kind)return;
    const model=cloneSkeleton(data.scene);
    if(kind==='barracks')simplifyBarracksSilhouette(model);
