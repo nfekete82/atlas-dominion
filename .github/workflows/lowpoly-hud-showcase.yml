@@ -1,0 +1,44 @@
+name: Sandforge Low-Poly HUD QA
+on:
+  push:
+    branches:
+      - feat/lowpoly-hud-showcase-20261113
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  hud:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install Sandforge dependencies
+        run: npm ci
+      - name: Build the actual 3D game
+        run: npm run build:3d
+      - name: Check HUD contract, unchanged game entry, model rig and assets
+        run: node --test tests/webgl-hud-showcase.test.mjs tests/sandforge-webgl-entry.test.mjs tests/stylized-pack.test.mjs
+      - name: Install browser test tools
+        run: npm --prefix tests/browser install --no-audit --no-fund
+      - name: Install headless Chromium
+        run: cd tests/browser && npx playwright install --with-deps chromium
+      - name: Test real menus, HUD layouts and capture screenshots
+        env:
+          SANDFORGE_BROWSER_CHANNEL: chromium
+          SANDFORGE_TEST_PORT: '8197'
+        run: node tests/browser/node_modules/playwright/cli.js test --config=tests/browser/playwright.config.mjs webgl-hud-showcase.spec.mjs
+      - name: Upload browser screenshots and failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandforge-lowpoly-hud-qa
+          path: |
+            tests/browser/artifacts/webgl-hud-*.png
+            tests/browser/artifacts/report
+            tests/browser/artifacts/runs
+          if-no-files-found: ignore
+          retention-days: 7
