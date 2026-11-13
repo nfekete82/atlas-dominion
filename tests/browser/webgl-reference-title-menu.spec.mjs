@@ -22,17 +22,35 @@ for(const {width,height} of [{width:1648,height:928},{width:390,height:844}]){
     logoLeft:b.left,logoRight:b.right,logoTop:b.top,logoBottom:b.bottom,
     logoMiddle:b.left+b.width/2};
   });
-  expect(layout.background).toContain('title-hero.svg');
+  const originalReady=await page.evaluate(()=>document.documentElement.classList.contains('sf-original-art-ready'));
+  expect(layout.background).toContain(originalReady?'sandforge-title-reference.png':'title-hero.svg');
   expect(layout.buttonDirection).toBe('column');
   expect(layout.menuLeft).toBeGreaterThanOrEqual(-1);
   expect(layout.menuRight).toBeLessThanOrEqual(width+1);
   expect(layout.menuBottom).toBeLessThanOrEqual(height+1);
-  expect(layout.logoLeft).toBeGreaterThanOrEqual(-1);
-  expect(layout.logoRight).toBeLessThanOrEqual(width+1);
-  expect(Math.abs(layout.logoMiddle-width/2)).toBeLessThan(12);
-  expect(layout.logoBottom).toBeLessThan(layout.menuTop);
+  if(!originalReady){
+   expect(layout.logoLeft).toBeGreaterThanOrEqual(-1);
+   expect(layout.logoRight).toBeLessThanOrEqual(width+1);
+   expect(Math.abs(layout.logoMiddle-width/2)).toBeLessThan(12);
+   expect(layout.logoBottom).toBeLessThan(layout.menuTop);
+   await expect(page.locator('#main-dialog .sandforge-splash-logo')).toBeVisible();
+  }else{
+   await expect(page.locator('#main-dialog .sandforge-splash-logo')).toBeHidden();
+   if(width>720){
+    const geometry=await page.evaluate(()=>{
+     const ratio=Math.max(innerWidth/1672,innerHeight/941);
+     const left=(innerWidth-1672*ratio)/2+33*ratio;
+     const top=(innerHeight-941*ratio)/2+283*ratio;
+     const rect=document.querySelector('#sf3d-new').getBoundingClientRect();
+     return {expectedLeft:left,expectedTop:top,actualLeft:rect.left,actualTop:rect.top,
+       actualHeight:rect.height};
+    });
+    expect(Math.abs(geometry.actualLeft-geometry.expectedLeft)).toBeLessThan(3);
+    expect(Math.abs(geometry.actualTop-geometry.expectedTop)).toBeLessThan(3);
+    expect(geometry.actualHeight).toBeGreaterThan(50);
+   }
+  }
   if(width>720)expect(layout.menuLeft).toBeLessThan(width/4);
-  await expect(page.locator('#main-dialog .sandforge-splash-logo')).toBeVisible();
   expect(errors).toEqual([]);
  });
 }
