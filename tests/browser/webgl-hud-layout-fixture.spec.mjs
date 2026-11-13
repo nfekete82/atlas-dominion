@@ -117,7 +117,7 @@ test('shipping HUD occupies reference screenshot positions at 1600×900',async({
  expect(compact.firstDivider).toBe('none');
  expect(compact.secondDivider).toBe('block');
  expect(compact.dividerWidth).toBe('1px');
- expect(compact.dividerColor).toMatch(/^rgba\\(/);
+ expect(compact.dividerColor.startsWith('rgba(')).toBe(true);
  const labels=await page.evaluate(()=>[...document.querySelectorAll('[data-sf-group="buildings"] .card-name')].map(el=>{
   const rect=el.getBoundingClientRect();
   const tile=el.closest('.catalog-card').getBoundingClientRect();
