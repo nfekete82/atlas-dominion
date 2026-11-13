@@ -124,6 +124,7 @@ test('stylized headquarters opens its own real doors and preserves production la
  assert.ok(data.animations.some(c=>c.name==='ProductionDoor'));
  const {prepareHeadquartersPortal,setHeadquartersDoorOpen,disposeHeadquartersPortal}=
   await import('../scripts/webgl-production-gates.js');
+ const host=new T.Group();host.add(model);
  const entry={detail:model},portal=prepareHeadquartersPortal(entry);
  assert.equal(portal.authored,true,'do not overlay the HQ3 fake doorway');
  const before=[left.position.x,right.position.x];
