@@ -5,14 +5,15 @@ import {readFileSync} from 'node:fs';
 import {TEAM_MARKING_COLORS,VEHICLE_PAINT_REVISION,selectVehiclePaintMeshes,
  attachTeamMarkings,detachTeamMarkings} from '../scripts/webgl-team-markings.js';
 
-test('infantry keep blue/red armbands without white floating signposts',()=>{
+test('infantry use real faction-tinted armour without floating rectangular armbands',()=>{
  assert.equal(TEAM_MARKING_COLORS[0],'#28769b');
  assert.equal(TEAM_MARKING_COLORS[1],'#a84f42');
  for(const owner of [0,1])for(const kind of ['infantry','medic','rocket','heavy']){
   const node=new THREE.Group(),entry={node};
   const group=attachTeamMarkings(entry,owner,kind,30,40);
-  assert.ok(group.getObjectByName('TeamArmband_Left'));
-  assert.ok(group.getObjectByName('TeamArmband_Right'));
+  assert.equal(group.children.length,0,
+   'the soldier carries no detached rectangular armband or chest billboard');
+  assert.equal(group.userData.paintedMeshCount,0);
   assert.equal(group.getObjectByName('TeamFlagpole'),undefined);
   assert.equal(attachTeamMarkings(entry,owner,kind,30,40),group);
   detachTeamMarkings(entry);
