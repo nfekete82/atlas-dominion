@@ -1,6 +1,7 @@
 import {UNITS,BUILDINGS,MAX_GENERATORS_PER_FACTION,unitSpec,canAttack,type UnitKind,type BuildingKind} from './catalog.js';
 import {distance,type Point} from './config.js';
 import {produceCombinedArmy} from './director-production.js';
+import {rocketInfantryQuota,bomberAntiArmorQuota} from './ai-counter-doctrine.js';
 import {buildBastionDefense,defensiveTowerLimit,rankBastionDefenses} from './bastion-defense.js';
 import {aiBuildSiteScore} from './construction-spacing.js';
 import {defenseLessonsLost} from './battle-learning.js';
@@ -153,21 +154,32 @@ export function developArmy(g:Simulation,s:TacticalState,army:Unit[],dangerAt:(p
  // Once scouts have actually identified the enemy HQ, a paid siege weapon is
  // worth waiting for. Fogged, unknown bases must not count as revealed.
  const knownEnemyHQ=military.some(b=>b.kind==='headquarters');
+ const desiredRockets=rocketInfantryQuota({fighters:fighters.length,time:g.time,
+  vehicles:armor,air,barracksReady:complete('barracks'),underAttack});
+ const antiArmorBomberQuota=bomberAntiArmorQuota({
+  airfieldReady:complete('airfield'),income,fighters:fighters.length,
+  groundVehicles:count('rover')+count('tank')+count('artillery'),
+  enemyArmor:armor,enemyAir:air,underAttack,finishing
+ });
  const scores:Record<UnitKind,number>={
   infantry:Math.max(1,22-count('infantry')*5)+(fighters.length<4?18:0),
   heavy:14+(known?20+known*10:0)+armor*5+(fighters.length>=3?9:0)-count('heavy')*11,
-  rocket:(air>0?46+air*9:armor>=2?22+armor*7:0)-count('rocket')*22,
+  rocket:(desiredRockets>count('rocket')?52+(air>0?air*12:armor>0?armor*9:0):0)-count('rocket')*9,
   medic:(wounded>=2?30:Math.max(0,fighters.length-2)*4)-count('medic')*20,
   engineer:count('engineer')===0?(!complete('barracks')?80:fighters.length>=2?38:0):own.length>=4&&count('engineer')<2?15:0,
   rover:complete('factory')?35+(g.explored[1].reduce((n,v)=>n+v,0)/g.explored[1].length<.4?6:0)-count('rover')*17:0,
   tank:complete('factory')?44+known*4+armor*6-count('tank')*16:0,
   artillery:complete('factory')&&(known||fighters.length>=5)?32+known*14-count('artillery')*32:0,
   scout:complete('airfield')&&fighters.length>=4?25-count('scout')*35:0,
-  bomber:complete('airfield')&&count('scout')>0&&income>=65&&fighters.length>=6&&military.length?22+military.filter(b=>b.kind==='factory'||b.kind==='airfield').length*3-count('bomber')*25:0,
+  bomber:antiArmorBomberQuota>count('bomber')
+   ?58+armor*10-count('bomber')*12
+   :complete('airfield')&&count('scout')>0&&income>=65&&fighters.length>=6&&military.length
+    ?22+military.filter(b=>b.kind==='factory'||b.kind==='airfield').length*3-count('bomber')*25:0,
  };
  if(finishing){
   // Preserve a paid replacement builder, but put other spending into the army.
-  scores.bomber=0;scores.engineer=count('engineer')===0?80:0;
+  if(!antiArmorBomberQuota)scores.bomber=0;
+  scores.engineer=count('engineer')===0?80:0;
  }
  if(underAttack&&fighters.length<4){scores.infantry+=20;scores.heavy+=15;}
  if(air){scores.artillery=0;scores.bomber=0;}

@@ -3,7 +3,8 @@ import { Renderer } from './renderer.js';
 import { Simulation, type Weapon } from './simulation.js';
 import {UnitRadio,type PlayerOrder} from './unit-radio.js';
 import {UnitLossMonitor} from './unit-loss-monitor.js';
-import {TacticalMusic,musicCombatLevel} from './tactical-music.js';
+import {musicCombatLevel} from './tactical-music.js';
+import {RecordedSoundtrack} from './recorded-soundtrack.js';
 import {unitSpec} from './catalog.js';
 import {ENGINE_KINDS,ENGINE_PROFILES,measuredEngineSpeed,vehicleSoundMix,engineAudibleGain,engineAudibleRadius,type EngineKind} from './vehicle-soundscape.js';
 
@@ -38,11 +39,19 @@ export function ambientActivity(g:Simulation,center:Point,visible:(p:Point)=>boo
  }
  return {motors:clamp(motors,0,2.4),generator:clamp(generator,0,1.8)};
 }
+/** Prefer an installed local German voice, but do not silently suppress
+ * all tactical speech in browsers that expose German voices with
+ * localService=false (notably Chromium/macOS). A language-tagged platform
+ * default remains usable while the asynchronous voice list initializes. */
+export function preferredGermanVoice(voices:readonly SpeechSynthesisVoice[]):SpeechSynthesisVoice|null {
+ const german=voices.filter(v=>v.lang?.toLowerCase().startsWith('de'));
+ return german.find(v=>v.localService)??german[0]??null;
+}
 /** Local sound design: synthesized effects and a separate pre-authored speech channel. */
 export class Soundscape {
   context:AudioContext|null=null;
-  musicEnabled=true;musicVolume=.30;effectsVolume=.85;
-  private music:TacticalMusic|null=null;
+  musicEnabled=true;musicVolume=.22;effectsVolume=.85;
+  private music:RecordedSoundtrack|null=null;
   private radioDucking=false;
   analyser:AnalyserNode|null=null;
   enabled=true; volume=.6; ambience=true; engineSoundsEnabled=true;
@@ -69,7 +78,7 @@ export class Soundscape {
       const a=this.context=new AudioContext();this.master=a.createGain();this.master.gain.value=this.enabled?this.volume:0;
       this.effects=a.createGain();this.effects.gain.value=this.effectsVolume;
       this.effects.connect(this.master);
-      this.music=new TacticalMusic(a,this.master);
+      this.music=new RecordedSoundtrack(a,this.master);
       this.music.setEnabled(this.musicEnabled);this.music.setVolume(this.musicVolume);
       this.radio.attach(a,this.master);
       this.analyser=a.createAnalyser();this.analyser.fftSize=256;const limiter=a.createDynamicsCompressor();limiter.threshold.value=-14;limiter.knee.value=8;limiter.ratio.value=8;limiter.attack.value=.003;limiter.release.value=.13;this.master.connect(limiter);limiter.connect(this.analyser);this.analyser.connect(a.destination);
@@ -106,6 +115,12 @@ export class Soundscape {
         this.engineVoices.set(kind,{gain,pan,engine,harmonic,noise,pulseDepth,previousMotion:0});
       }
     }
+    // The music element must receive play() from the SAME user gesture that
+    // unlocks WebAudio. Calling it only after the asynchronous resume may
+    // lose transient user activation in Chromium/Safari.
+    this.music?.update(this.game?.time??0,0,
+      this.musicEnabled&&this.enabled&&this.volume>0&&!this.game?.paused&&
+      (typeof document==='undefined'||!document.hidden));
     if(this.context.state==='suspended')await this.context.resume();
     this.radio.flush();
   }
@@ -144,12 +159,11 @@ export class Soundscape {
     this.tone(820,.11,.085);this.tone(630,.16,.065,.13);
     if(!this.radio.enabled||this.radio.volume<=0||typeof window==='undefined'||
        !('speechSynthesis' in window)||typeof SpeechSynthesisUtterance==='undefined')return;
-    const voices=window.speechSynthesis.getVoices();
-    const voice=voices.find(v=>v.lang.toLowerCase().startsWith('de')&&v.localService);
-    if(!voice)return; // Fall back to tone + printed alert, never a cloud voice.
+    const voice=preferredGermanVoice(window.speechSynthesis.getVoices());
     this.radio.stop();
     const utterance=new SpeechSynthesisUtterance('Captain, wir werden angegriffen!');
-    utterance.voice=voice;utterance.lang='de-DE';utterance.rate=1.04;utterance.pitch=.88;
+    if(voice)utterance.voice=voice;
+    utterance.lang='de-DE';utterance.rate=1.04;utterance.pitch=.88;
     utterance.volume=Math.min(.68,this.volume*this.radio.volume*.92);
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
@@ -169,12 +183,11 @@ export class Soundscape {
     if(!this.radio.enabled||this.radio.volume<=0||
        typeof window==='undefined'||!('speechSynthesis' in window)||
        typeof SpeechSynthesisUtterance==='undefined')return;
-    const voice=window.speechSynthesis.getVoices().find(v=>
-      v.localService&&v.lang.toLowerCase().startsWith('de'));
-    if(!voice)return;
+    const voice=preferredGermanVoice(window.speechSynthesis.getVoices());
     this.radio.stop();
     const u=new SpeechSynthesisUtterance('Feindlicher Raketenstart erkannt!');
-    u.voice=voice;u.lang='de-DE';u.rate=1.02;u.pitch=.88;
+    if(voice)u.voice=voice;
+    u.lang='de-DE';u.rate=1.02;u.pitch=.88;
     u.volume=Math.min(.76,this.volume*this.radio.volume*.97);
     u.onend=()=>this.music?.setDucking(false);
     u.onerror=()=>this.music?.setDucking(false);
@@ -198,14 +211,13 @@ export class Soundscape {
     if(!this.radio.enabled||this.radio.volume<=0||
        typeof window==='undefined'||!('speechSynthesis' in window)||
        typeof SpeechSynthesisUtterance==='undefined')return;
-    const voice=window.speechSynthesis.getVoices().find(v=>
-      v.localService&&v.lang.toLowerCase().startsWith('de'));
-    if(!voice)return;
+    const voice=preferredGermanVoice(window.speechSynthesis.getVoices());
     // A casualty report has priority over an ordinary order confirmation;
     // reusing the existing radio channel avoids overlapping announcements.
     this.radio.stop();
     const utterance=new SpeechSynthesisUtterance('Einheit verloren');
-    utterance.voice=voice;utterance.lang='de-DE';
+    if(voice)utterance.voice=voice;
+    utterance.lang='de-DE';
     utterance.rate=1.03;utterance.pitch=.86;
     utterance.volume=Math.min(.70,this.volume*this.radio.volume*.95);
     window.speechSynthesis.cancel();
@@ -221,28 +233,53 @@ export class Soundscape {
   }
   private lastStrategicWarning=-Infinity;
   private lastReadySignal=-Infinity;
-  /** Player-only construction/production cue, with no external TTS service.
-   * Every completion is logged in the HUD; busy production lines share a short
-   * signal rather than interrupting radio or flooding the speaker. */
+  private pendingReadySpeech:'building'|'unit'|null=null;
+  private nextReadySpeechAt=0;
+  /** A completion is an audible tactical event even when the unit radio
+   * happens to be speaking. Queue at most ONE pending completion and deliver
+   * it as soon as the shared voice channel is free. This avoids dropping
+   * "Bau abgeschlossen" during busy firefights and bounds voice traffic. */
   announceReady(kind:'building'|'unit'):void {
     const a=this.context;
     if(!a||!this.enabled||this.volume<=0||document.hidden||a.state!=='running')return;
-    if(a.currentTime-this.lastReadySignal<2.1)return;
+    if(a.currentTime-this.lastReadySignal<1.6){
+      if(kind==='building')this.pendingReadySpeech='building';
+      return;
+    }
     this.lastReadySignal=a.currentTime;
     if(kind==='building'){
       this.tone(620,.13,.075);this.tone(930,.19,.063,.13);
     }else{
       this.tone(760,.09,.06);this.tone(1050,.14,.05,.10);
     }
-    if(!this.radio.enabled||this.radio.volume<=0||this.radio.active>0||
+    // Buildings take precedence over routine unit-ready messages.
+    if(kind==='building'||!this.pendingReadySpeech)
+      this.pendingReadySpeech=kind;
+    this.flushReadySpeech();
+  }
+  /** Called on ordinary sound updates; never spins up a timer or speaks
+   * over an attack warning, loss message or pre-recorded radio order. */
+  flushReadySpeech():void {
+    const kind=this.pendingReadySpeech,a=this.context;
+    if(!kind||!a||!this.enabled||this.volume<=0||a.state!=='running'||
+       (typeof document!=='undefined'&&document.hidden)||
+       a.currentTime<this.nextReadySpeechAt||this.radio.active>0||
+       !this.radio.enabled||this.radio.volume<=0||
        typeof window==='undefined'||!('speechSynthesis' in window)||
-       typeof SpeechSynthesisUtterance==='undefined'||window.speechSynthesis.speaking)return;
-    const voice=window.speechSynthesis.getVoices().find(v=>v.localService&&v.lang.toLowerCase().startsWith('de'));
-    if(!voice)return;
-    const announcement=new SpeechSynthesisUtterance(kind==='building'?'Gebäude fertiggestellt.':'Einheit bereit.');
-    announcement.voice=voice;announcement.lang='de-DE';announcement.rate=1.05;
-    announcement.pitch=.92;announcement.volume=Math.min(.58,this.volume*this.radio.volume*.8);
-    window.speechSynthesis.speak(announcement);
+       typeof SpeechSynthesisUtterance==='undefined'||window.speechSynthesis.speaking)
+      return;
+    const speech=window.speechSynthesis,voice=preferredGermanVoice(speech.getVoices());
+    const announcement=new SpeechSynthesisUtterance(
+      kind==='building'?'Bau abgeschlossen.':'Einheit bereit.');
+    if(voice)announcement.voice=voice;
+    announcement.lang='de-DE';announcement.rate=1.04;announcement.pitch=.92;
+    announcement.volume=Math.min(.78,this.volume*this.radio.volume*.98);
+    this.pendingReadySpeech=null;
+    this.nextReadySpeechAt=a.currentTime+1.6;
+    this.music?.setDucking(true);
+    announcement.onend=()=>this.music?.setDucking(false);
+    announcement.onerror=()=>this.music?.setDucking(false);
+    speech.speak(announcement);
   }
   /** Persistent oscillators outlive transient gameplay samples. Explicitly
    * shut their output on pause/menu/save-load; do not wait for the next tick.
@@ -257,17 +294,19 @@ export class Soundscape {
     }
   }
   pause():void{
+    this.pendingReadySpeech=null;
     this.silence(true);this.radio.pause();this.music?.pause();
     this.silenceAmbientNodes();
     if(typeof window!=='undefined'&&'speechSynthesis' in window)window.speechSynthesis.cancel();
   }
   silenceScene():void{
+    this.pendingReadySpeech=null;
     this.silence();this.radio.stop();this.music?.pause();
     this.silenceAmbientNodes();
     if(typeof window!=='undefined'&&'speechSynthesis' in window)window.speechSynthesis.cancel();
   }
   bindGame(g:Simulation):void{
-    if(this.game===g)return;this.silence();this.silenceAmbientNodes();this.radio.reset();this.game=g;this.owners=g.territories.map(t=>t.owner);this.unitIds=new Set(g.units.map(u=>u.id));this.unitLosses.reset(g.units,g.time);this.lastLossSignal=-Infinity;this.seenShots=new WeakSet();
+    if(this.game===g)return;this.silence();this.silenceAmbientNodes();this.radio.reset();this.game=g;this.owners=g.territories.map(t=>t.owner);this.unitIds=new Set(g.units.map(u=>u.id));this.unitLosses.reset(g.units,g.time);this.lastLossSignal=-Infinity;this.seenShots=new WeakSet();this.pendingReadySpeech=null;this.nextReadySpeechAt=0;
   }
   private applyVolume():void{if(this.context&&this.master)this.master.gain.setTargetAtTime(this.enabled?this.volume:0,this.context.currentTime,.035);}
   private silence(gameplayOnly=false):void{for(const v of this.voices.values())if(!gameplayOnly||v.gameplay)v.stop();}
@@ -357,6 +396,7 @@ export class Soundscape {
       const kind=shot.weapon??'rifle';if(this.weapon(kind,from,r)){this.played.shots++;this.played[kind]++;}
 
     }
+    if(active)this.flushReadySpeech();
     for(const t of g.territories){if(t.owner===0&&this.owners[t.id]!==0&&active){this.played.captures++;this.tone(523,.18,.1);this.tone(659,.2,.08,.12);this.tone(784,.35,.08,.25);}this.owners[t.id]=t.owner;}
     // Only production announcements need unit tracking. Infantry movement
     // intentionally has no step sounds, buffers or periodic audio triggers.
@@ -364,7 +404,7 @@ export class Soundscape {
     for(const u of g.units){
       if(!this.unitIds.has(u.id)){
         this.unitIds.add(u.id);
-        if(u.owner===0&&active){this.played.production++;this.tone(660,.13,.075);this.tone(990,.2,.065,.1);}
+        if(u.owner===0&&active){this.played.production++;this.announceReady('unit');}
       }
     }
   }

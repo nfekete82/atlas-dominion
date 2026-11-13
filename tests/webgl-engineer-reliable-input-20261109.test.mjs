@@ -77,7 +77,7 @@ test('WebGL event pipeline protects build mode and lets users reselect a pioneer
  assert.match(code,/const hit=this\.friendlyAtPointer\(event\)/);
  assert.match(code,/if\(event\.button===0&&!this\.buildKind&&!this\.rallyMode&&!this\.strategicTargetMode\)/);
  assert.match(code,/this\.selected=new Set\(\[worker\.id\]\)/);
- assert.match(code,/shouldAppendBuild\(workers,event\.shiftKey\)/);
+ assert.match(code,/submitConstruction\(this\.game,kind,p,this\.selected/);
  assert.match(code,/event\.code==='KeyP'/);
  assert.match(hud,/data-action="select-engineer"/);
  assert.match(build,/webgl-builder-input\.js/);

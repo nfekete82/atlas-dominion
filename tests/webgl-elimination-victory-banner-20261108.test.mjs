@@ -146,6 +146,19 @@ test('large central outcome has distinct text for each side and no pause duplica
  assert.ok(existsSync('dist/webgl-match-result.js'));
 });
 
+test('winner displays the supplied gold-frame artwork while defeat remains text-only',()=>{
+ const overlay=readFileSync('scripts/webgl-match-result.js','utf8');
+ const css=readFileSync('src/reborn/webgl-classic-hud.css','utf8');
+ assert.ok(overlay.includes('sandforge-victory.png'));
+ assert.ok(overlay.includes("victoryArt.addEventListener('load'"));
+ assert.ok(overlay.includes("victoryArt.addEventListener('error'"));
+ assert.ok(overlay.includes('setArtworkReady(false)'));
+ assert.ok(css.includes('sf3d-match-has-victory-art'));
+ assert.ok(css.includes('aspect-ratio:1672 / 941'));
+ assert.ok(css.includes('pointer-events:none'));
+ assert.ok(css.includes('data-result=defeat'));
+});
+
 test('outcome evaluation uses current live HP and excludes dead HQ capture stubs',()=>{
  const code=readFileSync('src/reborn/simulation.ts','utf8');
  assert.match(code,/this\.status=eliminationOutcome\(this\.units,this\.bases\)/);

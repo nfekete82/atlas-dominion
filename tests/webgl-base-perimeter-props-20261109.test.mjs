@@ -90,7 +90,7 @@ test('the previous vehicle and infantry staging props remain recognizable',()=>{
 test('yard remains presentation-only, built once, with existing safe teardown and no save changes',()=>{
  const battlefield=readFileSync('scripts/webgl-battlefield.js','utf8');
  const yard=readFileSync('scripts/webgl-building-yard.js','utf8');
- assert.match(battlefield,/if\(b\.buildRemaining<=0&&!entry\.yard\)/);
+ assert.match(battlefield,/if\(!entry\.yard\)/);
  assert.match(battlefield,/entry\.node\.add\(entry\.yard\)/);
  assert.match(battlefield,/disposeBuildingYard\(e\.yard\)/);
  assert.match(yard,/nonPlayable:true/);

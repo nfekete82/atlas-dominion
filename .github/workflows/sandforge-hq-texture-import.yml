@@ -1,0 +1,56 @@
+name: Import exact uploaded 21 MB Sandforge HQ model
+on:
+  push:
+    branches: [feat/webgl-facilities-preview-smallarms-20261110]
+    paths:
+      - '.asset-transfer/sandforge-hq-textured-plus/**'
+      - '.github/workflows/sandforge-hq-texture-import.yml'
+permissions:
+  contents: write
+concurrency:
+  group: sandforge-exact-hq-upload
+  cancel-in-progress: false
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Reconstruct exact uploaded GLB and verify binary checksums
+        shell: bash
+        run: |
+          python - <<'PY'
+          import base64,glob,hashlib,pathlib,sys
+          chunks=sorted(glob.glob('.asset-transfer/sandforge-hq-textured-plus/part-*.b64'))
+          assert len(chunks)==9, f'Expected 9 uploaded chunks: {chunks}'
+          encoded=''.join(''.join(pathlib.Path(p).read_text().split()) for p in chunks)
+          assert len(encoded)==28982240,len(encoded)
+          data=base64.b64decode(encoded,validate=True)
+          assert len(data)==21736680,len(data)
+          digest=hashlib.sha256(data).hexdigest()
+          assert digest=='374c7dfaeca58b99b92790c714004af007298616415a1f085e5ab9f12f101ca6',digest
+          blob_sha=hashlib.sha1(f'blob {len(data)}\0'.encode()+data).hexdigest()
+          assert blob_sha=='378fa4e1c8597dd6a2760231e2987a50bb97b732',blob_sha
+          output=pathlib.Path('src/assets/reborn/buildings-3d/sandforge_feldkommando_textured_plus.glb')
+          output.write_bytes(data)
+          print(f'Original asset restored: {len(data)} bytes, SHA-256 {digest}')
+          PY
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Compile the game and validate 3D asset regressions
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+          node --test tests/webgl-textured-plus-headquarters-20261112.test.mjs tests/webgl-strategic-original-glbs-20261112.test.mjs tests/webgl-original-hq-bastion-mk2-20261112.test.mjs tests/webgl-authored-hq-barracks-construction-20261112.test.mjs
+      - name: Commit the exact model and remove temporary upload chunks
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm -r '.asset-transfer/sandforge-hq-textured-plus'
+          git add src/assets/reborn/buildings-3d/sandforge_feldkommando_textured_plus.glb
+          git commit -m 'asset(webgl): replace textured-plus HQ with exact 21 MB user-uploaded GLB [skip ci]'
+          git push origin HEAD:feat/webgl-facilities-preview-smallarms-20261110

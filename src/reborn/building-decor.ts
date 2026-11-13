@@ -52,6 +52,7 @@ const layouts:Record<DecoratedStructure,readonly Slot[]>={
   {kind:'service-terminal',x:-2.30,y:-1.00,layer:'behind'},
   {kind:'military-crate-stack',x:2.25,y:-.90,layer:'behind'}
  ],
+ wall:[],
  bastion:[{kind:'sandbags',x:-2.20,y:-.90,layer:'behind'}]
 };
 const visualSize:Record<BasePropKind,number>={

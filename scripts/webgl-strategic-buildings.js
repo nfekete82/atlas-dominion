@@ -66,10 +66,107 @@ const siloDesertCamo=(()=>{
  return t;
 })();
 
-export const STRATEGIC_BUILDING_KINDS=Object.freeze(['research','silo','interceptor']);
+/** Static destructible base wall, rendered once and shared by preview and game. */
+function createDefensiveWall(owner){
+ const root=new THREE.Group();root.name='Strategic_wall';
+ root.userData={visualOnly:true,defensiveWall:true};
+ const concrete=new THREE.MeshStandardMaterial({
+  color:'#b5a887',roughness:.99,metalness:.01,map:materialGrain,
+  bumpMap:materialGrain,bumpScale:.82});
+ const camo=new THREE.MeshStandardMaterial({
+  color:'#f4efe2',roughness:.96,metalness:.025,map:siloDesertCamo,
+  bumpMap:materialGrain,bumpScale:.38});
+ const cap=new THREE.MeshStandardMaterial({color:'#777562',roughness:.92,
+  metalness:.10,map:materialGrain,bumpMap:materialGrain,bumpScale:.36});
+ const stripe=new THREE.MeshStandardMaterial({
+  color:owner===0?'#277fbe':'#c65043',roughness:.85,metalness:.05});
+ const add=(w,h,d,x,y,z,mat,name)=>{
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
+  m.position.set(x,y,z);m.name=name;m.castShadow=true;m.receiveShadow=true;
+  root.add(m);
+ };
+ // Three visible concrete blocks, separated by mortar joints. The large
+ // facing plates use the real textured khaki/olive camouflage atlas.
+ add(110,6.5,30,0,3.25,0,cap,'WallFooting');
+ for(const x of [-35,0,35]){
+  add(33,34,22,x,24,0,concrete,'WallArmoredPanel');
+  add(30,27,1.7,x,25,11.6,camo,'WallCamoStoneFace');
+  add(30,27,1.7,x,25,-11.6,camo,'WallCamoStoneRear');
+  add(32,5.5,25,x,44,0,cap,'WallCoping');
+  add(27,2.1,21,x,48.2,0,stripe,'WallFactionBand');
+  // Rough mortar lines and minor chips are static, not GPU particles.
+  for(const z of [-12.7,12.7]){
+   add(27,.9,1.1,x,22,z,concrete,'WallStoneMortar');
+   add(6,2,1.3,x+8,34,z,cap,'WallStoneChip');
+  }
+ }
+ for(const x of [-52,52]){
+  add(8,48,27,x,26,0,cap,'WallPillar');
+  add(10,5,28,x,51,0,concrete,'WallPillarTop');
+ }
+ // Coiled concertina wire follows the wall crest, not the ground.
+ // Geometry is static; the placement-preview instancing merges it with the
+ // real concrete silhouette so players see exactly what they are building.
+ // A single merged mesh keeps all wire/barbs in one draw call per segment.
+ const wireMat=new THREE.MeshStandardMaterial({
+  name:'SF_WallBarbedWire',color:'#727771',roughness:.59,metalness:.96,
+  side:THREE.DoubleSide
+ });
+ const wireParts=[];
+ const addWire=(from,to,radius=.56)=>{
+  const a=new THREE.Vector3(...from),b=new THREE.Vector3(...to);
+  const direction=b.clone().sub(a),length=direction.length();
+  if(length<.01)return;
+  const part=new THREE.CylinderGeometry(radius,radius,length,5);
+  part.applyMatrix4(new THREE.Matrix4().compose(
+   a.add(b).multiplyScalar(.5),
+   new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),
+    direction.normalize()),new THREE.Vector3(1,1,1)));
+  wireParts.push(part);
+ };
+ // Four clamped, backward-leaning steel brackets hold the barbed coils up.
+ for(const x of [-47,-16,16,47]){
+  for(const z of [-6.6,6.6]){
+   addWire([x,50,z],[x,60,z*1.14],.85);
+  }
+ }
+ // One visibly recognizable helix instead of floating saw teeth.
+ const coils=9,steps=216,pts=[];
+ for(let i=0;i<=steps;i++){
+  const t=i/steps,theta=t*coils*Math.PI*2;
+  pts.push(new THREE.Vector3(-49+98*t,
+   59+5.7*Math.cos(theta),5.8*Math.sin(theta)));
+ }
+ // TubeGeometry remains supported by the shared ghost merger.
+ wireParts.push(new THREE.TubeGeometry(
+  new THREE.CatmullRomCurve3(pts,false,'centripetal'),steps,.61,5,false));
+ for(let i=0;i<32;i++){
+  const t=(i+.5)/32,theta=t*coils*Math.PI*2;
+  const x=-49+98*t,y=59+5.7*Math.cos(theta),z=5.8*Math.sin(theta);
+  const outward=new THREE.Vector3(0,Math.cos(theta),Math.sin(theta));
+  for(const sign of [-1,1]){
+   const arm=outward.clone().multiplyScalar(sign*3.1);
+   addWire([x-arm.x,y-arm.y,z-arm.z],
+    [x+arm.x,y+arm.y,z+arm.z],.35);
+  }
+ }
+ const wireGeometry=mergeGeometries(wireParts,false);
+ for(const part of wireParts)part.dispose();
+ if(wireGeometry){
+  const wire=new THREE.Mesh(wireGeometry,wireMat);
+  wire.name='WallConcertinaBarbedWire';
+  wire.castShadow=false;wire.receiveShadow=true;
+  wire.raycast=()=>{};
+  wire.userData={decorative:true,nonPlayable:true,barbedWire:true};
+  root.add(wire);
+ }else wireMat.dispose();
+ return root;
+}
+export const STRATEGIC_BUILDING_KINDS=Object.freeze(['research','silo','interceptor','wall']);
 export const isStrategicBuilding=kind=>STRATEGIC_BUILDING_KINDS.includes(kind);
 export function createStrategicBuilding(kind,owner=0){
  if(!isStrategicBuilding(kind))return null;
+ if(kind==='wall')return createDefensiveWall(owner);
  const root=new THREE.Group();
  root.name='Strategic_'+kind;
  root.userData.visualOnly=true;
@@ -106,8 +203,17 @@ export function createStrategicBuilding(kind,owner=0){
   // Silo sand-tone panels reuse its three-tone armoured albedo.
   // Research retains an independent sand highlight; this saves the silo
   // one draw call and maintains the original <=20 mesh budget.
-  if(researchCamo)mats.camoSand=new THREE.MeshStandardMaterial({color:'#d1bd93',map:materialGrain,
-   bumpMap:materialGrain,bumpScale:.16,roughness:.88,metalness:.05});
+  if(researchCamo){
+   mats.camoSand=new THREE.MeshStandardMaterial({color:'#d1bd93',map:materialGrain,
+    bumpMap:materialGrain,bumpScale:.16,roughness:.88,metalness:.05});
+   // Actual baked albedo across the LAB WALLS and ROOF, not just painted
+   // accessory boxes. Reuse the shared 256px, seam-free desert texture.
+   // Own material but no extra texture allocation or frame-time shader cost.
+   mats.researchArmor=new THREE.MeshStandardMaterial({
+    color:'#f3efe3',map:siloDesertCamo,bumpMap:materialGrain,bumpScale:.22,
+    roughness:.88,metalness:.07});
+   mats.researchArmor.userData={sandforgeColorMapCamo:true};
+  }
  }
  // The silo should be a recognisable armoured launch complex, not a
  // generic box with a lone tower. Both skins share faction ID colours.
@@ -162,272 +268,209 @@ export function createStrategicBuilding(kind,owner=0){
   for(let i=0;i<5;i++)box(w-3,.85,2.8,'trim',x,y-6+i*3,z+.3);
  };
  if(kind==='research'){
-  foundation(178,149);
-  box(159,60,124,'base',0,43,0);
-  box(164,5,130,'metal',0,15,0);
-  box(170,9,136,'black',0,77,0);
-  box(159,2,129,'trim',0,82,0);
-  // Heavy sidewalls and distinct structural columns like the original HQ.
-  for(const x of [-72,72])for(const z of [-55,55])support(x,z,65);
-  for(const z of [-50,0,50]){
-   box(5,50,8,'metal',-82,42,z);
-   box(5,50,8,'metal',82,42,z);
+  // Eight-sided desert science bunker: curved reading from tactical zoom,
+  // but faceted masonry keeps the same low-cost PBR batching.
+  cyl(92,94,7,'black',0,4,0,8);
+  cyl(85,87,6,'stone',0,10,0,8);
+  cyl(77,80,4,'base',0,16,0,8); // retain original khaki PBR material in the round bunker
+  cyl(79,83,68,'researchArmor',0,48,0,8);
+  cyl(85,85,6,'black',0,81,0,8);
+  cyl(81,81,3,'camoOlive',0,85,0,8);
+  cyl(68,70,5,'metal',0,90,0,8);
+  // Independent armored wall modules and genuinely textured camouflage.
+  // Large windows are recessed onto the facets, not translucent billboards.
+  for(let i=0;i<8;i++){
+   const angle=i*Math.PI/4;
+   const nx=Math.sin(angle),nz=Math.cos(angle);
+   const x=nx*78,z=nz*78;
+   const glass=add(new THREE.BoxGeometry(34,22,2.5),'glass',
+    x,56,z,0,angle,0);
+   glass.name='';
+   add(new THREE.BoxGeometry(38,3,4),'trim',nx*79,69,nz*79,0,angle,0);
+   add(new THREE.BoxGeometry(38,3,4),'black',nx*79,42,nz*79,0,angle,0);
+   for(const side of [-1,1])
+    add(new THREE.BoxGeometry(3,27,5),'metal',
+     x+side*Math.cos(angle)*18,55,z-side*Math.sin(angle)*18,0,angle,0);
+   add(new THREE.BoxGeometry(36,5,3),'camoSand',
+    nx*81,31,nz*81,0,angle,0);
   }
-  // Purposeful three-tone desert camouflage on large structural surfaces,
-  // not on the radar dish, glass, signal beacons or service vents.
-  // Thin raised plates stay outside the collision footprint and are batched
-  // with the other static PBR details (no per-frame geometry or draw calls).
-  for(const side of [-1,1]){
-   for(const [z,y,length,height,paint] of [
-    [-38,36,21,17,'camoOlive'],
-    [-8,56,24,13,'camoSand'],
-    [27,39,19,21,'camoOlive']
-   ])box(1.2,height,length,paint,side*80.4,y,z);
+  // A visible door with warning stripes on the camera-facing front facet.
+  box(34,39,8,'black',0,29,83);
+  box(29,34,9,'metal',0,28,86);
+  box(24,25,10,'vent',0,28,90);
+  for(const x of [-10,10])box(3,38,11,'trim',x,29,89);
+  for(let i=0;i<5;i++)box(24,1.5,10,'camoSand',0,14+i*5,94);
+  // Layered roof-ring, exposed instrument panel and compact HVAC towers.
+  cyl(60,65,9,'metal',0,96,0,12);
+  cyl(56,60,3,'researchArmor',0,102,0,12);
+  for(let i=0;i<8;i++){
+   const angle=i*Math.PI/4;
+   const x=Math.sin(angle)*69,z=Math.cos(angle)*69;
+   box(17,8,14,'camoOlive',x,93,z);
+   box(14,2.2,11,'steel',x,98,z);
   }
-  for(const [x,width,paint] of [
-   [-65,20,'camoOlive'],[-20,27,'camoSand'],
-   [28,23,'camoOlive'],[66,15,'camoSand']
-  ])box(width,7,1.2,paint,x,66,62.8);
-  for(const [x,z,width,depth,paint] of [
-   [-62,-41,20,19,'camoOlive'],
-   [-64,39,27,16,'camoSand'],
-   [58,48,24,16,'camoOlive'],
-   [70,-39,14,23,'camoSand']
-  ])box(width,1.2,depth,paint,x,84.4,z);
-  // The facade is not a blank box: entrance, framed windows and shutters.
-  box(41,49,5,'black',0,42,65);
-  box(34,42,5.8,'metal',0,40,68);
-  box(27,30,6,'vent',0,39,71);
-  for(let i=0;i<6;i++)box(28,2.4,6.2,'steel',0,25+i*5.1,72);
-  for(const x of [-53,53]){
-   box(37,28,4,'metal',x,48,65);
-   box(31,20,4.4,'glass',x,48,67.4);
-   box(34,3,5,'trim',x,60,68);
-   box(3.2,24,5,'black',x,48,69);
-   box(37,3,5,'black',x,35,68);
-   for(let i=0;i<3;i++)box(8,2.3,4,'steel',x-12+i*12,32,67);
+  for(const x of [-45,45]){
+   box(22,13,21,'vent',x,94,-21);
+   box(24,2.6,23,'trim',x,102,-21);
+   for(const z of [-27,-21,-15])
+    box(17,.9,2,'steel',x,99,z);
   }
-  for(const x of [-52,0,52]){
-   box(30,20,4,'vent',x,45,-64);
-   for(let j=0;j<5;j++)box(27,1.7,5,'trim',x,38+j*3.6,-66);
-  }
-  // Louver and edge framing exposes the same crafted metalwork as the factory.
-  for(const x of [-71,71])for(const z of [-42,0,42]){
-   box(3.5,26,6,'trim',x,49,z);
-  }
-  box(168,3,135,'trim',0,73,0);
-  for(const x of [-63,-42,-21,0,21,42,63]){
-   box(1.7,3,132,'metal',x,82,0);
-  }
-  // Central instrument room; its stepped roof replaces the old flat roof.
-  box(70,22,69,'metal',-21,96,-11);
-  box(66,17,65,'panel',-21,97,-11);
-  box(76,5,75,'black',-21,109,-11);
-  box(73,2,72,'trim',-21,112,-11);
-  for(const x of [-45,-22,1]){
-   box(17,9,3,'glass',x,101,24);
-   box(18,2,4,'trim',x,106,25);
-  }
-  // Large convincing parabolic dish, mast and signal instrument pods.
-  cyl(8,11,20,'metal',-21,121,-12);
-  cyl(18,22,6,'black',-21,135,-12,20);
-  const dish=add(new THREE.SphereGeometry(29,28,14,0,Math.PI*2,0,Math.PI*.43),
-   'stone',-21,146,-11,-.54);
-  dish.name='Research_Radar';
-  add(new THREE.TorusGeometry(27,2,12,32),'trim',-21,157,3,-.54);
-  const arm=add(new THREE.CylinderGeometry(2.1,2.1,31,10),'metal',-21,161,1,.47);
-  arm.name='Research_ReceiverArm';
-  cyl(6,7,5,'glow',-21,172,12,12);
-  // An identifiable roof HVAC bank, shielded server stacks, cabling and ducts.
-  for(const z of [-30,-5,20]){
-   box(26,14,18,'metal',43,91,z);
-   grille(43,94,z+9.9,21);
-   box(28,2,20,'trim',43,99,z);
-  }
-  for(const x of [18,60]){
-   cyl(4.5,4.5,40,'metal',x,107,-52);
-   cyl(6,6,3,'glow',x,128,-52);
-  }
-  box(30,3,52,'black',40,83,-5);
-  for(let i=0;i<5;i++)box(3,3.2,52,'trim',26+i*7,86,-5);
-  for(const x of [-73,73])for(const z of [-55,55]){
-   cyl(3,4,8,'black',x,85,z);
-   cyl(4,4,2,'glow',x,89.5,z);
-  }
-  // Reference-inspired field laboratory: raised segmented observation deck,
-  // protected data centre, slanted sensor modules and rooftop service rails.
-  // Every static piece is merged by material below into a few PBR batches.
-  box(47,26,39,'camoSand',-49,29,-38);
-  box(50,4,42,'trim',-49,44,-38);
-  for(const z of [-54,-38,-22])grille(-73,29,z,22);
-  for(const x of [-56,-20,18,55]){
-   box(21,4,16,'steel',x,86,43);
-   box(18,2.8,13,'camoOlive',x,89,43);
-  }
-  // Large articulated side array signals scientific purpose at RTS zoom.
-  const array=add(new THREE.BoxGeometry(44,3,29),'panel',
-   45,108,-11,-.40,0,.08);
+  const array=add(new THREE.BoxGeometry(31,3,24),'panel',50,112,4,-.38);
   array.name='Research_SensorArray';
-  for(const x of [28,42,56,70])box(3.2,7,26,'trim',x,109,-11);
-  for(const z of [-47,43]){
-   box(68,2.2,2.5,'trim',38,112,z);
-   for(const x of [6,40,71])box(2.5,20,2.5,'metal',x,102,z);
+  for(let i=0;i<3;i++)box(2.2,13,25,'trim',39+i*11,113,4);
+  for(const x of [-47,45]){
+   cyl(3,3,28,'steel',x,107,34);
+   cyl(4.5,4.5,3,'glow',x,123,34);
   }
-  // Exterior pipes and roof access ladder: depth and believable engineering.
-  for(const y of [28,37,46,55])box(3,1.7,54,'steel',81,y,-3);
-  for(const z of [-47,-12,23]){
-   box(5,6,3,'metal',82,56,z);
-   box(3.1,3,3,'glow',82,59,z);
+  // Low, sturdy tracking dish in the same military hardware language as
+  // the bastion radar: a SHALLOW parabolic reflector on a real gimbal,
+  // not a floating spherical cap or exposed circular hoop.
+  const pivot=new THREE.Group();
+  pivot.name='ResearchDishPivot';pivot.position.set(0,113,0);
+  pivot.userData={visualOnly:true,animatedDish:true};
+  root.add(pivot);
+  const dishIron=new THREE.MeshStandardMaterial({
+   color:'#a9b6ad',map:materialGrain,bumpMap:materialGrain,
+   bumpScale:.10,metalness:.52,roughness:.56,side:THREE.DoubleSide});
+  dishIron.name='SF_radarReflector';
+  const dishFrame=mats.metal,antennaMetal=mats.black;
+  const addDishPart=(geometry,material,name,x=0,y=0,z=0)=>{
+   const mesh=new THREE.Mesh(geometry,material);
+   mesh.name=name;mesh.position.set(x,y,z);
+   mesh.castShadow=false;mesh.receiveShadow=true;mesh.raycast=()=>{};
+   pivot.add(mesh);return mesh;
+  };
+  // The platform reaches into the roof: no disconnected antenna pole.
+  addDishPart(new THREE.CylinderGeometry(15,18,13,12),mats.metal,
+   'ResearchDishPedestal',0,-6,0);
+  addDishPart(new THREE.CylinderGeometry(12,14,5,16),mats.black,
+   'ResearchDishTurntable',0,3,0);
+  for(const x of [-12,12])
+   addDishPart(new THREE.BoxGeometry(5,21,6),dishFrame,
+    'ResearchDishYoke',x,13,0);
+  const head=new THREE.Group();
+  head.name='ResearchDishGimbal';head.position.set(0,23,0);
+  head.rotation.x=.43;pivot.add(head);
+  const parabola=new THREE.LatheGeometry([
+   new THREE.Vector2(0,-6),new THREE.Vector2(5,-5.5),
+   new THREE.Vector2(11,-4),new THREE.Vector2(17,-1.5),
+   new THREE.Vector2(23,2),new THREE.Vector2(27,5.3)
+  ],32);
+  const reflector=new THREE.Mesh(parabola,dishIron);
+  reflector.name='Research_Radar';
+  reflector.castShadow=false;reflector.receiveShadow=true;
+  reflector.raycast=()=>{};head.add(reflector);
+  const rim=new THREE.Mesh(new THREE.TorusGeometry(27,1.45,8,36),mats.trim);
+  rim.name='ResearchDishReflectorRim';rim.rotation.x=-Math.PI/2;
+  rim.position.y=5.3;rim.raycast=()=>{};head.add(rim);
+  const hub=new THREE.Mesh(new THREE.CylinderGeometry(4,6,7,12),antennaMetal);
+  hub.name='ResearchDishHub';hub.position.y=-7;hub.raycast=()=>{};head.add(hub);
+  // Three legs hold the feed horn over the shallow reflector; attachment
+  // points end inside the actual dish rim instead of floating in the air.
+  for(let i=0;i<3;i++){
+   const a=i*Math.PI*2/3,dx=Math.cos(a)*17,dz=Math.sin(a)*17;
+   const support=new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.2,22,6),dishFrame);
+   const from=new THREE.Vector3(dx,-1,dz),to=new THREE.Vector3(0,17,0);
+   support.position.copy(from).add(to).multiplyScalar(.5);
+   support.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),
+    to.clone().sub(from).normalize());support.raycast=()=>{};head.add(support);
   }
+  const feed=new THREE.Mesh(new THREE.CylinderGeometry(3,5,10,12),antennaMetal);
+  feed.name='ResearchDishFeed';feed.position.y=19;feed.raycast=()=>{};head.add(feed);
+  const tip=new THREE.Mesh(new THREE.CylinderGeometry(1.5,2,4,9),mats.glow);
+  tip.position.y=26;tip.raycast=()=>{};head.add(tip);
  }else if(kind==='silo'){
-  foundation(230,207);
-  box(205,43,184,'base',0,37,0);
-  // Subtle recessed desert paint panels on the exposed concrete bunker.
-  // These share research lab's actual sand/olive material grains; each
-  // material is batched below, so there are no per-frame draw calls.
-  // Coordinates are just beyond the wall faces, never in the rocket bay.
-  for(const side of [-1,1]){
-   for(const [x,y,width,height,paint] of [
-    [-78,37,33,15,'camoOlive'],
-    [-35,45,28,12,'armor'],
-    [16,33,34,18,'camoOlive'],
-    [72,45,26,11,'armor']
-   ])box(width,height,1.15,paint,x,y,side*92.8);
-   for(const [z,y,length,height,paint] of [
-    [-58,37,32,16,'armor'],
-    [-8,45,42,13,'camoOlive'],
-    [48,33,31,17,'armor']
-   ])box(1.15,height,length,paint,side*103.1,y,z);
-  }
-  box(222,5,195,'black',0,15,0);
-  for(const x of [-100,100])for(const z of [-83,83])support(x,z,45);
-  // Heavy ring assembly and the large, obvious open rocket bay.
-  cyl(74,83,24,'metal',-17,64,0,24);
-  cyl(64,69,7,'black',-17,80,0,26);
-  cyl(57,61,5,'steel',-17,87,0,24);
-  add(new THREE.TorusGeometry(70,3,12,36),'trim',-17,86,0,-Math.PI/2);
+  // Round, compact Zero-Hour-style launch silo. The armored circular bay,
+  // exposed missile and attached service cabin form its RTS silhouette.
+  // The old enormous rectangular warehouse and cross-runway are removed.
+  cyl(101,102,7,'black',0,4,0,28);
+  cyl(95,97,33,'base',0,24,0,28);
+  cyl(94,94,6,'armor',0,43,0,28);
+  // Reinforced annular rim around a visibly dark recessed launch shaft.
+  cyl(83,84,10,'metal',-17,51,0,32);
+  cyl(62,62,4,'black',-17,58,0,32);
+  const ring=add(new THREE.TorusGeometry(73,9,14,48),'armor',
+   -17,62,0,-Math.PI/2);
+  ring.name='Silo_ArmoredLaunchRing';
+  add(new THREE.TorusGeometry(82,2.4,8,44),'trim',-17,60,0,-Math.PI/2);
   for(let i=0;i<12;i++){
-   const a=i*Math.PI/6;
-   box(10,22,12,'black',-17+Math.cos(a)*76,80,Math.sin(a)*76,0,-a);
-   box(8,3,9,'trim',-17+Math.cos(a)*77,92,Math.sin(a)*77,0,-a);
+   const angle=i*Math.PI/6;
+   const x=-17+Math.cos(angle)*85,z=Math.sin(angle)*85;
+   box(11,15,14,'camoOlive',x,62,z);
+   box(9,3,15,'steel',x,70,z);
   }
-  // Purpose-built stylized strategic missile, designed to read clearly at
-  // RTS camera distance: muted olive lower stage, warm-sand upper shroud,
-  // dark faceted ogive, sectional seams, canards and tail fins. It remains
-  // *render-only* and static; the authoritative strategic launch is unchanged.
-  const rocketX=-17;
-  const hull=cyl(22.5,23.5,72,'rocketBody',rocketX,128,0,24);
-  hull.name='Silo_RocketBody';
-  cyl(21.5,22.5,31,'rocketPanel',rocketX,179,0,24);
-  cyl(22,22.5,8,'rocketNose',rocketX,164.5,0,24);
-  cyl(18.8,21.5,9,'rocketPanel',rocketX,201,0,24);
-  const ogive=add(new THREE.ConeGeometry(18.8,42,24),'rocketNose',
-   rocketX,226,0);
-  ogive.name='Silo_RocketNose';
-  // High-contrast stage boundaries stay visible from a distant zoom.
-  for(const [y,radius,width,material] of [
-   [94,22.5,3.2,'rocketNose'],[106,23.2,1.6,'rocketAccent'],
-   [148,22.6,1.8,'trim'],[162,23.1,2.5,'rocketNose'],
-   [194,21.4,2.2,'rocketAccent'],[206,18.8,1.8,'rocketNose']
-  ]){
-   const seam=add(new THREE.TorusGeometry(radius,width,8,32),
-    material,rocketX,y,0,-Math.PI/2);
-   if(y===162)seam.name='Silo_RocketStageSeam';
+  for(let i=0;i<8;i++){
+   const a=i*Math.PI/4,x=-17+Math.cos(a)*96,z=Math.sin(a)*96;
+   box(13,3,19,'armor',x,43,z);
+   box(10,1.5,14,'warning',x,46,z);
   }
-  // Small raised thermal-panel details; intentionally restrained rather
-  // than an oversized toy checkerboard or bright candy stripes.
-  for(let n=0;n<8;n++){
-   const angle=n*Math.PI/4;
-   const x=rocketX+Math.cos(angle)*22.8,z=Math.sin(angle)*22.8;
-   const p=add(new THREE.BoxGeometry(3,21,1.8),'rocketPanel',
-    x,133,z,0,-angle,0);
-   p.castShadow=false;
+  // Two sand-painted segmented hydraulic shutters are parked outside
+  // the open ring; their edges are visible, not a giant garage roof.
+  for(const side of [-1,1]){
+   const x=-17+side*80;
+   // Hydraulic beams connect each parked shutter to the bunker roof.
+   for(const z of [-27,27])box(8,29,13,'metal',x,54,z);
+   box(17,7,81,'armor',x,72,0);
+   box(18,2,72,'steel',x,76,0);
+   for(const z of [-31,0,31])box(14,2.4,4,'black',x,78,z);
   }
-  // Wedge-shaped stabilizing fins, grouped by material and GPU-batched.
-  for(let n=0;n<4;n++){
-   const angle=n*Math.PI/2;
-   // Indexed geometry matches the other rocket-body meshes so the normal
-   // static PBR batch still merges into one draw call.
-   const radial=24;
-   const fin=add(new THREE.BoxGeometry(19,30,3.3),'rocketBody',
-    rocketX+Math.cos(angle)*radial,111,Math.sin(angle)*radial,
-    0,-angle,-.31);
-   fin.name='';
+  // A continuous missile rooted inside the dark shaft, not a stack of
+  // disconnected floating cylinders. The dark well top is at y=60;
+  // the missile's lower hull begins at y=58, visibly emerging from it.
+  const rx=-17;
+  const body=cyl(15.5,17,98,'rocketBody',rx,107,0,28);
+  body.name='Silo_RocketBody'; // 58..156: continuous rocket silhouette
+  const shoulder=cyl(16,16,9,'rocketPanel',rx,142,0,28);
+  shoulder.name='Silo_RocketShoulder'; // body-mounted panel; no gap
+  const nose=add(new THREE.ConeGeometry(15.5,34,28),
+   'rocketNose',rx,171,0);
+  nose.name='Silo_RocketNose'; // 154..188, joins the continuous fuselage
+  // Closely wrapped body bands; torus radius reaches the actual missile.
+  for(const [y,r,paint] of [[79,17,'rocketAccent'],[147,16.2,'trim'],
+    [154,15.6,'rocketPanel']]){
+   const seam=add(new THREE.TorusGeometry(r,1.1,8,28),paint,
+    rx,y,0,-Math.PI/2);
+   if(y===147)seam.name='Silo_RocketStageSeam';
   }
-  // Matching service clamps and a recessed nozzle silhouette.
-  cyl(14,18,8,'rocketNose',rocketX,87.5,0,20);
-  cyl(12.5,12.5,2,'rocketAccent',rocketX,83,0,20);
-  for(const n of [-1,1])for(const side of [-1,1]){
-   box(5,12,9,'steel',rocketX+n*23,111,side*7);
-   box(8,3,11,'trim',rocketX+n*26,115,side*7);
+  // Lower stabilizers have 5 units of intersection with the missile's
+  // cylinder; no fins, exhaust plates or decorative rings suspended in air.
+  for(let i=0;i<4;i++){
+   const a=i*Math.PI/2;
+   const fin=add(new THREE.BoxGeometry(14,21,3),'rocketBody',
+    rx+Math.cos(a)*19,77,Math.sin(a)*19,0,-a);
+   fin.name='Silo_RocketFin';
   }
-  // Distinct service block: matching HQ windows, roof and shaded entrance.
-  box(67,46,81,'base',74,42,-2);
-  // The service annex inherits the same camouflage as the main bunker.
-  // Keep the entrance and blue/red instrumentation glass clear.
-  for(const [x,y,width,height,paint] of [
-   [53,37,17,17,'camoOlive'],
-   [89,49,20,13,'armor']
-  ])box(width,height,1.25,paint,x,y,-43.1);
-  for(const [z,y,length,height,paint] of [
-   [-24,32,17,16,'armor'],
-   [17,43,18,14,'camoOlive']
-  ])box(1.25,height,length,paint,40.0,y,z);
-  box(76,5,90,'metal',74,67,-2);
-  box(81,8,95,'black',74,73,-2);
-  box(77,2,92,'trim',74,77,-2);
-  for(const z of [-27,-4,19]){
-   box(4,22,3,'panel',109,46,z);
-   box(3.2,13,15,'glass',109,46,z+7.6);
-   box(4,2,16,'trim',110,55,z+7.6);
+  const nozzle=cyl(11,13,9,'rocketNose',rx,61,0,20);
+  nozzle.name='Silo_RocketNozzle';
+  // Small offset control house and signal electronics, never a whole annex.
+  box(66,10,67,'black',77,5,-43); // real foundation under overhanging control cabin
+  const cabin=box(53,39,48,'base',81,27,-41);
+  cabin.name='Silo_ControlHut';
+  box(58,6,53,'metal',81,50,-41);
+  box(61,3,56,'armor',81,55,-41);
+  box(23,22,3,'black',81,30,-16);
+  box(19,17,4,'steel',81,31,-14);
+  for(const xx of [61,101]){
+   box(12,16,3,'glass',xx,35,-16);
+   box(15,2,4,'trim',xx,45,-16);
   }
-  box(27,30,5,'black',74,39,41);
-  box(22,24,5.4,'metal',74,39,44);
-  for(let i=0;i<4;i++)box(23,1.8,5.6,'trim',74,31+i*5,46);
-  // Retractable hatch rails, protected pipe gallery, and engineering braces.
-  for(const x of [-67,33]){
-   box(9,9,110,'metal',x,87,0);
-   box(7,3,113,'trim',x,93,0);
-   for(const z of [-43,-21,0,21,43])box(8,3,2,'black',x,96,z);
+  for(const side of [-1,1]){
+   box(1.8,26,36,'camoOlive',81+side*27,29,-42);
+   box(3,26,7,'armor',81+side*29,30,-24);
   }
-  for(const z of [-78,78]){
-   box(115,6,8,'metal',-17,91,z);
-   for(let i=0;i<6;i++)box(3.8,5,9,'trim',-62+i*18,95,z);
+  cyl(2.3,2.3,43,'metal',92,77,-56);
+  cyl(4.5,5,3,'glow',92,100,-56);
+  cyl(1.8,2.3,35,'metal',69,72,-57);
+  // External struts, vent panels and faded desert warning stripes.
+  for(let i=0;i<6;i++){
+   const a=i*Math.PI/3;
+   box(9,32,14,'armor',Math.cos(a)*96,33,Math.sin(a)*96);
+   box(9,2,13,'camoOlive',Math.cos(a)*96,51,Math.sin(a)*96);
   }
-  for(const x of [-90,-75,72,88]){
-   cyl(4,5,38,'metal',x,94,72,12);
-   cyl(6,6,4,'glow',x,115,72);
+  for(const x of [62,81,100]){
+   box(13,7,16,'vent',x,60,-45);
+   box(11,2,13,'steel',x,65,-45);
   }
-  // Sand-worn maintenance galleries, hatch slide machinery and hazard
-  // guides make the giant strategic launch site read like a functional silo.
-  for(const [x,z,w,d,paint] of [
-   [-67,-78,19,13,'camoOlive'],[9,-78,25,12,'armor'],
-   [-52,79,23,12,'armor'],[18,79,19,13,'camoOlive']
-  ])box(w,1.15,d,paint,x,99,z);
-  for(const z of [-84,84]){
-   for(const x of [-80,-53,-26,1,28]){
-    box(17,4,19,'armor',x,94,z);
-    box(16,1,2,'warning',x,97,z);
-   }
-  }
-  for(const x of [-83,37]){
-   box(5,23,5,'steel',x,106,-61);
-   box(11,7,14,'metal',x,120,-61);
-   box(8,2,12,'glow',x,125,-61);
-  }
-  // Two thick retracting bay doors park on both flanks of the open shaft.
-  for(const x of [-89,53]){
-   box(29,7,117,'armor',x,102,0);
-   box(24,2,110,'steel',x,107,0);
-   for(const z of [-45,0,45])box(27,3,5,'black',x,110,z);
-  }
-  // Small service vents and fueling junctions along the industrial annex.
-  for(const x of [55,72,89]){
-   box(13,7,16,'vent',x,81,-13);
-   for(let i=0;i<3;i++)box(11,1.1,14,'steel',x,78+i*3,-13);
-  }
-  for(const x of [-93,97])box(8,4,25,'panel',x,18,0);
-  for(const z of [-63,0,63])box(9,4,18,'trim',-101,17,z);
  }else{
   foundation(170,150);
   box(142,35,127,'base',0,32,0);
@@ -451,7 +494,19 @@ export function createStrategicBuilding(kind,owner=0){
   for(const x of [-67,67])for(const z of [-55,55])
    box(10,11,10,'glow',x,66,z);
  }
- return batchStaticParts(root,kind);
+ const batched=batchStaticParts(root,kind);
+ // Compact lab: ~27% smaller horizontally and ~24% shorter. These scale
+ // factors are for the STRATEGIC model only, not hit points or research.
+ if(kind==='silo'){
+  batched.scale.set(.72,.69,.72);
+  batched.userData.compactRoundSilo=true;
+ }
+ if(kind==='research'){
+  batched.scale.set(.73,.76,.73);
+  batched.userData.compactResearch=true;
+  batched.userData.referenceInspiredCamo=true;
+ }
+ return batched;
 }
 
 /** Static roof details, window ribs and facade panels are aggressively merged

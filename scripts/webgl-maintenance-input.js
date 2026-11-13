@@ -19,6 +19,17 @@ export function serviceFootprintContains(base,point){
  const localX=dx*c-dz*s,localZ=dx*s+dz*c;
  // Includes central hall and each outdoor service bay; not the nearby desert.
  return base.kind==='factory'
-  ?Math.abs(localX)<=171&&localZ>=-94&&localZ<=278
-  :localX>=-242&&localX<=220&&localZ>=-192&&localZ<=199;
+  ?localX>=-133&&localX<=221&&localZ>=-74&&localZ<=143
+  :localX>=-200&&localX<=181&&localZ>=-153&&localZ<=209;
+}
+
+/** Right-click targeting precedence. Ground-based enemies standing on a
+ * friendly airport runway/factory apron are still ATTACK TARGETS, not repair
+ * facility clicks. This decision only routes input; Simulation.command()
+ * authoritatively validates ownership, weapon and attack range. */
+export function maintenanceClickAllowed({enemy=null,attackMode=false,rallyMode=false,
+ strategicTargetMode=false,building=false,hasSelectedUnits=false,
+ hasSelectedBase=false}={}){
+ return !enemy&&!attackMode&&!rallyMode&&!strategicTargetMode&&
+  !building&&hasSelectedUnits&&!hasSelectedBase;
 }

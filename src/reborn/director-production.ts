@@ -1,5 +1,6 @@
 import {UNITS,canAttack,type UnitKind} from './catalog.js';
 import {preferredRole} from './ai-director.js';
+import {rocketInfantryQuota,bomberAntiArmorQuota} from './ai-counter-doctrine.js';
 import type {Simulation,Unit,Base} from './simulation.js';
 import type {TacticalState} from './tactical-ai.js';
 import type {ProductionDecision} from './army-economy.js';
@@ -33,7 +34,7 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
  const enemyAir=c.seen.find(u=>UNITS[u.kind].flying);
  const observed={infantry:c.seen.filter(u=>UNITS[u.kind].group==='Infanterie'&&!['engineer','medic'].includes(u.kind)).length,
   armor:c.seen.filter(u=>UNITS[u.kind].group==='Fahrzeuge'&&!UNITS[u.kind].flying).length,
-  air:c.seen.filter(u=>UNITS[u.kind].flying&&u.kind!=='scout').length};
+  air:c.seen.filter(u=>UNITS[u.kind].flying).length};
  const belief=s.adaptive;
  if(belief&&belief.confidence>=.55&&g.time-belief.updatedAt<=30){
   // Briefly losing sight of a force should not immediately restart a siege
@@ -44,22 +45,34 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
   if(belief.strategy==='infantry')observed.infantry=Math.max(observed.infantry,recent.filter(v=>v.kind==='infantry'||v.kind==='heavy').length);
  }
  const airTarget=enemyAir??(observed.air?{kind:'bomber' as const}:undefined);
+ const fighters=c.army.filter(u=>!['engineer','medic','scout'].includes(u.kind)).length;
+ const rocketQuota=rocketInfantryQuota({fighters,time:g.time,
+  vehicles:observed.armor,air:observed.air,
+  barracksReady:available('rocket'),underAttack:c.underAttack});
+ const bomberQuota=bomberAntiArmorQuota({airfieldReady:available('bomber'),
+  income:c.income,fighters,groundVehicles:ground(),
+  enemyArmor:observed.armor,enemyAir:observed.air,
+  underAttack:c.underAttack,finishing:c.finishing});
  // A visible force, rather than an unseen technology assumption, creates a
  // counter deficit. Queue counts make this stable across successive pulses.
  const counter=():UnitKind|null=>{
   if(observed.air){
-   // A 250-credit heavy can defend immediately while we cannot yet fund a
-   // 325-credit guided launcher. Upgrade the observed-air counter to a paid
-   // rocket specialist as soon as the guarded budget actually allows it.
-   if(available('rocket')&&count('rocket')<Math.min(3,Math.max(1,observed.air))&&
-      g.credits[1]-c.reserve>=UNITS.rocket.cost)return 'rocket';
-   if(available('heavy')&&count('heavy')<Math.min(3,Math.ceil(observed.air/2)))return 'heavy';
+   // Guided shoulder missiles are the primary AA counter. Buy the actual
+   // paid rocket from barracks even if an airfield/factory is unavailable.
+   if(available('rocket')&&count('rocket')<rocketQuota&&
+      (g.credits[1]-c.reserve>=UNITS.rocket.cost||!c.underAttack))
+     return 'rocket';
+   // A broke base still receives an immediate affordable heavy screen.
+   if(available('heavy')&&count('heavy')<Math.min(3,Math.ceil(observed.air/2)))
+     return 'heavy';
   }
+  if(observed.armor>0&&available('rocket')&&count('rocket')<rocketQuota&&
+     (g.credits[1]-c.reserve>=UNITS.rocket.cost||!c.underAttack))
+    return 'rocket';
   if(observed.armor>=2&&available('tank')&&count('tank')<Math.min(4,Math.ceil(observed.armor/2)))return 'tank';
   if(observed.infantry>=3&&observed.infantry>observed.armor&&available('heavy')&&count('heavy')<Math.min(3,Math.ceil(observed.infantry/3)))return 'heavy';
   return null;
  };
- const fighters=c.army.filter(u=>!['engineer','medic','scout'].includes(u.kind)).length;
  const planned=():UnitKind|null=>{
   if(count('engineer')===0&&available('engineer'))return 'engineer';
   if(c.defenseNeedsWorker&&count('engineer')<2&&available('engineer'))return 'engineer';
@@ -70,6 +83,10 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
     count('artillery')===0&&(c.knownTurrets>0||s.battle?.assessment?.neededSiege))
    return 'artillery';
   const response=counter();if(response)return response;
+  // Enough visible armor makes a bomber a meaningful strike investment
+  // once it has an operational airfield and paid ground screen. No scout
+  // prerequisite; a bomber is a dedicated combat aircraft, not a transport.
+  if(bomberQuota>count('bomber')&&available('bomber'))return 'bomber';
   // An observed siege earns its first paid rocket as soon as the factory
   // opens. While construction is unfinished, the same funds are reserved
   // from barracks and other producers by the macro controller.
@@ -98,6 +115,9 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
    if(count('rover')>=1&&count('tank')===0)return 'tank';
    if(!observed.air&&count('rover')>=1&&count('tank')>=1&&count('artillery')===0&&c.income>=35&&fighters>=5)return 'artillery';
   }
+  // Even with temporarily no visible aircraft, keep ONE paid anti-armor/AA
+  // specialist in the late infantry group rather than buying rifles forever.
+  if(available('rocket')&&count('rocket')<rocketQuota)return 'rocket';
   // Rebuild a minimal escort before replacing expensive aircraft. An army
   // reduced to recovering armor must not spend every future payment on air.
   if(ground()>=2&&available('infantry')&&count('infantry')<2)return 'infantry';
@@ -112,18 +132,25 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
   return null;
  };
  const ceiling=(kind:UnitKind):number=>({
-  infantry:8,heavy:c.income>=65?4:3,rocket:observed.air?Math.min(3,Math.max(1,observed.air)):observed.armor>=2?2:0,medic:Math.min(2,Math.ceil((count('infantry')+count('heavy'))/5)),
+  infantry:8,heavy:c.income>=65?4:3,rocket:rocketQuota,medic:Math.min(2,Math.ceil((count('infantry')+count('heavy'))/5)),
   engineer:c.defenseNeedsWorker||c.own.length>=4&&(s.recovering?.length??0)>0?2:1,rover:1,tank:c.income>=65||observed.armor>=3?4:2,
   artillery:c.knownTurrets>1?3:c.knownEnemyHQ||c.knownTurrets?2:1,
-  scout:1,bomber:c.income>=65?1:0,
+  scout:1,bomber:Math.max(bomberQuota,c.income>=65&&!c.finishing?1:0),
  })[kind];
  const ranks=(producer:Base):UnitKind[]=>{
   const n=counts();
-  if(c.finishing&&producer.kind==='airfield'&&count('scout')>=1)return [];
+  if(c.finishing&&producer.kind==='airfield'&&count('scout')>=1&&bomberQuota<=count('bomber'))return [];
   let result=preferredRole(producer.kind,n,c.knownTurrets+(c.knownEnemyHQ?1:0),observed.air) as UnitKind[];
   // A second worker is useful once repairs and construction can overlap.
   if(producer.kind==='headquarters')result=['engineer'];
   if(producer.kind==='barracks'&&n.infantry+n.heavy>=5&&n.heavy>=1&&n.medic<ceiling('medic'))result=['medic',...result.filter(k=>k!=='medic')];
+  // Factory production must not monopolize a second, otherwise free,
+  // barracks or airfield. Every producer can queue its own affordable
+  // counter as long as the relevant paid quota is unfilled.
+  if(producer.kind==='barracks'&&n.rocket<rocketQuota)
+   result=['rocket',...result.filter(k=>k!=='rocket')];
+  if(producer.kind==='airfield'&&n.bomber<bomberQuota)
+   result=['bomber',...result.filter(k=>k!=='bomber')];
   return result.filter(k=>n[k]<ceiling(k));
  };
  const producers=c.own.filter(b=>b.buildRemaining<=0&&b.queue.length<2);
@@ -144,6 +171,15 @@ export function produceCombinedArmy(g:Simulation,s:TacticalState,c:ProductionCon
    ?Math.max(0,c.reserve-(c.siegeReserve??0)):c.reserve;
   const budget=g.credits[1]-(workerLost?0:committedReserve)-protection;
   let choices=isPlanned?[need!,...ranks(producer).filter(k=>k!==need)]:ranks(producer);
+  // Barracks and airfields are independent production facilities. A high
+  // priority tank/artillery saving goal from the factory must not erase a
+  // REAL rocket or bomber shortfall in another completed producer. This
+  // remains fully paid and honors global reserve, queue and army limits.
+  const ownCounter=producer.kind==='barracks'&&count('rocket')<rocketQuota
+   ?'rocket':producer.kind==='airfield'&&count('bomber')<bomberQuota
+   ?'bomber':null;
+  if(ownCounter&&!choices.includes(ownCounter))
+   choices=[ownCounter,...choices];
   // Saving for tank/artillery/aircraft must not quietly turn into a cheap
   // substitute on the next AI pulse. The first affordable rover is deliberate.
   if(isPlanned)choices=[need!];

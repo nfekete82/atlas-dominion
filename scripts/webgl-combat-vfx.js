@@ -5,6 +5,7 @@ import {addWreckRecord,advanceWreckRecords,wreckSink,WRECK_CAP,
  WRECK_CAP_LITE,CRASH_CAP,CRASH_LIFETIME_SECONDS,isWreckableUnit,
  isAircraftWreck} from '/webgl-wreck-lifecycle.js';
 import {guidedRocketAimY,aircraftAimOffsetY,adoptAircraftForCrash,disposeAircraftCrash} from '/webgl-aircraft-effects.js';
+import {vehicleDustEligible,vehicleDustTail,VEHICLE_DUST_CAP,VEHICLE_DUST_CAP_LITE} from '/webgl-vehicle-dust.js';
 
 const vehicleKinds=new Set(['tank','rover','artillery']);
 const trackedKinds=new Set(['tank','artillery']);
@@ -132,15 +133,18 @@ function clearInstances(pool){
  mesh.count=0; // zero particles must not draw the full inactive GPU pool
 }
 export class SandforgeCombatEffects {
- constructor({scene,camera,game,world,heightAt,pos,battlefield=null,lowQuality=false,biome='desert'}){
-  Object.assign(this,{scene,camera,game,world,heightAt,pos,battlefield,lowQuality});
+ constructor({scene,camera,game,world,heightAt,pos,battlefield=null,lowQuality=false,biome='desert',vehicleDust=true}){
+  Object.assign(this,{scene,camera,game,world,heightAt,pos,battlefield,lowQuality,biome,vehicleDust});
   this.smoke=makePool(scene,'smoke',lowQuality?70:260,.68);
   this.flash=makePool(scene,'flash',lowQuality?16:48,.86);
   this.flames=makePool(scene,'flame',lowQuality?28:120,.94);
   this.dust=makePool(scene,'dust',lowQuality?40:170,.50,biome);
+  this.trailDust=makePool(scene,'dust',lowQuality?VEHICLE_DUST_CAP_LITE:VEHICLE_DUST_CAP,.27,biome);
+  this.trailDust.mesh.name='visual-moving-vehicle-dust';
+  this.trailDust.mesh.userData.vehicleDust=true;
   this.sparks=makePool(scene,'spark',lowQuality?90:300,.96);
   this.debris=makePool(scene,'debris',lowQuality?42:120,.84);
-  for(const pool of [this.smoke,this.flash,this.flames,this.dust,this.sparks,this.debris])clearInstances(pool);
+  for(const pool of [this.smoke,this.flash,this.flames,this.dust,this.trailDust,this.sparks,this.debris])clearInstances(pool);
   this.scorch=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),materialFor('scorch',.93),lowQuality?70:210);
   this.scorch.geometry.rotateX(-Math.PI*.5);
   this.scorch.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -379,6 +383,7 @@ export class SandforgeCombatEffects {
  tracksFor(u,old){
   if(!vehicleKinds.has(u.kind)||!u.moving||!this.game.canSee(0,u))return;
   const len=distance(u,old);
+  if(len>=3&&len<=85)this.vehicleDustFor(u,old);
   if(len<18||len>210)return;
   const angle=Math.atan2(u.x-old.x,u.y-old.y);
   const offset=trackedKinds.has(u.kind)?16:13;
@@ -397,6 +402,25 @@ export class SandforgeCombatEffects {
    const x=u.x,z=u.y;this.particle(this.dust,x,z,this.heightAt(x,z)+9,18+this.rand()*20,
     .65+this.rand()*.65,(this.rand()-.5)*9,(this.rand()-.5)*9,7+this.rand()*13);
   }
+ }
+ /** One visual-only instance pool; at most ~7 wisps/second per moving tank.
+  * Far away and lite-mode vehicles have reduced or no emission.
+  */
+ vehicleDustFor(u,old){
+  const dx=u.x-old.x,dz=u.y-old.y,len=Math.hypot(dx,dz);
+  const half=this.world.size*.5;
+  const cameraDist=Math.hypot(this.camera.position.x-(u.x-half),
+   this.camera.position.z-(u.y-half));
+  if(!vehicleDustEligible({kind:u.kind,moving:u.moving,dx,dz,biome:this.biome,
+   visible:true,enabled:this.vehicleDust,distanceToCamera:cameraDist,
+   lite:this.lowQuality,tick:this.game.time*20,id:u.id}))return;
+  if(this.trailDust.particles.length>=this.trailDust.max)return;
+  const tail=vehicleDustTail(u,dx,dz,UNITS[u.kind]?.width??76);
+  const side=(this.rand()-.5)*13;
+  const x=tail.x-dz/len*side,z=tail.y+dx/len*side;
+  this.particle(this.trailDust,x,z,this.heightAt(x,z)+7,
+   u.kind==='tank'?35:u.kind==='artillery'?31:25,.55+this.rand()*.24,
+   -dx/len*9+(this.rand()-.5)*4,-dz/len*9+(this.rand()-.5)*4,6+this.rand()*4);
  }
  addWreck(u){
   if(!addWreckRecord(this.wrecks,u,this.wreckHull.instanceMatrix.count))return;
@@ -706,7 +730,7 @@ export class SandforgeCombatEffects {
   }
   this.shockwave.count=shockIndex;
   if(shockIndex)this.shockwave.instanceMatrix.needsUpdate=true;
-  for(const pool of [this.smoke,this.flash,this.flames,this.dust,this.sparks,this.debris]){
+  for(const pool of [this.smoke,this.flash,this.flames,this.dust,this.trailDust,this.sparks,this.debris]){
    const alive=[];let k=0;
    for(const p of pool.particles){
     p.life-=dt;

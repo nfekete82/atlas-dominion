@@ -61,7 +61,8 @@ test('WebGL build exposes full gameplay adapter, all draw modules and skinned Th
  assert.match(adapter,/new THREE\.ShaderMaterial/);
  assert.match(adapter,/buildInterface\(/);
  assert.match(adapter,/this\.game\.recruit\(/);
- assert.match(adapter,/this\.game\.build\(/);
+ assert.match(adapter,/submitConstruction\(this\.game/);
+ assert.match(readFileSync('dist/webgl-builder-input.js','utf8'),/game\.build\(/);
  assert.match(adapter,/this\.game\.command\(/);
  assert.match(adapter,/this\.game\.save\(/);
  assert.match(adapter,/cloneSkeleton/);

@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {Simulation} from '/src/reborn/simulation.js';
-import {isTerrainProfile,TERRAIN_LABELS} from '/src/reborn/battlefield-terrain.js';
+import {isTerrainProfile,TERRAIN_LABELS,battlefieldStart,terrainGradingEdge} from '/src/reborn/battlefield-terrain.js';
+import {campaignLayout} from '/src/reborn/config.js';
 import {randomMapSeed} from '/src/reborn/world-generation.js';
 import {rollingHillHeight} from '/src/reborn/rolling-hills.js';
 import {canyonGroundSampler,rampAtX,ridgeCenterY} from '/src/reborn/canyon-height.js';
@@ -10,6 +11,7 @@ import {SandforgeBattlefield} from '/webgl-battlefield.js';
 import {DesertOases} from '/webgl-oases.js';
 import {DesertArtPass} from '/webgl-environment.js';
 import {BIOME_STYLES,normalizeBiome,createBiomeGroundTexture,addBiomeVegetation} from '/webgl-biomes.js';
+import {setWorldCamouflageBiome} from '/webgl-faction-accents.js';
 import {SandforgeCombatEffects} from '/webgl-combat-vfx.js';
 import {SandforgeStrategicEffects} from '/webgl-strategic-effects.js';
 import {SandforgePerformanceWatch} from '/webgl-perf-watch.js';
@@ -32,13 +34,16 @@ import {stoneMaterial,sharedStoneMaps,weatheredStoneGeometry} from '/webgl-rock-
 const $=id=>document.getElementById(id);
 const query=new URLSearchParams(location.search);
 const biome=normalizeBiome(query.get('biome'));
+setWorldCamouflageBiome(biome);
 const biomeStyle=BIOME_STYLES[biome];
 // Brand-new 50%-larger WebGL battlefields. Earlier Canyon v15-v18 saves
 // remain available via legacy=1 and are never silently migrated.
 // Keep pre-generator seeded bookmarks on their historical v19–22 maps.
 // The new-game menu always supplies terrain=random (or a chosen profile).
 const procedural=query.has('terrain')||query.has('play')||!query.has('seed');
-const sizes=query.get('legacy')==='1'?{4:15,8:16,12:17,16:18}:procedural?{4:23,8:24,12:25,16:26}:{4:19,8:20,12:21,16:22};
+const sizes=query.get('legacy')==='1'?{4:15,8:16,12:17,16:18}:
+ query.get('map')==='previous'?{4:23,8:24,12:25,16:26}:
+ procedural?{4:27,8:28,12:29,16:30}:{4:19,8:20,12:21,16:22};
 const bastions=Object.hasOwn(sizes,query.get('bastions'))?Number(query.get('bastions')):8;
 const inputSeed=query.get('seed');
 const seed=inputSeed!==null&&inputSeed.trim()!==''&&Number.isSafeInteger(Number(inputSeed))&&Number(inputSeed)>=0&&Number(inputSeed)<=4294967295
@@ -73,6 +78,9 @@ game.infantryVisionBonus=1.15; // modest +15% infantry sight in 3D only
 game.highGroundEnabled=true; // tactical +20% outgoing / -10% incoming only in 3D
 game.updateVision();
 const world=game.world,terrain=world.generated,size=world.size,half=size/2;
+const gradingHomes=terrain.battlefield?.generatorVersion===2
+ ?campaignLayout(world.mapVersion,seed).headquarters.map(i=>battlefieldStart(terrain.sites[i],size))
+ :[];
 if(terrain.battlefield)document.title='Sandforge · '+biomeStyle.label+' · '+TERRAIN_LABELS[terrain.battlefield.profile]+' · '+seed;
 const spacious=world.mapVersion>=19;
 const status=$('status'),errorNode=$('error'),stage=$('stage');
@@ -289,6 +297,12 @@ function buildTerrain(){
     vertexColor.copy(biomeGroundBase).lerp(biomeGroundLight,.16+vegetationNoise*.25)
      .lerp(biomeGroundRock,Math.min(.72,rocky*.58));
    }
+   if(terrain.battlefield?.generatorVersion===2){
+    // Baked, subtle cut-and-fill earth at graded bastion edges. Same terrain
+    // height field, no additional draw call or changing ground mesh.
+    const earth=terrainGradingEdge(x,z,terrain.sites,gradingHomes,2,world.mapVersion);
+    vertexColor.lerp(sandstone,earth*.16);
+   }
    colors[n]=vertexColor.r;colors[n+1]=vertexColor.g;colors[n+2]=vertexColor.b;
    uv[k*2]=x/(spacious?2200:1500);uv[k*2+1]=z/(spacious?2200:1500);
    // Sample normals from the continuous field, not triangle tessellation:
@@ -439,7 +453,8 @@ function instancedStone(){
  }
  for(let i=0;i<(spacious?420:1600);i++){
   const x=75+r()*(size-150),z=75+r()*(size-150),index=world.index({x,y:z});
-  if(index<0||world.blocked[index]||terrain.sites.some(p=>Math.hypot(x-p.x,z-p.y)<160))continue;
+  if(index<0||world.blocked[index]||terrain.sites.some(p=>Math.hypot(x-p.x,z-p.y)<160)||
+   (world.mapVersion>=27&&gradingHomes.some(p=>Math.hypot(x-p.x,z-p.y)<1190)))continue;
   put(x,z,spacious?1.4+r()*3.6:2+r()*5,
    spacious?.8+r()*2.7:1+r()*4,
    spacious?1.5+r()*4.2:2+r()*6);
@@ -1006,7 +1021,7 @@ if(oasisFocus){
 }
 window.addEventListener('pagehide',event=>{if(!event.persisted){oases.dispose();battlefield.productionGates.dispose();}});
 let desertArtReady=false;
-const effects=new SandforgeCombatEffects({scene,camera,game,world,heightAt,pos,battlefield,biome,lowQuality:query.get('lite')==='1'});
+const effects=new SandforgeCombatEffects({scene,camera,game,world,heightAt,pos,battlefield,biome,lowQuality:query.get('lite')==='1',vehicleDust:query.get('dust')!=='off'});
 // Renderer-only weather preview: weather rules in Simulation are unchanged.
 const stormButton=document.createElement('button');
 stormButton.id='sf3d-storm';
@@ -1025,8 +1040,9 @@ stormButton.onclick=()=>setStormPreview(!atmosphere.stormPreview);
 setStormPreview(query.get('storm')==='1');
 const constructionRecovery=new SandforgeConstructionRecovery(game);
 const sound=new Soundscape();
-// Original adaptive ambient music is quieter than the cinematic weapon and
-// local German radio. All mixer buses load user settings before unlocking.
+// The user's original cinematic MP3 is streamed quietly through its own
+// music gain bus, with ducking for local German alerts and weapon effects.
+// Unlike the old 4-oscillator ambient synth it needs no continuous voices.
 const bootOptions=window.Sandforge3DMenu?.readOptions?.()??{};
 const savedVolume=(field,fallback)=>Number.isFinite(Number(bootOptions[field]))&&
  bootOptions[field]!==null&&bootOptions[field]!==undefined?
@@ -1034,10 +1050,8 @@ const savedVolume=(field,fallback)=>Number.isFinite(Number(bootOptions[field]))&
 sound.setVolume(savedVolume('masterVolume',.85));
 sound.setEffectsVolume(savedVolume('effectsVolume',.85));
 sound.setEngineSoundsEnabled(bootOptions.engineSoundsEnabled!==false);
-sound.setMusicVolume(savedVolume('musicVolume',.30));
-// Four sustained synth voices sound like an electrical drone on some speakers.
- // Keep all effects/radio enabled, but start the optional score only after opt-in.
- sound.setMusicEnabled(bootOptions.musicEnabled===true);
+sound.setMusicVolume(savedVolume('musicVolume',.22));
+sound.setMusicEnabled(bootOptions.musicEnabled!==false);
 sound.setEnabled(bootOptions.sound!==false);
 sound.bindGame(game);
 battlefield.effects=effects;
@@ -1170,7 +1184,9 @@ function animate(now){
  if(performanceWatch.enabled)performanceWatch.auxiliary(performance.now()-beforeAux);
  const beforeRender=performanceWatch.enabled?performance.now():0;
  renderer.render(scene,camera);
- if(battlefield.buildPreview?.visible){
+ // The wall-line ghost deliberately hides the single-building hologram. A
+ // separate instanced ghost still needs the overlay render pass while dragging.
+ if(battlefield.buildPreview?.visible||battlefield.wallLinePreview?.visible){
   // A second render pass guarantees the translucent construction silhouette
   // is always visible even behind rocks, soldiers, the black fog or buildings.
   // The first pass already cleared the frame. Clear only depth for the overlay.

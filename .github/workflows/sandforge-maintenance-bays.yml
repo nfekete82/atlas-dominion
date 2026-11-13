@@ -2,12 +2,18 @@ name: Airfield and factory repair bays
 
 on:
   push:
-    branches: [main, 'feat/sandforge-*']
+    branches: [main, 'feat/sandforge-*', 'feat/webgl-facilities-preview-smallarms-20261110']
     paths:
       - '.github/workflows/sandforge-maintenance-bays.yml'
       - 'src/reborn/airfield-maintenance.ts'
       - 'src/reborn/factory-maintenance.ts'
       - 'src/reborn/simulation.ts'
+      - 'src/reborn/ai-counter-doctrine.ts'
+      - 'src/reborn/army-economy.ts'
+      - 'src/reborn/director-production.ts'
+      - 'src/reborn/tactical-ai.ts'
+      - 'tests/sandforge-ai-antiarmor-air-defense-20261111.test.mjs'
+      - 'tests/reborn-ai-active-counter-20261111.test.mjs'
       - 'src/reborn/catalog.ts'
       - 'scripts/webgl-airfield-service.js'
       - 'scripts/webgl-factory-service.js'
@@ -19,7 +25,54 @@ on:
       - 'scripts/webgl-combat-vfx.js'
       - 'tests/webgl-aircraft-effects-20261110.test.mjs'
       - 'scripts/webgl-battlefield.js'
+      - 'scripts/webgl-wall-line.js'
+      - 'tests/webgl-wall-line-20261111.test.mjs'
       - 'scripts/webgl-scale.js'
+      - 'scripts/webgl-selection-ring.js'
+      - 'tests/webgl-facility-preview-smallarms-20261110.test.mjs'
+      - 'tests/webgl-facility-clearance-terrain-20261110.test.mjs'
+      - 'tests/webgl-consecutive-building-20261110.test.mjs'
+      - 'tests/webgl-multi-pioneer-strategic-proportions-20261112.test.mjs'
+      - 'tests/webgl-original-hq-bastion-mk2-20261112.test.mjs'
+      - 'tests/webgl-textured-plus-headquarters-20261112.test.mjs'
+      - 'tests/webgl-funkzentrale-hq3-20261112.test.mjs'
+      - 'src/assets/reborn/buildings-3d/sandforge_funkzentrale_hq3_game_ready.glb'
+      - 'tests/webgl-strategic-original-glbs-20261112.test.mjs'
+      - 'scripts/webgl-strategic-glb.js'
+      - 'scripts/webgl-building-yard.js'
+      - 'scripts/webgl-faction-accents.js'
+      - 'tests/webgl-three-biome-camouflage-20261112.test.mjs'
+      - 'tests/webgl-strong-camo-thin-barbed-fences-20261112.test.mjs'
+      - 'scripts/webgl-construction.js'
+      - 'scripts/webgl-construction-assembly.js'
+      - 'tests/webgl-strategic-fence-orientation-20261112.test.mjs'
+      - 'tests/webgl-authored-hq-barracks-construction-20261112.test.mjs'
+      - 'src/assets/reborn/buildings-3d/sandforge_*'
+      - 'tests/webgl-global-production-20261111.test.mjs'
+      - 'tests/webgl-late-match-combat-input-20261111.test.mjs'
+      - 'tests/webgl-radio-voice-builders-20261111.test.mjs'
+      - 'tests/webgl-graded-bastion-pads-20261111.test.mjs'
+      - 'tests/webgl-pathfinding-budget-20261111.test.mjs'
+      - 'tests/webgl-bomber-hangar-capture-orbit-20261111.test.mjs'
+      - 'src/reborn/bomber-orbit.ts'
+      - 'src/reborn/battlefield-terrain.ts'
+      - 'src/reborn/world-generation.ts'
+      - 'src/reborn/world.ts'
+      - 'scripts/webgl-preview.js'
+      - 'scripts/webgl-builder-input.js'
+      - 'tests/webgl-recorded-soundtrack-20261111.test.mjs'
+      - 'tests/webgl-music-http-20261111.test.mjs'
+      - 'scripts/serve.mjs'
+      - 'src/reborn/recorded-soundtrack.ts'
+      - 'scripts/install-sandforge-music.sh'
+      - 'scripts/webgl-title-menu.js'
+      - 'src/reborn/audio.ts'
+      - 'scripts/webgl-bastion-lifecycle.js'
+      - 'scripts/webgl-maintenance-input.js'
+      - 'scripts/webgl-classic-hud.js'
+      - 'src/reborn/webgl-classic-hud.css'
+      - 'src/reborn/construction-spacing.ts'
+      - 'tests/sandforge-tank-balance.test.mjs'
       - 'tests/webgl-selection-rings.test.mjs'
       - 'scripts/build.mjs'
       - 'tests/webgl-hangar-factory-maintenance-20261110.test.mjs'
@@ -71,10 +124,18 @@ jobs:
           node --check scripts/webgl-aircraft-effects.js
           node --check scripts/webgl-combat-vfx.js
           node --check scripts/webgl-battlefield.js
+          node --check scripts/webgl-title-menu.js
+          node --check scripts/serve.mjs
+          bash -n scripts/install-sandforge-music.sh
+          node --check scripts/webgl-bastion-lifecycle.js
+          node --check scripts/webgl-maintenance-input.js
+          node --check scripts/webgl-selection-ring.js
+          node --check scripts/webgl-airfield-service.js
+          node --check scripts/webgl-builder-input.js
       - name: Compile TypeScript / build WebGL distribution
         run: npm run build
       - name: Test hangar and factory repair states, selection rings and Three.js visuals
-        run: node --test tests/webgl-hangar-factory-maintenance-20261110.test.mjs tests/webgl-selection-rings.test.mjs tests/webgl-aircraft-effects-20261110.test.mjs tests/webgl-production-gates.test.mjs
+        run: node --test tests/webgl-hangar-factory-maintenance-20261110.test.mjs tests/webgl-bomber-hangar-capture-orbit-20261111.test.mjs tests/sandforge-ai-antiarmor-air-defense-20261111.test.mjs tests/reborn-ai-active-counter-20261111.test.mjs tests/reborn-ai-economy.test.mjs tests/webgl-selection-rings.test.mjs tests/webgl-facility-preview-smallarms-20261110.test.mjs tests/webgl-facility-clearance-terrain-20261110.test.mjs tests/webgl-consecutive-building-20261110.test.mjs tests/webgl-multi-pioneer-strategic-proportions-20261112.test.mjs tests/webgl-original-hq-bastion-mk2-20261112.test.mjs tests/webgl-textured-plus-headquarters-20261112.test.mjs tests/webgl-funkzentrale-hq3-20261112.test.mjs tests/webgl-strategic-fence-orientation-20261112.test.mjs tests/webgl-strong-camo-thin-barbed-fences-20261112.test.mjs tests/webgl-three-biome-camouflage-20261112.test.mjs tests/webgl-authored-hq-barracks-construction-20261112.test.mjs tests/webgl-strategic-original-glbs-20261112.test.mjs tests/webgl-wall-line-20261111.test.mjs tests/webgl-global-production-20261111.test.mjs tests/webgl-late-match-combat-input-20261111.test.mjs tests/webgl-radio-voice-builders-20261111.test.mjs tests/webgl-graded-bastion-pads-20261111.test.mjs tests/webgl-pathfinding-budget-20261111.test.mjs tests/webgl-recorded-soundtrack-20261111.test.mjs tests/webgl-music-http-20261111.test.mjs tests/sandforge-tank-balance.test.mjs tests/webgl-aircraft-effects-20261110.test.mjs tests/webgl-production-gates.test.mjs
       - name: Regressions - bomber course, weather, capture, craters, infantry and strategic camouflage
         run: |
           node --test tests/reborn-control-retreat.test.mjs \

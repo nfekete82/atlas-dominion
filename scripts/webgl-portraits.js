@@ -5,6 +5,8 @@ import {createStrategicBuilding,isStrategicBuilding} from './webgl-strategic-bui
 import {createRocketInfantry,attachRocketLauncherToInfantry} from './webgl-rocket-infantry.js';
 import {createResearchArtwork,RESEARCH_ARTWORK_KINDS} from './webgl-research-artworks.js';
 import {tintFactionMaterials} from './webgl-faction-accents.js';
+import {isStrategicGlbKind,strategicGlbUrl,applyStrategicGlbFinish} from './webgl-strategic-glb.js';
+import {strategicBuildingHeightScale} from './webgl-scale.js';
 
 /** Sprite-sheet portrait extraction shared by the WebGL HUD.
  * The classic game crops one idle frame rather than scaling down the entire
@@ -15,6 +17,19 @@ export const unitAtlasUrl=kind=>'/src/assets/reborn/'+folders(kind)+'/'+kind+'-0
 /** Local original vector icons for the new strategic facilities; existing
  * buildings retain their authored PNGs. No missing-file fetches or tracking. */
 export const strategicBuildingIcon=kind=>{
+ if(kind==='wall'){
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 190">'+
+   '<rect width="192" height="190" rx="13" fill="#222a2a"/>'+
+   '<path d="M14 140 L35 115 L158 115 L177 140 L177 162 L14 162Z" fill="#656456"/>'+
+   '<path d="M21 70 H171 V133 H21Z" fill="#bbab87" stroke="#6e6a58" stroke-width="5"/>'+
+   '<path d="M71 73 V135 M121 73 V135" stroke="#827966" stroke-width="4"/>'+
+   '<path d="M18 69 H174 V79 H18Z" fill="#3c819e"/>'+
+   '<path d="M21 102 H171" stroke="#a3997b" stroke-width="3"/>'+
+   '<rect x="12" y="60" width="14" height="84" fill="#777665"/>'+
+   '<rect x="166" y="60" width="14" height="84" fill="#777665"/>'+
+   '</svg>';
+  return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
+ }
  if(!['research','silo','interceptor'].includes(kind))return null;
  const pict=kind==='research'?
   '<rect x="40" y="65" width="112" height="86" rx="6" fill="#a9997c"/>'+
@@ -166,7 +181,31 @@ function renderModelPortrait(model,renderer,{width=320,height=220,research=false
   for(const material of materials)material.dispose();
  }
 }
-function renderStrategicPortrait(kind,renderer){
+async function renderStrategicPortrait(kind,renderer){
+ if(isStrategicGlbKind(kind)){
+  // The build-menu thumbnail should show the exact SAME original 3D model
+  // as the placed building, not the obsolete procedural research/silo art.
+  try{
+   const url=strategicGlbUrl(kind,'active')??strategicGlbUrl(kind,'inactive');
+   const data=await new GLTFLoader().loadAsync(url);
+   const model=cloneSkeleton(data.scene);
+   // Portrait render disposes temporary GPU resources; never release the
+   // loader's cached GLB geometries or shared materials.
+   model.traverse(node=>{
+    if(!node.isMesh)return;
+    node.geometry=node.geometry.clone();
+    node.material=Array.isArray(node.material)?
+     node.material.map(m=>m.clone()):node.material.clone();
+   });
+   applyStrategicGlbFinish(model);
+   // Build-menu portrait must preserve the taller in-game strategic silhouette.
+   model.scale.y*=strategicBuildingHeightScale(kind);
+   tintFactionMaterials(model,0,kind,'building');
+   return renderModelPortrait(model,renderer);
+  }catch(error){
+   console.warn('Original strategic GLB thumbnail fallback:',kind,error);
+  }
+ }
  const model=createStrategicBuilding(kind,0);
  if(!model)return strategicBuildingIcon(kind);
  tintFactionMaterials(model,0,kind,'building');
@@ -313,9 +352,9 @@ export function unitIcon(kind,renderer){
 // into a consistent wide tile without clipping its silhouette.
 const buildingIconCache=new Map();
 async function rasterizeBuildingIcon(kind,renderer){
- if(isStrategicBuilding(kind)){
+ if(isStrategicBuilding(kind)||isStrategicGlbKind(kind)){
   if(!renderer)return buildingIconUrl(kind);
-  try{return renderStrategicPortrait(kind,renderer);}
+  try{return await renderStrategicPortrait(kind,renderer);}
   catch(error){console.warn('Strategic portrait fallback:',kind,error);return buildingIconUrl(kind);}
  }
  const image=await loadImage(buildingIconUrl(kind));

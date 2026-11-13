@@ -3,6 +3,7 @@ import type { SectorChoice, StrategicBrief } from './qwen-plan.js';
 import {RULES,distance,clamp,type Point} from './config.js';
 import {UNITS,unitSpec,buildingSpec,canAttack,type UnitKind} from './catalog.js';
 import {developArmy,validEconomy,type EconomyState} from './army-economy.js';
+import {selectObservedCounterTarget} from './ai-counter-doctrine.js';
 import {assaultDecision,abortAssault} from './ai-director.js';
 import {selectiveRaidAllowed} from './selective-raids.js';
 import {newCampaign,campaignPhase,refreshIntelligence,chooseMission,reconGoal,validCampaign,knownBuildings,type CampaignState} from './campaign-commander.js';
@@ -15,6 +16,7 @@ import {canCaptureSector,comebackPressure,chooseComebackOpportunity} from './ter
 import {chooseTacticalManeuver,flankCandidate,type TacticalChoice} from './tactical-search.js';
 import {assignScreen,assignFlank,flankRouteScore,isContinuingFlank} from './battle-squads.js';
 import {assaultWaveDecision,reinforcementStagingPoint} from './assault-wave.js';
+import {homeDefensePlan} from './home-defense-doctrine.js';
 import {chooseSiegeShot,chooseRaidFront,allowSecondaryPressure,type SiegeShot,type RaidFront} from './ai25-doctrine.js';
 import type {Simulation,Unit,Memory} from './simulation.js';
 export type TacticalPhase='gather'|'attack'|'regroup'|'defend';
@@ -308,6 +310,13 @@ export class TacticalAI {
   // defender confronts the observed drop, even when outnumbered.
   // No reinforcements are spawned and no enemy is revealed through fog.
   this.issue(defenders,target,'defend',target.id,false,false);
+  // Give actual paid missile soldiers the observed aircraft/tank in the
+  // invasion, rather than forcing them to waste rockets on a nearby rifleman.
+  for(const rocket of defenders.filter(u=>u.kind==='rocket')){
+   const counter=selectObservedCounterTarget('rocket',rocket,intruders,750,target);
+   if(counter&&rocket.orders[0]?.target!==counter.id)
+    this.issue([rocket],counter,'defend',counter.id,false,false);
+  }
   // The medic escorts from cover, not from a suicidal attack order.
   if(medic){
    const shelter=protectedBases.slice().sort((a,v)=>distance(a,target)-distance(v,target))[0]??home;
@@ -488,7 +497,12 @@ export class TacticalAI {
   const g=this.g,s=this.state,c=s.commander??=newCampaign();refreshIntelligence(g,c);
   c.recon=c.recon.filter(t=>army.some(u=>u.id===t.unit));
   const recovering=new Set(s.recovering??[]),explorers=army.filter(u=>u.kind==='scout'&&u.id!==s.airlift?.heli);
-  if(!explorers.length&&army.filter(combat).length>=4){
+  // Large modern deserts use dedicated aircraft for reconnaissance. A lone
+  // Humvee was previously drafted after just four paid fighters, then driven
+  // deep into the player's base by fog-frontier exploration and ordered out
+  // at the next danger pulse. Keep mobile ground combat with the assault
+  // group and the home garrison; legacy maps retain their old scouting rules.
+  if(g.world.mapVersion<19&&!explorers.length&&army.filter(combat).length>=4){
    const rover=army.find(u=>u.kind==='rover'&&!s.group.includes(u.id)&&!recovering.has(u.id));if(rover)explorers.push(rover);
   }
   for(const u of explorers){
@@ -706,15 +720,112 @@ export class TacticalAI {
   return true;
  }
  private airSupport(members:Unit[],goal:Point,targetId:number|null):void{
-  const g=this.g,s=this.state,front=members.filter(frontRole),anchor=s.rally??members[0],d=distance(anchor,goal)||1,h={x:(goal.x-anchor.x)/d,y:(goal.y-anchor.y)/d};
-  for(const [index,u] of members.filter(u=>u.kind==='bomber').entries()){
-   const target=targetId===null?undefined:g.bases.find(b=>b.id===targetId&&b.hp>0&&g.canSee(1,b))??g.memories[1].find(b=>b.id===targetId&&b.hp>0)??g.units.find(v=>v.id===targetId&&v.hp>0&&!v.carrier&&g.canSee(1,v));
-   if(u.kind==='bomber'&&!target){this.issue([u],anchor,'safe');continue;}
-   if(u.orders.length>1)continue;
-   if(u.orders[0]?.target===targetId&&target)continue;
-   const flank={x:clamp(goal.x-h.y*(index%2?-340:340)-h.x*220,30,g.world.size-30),y:clamp(goal.y+h.x*(index%2?-340:340)-h.y*220,30,g.world.size-30)};
-   g.command([u.id],{...flank,kind:'move'});g.command([u.id],{x:goal.x,y:goal.y,kind:target?'attack':'attackMove',target:target?.id},true);
-   for(const o of u.orders){o.tactical={group:s.groupId,mode:'assault'};if(front.length&&(g.world.mapVersion<=2||this.mode==='baseline'))o.march=front.map(v=>v.id);}
+  const g=this.g,s=this.state,front=members.filter(frontRole),
+   anchor=s.rally??members[0],d=distance(anchor,goal)||1,
+   h={x:(goal.x-anchor.x)/d,y:(goal.y-anchor.y)/d};
+  // Real current RED vision only. Bomber strike decisions must NEVER
+  // consult unobserved units even though Simulation stores all of them.
+  const visibleArmor=g.units.filter(v=>v.owner===0&&v.hp>0&&!v.carrier&&
+   g.canSee(1,v)&&!unitSpec(v).flying&&unitSpec(v).group==='Fahrzeuge');
+  for(const [index,u] of members.filter(u=>u.kind==='bomber'&&!u.airfieldService).entries()){
+   // A bomber can make useful anti-tank bombing runs even if no ground
+   // building has been selected as the strategic assault objective.
+   const armor=selectObservedCounterTarget('bomber',u,visibleArmor,1200,goal);
+   const objective=targetId===null?undefined:g.bases.find(b=>b.id===targetId&&b.hp>0&&g.canSee(1,b))??
+    g.units.find(v=>v.id===targetId&&v.hp>0&&!v.carrier&&g.canSee(1,v))??
+    g.memories[1].find(b=>b.id===targetId&&b.hp>0);
+   const target=armor??objective;
+   if(!target){
+    if(!u.orders.length)this.issue([u],anchor,'safe');
+    continue;
+   }
+   // Finish an ongoing genuine bomb/turn/return loop before reassignment.
+   if(u.bomberRun)continue;
+   const selectedTarget=target.id;
+   if(u.orders.some(o=>o.kind==='attack'&&o.target===selectedTarget))continue;
+   // An obsolete two-leg queue may be replaced for freshly observed armor,
+   // but ordinary high-priority tower mission queues remain stable.
+   if(u.orders.length>1&&!armor)continue;
+   const strike=armor??goal;
+   const flank={
+    x:clamp(strike.x-h.y*(index%2?-340:340)-h.x*220,30,g.world.size-30),
+    y:clamp(strike.y+h.x*(index%2?-340:340)-h.y*220,30,g.world.size-30)
+   };
+   g.command([u.id],{...flank,kind:'move'});
+   g.command([u.id],{x:target.x,y:target.y,kind:'attack',target:selectedTarget},true);
+   for(const o of u.orders){
+    o.tactical={group:s.groupId,mode:'assault'};
+    if(front.length&&(g.world.mapVersion<=2||this.mode==='baseline'))
+      o.march=front.map(v=>v.id);
+   }
+  }
+ }
+ /** Send paid counter specialists after the main campaign has assigned
+  * orders. Formerly an AA rocket only reacted in the offensive squad or once
+  * our headquarters was already invaded. A reserve soldier or bomber could
+  * stay idle despite a visibly hostile aircraft/tank.
+  * Only currently observable red-vision enemies, never hidden targets.
+  * Preserve recovering, withdrawn, parked and mid-bombing-run aircraft.
+  */
+ private dispatchObservedSpecialists(army:Unit[]):void{
+  const g=this.g,recovering=new Set(this.state.recovering??[]),
+   withdrawals=new Set(this.state.battle?.withdrawals.map(w=>w.unit)??[]);
+  const visible=g.units.filter(v=>v.owner===0&&v.hp>0&&!v.carrier&&
+   g.canSee(1,v)&&(unitSpec(v).flying||unitSpec(v).group==='Fahrzeuge'));
+  if(!visible.length)return;
+  for(const u of army){
+   if(!['rocket','bomber'].includes(u.kind)||u.hp<=0||u.carrier||
+      recovering.has(u.id)||withdrawals.has(u.id)||u.hold||
+      u.airfieldService||u.factoryService||u.bomberRun||
+      u.transport&&u.transport.phase!=='cruise')continue;
+   const target=selectObservedCounterTarget(u.kind as 'rocket'|'bomber',
+    u,visible,u.kind==='rocket'?unitSpec(u).sight+120:1100);
+   // Retain the bomber's existing move→attack flank queue. Replacing it
+   // every macro pulse would prevent him from ever reaching the tank.
+   if(!target||u.orders.some(o=>o.kind==='attack'&&o.target===target.id))
+    continue;
+   g.command([u.id],{kind:'attack',x:target.x,y:target.y,target:target.id});
+  }
+ }
+ /** Observed anti-air/anti-tank interception overrides generic attack-move
+  * only for shoulder-rocket troops in the actual offensive squad.
+  * Uses no unseen opponents and does not repurpose recovery/engineer orders. */
+ private counterMissileScreen(members:Unit[],visible:Unit[],goal:Point):void{
+  for(const u of members.filter(u=>u.kind==='rocket'&&u.hp>0&&!u.carrier)){
+   const target=selectObservedCounterTarget('rocket',u,visible,
+    unitSpec(u).sight+120,goal);
+   if(!target||u.orders[0]?.target===target.id)continue;
+   this.issue([u],target,'assault',target.id,false,false);
+  }
+ }
+ /** Use real paid infantry, AA rockets and armor as dispersed base sentries.
+  * These have normal vision, normal weapons and no special fog awareness.
+  * A guard already fighting visible raiders belongs to localDefense() first.
+  */
+ private stationHomeGuards(guards:Unit[],home:Point):void{
+  if(!guards.length)return;
+  const g=this.g;
+  const protectedBases=g.bases.filter(b=>b.owner===1&&b.hp>0&&b.buildRemaining<=0)
+   .sort((a,b)=>(a.kind==='headquarters'?0:1)-(b.kind==='headquarters'?0:1)||a.id-b.id)
+   .slice(0,3);
+  const frontAngle=Math.atan2(g.world.size/2-home.y,g.world.size/2-home.x);
+  const angles=[-.85,.85,Math.PI,-.15,1.8];
+  for(const [i,u] of guards.entries()){
+   // Spread posts around the HQ/production perimeter, not on top of doors.
+   const base=protectedBases[i%Math.max(1,protectedBases.length)]??home;
+   const angle=frontAngle+angles[i%angles.length];
+   const radius=base===home?185:150;
+   const proposed={x:base.x+Math.cos(angle)*radius,y:base.y+Math.sin(angle)*radius};
+   const post=g.world.nearest(proposed,this.obstacles(),[],u,Math.max(0,unitSpec(u).radius-10));
+   if(!post||distance(post,base)>310)continue;
+   if(distance(u,post)<58){
+    if(u.orders.length&&u.orders[0]?.tactical?.mode==='safe')g.stop([u.id],true);
+    else if(!u.orders.length&&!u.hold)g.stop([u.id],true);
+    continue;
+   }
+   if(u.defendUntil>g.time)continue; // never override an active firefight
+   if(u.orders[0]?.tactical?.mode==='safe'&&distance(u.orders[0],post)<85)continue;
+   this.issue([u],post,'safe',undefined,false,false);
   }
  }
  /** A cheap second axis of pressure: mobile reserves capture an unguarded adjacent
@@ -742,6 +853,18 @@ export class TacticalAI {
   if(this.raidDetachmentMode==='off'||this.doctrineMode!=='intelligent'||this.mode!=='director'||this.planningMode!=='tactical'
     ||this.g.world.mapVersion<3)return new Set();
   const g=this.g,s=this.state,b=s.battle??=newBattle();
+  if(g.world.mapVersion>=19){
+   // No two-man diversion while a modern base is still assembling or
+   // recovering from a failed attack. Main waves retain their own strength.
+   const recentFailures=b.fronts.filter(f=>g.time-f.at<100).length;
+   const recentLosses=s.losses.filter(l=>g.time-l.at<70).length;
+   const homePressure=g.units.some(u=>u.owner===0&&u.hp>0&&!u.carrier
+    &&g.canSee(1,u)&&distance(u,home)<850);
+   if(!homeDefensePlan({fighters:fighters.length,time:g.time,recentLosses,
+     recentFailures,lastFailureAt:b.fronts.at(-1)?.at??-1,
+     observedHomePressure:homePressure,defendedTarget:false,
+     confirmedEndgame:false}).allowSecondaryRaids)return new Set();
+  }
   const old=b.squads.find(q=>q.role==='raid');
   // Losing two sectors triggers a small paid detachment sooner than the
   // normal ten-fighter doctrine. No new units or economic bonuses.
@@ -852,7 +975,20 @@ export class TacticalAI {
  // a secondary neutral bastion while enemy production is still standing.
  const raidUnits=c.enemyHQEliminatedAt===undefined?this.secondaryPressure(fighters,mission,home):new Set<number>();
   const mainFighters=fighters.filter(u=>!raidUnits.has(u.id));
-  const reserve=homeGarrisonSize(mainFighters.length,c.enemyHQEliminatedAt!==undefined);
+  const modernDefense=g.world.mapVersion>=19&&this.mode==='director';
+  const battleNow=s.battle??=newBattle();
+  const recentFailures=battleNow.fronts.filter(f=>g.time-f.at<100);
+  const recentLosses=s.losses.filter(l=>g.time-l.at<70).length;
+  const observedHomePressure=g.units.some(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)
+   &&g.bases.some(base=>base.owner===1&&base.hp>0&&distance(base,u)<850));
+  const policy=modernDefense?homeDefensePlan({
+   fighters:mainFighters.length,time:g.time,recentLosses,
+   recentFailures:recentFailures.length,
+   lastFailureAt:recentFailures.reduce((at,f)=>Math.max(at,f.at),-1),
+   observedHomePressure,defendedTarget:defended,
+   confirmedEndgame:c.enemyHQEliminatedAt!==undefined}):null;
+  const reserve=Math.max(homeGarrisonSize(mainFighters.length,c.enemyHQEliminatedAt!==undefined),
+   policy?.guards??0);
   // Home guards are drawn from available infantry first. Reserving a fully
   // staged tank while distant infantry are still assembling used to reduce a
   // combat-ready four-tank vanguard to three and delay a proven early wave.
@@ -861,10 +997,12 @@ export class TacticalAI {
   const homeGuardPriority=(u:Unit)=>u.kind==='infantry'?0:
    u.kind==='heavy'?1:u.kind==='rover'?2:u.kind==='tank'?3:
    u.kind==='artillery'?4:2;
-  const guards=new Set(mainFighters.filter(u=>!s.group.includes(u.id))
+  const guards=new Set(mainFighters.filter(u=>s.phase!=='attack'||!s.group.includes(u.id))
    .sort((a,b)=>homeGuardPriority(a)-homeGuardPriority(b)||
     distance(a,home)-distance(b,home)||a.id-b.id)
    .slice(0,reserve).map(u=>u.id));
+  if(policy&&s.phase!=='attack')s.group=s.group.filter(id=>!guards.has(id));
+  if(policy)this.stationHomeGuards(mainFighters.filter(u=>guards.has(u.id)),home);
   const selected=mainFighters.filter(u=>!guards.has(u.id)).sort((a,b)=>Number(s.group.includes(b.id))-Number(s.group.includes(a.id))||distance(a,s.rally!)-distance(b,s.rally!)||a.id-b.id).slice(0,18);
   let members=selected.filter(u=>s.group.includes(u.id));
   if(s.phase==='attack'&&members.length<Math.max(1,Math.ceil(s.launchSize*.4))){g.stop(s.group.filter(id=>fighters.some(u=>u.id===id)));s.group=[];members=[];s.launchSize=0;this.setPhase('regroup');c.aborted++;}
@@ -991,7 +1129,11 @@ export class TacticalAI {
         siegeSupported:!towers.length||ready.some(u=>u.kind==='artillery')||overrun})
      :{ready:true,required:0,reason:'legacy'};
    if(enough&&!wave.ready)this.diagnostics.waveWaits++;
-   if(!enough||!wave.ready){
+   const groundReady=ready.filter(u=>!unitSpec(u).flying).length;
+   const guardBuildup=policy&&(
+    observedHomePressure||g.time<policy.notBefore||
+    groundReady<policy.minimumReady);
+   if(!enough||!wave.ready||guardBuildup){
     campaignPhase(c,g.time<40?'opening':defended?'buildup':'expansion',g.time);this.setPhase('gather');
     stageForSiege();return;
    }
@@ -1111,6 +1253,7 @@ export class TacticalAI {
   if(tacticalEnabled)for(const medic of escorts)if(!medic.orders.length)
     this.issue([medic],s.rally??anchor,'safe',undefined,false,false);
   this.airSupport(members,closeThreat??mission,closeThreat?.id??mission.objective);
+  this.counterMissileScreen(members,visible,mission);
   // Aircraft that have finished their flank route can keep the same mission.
   for(const u of members.filter(u=>unitSpec(u).flying&&!u.orders.length))this.issue([u],mission,'assault',mission.objective??undefined);
  }
@@ -1161,8 +1304,10 @@ export class TacticalAI {
   const intruders=g.units.filter(u=>u.owner===0&&u.hp>0&&!u.carrier&&g.canSee(1,u)&&g.bases.some(b=>b.owner===1&&b.hp>0&&distance(u,b)<(b.kind==='headquarters'?560:420)));
   if(g.world.mapVersion>=3&&this.mode==='director'){
    const defense=this.localDefense(fighters,medics,intruders,home);
-   const raiders=this.expansionRaid(fighters.filter(u=>!defense.has(u.id)),home);
+   const raiders=g.world.mapVersion>=19&&g.time<180
+    ?new Set<number>():this.expansionRaid(fighters.filter(u=>!defense.has(u.id)),home);
    this.campaign(army,fighters.filter(u=>!defense.has(u.id)&&!raiders.has(u.id)),medics.filter(u=>!defense.has(u.id)),home);
+   this.dispatchObservedSpecialists(army);
    if(defense.size)campaignPhase(s.commander??=newCampaign(),'emergencyDefense',g.time);
    return;
   }

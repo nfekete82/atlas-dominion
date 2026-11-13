@@ -1,4 +1,4 @@
-import {battlefieldHeightAt,battlefieldSlopeAt,type TerrainProfile} from './battlefield-terrain.js';
+import {BATTLEFIELD_GENERATOR,battlefieldHeightAt,battlefieldSlopeAt,type TerrainProfile,type BattlefieldGeneratorVersion} from './battlefield-terrain.js';
 import {validateBattlefield,type BattlefieldValidation} from './battlefield-validation.js';
 import { profiler } from './performance.js';
 import { RULES, type Point, type Owner, type MapVersion, mapLayout, campaignLayout, mapWorldSize } from './config.js';
@@ -53,14 +53,14 @@ export class World {
   readonly cliffCells:number[][]=[];
   readonly generated?:GeneratedMap;
   readonly validation?:BattlefieldValidation;
-  constructor(readonly seed=2026,readonly mapVersion:MapVersion=0,profile?:TerrainProfile,candidate=0) {
+  constructor(readonly seed=2026,readonly mapVersion:MapVersion=0,profile?:TerrainProfile,candidate=0,readonly generatorVersion:BattlefieldGeneratorVersion=BATTLEFIELD_GENERATOR) {
     this.size=mapWorldSize(mapVersion);this.cell=this.size/RULES.grid;
     if(mapVersion===0&&navigationCache){
       this.blocked.set(navigationCache.blocked);this.opaque.set(navigationCache.opaque);this.cliffIds.set(navigationCache.cliffs);this.components.set(navigationCache.components);
       this.cliffIds.forEach((id,i)=>{if(id>=0)(this.cliffCells[id]??=[]).push(i);});return;
     }
     if(mapVersion!==0){
-      this.generated=generateMap(seed,mapVersion,profile,candidate);
+      this.generated=generateMap(seed,mapVersion,profile,candidate,generatorVersion);
       this.rocks=this.generated.mesas.map(m=>m.outline);
       for(const [id,mesa] of this.generated.mesas.entries()){
         this.cliffCells[id]=[];
@@ -113,7 +113,7 @@ export class World {
       this.validation=validateBattlefield(this);
       if(!this.validation.valid){
         if(candidate>=3)throw new Error('Battlefield validation failed: '+this.validation.errors.join(', '));
-        const corrected=new World(seed,mapVersion,profile,candidate+1);
+        const corrected=new World(seed,mapVersion,profile,candidate+1,generatorVersion);
         this.generated=corrected.generated;this.rocks=corrected.rocks;this.validation=corrected.validation;
         this.blocked.set(corrected.blocked);this.opaque.set(corrected.opaque);this.cliffIds.set(corrected.cliffIds);this.components.set(corrected.components);
         this.cliffCells.length=0;this.cliffCells.push(...corrected.cliffCells);
@@ -201,10 +201,15 @@ export class World {
     }
     return true;
   }
-  path(start: Point, target: Point, obstacles: {x:number;y:number;radius:number}[]=[],clearance=0,risk?:Float32Array,air=false,exact=false): Point[] {
-    if(!profiler&&!this.profilePaths)return this.findPath(start,target,obstacles,clearance,risk,air,exact);
+  /** Modern WebGL battles cannot synchronously exhaust a 240x240 grid
+   * when a vehicle goal is walled off. A bounded search returns a verified
+   * approach segment for moving units, or [] for strategic reachability checks.
+   * Expansion counts, not wall-clock timing, keep multiplayer/replays
+   * deterministic across machines. Legacy map versions remain unchanged. */
+  path(start: Point, target: Point, obstacles: {x:number;y:number;radius:number}[]=[],clearance=0,risk?:Float32Array,air=false,exact=false,allowPartial=false): Point[] {
+    if(!profiler&&!this.profilePaths)return this.findPath(start,target,obstacles,clearance,risk,air,exact,allowPartial);
     const at=performance.now();this.pathNodes=0;
-    try{return this.findPath(start,target,obstacles,clearance,risk,air,exact);}
+    try{return this.findPath(start,target,obstacles,clearance,risk,air,exact,allowPartial);}
     finally{
       const ms=performance.now()-at;
       if(this.profilePaths){
@@ -219,7 +224,7 @@ export class World {
   // Searches are synchronous; reuse workspace, resetting traversal for every search.
   // Never cache across calls: construction, fog knowledge and test maps can change.
   private pathWorkspace?:{costs:Float64Array;prev:Int32Array;closed:Uint8Array;walkable:Int8Array};
-  private findPath(start: Point, target: Point, obstacles: {x:number;y:number;radius:number}[]=[],clearance=0,risk?:Float32Array,air=false,exact=false): Point[] {
+  private findPath(start: Point, target: Point, obstacles: {x:number;y:number;radius:number}[]=[],clearance=0,risk?:Float32Array,air=false,exact=false,allowPartial=false): Point[] {
     const precise=exact&&this.mapVersion>=3&&!air;
     const walk=(p:Point)=>air?(p.x>=10&&p.y>=10&&p.x<=this.size-10&&p.y<=this.size-10):this.walkable(p,obstacles,clearance);
     const line=(a:Point,b:Point)=>air?walk(a)&&walk(b):precise
@@ -238,12 +243,51 @@ export class World {
     const h=(i:number)=>Math.hypot(i%RULES.grid-goal%RULES.grid,Math.floor(i/RULES.grid)-Math.floor(goal/RULES.grid));
     const push=(v:{i:number;f:number})=>{heap.push(v);let k=heap.length-1;while(k>0){const p=(k-1)>>1;if(heap[p].f<=v.f)break;heap[k]=heap[p];k=p;}heap[k]=v;};
     const pop=()=>{const top=heap[0],last=heap.pop()!;if(heap.length){let k=0;while(k*2+1<heap.length){let c=k*2+1;if(c+1<heap.length&&heap[c+1].f<heap[c].f)c++;if(heap[c].f>=last.f)break;heap[k]=heap[c];k=c;}heap[k]=last;}return top.i;};
-    costs[s]=0;push({i:s,f:h(s)});
+    // One endgame command previously expanded ~54,000 nodes, blocked the
+    // main browser thread for 500–560 ms, and repeated every 1.4 s. Limit
+    // work BEFORE expanding the full map, including exact-path retries.
+    // More costly exact visibility checks get a smaller search allowance.
+    const maxNodes=this.mapVersion>=23
+      ?(precise?1600:allowPartial?2600:4200):Infinity;
+    const startH=h(s);let closest=s,closestH=startH,expanded=0;
+    const reconstruct=(finish:number,complete:boolean):Point[]=>{
+      // The partial endpoint is already included by walking the predecessor
+      // chain. Adding it here too would duplicate the last waypoint.
+      const route:Point[]=complete?[end]:[];
+      let at=finish;
+      while(at!==s&&at>=0){
+        route.push(precise&&complete&&at===goal?end:this.center(at));
+        at=prev[at];
+      }
+      route.reverse();
+      const prefix=[0];
+      for(let j=0;j<route.length;j++)
+        prefix.push(prefix[j]+(risk?cost(j?route[j-1]:start,route[j]):0));
+      const smooth:Point[]=[];let anchor=start;
+      for(let k=0;k<route.length;){
+        let next=k;
+        while(next+1<route.length&&line(anchor,route[next+1])&&
+          (!risk||cost(anchor,route[next+1])<=(prefix[next+2]-prefix[k])*1.04))
+          next++;
+        if(precise&&!line(anchor,route[next]))return [];
+        smooth.push(route[next]);anchor=route[next];k=next+1;
+      }
+      return smooth;
+    };
+    costs[s]=0;push({i:s,f:startH});
     while(heap.length) {
-      const i=pop();if(closed[i])continue;closed[i]=1;if(profiler||this.profilePaths)this.pathNodes++;
-      if(i===goal){const route:Point[]=[end];let at=goal;while(at!==s&&at>=0){route.push(precise&&at===goal?end:this.center(at));at=prev[at];}route.reverse();
-        const prefix=[0];for(let j=0;j<route.length;j++)prefix.push(prefix[j]+(risk?cost(j?route[j-1]:start,route[j]):0));
-        const smooth:Point[]=[];let anchor=start;for(let k=0;k<route.length;){let next=k;while(next+1<route.length&&line(anchor,route[next+1])&&(!risk||cost(anchor,route[next+1])<=(prefix[next+2]-prefix[k])*1.04))next++;if(precise&&!line(anchor,route[next]))return [];smooth.push(route[next]);anchor=route[next];k=next+1;}return smooth;}
+      const i=pop();if(closed[i])continue;closed[i]=1;
+      if(profiler||this.profilePaths)this.pathNodes++;
+      if(i===goal)return reconstruct(i,true);
+      const distToGoal=h(i);
+      if(distToGoal<closestH){closest=i;closestH=distToGoal;}
+      if(++expanded>=maxNodes){
+        // Only movement (never AI planning or construction reachability)
+        // may use a partial route, and it must advance at least 2 cells.
+        // Every segment is still smoothed through the same collision checks.
+        return allowPartial&&closest!==s&&closestH<startH-2
+          ?reconstruct(closest,false):[];
+      }
       const ix=i%RULES.grid,iy=Math.floor(i/RULES.grid);
       for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
         if(!dx&&!dy)continue;const x=ix+dx,y=iy+dy;

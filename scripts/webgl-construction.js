@@ -1,13 +1,14 @@
 import * as THREE from 'three';
 import {disposeOwnedMeshes} from '/webgl-resource-lifecycle.js';
 import {BUILDINGS} from '/src/reborn/catalog.js';
+import {AUTHORED_ASSEMBLY_KINDS,prepareAuthoredAssembly,
+ updateAuthoredAssembly,releaseAuthoredAssembly} from '/webgl-construction-assembly.js';
 
 /** Render-only construction states driven by the classic Simulation's
  * buildRemaining / buildTime. No new gameplay timers or construction rules.
  *
- * Unlike simply scaling a complete model to 58%, we reveal the actual GLB
- * from its foundation upward and assemble a segmented structural frame,
- * scaffolding posts and the roof sequentially.
+ * Progressively reveal facade, walls and roof over animated scaffolding.
+ * Construction uses the same components as the finished structure, not a prefab.
  */
 export class SandforgeConstructionPresentation{
  constructor(renderer){this.renderer=renderer;renderer.localClippingEnabled=true;}
@@ -47,8 +48,8 @@ export class SandforgeConstructionPresentation{
   label.scale.set(83,21,1);label.position.set(0,height+65,0);frame.add(label);
   entry.node.add(frame);
   const construction={frame,columns,rails,slab,roof,canvas,texture,label,
-   height,clip:new THREE.Plane(new THREE.Vector3(0,-1,0),0),
-   model:null,materials:[],lastLabel:-1,finished:false};
+   height,lastLabel:-1,finished:false,authoredAssembly:null,
+   authoredPortal:null,siteAssembly:null,siteHeight:0};
   entry.construction=construction;return construction;
  }
  update(entry,base){
@@ -76,25 +77,81 @@ export class SandforgeConstructionPresentation{
   }
   for(const rail of state.rails)
    for(const beam of rail.meshes)beam.visible=progress>=rail.threshold;
-  state.roof.visible=progress>=.77;
-  // Clip a construction model at the current built height, not the entire
-  // entry.node: healthbars, labels, and scaffolding must remain readable.
+  // Authored HQ3 and barracks roofs rise from their real triangles.
+  // The generic box roof otherwise pops in fully assembled at 77%.
+  state.roof.visible=progress>=.77&&!AUTHORED_ASSEMBLY_KINDS.includes(base.kind);
+  // The previous regression made the finished GLB fully visible at 0%,
+  // with only scaffolding layered on top. Instead assemble REAL building
+  // components in stages. No clipping planes: no bisected or floating facades.
   const model=entry.detail??entry.placeholder;
-  if(state.model!==model){
-   for(const mat of state.materials){mat.clippingPlanes=[];mat.needsUpdate=true;}
-   state.materials=[];
-   model.traverse(obj=>{
-    if(!obj.isMesh)return;
-    const convert=mat=>{
-     const copy=mat.clone();copy.clippingPlanes=[state.clip];copy.clipShadows=true;
-     copy.needsUpdate=true;state.materials.push(copy);return copy;
-    };
-    obj.material=Array.isArray(obj.material)?obj.material.map(convert):convert(obj.material);
-   });
-   state.model=model;
+  // HQ3 must be constructed from the very same model visible when
+  // complete. Only the barracks has a distinct authored closed variant.
+  // Both models use height-ordered triangles, never a fully built prefab.
+  const authored=AUTHORED_ASSEMBLY_KINDS.includes(base.kind)&&
+   Boolean(entry.detail&&(base.kind==='headquarters'||entry.variantDetail));
+  const authoredModel=authored?
+   (base.kind==='headquarters'?entry.detail:entry.variantDetail):null;
+  // The HQ3 sliding door is added after the GLB streams in. A construction
+  // started before the portal existed must rescan the same model to include
+  // door leaves, trim and side panels in the vertical triangle reveal.
+  const portal=base.kind==='headquarters'?entry.headquartersPortal?.root:null;
+  if(authoredModel&&(state.authoredAssembly?.root!==authoredModel||
+      state.authoredPortal!==portal)){
+   releaseAuthoredAssembly(state.authoredAssembly);
+   state.authoredAssembly=prepareAuthoredAssembly(authoredModel);
+   state.authoredPortal=portal;
   }
-  const realHeight=entry.modelHeight??state.height;
-  state.clip.constant=entry.node.position.y+Math.max(1.5,realHeight*progress);
+  updateAuthoredAssembly(state.authoredAssembly,progress);
+  // The HQ side service station and supplies are genuine meshes, not part
+  // of the imported GLB. Give them the same physical rise height instead
+  // of popping in as finished equipment on the first build tick.
+  if(base.kind==='headquarters'&&entry.yard){
+   const siteHeight=(entry.modelHeight??0)/(entry.yard.scale.y||1);
+   if(state.siteAssembly?.root!==entry.yard||
+      Math.abs(state.siteHeight-siteHeight)>.01){
+    releaseAuthoredAssembly(state.siteAssembly);
+    state.siteAssembly=prepareAuthoredAssembly(entry.yard,
+     {referenceHeight:siteHeight});
+    state.siteHeight=siteHeight;
+   }
+   updateAuthoredAssembly(state.siteAssembly,progress);
+  }
+  const stageMesh=(mesh,threshold)=>{
+   if(!mesh?.isMesh)return;
+   if(mesh.userData.constructionOriginalVisible===undefined)
+    mesh.userData.constructionOriginalVisible=mesh.visible;
+   const originallyVisible=mesh.userData.constructionOriginalVisible;
+   mesh.visible=originallyVisible&&progress>=threshold;
+  };
+  const stageGroup=(root,mode,{instancedOnly=false}={})=>{
+   if(!root)return;
+   root.traverse(mesh=>{
+    if(!mesh.isMesh||(instancedOnly&&!mesh.isInstancedMesh))return;
+    const name=mesh.name.toLowerCase();
+    // Airfield legacy components were permanently hidden by the renderer:
+    // never resurrect an old crossing, duplicate tower or hangar.
+    if(mesh.userData.airfieldLegacyHidden)return;
+    let threshold;
+    if(mode==='yard')threshold=/perimeter|fence|lamp|wheel|pallet|crat|barrel|decor|equipment/.test(name)?.86:.23;
+    else if(mode==='service'){
+     threshold=/runway|apron|taxis|parkingpad|bayfloor|platform|ramp|foundation|surface|centerline|edge|joint|threshold|stripe|track/.test(name)?.16:
+      /roof|antenna|vent|glass|tower|duct|signal|floodlight/.test(name)?.88:
+      /door|wall|column|arch|fascia|buttress|gate|garage|structure/.test(name)?.62:.75;
+    }else{
+     threshold=/roof|antenna|turret|vent|dish|top/.test(name)?.89:
+      /foundation|floor|pad|plinth|base/.test(name)?.22:
+      /wall|hull|frame|panel|armor|armour|door|pillar|column|body|facade/.test(name)?.58:.76;
+    }
+    stageMesh(mesh,threshold);
+   });
+  };
+  if(!authored)stageGroup(model,'building');
+  // Normal HQ site geometry already rises with the GLB. Instanced fence
+  // geometry cannot be split by individual height, so reveal it near the
+  // perimeter-finishing stage instead of showing it at foundation time.
+  stageGroup(entry.yard,'yard',
+   {instancedOnly:base.kind==='headquarters'&&Boolean(state.siteAssembly)});
+  stageGroup(entry.airfieldServiceYard??entry.factoryServiceYard,'service');
   const tick=Math.floor(progress*20),working=base.constructionActive!==false;
   if(tick!==state.lastLabel||state.lastWorking!==working){
    state.lastLabel=tick;state.lastWorking=working;
@@ -111,7 +168,23 @@ export class SandforgeConstructionPresentation{
  }
  finish(entry){
   const state=entry.construction;if(!state)return;
-  for(const mat of state.materials){mat.clippingPlanes=[];mat.needsUpdate=true;}
+  releaseAuthoredAssembly(state.authoredAssembly);
+  releaseAuthoredAssembly(state.siteAssembly);
+  state.authoredAssembly=null;state.authoredPortal=null;
+  state.siteAssembly=null;state.siteHeight=0;
+  // Restore the original mesh visibility (including permanent GLB-hidden
+  // obsolete airfield parts) only after actual build completion.
+  for(const root of [entry.detail,entry.variantDetail,entry.placeholder,entry.yard,
+   entry.airfieldServiceYard,entry.factoryServiceYard]){
+   root?.traverse(mesh=>{
+    if(!mesh.isMesh)return;
+    const original=mesh.userData.constructionOriginalVisible;
+    if(original!==undefined){
+     mesh.visible=original&&!mesh.userData.airfieldLegacyHidden;
+     delete mesh.userData.constructionOriginalVisible;
+    }
+   });
+  }
   entry.node.remove(state.frame);
   // Scaffolding owns its temporary materials as well as geometries.
   disposeOwnedMeshes(state.frame);

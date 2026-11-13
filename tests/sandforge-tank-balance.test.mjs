@@ -24,19 +24,32 @@ test('balance: MBT is tougher and has its own stronger machine gun without price
   assert.equal(UNITS.tank.targetsAir,false);
 });
 
-test('balance: standard rifle fire is mitigated only against the MBT',()=>{
-  close(weaponDamage({kind:'infantry'},{kind:'tank'}),UNITS.infantry.damage*.65);
-  close(weaponDamage({kind:'infantry'},{kind:'rover'}),UNITS.infantry.damage);
+test('balance: conventional machine guns are weak against armor and aircraft',()=>{
+  close(weaponDamage({kind:'infantry'},{kind:'tank'}),UNITS.infantry.damage*.16);
+  close(weaponDamage({kind:'infantry'},{kind:'rover'}),UNITS.infantry.damage*.16);
   close(weaponDamage({kind:'infantry'},{kind:'heavy'}),UNITS.infantry.damage);
-  close(weaponDamage({kind:'heavy'},{kind:'tank'}),UNITS.heavy.damage*.45);
-  close(weaponDamage({kind:'rover'},{kind:'tank'}),UNITS.rover.damage*.35);
+  close(weaponDamage({kind:'heavy'},{kind:'tank'}),UNITS.heavy.damage*.20);
+  close(weaponDamage({kind:'rover'},{kind:'tank'}),UNITS.rover.damage*.17);
+  close(weaponDamage({kind:'heavy'},{kind:'bomber'}),UNITS.heavy.damage*.125);
+  close(weaponDamage({kind:'scout'},{kind:'scout'}),UNITS.scout.damage*.15);
+});
+
+test('airborne machinegun damage rises exactly 25% without changing land targets or AA rockets',()=>{
+ const old={infantry:.08,medic:.07,engineer:.07,heavy:.10,rover:.09,scout:.12};
+ for(const [kind,oldScalar] of Object.entries(old)){
+  for(const plane of ['scout','bomber'])
+   close(weaponDamage({kind},{kind:plane}),UNITS[kind].damage*oldScalar*1.25);
+ }
+ close(weaponDamage({kind:'rover'},{kind:'tank'}),UNITS.rover.damage*.17);
+ close(weaponDamage({kind:'heavy'},{kind:'infantry'}),UNITS.heavy.damage);
+ close(weaponDamage({kind:'rocket'},{kind:'bomber'}),UNITS.rocket.damage*1.2);
 });
 
 test('balance: strategic power uses the actual MG DPS, not MBT rockets against infantry',()=>{
   const g=quiet(),tank=g.spawn(0,{x:1900,y:2100},'tank'),heavy=g.spawn(1,{x:2100,y:2100},'heavy');
   close(combatDpsAgainst(tank,heavy),18/.55);
   close(combatDpsAgainst(tank,{kind:'turret',queue:[]}),155/2.35);
-  close(combatDpsAgainst(heavy,tank),120*.45/1.15);
+  close(combatDpsAgainst(heavy,tank),120*.20/1.15);
   close(fightingPowerAgainst([tank],[heavy]),Math.sqrt(tank.hp*18/.55));
 });
 
@@ -55,13 +68,13 @@ test('balance: tank beats one heavy infantry at equal initial firing distance',(
   assert.ok(tank.hp>0,'tank should survive an unsupported heavy infantryman');
 });
 
-test('balance: two anti-armor heavies still threaten an unsupported tank',()=>{
+test('balance: two MG-equipped infantrymen cannot instantly defeat armored MBT',()=>{
   const g=quiet(),tank=g.spawn(0,{x:1900,y:2100},'tank');
   g.spawn(1,{x:2110,y:2090},'heavy');
   g.spawn(1,{x:2110,y:2120},'heavy');
   g.updateVision();
   tick(g,20);
-  assert.ok(tank.hp<=0,'the tank must not become immune to concentrated heavy fire');
+  assert.ok(tank.hp>0,'a main battle tank should survive infantry MG fire');
 });
 
 test('balance: nearby tank MG hits infantry independently of its rocket cooldown',()=>{

@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Simulation} from '../dist/src/reborn/simulation.js';
+import {UNITS,weaponDamage} from '../dist/src/reborn/catalog.js';
 import {developArmy} from '../dist/src/reborn/army-economy.js';
 import {assessBattle,fightingPower,fightingPowerAgainst} from '../dist/src/reborn/battle-response.js';
 import {newAdaptive,updateAdaptive} from '../dist/src/reborn/adaptive-strategy.js';
@@ -19,7 +20,7 @@ function scene(){
 test('matched strength uses the actual heavy armor penalty rather than nominal weapon damage',()=>{
  const {g,home,enemy}=scene(),heavy=g.spawn(1,home,'heavy'),tank=enemy('tank'),infantry=enemy('infantry');
  assert.ok(Math.abs(fightingPowerAgainst([heavy],[infantry])-fightingPower([heavy]))<1e-10);
- assert.ok(Math.abs(fightingPowerAgainst([heavy],[tank])/fightingPower([heavy])-Math.sqrt(.45))<1e-12);
+ assert.ok(Math.abs(fightingPowerAgainst([heavy],[tank])/fightingPower([heavy])-Math.sqrt(weaponDamage(heavy,tank)/UNITS.heavy.damage))<1e-12);
 });
 
 test('an artillery army cannot count firepower against known aircraft or claim a safe siege screen',()=>{
@@ -53,8 +54,8 @@ test('recent observed air doctrine persists through fog but ages out',()=>{
  const {g,home,enemy,pulse}=scene();const air=enemy('bomber');g.updateVision();
  const s=g.tactical.state;s.adaptive=newAdaptive();updateAdaptive(g,s.adaptive,home,[]);
  assert.equal(s.adaptive.strategy,'air');g.units=g.units.filter(u=>u!==air);g.credits[1]=200;pulse();
- assert.equal(s.savingFor,'heavy');g.time=31;g.credits[1]=200;pulse();
- assert.notEqual(s.savingFor,'heavy');
+ assert.equal(s.savingFor,'rocket');g.time=31;g.credits[1]=200;pulse();
+ assert.notEqual(s.savingFor,'rocket');
 });
 
 test('production diagnostics distinguish saving for a role, a completed composition, full queues and army cap',()=>{

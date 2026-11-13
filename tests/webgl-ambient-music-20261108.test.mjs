@@ -68,12 +68,12 @@ test('web audio music only allocates four long-lived synthesizer voices, no per-
  assert.equal(calls.stops,4,'dispose stops and disconnects all audio voices');
 });
 
-test('fresh WebGL starts without sustained synth music; saved explicit opt-in still works',()=>{
+test('fresh WebGL starts with optional recorded music; saved explicit mute still works',()=>{
  const menu=readFileSync('scripts/webgl-title-menu.js','utf8');
  const preview=readFileSync('scripts/webgl-preview.js','utf8');
  const html=readFileSync('webgl-preview.html','utf8');
- assert.match(menu,/\$\('sf3d-music-enabled'\)\.checked=options\.musicEnabled===true/);
- assert.match(preview,/sound\.setMusicEnabled\(bootOptions\.musicEnabled===true\)/);
+ assert.match(menu,/\$\('sf3d-music-enabled'\)\.checked=options\.musicEnabled!==false/);
+ assert.match(preview,/sound\.setMusicEnabled\(bootOptions\.musicEnabled!==false\)/);
  assert.match(html,/<input id="sf3d-music-enabled" type="checkbox">/);
  assert.doesNotMatch(html,/<input id="sf3d-music-enabled" type="checkbox" checked>/);
  assert.match(preview,/sound\.setEngineSoundsEnabled\(bootOptions\.engineSoundsEnabled!==false\)/);
@@ -99,8 +99,8 @@ test('music and effects have independent persistent sliders and are silent when 
  const menu=readFileSync('scripts/webgl-title-menu.js','utf8');
  const html=readFileSync('webgl-preview.html','utf8');
  const preview=readFileSync('scripts/webgl-preview.js','utf8');
- assert.match(audio,/private music:TacticalMusic\|null=null/);
- assert.match(audio,/musicCombatLevel\(g\.shots\.length/);
+ assert.match(audio,/private music:RecordedSoundtrack\|null=null/);
+ assert.match(audio,/this\.music\?\.update\(/);
  assert.match(audio,/this\.music\?\.pause\(\)/);
  assert.match(audio,/setEffectsVolume\(value:number\)/);
  assert.match(audio,/setMusicVolume\(value:number\)/);
@@ -111,6 +111,6 @@ test('music and effects have independent persistent sliders and are silent when 
  assert.match(menu,/masterVolume:Number\(\$\('sf3d-master-volume'\)\.value\)/);
  for(const id of ['sf3d-music-volume','sf3d-master-volume','sf3d-effects-volume','sf3d-music-enabled'])
   assert.ok(html.includes('id="'+id+'"'));
- assert.match(preview,/sound\.setMusicVolume\(savedVolume\('musicVolume',\.30\)\)/);
+ assert.match(preview,/sound\.setMusicVolume\(savedVolume\('musicVolume',\.22\)\)/);
  assert.match(preview,/sound\.setEffectsVolume\(savedVolume\('effectsVolume',\.85\)\)/);
 });

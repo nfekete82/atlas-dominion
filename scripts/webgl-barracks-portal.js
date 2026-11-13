@@ -17,10 +17,63 @@ const panelNames=/AirlockDoor|DoorCeramic|BarracksBlastDoor|BarracksDoorStiffene
 const box=new THREE.BoxGeometry(1,1,1);
 const dark=new THREE.MeshStandardMaterial({color:'#101716',roughness:1});
 const floor=new THREE.MeshStandardMaterial({color:'#666054',roughness:.95});
+
+// The replacement barracks' door is at its actual authored position, not
+// necessarily at local X=0. Compute its centre from the closed GLB panels
+// so soldiers always emerge at the visible airlock, after every rotation or
+// non-gameplay visual scale change.
+export function authoredBarracksExitLane(root,left,right){
+ const fallback={
+  inside:new THREE.Vector3(0,1,-3.8),
+  outside:new THREE.Vector3(0,1,-11)
+ };
+ if(!root||!left||!right)return fallback;
+ root.updateWorldMatrix(true,true);
+ const bounds=new THREE.Box3().expandByObject(left).expandByObject(right);
+ if(bounds.isEmpty())return fallback;
+ const center=root.worldToLocal(bounds.getCenter(new THREE.Vector3()));
+ const floorPoint=root.worldToLocal(new THREE.Vector3(
+  bounds.min.x,bounds.min.y,bounds.min.z));
+ const y=Math.max(0,floorPoint.y+.08);
+ // The authored Kaserne fronts local -Z. Step from inside the building
+ // across its door threshold, then clear the front steps before turning.
+ return {
+  inside:new THREE.Vector3(center.x,y,center.z+.70),
+  outside:new THREE.Vector3(center.x,y,center.z-6.3)
+ };
+}
+export function barracksExitLane(portal){
+ return portal?.authored&&portal.lane?
+  {inside:portal.lane.inside.clone(),outside:portal.lane.outside.clone()}:
+  {inside:new THREE.Vector3(-.18,.275,.9),
+   outside:new THREE.Vector3(-.18,0,2.10)};
+}
 export function prepareBarracksPortal(entry,renderer){
  if(entry?.barracksPortal)return entry.barracksPortal;
  const root=entry?.detail;
  if(!root)return null;
+ // Original ready Kaserne contains dedicated door pivots; never carve its facade.
+ const left=root.getObjectByName('GATE_LEFT_PIVOT');
+ const right=root.getObjectByName('GATE_RIGHT_PIVOT');
+ if(left&&right){
+  const hall=new THREE.Group();hall.name='BarracksInterior';
+  root.add(hall);
+  const lane=authoredBarracksExitLane(root,left,right);
+  const a=root.worldToLocal(new THREE.Box3().setFromObject(left)
+   .getCenter(new THREE.Vector3())).x;
+  const b=root.worldToLocal(new THREE.Box3().setFromObject(right)
+   .getCenter(new THREE.Vector3())).x;
+  // Some imported GLBs bake absolute vertex positions into pivots at 0,0,0.
+  // Choose outward travel by visible panel locations, not pivot names.
+  const leftSide=a<=b?-1:1;
+  const portal={kind:'barracks',authored:true,root,hall,left,right,lane,
+   leftX:left.position.x,rightX:right.position.x,
+   leftSide,rightSide:-leftSide,doorPanels:[],
+   materials:[],planes:[],box:[],transform:null};
+  entry.barracksPortal=portal;
+  setBarracksDoorOpen(portal,1);
+  return portal;
+ }
  const doorPanels=[],materials=[];
  const planes=localDoorBox.map(()=>new THREE.Plane());
  root.traverse(obj=>{
@@ -58,6 +111,7 @@ export function prepareBarracksPortal(entry,renderer){
  return portal;
 }
 export function updateBarracksPortalPlanes(portal,force=false){
+ if(portal.authored)return;
  portal.root.updateWorldMatrix(true,false);
  const matrix=portal.root.matrixWorld;
  if(!force&&portal.transform?.equals(matrix))return;
@@ -68,6 +122,13 @@ export function updateBarracksPortalPlanes(portal,force=false){
  }
 }
 export function setBarracksDoorOpen(portal,open){
+ if(portal.authored){
+  const t=Math.max(0,Math.min(1,open));
+  portal.left.position.x=portal.leftX+(1-t)*portal.leftSide*1.1;
+  portal.right.position.x=portal.rightX+(1-t)*portal.rightSide*1.1;
+  portal.hall.visible=t<.97;
+  return;
+ }
  for(const panel of portal.doorPanels){
   panel.mesh.position.y=panel.y+open*.66;
   panel.mesh.scale.y=panel.scaleY*(1-open*.97);
@@ -76,7 +137,7 @@ export function setBarracksDoorOpen(portal,open){
 }
 export function disposeBarracksPortal(entry){
  const p=entry?.barracksPortal;if(!p)return;
- setBarracksDoorOpen(p,0);
+ setBarracksDoorOpen(p,p.authored?1:0);
  for(const m of p.materials)m.dispose();
  p.hall.removeFromParent();
  delete entry.barracksPortal;

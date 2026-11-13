@@ -55,7 +55,7 @@ test('ready notifications stay distinct from attack warnings and never change ga
  assert.match(main,/announceReady\('unit'\)/);
  assert.match(main,/notice--ready/);
  assert.match(style,/\.notice--ready/);
- assert.match(audio,/Gebäude fertiggestellt\./);
+ assert.match(audio,/Bau abgeschlossen\./);
  assert.match(audio,/Einheit bereit\./);
  assert.match(audio,/this\.lastReadySignal/,'audio should debounce multiple simultaneous completions');
  assert.match(audio,/window\.speechSynthesis\.speaking/,'a busy radio announcement is never interrupted');

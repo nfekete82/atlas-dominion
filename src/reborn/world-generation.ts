@@ -1,5 +1,5 @@
 import { RULES, mapLayout, campaignLayout, mapWorldSize, type MapVersion, type Point } from './config.js';
-import {terrainProfile,streamSeed,battlefieldStart,generateBattlefieldTerrain,type TerrainProfile,type BattlefieldTerrain} from './battlefield-terrain.js';
+import {BATTLEFIELD_GENERATOR,terrainGradingForMap,terrainProfile,streamSeed,battlefieldStart,generateBattlefieldTerrain,type TerrainProfile,type BattlefieldTerrain,type BattlefieldGeneratorVersion} from './battlefield-terrain.js';
 import {generateCanyonFeatures,canyonRuinBlocked,type CanyonRidge,type CanyonRuin} from './canyon-front.js';
 
 /** Versioned, deterministic geometry. Old saves continue to use the original map. */
@@ -28,9 +28,10 @@ function hull(points:Point[]):Point[] {
   const half=(list:Point[])=>{const result:Point[]=[];for(const p of list){while(result.length>1&&cross(result.at(-2)!,result.at(-1)!,p)<=0)result.pop();result.push(p);}result.pop();return result;};
   return [...half(sorted),...half(sorted.reverse())];
 }
-export function generateMap(seed:number,version:Exclude<MapVersion,0>=MAP_VERSION,requestedProfile?:TerrainProfile,candidate=0):GeneratedMap {
+export function generateMap(seed:number,version:Exclude<MapVersion,0>=MAP_VERSION,requestedProfile?:TerrainProfile,candidate=0,generatorVersion:BattlefieldGeneratorVersion=BATTLEFIELD_GENERATOR):GeneratedMap {
   const layout=campaignLayout(version,seed),cols=layout.columns,rows=layout.rows,count=cols*rows;
   const modern=version>=23,profile=terrainProfile(seed,requestedProfile);
+  const grading=terrainGradingForMap(version,generatorVersion);
   let rand=seededRandom(modern?streamSeed(seed,'sites'):seed);
   const size=mapWorldSize(version),grid=RULES.grid,cell=size/grid,w=size/cols,h=size/rows;
   // Stratified rejection sampling avoids clumps and preserves adjacent capture sectors.
@@ -44,7 +45,8 @@ export function generateMap(seed:number,version:Exclude<MapVersion,0>=MAP_VERSIO
       if(layout.headquarters.some(id=>id===i||id===partner)&&(p.x<460||p.x>size-460||p.y<460||p.y>size-460))continue;
       if(modern&&layout.headquarters.some(id=>id===i||id===partner)){
         const home=battlefieldStart(p,size);
-        if(home.x<650||home.y<650||home.x>size-650||home.y>size-650)continue;
+        const homeMargin=version>=27?grading.homeFlatRadius+125:650;
+        if(home.x<homeMargin||home.y<homeMargin||home.x>size-homeMargin||home.y>size-homeMargin)continue;
       }
       if(Math.hypot(p.x-mirror.x,p.y-mirror.y)<layout.spacing)continue;
       if(sites.every((q,j)=>i===j||partner===j||(Math.hypot(p.x-q.x,p.y-q.y)>=layout.spacing&&Math.hypot(mirror.x-q.x,mirror.y-q.y)>=layout.spacing))){sites[i]=p;sites[partner]=mirror;break;}
@@ -57,7 +59,9 @@ export function generateMap(seed:number,version:Exclude<MapVersion,0>=MAP_VERSIO
   if(modern){
     // Ruins keep their own stream and inherit the established road/site exclusions.
     canyon.ruins=generateCanyonFeatures(streamSeed(seed,'ruins',candidate),size,cols,rows,sites,corridors).ruins
-      .filter(r=>layout.headquarters.every(id=>Math.hypot(r.x-battlefieldStart(sites[id],size).x,r.y-battlefieldStart(sites[id],size).y)>870));
+      .filter(r=>layout.headquarters.every(id=>Math.hypot(r.x-battlefieldStart(sites[id],size).x,r.y-battlefieldStart(sites[id],size).y)>(version>=27?grading.homeFlatRadius+290:870))&&
+       (generatorVersion===1||sites.every(s=>Math.hypot(r.x-s.x,r.y-s.y)>
+        grading.bastionFlatRadius+grading.rockSafetyMargin)));
     rand=seededRandom(streamSeed(seed,'rocks',candidate));
   }
   const basins:Point[]=[];
@@ -66,9 +70,9 @@ export function generateMap(seed:number,version:Exclude<MapVersion,0>=MAP_VERSIO
     const target={open:1,dunes:2,rocky:1,oasis:5,mixed:3}[profile];
     for(let trial=0;trial<2400&&basins.length<target;trial++){
       const p={x:650+oasisRandom()*(size-1300),y:650+oasisRandom()*(size-1300)};
-      if(sites.some(s=>Math.hypot(p.x-s.x,p.y-s.y)<650)||
+      if(sites.some(s=>Math.hypot(p.x-s.x,p.y-s.y)<(generatorVersion===1?650:grading.bastionFlatRadius+585))||
          corridors.some(([a,b])=>segmentDistance(p,a,b)<410)||
-         layout.headquarters.some(id=>Math.hypot(p.x-battlefieldStart(sites[id],size).x,p.y-battlefieldStart(sites[id],size).y)<1250)||
+         layout.headquarters.some(id=>Math.hypot(p.x-battlefieldStart(sites[id],size).x,p.y-battlefieldStart(sites[id],size).y)<(generatorVersion===1?1250:grading.homeFlatRadius+650))||
          canyon.ruins.some(r=>Math.hypot(p.x-r.x,p.y-r.y)<450)||
          basins.some(b=>Math.hypot(p.x-b.x,p.y-b.y)<1050))continue;
       basins.push(p);
@@ -77,7 +81,7 @@ export function generateMap(seed:number,version:Exclude<MapVersion,0>=MAP_VERSIO
   const reserved=new Uint8Array(grid*grid),occupied=new Uint8Array(grid*grid);
   for(let i=0;i<reserved.length;i++){
     const p={x:(i%grid+.5)*cell,y:(Math.floor(i/grid)+.5)*cell};
-    if(basins.some(b=>Math.hypot(p.x-b.x,p.y-b.y)<330)||(modern&&layout.headquarters.some(id=>Math.hypot(p.x-battlefieldStart(sites[id],size).x,p.y-battlefieldStart(sites[id],size).y)<780))||sites.some((s,j)=>Math.hypot(p.x-s.x,p.y-s.y)<(layout.headquarters.some(id=>id===j)?version>=2?Math.min(520,w*.7):335:version>=2?Math.min(230,w*.38):155))||corridors.some(([a,b])=>segmentDistance(p,a,b)<CORRIDOR_RADIUS+cell)||canyon.ridges.some(r=>r.spine.slice(1).some((b,j)=>segmentDistance(p,r.spine[j],b)<r.width+125))||canyon.ruins.some(r=>canyonRuinBlocked(p,r,95)))reserved[i]=1;
+    if(basins.some(b=>Math.hypot(p.x-b.x,p.y-b.y)<330)||(modern&&layout.headquarters.some(id=>Math.hypot(p.x-battlefieldStart(sites[id],size).x,p.y-battlefieldStart(sites[id],size).y)<(generatorVersion===1?780:grading.homeFlatRadius+grading.rockSafetyMargin)))||sites.some((s,j)=>Math.hypot(p.x-s.x,p.y-s.y)<(modern&&generatorVersion===2?grading.bastionFlatRadius+grading.rockSafetyMargin:layout.headquarters.some(id=>id===j)?version>=2?Math.min(520,w*.7):335:version>=2?Math.min(230,w*.38):155))||corridors.some(([a,b])=>segmentDistance(p,a,b)<CORRIDOR_RADIUS+cell)||canyon.ridges.some(r=>r.spine.slice(1).some((b,j)=>segmentDistance(p,r.spine[j],b)<r.width+125))||canyon.ruins.some(r=>canyonRuinBlocked(p,r,95)))reserved[i]=1;
   }
   const mesas:Mesa[]=[];
   // Wide v19+ landscapes should have expansive empty maneuvering ground.
@@ -116,7 +120,7 @@ export function generateMap(seed:number,version:Exclude<MapVersion,0>=MAP_VERSIO
     mesas.push({columns,outline,crystals:rand()<.32?{x:foot.x+10,y:foot.y-5}:null});
   }
   if(modern){
-    const battlefield=generateBattlefieldTerrain(seed,version,size,sites,profile,candidate,basins);
+    const battlefield=generateBattlefieldTerrain(seed,version,size,sites,profile,candidate,basins,generatorVersion);
     // Last bounded candidate is a safe open obstacle layout, with the same
     // profile, sites and connected elevation. Never erase collision alone.
     return {sites,mesas:candidate>=3?[]:mesas,corridors,ridges:[],ruins:candidate>=3?[]:canyon.ruins,battlefield};

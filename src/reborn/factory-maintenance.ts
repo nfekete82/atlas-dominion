@@ -1,5 +1,5 @@
-/** Factory repair slots sit on the outdoor apron, beyond the original
- * factory production door. Both are real unit positions, not a fake prop. */
+/** The only repair platform sits beside the original factory, clear of the
+ * production doorway. Historic bay=1 saves remain readable. */
 export type FactoryRepairBay=0|1;
 export type FactoryRepairPhase='approach'|'parking'|'repair'|'ready';
 export interface FactoryService {
@@ -7,12 +7,14 @@ export interface FactoryService {
  paidHp:number;
 }
 export interface FactorySite {x:number;y:number;facing?:0|1|2|3}
-export const FACTORY_REPAIR_BAYS=2;
+export const FACTORY_REPAIR_BAYS=1;
 export const FACTORY_REPAIR_HP_PER_CREDIT=5;
 export const FACTORY_REPAIR_FRACTION_PER_SECOND=.012;
 export function factoryRepairPoint(site:FactorySite,bay:FactoryRepairBay,approach=false){
  const angle=[0,Math.PI,Math.PI/2,Math.PI*1.5][site.facing??0]??0;
- const x=bay===0?-76:76,z=approach?254:172,c=Math.cos(angle),s=Math.sin(angle);
+ // Both historical bay values resolve to the same open outdoor repair platform;
+ // only bay 0 can be reserved for new repairs.
+ const x=164,z=approach?128:36,c=Math.cos(angle),s=Math.sin(angle);
  return {x:site.x+x*c+z*s,y:site.y-x*s+z*c};
 }
 export function validFactoryService(input:unknown):input is FactoryService {
