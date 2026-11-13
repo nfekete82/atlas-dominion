@@ -100,15 +100,24 @@ test('shipping HUD occupies reference screenshot positions at 1600×900',async({
    imageScale:new DOMMatrixReadOnly(getComputedStyle(img).transform).a,
    nameFont:parseFloat(getComputedStyle(name).fontSize),
    priceFont:parseFloat(getComputedStyle(price).fontSize),
-   metaHeight:meta.getBoundingClientRect().height
+   metaHeight:meta.getBoundingClientRect().height,
+   firstDivider:getComputedStyle(card,'::before').display,
+   secondDivider:getComputedStyle(card.nextElementSibling,'::before').display,
+   dividerWidth:getComputedStyle(card.nextElementSibling,'::before').borderLeftWidth,
+   dividerColor:getComputedStyle(card.nextElementSibling,'::before').borderLeftColor
   };
  });
  expect(compact.lineDisplay).toBe('none');
  expect(compact.lineContent).toBe('none');
- expect(compact.imageScale).toBeLessThanOrEqual(1.11);
- expect(compact.nameFont).toBeLessThanOrEqual(11);
- expect(compact.priceFont).toBeLessThanOrEqual(14);
- expect(compact.metaHeight).toBeLessThanOrEqual(45);
+ expect(compact.imageScale).toBeGreaterThanOrEqual(.94);
+ expect(compact.imageScale).toBeLessThanOrEqual(.97);
+ expect(compact.nameFont).toBeLessThanOrEqual(10);
+ expect(compact.priceFont).toBeLessThanOrEqual(13);
+ expect(compact.metaHeight).toBeLessThanOrEqual(42);
+ expect(compact.firstDivider).toBe('none');
+ expect(compact.secondDivider).toBe('block');
+ expect(compact.dividerWidth).toBe('1px');
+ expect(compact.dividerColor).toMatch(/^rgba\\(/);
  const labels=await page.evaluate(()=>[...document.querySelectorAll('[data-sf-group="buildings"] .card-name')].map(el=>{
   const rect=el.getBoundingClientRect();
   const tile=el.closest('.catalog-card').getBoundingClientRect();
