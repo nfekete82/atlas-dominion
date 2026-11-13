@@ -1,6 +1,6 @@
 /** Presentation-only original reference pack. IDs, stats and collision stay in Simulation. */
 import * as THREE from 'three';
-export const STYLIZED_KINDS=Object.freeze(['rover','infantry','barracks']);
+export const STYLIZED_KINDS=Object.freeze(['rover','infantry','barracks','engineer','headquarters']);
 export const stylizedAsset=(kind,owner)=>STYLIZED_KINDS.includes(kind)
  ?'/src/assets/stylized/'+kind+'-'+owner+'.glb':null;
 export const isStylizedAsset=url=>url?.startsWith('/src/assets/stylized/');
