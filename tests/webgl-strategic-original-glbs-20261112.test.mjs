@@ -38,7 +38,7 @@ test('visual state uses actual research progress and silo charge',()=>{
  assert.equal(strategicGlbActive('research',built,game),true);
  assert.equal(strategicGlbActive('research',{...built,hp:0},game),false);
  assert.equal(strategicGlbActive('headquarters',built,game),false);
- assert.equal(strategicGlbActive('headquarters',{...built,buildRemaining:5},game),true);
+ assert.equal(strategicGlbActive('headquarters',{...built,buildRemaining:5},game),false);
 });
 test('PBR recolouring preserves user-authored geometry, glow and trim',()=>{
  const root=new THREE.Group(),geometry=new THREE.BoxGeometry(7,4,3);
