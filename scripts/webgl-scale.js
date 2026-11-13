@@ -15,7 +15,7 @@ export const DIMENSIONS_VERSION=3;
 // HQ3 should read more substantial against infantry; the same factor also
 // scales its decorative yard so the fence keeps its distance from the facade.
 export const STRATEGIC_BUILDING_VISUAL_SCALE=Object.freeze({
- headquarters:1.10,barracks:1.12,research:1.04,silo:1.02
+ headquarters:1.10,barracks:1.20,research:1.04,silo:1.02
 });
 /** Taller research/silo geometry without changing footprint, collision or saves. */
 export const STRATEGIC_BUILDING_HEIGHT_SCALE=Object.freeze({research:2.05,silo:1.82});
