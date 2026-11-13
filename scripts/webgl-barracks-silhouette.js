@@ -94,7 +94,14 @@ export function simplifyBarracksSilhouette(root){
    if(ignored.has(find(a))){removed++;continue;}
    kept.push(a,indices.getX(offset+1),indices.getX(offset+2));
   }
-  if(!kept.length)return; // Never leave an empty building mesh.
+  if(!kept.length){
+   // A few tiny, isolated GLB meshes (e.g. the watchtower roof beacon) may
+   // consist entirely of removed accessories. Don't leave them hovering in
+   // mid-air just because there is no remaining index buffer to build.
+   mesh.visible=false;
+   mesh.userData.sandforgeSimplifiedAccessory=true;
+   return;
+  }
   const geometry=original.clone();
   geometry.clearGroups();
   geometry.setIndex(kept);
