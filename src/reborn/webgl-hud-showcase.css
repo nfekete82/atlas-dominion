@@ -1089,3 +1089,79 @@
  #sf-classic-root[data-tab="buildings"] #sf-actions
   button.catalog-card[data-build] .card-name{font-size:11px!important}
 }
+
+/* 2026-11-13 HUD fine-tuning from the in-game screenshot:
+ * compact building art + captions; remove the retro frame's decorative
+ * horizontal gold line ABOVE the tabs. All nine cards stay in one row. */
+#sf-classic-root #sidebar > .catalog::before,
+#sf-classic-root #sidebar > .catalog::after{
+ content:none!important;
+ display:none!important;
+ background:none!important;
+ border:0!important;
+}
+#sf-classic-root #sidebar > .catalog,
+#sf-classic-root #sidebar #sf-tabs{
+ border-top:0!important;
+ outline:0!important;
+ box-shadow:none!important;
+ background-image:none!important;
+}
+#sf-classic-root #sidebar #sf-actions.catalog-scroll{
+ border-top:0!important;
+ outline:0!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ .sf-group[data-sf-group="buildings"] > .catalog-grid{
+ padding-top:4px!important;
+ padding-bottom:8px!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build]{
+ padding-left:4px!important;
+ padding-right:4px!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build] .sf-card-image img,
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build]:disabled .sf-card-image img,
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build].locked .sf-card-image img{
+ transform:scale(1.10)!important;
+ transform-origin:center center!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build] .card-meta{
+ flex:0 0 44px!important;
+ height:44px!important;
+ min-height:44px!important;
+ max-height:44px!important;
+ gap:1px!important;
+ padding:0 2px 2px!important;
+ background:transparent!important;
+ border:0!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build] .card-name{
+ height:25px!important;
+ min-height:25px!important;
+ max-height:25px!important;
+ font:800 clamp(9px,.68vw,11px)/1.08 system-ui!important;
+ letter-spacing:-.01em!important;
+ white-space:normal!important;
+ overflow-wrap:anywhere!important;
+ overflow:hidden!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build] .card-cost{
+ flex:0 0 16px!important;
+ height:16px!important;
+ min-height:16px!important;
+ font:900 clamp(11px,.82vw,14px)/1 system-ui!important;
+}
+@media(max-width:740px){
+ #sf-classic-root[data-tab="buildings"] #sf-actions
+  button.catalog-card[data-build] .card-name{
+  font-size:10px!important;
+ }
+}
