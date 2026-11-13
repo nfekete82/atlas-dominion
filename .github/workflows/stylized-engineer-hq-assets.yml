@@ -6,6 +6,14 @@ on:
     paths:
       - 'scripts/art/stylized-*.mjs'
       - 'scripts/export-stylized-pack.mjs'
+      - 'tests/stylized-pack.test.mjs'
+      - 'scripts/webgl-stylized-world.js'
+      - 'scripts/webgl-production-gates.js'
+      - 'scripts/webgl-preview.js'
+      - 'scripts/webgl-portraits.js'
+      - 'src/reborn/webgl-classic-hud.css'
+      - 'webgl-preview.html'
+      - 'src/assets/stylized/title-hero.svg'
       - '.github/workflows/stylized-engineer-hq-assets.yml'
   workflow_dispatch:
 permissions:
@@ -27,8 +35,10 @@ jobs:
         run: npm run assets:stylized
       - name: Verify deterministic export
         run: node scripts/export-stylized-pack.mjs --check
-      - name: Test GLB scene, rigs and portals
+      - name: Test GLB scene, rigs, portals and zero-collision desert art
         run: npm run test:stylized
+      - name: Check complete asset and manifest fingerprints
+        run: node scripts/export-stylized-pack.mjs --check
       - name: Commit generated original art
         run: |
           git config user.name "github-actions[bot]"
