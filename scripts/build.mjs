@@ -85,6 +85,7 @@ cpSync('scripts/webgl-scale.js','dist/webgl-scale.js');
 cpSync('scripts/webgl-selection-ring.js','dist/webgl-selection-ring.js');
 cpSync('scripts/webgl-health.js','dist/webgl-health.js');
 cpSync('src/reborn/webgl-classic-hud.css','dist/webgl-classic-hud.css');
+cpSync('src/reborn/webgl-hud-showcase.css','dist/webgl-hud-showcase.css');
 cpSync('scripts/animation/model-viewer.js','dist/model-viewer.js');
 // WebGL preview and 3D inspector share the same local Three.js modules.
 // Three.js assets are required by the 3D game and optional in classic mode.
