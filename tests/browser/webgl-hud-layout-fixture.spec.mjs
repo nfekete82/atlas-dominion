@@ -25,6 +25,9 @@ async function fixture(page,width,height){
    '<div class="sf-group" data-sf-group="research"><div class="sf-research-grid">Forschung</div></div>';
   document.querySelector('[data-tab="units"]').disabled=false;
   document.querySelector('[data-tab="research"]').disabled=false;
+  document.querySelector('#sf-classic-root').addEventListener('sandforge-tabchange',event=>{
+   document.querySelector('#sf-unit-categories').hidden=event.detail.tab!=='units';
+  });
   const map=document.querySelector('#sf-map'),c=map.getContext('2d');
   c.fillStyle='#b17c51';c.fillRect(0,0,map.width,map.height);
   c.fillStyle='#a58a62';c.fillRect(20,25,180,180);
