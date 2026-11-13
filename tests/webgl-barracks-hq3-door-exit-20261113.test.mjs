@@ -9,7 +9,8 @@ import {createBuildingYard,disposeBuildingYard}
 import {calibratedScale,STRATEGIC_BUILDING_VISUAL_SCALE,buildingFacingAngle}
  from '../scripts/webgl-scale.js';
 import {setWorldCamouflageBiome,tintFactionMaterials,
- HQ3_MATCHED_DESERT_PALETTE} from '../scripts/webgl-faction-accents.js';
+ HQ3_MATCHED_DESERT_PALETTE,BARRACKS_HQ3_CHARCOAL_ROOF}
+ from '../scripts/webgl-faction-accents.js';
 
 function exampleBarracksDoor(){
  const model=new THREE.Group();
@@ -100,6 +101,14 @@ test('barracks visual scale and HQ3-style textured matte roof remain cosmetic',(
   assert.ok(shader.fragmentShader.includes('sfGrain'));
   assert.ok(shader.fragmentShader.includes('sfRoofPaint'),
    'light roof plates should be anthracite, not off-white');
+  assert.ok(shader.fragmentShader.includes(BARRACKS_HQ3_CHARCOAL_ROOF[0]),
+   'real roof must be darker than the other facilities');
+  assert.ok(shader.fragmentShader.includes(BARRACKS_HQ3_CHARCOAL_ROOF[2]));
+  assert.ok(shader.fragmentShader.includes('smoothstep(.12,.24,'),
+   'the real gable slope has upward normals below .50');
+  assert.ok(shader.fragmentShader.includes('smoothstep(4.85,5.25,sfBarracksHeight)'),
+   'low facade and ground slabs must stay camouflaged, not charcoal');
+  assert.ok(shader.vertexShader.includes('sfBarracksHeight=transformed.y;'));
   assert.ok(shader.fragmentShader.includes(',.985)'));
   mesh.geometry.dispose();mat.dispose();source.dispose();
  }
