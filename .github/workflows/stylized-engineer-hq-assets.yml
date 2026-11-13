@@ -11,6 +11,8 @@ on:
       - 'scripts/webgl-production-gates.js'
       - 'scripts/webgl-preview.js'
       - 'scripts/webgl-portraits.js'
+      - 'scripts/webgl-actor-presentation.js'
+      - 'scripts/webgl-battlefield.js'
       - 'src/reborn/webgl-classic-hud.css'
       - 'webgl-preview.html'
       - 'src/assets/stylized/title-hero.svg'
