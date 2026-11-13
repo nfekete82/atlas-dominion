@@ -77,8 +77,8 @@ test('preserve authored 2048px desert textures while supporting snow and jungle 
  camo.dispose();texture.dispose();
  setWorldCamouflageBiome('desert');
 });
-test('existing offline HQ, simulation footprint and animated base assembly remain unchanged',()=>{
- assert.ok(strategicGlbUrl('headquarters','inactive').endsWith('feldkommando_offline.glb'));
+test('HQ3 is the one model for construction and completion, preserving gameplay',()=>{
+ assert.equal(strategicGlbUrl('headquarters','inactive'),strategicGlbUrl('headquarters','active'));
  const battlefield=readFileSync('scripts/webgl-battlefield.js','utf8');
  assert.ok(battlefield.includes('ensureTexturedHqRadarPivot(entry.detail)'));
  assert.ok(battlefield.includes("['barracks','headquarters'].includes(kind)?"));
