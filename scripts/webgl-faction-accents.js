@@ -34,7 +34,13 @@ export const HQ3_MATCHED_DESERT_PALETTE=Object.freeze({
  wall:Object.freeze(['.57,.52,.40','.39,.42,.32','.20,.27,.22']),
  roof:Object.freeze(['.24,.27,.24','.21,.24,.21','.13,.17,.15'])
 });
-export const DESERT_FINISH_REVISION='biome-camouflage-hq-barracks-bastion-soldiers-v8-20261113';
+// Human-scale camouflage needs substantially more contrast and sharper, larger
+// olive/khaki patches than the earlier near-grey uniform. It is derived from
+// the HQ3's dark painted wall tones, not the charcoal roof coating.
+export const SOLDIER_HQ3_DESERT_PALETTE=Object.freeze({
+ rgb:Object.freeze(['.72,.63,.47','.38,.43,.29','.19,.27,.18'])
+});
+export const DESERT_FINISH_REVISION='biome-camouflage-hq3-soldiers-v9-20261113';
 const SOLDIER_KINDS=new Set(['infantry','medic','engineer','heavy','rocket']);
 let selectedCamouflageBiome='desert';
 export function setWorldCamouflageBiome(value){
@@ -56,7 +62,8 @@ function applyDesertBuildingCamo(material,style='standard'){
  const revision=DESERT_FINISH_REVISION+'-'+biome+'-'+style+(roof?'-roof':'');
  if(material.userData?.sandforgeDesertFinish===revision)return;
  const oldCompile=material.onBeforeCompile;
- const colors=matchedDesert?HQ3_MATCHED_DESERT_PALETTE.wall:CAMOUFLAGE_PALETTES[biome].rgb;
+ const colors=soldier&&biome==='desert'?SOLDIER_HQ3_DESERT_PALETTE.rgb:
+  matchedDesert?HQ3_MATCHED_DESERT_PALETTE.wall:CAMOUFLAGE_PALETTES[biome].rgb;
  material.onBeforeCompile=function(shader,renderer){
   oldCompile?.call(this,shader,renderer);
   const varying='varying vec3 sfDesertWorld;'+(roof?'\nvarying vec3 sfDesertUp;':'');
@@ -78,9 +85,9 @@ function applyDesertBuildingCamo(material,style='standard'){
    // appears as plain beige. Bind uniforms to their local mesh coordinates
    // so the pattern travels with the soldier instead of sliding over it.
    ...(soldier?[
-    'float sfPatch=sin(sfDesertWorld.x*1.12+sin(sfDesertWorld.z*.76)*1.7)',
-    ' +cos(sfDesertWorld.y*1.30+sfDesertWorld.z*1.08)',
-    ' +.43*sin((sfDesertWorld.x-sfDesertWorld.y)*1.68);'
+    'float sfPatch=sin(sfDesertWorld.x*8.6+sin(sfDesertWorld.z*6.2)*1.4)',
+    ' +cos(sfDesertWorld.y*9.4+sfDesertWorld.z*7.3)',
+    ' +.35*sin((sfDesertWorld.x-sfDesertWorld.y)*12.1);'
    ]:[
     'float sfPatch=sin(sfDesertWorld.x*.071+sin(sfDesertWorld.z*.044)*1.8)',
     ' +cos(sfDesertWorld.z*.084-sin(sfDesertWorld.x*.057)*1.6)',
@@ -189,8 +196,11 @@ export function tintFactionMaterials(root,owner,kind,type){
       const keepNative=selectedCamouflageBiome==='desert'&&
        mat.userData?.sandforgePreserveHQDesertTextures;
       if(!keepNative){
-       mat.roughness=Math.max(type==='building'?.84:.72,mat.roughness);
-       mat.metalness=Math.min(type==='building'?.26:.48,mat.metalness);
+       // The original soldier model's bright metallic grey finish previously
+       // flattened the camouflage. Cloth/armour read matte like HQ3 paint.
+       const uniform=type==='unit'&&SOLDIER_KINDS.has(kind);
+       mat.roughness=Math.max(type==='building'?.84:uniform?.89:.72,mat.roughness);
+       mat.metalness=Math.min(type==='building'?.26:uniform?.16:.48,mat.metalness);
        applyDesertBuildingCamo(mat,
         type==='unit'&&SOLDIER_KINDS.has(kind)?'soldier':
          kind==='barracks'||kind==='bastion'?kind:'standard');
