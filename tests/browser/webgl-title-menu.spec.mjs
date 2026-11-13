@@ -43,6 +43,10 @@ test('3D starts with the original Sandforge title and enters a real playable cam
  expect(state.hasWebGL).toBe(true);
  expect(state.canvas).toBeGreaterThan(400);
  expect(state.hasHud).toBe(true);
+ const hudLogoAsset=await page.request.get(new URL('/src/assets/reborn/sandforge-title-hud-logo.webp',page.url()).href);
+ if(hudLogoAsset.ok()){
+  await expect(page.locator('#sf-classic-root .sandforge-hud-logo')).toHaveAttribute('src',/sandforge-title-hud-logo\.webp/);
+ }
  await page.locator('[data-action="menu"]').click();
  await expect(page.locator('#sf3d-pause-dialog')).toBeVisible();
  await page.locator('#sf3d-pause-save').click();
