@@ -896,3 +896,163 @@
  #sf-classic-root[data-tab="buildings"] #sf-actions
   button.catalog-card[data-build] .card-name{font-size:11px!important}
 }
+
+/* Sandforge HUD v3 — borderless, lightly translucent and always ONE row.
+   The game may have 9+ buildings (e.g. Energiekern and Raketensilo), not
+   the hard-coded 8 of the promo mockup. Never wrap the extra building.
+   The --sf-building-count custom property is authored by the live renderer. */
+#sf-classic-root #sidebar{
+ border:0!important;
+ background:transparent!important;
+ box-shadow:none!important;
+}
+#sf-classic-root #sidebar > .radar{
+ background:rgba(26,36,53,.79)!important;
+ border:0!important;
+ border-radius:15px!important;
+ box-shadow:none!important;
+ padding:6px!important;
+}
+#sf-classic-root #sidebar > .sf-modern-side-actions{
+ background:rgba(26,36,53,.79)!important;
+ border:0!important;
+ border-radius:14px!important;
+ box-shadow:none!important;
+ padding:4px!important;
+}
+#sf-classic-root #sidebar .sf-modern-side-actions > button{
+ background:rgba(59,73,99,.56)!important;
+ border:0!important;
+ box-shadow:none!important;
+}
+#sf-classic-root #sidebar #sf-tabs{
+ gap:0!important;
+ border:0!important;
+ background:transparent!important;
+}
+#sf-classic-root #sidebar #sf-tabs > button{
+ position:relative!important;
+ margin-left:-4px!important;
+ background:rgba(41,51,72,.88)!important;
+ border:0!important;
+ box-shadow:none!important;
+ clip-path:polygon(7% 0,93% 0,100% 100%,0 100%)!important;
+}
+#sf-classic-root #sidebar #sf-tabs > button:first-child{margin-left:0!important}
+#sf-classic-root #sidebar #sf-tabs > button[aria-pressed="true"]{
+ background:rgba(43,123,230,.95)!important;
+}
+#sf-classic-root #sidebar #sf-tabs > button:disabled{
+ background:rgba(47,56,77,.74)!important;
+}
+#sf-classic-root #sidebar #sf-actions.catalog-scroll{
+ border:0!important;
+ border-radius:0 13px 13px 13px!important;
+ box-shadow:0 4px 16px #0003!important;
+ background:rgba(27,36,53,.81)!important;
+ backdrop-filter:none!important; /* avoids per-frame WebGL blur */
+ overflow-x:auto!important;
+ overflow-y:hidden!important;
+ overscroll-behavior-x:contain!important;
+ scrollbar-width:thin!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ .sf-group[data-sf-group="buildings"]{
+ display:flex!important;
+ flex-direction:column!important;
+ flex:1 1 auto!important;
+ width:100%!important;
+ height:100%!important;
+ min-height:0!important;
+ overflow:visible!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ .sf-group[data-sf-group="buildings"] > .catalog-grid{
+ display:grid!important;
+ /* Explicitly replace the eight fixed columns that wrapped item 9. */
+ grid-template-columns:none!important;
+ grid-template-rows:minmax(0,1fr)!important;
+ grid-auto-flow:column!important;
+ grid-auto-columns:max(138px,calc(100% / var(--sf-building-count,9)))!important;
+ grid-auto-rows:minmax(0,1fr)!important;
+ align-items:stretch!important;
+ justify-items:stretch!important;
+ width:100%!important;
+ min-width:0!important;
+ max-width:none!important;
+ height:100%!important;
+ min-height:0!important;
+ gap:0!important;
+ padding:8px 6px 9px!important;
+ margin:0!important;
+ overflow:visible!important;
+ box-sizing:border-box!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ .sf-group[data-sf-group="buildings"] button.catalog-card[data-build]{
+ grid-row:1!important;
+ grid-column:auto!important;
+ min-width:0!important;
+ max-width:none!important;
+ width:100%!important;
+ height:100%!important;
+ border:0!important;
+ border-radius:0!important;
+ background:transparent!important;
+ box-shadow:none!important;
+ overflow:hidden!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ .sf-group[data-sf-group="buildings"] button.catalog-card[data-build]::before{
+ display:none!important;content:none!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build]:hover:not(:disabled){
+ background:rgba(76,120,182,.18)!important;
+ border:0!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build] .sf-card-image{
+ flex:1 1 auto!important;
+ height:0!important;min-height:0!important;
+ overflow:hidden!important;
+ background:transparent!important;
+ border:0!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build] :is(.card-meta,.card-name){
+ background:transparent!important;
+ border:0!important;
+ box-shadow:none!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build] .card-name{
+ font-size:clamp(11px,.87vw,16px)!important;
+ letter-spacing:-.018em!important;
+}
+/* Other two tabs should match the same soft, borderless deck. */
+#sf-classic-root[data-tab="units"] #sf-actions .catalog-card,
+#sf-classic-root[data-tab="research"] #sf-actions .sf-research-card{
+ border-color:transparent!important;
+ border-radius:5px!important;
+ background:rgba(42,54,76,.20)!important;
+ box-shadow:none!important;
+}
+#sf-classic-root[data-tab="units"] #sf-actions .catalog-card:hover:not(:disabled),
+#sf-classic-root[data-tab="research"] #sf-actions .sf-research-card:hover:not(:disabled){
+ background:rgba(68,103,158,.27)!important;
+}
+@media(max-width:740px){
+ #sf-classic-root #sidebar > .radar{
+  border:0!important;padding:4px!important;
+ }
+ #sf-classic-root #sidebar > .sf-modern-side-actions{
+  border:0!important;padding:3px!important;
+ }
+ #sf-classic-root[data-tab="buildings"] #sf-actions
+  .sf-group[data-sf-group="buildings"] > .catalog-grid{
+  width:100%!important;min-width:0!important;
+  grid-auto-columns:max(122px,calc(100% / var(--sf-building-count,9)))!important;
+ }
+ #sf-classic-root #sidebar #sf-actions.catalog-scroll{border:0!important}
+}
