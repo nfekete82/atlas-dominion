@@ -12,6 +12,7 @@ import {DesertOases} from '/webgl-oases.js';
 import {DesertArtPass} from '/webgl-environment.js';
 import {BIOME_STYLES,normalizeBiome,createBiomeGroundTexture,addBiomeVegetation} from '/webgl-biomes.js';
 import {setWorldCamouflageBiome} from '/webgl-faction-accents.js';
+import {addStylizedDesertWorld} from '/webgl-stylized-world.js';
 import {SandforgeCombatEffects} from '/webgl-combat-vfx.js';
 import {SandforgeStrategicEffects} from '/webgl-strategic-effects.js';
 import {SandforgePerformanceWatch} from '/webgl-perf-watch.js';
@@ -908,6 +909,9 @@ const stones=instancedStone();
 if(biome==='desert')sandRoads();
 const biomeVegetation=addBiomeVegetation({THREE,scene,world,terrain,game,heightAt,seed,biome,
  lowQuality:query.get('lite')==='1'});
+const stylizedScenery=biome==='desert'&&query.get('art')!=='legacy'
+ ?addStylizedDesertWorld({scene,world,terrain,game,heightAt,seed,
+  lowQuality:query.get('lite')==='1'}):null;
 // Small ground-level stones accent the winding dry wash from the reference.
 // One visual-only instanced draw call; no gameplay pathing or collision edits.
 const washStones=spacious&&biome==='desert'?addDesertWashStones({scene,world,size,seed,heightAt,
