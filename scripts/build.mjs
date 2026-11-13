@@ -28,6 +28,7 @@ for(const module of ['webgl-stylized-pack','webgl-art-gallery'])cpSync(`scripts/
 for(const module of ['webgl-building-design','webgl-hq3-reference','webgl-building-gallery','webgl-building-profiles','webgl-building-motion','webgl-building-bounds','webgl-barracks-silhouette'])cpSync(`scripts/${module}.js`,`dist/${module}.js`);
 cpSync('scripts/webgl-preview.js','dist/webgl-preview.js');
 cpSync('scripts/webgl-biomes.js','dist/webgl-biomes.js');
+cpSync('scripts/webgl-stylized-world.js','dist/webgl-stylized-world.js');
 cpSync('scripts/webgl-match-result.js','dist/webgl-match-result.js');
 cpSync('scripts/webgl-desert-art.js','dist/webgl-desert-art.js');
 cpSync('scripts/webgl-rock-materials.js','dist/webgl-rock-materials.js');

@@ -335,9 +335,12 @@ export class SandforgeActorPresentation {
   if(entry.animation){
    const clips=entry.animation;
    const hurt=(state.hurtTime??0)>0;
+   const working=entity.kind==='engineer'&&!moving&&entity.workingTarget!=null;
+   const building=working&&entity.orders?.[0]?.kind==='build';
    const desired=hurt&&clips.hit?clips.hit:
     shooting&&clips.attack?clips.attack:
-    moving?(entry.detail?.userData?.sandforgeStylized&&infantry.has(entity.kind)?clips.run:clips.walk):clips.idle;
+    moving?(entry.detail?.userData?.sandforgeStylized&&infantry.has(entity.kind)?clips.run:clips.walk):
+    working?(building?clips.build??clips.repair:clips.repair??clips.build)??clips.idle:clips.idle;
    const retrigger=shooting&&state.shotTrigger!==(state.lastClipTrigger??-1);
    if(desired&&typeof entry.playAnimation==='function')
     entry.playAnimation(desired,retrigger);

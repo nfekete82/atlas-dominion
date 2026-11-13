@@ -283,6 +283,208 @@
         }
       ],
       "sha256": "65b06457c83a8b6e36838ceea4a2fc96e2ca06ed21e49d3b0de2d67123d2896b"
+    },
+    {
+      "kind": "engineer",
+      "owner": 0,
+      "file": "engineer-0.glb",
+      "bytes": 464128,
+      "triangles": 3764,
+      "primitives": 1,
+      "sizeMetres": [
+        0.746999979019165,
+        2.067499933298677,
+        1.0223775804042816
+      ],
+      "bounds": {
+        "min": [
+          -0.3734999895095825,
+          0.0024999999441206455,
+          -0.3605000078678131
+        ],
+        "max": [
+          0.3734999895095825,
+          2.069999933242798,
+          0.6618775725364685
+        ]
+      },
+      "clips": [
+        {
+          "name": "Walk",
+          "duration": 1,
+          "tracks": 8
+        },
+        {
+          "name": "Run",
+          "duration": 0.64,
+          "tracks": 8
+        },
+        {
+          "name": "Idle",
+          "duration": 2.4,
+          "tracks": 2
+        },
+        {
+          "name": "Shoot",
+          "duration": 0.28,
+          "tracks": 2
+        },
+        {
+          "name": "Death",
+          "duration": 0.85,
+          "tracks": 4
+        },
+        {
+          "name": "Build",
+          "duration": 0.72,
+          "tracks": 2
+        },
+        {
+          "name": "Repair",
+          "duration": 0.9,
+          "tracks": 2
+        }
+      ],
+      "sha256": "5fb56cd0afad1cf0155261a8b3516c00a12eea2bcca957912b5729a7d41f6001"
+    },
+    {
+      "kind": "engineer",
+      "owner": 1,
+      "file": "engineer-1.glb",
+      "bytes": 464132,
+      "triangles": 3764,
+      "primitives": 1,
+      "sizeMetres": [
+        0.746999979019165,
+        2.067499933298677,
+        1.0223775804042816
+      ],
+      "bounds": {
+        "min": [
+          -0.3734999895095825,
+          0.0024999999441206455,
+          -0.3605000078678131
+        ],
+        "max": [
+          0.3734999895095825,
+          2.069999933242798,
+          0.6618775725364685
+        ]
+      },
+      "clips": [
+        {
+          "name": "Walk",
+          "duration": 1,
+          "tracks": 8
+        },
+        {
+          "name": "Run",
+          "duration": 0.64,
+          "tracks": 8
+        },
+        {
+          "name": "Idle",
+          "duration": 2.4,
+          "tracks": 2
+        },
+        {
+          "name": "Shoot",
+          "duration": 0.28,
+          "tracks": 2
+        },
+        {
+          "name": "Death",
+          "duration": 0.85,
+          "tracks": 4
+        },
+        {
+          "name": "Build",
+          "duration": 0.72,
+          "tracks": 2
+        },
+        {
+          "name": "Repair",
+          "duration": 0.9,
+          "tracks": 2
+        }
+      ],
+      "sha256": "092194fb919fd0a415853a1edcbb39172f926ecbd6ac0d962d4274f6be97a50a"
+    },
+    {
+      "kind": "headquarters",
+      "owner": 0,
+      "file": "headquarters-0.glb",
+      "bytes": 382108,
+      "triangles": 5068,
+      "primitives": 8,
+      "sizeMetres": [
+        9.8100004196167,
+        7.029420839945823,
+        9.295000076293945
+      ],
+      "bounds": {
+        "min": [
+          -4.90500020980835,
+          -5.2452087118126656e-8,
+          -4.474999904632568
+        ],
+        "max": [
+          4.90500020980835,
+          7.029420787493736,
+          4.820000171661377
+        ]
+      },
+      "clips": [
+        {
+          "name": "RadarSpin",
+          "duration": 8,
+          "tracks": 1
+        },
+        {
+          "name": "ProductionDoor",
+          "duration": 3.3,
+          "tracks": 2
+        }
+      ],
+      "sha256": "a04fc8f841f0fc600bff45e738412ccb4bdd3465622da0aab989e0f0bc98366f"
+    },
+    {
+      "kind": "headquarters",
+      "owner": 1,
+      "file": "headquarters-1.glb",
+      "bytes": 382108,
+      "triangles": 5068,
+      "primitives": 8,
+      "sizeMetres": [
+        9.8100004196167,
+        7.029420839945823,
+        9.295000076293945
+      ],
+      "bounds": {
+        "min": [
+          -4.90500020980835,
+          -5.2452087118126656e-8,
+          -4.474999904632568
+        ],
+        "max": [
+          4.90500020980835,
+          7.029420787493736,
+          4.820000171661377
+        ]
+      },
+      "clips": [
+        {
+          "name": "RadarSpin",
+          "duration": 8,
+          "tracks": 1
+        },
+        {
+          "name": "ProductionDoor",
+          "duration": 3.3,
+          "tracks": 2
+        }
+      ],
+      "sha256": "32d8ae2a5ee3465926ee4b14ddd5c411556f458ee5b559b57e8da76316a8087d"
     }
   ]
 }

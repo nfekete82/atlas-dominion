@@ -1,0 +1,52 @@
+name: Generate Sandforge Low-Poly Engineer & HQ
+on:
+  push:
+    branches:
+      - feat/stylized-engineer-hq-world-20261113
+    paths:
+      - 'scripts/art/stylized-*.mjs'
+      - 'scripts/export-stylized-pack.mjs'
+      - 'tests/stylized-pack.test.mjs'
+      - 'scripts/webgl-stylized-world.js'
+      - 'scripts/webgl-production-gates.js'
+      - 'scripts/webgl-preview.js'
+      - 'scripts/webgl-portraits.js'
+      - 'scripts/webgl-actor-presentation.js'
+      - 'scripts/webgl-battlefield.js'
+      - 'src/reborn/webgl-classic-hud.css'
+      - 'webgl-preview.html'
+      - 'src/assets/stylized/title-hero.svg'
+      - '.github/workflows/stylized-engineer-hq-assets.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install build toolchain
+        run: npm ci
+      - name: Export blue/red GLBs and manifest
+        run: npm run assets:stylized
+      - name: Verify deterministic export
+        run: node scripts/export-stylized-pack.mjs --check
+      - name: Test GLB scene, rigs, portals and zero-collision desert art
+        run: npm run test:stylized
+      - name: Check complete asset and manifest fingerprints
+        run: node scripts/export-stylized-pack.mjs --check
+      - name: Commit generated original art
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/assets/stylized/*.glb src/assets/stylized/manifest.json
+          if ! git diff --cached --quiet; then
+            git commit -m "assets(stylized): publish pioneer and headquarters GLBs"
+            git push origin HEAD:feat/stylized-engineer-hq-world-20261113
+          fi

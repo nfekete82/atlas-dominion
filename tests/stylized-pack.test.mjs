@@ -99,3 +99,54 @@ test('new barracks ground geometry stays inside existing infantry avoidance clea
   }
  });assert.ok(tested>100);
 });
+
+test('engineer keeps soldier-sized skinned rig, wrench gear and build/repair animation',async()=>{
+ const data=await load('engineer');
+ const model=clone(data.scene),skin=model.getObjectByName('SFV1_EngineerSkin');
+ assert.ok(skin?.isSkinnedMesh,'engineer skin exists');
+ assert.ok(skin.skeleton.bones.length>=15,'same articulated skeleton as infantry');
+ const clips=data.animations.map(c=>c.name);
+ for(const name of ['Idle','Walk','Run','Death','Build','Repair'])
+  assert.ok(clips.includes(name),'missing pioneer animation '+name);
+ const repair=data.animations.find(c=>c.name==='Repair'),before=skin.skeleton.bones.map(b=>b.quaternion.clone());
+ const mixer=new T.AnimationMixer(model);mixer.clipAction(repair).play();mixer.update(.33);
+ assert.ok(skin.skeleton.bones.some((b,i)=>b.quaternion.angleTo(before[i])>.05),'tool hand must animate');
+ assert.equal(stylizedAsset('engineer',0),'/src/assets/stylized/engineer-0.glb');
+});
+
+test('stylized headquarters opens its own real doors and preserves production lane',async()=>{
+ const data=await load('headquarters');
+ const model=clone(data.scene);Object.assign(model.userData,stylizedProfile(model));
+ const left=model.getObjectByName('HQ_GATE_LEFT'),right=model.getObjectByName('HQ_GATE_RIGHT');
+ const radar=model.getObjectByName('HQ_RADAR_PIVOT');
+ assert.ok(left&&right&&radar,'authored mechanical pivots must be part of the GLB');
+ assert.ok(data.animations.some(c=>c.name==='RadarSpin'));
+ assert.ok(data.animations.some(c=>c.name==='ProductionDoor'));
+ const {prepareHeadquartersPortal,setHeadquartersDoorOpen,disposeHeadquartersPortal}=
+  await import('../scripts/webgl-production-gates.js');
+ const host=new T.Group();host.add(model);
+ const entry={detail:model},portal=prepareHeadquartersPortal(entry);
+ assert.equal(portal.authored,true,'do not overlay the HQ3 fake doorway');
+ const before=[left.position.x,right.position.x];
+ setHeadquartersDoorOpen(portal,1);
+ assert.ok(left.position.x<before[0]-1&&right.position.x>before[1]+1);
+ setHeadquartersDoorOpen(portal,0);
+ assert.equal(left.position.x,before[0]);assert.equal(right.position.x,before[1]);
+ assert.ok(model.userData.portal.clearHeight>2.07*1.15);
+ const start=new T.Vector3(...model.userData.portal.inside),end=new T.Vector3(...model.userData.portal.outside);
+ assert.ok(end.z>start.z+2,'HQ exits through its +Z doors');
+ disposeHeadquartersPortal(entry);
+ assert.ok(model.parent,'detaching a gate must not remove its owning model');
+});
+
+test('low-poly desert decoration is deterministic, instanced and has no collider',async()=>{
+ const {addStylizedDesertWorld}=await import('../scripts/webgl-stylized-world.js');
+ const world={size:1000,blocked:[],index:()=>0,walkable:()=>true};
+ const props={world,terrain:{sites:[{x:500,y:500}],ruins:[]},game:{units:[]},heightAt:()=>0,seed:1337,lowQuality:true};
+ const first=addStylizedDesertWorld({...props,scene:new T.Scene()});
+ const second=addStylizedDesertWorld({...props,scene:new T.Scene()});
+ assert.deepEqual([first.rocks,first.palms,first.bushes],[second.rocks,second.palms,second.bushes]);
+ assert.ok(first.rocks>0&&first.palms>0&&first.bushes>0);
+ assert.ok(first.meshes.every(mesh=>mesh.isInstancedMesh&&mesh.userData.visualOnly&&mesh.userData.nonPlayable));
+ for(const mesh of first.meshes)mesh.raycast(); // disabled clicking through scenery
+});

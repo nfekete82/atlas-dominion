@@ -350,6 +350,11 @@ export class SandforgeBattlefield {
    }
   }
   if(entry.kind==='headquarters'){
+   const stylizedRadar=entry.detail?.getObjectByName('HQ_RADAR_PIVOT');
+   if(stylizedRadar){
+    entry.motion={kind:'headquarters',rotor:stylizedRadar,mode:'stylized-radar'};
+    return;
+   }
    const authoredRadar=ensureTexturedHqRadarPivot(entry.detail);
    const activeRadar=ensureTexturedHqRadarPivot(entry.variantDetail);
    if(authoredRadar||activeRadar){
@@ -495,7 +500,9 @@ export class SandforgeBattlefield {
      const hit=data.animations.find(a=>/hit|damage|hurt/i.test(a.name))||null;
      const death=data.animations.find(a=>/death|die|destroy/i.test(a.name))||null;
      const run=data.animations.find(a=>/^run$/i.test(a.name))??walk;
-     entry.animation={mixer,idle,walk,run,attack,hit,death,playing:null};
+     const build=data.animations.find(a=>/^build$/i.test(a.name))??null;
+     const repair=data.animations.find(a=>/^repair$/i.test(a.name))??null;
+     entry.animation={mixer,idle,walk,run,attack,hit,death,build,repair,playing:null};
      entry.playAnimation=(clip,retrigger=false)=>this.playClip(entry,clip,retrigger);
      this.playClip(entry,idle);
     }

@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="Sandforge stylized desert command base">
+<defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#d4ccd2"/><stop offset=".62" stop-color="#f4c29a"/><stop offset="1" stop-color="#f6af73"/></linearGradient>
+<linearGradient id="sand" x2="0" y2="1"><stop stop-color="#f3b879"/><stop offset="1" stop-color="#c98155"/></linearGradient>
+<linearGradient id="shade" x2="0" y2="1"><stop stop-color="#9c6256"/><stop offset="1" stop-color="#673f44"/></linearGradient>
+<linearGradient id="glass" x2="0" y2="1"><stop stop-color="#315b69"/><stop offset="1" stop-color="#192f36"/></linearGradient>
+</defs>
+<rect width="1600" height="900" fill="url(#sky)"/>
+<g fill="#f8d0a5" opacity=".86"><path d="M1110 108l49-18 67 16 65 29-54 20h-151z"/><path d="M495 160l62-27 82 10 70 40-66 17H460z"/><path d="M1395 190l38-13 84 16 62 28-63 12h-152z"/></g>
+<path d="M0 408l158-102 129 76 140-91 94 74 142-104 112 97 172-85 140 99 115-106 163 95 145-50v589H0z" fill="#d99b88"/>
+<path d="M0 469l179-130 48 54 61-11 139-91-75 155 132-63 123-107-48 132 116-55 172-85-81 177 125-81 144-90-62 134 175-84 177-38-76 177v427H0z" fill="#e7ad92"/>
+<path d="M0 525l129-59 101 27 204-60 138 56 182-90 125 70 198-36 213 88 210-47v426H0z" fill="#eead7d"/>
+<path d="M0 619l232-64 205 57 150-65 220 46 210-77 155 70 160-26 268 51v289H0z" fill="#f5be82"/>
+<path d="M0 705l250-87 227 67 270-57 207 63 191-72 285 70 170-50v261H0z" fill="url(#sand)"/>
+<path d="M0 818l222-96 131 30 162-61 160 77 178-46 223 70 130-77 195 29 199-55v211H0z" fill="#c98562" opacity=".61"/>
+<!-- distant ruin silhouettes -->
+<g fill="#b78377" opacity=".78"><path d="M900 420v-87h50v-35h38v122zm29-76h13v19h-13zm37 23h12v21h-12z" fill-rule="evenodd"/><path d="M1426 423v-71h35v-22h23v-28h37v121z"/><path d="M1142 441v-65h31v-26h41v91z"/></g>
+<!-- low-poly command headquarters, centered right -->
+<path d="M752 619l103-172 367-10 129 181-78 71-432-1z" fill="#6e625c" opacity=".22"/>
+<path d="M850 527l88-50 326 2 62 39-29 154-403 8-44-39z" fill="#bb926c"/>
+<path d="M891 512l47-35 326 2 39 36-8 35-403-1z" fill="#e0ad7f"/>
+<path d="M904 551l390-1v110l-390 3z" fill="#c39872"/>
+<path d="M1044 552l113-1 9 115-136 1z" fill="#455750"/>
+<path d="M1058 569h90v92h-90z" fill="#172e33"/>
+<path d="M1069 576h29v82h-29zM1110 576h29v82h-29z" fill="#75866a"/>
+<path d="M942 558h67v49h-67zM1187 558h73v49h-73z" fill="url(#glass)"/>
+<path d="M943 613h69v15h-69zM1187 613h74v15h-74z" fill="#927051"/>
+<path d="M931 473l21-59 256-3 29 66z" fill="#b38a64"/>
+<path d="M950 413l48-43 171 1 40 40z" fill="#354743"/>
+<path d="M950 414h259v17H950z" fill="#273a37"/>
+<path d="M979 435h195v27H979z" fill="#315458"/>
+<path d="M1015 435h8v27h-8zM1093 435h9v27h-9z" fill="#cab38b"/>
+<!-- Radar mast/dish -->
+<path d="M1116 370v-77h12v80z" fill="#3c4942"/><path d="M1080 289l58-51 45 46-52 30z" fill="#d3bb95"/><path d="M1092 289l44-36 33 29-38 22z" fill="#8f9170"/><path d="M1134 279l18-38 7 4-18 38z" fill="#303d39"/>
+<!-- blue unit banners -->
+<path d="M955 489l59-1v48l-30 15-29-16zM1201 488h60v50l-30 12-30-12z" fill="#357cab"/>
+<path d="M984 498l7 13 16 3-12 11 3 17-14-8-14 8 3-17-12-11 16-3z" fill="#edce9f"/>
+<!-- Hangar and vehicle at lower right -->
+<path d="M1266 649l56-57h192l54 62-10 81h-290z" fill="#cf9d76"/>
+<path d="M1287 652l45-44h172l39 47z" fill="#e4b487"/>
+<path d="M1334 657h159v75h-159z" fill="#394742"/>
+<path d="M1342 667h143v64h-143z" fill="#21363b"/>
+<g transform="translate(1314 713)"><path d="M22 24l28-31h118l33 32v39H0V34z" fill="#a28b68"/><path d="M63 0h75l23 24H40z" fill="#d5bd87"/><path d="M64 4h70l11 17H49z" fill="#355963"/><path d="M0 29h201v17H0z" fill="#698188"/><circle cx="45" cy="62" r="27" fill="#263234"/><circle cx="159" cy="62" r="27" fill="#263234"/><circle cx="45" cy="62" r="11" fill="#86908a"/><circle cx="159" cy="62" r="11" fill="#86908a"/></g>
+<!-- palm trees -->
+<g transform="translate(715 570)"><path d="M0 133l15-126 13 2-10 124z" fill="#8d6a4c"/><path d="M20 12l-97-15 65-24 36 22z" fill="#576b44"/><path d="M20 12l-14-81 31 31 5 40z" fill="#6e854c"/><path d="M20 12l102-29-59-17-45 20z" fill="#667e4d"/><path d="M20 12l-74 59 23-56 52-23z" fill="#71864e"/><path d="M20 12l70 68-23-66-46-18z" fill="#566c42"/></g>
+<!-- geometric rocks/foreground -->
+<path d="M594 765l79-49 73 30 44 71-161 9z" fill="#8e635c"/><path d="M594 765l79-49-15 91-29 19z" fill="#ad7565"/><path d="M658 807l15-91 73 30 44 71z" fill="#765256"/>
+<path d="M1137 849l51-59 92 15 56 80-183 15z" fill="#a06a59"/><path d="M1188 790l92 15-48 77-95-33z" fill="#cf8d6a"/>
+<!-- angular infantry in foreground -->
+<g transform="translate(740 663)"><path d="M-19 118l8-54 28-3 14 56-24 8-11-37-5 38z" fill="#383d36"/><path d="M-24 18l13-15 43 4 13 68-29 6-24-10z" fill="#ac925f"/><path d="M-28 15l52-6 10 23-54 5z" fill="#385c68"/><path d="M-6-28h25l10 33-34 5-11-16z" fill="#c3a06e"/><path d="M-14-24l4-17 34-11 22 11-8 19z" fill="#6d7b4d"/><path d="M-21 32l-18 36 11 8 25-35z" fill="#b99b72"/><path d="M36 23l16 35-12 8-21-26z" fill="#a48862"/><path d="M-21 42l68 7 6 9-69 3z" fill="#273635"/></g>
+<path d="M0 820l310-90-70 170H0z" fill="#b7785b" opacity=".9"/>
+<path d="M1245 900l355-190v190z" fill="#ac725e" opacity=".8"/>
+</svg>

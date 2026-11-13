@@ -62,6 +62,55 @@ a:hover{text-decoration:underline}
 #main-dialog .sandforge-splash-logo{display:block;max-width:100%;object-fit:contain}
 #sf3d-pause-dialog .menu-buttons button{width:100%}
 </style>
+
+<style id="sf-low-poly-title-skin">
+/* A newly illustrated Sandforge title. Actions remain the existing tested DOM. */
+html.sandforge-clean-title #main-dialog{
+ background-color:#d49a78;
+ background-image:linear-gradient(90deg,rgba(20,25,28,.68),rgba(20,25,28,.07) 44%,rgba(20,25,28,.04)),
+   url('/src/assets/stylized/title-hero.svg');
+ background-size:cover,cover;
+ background-position:center,center;
+}
+html.sandforge-clean-title #main-dialog[open]{
+ justify-content:flex-start;
+ align-items:flex-start;
+ flex-direction:column;
+ padding:clamp(20px,3.1vw,55px);
+}
+html.sandforge-clean-title #main-dialog .menu-brand{
+ position:relative;top:auto;left:auto;transform:none;
+ width:min(460px,66vw);max-width:100%;height:auto;
+ margin:0 0 2vh;justify-content:flex-start;
+}
+html.sandforge-clean-title #main-dialog .sandforge-splash-logo{
+ max-height:155px;object-position:left center;filter:drop-shadow(0 7px 6px #121c2299);
+}
+html.sandforge-clean-title #main-dialog .menu-buttons{
+ margin:0;width:min(290px,79vw);gap:8px;
+ background:rgba(17,30,32,.26);padding:11px;border-radius:12px;
+}
+html.sandforge-clean-title #main-dialog .menu-buttons .menu-button:not([hidden]){
+ flex-basis:46px;height:46px;border-radius:6px;
+ color:#f9e9cd;background:linear-gradient(125deg,#273a3ef0,#1d2c31e9);
+ border:1px solid #c4a17ac9;box-shadow:0 5px 12px #09131c44;
+}
+html.sandforge-clean-title #main-dialog .menu-buttons .menu-button.primary{
+ background:linear-gradient(125deg,#ce964d,#a66c35);color:#201c1b;border-color:#f0cf89;
+}
+html.sandforge-clean-title #main-dialog #sf3d-menu-status{
+ margin-top:8px;color:#f6d8ac;text-shadow:0 1px 5px #182322;
+}
+@media(max-width:720px){
+ html.sandforge-clean-title #main-dialog{
+  background-image:linear-gradient(0deg,#18292cae,transparent 72%),url('/src/assets/stylized/title-hero.svg');
+  background-position:center,64% center;
+ }
+ html.sandforge-clean-title #main-dialog[open]{align-items:center;justify-content:flex-end;padding:15px;}
+ html.sandforge-clean-title #main-dialog .menu-brand{position:relative;left:auto;top:auto;transform:none;width:min(82vw,430px);}
+ html.sandforge-clean-title #main-dialog .menu-buttons{margin:0;width:min(320px,92vw);}
+}
+</style>
 </head>
 <body>
 <div id="stage" aria-label="Echte Three.js WebGL 3D Landschaft"></div>
