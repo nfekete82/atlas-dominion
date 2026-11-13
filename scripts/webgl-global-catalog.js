@@ -9,6 +9,7 @@ export function globalCatalogAvailability(game,owner=0){
   b.hp>0&&b.buildRemaining<=0);
  return {
   buildings:true,
+  units:['headquarters','barracks','factory','airfield'].some(finished),
   infantry:finished('headquarters')||finished('barracks'),
   vehicles:finished('factory'),
   aircraft:finished('airfield'),
