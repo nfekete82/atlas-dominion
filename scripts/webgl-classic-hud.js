@@ -28,9 +28,9 @@ export function installClassicHud(){
  </section>
  <section class="catalog hud frame" aria-label="Einheiten und Gebäude">
   <nav class="catalog-tabs" id="sf-tabs" aria-label="Bau- und Einheitenmenü">
-   <button type="button" data-tab="buildings" aria-pressed="true"><span aria-hidden="true" class="sf-tab-symbol">▦</span>Gebäude</button>
-   <button type="button" data-tab="units" aria-pressed="false" disabled><span aria-hidden="true" class="sf-tab-symbol">♟</span>Einheiten</button>
-   <button type="button" data-tab="research" aria-pressed="false" disabled><span aria-hidden="true" class="sf-tab-symbol">⚗</span>Forschung</button>
+   <button type="button" data-tab="buildings" aria-pressed="true"><svg aria-hidden="true" class="sf-tab-symbol" viewBox="0 0 24 24"><path fill="currentColor" d="M2 10h20v12H2zM4 4h3v6H4zM10 2h4v8h-4zM17 5h3v5h-3z"/><path fill="#27374d" d="M5 14h3v4H5zM11 14h3v4h-3zM17 14h3v4h-3z"/></svg>Gebäude</button>
+   <button type="button" data-tab="units" aria-pressed="false" disabled><svg aria-hidden="true" class="sf-tab-symbol" viewBox="0 0 24 24"><path fill="currentColor" d="M4 12a8 8 0 1 1 16 0l2 4H2l2-4zM4 18h16v3H4z"/><path fill="#27374d" d="M8 13h8v2H8z"/></svg>Einheiten</button>
+   <button type="button" data-tab="research" aria-pressed="false" disabled><svg aria-hidden="true" class="sf-tab-symbol" viewBox="0 0 24 24"><path d="M9 2h6M10 2v7L3.8 20.5A1 1 0 0 0 4.7 22h14.6a1 1 0 0 0 .9-1.5L14 9V2" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M7 17h10l2 4H5z" fill="currentColor"/></svg>Forschung</button>
   </nav>
   <nav class="sf-modern-unit-categories" id="sf-unit-categories" aria-label="Einheitenarten" hidden>
    <button type="button" data-sf-unit-category="infantry" aria-pressed="true">Infanterie</button>
