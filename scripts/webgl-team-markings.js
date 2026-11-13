@@ -1,43 +1,13 @@
 import * as THREE from 'three';
 
-/** Faction identity is PAINTED INTO the actual vehicle shader, not rendered
- * as rectangular geometry hovering above a curved turret or helicopter.
- * No extra draw call, polygons, emissive logos or white cross billboards.
- * The same matte paint inherits the original albedo, scratches and lighting.
+/** Team identifiers are painted into real PBR meshes for vehicles, while
+ * infantry use their tinted armour. No floating quad markers or black
+ * rectangular team patches are placed around articulated soldiers.
  */
 export const TEAM_MARKING_COLORS=Object.freeze({0:'#28769b',1:'#a84f42'});
 export const VEHICLE_PAINT_REVISION='sandforge-matte-unit-paint-v2';
 const infantry=new Set(['infantry','heavy','medic','engineer','rocket']);
 const vehicles=new Set(['tank','artillery','rover','bomber','scout']);
-const mats=new Map();
-const sharedQuad=new THREE.PlaneGeometry(1,1);
-
-function infantryMaterial(owner){
- if(mats.has(owner))return mats.get(owner);
- const team=new THREE.Color(TEAM_MARKING_COLORS[owner]);
- const mapData=new Uint8Array(32*32*4);
- for(let y=0;y<32;y++)for(let x=0;x<32;x++){
-  const i=(y*32+x)*4;
-  const border=x<2||x>29||y<2||y>29;
-  const rgb=border?[.55,.51,.39]:[team.r,team.g,team.b];
-  for(let k=0;k<3;k++)mapData[i+k]=Math.round(rgb[k]*255);
-  mapData[i+3]=255;
- }
- const map=new THREE.DataTexture(mapData,32,32,THREE.RGBAFormat);
- map.colorSpace=THREE.SRGBColorSpace;map.magFilter=THREE.LinearFilter;
- map.needsUpdate=true;
- const m=new THREE.MeshStandardMaterial({map,roughness:.94,metalness:0,
-  transparent:false,depthWrite:true,side:THREE.DoubleSide});
- mats.set(owner,m);return m;
-}
-function armPatch(group,name,owner,x,y,z,w,h,ry=0){
- const mesh=new THREE.Mesh(sharedQuad,infantryMaterial(owner));
- mesh.name=name;mesh.position.set(x,y,z);mesh.rotation.y=ry;mesh.scale.set(w,h,1);
- mesh.castShadow=false;mesh.receiveShadow=false;mesh.raycast=()=>{};
- mesh.userData={visualOnly:true,teamMarking:true,nonPlayable:true};
- group.add(mesh);
-}
-
 const reject=/flag|pennant|banner|cross|insignia|decal|marking|wheel|track|tread|tyre|tire|rotor|blade|propeller|spinner|fan|glass|window|canopy|windshield|exhaust|gun|barrel|muzzle|antenna|lamp|light|shadow|invisible/i;
 const favor={
  tank:/turret|armor|armour|hull|body|ceramic|roof|paint|shell/i,
@@ -145,13 +115,12 @@ export function attachTeamMarkings(entry,owner,kind,footprint=90,height=44){
  group.name='SandforgeIntegratedFactionPaint';
  group.userData={signature,owner,kind,visualOnly:true,nonPlayable:true,teamMarkings:true};
  if(infantry.has(kind)){
-  const h=Math.max(16,height),shoulder=Math.min(13,h*.23);
-  for(const side of [-1,1]){
-   armPatch(group,'TeamArmband_'+(side<0?'Left':'Right'),owner,
-    side*shoulder,h*.60,0,Math.max(5,h*.16),Math.max(4,h*.11),side*Math.PI/2);
-  }
-  armPatch(group,'TeamChestPatch',owner,0,h*.66,h*.18,
-   Math.max(6,h*.20),Math.max(5,h*.14));
+  // The authored 3D soldier already gets faction ownership through its
+  // actual armour via applyFactionAccents(). Freestanding, double-sided
+  // armband/chest quads looked like black rectangular boards next to small
+  // animated soldiers (and floated away from their moving shoulders).
+  // Keep the zero-geometry marker for the cache/signature lifecycle.
+  group.userData.paintedMeshCount=0;
   entry.node.add(group);
  }else if(model){
   // Old authored stand-up flag props must also disappear. The unit's color
