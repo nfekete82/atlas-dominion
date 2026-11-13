@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {stylizedAsset,isStylizedAsset,stylizedProfile} from './webgl-stylized-pack.js';
+import {meshyAsset,isMeshyAsset,meshyModelYaw} from './webgl-meshy-assets.js';
 import {SandforgeProductionGates} from '/webgl-production-gates.js';
 import {updateBarracksPortalPlanes} from '/webgl-barracks-portal.js';
 import {nextPeriodicRefresh} from '/webgl-frame-scheduling.js';
@@ -212,6 +213,9 @@ export class SandforgeBattlefield {
  }
  asset(kind,owner,type){
   const prefix='/src/assets/reborn/';
+  // The Meshy replacement is opt-in and only activates after installation.
+  const replacement=meshyAsset(kind,owner);
+  if(replacement)return replacement;
   if(new URLSearchParams(location.search).get('art')!=='legacy'){
    const authored=stylizedAsset(kind,owner);
    if(authored)return authored;
@@ -230,7 +234,7 @@ export class SandforgeBattlefield {
   // still appear. Falling back to primitive grey cubes would make the actual
   // player's base look markedly worse than the 2D game.
   // Medics always load their authored 3D soldier, even in lite mode.
-  if((this.lite&&type!=='building'&&entity.kind!=='medic'&&entity.kind!=='rocket'&&!stylizedAsset(entity.kind,entity.owner))||
+  if((this.lite&&type!=='building'&&entity.kind!=='medic'&&entity.kind!=='rocket'&&!stylizedAsset(entity.kind,entity.owner)&&!meshyAsset(entity.kind,entity.owner))||
      (type==='building'&&isStrategicBuilding(entity.kind)&&!isStrategicGlbKind(entity.kind))||entry.requested||
      this.loadingCount+this.modelQueue.length>=this.maxModels)return;
   entry.requested=true;
@@ -402,29 +406,38 @@ export class SandforgeBattlefield {
    // HQ3 builds in place from the finished authored mesh: loading its
    // old "inactive" variant was showing an entirely different Feldkommando.
    // Barracks, silo and research still keep their legitimate variants.
-   const variantUrl=task.type==='building'&&task.entry.kind!=='headquarters'&&!isStylizedAsset(task.url)?
+   const variantUrl=task.type==='building'&&task.entry.kind!=='headquarters'&&!isStylizedAsset(task.url)&&!isMeshyAsset(task.url)?
     strategicGlbUrl(task.entry.kind,
      task.entry.kind==='barracks'?'inactive':'active'):null;
    const promise=variantUrl?
     Promise.all([this.getModel(task.url),this.getModel(variantUrl)]):
     this.getModel(task.url).catch(error=>{
-     if(!isStylizedAsset(task.url))throw error;
-     // Keep original authored assets as a genuine loading fallback.
+     if(!isStylizedAsset(task.url)&&!isMeshyAsset(task.url))throw error;
+     // If an optional Meshy file has not yet been installed, load the
+     // original authored rig and preserve the game. Tank and artillery
+     // were previously wrongly mapped to prototype/ on fallback.
      const e=task.entry;
-     const old=task.type==='building'?strategicGlbUrl(e.kind,'active'):
-      '/src/assets/reborn/'+(e.kind==='rover'?'animation/':'prototype/')+e.kind+'-'+e.owner+'.glb';
-     console.warn('Stylized pack unavailable; loading original:',old);
+     const authored=stylizedAsset(e.kind,e.owner);
+     const old=isMeshyAsset(task.url)&&authored ? authored:
+      task.type==='building' ? strategicGlbUrl(e.kind,'active'):
+      '/src/assets/reborn/'+
+       (e.kind==='rocket'?'prototype/infantry-':
+        (['rover','tank','artillery','scout','bomber'].includes(e.kind)?'animation/':'prototype/')+e.kind+'-')+
+       e.owner+'.glb';
+     console.warn('Optional art unavailable; loading original:',old,error);
+     task.entry.meshyFallback=true;
      return this.getModel(old);
     }).then(data=>[data,null]);
    promise.then(([data,variantData])=>{
     const {entry,type}=task;
     if(!entry.node.parent)return;
     const model=cloneSkeleton(data.scene);
+    if(isMeshyAsset(task.url)&&!entry.meshyFallback)model.rotation.y+=meshyModelYaw(entry.kind);
     const authoredStyle=stylizedProfile(model);
     if(authoredStyle)model.userData={...model.userData,...authoredStyle};
     if(type==='building'&&entry.kind==='barracks'&&!authoredStyle)
      simplifyBarracksSilhouette(model);
-    if(type==='unit'&&entry.kind==='rocket')
+    if(type==='unit'&&entry.kind==='rocket'&&(!isMeshyAsset(task.url)||entry.meshyFallback))
      attachRocketLauncherToInfantry(model,entry.owner);
     const box0=new THREE.Box3().setFromObject(model);
     const dims=box0.getSize(new THREE.Vector3());
