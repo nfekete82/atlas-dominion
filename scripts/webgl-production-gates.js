@@ -77,7 +77,9 @@ export function disposeHeadquartersPortal(entry){
  if(!portal)return;
  portal.root.removeFromParent();
  portal.root.traverse(object=>{
-  if(object.isMesh)object.geometry.dispose();
+  // The warning bulb uses one shared module geometry across all buildings.
+  // Its material is already disposed by SandforgeProductionGates.detach().
+  if(object.isMesh&&object.geometry!==bulbGeometry)object.geometry.dispose();
  });
  for(const material of portal.materials)material.dispose();
  delete entry.headquartersPortal;
