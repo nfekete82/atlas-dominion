@@ -264,22 +264,31 @@ function addSiteDecor(root,kind,width){
  // reached x=width*.55+30.5 while the fence stands at x=width*.65.
  // Shift the entire crate/barrel/pallet cluster inward without changing
  // the entrance, fence or other facility yards.
- const supplyX=kind==='headquarters'?width*.38:width*.55;
+ const supplyX=kind==='headquarters'?width*.38:
+  kind==='barracks'?width*.42:width*.55;
  supplies.name='BaseSupplyCache';supplies.position.set(supplyX,0,-width*.2);
  g.add(supplies);
- // Different silhouettes per facility, all deterministic and inexpensive.
- storageCrate(supplies,0,0,large?19:13);
- storageCrate(supplies,large?18:13,12,large?14:11,sand);
- if(kind!=='airfield'){
-  box(supplies,'SupplyPallet',[43,3.2,27],wood,9,1.6,4);
-  supplyBarrel(supplies,-16,-11);
-  if(kind==='factory'||kind==='research'||kind==='headquarters')
-   supplyBarrel(supplies,-3,-19);
+ // A barracks already has integrated crates, vents and equipment lockers in
+ // its GLB. A compact one-crate cache reads better than another huge pallet
+ // of cargo beside its entrance. All other buildings keep their equipment.
+ if(kind==='barracks'){
+  storageCrate(supplies,0,0,14);
+  supplyBarrel(supplies,13,-7);
+ }else{
+  storageCrate(supplies,0,0,large?19:13);
+  storageCrate(supplies,large?18:13,12,large?14:11,sand);
+  if(kind!=='airfield'){
+   box(supplies,'SupplyPallet',[43,3.2,27],wood,9,1.6,4);
+   supplyBarrel(supplies,-16,-11);
+   if(kind==='factory'||kind==='research'||kind==='headquarters')
+    supplyBarrel(supplies,-3,-19);
+  }
  }
  // Place masts near the side fencing, never along the open front door/spawn.
  const lampHeight=Math.min(60,Math.max(43,width*.29));
  securityLamp(g,-width*.56,width*.20,lampHeight);
- if(large&&kind!=='airfield')securityLamp(g,width*.53,-width*.40,lampHeight);
+ if(large&&kind!=='airfield'&&kind!=='barracks')
+  securityLamp(g,width*.53,-width*.40,lampHeight);
  if(kind==='headquarters'||kind==='research'||kind==='silo'){
   // A small technical crate station reads like base infrastructure.
   const service=new THREE.Group();
@@ -331,21 +340,18 @@ export function createBuildingYard(kind,width=160){
   box(g,'ToolCaseHandle',[9,2,2],dark,31,13,-21);
  }else if(kind==='barracks'){
   const g=new THREE.Group();g.name='InfantryEquipment';
-  // Geometry was authored at building scale: 19-unit helmets and ~53-unit
-  // rifles looked as large as a human next to the 3D infantry (~36 units).
-  // Keep all individual assets and their spacing proportional, without
-  // changing collision, unit models, or the garage/barracks portal.
-  g.scale.setScalar(.48);
-  g.position.set(width*.43,0,width*.34);root.add(g);
-  box(g,'EquipmentPallet',[79,4,46],wood,0,2,0);
-  box(g,'HelmetRack',[75,4,13],steel,-1,12,-10);
-  for(const x of [-24,0,24])helmet(g,x,-10);
-  box(g,'WeaponRack',[10,27,49],wood,30,17,20);
-  for(const [i,x] of [-1,0,1].entries())rifle(g,-25+i*18,17);
-  for(let i=0;i<2;i++){
-   box(g,'AmmunitionCrate',[16,12,13],olive,-26+i*19,10,33);
-   box(g,'AmmunitionClasp',[11,2,2],steel,-26+i*19,17,39);
-  }
+  // Compact military equipment corner: one helmet, one weapon and one
+  // ammunition case. Previously three helmets, three rifles, two cases
+  // and an oversized pallet competed with the authored barracks silhouette.
+  g.scale.setScalar(.44);
+  g.position.set(width*.39,0,width*.28);root.add(g);
+  box(g,'EquipmentPallet',[54,3.2,35],wood,0,1.6,0);
+  box(g,'HelmetRack',[32,3.2,10],steel,-10,11,-7);
+  helmet(g,-10,-7);
+  box(g,'WeaponRack',[8,22,28],wood,19,15,6);
+  rifle(g,0,6);
+  box(g,'AmmunitionCrate',[15,12,13],olive,-14,8,15);
+  box(g,'AmmunitionClasp',[10,2,2],steel,-14,15,21);
  }
  addSiteDecor(root,kind,width);
  return root;
