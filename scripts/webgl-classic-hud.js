@@ -27,12 +27,15 @@ export function installClassicHud(){
   <div class="radar-caption"><span id="sf-exploration">WÜSTENFRONT / 3D</span><button type="button" class="sf-sector-shortcut" data-action="sectors" title="Sektorenübersicht öffnen"><span id="sf-sectors">0 SEKTOREN</span></button></div>
  </section>
  <section class="catalog hud frame" aria-label="Einheiten und Gebäude">
-  <nav class="catalog-tabs" id="sf-tabs" aria-label="Katalog">
-   <button data-tab="buildings" aria-pressed="true">GEBÄUDE</button>
-   <button data-tab="infantry" aria-pressed="false" hidden>INFANTERIE</button>
-   <button data-tab="vehicles" aria-pressed="false" hidden>FAHRZEUGE</button>
-   <button data-tab="aircraft" aria-pressed="false" hidden>FLUGZEUGE</button>
-   <button data-tab="research" aria-pressed="false" hidden>FORSCHUNG</button>
+  <nav class="catalog-tabs" id="sf-tabs" aria-label="Bau- und Einheitenmenü">
+   <button type="button" data-tab="buildings" aria-pressed="true"><svg aria-hidden="true" class="sf-tab-symbol" viewBox="0 0 24 24"><path fill="currentColor" d="M2 10h20v12H2zM4 4h3v6H4zM10 2h4v8h-4zM17 5h3v5h-3z"/><path fill="#27374d" d="M5 14h3v4H5zM11 14h3v4h-3zM17 14h3v4h-3z"/></svg>Gebäude</button>
+   <button type="button" data-tab="units" aria-pressed="false" disabled><svg aria-hidden="true" class="sf-tab-symbol" viewBox="0 0 24 24"><path fill="currentColor" d="M4 12a8 8 0 1 1 16 0l2 4H2l2-4zM4 18h16v3H4z"/><path fill="#27374d" d="M8 13h8v2H8z"/></svg>Einheiten</button>
+   <button type="button" data-tab="research" aria-pressed="false" disabled><svg aria-hidden="true" class="sf-tab-symbol" viewBox="0 0 24 24"><path d="M9 2h6M10 2v7L3.8 20.5A1 1 0 0 0 4.7 22h14.6a1 1 0 0 0 .9-1.5L14 9V2" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M7 17h10l2 4H5z" fill="currentColor"/></svg>Forschung</button>
+  </nav>
+  <nav class="sf-modern-unit-categories" id="sf-unit-categories" aria-label="Einheitenarten" hidden>
+   <button type="button" data-sf-unit-category="infantry" aria-pressed="true">Infanterie</button>
+   <button type="button" data-sf-unit-category="vehicles" aria-pressed="false">Fahrzeuge</button>
+   <button type="button" data-sf-unit-category="aircraft" aria-pressed="false">Flugzeuge</button>
   </nav>
   <div class="catalog-scroll" id="sf-actions" aria-label="Einheiten, Gebäude und Territorien"></div>
   <section class="production hud frame sf-production-panel" id="sf-production" aria-label="Produktion und Warteschlange">
@@ -87,13 +90,94 @@ export function installClassicHud(){
 <div class="sf-debug" id="sf-debug"><span id="sf-debug-status"></span><span id="sf-debug-error"></span></div>
 `;
  document.body.append(panel);
+ // The screenshot-like HUD changes only view layout: keep the original
+ // production IDs, click handlers, and authoritative gameplay state.
+ const svg=(contents)=>'<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round">'+contents+'</svg>';
+ const modernBrand=document.createElement('div');
+ modernBrand.className='sf-modern-brand';
+ const menuToggle=document.createElement('button');
+ menuToggle.type='button';menuToggle.id='sf-hud-menu-toggle';
+ menuToggle.className='sf-hud-tools-toggle sf-modern-menu-button';
+ menuToggle.setAttribute('aria-label','Werkzeugmenü öffnen');
+ menuToggle.setAttribute('aria-controls','sf-tools');
+ menuToggle.setAttribute('aria-expanded','false');
+ menuToggle.title='Werkzeugmenü';menuToggle.innerHTML=svg('<path d="M4 6h16M4 12h16M4 18h16"/>');
+ modernBrand.append(menuToggle);
+ modernBrand.append(panel.querySelector('.wordmark'));
+ panel.insertBefore(modernBrand,panel.querySelector('.top'));
+ const top=panel.querySelector('.top'),resourceBar=top.querySelector('.resources');
+ const incomeNode=panel.querySelector('#sf-income'),small=incomeNode.closest('small');
+ small.removeChild(incomeNode);small.remove();
+ const incomeResource=document.createElement('div');
+ incomeResource.className='sf-income-resource';
+ incomeResource.title='Tatsächliche Einnahmen pro 10 Sekunden';
+ incomeResource.setAttribute('aria-label','Einnahmen pro zehn Sekunden');
+ incomeResource.innerHTML='<span class="sf-income-icon" aria-hidden="true">ϟ</span>';
+ incomeResource.append(incomeNode);
+ resourceBar.insertBefore(incomeResource,resourceBar.querySelector('.capacity-resource'));
+ const toolsToggle=document.createElement('button');toolsToggle.type='button';
+ toolsToggle.id='sf-hud-tools-toggle';toolsToggle.className='sf-hud-tools-toggle sf-modern-settings-button';
+ toolsToggle.title='Spielwerkzeuge und Optionen';
+ toolsToggle.setAttribute('aria-label','Spielwerkzeuge und Optionen');
+ toolsToggle.setAttribute('aria-controls','sf-tools');toolsToggle.setAttribute('aria-expanded','false');
+ toolsToggle.innerHTML=svg('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.2 2.2M16.9 16.9l2.2 2.2M4.9 19.1l2.2-2.2M16.9 7.1l2.2-2.2"/>');
+ // Keep the gear outside the transformed resource header. Otherwise
+ // position:fixed uses that header as its containing block on some layouts.
+ panel.append(toolsToggle);
+ const sideActions=document.createElement('nav');
+ sideActions.className='sf-modern-side-actions';
+ sideActions.setAttribute('aria-label','Taktische Schnellaktionen');
+ sideActions.innerHTML=
+  '<button type="button" id="sf-modern-focus" title="Kamera zur Basis" aria-label="Kamera zur Basis">'+svg('<circle cx="12" cy="12" r="7"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/>')+'</button>'+
+  '<button type="button" data-action="sectors" title="Sektorenübersicht" aria-label="Sektorenübersicht">'+svg('<path d="M5 21V3m0 2c6-4 8 4 15 0v10c-7 4-9-4-15 0"/>')+'</button>'+
+  '<button type="button" id="sf-modern-selection" data-sf-drawer="selection" title="Auswahl und Befehle" aria-label="Auswahl und Befehle" aria-expanded="false">'+svg('<circle cx="12" cy="6" r="3"/><path d="M6 21v-4a6 6 0 0 1 12 0v4M2 21v-3a4 4 0 0 1 3-3M22 21v-3a4 4 0 0 0-3-3"/>')+'</button>';
+ panel.dataset.drawer='';
+ panel.dataset.unitCategory='infantry';
  // One full-width tactical dock. Move the existing nodes rather than
  // cloning them, preserving all click/keyboard handlers and accessible IDs.
  const dock=panel.querySelector('#sidebar');
+ dock.insertBefore(sideActions,dock.querySelector('.catalog'));
  dock.append(panel.querySelector('#sf-production'));
  dock.append(panel.querySelector('#sf-selection-panel'));
+ // Exactly three tactical buttons beside the minimap, as in the mockup.
+ // Production remains available in the selection drawer: never discard it.
+ const queueToggle=document.createElement('button');
+ queueToggle.type='button';queueToggle.id='sf-modern-queue';
+ queueToggle.className='sf-production-drawer-link';
+ queueToggle.dataset.sfDrawer='production';
+ queueToggle.setAttribute('aria-controls','sf-production');
+ queueToggle.setAttribute('aria-expanded','false');
+ queueToggle.innerHTML=svg('<path d="M4 5h16M4 12h16M4 19h16"/><circle cx="7" cy="5" r="1"/><circle cx="7" cy="12" r="1"/><circle cx="7" cy="19" r="1"/>')+
+  '<span>Produktion / Warteschlange</span><span id="sf-modern-queue-count" hidden></span>';
+ const commandPanel=dock.querySelector('#sf-selection-panel');
+ commandPanel.querySelector('.command-group').prepend(queueToggle);
  dock.setAttribute('aria-label','Minikarte, Einheiten, Gebäude, Forschung, Produktion und Befehle');
+
  const tools=panel.querySelector('#sf-tools');
+ const setToolsOpen=(open)=>{
+  panel.classList.toggle('sf-modern-tools-open',open);
+  tools.hidden=!open;
+  for(const button of [menuToggle,toolsToggle])
+   button.setAttribute('aria-expanded',String(open));
+ };
+ setToolsOpen(false);
+ for(const button of [menuToggle,toolsToggle])
+  button.addEventListener('click',()=>setToolsOpen(!panel.classList.contains('sf-modern-tools-open')));
+ panel.querySelector('#sf-modern-focus').addEventListener('click',()=>document.getElementById('home')?.click());
+ const setDrawer=(name)=>{
+  const open=panel.dataset.drawer===name?'':name;
+  panel.dataset.drawer=open;
+  for(const b of panel.querySelectorAll('[data-sf-drawer]'))
+   b.setAttribute('aria-expanded',String(b.dataset.sfDrawer===open));
+ };
+ for(const button of panel.querySelectorAll('[data-sf-drawer]'))
+  button.addEventListener('click',()=>setDrawer(button.dataset.sfDrawer));
+ window.addEventListener('keydown',event=>{
+  if(event.key!=='Escape'||(!panel.classList.contains('sf-modern-tools-open')&&!panel.dataset.drawer))return;
+  event.preventDefault();event.stopImmediatePropagation();
+  setToolsOpen(false);panel.dataset.drawer='';
+  for(const b of panel.querySelectorAll('[data-sf-drawer]'))b.setAttribute('aria-expanded','false');
+ },true);
  const move=(id,parent)=>{
   const el=document.getElementById(id);if(!el)throw new Error('Missing existing WebGL control '+id);
   parent.append(el);return el;
@@ -153,10 +237,16 @@ export function installClassicHud(){
  status.classList.add('sf-status');error.classList.add('sf-error');
  if(oldHeader)oldHeader.hidden=true;
  if(oldFooter)oldFooter.hidden=true;
- panel.querySelectorAll('[data-tab]').forEach(button=>button.addEventListener('click',()=>{
-  panel.querySelectorAll('[data-tab]').forEach(item=>item.setAttribute('aria-pressed',String(item===button)));
+ panel.querySelectorAll('#sf-tabs [data-tab]').forEach(button=>button.addEventListener('click',()=>{
+  panel.querySelectorAll('#sf-tabs [data-tab]').forEach(item=>item.setAttribute('aria-pressed',String(item===button)));
   panel.dataset.tab=button.dataset.tab;
   panel.dispatchEvent(new CustomEvent('sandforge-tabchange',{detail:{tab:button.dataset.tab}}));
+ }));
+ panel.querySelectorAll('[data-sf-unit-category]').forEach(button=>button.addEventListener('click',()=>{
+  panel.dataset.unitCategory=button.dataset.sfUnitCategory;
+  panel.querySelectorAll('[data-sf-unit-category]').forEach(item=>
+   item.setAttribute('aria-pressed',String(item===button)));
+  panel.dispatchEvent(new CustomEvent('sandforge-tabchange',{detail:{tab:'units'}}));
  }));
  panel.dataset.tab='buildings';
  return panel;

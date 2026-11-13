@@ -1593,6 +1593,7 @@ export class SandforgeBattlefield {
    this.panel.querySelector('#sf-actions').scrollTop=0;
    const descriptions={
     buildings:'Gebäude auswählen und einen freien Bauplatz auf der Karte anklicken.',
+    units:'Infanterie, Fahrzeuge oder Flugzeuge im globalen Einheitenmenü auswählen.',
     infantry:'Soldaten und Pioniere direkt aus dem globalen Menü ausbilden.',
     vehicles:'Bodenfahrzeuge direkt in der Fahrzeugfabrik produzieren.',
     aircraft:'Flugzeuge und Transporthelikopter direkt am Flugfeld produzieren.',
@@ -1654,10 +1655,29 @@ export class SandforgeBattlefield {
   this.catalogSelectionKey=selectionKey;
   view.dataset.catalogContext=context.preferred;
   for(const tab of view.querySelectorAll('#sf-tabs [data-tab]')){
-   const allowed=available[tab.dataset.tab];
-   tab.hidden=!allowed;
+   const allowed=Boolean(available[tab.dataset.tab]);
+   // Keep all three primary categories readable as in the target HUD;
+   // unfinished production facilities disable rather than unlock them.
+   tab.hidden=false;
    tab.disabled=!allowed;
    tab.setAttribute('aria-pressed',String(view.dataset.tab===tab.dataset.tab));
+   if(!allowed)tab.title=tab.dataset.tab==='research'
+    ?'Forschungsstation erforderlich':'Produktionsgebäude erforderlich';
+   else tab.removeAttribute('title');
+  }
+  const unitCategories=view.querySelector('#sf-unit-categories');
+  if(unitCategories){
+   const kinds=['infantry','vehicles','aircraft'];
+   if(!available[view.dataset.unitCategory])
+    view.dataset.unitCategory=kinds.find(kind=>available[kind])??'infantry';
+   unitCategories.hidden=view.dataset.tab!=='units';
+   for(const subtab of unitCategories.querySelectorAll('[data-sf-unit-category]')){
+    const allowed=Boolean(available[subtab.dataset.sfUnitCategory]);
+    subtab.hidden=!allowed;
+    subtab.disabled=!allowed;
+    subtab.setAttribute('aria-pressed',
+     String(view.dataset.unitCategory===subtab.dataset.sfUnitCategory));
+   }
   }
   view.querySelector('#sf-credits').textContent=format(g.credits[0]);
   view.querySelector('#sf-income').textContent='+ '+format(g.income(0));
@@ -1725,6 +1745,11 @@ export class SandforgeBattlefield {
   if(this.previousActionsMarkup!==markup){
    const scroll=actions.scrollTop;
    actions.innerHTML=markup;this.previousActionsMarkup=markup;
+   // Real catalogue length varies by unlocked/feature-gated building.
+   // Keep EVERY card on one row; the CSS grid uses this count to distribute
+   // equal-width tiles or overflow horizontally instead of wrapping.
+   const buildingGrid=actions.querySelector('[data-sf-group="buildings"] > .catalog-grid');
+   if(buildingGrid)buildingGrid.style.setProperty('--sf-building-count',String(buildingGrid.children.length));
    actions.scrollTop=scroll;
   }
   // Tiny dynamic updates never invalidate catalogue icons or reset scroll.
@@ -1841,6 +1866,12 @@ export class SandforgeBattlefield {
   if(activeResearch)summary.push('1 FORSCHUNG');
   if(constructionSites.length)summary.push(constructionSites.length+' BAU');
   view.querySelector('#sf-queue-count').textContent=summary.join(' · ');
+  const badge=view.querySelector('#sf-modern-queue-count');
+  if(badge){
+   const total=queues+constructionSites.length+(activeResearch?1:0);
+   badge.hidden=total===0;
+   badge.textContent=String(Math.min(99,total));
+  }
   view.querySelector('#sf-queue').textContent=primary
    ?queuedBases.length+' Produktionsgebäude · '+queues+' Aufträge'
    :activeResearch?'FORSCHUNG: '+activeResearch.name
