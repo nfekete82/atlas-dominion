@@ -2,7 +2,8 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {readFileSync} from 'node:fs';
-import {createBuildingYard,disposeBuildingYard} from '../scripts/webgl-building-yard.js';
+import {createBuildingYard,disposeBuildingYard,YARD_FENCE_HEIGHT,YARD_FENCE_POST_WIDTH}
+ from '../scripts/webgl-building-yard.js';
 import {setWorldCamouflageBiome,tintFactionMaterials,shouldTintFactionSurface,
  HQ3_MATCHED_DESERT_PALETTE,CAMOUFLAGE_PALETTES}
  from '../scripts/webgl-faction-accents.js';
@@ -121,8 +122,8 @@ test('all building fences are slim and have raised barbed strands without blocki
    const size=new THREE.Vector3(),p=new THREE.Vector3(),
     q=new THREE.Quaternion(),matrix=new THREE.Matrix4();
    posts.getMatrixAt(0,matrix);matrix.decompose(p,q,size);
-   assert.ok(size.x<=1.2&&size.z<=1.2);
-   assert.ok(Math.abs(size.y-16.8)<1e-4);
+   assert.ok(size.x<=YARD_FENCE_POST_WIDTH&&size.z<=YARD_FENCE_POST_WIDTH);
+   assert.ok(Math.abs(size.y-YARD_FENCE_HEIGHT)<1e-4);
    rails.getMatrixAt(0,matrix);matrix.decompose(p,q,size);
    assert.ok(Math.min(size.x,size.y,size.z)<1);
    const meta=yard.getObjectByName('BasePerimeter_'+kind).userData;
@@ -133,7 +134,7 @@ test('all building fences are slim and have raised barbed strands without blocki
    for(let i=0;i<wires.count;i++){
     wires.getMatrixAt(i,matrix);
     p.setFromMatrixPosition(matrix);
-    if(p.y>=16.9){highWire=true;break;}
+    if(p.y>=YARD_FENCE_HEIGHT){highWire=true;break;}
    }
    assert.ok(highWire,'stacheldraht is above the normal rails');
   }finally{disposeBuildingYard(yard);}
