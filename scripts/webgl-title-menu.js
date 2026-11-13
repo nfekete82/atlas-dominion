@@ -17,6 +17,13 @@
  const optionsDialog=$('sf3d-options-dialog'),pauseDialog=$('sf3d-pause-dialog');
  const statsDialog=$('sf3d-stats-dialog'),creditsDialog=$('sf3d-credits-dialog'),exitDialog=$('sf3d-exit-dialog');
  const status=$('sf3d-menu-status');
+ // Reuse the exact badge from the illustrated title in the tactical pause
+ // dialog. The previous badge remains if the new image has not been installed.
+ const pauseLogo=$('sf3d-pause-dialog')?.querySelector('.sandforge-pause-logo');
+ const badgeUrl='/src/assets/reborn/sandforge-title-hud-logo.webp';
+ const badgeProbe=new Image();
+ badgeProbe.onload=()=>{if(pauseLogo)pauseLogo.src=badgeUrl;};
+ badgeProbe.src=badgeUrl;
  const readSave=()=>{try{const raw=localStorage.getItem(savedKey);return raw?JSON.parse(raw):null;}catch{return null;}};
  const readOptions=()=>{try{return JSON.parse(localStorage.getItem(optionKey)||'{}');}catch{return {};}};
  const notify=(message)=>{status.textContent=message;};
