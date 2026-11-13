@@ -1,0 +1,41 @@
+ℹ tests 1630
+ℹ suites 0
+ℹ pass 1597
+ℹ fail 32
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 57227.886375
+Failing names:
+3D base props: restrained, fixed service yards for every building
+AI pressure: real campaign 2026 reaches the player front and fires within five simulated minutes
+AI pressure: real campaign 42 reaches the player front and fires within five simulated minutes
+Fog of War expands on high ground but still respects opaque cliffs
+OrbStack HTTP: health check and WebGL asset respond after ready, including HEAD
+Prebuilt client serves HTML, CSS, JS and no source secrets
+aircraft art grows visually without altering authoritative world size or flight behavior
+all major bases get supply crates and visible security lamps; small turrets stay clear
+art scale: infantry reads smaller and command buildings read bigger; no simulation dimensions change
+barracks equipment is human-scaled instead of building-scaled
+compact circular silo matches reference silhouette without changing missile gameplay
+construction progressively reveals the real building instead of displaying a complete prefab
+desert blasts stage a brief flash, drifting smoke and grounded ejected grit
+engines only play when units physically travel, never for clicking infantry or opening a gate
+enlarged airfield graphics are baked and the simulation footprint matches
+fresh WebGL starts with optional recorded music; saved explicit mute still works
+ground infantry, rocket soldiers and tanks get a modest +16% high-ground sight bonus
+infantry, engineer, vehicle and heavy tank paths reach every bastion with their real clearance and solid rocks
+large sites use three batched fence meshes, with wire bracing and an open frontage
+missile silo and research center share desert khaki and olive PBR paint
+no hill advantage for aircraft, slopes or flat/low terrain
+observed armor receives a fully paid tank response during an attack
+paid AI bootstrap builds headquarters, produces and reaches new bastions from every corner on small and large maps
+research and silo height corrections remain display-only
+research center and missile silo use full-size detailed industrial 3D meshes
+research footprint shrinks without changing costs or technology
+support: shared construction has a 1.5x cap; stopping/cancelling pauses and refunds exactly once
+tests/reborn-combat-index.test.mjs
+the game server streams MP3 via audio/mpeg and supports seeking/loops
+the previous vehicle and infantry staging props remain recognizable
+transport appearance: slightly smaller soldiers, larger raised helicopter and separate soft ground shadow
+veterancy: construction XP is proportional to applied work, completion shared once; pause/cancel give none
