@@ -3,6 +3,7 @@
 export const BARRACKS_ARCHITECTURE=Object.freeze({
  sourceWidth:20.200000762939453,
  sourceDoorHeight:2.2549999952316284,
+ sourceLowestRoof:4.215000152587891,
  renderWidth:158*1.20,
  soldierHeight:61*.56,
  doorClearanceRatio:1.10

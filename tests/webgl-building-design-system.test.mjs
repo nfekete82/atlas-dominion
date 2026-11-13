@@ -54,6 +54,7 @@ test('real barracks uses actual HQ3 albedo/normals and PBR without mutating cach
  assert.equal(compiled.uniforms.sfHqRoofMap.value,buildingTexture('roof-albedo'));
  assert.equal(compiled.uniforms.sfHqRoofRoughness.value,.84);
  assert.equal(compiled.uniforms.sfHqRoofMetalness.value,.06);
+ assert.ok(compiled.uniforms.sfHqRoofStart.value+1<=4.215001*root.scale.y,'low flat roofs receive the same dark HQ3 finish');
  assert.ok(!compiled.fragmentShader.includes('sfPaint='),'no arbitrary colour wash over the reference pixels');
  assert.equal(geometry.getAttribute('sfBuildingPosition'),undefined);
  assert.equal(mesh.geometry.getAttribute('position'),geometry.getAttribute('position'),'reuse source GPU buffers');

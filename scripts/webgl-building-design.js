@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {HQ3_PBR} from './webgl-hq3-reference.js';
+import {BARRACKS_ARCHITECTURE} from './webgl-building-profiles.js';
 
 /** All values/textures come from the unmodified HQ3. Coordinates are baked
  * once in building space, so paint follows doors and all four orientations.
@@ -139,7 +140,9 @@ export function applyBuildingDesign(root,{kind,biome='desert'}={}){
    if(!source?.isMeshStandardMaterial||source.userData?.sandforgeBuildingDesign===BUILDING_DESIGN_REVISION)return source;
    const family=buildingMaterialFamily(kind,source,mesh.name);if(!family)return source;
    const mixedRoof=family==='HQ_Desert_Camouflage';
-   const roofStart=kind==='barracks'?4.95*root.scale.y:Math.min(height*.45,61*.56*1.10);
+   // Include the measured lower flat roofs as well as the high gable.
+   const roofStart=kind==='barracks'?BARRACKS_ARCHITECTURE.sourceLowestRoof*root.scale.y-1:
+    Math.min(height*.45,61*.56*1.10);
    const key=family+'-'+mixedRoof;
    let variants=materials.get(source);if(!variants){variants=new Map();materials.set(source,variants);}
    if(!variants.has(key))variants.set(key,surfaceMaterial(source,family,{roofStart,mixedRoof}));
