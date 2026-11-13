@@ -155,6 +155,78 @@ html.sandforge-clean-title #main-dialog #sf3d-menu-status{
  html.sandforge-clean-title #main-dialog .sf3d-hero-button{transition:none}
 }
 </style>
+<style id="sf-original-art-title">
+/* Exact reference artwork: its logo and five button labels are already painted
+   into the PNG. Click targets stay in the original DOM, without duplicated UI. */
+html.sf-original-art-ready.sandforge-clean-title #main-dialog{
+ --sf-art-pixel:max(calc(100vw / 1672),calc(100dvh / 941));
+ background-color:#efb78c;
+ background-image:url('/src/assets/reborn/sandforge-title-reference.png');
+ background-position:center center;background-size:cover;background-repeat:no-repeat;
+}
+html.sf-original-art-ready.sandforge-clean-title #main-dialog .menu-brand{display:none}
+@media(min-width:721px){
+ html.sf-original-art-ready.sandforge-clean-title #main-dialog .menu-buttons{
+  display:flex;position:absolute;transform:none;
+  left:calc(50% - 803 * var(--sf-art-pixel));
+  top:calc(50% - 188 * var(--sf-art-pixel));
+  bottom:auto;right:auto;
+  width:calc(294 * var(--sf-art-pixel));max-width:none;
+  margin:0;padding:0;gap:calc(3 * var(--sf-art-pixel));
+  background:transparent;border:0;box-shadow:none;
+ }
+ html.sf-original-art-ready.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button{
+  flex:none;box-sizing:border-box;
+  width:100%;height:calc(64 * var(--sf-art-pixel));min-height:0;margin:0;padding:0;
+  border:0;border-radius:0;clip-path:none;
+  background:transparent!important;box-shadow:none!important;
+  transform:none!important;filter:none!important;
+  color:transparent;font-size:0;letter-spacing:0;text-shadow:none;outline:0;
+ }
+ html.sf-original-art-ready.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button:first-child{
+  height:calc(69 * var(--sf-art-pixel));
+ }
+ html.sf-original-art-ready.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button:not(:first-child){
+  margin-left:calc(5 * var(--sf-art-pixel));
+  width:calc(288 * var(--sf-art-pixel));
+ }
+ html.sf-original-art-ready.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button svg{
+  display:none;
+ }
+ html.sf-original-art-ready.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button span{
+  opacity:0;
+ }
+ html.sf-original-art-ready.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button:hover,
+ html.sf-original-art-ready.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button:focus-visible{
+  outline:3px solid #fff0c0;outline-offset:-3px;background:#ffe69f12!important;
+ }
+ html.sf-original-art-ready.sandforge-clean-title #main-dialog #sf3d-menu-status{display:none}
+}
+/* On phones, keep visible functional buttons because cover cropping clips the
+   original screenshot's left-side button artwork. */
+@media(max-width:720px){
+ html.sf-original-art-ready.sandforge-clean-title #main-dialog{background-position:60% center}
+ html.sf-original-art-ready.sandforge-clean-title #main-dialog .menu-buttons{
+  position:absolute;left:50%;right:auto;top:auto;bottom:12px;
+  transform:translateX(-50%);width:min(320px,90vw);max-width:90vw;
+  background:#1b2529a8;padding:7px;border-radius:10px;gap:5px;
+ }
+ html.sf-original-art-ready.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button{
+  height:clamp(42px,8vh,56px);min-height:0;width:100%;font-size:18px;
+ }
+}
+</style>
+<script>
+/* Only activate the reference skin after its original PNG is genuinely loaded.
+   On branches without the binary file, the previous title remains functional. */
+(()=>{const art=new Image();
+ art.onload=()=>{
+  if(art.naturalWidth===1672&&art.naturalHeight===941)
+   document.documentElement.classList.add('sf-original-art-ready');
+ };
+ art.src='/src/assets/reborn/sandforge-title-reference.png';
+})();
+</script>
 </head>
 <body>
 <div id="stage" aria-label="Echte Three.js WebGL 3D Landschaft"></div>
