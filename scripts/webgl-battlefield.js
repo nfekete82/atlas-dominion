@@ -1048,10 +1048,8 @@ export class SandforgeBattlefield {
     entry.detail.visible=!activeVariant;
     entry.variantDetail.visible=activeVariant;
    }
-   this.construction.update(entry,b);
-   // Site dressing and the FULL facility footprint are present from the
-   // first construction tick. Construction scaffolding overlays them, rather
-   // than making an incomplete hangar suddenly pop in on completion.
+   // Stage the actual yard on the first construction tick. If attached
+   // afterward, HQ3 side consoles/crates briefly appear fully completed.
    if(!entry.yard){
     entry.yard=createBuildingYard(b.kind,BUILDINGS[b.kind]?.width);
     if(entry.yard){
@@ -1060,6 +1058,7 @@ export class SandforgeBattlefield {
      if(decor)decor.visible=this.siteDecorEnabled;
     }
    }
+   this.construction.update(entry,b);
    if(b.kind==='airfield'){
     if(!entry.airfieldServiceYard){
      entry.airfieldServiceYard=createAirfieldServiceYard();entry.node.add(entry.airfieldServiceYard);
