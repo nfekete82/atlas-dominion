@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 
 for(const {width,height} of [{width:1648,height:928},{width:390,height:844}]){
- test('WebGL title uses illustrated five-button layout at '+width+'x'+height,async({page})=>{
+ test('Bastion title centers five interactive gold-metal menu buttons at '+width+'x'+height,async({page})=>{
   await page.setViewportSize({width,height});
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
   await page.goto('/webgl-preview.html',{waitUntil:'domcontentloaded'});
@@ -10,57 +10,33 @@ for(const {width,height} of [{width:1648,height:928},{width:390,height:844}]){
   const items=menu.locator('.sf3d-hero-button');
   await expect(items).toHaveCount(5);
   await expect(items).toHaveText(['SPIELEN','OPTIONEN','STATISTIKEN','CREDITS','BEENDEN']);
+  await expect(page.locator('#main-dialog .sandforge-splash-logo')).toBeVisible();
   const layout=await page.evaluate(()=>{
-   const menu=document.getElementById('main-dialog');
-   const buttons=menu.querySelector('.menu-buttons');
-   const logo=menu.querySelector('.sandforge-splash-logo');
-   const a=buttons.getBoundingClientRect(),b=logo.getBoundingClientRect();
-   const css=getComputedStyle(menu);
-   return {background:css.backgroundImage,
-    buttonDirection:getComputedStyle(buttons).flexDirection,
-    menuTop:a.top,menuLeft:a.left,menuRight:a.right,menuBottom:a.bottom,
-    logoLeft:b.left,logoRight:b.right,logoTop:b.top,logoBottom:b.bottom,
-    logoMiddle:b.left+b.width/2};
+   const root=document.getElementById('main-dialog');
+   const buttons=root.querySelector('.menu-buttons'),logo=root.querySelector('.sandforge-splash-logo');
+   const bounds=buttons.getBoundingClientRect(),badge=logo.getBoundingClientRect();
+   const item=root.querySelector('.sf3d-hero-button');
+   const css=getComputedStyle(item);
+   return {background:getComputedStyle(root).backgroundImage,
+    direction:getComputedStyle(buttons).flexDirection,
+    menuLeft:bounds.left,menuRight:bounds.right,menuTop:bounds.top,menuBottom:bounds.bottom,
+    midX:bounds.left+bounds.width/2,midY:bounds.top+bounds.height/2,
+    logoLeft:badge.left,logoRight:badge.right,logoBottom:badge.bottom,
+    buttonBorder:css.borderTopWidth,buttonText:css.color,
+    buttonVisible:css.visibility==='visible'&&css.display!=='none'};
   });
-  const assetUrl=new URL('/src/assets/reborn/sandforge-title-centered.webp',page.url());
-  const available=(await page.request.get(assetUrl.href)).ok();
-  if(available)await page.waitForFunction(()=>document.documentElement.classList.contains('sf-centered-art-ready'));
-  const centered=await page.evaluate(()=>document.documentElement.classList.contains('sf-centered-art-ready'));
-  expect(centered).toBe(available);
-  const finalLayout=await page.evaluate(()=>{
-   const menu=document.getElementById('main-dialog');
-   const buttons=menu.querySelector('.menu-buttons');
-   const logo=menu.querySelector('.sandforge-splash-logo');
-   const a=buttons.getBoundingClientRect(),b=logo.getBoundingClientRect();
-   return {background:getComputedStyle(menu).backgroundImage,
-    left:a.left,top:a.top,right:a.right,bottom:a.bottom,
-    logoLeft:b.left,logoRight:b.right,logoTop:b.top,logoBottom:b.bottom,
-    logoMiddle:b.left+b.width/2};
-  });
-  expect(finalLayout.background).toContain(centered?'sandforge-title-centered.webp':'title-hero.svg');
-  expect(layout.buttonDirection).toBe('column');
-  expect(finalLayout.left).toBeGreaterThanOrEqual(-1);
-  expect(finalLayout.right).toBeLessThanOrEqual(width+1);
-  expect(finalLayout.bottom).toBeLessThanOrEqual(height+1);
-  if(centered){
-   await expect(page.locator('#main-dialog .sandforge-splash-logo')).toBeHidden();
-   if(width>720){
-    const scale=Math.max(width/1672,height/941);
-    const first=await page.locator('#sf3d-new').boundingBox();
-    expect(first).not.toBeNull();
-    expect(Math.abs(first.x-(width/2-191*scale))).toBeLessThan(4);
-    expect(Math.abs(first.y-(height/2-143*scale))).toBeLessThan(4);
-    expect(first.height).toBeGreaterThan(50);
-    const last=await page.locator('#sf3d-main-exit').boundingBox();
-    expect(last.y).toBeGreaterThan(first.y+260*scale);
-   }
-  }else{
-   await expect(page.locator('#main-dialog .sandforge-splash-logo')).toBeVisible();
-   expect(finalLayout.logoLeft).toBeGreaterThanOrEqual(-1);
-   expect(finalLayout.logoRight).toBeLessThanOrEqual(width+1);
-   expect(Math.abs(finalLayout.logoMiddle-width/2)).toBeLessThan(12);
-   expect(finalLayout.logoBottom).toBeLessThan(finalLayout.top);
-  }
+  expect(layout.background).toMatch(/title-hero\.svg|sandforge-start-background\.webp/);
+  expect(layout.direction).toBe('column');
+  expect(Math.abs(layout.midX-width/2)).toBeLessThan(12);
+  expect(Math.abs(layout.midY-height*.62)).toBeLessThan(width>720?24:34);
+  expect(layout.menuLeft).toBeGreaterThanOrEqual(-1);
+  expect(layout.menuRight).toBeLessThanOrEqual(width+1);
+  expect(layout.menuBottom).toBeLessThanOrEqual(height+1);
+  expect(layout.logoLeft).toBeGreaterThanOrEqual(-1);
+  expect(layout.logoRight).toBeLessThanOrEqual(width+1);
+  expect(layout.logoBottom).toBeLessThan(layout.menuTop);
+  expect(layout.buttonBorder).not.toBe('0px');
+  expect(layout.buttonVisible).toBe(true);
   expect(errors).toEqual([]);
  });
 }
