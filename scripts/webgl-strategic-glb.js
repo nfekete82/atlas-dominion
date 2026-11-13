@@ -163,6 +163,11 @@ export function centerAuthoredRadarPivot(pivot){
  // Preserve every authored glTF vertex in precisely its original world pose.
  for(const child of pivot.children)child.position.sub(delta);
  pivot.position.copy(center);
+ // Rebuild the pivot AND descendant world matrices now. Three.js Box3
+ // .setFromObject(child) updates only the supplied child, so leaving its
+ // parent matrix stale makes the satellite support appear to jump until
+ // the next full render/world-matrix update.
+ pivot.updateWorldMatrix(true,true);
  pivot.userData.sandforgeRadarPivotCentered=true;
  return pivot;
 }
