@@ -26,9 +26,12 @@ export function prepareAuthoredAssembly(root,{referenceHeight=0}={}){
   const source=mesh.geometry,position=source.getAttribute('position');
   const count=source.index?.count??position.count;
   if(count<3||count%3)return;
-  // The uploaded GLBs export one PBR material per mesh. Unexpected grouped
-  // multi-material meshes keep the existing name-based construction fallback.
-  if(Array.isArray(mesh.material)||source.groups.length>1)return;
+  // BoxGeometry and many other single-material meshes have six+ draw
+  // groups (one for each face). Those groups are NOT multiple materials:
+  // excluding them silently skipped HQ3 doors, side consoles and crates.
+  // Sorting and collapsing groups is safe when the mesh has one material.
+  // True multi-material meshes retain the normal name-based fallback.
+  if(Array.isArray(mesh.material))return;
   relative.multiplyMatrices(inverse,mesh.matrixWorld);
   const heights=new Float32Array(position.count);
   for(let i=0;i<position.count;i++){
