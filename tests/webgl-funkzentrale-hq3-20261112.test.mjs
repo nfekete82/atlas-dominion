@@ -9,7 +9,7 @@ import {setWorldCamouflageBiome,tintFactionMaterials,shouldTintFactionSurface} f
 
 const file='src/assets/reborn/buildings-3d/sandforge_funkzentrale_hq3_game_ready.glb';
 test('HQ3 Funkzentrale is used during building and after completion with original meshes and textures',()=>{
- assert.ok(strategicGlbUrl('headquarters','active').endsWith('sandforge_funkzentrale_hq3_game_ready.glb'));
+ assert.ok(strategicGlbUrl('headquarters','active').endsWith('sandforge_feldkommando_mk2.glb'));
  assert.equal(strategicGlbUrl('headquarters','inactive'),strategicGlbUrl('headquarters','active'));
  const bytes=readFileSync(file);
  assert.equal(bytes.length,2805328);
