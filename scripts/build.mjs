@@ -24,7 +24,7 @@ cpSync('model-3d.html','dist/model-3d.html');
 cpSync('webgl-preview.html','dist/webgl-preview.html');
 cpSync('building-gallery.html','dist/building-gallery.html');
 cpSync('art-gallery.html','dist/art-gallery.html');
-for(const module of ['webgl-stylized-pack','webgl-art-gallery'])cpSync(`scripts/${module}.js`,`dist/${module}.js`);
+for(const module of ['webgl-stylized-pack','webgl-meshy-assets','webgl-art-gallery'])cpSync(`scripts/${module}.js`,`dist/${module}.js`);
 for(const module of ['webgl-building-design','webgl-hq3-reference','webgl-building-gallery','webgl-building-profiles','webgl-building-motion','webgl-building-bounds','webgl-barracks-silhouette'])cpSync(`scripts/${module}.js`,`dist/${module}.js`);
 cpSync('scripts/webgl-preview.js','dist/webgl-preview.js');
 cpSync('scripts/webgl-biomes.js','dist/webgl-biomes.js');
