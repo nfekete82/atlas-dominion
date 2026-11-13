@@ -554,3 +554,6 @@
  }
  #sf-classic-root #sf-hud-tools-toggle{top:8px!important;right:8px!important}
 }
+
+/* Direct child of .sf-rts (pointer-events:none): restore actual clickability. */
+#sf-classic-root #sf-hud-tools-toggle{pointer-events:auto!important;/* detached settings */}
