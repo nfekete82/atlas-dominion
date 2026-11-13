@@ -6,10 +6,10 @@ import * as THREE from 'three';
  */
 export const STRATEGIC_GLB_MODELS=Object.freeze({
  headquarters:Object.freeze({
-  // HQ3 is the single authored building in every construction phase. The
-  // legacy Feldkommando GLB stays in assets for older references only.
-  inactive:'/src/assets/reborn/buildings-3d/sandforge_funkzentrale_hq3_game_ready.glb',
-  active:'/src/assets/reborn/buildings-3d/sandforge_funkzentrale_hq3_game_ready.glb'
+  // MK2 is the preferred finished HQ with authored doors, perimeter and radar.
+  // The previous HQ3 remains available as an automatic loading fallback.
+  inactive:'/src/assets/reborn/buildings-3d/sandforge_feldkommando_mk2.glb',
+  active:'/src/assets/reborn/buildings-3d/sandforge_feldkommando_mk2.glb'
  }),
  barracks:Object.freeze({
   inactive:'/src/assets/reborn/buildings-3d/sandforge_kaserne_geschlossen.glb',
@@ -24,6 +24,7 @@ export const STRATEGIC_GLB_MODELS=Object.freeze({
   active:'/src/assets/reborn/buildings-3d/research-active.glb'
  })
 });
+export const HQ3_FALLBACK_URL='/src/assets/reborn/buildings-3d/sandforge_funkzentrale_hq3_game_ready.glb';
 export const isStrategicGlbKind=kind=>Object.hasOwn(STRATEGIC_GLB_MODELS,kind);
 export const strategicGlbUrl=(kind,variant='inactive')=>
  STRATEGIC_GLB_MODELS[kind]?.[variant]??null;
@@ -34,8 +35,8 @@ export function strategicGlbActive(kind,base,game){
  // Primary barracks uses READY model; alternate CLOSED model is shown
  // during construction; the production gates animate pivot nodes.
  if(kind==='barracks')return base.buildRemaining>0;
- // HQ3 is assembled progressively from its single active mesh. Never
- // switch to the obsolete Feldkommando during construction or completion.
+ // The preferred MK2 is assembled progressively from a single GLB. Never
+ // swap models between construction and the finished HQ.
  if(kind==='headquarters')return false;
  if(base.buildRemaining>0)return false;
  if(kind==='silo')return (base.siloCharge??600)<=0;
