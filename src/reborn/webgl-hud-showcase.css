@@ -1,0 +1,488 @@
+/* SANDFORGE low-poly RTS HUD — dedicated 3D-only theme.
+ * Based on the player's desert mockup. No changes to original Canvas HUD,
+ * game data, saved games, pathfinding or production orders.
+ * Loaded AFTER webgl-classic-hud.css intentionally. */
+#sf-classic-root{
+ --sf-hud-h:clamp(184px,24vh,222px);
+ --sf-hud-map:clamp(151px,15.15vw,250px);
+ --sf-hud-actions:clamp(52px,4.5vw,72px);
+ --sf-hud-ink:#212939;
+ --sf-hud-border:#8d9aa3;
+ --sf-hud-gold:#f5c26e;
+ font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+}
+#sf-classic-root button:focus-visible{outline:3px solid #fff0bd!important;outline-offset:2px!important}
+/* Detached brand + honest real-time resource bar. No invented energy stat. */
+#sf-classic-root .sf-modern-brand{
+ position:fixed!important;top:12px;left:14px;z-index:21;
+ display:flex;align-items:flex-start;gap:12px;pointer-events:auto;
+}
+#sf-classic-root .sf-modern-brand .wordmark{
+ width:clamp(155px,19vw,315px)!important;
+ min-width:0!important;height:clamp(69px,8.4vw,120px)!important;
+ background:transparent!important;border:0!important;
+ padding:0!important;margin:0!important;
+ box-shadow:none!important;display:flex!important;align-items:center;
+}
+#sf-classic-root .sf-modern-brand .wordmark img{
+ display:block;width:100%!important;height:100%!important;
+ object-fit:contain!important;filter:drop-shadow(0 4px 5px #1718248c)!important;
+}
+#sf-classic-root :is(#sf-hud-menu-toggle,#sf-hud-tools-toggle){
+ display:grid;place-items:center;cursor:pointer;
+ color:#f9ebd5;border:1px solid #6a7183!important;
+ background:linear-gradient(150deg,#354056,#1b2333)!important;
+ border-radius:11px!important;
+ box-shadow:inset 0 1px #ffffff29,0 4px 10px #0007!important;
+ padding:8px!important;
+ width:50px!important;height:50px!important;min-height:50px!important;flex:0 0 50px;
+}
+#sf-classic-root :is(#sf-hud-menu-toggle,#sf-hud-tools-toggle):hover,
+#sf-classic-root :is(#sf-hud-menu-toggle,#sf-hud-tools-toggle)[aria-expanded="true"]{
+ border-color:#dfb96e!important;background:#3d506a!important;
+}
+#sf-classic-root .top.hud{
+ position:fixed!important;inset:12px 76px auto auto!important;
+ left:auto!important;right:76px!important;top:12px!important;
+ bottom:auto!important;z-index:20!important;
+ display:flex!important;align-items:center!important;
+ width:max-content!important;max-width:min(75vw,500px)!important;
+ min-height:50px!important;height:50px!important;
+ padding:0 14px!important;margin:0!important;
+ border-radius:11px!important;border:1px solid #5e6679!important;
+ background:linear-gradient(140deg,#30394d,#1d2535)!important;
+ box-shadow:0 4px 13px #0006,inset 0 1px #fff2!important;
+}
+#sf-classic-root .top .resources{
+ display:flex!important;align-items:center!important;justify-content:flex-end!important;
+ gap:0!important;min-width:0!important;width:100%!important;
+ margin:0!important;padding:0!important;border:0!important;
+ background:transparent!important;
+}
+#sf-classic-root .top :is(.credit-resource,.sf-income-resource,.capacity-resource){
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ flex-direction:row!important;gap:8px!important;
+ margin:0!important;padding:0 15px!important;
+ background:transparent!important;box-shadow:none!important;
+ border:0!important;min-width:0!important;
+ white-space:nowrap!important;height:31px!important;
+}
+#sf-classic-root .top .credit-resource{padding-left:0!important}
+#sf-classic-root .top .sf-income-resource,
+#sf-classic-root .top .capacity-resource{border-left:1px solid #78808d6e!important}
+#sf-classic-root .top :is(.credit-resource strong,.sf-income-resource #sf-income,.capacity-resource strong){
+ color:#f7f1e9!important;font:800 clamp(13px,1.37vw,20px)/1 system-ui!important;
+ text-shadow:0 1px 3px #0007!important;letter-spacing:.015em!important;
+}
+#sf-classic-root .top .credit-cube{
+ display:inline-block!important;width:20px!important;height:20px!important;
+ background:#efb83e!important;font-size:0!important;
+ clip-path:polygon(50% 0,95% 24%,95% 77%,50% 100%,5% 76%,5% 24%)!important;
+ box-shadow:none!important;
+}
+#sf-classic-root .top .sf-income-icon{font:900 28px/1 system-ui;color:#f5b933;transform:skewX(-10deg)}
+#sf-classic-root .top .capacity-resource > span{color:#e8ebeb;font-size:22px}
+#sf-classic-root .top .capacity-resource em{color:#ebeeed!important;font-style:normal!important}
+#sf-classic-root #sf-hud-tools-toggle{
+ position:fixed!important;top:12px!important;right:14px!important;
+ z-index:21!important;
+}
+/* Advanced tools are still present, but are collapsed until requested. */
+#sf-classic-root #sf-tools{
+ position:fixed!important;top:70px!important;right:14px!important;left:auto!important;bottom:auto!important;
+ z-index:35!important;width:min(410px,calc(100vw - 28px))!important;
+ height:auto!important;max-height:min(74vh,460px)!important;
+ overflow:auto!important;align-items:center!important;justify-content:flex-start!important;
+ flex-wrap:wrap!important;gap:7px!important;
+ padding:13px!important;
+ border:1px solid #8e998e!important;border-radius:12px!important;
+ background:linear-gradient(160deg,#26394bed,#172532f9)!important;
+ box-shadow:0 10px 34px #000b!important;
+}
+#sf-classic-root #sf-tools[hidden]{display:none!important}
+#sf-classic-root.sf-modern-tools-open #sf-tools:not([hidden]){display:flex!important}
+#sf-classic-root #sf-tools .sf-tool-button{
+ min-height:39px!important;width:42px!important;height:39px!important;
+ background:#344455!important;color:#f5e5c8!important;
+ border:1px solid #7d8b95!important;border-radius:7px!important;
+}
+#sf-classic-root #sf-tools :is(.sf-clock,.sf-fps){font:750 13px ui-monospace,monospace!important}
+/* The dock is just the map, compact quick buttons, and the large card deck. */
+#sf-classic-root #sidebar{
+ position:fixed!important;inset:auto 10px 10px 10px!important;
+ top:auto!important;bottom:10px!important;left:10px!important;right:10px!important;
+ z-index:13!important;
+ width:calc(100vw - 20px)!important;max-width:none!important;
+ height:var(--sf-hud-h)!important;min-height:0!important;
+ display:grid!important;
+ grid-template-columns:var(--sf-hud-map) var(--sf-hud-actions) minmax(0,1fr)!important;
+ grid-template-rows:minmax(0,1fr)!important;
+ gap:3px!important;margin:0!important;padding:0!important;
+ background:transparent!important;border:0!important;border-radius:0!important;
+ box-shadow:none!important;overflow:visible!important;
+ align-items:stretch!important;
+}
+#sf-classic-root #sidebar > .radar{
+ grid-column:1!important;grid-row:1!important;
+ display:flex!important;flex-direction:column!important;
+ align-items:center!important;justify-content:center!important;
+ min-width:0!important;min-height:0!important;
+ padding:8px!important;margin:0!important;
+ background:linear-gradient(160deg,#28374cfa,#1b2638f9)!important;
+ border:2px solid #8997a6!important;border-radius:14px!important;
+ box-shadow:inset 0 1px #ffffff2b,0 5px 13px #0007!important;
+ overflow:hidden!important;
+}
+#sf-classic-root #sidebar .radar .compass{display:none!important}
+#sf-classic-root #sidebar #sf-map{
+ display:block!important;
+ width:min(calc(var(--sf-hud-h) - 18px),calc(100% - 4px))!important;
+ height:auto!important;
+ max-width:100%!important;max-height:calc(var(--sf-hud-h) - 19px)!important;
+ aspect-ratio:1!important;
+ object-fit:contain!important;
+ margin:auto!important;
+ border:0!important;outline:0!important;
+ border-radius:6px!important;background:#b4764c!important;
+ cursor:crosshair!important;
+}
+#sf-classic-root #sidebar .radar-caption{display:none!important}
+#sf-classic-root #sidebar > .sf-modern-side-actions{
+ grid-column:2!important;grid-row:1!important;
+ display:flex!important;flex-direction:column!important;
+ gap:5px!important;align-items:stretch!important;justify-content:stretch!important;
+ min-width:0!important;min-height:0!important;z-index:1!important;
+}
+#sf-classic-root .sf-modern-side-actions button{
+ position:relative;display:grid!important;place-items:center!important;
+ flex:1 1 0!important;min-width:0!important;min-height:0!important;
+ cursor:pointer!important;padding:2px!important;
+ background:linear-gradient(150deg,#35435b,#1b293e)!important;
+ border:1px solid #7b899b!important;border-radius:10px!important;
+ color:#eaf1f5!important;box-shadow:0 4px 10px #0006!important;
+}
+#sf-classic-root .sf-modern-side-actions button:hover,
+#sf-classic-root .sf-modern-side-actions button[aria-expanded="true"]{
+ background:linear-gradient(155deg,#3875b8,#234e87)!important;
+ border-color:#adc1d6!important;color:white!important;
+}
+#sf-classic-root .sf-modern-side-actions svg{width:25px;height:25px;pointer-events:none}
+#sf-classic-root #sf-modern-queue-count{
+ position:absolute;right:2px;top:1px;min-width:17px;height:17px;padding:2px;
+ border-radius:9px;background:#edba4b;color:#243042;
+ font:900 11px/13px system-ui;
+}
+#sf-classic-root #sf-modern-queue-count[hidden]{display:none!important}
+#sf-classic-root #sidebar > .catalog{
+ grid-column:3!important;grid-row:1!important;
+ display:flex!important;flex-direction:column!important;
+ position:relative!important;overflow:visible!important;
+ width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;
+ margin:0!important;padding:0!important;
+ border:0!important;border-radius:0!important;
+ background:transparent!important;box-shadow:none!important;
+}
+#sf-classic-root #sidebar #sf-tabs{
+ display:flex!important;flex:0 0 46px!important;
+ height:46px!important;min-height:46px!important;width:100%!important;
+ align-items:flex-end!important;justify-content:flex-start!important;
+ gap:1px!important;margin:0!important;padding:0!important;
+ border:0!important;background:transparent!important;overflow:visible!important;
+}
+#sf-classic-root #sidebar #sf-tabs > button{
+ display:flex!important;flex:0 1 clamp(129px,13vw,218px)!important;
+ align-items:center!important;justify-content:center!important;gap:10px!important;
+ height:46px!important;min-height:46px!important;
+ min-width:0!important;max-width:235px!important;width:auto!important;
+ margin:0!important;padding:0 23px!important;
+ clip-path:polygon(9% 0,91% 0,100% 100%,0 100%);
+ border:0!important;border-radius:0!important;
+ box-shadow:none!important;
+ background:linear-gradient(160deg,#41495e,#252d41)!important;
+ color:#f1e9de!important;
+ font:850 clamp(12px,1.13vw,18px)/1 system-ui!important;
+ text-transform:none!important;letter-spacing:0!important;
+ cursor:pointer!important;white-space:nowrap!important;
+}
+#sf-classic-root #sidebar #sf-tabs > button[aria-pressed="true"]{
+ background:linear-gradient(160deg,#418eea,#226ac9)!important;
+ color:#ffffff!important;
+}
+#sf-classic-root #sidebar #sf-tabs > button:disabled{
+ opacity:.72!important;cursor:not-allowed!important;filter:none!important;
+}
+#sf-classic-root #sidebar #sf-tabs .sf-tab-symbol{font:900 25px/1 system-ui!important}
+#sf-classic-root #sidebar .sf-modern-unit-categories{
+ position:absolute!important;right:13px!important;top:8px!important;z-index:6!important;
+ align-items:center!important;gap:5px!important;
+ padding:0!important;margin:0!important;pointer-events:auto!important;
+}
+#sf-classic-root #sidebar .sf-modern-unit-categories[hidden]{display:none!important}
+#sf-classic-root #sidebar .sf-modern-unit-categories:not([hidden]){display:flex!important}
+#sf-classic-root .sf-modern-unit-categories button{
+ width:auto!important;min-width:0!important;height:30px!important;min-height:30px!important;
+ padding:4px 10px!important;margin:0!important;
+ font:750 11px/1.1 system-ui!important;
+ color:#d4dce9!important;background:#233248!important;
+ border:1px solid #788397!important;border-radius:7px!important;
+}
+#sf-classic-root .sf-modern-unit-categories button[hidden]{display:none!important}
+#sf-classic-root .sf-modern-unit-categories button[aria-pressed="true"]{
+ color:white!important;background:#296dbd!important;border-color:#9eb9e8!important;
+}
+#sf-classic-root #sidebar #sf-actions.catalog-scroll{
+ display:block!important;flex:1 1 auto!important;
+ width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;
+ margin:0!important;padding:7px 6px!important;
+ border:2px solid #8596a8!important;border-radius:0 13px 13px 13px!important;
+ background:linear-gradient(180deg,#273146f8,#192333fb)!important;
+ box-shadow:0 5px 16px #0009,inset 0 1px #ffffff17!important;
+ overflow-x:auto!important;overflow-y:hidden!important;
+ scrollbar-width:thin!important;scrollbar-color:#8da3b8 #202c3a!important;
+}
+#sf-classic-root #sf-actions .sf-group{height:100%!important;min-height:0!important}
+#sf-classic-root #sf-actions .sf-group[data-sf-group="buildings"]{
+ display:none!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions .sf-group[data-sf-group="buildings"]{
+ display:flex!important;flex-direction:column!important;
+}
+#sf-classic-root #sf-actions .sf-group[data-sf-group="buildings"] > .catalog-grid{
+ display:flex!important;flex-flow:row nowrap!important;
+ gap:6px!important;align-items:stretch!important;
+ width:max-content!important;min-width:100%!important;
+ height:100%!important;min-height:0!important;
+ padding:0!important;margin:0!important;
+ overflow:visible!important;scrollbar-width:thin!important;
+}
+#sf-classic-root #sf-actions .catalog-card,
+#sf-classic-root #sf-actions .sf-group[data-sf-group="buildings"] button.catalog-card[data-build]{
+ display:flex!important;flex-flow:column nowrap!important;
+ flex:0 0 clamp(111px,8.9vw,149px)!important;
+ width:clamp(111px,8.9vw,149px)!important;
+ min-width:clamp(111px,8.9vw,149px)!important;
+ max-width:clamp(111px,8.9vw,149px)!important;
+ height:100%!important;min-height:0!important;max-height:100%!important;
+ box-sizing:border-box!important;margin:0!important;padding:0!important;
+ border-radius:8px!important;border:1px solid #414e63!important;
+ background:linear-gradient(180deg,#303e54,#1c293a)!important;
+ box-shadow:none!important;overflow:hidden!important;
+}
+#sf-classic-root #sf-actions .catalog-card:hover:not(:disabled){
+ border-color:#f4c773!important;background:#3a5270!important;
+}
+#sf-classic-root #sf-actions .sf-card-image,
+#sf-classic-root #sf-actions button.catalog-card[data-build] .sf-card-image{
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ flex:1 1 auto!important;min-height:0!important;height:auto!important;
+ width:100%!important;margin:0!important;padding:2px!important;
+ background:radial-gradient(ellipse at 50% 78%,#536781ab,#29394be0 63%,#222b3ee9 100%)!important;
+ border:0!important;
+}
+#sf-classic-root #sf-actions .sf-card-image img{
+ display:block!important;width:100%!important;height:100%!important;
+ min-height:0!important;padding:1px 3px!important;margin:0!important;
+ object-fit:contain!important;object-position:center!important;
+ filter:drop-shadow(0 5px 3px #0915229e)!important;
+}
+#sf-classic-root #sf-actions .card-meta,
+#sf-classic-root #sf-actions button.catalog-card[data-build] .card-meta{
+ display:flex!important;flex:0 0 52px!important;
+ flex-direction:column!important;align-items:center!important;justify-content:center!important;
+ width:100%!important;height:52px!important;min-height:52px!important;max-height:52px!important;
+ gap:1px!important;padding:4px 5px!important;margin:0!important;
+ background:linear-gradient(180deg,#263246,#182233)!important;
+ border-top:1px solid #3e4b60!important;overflow:hidden!important;
+}
+#sf-classic-root #sf-actions .card-name,
+#sf-classic-root #sf-actions button.catalog-card[data-build] .card-name{
+ display:-webkit-box!important;-webkit-box-orient:vertical!important;
+ -webkit-line-clamp:2;line-clamp:2;
+ min-height:0!important;height:auto!important;max-height:30px!important;
+ width:100%!important;white-space:normal!important;
+ overflow:hidden!important;text-align:center!important;
+ overflow-wrap:anywhere!important;text-overflow:ellipsis!important;
+ font:800 clamp(10px,.83vw,13px)/1.16 system-ui!important;
+ color:#fff4e5!important;
+}
+#sf-classic-root #sf-actions .card-cost,
+#sf-classic-root #sf-actions button.catalog-card[data-build] .card-cost{
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ gap:4px!important;width:100%!important;height:20px!important;
+ color:#f4e7d0!important;font:900 clamp(11px,.96vw,15px)/1 system-ui!important;
+}
+#sf-classic-root #sf-actions .card-cost::before{
+ content:''!important;display:inline-block!important;flex:0 0 16px!important;
+ width:16px!important;height:16px!important;
+ clip-path:polygon(50% 0,96% 25%,96% 75%,50% 100%,4% 75%,4% 25%)!important;
+ background:linear-gradient(135deg,#fff191,#efb73e 60%,#ca8b22)!important;
+}
+#sf-classic-root #sf-actions button.catalog-card[data-build]:disabled,
+#sf-classic-root #sf-actions button.catalog-card[data-build].locked{
+ opacity:.68!important;filter:none!important;border-color:#343f50!important;
+ background:#212c3c!important;
+}
+#sf-classic-root #sf-actions button.catalog-card[data-build]:disabled .sf-card-image,
+#sf-classic-root #sf-actions button.catalog-card[data-build].locked .sf-card-image{
+ background:radial-gradient(ellipse,#344356,#233041)!important;
+}
+#sf-classic-root #sf-actions button.catalog-card[data-build]:disabled .sf-card-image img,
+#sf-classic-root #sf-actions button.catalog-card[data-build].locked .sf-card-image img{
+ filter:saturate(.55) brightness(.75)!important;opacity:.82!important;transform:none!important;
+}
+#sf-classic-root #sf-actions button.catalog-card[data-build]:disabled .card-meta,
+#sf-classic-root #sf-actions button.catalog-card[data-build].locked .card-meta{
+ background:#1e2837!important;border-top-color:#384456!important;
+}
+#sf-classic-root #sf-actions button.catalog-card[data-build]:disabled :is(.card-cost,.card-name){
+ color:#d2d2d1!important;
+}
+/* Single "Einheiten" category switches between the three real producers. */
+#sf-classic-root[data-tab="units"] #sf-actions .sf-group[data-sf-group="infantry"],
+#sf-classic-root[data-tab="units"] #sf-actions .sf-group[data-sf-group="vehicles"],
+#sf-classic-root[data-tab="units"] #sf-actions .sf-group[data-sf-group="aircraft"]{
+ display:none!important;
+}
+#sf-classic-root[data-tab="units"][data-unit-category="infantry"] #sf-actions .sf-group[data-sf-group="infantry"],
+#sf-classic-root[data-tab="units"][data-unit-category="vehicles"] #sf-actions .sf-group[data-sf-group="vehicles"],
+#sf-classic-root[data-tab="units"][data-unit-category="aircraft"] #sf-actions .sf-group[data-sf-group="aircraft"]{
+ display:flex!important;flex-flow:row nowrap!important;align-items:stretch!important;
+ gap:12px!important;overflow-x:auto!important;overflow-y:hidden!important;
+ height:100%!important;padding:0 3px!important;
+}
+#sf-classic-root[data-tab="units"] #sf-actions .sf-roster-section{
+ display:flex!important;flex-direction:column!important;
+ flex:0 0 auto!important;min-width:0!important;width:max-content!important;
+ margin:0!important;padding:0!important;
+}
+#sf-classic-root[data-tab="units"] #sf-actions .sf-roster-section h2{
+ margin:0 0 4px!important;padding:0!important;font:800 11px/1.2 system-ui!important;
+ color:#f3cd85!important;white-space:nowrap!important;
+}
+#sf-classic-root[data-tab="units"] #sf-actions .catalog-grid{
+ display:flex!important;flex-flow:row nowrap!important;gap:7px!important;
+ width:max-content!important;height:calc(100% - 20px)!important;
+ padding:0!important;overflow:visible!important;
+}
+#sf-classic-root[data-tab="units"] #sf-actions .catalog-card{height:100%!important}
+#sf-classic-root[data-tab="research"] #sf-actions .sf-group[data-sf-group="research"]{
+ display:block!important;overflow-x:auto!important;overflow-y:hidden!important;height:100%!important;
+}
+#sf-classic-root[data-tab="research"] #sf-actions .sf-research-grid{
+ display:flex!important;flex-flow:row nowrap!important;height:100%!important;
+ align-items:stretch!important;gap:7px!important;overflow-x:auto!important;overflow-y:hidden!important;
+}
+#sf-classic-root[data-tab="research"] #sf-actions .sf-research-card{
+ flex:0 0 280px!important;height:100%!important;min-height:0!important;
+}
+/* Auxiliary drawers only appear on click; no lost commands or queue slots. */
+#sf-classic-root #sidebar > #sf-production.sf-production-panel,
+#sf-classic-root #sidebar > #sf-selection-panel.sf-command{
+ position:absolute!important;grid-column:auto!important;grid-row:auto!important;
+ inset:auto 0 calc(100% + 10px) auto!important;
+ right:0!important;top:auto!important;bottom:calc(100% + 10px)!important;left:auto!important;
+ z-index:14!important;
+ width:min(460px,calc(100vw - 26px))!important;
+ height:min(284px,45vh)!important;max-height:min(284px,45vh)!important;min-height:0!important;
+ margin:0!important;padding:12px!important;
+ border:1px solid #8397a9!important;border-radius:12px!important;
+ background:linear-gradient(160deg,#2a394df9,#192737fd)!important;
+ box-shadow:0 8px 22px #000b!important;overflow:auto!important;
+}
+#sf-classic-root #sidebar > #sf-production.sf-production-panel{display:none!important}
+#sf-classic-root #sidebar > #sf-selection-panel.sf-command{display:none!important}
+#sf-classic-root[data-drawer="production"] #sidebar > #sf-production.sf-production-panel{display:flex!important}
+#sf-classic-root[data-drawer="selection"] #sidebar > #sf-selection-panel.sf-command{display:grid!important}
+#sf-classic-root #sidebar > #sf-production .sf-production-slots{
+ display:flex!important;flex-direction:column!important;flex-wrap:nowrap!important;
+ flex:1 1 auto!important;overflow-y:auto!important;overflow-x:hidden!important;
+}
+#sf-classic-root #sidebar > #sf-selection-panel.sf-command{
+ grid-template-columns:1fr!important;grid-template-rows:minmax(0,1fr) auto!important;
+}
+#sf-classic-root #sidebar > #sf-selection-panel .commands{
+ display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:5px!important;
+}
+#sf-classic-root #sidebar > #sf-selection-panel .commands button{
+ height:35px!important;min-height:35px!important;
+ background:#30465a!important;color:#f6ecd4!important;
+ border:1px solid #7a93a3!important;border-radius:6px!important;
+}
+#sf-classic-root .sf-notice{bottom:calc(var(--sf-hud-h) + 26px)!important}
+#sf-classic-root .sf-debug{bottom:calc(var(--sf-hud-h) + 19px)!important;opacity:.8!important}
+#sf-classic-root .sf-debug .sf-status{display:none!important}
+@media(max-width:1150px){
+ #sf-classic-root{--sf-hud-map:clamp(138px,16vw,195px);--sf-hud-actions:52px}
+ #sf-classic-root #sidebar #sf-tabs > button{
+  flex-basis:clamp(120px,14vw,168px)!important;padding-inline:14px!important;
+  font-size:13px!important;
+ }
+ #sf-classic-root #sidebar .sf-tab-symbol{font-size:20px!important}
+ #sf-classic-root #sidebar #sf-actions{padding:5px!important}
+ #sf-classic-root #sf-actions .sf-group[data-sf-group="buildings"] button.catalog-card[data-build]{
+  flex-basis:130px!important;width:130px!important;min-width:130px!important;max-width:130px!important;
+ }
+ #sf-classic-root .top.hud{max-width:58vw!important}
+}
+@media(max-width:740px){
+ #sf-classic-root{
+  --sf-hud-h:clamp(172px,31vh,208px);
+  --sf-hud-map:104px;--sf-hud-actions:42px;
+ }
+ #sf-classic-root .sf-modern-brand{top:8px;left:8px;gap:5px}
+ #sf-classic-root .sf-modern-brand .wordmark{width:138px!important;height:60px!important}
+ #sf-classic-root :is(#sf-hud-menu-toggle,#sf-hud-tools-toggle){
+  width:40px!important;height:40px!important;min-height:40px!important;flex-basis:40px!important;
+ }
+ #sf-classic-root :is(#sf-hud-menu-toggle,#sf-hud-tools-toggle) svg{width:23px;height:23px}
+ #sf-classic-root #sf-hud-tools-toggle{top:8px!important;right:8px!important}
+ #sf-classic-root .top.hud{
+  top:54px!important;right:8px!important;height:42px!important;min-height:42px!important;
+  max-width:calc(100vw - 16px)!important;padding:0 5px!important;
+ }
+ #sf-classic-root .top :is(.credit-resource,.sf-income-resource,.capacity-resource){
+  padding-inline:7px!important;gap:4px!important;
+ }
+ #sf-classic-root .top :is(.credit-resource strong,.sf-income-resource #sf-income,.capacity-resource strong){
+  font-size:12px!important;
+ }
+ #sf-classic-root .top .credit-cube{width:13px!important;height:13px!important}
+ #sf-classic-root .top .sf-income-icon{font-size:19px!important}
+ #sf-classic-root .top .capacity-resource > span{font-size:16px!important}
+ #sf-classic-root #sidebar{left:5px!important;right:5px!important;bottom:5px!important;width:calc(100vw - 10px)!important;gap:2px!important}
+ #sf-classic-root #sidebar > .radar{display:flex!important;padding:3px!important;border-width:1px!important}
+ #sf-classic-root #sidebar #sf-map{
+  width:min(94px,calc(100% - 3px))!important;height:auto!important;max-height:calc(var(--sf-hud-h) - 10px)!important;
+ }
+ #sf-classic-root #sidebar .sf-modern-side-actions{gap:2px!important}
+ #sf-classic-root .sf-modern-side-actions button{border-radius:6px!important}
+ #sf-classic-root .sf-modern-side-actions svg{width:18px;height:18px}
+ #sf-classic-root #sidebar #sf-tabs{height:39px!important;min-height:39px!important;flex-basis:39px!important}
+ #sf-classic-root #sidebar #sf-tabs > button{
+  flex-basis:33.33%!important;height:39px!important;min-height:39px!important;
+  gap:3px!important;font-size:10px!important;padding:0 6px!important;
+ }
+ #sf-classic-root #sidebar #sf-tabs .sf-tab-symbol{font-size:15px!important}
+ #sf-classic-root #sidebar #sf-actions{padding:3px!important}
+ #sf-classic-root #sf-actions .sf-group[data-sf-group="buildings"] button.catalog-card[data-build]{
+  flex-basis:112px!important;width:112px!important;min-width:112px!important;max-width:112px!important;
+ }
+ #sf-classic-root .sf-modern-unit-categories{
+  top:-37px!important;right:0!important;gap:2px!important;transform:translateY(-1px);
+ }
+ #sf-classic-root .sf-modern-unit-categories button{
+  font-size:9px!important;padding-inline:5px!important;min-height:25px!important;height:25px!important;
+ }
+ #sf-classic-root #sf-actions .card-meta,
+ #sf-classic-root #sf-actions button.catalog-card[data-build] .card-meta{
+  flex-basis:46px!important;height:46px!important;min-height:46px!important;max-height:46px!important;
+ }
+ #sf-classic-root #sf-actions .card-name{font-size:10px!important}
+ #sf-classic-root #sf-actions .card-cost{font-size:11px!important}
+ #sf-classic-root .sf-notice{bottom:calc(var(--sf-hud-h) + 14px)!important}
+ #sf-classic-root #sf-tools{top:101px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ #sf-classic-root .sf-modern-side-actions button,
+ #sf-classic-root #sidebar #sf-tabs > button{transition:none!important}
+}
