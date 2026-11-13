@@ -17,6 +17,37 @@ const panelNames=/AirlockDoor|DoorCeramic|BarracksBlastDoor|BarracksDoorStiffene
 const box=new THREE.BoxGeometry(1,1,1);
 const dark=new THREE.MeshStandardMaterial({color:'#101716',roughness:1});
 const floor=new THREE.MeshStandardMaterial({color:'#666054',roughness:.95});
+
+// The replacement barracks' door is at its actual authored position, not
+// necessarily at local X=0. Compute its centre from the closed GLB panels
+// so soldiers always emerge at the visible airlock, after every rotation or
+// non-gameplay visual scale change.
+export function authoredBarracksExitLane(root,left,right){
+ const fallback={
+  inside:new THREE.Vector3(0,1,-3.8),
+  outside:new THREE.Vector3(0,1,-11)
+ };
+ if(!root||!left||!right)return fallback;
+ root.updateWorldMatrix(true,true);
+ const bounds=new THREE.Box3().expandByObject(left).expandByObject(right);
+ if(bounds.isEmpty())return fallback;
+ const center=root.worldToLocal(bounds.getCenter(new THREE.Vector3()));
+ const floorPoint=root.worldToLocal(new THREE.Vector3(
+  bounds.min.x,bounds.min.y,bounds.min.z));
+ const y=Math.max(0,floorPoint.y+.08);
+ // The authored Kaserne fronts local -Z. Step from inside the building
+ // across its door threshold, then clear the front steps before turning.
+ return {
+  inside:new THREE.Vector3(center.x,y,center.z+.70),
+  outside:new THREE.Vector3(center.x,y,center.z-6.3)
+ };
+}
+export function barracksExitLane(portal){
+ return portal?.authored&&portal.lane?
+  {inside:portal.lane.inside.clone(),outside:portal.lane.outside.clone()}:
+  {inside:new THREE.Vector3(-.18,.275,.9),
+   outside:new THREE.Vector3(-.18,0,2.10)};
+}
 export function prepareBarracksPortal(entry,renderer){
  if(entry?.barracksPortal)return entry.barracksPortal;
  const root=entry?.detail;
@@ -27,7 +58,8 @@ export function prepareBarracksPortal(entry,renderer){
  if(left&&right){
   const hall=new THREE.Group();hall.name='BarracksInterior';
   root.add(hall);
-  const portal={kind:'barracks',authored:true,root,hall,left,right,
+  const lane=authoredBarracksExitLane(root,left,right);
+  const portal={kind:'barracks',authored:true,root,hall,left,right,lane,
    leftX:left.position.x,rightX:right.position.x,doorPanels:[],
    materials:[],planes:[],box:[],transform:null};
   entry.barracksPortal=portal;
