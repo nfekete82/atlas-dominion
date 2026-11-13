@@ -117,7 +117,9 @@ const priority=/cloth|uniform|armor|armour|vest|shoulder|chest|helmet|backpack|r
 export function shouldTintFactionSurface(kind,type,materialName='',meshName='',mat=null){
  // Common glTF rig names contain "SkinnedMesh". Do not mistake that
  // renderer type for exposed human skin and skip the entire uniform.
- const name=(materialName+' '+meshName.replace(/skinnedmesh/ig,'')).toLowerCase();
+ const rigName=meshName.replace(/skinnedmesh/ig,'')
+  .replace(/rocket[_ -]?(?=infantry|soldier|trooper)/ig,'');
+ const name=(materialName+' '+rigName).toLowerCase();
  // The MK2's capture beacon uses SF_Bastion_red: without an explicit
  // exemption, the 94%-opaque camo shader would hide the red/blue owner
  // signal even after tintBastionCaptureSignals updates the PBR color.
