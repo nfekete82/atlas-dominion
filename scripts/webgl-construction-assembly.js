@@ -12,14 +12,17 @@ import * as THREE from 'three';
  */
 export const AUTHORED_ASSEMBLY_KINDS=Object.freeze(['headquarters','barracks']);
 
-export function prepareAuthoredAssembly(root){
+export function prepareAuthoredAssembly(root,{referenceHeight=0}={}){
  if(!root)return null;
  root.updateWorldMatrix(true,true);
  const inverse=new THREE.Matrix4().copy(root.matrixWorld).invert();
  const meshes=[];let globalMin=Infinity,globalMax=-Infinity;
  const tmp=new THREE.Vector3(),relative=new THREE.Matrix4();
  root.traverse(mesh=>{
-  if(!mesh.isMesh||!mesh.geometry?.getAttribute('position'))return;
+  // Instanced fence posts/wires have an independent per-instance height.
+  // They are staged as complete late-build perimeter sections instead.
+  if(!mesh.isMesh||mesh.isInstancedMesh||
+     !mesh.geometry?.getAttribute('position'))return;
   const source=mesh.geometry,position=source.getAttribute('position');
   const count=source.index?.count??position.count;
   if(count<3||count%3)return;
@@ -54,6 +57,11 @@ export function prepareAuthoredAssembly(root){
   relative.identity();
  });
  if(!meshes.length)return null;
+ // Site furnishings (side console, crates, lights) use yard-scale units,
+ // while the HQ3 GLB is normalized separately. Supply the completed HQ
+ // height so all regular geometry follows the same world-height reveal.
+ if(Number.isFinite(referenceHeight)&&referenceHeight>0)
+  globalMax=Math.max(globalMax,referenceHeight);
  return {root,meshes,minY:globalMin,maxY:globalMax};
 }
 export function updateAuthoredAssembly(assembly,progress){
