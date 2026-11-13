@@ -1,0 +1,32 @@
+name: Meshy Asset Integration QA
+on:
+  push:
+    branches: [feat/meshy-model-import-20261113]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  models:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Validate opt-in model routing and immutable gameplay
+        run: node --test tests/meshy-import.test.mjs tests/stylized-pack.test.mjs
+      - name: Simulate separately delivered user asset install
+        run: |
+          mkdir -p /tmp/sandforge-meshy-test
+          cp src/assets/stylized/rover-0.glb /tmp/sandforge-meshy-test/tank.glb
+          node scripts/install-meshy-assets.mjs /tmp/sandforge-meshy-test
+      - name: Build playable WebGL distribution
+        run: npm run build:3d
+      - name: Confirm loader and packed GLBs ship together
+        run: |
+          test -s dist/webgl-meshy-assets.js
+          test -s dist/src/assets/meshy/tank.glb
+          cmp /tmp/sandforge-meshy-test/tank.glb dist/src/assets/meshy/tank.glb
