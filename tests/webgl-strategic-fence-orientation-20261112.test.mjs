@@ -16,8 +16,8 @@ function fencePosts(yard){
  }
  return {mesh,posts};
 }
-test('HQ, barracks and research keep the -Z entrance open behind the fence',()=>{
- for(const kind of ['headquarters','barracks','research']){
+test('barracks and research retain their -Z facade openings',()=>{
+ for(const kind of ['barracks','research']){
   const yard=createBuildingYard(kind,WIDTH);
   try{
    const {mesh,posts}=fencePosts(yard);
@@ -35,6 +35,23 @@ test('HQ, barracks and research keep the -Z entrance open behind the fence',()=>
    assert.equal(mesh.userData.nonPlayable,true);
   }finally{disposeBuildingYard(yard);}
  }
+});
+test('HQ3 Funkzentrale has its entrance opening at +Z, with rear fence at -Z',()=>{
+ const yard=createBuildingYard('headquarters',WIDTH);
+ try{
+  const {mesh,posts}=fencePosts(yard);
+  const x=WIDTH*.65,z=WIDTH*.53;
+  assert.ok(posts.some(p=>Math.abs(p.x)<WIDTH*.1&&Math.abs(p.z+z)<.01),
+   'rear fence must be solid behind the HQ3 at -Z');
+  assert.ok(!posts.some(p=>Math.abs(p.x)<WIDTH*.1&&p.z>0),
+   'front stairs and spawn lane at +Z must be open');
+  assert.ok(posts.some(p=>Math.abs(p.x-x)<.01));
+  assert.ok(posts.some(p=>Math.abs(p.x+x)<.01));
+  const m=new THREE.Matrix4(),scale=new THREE.Vector3();
+  mesh.getMatrixAt(0,m);scale.setFromMatrixScale(m);
+  assert.ok(Math.abs(scale.y-16.8)<1e-4);
+  assert.equal(yard.scale.x,1);
+ }finally{disposeBuildingYard(yard);}
 });
 test('the other facility entrance remains +Z, not changed by the HQ correction',()=>{
  const yard=createBuildingYard('silo',WIDTH);
