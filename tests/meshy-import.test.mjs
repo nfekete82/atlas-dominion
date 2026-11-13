@@ -41,6 +41,12 @@ test('Game and build ship the optional model integration with robust fallback',(
  assert.ok(existsSync('scripts/install-meshy-assets.mjs'));
 });
 
-test('No uploaded rocket file is bundled or silently replaced by the tank',()=>{
- assert.equal(existsSync('src/assets/meshy/rocket.glb'),false);
+test('Optional rocket GLB must be independently authored rather than reusing the tank',()=>{
+ const rocket='src/assets/meshy/rocket.glb';
+ if(!existsSync(rocket))return; // Rocket asset is not provided yet.
+ const file=readFileSync(rocket);
+ assert.equal(file.subarray(0,4).toString('ascii'),'glTF');
+ assert.equal(file.readUInt32LE(4),2);
+ const tank='src/assets/meshy/tank.glb';
+ if(existsSync(tank))assert.notDeepEqual(file,readFileSync(tank));
 });
