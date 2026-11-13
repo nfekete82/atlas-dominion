@@ -87,6 +87,13 @@ export function installClassicHud(){
 <div class="sf-debug" id="sf-debug"><span id="sf-debug-status"></span><span id="sf-debug-error"></span></div>
 `;
  document.body.append(panel);
+ // Match the exact centered title artwork. Keep the existing badge as a
+ // fallback until the transparent cropped artwork has loaded successfully.
+ const logo=panel.querySelector('.sandforge-hud-logo');
+ const hudBadge='/src/assets/reborn/sandforge-title-hud-logo.webp';
+ const badgePreload=new Image();
+ badgePreload.onload=()=>{if(logo?.isConnected)logo.src=hudBadge;};
+ badgePreload.src=hudBadge;
  // One full-width tactical dock. Move the existing nodes rather than
  // cloning them, preserving all click/keyboard handlers and accessible IDs.
  const dock=panel.querySelector('#sidebar');
