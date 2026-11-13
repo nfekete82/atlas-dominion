@@ -34,7 +34,8 @@ export const HQ3_MATCHED_DESERT_PALETTE=Object.freeze({
  wall:Object.freeze(['.57,.52,.40','.39,.42,.32','.20,.27,.22']),
  roof:Object.freeze(['.24,.27,.24','.21,.24,.21','.13,.17,.15'])
 });
-export const DESERT_FINISH_REVISION='biome-camouflage-hq-barracks-bastion-v7-20261113';
+export const DESERT_FINISH_REVISION='biome-camouflage-hq-barracks-bastion-soldiers-v8-20261113';
+const SOLDIER_KINDS=new Set(['infantry','medic','engineer','heavy','rocket']);
 let selectedCamouflageBiome='desert';
 export function setWorldCamouflageBiome(value){
  selectedCamouflageBiome=Object.hasOwn(CAMOUFLAGE_PALETTES,value)?value:'desert';
@@ -43,7 +44,8 @@ export function setWorldCamouflageBiome(value){
 export const worldCamouflageBiome=()=>selectedCamouflageBiome;
 function applyDesertBuildingCamo(material,style='standard'){
  const biome=selectedCamouflageBiome;
- const matchedDesert=biome==='desert'&&(style==='barracks'||style==='bastion');
+ const soldier=style==='soldier';
+ const matchedDesert=biome==='desert'&&(style==='barracks'||style==='bastion'||soldier);
  // Barracks roof panels and the Bastion's massive upper armour use the
  // HQ3's dark charcoal; only upward-facing polygon surfaces are darkened.
  // Radar dishes, capture lamps, doors and glass retain their PBR identities.
@@ -61,7 +63,8 @@ function applyDesertBuildingCamo(material,style='standard'){
   shader.vertexShader=shader.vertexShader.replace('#include <common>',
    '#include <common>\n'+varying);
   shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',
-   '#include <begin_vertex>\nsfDesertWorld=(modelMatrix*vec4(transformed,1.0)).xyz;'+
+   '#include <begin_vertex>\nsfDesertWorld='+(
+    soldier?'transformed;':'(modelMatrix*vec4(transformed,1.0)).xyz;')+
    (roof?'\nsfDesertUp=normalize(mat3(modelMatrix)*normal);':''));
   shader.fragmentShader=shader.fragmentShader.replace('#include <common>',
    '#include <common>\n'+varying);
@@ -70,9 +73,19 @@ function applyDesertBuildingCamo(material,style='standard'){
   // as well, while original PBR normals, AO and subtle relief remain.
   const paint=[
    '#include <color_fragment>',
-   'float sfPatch=sin(sfDesertWorld.x*.071+sin(sfDesertWorld.z*.044)*1.8)',
-   ' +cos(sfDesertWorld.z*.084-sin(sfDesertWorld.x*.057)*1.6)',
-   ' +.39*sin((sfDesertWorld.x-sfDesertWorld.z)*.16);',
+   // Infantry armour needs small, stable patches. World-positioned building
+   // camouflage is far too broad for a human-sized helmet or vest and
+   // appears as plain beige. Bind uniforms to their local mesh coordinates
+   // so the pattern travels with the soldier instead of sliding over it.
+   ...(soldier?[
+    'float sfPatch=sin(sfDesertWorld.x*1.12+sin(sfDesertWorld.z*.76)*1.7)',
+    ' +cos(sfDesertWorld.y*1.30+sfDesertWorld.z*1.08)',
+    ' +.43*sin((sfDesertWorld.x-sfDesertWorld.y)*1.68);'
+   ]:[
+    'float sfPatch=sin(sfDesertWorld.x*.071+sin(sfDesertWorld.z*.044)*1.8)',
+    ' +cos(sfDesertWorld.z*.084-sin(sfDesertWorld.x*.057)*1.6)',
+    ' +.39*sin((sfDesertWorld.x-sfDesertWorld.z)*.16);'
+   ]),
    'float sfKhaki=smoothstep(-.42,-.16,sfPatch);',
    'float sfOlive=smoothstep(.42,.70,sfPatch);',
    'vec3 sfPaint=mix(vec3('+colors[0]+'),vec3('+colors[1]+'),sfKhaki);',
@@ -98,7 +111,7 @@ function applyDesertBuildingCamo(material,style='standard'){
 }
 
 const skip=/weapon|gun|rifle|barrel|muzzle|rocket|rotor|propeller|blade|glass|window|canopy|windshield|visor|eye|skin|face|hand|tyre|tire|wheel|track|exhaust|smoke|lightbulb|lamp|emission|transparent|glow|engine|shadow|invisible|(?:^|[_\\s])flag(?:[_\\s]|$)|beacon|sensor|screen|recess|warning|indicator|bastion_light|yellow|copper|team|insignia|stencil/i;
-const priority=/cloth|uniform|armor|armour|vest|shoulder|chest|helmet|body|hull|fuselage|camo|camouflage|panel|paint|metal|frame|side|roof|wall|tower|base|concrete|plaster|sandstone|trim|structure/i;
+const priority=/cloth|uniform|armor|armour|vest|shoulder|chest|helmet|backpack|rucksack|pack|pants|trousers|boot|leg|body|hull|fuselage|camo|camouflage|panel|paint|metal|frame|side|roof|wall|tower|base|concrete|plaster|sandstone|trim|structure/i;
 /** This function is testable with the asset's actual glTF material names,
  * but safely handles exports with generic numbered materials as well. */
 export function shouldTintFactionSurface(kind,type,materialName='',meshName='',mat=null){
@@ -114,8 +127,8 @@ export function shouldTintFactionSurface(kind,type,materialName='',meshName='',m
  // white, light-grey or near-black. Those colours caused most new GLB facades
  // to bypass the camouflage entirely. Protected glass/lamps use names above.
  if(priority.test(name))return true;
- return type==='building'||['infantry','medic','engineer','heavy',
-  'scout','bomber','tank','rover','artillery'].includes(kind);
+ return type==='building'||SOLDIER_KINDS.has(kind)||
+  ['scout','bomber','tank','rover','artillery'].includes(kind);
 }
 
 /** Only once per actor/material. A captured base can change owner without
@@ -149,7 +162,7 @@ export function tintFactionMaterials(root,owner,kind,type){
    const eligible=shouldTintFactionSurface(kind,type,mat.name,mesh.name,mat);
    // Existing texture detail, team marks and metalwork remain.
    const weight=type==='building'?.025:
-    ['infantry','medic','engineer','heavy'].includes(kind)?.25:
+    SOLDIER_KINDS.has(kind)?.10:
     ['scout','bomber'].includes(kind)?.23:.17;
    mat.color.copy(base);
    if(eligible){
@@ -170,7 +183,8 @@ export function tintFactionMaterials(root,owner,kind,type){
        mat.roughness=Math.max(type==='building'?.84:.72,mat.roughness);
        mat.metalness=Math.min(type==='building'?.26:.48,mat.metalness);
        applyDesertBuildingCamo(mat,
-        kind==='barracks'||kind==='bastion'?kind:'standard');
+        type==='unit'&&SOLDIER_KINDS.has(kind)?'soldier':
+         kind==='barracks'||kind==='bastion'?kind:'standard');
       }
     }
     tinted++;
