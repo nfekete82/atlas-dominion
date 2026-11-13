@@ -165,7 +165,7 @@ html.sandforge-clean-title #main-dialog{
 }
 html.sf-bastion-bg-ready.sandforge-clean-title #main-dialog{
  background-image:linear-gradient(180deg,#08101954 0%,#111b2844 38%,#060b15ba 100%),
-  url('/src/assets/reborn/sandforge-start-background.webp');
+  url('/src/assets/reborn/sandforge-start-background.png');
 }
 html.sandforge-clean-title #main-dialog .menu-brand{
  position:absolute;z-index:2;top:clamp(8px,1.7dvh,28px);left:50%;
@@ -262,7 +262,7 @@ html.sandforge-clean-title #main-dialog #sf3d-menu-status{
 document.addEventListener('DOMContentLoaded',()=>{
  const background=new Image();
  background.onload=()=>document.documentElement.classList.add('sf-bastion-bg-ready');
- background.src='/src/assets/reborn/sandforge-start-background.webp';
+ background.src='/src/assets/reborn/sandforge-start-background.png';
  const logo=document.querySelector('#main-dialog .sandforge-splash-logo');
  if(logo){
   const image=new Image();
