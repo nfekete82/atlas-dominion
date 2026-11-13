@@ -21,21 +21,32 @@ test('low-poly HUD has right-side resources and a full-width bottom deck',async(
    visibleCards:[...document.querySelectorAll('[data-build]')].filter(e=>e.getBoundingClientRect().width>50).length,
    lostControls:[...'sf-credits sf-income sf-capacity sf-map sf-production sf-selection-panel sf-actions'.split(' ')]
     .filter(id=>!document.getElementById(id)),
-   bodyScroll:document.documentElement.scrollWidth>innerWidth+5};
+   bodyScroll:document.documentElement.scrollWidth>innerWidth+5,
+   activeTabBackground:getComputedStyle(document.querySelector('#sf-tabs button[aria-pressed="true"]')).backgroundColor,
+   deckBackground:getComputedStyle(document.querySelector('#sf-actions')).backgroundColor,
+   cardDivider:getComputedStyle(document.querySelector('[data-build]').nextElementSibling,'::before').borderLeftWidth,
+   mapFrameBorder:getComputedStyle(document.querySelector('#sidebar .radar')).borderTopWidth};
  });
  expect(result.dock.y).toBeGreaterThan(610);
  expect(result.dock.bottom).toBeLessThanOrEqual(902);
  expect(result.map.x).toBeLessThan(result.buttons.x);
  expect(result.buttons.right).toBeLessThanOrEqual(result.deck.x+5);
- expect(result.map.width).toBeGreaterThan(170);
+ expect(result.map.width).toBeGreaterThan(110);
  expect(result.deck.width).toBeGreaterThan(1020);
- expect(result.tabs.height).toBeGreaterThanOrEqual(40);
+ expect(result.tabs.height).toBeGreaterThanOrEqual(28);
+ expect(result.tabs.height).toBeLessThanOrEqual(32);
+ expect(result.dock.height).toBeGreaterThanOrEqual(116);
+ expect(result.dock.height).toBeLessThanOrEqual(140);
  expect(result.cardsCount).toBeGreaterThanOrEqual(8);
  expect(result.visibleCards).toBeGreaterThanOrEqual(8);
  expect(result.bar.x).toBeGreaterThan(900);
  expect(result.brand.right).toBeLessThan(result.bar.x);
  expect(result.lostControls).toEqual([]);
  expect(result.bodyScroll).toBe(false);
+ expect(result.activeTabBackground).toBe('rgba(99, 78, 48, 0.95)');
+ expect(result.deckBackground).toBe('rgba(19, 23, 24, 0.86)');
+ expect(result.cardDivider).toBe('1px');
+ expect(result.mapFrameBorder).toBe('1px');
  await expect(page.locator('#sf-tools')).toBeHidden();
  await page.locator('#sf-hud-menu-toggle').click();
  await expect(page.locator('#sf-tools')).toBeVisible();
