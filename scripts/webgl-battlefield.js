@@ -425,18 +425,19 @@ export class SandforgeBattlefield {
         (['rover','tank','artillery','scout','bomber'].includes(e.kind)?'animation/':'prototype/')+e.kind+'-')+
        e.owner+'.glb';
      console.warn('Optional art unavailable; loading original:',old,error);
+     task.entry.meshyFallback=true;
      return this.getModel(old);
     }).then(data=>[data,null]);
    promise.then(([data,variantData])=>{
     const {entry,type}=task;
     if(!entry.node.parent)return;
     const model=cloneSkeleton(data.scene);
-    if(isMeshyAsset(task.url))model.rotation.y+=meshyModelYaw(entry.kind);
+    if(isMeshyAsset(task.url)&&!entry.meshyFallback)model.rotation.y+=meshyModelYaw(entry.kind);
     const authoredStyle=stylizedProfile(model);
     if(authoredStyle)model.userData={...model.userData,...authoredStyle};
     if(type==='building'&&entry.kind==='barracks'&&!authoredStyle)
      simplifyBarracksSilhouette(model);
-    if(type==='unit'&&entry.kind==='rocket'&&!isMeshyAsset(task.url))
+    if(type==='unit'&&entry.kind==='rocket'&&(!isMeshyAsset(task.url)||entry.meshyFallback))
      attachRocketLauncherToInfantry(model,entry.owner);
     const box0=new THREE.Box3().setFromObject(model);
     const dims=box0.getSize(new THREE.Vector3());
