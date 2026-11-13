@@ -77,7 +77,9 @@ export class SandforgeConstructionPresentation{
   }
   for(const rail of state.rails)
    for(const beam of rail.meshes)beam.visible=progress>=rail.threshold;
-  state.roof.visible=progress>=.77;
+  // Authored HQ3 and barracks roofs rise from their real triangles.
+  // The generic box roof otherwise pops in fully assembled at 77%.
+  state.roof.visible=progress>=.77&&!AUTHORED_ASSEMBLY_KINDS.includes(base.kind);
   // The previous regression made the finished GLB fully visible at 0%,
   // with only scaffolding layered on top. Instead assemble REAL building
   // components in stages. No clipping planes: no bisected or floating facades.
