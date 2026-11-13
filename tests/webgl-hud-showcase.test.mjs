@@ -14,6 +14,11 @@ test('the 3D game ships screenshot-inspired HUD after the legacy stylesheet',()=
  for(const selector of ['.sf-modern-brand','#sf-modern-queue-count',
    '#sf-tabs','.sf-modern-unit-categories','#sf-actions .catalog-card'])
   assert.ok(stylesheet.includes(selector),'HUD style missing '+selector);
+ // Tactical redesign stays CSS-only, preserves card IDs and is 3D-specific.
+ assert.match(stylesheet,/Sandforge tactical HUD v4/);
+ assert.match(stylesheet,/--sf-hud-h:clamp\(116px,14vh,134px\)/);
+ assert.ok(stylesheet.includes('background:rgba(19,23,24,.86)'));
+ assert.ok(stylesheet.includes('border-left:1px solid rgba(224,205,170,.23)'));
  assert.ok(!read('dist/classic.html').includes('webgl-hud-showcase.css'),
   'classic Canvas UI must not inherit the 3D skin');
 });
