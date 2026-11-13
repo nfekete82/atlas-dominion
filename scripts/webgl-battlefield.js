@@ -445,8 +445,8 @@ export class SandforgeBattlefield {
         (['rover','tank','artillery','scout','bomber'].includes(e.kind)?'animation/':'prototype/')+e.kind+'-')+
        e.owner+'.glb';
      console.warn('Optional art unavailable; loading original:',old,error);
-     task.entry.meshyFallback=isMeshyAsset(task.url);
-     task.entry.mk2Fallback=missingMk2;
+     if(isMeshyAsset(task.url))task.entry.meshyFallback=true;
+     if(missingMk2)task.entry.mk2Fallback=true;
      return this.getModel(old).catch(fallbackError=>{
       if(task.type==='building'&&task.entry.kind==='headquarters'&&old!==HQ3_FALLBACK_URL)
        return this.getModel(HQ3_FALLBACK_URL);
