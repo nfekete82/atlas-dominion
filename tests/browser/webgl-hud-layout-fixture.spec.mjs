@@ -86,6 +86,19 @@ test('shipping HUD occupies reference screenshot positions at 1600×900',async({
  });
  expect(panelStyle.border).toBe('0px');
  expect(panelStyle.background).toMatch(/^rgba\(/);
+ const labels=await page.evaluate(()=>[...document.querySelectorAll('[data-sf-group="buildings"] .card-name')].map(el=>{
+  const rect=el.getBoundingClientRect();
+  const tile=el.closest('.catalog-card').getBoundingClientRect();
+  return {name:el.textContent,boxWidth:rect.width,scrollWidth:el.scrollWidth,
+   left:rect.left,right:rect.right,tileLeft:tile.left,tileRight:tile.right,
+   whiteSpace:getComputedStyle(el).whiteSpace};
+ }));
+ for(const label of labels){
+  expect(label.whiteSpace).toBe('normal');
+  expect(label.left).toBeGreaterThanOrEqual(label.tileLeft-1);
+  expect(label.right).toBeLessThanOrEqual(label.tileRight+1);
+  expect(label.scrollWidth).toBeLessThanOrEqual(label.boxWidth+2);
+ }
  expect(state.cards[0].h).toBeGreaterThan(120);
  expect(state.scrollWidth).toBeLessThanOrEqual(1605);
  await expect(page.locator('#sf-tools')).toBeHidden();
