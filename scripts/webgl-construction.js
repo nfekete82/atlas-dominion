@@ -48,7 +48,8 @@ export class SandforgeConstructionPresentation{
   label.scale.set(83,21,1);label.position.set(0,height+65,0);frame.add(label);
   entry.node.add(frame);
   const construction={frame,columns,rails,slab,roof,canvas,texture,label,
-   height,lastLabel:-1,finished:false,authoredAssembly:null};
+   height,lastLabel:-1,finished:false,authoredAssembly:null,
+   authoredPortal:null,siteAssembly:null,siteHeight:0};
   entry.construction=construction;return construction;
  }
  update(entry,base){
@@ -88,11 +89,31 @@ export class SandforgeConstructionPresentation{
    Boolean(entry.detail&&(base.kind==='headquarters'||entry.variantDetail));
   const authoredModel=authored?
    (base.kind==='headquarters'?entry.detail:entry.variantDetail):null;
-  if(authoredModel&&state.authoredAssembly?.root!==authoredModel){
+  // The HQ3 sliding door is added after the GLB streams in. A construction
+  // started before the portal existed must rescan the same model to include
+  // door leaves, trim and side panels in the vertical triangle reveal.
+  const portal=base.kind==='headquarters'?entry.headquartersPortal?.root:null;
+  if(authoredModel&&(state.authoredAssembly?.root!==authoredModel||
+      state.authoredPortal!==portal)){
    releaseAuthoredAssembly(state.authoredAssembly);
    state.authoredAssembly=prepareAuthoredAssembly(authoredModel);
+   state.authoredPortal=portal;
   }
   updateAuthoredAssembly(state.authoredAssembly,progress);
+  // The HQ side service station and supplies are genuine meshes, not part
+  // of the imported GLB. Give them the same physical rise height instead
+  // of popping in as finished equipment on the first build tick.
+  if(base.kind==='headquarters'&&entry.yard){
+   const siteHeight=(entry.modelHeight??0)/(entry.yard.scale.y||1);
+   if(state.siteAssembly?.root!==entry.yard||
+      Math.abs(state.siteHeight-siteHeight)>.01){
+    releaseAuthoredAssembly(state.siteAssembly);
+    state.siteAssembly=prepareAuthoredAssembly(entry.yard,
+     {referenceHeight:siteHeight});
+    state.siteHeight=siteHeight;
+   }
+   updateAuthoredAssembly(state.siteAssembly,progress);
+  }
   const stageMesh=(mesh,threshold)=>{
    if(!mesh?.isMesh)return;
    if(mesh.userData.constructionOriginalVisible===undefined)
@@ -100,10 +121,10 @@ export class SandforgeConstructionPresentation{
    const originallyVisible=mesh.userData.constructionOriginalVisible;
    mesh.visible=originallyVisible&&progress>=threshold;
   };
-  const stageGroup=(root,mode)=>{
+  const stageGroup=(root,mode,{instancedOnly=false}={})=>{
    if(!root)return;
    root.traverse(mesh=>{
-    if(!mesh.isMesh)return;
+    if(!mesh.isMesh||(instancedOnly&&!mesh.isInstancedMesh))return;
     const name=mesh.name.toLowerCase();
     // Airfield legacy components were permanently hidden by the renderer:
     // never resurrect an old crossing, duplicate tower or hangar.
@@ -123,7 +144,11 @@ export class SandforgeConstructionPresentation{
    });
   };
   if(!authored)stageGroup(model,'building');
-  stageGroup(entry.yard,'yard');
+  // Normal HQ site geometry already rises with the GLB. Instanced fence
+  // geometry cannot be split by individual height, so reveal it near the
+  // perimeter-finishing stage instead of showing it at foundation time.
+  stageGroup(entry.yard,'yard',
+   {instancedOnly:base.kind==='headquarters'&&Boolean(state.siteAssembly)});
   stageGroup(entry.airfieldServiceYard??entry.factoryServiceYard,'service');
   const tick=Math.floor(progress*20),working=base.constructionActive!==false;
   if(tick!==state.lastLabel||state.lastWorking!==working){
@@ -142,7 +167,9 @@ export class SandforgeConstructionPresentation{
  finish(entry){
   const state=entry.construction;if(!state)return;
   releaseAuthoredAssembly(state.authoredAssembly);
-  state.authoredAssembly=null;
+  releaseAuthoredAssembly(state.siteAssembly);
+  state.authoredAssembly=null;state.authoredPortal=null;
+  state.siteAssembly=null;state.siteHeight=0;
   // Restore the original mesh visibility (including permanent GLB-hidden
   // obsolete airfield parts) only after actual build completion.
   for(const root of [entry.detail,entry.variantDetail,entry.placeholder,entry.yard,
