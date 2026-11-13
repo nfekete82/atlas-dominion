@@ -165,7 +165,7 @@ html.sf-original-art-ready.sandforge-clean-title #main-dialog{
  background-position:center center;background-size:cover;background-repeat:no-repeat;
 }
 html.sf-original-art-ready.sandforge-clean-title #main-dialog .menu-brand{display:none}
-@media(min-width:721px){
+@media(min-width:721px) and (min-aspect-ratio:3/2){
  html.sf-original-art-ready.sandforge-clean-title #main-dialog .menu-buttons{
   display:flex;position:absolute;transform:none;
   left:calc(50% - 803 * var(--sf-art-pixel));
@@ -204,7 +204,7 @@ html.sf-original-art-ready.sandforge-clean-title #main-dialog .menu-brand{displa
 }
 /* On phones, keep visible functional buttons because cover cropping clips the
    original screenshot's left-side button artwork. */
-@media(max-width:720px){
+@media(max-width:720px), (max-aspect-ratio:3/2){
  html.sf-original-art-ready.sandforge-clean-title #main-dialog{background-position:60% center}
  html.sf-original-art-ready.sandforge-clean-title #main-dialog .menu-buttons{
   position:absolute;left:50%;right:auto;top:auto;bottom:12px;
