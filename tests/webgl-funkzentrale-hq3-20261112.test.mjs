@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import * as THREE from 'three';
-import {strategicGlbUrl,applyStrategicGlbFinish} from '../scripts/webgl-strategic-glb.js';
+import {strategicGlbUrl,applyStrategicGlbFinish,
+ centerAuthoredRadarPivot,ensureHeadquartersSatelliteMount} from '../scripts/webgl-strategic-glb.js';
 import {setWorldCamouflageBiome,tintFactionMaterials,shouldTintFactionSurface} from '../scripts/webgl-faction-accents.js';
 
 const file='src/assets/reborn/buildings-3d/sandforge_funkzentrale_hq3_game_ready.glb';
@@ -29,6 +30,45 @@ test('HQ3 Funkzentrale is used during building and after completion with origina
  for(const child of pivot.children)
   assert.match(gltf.nodes[child].name,/^(Independent_Satellite_Dish|Independent_Dish_)/);
  assert.ok(!gltf.nodes.some(n=>n.name==='GATE_LEFT_PIVOT'),'no invented animated HQ doors');
+});
+test('HQ3 satellite rotates around its support on a fixed metal pedestal, not the bowl centre',()=>{
+ const roof=new THREE.Mesh(new THREE.BoxGeometry(10,.40,10),
+  new THREE.MeshStandardMaterial());
+ roof.name='Static_Dark_Weathered_Roof';
+ const root=new THREE.Group();root.add(roof);
+ const pivot=new THREE.Group();pivot.name='RADAR_DISH_PIVOT';root.add(pivot);
+ const support=new THREE.Mesh(new THREE.BoxGeometry(.36,.50,.36),
+  new THREE.MeshStandardMaterial());
+ support.name='Independent_Satellite_Dish_Support_metalbright';
+ support.position.set(-2,1.15,-1);pivot.add(support);
+ const dish=new THREE.Mesh(new THREE.BoxGeometry(2.4,2.0,.2),
+  new THREE.MeshStandardMaterial());
+ dish.name='Independent_Satellite_Dish_Bowl_dish';
+ dish.position.set(-2.6,2,-.8);pivot.add(dish);
+ root.updateWorldMatrix(true,true);
+ const originalSupport=new THREE.Box3().setFromObject(support);
+ centerAuthoredRadarPivot(pivot);
+ const retained=new THREE.Box3().setFromObject(support);
+ assert.ok(retained.min.distanceTo(originalSupport.min)<1e-5);
+ assert.ok(Math.abs(pivot.position.x+2)<1e-4,
+  'rotation spindle should be on the actual support, not at the bowl centre');
+ assert.ok(Math.abs(pivot.position.z+1)<1e-4);
+ const mount=ensureHeadquartersSatelliteMount(pivot);
+ assert.ok(mount,'support geometry must receive an anchored mast');
+ assert.equal(mount.parent,root,'mast must not rotate with the dish');
+ assert.ok(mount.getObjectByName('HQ3SatelliteFixedMast'));
+ assert.ok(mount.getObjectByName('HQ3SatelliteAnchorPlate'));
+ assert.equal(mount.children.filter(o=>/^HQ3SatelliteBrace/.test(o.name)).length,3);
+ assert.equal(ensureHeadquartersSatelliteMount(pivot),mount,'one pedestal per building');
+ const basePosition=mount.getWorldPosition(new THREE.Vector3()).clone();
+ pivot.rotation.y=Math.PI/2;
+ root.updateWorldMatrix(true,true);
+ assert.ok(mount.getWorldPosition(new THREE.Vector3()).distanceTo(basePosition)<1e-5,
+  'roof pedestal must remain still while the dish turns');
+ mount.traverse(mesh=>{if(mesh.isMesh){mesh.geometry.dispose();mesh.material.dispose();}});
+ support.geometry.dispose();support.material.dispose();
+ dish.geometry.dispose();dish.material.dispose();
+ roof.geometry.dispose();roof.material.dispose();
 });
 test('desert keeps baked HQ3 UV camouflage while snow and jungle repaint its PBR maps',()=>{
  const texture=new THREE.Texture();
