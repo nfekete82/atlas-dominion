@@ -7,6 +7,7 @@ import {createResearchArtwork,RESEARCH_ARTWORK_KINDS} from './webgl-research-art
 import {tintFactionMaterials} from './webgl-faction-accents.js';
 import {isStrategicGlbKind,strategicGlbUrl,applyStrategicGlbFinish} from './webgl-strategic-glb.js';
 import {strategicBuildingHeightScale} from './webgl-scale.js';
+import {stylizedAsset} from './webgl-stylized-pack.js';
 
 /** Sprite-sheet portrait extraction shared by the WebGL HUD.
  * The classic game crops one idle frame rather than scaling down the entire
@@ -181,6 +182,21 @@ function renderModelPortrait(model,renderer,{width=320,height=220,research=false
   for(const material of materials)material.dispose();
  }
 }
+async function renderStylizedPortrait(kind,renderer,{width=320,height=220,infantryCard=false}={}){
+ const url=stylizedAsset(kind,0);
+ if(!url)throw Error('Unknown stylized portrait '+kind);
+ const data=await new GLTFLoader().loadAsync(url);
+ const model=cloneSkeleton(data.scene);
+ // Isolated clones: the portrait compositor disposes its temporary GPU
+ // resources and must never invalidate the live game's shared GLB cache.
+ model.traverse(node=>{
+  if(!node.isMesh)return;
+  node.geometry=node.geometry.clone();
+  node.material=Array.isArray(node.material)?
+   node.material.map(m=>m.clone()):node.material.clone();
+ });
+ return renderModelPortrait(model,renderer,{width,height,infantryCard});
+}
 async function renderStrategicPortrait(kind,renderer){
  if(isStrategicGlbKind(kind)){
   // The build-menu thumbnail should show the exact SAME original 3D model
@@ -314,6 +330,12 @@ function rocketUnitIconFallback(){
  return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
 }
 export function unitIcon(kind,renderer){
+ if(renderer&&stylizedAsset(kind,0)){
+  if(!iconCache.has(kind))iconCache.set(kind,
+   renderStylizedPortrait(kind,renderer,{width:192,height:132,infantryCard:true})
+    .catch(error=>{console.warn('Low-poly unit portrait fallback',kind,error);return rasterizeUnitIcon(kind);}));
+  return iconCache.get(kind);
+ }
  if(kind==='rocket'&&!renderer)return Promise.resolve(rocketUnitIconFallback());
  if(kind==='rocket'&&!iconCache.has(kind)){
   iconCache.set(kind,new Promise((resolve,reject)=>{
@@ -352,6 +374,10 @@ export function unitIcon(kind,renderer){
 // into a consistent wide tile without clipping its silhouette.
 const buildingIconCache=new Map();
 async function rasterizeBuildingIcon(kind,renderer){
+ if(renderer&&stylizedAsset(kind,0)){
+  try{return await renderStylizedPortrait(kind,renderer);}
+  catch(error){console.warn('Low-poly building portrait fallback',kind,error);}
+ }
  if(isStrategicBuilding(kind)||isStrategicGlbKind(kind)){
   if(!renderer)return buildingIconUrl(kind);
   try{return await renderStrategicPortrait(kind,renderer);}
