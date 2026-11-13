@@ -1,0 +1,38 @@
+name: Sandforge animated Bastion integration
+on:
+  push:
+    branches:
+      - feat/webgl-animated-bastion-reference-20261113
+  pull_request:
+    paths:
+      - 'scripts/webgl-bastion-animated.js'
+      - 'scripts/webgl-battlefield.js'
+      - 'scripts/webgl-bastion-lifecycle.js'
+      - 'tests/webgl-animated-bastion-reference-20261113.test.mjs'
+      - 'src/assets/reborn/buildings-3d/sandforge_bastion_animated.glb'
+      - '.github/workflows/sandforge-bastion-3d-ci.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Verify WebGL JavaScript syntax
+        run: |
+          node --check scripts/webgl-battlefield.js
+          node --check scripts/webgl-bastion-animated.js
+          node --check scripts/webgl-bastion-lifecycle.js
+      - name: Build Sandforge
+        run: npm run build
+      - name: Bastion GLB, animation states and regressions
+        run: |
+          node --test tests/webgl-animated-bastion-reference-20261113.test.mjs \
+            tests/webgl-original-hq-bastion-mk2-20261112.test.mjs \
+            tests/webgl-graded-bastion-pads-20261111.test.mjs
