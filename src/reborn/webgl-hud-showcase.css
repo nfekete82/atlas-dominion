@@ -1056,3 +1056,36 @@
  }
  #sf-classic-root #sidebar #sf-actions.catalog-scroll{border:0!important}
 }
+
+/* Final typography: long real Sandforge building names wrap within their OWN
+   column. This prevents "Forschungszentrum" and "Langstrecken-Raketensilo"
+   overpainting adjacent icons at 1600px, unlike the shorter promo labels. */
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build] .card-meta{
+ flex:0 0 60px!important;
+ height:60px!important;min-height:60px!important;max-height:60px!important;
+ justify-content:flex-end!important;
+ gap:2px!important;padding:0 3px 3px!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build] .card-name{
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ width:100%!important;min-width:0!important;max-width:100%!important;
+ height:33px!important;min-height:27px!important;max-height:33px!important;
+ overflow:hidden!important;
+ white-space:normal!important;
+ overflow-wrap:anywhere!important;
+ word-break:normal!important;
+ text-overflow:clip!important;
+ text-align:center!important;
+ font:800 clamp(10px,.83vw,14px)/1.12 system-ui!important;
+ letter-spacing:-.01em!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build] .card-cost{
+ flex:0 0 18px!important;height:18px!important;min-height:18px!important;
+}
+@media(max-width:740px){
+ #sf-classic-root[data-tab="buildings"] #sf-actions
+  button.catalog-card[data-build] .card-name{font-size:11px!important}
+}
