@@ -385,9 +385,12 @@ export class SandforgeBattlefield {
  pumpModelQueue(){
   while(this.loadingCount<2&&this.modelQueue.length){
    const task=this.modelQueue.shift();this.loadingCount++;
-   const variantUrl=task.type==='building'?
+   // HQ3 builds in place from the finished authored mesh: loading its
+   // old "inactive" variant was showing an entirely different Feldkommando.
+   // Barracks, silo and research still keep their legitimate variants.
+   const variantUrl=task.type==='building'&&task.entry.kind!=='headquarters'?
     strategicGlbUrl(task.entry.kind,
-     ['barracks','headquarters'].includes(task.entry.kind)?'inactive':'active'):null;
+     task.entry.kind==='barracks'?'inactive':'active'):null;
    const promise=variantUrl?
     Promise.all([this.getModel(task.url),this.getModel(variantUrl)]):
     this.getModel(task.url).then(data=>[data,null]);
@@ -543,8 +546,10 @@ export class SandforgeBattlefield {
  beginPlacement(kind){
   this.clearPlacement();
   this.buildKind=kind;this.previewKind=kind;
-  // New barracks, field HQ and original research front all point to -Z.
-  this.placementFacing=['research','barracks','headquarters'].includes(kind)?1:0;
+  // HQ3's entrance/stairs face +Z (the HQ yard is open at +Z).
+  // Start at 0° so the original 180° preset no longer reverses the HQ
+  // before its first construction tick; R still cycles all four directions.
+  this.placementFacing=['research','barracks'].includes(kind)?1:0;
   const spec=BUILDINGS[kind],group=new THREE.Group();
   group.name='ghost-building-'+kind;group.userData={buildGhost:true,nonPlayable:true};
   const placeholder=this.createFallback(kind,0,'building');
@@ -644,8 +649,8 @@ export class SandforgeBattlefield {
   }
   group.add(guides);group.userData.previewGuides=guides;
   // A small directional ground arrow marks the REAL building entrance.
-  // The authored barracks/HQ/factory fronts point toward local +Z, so it
-  // rotates naturally when R changes the building facing.
+  // HQ3 and factory open toward +Z; barracks/research open toward -Z.
+  // The direction arrow follows the exact same initial facing and R key.
   const frontMarker=new THREE.Group();
   frontMarker.name='BuildPreviewFrontDirection';
   const frontWidth=Math.min(22,Math.max(12,spec.width*.12));
@@ -661,7 +666,7 @@ export class SandforgeBattlefield {
   arrow.name='BuildingFrontArrow';
   arrow.rotation.x=-Math.PI/2;
   arrow.position.set(kind==='airfield'?-41:kind==='barracks'?spec.width*.12:0,
-   4.2,kind==='airfield'?65:['research','barracks','headquarters'].includes(kind)?-spec.width*.48-9:spec.width*.48+9);
+   4.2,kind==='airfield'?65:['research','barracks'].includes(kind)?-spec.width*.48-9:spec.width*.48+9);
   arrow.renderOrder=1014;arrow.raycast=()=>{};
   frontMarker.add(arrow);group.add(frontMarker);
   group.userData.previewFrontMarker=frontMarker;
