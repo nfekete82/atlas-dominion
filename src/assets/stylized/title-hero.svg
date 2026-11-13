@@ -49,4 +49,108 @@
 <g transform="translate(740 663)"><path d="M-19 118l8-54 28-3 14 56-24 8-11-37-5 38z" fill="#383d36"/><path d="M-24 18l13-15 43 4 13 68-29 6-24-10z" fill="#ac925f"/><path d="M-28 15l52-6 10 23-54 5z" fill="#385c68"/><path d="M-6-28h25l10 33-34 5-11-16z" fill="#c3a06e"/><path d="M-14-24l4-17 34-11 22 11-8 19z" fill="#6d7b4d"/><path d="M-21 32l-18 36 11 8 25-35z" fill="#b99b72"/><path d="M36 23l16 35-12 8-21-26z" fill="#a48862"/><path d="M-21 42l68 7 6 9-69 3z" fill="#273635"/></g>
 <path d="M0 820l310-90-70 170H0z" fill="#b7785b" opacity=".9"/>
 <path d="M1245 900l355-190v190z" fill="#ac725e" opacity=".8"/>
+<!-- reference-title-expanded: more readable units, helicopter and a guarded base -->
+<!-- desert command lookout -->
+<g transform="translate(1460 337)">
+ <path d="M26 110h114l17 24H15z" fill="#8e6059"/>
+ <path d="M39 128h85v222H39z" fill="#b7866b"/>
+ <path d="M39 155h85v31H39zM39 252h85v20H39z" fill="#46779b"/>
+ <path d="M24 90l55-32 68 24v57H24z" fill="#d2a482"/>
+ <path d="M42 100h34v32H42zM89 100h38v32H89z" fill="#293d42"/>
+ <path d="M14 84h146l-20-19H38z" fill="#424248"/>
+ <path d="M24 139h122v12H24z" fill="#6c5050"/>
+ <path d="M45 347h79v16H45z" fill="#865c54"/>
+</g>
+<!-- blue victory banners: star-and-pole silhouette -->
+<g transform="translate(1194 285)">
+ <path d="M0 0h7v252H0z" fill="#624d42"/>
+ <path d="M7 15l54-5-4 50-50-4z" fill="#437fc1"/>
+ <path d="m31 18 5 13 14 3-10 9 2 13-11-7-12 7 2-13-10-9 15-3z" fill="#f5ebcd"/>
+</g>
+<!-- transport helicopter above base -->
+<g transform="translate(1315 98)">
+ <path d="M60 75 13 101l-8 22 68 6 96-6 40-30-14-30-69-16-42 7z" fill="#aa8069"/>
+ <path d="M62 75 20 101l44 3 14-43z" fill="#435568"/>
+ <path d="M82 63 125 53l47 15-13 30-94 7z" fill="#d6a775"/>
+ <path d="M82 63 71 105h49l-2-48z" fill="#364d5f"/>
+ <path d="M126 68h34l-4 23h-32z" fill="#395a71"/>
+ <path d="M175 84 252 53l15 10-64 33z" fill="#856a62"/>
+ <path d="M250 49v-28l9 2 4 39z" fill="#755654"/>
+ <path d="M250 49l37 11-29 7z" fill="#c69a78"/>
+ <path d="M102 47v-18h9v19z" fill="#47434b"/>
+ <path d="M100 32-51 17l-6-7 161 10 154-26 13 6-160 32z" fill="#303441"/>
+ <path d="M36 137h119v7H36zM52 128l-13 13h8l17-12M146 120l9 20h-9l-13-18" fill="#302f38" stroke="#302f38" stroke-width="5"/>
+ <circle cx="166" cy="111" r="7" fill="#28343e"/>
+ <circle cx="192" cy="104" r="6" fill="#293742"/>
+</g>
+<!-- atmospheric pieces behind front line -->
+<g fill="#b87d6f" opacity=".65">
+ <path d="M435 372v-29h14v-17h12v46zM446 326v-18h4v20z"/>
+ <path d="M622 401v-52h19v-11h14v63z"/>
+ <path d="M1309 440v-38h12v-26h16v64z"/>
+</g>
+<!-- rocket infantry at middle right -->
+<g transform="translate(715 655)">
+ <path d="M-42 159-20 67l31 7-4 83-19 7-4-54-12 51z" fill="#41403e"/>
+ <path d="M-40 61-16 0l70 5 27 71-21 11-37-33-9 59-32-5z" fill="#ac8a5e"/>
+ <path d="M-23 9 39 3l-4 37-68-11z" fill="#467ba8"/>
+ <path d="M-2-16h39l-5 28H-8z" fill="#deb17a"/>
+ <path d="M-14-28 1-49l38-2 23 22-4 18H-7z" fill="#92794b"/>
+ <path d="M-16-37 15-56l37 5 16 14-45 3z" fill="#ca9d62"/>
+ <path d="M20-27h28v13H20z" fill="#393f42"/>
+ <path d="M34 30 117 4l20 7-1 19-96 26z" fill="#52624b"/>
+ <path d="M114 2h37v36h-32z" fill="#333f35"/>
+ <path d="M145 5h16v29h-16z" fill="#767c52"/>
+ <path d="M44 54 71 68l-14 18-38-22z" fill="#d2a36d"/>
+</g>
+<!-- infantry background left -->
+<g transform="translate(169 689)">
+ <path d="M-22 106-16 52 18 54 37 111 11 115 5 87-4 115z" fill="#54423f"/>
+ <path d="M-37 16-8 2 41 13l12 56-37 13-35-23z" fill="#bc986a"/>
+ <path d="M-33 25 3 15l33 13-9 18-42-4z" fill="#477aab"/>
+ <path d="M-12-24h31l13 25-36 9-15-16z" fill="#ca9967"/>
+ <path d="M-25-18-18-34 7-52l34 8 8 17-18 11z" fill="#a98956"/>
+ <path d="M-5-30h36l-1 18H-2z" fill="#35454e"/>
+ <path d="M-42 31-60 73l17 9 20-31zM32 28l26 26-8 15-37-19z" fill="#b18b62"/>
+ <path d="m24 56 87 26-5 13-95-24z" fill="#343b42"/>
+ <path d="M106 83l42 15-2 9-46-11z" fill="#252d35"/>
+</g>
+<!-- prominent angular blue-team soldier, close foreground -->
+<g transform="translate(380 472)">
+ <!-- backpack and boots -->
+ <path d="M-56 116-102 167l18 119 60 3 11-80z" fill="#7f674b"/>
+ <path d="M-26 294-30 420l58 8 40-142zM80 284l48 125 62-7-12-143z" fill="#b38a58"/>
+ <path d="M-29 399-40 436l71 7 9-29zM126 395l-3 42 77-4-8-36z" fill="#4c423e"/>
+ <!-- torso with large shoulder pads -->
+ <path d="M-45 92 9 67l95 11 58 88-17 146-149 1-49-113z" fill="#c9a16e"/>
+ <path d="M-50 118-88 153-107 250l64 58 53-103z" fill="#a77c4f"/>
+ <path d="M95 106 158 123l43 109-55 52-45-94z" fill="#d6ac79"/>
+ <path d="M-44 95-10 77 39 99 20 137l-57-8z" fill="#447db7"/>
+ <path d="M65 90 111 83l28 44-38 18-28-39z" fill="#4f8dc2"/>
+ <!-- neck/head -->
+ <path d="M10 41h83l7 64-69 16-21-43z" fill="#e0ae75"/>
+ <path d="M-4 14 23-28l71-9 37 20 6 43-20 30-105-3z" fill="#bc955f"/>
+ <path d="M6 16 35 0l85 4-1 33-28 27-75-10z" fill="#edb57a"/>
+ <!-- angular military helmet and goggles -->
+ <path d="M-9 1 7-53l28-24 88-2 34 17 4 61-52-15-49-5-37 38z" fill="#b98954"/>
+ <path d="M24-56 64-84l90 5-24 28-93 17z" fill="#a47e4c"/>
+ <path d="m36-40 102-2-8 43-42-2-12-19-33 20z" fill="#303b40"/>
+ <path d="m45-31 34 4-7 20H42zM92-32h36l-5 24-29-1z" fill="#45677a"/>
+ <path d="M29 42h85l-22 17H37z" fill="#b17b53"/>
+ <!-- arms and rifle -->
+ <path d="M35 165 80 146l85 41-29 41-63-25-47 44-38-30z" fill="#c99862"/>
+ <path d="M-44 156-20 147l54 60-23 43-35-36z" fill="#d9aa72"/>
+ <path d="M37 178 106 122l52 13 30 58-65 38-27 59-39-12 30-64z" fill="#353a45"/>
+ <path d="M93 159 166 136l34 21-55 66z" fill="#4a515a"/>
+ <path d="M145 180 241 220l-6 19-116-33z" fill="#2f3540"/>
+ <path d="M222 225l80 28-5 14-77-25z" fill="#252a33"/>
+ <path d="M118 220l-2 69 24-5 21-70z" fill="#474b53"/>
+ <path d="M-30 217 17 247l54-53 26 28-65 91-60-35z" fill="#e0a66a"/>
+ <path d="M-16 289l73 1 62-7 16 41-160 11z" fill="#b88b5c"/>
+</g>
+<!-- foreground rocky mounds -->
+<path d="M0 870 97 752l150 51 103 97H0z" fill="#81525a"/>
+<path d="M97 752 247 803 177 900H0z" fill="#ae726a"/>
+<path d="M562 900 702 806l148 34 98 60z" fill="#885862"/>
+<path d="M702 806 850 840l-70 60H562z" fill="#c1846b"/>
 </svg>

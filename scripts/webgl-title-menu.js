@@ -15,7 +15,15 @@
  const modes={15:4,16:8,17:12,18:16,19:4,20:8,21:12,22:16,23:4,24:8,25:12,26:16};
  const menu=$('main-dialog'),newDialog=$('sf3d-new-dialog');
  const optionsDialog=$('sf3d-options-dialog'),pauseDialog=$('sf3d-pause-dialog');
+ const statsDialog=$('sf3d-stats-dialog'),creditsDialog=$('sf3d-credits-dialog'),exitDialog=$('sf3d-exit-dialog');
  const status=$('sf3d-menu-status');
+ // Reuse the exact badge from the illustrated title in the tactical pause
+ // dialog. The previous badge remains if the new image has not been installed.
+ const pauseLogo=$('sf3d-pause-dialog')?.querySelector('.sandforge-pause-logo');
+ const badgeUrl='/src/assets/reborn/sandforge-title-hud-logo.webp';
+ const badgeProbe=new Image();
+ badgeProbe.onload=()=>{if(pauseLogo)pauseLogo.src=badgeUrl;};
+ badgeProbe.src=badgeUrl;
  const readSave=()=>{try{const raw=localStorage.getItem(savedKey);return raw?JSON.parse(raw):null;}catch{return null;}};
  const readOptions=()=>{try{return JSON.parse(localStorage.getItem(optionKey)||'{}');}catch{return {};}};
  const notify=(message)=>{status.textContent=message;};
@@ -91,6 +99,33 @@
   }
   return Math.floor(Math.random()*4294967296)>>>0;
  }
+ function openStats(){
+  const snapshot=readSave();
+  const content=$('sf3d-stats-content');
+  content.replaceChildren();
+  const row=(title,value)=>{
+   const label=document.createElement('dt'),data=document.createElement('dd');
+   label.textContent=title;data.textContent=String(value);
+   content.append(label,data);
+  };
+  if(!snapshot||!Number.isSafeInteger(snapshot.seed)){
+   row('Spielstand','Noch keine gespeicherte Kampagne');
+  }else{
+   const fmt=new Intl.NumberFormat('de-DE');
+   const secs=Number.isFinite(snapshot.time)?Math.max(0,Math.floor(snapshot.time)):0;
+   const units=Array.isArray(snapshot.units)?snapshot.units.filter(u=>u.owner===0&&u.hp>0).length:0;
+   const buildings=Array.isArray(snapshot.bases)?snapshot.bases.filter(b=>b.owner===0&&b.hp>0).length:0;
+   const bastions=Array.isArray(snapshot.territories)?snapshot.territories.filter(t=>t.owner===0).length:0;
+   const money=Array.isArray(snapshot.credits)?snapshot.credits[0]:0;
+   row('Spielzeit',Math.floor(secs/3600)+' h '+Math.floor(secs%3600/60)+' min');
+   row('Karten-Seed',snapshot.seed);
+   row('Eigene Bastionen',fmt.format(bastions));
+   row('Aktive Einheiten',fmt.format(units));
+   row('Eigene Gebäude',fmt.format(buildings));
+   row('Credits',fmt.format(Math.floor(Number.isFinite(money)?money:0)));
+  }
+  statsDialog.showModal();
+ }
  function openOptions(){
   const opts=readOptions();
   $('sf3d-quality').value=opts.quality==='lite'?'lite':'high';
@@ -155,10 +190,19 @@
   $('sf3d-biome').value='desert';
   newDialog.showModal();
  });
- $('sf3d-campaign').addEventListener('click',()=>newDialog.showModal());
+ $('sf3d-campaign').addEventListener('click',()=>$('sf3d-map-size').focus());
  $('sf3d-continue').addEventListener('click',continueSave);
  $('sf3d-main-load').addEventListener('click',continueSave);
  $('sf3d-main-options').addEventListener('click',openOptions);
+ $('sf3d-main-stats').addEventListener('click',openStats);
+ $('sf3d-main-credits').addEventListener('click',()=>creditsDialog.showModal());
+ $('sf3d-main-exit').addEventListener('click',()=>exitDialog.showModal());
+ $('sf3d-exit-confirm').addEventListener('click',()=>{
+  // Browsers only permit window.close() for script-opened windows. Navigate
+  // to a blank document otherwise so "Beenden" remains an actual action.
+  window.close();
+  location.replace('about:blank');
+ });
  $('sf3d-options-save').addEventListener('click',saveOptions);
  for(const id of ['sf3d-master-volume','sf3d-effects-volume','sf3d-music-volume']){
   $(id).addEventListener('input',applyLiveAudio);

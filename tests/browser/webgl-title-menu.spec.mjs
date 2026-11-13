@@ -7,7 +7,13 @@ test('3D starts with the original Sandforge title and enters a real playable cam
  await page.goto('/webgl-preview.html',{waitUntil:'domcontentloaded'});
  await expect(page.locator('#main-dialog')).toBeVisible();
  await expect(page.locator('html')).toHaveClass(/sandforge-clean-title/);
- await expect(page.locator('#main-dialog .sandforge-splash-logo')).toBeVisible();
+ const cinematic=await page.request.get(new URL('/src/assets/reborn/sandforge-title-centered.webp',page.url()).href);
+ if(cinematic.ok()){
+  await page.waitForFunction(()=>document.documentElement.classList.contains('sf-centered-art-ready'));
+  await expect(page.locator('#main-dialog .sandforge-splash-logo')).toBeHidden();
+ }else{
+  await expect(page.locator('#main-dialog .sandforge-splash-logo')).toBeVisible();
+ }
  await expect(page.locator('#sf3d-new')).toBeVisible();
  await expect(page.locator('#sf3d-main-options')).toBeVisible();
  expect(await page.evaluate(()=>!!window.__sandforgeWebGL)).toBe(false);
@@ -37,12 +43,18 @@ test('3D starts with the original Sandforge title and enters a real playable cam
  expect(state.hasWebGL).toBe(true);
  expect(state.canvas).toBeGreaterThan(400);
  expect(state.hasHud).toBe(true);
+ const hudLogoAsset=await page.request.get(new URL('/src/assets/reborn/sandforge-title-hud-logo.webp',page.url()).href);
+ if(hudLogoAsset.ok()){
+  await expect(page.locator('#sf-classic-root .sandforge-hud-logo')).toHaveAttribute('src',/sandforge-title-hud-logo\.webp/);
+ }
  await page.locator('[data-action="menu"]').click();
  await expect(page.locator('#sf3d-pause-dialog')).toBeVisible();
  await page.locator('#sf3d-pause-save').click();
  expect(await page.evaluate(()=>Boolean(localStorage.getItem('sandforge:webgl:v1')))).toBe(true);
  await page.locator('#sf3d-pause-main').click();
  await expect(page.locator('#main-dialog')).toBeVisible();
+ await expect(page.locator('#main-dialog .sf3d-hero-button')).toHaveCount(5);
+ await page.locator('#sf3d-new').click();
  await expect(page.locator('#sf3d-continue')).toBeVisible();
  await page.locator('#sf3d-continue').click();
  await expect(page).toHaveURL(/resume=1/);

@@ -64,53 +64,168 @@ a:hover{text-decoration:underline}
 </style>
 
 <style id="sf-low-poly-title-skin">
-/* A newly illustrated Sandforge title. Actions remain the existing tested DOM. */
+/* Illustrated Sandforge landing screen, separated from gameplay HUD and pause menu. */
 html.sandforge-clean-title #main-dialog{
- background-color:#d49a78;
- background-image:linear-gradient(90deg,rgba(20,25,28,.68),rgba(20,25,28,.07) 44%,rgba(20,25,28,.04)),
-   url('/src/assets/stylized/title-hero.svg');
- background-size:cover,cover;
- background-position:center,center;
+ position:fixed;inset:0;box-sizing:border-box;margin:0;border:0;border-radius:0;
+ padding:0;width:100vw;height:100dvh;max-width:none;max-height:none;overflow:hidden;
+ color:#f9e6c9;background:#e0a77d url('/src/assets/stylized/title-hero.svg') center / cover no-repeat;
 }
-html.sandforge-clean-title #main-dialog[open]{
- justify-content:flex-start;
- align-items:flex-start;
- flex-direction:column;
- padding:clamp(20px,3.1vw,55px);
-}
+html.sandforge-clean-title #main-dialog::before,
+html.sandforge-clean-title #main-dialog::after{content:none}
+html.sandforge-clean-title #main-dialog::backdrop{background:#161d22}
+html.sandforge-clean-title #main-dialog[open]{display:block}
 html.sandforge-clean-title #main-dialog .menu-brand{
- position:relative;top:auto;left:auto;transform:none;
- width:min(460px,66vw);max-width:100%;height:auto;
- margin:0 0 2vh;justify-content:flex-start;
+ position:absolute;left:50%;top:clamp(4px,1vh,15px);transform:translateX(-50%);
+ margin:0;width:min(740px,60vw);height:auto;display:block;z-index:2;
 }
 html.sandforge-clean-title #main-dialog .sandforge-splash-logo{
- max-height:155px;object-position:left center;filter:drop-shadow(0 7px 6px #121c2299);
+ display:block;width:100%;height:auto;max-height:34dvh;object-fit:contain;
+ filter:drop-shadow(0 7px 3px #3d2d3577);
 }
 html.sandforge-clean-title #main-dialog .menu-buttons{
- margin:0;width:min(290px,79vw);gap:8px;
- background:rgba(17,30,32,.26);padding:11px;border-radius:12px;
+ position:absolute;left:clamp(20px,2vw,42px);top:30.5%;z-index:2;
+ width:clamp(240px,18vw,310px);max-width:calc(100vw - 40px);padding:0;margin:0;
+ background:none;border:0;border-radius:0;display:flex;flex-direction:column;gap:5px;
 }
-html.sandforge-clean-title #main-dialog .menu-buttons .menu-button:not([hidden]){
- flex-basis:46px;height:46px;border-radius:6px;
- color:#f9e9cd;background:linear-gradient(125deg,#273a3ef0,#1d2c31e9);
- border:1px solid #c4a17ac9;box-shadow:0 5px 12px #09131c44;
+html.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button{
+ box-sizing:border-box;display:flex;align-items:center;justify-content:flex-start;
+ gap:20px;flex:none;width:100%;height:clamp(53px,7vh,66px);min-height:0;
+ padding:0 21px;border:2px solid #a97c68;border-radius:8px;
+ clip-path:polygon(5% 0,95% 0,100% 18%,100% 82%,95% 100%,5% 100%,0 82%,0 18%);
+ background:linear-gradient(135deg,#454049f6,#2b2935f5);color:#f7d9bf;
+ box-shadow:inset 0 2px #ffffff23,inset 0 -3px #08081045,0 4px 12px #3a2c3766;
+ font-family:Impact,'Arial Narrow','Arial Black',sans-serif;font-size:clamp(17px,1.52vw,25px);
+ font-weight:850;line-height:1;letter-spacing:.4px;text-align:left;text-shadow:0 2px #2c2731;
+ transition:filter .16s ease,transform .16s ease,background .16s ease;
 }
-html.sandforge-clean-title #main-dialog .menu-buttons .menu-button.primary{
- background:linear-gradient(125deg,#ce964d,#a66c35);color:#201c1b;border-color:#f0cf89;
+html.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button svg{
+ display:block;flex:0 0 37px;width:37px;height:37px;color:#ffdfbf;filter:drop-shadow(0 2px #352b35);
+}
+html.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button.primary{
+ background:linear-gradient(135deg,#ed9721,#c4780c);border-color:#eeb14c;color:#fff0d4;
+}
+html.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button:hover{
+ background:linear-gradient(135deg,#63515c,#38343e);filter:brightness(1.13);transform:translateX(4px);
+}
+html.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button.primary:hover{
+ background:linear-gradient(135deg,#ffab32,#db8112);
+}
+html.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button:focus-visible{
+ outline:3px solid #fff3c0;outline-offset:4px;
 }
 html.sandforge-clean-title #main-dialog #sf3d-menu-status{
- margin-top:8px;color:#f6d8ac;text-shadow:0 1px 5px #182322;
+ position:absolute;left:clamp(20px,2vw,42px);top:calc(30.5% + 5 * clamp(53px,7vh,66px) + 30px);
+ margin:0;max-width:310px;color:#fff1d5;font-size:11px;
+ text-shadow:0 1px 5px #3c2c35;
 }
+.sf3d-start-shortcuts{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 18px}
+.sf3d-start-shortcuts button{flex:1 1 130px;border-color:#8f7759;font-size:11px;font-weight:700}
+.sf3d-start-shortcuts button[hidden]{display:none}
+.sf3d-menu-details{box-sizing:border-box;width:min(480px,calc(100vw - 34px));max-height:calc(100dvh - 30px);
+ padding:clamp(18px,3vw,31px);color:#f5e5c9;background:linear-gradient(145deg,#2e3841,#171e26);
+ border:2px solid #b58e61;border-radius:8px;box-shadow:0 20px 70px #0009}
+.sf3d-menu-details::backdrop{background:#111823b9}
+.sf3d-menu-details small{color:#e8b56f;letter-spacing:2px;font-weight:700}
+.sf3d-menu-details h1{font-size:clamp(24px,5vw,34px);margin:12px 0 17px}
+.sf3d-menu-details p{line-height:1.6}
+.sf3d-menu-details>button{margin-top:13px}
+.sf3d-stats-grid{display:grid;grid-template-columns:1fr auto;gap:8px 18px}
+.sf3d-stats-grid dt,.sf3d-stats-grid dd{padding:8px 0;margin:0;border-bottom:1px solid #a78d6655}
+.sf3d-stats-grid dd{text-align:right;color:#efc685;font-variant-numeric:tabular-nums}
 @media(max-width:720px){
- html.sandforge-clean-title #main-dialog{
-  background-image:linear-gradient(0deg,#18292cae,transparent 72%),url('/src/assets/stylized/title-hero.svg');
-  background-position:center,64% center;
+ html.sandforge-clean-title #main-dialog{background-position:63% center}
+ html.sandforge-clean-title #main-dialog .menu-brand{width:min(93vw,560px);top:4vh}
+ html.sandforge-clean-title #main-dialog .menu-buttons{
+  left:50%;top:auto;bottom:clamp(12px,3vh,30px);transform:translateX(-50%);
+  width:min(330px,88vw);gap:4px;
  }
- html.sandforge-clean-title #main-dialog[open]{align-items:center;justify-content:flex-end;padding:15px;}
- html.sandforge-clean-title #main-dialog .menu-brand{position:relative;left:auto;top:auto;transform:none;width:min(82vw,430px);}
- html.sandforge-clean-title #main-dialog .menu-buttons{margin:0;width:min(320px,92vw);}
+ html.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button{
+  height:clamp(43px,8vh,58px);font-size:19px;gap:15px;padding:0 15px;
+ }
+ html.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button svg{width:27px;height:27px;flex-basis:27px}
+ html.sandforge-clean-title #main-dialog #sf3d-menu-status{display:none}
+}
+@media(max-height:620px) and (min-width:721px){
+ html.sandforge-clean-title #main-dialog .menu-brand{width:min(540px,48vw)}
+ html.sandforge-clean-title #main-dialog .menu-buttons{top:28%}
+ html.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button{height:clamp(42px,10vh,55px)}
+ html.sandforge-clean-title #main-dialog #sf3d-menu-status{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+ html.sandforge-clean-title #main-dialog .sf3d-hero-button{transition:none}
 }
 </style>
+<style id="sf-centered-cinematic-title">
+/* Art already includes the full logo and menu: transparent hotspots only. */
+html.sf-centered-art-ready.sandforge-clean-title #main-dialog{
+ --sf-title-scale:max(calc(100vw / 1672),calc(100dvh / 941));
+ background:#e7af86 url('/src/assets/reborn/sandforge-title-centered.webp') center / cover no-repeat;
+}
+html.sf-centered-art-ready.sandforge-clean-title #main-dialog .menu-brand{display:none!important}
+@media(min-width:721px) and (min-aspect-ratio:3/2){
+ html.sf-centered-art-ready.sandforge-clean-title #main-dialog .menu-buttons{
+  display:flex;position:absolute;transform:none;
+  left:calc(50% - 191 * var(--sf-title-scale));
+  top:calc(50% - 143 * var(--sf-title-scale));
+  right:auto;bottom:auto;
+  width:calc(368 * var(--sf-title-scale));max-width:none;
+  margin:0;padding:0;gap:calc(6 * var(--sf-title-scale));
+  background:transparent;border:0;border-radius:0;box-shadow:none;
+ }
+ html.sf-centered-art-ready.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button{
+  position:relative;box-sizing:border-box;flex:none;
+  width:100%;height:calc(62 * var(--sf-title-scale));
+  min-height:0;margin:0;padding:0;border:0;border-radius:0;clip-path:none;
+  background:transparent!important;box-shadow:none!important;
+  transform:none!important;filter:none!important;
+  color:transparent;font-size:0;letter-spacing:0;text-shadow:none;outline:0;
+ }
+ html.sf-centered-art-ready.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button:first-child{
+  height:calc(68 * var(--sf-title-scale));
+ }
+ html.sf-centered-art-ready.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button:not(:first-child){
+  width:calc(340 * var(--sf-title-scale));margin-left:calc(14 * var(--sf-title-scale));
+ }
+ html.sf-centered-art-ready.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button svg{display:none}
+ html.sf-centered-art-ready.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button span{opacity:0}
+ html.sf-centered-art-ready.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button:hover,
+ html.sf-centered-art-ready.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button:focus-visible{
+  outline:2px solid #ffdf8f;outline-offset:-3px;background:#fff1bd11!important;
+ }
+ html.sf-centered-art-ready.sandforge-clean-title #main-dialog #sf3d-menu-status{display:none}
+}
+/* Narrow/tall screens need visible controls because cover crops the art. */
+@media(max-width:720px), (max-aspect-ratio:3/2){
+ html.sf-centered-art-ready.sandforge-clean-title #main-dialog{background-position:center}
+ html.sf-centered-art-ready.sandforge-clean-title #main-dialog .menu-buttons{
+  position:absolute;left:50%;top:auto;right:auto;bottom:12px;transform:translateX(-50%);
+  width:min(350px,89vw);max-width:89vw;margin:0;padding:8px;gap:5px;
+  background:#1b2430c0;border-radius:10px;
+ }
+ html.sf-centered-art-ready.sandforge-clean-title #main-dialog .menu-buttons .sf3d-hero-button{
+  width:100%;height:clamp(42px,8vh,55px);min-height:0;font-size:clamp(16px,4.2vw,20px);
+ }
+}
+@media(min-width:901px){
+ #sf-classic-root .top.hud{width:max-content;max-width:min(99vw,510px);height:73px;min-height:73px}
+ #sf-classic-root .top .wordmark{
+  width:165px;min-width:165px;max-width:165px;flex:0 0 165px;height:66px;
+ }
+ #sf-classic-root .top .sandforge-hud-logo{width:100%;height:64px;max-height:64px;object-fit:contain}
+}
+@media(max-width:900px){#sf-classic-root .top .sandforge-hud-logo{object-fit:contain}}
+</style>
+<script>
+/* Only activate the baked image after it loaded; missing assets keep the
+   previous working title, without a duplicated badge. */
+(()=>{const image=new Image();
+ image.onload=()=>{
+  if(image.naturalWidth===1672&&image.naturalHeight===941)
+   document.documentElement.classList.add('sf-centered-art-ready');
+ };
+ image.src='/src/assets/reborn/sandforge-title-centered.webp';
+})();
+</script>
 </head>
 <body>
 <div id="stage" aria-label="Echte Three.js WebGL 3D Landschaft"></div>
@@ -143,19 +258,24 @@ html.sandforge-clean-title #main-dialog #sf3d-menu-status{
 </div>
 
 <dialog id="main-dialog" class="main-menu" aria-label="Sandforge: Bastion Wars Hauptmenü">
- <div class="menu-brand"><img class="sandforge-splash-logo" src="/src/assets/reborn/sandforge-logo-transparent.webp" alt="Sandforge: Bastion Wars"></div>
- <div class="menu-buttons">
-  <button id="sf3d-new" class="menu-button primary">NEUES SPIEL</button>
-  <button id="sf3d-continue" class="menu-button" hidden>KAMPAGNE FORTSETZEN</button>
-  <button id="sf3d-campaign" class="menu-button">KAMPAGNE WÄHLEN</button>
-  <button id="sf3d-main-load" class="menu-button">SPIELSTAND LADEN</button>
-  <button id="sf3d-main-options" class="menu-button">OPTIONEN</button>
- </div>
+ <div class="menu-brand"><img class="sandforge-splash-logo" src="/src/assets/reborn/sandforge-logo-transparent.webp" alt="Sandforge: Bastion Wars" decoding="async"></div>
+ <nav class="menu-buttons" aria-label="Hauptmenü">
+  <button type="button" id="sf3d-new" class="menu-button sf3d-hero-button primary"><svg aria-hidden="true" viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6 25 17 10 28Z" fill="currentColor" stroke="none"/></svg><span>SPIELEN</span></button>
+  <button type="button" id="sf3d-main-options" class="menu-button sf3d-hero-button"><svg aria-hidden="true" viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="m17 4 3 1 .9 3.4 3 1.6 3.4-1 2.2 2.2-1 3.4 1.6 3 .9 3.4-2.2 2.2-3.4-1-3 1.6-.9 3.4-3 1-3-1-.9-3.4-3-1.6-3.4 1-2.2-2.2 1-3.4-1.6-3-.9-3.4 2.2-2.2 3.4 1 3-1.6.9-3.4Z"/><circle cx="17" cy="17" r="5"/></svg><span>OPTIONEN</span></button>
+  <button type="button" id="sf3d-main-stats" class="menu-button sf3d-hero-button"><svg aria-hidden="true" viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 28V18h6v10M14 28V10h6v18M23 28V5h6v23" fill="currentColor" stroke="none"/></svg><span>STATISTIKEN</span></button>
+  <button type="button" id="sf3d-main-credits" class="menu-button sf3d-hero-button"><svg aria-hidden="true" viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="17" cy="17" r="13"/><path d="M17 15v10M17 9v1" stroke-width="4"/></svg><span>CREDITS</span></button>
+  <button type="button" id="sf3d-main-exit" class="menu-button sf3d-hero-button"><svg aria-hidden="true" viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3v15M9 8a13 13 0 1 0 16 0"/></svg><span>BEENDEN</span></button>
+ </nav>
  <p id="sf3d-menu-status" role="status" aria-live="polite"></p>
 </dialog>
 <dialog id="sf3d-new-dialog" aria-label="Neue 3D-Kampagne">
  <small>SANDFORGE / NEUE KAMPAGNE</small><h1>Schlachtfeld wählen</h1>
  <p>Neue Landschaft, neue Wege. Ein gleicher Seed und ein gleiches Geländeprofil erzeugen dasselbe Schlachtfeld.</p>
+ <div class="sf3d-start-shortcuts" role="group" aria-label="Vorhandene Kampagne">
+  <button type="button" id="sf3d-continue" hidden>SPIEL FORTSETZEN</button>
+  <button type="button" id="sf3d-main-load">SPIELSTAND LADEN</button>
+  <button type="button" id="sf3d-campaign">KAMPAGNE WÄHLEN</button>
+ </div>
  <label class="sf3d-field" for="sf3d-map-size">Kartengröße / Bastionen
   <select id="sf3d-map-size"><option value="4">Klein · 4 Bastionen</option><option value="8" selected>Mittel · 8 Bastionen</option><option value="12">Groß · 12 Bastionen</option><option value="16">Sehr groß · 16 Bastionen</option></select>
  </label>
@@ -173,6 +293,22 @@ html.sandforge-clean-title #main-dialog #sf3d-menu-status{
   <button type="button" data-sf3d-close>ABBRECHEN</button>
   <button id="sf3d-new-confirm" class="primary" type="button">KAMPAGNE STARTEN</button>
  </div>
+</dialog>
+<dialog id="sf3d-stats-dialog" class="sf3d-menu-details" aria-label="Spielstatistiken">
+ <small>SANDFORGE / STATISTIKEN</small><h1>Spielstatistiken</h1>
+ <dl id="sf3d-stats-content" class="sf3d-stats-grid"></dl>
+ <button type="button" data-sf3d-close>ZURÜCK ZUM MENÜ</button>
+</dialog>
+<dialog id="sf3d-credits-dialog" class="sf3d-menu-details" aria-label="Credits">
+ <small>SANDFORGE / BASTION WARS</small><h1>Credits</h1>
+ <p>Sandforge: Bastion Wars – taktisches Echtzeitstrategiespiel mit Basenbau, Forschung und Bastionseroberung.</p>
+ <p>3D-Technologie: Three.js und WebGL. Spieloberfläche: HTML, CSS und JavaScript.</p>
+ <button type="button" data-sf3d-close>ZURÜCK ZUM MENÜ</button>
+</dialog>
+<dialog id="sf3d-exit-dialog" class="sf3d-menu-details" aria-label="Spiel beenden">
+ <small>SANDFORGE / BEENDEN</small><h1>Spiel verlassen?</h1>
+ <p>Du verlässt das Spiel. Ein laufender Spielstand wird dabei nicht automatisch gespeichert.</p>
+ <div class="dialog-actions"><button type="button" data-sf3d-close>ABBRECHEN</button><button type="button" id="sf3d-exit-confirm" class="primary">SPIEL BEENDEN</button></div>
 </dialog>
 <dialog id="sf3d-options-dialog" aria-label="3D-Grafik- und Soundoptionen">
  <small>SANDFORGE / OPTIONEN</small><h1>Grafik und Sound</h1>
