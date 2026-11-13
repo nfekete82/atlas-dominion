@@ -86,8 +86,8 @@ test('shipping HUD occupies reference screenshot positions at 1600×900',async({
  });
  expect(panelStyle.border).toBe('0px');
  expect(panelStyle.background).toMatch(/^rgba\(/);
- // New visual tuning: the CSS must remove the legacy .frame::after gold
- // stripe and keep the thumbnail/text comfortably below their old size.
+ // The compact charcoal HUD keeps the ornamental stripe hidden while
+ // leaving readable building thumbnails and two-line labels.
  const compact=await page.evaluate(()=>{
   const card=document.querySelector('[data-sf-group="buildings"] .catalog-card');
   const img=card.querySelector('.sf-card-image img');
@@ -109,9 +109,9 @@ test('shipping HUD occupies reference screenshot positions at 1600×900',async({
  });
  expect(compact.lineDisplay).toBe('none');
  expect(compact.lineContent).toBe('none');
- expect(compact.imageScale).toBeGreaterThanOrEqual(.94);
- expect(compact.imageScale).toBeLessThanOrEqual(.97);
- expect(compact.nameFont).toBeLessThanOrEqual(10);
+ expect(compact.imageScale).toBeGreaterThanOrEqual(1.08);
+ expect(compact.imageScale).toBeLessThanOrEqual(1.10);
+ expect(compact.nameFont).toBeLessThanOrEqual(12);
  expect(compact.priceFont).toBeLessThanOrEqual(13);
  expect(compact.metaHeight).toBeLessThanOrEqual(42);
  expect(compact.firstDivider).toBe('none');
@@ -131,7 +131,8 @@ test('shipping HUD occupies reference screenshot positions at 1600×900',async({
   expect(label.right).toBeLessThanOrEqual(label.tileRight+1);
   expect(label.scrollWidth).toBeLessThanOrEqual(label.boxWidth+2);
  }
- expect(state.cards[0].h).toBeGreaterThan(120);
+ expect(state.cards[0].h).toBeGreaterThan(75);
+ expect(state.cards[0].h).toBeLessThan(115);
  expect(state.scrollWidth).toBeLessThanOrEqual(1605);
  await expect(page.locator('#sf-tools')).toBeHidden();
  await page.locator('#sf-hud-menu-toggle').click();
