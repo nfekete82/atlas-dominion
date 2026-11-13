@@ -32,7 +32,7 @@ test('all four ORIGINAL user-uploaded GLBs are committed unchanged',()=>{
 });
 test('HQ3 stays the same authored mesh through construction and completion',()=>{
  assert.equal(strategicGlbUrl('headquarters','inactive'),strategicGlbUrl('headquarters','active'));
- assert.ok(strategicGlbUrl('headquarters','active').endsWith('sandforge_funkzentrale_hq3_game_ready.glb'));
+ assert.ok(strategicGlbUrl('headquarters','active').endsWith('sandforge_feldkommando_mk2.glb'));
  assert.equal(strategicGlbActive('headquarters',{hp:1500,owner:0,buildRemaining:8},{}),false);
  assert.equal(strategicGlbActive('headquarters',{hp:1500,owner:0,buildRemaining:0},{}),false);
  const battlefield=readFileSync('scripts/webgl-battlefield.js','utf8');
