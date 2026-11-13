@@ -40,7 +40,12 @@ export const HQ3_MATCHED_DESERT_PALETTE=Object.freeze({
 export const SOLDIER_HQ3_DESERT_PALETTE=Object.freeze({
  rgb:Object.freeze(['.72,.63,.47','.38,.43,.29','.19,.27,.18'])
 });
-export const DESERT_FINISH_REVISION='biome-camouflage-hq3-all-facilities-v11-20261113';
+// The Kaserne's steep roof uses deeper charcoal than the generic military
+// facility palette. Linear RGB values retain individual panel shading.
+export const BARRACKS_HQ3_CHARCOAL_ROOF=Object.freeze([
+ '.088,.093,.083','.064,.069,.062','.040,.046,.043'
+]);
+export const DESERT_FINISH_REVISION='biome-camouflage-hq3-charcoal-barracks-v12-20261113';
 const SOLDIER_KINDS=new Set(['infantry','medic','engineer','heavy','rocket']);
 let selectedCamouflageBiome='desert';
 export function setWorldCamouflageBiome(value){
@@ -68,13 +73,15 @@ function applyDesertBuildingCamo(material,style='standard'){
   matchedDesert?HQ3_MATCHED_DESERT_PALETTE.wall:CAMOUFLAGE_PALETTES[biome].rgb;
  material.onBeforeCompile=function(shader,renderer){
   oldCompile?.call(this,shader,renderer);
-  const varying='varying vec3 sfDesertWorld;'+(roof?'\nvarying vec3 sfDesertUp;':'');
+  const varying='varying vec3 sfDesertWorld;'+(roof?'\nvarying vec3 sfDesertUp;':'')+
+   (roof&&style==='barracks'?'\nvarying float sfBarracksHeight;':'');
   shader.vertexShader=shader.vertexShader.replace('#include <common>',
    '#include <common>\n'+varying);
   shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',
    '#include <begin_vertex>\nsfDesertWorld='+(
     soldier?'transformed;':'(modelMatrix*vec4(transformed,1.0)).xyz;')+
-   (roof?'\nsfDesertUp=normalize(mat3(modelMatrix)*normal);':''));
+   (roof?'\nsfDesertUp=normalize(mat3(modelMatrix)*normal);':'')+
+   (roof&&style==='barracks'?'\nsfBarracksHeight=transformed.y;':''));
   shader.fragmentShader=shader.fragmentShader.replace('#include <common>',
    '#include <common>\n'+varying);
   // Three clearly separated irregular patches; do not merely colour a few
@@ -102,10 +109,23 @@ function applyDesertBuildingCamo(material,style='standard'){
    // The HQ-like dark roof is limited to upward-facing surfaces.
    // Real wall geometry, doors, glass, radar and team markers are untouched.
    ...(roof?[
-    'float sfRoof=smoothstep(.50,.78,max(sfDesertUp.y,0.0));',
-    'vec3 sfRoofPaint=mix(vec3('+HQ3_MATCHED_DESERT_PALETTE.roof[0]+'),vec3('+HQ3_MATCHED_DESERT_PALETTE.roof[1]+'),sfKhaki);',
-    'sfRoofPaint=mix(sfRoofPaint,vec3('+HQ3_MATCHED_DESERT_PALETTE.roof[2]+'),sfOlive);',
-    'sfPaint=mix(sfPaint,sfRoofPaint,sfRoof*.99);'
+    // GLB inspection: real gable roof polygons at local Y 5.3–9.0 have
+    // normal.y as low as .24. The old .50 cutoff left those slopes beige.
+    ...(style==='barracks'?[
+     'float sfRoof=smoothstep(.12,.24,max(sfDesertUp.y,0.0))*',
+     ' smoothstep(4.85,5.25,sfBarracksHeight);'
+    ]:[
+     'float sfRoof=smoothstep(.50,.78,max(sfDesertUp.y,0.0));'
+    ]),
+    'vec3 sfRoofPaint=mix(vec3('+
+     (style==='barracks'?BARRACKS_HQ3_CHARCOAL_ROOF[0]:HQ3_MATCHED_DESERT_PALETTE.roof[0])+
+     '),vec3('+
+     (style==='barracks'?BARRACKS_HQ3_CHARCOAL_ROOF[1]:HQ3_MATCHED_DESERT_PALETTE.roof[1])+
+     '),sfKhaki);',
+    'sfRoofPaint=mix(sfRoofPaint,vec3('+
+     (style==='barracks'?BARRACKS_HQ3_CHARCOAL_ROOF[2]:HQ3_MATCHED_DESERT_PALETTE.roof[2])+
+     '),sfOlive);',
+    'sfPaint=mix(sfPaint,sfRoofPaint,sfRoof*.998);'
    ]:[]),
    // The original Kaserne's pale plates need real-looking mottled painted
    // wear and sharper organic camo, not just a flat recoloured material.
