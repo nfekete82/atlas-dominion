@@ -38,6 +38,12 @@ test('infantry, pioneers and rocket infantry use fine, locally fixed HQ3 olive c
 
 test('shared glTF materials do not carry soldier camouflage onto rifle, visor or face',()=>{
  setWorldCamouflageBiome('desert');
+ assert.equal(shouldTintFactionSurface('engineer','unit',
+  'Generic_Armor','SkinnedMesh'),true,
+  'the generic glTF SkinnedMesh node must not be mistaken for a human skin material');
+ assert.equal(shouldTintFactionSurface('engineer','unit',
+  'Human_Skin','SkinnedMesh'),false,
+  'actual exposed skin stays protected');
  const source=new THREE.MeshStandardMaterial({name:'Generic_Metal',color:'#c6c2b6'});
  const root=new THREE.Group();
  const meshes=[];
