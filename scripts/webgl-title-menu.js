@@ -20,7 +20,7 @@
  // Reuse the exact badge from the illustrated title in the tactical pause
  // dialog. The previous badge remains if the new image has not been installed.
  const pauseLogo=$('sf3d-pause-dialog')?.querySelector('.sandforge-pause-logo');
- const badgeUrl='/src/assets/reborn/sandforge-title-hud-logo.webp';
+ const badgeUrl='/src/assets/reborn/sandforge-bastion-logo.webp';
  const badgeProbe=new Image();
  badgeProbe.onload=()=>{if(pauseLogo)pauseLogo.src=badgeUrl;};
  badgeProbe.src=badgeUrl;
