@@ -1,0 +1,49 @@
+name: HQ3 building design QA
+
+on:
+  push:
+    branches:
+      - feat/hq3-building-design-system-20261113
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hq3-design-qa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  building-design:
+    name: Node 22 + isolated Chromium building smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install game dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Install browser dependencies
+        run: npm ci --prefix tests/browser --no-audit --no-fund
+      - name: Install headless Chromium
+        run: cd tests/browser && npx playwright install --with-deps chromium
+      - name: Real-model building design regression tests
+        run: npm run test:building-design
+      - name: Isolated real Chromium 3D gallery and game tests
+        env:
+          SANDFORGE_BROWSER_CHANNEL: chromium
+        run: npm run test:building-design:browser
+      - name: Preserve Playwright report, traces and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hq3-building-design-evidence
+          path: |
+            tests/browser/artifacts/
+            docs/building-design-system/qa/
+          if-no-files-found: ignore
+          retention-days: 7
