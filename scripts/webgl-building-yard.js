@@ -142,12 +142,13 @@ function instanceFenceWires(group,parts){
  group.add(wires);
 }
 function perimeterFence(group,width,kind){
- // The research lab, original field command and replacement barracks have
- // their main entrances on local -Z. Leave that facade fully open: fence
- // the opposite (+Z) side. Other facilities retain their existing entrance.
+ // The newer user-authored HQ3 Funkzentrale has its front stairs on +Z,
+ // while barracks and research retain entrances on -Z. Keep the decorative
+ // fence behind each entrance instead of running across its stairs/door.
+ // The local facade mapping follows the building's rotation automatically.
  // Three instanced draw calls for posts, rails and cross-bracing.
  const x=width*.65;
- const reverseFront=['research','headquarters','barracks'].includes(kind);
+ const reverseFront=['research','barracks'].includes(kind);
  const rear=reverseFront?width*.53:-width*.53;
  const front=reverseFront?-width*.28:width*.28;
  const posts=[],rails=[],wires=[],seen=new Set();
