@@ -1745,6 +1745,11 @@ export class SandforgeBattlefield {
   if(this.previousActionsMarkup!==markup){
    const scroll=actions.scrollTop;
    actions.innerHTML=markup;this.previousActionsMarkup=markup;
+   // Real catalogue length varies by unlocked/feature-gated building.
+   // Keep EVERY card on one row; the CSS grid uses this count to distribute
+   // equal-width tiles or overflow horizontally instead of wrapping.
+   const buildingGrid=actions.querySelector('[data-sf-group="buildings"] > .catalog-grid');
+   if(buildingGrid)buildingGrid.style.setProperty('--sf-building-count',String(buildingGrid.children.length));
    actions.scrollTop=scroll;
   }
   // Tiny dynamic updates never invalidate catalogue icons or reset scroll.
