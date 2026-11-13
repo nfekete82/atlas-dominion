@@ -43,6 +43,8 @@ test('3D starts with the original Sandforge title and enters a real playable cam
  expect(await page.evaluate(()=>Boolean(localStorage.getItem('sandforge:webgl:v1')))).toBe(true);
  await page.locator('#sf3d-pause-main').click();
  await expect(page.locator('#main-dialog')).toBeVisible();
+ await expect(page.locator('#main-dialog .sf3d-hero-button')).toHaveCount(5);
+ await page.locator('#sf3d-new').click();
  await expect(page.locator('#sf3d-continue')).toBeVisible();
  await page.locator('#sf3d-continue').click();
  await expect(page).toHaveURL(/resume=1/);
