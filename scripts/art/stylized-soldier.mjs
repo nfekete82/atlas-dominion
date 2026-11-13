@@ -2,8 +2,9 @@ import * as T from 'three';
 import {mergeGeometries,mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 import {kit,rootModel,quaternionTrack} from './stylized-kit.mjs';
 
-export function buildSoldier(owner){
- const root=rootModel('infantry',owner),k=kit(owner),bones=[],rig=new T.Group();rig.name='Rig';root.add(rig);
+export function buildSoldier(owner,role='infantry'){
+ const engineer=role==='engineer';
+ const root=rootModel(role,owner),k=kit(owner),bones=[],rig=new T.Group();rig.name='Rig';root.add(rig);
  const bone=(name,at,parent=rig)=>{const n=new T.Bone();n.name=name;n.position.set(...at);parent.add(n);bones.push(n);return n;};
  const hips=bone('Hips',[0,.94,0]),chest=bone('Chest',[0,.29,0],hips),head=bone('Head',[0,.36,0],chest);
  const {box:b,cylinder:c,part}=k;
@@ -32,9 +33,9 @@ export function buildSoldier(owner){
  b(head,'GoggleBridge',[.025,.066,.029],[0,.18,.176],'metal',.004);
  // Faceted helmet dome with neck skirt and short visor; custom profile.
  const helmetProfile=[[.16,.255],[.18,.255],[.19,.29],[.185,.36],[.16,.43],[.10,.47],[0,.48]].map(v=>new T.Vector2(v[0],v[1]));
- part(head,'BallisticHelmet',new T.LatheGeometry(helmetProfile,10),'olive');
- b(head,'HelmetRim',[.40,.045,.36],[0,.267,.015],'oliveLight',.018);
- b(head,'HelmetVisor',[.34,.035,.15],[0,.276,.19],'olive',.02);
+ part(head,'BallisticHelmet',new T.LatheGeometry(helmetProfile,10),engineer?'amber':'olive');
+ b(head,'HelmetRim',[.40,.045,.36],[0,.267,.015],engineer?'sandLight':'oliveLight',.018);
+ b(head,'HelmetVisor',[.34,.035,.15],[0,.276,.19],engineer?'amber':'olive',.02);
  b(head,'HelmetTeamPatch',[.13,.075,.025],[0,.345,.183],'team',.008);
  for(const s of [-1,1]){
   b(head,'EarProtection',[.055,.13,.10],[s*.145,.12,0],'leather',.015);
@@ -65,6 +66,7 @@ export function buildSoldier(owner){
   }
  }
  const weapon=bone('Weapon',[.13,-.105,.35],chest);
+ if(!engineer){
  b(weapon,'RifleReceiver',[.075,.10,.33],[0,0,.04],'recess',.012);
  b(weapon,'RifleStock',[.065,.13,.20],[0,-.005,-.21],'olive',.012);
  b(weapon,'RifleHandguard',[.08,.08,.24],[0,.01,.28],'olive',.012);
@@ -72,6 +74,21 @@ export function buildSoldier(owner){
  b(weapon,'RifleMagazine',[.055,.16,.09],[0,-.115,.04],'metal',.008,[-.20,0,0]);
  b(weapon,'RifleSight',[.025,.045,.07],[0,.073,.10],'metal',.005);
  b(weapon,'RifleGrip',[.05,.12,.06],[0,-.09,-.085],'leather',.01,[-.25,0,0]);
+ }else{
+  // Construction wrench replaces the rifle before skin baking. A tall
+  // high-visibility helmet, toolkit, gloves and chest harness read as a
+  // pioneer even at typical RTS distance.
+  b(weapon,'ToolGrip',[.105,.24,.105],[0,-.015,.07],'leather',.02);
+  c(weapon,'WrenchShaft',.055,.65,[0,.18,.20],'metal',[.18,0,-.12],8,k.steel);
+  b(weapon,'WrenchHead',[.30,.105,.14],[0,.51,.22],'metal',.025);
+  b(weapon,'WrenchJawLeft',[.085,.25,.14],[-.125,.59,.22],'metal',.013);
+  b(weapon,'WrenchJawRight',[.085,.25,.14],[.125,.59,.22],'metal',.013);
+  b(chest,'EngineerFrontPlate',[.30,.31,.065],[0,.07,.224],'amber',.018);
+  b(chest,'EquipmentHarness',[.36,.07,.075],[0,-.115,.26],'metal',.015);
+  b(chest,'ToolRadio',[.20,.30,.14],[-.27,.04,-.17],'oliveLight',.022);
+  c(chest,'RadioAntenna',.016,.47,[-.26,.39,-.19],'recess',[0,0,0],6);
+  b(hips,'SideToolPouch',[.19,.29,.17],[-.23,-.04,-.01],'leather',.028);
+ }
  const muzzle=bone('WeaponMuzzle',[0,.018,.61],weapon);
  // Bake all original components to one SkinnedMesh; actual GLTF skin/bones.
  // Segment overlaps hide seams during large joint rotations at low poly density.
@@ -111,6 +128,17 @@ export function buildSoldier(owner){
   quaternionTrack('Hips',[0,.2,.6,.85],[[0,0,0],[-.15,0,.12],[-1.25,0,.14],[-1.53,0,.12]]),
   quaternionTrack('Thigh_L',[0,.4,.85],[[0,0,0],[.35,0,-.12],[.1,0,-.15]]),
   quaternionTrack('Thigh_R',[0,.4,.85],[[0,0,0],[-.2,0,.13],[.1,0,.16]])]));
+ if(engineer){
+  // The normal play and death loops remain compatible with the infantry
+  // animation controller. Build/Repair are additional role-specific clips.
+  clips.push(new T.AnimationClip('Build',.72,[
+   quaternionTrack('Forearm_R',[0,.16,.38,.58,.72],[[-.40,0,0],[-1.20,0,-.08],[-.15,0,0],[-1.05,0,-.08],[-.40,0,0]]),
+   quaternionTrack('Weapon',[0,.18,.40,.72],[[0,0,0],[-.30,0,.10],[.14,0,-.08],[0,0,0]])]));
+  clips.push(new T.AnimationClip('Repair',.9,[
+   quaternionTrack('Forearm_R',[0,.2,.43,.67,.9],[[-.45,0,0],[-.90,0,-.08],[-.26,0,0],[-1.0,0,-.04],[-.45,0,0]]),
+   quaternionTrack('Chest',[0,.45,.9],[[.06,-.05,0],[-.08,.06,0],[.06,-.05,0]])]));
+ }
+ mesh.name=engineer?'SFV1_EngineerSkin':'SFV1_SoldierSkin';
  mesh.animations=clips;mesh.userData.rig={bones:bones.length,skin:'one skinned primitive; rigid segment weights',muzzle:muzzle.name};
  return mesh;
 }
