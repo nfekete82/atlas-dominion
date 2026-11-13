@@ -29,7 +29,7 @@ import {wallLinePlacements,wallLineFromTurret,wallLineToTurret,wallLineBetweenTu
 import {sameKindVisibleUnits} from '/webgl-double-click-select.js';
 import {tracerWindow} from '/webgl-hit-response.js';
 import {applyFactionAccents,tintFactionMaterials} from '/webgl-faction-accents.js';
-import {STRATEGIC_GLB_MODELS,isStrategicGlbKind,strategicGlbUrl,strategicGlbActive,applyStrategicGlbFinish,tintBastionCaptureSignals,centerAuthoredRadarPivot,ensureTexturedHqRadarPivot} from '/webgl-strategic-glb.js';
+import {STRATEGIC_GLB_MODELS,isStrategicGlbKind,strategicGlbUrl,strategicGlbActive,applyStrategicGlbFinish,tintBastionCaptureSignals,centerAuthoredRadarPivot,ensureTexturedHqRadarPivot,ensureHeadquartersSatelliteMount} from '/webgl-strategic-glb.js';
 import {attachTeamMarkings,detachTeamMarkings} from '/webgl-team-markings.js';
 import {SandforgeConstructionPresentation} from '/webgl-construction.js';
 import {createBastionCaptureBar,updateBastionCaptureBar} from '/webgl-bastion-capture.js';
@@ -347,8 +347,9 @@ export class SandforgeBattlefield {
    if(authoredRadar||activeRadar){
     centerAuthoredRadarPivot(authoredRadar);
     centerAuthoredRadarPivot(activeRadar);
+    const radarMount=ensureHeadquartersSatelliteMount(authoredRadar??activeRadar);
     entry.motion={kind:'headquarters',rotor:authoredRadar??activeRadar,
-     activeRotor:activeRadar,mode:'authored-hq'};
+     activeRotor:activeRadar,radarMount,mode:'authored-hq'};
     return;
    }
    const clip=data.animations?.find(c=>c.name==='RadarSpin');
@@ -1092,6 +1093,7 @@ export class SandforgeBattlefield {
      e.motion.mixer.stopAllAction();
      if(e.detail)e.motion.mixer.uncacheRoot(e.detail);
     }
+    if(e.motion?.radarMount)disposeOwnedMeshes(e.motion.radarMount);
     if(e.motion?.mode==='fallback'&&e.motion.rotor)disposeOwnedMeshes(e.motion.rotor);
     this.scene.remove(e.node);this.bases.delete(id);
     this.announcedBuildings.delete(id);
