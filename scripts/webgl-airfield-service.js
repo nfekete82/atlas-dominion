@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import {applyBuildingDesign} from './webgl-building-design.js';
+import {worldCamouflageBiome,tintFactionMaterials} from './webgl-faction-accents.js';
 import {disposeOwnedMeshes} from './webgl-resource-lifecycle.js';
 import {servicePaint,disposeServicePaint} from './webgl-service-materials.js';
 
@@ -274,6 +276,8 @@ export function createAirfieldServiceYard(){
   part.position.x+=57;
  group.scale.set(.90,.84,.82);group.position.x=95;
  group.traverse(mesh=>{if(mesh.isMesh){mesh.castShadow=false;mesh.receiveShadow=false;mesh.raycast=()=>{};}});
+ if(worldCamouflageBiome()!=='desert')tintFactionMaterials(group,0,'airfield','building');
+ else applyBuildingDesign(group,{kind:'airfield',biome:worldCamouflageBiome()});
  return group;
 }
 /** Terrain-following surface mesh used by both the construction ghost and
@@ -385,7 +389,7 @@ export function updateAirfieldServiceYard(entry,base,units,time,dt){
 export function hideOldAirfieldHangar(entry){
  if(!entry.detail||entry.airfieldOldHidden)return;
  entry.detail.traverse(child=>{
-  if(/^(?:Atlas_)?(?:Hangar|ParkedJet|JetWheel|AirfieldRunway|AirfieldConcreteApron|TaxiwayFromHangar|Runway|ApronStopLine|SecurityPerimeter|ControlTower|Tower|MaintenanceServiceBlock|ServiceFlatRoof|ServiceRollerDoor|ServiceDoorLouvre|RoofCoolingUnit|AntennaEquipmentPad|AntennaStem|Beacon|FuelStorageTank|FuelTankSteelBand|FuelTankSupport|FuelPipingMain|FuelPipeTap|CargoContainer|AirbaseFloodlightMast|AirbaseFloodlightTop|AirbaseFloodlightLens|GroundPlinth|CeramicFoundation)/.test(child.name))
+  if(/^AtlasUpgrade_airfield_/.test(child.name)||/^(?:Atlas_)?(?:Hangar|ParkedJet|JetWheel|AirfieldRunway|AirfieldConcreteApron|TaxiwayFromHangar|Runway|ApronStopLine|SecurityPerimeter|ControlTower|Tower|MaintenanceServiceBlock|ServiceFlatRoof|ServiceRollerDoor|ServiceDoorLouvre|RoofCoolingUnit|AntennaEquipmentPad|AntennaStem|Beacon|FuelStorageTank|FuelTankSteelBand|FuelTankSupport|FuelPipingMain|FuelPipeTap|CargoContainer|AirbaseFloodlightMast|AirbaseFloodlightTop|AirbaseFloodlightLens|GroundPlinth|CeramicFoundation)/.test(child.name))
    {child.visible=false;child.userData.airfieldLegacyHidden=true;}
  });
  entry.airfieldOldHidden=true;

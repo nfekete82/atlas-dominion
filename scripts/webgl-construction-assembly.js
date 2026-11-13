@@ -10,7 +10,7 @@ import * as THREE from 'three';
  * mesh spanning the entire barracks facade to build from bottom to top, rather
  * than suddenly pop into existence at 75% like the ordinary mesh-name stages.
  */
-export const AUTHORED_ASSEMBLY_KINDS=Object.freeze(['headquarters','barracks']);
+export const AUTHORED_ASSEMBLY_KINDS=Object.freeze(['headquarters','barracks','factory','airfield','research','silo','generator','turret','interceptor','wall']);
 
 export function prepareAuthoredAssembly(root,{referenceHeight=0}={}){
  if(!root)return null;

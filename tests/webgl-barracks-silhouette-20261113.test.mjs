@@ -42,6 +42,15 @@ test('remove independent barracks tower, redundant rooftop fans and ridge vent w
  samples.forEach(g=>g.dispose());
 });
 
+test('apron islands disappear without removing wall-supporting blocks',()=>{
+ const foundation=b=>barracksAccessoryRegion(b,'static__foundation');
+ assert.equal(foundation({min:{x:-10.1,y:-.085,z:-9.125},max:{x:10.1,y:.605,z:9.125}}),'exterior-slab-or-steps');
+ assert.equal(foundation({min:{x:-2.825,y:.27,z:-10.11},max:{x:2.825,y:.65,z:-8.01}}),'exterior-slab-or-steps');
+ assert.equal(foundation({min:{x:-5.07,y:1.08,z:-1.69},max:{x:5.07,y:1.60,z:6.11}}),null,'foundation beneath main building survives');
+ for(const name of ['static__concrete_high','static__deck','static__deck_light'])
+  assert.equal(barracksAccessoryRegion({min:{x:-9,y:.7,z:-9},max:{x:9,y:1.1,z:9}},name),'exterior-apron-surface');
+});
+
 test('entirely redundant accessory meshes do not leave floating watchtower beacons',()=>{
  const geometry=box(.28,.20,.28,-7.66,8.95,5.93);
  const mesh=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial());
@@ -66,11 +75,12 @@ test('large connected roof surfaces never get clipped by decorative exclusion re
 });
 
 test('barracks is taller but does not enlarge collision, fences or gameplay footprint',()=>{
- assert.equal(STRATEGIC_BUILDING_VISUAL_SCALE.barracks,1.20);
- assert.equal(strategicBuildingHeightScale('barracks'),1.28);
+ assert.equal(STRATEGIC_BUILDING_VISUAL_SCALE.barracks,1.27);
+ assert.ok(strategicBuildingHeightScale('barracks')>1.7);
+ // Exact clearance is measured against the real door in the design-system suite.
  const bounds={x:20.2,y:9.055,z:20.2},width=140;
  const model=calibratedScale('barracks','building',bounds,width);
- assert.ok(Math.abs(model-(width/20.2)*1.20)<1e-7);
+ assert.ok(Math.abs(model-(width/20.2)*1.27)<1e-7);
  assert.ok(bounds.y*model*1.28>bounds.y*model,
   'vertical lift must affect the imported building, not soldiers or gameplay');
  const code=readFileSync('scripts/webgl-battlefield.js','utf8');
@@ -81,8 +91,8 @@ test('barracks is taller but does not enlarge collision, fences or gameplay foot
   'the placement preview must have the same simplified GLB');
  const yard=createBuildingYard('barracks',width);
  try{
-  assert.equal(yard.scale.x,1.20);
-  assert.equal(yard.scale.y,1.20,
+  assert.equal(yard.scale.x,1.27);
+  assert.equal(yard.scale.y,1.27,
    'visual yard follows horizontal width but not the taller roof');
   assert.equal(yard.getObjectByName('BasePerimeter_barracks').userData.nonPlayable,true);
  }finally{disposeBuildingYard(yard);}

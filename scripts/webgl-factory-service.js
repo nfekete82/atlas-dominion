@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import {applyBuildingDesign} from './webgl-building-design.js';
+import {worldCamouflageBiome,tintFactionMaterials} from './webgl-faction-accents.js';
 import {disposeOwnedMeshes} from './webgl-resource-lifecycle.js';
 import {servicePaint,disposeServicePaint} from './webgl-service-materials.js';
 
@@ -71,6 +73,8 @@ export function createFactoryServiceYard(){
  }
  root.userData.bay0={indicator,glow,icon,sparks};
  root.traverse(o=>{if(o.isMesh){o.castShadow=false;o.raycast=()=>{};}});
+ if(worldCamouflageBiome()!=='desert')tintFactionMaterials(root,0,'factory','building');
+ else applyBuildingDesign(root,{kind:'factory',biome:worldCamouflageBiome()});
  return root;
 }
 export function updateFactoryServiceYard(entry,base,units,time){

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {buildingFacingAngle} from './webgl-scale.js';
 import {rolloutWheelsShouldRoll} from './webgl-wheel-motion.js';
 import {prepareBarracksPortal,updateBarracksPortalPlanes,setBarracksDoorOpen,
- barracksExitLane,disposeBarracksPortal} from './webgl-barracks-portal.js';
+ barracksExitLane,barracksDeparturePoint,disposeBarracksPortal} from './webgl-barracks-portal.js';
 
 export const GATE_TIMING=Object.freeze({warning:.25,opening:1,drive:3.6,closing:1});
 const clamp=v=>Math.max(0,Math.min(1,v));
@@ -89,6 +89,19 @@ export function disposeHeadquartersPortal(entry){
 /** Operates on the real actor node, never creates an actor or modifies Simulation.
  * State is ephemeral: loading a save creates a fresh presenter and closed gates.
  */
+export function applyProductionGatePose(gate,pose){
+ if(gate.kind==='barracks'){
+  updateBarracksPortalPlanes(gate.portal);
+  // Authored pivots use 1=closed and 0=open.
+  setBarracksDoorOpen(gate.portal,gate.portal.authored?1-pose.open:pose.open);
+ }else if(gate.kind==='headquarters'){
+  setHeadquartersDoorOpen(gate.portal,pose.open);
+ }else{
+  gate.door.scale.y=1-pose.open*.96;
+  gate.door.position.y=1.48*pose.open*.96;
+ }
+}
+
 export class SandforgeProductionGates {
  constructor(battlefield){
   this.battlefield=battlefield;this.game=battlefield.game;
@@ -114,7 +127,7 @@ export class SandforgeProductionGates {
    const root=portal.root;
    const lampMaterial=new THREE.MeshStandardMaterial({color:'#7d3913',emissive:'#ff9f2a',emissiveIntensity:0});
    const lamp=new THREE.Mesh(bulbGeometry,lampMaterial);
-   lamp.position.set(...(portal.authored?[0,3.9,-4.25]:[-.18,1.42,1.65]));lamp.visible=false;root.add(lamp);
+   lamp.position.set(...(root.userData?.portal?.lamp??(portal.authored?[0,3.9,-4.25]:[-.18,1.42,1.65])));lamp.visible=false;root.add(lamp);
    entry.gate={kind:'barracks',root,portal,door:null,hall:portal.hall,lamp,dust:null,ramp:null};
    setBarracksDoorOpen(portal,portal.authored?1:0);
    return entry.gate;
@@ -216,16 +229,7 @@ export class SandforgeProductionGates {
     this.active.delete(id);continue;
    }
    const gate=entry.gate;
-   if(gate.kind==='barracks'){
-    updateBarracksPortalPlanes(gate.portal);
-    // Author-authored barracks pivots: 1=closed and 0=open.
-    setBarracksDoorOpen(gate.portal,gate.portal.authored?1-pose.open:pose.open);
-   }else if(gate.kind==='headquarters'){
-    setHeadquartersDoorOpen(gate.portal,pose.open);
-   }else{
-    gate.door.scale.y=1-pose.open*.96;
-    gate.door.position.y=1.48*pose.open*.96;
-   }
+   applyProductionGatePose(gate,pose);
    gate.hall.visible=gate.kind==='headquarters'||
     age>=GATE_TIMING.warning&&pose.open>.01;
    gate.lamp.visible=true;
@@ -257,7 +261,7 @@ export class SandforgeProductionGates {
    if(fraction<clearFraction){
     const t=smooth(fraction/clearFraction);
     if(hq)p=root.localToWorld(new THREE.Vector3(0,.60-t,-.48+3.33*t));
-    else if(infantry)p=root.localToWorld(lane.inside.lerp(lane.outside,t));
+    else if(infantry)p=root.localToWorld(barracksDeparturePoint(gate.portal,t));
     else{
      const z=-.03+2.93*t;
      const y=z<=1.5?.265:Math.max(0,.265*(2.9-z)/1.4);

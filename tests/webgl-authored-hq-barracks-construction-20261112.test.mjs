@@ -40,11 +40,11 @@ test('building height staging reveals merged GLB triangle groups bottom-up',()=>
  assert.deepEqual(Array.from(original.index.array),source,'cached source remains unchanged');
  mesh.material.dispose();original.dispose();
 });
-test('HQ3 is staged in place while Kaserne uses its closed variant',()=>{
+test('HQ3 is staged in place while Kaserne uses its closed variant or the new single authored model',()=>{
  const code=readFileSync('scripts/webgl-construction.js','utf8');
  const battle=readFileSync('scripts/webgl-battlefield.js','utf8');
- assert.ok(code.includes("base.kind==='headquarters'||entry.variantDetail"));
- assert.ok(code.includes("base.kind==='headquarters'?entry.detail:entry.variantDetail"));
+ assert.ok(code.includes('Boolean(entry.detail??entry.placeholder)'));
+ assert.ok(code.includes("base.kind==='barracks'?(entry.variantDetail??entry.detail):entry.detail"));
  assert.ok(code.includes("if(!authored)stageGroup(model,'building')"));
  assert.ok(code.includes('releaseAuthoredAssembly(state.authoredAssembly)'));
  assert.ok(code.includes('entry.detail,entry.variantDetail,entry.placeholder'));

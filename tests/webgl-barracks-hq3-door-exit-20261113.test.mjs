@@ -61,7 +61,7 @@ test('authored barracks exit turns with each of the four builder rotations',()=>
   const lane=barracksExitLane(portal);
   const inside=model.localToWorld(lane.inside.clone());
   const outside=model.localToWorld(lane.outside.clone());
-  const delta=outside.clone().sub(inside).normalize();
+  const delta=outside.clone().sub(inside);delta.y=0;delta.normalize();
   const angle=buildingFacingAngle(facing);
   assert.ok(Math.abs(delta.x+Math.sin(angle))<1e-4);
   assert.ok(Math.abs(delta.z+Math.cos(angle))<1e-4);
@@ -79,14 +79,14 @@ test('barracks production no longer cancels hidden troop and opens authored shut
 });
 
 test('barracks visual scale and HQ3-style textured matte roof remain cosmetic',()=>{
- assert.equal(STRATEGIC_BUILDING_VISUAL_SCALE.barracks,1.20);
+ assert.equal(STRATEGIC_BUILDING_VISUAL_SCALE.barracks,1.27);
  const dims={x:120,y:85,z:100};
  const base=Math.min(140/120,119/85);
- assert.ok(Math.abs(calibratedScale('barracks','building',dims,140)-base*1.20)<1e-8);
+ assert.ok(Math.abs(calibratedScale('barracks','building',dims,140)-base*1.27)<1e-8);
  const yard=createBuildingYard('barracks',140);
- try{assert.equal(yard.scale.x,1.20);}finally{disposeBuildingYard(yard);}
+ try{assert.equal(yard.scale.x,1.27);}finally{disposeBuildingYard(yard);}
  setWorldCamouflageBiome('desert');
- for(const name of ['SF_white','SF_olive','SF_steel_light']){
+ for(const name of ['SF_white','SF_olive','SF_olive_light']){
   const source=new THREE.MeshStandardMaterial({name,color:'#dfd9c7',
    roughness:.51,metalness:.61});
   const mesh=new THREE.Mesh(new THREE.BoxGeometry(2,2,2),source);
@@ -94,22 +94,14 @@ test('barracks visual scale and HQ3-style textured matte roof remain cosmetic',(
   assert.equal(tintFactionMaterials(root,0,'barracks','building'),1,name);
   const mat=mesh.material;
   assert.ok(mat.roughness>=.91&&mat.metalness<=.15,name);
-  const shader={vertexShader:'#include <common>\n#include <begin_vertex>',
+  const shader={uniforms:{},vertexShader:'#include <common>\n#include <begin_vertex>',
    fragmentShader:'#include <common>\n#include <color_fragment>'};
   mat.onBeforeCompile(shader,null);
-  assert.ok(shader.fragmentShader.includes(HQ3_MATCHED_DESERT_PALETTE.wall[1]));
-  assert.ok(shader.fragmentShader.includes('sfGrain'));
-  assert.ok(shader.fragmentShader.includes('sfRoofPaint'),
-   'light roof plates should be anthracite, not off-white');
-  assert.ok(shader.fragmentShader.includes(BARRACKS_HQ3_CHARCOAL_ROOF[0]),
-   'real roof must be darker than the other facilities');
-  assert.ok(shader.fragmentShader.includes(BARRACKS_HQ3_CHARCOAL_ROOF[2]));
-  assert.ok(shader.fragmentShader.includes('smoothstep(.12,.24,'),
-   'the real gable slope has upward normals below .50');
-  assert.ok(shader.fragmentShader.includes('smoothstep(4.85,5.25,sfBarracksHeight)'),
-   'low facade and ground slabs must stay camouflaged, not charcoal');
-  assert.ok(shader.vertexShader.includes('sfBarracksHeight=transformed.y;'));
-  assert.ok(shader.fragmentShader.includes(',.985)'));
+  assert.equal(mat.userData.sandforgeMaterialReference,'Desert_Camouflage_Weathered');
+  assert.equal(shader.uniforms.sfHqMap.value.name,'HQ3_camouflage-albedo');
+  assert.equal(shader.uniforms.sfHqRoofMap.value.name,'HQ3_roof-albedo');
+  assert.ok(shader.fragmentShader.includes('sfHqAlbedo'));
+  assert.ok(shader.vertexShader.includes('sfHqPosition=sfBuildingPosition;'));
   mesh.geometry.dispose();mat.dispose();source.dispose();
  }
 });

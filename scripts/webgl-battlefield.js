@@ -1,5 +1,7 @@
 import * as THREE from 'three';
+import {stylizedAsset,isStylizedAsset,stylizedProfile} from './webgl-stylized-pack.js';
 import {SandforgeProductionGates} from '/webgl-production-gates.js';
+import {updateBarracksPortalPlanes} from '/webgl-barracks-portal.js';
 import {nextPeriodicRefresh} from '/webgl-frame-scheduling.js';
 import {wheelsShouldRoll} from '/webgl-wheel-motion.js';
 import {clone as cloneSkeleton} from 'three/addons/utils/SkeletonUtils.js';
@@ -11,10 +13,11 @@ import {installClassicHud} from '/webgl-classic-hud.js';
 import {globalCatalogAvailability} from '/webgl-global-catalog.js';
 import {hydrateUnitIcons,hydrateBuildingIcons,unitIcon,buildingIcon,buildingIconUrl,researchIconMarkup,researchEffectLabel,hydrateResearchArtworks} from '/webgl-portraits.js';
 import {SandforgeActorPresentation} from '/webgl-actor-presentation.js';
-import {calibratedScale,visualUnitScale,unitVisualYaw,unitRenderAltitude,buildingFacingAngle,nextBuildingFacing,buildingFacingDegrees,turretAimLocalYaw,selectionRingRadius,strategicBuildingHeightScale} from '/webgl-scale.js';
+import {calibratedScale,visualUnitScale,unitVisualYaw,unitRenderAltitude,buildingFacingAngle,nextBuildingFacing,buildingFacingDegrees,turretAimLocalYaw,selectionRingRadius,strategicBuildingHeightScale,authoredBuildingGroundY} from '/webgl-scale.js';
 import {SandforgeGroundingPass} from '/webgl-grounding.js';
 import {createBuildingYard,disposeBuildingYard} from '/webgl-building-yard.js';
 import {simplifyBarracksSilhouette} from '/webgl-barracks-silhouette.js';
+import {updateSiloHatch} from '/webgl-building-motion.js';
 import {createAirfieldServiceYard,conformAirfieldSurface,updateAirfieldServiceYard,hideOldAirfieldHangar,disposeAirfieldServiceYard} from '/webgl-airfield-service.js';
 import {createFactoryServiceYard,updateFactoryServiceYard,disposeFactoryServiceYard} from '/webgl-factory-service.js';
 import {disposeServicePaint,previewServiceMaterial} from '/webgl-service-materials.js';
@@ -209,6 +212,10 @@ export class SandforgeBattlefield {
  }
  asset(kind,owner,type){
   const prefix='/src/assets/reborn/';
+  if(new URLSearchParams(location.search).get('art')!=='legacy'){
+   const authored=stylizedAsset(kind,owner);
+   if(authored)return authored;
+  }
   if(type==='building')return (['barracks','headquarters'].includes(kind)?
     strategicGlbUrl(kind,'active'):strategicGlbUrl(kind))??
     prefix+'buildings-3d/'+kind+'-'+owner+'.glb';
@@ -223,7 +230,7 @@ export class SandforgeBattlefield {
   // still appear. Falling back to primitive grey cubes would make the actual
   // player's base look markedly worse than the 2D game.
   // Medics always load their authored 3D soldier, even in lite mode.
-  if((this.lite&&type!=='building'&&entity.kind!=='medic'&&entity.kind!=='rocket')||
+  if((this.lite&&type!=='building'&&entity.kind!=='medic'&&entity.kind!=='rocket'&&!stylizedAsset(entity.kind,entity.owner))||
      (type==='building'&&isStrategicBuilding(entity.kind)&&!isStrategicGlbKind(entity.kind))||entry.requested||
      this.loadingCount+this.modelQueue.length>=this.maxModels)return;
   entry.requested=true;
@@ -390,17 +397,27 @@ export class SandforgeBattlefield {
    // HQ3 builds in place from the finished authored mesh: loading its
    // old "inactive" variant was showing an entirely different Feldkommando.
    // Barracks, silo and research still keep their legitimate variants.
-   const variantUrl=task.type==='building'&&task.entry.kind!=='headquarters'?
+   const variantUrl=task.type==='building'&&task.entry.kind!=='headquarters'&&!isStylizedAsset(task.url)?
     strategicGlbUrl(task.entry.kind,
      task.entry.kind==='barracks'?'inactive':'active'):null;
    const promise=variantUrl?
     Promise.all([this.getModel(task.url),this.getModel(variantUrl)]):
-    this.getModel(task.url).then(data=>[data,null]);
+    this.getModel(task.url).catch(error=>{
+     if(!isStylizedAsset(task.url))throw error;
+     // Keep original authored assets as a genuine loading fallback.
+     const e=task.entry;
+     const old=task.type==='building'?strategicGlbUrl(e.kind,'active'):
+      '/src/assets/reborn/'+(e.kind==='rover'?'animation/':'prototype/')+e.kind+'-'+e.owner+'.glb';
+     console.warn('Stylized pack unavailable; loading original:',old);
+     return this.getModel(old);
+    }).then(data=>[data,null]);
    promise.then(([data,variantData])=>{
     const {entry,type}=task;
     if(!entry.node.parent)return;
     const model=cloneSkeleton(data.scene);
-    if(type==='building'&&entry.kind==='barracks')
+    const authoredStyle=stylizedProfile(model);
+    if(authoredStyle)model.userData={...model.userData,...authoredStyle};
+    if(type==='building'&&entry.kind==='barracks'&&!authoredStyle)
      simplifyBarracksSilhouette(model);
     if(type==='unit'&&entry.kind==='rocket')
      attachRocketLauncherToInfantry(model,entry.owner);
@@ -409,16 +426,17 @@ export class SandforgeBattlefield {
     const desired=type==='unit'?UNITS[entry.kind].width:BUILDINGS[entry.kind].width;
     const extent=Math.max(dims.x,dims.z);
     if(extent>.0001){
-     const scale=calibratedScale(entry.kind,type,dims,desired)*
+     const scale=authoredStyle?authoredStyle.metresToWorld:calibratedScale(entry.kind,type,dims,desired)*
        (type==='unit'?visualUnitScale(entry.kind):1);
-     const heightScale=type==='building'?strategicBuildingHeightScale(entry.kind):1;
+     const heightScale=type==='building'&&!authoredStyle?strategicBuildingHeightScale(entry.kind):1;
      model.scale.multiplyScalar(scale);model.scale.y*=heightScale;
-     model.position.set(-box0.getCenter(new THREE.Vector3()).x*scale,
-      -box0.min.y*scale*heightScale,-box0.getCenter(new THREE.Vector3()).z*scale);
+     if(authoredStyle)model.position.set(0,0,0);
+     else model.position.set(-box0.getCenter(new THREE.Vector3()).x*scale,
+      -authoredBuildingGroundY(entry.kind,box0)*scale*heightScale,-box0.getCenter(new THREE.Vector3()).z*scale);
     }
     if(type==='building'){
      this.lightBuildingMeshes(model);
-     if(isStrategicGlbKind(entry.kind))applyStrategicGlbFinish(model);
+     if(isStrategicGlbKind(entry.kind)&&!authoredStyle)applyStrategicGlbFinish(model);
     }else model.traverse(o=>{
      if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}
     });
@@ -444,7 +462,7 @@ export class SandforgeBattlefield {
      alternate.scale.multiplyScalar(altScale);alternate.scale.y*=altHeightScale;
      alternate.position.set(
       -altBounds.getCenter(new THREE.Vector3()).x*altScale,
-      -altBounds.min.y*altScale*altHeightScale,
+      -authoredBuildingGroundY(entry.kind,altBounds)*altScale*altHeightScale,
       -altBounds.getCenter(new THREE.Vector3()).z*altScale);
      this.lightBuildingMeshes(alternate);
      applyStrategicGlbFinish(alternate);
@@ -454,10 +472,10 @@ export class SandforgeBattlefield {
      entry.variantDetail=alternate;
      entry.variantHeight=altDims.y*altScale*altHeightScale;
     }
-    const visualScale=calibratedScale(entry.kind,type,dims,desired)*
+    const visualScale=authoredStyle?authoredStyle.metresToWorld:calibratedScale(entry.kind,type,dims,desired)*
       (type==='unit'?visualUnitScale(entry.kind):1);
     entry.modelHeight=Math.max(dims.y*visualScale*
-     (type==='building'?strategicBuildingHeightScale(entry.kind):1),entry.variantHeight??0);
+     (type==='building'&&!authoredStyle?strategicBuildingHeightScale(entry.kind):1),entry.variantHeight??0);
     entry.modelFootprint=Math.max(dims.x,dims.z)*visualScale;
     applyFactionAccents(entry,{kind:entry.kind,owner:entry.owner},type,
      entry.modelFootprint,entry.modelHeight);
@@ -476,7 +494,8 @@ export class SandforgeBattlefield {
      const attack=data.animations.find(a=>/attack|shoot|fire|recoil|strike/i.test(a.name))||null;
      const hit=data.animations.find(a=>/hit|damage|hurt/i.test(a.name))||null;
      const death=data.animations.find(a=>/death|die|destroy/i.test(a.name))||null;
-     entry.animation={mixer,idle,walk,attack,hit,death,playing:null};
+     const run=data.animations.find(a=>/^run$/i.test(a.name))??walk;
+     entry.animation={mixer,idle,walk,run,attack,hit,death,playing:null};
      entry.playAnimation=(clip,retrigger=false)=>this.playClip(entry,clip,retrigger);
      this.playClip(entry,idle);
     }
@@ -501,7 +520,7 @@ export class SandforgeBattlefield {
      if(unit.hp<=0||unit.carrier)continue;
      const pending=this.units.get(unit.id);
      if(!pending||pending.requested||pending.detail)continue;
-     if(this.lite&&unit.kind!=='medic'&&unit.kind!=='rocket')continue;
+     if(this.lite&&unit.kind!=='medic'&&unit.kind!=='rocket'&&!stylizedAsset(unit.kind,unit.owner))continue;
      this.scheduleDetail(pending,unit,'unit');
      if(this.loadingCount+this.modelQueue.length>=4)break;
     }
@@ -716,7 +735,7 @@ export class SandforgeBattlefield {
     const heightScale=strategicBuildingHeightScale(kind);
     model.scale.multiplyScalar(scale);model.scale.y*=heightScale;
     model.position.set(-bounds.getCenter(new THREE.Vector3()).x*scale,
-      -bounds.min.y*scale*heightScale,-bounds.getCenter(new THREE.Vector3()).z*scale);
+      -authoredBuildingGroundY(kind,bounds)*scale*heightScale,-bounds.getCenter(new THREE.Vector3()).z*scale);
    }
    if(kind==='airfield')hideOldAirfieldHangar({detail:model});
    if(isStrategicGlbKind(kind))applyStrategicGlbFinish(model);
@@ -1050,11 +1069,13 @@ export class SandforgeBattlefield {
    entry.node.visible=b.owner===0||this.game.canSee(0,b);
    entry.node.scale.y=1;
    entry.node.rotation.y=buildingFacingAngle(b.facing);
+   if(entry.barracksPortal)updateBarracksPortalPlanes(entry.barracksPortal);
    if(entry.variantDetail){
     const activeVariant=strategicGlbActive(b.kind,b,this.game);
     entry.detail.visible=!activeVariant;
     entry.variantDetail.visible=activeVariant;
    }
+   if(b.kind==='silo')updateSiloHatch(entry,b,active?dt:0);
    // Stage the actual yard on the first construction tick. If attached
    // afterward, HQ3 side consoles/crates briefly appear fully completed.
    if(!entry.yard){
@@ -1065,7 +1086,6 @@ export class SandforgeBattlefield {
      if(decor)decor.visible=this.siteDecorEnabled;
     }
    }
-   this.construction.update(entry,b);
    if(b.kind==='airfield'){
     if(!entry.airfieldServiceYard){
      entry.airfieldServiceYard=createAirfieldServiceYard();entry.node.add(entry.airfieldServiceYard);
@@ -1080,6 +1100,8 @@ export class SandforgeBattlefield {
     }
     if(b.buildRemaining<=0)updateFactoryServiceYard(entry,b,this.game.units,this.game.time);
    }
+   this.construction.update(entry,b);
+   if(entry.motion?.mode==='fallback'&&entry.motion.rotor)entry.motion.rotor.visible=b.buildRemaining<=0;
    this.animateBuildingMotion(entry,b,dt,active);
    if(b.buildRemaining<=0&&!this.announcedBuildings.has(b.id)){
     this.announcedBuildings.add(b.id);

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sandforge Building Style Gallery</title><link rel="icon" href="/src/assets/reborn/sandforge-icon.svg">
+<script type="importmap">{"imports":{"three":"/vendor/three/three.module.js","three/addons/":"/vendor/three/addons/"}}</script>
+<style>
+:root{color-scheme:dark;font-family:system-ui,sans-serif;background:#151b19;color:#ece4d2}*{box-sizing:border-box}body{margin:0}header{position:sticky;top:0;z-index:4;background:#18201df5;border-bottom:1px solid #53604d;padding:18px 24px;backdrop-filter:blur(12px)}h1{font-size:20px;letter-spacing:.08em;margin:0 0 6px}header p{margin:0 0 14px;color:#bcbba9;font-size:13px}a{color:#d8c59a}nav{display:flex;align-items:center;gap:12px;flex-wrap:wrap}label{display:inline-flex;align-items:center;gap:7px;font-size:13px}select,button{font:inherit;color:inherit;background:#28352e;border:1px solid #5b6853;border-radius:4px;padding:7px 10px;cursor:pointer}button:hover,button:focus-visible{background:#435241}input{accent-color:#b7c69c}#performance{font:12px ui-monospace,monospace;color:#c1cba9;margin-left:auto}main{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding:20px 24px}.card{min-width:0;background:#202a23;border:1px solid #495447;border-radius:6px;overflow:hidden}.card h2{position:relative;z-index:3;font-size:15px;padding:14px 15px 10px;margin:0;background:#202a23}.card h2 span{font-size:10px;letter-spacing:.1em;color:#c8d49e;margin-left:10px}.viewport{height:290px;position:relative;z-index:3;touch-action:none;cursor:grab}.card footer{position:relative;z-index:3;background:#202a23;padding:12px 15px;line-height:1.65;font-size:12px;color:#c3c4b5}.card footer p{margin:0}.card footer .actions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}.card footer button{font-size:11px;padding:5px 8px}.loading{position:absolute;top:40%;left:0;right:0;text-align:center;color:#e8dfc6;font-size:12px}.renderer{position:fixed;inset:0;z-index:2;pointer-events:none}.error{color:#ffb4a6}#notice{padding:0 24px 20px;font-size:12px;color:#abb49e}.card:fullscreen{background:#202a23;display:flex;flex-direction:column}.card:fullscreen .viewport{flex:1;height:auto}.card:fullscreen h2,.card:fullscreen footer{z-index:3}.card:fullscreen canvas{position:absolute;inset:0;pointer-events:none}@media(max-width:1050px){main{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:660px){header{position:relative;padding:16px}main{grid-template-columns:1fr;padding:14px}.viewport{height:320px}#performance{width:100%;margin:0}}
+</style>
+</head>
+<body>
+<header>
+<h1>SANDFORGE <small>BUILDING STYLE GALLERY</small></h1>
+<p>Feldkommando HQ3 als Referenz · echte Spielmodelle · gleiche Kamera, Sonne und Maßstab · Soldat: 34,16 Render-Einheiten</p>
+<nav aria-label="Galerie steuern">
+<label>Biom <select id="biome"><option value="desert">Wüste</option><option value="snow">Schnee</option><option value="jungle">Dschungel</option></select></label>
+<label>Ansicht <select id="filter"><option value="all">Alle Gebäude</option><option value="pair">HQ3 + Kaserne</option></select></label>
+<label>Zoom <input id="zoom" type="range" min="0.7" max="3" step="0.05" value="1.25"></label>
+<label>Bau <input id="construction" type="range" min="0" max="100" value="100"><output id="progress">100 %</output></label>
+<button id="reset">Kamera zurücksetzen</button><a href="/">Zum Spiel</a>
+<output id="performance" aria-live="off">Modelle werden geladen …</output>
+</nav></header>
+<main id="gallery"></main>
+<p id="notice">Ziehen: drehen · Mausrad: untersuchen · „Ausrichtung“ dreht das Gebäude um 90° · gemeinsamer Zoom stellt den Größenvergleich wieder her. Interceptor ist eine vorhandene prozedurale Spielanlage. Die Galerie verändert keinen Spielstand.</p>
+<script type="module" src="/webgl-building-gallery.js"></script>
+</body></html>

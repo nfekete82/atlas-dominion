@@ -71,15 +71,13 @@ test('HQ3-style desert paint darkens barracks and Bastion MK2 without hiding sig
   try{
    assert.equal(p.count,1,kind+': '+name);
    assert.equal(p.mesh.material.userData.sandforgeCamouflageBiome,'desert');
-   assert.ok(p.mesh.material.roughness>=.84);
-   const shader={vertexShader:'#include <common>\n#include <begin_vertex>',
+   assert.ok(p.mesh.material.roughness>=.63);
+   const shader={uniforms:{},vertexShader:'#include <common>\n#include <begin_vertex>',
     fragmentShader:'#include <common>\n#include <color_fragment>'};
    p.mesh.material.onBeforeCompile(shader,null);
-   assert.ok(shader.fragmentShader.includes(HQ3_MATCHED_DESERT_PALETTE.wall[1]));
-   assert.ok(shader.fragmentShader.includes(
-    kind==='barracks'?BARRACKS_HQ3_CHARCOAL_ROOF[1]:HQ3_MATCHED_DESERT_PALETTE.roof[1]));
-   assert.ok(shader.fragmentShader.includes('sfRoofPaint'));
-   assert.ok(shader.vertexShader.includes('sfDesertUp'));
+   assert.ok(p.mesh.material.userData.sandforgeMaterialReference);
+   assert.ok(shader.uniforms.sfHqMap.value.isTexture);
+   assert.ok(shader.vertexShader.includes('sfBuildingPosition'));
   }finally{p.dispose();}
  }
  for(const name of ['SF_Bastion_red','SF_Bastion_light','SF_Bastion_glass',
@@ -99,11 +97,11 @@ test('every desert facility inherits HQ3 dark olive camouflage while protected d
   const p=testMaterial('SF_olive','#dfd9c7',0,'building',kind);
   try{
    assert.equal(p.count,1,kind);
-   const shader={vertexShader:'#include <common>\n#include <begin_vertex>',
+   const shader={uniforms:{},vertexShader:'#include <common>\n#include <begin_vertex>',
     fragmentShader:'#include <common>\n#include <color_fragment>'};
    p.mesh.material.onBeforeCompile(shader,null);
-   assert.ok(shader.fragmentShader.includes(HQ3_MATCHED_DESERT_PALETTE.wall[1]),
-    kind+' should share HQ3 olive wall paint');
+   if(kind==='headquarters')assert.ok(shader.fragmentShader.includes(HQ3_MATCHED_DESERT_PALETTE.wall[1]));
+   else assert.equal(shader.uniforms.sfHqMap.value.name,'HQ3_camouflage-albedo');
    assert.equal(p.mesh.material.userData.sandforgeCamouflageBiome,'desert');
   }finally{p.dispose();}
  }
@@ -119,7 +117,7 @@ test('snow/jungle Bastion and barracks use the original per-biome palettes',()=>
   for(const [kind,name] of [['barracks','SF_olive'],['bastion','SF_Bastion_armor']]){
    const p=testMaterial(name,'#b7a181',0,'building',kind);
    try{
-    const shader={vertexShader:'#include <common>\n#include <begin_vertex>',
+    const shader={uniforms:{},vertexShader:'#include <common>\n#include <begin_vertex>',
      fragmentShader:'#include <common>\n#include <color_fragment>'};
     p.mesh.material.onBeforeCompile(shader,null);
     assert.equal(p.mesh.material.userData.sandforgeCamouflageBiome,biome);

@@ -386,7 +386,7 @@ test('factory and airfield use real PBR camouflage/data textures, roof details a
   assert.ok(hangar.getObjectByName(name),name);
  for(const root of [yard,hangar]){
   let textureCount=0;
-  root.traverse(mesh=>{if(mesh.isMesh&&mesh.material.map?.isDataTexture)textureCount++;});
+  root.traverse(mesh=>{if(mesh.isMesh&&(mesh.material.map?.isDataTexture||mesh.material.userData?.sandforgeMaterialReference))textureCount++;});
   assert.ok(textureCount>10,'camouflage and steel surfaces must be textured');
  }
  disposeFactoryServiceYard({factoryServiceYard:yard});

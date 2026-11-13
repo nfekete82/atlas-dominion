@@ -1,0 +1,8 @@
+
+Failing names:
+(none)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 tests/browser/webgl-building-design-system.spec.mjs:38:1 › gallery compiles real building PBR, compares sizes, animates doors and supports all biomes (9.9s)
+  ✓  2 tests/browser/webgl-building-design-system.spec.mjs:106:1 › live game constructs every facility from zero and releases real infantry through the authored doorway at four facings (2.7s)
+
+  2 passed (13.3s)

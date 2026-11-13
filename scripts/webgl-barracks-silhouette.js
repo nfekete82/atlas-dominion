@@ -10,13 +10,30 @@
  * This runs once per cloned model, never edits the downloaded GLB asset and
  * never changes simulation footprint, combat, collision or navmesh.
  */
-export const BARRACKS_SILHOUETTE_REVISION='barracks-clean-silhouette-v1';
+export const BARRACKS_SILHOUETTE_REVISION='barracks-no-apron-v3';
 
-export function barracksAccessoryRegion(bounds){
+export function barracksAccessoryRegion(bounds,meshName=''){
  const x0=bounds.min.x,x1=bounds.max.x;
  const y0=bounds.min.y,y1=bounds.max.y;
  const z0=bounds.min.z,z1=bounds.max.z;
  const within=(a,b,lo,hi)=>a>=lo&&b<=hi;
+ // The large exterior platform is separate from the actual wall-bearing
+ // foundation (source Y 1.08–1.61). Remove only detached ground/apron islands.
+ if(meshName==='static__foundation'&&y1<=.75)return 'exterior-slab-or-steps';
+ if(['static__concrete_high','static__deck','static__deck_light',
+     'static__dust','static__yellow'].includes(meshName)&&y1<=1.65)
+  return 'exterior-apron-surface';
+ if(meshName==='static__olive_dark'&&y1<=1.19&&
+    (x1-x0>10||z1-z0>10))return 'exterior-apron-rim';
+ // A thin cap sits BELOW the removed tower region (actual Y 5.65–5.75).
+ // Leaving it behind created a visibly floating square beside the roof.
+ if(within(x0,x1,-8.60,-6.70)&&within(z0,z1,5.05,6.80)&&
+    y0>=5.60&&y1<=5.85)return 'tower-support-cap';
+ // The opposite flat roof carries three duplicated box ventilators. Keep
+ // the middle housing; remove the two outer housings, lids and louvres.
+ if(within(x0,x1,-7.50,-5.70)&&y0>=4.45&&y1<=5.20&&
+    (within(z0,z1,-1.70,.10)||within(z0,z1,2.20,3.95)))
+  return 'outer-box-vent';
  // The tall, disconnected guard tower at the rear-left corner. The roof
  // behind it is a much larger connected surface and therefore survives.
  if(within(x0,x1,-9.25,-6.15)&&within(z0,z1,4.00,7.60)&&y1>5.90)
@@ -86,7 +103,7 @@ export function simplifyBarracksSilhouette(root){
   }
   const ignored=new Set();
   for(const [id,bounds] of islands)
-   if(barracksAccessoryRegion(bounds))ignored.add(id);
+   if(barracksAccessoryRegion(bounds,mesh.name))ignored.add(id);
   if(!ignored.size)return;
   const kept=[];
   for(let f=0;f<faces;f++){

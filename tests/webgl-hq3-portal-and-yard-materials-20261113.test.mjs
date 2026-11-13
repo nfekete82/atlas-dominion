@@ -95,11 +95,11 @@ test('HQ3 storage crates and barrels clear the right-hand perimeter fence',()=>{
   assert.ok(cache.children.some(o=>o.name==='SupplyCrate'));
   assert.ok(cache.children.some(o=>o.name==='SupplyBarrel'));
  }finally{disposeBuildingYard(yard);}
- // Research/silo retain the positions used by their authored layouts.
+ // Compact research/silo caches now fit inside the shared fence.
  for(const kind of ['research','silo','barracks']){
   const other=createBuildingYard(kind,width);
   try{
-   const expected=kind==='barracks'?width*.42:width*.55;
+   const expected=kind==='barracks'?width*.42:width*.565;
    assert.equal(other.getObjectByName('BaseSupplyCache').position.x,expected);
   }finally{disposeBuildingYard(other);}
  }

@@ -128,3 +128,5 @@ Die frühere Europaversion bleibt unter **http://127.0.0.1:8095/legacy/index.htm
 ### Performance-Debugging
 
 Mit `/?debug&perf` lassen sich Frame-Spitzen, 1%-Low-FPS und die Kosten von Simulation, KI, Wegfindung, Rendering, Minikarte und HUD messen und als JSON exportieren. `npm run test:performance` wiederholt acht feste Lastszenarien. Messwerte, Regressionen und verbleibende Engpässe: [Performance-Bericht](docs/performance/README.md).
+
+Die [Building Style Gallery](http://127.0.0.1:8095/building-gallery.html) vergleicht alle elf Gebäudetypen mit HQ3, identischer Kamera, Licht und Soldatenmaßstab. Sie verwendet die Spielmaterialien und Produktions-/Bauanimationen. `npm run test:building-design` und `npm run test:building-design:browser` prüfen das System. [Referenzanalyse, Rendermaße, Prüfbilder und bekannte Grenzen](docs/building-design-system/README.md).

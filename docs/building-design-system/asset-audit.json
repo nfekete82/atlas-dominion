@@ -1,0 +1,1086 @@
+{
+  "reference": "sandforge_funkzentrale_hq3_game_ready.glb",
+  "sha256": "54e06ad8eb860fe3049bdda4fece257f34227b4344e43e530870abf9c1e30551",
+  "materials": [
+    {
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 0
+        },
+        "roughnessFactor": 0.95,
+        "metallicFactor": 0.01
+      },
+      "name": "Sand_Concrete_PBR",
+      "doubleSided": false
+    },
+    {
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 1
+        },
+        "roughnessFactor": 0.91,
+        "metallicFactor": 0.02
+      },
+      "name": "Desert_Camouflage_Weathered",
+      "doubleSided": true,
+      "normalTexture": {
+        "index": 2
+      }
+    },
+    {
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.6823529411764706,
+          0.6431372549019608,
+          0.5333333333333333,
+          1
+        ],
+        "roughnessFactor": 0.87,
+        "metallicFactor": 0.03
+      },
+      "name": "Warm_Reinforced_Beige",
+      "doubleSided": false
+    },
+    {
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 3
+        },
+        "roughnessFactor": 0.63,
+        "metallicFactor": 0.42
+      },
+      "name": "Graphite_Metal",
+      "doubleSided": false
+    },
+    {
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 4
+        },
+        "roughnessFactor": 0.84,
+        "metallicFactor": 0.06
+      },
+      "name": "Dark_Weathered_Roof",
+      "doubleSided": false,
+      "normalTexture": {
+        "index": 5
+      }
+    },
+    {
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.5176470588235295,
+          0.5372549019607843,
+          0.49019607843137253,
+          1
+        ],
+        "roughnessFactor": 0.47,
+        "metallicFactor": 0.8
+      },
+      "name": "Exposed_Steel",
+      "doubleSided": false
+    },
+    {
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.3568627450980392,
+          0.3764705882352941,
+          0.28627450980392155,
+          1
+        ],
+        "roughnessFactor": 0.75,
+        "metallicFactor": 0.17
+      },
+      "name": "Olive_Camouflage_Secondary",
+      "doubleSided": false
+    },
+    {
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 6
+        },
+        "roughnessFactor": 0.71,
+        "metallicFactor": 0.32
+      },
+      "name": "Olive_Painted_Steel",
+      "doubleSided": false
+    },
+    {
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 7
+        },
+        "roughnessFactor": 0.96,
+        "metallicFactor": 0.01
+      },
+      "name": "Wing_Unit_Insignia",
+      "alphaMode": "BLEND",
+      "doubleSided": true
+    },
+    {
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.08627450980392157,
+          0.09019607843137255,
+          0.08235294117647059,
+          1
+        ],
+        "roughnessFactor": 0.8,
+        "metallicFactor": 0.15
+      },
+      "name": "Black_Arrow_Slits",
+      "doubleSided": false
+    },
+    {
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 8
+        },
+        "roughnessFactor": 0.96,
+        "metallicFactor": 0.01
+      },
+      "name": "HQ3_Stencil",
+      "alphaMode": "BLEND",
+      "doubleSided": true
+    },
+    {
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.8941176470588236,
+          0.6588235294117647,
+          0.21176470588235294,
+          1
+        ],
+        "roughnessFactor": 0.65,
+        "metallicFactor": 0.14
+      },
+      "name": "Hazard_Yellow",
+      "doubleSided": false
+    },
+    {
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.47058823529411764,
+          0.48627450980392156,
+          0.4,
+          1
+        ],
+        "roughnessFactor": 0.83,
+        "metallicFactor": 0.22
+      },
+      "name": "Dish_Weathered_Olive",
+      "doubleSided": true
+    },
+    {
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.2823529411764706,
+          0.3058823529411765,
+          0.24313725490196078,
+          1
+        ],
+        "roughnessFactor": 0.72,
+        "metallicFactor": 0.25
+      },
+      "name": "Dish_Dark_Backed",
+      "doubleSided": true
+    },
+    {
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.8588235294117647,
+          0.13725490196078433,
+          0.07058823529411765,
+          1
+        ],
+        "roughnessFactor": 0.18,
+        "metallicFactor": 0
+      },
+      "emissiveFactor": [
+        0.95,
+        0.08,
+        0.03
+      ],
+      "name": "Beacon_Red_Emissive",
+      "doubleSided": false
+    }
+  ],
+  "images": [
+    {
+      "name": "concrete-albedo",
+      "sourceImage": 0,
+      "file": "concrete-albedo.jpg",
+      "bytes": 270776,
+      "sha256": "7b432980d66ced3249d9299cdec017cc3625f4110f56bbdc334e605b7d52adc1"
+    },
+    {
+      "name": "camouflage-albedo",
+      "sourceImage": 1,
+      "file": "camouflage-albedo.jpg",
+      "bytes": 465199,
+      "sha256": "ac7860d9f2729efacac2890d917581943693b27cf7ca0ba84e7bd505fdd8fe01"
+    },
+    {
+      "name": "camouflage-normal",
+      "sourceImage": 2,
+      "file": "camouflage-normal.jpg",
+      "bytes": 239388,
+      "sha256": "e63b3be969f788fb0cc86b7ff729f0f425c6bd618804119c6a0aa511aadd3e5d"
+    },
+    {
+      "name": "metal-albedo",
+      "sourceImage": 3,
+      "file": "metal-albedo.jpg",
+      "bytes": 32673,
+      "sha256": "16853c9016ed5a8e52d2cf875cce78e5da640927059f974432b6a98206c2dad0"
+    },
+    {
+      "name": "roof-albedo",
+      "sourceImage": 4,
+      "file": "roof-albedo.jpg",
+      "bytes": 521564,
+      "sha256": "3e5ed0a054e4140df9bbd5f52717db424c147462595b32bc207460e5bc3f79f4"
+    },
+    {
+      "name": "roof-normal",
+      "sourceImage": 5,
+      "file": "roof-normal.jpg",
+      "bytes": 556684,
+      "sha256": "8b81d54f491e94ee6798e016ead92d61430980ac72c0fb8e0a73485c8ece8b8a"
+    },
+    {
+      "name": "door-albedo",
+      "sourceImage": 6,
+      "file": "door-albedo.jpg",
+      "bytes": 108168,
+      "sha256": "1051ee9b18474b78a7ecf59d788cab341adf81f5935036fcdc820dfa4bef5190"
+    }
+  ],
+  "buildings": {
+    "headquarters": {
+      "file": "sandforge_funkzentrale_hq3_game_ready.glb",
+      "visibleRenderSize": [
+        161.2103528408372,
+        173.8,
+        160.7067676748557
+      ],
+      "sourceMin": [
+        -6.309999942779541,
+        0,
+        -5.150000095367432
+      ],
+      "sourceMax": [
+        6.494999885559082,
+        13.805000305175781,
+        7.614999771118164
+      ],
+      "sourceSize": [
+        12.804999828338623,
+        13.805000305175781,
+        12.764999866485596
+      ],
+      "scale": 12.589641155954107,
+      "heightScale": 1,
+      "renderSize": [
+        161.2103528408372,
+        173.8,
+        160.70676767485574
+      ],
+      "meshes": 32,
+      "vertices": 16852,
+      "triangles": 20494,
+      "clips": [],
+      "surfaces": {
+        "Sand_Concrete_PBR": {
+          "area": 820.2823281112021,
+          "uvArea": 312.3231135970134
+        },
+        "Desert_Camouflage_Weathered": {
+          "area": 468.3245880921273,
+          "uvArea": 18.127240548225437
+        },
+        "Warm_Reinforced_Beige": {
+          "area": 84.83973431037816,
+          "uvArea": 28.5823155758101
+        },
+        "Graphite_Metal": {
+          "area": 112.14529267455396,
+          "uvArea": 366.4783571351501
+        },
+        "Dark_Weathered_Roof": {
+          "area": 293.23380875631165,
+          "uvArea": 55.829492068876306
+        },
+        "Exposed_Steel": {
+          "area": 10.249389216236477,
+          "uvArea": 235.16635605825985
+        },
+        "Olive_Camouflage_Secondary": {
+          "area": 23.99583287368263,
+          "uvArea": 29.901741126386582
+        },
+        "Olive_Painted_Steel": {
+          "area": 72.45743982544856,
+          "uvArea": 79.14730464870453
+        },
+        "Wing_Unit_Insignia": {
+          "area": 1.1990001628398943,
+          "uvArea": 2
+        },
+        "Black_Arrow_Slits": {
+          "area": 8.183483212735316,
+          "uvArea": 9.827905394816497
+        },
+        "HQ3_Stencil": {
+          "area": 0.5503997679710437,
+          "uvArea": 1
+        },
+        "Hazard_Yellow": {
+          "area": 0.8198000665426548,
+          "uvArea": 5.2028003499035265
+        },
+        "Beacon_Red_Emissive": {
+          "area": 0.3638671928298426,
+          "uvArea": 4.9040245957512525
+        },
+        "Dish_Weathered_Olive": {
+          "area": 8.671669499768512,
+          "uvArea": 2.3266084852869273
+        },
+        "Dish_Dark_Backed": {
+          "area": 6.7997888110771765,
+          "uvArea": 0.7837513398753004
+        }
+      }
+    },
+    "barracks": {
+      "file": "sandforge_kaserne_betriebsbereit.glb",
+      "visibleRenderSize": [
+        189.59999999999997,
+        119.22673483479417,
+        180.54236619619363
+      ],
+      "sourceMin": [
+        -10.100000381469727,
+        -0.08500000089406967,
+        -10.109999656677246
+      ],
+      "sourceMax": [
+        10.100000381469727,
+        9.055000305175781,
+        9.125
+      ],
+      "sourceSize": [
+        20.200000762939453,
+        9.140000306069851,
+        19.234999656677246
+      ],
+      "scale": 9.386138259353702,
+      "heightScale": 1.7753216721239524,
+      "renderSize": [
+        189.59999999999997,
+        152.30361517832412,
+        180.54236619619363
+      ],
+      "meshes": 33,
+      "vertices": 7208,
+      "triangles": 11752,
+      "clips": [],
+      "surfaces": {
+        "SF_olive": {
+          "area": 217.2619577605822,
+          "uvArea": 0
+        },
+        "SF_olive_light": {
+          "area": 384.7735288644154,
+          "uvArea": 0
+        },
+        "SF_steel": {
+          "area": 71.98866970084805,
+          "uvArea": 0
+        },
+        "SF_steel_dark": {
+          "area": 643.6299394278326,
+          "uvArea": 0
+        },
+        "SF_steel_light": {
+          "area": 43.741829595772316,
+          "uvArea": 0
+        },
+        "SF_yellow": {
+          "area": 10.627667138696621,
+          "uvArea": 0
+        },
+        "SF_team_blue": {
+          "area": 1.702079471980555,
+          "uvArea": 0
+        },
+        "SF_white": {
+          "area": 0.5215874882781854,
+          "uvArea": 0
+        },
+        "SF_blue_glow": {
+          "area": 3.6623394660358994,
+          "uvArea": 0
+        },
+        "SF_concrete_high": {
+          "area": 695.920446245887,
+          "uvArea": 0
+        },
+        "SF_deck": {
+          "area": 649.1188287936352,
+          "uvArea": 0
+        },
+        "SF_deck_light": {
+          "area": 82.70543446188788,
+          "uvArea": 0
+        },
+        "SF_dust": {
+          "area": 5.052252922997621,
+          "uvArea": 0
+        },
+        "SF_foundation": {
+          "area": 1165.2353221822718,
+          "uvArea": 0
+        },
+        "SF_glass": {
+          "area": 2.802360098971917,
+          "uvArea": 0
+        },
+        "SF_glass_dark": {
+          "area": 25.648791084410643,
+          "uvArea": 0
+        },
+        "SF_ice": {
+          "area": 0.1933545447258652,
+          "uvArea": 0
+        },
+        "SF_olive_dark": {
+          "area": 853.8213402529575,
+          "uvArea": 0
+        },
+        "SF_recess": {
+          "area": 50.606352516134464,
+          "uvArea": 0
+        },
+        "SF_red_glow": {
+          "area": 0.15950080238712877,
+          "uvArea": 0
+        }
+      }
+    },
+    "factory": {
+      "file": "factory-0.glb",
+      "visibleRenderSize": [
+        190.72769967728973,
+        125,
+        177.37676293855156
+      ],
+      "sourceMin": [
+        -1.625,
+        1.341104505225843e-9,
+        -1.2074999809265137
+      ],
+      "sourceMax": [
+        1.625,
+        2.1299999997019765,
+        1.815000057220459
+      ],
+      "sourceSize": [
+        3.25,
+        2.129999998360872,
+        3.0225000381469727
+      ],
+      "scale": 58.68544605455069,
+      "heightScale": 1,
+      "renderSize": [
+        190.72769967728973,
+        125,
+        177.37676293855156
+      ],
+      "meshes": 51,
+      "vertices": 93986,
+      "triangles": 31870,
+      "clips": [
+        "BeaconPulse"
+      ],
+      "surfaces": {
+        "Atlas bronze edges": {
+          "area": 53.27880075327584,
+          "uvArea": 3.519585776924612
+        },
+        "Atlas sand ceramic": {
+          "area": 31.42678577456987,
+          "uvArea": 12.711402473324792
+        },
+        "Atlas faction enamel": {
+          "area": 7.54473780660943,
+          "uvArea": 1.4062400667895076
+        },
+        "Atlas dark steel": {
+          "area": 5.243942159847288,
+          "uvArea": 5.227399221067502
+        },
+        "Atlas faction emission": {
+          "area": 0.26008572270354785,
+          "uvArea": 8.552914304512335
+        },
+        "Atlas service hardware": {
+          "area": 32.43276459791269,
+          "uvArea": 56.126513474657855
+        }
+      }
+    },
+    "airfield": {
+      "file": "airfield-0.glb",
+      "visibleRenderSize": [
+        175.82888406921984,
+        137,
+        175.64571658733465
+      ],
+      "sourceMin": [
+        -2.4000000953674316,
+        1.341104505225843e-9,
+        -2.4249999666213986
+      ],
+      "sourceMax": [
+        2.4000000953674316,
+        3.739999999701977,
+        2.369999885559082
+      ],
+      "sourceSize": [
+        4.800000190734863,
+        3.7399999983608723,
+        4.794999852180481
+      ],
+      "scale": 36.631016058835,
+      "heightScale": 1,
+      "renderSize": [
+        175.82888406921984,
+        137,
+        175.64571658733465
+      ],
+      "meshes": 241,
+      "vertices": 393506,
+      "triangles": 131922,
+      "clips": [
+        "BeaconPulse"
+      ],
+      "surfaces": {
+        "Atlas bronze edges": {
+          "area": 90.2469328017715,
+          "uvArea": 36.27072790553605
+        },
+        "Atlas sand ceramic": {
+          "area": 108.08931675997817,
+          "uvArea": 53.55876979411879
+        },
+        "Atlas runway concrete": {
+          "area": 43.08748544110857,
+          "uvArea": 0.3519287109375
+        },
+        "Atlas runway asphalt": {
+          "area": 15.288674132805294,
+          "uvArea": 0.7038574218749993
+        },
+        "Atlas runway markings": {
+          "area": 1.1239584356725285,
+          "uvArea": 4.520126848539945
+        },
+        "Atlas faction emission": {
+          "area": 0.45832514113086387,
+          "uvArea": 122.55291430451211
+        },
+        "Atlas runway safety yellow": {
+          "area": 0.713805058868065,
+          "uvArea": 2.4635009765625195
+        },
+        "Atlas hangar opening": {
+          "area": 6.063030784711225,
+          "uvArea": 0.3519287109375008
+        },
+        "Atlas dark steel": {
+          "area": 11.57571354824468,
+          "uvArea": 2.4635009765624947
+        },
+        "Atlas faction enamel": {
+          "area": 0.4082894650980098,
+          "uvArea": 0.48429935798048973
+        },
+        "Atlas armoured glass": {
+          "area": 0.10722583621437355,
+          "uvArea": 0.3519287109375
+        },
+        "Atlas black seals": {
+          "area": 0.05830874437085439,
+          "uvArea": 0.703857421874998
+        },
+        "Atlas tower tinted glazing": {
+          "area": 4.206672738275923,
+          "uvArea": 0.3519287109375
+        },
+        "Atlas service hardware": {
+          "area": 9.820506341286896,
+          "uvArea": 52.65315356326232
+        }
+      }
+    },
+    "research": {
+      "file": "research-offline.glb",
+      "visibleRenderSize": [
+        150.25297084205826,
+        121.686237527611,
+        150.8
+      ],
+      "sourceMin": [
+        -10.300000190734863,
+        -0.17000000178813934,
+        -10.774999618530273
+      ],
+      "sourceMax": [
+        10.300000190734863,
+        7.9682637882232665,
+        9.899999618530273
+      ],
+      "sourceSize": [
+        20.600000381469727,
+        8.138263790011406,
+        20.674999237060547
+      ],
+      "scale": 7.293833400955418,
+      "heightScale": 2.05,
+      "renderSize": [
+        150.25297084205826,
+        121.686237527611,
+        150.8
+      ],
+      "meshes": 26,
+      "vertices": 13446,
+      "triangles": 23832,
+      "clips": [],
+      "surfaces": {
+        "SF_blue_glow": {
+          "area": 7.484600093018596,
+          "uvArea": 0
+        },
+        "SF_steel_dark": {
+          "area": 657.0035351020111,
+          "uvArea": 0
+        },
+        "SF_steel_light": {
+          "area": 120.26216383230584,
+          "uvArea": 0
+        },
+        "SF_recess": {
+          "area": 60.79625622994836,
+          "uvArea": 0
+        },
+        "SF_steel": {
+          "area": 73.01261335799482,
+          "uvArea": 0
+        },
+        "SF_concrete_high": {
+          "area": 770.5197524922085,
+          "uvArea": 0
+        },
+        "SF_copper": {
+          "area": 11.670721155845156,
+          "uvArea": 0
+        },
+        "SF_core": {
+          "area": 7.644993034456258,
+          "uvArea": 0
+        },
+        "SF_deck": {
+          "area": 675.5198622725673,
+          "uvArea": 0
+        },
+        "SF_deck_light": {
+          "area": 126.08358352699338,
+          "uvArea": 0
+        },
+        "SF_foundation": {
+          "area": 1256.8358962021853,
+          "uvArea": 0
+        },
+        "SF_glass": {
+          "area": 11.080966645225637,
+          "uvArea": 0
+        },
+        "SF_glass_dark": {
+          "area": 82.73288135197697,
+          "uvArea": 0
+        },
+        "SF_ice": {
+          "area": 3.7120587613018152,
+          "uvArea": 0
+        },
+        "SF_olive": {
+          "area": 254.70096919178275,
+          "uvArea": 0
+        },
+        "SF_olive_dark": {
+          "area": 684.4619442712176,
+          "uvArea": 0
+        },
+        "SF_olive_light": {
+          "area": 190.66502022420184,
+          "uvArea": 0
+        },
+        "SF_red_glow2": {
+          "area": 1.0004678163406715,
+          "uvArea": 0
+        },
+        "SF_rubber": {
+          "area": 2.427644478694112,
+          "uvArea": 0
+        },
+        "SF_screen": {
+          "area": 4.645917797640436,
+          "uvArea": 0
+        },
+        "SF_yellow": {
+          "area": 28.35831160992693,
+          "uvArea": 0
+        }
+      }
+    },
+    "silo": {
+      "file": "silo-closed.glb",
+      "visibleRenderSize": [
+        184.80928198449206,
+        97.63085533536118,
+        188.7
+      ],
+      "sourceMin": [
+        -9.5,
+        -0.2800000011920929,
+        -9.899999618530273
+      ],
+      "sourceMax": [
+        9.5,
+        5.235000133514404,
+        9.5
+      ],
+      "sourceSize": [
+        19,
+        5.515000134706497,
+        19.399999618530273
+      ],
+      "scale": 9.726804314973267,
+      "heightScale": 1.82,
+      "renderSize": [
+        184.80928198449206,
+        97.63085533536118,
+        188.7
+      ],
+      "meshes": 32,
+      "vertices": 9848,
+      "triangles": 17436,
+      "clips": [],
+      "surfaces": {
+        "SF_olive": {
+          "area": 161.85429444016108,
+          "uvArea": 0
+        },
+        "SF_olive_dark": {
+          "area": 330.19708916589195,
+          "uvArea": 0
+        },
+        "SF_olive_light": {
+          "area": 68.41900521019262,
+          "uvArea": 0
+        },
+        "SF_red_glow": {
+          "area": 5.267742402425404,
+          "uvArea": 0
+        },
+        "SF_steel": {
+          "area": 65.3966326633022,
+          "uvArea": 0
+        },
+        "SF_steel_dark": {
+          "area": 327.423369391458,
+          "uvArea": 0
+        },
+        "SF_steel_light": {
+          "area": 41.95161714367303,
+          "uvArea": 0
+        },
+        "SF_yellow": {
+          "area": 36.71472583727728,
+          "uvArea": 0
+        },
+        "SF_blue_glow": {
+          "area": 0.688900827026373,
+          "uvArea": 0
+        },
+        "SF_concrete_high": {
+          "area": 661.4069365394612,
+          "uvArea": 0
+        },
+        "SF_deck": {
+          "area": 527.6513979839956,
+          "uvArea": 0
+        },
+        "SF_deck_light": {
+          "area": 122.63360311880098,
+          "uvArea": 0
+        },
+        "SF_foundation": {
+          "area": 883.9697476688848,
+          "uvArea": 0
+        },
+        "SF_glass": {
+          "area": 4.383901029720891,
+          "uvArea": 0
+        },
+        "SF_recess": {
+          "area": 75.09666544543688,
+          "uvArea": 0
+        },
+        "SF_rubber": {
+          "area": 9.370004500089676,
+          "uvArea": 0
+        }
+      }
+    },
+    "generator": {
+      "file": "generator-0.glb",
+      "visibleRenderSize": [
+        70.21052898260201,
+        92,
+        76.98947569291184
+      ],
+      "sourceMin": [
+        -0.7250000238418579,
+        1.341104505225843e-9,
+        -0.675000011920929
+      ],
+      "sourceMax": [
+        0.7250000238418579,
+        1.8999999916553498,
+        0.9150000214576721
+      ],
+      "sourceSize": [
+        1.4500000476837158,
+        1.8999999903142453,
+        1.590000033378601
+      ],
+      "scale": 48.42105287841813,
+      "heightScale": 1,
+      "renderSize": [
+        70.21052898260201,
+        92,
+        76.98947569291184
+      ],
+      "meshes": 27,
+      "vertices": 42320,
+      "triangles": 15966,
+      "clips": [
+        "BeaconPulse"
+      ],
+      "surfaces": {
+        "Atlas bronze edges": {
+          "area": 7.495293201715653,
+          "uvArea": 0.7055861314890985
+        },
+        "Atlas sand ceramic": {
+          "area": 9.35455495884692,
+          "uvArea": 10.792878234776936
+        },
+        "Atlas dark steel": {
+          "area": 3.1210572427080154,
+          "uvArea": 0.14974064063047865
+        },
+        "Atlas faction emission": {
+          "area": 1.1838157611607842,
+          "uvArea": 39.55291430451257
+        },
+        "Atlas service hardware": {
+          "area": 12.729912740555406,
+          "uvArea": 20.608352032982715
+        }
+      }
+    },
+    "turret": {
+      "file": "turret-0.glb",
+      "visibleRenderSize": [
+        50.905197782198805,
+        71.05516906360073,
+        72
+      ],
+      "sourceMin": [
+        -0.6600000262260437,
+        1.341104505225843e-9,
+        -0.6349999904632568
+      ],
+      "sourceMax": [
+        0.6600000262260437,
+        1.8425000008940697,
+        1.232000000052154
+      ],
+      "sourceSize": [
+        1.3200000524520874,
+        1.8424999995529652,
+        1.8669999905154109
+      ],
+      "scale": 38.56454224197581,
+      "heightScale": 1,
+      "renderSize": [
+        50.905197782198805,
+        71.05516906360073,
+        72
+      ],
+      "meshes": 175,
+      "vertices": 211339,
+      "triangles": 72334,
+      "clips": [
+        "TurretTraverse"
+      ],
+      "surfaces": {
+        "Atlas bronze edges": {
+          "area": 10.255663512375856,
+          "uvArea": 9.043154693157055
+        },
+        "Atlas sand ceramic": {
+          "area": 11.553292219769885,
+          "uvArea": 20.13226525861674
+        },
+        "Atlas dark steel": {
+          "area": 4.395093244797709,
+          "uvArea": 18.10431225392218
+        },
+        "Atlas black seals": {
+          "area": 0.3292394026932965,
+          "uvArea": 5.630859374999979
+        },
+        "Atlas faction enamel": {
+          "area": 0.4357323617840656,
+          "uvArea": 0.48429935798048973
+        },
+        "Atlas faction emission": {
+          "area": 0.03628018734282946,
+          "uvArea": 11.999999999999986
+        },
+        "Atlas armoured glass": {
+          "area": 0.02005720557968951,
+          "uvArea": 0.3519287109375
+        },
+        "Atlas turret | Brushed champagne trim": {
+          "area": 1.8846912369957618,
+          "uvArea": 12.31750488281265
+        },
+        "Atlas turret | Machined graphite recess": {
+          "area": 0.6017934691887971,
+          "uvArea": 1.7596435546875
+        },
+        "Atlas service hardware": {
+          "area": 3.5002316459737997,
+          "uvArea": 3.1194890172221355
+        }
+      }
+    },
+    "bastion": {
+      "file": "sandforge_bastion_mk2_offline.glb",
+      "visibleRenderSize": [
+        112.44568118088152,
+        190.0080178901509,
+        116
+      ],
+      "sourceMin": [
+        -8.699999809265137,
+        -0.23999999463558197,
+        -8.149999618530273
+      ],
+      "sourceMax": [
+        8.699999809265137,
+        29.178291630664347,
+        9.800000190734863
+      ],
+      "sourceSize": [
+        17.399999618530273,
+        29.41829162529993,
+        17.949999809265137
+      ],
+      "scale": 6.462395611844242,
+      "heightScale": 1,
+      "renderSize": [
+        112.44568118088152,
+        190.11263870729246,
+        116
+      ],
+      "meshes": 24,
+      "vertices": 5224,
+      "triangles": 8564,
+      "clips": [],
+      "surfaces": {
+        "SF_Bastion_black": {
+          "area": 2345.5371740479295,
+          "uvArea": 0
+        },
+        "SF_Bastion_edge": {
+          "area": 586.4643258302533,
+          "uvArea": 0
+        },
+        "SF_Bastion_concrete": {
+          "area": 1239.8986231190142,
+          "uvArea": 0
+        },
+        "SF_Bastion_armor": {
+          "area": 1126.0339310364266,
+          "uvArea": 0
+        },
+        "SF_Bastion_sandplate": {
+          "area": 464.67524842050784,
+          "uvArea": 0
+        },
+        "SF_Bastion_steel": {
+          "area": 606.2783665139557,
+          "uvArea": 0
+        },
+        "SF_Bastion_dim": {
+          "area": 20.62418666275704,
+          "uvArea": 0
+        },
+        "SF_Bastion_bolt": {
+          "area": 13.388611967302975,
+          "uvArea": 0
+        },
+        "SF_Bastion_glass": {
+          "area": 54.80202668774314,
+          "uvArea": 0
+        },
+        "SF_Bastion_yellow": {
+          "area": 38.171592226968805,
+          "uvArea": 0
+        },
+        "SF_Bastion_frame": {
+          "area": 707.6441738728047,
+          "uvArea": 0
+        },
+        "SF_Bastion_stripe": {
+          "area": 0.8847991063118457,
+          "uvArea": 0
+        },
+        "SF_Bastion_red": {
+          "area": 0.5428006240845207,
+          "uvArea": 0
+        },
+        "SF_Bastion_dish": {
+          "area": 48.77805830779685,
+          "uvArea": 0
+        },
+        "SF_Bastion_dishshade": {
+          "area": 7.348402164925179,
+          "uvArea": 0
+        },
+        "SF_Bastion_light": {
+          "area": 0.07019991378786085,
+          "uvArea": 0
+        }
+      }
+    }
+  },
+  "infantryRenderHeight": 34.160000000000004
+}

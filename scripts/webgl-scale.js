@@ -1,3 +1,4 @@
+import {BARRACKS_ARCHITECTURE,barracksArchitecturalHeightScale} from './webgl-building-profiles.js';
 /** Render-only dimensions calibrated against the original 2D unit widths.
  * Gameplay radius, map collision, selection and saved game values stay intact.
  *
@@ -10,21 +11,25 @@ export const MODEL_HEIGHTS=Object.freeze({
  rover:42,tank:46,artillery:51,scout:48,bomber:51,
  headquarters:158,barracks:119,factory:125,airfield:137,generator:92,turret:95
 });
-export const DIMENSIONS_VERSION=3;
+export const DIMENSIONS_VERSION=4;
 // Visual-only size changes: gameplay footprint and persisted data stay intact.
 // HQ3 should read more substantial against infantry; the same factor also
 // scales its decorative yard so the fence keeps its distance from the facade.
 export const STRATEGIC_BUILDING_VISUAL_SCALE=Object.freeze({
- headquarters:1.10,barracks:1.20,research:1.04,silo:1.02
+ headquarters:1.10,barracks:1.27,research:1.04,silo:1.02
 });
 /** Taller research/silo geometry without changing footprint, collision or saves. */
 // The original Kaserne is unusually squat despite its broad footprint.
-// Lift only its rendered Y dimension so it reads as a substantial hangar
-// beside the HQ3. Collision, building slots and saved dimensions are intact.
+// Derive its Y scale from the measured door opening and standing soldier
+// clearance. Collision, building slots and saved dimensions are intact.
 export const STRATEGIC_BUILDING_HEIGHT_SCALE=Object.freeze({
- barracks:1.28,research:2.05,silo:1.82
+ barracks:barracksArchitecturalHeightScale(),research:2.05,silo:1.82
 });
 export const strategicBuildingHeightScale=kind=>STRATEGIC_BUILDING_HEIGHT_SCALE[kind]??1;
+// Use the real door sill as the terrain anchor for ready/closed models,
+// construction ghosts and the building gallery; other models are unchanged.
+export const authoredBuildingGroundY=(kind,bounds)=>
+ kind==='barracks'?BARRACKS_ARCHITECTURE.sourceGroundY:bounds.min.y;
 
 /** Wider selection footprint at tactical zoom. Render-only: never changes
  * unit collision, targeting, squad formation or the saved simulation state.
