@@ -27,9 +27,9 @@ export const CAMOUFLAGE_PALETTES=Object.freeze({
  jungle:Object.freeze({name:'Olive/Forest',base:'#87936e',middle:'#526b45',dark:'#2e4936',
   rgb:['.53,.58,.41','.32,.43,.29','.18,.31,.22']})
 });
-// Unlike the textured HQ3, the original Kaserne and Bastion MK2 have no
-// baked desert camo. Match HQ3's dark khaki/olive with a charcoal roof
-// without editing their authored GLBs or hiding lights and insignia.
+// The HQ3's baked desert texture is the visual reference. All other facility
+// materials follow this dark sand/khaki/olive palette without modifying their
+// authored geometry, windows, doors, beacons or original UV detail.
 export const HQ3_MATCHED_DESERT_PALETTE=Object.freeze({
  wall:Object.freeze(['.57,.52,.40','.39,.42,.32','.20,.27,.22']),
  roof:Object.freeze(['.24,.27,.24','.21,.24,.21','.13,.17,.15'])
@@ -40,7 +40,7 @@ export const HQ3_MATCHED_DESERT_PALETTE=Object.freeze({
 export const SOLDIER_HQ3_DESERT_PALETTE=Object.freeze({
  rgb:Object.freeze(['.72,.63,.47','.38,.43,.29','.19,.27,.18'])
 });
-export const DESERT_FINISH_REVISION='biome-camouflage-hq3-barracks-refinish-v10-20261113';
+export const DESERT_FINISH_REVISION='biome-camouflage-hq3-all-facilities-v11-20261113';
 const SOLDIER_KINDS=new Set(['infantry','medic','engineer','heavy','rocket']);
 let selectedCamouflageBiome='desert';
 export function setWorldCamouflageBiome(value){
@@ -51,13 +51,15 @@ export const worldCamouflageBiome=()=>selectedCamouflageBiome;
 function applyDesertBuildingCamo(material,style='standard'){
  const biome=selectedCamouflageBiome;
  const soldier=style==='soldier';
- const matchedDesert=biome==='desert'&&(style==='barracks'||style==='bastion'||soldier);
- // Barracks roof panels and the Bastion's massive upper armour use the
- // HQ3's dark charcoal; only upward-facing polygon surfaces are darkened.
- // Radar dishes, capture lamps, doors and glass retain their PBR identities.
+ const matchedDesert=biome==='desert'&&
+  (style==='barracks'||style==='bastion'||style==='facility'||soldier);
+ // Building roofs and exposed armour use the HQ3 charcoal from their
+ // upward-facing normals. Floor slabs, ground pads, signal lamps, glazing
+ // and moving hardware are not repainted as roofs.
  const roof=matchedDesert&&(
   (style==='barracks'&&/^SF_(?:(?:olive|steel|deck)(?:_dark|_light)?|white|concrete_high)$/.test(material.name))||
-  (style==='bastion'&&/^SF_Bastion_(?:concrete|sandplate|armor)$/.test(material.name))
+  (style==='bastion'&&/^SF_Bastion_(?:concrete|sandplate|armor)$/.test(material.name))||
+  (style==='facility'&&/roof|armou?r|concrete|sandplate|hull|deck|top|panel|steel|olive/i.test(material.name))
  );
  const revision=DESERT_FINISH_REVISION+'-'+biome+'-'+style+(roof?'-roof':'');
  if(material.userData?.sandforgeDesertFinish===revision)return;
@@ -127,7 +129,7 @@ function applyDesertBuildingCamo(material,style='standard'){
  material.needsUpdate=true;
 }
 
-const skip=/weapon|gun|rifle|barrel|muzzle|rocket|rotor|propeller|blade|glass|window|canopy|windshield|visor|eye|skin|face|hand|tyre|tire|wheel|track|exhaust|smoke|lightbulb|lamp|emission|transparent|glow|engine|shadow|invisible|(?:^|[_\\s])flag(?:[_\\s]|$)|beacon|sensor|screen|recess|warning|indicator|bastion_light|yellow|copper|team|insignia|stencil/i;
+const skip=/weapon|gun|rifle|barrel|muzzle|rocket|rotor|propeller|blade|glass|window|skylight|canopy|windshield|visor|eye|skin|face|hand|tyre|tire|wheel|track|exhaust|smoke|lightbulb|lamp|emission|transparent|glow|engine|shadow|invisible|(?:^|[_\\s])flag(?:[_\\s]|$)|beacon|sensor|screen|recess|warning|indicator|bastion_light|yellow|copper|team|insignia|stencil|radar|satellite|dish|antenna|airlock|shutter|gate|door/i;
 const priority=/cloth|uniform|armor|armour|vest|shoulder|chest|helmet|backpack|rucksack|pack|pants|trousers|boot|leg|body|hull|fuselage|camo|camouflage|panel|paint|metal|frame|side|roof|wall|tower|base|concrete|plaster|sandstone|trim|structure/i;
 /** This function is testable with the asset's actual glTF material names,
  * but safely handles exports with generic numbered materials as well. */
@@ -209,12 +211,17 @@ export function tintFactionMaterials(root,owner,kind,type){
        // The original soldier model's bright metallic grey finish previously
        // flattened the camouflage. Cloth/armour read matte like HQ3 paint.
        const uniform=type==='unit'&&SOLDIER_KINDS.has(kind);
-       const kazerne=type==='building'&&kind==='barracks'&&selectedCamouflageBiome==='desert';
-       mat.roughness=Math.max(kazerne?.91:type==='building'?.84:uniform?.89:.72,mat.roughness);
-       mat.metalness=Math.min(kazerne?.15:type==='building'?.26:uniform?.16:.48,mat.metalness);
+       const hqMatched=type==='building'&&selectedCamouflageBiome==='desert';
+       const kazerne=hqMatched&&kind==='barracks';
+       mat.roughness=Math.max(kazerne?.91:hqMatched?.88:type==='building'?.84:uniform?.89:.72,mat.roughness);
+       mat.metalness=Math.min(kazerne?.15:hqMatched?.20:type==='building'?.26:uniform?.16:.48,mat.metalness);
+       // All building kinds (including future ones) share HQ3 colours. The
+       // textured HQ3 itself stays authored: keepNative above prevents any
+       // generic camouflage on its original UV-textured parts.
        applyDesertBuildingCamo(mat,
         type==='unit'&&SOLDIER_KINDS.has(kind)?'soldier':
-         kind==='barracks'||kind==='bastion'?kind:'standard');
+        kind==='barracks'||kind==='bastion'?kind:
+        type==='building'?'facility':'standard');
       }
     }
     tinted++;
