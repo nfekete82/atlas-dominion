@@ -42,6 +42,17 @@ test('remove independent barracks tower, redundant rooftop fans and ridge vent w
  samples.forEach(g=>g.dispose());
 });
 
+test('entirely redundant accessory meshes do not leave floating watchtower beacons',()=>{
+ const geometry=box(.28,.20,.28,-7.66,8.95,5.93);
+ const mesh=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial());
+ mesh.name='static__ice';
+ const root=new THREE.Group();root.add(mesh);
+ assert.equal(simplifyBarracksSilhouette(root),12);
+ assert.equal(mesh.visible,false,'isolated watchtower indicator must disappear');
+ assert.equal(mesh.userData.sandforgeSimplifiedAccessory,true);
+ geometry.dispose();mesh.material.dispose();
+});
+
 test('large connected roof surfaces never get clipped by decorative exclusion regions',()=>{
  assert.equal(barracksAccessoryRegion({
   min:{x:-10.1,y:1,z:-9},max:{x:10.1,y:8,z:9}}),null);
