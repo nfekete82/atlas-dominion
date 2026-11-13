@@ -70,6 +70,40 @@ test('supply crates and barrels have genuine repeatable textured surfaces',()=>{
  }finally{disposeBuildingYard(yard);}
 });
 
+test('HQ3 storage crates and barrels clear the right-hand perimeter fence',()=>{
+ const width=160;
+ const yard=createBuildingYard('headquarters',width);
+ try{
+  const cache=yard.getObjectByName('BaseSupplyCache');
+  const fence=yard.getObjectByName('YardFencePosts');
+  assert.ok(cache&&fence?.isInstancedMesh);
+  assert.equal(cache.position.x,width*.38,
+   'move HQ3 supplies inboard from the wire fence');
+  yard.updateWorldMatrix(true,true);
+  const crates=new THREE.Box3().setFromObject(cache);
+  const matrix=new THREE.Matrix4(),positions=new THREE.Vector3();
+  let rightFence=-Infinity;
+  for(let i=0;i<fence.count;i++){
+   fence.getMatrixAt(i,matrix);
+   positions.setFromMatrixPosition(matrix);
+   rightFence=Math.max(rightFence,positions.x);
+  }
+  // Fence instances are local to the scaled yard.
+  rightFence*=yard.scale.x;
+  assert.ok(rightFence-crates.max.x>9,
+   'the whole pallet, crates and barrel assembly must clear the fence');
+  assert.ok(cache.children.some(o=>o.name==='SupplyCrate'));
+  assert.ok(cache.children.some(o=>o.name==='SupplyBarrel'));
+ }finally{disposeBuildingYard(yard);}
+ // Research/silo retain the positions used by their authored layouts.
+ for(const kind of ['research','silo','barracks']){
+  const other=createBuildingYard(kind,width);
+  try{
+   assert.equal(other.getObjectByName('BaseSupplyCache').position.x,width*.55);
+  }finally{disposeBuildingYard(other);}
+ }
+});
+
 test('HQ model and fence enlarge together while posts become taller and thinner',()=>{
  assert.equal(STRATEGIC_BUILDING_VISUAL_SCALE.headquarters,1.10);
  const model=calibratedScale('headquarters','building',{x:120,y:65,z:100},140);
