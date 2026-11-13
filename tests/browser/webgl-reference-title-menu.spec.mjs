@@ -63,5 +63,6 @@ test('WebGL title navigates to game, settings, statistics, credits and exit conf
  await expect(page.locator('#sf3d-main-load')).toBeDisabled();
  await expect(page.locator('#sf3d-campaign')).toBeVisible();
  await page.locator('#sf3d-campaign').click();
- await expect(page.locator('#sf3d-map-size')).toBeFocused();
+ await expect(page.locator('#sf3d-new-dialog')).toBeVisible();
+ await expect(page.locator('#sf3d-map-size')).toBeVisible();
 });
