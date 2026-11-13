@@ -1,7 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createBuildingYard,disposeBuildingYard} from '../scripts/webgl-building-yard.js';
+import {createBuildingYard,disposeBuildingYard,YARD_FENCE_HEIGHT,YARD_FENCE_POST_WIDTH}
+ from '../scripts/webgl-building-yard.js';
 import {calibratedScale,STRATEGIC_BUILDING_VISUAL_SCALE} from '../scripts/webgl-scale.js';
 import {applyStrategicGlbFinish} from '../scripts/webgl-strategic-glb.js';
 
@@ -31,7 +32,7 @@ test('barracks and research retain their -Z facade openings',()=>{
    assert.equal(yard.scale.x,factor);
    const m=new THREE.Matrix4(),scale=new THREE.Vector3();
    mesh.getMatrixAt(0,m);scale.setFromMatrixScale(m);
-   assert.ok(Math.abs(scale.y-16.8)<1e-4);
+   assert.ok(Math.abs(scale.y-YARD_FENCE_HEIGHT)<1e-4);
    assert.equal(mesh.userData.nonPlayable,true);
   }finally{disposeBuildingYard(yard);}
  }
@@ -49,7 +50,7 @@ test('HQ3 Funkzentrale has its entrance opening at +Z, with rear fence at -Z',()
   assert.ok(posts.some(p=>Math.abs(p.x+x)<.01));
   const m=new THREE.Matrix4(),scale=new THREE.Vector3();
   mesh.getMatrixAt(0,m);scale.setFromMatrixScale(m);
-  assert.ok(Math.abs(scale.y-16.8)<1e-4);
+  assert.ok(Math.abs(scale.y-YARD_FENCE_HEIGHT)<1e-4);
   assert.equal(yard.scale.x,1);
  }finally{disposeBuildingYard(yard);}
 });
