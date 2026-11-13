@@ -27,6 +27,7 @@ import {factoryRepairPoint} from '/src/reborn/factory-maintenance.js';
 import {selectedMaintenanceKind,serviceFootprintContains,maintenanceClickAllowed} from '/webgl-maintenance-input.js';
 import {disposeOwnedMeshes,disposeTaggedMaterials} from '/webgl-resource-lifecycle.js';
 import {releaseBastionRevision} from '/webgl-bastion-lifecycle.js';
+import {ANIMATED_BASTION_GLB_URL,createAnimatedBastionController} from '/webgl-bastion-animated.js';
 import {selectedInfantryForTransport,selectedLoadedTransports,selectedTransportManifest} from '/webgl-transport-controls.js';
 import {pointerGestureIntent,submitConstruction,nearestEngineer,POINTER_CLICK_SLOP,PLACEMENT_CLICK_SLOP} from '/webgl-builder-input.js';
 import {wallLinePlacements,wallLineFromTurret,wallLineToTurret,wallLineBetweenTurrets,WALL_DRAG_MAX_SEGMENTS,WALL_DRAG_SLOP} from '/webgl-wall-line.js';
@@ -1158,7 +1159,11 @@ export class SandforgeBattlefield {
    else if(entry)this.presentation.hideWhenCulled(entry);
   }
   const known=new Set(this.game.territories.map(t=>t.id));
-  for(const [id,entry] of this.bastions)if(!known.has(id)){this.scene.remove(entry.node);this.bastions.delete(id);}
+  for(const [id,entry] of this.bastions)if(!known.has(id)){
+   entry.version=(entry.version??0)+1;
+   releaseBastionRevision(entry);
+   this.scene.remove(entry.node);this.bastions.delete(id);
+  }
   for(const territory of this.game.territories){
    const entry=this.bastions.get(territory.id);
    if(entry&&entry.owner!==territory.owner){
@@ -1166,7 +1171,8 @@ export class SandforgeBattlefield {
     entry.owner=territory.owner;
     entry.core.material.color.set(territory.owner===0?colors.blue:territory.owner===1?colors.red:colors.neutral);
     entry.halo.material.color.set(territory.owner===0?colors.blue:territory.owner===1?colors.red:colors.neutral);
-    this.loadBastionModel(entry,territory.owner);
+    if(entry.bastionController)entry.bastionController.setOwner(territory.owner,{animate:true});
+    else this.loadBastionModel(entry,territory.owner);
     // Only announce ownership changes involving the local faction. Unknown
     // battles between other factions must never leak through Fog of War.
     if(territory.owner===0){
@@ -1180,8 +1186,14 @@ export class SandforgeBattlefield {
    }
    if(entry){
     updateBastionCaptureBar(entry.captureBar,territory,this.game,this.fogEnabled);
+    if(entry.bastionController){
+     // A capture is cosmetic: only the Simulation may change territory.owner.
+     entry.bastionController.setCaptureProgress(entry.captureBar.visible?
+      entry.captureBar.userData.captureFraction:0,territory.capturing);
+    }
     if(active&&entry.motion){
-     if(entry.motion.mixer)entry.motion.mixer.update(dt);
+     if(entry.motion.controller)entry.motion.controller.update(dt);
+     else if(entry.motion.mixer)entry.motion.mixer.update(dt);
      else if(entry.motion.pivot)entry.motion.pivot.rotation.y+=dt*.35;
      else if(entry.motion.rotor)entry.motion.rotor.rotation.y+=dt*.35;
     }
@@ -1209,6 +1221,30 @@ export class SandforgeBattlefield {
  }
  async loadBastionModel(entry,owner){
   const version=(entry.version??0)+1;entry.version=version;
+  try{
+   const data=await this.getModel(ANIMATED_BASTION_GLB_URL);
+   if(version!==entry.version||!entry.node.parent)return;
+   const detail=cloneSkeleton(data.scene);
+   const bounds=new THREE.Box3().setFromObject(detail);
+   const size=bounds.getSize(new THREE.Vector3());
+   if(!Number.isFinite(size.y)||size.y<1||!data.animations?.length)
+    throw new Error('Animated Bastion GLB invalid');
+   const factor=116/Math.max(.0001,size.x,size.z);
+   const center=bounds.getCenter(new THREE.Vector3());
+   detail.scale.multiplyScalar(factor);
+   detail.position.set(-center.x*factor,-bounds.min.y*factor,-center.z*factor);
+   const controller=createAnimatedBastionController(detail,data.animations,owner);
+   // Keep textures, alpha variants and baked emissive PBR unchanged.
+   // The old MK2 and all fallback mechanical rotors are released once.
+   releaseBastionRevision(entry);
+   entry.detail=detail;entry.node.add(detail);
+   entry.bastionController=controller;
+   entry.motion={kind:'bastion',controller,mode:'animated-reference'};
+   entry.pad.visible=false;entry.core.visible=false;entry.halo.visible=false;
+   entry.captureBar.position.y=Math.max(128,size.y*factor+13);
+   return;
+  }catch(error){console.warn('Animated Bastion asset unavailable; MK2 fallback:',error);}
+  if(version!==entry.version||!entry.node.parent)return;
   try{
    // Neutral points display the offline MK2; owned points activate doors,
    // radar and faction signals. One model per revision, with cached geometry.
