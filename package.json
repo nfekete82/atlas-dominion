@@ -40,7 +40,12 @@
     "build:3d": "SANDFORGE_RENDERER=webgl npm run build",
     "build:classic": "SANDFORGE_RENDERER=classic npm run build",
     "dev:3d": "SANDFORGE_RENDERER=webgl npm run dev",
-    "dev:classic": "SANDFORGE_RENDERER=classic npm run dev"
+    "dev:classic": "SANDFORGE_RENDERER=classic npm run dev",
+    "test:building-design": "npm run build && node --test tests/webgl-building-design-system.test.mjs tests/webgl-barracks-hq3-door-exit-20261113.test.mjs tests/webgl-barracks-silhouette-20261113.test.mjs tests/webgl-funkzentrale-hq3-20261112.test.mjs tests/webgl-hq3-soldier-camo-construction-20261113.test.mjs tests/webgl-three-biome-camouflage-20261112.test.mjs tests/webgl-hq3-portal-and-yard-materials-20261113.test.mjs tests/webgl-hangar-factory-maintenance-20261110.test.mjs tests/webgl-faction-accents-20261108.test.mjs tests/webgl-strong-camo-thin-barbed-fences-20261112.test.mjs tests/webgl-authored-hq-barracks-construction-20261112.test.mjs tests/webgl-production-gates.test.mjs",
+    "test:building-design:browser": "npm run build && node tests/browser/node_modules/playwright/cli.js test --config=tests/browser/playwright.config.mjs webgl-building-design-system.spec.mjs",
+    "assets:building-reference": "node scripts/audit-building-design.mjs",
+    "assets:building-reference:textures": "node scripts/audit-building-textures.mjs",
+    "benchmark:building-design": "node scripts/benchmark-building-design.mjs"
   },
   "devDependencies": {
     "three": "0.180.0",

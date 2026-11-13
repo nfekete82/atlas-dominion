@@ -1,0 +1,197 @@
+{
+  "method": "40 synchronous 640x480 renders per GLB shell after 12 warmups; performance.now + gl.finish; same camera/lights/geometry scale; no shadows, terrain, service yards, simulation or AI; baseline repeated after candidate to expose timing noise",
+  "renderer": "WebKit WebGL",
+  "results": {
+    "headquarters": {
+      "before": {
+        "calls": 34,
+        "triangles": 20500,
+        "medianMs": 0.09999990463256836,
+        "p95Ms": 0.20000004768371582
+      },
+      "after": {
+        "calls": 34,
+        "triangles": 20500,
+        "medianMs": 0.09999990463256836,
+        "p95Ms": 0.20000004768371582
+      },
+      "baselineRepeat": {
+        "calls": 34,
+        "triangles": 20500,
+        "medianMs": 0.09999990463256836,
+        "p95Ms": 0.10000014305114746
+      },
+      "projectionBytes": 0
+    },
+    "barracks": {
+      "before": {
+        "calls": 32,
+        "triangles": 9728,
+        "medianMs": 0,
+        "p95Ms": 0.10000014305114746
+      },
+      "after": {
+        "calls": 32,
+        "triangles": 9728,
+        "medianMs": 0,
+        "p95Ms": 0.10000014305114746
+      },
+      "baselineRepeat": {
+        "calls": 32,
+        "triangles": 9728,
+        "medianMs": 0,
+        "p95Ms": 0.10000014305114746
+      },
+      "projectionBytes": 71616
+    },
+    "factory": {
+      "before": {
+        "calls": 51,
+        "triangles": 31870,
+        "medianMs": 0.09999990463256836,
+        "p95Ms": 0.19999980926513672
+      },
+      "after": {
+        "calls": 51,
+        "triangles": 31870,
+        "medianMs": 0.09999990463256836,
+        "p95Ms": 0.20000004768371582
+      },
+      "baselineRepeat": {
+        "calls": 51,
+        "triangles": 31870,
+        "medianMs": 0.09999990463256836,
+        "p95Ms": 0.10000014305114746
+      },
+      "projectionBytes": 955764
+    },
+    "airfield": {
+      "before": {
+        "calls": 241,
+        "triangles": 131922,
+        "medianMs": 0.2999999523162842,
+        "p95Ms": 0.5
+      },
+      "after": {
+        "calls": 241,
+        "triangles": 131922,
+        "medianMs": 0.2999999523162842,
+        "p95Ms": 0.3000001907348633
+      },
+      "baselineRepeat": {
+        "calls": 241,
+        "triangles": 131922,
+        "medianMs": 0.2999999523162842,
+        "p95Ms": 0.3000001907348633
+      },
+      "projectionBytes": 2457072
+    },
+    "research": {
+      "before": {
+        "calls": 26,
+        "triangles": 23832,
+        "medianMs": 0,
+        "p95Ms": 0.10000014305114746
+      },
+      "after": {
+        "calls": 26,
+        "triangles": 23832,
+        "medianMs": 0,
+        "p95Ms": 0.10000014305114746
+      },
+      "baselineRepeat": {
+        "calls": 26,
+        "triangles": 23832,
+        "medianMs": 0,
+        "p95Ms": 0.10000014305114746
+      },
+      "projectionBytes": 120984
+    },
+    "silo": {
+      "before": {
+        "calls": 32,
+        "triangles": 17436,
+        "medianMs": 0,
+        "p95Ms": 0.10000014305114746
+      },
+      "after": {
+        "calls": 32,
+        "triangles": 17436,
+        "medianMs": 0,
+        "p95Ms": 0.10000014305114746
+      },
+      "baselineRepeat": {
+        "calls": 32,
+        "triangles": 17436,
+        "medianMs": 0,
+        "p95Ms": 0.10000014305114746
+      },
+      "projectionBytes": 89208
+    },
+    "generator": {
+      "before": {
+        "calls": 27,
+        "triangles": 15966,
+        "medianMs": 0,
+        "p95Ms": 0.10000014305114746
+      },
+      "after": {
+        "calls": 27,
+        "triangles": 15966,
+        "medianMs": 0,
+        "p95Ms": 0.10000014305114746
+      },
+      "baselineRepeat": {
+        "calls": 27,
+        "triangles": 15966,
+        "medianMs": 0,
+        "p95Ms": 0.10000014305114746
+      },
+      "projectionBytes": 345084
+    },
+    "turret": {
+      "before": {
+        "calls": 175,
+        "triangles": 72334,
+        "medianMs": 0.20000004768371582,
+        "p95Ms": 0.2999999523162842
+      },
+      "after": {
+        "calls": 175,
+        "triangles": 72334,
+        "medianMs": 0.20000004768371582,
+        "p95Ms": 0.2999999523162842
+      },
+      "baselineRepeat": {
+        "calls": 175,
+        "triangles": 72334,
+        "medianMs": 0.20000004768371582,
+        "p95Ms": 0.3000001907348633
+      },
+      "projectionBytes": 1626588
+    },
+    "bastion": {
+      "before": {
+        "calls": 24,
+        "triangles": 8564,
+        "medianMs": 0,
+        "p95Ms": 0.10000014305114746
+      },
+      "after": {
+        "calls": 24,
+        "triangles": 8564,
+        "medianMs": 0,
+        "p95Ms": 0.10000014305114746
+      },
+      "baselineRepeat": {
+        "calls": 24,
+        "triangles": 8564,
+        "medianMs": 0,
+        "p95Ms": 0.10000014305114746
+      },
+      "projectionBytes": 21912
+    }
+  },
+  "baseline": "9274482c",
+  "timingLimit": "Most samples are at the 0.1 ms performance.now resolution; no quantitative GPU-frame-budget conclusion is warranted. Both arms use the same current geometry simplification; this isolates material cost, not the total historical geometry difference."
+}
