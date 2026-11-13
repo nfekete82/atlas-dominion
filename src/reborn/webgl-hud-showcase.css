@@ -856,3 +856,43 @@
  #sf-classic-root[data-tab="buildings"] #sf-actions
   button.catalog-card[data-build] .card-cost{font-size:13px!important}
 }
+
+/* Visual screenshot correction: prevent the legacy catalogue title's dark
+   label stripe from appearing over our one-piece panel. Preserve full names
+   and never ellipsize "Forschungsstation" at desktop widths. */
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build] .card-name{
+ display:flex!important;justify-content:center!important;align-items:center!important;
+ flex:0 0 auto!important;
+ width:100%!important;max-width:100%!important;
+ min-width:0!important;
+ height:22px!important;min-height:22px!important;max-height:22px!important;
+ margin:0!important;padding:0!important;
+ text-align:center!important;
+ background:transparent!important;box-shadow:none!important;
+ white-space:nowrap!important;word-break:normal!important;
+ overflow:visible!important;text-overflow:clip!important;
+ font:850 clamp(11px,.89vw,16px)/1 system-ui!important;
+ letter-spacing:-.028em!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build] .card-meta{
+ background:transparent!important;box-shadow:none!important;
+ padding:0 2px 2px!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build] .sf-card-image img{
+ transform:scale(1.48)!important;transform-origin:center center!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build]:disabled .sf-card-image img{
+ transform:scale(1.48)!important;
+}
+@media(max-width:1190px){
+ #sf-classic-root[data-tab="buildings"] #sf-actions
+  button.catalog-card[data-build] .card-name{font-size:13px!important}
+}
+@media(max-width:740px){
+ #sf-classic-root[data-tab="buildings"] #sf-actions
+  button.catalog-card[data-build] .card-name{font-size:11px!important}
+}
