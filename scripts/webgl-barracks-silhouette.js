@@ -10,13 +10,22 @@
  * This runs once per cloned model, never edits the downloaded GLB asset and
  * never changes simulation footprint, combat, collision or navmesh.
  */
-export const BARRACKS_SILHOUETTE_REVISION='barracks-clean-silhouette-v1';
+export const BARRACKS_SILHOUETTE_REVISION='barracks-clean-silhouette-v2';
 
 export function barracksAccessoryRegion(bounds){
  const x0=bounds.min.x,x1=bounds.max.x;
  const y0=bounds.min.y,y1=bounds.max.y;
  const z0=bounds.min.z,z1=bounds.max.z;
  const within=(a,b,lo,hi)=>a>=lo&&b<=hi;
+ // A thin cap sits BELOW the removed tower region (actual Y 5.65–5.75).
+ // Leaving it behind created a visibly floating square beside the roof.
+ if(within(x0,x1,-8.60,-6.70)&&within(z0,z1,5.05,6.80)&&
+    y0>=5.60&&y1<=5.85)return 'tower-support-cap';
+ // The opposite flat roof carries three duplicated box ventilators. Keep
+ // the middle housing; remove the two outer housings, lids and louvres.
+ if(within(x0,x1,-7.50,-5.70)&&y0>=4.45&&y1<=5.20&&
+    (within(z0,z1,-1.70,.10)||within(z0,z1,2.20,3.95)))
+  return 'outer-box-vent';
  // The tall, disconnected guard tower at the rear-left corner. The roof
  // behind it is a much larger connected surface and therefore survives.
  if(within(x0,x1,-9.25,-6.15)&&within(z0,z1,4.00,7.60)&&y1>5.90)

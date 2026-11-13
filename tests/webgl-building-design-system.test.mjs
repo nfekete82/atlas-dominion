@@ -191,3 +191,19 @@ test('compact supply caches clear the shared perimeter at all four orientations'
   disposeBuildingYard(yard);
  }
 });
+
+test('real barracks has no orphaned tower cap or duplicate outer box ventilators',async()=>{
+ const {scene}=await geometryScene(path+'sandforge_kaserne_betriebsbereit.glb');
+ const height=(x,z)=>{
+  scene.updateWorldMatrix(true,true);
+  const ray=new THREE.Raycaster(new THREE.Vector3(x,5.9,z),new THREE.Vector3(0,-1,0),0,4);
+  return ray.intersectObject(scene,true).find(h=>h.object.visible)?.point.y;
+ };
+ assert.ok(height(-7.65,5.93)>5.6,'original orphan cap exists in the real asset');
+ assert.ok(height(-6.6,-.85)>5.1);
+ simplifyBarracksSilhouette(scene);
+ assert.ok(height(-7.65,5.93)<5.6,'cap removed with its old supporting tower');
+ assert.ok(height(-6.6,-.85)>4&&height(-6.6,-.85)<4.6,'first duplicate housing removed');
+ assert.ok(height(-6.6,3.05)>4&&height(-6.6,3.05)<4.6,'third duplicate housing removed');
+ assert.ok(height(-6.6,1.12)>5.1,'central functional housing preserved');
+});
