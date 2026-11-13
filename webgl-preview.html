@@ -165,16 +165,16 @@ html.sandforge-clean-title #main-dialog{
  background-position:center; background-size:cover;
 }
 html.sf-bastion-bg-ready.sandforge-clean-title #main-dialog{
- background-image:linear-gradient(180deg,#08101954 0%,#111b2844 38%,#060b15ba 100%),
+ background-image:linear-gradient(180deg,rgba(5,9,15,.16) 0%,rgba(9,13,19,.08) 42%,rgba(7,9,14,.33) 100%),
   url('/src/assets/reborn/sandforge-start-background.png');
 }
 html.sandforge-clean-title #main-dialog .menu-brand{
  position:absolute;z-index:2;top:clamp(8px,1.7dvh,28px);left:50%;
- transform:translateX(-50%);margin:0;width:min(730px,67vw);height:auto;
+ transform:translateX(-50%);margin:0;width:min(570px,62vw);height:auto;
  pointer-events:none;
 }
 html.sandforge-clean-title #main-dialog .sandforge-splash-logo{
- display:block;width:100%;height:auto;max-height:min(36dvh,360px);object-fit:contain;
+ display:block;width:100%;height:auto;max-height:min(31dvh,295px);object-fit:contain;
  filter:drop-shadow(0 12px 20px #05060bee);
 }
 html.sandforge-clean-title #main-dialog .menu-buttons{
@@ -258,16 +258,19 @@ html.sandforge-clean-title #main-dialog #sf3d-menu-status{
 }
 </style>
 <script>
-/* Image uploads are optional for a safe preview; the original artwork remains
-   visible when missing. Menu actions are real DOM controls in every case. */
+/* The supplied Bastion logo and sunset artwork are authoritative.
+   Existing branding remains a safe fallback if the ZIP assets have not
+   yet been committed to the local/remote working tree. The menu uses
+   real buttons in either case, never image-coordinate click hotspots. */
 document.addEventListener('DOMContentLoaded',()=>{
  const background=new Image();
- background.onload=()=>document.documentElement.classList.add('sf-bastion-bg-ready');
+ background.onload=()=>{if(background.naturalWidth>=1600&&background.naturalHeight>=900)
+  document.documentElement.classList.add('sf-bastion-bg-ready');};
  background.src='/src/assets/reborn/sandforge-start-background.png';
  const logo=document.querySelector('#main-dialog .sandforge-splash-logo');
  if(logo){
   const image=new Image();
-  image.onload=()=>{logo.src=image.src};
+  image.onload=()=>{if(image.naturalWidth>=1000&&image.naturalHeight>=500)logo.src=image.src};
   image.src='/src/assets/reborn/sandforge-bastion-logo.webp';
  }
 });
