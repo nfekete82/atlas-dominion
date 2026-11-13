@@ -7,7 +7,13 @@ test('3D starts with the original Sandforge title and enters a real playable cam
  await page.goto('/webgl-preview.html',{waitUntil:'domcontentloaded'});
  await expect(page.locator('#main-dialog')).toBeVisible();
  await expect(page.locator('html')).toHaveClass(/sandforge-clean-title/);
- await expect(page.locator('#main-dialog .sandforge-splash-logo')).toBeVisible();
+ const cinematic=await page.request.get(new URL('/src/assets/reborn/sandforge-title-centered.webp',page.url()).href);
+ if(cinematic.ok()){
+  await page.waitForFunction(()=>document.documentElement.classList.contains('sf-centered-art-ready'));
+  await expect(page.locator('#main-dialog .sandforge-splash-logo')).toBeHidden();
+ }else{
+  await expect(page.locator('#main-dialog .sandforge-splash-logo')).toBeVisible();
+ }
  await expect(page.locator('#sf3d-new')).toBeVisible();
  await expect(page.locator('#sf3d-main-options')).toBeVisible();
  expect(await page.evaluate(()=>!!window.__sandforgeWebGL)).toBe(false);
