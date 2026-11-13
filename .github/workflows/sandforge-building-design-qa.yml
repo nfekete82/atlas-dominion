@@ -36,6 +36,9 @@ jobs:
       - name: Isolated real Chromium 3D gallery and game tests
         env:
           SANDFORGE_BROWSER_CHANNEL: chromium
+          # Preserve the 1440px/1600px CSS layout; raster at half DPR on
+          # software-rendered GitHub runners to avoid GPU-bound timeouts.
+          SANDFORGE_TEST_DPR: '0.5'
         run: npm run test:building-design:browser
       - name: Preserve Playwright report, traces and screenshots
         if: always()
