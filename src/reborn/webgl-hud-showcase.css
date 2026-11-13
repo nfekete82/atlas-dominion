@@ -1215,3 +1215,305 @@
  border-left:1px solid rgba(211,219,235,.25)!important;
  background:none!important;
 }
+
+
+
+/* -----------------------------------------------------------------------
+ * Sandforge tactical HUD v4: compact charcoal + desert brass.
+ * Applied only to the 3D game. Keep the catalogue, production state and
+ * DOM controls intact; override v1-v3 visual dimensions without rewriting
+ * the existing game's selectors or event handlers.
+ * No backdrop-filter: the WebGL scene does not need a compositing blur.
+ * ----------------------------------------------------------------------- */
+#sf-classic-root{
+ --sf-hud-h:clamp(116px,14vh,134px);
+ --sf-hud-map:clamp(120px,10.5vw,144px);
+ --sf-hud-actions:clamp(34px,3vw,42px);
+ --sf-hud-ink:#1b211f;
+ --sf-hud-border:#74634a;
+ --sf-hud-gold:#d7b276;
+}
+#sf-classic-root #sidebar{
+ left:6px!important;right:6px!important;bottom:6px!important;
+ width:calc(100vw - 12px)!important;
+ gap:4px!important;
+}
+#sf-classic-root #sidebar > .radar{
+ padding:3px!important;
+ border:1px solid rgba(213,180,119,.30)!important;
+ border-radius:8px!important;
+ background:rgba(22,26,26,.86)!important;
+ box-shadow:0 2px 9px rgba(0,0,0,.26)!important;
+}
+#sf-classic-root #sidebar #sf-map{
+ width:100%!important;height:100%!important;
+ max-height:100%!important;
+ aspect-ratio:1!important;
+ object-fit:contain!important;
+ border:0!important;border-radius:5px!important;
+}
+#sf-classic-root #sidebar > .sf-modern-side-actions{
+ padding:3px!important;gap:3px!important;
+ border:0!important;border-radius:7px!important;
+ background:rgba(22,26,26,.84)!important;
+ box-shadow:0 2px 9px rgba(0,0,0,.25)!important;
+}
+#sf-classic-root #sidebar .sf-modern-side-actions > button{
+ min-height:0!important;min-width:0!important;
+ padding:1px!important;border:0!important;border-radius:5px!important;
+ background:rgba(66,70,65,.48)!important;
+ color:#d5cbb8!important;
+ box-shadow:none!important;
+}
+#sf-classic-root #sidebar .sf-modern-side-actions > button+button{
+ border-top:1px solid rgba(217,195,155,.13)!important;
+}
+#sf-classic-root .sf-modern-side-actions > button svg{
+ width:clamp(17px,1.55vw,22px)!important;
+ height:clamp(17px,1.55vw,22px)!important;
+}
+#sf-classic-root .sf-modern-side-actions > button:hover,
+#sf-classic-root .sf-modern-side-actions > button[aria-expanded="true"]{
+ background:rgba(141,110,64,.53)!important;color:#ffebcb!important;
+}
+#sf-classic-root #sidebar #sf-tabs{
+ flex:0 0 30px!important;
+ height:30px!important;min-height:30px!important;
+ align-items:stretch!important;gap:4px!important;
+ border:0!important;background:transparent!important;
+}
+#sf-classic-root #sidebar #sf-tabs > button{
+ flex:0 0 clamp(112px,10vw,150px)!important;
+ width:auto!important;max-width:none!important;min-width:0!important;
+ height:30px!important;min-height:30px!important;
+ margin:0!important;padding:0 10px!important;gap:6px!important;
+ clip-path:none!important;border:0!important;
+ border-radius:5px 5px 0 0!important;
+ background:rgba(30,35,34,.89)!important;
+ color:#d3c7b6!important;
+ box-shadow:inset 0 -1px rgba(196,174,140,.12)!important;
+ text-shadow:none!important;
+ font:750 clamp(11px,.86vw,13px)/1 system-ui!important;
+}
+#sf-classic-root #sidebar #sf-tabs > button[aria-pressed="true"]{
+ background:rgba(99,78,48,.95)!important;
+ color:#f5dfb9!important;
+ box-shadow:inset 0 2px #d4ab67!important;
+}
+#sf-classic-root #sidebar #sf-tabs > button:disabled{
+ background:rgba(29,33,33,.63)!important;
+ color:#938f87!important;opacity:.7!important;
+}
+#sf-classic-root #sidebar #sf-tabs .sf-tab-symbol{
+ flex:0 0 17px!important;width:17px!important;height:17px!important;
+ font:800 16px/1 system-ui!important;
+}
+#sf-classic-root #sidebar #sf-actions.catalog-scroll{
+ padding:0!important;border:0!important;
+ border-radius:0 7px 7px 7px!important;
+ background:rgba(19,23,24,.86)!important;
+ box-shadow:0 2px 11px rgba(0,0,0,.26)!important;
+ backdrop-filter:none!important;
+ scrollbar-color:rgba(183,149,97,.65) transparent!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ .sf-group[data-sf-group="buildings"] > .catalog-grid{
+ grid-auto-columns:max(112px,calc(100% / var(--sf-building-count,9)))!important;
+ padding:3px 4px 4px!important;
+ gap:0!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ .sf-group[data-sf-group="buildings"] button.catalog-card[data-build]{
+ padding:0 4px!important;
+ background:transparent!important;
+ border:0!important;border-radius:0!important;
+ box-shadow:none!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ .sf-group[data-sf-group="buildings"] button.catalog-card[data-build]:not(:first-child)::before{
+ content:""!important;display:block!important;
+ left:0!important;top:8px!important;bottom:8px!important;
+ border:0!important;border-left:1px solid rgba(224,205,170,.23)!important;
+ width:0!important;pointer-events:none!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build]:hover:not(:disabled){
+ background:rgba(194,150,81,.14)!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build] .sf-card-image{
+ padding:0!important;margin:0!important;
+ border:0!important;background:transparent!important;
+ min-height:0!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build] .sf-card-image img{
+ transform:scale(1.09)!important;
+ filter:brightness(1.14) contrast(1.07) drop-shadow(0 3px 3px #030505aa)!important;
+ opacity:1!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build] .card-meta{
+ flex:0 0 36px!important;
+ height:36px!important;min-height:36px!important;max-height:36px!important;
+ gap:1px!important;padding:0 2px 1px!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build] .card-name{
+ height:22px!important;min-height:22px!important;max-height:22px!important;
+ color:#e9e5dc!important;
+ font:750 clamp(10px,.75vw,12px)/1.06 system-ui!important;
+ text-shadow:0 1px 2px #000a!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build] .card-cost{
+ flex:0 0 13px!important;height:13px!important;min-height:13px!important;
+ color:#dfc392!important;
+ gap:3px!important;
+ font:800 clamp(10px,.74vw,12px)/1 system-ui!important;
+}
+#sf-classic-root #sf-actions .card-cost::before{
+ flex:0 0 10px!important;width:10px!important;height:10px!important;
+ background:#d6a849!important;
+}
+/* Locked facilities are still readable and distinguishable from empty slots. */
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build]:is(:disabled,.locked){
+ background:transparent!important;opacity:.70!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build]:is(:disabled,.locked) .sf-card-image img{
+ transform:scale(1.09)!important;
+ filter:grayscale(.52) brightness(.86) contrast(1.06) drop-shadow(0 2px 2px #0008)!important;
+ opacity:.88!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build]:is(:disabled,.locked)::after{
+ content:"🔒"!important;
+ position:absolute!important;top:3px!important;right:4px!important;z-index:2!important;
+ display:grid!important;place-items:center!important;
+ width:17px!important;height:17px!important;line-height:1!important;
+ font-size:10px!important;
+ border-radius:3px!important;
+ background:rgba(12,17,18,.72)!important;
+ filter:grayscale(1)!important;
+ pointer-events:none!important;
+}
+#sf-classic-root[data-tab="units"] #sf-actions .catalog-card,
+#sf-classic-root[data-tab="research"] #sf-actions .sf-research-card{
+ border:0!important;border-radius:3px!important;
+ background:transparent!important;box-shadow:none!important;
+}
+#sf-classic-root[data-tab="units"] #sf-actions .catalog-card:hover:not(:disabled),
+#sf-classic-root[data-tab="research"] #sf-actions .sf-research-card:hover:not(:disabled){
+ background:rgba(194,150,81,.15)!important;
+}
+#sf-classic-root .sf-modern-unit-categories{
+ top:2px!important;right:8px!important;gap:4px!important;
+}
+#sf-classic-root .sf-modern-unit-categories button{
+ height:25px!important;min-height:25px!important;
+ border:1px solid rgba(206,175,122,.18)!important;border-radius:4px!important;
+ padding:3px 7px!important;
+ background:rgba(25,30,29,.88)!important;color:#d7cbb9!important;
+ font-size:10px!important;
+}
+#sf-classic-root .sf-modern-unit-categories button[aria-pressed="true"]{
+ background:rgba(100,78,47,.94)!important;color:#f7dcad!important;
+ border-color:rgba(215,178,118,.58)!important;
+}
+/* Give the top of the screen the same visual language as the lower dock. */
+#sf-classic-root .sf-modern-brand{top:8px!important;left:8px!important;gap:7px!important}
+#sf-classic-root .sf-modern-brand .wordmark{
+ width:clamp(142px,14vw,214px)!important;height:clamp(52px,5vw,70px)!important;
+}
+#sf-classic-root :is(#sf-hud-menu-toggle,#sf-hud-tools-toggle){
+ width:34px!important;height:34px!important;min-height:34px!important;flex-basis:34px!important;
+ border:1px solid rgba(211,177,119,.26)!important;border-radius:7px!important;
+ background:rgba(27,33,34,.88)!important;color:#e1d7c5!important;
+ box-shadow:0 2px 9px rgba(0,0,0,.25)!important;
+ padding:6px!important;
+}
+#sf-classic-root #sf-hud-tools-toggle{top:8px!important;right:8px!important}
+#sf-classic-root .top.hud{
+ top:8px!important;right:49px!important;
+ height:34px!important;min-height:34px!important;
+ max-width:min(74vw,400px)!important;
+ padding:0 8px!important;border-radius:7px!important;
+ border:1px solid rgba(211,177,119,.27)!important;
+ background:rgba(27,33,34,.88)!important;
+ box-shadow:0 2px 9px rgba(0,0,0,.25)!important;
+}
+#sf-classic-root .top :is(.credit-resource,.sf-income-resource,.capacity-resource){
+ height:25px!important;padding:0 9px!important;gap:5px!important;
+}
+#sf-classic-root .top .sf-income-resource,
+#sf-classic-root .top .capacity-resource{
+ border-left:1px solid rgba(226,202,160,.20)!important;
+}
+#sf-classic-root .top :is(.credit-resource strong,.sf-income-resource #sf-income,.capacity-resource strong){
+ font:800 clamp(11px,.86vw,13px)/1 system-ui!important;
+}
+#sf-classic-root .top .credit-cube{width:13px!important;height:13px!important}
+#sf-classic-root .top .sf-income-icon{font-size:19px!important}
+#sf-classic-root .top .capacity-resource > span{font-size:16px!important}
+#sf-classic-root #sf-tools{
+ top:48px!important;
+ border-color:rgba(211,177,119,.3)!important;
+ background:rgba(22,28,29,.96)!important;
+}
+@media(max-width:1150px){
+ #sf-classic-root{
+  --sf-hud-map:clamp(98px,12vw,128px);
+  --sf-hud-actions:36px;
+ }
+ #sf-classic-root #sidebar #sf-tabs > button{
+  flex-basis:clamp(98px,13vw,137px)!important;
+  font-size:11px!important;
+ }
+ #sf-classic-root #sidebar .sf-tab-symbol{font-size:15px!important}
+}
+@media(max-width:740px){
+ #sf-classic-root{--sf-hud-h:clamp(124px,22vh,150px);--sf-hud-map:85px;--sf-hud-actions:32px}
+ #sf-classic-root #sidebar{
+  left:4px!important;right:4px!important;bottom:4px!important;
+  width:calc(100vw - 8px)!important;gap:2px!important;
+ }
+ #sf-classic-root #sidebar > .radar{padding:2px!important}
+ #sf-classic-root #sidebar #sf-map{
+  width:100%!important;height:100%!important;
+  max-height:100%!important;aspect-ratio:1!important;
+ }
+ #sf-classic-root #sidebar #sf-tabs{
+  height:28px!important;min-height:28px!important;flex-basis:28px!important;
+  gap:2px!important;
+ }
+ #sf-classic-root #sidebar #sf-tabs > button{
+  flex-basis:33.333%!important;max-width:none!important;
+  height:28px!important;min-height:28px!important;
+  padding:0 3px!important;gap:3px!important;
+  font-size:10px!important;
+ }
+ #sf-classic-root #sidebar #sf-tabs .sf-tab-symbol{
+  flex-basis:13px!important;width:13px!important;height:13px!important;
+  font-size:13px!important;
+ }
+ #sf-classic-root[data-tab="buildings"] #sf-actions
+  .sf-group[data-sf-group="buildings"] > .catalog-grid{
+  grid-auto-columns:max(96px,calc(100% / var(--sf-building-count,9)))!important;
+ }
+ #sf-classic-root[data-tab="buildings"] #sf-actions
+  button.catalog-card[data-build] .card-name{
+  font-size:10px!important;
+ }
+ #sf-classic-root .sf-modern-unit-categories{top:-28px!important;right:0!important}
+ #sf-classic-root .sf-modern-unit-categories button{
+  min-height:22px!important;height:22px!important;padding:2px 4px!important;font-size:9px!important;
+ }
+ #sf-classic-root .sf-modern-brand .wordmark{width:138px!important;height:51px!important}
+ #sf-classic-root .top.hud{
+  top:48px!important;right:8px!important;
+  height:34px!important;min-height:34px!important;
+ }
+ #sf-classic-root #sf-tools{top:88px!important}
+}

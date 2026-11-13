@@ -3,6 +3,10 @@ on:
   push:
     branches:
       - feat/lowpoly-hud-showcase-20261113
+      - feat/webgl-compact-tactical-hud-20261113
+  pull_request:
+    branches:
+      - feat/lowpoly-hud-showcase-20261113
   workflow_dispatch:
 permissions:
   contents: read
@@ -30,7 +34,7 @@ jobs:
         env:
           SANDFORGE_BROWSER_CHANNEL: chromium
           SANDFORGE_TEST_PORT: '8197'
-        run: node tests/browser/node_modules/playwright/cli.js test --config=tests/browser/playwright.config.mjs webgl-hud-layout-fixture.spec.mjs
+        run: node tests/browser/node_modules/playwright/cli.js test --config=tests/browser/playwright.config.mjs webgl-hud-layout-fixture.spec.mjs webgl-hud-showcase.spec.mjs
       - name: Upload browser screenshots and failures
         if: always()
         uses: actions/upload-artifact@v4
