@@ -18,7 +18,12 @@ export const STRATEGIC_BUILDING_VISUAL_SCALE=Object.freeze({
  headquarters:1.10,barracks:1.20,research:1.04,silo:1.02
 });
 /** Taller research/silo geometry without changing footprint, collision or saves. */
-export const STRATEGIC_BUILDING_HEIGHT_SCALE=Object.freeze({research:2.05,silo:1.82});
+// The original Kaserne is unusually squat despite its broad footprint.
+// Lift only its rendered Y dimension so it reads as a substantial hangar
+// beside the HQ3. Collision, building slots and saved dimensions are intact.
+export const STRATEGIC_BUILDING_HEIGHT_SCALE=Object.freeze({
+ barracks:1.28,research:2.05,silo:1.82
+});
 export const strategicBuildingHeightScale=kind=>STRATEGIC_BUILDING_HEIGHT_SCALE[kind]??1;
 
 /** Wider selection footprint at tactical zoom. Render-only: never changes
