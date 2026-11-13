@@ -67,7 +67,8 @@ test('large connected roof surfaces never get clipped by decorative exclusion re
 
 test('barracks is taller but does not enlarge collision, fences or gameplay footprint',()=>{
  assert.equal(STRATEGIC_BUILDING_VISUAL_SCALE.barracks,1.20);
- assert.equal(strategicBuildingHeightScale('barracks'),1.28);
+ assert.ok(strategicBuildingHeightScale('barracks')>1.7);
+ // Exact clearance is measured against the real door in the design-system suite.
  const bounds={x:20.2,y:9.055,z:20.2},width=140;
  const model=calibratedScale('barracks','building',bounds,width);
  assert.ok(Math.abs(model-(width/20.2)*1.20)<1e-7);

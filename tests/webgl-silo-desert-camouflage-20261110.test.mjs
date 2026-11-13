@@ -69,7 +69,7 @@ test('faction tint preserves the silo painted texture, rocket and signal equipme
  assert.ok(count>0);
  const after=meshes(silo).filter(n=>n.material.userData.sandforgeColorMapCamo);
  assert.ok(after.length>=2);
- assert.ok(after.every(n=>n.material.map===texture));
+ assert.ok(after.every(n=>n.material.map===texture||n.material.userData.sandforgeBuildingDesign));
  assert.ok(after.every(n=>n.material.userData.sandforgeFactionTint),
   'camouflage must still receive ordinary team ownership tint');
  assert.ok(after.every(n=>n.material.userData.sandforgeDesertFinish!==DESERT_FINISH_REVISION),

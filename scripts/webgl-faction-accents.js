@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {applyBuildingDesign} from './webgl-building-design.js';
 
 /** Painted ownership belongs INSIDE the authored PBR surfaces.
  * No floating blue cubes, box geometry or extra draw calls.
@@ -185,6 +186,9 @@ export function tintFactionMaterials(root,owner,kind,type){
   if(!mesh.isMesh||mesh.userData?.factionAccent)return;
   const paint=source=>{
    if(!source?.isMeshStandardMaterial)return source;
+   // These coatings already use the exact HQ3 albedo. Capture updates team
+   // markers separately; never multiply the facade texture by its old paint.
+   if(type==='building'&&source.userData?.sandforgeBuildingDesign)return source;
    // Split a shared glTF material when one mesh is uniform armour and
    // another is a rifle/visor. A single paint clone for both would cause
    // the weapon or face to inherit the camouflage shader.
@@ -250,6 +254,7 @@ export function tintFactionMaterials(root,owner,kind,type){
   };
   mesh.material=Array.isArray(mesh.material)?mesh.material.map(paint):paint(mesh.material);
  });
+ if(type==='building')applyBuildingDesign(root,{kind,biome:selectedCamouflageBiome});
  return tinted;
 }
 

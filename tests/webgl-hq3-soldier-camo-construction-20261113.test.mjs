@@ -145,7 +145,7 @@ test('HQ3 side station and crates rise with the same height budget, fence instan
  assert.ok(src.includes("entry.headquartersPortal?.root"),
   'doors added after model streaming trigger a construction rescan');
  assert.ok(src.includes('state.siteAssembly=prepareAuthoredAssembly(entry.yard'));
- assert.ok(src.includes("instancedOnly:base.kind==='headquarters'"));
+ assert.ok(src.includes('instancedOnly:Boolean(state.siteAssembly)'));
  assert.ok(battlefield.indexOf('this.construction.update(entry,b)')>
   battlefield.indexOf("entry.yard=createBuildingYard(b.kind"),
   'new site props must be staged before their first rendered frame');

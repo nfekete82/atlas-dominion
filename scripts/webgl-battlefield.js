@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {SandforgeProductionGates} from '/webgl-production-gates.js';
+import {updateBarracksPortalPlanes} from '/webgl-barracks-portal.js';
 import {nextPeriodicRefresh} from '/webgl-frame-scheduling.js';
 import {wheelsShouldRoll} from '/webgl-wheel-motion.js';
 import {clone as cloneSkeleton} from 'three/addons/utils/SkeletonUtils.js';
@@ -15,6 +16,7 @@ import {calibratedScale,visualUnitScale,unitVisualYaw,unitRenderAltitude,buildin
 import {SandforgeGroundingPass} from '/webgl-grounding.js';
 import {createBuildingYard,disposeBuildingYard} from '/webgl-building-yard.js';
 import {simplifyBarracksSilhouette} from '/webgl-barracks-silhouette.js';
+import {updateSiloHatch} from '/webgl-building-motion.js';
 import {createAirfieldServiceYard,conformAirfieldSurface,updateAirfieldServiceYard,hideOldAirfieldHangar,disposeAirfieldServiceYard} from '/webgl-airfield-service.js';
 import {createFactoryServiceYard,updateFactoryServiceYard,disposeFactoryServiceYard} from '/webgl-factory-service.js';
 import {disposeServicePaint,previewServiceMaterial} from '/webgl-service-materials.js';
@@ -1050,11 +1052,13 @@ export class SandforgeBattlefield {
    entry.node.visible=b.owner===0||this.game.canSee(0,b);
    entry.node.scale.y=1;
    entry.node.rotation.y=buildingFacingAngle(b.facing);
+   if(entry.barracksPortal)updateBarracksPortalPlanes(entry.barracksPortal);
    if(entry.variantDetail){
     const activeVariant=strategicGlbActive(b.kind,b,this.game);
     entry.detail.visible=!activeVariant;
     entry.variantDetail.visible=activeVariant;
    }
+   if(b.kind==='silo')updateSiloHatch(entry,b,active?dt:0);
    // Stage the actual yard on the first construction tick. If attached
    // afterward, HQ3 side consoles/crates briefly appear fully completed.
    if(!entry.yard){
@@ -1065,7 +1069,6 @@ export class SandforgeBattlefield {
      if(decor)decor.visible=this.siteDecorEnabled;
     }
    }
-   this.construction.update(entry,b);
    if(b.kind==='airfield'){
     if(!entry.airfieldServiceYard){
      entry.airfieldServiceYard=createAirfieldServiceYard();entry.node.add(entry.airfieldServiceYard);
@@ -1080,6 +1083,8 @@ export class SandforgeBattlefield {
     }
     if(b.buildRemaining<=0)updateFactoryServiceYard(entry,b,this.game.units,this.game.time);
    }
+   this.construction.update(entry,b);
+   if(entry.motion?.mode==='fallback'&&entry.motion.rotor)entry.motion.rotor.visible=b.buildRemaining<=0;
    this.animateBuildingMotion(entry,b,dt,active);
    if(b.buildRemaining<=0&&!this.announcedBuildings.has(b.id)){
     this.announcedBuildings.add(b.id);

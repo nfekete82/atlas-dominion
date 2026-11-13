@@ -188,8 +188,8 @@ test('fuel drums, loading ramps and desert service paving use modeled geometry a
   const mesh=airport.getObjectByName(name);
   assert.ok(mesh,'missing textured fuel/apron detail: '+name);
   assert.equal(mesh.geometry.type,type,name+' needs actual modeled geometry');
-  assert.ok(mesh.material.map?.isDataTexture,name+' still has placeholder solid paint');
-  assert.ok(mesh.material.userData.sandforgeServiceTexture,
+  assert.ok(mesh.material.map?.isDataTexture||mesh.material.userData?.sandforgeMaterialReference,name+' needs real PBR paint');
+  assert.ok(mesh.material.userData.sandforgeServiceTexture||mesh.material.userData.sandforgeBuildingDesign,
    name+' texture must be tracked for GPU cleanup');
  }
  assert.ok(airport.getObjectByName('AirfieldFuelTankEndCap'));

@@ -22,6 +22,7 @@ cpSync('animation-lab.html','dist/animation-lab.html');
 cpSync('model-preview.html','dist/model-preview.html');
 cpSync('model-3d.html','dist/model-3d.html');
 cpSync('webgl-preview.html','dist/webgl-preview.html');
+for(const module of ['webgl-building-design','webgl-hq3-reference','webgl-building-profiles','webgl-building-motion','webgl-building-bounds','webgl-barracks-silhouette'])cpSync(`scripts/${module}.js`,`dist/${module}.js`);
 cpSync('scripts/webgl-preview.js','dist/webgl-preview.js');
 cpSync('scripts/webgl-biomes.js','dist/webgl-biomes.js');
 cpSync('scripts/webgl-match-result.js','dist/webgl-match-result.js');

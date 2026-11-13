@@ -31,7 +31,8 @@ for(const owner of [0,1])for(const facing of [0,2,1,3])test(`real actor, cardina
  const f=fixture(facing,owner),before=JSON.stringify(f.unit);f.tick(0);
  assert.equal(f.controller.active.size,1);assert.equal(f.actor.node.visible,false);
  const clearAge=1.25+f.controller.active.get(1).duration;
- f.tick(.75);assert.equal(f.entry.gate.door.scale.y,.52);assert.equal(f.actor.node.visible,true);
+ f.tick(.75);assert.equal(f.entry.gate.door.scale.y,.52);assert.equal(f.actor.node.visible,false);
+ f.tick(1.25);assert.equal(f.actor.node.visible,true);
  const inside=f.actor.node.position.clone();f.tick(2.5);
  assert.ok(f.actor.node.position.distanceTo(inside)>30);
  assert.equal(f.actor.node.rotation.y,buildingFacingAngle(facing));

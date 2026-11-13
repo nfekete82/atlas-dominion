@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import {applyBuildingDesign} from './webgl-building-design.js';
+import {worldCamouflageBiome} from './webgl-faction-accents.js';
 import {disposeOwnedMeshes} from './webgl-resource-lifecycle.js';
 import {STRATEGIC_BUILDING_VISUAL_SCALE} from './webgl-scale.js';
 
@@ -264,16 +266,19 @@ function addSiteDecor(root,kind,width){
  // reached x=width*.55+30.5 while the fence stands at x=width*.65.
  // Shift the entire crate/barrel/pallet cluster inward without changing
  // the entrance, fence or other facility yards.
+ const compact=fencedSites.has(kind)&&kind!=='headquarters';
  const supplyX=kind==='headquarters'?width*.38:
-  kind==='barracks'?width*.42:width*.55;
+  kind==='barracks'?width*.42:compact?width*.565:width*.55;
  supplies.name='BaseSupplyCache';supplies.position.set(supplyX,0,-width*.2);
  g.add(supplies);
  // A barracks already has integrated crates, vents and equipment lockers in
  // its GLB. A compact one-crate cache reads better than another huge pallet
  // of cargo beside its entrance. All other buildings keep their equipment.
- if(kind==='barracks'){
-  storageCrate(supplies,0,0,14);
-  supplyBarrel(supplies,13,-7);
+ if(compact){
+  // A full 43-unit pallet cannot fit between these walls and their fence.
+  // One human-scale crate/barrel cache keeps every entrance and wire clear.
+  storageCrate(supplies,0,0,kind==='barracks'?14:13);
+  supplyBarrel(supplies,kind==='barracks'?13:0,kind==='barracks'?-7:-20);
  }else{
   storageCrate(supplies,0,0,large?19:13);
   storageCrate(supplies,large?18:13,12,large?14:11,sand);
@@ -354,6 +359,7 @@ export function createBuildingYard(kind,width=160){
   box(g,'AmmunitionClasp',[10,2,2],steel,-14,15,21);
  }
  addSiteDecor(root,kind,width);
+ applyBuildingDesign(root,{kind,biome:worldCamouflageBiome()});
  return root;
 }
 
