@@ -76,6 +76,8 @@ test('shipping HUD occupies reference screenshot positions at 1600×900',async({
  await page.locator('[data-sf-unit-category="vehicles"]').click();
  expect(await page.locator('#sf-classic-root').getAttribute('data-unit-category')).toBe('vehicles');
  await page.locator('#sf-tabs [data-tab="buildings"]').click();
+ await page.locator('#sf-modern-selection').click();
+ await expect(page.locator('#sf-selection-panel')).toBeHidden();
  await mkdir('tests/browser/artifacts',{recursive:true});
  await page.screenshot({path:'tests/browser/artifacts/webgl-hud-fixture-1600.png'});
 });
@@ -93,6 +95,8 @@ test('responsive HUD fits the viewport and retains drawer access at 820px',async
  expect(result.deck.width).toBeGreaterThan(350);
  await page.locator('#sf-modern-selection').click();
  await expect(page.locator('#sf-selection-panel')).toBeVisible();
+ await page.locator('#sf-modern-selection').click();
+ await expect(page.locator('#sf-selection-panel')).toBeHidden();
  await mkdir('tests/browser/artifacts',{recursive:true});
  await page.screenshot({path:'tests/browser/artifacts/webgl-hud-fixture-820.png'});
 });
