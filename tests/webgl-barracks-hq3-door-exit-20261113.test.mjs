@@ -78,12 +78,12 @@ test('barracks production no longer cancels hidden troop and opens authored shut
 });
 
 test('barracks visual scale and HQ3-style textured matte roof remain cosmetic',()=>{
- assert.equal(STRATEGIC_BUILDING_VISUAL_SCALE.barracks,1.12);
+ assert.equal(STRATEGIC_BUILDING_VISUAL_SCALE.barracks,1.20);
  const dims={x:120,y:85,z:100};
  const base=Math.min(140/120,119/85);
- assert.ok(Math.abs(calibratedScale('barracks','building',dims,140)-base*1.12)<1e-8);
+ assert.ok(Math.abs(calibratedScale('barracks','building',dims,140)-base*1.20)<1e-8);
  const yard=createBuildingYard('barracks',140);
- try{assert.equal(yard.scale.x,1.12);}finally{disposeBuildingYard(yard);}
+ try{assert.equal(yard.scale.x,1.20);}finally{disposeBuildingYard(yard);}
  setWorldCamouflageBiome('desert');
  for(const name of ['SF_white','SF_olive','SF_steel_light']){
   const source=new THREE.MeshStandardMaterial({name,color:'#dfd9c7',
