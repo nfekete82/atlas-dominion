@@ -109,6 +109,12 @@ test('live game constructs every facility from zero and releases real infantry t
  page.on('console',m=>{if(m.type()==='error'&&/shader|gltf|webgl/i.test(m.text()))errors.push(m.text());});
  await page.setViewportSize({width:1440,height:1000});
  await openAndWaitForReady(page,'/?bastions=4&seed=2074&pause=1&lite=1',()=>window.__sandforgeWebGL?.loaded);
+ // This integration test manually advances the authoritative simulation and
+ // explicitly calls battlefield.sync() for every construction and doorway pose.
+ // Stop only the continuous presentation frame loop after boot: software GL
+ // would otherwise render the entire battlefield for minutes between samples.
+ // 3D models, poses, collisions and all assertions remain real and unchanged.
+ await page.evaluate(()=>__sandforgeWebGL.renderer.setAnimationLoop(null));
  await page.evaluate(async()=>{
   const w=__sandforgeWebGL,g=w.game,bf=w.battlefield;g.paused=true;g.aiClock=-1e8;g.canSee=()=>true;
   const origin=g.units[0];window.designOrigin={x:origin.x,y:origin.y};
