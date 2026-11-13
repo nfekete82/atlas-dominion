@@ -58,6 +58,22 @@ test('shipping HUD occupies reference screenshot positions at 1600×900',async({
  expect(state.resource.x).toBeGreaterThan(900);
  expect(state.brand.right).toBeLessThan(state.resource.x);
  expect(state.cards).toHaveLength(8);
+ await expect(page.locator('.sf-modern-side-actions > button')).toHaveCount(3);
+ const style=await page.evaluate(()=>{
+  const grid=document.querySelector('[data-sf-group="buildings"] > .catalog-grid');
+  const first=grid.querySelector('.catalog-card'),second=grid.querySelectorAll('.catalog-card')[1];
+  return {display:getComputedStyle(grid).display,
+   columns:getComputedStyle(grid).gridTemplateColumns.split(' ').length,
+   firstBorder:getComputedStyle(first).borderTopWidth,
+   firstBg:getComputedStyle(first).backgroundColor,
+   firstWidth:first.getBoundingClientRect().width,
+   secondWidth:second.getBoundingClientRect().width};
+ });
+ expect(style.display).toBe('grid');
+ expect(style.columns).toBe(8);
+ expect(style.firstBorder).toBe('0px');
+ expect(style.firstWidth).toBeGreaterThan(135);
+ expect(Math.abs(style.firstWidth-style.secondWidth)).toBeLessThan(2);
  expect(state.cards[1].x).toBeGreaterThan(state.cards[0].x);
  expect(state.cards[0].h).toBeGreaterThan(120);
  expect(state.scrollWidth).toBeLessThanOrEqual(1605);
@@ -66,8 +82,11 @@ test('shipping HUD occupies reference screenshot positions at 1600×900',async({
  await expect(page.locator('#sf-tools')).toBeVisible();
  await page.locator('#sf-hud-tools-toggle').click();
  await expect(page.locator('#sf-tools')).toBeHidden();
+ await page.locator('#sf-modern-selection').click();
+ await expect(page.locator('#sf-selection-panel')).toBeVisible();
  await page.locator('#sf-modern-queue').click();
  await expect(page.locator('#sf-production')).toBeVisible();
+ await expect(page.locator('#sf-selection-panel')).toBeHidden();
  await page.locator('#sf-modern-selection').click();
  await expect(page.locator('#sf-selection-panel')).toBeVisible();
  await expect(page.locator('#sf-production')).toBeHidden();
