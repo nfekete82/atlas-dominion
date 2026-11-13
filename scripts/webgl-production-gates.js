@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import {buildingFacingAngle} from './webgl-scale.js';
 import {rolloutWheelsShouldRoll} from './webgl-wheel-motion.js';
-import {prepareBarracksPortal,updateBarracksPortalPlanes,setBarracksDoorOpen,disposeBarracksPortal} from './webgl-barracks-portal.js';
+import {prepareBarracksPortal,updateBarracksPortalPlanes,setBarracksDoorOpen,
+ barracksExitLane,disposeBarracksPortal} from './webgl-barracks-portal.js';
 
 export const GATE_TIMING=Object.freeze({warning:.25,opening:1,drive:3.6,closing:1});
 const clamp=v=>Math.max(0,Math.min(1,v));
@@ -182,13 +183,11 @@ export class SandforgeProductionGates {
    this.seen.add(event);
    entry.node.updateWorldMatrix(true,true);
    const hq=base.kind==='headquarters',barracks=base.kind==='barracks',root=entry.gate.root;
-   const authored=barracks&&entry.gate.portal.authored;
+   const lane=barracks?barracksExitLane(entry.gate.portal):null;
    const exit=root.localToWorld(hq?new THREE.Vector3(0,-.40,2.85):
-    authored?new THREE.Vector3(0,1,-11):
-    barracks?new THREE.Vector3(-.18,0,2.10):new THREE.Vector3(.18,0,2.9));
+    barracks?lane.outside:new THREE.Vector3(.18,0,2.9));
    const start=root.localToWorld(hq?new THREE.Vector3(0,.60,-.48):
-    authored?new THREE.Vector3(0,1,-3.8):
-    barracks?new THREE.Vector3(-.18,.275,.9):new THREE.Vector3(.18,.265,-.03));
+    barracks?lane.inside:new THREE.Vector3(.18,.265,-.03));
    const target=bf.entityPosition(unit),center=entry.node.position;
    const exitAngle=Math.atan2(exit.x-center.x,exit.z-center.z);
    const targetAngle=Math.atan2(target.x-center.x,target.z-center.z);
@@ -208,16 +207,19 @@ export class SandforgeProductionGates {
   for(const [id,state] of this.active){
    const {event}=state,base=bases.get(id),entry=bf.bases.get(id),u=entities.get(event.unitId),actor=bf.units.get(event.unitId);
    const age=Math.max(0,time-(state.visualAt??event.at)),pose=productionGatePose(age,state.duration);
-   if(!base||base.hp<=0||!u||u.hp<=0||!actor||!entry?.node.visible||!actor.node.visible||
+   // Hide a troop until its shutter opens, but do not cancel its rollout
+   // merely because the visual actor was temporarily hidden.
+   if(!base||base.hp<=0||!u||u.hp<=0||!actor||!entry?.node.visible||
       u.hp<state.hp||base.hp<state.baseHp||u.fire>0||u.combatTarget||orderKey(u)!==state.orders||pose.done){
-    this.reset(entry);if(actor)actor.productionMotion=null;
+    this.reset(entry);if(actor){actor.productionMotion=null;actor.node.visible=true;}
     game.cancelProductionDeparture?.(event.unitId);
     this.active.delete(id);continue;
    }
    const gate=entry.gate;
    if(gate.kind==='barracks'){
     updateBarracksPortalPlanes(gate.portal);
-    setBarracksDoorOpen(gate.portal,pose.open);
+    // Author-authored barracks pivots: 1=closed and 0=open.
+    setBarracksDoorOpen(gate.portal,gate.portal.authored?1-pose.open:pose.open);
    }else if(gate.kind==='headquarters'){
     setHeadquartersDoorOpen(gate.portal,pose.open);
    }else{
@@ -236,16 +238,16 @@ export class SandforgeProductionGates {
    }
    const driveStart=GATE_TIMING.warning+GATE_TIMING.opening;
    const fraction=clamp((age-driveStart)/state.duration);
-   if(fraction>=1){actor.productionMotion=null;continue;}
+   if(fraction>=1){actor.productionMotion=null;actor.node.visible=true;continue;}
    entry.node.updateWorldMatrix(true,true);
    // First clear the entire hull and barrel past the real threshold. Only
    // outside the gate may the actor turn toward Simulation's actual exit.
    const hq=gate.kind==='headquarters';
    const infantry=gate.kind==='barracks'||hq;
    const authored=!hq&&infantry&&gate.portal.authored;
-    const outside=hq?new THREE.Vector3(0,-.40,2.85):
-     authored?new THREE.Vector3(0,1,-11):
-     infantry?new THREE.Vector3(-.18,0,2.10):new THREE.Vector3(.18,0,2.9);
+   const lane=!hq&&infantry?barracksExitLane(gate.portal):null;
+   const outside=hq?new THREE.Vector3(0,-.40,2.85):
+    infantry?lane.outside:new THREE.Vector3(.18,0,2.9);
    const root=gate.root;
    root.localToWorld(outside);
    const target=actor.node.position.clone();
@@ -254,12 +256,14 @@ export class SandforgeProductionGates {
    const facing=buildingFacingAngle(base.facing);
    if(fraction<clearFraction){
     const t=smooth(fraction/clearFraction);
-    const z=hq?-.48+3.33*t:authored?-3.8-7.2*t:
-     infantry?.9+1.20*t:-.03+2.93*t;
-     const y=hq?.60-1*t:authored?1:infantry?.275*(1-t):
-      z<=1.5?.265:Math.max(0,.265*(2.9-z)/1.4);
-     p=root.localToWorld(new THREE.Vector3(hq||authored?0:infantry?-.18:.18,y,z));
-     yaw=facing+(authored?Math.PI:0);
+    if(hq)p=root.localToWorld(new THREE.Vector3(0,.60-t,-.48+3.33*t));
+    else if(infantry)p=root.localToWorld(lane.inside.lerp(lane.outside,t));
+    else{
+     const z=-.03+2.93*t;
+     const y=z<=1.5?.265:Math.max(0,.265*(2.9-z)/1.4);
+     p=root.localToWorld(new THREE.Vector3(.18,y,z));
+    }
+    yaw=facing+(authored?Math.PI:0);
    }else{
     // Route around the footprint for every cardinal facing. The simulation's
     // legacy spawn search is independent of building rotation, so a direct
@@ -299,7 +303,7 @@ export class SandforgeProductionGates {
     if(Math.hypot(p.x-other.node.position.x,p.z-other.node.position.z)<48){blocked=true;break;}
    }
    if(blocked){
-    this.reset(entry);actor.productionMotion=null;
+    this.reset(entry);actor.productionMotion=null;actor.node.visible=true;
     game.cancelProductionDeparture?.(event.unitId);
     this.active.delete(id);continue;
    }
@@ -313,8 +317,8 @@ export class SandforgeProductionGates {
    // Gate state does not imply physical wheel rotation.
    const actuallyRolling=infantry?moving&&speed>.25:rolloutWheelsShouldRoll(moving,speed);
    actor.productionMotion={moving:actuallyRolling,hideHealth:fraction<clearFraction*.64,driveSpeed:speed,walkDistance:distance,angle:Math.PI/2-yaw,hullAngle:Math.PI/2-yaw};
-   if(age<GATE_TIMING.warning+GATE_TIMING.opening)
-    actor.node.visible=false; // wait INSIDE while the real shutter opens
+   // The one authoritative actor appears only after the door is open.
+   actor.node.visible=age>=GATE_TIMING.warning+GATE_TIMING.opening;
   }
  }
  detach(entry){
