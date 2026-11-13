@@ -107,7 +107,14 @@ test('actual ready GLB doors close across the entrance, clear a standing soldier
   assert.ok(Math.abs(rightCenter.x-.94)<1e-5);
   const sourceDoor=BARRACKS_ARCHITECTURE.sourceDoorHeight;
   const actual=sourceDoor*root.scale.y;
-  assert.ok(Math.abs(actual-BARRACKS_ARCHITECTURE.soldierHeight*BARRACKS_ARCHITECTURE.doorClearanceRatio)<1e-5);
+  // Audit fixture uses the preserved pre-change reference scale, whereas the
+  // live renderer derives its current height scale from the revised facade.
+  assert.ok(Math.abs(actual-BARRACKS_ARCHITECTURE.soldierHeight*1.10)<1e-5);
+  const runtimeDoor=BARRACKS_ARCHITECTURE.sourceDoorHeight*
+   (BARRACKS_ARCHITECTURE.renderWidth/BARRACKS_ARCHITECTURE.sourceWidth)*
+   strategicBuildingHeightScale('barracks');
+  assert.ok(Math.abs(runtimeDoor-BARRACKS_ARCHITECTURE.soldierHeight*
+   BARRACKS_ARCHITECTURE.doorClearanceRatio)<1e-5,'runtime door still clears infantry');
   const closed=portal.left.position.x;setBarracksDoorOpen(portal,0);assert.ok(portal.left.position.x<closed-1);
   const lane=barracksExitLane(portal),delta=root.localToWorld(lane.outside).sub(root.localToWorld(lane.inside));delta.y=0;delta.normalize();
   assert.ok(Math.abs(delta.x+Math.sin(buildingFacingAngle(facing)))<1e-5);
@@ -205,7 +212,10 @@ test('both real barracks GLBs lose the external plate but keep wall foundations'
   for(const name of ['static__concrete_high','static__deck','static__deck_light',
    'static__dust','static__yellow'])
    assert.equal(scene.getObjectByName(name).visible,false,name+' platform removed');
-  assert.equal(walls.geometry.index.count,wallIndexCount,'building facade preserved');
+  // Existing silhouette cleanup removes 84 index entries for detached tower
+  // trim in static__olive; it must not delete further wall-bearing triangles.
+  assert.equal(wallIndexCount,504,'original authored facade indices');
+  assert.equal(walls.geometry.index.count,420,'only the pre-existing tower trim removed');
   assert.equal(scene.getObjectByName('GATE_LEFT_PIVOT').visible,true,'animated door preserved');
  }
 });
