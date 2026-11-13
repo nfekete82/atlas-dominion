@@ -486,3 +486,71 @@
  #sf-classic-root .sf-modern-side-actions button,
  #sf-classic-root #sidebar #sf-tabs > button{transition:none!important}
 }
+
+
+/* Screenshot QA pass: defeat the more-specific historical builder-card rules,
+ * keep all eight structures in the default 1600px row and center both lines. */
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ .sf-group[data-sf-group="buildings"] button.catalog-card[data-build]{
+ flex:0 0 clamp(110px,9vw,148px)!important;
+ width:clamp(110px,9vw,148px)!important;
+ min-width:clamp(110px,9vw,148px)!important;
+ max-width:clamp(110px,9vw,148px)!important;
+ border-radius:8px!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build] .card-meta{
+ display:flex!important;flex-direction:column!important;
+ align-items:center!important;justify-content:center!important;
+ flex:0 0 49px!important;
+ height:49px!important;min-height:49px!important;max-height:49px!important;
+ padding:3px 5px!important;gap:1px!important;
+ background:#1e2b3e!important;border-top:1px solid #405066!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build] .card-name{
+ width:100%!important;height:auto!important;
+ max-height:27px!important;
+ display:-webkit-box!important;-webkit-box-orient:vertical!important;
+ -webkit-line-clamp:2;line-clamp:2;
+ text-align:center!important;overflow:hidden!important;
+ font:800 clamp(10px,.8vw,12.5px)/1.15 system-ui!important;
+ color:#f5eedf!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build] .card-cost{
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ flex:0 0 17px!important;gap:5px!important;
+ width:100%!important;height:17px!important;min-height:17px!important;
+ font:900 clamp(11px,.97vw,15px)/1 system-ui!important;
+ color:#f2e3c8!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build] .sf-card-image img{
+ transform:scale(1.16)!important;transform-origin:center 55%!important;
+ width:100%!important;height:100%!important;
+ object-fit:contain!important;object-position:center!important;
+}
+#sf-classic-root[data-tab="buildings"] #sf-actions
+ button.catalog-card[data-build]:disabled .sf-card-image img{
+ transform:scale(1.13)!important;
+}
+#sf-classic-root #sf-hud-tools-toggle{
+ position:fixed!important;top:12px!important;right:14px!important;
+ z-index:30!important;
+}
+@media(max-width:1150px){
+ #sf-classic-root[data-tab="buildings"] #sf-actions
+  .sf-group[data-sf-group="buildings"] button.catalog-card[data-build]{
+  flex-basis:129px!important;width:129px!important;
+  min-width:129px!important;max-width:129px!important;
+ }
+}
+@media(max-width:740px){
+ #sf-classic-root[data-tab="buildings"] #sf-actions
+  .sf-group[data-sf-group="buildings"] button.catalog-card[data-build]{
+  flex-basis:108px!important;width:108px!important;
+  min-width:108px!important;max-width:108px!important;
+ }
+ #sf-classic-root #sf-hud-tools-toggle{top:8px!important;right:8px!important}
+}
