@@ -51,7 +51,8 @@ test('HQ3 Funkzentrale has its entrance opening at +Z, with rear fence at -Z',()
   const m=new THREE.Matrix4(),scale=new THREE.Vector3();
   mesh.getMatrixAt(0,m);scale.setFromMatrixScale(m);
   assert.ok(Math.abs(scale.y-YARD_FENCE_HEIGHT)<1e-4);
-  assert.equal(yard.scale.x,1);
+  assert.equal(yard.scale.x,STRATEGIC_BUILDING_VISUAL_SCALE.headquarters,
+   'HQ3 yard must share the 10% visual enlargement with its authored building');
  }finally{disposeBuildingYard(yard);}
 });
 test('the other facility entrance remains +Z, not changed by the HQ correction',()=>{
