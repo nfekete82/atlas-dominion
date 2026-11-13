@@ -10,11 +10,6 @@
  * These assets are *not* vendored here: original Meshy uploads can be large.
  * Run scripts/install-meshy-assets.mjs on the locally downloaded pack.
  */
-// Exact, user-uploaded static Feldkommando mesh (not the older stylized HQ3).
-// Its GLB binary is distributed separately and SHA-256 checked on install.
-export const SANDFORGE_DEFAULT_FELDKOMMANDO_URL=
- '/src/assets/reborn/buildings-3d/sandforge_feldkommando_meshy.glb';
-export const isDefaultFeldkommandoAsset=url=>url===SANDFORGE_DEFAULT_FELDKOMMANDO_URL;
 export const MESHY_ASSET_KINDS=Object.freeze(['headquarters','tank','artillery','rocket','infantry']);
 export const isMeshyAsset=url=>typeof url==='string'&&url.startsWith('/src/assets/meshy/');
 export function meshyEnabled(query=typeof location==='undefined'?'':location.search){

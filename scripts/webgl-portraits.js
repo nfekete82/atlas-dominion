@@ -8,7 +8,7 @@ import {tintFactionMaterials} from './webgl-faction-accents.js';
 import {isStrategicGlbKind,strategicGlbUrl,applyStrategicGlbFinish} from './webgl-strategic-glb.js';
 import {strategicBuildingHeightScale} from './webgl-scale.js';
 import {stylizedAsset} from './webgl-stylized-pack.js';
-import {meshyAsset,meshyModelYaw,SANDFORGE_DEFAULT_FELDKOMMANDO_URL} from './webgl-meshy-assets.js';
+import {meshyAsset,meshyModelYaw} from './webgl-meshy-assets.js';
 
 /** Sprite-sheet portrait extraction shared by the WebGL HUD.
  * The classic game crops one idle frame rather than scaling down the entire
@@ -183,8 +183,8 @@ function renderModelPortrait(model,renderer,{width=320,height=220,research=false
   for(const material of materials)material.dispose();
  }
 }
-async function renderStylizedPortrait(kind,renderer,{width=320,height=220,infantryCard=false,urlOverride=null}={}){
- const url=urlOverride??meshyAsset(kind,0)??stylizedAsset(kind,0);
+async function renderStylizedPortrait(kind,renderer,{width=320,height=220,infantryCard=false}={}){
+ const url=meshyAsset(kind,0)??stylizedAsset(kind,0);
  if(!url)throw Error('Unknown authored portrait '+kind);
  const data=await new GLTFLoader().loadAsync(url);
  const model=cloneSkeleton(data.scene);
@@ -376,21 +376,14 @@ export function unitIcon(kind,renderer){
 // into a consistent wide tile without clipping its silhouette.
 const buildingIconCache=new Map();
 async function rasterizeBuildingIcon(kind,renderer){
- // Construction portrait uses exactly the same model as the placed HQ.
- // An absent Meshy GLB falls back gracefully to the existing HQ3 thumbnail.
- if(kind==='headquarters'&&!meshyAsset(kind,0)){
+ // Match the actual placed HQ3 Funkzentrale instead of displaying the
+ // older stylized headquarters on the construction tile. Meshy remains
+ // explicitly opt-in; the stylized HQ is available via ?hq=stylized.
+ if(kind==='headquarters'&&!meshyAsset(kind,0)&&
+    (typeof location==='undefined'||new URLSearchParams(location.search).get('hq')!=='stylized')){
   if(!renderer)return buildingIconUrl(kind);
-  const hq=typeof location==='undefined'?null:
-   new URLSearchParams(location.search).get('hq');
-  if(hq!=='stylized'&&hq!=='hq3'&&hq!=='legacy'){
-   try{return await renderStylizedPortrait(kind,renderer,
-    {urlOverride:SANDFORGE_DEFAULT_FELDKOMMANDO_URL});}
-   catch(error){console.warn('Meshy HQ portrait unavailable; using HQ3:',error);}
-  }
-  if(hq!=='stylized'){
-   try{return await renderStrategicPortrait(kind,renderer);}
-   catch(error){console.warn('HQ3 thumbnail fallback:',error);}
-  }
+  try{return await renderStrategicPortrait(kind,renderer);}
+  catch(error){console.warn('HQ3 building thumbnail fallback',error);}
  }
  if(renderer&&(meshyAsset(kind,0)||stylizedAsset(kind,0))){
   try{return await renderStylizedPortrait(kind,renderer);}

@@ -35,6 +35,15 @@ for(const asset of manifest.models)test('self-contained GLTFLoader asset: '+asse
  assert.ok(new T.Box3().setFromObject(data.scene).min.y>=-.04,'ground pivot');
 });
 
+test('the old infantry and pioneer assets are the default again',()=>{
+ assert.equal(stylizedAsset('infantry',0),null);
+ assert.equal(stylizedAsset('infantry',1),null);
+ assert.equal(stylizedAsset('engineer',0),null);
+ assert.equal(stylizedAsset('engineer',1),null);
+ assert.equal(stylizedAsset('infantry',0,true),'/src/assets/stylized/infantry-0.glb');
+ assert.equal(stylizedAsset('engineer',1,true),'/src/assets/stylized/engineer-1.glb');
+ assert.equal(stylizedAsset('rover',0),'/src/assets/stylized/rover-0.glb');
+});
 test('soldier exports a skin, independent clone skeleton and five working clips',async()=>{
  const data=await load('infantry'),a=clone(data.scene),b=clone(data.scene);
  const skin=a.getObjectByName('SFV1_SoldierSkin');assert.ok(skin.isSkinnedMesh);assert.ok(skin.skeleton.bones.length>=15);
@@ -111,7 +120,8 @@ test('engineer keeps soldier-sized skinned rig, wrench gear and build/repair ani
  const repair=data.animations.find(c=>c.name==='Repair'),before=skin.skeleton.bones.map(b=>b.quaternion.clone());
  const mixer=new T.AnimationMixer(model);mixer.clipAction(repair).play();mixer.update(.33);
  assert.ok(skin.skeleton.bones.some((b,i)=>b.quaternion.angleTo(before[i])>.05),'tool hand must animate');
- assert.equal(stylizedAsset('engineer',0),'/src/assets/stylized/engineer-0.glb');
+ assert.equal(stylizedAsset('engineer',0),null);
+ assert.equal(stylizedAsset('engineer',0,true),'/src/assets/stylized/engineer-0.glb');
 });
 
 test('stylized headquarters opens its own real doors and preserves production lane',async()=>{

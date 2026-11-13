@@ -1,8 +1,14 @@
 /** Presentation-only original reference pack. IDs, stats and collision stay in Simulation. */
 import * as THREE from 'three';
 export const STYLIZED_KINDS=Object.freeze(['rover','infantry','barracks','engineer','headquarters']);
-export const stylizedAsset=(kind,owner)=>STYLIZED_KINDS.includes(kind)
- ?'/src/assets/stylized/'+kind+'-'+owner+'.glb':null;
+// Original rigged soldiers and pioneers are the DEFAULT again. The new
+// reference infantry models remain available only by ?soldiers=stylized.
+const useReferenceSoldiers=typeof location!=='undefined'&&
+ new URLSearchParams(location.search).get('soldiers')==='stylized';
+const oldSoldierKinds=new Set(['infantry','engineer']);
+export const stylizedAsset=(kind,owner,referenceSoldiers=useReferenceSoldiers)=>
+ STYLIZED_KINDS.includes(kind)&&(!oldSoldierKinds.has(kind)||referenceSoldiers)
+  ?'/src/assets/stylized/'+kind+'-'+owner+'.glb':null;
 export const isStylizedAsset=url=>url?.startsWith('/src/assets/stylized/');
 export function stylizedProfile(root){
  if(!root)return null;
