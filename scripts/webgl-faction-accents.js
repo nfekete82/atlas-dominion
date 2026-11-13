@@ -103,6 +103,11 @@ const priority=/cloth|uniform|armor|armour|vest|shoulder|chest|helmet|body|hull|
  * but safely handles exports with generic numbered materials as well. */
 export function shouldTintFactionSurface(kind,type,materialName='',meshName='',mat=null){
  const name=(materialName+' '+meshName).toLowerCase();
+ // The MK2's capture beacon uses SF_Bastion_red: without an explicit
+ // exemption, the 94%-opaque camo shader would hide the red/blue owner
+ // signal even after tintBastionCaptureSignals updates the PBR color.
+ if(kind==='bastion'&&/^SF_Bastion_(?:red|light|yellow|glass|dish|dishshade|stripe|black|bolt|frame)$/.test(materialName))
+  return false;
  if(skip.test(name))return false;
  if(mat?.transparent&&mat.opacity<.95)return false;
  // Never exclude structural paint solely because it was authored in pure
