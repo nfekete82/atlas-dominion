@@ -16,6 +16,7 @@ import {createFactoryServiceYard,disposeFactoryServiceYard} from './webgl-factor
 import {createStrategicBuilding} from './webgl-strategic-buildings.js';
 import {prepareAuthoredAssembly,updateAuthoredAssembly,releaseAuthoredAssembly} from './webgl-construction-assembly.js';
 import {SandforgeProductionGates,applyProductionGatePose,productionGatePose} from './webgl-production-gates.js';
+import {polishFeldkommandoMk2,disposeFeldkommandoMk2Polish,hideMk2DuplicateFence} from './webgl-feldkommando-mk2-polish.js';
 import {barracksExitLane,barracksDeparturePoint,updateBarracksPortalPlanes} from './webgl-barracks-portal.js';
 import {prepareSiloHatch,poseSiloHatch} from './webgl-building-motion.js';
 import {BIOME_STYLES} from './webgl-biomes.js';
@@ -131,6 +132,7 @@ async function populate(entry){
   }
  }
  entry.node.add(entry.detail);
+ if(kind==='headquarters')polishFeldkommandoMk2(entry.detail);
  if(['factory','barracks','headquarters'].includes(kind))gates.prepare(entry);
  if(kind==='headquarters'){
   const scan=entry.mk2Data?.animations?.find(a=>a.name==='Radar_Scan');
@@ -148,10 +150,7 @@ async function populate(entry){
  if(kind==='silo')prepareSiloHatch(entry);
  entry.yard=createBuildingYard(kind,BUILDINGS[kind]?.width);
  if(entry.yard){
-  if(kind==='headquarters'&&file!==HQ3_FALLBACK_URL)
-   for(const name of ['YardFencePosts','YardFenceRails','YardFenceMesh']){
-    const fence=entry.yard.getObjectByName(name);if(fence)fence.visible=false;
-   }
+  if(kind==='headquarters'&&file!==HQ3_FALLBACK_URL)hideMk2DuplicateFence(entry.yard);
   entry.node.add(entry.yard);
  }
  if(kind==='airfield'){
@@ -238,6 +237,7 @@ function render(time=performance.now()){
 function cleanup(entry){
  for(const assembly of entry.assemblies)releaseAuthoredAssembly(assembly);entry.assemblies=[];
  gates.detach(entry);entry.walkMixer?.stopAllAction();
+ disposeFeldkommandoMk2Polish(entry.detail);
  if(entry.radarMixer){entry.radarMixer.stopAllAction();entry.radarMixer.uncacheRoot(entry.detail);entry.radarMixer=null;}
  entry.mk2Data=null;
  if(entry.yard)disposeBuildingYard(entry.yard);
