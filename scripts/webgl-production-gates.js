@@ -313,6 +313,14 @@ export class SandforgeProductionGates {
      p=root.localToWorld(new THREE.Vector3(.18,y,z));
     }
     yaw=facing+(authored?Math.PI:0);
+   }else if(hq&&gate.portal.authored&&gate.portal.leaves.length===4){
+    // MK2: cross the actual fence gate, then approach the ONE authoritative
+    // exterior spawn without inventing a circular detour. The simulation
+    // places a pioneer directly at the gate; the exact endpoint is shared,
+    // eliminating the old sideways teleport when the pose finishes.
+    const t=smooth((fraction-clearFraction)/(1-clearFraction));
+    p=outside.clone().lerp(target,t);
+    yaw=facing;
    }else{
     // Route around the footprint for every cardinal facing. The simulation's
     // legacy spawn search is independent of building rotation, so a direct
@@ -349,7 +357,11 @@ export class SandforgeProductionGates {
     bf.world.walkable?.(worldPoint,obstacles,24)===false;
    if(pose.moving)for(const [otherId,other] of bf.units){
     if(otherId===u.id||!other.node.visible)continue;
-    if(Math.hypot(p.x-other.node.position.x,p.z-other.node.position.z)<48){blocked=true;break;}
+    // Infantry can stand beside a building entrance without aborting the
+    // next production. A 48-world-unit test wrongly considered a waiting
+    // pioneer an obstruction and teleported the next actor to its spawn.
+    const separation=hq&&gate.portal.authored?21:48;
+    if(Math.hypot(p.x-other.node.position.x,p.z-other.node.position.z)<separation){blocked=true;break;}
    }
    if(blocked){
     this.reset(entry);actor.productionMotion=null;actor.node.visible=true;
