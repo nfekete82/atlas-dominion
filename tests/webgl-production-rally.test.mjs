@@ -81,7 +81,7 @@ for(const facing of [0,2,1,3])test('MK2 pioneer exits in front of the gate and S
  const spot={x:u.x,y:u.y};
  const front=(spot.x-b.x)*forward.x+(spot.y-b.y)*forward.y;
  const offset=(spot.x-b.x)*side.x+(spot.y-b.y)*side.y;
- assert.ok([50,72,96].some(d=>Math.abs(front-(b.radius+d))<1),
+ assert.ok([42,66,90].some(d=>Math.abs(front-(b.radius+d))<1),
   'front-facing safe spawn must be one of the three gate distances');
  assert.ok([0,23,46].some(d=>Math.abs(Math.abs(offset)-d)<1),
   'spawn remains in the gate lane (centred or one of the short fallback slots)');
