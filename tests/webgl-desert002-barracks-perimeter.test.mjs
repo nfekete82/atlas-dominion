@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {readFileSync} from 'node:fs';
-import {desert002Texture,DESERT_002_TEXTURE_URL} from '../scripts/webgl-desert002.js';
+import {desert002Texture,desert002UniformTexture,DESERT_002_TEXTURE_URL} from '../scripts/webgl-desert002.js';
+import {SOLDIER_CAMO_UV_REVISION} from '../scripts/webgl-soldier-camo.js';
 import {buildingTexture,BUILDING_DESIGN_REVISION} from '../scripts/webgl-building-design.js';
 import {setWorldCamouflageBiome,tintFactionMaterials} from '../scripts/webgl-faction-accents.js';
 import {createBuildingYard,disposeBuildingYard} from '../scripts/webgl-building-yard.js';
@@ -36,9 +37,12 @@ test('Infantry and engineer use the same literal desert 002 texture only on unif
    new THREE.MeshStandardMaterial({name:'glass_visor',color:'#101010'}));
   visor.name='GlassVisor';root.add(visor);
   tintFactionMaterials(root,0,kind,'unit');
-  assert.equal(torso.material.map,desert002Texture(),kind+' chest');
+  assert.equal(torso.material.map,desert002UniformTexture(),kind+' chest');
+  assert.equal(torso.material.map.repeat.x,2.75);
+  assert.equal(torso.geometry.userData.sandforgeSoldierCamoUV,SOLDIER_CAMO_UV_REVISION);
+  assert.equal(torso.material.vertexColors,false);
   assert.equal(torso.material.roughness,.93);
-  assert.equal(torso.material.color.getHexString(),'ffffff');
+  assert.equal(torso.material.color.getHexString(),'dcc5a8');
   assert.equal(rifle.material.map,null,kind+' weapon stays metal');
   assert.equal(visor.material.map,null,kind+' visor stays glass');
  }
