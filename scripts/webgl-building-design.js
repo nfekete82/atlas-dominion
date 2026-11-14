@@ -5,7 +5,7 @@ import {BARRACKS_ARCHITECTURE} from './webgl-building-profiles.js';
 /** All values/textures come from the unmodified HQ3. Coordinates are baked
  * once in building space, so paint follows doors and all four orientations.
  * Source geometry, UVs and cached GLB materials are never modified. */
-export const BUILDING_DESIGN_REVISION='hq3-pbr-library-v1';
+export const BUILDING_DESIGN_REVISION='mk2-reference-barracks-pbr-v2';
 export const HQ3_TEXTURE_ROOT='/src/assets/reborn/buildings-3d/hq3-materials/';
 // sqrt(world surface area / UV area), measured by audit-building-design.mjs.
 export const HQ3_TILE_SPAN=Object.freeze({camouflage:63.9913072855748,roof:28.852837770972137,concrete:20.402950054633266,metal:6.964335905277821,door:12.045831369252125});
@@ -76,7 +76,7 @@ const tangentFrame=`mat3 sfHqFrame(vec3 eye,vec3 n,vec2 uv){
  float d=max(dot(t,t),dot(b,b));float f=d==0.0?0.0:inversesqrt(d);
  return mat3(t*f,b*f,n);
 }`;
-function surfaceMaterial(source,family,{roofStart,mixedRoof}){
+function surfaceMaterial(source,family,{roofStart,mixedRoof,kind}){
  const profile=BUILDING_MATERIAL_FAMILIES[family],pbr=HQ3_PBR[profile.reference];
  const mat=source.clone();
  // New PBR coating, not a 98% colour overlay. Original UV AO and geometry
@@ -84,6 +84,21 @@ function surfaceMaterial(source,family,{roofStart,mixedRoof}){
  mat.color.set(0xffffff);mat.map=null;mat.normalMap=null;mat.bumpMap=null;
  mat.roughnessMap=null;mat.metalnessMap=null;mat.roughness=pbr.roughness;mat.metalness=pbr.metalness;
  mat.emissive.set(0);mat.emissiveMap=null;mat.emissiveIntensity=0;
+ // Feldkommando MK2 is the reference for the Kaserne: shared matte
+ // olive/sand camouflage, brushed graphite roofing and metallic hardware.
+ // Preserve the projected HQ texture/normal detail rather than flat colours.
+ if(kind==='barracks'){
+  if(family==='HQ_Desert_Camouflage')mat.color.set('#e2ded3');
+  if(family==='HQ_Dark_Charcoal_Roof'){
+   mat.color.set('#626870');mat.roughness=.70;mat.metalness=.62;
+  }
+  if(family==='HQ_Weathered_Metal'){
+   mat.color.set('#89908c');mat.roughness=.64;mat.metalness=.55;
+  }
+  if(family==='HQ_Door_Metal'){
+   mat.color.set('#8a8c82');mat.roughness=.78;mat.metalness=.34;
+  }
+ }
  mat.userData={...source.userData,sandforgeBuildingDesign:BUILDING_DESIGN_REVISION,
   sandforgeMaterialFamily:family,sandforgeMaterialReference:profile.reference,
   sandforgeProjectedNormal:Boolean(profile.normal),sandforgeFactionTint:true};
@@ -145,7 +160,7 @@ export function applyBuildingDesign(root,{kind,biome='desert'}={}){
     Math.min(height*.45,61*.56*1.10);
    const key=family+'-'+mixedRoof;
    let variants=materials.get(source);if(!variants){variants=new Map();materials.set(source,variants);}
-   if(!variants.has(key))variants.set(key,surfaceMaterial(source,family,{roofStart,mixedRoof}));
+   if(!variants.has(key))variants.set(key,surfaceMaterial(source,family,{roofStart,mixedRoof,kind}));
    mesh.geometry=projectionGeometry(mesh,root);count++;
    return variants.get(key);
   };
