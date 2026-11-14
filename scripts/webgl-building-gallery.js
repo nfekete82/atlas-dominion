@@ -17,6 +17,7 @@ import {createStrategicBuilding} from './webgl-strategic-buildings.js';
 import {prepareAuthoredAssembly,updateAuthoredAssembly,releaseAuthoredAssembly} from './webgl-construction-assembly.js';
 import {SandforgeProductionGates,applyProductionGatePose,productionGatePose} from './webgl-production-gates.js';
 import {polishFeldkommandoMk2,disposeFeldkommandoMk2Polish,hideMk2DuplicateFence} from './webgl-feldkommando-mk2-polish.js';
+import {deriveMk2Barracks,isMk2Barracks,arrangeMk2BarracksSupplies,MK2_BARRACKS_WIDTH_FACTOR} from './webgl-hq-barracks.js';
 import {ensureFactionWallBanners,setFactionWallBannerConstruction,disposeFactionWallBanners} from './webgl-faction-banners.js';
 import {barracksExitLane,barracksDeparturePoint,updateBarracksPortalPlanes} from './webgl-barracks-portal.js';
 import {prepareSiloHatch,poseSiloHatch} from './webgl-building-motion.js';
@@ -101,11 +102,13 @@ function lightCell(entry){
  // Keep the comparison floor constant, including during biome inspection.
 }
 function normalizeModel(model,kind){
- if(kind==='barracks')simplifyBarracksSilhouette(model);
+ const mk2Barracks=kind==='barracks'&&deriveMk2Barracks(model);
+ if(kind==='barracks'&&!mk2Barracks)simplifyBarracksSilhouette(model);
  const box=new THREE.Box3().setFromObject(model),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
  const scale=kind==='bastion'?116/Math.max(size.x,size.z):calibratedScale(kind,'building',size,BUILDINGS[kind].width);
  const ys=strategicBuildingHeightScale(kind);
  model.scale.multiplyScalar(scale);model.scale.y*=ys;
+ if(mk2Barracks)model.scale.x*=MK2_BARRACKS_WIDTH_FACTOR;
  model.position.set(-center.x*scale,-authoredBuildingGroundY(kind,box)*scale*ys,-center.z*scale);
  model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
  if(['headquarters','barracks','research','silo','bastion'].includes(kind))applyStrategicGlbFinish(model);
@@ -115,18 +118,21 @@ function normalizeModel(model,kind){
 async function populate(entry){
  const {kind}=entry;lightCell(entry);
  let file=kind==='bastion'?'/src/assets/reborn/buildings-3d/sandforge_bastion_mk2_offline.glb':
-  strategicGlbUrl(kind,kind==='barracks'?'active':'inactive')??'/src/assets/reborn/buildings-3d/'+kind+'-0.glb';
+  kind==='barracks'?strategicGlbUrl('headquarters','active'):
+  strategicGlbUrl(kind,'inactive')??'/src/assets/reborn/buildings-3d/'+kind+'-0.glb';
  if(['interceptor','wall'].includes(kind)){
   entry.detail=createStrategicBuilding(kind,0);tintFactionMaterials(entry.detail,0,kind,'building');
  }else{
   let data;
   try{data=await getModel(file);}catch(error){
-   if(kind!=='headquarters')throw error;
-   file=HQ3_FALLBACK_URL;data=await getModel(file);
+   if(kind==='headquarters')file=HQ3_FALLBACK_URL;
+   else if(kind==='barracks')file=strategicGlbUrl('barracks','active');
+   else throw error;
+   data=await getModel(file);
   }
   entry.detail=normalizeModel(cloneSkeleton(data.scene),kind);
   if(kind==='headquarters')entry.mk2Data=data;
-  if(['barracks','silo','research'].includes(kind)){
+  if((kind==='barracks'&&file!==strategicGlbUrl('headquarters','active'))||['silo','research'].includes(kind)){
    const variantUrl=strategicGlbUrl(kind,kind==='barracks'?'inactive':'active');
    const variant=await getModel(variantUrl);entry.variantDetail=normalizeModel(cloneSkeleton(variant.scene),kind);entry.variantDetail.visible=false;
    entry.node.add(entry.variantDetail);
@@ -153,6 +159,7 @@ async function populate(entry){
  entry.yard=createBuildingYard(kind,BUILDINGS[kind]?.width);
  if(entry.yard){
   if(kind==='headquarters'&&file!==HQ3_FALLBACK_URL)hideMk2DuplicateFence(entry.yard);
+  if(kind==='barracks'&&isMk2Barracks(entry.detail))arrangeMk2BarracksSupplies(entry.yard);
   entry.node.add(entry.yard);
  }
  if(kind==='airfield'){
