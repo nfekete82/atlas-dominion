@@ -48,6 +48,7 @@ cpSync('scripts/webgl-bastion-capture.js','dist/webgl-bastion-capture.js');
 cpSync('scripts/webgl-actor-presentation.js','dist/webgl-actor-presentation.js');
 cpSync('scripts/webgl-faction-accents.js','dist/webgl-faction-accents.js');
 cpSync('scripts/webgl-desert002.js','dist/webgl-desert002.js');
+cpSync('scripts/webgl-soldier-camo.js','dist/webgl-soldier-camo.js');
 cpSync('scripts/webgl-team-markings.js','dist/webgl-team-markings.js');
 cpSync('scripts/webgl-faction-banners.js','dist/webgl-faction-banners.js');
 cpSync('scripts/webgl-environment.js','dist/webgl-environment.js');
