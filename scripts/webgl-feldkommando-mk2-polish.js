@@ -191,8 +191,11 @@ function addMk2Interior(model){
 export function polishFeldkommandoMk2(model,yard=null){
  if(!isFeldkommandoMk2(model))return false;
  if(!model.userData.sfMk2Polished){
-  roofSteel(model);
-  matchMk2DesertCamouflage(model);
+  // Optional original-fidelity mode leaves imported PBR roof untouched.
+  if(!model.userData.sandforgePreserveAuthoredMaterials){
+   roofSteel(model);
+   matchMk2DesertCamouflage(model);
+  }
   removeMk2Perimeter(model);
   addMk2Interior(model);
   model.userData.sfMk2Polished=true;
