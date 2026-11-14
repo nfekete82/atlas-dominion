@@ -44,6 +44,9 @@ test('Kaserne preview is the real HQ MK2 derivative, or matching legacy fallback
    widthRatio:model.scale.x/model.scale.z,
    worldFootprint:model.userData.mk2BarracksVisualTransformApplied?.modelFootprint??null,
    roofCamo:model.getObjectByName('STAGE_02_Roof_and_Entrances__camo')?.material?.name,
+   roofProjected:!!model.getObjectByName('STAGE_02_Roof_and_Entrances__camo')?.material?.userData?.sandforgeBuildingDesign,
+   sharedChainlinkWires:model.getObjectByName('SF_MK2_ContinuousFenceXWires')?.count??0,
+   chainlinkGateGap:model.getObjectByName('SF_MK2_ContinuousFenceInfill')?.userData?.frontOpeningWidth??0,
    roofTrim:model.getObjectByName('STAGE_02_Roof_and_Entrances__roof')?.material?.color?.getHexString(),
    metadataMetresToWorld:style?.metresToWorld??null,
    rootScaleFactor:model.scale.x/(liveSource.scene.scale.x||1),
@@ -76,6 +79,9 @@ test('Kaserne preview is the real HQ MK2 derivative, or matching legacy fallback
   expect(result.worldFootprint).toBeGreaterThan(200);
   expect(result.roofTrim).toBe('353c42');
   expect(result.roofCamo).not.toBe('SF_MK2_Anthracite_BrushedSteel');
+  expect(result.roofProjected).toBe(false);
+  expect(result.sharedChainlinkWires).toBeGreaterThan(100);
+  expect(result.chainlinkGateGap).toBeCloseTo(4.96);
  }else{
   expect(result.savedSource).toContain('/stylized/barracks-0.glb');
   expect(result.derived).toBe(false);
