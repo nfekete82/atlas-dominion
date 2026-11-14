@@ -249,8 +249,11 @@ function addMk2Interior(model){
 export function polishFeldkommandoMk2(model,yard=null){
  if(!isFeldkommandoMk2(model))return false;
  if(!model.userData.sfMk2Polished){
-  roofSteel(model);
-  matchMk2DesertCamouflage(model);
+  // Fidelity mode preserves original roof and albedo while keeping doors and yard.
+  if(!model.userData.sandforgePreserveAuthoredMaterials){
+   roofSteel(model);
+   matchMk2DesertCamouflage(model);
+  }
   widenMk2Perimeter(model);
   ensureMk2ContinuousFenceMesh(model);
   addMk2Interior(model);
