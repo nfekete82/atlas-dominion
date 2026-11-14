@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {calibratedScale} from './webgl-scale.js';
 import {isFeldkommandoMk2,polishFeldkommandoMk2,hideMk2DuplicateFence}
  from './webgl-feldkommando-mk2-polish.js';
 
@@ -6,8 +7,11 @@ import {isFeldkommandoMk2,polishFeldkommandoMk2,hideMk2DuplicateFence}
  * This runs on a clone, never modifies the cached GLB or HQ.
  * Original Y-up scene wraps a Z-up source: STAGE_03 Z is vertical.
  */
-export const MK2_BARRACKS_REVISION='mk2-barracks-shared-hq-v1';
-export const MK2_BARRACKS_WIDTH_FACTOR=1.14;
+export const MK2_BARRACKS_REVISION='mk2-barracks-shared-hq-v2';
+export const MK2_BARRACKS_WIDTH_FACTOR=1.17;
+export const MK2_BARRACKS_DEPTH_FACTOR=1.08;
+export const MK2_BARRACKS_HEIGHT_FACTOR=1.03;
+
 const MAST_MESH=/^STAGE_03_Radar_Utilities_and_Details__/;
 const MAST_APERTURE={xmin:.55,xmax:2.75,ymin:.32,ymax:1.79,minHeight:6.18};
 
@@ -42,7 +46,23 @@ function removeFunkmast(model){
   const geometry=source.clone();
   geometry.clearGroups();
   geometry.setIndex(kept);
-  geometry.computeBoundingBox();geometry.computeBoundingSphere();
+  // THREE's computeBoundingBox counts UNUSED vertices left by setIndex().
+  // Otherwise the deleted 11-m antenna still determines the box height,
+  // shrinking the building despite a visually absent mast.
+  const used=new THREE.Box3();
+  const xyz=new THREE.Vector3();
+  for(const index of kept){
+   xyz.fromBufferAttribute(positions,index);
+   used.expandByPoint(xyz);
+  }
+  geometry.boundingBox=used;
+  const centre=used.getCenter(new THREE.Vector3());
+  let radiusSquared=0;
+  for(const index of kept){
+   xyz.fromBufferAttribute(positions,index);
+   radiusSquared=Math.max(radiusSquared,xyz.distanceToSquared(centre));
+  }
+  geometry.boundingSphere=new THREE.Sphere(centre,Math.sqrt(radiusSquared));
   geometry.userData={...geometry.userData,sfMk2PolishOwned:true,
    sandforgeBarracksMastRemoved:true};
   mesh.geometry=geometry;
@@ -56,10 +76,13 @@ function removeFunkmast(model){
  * The open fence passage is intentional for soldiers, while the building
  * sliding shutters remain animated by the regular production presenter.
  */
-export function deriveMk2Barracks(model){
+export function deriveMk2Barracks(model,{deferPolish=false}={}){
  if(!isFeldkommandoMk2(model))return false;
- if(isMk2Barracks(model))return true;
- polishFeldkommandoMk2(model);
+ if(isMk2Barracks(model)){
+  if(!deferPolish)polishFeldkommandoMk2(model);
+  return true;
+ }
+ if(!deferPolish)polishFeldkommandoMk2(model);
  const dish=model.getObjectByName('Radar_Dish_Pivot');
  if(dish)dish.visible=false;
  const removed=removeFunkmast(model);
@@ -70,8 +93,9 @@ export function deriveMk2Barracks(model){
  }
  model.userData.sandforgeMk2Barracks=MK2_BARRACKS_REVISION;
  model.userData.sandforgeMk2BarracksMastTrianglesRemoved=removed;
- // Do not squeeze or enlarge the animated door leaves separately.
- // The renderer adds +14% width to the already-normalized model once.
+ // A single shared model transform is applied AFTER this derivation by
+ // the battle, builder preview and gallery: see applyMk2BarracksVisualTransform.
+ // Never globally scale one animation pivot independently.
  return true;
 }
 
@@ -92,5 +116,45 @@ export function arrangeMk2BarracksSupplies(yard){
   equipment.rotation.y=-.26;
  }
  yard.userData.sandforgeMk2BarracksSupplies=true;
+ return true;
+}
+
+// Match the Feldkommando's ACTUAL visual scale; the previous code used
+// calibratedScale('barracks', width=158, height=119) for identical HQ geometry.
+// This was why the sister Kaserne was small and squat. Call the *same helper*
+// in the game, builder ghost and model gallery.
+export function applyMk2BarracksVisualTransform(model,bounds,hqReferenceWidth=225){
+ if(!isMk2Barracks(model))return null;
+ if(model.userData.mk2BarracksVisualTransformApplied)
+  return model.userData.mk2BarracksVisualTransformApplied;
+ const size=bounds.getSize(new THREE.Vector3());
+ const center=bounds.getCenter(new THREE.Vector3());
+ const scale=calibratedScale('headquarters','building',size,hqReferenceWidth);
+ model.scale.multiplyScalar(scale);
+ model.scale.x*=MK2_BARRACKS_WIDTH_FACTOR;
+ model.scale.y*=MK2_BARRACKS_HEIGHT_FACTOR;
+ model.scale.z*=MK2_BARRACKS_DEPTH_FACTOR;
+ model.position.set(
+  -center.x*scale*MK2_BARRACKS_WIDTH_FACTOR,
+  -bounds.min.y*scale*MK2_BARRACKS_HEIGHT_FACTOR,
+  -center.z*scale*MK2_BARRACKS_DEPTH_FACTOR
+ );
+ const transform={
+  scale,modelHeight:size.y*scale*MK2_BARRACKS_HEIGHT_FACTOR,
+  modelFootprint:Math.max(
+   size.x*scale*MK2_BARRACKS_WIDTH_FACTOR,
+   size.z*scale*MK2_BARRACKS_DEPTH_FACTOR
+  )
+ };
+ model.userData.mk2BarracksVisualTransformApplied=transform;
+ return transform;
+}
+
+// The HQ finishes its original PBR materials BEFORE the final MK2 roof and
+// Desert-002 polish. Make the sister Kaserne follow exactly that order.
+export function finishMk2Barracks(model,yard=null){
+ if(!isMk2Barracks(model))return false;
+ polishFeldkommandoMk2(model,yard);
+ arrangeMk2BarracksSupplies(yard);
  return true;
 }
