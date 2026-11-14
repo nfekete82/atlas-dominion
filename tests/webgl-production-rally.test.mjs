@@ -206,7 +206,7 @@ test('MK2 barracks door animation never moves, hides or holds the real produced 
  assert.equal(presenter.safeBarracks.size,1,'only cosmetic door cue registered');
  assert.deepEqual(actor.node.position,before);
  game.time=.7;presenter.update();
- assert.equal(portal.left.position.x,-2.36,'sliding door opens while actor stays authoritative');
+ assert.ok(Math.abs(portal.left.position.x+2.36)<1e-9,'sliding door opens while actor stays authoritative');
  assert.deepEqual(actor.node.position,before);
  game.time=2.3;presenter.update();
  assert.equal(presenter.safeBarracks.size,0);
