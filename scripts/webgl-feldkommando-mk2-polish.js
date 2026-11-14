@@ -133,8 +133,14 @@ export function ensureMk2ContinuousFenceMesh(model){
  // The authoring stage is Z-up (the SF_Y_UP_ROOT rotates it into Three).
  // Read the widened MK2 fence's EXISTING concrete feet instead of hard-coded
  // world/building-size numbers. Both HQ and the enlarged Barracks reuse it.
- const xLeft=bounds.min.x-.025,xRight=bounds.max.x+.025;
- const front=bounds.min.y-.025,rear=bounds.max.y+.025;
+ // The authored concrete footings are symmetric around X=0. Compute
+ // both sides from their maximal extent so sparse/disconnected meshes (and
+ // fixture slices with only one corner) cannot draw X wires THROUGH the
+ // central soldier exit. Retain the native MK2 rear/front distances.
+ const sideExtent=Math.max(Math.abs(bounds.min.x),Math.abs(bounds.max.x))+.025;
+ const xLeft=-sideExtent,xRight=sideExtent;
+ const front=Math.min(bounds.min.y,-7.605-MK2_FENCE_OUTSET)-.025;
+ const rear=Math.max(bounds.max.y,6.405+MK2_FENCE_OUTSET)+.025;
  const gateHalf=2.48,baseZ=.34,topZ=2.12,rows=2;
  const segments=[];
  const point=(x,y,z)=>new THREE.Vector3(x,y,z);
