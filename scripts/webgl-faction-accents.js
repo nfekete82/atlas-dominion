@@ -198,7 +198,7 @@ export function shouldTintFactionSurface(kind,type,materialName='',meshName='',m
 /** Only once per actor/material. A captured base can change owner without
  * cloning again, and the cached glTF template is never mutated. */
 export function tintFactionMaterials(root,owner,kind,type){
- if(!root)return 0;
+ if(!root||root.userData?.sandforgePreserveAuthoredMaterials)return 0;
  // MK2 Kaserne and Feldkommando share the same real model and must take
  // precisely the same paint path. The old 'barracks' branch installed a
  // dark projected roofing shader on top of the MK2, hence the black roof.
