@@ -15,6 +15,9 @@ const make=()=>{
  const camo=new THREE.Mesh(new THREE.BoxGeometry(5,5,.5).translate(0,0,4),
   new THREE.MeshStandardMaterial({name:'SF_camo',color:'#b2a187'}));
  camo.name='STAGE_01_Bunker_Shell__camo';stage.add(camo);
+ const light=new THREE.Mesh(new THREE.BoxGeometry(4,4,.5).translate(0,0,2.75),
+  new THREE.MeshStandardMaterial({name:'SF_camo_light',color:'#e6d5b0'}));
+ light.name='STAGE_01_Bunker_Shell__camo_light';stage.add(light);
  const roof=new THREE.Mesh(new THREE.BoxGeometry(6,6,.3).translate(0,0,4.4),
   new THREE.MeshStandardMaterial({name:'SF_roof',color:'#c0b9a5'}));
  roof.name='STAGE_02_Roof_and_Entrances__roof';stage.add(roof);
@@ -26,12 +29,13 @@ const make=()=>{
  ]){
   const pivot=new THREE.Group();pivot.name=name;pivot.position.set(x,y,z);stage.add(pivot);
  }
- return {root,roof,camo};
+ return {root,roof,camo,light};
 };
 
 test('MK2 darkens rooftop using a shared textured metal material without touching base materials',()=>{
- const {root,roof,camo}=make();
+ const {root,roof,camo,light}=make();
  const roofOriginal=roof.material,base=camo.material;
+ const lightOriginal=light.material,lightGeometry=light.geometry;
  const yard=new THREE.Group();
  for(const name of ['YardFencePosts','YardFenceRails','YardFenceMesh']){
   const part=new THREE.Group();part.name=name;yard.add(part);
@@ -42,8 +46,13 @@ test('MK2 darkens rooftop using a shared textured metal material without touchin
  assert.ok(roof.material.metalness>=.6);
  assert.equal(roofOriginal.color.getHexString(),'c0b9a5');
  assert.equal(camo.material,base);
+ assert.equal(light.material,lightOriginal,'original camo material stays on the walls');
+ assert.notEqual(light.geometry,lightGeometry,'the tan roof triangles are separated');
+ assert.ok(light.geometry.index.count<lightGeometry.index.count,'only top-facing roof triangles removed');
+ assert.equal(lightOriginal.color.getHexString(),'e6d5b0');
  assert.ok(root.getObjectByName('SF_MK2_AnthraciteRoof'));
  assert.equal(root.getObjectByName('SF_MK2_AnthraciteRoof').geometry.groups.length,0);
+ assert.ok(root.getObjectByName('SF_MK2_AnthraciteRoof').material.color.getHexString()==='43474d');
  for(const name of ['YardFencePosts','YardFenceRails','YardFenceMesh'])
   assert.equal(yard.getObjectByName(name).visible,false);
  assert.ok(root.getObjectByName('SF_MK2_Interior'));
