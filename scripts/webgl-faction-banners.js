@@ -6,7 +6,7 @@ import * as THREE from 'three';
  */
 export const SANDFORGE_BANNER_STYLE=Object.freeze({
  headquarters:{side:57,height:52,front:77,width:19,length:30},
- barracks:{side:48,height:52,front:-55,width:17,length:28}
+ barracks:{side:57,height:52,front:77,width:19,length:30}
 });
 const TEAM_CLOTH=['#284d7b','#973c36'];
 const TEAM_TRIM=['#bdc9c2','#d5b39e'];
