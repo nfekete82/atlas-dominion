@@ -348,6 +348,9 @@ export class Simulation {
   barracksMk2Enabled=false;
   barracksMk2ExitDistance=160;
   private readonly productionDepartureHolds=new Map<number,number>();
+  /** Backoff prevents a saturated barracks exit from running expensive
+   * collision searches 20 times per second while its queue is complete. */
+  private readonly barracksSpawnRetryAt=new Map<number,number>();
   extendProductionDeparture(unitId:number,until:number):void {
     if(!this.stageWebGLProduction||!Number.isFinite(until))return;
     const previous=this.productionDepartureHolds.get(unitId);
@@ -1864,22 +1867,32 @@ export class Simulation {
         const stagedMk2Barracks=this.stageWebGLProduction&&this.barracksMk2Enabled&&
           b.kind==='barracks'&&['infantry','medic','heavy','rocket'].includes(kind);
         if(stagedMk2Barracks){
+          // A blocked doorway used to run 15 nearest() path searches each
+          // 20-Hz tick, which could freeze large battles. Try a finite set
+          // of exact, walkable positions, with a cheap actor-overlap check.
+          if(this.time<(this.barracksSpawnRetryAt.get(b.id)??0))continue;
           for(const candidate of barracksMk2DoorExitCandidates(b,this.barracksMk2ExitDistance)){
             if(!this.world.walkable(candidate,spawnObstacles,clearance))continue;
-            const clear=this.world.nearest(candidate,spawnObstacles,this.units,undefined,clearance);
-            if(clear&&distance(clear,candidate)<1){spawn=clear;break;}
+            const occupied=this.units.some(other=>other.hp>0&&
+              distance(other,candidate)<clearance+(UNITS[other.kind]?.radius??12)+8);
+            if(!occupied){spawn=candidate;break;}
           }
+          if(!spawn)this.barracksSpawnRetryAt.set(b.id,this.time+.75);
+          else this.barracksSpawnRetryAt.delete(b.id);
         }
         if(!spawn&&!stagedHqEngineer&&!stagedMk2Barracks)
           spawn=spec.flying?exit:this.world.nearest(exit,spawnObstacles,this.units,undefined,clearance);
-        if(spawn&&this.count(b.owner)<RULES.capacity){const u=this.spawn(b.owner,spawn,kind);
+        if(spawn&&this.count(b.owner)<RULES.capacity){
+          if(stagedMk2Barracks)this.barracksSpawnRetryAt.delete(b.id);
+          const u=this.spawn(b.owner,spawn,kind);
           // The actual spawn remains authoritative; the renderer performs only a
           // short exterior arrival fade. Never fake an opening in the baked facade.
           this.productionReleases.push({unitId:u.id,baseId:b.id,kind,owner:b.owner,at:this.time,from:{x:b.x,y:b.y},to:{...spawn}});
           if(this.productionReleases.length>24)this.productionReleases.shift();
           countProduced(this.stats,b.owner);if(b.owner===0)this.notices.push(`Einheit bereit: ${spec.name}.`);b.queue.shift();b.queueTypes.shift();b.queueCosts?.shift();b.production=0;if(b.rally)this.command([u.id],{...b.rally,kind:'attackMove'});
            if(this.stageWebGLProduction&&
-              ['factory','barracks','headquarters'].includes(b.kind)){
+              ['factory','barracks','headquarters'].includes(b.kind)&&
+              !stagedMk2Barracks){
              // Hold the actual unit until the HQ3/barracks/factory portal
              // opens and its rollout clears the facade. The presenter extends
              // this for long routes; classic and saved gameplay remain intact.
