@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {Simulation} from '/src/reborn/simulation.js';
 import {isTerrainProfile,TERRAIN_LABELS,battlefieldStart,terrainGradingEdge} from '/src/reborn/battlefield-terrain.js';
 import {campaignLayout} from '/src/reborn/config.js';
@@ -113,6 +114,16 @@ const scene=new THREE.Scene();
 // A beige background would still reveal a bright square beyond the terrain.
 scene.background=new THREE.Color('#000000');
 scene.fog=new THREE.FogExp2(biomeStyle.fog,.00008);
+// A neutral prefiltered IBL makes imported GLB PBR metals readable without
+// repainting their material graphs. The battlefield background stays black.
+if(query.get('pbrEnv')!=='off'){
+ const pmrem=new THREE.PMREMGenerator(renderer);
+ const room=new RoomEnvironment();
+ const baked=pmrem.fromScene(room,.04);
+ scene.environment=baked.texture;
+ scene.environmentIntensity=biome==='desert'?.38:.30;
+ room.dispose();pmrem.dispose();
+}
 scene.add(new THREE.HemisphereLight(biomeStyle.sky,biomeStyle.bounce,1.20));
 const sun=new THREE.DirectionalLight(biomeStyle.sunlight,spacious?2.85:3.05);
 sun.position.set(-700,1100,420);
