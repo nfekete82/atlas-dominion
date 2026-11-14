@@ -175,6 +175,12 @@ export function shouldTintFactionSurface(kind,type,materialName='',meshName='',m
  if(type==='unit'&&SOLDIER_KINDS.has(kind)){
   const soldierName=name.replace(/rocket[_ -]?(?=infantry|soldier|trooper)/ig,'');
   if(mat?.transparent&&mat.opacity<.95)return false;
+  // Real Quaternius/Atlas rig audit: distinct cream armour and cloth
+  // materials share an atlas with the rifle, dark rubber, stitched seams
+  // and blue/red enamel. Paint ONLY the two intended native fabrics;
+  // retain dark combat boots, metal bevels, hands and weapon detail.
+  if(/^Atlas /i.test(materialName))
+   return /Atlas (?:sand ceramic|three-tone desert fabric)/i.test(materialName);
   if(/weapon|rifle|gun|barrel|muzzle|launcher|warhead|rocketpod|missile|scope|optic|glass|visor|goggle|eye|skin|face|barehand|fingertip|antenna|lamp|emissive|glow|screen|decal|insignia|stencil|badge|team|faction|flag|hologram|shadow|invisible|tread|wheel/i.test(soldierName))
    return false;
   return true; // plates, cloth, helmet, gloves, boots, vest, packs, trim
