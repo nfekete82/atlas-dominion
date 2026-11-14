@@ -545,7 +545,19 @@ export class SandforgeBattlefield {
      entry.modelFootprint,entry.modelHeight);
     if(type==='unit')attachTeamMarkings(entry,entry.owner,entry.kind,entry.modelFootprint,entry.modelHeight);
     if(type==='building'&&entry.kind==='headquarters')polishFeldkommandoMk2(model,entry.yard);
-    if(mk2Barracks)finishMk2Barracks(model,entry.yard);
+    if(mk2Barracks){
+     finishMk2Barracks(model,entry.yard);
+     // Measure the ACTUAL front-fence position in the final scaled GLB.
+     // The old radius+72 spawn was inside the enlarged barracks perimeter.
+     const fence=model.getObjectByName('Fence_Gate_Left_Pivot');
+     if(fence){
+      entry.node.updateWorldMatrix(true,true);
+      const offset=entry.node.worldToLocal(fence.getWorldPosition(new THREE.Vector3()));
+      this.game.barracksMk2ExitDistance=Math.max(
+       BUILDINGS.barracks.radius+108,offset.z+22
+      );
+     }
+    }
     if(type==='building'&&['headquarters','barracks'].includes(entry.kind))
      ensureFactionWallBanners(entry,entry.owner);
     entry.visualBaseY=model.position.y;entry.visualBaseZ=model.position.z;
