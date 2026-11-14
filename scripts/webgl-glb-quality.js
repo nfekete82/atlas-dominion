@@ -69,7 +69,12 @@ export function glbMaterialAudit(root){
 const auditEntries=new Map();
 export function glbAuditEntries(){return [...auditEntries.values()].map(item=>({...item}));}
 export function recordGlbAsset(entry,{kind,owner,requested,actual,model,error=null,preserved=false}){
- const audit=model?glbMaterialAudit(model):{meshes:0,materials:0,textures:0,triangles:0};
+ // Traversing every soldier's mesh tree during large battles is expensive.
+ // Detailed mesh statistics are computed only in explicit QA mode (or Node tests).
+ const detailed=typeof window==='undefined'||
+  (typeof location!=='undefined'&&new URLSearchParams(location.search).get('glbAudit')==='1');
+ const audit=model&&detailed?glbMaterialAudit(model):
+  {meshes:0,materials:0,textures:0,triangles:0};
  const info={kind,owner,requested,actual:actual??null,preserved,fallback:Boolean(actual&&actual!==requested),
   error:error?String(error):null,...audit};
  if(entry)entry.loadedGlb=info;
