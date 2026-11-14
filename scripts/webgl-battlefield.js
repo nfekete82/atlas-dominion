@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {stylizedAsset,isStylizedAsset,stylizedProfile} from './webgl-stylized-pack.js';
 import {meshyAsset,isMeshyAsset,meshyModelYaw} from './webgl-meshy-assets.js';
 import {SandforgeProductionGates} from '/webgl-production-gates.js';
+import {polishFeldkommandoMk2,hideMk2DuplicateFence,disposeFeldkommandoMk2Polish,isFeldkommandoMk2} from '/webgl-feldkommando-mk2-polish.js';
 import {updateBarracksPortalPlanes} from '/webgl-barracks-portal.js';
 import {nextPeriodicRefresh} from '/webgl-frame-scheduling.js';
 import {wheelsShouldRoll} from '/webgl-wheel-motion.js';
@@ -493,14 +494,6 @@ export class SandforgeBattlefield {
      entry.placeholder=null;
     }
     entry.node.add(model);entry.detail=model;
-    // MK2 already contains a complete fenced perimeter and its own entry gate.
-    // Suppress only the older procedural fence, keeping lamps and supplies.
-    if(type==='building'&&entry.kind==='headquarters'&&!entry.mk2Fallback){
-     for(const name of ['YardFencePosts','YardFenceRails','YardFenceMesh']){
-      const fence=entry.yard?.getObjectByName(name);
-      if(fence)fence.visible=false;
-     }
-    }
     if(variantData){
      // Closed/ready silo and idle/working lab are distinct original GLBs.
      // Same authoring bounds and scale/grounding as the primary asset.
@@ -531,6 +524,7 @@ export class SandforgeBattlefield {
     applyFactionAccents(entry,{kind:entry.kind,owner:entry.owner},type,
      entry.modelFootprint,entry.modelHeight);
     if(type==='unit')attachTeamMarkings(entry,entry.owner,entry.kind,entry.modelFootprint,entry.modelHeight);
+    if(type==='building'&&entry.kind==='headquarters')polishFeldkommandoMk2(model,entry.yard);
     entry.visualBaseY=model.position.y;entry.visualBaseZ=model.position.z;
     if(type==='building'){
      this.attachBuildingMotion(entry,data);
@@ -1139,6 +1133,8 @@ export class SandforgeBattlefield {
      entry.node.add(entry.yard);
      const decor=entry.yard.getObjectByName('BasePerimeter_'+b.kind);
      if(decor)decor.visible=this.siteDecorEnabled;
+     if(b.kind==='headquarters'&&isFeldkommandoMk2(entry.detail))
+      hideMk2DuplicateFence(entry.yard);
     }
    }
    if(b.kind==='airfield'){
@@ -1170,6 +1166,7 @@ export class SandforgeBattlefield {
     if(e.yard){disposeBuildingYard(e.yard);e.yard=null;}
     disposeAirfieldServiceYard(e);disposeFactoryServiceYard(e);
     if(e.placeholder){disposeOwnedMeshes(e.placeholder);e.placeholder=null;}
+    if(e.detail)disposeFeldkommandoMk2Polish(e.detail);
     if(e.detail)disposeTaggedMaterials(e.detail,'sandforgeBuildingFill');
     if(e.variantDetail)disposeTaggedMaterials(e.variantDetail,'sandforgeBuildingFill');
     if(e.motion?.mixer){
