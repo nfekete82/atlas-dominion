@@ -547,14 +547,15 @@ export class SandforgeBattlefield {
     if(type==='building'&&entry.kind==='headquarters')polishFeldkommandoMk2(model,entry.yard);
     if(mk2Barracks){
      finishMk2Barracks(model,entry.yard);
-     // Measure the ACTUAL front-fence position in the final scaled GLB.
-     // The old radius+72 spawn was inside the enlarged barracks perimeter.
-     const fence=model.getObjectByName('Fence_Gate_Left_Pivot');
-     if(fence){
+     // With the fence removed, measure the actual building doorway,
+     // not the former fence gate. A safe spawn begins in front of the
+     // real shutter and never starts halfway through the building.
+     const door=model.getObjectByName('Door_Left_Pivot');
+     if(door){
       entry.node.updateWorldMatrix(true,true);
-      const offset=entry.node.worldToLocal(fence.getWorldPosition(new THREE.Vector3()));
+      const offset=entry.node.worldToLocal(door.getWorldPosition(new THREE.Vector3()));
       this.game.barracksMk2ExitDistance=Math.max(
-       BUILDINGS.barracks.radius+108,offset.z+22
+       BUILDINGS.barracks.radius+65,offset.z+26
       );
      }
     }
