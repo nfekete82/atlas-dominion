@@ -769,7 +769,10 @@ export class SandforgeBattlefield {
   if(yard){
    const decor=yard.getObjectByName('BasePerimeter_'+kind);
    if(decor)decor.visible=this.siteDecorEnabled;
-   tint(yard,false,.34);
+   // The barracks preview must use the *exact* original dark fence and
+   // equipment paint of the finished barracks. Translucent/dithered fences
+   // looked like a second wire perimeter and distorted the silhouette.
+   if(kind!=='barracks')tint(yard,false,.34);
    group.add(yard);group.userData.previewYard=yard;
   }
   const service=kind==='airfield'?createAirfieldServiceYard():
@@ -791,24 +794,33 @@ export class SandforgeBattlefield {
   this.getModel(this.asset(kind,0,'building')).then(data=>{
    if(this.buildPreview!==group||this.buildKind!==kind)return;
    const model=cloneSkeleton(data.scene);
-   if(kind==='barracks')simplifyBarracksSilhouette(model);
+   const authoredStyle=stylizedProfile(model);
+   // CRITICAL: normalise with the SAME rules as pumpModelQueue(), which
+   // renders the actual completed structure. Stylized GLBs already encode
+   // world scale and origin; calibrating/centering them AGAIN in the ghost
+   // caused the preview to tower above the smaller finished barracks.
+   if(kind==='barracks'&&!authoredStyle)simplifyBarracksSilhouette(model);
    const bounds=new THREE.Box3().setFromObject(model);
    const size=bounds.getSize(new THREE.Vector3());
    if(size.y>0&&Math.max(size.x,size.z)>0){
-    const scale=calibratedScale(kind,'building',size,spec.width);
-    const heightScale=strategicBuildingHeightScale(kind);
+    const scale=authoredStyle?authoredStyle.metresToWorld:
+     calibratedScale(kind,'building',size,spec.width);
+    const heightScale=authoredStyle?1:strategicBuildingHeightScale(kind);
     model.scale.multiplyScalar(scale);model.scale.y*=heightScale;
-    model.position.set(-bounds.getCenter(new THREE.Vector3()).x*scale,
-      -authoredBuildingGroundY(kind,bounds)*scale*heightScale,-bounds.getCenter(new THREE.Vector3()).z*scale);
+    if(authoredStyle)model.position.set(0,0,0);
+    else model.position.set(-bounds.getCenter(new THREE.Vector3()).x*scale,
+      -authoredBuildingGroundY(kind,bounds)*scale*heightScale,
+      -bounds.getCenter(new THREE.Vector3()).z*scale);
    }
    if(kind==='airfield')hideOldAirfieldHangar({detail:model});
-   // Use EXACTLY the same preparation sequence as pumpModelQueue() for the
-   // actual finished building; no alternate materials or unpainted roof.
+   // Match pumpModelQueue: PBR lighting, authored-finish and faction paint.
    this.lightBuildingMeshes(model);
-   const authoredStyle=stylizedProfile(model);
    if(isStrategicGlbKind(kind)&&!authoredStyle)applyStrategicGlbFinish(model);
    tintFactionMaterials(model,0,kind,'building');
-   tint(model,false,kind==='barracks'?.84:.50);
+   // Kaserne: no ghost material at all! Show the IDENTICAL finished model
+   // with its own roof, facade and decals. The red/green ground ring and
+   // build hint communicate placement validity without X-ray artefacts.
+   if(kind!=='barracks')tint(model,false,.50);
    model.visible=true; // final authored shape and its actual entrances
    group.remove(placeholder);disposeOwnedMeshes(placeholder);
    guides.visible=false;
