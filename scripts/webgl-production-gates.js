@@ -312,8 +312,9 @@ export class SandforgeProductionGates {
      const y=z<=1.5?.265:Math.max(0,.265*(2.9-z)/1.4);
      p=root.localToWorld(new THREE.Vector3(.18,y,z));
     }
-    yaw=facing+(authored?Math.PI:0);
-   }else if(hq&&gate.portal.authored&&gate.portal.leaves.length===4){
+    yaw=facing+(authored&&!gate.portal.mk2?Math.PI:0);
+   }else if((hq&&gate.portal.authored&&gate.portal.leaves.length===4)||
+              (barracks&&gate.portal.mk2)){
     // MK2: cross the actual fence gate, then approach the ONE authoritative
     // exterior spawn without inventing a circular detour. The simulation
     // places a pioneer directly at the gate; the exact endpoint is shared,
@@ -360,7 +361,7 @@ export class SandforgeProductionGates {
     // Infantry can stand beside a building entrance without aborting the
     // next production. A 48-world-unit test wrongly considered a waiting
     // pioneer an obstruction and teleported the next actor to its spawn.
-    const separation=hq&&gate.portal.authored?21:48;
+    const separation=(hq&&gate.portal.authored)||gate.portal?.mk2?21:48;
     if(Math.hypot(p.x-other.node.position.x,p.z-other.node.position.z)<separation){blocked=true;break;}
    }
    if(blocked){
