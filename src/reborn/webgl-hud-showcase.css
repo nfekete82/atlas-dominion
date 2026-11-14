@@ -1552,13 +1552,15 @@
   min-width:0!important;
  }
  #sf-classic-root #sidebar > #sf-production.sf-production-panel,
- #sf-classic-root[data-drawer="production"] #sidebar > #sf-production.sf-production-panel{
+ #sf-classic-root[data-drawer="production"] #sidebar > #sf-production.sf-production-panel,
+ #sf-classic-root[data-drawer="selection"] #sidebar > #sf-production.sf-production-panel{
   display:flex!important;flex-direction:column!important;
   position:relative!important;
   grid-column:4!important;grid-row:1!important;
   inset:auto!important;top:auto!important;right:auto!important;bottom:auto!important;left:auto!important;
   width:100%!important;min-width:0!important;
-  height:100%!important;min-height:0!important;max-height:none!important;
+  height:100%!important;min-height:120px!important;max-height:none!important;
+  visibility:visible!important;opacity:1!important;align-self:stretch!important;
   margin:0!important;padding:9px!important;
   gap:6px!important;
   overflow:hidden!important;
@@ -1623,5 +1625,19 @@
  #sf-classic-root[data-tab="buildings"] #sf-actions
   button.catalog-card[data-build] .card-cost{
   font-size:10px!important;
+ }
+}
+
+/* Production queue is persistent on desktop; the selection/queue icon
+ * controls only which supplementary drawer has focus. Keep HUD tabs above
+ * unit-category content so switching to research is always clickable. */
+@media(min-width:1151px){
+ #sf-classic-root #sidebar #sf-tabs{
+  position:relative!important;z-index:8!important;
+  pointer-events:auto!important;
+ }
+ #sf-classic-root #sidebar #sf-tabs button[data-tab]{
+  position:relative!important;z-index:9!important;
+  pointer-events:auto!important;
  }
 }
