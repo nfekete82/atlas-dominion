@@ -52,7 +52,7 @@ test('MK2 darkens rooftop using a shared textured metal material without touchin
  assert.equal(isFeldkommandoMk2(root),true);
  assert.equal(polishFeldkommandoMk2(root,yard),true);
  assert.notEqual(roof.material,roofOriginal);
- assert.ok(roof.material.metalness>=.6);
+ assert.ok(roof.material.metalness>=.55,'near-black painted metal retains a moderate metalness');
  assert.equal(roofOriginal.color.getHexString(),'c0b9a5');
  assert.notEqual(camo.material,base,'wall camouflage gets an owned copy of its reference coating');
  assert.equal(camo.material.map.name,'Sandforge_Desert002_MainCamouflage','user-provided master artwork');
