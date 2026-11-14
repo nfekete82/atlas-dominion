@@ -191,7 +191,7 @@ test('MK2 barracks door animation never moves, hides or holds the real produced 
  };
  const actor={node:{visible:true,position:{x:180,y:0,z:140}},productionMotion:null};
  const before={...actor.node.position};
- const portal={mk2:true,left:{position:{x:-1}},right:{position:{x:1}},
+ const portal={mk2:true,authored:true,left:{position:{x:-1}},right:{position:{x:1}},
   leftX:-1,rightX:1,hall:{visible:false}};
  const lamp={visible:false,material:{emissiveIntensity:0}};
  const entry={id:30,mk2Barracks:true,node:{visible:true},
