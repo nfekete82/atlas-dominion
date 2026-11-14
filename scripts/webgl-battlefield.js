@@ -3,6 +3,7 @@ import {stylizedAsset,isStylizedAsset,stylizedProfile} from './webgl-stylized-pa
 import {meshyAsset,isMeshyAsset,meshyModelYaw} from './webgl-meshy-assets.js';
 import {SandforgeProductionGates} from '/webgl-production-gates.js';
 import {polishFeldkommandoMk2,hideMk2DuplicateFence,disposeFeldkommandoMk2Polish,isFeldkommandoMk2} from '/webgl-feldkommando-mk2-polish.js';
+import {ensureFactionWallBanners,setFactionWallBannerOwner,disposeFactionWallBanners} from '/webgl-faction-banners.js';
 import {updateBarracksPortalPlanes} from '/webgl-barracks-portal.js';
 import {nextPeriodicRefresh} from '/webgl-frame-scheduling.js';
 import {wheelsShouldRoll} from '/webgl-wheel-motion.js';
@@ -525,6 +526,8 @@ export class SandforgeBattlefield {
      entry.modelFootprint,entry.modelHeight);
     if(type==='unit')attachTeamMarkings(entry,entry.owner,entry.kind,entry.modelFootprint,entry.modelHeight);
     if(type==='building'&&entry.kind==='headquarters')polishFeldkommandoMk2(model,entry.yard);
+    if(type==='building'&&['headquarters','barracks'].includes(entry.kind))
+     ensureFactionWallBanners(entry,entry.owner);
     entry.visualBaseY=model.position.y;entry.visualBaseZ=model.position.z;
     if(type==='building'){
      this.attachBuildingMotion(entry,data);
@@ -1152,6 +1155,10 @@ export class SandforgeBattlefield {
     if(b.buildRemaining<=0)updateFactoryServiceYard(entry,b,this.game.units,this.game.time);
    }
    this.construction.update(entry,b);
+   // Authored construction can restore original instanced fence visibility;
+   // re-hide it after the reveal so MK2 never gets a second outside fence.
+   if(b.kind==='headquarters'&&isFeldkommandoMk2(entry.detail))hideMk2DuplicateFence(entry.yard);
+   if(['headquarters','barracks'].includes(b.kind))setFactionWallBannerOwner(entry,b.owner);
    if(entry.motion?.mode==='fallback'&&entry.motion.rotor)entry.motion.rotor.visible=b.buildRemaining<=0;
    this.animateBuildingMotion(entry,b,dt,active);
    if(b.buildRemaining<=0&&!this.announcedBuildings.has(b.id)){
@@ -1162,6 +1169,7 @@ export class SandforgeBattlefield {
   for(const [id,e] of this.bases)if(!aliveBases.has(id)){
     this.presentation.remove(e,this.game.bases.find(base=>base.id===id));
     this.productionGates.detach(e);this.construction.dispose(e);
+    disposeFactionWallBanners(e);
     this.grounding.detachBuilding(id);
     if(e.yard){disposeBuildingYard(e.yard);e.yard=null;}
     disposeAirfieldServiceYard(e);disposeFactoryServiceYard(e);
