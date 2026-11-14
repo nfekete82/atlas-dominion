@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import {tintStylizedTeam} from './webgl-stylized-pack.js';
 import {applyBuildingDesign} from './webgl-building-design.js';
+import {desert002UniformTexture} from './webgl-desert002.js';
+import {applyUniformProjection} from './webgl-soldier-camo.js';
 
 /** Painted ownership belongs INSIDE the authored PBR surfaces.
  * No floating blue cubes, box geometry or extra draw calls.
@@ -166,6 +168,23 @@ export function shouldTintFactionSurface(kind,type,materialName='',meshName='',m
  // signal even after tintBastionCaptureSignals updates the PBR color.
  if(kind==='bastion'&&/^SF_Bastion_(?:red|light|yellow|glass|dish|dishshade|stripe|black|bolt|frame)$/.test(materialName))
   return false;
+ // Atlas soldiers use a large number of separate armour plates. The old
+ // generic skip /hand|rocket|light/ excluded white protective plates even
+ // when those plates were part of gloves, helmets or the RocketInfantry rig.
+ // Classify soldier surfaces separately and protect *actual* equipment.
+ if(type==='unit'&&SOLDIER_KINDS.has(kind)){
+  const soldierName=name.replace(/rocket[_ -]?(?=infantry|soldier|trooper)/ig,'');
+  if(mat?.transparent&&mat.opacity<.95)return false;
+  // Real Quaternius/Atlas rig audit: distinct cream armour and cloth
+  // materials share an atlas with the rifle, dark rubber, stitched seams
+  // and blue/red enamel. Paint ONLY the two intended native fabrics;
+  // retain dark combat boots, metal bevels, hands and weapon detail.
+  if(/^Atlas /i.test(materialName))
+   return /Atlas (?:sand ceramic|three-tone desert fabric)/i.test(materialName);
+  if(/weapon|rifle|gun|barrel|muzzle|launcher|warhead|rocketpod|missile|scope|optic|glass|visor|goggle|eye|skin|face|barehand|fingertip|antenna|lamp|emissive|glow|screen|decal|insignia|stencil|badge|team|faction|flag|hologram|shadow|invisible|tread|wheel/i.test(soldierName))
+   return false;
+  return true; // plates, cloth, helmet, gloves, boots, vest, packs, trim
+ }
  if(skip.test(name))return false;
  if(mat?.transparent&&mat.opacity<.95)return false;
  // Never exclude structural paint solely because it was authored in pure
@@ -179,7 +198,12 @@ export function shouldTintFactionSurface(kind,type,materialName='',meshName='',m
 /** Only once per actor/material. A captured base can change owner without
  * cloning again, and the cached glTF template is never mutated. */
 export function tintFactionMaterials(root,owner,kind,type){
- if(!root)return 0;
+ if(!root||root.userData?.sandforgePreserveAuthoredMaterials)return 0;
+ // MK2 Kaserne and Feldkommando share the same real model and must take
+ // precisely the same paint path. The old 'barracks' branch installed a
+ // dark projected roofing shader on top of the MK2, hence the black roof.
+ if(type==='building'&&root.userData?.sandforgeMk2Barracks)
+  kind='headquarters';
  // Original reference assets contain authored vertex colour camouflage and
  // faction panels. Legacy world-space repainting would erase the art direction.
  if(tintStylizedTeam(root,owner))return 0;
@@ -193,6 +217,10 @@ export function tintFactionMaterials(root,owner,kind,type){
    // These coatings already use the exact HQ3 albedo. Capture updates team
    // markers separately; never multiply the facade texture by its old paint.
    if(type==='building'&&source.userData?.sandforgeBuildingDesign)return source;
+   // MK2-derived Kaserne shares the *finished* HQ's native Desert-002 and
+   // near-black roof materials. Do not run the generic barracks 98.5%-opaque
+   // camo shader over those final finishes. This also keeps the HQ reference.
+   if(type==='building'&&source.userData?.sfMk2PolishOwned)return source;
    // Split a shared glTF material when one mesh is uniform armour and
    // another is a rifle/visor. A single paint clone for both would cause
    // the weapon or face to inherit the camouflage shader.
@@ -246,8 +274,19 @@ export function tintFactionMaterials(root,owner,kind,type){
        // All building kinds (including future ones) share HQ3 colours. The
        // textured HQ3 itself stays authored: keepNative above prevents any
        // generic camouflage on its original UV-textured parts.
-       applyDesertBuildingCamo(mat,
-        type==='unit'&&SOLDIER_KINDS.has(kind)?'soldier':
+       if(uniform&&selectedCamouflageBiome==='desert'){
+        // Use the ACTUAL user-supplied desert 002 image instead of the old
+        // procedural green shader. Only eligible soldier armour/cloth/helmet
+        // receives this albedo; rifle, visor, skin, team badges stay intact.
+        mat.map=desert002UniformTexture();
+        // desert 002 itself contains 50%+ near-white/cream pixels. A warm
+        // multiplicative pigment keeps its original shapes but makes the
+        // once-white chest/helmet plates sand-coloured at RTS viewing scale.
+        mat.color.set('#dcc5a8');
+        mat.vertexColors=false;
+        mat.metalness=.035;mat.roughness=.93;
+        mat.userData.sandforgeMasterCamo='desert-002';mat.needsUpdate=true;
+       }else applyDesertBuildingCamo(mat,
         kind==='barracks'||kind==='bastion'?kind:
         type==='building'?'facility':'standard');
       }
@@ -257,6 +296,8 @@ export function tintFactionMaterials(root,owner,kind,type){
    return mat;
   };
   mesh.material=Array.isArray(mesh.material)?mesh.material.map(paint):paint(mesh.material);
+  if(type==='unit'&&SOLDIER_KINDS.has(kind)&&selectedCamouflageBiome==='desert')
+   applyUniformProjection(mesh);
  });
  if(type==='building')applyBuildingDesign(root,{kind,biome:selectedCamouflageBiome});
  return tinted;

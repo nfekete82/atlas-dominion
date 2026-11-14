@@ -32,13 +32,16 @@ test('all four ORIGINAL user-uploaded GLBs are committed unchanged',()=>{
 });
 test('HQ3 stays the same authored mesh through construction and completion',()=>{
  assert.equal(strategicGlbUrl('headquarters','inactive'),strategicGlbUrl('headquarters','active'));
- assert.ok(strategicGlbUrl('headquarters','active').endsWith('sandforge_funkzentrale_hq3_game_ready.glb'));
+ assert.ok(strategicGlbUrl('headquarters','active').endsWith('sandforge_feldkommando_mk2.glb'));
  assert.equal(strategicGlbActive('headquarters',{hp:1500,owner:0,buildRemaining:8},{}),false);
  assert.equal(strategicGlbActive('headquarters',{hp:1500,owner:0,buildRemaining:0},{}),false);
  const battlefield=readFileSync('scripts/webgl-battlefield.js','utf8');
  assert.ok(battlefield.includes("['barracks','headquarters'].includes(kind)?"));
  assert.ok(battlefield.includes("task.entry.kind!=='headquarters'"));
- assert.ok(battlefield.includes("this.placementFacing=['research','barracks'].includes(kind)?1:0"));
+ assert.ok(battlefield.includes("this.placementFacing=kind==='research'||"));
+ assert.ok(battlefield.includes("this.asset(kind,0,'building')!==strategicGlbUrl('headquarters','active')"),
+  'legacy barracks/research remain -Z; MK2 sister barracks and HQ share +Z');
+ assert.ok(battlefield.includes("this.getModel(requestedAsset).catch(error=>"),'old preview fallback stays intact');
 });
 test('Bastion model swaps on ownership and animates authored radar without fallback',()=>{
  const code=readFileSync('scripts/webgl-battlefield.js','utf8');

@@ -16,7 +16,7 @@ test('low-poly HUD has right-side resources and a full-width bottom deck',async(
  const result=await page.evaluate(()=>{
   const get=id=>{const r=document.querySelector(id).getBoundingClientRect();return {x:r.x,y:r.y,right:r.right,bottom:r.bottom,width:r.width,height:r.height};};
   return {dock:get('#sidebar'),map:get('#sidebar .radar'),buttons:get('.sf-modern-side-actions'),
-   deck:get('#sidebar .catalog'),tabs:get('#sf-tabs'),cards:get('#sf-actions'),
+   deck:get('#sidebar .catalog'),queue:get('#sf-production'),tabs:get('#sf-tabs'),cards:get('#sf-actions'),
    bar:get('.top.hud'),brand:get('.sf-modern-brand'),cardsCount:document.querySelectorAll('[data-build]').length,
    visibleCards:[...document.querySelectorAll('[data-build]')].filter(e=>e.getBoundingClientRect().width>50).length,
    lostControls:[...'sf-credits sf-income sf-capacity sf-map sf-production sf-selection-panel sf-actions'.split(' ')]
@@ -31,12 +31,14 @@ test('low-poly HUD has right-side resources and a full-width bottom deck',async(
  expect(result.dock.bottom).toBeLessThanOrEqual(902);
  expect(result.map.x).toBeLessThan(result.buttons.x);
  expect(result.buttons.right).toBeLessThanOrEqual(result.deck.x+5);
- expect(result.map.width).toBeGreaterThan(110);
+ expect(result.map.width).toBeGreaterThan(165);
+ expect(result.queue.x).toBeGreaterThanOrEqual(result.deck.right-2);
+ expect(result.queue.width).toBeGreaterThanOrEqual(200);
  expect(result.deck.width).toBeGreaterThan(1020);
  expect(result.tabs.height).toBeGreaterThanOrEqual(28);
  expect(result.tabs.height).toBeLessThanOrEqual(32);
- expect(result.dock.height).toBeGreaterThanOrEqual(116);
- expect(result.dock.height).toBeLessThanOrEqual(140);
+ expect(result.dock.height).toBeGreaterThanOrEqual(170);
+ expect(result.dock.height).toBeLessThanOrEqual(200);
  expect(result.cardsCount).toBeGreaterThanOrEqual(8);
  expect(result.visibleCards).toBeGreaterThanOrEqual(8);
  expect(result.bar.x).toBeGreaterThan(900);
@@ -53,13 +55,14 @@ test('low-poly HUD has right-side resources and a full-width bottom deck',async(
  await page.locator('#sf-hud-tools-toggle').click();
  await expect(page.locator('#sf-tools')).toBeHidden();
  await expect(page.locator('.sf-modern-side-actions > button')).toHaveCount(3);
+ await expect(page.locator('#sf-production')).toBeVisible();
  await page.locator('#sf-modern-selection').click();
  await expect(page.locator('#sf-selection-panel')).toBeVisible();
  await page.locator('#sf-modern-queue').click();
  await expect(page.locator('#sf-production')).toBeVisible();
  await page.locator('#sf-modern-selection').click();
  await expect(page.locator('#sf-selection-panel')).toBeVisible();
- await expect(page.locator('#sf-production')).toBeHidden();
+ await expect(page.locator('#sf-production')).toBeVisible();
  await page.locator('#sf-modern-selection').click();
  await expect(page.locator('#sf-selection-panel')).toBeHidden();
  await mkdir('tests/browser/artifacts',{recursive:true});

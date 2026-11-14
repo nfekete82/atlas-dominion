@@ -1,7 +1,11 @@
 import * as THREE from 'three';
 import {stylizedAsset,isStylizedAsset,stylizedProfile} from './webgl-stylized-pack.js';
 import {meshyAsset,isMeshyAsset,meshyModelYaw} from './webgl-meshy-assets.js';
+import {shouldPreserveAuthoredGLB,protectAuthoredGlbMaterials,recordGlbAsset} from './webgl-glb-quality.js';
 import {SandforgeProductionGates} from '/webgl-production-gates.js';
+import {polishFeldkommandoMk2,hideMk2DuplicateFence,disposeFeldkommandoMk2Polish,isFeldkommandoMk2} from '/webgl-feldkommando-mk2-polish.js';
+import {deriveMk2Barracks,isMk2Barracks,arrangeMk2BarracksSupplies,applyMk2BarracksVisualTransform,finishMk2Barracks} from '/webgl-hq-barracks.js';
+import {ensureFactionWallBanners,setFactionWallBannerOwner,setFactionWallBannerConstruction,disposeFactionWallBanners} from '/webgl-faction-banners.js';
 import {updateBarracksPortalPlanes} from '/webgl-barracks-portal.js';
 import {nextPeriodicRefresh} from '/webgl-frame-scheduling.js';
 import {wheelsShouldRoll} from '/webgl-wheel-motion.js';
@@ -35,7 +39,7 @@ import {wallLinePlacements,wallLineFromTurret,wallLineToTurret,wallLineBetweenTu
 import {sameKindVisibleUnits} from '/webgl-double-click-select.js';
 import {tracerWindow} from '/webgl-hit-response.js';
 import {applyFactionAccents,tintFactionMaterials} from '/webgl-faction-accents.js';
-import {STRATEGIC_GLB_MODELS,isStrategicGlbKind,strategicGlbUrl,strategicGlbActive,applyStrategicGlbFinish,tintBastionCaptureSignals,centerAuthoredRadarPivot,ensureTexturedHqRadarPivot,ensureHeadquartersSatelliteMount} from '/webgl-strategic-glb.js';
+import {STRATEGIC_GLB_MODELS,HQ3_FALLBACK_URL,isStrategicGlbKind,strategicGlbUrl,strategicGlbActive,applyStrategicGlbFinish,tintBastionCaptureSignals,centerAuthoredRadarPivot,ensureTexturedHqRadarPivot,ensureHeadquartersSatelliteMount} from '/webgl-strategic-glb.js';
 import {attachTeamMarkings,detachTeamMarkings} from '/webgl-team-markings.js';
 import {SandforgeConstructionPresentation} from '/webgl-construction.js';
 import {createBastionCaptureBar,updateBastionCaptureBar} from '/webgl-bastion-capture.js';
@@ -224,6 +228,10 @@ export class SandforgeBattlefield {
   if(type==='building'&&kind==='headquarters'&&
      new URLSearchParams(location.search).get('hq')!=='stylized')
    return strategicGlbUrl('headquarters','active');
+  // Kaserne is an architectural sister of the MK2 HQ. Opt out by URL.
+  if(type==='building'&&kind==='barracks'&&
+     new URLSearchParams(location.search).get('barracks')!=='original')
+   return strategicGlbUrl('headquarters','active');
   if(new URLSearchParams(location.search).get('art')!=='legacy'){
    const authored=stylizedAsset(kind,owner);
    if(authored)return authored;
@@ -364,6 +372,14 @@ export class SandforgeBattlefield {
    }
   }
   if(entry.kind==='headquarters'){
+   // MK2 uses its own authored radar animation, not a procedural second dish.
+   const mk2Radar=data.animations?.find(c=>c.name==='Radar_Scan');
+   if(mk2Radar?.tracks?.length&&entry.detail?.getObjectByName('Radar_Dish_Pivot')){
+    const mixer=new THREE.AnimationMixer(entry.detail),action=mixer.clipAction(mk2Radar);
+    action.setLoop(THREE.LoopRepeat,Infinity);action.play();
+    entry.motion={kind:'headquarters',mixer,clip:mk2Radar,action,mode:'mk2-radar'};
+    return;
+   }
    const stylizedRadar=entry.detail?.getObjectByName('HQ_RADAR_PIVOT');
    if(stylizedRadar){
     entry.motion={kind:'headquarters',rotor:stylizedRadar,mode:'stylized-radar'};
@@ -416,36 +432,63 @@ export class SandforgeBattlefield {
    // HQ3 builds in place from the finished authored mesh: loading its
    // old "inactive" variant was showing an entirely different Feldkommando.
    // Barracks, silo and research still keep their legitimate variants.
-   const variantUrl=task.type==='building'&&task.entry.kind!=='headquarters'&&!isStylizedAsset(task.url)&&!isMeshyAsset(task.url)?
+   const variantUrl=task.type==='building'&&task.entry.kind!=='headquarters'&&
+    task.url!==strategicGlbUrl('headquarters','active')&&
+    !isStylizedAsset(task.url)&&!isMeshyAsset(task.url)?
     strategicGlbUrl(task.entry.kind,
      task.entry.kind==='barracks'?'inactive':'active'):null;
    const promise=variantUrl?
     Promise.all([this.getModel(task.url),this.getModel(variantUrl)]):
     this.getModel(task.url).catch(error=>{
-     if(!isStylizedAsset(task.url)&&!isMeshyAsset(task.url))throw error;
+     const missingMk2=task.type==='building'&&['headquarters','barracks'].includes(task.entry.kind)&&
+      task.url===strategicGlbUrl('headquarters','active');
+     if(!missingMk2&&!isStylizedAsset(task.url)&&!isMeshyAsset(task.url))throw error;
      // If an optional Meshy file has not yet been installed, load the
      // original authored rig and preserve the game. Tank and artillery
      // were previously wrongly mapped to prototype/ on fallback.
      const e=task.entry;
      const authored=stylizedAsset(e.kind,e.owner);
-     const old=isMeshyAsset(task.url)&&authored ? authored:
+     const old=missingMk2&&task.entry.kind==='headquarters'?HQ3_FALLBACK_URL:
+      missingMk2&&task.entry.kind==='barracks'?stylizedAsset('barracks',e.owner):
+      isMeshyAsset(task.url)&&authored ? authored:
       task.type==='building' ? strategicGlbUrl(e.kind,'active'):
       '/src/assets/reborn/'+
        (e.kind==='rocket'?'prototype/infantry-':
         (['rover','tank','artillery','scout','bomber'].includes(e.kind)?'animation/':'prototype/')+e.kind+'-')+
        e.owner+'.glb';
      console.warn('Optional art unavailable; loading original:',old,error);
-     task.entry.meshyFallback=true;
-     return this.getModel(old);
+     if(isMeshyAsset(task.url))task.entry.meshyFallback=true;
+     if(missingMk2){
+      task.entry.mk2Fallback=true;
+      if(task.entry.kind==='barracks')this.game.barracksMk2Enabled=false;
+     }
+     return this.getModel(old).then(data=>{
+      task.entry.resolvedAssetUrl=old;return data;
+     }).catch(fallbackError=>{
+      if(task.type==='building'&&task.entry.kind==='headquarters'&&old!==HQ3_FALLBACK_URL)
+       return this.getModel(HQ3_FALLBACK_URL).then(data=>{
+        task.entry.resolvedAssetUrl=HQ3_FALLBACK_URL;return data;
+       });
+      throw fallbackError;
+     });
     }).then(data=>[data,null]);
    promise.then(([data,variantData])=>{
     const {entry,type}=task;
     if(!entry.node.parent)return;
     const model=cloneSkeleton(data.scene);
+    const mk2Barracks=type==='building'&&entry.kind==='barracks'&&
+     task.url===strategicGlbUrl('headquarters','active')&&
+     !entry.mk2Fallback&&deriveMk2Barracks(model,{deferPolish:true});
+    if(mk2Barracks){entry.mk2Barracks=true;this.game.barracksMk2Enabled=true;}
     if(isMeshyAsset(task.url)&&!entry.meshyFallback)model.rotation.y+=meshyModelYaw(entry.kind);
     const authoredStyle=stylizedProfile(model);
     if(authoredStyle)model.userData={...model.userData,...authoredStyle};
-    if(type==='building'&&entry.kind==='barracks'&&!authoredStyle)
+    const actualUrl=entry.resolvedAssetUrl??task.url;
+    const preserveOriginal=shouldPreserveAuthoredGLB(actualUrl,location.search);
+    if(preserveOriginal)protectAuthoredGlbMaterials(model,{
+     maxAnisotropy:this.renderer.capabilities.getMaxAnisotropy()
+    });
+    if(type==='building'&&entry.kind==='barracks'&&!authoredStyle&&!mk2Barracks)
      simplifyBarracksSilhouette(model);
     if(type==='unit'&&entry.kind==='rocket'&&(!isMeshyAsset(task.url)||entry.meshyFallback))
      attachRocketLauncherToInfantry(model,entry.owner);
@@ -453,7 +496,9 @@ export class SandforgeBattlefield {
     const dims=box0.getSize(new THREE.Vector3());
     const desired=type==='unit'?UNITS[entry.kind].width:BUILDINGS[entry.kind].width;
     const extent=Math.max(dims.x,dims.z);
-    if(extent>.0001){
+    if(extent>.0001&&mk2Barracks)
+     applyMk2BarracksVisualTransform(model,box0,BUILDINGS.headquarters.width);
+    else if(extent>.0001){
      const scale=authoredStyle?authoredStyle.metresToWorld:calibratedScale(entry.kind,type,dims,desired)*
        (type==='unit'?visualUnitScale(entry.kind):1);
      const heightScale=type==='building'&&!authoredStyle?strategicBuildingHeightScale(entry.kind):1;
@@ -463,8 +508,10 @@ export class SandforgeBattlefield {
       -authoredBuildingGroundY(entry.kind,box0)*scale*heightScale,-box0.getCenter(new THREE.Vector3()).z*scale);
     }
     if(type==='building'){
-     this.lightBuildingMeshes(model);
-     if(isStrategicGlbKind(entry.kind)&&!authoredStyle)applyStrategicGlbFinish(model);
+     if(!preserveOriginal)this.lightBuildingMeshes(model);
+     else model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+     if(isStrategicGlbKind(entry.kind)&&!authoredStyle&&!preserveOriginal)
+      applyStrategicGlbFinish(model);
     }else model.traverse(o=>{
      if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}
     });
@@ -492,9 +539,14 @@ export class SandforgeBattlefield {
       -altBounds.getCenter(new THREE.Vector3()).x*altScale,
       -authoredBuildingGroundY(entry.kind,altBounds)*altScale*altHeightScale,
       -altBounds.getCenter(new THREE.Vector3()).z*altScale);
-     this.lightBuildingMeshes(alternate);
-     applyStrategicGlbFinish(alternate);
-     tintFactionMaterials(alternate,entry.owner,entry.kind,'building');
+     if(preserveOriginal)protectAuthoredGlbMaterials(alternate,{
+      maxAnisotropy:this.renderer.capabilities.getMaxAnisotropy()
+     });
+     else{
+      this.lightBuildingMeshes(alternate);
+      applyStrategicGlbFinish(alternate);
+      tintFactionMaterials(alternate,entry.owner,entry.kind,'building');
+     }
      alternate.visible=false;
      entry.node.add(alternate);
      entry.variantDetail=alternate;
@@ -502,12 +554,30 @@ export class SandforgeBattlefield {
     }
     const visualScale=authoredStyle?authoredStyle.metresToWorld:calibratedScale(entry.kind,type,dims,desired)*
       (type==='unit'?visualUnitScale(entry.kind):1);
-    entry.modelHeight=Math.max(dims.y*visualScale*
+    const mk2Size=model.userData.mk2BarracksVisualTransformApplied;
+    entry.modelHeight=mk2Size?.modelHeight??Math.max(dims.y*visualScale*
      (type==='building'&&!authoredStyle?strategicBuildingHeightScale(entry.kind):1),entry.variantHeight??0);
-    entry.modelFootprint=Math.max(dims.x,dims.z)*visualScale;
+    entry.modelFootprint=mk2Size?.modelFootprint??Math.max(dims.x,dims.z)*visualScale;
     applyFactionAccents(entry,{kind:entry.kind,owner:entry.owner},type,
      entry.modelFootprint,entry.modelHeight);
     if(type==='unit')attachTeamMarkings(entry,entry.owner,entry.kind,entry.modelFootprint,entry.modelHeight);
+    if(type==='building'&&entry.kind==='headquarters')polishFeldkommandoMk2(model,entry.yard);
+    if(mk2Barracks){
+     finishMk2Barracks(model,entry.yard);
+     // With the fence removed, measure the actual building doorway,
+     // not the former fence gate. A safe spawn begins in front of the
+     // real shutter and never starts halfway through the building.
+     const door=model.getObjectByName('Door_Left_Pivot');
+     if(door){
+      entry.node.updateWorldMatrix(true,true);
+      const offset=entry.node.worldToLocal(door.getWorldPosition(new THREE.Vector3()));
+      this.game.barracksMk2ExitDistance=Math.max(
+       BUILDINGS.barracks.radius+65,offset.z+26
+      );
+     }
+    }
+    if(type==='building'&&['headquarters','barracks'].includes(entry.kind))
+     ensureFactionWallBanners(entry,entry.owner);
     entry.visualBaseY=model.position.y;entry.visualBaseZ=model.position.z;
     if(type==='building'){
      this.attachBuildingMotion(entry,data);
@@ -515,6 +585,8 @@ export class SandforgeBattlefield {
       this.productionGates.prepare(entry);
     }
     if(type==='unit'&&['tank','artillery'].includes(entry.kind))this.installTankRig(entry,model);
+    recordGlbAsset(entry,{kind:entry.kind,owner:entry.owner,requested:task.url,
+     actual:actualUrl,model,preserved:preserveOriginal});
     if(type==='unit'&&data.animations.length){
      const mixer=new THREE.AnimationMixer(model);
      const idle=data.animations.find(a=>/idle|stand|hover|engine/i.test(a.name))||data.animations[0];
@@ -531,6 +603,8 @@ export class SandforgeBattlefield {
     }
    }).catch(err=>{
     entry.modelLoadError=String(err.message);
+    recordGlbAsset(entry,{kind:task.entry.kind,owner:task.entry.owner,requested:task.url,
+     actual:task.entry.resolvedAssetUrl??null,error:err.message});
     console.warn('3D asset fallback:',task.url,err.message);
    }).finally(()=>{
     this.loadingCount--;this.pumpModelQueue();
@@ -606,7 +680,8 @@ export class SandforgeBattlefield {
   // HQ3's entrance/stairs face +Z (the HQ yard is open at +Z).
   // Start at 0° so the original 180° preset no longer reverses the HQ
   // before its first construction tick; R still cycles all four directions.
-  this.placementFacing=['research','barracks'].includes(kind)?1:0;
+  this.placementFacing=kind==='research'||
+   (kind==='barracks'&&this.asset(kind,0,'building')!==strategicGlbUrl('headquarters','active'))?1:0;
   const spec=BUILDINGS[kind],group=new THREE.Group();
   group.name='ghost-building-'+kind;group.userData={buildGhost:true,nonPlayable:true};
   const placeholder=this.createFallback(kind,0,'building');
@@ -624,7 +699,18 @@ export class SandforgeBattlefield {
     if(!obj.isMesh)return;
     const make=mat=>{
      if(clones.has(mat))return clones.get(mat);
-     const m=previewServiceMaterial(mat,{opacity});
+     const m=previewServiceMaterial(mat,{opacity:kind==='barracks'?.84:opacity});
+     if(kind==='barracks'){
+      // Dithered ghost writes depth. The former transparent/depthWrite=false
+      // rendered the entire model X-ray style: rear walls, roof interiors,
+      // doors and accessory meshes all shone through the front facade.
+      m.transparent=false;
+      m.alphaHash=true;
+      m.opacity=.84;
+      m.depthWrite=true;
+      m.depthTest=true;
+      m.side=mat.side;
+     }
      // Source materials from procedural factory/airfield service yards own
      // their real PBR maps. Cache those before replacing their material:
      // Material.clone() serializes userData and otherwise yields a fake
@@ -641,12 +727,13 @@ export class SandforgeBattlefield {
      clones.set(mat,m);return m;
     };
     obj.material=Array.isArray(obj.material)?obj.material.map(make):make(obj.material);
-    obj.renderOrder=1010;obj.castShadow=false;obj.receiveShadow=false;
+    obj.renderOrder=kind==='barracks'?0:1010;
+    obj.castShadow=false;obj.receiveShadow=false;
    });
    if(ownSource)for(const mat of clones.keys())mat.dispose();
   };
   tint(placeholder,true,.50);
-  placeholder.visible=true; // realistic fallback until the authored GLB is ready
+  placeholder.visible=kind!=='barracks'; // Do not display the wrong generic Kaserne model while GLB loads
   group.userData.previewPlaceholder=placeholder;
   group.add(placeholder);
   // Schematic FOUNDATION + SCAFFOLD, never a finished building. The
@@ -706,7 +793,7 @@ export class SandforgeBattlefield {
   }
   group.add(guides);group.userData.previewGuides=guides;
   // A small directional ground arrow marks the REAL building entrance.
-  // HQ3 and factory open toward +Z; barracks/research open toward -Z.
+  // MK2 barracks and HQ face +Z; old barracks and research face -Z.
   // The direction arrow follows the exact same initial facing and R key.
   const frontMarker=new THREE.Group();
   frontMarker.name='BuildPreviewFrontDirection';
@@ -722,14 +809,17 @@ export class SandforgeBattlefield {
   const arrow=new THREE.Mesh(new THREE.ShapeGeometry(arrowShape),frontMaterial);
   arrow.name='BuildingFrontArrow';
   arrow.rotation.x=-Math.PI/2;
-  arrow.position.set(kind==='airfield'?-41:kind==='barracks'?spec.width*.12:0,
-   4.2,kind==='airfield'?65:['research','barracks'].includes(kind)?-spec.width*.48-9:spec.width*.48+9);
+  const sisterBarracks=kind==='barracks'&&
+   this.asset(kind,0,'building')===strategicGlbUrl('headquarters','active');
+  arrow.position.set(kind==='airfield'?-41:kind==='barracks'&&!sisterBarracks?spec.width*.12:0,
+   4.2,kind==='airfield'?65:
+   kind==='research'||(kind==='barracks'&&!sisterBarracks)?-spec.width*.48-9:spec.width*.48+9);
   arrow.renderOrder=1014;arrow.raycast=()=>{};
   frontMarker.add(arrow);group.add(frontMarker);
   group.userData.previewFrontMarker=frontMarker;
   // The actual translucent building supplies silhouette and door details;
   // the old tall scaffolding must not hide the building's front.
-  guides.visible=false;
+  guides.visible=kind==='barracks'; // show only the measured outline until its real GLB is ready
   // Ghost and completed building use the exact same site dressing and
   // functional service meshes, including the runway and hydraulic lifts.
   // Nothing is re-scaled or regenerated differently upon completion.
@@ -737,7 +827,10 @@ export class SandforgeBattlefield {
   if(yard){
    const decor=yard.getObjectByName('BasePerimeter_'+kind);
    if(decor)decor.visible=this.siteDecorEnabled;
-   tint(yard,false,.34);
+   // The barracks preview must use the *exact* original dark fence and
+   // equipment paint of the finished barracks. Translucent/dithered fences
+   // looked like a second wire perimeter and distorted the silhouette.
+   if(kind!=='barracks')tint(yard,false,.34);
    group.add(yard);group.userData.previewYard=yard;
   }
   const service=kind==='airfield'?createAirfieldServiceYard():
@@ -756,25 +849,55 @@ export class SandforgeBattlefield {
   this.buildPreviewScene.add(group);
   this.buildPreview=group;group.visible=false;
   if(isStrategicBuilding(kind)&&!isStrategicGlbKind(kind))return; // other strategic types use procedural preview
-  this.getModel(this.asset(kind,0,'building')).then(data=>{
+  const requestedAsset=this.asset(kind,0,'building');
+  let actualPreviewAsset=requestedAsset;
+  this.getModel(requestedAsset).catch(error=>{
+   if(kind==='barracks'&&requestedAsset===strategicGlbUrl('headquarters','active')){
+    actualPreviewAsset=stylizedAsset('barracks',0);
+    return this.getModel(actualPreviewAsset);
+   }
+   throw error;
+  }).then(data=>{
    if(this.buildPreview!==group||this.buildKind!==kind)return;
    const model=cloneSkeleton(data.scene);
-   if(kind==='barracks')simplifyBarracksSilhouette(model);
+   const mk2Barracks=kind==='barracks'&&
+    actualPreviewAsset===strategicGlbUrl('headquarters','active')&&
+    deriveMk2Barracks(model,{deferPolish:true});
+   const authoredStyle=stylizedProfile(model);
+   // CRITICAL: normalise with the SAME rules as pumpModelQueue(), which
+   // renders the actual completed structure. Stylized GLBs already encode
+   // world scale and origin; calibrating/centering them AGAIN in the ghost
+   // caused the preview to tower above the smaller finished barracks.
+   if(kind==='barracks'&&!authoredStyle&&!mk2Barracks)simplifyBarracksSilhouette(model);
    const bounds=new THREE.Box3().setFromObject(model);
    const size=bounds.getSize(new THREE.Vector3());
-   if(size.y>0&&Math.max(size.x,size.z)>0){
-    const scale=calibratedScale(kind,'building',size,spec.width);
-    const heightScale=strategicBuildingHeightScale(kind);
+   if(size.y>0&&Math.max(size.x,size.z)>0&&mk2Barracks)
+    applyMk2BarracksVisualTransform(model,bounds,BUILDINGS.headquarters.width);
+   else if(size.y>0&&Math.max(size.x,size.z)>0){
+    const scale=authoredStyle?authoredStyle.metresToWorld:
+     calibratedScale(kind,'building',size,spec.width);
+    const heightScale=authoredStyle?1:strategicBuildingHeightScale(kind);
     model.scale.multiplyScalar(scale);model.scale.y*=heightScale;
-    model.position.set(-bounds.getCenter(new THREE.Vector3()).x*scale,
-      -authoredBuildingGroundY(kind,bounds)*scale*heightScale,-bounds.getCenter(new THREE.Vector3()).z*scale);
+    if(authoredStyle)model.position.set(0,0,0);
+    else model.position.set(-bounds.getCenter(new THREE.Vector3()).x*scale,
+      -authoredBuildingGroundY(kind,bounds)*scale*heightScale,
+      -bounds.getCenter(new THREE.Vector3()).z*scale);
    }
    if(kind==='airfield')hideOldAirfieldHangar({detail:model});
-   if(isStrategicGlbKind(kind))applyStrategicGlbFinish(model);
-   tint(model,false,.50);
+   // Match pumpModelQueue: PBR lighting, authored-finish and faction paint.
+   this.lightBuildingMeshes(model);
+   if(isStrategicGlbKind(kind)&&!authoredStyle)applyStrategicGlbFinish(model);
+   tintFactionMaterials(model,0,kind,'building');
+   if(mk2Barracks)finishMk2Barracks(model,yard);
+   // Kaserne: no ghost material at all! Show the IDENTICAL finished model
+   // with its own roof, facade and decals. The red/green ground ring and
+   // build hint communicate placement validity without X-ray artefacts.
+   if(kind!=='barracks')tint(model,false,.50);
    model.visible=true; // final authored shape and its actual entrances
    group.remove(placeholder);disposeOwnedMeshes(placeholder);
+   guides.visible=false;
    group.userData.previewPlaceholder=null;group.userData.previewDetail=model;
+   group.userData.previewSource=actualPreviewAsset;
    group.add(model);
   }).catch(error=>console.warn('Baupreview: vereinfachtes 3D-Modell',error));
  }
@@ -1116,6 +1239,10 @@ export class SandforgeBattlefield {
      entry.node.add(entry.yard);
      const decor=entry.yard.getObjectByName('BasePerimeter_'+b.kind);
      if(decor)decor.visible=this.siteDecorEnabled;
+     if(b.kind==='headquarters'&&isFeldkommandoMk2(entry.detail))
+      hideMk2DuplicateFence(entry.yard);
+     if(b.kind==='barracks'&&isMk2Barracks(entry.detail))
+      arrangeMk2BarracksSupplies(entry.yard);
     }
    }
    if(b.kind==='airfield'){
@@ -1133,6 +1260,15 @@ export class SandforgeBattlefield {
     if(b.buildRemaining<=0)updateFactoryServiceYard(entry,b,this.game.units,this.game.time);
    }
    this.construction.update(entry,b);
+   // Authored construction can restore original instanced fence visibility;
+   // re-hide it after the reveal so MK2 never gets a second outside fence.
+   if(b.kind==='headquarters'&&isFeldkommandoMk2(entry.detail))hideMk2DuplicateFence(entry.yard);
+    if(b.kind==='barracks'&&isMk2Barracks(entry.detail))hideMk2DuplicateFence(entry.yard);
+   if(['headquarters','barracks'].includes(b.kind)){
+    setFactionWallBannerOwner(entry,b.owner);
+    // Standards are the very last construction detail, never present at 0–99%.
+    setFactionWallBannerConstruction(entry,b.buildRemaining<=0);
+   }
    if(entry.motion?.mode==='fallback'&&entry.motion.rotor)entry.motion.rotor.visible=b.buildRemaining<=0;
    this.animateBuildingMotion(entry,b,dt,active);
    if(b.buildRemaining<=0&&!this.announcedBuildings.has(b.id)){
@@ -1143,10 +1279,12 @@ export class SandforgeBattlefield {
   for(const [id,e] of this.bases)if(!aliveBases.has(id)){
     this.presentation.remove(e,this.game.bases.find(base=>base.id===id));
     this.productionGates.detach(e);this.construction.dispose(e);
+    disposeFactionWallBanners(e);
     this.grounding.detachBuilding(id);
     if(e.yard){disposeBuildingYard(e.yard);e.yard=null;}
     disposeAirfieldServiceYard(e);disposeFactoryServiceYard(e);
     if(e.placeholder){disposeOwnedMeshes(e.placeholder);e.placeholder=null;}
+    if(e.detail)disposeFeldkommandoMk2Polish(e.detail);
     if(e.detail)disposeTaggedMaterials(e.detail,'sandforgeBuildingFill');
     if(e.variantDetail)disposeTaggedMaterials(e.variantDetail,'sandforgeBuildingFill');
     if(e.motion?.mixer){

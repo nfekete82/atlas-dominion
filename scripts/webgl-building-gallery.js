@@ -4,7 +4,7 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {clone as cloneSkeleton} from 'three/addons/utils/SkeletonUtils.js';
 import {BUILDINGS,UNITS} from '/src/reborn/catalog.js';
 import {calibratedScale,strategicBuildingHeightScale,visualUnitScale,buildingFacingAngle,nextBuildingFacing,authoredBuildingGroundY} from './webgl-scale.js';
-import {strategicGlbUrl,applyStrategicGlbFinish,centerAuthoredRadarPivot,ensureHeadquartersSatelliteMount} from './webgl-strategic-glb.js';
+import {strategicGlbUrl,HQ3_FALLBACK_URL,applyStrategicGlbFinish,centerAuthoredRadarPivot,ensureHeadquartersSatelliteMount} from './webgl-strategic-glb.js';
 import {setWorldCamouflageBiome,tintFactionMaterials} from './webgl-faction-accents.js';
 import {BUILDING_DESIGN_REVISION} from './webgl-building-design.js';
 import {BUILDING_MEASUREMENTS} from './webgl-hq3-reference.js';
@@ -16,6 +16,9 @@ import {createFactoryServiceYard,disposeFactoryServiceYard} from './webgl-factor
 import {createStrategicBuilding} from './webgl-strategic-buildings.js';
 import {prepareAuthoredAssembly,updateAuthoredAssembly,releaseAuthoredAssembly} from './webgl-construction-assembly.js';
 import {SandforgeProductionGates,applyProductionGatePose,productionGatePose} from './webgl-production-gates.js';
+import {polishFeldkommandoMk2,disposeFeldkommandoMk2Polish,hideMk2DuplicateFence} from './webgl-feldkommando-mk2-polish.js';
+import {deriveMk2Barracks,isMk2Barracks,arrangeMk2BarracksSupplies,applyMk2BarracksVisualTransform,finishMk2Barracks} from './webgl-hq-barracks.js';
+import {ensureFactionWallBanners,setFactionWallBannerConstruction,disposeFactionWallBanners} from './webgl-faction-banners.js';
 import {barracksExitLane,barracksDeparturePoint,updateBarracksPortalPlanes} from './webgl-barracks-portal.js';
 import {prepareSiloHatch,poseSiloHatch} from './webgl-building-motion.js';
 import {BIOME_STYLES} from './webgl-biomes.js';
@@ -99,43 +102,76 @@ function lightCell(entry){
  // Keep the comparison floor constant, including during biome inspection.
 }
 function normalizeModel(model,kind){
- if(kind==='barracks')simplifyBarracksSilhouette(model);
+ const mk2Barracks=kind==='barracks'&&deriveMk2Barracks(model,{deferPolish:true});
+ if(kind==='barracks'&&!mk2Barracks)simplifyBarracksSilhouette(model);
  const box=new THREE.Box3().setFromObject(model),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
- const scale=kind==='bastion'?116/Math.max(size.x,size.z):calibratedScale(kind,'building',size,BUILDINGS[kind].width);
- const ys=strategicBuildingHeightScale(kind);
- model.scale.multiplyScalar(scale);model.scale.y*=ys;
- model.position.set(-center.x*scale,-authoredBuildingGroundY(kind,box)*scale*ys,-center.z*scale);
+ if(mk2Barracks)
+  applyMk2BarracksVisualTransform(model,box,BUILDINGS.headquarters.width);
+ else{
+  const scale=kind==='bastion'?116/Math.max(size.x,size.z):calibratedScale(kind,'building',size,BUILDINGS[kind].width);
+  const ys=strategicBuildingHeightScale(kind);
+  model.scale.multiplyScalar(scale);model.scale.y*=ys;
+  model.position.set(-center.x*scale,-authoredBuildingGroundY(kind,box)*scale*ys,-center.z*scale);
+ }
  model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
  if(['headquarters','barracks','research','silo','bastion'].includes(kind))applyStrategicGlbFinish(model);
  tintFactionMaterials(model,0,kind,'building');
+ if(mk2Barracks)finishMk2Barracks(model);
  return model;
 }
 async function populate(entry){
  const {kind}=entry;lightCell(entry);
- const file=kind==='bastion'?'/src/assets/reborn/buildings-3d/sandforge_bastion_mk2_offline.glb':
-  strategicGlbUrl(kind,kind==='barracks'?'active':'inactive')??'/src/assets/reborn/buildings-3d/'+kind+'-0.glb';
+ let file=kind==='bastion'?'/src/assets/reborn/buildings-3d/sandforge_bastion_mk2_offline.glb':
+  kind==='barracks'?strategicGlbUrl('headquarters','active'):
+  strategicGlbUrl(kind,'inactive')??'/src/assets/reborn/buildings-3d/'+kind+'-0.glb';
  if(['interceptor','wall'].includes(kind)){
   entry.detail=createStrategicBuilding(kind,0);tintFactionMaterials(entry.detail,0,kind,'building');
  }else{
-  const data=await getModel(file);entry.detail=normalizeModel(cloneSkeleton(data.scene),kind);
-  if(['barracks','silo','research'].includes(kind)){
+  let data;
+  try{data=await getModel(file);}catch(error){
+   if(kind==='headquarters')file=HQ3_FALLBACK_URL;
+   else if(kind==='barracks')file=strategicGlbUrl('barracks','active');
+   else throw error;
+   data=await getModel(file);
+  }
+  entry.detail=normalizeModel(cloneSkeleton(data.scene),kind);
+  if(kind==='barracks'){
+   // MK2's entrance faces +Z like HQ, the historical barracks faces -Z.
+   // The gallery must honor the same default facing as live placement.
+   entry.facing=isMk2Barracks(entry.detail)?0:1;
+   entry.node.rotation.y=buildingFacingAngle(entry.facing);
+  }
+  if(kind==='headquarters')entry.mk2Data=data;
+  if((kind==='barracks'&&file!==strategicGlbUrl('headquarters','active'))||['silo','research'].includes(kind)){
    const variantUrl=strategicGlbUrl(kind,kind==='barracks'?'inactive':'active');
    const variant=await getModel(variantUrl);entry.variantDetail=normalizeModel(cloneSkeleton(variant.scene),kind);entry.variantDetail.visible=false;
    entry.node.add(entry.variantDetail);
   }
  }
  entry.node.add(entry.detail);
+ if(kind==='headquarters')polishFeldkommandoMk2(entry.detail);
+ if(['headquarters','barracks'].includes(kind))ensureFactionWallBanners(entry,0);
  if(['factory','barracks','headquarters'].includes(kind))gates.prepare(entry);
  if(kind==='headquarters'){
-  entry.rotor=centerAuthoredRadarPivot(entry.detail.getObjectByName('RADAR_DISH_PIVOT'));
-  ensureHeadquartersSatelliteMount(entry.rotor);
+  const scan=entry.mk2Data?.animations?.find(a=>a.name==='Radar_Scan');
+  if(scan?.tracks?.length&&entry.detail.getObjectByName('Radar_Dish_Pivot')){
+   entry.radarMixer=new THREE.AnimationMixer(entry.detail);
+   entry.radarMixer.clipAction(scan).play();
+  }else{
+   entry.rotor=centerAuthoredRadarPivot(entry.detail.getObjectByName('RADAR_DISH_PIVOT'));
+   ensureHeadquartersSatelliteMount(entry.rotor);
+  }
  }else if(kind==='research')entry.rotor=entry.variantDetail?.getObjectByName('radar_assembly_PIVOT');
  else if(kind==='bastion')entry.rotor=centerAuthoredRadarPivot(entry.detail.getObjectByName('Radar_Dish_Pivot'));
  else if(kind==='turret')entry.rotor=entry.detail.getObjectByName('TurretHead');
  if(entry.rotor)entry.rotorRest=entry.rotor.rotation.y;
  if(kind==='silo')prepareSiloHatch(entry);
  entry.yard=createBuildingYard(kind,BUILDINGS[kind]?.width);
- if(entry.yard)entry.node.add(entry.yard);
+ if(entry.yard){
+  if(kind==='headquarters'&&file!==HQ3_FALLBACK_URL)hideMk2DuplicateFence(entry.yard);
+  if(kind==='barracks'&&isMk2Barracks(entry.detail))arrangeMk2BarracksSupplies(entry.yard);
+  entry.node.add(entry.yard);
+ }
  if(kind==='airfield'){
   hideOldAirfieldHangar(entry);entry.airfieldServiceYard=createAirfieldServiceYard();entry.node.add(entry.airfieldServiceYard);
  }
@@ -146,7 +182,7 @@ async function populate(entry){
  entry.renderSize=size.toArray();entry.areaSize=area.toArray();
  const dimensions=a=>a.map(n=>n.toFixed(1)).join(' × ');
  entry.card.querySelector('.dimensions').textContent='Render B × H × T: '+dimensions(entry.renderSize)+' · Areal: '+dimensions(entry.areaSize);
- entry.card.querySelector('.profile').textContent=kind==='headquarters'?'HQ3 · originale UV-Texturen und PBR':biome==='desert'?'HQ3 · Albedo / Normal / PBR · '+BUILDING_DESIGN_REVISION:BIOME_STYLES[biome].label+' · bestehendes Biomprofil';
+ entry.card.querySelector('.profile').textContent=kind==='headquarters'?(file===HQ3_FALLBACK_URL?'HQ3 · Rückfallmodell':'Feldkommando MK2 · eigene Schiebetüren, Radar und Zaun'):biome==='desert'?'HQ3 · Albedo / Normal / PBR · '+BUILDING_DESIGN_REVISION:BIOME_STYLES[biome].label+' · bestehendes Biomprofil';
  entry.card.querySelector('.source').textContent=['interceptor','wall'].includes(kind)?'Prozedurales Original aus dem Spiel':file.split('/').pop();
  const soldier=await getModel('/src/assets/reborn/prototype/infantry-0.glb');
  const person=cloneSkeleton(soldier.scene),bounds=new THREE.Box3().setFromObject(person),s=bounds.getSize(new THREE.Vector3());
@@ -170,6 +206,8 @@ function setEntryProgress(entry){
  // Construction uses the genuine closed Kaserne, matching the live renderer.
  if(entry.kind==='barracks'&&entry.variantDetail){entry.detail.visible=progress>=1;entry.variantDetail.visible=progress<1;}
  if(entry.departing&&progress<1)entry.departing.visible=false;
+ if(['headquarters','barracks'].includes(entry.kind))
+  setFactionWallBannerConstruction(entry,progress>=1);
 }
 function setProgress(value){
  progress=THREE.MathUtils.clamp(Number(value),0,1);
@@ -180,6 +218,7 @@ function pose(entry,age,dt){
  const pose=productionGatePose(age%6.5),open=pose.open;
  if(entry.gate)applyProductionGatePose(entry.gate,pose);
  if(entry.rotor)entry.rotor.rotation.y=entry.rotorRest+age*(entry.kind==='research'?.20:.52);
+ entry.radarMixer?.update(dt);
  if(entry.kind==='research'&&entry.variantDetail){entry.detail.visible=!entry.animating;entry.variantDetail.visible=entry.animating;}
  if(entry.strategicHatch){
   poseSiloHatch(entry.strategicHatch,open);entry.detail.visible=false;entry.variantDetail.visible=true;
@@ -219,6 +258,10 @@ function render(time=performance.now()){
 function cleanup(entry){
  for(const assembly of entry.assemblies)releaseAuthoredAssembly(assembly);entry.assemblies=[];
  gates.detach(entry);entry.walkMixer?.stopAllAction();
+ disposeFactionWallBanners(entry);
+ disposeFeldkommandoMk2Polish(entry.detail);
+ if(entry.radarMixer){entry.radarMixer.stopAllAction();entry.radarMixer.uncacheRoot(entry.detail);entry.radarMixer=null;}
+ entry.mk2Data=null;
  if(entry.yard)disposeBuildingYard(entry.yard);
  disposeAirfieldServiceYard(entry);disposeFactoryServiceYard(entry);
  for(const root of [entry.detail,entry.variantDetail,entry.person,entry.departing]){

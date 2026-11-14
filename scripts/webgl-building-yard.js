@@ -59,13 +59,16 @@ export const YARD_DECOR_KINDS=Object.freeze([
  'headquarters','barracks','factory','research','silo','interceptor',
  'airfield','generator'
 ]);
-const fencedSites=new Set([
- 'headquarters','barracks','factory','research','silo','interceptor'
-]);
+// Fence-free Sandforge: retain lighting and utility props but never create
+// wire panels, fence posts, barbed wire or invisible perimeter meshes.
+const fencedSites=new Set([]);
 // Light military perimeter fence: thin powder-coated posts, hairline mesh
 // and barbed concertina strands instead of bulky decorative timber rails.
 const fencePost=mat('#555e55',.26,.83);
 const fenceRail=mat('#737b6f',.32,.78);
+// Same near-black chain-link and barbed-wire finish as the MK2 Feldkommando.
+const mk2BarracksPost=mat('#171b1b',.48,.74);
+const mk2BarracksWire=mat('#222829',.46,.69);
 const lampGlass=new THREE.MeshStandardMaterial({
  color:'#d7e8da',emissive:'#b3e5df',emissiveIntensity:.72,
  metalness:.08,roughness:.4
@@ -164,11 +167,11 @@ function instanceBoxes(group,name,paint,parts){
  instances.receiveShadow=true;
  group.add(instances);
 }
-function instanceFenceWires(group,parts){
+function instanceFenceWires(group,parts,paint=fenceRail){
  if(!parts.length)return;
  // Cross-bracing reads like a light wire fence at strategic camera distance.
  const wires=new THREE.InstancedMesh(new THREE.CylinderGeometry(.12,.12,1,5),
-  fenceRail,parts.length);
+  paint,parts.length);
  wires.name='YardFenceMesh';
  wires.userData={visualOnly:true,nonPlayable:true,siteDecor:true,
   containsBarbedWire:true};
@@ -195,10 +198,14 @@ function perimeterFence(group,width,kind){
  // fence behind each entrance instead of running across its stairs/door.
  // The local facade mapping follows the building's rotation automatically.
  // Three instanced draw calls for posts, rails and cross-bracing.
- const x=width*.65;
+ const barracks=kind==='barracks';
+ const x=width*(barracks?.72:.65);
  const reverseFront=['research','barracks'].includes(kind);
- const rear=reverseFront?width*.53:-width*.53;
- const front=reverseFront?-width*.28:width*.28;
+ const rear=reverseFront?width*(barracks?.59:.53):-width*.53;
+ // Main barracks entrance points toward local -Z.
+ const front=reverseFront?-width*(barracks?.43:.28):width*.28;
+ const fenceHeight=barracks?25.6:YARD_FENCE_HEIGHT;
+ const postWidth=barracks?1.16:YARD_FENCE_POST_WIDTH;
  const posts=[],rails=[],wires=[],seen=new Set();
  let barbedWirePieces=0;
  function line(x0,z0,x1,z1){
@@ -210,22 +217,22 @@ function perimeterFence(group,width,kind){
    const key=px.toFixed(3)+':'+pz.toFixed(3);
    if(!seen.has(key)){
     seen.add(key);
-    posts.push({x:px,y:YARD_FENCE_HEIGHT*.5,z:pz,
-     w:YARD_FENCE_POST_WIDTH,h:YARD_FENCE_HEIGHT,d:YARD_FENCE_POST_WIDTH});
+    posts.push({x:px,y:fenceHeight*.5,z:pz,
+     w:postWidth,h:fenceHeight,d:postWidth});
     // Fine upward outriggers keep the double concertina strand above posts.
-    wires.push({x:px,y:YARD_FENCE_HEIGHT+.35,z:pz,dx:0,dy:1.5,dz:0});
+    wires.push({x:px,y:fenceHeight+.35,z:pz,dx:0,dy:1.5,dz:0});
     barbedWirePieces++;
    }
    if(i===steps)continue;
    const u=(i+.5)/steps;
    const mx=x0+dx*u,mz=z0+dz*u;
-   for(const y of [5.7,YARD_FENCE_HEIGHT*.78])
+   for(const y of [fenceHeight*.28,fenceHeight*.78])
     rails.push({x:mx,y,z:mz,w:.52,h:.56,d:dist/steps+.35,yaw});
    const sx=dx/steps,sz=dz/steps;
    // Fine diamond mesh uses lightweight instancing, not a solid fence panel.
-   wires.push({x:mx,y:YARD_FENCE_HEIGHT*.52,z:mz,dx:sx,dy:9.4,dz:sz});
-   wires.push({x:mx,y:YARD_FENCE_HEIGHT*.52,z:mz,dx:sx,dy:-9.4,dz:sz});
-   for(const height of [YARD_FENCE_HEIGHT-.35,YARD_FENCE_HEIGHT+.75]){
+   wires.push({x:mx,y:fenceHeight*.52,z:mz,dx:sx,dy:fenceHeight*.50,dz:sz});
+   wires.push({x:mx,y:fenceHeight*.52,z:mz,dx:sx,dy:-fenceHeight*.50,dz:sz});
+   for(const height of [fenceHeight-.35,fenceHeight+.75]){
     wires.push({x:mx,y:height,z:mz,dx:sx,dy:0,dz:sz});
     barbedWirePieces++;
    }
@@ -235,8 +242,8 @@ function perimeterFence(group,width,kind){
    if(length>.01)for(const offset of [.3,.7]){
     const bx=x0+dx*(i+offset)/steps,bz=z0+dz*(i+offset)/steps;
     const nx=-sz/length,nz=sx/length;
-    wires.push({x:bx,y:YARD_FENCE_HEIGHT+.2,z:bz,dx:nx*2.2,dy:1.6,dz:nz*2.2});
-    wires.push({x:bx,y:YARD_FENCE_HEIGHT+.2,z:bz,dx:-nx*2.2,dy:1.6,dz:-nz*2.2});
+    wires.push({x:bx,y:fenceHeight+.2,z:bz,dx:nx*2.2,dy:1.6,dz:nz*2.2});
+    wires.push({x:bx,y:fenceHeight+.2,z:bz,dx:-nx*2.2,dy:1.6,dz:-nz*2.2});
     barbedWirePieces+=2;
    }
   }
@@ -244,9 +251,17 @@ function perimeterFence(group,width,kind){
  line(-x,rear,x,rear);
  line(-x,rear,-x,front);
  line(x,rear,x,front);
- instanceBoxes(group,'YardFencePosts',fencePost,posts);
- instanceBoxes(group,'YardFenceRails',fenceRail,rails);
- instanceFenceWires(group,wires);
+ if(barracks){
+  // Fully fenced perimeter with a clear, centred opening at the door.
+  const doorHalf=width*.19;
+  line(-x,front,-doorHalf,front);
+  line(doorHalf,front,x,front);
+  group.userData.frontDoorGap=doorHalf*2;
+  group.userData.frontOpening=true;
+ }
+ instanceBoxes(group,'YardFencePosts',barracks?mk2BarracksPost:fencePost,posts);
+ instanceBoxes(group,'YardFenceRails',barracks?mk2BarracksWire:fenceRail,rails);
+ instanceFenceWires(group,wires,barracks?mk2BarracksWire:fenceRail);
  group.userData.fencePosts=posts.length;
  group.userData.fenceRails=rails.length;
  group.userData.fenceWires=wires.length;

@@ -35,6 +35,38 @@ export function factoryDoorExitCandidates(base:{x:number;y:number;radius:number;
     y:base.y+forward.y*distance+side.y*offset});
  return candidates;
 }
+/** Collision-safe arrival points immediately OUTSIDE the MK2 Feldkommando
+ * fence gate. Its authored gate centre is +Z (after Y-up conversion).
+ * radius+72 is aligned with the enlarged MK2 fence threshold at 1.10 HQ
+ * visual scale. Offsets are fallback parking spots, not a diagonal default.
+ * No saved-game fields, automatic rally or unit speeds are altered. */
+export function headquartersDoorExitCandidates(base:{x:number;y:number;radius:number;facing?:number}):Point[]{
+ const angle=[0,Math.PI,Math.PI/2,Math.PI*1.5][base.facing??0]??0;
+ const forward={x:Math.sin(angle),y:Math.cos(angle)};
+ const side={x:Math.cos(angle),y:-Math.sin(angle)};
+ const candidates:Point[]=[];
+ for(const distance of [base.radius+72,base.radius+96,base.radius+120])
+  for(const offset of [0,23,-23,46,-46])
+   candidates.push({x:base.x+forward.x*distance+side.x*offset,
+    y:base.y+forward.y*distance+side.y*offset});
+ return candidates;
+}
+/** Fence-free MK2 Kaserne: clear standing positions just outside its
+ * physical entrance. This is a bounded set; never search inside its roof. */
+export function barracksMk2DoorExitCandidates(
+ base:{x:number;y:number;radius:number;facing?:number},minimumDistance:number
+):Point[]{
+ const angle=[0,Math.PI,Math.PI/2,Math.PI*1.5][base.facing??0]??0;
+ const forward={x:Math.sin(angle),y:Math.cos(angle)};
+ const side={x:Math.cos(angle),y:-Math.sin(angle)};
+ const first=Math.max(base.radius+65,Number.isFinite(minimumDistance)?minimumDistance:0);
+ const candidates:Point[]=[];
+ for(const distance of [first,first+24,first+48])
+  for(const offset of [0,22,-22,42,-42])
+   candidates.push({x:base.x+forward.x*distance+side.x*offset,
+    y:base.y+forward.y*distance+side.y*offset});
+ return candidates;
+}
 /** Dust belongs at the real world-space release point, not on a fake door. */
 export function productionExitDustPoint(event:Pick<ProductionRelease,'to'|'from'>):Point{
  const dx=event.to.x-event.from.x,dy=event.to.y-event.from.y,l=Math.hypot(dx,dy)||1;

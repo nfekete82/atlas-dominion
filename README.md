@@ -8,7 +8,7 @@
 
 </div>
 
-> **Entwicklungsversion:** Der WebGL-Integrationslauf auf Commit [`3f30e379`](https://github.com/nfekete82/sandforge/commit/3f30e379cdf864a53fde96fce97a7d4790fdc7d6) ist am **09.11.2026 mit 17/17 Node- und 72/72 Chromium-Tests bestanden**. Die aktuelle 3D-Codebasis liegt weiter auf gestapelten Draft-PRs und ist **noch nicht in `main` integriert oder produktiv freigegeben**. Nach dem Formations-/Kollisionsfix wurden auf Commit [`36419e1b`](https://github.com/nfekete82/sandforge/commit/36419e1b4b9fb14f42a8de7e0437f4c9e9a0ea7a) **1.356/1.357 Node-Tests bestanden (0 Fehler, 1 Skip)** sowie nochmals **17/17 WebGL-Node- und 72/72 Chromium-Tests**. Der übersprungene Test benötigt optionale lokale Premium-Binärassets. Separate Classic-, Langzeit-, CI- und Deployment-Abnahmen bleiben offen. [WebGL-Prüfprotokoll](docs/qa/webgl-integration-20261109-3f30e379.md) · [Node-Regressionsbericht](docs/qa/full-node-regression-20261109.md).
+> **Entwicklung und Veröffentlichung:** `develop` ist der einzige zusammengeführte 3D-Entwicklungsstand; `main` bleibt bis zur gesonderten Release-Abnahme stabil. Feature-Branches sind temporär und kein zusätzliches Spiel. Aktuelle WebGL-, PBR-/GLB-, HDR-/HUD-, Feldkommando- und Kasernenarbeiten werden über die verpflichtenden Build-, Node- und Browserprüfungen in `develop` integriert. Siehe [Branch- und Testworkflow](docs/DEVELOPMENT_WORKFLOW.md) und [GLB-Pipeline](docs/GLB_PIPELINE.md). Für den MK2-Look kann eine optionale private GLB-Datei lokal installiert werden; das Spiel besitzt weiterhin einen Fallback.
 
 ## WebGL 3D RC2 — Standard-Spieloberfläche (Entwicklung)
 

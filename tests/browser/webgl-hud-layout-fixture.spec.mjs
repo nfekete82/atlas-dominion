@@ -72,7 +72,8 @@ test('shipping HUD occupies reference screenshot positions at 1600×900',async({
  expect(style.display).toBe('grid');
  // An implicit-column grid may report either `none` or resolved track sizes.
  expect(style.firstBorder).toBe('0px');
- expect(style.firstWidth).toBeGreaterThan(130);
+ // Persistent right-side production list makes nine building tiles smaller.
+ expect(style.firstWidth).toBeGreaterThan(115);
  expect(Math.abs(style.firstWidth-style.secondWidth)).toBeLessThan(2);
  expect(state.cards[1].x).toBeGreaterThan(state.cards[0].x);
  expect(state.cards[8].x).toBeGreaterThan(state.cards[7].x);

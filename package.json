@@ -21,6 +21,7 @@
     "assets:buildings": "node scripts/export-atlas-buildings.mjs",
     "assets:hq-construction": "node scripts/export-atlas-buildings.mjs --cpu --construction-only headquarters",
     "assets:buildings:validate": "node scripts/validate-building-assets.mjs",
+    "assets:feldkommando-mk2": "node scripts/install-feldkommando-mk2.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "assets:stylized": "node scripts/export-stylized-pack.mjs",
     "assets:stylized:check": "node scripts/export-stylized-pack.mjs --check && node scripts/validate-stylized-pack.mjs",

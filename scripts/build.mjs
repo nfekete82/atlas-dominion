@@ -22,11 +22,14 @@ cpSync('animation-lab.html','dist/animation-lab.html');
 cpSync('model-preview.html','dist/model-preview.html');
 cpSync('model-3d.html','dist/model-3d.html');
 cpSync('webgl-preview.html','dist/webgl-preview.html');
+cpSync('glb-quality.html','dist/glb-quality.html');
 cpSync('building-gallery.html','dist/building-gallery.html');
 cpSync('art-gallery.html','dist/art-gallery.html');
 for(const module of ['webgl-stylized-pack','webgl-meshy-assets','webgl-art-gallery'])cpSync(`scripts/${module}.js`,`dist/${module}.js`);
 for(const module of ['webgl-building-design','webgl-hq3-reference','webgl-building-gallery','webgl-building-profiles','webgl-building-motion','webgl-building-bounds','webgl-barracks-silhouette'])cpSync(`scripts/${module}.js`,`dist/${module}.js`);
 cpSync('scripts/webgl-preview.js','dist/webgl-preview.js');
+cpSync('scripts/webgl-glb-quality.js','dist/webgl-glb-quality.js');
+cpSync('scripts/glb-quality-preview.js','dist/glb-quality-preview.js');
 cpSync('scripts/webgl-biomes.js','dist/webgl-biomes.js');
 cpSync('scripts/webgl-stylized-world.js','dist/webgl-stylized-world.js');
 cpSync('scripts/webgl-match-result.js','dist/webgl-match-result.js');
@@ -47,7 +50,10 @@ cpSync('scripts/webgl-frame-scheduling.js','dist/webgl-frame-scheduling.js');
 cpSync('scripts/webgl-bastion-capture.js','dist/webgl-bastion-capture.js');
 cpSync('scripts/webgl-actor-presentation.js','dist/webgl-actor-presentation.js');
 cpSync('scripts/webgl-faction-accents.js','dist/webgl-faction-accents.js');
+cpSync('scripts/webgl-desert002.js','dist/webgl-desert002.js');
+cpSync('scripts/webgl-soldier-camo.js','dist/webgl-soldier-camo.js');
 cpSync('scripts/webgl-team-markings.js','dist/webgl-team-markings.js');
+cpSync('scripts/webgl-faction-banners.js','dist/webgl-faction-banners.js');
 cpSync('scripts/webgl-environment.js','dist/webgl-environment.js');
 cpSync('scripts/webgl-atmosphere-3d.js','dist/webgl-atmosphere-3d.js');
 cpSync('scripts/webgl-combat-vfx.js','dist/webgl-combat-vfx.js');
@@ -80,6 +86,8 @@ cpSync('scripts/webgl-construction.js','dist/webgl-construction.js');
 cpSync('scripts/webgl-construction-assembly.js','dist/webgl-construction-assembly.js');
 cpSync('scripts/webgl-construction-recovery.js','dist/webgl-construction-recovery.js');
 cpSync('scripts/webgl-production-gates.js','dist/webgl-production-gates.js');
+cpSync('scripts/webgl-feldkommando-mk2-polish.js','dist/webgl-feldkommando-mk2-polish.js');
+cpSync('scripts/webgl-hq-barracks.js','dist/webgl-hq-barracks.js');
 cpSync('scripts/webgl-wheel-motion.js','dist/webgl-wheel-motion.js');
 cpSync('scripts/webgl-barracks-portal.js','dist/webgl-barracks-portal.js');
 cpSync('scripts/webgl-scale.js','dist/webgl-scale.js');
@@ -90,8 +98,14 @@ cpSync('src/reborn/webgl-hud-showcase.css','dist/webgl-hud-showcase.css');
 cpSync('scripts/animation/model-viewer.js','dist/model-viewer.js');
 // WebGL preview and 3D inspector share the same local Three.js modules.
 // Three.js assets are required by the 3D game and optional in classic mode.
-for(const file of ['build/three.module.js','build/three.core.js','examples/jsm/loaders/GLTFLoader.js','examples/jsm/controls/OrbitControls.js','examples/jsm/utils/BufferGeometryUtils.js','examples/jsm/utils/SkeletonUtils.js','examples/jsm/environments/RoomEnvironment.js']){
+for(const file of ['build/three.module.js','build/three.core.js','examples/jsm/loaders/GLTFLoader.js','examples/jsm/controls/OrbitControls.js','examples/jsm/utils/BufferGeometryUtils.js','examples/jsm/utils/SkeletonUtils.js','examples/jsm/environments/RoomEnvironment.js','examples/jsm/loaders/KTX2Loader.js','examples/jsm/libs/meshopt_decoder.module.js','examples/jsm/utils/WorkerPool.js','examples/jsm/libs/ktx-parse.module.js','examples/jsm/libs/zstddec.module.js','examples/jsm/math/ColorSpaces.js']){
   const target='dist/vendor/three/'+file.replace('build/','').replace('examples/jsm/','addons/');mkdirSync(target.slice(0,target.lastIndexOf('/')),{recursive:true});cpSync('node_modules/three/'+file,target);
+}
+// Ship matching offline Basis transcoder for compressed textures.
+for(const file of ['basis_transcoder.js','basis_transcoder.wasm']){
+ const dest='dist/vendor/three/addons/libs/basis/'+file;
+ mkdirSync('dist/vendor/three/addons/libs/basis',{recursive:true});
+ cpSync('node_modules/three/examples/jsm/libs/basis/'+file,dest);
 }
 cpSync('node_modules/three/LICENSE','dist/vendor/three/LICENSE');
 cpSync('src/reborn/style.css', 'dist/style.css');

@@ -29,6 +29,26 @@ export function prepareHeadquartersPortal(entry){
  if(entry?.headquartersPortal)return entry.headquartersPortal;
  const model=entry?.detail;
  if(!model)return null;
+ // MK2's two main doors and two fence gates expose real sliding GLB pivots.
+ const mainL=model.getObjectByName('Door_Left_Pivot');
+ const mainR=model.getObjectByName('Door_Right_Pivot');
+ const fenceL=model.getObjectByName('Fence_Gate_Left_Pivot');
+ const fenceR=model.getObjectByName('Fence_Gate_Right_Pivot');
+ if(mainL&&mainR&&fenceL&&fenceR){
+  model.updateWorldMatrix(true,true);
+  const door=model.worldToLocal(mainL.getWorldPosition(new THREE.Vector3()));
+  const fence=model.worldToLocal(fenceL.getWorldPosition(new THREE.Vector3()));
+  model.userData.portal={lamp:[0,3.5,door.z+.05],
+   inside:[0,.8,door.z-1.2],outside:[0,.2,fence.z+2.0]};
+  const portal={root:model,hall:new THREE.Group(),leaves:[
+   {leaf:mainL,baseX:mainL.position.x,side:-1,travel:1.36},
+   {leaf:mainR,baseX:mainR.position.x,side:1,travel:1.36},
+   {leaf:fenceL,baseX:fenceL.position.x,side:-1,travel:2.45},
+   {leaf:fenceR,baseX:fenceR.position.x,side:1,travel:2.45}
+  ],materials:[],open:0,authored:true};
+  entry.headquartersPortal=portal;
+  return portal;
+ }
  // For the original low-poly headquarters reuse its real sliding doors,
  // metre-space pivot and passage. Old HQ3 still uses the overlay below.
  if(model.userData?.sandforgeStylized&&model.userData?.portal){
@@ -83,8 +103,8 @@ export function setHeadquartersDoorOpen(portal,amount){
  if(!portal)return;
  const t=smooth(amount);
  portal.open=t;
- for(const {leaf,baseX,side} of portal.leaves)
-  leaf.position.x=baseX+side*(portal.travel??1.29)*t;
+ for(const {leaf,baseX,side,travel} of portal.leaves)
+  leaf.position.x=baseX+side*(travel??portal.travel??1.29)*t;
 }
 export function disposeHeadquartersPortal(entry){
  const portal=entry?.headquartersPortal;
@@ -123,6 +143,9 @@ export class SandforgeProductionGates {
  constructor(battlefield){
   this.battlefield=battlefield;this.game=battlefield.game;
   this.seen=new WeakSet(this.game.productionReleases);this.active=new Map();
+  // Fence-free MK2 barracks: doors animate, but the real spawned soldier
+  // is NEVER held, dragged or path-probed by the rendering layer.
+  this.safeBarracks=new Map();
   this.lastTime=this.game.time;
  }
  prepare(entry){
@@ -180,9 +203,9 @@ export class SandforgeProductionGates {
   const bf=this.battlefield,game=this.game;
   // Match the actor renderer's interpolation between 20 Hz snapshots.
   const time=game.time-(active?.05*(1-clamp(alpha)):0);
-  if(game.time<this.lastTime){for(const e of bf.bases.values())this.reset(e);this.active.clear();this.seen=new WeakSet(game.productionReleases);}
+  if(game.time<this.lastTime){for(const e of bf.bases.values())this.reset(e);this.active.clear();this.safeBarracks.clear();this.seen=new WeakSet(game.productionReleases);}
   this.lastTime=game.time;
-  if(!this.active.size&&game.productionReleases.every(event=>this.seen.has(event)))return;
+  if(!this.active.size&&!this.safeBarracks.size&&game.productionReleases.every(event=>this.seen.has(event)))return;
   const entities=new Map(game.units.map(u=>[u.id,u]));
   const bases=new Map(game.bases.map(b=>[b.id,b]));
   for(const event of game.productionReleases){
@@ -190,6 +213,18 @@ export class SandforgeProductionGates {
    const base=bases.get(event.baseId),entry=bf.bases.get(event.baseId),unit=entities.get(event.unitId);
    const actor=bf.units.get(event.unitId);
    const age=time-event.at;
+   // MK2 Kaserne: protect the simulation from portal-animation stalls.
+   // The unit already exists at a verified, unobstructed point in FRONT of
+   // the doorway; only the real two sliding shutters animate. Never extend
+   // a departure hold, touch its orders or move the actor node.
+   if(base?.kind==='barracks'&&entry?.mk2Barracks&&game.stageWebGLProduction){
+    this.seen.add(event);
+    game.cancelProductionDeparture?.(event.unitId);
+    if(actor){actor.productionMotion=null;actor.node.visible=true;}
+    const gate=entry.gate??this.prepare(entry);
+    if(gate?.portal?.mk2)this.safeBarracks.set(base.id,time);
+    continue;
+   }
    // A factory GLB can finish streaming after the real unit was produced.
    // Briefly hold that single authoritative unit while its actual shutter
    // loads, rather than letting it materialize outside the closed door.
@@ -237,6 +272,22 @@ export class SandforgeProductionGates {
    game.extendProductionDeparture?.(unit.id,visualAt+GATE_TIMING.warning+GATE_TIMING.opening+duration+.05);
    this.active.set(base.id,{event,visualAt,duration,orders:orderKey(unit),hp:unit.hp,baseHp:base.hp});
   }
+  // Safe cosmetic-only sliding doors: 0.45s opening, 1.15s hold, 0.5s
+  // closing. Missing/destroyed buildings end the animation immediately.
+  // No game units, collision checks or rally orders are touched here.
+  for(const [baseId,started] of this.safeBarracks){
+   const entry=bf.bases.get(baseId),gate=entry?.gate;
+   if(!gate?.portal?.mk2){this.safeBarracks.delete(baseId);continue;}
+   const age=Math.max(0,time-started);
+   if(age>=2.10){
+    this.reset(entry);this.safeBarracks.delete(baseId);continue;
+   }
+   const open=age<.45?smooth(age/.45):
+    age<1.60?1:1-smooth((age-1.60)/.5);
+   setBarracksDoorOpen(gate.portal,1-open);
+   gate.lamp.visible=true;
+   gate.lamp.material.emissiveIntensity=.35+open*1.2;
+  }
   for(const [id,state] of this.active){
    const {event}=state,base=bases.get(id),entry=bf.bases.get(id),u=entities.get(event.unitId),actor=bf.units.get(event.unitId);
    const age=Math.max(0,time-(state.visualAt??event.at)),pose=productionGatePose(age,state.duration);
@@ -270,10 +321,10 @@ export class SandforgeProductionGates {
    const infantry=gate.kind==='barracks'||hq;
    const authored=!hq&&infantry&&gate.portal.authored;
    const lane=!hq&&infantry?barracksExitLane(gate.portal):null;
+   const root=gate.root;
    const outside=hq?(root.userData?.portal?
     new THREE.Vector3(...root.userData.portal.outside):new THREE.Vector3(0,-.40,2.85)):
     infantry?lane.outside:new THREE.Vector3(.18,0,2.9);
-   const root=gate.root;
    root.localToWorld(outside);
    const target=actor.node.position.clone();
    const clearFraction=(infantry?1.65:GATE_TIMING.drive*.62)/state.duration;
@@ -292,7 +343,16 @@ export class SandforgeProductionGates {
      const y=z<=1.5?.265:Math.max(0,.265*(2.9-z)/1.4);
      p=root.localToWorld(new THREE.Vector3(.18,y,z));
     }
-    yaw=facing+(authored?Math.PI:0);
+    yaw=facing+(authored&&!gate.portal.mk2?Math.PI:0);
+   }else if((hq&&gate.portal.authored&&gate.portal.leaves.length===4)||
+              (barracks&&gate.portal.mk2)){
+    // MK2: cross the actual fence gate, then approach the ONE authoritative
+    // exterior spawn without inventing a circular detour. The simulation
+    // places a pioneer directly at the gate; the exact endpoint is shared,
+    // eliminating the old sideways teleport when the pose finishes.
+    const t=smooth((fraction-clearFraction)/(1-clearFraction));
+    p=outside.clone().lerp(target,t);
+    yaw=facing;
    }else{
     // Route around the footprint for every cardinal facing. The simulation's
     // legacy spawn search is independent of building rotation, so a direct
@@ -329,7 +389,11 @@ export class SandforgeProductionGates {
     bf.world.walkable?.(worldPoint,obstacles,24)===false;
    if(pose.moving)for(const [otherId,other] of bf.units){
     if(otherId===u.id||!other.node.visible)continue;
-    if(Math.hypot(p.x-other.node.position.x,p.z-other.node.position.z)<48){blocked=true;break;}
+    // Infantry can stand beside a building entrance without aborting the
+    // next production. A 48-world-unit test wrongly considered a waiting
+    // pioneer an obstruction and teleported the next actor to its spawn.
+    const separation=(hq&&gate.portal.authored)||gate.portal?.mk2?21:48;
+    if(Math.hypot(p.x-other.node.position.x,p.z-other.node.position.z)<separation){blocked=true;break;}
    }
    if(blocked){
     this.reset(entry);actor.productionMotion=null;actor.node.visible=true;
@@ -351,6 +415,7 @@ export class SandforgeProductionGates {
   }
  }
  detach(entry){
+  if(entry?.id!==undefined)this.safeBarracks.delete(entry.id);
   this.reset(entry);
   if(entry?.gate){
    entry.gate.lamp.material.dispose();entry.gate.lamp.removeFromParent();
