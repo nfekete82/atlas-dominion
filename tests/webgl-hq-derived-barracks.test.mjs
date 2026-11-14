@@ -110,7 +110,7 @@ test('same MK2 source path drives construction, finished Kaserne and preview',()
  const gates=readFileSync('scripts/webgl-production-gates.js','utf8');
  const simulation=readFileSync('src/reborn/simulation.ts','utf8');
  assert.match(battle,/kind==='barracks'[\s\S]*?return strategicGlbUrl\('headquarters','active'\)/);
- assert.match(battle,/deriveMk2Barracks\(model\)/);
+ assert.match(battle,/deriveMk2Barracks\(model,\{deferPolish:true\}\)/);
  assert.match(gallery,/deriveMk2Barracks\(model\)/);
  assert.match(gates,/barracks&&gate\.portal\.mk2/);
  assert.match(simulation,/stagedMk2Barracks/);
@@ -138,7 +138,7 @@ test('one HQ-based transform makes the derived barracks wider, deeper and taller
  const bounds=new THREE.Box3().setFromObject(model);
  const transform=applyMk2BarracksVisualTransform(model,bounds,225);
  assert.ok(transform.scale>0);
- assert.ok(transform.modelFootprint>200,'barracks now reads as a full-size HQ sister building');
+ assert.ok(transform.modelFootprint>140,'barracks scales from HQ master width rather than legacy 158');
  assert.equal(model.scale.x/model.scale.z,MK2_BARRACKS_WIDTH_FACTOR/MK2_BARRACKS_DEPTH_FACTOR);
  assert.equal(model.scale.y/model.scale.z,MK2_BARRACKS_HEIGHT_FACTOR/MK2_BARRACKS_DEPTH_FACTOR);
  assert.equal(applyMk2BarracksVisualTransform(model,bounds,225),transform,'transform is applied only once');
