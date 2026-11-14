@@ -52,45 +52,62 @@ function roofSteel(model){
  return surfaces;
 }
 
-function widenMk2Perimeter(model){
- if(model.userData.sfMk2PerimeterExpanded)return 0;
- let moved=0;
- // The real outer perimeter is baked into the STAGE_03 steel + concrete
- // meshes. Only its low, outlying vertices are translated; the antenna,
- // radar, pipes, doors and building walls retain their exact positions.
- for(const name of [
-  'STAGE_03_Radar_Utilities_and_Details__steel',
-  'STAGE_03_Radar_Utilities_and_Details__sandstone'
- ]){
-  const mesh=model.getObjectByName(name);
-  const source=mesh?.geometry;
-  if(!source?.getAttribute('position'))continue;
-  const geometry=source.clone(),position=geometry.getAttribute('position');
-  let count=0;
-  for(let i=0;i<position.count;i++){
-   const x=position.getX(i),y=position.getY(i),z=position.getZ(i);
-   if(z>2.52)continue;
-   let nx=x,ny=y;
-   if(Math.abs(x)>7.0)nx+=Math.sign(x)*MK2_FENCE_OUTSET;
-   if(y< -6.7)ny-=MK2_FENCE_OUTSET;
-   if(y>5.35)ny+=MK2_FENCE_OUTSET;
-   if(nx===x&&ny===y)continue;
-   position.setXY(i,nx,ny);count++;
+/** Remove the REAL fence embedded in the user's MK2 GLB.
+ * Most of the steel-barbed-wire fence is merged into STAGE_03__steel
+ * alongside lamps/radar. Merely hiding the procedural yard or its gate
+ * leaves cannot remove it. In the source Z-up mesh, fence geometry lies
+ * below 2.5 m outside the bunker walls. Keep upper antennas, lighting,
+ * side equipment, source GLB, doors and original material intact.
+ */
+export function removeMk2Perimeter(model){
+ if(!isFeldkommandoMk2(model))return 0;
+ if(model.userData.sfMk2FenceRemoved)return 0;
+ let removed=0;
+ const mesh=model.getObjectByName('STAGE_03_Radar_Utilities_and_Details__steel');
+ const source=mesh?.geometry;
+ const position=source?.getAttribute('position');
+ if(position){
+  const indices=source.index?.array??Array.from({length:position.count},(_,i)=>i);
+  const kept=[];
+  for(let i=0;i+2<indices.length;i+=3){
+   const a=indices[i],b=indices[i+1],d=indices[i+2];
+   const x=(position.getX(a)+position.getX(b)+position.getX(d))/3;
+   const y=(position.getY(a)+position.getY(b)+position.getY(d))/3;
+   const z=Math.max(position.getZ(a),position.getZ(b),position.getZ(d));
+   // Boundary measured from the user's 5.7 MB MK2 GLB: the actual fence
+   // is near x=±8.1 or front=-7.6/rear=+6.4, 0–2.34 m tall.
+   const fence=z<2.53&&
+    (Math.abs(x)>6.5||y< -6.48||y>5.32);
+   if(fence)removed++;
+   else kept.push(a,b,d);
   }
-  if(!count){geometry.dispose();continue;}
-  position.needsUpdate=true;
-  geometry.computeBoundingBox();geometry.computeBoundingSphere();
-  geometry.userData={...geometry.userData,[OWNED]:true};
-  mesh.geometry=geometry;moved+=count;
+  if(removed){
+   const geometry=source.clone();
+   geometry.clearGroups();
+   geometry.setIndex(kept);
+   geometry.computeBoundingBox();
+   geometry.computeBoundingSphere();
+   geometry.userData={...geometry.userData,[OWNED]:true,
+    sandforgeFenceFree:true};
+   mesh.geometry=geometry;
+   // Never dispose original geometry: GLTFLoader caches it and other
+   // Feldkommando/HQ instances may share it.
+  }
  }
- // The two real sliding gate leaves have their own authored pivots,
- // so they follow the fence without affecting the sliding HQ doors.
+ // These are exclusively the concrete feet of the outside perimeter.
+ const feet=model.getObjectByName('STAGE_03_Radar_Utilities_and_Details__sandstone');
+ if(feet)feet.visible=false;
+ // Keep pivots as invisible coordinate references for the HQ and barracks
+ // production portals; do not accidentally delete the real sliding doors.
  for(const name of ['Fence_Gate_Left_Pivot','Fence_Gate_Right_Pivot']){
   const pivot=model.getObjectByName(name);
-  if(pivot)pivot.position.y-=MK2_FENCE_OUTSET;
+  if(pivot)pivot.visible=false;
  }
- model.userData.sfMk2PerimeterExpanded=true;
- return moved;
+ const infill=model.getObjectByName('SF_MK2_ContinuousFenceInfill');
+ if(infill)infill.removeFromParent();
+ model.userData.sfMk2FenceRemoved=true;
+ model.userData.sfMk2FenceTrianglesRemoved=removed;
+ return removed;
 }
 
 function matchMk2DesertCamouflage(model){
@@ -122,83 +139,8 @@ function matchMk2DesertCamouflage(model){
  * The gate opening remains clear: HQ's animated leaves occupy the opening,
  * while the Barracks derivative deliberately hides those leaves for troops.
  */
-export function ensureMk2ContinuousFenceMesh(model){
- const existing=model?.getObjectByName?.('SF_MK2_ContinuousFenceInfill');
- if(existing)return existing;
- const stage=model?.getObjectByName?.('Fence_Gate_Left_Pivot')?.parent;
- const footing=model?.getObjectByName?.('STAGE_03_Radar_Utilities_and_Details__sandstone');
- if(!stage||!footing?.geometry?.getAttribute('position'))return null;
- const bounds=footing.geometry.boundingBox?.clone() ??
-  new THREE.Box3().setFromBufferAttribute(footing.geometry.getAttribute('position'));
- // The authoring stage is Z-up (the SF_Y_UP_ROOT rotates it into Three).
- // Read the widened MK2 fence's EXISTING concrete feet instead of hard-coded
- // world/building-size numbers. Both HQ and the enlarged Barracks reuse it.
- // The authored concrete footings are symmetric around X=0. Compute
- // both sides from their maximal extent so sparse/disconnected meshes (and
- // fixture slices with only one corner) cannot draw X wires THROUGH the
- // central soldier exit. Retain the native MK2 rear/front distances.
- const sideExtent=Math.max(Math.abs(bounds.min.x),Math.abs(bounds.max.x))+.025;
- const xLeft=-sideExtent,xRight=sideExtent;
- const front=Math.min(bounds.min.y,-7.605-MK2_FENCE_OUTSET)-.025;
- const rear=Math.max(bounds.max.y,6.405+MK2_FENCE_OUTSET)+.025;
- const gateHalf=2.48,baseZ=.34,topZ=2.12,rows=2;
- const segments=[];
- const point=(x,y,z)=>new THREE.Vector3(x,y,z);
- const side=(x0,y0,x1,y1)=>{
-  const dx=x1-x0,dy=y1-y0,length=Math.hypot(dx,dy);
-  if(length<.12)return;
-  const steps=Math.max(1,Math.ceil(length/.86));
-  for(let i=0;i<steps;i++){
-   const t0=i/steps,t1=(i+1)/steps;
-   const xa=x0+dx*t0,ya=y0+dy*t0;
-   const xb=x0+dx*t1,yb=y0+dy*t1;
-   for(let row=0;row<rows;row++){
-    const z0=baseZ+(topZ-baseZ)*row/rows;
-    const z1=baseZ+(topZ-baseZ)*(row+1)/rows;
-    segments.push([point(xa,ya,z0),point(xb,yb,z1)]);
-    segments.push([point(xa,ya,z1),point(xb,yb,z0)]);
-   }
-  }
- };
- side(xLeft,rear,xRight,rear);   // continuous rear
- side(xLeft,front,xLeft,rear);   // continuous left side
- side(xRight,front,xRight,rear); // continuous right side
- side(xLeft,front,-gateHalf,front);
- side(gateHalf,front,xRight,front);
- const wireGeometry=new THREE.CylinderGeometry(.017,.017,1,5);
- wireGeometry.userData[OWNED]=true;
- const wireMaterial=new THREE.MeshStandardMaterial({
-  name:'SF_MK2_ContinuousBlackWire',color:'#202726',
-  metalness:.52,roughness:.8,side:THREE.DoubleSide
- });
- wireMaterial.userData[OWNED]=true;
- const wire=new THREE.InstancedMesh(wireGeometry,wireMaterial,segments.length);
- wire.name='SF_MK2_ContinuousFenceXWires';
- wire.userData={visualOnly:true,nonPlayable:true,siteDecor:true};
- wire.castShadow=false;wire.receiveShadow=false;
- wire.frustumCulled=false;
- wire.raycast=()=>{};
- const helper=new THREE.Object3D(),up=new THREE.Vector3(0,1,0);
- for(let i=0;i<segments.length;i++){
-  const [a,b]=segments[i];
-  const direction=b.clone().sub(a),length=direction.length();
-  helper.position.copy(a).add(b).multiplyScalar(.5);
-  helper.quaternion.setFromUnitVectors(up,direction.multiplyScalar(1/length));
-  helper.scale.set(1,length,1);
-  helper.updateMatrix();
-  wire.setMatrixAt(i,helper.matrix);
- }
- wire.instanceMatrix.needsUpdate=true;
- const group=new THREE.Group();
- group.name='SF_MK2_ContinuousFenceInfill';
- group.userData={visualOnly:true,nonPlayable:true,
-  frontOpeningWidth:gateHalf*2,wireCount:segments.length,
-  sides:['back','left','right','front-left','front-right'],
-  fenceBounds:{xLeft,xRight,front,rear,baseZ,topZ}};
- group.add(wire);
- stage.add(group);
- return group;
-}
+// Preserved export for older preview/tests; fencing is disabled everywhere.
+export function ensureMk2ContinuousFenceMesh(){return null;}
 
 function addMk2Interior(model){
  if(model.getObjectByName('SF_MK2_Interior'))return false;
@@ -251,8 +193,7 @@ export function polishFeldkommandoMk2(model,yard=null){
  if(!model.userData.sfMk2Polished){
   roofSteel(model);
   matchMk2DesertCamouflage(model);
-  widenMk2Perimeter(model);
-  ensureMk2ContinuousFenceMesh(model);
+  removeMk2Perimeter(model);
   addMk2Interior(model);
   model.userData.sfMk2Polished=true;
  }
