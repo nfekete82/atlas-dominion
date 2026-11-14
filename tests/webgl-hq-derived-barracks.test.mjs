@@ -139,8 +139,8 @@ test('one HQ-based transform makes the derived barracks wider, deeper and taller
  const transform=applyMk2BarracksVisualTransform(model,bounds,225);
  assert.ok(transform.scale>0);
  assert.ok(transform.modelFootprint>140,'barracks scales from HQ master width rather than legacy 158');
- assert.equal(model.scale.x/model.scale.z,MK2_BARRACKS_WIDTH_FACTOR/MK2_BARRACKS_DEPTH_FACTOR);
- assert.equal(model.scale.y/model.scale.z,MK2_BARRACKS_HEIGHT_FACTOR/MK2_BARRACKS_DEPTH_FACTOR);
+ assert.ok(Math.abs(model.scale.x/model.scale.z-MK2_BARRACKS_WIDTH_FACTOR/MK2_BARRACKS_DEPTH_FACTOR)<1e-10);
+ assert.ok(Math.abs(model.scale.y/model.scale.z-MK2_BARRACKS_HEIGHT_FACTOR/MK2_BARRACKS_DEPTH_FACTOR)<1e-10);
  assert.equal(applyMk2BarracksVisualTransform(model,bounds,225),transform,'transform is applied only once');
  assert.equal(finishMk2Barracks(model),true);
  assert.ok(model.userData.sfMk2Polished);
