@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 
-test('Kaserne placement preview matches finished GLB and does not show X-ray interiors',async({page})=>{
+test('Kaserne placement preview uses IDENTICAL stylized GLB, scale and material as finished building',async({page})=>{
  test.setTimeout(130000);
  await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&play=1',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:100000});
@@ -23,12 +23,26 @@ test('Kaserne placement preview matches finished GLB and does not show X-ray int
      opacity:material.opacity,renderOrder:mesh.renderOrder});
    }
   });
+  const style=model.userData.sandforgeStylized?model.userData:
+   model.children.find(c=>c.userData?.sandforgeStylized)?.userData;
+  const yard=preview.userData.previewYard;
+  const yardMeshes=[];
+  yard?.traverse(m=>{if(m.isMesh)yardMeshes.push(m);});
   return {
    liveUrl,previewSource:preview.userData.previewSource,
    sourceAssetKind:bf.previewKind,
    materialCount:mats.length,
-   xray:mats.filter(m=>m.transparent||!m.depthWrite||!m.alphaHash).slice(0,8),
+   hasStylizedSource:liveUrl.startsWith('/src/assets/stylized/'),
+   metadataMetresToWorld:style?.metresToWorld??null,
+   rootScale:model.scale.x,
+   rootPosition:model.position.toArray(),
    renderOrder:mats.filter(m=>m.renderOrder!==0).slice(0,8),
+   forcedGhostMaterials:mats.filter(m=>m.alphaHash||m.opacity!==1||m.depthWrite===false).slice(0,8),
+   ghostPaint:mats.filter(m=>/sandforgePreviewMaterial/.test(m.name)).length,
+   yardOpacityProblems:yardMeshes.filter(m=>{
+    const mat=Array.isArray(m.material)?m.material[0]:m.material;
+    return mat?.opacity<1||mat?.userData?.sandforgePreviewMaterial;
+   }).length,
    placeholder:preview.userData.previewPlaceholder?.visible??false,
    guides:preview.userData.previewGuides?.visible??false,
    hasYard:!!preview.userData.previewYard,
@@ -39,8 +53,14 @@ test('Kaserne placement preview matches finished GLB and does not show X-ray int
  expect(result.sourceAssetKind).toBe('barracks');
  expect(result.materialCount).toBeGreaterThan(5);
  expect(result.realMeshes).toBeGreaterThan(0);
- expect(result.xray).toEqual([]);
+ expect(result.hasStylizedSource).toBe(true);
+ expect(result.metadataMetresToWorld).toBeGreaterThan(0);
+ expect(result.rootScale).toBeCloseTo(result.metadataMetresToWorld,5);
+ expect(result.rootPosition).toEqual([0,0,0]);
  expect(result.renderOrder).toEqual([]);
+ expect(result.forcedGhostMaterials).toEqual([]);
+ expect(result.ghostPaint).toBe(0);
+ expect(result.yardOpacityProblems).toBe(0);
  expect(result.placeholder).toBe(false);
  expect(result.guides).toBe(false);
  expect(result.hasYard).toBe(true);
