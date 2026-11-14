@@ -23,7 +23,15 @@ function removeFunkmast(model){
  let removed=0;
  model.traverse(mesh=>{
   if(!mesh.isMesh||!MAST_MESH.test(mesh.name))return;
-  if(mesh.name.endsWith('__beacon')){mesh.visible=false;removed++;return;}
+  if(mesh.name.endsWith('__beacon')){
+   // An invisible beacon STILL expands Box3.setFromObject() in Three.js.
+   // Detach its high vertices on this clone; leave the original HQ pristine.
+   const old=mesh.geometry;
+   mesh.geometry=new THREE.BufferGeometry();
+   mesh.geometry.userData.sfMk2PolishOwned=true;
+   if(old?.userData?.sfMk2PolishOwned)old.dispose();
+   mesh.visible=false;removed++;return;
+  }
   const source=mesh.geometry,positions=source?.getAttribute('position');
   if(!positions)return;
   const indices=source.index?.array??Array.from({length:positions.count},(_,i)=>i);
@@ -42,7 +50,16 @@ function removeFunkmast(model){
   }
   if(!deleted)return;
   removed+=deleted;
-  if(!kept.length){mesh.visible=false;return;}
+  if(!kept.length){
+   // Hiding a tall mesh does not remove it from Three's object bounds.
+   // Empty geometry prevents a phantom mast height from shrinking the
+   // normalized MK2 Kaserne.
+   const empty=new THREE.BufferGeometry();
+   empty.userData.sfMk2PolishOwned=true;
+   mesh.geometry=empty;mesh.visible=false;
+   if(source.userData?.sfMk2PolishOwned)source.dispose();
+   return;
+  }
   const geometry=source.clone();
   geometry.clearGroups();
   geometry.setIndex(kept);
