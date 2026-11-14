@@ -32,56 +32,22 @@ function roofSteel(model){
  const template=model.getObjectByName('STAGE_02_Roof_and_Entrances__steel')?.material ??
   model.getObjectByName('STAGE_03_Radar_Utilities_and_Details__steel')?.material;
  if(!template)return 0;
- // Preserve the original PBR metal structure, just tint it anthracite.
+ // The MK2 Feldkommando is the definitive visual reference for all buildings.
+ // Broad authored Desert-002/olive roof planes live in __camo and
+ // __camo_light, including the raised upper roof. Never recolour these
+ // to near-black metal: that was why the derived Kaserne looked entirely
+ // black while the command building remained sand/olive camouflage.
+ // Only *structural metal panels and trims* carry this graphite PBR finish.
  const metal=template.clone();
  metal.name='SF_MK2_Anthracite_BrushedSteel';
- metal.color.set('#171c21');
- metal.metalness=.58;metal.roughness=.72;metal.envMapIntensity=.45;
+ metal.color.set('#353c42');
+ metal.metalness=.56;metal.roughness=.67;metal.envMapIntensity=.55;
  metal.userData={...metal.userData,[OWNED]:true};
  let surfaces=0;
- const candidates=[];
- model.traverse(mesh=>{if(mesh.isMesh&&/^STAGE_0[123]_.*__(roof|camo|camo_light)$/.test(mesh.name))candidates.push(mesh);});
- for(const mesh of candidates){
-  // The *entire* upper communications-tower roof is a camouflage mesh,
-  // not a roof mesh. Its Z bounds are 4.40–4.88 m (no wall surfaces).
-  // Assign the real metal PBR material directly, without brittle face tests.
-  if(/__roof$/.test(mesh.name)||mesh.name==='STAGE_02_Roof_and_Entrances__camo'){
-   mesh.material=metal;surfaces++;continue;
-  }
-  // Only reassign upward-facing rooftop triangles. Grouping every face
-  // into a draw call would be disastrous for an RTS; split into two
-  // indexed geometries with one draw each instead.
-  const original=mesh.geometry,normal=original?.getAttribute('normal'),
-   positions=original?.getAttribute('position');
-  if(!normal||!positions)continue;
-  const ix=original.index?.array??Array.from({length:positions.count},(_,i)=>i);
-  const roof=[],walls=[];
-  for(let i=0;i<ix.length;i+=3){
-   const a=ix[i],b=ix[i+1],c=ix[i+2];
-   const up=(normal.getZ(a)+normal.getZ(b)+normal.getZ(c))/3;
-   const z=(positions.getZ(a)+positions.getZ(b)+positions.getZ(c))/3;
-   // The MK2's light-tan upper and sloped roofs also live in __camo_light.
-   // Their face normals have a positive authoring Z component; steep ramps
-   // were excluded by the old .45 threshold and 2.85-metre cutoff.
-   (up>.18&&z>2.35?roof:walls).push(a,b,c);
-  }
-  if(!roof.length)continue;
-  const top=original.clone();top.clearGroups();top.setIndex(roof);
-  top.userData={...top.userData,[OWNED]:true};
-  const roofMesh=new THREE.Mesh(top,metal);
-  roofMesh.name='SF_MK2_AnthraciteRoof';
-  roofMesh.position.copy(mesh.position);roofMesh.quaternion.copy(mesh.quaternion);
-  roofMesh.scale.copy(mesh.scale);
-  roofMesh.castShadow=true;roofMesh.receiveShadow=true;
-  roofMesh.raycast=()=>{};
-  mesh.parent.add(roofMesh);
-  if(walls.length){
-   const base=original.clone();base.clearGroups();base.setIndex(walls);
-   base.userData={...base.userData,[OWNED]:true};
-   mesh.geometry=base;
-  }else mesh.visible=false;
-  surfaces++;
- }
+ model.traverse(mesh=>{
+  if(!mesh.isMesh||!/^STAGE_0[123]_.*__roof$/.test(mesh.name))return;
+  mesh.material=metal;surfaces++;
+ });
  if(!surfaces)metal.dispose();
  return surfaces;
 }
