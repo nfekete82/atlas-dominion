@@ -5,7 +5,7 @@ import {createStrategicBuilding,isStrategicBuilding} from './webgl-strategic-bui
 import {createRocketInfantry,attachRocketLauncherToInfantry} from './webgl-rocket-infantry.js';
 import {createResearchArtwork,RESEARCH_ARTWORK_KINDS} from './webgl-research-artworks.js';
 import {tintFactionMaterials} from './webgl-faction-accents.js';
-import {isStrategicGlbKind,strategicGlbUrl,applyStrategicGlbFinish} from './webgl-strategic-glb.js';
+import {isStrategicGlbKind,strategicGlbUrl,HQ3_FALLBACK_URL,applyStrategicGlbFinish} from './webgl-strategic-glb.js';
 import {strategicBuildingHeightScale} from './webgl-scale.js';
 import {stylizedAsset} from './webgl-stylized-pack.js';
 import {meshyAsset,meshyModelYaw} from './webgl-meshy-assets.js';
@@ -205,7 +205,10 @@ async function renderStrategicPortrait(kind,renderer){
   // as the placed building, not the obsolete procedural research/silo art.
   try{
    const url=strategicGlbUrl(kind,'active')??strategicGlbUrl(kind,'inactive');
-   const data=await new GLTFLoader().loadAsync(url);
+   const data=await new GLTFLoader().loadAsync(url).catch(error=>{
+    if(kind==='headquarters')return new GLTFLoader().loadAsync(HQ3_FALLBACK_URL);
+    throw error;
+   });
    const model=cloneSkeleton(data.scene);
    // Portrait render disposes temporary GPU resources; never release the
    // loader's cached GLB geometries or shared materials.
