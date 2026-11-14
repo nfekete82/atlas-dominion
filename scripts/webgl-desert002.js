@@ -19,3 +19,20 @@ export function desert002Texture(){
  shared.anisotropy=4;
  return shared;
 }
+
+/** A separate repeatable uniform sampler. The master building texture keeps
+ * its own UV scale, while every soldier gets several recognisable patches
+ * even on small plates, sleeves, helmets and backpacks. */
+let uniform=null;
+export function desert002UniformTexture(){
+ if(uniform)return uniform;
+ uniform=typeof document==='undefined'?new THREE.Texture():
+  new THREE.TextureLoader().load(DESERT_002_TEXTURE_URL);
+ uniform.name='Sandforge_Desert002_UniformCamouflage';
+ uniform.colorSpace=THREE.SRGBColorSpace;
+ uniform.wrapS=uniform.wrapT=THREE.RepeatWrapping;
+ uniform.flipY=false;
+ uniform.repeat.set(2.75,2.75);
+ uniform.anisotropy=8;
+ return uniform;
+}
