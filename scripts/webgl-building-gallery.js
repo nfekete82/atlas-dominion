@@ -131,6 +131,12 @@ async function populate(entry){
    data=await getModel(file);
   }
   entry.detail=normalizeModel(cloneSkeleton(data.scene),kind);
+  if(kind==='barracks'){
+   // MK2's entrance faces +Z like HQ, the historical barracks faces -Z.
+   // The gallery must honor the same default facing as live placement.
+   entry.facing=isMk2Barracks(entry.detail)?0:1;
+   entry.node.rotation.y=buildingFacingAngle(entry.facing);
+  }
   if(kind==='headquarters')entry.mk2Data=data;
   if((kind==='barracks'&&file!==strategicGlbUrl('headquarters','active'))||['silo','research'].includes(kind)){
    const variantUrl=strategicGlbUrl(kind,kind==='barracks'?'inactive':'active');
