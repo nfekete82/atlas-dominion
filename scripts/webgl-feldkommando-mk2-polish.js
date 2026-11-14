@@ -30,46 +30,48 @@ function roofSteel(model){
  const template=model.getObjectByName('STAGE_02_Roof_and_Entrances__steel')?.material ??
   model.getObjectByName('STAGE_03_Radar_Utilities_and_Details__steel')?.material;
  if(!template)return 0;
- // Clone: GLTFLoader reuses geometry/materials across actors and galleries.
- // Reuse the existing *authored metal texture*, never invent a flat grey roof.
+ // Preserve the original PBR metal structure, just tint it anthracite.
  const metal=template.clone();
  metal.name='SF_MK2_Anthracite_BrushedSteel';
- metal.color.set('#596067');
- metal.metalness=.62;metal.roughness=.73;
- metal.envMapIntensity=.74;
+ metal.color.set('#50545b');
+ metal.metalness=.62;metal.roughness=.70;metal.envMapIntensity=.74;
  metal.userData={...metal.userData,[OWNED]:true};
  let surfaces=0;
- model.traverse(mesh=>{
-  if(!mesh.isMesh)return;
-  const roofMesh=/^STAGE_0[23]_.*__roof$/.test(mesh.name);
-  if(roofMesh){
-   mesh.material=metal;surfaces++;
-   return;
+ const candidates=[];
+ model.traverse(mesh=>{if(mesh.isMesh&&/^STAGE_0[123]_.*__(roof|camo)$/.test(mesh.name))candidates.push(mesh);});
+ for(const mesh of candidates){
+  if(/__roof$/.test(mesh.name)){mesh.material=metal;surfaces++;continue;}
+  // Only reassign upward-facing rooftop triangles. Grouping every face
+  // into a draw call would be disastrous for an RTS; split into two
+  // indexed geometries with one draw each instead.
+  const original=mesh.geometry,normal=original?.getAttribute('normal'),
+   positions=original?.getAttribute('position');
+  if(!normal||!positions)continue;
+  const ix=original.index?.array??Array.from({length:positions.count},(_,i)=>i);
+  const roof=[],walls=[];
+  for(let i=0;i<ix.length;i+=3){
+   const a=ix[i],b=ix[i+1],c=ix[i+2];
+   const up=(normal.getZ(a)+normal.getZ(b)+normal.getZ(c))/3;
+   const z=(positions.getZ(a)+positions.getZ(b)+positions.getZ(c))/3;
+   (up>.45&&z>2.85?roof:walls).push(a,b,c);
   }
-  // The sloped top surfaces were exported as __camo, including the roof
-  // of the small communications tower. Split only their upwards triangles;
-  // leave the vertical walls, UVs and camouflage untouched.
-  if(!/^STAGE_0[12]_.*__camo$/.test(mesh.name))return;
-  const original=mesh.geometry;
-  if(!original?.attributes?.normal||!original?.attributes?.position)return;
-  const geometry=original.index?original.toNonIndexed():original.clone();
-  const normal=geometry.getAttribute('normal'),position=geometry.getAttribute('position');
-  geometry.clearGroups();
-  let roofFaces=0;
-  for(let index=0;index+2<position.count;index+=3){
-   const up=(normal.getZ(index)+normal.getZ(index+1)+normal.getZ(index+2))/3;
-   const height=(position.getZ(index)+position.getZ(index+1)+position.getZ(index+2))/3;
-   const isRoof=up>.52&&height>2.85;
-   geometry.addGroup(index,3,isRoof?1:0);
-   if(isRoof)roofFaces++;
-  }
-  if(!roofFaces){geometry.dispose();return;}
-  geometry.userData={...geometry.userData,[OWNED]:true};
-  mesh.geometry=geometry;
-  mesh.material=[mesh.material,metal];
-  surfaces+=roofFaces;
- });
- // All roof meshes share one owned material, not one texture per structure.
+  if(!roof.length)continue;
+  const top=original.clone();top.setIndex(roof);
+  top.userData={...top.userData,[OWNED]:true};
+  const roofMesh=new THREE.Mesh(top,metal);
+  roofMesh.name='SF_MK2_AnthraciteRoof';
+  roofMesh.position.copy(mesh.position);roofMesh.quaternion.copy(mesh.quaternion);
+  roofMesh.scale.copy(mesh.scale);
+  roofMesh.castShadow=true;roofMesh.receiveShadow=true;
+  roofMesh.raycast=()=>{};
+  mesh.parent.add(roofMesh);
+  if(walls.length){
+   const base=original.clone();base.setIndex(walls);
+   base.userData={...base.userData,[OWNED]:true};
+   mesh.geometry=base;
+  }else mesh.visible=false;
+  surfaces++;
+ }
  if(!surfaces)metal.dispose();
  return surfaces;
 }
