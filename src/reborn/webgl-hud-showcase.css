@@ -1517,3 +1517,111 @@
  }
  #sf-classic-root #sf-tools{top:88px!important}
 }
+
+/* Sandforge tactical dock v5 — persistent right-hand production queue.
+   Only the actual WebGL HUD; queue DOM, actions, cost and build logic remain
+   the originals. The pre-v5 mobile drawer stays accessible below 1151px. */
+@media(min-width:1151px){
+ #sf-classic-root{
+  --sf-hud-h:clamp(172px,19.3vh,196px);
+  --sf-hud-map:clamp(172px,12.4vw,197px);
+  --sf-hud-actions:clamp(34px,2.8vw,42px);
+  --sf-hud-queue:clamp(205px,15.1vw,240px);
+ }
+ #sf-classic-root #sidebar{
+  grid-template-columns:var(--sf-hud-map) var(--sf-hud-actions) minmax(0,1fr) var(--sf-hud-queue)!important;
+  align-items:stretch!important;
+  gap:4px!important;
+ }
+ #sf-classic-root #sidebar > .radar{
+  min-width:0!important;min-height:0!important;
+  justify-content:center!important;
+  padding:4px!important;
+ }
+ #sf-classic-root #sidebar #sf-map{
+  display:block!important;
+  width:min(100%,calc(var(--sf-hud-h) - 10px))!important;
+  height:auto!important;
+  max-width:100%!important;max-height:100%!important;
+  aspect-ratio:1!important;
+  object-fit:contain!important;
+  margin:auto!important;
+ }
+ #sf-classic-root #sidebar > .catalog{
+  grid-column:3!important;
+  min-width:0!important;
+ }
+ #sf-classic-root #sidebar > #sf-production.sf-production-panel,
+ #sf-classic-root[data-drawer="production"] #sidebar > #sf-production.sf-production-panel{
+  display:flex!important;flex-direction:column!important;
+  position:relative!important;
+  grid-column:4!important;grid-row:1!important;
+  inset:auto!important;top:auto!important;right:auto!important;bottom:auto!important;left:auto!important;
+  width:100%!important;min-width:0!important;
+  height:100%!important;min-height:0!important;max-height:none!important;
+  margin:0!important;padding:9px!important;
+  gap:6px!important;
+  overflow:hidden!important;
+  border:1px solid rgba(213,180,119,.32)!important;
+  border-radius:8px!important;
+  background:rgba(22,26,26,.89)!important;
+  box-shadow:0 2px 9px rgba(0,0,0,.23)!important;
+ }
+ #sf-classic-root #sidebar > #sf-production .sf-production-heading{
+  display:flex!important;justify-content:space-between!important;gap:6px!important;
+  flex:0 0 auto!important;margin:0!important;
+  font:750 11px/1.2 system-ui!important;
+  color:#e8d2ac!important;
+ }
+ #sf-classic-root #sidebar > #sf-production .sf-production-slots{
+  display:flex!important;flex:1 1 auto!important;
+  flex-direction:column!important;min-height:0!important;
+  overflow-x:hidden!important;overflow-y:auto!important;
+  scrollbar-width:thin!important;
+  gap:4px!important;
+ }
+ #sf-classic-root #sidebar > #sf-production .sf-production-slot{
+  flex:0 0 auto!important;
+  min-height:35px!important;
+  padding:3px!important;
+  background:rgba(57,63,60,.30)!important;
+  border:1px solid rgba(208,181,137,.14)!important;
+  border-radius:4px!important;
+ }
+ #sf-classic-root #sidebar > #sf-production .sf-production-slot img{
+  max-width:34px!important;max-height:34px!important;
+ }
+ #sf-classic-root #sidebar > #sf-production :is(.sf-production-progressline,.queue-info){
+  flex:0 0 auto!important;margin:0!important;
+ }
+ #sf-classic-root #sidebar #sf-tabs > button{
+  flex-basis:clamp(94px,8vw,125px)!important;
+  font-size:11px!important;
+  padding:0 7px!important;
+ }
+ #sf-classic-root[data-tab="buildings"] #sf-actions
+  .sf-group[data-sf-group="buildings"] > .catalog-grid{
+  grid-auto-columns:max(94px,calc(100% / var(--sf-building-count,9)))!important;
+  padding:2px 2px 6px!important;
+ }
+ #sf-classic-root[data-tab="buildings"] #sf-actions
+  button.catalog-card[data-build]{
+  padding:0 3px!important;
+ }
+ #sf-classic-root[data-tab="buildings"] #sf-actions
+  button.catalog-card[data-build] .sf-card-image img{
+  transform:scale(.92)!important;
+ }
+ #sf-classic-root[data-tab="buildings"] #sf-actions
+  button.catalog-card[data-build]:is(:disabled,.locked) .sf-card-image img{
+  transform:scale(.92)!important;
+ }
+ #sf-classic-root[data-tab="buildings"] #sf-actions
+  button.catalog-card[data-build] .card-name{
+  font-size:10px!important;line-height:1.05!important;
+ }
+ #sf-classic-root[data-tab="buildings"] #sf-actions
+  button.catalog-card[data-build] .card-cost{
+  font-size:10px!important;
+ }
+}
