@@ -17,7 +17,7 @@ import {createStrategicBuilding} from './webgl-strategic-buildings.js';
 import {prepareAuthoredAssembly,updateAuthoredAssembly,releaseAuthoredAssembly} from './webgl-construction-assembly.js';
 import {SandforgeProductionGates,applyProductionGatePose,productionGatePose} from './webgl-production-gates.js';
 import {polishFeldkommandoMk2,disposeFeldkommandoMk2Polish,hideMk2DuplicateFence} from './webgl-feldkommando-mk2-polish.js';
-import {ensureFactionWallBanners,disposeFactionWallBanners} from './webgl-faction-banners.js';
+import {ensureFactionWallBanners,setFactionWallBannerConstruction,disposeFactionWallBanners} from './webgl-faction-banners.js';
 import {barracksExitLane,barracksDeparturePoint,updateBarracksPortalPlanes} from './webgl-barracks-portal.js';
 import {prepareSiloHatch,poseSiloHatch} from './webgl-building-motion.js';
 import {BIOME_STYLES} from './webgl-biomes.js';
@@ -189,6 +189,8 @@ function setEntryProgress(entry){
  // Construction uses the genuine closed Kaserne, matching the live renderer.
  if(entry.kind==='barracks'&&entry.variantDetail){entry.detail.visible=progress>=1;entry.variantDetail.visible=progress<1;}
  if(entry.departing&&progress<1)entry.departing.visible=false;
+ if(['headquarters','barracks'].includes(entry.kind))
+  setFactionWallBannerConstruction(entry,progress>=1);
 }
 function setProgress(value){
  progress=THREE.MathUtils.clamp(Number(value),0,1);
