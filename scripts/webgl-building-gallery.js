@@ -17,7 +17,7 @@ import {createStrategicBuilding} from './webgl-strategic-buildings.js';
 import {prepareAuthoredAssembly,updateAuthoredAssembly,releaseAuthoredAssembly} from './webgl-construction-assembly.js';
 import {SandforgeProductionGates,applyProductionGatePose,productionGatePose} from './webgl-production-gates.js';
 import {polishFeldkommandoMk2,disposeFeldkommandoMk2Polish,hideMk2DuplicateFence} from './webgl-feldkommando-mk2-polish.js';
-import {deriveMk2Barracks,isMk2Barracks,arrangeMk2BarracksSupplies,MK2_BARRACKS_WIDTH_FACTOR} from './webgl-hq-barracks.js';
+import {deriveMk2Barracks,isMk2Barracks,arrangeMk2BarracksSupplies,applyMk2BarracksVisualTransform,finishMk2Barracks} from './webgl-hq-barracks.js';
 import {ensureFactionWallBanners,setFactionWallBannerConstruction,disposeFactionWallBanners} from './webgl-faction-banners.js';
 import {barracksExitLane,barracksDeparturePoint,updateBarracksPortalPlanes} from './webgl-barracks-portal.js';
 import {prepareSiloHatch,poseSiloHatch} from './webgl-building-motion.js';
@@ -102,17 +102,21 @@ function lightCell(entry){
  // Keep the comparison floor constant, including during biome inspection.
 }
 function normalizeModel(model,kind){
- const mk2Barracks=kind==='barracks'&&deriveMk2Barracks(model);
+ const mk2Barracks=kind==='barracks'&&deriveMk2Barracks(model,{deferPolish:true});
  if(kind==='barracks'&&!mk2Barracks)simplifyBarracksSilhouette(model);
  const box=new THREE.Box3().setFromObject(model),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
- const scale=kind==='bastion'?116/Math.max(size.x,size.z):calibratedScale(kind,'building',size,BUILDINGS[kind].width);
- const ys=strategicBuildingHeightScale(kind);
- model.scale.multiplyScalar(scale);model.scale.y*=ys;
- if(mk2Barracks)model.scale.x*=MK2_BARRACKS_WIDTH_FACTOR;
- model.position.set(-center.x*scale,-authoredBuildingGroundY(kind,box)*scale*ys,-center.z*scale);
+ if(mk2Barracks)
+  applyMk2BarracksVisualTransform(model,box,BUILDINGS.headquarters.width);
+ else{
+  const scale=kind==='bastion'?116/Math.max(size.x,size.z):calibratedScale(kind,'building',size,BUILDINGS[kind].width);
+  const ys=strategicBuildingHeightScale(kind);
+  model.scale.multiplyScalar(scale);model.scale.y*=ys;
+  model.position.set(-center.x*scale,-authoredBuildingGroundY(kind,box)*scale*ys,-center.z*scale);
+ }
  model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
  if(['headquarters','barracks','research','silo','bastion'].includes(kind))applyStrategicGlbFinish(model);
  tintFactionMaterials(model,0,kind,'building');
+ if(mk2Barracks)finishMk2Barracks(model);
  return model;
 }
 async function populate(entry){
