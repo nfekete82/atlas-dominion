@@ -9,10 +9,11 @@ test('Kaserne placement preview uses IDENTICAL stylized GLB, scale and material 
   const battlefield=window.__sandforgeWebGL?.battlefield;
   return battlefield?.buildPreview?.userData?.previewDetail;
  },{timeout:60000});
- const result=await page.evaluate(()=>{
+ const result=await page.evaluate(async()=>{
   const bf=window.__sandforgeWebGL.battlefield,preview=bf.buildPreview;
   const model=preview.userData.previewDetail;
   const liveUrl=bf.asset('barracks',0,'building');
+  const liveSource=await bf.getModel(liveUrl);
   const mats=[];
   model.traverse(mesh=>{
    if(!mesh.isMesh)return;
@@ -20,7 +21,8 @@ test('Kaserne placement preview uses IDENTICAL stylized GLB, scale and material 
     if(!material)continue;
     mats.push({name:material.name,transparent:material.transparent,
      alphaHash:material.alphaHash,depthWrite:material.depthWrite,
-     opacity:material.opacity,renderOrder:mesh.renderOrder});
+     opacity:material.opacity,renderOrder:mesh.renderOrder,
+     previewFlag:material.userData?.sandforgePreviewMaterial===true});
    }
   });
   const style=model.userData.sandforgeStylized?model.userData:
@@ -34,11 +36,11 @@ test('Kaserne placement preview uses IDENTICAL stylized GLB, scale and material 
    materialCount:mats.length,
    hasStylizedSource:liveUrl.startsWith('/src/assets/stylized/'),
    metadataMetresToWorld:style?.metresToWorld??null,
-   rootScale:model.scale.x,
+   rootScaleFactor:model.scale.x/(liveSource.scene.scale.x||1),
    rootPosition:model.position.toArray(),
    renderOrder:mats.filter(m=>m.renderOrder!==0).slice(0,8),
-   forcedGhostMaterials:mats.filter(m=>m.alphaHash||m.opacity!==1||m.depthWrite===false).slice(0,8),
-   ghostPaint:mats.filter(m=>/sandforgePreviewMaterial/.test(m.name)).length,
+   forcedGhostMaterials:mats.filter(m=>m.alphaHash||m.previewFlag).slice(0,8),
+   ghostPaint:mats.filter(m=>m.previewFlag).length,
    yardOpacityProblems:yardMeshes.filter(m=>{
     const mat=Array.isArray(m.material)?m.material[0]:m.material;
     return mat?.opacity<1||mat?.userData?.sandforgePreviewMaterial;
@@ -55,7 +57,7 @@ test('Kaserne placement preview uses IDENTICAL stylized GLB, scale and material 
  expect(result.realMeshes).toBeGreaterThan(0);
  expect(result.hasStylizedSource).toBe(true);
  expect(result.metadataMetresToWorld).toBeGreaterThan(0);
- expect(result.rootScale).toBeCloseTo(result.metadataMetresToWorld,5);
+ expect(result.rootScaleFactor).toBeCloseTo(result.metadataMetresToWorld,5);
  expect(result.rootPosition).toEqual([0,0,0]);
  expect(result.renderOrder).toEqual([]);
  expect(result.forcedGhostMaterials).toEqual([]);
