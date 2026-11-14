@@ -80,8 +80,8 @@ test('Kaserne preview is the real HQ MK2 derivative, or matching legacy fallback
   expect(result.roofTrim).toBe('353c42');
   expect(result.roofCamo).not.toBe('SF_MK2_Anthracite_BrushedSteel');
   expect(result.roofProjected).toBe(false);
-  expect(result.sharedChainlinkWires).toBeGreaterThan(100);
-  expect(result.chainlinkGateGap).toBeCloseTo(4.96);
+  expect(result.sharedChainlinkWires).toBe(0);
+  expect(result.chainlinkGateGap).toBe(0);
  }else{
   expect(result.savedSource).toContain('/stylized/barracks-0.glb');
   expect(result.derived).toBe(false);
