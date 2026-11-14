@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 import {HQ3_PBR} from './webgl-hq3-reference.js';
 import {BARRACKS_ARCHITECTURE} from './webgl-building-profiles.js';
+import {desert002Texture} from './webgl-desert002.js';
 
 /** All values/textures come from the unmodified HQ3. Coordinates are baked
  * once in building space, so paint follows doors and all four orientations.
  * Source geometry, UVs and cached GLB materials are never modified. */
-export const BUILDING_DESIGN_REVISION='mk2-reference-barracks-pbr-v2';
+export const BUILDING_DESIGN_REVISION='desert-002-master-pbr-v3';
 export const HQ3_TEXTURE_ROOT='/src/assets/reborn/buildings-3d/hq3-materials/';
 // sqrt(world surface area / UV area), measured by audit-building-design.mjs.
 export const HQ3_TILE_SPAN=Object.freeze({camouflage:63.9913072855748,roof:28.852837770972137,concrete:20.402950054633266,metal:6.964335905277821,door:12.045831369252125});
@@ -23,6 +24,7 @@ export const BUILDING_MATERIAL_FAMILIES=Object.freeze({
 });
 const textures=new Map(),geometryCache=new WeakMap();
 export function buildingTexture(name){
+ if(name==='camouflage-albedo')return desert002Texture();
  if(textures.has(name))return textures.get(name);
  const map=typeof document==='undefined'?new THREE.Texture():new THREE.TextureLoader().load(HQ3_TEXTURE_ROOT+name+'.jpg');
  map.name='HQ3_'+name;map.colorSpace=name.endsWith('normal')?THREE.NoColorSpace:THREE.SRGBColorSpace;
@@ -88,7 +90,7 @@ function surfaceMaterial(source,family,{roofStart,mixedRoof,kind}){
  // olive/sand camouflage, brushed graphite roofing and metallic hardware.
  // Preserve the projected HQ texture/normal detail rather than flat colours.
  if(kind==='barracks'){
-  if(family==='HQ_Desert_Camouflage')mat.color.set('#e2ded3');
+  if(family==='HQ_Desert_Camouflage')mat.color.set('#ffffff');
   if(family==='HQ_Dark_Charcoal_Roof'){
    mat.color.set('#626870');mat.roughness=.70;mat.metalness=.62;
   }
