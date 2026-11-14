@@ -56,7 +56,7 @@ function roofSteel(model){
    (up>.45&&z>2.85?roof:walls).push(a,b,c);
   }
   if(!roof.length)continue;
-  const top=original.clone();top.setIndex(roof);
+  const top=original.clone();top.clearGroups();top.setIndex(roof);
   top.userData={...top.userData,[OWNED]:true};
   const roofMesh=new THREE.Mesh(top,metal);
   roofMesh.name='SF_MK2_AnthraciteRoof';
@@ -66,7 +66,7 @@ function roofSteel(model){
   roofMesh.raycast=()=>{};
   mesh.parent.add(roofMesh);
   if(walls.length){
-   const base=original.clone();base.setIndex(walls);
+   const base=original.clone();base.clearGroups();base.setIndex(walls);
    base.userData={...base.userData,[OWNED]:true};
    mesh.geometry=base;
   }else mesh.visible=false;
