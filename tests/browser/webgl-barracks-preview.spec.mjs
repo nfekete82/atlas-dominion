@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 
-test('Kaserne placement preview uses IDENTICAL stylized GLB, scale and material as finished building',async({page})=>{
+test('Kaserne preview is the real HQ MK2 derivative, or matching legacy fallback when not installed',async({page})=>{
  test.setTimeout(130000);
  await page.goto('/webgl-preview.html?bastions=4&seed=2074&lite=1&play=1',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__sandforgeWebGL?.loaded===true,{timeout:100000});
@@ -13,7 +13,8 @@ test('Kaserne placement preview uses IDENTICAL stylized GLB, scale and material 
   const bf=window.__sandforgeWebGL.battlefield,preview=bf.buildPreview;
   const model=preview.userData.previewDetail;
   const liveUrl=bf.asset('barracks',0,'building');
-  const liveSource=await bf.getModel(liveUrl);
+  const actualSource=preview.userData.previewSource;
+  const liveSource=await bf.getModel(actualSource);
   const mats=[];
   model.traverse(mesh=>{
    if(!mesh.isMesh)return;
@@ -34,7 +35,13 @@ test('Kaserne placement preview uses IDENTICAL stylized GLB, scale and material 
    liveUrl,previewSource:preview.userData.previewSource,
    sourceAssetKind:bf.previewKind,
    materialCount:mats.length,
-   hasStylizedSource:liveUrl.startsWith('/src/assets/stylized/'),
+   derived:!!model.userData.sandforgeMk2Barracks,
+   savedSource:actualSource,
+   mastHidden:model.getObjectByName('Radar_Dish_Pivot')?.visible===false,
+   mastTrianglesRemoved:model.userData.sandforgeMk2BarracksMastTrianglesRemoved??0,
+   fenceGateHidden:model.getObjectByName('Fence_Gate_Left_Pivot')?.visible===false,
+   leftDoor:!!model.getObjectByName('Door_Left_Pivot'),
+   widthRatio:model.scale.x/model.scale.z,
    metadataMetresToWorld:style?.metresToWorld??null,
    rootScaleFactor:model.scale.x/(liveSource.scene.scale.x||1),
    rootPosition:model.position.toArray(),
@@ -51,14 +58,23 @@ test('Kaserne placement preview uses IDENTICAL stylized GLB, scale and material 
    realMeshes:model.children.length
   };
  });
- expect(result.previewSource).toBe(result.liveUrl);
+ expect(result.previewSource).toBe(result.savedSource);
  expect(result.sourceAssetKind).toBe('barracks');
  expect(result.materialCount).toBeGreaterThan(5);
  expect(result.realMeshes).toBeGreaterThan(0);
- expect(result.hasStylizedSource).toBe(true);
- expect(result.metadataMetresToWorld).toBeGreaterThan(0);
- expect(result.rootScaleFactor).toBeCloseTo(result.metadataMetresToWorld,5);
- expect(result.rootPosition).toEqual([0,0,0]);
+ if(result.savedSource===result.liveUrl){
+  expect(result.derived).toBe(true);
+  expect(result.mastHidden).toBe(true);
+  expect(result.mastTrianglesRemoved).toBeGreaterThan(30);
+  expect(result.fenceGateHidden).toBe(true);
+  expect(result.leftDoor).toBe(true);
+  expect(result.widthRatio).toBeGreaterThan(1.10);
+ }else{
+  expect(result.savedSource).toContain('/stylized/barracks-0.glb');
+  expect(result.derived).toBe(false);
+  expect(result.metadataMetresToWorld).toBeGreaterThan(0);
+  expect(result.rootScaleFactor).toBeCloseTo(result.metadataMetresToWorld,5);
+ }
  expect(result.renderOrder).toEqual([]);
  expect(result.forcedGhostMaterials).toEqual([]);
  expect(result.ghostPaint).toBe(0);
