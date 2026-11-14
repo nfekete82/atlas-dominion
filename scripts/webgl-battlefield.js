@@ -644,7 +644,18 @@ export class SandforgeBattlefield {
     if(!obj.isMesh)return;
     const make=mat=>{
      if(clones.has(mat))return clones.get(mat);
-     const m=previewServiceMaterial(mat,{opacity});
+     const m=previewServiceMaterial(mat,{opacity:kind==='barracks'?.84:opacity});
+     if(kind==='barracks'){
+      // Dithered ghost writes depth. The former transparent/depthWrite=false
+      // rendered the entire model X-ray style: rear walls, roof interiors,
+      // doors and accessory meshes all shone through the front facade.
+      m.transparent=false;
+      m.alphaHash=true;
+      m.opacity=.84;
+      m.depthWrite=true;
+      m.depthTest=true;
+      m.side=mat.side;
+     }
      // Source materials from procedural factory/airfield service yards own
      // their real PBR maps. Cache those before replacing their material:
      // Material.clone() serializes userData and otherwise yields a fake
@@ -661,12 +672,13 @@ export class SandforgeBattlefield {
      clones.set(mat,m);return m;
     };
     obj.material=Array.isArray(obj.material)?obj.material.map(make):make(obj.material);
-    obj.renderOrder=1010;obj.castShadow=false;obj.receiveShadow=false;
+    obj.renderOrder=kind==='barracks'?0:1010;
+    obj.castShadow=false;obj.receiveShadow=false;
    });
    if(ownSource)for(const mat of clones.keys())mat.dispose();
   };
   tint(placeholder,true,.50);
-  placeholder.visible=true; // realistic fallback until the authored GLB is ready
+  placeholder.visible=kind!=='barracks'; // Do not display the wrong generic Kaserne model while GLB loads
   group.userData.previewPlaceholder=placeholder;
   group.add(placeholder);
   // Schematic FOUNDATION + SCAFFOLD, never a finished building. The
@@ -749,7 +761,7 @@ export class SandforgeBattlefield {
   group.userData.previewFrontMarker=frontMarker;
   // The actual translucent building supplies silhouette and door details;
   // the old tall scaffolding must not hide the building's front.
-  guides.visible=false;
+  guides.visible=kind==='barracks'; // show only the measured outline until its real GLB is ready
   // Ghost and completed building use the exact same site dressing and
   // functional service meshes, including the runway and hydraulic lifts.
   // Nothing is re-scaled or regenerated differently upon completion.
@@ -790,11 +802,18 @@ export class SandforgeBattlefield {
       -authoredBuildingGroundY(kind,bounds)*scale*heightScale,-bounds.getCenter(new THREE.Vector3()).z*scale);
    }
    if(kind==='airfield')hideOldAirfieldHangar({detail:model});
-   if(isStrategicGlbKind(kind))applyStrategicGlbFinish(model);
-   tint(model,false,.50);
+   // Use EXACTLY the same preparation sequence as pumpModelQueue() for the
+   // actual finished building; no alternate materials or unpainted roof.
+   this.lightBuildingMeshes(model);
+   const authoredStyle=stylizedProfile(model);
+   if(isStrategicGlbKind(kind)&&!authoredStyle)applyStrategicGlbFinish(model);
+   tintFactionMaterials(model,0,kind,'building');
+   tint(model,false,kind==='barracks'?.84:.50);
    model.visible=true; // final authored shape and its actual entrances
    group.remove(placeholder);disposeOwnedMeshes(placeholder);
+   guides.visible=false;
    group.userData.previewPlaceholder=null;group.userData.previewDetail=model;
+   group.userData.previewSource=this.asset(kind,0,'building');
    group.add(model);
   }).catch(error=>console.warn('Baupreview: vereinfachtes 3D-Modell',error));
  }
