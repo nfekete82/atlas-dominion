@@ -56,13 +56,15 @@ test('optional MK2 asset, if installed, preserves all 4 clips and required nodes
 for(const facing of [0,2,1,3])test('MK2 visual pioneer exits through gate without a sideways jump: facing '+facing,()=>{
  const base={id:70,kind:'headquarters',owner:0,hp:1200,x:500,y:500,facing};
  const forwardAngle=buildingFacingAngle(facing);
- const target=new THREE.Vector3(Math.sin(forwardAngle)*133,0,Math.cos(forwardAngle)*133);
+ const target=new THREE.Vector3(Math.sin(forwardAngle)*125,0,Math.cos(forwardAngle)*125);
  const unit={id:71,kind:'engineer',owner:0,hp:110,orders:[],fire:0,angle:0,
   x:500+target.x,y:500+target.z};
  const game={time:10,bases:[base],units:[unit],productionReleases:[],
   stageWebGLProduction:true};
  const node=new THREE.Group();node.rotation.y=forwardAngle;
- const detail=new THREE.Group();detail.scale.setScalar(14);node.add(detail);
+ const detail=new THREE.Group();detail.scale.setScalar(14);
+ // The real GLB is recentered by the same 3D loader before rendering.
+ detail.position.z=-8.4;node.add(detail);
  const stage=new THREE.Group();stage.rotation.x=-Math.PI/2;detail.add(stage);
  for(const [name,x,y,z] of [
   ['Door_Left_Pivot',-1.22,-5.77,1.6],
