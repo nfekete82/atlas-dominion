@@ -81,8 +81,11 @@ for(const facing of [0,2,1,3])test('MK2 pioneer exits in front of the gate and S
  const spot={x:u.x,y:u.y};
  const front=(spot.x-b.x)*forward.x+(spot.y-b.y)*forward.y;
  const offset=(spot.x-b.x)*side.x+(spot.y-b.y)*side.y;
- assert.ok(Math.abs(front-(b.radius+50))<1,'spawn centred outside the actual fence');
- assert.ok(Math.abs(offset)<1,'no old diagonal/rightward spawn');
+ assert.ok([50,72,96].some(d=>Math.abs(front-(b.radius+d))<1),
+  'front-facing safe spawn must be one of the three gate distances');
+ assert.ok([0,23,46].some(d=>Math.abs(Math.abs(offset)-d)<1),
+  'spawn remains in the gate lane (centred or one of the short fallback slots)');
+ assert.ok(Math.abs(offset)<=46,'never use legacy large diagonal off to the side');
  assert.deepEqual(u.orders,[],'no unsolicited rally movement');
  assert.ok(g.isProductionDepartureHeld(u.id));
  for(let i=0;i<180;i++)g.step(.05);
