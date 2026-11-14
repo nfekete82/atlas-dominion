@@ -143,6 +143,9 @@ export class SandforgeProductionGates {
  constructor(battlefield){
   this.battlefield=battlefield;this.game=battlefield.game;
   this.seen=new WeakSet(this.game.productionReleases);this.active=new Map();
+  // Fence-free MK2 barracks: doors animate, but the real spawned soldier
+  // is NEVER held, dragged or path-probed by the rendering layer.
+  this.safeBarracks=new Map();
   this.lastTime=this.game.time;
  }
  prepare(entry){
@@ -200,9 +203,9 @@ export class SandforgeProductionGates {
   const bf=this.battlefield,game=this.game;
   // Match the actor renderer's interpolation between 20 Hz snapshots.
   const time=game.time-(active?.05*(1-clamp(alpha)):0);
-  if(game.time<this.lastTime){for(const e of bf.bases.values())this.reset(e);this.active.clear();this.seen=new WeakSet(game.productionReleases);}
+  if(game.time<this.lastTime){for(const e of bf.bases.values())this.reset(e);this.active.clear();this.safeBarracks.clear();this.seen=new WeakSet(game.productionReleases);}
   this.lastTime=game.time;
-  if(!this.active.size&&game.productionReleases.every(event=>this.seen.has(event)))return;
+  if(!this.active.size&&!this.safeBarracks.size&&game.productionReleases.every(event=>this.seen.has(event)))return;
   const entities=new Map(game.units.map(u=>[u.id,u]));
   const bases=new Map(game.bases.map(b=>[b.id,b]));
   for(const event of game.productionReleases){
@@ -210,6 +213,18 @@ export class SandforgeProductionGates {
    const base=bases.get(event.baseId),entry=bf.bases.get(event.baseId),unit=entities.get(event.unitId);
    const actor=bf.units.get(event.unitId);
    const age=time-event.at;
+   // MK2 Kaserne: protect the simulation from portal-animation stalls.
+   // The unit already exists at a verified, unobstructed point in FRONT of
+   // the doorway; only the real two sliding shutters animate. Never extend
+   // a departure hold, touch its orders or move the actor node.
+   if(base?.kind==='barracks'&&entry?.mk2Barracks&&game.stageWebGLProduction){
+    this.seen.add(event);
+    game.cancelProductionDeparture?.(event.unitId);
+    if(actor){actor.productionMotion=null;actor.node.visible=true;}
+    const gate=entry.gate??this.prepare(entry);
+    if(gate?.portal?.mk2)this.safeBarracks.set(base.id,time);
+    continue;
+   }
    // A factory GLB can finish streaming after the real unit was produced.
    // Briefly hold that single authoritative unit while its actual shutter
    // loads, rather than letting it materialize outside the closed door.
@@ -256,6 +271,22 @@ export class SandforgeProductionGates {
    const visualAt=age>.15&&game.stageWebGLProduction===true?game.time:event.at;
    game.extendProductionDeparture?.(unit.id,visualAt+GATE_TIMING.warning+GATE_TIMING.opening+duration+.05);
    this.active.set(base.id,{event,visualAt,duration,orders:orderKey(unit),hp:unit.hp,baseHp:base.hp});
+  }
+  // Safe cosmetic-only sliding doors: 0.45s opening, 1.15s hold, 0.5s
+  // closing. Missing/destroyed buildings end the animation immediately.
+  // No game units, collision checks or rally orders are touched here.
+  for(const [baseId,started] of this.safeBarracks){
+   const entry=bf.bases.get(baseId),gate=entry?.gate;
+   if(!gate?.portal?.mk2){this.safeBarracks.delete(baseId);continue;}
+   const age=Math.max(0,time-started);
+   if(age>=2.10){
+    this.reset(entry);this.safeBarracks.delete(baseId);continue;
+   }
+   const open=age<.45?smooth(age/.45):
+    age<1.60?1:1-smooth((age-1.60)/.5);
+   setBarracksDoorOpen(gate.portal,1-open);
+   gate.lamp.visible=true;
+   gate.lamp.material.emissiveIntensity=.35+open*1.2;
   }
   for(const [id,state] of this.active){
    const {event}=state,base=bases.get(id),entry=bf.bases.get(id),u=entities.get(event.unitId),actor=bf.units.get(event.unitId);
@@ -384,6 +415,7 @@ export class SandforgeProductionGates {
   }
  }
  detach(entry){
+  if(entry?.id!==undefined)this.safeBarracks.delete(entry.id);
   this.reset(entry);
   if(entry?.gate){
    entry.gate.lamp.material.dispose();entry.gate.lamp.removeFromParent();
