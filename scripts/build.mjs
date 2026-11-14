@@ -98,7 +98,7 @@ cpSync('src/reborn/webgl-hud-showcase.css','dist/webgl-hud-showcase.css');
 cpSync('scripts/animation/model-viewer.js','dist/model-viewer.js');
 // WebGL preview and 3D inspector share the same local Three.js modules.
 // Three.js assets are required by the 3D game and optional in classic mode.
-for(const file of ['build/three.module.js','build/three.core.js','examples/jsm/loaders/GLTFLoader.js','examples/jsm/controls/OrbitControls.js','examples/jsm/utils/BufferGeometryUtils.js','examples/jsm/utils/SkeletonUtils.js','examples/jsm/environments/RoomEnvironment.js','examples/jsm/loaders/KTX2Loader.js','examples/jsm/libs/meshopt_decoder.module.js']){
+for(const file of ['build/three.module.js','build/three.core.js','examples/jsm/loaders/GLTFLoader.js','examples/jsm/controls/OrbitControls.js','examples/jsm/utils/BufferGeometryUtils.js','examples/jsm/utils/SkeletonUtils.js','examples/jsm/environments/RoomEnvironment.js','examples/jsm/loaders/KTX2Loader.js','examples/jsm/libs/meshopt_decoder.module.js','examples/jsm/utils/WorkerPool.js']){
   const target='dist/vendor/three/'+file.replace('build/','').replace('examples/jsm/','addons/');mkdirSync(target.slice(0,target.lastIndexOf('/')),{recursive:true});cpSync('node_modules/three/'+file,target);
 }
 // KTX2 transcoding works offline: ship version-matched JS and WASM.
