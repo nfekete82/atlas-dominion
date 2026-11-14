@@ -51,6 +51,25 @@ export function headquartersDoorExitCandidates(base:{x:number;y:number;radius:nu
     y:base.y+forward.y*distance+side.y*offset});
  return candidates;
 }
+/** MK2 barracks scale is derived from the HQ, not the old 158-wide
+ * barracks. Place infantry outside its widened, deeper physical fence.
+ * The front offset is passed by the actual WebGL mesh when it finishes
+ * loading; the fallback is safe until that measurement is available.
+ */
+export function barracksMk2DoorExitCandidates(
+ base:{x:number;y:number;radius:number;facing?:number},minimumDistance:number
+):Point[]{
+ const angle=[0,Math.PI,Math.PI/2,Math.PI*1.5][base.facing??0]??0;
+ const forward={x:Math.sin(angle),y:Math.cos(angle)};
+ const side={x:Math.cos(angle),y:-Math.sin(angle)};
+ const first=Math.max(base.radius+108,Number.isFinite(minimumDistance)?minimumDistance:0);
+ const candidates:Point[]=[];
+ for(const distance of [first,first+24,first+48])
+  for(const offset of [0,24,-24,42,-42])
+   candidates.push({x:base.x+forward.x*distance+side.x*offset,
+    y:base.y+forward.y*distance+side.y*offset});
+ return candidates;
+}
 /** Dust belongs at the real world-space release point, not on a fake door. */
 export function productionExitDustPoint(event:Pick<ProductionRelease,'to'|'from'>):Point{
  const dx=event.to.x-event.from.x,dy=event.to.y-event.from.y,l=Math.hypot(dx,dy)||1;
