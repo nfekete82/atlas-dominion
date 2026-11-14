@@ -146,7 +146,12 @@ function surfaceMaterial(source,family,{roofStart,mixedRoof,kind}){
 export function applyBuildingDesign(root,{kind,biome='desert'}={}){
  // Preserve the entire HQ3, including untextured steel and its PBR constants.
  // Snow/jungle continue to use the established biome pipeline.
- if(!root||kind==='headquarters'||biome!=='desert')return 0;
+ // A Kaserne derived from Feldkommando MK2 already carries the *identical*
+ // HQ roof/camouflage maps. Applying the old generic barracks projection
+ // replaces its roof with the near-black HQ3 roof atlas, even after
+ // polishFeldkommandoMk2 later restores the PBR tint.
+ if(!root||kind==='headquarters'||root.userData?.sandforgeMk2Barracks||
+    biome!=='desert')return 0;
  root.updateWorldMatrix(true,true);
  const bounds=new THREE.Box3().setFromObject(root);
  const materials=new Map();let count=0;
