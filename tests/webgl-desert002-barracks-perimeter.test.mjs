@@ -48,30 +48,15 @@ test('Infantry and engineer use the same literal desert 002 texture only on unif
  }
 });
 
-test('Barracks has a complete MK2-style black barbed-wire perimeter, EXCEPT the front door',()=>{
- const yard=createBuildingYard('barracks',158);
- const fence=yard.getObjectByName('BasePerimeter_barracks');
- assert.ok(fence);
- assert.equal(fence.userData.frontOpening,true);
- assert.ok(fence.userData.frontDoorGap>=60);
- assert.ok(fence.userData.barbedWirePieces>50);
- for(const name of ['YardFencePosts','YardFenceRails','YardFenceMesh'])
-  assert.ok(fence.getObjectByName(name)?.isInstancedMesh,name);
- const posts=fence.getObjectByName('YardFencePosts');
- assert.equal(posts.material.color.getHexString(),'171b1b');
- const wire=fence.getObjectByName('YardFenceMesh');
- assert.equal(wire.material.color.getHexString(),'222829');
- const front=-158*.43,gap=fence.userData.frontDoorGap/2;
- const matrix=new THREE.Matrix4(),point=new THREE.Vector3();
- let left=0,right=0,blocked=0;
- for(let i=0;i<posts.count;i++){
-  posts.getMatrixAt(i,matrix);point.setFromMatrixPosition(matrix);
-  if(Math.abs(point.z-front)>.1)continue;
-  if(point.x<-gap+.1)left++;
-  else if(point.x>gap-.1)right++;
-  else blocked++;
+test('all buildings are fence-free, including barracks, HQ and factory',()=>{
+ for(const kind of ['barracks','headquarters','factory','research','silo','interceptor']){
+  const yard=createBuildingYard(kind,158);
+  assert.ok(yard,'service yard still exists for '+kind);
+  const perimeter=yard.getObjectByName('BasePerimeter_'+kind);
+  assert.ok(perimeter,'supply/lamp group retained');
+  for(const name of ['YardFencePosts','YardFenceRails','YardFenceMesh'])
+   assert.equal(perimeter.getObjectByName(name),undefined,kind+' '+name);
+  assert.equal(perimeter.userData.fencePosts,undefined);
+  disposeBuildingYard(yard);
  }
- assert.ok(left>=2&&right>=2,'fence runs to both sides of the doorway');
- assert.equal(blocked,0,'no wire/post can cross the barracks front door');
- disposeBuildingYard(yard);
 });
