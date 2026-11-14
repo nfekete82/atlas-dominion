@@ -27,7 +27,7 @@ import {bomberAttackWaypoints,BOMBER_BOMB_RELEASE_DISTANCE,BOMBER_RUN_WAYPOINT_D
 import {AttackAlerts} from './attack-alerts.js';
 import {airfieldPoint,airfieldLerp,airfieldTaxiPoint,validAirfieldService,AIRFIELD_BAYS,AIRFIELD_REPAIR_HP_PER_CREDIT,AIRFIELD_REPAIR_FRACTION_PER_SECOND,AIRFIELD_LANDING_SECONDS,AIRFIELD_TAXI_SECONDS,AIRFIELD_TAKEOFF_SECONDS,type AirfieldService} from './airfield-maintenance.js';
 import {factoryRepairPoint,validFactoryService,FACTORY_REPAIR_BAYS,FACTORY_REPAIR_HP_PER_CREDIT,FACTORY_REPAIR_FRACTION_PER_SECOND,type FactoryService} from './factory-maintenance.js';
-import {factoryDoorExitCandidates,headquartersDoorExitCandidates} from './production-exit.js';
+import {factoryDoorExitCandidates,headquartersDoorExitCandidates,barracksMk2DoorExitCandidates} from './production-exit.js';
 import {eliminationOutcome} from './match-outcome.js';
 import {formationSlotPitch,vehicleSpacingGap,preservesVehicleProgress,vehicleYieldWaypoint} from './vehicle-spacing.js';
 import {UPGRADES,UPGRADE_KINDS,newResearchState,canResearchUpgrade,researchModifiers,
@@ -346,6 +346,7 @@ export class Simulation {
   stageWebGLProduction=false;
   /** Transient, never stored with a savegame. */
   barracksMk2Enabled=false;
+  barracksMk2ExitDistance=160;
   private readonly productionDepartureHolds=new Map<number,number>();
   extendProductionDeparture(unitId:number,until:number):void {
     if(!this.stageWebGLProduction||!Number.isFinite(until))return;
@@ -1863,7 +1864,7 @@ export class Simulation {
         const stagedMk2Barracks=this.stageWebGLProduction&&this.barracksMk2Enabled&&
           b.kind==='barracks'&&['infantry','medic','heavy','rocket'].includes(kind);
         if(stagedMk2Barracks){
-          for(const candidate of headquartersDoorExitCandidates(b)){
+          for(const candidate of barracksMk2DoorExitCandidates(b,this.barracksMk2ExitDistance)){
             if(!this.world.walkable(candidate,spawnObstacles,clearance))continue;
             const clear=this.world.nearest(candidate,spawnObstacles,this.units,undefined,clearance);
             if(clear&&distance(clear,candidate)<1){spawn=clear;break;}
