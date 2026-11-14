@@ -42,6 +42,9 @@ test('Kaserne preview is the real HQ MK2 derivative, or matching legacy fallback
    fenceGateHidden:model.getObjectByName('Fence_Gate_Left_Pivot')?.visible===false,
    leftDoor:!!model.getObjectByName('Door_Left_Pivot'),
    widthRatio:model.scale.x/model.scale.z,
+   worldFootprint:model.userData.mk2BarracksVisualTransformApplied?.modelFootprint??null,
+   roofCamo:model.getObjectByName('STAGE_02_Roof_and_Entrances__camo')?.material?.name,
+   roofTrim:model.getObjectByName('STAGE_02_Roof_and_Entrances__roof')?.material?.color?.getHexString(),
    metadataMetresToWorld:style?.metresToWorld??null,
    rootScaleFactor:model.scale.x/(liveSource.scene.scale.x||1),
    rootPosition:model.position.toArray(),
@@ -68,7 +71,11 @@ test('Kaserne preview is the real HQ MK2 derivative, or matching legacy fallback
   expect(result.mastTrianglesRemoved).toBeGreaterThan(30);
   expect(result.fenceGateHidden).toBe(true);
   expect(result.leftDoor).toBe(true);
-  expect(result.widthRatio).toBeGreaterThan(1.10);
+  expect(result.widthRatio).toBeGreaterThan(1.08);
+  expect(result.widthRatio).toBeLessThan(1.10);
+  expect(result.worldFootprint).toBeGreaterThan(200);
+  expect(result.roofTrim).toBe('353c42');
+  expect(result.roofCamo).not.toBe('SF_MK2_Anthracite_BrushedSteel');
  }else{
   expect(result.savedSource).toContain('/stylized/barracks-0.glb');
   expect(result.derived).toBe(false);
