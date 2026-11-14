@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+import {KTX2Loader} from 'three/addons/loaders/KTX2Loader.js';
+import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {Simulation} from '/src/reborn/simulation.js';
 import {isTerrainProfile,TERRAIN_LABELS,battlefieldStart,terrainGradingEdge} from '/src/reborn/battlefield-terrain.js';
 import {campaignLayout} from '/src/reborn/config.js';
@@ -163,6 +165,12 @@ controls.minPolarAngle=.65;controls.maxPolarAngle=1.30;
 controls.mouseButtons={LEFT:THREE.MOUSE.PAN,MIDDLE:THREE.MOUSE.DOLLY,RIGHT:THREE.MOUSE.ROTATE};
 controls.target.copy(cameraTarget);
 const loader=new GLTFLoader();
+// Meshopt geometry and optional KTX2 BasisU textures remain inside .glb.
+// Decoder assets are pinned to our installed Three.js version at build time.
+const ktx2=new KTX2Loader()
+ .setTranscoderPath('/vendor/three/addons/libs/basis/')
+ .detectSupport(renderer);
+loader.setKTX2Loader(ktx2).setMeshoptDecoder(MeshoptDecoder);
 const models=new Map(),ruinMeshes=[];
 // A player campaign starts LIVE, as in the original Canvas RTS. Orders must
 // never appear accepted while an unannounced preview-level pause blocks ticks.
