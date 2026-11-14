@@ -397,6 +397,49 @@ html.sandforge-clean-title #main-dialog .sandforge-splash-logo{
   max-height:28dvh;
  }
 }
+
+/* Main menu alignment v7: PLAY stays exactly as designed. The four
+   secondary entries share one fixed icon column and one text column. */
+html.sandforge-clean-title #main-dialog .menu-buttons
+:is(#sf3d-main-options,#sf3d-main-stats,#sf3d-main-credits,#sf3d-main-exit){
+ display:grid!important;
+ grid-template-columns:34px minmax(0,1fr)!important;
+ grid-template-rows:1fr!important;
+ column-gap:14px!important;
+ justify-content:normal!important;
+ justify-items:start!important;
+ align-items:center!important;
+ text-align:left!important;
+ padding:0 14px 0 clamp(62px,calc(50% - 75px),120px)!important;
+}
+html.sandforge-clean-title #main-dialog .menu-buttons
+:is(#sf3d-main-options,#sf3d-main-stats,#sf3d-main-credits,#sf3d-main-exit) > svg{
+ grid-column:1!important;grid-row:1!important;
+ justify-self:center!important;align-self:center!important;
+ flex:none!important;
+ width:32px!important;height:32px!important;
+ margin:0!important;
+}
+html.sandforge-clean-title #main-dialog .menu-buttons
+:is(#sf3d-main-options,#sf3d-main-stats,#sf3d-main-credits,#sf3d-main-exit) > span{
+ grid-column:2!important;grid-row:1!important;
+ justify-self:start!important;align-self:center!important;
+ text-align:left!important;white-space:nowrap!important;
+ margin:0!important;transform:none!important;
+}
+@media(max-width:720px){
+ html.sandforge-clean-title #main-dialog .menu-buttons
+ :is(#sf3d-main-options,#sf3d-main-stats,#sf3d-main-credits,#sf3d-main-exit){
+  grid-template-columns:30px minmax(0,1fr)!important;
+  column-gap:12px!important;
+  padding-left:clamp(28px,calc(50% - 69px),98px)!important;
+ }
+ html.sandforge-clean-title #main-dialog .menu-buttons
+ :is(#sf3d-main-options,#sf3d-main-stats,#sf3d-main-credits,#sf3d-main-exit) > svg{
+  width:29px!important;height:29px!important;
+ }
+}
+
 </style>
 <script>
 /* The supplied Bastion logo and sunset artwork are authoritative.
