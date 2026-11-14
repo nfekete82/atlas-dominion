@@ -179,3 +179,38 @@ test('MK2 Kaserne stage uses a bounded spawn candidate list rather than nearest-
   assert.ok(positions.every(p=>(p.x-b.x)*toward.x+(p.y-b.y)*toward.y>=144.9));
  }
 });
+
+test('MK2 barracks door animation never moves, hides or holds the real produced unit',async()=>{
+ const {SandforgeProductionGates}=await import('../scripts/webgl-production-gates.js');
+ const game={
+  time:0,stageWebGLProduction:true,productionReleases:[],
+  units:[{id:50,kind:'infantry',hp:100,orders:[]}],
+  bases:[{id:30,kind:'barracks',hp:1000}],
+  cancelProductionDeparture(id){this.cancelled=id;},
+  extendProductionDeparture(){throw Error('MK2 barracks must never block the simulation');}
+ };
+ const actor={node:{visible:true,position:{x:180,y:0,z:140}},productionMotion:null};
+ const before={...actor.node.position};
+ const portal={mk2:true,left:{position:{x:-1}},right:{position:{x:1}},
+  leftX:-1,rightX:1,hall:{visible:false}};
+ const lamp={visible:false,material:{emissiveIntensity:0}};
+ const entry={id:30,mk2Barracks:true,node:{visible:true},
+  gate:{kind:'barracks',portal,hall:portal.hall,lamp}};
+ const battlefield={game,bases:new Map([[30,entry]]),
+  units:new Map([[50,actor]])};
+ const presenter=new SandforgeProductionGates(battlefield);
+ game.productionReleases.push({baseId:30,unitId:50,kind:'infantry',at:0});
+ presenter.update();
+ assert.equal(game.cancelled,50);
+ assert.equal(presenter.active.size,0,'no actor path rollout started');
+ assert.equal(presenter.safeBarracks.size,1,'only cosmetic door cue registered');
+ assert.deepEqual(actor.node.position,before);
+ game.time=.7;presenter.update();
+ assert.equal(portal.left.position.x,-2.36,'sliding door opens while actor stays authoritative');
+ assert.deepEqual(actor.node.position,before);
+ game.time=2.3;presenter.update();
+ assert.equal(presenter.safeBarracks.size,0);
+ assert.equal(portal.left.position.x,-1,'shutter closes after finite animation');
+ assert.deepEqual(actor.node.position,before);
+ assert.equal(actor.node.visible,true);
+});
