@@ -65,6 +65,10 @@ export function ensureFactionWallBanners(entry,owner,kind=entry?.kind){
  }
  group=new THREE.Group();group.name='SF_FactionWallStandards';
  group.userData.visualOnly=true;group.userData.nonPlayable=true;
+ // Construction finishes before the standards are ceremonially mounted.
+ // Stay hidden at creation: even asynchronously loaded GLBs must not flash
+ // completed flags onto a building still under construction.
+ group.visible=false;
  const fabric=new THREE.MeshStandardMaterial({
   name:'SF_FactionBannerFabric',color:TEAM_CLOTH[owner]??TEAM_CLOTH[0],
   roughness:.93,metalness:0,side:THREE.DoubleSide
@@ -85,6 +89,15 @@ export function ensureFactionWallBanners(entry,owner,kind=entry?.kind){
  entry.node.add(group);
  entry.factionBanners=group;
  return group;
+}
+
+/** Construction-only presentation. Installation is the final building step.
+ * Reuses the existing banners; no reallocation and no game-state mutation. */
+export function setFactionWallBannerConstruction(entry,finished){
+ const group=entry?.factionBanners??entry?.node?.getObjectByName('SF_FactionWallStandards');
+ if(!group)return false;
+ group.visible=Boolean(finished);
+ return group.visible;
 }
 
 export function setFactionWallBannerOwner(entry,owner){
