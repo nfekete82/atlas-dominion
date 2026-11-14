@@ -95,7 +95,6 @@ for(const facing of [0,2,1,3])test('MK2 visual pioneer exits through gate withou
  assert.ok(open.distanceTo(target)>8,'emergence must start inside, not at the simulation spawn');
  assert.ok(cleared.distanceTo(target)<10,'fence gate must align with real exterior slot');
  assert.ok(finish.distanceTo(target)<.01,'handoff matches the authoritative stop position');
- assert.ok(Math.abs((finish.x-base.x+500)*0+finish.x-target.x)<.01);
  assert.deepEqual(unit.orders,[],'no rally is invented');
  gates.dispose();
 });
