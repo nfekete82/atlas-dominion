@@ -47,6 +47,10 @@ test('main logo is 40 percent larger and lower; icon and text sit in fixed colum
  assert.match(html,/top:clamp\(24px,4\.2dvh,60px\)/);
  assert.match(html,/grid-template-columns:40px minmax\(0,1fr\)/);
  assert.match(html,/grid-column:2;align-self:center;text-align:left/);
+ assert.match(html,/Main menu alignment v7/);
+ assert.match(html,/grid-template-columns:34px minmax\(0,1fr\)!important/);
+ assert.match(html,/grid-column:1!important;grid-row:1!important/);
+ assert.match(html,/grid-column:2!important;grid-row:1!important/);
  const options=html.match(/id="sf3d-main-options"[^]*?<\/button>/)?.[0];
  assert.ok(options,'settings option exists');
  const cog=options.match(/<path d="([^"]+)"\/>/);
