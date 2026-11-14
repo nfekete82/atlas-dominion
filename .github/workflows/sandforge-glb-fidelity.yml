@@ -1,12 +1,9 @@
 name: Sandforge GLB fidelity QA
 on:
   push:
-    branches:
-      - feat/webgl-glb-fidelity-pbr-audit-20261114
+    branches: [develop]
   pull_request:
-    branches:
-      - feat/webgl-feldkommando-mk2-20261114
-      - develop
+    branches: [develop]
   workflow_dispatch:
 permissions:
   contents: read
