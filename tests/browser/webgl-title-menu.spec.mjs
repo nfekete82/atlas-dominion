@@ -1,5 +1,22 @@
 import {test,expect} from '@playwright/test';
 
+test('Hauptmenü: secondary icons and labels align vertically, Spielen is independent',async({page})=>{
+ await page.setViewportSize({width:1440,height:900});
+ await page.goto('/webgl-preview.html',{waitUntil:'domcontentloaded'});
+ await expect(page.locator('#main-dialog')).toBeVisible();
+ const positions=await page.evaluate(()=>{
+  const ids=['sf3d-main-options','sf3d-main-stats','sf3d-main-credits','sf3d-main-exit'];
+  const iconX=id=>document.querySelector('#'+id+' > svg').getBoundingClientRect().left;
+  const textX=id=>document.querySelector('#'+id+' > span').getBoundingClientRect().left;
+  return {icons:ids.map(iconX),labels:ids.map(textX),
+   playIcon:iconX('sf3d-new'),playLabel:textX('sf3d-new')};
+ });
+ expect(Math.max(...positions.icons)-Math.min(...positions.icons)).toBeLessThan(1);
+ expect(Math.max(...positions.labels)-Math.min(...positions.labels)).toBeLessThan(1);
+ expect(Math.abs(positions.playIcon-positions.icons[0])).toBeGreaterThan(20);
+ expect(Math.abs(positions.playLabel-positions.labels[0])).toBeGreaterThan(20);
+});
+
 test('3D starts with the original Sandforge title and enters a real playable campaign',async({page})=>{
  test.setTimeout(130000);
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
