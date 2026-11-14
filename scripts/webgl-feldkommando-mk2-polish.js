@@ -113,6 +113,87 @@ function matchMk2DesertCamouflage(model){
  }
 }
 
+
+/** Fill the actual MK2 perimeter with a uniform, fine X/diamond lattice.
+ * The authored GLB has detailed mesh on some spans, but other spans contain
+ * only bare diagonal braces. This is an INFILL on the existing fence plane,
+ * not a second perimeter and not an extra gameplay collider.
+ *
+ * The gate opening remains clear: HQ's animated leaves occupy the opening,
+ * while the Barracks derivative deliberately hides those leaves for troops.
+ */
+export function ensureMk2ContinuousFenceMesh(model){
+ const existing=model?.getObjectByName?.('SF_MK2_ContinuousFenceInfill');
+ if(existing)return existing;
+ const stage=model?.getObjectByName?.('Fence_Gate_Left_Pivot')?.parent;
+ const footing=model?.getObjectByName?.('STAGE_03_Radar_Utilities_and_Details__sandstone');
+ if(!stage||!footing?.geometry?.getAttribute('position'))return null;
+ const bounds=footing.geometry.boundingBox?.clone() ??
+  new THREE.Box3().setFromBufferAttribute(footing.geometry.getAttribute('position'));
+ // The authoring stage is Z-up (the SF_Y_UP_ROOT rotates it into Three).
+ // Read the widened MK2 fence's EXISTING concrete feet instead of hard-coded
+ // world/building-size numbers. Both HQ and the enlarged Barracks reuse it.
+ const xLeft=bounds.min.x-.025,xRight=bounds.max.x+.025;
+ const front=bounds.min.y-.025,rear=bounds.max.y+.025;
+ const gateHalf=2.48,baseZ=.34,topZ=2.12,rows=2;
+ const segments=[];
+ const point=(x,y,z)=>new THREE.Vector3(x,y,z);
+ const side=(x0,y0,x1,y1)=>{
+  const dx=x1-x0,dy=y1-y0,length=Math.hypot(dx,dy);
+  if(length<.12)return;
+  const steps=Math.max(1,Math.ceil(length/.86));
+  for(let i=0;i<steps;i++){
+   const t0=i/steps,t1=(i+1)/steps;
+   const xa=x0+dx*t0,ya=y0+dy*t0;
+   const xb=x0+dx*t1,yb=y0+dy*t1;
+   for(let row=0;row<rows;row++){
+    const z0=baseZ+(topZ-baseZ)*row/rows;
+    const z1=baseZ+(topZ-baseZ)*(row+1)/rows;
+    segments.push([point(xa,ya,z0),point(xb,yb,z1)]);
+    segments.push([point(xa,ya,z1),point(xb,yb,z0)]);
+   }
+  }
+ };
+ side(xLeft,rear,xRight,rear);   // continuous rear
+ side(xLeft,front,xLeft,rear);   // continuous left side
+ side(xRight,front,xRight,rear); // continuous right side
+ side(xLeft,front,-gateHalf,front);
+ side(gateHalf,front,xRight,front);
+ const wireGeometry=new THREE.CylinderGeometry(.017,.017,1,5);
+ wireGeometry.userData[OWNED]=true;
+ const wireMaterial=new THREE.MeshStandardMaterial({
+  name:'SF_MK2_ContinuousBlackWire',color:'#202726',
+  metalness:.52,roughness:.8,side:THREE.DoubleSide
+ });
+ wireMaterial.userData[OWNED]=true;
+ const wire=new THREE.InstancedMesh(wireGeometry,wireMaterial,segments.length);
+ wire.name='SF_MK2_ContinuousFenceXWires';
+ wire.userData={visualOnly:true,nonPlayable:true,siteDecor:true};
+ wire.castShadow=false;wire.receiveShadow=false;
+ wire.frustumCulled=false;
+ wire.raycast=()=>{};
+ const helper=new THREE.Object3D(),up=new THREE.Vector3(0,1,0);
+ for(let i=0;i<segments.length;i++){
+  const [a,b]=segments[i];
+  const direction=b.clone().sub(a),length=direction.length();
+  helper.position.copy(a).add(b).multiplyScalar(.5);
+  helper.quaternion.setFromUnitVectors(up,direction.multiplyScalar(1/length));
+  helper.scale.set(1,length,1);
+  helper.updateMatrix();
+  wire.setMatrixAt(i,helper.matrix);
+ }
+ wire.instanceMatrix.needsUpdate=true;
+ const group=new THREE.Group();
+ group.name='SF_MK2_ContinuousFenceInfill';
+ group.userData={visualOnly:true,nonPlayable:true,
+  frontOpeningWidth:gateHalf*2,wireCount:segments.length,
+  sides:['back','left','right','front-left','front-right'],
+  fenceBounds:{xLeft,xRight,front,rear,baseZ,topZ}};
+ group.add(wire);
+ stage.add(group);
+ return group;
+}
+
 function addMk2Interior(model){
  if(model.getObjectByName('SF_MK2_Interior'))return false;
  const left=model.getObjectByName('Door_Left_Pivot');
@@ -165,6 +246,7 @@ export function polishFeldkommandoMk2(model,yard=null){
   roofSteel(model);
   matchMk2DesertCamouflage(model);
   widenMk2Perimeter(model);
+  ensureMk2ContinuousFenceMesh(model);
   addMk2Interior(model);
   model.userData.sfMk2Polished=true;
  }
@@ -188,5 +270,7 @@ export function disposeFeldkommandoMk2Polish(model){
   for(const material of hall.userData.ownedMaterials??[])material.dispose();
   hall.removeFromParent();
  }
- delete model.userData.sfMk2Polished;
+ const infill=model.getObjectByName('SF_MK2_ContinuousFenceInfill');
+ if(infill)infill.removeFromParent();
+  delete model.userData.sfMk2Polished;
 }
