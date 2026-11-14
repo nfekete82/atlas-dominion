@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {desert002Texture} from './webgl-desert002.js';
 
 /**
  * Sandforge Feldkommando MK2 presentation: no edits to its source GLB,
@@ -34,8 +35,8 @@ function roofSteel(model){
  // Preserve the original PBR metal structure, just tint it anthracite.
  const metal=template.clone();
  metal.name='SF_MK2_Anthracite_BrushedSteel';
- metal.color.set('#43474d');
- metal.metalness=.68;metal.roughness=.66;metal.envMapIntensity=.72;
+ metal.color.set('#171c21');
+ metal.metalness=.58;metal.roughness=.72;metal.envMapIntensity=.45;
  metal.userData={...metal.userData,[OWNED]:true};
  let surfaces=0;
  const candidates=[];
@@ -131,13 +132,15 @@ function matchMk2DesertCamouflage(model){
  // patches. A restrained PBR coating removes the previous washed-out look.
  for(const name of [
   'STAGE_01_Bunker_Shell__camo',
-  'STAGE_01_Bunker_Shell__camo_light'
+  'STAGE_01_Bunker_Shell__camo_light',
+  'STAGE_01_Bunker_Shell__sandstone'
  ]){
   const mesh=model.getObjectByName(name),base=mesh?.material;
   if(!base?.isMeshStandardMaterial)continue;
   const material=base.clone();
-  material.name='SF_MK2_Reference_DesertCamouflage';
-  material.color.set(name.endsWith('__camo_light')?'#e5dfce':'#e0dccd');
+  material.name='SF_MK2_Desert002_MainCamouflage';
+  material.map=desert002Texture();
+  material.color.set('#ffffff');
   material.roughness=.91;material.metalness=.045;
   material.userData={...material.userData,[OWNED]:true};
   mesh.material=material;
