@@ -59,9 +59,9 @@ export const YARD_DECOR_KINDS=Object.freeze([
  'headquarters','barracks','factory','research','silo','interceptor',
  'airfield','generator'
 ]);
-const fencedSites=new Set([
- 'headquarters','barracks','factory','research','silo','interceptor'
-]);
+// Fence-free Sandforge: retain lighting and utility props but never create
+// wire panels, fence posts, barbed wire or invisible perimeter meshes.
+const fencedSites=new Set([]);
 // Light military perimeter fence: thin powder-coated posts, hairline mesh
 // and barbed concertina strands instead of bulky decorative timber rails.
 const fencePost=mat('#555e55',.26,.83);
