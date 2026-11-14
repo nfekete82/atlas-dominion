@@ -31,7 +31,7 @@ jobs:
         env:
           SANDFORGE_BROWSER_CHANNEL: chromium
           SANDFORGE_TEST_PORT: '8199'
-        run: node tests/browser/node_modules/playwright/cli.js test --config=tests/browser/playwright.config.mjs webgl-hud-layout-fixture.spec.mjs webgl-hud-showcase.spec.mjs webgl-title-menu.spec.mjs webgl-soldier-desert002.spec.mjs
+        run: node tests/browser/node_modules/playwright/cli.js test --config=tests/browser/playwright.config.mjs webgl-hud-layout-fixture.spec.mjs webgl-hud-showcase.spec.mjs webgl-title-menu.spec.mjs webgl-soldier-desert002.spec.mjs webgl-barracks-preview.spec.mjs
       - name: Save screenshots
         if: always()
         uses: actions/upload-artifact@v4
