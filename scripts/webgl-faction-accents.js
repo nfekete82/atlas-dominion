@@ -212,6 +212,10 @@ export function tintFactionMaterials(root,owner,kind,type){
    // These coatings already use the exact HQ3 albedo. Capture updates team
    // markers separately; never multiply the facade texture by its old paint.
    if(type==='building'&&source.userData?.sandforgeBuildingDesign)return source;
+   // MK2-derived Kaserne shares the *finished* HQ's native Desert-002 and
+   // near-black roof materials. Do not run the generic barracks 98.5%-opaque
+   // camo shader over those final finishes. This also keeps the HQ reference.
+   if(type==='building'&&source.userData?.sfMk2PolishOwned)return source;
    // Split a shared glTF material when one mesh is uniform armour and
    // another is a rifle/visor. A single paint clone for both would cause
    // the weapon or face to inherit the camouflage shader.
