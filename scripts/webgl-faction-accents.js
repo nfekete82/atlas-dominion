@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {tintStylizedTeam} from './webgl-stylized-pack.js';
 import {applyBuildingDesign} from './webgl-building-design.js';
+import {desert002Texture} from './webgl-desert002.js';
 
 /** Painted ownership belongs INSIDE the authored PBR surfaces.
  * No floating blue cubes, box geometry or extra draw calls.
@@ -246,8 +247,14 @@ export function tintFactionMaterials(root,owner,kind,type){
        // All building kinds (including future ones) share HQ3 colours. The
        // textured HQ3 itself stays authored: keepNative above prevents any
        // generic camouflage on its original UV-textured parts.
-       applyDesertBuildingCamo(mat,
-        type==='unit'&&SOLDIER_KINDS.has(kind)?'soldier':
+       if(uniform&&selectedCamouflageBiome==='desert'){
+        // Use the ACTUAL user-supplied desert 002 image instead of the old
+        // procedural green shader. Only eligible soldier armour/cloth/helmet
+        // receives this albedo; rifle, visor, skin, team badges stay intact.
+        mat.map=desert002Texture();mat.color.set('#ffffff');
+        mat.metalness=.035;mat.roughness=.93;
+        mat.userData.sandforgeMasterCamo='desert-002';mat.needsUpdate=true;
+       }else applyDesertBuildingCamo(mat,
         kind==='barracks'||kind==='bastion'?kind:
         type==='building'?'facility':'standard');
       }
