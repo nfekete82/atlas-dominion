@@ -21,6 +21,15 @@ const make=()=>{
  const roof=new THREE.Mesh(new THREE.BoxGeometry(6,6,.3).translate(0,0,4.4),
   new THREE.MeshStandardMaterial({name:'SF_roof',color:'#c0b9a5'}));
  roof.name='STAGE_02_Roof_and_Entrances__roof';stage.add(roof);
+ const topCamo=new THREE.Mesh(new THREE.BoxGeometry(4,4,.4).translate(0,0,4.7),
+  new THREE.MeshStandardMaterial({name:'SF_top_camo',color:'#b9b495'}));
+ topCamo.name='STAGE_02_Roof_and_Entrances__camo';stage.add(topCamo);
+ const outerSteel=new THREE.Mesh(new THREE.BoxGeometry(.4,.4,2.0).translate(8.1,-7.5,1.15),
+  new THREE.MeshStandardMaterial({name:'SF_outer_steel',color:'#596062'}));
+ outerSteel.name='STAGE_03_Radar_Utilities_and_Details__steel';stage.add(outerSteel);
+ const outerStone=new THREE.Mesh(new THREE.BoxGeometry(.7,.7,.4).translate(8.1,-7.5,.25),
+  new THREE.MeshStandardMaterial({name:'SF_outer_stone',color:'#b2aa90'}));
+ outerStone.name='STAGE_03_Radar_Utilities_and_Details__sandstone';stage.add(outerStone);
  for(const [name,x,y,z] of [
   ['Door_Left_Pivot',-1.22,-5.77,1.6],
   ['Door_Right_Pivot',1.22,-5.77,1.6],
@@ -29,11 +38,11 @@ const make=()=>{
  ]){
   const pivot=new THREE.Group();pivot.name=name;pivot.position.set(x,y,z);stage.add(pivot);
  }
- return {root,roof,camo,light};
+ return {root,roof,camo,light,topCamo,outerSteel,outerStone};
 };
 
 test('MK2 darkens rooftop using a shared textured metal material without touching base materials',()=>{
- const {root,roof,camo,light}=make();
+ const {root,roof,camo,light,topCamo,outerSteel,outerStone}=make();
  const roofOriginal=roof.material,base=camo.material;
  const lightOriginal=light.material,lightGeometry=light.geometry;
  const yard=new THREE.Group();
@@ -45,14 +54,23 @@ test('MK2 darkens rooftop using a shared textured metal material without touchin
  assert.notEqual(roof.material,roofOriginal);
  assert.ok(roof.material.metalness>=.6);
  assert.equal(roofOriginal.color.getHexString(),'c0b9a5');
- assert.equal(camo.material,base);
- assert.equal(light.material,lightOriginal,'original camo material stays on the walls');
+ assert.notEqual(camo.material,base,'wall camouflage gets an owned copy of its reference coating');
+ assert.equal(camo.material.map,base.map,'keep original camouflage artwork');
+ assert.equal(camo.material.color.getHexString(),'e0dccd');
+ assert.notEqual(light.material,lightOriginal,'walls get a reference-toned material clone');
+ assert.equal(light.material.map,lightOriginal.map);
  assert.notEqual(light.geometry,lightGeometry,'the tan roof triangles are separated');
  assert.ok(light.geometry.index.count<lightGeometry.index.count,'only top-facing roof triangles removed');
  assert.equal(lightOriginal.color.getHexString(),'e6d5b0');
  assert.ok(root.getObjectByName('SF_MK2_AnthraciteRoof'));
  assert.equal(root.getObjectByName('SF_MK2_AnthraciteRoof').geometry.groups.length,0);
  assert.ok(root.getObjectByName('SF_MK2_AnthraciteRoof').material.color.getHexString()==='43474d');
+ assert.equal(topCamo.material,roof.material,'top tier has solid anthracite metal with the same PBR map');
+ assert.equal(topCamo.material.metalness,.68);
+ const steel=outerSteel.geometry.getAttribute('position'),stone=outerStone.geometry.getAttribute('position');
+ assert.ok(steel.getX(0)>9,'perimeter steel moved outward');
+ assert.ok(stone.getY(0)<-8,'fence concrete also moves outward');
+ assert.ok(Math.abs(root.getObjectByName('Fence_Gate_Left_Pivot').position.y+8.83)<1e-5,'gate travels with fence');
  for(const name of ['YardFencePosts','YardFenceRails','YardFenceMesh'])
   assert.equal(yard.getObjectByName(name).visible,false);
  assert.ok(root.getObjectByName('SF_MK2_Interior'));
