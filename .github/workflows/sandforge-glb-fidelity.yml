@@ -28,6 +28,7 @@ jobs:
         run: node --test tests/webgl-glb-fidelity.test.mjs tests/meshy-import.test.mjs tests/webgl-feldkommando-mk2.test.mjs tests/webgl-hq-derived-barracks.test.mjs
       - name: Ensure offline decoder and viewer assets ship
         run: |
+          test -s dist/vendor/three/addons/utils/WorkerPool.js
           test -s dist/vendor/three/addons/loaders/KTX2Loader.js
           test -s dist/vendor/three/addons/libs/meshopt_decoder.module.js
           test -s dist/vendor/three/addons/libs/basis/basis_transcoder.wasm
