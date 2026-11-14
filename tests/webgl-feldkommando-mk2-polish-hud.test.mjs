@@ -15,6 +15,9 @@ const make=()=>{
  const camo=new THREE.Mesh(new THREE.BoxGeometry(5,5,.5).translate(0,0,4),
   new THREE.MeshStandardMaterial({name:'SF_camo',color:'#b2a187'}));
  camo.name='STAGE_01_Bunker_Shell__camo';stage.add(camo);
+ const shellWall=new THREE.Mesh(new THREE.BoxGeometry(5,3,1),
+  new THREE.MeshStandardMaterial({name:'SF_sandstone',color:'#b6a18a'}));
+ shellWall.name='STAGE_01_Bunker_Shell__sandstone';stage.add(shellWall);
  const light=new THREE.Mesh(new THREE.BoxGeometry(4,4,.5).translate(0,0,2.75),
   new THREE.MeshStandardMaterial({name:'SF_camo_light',color:'#e6d5b0'}));
  light.name='STAGE_01_Bunker_Shell__camo_light';stage.add(light);
