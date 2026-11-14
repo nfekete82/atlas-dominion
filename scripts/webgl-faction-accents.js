@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import {tintStylizedTeam} from './webgl-stylized-pack.js';
 import {applyBuildingDesign} from './webgl-building-design.js';
-import {desert002Texture} from './webgl-desert002.js';
+import {desert002UniformTexture} from './webgl-desert002.js';
+import {applyUniformProjection} from './webgl-soldier-camo.js';
 
 /** Painted ownership belongs INSIDE the authored PBR surfaces.
  * No floating blue cubes, box geometry or extra draw calls.
@@ -251,7 +252,12 @@ export function tintFactionMaterials(root,owner,kind,type){
         // Use the ACTUAL user-supplied desert 002 image instead of the old
         // procedural green shader. Only eligible soldier armour/cloth/helmet
         // receives this albedo; rifle, visor, skin, team badges stay intact.
-        mat.map=desert002Texture();mat.color.set('#ffffff');
+        mat.map=desert002UniformTexture();
+        // desert 002 itself contains 50%+ near-white/cream pixels. A warm
+        // multiplicative pigment keeps its original shapes but makes the
+        // once-white chest/helmet plates sand-coloured at RTS viewing scale.
+        mat.color.set('#dcc5a8');
+        mat.vertexColors=false;
         mat.metalness=.035;mat.roughness=.93;
         mat.userData.sandforgeMasterCamo='desert-002';mat.needsUpdate=true;
        }else applyDesertBuildingCamo(mat,
@@ -264,6 +270,8 @@ export function tintFactionMaterials(root,owner,kind,type){
    return mat;
   };
   mesh.material=Array.isArray(mesh.material)?mesh.material.map(paint):paint(mesh.material);
+  if(type==='unit'&&SOLDIER_KINDS.has(kind)&&selectedCamouflageBiome==='desert')
+   applyUniformProjection(mesh);
  });
  if(type==='building')applyBuildingDesign(root,{kind,biome:selectedCamouflageBiome});
  return tinted;
