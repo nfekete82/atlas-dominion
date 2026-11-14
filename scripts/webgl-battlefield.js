@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {stylizedAsset,isStylizedAsset,stylizedProfile} from './webgl-stylized-pack.js';
 import {meshyAsset,isMeshyAsset,meshyModelYaw} from './webgl-meshy-assets.js';
+import {shouldPreserveAuthoredGLB,protectAuthoredGlbMaterials,recordGlbAsset} from './webgl-glb-quality.js';
 import {SandforgeProductionGates} from '/webgl-production-gates.js';
 import {polishFeldkommandoMk2,hideMk2DuplicateFence,disposeFeldkommandoMk2Polish,isFeldkommandoMk2} from '/webgl-feldkommando-mk2-polish.js';
 import {deriveMk2Barracks,isMk2Barracks,arrangeMk2BarracksSupplies,applyMk2BarracksVisualTransform,finishMk2Barracks} from '/webgl-hq-barracks.js';
@@ -461,9 +462,13 @@ export class SandforgeBattlefield {
       task.entry.mk2Fallback=true;
       if(task.entry.kind==='barracks')this.game.barracksMk2Enabled=false;
      }
-     return this.getModel(old).catch(fallbackError=>{
+     return this.getModel(old).then(data=>{
+      task.entry.resolvedAssetUrl=old;return data;
+     }).catch(fallbackError=>{
       if(task.type==='building'&&task.entry.kind==='headquarters'&&old!==HQ3_FALLBACK_URL)
-       return this.getModel(HQ3_FALLBACK_URL);
+       return this.getModel(HQ3_FALLBACK_URL).then(data=>{
+        task.entry.resolvedAssetUrl=HQ3_FALLBACK_URL;return data;
+       });
       throw fallbackError;
      });
     }).then(data=>[data,null]);
@@ -478,6 +483,11 @@ export class SandforgeBattlefield {
     if(isMeshyAsset(task.url)&&!entry.meshyFallback)model.rotation.y+=meshyModelYaw(entry.kind);
     const authoredStyle=stylizedProfile(model);
     if(authoredStyle)model.userData={...model.userData,...authoredStyle};
+    const actualUrl=entry.resolvedAssetUrl??task.url;
+    const preserveOriginal=shouldPreserveAuthoredGLB(actualUrl,location.search);
+    if(preserveOriginal)protectAuthoredGlbMaterials(model,{
+     maxAnisotropy:this.renderer.capabilities.getMaxAnisotropy()
+    });
     if(type==='building'&&entry.kind==='barracks'&&!authoredStyle&&!mk2Barracks)
      simplifyBarracksSilhouette(model);
     if(type==='unit'&&entry.kind==='rocket'&&(!isMeshyAsset(task.url)||entry.meshyFallback))
@@ -498,8 +508,10 @@ export class SandforgeBattlefield {
       -authoredBuildingGroundY(entry.kind,box0)*scale*heightScale,-box0.getCenter(new THREE.Vector3()).z*scale);
     }
     if(type==='building'){
-     this.lightBuildingMeshes(model);
-     if(isStrategicGlbKind(entry.kind)&&!authoredStyle)applyStrategicGlbFinish(model);
+     if(!preserveOriginal)this.lightBuildingMeshes(model);
+     else model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+     if(isStrategicGlbKind(entry.kind)&&!authoredStyle&&!preserveOriginal)
+      applyStrategicGlbFinish(model);
     }else model.traverse(o=>{
      if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}
     });
@@ -527,9 +539,14 @@ export class SandforgeBattlefield {
       -altBounds.getCenter(new THREE.Vector3()).x*altScale,
       -authoredBuildingGroundY(entry.kind,altBounds)*altScale*altHeightScale,
       -altBounds.getCenter(new THREE.Vector3()).z*altScale);
-     this.lightBuildingMeshes(alternate);
-     applyStrategicGlbFinish(alternate);
-     tintFactionMaterials(alternate,entry.owner,entry.kind,'building');
+     if(preserveOriginal)protectAuthoredGlbMaterials(alternate,{
+      maxAnisotropy:this.renderer.capabilities.getMaxAnisotropy()
+     });
+     else{
+      this.lightBuildingMeshes(alternate);
+      applyStrategicGlbFinish(alternate);
+      tintFactionMaterials(alternate,entry.owner,entry.kind,'building');
+     }
      alternate.visible=false;
      entry.node.add(alternate);
      entry.variantDetail=alternate;
@@ -568,6 +585,8 @@ export class SandforgeBattlefield {
       this.productionGates.prepare(entry);
     }
     if(type==='unit'&&['tank','artillery'].includes(entry.kind))this.installTankRig(entry,model);
+    recordGlbAsset(entry,{kind:entry.kind,owner:entry.owner,requested:task.url,
+     actual:actualUrl,model,preserved:preserveOriginal});
     if(type==='unit'&&data.animations.length){
      const mixer=new THREE.AnimationMixer(model);
      const idle=data.animations.find(a=>/idle|stand|hover|engine/i.test(a.name))||data.animations[0];
@@ -584,6 +603,8 @@ export class SandforgeBattlefield {
     }
    }).catch(err=>{
     entry.modelLoadError=String(err.message);
+    recordGlbAsset(entry,{kind:task.entry.kind,owner:task.entry.owner,requested:task.url,
+     actual:task.entry.resolvedAssetUrl??null,error:err.message});
     console.warn('3D asset fallback:',task.url,err.message);
    }).finally(()=>{
     this.loadingCount--;this.pumpModelQueue();
