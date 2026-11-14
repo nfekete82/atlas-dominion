@@ -71,3 +71,61 @@ test('barracks troop can similarly wait for an airlock before walking to rally',
  for(let i=0;i<110;i++)g.step(.05);
  assert.ok(Math.hypot(u.x-start.x,u.y-start.y)>2);
 });
+
+
+for(const facing of [0,2,1,3])test('MK2 pioneer exits in front of the gate and STAYS if no rally: facing '+facing,()=>{
+ const {g,b,u}=freshFactory('headquarters','engineer',facing,null);
+ const angle=[0,Math.PI,Math.PI/2,Math.PI*1.5][facing];
+ const forward={x:Math.sin(angle),y:Math.cos(angle)};
+ const side={x:Math.cos(angle),y:-Math.sin(angle)};
+ const spot={x:u.x,y:u.y};
+ const front=(spot.x-b.x)*forward.x+(spot.y-b.y)*forward.y;
+ const offset=(spot.x-b.x)*side.x+(spot.y-b.y)*side.y;
+ assert.ok(Math.abs(front-(b.radius+50))<1,'spawn centred outside the actual fence');
+ assert.ok(Math.abs(offset)<1,'no old diagonal/rightward spawn');
+ assert.deepEqual(u.orders,[],'no unsolicited rally movement');
+ assert.ok(g.isProductionDepartureHeld(u.id));
+ for(let i=0;i<180;i++)g.step(.05);
+ assert.deepEqual({x:u.x,y:u.y},spot,'pioneer waits outside the fence');
+ assert.deepEqual(u.orders,[]);
+ assert.ok(!g.isProductionDepartureHeld(u.id));
+});
+
+for(const facing of [0,2,1,3])test('MK2 pioneer walks toward an explicit rally only AFTER the gate: facing '+facing,()=>{
+ const angle=[0,Math.PI,Math.PI/2,Math.PI*1.5][facing];
+ const forward={x:Math.sin(angle),y:Math.cos(angle)};
+ const rally={x:1700+forward.x*550,y:1700+forward.y*550};
+ const {g,b,u}=freshFactory('headquarters','engineer',facing,rally);
+ const spot={x:u.x,y:u.y};
+ assert.equal(u.orders[0]?.kind,'attackMove');
+ g.extendProductionDeparture(u.id,g.time+6.6);
+ for(let i=0;i<100;i++)g.step(.05);
+ assert.deepEqual({x:u.x,y:u.y},spot,'wait for door and fence gate');
+ for(let i=0;i<110;i++)g.step(.05);
+ const projected=(u.x-spot.x)*forward.x+(u.y-spot.y)*forward.y;
+ assert.ok(projected>15,'pioneer advances to the rally point in real Simulation');
+ assert.ok(projected<450,'pioneer does not teleport to rally point');
+ assert.equal(g.units.filter(v=>v.id===u.id).length,1);
+ assert.equal(b.rally.x,rally.x);
+});
+
+test('MK2 HQ retains a paid production order when its front gate is blocked',()=>{
+ const g=new Simulation(2074,4);
+ g.world.blocked.fill(0);g.world.components.fill(0);g.aiClock=1e8;
+ g.credits=[5000,5000];g.stageWebGLProduction=true;
+ const b={...g.bases[0],id:1751,x:1700,y:1700,kind:'headquarters',
+  radius:BUILDINGS.headquarters.radius,hp:BUILDINGS.headquarters.hp,facing:0,
+  buildRemaining:0,queue:[UNITS.engineer.buildTime],
+  queueTypes:['engineer'],queueCosts:[UNITS.engineer.cost],
+  production:UNITS.engineer.buildTime-.05,rally:null};
+ g.bases.push(b);
+ const nearest=g.world.nearest.bind(g.world);
+ g.world.nearest=()=>null;
+ g.step(.05);
+ assert.equal(b.queue.length,1);
+ assert.equal(g.productionReleases.length,0);
+ g.world.nearest=nearest;
+ g.step(.05);
+ assert.equal(b.queue.length,0);
+ assert.equal(g.productionReleases.length,1);
+});
