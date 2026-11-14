@@ -22,11 +22,14 @@ cpSync('animation-lab.html','dist/animation-lab.html');
 cpSync('model-preview.html','dist/model-preview.html');
 cpSync('model-3d.html','dist/model-3d.html');
 cpSync('webgl-preview.html','dist/webgl-preview.html');
+cpSync('glb-quality.html','dist/glb-quality.html');
 cpSync('building-gallery.html','dist/building-gallery.html');
 cpSync('art-gallery.html','dist/art-gallery.html');
 for(const module of ['webgl-stylized-pack','webgl-meshy-assets','webgl-art-gallery'])cpSync(`scripts/${module}.js`,`dist/${module}.js`);
 for(const module of ['webgl-building-design','webgl-hq3-reference','webgl-building-gallery','webgl-building-profiles','webgl-building-motion','webgl-building-bounds','webgl-barracks-silhouette'])cpSync(`scripts/${module}.js`,`dist/${module}.js`);
 cpSync('scripts/webgl-preview.js','dist/webgl-preview.js');
+cpSync('scripts/webgl-glb-quality.js','dist/webgl-glb-quality.js');
+cpSync('scripts/glb-quality-preview.js','dist/glb-quality-preview.js');
 cpSync('scripts/webgl-biomes.js','dist/webgl-biomes.js');
 cpSync('scripts/webgl-stylized-world.js','dist/webgl-stylized-world.js');
 cpSync('scripts/webgl-match-result.js','dist/webgl-match-result.js');
@@ -95,8 +98,14 @@ cpSync('src/reborn/webgl-hud-showcase.css','dist/webgl-hud-showcase.css');
 cpSync('scripts/animation/model-viewer.js','dist/model-viewer.js');
 // WebGL preview and 3D inspector share the same local Three.js modules.
 // Three.js assets are required by the 3D game and optional in classic mode.
-for(const file of ['build/three.module.js','build/three.core.js','examples/jsm/loaders/GLTFLoader.js','examples/jsm/controls/OrbitControls.js','examples/jsm/utils/BufferGeometryUtils.js','examples/jsm/utils/SkeletonUtils.js','examples/jsm/environments/RoomEnvironment.js']){
+for(const file of ['build/three.module.js','build/three.core.js','examples/jsm/loaders/GLTFLoader.js','examples/jsm/controls/OrbitControls.js','examples/jsm/utils/BufferGeometryUtils.js','examples/jsm/utils/SkeletonUtils.js','examples/jsm/environments/RoomEnvironment.js','examples/jsm/loaders/KTX2Loader.js','examples/jsm/libs/meshopt_decoder.module.js','examples/jsm/utils/WorkerPool.js','examples/jsm/libs/ktx-parse.module.js','examples/jsm/libs/zstddec.module.js','examples/jsm/math/ColorSpaces.js']){
   const target='dist/vendor/three/'+file.replace('build/','').replace('examples/jsm/','addons/');mkdirSync(target.slice(0,target.lastIndexOf('/')),{recursive:true});cpSync('node_modules/three/'+file,target);
+}
+// Ship matching offline Basis transcoder for compressed textures.
+for(const file of ['basis_transcoder.js','basis_transcoder.wasm']){
+ const dest='dist/vendor/three/addons/libs/basis/'+file;
+ mkdirSync('dist/vendor/three/addons/libs/basis',{recursive:true});
+ cpSync('node_modules/three/examples/jsm/libs/basis/'+file,dest);
 }
 cpSync('node_modules/three/LICENSE','dist/vendor/three/LICENSE');
 cpSync('src/reborn/style.css', 'dist/style.css');
