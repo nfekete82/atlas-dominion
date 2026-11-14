@@ -168,6 +168,17 @@ export function shouldTintFactionSurface(kind,type,materialName='',meshName='',m
  // signal even after tintBastionCaptureSignals updates the PBR color.
  if(kind==='bastion'&&/^SF_Bastion_(?:red|light|yellow|glass|dish|dishshade|stripe|black|bolt|frame)$/.test(materialName))
   return false;
+ // Atlas soldiers use a large number of separate armour plates. The old
+ // generic skip /hand|rocket|light/ excluded white protective plates even
+ // when those plates were part of gloves, helmets or the RocketInfantry rig.
+ // Classify soldier surfaces separately and protect *actual* equipment.
+ if(type==='unit'&&SOLDIER_KINDS.has(kind)){
+  const soldierName=name.replace(/rocket[_ -]?(?=infantry|soldier|trooper)/ig,'');
+  if(mat?.transparent&&mat.opacity<.95)return false;
+  if(/weapon|rifle|gun|barrel|muzzle|launcher|warhead|rocketpod|missile|scope|optic|glass|visor|goggle|eye|skin|face|barehand|fingertip|antenna|lamp|emissive|glow|screen|decal|insignia|stencil|badge|team|faction|flag|hologram|shadow|invisible|tread|wheel/i.test(soldierName))
+   return false;
+  return true; // plates, cloth, helmet, gloves, boots, vest, packs, trim
+ }
  if(skip.test(name))return false;
  if(mat?.transparent&&mat.opacity<.95)return false;
  // Never exclude structural paint solely because it was authored in pure
