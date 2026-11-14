@@ -57,7 +57,7 @@ test('main logo is 40 percent larger and lower; icon and text sit in fixed colum
 
 test('barracks inherits the shared MK2 desert painting without touching other biomes',()=>{
  const design=readFileSync('scripts/webgl-building-design.js','utf8');
- assert.match(design,/mk2-reference-barracks-pbr-v2/);
+ assert.match(design,/desert-002-master-pbr-v3/);
  assert.match(design,/if\(kind==='barracks'\)/);
  assert.match(design,/HQ_Dark_Charcoal_Roof/);
  assert.match(design,/biome!=='desert'/);
