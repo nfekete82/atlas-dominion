@@ -147,7 +147,13 @@ async function populate(entry){
  if(entry.rotor)entry.rotorRest=entry.rotor.rotation.y;
  if(kind==='silo')prepareSiloHatch(entry);
  entry.yard=createBuildingYard(kind,BUILDINGS[kind]?.width);
- if(entry.yard)entry.node.add(entry.yard);
+ if(entry.yard){
+  if(kind==='headquarters'&&file!==HQ3_FALLBACK_URL)
+   for(const name of ['YardFencePosts','YardFenceRails','YardFenceMesh']){
+    const fence=entry.yard.getObjectByName(name);if(fence)fence.visible=false;
+   }
+  entry.node.add(entry.yard);
+ }
  if(kind==='airfield'){
   hideOldAirfieldHangar(entry);entry.airfieldServiceYard=createAirfieldServiceYard();entry.node.add(entry.airfieldServiceYard);
  }
