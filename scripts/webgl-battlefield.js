@@ -3,7 +3,7 @@ import {stylizedAsset,isStylizedAsset,stylizedProfile} from './webgl-stylized-pa
 import {meshyAsset,isMeshyAsset,meshyModelYaw} from './webgl-meshy-assets.js';
 import {SandforgeProductionGates} from '/webgl-production-gates.js';
 import {polishFeldkommandoMk2,hideMk2DuplicateFence,disposeFeldkommandoMk2Polish,isFeldkommandoMk2} from '/webgl-feldkommando-mk2-polish.js';
-import {ensureFactionWallBanners,setFactionWallBannerOwner,disposeFactionWallBanners} from '/webgl-faction-banners.js';
+import {ensureFactionWallBanners,setFactionWallBannerOwner,setFactionWallBannerConstruction,disposeFactionWallBanners} from '/webgl-faction-banners.js';
 import {updateBarracksPortalPlanes} from '/webgl-barracks-portal.js';
 import {nextPeriodicRefresh} from '/webgl-frame-scheduling.js';
 import {wheelsShouldRoll} from '/webgl-wheel-motion.js';
@@ -1158,7 +1158,11 @@ export class SandforgeBattlefield {
    // Authored construction can restore original instanced fence visibility;
    // re-hide it after the reveal so MK2 never gets a second outside fence.
    if(b.kind==='headquarters'&&isFeldkommandoMk2(entry.detail))hideMk2DuplicateFence(entry.yard);
-   if(['headquarters','barracks'].includes(b.kind))setFactionWallBannerOwner(entry,b.owner);
+   if(['headquarters','barracks'].includes(b.kind)){
+    setFactionWallBannerOwner(entry,b.owner);
+    // Standards are the very last construction detail, never present at 0–99%.
+    setFactionWallBannerConstruction(entry,b.buildRemaining<=0);
+   }
    if(entry.motion?.mode==='fallback'&&entry.motion.rotor)entry.motion.rotor.visible=b.buildRemaining<=0;
    this.animateBuildingMotion(entry,b,dt,active);
    if(b.buildRemaining<=0&&!this.announcedBuildings.has(b.id)){
