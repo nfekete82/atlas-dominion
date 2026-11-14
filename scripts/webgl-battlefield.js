@@ -757,7 +757,7 @@ export class SandforgeBattlefield {
   }
   group.add(guides);group.userData.previewGuides=guides;
   // A small directional ground arrow marks the REAL building entrance.
-  // HQ3 and factory open toward +Z; barracks/research open toward -Z.
+  // MK2 barracks and HQ face +Z; old barracks and research face -Z.
   // The direction arrow follows the exact same initial facing and R key.
   const frontMarker=new THREE.Group();
   frontMarker.name='BuildPreviewFrontDirection';
@@ -773,8 +773,11 @@ export class SandforgeBattlefield {
   const arrow=new THREE.Mesh(new THREE.ShapeGeometry(arrowShape),frontMaterial);
   arrow.name='BuildingFrontArrow';
   arrow.rotation.x=-Math.PI/2;
-  arrow.position.set(kind==='airfield'?-41:kind==='barracks'?spec.width*.12:0,
-   4.2,kind==='airfield'?65:['research','barracks'].includes(kind)?-spec.width*.48-9:spec.width*.48+9);
+  const sisterBarracks=kind==='barracks'&&
+   this.asset(kind,0,'building')===strategicGlbUrl('headquarters','active');
+  arrow.position.set(kind==='airfield'?-41:kind==='barracks'&&!sisterBarracks?spec.width*.12:0,
+   4.2,kind==='airfield'?65:
+   kind==='research'||(kind==='barracks'&&!sisterBarracks)?-spec.width*.48-9:spec.width*.48+9);
   arrow.renderOrder=1014;arrow.raycast=()=>{};
   frontMarker.add(arrow);group.add(frontMarker);
   group.userData.previewFrontMarker=frontMarker;
@@ -810,7 +813,15 @@ export class SandforgeBattlefield {
   this.buildPreviewScene.add(group);
   this.buildPreview=group;group.visible=false;
   if(isStrategicBuilding(kind)&&!isStrategicGlbKind(kind))return; // other strategic types use procedural preview
-  this.getModel(this.asset(kind,0,'building')).then(data=>{
+  const requestedAsset=this.asset(kind,0,'building');
+  let actualPreviewAsset=requestedAsset;
+  this.getModel(requestedAsset).catch(error=>{
+   if(kind==='barracks'&&requestedAsset===strategicGlbUrl('headquarters','active')){
+    actualPreviewAsset=stylizedAsset('barracks',0);
+    return this.getModel(actualPreviewAsset);
+   }
+   throw error;
+  }).then(data=>{
    if(this.buildPreview!==group||this.buildKind!==kind)return;
    const model=cloneSkeleton(data.scene);
    const mk2Barracks=kind==='barracks'&&
@@ -849,7 +860,7 @@ export class SandforgeBattlefield {
    group.remove(placeholder);disposeOwnedMeshes(placeholder);
    guides.visible=false;
    group.userData.previewPlaceholder=null;group.userData.previewDetail=model;
-   group.userData.previewSource=this.asset(kind,0,'building');
+   group.userData.previewSource=actualPreviewAsset;
    group.add(model);
   }).catch(error=>console.warn('Baupreview: vereinfachtes 3D-Modell',error));
  }
