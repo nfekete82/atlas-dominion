@@ -91,6 +91,34 @@ export function prepareBarracksPortal(entry,renderer){
  if(entry?.barracksPortal)return entry.barracksPortal;
  const root=entry?.detail;
  if(!root)return null;
+ // MK2-derived Kaserne: real headquarters sliding doors, no fake door
+ // panels or clipping planes. The dish/antenna were removed from the clone
+ // during asset preparation. Preserve the external open infantry passage.
+ if(root.userData?.sandforgeMk2Barracks){
+  const left=root.getObjectByName('Door_Left_Pivot');
+  const right=root.getObjectByName('Door_Right_Pivot');
+  const fence=root.getObjectByName('Fence_Gate_Left_Pivot');
+  if(!left||!right||!fence)return null;
+  root.updateWorldMatrix(true,true);
+  const door=root.worldToLocal(left.getWorldPosition(new THREE.Vector3()));
+  const gate=root.worldToLocal(fence.getWorldPosition(new THREE.Vector3()));
+  const lane={
+   inside:new THREE.Vector3(0,.75,door.z-1.25),
+   threshold:new THREE.Vector3(0,.20,door.z+.55),
+   outside:new THREE.Vector3(0,.15,gate.z+2)
+  };
+  root.userData.portal={lamp:[0,3.15,door.z+.15],
+   inside:lane.inside.toArray(),threshold:lane.threshold.toArray(),
+   outside:lane.outside.toArray()};
+  const hall=new THREE.Group();
+  hall.name='Mk2BarracksPortalHall';root.add(hall);
+  const portal={kind:'barracks',authored:true,mk2:true,root,hall,left,right,
+   leftX:left.position.x,rightX:right.position.x,leftSide:-1,rightSide:1,
+   travel:1.36,lane,materials:[],planes:[],replaced:[],doorPanels:[]};
+  entry.barracksPortal=portal;
+  setBarracksDoorOpen(portal,1);
+  return portal;
+ }
  const spec=root.userData?.portal;
  if(spec){
   const left=root.getObjectByName('GATE_LEFT_PIVOT'),right=root.getObjectByName('GATE_RIGHT_PIVOT');
@@ -177,6 +205,14 @@ export function updateBarracksPortalPlanes(portal,force=false){
  }
 }
 export function setBarracksDoorOpen(portal,open){
+ if(portal.mk2){
+  // Authored HQ sliding leaves, 1=closed and 0=fully open (barracks API).
+  const t=Math.max(0,Math.min(1,open));
+  portal.left.position.x=portal.leftX-1.36*(1-t);
+  portal.right.position.x=portal.rightX+1.36*(1-t);
+  portal.hall.visible=t<.98;
+  return;
+ }
  if(portal.authored){
   const t=Math.max(0,Math.min(1,open));
   portal.left.position.x=portal.leftX+(1-t)*portal.leftSide*(portal.travel??1.1);
