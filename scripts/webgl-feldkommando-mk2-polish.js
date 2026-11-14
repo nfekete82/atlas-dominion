@@ -33,12 +33,12 @@ function roofSteel(model){
  // Preserve the original PBR metal structure, just tint it anthracite.
  const metal=template.clone();
  metal.name='SF_MK2_Anthracite_BrushedSteel';
- metal.color.set('#50545b');
- metal.metalness=.62;metal.roughness=.70;metal.envMapIntensity=.74;
+ metal.color.set('#43474d');
+ metal.metalness=.68;metal.roughness=.66;metal.envMapIntensity=.72;
  metal.userData={...metal.userData,[OWNED]:true};
  let surfaces=0;
  const candidates=[];
- model.traverse(mesh=>{if(mesh.isMesh&&/^STAGE_0[123]_.*__(roof|camo)$/.test(mesh.name))candidates.push(mesh);});
+ model.traverse(mesh=>{if(mesh.isMesh&&/^STAGE_0[123]_.*__(roof|camo|camo_light)$/.test(mesh.name))candidates.push(mesh);});
  for(const mesh of candidates){
   if(/__roof$/.test(mesh.name)){mesh.material=metal;surfaces++;continue;}
   // Only reassign upward-facing rooftop triangles. Grouping every face
@@ -53,7 +53,10 @@ function roofSteel(model){
    const a=ix[i],b=ix[i+1],c=ix[i+2];
    const up=(normal.getZ(a)+normal.getZ(b)+normal.getZ(c))/3;
    const z=(positions.getZ(a)+positions.getZ(b)+positions.getZ(c))/3;
-   (up>.45&&z>2.85?roof:walls).push(a,b,c);
+   // The MK2's light-tan upper and sloped roofs also live in __camo_light.
+   // Their face normals have a positive authoring Z component; steep ramps
+   // were excluded by the old .45 threshold and 2.85-metre cutoff.
+   (up>.18&&z>2.35?roof:walls).push(a,b,c);
   }
   if(!roof.length)continue;
   const top=original.clone();top.clearGroups();top.setIndex(roof);
