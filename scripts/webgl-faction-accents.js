@@ -199,6 +199,11 @@ export function shouldTintFactionSurface(kind,type,materialName='',meshName='',m
  * cloning again, and the cached glTF template is never mutated. */
 export function tintFactionMaterials(root,owner,kind,type){
  if(!root)return 0;
+ // MK2 Kaserne and Feldkommando share the same real model and must take
+ // precisely the same paint path. The old 'barracks' branch installed a
+ // dark projected roofing shader on top of the MK2, hence the black roof.
+ if(type==='building'&&root.userData?.sandforgeMk2Barracks)
+  kind='headquarters';
  // Original reference assets contain authored vertex colour camouflage and
  // faction panels. Legacy world-space repainting would erase the art direction.
  if(tintStylizedTeam(root,owner))return 0;
