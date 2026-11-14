@@ -5,6 +5,8 @@ import * as THREE from 'three';
 import {deriveMk2Barracks,isMk2Barracks,arrangeMk2BarracksSupplies,applyMk2BarracksVisualTransform,finishMk2Barracks,MK2_BARRACKS_WIDTH_FACTOR,MK2_BARRACKS_DEPTH_FACTOR,MK2_BARRACKS_HEIGHT_FACTOR} from '../scripts/webgl-hq-barracks.js';
 import {prepareBarracksPortal,setBarracksDoorOpen,barracksExitLane,disposeBarracksPortal} from '../scripts/webgl-barracks-portal.js';
 import {isFeldkommandoMk2} from '../scripts/webgl-feldkommando-mk2-polish.js';
+import {tintFactionMaterials} from '../scripts/webgl-faction-accents.js';
+import {applyBuildingDesign} from '../scripts/webgl-building-design.js';
 
 function mk2Fixture(){
  const root=new THREE.Group(),stage=new THREE.Group();stage.rotation.x=-Math.PI/2;root.add(stage);
@@ -161,4 +163,26 @@ test('the barracks spawn helper keeps infantry beyond the enlarged gate for all 
   const d=(first.x-base.x)*forward.x+(first.y-base.y)*forward.y;
   assert.ok(Math.abs(d-162)<1);
  }
+});
+
+
+test('MK2 Kaserne roof uses the identical final materials as the Feldkommando',()=>{
+ const hq=mk2Fixture().root;
+ const barracks=mk2Fixture().root;
+ deriveMk2Barracks(barracks,{deferPolish:true});
+ tintFactionMaterials(hq,0,'headquarters','building');
+ tintFactionMaterials(barracks,0,'barracks','building');
+ assert.equal(applyBuildingDesign(barracks,{kind:'barracks'}),0,
+  'never install the old HQ3 roof projection on the MK2 sister building');
+ assert.equal(barracks.userData.sandforgeMaterialProfile,undefined);
+ finishMk2Barracks(barracks);
+ // The MK2 source geometry and roof are the same on both buildings;
+ // no additional near-black barracks shader is allowed.
+ const roofName='STAGE_02_Roof_and_Entrances__camo';
+ const hqRoof=hq.getObjectByName(roofName),barracksRoof=barracks.getObjectByName(roofName);
+ assert.equal(hqRoof.material.name,barracksRoof.material.name);
+ assert.equal(hqRoof.material.map,barracksRoof.material.map);
+ assert.equal(hqRoof.material.color.getHexString(),barracksRoof.material.color.getHexString());
+ assert.equal(barracksRoof.material.userData.sandforgeBuildingDesign,undefined);
+ assert.equal(barracks.getObjectByName('STAGE_02_Roof_and_Entrances__roof').material.color.getHexString(),'353c42');
 });
