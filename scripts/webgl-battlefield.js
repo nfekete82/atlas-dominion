@@ -3,7 +3,7 @@ import {stylizedAsset,isStylizedAsset,stylizedProfile} from './webgl-stylized-pa
 import {meshyAsset,isMeshyAsset,meshyModelYaw} from './webgl-meshy-assets.js';
 import {SandforgeProductionGates} from '/webgl-production-gates.js';
 import {polishFeldkommandoMk2,hideMk2DuplicateFence,disposeFeldkommandoMk2Polish,isFeldkommandoMk2} from '/webgl-feldkommando-mk2-polish.js';
-import {deriveMk2Barracks,isMk2Barracks,arrangeMk2BarracksSupplies,MK2_BARRACKS_WIDTH_FACTOR} from '/webgl-hq-barracks.js';
+import {deriveMk2Barracks,isMk2Barracks,arrangeMk2BarracksSupplies,applyMk2BarracksVisualTransform,finishMk2Barracks} from '/webgl-hq-barracks.js';
 import {ensureFactionWallBanners,setFactionWallBannerOwner,setFactionWallBannerConstruction,disposeFactionWallBanners} from '/webgl-faction-banners.js';
 import {updateBarracksPortalPlanes} from '/webgl-barracks-portal.js';
 import {nextPeriodicRefresh} from '/webgl-frame-scheduling.js';
@@ -473,7 +473,7 @@ export class SandforgeBattlefield {
     const model=cloneSkeleton(data.scene);
     const mk2Barracks=type==='building'&&entry.kind==='barracks'&&
      task.url===strategicGlbUrl('headquarters','active')&&
-     !entry.mk2Fallback&&deriveMk2Barracks(model);
+     !entry.mk2Fallback&&deriveMk2Barracks(model,{deferPolish:true});
     if(mk2Barracks){entry.mk2Barracks=true;this.game.barracksMk2Enabled=true;}
     if(isMeshyAsset(task.url)&&!entry.meshyFallback)model.rotation.y+=meshyModelYaw(entry.kind);
     const authoredStyle=stylizedProfile(model);
@@ -486,12 +486,13 @@ export class SandforgeBattlefield {
     const dims=box0.getSize(new THREE.Vector3());
     const desired=type==='unit'?UNITS[entry.kind].width:BUILDINGS[entry.kind].width;
     const extent=Math.max(dims.x,dims.z);
-    if(extent>.0001){
+    if(extent>.0001&&mk2Barracks)
+     applyMk2BarracksVisualTransform(model,box0,BUILDINGS.headquarters.width);
+    else if(extent>.0001){
      const scale=authoredStyle?authoredStyle.metresToWorld:calibratedScale(entry.kind,type,dims,desired)*
        (type==='unit'?visualUnitScale(entry.kind):1);
      const heightScale=type==='building'&&!authoredStyle?strategicBuildingHeightScale(entry.kind):1;
      model.scale.multiplyScalar(scale);model.scale.y*=heightScale;
-    if(mk2Barracks)model.scale.x*=MK2_BARRACKS_WIDTH_FACTOR;
      if(authoredStyle)model.position.set(0,0,0);
      else model.position.set(-box0.getCenter(new THREE.Vector3()).x*scale,
       -authoredBuildingGroundY(entry.kind,box0)*scale*heightScale,-box0.getCenter(new THREE.Vector3()).z*scale);
@@ -536,14 +537,15 @@ export class SandforgeBattlefield {
     }
     const visualScale=authoredStyle?authoredStyle.metresToWorld:calibratedScale(entry.kind,type,dims,desired)*
       (type==='unit'?visualUnitScale(entry.kind):1);
-    entry.modelHeight=Math.max(dims.y*visualScale*
+    const mk2Size=model.userData.mk2BarracksVisualTransformApplied;
+    entry.modelHeight=mk2Size?.modelHeight??Math.max(dims.y*visualScale*
      (type==='building'&&!authoredStyle?strategicBuildingHeightScale(entry.kind):1),entry.variantHeight??0);
-    entry.modelFootprint=Math.max(dims.x,dims.z)*visualScale;
+    entry.modelFootprint=mk2Size?.modelFootprint??Math.max(dims.x,dims.z)*visualScale;
     applyFactionAccents(entry,{kind:entry.kind,owner:entry.owner},type,
      entry.modelFootprint,entry.modelHeight);
     if(type==='unit')attachTeamMarkings(entry,entry.owner,entry.kind,entry.modelFootprint,entry.modelHeight);
     if(type==='building'&&entry.kind==='headquarters')polishFeldkommandoMk2(model,entry.yard);
-    if(mk2Barracks&&entry.yard)arrangeMk2BarracksSupplies(entry.yard);
+    if(mk2Barracks)finishMk2Barracks(model,entry.yard);
     if(type==='building'&&['headquarters','barracks'].includes(entry.kind))
      ensureFactionWallBanners(entry,entry.owner);
     entry.visualBaseY=model.position.y;entry.visualBaseZ=model.position.z;
@@ -825,8 +827,8 @@ export class SandforgeBattlefield {
    if(this.buildPreview!==group||this.buildKind!==kind)return;
    const model=cloneSkeleton(data.scene);
    const mk2Barracks=kind==='barracks'&&
-    this.asset(kind,0,'building')===strategicGlbUrl('headquarters','active')&&
-    deriveMk2Barracks(model);
+    actualPreviewAsset===strategicGlbUrl('headquarters','active')&&
+    deriveMk2Barracks(model,{deferPolish:true});
    const authoredStyle=stylizedProfile(model);
    // CRITICAL: normalise with the SAME rules as pumpModelQueue(), which
    // renders the actual completed structure. Stylized GLBs already encode
@@ -835,12 +837,13 @@ export class SandforgeBattlefield {
    if(kind==='barracks'&&!authoredStyle&&!mk2Barracks)simplifyBarracksSilhouette(model);
    const bounds=new THREE.Box3().setFromObject(model);
    const size=bounds.getSize(new THREE.Vector3());
-   if(size.y>0&&Math.max(size.x,size.z)>0){
+   if(size.y>0&&Math.max(size.x,size.z)>0&&mk2Barracks)
+    applyMk2BarracksVisualTransform(model,bounds,BUILDINGS.headquarters.width);
+   else if(size.y>0&&Math.max(size.x,size.z)>0){
     const scale=authoredStyle?authoredStyle.metresToWorld:
      calibratedScale(kind,'building',size,spec.width);
     const heightScale=authoredStyle?1:strategicBuildingHeightScale(kind);
     model.scale.multiplyScalar(scale);model.scale.y*=heightScale;
-    if(mk2Barracks)model.scale.x*=MK2_BARRACKS_WIDTH_FACTOR;
     if(authoredStyle)model.position.set(0,0,0);
     else model.position.set(-bounds.getCenter(new THREE.Vector3()).x*scale,
       -authoredBuildingGroundY(kind,bounds)*scale*heightScale,
@@ -851,11 +854,11 @@ export class SandforgeBattlefield {
    this.lightBuildingMeshes(model);
    if(isStrategicGlbKind(kind)&&!authoredStyle)applyStrategicGlbFinish(model);
    tintFactionMaterials(model,0,kind,'building');
+   if(mk2Barracks)finishMk2Barracks(model,yard);
    // Kaserne: no ghost material at all! Show the IDENTICAL finished model
    // with its own roof, facade and decals. The red/green ground ring and
    // build hint communicate placement validity without X-ray artefacts.
    if(kind!=='barracks')tint(model,false,.50);
-   if(mk2Barracks&&yard)arrangeMk2BarracksSupplies(yard);
    model.visible=true; // final authored shape and its actual entrances
    group.remove(placeholder);disposeOwnedMeshes(placeholder);
    guides.visible=false;
