@@ -88,7 +88,7 @@ for(const facing of [0,2,1,3])test('MK2 visual pioneer exits through gate withou
  };
  const hidden=tick(0);
  assert.ok(actor.node.visible===false);
- assert.ok(hidden.distanceTo(target)<.01);
+ assert.ok(hidden.distanceTo(target)>8,'hidden pioneer is staged inside the command building');
  const open=tick(GATE_TIMING.warning+GATE_TIMING.opening+.1);
  assert.ok(actor.node.visible);
  const duration=gates.active.get(base.id).duration;
