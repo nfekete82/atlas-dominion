@@ -35,6 +35,22 @@ export function factoryDoorExitCandidates(base:{x:number;y:number;radius:number;
     y:base.y+forward.y*distance+side.y*offset});
  return candidates;
 }
+/** Collision-safe arrival points immediately OUTSIDE the MK2 Feldkommando
+ * fence gate. Its authored gate centre is +Z (after Y-up conversion).
+ * radius+50 is aligned with its rendered exterior threshold at 1.10 HQ
+ * visual scale. Offsets are fallback parking spots, not a diagonal default.
+ * No saved-game fields, automatic rally or unit speeds are altered. */
+export function headquartersDoorExitCandidates(base:{x:number;y:number;radius:number;facing?:number}):Point[]{
+ const angle=[0,Math.PI,Math.PI/2,Math.PI*1.5][base.facing??0]??0;
+ const forward={x:Math.sin(angle),y:Math.cos(angle)};
+ const side={x:Math.cos(angle),y:-Math.sin(angle)};
+ const candidates:Point[]=[];
+ for(const distance of [base.radius+50,base.radius+72,base.radius+96])
+  for(const offset of [0,23,-23,46,-46])
+   candidates.push({x:base.x+forward.x*distance+side.x*offset,
+    y:base.y+forward.y*distance+side.y*offset});
+ return candidates;
+}
 /** Dust belongs at the real world-space release point, not on a fake door. */
 export function productionExitDustPoint(event:Pick<ProductionRelease,'to'|'from'>):Point{
  const dx=event.to.x-event.from.x,dy=event.to.y-event.from.y,l=Math.hypot(dx,dy)||1;
