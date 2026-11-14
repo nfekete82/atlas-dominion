@@ -14,7 +14,7 @@ function mk2Fixture(){
  };
  add('STAGE_02_Roof_and_Entrances__steel',new THREE.BoxGeometry(1,1,.2).translate(0,0,3.8));
  const roof=add('STAGE_02_Roof_and_Entrances__roof',new THREE.BoxGeometry(9,7,.2).translate(0,0,4.3));
- add('STAGE_02_Roof_and_Entrances__camo',new THREE.BoxGeometry(5,5,.2).translate(0,0,4.8));
+ add('STAGE_02_Roof_and_Entrances__camo',new THREE.BoxGeometry(5,5,.2).translate(0,0,4.8),'SF_top_camo');
  add('STAGE_01_Bunker_Shell__camo',new THREE.BoxGeometry(8,6,2.8).translate(0,0,1.6));
  add('STAGE_01_Bunker_Shell__camo_light',new THREE.BoxGeometry(8,6,.2).translate(0,0,3.1));
  add('STAGE_01_Bunker_Shell__sandstone',new THREE.BoxGeometry(6,6,3).translate(0,0,1.5));
@@ -111,7 +111,7 @@ test('same MK2 source path drives construction, finished Kaserne and preview',()
  const simulation=readFileSync('src/reborn/simulation.ts','utf8');
  assert.match(battle,/kind==='barracks'[\s\S]*?return strategicGlbUrl\('headquarters','active'\)/);
  assert.match(battle,/deriveMk2Barracks\(model,\{deferPolish:true\}\)/);
- assert.match(gallery,/deriveMk2Barracks\(model\)/);
+ assert.match(gallery,/deriveMk2Barracks\(model,\{deferPolish:true\}\)/);
  assert.match(gates,/barracks&&gate\.portal\.mk2/);
  assert.match(simulation,/stagedMk2Barracks/);
  assert.ok(!battle.includes("previewSource=this.asset(kind,0,'building')"),'actual preview source is recorded');
