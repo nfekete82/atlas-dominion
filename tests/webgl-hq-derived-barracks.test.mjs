@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync,existsSync} from 'node:fs';
 import * as THREE from 'three';
-import {deriveMk2Barracks,isMk2Barracks,arrangeMk2BarracksSupplies,MK2_BARRACKS_WIDTH_FACTOR} from '../scripts/webgl-hq-barracks.js';
+import {deriveMk2Barracks,isMk2Barracks,arrangeMk2BarracksSupplies,applyMk2BarracksVisualTransform,finishMk2Barracks,MK2_BARRACKS_WIDTH_FACTOR,MK2_BARRACKS_DEPTH_FACTOR,MK2_BARRACKS_HEIGHT_FACTOR} from '../scripts/webgl-hq-barracks.js';
 import {prepareBarracksPortal,setBarracksDoorOpen,barracksExitLane,disposeBarracksPortal} from '../scripts/webgl-barracks-portal.js';
 import {isFeldkommandoMk2} from '../scripts/webgl-feldkommando-mk2-polish.js';
 
@@ -49,12 +49,16 @@ test('Kaserne is genuinely built from the HQ MK2 mesh, with all tech equipment r
  assert.equal(model.getObjectByName('Fence_Gate_Right_Pivot').visible,false);
  assert.ok(model.getObjectByName('SF_MK2_Interior'),'real dark corridor retained');
  assert.equal(model.getObjectByName('STAGE_02_Roof_and_Entrances__roof')
-  .material.color.getHexString(),'171c21');
+  .material.color.getHexString(),'353c42');
  assert.equal(model.getObjectByName('STAGE_01_Bunker_Shell__camo')
   .material.map.name,'Sandforge_Desert002_MainCamouflage');
  assert.equal(source.getObjectByName('Radar_Dish_Pivot').visible,true,'HQ source never altered');
  assert.equal(source.getObjectByName('Fence_Gate_Left_Pivot').visible,true);
- assert.equal(MK2_BARRACKS_WIDTH_FACTOR,1.14);
+ assert.equal(MK2_BARRACKS_WIDTH_FACTOR,1.17);
+ assert.equal(MK2_BARRACKS_DEPTH_FACTOR,1.08);
+ assert.equal(MK2_BARRACKS_HEIGHT_FACTOR,1.03);
+ assert.equal(model.getObjectByName('STAGE_02_Roof_and_Entrances__camo').material.color.getHexString(),'9d967f',
+  'upper MK2 roof must keep its authored camo, not a solid black material');
 });
 
 test('barracks uses original MK2 sliding doors for an animated front (+Z) infantry exit',()=>{
@@ -118,4 +122,38 @@ test('optional local MK2 GLB has all nodes needed for the Kaserne',()=>{
   'Fence_Gate_Left_Pivot','Fence_Gate_Right_Pivot',
   'STAGE_03_Radar_Utilities_and_Details__steel'])
   assert.ok(names.has(key),key);
+});
+
+
+test('one HQ-based transform makes the derived barracks wider, deeper and taller',()=>{
+ const source=mk2Fixture().root;
+ const model=source.clone(true);
+ assert.ok(deriveMk2Barracks(model,{deferPolish:true}));
+ assert.equal(model.userData.sfMk2Polished,undefined,'finish deferred until actual HQ PBR pass');
+ const bounds=new THREE.Box3().setFromObject(model);
+ const transform=applyMk2BarracksVisualTransform(model,bounds,225);
+ assert.ok(transform.scale>0);
+ assert.ok(transform.modelFootprint>200,'barracks now reads as a full-size HQ sister building');
+ assert.equal(model.scale.x/model.scale.z,MK2_BARRACKS_WIDTH_FACTOR/MK2_BARRACKS_DEPTH_FACTOR);
+ assert.equal(model.scale.y/model.scale.z,MK2_BARRACKS_HEIGHT_FACTOR/MK2_BARRACKS_DEPTH_FACTOR);
+ assert.equal(applyMk2BarracksVisualTransform(model,bounds,225),transform,'transform is applied only once');
+ assert.equal(finishMk2Barracks(model),true);
+ assert.ok(model.userData.sfMk2Polished);
+ assert.equal(model.getObjectByName('STAGE_02_Roof_and_Entrances__camo').material.name,'SF_top_camo',
+  'authored roof camo retained after both HK and Kaserne finishing stages');
+ assert.equal(model.getObjectByName('STAGE_02_Roof_and_Entrances__roof').material.color.getHexString(),'353c42');
+});
+
+test('the barracks spawn helper keeps infantry beyond the enlarged gate for all facings',async()=>{
+ const {barracksMk2DoorExitCandidates}=await import('../dist/src/reborn/production-exit.js');
+ const base={x:1700,y:1700,radius:53};
+ for(const facing of [0,1,2,3]){
+  const candidates=barracksMk2DoorExitCandidates({...base,facing},162);
+  assert.equal(candidates.length,15);
+  const angle=[0,Math.PI,Math.PI/2,Math.PI*1.5][facing];
+  const forward={x:Math.sin(angle),y:Math.cos(angle)};
+  const first=candidates[0];
+  const d=(first.x-base.x)*forward.x+(first.y-base.y)*forward.y;
+  assert.ok(Math.abs(d-162)<1);
+ }
 });
