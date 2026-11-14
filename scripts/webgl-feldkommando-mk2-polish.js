@@ -8,6 +8,7 @@ import * as THREE from 'three';
  */
 const FENCE_PARTS=['YardFencePosts','YardFenceRails','YardFenceMesh'];
 const OWNED='sfMk2PolishOwned';
+export const MK2_FENCE_OUTSET=1.35; // Authored metres, never scene/game scale
 
 export function isFeldkommandoMk2(model){
  return Boolean(model?.getObjectByName?.('Door_Left_Pivot')&&
@@ -40,7 +41,12 @@ function roofSteel(model){
  const candidates=[];
  model.traverse(mesh=>{if(mesh.isMesh&&/^STAGE_0[123]_.*__(roof|camo|camo_light)$/.test(mesh.name))candidates.push(mesh);});
  for(const mesh of candidates){
-  if(/__roof$/.test(mesh.name)){mesh.material=metal;surfaces++;continue;}
+  // The *entire* upper communications-tower roof is a camouflage mesh,
+  // not a roof mesh. Its Z bounds are 4.40–4.88 m (no wall surfaces).
+  // Assign the real metal PBR material directly, without brittle face tests.
+  if(/__roof$/.test(mesh.name)||mesh.name==='STAGE_02_Roof_and_Entrances__camo'){
+   mesh.material=metal;surfaces++;continue;
+  }
   // Only reassign upward-facing rooftop triangles. Grouping every face
   // into a draw call would be disastrous for an RTS; split into two
   // indexed geometries with one draw each instead.
@@ -77,6 +83,65 @@ function roofSteel(model){
  }
  if(!surfaces)metal.dispose();
  return surfaces;
+}
+
+function widenMk2Perimeter(model){
+ if(model.userData.sfMk2PerimeterExpanded)return 0;
+ let moved=0;
+ // The real outer perimeter is baked into the STAGE_03 steel + concrete
+ // meshes. Only its low, outlying vertices are translated; the antenna,
+ // radar, pipes, doors and building walls retain their exact positions.
+ for(const name of [
+  'STAGE_03_Radar_Utilities_and_Details__steel',
+  'STAGE_03_Radar_Utilities_and_Details__sandstone'
+ ]){
+  const mesh=model.getObjectByName(name);
+  const source=mesh?.geometry;
+  if(!source?.getAttribute('position'))continue;
+  const geometry=source.clone(),position=geometry.getAttribute('position');
+  let count=0;
+  for(let i=0;i<position.count;i++){
+   const x=position.getX(i),y=position.getY(i),z=position.getZ(i);
+   if(z>2.52)continue;
+   let nx=x,ny=y;
+   if(Math.abs(x)>7.0)nx+=Math.sign(x)*MK2_FENCE_OUTSET;
+   if(y< -6.7)ny-=MK2_FENCE_OUTSET;
+   if(y>5.35)ny+=MK2_FENCE_OUTSET;
+   if(nx===x&&ny===y)continue;
+   position.setXY(i,nx,ny);count++;
+  }
+  if(!count){geometry.dispose();continue;}
+  position.needsUpdate=true;
+  geometry.computeBoundingBox();geometry.computeBoundingSphere();
+  geometry.userData={...geometry.userData,[OWNED]:true};
+  mesh.geometry=geometry;moved+=count;
+ }
+ // The two real sliding gate leaves have their own authored pivots,
+ // so they follow the fence without affecting the sliding HQ doors.
+ for(const name of ['Fence_Gate_Left_Pivot','Fence_Gate_Right_Pivot']){
+  const pivot=model.getObjectByName(name);
+  if(pivot)pivot.position.y-=MK2_FENCE_OUTSET;
+ }
+ model.userData.sfMk2PerimeterExpanded=true;
+ return moved;
+}
+
+function matchMk2DesertCamouflage(model){
+ // Keep the user's authored high-resolution texture and the olive/tan
+ // patches. A restrained PBR coating removes the previous washed-out look.
+ for(const name of [
+  'STAGE_01_Bunker_Shell__camo',
+  'STAGE_01_Bunker_Shell__camo_light'
+ ]){
+  const mesh=model.getObjectByName(name),base=mesh?.material;
+  if(!base?.isMeshStandardMaterial)continue;
+  const material=base.clone();
+  material.name='SF_MK2_Reference_DesertCamouflage';
+  material.color.set(name.endsWith('__camo_light')?'#e5dfce':'#e0dccd');
+  material.roughness=.91;material.metalness=.045;
+  material.userData={...material.userData,[OWNED]:true};
+  mesh.material=material;
+ }
 }
 
 function addMk2Interior(model){
@@ -129,6 +194,8 @@ export function polishFeldkommandoMk2(model,yard=null){
  if(!isFeldkommandoMk2(model))return false;
  if(!model.userData.sfMk2Polished){
   roofSteel(model);
+  matchMk2DesertCamouflage(model);
+  widenMk2Perimeter(model);
   addMk2Interior(model);
   model.userData.sfMk2Polished=true;
  }
