@@ -344,6 +344,8 @@ export class Simulation {
   /** Only enabled by WebGL. Never serialized; old saves and headless/Canvas
    * simulation retain the original immediate production semantics. */
   stageWebGLProduction=false;
+  /** Transient, never stored with a savegame. */
+  barracksMk2Enabled=false;
   private readonly productionDepartureHolds=new Map<number,number>();
   extendProductionDeparture(unitId:number,until:number):void {
     if(!this.stageWebGLProduction||!Number.isFinite(until))return;
@@ -1856,7 +1858,18 @@ export class Simulation {
             if(clear&&distance(clear,candidate)<1){spawn=clear;break;}
           }
         }
-        if(!spawn&&!stagedHqEngineer)
+        // The sister Kaserne uses the MK2 front-facing (+Z) door and fence.
+        // Keep older barracks/2D exits unchanged when the asset is absent.
+        const stagedMk2Barracks=this.stageWebGLProduction&&this.barracksMk2Enabled&&
+          b.kind==='barracks'&&['infantry','medic','heavy','rocket'].includes(kind);
+        if(stagedMk2Barracks){
+          for(const candidate of headquartersDoorExitCandidates(b)){
+            if(!this.world.walkable(candidate,spawnObstacles,clearance))continue;
+            const clear=this.world.nearest(candidate,spawnObstacles,this.units,undefined,clearance);
+            if(clear&&distance(clear,candidate)<1){spawn=clear;break;}
+          }
+        }
+        if(!spawn&&!stagedHqEngineer&&!stagedMk2Barracks)
           spawn=spec.flying?exit:this.world.nearest(exit,spawnObstacles,this.units,undefined,clearance);
         if(spawn&&this.count(b.owner)<RULES.capacity){const u=this.spawn(b.owner,spawn,kind);
           // The actual spawn remains authoritative; the renderer performs only a
