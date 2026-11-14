@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {readFileSync} from 'node:fs';
 import {
- ensureFactionWallBanners,setFactionWallBannerOwner,disposeFactionWallBanners,
+ ensureFactionWallBanners,setFactionWallBannerOwner,setFactionWallBannerConstruction,disposeFactionWallBanners,
  SANDFORGE_BANNER_STYLE
 } from '../scripts/webgl-faction-banners.js';
 
@@ -14,15 +14,26 @@ test('Feldkommando and Kaserne mount double wall banners without changing author
   const entry={kind,node,detail};
   const group=ensureFactionWallBanners(entry,0);
   assert.equal(group.children.length,2);
+  assert.equal(group.visible,false,'no early flag reveal during construction');
   assert.equal(group.userData.nonPlayable,true);
   assert.equal(group.userData.owner,0);
   assert.equal(group.getObjectByName('SF_FactionFabric').material.color.getHexString(),'284d7b');
   assert.equal(ensureFactionWallBanners(entry,0),group,'no duplicated flags');
+  assert.equal(group.visible,false,'async model reload does not reveal them');
+  assert.equal(setFactionWallBannerConstruction(entry,false),false,'0–99%: still under construction');
+  assert.equal(group.visible,false);
+  assert.equal(setFactionWallBannerConstruction(entry,true),true,'100%: flags installed at completion');
+  assert.equal(group.visible,true);
+  assert.equal(setFactionWallBannerConstruction(entry,false),false,'restarted construction hides them');
+  assert.equal(group.visible,false);
   assert.ok(group.children[0].position.x<0&&group.children[1].position.x>0);
   assert.equal(Math.sign(group.children[0].position.z),Math.sign(SANDFORGE_BANNER_STYLE[kind].front));
   assert.equal(setFactionWallBannerOwner(entry,1),true);
   assert.equal(group.getObjectByName('SF_FactionFabric').material.color.getHexString(),'973c36');
   assert.equal(group.userData.owner,1);
+  assert.equal(group.visible,false,'team recoloring must not reveal unfinished flags');
+  setFactionWallBannerConstruction(entry,true);
+  assert.equal(group.visible,true);
   assert.equal(node.getObjectByName('SF_FactionWallStandards'),group);
   disposeFactionWallBanners(entry);
   assert.equal(node.getObjectByName('SF_FactionWallStandards'),undefined);
@@ -50,4 +61,11 @@ test('barracks inherits the shared MK2 desert painting without touching other bi
  assert.match(design,/if\(kind==='barracks'\)/);
  assert.match(design,/HQ_Dark_Charcoal_Roof/);
  assert.match(design,/biome!=='desert'/);
+});
+
+test('battle and building gallery use real completion state for the flag reveal',()=>{
+ const battlefield=readFileSync('scripts/webgl-battlefield.js','utf8');
+ const gallery=readFileSync('scripts/webgl-building-gallery.js','utf8');
+ assert.match(battlefield,/setFactionWallBannerConstruction\(entry,b\.buildRemaining<=0\)/);
+ assert.match(gallery,/setFactionWallBannerConstruction\(entry,progress>=1\)/);
 });
