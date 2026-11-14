@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import * as THREE from 'three';
 import {
  polishFeldkommandoMk2,isFeldkommandoMk2,hideMk2DuplicateFence,
- disposeFeldkommandoMk2Polish
+ ensureMk2ContinuousFenceMesh,disposeFeldkommandoMk2Polish
 } from '../scripts/webgl-feldkommando-mk2-polish.js';
 
 const make=()=>{
@@ -76,12 +76,40 @@ test('MK2 darkens rooftop using a shared textured metal material without touchin
  assert.ok(Math.abs(root.getObjectByName('Fence_Gate_Left_Pivot').position.y+8.83)<1e-5,'gate travels with fence');
  for(const name of ['YardFencePosts','YardFenceRails','YardFenceMesh'])
   assert.equal(yard.getObjectByName(name).visible,false);
- assert.ok(root.getObjectByName('SF_MK2_Interior'));
+ const lattice=root.getObjectByName('SF_MK2_ContinuousFenceInfill');
+ assert.ok(lattice,'one uniform fence lattice across all four MK2 perimeter sides');
+ assert.equal(lattice.userData.sides.length,5,'rear, left, right and two entrance stretches');
+ assert.equal(lattice.userData.frontOpeningWidth,4.96);
+ assert.ok(lattice.userData.wireCount>100,'repeating X lattice, not isolated diagonal props');
+ const wires=lattice.getObjectByName('SF_MK2_ContinuousFenceXWires');
+ assert.equal(wires.count,lattice.userData.wireCount);
+ assert.equal(wires.material.color.getHexString(),'202726');
+ assert.equal(wires.userData.nonPlayable,true);
+ // No diagonal X can bridge the authored sliding gate/infantry passage.
+ const matrix=new THREE.Matrix4(),center=new THREE.Vector3();
+ const {front}=lattice.userData.fenceBounds;
+ let frontWires=0,backWires=0,leftWires=0,rightWires=0;
+ const {rear,xLeft,xRight}=lattice.userData.fenceBounds;
+ for(let i=0;i<wires.count;i++){
+  wires.getMatrixAt(i,matrix);center.setFromMatrixPosition(matrix);
+  if(Math.abs(center.y-front)<.05){
+   frontWires++;
+   assert.ok(Math.abs(center.x)>2.48,'entrance remains clear of decorative X wires');
+  }
+  if(Math.abs(center.y-rear)<.05)backWires++;
+  if(Math.abs(center.x-xLeft)<.05)leftWires++;
+  if(Math.abs(center.x-xRight)<.05)rightWires++;
+ }
+ assert.ok(frontWires>6&&backWires>6&&leftWires>6&&rightWires>6,
+  'continuous X pattern on every exterior side');
+ assert.equal(ensureMk2ContinuousFenceMesh(root),lattice,'no double mesh on second polish');
+  assert.ok(root.getObjectByName('SF_MK2_Interior'));
  assert.ok(root.getObjectByName('SF_MK2_HallBack'));
  assert.equal(polishFeldkommandoMk2(root,yard),true,'idempotent');
  assert.equal(root.getObjectByName('SF_MK2_Interior').parent.children.filter(n=>n.name==='SF_MK2_Interior').length,1);
  disposeFeldkommandoMk2Polish(root);
  assert.equal(root.getObjectByName('SF_MK2_Interior'),undefined);
+ assert.equal(root.getObjectByName('SF_MK2_ContinuousFenceInfill'),undefined);
  assert.ok(roof.geometry);
 });
 
