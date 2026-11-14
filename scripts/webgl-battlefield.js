@@ -493,6 +493,14 @@ export class SandforgeBattlefield {
      entry.placeholder=null;
     }
     entry.node.add(model);entry.detail=model;
+    // MK2 already contains a complete fenced perimeter and its own entry gate.
+    // Suppress only the older procedural fence, keeping lamps and supplies.
+    if(type==='building'&&entry.kind==='headquarters'&&!entry.mk2Fallback){
+     for(const name of ['YardFencePosts','YardFenceRails','YardFenceMesh']){
+      const fence=entry.yard?.getObjectByName(name);
+      if(fence)fence.visible=false;
+     }
+    }
     if(variantData){
      // Closed/ready silo and idle/working lab are distinct original GLBs.
      // Same authoring bounds and scale/grounding as the primary asset.
