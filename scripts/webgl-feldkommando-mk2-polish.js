@@ -104,7 +104,9 @@ function addMk2Interior(model){
  // Dark portal backdrop stands just behind the closed shutter, in front
  // of the older baked wall. A soldier already visible on the front side
  // will emerge naturally, without the wall shining through the doorway.
- add('SF_MK2_Recess',[width,.065,height],[0,doorY+.35,doorZ],wall);
+ // Place the recess before the model's original opaque interior panel,
+ // but behind the moving shutter, so opening never reveals the old wall.
+ add('SF_MK2_Recess',[width,.055,height],[0,doorY+.022,doorZ],wall);
  add('SF_MK2_HallFloor',[width,depth,.065],[0,centerY,.22],floor);
  add('SF_MK2_HallCeiling',[width,depth,.09],[0,centerY,doorZ+height*.52],wall);
  for(const side of [-1,1]){
