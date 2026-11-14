@@ -44,6 +44,11 @@ test('Kaserne is genuinely built from the HQ MK2 mesh, with all tech equipment r
  assert.equal(model.getObjectByName('STAGE_03_Radar_Utilities_and_Details__beacon').visible,false);
  assert.ok(model.userData.sandforgeMk2BarracksMastTrianglesRemoved>0);
  assert.equal(model.getObjectByName('STAGE_03_Radar_Utilities_and_Details__steel').visible,false);
+ const barracksBox=new THREE.Box3().setFromObject(model);
+ const originalBox=new THREE.Box3().setFromObject(source);
+ assert.ok(barracksBox.max.y<7,'removed mast no longer inflates the visual bounds');
+ assert.ok(originalBox.max.y>10,'original Feldkommando mast stays untouched');
+
  assert.equal(model.getObjectByName('Fence_Gate_Left_Pivot').visible,false,
   'the barracks has an open passage in its single MK2 barbed-wire fence');
  assert.equal(model.getObjectByName('Fence_Gate_Right_Pivot').visible,false);
