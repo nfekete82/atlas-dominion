@@ -132,3 +132,50 @@ test('MK2 HQ retains a paid production order when its front gate is blocked',()=
  assert.equal(b.queue.length,0);
  assert.equal(g.productionReleases.length,1);
 });
+
+test('fence-free MK2 barracks cannot block simulation when its entry is occupied',()=>{
+ const g=new Simulation(3098,4);
+ g.world.blocked.fill(0);g.world.components.fill(0);g.aiClock=1e8;
+ g.credits=[5000,5000];g.stageWebGLProduction=true;
+ g.barracksMk2Enabled=true;g.barracksMk2ExitDistance=145;
+ const b={...g.bases[0],id:1930,x:1700,y:1700,kind:'barracks',
+  radius:BUILDINGS.barracks.radius,hp:BUILDINGS.barracks.hp,
+  facing:0,buildRemaining:0,queue:[UNITS.infantry.buildTime],
+  queueTypes:['infantry'],queueCosts:[UNITS.infantry.cost],
+  production:UNITS.infantry.buildTime-.05,rally:null};
+ g.bases.push(b);
+ const originalWalkable=g.world.walkable.bind(g.world);
+ let checks=0,nearest=0;
+ const originalNearest=g.world.nearest.bind(g.world);
+ g.world.walkable=(...args)=>{checks++;return false;};
+ g.world.nearest=(...args)=>{nearest++;return originalNearest(...args);};
+ for(let i=0;i<12;i++)g.step(.05);
+ assert.equal(b.queue.length,1,'paid unit stays queued while exit unavailable');
+ assert.equal(g.productionReleases.length,0);
+ assert.ok(checks<=15,'blocked exit scanned once, not on every 20-Hz tick');
+ assert.ok(nearest<10,'no repeated heavyweight nearest-search loop in barracks production');
+ // Restore the world and ensure production recovers on the bounded retry.
+ g.world.walkable=originalWalkable;g.world.nearest=originalNearest;
+ for(let i=0;i<32&&b.queue.length;i++)g.step(.05);
+ assert.equal(b.queue.length,0,'production resumes as soon as the exit is safe');
+ assert.equal(g.productionReleases.length,1);
+ const release=g.productionReleases[0];
+ assert.equal(g.isProductionDepartureHeld(release.unitId),false,
+  'never hold an authoritative unit for the decorative door animation');
+ const unit=g.units.find(u=>u.id===release.unitId);
+ assert.ok(unit);
+ assert.deepEqual(unit.orders,[],'without a rallypoint the unit remains at its release spot');
+});
+
+test('MK2 Kaserne stage uses a bounded spawn candidate list rather than nearest-search on each tick',async()=>{
+ const {barracksMk2DoorExitCandidates}=await import('../dist/src/reborn/production-exit.js');
+ for(const facing of [0,1,2,3]){
+  const b={x:1700,y:1700,radius:53,facing};
+  const positions=barracksMk2DoorExitCandidates(b,145);
+  assert.equal(positions.length,15);
+  assert.ok(positions.every(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)));
+  const heading=[0,Math.PI,Math.PI/2,Math.PI*1.5][facing];
+  const toward={x:Math.sin(heading),y:Math.cos(heading)};
+  assert.ok(positions.every(p=>(p.x-b.x)*toward.x+(p.y-b.y)*toward.y>=144.9));
+ }
+});
