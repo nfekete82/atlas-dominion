@@ -22,7 +22,7 @@ jobs:
       - name: Build unified WebGL game
         run: npm run build:3d
       - name: Validate HUD, Bastion, Meshy fallback, title and assets
-        run: node --test tests/webgl-hud-showcase.test.mjs tests/webgl-animated-bastion-reference-20261113.test.mjs tests/meshy-import.test.mjs tests/webgl-feldkommando-mk2.test.mjs tests/webgl-feldkommando-mk2-polish-hud.test.mjs tests/webgl-faction-banners-title-menu.test.mjs tests/webgl-desert002-barracks-perimeter.test.mjs tests/webgl-soldier-desert002-regression.test.mjs tests/webgl-production-rally.test.mjs tests/webgl-branding-hq3.test.mjs tests/webgl-restored-infantry-hq.test.mjs tests/sandforge-webgl-entry.test.mjs tests/stylized-pack.test.mjs
+        run: node --test tests/webgl-hud-showcase.test.mjs tests/webgl-animated-bastion-reference-20261113.test.mjs tests/meshy-import.test.mjs tests/webgl-feldkommando-mk2.test.mjs tests/webgl-hq-derived-barracks.test.mjs tests/webgl-feldkommando-mk2-polish-hud.test.mjs tests/webgl-faction-banners-title-menu.test.mjs tests/webgl-desert002-barracks-perimeter.test.mjs tests/webgl-soldier-desert002-regression.test.mjs tests/webgl-production-rally.test.mjs tests/webgl-branding-hq3.test.mjs tests/webgl-restored-infantry-hq.test.mjs tests/sandforge-webgl-entry.test.mjs tests/stylized-pack.test.mjs
       - name: Install Playwright
         run: npm --prefix tests/browser install --no-audit --no-fund
       - name: Install Chromium
