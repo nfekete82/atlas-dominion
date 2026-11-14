@@ -1,0 +1,51 @@
+name: Sandforge GLB fidelity QA
+on:
+  push:
+    branches:
+      - feat/webgl-glb-fidelity-pbr-audit-20261114
+  pull_request:
+    branches:
+      - feat/webgl-feldkommando-mk2-20261114
+      - develop
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  glb-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: WebGL build with KTX2/Meshopt decoders
+        run: npm run build:3d
+      - name: GLB fidelity and existing Meshy/MK2 regressions
+        run: node --test tests/webgl-glb-fidelity.test.mjs tests/meshy-import.test.mjs tests/webgl-feldkommando-mk2.test.mjs tests/webgl-hq-derived-barracks.test.mjs
+      - name: Ensure offline decoder and viewer assets ship
+        run: |
+          test -s dist/vendor/three/addons/loaders/KTX2Loader.js
+          test -s dist/vendor/three/addons/libs/meshopt_decoder.module.js
+          test -s dist/vendor/three/addons/libs/basis/basis_transcoder.wasm
+          test -s dist/glb-quality.html
+      - name: Install browser tests
+        run: npm --prefix tests/browser install --no-audit --no-fund
+      - name: Install Chromium
+        run: cd tests/browser && npx playwright install --with-deps chromium
+      - name: A/B viewer in headless Chromium
+        env:
+          SANDFORGE_BROWSER_CHANNEL: chromium
+          SANDFORGE_TEST_PORT: '8201'
+        run: node tests/browser/node_modules/playwright/cli.js test --config=tests/browser/playwright.config.mjs webgl-glb-quality.spec.mjs
+      - name: Save browser output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandforge-glb-fidelity-browser
+          path: tests/browser/artifacts
+          if-no-files-found: ignore
+          retention-days: 7
