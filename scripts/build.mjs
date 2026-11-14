@@ -84,6 +84,7 @@ cpSync('scripts/webgl-construction-assembly.js','dist/webgl-construction-assembl
 cpSync('scripts/webgl-construction-recovery.js','dist/webgl-construction-recovery.js');
 cpSync('scripts/webgl-production-gates.js','dist/webgl-production-gates.js');
 cpSync('scripts/webgl-feldkommando-mk2-polish.js','dist/webgl-feldkommando-mk2-polish.js');
+cpSync('scripts/webgl-hq-barracks.js','dist/webgl-hq-barracks.js');
 cpSync('scripts/webgl-wheel-motion.js','dist/webgl-wheel-motion.js');
 cpSync('scripts/webgl-barracks-portal.js','dist/webgl-barracks-portal.js');
 cpSync('scripts/webgl-scale.js','dist/webgl-scale.js');
