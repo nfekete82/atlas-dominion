@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {readFileSync} from 'node:fs';
 import {
- ensureFactionWallBanners,setFactionWallBannerOwner,setFactionWallBannerConstruction,disposeFactionWallBanners,
+ ensureFactionWallBanners,resolvedFactionBannerStyle,setFactionWallBannerOwner,setFactionWallBannerConstruction,disposeFactionWallBanners,
  SANDFORGE_BANNER_STYLE
 } from '../scripts/webgl-faction-banners.js';
 
@@ -72,4 +72,29 @@ test('battle and building gallery use real completion state for the flag reveal'
  const gallery=readFileSync('scripts/webgl-building-gallery.js','utf8');
  assert.match(battlefield,/setFactionWallBannerConstruction\(entry,b\.buildRemaining<=0\)/);
  assert.match(gallery,/setFactionWallBannerConstruction\(entry,progress>=1\)/);
+});
+
+test('wall standards are taut and physically attached to resized HQ-derived Kaserne facade',()=>{
+ const node=new THREE.Group(),detail=new THREE.Group();node.add(detail);
+ detail.scale.set(17.65,15.55,16.31);
+ const wall=new THREE.Mesh(new THREE.BoxGeometry(12,3.6,9.8).translate(0,1.8,.15),
+  new THREE.MeshStandardMaterial());
+ wall.name='STAGE_01_Bunker_Shell__camo';detail.add(wall);
+ const entry={kind:'barracks',node,detail};
+ const layout=resolvedFactionBannerStyle(entry);
+ assert.equal(layout.measuredAgainstWall,true);
+ assert.ok(layout.side>65&&layout.front>75,'the larger Kaserne moves the flags to its actual walls');
+ const banners=ensureFactionWallBanners(entry,0);
+ for(const standard of banners.children){
+  assert.ok(Math.abs(Math.abs(standard.position.x)-layout.side)<.01);
+  assert.ok(Math.abs(standard.position.z-layout.front)<.01);
+  assert.ok(standard.getObjectByName('SF_FactionWeightedHem'));
+  assert.ok(standard.getObjectByName('SF_FactionStar'),'white star from the actual Sandforge standard');
+  assert.equal(standard.children.filter(n=>n.geometry?.type==='BoxGeometry'&&
+   n.geometry.parameters.depth===2.4).length,2,'two wall brackets hold the top bar');
+  const panel=standard.getObjectByName('SF_FactionFabric');
+  const z=panel.geometry.getAttribute('position');
+  for(let i=0;i<z.count;i++)assert.ok(Math.abs(z.getZ(i))<.1,'nearly flat, not billowing');
+ }
+ disposeFactionWallBanners(entry);
 });
